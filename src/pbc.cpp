@@ -34,31 +34,7 @@
 #include "transform.h"
 #include "codegenerator.h"
 
-int yyparse();
-
-using namespace jalib;
 using namespace hecura;
-
-class MyThread : public JThread {
-public:
-  MyThread(int n) : _n(n) {} 
-protected:
-  
-  void run(){
-    while(1){
-//       printf("Threadz %d (tid=%d)\n", _n, pthread_self());
-//       sleep(1);
-//       yield(); 
-//       printf("Thready %d (tid=%d)\n", _n, pthread_self());
-    }
-  }
-  
-private:
-  int _n;
-};
-
-
-TransformListPtr parsePbFile(const char* filename);
 
 int main( int argc, const char ** argv){
   TransformListPtr t = parsePbFile(argv[1]);
@@ -66,36 +42,5 @@ int main( int argc, const char ** argv){
   t->front()->print(std::cout);
   CodeGenerator cg(std::cout);
   t->front()->generateCodeSimple(cg);
-  
-
-//   typedef FixedMatrix < RowMajorLayout < 8, 8> > AMatrix;
-//   typedef FixedMatrix < ColumnMajorLayout < 8, 8> > BMatrix;
-//   typedef FixedMatrix < RecursiveLayout<3> > CMatrix;
-//   AMatrix matrixA;
-//   BMatrix matrixB;
-//   CMatrix matrixC;
-// 
-//   matrixFill(matrixA, 0);
-//   matrixFill(matrixB, 0);
-//   matrixFill(matrixC, 0);
-// 
-//   for( AMatrix::Iterator i = matrixA.Begin(); i!=matrixA.End(); ++i){
-//     std::cout << '(' << i.x() << ',' << i.y() << ") ";
-//   }
-//   std::cout << "\n\n";
-// 
-//   for( BMatrix::Iterator i = matrixB.Begin(); i!=matrixB.End(); ++i){
-//     std::cout << '(' << i.x() << ',' << i.y() << ") ";
-//   }
-//   std::cout << "\n\n";
-// 
-//   for( CMatrix::Iterator i = matrixC.Begin(); i!=matrixC.End(); ++i){
-//     std::cout << '(' << i.x() << ',' << i.y() << ") ";
-//   }
-//   std::cout << "\n\n";
-// 
-//   JASSERT(matrixEquals(matrixA, matrixB));
-// 
-//   std::cout << parseCoord(argv[1]) << std::endl;
   return 0; 
 }
