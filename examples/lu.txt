@@ -1,0 +1,65 @@
+//sizes of inputs are unbound, treated as symbolic by compiler
+transformation
+from IN[w, h] 
+to L[w, h], U[w, h]
+through S<0..min(w,h)>[w, h], View<0..min(w,h)> 
+{
+  //S<0> is input matrix
+  S<0> = IN
+  View<0> = Identity(IN)
+
+  //Create a, View<n+1>, of S<n> with the required swap of rows
+  View<n+1> from(S<n>[n, n:h-1] col) {
+    x = y-index of max element in col;
+    return SwapRow(S<n>, n, x);
+  }
+
+  //Scale the pivot row by element n,n
+  primary S<n+1>[i,n] from(View<n+1>[n,n] pivot, View<n+1>[i,n] src) where i>n {
+    return src / pivot;
+  }
+
+  //Update the elements in the box down and to the right of n,n
+  primary S<n+1>[j,k] from(View<n+1>[j,k] src, S<n+1>[j,n] up, S<n+1>[n,k] left)  where j>n and k>n 
+  {
+    return src - up*left;
+  }
+
+  //elements outside this lower right box pass through
+  secondary S<n+1>[x,y] from(View<n+1>[x,y] src){
+    return src;
+  }
+  
+  //copy lower triangle of last iteration to L
+  primary L[x,y] from(S<min(w,h)>[x,y] src) where x<y{
+    return src;
+  }
+  
+  //diagonal of L is 1
+  primary L[i,i] { return 1; }
+  
+  //rest is 0
+  secondary L[x,y] { return 0; }
+  
+  //copy upper triangle of last iteration to U
+  primary U[x,y] from(S<min(w,h)>[x,y] src) where x>=y{
+    return src;
+  }
+  
+  //rest is 0
+  secondary U[x,y] { return 0; }
+}
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+

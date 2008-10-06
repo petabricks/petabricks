@@ -1,0 +1,9 @@
+transform MatrixAdd
+from A[w,h], B[w,h] 
+to AB[w,h]
+{
+  AB.cell(2+3*x,5*y+1) from(A.cell(2+3*x,5*y+1) a, B.cell(2+3*x,5*y+1) b){
+    return a+b;
+  }
+}
+

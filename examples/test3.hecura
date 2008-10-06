@@ -1,0 +1,26 @@
+transform Test3 from IN[w,h] to OUT[w,h] 
+{
+  //recursive case
+  OUT.cell(x,y) from(IN.cell(x, y)    i, 
+                     OUT.cell(x+1, y) left,
+                     OUT.cell(x, y+1) up)
+  {
+     return i+left+up;
+  }
+  
+  //base case 1
+  OUT.cell(w-1,y) from(IN.cell(w-1,y) i) 
+  {
+    return i;
+  }
+  
+  //base case 2
+  OUT.cell(x,h-1) from(IN.cell(x,h-1) i) 
+  {
+    return i;
+  } 
+}
+
+
+
+

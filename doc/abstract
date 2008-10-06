@@ -1,0 +1,23 @@
+PetaBricks: Empowering the compiler with choice
+
+The optimal solution to a problem may require a composition of different
+algorithmic techniques.  When running on a cluster of multi-cores,
+one problem decomposition may be used to divide work between machines,
+another may be used to divide work between processors, and yet another
+may be used on each processor.  Optimizations, such as blocking the data
+into cache-optimal sizes and utilizing architecture specific features
+make creating high performance systems even harder.  When the architecture
+changes, the optimal set of algorithmic choices and optimizations may
+also change.  This makes highly optimized systems less portable.
+
+As a solution, we present PetaBricks, a new language for multidimensional
+dense matrix algebra that exposes algorithmic choices to the compiler.
+The programmer creates reusable software constructs we call ``bricks''
+that together can be composed into a solution to the overall problem.
+The compiler is responsible for searching the space of valid compositions
+for an optimally performing solution.  Experimental auto-tuning
+techniques are used to test the performance of candidate solutions. The
+language is implicitly parallel, the user need not think about threads.
+Problems with Ahmdal's Law are avoided because there is no sequential
+control element.
+

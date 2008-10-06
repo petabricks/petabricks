@@ -1,0 +1,191 @@
+%{
+#include <stdio.h>
+#include <map>
+#include "jconvert.h"
+#include "transform.h"
+#include "rule.h"
+#include "formula.h"
+#include "matrixdef.h"
+#include "region.h"
+using namespace hecura;
+
+extern int pblineno;
+extern char* pbtext;
+extern int pblex (void);
+int yyerror(hecura::TransformListPtr&, const char* msg){ JASSERT(false)(pblineno)(pbtext)(msg).Text("parse error"); return 0;}
+
+static jalib::JRefPool theRefPool;
+#define REFALLOC(args...) (theRefPool.add(new args))
+
+static void clearParserCaches(){
+  theRefPool.clear();
+}
+
+%}
+
+%defines
+%locations
+%expect 0
+%name-prefix="pb"
+
+%union {
+  int i;
+  double d;
+  const char* str;
+  hecura::Transform*      transform;
+  hecura::TransformList*  transforms;
+  hecura::MatrixDef*      matrixdef;
+  hecura::MatrixDefList*  matrixdefs;
+  hecura::Rule*           rule;
+  hecura::RuleList*       rules;
+  hecura::Formula*        formula;
+  hecura::FormulaList*    formulas;
+  hecura::Region*         region;
+  hecura::RegionList*     regions;
+}
+
+%start Start
+
+%parse-param { hecura::TransformListPtr& ret };
+%initial-action {
+  theRefPool.clear();
+}
+
+%token TRANSFORM FROM TO THROUGH LE GE WHERE ROTATABLE PRIMARY SECONDARY PRIORITY
+%token <str> INTEGER FLOAT IDENT RULEBODY
+%type <str> RuleBody
+%type <i> Integer PriorityFlag
+%type <d> Float
+%type <transform> Transform TransformHeader TransformName TransformFrom TransformThrough TransformTo;
+%type <transforms> TransformList
+%type <rules> TransformBody RuleList
+%type <rule> Rule RuleHeader
+%type <matrixdefs> MatrixDefList
+%type <matrixdef>  MatrixDef
+%type <formulas>   OptFormulaList FormulaList OptSize OptVersion OptWhere
+%type <formula>    Formula FormulaBinop
+%type <region>     Region NamedRegion
+%type <regions>    NamedRegionList
+
+%nonassoc '=' '<' '>' LE GE
+%left '-' '+'
+%left '*' '/'
+
+%%
+
+Start: TransformList {
+  ret = $1;
+  clearParserCaches();
+};
+
+
+Transform: TransformHeader TransformBody {
+   ($$=$1)->setRules(*$2); 
+   JTRACE("parsed Transform")($$->name()); 
+};
+
+TransformHeader: TransformName    {$$=$1;}
+               | TransformFrom    {$$=$1;}
+               | TransformThrough {$$=$1;}
+               | TransformTo      {$$=$1;};
+
+TransformName:    TRANSFORM IDENT OptSemiCol { $$=REFALLOC(Transform($2)); };
+TransformFrom:    TransformHeader FROM    MatrixDefList OptSemiCol { ($$=$1)->addFrom(*$3);    };
+TransformThrough: TransformHeader THROUGH MatrixDefList OptSemiCol { ($$=$1)->addThrough(*$3); };
+TransformTo:      TransformHeader TO      MatrixDefList OptSemiCol { ($$=$1)->addTo(*$3);      };
+
+
+
+MatrixDef: IDENT OptVersion OptSize { $$=REFALLOC(MatrixDef($1,*$2,*$3)); };
+
+OptVersion: Nil                          { ($$=REFALLOC(FormulaList())); }
+          | '<' Formula              '>' { ($$=REFALLOC(FormulaList()))->push_back($2); }
+          | '<' Formula Dots Formula '>' 
+{ 
+  $$=REFALLOC(FormulaList()); 
+  $$->push_back($2);
+  $$->push_back($4);
+};
+
+OptSize: Nil                 { $$=REFALLOC(FormulaList()); }
+       | '[' FormulaList ']' { $$=$2; };
+
+Formula: IDENT   {$$=REFALLOC( FormulaVariable($1) ); }
+       | Integer {$$=REFALLOC( FormulaInteger( $1) ); }
+       | Float   {$$=REFALLOC( FormulaFloat(  $1) );  }
+       | '(' Formula ')' { $$=$2; } 
+       | FormulaBinop    { $$=$1; };
+
+FormulaBinop: Formula '+' Formula { $$=REFALLOC(FormulaBinop<'+'>($1,$3)); }
+            | Formula '-' Formula { $$=REFALLOC(FormulaBinop<'-'>($1,$3)); }
+            | Formula '*' Formula { $$=REFALLOC(FormulaBinop<'*'>($1,$3)); }
+            | Formula '/' Formula { $$=REFALLOC(FormulaBinop<'/'>($1,$3)); }
+            | Formula '=' Formula { $$=REFALLOC(FormulaBinop<'='>($1,$3)); }
+            | Formula '<' Formula { $$=REFALLOC(FormulaBinop<'<'>($1,$3)); }
+            | Formula '>' Formula { $$=REFALLOC(FormulaBinop<'>'>($1,$3)); }
+            | Formula LE  Formula { $$=REFALLOC(FormulaLE($1,$3)); }
+            | Formula GE  Formula { $$=REFALLOC(FormulaGE($1,$3)); }
+            | '-' Formula { $$=REFALLOC(FormulaBinop<'-'>(FormulaInteger::zero(),$2)); };
+
+TransformBody: '{' RuleList '}' { $$=$2; };
+
+Rule: RuleHeader RuleBody OptSemiCol { ($$=$1)->setBody($2); JTRACE("parsed Rule"); };
+
+RuleHeader: Region FROM '(' NamedRegionList ')' OptWhere { $$=REFALLOC(Rule($1, *$4, *$6)); }
+          | PriorityFlag RuleHeader { ($$=$2)->setPriority($1); }
+          | ROTATABLE    RuleHeader { ($$=$2)->addRotations(RuleFlags::ROTATE); };
+
+PriorityFlag: PRIMARY                  {$$=RuleFlags::PRIORITY_PRIMARY;}
+            | SECONDARY                {$$=RuleFlags::PRIORITY_SECONDARY;}
+            | PRIORITY '(' Integer ')' {$$=$3;}
+
+RuleBody: '{' RULEBODY /*'}'*/ { $$=$2; }; // } is handled by lexer
+
+OptWhere: Nil                 { $$=REFALLOC(FormulaList()); }
+        | 'WHERE' FormulaList { $$=$2; };
+
+
+Region: IDENT '.' IDENT '(' OptFormulaList ')' { $$=REFALLOC(Region($1,$3,*$5)); };
+
+NamedRegion: Region IDENT { ($$=$1)->setName($2); };
+
+Dots: '.' '.' |  '.' '.' '.' ;
+Nil:;
+OptSemiCol : ';' OptSemiCol | Nil;
+Integer: INTEGER { $$=     jalib::StringToX<int>($1); };
+Float:   FLOAT   { $$=jalib::StringToX<double>($1); };
+
+RuleList: Rule          { ($$=REFALLOC(RuleList()))->push_back($1); }
+        | RuleList Rule { ($$=$1)->push_back($2); };
+
+TransformList: Transform                   { ($$=REFALLOC(TransformList()))->push_back($1); }
+             | TransformList ',' Transform { ($$=$1)->push_back($3); };
+
+MatrixDefList: MatrixDef                   { ($$=REFALLOC(MatrixDefList()))->push_back($1); }
+             | MatrixDefList ',' MatrixDef { ($$=$1)->push_back($3);                      };
+
+FormulaList: Formula                 { ($$=REFALLOC(FormulaList()))->push_back($1); }
+           | FormulaList ',' Formula { ($$=$1)->push_back($3); };
+
+NamedRegionList: Nil                             { ($$=REFALLOC(RegionList())); }
+               | NamedRegion                     { ($$=REFALLOC(RegionList()))->push_back($1); }
+               | NamedRegionList ',' NamedRegion { ($$=$1)->push_back($3); };
+
+
+OptFormulaList: Nil         { $$=REFALLOC(FormulaList()); }
+              | FormulaList { $$=$1; };
+
+
+%%
+
+extern FILE* pbin;
+
+TransformListPtr parsePbFile(const char* filename){
+  TransformListPtr ret;
+  pbin = fopen(filename,"r");
+  JASSERT(pbin!=NULL)(filename)(JASSERT_ERRNO).Text("failed to open file");
+  pbparse(ret);
+  return ret;
+}
+
+

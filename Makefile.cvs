@@ -1,0 +1,10 @@
+#!/usr/bin/make -f
+
+default: all
+
+all:
+	aclocal
+	autoheader
+	automake
+	autoconf
+
