@@ -217,16 +217,15 @@ bool hecura::SimpleRegion::hasIntersect(const SimpleRegion& that) const {
   return true;
 }
 
-std::string hecura::Region::generateSignatureCode(CodeGenerator& o) const{
+std::string hecura::Region::generateSignatureCode(CodeGenerator& o, bool isConst) const{
   switch(_originalType){
   case REGION_CELL:
-    return "Value& "  + _name;
+    return std::string()+(isConst?"const ":"")+"ValueT& "  + _name;
   case REGION_COL:
-    return "Column& " + _name;
   case REGION_ROW:
-    return "Row& "    + _name;
+    return (isConst?MatrixDef::oneD().constMatrixTypeName():MatrixDef::oneD().matrixTypeName())+" " + _name;
   case REGION_BOX:
-    return "Region& " + _name;
+    return (isConst?_fromMatrix->constMatrixTypeName():_fromMatrix->matrixTypeName())+" " + _name;
   default:
     JASSERT(false).Text("Unreachable");
     return "";
@@ -236,7 +235,7 @@ std::string hecura::Region::generateSignatureCode(CodeGenerator& o) const{
 std::string hecura::Region::generateAccessorCode(CodeGenerator& o) const{
   switch(_originalType){
   case REGION_CELL:
-    return _fromMatrix->name() + ".get("+_minCoord.toString()+")";
+    return _fromMatrix->name() + ".cell("+_minCoord.toString()+")";
   case REGION_COL:
     return _fromMatrix->name() + ".col("+_minCoord[0]->toString()+")";
   case REGION_ROW:

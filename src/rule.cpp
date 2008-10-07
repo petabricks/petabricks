@@ -186,15 +186,15 @@ void hecura::Rule::generateDeclCodeSimple(CodeGenerator& o){
   std::string rt = "void";
   std::vector<std::string> args;
   if(isReturnStyle()){
-    rt = "Value";
+    rt = "ValueT";
     JASSERT(_to.size()==1)(_to.size());
   }else{
     for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      args.push_back((*i)->generateSignatureCode(o));
+      args.push_back((*i)->generateSignatureCode(o,false));
     }
   }
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    args.push_back("const "+(*i)->generateSignatureCode(o));
+    args.push_back((*i)->generateSignatureCode(o,true));
   }
   o.beginFunc(rt, implcodename(), args);
   o.write(_body);
@@ -205,17 +205,28 @@ void hecura::Rule::generateTrampCodeSimple(CodeGenerator& o){
   CoordinateFormula begin;
   CoordinateFormula end;
   std::vector<std::string> args;
+
+  std::set<MatrixDefPtr> used;
+  for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
+    used.insert(i->first);
+    i->first->argDeclRW(args);
+  }
+  for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
+    if(used.find(i->first)==used.end())
+      i->first->argDeclRO(args);
+  }
+
   //populate min
   for(int i=0; i<dimensions(); ++i){
     FormulaPtr tmp = getOffsetVar(i,"begin");
     begin.push_back(tmp);
-    args.push_back("Index "+tmp->toString());
+    args.push_back("IndexT "+tmp->toString());
   }
   //populate max
   for(int i=0; i<dimensions(); ++i){
     FormulaPtr tmp = getOffsetVar(i,"end");
     end.push_back(tmp);
-    args.push_back("Index "+tmp->toString());
+    args.push_back("IndexT "+tmp->toString());
   }
 
   o.beginFunc("void",trampcodename(), args);
@@ -252,6 +263,10 @@ void hecura::Rule::generateCallCodeSimple(CodeGenerator& o, const SimpleRegionPt
   for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
     used.insert(i->first);
     args.push_back(i->first->name());
+  }
+  for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
+    if(used.find(i->first)==used.end())
+      args.push_back(i->first->name());
   }
   args.push_back(region->toString());
   o.call(trampcodename(), args);

@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2006 by Jason Ansel                                     *
- *   jansel@ccs.neu.edu                                                    *
+ *   jansel@csail.mit.edu                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -191,4 +191,13 @@ std::string jalib::Filesystem::GetCurrentHostname()
 //     name += std::string(".") + tmp.domainname;
 //   #endif
   return name;
+}
+
+std::string jalib::Filesystem::Basename( const std::string& s) {
+  std::string::const_iterator e = s.end();
+  for(std::string::const_iterator i=s.begin(); i!=s.end(); ++i){
+    if(*i=='.')
+      e=i;
+  }
+  return std::string(s.begin(), e);
 }

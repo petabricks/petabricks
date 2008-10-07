@@ -107,7 +107,7 @@ public:
     _maxCoord.makeRelativeTo(defs);
   }
 
-  std::string generateSignatureCode(CodeGenerator& o) const;
+  std::string generateSignatureCode(CodeGenerator& o, bool isConst) const;
   std::string generateAccessorCode(CodeGenerator& o) const;
 
   SimpleRegionPtr getApplicableRegion(Rule& rule, const FormulaList& defs);

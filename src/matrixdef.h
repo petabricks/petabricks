@@ -25,6 +25,10 @@
 #include "formula.h"
 #include "jconvert.h"
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #include <vector>
 #include <map>
 #include <string>
@@ -42,6 +46,13 @@ class MatrixDefMap : public std::map<std::string, MatrixDefPtr> , public jalib::
  */
 class MatrixDef : public jalib::JRefCounted, public jalib::JPrintable {
 public:
+  static const MatrixDef& oneD(){
+    FormulaList l;
+    l.push_back(FormulaInteger::one());
+    static MatrixDef tmp("_oneD",l,l);
+    return tmp;
+  }
+
   ///
   /// Constructor
   MatrixDef(const char* name, const FormulaList& version, const FormulaList& size);
@@ -71,11 +82,19 @@ public:
   void exportConstants(Transform&);
 
   std::string matrixTypeName() const{
-    return "hecura::MatrixRegion"+jalib::XToString(numDimensions())+"D";
+    #ifdef SHORT_TYPE_NAMES
+    return "MatrixRegion"+jalib::XToString(numDimensions())+"D";
+    #else
+    return "hecura::MatrixRegion<"+jalib::XToString(numDimensions())+">";
+    #endif
   }
 
   std::string constMatrixTypeName() const{
-    return "hecura::ConstMatrixRegion"+jalib::XToString(numDimensions())+"D";
+    #ifdef SHORT_TYPE_NAMES
+    return "ConstMatrixRegion"+jalib::XToString(numDimensions())+"D";
+    #else
+    return "hecura::MatrixRegion<"+jalib::XToString(numDimensions())+", const MATRIX_ELEMENT_T>";
+    #endif
   }
 
   void argDeclRW(std::vector<std::string>& args) const;

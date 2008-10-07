@@ -57,8 +57,7 @@ am_libhecura_a_OBJECTS = choicegrid.$(OBJEXT) codegenerator.$(OBJEXT) \
 	matrixreader.$(OBJEXT) maximalexer.$(OBJEXT) \
 	maximaparser.$(OBJEXT) maximawrapper.$(OBJEXT) \
 	pblexer.$(OBJEXT) pbparser.$(OBJEXT) region.$(OBJEXT) \
-	rule.$(OBJEXT) staticscheduler.$(OBJEXT) \
-	symboliccoordinate.$(OBJEXT) transform.$(OBJEXT)
+	rule.$(OBJEXT) staticscheduler.$(OBJEXT) transform.$(OBJEXT)
 libhecura_a_OBJECTS = $(am_libhecura_a_OBJECTS)
 libjutil_a_AR = $(AR) $(ARFLAGS)
 libjutil_a_LIBADD =
@@ -234,7 +233,7 @@ noinst_HEADERS = choicegrid.h codegenerator.h config.h formula.h jasm.h \
 	jassert.h jblockingqueue.h jbuffer.h jconvert.h jfilesystem.h jmutex.h \
 	jprintable.h jrefcounted.h jserialize.h jsocket.h jthread.h jtimer.h matrix.h \
 	matrixdef.h matrixdependency.h matrixio.h matrixoperations.h maximawrapper.h \
-	region.h rule.h staticscheduler.h symboliccoordinate.h transform.h
+	region.h rule.h staticscheduler.h transform.h
 
 libjutil_a_SOURCES = jassert.cpp jbuffer.cpp jfilesystem.cpp jprintable.cpp \
 	jserialize.cpp jsocket.cpp jthread.cpp jtimer.cpp
@@ -242,7 +241,7 @@ libjutil_a_SOURCES = jassert.cpp jbuffer.cpp jfilesystem.cpp jprintable.cpp \
 libhecura_a_SOURCES = choicegrid.cpp codegenerator.cpp formula.cpp matrix.cpp \
 	matrixdef.cpp matrixdependency.cpp matrixio.cpp matrixreader.lpp maximalexer.lpp \
 	maximaparser.ypp maximawrapper.cpp pblexer.lpp pbparser.ypp region.cpp rule.cpp \
-	staticscheduler.cpp symboliccoordinate.cpp transform.cpp
+	staticscheduler.cpp transform.cpp
 
 pbc_SOURCES = pbc.cpp
 pbc_LDADD = libhecura.a libjutil.a -lpthread 
@@ -355,7 +354,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/region.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rule.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staticscheduler.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/symboliccoordinate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/transform.Po@am__quote@
 

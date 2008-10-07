@@ -22,6 +22,7 @@ fi
 
 AC_DEFINE([MATRIX_ELEMENT_T],[double],[type for elements in the matrix])
 AC_DEFINE([MAX_DIMENSIONS],[64],[the maximum number of dimensions supported])
+AC_DEFINE([SHORT_TYPE_NAMES],[1],[undefine this if a large number of dimensions are needed, or one wants a cleaner user namespace])
 
 AC_ARG_ENABLE([debug],
             [AS_HELP_STRING([--enable-debug],

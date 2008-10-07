@@ -21,7 +21,6 @@
 #define HECURAMATRIX_H
 
 #include "jrefcounted.h"
-#include "symboliccoordinate.h"
 #include "jassert.h"
 
 #ifdef HAVE_CONFIG_H
@@ -37,14 +36,16 @@ namespace hecura {
 
 class MatrixStorage;
 typedef jalib::JRef<MatrixStorage> MatrixStoragePtr;
+typedef int IndexT;
+typedef MATRIX_ELEMENT_T ValueT;
 
 /**
  * The raw data for a Matrix
  */
 class MatrixStorage : public jalib::JRefCounted {
 public:
-  typedef int IndexT;
-  typedef MATRIX_ELEMENT_T ValueT;
+  typedef hecura::IndexT IndexT;
+  typedef hecura::ValueT ValueT;
 private:
   //no copy constructor
   MatrixStorage(const MatrixStorage&);
@@ -75,9 +76,7 @@ private:
 template< int D, typename ElementT = MATRIX_ELEMENT_T >
 class MatrixRegion {
 public:
-  typedef MatrixStorage::IndexT IndexT;
-public:
-  enum StockLayouts { INVALID, ROW_MAJOR, COL_MAJOR };
+  enum StockLayouts { INVALID, LAYOUT_ASCENDING, LAYOUT_DECENDING };
 
   ///
   /// Constructor with a given layout
@@ -97,23 +96,33 @@ public:
   MatrixRegion( const MatrixStoragePtr& s
               , ElementT* b
               , IndexT sizes[D]
-              , StockLayouts layout = COL_MAJOR)
+              , StockLayouts layout = LAYOUT_ASCENDING)
     : _storage(s)
     , _base(b)
   {
     memcpy(_sizes, sizes, sizeof _sizes);
     IndexT mult = 1;
-    if(layout == ROW_MAJOR){
-      for(int i=D-1; i>=0; --i){
-        _multipliers[i] = mult;
-        mult *= sizes[i];
-      }
-    }else{
+    if(layout == LAYOUT_ASCENDING){
       for(int i=0; i<D; ++i){
         _multipliers[i] = mult;
         mult *= sizes[i];
       }
+    }else{
+      for(int i=D-1; i>=0; --i){
+        _multipliers[i] = mult;
+        mult *= sizes[i];
+      }
     }
+  }
+
+  ///
+  /// Copy constructor
+  MatrixRegion( const MatrixRegion<D, MATRIX_ELEMENT_T>& that )
+    : _storage(that.storage())
+    , _base(that.base())
+  {
+    memcpy(_sizes, that.sizes(), sizeof _sizes);
+    memcpy(_multipliers, that.multipliers(), sizeof _multipliers );
   }
 
   ///
@@ -188,7 +197,6 @@ public:
   
   
   MatrixRegion<D-1> col(IndexT x){ return slice(0, x); }
-  MatrixRegion<D-1> column(IndexT x){ return slice(0, x); }
   MatrixRegion<D-1> row(IndexT y){  return slice(1, y); }
   
   ///
@@ -199,6 +207,11 @@ public:
     #endif
     return _sizes[d];
   }
+
+  const MatrixStoragePtr& storage() const { return _storage; }
+  ElementT* base() const { return _base; }
+  const IndexT* sizes() const { return _sizes; }
+  const IndexT* multipliers() const { return _multipliers; };
 protected:
   ///
   /// Compute the offset in _base for a given coordinate

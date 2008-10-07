@@ -20112,6 +20112,11 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 
+cat >>confdefs.h <<\_ACEOF
+#define SHORT_TYPE_NAMES 1
+_ACEOF
+
+
 # Check whether --enable-debug was given.
 if test "${enable_debug+set}" = set; then
   enableval=$enable_debug; use_jassert=$enableval

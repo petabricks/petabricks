@@ -60,7 +60,10 @@ YY_DECL;
   [-]?[0-9]+[.]?[0-9]*  {
     JASSERT(o.remaining>0).Text("Buffer underflow while reading input matrix");
     *o.buf++ = jalib::StringToX<MATRIX_ELEMENT_T>(yytext);
-    o.remaining--;
+    if(--o.remaining == 0){
+      BEGIN(INITIAL);
+      return 0;
+    }
   }
 }
 

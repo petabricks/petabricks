@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2006 by Jason Ansel                                     *
- *   jansel@ccs.neu.edu                                                    *
+ *   jansel@csail.mit.edu                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -31,7 +31,7 @@ namespace jalib
 
   namespace jconvert_internal
   {
-    //about 15x faster than sringstream method
+    //about 15x faster than stringstream method
     template < typename T, T ( strtoT ) ( const char *, char**, int ) >
     inline T StdLibEC ( const std::string& s, bool strict )
     {
@@ -42,7 +42,7 @@ namespace jalib
       .Text ( "conversion failed" );
       return v;
     }
-    //about 15x faster than sringstream method
+    //about 15x faster than stringstream method
     template < typename T, T ( strtoT ) ( const char *, char** ) >
     inline T StdLibEC ( const std::string& s,bool strict )
     {

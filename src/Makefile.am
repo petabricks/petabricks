@@ -10,7 +10,7 @@ noinst_HEADERS = choicegrid.h codegenerator.h config.h formula.h jasm.h \
 	jassert.h jblockingqueue.h jbuffer.h jconvert.h jfilesystem.h jmutex.h \
 	jprintable.h jrefcounted.h jserialize.h jsocket.h jthread.h jtimer.h matrix.h \
 	matrixdef.h matrixdependency.h matrixio.h matrixoperations.h maximawrapper.h \
-	region.h rule.h staticscheduler.h symboliccoordinate.h transform.h
+	region.h rule.h staticscheduler.h transform.h
 
 libjutil_a_SOURCES = jassert.cpp jbuffer.cpp jfilesystem.cpp jprintable.cpp \
 	jserialize.cpp jsocket.cpp jthread.cpp jtimer.cpp
@@ -18,7 +18,7 @@ libjutil_a_SOURCES = jassert.cpp jbuffer.cpp jfilesystem.cpp jprintable.cpp \
 libhecura_a_SOURCES = choicegrid.cpp codegenerator.cpp formula.cpp matrix.cpp \
 	matrixdef.cpp matrixdependency.cpp matrixio.cpp matrixreader.lpp maximalexer.lpp \
 	maximaparser.ypp maximawrapper.cpp pblexer.lpp pbparser.ypp region.cpp rule.cpp \
-	staticscheduler.cpp symboliccoordinate.cpp transform.cpp
+	staticscheduler.cpp transform.cpp
 
 pbc_SOURCES = pbc.cpp
 pbc_LDADD = libhecura.a libjutil.a -lpthread 
