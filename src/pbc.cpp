@@ -36,6 +36,8 @@
 
 using namespace hecura;
 
+TransformListPtr parsePbFile(const char* filename);
+
 int main( int argc, const char ** argv){
   TransformListPtr t = parsePbFile(argv[1]);
   t->front()->initialize();
