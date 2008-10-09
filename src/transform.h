@@ -72,7 +72,6 @@ public:
   
   const FreeVars& constants() const { return _constants; }
   FreeVars& constants() { return _constants; }
-
 private:
   std::string   _name;
   MatrixDefList _from;

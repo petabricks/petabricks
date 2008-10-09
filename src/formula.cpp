@@ -41,6 +41,15 @@ hecura::FormulaVariable::FormulaVariable(const char* name)
   fv->insert(_name);
 }
 
+hecura::FormulaVariable::FormulaVariable(const std::string& name) 
+  : Formula(theNullFreeVarsList())
+  , _name(name) 
+{
+  FreeVars* fv;
+  _freeVars = fv = new FreeVars();
+  fv->insert(_name);
+}
+
 void hecura::FormulaVariable::print(std::ostream& o) const { 
   o << _name; 
 }
@@ -121,6 +130,12 @@ bool hecura::Formula::hasIntersection(const Formula& that) const{
       return true;
   }
   return false;
+}
+
+hecura::FormulaPtr hecura::FormulaVariable::mktmp(){
+  static volatile long i = 0;
+  std::string name = "_tmp" + jalib::XToString(jalib::atomicAdd<1>(&i));
+  return new FormulaVariable(name);
 }
 
 //force implementations to be generated for templates

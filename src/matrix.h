@@ -76,14 +76,40 @@ private:
 template< int D, typename ElementT = MATRIX_ELEMENT_T >
 class MatrixRegion {
 public:
-  enum StockLayouts { INVALID, LAYOUT_ASCENDING, LAYOUT_DECENDING };
+  enum StockLayouts { LAYOUT_ASCENDING, LAYOUT_DECENDING };
+
+  ///
+  /// Allocate a storage for a new MatrixRegion
+  static MatrixRegion allocate(const IndexT sizes[D]) {
+    IndexT s=1;
+    for(int i=0; i<D; ++i)
+      s*=sizes[i];
+    MatrixStoragePtr tmp = new MatrixStorage(s);
+    #ifdef DEBUG
+    //in debug mode initialize matrix to garbage
+    memset(tmp->data(), 0xEE, s);
+    #endif
+    return MatrixRegion(tmp, tmp->data(), sizes);
+  }
+
+  ///
+  /// Allocate a storage for a new MatrixRegion (va_args version)
+  static MatrixRegion allocate(IndexT x, ...){
+    IndexT c1[D];
+    va_list ap;
+    va_start(ap, x);
+    c1[0]=x;
+    for(int i=1; i<D; ++i) c1[i]=va_arg(ap, IndexT);
+    va_end(ap);
+    return allocate(c1);
+  }
 
   ///
   /// Constructor with a given layout
   MatrixRegion( const MatrixStoragePtr& s
               , ElementT* b
-              , IndexT sizes[D]
-              , IndexT multipliers[D])
+              , const IndexT sizes[D]
+              , const IndexT multipliers[D])
     : _storage(s)
     , _base(b)
   {
@@ -95,7 +121,7 @@ public:
   /// Constructor with a stock layout
   MatrixRegion( const MatrixStoragePtr& s
               , ElementT* b
-              , IndexT sizes[D]
+              , const IndexT sizes[D]
               , StockLayouts layout = LAYOUT_ASCENDING)
     : _storage(s)
     , _base(b)
@@ -127,7 +153,7 @@ public:
 
   ///
   /// Access a single cell of target matrix
-  ElementT& cell(IndexT x, ...){
+  ElementT& cell(IndexT x, ...) const{
     IndexT c1[D];
     va_list ap;
     va_start(ap, x);
@@ -139,11 +165,11 @@ public:
 
   ///
   /// Access a single cell of target matrix
-  ElementT& cell(IndexT c1[D]){ return _base[getOffsetFor(c1)]; }
+  ElementT& cell(const IndexT c1[D]) const{ return _base[getOffsetFor(c1)]; }
 
   ///
   /// Create a new iterator for a region of target matrix
-  MatrixRegion region(IndexT x, ...){
+  MatrixRegion region(IndexT x, ...) const{
     IndexT c1[D], c2[D];
     va_list ap;
     va_start(ap, x);
@@ -156,7 +182,7 @@ public:
 
   ///
   /// Create a new iterator for a region of target matrix
-  MatrixRegion region(IndexT c1[D], IndexT c2[D]){
+  MatrixRegion region(const IndexT c1[D], const IndexT c2[D]) const{
     IndexT newSizes[D];
     for(int i=0; i<D; ++i){
       #ifdef DEBUG
@@ -174,7 +200,7 @@ public:
   /// Return a slice through this dimension
   /// The iterator is one dimension smaller and equivilent to always 
   /// giving pos for dimension d
-  MatrixRegion<D-1> slice(int d, IndexT pos){
+  MatrixRegion<D-1> slice(int d, IndexT pos) const{
     #ifdef DEBUG
     JASSERT(d>=0 && d<D)(d)(D).Text("invalid dimension");
     JASSERT(pos>=0 && pos<_sizes[d])(pos)(_sizes[d]).Text("out of bounds access");
@@ -196,8 +222,8 @@ public:
   }
   
   
-  MatrixRegion<D-1> col(IndexT x){ return slice(0, x); }
-  MatrixRegion<D-1> row(IndexT y){  return slice(1, y); }
+  MatrixRegion<D-1> col(IndexT x) const{ return slice(0, x); }
+  MatrixRegion<D-1> row(IndexT y) const{  return slice(1, y); }
   
   ///
   /// Return the size of a given dimension
@@ -215,7 +241,7 @@ public:
 protected:
   ///
   /// Compute the offset in _base for a given coordinate
-  IndexT getOffsetFor(IndexT coord[D]) const{
+  IndexT getOffsetFor(const IndexT coord[D]) const{
     IndexT rv = 0;
     for(int i=0; i<D; ++i){
       #ifdef DEBUG
@@ -246,11 +272,28 @@ public:
   enum StockLayouts { INVALID, ROW_MAJOR, COL_MAJOR };
 
   ///
+  /// Allocate a storage for a new MatrixRegion
+  static MatrixRegion allocate(const IndexT sizes[D]) {
+    MatrixStoragePtr tmp = new MatrixStorage(1);
+    #ifdef DEBUG
+    *tmp->data() = 0xBadF00d;
+    #endif
+    return MatrixRegion(tmp, tmp->data(), sizes);
+  }
+
+  ///
+  /// Allocate a storage for a new MatrixRegion (va_args version)
+  static MatrixRegion allocate(){
+    IndexT c1[D];
+    return allocate(c1);
+  }
+
+  ///
   /// Constructor
   MatrixRegion( const MatrixStoragePtr& s
               , ElementT* b
-              , IndexT sizes[D]
-              , IndexT multipliers[D])
+              , const IndexT sizes[D]
+              , const IndexT multipliers[D])
     : _storage(s)
     , _base(b)
   {}
@@ -259,7 +302,7 @@ public:
   /// Constructor
   MatrixRegion( const MatrixStoragePtr& s
               , ElementT* b
-              , IndexT sizes[D]
+              , const IndexT sizes[D]
               , StockLayouts layout = COL_MAJOR)
     : _storage(s)
     , _base(b)
@@ -271,7 +314,7 @@ public:
  
   ///
   /// 0-Dimensional region only has 1 cell
-  ElementT& cell(IndexT coord[D]){ return *_base; }
+  ElementT& cell(const IndexT coord[D]){ return *_base; }
 
   ///
   /// Allow implicit conversion to ElementT
@@ -280,7 +323,7 @@ public:
   ///
   /// 0-Dimensional region only has 1 sub-region
   MatrixRegion region(){ return *this; }
-  MatrixRegion region(IndexT c1[D], IndexT c2[D]){return *this; }
+  MatrixRegion region(const IndexT c1[D], const IndexT c2[D]){return *this; }
 
   ///
   /// This should never be called

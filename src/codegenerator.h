@@ -89,6 +89,14 @@ public:
     _os << var << ";\n";
   } 
 
+  void addAssert(const std::string& l, const std::string& r){
+    indent();
+    _os << "JASSERT("<<l<<" == "<<r<<")"
+      << "(" << l << ")"
+      << "(" << r << ")"
+      << ";\n";
+  } 
+
   void endFunc(){
     _indent--;
       indent();

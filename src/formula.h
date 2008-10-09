@@ -97,6 +97,11 @@ public:
   int size() const { return _size; }
 
   virtual std::string printAsAssumption() const { return toString(); }
+
+  virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const {
+    if(what->toString()==toString()) return with;
+    else                             return this;
+  }
 protected:
   /// Set of all free variables in the tree
   FreeVarsPtr _freeVars;
@@ -109,7 +114,9 @@ protected:
  */
 class FormulaVariable : public Formula {
 public:
+  static FormulaPtr mktmp();
   FormulaVariable(const char* name);
+  FormulaVariable(const std::string& name);
   void print(std::ostream& o) const;
 private:
   std::string _name;
@@ -154,6 +161,10 @@ public:
       return "equal(" + _left->toString()
                 + "," + _right->toString() + ")";
     return toString();
+  }
+  virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const{
+    if(what->toString()==toString()) return with;
+    else return new FormulaBinop(_left->replace(what,with), _right->replace(what,with));
   }
 private:
   FormulaPtr _left;

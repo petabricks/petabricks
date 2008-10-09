@@ -37,6 +37,7 @@ namespace hecura {
 class CodeGenerator;
 class Transform;
 class MatrixDef;
+class FreeVars;
 typedef jalib::JRef<MatrixDef> MatrixDefPtr;
 class MatrixDefList : public std::vector<MatrixDefPtr> , public jalib::JRefCounted {};
 class MatrixDefMap : public std::map<std::string, MatrixDefPtr> , public jalib::JRefCounted {};
@@ -101,6 +102,10 @@ public:
   void argDeclRO(std::vector<std::string>& args) const;
   void genAllocTmpCode(CodeGenerator& o);
   void generateCodeSimple(CodeGenerator& o);
+
+  void extractDefines(FreeVars& defined, CodeGenerator& o);
+  void verifyDefines(CodeGenerator& o);
+  void allocateTemporary(CodeGenerator& o);
 private:
   std::string _name;
   FormulaList _version;

@@ -20,6 +20,7 @@
 #include "matrixdef.h"
 #include "transform.h"
 #include "maximawrapper.h"
+#include "formula.h"
 
 // A hack for now, for inference we assume matrix is big
 inline static hecura::FormulaPtr LARGE(){
@@ -61,14 +62,41 @@ void hecura::MatrixDef::exportAssumptions(){
 }
 
 void hecura::MatrixDef::argDeclRW(std::vector<std::string>& args) const {
-  args.push_back(matrixTypeName()+"& " + _name);
+  args.push_back("const "+matrixTypeName()+"& " + _name);
 }
 void hecura::MatrixDef::argDeclRO(std::vector<std::string>& args) const {
-  args.push_back(constMatrixTypeName()+"& " + _name);
+  args.push_back("const "+constMatrixTypeName()+"& " + _name);
 }
 void hecura::MatrixDef::genAllocTmpCode(CodeGenerator& o){
   o.varDecl(matrixTypeName()+" "+_name);
 }
 void hecura::MatrixDef::generateCodeSimple(CodeGenerator& o){
   o.varDecl("Matrix" + jalib::XToString(_size.size()) + "D " + _name);
+}
+void hecura::MatrixDef::extractDefines(FreeVars& defined, CodeGenerator& o){
+  int d=0;
+  for(FormulaList::const_iterator i=_size.begin(); i!=_size.end(); ++i,++d){
+    FreeVarsPtr fv = (*i)->getFreeVariables();
+    if(fv->size()==1){
+      std::string var = *fv->begin();
+      FormulaPtr tmp = FormulaVariable::mktmp();
+      if(!defined.contains(var)){
+        defined.insert(var);
+        FormulaList l;
+        l.push_back(new FormulaEQ(tmp, *i));
+        l = *MaximaWrapper::instance().solve(l, var);
+        JASSERT(l.size()==1)(*i)(var).Text("Failed to solve");
+        o.varDecl("IndexT "+var+"="+(*l.begin())->rhs()->replace(tmp, new FormulaVariable(_name+".size("+jalib::XToString(d)+")"))->toString());
+      }
+    }
+  }
+}
+void hecura::MatrixDef::verifyDefines(CodeGenerator& o){
+  int d=0;
+  for(FormulaList::const_iterator i=_size.begin(); i!=_size.end(); ++i,++d){
+    o.addAssert((*i)->toString(), _name+".size("+jalib::XToString(d)+")");
+  }
+}
+void hecura::MatrixDef::allocateTemporary(CodeGenerator& o){
+  o.varDecl(matrixTypeName()+" "+name()+" = "+matrixTypeName()+"::allocate("+_size.toString()+")");
 }

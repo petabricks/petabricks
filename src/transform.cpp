@@ -184,9 +184,26 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   
   o.comment("Entry function");
   o.beginFunc("void", _name, args);
-  for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
-    (*i)->genAllocTmpCode(o);
+  FreeVars fv;
+  o.comment("Extract matrix size parameters");
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    (*i)->extractDefines(fv, o);
   }
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    (*i)->extractDefines(fv, o);
+  }
+  o.comment("Verify size of input/output");
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    (*i)->verifyDefines(o);
+  }
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    (*i)->verifyDefines(o);
+  }
+  o.comment("Allocate intermediate matrices");
+  for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
+    (*i)->allocateTemporary(o);
+  }
+  o.comment("Run computation");
   scheduler.generateCodeSimple(o);
   //_baseCases->generateCodeSimple(o, SimpleRegionPtr(new SimpleRegion()));
   o.endFunc(); 
