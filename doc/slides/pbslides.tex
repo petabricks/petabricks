@@ -1,0 +1,235 @@
+\documentclass[pdf,blends]{prosper}
+\include{graphicx}
+\title{PetaBricks}
+\subtitle{Introduction}
+\author{Jason Ansel}
+\email{jansel@csail.mit.edu}
+\slideCaption{PetaBricks Language}
+%\Logo
+\pagenumbering{arabic}
+\begin{document}
+
+\begin{slide}{Motivation}
+\begin{itemize}
+\item Claim: High performance parallel algorithms require a non-trivial composition of different algorithmic choices.
+\item The optimal algorithmic choice may not always be clear to the programmer.
+\item Optimal algorithmic choices vary by problem size, architecture, and data.
+\item Search over algorithmic choices can be automated.
+\end{itemize}
+\end{slide}
+
+\begin{slide}{Simple Example}
+\begin{itemize}
+\item Sort on a cluster of multi-core processors:
+\item The optimal solution {\bf might} be:
+  \begin{itemize}
+  \item Merge-sort at the cluster level (for load balancing)
+  \item Quick-sort at the node level
+  \item Insertion sort for very small lists
+  \end{itemize}
+\item For such a simple example it is easy for the human to guess this.
+\end{itemize}
+\end{slide}
+
+\begin{slide}{Motivating Example}
+\begin{itemize}
+\item Poisson's equation.  A heat source is applied to the edges of matrix, find the steady state temperature for the matrix.
+\item Can be solved many ways:
+  \begin{itemize}
+  \item MultiGrid
+  \item SOR
+  \item DST -> Mask-> Inverse DST
+  \item LU
+  \item ... 
+  \end{itemize}
+\end{itemize}
+\end{slide}
+
+\begin{slide}{Motivating Example}
+\begin{itemize}
+\item Choice space is large:
+  \begin{itemize}
+  \item MultiGrid -- {\em is recursive}
+    \begin{itemize}
+    \item MultiGrid
+      \begin{itemize}
+      \item ...
+      \end{itemize}
+    \item SOR
+    \item DST
+    \item LU
+    \end{itemize}
+  \item SOR -- {\em has its own choices}
+  \item DST -- {\em has its own choices}
+  \item LU  -- {\em has its own choices}
+  \end{itemize}
+\end{itemize}
+\end{slide}
+
+
+\begin{slide}{Motivating Example}
+\begin{itemize}
+\item Choice space is {\bf really} large:
+  \begin{itemize}
+  \item Algorithmic choices
+    \begin{itemize}
+    \item \small Which algorithm(s)? When to switch?
+    \end{itemize}
+  \item Iteration order choices
+    \begin{itemize}
+    \item\small
+      Columns? Rows? Blocks? How big?
+    \end{itemize}
+  \item Parallelism strategy choices
+    \begin{itemize}
+    \item\small
+    Task? Data? Pipeline? How scheduled? Granularity?
+    \end{itemize}
+  \item Storage choices 
+   \begin{itemize}
+    \item\small
+    Row major? Column major? Blocked? Transpose first? Storage/parallelism trade off.
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+\end{slide}
+
+\begin{slide}{Language Design}
+\begin{itemize}
+\item A possible design adds a keyword:
+  \begin{itemize}
+  \item\small\tt either\{ A=foo(); \}or\{ A=bar(); \} 
+  \end{itemize}
+\item We did {\bf not} choose this:
+  \begin{itemize}
+  \item Hard to analyze 
+  \item Hard to parallelize 
+  \item Implicit choices (ie: blocking, storage, etc) are hard to represent 
+  \end{itemize}
+\end{itemize}
+\end{slide}
+
+\begin{slide}{Language Design}
+\begin{itemize}
+\item Design goals:
+  \begin{itemize}
+  \item Choices are represented naturally
+  \item Easy to analyze
+  \item Implicitly parallel
+  \item Compiler is given a lot of freedom
+  \begin{itemize}
+    \item No outer sequential control flow
+  \end{itemize}
+  \end{itemize}
+\end{itemize}
+\end{slide}
+
+\begin{slide}{Language Design}
+\begin{itemize}
+\item Basic language element: {\bf Transform}
+  \begin{itemize}
+  \item Specifies from/through/to matrices 
+  \end{itemize}
+\end{itemize}
+\begin{center}
+\resizebox{.8\textwidth}{!}{
+\includegraphics{transform.eps}
+}
+\end{center}
+\end{slide}
+
+\begin{slide}{Language Design}
+\begin{itemize}
+\item Basic language element: {\bf Transform}
+  \begin{itemize}
+  \item Sizes are expressed symbolically
+  \end{itemize}
+\end{itemize}
+\begin{center}
+\resizebox{.8\textwidth}{!}{
+\includegraphics{transform-sizes.eps}
+}
+\end{center}
+\end{slide}
+
+\begin{slide}{Language Design}
+  \begin{itemize}
+  \item Rules allow matrix elements and regions to be computed
+  \end{itemize}
+\begin{center}
+\resizebox{.8\textwidth}{!}{
+\includegraphics{transform-rules.eps}
+}
+\end{center}
+\end{slide}
+
+\begin{slide}{Language Design}
+  \begin{itemize}
+  \item More on Rules:
+    \begin{itemize}
+    \item Rules explicitly list their dependencies in the from/to/through matrices 
+    \item Work on either single elements or regions
+    \item Can recursively call other transforms
+    \item Use symbolic coordinates.
+    { \small IE: from {\tt A.cell(x+1, y+1)} and {\tt B.cell(x-1, y-1)} compute {\tt C.cell(x,y)}}
+    \end{itemize}
+  \end{itemize}
+\end{slide}
+
+
+
+\begin{slide}{Example Code}
+\begin{itemize}
+\item Now for some code:
+{\small
+\begin{verbatim}
+transform MatrixAdd
+from A[w,h], B[w,h] 
+to AB[w,h]
+{
+  // just a single rule
+  AB.cell(x,y) from( A.cell(x,y) a
+                   , B.cell(x,y) b){
+    return a+b;
+  }
+}
+\end{verbatim}}
+\end{itemize}
+\end{slide}
+
+\begin{slide}{More Example Code}
+{\footnotesize
+\begin{verbatim}
+transform Sort 
+from IN[n]
+to OUT[n]
+{
+  // recursive case
+  OUT from( IN.region(0,   n/2) left
+          , IN.region(n/2, n)   right){
+    return Merge( Sort(left), Sort(right) );
+  }
+  // base case
+  OUT from( IN i ){ ... }
+}
+\end{verbatim}}
+\end{slide}
+
+
+\begin{slide}{Internals}
+\vspace{.5cm}
+\begin{center}
+\resizebox{.9\textwidth}{!}{
+\includegraphics{internals.eps}}
+\end{center}
+\end{slide}
+
+\begin{slide}{Internals}
+\vspace{.5cm}
+\begin{center}
+\resizebox{.9\textwidth}{!}{
+\includegraphics{internals2.eps}}
+\end{center}
+\end{slide}
+
+\end{document}
