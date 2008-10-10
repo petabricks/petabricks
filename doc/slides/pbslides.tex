@@ -1,33 +1,31 @@
-\documentclass[pdf,blends]{prosper}
+\documentclass{beamer}
 \include{graphicx}
+\include{comment}
+\usepackage{beamerthemesplit}
 \title{PetaBricks}
 \subtitle{Introduction}
 \author{Jason Ansel}
-\email{jansel@csail.mit.edu}
-\slideCaption{\textit{PetaBricks Language}}
-%\Logo
+
 \begin{document}
 
-\maketitle
+\frame{\maketitle}
 
-\begin{slide}{Overview}
-\begin{itemize}
-\item Motivation
-\item Language
-\item Internals (briefly) 
-\end{itemize}
-\end{slide}
+\section[Outline]{}
+\frame{\tableofcontents}
 
-\begin{slide}{Motivation}
+\section{Motivation}
+\subsection{The Importance of Choice}
+\frame{
 \begin{itemize}
 \item Claim: High performance parallel algorithms require a non-trivial composition of different algorithmic choices.
 \item The optimal algorithmic choice may not always be clear to the programmer.
 \item Optimal algorithmic choices vary by problem size, architecture, and data.
 \item Search over algorithmic choices can be automated.
 \end{itemize}
-\end{slide}
+}
 
-\begin{slide}{Simple Example}
+\subsection{Simple Example Problem}
+\frame{
 \begin{itemize}
 \item Sort on a cluster of multi-core processors:
 \item The optimal solution {\bf might} be:
@@ -38,9 +36,10 @@
   \end{itemize}
 \item For such a simple example it is easy for the human to guess this.
 \end{itemize}
-\end{slide}
+}
 
-\begin{slide}{Motivating Example}
+\subsection{Motivating Example Problem}
+\frame{
 \begin{itemize}
 \item Poisson's equation.  A heat source is applied to the edges of matrix, find the steady state temperature for the matrix.
 \item Can be solved many ways:
@@ -52,18 +51,15 @@
   \item ... 
   \end{itemize}
 \end{itemize}
-\end{slide}
+}
 
-\begin{slide}{Motivating Example}
+\frame{
 \begin{itemize}
 \item Choice space is large:
   \begin{itemize}
   \item MultiGrid -- {\em is recursive}
     \begin{itemize}
     \item MultiGrid
-      \begin{itemize}
-      \item ...
-      \end{itemize}
     \item SOR
     \item DST
     \item LU
@@ -73,10 +69,10 @@
   \item LU  -- {\em has its own choices}
   \end{itemize}
 \end{itemize}
-\end{slide}
+}
 
 
-\begin{slide}{Motivating Example}
+\frame{
 \begin{itemize}
 \item Choice space is {\bf really} large:
   \begin{itemize}
@@ -101,9 +97,11 @@
     \end{itemize}
   \end{itemize}
 \end{itemize}
-\end{slide}
+}
 
-\begin{slide}{Language Design}
+\section{Language Design}
+\frame{
+\frametitle{A Bad Way to Represent Choice}
 \begin{itemize}
 \item A possible design adds a keyword:
   \begin{itemize}
@@ -116,9 +114,10 @@
   \item Implicit choices (ie: blocking, storage, etc) are hard to represent 
   \end{itemize}
 \end{itemize}
-\end{slide}
+}
 
-\begin{slide}{Language Design}
+\subsection{Design Goals}
+\frame{
 \begin{itemize}
 \item Design goals:
   \begin{itemize}
@@ -131,9 +130,10 @@
   \end{itemize}
   \end{itemize}
 \end{itemize}
-\end{slide}
+}
 
-\begin{slide}{Language Design}
+\subsection{Language Primitives}
+\frame{
 \begin{itemize}
 \item Basic language element: {\bf Transform}
   \begin{itemize}
@@ -141,13 +141,13 @@
   \end{itemize}
 \end{itemize}
 \begin{center}
-\resizebox{.8\textwidth}{!}{
-\includegraphics{transform.eps}
+\resizebox{\textwidth}{!}{
+\includegraphics{transform}
 }
 \end{center}
-\end{slide}
+}
 
-\begin{slide}{Language Design}
+\frame{
 \begin{itemize}
 \item Basic language element: {\bf Transform}
   \begin{itemize}
@@ -155,24 +155,24 @@
   \end{itemize}
 \end{itemize}
 \begin{center}
-\resizebox{.8\textwidth}{!}{
-\includegraphics{transform-sizes.eps}
+\resizebox{\textwidth}{!}{
+\includegraphics{transform-sizes}
 }
 \end{center}
-\end{slide}
+}
 
-\begin{slide}{Language Design}
+\frame{
   \begin{itemize}
   \item Rules allow matrix elements and regions to be computed
   \end{itemize}
 \begin{center}
-\resizebox{.8\textwidth}{!}{
-\includegraphics{transform-rules.eps}
+\resizebox{\textwidth}{!}{
+\includegraphics{transform-rules}
 }
 \end{center}
-\end{slide}
+}
 
-\begin{slide}{Language Design}
+\frame{
   \begin{itemize}
   \item More on Rules:
     \begin{itemize}
@@ -183,62 +183,67 @@
     { \small IE: from {\tt A.cell(x+1, y+1)} and {\tt B.cell(x-1, y-1)} compute {\tt C.cell(x,y)}}
     \end{itemize}
   \end{itemize}
-\end{slide}
+}
 
 
 
-\begin{slide}{Example Code}
+\subsection{Example Code}
+
+\begin{frame}[fragile]
 \begin{itemize}
 \item Now for some code:
 {\small
 \begin{verbatim}
-transform MatrixAdd
-from A[w,h], B[w,h] 
-to AB[w,h]
-{
-  // just a single rule
-  AB.cell(x,y) from( A.cell(x,y) a
-                   , B.cell(x,y) b){
-    return a+b;
-  }
+ transform MatrixAdd
+ from A[w,h], B[w,h] 
+ to AB[w,h]
+ {
+   // just a single rule
+   AB.cell(x,y) from( A.cell(x,y) a
+                    , B.cell(x,y) b){
+     return a+b;
+   }
+ }
+\end{verbatim}
 }
-\end{verbatim}}
 \end{itemize}
-\end{slide}
+\end{frame}
 
-\begin{slide}{More Example Code}
+\begin{frame}[fragile]
+\begin{minipage}{\textwidth}
 {\footnotesize
 \begin{verbatim}
-transform Sort 
-from IN[n]
-to OUT[n]
-{
-  // recursive case
-  OUT from( IN.region(0,   n/2) left
-          , IN.region(n/2, n)   right){
-    return Merge( Sort(left), Sort(right) );
-  }
-  // base case
-  OUT from( IN i ){ ... }
+ transform Sort 
+ from IN[n]
+ to OUT[n]
+ {
+   // recursive case
+   OUT from( IN.region(0,   n/2) left
+           , IN.region(n/2, n)   right){
+     return Merge( Sort(left), Sort(right) );
+   }
+   // base case
+   OUT from( IN i ){ ... }
+ }
+\end{verbatim}
 }
-\end{verbatim}}
-\end{slide}
+\end{minipage}
+\end{frame}
 
-
-\begin{slide}{Internals}
-\vspace{.5cm}
+\section{Internals}
+\subsection{Infrastructure Diagram}
+\frame{
 \begin{center}
-\resizebox{.9\textwidth}{!}{
-\includegraphics{internals.eps}}
+\resizebox{\textwidth}{!}{
+\includegraphics{internals}}
 \end{center}
-\end{slide}
+}
 
-\begin{slide}{Internals}
-\vspace{.5cm}
+\frame{
 \begin{center}
-\resizebox{.9\textwidth}{!}{
-\includegraphics{internals2.eps}}
+\resizebox{\textwidth}{!}{
+\includegraphics{internals2}}
 \end{center}
-\end{slide}
+}
 
 \end{document}

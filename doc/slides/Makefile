@@ -41,7 +41,7 @@
 ### Begin Configuration ####################################
 
 #method to use, default is pdflatex.  Uncomment for latex/dvips
-USE_DVI_PS_LATEX=1
+#USE_DVI_PS_LATEX=1
 
 # uncomment to delete figures on `make clean`
 CLEAN_FIGURES=1

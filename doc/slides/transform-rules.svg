@@ -330,11 +330,13 @@
        id="path13337" />
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
-       d="M 340,257.86218 L 323.5,274.36218 L 336,287.36218"
-       id="path13860" />
+       d="M 340,257.86218 L 315,268.86218 L 336,287.36218"
+       id="path13860"
+       sodipodi:nodetypes="ccc" />
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
-       d="M 355,287.36218 L 368.5,273.36218 L 353,257.86218"
-       id="path14383" />
+       d="M 355,287.36218 L 376.52491,275.89501 L 353,257.86218"
+       id="path14383"
+       sodipodi:nodetypes="ccc" />
   </g>
 </svg>
