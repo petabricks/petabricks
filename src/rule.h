@@ -185,7 +185,7 @@ private:
 /**
  * A pointer to the begin/end of of a Rule in a given dimension, used to sort rules
  */
-class RuleDescriptor {
+class RuleDescriptor /*: public jalib::JPrintable*/ {
 public:
   enum Type { RULE_BEGIN, RULE_END };
 
@@ -216,6 +216,16 @@ public:
   ///
   /// Make a maxima call to test equality with a given formula
   bool isSamePosition(const FormulaPtr& that) const;
+
+
+  void print(std::ostream& o) const {
+    o << _formula << "{";
+    if(isBegin())
+      o << "begin";
+    else
+      o << "end";
+    o << "_" << _rule->id() << "} ";
+  }
 private:
   Type          _type;
   RulePtr       _rule;

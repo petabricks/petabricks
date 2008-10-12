@@ -37,7 +37,7 @@ namespace hecura {
 class MatrixStorage;
 typedef jalib::JRef<MatrixStorage> MatrixStoragePtr;
 typedef int IndexT;
-typedef MATRIX_ELEMENT_T ValueT;
+typedef MATRIX_ELEMENT_T ElementT;
 
 /**
  * The raw data for a Matrix
@@ -45,7 +45,7 @@ typedef MATRIX_ELEMENT_T ValueT;
 class MatrixStorage : public jalib::JRefCounted {
 public:
   typedef hecura::IndexT IndexT;
-  typedef hecura::ValueT ValueT;
+  typedef hecura::ElementT ElementT;
 private:
   //no copy constructor
   MatrixStorage(const MatrixStorage&);
@@ -53,7 +53,7 @@ public:
   ///
   /// Constructor
   MatrixStorage(IndexT n) {
-    _data = new ValueT [n];
+    _data = new ElementT[n];
   }
 
   ///
@@ -62,10 +62,10 @@ public:
     delete [] _data;
   }
 
-  ValueT* data() { return _data; }
-  const ValueT* data() const { return _data; }
+  ElementT* data() { return _data; }
+  const ElementT* data() const { return _data; }
 private:
-  ValueT* _data;
+  ElementT* _data;
 };
 
 /**
@@ -87,7 +87,7 @@ public:
     MatrixStoragePtr tmp = new MatrixStorage(s);
     #ifdef DEBUG
     //in debug mode initialize matrix to garbage
-    memset(tmp->data(), 0xEE, s);
+    memset(tmp->data(), 0xE, s);
     #endif
     return MatrixRegion(tmp, tmp->data(), sizes);
   }
@@ -238,6 +238,9 @@ public:
   ElementT* base() const { return _base; }
   const IndexT* sizes() const { return _sizes; }
   const IndexT* multipliers() const { return _multipliers; };
+
+  IndexT width() const { return size(0); }
+  IndexT height() const { return size(1); }
 protected:
   ///
   /// Compute the offset in _base for a given coordinate
@@ -269,7 +272,7 @@ public:
   enum { D=0 };
   typedef MatrixStorage::IndexT IndexT;
 public:
-  enum StockLayouts { INVALID, ROW_MAJOR, COL_MAJOR };
+  enum StockLayouts { LAYOUT_ASCENDING, LAYOUT_DECENDING };
 
   ///
   /// Allocate a storage for a new MatrixRegion
@@ -303,7 +306,7 @@ public:
   MatrixRegion( const MatrixStoragePtr& s
               , ElementT* b
               , const IndexT sizes[D]
-              , StockLayouts layout = COL_MAJOR)
+              , StockLayouts layout = LAYOUT_ASCENDING)
     : _storage(s)
     , _base(b)
   {}

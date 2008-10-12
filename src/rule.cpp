@@ -79,7 +79,8 @@ void hecura::Rule::print(std::ostream& os) const {
   } 
   if(!_definitions.empty()){
     os << "\ndefinitions ";  printStlList(os,_definitions.begin(),_definitions.end(), ", "); 
-  } 
+  }
+  os << "\napplicableregion " << _applicanbleRegion;
   os << "\ndepends: \n";
   for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
     os << "  " << i->first << ": " << i->second << "\n";
@@ -88,9 +89,7 @@ void hecura::Rule::print(std::ostream& os) const {
   for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
     os << "  " << i->first << ": " << i->second << "\n";
   }
-   
-  os << "\napplicableregion " << _applicanbleRegion;
-  os << "\n{\n" << _body << "\n}\n";
+  os << "{\n" << _body << "\n}\n\n";
 }
 
 void hecura::Rule::initialize(Transform& trans) {
@@ -118,12 +117,12 @@ void hecura::Rule::initialize(Transform& trans) {
     _definitions.push_back( trimImpossible(v) );
   }
 
+  JTRACE("FOO");
+  printStlList(std::cerr,_definitions.begin(),_definitions.end(), ", ");
+
   _from.makeRelativeTo(_definitions);
   _to.makeRelativeTo(_definitions);
   _conditions.makeRelativeTo(_definitions);
-
-
-
 
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
     SimpleRegionPtr ar = (*i)->getApplicableRegion(*this, _definitions);
@@ -159,8 +158,7 @@ void hecura::Rule::getApplicableRegionDescriptors(RuleDescriptorList& output,
   MatrixDependencyMap::const_iterator i = _provides.find(matrix);
   if(i!=_provides.end()){
     FormulaPtr beginPos = i->second->region()->minCoord()[dimension];
-    FormulaPtr endPos =  new FormulaAdd(i->second->region()->maxCoord()[dimension], 
-                                        FormulaInteger::one());
+    FormulaPtr endPos = i->second->region()->maxCoord()[dimension];
     endPos = MaximaWrapper::instance().normalize(endPos);
     output.push_back(RuleDescriptor(RuleDescriptor::RULE_BEGIN, this, matrix, beginPos));
     output.push_back(RuleDescriptor(RuleDescriptor::RULE_END,   this, matrix, endPos));
@@ -174,7 +172,7 @@ hecura::FormulaPtr hecura::Rule::trimImpossible(const FormulaList& l){
 
 bool hecura::RuleDescriptor::operator< (const RuleDescriptor& that) const{
   const char* op = "<";
-  if(_type==RULE_BEGIN && that._type==RULE_END) op = "<=";
+  if(_type==RULE_END && that._type==RULE_BEGIN) op = "<=";
   return MaximaWrapper::instance().compare(this->_formula, op , that._formula);
 }
 
@@ -186,7 +184,7 @@ void hecura::Rule::generateDeclCodeSimple(CodeGenerator& o){
   std::string rt = "void";
   std::vector<std::string> args;
   if(isReturnStyle()){
-    rt = "ValueT";
+    rt = "ElementT";
     JASSERT(_to.size()==1)(_to.size());
   }else{
     for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){

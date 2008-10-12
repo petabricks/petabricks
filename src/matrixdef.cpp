@@ -86,7 +86,7 @@ void hecura::MatrixDef::extractDefines(FreeVars& defined, CodeGenerator& o){
         l.push_back(new FormulaEQ(tmp, *i));
         l = *MaximaWrapper::instance().solve(l, var);
         JASSERT(l.size()==1)(*i)(var).Text("Failed to solve");
-        o.varDecl("IndexT "+var+"="+(*l.begin())->rhs()->replace(tmp, new FormulaVariable(_name+".size("+jalib::XToString(d)+")"))->toString());
+        o.varDecl("const IndexT "+var+"="+(*l.begin())->rhs()->replace(tmp, new FormulaVariable(_name+".size("+jalib::XToString(d)+")"))->toString());
       }
     }
   }

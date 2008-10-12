@@ -120,6 +120,12 @@ void hecura::Transform::fillBaseCases(const RuleSet& allRules, const MatrixDefPt
       (*i)->getApplicableRegionDescriptors(boundaries[d], matrix, d);
     }
     std::sort(boundaries[d].begin(), boundaries[d].end());
+//     JTRACE("boundaryList")(d)(matrix);
+//     #ifdef DEBUG
+//     std::cerr << "\t";
+//     printStlList(std::cerr, boundaries[d]);
+//     std::cerr << std::endl;
+//     #endif
   }
   ChoiceGridPtr tmp = ChoiceGrid::constructFrom(allRules, boundaries);
   tmp->buildIndex(_baseCases[matrix]);
@@ -154,19 +160,13 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
 
   scheduler.generateSchedule();
 
-  o.comment("Begin output for tranform " + _name);
+  o.comment("Begin output for transform " + _name);
   o.newline();
   o.comment("User rules");
   for(RuleList::iterator i=_rules.begin(); i!=_rules.end(); ++i){
     (*i)->generateDeclCodeSimple(o);
   }
   o.newline();
-
-//   o.comment("Input/output matrix definitions");
-//   for(MatrixDefMap::iterator i=_matrices.begin(); i!=_matrices.end(); ++i){
-//     i->second->generateCodeSimple(o);
-//   }
-//   o.newline();
 
   o.comment("Rule trampolines");
   for(RuleList::iterator i=_rules.begin(); i!=_rules.end(); ++i){
@@ -175,15 +175,55 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   o.newline();
 
   std::vector<std::string> args;
+  std::vector<std::string> argNames;
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->argDeclRW(args);
+    argNames.push_back((*i)->name());
   }
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->argDeclRO(args);
+    argNames.push_back((*i)->name());
   }
   
   o.comment("Entry function");
   o.beginFunc("void", _name, args);
+  extractSizeDefines(o);
+  o.comment("Verify size of input/output");
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    (*i)->verifyDefines(o);
+  }
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    (*i)->verifyDefines(o);
+  }
+  if(!_through.empty())
+    o.comment("Allocate intermediate matrices");
+  for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
+    (*i)->allocateTemporary(o);
+  }
+  o.comment("Run computation");
+  scheduler.generateCodeSimple(o);
+  //_baseCases->generateCodeSimple(o, SimpleRegionPtr(new SimpleRegion()));
+  o.endFunc();
+  o.newline();
+
+  if(_to.size()==1){
+    args.erase(args.begin());
+    o.comment("Return style entry function");
+    o.beginFunc(_to.front()->matrixTypeName(), _name, args);
+    extractSizeDefines(o);
+    o.comment("Allocate to matrix");
+    _to.front()->allocateTemporary(o);
+    o.comment("Call normal version");
+    o.call(_name, argNames);
+    o.write("return "+_to.front()->name()+";");
+    o.endFunc();
+    o.newline();
+  }
+
+  MaximaWrapper::instance().popContext();
+}
+
+void hecura::Transform::extractSizeDefines(CodeGenerator& o){
   FreeVars fv;
   o.comment("Extract matrix size parameters");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
@@ -192,23 +232,4 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->extractDefines(fv, o);
   }
-  o.comment("Verify size of input/output");
-  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    (*i)->verifyDefines(o);
-  }
-  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->verifyDefines(o);
-  }
-  o.comment("Allocate intermediate matrices");
-  for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
-    (*i)->allocateTemporary(o);
-  }
-  o.comment("Run computation");
-  scheduler.generateCodeSimple(o);
-  //_baseCases->generateCodeSimple(o, SimpleRegionPtr(new SimpleRegion()));
-  o.endFunc(); 
-
-  o.newline();
-
-  MaximaWrapper::instance().popContext();
 }

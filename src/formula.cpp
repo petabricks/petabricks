@@ -80,7 +80,12 @@ hecura::FormulaBinop<OP>::FormulaBinop(const FormulaPtr& left, const FormulaPtr&
 
 template < char OP >
 void hecura::FormulaBinop<OP>::print(std::ostream& o) const {
-  o << '(' << _left << opStr() << _right << ')';
+  if(_toStringCache.length()==0){
+    std::ostringstream ss;
+    ss << '(' << _left << opStr() << _right << ')';
+    _toStringCache = ss.str();
+  }
+  o << _toStringCache;
 }
 
 template < char OP >
@@ -90,6 +95,20 @@ const char* hecura::FormulaBinop<OP>::opStr() {
   static const char v[] = {OP , 0};
   return v;
 }
+
+template < char OP >
+void hecura::FormulaBinop<OP>::explodeEquality(FormulaPtr& l, FormulaPtr& r) const {
+  JASSERT(OP=='=')(*this).Text("expected an equality");
+  l=_left;
+  r=_right;
+}
+
+template < char OP >
+hecura::FormulaPtr hecura::FormulaBinop<OP>::replace(const FormulaPtr& what, const FormulaPtr& with) const{
+  if(what->toString()==toString()) return with;
+  else return new FormulaBinop(_left->replace(what,with), _right->replace(what,with));
+}
+  
 
 void hecura::FormulaList::normalize(){
   for(iterator i = begin(); i!=end(); ++i)
@@ -136,6 +155,17 @@ hecura::FormulaPtr hecura::FormulaVariable::mktmp(){
   static volatile long i = 0;
   std::string name = "_tmp" + jalib::XToString(jalib::atomicAdd<1>(&i));
   return new FormulaVariable(name);
+}
+
+void hecura::Formula::explodeEquality(FormulaPtr& l, FormulaPtr& r) const {
+  JASSERT(false)(*this).Text("expected an equality");
+}
+
+std::string hecura::Formula::printAsAssumption() const { return toString(); }
+
+hecura::FormulaPtr hecura::Formula::replace(const FormulaPtr& what, const FormulaPtr& with) const {
+  if(what->toString()==toString()) return with;
+  else                             return this;
 }
 
 //force implementations to be generated for templates

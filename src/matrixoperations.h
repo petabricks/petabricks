@@ -33,14 +33,14 @@ void matrixCopy(AMatrix& dest,  const BMatrix& src){
 }
 
 template<typename AMatrix>
-void matrixFill(AMatrix& dest,  Matrix::ValueT value){
+void matrixFill(AMatrix& dest,  Matrix::ElementT value){
   for( typename AMatrix::Iterator i = dest.Begin(); i!=dest.End(); ++i){
     *i = value;
   }
 }
 
 template<typename AMatrix>
-void matrixFill(AMatrix& dest,  Matrix::ValueT (*generator)(int x, int y)){
+void matrixFill(AMatrix& dest,  Matrix::ElementT (*generator)(int x, int y)){
   for( typename AMatrix::Iterator i = dest.Begin(); i!=dest.End(); ++i){
     *i = (*generator)(i.x(), i.y());
   }

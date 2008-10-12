@@ -72,6 +72,8 @@ public:
   
   const FreeVars& constants() const { return _constants; }
   FreeVars& constants() { return _constants; }
+
+  void extractSizeDefines(CodeGenerator& o);
 private:
   std::string   _name;
   MatrixDefList _from;

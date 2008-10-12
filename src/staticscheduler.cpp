@@ -24,7 +24,7 @@ hecura::StaticScheduler::StaticScheduler(const ChoiceGridMap& cg){
     ScheduleNodeList& regions = _nodes[m->first];
     for(ChoiceGridIndex::const_iterator i=m->second.begin(); i!=m->second.end(); ++i){
       SimpleRegionPtr tmp = new SimpleRegion(i->first);
-      tmp->offsetMaxBy(FormulaInteger::negOne());
+//       tmp->offsetMaxBy(FormulaInteger::negOne());
       regions.push_back(new ScheduleNode(m->first, tmp, i->second));
     }
   }

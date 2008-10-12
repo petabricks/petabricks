@@ -51,7 +51,7 @@ public:
   SimpleRegion(const MatrixDef& matrix){
     for(size_t i=0; i<matrix.numDimensions(); ++i){
       _minCoord.push_back(FormulaInteger::zero());
-      _maxCoord.push_back(new FormulaSubtract(matrix.getSizeOfDimension(i), FormulaInteger::one()));
+      _maxCoord.push_back(matrix.getSizeOfDimension(i));
     }
   }
 

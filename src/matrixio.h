@@ -41,7 +41,7 @@ struct MatrixReaderScratch {
   MatrixStoragePtr storage;
   ///
   /// Pointer to first unread cell of this->storage
-  MatrixStorage::ValueT* buf;
+  ElementT* buf;
   ///
   /// Remaining space in this->buf, should be zero on completion
   int remaining;

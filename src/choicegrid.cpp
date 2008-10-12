@@ -23,9 +23,10 @@
 #include "maximawrapper.h"
 #include "codegenerator.h"
 
-hecura::ChoiceGridPtr hecura::ChoiceGrid::constructFrom( const RuleSet&                allowedRules
-                                                       , const RuleDescriptorListList& dimensions
-                                                       , size_t                        dimension /*= 0*/)
+hecura::ChoiceGridPtr hecura::ChoiceGrid::constructFrom( 
+  const RuleSet&                allowedRules,
+  const RuleDescriptorListList& dimensions,
+  size_t                        dimension /*= 0*/)
 {
   FormulaPtr    currentPos = FormulaInteger::zero();
   ChoiceGridPtr rootNode = new ChoiceGrid(dimension, currentPos);

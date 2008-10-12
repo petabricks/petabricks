@@ -76,9 +76,7 @@ public:
     s.insert(_freeVars->begin(), _freeVars->end());
   }
 
-  virtual void explodeEquality(FormulaPtr& l, FormulaPtr& r) const {
-    JASSERT(false)(*this).Text("expected an equality");
-  }
+  virtual void explodeEquality(FormulaPtr& l, FormulaPtr& r) const;
 
   FormulaPtr rhs() const {
     FormulaPtr l,r;
@@ -96,17 +94,15 @@ public:
 
   int size() const { return _size; }
 
-  virtual std::string printAsAssumption() const { return toString(); }
+  virtual std::string printAsAssumption() const;
 
-  virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const {
-    if(what->toString()==toString()) return with;
-    else                             return this;
-  }
+  virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const;
 protected:
   /// Set of all free variables in the tree
   FreeVarsPtr _freeVars;
   /// The number of elements in the tree
   int         _size;
+  /// String representation of this Formula
 };
 
 /**
@@ -151,24 +147,22 @@ public:
   FormulaBinop(const FormulaPtr& left, const FormulaPtr& right);
   void print(std::ostream& o) const;
   static const char* opStr();
-  virtual void explodeEquality(FormulaPtr& l, FormulaPtr& r) const {
-    JASSERT(OP=='=')(*this).Text("expected an equality");
-    l=_left;
-    r=_right;
-  }
+
   std::string printAsAssumption() const {
     if(OP=='=')
       return "equal(" + _left->toString()
                 + "," + _right->toString() + ")";
     return toString();
   }
-  virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const{
-    if(what->toString()==toString()) return with;
-    else return new FormulaBinop(_left->replace(what,with), _right->replace(what,with));
-  }
+  
+  virtual void explodeEquality(FormulaPtr& l, FormulaPtr& r) const;
+  
+  virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const;
+  
 private:
   FormulaPtr _left;
   FormulaPtr _right;
+  mutable std::string _toStringCache;
 };
 
 typedef FormulaBinop<'+'> FormulaAdd;

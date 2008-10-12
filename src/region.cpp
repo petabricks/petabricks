@@ -70,7 +70,9 @@ void hecura::Region::initialize(Transform& trans) {
         .Text("Wrong number of args given for cell");
       for(size_t i=0; i<_originalBounds.size(); ++i){
         _minCoord.push_back(_originalBounds[i]);
-        _maxCoord.push_back(_originalBounds[i]);
+//         _maxCoord.push_back(_originalBounds[i]);
+        _maxCoord.push_back(MaximaWrapper::instance().normalize(
+          new FormulaAdd(_originalBounds[i], FormulaInteger::one())));
       }
     }
     break;
@@ -83,8 +85,9 @@ void hecura::Region::initialize(Transform& trans) {
         .Text("col() only supported on a 2D matrix");
       _minCoord.push_back(_originalBounds.front());
       _minCoord.push_back(FormulaInteger::zero());
-      _maxCoord.push_back(_originalBounds.front());
-      _maxCoord.push_back(new FormulaSubtract(_fromMatrix->height(), FormulaInteger::one()));
+//       _maxCoord.push_back(_originalBounds.front());
+      _maxCoord.push_back(new FormulaAdd(_originalBounds.front(), FormulaInteger::one()));
+      _maxCoord.push_back(_fromMatrix->height());
       JTRACE("made column")(_fromMatrix)(_minCoord)(_maxCoord);
     }
     break;
@@ -97,8 +100,9 @@ void hecura::Region::initialize(Transform& trans) {
         .Text("row() only supported on a 2D matrix");
       _minCoord.push_back(FormulaInteger::zero());
       _minCoord.push_back(_originalBounds.front());
-      _maxCoord.push_back(new FormulaSubtract(_fromMatrix->width(), FormulaInteger::one()));
-      _maxCoord.push_back(_originalBounds.front());
+      _maxCoord.push_back(_fromMatrix->width());
+//       _maxCoord.push_back(_originalBounds.front());
+      _maxCoord.push_back(new FormulaAdd(_originalBounds.front(), FormulaInteger::one()));
       JTRACE("made row")(_fromMatrix)(_minCoord)(_maxCoord);
     }
     break;
@@ -122,14 +126,14 @@ void hecura::Region::initialize(Transform& trans) {
 }
 
 hecura::CoordinateFormula hecura::Region::calculateCenter() const {
-  CoordinateFormula tmp;
-  JASSERT(_minCoord.size()==_maxCoord.size())(_minCoord.size())(_maxCoord.size());
-  for(size_t i=0; i<_minCoord.size(); ++i){
-    tmp.push_back( new FormulaDivide(new FormulaAdd(_minCoord[i],_maxCoord[i]),
-                                     new FormulaInteger(2)) );
-  }
-  tmp.normalize();
-  return tmp;
+//   CoordinateFormula tmp;
+//   JASSERT(_minCoord.size()==_maxCoord.size())(_minCoord.size())(_maxCoord.size());
+//   for(size_t i=0; i<_minCoord.size(); ++i){
+//     tmp.push_back( new FormulaDivide(new FormulaAdd(_minCoord[i],_maxCoord[i]),
+//                                      new FormulaInteger(2)) );
+//   }
+//   tmp.normalize();
+  return _minCoord;
 }
 
 void hecura::RegionList::makeRelativeTo(const FormulaList& defs){
@@ -167,17 +171,22 @@ hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const Fo
   {
     FormulaList defs /*= _defs*/;
     for(size_t i=0; i<_maxCoord.size(); ++i){
-      defs.push_back(new FormulaEQ( _fromMatrix->getMaxValueInDimension(i), _maxCoord[i]));
+      defs.push_back(new FormulaEQ( _fromMatrix->getSizeOfDimension(i), _maxCoord[i]));
     }
     FreeVarsPtr fv = defs.getFreeVariables();
     for(size_t i=0; i<_maxCoord.size(); ++i){
       std::string var = rule.getOffsetVar(i)->toString();
-      if(fv->contains(var))
-        max.push_back(rule.trimImpossible(MaximaWrapper::instance().solve(defs, var))->rhs());
-      else if(_maxCoord[i]->getFreeVariables()->empty())
-        max.push_back(_maxCoord[i]);
-      else
+      if(fv->contains(var)){
+        FormulaPtr f = rule.trimImpossible(MaximaWrapper::instance().solve(defs, var))->rhs();
+//         f = new FormulaAdd(f, FormulaInteger::one());
+        max.push_back(MaximaWrapper::instance().normalize(f));
+      }else if(_maxCoord[i]->getFreeVariables()->empty()){
+        FormulaPtr f = _maxCoord[i];
+        f = new FormulaAdd(f, FormulaInteger::one());
+        max.push_back(MaximaWrapper::instance().normalize(f));
+      }else{
         max.push_back(_fromMatrix->getMaxValueInDimension(i));
+      }
     }
   }
 
@@ -209,9 +218,9 @@ bool hecura::SimpleRegion::hasIntersect(const SimpleRegion& that) const {
     return true;
   JASSERT(dimensions()==that.dimensions());
   for(size_t i=0; i<dimensions(); ++i){
-    if( MaximaWrapper::instance().compare(maxCoord()[i], "<", minCoord()[i]) )
+    if( MaximaWrapper::instance().compare(maxCoord()[i], "<=", minCoord()[i]) )
       return false;
-    if( MaximaWrapper::instance().compare(minCoord()[i], ">", maxCoord()[i]) )
+    if( MaximaWrapper::instance().compare(minCoord()[i], ">=", maxCoord()[i]) )
       return false;
   }
   return true;
@@ -220,7 +229,7 @@ bool hecura::SimpleRegion::hasIntersect(const SimpleRegion& that) const {
 std::string hecura::Region::generateSignatureCode(CodeGenerator& o, bool isConst) const{
   switch(_originalType){
   case REGION_CELL:
-    return std::string()+(isConst?"const ":"")+"ValueT& "  + _name;
+    return std::string()+(isConst?"const ":"")+"ElementT& "  + _name;
   case REGION_COL:
   case REGION_ROW:
     return (isConst?MatrixDef::oneD().constMatrixTypeName():MatrixDef::oneD().matrixTypeName())+" " + _name;
@@ -252,7 +261,7 @@ void hecura::Region::collectDependencies(const Rule& rule, MatrixDependencyMap& 
   //Determine dependency direction
   DependencyDirection direction(dimensions());
   for(size_t i=0; i<dimensions(); ++i){
-    if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), "<=", _maxCoord[i])==MaximaWrapper::YES){
+    if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), "<", _maxCoord[i])==MaximaWrapper::YES){
       switch(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), "<", _minCoord[i])){
       case MaximaWrapper::YES:     direction.addDirection(i, DependencyDirection::D_LT); break;
       case MaximaWrapper::NO:      direction.addDirection(i, DependencyDirection::D_EQ); break;
@@ -260,7 +269,7 @@ void hecura::Region::collectDependencies(const Rule& rule, MatrixDependencyMap& 
       default: JASSERT(false);
       }
     }else if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">=", _minCoord[i])==MaximaWrapper::YES){
-      switch(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">", _maxCoord[i])){
+      switch(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">=", _maxCoord[i])){
       case MaximaWrapper::YES:     direction.addDirection(i, DependencyDirection::D_GT); break;
       case MaximaWrapper::NO:      direction.addDirection(i, DependencyDirection::D_EQ); break;
       case MaximaWrapper::UNKNOWN: direction.addDirection(i, DependencyDirection::D_GE); break;
@@ -283,7 +292,8 @@ void hecura::Region::collectDependencies(const Rule& rule, MatrixDependencyMap& 
   minAbsolute.makeRelativeTo(minDefs);
   maxAbsolute.makeRelativeTo(maxDefs);
   SimpleRegionPtr region = new SimpleRegion(minAbsolute, maxAbsolute);
-
+//   region->offsetMaxBy(FormulaInteger::one());
+      
   //Merge with existing entry
   MatrixDependencyPtr dep = new MatrixDependency(direction, region);
   MatrixDependencyPtr& element = map[_fromMatrix];

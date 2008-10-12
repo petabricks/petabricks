@@ -21,38 +21,38 @@
 #include "matrix.h"
 using namespace hecura;
 
-// Begin output for tranform Test1
+// Begin output for transform Test1
 
 // User rules
-ValueT rule1(const ValueT& i){
+ElementT rule1(const ElementT& i, const ElementT& left, const ElementT& up){
+  return i+left+up;
+}
+ElementT rule2(const ElementT& i){
   return i;
 }
-ValueT rule2(const ValueT& i){
-  return i;
-}
-ValueT rule3(const ValueT& i){
+ElementT rule3(const ElementT& i){
   return i;
 }
 
 // Rule trampolines
-void apply_rule1(const MatrixRegion2D& A, const ConstMatrixRegion2D& B, IndexT begin_r1_x, IndexT begin_r1_y, IndexT end_r1_x, IndexT end_r1_y){
+void apply_rule1(const MatrixRegion2D& OUT, const ConstMatrixRegion2D& IN, IndexT begin_r1_x, IndexT begin_r1_y, IndexT end_r1_x, IndexT end_r1_y){
   for(int _r1_x=begin_r1_x; _r1_x<end_r1_x; ++_r1_x){
     for(int _r1_y=begin_r1_y; _r1_y<end_r1_y; ++_r1_y){
-      A.cell(_r1_x, _r1_y) = rule1(B.cell(_r1_x, _r1_y));
+      OUT.cell(_r1_x, _r1_y) = rule1(IN.cell(_r1_x, _r1_y), OUT.cell((_r1_x-1), _r1_y), OUT.cell(_r1_x, (_r1_y-1)));
     }
   }
 }
-void apply_rule2(const MatrixRegion2D& B, const ConstMatrixRegion2D& IN, IndexT begin_r2_x, IndexT begin_r2_y, IndexT end_r2_x, IndexT end_r2_y){
+void apply_rule2(const MatrixRegion2D& OUT, const ConstMatrixRegion2D& IN, IndexT begin_r2_x, IndexT begin_r2_y, IndexT end_r2_x, IndexT end_r2_y){
   for(int _r2_x=begin_r2_x; _r2_x<end_r2_x; ++_r2_x){
     for(int _r2_y=begin_r2_y; _r2_y<end_r2_y; ++_r2_y){
-      B.cell(_r2_x, _r2_y) = rule2(IN.cell(_r2_x, _r2_y));
+      OUT.cell(0, _r2_y) = rule2(IN.cell(0, _r2_y));
     }
   }
 }
-void apply_rule3(const MatrixRegion2D& OUT, const ConstMatrixRegion2D& A, IndexT begin_r3_x, IndexT begin_r3_y, IndexT end_r3_x, IndexT end_r3_y){
+void apply_rule3(const MatrixRegion2D& OUT, const ConstMatrixRegion2D& IN, IndexT begin_r3_x, IndexT begin_r3_y, IndexT end_r3_x, IndexT end_r3_y){
   for(int _r3_x=begin_r3_x; _r3_x<end_r3_x; ++_r3_x){
     for(int _r3_y=begin_r3_y; _r3_y<end_r3_y; ++_r3_y){
-      OUT.cell(_r3_x, _r3_y) = rule3(A.cell(_r3_x, _r3_y));
+      OUT.cell(_r3_x, 0) = rule3(IN.cell(_r3_x, 0));
     }
   }
 }
@@ -60,27 +60,36 @@ void apply_rule3(const MatrixRegion2D& OUT, const ConstMatrixRegion2D& A, IndexT
 // Entry function
 void Test1(const MatrixRegion2D& OUT, const ConstMatrixRegion2D& IN){
   // Extract matrix size parameters
-  IndexT w=IN.size(0);
-  IndexT h=IN.size(1);
+  const IndexT w=IN.size(0);
+  const IndexT h=IN.size(1);
   // Verify size of input/output
   JASSERT(w == IN.size(0))(w)(IN.size(0));
   JASSERT(h == IN.size(1))(h)(IN.size(1));
   JASSERT(w == OUT.size(0))(w)(OUT.size(0));
   JASSERT(h == OUT.size(1))(h)(OUT.size(1));
-  // Allocate intermediate matrices
-  MatrixRegion2D A = MatrixRegion2D::allocate(w, h);
-  MatrixRegion2D B = MatrixRegion2D::allocate(w, h);
   // Run computation
-  apply_rule2(B, IN, 0,0, (w-1),(h-1));
-  apply_rule1(A, B, 0,0, (w-1),(h-1));
-  apply_rule3(OUT, A, 0,0, (w-1),(h-1));
+  apply_rule3(OUT, IN, 1,0, w,1);
+  apply_rule2(OUT, IN, 0,1, 1,h);
+  apply_rule3(OUT, IN, 0,0, 1,1);
+  apply_rule1(OUT, IN, 1,1, w,h);
 }
+
+// Return style entry function
+MatrixRegion2D Test1(const ConstMatrixRegion2D& IN){
+  // Extract matrix size parameters
+  const IndexT w=IN.size(0);
+  const IndexT h=IN.size(1);
+  // Allocate to matrix
+  MatrixRegion2D OUT = MatrixRegion2D::allocate(w, h);
+  // Call normal version
+  Test1(OUT, IN);
+  return OUT;
+}
+
 
 #include "matrixio.h"
 int main(int argc, const char** argv){
   MatrixRegion2D in  = MatrixIO("A","r").read2D();
-  MatrixRegion2D out = MatrixRegion2D::allocate(in.sizes());
-  Test1(out, in);
-  MatrixIO("AB","w").write(out);
+  MatrixIO().write(Test1(in));
   return 0;
 }
