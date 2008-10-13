@@ -48,5 +48,5 @@ if test "$use_jtiming" = "yes"; then
   AC_DEFINE([TIMING],[],[record timing information to stderr and jtimings.csv])
 fi
 
-AC_OUTPUT(Makefile src/Makefile)
+AC_OUTPUT(Makefile src/Makefile src/cxxconfig.h)
 

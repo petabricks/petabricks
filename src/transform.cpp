@@ -109,6 +109,8 @@ void hecura::Transform::initialize() {
   for(MatrixDefList::iterator m=_through.begin(); m!=_through.end(); ++m)
     fillBaseCases(allRules, *m);
 
+  tester().setIOSizes(_from.size(), _to.size());
+
   MaximaWrapper::instance().popContext();
 }
 

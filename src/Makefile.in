@@ -37,16 +37,17 @@ host_triplet = @host@
 noinst_PROGRAMS = pbc$(EXEEXT) test$(EXEEXT)
 subdir = src
 DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in $(srcdir)/config.h.in matrixreader.cpp \
-	maximalexer.cpp maximaparser.cpp maximaparser.h pblexer.cpp \
-	pbparser.cpp pbparser.h
+	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
+	$(srcdir)/cxxconfig.h.in matrixreader.cpp maximalexer.cpp \
+	maximaparser.cpp maximaparser.h pblexer.cpp pbparser.cpp \
+	pbparser.h
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES =
+CONFIG_CLEAN_FILES = cxxconfig.h
 LIBRARIES = $(noinst_LIBRARIES)
 ARFLAGS = cru
 libhecura_a_AR = $(AR) $(ARFLAGS)
@@ -57,8 +58,9 @@ am_libhecura_a_OBJECTS = choicegrid.$(OBJEXT) codegenerator.$(OBJEXT) \
 	matrixio.$(OBJEXT) matrixreader.$(OBJEXT) \
 	maximalexer.$(OBJEXT) maximaparser.$(OBJEXT) \
 	maximawrapper.$(OBJEXT) pblexer.$(OBJEXT) pbparser.$(OBJEXT) \
-	region.$(OBJEXT) rule.$(OBJEXT) rulechoice.$(OBJEXT) \
-	staticscheduler.$(OBJEXT) transform.$(OBJEXT)
+	performancetester.$(OBJEXT) region.$(OBJEXT) rule.$(OBJEXT) \
+	rulechoice.$(OBJEXT) staticscheduler.$(OBJEXT) \
+	transform.$(OBJEXT)
 libhecura_a_OBJECTS = $(am_libhecura_a_OBJECTS)
 libjutil_a_AR = $(AR) $(ARFLAGS)
 libjutil_a_LIBADD =
@@ -234,15 +236,16 @@ noinst_HEADERS = choicegrid.h codegenerator.h config.h formula.h jasm.h \
 	jassert.h jblockingqueue.h jbuffer.h jconvert.h jfilesystem.h jmutex.h \
 	jprintable.h jrefcounted.h jserialize.h jsocket.h jthread.h jtimer.h learner.h \
 	matrix.h matrixdef.h matrixdependency.h matrixio.h matrixoperations.h \
-	maximawrapper.h region.h rule.h rulechoice.h staticscheduler.h transform.h
+	maximawrapper.h performancetester.h region.h rule.h rulechoice.h staticscheduler.h \
+	transform.h
 
 libjutil_a_SOURCES = jassert.cpp jbuffer.cpp jfilesystem.cpp jprintable.cpp \
 	jserialize.cpp jsocket.cpp jthread.cpp jtimer.cpp
 
 libhecura_a_SOURCES = choicegrid.cpp codegenerator.cpp formula.cpp learner.cpp \
 	matrix.cpp matrixdef.cpp matrixdependency.cpp matrixio.cpp matrixreader.lpp \
-	maximalexer.lpp maximaparser.ypp maximawrapper.cpp pblexer.lpp pbparser.ypp region.cpp \
-	rule.cpp rulechoice.cpp staticscheduler.cpp transform.cpp
+	maximalexer.lpp maximaparser.ypp maximawrapper.cpp pblexer.lpp pbparser.ypp \
+	performancetester.cpp region.cpp rule.cpp rulechoice.cpp staticscheduler.cpp transform.cpp
 
 pbc_SOURCES = pbc.cpp
 pbc_LDADD = libhecura.a libjutil.a -lpthread 
@@ -299,6 +302,8 @@ $(srcdir)/config.h.in:  $(am__configure_deps)
 
 distclean-hdr:
 	-rm -f config.h stamp-h1
+cxxconfig.h: $(top_builddir)/config.status $(srcdir)/cxxconfig.h.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 
 clean-noinstLIBRARIES:
 	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
@@ -353,6 +358,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pblexer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbparser.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/performancetester.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/region.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rule.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rulechoice.Po@am__quote@

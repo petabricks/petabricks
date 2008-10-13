@@ -42,6 +42,7 @@ static void clearParserCaches(){
   hecura::FormulaList*    formulas;
   hecura::Region*         region;
   hecura::RegionList*     regions;
+  hecura::TestCase*       testcase;
 }
 
 %start Start
@@ -51,12 +52,12 @@ static void clearParserCaches(){
   theRefPool.clear();
 }
 
-%token TRANSFORM FROM TO THROUGH LE GE WHERE ROTATABLE PRIMARY SECONDARY PRIORITY MAIN RECURSIVE
+%token TRANSFORM FROM TO THROUGH LE GE WHERE ROTATABLE PRIMARY SECONDARY PRIORITY MAIN RECURSIVE TESTCASE
 %token <str> INTEGER FLOAT IDENT RULEBODY
 %type <str> RuleBody
 %type <i> Integer PriorityFlag
 %type <d> Float
-%type <transform> Transform TransformHeader TransformName TransformFrom TransformThrough TransformTo;
+%type <transform> Transform TransformHeader TransformName TransformFrom TransformThrough TransformTo TransformTest
 %type <transforms> TransformList
 %type <rules> TransformBody RuleList
 %type <rule> Rule RuleHeader
@@ -66,6 +67,7 @@ static void clearParserCaches(){
 %type <formula>    Formula FormulaBinop
 %type <region>     Region NamedRegion
 %type <regions>    NamedRegionList
+%type <testcase>   TestCase
 
 %nonassoc '=' '<' '>' LE GE
 %left '-' '+'
@@ -87,15 +89,18 @@ Transform: TransformHeader TransformBody {
 TransformHeader: TransformName      {$$=$1;}
                | TransformFrom      {$$=$1;}
                | TransformThrough   {$$=$1;}
-               | TransformTo        {$$=$1;};
+               | TransformTo        {$$=$1;}
+               | TransformTest      {$$=$1;};
 
 TransformName:    TRANSFORM IDENT OptSemiCol      { $$=REFALLOC(Transform($2)); }
-             |    MAIN TRANSFORM IDENT OptSemiCol { $$=REFALLOC(Transform($3)); $$->markMain(); };
-TransformFrom:    TransformHeader FROM    MatrixDefList OptSemiCol { ($$=$1)->addFrom(*$3);    };
-TransformThrough: TransformHeader THROUGH MatrixDefList OptSemiCol { ($$=$1)->addThrough(*$3); };
-TransformTo:      TransformHeader TO      MatrixDefList OptSemiCol { ($$=$1)->addTo(*$3);      };
+             |    MAIN TRANSFORM IDENT OptSemiCol { $$=REFALLOC(Transform($3)); $$->markMain();  };
+TransformFrom:    TransformHeader FROM     MatrixDefList OptSemiCol { ($$=$1)->addFrom(*$3);     };
+TransformThrough: TransformHeader THROUGH  MatrixDefList OptSemiCol { ($$=$1)->addThrough(*$3);  };
+TransformTo:      TransformHeader TO       MatrixDefList OptSemiCol { ($$=$1)->addTo(*$3);       };
+TransformTest:    TransformHeader TESTCASE TestCase OptSemiCol      { ($$=$1)->addTestCase($3); };
 
-
+TestCase: Nil            { $$=REFALLOC(TestCase()); }
+        | TestCase IDENT { ($$=$1)->addMatrix($2); };
 
 MatrixDef: IDENT OptVersion OptSize { $$=REFALLOC(MatrixDef($1,*$2,*$3)); };
 

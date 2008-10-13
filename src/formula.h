@@ -174,6 +174,8 @@ typedef FormulaBinop<'>'> FormulaGT;
 typedef FormulaBinop<'G'> FormulaGE;
 typedef FormulaBinop<'<'> FormulaLT;
 typedef FormulaBinop<'L'> FormulaLE;
+typedef FormulaBinop<'&'> FormulaAnd;
+typedef FormulaBinop<'|'> FormulaOr;
 
 }
 

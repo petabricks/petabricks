@@ -26,6 +26,7 @@
 #include "choicegrid.h"
 #include "rule.h"
 #include "learner.h"
+#include "performancetester.h"
 
 #include <vector>
 #include <set>
@@ -81,6 +82,10 @@ public:
   void markMain() { _isMain=true; }
 
   Learner& learner() { return _learner; }
+  PerformanceTester& tester() { return _tester; }
+
+
+  void addTestCase(const TestCasePtr& p) {tester().addTestCase(p);}
 private:
   std::string   _name;
   MatrixDefList _from;
@@ -92,6 +97,7 @@ private:
   FreeVars      _constants;
   bool          _isMain;
   Learner       _learner;
+  PerformanceTester _tester;
 };
 
 }

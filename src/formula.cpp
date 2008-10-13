@@ -92,6 +92,8 @@ template < char OP >
 const char* hecura::FormulaBinop<OP>::opStr() {
   if(OP=='G') return ">=";
   if(OP=='L') return "<=";
+  if(OP=='&') return "&&";
+  if(OP=='|') return "||";
   static const char v[] = {OP , 0};
   return v;
 }
@@ -181,3 +183,5 @@ template class hecura::FormulaBinop<'>'>;
 template class hecura::FormulaBinop<'G'>;
 template class hecura::FormulaBinop<'<'>;
 template class hecura::FormulaBinop<'L'>;
+template class hecura::FormulaBinop<'&'>;
+template class hecura::FormulaBinop<'|'>;

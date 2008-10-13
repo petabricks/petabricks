@@ -17,49 +17,59 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURALEARNER_H
-#define HECURALEARNER_H
+#ifndef HECURAPERFORMANCETESTER_H
+#define HECURAPERFORMANCETESTER_H
 
-#include "rulechoice.h"
-#include "region.h"
+#include <string>
+#include <vector>
+#include "jrefcounted.h"
+#include "jprintable.h"
 
 namespace hecura {
 
-class PerformanceTester;
+class TestCase;
+typedef jalib::JRef<TestCase> TestCasePtr;
+typedef std::vector<TestCasePtr> TestCaseList;
 
 /**
- * Makes choices during code generation using accumulated information.
- * There is one Learner instance per Transform.
+ * Stores a set of valid args to output progrm
  */
-class Learner{
+class TestCase : public jalib::JRefCounted, public jalib::JPrintable {
 public:
-  ///
-  /// Constructor
-  Learner();
-
-  ///
-  /// Called before a code generation cycle
-  void onIterationBegin();
-
-  ///
-  /// Pick which rules to use for a given region
-  RuleChoicePtr makeRuleChoice(const RuleSet& choices, const MatrixDefPtr&, const SimpleRegionPtr&);
-
-  ///
-  /// Called after a code generation cycle
-  void onIterationEnd();
-
-  ///
-  /// Called after onIterationEnd().
-  /// True causes the compiler to call runTests then start over
-  bool shouldIterateAgain();
-
-  ///
-  /// Run performance tests on the output of the last iteration
-  void runTests(PerformanceTester& tester);
-
+  void addMatrix(const std::string& m){_inputs.push_back(m);}
+  void print(std::ostream& o) const;
 private:
-  int _numIterations;
+  std::vector<std::string> _inputs;
+};
+
+/**
+ * Manages test cases and runs peformance tests
+ */
+class PerformanceTester{
+public:
+  void setBinary(const std::string& path){_binary=path;}
+  void addTestCase(const TestCasePtr& tc){_testCases.push_back(tc);}
+  const TestCaseList& testCases() const {return _testCases;}
+
+  void setIOSizes(int i, int o){_numInputs=i; _numOutputs=o;}
+
+  ///
+  /// Run a given test case, return how many seconds it took
+  double runTest(const TestCase& tc);
+
+  ///
+  /// Run all tests, return total time
+  double runAllTests(){
+    double d=0;
+    for(TestCaseList::const_iterator i=_testCases.begin(); i!=_testCases.end(); ++i)
+      d+=runTest(*i);
+    return d;
+  }
+private:
+  std::string _binary;
+  TestCaseList _testCases;
+  int _numInputs;
+  int _numOutputs;
 };
 
 }

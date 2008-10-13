@@ -18,11 +18,21 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "learner.h"
+#include "performancetester.h"
+
+hecura::Learner::Learner() : _numIterations(0) {}
+
+
+void hecura::Learner::onIterationBegin(){
+
+}
 
 hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
                                                      , const MatrixDefPtr&
                                                      , const SimpleRegionPtr& )
 {
+  JTRACE("choice");
+
   /*
    * This function must build a stack of RuleChoicePtr's from choices.
    * The field RuleChoice::_next forms a linked list of choices.
@@ -32,3 +42,17 @@ hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
   RuleChoicePtr rv = new RuleChoice(*choices.begin()); //the first rule
   return rv;
 }
+
+void hecura::Learner::onIterationEnd(){
+  _numIterations++;
+}
+
+bool hecura::Learner::shouldIterateAgain(){
+  //for testing... make learner always do 2 iterations
+  return _numIterations < 3; 
+}
+
+void hecura::Learner::runTests(PerformanceTester& tester){
+  double totalTime = tester.runAllTests();
+  JTRACE("run PerformanceTester")(totalTime);
+} 

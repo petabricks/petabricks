@@ -36,6 +36,7 @@ src/pblexer.cpp
 src/pbparser.cpp
 src/pbparser.h
 src/matrixreader.cpp
+src/cxxconfig.h
 maxima.log
 schedule.pdf
 
