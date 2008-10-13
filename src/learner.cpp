@@ -17,40 +17,18 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "matrixio.h"
+#include "learner.h"
 
-void matrixreaderset_in (FILE *  in_str );
-int matrixreaderlex(hecura::MatrixReaderScratch&);
-
-hecura::MatrixIO::MatrixIO(FILE* file) : _fd(file) {}
-hecura::MatrixIO::MatrixIO(const char* filename, const char* mode) 
+hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
+                                                     , const MatrixDefPtr&
+                                                     , const SimpleRegionPtr& )
 {
-  if(std::string("-")==filename) 
-    _fd = stdin;
-  else 
-    _fd = fopen(filename,mode);
-  JASSERT(_fd!=NULL)(filename)(mode).Text("failed to open file");
+  /*
+   * This function must build a stack of RuleChoicePtr's from choices.
+   * The field RuleChoice::_next forms a linked list of choices.
+   * At runtime the first choice for which RuleChoice::_condition holds is used.
+   */
+
+  RuleChoicePtr rv = new RuleChoice(*choices.begin()); //the first rule
+  return rv;
 }
-
-void hecura::MatrixIO::_read(MatrixReaderScratch& o){
-  if(_fd == stdout) _fd = stdin;
-  matrixreaderset_in(_fd);
-  matrixreaderlex(o);
-  matrixreaderset_in(NULL);
-  JASSERT(o.dimensions>=0 && o.dimensions < MAX_DIMENSIONS)
-      (o.dimensions).Text("failed to read input matrix, invalid size");
-  JASSERT(o.storage).Text("failed to read input matrix");
-  JASSERT(o.remaining==0)(o.remaining).Text("failed to read input matrix");
-}
-
-// void hecura::MatrixIO::write(const MATRIX_ELEMENT_T* buf, int h, int w){
-//   if(_fd == stdin) _fd = stdout;
-//   int i=0;
-//   for(int x=0; x<w; ++x){
-//     for(int y=0; y<h; ++y){
-//       fprintf(_fd, "%4.1f ", buf[i++]);
-//     }
-//     fprintf(_fd, "\n");
-//   }
-// }
-

@@ -40,6 +40,7 @@ PASS_CHARS [.<>,*/()[\]+-]
 
 %%
 <INITIAL>{
+  "main"           RETURN MAIN;
   "transform"      RETURN TRANSFORM;
   "through"        RETURN THROUGH;
   "to"             RETURN TO;
@@ -49,9 +50,10 @@ PASS_CHARS [.<>,*/()[\]+-]
 <transform>{
   "where"          RETURN WHERE;
   "priority"       RETURN PRIORITY;
-  "primary"        RETURN SECONDARY;
-  "secondary"      RETURN PRIMARY;
+  "primary"        RETURN PRIMARY;
+  "secondary"      RETURN SECONDARY;
   "rotatable"      RETURN ROTATABLE;
+  "recursive"      RETURN RECURSIVE;
   "{"              yy_push_state(rule); RETURN *yytext;
   "}"              yy_pop_state();      RETURN *yytext;
 }

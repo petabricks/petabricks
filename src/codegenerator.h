@@ -120,6 +120,28 @@ public:
     indent();
     _os << "// " << str << "\n";
   }
+
+  void beginIf(const std::string& v){
+    indent();
+    _os << "if(" << v << "){\n";
+    _indent++;
+  }
+
+  void elseIf(const std::string& v = "true"){
+    _indent--;
+    indent();
+    if(v=="true")
+      _os << "}else{\n";
+    else
+      _os << "}else if(" << v << "){\n";
+    _indent++;
+  }
+
+  void endIf(){
+    _indent--;
+      indent();
+    _os << "}\n";
+  }
 private:
   int _indent;
   std::ostream& _os;

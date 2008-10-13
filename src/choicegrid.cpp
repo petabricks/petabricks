@@ -48,6 +48,8 @@ hecura::ChoiceGridPtr hecura::ChoiceGrid::constructFrom(
         currentNode->finalizeConstruction(currentPos, activeRules);
         if(dimension+1 < dimensions.size())
           currentNode->_nextDimension = constructFrom(activeRules, dimensions, dimension+1);
+        else
+          currentNode->applyRulePriorities();
         //make next element
         lastNode = currentNode;
         currentNode = new ChoiceGrid(dimension, currentPos);
@@ -93,5 +95,26 @@ void hecura::ChoiceGrid::buildIndex(ChoiceGridIndex& idx, const SimpleRegionPtr&
     idx[tmp] = this;
 
   if(_nextElement) _nextElement->buildIndex(idx, prefix);
+}
+
+void hecura::ChoiceGrid::finalizeConstruction(const FormulaPtr& end, const RuleSet& applicable){
+  _end=end;
+  _applicableRules = applicable;
+}
+
+void hecura::ChoiceGrid::applyRulePriorities(){
+  RuleSet rules;
+  RuleFlags::PriorityT pri = RuleFlags::PRIORITY_MAX;
+  for(RuleSet::const_iterator i=_applicableRules.begin(); i!=_applicableRules.end(); ++i){
+    RulePtr r = *i;
+    JTRACE("Apply Priorities")(r->id())(r->priority());
+    if(r->priority() < pri){
+      rules.clear();
+      pri=r->priority();
+    }
+    if(r->priority()==pri)
+      rules.insert(r);
+  }
+  _applicableRules.swap(rules);//faster than a copy
 }
 

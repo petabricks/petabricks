@@ -52,12 +52,13 @@ ARFLAGS = cru
 libhecura_a_AR = $(AR) $(ARFLAGS)
 libhecura_a_LIBADD =
 am_libhecura_a_OBJECTS = choicegrid.$(OBJEXT) codegenerator.$(OBJEXT) \
-	formula.$(OBJEXT) matrix.$(OBJEXT) matrixdef.$(OBJEXT) \
-	matrixdependency.$(OBJEXT) matrixio.$(OBJEXT) \
-	matrixreader.$(OBJEXT) maximalexer.$(OBJEXT) \
-	maximaparser.$(OBJEXT) maximawrapper.$(OBJEXT) \
-	pblexer.$(OBJEXT) pbparser.$(OBJEXT) region.$(OBJEXT) \
-	rule.$(OBJEXT) staticscheduler.$(OBJEXT) transform.$(OBJEXT)
+	formula.$(OBJEXT) learner.$(OBJEXT) matrix.$(OBJEXT) \
+	matrixdef.$(OBJEXT) matrixdependency.$(OBJEXT) \
+	matrixio.$(OBJEXT) matrixreader.$(OBJEXT) \
+	maximalexer.$(OBJEXT) maximaparser.$(OBJEXT) \
+	maximawrapper.$(OBJEXT) pblexer.$(OBJEXT) pbparser.$(OBJEXT) \
+	region.$(OBJEXT) rule.$(OBJEXT) rulechoice.$(OBJEXT) \
+	staticscheduler.$(OBJEXT) transform.$(OBJEXT)
 libhecura_a_OBJECTS = $(am_libhecura_a_OBJECTS)
 libjutil_a_AR = $(AR) $(ARFLAGS)
 libjutil_a_LIBADD =
@@ -231,17 +232,17 @@ AM_LFLAGS =
 noinst_LIBRARIES = libjutil.a libhecura.a
 noinst_HEADERS = choicegrid.h codegenerator.h config.h formula.h jasm.h \
 	jassert.h jblockingqueue.h jbuffer.h jconvert.h jfilesystem.h jmutex.h \
-	jprintable.h jrefcounted.h jserialize.h jsocket.h jthread.h jtimer.h matrix.h \
-	matrixdef.h matrixdependency.h matrixio.h matrixoperations.h maximawrapper.h \
-	region.h rule.h staticscheduler.h transform.h
+	jprintable.h jrefcounted.h jserialize.h jsocket.h jthread.h jtimer.h learner.h \
+	matrix.h matrixdef.h matrixdependency.h matrixio.h matrixoperations.h \
+	maximawrapper.h region.h rule.h rulechoice.h staticscheduler.h transform.h
 
 libjutil_a_SOURCES = jassert.cpp jbuffer.cpp jfilesystem.cpp jprintable.cpp \
 	jserialize.cpp jsocket.cpp jthread.cpp jtimer.cpp
 
-libhecura_a_SOURCES = choicegrid.cpp codegenerator.cpp formula.cpp matrix.cpp \
-	matrixdef.cpp matrixdependency.cpp matrixio.cpp matrixreader.lpp maximalexer.lpp \
-	maximaparser.ypp maximawrapper.cpp pblexer.lpp pbparser.ypp region.cpp rule.cpp \
-	staticscheduler.cpp transform.cpp
+libhecura_a_SOURCES = choicegrid.cpp codegenerator.cpp formula.cpp learner.cpp \
+	matrix.cpp matrixdef.cpp matrixdependency.cpp matrixio.cpp matrixreader.lpp \
+	maximalexer.lpp maximaparser.ypp maximawrapper.cpp pblexer.lpp pbparser.ypp region.cpp \
+	rule.cpp rulechoice.cpp staticscheduler.cpp transform.cpp
 
 pbc_SOURCES = pbc.cpp
 pbc_LDADD = libhecura.a libjutil.a -lpthread 
@@ -261,9 +262,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign  src/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  src/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign  src/Makefile
+	  $(AUTOMAKE) --gnu  src/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -340,6 +341,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jsocket.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jthread.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jtimer.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/learner.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/matrix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/matrixdef.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/matrixdependency.Po@am__quote@
@@ -353,6 +355,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbparser.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/region.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rule.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rulechoice.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staticscheduler.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/transform.Po@am__quote@

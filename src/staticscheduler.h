@@ -30,6 +30,7 @@
 #include <map>
 
 namespace hecura {
+class Transform;
 class CodeGenerator;
 class ScheduleNode;
 typedef  std::set<ScheduleNode*> ScheduleNodeSet;
@@ -70,7 +71,7 @@ public:
     }
   }
 
-  void generateCodeSimple(CodeGenerator& o);
+  void generateCodeSimple(Transform& trans, CodeGenerator& o);
   
 private:
   int               _id;
@@ -107,7 +108,6 @@ public:
   
   const ScheduleNodeList& schedule() const { return _schedule; }
 
-
   void print(std::ostream& o) const {
     o << "digraph {\n";
     for( std::map<MatrixDefPtr, ScheduleNodeList >::const_iterator i=_nodes.begin()
@@ -131,7 +131,7 @@ public:
     o << "}\n";
   }
 
-  void generateCodeSimple(CodeGenerator& o);
+  void generateCodeSimple(Transform& trans, CodeGenerator& o);
 private:
   std::map<MatrixDefPtr, ScheduleNodeList > _nodes;
   ScheduleNodeSet _generated;

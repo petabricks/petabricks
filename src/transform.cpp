@@ -185,10 +185,10 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
     argNames.push_back((*i)->name());
   }
   
-  o.comment("Entry function");
+  o.comment(_name+" entry function");
   o.beginFunc("void", _name, args);
   extractSizeDefines(o);
-  o.comment("Verify size of input/output");
+//   o.comment("Verify size of input/output");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->verifyDefines(o);
   }
@@ -196,12 +196,12 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
     (*i)->verifyDefines(o);
   }
   if(!_through.empty())
-    o.comment("Allocate intermediate matrices");
+//     o.comment("Allocate intermediate matrices");
   for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
     (*i)->allocateTemporary(o);
   }
-  o.comment("Run computation");
-  scheduler.generateCodeSimple(o);
+//   o.comment("Run computation");
+  scheduler.generateCodeSimple(*this, o);
   //_baseCases->generateCodeSimple(o, SimpleRegionPtr(new SimpleRegion()));
   o.endFunc();
   o.newline();
@@ -211,9 +211,9 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
     o.comment("Return style entry function");
     o.beginFunc(_to.front()->matrixTypeName(), _name, args);
     extractSizeDefines(o);
-    o.comment("Allocate to matrix");
+//     o.comment("Allocate to matrix");
     _to.front()->allocateTemporary(o);
-    o.comment("Call normal version");
+//     o.comment("Call normal version");
     o.call(_name, argNames);
     o.write("return "+_to.front()->name()+";");
     o.endFunc();
@@ -225,7 +225,7 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
 
 void hecura::Transform::extractSizeDefines(CodeGenerator& o){
   FreeVars fv;
-  o.comment("Extract matrix size parameters");
+//   o.comment("Extract matrix size parameters");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->extractDefines(fv, o);
   }
@@ -233,3 +233,43 @@ void hecura::Transform::extractSizeDefines(CodeGenerator& o){
     (*i)->extractDefines(fv, o);
   }
 }
+
+void hecura::Transform::generateMainCode(CodeGenerator& o){ 
+  std::vector<std::string> argNames;
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    argNames.push_back((*i)->name());
+  }
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    argNames.push_back((*i)->name());
+  }
+  int a = 1;
+  o.comment("Program main routine");
+  o.beginFunc("int", "main", "int argc, const char** argv");
+  o.beginIf("argc!="+jalib::XToString(_to.size()+_from.size()+1));
+  {
+    std::ostringstream os;
+    os <<"fprintf(stderr,\"USAGE: "+_name+" ";
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i)
+      os << (*i)->name() << " ";
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i)
+      os << (*i)->name() << " ";
+    os <<"\\n\");";
+    o.write(os.str());
+    o.write("return 1;");
+  }
+  o.endIf();
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"]");
+  }
+  extractSizeDefines(o);
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    (*i)->allocateTemporary(o);
+  }
+  o.call(_name, argNames);
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"]");
+  }
+  o.write("return 0;");
+  o.endFunc();
+}
+

@@ -54,12 +54,13 @@ typedef jalib::JRef<MatrixDependencyMap> MatrixDependencyMapPtr;
  */
 class RuleFlags {
 public:
-  RuleFlags() : priority(PRIORITY_DEFAULT), rotations(NOROTATE) {}
+  RuleFlags() : priority(PRIORITY_DEFAULT), rotations(NOROTATE), isRecursive(false) {}
 
   typedef int PriorityT;
   enum { PRIORITY_PRIMARY   = 0
        , PRIORITY_DEFAULT   = 1
-       , PRIORITY_SECONDARY = 2 };
+       , PRIORITY_SECONDARY = 2
+       , PRIORITY_MAX = 1024};
   
   typedef int RotationT;
   enum {
@@ -77,6 +78,7 @@ public:
   
   PriorityT  priority;
   RotationT  rotations;
+  bool       isRecursive;
 };
 
 /**
@@ -169,6 +171,11 @@ public:
   const SimpleRegionPtr& applicanbleRegion() const { return _applicanbleRegion; }
 
   void collectDependencies(StaticScheduler& scheduler);
+
+  void markRecursive() { _flags.isRecursive=true; }
+
+  RuleFlags::PriorityT priority() const { return _flags.priority; }
+  const FormulaList& conditions() const { return _conditions; }
 private:
   int _id;
   RuleFlags   _flags;

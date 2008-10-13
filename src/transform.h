@@ -25,6 +25,7 @@
 #include "matrixdef.h"
 #include "choicegrid.h"
 #include "rule.h"
+#include "learner.h"
 
 #include <vector>
 #include <set>
@@ -44,7 +45,7 @@ class Transform : public jalib::JRefCounted, public jalib::JPrintable {
 public:
   ///
   /// Constructor
-  Transform(const char* name) : _name(name) {}
+  Transform(const char* name) : _name(name),_isMain(false) {}
   
   //called durring parsing:
   void addFrom(const MatrixDefList&);
@@ -68,12 +69,18 @@ public:
 
   void generateCodeSimple(CodeGenerator& o);
 
+  void generateMainCode(CodeGenerator& o);
+
   void fillBaseCases(const RuleSet& allRules, const MatrixDefPtr& matrix);
   
   const FreeVars& constants() const { return _constants; }
   FreeVars& constants() { return _constants; }
 
   void extractSizeDefines(CodeGenerator& o);
+
+  void markMain() { _isMain=true; }
+
+  Learner& learner() { return _learner; }
 private:
   std::string   _name;
   MatrixDefList _from;
@@ -82,7 +89,9 @@ private:
   MatrixDefMap  _matrices;
   RuleList      _rules;
   ChoiceGridMap _baseCases;
-  FreeVars   _constants;
+  FreeVars      _constants;
+  bool          _isMain;
+  Learner       _learner;
 };
 
 }

@@ -51,7 +51,7 @@ static void clearParserCaches(){
   theRefPool.clear();
 }
 
-%token TRANSFORM FROM TO THROUGH LE GE WHERE ROTATABLE PRIMARY SECONDARY PRIORITY
+%token TRANSFORM FROM TO THROUGH LE GE WHERE ROTATABLE PRIMARY SECONDARY PRIORITY MAIN RECURSIVE
 %token <str> INTEGER FLOAT IDENT RULEBODY
 %type <str> RuleBody
 %type <i> Integer PriorityFlag
@@ -84,12 +84,13 @@ Transform: TransformHeader TransformBody {
    JTRACE("parsed Transform")($$->name()); 
 };
 
-TransformHeader: TransformName    {$$=$1;}
-               | TransformFrom    {$$=$1;}
-               | TransformThrough {$$=$1;}
-               | TransformTo      {$$=$1;};
+TransformHeader: TransformName      {$$=$1;}
+               | TransformFrom      {$$=$1;}
+               | TransformThrough   {$$=$1;}
+               | TransformTo        {$$=$1;};
 
-TransformName:    TRANSFORM IDENT OptSemiCol { $$=REFALLOC(Transform($2)); };
+TransformName:    TRANSFORM IDENT OptSemiCol      { $$=REFALLOC(Transform($2)); }
+             |    MAIN TRANSFORM IDENT OptSemiCol { $$=REFALLOC(Transform($3)); $$->markMain(); };
 TransformFrom:    TransformHeader FROM    MatrixDefList OptSemiCol { ($$=$1)->addFrom(*$3);    };
 TransformThrough: TransformHeader THROUGH MatrixDefList OptSemiCol { ($$=$1)->addThrough(*$3); };
 TransformTo:      TransformHeader TO      MatrixDefList OptSemiCol { ($$=$1)->addTo(*$3);      };
@@ -133,7 +134,8 @@ Rule: RuleHeader RuleBody OptSemiCol { ($$=$1)->setBody($2); JTRACE("parsed Rule
 
 RuleHeader: Region FROM '(' NamedRegionList ')' OptWhere { $$=REFALLOC(Rule($1, *$4, *$6)); }
           | PriorityFlag RuleHeader { ($$=$2)->setPriority($1); }
-          | ROTATABLE    RuleHeader { ($$=$2)->addRotations(RuleFlags::ROTATE); };
+          | ROTATABLE    RuleHeader { ($$=$2)->addRotations(RuleFlags::ROTATE); }
+          | RECURSIVE    RuleHeader { ($$=$2)->markRecursive(); };
 
 PriorityFlag: PRIMARY                  {$$=RuleFlags::PRIORITY_PRIMARY;}
             | SECONDARY                {$$=RuleFlags::PRIORITY_SECONDARY;}

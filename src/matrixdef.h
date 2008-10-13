@@ -98,10 +98,16 @@ public:
     #endif
   }
 
+  
+
   void argDeclRW(std::vector<std::string>& args) const;
   void argDeclRO(std::vector<std::string>& args) const;
   void genAllocTmpCode(CodeGenerator& o);
   void generateCodeSimple(CodeGenerator& o);
+  void readFromFileCode(CodeGenerator& o, const std::string& fn);
+  void writeToFileCode(CodeGenerator& o, const std::string& fn);
+
+
 
   void extractDefines(FreeVars& defined, CodeGenerator& o);
   void verifyDefines(CodeGenerator& o);

@@ -56,10 +56,7 @@ class ChoiceGrid : public jalib::JRefCounted, public jalib::JPrintable {
 protected:
   ChoiceGrid(int d, const FormulaPtr& begin) : _dimension(d), _begin(begin) {}
 
-  void finalizeConstruction(const FormulaPtr& end, const RuleSet& applicable){
-    _end=end;
-    _applicableRules = applicable;
-  }
+  void finalizeConstruction(const FormulaPtr& end, const RuleSet& applicable);
 public:
   static ChoiceGridPtr constructFrom( const RuleSet&                allowedRules
                                     , const RuleDescriptorListList& dimensions
@@ -72,6 +69,8 @@ public:
   void buildIndex(ChoiceGridIndex& idx, const SimpleRegionPtr& prefix = 0);
 
   const RuleSet& rules() const { return _applicableRules; }
+
+  void applyRulePriorities();
 private:
   int           _dimension;
   FormulaPtr    _begin;

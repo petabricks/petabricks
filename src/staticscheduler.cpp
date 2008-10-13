@@ -18,6 +18,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "staticscheduler.h"
+#include "transform.h"
 
 hecura::StaticScheduler::StaticScheduler(const ChoiceGridMap& cg){
   for(ChoiceGridMap::const_iterator m=cg.begin(); m!=cg.end(); ++m){
@@ -75,16 +76,16 @@ void hecura::StaticScheduler::generateSchedule(ScheduleNode* n){
   _generated.insert(n);
 }
 
-void hecura::StaticScheduler::generateCodeSimple(CodeGenerator& o){
+void hecura::StaticScheduler::generateCodeSimple(Transform& trans, CodeGenerator& o){
   JASSERT(_schedule.size()>0);
 //   JTRACE("codegen")(_schedule.size());
   for(ScheduleNodeList::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
-    (*i)->generateCodeSimple(o);
+    (*i)->generateCodeSimple(trans, o);
   }
 }
 
-void hecura::ScheduleNode::generateCodeSimple(CodeGenerator& o){
-  (*_choices->rules().begin())->generateCallCodeSimple(o, _region);
+void hecura::ScheduleNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
+  trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region)->generateCodeSimple(_region, o);
 }
 
 
