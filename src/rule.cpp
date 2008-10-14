@@ -117,9 +117,6 @@ void hecura::Rule::initialize(Transform& trans) {
     _definitions.push_back( trimImpossible(v) );
   }
 
-  JTRACE("FOO");
-  printStlList(std::cerr,_definitions.begin(),_definitions.end(), ", ");
-
   _from.makeRelativeTo(_definitions);
   _to.makeRelativeTo(_definitions);
   _conditions.makeRelativeTo(_definitions);
@@ -272,7 +269,12 @@ void hecura::Rule::generateCallCodeSimple(CodeGenerator& o, const SimpleRegionPt
 
 
 int hecura::Rule::dimensions() const {
-  return (int)_applicanbleRegion->dimensions();
+//   return (int)_applicanbleRegion->dimensions();
+  int m=0;
+  for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    m=std::max(m, (int)(*i)->dimensions());
+  }
+  return m;
 }
 
 void hecura::Rule::collectDependencies(MatrixDependencyMap& map) const {

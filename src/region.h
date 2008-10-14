@@ -92,7 +92,7 @@ public:
     REGION_BOX
   };
 
-  Region(const char* fromMatrix, const char* type, const FormulaList& bounds);
+  Region(const char* fromMatrix, const FormulaList& version, const char* type, const FormulaList& bounds);
 
   void print(std::ostream& o) const;
 
@@ -118,6 +118,7 @@ public:
 private:
   std::string _name;
   std::string _fromMatrixName;
+  FormulaPtr  _version;
   RegionType  _originalType;
   FormulaList _originalBounds;
   MatrixDefPtr _fromMatrix;

@@ -73,7 +73,7 @@ void hecura::Transform::print(std::ostream& o) const {
     o << "\nfrom ";   printStlList(o, _from.begin(),    _from.end(), ", ");
   }
   if(!_through.empty()){ 
-    o << "\nthrough"; printStlList(o, _through.begin(), _through.end(), ", ");
+    o << "\nthrough "; printStlList(o, _through.begin(), _through.end(), ", ");
   }
   if(!_to.empty()){ 
     o << "\nto ";     printStlList(o, _to.begin(),      _to.end(), ", ");
@@ -116,7 +116,7 @@ void hecura::Transform::initialize() {
 
 void hecura::Transform::fillBaseCases(const RuleSet& allRules, const MatrixDefPtr& matrix) {
   RuleDescriptorListList boundaries;
-  boundaries.resize( _to.front()->numDimensions() );
+  boundaries.resize( matrix->numDimensions() );
   for(size_t d=0; d<boundaries.size(); ++d){
     for(RuleList::iterator i=_rules.begin(); i!=_rules.end(); ++i){
       (*i)->getApplicableRegionDescriptors(boundaries[d], matrix, d);

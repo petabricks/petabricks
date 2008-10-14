@@ -49,7 +49,8 @@ void hecura::Learner::onIterationEnd(){
 
 bool hecura::Learner::shouldIterateAgain(){
   //for testing... make learner always do 2 iterations
-  return _numIterations < 3; 
+//   return _numIterations < 3; 
+  return false;
 }
 
 void hecura::Learner::runTests(PerformanceTester& tester){

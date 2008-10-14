@@ -35,25 +35,24 @@ hecura::ChoiceGridPtr hecura::ChoiceGrid::constructFrom(
   ChoiceGridPtr currentNode = rootNode;
   ChoiceGridPtr lastNode;
 
-
   for(RuleDescriptorList::const_iterator i=boundaries.begin(); i!=boundaries.end(); ++i){
     const RuleDescriptor& rd = *i;
+    //whenever current pos changes:
+    if(!rd.isSamePosition(currentPos)){
+      JTRACE("new pos")(dimension)(rd.getPosition());
+      if(lastNode)
+        lastNode->_nextElement = currentNode;
+      currentPos = rd.getPosition();
+      currentNode->finalizeConstruction(currentPos, activeRules);
+      if(dimension+1 < dimensions.size())
+        currentNode->_nextDimension = constructFrom(activeRules, dimensions, dimension+1);
+      else
+        currentNode->applyRulePriorities();
+      //make next element
+      lastNode = currentNode;
+      currentNode = new ChoiceGrid(dimension, currentPos);
+    }
     if(allowedRules.find(rd.rule()) != allowedRules.end()){
-      //whenever current pos changes:
-      if(!rd.isSamePosition(currentPos)){
-        JTRACE("new pos")(rd.getPosition());
-        if(lastNode)
-          lastNode->_nextElement = currentNode;
-        currentPos = rd.getPosition();
-        currentNode->finalizeConstruction(currentPos, activeRules);
-        if(dimension+1 < dimensions.size())
-          currentNode->_nextDimension = constructFrom(activeRules, dimensions, dimension+1);
-        else
-          currentNode->applyRulePriorities();
-        //make next element
-        lastNode = currentNode;
-        currentNode = new ChoiceGrid(dimension, currentPos);
-      }
       if(rd.isBegin()){ //add new rule 
         activeRules.insert(rd.rule());
         JTRACE("begin")(dimension)(rd.rule()->id());

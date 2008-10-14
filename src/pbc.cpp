@@ -48,7 +48,6 @@ using namespace hecura;
 const static std::string theMatrixHPath = jalib::Filesystem::FindHelperUtility("matrix.h");
 const static std::string theMatrixIOHPath = jalib::Filesystem::FindHelperUtility("matrixio.h");
 const static std::string theLibHecuraPath = jalib::Filesystem::FindHelperUtility("libhecura.a");
-const static std::string theLibJUtilPath = jalib::Filesystem::FindHelperUtility("libjutil.a");
 
 TransformListPtr parsePbFile(const char* filename);
 
@@ -114,7 +113,7 @@ int main( int argc, const char ** argv){
 }
 
 void callCppCompiler(const std::string& src, const std::string& bin){
-  std::string cmd = CXX " " CXXFLAGS " -o " + bin + " " + src + " " + theLibHecuraPath + " " + theLibJUtilPath;
+  std::string cmd = CXX " " CXXFLAGS " -o " + bin + " " + src + " " + theLibHecuraPath;
   JTRACE("Running g++")(cmd);
   int rv = system(cmd.c_str());
   JASSERT(rv==0)(rv)(cmd).Text("g++ call failed");

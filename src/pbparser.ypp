@@ -152,7 +152,7 @@ OptWhere: Nil                 { $$=REFALLOC(FormulaList()); }
         | 'WHERE' FormulaList { $$=$2; };
 
 
-Region: IDENT '.' IDENT '(' OptFormulaList ')' { $$=REFALLOC(Region($1,$3,*$5)); };
+Region: IDENT OptVersion '.' IDENT '(' OptFormulaList ')' { $$=REFALLOC(Region($1,*$2, $4,*$6)); };
 
 NamedRegion: Region IDENT { ($$=$1)->setName($2); };
 

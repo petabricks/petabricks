@@ -67,7 +67,7 @@ public:
   }
   void printEdges(std::ostream& os) const{
     for(ScheduleNodeSet::const_iterator i=_dependsOn.begin(); i!=_dependsOn.end(); ++i){
-      os << "  " << nodename() << " -> " << (*i)->nodename() << ";\n";
+      os << "  " << (*i)->nodename() << " -> " << nodename() << ";\n";
     }
   }
 

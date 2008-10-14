@@ -3,8 +3,8 @@ METASOURCES = AUTO
 AM_YFLAGS = -d
 AM_LFLAGS = 
 
-noinst_LIBRARIES = libjutil.a libhecura.a
-noinst_PROGRAMS = pbc test
+noinst_LIBRARIES = libhecura.a
+noinst_PROGRAMS = pbc 
 
 noinst_HEADERS = choicegrid.h codegenerator.h config.h formula.h jasm.h \
 	jassert.h jblockingqueue.h jbuffer.h jconvert.h jfilesystem.h jmutex.h \
@@ -13,19 +13,15 @@ noinst_HEADERS = choicegrid.h codegenerator.h config.h formula.h jasm.h \
 	maximawrapper.h performancetester.h region.h rule.h rulechoice.h staticscheduler.h \
 	transform.h
 
-libjutil_a_SOURCES = jassert.cpp jbuffer.cpp jfilesystem.cpp jprintable.cpp \
-	jserialize.cpp jsocket.cpp jthread.cpp jtimer.cpp
-
 libhecura_a_SOURCES = choicegrid.cpp codegenerator.cpp formula.cpp learner.cpp \
 	matrix.cpp matrixdef.cpp matrixdependency.cpp matrixio.cpp matrixreader.lpp \
 	maximalexer.lpp maximaparser.ypp maximawrapper.cpp pblexer.lpp pbparser.ypp \
-	performancetester.cpp region.cpp rule.cpp rulechoice.cpp staticscheduler.cpp transform.cpp
+	performancetester.cpp region.cpp rule.cpp rulechoice.cpp staticscheduler.cpp transform.cpp \
+  jassert.cpp jbuffer.cpp jfilesystem.cpp jprintable.cpp \
+	jserialize.cpp jsocket.cpp jthread.cpp jtimer.cpp
 
 pbc_SOURCES = pbc.cpp
-pbc_LDADD = libhecura.a libjutil.a -lpthread 
-
-test_SOURCES = test.cpp
-test_LDADD = libhecura.a libjutil.a -lpthread 
+pbc_LDADD = libhecura.a -lpthread 
 
 #force bison before flex
 pbparser.h: pbparser.cpp

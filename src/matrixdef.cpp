@@ -48,6 +48,13 @@ void hecura::MatrixDef::print(std::ostream& o) const {
 void hecura::MatrixDef::initialize(Transform& trans){
   _version.normalize();
   _size.normalize();
+  if(_version.size()>0){
+    //TODO support for min region size
+    JASSERT(_version.size()<=2);
+    JASSERT(_version[0]->getFreeVariables()->size()==0)(_version)
+      .Text("Non constant minimum version size not yet supported");
+    _size.push_back(_version.back());
+  }
 }
 
 void hecura::MatrixDef::exportConstants(Transform& trans){

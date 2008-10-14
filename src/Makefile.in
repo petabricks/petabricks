@@ -34,7 +34,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = pbc$(EXEEXT) test$(EXEEXT)
+noinst_PROGRAMS = pbc$(EXEEXT)
 subdir = src
 DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
@@ -60,22 +60,15 @@ am_libhecura_a_OBJECTS = choicegrid.$(OBJEXT) codegenerator.$(OBJEXT) \
 	maximawrapper.$(OBJEXT) pblexer.$(OBJEXT) pbparser.$(OBJEXT) \
 	performancetester.$(OBJEXT) region.$(OBJEXT) rule.$(OBJEXT) \
 	rulechoice.$(OBJEXT) staticscheduler.$(OBJEXT) \
-	transform.$(OBJEXT)
-libhecura_a_OBJECTS = $(am_libhecura_a_OBJECTS)
-libjutil_a_AR = $(AR) $(ARFLAGS)
-libjutil_a_LIBADD =
-am_libjutil_a_OBJECTS = jassert.$(OBJEXT) jbuffer.$(OBJEXT) \
+	transform.$(OBJEXT) jassert.$(OBJEXT) jbuffer.$(OBJEXT) \
 	jfilesystem.$(OBJEXT) jprintable.$(OBJEXT) \
 	jserialize.$(OBJEXT) jsocket.$(OBJEXT) jthread.$(OBJEXT) \
 	jtimer.$(OBJEXT)
-libjutil_a_OBJECTS = $(am_libjutil_a_OBJECTS)
+libhecura_a_OBJECTS = $(am_libhecura_a_OBJECTS)
 PROGRAMS = $(noinst_PROGRAMS)
 am_pbc_OBJECTS = pbc.$(OBJEXT)
 pbc_OBJECTS = $(am_pbc_OBJECTS)
-pbc_DEPENDENCIES = libhecura.a libjutil.a
-am_test_OBJECTS = test.$(OBJEXT)
-test_OBJECTS = $(am_test_OBJECTS)
-test_DEPENDENCIES = libhecura.a libjutil.a
+pbc_DEPENDENCIES = libhecura.a
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -104,10 +97,8 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(libhecura_a_SOURCES) $(libjutil_a_SOURCES) $(pbc_SOURCES) \
-	$(test_SOURCES)
-DIST_SOURCES = $(libhecura_a_SOURCES) $(libjutil_a_SOURCES) \
-	$(pbc_SOURCES) $(test_SOURCES)
+SOURCES = $(libhecura_a_SOURCES) $(pbc_SOURCES)
+DIST_SOURCES = $(libhecura_a_SOURCES) $(pbc_SOURCES)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -231,7 +222,7 @@ INCLUDES =
 METASOURCES = AUTO
 AM_YFLAGS = -d
 AM_LFLAGS = 
-noinst_LIBRARIES = libjutil.a libhecura.a
+noinst_LIBRARIES = libhecura.a
 noinst_HEADERS = choicegrid.h codegenerator.h config.h formula.h jasm.h \
 	jassert.h jblockingqueue.h jbuffer.h jconvert.h jfilesystem.h jmutex.h \
 	jprintable.h jrefcounted.h jserialize.h jsocket.h jthread.h jtimer.h learner.h \
@@ -239,18 +230,15 @@ noinst_HEADERS = choicegrid.h codegenerator.h config.h formula.h jasm.h \
 	maximawrapper.h performancetester.h region.h rule.h rulechoice.h staticscheduler.h \
 	transform.h
 
-libjutil_a_SOURCES = jassert.cpp jbuffer.cpp jfilesystem.cpp jprintable.cpp \
-	jserialize.cpp jsocket.cpp jthread.cpp jtimer.cpp
-
 libhecura_a_SOURCES = choicegrid.cpp codegenerator.cpp formula.cpp learner.cpp \
 	matrix.cpp matrixdef.cpp matrixdependency.cpp matrixio.cpp matrixreader.lpp \
 	maximalexer.lpp maximaparser.ypp maximawrapper.cpp pblexer.lpp pbparser.ypp \
-	performancetester.cpp region.cpp rule.cpp rulechoice.cpp staticscheduler.cpp transform.cpp
+	performancetester.cpp region.cpp rule.cpp rulechoice.cpp staticscheduler.cpp transform.cpp \
+  jassert.cpp jbuffer.cpp jfilesystem.cpp jprintable.cpp \
+	jserialize.cpp jsocket.cpp jthread.cpp jtimer.cpp
 
 pbc_SOURCES = pbc.cpp
-pbc_LDADD = libhecura.a libjutil.a -lpthread 
-test_SOURCES = test.cpp
-test_LDADD = libhecura.a libjutil.a -lpthread 
+pbc_LDADD = libhecura.a -lpthread 
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -311,10 +299,6 @@ libhecura.a: $(libhecura_a_OBJECTS) $(libhecura_a_DEPENDENCIES)
 	-rm -f libhecura.a
 	$(libhecura_a_AR) libhecura.a $(libhecura_a_OBJECTS) $(libhecura_a_LIBADD)
 	$(RANLIB) libhecura.a
-libjutil.a: $(libjutil_a_OBJECTS) $(libjutil_a_DEPENDENCIES) 
-	-rm -f libjutil.a
-	$(libjutil_a_AR) libjutil.a $(libjutil_a_OBJECTS) $(libjutil_a_LIBADD)
-	$(RANLIB) libjutil.a
 
 clean-noinstPROGRAMS:
 	@list='$(noinst_PROGRAMS)'; for p in $$list; do \
@@ -325,9 +309,6 @@ clean-noinstPROGRAMS:
 pbc$(EXEEXT): $(pbc_OBJECTS) $(pbc_DEPENDENCIES) 
 	@rm -f pbc$(EXEEXT)
 	$(CXXLINK) $(pbc_OBJECTS) $(pbc_LDADD) $(LIBS)
-test$(EXEEXT): $(test_OBJECTS) $(test_DEPENDENCIES) 
-	@rm -f test$(EXEEXT)
-	$(CXXLINK) $(test_OBJECTS) $(test_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -363,7 +344,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rule.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rulechoice.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staticscheduler.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/transform.Po@am__quote@
 
 .cpp.o:

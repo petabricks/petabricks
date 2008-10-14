@@ -36,12 +36,17 @@ hecura::Region::RegionType hecura::Region::strToRegionType(const std::string& st
   return REGION_INVALID;
 }
 
-hecura::Region::Region(const char* fromMatrix, const char* type, const FormulaList& bounds) 
+hecura::Region::Region(const char* fromMatrix, const FormulaList& version, const char* type, const FormulaList& bounds) 
   : _name(RETURN_VAL_STR)
   , _fromMatrixName(fromMatrix)
   , _originalType(strToRegionType(type))
   , _originalBounds(bounds)
-{}
+{
+  if(version.size()>0){
+    JASSERT(version.size()==1)(version).Text("only one version allowed in matrix accessor");
+    _version = version[0];
+  }
+}
 
 void hecura::Region::print(std::ostream& o) const {
   o << _fromMatrixName << ".region(" ;
@@ -66,14 +71,15 @@ void hecura::Region::initialize(Transform& trans) {
   switch(_originalType){
   case REGION_CELL: {
       //min = max = given
-      JASSERT(_fromMatrix->numDimensions()==_originalBounds.size())(*this)(_fromMatrix->numDimensions())(_originalBounds.size())
-        .Text("Wrong number of args given for cell");
       for(size_t i=0; i<_originalBounds.size(); ++i){
         _minCoord.push_back(_originalBounds[i]);
 //         _maxCoord.push_back(_originalBounds[i]);
         _maxCoord.push_back(MaximaWrapper::instance().normalize(
           new FormulaAdd(_originalBounds[i], FormulaInteger::one())));
       }
+      JASSERT(_fromMatrix->numDimensions()==_minCoord.size()+_version.operator bool())
+        (*this)(_fromMatrix->numDimensions())(_minCoord.size())
+        .Text("Wrong number of args given for cell");
     }
     break;
   case REGION_COL: {
@@ -111,7 +117,7 @@ void hecura::Region::initialize(Transform& trans) {
       //max = (given[2], given[3])
       size_t s = _originalBounds.size();
       JASSERT(s%2==0)(s).Text("expected even number of args for 'region()'");
-      JASSERT(_fromMatrix->numDimensions()==s/2)(*this)(_fromMatrix->numDimensions())(s)
+      JASSERT(_fromMatrix->numDimensions()==s/2+_version.operator bool())(*this)(_fromMatrix->numDimensions())(s)
         .Text("Wrong number of args given for region");
       for(size_t i=0; i<s/2; ++i)
         _minCoord.push_back(_originalBounds[i]);
@@ -122,6 +128,11 @@ void hecura::Region::initialize(Transform& trans) {
   default:
     JASSERT(false).Text("Unreachable");
     break;
+  }
+
+  if(_version){
+    _minCoord.push_back(_version);
+    _maxCoord.push_back(MaximaWrapper::instance().normalize(new FormulaAdd(_version, FormulaInteger::one())));
   }
 }
 
@@ -182,7 +193,7 @@ hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const Fo
         max.push_back(MaximaWrapper::instance().normalize(f));
       }else if(_maxCoord[i]->getFreeVariables()->empty()){
         FormulaPtr f = _maxCoord[i];
-        f = new FormulaAdd(f, FormulaInteger::one());
+//         f = new FormulaAdd(f, FormulaInteger::one());
         max.push_back(MaximaWrapper::instance().normalize(f));
       }else{
         max.push_back(_fromMatrix->getMaxValueInDimension(i));
@@ -194,11 +205,15 @@ hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const Fo
 }
 
 hecura::SimpleRegionPtr hecura::SimpleRegion::intersect(const SimpleRegion& that) const{
-  JASSERT(dimensions()==that.dimensions());
+  if(that.dimensions() > dimensions()) return that.intersect(*this);
   CoordinateFormula min,max;
-  for(size_t i=0; i<dimensions(); ++i){
+  for(size_t i=0; i<that.dimensions(); ++i){
     min.push_back( MaximaWrapper::instance().max(_minCoord[i], that._minCoord[i]) );
     max.push_back( MaximaWrapper::instance().min(_maxCoord[i], that._maxCoord[i]) );
+  }
+  for(size_t i=that.dimensions(); i<dimensions(); ++i){
+    min.push_back(_minCoord[i]);
+    max.push_back(_maxCoord[i]);
   }
   return new SimpleRegion(min, max);
 }

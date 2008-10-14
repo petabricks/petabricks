@@ -1,0 +1,17 @@
+transform Test4
+from IN[w,h] 
+through X<0..8>[w,h]
+to OUT[w,h] 
+testcase A
+{
+  X<i>.cell(x,y) from(X<i-1>.cell(x,y) i){
+    return i+1;
+  }
+  X<0>.cell(x,y) from(IN.cell(x,y) i){
+    return i;
+  }
+  OUT.cell(x,y) from(X<7>.cell(x,y) i){
+    return i;
+  }
+
+}
