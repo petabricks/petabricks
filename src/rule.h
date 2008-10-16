@@ -54,7 +54,7 @@ typedef jalib::JRef<MatrixDependencyMap> MatrixDependencyMapPtr;
  */
 class RuleFlags {
 public:
-  RuleFlags() : priority(PRIORITY_DEFAULT), rotations(NOROTATE), isRecursive(false) {}
+  RuleFlags() : priority(PRIORITY_DEFAULT), rotations(NOROTATE), isRecursive(false), isReturnStyle(true) {}
 
   typedef int PriorityT;
   enum { PRIORITY_PRIMARY   = 0
@@ -79,6 +79,7 @@ public:
   PriorityT  priority;
   RotationT  rotations;
   bool       isRecursive;
+  bool       isReturnStyle;
 };
 
 /**
@@ -87,8 +88,12 @@ public:
 class Rule : public jalib::JRefCounted, public jalib::JPrintable {
 public:
   ///
-  /// Constructor
+  /// Constructor -- return style rule
   Rule(const RegionPtr& to, const RegionList& from, const FormulaList& where);
+
+  ///
+  /// Constructor -- to style rule
+  Rule(const RegionList& to, const RegionList& from, const FormulaList& where);
   
   ///
   /// Initialize this rule after parsing
@@ -160,7 +165,7 @@ public:
 
   ///
   /// 
-  bool isReturnStyle() const { return _to.size()==1; }
+  bool isReturnStyle() const { return _flags.isReturnStyle; }
 
   void collectDependencies(MatrixDependencyMap& map) const;
 

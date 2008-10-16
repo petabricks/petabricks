@@ -43,7 +43,6 @@ PASS_CHARS [.<>,*/()[\]+-]
   "main"           RETURN MAIN;
   "transform"      RETURN TRANSFORM;
   "through"        RETURN THROUGH;
-  "to"             RETURN TO;
   "testcase"       RETURN TESTCASE;
   "{"              yy_push_state(transform); RETURN '{';
 }
@@ -60,6 +59,7 @@ PASS_CHARS [.<>,*/()[\]+-]
 }
 
 <INITIAL,transform>{
+  "to"             RETURN TO;
   "from"           RETURN FROM;
   "<="             RETURN LE;
   ">="             RETURN GE;

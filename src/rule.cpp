@@ -31,7 +31,17 @@ hecura::Rule::Rule(const RegionPtr& to, const RegionList& from, const FormulaLis
   , _from(from)
   , _conditions(cond)
 {
+  _flags.isReturnStyle = true;
   _to.push_back(to);
+}
+
+hecura::Rule::Rule(const RegionList& to, const RegionList& from, const FormulaList& cond)
+  : _id(jalib::atomicAdd<1>(&theNextRuleId))
+  , _from(from)
+  , _to(to)
+  , _conditions(cond)
+{
+  _flags.isReturnStyle = false;
 }
 
 hecura::FormulaPtr hecura::Rule::getOffsetVar(int id, const char* extra /*= NULL*/) const{

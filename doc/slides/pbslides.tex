@@ -196,6 +196,7 @@
 
 
 
+
 \subsection{Example Code}
 
 \begin{frame}[fragile]
@@ -253,6 +254,34 @@
 \resizebox{\textwidth}{!}{
 \includegraphics{internals2}}
 \end{center}
+}
+
+\section{Status}
+\subsection{To Do List}
+\frame{
+\begin{itemize}
+  \item Paper
+  \begin{itemize}
+    \item Research related work
+    \begin{itemize}
+      \item Auto tuners (Atlas, FFTW)
+      \item Library selectors
+      \item Component systems
+    \end{itemize}
+    \item Start writing skeleton paper
+  \end{itemize}
+  \item Algorithms
+  \begin{itemize}
+    \item Bugfixes to compiler and algorithms to them all working
+  \end{itemize}
+  \item Learning/code generation for:
+  \begin{itemize}
+    \item Algorithmic choices
+    \item Iteration order (incl. blocking)
+    \item Parallelism
+    \item Storage choices (ie. collapse dimension, transpose, etc)
+  \end{itemize}
+\end{itemize}
 }
 
 \end{document}

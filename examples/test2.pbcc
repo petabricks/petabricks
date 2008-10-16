@@ -1,4 +1,4 @@
-transform Test1 
+transform Test2
 from IN[w,h] 
 through A[w,h], B[w,h] 
 to OUT[w,h] 
@@ -6,8 +6,8 @@ to OUT[w,h]
   A.cell(x,y) from(B.cell(x,y) i){
     return i;
   }
-  B.cell(x,y) from(IN.cell(x,y) i){
-    return i;
+  to(B.cell(x,y) o) from(IN.cell(x,y) i){
+    o=i;
   }
   OUT.cell(x,y) from(A.cell(x,y) i){
     return i;

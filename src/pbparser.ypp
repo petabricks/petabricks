@@ -60,13 +60,13 @@ static void clearParserCaches(){
 %type <transform> Transform TransformHeader TransformName TransformFrom TransformThrough TransformTo TransformTest
 %type <transforms> TransformList
 %type <rules> TransformBody RuleList
-%type <rule> Rule RuleHeader
+%type <rule> Rule RuleHeader BaseRuleHeader
 %type <matrixdefs> MatrixDefList
 %type <matrixdef>  MatrixDef
 %type <formulas>   OptFormulaList FormulaList OptSize OptVersion OptWhere
 %type <formula>    Formula FormulaBinop
 %type <region>     Region NamedRegion
-%type <regions>    NamedRegionList
+%type <regions>    NamedRegionList RuleHeaderFrom RuleHeaderTo
 %type <testcase>   TestCase
 
 %nonassoc '=' '<' '>' LE GE
@@ -137,10 +137,16 @@ TransformBody: '{' RuleList '}' { $$=$2; };
 
 Rule: RuleHeader RuleBody OptSemiCol { ($$=$1)->setBody($2); JTRACE("parsed Rule"); };
 
-RuleHeader: Region FROM '(' NamedRegionList ')' OptWhere { $$=REFALLOC(Rule($1, *$4, *$6)); }
+RuleHeader: BaseRuleHeader          { $$=$1; }
           | PriorityFlag RuleHeader { ($$=$2)->setPriority($1); }
           | ROTATABLE    RuleHeader { ($$=$2)->addRotations(RuleFlags::ROTATE); }
           | RECURSIVE    RuleHeader { ($$=$2)->markRecursive(); };
+
+BaseRuleHeader: Region       RuleHeaderFrom OptWhere { $$=REFALLOC(Rule($1,  *$2, *$3)); }
+              | RuleHeaderTo RuleHeaderFrom OptWhere { $$=REFALLOC(Rule(*$1, *$2, *$3)); };
+
+RuleHeaderFrom: FROM '(' NamedRegionList ')' { $$=$3; };
+RuleHeaderTo:   TO   '(' NamedRegionList ')' { $$=$3; };
 
 PriorityFlag: PRIMARY                  {$$=RuleFlags::PRIORITY_PRIMARY;}
             | SECONDARY                {$$=RuleFlags::PRIORITY_SECONDARY;}
