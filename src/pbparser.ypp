@@ -43,6 +43,7 @@ static void clearParserCaches(){
   hecura::Region*         region;
   hecura::RegionList*     regions;
   hecura::TestCase*       testcase;
+  struct { const char* str; hecura::FormulaList* formulas; } str_formulas; 
 }
 
 %start Start
@@ -64,10 +65,11 @@ static void clearParserCaches(){
 %type <matrixdefs> MatrixDefList
 %type <matrixdef>  MatrixDef
 %type <formulas>   OptFormulaList FormulaList OptSize OptVersion OptWhere
-%type <formula>    Formula FormulaBinop
+%type <formula>    Formula FormulaExpr FormulaRelation
 %type <region>     Region NamedRegion
 %type <regions>    NamedRegionList RuleHeaderFrom RuleHeaderTo
 %type <testcase>   TestCase
+%type <str_formulas> RegionAccessor
 
 %nonassoc '=' '<' '>' LE GE
 %left '-' '+'
@@ -120,18 +122,20 @@ Formula: IDENT   {$$=REFALLOC( FormulaVariable($1) ); }
        | Integer {$$=REFALLOC( FormulaInteger( $1) ); }
        | Float   {$$=REFALLOC( FormulaFloat(  $1) );  }
        | '(' Formula ')' { $$=$2; } 
-       | FormulaBinop    { $$=$1; };
+       | FormulaExpr     { $$=$1; };
 
-FormulaBinop: Formula '+' Formula { $$=REFALLOC(FormulaBinop<'+'>($1,$3)); }
-            | Formula '-' Formula { $$=REFALLOC(FormulaBinop<'-'>($1,$3)); }
-            | Formula '*' Formula { $$=REFALLOC(FormulaBinop<'*'>($1,$3)); }
-            | Formula '/' Formula { $$=REFALLOC(FormulaBinop<'/'>($1,$3)); }
-            | Formula '=' Formula { $$=REFALLOC(FormulaBinop<'='>($1,$3)); }
-            | Formula '<' Formula { $$=REFALLOC(FormulaBinop<'<'>($1,$3)); }
-            | Formula '>' Formula { $$=REFALLOC(FormulaBinop<'>'>($1,$3)); }
-            | Formula LE  Formula { $$=REFALLOC(FormulaLE($1,$3)); }
-            | Formula GE  Formula { $$=REFALLOC(FormulaGE($1,$3)); }
-            | '-' Formula { $$=REFALLOC(FormulaBinop<'-'>(FormulaInteger::zero(),$2)); };
+FormulaExpr: Formula '+' Formula { $$=REFALLOC(FormulaBinop<'+'>($1,$3)); }
+           | Formula '-' Formula { $$=REFALLOC(FormulaBinop<'-'>($1,$3)); }
+           | Formula '*' Formula { $$=REFALLOC(FormulaBinop<'*'>($1,$3)); }
+           | Formula '/' Formula { $$=REFALLOC(FormulaBinop<'/'>($1,$3)); }
+           | '-' Formula { $$=REFALLOC(FormulaBinop<'-'>(FormulaInteger::zero(),$2)); };
+
+FormulaRelation: Formula '=' Formula { $$=REFALLOC(FormulaBinop<'='>($1,$3)); }
+               | Formula '<' Formula { $$=REFALLOC(FormulaBinop<'<'>($1,$3)); }
+               | Formula '>' Formula { $$=REFALLOC(FormulaBinop<'>'>($1,$3)); }
+               | Formula LE  Formula { $$=REFALLOC(FormulaLE($1,$3)); }
+               | Formula GE  Formula { $$=REFALLOC(FormulaGE($1,$3)); };
+
 
 TransformBody: '{' RuleList '}' { $$=$2; };
 
@@ -150,15 +154,17 @@ RuleHeaderTo:   TO   '(' NamedRegionList ')' { $$=$3; };
 
 PriorityFlag: PRIMARY                  {$$=RuleFlags::PRIORITY_PRIMARY;}
             | SECONDARY                {$$=RuleFlags::PRIORITY_SECONDARY;}
-            | PRIORITY '(' Integer ')' {$$=$3;}
+            | PRIORITY '(' Integer ')' {$$=$3;};
 
 RuleBody: '{' RULEBODY /*'}'*/ { $$=$2; }; // } is handled by lexer
 
-OptWhere: Nil                 { $$=REFALLOC(FormulaList()); }
-        | 'WHERE' FormulaList { $$=$2; };
+OptWhere: Nil                     { $$=REFALLOC(FormulaList()); }
+        | 'WHERE' FormulaRelation { ($$=REFALLOC(FormulaList()))->push_back($2); };
 
+Region: IDENT OptVersion RegionAccessor { $$=REFALLOC(Region($1,*$2, $3.str,*$3.formulas)); };
 
-Region: IDENT OptVersion '.' IDENT '(' OptFormulaList ')' { $$=REFALLOC(Region($1,*$2, $4,*$6)); };
+RegionAccessor: '.' IDENT '(' OptFormulaList ')' { $$.str=$2; $$.formulas=$4;}
+              | Nil { $$.str="all"; $$.formulas=REFALLOC(FormulaList());};
 
 NamedRegion: Region IDENT { ($$=$1)->setName($2); };
 
@@ -171,8 +177,8 @@ Float:   FLOAT   { $$=jalib::StringToX<double>($1); };
 RuleList: Rule          { ($$=REFALLOC(RuleList()))->push_back($1); }
         | RuleList Rule { ($$=$1)->push_back($2); };
 
-TransformList: Transform                   { ($$=REFALLOC(TransformList()))->push_back($1); }
-             | TransformList ',' Transform { ($$=$1)->push_back($3); };
+TransformList: Transform               { ($$=REFALLOC(TransformList()))->push_back($1); }
+             | TransformList Transform { ($$=$1)->push_back($2); };
 
 MatrixDefList: MatrixDef                   { ($$=REFALLOC(MatrixDefList()))->push_back($1); }
              | MatrixDefList ',' MatrixDef { ($$=$1)->push_back($3);                      };

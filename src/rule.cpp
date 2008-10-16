@@ -207,7 +207,7 @@ void hecura::Rule::generateDeclCodeSimple(CodeGenerator& o){
 }
 
 void hecura::Rule::generateTrampCodeSimple(CodeGenerator& o){
-  CoordinateFormula begin;
+  CoordinateFormula begin, widths;
   CoordinateFormula end;
   std::vector<std::string> args;
 
@@ -221,13 +221,13 @@ void hecura::Rule::generateTrampCodeSimple(CodeGenerator& o){
       i->first->argDeclRO(args);
   }
 
-  //populate min
+  //populate begin
   for(int i=0; i<dimensions(); ++i){
     FormulaPtr tmp = getOffsetVar(i,"begin");
     begin.push_back(tmp);
     args.push_back("IndexT "+tmp->toString());
   }
-  //populate max
+  //populate end
   for(int i=0; i<dimensions(); ++i){
     FormulaPtr tmp = getOffsetVar(i,"end");
     end.push_back(tmp);
@@ -235,8 +235,16 @@ void hecura::Rule::generateTrampCodeSimple(CodeGenerator& o){
   }
 
   o.beginFunc("void",trampcodename(), args);
+
+  FreeVars fv;
+  for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i)
+    i->first->extractDefines(fv, o);
+  for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i)
+    i->first->extractDefines(fv, o);
+
   for(size_t i=0; i<begin.size(); ++i){
-    o.beginFor(getOffsetVar(i)->toString(), begin[i], end[i]);
+    o.beginFor(getOffsetVar(i)->toString(), begin[i], end[i], _to[0]->getSizeOfRuleIn(i));
+    //TODO, better support for making sure given range is a multiple of size
   }
   generateTrampCellCodeSimple(o);
   for(size_t i=0; i<begin.size(); ++i){

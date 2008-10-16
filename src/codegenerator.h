@@ -39,9 +39,9 @@ public:
     return table[d];
   }
 
-  void beginFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end){
+  void beginFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end,  const FormulaPtr& step){
     indent();
-    _os << "for(int " << var << "=" << begin << "; "<< var << "<" << end << "; ++" << var << "){\n";
+    _os << "for(int " << var << "=" << begin << "; "<< var << "<" << end << "; " << var << "+="<< step <<" ){\n";
     _indent++;
   }
 

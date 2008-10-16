@@ -32,6 +32,7 @@ hecura::Region::RegionType hecura::Region::strToRegionType(const std::string& st
   if(str=="col")    return REGION_COL;
   if(str=="column") return REGION_COL;
   if(str=="region") return REGION_BOX;
+  if(str=="all")    return REGION_ALL;
   JASSERT(false)(str).Text("Unknown region type");
   return REGION_INVALID;
 }
@@ -123,6 +124,17 @@ void hecura::Region::initialize(Transform& trans) {
         _minCoord.push_back(_originalBounds[i]);
       for(size_t i=s/2; i<s; ++i)
         _maxCoord.push_back(_originalBounds[i]);
+    }
+    break;
+  case REGION_ALL: {
+      JASSERT(_originalBounds.size()==0)(_originalBounds.size())
+        .Text("no args expected for all()");
+      int d=_fromMatrix->numDimensions();
+      if(_version) --d;
+      for(int i=0; i<d; ++i){
+        _minCoord.push_back(FormulaInteger::zero());
+        _maxCoord.push_back(_fromMatrix->getSizeOfDimension(i));
+      }
     }
     break;
   default:
@@ -249,6 +261,7 @@ std::string hecura::Region::generateSignatureCode(CodeGenerator& o, bool isConst
   case REGION_ROW:
     return (isConst?MatrixDef::oneD().constMatrixTypeName():MatrixDef::oneD().matrixTypeName())+" " + _name;
   case REGION_BOX:
+  case REGION_ALL:
     return (isConst?_fromMatrix->constMatrixTypeName():_fromMatrix->matrixTypeName())+" " + _name;
   default:
     JASSERT(false).Text("Unreachable");
@@ -266,6 +279,8 @@ std::string hecura::Region::generateAccessorCode(CodeGenerator& o) const{
     return _fromMatrix->name() + ".row("+_minCoord[1]->toString()+")";
   case REGION_BOX:
     return _fromMatrix->name() + ".region("+_minCoord.toString() +", "+_maxCoord.toString()+")";
+  case REGION_ALL:
+    return _fromMatrix->name();
   default:
     JASSERT(false).Text("Unreachable");
     return "";
@@ -319,3 +334,9 @@ void hecura::Region::collectDependencies(const Rule& rule, MatrixDependencyMap& 
 void hecura::Region::addAssumptions() const{
 
 }
+
+hecura::FormulaPtr hecura::Region::getSizeOfRuleIn(int d) const{
+  JASSERT(dimensions()>d)(dimensions())(d);
+  return MaximaWrapper::instance().normalize(new FormulaSubtract(_maxCoord[d], _minCoord[d]));
+}
+

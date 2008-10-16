@@ -89,7 +89,8 @@ public:
     REGION_CELL,
     REGION_ROW,
     REGION_COL,
-    REGION_BOX
+    REGION_BOX,
+    REGION_ALL
   };
 
   Region(const char* fromMatrix, const FormulaList& version, const char* type, const FormulaList& bounds);
@@ -115,6 +116,8 @@ public:
   void collectDependencies(const Rule& rule, MatrixDependencyMap& map) const;
 
   void addAssumptions() const;
+
+  FormulaPtr getSizeOfRuleIn(int d) const;
 private:
   std::string _name;
   std::string _fromMatrixName;

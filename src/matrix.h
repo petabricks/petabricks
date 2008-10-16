@@ -241,6 +241,8 @@ public:
 
   IndexT width() const { return size(0); }
   IndexT height() const { return size(1); }
+
+  MatrixRegion all() const { return *this; }
 protected:
   ///
   /// Compute the offset in _base for a given coordinate

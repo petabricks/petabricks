@@ -273,13 +273,52 @@
   \item Algorithms
   \begin{itemize}
     \item Bugfixes to compiler and algorithms to them all working
+    \item More/better algorithms
   \end{itemize}
-  \item Learning/code generation for:
+  \item Improve learning/code generation for:
   \begin{itemize}
     \item Algorithmic choices
     \item Iteration order (incl. blocking)
     \item Parallelism
     \item Storage choices (ie. collapse dimension, transpose, etc)
+  \end{itemize}
+\end{itemize}
+}
+
+\subsection{Minor Outstanding Issues}
+\frame{
+\begin{itemize}
+  \item These requirements could theoretically be removed, but can wait until after the paper:
+  \begin{itemize}
+    \item Adding recursive keyword:
+    \begin{itemize}
+      \item Recursive rules should be marked like:
+      
+      {\tt recursive A from(...)\{...\} }
+    \end{itemize}
+    \item Avoiding copies:
+    \begin{itemize}
+      \item {\tt to(...) from(...) \{ ... \}} style rules for recursive calls
+      \item MatrixMultiply(output, A, B) call form 
+      \item ie: {\tt to(A a) from(B b) \{ Foo(a,b); \}}
+    \end{itemize}
+  \end{itemize}
+\end{itemize}
+}
+\frame{
+\begin{itemize}
+  \item Overlapping inputs not yet supported
+  \begin{itemize}
+    \item {\tt through X<0..n>[n,n] to X<n>[n,n]}
+    \item should become:
+    \item {\tt through X<0..n>[n,n] to TMP[n,n]}
+    \item with a rule to copy the data.
+  \end{itemize}
+  \item ``Where'' keyword is poorly supported
+  \begin{itemize}
+    \item {\tt A.cell(x,y) from(B.cell(x,y) i) where x=0 \{...\}}
+    \item will perform a lot better if written:
+    \item {\tt A.cell(0,y) from(B.cell(0,y) i) \{...\}}
   \end{itemize}
 \end{itemize}
 }
