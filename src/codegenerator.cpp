@@ -18,3 +18,8 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "codegenerator.h"
+
+std::stringstream& hecura::CodeGenerator::theFilePrefix() { 
+  static std::stringstream t; 
+  return t; 
+}

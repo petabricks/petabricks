@@ -5,3 +5,6 @@
 /* flags to compiler used to generate output binaries */
 #define CXXFLAGS "@CXXFLAGS@"
 
+/* flags to compiler used to generate output binaries */
+#define LIBS "@LIBS@"
+

@@ -15,8 +15,12 @@
 #include "jassert.h"
 #include "jconvert.h"
 #include "pbparser.h"
+#include "codegenerator.h"
 #include <stdio.h>
+#include <string>
 #include <sstream>
+
+using namespace std;
 
 #define NUM_STR_BUFFERS 64
 
@@ -28,13 +32,19 @@ static const char* circularStringCache(const char* str){
   return (strbuffers[n++ % NUM_STR_BUFFERS]=str).c_str();
 }
 
+static void recordLitCode(){
+  std::string str = theParseLog.str().c_str();
+  theParseLog.str("");
+  hecura::CodeGenerator::theFilePrefix() << std::string(str.begin(), str.end()-2);
+}
+
 #define YY_USER_ACTION pblval.str=circularStringCache(yytext); theParseLog<<yytext;
 #define YY_DECL int yylex()
 #define RETURN theParseLog.str(""); return
 
 %}
 
-%x transform rule comment linecomment string
+%x transform rule comment linecomment string litcode
 
 PASS_CHARS [.<>,*/()[\]+-]
 
@@ -45,6 +55,16 @@ PASS_CHARS [.<>,*/()[\]+-]
   "through"        RETURN THROUGH;
   "testcase"       RETURN TESTCASE;
   "{"              yy_push_state(transform); RETURN '{';
+  "%{"             yy_push_state(litcode); theParseLog.str("");
+}
+
+<litcode>{
+  [^%]*            /*nothing*/
+  [%][^}]          /*nothing*/
+  "%}"             {
+      yy_pop_state();
+      recordLitCode();
+  }
 }
 
 <transform>{

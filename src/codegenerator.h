@@ -25,12 +25,15 @@
 
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <vector>
 
 
 namespace hecura {
 class CodeGenerator{
 public:
+  static std::stringstream& theFilePrefix();
+
   CodeGenerator(std::ostream& o) : _indent(0), _os(o) {}
 
   const char* varName(int d) const {
