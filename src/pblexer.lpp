@@ -89,11 +89,13 @@ PASS_CHARS [.<>,*/()[\]+-]
   {PASS_CHARS}     RETURN yytext[0];
   [/][*]           yy_push_state(comment);
   [/][/]           yy_push_state(linecomment);
+  ^[ \t]*[#]       yy_push_state(linecomment);
 }
 
 <rule>{
   [/][*]           yy_push_state(comment);
   [/][/]           yy_push_state(linecomment);
+  ^[ \t]*[#]       yy_push_state(linecomment);
   "{"              yy_push_state(rule);
   ["]              yy_push_state(string);
   "}"              { 

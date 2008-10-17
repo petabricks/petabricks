@@ -5,6 +5,7 @@ int thisIsATestOfFilePrefix=0;
 
 %}
 
+#othercomment
 transform Test1 from IN[w,h] to OUT[w,h] 
 testcase A
 {
