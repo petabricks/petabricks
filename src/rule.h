@@ -179,6 +179,8 @@ public:
 
   void markRecursive() { _flags.isRecursive=true; }
 
+  bool isRecursive() const { return _flags.isRecursive; }
+
   RuleFlags::PriorityT priority() const { return _flags.priority; }
   const FormulaList& conditions() const { return _conditions; }
 private:

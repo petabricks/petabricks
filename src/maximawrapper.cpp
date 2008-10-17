@@ -53,7 +53,7 @@ static void launchMaxima(){
   execvp(args[0],(char**)args);
   JASSERT(false)(JASSERT_ERRNO).Text("exec(maxima) failed");
 }
-#ifdef DEBUG
+#ifdef MAXIMA_LOG
 static void launchMaximaWithLogging(){
   class LogForwarder : public jalib::JMultiSocketProgram {
   public:
@@ -108,7 +108,7 @@ hecura::MaximaWrapper::MaximaWrapper()
   : _fd(-1)
   , _stackDepth(0)
 {
-#ifdef DEBUG
+#ifdef MAXIMA_LOG
   _fd = forkopen(&launchMaximaWithLogging);
 #else
   _fd = forkopen(&launchMaxima);

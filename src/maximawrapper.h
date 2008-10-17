@@ -110,11 +110,11 @@ public:
   
   
   FormulaPtr min(const FormulaPtr& a, const FormulaPtr& b){
-    return compare(a,">",b) ? b : a;
+    return tryCompare(a,">",b)==YES ? b : a;
   }
 
   FormulaPtr max(const FormulaPtr& a, const FormulaPtr& b){
-    return compare(a,"<",b) ? b : a;
+    return tryCompare(a,"<",b)==YES ? b : a;
   }
 
   void assume(const FormulaPtr& fact){

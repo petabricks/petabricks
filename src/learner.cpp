@@ -31,15 +31,32 @@ hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
                                                      , const MatrixDefPtr&
                                                      , const SimpleRegionPtr& )
 {
-  JTRACE("choice");
-
   /*
    * This function must build a stack of RuleChoicePtr's from choices.
    * The field RuleChoice::_next forms a linked list of choices.
    * At runtime the first choice for which RuleChoice::_condition holds is used.
    */
 
-  RuleChoicePtr rv = new RuleChoice(*choices.begin()); //the first rule
+
+  //split choices into recursive and base
+  RuleSet recursive,base;
+  for(RuleSet::const_iterator i=choices.begin(); i!=choices.end(); ++i){
+    if((*i)->isRecursive())
+      recursive.insert(*i);
+    else
+      base.insert(*i);
+  }
+  JASSERT(!base.empty())(base.size()).Text("no non-recursive choices exist");
+
+  //default to base case
+  RuleChoicePtr rv = new RuleChoice(*base.begin()); //the first rule
+
+  if(!recursive.empty()){
+    FormulaPtr condition = new FormulaGT(new FormulaVariable(INPUT_SIZE_STR), new FormulaInteger(100));
+
+    //add recursive case
+    rv=new RuleChoice(*recursive.begin(), condition, rv);
+  }
   return rv;
 }
 

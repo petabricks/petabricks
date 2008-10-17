@@ -1,20 +1,33 @@
-transform MatrixMultiply
-//from A[c,h], B[w,c] 
+transform MatrixAdd
 from A[w,h], B[w,h] 
 to AB[w,h]
 {
+  AB.cell(x,y) from(A.cell(x,y) a, B.cell(x,y) b){
+    return a+b;
+  }
+}
+
+transform MatrixMultiply
+from A[c,h], B[w,c] 
+to AB[w,h]
+{
+  //recursively chop the matrix in half
+  recursive 
+  to(AB ab)
+  from( A.region(0,   0, c/2, h  ) a1,
+        A.region(c/2, 0, c,   h  ) a2,
+        B.region(0,   0, w,   c/2) b1,
+        B.region(0, c/2, w,   c  ) b2)
+  {
+    return MatrixAdd(ab, MatrixMultiply(a1,b1), MatrixMultiply(a2,b2));
+  }
+  
   //compute a cell the straightforward way
   AB.cell(x,y) from(A.row(y) a, B.column(x) b){
-    return dot(a, b);
+    ElementT sum=0;
+    for(IndexT i=0; i<a.width(); ++i)
+      sum+=a.cell(i)*b.cell(i);
+    return sum;
   }
-
-  //recursively chop the matrix in half
-/*  AB from(A.region(0,   0, c/2, h  ) a1,
-          A.region(c/2, 0, c,   h  ) a2,
-          B.region(0,   0, w,   c/2) b1,
-          B.region(0, c/2, w,   c  ) b2)
-  {
-    return Add( MatrixMultiply(a1,b1), MatrixMultiply(a2,b2));
-  } */
 }
 

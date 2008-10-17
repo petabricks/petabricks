@@ -162,7 +162,24 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
 
   scheduler.generateSchedule();
 
+  std::vector<std::string> args;
+  std::vector<std::string> argNames;
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    (*i)->argDeclRW(args);
+    argNames.push_back((*i)->name());
+  }
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    (*i)->argDeclRO(args);
+    argNames.push_back((*i)->name());
+  }
+  std::vector<std::string> returnStyleArgs = args;
+  if(_to.size()==1) returnStyleArgs.erase(returnStyleArgs.begin());
+
   o.comment("Begin output for transform " + _name);
+  o.newline();
+  o.comment("Forward declarations");
+  o.declareFunc("void", _name, args);
+  if(_to.size()==1) o.declareFunc(_to.front()->matrixTypeName(), _name, returnStyleArgs);
   o.newline();
   o.comment("User rules");
   for(RuleList::iterator i=_rules.begin(); i!=_rules.end(); ++i){
@@ -176,19 +193,17 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   }
   o.newline();
 
-  std::vector<std::string> args;
-  std::vector<std::string> argNames;
-  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->argDeclRW(args);
-    argNames.push_back((*i)->name());
-  }
-  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    (*i)->argDeclRO(args);
-    argNames.push_back((*i)->name());
-  }
-  
   o.comment(_name+" entry function");
   o.beginFunc("void", _name, args);
+  o.varDecl("IndexT " INPUT_SIZE_STR " = 0");
+  o.varDecl("IndexT " OUTPUT_SIZE_STR " = 0");
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    o.write(INPUT_SIZE_STR " += " + (*i)->name() + ".bytes();");
+  }
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    o.write(OUTPUT_SIZE_STR " += " + (*i)->name() + ".bytes();");
+  }
+
   extractSizeDefines(o);
 //   o.comment("Verify size of input/output");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
@@ -209,9 +224,8 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   o.newline();
 
   if(_to.size()==1){
-    args.erase(args.begin());
     o.comment("Return style entry function");
-    o.beginFunc(_to.front()->matrixTypeName(), _name, args);
+    o.beginFunc(_to.front()->matrixTypeName(), _name, returnStyleArgs);
     extractSizeDefines(o);
 //     o.comment("Allocate to matrix");
     _to.front()->allocateTemporary(o);

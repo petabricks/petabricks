@@ -20117,6 +20117,26 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 
+
+
+cat >>confdefs.h <<\_ACEOF
+#define INPUT_SIZE_STR "input_size"
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define OUTPUT_SIZE_STR "output_size"
+_ACEOF
+
+
+if false; then
+
+cat >>confdefs.h <<\_ACEOF
+#define MAXIMA_LOG 1
+_ACEOF
+
+fi
+
 # Check whether --enable-debug was given.
 if test "${enable_debug+set}" = set; then
   enableval=$enable_debug; use_jassert=$enableval

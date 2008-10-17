@@ -33,11 +33,20 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
+/* var name in output code */
+#undef INPUT_SIZE_STR
+
 /* type for elements in the matrix */
 #undef MATRIX_ELEMENT_T
 
+/* define in order to generate maxima.log, (a log of maxima commands) */
+#undef MAXIMA_LOG
+
 /* the maximum number of dimensions supported */
 #undef MAX_DIMENSIONS
+
+/* var name in output code */
+#undef OUTPUT_SIZE_STR
 
 /* Name of package */
 #undef PACKAGE

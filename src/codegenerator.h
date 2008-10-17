@@ -76,6 +76,13 @@ public:
     _indent++;
   }
 
+  void declareFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
+    indent();
+    _os << rt << " " << func << '(';
+    jalib::JPrintable::printStlList(_os, args.begin(), args.end(), ", ");
+    _os << ");\n";
+  }
+
   void beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
     indent();
     _os << rt << " " << func << '(';

@@ -208,7 +208,7 @@ hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const Fo
 //         f = new FormulaAdd(f, FormulaInteger::one());
         max.push_back(MaximaWrapper::instance().normalize(f));
       }else{
-        max.push_back(_fromMatrix->getMaxValueInDimension(i));
+        max.push_back(_fromMatrix->getSizeOfDimension(i));
       }
     }
   }

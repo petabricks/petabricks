@@ -200,7 +200,7 @@ public:
   /// Return a slice through this dimension
   /// The iterator is one dimension smaller and equivilent to always 
   /// giving pos for dimension d
-  MatrixRegion<D-1> slice(int d, IndexT pos) const{
+  MatrixRegion<D-1, ElementT> slice(int d, IndexT pos) const{
     #ifdef DEBUG
     JASSERT(d>=0 && d<D)(d)(D).Text("invalid dimension");
     JASSERT(pos>=0 && pos<_sizes[d])(pos)(_sizes[d]).Text("out of bounds access");
@@ -218,12 +218,12 @@ public:
     IndexT coord[D];
     memset(coord, 0, sizeof coord);
     coord[d] = pos;
-    return MatrixRegion<D-1>(_storage, _base+getOffsetFor(coord), sizes, mult);
+    return MatrixRegion<D-1, ElementT>(_storage, _base+getOffsetFor(coord), sizes, mult);
   }
   
   
-  MatrixRegion<D-1> col(IndexT x) const{ return slice(0, x); }
-  MatrixRegion<D-1> row(IndexT y) const{  return slice(1, y); }
+  MatrixRegion<D-1, ElementT> col(IndexT x) const{ return slice(0, x); }
+  MatrixRegion<D-1, ElementT> row(IndexT y) const{  return slice(1, y); }
   
   ///
   /// Return the size of a given dimension
@@ -243,6 +243,21 @@ public:
   IndexT height() const { return size(1); }
 
   MatrixRegion all() const { return *this; }
+
+  ///
+  /// Number of elements in this region
+  IndexT count() const {
+    IndexT s=1;
+    for(int i=0; i<D; ++i)
+      s*=_sizes[i];
+    return s;
+  }
+
+  ///
+  /// Number of elements in this region
+  IndexT bytes() const {
+    return count()*sizeof(ElementT);
+  }
 protected:
   ///
   /// Compute the offset in _base for a given coordinate
@@ -334,6 +349,19 @@ public:
   /// This should never be called
   /// Included to make generic iterators compile
   IndexT size(int d) const { JWARNING(false); return 1; };
+
+
+  ///
+  /// Number of elements in this region
+  IndexT count() const {
+    return 1;
+  }
+
+  ///
+  /// Number of elements in this region
+  IndexT bytes() const {
+    return count()*sizeof(ElementT);
+  }
 private:
   MatrixStoragePtr _storage;
   ElementT* _base;
