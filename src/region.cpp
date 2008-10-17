@@ -245,11 +245,12 @@ bool hecura::SimpleRegion::hasIntersect(const SimpleRegion& that) const {
     return true;
   JASSERT(dimensions()==that.dimensions());
   for(size_t i=0; i<dimensions(); ++i){
-    if( MaximaWrapper::instance().compare(maxCoord()[i], "<=", minCoord()[i]) )
+    if( MaximaWrapper::instance().compare(maxCoord()[i], "<=", that.minCoord()[i]) )
       return false;
-    if( MaximaWrapper::instance().compare(minCoord()[i], ">=", maxCoord()[i]) )
+    if( MaximaWrapper::instance().compare(minCoord()[i], ">=", that.maxCoord()[i]) )
       return false;
   }
+//   JTRACE("found intersect")(*this)(that);
   return true;
 }
 

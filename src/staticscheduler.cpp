@@ -35,15 +35,16 @@ hecura::ScheduleNodeSet hecura::StaticScheduler::lookupNode(const MatrixDefPtr& 
   ScheduleNodeSet rv;
   ScheduleNodeList& regions = _nodes[matrix];
   for(ScheduleNodeList::iterator i=regions.begin(); i!=regions.end(); ++i){
-    if(region->toString() == (*i)->region()->toString()){
-      rv.insert(i->asPtr());
-      break; //optimization
-    }
+//     if(region->toString() == (*i)->region()->toString()){
+//       rv.insert(i->asPtr());
+//       JTRACE("region lookup break")(region)((*i)->region());
+//       break; //optimization
+//     }
     if((*i)->region()->hasIntersect(region)){
       rv.insert(i->asPtr());
     }
   }
-  JTRACE("region lookup")(matrix)(region)(rv.size());
+  JTRACE("region lookup COMPLETE")(matrix)(region)(rv.size());
   JASSERT(rv.size()>0)(matrix)(region).Text("failed to find rule for region");
   return rv;
 }
