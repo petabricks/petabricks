@@ -35,16 +35,16 @@ hecura::ScheduleNodeSet hecura::StaticScheduler::lookupNode(const MatrixDefPtr& 
   ScheduleNodeSet rv;
   ScheduleNodeList& regions = _nodes[matrix];
   for(ScheduleNodeList::iterator i=regions.begin(); i!=regions.end(); ++i){
-//     if(region->toString() == (*i)->region()->toString()){
-//       rv.insert(i->asPtr());
+    if(region->toString() == (*i)->region()->toString()){
+      rv.insert(i->asPtr());
 //       JTRACE("region lookup break")(region)((*i)->region());
-//       break; //optimization
-//     }
+      break; //optimization
+    }
     if((*i)->region()->hasIntersect(region)){
       rv.insert(i->asPtr());
     }
   }
-  JTRACE("region lookup COMPLETE")(matrix)(region)(rv.size());
+//   JTRACE("region lookup COMPLETE")(matrix)(region)(rv.size());
   JASSERT(rv.size()>0)(matrix)(region).Text("failed to find rule for region");
   return rv;
 }
@@ -72,7 +72,7 @@ void hecura::StaticScheduler::generateSchedule(ScheduleNode* n){
     if(*i != n)
       generateSchedule(*i);
   }
-  JTRACE("scheduling")(n->matrix()); 
+//   JTRACE("scheduling")(n->matrix()); 
   _schedule.push_back(n);
   _generated.insert(n);
 }
@@ -86,7 +86,8 @@ void hecura::StaticScheduler::generateCodeSimple(Transform& trans, CodeGenerator
 }
 
 void hecura::ScheduleNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
-  trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region)->generateCodeSimple(_region, o);
+  RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
+  rule->generateCodeSimple(_region, o);
 }
 
 

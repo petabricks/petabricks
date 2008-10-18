@@ -30,6 +30,17 @@ class CodeGenerator;
 class RuleChoice;
 typedef jalib::JRef<RuleChoice> RuleChoicePtr;
 
+namespace IterationOrder {
+  enum IterationOrder {
+    NONE=0,
+    FORWARD=1,
+    BACKWARD=2,
+    ANY=FORWARD|BACKWARD
+  };
+}
+typedef std::vector<int> IterationOrderList;
+
+
 /**
  * Stores the choice made by the Learner for a given region
  */
@@ -46,6 +57,9 @@ public:
   ///
   /// Output c++ code
   void generateCodeSimple(const SimpleRegionPtr& region, CodeGenerator& o);
+ 
+  const RulePtr& rule() const { return _rule; }
+
 private: 
   ///
   /// Rule to invoke

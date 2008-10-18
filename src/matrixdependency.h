@@ -77,6 +77,8 @@ public:
   void mergeWith( MatrixDependency& that );
 
   const SimpleRegionPtr& region() const { return _region; }
+
+  const DependencyDirection& direction() const { return _direction; }
 private:
   DependencyDirection _direction;
   SimpleRegionPtr     _region;

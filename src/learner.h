@@ -46,6 +46,10 @@ public:
   RuleChoicePtr makeRuleChoice(const RuleSet& choices, const MatrixDefPtr&, const SimpleRegionPtr&);
 
   ///
+  /// Pick which order to iterate in, initial value of choices is allows directions
+  void makeIterationChoice(IterationOrderList& choices, const MatrixDefPtr&, const SimpleRegionPtr&){}
+
+  ///
   /// Called after a code generation cycle
   void onIterationEnd();
 

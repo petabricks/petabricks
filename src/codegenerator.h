@@ -27,6 +27,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <algorithm>
 
 
 namespace hecura {
@@ -45,6 +46,12 @@ public:
   void beginFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end,  const FormulaPtr& step){
     indent();
     _os << "for(int " << var << "=" << begin << "; "<< var << "<" << end << "; " << var << "+="<< step <<" ){\n";
+    _indent++;
+  }
+
+  void beginReverseFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end,  const FormulaPtr& step){
+    indent();
+    _os << "for(int " << var << "=" << end->minusOne() << "; "<< var << ">=" << begin << "; " << var << "-="<< step <<" ){\n";
     _indent++;
   }
 

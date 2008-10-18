@@ -97,6 +97,12 @@ public:
   virtual std::string printAsAssumption() const;
 
   virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const;
+
+  virtual std::string explodePrint() const;
+
+  FormulaPtr plusOne() const;
+  FormulaPtr minusOne() const;
+  FormulaPtr negative() const;
 protected:
   /// Set of all free variables in the tree
   FreeVarsPtr _freeVars;
@@ -147,18 +153,13 @@ public:
   FormulaBinop(const FormulaPtr& left, const FormulaPtr& right);
   void print(std::ostream& o) const;
   static const char* opStr();
-
-  std::string printAsAssumption() const {
-    if(OP=='=')
-      return "equal(" + _left->toString()
-                + "," + _right->toString() + ")";
-    return toString();
-  }
   
   virtual void explodeEquality(FormulaPtr& l, FormulaPtr& r) const;
   
   virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const;
-  
+
+  std::string printAsAssumption() const;
+  std::string explodePrint() const;
 private:
   FormulaPtr _left;
   FormulaPtr _right;

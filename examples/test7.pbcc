@@ -1,0 +1,9 @@
+transform Test5
+from IN[w,h] 
+to OUT[w/2,h/2] 
+{
+  OUT.cell(x,y) from(IN.cell(x/2,y/2) i) {
+    return 1;
+  }
+}
+

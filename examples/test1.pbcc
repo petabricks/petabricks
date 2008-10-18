@@ -1,23 +1,21 @@
-
 %{
-
 int thisIsATestOfFilePrefix=0;
-
 %}
 
-#othercomment
+#define TEST define
+
 transform Test1 from IN[w,h] to OUT[w,h] 
-testcase A
 {
-  OUT.cell(x,y) from(OUT.cell(x-1, y) left,
+  OUT.cell(x,y) from(IN.cell(x,y)     i,
+                     OUT.cell(x-1, y) left,
                      OUT.cell(x, y-1) up)
   {
-     return left+up;
+     return i,left+up;
   }
   
-  secondary OUT.cell(x,y) from()
+  secondary OUT.cell(x,y) from(IN.cell(x,y) i)
   {
-    return 1;
+    return i;
   }
 }
 

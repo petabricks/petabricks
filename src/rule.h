@@ -183,6 +183,8 @@ public:
 
   RuleFlags::PriorityT priority() const { return _flags.priority; }
   const FormulaList& conditions() const { return _conditions; }
+
+  void removeInvalidOrders(IterationOrderList& o);
 private:
   int _id;
   RuleFlags   _flags;

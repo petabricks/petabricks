@@ -23,6 +23,7 @@
 #include "jasm.h"
 #include "staticscheduler.h"
 #include "maximawrapper.h"
+#include <algorithm>
 
 volatile long theNextRuleId = 0;
 
@@ -201,7 +202,15 @@ void hecura::Rule::generateDeclCodeSimple(CodeGenerator& o){
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     args.push_back((*i)->generateSignatureCode(o,true));
   }
+
+  for(int i=0; i<dimensions(); ++i)
+    args.push_back("const IndexT "+getOffsetVar(i)->toString());
+
   o.beginFunc(rt, implcodename(), args);
+  for(FormulaList::const_iterator i=_definitions.begin(); i!=_definitions.end(); ++i){
+    o.write("const IndexT "+(*i)->explodePrint()+";");
+  }
+
   o.write(_body);
   o.endFunc();
 }
@@ -220,6 +229,11 @@ void hecura::Rule::generateTrampCodeSimple(CodeGenerator& o){
     if(used.find(i->first)==used.end())
       i->first->argDeclRO(args);
   }
+
+  IterationOrderList order(dimensions(), IterationOrder::ANY);
+  removeInvalidOrders(order);
+  //TODO: call learner
+//   trans.learner().makeIterationChoice(order, _matrix, _region);
 
   //populate begin
   for(int i=0; i<dimensions(); ++i){
@@ -243,7 +257,13 @@ void hecura::Rule::generateTrampCodeSimple(CodeGenerator& o){
     i->first->extractDefines(fv, o);
 
   for(size_t i=0; i<begin.size(); ++i){
-    o.beginFor(getOffsetVar(i)->toString(), begin[i], end[i], _to[0]->getSizeOfRuleIn(i));
+    FormulaPtr b=begin[i];
+    FormulaPtr e=end[i];
+    FormulaPtr w=_to[0]->getSizeOfRuleIn(i);
+    if(order[i]==IterationOrder::BACKWARD)
+      o.beginReverseFor(getOffsetVar(i)->toString(), b, e, w);
+    else
+      o.beginFor(getOffsetVar(i)->toString(), b, e, w);
     //TODO, better support for making sure given range is a multiple of size
   }
   generateTrampCellCodeSimple(o);
@@ -263,6 +283,10 @@ void hecura::Rule::generateTrampCellCodeSimple(CodeGenerator& o){
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     args.push_back((*i)->generateAccessorCode(o));
   }
+
+  for(int i=0; i<dimensions(); ++i)
+    args.push_back(getOffsetVar(i)->toString());
+
   if(isReturnStyle()){
     o.setcall(_to.front()->generateAccessorCode(o),implcodename(), args);
   }else{
@@ -332,3 +356,27 @@ void hecura::Rule::collectDependencies(StaticScheduler& scheduler){
   }
   //TODO collect edge/direction dependencies
 }
+
+void hecura::Rule::removeInvalidOrders(IterationOrderList& o){
+  for( MatrixDependencyMap::const_iterator p=_provides.begin()
+     ; p!=_provides.end()
+     ; ++p)
+  {
+    MatrixDependencyMap::const_iterator d = _depends.find(p->first);
+    if(d!=_depends.end()){
+      const DependencyDirection& dir = d->second->direction();
+      JASSERT(dir.size()==o.size());
+      for(int i=0; i<dir.size(); ++i){
+        if((dir[i]&DependencyDirection::D_GT)!=0){
+          o[i] &= ~IterationOrder::FORWARD;
+          JTRACE("Forward iteration not allowed")(id());
+        }
+        if((dir[i]&DependencyDirection::D_LT)!=0){
+          o[i] &= ~IterationOrder::BACKWARD;
+          JTRACE("Backward iteration not allowed")(id());
+        }
+      }
+    }
+  }
+}
+

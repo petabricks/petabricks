@@ -84,7 +84,6 @@ public:
   Learner& learner() { return _learner; }
   PerformanceTester& tester() { return _tester; }
 
-
   void addTestCase(const TestCasePtr& p) {tester().addTestCase(p);}
 private:
   std::string   _name;

@@ -170,6 +170,32 @@ hecura::FormulaPtr hecura::Formula::replace(const FormulaPtr& what, const Formul
   else                             return this;
 }
 
+
+hecura::FormulaPtr hecura::Formula::plusOne() const {
+  return MaximaWrapper::instance().normalize(new FormulaAdd(this, FormulaInteger::one()));
+}
+hecura::FormulaPtr hecura::Formula::minusOne() const {
+  return MaximaWrapper::instance().normalize(new FormulaSubtract(this, FormulaInteger::one()));
+}
+hecura::FormulaPtr hecura::Formula::negative() const {
+  return MaximaWrapper::instance().normalize(new FormulaSubtract(FormulaInteger::zero(), this));
+}
+
+std::string hecura::Formula::explodePrint() const {JASSERT(false);}
+
+template < char OP >
+std::string hecura::FormulaBinop<OP>::printAsAssumption() const {
+  if(OP=='=')
+    return "equal(" + _left->toString()
+              + "," + _right->toString() + ")";
+  return toString();
+}
+
+template < char OP >
+std::string hecura::FormulaBinop<OP>::explodePrint() const{
+  return _left->toString() +opStr()+ _right->toString();
+}
+
 //force implementations to be generated for templates
 template class hecura::FormulaLiteral<int>;
 template class hecura::FormulaLiteral<double>;

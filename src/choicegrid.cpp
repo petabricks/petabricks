@@ -39,7 +39,7 @@ hecura::ChoiceGridPtr hecura::ChoiceGrid::constructFrom(
     const RuleDescriptor& rd = *i;
     //whenever current pos changes:
     if(!rd.isSamePosition(currentPos)){
-      JTRACE("new pos")(dimension)(rd.getPosition());
+//       JTRACE("new pos")(dimension)(rd.getPosition());
       if(lastNode)
         lastNode->_nextElement = currentNode;
       currentPos = rd.getPosition();
@@ -55,10 +55,10 @@ hecura::ChoiceGridPtr hecura::ChoiceGrid::constructFrom(
     if(allowedRules.find(rd.rule()) != allowedRules.end()){
       if(rd.isBegin()){ //add new rule 
         activeRules.insert(rd.rule());
-        JTRACE("begin")(dimension)(rd.rule()->id());
+//         JTRACE("begin")(dimension)(rd.rule()->id());
       }else{ //remove expired rule
         activeRules.erase(rd.rule());
-        JTRACE("end")(dimension)(rd.rule()->id());
+//         JTRACE("end")(dimension)(rd.rule()->id());
       }
     }
   }

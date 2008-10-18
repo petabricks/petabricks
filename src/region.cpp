@@ -290,20 +290,22 @@ std::string hecura::Region::generateAccessorCode(CodeGenerator& o) const{
 
 void hecura::Region::collectDependencies(const Rule& rule, MatrixDependencyMap& map) const {
   //Determine dependency direction
+
+  //TODO: make this region based
   DependencyDirection direction(dimensions());
   for(size_t i=0; i<dimensions(); ++i){
-    if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), "<", _maxCoord[i])==MaximaWrapper::YES){
+    if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i),      "<=", _minCoord[i])==MaximaWrapper::YES){
       switch(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), "<", _minCoord[i])){
-      case MaximaWrapper::YES:     direction.addDirection(i, DependencyDirection::D_LT); break;
-      case MaximaWrapper::NO:      direction.addDirection(i, DependencyDirection::D_EQ); break;
-      case MaximaWrapper::UNKNOWN: direction.addDirection(i, DependencyDirection::D_LE); break;
-      default: JASSERT(false);
-      }
-    }else if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">=", _minCoord[i])==MaximaWrapper::YES){
-      switch(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">=", _maxCoord[i])){
       case MaximaWrapper::YES:     direction.addDirection(i, DependencyDirection::D_GT); break;
       case MaximaWrapper::NO:      direction.addDirection(i, DependencyDirection::D_EQ); break;
       case MaximaWrapper::UNKNOWN: direction.addDirection(i, DependencyDirection::D_GE); break;
+      default: JASSERT(false);
+      }
+    }else if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">=", _minCoord[i])==MaximaWrapper::YES){
+      switch(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">",  _minCoord[i])){
+      case MaximaWrapper::YES:     direction.addDirection(i, DependencyDirection::D_LT); break;
+      case MaximaWrapper::NO:      direction.addDirection(i, DependencyDirection::D_EQ); break;
+      case MaximaWrapper::UNKNOWN: direction.addDirection(i, DependencyDirection::D_LE); break;
       default: JASSERT(false);
       }
     }else{
