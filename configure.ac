@@ -28,9 +28,6 @@ AC_DEFINE([SHORT_TYPE_NAMES],[1],[undefine this if a large number of dimensions 
 AC_DEFINE([INPUT_SIZE_STR],["input_size"],[var name in output code])
 AC_DEFINE([OUTPUT_SIZE_STR],["output_size"],[var name in output code])
 
-if false; then
-  AC_DEFINE([MAXIMA_LOG],[1],[define in order to generate maxima.log, (a log of maxima commands)])
-fi
 
 AC_ARG_ENABLE([debug],
             [AS_HELP_STRING([--enable-debug],
@@ -42,6 +39,9 @@ AC_ARG_ENABLE([debug],
 
 if test "$use_jassert" = "yes"; then
   AC_DEFINE([DEBUG],[],[verbose debug printouts and log files in /tmp])
+  if test "`hostname`" = "kleptocracy"; then
+    AC_DEFINE([MAXIMA_LOG],[1],[define in order to generate maxima.log, (a log of maxima commands)])
+  fi
 fi
 
 AC_ARG_ENABLE([timing],

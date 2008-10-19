@@ -52,6 +52,10 @@ public:
   void print(std::ostream& o) const;
   FreeVarsPtr getFreeVariables() const;
   void makeRelativeTo(const FormulaList& defs);
+
+  void addToEach(const FormulaPtr& x);
+
+  void subToEach(const FormulaPtr& x);
 };
 
 /**

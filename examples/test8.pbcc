@@ -1,0 +1,19 @@
+transform SOR2D
+from IN[n,n], B[n,n], weight
+through R<0>[n+2,n+2], K<0>[n+2,n+2]
+to OUT[n+2,n+2]
+{
+
+  // INITIALIZE
+  
+  R<0>.cell(i,j) from (IN.cell(0,0) in) { return 0; }
+
+  K<0>.cell(i,j) from (IN.cell(0,0) in) { return 0; }
+
+  // FINALIZE
+  
+  OUT.cell(i,j) from(R<0>.cell(i,j) x) {
+    return x;
+  }
+
+}

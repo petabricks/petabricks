@@ -7,10 +7,9 @@ int thisIsATestOfFilePrefix=0;
 transform Test1 from IN[w,h] to OUT[w,h] 
 {
   OUT.cell(x,y) from(IN.cell(x,y)     i,
-                     OUT.cell(x-1, y) left,
-                     OUT.cell(x, y-1) up)
+                     OUT.cell(x-1, y-1) upleft)
   {
-     return i,left+up;
+     return i+upleft;
   }
   
   secondary OUT.cell(x,y) from(IN.cell(x,y) i)

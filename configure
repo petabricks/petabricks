@@ -20129,13 +20129,6 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 
-if false; then
-
-cat >>confdefs.h <<\_ACEOF
-#define MAXIMA_LOG 1
-_ACEOF
-
-fi
 
 # Check whether --enable-debug was given.
 if test "${enable_debug+set}" = set; then
@@ -20151,6 +20144,13 @@ cat >>confdefs.h <<\_ACEOF
 #define DEBUG
 _ACEOF
 
+  if test "`hostname`" = "kleptocracy"; then
+
+cat >>confdefs.h <<\_ACEOF
+#define MAXIMA_LOG 1
+_ACEOF
+
+  fi
 fi
 
 # Check whether --enable-timing was given.

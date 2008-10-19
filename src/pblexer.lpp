@@ -85,7 +85,7 @@ PASS_CHARS [.<>,*/()[\]+-]
   ">="              RETURN GE;
   [0-9]+[.][0-9]+   RETURN FLOAT;
   [0-9]+            RETURN INTEGER;
-  [a-z_][a-z0-9_-]* RETURN IDENT;
+  [a-z_][a-z0-9_]*  RETURN IDENT;
   {PASS_CHARS}      RETURN yytext[0];
   [/][*]            yy_push_state(comment);
   [/][/]            yy_push_state(linecomment);

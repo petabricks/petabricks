@@ -62,7 +62,7 @@ hecura::ChoiceGridPtr hecura::ChoiceGrid::constructFrom(
       }
     }
   }
-  JASSERT(activeRules.empty());
+  JWARNING(activeRules.empty());
   return rootNode;
 }
 

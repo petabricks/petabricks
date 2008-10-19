@@ -196,6 +196,16 @@ std::string hecura::FormulaBinop<OP>::explodePrint() const{
   return _left->toString() +opStr()+ _right->toString();
 }
 
+void hecura::FormulaList::addToEach(const FormulaPtr& x){
+  for(iterator i=begin(); i!=end(); ++i)
+    *i=new FormulaAdd(*i,x);
+}
+
+void hecura::FormulaList::subToEach(const FormulaPtr& x){
+  for(iterator i=begin(); i!=end(); ++i)
+    *i=new FormulaSubtract(*i,x);
+}
+
 //force implementations to be generated for templates
 template class hecura::FormulaLiteral<int>;
 template class hecura::FormulaLiteral<double>;
