@@ -133,14 +133,14 @@ void hecura::Rule::initialize(Transform& trans) {
   _conditions.makeRelativeTo(_definitions);
 
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
-    SimpleRegionPtr ar = (*i)->getApplicableRegion(*this, _definitions);
+    SimpleRegionPtr ar = (*i)->getApplicableRegion(*this, _definitions, true);
     if(_applicanbleRegion)
       _applicanbleRegion = _applicanbleRegion->intersect(ar);
     else
       _applicanbleRegion = ar;
   }
   for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
-    SimpleRegionPtr ar = (*i)->getApplicableRegion(*this, _definitions);
+    SimpleRegionPtr ar = (*i)->getApplicableRegion(*this, _definitions, false);
     if(_applicanbleRegion)
       _applicanbleRegion = _applicanbleRegion->intersect(ar);
     else

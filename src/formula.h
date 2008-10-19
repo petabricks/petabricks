@@ -73,6 +73,8 @@ class Formula : public jalib::JRefCounted, public jalib::JPrintable {
 protected:
   Formula(const FreeVarsPtr& fv) : _freeVars(fv), _size(1) {}
 public:
+  
+  static FormulaPtr inf();
 
   FreeVarsPtr getFreeVariables() const { return _freeVars; } 
   

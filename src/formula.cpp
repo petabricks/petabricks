@@ -199,11 +199,17 @@ std::string hecura::FormulaBinop<OP>::explodePrint() const{
 void hecura::FormulaList::addToEach(const FormulaPtr& x){
   for(iterator i=begin(); i!=end(); ++i)
     *i=new FormulaAdd(*i,x);
+  normalize();
 }
 
 void hecura::FormulaList::subToEach(const FormulaPtr& x){
   for(iterator i=begin(); i!=end(); ++i)
     *i=new FormulaSubtract(*i,x);
+  normalize();
+}
+
+hecura::FormulaPtr hecura::Formula::inf(){
+  return new FormulaVariable("inf");
 }
 
 //force implementations to be generated for templates

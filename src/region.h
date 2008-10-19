@@ -67,6 +67,8 @@ public:
 
   const CoordinateFormula& minCoord() const { return _minCoord; }
   const CoordinateFormula& maxCoord() const { return _maxCoord; }
+  CoordinateFormula& minCoord() { return _minCoord; }
+  CoordinateFormula& maxCoord() { return _maxCoord; }
 
   void addDimension(const FormulaPtr& min, const FormulaPtr& max){
     _minCoord.push_back(min);
@@ -113,7 +115,7 @@ public:
   std::string generateSignatureCode(CodeGenerator& o, bool isConst) const;
   std::string generateAccessorCode(CodeGenerator& o) const;
 
-  SimpleRegionPtr getApplicableRegion(Rule& rule, const FormulaList& defs);
+  SimpleRegionPtr getApplicableRegion(Rule& rule, const FormulaList& defs, bool isOutput);
 
   void collectDependencies(const Rule& rule, MatrixDependencyMap& map) const;
 

@@ -169,7 +169,7 @@ void hecura::SimpleRegion::print(std::ostream& o) const {
   o << _minCoord << ", " << _maxCoord;
 }
 
-hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const FormulaList& _defs){
+hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const FormulaList& _defs, bool isOutput){
   CoordinateFormula min;
   CoordinateFormula max;
 
@@ -205,8 +205,13 @@ hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const Fo
         f = new FormulaAdd(f, FormulaInteger::one());
         max.push_back(MaximaWrapper::instance().normalize(f));
       }else if(_maxCoord[i]->getFreeVariables()->empty()){
-        FormulaPtr f = _maxCoord[i];
-        f = new FormulaAdd(f, FormulaInteger::one());
+        FormulaPtr f;
+        if(isOutput){
+          f = _maxCoord[i];
+          f = new FormulaAdd(f, FormulaInteger::one());
+        }else{
+          f=Formula::inf(); 
+        }
         max.push_back(MaximaWrapper::instance().normalize(f));
       }else{
         max.push_back(_fromMatrix->getSizeOfDimension(i));
@@ -314,7 +319,8 @@ void hecura::Region::collectDependencies(const Rule& rule, MatrixDependencyMap& 
     }
   }
 
-  const SimpleRegion& applicable = rule.applicanbleRegion();
+  SimpleRegion applicable = rule.applicanbleRegion();
+  applicable.maxCoord().subToEach(FormulaInteger::one());
   FormulaList minDefs;
   FormulaList maxDefs;
   for(size_t i=0; i<applicable.dimensions(); ++i){
@@ -323,7 +329,7 @@ void hecura::Region::collectDependencies(const Rule& rule, MatrixDependencyMap& 
   }
   CoordinateFormula minAbsolute = minCoord();
   CoordinateFormula maxAbsolute = maxCoord();
-  maxAbsolute.subToEach(FormulaInteger::one());
+//   maxAbsolute.subToEach(FormulaInteger::one());
   minAbsolute.makeRelativeTo(minDefs);
   maxAbsolute.makeRelativeTo(maxDefs);
   SimpleRegionPtr region = new SimpleRegion(minAbsolute, maxAbsolute);
