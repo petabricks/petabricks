@@ -372,8 +372,8 @@ public:
   
   const MatrixStoragePtr& storage() const { return _storage; }
   ElementT* base() const { return _base; }
-  const IndexT* sizes() const { return 0; }
-  const IndexT* multipliers() const { return 0; };
+  const IndexT* sizes() const { JWARNING(false); return 0; }
+  const IndexT* multipliers() const { JWARNING(false);  return 0; };
 
   MatrixRegion all() const { return *this; }
 private:

@@ -53,7 +53,7 @@ void hecura::MatrixDef::initialize(Transform& trans){
     JASSERT(_version.size()<=2);
     JASSERT(_version[0]->getFreeVariables()->size()==0)(_version)
       .Text("Non constant minimum version size not yet supported");
-    _size.push_back(_version.back());
+    _size.push_back(_version.back()->plusOne());
   }
 }
 
