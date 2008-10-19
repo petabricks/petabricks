@@ -105,6 +105,8 @@ public:
   virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const;
 
   virtual std::string explodePrint() const;
+  
+  virtual FormulaPtr staticCeiling() const { return this; }
 
   FormulaPtr plusOne() const;
   FormulaPtr minusOne() const;
@@ -164,6 +166,7 @@ public:
   
   virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const;
 
+  virtual FormulaPtr staticCeiling() const;
   std::string printAsAssumption() const;
   std::string explodePrint() const;
 private:

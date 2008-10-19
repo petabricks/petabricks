@@ -305,7 +305,19 @@ void hecura::Rule::generateCallCodeSimple(CodeGenerator& o, const SimpleRegionPt
     if(used.find(i->first)==used.end())
       args.push_back(i->first->name());
   }
-  args.push_back(region->toString());
+  for( CoordinateFormula::const_iterator i=region->minCoord().begin()
+       ; i!=region->minCoord().end()
+       ; ++i)
+  {
+    args.push_back((*i)->staticCeiling()->toString());
+  }
+  for( CoordinateFormula::const_iterator i=region->maxCoord().begin()
+       ; i!=region->maxCoord().end()
+       ; ++i)
+  {
+    args.push_back((*i)->toString());
+  }
+//   args.push_back(region->toString());
   o.call(trampcodename(), args);
 }
 

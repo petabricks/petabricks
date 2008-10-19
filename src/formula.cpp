@@ -196,6 +196,12 @@ std::string hecura::FormulaBinop<OP>::explodePrint() const{
   return _left->toString() +opStr()+ _right->toString();
 }
 
+template < char OP >
+hecura::FormulaPtr hecura::FormulaBinop<OP>::staticCeiling() const { 
+  if(OP=='/') return new FormulaBinop(new FormulaAdd(_left,_right->minusOne()), _right);
+  else        return new FormulaBinop(_left->staticCeiling(), _right->staticCeiling());
+}
+
 void hecura::FormulaList::addToEach(const FormulaPtr& x){
   for(iterator i=begin(); i!=end(); ++i)
     *i=new FormulaAdd(*i,x);
