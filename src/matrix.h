@@ -292,6 +292,13 @@ public:
   enum StockLayouts { LAYOUT_ASCENDING, LAYOUT_DECENDING };
 
   ///
+  /// Copy constructor
+  MatrixRegion( const MatrixRegion<D, MATRIX_ELEMENT_T>& that )
+    : _storage(that.storage())
+    , _base(that.base())
+  {}
+  
+  ///
   /// Allocate a storage for a new MatrixRegion
   static MatrixRegion allocate(const IndexT sizes[D]) {
     MatrixStoragePtr tmp = new MatrixStorage(1);
@@ -362,6 +369,13 @@ public:
   IndexT bytes() const {
     return count()*sizeof(ElementT);
   }
+  
+  const MatrixStoragePtr& storage() const { return _storage; }
+  ElementT* base() const { return _base; }
+  const IndexT* sizes() const { return 0; }
+  const IndexT* multipliers() const { return 0; };
+
+  MatrixRegion all() const { return *this; }
 private:
   MatrixStoragePtr _storage;
   ElementT* _base;
