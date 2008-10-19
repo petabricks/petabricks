@@ -42,6 +42,8 @@ static void recordLitCode(){
 #define YY_DECL int yylex()
 #define RETURN theParseLog.str(""); return
 
+static int theNestCount=0;
+
 %}
 
 %x transform rule comment linecomment string litcode
@@ -74,7 +76,7 @@ PASS_CHARS [.<>,*/()[\]+-]
   "secondary"      RETURN SECONDARY;
   "rotatable"      RETURN ROTATABLE;
   "recursive"      RETURN RECURSIVE;
-  "{"              yy_push_state(rule); RETURN *yytext;
+  "{"              yy_push_state(rule); theNestCount=1; RETURN *yytext;
   "}"              yy_pop_state();      RETURN *yytext;
 }
 
@@ -96,11 +98,11 @@ PASS_CHARS [.<>,*/()[\]+-]
   [/][*]           yy_push_state(comment);
   [/][/]           yy_push_state(linecomment);
   ^[ \t]*[#]       yy_push_state(linecomment);
-  "{"              yy_push_state(rule);
+  "{"              ++theNestCount;
   ["]              yy_push_state(string);
   "}"              { 
-                      yy_pop_state(); 
-                      if(yy_top_state()!=rule){
+                      if(--theNestCount==0){
+                        yy_pop_state();
                         pblval.str=circularStringCache(theParseLog.str().c_str());
                         RETURN RULEBODY;
                       }

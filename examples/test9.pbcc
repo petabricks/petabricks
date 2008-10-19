@@ -1,0 +1,10 @@
+transform Test9
+from X[n,n]
+to  Y[n,n]
+{
+   Y.cell(x,y) from()
+   {
+      if (x%2) { return 0;}
+      return x;
+   }
+} 
