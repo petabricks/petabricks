@@ -56,8 +56,18 @@ public:
     return rslt->front();
   }
 
-  ///
-  /// Expand and simplify the given formula
+  FormulaPtr floor(const FormulaPtr& eq){
+    if(eq->size()==1) 
+      return eq; //cant simplify a leaf node
+    return runCommandSingleOutput("floor(" + eq->toString() + ")");
+  }
+  
+  FormulaPtr ceiling(const FormulaPtr& eq){
+    if(eq->size()==1) 
+      return eq; //cant simplify a leaf node
+    return runCommandSingleOutput("floor(" + eq->toString() + ")");
+  }
+  
   FormulaPtr normalize(const FormulaPtr& eq){
     if(eq->size()==1) 
       return eq; //cant simplify a leaf node
@@ -121,6 +131,9 @@ public:
     runCommand("assume(" + fact->printAsAssumption() + ")");
   }
 
+  void declareInteger(const FormulaPtr& var){
+    runCommand("declare(" + var->toString() + ", integer)");
+  }
   
   void pushContext(){
     runCommand("supcontext(_ctx_stack_" + jalib::XToString(++_stackDepth) + ")");
@@ -130,6 +143,8 @@ public:
     JASSERT(_stackDepth>0);
     runCommand("killcontext(_ctx_stack_" + jalib::XToString(_stackDepth--) + ")");
   }
+  
+  
 
 private:
   int _fd;

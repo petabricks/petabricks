@@ -52,7 +52,7 @@ hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
   RuleChoicePtr rv = new RuleChoice(*base.begin()); //the first rule
 
   if(!recursive.empty()){
-    FormulaPtr condition = new FormulaGT(new FormulaVariable(INPUT_SIZE_STR), new FormulaInteger(100));
+    FormulaPtr condition = new FormulaGT(new FormulaVariable(INPUT_SIZE_STR), new FormulaInteger(1000));
 
     //add recursive case
     rv=new RuleChoice(*recursive.begin(), condition, rv);
