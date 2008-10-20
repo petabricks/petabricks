@@ -7,6 +7,8 @@
 #include "formula.h"
 #include "matrixdef.h"
 #include "region.h"
+#include "config.h"
+#include "cxxconfig.h"
 using namespace hecura;
 
 extern int pblineno;
@@ -201,7 +203,11 @@ extern FILE* pbin;
 
 TransformListPtr parsePbFile(const char* filename){
   TransformListPtr ret;
+#ifdef RUN_CPP
+  pbin = popen((std::string(CPP " ")+filename).c_str(),"r");
+#else
   pbin = fopen(filename,"r");
+#endif
   JASSERT(pbin!=NULL)(filename)(JASSERT_ERRNO).Text("failed to open file");
   pbparse(ret);
   return ret;

@@ -1,11 +1,5 @@
-transform MatrixAdd
-from A[w,h], B[w,h] 
-to AB[w,h]
-{
-  AB.cell(x,y) from(A.cell(x,y) a, B.cell(x,y) b){
-    return a+b;
-  }
-}
+
+#include "add.pbcc"
 
 transform MatrixMultiply
 from A[c,h], B[w,c] 

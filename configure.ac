@@ -24,6 +24,7 @@ AC_DEFINE([MATRIX_ELEMENT_T],[double],[type for elements in the matrix])
 AC_DEFINE([MAX_DIMENSIONS],[64],[the maximum number of dimensions supported])
 AC_DEFINE([SHORT_TYPE_NAMES],[1],[undefine this if a large number of dimensions are needed, or one wants a cleaner user namespace])
 
+AC_DEFINE([RUN_CPP],[1],[undefine to disable cpp])
 
 AC_DEFINE([INPUT_SIZE_STR],["input_size"],[var name in output code])
 AC_DEFINE([OUTPUT_SIZE_STR],["output_size"],[var name in output code])

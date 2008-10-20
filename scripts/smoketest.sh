@@ -73,15 +73,16 @@ runEachTest << EOF
   add       $R2Da $R2Db
   multiply  $R2Da $R2Db
   transpose $R2Da 
-  test1 $R2Da
-  test2 $R2Da
-  test3 $R2Da
-  test4 $R2Da
-  test5 $R2Da
-  test6 $R2Da
-  test7 $R2Da
-  test8 $R2Da $R2Db $R0D
-  test9 $R2Da $R0D
+  test1  $R2Da
+  test2  $R2Da
+  test3  $R2Da
+  test4  $R2Da
+  test5  $R2Da
+  test6  $R2Da
+  test7  $R2Da
+  test8  $R2Da $R2Db $R0D
+  test9  $R2Da $R0D
+  test10 $R2Da
 EOF
 
 printf '+-----------+---------+----------------------+\n'

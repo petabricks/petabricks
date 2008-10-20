@@ -20118,6 +20118,11 @@ _ACEOF
 
 
 
+cat >>confdefs.h <<\_ACEOF
+#define RUN_CPP 1
+_ACEOF
+
+
 
 cat >>confdefs.h <<\_ACEOF
 #define INPUT_SIZE_STR "input_size"

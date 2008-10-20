@@ -66,6 +66,9 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* undefine to disable cpp */
+#undef RUN_CPP
+
 /* undefine this if a large number of dimensions are needed, or one wants a
    cleaner user namespace */
 #undef SHORT_TYPE_NAMES

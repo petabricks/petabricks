@@ -333,28 +333,30 @@ std::string hecura::Region::generateAccessorCode(CodeGenerator& o) const{
 
 void hecura::Region::collectDependencies(const Rule& rule, MatrixDependencyMap& map) const {
   //Determine dependency direction
-
-  //TODO: make this region based
   DependencyDirection direction(dimensions());
   for(size_t i=0; i<dimensions(); ++i){
-    if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i),      "<=", _minCoord[i])==MaximaWrapper::YES){
-      switch(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), "<", _minCoord[i])){
-      case MaximaWrapper::YES:     direction.addDirection(i, DependencyDirection::D_GT); break;
-      case MaximaWrapper::NO:      direction.addDirection(i, DependencyDirection::D_EQ); break;
-      case MaximaWrapper::UNKNOWN: direction.addDirection(i, DependencyDirection::D_GE); break;
-      default: JASSERT(false);
-      }
-    }else if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">=", _minCoord[i])==MaximaWrapper::YES){
-      switch(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">",  _minCoord[i])){
-      case MaximaWrapper::YES:     direction.addDirection(i, DependencyDirection::D_LT); break;
-      case MaximaWrapper::NO:      direction.addDirection(i, DependencyDirection::D_EQ); break;
-      case MaximaWrapper::UNKNOWN: direction.addDirection(i, DependencyDirection::D_LE); break;
-      default: JASSERT(false);
-      }
+    MaximaWrapper::tryCompareResult isLeft =MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i),  "<", _maxCoord[i]);
+    MaximaWrapper::tryCompareResult isRight=MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">=", _minCoord[i]);
+    
+    if(isLeft!=MaximaWrapper::YES)
+      direction.addDirection(i, DependencyDirection::D_LT);
+
+    if(isRight!=MaximaWrapper::YES)
+      direction.addDirection(i, DependencyDirection::D_GT);
+
+    if(isLeft==MaximaWrapper::UNKNOWN || isRight==MaximaWrapper::UNKNOWN || isLeft==isRight){
+      direction.addDirection(i, DependencyDirection::D_EQ);
     }else{
-      direction.addDirection(i, DependencyDirection::D_ALL);
+      if(isLeft){
+        if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), "<",  _minCoord[i])!=MaximaWrapper::YES)
+          direction.addDirection(i, DependencyDirection::D_EQ);
+      }else{//isRight
+        if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">=", _maxCoord[i])!=MaximaWrapper::YES)
+          direction.addDirection(i, DependencyDirection::D_EQ);
+      }
     }
   }
+  JTRACE("compute direction")(_minCoord)(_maxCoord)(direction);
 
   SimpleRegion applicable = rule.applicanbleRegion();
   applicable.maxCoord().subToEach(FormulaInteger::one());
