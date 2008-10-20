@@ -184,8 +184,7 @@ hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const Fo
       std::string var = rule.getOffsetVar(i)->toString();
       if(fv->contains(var)){
         FormulaPtr f =  rule.trimImpossible(MaximaWrapper::instance().solve(defs, var))->rhs();
-        f=MaximaWrapper::instance().normalize(f);
-        f=f->ceiling();
+        f=MaximaWrapper::instance().staticCeiling(f);
         min.push_back(f);
       }else if(_minCoord[i]->getFreeVariables()->empty())
         min.push_back(_minCoord[i]);
@@ -208,8 +207,8 @@ hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const Fo
         FormulaPtr f = rule.trimImpossible(MaximaWrapper::instance().solve(defs, var))->rhs();
         JASSERT(offsets[i]->toString()!="0");
         f=new FormulaAdd(f, new FormulaDivide(FormulaInteger::one(), offsets[i]));
+//         f=MaximaWrapper::instance().staticCeiling(f);
         f=MaximaWrapper::instance().normalize(f);
-        f=f->floor();
         max.push_back(f);
       }else if(_maxCoord[i]->getFreeVariables()->empty()){
         FormulaPtr f;

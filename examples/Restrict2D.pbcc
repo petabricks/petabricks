@@ -1,0 +1,23 @@
+transform Restrict2D
+//return 4*Residual for coarser grid (the factor of 4 due to Poisson's equation)
+from X[n,n]
+to  Y[n/2+1,n/2+1]  //C will truncate
+{
+  //interior components
+  Y.cell(i,j)
+  from( X.cell(2*i-1,2*j-1) nw,
+        X.cell(2*i,2*j-1) n,
+        X.cell(2*i+1,2*j-1) ne,
+        X.cell(2*i-1,2*j) w,
+        X.cell(2*i,2*j) c,
+        X.cell(2*i+1,2*j) e,
+        X.cell(2*i-1,2*j+1) sw,
+        X.cell(2*i,2*j+1) s,
+        X.cell(2*i+1,2*j+1) se)
+  {
+    return c+(n+e+w+s)/2+(ne+nw+sw+se)/4;
+  }
+
+  //boundary is 0
+   secondary Y.cell(i,j) from() {return 0;}
+}

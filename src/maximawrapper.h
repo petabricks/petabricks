@@ -67,11 +67,17 @@ public:
       return eq; //cant simplify a leaf node
     return runCommandSingleOutput("ceiling(" + eq->toString() + ")");
   }
+
+  FormulaPtr staticCeiling(const FormulaPtr& eq){
+    if(eq->size()==1) 
+      return eq; //cant simplify a leaf node
+    return runCommandSingleOutput("_tmp:fullratsimp("+eq->toString()+")$ fullratsimp( (num(_tmp)+denom(_tmp)-1) / denom(_tmp) )");
+  }
   
   FormulaPtr normalize(const FormulaPtr& eq){
     if(eq->size()==1) 
       return eq; //cant simplify a leaf node
-    return runCommandSingleOutput("expand(" + eq->toString() + ")");
+    return runCommandSingleOutput("fullratsimp(expand(" + eq->toString() + "))");
   }
 
   FormulaPtr subst(const std::string& with, const std::string& what, const FormulaPtr& eq){

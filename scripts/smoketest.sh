@@ -66,6 +66,7 @@ printf '+-----------+---------+----------------------+\n'
 
 R2Da=./testdata/Rand2Da
 R2Db=./testdata/Rand2Db
+R2Dodd=./testdata/Rand2Dodd
 R1D=./testdata/Rand1D
 R0D=./testdata/Rand0D
 
@@ -83,6 +84,7 @@ runEachTest << EOF
   test8  $R2Da $R2Db $R0D
   test9  $R2Da $R0D
   test10 $R2Da
+  Restrict2D $R2Dodd
 EOF
 
 printf '+-----------+---------+----------------------+\n'
