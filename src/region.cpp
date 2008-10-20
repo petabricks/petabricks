@@ -207,8 +207,10 @@ hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const Fo
         FormulaPtr f = rule.trimImpossible(MaximaWrapper::instance().solve(defs, var))->rhs();
         JASSERT(offsets[i]->toString()!="0");
         f=new FormulaAdd(f, new FormulaDivide(FormulaInteger::one(), offsets[i]));
-//         f=MaximaWrapper::instance().staticCeiling(f);
-        f=MaximaWrapper::instance().normalize(f);
+        if(isOutput)
+          f=MaximaWrapper::instance().normalize(f);
+        else
+          f=MaximaWrapper::instance().staticCeiling(f);
         max.push_back(f);
       }else if(_maxCoord[i]->getFreeVariables()->empty()){
         FormulaPtr f;

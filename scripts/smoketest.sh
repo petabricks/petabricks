@@ -84,6 +84,7 @@ runEachTest << EOF
   test8  $R2Da $R2Db $R0D
   test9  $R2Da $R0D
   test10 $R2Da
+  test11 $R2Dodd
   Restrict2D $R2Dodd
 EOF
 

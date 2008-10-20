@@ -1,4 +1,4 @@
-transform Test5
+transform Test7
 from IN[w,h] 
 to OUT[w/2,h/2] 
 {
