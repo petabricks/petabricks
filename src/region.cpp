@@ -230,7 +230,7 @@ hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const Fo
         max.push_back(f);
       }
     }
-    JTRACE("Computed applicable max")(_fromMatrix)(defs)(max);
+    JTRACE("Computed applicable max")(_fromMatrix)(_maxCoord)(defs)(max);
   }
 
   return new SimpleRegion(min,max);
