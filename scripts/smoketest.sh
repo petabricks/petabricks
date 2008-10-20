@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 Q='>/dev/null 2>/dev/null'
 

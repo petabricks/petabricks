@@ -65,7 +65,7 @@ public:
   FormulaPtr ceiling(const FormulaPtr& eq){
     if(eq->size()==1) 
       return eq; //cant simplify a leaf node
-    return runCommandSingleOutput("floor(" + eq->toString() + ")");
+    return runCommandSingleOutput("ceiling(" + eq->toString() + ")");
   }
   
   FormulaPtr normalize(const FormulaPtr& eq){
@@ -85,6 +85,10 @@ public:
       return subst(r->toString(), l->toString(), eq);
     else
       return eq;
+  }
+
+  FormulaPtr diff(const Formula& formula, const Formula& var){
+    return runCommandSingleOutput("diff("+formula.toString()+","+var.toString()+")");
   }
 
   FormulaListPtr solve(const FormulaList& eqs, const std::string& var){
@@ -120,11 +124,11 @@ public:
   
   
   FormulaPtr min(const FormulaPtr& a, const FormulaPtr& b){
-    return tryCompare(a,">",b)==YES ? b : a;
+    return tryCompare(a,"<=",b)==YES ? a : b;
   }
 
   FormulaPtr max(const FormulaPtr& a, const FormulaPtr& b){
-    return tryCompare(a,"<",b)==YES ? b : a;
+    return tryCompare(a,">=",b)==YES ? a : b;
   }
 
   void assume(const FormulaPtr& fact){
@@ -132,7 +136,10 @@ public:
   }
 
   void declareInteger(const FormulaPtr& var){
-    runCommand("declare(" + var->toString() + ", integer)");
+    declareInteger(var->toString());
+  }
+  void declareInteger(const std::string& var){
+    runCommand("declare(" + var + ", integer)");
   }
   
   void pushContext(){

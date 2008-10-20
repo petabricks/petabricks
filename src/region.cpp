@@ -182,9 +182,12 @@ hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const Fo
     FreeVarsPtr fv = defs.getFreeVariables();
     for(size_t i=0; i<_minCoord.size(); ++i){
       std::string var = rule.getOffsetVar(i)->toString();
-      if(fv->contains(var))
-        min.push_back(rule.trimImpossible(MaximaWrapper::instance().solve(defs, var))->rhs());
-      else if(_minCoord[i]->getFreeVariables()->empty())
+      if(fv->contains(var)){
+        FormulaPtr f =  rule.trimImpossible(MaximaWrapper::instance().solve(defs, var))->rhs();
+        f=MaximaWrapper::instance().normalize(f);
+        f=f->ceiling();
+        min.push_back(f);
+      }else if(_minCoord[i]->getFreeVariables()->empty())
         min.push_back(_minCoord[i]);
       else
         min.push_back(FormulaInteger::zero());
@@ -193,33 +196,67 @@ hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const Fo
 
   //then do max
   {
+    FormulaList offsets = diff(rule);
     FormulaList defs /*= _defs*/;
     for(size_t i=0; i<_maxCoord.size(); ++i){
-      defs.push_back(new FormulaEQ( _fromMatrix->getSizeOfDimension(i), _maxCoord[i]));
+      defs.push_back(new FormulaEQ(_fromMatrix->getSizeOfDimension(i), _maxCoord[i]));
     }
     FreeVarsPtr fv = defs.getFreeVariables();
     for(size_t i=0; i<_maxCoord.size(); ++i){
       std::string var = rule.getOffsetVar(i)->toString();
       if(fv->contains(var)){
         FormulaPtr f = rule.trimImpossible(MaximaWrapper::instance().solve(defs, var))->rhs();
-        f = new FormulaAdd(f, FormulaInteger::one());
-        max.push_back(MaximaWrapper::instance().normalize(f));
+        JASSERT(offsets[i]->toString()!="0");
+        f=new FormulaAdd(f, new FormulaDivide(FormulaInteger::one(), offsets[i]));
+        f=MaximaWrapper::instance().normalize(f);
+        f=f->floor();
+        max.push_back(f);
       }else if(_maxCoord[i]->getFreeVariables()->empty()){
         FormulaPtr f;
         if(isOutput){
           f = _maxCoord[i];
           f = new FormulaAdd(f, FormulaInteger::one());
         }else{
-          f=Formula::inf(); 
+          f=Formula::inf();
         }
         max.push_back(MaximaWrapper::instance().normalize(f));
       }else{
-        max.push_back(_fromMatrix->getSizeOfDimension(i));
+        FormulaPtr f;
+        if(isOutput){
+          f = _fromMatrix->getSizeOfDimension(i);
+        }else{
+          f=Formula::inf();
+        }
+        max.push_back(f);
       }
     }
+    JTRACE("Computed applicable max")(_fromMatrix)(defs)(max);
   }
 
   return new SimpleRegion(min,max);
+}
+
+hecura::FormulaList hecura::Region::diff(const Rule& rule) const {
+  FormulaList tmp = _maxCoord;
+  for(int i=0; i<tmp.size(); ++i){
+    if(tmp[i]->getFreeVariables()->size()==1){
+      bool found=false;
+      for(int d=0; d<tmp.size(); ++d){
+        if(tmp[i]->getFreeVariables()->contains(rule.getOffsetVar(d)->toString())){
+          tmp[i]=MaximaWrapper::instance().diff(tmp[i], rule.getOffsetVar(d));
+          found=true;
+          break;
+        }
+      }
+      if(!found) tmp[i]=FormulaInteger::zero();
+    }else{
+      //TODO suppport multiple free vars in coordinates
+      JWARNING(tmp[i]->getFreeVariables()->size()<=1)(tmp.getFreeVariables()->size());
+      tmp[i]=FormulaInteger::zero();
+    }
+  }
+  JTRACE("diff maxcoord")(_fromMatrix)(_minCoord)(tmp);
+  return tmp;
 }
 
 hecura::SimpleRegionPtr hecura::SimpleRegion::intersect(const SimpleRegion& that) const{

@@ -125,6 +125,9 @@ public:
 
   MatrixDefPtr matrix() const { return _fromMatrix; }
   
+  ///
+  /// Get rate of change for this region as rule center moves
+  FormulaList diff(const Rule&) const;
 private:
   std::string _name;
   std::string _fromMatrixName;

@@ -197,9 +197,31 @@ std::string hecura::FormulaBinop<OP>::explodePrint() const{
 }
 
 template < char OP >
-hecura::FormulaPtr hecura::FormulaBinop<OP>::staticCeiling() const { 
-  if(OP=='/') return new FormulaBinop(new FormulaAdd(_left,_right->minusOne()), _right);
-  else        return new FormulaBinop(_left->staticCeiling(), _right->staticCeiling());
+hecura::FormulaPtr hecura::FormulaBinop<OP>::ceiling() const { 
+  if(OP=='/'){
+    if(_freeVars->size()>0){
+      JTRACE("Giving up on ceiling of")(*this);
+      return this;
+    }
+    return MaximaWrapper::instance().ceiling(this);
+  }else if(OP=='-')
+    return new FormulaBinop(_left->ceiling(), _right->floor());
+  else 
+    return new FormulaBinop(_left->ceiling(), _right->ceiling());
+}
+
+template < char OP >
+hecura::FormulaPtr hecura::FormulaBinop<OP>::floor() const { 
+  if(OP=='/'){
+    if(_freeVars->size()>0){
+      JTRACE("Giving up on floor of")(*this);
+      return this;
+    }
+    return MaximaWrapper::instance().floor(this);
+  }else if(OP=='-')
+    return new FormulaBinop(_left->floor(), _right->ceiling());
+  else 
+    return new FormulaBinop(_left->floor(), _right->floor());
 }
 
 void hecura::FormulaList::addToEach(const FormulaPtr& x){

@@ -35,7 +35,7 @@ static void clearParserCaches(){
 
 %parse-param { hecura::FormulaListPtr& ret };
 
-%token IPROMPT OPROMPT LE GE BOOL_T BOOL_F STR_EQUAL
+%token IPROMPT OPROMPT LE GE BOOL_T BOOL_F STR_EQUAL STR_FLOOR STR_CEILING
 %token <str> IDENT INTEGER FLOAT
 %type <b> Bool
 %type <i> Integer
@@ -84,6 +84,8 @@ FormulaBinop: Formula '+' Formula { $$=REFALLOC(FormulaBinop<'+'>($1,$3)); }
             | Formula LE  Formula { $$=REFALLOC(FormulaLE($1,$3)); }
             | Formula GE  Formula { $$=REFALLOC(FormulaGE($1,$3)); }
             | STR_EQUAL '(' Formula ',' Formula ')' { $$=REFALLOC(FormulaBinop<'='>($3,$5)); }
+            | STR_FLOOR   '(' Formula ')' { $$=$3; }
+            | STR_CEILING '(' Formula ')' { $$=$3; }
             | '-' Formula { $$=REFALLOC(FormulaBinop<'-'>(FormulaInteger::zero(),$2)); };
 
 FormulaList: Formula                 { ($$=REFALLOC(FormulaList()))->push_back($1); }

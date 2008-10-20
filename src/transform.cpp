@@ -100,6 +100,9 @@ void hecura::Transform::initialize() {
   jalib::Map(&MatrixDef::exportAssumptions, _through);
   jalib::Map(&MatrixDef::exportAssumptions, _to);
 
+  for(FreeVars::const_iterator i=_constants.begin(); i!=_constants.end(); ++i)
+    MaximaWrapper::instance().declareInteger(*i);
+
   jalib::Map(&Rule::initialize,      *this, _rules);
 
   const RuleSet allRules(_rules.begin(), _rules.end());

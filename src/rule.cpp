@@ -179,8 +179,16 @@ hecura::FormulaPtr hecura::Rule::trimImpossible(const FormulaList& l){
 }
 
 bool hecura::RuleDescriptor::operator< (const RuleDescriptor& that) const{
+  std::string strA = this->_formula->toString();
+  std::string strB = that._formula->toString(); 
   const char* op = "<";
   if(_type==RULE_END && that._type==RULE_BEGIN) op = "<=";
+  
+  //optimization and zero handling
+  if(strA==strB) return op=="<=";
+  if(strA=="0")  return true;
+  if(strB=="0")  return false;
+
   return MaximaWrapper::instance().compare(this->_formula, op , that._formula);
 }
 
@@ -309,7 +317,7 @@ void hecura::Rule::generateCallCodeSimple(CodeGenerator& o, const SimpleRegionPt
        ; i!=region->minCoord().end()
        ; ++i)
   {
-    args.push_back((*i)->staticCeiling()->toString());
+    args.push_back((*i)->toString());
   }
   for( CoordinateFormula::const_iterator i=region->maxCoord().begin()
        ; i!=region->maxCoord().end()
