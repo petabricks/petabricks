@@ -338,10 +338,10 @@ public:
   ///
   /// Upcast from a lone value
   MatrixRegion( ElementT value ){
-    MatrixRegion tmp = allocate();
+    MatrixRegion<0, MATRIX_ELEMENT_T> tmp = MatrixRegion<0, MATRIX_ELEMENT_T>::allocate();
     _storage = tmp.storage();
     _base = tmp.base();
-    *_base = value;
+    tmp.cell()=value;
   }
 
   ///
