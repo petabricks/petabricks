@@ -336,8 +336,17 @@ public:
   {}
 
   ///
+  /// Upcast from a lone value
+  MatrixRegion( ElementT value ){
+    MatrixRegion tmp = allocate();
+    _storage = tmp.storage();
+    _base = tmp.base();
+    *_base = value;
+  }
+
+  ///
   /// 0-Dimensional region only has 1 cell
-  ElementT& cell(){                return *_base; }
+  ElementT& cell(){ return *_base; }
  
   ///
   /// 0-Dimensional region only has 1 cell
