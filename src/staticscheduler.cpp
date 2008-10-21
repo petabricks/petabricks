@@ -87,7 +87,7 @@ void hecura::StaticScheduler::generateCodeSimple(Transform& trans, CodeGenerator
 
 void hecura::ScheduleNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
   RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
-  rule->generateCodeSimple(_region, o);
+  rule->generateCodeSimple(trans, _region, o);
 }
 
 

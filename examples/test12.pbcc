@@ -1,0 +1,26 @@
+transform Test12 
+from IN[w,h]
+through S<0..10>[w,h]
+to OUT[w,h]
+{
+  //normal case
+  priority(0) S<p>.cell(i,j) from(S<p-1>.cell(i-1, j) n)
+  {
+    return n;
+  }
+  
+////edge cases
+  priority(1) S<p>.cell(i,j) from(S<p-1>.cell(i+1, j) s)
+  {
+    return s;
+  }
+
+  //initialize and finalize
+  S<0>.cell(i,j) from(IN.cell(i,j) x) {
+    return x;
+  }
+
+  OUT.cell(i,j) from(S<9>.cell(i,j) x) {
+    return x;
+  }
+}

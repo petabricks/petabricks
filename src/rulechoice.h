@@ -56,7 +56,7 @@ public:
 
   ///
   /// Output c++ code
-  void generateCodeSimple(const SimpleRegionPtr& region, CodeGenerator& o);
+  void generateCodeSimple(Transform& trans, const SimpleRegionPtr& region, CodeGenerator& o);
  
   const RulePtr& rule() const { return _rule; }
 

@@ -141,18 +141,18 @@ public:
 
   ///
   /// Generate seqential code to declare this rule
-  void generateDeclCodeSimple(CodeGenerator& o);
+  void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
 
 
   ///
   /// Generate seqential code to declare this rule
-  void generateTrampCodeSimple(CodeGenerator& o);
-  void generateTrampCellCodeSimple(CodeGenerator& o);
+  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o);
 
 
   ///
   /// Generate seqential code to invoke this rule
-  void generateCallCodeSimple(CodeGenerator& o, const SimpleRegionPtr& region); 
+  void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region); 
 
   ///
   /// Return function the name of this rule in the code

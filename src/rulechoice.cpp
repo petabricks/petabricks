@@ -31,16 +31,16 @@ void hecura::RuleChoice::print(std::ostream& o) const {
   o << "RuleChoice"; //TODO
 }
 
-void hecura::RuleChoice::generateCodeSimple(const SimpleRegionPtr& region,CodeGenerator& o){
+void hecura::RuleChoice::generateCodeSimple(Transform& trans, const SimpleRegionPtr& region,CodeGenerator& o){
   if(_condition){
     o.beginIf(_condition->toString());
   }
-  _rule->generateCallCodeSimple(o, region);
+  _rule->generateCallCodeSimple(trans, o, region);
 
   if(_condition){
     if(_next){
       o.elseIf();
-      _next->generateCodeSimple(region, o);
+      _next->generateCodeSimple(trans, region, o);
     }
     o.endIf();
   }

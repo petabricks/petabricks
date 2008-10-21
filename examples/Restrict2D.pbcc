@@ -1,7 +1,7 @@
 transform Restrict2D
 //return 4*Residual for coarser grid (the factor of 4 due to Poisson's equation)
-from X[n,n]
-to  Y[n/2+1,n/2+1]  //C will truncate
+from X[nn,nn]
+to  Y[nn/2+1,nn/2+1]  //C will truncate
 {
   //interior components
   Y.cell(i,j)

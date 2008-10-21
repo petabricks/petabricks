@@ -71,18 +71,18 @@ void hecura::ChoiceGrid::print(std::ostream& os) const {
   jalib::ConstMap(&Rule::printIdentifier, os, _applicableRules);
 }
 
-void hecura::ChoiceGrid::generateCodeSimple(CodeGenerator& o, const SimpleRegionPtr& prefix){
-  SimpleRegionPtr tmp = new SimpleRegion(prefix);
-  tmp->addDimension(_begin, _end);
-
-  if(_nextDimension){
-    _nextDimension->generateCodeSimple(o, tmp);
-  }else{
-    (*_applicableRules.begin())->generateCallCodeSimple(o, tmp);
-  }
-
-  if(_nextElement) _nextElement->generateCodeSimple(o,prefix);
-}
+// void hecura::ChoiceGrid::generateCodeSimple(CodeGenerator& o, const SimpleRegionPtr& prefix){
+//   SimpleRegionPtr tmp = new SimpleRegion(prefix);
+//   tmp->addDimension(_begin, _end);
+// 
+//   if(_nextDimension){
+//     _nextDimension->generateCodeSimple(o, tmp);
+//   }else{
+//     (*_applicableRules.begin())->generateCallCodeSimple(o, tmp);
+//   }
+// 
+//   if(_nextElement) _nextElement->generateCodeSimple(o,prefix);
+// }
 
 void hecura::ChoiceGrid::buildIndex(ChoiceGridIndex& idx, const SimpleRegionPtr& prefix /*= 0*/){
   SimpleRegionPtr tmp = prefix ? new SimpleRegion(prefix) : new SimpleRegion();

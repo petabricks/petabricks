@@ -196,7 +196,7 @@ bool hecura::RuleDescriptor::isSamePosition(const FormulaPtr& that) const{
    return MaximaWrapper::instance().compare(this->_formula, "=" , that);
 }
 
-void hecura::Rule::generateDeclCodeSimple(CodeGenerator& o){
+void hecura::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
   std::string rt = "void";
   std::vector<std::string> args;
   if(isReturnStyle()){
@@ -211,6 +211,9 @@ void hecura::Rule::generateDeclCodeSimple(CodeGenerator& o){
     args.push_back((*i)->generateSignatureCode(o,true));
   }
 
+  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i)
+    args.push_back("const IndexT "+(*i));
+
   for(int i=0; i<dimensions(); ++i)
     args.push_back("const IndexT "+getOffsetVar(i)->toString());
 
@@ -223,7 +226,7 @@ void hecura::Rule::generateDeclCodeSimple(CodeGenerator& o){
   o.endFunc();
 }
 
-void hecura::Rule::generateTrampCodeSimple(CodeGenerator& o){
+void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   CoordinateFormula begin, widths;
   CoordinateFormula end;
   std::vector<std::string> args;
@@ -243,6 +246,9 @@ void hecura::Rule::generateTrampCodeSimple(CodeGenerator& o){
   //TODO: call learner
 //   trans.learner().makeIterationChoice(order, _matrix, _region);
 
+  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i)
+    args.push_back("const IndexT "+(*i));
+
   //populate begin
   for(int i=0; i<dimensions(); ++i){
     FormulaPtr tmp = getOffsetVar(i,"begin");
@@ -258,11 +264,11 @@ void hecura::Rule::generateTrampCodeSimple(CodeGenerator& o){
 
   o.beginFunc("void",trampcodename(), args);
 
-  FreeVars fv;
-  for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i)
-    i->first->extractDefines(fv, o);
-  for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i)
-    i->first->extractDefines(fv, o);
+//   FreeVars fv;
+//   for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i)
+//     i->first->extractDefines(fv, o);
+//   for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i)
+//     i->first->extractDefines(fv, o);
 
   for(size_t i=0; i<begin.size(); ++i){
     FormulaPtr b=begin[i];
@@ -274,14 +280,14 @@ void hecura::Rule::generateTrampCodeSimple(CodeGenerator& o){
       o.beginFor(getOffsetVar(i)->toString(), b, e, w);
     //TODO, better support for making sure given range is a multiple of size
   }
-  generateTrampCellCodeSimple(o);
+  generateTrampCellCodeSimple(trans, o);
   for(size_t i=0; i<begin.size(); ++i){
     o.endFor();
   }
   o.endFunc();
 }
 
-void hecura::Rule::generateTrampCellCodeSimple(CodeGenerator& o){
+void hecura::Rule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o){
   std::vector<std::string> args;
   if(!isReturnStyle()){
     for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -291,6 +297,9 @@ void hecura::Rule::generateTrampCellCodeSimple(CodeGenerator& o){
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     args.push_back((*i)->generateAccessorCode(o));
   }
+
+  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i)
+    args.push_back(*i);
 
   for(int i=0; i<dimensions(); ++i)
     args.push_back(getOffsetVar(i)->toString());
@@ -302,7 +311,7 @@ void hecura::Rule::generateTrampCellCodeSimple(CodeGenerator& o){
   }
 }
 
-void hecura::Rule::generateCallCodeSimple(CodeGenerator& o, const SimpleRegionPtr& region){
+void hecura::Rule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
   std::vector<std::string> args;
   std::set<MatrixDefPtr> used;
   for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
@@ -313,6 +322,10 @@ void hecura::Rule::generateCallCodeSimple(CodeGenerator& o, const SimpleRegionPt
     if(used.find(i->first)==used.end())
       args.push_back(i->first->name());
   }
+
+  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i)
+    args.push_back((*i));
+
   for( CoordinateFormula::const_iterator i=region->minCoord().begin()
        ; i!=region->minCoord().end()
        ; ++i)

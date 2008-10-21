@@ -186,13 +186,13 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   o.newline();
   o.comment("User rules");
   for(RuleList::iterator i=_rules.begin(); i!=_rules.end(); ++i){
-    (*i)->generateDeclCodeSimple(o);
+    (*i)->generateDeclCodeSimple(*this, o);
   }
   o.newline();
 
   o.comment("Rule trampolines");
   for(RuleList::iterator i=_rules.begin(); i!=_rules.end(); ++i){
-    (*i)->generateTrampCodeSimple(o);
+    (*i)->generateTrampCodeSimple(*this, o);
   }
   o.newline();
 
