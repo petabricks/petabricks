@@ -21,6 +21,19 @@
 #include "maximawrapper.h"
 
 
+namespace { //file local
+  void printPower( std::string& o, const hecura::FormulaPtr& base, const hecura::FormulaPtr& power){
+    JASSERT(power->size()==1)(base)(power).Text("Non-integer powers not yet supported");
+    JASSERT(power->getFreeVariables()->size()==0)(base)(power).Text("Non-integer powers not yet supported");
+    int p=jalib::StringToInt(power->toString());
+    o="1";
+    if(p>0){
+      o = base->toString();
+      while(--p>0) o+="*"+base->toString();
+    }
+  }
+}
+
 hecura::FormulaList::FormulaList(const FormulaList& that) 
   : std::vector<FormulaPtr>(that) 
 {} 
@@ -81,9 +94,13 @@ hecura::FormulaBinop<OP>::FormulaBinop(const FormulaPtr& left, const FormulaPtr&
 template < char OP >
 void hecura::FormulaBinop<OP>::print(std::ostream& o) const {
   if(_toStringCache.length()==0){
-    std::ostringstream ss;
-    ss << '(' << _left << opStr() << _right << ')';
-    _toStringCache = ss.str();
+    if(OP=='^'){
+      printPower(_toStringCache, _left, _right);
+    }else{
+      std::ostringstream ss;
+      ss << '(' << _left << opStr() << _right << ')';
+      _toStringCache = ss.str();
+    }
   }
   o << _toStringCache;
 }
