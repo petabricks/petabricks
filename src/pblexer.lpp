@@ -61,7 +61,7 @@ static int theNestCount=0;
 
 %x transform rule comment linecomment string litcode
 
-PASS_CHARS [.<>,*/()[\]+-]
+PASS_CHARS [.<>,*/()[\]^+-]
 
 %%
 <INITIAL>{

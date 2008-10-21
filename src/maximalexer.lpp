@@ -37,7 +37,7 @@ static const char* circularStringCache(const char* str){
 
 %x output
 
-PASS_CHARS [=<>,*/()[\]\n+-]
+PASS_CHARS [=<>,*/()[\]\n^+-]
 WS [ \r\n\t]
 
 %%

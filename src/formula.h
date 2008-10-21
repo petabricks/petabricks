@@ -183,6 +183,7 @@ typedef FormulaBinop<'+'> FormulaAdd;
 typedef FormulaBinop<'-'> FormulaSubtract;
 typedef FormulaBinop<'*'> FormulaMultiply;
 typedef FormulaBinop<'/'> FormulaDivide;
+typedef FormulaBinop<'^'> FormulaExponent;
 typedef FormulaBinop<'='> FormulaEQ;
 typedef FormulaBinop<'>'> FormulaGT;
 typedef FormulaBinop<'G'> FormulaGE;

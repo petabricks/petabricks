@@ -248,6 +248,7 @@ template class hecura::FormulaBinop<'+'>;
 template class hecura::FormulaBinop<'-'>;
 template class hecura::FormulaBinop<'*'>;
 template class hecura::FormulaBinop<'/'>;
+template class hecura::FormulaBinop<'^'>;
 template class hecura::FormulaBinop<'='>;
 template class hecura::FormulaBinop<'>'>;
 template class hecura::FormulaBinop<'G'>;
