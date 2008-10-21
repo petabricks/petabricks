@@ -14,7 +14,11 @@ using namespace hecura;
 extern int pblineno;
 extern char* pbtext;
 extern int pblex (void);
-int yyerror(hecura::TransformListPtr&, const char* msg){ JASSERT(false)(pblineno)(pbtext)(msg).Text("parse error"); return 0;}
+extern std::string pbfilename;
+
+int yyerror(hecura::TransformListPtr&, const char* msg){
+  JASSERT(false)(pbfilename)(pblineno)(pbtext)(msg).Text("parse error"); return 0;
+}
 
 static jalib::JRefPool theRefPool;
 #define REFALLOC(args...) (theRefPool.add(new args))

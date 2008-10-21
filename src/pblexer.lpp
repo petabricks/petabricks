@@ -38,6 +38,19 @@ static void recordLitCode(){
   hecura::CodeGenerator::theFilePrefix() << std::string(str.begin(), str.end()-2);
 }
 
+std::string pbfilename;
+
+static void handleCppLine(const char* s){
+  const char* n_begin = s+2;
+  const char* n_end = n_begin;
+  while(*n_end>='0' && *n_end<='9') ++n_end;
+  const char* filename=n_end+1;
+  std::string n(n_begin, n_end);
+  //JTRACE("LINENO")(n)(filename);
+  pblineno = jalib::StringToInt(n)-1;
+  pbfilename = filename;
+}
+
 #define YY_USER_ACTION pblval.str=circularStringCache(yytext); theParseLog<<yytext;
 #define YY_DECL int yylex()
 #define RETURN theParseLog.str(""); return
@@ -91,13 +104,13 @@ PASS_CHARS [.<>,*/()[\]+-]
   {PASS_CHARS}      RETURN yytext[0];
   [/][*]            yy_push_state(comment);
   [/][/]            yy_push_state(linecomment);
-  ^[ \t]*[#]        yy_push_state(linecomment);
+  ^[#]              yy_push_state(linecomment);
 }
 
 <rule>{
   [/][*]           yy_push_state(comment);
   [/][/]           yy_push_state(linecomment);
-  ^[ \t]*[#]       yy_push_state(linecomment);
+  ^[#]             yy_push_state(linecomment);
   "{"              ++theNestCount;
   ["]              yy_push_state(string);
   "}"              { 
@@ -129,6 +142,7 @@ PASS_CHARS [.<>,*/()[\]+-]
 }
 
 <*>{
+  ^[#][ ][0-9]+[ ][^\n]*   handleCppLine(yytext);
   [ \t\r\n]      /* whitespace */;
   .              JASSERT(false)(yytext)(yylineno).Text("Unhandled input");
 }
