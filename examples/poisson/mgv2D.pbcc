@@ -1,0 +1,51 @@
+//Multigrid V-cycle 2D
+//assume dimension n = 2^k + 1
+
+#include "add.pbcc"
+#include "Interpolate2Dnew.pbcc"
+#include "Restrict2Dnew.pbcc"
+#include "Residual2D.pbcc"
+#include "Jacobi2D.pbcc"
+
+transform mgv2D 
+from X[n,n], B[n,n], weight, it1, it2, itb
+//input: X = initial guess
+//       B = right handside
+//	 weight = weight factor for SOR
+//       it1,it2 = number of steps of SOR/iteative methods before and after recursive calls to mgv1D
+//	 itb = number of iterative steps for base case, make sense for itb > it1+it2
+to  Y[n,n]
+through TMP[n,n], R[n,n], zeros[(n+1)/2,(n+1)/2]
+{
+	//base case: directly solve or apply iterative methods
+   	//need to figure out better ways for the base case, but let's leave it this way for now
+	to (Y y) from(X x, B b, itb kb) {
+		return Jacobi2D(y, x,b, kb); 
+	}
+
+
+	//recursive procedure starts here
+   	//Iterates with initial guess
+   	to (TMP t) from(X x,B b, it1 k1){
+   		Jacobi2D(t, x, b, k1);
+   	}
+
+   	//Calculate Residual 
+        to (R r) from(TMP t,B b){
+		Residual2D(r,t,b);
+	}
+
+	//solve recursively on coarser grids, with zero initial guess
+	//then map the coarse solution back to the fine grid by Interpolation
+	zeros.cell(i,j) from() {
+	      	return 0;
+   	}
+
+
+	recursive
+	to (Y y) from(B b, weight w, it1 k1, it2 k2, itb kb, TMP t, R r, zeros z) {
+
+		Jacobi2D(y, MatrixAdd(Interpolate2Dnew( mgv2D(z,Restrict2Dnew(r),w,k1,k2,kb) ), t) ,b, k2);
+	}
+
+}

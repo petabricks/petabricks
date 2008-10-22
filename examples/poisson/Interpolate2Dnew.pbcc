@@ -1,0 +1,48 @@
+transform Interpolate2Dnew
+//Map from coarse grid to fine grid
+from X[n,n]
+to  Y[2*n-1,2*n-1]
+{
+  
+    //interpolate for four neighbors 
+    Y.cell(i,j) from( X.cell((i-1)/2, (j-1)/2) x1, 
+    		      X.cell((i+1)/2, (j-1)/2) x2,			
+       	              X.cell((i-1)/2, (j+1)/2) x3,
+       	              X.cell((i+1)/2, (j+1)/2) x4) 
+
+
+    {	
+    	 if (i%2 ==0) {
+	 	if (j%2==0) {
+			return x4;
+            	} 
+	      	else {
+	        	return (x2+x4)/2;
+	      	}
+	 }
+	 else {
+	 	if (j%2==0) {
+			return (x3+x4)/2;
+		}
+	       else { 
+	        	return( x1+x2+x3+x4 ) /4;
+	 	}
+	}
+
+   }
+    
+   Y.cell(0,j) from(X.cell(0,j/2) x1, 
+   		    X.cell(0,(j+1)/2) x2)
+   {
+   	if (j%2 == 0 ){ return x1;} 
+	else {return (x1+x2)/2;}
+   }
+
+   secondary Y.cell(i,0) from(X.cell(i/2,0) x1, 
+                    X.cell((i+1)/2,0) x2)
+   {
+        if (i%2 == 0 ){ return x1;}
+	else {return (x1+x2)/2;}
+   }
+}
+
