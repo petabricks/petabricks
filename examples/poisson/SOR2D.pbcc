@@ -1,0 +1,35 @@
+#include "SOR2DInterior.pbcc"
+
+transform SOR2D
+from IN[n+2,n+2], B[n+2,n+2], weight, numIterations
+through BTEMP[n,n]
+to OUT[n+2,n+2]
+{
+  BTEMP.cell(i,j) from(B.cell(i + 1, j + 1) b,
+                       IN.cell(i, j + 1) no,
+                       IN.cell(i + 2, j + 1) so,
+                       IN.cell(i + 1, j) we,
+                       IN.cell(i + 1, j + 2) ea)
+  {
+    double result = b;
+    if (i == 0) result += no;
+    if (i == n - 1) result += so;
+    if (j == 0) result += we;
+    if (j == n - 1) result += ea;
+    return result;
+  }
+
+  primary to (OUT.region(1,1,n+1,n+1) o) from (IN.region(1,1,n+1,n+1) in,
+                                               BTEMP b,
+                                               weight w,
+                                               numIterations num)
+  {
+    SOR2DInterior(o, in, b, w, num);
+  }
+
+  secondary OUT.cell(i,j) from (IN.cell(i,j) x)
+  {
+    return x;
+  }
+}
+
