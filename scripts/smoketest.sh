@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 Q='>/dev/null 2>/dev/null'
 
@@ -33,9 +33,9 @@ function compilePbcc(){
 }
 
 function testPbcc(){
-  if ./examples/$1 $2 $3 $4 $5 ./testdata/.$1.out
+  if ./examples/$1 $2 $3 $4 $5 ./testdata/.`basename $1`.out
   then
-    if git-diff --exit-code ./testdata/.$1.out >/dev/null
+    if git diff --exit-code ./testdata/.`basename $1`.out >/dev/null
     then
       printf "passed               "
     else
@@ -48,7 +48,7 @@ function testPbcc(){
 
 function runTest(){
   test "$1" = "#" && return 0
-  printf "|%10s | " $1
+  printf "|%20s | " $1
   compilePbcc $@ && testPbcc $@
   printf "|\\n"
 }
@@ -60,15 +60,16 @@ function runEachTest(){
   done
 }
 
-printf '+-----------+---------+----------------------+\n'
-printf '|      NAME | COMPILE | TEST                 |\n'
-printf '+-----------+---------+----------------------+\n'
+printf '+---------------------+---------+----------------------+\n'
+printf '|                NAME | COMPILE | TEST                 |\n'
+printf '+---------------------+---------+----------------------+\n'
 
 R2Da=./testdata/Rand2Da
 R2Db=./testdata/Rand2Db
 R2Dodd=./testdata/Rand2Dodd
 R1D=./testdata/Rand1D
 R0D=./testdata/Rand0D
+ONE=./testdata/One0D
 
 runEachTest << EOF
   add       $R2Da $R2Db
@@ -86,8 +87,8 @@ runEachTest << EOF
   test10 $R2Da
   test11 $R2Dodd
   test12 $R2Da
-# Restrict2D $R2Dodd
+  poisson/SOR2D $R2Da $R2Db $ONE $ONE
 EOF
 
-printf '+-----------+---------+----------------------+\n'
+printf '+---------------------+---------+----------------------+\n'
 
