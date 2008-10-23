@@ -85,7 +85,8 @@ runEachTest << EOF
   test9  $R2Da $R0D
   test10 $R2Da
   test11 $R2Dodd
-  Restrict2D $R2Dodd
+  test12 $R2Da
+# Restrict2D $R2Dodd
 EOF
 
 printf '+-----------+---------+----------------------+\n'

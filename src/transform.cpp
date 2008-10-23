@@ -152,16 +152,6 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     scheduler.markOutputMatrix(*i);
   }
- 
-  #ifdef DEBUG 
-  {
-    std::string schedulerGraph = scheduler.toString();
-    std::cerr << schedulerGraph;
-    FILE* fd = popen("dot -Grankdir=LR -Tpdf -o schedule.pdf", "w");
-    fwrite(schedulerGraph.c_str(),1,schedulerGraph.length(),fd);
-    pclose(fd);
-  }
-  #endif
 
   scheduler.generateSchedule();
 

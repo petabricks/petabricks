@@ -109,8 +109,8 @@ void hecura::Rule::initialize(Transform& trans) {
   jalib::Map(&Region::initialize, trans, _from);
   jalib::Map(&Region::initialize, trans, _to);
   _conditions.normalize();
-  JASSERT(_to.size()==1)(_to.size())
-    .Text("Currently only one output region per rule is supported.");
+//   JASSERT(_to.size()==1)(_to.size())
+//     .Text("Currently only one output region per rule is supported.");
 
   FormulaList centerEqs = _to.front()->calculateCenter();
   std::set<std::string> vars = centerEqs.getFreeVariables();
@@ -352,10 +352,6 @@ int hecura::Rule::dimensions() const {
   return m;
 }
 
-void hecura::Rule::collectDependencies(MatrixDependencyMap& map) const {
-  JASSERT(false);
-}
-
 void hecura::Rule::addAssumptions() const {
   for(int i=0; i<dimensions(); ++i){
     MaximaWrapper::instance().assume(new FormulaGE(getOffsetVar(i), _applicanbleRegion->minCoord()[i]));
@@ -384,7 +380,20 @@ void hecura::Rule::collectDependencies(StaticScheduler& scheduler){
       ScheduleNodeSet dNode = scheduler.lookupNode(d->first, d->second->region());
       for(ScheduleNodeSet::iterator a=pNode.begin(); a!=pNode.end(); ++a)
         for(ScheduleNodeSet::iterator b=dNode.begin(); b!=dNode.end(); ++b)
-          (*a)->addDependency(*b);
+          (*a)->addDependency(*b, this, d->second->direction());
+    }
+
+    //null depedency on all other output regions
+    for( MatrixDependencyMap::const_iterator pp=_provides.begin()
+      ; pp!=_provides.end()
+      ; ++pp)
+    {
+      if(p!=pp){
+        ScheduleNodeSet dNode = scheduler.lookupNode(pp->first, pp->second->region());
+        for(ScheduleNodeSet::iterator a=pNode.begin(); a!=pNode.end(); ++a)
+          for(ScheduleNodeSet::iterator b=dNode.begin(); b!=dNode.end(); ++b)
+            (*a)->addDependency(*b, this, DependencyDirection(dimensions()));
+      }
     }
   }
   //TODO collect edge/direction dependencies

@@ -25,10 +25,15 @@ hecura::DependencyDirection::DependencyDirection(size_t dimensions) : _direction
 ///
 /// Merge two DependencyDirections
 hecura::DependencyDirection::DependencyDirection(const DependencyDirection& left, const DependencyDirection& right){
-  JASSERT(left.size()==right.size())(left.size())(right.size());
-  _directionMask.reserve(left.size());
-  for(size_t i=0; i<left.size(); ++i)
-    _directionMask.push_back(left[i] | right[i]);
+//   JASSERT(left.size()==right.size())(left.size())(right.size());
+  int d = std::max(left.size(), right.size());
+  _directionMask.reserve(d);
+  for(size_t i=0; i<d; ++i){
+    int dir = D_NONE;
+    if(left.size()>i)  dir |= left[i];
+    if(right.size()>i) dir |= right[i];
+    _directionMask.push_back(dir);
+  }
 }
 
 ///
