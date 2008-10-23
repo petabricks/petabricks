@@ -94,9 +94,8 @@ to OUT[n,n]
   to(OUT o) from(IN in, B b, numIterations k)
   {
     Jacobi2D_inner(o, in, b);
-    if (k > 1) {
+    if (k > 1)
       Jacobi2D(o, o, b, k - 1);
-    }
   }
 }
 
