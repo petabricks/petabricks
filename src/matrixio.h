@@ -92,7 +92,7 @@ public:
     MatrixStorage::IndexT coord[D];
     memset(coord, 0, sizeof coord);
     while(coord[D-1] < m.size(D-1)){
-      fprintf(_fd,"%4.1f ", (float)m.cell(coord));
+      fprintf(_fd,"%8.4f ", (float)m.cell(coord));
       //get next coord
       coord[0]++;
       for(int i=0; i<D-1; ++i){
