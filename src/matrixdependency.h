@@ -48,7 +48,7 @@ public:
   };
   ///
   /// Constructor
-  DependencyDirection(size_t dimensions);
+  DependencyDirection(size_t dimensions = 0);
 
   ///
   /// Merge two DependencyDirections
@@ -63,6 +63,21 @@ public:
   size_t size() const;
 
   DirectionT operator[](size_t dim) const ;
+
+  void addDirection(const DependencyDirection& that){
+    *this=DependencyDirection(*this,that);
+  }
+
+  bool operator!= ( const DependencyDirection& that ) const {
+     return _directionMask!=that._directionMask;
+  }
+
+  bool isNone() const {
+    for(size_t i=0; i<_directionMask.size(); ++i)
+      if(_directionMask[i]!=D_NONE)
+        return false;
+    return true;
+  }
 private:
   std::vector<int> _directionMask;
 };

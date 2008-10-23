@@ -167,8 +167,6 @@ public:
   /// 
   bool isReturnStyle() const { return _flags.isReturnStyle; }
 
-  void collectDependencies(MatrixDependencyMap& map) const;
-
   int dimensions() const;
 
   void addAssumptions() const;
