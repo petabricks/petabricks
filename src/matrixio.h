@@ -91,18 +91,22 @@ public:
     fprintf(_fd,"\n");
     MatrixStorage::IndexT coord[D];
     memset(coord, 0, sizeof coord);
-    while(coord[D-1] < m.size(D-1)){
-      fprintf(_fd,"%8.4f ", (float)m.cell(coord));
-      //get next coord
-      coord[0]++;
-      for(int i=0; i<D-1; ++i){
-        if(coord[i] >= m.size(i)){
-          coord[i]=0;
-          coord[i+1]++;
-          fprintf(_fd,"\n");
-        }else
-          break;
+    if(D>0){
+      while(coord[D-1] < m.size(D-1)){
+        fprintf(_fd,"%8.4f ", (float)m.cell(coord));
+        //get next coord
+        coord[0]++;
+        for(int i=0; i<D-1; ++i){
+          if(coord[i] >= m.size(i)){
+            coord[i]=0;
+            coord[i+1]++;
+            fprintf(_fd,"\n");
+          }else
+            break;
+        }
       }
+    }else{ //0D case
+      fprintf(_fd,"%f", (float)m.cell(coord));
     }
     fprintf(_fd,"\n");
   }
@@ -123,10 +127,6 @@ protected:
 private:
   FILE* _fd;
 };
-
-//specialized 0D version
-template<> void MatrixIO::write<0, MATRIX_ELEMENT_T>(MatrixRegion<0, MATRIX_ELEMENT_T> m);
-template<> void MatrixIO::write<0, const MATRIX_ELEMENT_T>(MatrixRegion<0, const MATRIX_ELEMENT_T> m);
 
 }
 
