@@ -21,13 +21,6 @@ to OUT[n+2,n+2]
 
   primary to (OUT.region(1,1,n+1,n+1) o) from (BTEMP b)
   {
-    for (int i = 0; i < n; i++) {
-      for (int j = 0; j < n; j++) {
-        printf("%g ", b.cell(j, i));
-      }
-      printf("\n");
-    }
-    printf("\n");
     BS2DInterior(o, b);
   }
 

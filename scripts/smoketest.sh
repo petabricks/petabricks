@@ -70,6 +70,9 @@ R2Dodd=./testdata/Rand2Dodd
 R1D=./testdata/Rand1D
 R0D=./testdata/Rand0D
 ONE=./testdata/One0D
+ONEPOINTFIVE=./testdata/OnePointFive0D
+TWO=./testdata/Two0D
+TEN=./testdata/Ten0D
 
 runEachTest << EOF
   add       $R2Da $R2Db
@@ -87,7 +90,13 @@ runEachTest << EOF
   test10 $R2Da
   test11 $R2Dodd
   test12 $R2Da
-  poisson/SOR2D $R2Da $R2Db $ONE $ONE
+  poisson/Jacobi2D $R2Da $R2Db $ONE
+  poisson/Jacobi2D $R2Da $R2Db $TEN
+  poisson/SOR2D    $R2Da $R2Db $ONE $ONE
+  poisson/SOR2D    $R2Da $R2Db $TWO $ONE
+  poisson/SOR2D    $R2Da $R2Db $ONEPOINTFIVE $TEN
+  poisson/BS2D     $R2Da $R2Db
+  sort/quicksort   $R1D
 EOF
 
 printf '+---------------------+---------+----------------------+\n'
