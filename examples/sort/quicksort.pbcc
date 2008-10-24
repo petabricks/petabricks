@@ -1,0 +1,52 @@
+%{
+
+void swap1D(MatrixRegion1D &A, int x, int y)
+{
+  double temp = A.cell(x);
+  A.cell(x) = A.cell(y);
+  A.cell(y) = temp;
+}
+
+int partition(MatrixRegion1D &A, int left, int right)
+{
+  double pivotValue = A.cell(right);
+  int storeIndex = left;
+  for (int i = left; i < right; i++) {
+    if (A.cell(i) <= pivotValue) {
+      swap1D(A, i, storeIndex);
+      storeIndex++;
+    }
+  }
+  swap1D(A, storeIndex, right);
+  return storeIndex;
+}
+
+%}
+
+#include "../utilities.pbcc"
+
+transform sortSubArray
+from IN[n], Left, Right
+to OUT[n]
+{
+  to (OUT out) from (IN in, Left left, Right right)
+  {
+    int pivotNewIndex = partition(out, left, right);
+    if (pivotNewIndex - 1 > left)
+      sortSubArray(out, in, left, pivotNewIndex - 1);
+    if (right > pivotNewIndex + 1)
+      sortSubArray(out, in, pivotNewIndex + 1, right);
+  }
+}
+
+transform QuickSort
+from IN[n]
+to OUT[n]
+{
+  to (OUT out) from (IN in)
+  {
+    Copy1D(out, in);
+    sortSubArray(out, in, 0, n - 1);
+  }
+}
+
