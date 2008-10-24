@@ -33,9 +33,10 @@ function compilePbcc(){
 }
 
 function testPbcc(){
-  if ./examples/$1 $2 $3 $4 $5 ./testdata/.`basename $1`.out
+  TST=./testdata/.output/`echo $1 $(basename "$2") $(basename "$3") $(basename "$4") $(basename "$5") | tr -s '[ /.]' _`
+  if ./examples/$1 $2 $3 $4 $5 $6 $7 $8 $9 $TST
   then
-    if git diff --exit-code ./testdata/.`basename $1`.out >/dev/null
+    if git diff --exit-code $TST >/dev/null
     then
       printf "passed               "
     else

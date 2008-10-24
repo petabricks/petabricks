@@ -105,23 +105,27 @@ void hecura::Transform::initialize() {
 
   jalib::Map(&Rule::initialize,      *this, _rules);
 
-  const RuleSet allRules(_rules.begin(), _rules.end());
-
   for(MatrixDefList::iterator m=_to.begin(); m!=_to.end(); ++m)
-    fillBaseCases(allRules, *m);
+    fillBaseCases(*m);
   for(MatrixDefList::iterator m=_through.begin(); m!=_through.end(); ++m)
-    fillBaseCases(allRules, *m);
+    fillBaseCases(*m);
 
   tester().setIOSizes(_from.size(), _to.size());
 
   MaximaWrapper::instance().popContext();
 }
 
-void hecura::Transform::fillBaseCases(const RuleSet& allRules, const MatrixDefPtr& matrix) {
+void hecura::Transform::fillBaseCases(const MatrixDefPtr& matrix) {
   RuleDescriptorListList boundaries;
   boundaries.resize( matrix->numDimensions() );
+  RuleSet allowed;
+  for(RuleList::iterator i=_rules.begin(); i!=_rules.end(); ++i){
+    if((*i)->canProvide(matrix))
+      allowed.insert(*i);
+  }
+
   for(size_t d=0; d<boundaries.size(); ++d){
-    for(RuleList::iterator i=_rules.begin(); i!=_rules.end(); ++i){
+    for(RuleSet::iterator i=allowed.begin(); i!=allowed.end(); ++i){
       (*i)->getApplicableRegionDescriptors(boundaries[d], matrix, d);
     }
     std::sort(boundaries[d].begin(), boundaries[d].end());
@@ -132,8 +136,12 @@ void hecura::Transform::fillBaseCases(const RuleSet& allRules, const MatrixDefPt
 //     std::cerr << std::endl;
 //     #endif
   }
-  ChoiceGridPtr tmp = ChoiceGrid::constructFrom(allRules, boundaries);
-  tmp->buildIndex(_baseCases[matrix]);
+  ChoiceGridPtr tmp = ChoiceGrid::constructFrom(allowed, boundaries);
+  if(matrix->numDimensions()>0){
+    tmp->buildIndex(_baseCases[matrix]);
+  }else{
+    _baseCases[matrix][new SimpleRegion()] = tmp;
+  }
 }
 
 void hecura::Transform::generateCodeSimple(CodeGenerator& o){ 

@@ -43,6 +43,20 @@ void hecura::MatrixIO::_read(MatrixReaderScratch& o){
   JASSERT(o.remaining==0)(o.remaining).Text("failed to read input matrix");
 }
 
+//specialized 0D version
+template<>
+void hecura::MatrixIO::write<0, MATRIX_ELEMENT_T>(MatrixRegion<0, MATRIX_ELEMENT_T> m){
+  if(_fd==stdin) _fd=stdout;
+  fprintf(_fd,"SIZE\n%f\n",(float)m.cell());
+}
+
+//specialized 0D version
+template<>
+void hecura::MatrixIO::write<0, const MATRIX_ELEMENT_T>(MatrixRegion<0, const MATRIX_ELEMENT_T> m){
+  if(_fd==stdin) _fd=stdout;
+  fprintf(_fd,"SIZE\n%f\n",(float)m.cell());
+}
+
 // void hecura::MatrixIO::write(const MATRIX_ELEMENT_T* buf, int h, int w){
 //   if(_fd == stdin) _fd = stdout;
 //   int i=0;

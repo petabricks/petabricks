@@ -183,6 +183,10 @@ public:
   const FormulaList& conditions() const { return _conditions; }
 
   void removeInvalidOrders(IterationOrderList& o);
+
+  bool canProvide(const MatrixDefPtr& m) const {
+    return _provides.find(m) != _provides.end();
+  }
 private:
   int _id;
   RuleFlags   _flags;

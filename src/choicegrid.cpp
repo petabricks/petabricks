@@ -30,9 +30,15 @@ hecura::ChoiceGridPtr hecura::ChoiceGrid::constructFrom(
 {
   FormulaPtr    currentPos = FormulaInteger::zero();
   ChoiceGridPtr rootNode = new ChoiceGrid(dimension, currentPos);
-  const RuleDescriptorList& boundaries = dimensions[dimension];
-  RuleSet activeRules;
   ChoiceGridPtr currentNode = rootNode;
+  RuleSet activeRules;
+  if(dimensions.empty()){
+    JTRACE("Output of 0D matrix");
+    currentNode->finalizeConstruction(FormulaInteger::one(), allowedRules);
+    currentNode->applyRulePriorities();
+    return rootNode;
+  }
+  const RuleDescriptorList& boundaries = dimensions[dimension];
   ChoiceGridPtr lastNode;
 
   for(RuleDescriptorList::const_iterator i=boundaries.begin(); i!=boundaries.end(); ++i){

@@ -22,7 +22,6 @@
 #include "jasm.h"
 
 namespace { //file local
-
 void _remapSet(hecura::ScheduleNodeSet& set, const hecura::ScheduleNodeRemapping& map){
   using namespace hecura;
   for(ScheduleNodeRemapping::const_iterator i=map.begin(); i!=map.end(); ++i){
@@ -56,13 +55,18 @@ hecura::StaticScheduler::StaticScheduler(const ChoiceGridMap& cg){
 hecura::ScheduleNodeSet hecura::StaticScheduler::lookupNode(const MatrixDefPtr& matrix, const SimpleRegionPtr& region){
   ScheduleNodeSet rv;
   ScheduleNodeList& regions = _matrixToNodes[matrix];
-  for(ScheduleNodeList::iterator i=regions.begin(); i!=regions.end(); ++i){
-    if(region->toString() == (*i)->region()->toString()){
-      rv.insert(i->asPtr());
-      break; //optimization
-    }
-    if((*i)->region()->hasIntersect(region)){
-      rv.insert(i->asPtr());
+  if(matrix->numDimensions()==0){
+    JASSERT(regions.size()==1);
+    rv.insert(regions.begin()->asPtr());
+  }else{
+    for(ScheduleNodeList::iterator i=regions.begin(); i!=regions.end(); ++i){
+      if(region->toString() == (*i)->region()->toString()){
+        rv.insert(i->asPtr());
+        break; //optimization
+      }
+      if((*i)->region()->hasIntersect(region)){
+        rv.insert(i->asPtr());
+      }
     }
   }
   JASSERT(rv.size()>0)(matrix)(region).Text("failed to find rule for region");

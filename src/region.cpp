@@ -131,9 +131,13 @@ void hecura::Region::initialize(Transform& trans) {
         .Text("no args expected for all()");
       int d=_fromMatrix->numDimensions();
       if(_version) --d;
-      for(int i=0; i<d; ++i){
-        _minCoord.push_back(FormulaInteger::zero());
-        _maxCoord.push_back(_fromMatrix->getSizeOfDimension(i));
+      if(d==0){
+        _originalType=REGION_CELL;
+      }else{
+        for(int i=0; i<d; ++i){
+          _minCoord.push_back(FormulaInteger::zero());
+          _maxCoord.push_back(_fromMatrix->getSizeOfDimension(i));
+        }
       }
     }
     break;
