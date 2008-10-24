@@ -1,68 +1,39 @@
-%{
-
-extern "C" void dposv_(char *uplo, int *n, int *nrhs, double *A, int *lda, double *B, int *ldb, int *info);
-
-void initDiagBlock(double *A, int n)
-{
-  int nSquared = n * n;
-  A[0] = 4;
-  for (int i = 1; i < n; i++) {
-    A[i * nSquared + i] = 4;
-    A[i * nSquared + (i - 1)] = -1;
-    A[(i - 1) * nSquared + i] = -1;
-  }
-}
-
-void initOffDiagBlock(double *A, int n)
-{
-  int nSquared = n * n;
-  for (int i = 0; i < n; i++) {
-    A[i * nSquared + i] = -1;
-  }
-}
-
-void displayMatrix(double *A, int n)
-{
-  for (int j = 0; j < n; j++) {
-    for (int i = 0; i < n; i++) {
-      printf("%3g", A[i * n + j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
-}
-
-%}
+#include "BS2DInterior.pbcc"
 
 transform BS2D
-from B[n,n]
-to OUT[n,n]
+from IN[n+2,n+2], B[n+2,n+2]
+through BTEMP[n,n]
+to OUT[n+2,n+2]
 {
-
-  to (OUT out) from (B b)
+  BTEMP.cell(i,j) from(B.cell(i + 1, j + 1) b,
+                       IN.cell(i, j + 1) no,
+                       IN.cell(i + 2, j + 1) so,
+                       IN.cell(i + 1, j) we,
+                       IN.cell(i + 1, j + 2) ea)
   {
-    char uplo = 'U';
-    int nrhs = 1, nSquared = n * n, info = 0;
-
-    // allocate and initialize solver matrix
-    double *A = (double *) malloc(n * n * n * n * sizeof(double));
-    initDiagBlock(A, n);
-    for (int j = 1; j < n; j++) {
-      initDiagBlock(A + (j * nSquared + j) * n, n);
-      initOffDiagBlock(A + (j * nSquared + (j - 1)) * n, n);
-      initOffDiagBlock(A + ((j - 1) * nSquared + j) * n, n);
-    }
-/*
-    printf("A:\n");
-    displayMatrix(A, nSquared);
-*/
-    memcpy(out.base(), b.base(), nSquared * sizeof(double));
-
-    // call LAPACK to do linear solve
-    dposv_(&uplo, &nSquared, &nrhs, A, &nSquared, out.base(), &nSquared, &info);
-
-    free(A);
+    double result = b;
+    if (i == 0) result += no;
+    if (i == n - 1) result += so;
+    if (j == 0) result += we;
+    if (j == n - 1) result += ea;
+    return result;
   }
 
+  primary to (OUT.region(1,1,n+1,n+1) o) from (BTEMP b)
+  {
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        printf("%g ", b.cell(j, i));
+      }
+      printf("\n");
+    }
+    printf("\n");
+    BS2DInterior(o, b);
+  }
+
+  secondary OUT.cell(i,j) from (IN.cell(i,j) x)
+  {
+    return x;
+  }
 }
 

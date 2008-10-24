@@ -1,7 +1,7 @@
 //Multigrid V-cycle 2D
 //assume dimension n = 2^k + 1
 
-#include "add.pbcc"
+#include "../add.pbcc"
 #include "Interpolate2Dnew.pbcc"
 #include "Restrict2Dnew.pbcc"
 #include "Residual2D.pbcc"
