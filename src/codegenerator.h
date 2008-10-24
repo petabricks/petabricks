@@ -22,20 +22,27 @@
 
 #include "formula.h"
 #include "jprintable.h"
+#include "jrefcounted.h"
+
 
 #include <iostream>
 #include <string>
 #include <sstream>
 #include <vector>
+#include <list>
 #include <algorithm>
 
 
 namespace hecura {
+
+class TaskCodeGenerator;
+
 class CodeGenerator {
 public:
   static std::stringstream& theFilePrefix();
 
   CodeGenerator();
+  virtual ~CodeGenerator(){}
 
   void beginFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end,  const FormulaPtr& step);
   void beginReverseFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end,  const FormulaPtr& step);
@@ -45,9 +52,7 @@ public:
   void call(const std::string& func, const std::vector<std::string>& args);
   void setcall(const std::string& lv, const std::string& func, const std::vector<std::string>& args);
 
-//   void declareFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args);
-//   void beginFunc(const std::string& rt, const std::string& func, const std::string& args);
-  void beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args);
+  virtual void beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args);
   void endFunc();
 
   void varDecl(const std::string& var);
@@ -62,21 +67,49 @@ public:
   void elseIf(const std::string& v = "true");
   void endIf();
 
-
-  void outputFileTo(std::ostream& os){
-    os << theFilePrefix().str();
-    os << "\n// Forward declarations\n";
-    os << _forwardDecls.str();
-    os << "\n\n";
-    os << _os.str();
-  }
+  virtual TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args) = 0;
 protected:
   void indent();
-
+  virtual std::ostream& os() = 0;
 private:
   int _indent;
+
+};
+
+class TaskCodeGenerator : public CodeGenerator, public jalib::JRefCounted {
+public:
+  std::string str() const { return _os.str(); }
+
+  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args){ return *this;}
+protected:
+  std::ostream& os() { return _os; }
+private:
+  std::ostringstream _os;
+};
+
+class MainCodeGenerator : public CodeGenerator {
+public:
+  void beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args);
+
+  void outputFileTo(std::ostream& o){
+    o << theFilePrefix().str();
+    o << "\n// Forward declarations\n";
+    o << _forwardDecls.str();
+    o << "\n// Task declarations\n";
+    for(TaskDecls::iterator i=_tasks.begin(); i!=_tasks.end(); ++i)
+      o << (*i)->str();
+    o << "\n\n";
+    o << _os.str();
+  }
+
+  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args);
+protected:
+  std::ostream& os() { return _os; }
+private:
   std::ostringstream _forwardDecls;
   std::ostringstream _os;
+  typedef std::list<jalib::JRef<TaskCodeGenerator> > TaskDecls;
+  TaskDecls _tasks;
 };
 
 }

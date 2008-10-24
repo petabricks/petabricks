@@ -27,3 +27,6 @@ test19
 transpose
 Restrict2D
 SOR2D
+BS2D
+Jacobi2D
+quicksort

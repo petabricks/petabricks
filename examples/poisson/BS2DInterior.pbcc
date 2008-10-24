@@ -45,8 +45,8 @@ to OUT[n,n]
     int nrhs = 1, nSquared = n * n, info = 0;
 
     // allocate and initialize solver matrix
-    double *A = (double *) malloc(n * n * n * n * sizeof(double));
-    double *bFlat = (double *) malloc(n * n * sizeof(double));
+    double *A = new double[n * n * n * n];
+    double *bFlat = new double[n * n];
     initDiagBlock(A, n);
     for (int i = 1; i < n; i++) {
       initDiagBlock(A + (i * nSquared + i) * n, n);
@@ -73,8 +73,8 @@ to OUT[n,n]
       }
     }
 
-    free(A);
-    free(bFlat);
+    delete [] A;
+    delete [] bFlat;
   }
 
 }

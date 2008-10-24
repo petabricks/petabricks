@@ -85,7 +85,7 @@ int main( int argc, const char ** argv){
     isDone=true;
     JTRACE("begin learning iteration");
     std::ofstream of(outputCode.c_str());
-    CodeGenerator o;  
+    MainCodeGenerator o;  
     for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
       JTRACE("generating")(input)(outputCode)((*i)->name());
       (*i)->learner().onIterationBegin();
