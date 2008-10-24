@@ -92,7 +92,8 @@ static void launchMaximaWithLogging(){
 
 static const char * const theInitCode = 
   "display2d : false $ "
-  "load(ineq) $"
+  "prederror : false $ "
+  "load(ineq) $ "
   "1"
 ;
 
