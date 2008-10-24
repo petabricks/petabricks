@@ -9,6 +9,11 @@ AM_PROG_LIBTOOL
 AM_PROG_LEX
 AC_PROG_YACC
 
+AC_CHECK_LIB([m],[cos])
+AC_CHECK_LIB([gslcblas],[cblas_dgemm])
+AC_CHECK_LIB([gsl],[gsl_blas_dgemm])
+AC_CHECK_LIB([pthread],[pthread_create])
+
 AC_CHECK_PROG([has_maxima], [maxima], [yes], [no])
 if test "$has_maxima" = "no"; then
   AC_MSG_ERROR([failed to find maxima in \$path. (try running: sudo apt-get install maxima)])

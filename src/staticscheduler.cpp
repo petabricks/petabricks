@@ -96,7 +96,7 @@ void hecura::StaticScheduler::computeIndirectDependencies(){
     c=0;
     for(ScheduleNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i)
       c+=(*i)->updateIndirectDepends();
-    JTRACE("Updated indirectDepends")(c);
+    if(c>0) JTRACE("Updated indirectDepends")(c);
   }
 }
 

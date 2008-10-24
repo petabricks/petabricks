@@ -170,10 +170,10 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
 
   o.comment("Begin output for transform " + _name);
   o.newline();
-  o.comment("Forward declarations");
-  o.declareFunc("void", _name, args);
-  if(_to.size()==1) o.declareFunc(_to.front()->matrixTypeName(), _name, returnStyleArgs);
-  o.newline();
+//   o.comment("Forward declarations");
+//   o.declareFunc("void", _name, args);
+//   if(_to.size()==1) o.declareFunc(_to.front()->matrixTypeName(), _name, returnStyleArgs);
+//   o.newline();
   o.comment("User rules");
   for(RuleList::iterator i=_rules.begin(); i!=_rules.end(); ++i){
     (*i)->generateDeclCodeSimple(*this, o);
@@ -253,7 +253,8 @@ void hecura::Transform::generateMainCode(CodeGenerator& o){
   }
   int a = 1;
   o.comment("Program main routine");
-  o.beginFunc("int", "main", "int argc, const char** argv");
+  std::string args[] = {"int argc", "const char** argv"};
+  o.beginFunc("int", "main", std::vector<std::string>(args, args+2));
   o.beginIf("argc!="+jalib::XToString(_to.size()+_from.size()+1));
   {
     std::ostringstream os;
