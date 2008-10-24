@@ -346,25 +346,25 @@ public:
 
   ///
   /// 0-Dimensional region only has 1 cell
-  ElementT& cell(){ return *_base; }
+  ElementT& cell() const{ return *_base; }
  
   ///
   /// 0-Dimensional region only has 1 cell
-  ElementT& cell(const IndexT coord[D]){ return *_base; }
+  ElementT& cell(const IndexT coord[D]) const{ return *_base; }
 
   ///
   /// Allow implicit conversion to ElementT
-  operator ElementT& () { return cell(); }
+  operator ElementT& () const { return cell(); }
 
   ///
   /// 0-Dimensional region only has 1 sub-region
-  MatrixRegion region(){ return *this; }
-  MatrixRegion region(const IndexT c1[D], const IndexT c2[D]){return *this; }
+  MatrixRegion region() const{ return *this; }
+  MatrixRegion region(const IndexT c1[D], const IndexT c2[D]) const{return *this; }
 
   ///
   /// This should never be called
   /// Included to make generic iterators compile
-  IndexT size(int d) const { JWARNING(false); return 1; };
+  IndexT size(int d) const { return 1; };
 
 
   ///

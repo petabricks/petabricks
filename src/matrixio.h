@@ -124,6 +124,10 @@ private:
   FILE* _fd;
 };
 
+//specialized 0D version
+template<> void MatrixIO::write<0, MATRIX_ELEMENT_T>(MatrixRegion<0, MATRIX_ELEMENT_T> m);
+template<> void MatrixIO::write<0, const MATRIX_ELEMENT_T>(MatrixRegion<0, const MATRIX_ELEMENT_T> m);
+
 }
 
 

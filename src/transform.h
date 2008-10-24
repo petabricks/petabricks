@@ -72,7 +72,7 @@ public:
 
   void generateMainCode(CodeGenerator& o);
 
-  void fillBaseCases(const RuleSet& allRules, const MatrixDefPtr& matrix);
+  void fillBaseCases(const MatrixDefPtr& matrix);
   
   const FreeVars& constants() const { return _constants; }
   FreeVars& constants() { return _constants; }
