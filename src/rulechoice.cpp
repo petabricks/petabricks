@@ -31,6 +31,22 @@ void hecura::RuleChoice::print(std::ostream& o) const {
   o << "RuleChoice"; //TODO
 }
 
+void hecura::RuleChoice::generateCodeSimple(const std::string& taskname, Transform& trans, const SimpleRegionPtr& region,CodeGenerator& o){
+  if(_condition){
+    o.beginIf(_condition->toString());
+  }
+  _rule->generateCallTaskCode(taskname, trans, o, region);
+
+  if(_condition){
+    if(_next){
+      o.elseIf();
+      _next->generateCodeSimple(taskname, trans, region, o);
+    }
+    o.endIf();
+  }
+}
+
+
 void hecura::RuleChoice::generateCodeSimple(Transform& trans, const SimpleRegionPtr& region,CodeGenerator& o){
   if(_condition){
     o.beginIf(_condition->toString());

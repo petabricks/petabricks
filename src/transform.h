@@ -85,6 +85,8 @@ public:
   PerformanceTester& tester() { return _tester; }
 
   void addTestCase(const TestCasePtr& p) {tester().addTestCase(p);}
+
+  std::vector<std::string> maximalArgList() const;
 private:
   std::string   _name;
   MatrixDefList _from;

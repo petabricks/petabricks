@@ -151,6 +151,47 @@ void hecura::CodeGenerator::endIf(){
 }
 
 hecura::TaskCodeGenerator& hecura::MainCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args){
-  _tasks.push_back(new TaskCodeGenerator());
+  _tasks.push_back(new TaskCodeGenerator(func, args));
   return *_tasks.back();
 }
+
+namespace{//file local
+  void _splitTypeArgs(std::string& type, std::string& name, const std::string& str){
+    const char* begin=str.c_str();
+    const char* mid=begin+str.length();
+    const char* end=mid;
+    while(mid>begin && *(--mid)!=' ');
+//     JTRACE("SPLIT")(begin)(mid+1);
+    JASSERT(mid!=begin);
+    type.assign(begin,mid);
+    name.assign(mid+1,end);
+  }
+}
+
+hecura::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args){
+  _indent=1;
+  _types.resize(args.size());
+  _names.resize(args.size());
+  for(size_t i=0; i!=args.size(); ++i)
+    _splitTypeArgs(_types[i], _names[i], args[i]);
+
+  os() << "class " << func << "_task : public hecura::DynamicTask {\n";
+  for(size_t i=0; i!=args.size(); ++i){
+    indent();
+    os() << args[i] << ";\n";
+  }
+  os() << "public:\n"; 
+  indent();
+  os() << func << "_task(";
+  for(size_t i=0; i!=args.size(); ++i){
+    if(i>0) os()<<", ";
+    os() << _types[i] << " a_" << _names[i];
+  }
+  os() << ") \n    : ";
+  for(size_t i=0; i!=args.size(); ++i){
+    if(i>0) os()<<", ";
+    os() << _names[i] << "(a_" << _names[i] << ")";
+  }
+  os() << "\n  {}\n\n";
+}
+

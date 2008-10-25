@@ -291,3 +291,19 @@ void hecura::Transform::generateMainCode(CodeGenerator& o){
   o.endFunc();
 }
 
+std::vector<std::string> hecura::Transform::maximalArgList() const{
+  std::vector<std::string> tmp; 
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    (*i)->argDeclRO(tmp);
+  }  
+  for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
+    (*i)->argDeclRW(tmp);
+  }
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    (*i)->argDeclRW(tmp);
+  }
+  for(FreeVars::const_iterator i=_constants.begin(); i!=_constants.end(); ++i){
+    tmp.push_back("IndexT " + *i);
+  }
+  return tmp;
+}

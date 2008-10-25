@@ -35,7 +35,9 @@ void _remapSet(hecura::ScheduleNodeSet& set, const hecura::ScheduleNodeRemapping
 }
 
 
-hecura::ScheduleNode::ScheduleNode(){
+hecura::ScheduleNode::ScheduleNode()
+  : _isInput(false)
+{
   static long i=0;
   _id=jalib::atomicAdd<1>(&i);
 }
@@ -167,11 +169,23 @@ void hecura::StaticScheduler::generateCodeSimple(Transform& trans, CodeGenerator
   for(ScheduleNodeList::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
     (*i)->generateCodeSimple(trans, o);
   }
+  for(ScheduleNodeSet::iterator i=_goals.begin(); i!=_goals.end(); ++i)
+    o.write((*i)->nodename() + "->waitUntilComplete();");
 }
 
 void hecura::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
   RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
-  rule->generateCodeSimple(trans, _region, o);
+  o.write("DynamicTaskPtr "+nodename()+";");
+  rule->generateCodeSimple(nodename(), trans, _region, o);
+  printDepsAndEnqueue(o);
+}
+
+void hecura::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o){
+  for(ScheduleDependencies::const_iterator i=_directDepends.begin();  i!=_directDepends.end(); ++i){
+    if(! i->first->isInput() && i->first!=this)
+      o.write(nodename()+"->dependsOn("+i->first->nodename()+");");
+  }
+  o.write(nodename()+"->enqueue();");
 }
 
 void hecura::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos){
@@ -184,7 +198,9 @@ void hecura::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGenera
   max[d] = pos->plusOne();
 
   SimpleRegionPtr t = new SimpleRegion(min,max);
+
   rule->generateCodeSimple(trans, t, o);
+  //TODO deps for slice
 }
 
 
@@ -239,6 +255,7 @@ hecura::CoscheduledNode::CoscheduledNode(const ScheduleNodeSet& set)
 
 void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
   const DependencyInformation& selfDep = _indirectDepends[this];
+  o.write("DynamicTaskPtr "+nodename()+";");
   if(selfDep.direction.isNone()){
     o.comment("Dual outputs compacted "+nodename());
     std::string region;
@@ -248,11 +265,14 @@ void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator
       JASSERT(region==(*i)->region()->toString())(region)((*i)->region()->toString())
         .Text("to(...) regions of differing size not yet supported");
     }
-    ScheduleNode* first = *_originalNodes.begin();
-    first->generateCodeSimple(trans, o);
+    ScheduleNode& first = * * _originalNodes.begin();
+    RuleChoicePtr rule = trans.learner().makeRuleChoice(first.choices()->rules(), first.matrix(), first.region());
+    rule->generateCodeSimple(nodename(), trans, first.region(), o);
+    printDepsAndEnqueue(o);
   }else{
-    o.comment("Coschedued set "+nodename());
-    std::string varname="_coschedule_"+nodename();
+    TaskCodeGenerator& task = o.createTask("coscheduled_"+nodename(), trans.maximalArgList());
+    std::string varname="coscheduled_"+nodename();
+    task.beginRunFunc();
     for(size_t d=selfDep.direction.size()-1; d>=0; --d){
       bool passed=true;
       FormulaPtr begin,end;
@@ -274,20 +294,24 @@ void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator
       //test direction
       if((selfDep.direction[d]& ~DependencyDirection::D_LE) == 0){
         JTRACE("Coscheduling forward")(d)(*this);
-        o.beginFor(varname, begin, end, FormulaInteger::one());
+        task.beginFor(varname, begin, end, FormulaInteger::one());
       }else if((selfDep.direction[d]& ~DependencyDirection::D_GE) == 0){
         JTRACE("Coscheduling backward")(d)(*this);
-        o.beginReverseFor(varname, begin, end, FormulaInteger::one());
+        task.beginReverseFor(varname, begin, end, FormulaInteger::one());
       }else{
         JTRACE("Can't coschedule due to mismatched direction")(d);
         passed=false;
         continue;
       }
-  
+
       for(ScheduleNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
-        (*i)->generateCodeForSlice(trans, o, d, new FormulaVariable(varname));
+        (*i)->generateCodeForSlice(trans, task, d, new FormulaVariable(varname));
       }
-      o.endFor();
+      task.endFor();
+      task.write("return NULL;");
+      task.endFunc();
+      o.setcall(nodename(),"new "+varname+"_task", task.argnames());
+      printDepsAndEnqueue(o);
       return;
     }
     JASSERT(false)(*this)(selfDep.direction).Text("Unresolved dependency cycle");
