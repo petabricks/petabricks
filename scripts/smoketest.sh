@@ -69,6 +69,7 @@ R2Da=./testdata/Rand2Da
 R2Db=./testdata/Rand2Db
 R2Dodd=./testdata/Rand2Dodd
 R1D=./testdata/Rand1D
+R1Dodd=./testdata/Rand1Dodd
 R0D=./testdata/Rand0D
 ONE=./testdata/One0D
 ONEPOINTFIVE=./testdata/OnePointFive0D
@@ -97,7 +98,8 @@ runEachTest << EOF
   poisson/SOR2D    $R2Da $R2Db $TWO $ONE
   poisson/SOR2D    $R2Da $R2Db $ONEPOINTFIVE $TEN
   poisson/BS2D     $R2Da $R2Db
-  sort/quicksort   $R1D
+  sort/Quicksort   $R1D
+  sort/Mergesort   $R1Dodd
 EOF
 
 printf '+---------------------+---------+----------------------+\n'
