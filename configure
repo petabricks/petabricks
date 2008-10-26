@@ -20479,6 +20479,11 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 
+cat >>confdefs.h <<\_ACEOF
+#define MAX_REC_LEVELS 3
+_ACEOF
+
+
 
 cat >>confdefs.h <<\_ACEOF
 #define INPUT_SIZE_STR "input_size"
