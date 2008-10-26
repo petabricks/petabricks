@@ -28,6 +28,7 @@ namespace hecura {
 
 class CodeGenerator;
 class RuleChoice;
+class ScheduleNode;
 typedef jalib::JRef<RuleChoice> RuleChoicePtr;
 
 namespace IterationOrder {
@@ -48,7 +49,7 @@ class RuleChoice : public jalib::JRefCounted, public jalib::JPrintable {
 public:
   ///
   /// Constructor
-  RuleChoice(const RulePtr& rule, const FormulaPtr& cond=FormulaPtr(), const RuleChoicePtr& next=RuleChoicePtr());
+  RuleChoice(const RuleSet& rule, const FormulaPtr& cond=FormulaPtr(), const RuleChoicePtr& next=RuleChoicePtr());
 
   ///
   /// Needed for JPrintable
@@ -56,16 +57,24 @@ public:
 
   ///
   /// Output c++ code
-  void generateCodeSimple(const std::string& taskname, Transform& trans, const SimpleRegionPtr& region, CodeGenerator& o);
-
-  void generateCodeSimple(Transform& trans, const SimpleRegionPtr& region, CodeGenerator& o);
+  void generateCodeSimple( const std::string& taskname
+                         , Transform& trans
+                         , ScheduleNode& node
+                         , const SimpleRegionPtr& region
+                         , CodeGenerator& o);
  
-  const RulePtr& rule() const { return _rule; }
+  const RuleSet& rules() const { return _rules; }
 
+  static const FormulaPtr& autotuned();
+
+  FormulaPtr processCondition(const FormulaPtr& f, Transform& trans, CodeGenerator& o);
+
+
+  int level() const { return 1+(_next?_next->level():0); }
 private: 
   ///
   /// Rule to invoke
-  RulePtr _rule;
+  RuleSet _rules;
   ///
   /// This choice may only be applied if this evalates to true (may be null)
   FormulaPtr _condition;

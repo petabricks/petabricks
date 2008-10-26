@@ -97,7 +97,7 @@ public:
   /// Name of this node as it appears in graphs
   std::string nodename() const { return "n"+jalib::XToString(_id); }
 
-  void printDepsAndEnqueue(CodeGenerator& o);
+  void printDepsAndEnqueue(CodeGenerator& o, const RulePtr& rule);
 
   ///
   /// Generate code for executing this node
@@ -172,9 +172,9 @@ class CoscheduledNode : public ScheduleNode {
 public:
   CoscheduledNode(const ScheduleNodeSet& set);
 
-  const MatrixDefPtr&    matrix() const { JASSERT(false); }
-  const SimpleRegionPtr& region() const { JASSERT(false); }
-  const ChoiceGridPtr& choices() const  { JASSERT(false); }
+  const MatrixDefPtr&    matrix() const { JASSERT(false); return MatrixDefPtr::null(); }
+  const SimpleRegionPtr& region() const { JASSERT(false); return SimpleRegionPtr::null(); }
+  const ChoiceGridPtr& choices() const  { JASSERT(false); return ChoiceGridPtr::null(); }
 
   void print(std::ostream& o) const {
     o << "Coscheduled:";

@@ -53,7 +53,7 @@ public:
 
   ///
   /// Split this task into smaller tasks and return a replacement
-  virtual DynamicTaskPtr split(){ JASSERT(false); }
+  virtual DynamicTaskPtr split(){ JASSERT(false); return 0; }
 
   ///
   /// Block until this task has completed
@@ -62,7 +62,7 @@ public:
 
 class NullDynamicTask : public DynamicTask {
 public:
-  DynamicTaskPtr run(){}
+  DynamicTaskPtr run(){ return 0; }
 };
 
 }

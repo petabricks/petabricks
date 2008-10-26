@@ -51,6 +51,10 @@ if test "$use_jassert" = "yes"; then
   fi
 fi
 
+if false; then
+  AC_DEFINE([JASSERT_LOG],[], [log traces to /tmp/jassertlog.pid])
+fi
+
 AC_ARG_ENABLE([timing],
             [AS_HELP_STRING([--enable-timing],
                             [record checkpoint/restart timing information

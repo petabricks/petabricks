@@ -26,11 +26,13 @@
 #include <set>
 #include <map>
 
+#define JTUNABLE(name, args...) \
+  jalib::JTunable name(#name, args)
+
 namespace jalib {
 
 typedef int TunableValue;
 class JTunable;
-
 
 class JTunableConfiguration : public std::map<JTunable*, TunableValue> {};
 

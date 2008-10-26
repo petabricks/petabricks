@@ -20514,6 +20514,14 @@ _ACEOF
   fi
 fi
 
+if false; then
+
+cat >>confdefs.h <<\_ACEOF
+#define JASSERT_LOG
+_ACEOF
+
+fi
+
 # Check whether --enable-timing was given.
 if test "${enable_timing+set}" = set; then
   enableval=$enable_timing; use_jtiming=$enableval

@@ -49,13 +49,13 @@ hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
   JASSERT(!base.empty())(base.size()).Text("no non-recursive choices exist");
 
   //default to base case
-  RuleChoicePtr rv = new RuleChoice(*base.begin()); //the first rule
+  RuleChoicePtr rv = new RuleChoice(base); //the first rule
 
   if(!recursive.empty()){
-    FormulaPtr condition = new FormulaGT(new FormulaVariable(INPUT_SIZE_STR), new FormulaInteger(1000));
+    FormulaPtr condition = new FormulaGT(new FormulaVariable(INPUT_SIZE_STR), RuleChoice::autotuned());
 
     //add recursive case
-    rv=new RuleChoice(*recursive.begin(), condition, rv);
+    rv=new RuleChoice(recursive, condition, rv);
   }
   return rv;
 }

@@ -23,6 +23,7 @@
 #include "formula.h"
 #include "jprintable.h"
 #include "jrefcounted.h"
+#include "jconvert.h"
 
 
 #include <iostream>
@@ -30,16 +31,20 @@
 #include <sstream>
 #include <vector>
 #include <list>
+#include <map>
 #include <algorithm>
-
+#include <limits>
 
 namespace hecura {
+
+typedef std::map<std::string, std::string> TunableDefs;
 
 class TaskCodeGenerator;
 
 class CodeGenerator {
 public:
   static std::stringstream& theFilePrefix();
+  static TunableDefs& theTunableDefs();
 
   CodeGenerator();
   virtual ~CodeGenerator(){}
@@ -68,6 +73,35 @@ public:
   void endIf();
 
   virtual TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args) = 0;
+
+  void createTunable( const std::string& category
+                    , const std::string& name
+                    , int initial
+                    , int min=0
+                    , int max=std::numeric_limits<int>::max())
+  {
+    JTRACE("new tunable")(name)(initial)(min)(max);
+    theTunableDefs()[name] =
+       "JTUNABLE("+name
+              +","+jalib::XToString(initial)
+              +","+jalib::XToString(min)
+              +","+jalib::XToString(max)+")";
+  }
+
+  void beginSwitch(const std::string& var){
+    write("switch("+var+"){");
+  }
+  void endSwitch(){
+    write("}");
+  }
+  void beginCase(int n){
+    write("case "+jalib::XToString(n)+":");
+    _indent++;
+  }
+  void endCase(){
+    write("break;");
+    _indent--;
+  }
 protected:
   void indent();
   virtual std::ostream& os() = 0;
@@ -118,6 +152,9 @@ public:
 
   void outputFileTo(std::ostream& o){
     o << theFilePrefix().str();
+    o << "\n// Tunable declarations\n";
+    for(TunableDefs::const_iterator i=theTunableDefs().begin(); i!=theTunableDefs().end(); ++i)
+      o << i->second << ";\n";
     o << "\n// Forward declarations\n";
     o << _forwardDecls.str();
     o << "\n// Task declarations\n";

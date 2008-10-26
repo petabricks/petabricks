@@ -35,6 +35,8 @@ namespace jalib {
  */
 template < typename T> class JRef{
 public:
+  static const JRef& null() { static JRef t; return t; }
+
   //constructors
   JRef(T* o = NULL) : _obj(o) { inc(); }
   JRef(const JRef& p) : _obj(p._obj) { inc(); }

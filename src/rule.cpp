@@ -185,7 +185,7 @@ bool hecura::RuleDescriptor::operator< (const RuleDescriptor& that) const{
   if(_type==RULE_END && that._type==RULE_BEGIN) op = "<=";
   
   //optimization and zero handling
-  if(strA==strB) return op=="<=";
+  if(strA==strB) return strcmp(op,"<=")==0;
   if(strA=="0")  return true;
   if(strB=="0")  return false;
 
@@ -432,7 +432,7 @@ void hecura::Rule::removeInvalidOrders(IterationOrderList& o){
     if(d!=_depends.end()){
       const DependencyDirection& dir = d->second->direction();
       JASSERT(dir.size()==o.size());
-      for(int i=0; i<dir.size(); ++i){
+      for(size_t i=0; i<dir.size(); ++i){
         if((dir[i]&DependencyDirection::D_GT)!=0){
           o[i] &= ~IterationOrder::FORWARD;
           JTRACE("Forward iteration not allowed")(id());

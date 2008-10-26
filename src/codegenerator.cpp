@@ -24,6 +24,11 @@ std::stringstream& hecura::CodeGenerator::theFilePrefix() {
   return t; 
 }
 
+hecura::TunableDefs& hecura::CodeGenerator::theTunableDefs() {
+  static TunableDefs t;
+  return t;
+}
+
 hecura::CodeGenerator::CodeGenerator() : _indent(0) {}
 
 void hecura::CodeGenerator::beginFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end,  const FormulaPtr& step){

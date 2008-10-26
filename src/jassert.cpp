@@ -127,7 +127,7 @@ void jassert_internal::set_log_file ( const std::string& path )
 
 static FILE* _initJassertOutputDevices()
 {
-#ifdef DEBUG
+#ifdef JASSERT_LOG
   JASSERT_SET_LOGFILE ( "/tmp/jassertlog." + jalib::XToString ( getpid() ) );
 #endif
 

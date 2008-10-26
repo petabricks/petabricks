@@ -176,11 +176,10 @@ void hecura::StaticScheduler::generateCodeSimple(Transform& trans, CodeGenerator
 void hecura::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
   RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
   o.write("DynamicTaskPtr "+nodename()+";");
-  rule->generateCodeSimple(nodename(), trans, _region, o);
-  printDepsAndEnqueue(o);
+  rule->generateCodeSimple(nodename(), trans, *this, _region, o);
 }
 
-void hecura::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o){
+void hecura::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, const RulePtr& rule){
   for(ScheduleDependencies::const_iterator i=_directDepends.begin();  i!=_directDepends.end(); ++i){
     if(! i->first->isInput() && i->first!=this)
       o.write(nodename()+"->dependsOn("+i->first->nodename()+");");
@@ -199,7 +198,7 @@ void hecura::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGenera
 
   SimpleRegionPtr t = new SimpleRegion(min,max);
 
-  rule->generateCodeSimple(trans, t, o);
+  rule->generateCodeSimple("", trans, *this, t, o);
   //TODO deps for slice
 }
 
@@ -267,8 +266,7 @@ void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator
     }
     ScheduleNode& first = * * _originalNodes.begin();
     RuleChoicePtr rule = trans.learner().makeRuleChoice(first.choices()->rules(), first.matrix(), first.region());
-    rule->generateCodeSimple(nodename(), trans, first.region(), o);
-    printDepsAndEnqueue(o);
+    rule->generateCodeSimple(nodename(), trans, *this, first.region(), o);
   }else{
     TaskCodeGenerator& task = o.createTask("coscheduled_"+nodename(), trans.maximalArgList());
     std::string varname="coscheduled_"+nodename();
@@ -311,7 +309,7 @@ void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator
       task.write("return NULL;");
       task.endFunc();
       o.setcall(nodename(),"new "+varname+"_task", task.argnames());
-      printDepsAndEnqueue(o);
+      printDepsAndEnqueue(o, NULL);
       return;
     }
     JASSERT(false)(*this)(selfDep.direction).Text("Unresolved dependency cycle");

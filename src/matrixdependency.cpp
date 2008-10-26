@@ -26,7 +26,7 @@ hecura::DependencyDirection::DependencyDirection(size_t dimensions) : _direction
 /// Merge two DependencyDirections
 hecura::DependencyDirection::DependencyDirection(const DependencyDirection& left, const DependencyDirection& right){
 //   JASSERT(left.size()==right.size())(left.size())(right.size());
-  int d = std::max(left.size(), right.size());
+  size_t d = std::max(left.size(), right.size());
   _directionMask.reserve(d);
   for(size_t i=0; i<d; ++i){
     int dir = D_NONE;
