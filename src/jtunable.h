@@ -82,7 +82,7 @@ public:
           , TunableValue initial
           , TunableValue min=std::numeric_limits<TunableValue>::min()
           , TunableValue max=std::numeric_limits<TunableValue>::max())
-    : _name(name), _value(initial), _min(min), _max(max), _isPegged(false)
+    : _name(name), _value(initial), _initial(initial), _min(min), _max(max), _isPegged(false)
   {
     JTunableManager::instance().insert(this);
   }
@@ -107,12 +107,15 @@ public:
   TunableValue max() const { return _max; }
 
   void verify() {
-    JASSERT(_value>=_min && _value<=_max)(_name)(_value)(_min)(_max)
+    JWARNING(_value>=_min && _value<=_max)(_name)(_value)(_min)(_max)
       .Text("invalid tunable value");
+    if(! (_value>=_min && _value<=_max))
+      _value=_initial;
   }
 private:
   std::string  _name;
   TunableValue _value;
+  TunableValue _initial;
   TunableValue _min;
   TunableValue _max;
   bool _isPegged;
