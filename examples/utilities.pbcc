@@ -1,3 +1,6 @@
+#ifndef UTILITIES_PBCC
+#define UTILITIES_PBCC
+
 transform Copy1D
 from IN[n]
 to OUT[n]
@@ -17,4 +20,6 @@ to OUT[w,h]
     return x;
   }
 }
+
+#endif // UTILITIES_PBCC
 

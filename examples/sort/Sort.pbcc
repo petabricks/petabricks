@@ -1,0 +1,41 @@
+#ifndef SORT_PBCC
+#define SORT_PBCC
+
+#include "Quicksort.pbcc"
+#include "Mergesort.pbcc"
+#include "Insertionsort.pbcc"
+
+transform SortSubArray
+from IN[n], Left, Right
+to OUT[n], TEMP[n]
+{
+  to (OUT out, TEMP temp) from (IN in, Left left, Right right)
+  {
+    MergesortSubArray(out, temp, in, left, right);
+  }
+
+  to (OUT out, TEMP temp) from (IN in, Left left, Right right)
+  {
+    QuicksortSubArray(out, temp, in, left, right);
+  }
+
+  to (OUT out, TEMP temp) from (IN in, Left left, Right right)
+  {
+    InsertionsortSubArray(out, in, left, right);
+  }
+}
+
+transform Sort
+from IN[n]
+to OUT[n]
+{
+  to (OUT out) from (IN in)
+  {
+    Copy1D(out, in);
+    MatrixRegion1D temp = MatrixRegion1D::allocate(n);
+    SortSubArray(out, temp, in, 0, n - 1);
+  }
+}
+
+#endif // SORT_PBCC
+

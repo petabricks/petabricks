@@ -1,3 +1,12 @@
+#ifndef QUICKSORT_PBCC
+#define QUICKSORT_PBCC
+
+#include "../utilities.pbcc"
+#include "Sort.pbcc"
+
+//#define SORTSUBARRAY QuicksortSubArray
+#define SORTSUBARRAY SortSubArray
+
 %{
 
 void swap1D(MatrixRegion1D &A, int x, int y)
@@ -23,19 +32,17 @@ int partition(MatrixRegion1D &A, int left, int right)
 
 %}
 
-#include "../utilities.pbcc"
-
-transform sortSubArray
+transform QuicksortSubArray
 from IN[n], Left, Right
-to OUT[n]
+to OUT[n], TEMP[n]
 {
-  to (OUT out) from (IN in, Left left, Right right)
+  to (OUT out, TEMP temp) from (IN in, Left left, Right right)
   {
     int pivotNewIndex = partition(out, left, right);
     if (pivotNewIndex - 1 > left)
-      sortSubArray(out, in, left, pivotNewIndex - 1);
+      SORTSUBARRAY(out, temp, in, left, pivotNewIndex - 1);
     if (right > pivotNewIndex + 1)
-      sortSubArray(out, in, pivotNewIndex + 1, right);
+      SORTSUBARRAY(out, temp, in, pivotNewIndex + 1, right);
   }
 }
 
@@ -46,7 +53,10 @@ to OUT[n]
   to (OUT out) from (IN in)
   {
     Copy1D(out, in);
-    sortSubArray(out, in, 0, n - 1);
+    MatrixRegion1D temp = MatrixRegion1D::allocate(n);
+    QuicksortSubArray(out, temp, in, 0, n - 1);
   }
 }
+
+#endif // QUICKSORT_PBCC
 
