@@ -20,6 +20,11 @@
 #include "hecuraruntime.h"
 #include "jtunable.h"
 #include "jfilesystem.h"
+#include "jtimer.h"
+
+JTIMER(read);
+JTIMER(compute);
+JTIMER(write);
 
 typedef jalib::JTunableManager TunableManager;
 
@@ -45,4 +50,25 @@ hecura::HecuraRuntime::~HecuraRuntime()
     std::string filename = jalib::Filesystem::GetProgramPath() + ".cfg";
     tm.save(filename);
   }
+}
+
+void hecura::HecuraRuntime::beforeRead(){
+  JTIMER_START(read);
+}
+void hecura::HecuraRuntime::afterRead(){
+  JTIMER_STOP(read);
+}
+
+void hecura::HecuraRuntime::beforeCompute(){
+  JTIMER_START(compute);
+}
+void hecura::HecuraRuntime::afterCompute(){
+  JTIMER_STOP(compute);
+}
+
+void hecura::HecuraRuntime::beforeWrite(){
+  JTIMER_START(write);
+}
+void hecura::HecuraRuntime::afterWrite(){
+  JTIMER_STOP(write);
 }

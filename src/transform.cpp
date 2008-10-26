@@ -277,6 +277,7 @@ void hecura::Transform::generateMainCode(CodeGenerator& o){
     o.write("return 1;");
   }
   o.endIf();
+  o.write("runtime.beforeRead();");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"]");
   }
@@ -284,10 +285,15 @@ void hecura::Transform::generateMainCode(CodeGenerator& o){
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->allocateTemporary(o);
   }
+  o.write("runtime.afterRead();");
+  o.write("runtime.beforeCompute();");
   o.call(_name, argNames);
+  o.write("runtime.afterCompute();");
+  o.write("runtime.beforeWrite();");
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"]");
   }
+  o.write("runtime.afterWrite();");
   o.write("return 0;");
   o.endFunc();
 }

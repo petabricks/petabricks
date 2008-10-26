@@ -24,8 +24,18 @@ namespace hecura {
 
 class HecuraRuntime{
 public:
-    HecuraRuntime(int& argc, const char**& argv);
-    ~HecuraRuntime();
+  HecuraRuntime(int& argc, const char**& argv);
+  ~HecuraRuntime();
+
+//hook functions:
+  void beforeRead();
+  void afterRead();
+
+  void beforeCompute();
+  void afterCompute();
+
+  void beforeWrite();
+  void afterWrite();
 };
 
 }
