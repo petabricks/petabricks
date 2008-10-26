@@ -1,4 +1,11 @@
+#ifndef MERGESORT_PBCC
+#define MERGESORT_PBCC
+
 #include "../utilities.pbcc"
+#include "Sort.pbcc"
+
+//#define SORTSUBARRAY MergesortSubArray
+#define SORTSUBARRAY SortSubArray
 
 transform Merge
 from IN[n]
@@ -9,14 +16,11 @@ to OUT[n]
     int middle = n / 2, ptr1 = 0, ptr2 = middle;
     for (int i = 0; i < n; i++) {
       if (ptr2 == n || ptr1 < middle && in.cell(ptr1) < in.cell(ptr2)) {
-//        printf("1");
         out.cell(i) = in.cell(ptr1++);
       } else {
-//        printf("2");
         out.cell(i) = in.cell(ptr2++);
       }
     }
-//    printf("\n");
   }
 }
 
@@ -29,27 +33,12 @@ to OUT[n], TEMP[n]
     int middle = (left + right + 1) / 2;
 
     if (middle - left > 1)
-      MergesortSubArray(out, temp, in, left, middle - 1);
+      SORTSUBARRAY(out, temp, in, left, middle - 1);
     if (right - middle > 0)
-      MergesortSubArray(out, temp, in, middle, right);
+      SORTSUBARRAY(out, temp, in, middle, right);
     
     Copy1D(temp.region((int) left, (int) right + 1), out.region((int) left, (int) right + 1));
-/*
-    printf("Merge being called on (%d, %d)\n", (int) left, (int) right);
-    printf("Before merge: (%d", (int) out.cell(0));
-    for (int i = 1; i < n; i++) {
-      printf(", %d", (int) out.cell(i));
-    }
-    printf(")\n");
-*/
     Merge(out.region((int) left, (int) right + 1), temp.region((int) left, (int) right + 1));
-/*
-    printf("After merge: (%d", (int) out.cell(0));
-    for (int i = 1; i < n; i++) {
-      printf(", %d", (int) out.cell(i));
-    }
-    printf(")\n");
-*/
   }
 }
 
@@ -64,3 +53,6 @@ to OUT[n]
     MergesortSubArray(out, temp, in, 0, n - 1);
   }
 }
+
+#endif // MERGESORT_PBCC
+

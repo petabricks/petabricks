@@ -1,0 +1,36 @@
+#ifndef INSERTIONSORT_PBCC
+#define INSERTIONSORT_PBCC
+
+#include "../utilities.pbcc"
+
+transform InsertionsortSubArray
+from IN[n], Left, Right
+to OUT[n]
+{
+  to(OUT out) from (IN in, Left left, Right right)
+  {
+    for (int i = 1; i <= right; i++) {
+      double value = out.cell(i);
+      int j = i - 1;
+      while (j >= 0 && out.cell(j) > value) {
+        out.cell(j + 1) = out.cell(j);
+        j--;
+      }
+      out.cell(j + 1) = value;
+    }
+  }
+}
+
+transform Insertionsort
+from IN[n]
+to OUT[n]
+{
+  to(OUT out) from (IN in)
+  {
+    Copy1D(out, in);
+    InsertionsortSubArray(out, in, 0, n - 1);
+  }
+}
+
+#endif // INSERTIONSORT_PBCC
+
