@@ -1,4 +1,5 @@
 *.cpp
+*.cfg
 lu
 matrixadd
 matrixmultiply

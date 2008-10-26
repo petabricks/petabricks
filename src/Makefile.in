@@ -54,8 +54,8 @@ libhecura_a_AR = $(AR) $(ARFLAGS)
 libhecura_a_LIBADD =
 am_libhecura_a_OBJECTS = choicegrid.$(OBJEXT) codegenerator.$(OBJEXT) \
 	dynamicscheduler.$(OBJEXT) dynamictask.$(OBJEXT) \
-	formula.$(OBJEXT) jassert.$(OBJEXT) jbuffer.$(OBJEXT) \
-	jfilesystem.$(OBJEXT) jprintable.$(OBJEXT) \
+	formula.$(OBJEXT) hecuraruntime.$(OBJEXT) jassert.$(OBJEXT) \
+	jbuffer.$(OBJEXT) jfilesystem.$(OBJEXT) jprintable.$(OBJEXT) \
 	jserialize.$(OBJEXT) jsocket.$(OBJEXT) jthread.$(OBJEXT) \
 	jtimer.$(OBJEXT) jtunable.$(OBJEXT) learner.$(OBJEXT) \
 	matrix.$(OBJEXT) matrixdef.$(OBJEXT) \
@@ -226,18 +226,19 @@ AM_YFLAGS = -d
 AM_LFLAGS = 
 noinst_LIBRARIES = libhecura.a
 noinst_HEADERS = choicegrid.h codegenerator.h config.h dynamicscheduler.h \
-	dynamictask.h formula.h hecura.h jasm.h jassert.h jblockingqueue.h jbuffer.h \
-	jconvert.h jfilesystem.h jmutex.h jprintable.h jrefcounted.h jserialize.h \
-	jsocket.h jthread.h jtimer.h jtunable.h learner.h matrix.h matrixdef.h \
+	dynamictask.h formula.h hecura.h hecuraruntime.h jasm.h jassert.h jblockingqueue.h \
+	jbuffer.h jconvert.h jfilesystem.h jmutex.h jprintable.h jrefcounted.h \
+	jserialize.h jsocket.h jthread.h jtimer.h jtunable.h learner.h matrix.h matrixdef.h \
 	matrixdependency.h matrixio.h matrixoperations.h maximawrapper.h performancetester.h \
 	region.h rule.h rulechoice.h staticscheduler.h transform.h
 
 libhecura_a_SOURCES = choicegrid.cpp codegenerator.cpp dynamicscheduler.cpp \
-	dynamictask.cpp formula.cpp jassert.cpp jbuffer.cpp jfilesystem.cpp jprintable.cpp \
-	jserialize.cpp jsocket.cpp jthread.cpp jtimer.cpp jtunable.cpp learner.cpp matrix.cpp \
-	matrixdef.cpp matrixdependency.cpp matrixio.cpp matrixreader.lpp maximalexer.lpp \
-	maximaparser.ypp maximawrapper.cpp pblexer.lpp pbparser.ypp performancetester.cpp \
-	region.cpp rule.cpp rulechoice.cpp staticscheduler.cpp transform.cpp
+	dynamictask.cpp formula.cpp hecuraruntime.cpp jassert.cpp jbuffer.cpp jfilesystem.cpp \
+	jprintable.cpp jserialize.cpp jsocket.cpp jthread.cpp jtimer.cpp jtunable.cpp \
+	learner.cpp matrix.cpp matrixdef.cpp matrixdependency.cpp matrixio.cpp \
+	matrixreader.lpp maximalexer.lpp maximaparser.ypp maximawrapper.cpp pblexer.lpp \
+	pbparser.ypp performancetester.cpp region.cpp rule.cpp rulechoice.cpp \
+	staticscheduler.cpp transform.cpp
 
 pbc_SOURCES = pbc.cpp
 pbc_LDADD = libhecura.a -lpthread 
@@ -323,6 +324,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dynamicscheduler.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dynamictask.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/formula.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hecuraruntime.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jassert.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jbuffer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jfilesystem.Po@am__quote@

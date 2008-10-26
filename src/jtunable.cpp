@@ -21,18 +21,73 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <fstream>
+
+#include "jconvert.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
+jalib::JTunableManager& jalib::JTunableManager::instance(){ 
+  static JTunableManager t; 
+  return t; 
+}
+
 jalib::JTunableConfiguration jalib::JTunableManager::getCurrentConfiguration() const{
   JTunableConfiguration c;
   for(const_iterator i=begin(); i!=end(); ++i)
-    c[*i] = *(*i);
+    c[*i] = (*i)->value();
   return c;
 }
 
+jalib::JTunableReverseMap jalib::JTunableManager::getReverseMap() const{
+  JTunableReverseMap m;
+  for(const_iterator i=begin(); i!=end(); ++i)
+    m[(*i)->name()] = *i;
+  return m;
+}
+
+void jalib::JTunableConfiguration::makeActive() const{
+  for(const_iterator i=begin(); i!=end(); ++i){
+    i->first->setValue(i->second);
+  }
+}
+
+void jalib::JTunableManager::load(const std::string& filename) const{
+  const JTunableReverseMap m = getReverseMap();
+  FILE* fp= fopen(filename.c_str(), "r");
+  JASSERT(fp!=NULL)(filename).Text("failed to open file");
+  char * line = NULL;
+  size_t len = 0;
+  ssize_t read;
+  while((read=getline(&line, &len, fp)) != -1) {
+    std::string l,r;
+    jalib::SplitFirst(l, r, line, '=');
+    l=jalib::StringTrim(l);
+    r=jalib::StringTrim(r);
+//     JTRACE("L")(l)(r)(line);
+    if(!r.empty() && !l.empty() && l[0]!='#'){
+      JTunableReverseMap::const_iterator i=m.find(l);
+      JWARNING(i!=m.end())(l)(r).Text("unknown tunable parameter");
+      if(i!=m.end()){
+        i->second->setValue(StringToX<TunableValue>(r));
+        i->second->verify();
+      }
+    }
+  }
+  if (line)
+      free(line);
+}
+
+void jalib::JTunableManager::save(const std::string& filename) const{
+  std::ofstream of(filename.c_str());
+  JASSERT(of.is_open())(filename).Text("failed to open file");
+  for(const_iterator i=begin(); i!=end(); ++i){
+    of << (*i)->name() << " = " << (*i)->value() << "\n";
+  }
+  of << std::flush;
+}
 
 
 #ifdef HAVE_LIBGSL

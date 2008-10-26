@@ -17,12 +17,17 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifndef HECURAHECURARUNTIME_H
+#define HECURAHECURARUNTIME_H
 
-#include "matrix.h"
-#include "matrixio.h"
-#include "dynamictask.h"
-#include "hecuraruntime.h"
-#include "jtunable.h"
+namespace hecura {
 
+class HecuraRuntime{
+public:
+    HecuraRuntime(int& argc, const char**& argv);
+    ~HecuraRuntime();
+};
 
+}
 
+#endif
