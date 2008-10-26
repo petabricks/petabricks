@@ -41,15 +41,11 @@ public:
   ///
   /// Enqueue this task to be run (once all dependencies are met)
   /// this method indicates that all dependencies have been registered
-  void enqueue() { /* TODO DynamicScheduler::enqueueNewTask(this) */ }
+  void enqueue() { run(); /* TODO DynamicScheduler::enqueueNewTask(this) */ }
 
   ///
-  /// Size in bytes the input to this task
-  virtual size_t inputSize() const  { return 0; }
-
-  ///
-  /// Size in bytes the output to of this task
-  virtual size_t outputSize() const { return 0; }
+  /// Size in bytes the area of this task
+  virtual size_t size() const  { return 0; }
 
   ///
   /// True if this can be split into smaller independant taks
@@ -57,13 +53,16 @@ public:
 
   ///
   /// Split this task into smaller tasks and return a replacement
-  virtual DynamicTaskPtr split(){}
+  virtual DynamicTaskPtr split(){ JASSERT(false); return 0; }
 
-//   void runToCompletion(){
-//     DynamicTaskPtr task = this;
-//     while(task!=NULL)
-//       tast = task->run();
-//   }
+  ///
+  /// Block until this task has completed
+  void waitUntilComplete(){}
+};
+
+class NullDynamicTask : public DynamicTask {
+public:
+  DynamicTaskPtr run(){ return 0; }
 };
 
 }

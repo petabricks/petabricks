@@ -87,7 +87,8 @@ public:
     MatrixStoragePtr tmp = new MatrixStorage(s);
     #ifdef DEBUG
     //in debug mode initialize matrix to garbage
-    memset(tmp->data(), 0xFF, s);
+    for(int i=0; i<s; ++i)
+      tmp->data()[i] = -666;
     #endif
     return MatrixRegion(tmp, tmp->data(), sizes);
   }

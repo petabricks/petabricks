@@ -51,6 +51,9 @@
 /* var name in output code */
 #undef INPUT_SIZE_STR
 
+/* log traces to /tmp/jassertlog.pid */
+#undef JASSERT_LOG
+
 /* type for elements in the matrix */
 #undef MATRIX_ELEMENT_T
 

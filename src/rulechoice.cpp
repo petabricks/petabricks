@@ -20,28 +20,75 @@
 #include "rulechoice.h"
 
 #include "codegenerator.h"
+#include "transform.h"
+#include "rule.h"
+#include "staticscheduler.h"
 
-hecura::RuleChoice::RuleChoice( const RulePtr& rule
+const hecura::FormulaPtr& hecura::RuleChoice::autotuned() {
+  static FormulaPtr t = new FormulaVariable("AUTOTUNED");
+  return t;
+}
+
+hecura::RuleChoice::RuleChoice( const RuleSet& rule
                               , const FormulaPtr& c/*=FormulaPtr()*/
                               , const RuleChoicePtr& n/*=RuleChoicePtr()*/)
-  : _rule(rule), _condition(c), _next(n)
+  : _rules(rule), _condition(c), _next(n)
 {}
 
 void hecura::RuleChoice::print(std::ostream& o) const {
   o << "RuleChoice"; //TODO
 }
 
-void hecura::RuleChoice::generateCodeSimple(Transform& trans, const SimpleRegionPtr& region,CodeGenerator& o){
+void hecura::RuleChoice::generateCodeSimple(  const std::string& taskname
+                                            , Transform& trans
+                                            , ScheduleNode& node
+                                            , const SimpleRegionPtr& region
+                                            , CodeGenerator& o){
   if(_condition){
-    o.beginIf(_condition->toString());
+    o.beginIf(processCondition(_condition, trans, o)->toString());
   }
-  _rule->generateCallCodeSimple(trans, o, region);
+
+  std::string choicename = trans.name() + "_alg_lvl" + jalib::XToString(level())
+                        + "_rules";
+  int n=0;
+  if(_rules.size()>1){
+    for(RuleSet::const_iterator i=_rules.begin(); i!=_rules.end(); ++i){
+      choicename += "_"+jalib::XToString((*i)->id());
+    }
+    o.createTunable(trans.name(), choicename, 0, 0, _rules.size()-1);
+    o.beginSwitch(choicename);
+  }
+  for(RuleSet::const_iterator i=_rules.begin(); i!=_rules.end(); ++i){
+    if(_rules.size()>1) o.beginCase(n++);
+    if(taskname.empty())
+      (*i)->generateCallCodeSimple(trans, o, region);
+    else{
+      (*i)->generateCallTaskCode(taskname, trans, o, region);
+      node.printDepsAndEnqueue(o, *_rules.begin());
+    }
+    if(_rules.size()>1) o.endCase();
+  }
+  if(_rules.size()>1){
+    o.write("default: JASSERT(false);");
+    o.endSwitch();
+  }
 
   if(_condition){
     if(_next){
       o.elseIf();
-      _next->generateCodeSimple(trans, region, o);
+      _next->generateCodeSimple(taskname, trans, node, region, o);
     }
     o.endIf();
+  }
+}
+
+hecura::FormulaPtr hecura::RuleChoice::processCondition(const FormulaPtr& f, Transform& trans, CodeGenerator& o)
+{
+  if(f->getFreeVariables()->contains(autotuned()->toString())){
+    std::string name=trans.getTunerName("recursive_cutoff_");
+    o.createTunable(trans.name(), name, 1000);
+    return f->replace(autotuned(), new FormulaVariable(name));
+  }else{
+    return f;
   }
 }

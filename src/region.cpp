@@ -243,10 +243,10 @@ hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const Fo
 
 hecura::FormulaList hecura::Region::diff(const Rule& rule) const {
   FormulaList tmp = _maxCoord;
-  for(int i=0; i<tmp.size(); ++i){
+  for(size_t i=0; i<tmp.size(); ++i){
     if(tmp[i]->getFreeVariables()->size()==1){
       bool found=false;
-      for(int d=0; d<tmp.size(); ++d){
+      for(size_t d=0; d<tmp.size(); ++d){
         if(tmp[i]->getFreeVariables()->contains(rule.getOffsetVar(d)->toString())){
           tmp[i]=MaximaWrapper::instance().diff(tmp[i], rule.getOffsetVar(d));
           found=true;
@@ -391,7 +391,7 @@ void hecura::Region::addAssumptions() const{
 }
 
 hecura::FormulaPtr hecura::Region::getSizeOfRuleIn(int d) const{
-  JASSERT(dimensions()>d)(dimensions())(d);
+  JASSERT((int)dimensions()>d)(dimensions())(d);
   return MaximaWrapper::instance().normalize(new FormulaSubtract(_maxCoord[d], _minCoord[d]));
 }
 

@@ -187,6 +187,9 @@ public:
   bool canProvide(const MatrixDefPtr& m) const {
     return _provides.find(m) != _provides.end();
   }
+
+  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
+  std::vector<std::string> getCallArgs(Transform& trans, const SimpleRegionPtr& region);
 private:
   int _id;
   RuleFlags   _flags;

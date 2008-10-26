@@ -23,6 +23,7 @@
 #include "formula.h"
 #include "jprintable.h"
 #include "jrefcounted.h"
+#include "jconvert.h"
 
 
 #include <iostream>
@@ -30,16 +31,20 @@
 #include <sstream>
 #include <vector>
 #include <list>
+#include <map>
 #include <algorithm>
-
+#include <limits>
 
 namespace hecura {
+
+typedef std::map<std::string, std::string> TunableDefs;
 
 class TaskCodeGenerator;
 
 class CodeGenerator {
 public:
   static std::stringstream& theFilePrefix();
+  static TunableDefs& theTunableDefs();
 
   CodeGenerator();
   virtual ~CodeGenerator(){}
@@ -68,23 +73,77 @@ public:
   void endIf();
 
   virtual TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args) = 0;
+
+  void createTunable( const std::string& category
+                    , const std::string& name
+                    , int initial
+                    , int min=0
+                    , int max=std::numeric_limits<int>::max())
+  {
+    JTRACE("new tunable")(name)(initial)(min)(max);
+    theTunableDefs()[name] =
+       "JTUNABLE("+name
+              +","+jalib::XToString(initial)
+              +","+jalib::XToString(min)
+              +","+jalib::XToString(max)+")";
+  }
+
+  void beginSwitch(const std::string& var){
+    write("switch("+var+"){");
+  }
+  void endSwitch(){
+    write("}");
+  }
+  void beginCase(int n){
+    write("case "+jalib::XToString(n)+":");
+    _indent++;
+  }
+  void endCase(){
+    write("break;");
+    _indent--;
+  }
 protected:
   void indent();
   virtual std::ostream& os() = 0;
-private:
+protected:
   int _indent;
 
 };
 
 class TaskCodeGenerator : public CodeGenerator, public jalib::JRefCounted {
 public:
-  std::string str() const { return _os.str(); }
-
+  std::string str() const { return _os.str() + "};\n"; }
   TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args){ return *this;}
+
+  TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args);
+
+  void beginRunFunc(){
+    beginFunc("hecura::DynamicTaskPtr", "run", std::vector<std::string>());
+  }
+
+  void beginSizeFunc(){
+    write("size_t size() const {");
+    ++_indent;
+  }
+
+  void beginCanSplitFunc(){
+    write("bool canSplit() const {");
+    ++_indent;
+  }
+
+  void beginSplitFunc(){
+    write("hecura::DynamicTaskPtr split(){");
+    ++_indent;
+  }
+
+  const std::vector<std::string>& argnames() const { return _names; }
+  const std::vector<std::string>& argtypes() const { return _types; }
 protected:
   std::ostream& os() { return _os; }
 private:
   std::ostringstream _os;
+  std::vector<std::string> _types;
+  std::vector<std::string> _names;
 };
 
 class MainCodeGenerator : public CodeGenerator {
@@ -93,6 +152,9 @@ public:
 
   void outputFileTo(std::ostream& o){
     o << theFilePrefix().str();
+    o << "\n// Tunable declarations\n";
+    for(TunableDefs::const_iterator i=theTunableDefs().begin(); i!=theTunableDefs().end(); ++i)
+      o << i->second << ";\n";
     o << "\n// Forward declarations\n";
     o << _forwardDecls.str();
     o << "\n// Task declarations\n";

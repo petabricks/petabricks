@@ -198,7 +198,7 @@ hecura::FormulaPtr hecura::Formula::negative() const {
   return MaximaWrapper::instance().normalize(new FormulaSubtract(FormulaInteger::zero(), this));
 }
 
-std::string hecura::Formula::explodePrint() const {JASSERT(false);}
+std::string hecura::Formula::explodePrint() const { JASSERT(false); return "";}
 
 template < char OP >
 std::string hecura::FormulaBinop<OP>::printAsAssumption() const {

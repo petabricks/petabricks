@@ -93,7 +93,7 @@ void printCfg(void *xp)
 }
 
 void cfgCopy(void *source, void *dest){}
-void* cfgCreate(void *xp){}
+void* cfgCreate(void *xp){ return 0; }
 void cfgDestroy(void *xp){}
 
 int foo(int argc, char *argv[]){

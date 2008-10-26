@@ -185,7 +185,7 @@ bool hecura::RuleDescriptor::operator< (const RuleDescriptor& that) const{
   if(_type==RULE_END && that._type==RULE_BEGIN) op = "<=";
   
   //optimization and zero handling
-  if(strA==strB) return op=="<=";
+  if(strA==strB) return strcmp(op,"<=")==0;
   if(strA=="0")  return true;
   if(strB=="0")  return false;
 
@@ -285,6 +285,21 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
     o.endFor();
   }
   o.endFunc();
+
+  TaskCodeGenerator& task = o.createTask(trampcodename(),args);
+  task.beginRunFunc();
+  task.call(trampcodename(), task.argnames());
+  task.write("return NULL;");
+  task.endFunc();
+  task.beginSizeFunc();
+  FormulaPtr f = FormulaInteger::zero();
+  for(int i=0; i<dimensions(); ++i){
+    FormulaPtr b = getOffsetVar(i,"begin");
+    FormulaPtr e = getOffsetVar(i,"end");
+    f=new FormulaMultiply(f, new FormulaSubtract(e, b));
+  }
+  task.write("return "+f->toString()+";");
+  task.endFunc();
 }
 
 void hecura::Rule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o){
@@ -311,7 +326,7 @@ void hecura::Rule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& 
   }
 }
 
-void hecura::Rule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
+std::vector<std::string> hecura::Rule::getCallArgs(Transform& trans, const SimpleRegionPtr& region){
   std::vector<std::string> args;
   std::set<MatrixDefPtr> used;
   for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
@@ -338,8 +353,17 @@ void hecura::Rule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, co
   {
     args.push_back((*i)->toString());
   }
-//   args.push_back(region->toString());
+  return args;
+}
+
+void hecura::Rule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
+  std::vector<std::string> args = getCallArgs(trans, region);
   o.call(trampcodename(), args);
+}
+
+void hecura::Rule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
+  std::vector<std::string> args = getCallArgs(trans, region);
+  o.setcall(name,"new "+trampcodename()+"_task", args);
 }
 
 
@@ -408,7 +432,7 @@ void hecura::Rule::removeInvalidOrders(IterationOrderList& o){
     if(d!=_depends.end()){
       const DependencyDirection& dir = d->second->direction();
       JASSERT(dir.size()==o.size());
-      for(int i=0; i<dir.size(); ++i){
+      for(size_t i=0; i<dir.size(); ++i){
         if((dir[i]&DependencyDirection::D_GT)!=0){
           o[i] &= ~IterationOrder::FORWARD;
           JTRACE("Forward iteration not allowed")(id());

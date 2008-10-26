@@ -46,7 +46,7 @@ class Transform : public jalib::JRefCounted, public jalib::JPrintable {
 public:
   ///
   /// Constructor
-  Transform(const char* name) : _name(name),_isMain(false) {}
+  Transform(const char* name) : _name(name),_isMain(false),_tuneId(0) {}
   
   //called durring parsing:
   void addFrom(const MatrixDefList&);
@@ -85,6 +85,13 @@ public:
   PerformanceTester& tester() { return _tester; }
 
   void addTestCase(const TestCasePtr& p) {tester().addTestCase(p);}
+
+  std::vector<std::string> maximalArgList() const;
+
+
+  std::string getTunerName(const std::string& category){
+    return _name + "_" + category + jalib::XToString(_tuneId++);
+  }
 private:
   std::string   _name;
   MatrixDefList _from;
@@ -97,6 +104,7 @@ private:
   bool          _isMain;
   Learner       _learner;
   PerformanceTester _tester;
+  int _tuneId;
 };
 
 }

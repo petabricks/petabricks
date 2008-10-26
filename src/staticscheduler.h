@@ -76,7 +76,7 @@ public:
   ///
   /// Print this node name in graphviz/dot format
   void printNode(std::ostream& os) const{
-    os << "  " << nodename() << "[label=\"" 
+    os << "  " << nodename() << "[label=\"" << nodename() << ": " 
        << *this
        << "\"];\n";
   }
@@ -97,7 +97,7 @@ public:
   /// Name of this node as it appears in graphs
   std::string nodename() const { return "n"+jalib::XToString(_id); }
 
-
+  void printDepsAndEnqueue(CodeGenerator& o, const RulePtr& rule);
 
   ///
   /// Generate code for executing this node
@@ -107,6 +107,7 @@ public:
 
   virtual const MatrixDefPtr&    matrix() const = 0;
   virtual const SimpleRegionPtr& region() const = 0;
+  virtual const ChoiceGridPtr& choices() const = 0;
 
   const ScheduleDependencies& directDepends() const   { return _directDepends; }
   const ScheduleDependencies& indirectDepends() const { return _indirectDepends; }
@@ -135,8 +136,12 @@ public:
         _indirectDepends[map.find(i->first)->second]=i->second;
     }
   }
+
+  bool isInput() const { return _isInput; }
+  void markInput(){ _isInput=true; }
 protected:
   int _id;
+  bool _isInput;
   ScheduleDependencies _directDepends;
   ScheduleDependencies _indirectDepends;
 };
@@ -149,6 +154,7 @@ public:
 
   const MatrixDefPtr&    matrix()    const { return _matrix; }
   const SimpleRegionPtr& region()    const { return _region; }
+  const ChoiceGridPtr& choices() const { return _choices; }
 
   void print(std::ostream& o) const {
     o << _matrix->name() << ".region(" << _region << ")";
@@ -166,8 +172,9 @@ class CoscheduledNode : public ScheduleNode {
 public:
   CoscheduledNode(const ScheduleNodeSet& set);
 
-  const MatrixDefPtr&    matrix() const { JASSERT(false); }
-  const SimpleRegionPtr& region() const { JASSERT(false); }
+  const MatrixDefPtr&    matrix() const { JASSERT(false); return MatrixDefPtr::null(); }
+  const SimpleRegionPtr& region() const { JASSERT(false); return SimpleRegionPtr::null(); }
+  const ChoiceGridPtr& choices() const  { JASSERT(false); return ChoiceGridPtr::null(); }
 
   void print(std::ostream& o) const {
     o << "Coscheduled:";
@@ -194,6 +201,7 @@ public:
     regions.push_back(new UnischeduledNode(matrix, r, NULL));
     _allNodes.push_back(regions.back());
     _generated.insert(regions.back().asPtr());
+    regions.back()->markInput();
   }
   void markOutputMatrix(const MatrixDefPtr& matrix){
     ScheduleNodeList& lst = _matrixToNodes[matrix];
