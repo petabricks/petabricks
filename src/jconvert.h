@@ -108,12 +108,26 @@ namespace jalib
 
   ///
   /// Remove whitespace from both ends of a string, return result
-  inline std::string StringTrim(std::string& str){
+  inline std::string StringTrim(const std::string& str){
     std::string::const_iterator b = str.begin();
     std::string::const_iterator e = str.end();
     while(b!=e && IsWs(*b))     ++b;
     while(b<e  && IsWs(*(e-1))) --e;
     return std::string(b,e);
+  }
+
+  ///
+  /// Remove whitespace from both ends of a string, return result
+  inline void SplitFirst(std::string& left, std::string& right, const std::string& str, char delim){
+    std::string::const_iterator b = str.begin();
+    std::string::const_iterator m = str.begin();
+    std::string::const_iterator e = str.end();
+    while(m<e && *m!=delim) ++m;
+    left.assign(b,m);
+    if(m<e)
+      right.assign(m+1,e);
+    else
+      right="";
   }
 
   ///

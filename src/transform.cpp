@@ -263,6 +263,7 @@ void hecura::Transform::generateMainCode(CodeGenerator& o){
   o.comment("Program main routine");
   std::string args[] = {"int argc", "const char** argv"};
   o.beginFunc("int", "main", std::vector<std::string>(args, args+2));
+  o.write("hecura::HecuraRuntime runtime(argc, argv);");
   o.beginIf("argc!="+jalib::XToString(_to.size()+_from.size()+1));
   {
     std::ostringstream os;
