@@ -33,8 +33,8 @@ void hecura::Learner::onIterationBegin(){
 }
 
 hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
-                                                     , const MatrixDefPtr&
-                                                     , const SimpleRegionPtr& )
+                                                     , const MatrixDefPtr& m
+                                                     , const SimpleRegionPtr& r)
 {
   /*
    * This function must build a stack of RuleChoicePtr's from choices.
@@ -51,14 +51,17 @@ hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
     else
       base.insert(*i);
   }
-  JASSERT(!base.empty())(base.size()).Text("no non-recursive choices exist");
+  JASSERT(base.size()+recursive.size()>0)(m)(r).Text("No choics exist for region");
 
   //default to base case
-  RuleChoicePtr rv = new RuleChoice(base); //the first rule
+  RuleChoicePtr rv;
+
+  if(!base.empty()) rv=new RuleChoice(base); //the first rule
 
   int levels = std::min<int>(MAX_REC_LEVELS, recursive.size());
   while(levels-->0){
-    FormulaPtr condition = new FormulaGT(new FormulaVariable(INPUT_SIZE_STR), RuleChoice::autotuned());
+    FormulaPtr condition;
+    if(rv) condition = new FormulaGT(new FormulaVariable(INPUT_SIZE_STR), RuleChoice::autotuned());
     //add recursive case
     rv=new RuleChoice(recursive, condition, rv);
   }
