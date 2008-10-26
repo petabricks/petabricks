@@ -62,12 +62,12 @@ void jalib::JTunableManager::load(const std::string& filename) const{
   size_t len = 0;
   ssize_t read;
   while((read=getline(&line, &len, fp)) != -1) {
-    std::string l,r;
-    jalib::SplitFirst(l, r, line, '=');
+    std::string t,l,r;
+    jalib::SplitFirst(t, r, line, '#');
+    jalib::SplitFirst(l, r, t,    '=');
     l=jalib::StringTrim(l);
     r=jalib::StringTrim(r);
-//     JTRACE("L")(l)(r)(line);
-    if(!r.empty() && !l.empty() && l[0]!='#'){
+    if(!r.empty() && !l.empty()){
       JTunableReverseMap::const_iterator i=m.find(l);
       JWARNING(i!=m.end())(l)(r).Text("unknown tunable parameter");
       if(i!=m.end()){
@@ -84,7 +84,9 @@ void jalib::JTunableManager::save(const std::string& filename) const{
   std::ofstream of(filename.c_str());
   JASSERT(of.is_open())(filename).Text("failed to open file");
   for(const_iterator i=begin(); i!=end(); ++i){
-    of << (*i)->name() << " = " << (*i)->value() << "\n";
+    of << (*i)->name() << " = " << (*i)->value()
+    << "     # valid range: "<< (*i)->min() << " to " << (*i)->max()
+    << "\n";
   }
   of << std::flush;
 }
