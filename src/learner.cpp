@@ -19,6 +19,11 @@
  ***************************************************************************/
 #include "learner.h"
 #include "performancetester.h"
+#include <algorithm>
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 hecura::Learner::Learner() : _numIterations(0) {}
 
@@ -51,9 +56,9 @@ hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
   //default to base case
   RuleChoicePtr rv = new RuleChoice(base); //the first rule
 
-  if(!recursive.empty()){
+  int levels = std::min<int>(MAX_REC_LEVELS, recursive.size());
+  while(levels-->0){
     FormulaPtr condition = new FormulaGT(new FormulaVariable(INPUT_SIZE_STR), RuleChoice::autotuned());
-
     //add recursive case
     rv=new RuleChoice(recursive, condition, rv);
   }

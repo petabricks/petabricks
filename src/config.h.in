@@ -63,6 +63,9 @@
 /* the maximum number of dimensions supported */
 #undef MAX_DIMENSIONS
 
+/* number of levels for recursive choices */
+#undef MAX_REC_LEVELS
+
 /* var name in output code */
 #undef OUTPUT_SIZE_STR
 
