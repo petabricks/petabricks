@@ -269,20 +269,7 @@ void hecura::Transform::generateMainCode(CodeGenerator& o){
   o.comment("Program main routine");
   std::string args[] = {"int argc", "const char** argv"};
   o.beginFunc("int", "main", std::vector<std::string>(args, args+2));
-  o.write("hecura::HecuraRuntime runtime(argc, argv);");
-  o.beginIf("argc!="+jalib::XToString(_to.size()+_from.size()+1));
-  {
-    std::ostringstream os;
-    os <<"fprintf(stderr,\"USAGE: "+_name+" ";
-    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i)
-      os << (*i)->name() << " ";
-    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i)
-      os << (*i)->name() << " ";
-    os <<"\\n\");";
-    o.write(os.str());
-    o.write("return 1;");
-  }
-  o.endIf();
+  o.write("hecura::HecuraRuntime runtime;");
   o.write("class _mainclass : public hecura::HecuraRuntime::Main {");
   o.write("public:");
   o.incIndent();
@@ -295,27 +282,65 @@ void hecura::Transform::generateMainCode(CodeGenerator& o){
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->varDeclCodeRW(o);
   }
+  o.beginFunc("bool", "verifyArgs", std::vector<std::string>(args, args+2));
+  {
+    o.beginIf("argc!="+jalib::XToString(_to.size()+_from.size()+1));
+    {
+      std::ostringstream os;
+      os <<"fprintf(stderr,\"USAGE: "+_name+" ";
+      for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i)
+        os << (*i)->name() << " ";
+      for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i)
+        os << (*i)->name() << " ";
+      os <<"\\n\");";
+      o.write(os.str());
+    }
+    o.endIf();
+    o.write("return argc=="+jalib::XToString(_to.size()+_from.size()+1)+";");
+  }
+  o.endFunc();
+
   o.beginFunc("void", "read", std::vector<std::string>(args, args+2));
-  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"]");
-  }
-  extractSizeDefines(o);
-  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->allocateTemporary(o, true);
+  {
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"]");
+    }
+    extractSizeDefines(o);
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      (*i)->allocateTemporary(o, true);
+    }
   }
   o.endFunc();
+
+  o.beginFunc("void", "randomInputs", std::vector<std::string>(1,"IndexT _size_inputs"));
+  {
+    for(FreeVars::const_iterator i=_constants.begin(); i!=_constants.end(); ++i){
+      o.write("IndexT "+*i+" = _size_inputs;");
+    }
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      (*i)->allocateTemporary(o, true);
+    }
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      (*i)->allocateTemporary(o, true);
+    }
+  }
+  o.endFunc();
+
   o.beginFunc("void", "write", std::vector<std::string>(args, args+2));
-  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"]");
+  {
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"]");
+    }
   }
   o.endFunc();
+
   o.beginFunc("void", "compute", std::vector<std::string>());
   o.call(_name, argNames);
   o.endFunc();
+
   o.decIndent();
   o.write("} mc;");
-  o.call("runtime.runMain", "mc, argc,argv");
-  o.write("return 0;");
+  o.write("return runtime.runMain(mc,argc,argv);");
   o.endFunc();
 }
 

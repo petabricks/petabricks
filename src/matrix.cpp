@@ -18,4 +18,9 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "matrix.h"
+#include <stdlib.h>
 
+void hecura::MatrixStorage::randomize(){
+  for(size_t i=0; i<_count; ++i)
+    _data[i] = (2.0*drand48()-0.5)*4294967296.0;
+}
