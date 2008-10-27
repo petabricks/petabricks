@@ -6,7 +6,7 @@ from A[c,h], B[w,c]
 to AB[w,h]
 {
   //recursively chop the matrix in half
-  recursive 
+  recursive(c) 
   to(AB ab)
   from( A.region(0,   0, c/2, h  ) a1,
         A.region(c/2, 0, c,   h  ) a2,

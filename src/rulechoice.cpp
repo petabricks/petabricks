@@ -86,7 +86,7 @@ hecura::FormulaPtr hecura::RuleChoice::processCondition(const FormulaPtr& f, Tra
 {
   if(f->getFreeVariables()->contains(autotuned()->toString())){
     std::string name=trans.getTunerName("recursive_cutoff_");
-    o.createTunable(trans.name(), name, 1000);
+    o.createTunable(trans.name(), name, 1000, 1);
     return f->replace(autotuned(), new FormulaVariable(name));
   }else{
     return f;
