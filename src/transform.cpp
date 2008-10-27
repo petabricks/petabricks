@@ -195,7 +195,7 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   o.newline();
 
   o.comment(_name+" entry function");
-  o.beginFunc("void", _name, args);
+  o.beginFunc("DynamicTaskPtr", "spawn_"+_name, args);
   o.varDecl("IndexT " INPUT_SIZE_STR " = 0");
   o.varDecl("IndexT " OUTPUT_SIZE_STR " = 0");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
@@ -220,7 +220,13 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   }
 //   o.comment("Run computation");
   scheduler.generateCodeSimple(*this, o);
-  //_baseCases->generateCodeSimple(o, SimpleRegionPtr(new SimpleRegion()));
+  
+  o.write("return "+taskname()+";");
+  o.endFunc();
+  o.beginFunc("void", _name, args);
+  o.setcall("DynamicTaskPtr "+taskname(), "spawn_"+_name, argNames);
+  o.write(taskname()+"->enqueue();");
+  o.write(taskname()+"->waitUntilComplete();");
   o.endFunc();
   o.newline();
 

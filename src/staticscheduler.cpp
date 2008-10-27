@@ -169,8 +169,9 @@ void hecura::StaticScheduler::generateCodeSimple(Transform& trans, CodeGenerator
   for(ScheduleNodeList::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
     (*i)->generateCodeSimple(trans, o);
   }
+  o.write("DynamicTaskPtr "+trans.taskname()+" = new NullDynamicTask();");
   for(ScheduleNodeSet::iterator i=_goals.begin(); i!=_goals.end(); ++i)
-    o.write((*i)->nodename() + "->waitUntilComplete();");
+    o.write(trans.taskname()+"->dependsOn(" + (*i)->nodename() + ");");
 }
 
 void hecura::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o){

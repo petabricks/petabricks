@@ -83,33 +83,7 @@ public:
   ///
   /// Write a given matrix to _fd
   template<int D, typename T>
-  void write(MatrixRegion<D,T> m){
-    if(_fd==stdin) _fd=stdout;
-    fprintf(_fd,"SIZE");
-    for(int i=0; i<D; ++i)
-      fprintf(_fd," %d",m.size(i));
-    fprintf(_fd,"\n");
-    MatrixStorage::IndexT coord[D];
-    memset(coord, 0, sizeof coord);
-    if(D>0){
-      while(coord[D-1] < m.size(D-1)){
-        fprintf(_fd,"%8.4f ", (float)m.cell(coord));
-        //get next coord
-        coord[0]++;
-        for(int i=0; i<D-1; ++i){
-          if(coord[i] >= m.size(i)){
-            coord[i]=0;
-            coord[i+1]++;
-            fprintf(_fd,"\n");
-          }else
-            break;
-        }
-      }
-    }else{ //0D case
-      fprintf(_fd,"%f", (float)m.cell(coord));
-    }
-    fprintf(_fd,"\n");
-  }
+  void write(MatrixRegion<D,T> m);
   
   MatrixRegion0D read0D(){ return read<0>(); }
   MatrixRegion1D read1D(){ return read<1>(); }
@@ -130,5 +104,35 @@ private:
 
 }
 
+///
+/// Write a given matrix to _fd
+template<int D, typename T>
+inline void hecura::MatrixIO::write(MatrixRegion<D,T> m){
+  if(_fd==stdin) _fd=stdout;
+  fprintf(_fd,"SIZE");
+  for(int i=0; i<D; ++i)
+    fprintf(_fd," %d",m.size(i));
+  fprintf(_fd,"\n");
+  MatrixStorage::IndexT coord[D];
+  memset(coord, 0, sizeof coord);
+  if(D>0){
+    while(coord[D-1] < m.size(D-1)){
+      fprintf(_fd,"%8.4f ", (float)m.cell(coord));
+      //get next coord
+      coord[0]++;
+      for(int i=0; i<D-1; ++i){
+        if(coord[i] >= m.size(i)){
+          coord[i]=0;
+          coord[i+1]++;
+          fprintf(_fd,"\n");
+        }else
+          break;
+      }
+    }
+  }else{ //0D case
+    fprintf(_fd,"%f", (float)m.cell(coord));
+  }
+  fprintf(_fd,"\n");
+}
 
 #endif

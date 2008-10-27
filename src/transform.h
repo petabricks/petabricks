@@ -88,10 +88,14 @@ public:
 
   std::vector<std::string> maximalArgList() const;
 
-
   std::string getTunerName(const std::string& category){
     return _name + "_" + category + jalib::XToString(_tuneId++);
   }
+
+  int ruleIdOffset() const { return _rules.front()->id()-1; }
+
+
+  std::string taskname() const { return _name+"_fin"; }
 private:
   std::string   _name;
   MatrixDefList _from;

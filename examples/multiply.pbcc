@@ -13,7 +13,18 @@ to AB[w,h]
         B.region(0,   0, w,   c/2) b1,
         B.region(0, c/2, w,   c  ) b2)
   {
-    return MatrixAdd(ab, MatrixMultiply(a1,b1), MatrixMultiply(a2,b2));
+    DynamicTaskPtr t1 = spawn_MatrixMultiply(ab,  a1, b1);
+    t1->enqueue();
+    
+    MatrixRegion2D tmp = MatrixRegion2D::allocate(w,h);
+    DynamicTaskPtr t2 = spawn_MatrixMultiply(tmp, a2, b2);
+    t2->enqueue();
+    
+    DynamicTaskPtr t3 = spawn_MatrixAdd(ab, ab, tmp);
+    t3->dependsOn(t1);
+    t3->dependsOn(t2);
+    t3->enqueue();
+    t3->waitUntilComplete();
   }
   
   //compute a cell the straightforward way

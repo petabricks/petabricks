@@ -53,7 +53,7 @@ void hecura::RuleChoice::generateCodeSimple(  const std::string& taskname
   int n=0;
   if(_rules.size()>1){
     for(RuleSet::const_iterator i=_rules.begin(); i!=_rules.end(); ++i){
-      choicename += "_"+jalib::XToString((*i)->id());
+      choicename += "_"+jalib::XToString((*i)->id() - trans.ruleIdOffset());
     }
     o.createTunable(trans.name(), choicename, 0, 0, _rules.size()-1);
     o.beginSwitch(choicename);
@@ -69,7 +69,7 @@ void hecura::RuleChoice::generateCodeSimple(  const std::string& taskname
     if(_rules.size()>1) o.endCase();
   }
   if(_rules.size()>1){
-    o.write("default: JASSERT(false);");
+    o.write("default: JASSERT(false)("+choicename+".value());");
     o.endSwitch();
   }
 
