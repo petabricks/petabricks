@@ -24,18 +24,42 @@ namespace hecura {
 
 class HecuraRuntime{
 public:
+  /**
+   * Interface used to construct a main routine in generated code
+   */
+  class Main {
+  public:
+    ///
+    /// destructor
+    virtual ~Main(){}
+
+    ///
+    /// Read inputs from disk
+    virtual void read(int argc, const char** argv) = 0;
+
+    ///
+    /// Perform the computation
+    virtual void compute() = 0;
+
+    ///
+    /// Write inputs to disk
+    virtual void write(int argc, const char** argv) = 0;
+  };
+
+  ///
+  /// Construct the runtime, parse any runtime-specific args
   HecuraRuntime(int& argc, const char**& argv);
+
+  ///
+  /// Destruct the runtime, saving config to disk
   ~HecuraRuntime();
 
-//hook functions:
-  void beforeRead();
-  void afterRead();
+  ///
+  /// Run the given main routine
+  void runMain(Main& main, int argc, const char** argv);
 
-  void beforeCompute();
-  void afterCompute();
-
-  void beforeWrite();
-  void afterWrite();
+private:
+  bool _isAutotuneMode;
 };
 
 }

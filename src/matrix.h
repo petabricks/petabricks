@@ -142,6 +142,8 @@ public:
     }
   }
 
+  MatrixRegion() : _base(NULL) {}
+
   ///
   /// Copy constructor
   MatrixRegion( const MatrixRegion<D, MATRIX_ELEMENT_T>& that )
@@ -266,6 +268,7 @@ protected:
     IndexT rv = 0;
     for(int i=0; i<D; ++i){
       #ifdef DEBUG
+      JASSERT(_storage).Text("Tried to read uninitialized matrix");
       JASSERT(0<=coord[i] && coord[i]<_sizes[i])(coord[i])(_sizes[i])
         .Text("Out of bounds access");
       #endif
@@ -298,7 +301,7 @@ public:
     : _storage(that.storage())
     , _base(that.base())
   {}
-  
+
   ///
   /// Allocate a storage for a new MatrixRegion
   static MatrixRegion allocate(const IndexT sizes[D]) {
@@ -338,7 +341,7 @@ public:
 
   ///
   /// Upcast from a lone value
-  MatrixRegion( ElementT value ){
+  MatrixRegion( ElementT value = -666 ){
     MatrixRegion<0, MATRIX_ELEMENT_T> tmp = MatrixRegion<0, MATRIX_ELEMENT_T>::allocate();
     _storage = tmp.storage();
     _base = tmp.base();

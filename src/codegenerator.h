@@ -43,8 +43,13 @@ class TaskCodeGenerator;
 
 class CodeGenerator {
 public:
+
+  
   static std::stringstream& theFilePrefix();
   static TunableDefs& theTunableDefs();
+
+  void incIndent(){++_indent;}
+  void decIndent(){--_indent;}
 
   CodeGenerator();
   virtual ~CodeGenerator(){}

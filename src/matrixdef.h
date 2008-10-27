@@ -106,12 +106,12 @@ public:
   void generateCodeSimple(CodeGenerator& o);
   void readFromFileCode(CodeGenerator& o, const std::string& fn);
   void writeToFileCode(CodeGenerator& o, const std::string& fn);
-
-
+  void varDeclCodeRO(CodeGenerator& o);
+  void varDeclCodeRW(CodeGenerator& o);
 
   void extractDefines(FreeVars& defined, CodeGenerator& o);
   void verifyDefines(CodeGenerator& o);
-  void allocateTemporary(CodeGenerator& o);
+  void allocateTemporary(CodeGenerator& o, bool setOnly);
 private:
   std::string _name;
   FormulaList _version;

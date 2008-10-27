@@ -22,8 +22,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fstream>
+#include <algorithm>
 
 #include "jconvert.h"
+#include <math.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -91,13 +93,34 @@ void jalib::JTunableManager::save(const std::string& filename) const{
   of << std::flush;
 }
 
+double jalib::JTunableConfiguration::distanceTo(const JTunableConfiguration& that) const {
+  double d=0;
+  JASSERT(that.size()==this->size())(*this)(that);
+  for(const_iterator a=begin(); a!=end(); ++a){
+    const_iterator b=that.find(a->first);
+    JASSERT(b!=that.end())(b->first)(*this)(that);
+    d+=(a->second-b->second)*(a->second-b->second);
+  }
+  return sqrt(d);
+}
+
+
+void jalib::JTunableConfiguration::print(std::ostream& o) const{
+  for(const_iterator a=begin(); a!=end(); ++a){
+    if(a!=begin()) o << ", ";
+    o << a->second;
+  }
+}
 
 #ifdef HAVE_LIBGSL
-
-#include <math.h>
 #include <gsl/gsl_siman.h>
 
 namespace { //file local
+
+typedef jalib::JTunableConfiguration Cfg;
+jalib::JConfigurationTester* theConfigTester;
+
+#define P_HOP_THRESH 0.8
 
 /* set up parameters for this simulated annealing run */
 /* how many points do we try before stepping */
@@ -105,7 +128,7 @@ namespace { //file local
 /* how many iterations for each T? */
 #define ITERS_FIXED_T 1000
 /* max step size in random walk */
-#define STEP_SIZE 1.0
+#define STEP_SIZE 128.0
 /* Boltzmann constant */
 #define K 1.0
 /* initial temperature */
@@ -119,58 +142,102 @@ gsl_siman_params_t params = {N_TRIES, ITERS_FIXED_T, STEP_SIZE, K, T_INITIAL, MU
 // return the energy of a configuration xp.
 double testEnergy(void *xp)
 {
-  double x = * ((double *) xp);
-  return exp(-pow((x-1.0),2.0))*sin(8*x);
+  Cfg* x = ((Cfg*)xp);
+//   double e =  exp(-pow((x-1.0),2.0))*sin(8*x);
+//   JTRACE("test energy")(x)(e);
+  return theConfigTester->test(*x);
 }
 
 // modify the configuration xp using a random step taken from the generator r, up to a maximum distance of step_size.
 void step(const gsl_rng * r, void *xp, double step_size)
 {
-  double old_x = *((double *) xp);
-  double new_x;
+  Cfg& cfg = *((Cfg*)xp);
 
-  double u = gsl_rng_uniform(r);
-  new_x = u * 2 * step_size - step_size + old_x;
+  for(Cfg::iterator i=cfg.begin(); i!=cfg.end(); ++i){
+    jalib::TunableValue& val = i->second;
+    jalib::JTunable& tunable = *i->first;
 
-  memcpy(xp, &new_x, sizeof(new_x));
+    //make jump
+    double rand = gsl_rng_uniform(r); // [0, 1] range
+    rand=(rand*2.0)-1.0; // [-1, 1] range
+    if(tunable.rangeLength() > step_size){
+      val+= jalib::TunableValue(step_size*rand);
+    }else{
+      //step size is too big to handle this range, use alternate single-step algorithm
+      if(rand >  P_HOP_THRESH) val++;
+      if(rand < -P_HOP_THRESH) val--;
+    }
+
+    //wrap overunderflows
+    if(val>tunable.max() || val<tunable.min()){
+      val = ((val - tunable.min()) % tunable.rangeLength()) + tunable.min();
+    }
+   }
+
+//   double u = gsl_rng_uniform(r);
+//   new_x = u * 2 * step_size - step_size + old_x;
+//   JTRACE("step")(old_x)(new_x)(u)(step_size);
+//   memcpy(xp, &new_x, sizeof(new_x));
 }
 
 // return the distance between two configurations xp and yp.
 double getDistance(void *xp, void *yp)
 {
-  double x = *((double *) xp);
-  double y = *((double *) yp);
-  return fabs(x - y);
+  Cfg* x = ((Cfg*)xp);
+  Cfg* y = ((Cfg*)yp);
+  return x->distanceTo(*y);
 }
 
 // print the contents of the configuration xp.
 void printCfg(void *xp)
 {
-  printf ("%12g", *((double *) xp));
+  Cfg* x = ((Cfg*)xp);
+  printf(" (%s)", x->toString().c_str());
 }
 
-void cfgCopy(void *source, void *dest){}
-void* cfgCreate(void *xp){ return 0; }
-void cfgDestroy(void *xp){}
+void cfgCopy(void *source, void *dest){
+  Cfg* s = ((Cfg*) source);
+  Cfg* d = ((Cfg*) dest);
+  *s=*d;
+}
 
-int foo(int argc, char *argv[]){
+void* cfgCreate(void *xp){ 
+  Cfg* x = ((Cfg*)xp);
+  return new Cfg(*x); 
+}
+
+void cfgDestroy(void *xp){
+  delete (Cfg*)xp;
+}
+
+}
+
+void jalib::JTunableManager::autotune(JConfigurationTester* tester) const{
+  theConfigTester = tester;
+
   const gsl_rng_type * T;
   gsl_rng * r;
 
-  double x_initial = 15.5;
+  Cfg* initial = new JTunableConfiguration(JTunableManager::getCurrentConfiguration());
 
   gsl_rng_env_setup();
-
   T = gsl_rng_default;
   r = gsl_rng_alloc(T);
 
-  gsl_siman_solve(r, &x_initial, testEnergy, step, getDistance, printCfg,
+  gsl_siman_solve(r, &initial, testEnergy, step, getDistance, printCfg,
                   cfgCopy, cfgCreate, cfgDestroy,
                   0, params);
 
   gsl_rng_free (r);
-  return 0;
+
+  initial->makeActive();
+  delete initial;
 }
 
+#else//HAVE_LIBGSL
+
+void jalib::JTunableManager::autotune(JConfigurationTester* tester) const{
+  JASSERT(false).Text("Can't autotune because not compiled with -lgsl, run: 'apt-get install libgsl0-dev' then './configure'");
 }
+
 #endif//HAVE_LIBGSL

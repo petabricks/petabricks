@@ -216,7 +216,7 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   if(!_through.empty())
 //     o.comment("Allocate intermediate matrices");
   for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
-    (*i)->allocateTemporary(o);
+    (*i)->allocateTemporary(o, false);
   }
 //   o.comment("Run computation");
   scheduler.generateCodeSimple(*this, o);
@@ -229,7 +229,7 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
     o.beginFunc(_to.front()->matrixTypeName(), _name, returnStyleArgs);
     extractSizeDefines(o);
 //     o.comment("Allocate to matrix");
-    _to.front()->allocateTemporary(o);
+    _to.front()->allocateTemporary(o, false);
 //     o.comment("Call normal version");
     o.call(_name, argNames);
     o.write("return "+_to.front()->name()+";");
@@ -277,23 +277,38 @@ void hecura::Transform::generateMainCode(CodeGenerator& o){
     o.write("return 1;");
   }
   o.endIf();
-  o.write("runtime.beforeRead();");
+  o.write("class _mainclass : public hecura::HecuraRuntime::Main {");
+  o.write("public:");
+  o.incIndent();
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    (*i)->varDeclCodeRO(o);
+  }
+  for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
+    (*i)->varDeclCodeRW(o);
+  }
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    (*i)->varDeclCodeRW(o);
+  }
+  o.beginFunc("void", "read", std::vector<std::string>(args, args+2));
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"]");
   }
   extractSizeDefines(o);
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->allocateTemporary(o);
+    (*i)->allocateTemporary(o, true);
   }
-  o.write("runtime.afterRead();");
-  o.write("runtime.beforeCompute();");
-  o.call(_name, argNames);
-  o.write("runtime.afterCompute();");
-  o.write("runtime.beforeWrite();");
+  o.endFunc();
+  o.beginFunc("void", "write", std::vector<std::string>(args, args+2));
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"]");
   }
-  o.write("runtime.afterWrite();");
+  o.endFunc();
+  o.beginFunc("void", "compute", std::vector<std::string>());
+  o.call(_name, argNames);
+  o.endFunc();
+  o.decIndent();
+  o.write("} mc;");
+  o.call("runtime.runMain", "mc, argc,argv");
   o.write("return 0;");
   o.endFunc();
 }

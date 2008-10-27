@@ -104,14 +104,23 @@ void hecura::MatrixDef::verifyDefines(CodeGenerator& o){
     o.addAssert((*i)->toString(), _name+".size("+jalib::XToString(d)+")");
   }
 }
-void hecura::MatrixDef::allocateTemporary(CodeGenerator& o){
-  o.varDecl(matrixTypeName()+" "+name()+" = "+matrixTypeName()+"::allocate("+_size.toString()+")");
+void hecura::MatrixDef::allocateTemporary(CodeGenerator& o, bool setOnly){
+  if(setOnly)
+    o.varDecl(name()+" = "+matrixTypeName()+"::allocate("+_size.toString()+")");
+  else
+    o.varDecl(matrixTypeName()+" "+name()+" = "+matrixTypeName()+"::allocate("+_size.toString()+")");
 }
 
 void hecura::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn){
-  o.varDecl(constMatrixTypeName()+" "+name()
+  o.varDecl(name()
       +" = hecura::MatrixIO("+fn+",\"r\").read<"+jalib::XToString(numDimensions())+">()");
 }
 void hecura::MatrixDef::writeToFileCode(CodeGenerator& o, const std::string& fn){
   o.write("hecura::MatrixIO("+fn+",\"w\").write("+name()+");");
+}
+void hecura::MatrixDef::varDeclCodeRO(CodeGenerator& o){
+  o.write(constMatrixTypeName()+" "+name()+";");
+}
+void hecura::MatrixDef::varDeclCodeRW(CodeGenerator& o){
+  o.write(matrixTypeName()+" "+name()+";");
 }

@@ -21,6 +21,7 @@
 #define JALIBJTUNABLE_H
 
 #include "jassert.h"
+#include "jprintable.h"
 
 #include <limits>
 #include <set>
@@ -38,11 +39,27 @@ typedef std::map<std::string, JTunable*> JTunableReverseMap;
 /**
  * A snapshot of the state of JTunables
  */
-class JTunableConfiguration : public std::map<JTunable*, TunableValue> {
+class JTunableConfiguration : public std::map<JTunable*, TunableValue>, public jalib::JPrintable {
 public:
   ///
   /// Make a given configuration active
   void makeActive() const;
+
+  ///
+  /// Return distance between two configurations
+  double distanceTo(const JTunableConfiguration& that) const;
+
+
+  void print(std::ostream& o) const;
+};
+
+class JConfigurationTester {
+public:
+  virtual ~JConfigurationTester(){}
+
+  ///
+  /// Test performance of given configuration
+  virtual double test(const JTunableConfiguration& cfg) = 0;
 };
 
 /**
@@ -69,6 +86,10 @@ public:
   ///
   /// Save a configuration to disk
   void save(const std::string& filename) const;
+
+  ///
+  /// Use simulated annealing to find an good configuration
+  void autotune(JConfigurationTester* tester) const;
 };
 
 /**
@@ -112,6 +133,8 @@ public:
     if(! (_value>=_min && _value<=_max))
       _value=_initial;
   }
+
+  TunableValue rangeLength() const { return _max-_min+1; }
 private:
   std::string  _name;
   TunableValue _value;

@@ -26,25 +26,54 @@ JTIMER(read);
 JTIMER(compute);
 JTIMER(write);
 
+namespace{//file local
+
 typedef jalib::JTunableManager TunableManager;
 
+class ConfigTesterGlue : public jalib::JConfigurationTester {
+  typedef hecura::HecuraRuntime::Main Main;
+  typedef jalib::JTime JTime;
+  typedef jalib::JTunableConfiguration JTunableConfiguration;
+public:
+  ConfigTesterGlue(Main& m) : _main(m) {}
+
+  double test(const JTunableConfiguration& cfg){
+    cfg.makeActive();
+    JTime start=JTime::Now();
+    _main.compute();
+    return JTime::Now()-start;
+  }
+private:
+  Main& _main;
+};
+
+}
+
 hecura::HecuraRuntime::HecuraRuntime(int& argc, const char**& argv)
+  : _isAutotuneMode(false)
 {
+  //parse args
+  while(argc>1){
+    if(strcmp(argv[1],"--autotune")==0){
+      _isAutotuneMode = true;
+      argc--,argv++;
+    }else{
+      break;
+    }
+  }
+
+  //load config from disk
   TunableManager& tm = TunableManager::instance();
   if(tm.size()>0){
     std::string filename = jalib::Filesystem::GetProgramPath() + ".cfg";
-    if(jalib::Filesystem::FileExists(filename)){
+    if(jalib::Filesystem::FileExists(filename))
       tm.load(filename);
-    }
-// else{
-//       JTRACE("creating config file")(filename);
-//       tm.save(filename);
-//     }
   }
 }
 
 hecura::HecuraRuntime::~HecuraRuntime()
 {
+  //save config to disk
   TunableManager& tm = TunableManager::instance();
   if(tm.size()>0){
     std::string filename = jalib::Filesystem::GetProgramPath() + ".cfg";
@@ -52,23 +81,24 @@ hecura::HecuraRuntime::~HecuraRuntime()
   }
 }
 
-void hecura::HecuraRuntime::beforeRead(){
-  JTIMER_START(read);
-}
-void hecura::HecuraRuntime::afterRead(){
-  JTIMER_STOP(read);
+void hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
+  { //read inputs
+    JTIMER_SCOPE(read);
+    main.read(argc, argv);
+  }
+
+  if(_isAutotuneMode){
+    JTIMER_SCOPE(autotune);
+    ConfigTesterGlue cfgtester(main);
+    jalib::JTunableManager::instance().autotune(&cfgtester);
+  }else{
+    JTIMER_SCOPE(compute);
+    main.compute();
+  }
+
+  { //write outputs
+    JTIMER_SCOPE(write);
+    main.write(argc,argv); 
+  }
 }
 
-void hecura::HecuraRuntime::beforeCompute(){
-  JTIMER_START(compute);
-}
-void hecura::HecuraRuntime::afterCompute(){
-  JTIMER_STOP(compute);
-}
-
-void hecura::HecuraRuntime::beforeWrite(){
-  JTIMER_START(write);
-}
-void hecura::HecuraRuntime::afterWrite(){
-  JTIMER_STOP(write);
-}
