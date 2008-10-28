@@ -16,8 +16,10 @@ void swap1D(MatrixRegion1D &A, int x, int y)
   A.cell(y) = temp;
 }
 
-int partition(MatrixRegion1D &A, int left, int right)
+int partition(MatrixRegion1D &A)
 {
+  int left = 0;
+  int right=A.count()-1;
   double pivotValue = A.cell(right);
   int storeIndex = left;
   for (int i = left; i < right; i++) {
@@ -33,16 +35,20 @@ int partition(MatrixRegion1D &A, int left, int right)
 %}
 
 transform QuicksortSubArray
-from IN[n], Left, Right
+from IN[n]
 to OUT[n], TEMP[n]
 {
-  to (OUT out, TEMP temp) from (IN in, Left left, Right right)
+  to (OUT out, TEMP temp) from (IN in)
   {
-    int pivotNewIndex = partition(out, left, right);
-    if (pivotNewIndex - 1 > left)
-      SORTSUBARRAY(out, temp, in, left, pivotNewIndex - 1);
-    if (right > pivotNewIndex + 1)
-      SORTSUBARRAY(out, temp, in, pivotNewIndex + 1, right);
+    int p = partition(out);
+    if(p>1)
+      SORTSUBARRAY(out .region(0,p),
+                   temp.region(0,p), 
+                   in  .region(0,p));
+    if(p<out.count()-2)
+      SORTSUBARRAY(out .region(p+1,n),
+                   temp.region(p+1,n), 
+                   in  .region(p+1,n));
   }
 }
 
@@ -54,7 +60,7 @@ to OUT[n]
   {
     Copy1D(out, in);
     MatrixRegion1D temp = MatrixRegion1D::allocate(n);
-    QuicksortSubArray(out, temp, in, 0, n - 1);
+    QuicksortSubArray(out, temp, in);
   }
 }
 

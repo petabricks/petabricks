@@ -4,12 +4,12 @@
 #include "../utilities.pbcc"
 
 transform InsertionsortSubArray
-from IN[n], Left, Right
+from IN[n]
 to OUT[n]
 {
-  to(OUT out) from (IN in, Left left, Right right)
+  to(OUT out) from (IN in)
   {
-    for (int i = 1; i <= right; i++) {
+    for (int i = 1; i < n; i++) {
       double value = out.cell(i);
       int j = i - 1;
       while (j >= 0 && out.cell(j) > value) {
@@ -28,7 +28,7 @@ to OUT[n]
   to(OUT out) from (IN in)
   {
     Copy1D(out, in);
-    InsertionsortSubArray(out, in, 0, n - 1);
+    InsertionsortSubArray(out, in);
   }
 }
 

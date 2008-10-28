@@ -20,6 +20,8 @@
 #ifndef HECURAHECURARUNTIME_H
 #define HECURAHECURARUNTIME_H
 
+#include <string>
+
 namespace hecura {
 
 class HecuraRuntime{
@@ -67,6 +69,8 @@ public:
   int runMain(Main& main, int argc, const char** argv);
 
   void runGraphMode(Main& main);
+
+  void runGraphParamMode(Main& main, int size, const std::string& param);
 
   double runTrial(Main& main, int n);
 };
