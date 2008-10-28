@@ -323,6 +323,12 @@ void hecura::Transform::generateMainCode(CodeGenerator& o){
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
       (*i)->allocateTemporary(o, true);
     }
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      o.write((*i)->name() + ".storage()->randomize();");
+    }
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      o.write((*i)->name() + ".storage()->randomize();");
+    }
   }
   o.endFunc();
 

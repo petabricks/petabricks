@@ -120,10 +120,10 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
 
 void hecura::HecuraRuntime::runGraphMode(Main& main){
   int GRAPH_MIN=8;
-  int GRAPH_MAX=4096;
+  int GRAPH_MAX=1024;
   int GRAPH_MAX_SEC=10;
-  int GRAPH_STEP=8;
-  int GRAPH_TRIALS=1;
+  int GRAPH_STEP=1;
+  int GRAPH_TRIALS=3;
 
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
     double t=0;
