@@ -101,6 +101,7 @@ runEachTest << EOF
   sort/Quicksort     $R1Dodd
   sort/Mergesort     $R1Dodd
   sort/Insertionsort $R1Dodd
+  sort/Radixsort     $R1Dodd
   sort/Sort          $R1D
   sort/Sort          $R1Dodd
 EOF
