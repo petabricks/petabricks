@@ -9,11 +9,13 @@ transform SortSubArray
 from IN[n], Left, Right
 to OUT[n], TEMP[n]
 {
+  recursive
   to (OUT out, TEMP temp) from (IN in, Left left, Right right)
   {
     MergesortSubArray(out, temp, in, left, right);
   }
 
+  recursive
   to (OUT out, TEMP temp) from (IN in, Left left, Right right)
   {
     QuicksortSubArray(out, temp, in, left, right);

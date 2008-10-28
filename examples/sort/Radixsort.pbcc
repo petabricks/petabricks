@@ -11,21 +11,17 @@ typedef unsigned long long uint64;
 
 int get4Bits(double in, int position)
 {
-    const double *temp = &in;
-    printf("temp = %p", temp);
-    printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
-    uint64 inInt = *((const uint64 *) temp);
-    uint64 oneHigh = 1; oneHigh <<= 63;
-
-//    printf("in:    %llx\n", in);
-//    printf("inInt: %llx\n", inInt);
-    
-    uint64 mask = -int64(inInt >> 63) | oneHigh;
-//    printf("mask:  %llx\n", mask);
-    inInt ^= mask;
-//    printf("inInt: %llx\n", inInt);
-    mask = 15; mask <<= position;
-    return (inInt & mask) >> position;
+  union {
+    double d;
+    uint64 u;
+  };
+  d = in;
+  uint64 inInt = u;
+//printf("in:    %llx\n", in);
+//printf("inInt: %llx\n", inInt);
+  uint64 mask = -int64(inInt >> 63) | ((uint64) 1 << 63);
+  inInt ^= mask;
+  return (inInt & ((uint64) 15 << position)) >> position;
 }
 
 void Radix(MatrixRegion1D &out, MatrixRegion1D &in, int (&buckets)[18], int pos)
