@@ -152,7 +152,8 @@ Rule: RuleHeader RuleBody OptSemiCol { ($$=$1)->setBody($2); JTRACE("parsed Rule
 RuleHeader: BaseRuleHeader          { $$=$1; }
           | PriorityFlag RuleHeader { ($$=$2)->setPriority($1); }
           | ROTATABLE    RuleHeader { ($$=$2)->addRotations(RuleFlags::ROTATE); }
-          | RECURSIVE    RuleHeader { ($$=$2)->markRecursive(); };
+          | RECURSIVE                     RuleHeader { ($$=$2)->markRecursive(); }
+          | RECURSIVE '(' Formula ')'  RuleHeader { ($$=$5)->markRecursive($3); };
 
 BaseRuleHeader: Region       RuleHeaderFrom OptWhere { $$=REFALLOC(Rule($1,  *$2, *$3)); }
               | RuleHeaderTo RuleHeaderFrom OptWhere { $$=REFALLOC(Rule(*$1, *$2, *$3)); };

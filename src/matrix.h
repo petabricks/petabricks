@@ -52,7 +52,7 @@ private:
 public:
   ///
   /// Constructor
-  MatrixStorage(IndexT n) {
+  MatrixStorage(IndexT n) : _count(n) {
     _data = new ElementT[n];
   }
 
@@ -64,8 +64,15 @@ public:
 
   ElementT* data() { return _data; }
   const ElementT* data() const { return _data; }
+
+  IndexT count() const { return _count; }
+
+  ///
+  /// Fill the matrix with random data
+  void randomize();
 private:
   ElementT* _data;
+  IndexT _count;
 };
 
 /**

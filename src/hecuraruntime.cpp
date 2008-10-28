@@ -49,19 +49,8 @@ private:
 
 }
 
-hecura::HecuraRuntime::HecuraRuntime(int& argc, const char**& argv)
-  : _isAutotuneMode(false)
+hecura::HecuraRuntime::HecuraRuntime()
 {
-  //parse args
-  while(argc>1){
-    if(strcmp(argv[1],"--autotune")==0){
-      _isAutotuneMode = true;
-      argc--,argv++;
-    }else{
-      break;
-    }
-  }
-
   //load config from disk
   TunableManager& tm = TunableManager::instance();
   if(tm.size()>0){
@@ -81,24 +70,73 @@ hecura::HecuraRuntime::~HecuraRuntime()
   }
 }
 
-void hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
-  { //read inputs
-    JTIMER_SCOPE(read);
-    main.read(argc, argv);
+int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
+  bool isAutotuneMode = false;
+  bool isGraphMode = false;
+
+  //parse args
+  while(argc>1){
+    if(strcmp(argv[1],"--autotune")==0){
+      isAutotuneMode = true;
+      argc--,argv++;
+    }else if(strcmp(argv[1],"--graph")==0){
+      isGraphMode = true;
+      argc--,argv++;
+    }else{
+      break;
+    }
   }
 
-  if(_isAutotuneMode){
-    JTIMER_SCOPE(autotune);
-    ConfigTesterGlue cfgtester(main);
-    jalib::JTunableManager::instance().autotune(&cfgtester);
+
+  if(isGraphMode){
+    runGraphMode(main);
+    return 0;
+  }
+
+  if(main.verifyArgs(argc, argv)){
+    { //read inputs
+      JTIMER_SCOPE(read);
+      main.read(argc, argv);
+    }
+  
+    if(isAutotuneMode){
+      JTIMER_SCOPE(autotune);
+      ConfigTesterGlue cfgtester(main);
+      jalib::JTunableManager::instance().autotune(&cfgtester);
+    }else{
+      JTIMER_SCOPE(compute);
+      main.compute();
+    }
+  
+    { //write outputs
+      JTIMER_SCOPE(write);
+      main.write(argc,argv); 
+    }
+    return 0;
   }else{
-    JTIMER_SCOPE(compute);
-    main.compute();
-  }
-
-  { //write outputs
-    JTIMER_SCOPE(write);
-    main.write(argc,argv); 
+    return 1;
   }
 }
 
+void hecura::HecuraRuntime::runGraphMode(Main& main){
+  int GRAPH_MIN=8;
+  int GRAPH_MAX=1024;
+  int GRAPH_MAX_SEC=10;
+  int GRAPH_STEP=1;
+  int GRAPH_TRIALS=3;
+
+  for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
+    double t=0;
+    for(int z=0;z<GRAPH_TRIALS; ++z){
+      main.randomInputs(n);
+      jalib::JTime begin=jalib::JTime::Now();
+      main.compute();
+      jalib::JTime end=jalib::JTime::Now();
+      t+=end-begin;
+    }
+    float avg = t/GRAPH_TRIALS;
+    printf("%d    %.6f\n", n, avg);
+    if(avg > GRAPH_MAX_SEC) break;
+  }
+
+}

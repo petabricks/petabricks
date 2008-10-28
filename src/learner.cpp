@@ -61,7 +61,7 @@ hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
   int levels = std::min<int>(MAX_REC_LEVELS, recursive.size());
   while(levels-->0){
     FormulaPtr condition;
-    if(rv) condition = new FormulaGT(new FormulaVariable(INPUT_SIZE_STR), RuleChoice::autotuned());
+    if(rv) condition = new FormulaGT((*recursive.begin())->recursiveHint(), RuleChoice::autotuned());
     //add recursive case
     rv=new RuleChoice(recursive, condition, rv);
   }

@@ -175,7 +175,10 @@ public:
 
   void collectDependencies(StaticScheduler& scheduler);
 
-  void markRecursive() { _flags.isRecursive=true; }
+  void markRecursive(const FormulaPtr& rh = new FormulaVariable("input_size")) { 
+    _flags.isRecursive = true; 
+    _recursiveHint = rh;
+  }
 
   bool isRecursive() const { return _flags.isRecursive; }
 
@@ -190,6 +193,8 @@ public:
 
   void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
   std::vector<std::string> getCallArgs(Transform& trans, const SimpleRegionPtr& region);
+
+  const FormulaPtr& recursiveHint() const { return _recursiveHint; }
 private:
   int _id;
   RuleFlags   _flags;
@@ -201,6 +206,7 @@ private:
   std::string     _body;
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
+  FormulaPtr          _recursiveHint;
 };
 
 /**
