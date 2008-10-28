@@ -22,6 +22,6 @@ print "SIZE",W,H
 
 for y in xrange(H):
   for x in xrange(W):
-    print "%.8g "%((2 * (floor(random.random() * 2) - .5)) * (2 ** (floor(random.random() * 2048) - 1023)) * (random.random() + 1)),
+    print "%.8g "%((2 * (floor(random.random() * 2) - .5)) * (2 ** (floor(random.random() * 2046) - 1022)) * (random.random() + 1)),
   print
 
