@@ -28,6 +28,7 @@ static int GRAPH_MAX=1024;
 static int GRAPH_MAX_SEC=10;
 static int GRAPH_STEP=8;
 static int GRAPH_TRIALS=5;
+static bool GRAPH_MULTIGRID=false;
 
 namespace{//file local
 
@@ -126,6 +127,8 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
       JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
       graphParam = argv[1];
       shift;
+    }else if(strcmp(argv[0],"--multigrid")==0){
+      GRAPH_MULTIGRID = true;
       shift;
     }else{
       break;
@@ -172,8 +175,9 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
 
 void hecura::HecuraRuntime::runGraphMode(Main& main){
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
-    float avg = runTrial(main, n);
-    printf("%d %.6f\n", n, avg);
+    int size = (GRAPH_MULTIGRID ? (1 << n) + 1 : n);
+    float avg = runTrial(main, size);
+    printf("%d %.6f\n", size, avg);
     if(avg > GRAPH_MAX_SEC) break;
   }
 }
