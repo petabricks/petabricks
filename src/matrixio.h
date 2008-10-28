@@ -117,7 +117,7 @@ inline void hecura::MatrixIO::write(MatrixRegion<D,T> m){
   memset(coord, 0, sizeof coord);
   if(D>0){
     while(coord[D-1] < m.size(D-1)){
-      fprintf(_fd,"%8.4f ", (float)m.cell(coord));
+      fprintf(_fd,"%4.8g ", (double) m.cell(coord));
       //get next coord
       coord[0]++;
       for(int i=0; i<D-1; ++i){
@@ -130,7 +130,7 @@ inline void hecura::MatrixIO::write(MatrixRegion<D,T> m){
       }
     }
   }else{ //0D case
-    fprintf(_fd,"%f", (float)m.cell(coord));
+    fprintf(_fd,"%4.8g", (double) m.cell(coord));
   }
   fprintf(_fd,"\n");
 }

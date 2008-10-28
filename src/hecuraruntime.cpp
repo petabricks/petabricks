@@ -22,9 +22,11 @@
 #include "jfilesystem.h"
 #include "jtimer.h"
 
-JTIMER(read);
-JTIMER(compute);
-JTIMER(write);
+static int GRAPH_MIN=8;
+static int GRAPH_MAX=1024;
+static int GRAPH_MAX_SEC=10;
+static int GRAPH_STEP=8;
+static int GRAPH_TRIALS=5;
 
 namespace{//file local
 
@@ -49,19 +51,8 @@ private:
 
 }
 
-hecura::HecuraRuntime::HecuraRuntime(int& argc, const char**& argv)
-  : _isAutotuneMode(false)
+hecura::HecuraRuntime::HecuraRuntime()
 {
-  //parse args
-  while(argc>1){
-    if(strcmp(argv[1],"--autotune")==0){
-      _isAutotuneMode = true;
-      argc--,argv++;
-    }else{
-      break;
-    }
-  }
-
   //load config from disk
   TunableManager& tm = TunableManager::instance();
   if(tm.size()>0){
@@ -81,13 +72,74 @@ hecura::HecuraRuntime::~HecuraRuntime()
   }
 }
 
-void hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
-  { //read inputs
+#define shift argc--,argv++;
+
+int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
+  bool isAutotuneMode = false;
+  bool isGraphMode = false;
+  bool doIO = true;
+
+  //parse args
+  shift;
+  while(argc>0){
+    if(strcmp(argv[0],"--autotune")==0){
+      isAutotuneMode = true;
+      shift;
+    }else if(strcmp(argv[0],"-g")==0 || strcmp(argv[0],"--graph")==0){
+      isGraphMode = true;
+      shift;
+    }else if(strcmp(argv[0],"-n")==0 || strcmp(argv[0],"--random")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("--random expects an argument");
+      doIO = false;
+      main.randomInputs(jalib::StringToInt(argv[1]));
+      shift;
+      shift;
+    }else if(strcmp(argv[0],"--max")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      GRAPH_MAX = jalib::StringToInt(argv[1]);
+      shift;
+      shift;
+    }else if(strcmp(argv[0],"--min")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      GRAPH_MIN = jalib::StringToInt(argv[1]);
+      shift;
+      shift;
+    }else if(strcmp(argv[0],"--step")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      GRAPH_STEP = jalib::StringToInt(argv[1]);
+      shift;
+      shift;
+    }else if(strcmp(argv[0],"--trials")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      GRAPH_TRIALS = jalib::StringToInt(argv[1]);
+      shift;
+      shift;
+    }else if(strcmp(argv[0],"--max-sec")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      GRAPH_MAX_SEC = jalib::StringToInt(argv[1]);
+      shift;
+      shift;
+    }else{
+      break;
+    }
+  }
+
+  if(isGraphMode){
+    runGraphMode(main);
+    return 0;
+  }
+  
+  argc++, argv--;
+
+  if(doIO && !main.verifyArgs(argc, argv))
+    return 1;
+
+  if(doIO){ //read inputs
     JTIMER_SCOPE(read);
     main.read(argc, argv);
   }
 
-  if(_isAutotuneMode){
+  if(isAutotuneMode){
     JTIMER_SCOPE(autotune);
     ConfigTesterGlue cfgtester(main);
     jalib::JTunableManager::instance().autotune(&cfgtester);
@@ -96,9 +148,31 @@ void hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
     main.compute();
   }
 
-  { //write outputs
+  if(doIO){ //write outputs
     JTIMER_SCOPE(write);
     main.write(argc,argv); 
   }
+
+  return 0;
 }
 
+void hecura::HecuraRuntime::runGraphMode(Main& main){
+  for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
+    float avg = runTrial(main, n);
+    printf("%d %.6f\n", n, avg);
+    if(avg > GRAPH_MAX_SEC) break;
+  }
+}
+
+double hecura::HecuraRuntime::runTrial(Main& main, int n){
+  double t=0;
+  for(int z=0;z<GRAPH_TRIALS; ++z){
+    main.randomInputs(n);
+    jalib::JTime begin=jalib::JTime::Now();
+    main.compute();
+    jalib::JTime end=jalib::JTime::Now();
+    t+=end-begin;
+  }
+  double avg = t/GRAPH_TRIALS;
+  return avg;
+}

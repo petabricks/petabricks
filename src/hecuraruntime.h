@@ -34,6 +34,10 @@ public:
     virtual ~Main(){}
 
     ///
+    /// initialize with random inputs
+    virtual bool verifyArgs(int argc, const char** argv) = 0;
+
+    ///
     /// Read inputs from disk
     virtual void read(int argc, const char** argv) = 0;
 
@@ -44,11 +48,15 @@ public:
     ///
     /// Write inputs to disk
     virtual void write(int argc, const char** argv) = 0;
+
+    ///
+    /// initialize with random inputs
+    virtual void randomInputs(int size) = 0;
   };
 
   ///
   /// Construct the runtime, parse any runtime-specific args
-  HecuraRuntime(int& argc, const char**& argv);
+  HecuraRuntime();
 
   ///
   /// Destruct the runtime, saving config to disk
@@ -56,10 +64,11 @@ public:
 
   ///
   /// Run the given main routine
-  void runMain(Main& main, int argc, const char** argv);
+  int runMain(Main& main, int argc, const char** argv);
 
-private:
-  bool _isAutotuneMode;
+  void runGraphMode(Main& main);
+
+  double runTrial(Main& main, int n);
 };
 
 }
