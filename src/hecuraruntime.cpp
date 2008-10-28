@@ -22,9 +22,11 @@
 #include "jfilesystem.h"
 #include "jtimer.h"
 
-JTIMER(read);
-JTIMER(compute);
-JTIMER(write);
+static int GRAPH_MIN=8;
+static int GRAPH_MAX=1024;
+static int GRAPH_MAX_SEC=10;
+static int GRAPH_STEP=8;
+static int GRAPH_TRIALS=5;
 
 namespace{//file local
 
@@ -70,73 +72,107 @@ hecura::HecuraRuntime::~HecuraRuntime()
   }
 }
 
+#define shift argc--,argv++;
+
 int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
   bool isAutotuneMode = false;
   bool isGraphMode = false;
+  bool doIO = true;
 
   //parse args
-  while(argc>1){
-    if(strcmp(argv[1],"--autotune")==0){
+  shift;
+  while(argc>0){
+    if(strcmp(argv[0],"--autotune")==0){
       isAutotuneMode = true;
-      argc--,argv++;
-    }else if(strcmp(argv[1],"--graph")==0){
+      shift;
+    }else if(strcmp(argv[0],"-g")==0 || strcmp(argv[0],"--graph")==0){
       isGraphMode = true;
-      argc--,argv++;
+      shift;
+    }else if(strcmp(argv[0],"-n")==0 || strcmp(argv[0],"--random")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("--random expects an argument");
+      doIO = false;
+      main.randomInputs(jalib::StringToInt(argv[1]));
+      shift;
+      shift;
+    }else if(strcmp(argv[0],"--max")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      GRAPH_MAX = jalib::StringToInt(argv[1]);
+      shift;
+      shift;
+    }else if(strcmp(argv[0],"--min")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      GRAPH_MIN = jalib::StringToInt(argv[1]);
+      shift;
+      shift;
+    }else if(strcmp(argv[0],"--step")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      GRAPH_STEP = jalib::StringToInt(argv[1]);
+      shift;
+      shift;
+    }else if(strcmp(argv[0],"--trials")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      GRAPH_TRIALS = jalib::StringToInt(argv[1]);
+      shift;
+      shift;
+    }else if(strcmp(argv[0],"--max-sec")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      GRAPH_MAX_SEC = jalib::StringToInt(argv[1]);
+      shift;
+      shift;
     }else{
       break;
     }
   }
 
-
   if(isGraphMode){
     runGraphMode(main);
     return 0;
   }
+  
+  argc++, argv--;
 
-  if(main.verifyArgs(argc, argv)){
-    { //read inputs
-      JTIMER_SCOPE(read);
-      main.read(argc, argv);
-    }
-  
-    if(isAutotuneMode){
-      JTIMER_SCOPE(autotune);
-      ConfigTesterGlue cfgtester(main);
-      jalib::JTunableManager::instance().autotune(&cfgtester);
-    }else{
-      JTIMER_SCOPE(compute);
-      main.compute();
-    }
-  
-    { //write outputs
-      JTIMER_SCOPE(write);
-      main.write(argc,argv); 
-    }
-    return 0;
-  }else{
+  if(doIO && !main.verifyArgs(argc, argv))
     return 1;
+
+  if(doIO){ //read inputs
+    JTIMER_SCOPE(read);
+    main.read(argc, argv);
   }
+
+  if(isAutotuneMode){
+    JTIMER_SCOPE(autotune);
+    ConfigTesterGlue cfgtester(main);
+    jalib::JTunableManager::instance().autotune(&cfgtester);
+  }else{
+    JTIMER_SCOPE(compute);
+    main.compute();
+  }
+
+  if(doIO){ //write outputs
+    JTIMER_SCOPE(write);
+    main.write(argc,argv); 
+  }
+
+  return 0;
 }
 
 void hecura::HecuraRuntime::runGraphMode(Main& main){
-  int GRAPH_MIN=8;
-  int GRAPH_MAX=1024;
-  int GRAPH_MAX_SEC=10;
-  int GRAPH_STEP=1;
-  int GRAPH_TRIALS=3;
-
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
-    double t=0;
-    for(int z=0;z<GRAPH_TRIALS; ++z){
-      main.randomInputs(n);
-      jalib::JTime begin=jalib::JTime::Now();
-      main.compute();
-      jalib::JTime end=jalib::JTime::Now();
-      t+=end-begin;
-    }
-    float avg = t/GRAPH_TRIALS;
-    printf("%d    %.6f\n", n, avg);
+    float avg = runTrial(main, n);
+    printf("%d %.6f\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;
   }
+}
 
+double hecura::HecuraRuntime::runTrial(Main& main, int n){
+  double t=0;
+  for(int z=0;z<GRAPH_TRIALS; ++z){
+    main.randomInputs(n);
+    jalib::JTime begin=jalib::JTime::Now();
+    main.compute();
+    jalib::JTime end=jalib::JTime::Now();
+    t+=end-begin;
+  }
+  double avg = t/GRAPH_TRIALS;
+  return avg;
 }

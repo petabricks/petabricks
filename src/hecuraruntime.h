@@ -67,6 +67,8 @@ public:
   int runMain(Main& main, int argc, const char** argv);
 
   void runGraphMode(Main& main);
+
+  double runTrial(Main& main, int n);
 };
 
 }
