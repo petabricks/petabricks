@@ -73,8 +73,11 @@ public:
   }
  
   //compare
-  bool operator == (const JRef& that) const { 
-    return that._obj == _obj;
+  friend bool operator == (const JRef& a, const JRef& b) { 
+    return a._obj == b._obj;
+  }
+  friend bool operator != (const JRef& a, const JRef& b) { 
+    return a._obj != b._obj;
   }
   bool operator < (const JRef& that) const { 
     return that._obj < _obj;

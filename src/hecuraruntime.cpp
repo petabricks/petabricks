@@ -21,6 +21,7 @@
 #include "jtunable.h"
 #include "jfilesystem.h"
 #include "jtimer.h"
+#include "dynamictask.h"
 
 static int GRAPH_MIN=8;
 static int GRAPH_MAX=1024;
@@ -79,6 +80,8 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
   bool isAutotuneMode = false;
   bool isGraphMode = false;
   bool doIO = true;
+  int randSize = 4096;
+  std::string graphParam;
 
   //parse args
   shift;
@@ -92,7 +95,7 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
     }else if(strcmp(argv[0],"-n")==0 || strcmp(argv[0],"--random")==0){
       JASSERT(argc>1)(argv[0])(argc).Text("--random expects an argument");
       doIO = false;
-      main.randomInputs(jalib::StringToInt(argv[1]));
+      main.randomInputs(randSize=jalib::StringToInt(argv[1]));
       shift;
       shift;
     }else if(strcmp(argv[0],"--max")==0){
@@ -120,6 +123,10 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
       GRAPH_MAX_SEC = jalib::StringToInt(argv[1]);
       shift;
       shift;
+    }else if(strcmp(argv[0],"--graph-param")==0 || strcmp(argv[0],"--graph-tune")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      graphParam = argv[1];
+      shift;
     }else if(strcmp(argv[0],"--multigrid")==0){
       GRAPH_MULTIGRID = true;
       shift;
@@ -143,6 +150,11 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
     main.read(argc, argv);
   }
 
+  if(!graphParam.empty()){
+    runGraphParamMode(main, randSize , graphParam);
+    return 0;
+  }
+
   if(isAutotuneMode){
     JTIMER_SCOPE(autotune);
     ConfigTesterGlue cfgtester(main);
@@ -160,11 +172,23 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
   return 0;
 }
 
+
 void hecura::HecuraRuntime::runGraphMode(Main& main){
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
     int size = (GRAPH_MULTIGRID ? (1 << n) + 1 : n);
     float avg = runTrial(main, size);
     printf("%d %.6f\n", size, avg);
+    if(avg > GRAPH_MAX_SEC) break;
+  }
+}
+
+void hecura::HecuraRuntime::runGraphParamMode(Main& main, int size, const std::string& param){
+  jalib::JTunable* tunable = jalib::JTunableManager::instance().getReverseMap()[param];
+  JASSERT(tunable!=0)(param).Text("parameter not found");
+  for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
+    tunable->setValue(n);
+    float avg = runTrial(main, size);
+    printf("%d %.6f\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;
   }
 }
