@@ -75,7 +75,7 @@ public:
   void runGraphParamMode(const std::string& param);
 
   double optimizeParameter(const std::string& param);
-  double optimizeParameter(jalib::JTunable& param, int min, int max, int step);
+  double optimizeParameter(jalib::JTunable& param, int min, int max, int step=-1);
 
   double runTrial();
 
