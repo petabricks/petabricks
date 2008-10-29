@@ -23,6 +23,8 @@
 #include "jtimer.h"
 #include "dynamictask.h"
 
+#include <algorithm>
+
 
 static int TRAIN_MIN=16;
 static int TRAIN_MAX=4096;
@@ -32,8 +34,9 @@ static int GRAPH_MIN=8;
 static int GRAPH_MAX=1024;
 static int GRAPH_MAX_SEC=10;
 static int GRAPH_STEP=8;
-static int GRAPH_TRIALS=5;
-static int SEARCH_BRANCH_FACTOR=8;
+static int GRAPH_TRIALS=2;
+static int GRAPH_SMOOTHING=1;
+static int SEARCH_BRANCH_FACTOR=32;
 static bool GRAPH_MULTIGRID=false;
 
 namespace{//file local
@@ -132,6 +135,11 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
       GRAPH_TRIALS = jalib::StringToInt(argv[1]);
       shift;
       shift;
+    }else if(strcmp(argv[0],"--smoothing")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      GRAPH_SMOOTHING = jalib::StringToInt(argv[1]);
+      shift;
+      shift;
     }else if(strcmp(argv[0],"--max-sec")==0){
       JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
       GRAPH_MAX_SEC = jalib::StringToInt(argv[1]);
@@ -206,7 +214,7 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
 
 void hecura::HecuraRuntime::runGraphMode(){
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
-    randSize = (GRAPH_MULTIGRID ? (1 << n): n);
+    randSize = (GRAPH_MULTIGRID ? (1 << n)+1: n);
     double avg = runTrial();
     printf("%d %.6f\n", randSize, avg);
     if(avg > GRAPH_MAX_SEC) break;
@@ -225,16 +233,25 @@ void hecura::HecuraRuntime::runGraphParamMode(const std::string& param){
 }
 
 double hecura::HecuraRuntime::runTrial(){
-  double t=0;
-  for(int z=0;z<GRAPH_TRIALS; ++z){
-    main.randomInputs(randSize+1);
-    jalib::JTime begin=jalib::JTime::Now();
-    main.compute();
-    jalib::JTime end=jalib::JTime::Now();
-    t+=end-begin;
+  std::vector<double> rslts;
+  rslts.reserve(2*GRAPH_SMOOTHING+1);
+  for( int n =  randSize-GRAPH_SMOOTHING
+     ;     n <= randSize+GRAPH_SMOOTHING
+     ; ++n)
+  {
+    double t=0;
+    for(int z=0;z<GRAPH_TRIALS; ++z){
+      main.randomInputs(n);
+      jalib::JTime begin=jalib::JTime::Now();
+      main.compute();
+      jalib::JTime end=jalib::JTime::Now();
+      t+=end-begin;
+    }
+    double avg = t/GRAPH_TRIALS;
+    rslts.push_back(avg);
   }
-  double avg = t/GRAPH_TRIALS;
-  return avg;
+  std::sort(rslts.begin(), rslts.end());
+  return rslts[GRAPH_SMOOTHING];
 }
 
 
@@ -245,6 +262,10 @@ double hecura::HecuraRuntime::optimizeParameter(const std::string& param){
 }
 
 double hecura::HecuraRuntime::optimizeParameter(jalib::JTunable& tunable, int min, int max, int step){
+  if(max<=min) return -1;
+  if(step<0){
+    step=(max-min)/SEARCH_BRANCH_FACTOR;
+  }
   if(step<=0) step = 1;
   int best=max;
   double bestVal = std::numeric_limits<double>::max();
@@ -339,7 +360,7 @@ double hecura::HecuraRuntime::autotuneLevel(int lvl, const std::string& prefix, 
     return best;
   }else{
     if(cutoff!=0)
-      return optimizeParameter(*cutoff, cutoff->min(), randSize+1, (randSize+1-cutoff->min())/SEARCH_BRANCH_FACTOR);
+      return optimizeParameter(*cutoff, cutoff->min(), randSize/2-1);
     else
       return -1;
   }
