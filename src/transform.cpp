@@ -269,7 +269,6 @@ void hecura::Transform::generateMainCode(CodeGenerator& o){
   o.comment("Program main routine");
   std::string args[] = {"int argc", "const char** argv"};
   o.beginFunc("int", "main", std::vector<std::string>(args, args+2));
-  o.write("hecura::HecuraRuntime runtime;");
   o.write("class _mainclass : public hecura::HecuraRuntime::Main {");
   o.write("public:");
   o.incIndent();
@@ -346,7 +345,8 @@ void hecura::Transform::generateMainCode(CodeGenerator& o){
 
   o.decIndent();
   o.write("} mc;");
-  o.write("return runtime.runMain(mc,argc,argv);");
+  o.write("hecura::HecuraRuntime runtime(mc);");
+  o.write("return runtime.runMain(argc,argv);");
   o.endFunc();
 }
 

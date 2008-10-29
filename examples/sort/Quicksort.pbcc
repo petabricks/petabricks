@@ -35,20 +35,20 @@ int partition(MatrixRegion1D &A)
 %}
 
 transform QuicksortSubArray
-from IN[n]
+from IN[n], Pos
 to OUT[n], TEMP[n]
 {
-  to (OUT out, TEMP temp) from (IN in)
+  to (OUT out, TEMP temp) from (IN in, Pos pos)
   {
     int p = partition(out);
     if(p>1)
       SORTSUBARRAY(out .region(0,p),
                    temp.region(0,p), 
-                   in  .region(0,p));
+                   in  .region(0,p), pos);
     if(p<out.count()-2)
       SORTSUBARRAY(out .region(p+1,n),
                    temp.region(p+1,n), 
-                   in  .region(p+1,n));
+                   in  .region(p+1,n), pos);
   }
 }
 
@@ -60,7 +60,7 @@ to OUT[n]
   {
     Copy1D(out, in);
     MatrixRegion1D temp = MatrixRegion1D::allocate(n);
-    QuicksortSubArray(out, temp, in);
+    QuicksortSubArray(out, temp, in, 60);
   }
 }
 

@@ -22,6 +22,8 @@
 
 #include <string>
 
+#include "jtunable.h"
+
 namespace hecura {
 
 class HecuraRuntime{
@@ -58,7 +60,7 @@ public:
 
   ///
   /// Construct the runtime, parse any runtime-specific args
-  HecuraRuntime();
+  HecuraRuntime(Main&);
 
   ///
   /// Destruct the runtime, saving config to disk
@@ -66,13 +68,24 @@ public:
 
   ///
   /// Run the given main routine
-  int runMain(Main& main, int argc, const char** argv);
+  int runMain(int argc, const char** argv);
 
-  void runGraphMode(Main& main);
+  void runGraphMode();
 
-  void runGraphParamMode(Main& main, int size, const std::string& param);
+  void runGraphParamMode(const std::string& param);
 
-  double runTrial(Main& main, int n);
+  double optimizeParameter(const std::string& param);
+  double optimizeParameter(jalib::JTunable& param, int min, int max, int step);
+
+  double runTrial();
+
+  void runAutotuneMode(const std::string& prefix);
+
+  double autotuneLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
+  void resetLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
+private:
+  Main& main;
+  int randSize;
 };
 
 }

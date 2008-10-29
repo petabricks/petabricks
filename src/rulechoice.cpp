@@ -24,6 +24,15 @@
 #include "rule.h"
 #include "staticscheduler.h"
 
+namespace {
+  struct RuleIdComparer {
+    bool operator()(const hecura::RulePtr& x, const hecura::RulePtr& y){
+      return x->id() < y->id();
+    }
+  };
+
+}
+
 const hecura::FormulaPtr& hecura::RuleChoice::autotuned() {
   static FormulaPtr t = new FormulaVariable("AUTOTUNED");
   return t;
@@ -43,32 +52,39 @@ void hecura::RuleChoice::generateCodeSimple(  const std::string& taskname
                                             , Transform& trans
                                             , ScheduleNode& node
                                             , const SimpleRegionPtr& region
-                                            , CodeGenerator& o){
+                                            , CodeGenerator& o
+                                            , const std::string& _tpfx)
+{
+  std::string tpfx = _tpfx;
+  if(tpfx.length()==0) tpfx = trans.createTunerPrefix();
+
   if(_condition){
-    o.beginIf(processCondition(_condition, trans, o)->toString());
+    o.beginIf(processCondition(tpfx + "lvl" + jalib::XToString(level()) + "_cutoff",_condition, o)->toString());
   }
 
-  std::string choicename = trans.name() + "_alg_lvl" + jalib::XToString(level())
-                        + "_rules";
+  std::vector<RulePtr> sortedRules(_rules.begin(), _rules.end());
+  std::sort(sortedRules.begin(), sortedRules.end(), RuleIdComparer());
+
+  std::string choicename = tpfx + "lvl" + jalib::XToString(level()) + "_rule";
   int n=0;
-  if(_rules.size()>1){
-    for(RuleSet::const_iterator i=_rules.begin(); i!=_rules.end(); ++i){
-      choicename += "_"+jalib::XToString((*i)->id() - trans.ruleIdOffset());
-    }
-    o.createTunable(trans.name(), choicename, 0, 0, _rules.size()-1);
+  if(sortedRules.size()>1){
+//     for(std::vector<RulePtr>::const_iterator i=sortedRules.begin(); i!=sortedRules.end(); ++i){
+//       choicename += "_"+jalib::XToString((*i)->id() - trans.ruleIdOffset());
+//     }
+    o.createTunable(trans.name(), choicename, 0, 0, sortedRules.size()-1);
     o.beginSwitch(choicename);
   }
-  for(RuleSet::const_iterator i=_rules.begin(); i!=_rules.end(); ++i){
-    if(_rules.size()>1) o.beginCase(n++);
+  for(std::vector<RulePtr>::const_iterator i=sortedRules.begin(); i!=sortedRules.end(); ++i){
+    if(sortedRules.size()>1) o.beginCase(n++);
     if(taskname.empty())
       (*i)->generateCallCodeSimple(trans, o, region);
     else{
       (*i)->generateCallTaskCode(taskname, trans, o, region);
-      node.printDepsAndEnqueue(o, *_rules.begin());
+      node.printDepsAndEnqueue(o, sortedRules[0]);
     }
-    if(_rules.size()>1) o.endCase();
+    if(sortedRules.size()>1) o.endCase();
   }
-  if(_rules.size()>1){
+  if(sortedRules.size()>1){
     o.write("default: JASSERT(false)("+choicename+".value());");
     o.endSwitch();
   }
@@ -76,17 +92,16 @@ void hecura::RuleChoice::generateCodeSimple(  const std::string& taskname
   if(_condition){
     if(_next){
       o.elseIf();
-      _next->generateCodeSimple(taskname, trans, node, region, o);
+      _next->generateCodeSimple(taskname, trans, node, region, o, tpfx);
     }
     o.endIf();
   }
 }
 
-hecura::FormulaPtr hecura::RuleChoice::processCondition(const FormulaPtr& f, Transform& trans, CodeGenerator& o)
+hecura::FormulaPtr hecura::RuleChoice::processCondition(const std::string& name, const FormulaPtr& f, CodeGenerator& o)
 {
   if(f->getFreeVariables()->contains(autotuned()->toString())){
-    std::string name=trans.getTunerName("recursive_cutoff_");
-    o.createTunable(trans.name(), name, 1000, 1);
+    o.createTunable(name, name, std::numeric_limits<int>::max(), 1);
     return f->replace(autotuned(), new FormulaVariable(name));
   }else{
     return f;

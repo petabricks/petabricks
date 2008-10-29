@@ -23,11 +23,17 @@
 #include "jtimer.h"
 #include "dynamictask.h"
 
+
+static int TRAIN_MIN=16;
+static int TRAIN_MAX=4096;
+static int TRAIN_LEVEL_THRESH=1.15;
+
 static int GRAPH_MIN=8;
 static int GRAPH_MAX=1024;
 static int GRAPH_MAX_SEC=10;
 static int GRAPH_STEP=8;
 static int GRAPH_TRIALS=5;
+static int SEARCH_BRANCH_FACTOR=8;
 static bool GRAPH_MULTIGRID=false;
 
 namespace{//file local
@@ -53,8 +59,9 @@ private:
 
 }
 
-hecura::HecuraRuntime::HecuraRuntime()
+hecura::HecuraRuntime::HecuraRuntime(Main& m) : main(m)
 {
+  randSize = 4096;
   //load config from disk
   TunableManager& tm = TunableManager::instance();
   if(tm.size()>0){
@@ -76,18 +83,25 @@ hecura::HecuraRuntime::~HecuraRuntime()
 
 #define shift argc--,argv++;
 
-int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
+int hecura::HecuraRuntime::runMain(int argc, const char** argv){
+  bool isSiman = false;
   bool isAutotuneMode = false;
   bool isGraphMode = false;
+  bool isOptimizeMode = false;
   bool doIO = true;
-  int randSize = 4096;
   std::string graphParam;
 
   //parse args
   shift;
   while(argc>0){
-    if(strcmp(argv[0],"--autotune")==0){
+    if(strcmp(argv[0],"--siman")==0){
+      isSiman = true;
+      shift;
+    }else if(strcmp(argv[0],"--autotune")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
       isAutotuneMode = true;
+      graphParam = argv[1];
+      shift;
       shift;
     }else if(strcmp(argv[0],"-g")==0 || strcmp(argv[0],"--graph")==0){
       isGraphMode = true;
@@ -127,6 +141,13 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
       JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
       graphParam = argv[1];
       shift;
+      shift;
+    }else if(strcmp(argv[0],"--optimize")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      graphParam = argv[1];
+      isOptimizeMode=true;
+      shift;
+      shift;
     }else if(strcmp(argv[0],"--multigrid")==0){
       GRAPH_MULTIGRID = true;
       shift;
@@ -136,7 +157,12 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
   }
 
   if(isGraphMode){
-    runGraphMode(main);
+    runGraphMode();
+    return 0;
+  }
+
+  if(isAutotuneMode){
+    runAutotuneMode(graphParam);
     return 0;
   }
   
@@ -150,12 +176,17 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
     main.read(argc, argv);
   }
 
-  if(!graphParam.empty()){
-    runGraphParamMode(main, randSize , graphParam);
+  if(isOptimizeMode){
+    optimizeParameter(graphParam);
     return 0;
   }
 
-  if(isAutotuneMode){
+  if(!graphParam.empty()){
+    runGraphParamMode(graphParam);
+    return 0;
+  }
+
+  if(isSiman){
     JTIMER_SCOPE(autotune);
     ConfigTesterGlue cfgtester(main);
     jalib::JTunableManager::instance().autotune(&cfgtester);
@@ -173,30 +204,30 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
 }
 
 
-void hecura::HecuraRuntime::runGraphMode(Main& main){
+void hecura::HecuraRuntime::runGraphMode(){
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
-    int size = (GRAPH_MULTIGRID ? (1 << n) + 1 : n);
-    float avg = runTrial(main, size);
-    printf("%d %.6f\n", size, avg);
+    randSize = (GRAPH_MULTIGRID ? (1 << n): n);
+    double avg = runTrial();
+    printf("%d %.6f\n", randSize, avg);
     if(avg > GRAPH_MAX_SEC) break;
   }
 }
 
-void hecura::HecuraRuntime::runGraphParamMode(Main& main, int size, const std::string& param){
+void hecura::HecuraRuntime::runGraphParamMode(const std::string& param){
   jalib::JTunable* tunable = jalib::JTunableManager::instance().getReverseMap()[param];
   JASSERT(tunable!=0)(param).Text("parameter not found");
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
     tunable->setValue(n);
-    float avg = runTrial(main, size);
-    printf("%d %.6f\n", n, avg);
+    double avg = runTrial();
+    printf("%d %.6lf\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;
   }
 }
 
-double hecura::HecuraRuntime::runTrial(Main& main, int n){
+double hecura::HecuraRuntime::runTrial(){
   double t=0;
   for(int z=0;z<GRAPH_TRIALS; ++z){
-    main.randomInputs(n);
+    main.randomInputs(randSize+1);
     jalib::JTime begin=jalib::JTime::Now();
     main.compute();
     jalib::JTime end=jalib::JTime::Now();
@@ -204,4 +235,119 @@ double hecura::HecuraRuntime::runTrial(Main& main, int n){
   }
   double avg = t/GRAPH_TRIALS;
   return avg;
+}
+
+
+double hecura::HecuraRuntime::optimizeParameter(const std::string& param){
+  jalib::JTunable* tunable = jalib::JTunableManager::instance().getReverseMap()[param];
+  JASSERT(tunable!=0)(param).Text("parameter not found");
+  return optimizeParameter(*tunable, GRAPH_MIN, GRAPH_MAX, (GRAPH_MAX-GRAPH_MIN)/SEARCH_BRANCH_FACTOR);
+}
+
+double hecura::HecuraRuntime::optimizeParameter(jalib::JTunable& tunable, int min, int max, int step){
+  if(step<=0) step = 1;
+  int best=max;
+  double bestVal = std::numeric_limits<double>::max();
+
+  //scan the search space
+  for(int n=min; n<max+step; n+=step){
+    tunable.setValue(n);
+    double avg = runTrial();
+//     printf("%d %.6lf\n", n, avg);
+    if(avg<=bestVal){
+      bestVal=avg;
+      best=n;
+    }
+  }
+
+  if(step>1){
+    int newStep = step/SEARCH_BRANCH_FACTOR;
+    int newMin = best-step;
+    int newMax = best+step;
+    if(newMin<min) newMin = min;
+    if(newMax>max) newMax = max;
+    return optimizeParameter(tunable, newMin, newMax, newStep);
+  }else{
+    tunable.setValue(best);
+    return bestVal;
+  }
+}
+
+namespace{ //file local 
+  std::string _mktname(int lvl, const std::string& prefix, const std::string& type){
+    return prefix + "_lvl" + jalib::XToString(lvl) + "_" + type;
+  }
+}
+
+void hecura::HecuraRuntime::runAutotuneMode(const std::string& prefix){
+  typedef jalib::JTunable JTunable;
+  jalib::JTunableReverseMap m = jalib::JTunableManager::instance().getReverseMap();
+  
+  int numLevels = 1;
+
+  //find numlevels
+  for(int lvl=2; true; ++lvl){
+    JTunable* rule   = m[_mktname(lvl, prefix, "rule")];
+    JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
+    if(rule==0 && cutoff==0){
+      numLevels = lvl-1;
+      break;
+    }
+  }
+
+  //initialize
+  for(int lvl=1; lvl<=numLevels; ++lvl){
+    resetLevel(lvl, prefix, m);
+  }
+
+  int curLevel = 1;
+  for(randSize=TRAIN_MIN; randSize<TRAIN_MAX; randSize*=2){
+    double cur = autotuneLevel(curLevel, prefix, m);
+    if(curLevel < numLevels){
+      double next = autotuneLevel(curLevel+1, prefix, m);
+      if(cur > next*TRAIN_LEVEL_THRESH){
+        curLevel++;
+        JTRACE("promoting to next level")(curLevel)(randSize);
+      }else{
+        resetLevel(curLevel+1, prefix, m);
+      }
+    }
+  }
+}
+
+double hecura::HecuraRuntime::autotuneLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
+  typedef jalib::JTunable JTunable;
+  JTunable* rule = m[_mktname(lvl, prefix, "rule")];
+  JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
+  if(rule!=0){
+    int bestRule=0;
+    double best = std::numeric_limits<double>::max();
+    for(int r=rule->min(); r<=rule->max(); ++r){
+      rule->setValue(r);
+      double d;
+      if(cutoff!=0)
+        d = optimizeParameter(*cutoff, cutoff->min(), randSize+1, (randSize+1-cutoff->min())/SEARCH_BRANCH_FACTOR);
+      else
+        d = runTrial();
+      if(d<best){
+        best=d;
+        bestRule=r;
+      }
+      JTRACE("autotune level")(lvl)(best)(bestRule)(cutoff!=0?cutoff->value():-1);
+    }
+    rule->setValue(bestRule);
+    return best;
+  }else{
+    if(cutoff!=0)
+      return optimizeParameter(*cutoff, cutoff->min(), randSize+1, (randSize+1-cutoff->min())/SEARCH_BRANCH_FACTOR);
+    else
+      return -1;
+  }
+}
+
+void hecura::HecuraRuntime::resetLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
+  jalib::JTunable* rule   = m[_mktname(lvl, prefix, "rule")];
+  jalib::JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
+  if(cutoff!=0) cutoff->setValue(cutoff->max());
+  if(rule!=0)   rule->setValue(rule->min());
 }
