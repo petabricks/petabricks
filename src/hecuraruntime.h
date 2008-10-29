@@ -22,6 +22,10 @@
 
 #include <string>
 
+namespace jalib {
+  class JTunable;
+}
+
 namespace hecura {
 
 class HecuraRuntime{
@@ -58,7 +62,7 @@ public:
 
   ///
   /// Construct the runtime, parse any runtime-specific args
-  HecuraRuntime();
+  HecuraRuntime(Main&);
 
   ///
   /// Destruct the runtime, saving config to disk
@@ -66,13 +70,20 @@ public:
 
   ///
   /// Run the given main routine
-  int runMain(Main& main, int argc, const char** argv);
+  int runMain(int argc, const char** argv);
 
-  void runGraphMode(Main& main);
+  void runGraphMode();
 
-  void runGraphParamMode(Main& main, int size, const std::string& param);
+  void runGraphParamMode(const std::string& param);
 
-  double runTrial(Main& main, int n);
+  int optimizeParameter(const std::string& param, int min, int max, int step);
+  int optimizeParameter(jalib::JTunable& param, int min, int max, int step);
+
+  double runTrial();
+
+private:
+  Main& main;
+  int randSize;
 };
 
 }

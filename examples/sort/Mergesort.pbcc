@@ -25,10 +25,10 @@ to OUT[n]
 }
 
 transform MergesortSubArray
-from IN[n]
+from IN[n], Pos
 to OUT[n], TEMP[n]
 {
-  to(OUT out, TEMP temp) from (IN in)
+  to(OUT out, TEMP temp) from (IN in, Pos p)
   {
     int left=0;
     int right=n-1;
@@ -37,11 +37,11 @@ to OUT[n], TEMP[n]
     if (middle - left > 1)
       SORTSUBARRAY(out .region(0,middle),
                    temp.region(0,middle),
-                   in  .region(0,middle));
+                   in  .region(0,middle), p);
     if (right - middle > 0)
       SORTSUBARRAY(out .region(middle,n),
                    temp.region(middle,n),
-                   in  .region(middle,n));
+                   in  .region(middle,n), p);
     
     Copy1D(temp.region((int) left, (int) right + 1), out.region((int) left, (int) right + 1));
     Merge(out.region((int) left, (int) right + 1), temp.region((int) left, (int) right + 1));
@@ -56,7 +56,7 @@ to OUT[n]
   {
     Copy1D(out, in);
     MatrixRegion1D temp = MatrixRegion1D::allocate(n);
-    MergesortSubArray(out, temp, in);
+    MergesortSubArray(out, temp, in, 60);
   }
 }
 

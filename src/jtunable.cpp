@@ -124,11 +124,11 @@ jalib::JConfigurationTester* theConfigTester;
 
 /* set up parameters for this simulated annealing run */
 /* how many points do we try before stepping */
-#define N_TRIES 200
+#define N_TRIES 100
 /* how many iterations for each T? */
-#define ITERS_FIXED_T 1000
+#define ITERS_FIXED_T 100
 /* max step size in random walk */
-#define STEP_SIZE 128.0
+#define STEP_SIZE 60
 /* Boltzmann constant */
 #define K 1.0
 /* initial temperature */
@@ -169,9 +169,8 @@ void step(const gsl_rng * r, void *xp, double step_size)
     }
 
     //wrap overunderflows
-    if(val>tunable.max() || val<tunable.min()){
-      val = ((val - tunable.min()) % tunable.rangeLength()) + tunable.min();
-    }
+    if(val < tunable.min()) val = tunable.min();
+    if(val > tunable.max()) val = tunable.max();
    }
 
 //   double u = gsl_rng_uniform(r);
@@ -224,7 +223,7 @@ void jalib::JTunableManager::autotune(JConfigurationTester* tester) const{
   T = gsl_rng_default;
   r = gsl_rng_alloc(T);
 
-  gsl_siman_solve(r, &initial, testEnergy, step, getDistance, printCfg,
+  gsl_siman_solve(r, initial, testEnergy, step, getDistance, printCfg,
                   cfgCopy, cfgCreate, cfgDestroy,
                   0, params);
 

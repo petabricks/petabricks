@@ -28,6 +28,7 @@ static int GRAPH_MAX=1024;
 static int GRAPH_MAX_SEC=10;
 static int GRAPH_STEP=8;
 static int GRAPH_TRIALS=5;
+static int SEARCH_BRANCH_FACTOR=8;
 static bool GRAPH_MULTIGRID=false;
 
 namespace{//file local
@@ -53,8 +54,9 @@ private:
 
 }
 
-hecura::HecuraRuntime::HecuraRuntime()
+hecura::HecuraRuntime::HecuraRuntime(Main& m) : main(m)
 {
+  randSize = 4096;
   //load config from disk
   TunableManager& tm = TunableManager::instance();
   if(tm.size()>0){
@@ -76,11 +78,11 @@ hecura::HecuraRuntime::~HecuraRuntime()
 
 #define shift argc--,argv++;
 
-int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
+int hecura::HecuraRuntime::runMain(int argc, const char** argv){
   bool isAutotuneMode = false;
   bool isGraphMode = false;
+  bool isOptimizeMode = false;
   bool doIO = true;
-  int randSize = 4096;
   std::string graphParam;
 
   //parse args
@@ -127,6 +129,13 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
       JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
       graphParam = argv[1];
       shift;
+      shift;
+    }else if(strcmp(argv[0],"--optimize")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      graphParam = argv[1];
+      isOptimizeMode=true;
+      shift;
+      shift;
     }else if(strcmp(argv[0],"--multigrid")==0){
       GRAPH_MULTIGRID = true;
       shift;
@@ -136,7 +145,7 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
   }
 
   if(isGraphMode){
-    runGraphMode(main);
+    runGraphMode();
     return 0;
   }
   
@@ -150,8 +159,13 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
     main.read(argc, argv);
   }
 
+  if(isOptimizeMode){
+    optimizeParameter(graphParam, GRAPH_MIN, GRAPH_MAX, (GRAPH_MAX-GRAPH_MIN)/SEARCH_BRANCH_FACTOR);
+    return 0;
+  }
+
   if(!graphParam.empty()){
-    runGraphParamMode(main, randSize , graphParam);
+    runGraphParamMode(graphParam);
     return 0;
   }
 
@@ -173,30 +187,30 @@ int hecura::HecuraRuntime::runMain(Main& main, int argc, const char** argv){
 }
 
 
-void hecura::HecuraRuntime::runGraphMode(Main& main){
+void hecura::HecuraRuntime::runGraphMode(){
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
-    int size = (GRAPH_MULTIGRID ? (1 << n) + 1 : n);
-    float avg = runTrial(main, size);
-    printf("%d %.6f\n", size, avg);
+    randSize = (GRAPH_MULTIGRID ? (1 << n) + 1 : n);
+    double avg = runTrial();
+    printf("%d %.6f\n", randSize, avg);
     if(avg > GRAPH_MAX_SEC) break;
   }
 }
 
-void hecura::HecuraRuntime::runGraphParamMode(Main& main, int size, const std::string& param){
+void hecura::HecuraRuntime::runGraphParamMode(const std::string& param){
   jalib::JTunable* tunable = jalib::JTunableManager::instance().getReverseMap()[param];
   JASSERT(tunable!=0)(param).Text("parameter not found");
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
     tunable->setValue(n);
-    float avg = runTrial(main, size);
-    printf("%d %.6f\n", n, avg);
+    double avg = runTrial();
+    printf("%d %.6lf\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;
   }
 }
 
-double hecura::HecuraRuntime::runTrial(Main& main, int n){
+double hecura::HecuraRuntime::runTrial(){
   double t=0;
   for(int z=0;z<GRAPH_TRIALS; ++z){
-    main.randomInputs(n);
+    main.randomInputs(randSize);
     jalib::JTime begin=jalib::JTime::Now();
     main.compute();
     jalib::JTime end=jalib::JTime::Now();
@@ -205,3 +219,41 @@ double hecura::HecuraRuntime::runTrial(Main& main, int n){
   double avg = t/GRAPH_TRIALS;
   return avg;
 }
+
+
+int hecura::HecuraRuntime::optimizeParameter(const std::string& param, int min, int max, int step){
+  jalib::JTunable* tunable = jalib::JTunableManager::instance().getReverseMap()[param];
+  JASSERT(tunable!=0)(param).Text("parameter not found");
+  return optimizeParameter(*tunable, min, max, step);
+}
+
+int hecura::HecuraRuntime::optimizeParameter(jalib::JTunable& tunable, int min, int max, int step){
+  if(step<=0) step = 1;
+  int best=max;
+  double bestVal = std::numeric_limits<double>::max();
+
+  //scan the search space
+  for(int n=min; n<max+step; n+=step){
+    tunable.setValue(n);
+    double avg = runTrial();
+//     printf("%d %.6lf\n", n, avg);
+    if(avg<=bestVal){
+      bestVal=avg;
+      best=n;
+    }
+  }
+
+  if(step>1){
+    int newStep = step/SEARCH_BRANCH_FACTOR;
+    int newMin = best-step;
+    int newMax = best+step;
+    if(newMin<min) newMin = min;
+    if(newMax>max) newMax = max;
+    return optimizeParameter(tunable, newMin, newMax, newStep);
+  }else{
+    tunable.setValue(best);
+    return best;
+  }
+}
+
+

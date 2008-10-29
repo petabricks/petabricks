@@ -4,24 +4,32 @@
 #include "Quicksort.pbcc"
 #include "Mergesort.pbcc"
 #include "Insertionsort.pbcc"
+#include "Radixsort.pbcc"
 
 transform SortSubArray
-from IN[n]
+from IN[n], Pos
 to OUT[n], TEMP[n]
 {
-//recursive(n)
-//to (OUT out, TEMP temp) from (IN in)
-//{
-//  //printf("ms %d\n",n);
-//  MergesortSubArray(out, temp, in);
-//}
+  recursive(n)
+  to (OUT out, TEMP temp) from (IN in, Pos p)
+  {
+    //printf("ms %d\n",n);
+    MergesortSubArray(out, temp, in, p);
+  }
 
   recursive(n)
-  to (OUT out, TEMP temp) from (IN in)
+  to (OUT out, TEMP temp) from (IN in, Pos p)
   {
     //printf("qs %d\n",n);
-    QuicksortSubArray(out, temp, in);
+    QuicksortSubArray(out, temp, in, p);
   }
+
+//recursive(n)
+//to (OUT out, TEMP temp) from (IN in, Pos p)
+//{
+//  //printf("rs %d\n",n);
+//  RadixsortSubArray(out, temp, in, p);
+//}
 
   to (OUT out, TEMP temp) from (IN in)
   {
@@ -38,7 +46,7 @@ to OUT[n]
   {
     Copy1D(out, in);
     MatrixRegion1D temp = MatrixRegion1D::allocate(n);
-    SortSubArray(out, temp, in);
+    SortSubArray(out, temp, in, 60);
   }
 }
 
