@@ -22,9 +22,7 @@
 
 #include <string>
 
-namespace jalib {
-  class JTunable;
-}
+#include "jtunable.h"
 
 namespace hecura {
 
@@ -76,11 +74,15 @@ public:
 
   void runGraphParamMode(const std::string& param);
 
-  int optimizeParameter(const std::string& param, int min, int max, int step);
-  int optimizeParameter(jalib::JTunable& param, int min, int max, int step);
+  double optimizeParameter(const std::string& param);
+  double optimizeParameter(jalib::JTunable& param, int min, int max, int step);
 
   double runTrial();
 
+  void runAutotuneMode(const std::string& prefix);
+
+  double autotuneLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
+  void resetLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
 private:
   Main& main;
   int randSize;

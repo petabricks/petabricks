@@ -61,13 +61,14 @@ public:
                          , Transform& trans
                          , ScheduleNode& node
                          , const SimpleRegionPtr& region
-                         , CodeGenerator& o);
+                         , CodeGenerator& o
+                          , const std::string& tpfx = "");
  
   const RuleSet& rules() const { return _rules; }
 
   static const FormulaPtr& autotuned();
 
-  FormulaPtr processCondition(const FormulaPtr& f, Transform& trans, CodeGenerator& o);
+  FormulaPtr processCondition(const std::string& name, const FormulaPtr& f, CodeGenerator& o);
 
 
   int level() const { return 1+(_next?_next->level():0); }
