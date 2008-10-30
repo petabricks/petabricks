@@ -9,7 +9,7 @@
 
 %{
 
-void swap1D(MatrixRegion1D &A, int x, int y)
+inline void swap1D(MatrixRegion1D &A, int x, int y)
 {
   double temp = A.cell(x);
   A.cell(x) = A.cell(y);

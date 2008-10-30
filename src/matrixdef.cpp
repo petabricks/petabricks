@@ -69,10 +69,10 @@ void hecura::MatrixDef::exportAssumptions(){
 }
 
 void hecura::MatrixDef::argDeclRW(std::vector<std::string>& args) const {
-  args.push_back("const "+matrixTypeName()+"& " + _name);
+  args.push_back("const "+matrixTypeName()+" " + _name);
 }
 void hecura::MatrixDef::argDeclRO(std::vector<std::string>& args) const {
-  args.push_back("const "+constMatrixTypeName()+"& " + _name);
+  args.push_back("const "+constMatrixTypeName()+" " + _name);
 }
 void hecura::MatrixDef::genAllocTmpCode(CodeGenerator& o){
   o.varDecl(matrixTypeName()+" "+_name);
