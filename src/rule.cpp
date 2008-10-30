@@ -200,13 +200,20 @@ void hecura::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
   std::string rt = "void";
   std::vector<std::string> args;
   if(isReturnStyle()){
-    rt = "ElementT";
+    JASSERT(!isRecursive())(id())(trans.name())
+      .Text("Recursive rules must use to(...) from(...) {...} style");
     JASSERT(_to.size()==1)(_to.size());
+    rt = "ElementT";
   }else{
+    if(isRecursive()){
+      rt="hecura::DynamicTaskPtr";
+    }
     for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
       args.push_back((*i)->generateSignatureCode(o,false));
     }
   }
+
+
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     args.push_back((*i)->generateSignatureCode(o,true));
   }
@@ -218,11 +225,14 @@ void hecura::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
     args.push_back("const IndexT "+getOffsetVar(i)->toString());
 
   o.beginFunc(rt, implcodename(), args);
-  for(FormulaList::const_iterator i=_definitions.begin(); i!=_definitions.end(); ++i){
-    o.write("const IndexT "+(*i)->explodePrint()+";");
+  {
+    if(isRecursive()) o.write("DynamicTaskPtr _before, _after = new NullDynamicTask();");
+    for(FormulaList::const_iterator i=_definitions.begin(); i!=_definitions.end(); ++i){
+      o.write("const IndexT "+(*i)->explodePrint()+";");
+    }
+    o.write(_body);
+    if(isRecursive()) o.write("return _after;");
   }
-
-  o.write(_body);
   o.endFunc();
 }
 
@@ -230,15 +240,19 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   CoordinateFormula begin, widths;
   CoordinateFormula end;
   std::vector<std::string> args;
+  std::vector<std::string> argsByRef;
 
   std::set<MatrixDefPtr> used;
   for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
     used.insert(i->first);
     i->first->argDeclRW(args);
+    i->first->argDeclRW(argsByRef, true);
   }
   for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
-    if(used.find(i->first)==used.end())
+    if(used.find(i->first)==used.end()){
       i->first->argDeclRO(args);
+      i->first->argDeclRO(argsByRef, true);
+    }
   }
 
   IterationOrderList order(dimensions(), IterationOrder::ANY);
@@ -246,23 +260,34 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   //TODO: call learner
 //   trans.learner().makeIterationChoice(order, _matrix, _region);
 
-  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i)
+  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i){
     args.push_back("const IndexT "+(*i));
+    argsByRef.push_back("const IndexT "+(*i));
+  }
 
   //populate begin
   for(int i=0; i<dimensions(); ++i){
     FormulaPtr tmp = getOffsetVar(i,"begin");
     begin.push_back(tmp);
-    args.push_back("IndexT "+tmp->toString());
+    args.push_back("const IndexT "+tmp->toString());
+    argsByRef.push_back("const IndexT "+tmp->toString());
   }
   //populate end
   for(int i=0; i<dimensions(); ++i){
     FormulaPtr tmp = getOffsetVar(i,"end");
     end.push_back(tmp);
-    args.push_back("IndexT "+tmp->toString());
+    args.push_back("const IndexT "+tmp->toString());
+    argsByRef.push_back("const IndexT "+tmp->toString());
   }
 
-  o.beginFunc("void",trampcodename(), args);
+  const char* rt = "void";
+  if(isRecursive()){
+    rt="hecura::DynamicTaskPtr";
+  }
+
+  o.beginFunc(rt,trampcodename(), argsByRef);
+  {
+  if(isRecursive()) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
 
 //   FreeVars fv;
 //   for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i)
@@ -270,26 +295,35 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
 //   for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i)
 //     i->first->extractDefines(fv, o);
 
-  for(size_t i=0; i<begin.size(); ++i){
-    FormulaPtr b=begin[i];
-    FormulaPtr e=end[i];
-    FormulaPtr w=_to[0]->getSizeOfRuleIn(i);
-    if(order[i]==IterationOrder::BACKWARD)
-      o.beginReverseFor(getOffsetVar(i)->toString(), b, e, w);
-    else
-      o.beginFor(getOffsetVar(i)->toString(), b, e, w);
-    //TODO, better support for making sure given range is a multiple of size
-  }
-  generateTrampCellCodeSimple(trans, o);
-  for(size_t i=0; i<begin.size(); ++i){
-    o.endFor();
+    for(size_t i=0; i<begin.size(); ++i){
+      FormulaPtr b=begin[i];
+      FormulaPtr e=end[i];
+      FormulaPtr w=_to[0]->getSizeOfRuleIn(i);
+      if(order[i]==IterationOrder::BACKWARD)
+        o.beginReverseFor(getOffsetVar(i)->toString(), b, e, w);
+      else
+        o.beginFor(getOffsetVar(i)->toString(), b, e, w);
+      //TODO, better support for making sure given range is a multiple of size
+    }
+    generateTrampCellCodeSimple(trans, o);
+    for(size_t i=0; i<begin.size(); ++i){
+      o.endFor();
+    }
+    if(isRecursive()) o.write("return _spawner;");
   }
   o.endFunc();
 
-  TaskCodeGenerator& task = o.createTask(trampcodename(),args);
+  TaskCodeGenerator& task = o.createTask(trampcodename(), args);
   task.beginRunFunc();
-  task.call(trampcodename(), task.argnames());
-  task.write("return NULL;");
+  {
+    if(isRecursive()){
+        task.setcall("DynamicTaskPtr _task", trampcodename(), task.argnames());
+        task.write("return _task;");
+    }else{
+      task.call(trampcodename(), task.argnames());
+      task.write("return NULL;");
+    }
+  }
   task.endFunc();
   task.beginSizeFunc();
   FormulaPtr f = FormulaInteger::zero();
@@ -321,6 +355,10 @@ void hecura::Rule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& 
 
   if(isReturnStyle()){
     o.setcall(_to.front()->generateAccessorCode(o),implcodename(), args);
+  }else if(isRecursive()){
+    o.setcall("DynamicTaskPtr _task",implcodename(), args);
+    o.write("_spawner->dependsOn(_task);");
+    o.write("_task->enqueue();");
   }else{
     o.call(implcodename(), args);
   }

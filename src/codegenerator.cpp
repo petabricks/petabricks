@@ -190,7 +190,7 @@ hecura::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const std:
   os() << func << "_task(";
   for(size_t i=0; i!=args.size(); ++i){
     if(i>0) os()<<", ";
-    os() << _types[i] << " a_" << _names[i];
+    os() << _types[i] << "& a_" << _names[i];
   }
   os() << ") \n    : ";
   for(size_t i=0; i!=args.size(); ++i){

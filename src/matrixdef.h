@@ -100,8 +100,8 @@ public:
 
   
 
-  void argDeclRW(std::vector<std::string>& args) const;
-  void argDeclRO(std::vector<std::string>& args) const;
+  void argDeclRW(std::vector<std::string>& args, bool byRef=false) const;
+  void argDeclRO(std::vector<std::string>& args, bool byRef=false) const;
   void genAllocTmpCode(CodeGenerator& o);
   void generateCodeSimple(CodeGenerator& o);
   void readFromFileCode(CodeGenerator& o, const std::string& fn);
