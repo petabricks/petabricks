@@ -23,6 +23,6 @@
 #include "dynamictask.h"
 #include "hecuraruntime.h"
 #include "jtunable.h"
-
+#include <math.h>
 
 
