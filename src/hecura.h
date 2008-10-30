@@ -24,5 +24,19 @@
 #include "hecuraruntime.h"
 #include "jtunable.h"
 
+#define SPAWN(args...) \
+{ DynamicTaskPtr _task = spawn_ ## args; \
+  _task->dependsOn(_before);\
+  _after->dependsOn(_task);\
+  _task->enqueue();\
+}
+
+#define SYNC() \
+{ \
+  _before = _after; \
+  _after = new NullDynamicTask(); \
+  _before->enqueue(); \
+}
+
 
 

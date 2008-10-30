@@ -28,23 +28,25 @@ transform MergesortSubArray
 from IN[n], Pos
 to OUT[n], TEMP[n]
 {
-  to(OUT out, TEMP temp) from (IN in, Pos p)
+  recursive to(OUT out, TEMP temp) from (IN in, Pos p)
   {
     int left=0;
     int right=n-1;
     int middle = (left + right + 1) / 2;
 
     if (middle - left > 1)
-      SORTSUBARRAY(out .region(0,middle),
-                   temp.region(0,middle),
-                   in  .region(0,middle), p);
+      SPAWN(SORTSUBARRAY(out .region(0,middle),
+                         temp.region(0,middle),
+                         in  .region(0,middle), p));
     if (right - middle > 0)
-      SORTSUBARRAY(out .region(middle,n),
-                   temp.region(middle,n),
-                   in  .region(middle,n), p);
+      SPAWN(SORTSUBARRAY(out .region(middle,n),
+                         temp.region(middle,n),
+                         in  .region(middle,n), p));
     
-    Copy1D(temp.region((int) left, (int) right + 1), out.region((int) left, (int) right + 1));
-    Merge(out.region((int) left, (int) right + 1), temp.region((int) left, (int) right + 1));
+    SYNC();
+    SPAWN(Copy1D(temp.region((int) left, (int) right + 1), out.region((int) left, (int) right + 1)));
+    SYNC();
+    SPAWN(Merge(out.region((int) left, (int) right + 1), temp.region((int) left, (int) right + 1)));
   }
 }
 
