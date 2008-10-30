@@ -230,15 +230,19 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   CoordinateFormula begin, widths;
   CoordinateFormula end;
   std::vector<std::string> args;
+  std::vector<std::string> argsByRef;
 
   std::set<MatrixDefPtr> used;
   for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
     used.insert(i->first);
     i->first->argDeclRW(args);
+    i->first->argDeclRW(argsByRef, true);
   }
   for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
-    if(used.find(i->first)==used.end())
+    if(used.find(i->first)==used.end()){
       i->first->argDeclRO(args);
+      i->first->argDeclRO(argsByRef, true);
+    }
   }
 
   IterationOrderList order(dimensions(), IterationOrder::ANY);
@@ -246,23 +250,27 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   //TODO: call learner
 //   trans.learner().makeIterationChoice(order, _matrix, _region);
 
-  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i)
+  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i){
     args.push_back("const IndexT "+(*i));
+    argsByRef.push_back("const IndexT "+(*i));
+  }
 
   //populate begin
   for(int i=0; i<dimensions(); ++i){
     FormulaPtr tmp = getOffsetVar(i,"begin");
     begin.push_back(tmp);
-    args.push_back("IndexT "+tmp->toString());
+    args.push_back("const IndexT "+tmp->toString());
+    argsByRef.push_back("const IndexT "+tmp->toString());
   }
   //populate end
   for(int i=0; i<dimensions(); ++i){
     FormulaPtr tmp = getOffsetVar(i,"end");
     end.push_back(tmp);
-    args.push_back("IndexT "+tmp->toString());
+    args.push_back("const IndexT "+tmp->toString());
+    argsByRef.push_back("const IndexT "+tmp->toString());
   }
 
-  o.beginFunc("void",trampcodename(), args);
+  o.beginFunc("void",trampcodename(), argsByRef);
 
 //   FreeVars fv;
 //   for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i)
@@ -286,7 +294,7 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   }
   o.endFunc();
 
-  TaskCodeGenerator& task = o.createTask(trampcodename(),args);
+  TaskCodeGenerator& task = o.createTask(trampcodename(), args);
   task.beginRunFunc();
   task.call(trampcodename(), task.argnames());
   task.write("return NULL;");

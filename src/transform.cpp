@@ -362,7 +362,7 @@ std::vector<std::string> hecura::Transform::maximalArgList() const{
     (*i)->argDeclRW(tmp);
   }
   for(FreeVars::const_iterator i=_constants.begin(); i!=_constants.end(); ++i){
-    tmp.push_back("IndexT " + *i);
+    tmp.push_back("const IndexT " + *i);
   }
   return tmp;
 }
