@@ -42,13 +42,13 @@ to OUT[n], TEMP[n]
   {
     int p = partition(out);
     if(p>1)
-      SPAWN(SORTSUBARRAY(out .region(0,p),
+      SPAWN(SORTSUBARRAY,out .region(0,p),
                        temp.region(0,p), 
-                       in  .region(0,p), pos));
+                       in  .region(0,p), pos);
     if(p<out.count()-2)
-      SPAWN(SORTSUBARRAY(out .region(p+1,n),
+      SPAWN(SORTSUBARRAY,out .region(p+1,n),
                          temp.region(p+1,n), 
-                         in  .region(p+1,n), pos));
+                         in  .region(p+1,n), pos);
   }
 }
 

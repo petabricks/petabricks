@@ -26,9 +26,8 @@
 #include "jtunable.h"
 #include <math.h>
 
-#define SPAWN(args...) \
-  { DynamicTaskPtr _task = spawn_ ## args; \
-    _task->dependsOn(_before);\
+#define SPAWN(taskname, args...) \
+  { DynamicTaskPtr _task = spawn_ ## taskname (args , _before); \
     _after->dependsOn(_task);\
     _task->enqueue();\
   }

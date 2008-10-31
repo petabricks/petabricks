@@ -181,9 +181,17 @@ void hecura::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGenerato
 }
 
 void hecura::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, const RulePtr& rule){
+  bool printedBeforeDep = false;
   for(ScheduleDependencies::const_iterator i=_directDepends.begin();  i!=_directDepends.end(); ++i){
-    if(! i->first->isInput() && i->first!=this)
-      o.write(nodename()+"->dependsOn("+i->first->nodename()+");");
+    if(i->first!=this){
+      if(i->first->isInput()){
+        if(!printedBeforeDep){
+         printedBeforeDep=true;
+         o.write(nodename()+"->dependsOn(_before);");
+        }
+      }else
+        o.write(nodename()+"->dependsOn("+i->first->nodename()+");");
+    }
   }
   o.write(nodename()+"->enqueue();");
 }

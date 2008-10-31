@@ -195,7 +195,9 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   o.newline();
 
   o.comment(_name+" entry function");
+  args.push_back("const DynamicTaskPtr& _before");
   o.beginFunc("DynamicTaskPtr", "spawn_"+_name, args);
+  args.pop_back();
   o.varDecl("IndexT " INPUT_SIZE_STR " = 0");
   o.varDecl("IndexT " OUTPUT_SIZE_STR " = 0");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
@@ -224,7 +226,9 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   o.write("return "+taskname()+";");
   o.endFunc();
   o.beginFunc("void", _name, args);
+  argNames.push_back("DynamicTaskPtr::null()");
   o.setcall("DynamicTaskPtr "+taskname(), "spawn_"+_name, argNames);
+  argNames.pop_back();
   o.write(taskname()+"->enqueue();");
   o.write(taskname()+"->waitUntilComplete();");
   o.endFunc();

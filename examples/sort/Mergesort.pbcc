@@ -35,18 +35,18 @@ to OUT[n], TEMP[n]
     int middle = (left + right + 1) / 2;
 
     if (middle - left > 1)
-      SPAWN(SORTSUBARRAY(out .region(0,middle),
+      SPAWN(SORTSUBARRAY,out .region(0,middle),
                          temp.region(0,middle),
-                         in  .region(0,middle), p));
+                         in  .region(0,middle), p);
     if (right - middle > 0)
-      SPAWN(SORTSUBARRAY(out .region(middle,n),
+      SPAWN(SORTSUBARRAY,out .region(middle,n),
                          temp.region(middle,n),
-                         in  .region(middle,n), p));
+                         in  .region(middle,n), p);
     
     SYNC();
-    SPAWN(Copy1D(temp.region((int) left, (int) right + 1), out.region((int) left, (int) right + 1)));
+    SPAWN(Copy1D,temp.region((int) left, (int) right + 1), out.region((int) left, (int) right + 1));
     SYNC();
-    SPAWN(Merge(out.region((int) left, (int) right + 1), temp.region((int) left, (int) right + 1)));
+    SPAWN(Merge,out.region((int) left, (int) right + 1), temp.region((int) left, (int) right + 1));
   }
 }
 

@@ -14,10 +14,10 @@ to AB[w,h]
         B.region(0, c/2, w,   c  ) b2)
   {
     MatrixRegion2D tmp = MatrixRegion2D::allocate(w,h);
-    SPAWN(MatrixMultiply(ab,  a1, b1));
-    SPAWN(MatrixMultiply(tmp, a2, b2));
+    SPAWN(MatrixMultiply, ab,  a1, b1);
+    SPAWN(MatrixMultiply, tmp, a2, b2);
     SYNC();
-    SPAWN(MatrixAdd(ab, ab, tmp));
+    SPAWN(MatrixAdd, ab, ab, tmp);
   }
   
   //compute a cell the straightforward way

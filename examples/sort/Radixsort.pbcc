@@ -74,10 +74,10 @@ to OUT[n], TEMP[n]
     if ((int) pos > 0) {
       for (int i = 0; i < 16; i++) {
         if (buckets[i + 1] > buckets[i] + 1) {
-          SPAWN(SORTSUBARRAY(out.region(buckets[i], buckets[i + 1]), 
+          SPAWN(SORTSUBARRAY,out.region(buckets[i], buckets[i + 1]), 
                             temp.region(buckets[i], buckets[i + 1]),
                             in.region(buckets[i], buckets[i + 1]), 
-                            (int) pos - 4));
+                            (int) pos - 4);
         }
       }
     }
