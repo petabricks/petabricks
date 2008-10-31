@@ -134,30 +134,23 @@ void DynamicTask::waitUntilComplete()
     // To get a task for execution
     //
     // lock 
-    scheduler->condMutexLock();
-    // if empty, cond wait on the ready queue.
     scheduler->mutexLock();
     task = scheduler->dequeueReadyQueue();
     scheduler->mutexUnlock();
-    while (!task) {
-      scheduler->condMutexWait();
-      scheduler->mutexLock();
-      task = scheduler->dequeueReadyQueue();
-      scheduler->mutexUnlock();
-    }
-    scheduler->condMutexUnlock();
-
-    // execute the task
-    DynamicTaskPtr cont = task->run();
-    task->completeTask();
-    // remove the dependence for the task
-    if(!cont) {
-      // no continuation task, so remove the dependence
-      task->removeDependence();
-    } else {
-      // assuming all dependent will depend on cond too
-      task->copyDependence(cont);
-      scheduler->enqueueNewTask(cont);
+    if (!task) 
+      usleep(100);
+    else {
+      DynamicTaskPtr cont = task->run();
+      task->completeTask();
+      // remove the dependence for the task
+      if(!cont) {
+	// no continuation task, so remove the dependence
+	task->removeDependence();
+      } else {
+	// assuming all dependent will depend on cond too
+	task->copyDependence(cont);
+	scheduler->enqueueNewTask(cont);
+      }
     }
   }
 }
