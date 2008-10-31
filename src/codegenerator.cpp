@@ -116,7 +116,8 @@ void hecura::CodeGenerator::endFunc(){
 }
 
 void hecura::CodeGenerator::indent(){ 
-  os() << std::string(_indent*2,' '); 
+  if(_indent>0)
+    os() << std::string(_indent*2,' '); 
 }
 
 void hecura::CodeGenerator::write(const std::string& str){
@@ -155,8 +156,8 @@ void hecura::CodeGenerator::endIf(){
   os() << "}\n";
 }
 
-hecura::TaskCodeGenerator& hecura::MainCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args){
-  _tasks.push_back(new TaskCodeGenerator(func, args));
+hecura::TaskCodeGenerator& hecura::MainCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType){
+  _tasks.push_back(new TaskCodeGenerator(func, args, taskType));
   return *_tasks.back();
 }
 
@@ -173,14 +174,15 @@ namespace{//file local
   }
 }
 
-hecura::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args){
+hecura::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args, const char* taskType){
+  _name=func + "_task";
   _indent=1;
   _types.resize(args.size());
   _names.resize(args.size());
   for(size_t i=0; i!=args.size(); ++i)
     _splitTypeArgs(_types[i], _names[i], args[i]);
 
-  os() << "class " << func << "_task : public hecura::DynamicTask {\n";
+  os() << "class " << _name << " : public hecura::"<< taskType <<" {\n";
   for(size_t i=0; i!=args.size(); ++i){
     indent();
     os() << args[i] << ";\n";

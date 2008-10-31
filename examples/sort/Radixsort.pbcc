@@ -2,7 +2,10 @@
 #define RADIXSORT_PBCC
 
 #include "../utilities.pbcc"
-#include "Sort.pbcc"
+
+#ifndef SORTSUBARRAY
+#define SORTSUBARRAY RadixsortSubArray
+#endif
 
 %{
 
@@ -71,7 +74,7 @@ to OUT[n], TEMP[n]
     if ((int) pos > 0) {
       for (int i = 0; i < 16; i++) {
         if (buckets[i + 1] > buckets[i] + 1) {
-          SPAWN(SortSubArray(out.region(buckets[i], buckets[i + 1]), 
+          SPAWN(SORTSUBARRAY(out.region(buckets[i], buckets[i + 1]), 
                             temp.region(buckets[i], buckets[i + 1]),
                             in.region(buckets[i], buckets[i + 1]), 
                             (int) pos - 4));
@@ -86,11 +89,6 @@ to OUT[n], TEMP[n]
     }
 */
   }
-
-//to (OUT out, TEMP temp) from (IN in, Position pos)
-//{
-//  SortSubArray(out, temp, in);
-//}
 }
 
 transform Radixsort
