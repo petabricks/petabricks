@@ -85,12 +85,14 @@ from RIn[n+2,(n+4)/2], KIn[n+2,(n+4)/2],
      weight, numIterations
 to ROut[n+2,(n+4)/2], KOut[n+2,(n+4)/2]
 {
+  recursive
   to (ROut rOut, KOut kOut) from (RIn rIn, KIn kIn, RB rB, KB kB, weight w, numIterations num)
   {
     if (num > 0) {
-      Iterate(rOut, kOut, rIn, kIn, rB, kB, w);
+      SPAWN(Iterate,rOut, kOut, rIn, kIn, rB, kB, w);
       if (num > 1) {
-        Compute(rOut, kOut, rOut, kOut, rB, kB, w, num - 1);
+        SYNC();
+        SPAWN(Compute,rOut, kOut, rOut, kOut, rB, kB, w, num - 1);
       }
     }
   }
@@ -105,16 +107,18 @@ to OUT[n,n]
 {
 
   // INITIALIZE
+  recursive
   to (RIn rIn, KIn kIn, RB rB, KB kB) from (IN in, B b)
   {
-    SplitRB(rIn, kIn, in);
-    SplitRB(rB, kB, b);
+    SPAWN(SplitRB,rIn, kIn, in);
+    SPAWN(SplitRB,rB, kB, b);
   }
 
   // COMPUTE
+  recursive
   to (ROut rOut, KOut kOut) from (RIn rIn, KIn kIn, RB rB, KB kB, _weight weight, numIterations num)
   {
-    Compute(rOut, kOut, rIn, kIn, rB, kB, weight, num);
+    SPAWN(Compute,rOut, kOut, rIn, kIn, rB, kB, weight, num);
   }
 
   // FINALIZE

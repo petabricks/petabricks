@@ -19,12 +19,13 @@ to OUT[n+2,n+2]
     return result;
   }
 
+  recursive
   primary to (OUT.region(1,1,n+1,n+1) o) from (IN.region(1,1,n+1,n+1) in,
                                                BTEMP b,
                                                weight w,
                                                numIterations num)
   {
-    SOR2DInterior(o, in, b, w, num);
+    SPAWN(SOR2DInterior, o, in, b, w, num);
   }
 
   secondary OUT.cell(i,j) from (IN.cell(i,j) x)

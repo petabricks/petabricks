@@ -19,11 +19,12 @@ to OUT[n+2,n+2]
     return result;
   }
 
+  recursive
   primary to (OUT.region(1,1,n+1,n+1) o) from (IN.region(1,1,n+1,n+1) in,
                                                BTEMP b,
                                                numIterations num)
   {
-    Jacobi2DInterior(o, in, b, num);
+    SPAWN(Jacobi2DInterior,o, in, b, num);
   }
 
   secondary OUT.cell(i,j) from (IN.cell(i,j) x)
