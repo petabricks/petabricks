@@ -94,9 +94,8 @@ runEachTest << EOF
   test12 $R2Da
   poisson/Jacobi2D   $R2Da $R2Db $ONE
   poisson/Jacobi2D   $R2Da $R2Db $TEN
-  poisson/SOR2D      $R2Da $R2Db $ONE $ONE
-  poisson/SOR2D      $R2Da $R2Db $TWO $ONE
-  poisson/SOR2D      $R2Da $R2Db $ONEPOINTFIVE $TEN
+  poisson/SOR2D      $R2Da $R2Db $ONE
+  poisson/SOR2D      $R2Da $R2Db $TEN
   poisson/BS2D       $R2Da $R2Db
   sort/Quicksort     $R1Dodd
   sort/Mergesort     $R1Dodd

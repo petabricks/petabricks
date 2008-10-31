@@ -1,7 +1,7 @@
 #include "SOR2DInterior.pbcc"
 
 transform SOR2D
-from IN[n+2,n+2], B[n+2,n+2], weight, numIterations
+from IN[n+2,n+2], B[n+2,n+2], numIterations
 through BTEMP[n,n]
 to OUT[n+2,n+2]
 {
@@ -22,10 +22,9 @@ to OUT[n+2,n+2]
   recursive
   primary to (OUT.region(1,1,n+1,n+1) o) from (IN.region(1,1,n+1,n+1) in,
                                                BTEMP b,
-                                               weight w,
                                                numIterations num)
   {
-    SPAWN(SOR2DInterior, o, in, b, w, num);
+    SPAWN(SOR2DInterior, o, in, b, num);
   }
 
   secondary OUT.cell(i,j) from (IN.cell(i,j) x)

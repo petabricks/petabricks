@@ -99,7 +99,7 @@ to ROut[n+2,(n+4)/2], KOut[n+2,(n+4)/2]
 }
 
 transform SOR2DInterior
-from IN[n,n], B[n,n], _weight, numIterations
+from IN[n,n], B[n,n], numIterations
 through RIn [n+2,(n+4)/2], KIn [n+2,(n+4)/2], 
         ROut[n+2,(n+4)/2], KOut[n+2,(n+4)/2], 
         RB  [n+2,(n+4)/2], KB  [n+2,(n+4)/2]
@@ -116,8 +116,9 @@ to OUT[n,n]
 
   // COMPUTE
   recursive
-  to (ROut rOut, KOut kOut) from (RIn rIn, KIn kIn, RB rB, KB kB, _weight weight, numIterations num)
+  to (ROut rOut, KOut kOut) from (RIn rIn, KIn kIn, RB rB, KB kB, numIterations num)
   {
+    double weight = 2 / (1 + sin((double) M_PI / (n + 1))); // use optimal SOR weight for Poisson
     SPAWN(Compute,rOut, kOut, rIn, kIn, rB, kB, weight, num);
   }
 

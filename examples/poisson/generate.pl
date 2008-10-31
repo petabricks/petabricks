@@ -20,7 +20,7 @@ print (OUTFILE "to OUT[n,n]\n");
 print (OUTFILE "{\n");
 print (OUTFILE "   to (OUT o) from(IN in, B b)\n");
 print (OUTFILE "  {\n");
-print (OUTFILE "    ElementT it=1, w=1.5;\n");
+print (OUTFILE "    ElementT it=1;\n");
 print (OUTFILE "    switch (n)\n");
 print (OUTFILE "    {\n");
 
@@ -35,7 +35,7 @@ while (<FILE>) {
 print (OUTFILE "	default:\n");
 print (OUTFILE "	  it = 1;\n");
 print (OUTFILE "      }\n");
-print (OUTFILE "      SOR2D(o, in, b, w, it);\n");
+print (OUTFILE "      SOR2D(o, in, b, it);\n");
 print (OUTFILE " }\n");
 print (OUTFILE "}\n");
 close(FILE);

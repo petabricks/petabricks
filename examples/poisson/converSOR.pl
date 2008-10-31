@@ -18,7 +18,7 @@ if (defined($opt_h)) {
 
 die "Need four arguments: $!" unless @ARGV==4;
 
-$fn="SOR2D"; $para="w one";
+$fn="SOR2D"; $para="one";
 
 $EXACT = "Xexact";
 $XTMP = "Xtemp";
