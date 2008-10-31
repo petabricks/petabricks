@@ -240,6 +240,7 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   CoordinateFormula begin, widths;
   CoordinateFormula end;
   std::vector<std::string> args;
+  std::vector<std::string> matrixNames;
   std::vector<std::string> argsByRef;
 
   std::set<MatrixDefPtr> used;
@@ -247,11 +248,13 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
     used.insert(i->first);
     i->first->argDeclRW(args);
     i->first->argDeclRW(argsByRef, true);
+    matrixNames.push_back(i->first->name());
   }
   for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
     if(used.find(i->first)==used.end()){
       i->first->argDeclRO(args);
       i->first->argDeclRO(argsByRef, true);
+      matrixNames.push_back(i->first->name());
     }
   }
 
@@ -263,6 +266,7 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i){
     args.push_back("const IndexT "+(*i));
     argsByRef.push_back("const IndexT "+(*i));
+    matrixNames.push_back((*i));
   }
 
   //populate begin
@@ -313,7 +317,7 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   }
   o.endFunc();
 
-  TaskCodeGenerator& task = o.createTask(trampcodename(), args);
+  TaskCodeGenerator& task = o.createTask(trampcodename(), args, "SpatialDynamicTask");
   task.beginRunFunc();
   {
     if(isRecursive()){
@@ -334,6 +338,71 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   }
   task.write("return "+f->toString()+";");
   task.endFunc();
+
+  task.beginBeginPosFunc();
+  task.beginSwitch("d");
+  for(int i=0; i<dimensions(); ++i){
+    task.beginCase( i );
+    task.write("return "+getOffsetVar(i,"begin")->toString()+";");
+    task.endCase();
+  }
+  task.write("default: return 0;");
+  task.endSwitch();
+  task.endFunc();
+
+  task.beginEndPosFunc();
+  task.beginSwitch("d");
+  for(int i=0; i<dimensions(); ++i){
+    task.beginCase( i );
+    task.write("return "+getOffsetVar(i,"end")->toString()+";");
+    task.endCase();
+  }
+  task.write("default: return 0;");
+  task.endSwitch();
+  task.endFunc();
+
+
+  task.beginSpatialSplitFunc();
+  {//spatialSplit(SpatialTaskList& _list, int _dim, int _thresh)
+    task.write("IndexT _wdth = "+task.name()+"::endPos(_dim)-"+task.name()+"::beginPos(_dim);");
+    task.beginIf("_wdth > _thresh && _wdth > 2");
+    task.write("SpatialTaskPtr _l,_r;");
+    std::vector<std::string> largs(matrixNames);
+    std::vector<std::string> rargs(matrixNames);
+    for(int i=0; i<dimensions(); ++i){
+      largs.push_back(getOffsetVar(i,"l_begin")->toString());
+      rargs.push_back(getOffsetVar(i,"r_end")->toString());
+    }
+    for(int i=0; i<dimensions(); ++i){
+      largs.push_back(getOffsetVar(i,"l_begin")->toString());
+      rargs.push_back(getOffsetVar(i,"r_end")->toString());
+    }
+    for(int i=0; i<dimensions(); ++i){
+      task.varDecl("IndexT "+getOffsetVar(i,"l_begin")->toString() +"="+getOffsetVar(i,"begin")->toString());
+      task.varDecl("IndexT "+getOffsetVar(i,"r_begin")->toString() +"="+getOffsetVar(i,"begin")->toString());
+      task.varDecl("IndexT "+getOffsetVar(i,"l_end")->toString() +"="+getOffsetVar(i,"end")->toString());
+      task.varDecl("IndexT "+getOffsetVar(i,"r_end")->toString() +"="+getOffsetVar(i,"end")->toString());
+    }
+    task.beginSwitch("_dim");
+    for(int i=0; i<dimensions(); ++i){
+      task.beginCase(i);
+      FormulaPtr mid = new FormulaDivide(new FormulaSubtract(getOffsetVar(i,"end"),getOffsetVar(i,"begin")), new FormulaInteger(2));
+      task.write(getOffsetVar(i,"l_end")->toString()+" = "+mid->toString()+";");
+      task.write(getOffsetVar(i,"r_begin")->toString()+" = "+mid->toString()+";");
+      task.endCase();
+    }
+    task.write("default: _list.push_back(this); return;");
+    task.endSwitch();
+    task.setcall("_l", "new "+trampcodename()+"_task", largs);
+    task.setcall("_r", "new "+trampcodename()+"_task", rargs);
+    task.write("_l->spatialSplit(_list, _dim, _thresh);");
+    task.write("_r->spatialSplit(_list, _dim, _thresh);");
+    task.elseIf();
+    task.write("_list.push_back(this);");
+    task.endIf();
+  }
+  task.endFunc();
+
 }
 
 void hecura::Rule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o){

@@ -2,10 +2,10 @@
 #define QUICKSORT_PBCC
 
 #include "../utilities.pbcc"
-#include "Sort.pbcc"
 
-//#define SORTSUBARRAY QuicksortSubArray
-#define SORTSUBARRAY SortSubArray
+#ifndef SORTSUBARRAY
+#define SORTSUBARRAY QuicksortSubArray
+#endif
 
 %{
 

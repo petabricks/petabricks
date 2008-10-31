@@ -4,7 +4,7 @@
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
+ *   the Free Software Foundation; either version 3 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
  *   This program is distributed in the hope that it will be useful,       *
@@ -17,29 +17,12 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-
-#include "matrix.h"
-#include "matrixio.h"
-#include "dynamictask.h"
 #include "spatialdynamictask.h"
-#include "hecuraruntime.h"
-#include "jtunable.h"
-#include <math.h>
 
-#define SPAWN(args...) \
-  { DynamicTaskPtr _task = spawn_ ## args; \
-    _task->dependsOn(_before);\
-    _after->dependsOn(_task);\
-    _task->enqueue();\
-  }
-
-#define SYNC() \
-  { \
-    _before = _after; \
-    _after = new NullDynamicTask(); \
-    _after->dependsOn(_before); \
-    _before->enqueue(); \
-  }
-
-
+void hecura::SpatialTaskList::spatialSplit(int dim, int n){
+  SpatialTaskList tmp;
+  swap(tmp);
+  for(iterator i=tmp.begin(); i!=tmp.end(); ++i)
+    (*i)->spatialSplit(*this, dim, n);
+}
 

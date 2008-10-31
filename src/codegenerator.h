@@ -77,7 +77,7 @@ public:
   void elseIf(const std::string& v = "true");
   void endIf();
 
-  virtual TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args) = 0;
+  virtual TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType) = 0;
 
   void createTunable( const std::string& category
                     , const std::string& name
@@ -118,9 +118,9 @@ protected:
 class TaskCodeGenerator : public CodeGenerator, public jalib::JRefCounted {
 public:
   std::string str() const { return _os.str() + "};\n"; }
-  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args){ return *this;}
+  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType){ return *this;}
 
-  TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args);
+  TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args, const char* taskType);
 
   void beginRunFunc(){
     beginFunc("hecura::DynamicTaskPtr", "run", std::vector<std::string>());
@@ -141,11 +141,31 @@ public:
     ++_indent;
   }
 
+  void beginBeginPosFunc(){
+    write("IndexT beginPos(int d) const {");
+    ++_indent;
+  }
+
+
+  void beginEndPosFunc(){
+    write("IndexT endPos(int d) const {");
+    ++_indent;
+  }
+
+  void beginSpatialSplitFunc(){
+    write("void spatialSplit(SpatialTaskList& _list, int _dim, int _thresh) {");
+    ++_indent;
+  }
+
+
+
   const std::vector<std::string>& argnames() const { return _names; }
   const std::vector<std::string>& argtypes() const { return _types; }
+  const std::string& name() const { return _name; }
 protected:
   std::ostream& os() { return _os; }
 private:
+  std::string _name;
   std::ostringstream _os;
   std::vector<std::string> _types;
   std::vector<std::string> _names;
@@ -169,7 +189,7 @@ public:
     o << _os.str();
   }
 
-  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args);
+  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType);
 protected:
   std::ostream& os() { return _os; }
 private:

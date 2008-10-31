@@ -2,10 +2,10 @@
 #define MERGESORT_PBCC
 
 #include "../utilities.pbcc"
-#include "Sort.pbcc"
 
-//#define SORTSUBARRAY MergesortSubArray
-#define SORTSUBARRAY SortSubArray
+#ifndef SORTSUBARRAY
+#define SORTSUBARRAY MergesortSubArray
+#endif
 
 transform Merge
 from IN[n]

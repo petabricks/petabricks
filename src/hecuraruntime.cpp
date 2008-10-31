@@ -35,7 +35,7 @@ static int GRAPH_MAX=1024;
 static int GRAPH_MAX_SEC=10;
 static int GRAPH_STEP=8;
 static int GRAPH_TRIALS=2;
-static int GRAPH_SMOOTHING=1;
+static int GRAPH_SMOOTHING=0;
 static int SEARCH_BRANCH_FACTOR=32;
 static bool GRAPH_MULTIGRID=false;
 

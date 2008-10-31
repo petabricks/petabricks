@@ -269,7 +269,7 @@ void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator
     RuleChoicePtr rule = trans.learner().makeRuleChoice(first.choices()->rules(), first.matrix(), first.region());
     rule->generateCodeSimple(nodename(), trans, *this, first.region(), o);
   }else{
-    TaskCodeGenerator& task = o.createTask("coscheduled_"+nodename(), trans.maximalArgList());
+    TaskCodeGenerator& task = o.createTask("coscheduled_"+nodename(), trans.maximalArgList(), "DynamicTask");
     std::string varname="coscheduled_"+nodename();
     task.beginRunFunc();
     for(size_t d=selfDep.direction.size()-1; d>=0; --d){

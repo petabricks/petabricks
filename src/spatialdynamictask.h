@@ -17,29 +17,55 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifndef HECURASPATIALDYNAMICTASK_H
+#define HECURASPATIALDYNAMICTASK_H
 
-#include "matrix.h"
-#include "matrixio.h"
 #include "dynamictask.h"
-#include "spatialdynamictask.h"
-#include "hecuraruntime.h"
-#include "jtunable.h"
-#include <math.h>
+#include "matrix.h"
+#include "matrixdependency.h"
+#include <vector>
 
-#define SPAWN(args...) \
-  { DynamicTaskPtr _task = spawn_ ## args; \
-    _task->dependsOn(_before);\
-    _after->dependsOn(_task);\
-    _task->enqueue();\
+namespace hecura {
+
+class SpatialDynamicTask;
+class SpatialTaskList;
+typedef jalib::JRef<SpatialDynamicTask> SpatialTaskPtr;
+typedef jalib::JRef<SpatialTaskList> SpatialTaskListPtr;
+
+
+class SpatialDynamicTask : public DynamicTask {
+public:
+  virtual IndexT beginPos(int dimension) const = 0;
+  virtual IndexT endPos(int dimension) const = 0;
+  virtual void spatialSplit(SpatialTaskList& output, int dim, int n) = 0;
+};
+
+class SpatialTaskList : public std::vector< SpatialTaskPtr > {
+public:
+  SpatialTaskList(const SpatialTaskPtr& initial) : std::vector< SpatialTaskPtr >(1, initial) {}
+  SpatialTaskList() {}
+
+  void spatialSplit(int dim, int n);
+
+  template< int D >
+  void dependsOn(const SpatialTaskList& that, DependencyDirection::DirectionT dir[D]){
+    for(const_iterator a=begin(); a!=end(); ++a){
+      for(const_iterator b=that.begin(); b!=that.end(); ++b){
+//         for(int d=0; d<D; ++d){
+        (*a)->dependsOn(b->asPtr());
+//         }
+      }
+    }
   }
 
-#define SYNC() \
-  { \
-    _before = _after; \
-    _after = new NullDynamicTask(); \
-    _after->dependsOn(_before); \
-    _before->enqueue(); \
+  void dependsOn(const DynamicTaskPtr& b){
+    for(const_iterator a=begin(); a!=end(); ++a){
+      (*a)->dependsOn(b);
+    }
   }
+};
 
 
+}
 
+#endif
