@@ -52,13 +52,13 @@ public:
     for(const_iterator a=begin(); a!=end(); ++a){
       for(const_iterator b=that.begin(); b!=that.end(); ++b){
 //         for(int d=0; d<D; ++d){
-        (*a)->dependsOn(b->asPtr());
+        (*a)->dependsOn(DynamicTaskPtr(b->asPtr()));
 //         }
       }
     }
   }
 
-  void dependsOn(const DynamicTaskPtr& b){
+  void dependsOn(DynamicTaskPtr& b){
     for(const_iterator a=begin(); a!=end(); ++a){
       (*a)->dependsOn(b);
     }

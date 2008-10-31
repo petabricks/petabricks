@@ -21,11 +21,18 @@
 #define HECURADYNAMICTASK_H
 
 #include "jrefcounted.h"
+#include "jmutex.h"
+#include "dynamicscheduler.h"
+
+#include <vector>
+
 
 namespace hecura {
 
+// forward declarsion for DynamicTaskPtr
 class DynamicTask;
 typedef jalib::JRef<DynamicTask> DynamicTaskPtr;
+
 
 class DynamicTask : public jalib::JRefCounted {
 public:
@@ -34,14 +41,29 @@ public:
   /// before this task is marked done, otherwise return NULL
   virtual DynamicTaskPtr run() = 0;
 
+  /// constructor
+  DynamicTask();
+
   ///
   /// Mark that this may not start before that
-  void dependsOn(const DynamicTaskPtr& that){ /* TODO */ }
+  void dependsOn(const DynamicTaskPtr& that);
 
   ///
   /// Enqueue this task to be run (once all dependencies are met)
   /// this method indicates that all dependencies have been registered
-  void enqueue() { run(); /* TODO DynamicScheduler::enqueueNewTask(this) */ }
+  void enqueue();
+
+  ///
+  /// decrease the dependent task's count 
+  void removeDependence();
+
+  ///
+  /// copy the dependent tasks into dst task
+  void copyDependence(DynamicTaskPtr dst);
+
+  ///
+  /// check if the task is ready to run
+  bool isReady();
 
   ///
   /// Size in bytes the area of this task
@@ -55,10 +77,37 @@ public:
   /// Split this task into smaller tasks and return a replacement
   virtual DynamicTaskPtr split(){ JASSERT(false); return 0; }
 
+
   ///
   /// Block until this task has completed
-  void waitUntilComplete(){}
+  void waitUntilComplete();
+
+  ///
+  /// set task as complete
+  void completeTask();
+
+ protected:
+  ///
+  /// a list of tasks that depends on me
+  mutable std::vector<DynamicTaskPtr> dependents;
+
+  ///
+  /// a mutex lock for accessing dependent
+  mutable jalib::JMutex  dependentMutex;
+
+  ///
+  /// a counter of how many tasks I depends on
+  volatile long numOfPredecessor;
+
+  /// 
+  /// Scheduler for scheduling the dynamic tasks
+  static DynamicScheduler   *scheduler;
+
+  /// 
+  /// indicate if the task is executed or not
+  bool complete;
 };
+
 
 class NullDynamicTask : public DynamicTask {
 public:
