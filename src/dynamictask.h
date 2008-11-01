@@ -86,6 +86,10 @@ public:
   /// set task as complete
   void completeTask();
 
+
+  void lock(){ dependentMutex.lock(); }
+  void unlock(){ dependentMutex.unlock(); }
+
  protected:
   ///
   /// a list of tasks that depends on me

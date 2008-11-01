@@ -19,7 +19,8 @@
  ***************************************************************************/
 #include "dynamictask.h"
  
-//#define VERBOSE
+#define VERBOSE
+//#define PBCC_SEQUENTIAL
 
 namespace hecura {
 
@@ -30,23 +31,30 @@ DynamicTask::DynamicTask()
   complete         = false;
   numOfPredecessor = 0;
 
+#ifndef PBCC_SEQUENTIAL
   // allocate scheduler when the first task is created
   if(scheduler == NULL) {
     scheduler = new DynamicScheduler();
     scheduler->startWorkerThreads();
   }
+#endif
 }
 
 
+#ifdef PBCC_SEQUENTIAL
+void DynamicTask::enqueue() { run();}
+#else
 void DynamicTask::enqueue()
 {
   // put new task into scheduler's work queue
-  scheduler->mutexLock();
   scheduler->enqueueNewTask(DynamicTaskPtr(this));
-  scheduler->mutexUnlock();
 }
+#endif // PBCC_SEQUENTIAL
 
 
+#ifdef PBCC_SEQUENTIAL
+void DynamicTask::dependsOn(const DynamicTaskPtr &that){}
+#else
 void DynamicTask::dependsOn(const DynamicTaskPtr &that)
 {
   // increase the numOfPredecessor as I rely on one more task
@@ -60,12 +68,13 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
     jalib::atomicAdd<1>(&numOfPredecessor);
     that->dependents.push_back(DynamicTaskPtr(this));
 #ifdef VERBOSE
-    printf("task %p depends on task %p counter: %d\n", 
-	   this, that.asPtr(), numOfPredecessor);
+    printf("thread %d: task %p depends on task %p counter: %d\n", 
+	   pthread_self(), this, that.asPtr(), numOfPredecessor);
 #endif  
   }
   that->dependentMutex.unlock();
 }
+#endif // PBCC_SEQUENTIAL
 
 
 bool DynamicTask::isReady()
@@ -78,68 +87,75 @@ bool DynamicTask::isReady()
 
 void DynamicTask::removeDependence()
 {
-  std::vector<DynamicTaskPtr>::iterator it;
-  dependentMutex.lock();
 #ifdef VERBOSE
-  printf("task %p finish, decrease dependents counter\n", this);
+  printf("thread %d: task %p finish, decrease dependents counter\n", 
+	 pthread_self(), this);
 #endif  
-  for(it = dependents.begin(); it != dependents.end(); ++it) {
+
+  std::vector<DynamicTaskPtr>::iterator it;
+  std::vector<DynamicTaskPtr> tmp;
+
+  dependentMutex.lock();
+  JASSERT(complete);
+  dependents.swap(tmp);
+  dependentMutex.unlock();
+
+  for(it = tmp.begin(); it != tmp.end(); ++it) {
     DynamicTaskPtr task = *it;
-    // dec the counter
-    jalib::atomicAdd<-1>(&task->numOfPredecessor);
 #ifdef VERBOSE
     printf("\ttask %p: %d\n", task.asPtr(), task->numOfPredecessor);
 #endif    
-    // if no predecessor, move task from wait queue to ready queue
-    if(task->numOfPredecessor == 0) {
-      scheduler->mutexLock();
-      scheduler->dequeueWaitQueue(task);
-      scheduler->enqueueReadyQueue(task);
-      scheduler->mutexUnlock();
+    // dec the counter
+    if(jalib::atomicAdd<-1>(&task->numOfPredecessor)==0){
+      // if no predecessor, move task from wait queue to ready queue
+      scheduler->moveWait2Ready(task);
     }
   }
-  dependents.clear();
-  dependentMutex.unlock();
 }
 
 
 void DynamicTask::copyDependence(DynamicTaskPtr dst)
 {
   std::vector<DynamicTaskPtr>::iterator it;
+  std::vector<DynamicTaskPtr> tmp;
   // assuming no one else will touch dst, so no lock for dst task's dependent
   dependentMutex.lock();
-  for(it = dependents.begin(); it != dependents.end(); ++it) {
+  dependents.swap(tmp);
+  dependentMutex.unlock();
+
+  dst->dependentMutex.lock();
+  for(it = tmp.begin(); it != tmp.end(); ++it) {
     DynamicTaskPtr task = *it;
     dst->dependents.push_back(task);
   }
-  dependents.clear();
-  dependentMutex.unlock();
+  dst->dependentMutex.unlock();
 }
 
 
 void DynamicTask::completeTask()
 {
+  dependentMutex.lock();
   complete = true;
+  dependentMutex.unlock();
 }
 
 
+#ifdef PBCC_SEQUENTIAL
+void DynamicTask::waitUntilComplete() {}
+#else
 void DynamicTask::waitUntilComplete()
 {
 #ifdef VERBOSE
-  printf("\ttask %p wait until complete\n", this);
+  printf("thread %d: task %p wait until complete\n", 
+	 pthread_self(), this);
 #endif   
   while(!this->complete) {
-    DynamicTaskPtr task = NULL;
-    //
-    // To get a task for execution
-    //
-    // lock 
-    scheduler->mutexLock();
-    task = scheduler->dequeueReadyQueue();
-    scheduler->mutexUnlock();
-    if (!task) 
+    // get a task for execution
+    DynamicTaskPtr task = scheduler->dequeueReadyQueueNonblocking();
+    if (!task) {
+      //scheduler->cleanWaitQueue();
       usleep(100);
-    else {
+    } else {
       DynamicTaskPtr cont = task->run();
       task->completeTask();
       // remove the dependence for the task
@@ -147,13 +163,13 @@ void DynamicTask::waitUntilComplete()
 	// no continuation task, so remove the dependence
 	task->removeDependence();
       } else {
-	// assuming all dependent will depend on cond too
+	// assuming all dependent will depend on cont too
 	task->copyDependence(cont);
 	scheduler->enqueueNewTask(cont);
       }
     }
   }
 }
-
+#endif // PBCC_SEQUENTIAL
 
 }

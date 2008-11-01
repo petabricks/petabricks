@@ -65,7 +65,8 @@ class DynamicScheduler{
   /// remove a task from the ready queue
   /// if ready queue is empty, return NULL
   /// so it never block
-  DynamicTaskPtr dequeueReadyQueue();
+  DynamicTaskPtr dequeueReadyQueueNonblocking();
+  DynamicTaskPtr dequeueReadyQueueBlocking();
 
   ///
   /// remove the specific task from the ready queue
@@ -80,38 +81,38 @@ class DynamicScheduler{
   void dequeueWaitQueue(DynamicTaskPtr task);
 
   ///
+  /// clean the wait queue
+  void cleanWaitQueue();
+
+  ///
+  ///
+  void moveWait2Ready(DynamicTaskPtr task);
+
+  ///
   /// lock the mutex
-  void mutexLock() { mutex.lock(); }
+  void mutexLock() { 
+    mutex.lock(); 
+  }
 
   ///
   /// unlock the mutex
-  void mutexUnlock() { mutex.unlock(); }
-
-  ///
-  /// lock the cond var associated mutex
-  void condMutexLock() { condMutex.lock(); }
-
-  ///
-  /// unlock the cond var associated mutex
-  void condMutexUnlock() { condMutex.unlock(); }
+  void mutexUnlock() { 
+    mutex.unlock(); 
+  }
 
   ///
   /// conditional wait
-  void condMutexWait() { condMutex.wait(); }
+  void condWait() { mutex.wait(); }
 
   ///
   /// signal the conditional variables
-  void condMutexSignal() { condMutex.signal(); }
+  void condSignal() { mutex.signal(); }
 
  protected:
 
   ///
   /// mutex for accessing the queue
-  jalib::JMutex     mutex;
-
-  ///
-  /// conditional variables for communicate with worker threads
-  jalib::JCondMutex condMutex;
+  jalib::JCondMutex mutex;
 
   ///
   /// Total number of worker threads
