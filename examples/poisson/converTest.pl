@@ -46,7 +46,7 @@ $err=<FH>;
 close FH;
 $iterations=1;
 
-while ($err >= $ARGV[1] && $iterations < 5000) {
+while ($err >= $ARGV[1] && $iterations < 1000) {
      system("./$fn $TMP $ARGV[4] $para $TMP");
      system("./error $EXACT $TMP $ARGV[2]");
      open (FH,$ARGV[2]) or die ("Error opening file $ARGV[2]\n");
