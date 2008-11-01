@@ -42,11 +42,17 @@ public:
 
 class SpatialTaskList : public std::vector< SpatialTaskPtr > {
 public:
+  ///
+  /// Constructor
   SpatialTaskList(const SpatialTaskPtr& initial) : std::vector< SpatialTaskPtr >(1, initial) {}
   SpatialTaskList() {}
 
+  ///
+  /// Split the task into smaller tasks
   void spatialSplit(int dim, int n);
 
+  ///
+  /// Add a directed dependency between tasklists
   template< int D >
   void dependsOn(const SpatialTaskList& that, DependencyDirection::DirectionT dir[D]){
     for(const_iterator a=begin(); a!=end(); ++a){
@@ -58,10 +64,22 @@ public:
     }
   }
 
+  ///
+  /// Make all tasks in this depend on b
   void dependsOn(DynamicTaskPtr& b){
     for(const_iterator a=begin(); a!=end(); ++a){
       (*a)->dependsOn(b);
     }
+  }
+
+  ///
+  /// Return a task depending on all taks in this
+  DynamicTaskPtr completionTask(){
+    DynamicTaskPtr tmp = new NullDynamicTask();
+    for(iterator a=begin(); a!=end(); ++a){
+      tmp->dependsOn(a->asPtr());
+    }
+    return tmp;
   }
 };
 
