@@ -264,6 +264,15 @@ public:
   }
 
   ///
+  /// sum of the sizes in each dimension
+  IndexT perimeter() const {
+    IndexT s=0;
+    for(int i=0; i<D; ++i)
+      s+=_sizes[i];
+    return s;
+  }
+
+  ///
   /// Number of elements in this region
   IndexT bytes() const {
     return count()*sizeof(ElementT);
@@ -381,6 +390,12 @@ public:
   ///
   /// Number of elements in this region
   IndexT count() const {
+    return 1;
+  }
+
+  ///
+  /// Number of edge elements in this region
+  IndexT perimeter() const {
     return 1;
   }
 

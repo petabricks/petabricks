@@ -20486,12 +20486,17 @@ _ACEOF
 
 
 cat >>confdefs.h <<\_ACEOF
-#define INPUT_SIZE_STR "input_size"
+#define INPUT_SIZE_STR "input_count"
 _ACEOF
 
 
 cat >>confdefs.h <<\_ACEOF
-#define OUTPUT_SIZE_STR "output_size"
+#define OUTPUT_SIZE_STR "output_count"
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define SPLIT_CHUNK_SIZE "chunk_size"
 _ACEOF
 
 
