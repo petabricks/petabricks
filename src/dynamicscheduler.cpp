@@ -82,12 +82,9 @@ DynamicTaskPtr DynamicScheduler::dequeueReadyQueueNonblocking()
   // simply return the first task in the ready queue
   DynamicTaskPtr task = readyQueue.front();
   readyQueue.pop_front();
-  mutexUnlock();
 
-#ifdef VERBOSE  
-  printf("thread %d: remove task %p from ready queue\n", 
-	 pthread_self(), task.asPtr());
-#endif
+  JTRACE("running task")(readyQueue.size());
+  mutexUnlock();
 
   return task;
 }
@@ -101,11 +98,10 @@ DynamicTaskPtr DynamicScheduler::dequeueReadyQueueBlocking()
   // simply return the first task in the ready queue
   DynamicTaskPtr task = readyQueue.front();
   readyQueue.pop_front();
+
+  JTRACE("running task")(readyQueue.size());
+  
   mutexUnlock();
-#ifdef VERBOSE  
-  printf("thread %d: remove task %p from ready queue\n", 
-	 pthread_self(), task.asPtr());
-#endif
   return task;
 }
 

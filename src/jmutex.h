@@ -60,7 +60,7 @@ private:
   const JMutex& _mux;
 };
 
-#define JLOCKSCOPE(m) JLockScope __scopeLock ## __LINE__ ( m )
+#define JLOCKSCOPE(m) jalib::JLockScope __scopeLock ## __LINE__ ( m )
 
 }
 

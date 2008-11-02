@@ -101,16 +101,19 @@ class DynamicScheduler{
   void addPending(const DynamicTaskPtr& t) {
     JLOCKSCOPE(mutex);
     waitQueue.insert(t);
+    JTRACE("added pending task")(waitQueue.size());
   }
 
   void removePending(const DynamicTaskPtr& t) {
     JLOCKSCOPE(mutex);
     waitQueue.erase(t);
+    JTRACE("remove pending task")(waitQueue.size());
   }
 
   void addReady(const DynamicTaskPtr& t) {
     JLOCKSCOPE(mutex);
     readyQueue.push_back(t);
+    JTRACE("added ready task")(readyQueue.size());
   }
 
  protected:

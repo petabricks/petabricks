@@ -65,6 +65,8 @@ public:
   /// Wrapper around run that changes state and handles dependencies
   void runWrapper();
 
+  ///
+  /// mark that a task that we dependOn has completed
   void decrementPredecessors();
  protected:
   ///
@@ -80,17 +82,19 @@ public:
   int numOfPredecessor;
 
   enum TaskState {
-    S_NEW, //after creation
-    S_PENDING, //after enqueue()
-    S_READY, //after all dependencies met
-    S_COMPLETE, //after run()
-    S_CONTINUED
+    S_NEW,       //after creation
+    S_PENDING,   //after enqueue()
+    S_READY,     //after all dependencies met
+    S_COMPLETE,  //after run()==NULL
+    S_CONTINUED  //after run()!=NULL
   };
 
   /// 
   /// indicate if the task is executed or not
   TaskState state;
 
+  ///
+  /// Pointer to the continuation task
   DynamicTaskPtr continuation;
 
   /// 

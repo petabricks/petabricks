@@ -46,14 +46,20 @@ void DynamicTask::enqueue() { run();}
 #else
 void DynamicTask::enqueue()
 {
-  JLOCKSCOPE(lock);
-  if(numOfPredecessor == 0){
-    state=S_READY;
-    scheduler->addReady(this);
-  }else{
-    state=S_PENDING;
-    scheduler->addPending(this);
+  int preds;
+  {
+    JLOCKSCOPE(lock);
+    preds=numOfPredecessor;
+    if(preds==0)
+      state=S_READY;
+    else
+      state=S_PENDING;
   }
+  if(preds==0)
+    scheduler->addReady(this);
+  else
+    scheduler->addPending(this);
+  
 }
 #endif // PBCC_SEQUENTIAL
 
@@ -64,7 +70,8 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that){}
 void DynamicTask::dependsOn(const DynamicTaskPtr &that)
 {
   if(!that) return;
-  JASSERT(state==S_NEW)(state);
+  JASSERT(that!=this).Text("task cant depend on itself");
+  JASSERT(state==S_NEW)(state).Text(".dependsOn must be called before enqueue()");
   that->lock.lock();
   if(that->state == S_CONTINUED){
     that->lock.unlock();
@@ -72,8 +79,12 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
   }else if(that->state != S_COMPLETE){
     that->dependents.push_back(this);
     that->lock.unlock();
-    JLOCKSCOPE(lock);
-    numOfPredecessor++;
+    {
+      JLOCKSCOPE(lock);
+      numOfPredecessor++;
+    }
+  }else{
+    that->lock.unlock();
   }
 #ifdef VERBOSE
     printf("thread %d: task %p depends on task %p counter: %d\n", pthread_self(), this, that.asPtr(), numOfPredecessor);
@@ -86,18 +97,20 @@ void hecura::DynamicTask::decrementPredecessors(){
   numOfPredecessor--;
   if(numOfPredecessor==0 && state==S_PENDING){
     state=S_READY;
-    scheduler->addReady(this);
-    scheduler->removePending(this);
+    DynamicTaskPtr self = this;
+    scheduler->removePending(self);
+    scheduler->addReady(self);
   }
 }
 
 void hecura::DynamicTask::runWrapper(){
   JASSERT(state==S_READY && numOfPredecessor==0)(state)(numOfPredecessor);
+  JTRACE("running task");
   continuation = run();
 
   std::vector<DynamicTaskPtr>::iterator it;
   std::vector<DynamicTaskPtr> tmp;
-  // assuming no one else will touch dst, so no lock for dst task's dependent
+
   lock.lock();
   dependents.swap(tmp);
   if(continuation) state = S_CONTINUED;
@@ -105,10 +118,13 @@ void hecura::DynamicTask::runWrapper(){
   lock.unlock();
 
   if(continuation){
-    JLOCKSCOPE(continuation->lock);
-    for(it = tmp.begin(); it != tmp.end(); ++it) {
-      continuation->dependents.push_back(*it);
+    {
+      JLOCKSCOPE(continuation->lock);
+      for(it = tmp.begin(); it != tmp.end(); ++it) {
+        continuation->dependents.push_back(*it);
+      }
     }
+    continuation->enqueue();
   }else{
     for(it = tmp.begin(); it != tmp.end(); ++it) {
       (*it)->decrementPredecessors();
@@ -122,7 +138,7 @@ void DynamicTask::waitUntilComplete() {}
 #else
 void DynamicTask::waitUntilComplete()
 {
-  JLOCKSCOPE(lock);
+  lock.lock();
   while(state != S_COMPLETE && state!= S_CONTINUED) {
     lock.unlock();
     // get a task for execution
@@ -134,6 +150,7 @@ void DynamicTask::waitUntilComplete()
     }
     lock.lock();
   }
+  lock.unlock();
   if(state == S_CONTINUED)
     continuation->waitUntilComplete();
 }
