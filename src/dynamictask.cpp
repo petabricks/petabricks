@@ -18,8 +18,8 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "dynamictask.h"
- 
-#define VERBOSE
+
+// #define VERBOSE
 //#define PBCC_SEQUENTIAL
 
 namespace hecura {
@@ -28,7 +28,7 @@ DynamicScheduler *DynamicTask::scheduler = NULL;
 
 DynamicTask::DynamicTask()
 {
-  complete         = false;
+  state = S_NEW;
   numOfPredecessor = 0;
 
 #ifndef PBCC_SEQUENTIAL
@@ -46,8 +46,14 @@ void DynamicTask::enqueue() { run();}
 #else
 void DynamicTask::enqueue()
 {
-  // put new task into scheduler's work queue
-  scheduler->enqueueNewTask(DynamicTaskPtr(this));
+  JLOCKSCOPE(lock);
+  if(numOfPredecessor == 0){
+    state=S_READY;
+    scheduler->addReady(this);
+  }else{
+    state=S_PENDING;
+    scheduler->addPending(this);
+  }
 }
 #endif // PBCC_SEQUENTIAL
 
@@ -57,86 +63,57 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that){}
 #else
 void DynamicTask::dependsOn(const DynamicTaskPtr &that)
 {
-  // increase the numOfPredecessor as I rely on one more task
-  // add this into that's dependent list
-  // I am updating someone else's dependent list
-  // could be more than one updating it, so need lock
-  if(!that)
-    return;
-  that->dependentMutex.lock();
-  if(!that->complete){
-    jalib::atomicAdd<1>(&numOfPredecessor);
-    that->dependents.push_back(DynamicTaskPtr(this));
-#ifdef VERBOSE
-    printf("thread %d: task %p depends on task %p counter: %d\n", 
-	   pthread_self(), this, that.asPtr(), numOfPredecessor);
-#endif  
+  if(!that) return;
+  JASSERT(state==S_NEW)(state);
+  that->lock.lock();
+  if(that->state == S_CONTINUED){
+    that->lock.unlock();
+    dependsOn(that->continuation);
+  }else if(that->state != S_COMPLETE){
+    that->dependents.push_back(this);
+    that->lock.unlock();
+    JLOCKSCOPE(lock);
+    numOfPredecessor++;
   }
-  that->dependentMutex.unlock();
+#ifdef VERBOSE
+    printf("thread %d: task %p depends on task %p counter: %d\n", pthread_self(), this, that.asPtr(), numOfPredecessor);
+#endif  
 }
 #endif // PBCC_SEQUENTIAL
 
-
-bool DynamicTask::isReady()
-{
-  if(numOfPredecessor == 0)
-    return true;
-  return false;
-}
-
-
-void DynamicTask::removeDependence()
-{
-#ifdef VERBOSE
-  printf("thread %d: task %p finish, decrease dependents counter\n", 
-	 pthread_self(), this);
-#endif  
-
-  std::vector<DynamicTaskPtr>::iterator it;
-  std::vector<DynamicTaskPtr> tmp;
-
-  dependentMutex.lock();
-  JASSERT(complete);
-  dependents.swap(tmp);
-  dependentMutex.unlock();
-
-  for(it = tmp.begin(); it != tmp.end(); ++it) {
-    DynamicTaskPtr task = *it;
-#ifdef VERBOSE
-    printf("\ttask %p: %d\n", task.asPtr(), task->numOfPredecessor);
-#endif    
-    // dec the counter
-    if(jalib::atomicAdd<-1>(&task->numOfPredecessor)==0){
-      // if no predecessor, move task from wait queue to ready queue
-      scheduler->moveWait2Ready(task);
-    }
+void hecura::DynamicTask::decrementPredecessors(){
+  JLOCKSCOPE(lock);
+  numOfPredecessor--;
+  if(numOfPredecessor==0 && state==S_PENDING){
+    state=S_READY;
+    scheduler->addReady(this);
+    scheduler->removePending(this);
   }
 }
 
+void hecura::DynamicTask::runWrapper(){
+  JASSERT(state==S_READY && numOfPredecessor==0)(state)(numOfPredecessor);
+  continuation = run();
 
-void DynamicTask::copyDependence(DynamicTaskPtr dst)
-{
   std::vector<DynamicTaskPtr>::iterator it;
   std::vector<DynamicTaskPtr> tmp;
   // assuming no one else will touch dst, so no lock for dst task's dependent
-  dependentMutex.lock();
+  lock.lock();
   dependents.swap(tmp);
-  dependentMutex.unlock();
+  if(continuation) state = S_CONTINUED;
+  else             state = S_COMPLETE;
+  lock.unlock();
 
-  dst->dependentMutex.lock();
-  for(it = tmp.begin(); it != tmp.end(); ++it) {
-    DynamicTaskPtr task = *it;
-    dst->dependents.push_back(task);
+  if(continuation){
+    JLOCKSCOPE(continuation->lock);
+    for(it = tmp.begin(); it != tmp.end(); ++it) {
+      continuation->dependents.push_back(*it);
+    }
+  }else{
+    for(it = tmp.begin(); it != tmp.end(); ++it) {
+      (*it)->decrementPredecessors();
+    }
   }
-  dst->dependentMutex.unlock();
-}
-
-
-void DynamicTask::completeTask()
-{
-  dependentMutex.lock();
-  complete = true;
-  dependentMutex.unlock();
 }
 
 
@@ -145,30 +122,20 @@ void DynamicTask::waitUntilComplete() {}
 #else
 void DynamicTask::waitUntilComplete()
 {
-#ifdef VERBOSE
-  printf("thread %d: task %p wait until complete\n", 
-	 pthread_self(), this);
-#endif   
-  while(!this->complete) {
+  JLOCKSCOPE(lock);
+  while(state != S_COMPLETE && state!= S_CONTINUED) {
+    lock.unlock();
     // get a task for execution
     DynamicTaskPtr task = scheduler->dequeueReadyQueueNonblocking();
     if (!task) {
-      //scheduler->cleanWaitQueue();
       usleep(100);
     } else {
-      DynamicTaskPtr cont = task->run();
-      task->completeTask();
-      // remove the dependence for the task
-      if(!cont) {
-	// no continuation task, so remove the dependence
-	task->removeDependence();
-      } else {
-	// assuming all dependent will depend on cont too
-	task->copyDependence(cont);
-	scheduler->enqueueNewTask(cont);
-      }
+      task->runWrapper();
     }
+    lock.lock();
   }
+  if(state == S_CONTINUED)
+    continuation->waitUntilComplete();
 }
 #endif // PBCC_SEQUENTIAL
 

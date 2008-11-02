@@ -26,7 +26,7 @@
 #include <pthread.h>
 #include <unistd.h>
  
-#define VERBOSE
+// #define VERBOSE
 
 
 #define MIN_NUM_WORKERS  0
@@ -70,40 +70,6 @@ void DynamicScheduler::startWorkerThreads()
 }
 
 
-
-void DynamicScheduler::enqueueNewTask(DynamicTaskPtr task)
-{
-  // first check if there is any dependent,
-  // if no add task into the ready queue
-  // else  add task into the  wait queue
-  task->lock();
-  if(task->isReady()) {
-    enqueueReadyQueue(task);
-  } else {
-    enqueueWaitQueue(task);
-  }
-  task->unlock();
-}
-
-
-/*
- * Warning, now do not consider the data race
- * assume proper lock is applied when called
- */
-void DynamicScheduler::enqueueReadyQueue(DynamicTaskPtr task)
-{
-#ifdef VERBOSE
-  printf("thread %d: add task %p into ready queue\n", 
-	 pthread_self(), task.asPtr());
-#endif
-  mutexLock();
-  // append task to end of the ready queue
-  readyQueue.push_back(task);
-  condSignal();
-  mutexUnlock();
-}
-
-
 DynamicTaskPtr DynamicScheduler::dequeueReadyQueueNonblocking()
 {
   mutexLock();
@@ -143,100 +109,13 @@ DynamicTaskPtr DynamicScheduler::dequeueReadyQueueBlocking()
   return task;
 }
 
-
-void DynamicScheduler::dequeueReadyQueue(DynamicTaskPtr task)
-{
-  // remove the task from ready queue
-  mutexLock();
-  readyQueue.remove(task);
-  mutexUnlock();
-}
-
-
-
-/*
- * Warning, now do not consider the data race
- * assume proper lock is applied when called
- */
-void DynamicScheduler::enqueueWaitQueue(DynamicTaskPtr task)
-{
-  // add task into wait queue
-#ifdef VERBOSE  
-  printf("thread %d: add task %p into wait queue\n", 
-	 pthread_self(), task.asPtr());
-#endif
-  mutexLock();
-  waitQueue.push_back(task);
-  mutexUnlock();
-}
-
-
-/*
- * Warning, now do not consider the data race
- * assume proper lock is applied when called
- */
-void DynamicScheduler::dequeueWaitQueue(DynamicTaskPtr task)
-{
-  mutexLock();
-  // remove task from wait queue
-  waitQueue.remove(task);
-  mutexUnlock();
-#ifdef VERBOSE  
-  printf("thread %d, remove task %p from wait queue\n", 
-	 pthread_self(), task.asPtr());
-#endif
-}
-
-
-void DynamicScheduler::moveWait2Ready(DynamicTaskPtr task)
-{
-  dequeueWaitQueue(task);
-  enqueueReadyQueue(task);
-}
-
-void DynamicScheduler::cleanWaitQueue() 
-{
-  std::list<DynamicTaskPtr>::iterator it;
-  DynamicTaskPtr task;
-  mutexLock();
-  for(it = waitQueue.begin(); it != waitQueue.end(); it++ ) {
-    task = *it;
-    if(!task) {
-      dequeueWaitQueue(task);
-      continue;
-    }
-    if(task->isReady()) {
-      dequeueWaitQueue(task);
-      enqueueReadyQueue(task);
-    }
-  }
-  mutexUnlock();
-}
-
-
 void *workerStartup(void *args) 
 {
   DynamicScheduler *scheduler = (DynamicScheduler *)args;
 
   // infinit loop to for executing tasks
   while(true) {
-    DynamicTaskPtr task = NULL;
-    
-    // get a task for execution
-    task = scheduler->dequeueReadyQueueBlocking();
-
-    // execute the task
-    DynamicTaskPtr cont = task->run();
-    task->completeTask();
-    // remove the dependence for the task
-    if(!cont) {
-      // no continuation task, so remove the dependence
-      task->removeDependence();
-    } else {
-      // assuming all dependent will depend on cond too
-      task->copyDependence(cont);
-      scheduler->enqueueNewTask(cont);
-    } 
+    scheduler->dequeueReadyQueueBlocking()->runWrapper();
   }
 }
 

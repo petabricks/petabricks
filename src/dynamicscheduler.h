@@ -25,6 +25,7 @@
 
 #include <pthread.h>
 #include <list>
+#include <set>
 
 
 namespace hecura {
@@ -69,18 +70,6 @@ class DynamicScheduler{
   DynamicTaskPtr dequeueReadyQueueBlocking();
 
   ///
-  /// remove the specific task from the ready queue
-  void dequeueReadyQueue(DynamicTaskPtr task);
-
-  ///
-  /// add the task in to the wait queue
-  void enqueueWaitQueue(DynamicTaskPtr task);
-
-  ///
-  /// remove the task from the wait queue
-  void dequeueWaitQueue(DynamicTaskPtr task);
-
-  ///
   /// clean the wait queue
   void cleanWaitQueue();
 
@@ -108,6 +97,22 @@ class DynamicScheduler{
   /// signal the conditional variables
   void condSignal() { mutex.signal(); }
 
+
+  void addPending(const DynamicTaskPtr& t) {
+    JLOCKSCOPE(mutex);
+    waitQueue.insert(t);
+  }
+
+  void removePending(const DynamicTaskPtr& t) {
+    JLOCKSCOPE(mutex);
+    waitQueue.erase(t);
+  }
+
+  void addReady(const DynamicTaskPtr& t) {
+    JLOCKSCOPE(mutex);
+    readyQueue.push_back(t);
+  }
+
  protected:
 
   ///
@@ -128,7 +133,7 @@ class DynamicScheduler{
 
   ///
   /// queue for waiting tasks
-  std::list<DynamicTaskPtr> waitQueue;
+  std::set<DynamicTaskPtr> waitQueue;
 };
 
 }
