@@ -19,7 +19,6 @@
  ***************************************************************************/
 #include "dynamictask.h"
 
-// #define VERBOSE
 //#define PBCC_SEQUENTIAL
 
 namespace hecura {
@@ -56,10 +55,7 @@ void DynamicTask::enqueue()
       state=S_PENDING;
   }
   if(preds==0)
-    scheduler->addReady(this);
-  else
-    scheduler->addPending(this);
-  
+    scheduler->enqueue(this);
 }
 #endif // PBCC_SEQUENTIAL
 
@@ -78,11 +74,8 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
     dependsOn(that->continuation);
   }else if(that->state != S_COMPLETE){
     that->dependents.push_back(this);
+    numOfPredecessor++;
     that->lock.unlock();
-    {
-      JLOCKSCOPE(lock);
-      numOfPredecessor++;
-    }
   }else{
     that->lock.unlock();
   }
@@ -98,10 +91,10 @@ void hecura::DynamicTask::decrementPredecessors(){
   if(numOfPredecessor==0 && state==S_PENDING){
     state=S_READY;
     DynamicTaskPtr self = this;
-    scheduler->removePending(self);
-    scheduler->addReady(self);
+    scheduler->enqueue(self);
   }
 }
+
 
 void hecura::DynamicTask::runWrapper(){
   JASSERT(state==S_READY && numOfPredecessor==0)(state)(numOfPredecessor);
@@ -142,7 +135,7 @@ void DynamicTask::waitUntilComplete()
   while(state != S_COMPLETE && state!= S_CONTINUED) {
     lock.unlock();
     // get a task for execution
-    DynamicTaskPtr task = scheduler->dequeueReadyQueueNonblocking();
+    DynamicTaskPtr task = scheduler->tryDequeue();
     if (!task) {
       usleep(100);
     } else {

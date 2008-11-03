@@ -47,6 +47,10 @@ template < typename T > class JBlockingQueue{
       _q.pop_front();
       return t; 
     }
+    size_t size() {
+      JLOCKSCOPE(_lock);
+      return _q.size();
+    }
   private:
     std::list<T> _q;
     JCondMutex _lock;

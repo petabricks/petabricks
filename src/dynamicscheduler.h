@@ -22,6 +22,7 @@
 
 #include "jmutex.h"
 #include "jrefcounted.h"
+#include "jblockingqueue.h"
 
 #include <pthread.h>
 #include <list>
@@ -54,73 +55,36 @@ class DynamicScheduler{
   /// start worker threads
   void startWorkerThreads();
   
-  /// 
-  /// add a new task into scheduler
-  void enqueueNewTask(DynamicTaskPtr task);
-
   ///
-  /// add the new task into the ready queue
-  void enqueueReadyQueue(DynamicTaskPtr task);
-
-  ///
-  /// remove a task from the ready queue
-  /// if ready queue is empty, return NULL
-  /// so it never block
-  DynamicTaskPtr dequeueReadyQueueNonblocking();
-  DynamicTaskPtr dequeueReadyQueueBlocking();
-
-  ///
-  /// clean the wait queue
-  void cleanWaitQueue();
-
-  ///
-  ///
-  void moveWait2Ready(DynamicTaskPtr task);
-
-  ///
-  /// lock the mutex
-  void mutexLock() { 
-    mutex.lock(); 
+  /// add a ready task into queue
+  void enqueue(const DynamicTaskPtr& t) {
+    queue.push(t);
+    JTRACE("added ready task")(queue.size());
   }
 
+  
   ///
-  /// unlock the mutex
-  void mutexUnlock() { 
-    mutex.unlock(); 
+  /// blocked until get a task from queue for execution 
+  DynamicTaskPtr dequeue() {
+    DynamicTaskPtr task = queue.pop();
+    JTRACE("running task")(queue.size());
+    return task;
   }
 
-  ///
-  /// conditional wait
-  void condWait() { mutex.wait(); }
 
   ///
-  /// signal the conditional variables
-  void condSignal() { mutex.signal(); }
-
-
-  void addPending(const DynamicTaskPtr& t) {
-    JLOCKSCOPE(mutex);
-    waitQueue.insert(t);
-    JTRACE("added pending task")(waitQueue.size());
-  }
-
-  void removePending(const DynamicTaskPtr& t) {
-    JLOCKSCOPE(mutex);
-    waitQueue.erase(t);
-    JTRACE("remove pending task")(waitQueue.size());
-  }
-
-  void addReady(const DynamicTaskPtr& t) {
-    JLOCKSCOPE(mutex);
-    readyQueue.push_back(t);
-    JTRACE("added ready task")(readyQueue.size());
+  /// unblocked method, try to get a task from queue for execution
+  DynamicTaskPtr tryDequeue() {
+    DynamicTaskPtr task = queue.tryPop();
+    JTRACE("waiting and trying to run task")(queue.size());
+    return task;
   }
 
  protected:
 
   ///
-  /// mutex for accessing the queue
-  jalib::JCondMutex mutex;
+  /// Blocking queue for ready tasks
+  jalib::JBlockingQueue<DynamicTaskPtr> queue;
 
   ///
   /// Total number of worker threads
@@ -129,14 +93,6 @@ class DynamicScheduler{
   ///
   /// worker threads for task execution
   pthread_t *workerThreads;
-  
-  ///
-  /// queue for ready tasks  
-  std::list<DynamicTaskPtr> readyQueue;
-
-  ///
-  /// queue for waiting tasks
-  std::set<DynamicTaskPtr> waitQueue;
 };
 
 }

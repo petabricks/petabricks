@@ -32,7 +32,7 @@
 #define MIN_NUM_WORKERS  0
 #define MAX_NUM_WORKERS  512
 
-JTUNABLE(tunerNumOfWorkers, 16, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
+JTUNABLE(tunerNumOfWorkers, 8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
 
 namespace hecura {
 
@@ -44,19 +44,12 @@ void *workerStartup(void *);
 DynamicScheduler::DynamicScheduler()
 {
   numOfWorkers = tunerNumOfWorkers;
-#ifdef VERBOSE
-  printf("thread %d, total number of workers %d\n", 
-	 pthread_self(), numOfWorkers);
-#endif
 }
 
 
 DynamicScheduler::~DynamicScheduler()
 {
-  // wait for all worker to exit
-  //for(unsigned int i = 0; i < numOfWorkers; i++) {
-  //  pthread_join(workerThreads[i], NULL);
-  //}
+  // nothing to do so far
 }
 
 
@@ -67,43 +60,10 @@ void DynamicScheduler::startWorkerThreads()
   for(unsigned int i = 0; i < numOfWorkers; i++) {
     JASSERT(pthread_create(&workerThreads[i], NULL, workerStartup, (void *)this) == 0);
   }
+  JTRACE("start worker threads")(numOfWorkers);
 }
 
 
-DynamicTaskPtr DynamicScheduler::dequeueReadyQueueNonblocking()
-{
-  mutexLock();
-  // remove task from the ready queue
-  if(readyQueue.empty()){
-    mutexUnlock();
-    return NULL;
-  }
-
-  // simply return the first task in the ready queue
-  DynamicTaskPtr task = readyQueue.front();
-  readyQueue.pop_front();
-
-  JTRACE("running task")(readyQueue.size());
-  mutexUnlock();
-
-  return task;
-}
-
-DynamicTaskPtr DynamicScheduler::dequeueReadyQueueBlocking()
-{
-  mutexLock();
-  while(readyQueue.empty())
-    condWait();
-
-  // simply return the first task in the ready queue
-  DynamicTaskPtr task = readyQueue.front();
-  readyQueue.pop_front();
-
-  JTRACE("running task")(readyQueue.size());
-  
-  mutexUnlock();
-  return task;
-}
 
 void *workerStartup(void *args) 
 {
@@ -111,7 +71,7 @@ void *workerStartup(void *args)
 
   // infinit loop to for executing tasks
   while(true) {
-    scheduler->dequeueReadyQueueBlocking()->runWrapper();
+    scheduler->dequeue()->runWrapper();
   }
 }
 

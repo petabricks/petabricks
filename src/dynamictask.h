@@ -74,7 +74,7 @@ public:
   std::vector<DynamicTaskPtr> dependents;
 
   ///
-  /// a mutex lock for accessing dependent
+  /// a mutex lock for manipulating task status and dependents list
   jalib::JCondMutex  lock;
 
   ///
