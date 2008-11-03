@@ -157,7 +157,10 @@ public:
     ++_indent;
   }
 
-
+  void beginDimensionsFunc(){
+    write("int dimensions() const {");
+    ++_indent;
+  }
 
   const std::vector<std::string>& argnames() const { return _names; }
   const std::vector<std::string>& argtypes() const { return _types; }

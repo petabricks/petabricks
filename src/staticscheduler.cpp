@@ -171,29 +171,54 @@ void hecura::StaticScheduler::generateCodeSimple(Transform& trans, CodeGenerator
   }
   o.write("DynamicTaskPtr "+trans.taskname()+" = new NullDynamicTask();");
   for(ScheduleNodeSet::iterator i=_goals.begin(); i!=_goals.end(); ++i)
-    o.write(trans.taskname()+"->dependsOn(" + (*i)->nodename() + ");");
+    o.write(trans.taskname()+"->dependsOn(" + (*i)->nodename() + ".completionTask());");
 }
 
 void hecura::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
   RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
-  o.write("DynamicTaskPtr "+nodename()+";");
+  o.write("SpatialTaskList "+nodename()+";");
   rule->generateCodeSimple(nodename(), trans, *this, _region, o);
 }
 
-void hecura::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, const RulePtr& rule){
+void hecura::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, const RulePtr& rule, bool useDirections){
   bool printedBeforeDep = false;
+
+  ScheduleDependencies::const_iterator sd = _indirectDepends.find(this);
+  if(sd==_indirectDepends.end()){
+//     o.write(nodename()+".spatialSplit("SPLIT_CHUNK_SIZE");");
+  }else{
+    //TODO split selfdep tasks too
+  }
+
   for(ScheduleDependencies::const_iterator i=_directDepends.begin();  i!=_directDepends.end(); ++i){
     if(i->first!=this){
       if(i->first->isInput()){
         if(!printedBeforeDep){
          printedBeforeDep=true;
-         o.write(nodename()+"->dependsOn(_before);");
+         if(useDirections)
+           o.write(nodename()+".dependsOn(_before);");
+         else
+           o.write(nodename()+"->dependsOn(_before);");
         }
-      }else
-        o.write(nodename()+"->dependsOn("+i->first->nodename()+");");
+      }else{
+        if(useDirections){
+          o.write("{"); 
+          o.incIndent();
+          o.write("DependencyDirection::DirectionT _dir[] = {"+i->second.direction.toCodeStr()+"};");
+          o.write(nodename()+".dependsOn<"+jalib::XToString(i->second.direction.size())+">"
+                            "("+i->first->nodename()+", _dir);");
+          o.decIndent();
+          o.write("}"); 
+        }else{
+          o.write(nodename()+"->dependsOn("+i->first->nodename()+");");
+        }
+      }
     }
   }
-  o.write(nodename()+"->enqueue();");
+  if(useDirections)
+    o.write(nodename()+".enqueue();");
+  else
+    o.write(nodename()+"->enqueue();");
 }
 
 void hecura::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos){
@@ -263,8 +288,9 @@ hecura::CoscheduledNode::CoscheduledNode(const ScheduleNodeSet& set)
 
 void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
   const DependencyInformation& selfDep = _indirectDepends[this];
-  o.write("DynamicTaskPtr "+nodename()+";");
+
   if(selfDep.direction.isNone()){
+    o.write("SpatialTaskList "+nodename()+";");
     o.comment("Dual outputs compacted "+nodename());
     std::string region;
     //test matching region extents in d
@@ -277,6 +303,7 @@ void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator
     RuleChoicePtr rule = trans.learner().makeRuleChoice(first.choices()->rules(), first.matrix(), first.region());
     rule->generateCodeSimple(nodename(), trans, *this, first.region(), o);
   }else{
+    o.write("DynamicTaskPtr "+nodename()+";");
     TaskCodeGenerator& task = o.createTask("coscheduled_"+nodename(), trans.maximalArgList(), "DynamicTask");
     std::string varname="coscheduled_"+nodename();
     task.beginRunFunc();
@@ -318,7 +345,7 @@ void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator
       task.write("return NULL;");
       task.endFunc();
       o.setcall(nodename(),"new "+varname+"_task", task.argnames());
-      printDepsAndEnqueue(o, NULL);
+      printDepsAndEnqueue(o, NULL, false);
       return;
     }
     JASSERT(false)(*this)(selfDep.direction).Text("Unresolved dependency cycle");

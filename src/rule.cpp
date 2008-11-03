@@ -361,6 +361,9 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   task.endSwitch();
   task.endFunc();
 
+  task.beginDimensionsFunc();
+  task.write("return "+jalib::XToString(dimensions())+";");
+  task.endFunc();
 
   task.beginSpatialSplitFunc();
   {//spatialSplit(SpatialTaskList& _list, int _dim, int _thresh)
@@ -399,6 +402,7 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
     task.write("_r->spatialSplit(_list, _dim, _thresh);");
     task.elseIf();
     task.write("_list.push_back(this);");
+    task.write("JTRACE(\"spatialSplit complete\")(_list.size())(_dim)(_wdth);");
     task.endIf();
   }
   task.endFunc();

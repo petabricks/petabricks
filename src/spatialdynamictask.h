@@ -37,6 +37,7 @@ class SpatialDynamicTask : public DynamicTask {
 public:
   virtual IndexT beginPos(int dimension) const = 0;
   virtual IndexT endPos(int dimension) const = 0;
+  virtual int dimensions() const = 0;
   virtual void spatialSplit(SpatialTaskList& output, int dim, int n) = 0;
 };
 
@@ -47,28 +48,63 @@ public:
   SpatialTaskList(const SpatialTaskPtr& initial) : std::vector< SpatialTaskPtr >(1, initial) {}
   SpatialTaskList() {}
 
+  SpatialTaskList& operator=(const SpatialTaskPtr& b){
+    #ifdef DEBUG
+    JASSERT(empty());
+    #endif
+    push_back(b);
+    return *this;
+  }
+
   ///
   /// Split the task into smaller tasks
   void spatialSplit(int dim, int n);
 
+
+  void spatialSplit(int n){
+    JASSERT(size()==1)(size());;
+    for(int i=0; i<back()->dimensions(); ++i)
+      spatialSplit(i, n);
+    JTRACE("after split")(n)(size());
+  }
+
   ///
   /// Add a directed dependency between tasklists
   template< int D >
-  void dependsOn(const SpatialTaskList& that, DependencyDirection::DirectionT dir[D]){
-    for(const_iterator a=begin(); a!=end(); ++a){
-      for(const_iterator b=that.begin(); b!=that.end(); ++b){
-//         for(int d=0; d<D; ++d){
-        (*a)->dependsOn(DynamicTaskPtr(b->asPtr()));
-//         }
+  void dependsOn(SpatialTaskList& that, DependencyDirection::DirectionT dir[D]){
+    for(iterator a=begin(); a!=end(); ++a){
+      for(iterator b=that.begin(); b!=that.end(); ++b){
+        if(*a!=*b){
+//           for(int d=0; d<D; ++d){
+            (*a)->dependsOn(b->asPtr());
+//           }
+        }
+      }
+    }
+  }
+
+  ///
+  /// Add a directed dependency between tasklists
+  template< int D >
+  void dependsOn(DynamicTaskPtr& that, DependencyDirection::DirectionT dir[D]){
+    dependsOn(that);
+  }
+
+  ///
+  /// Make all tasks in this depend on b
+  void dependsOn(const DynamicTaskPtr& b){
+    if(b){
+      for(const_iterator a=begin(); a!=end(); ++a){
+        (*a)->dependsOn(b);
       }
     }
   }
 
   ///
   /// Make all tasks in this depend on b
-  void dependsOn(DynamicTaskPtr& b){
+  void enqueue(){
     for(const_iterator a=begin(); a!=end(); ++a){
-      (*a)->dependsOn(b);
+      (*a)->enqueue();
     }
   }
 
@@ -79,8 +115,11 @@ public:
     for(iterator a=begin(); a!=end(); ++a){
       tmp->dependsOn(a->asPtr());
     }
+    tmp->enqueue();
     return tmp;
   }
+
+  operator DynamicTaskPtr () { return completionTask(); };
 };
 
 

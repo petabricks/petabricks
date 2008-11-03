@@ -55,6 +55,19 @@ void hecura::DependencyDirection::print(std::ostream& o) const {
   o << ')';
 }
 
+std::string hecura::DependencyDirection::toCodeStr() const{
+  std::string str;
+  static const char* maskToStr[DirectionT_count] = 
+    {"D_NONE", "D_LT", "D_EQ", "D_LE", "D_GT", "D_NEQ", "D_GE", "D_ALL"};
+  for(size_t i=0; i< _directionMask.size(); ++i){
+    JASSERT(_directionMask[i] < DirectionT_count);
+    if(i!=0) str += ", ";
+    str += "DependencyDirection::";
+    str += maskToStr[_directionMask[i]];
+  }
+  return str;
+}
+
 size_t hecura::DependencyDirection::size() const { return _directionMask.size(); }
 
 hecura::DependencyDirection::DirectionT hecura::DependencyDirection::operator[](size_t dim) const { 

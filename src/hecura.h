@@ -25,6 +25,7 @@
 #include "hecuraruntime.h"
 #include "jtunable.h"
 #include <math.h>
+#include "config.h"
 
 #define SPAWN(taskname, args...) \
   { DynamicTaskPtr _task = spawn_ ## taskname (args , _before); \

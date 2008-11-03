@@ -94,6 +94,9 @@
    cleaner user namespace */
 #undef SHORT_TYPE_NAMES
 
+/* var name in output code */
+#undef SPLIT_CHUNK_SIZE
+
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
