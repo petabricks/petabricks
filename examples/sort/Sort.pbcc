@@ -32,11 +32,10 @@ to OUT[n], TEMP[n]
     SPAWN(RadixsortSubArray,out, temp, in, p);
   }
 
-  recursive(n)
   to (OUT out, TEMP temp) from (IN in)
   {
     //printf("is %d\n",n);
-    SPAWN(InsertionsortSubArray,out, in);
+    InsertionsortSubArray(out, in);
   }
 }
 
