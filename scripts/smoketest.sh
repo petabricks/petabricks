@@ -75,6 +75,7 @@ ONE=./testdata/One0D
 ONEPOINTFIVE=./testdata/OnePointFive0D
 TWO=./testdata/Two0D
 TEN=./testdata/Ten0D
+MINUSONE=./testdata/MinusOne0D
 
 runEachTest << EOF
   add       $R2Da $R2Db
@@ -94,8 +95,8 @@ runEachTest << EOF
   test12 $R2Da
   poisson/Jacobi2D   $R2Da $R2Db $ONE
   poisson/Jacobi2D   $R2Da $R2Db $TEN
-  poisson/SOR2D      $R2Da $R2Db $ONE
-  poisson/SOR2D      $R2Da $R2Db $TEN
+  poisson/SOR2D      $R2Da $R2Db $MINUSONE $ONE
+  poisson/SOR2D      $R2Da $R2Db $MINUSONE $TEN
   poisson/BS2D       $R2Da $R2Db
   sort/Quicksort     $R1Dodd
   sort/Mergesort     $R1Dodd
