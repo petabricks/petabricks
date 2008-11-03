@@ -384,13 +384,13 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
         if(d==i)
           args.push_back(t_begin);
         else
-          args.push_back(getOffsetVar(i,"begin")->toString());
+          args.push_back(getOffsetVar(d,"begin")->toString());
       }
       for(int d=0; d<dimensions(); ++d){
         if(d==i)
           args.push_back("std::min("+t_end+","+getOffsetVar(i,"end")->toString()+")");
         else
-          args.push_back(getOffsetVar(i,"end")->toString());
+          args.push_back(getOffsetVar(d,"end")->toString());
       }
       task.write("for(;"+t_begin+"<"+getOffsetVar(i,"end")->toString()+"; "+t_begin+"+=_thresh,"+t_end+"+=_thresh){");
       task.incIndent();
