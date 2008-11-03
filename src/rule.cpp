@@ -330,7 +330,7 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   }
   task.endFunc();
   task.beginSizeFunc();
-  FormulaPtr f = FormulaInteger::zero();
+  FormulaPtr f = FormulaInteger::one();
   for(int i=0; i<dimensions(); ++i){
     FormulaPtr b = getOffsetVar(i,"begin");
     FormulaPtr e = getOffsetVar(i,"end");
@@ -368,41 +368,46 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   task.beginSpatialSplitFunc();
   {//spatialSplit(SpatialTaskList& _list, int _dim, int _thresh)
     task.write("IndexT _wdth = "+task.name()+"::endPos(_dim)-"+task.name()+"::beginPos(_dim);");
-    task.beginIf("_wdth > _thresh && _wdth > 2");
-    task.write("SpatialTaskPtr _l,_r;");
-    std::vector<std::string> largs(matrixNames);
-    std::vector<std::string> rargs(matrixNames);
-    for(int i=0; i<dimensions(); ++i){
-      largs.push_back(getOffsetVar(i,"l_begin")->toString());
-      rargs.push_back(getOffsetVar(i,"r_end")->toString());
-    }
-    for(int i=0; i<dimensions(); ++i){
-      largs.push_back(getOffsetVar(i,"l_begin")->toString());
-      rargs.push_back(getOffsetVar(i,"r_end")->toString());
-    }
-    for(int i=0; i<dimensions(); ++i){
-      task.varDecl("IndexT "+getOffsetVar(i,"l_begin")->toString() +"="+getOffsetVar(i,"begin")->toString());
-      task.varDecl("IndexT "+getOffsetVar(i,"r_begin")->toString() +"="+getOffsetVar(i,"begin")->toString());
-      task.varDecl("IndexT "+getOffsetVar(i,"l_end")->toString() +"="+getOffsetVar(i,"end")->toString());
-      task.varDecl("IndexT "+getOffsetVar(i,"r_end")->toString() +"="+getOffsetVar(i,"end")->toString());
-    }
+    task.beginIf("_wdth > _thresh && _thresh > 8");
     task.beginSwitch("_dim");
     for(int i=0; i<dimensions(); ++i){
       task.beginCase(i);
-      FormulaPtr mid = new FormulaDivide(new FormulaSubtract(getOffsetVar(i,"end"),getOffsetVar(i,"begin")), new FormulaInteger(2));
-      task.write(getOffsetVar(i,"l_end")->toString()+" = "+mid->toString()+";");
-      task.write(getOffsetVar(i,"r_begin")->toString()+" = "+mid->toString()+";");
+      task.write("{"); 
+      task.incIndent();
+      task.write("SpatialTaskPtr _t;");
+      std::string t_begin = getOffsetVar(i,"t_begin")->toString();
+      std::string t_end = getOffsetVar(i,"t_end")->toString();
+      task.varDecl("IndexT "+t_begin +"="+getOffsetVar(i,"begin")->toString());
+      task.varDecl("IndexT "+t_end +"="+t_begin+"+_thresh");
+      std::vector<std::string> args(matrixNames);
+      for(int d=0; d<dimensions(); ++d){
+        if(d==i)
+          args.push_back(t_begin);
+        else
+          args.push_back(getOffsetVar(i,"begin")->toString());
+      }
+      for(int d=0; d<dimensions(); ++d){
+        if(d==i)
+          args.push_back("std::min("+t_end+","+getOffsetVar(i,"end")->toString()+")");
+        else
+          args.push_back(getOffsetVar(i,"end")->toString());
+      }
+      task.write("for(;"+t_begin+"<"+getOffsetVar(i,"end")->toString()+"; "+t_begin+"+=_thresh,"+t_end+"+=_thresh){");
+      task.incIndent();
+      task.setcall("_t", "new "+trampcodename()+"_task", args);
+      task.write("_list.push_back(_t);");
+      task.endFor();
       task.endCase();
+      task.write("}");
+      task.decIndent();
     }
     task.write("default: _list.push_back(this); return;");
     task.endSwitch();
-    task.setcall("_l", "new "+trampcodename()+"_task", largs);
-    task.setcall("_r", "new "+trampcodename()+"_task", rargs);
-    task.write("_l->spatialSplit(_list, _dim, _thresh);");
-    task.write("_r->spatialSplit(_list, _dim, _thresh);");
+
+//     task.write("JTRACE(\"spatialSplit complete\")(_dim)(_wdth)(_thresh)(_wdth/_thresh)(_list.size());");
     task.elseIf();
     task.write("_list.push_back(this);");
-    task.write("JTRACE(\"spatialSplit complete\")(_list.size())(_dim)(_wdth);");
+//     task.write("JTRACE(\"spatialSplit disabled\")(_list.size())(_dim)(_wdth)(size());");
     task.endIf();
   }
   task.endFunc();

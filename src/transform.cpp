@@ -207,11 +207,13 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
 //     o.write(OUTPUT_SIZE_STR " += " + (*i)->name() + ".count();");
 //   }
   o.varDecl("IndexT _input_perimeter = 0");
+  int maxDims = 1;
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     o.write("_input_perimeter += " + (*i)->name() + ".perimeter();");
+    maxDims = std::max<int>(maxDims, (*i)->numDimensions());
   }
-  o.createTunable(_name, _name + "_split_chunks", 1, 1, 4096);
-  o.varDecl("IndexT " SPLIT_CHUNK_SIZE " = _input_perimeter / " + _name + "_split_chunks" );
+  o.createTunable(_name, _name + "_split_chunks", 1, 1, 128);
+  o.varDecl("IndexT " SPLIT_CHUNK_SIZE " = _input_perimeter / ("+ jalib::XToString(maxDims) + "*" + _name + "_split_chunks )" );
 
   extractSizeDefines(o);
 //   o.comment("Verify size of input/output");

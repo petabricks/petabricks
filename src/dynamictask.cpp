@@ -20,6 +20,7 @@
 #include "dynamictask.h"
 
 //#define PBCC_SEQUENTIAL
+#define INLINE_NULL_TASKS
 
 namespace hecura {
 
@@ -54,8 +55,16 @@ void DynamicTask::enqueue()
     else
       state=S_PENDING;
   }
-  if(preds==0)
-    scheduler->enqueue(this);
+  if(preds==0){
+#ifdef INLINE_NULL_TASKS
+    if(isNullTask()){
+      runWrapper(); //dont bother enqueuing null tasks
+    }else
+#endif
+    {
+      scheduler->enqueue(this);
+    }
+  }
 }
 #endif // PBCC_SEQUENTIAL
 
@@ -86,39 +95,57 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
 #endif // PBCC_SEQUENTIAL
 
 void hecura::DynamicTask::decrementPredecessors(){
-  JLOCKSCOPE(lock);
-  numOfPredecessor--;
-  if(numOfPredecessor==0 && state==S_PENDING){
-    state=S_READY;
-    DynamicTaskPtr self = this;
-    scheduler->enqueue(self);
+  bool shouldEnqueue = false;
+  {
+    JLOCKSCOPE(lock);
+    if(--numOfPredecessor==0 && state==S_PENDING){
+      state = S_READY;
+      shouldEnqueue = true;
+    }
+  }
+  if(shouldEnqueue){
+#ifdef INLINE_NULL_TASKS
+    if(isNullTask()){
+      runWrapper(); //dont bother enqueuing null tasks
+    }else
+#endif
+    {
+      scheduler->enqueue(this);
+    }
   }
 }
 
 
 void hecura::DynamicTask::runWrapper(){
   JASSERT(state==S_READY && numOfPredecessor==0)(state)(numOfPredecessor);
-  JTRACE("running task");
   continuation = run();
 
-  std::vector<DynamicTaskPtr>::iterator it;
   std::vector<DynamicTaskPtr> tmp;
 
-  lock.lock();
-  dependents.swap(tmp);
-  if(continuation) state = S_CONTINUED;
-  else             state = S_COMPLETE;
-  lock.unlock();
+  {
+    JLOCKSCOPE(lock);
+    dependents.swap(tmp);
+    if(continuation) state = S_CONTINUED;
+    else             state = S_COMPLETE;
+  }
 
   if(continuation){
+    JTRACE("task complete, continued")(tmp.size());
     {
       JLOCKSCOPE(continuation->lock);
-      for(it = tmp.begin(); it != tmp.end(); ++it) {
-        continuation->dependents.push_back(*it);
+      if(continuation->dependents.empty()){
+        //swap is faster than insert
+        continuation->dependents.swap(tmp);
+      }else{
+        continuation->dependents.insert(continuation->dependents.end(), tmp.begin(), tmp.end());
       }
     }
     continuation->enqueue();
   }else{
+    #ifdef DEBUG
+    if(!isNullTask()) JTRACE("task complete")(tmp.size());
+    #endif
+    std::vector<DynamicTaskPtr>::iterator it;
     for(it = tmp.begin(); it != tmp.end(); ++it) {
       (*it)->decrementPredecessors();
     }

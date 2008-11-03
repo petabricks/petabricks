@@ -116,7 +116,7 @@ int main( int argc, const char ** argv){
 }
 
 std::string cmdCppCompiler(const std::string& src, const std::string& bin){
- return CXX " " CXXFLAGS " -o " + bin + " " + src + " " + theLibHecuraPath + " " LIBS;
+ return CXX " " CXXFLAGS " " DEFS " -o " + bin + " " + src + " " + theLibHecuraPath + " " LIBS;
 }
 
 void callCppCompiler(const std::string& src, const std::string& bin){

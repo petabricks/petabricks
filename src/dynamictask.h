@@ -65,6 +65,10 @@ public:
   /// Wrapper around run that changes state and handles dependencies
   void runWrapper();
 
+ protected:
+  
+  virtual bool isNullTask() const { return false; }
+
   ///
   /// mark that a task that we dependOn has completed
   void decrementPredecessors();
@@ -107,6 +111,7 @@ public:
 class NullDynamicTask : public DynamicTask {
 public:
   DynamicTaskPtr run(){ return 0; }
+  bool isNullTask() const { return true; }
 };
 
 }

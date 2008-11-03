@@ -8,6 +8,9 @@
 /* flags to compiler used to generate output binaries */
 #define LIBS "@LIBS@"
 
+/* flags to compiler used to generate output binaries */
+#define DEFS "@DEFS@"
+
 /* C preprocessor used to parse #includes and #defines */
 #define CPP "@CXXCPP@" " -x c++"
 

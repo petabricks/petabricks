@@ -8,6 +8,7 @@ AC_PROG_CXX
 AM_PROG_LIBTOOL
 AM_PROG_LEX
 AC_PROG_YACC
+AC_PROG_EGREP
 
 AC_CHECK_LIB([m],[cos])
 AC_CHECK_LIB([gslcblas],[cblas_dgemm])
@@ -36,6 +37,13 @@ AC_DEFINE([MAX_REC_LEVELS],[3],[number of levels for recursive choices])
 AC_DEFINE([INPUT_SIZE_STR],["input_count"],[var name in output code])
 AC_DEFINE([OUTPUT_SIZE_STR],["output_count"],[var name in output code])
 AC_DEFINE([SPLIT_CHUNK_SIZE],["chunk_size"],[var name in output code])
+
+# NCPUS=0
+# if test -e /proc/cpuinfo; then
+#   NCPUS=`$EGREP -c '^processor' /proc/cpuinfo`
+# fi
+
+# AC_DEFINE([NCPUS],[\$NCPUS],[number of processors])
 
 
 AC_ARG_ENABLE([debug],
