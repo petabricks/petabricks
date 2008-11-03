@@ -90,6 +90,8 @@ public:
   ///
   /// Use simulated annealing to find an good configuration
   void autotune(JConfigurationTester* tester) const;
+
+  void reset() const;
 };
 
 /**
@@ -135,6 +137,8 @@ public:
   }
 
   TunableValue rangeLength() const { return _max-_min+1; }
+
+  void reset() { _value = _initial; };
 private:
   std::string  _name;
   TunableValue _value;

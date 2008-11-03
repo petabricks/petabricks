@@ -14,15 +14,21 @@ function die(){
 function ec(){
   $@ || die "FAILED: $@"
 }
-
+NCPU=`grep -c '^processor' /proc/cpuinfo`
 #make sure we are in the right dir and compiled
 test -d ./examples || cd ..
 ec test -d ./examples
 ec test -d ./src
-ec make
+
+if test "$1" != "-f"; then
+  ec make -j$NCPU
+  (cd examples && ec make clean)
+  (cd examples && ec make -j$NCPU)
+fi
 
 function compilePbcc(){
-  if ./src/pbc ./examples/$1.pbcc 2>/dev/null >/dev/null
+#  if ./src/pbc ./examples/$1.pbcc 2>/dev/null >/dev/null
+  if test -f ./examples/$1 
   then
     printf "passed  | "
     return 0
