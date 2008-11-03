@@ -83,6 +83,8 @@ public:
 
   double autotuneLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
   void resetLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
+
+  static bool isTrainingRun();
 private:
   Main& main;
   int randSize;

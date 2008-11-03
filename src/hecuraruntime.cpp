@@ -25,6 +25,8 @@
 
 #include <algorithm>
 
+static bool _isTrainingRun = false;
+static bool _needTraingingRun = false;
 
 static int TRAIN_MIN=16;
 static int TRAIN_MAX=4096;
@@ -235,6 +237,8 @@ void hecura::HecuraRuntime::runGraphParamMode(const std::string& param){
 double hecura::HecuraRuntime::runTrial(){
   std::vector<double> rslts;
   rslts.reserve(2*GRAPH_SMOOTHING+1);
+  _isTrainingRun = true;
+  _needTraingingRun = false;
   for( int n =  randSize-GRAPH_SMOOTHING
      ;     n <= randSize+GRAPH_SMOOTHING
      ; ++n)
@@ -245,7 +249,13 @@ double hecura::HecuraRuntime::runTrial(){
       jalib::JTime begin=jalib::JTime::Now();
       main.compute();
       jalib::JTime end=jalib::JTime::Now();
-      t+=end-begin;
+
+      if(_needTraingingRun && _isTrainingRun){
+        _isTrainingRun=false;
+        --z; //redo this iteration 
+      }else{
+        t+=end-begin;
+      }
     }
     double avg = t/GRAPH_TRIALS;
     rslts.push_back(avg);
@@ -371,4 +381,9 @@ void hecura::HecuraRuntime::resetLevel(int lvl, const std::string& prefix, jalib
   jalib::JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
   if(cutoff!=0) cutoff->setValue(cutoff->max());
   if(rule!=0)   rule->setValue(rule->min());
+}
+
+bool hecura::HecuraRuntime::isTrainingRun(){
+  _needTraingingRun = true;
+  return _isTrainingRun;
 }
