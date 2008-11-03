@@ -98,8 +98,10 @@ to ROut[n+2,(n+4)/2], KOut[n+2,(n+4)/2]
   }
 }
 
+/* Specifcy a weight of -1 as sentinel for optimal SOR weight for iterative SOR for Poisson equation */
+/* Specifcy a weight of -2 as sentinel for "optimal" SOR weight for multigrid step for Poisson equation */
 transform SOR2DInterior
-from IN[n,n], B[n,n], numIterations
+from IN[n,n], B[n,n], weight, numIterations
 through RIn [n+2,(n+4)/2], KIn [n+2,(n+4)/2], 
         ROut[n+2,(n+4)/2], KOut[n+2,(n+4)/2], 
         RB  [n+2,(n+4)/2], KB  [n+2,(n+4)/2]
@@ -116,10 +118,17 @@ to OUT[n,n]
 
   // COMPUTE
   recursive
-  to (ROut rOut, KOut kOut) from (RIn rIn, KIn kIn, RB rB, KB kB, numIterations num)
+  to (ROut rOut, KOut kOut) from (RIn rIn, KIn kIn, RB rB, KB kB, weight _w, numIterations num)
   {
-    double weight = 2 / (1 + sin((double) M_PI / (n + 1))); // use optimal SOR weight for Poisson
-    SPAWN(Compute,rOut, kOut, rIn, kIn, rB, kB, weight, num);
+    double w;
+    if (_w == -1) {
+      w = 2 / (1 + sin((double) M_PI / (n + 1))); // use optimal SOR weight for Poisson
+    } else if (_w == -2) {
+      w = 1.15; // this constant was chosen by use of experiments and eyeballing
+    } else {
+      w = _w;
+    }
+    SPAWN(Compute,rOut, kOut, rIn, kIn, rB, kB, w, num);
   }
 
   // FINALIZE
