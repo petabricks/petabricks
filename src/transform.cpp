@@ -198,14 +198,14 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   args.push_back("const DynamicTaskPtr& _before");
   o.beginFunc("DynamicTaskPtr", "spawn_"+_name, args);
   args.pop_back();
-//   o.varDecl("IndexT " INPUT_SIZE_STR " = 0");
-//   o.varDecl("IndexT " OUTPUT_SIZE_STR " = 0");
-//   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-//     o.write(INPUT_SIZE_STR " += " + (*i)->name() + ".count();");
-//   }
-//   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-//     o.write(OUTPUT_SIZE_STR " += " + (*i)->name() + ".count();");
-//   }
+  o.varDecl("IndexT " INPUT_SIZE_STR " = 0");
+  o.varDecl("IndexT " OUTPUT_SIZE_STR " = 0");
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    o.write(INPUT_SIZE_STR " += " + (*i)->name() + ".count();");
+  }
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    o.write(OUTPUT_SIZE_STR " += " + (*i)->name() + ".count();");
+  }
   o.varDecl("IndexT _input_perimeter = 0");
   int maxDims = 1;
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
