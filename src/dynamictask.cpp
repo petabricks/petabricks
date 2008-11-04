@@ -18,6 +18,8 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "dynamictask.h"
+#include "jasm.h"
+#include <pthread.h>
 
 //#define PBCC_SEQUENTIAL
 #define INLINE_NULL_TASKS
@@ -28,6 +30,8 @@ DynamicScheduler *DynamicTask::scheduler = NULL;
 
 DynamicTask::DynamicTask()
 {
+  // when this task is created, no other thread would touch it
+  // so no lock for numOfPredecessor update
   state = S_NEW;
   numOfPredecessor = 0;
 
@@ -83,7 +87,7 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
     dependsOn(that->continuation);
   }else if(that->state != S_COMPLETE){
     that->dependents.push_back(this);
-    numOfPredecessor++;
+    jalib::atomicAdd<1> (&numOfPredecessor);
     that->lock.unlock();
   }else{
     that->lock.unlock();
@@ -98,7 +102,7 @@ void hecura::DynamicTask::decrementPredecessors(){
   bool shouldEnqueue = false;
   {
     JLOCKSCOPE(lock);
-    if(--numOfPredecessor==0 && state==S_PENDING){
+    if((jalib::atomicAdd<-1> (&numOfPredecessor))==0 && state==S_PENDING){
       state = S_READY;
       shouldEnqueue = true;
     }
@@ -164,7 +168,7 @@ void DynamicTask::waitUntilComplete()
     // get a task for execution
     DynamicTaskPtr task = scheduler->tryDequeue();
     if (!task) {
-      usleep(100);
+      pthread_yield();
     } else {
       task->runWrapper();
     }
