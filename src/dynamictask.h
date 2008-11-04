@@ -83,7 +83,7 @@ public:
 
   ///
   /// a counter of how many tasks I depends on
-  int numOfPredecessor;
+  long numOfPredecessor;
 
   enum TaskState {
     S_NEW,       //after creation

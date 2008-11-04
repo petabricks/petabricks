@@ -1,51 +1,58 @@
 //Multigrid V-cycle 2D
 //assume dimension n = 2^k + 1
 
+%{
+
+JTUNABLE(numIterations, 1);
+
+%}
+
 #include "../add.pbcc"
 #include "Interpolate2Dnew.pbcc"
 #include "Restrict2Dnew.pbcc"
 #include "Residual2D.pbcc"
-#include "Jacobi2D.pbcc"
+#include "SOR2D.pbcc"
+#include "BS2D.pbcc"
 
 transform mgv2D 
-from X[n,n], B[n,n], weight, it1, it2, itb
-//input: X = initial guess
-//       B = right handside
-//	 weight = weight factor for SOR
-//       it1,it2 = number of steps of SOR/iteative methods before and after recursive calls to mgv1D
-//	 itb = number of iterative steps for base case, make sense for itb > it1+it2
+from X[n,n], B[n,n]
 to  Y[n,n]
-through TMP[n,n], R[n,n], zeros[(n+1)/2,(n+1)/2]
+through zeros[(n+1)/2,(n+1)/2]
 {
-	//base case: directly solve or apply iterative methods
-   	//need to figure out better ways for the base case, but let's leave it this way for now
-	to (Y y) from(X x, B b, itb kb) {
-		return Jacobi2D(y, x,b, kb); 
-	}
+    //base case: solve iteratively with SOR
+    to(Y y) from(X x, B b) {
+        printf("SOR base case called for n = %d\n", n);
+        int iter[20] = {  1,   5,   7,  13,  26,
+                         52, 100, 100, 100, 100,
+                        100, 100, 100, 100, 100,
+                        100, 100, 100, 100, 100};  // values for greater than 6 not computed yet
+        printf("SOR base case called for n = %d (%d iterations)\n", n, iter[(int) log2(n-1) - 1]);
+        SOR2D(y, x, b, -1, iter[(int) log2(n-1) - 1]);
+    }
 
+    //base case: directly solve with BS
+    to(Y y) from(X x, B b) {
+        printf(" BS base case called for n = %d\n", n);
+        BS2D(y, x, b);
+    }
 
-	//recursive procedure starts here
-   	//Iterates with initial guess
-   	to (TMP t) from(X x,B b, it1 k1){
-   		Jacobi2D(t, x, b, k1);
-   	}
+    //solve recursively on coarser grids, with zero initial guess
+    //then map the coarse solution back to the fine grid by Interpolation
+    zeros.cell(i,j) from() {
+        return 0;
+    }
 
-   	//Calculate Residual 
-        to (R r) from(TMP t,B b){
-		Residual2D(r,t,b);
-	}
-
-	//solve recursively on coarser grids, with zero initial guess
-	//then map the coarse solution back to the fine grid by Interpolation
-	zeros.cell(i,j) from() {
-	      	return 0;
-   	}
-
-
-	recursive
-	to (Y y) from(B b, weight w, it1 k1, it2 k2, itb kb, TMP t, R r, zeros z) {
-
-		Jacobi2D(y, MatrixAdd(Interpolate2Dnew( mgv2D(z,Restrict2Dnew(r),w,k1,k2,kb) ), t) ,b, k2);
-	}
-
+    //recursive case
+    recursive(n / 2)
+    to (Y y) from(X x, B b, zeros z) {
+        printf("recursive case called for n = %d\n", n);
+        JASSERT(floor(log2(n-1)) == log2(n-1));
+        MatrixRegion2D t, r;
+        t = SOR2D(x, b, -2, 1);
+        r = Restrict2Dnew(Residual2D(t,b));
+        r = mgv2D(z,r);
+        t = MatrixAdd(Interpolate2Dnew(r), t);
+        SOR2D(y, t, b, -2, 1);
+    }
 }
+

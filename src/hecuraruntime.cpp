@@ -160,6 +160,9 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
       shift;
     }else if(strcmp(argv[0],"--multigrid")==0){
       GRAPH_MULTIGRID = true;
+      GRAPH_MIN = 1;
+      GRAPH_MAX = 9;
+      GRAPH_STEP = 1;
       shift;
     }else if(strcmp(argv[0],"--reset")==0){
       jalib::JTunableManager::instance().reset();
@@ -220,9 +223,9 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
 
 void hecura::HecuraRuntime::runGraphMode(){
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
-    randSize = (GRAPH_MULTIGRID ? (1 << n)+1: n);
+    randSize = (GRAPH_MULTIGRID ? (1 << n): n);
     double avg = runTrial();
-    printf("%d %.6f\n", randSize, avg);
+    printf("%d %.6f\n", (GRAPH_MULTIGRID ? randSize + 1 : randSize), avg);
     if(avg > GRAPH_MAX_SEC) break;
   }
 }
@@ -249,7 +252,7 @@ double hecura::HecuraRuntime::runTrial(){
   {
     double t=0;
     for(int z=0;z<GRAPH_TRIALS; ++z){
-      main.randomInputs(n);
+      main.randomInputs(GRAPH_MULTIGRID ? n+1 : n);
       jalib::JTime begin=jalib::JTime::Now();
       main.compute();
       jalib::JTime end=jalib::JTime::Now();
