@@ -21,7 +21,7 @@
 #include "jasm.h"
 #include <pthread.h>
 
-#define PBCC_SEQUENTIAL
+// #define PBCC_SEQUENTIAL
 #define INLINE_NULL_TASKS
 
 namespace hecura {
@@ -87,9 +87,10 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
     dependsOn(that->continuation);
   }else if(that->state != S_COMPLETE){
     that->dependents.push_back(this);
-    lock();
-    numOfPredecessor++;
-    unlock();
+    { 
+      JLOCKSCOPE(lock);
+      numOfPredecessor++;
+    }
     that->lock.unlock();
   }else{
     that->lock.unlock();
