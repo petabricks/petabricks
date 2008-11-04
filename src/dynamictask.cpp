@@ -87,7 +87,9 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
     dependsOn(that->continuation);
   }else if(that->state != S_COMPLETE){
     that->dependents.push_back(this);
-    jalib::atomicAdd<1> (&numOfPredecessor);
+    lock();
+    numOfPredecessor++;
+    unlock();
     that->lock.unlock();
   }else{
     that->lock.unlock();
@@ -102,7 +104,7 @@ void hecura::DynamicTask::decrementPredecessors(){
   bool shouldEnqueue = false;
   {
     JLOCKSCOPE(lock);
-    if((jalib::atomicAdd<-1> (&numOfPredecessor))==0 && state==S_PENDING){
+    if(--numOfPredecessor==0 && state==S_PENDING){
       state = S_READY;
       shouldEnqueue = true;
     }
