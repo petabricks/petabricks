@@ -92,6 +92,7 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
   bool isSiman = false;
   bool isAutotuneMode = false;
   bool isGraphMode = false;
+  bool isGraphParallelMode = false;
   bool isOptimizeMode = false;
   bool doIO = true;
   std::string graphParam;
@@ -150,7 +151,13 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
     }else if(strcmp(argv[0],"--graph-param")==0 || strcmp(argv[0],"--graph-tune")==0){
       JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
       graphParam = argv[1];
+      if(strcmp(argv[1], "tunerNumOfWorkers") == 0)
+	isGraphParallelMode = true;
       shift;
+      shift;
+    }else if(strcmp(argv[0],"--graph-parallel")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      isGraphParallelMode = true;
       shift;
     }else if(strcmp(argv[0],"--optimize")==0){
       JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
@@ -198,10 +205,16 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
     return 0;
   }
 
+  if(isGraphParallelMode) {
+    runGraphParallelMode();
+    return 0;
+  }
+
   if(!graphParam.empty()){
     runGraphParamMode(graphParam);
     return 0;
   }
+
 
   if(isSiman){
     JTIMER_SCOPE(autotune);
@@ -235,6 +248,20 @@ void hecura::HecuraRuntime::runGraphParamMode(const std::string& param){
   JASSERT(tunable!=0)(param).Text("parameter not found");
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
     tunable->setValue(n);
+    double avg = runTrial();
+    printf("%d %.6lf\n", n, avg);
+    if(avg > GRAPH_MAX_SEC) break;
+  }
+}
+
+void hecura::HecuraRuntime::runGraphParallelMode() {
+  jalib::JTunable* tunable = jalib::JTunableManager::instance().getReverseMap()[std::string("tunerNumOfWorkers")];
+  JASSERT(tunable!=0).Text("parameter tunerNumOfWorkers not found");
+  for(int n = GRAPH_MIN; n <= GRAPH_MAX; n+= GRAPH_STEP) {
+    tunable->setValue(n);
+    // do not setup at the first time
+    if(n != GRAPH_MIN)
+      DynamicTask::scheduler->startWorkerThreads(GRAPH_STEP);
     double avg = runTrial();
     printf("%d %.6lf\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;

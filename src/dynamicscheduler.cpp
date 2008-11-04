@@ -21,8 +21,6 @@
 #include "dynamicscheduler.h"
 #include "dynamictask.h"
 
-#include "jtunable.h"
-
 #include <pthread.h>
 #include <unistd.h>
  
@@ -32,7 +30,6 @@
 #define MIN_NUM_WORKERS  0
 #define MAX_NUM_WORKERS  512
 
-JTUNABLE(tunerNumOfWorkers, 8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
 
 namespace hecura {
 
@@ -43,7 +40,8 @@ void *workerStartup(void *);
 
 DynamicScheduler::DynamicScheduler()
 {
-  numOfWorkers = tunerNumOfWorkers;
+  numOfWorkers  = 0;
+  workerThreads = new pthread_t[MAX_NUM_WORKERS];
 }
 
 
@@ -53,13 +51,13 @@ DynamicScheduler::~DynamicScheduler()
 }
 
 
-void DynamicScheduler::startWorkerThreads()  
+void DynamicScheduler::startWorkerThreads(int newWorkers)  
 {
   // allocat and spawn a certain number of thread
-  workerThreads = new pthread_t[numOfWorkers];
-  for(int i = 0; i < numOfWorkers; i++) {
-    JASSERT(pthread_create(&workerThreads[i], NULL, workerStartup, (void *)this) == 0);
+  for(int i = 0; i < newWorkers; i++) {
+    JASSERT(pthread_create(&workerThreads[numOfWorkers + i], NULL, workerStartup, (void *)this) == 0);
   }
+  numOfWorkers += newWorkers;
   JTRACE("start worker threads")(numOfWorkers);
 }
 

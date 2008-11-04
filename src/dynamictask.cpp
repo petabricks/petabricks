@@ -19,10 +19,17 @@
  ***************************************************************************/
 #include "dynamictask.h"
 #include "jasm.h"
+#include "jtunable.h"
+
 #include <pthread.h>
 
-// #define PBCC_SEQUENTIAL
+//#define PBCC_SEQUENTIAL
 #define INLINE_NULL_TASKS
+
+#define MIN_NUM_WORKERS  0
+#define MAX_NUM_WORKERS  512
+
+JTUNABLE(tunerNumOfWorkers, 8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
 
 namespace hecura {
 
@@ -39,7 +46,7 @@ DynamicTask::DynamicTask()
   // allocate scheduler when the first task is created
   if(scheduler == NULL) {
     scheduler = new DynamicScheduler();
-    scheduler->startWorkerThreads();
+    scheduler->startWorkerThreads(tunerNumOfWorkers);
   }
 #endif
 }

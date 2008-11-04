@@ -65,6 +65,10 @@ public:
   /// Wrapper around run that changes state and handles dependencies
   void runWrapper();
 
+  /// 
+  /// Scheduler for scheduling the dynamic tasks
+  static DynamicScheduler *scheduler;
+
  protected:
   
   virtual bool isNullTask() const { return false; }
@@ -100,10 +104,6 @@ public:
   ///
   /// Pointer to the continuation task
   DynamicTaskPtr continuation;
-
-  /// 
-  /// Scheduler for scheduling the dynamic tasks
-  static DynamicScheduler *scheduler;
 
 };
 
