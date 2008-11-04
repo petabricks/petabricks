@@ -21,7 +21,7 @@
 #include "jasm.h"
 #include <pthread.h>
 
-//#define PBCC_SEQUENTIAL
+#define PBCC_SEQUENTIAL
 #define INLINE_NULL_TASKS
 
 namespace hecura {
@@ -134,7 +134,9 @@ void hecura::DynamicTask::runWrapper(){
   }
 
   if(continuation){
+#ifdef VERBOSE
     JTRACE("task complete, continued")(tmp.size());
+#endif
     {
       JLOCKSCOPE(continuation->lock);
       if(continuation->dependents.empty()){
@@ -146,7 +148,7 @@ void hecura::DynamicTask::runWrapper(){
     }
     continuation->enqueue();
   }else{
-    #ifdef DEBUG
+    #ifdef VERBOSE
     if(!isNullTask()) JTRACE("task complete")(tmp.size());
     #endif
     std::vector<DynamicTaskPtr>::iterator it;

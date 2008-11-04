@@ -10,9 +10,10 @@ AM_PROG_LEX
 AC_PROG_YACC
 AC_PROG_EGREP
 
+#AC_CHECK_LIB([gslcblas],[cblas_dgemm])
+#AC_CHECK_LIB([gsl],[gsl_blas_dgemm])
+
 AC_CHECK_LIB([m],[cos])
-AC_CHECK_LIB([gslcblas],[cblas_dgemm])
-AC_CHECK_LIB([gsl],[gsl_blas_dgemm])
 AC_CHECK_LIB([pthread],[pthread_create])
 AC_CHECK_LIB([lapack], [dposv_])
 

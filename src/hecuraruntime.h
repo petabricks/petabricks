@@ -81,7 +81,8 @@ public:
 
   void runAutotuneMode(const std::string& prefix);
 
-  double autotuneLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
+  double autotuneOneLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
+  double autotuneTwoLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
   void resetLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
 
   static bool isTrainingRun();

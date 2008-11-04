@@ -56,8 +56,8 @@ DynamicScheduler::~DynamicScheduler()
 void DynamicScheduler::startWorkerThreads()  
 {
   // allocat and spawn a certain number of thread
-  workerThreads   = new pthread_t[numOfWorkers];
-  for(unsigned int i = 0; i < numOfWorkers; i++) {
+  workerThreads = new pthread_t[numOfWorkers];
+  for(int i = 0; i < numOfWorkers; i++) {
     JASSERT(pthread_create(&workerThreads[i], NULL, workerStartup, (void *)this) == 0);
   }
   JTRACE("start worker threads")(numOfWorkers);
