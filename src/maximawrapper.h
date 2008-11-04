@@ -124,7 +124,7 @@ public:
     std::string rslt = runCommandSingleOutput( "is("+ aStr + op + bStr + ")" )->toString();
     if(rslt=="1") return YES;
     if(rslt=="0") return NO;
-    JWARNING(false)(a)(op)(b)(rslt).Text("Failed to determine relation between a and b");
+    //JWARNING(false)(a)(op)(b)(rslt).Text("Failed to determine relation between a and b");
     return UNKNOWN;
   }
   
