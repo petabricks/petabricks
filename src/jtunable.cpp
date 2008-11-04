@@ -112,6 +112,12 @@ void jalib::JTunableConfiguration::print(std::ostream& o) const{
   }
 }
 
+void jalib::JTunableManager::reset() const {
+    for(const_iterator i=begin(); i!=end(); ++i){
+      (*i)->reset();
+    }
+  }
+
 #ifdef HAVE_LIBGSL
 #include <gsl/gsl_siman.h>
 

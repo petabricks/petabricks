@@ -20096,6 +20096,9 @@ echo "${ECHO_T}$ac_cv_path_EGREP" >&6; }
 
 
 
+#AC_CHECK_LIB([gslcblas],[cblas_dgemm])
+#AC_CHECK_LIB([gsl],[gsl_blas_dgemm])
+
 
 { echo "$as_me:$LINENO: checking for cos in -lm" >&5
 echo $ECHO_N "checking for cos in -lm... $ECHO_C" >&6; }
@@ -20164,148 +20167,6 @@ if test $ac_cv_lib_m_cos = yes; then
 _ACEOF
 
   LIBS="-lm $LIBS"
-
-fi
-
-
-{ echo "$as_me:$LINENO: checking for cblas_dgemm in -lgslcblas" >&5
-echo $ECHO_N "checking for cblas_dgemm in -lgslcblas... $ECHO_C" >&6; }
-if test "${ac_cv_lib_gslcblas_cblas_dgemm+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lgslcblas  $LIBS"
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char cblas_dgemm ();
-int
-main ()
-{
-return cblas_dgemm ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
-  (eval "$ac_link") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_cxx_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext &&
-       $as_test_x conftest$ac_exeext; then
-  ac_cv_lib_gslcblas_cblas_dgemm=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	ac_cv_lib_gslcblas_cblas_dgemm=no
-fi
-
-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-      conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ echo "$as_me:$LINENO: result: $ac_cv_lib_gslcblas_cblas_dgemm" >&5
-echo "${ECHO_T}$ac_cv_lib_gslcblas_cblas_dgemm" >&6; }
-if test $ac_cv_lib_gslcblas_cblas_dgemm = yes; then
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBGSLCBLAS 1
-_ACEOF
-
-  LIBS="-lgslcblas $LIBS"
-
-fi
-
-
-{ echo "$as_me:$LINENO: checking for gsl_blas_dgemm in -lgsl" >&5
-echo $ECHO_N "checking for gsl_blas_dgemm in -lgsl... $ECHO_C" >&6; }
-if test "${ac_cv_lib_gsl_gsl_blas_dgemm+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lgsl  $LIBS"
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char gsl_blas_dgemm ();
-int
-main ()
-{
-return gsl_blas_dgemm ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
-  (eval "$ac_link") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_cxx_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext &&
-       $as_test_x conftest$ac_exeext; then
-  ac_cv_lib_gsl_gsl_blas_dgemm=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	ac_cv_lib_gsl_gsl_blas_dgemm=no
-fi
-
-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-      conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ echo "$as_me:$LINENO: result: $ac_cv_lib_gsl_gsl_blas_dgemm" >&5
-echo "${ECHO_T}$ac_cv_lib_gsl_gsl_blas_dgemm" >&6; }
-if test $ac_cv_lib_gsl_gsl_blas_dgemm = yes; then
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBGSL 1
-_ACEOF
-
-  LIBS="-lgsl $LIBS"
 
 fi
 
@@ -20638,7 +20499,7 @@ _ACEOF
 
 fi
 
-ac_config_files="$ac_config_files Makefile src/Makefile src/cxxconfig.h"
+ac_config_files="$ac_config_files Makefile src/Makefile src/cxxconfig.h examples/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -21229,6 +21090,7 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "src/cxxconfig.h") CONFIG_FILES="$CONFIG_FILES src/cxxconfig.h" ;;
+    "examples/Makefile") CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
 
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}

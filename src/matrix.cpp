@@ -21,7 +21,7 @@
 #include <stdlib.h>
 
 void hecura::MatrixStorage::randomize(){
-  for(size_t i=0; i<_count; ++i){
+  for(int i=0; i<_count; ++i){
     _data[i] = (2.0*drand48()-0.5)*4294967296.0;
 //     _data[i] = drand48();
   }

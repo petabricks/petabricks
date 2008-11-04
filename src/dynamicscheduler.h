@@ -59,7 +59,7 @@ class DynamicScheduler{
   /// add a ready task into queue
   void enqueue(const DynamicTaskPtr& t) {
     queue.push(t);
-    JTRACE("added ready task")(queue.size());
+//     JTRACE("added ready task")(queue.size());
   }
 
   
@@ -67,7 +67,7 @@ class DynamicScheduler{
   /// blocked until get a task from queue for execution 
   DynamicTaskPtr dequeue() {
     DynamicTaskPtr task = queue.pop();
-    JTRACE("running task")(queue.size());
+//     JTRACE("running task")(queue.size());
     return task;
   }
 
@@ -76,7 +76,7 @@ class DynamicScheduler{
   /// unblocked method, try to get a task from queue for execution
   DynamicTaskPtr tryDequeue() {
     DynamicTaskPtr task = queue.tryPop();
-    JTRACE("waiting and trying to run task")(queue.size());
+//     JTRACE("waiting and trying to run task")(queue.size());
     return task;
   }
 

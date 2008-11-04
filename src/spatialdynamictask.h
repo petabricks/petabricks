@@ -65,7 +65,7 @@ public:
     JASSERT(size()==1)(size());;
     for(int i=0; i<back()->dimensions(); ++i)
       spatialSplit(i, n);
-    JTRACE("after split")(n)(size());
+//     JTRACE("after split")(n)(size());
   }
 
   ///

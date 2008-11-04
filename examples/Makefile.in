@@ -1,0 +1,16 @@
+
+BINS=$(basename $(wildcard *.pbcc */*.pbcc */*/*.pbcc))
+CPPS=$(addsuffix .cpp, $(OUTPUTS))
+CFGS=$(addsuffix .cfg, $(OUTPUTS))
+
+
+all: $(BINS)
+
+%: %.pbcc
+	@(../src/pbc $< 2>/dev/null && echo PASSED: $*) || echo FAILED: $*
+
+clean:
+	rm -f $(BINS) $(CPPS)
+
+ignore:
+	echo $(BINS) '*.cpp *.cfg' | xargs -n 1 echo > .gitignore
