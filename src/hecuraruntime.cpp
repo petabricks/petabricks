@@ -30,7 +30,7 @@ static bool _needTraingingRun = false;
 
 static int TRAIN_MIN=64;
 static int TRAIN_MAX=4096;
-static int TRAIN_LEVEL_THRESH=2;
+static int TRAIN_LEVEL_THRESH=1.2;
 
 static int GRAPH_MIN=8;
 static int GRAPH_MAX=2048;
