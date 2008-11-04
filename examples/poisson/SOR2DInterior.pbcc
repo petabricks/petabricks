@@ -34,8 +34,8 @@ to R[n+2,(n+4)/2], K[n+2,(n+4)/2]
 }
 
 transform Iterate
-from RIn[n+2,(n+4)/2], KIn[n+2,(n+4)/2], RB[n+2,(n+4)/2], KB[n+2,(n+4)/2], _weight
-to ROut[n+2,(n+4)/2], KOut[n+2,(n+4)/2]
+from RIn[width,height], KIn[width,height], RB[width,height], KB[width,height], _weight
+to ROut[width,height], KOut[width,height]
 {
 
   priority(0) ROut.cell(i,j) from (RIn.cell(i,j) me,
@@ -48,6 +48,7 @@ to ROut[n+2,(n+4)/2], KOut[n+2,(n+4)/2]
                                    RB.cell(i,j) b,
                                    _weight weight)
   {
+    int n = width - 2;
     if (i % 2 == 1 && 2 * j - 2 >= 0 && 2 * j - 2 < n ||
         i % 2 == 0 && 2 * j - 1 >= 0 && 2 * j - 1 < n) {
       return (1 - weight) * me + weight * (c + (i % 2 == 0 ? w + e : nw + ne) + no + b) / 4;
@@ -66,6 +67,7 @@ to ROut[n+2,(n+4)/2], KOut[n+2,(n+4)/2]
                                    KB.cell(i,j) b,
                                    _weight weight)
   {
+    int n = width - 2;
     if (i % 2 == 1 && 2 * j - 1 >= 0 && 2 * j - 1 < n || 
         i % 2 == 0 && 2 * j     >= 0 && 2 * j     < n) {
       return (1 - weight) * me + weight * (c + (i % 2 == 1 ? w + e : sw + se) + s + b) / 4;
