@@ -99,6 +99,7 @@ runEachTest << EOF
   test10 $R2Da
   test11 $R2Dodd
   test12 $R2Da
+  test13 $R2Da /dev/null
   poisson/Jacobi2D   $R2Da $R2Db $ONE
   poisson/Jacobi2D   $R2Da $R2Db $TEN
   poisson/SOR2D      $R2Da $R2Db $MINUSONE $ONE

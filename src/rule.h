@@ -195,6 +195,16 @@ public:
   std::vector<std::string> getCallArgs(Transform& trans, const SimpleRegionPtr& region);
 
   const FormulaPtr& recursiveHint() const { return _recursiveHint; }
+
+
+  FormulaPtr getSizeOfRuleIn(int d){
+    for(size_t i=0; i<_to.size(); ++i){
+      if(d<_to[i]->dimensions()){
+        return _to[i]->getSizeOfRuleIn(d);
+      }
+    }
+    JASSERT(false)(d)(_id);
+  }
 private:
   int _id;
   RuleFlags   _flags;

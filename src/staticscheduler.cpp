@@ -296,7 +296,7 @@ void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator
     //test matching region extents in d
     for(ScheduleNodeSet::const_iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
       if(region.empty()) region=(*i)->region()->toString();
-      JASSERT(region==(*i)->region()->toString())(region)((*i)->region()->toString())
+      JWARNING(region==(*i)->region()->toString())(region)((*i)->region()->toString())
         .Text("to(...) regions of differing size not yet supported");
     }
     ScheduleNode& first = * * _originalNodes.begin();

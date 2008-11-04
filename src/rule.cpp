@@ -103,6 +103,14 @@ void hecura::Rule::print(std::ostream& os) const {
   os << "{\n" << _body << "\n}\n\n";
 }
 
+namespace {// file local
+  struct CmpRegionsByDimensions {
+    bool operator() ( const hecura::RegionPtr& a, const hecura::RegionPtr& b ){
+      return a->dimensions() > b->dimensions();
+    }
+  };
+}
+
 void hecura::Rule::initialize(Transform& trans) {
   MaximaWrapper::instance().pushContext();
 
@@ -111,6 +119,8 @@ void hecura::Rule::initialize(Transform& trans) {
   _conditions.normalize();
 //   JASSERT(_to.size()==1)(_to.size())
 //     .Text("Currently only one output region per rule is supported.");
+
+  std::sort(_to.begin(), _to.end(), CmpRegionsByDimensions());
 
   FormulaList centerEqs = _to.front()->calculateCenter();
   std::set<std::string> vars = centerEqs.getFreeVariables();
@@ -302,7 +312,7 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
     for(size_t i=0; i<begin.size(); ++i){
       FormulaPtr b=begin[i];
       FormulaPtr e=end[i];
-      FormulaPtr w=_to[0]->getSizeOfRuleIn(i);
+      FormulaPtr w=getSizeOfRuleIn(i);
       if(order[i]==IterationOrder::BACKWARD)
         o.beginReverseFor(getOffsetVar(i)->toString(), b, e, w);
       else
