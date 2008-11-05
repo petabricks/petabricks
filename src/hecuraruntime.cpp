@@ -471,3 +471,7 @@ bool hecura::HecuraRuntime::isTrainingRun(){
   _needTraingingRun = true;
   return _isTrainingRun;
 }
+
+void hecura::HecuraRuntime::setIsTrainingRun(bool b){
+  _isTrainingRun=b;
+}
