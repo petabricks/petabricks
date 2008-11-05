@@ -1,0 +1,104 @@
+
+%{
+
+extern "C" void dsytrd_(char *uplo, int *n, double *a, int *lda, double *d, double *e, double *tau, double *work, int *lwork, int *info);
+
+extern "C" void dstebz_(char *range, char *order, int *n, double *vl, double *vu, int *il, int *iu, double *abstol, double *d, double *e, int *m, int *nsplit, double *w, int *iblock, int *isplit, double *work, int *iwork, int *info);
+
+extern "C" void dstein_(int *n, double *d, double *e, int *m, double *w, int *iblock, int *isplit, double *z, int *ldz, double *work, int *iwork, int *ifail, int *info);
+
+extern "C" void dormtr_(char *side, char *uplo, char *trans, int *m, int *n, double *a, int *lda, double *tau, double *c, int *ldc, double *work, int *lwork, int *info);
+
+%}
+
+// Find eigenvalues and eigenvectors of input matrix IN (symmetric) by LAPACK Bisection routine
+transform Bisection
+from IN[n,n]
+to Eigenvalue[n], Eigenvector[n,n]
+{
+
+  to ( Eigenvalue eig, Eigenvector Vec) from (IN in)
+  {
+    char uplo ='U', range = 'A', order = 'B', side ='L', trans='N';
+    int size=n,lwork=-1,info = 0,il,iu,m, nsplit, nsquared=n*n;
+    double vl,vu, abstol=0;
+
+    // allocate and initialize matrices
+    double *A = new double[nsquared];
+    double *Z = new double[nsquared];
+    double *D = new double[n];
+    double *E = new double[n-1];
+    double *tau = new double[n-1];
+    double *work = new double[1];
+    int *iwork = new int[3*n];
+    double *W = new double[n];
+    int *iblock = new int[n];
+    int *isplit = new int[n];
+    int *ifail = new int[n];
+
+    // get input matrix in column major format
+    int index = 0;
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        A[index++] = in.cell(i, j);
+      }
+    }
+
+	
+
+    // convert input matrix IN to a tridiagonal matrix A
+    dsytrd_(&uplo, &size, A, &size, D, E, tau, work, &lwork, &info);
+    lwork=work[0];
+    delete [] work;
+    work = new double[lwork];
+    dsytrd_(&uplo, &size, A, &size, D, E, tau, work, &lwork, &info);
+
+    info=0;
+    // call LAPACK bisection routine for tridiagonal matrix
+    delete [] work;
+    work = new double[4*n];
+    dstebz_(&range, &order, &size, &vl, &vu, &il, &iu, &abstol, D, E, &m, &nsplit, W, iblock, isplit, work, iwork, &info);
+
+    // call LAPACK dstein routine for eigenvectors
+    delete [] work;
+    work = new double[5*n];
+    delete [] iwork;
+    iwork = new int[n];
+    dstein_(&size, D, E, &m, W, iblock, isplit, Z, &size, work, iwork, ifail, &info);
+
+    // apply orthogonal matrix to eigenvectors returned by DSTEIN
+    info=0;
+    lwork=-1;
+    dormtr_(&side, &uplo, &trans, &m, &size, A, &size, tau, Z, &m, work, &lwork, &info);
+    lwork=work[0];
+    delete [] work;
+    work = new double[lwork];  
+    dormtr_(&side, &uplo, &trans, &m, &size, A, &size, tau, Z, &m, work, &lwork, &info);
+
+    // copy eigenvalues to output
+    for (int i = 0; i < n; i++) {
+        eig.cell(i) = W[i];
+    }
+    // copy eigenvectors to output
+    index = 0;
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        Vec.cell(i,j) = Z[index++];
+      }
+    }   
+	
+
+    delete [] A;
+    delete [] D;
+    delete [] E;
+    delete [] tau;
+    delete [] work;
+    delete [] iwork;
+    delete [] W;
+    delete [] iblock;
+    delete [] isplit;
+    delete [] ifail;
+  }
+
+}
+
