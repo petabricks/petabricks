@@ -246,6 +246,8 @@ void hecura::HecuraRuntime::runGraphMode(){
 void hecura::HecuraRuntime::runGraphParamMode(const std::string& param){
   jalib::JTunable* tunable = jalib::JTunableManager::instance().getReverseMap()[param];
   JASSERT(tunable!=0)(param).Text("parameter not found");
+  GRAPH_MIN = std::max(GRAPH_MIN, tunable->min());
+  GRAPH_MAX = std::min(GRAPH_MAX, tunable->max());
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
     tunable->setValue(n);
     double avg = runTrial();
@@ -257,10 +259,12 @@ void hecura::HecuraRuntime::runGraphParamMode(const std::string& param){
 void hecura::HecuraRuntime::runGraphParallelMode() {
   jalib::JTunable* tunable = jalib::JTunableManager::instance().getReverseMap()[std::string("tunerNumOfWorkers")];
   JASSERT(tunable!=0).Text("parameter tunerNumOfWorkers not found");
+  GRAPH_MIN = std::max(GRAPH_MIN, tunable->min());
+  GRAPH_MAX = std::min(GRAPH_MAX, tunable->max());
   for(int n = GRAPH_MIN; n <= GRAPH_MAX; n+= GRAPH_STEP) {
     tunable->setValue(n);
     // do not setup at the first time
-    if(DynamicTask::scheduler != NULL)
+    if(DynamicTask::scheduler != NULL || n == GRAPH_MIN)
       DynamicTask::scheduler->startWorkerThreads(GRAPH_STEP);
     double avg = runTrial();
     printf("%d %.6lf\n", n, avg);
