@@ -53,7 +53,7 @@ class DynamicScheduler{
 
   ///
   /// start worker threads
-  void startWorkerThreads();
+  void startWorkerThreads(int newWorkers);
   
   ///
   /// add a ready task into queue

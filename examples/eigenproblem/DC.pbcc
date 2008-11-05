@@ -1,0 +1,63 @@
+%{
+
+extern "C" void dsyevd_(char *jobz, char *uplo, int *n, double *A, int *lda, double *W, double *work, int *lwork, int *iwork, int *liwork, int *info);
+
+
+%}
+
+// Find eigenvalues and eigenvectors of input matrix IN (symmetric) by LAPACK Divide-and-Conquer routine
+transform DC
+from IN[n,n]
+to Eigenvalue[n], Eigenvector[n,n]
+{
+
+  to (Eigenvalue E,  Eigenvector Vec) from (IN in)
+  {
+    char jobz = 'V', uplo = 'U';
+    int size=n,lwork=-1,liwork=-1,info = 0;
+
+    // allocate and initialize matrices
+    double *A = new double[n * n];
+    double *work = new double[1];
+    int *iwork = new int[1];
+    double *W = new double[n];
+
+    // get input matrix in column major format
+    int index = 0;
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        A[index++] = in.cell(i, j);
+      }
+    }
+
+    // call workspace query to calculate the optimal size of the WORK array
+    dsyevd_(&jobz, &uplo, &size, A, &size, W, work, &lwork, iwork, &liwork, &info);
+    lwork=work[0];
+    delete [] work;
+    work = new double[lwork];
+    liwork=iwork[0];
+    delete [] iwork;
+    iwork = new int[liwork];
+
+    // call LAPACK routine dsyev for QR iteration
+    dsyevd_(&jobz, &uplo, &size, A, &size, W, work, &lwork, iwork, &liwork, &info);
+
+    // copy solution to output
+    for (int i = 0; i < n; i++) {
+        E.cell(i) = W[i];
+    }
+    index = 0;
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        Vec.cell(i,j) = A[index++];
+      }
+    }
+
+    delete [] A;
+    delete [] work;
+    delete [] iwork;
+    delete [] W;
+  }
+
+}
+
