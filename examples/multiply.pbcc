@@ -5,6 +5,14 @@ transform MatrixMultiply
 from A[c,h], B[w,c] 
 to AB[w,h]
 {
+  //compute a cell the straightforward way
+  AB.cell(x,y) from(A.row(y) a, B.column(x) b){
+    ElementT sum=0;
+    for(IndexT i=0; i<a.width(); ++i)
+      sum+=a.cell(i)*b.cell(i);
+    return sum;
+  }
+
   //recursively chop the matrix in half
   recursive(c) 
   to(AB ab)
@@ -19,13 +27,27 @@ to AB[w,h]
     SYNC();
     SPAWN(MatrixAdd, ab, ab, tmp);
   }
+
+  recursive(h)
+  to(A.region(0, 0,   w, h/2) ab1,
+     A.region(0, h/2, w, h  ) ab2)
+  from(A.region(0,   0, w,   h/2) a1,
+       A.region(0, c/2, w,   h  ) a2,
+       B b)
+  {
+    SPAWN(MatrixMultiply, ab1, a1, b);
+    SPAWN(MatrixMultiply, ab2, a2, b);
+  }
   
-  //compute a cell the straightforward way
-  AB.cell(x,y) from(A.row(y) a, B.column(x) b){
-    ElementT sum=0;
-    for(IndexT i=0; i<a.width(); ++i)
-      sum+=a.cell(i)*b.cell(i);
-    return sum;
+  recursive(w)
+  to(A.region(0,   0, w/2, h  ) ab1,
+     A.region(w/2, 0, w,   h  ) ab2)
+  from( A a,
+        B.region(0,   0, w/2, h  ) b1,
+        B.region(w/2, 0, w,   h  ) b2)
+  {
+    SPAWN(MatrixMultiply, ab1, a, b1);
+    SPAWN(MatrixMultiply, ab2, a, b2);
   }
 }
 
