@@ -260,7 +260,7 @@ void hecura::HecuraRuntime::runGraphParallelMode() {
   for(int n = GRAPH_MIN; n <= GRAPH_MAX; n+= GRAPH_STEP) {
     tunable->setValue(n);
     // do not setup at the first time
-    if(n != GRAPH_MIN)
+    if(DynamicTask::scheduler != NULL)
       DynamicTask::scheduler->startWorkerThreads(GRAPH_STEP);
     double avg = runTrial();
     printf("%d %.6lf\n", n, avg);
