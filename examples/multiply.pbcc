@@ -29,8 +29,8 @@ to AB[w,h]
   }
 
   recursive(h)
-  to(A.region(0, 0,   w, h/2) ab1,
-     A.region(0, h/2, w, h  ) ab2)
+  to(AB.region(0, 0,   w, h/2) ab1,
+     AB.region(0, h/2, w, h  ) ab2)
   from(A.region(0,   0, w,   h/2) a1,
        A.region(0, c/2, w,   h  ) a2,
        B b)
@@ -40,8 +40,8 @@ to AB[w,h]
   }
   
   recursive(w)
-  to(A.region(0,   0, w/2, h  ) ab1,
-     A.region(w/2, 0, w,   h  ) ab2)
+  to(AB.region(0,   0, w/2, h  ) ab1,
+     AB.region(w/2, 0, w,   h  ) ab2)
   from( A a,
         B.region(0,   0, w/2, h  ) b1,
         B.region(w/2, 0, w,   h  ) b2)
