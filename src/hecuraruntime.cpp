@@ -153,7 +153,7 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
       JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
       graphParam = argv[1];
       if(strcmp(argv[1], "tunerNumOfWorkers") == 0)
-	isGraphParallelMode = true;
+      isGraphParallelMode = true;
       shift;
       shift;
     }else if(strcmp(argv[0],"--graph-parallel")==0){
