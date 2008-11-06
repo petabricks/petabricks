@@ -1,5 +1,5 @@
-#ifndef RADIXSORT_PBCC
-#define RADIXSORT_PBCC
+#ifndef RADIXSORT4_PBCC
+#define RADIXSORT4_PBCC
 
 #include "../utilities.pbcc"
 
@@ -7,7 +7,7 @@
 #define SORTSUBARRAY RadixsortSubArray
 #endif
 
-#define NUM_BITS_PER_RADIX 4
+#define NUM_BITS_PER_RADIX 2
 #define NUM_BUCKETS (1 << NUM_BITS_PER_RADIX)
 
 %{
@@ -72,22 +72,15 @@ to OUT[n], TEMP[n]
   {
 //    printf("RadixsortSubArray called\n");
     int buckets[NUM_BUCKETS + 2] = {0};
-    int p = pos;
-
-    if (p > 64 - NUM_BITS_PER_RADIX) {
-      p = 64 - NUM_BITS_PER_RADIX;
-    }
-
     InlineCopy1D(temp, out);
-    Radix(out, temp, buckets, p);
-    
-    if (p > 0) {
+    Radix(out, temp, buckets, (int) pos);
+    if ((int) pos > 0) {
       for (int i = 0; i < NUM_BUCKETS; i++) {
         if (buckets[i + 1] > buckets[i] + 1) {
           SPAWN(SORTSUBARRAY,out.region(buckets[i], buckets[i + 1]), 
                             temp.region(buckets[i], buckets[i + 1]),
                             in.region(buckets[i], buckets[i + 1]), 
-                            p - NUM_BITS_PER_RADIX);
+                            (int) pos - NUM_BITS_PER_RADIX);
         }
       }
     }
@@ -108,10 +101,10 @@ to OUT[n]
   to (OUT out) from (IN in)
   {
     MatrixRegion1D temp = MatrixRegion1D::allocate(n);
-    InlineCopy1D(out, in);
+    Copy1D(out, in);
     RadixsortSubArray(out, temp, in, 64 - NUM_BITS_PER_RADIX);
   }
 }
 
-#endif // RADIXSORT_PBCC
+#endif // RADIXSORT4_PBCC
 

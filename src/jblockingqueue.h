@@ -31,7 +31,7 @@ template < typename T > class JBlockingQueue{
     void push(const T& e) {
       JLOCKSCOPE(_lock); 
       _lock.signal();
-      return _q.push_back(e); 
+      return _q.push_front(e); 
     }
     T pop() {
       JLOCKSCOPE(_lock);
