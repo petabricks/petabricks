@@ -1,3 +1,6 @@
+#ifndef SOR2D_PBCC
+#define SOR2D_PBCC
+
 #include "SOR2DInterior.pbcc"
 
 transform SOR2D
@@ -33,4 +36,6 @@ to OUT[n+2,n+2]
     return x;
   }
 }
+
+#endif // SOR2D_PBCC
 

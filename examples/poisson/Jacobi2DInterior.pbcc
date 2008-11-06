@@ -1,3 +1,6 @@
+#ifndef JACOBI2DINTERIOR_PBCC
+#define JACOBI2DINTERIOR_PBCC
+
 #define NUM_ITERATIONS 1
 
 transform Jacobi2D_inner
@@ -101,4 +104,6 @@ to OUT[n,n]
     }
   }
 }
+
+#endif // JACOBI2DINTERIOR_PBCC
 

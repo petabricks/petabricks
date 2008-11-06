@@ -1,5 +1,5 @@
-#ifndef RADIXSORT_PBCC
-#define RADIXSORT_PBCC
+#ifndef RADIXSORT4_PBCC
+#define RADIXSORT4_PBCC
 
 #include "../utilities.pbcc"
 
@@ -7,7 +7,7 @@
 #define SORTSUBARRAY RadixsortSubArray
 #endif
 
-#define NUM_BITS_PER_RADIX 4
+#define NUM_BITS_PER_RADIX 2
 #define NUM_BUCKETS (1 << NUM_BITS_PER_RADIX)
 
 %{
@@ -106,5 +106,5 @@ to OUT[n]
   }
 }
 
-#endif // RADIXSORT_PBCC
+#endif // RADIXSORT4_PBCC
 

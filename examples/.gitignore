@@ -15,6 +15,7 @@ test8
 test9
 transpose
 utilities
+eigenproblem/Bisection
 eigenproblem/DC
 eigenproblem/QRiteration
 poisson/BS2DInterior

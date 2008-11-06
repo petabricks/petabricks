@@ -1,3 +1,6 @@
+#ifndef MATRIXADD_PBCC
+#define MATRIXADD_PBCC
+
 transform MatrixAdd
 from A[w,h], B[w,h] 
 to AB[w,h]
@@ -6,4 +9,6 @@ to AB[w,h]
     return a+b;
   }
 }
+
+#endif // MATRIXADD_PBCC
 

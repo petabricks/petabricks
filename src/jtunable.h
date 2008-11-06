@@ -22,13 +22,18 @@
 
 #include "jassert.h"
 #include "jprintable.h"
+#include "jconvert.h"
 
+#include <vector>
 #include <limits>
 #include <set>
 #include <map>
 
 #define JTUNABLE(name, args...) \
   jalib::JTunable name(#name, args)
+
+#define JTUNABLEARRAY(name, n, args...) \
+  jalib::JTunableArray name(#name, n, args)
 
 namespace jalib {
 
@@ -111,6 +116,14 @@ public:
   }
 
   ///
+  /// Constructor
+  JTunable( const JTunable& that)
+    : _name(that._name), _value(that._value), _initial(that._initial), _min(that._min), _max(that._max), _isPegged(that._isPegged)
+  {
+    JTunableManager::instance().insert(this);
+  }
+
+  ///
   /// Destructor
   ~JTunable() {
     JTunableManager::instance().erase(this);
@@ -149,7 +162,22 @@ private:
 };
 
 
+class JTunableArray : public std::vector<JTunable> {
+public: 
+  JTunableArray( const char* name
+                , int n
+                , TunableValue initial
+                , TunableValue min=std::numeric_limits<TunableValue>::min()
+                , TunableValue max=std::numeric_limits<TunableValue>::max())
+  {
+    JASSERT(n>0)(n);
+    reserve(n);
+    for(int i=0; i<n; ++i)
+      push_back(JTunable((std::string(name)+"__"+XToString(i)).c_str(), initial, min, max));
+  }
+};
 
 }
 
 #endif
+
