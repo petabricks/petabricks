@@ -1,6 +1,8 @@
 #ifndef SOR2DINTERIOR_PBCC
 #define SOR2DINTERIOR_PBCC
 
+#include "../utilities.pbcc"
+
 transform SplitRB
 from IN[n,n]
 to R[n+2,(n+4)/2], K[n+2,(n+4)/2]
@@ -99,6 +101,9 @@ to ROut[width,height], KOut[width,height]
         SYNC();
         SPAWN(Compute,rOut, kOut, rOut, kOut, rB, kB, w, num - 1);
       }
+    } else {
+      SPAWN(Copy2D, rOut, rIn);
+      SPAWN(Copy2D, kOut, kIn);
     }
   }
 }
