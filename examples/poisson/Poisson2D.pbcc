@@ -1,0 +1,31 @@
+#include "../add.pbcc"
+#include "Interpolate2Dnew.pbcc"
+#include "Restrict2Dnew.pbcc"
+#include "Residual2D.pbcc"
+#include "SOR2D.pbcc"
+#include "BS2D.pbcc"
+#include "mgv2D.pbcc"
+#include "ComputeError.pbcc"
+
+#define CAT( a, b) _CAT(a,b)
+#define _CAT( a, b) __CAT(a ## b)
+#define __CAT(ab) ab
+
+#define POISSON_PRECISION_1 0.8
+#define POISSON_PRECISION_2 0.4
+#define POISSON_PRECISION_3 0.2
+#define POISSON_PRECISION_4 0.1
+#define POISSON_PRECISION_5 0.05
+
+#define CURPREC 1
+#include "Poisson2D-template.pbcc"
+/*
+#define CURPREC 2
+#include "Poisson2D-template.pbcc"
+#define CURPREC 3
+#include "Poisson2D-template.pbcc"
+#define CURPREC 4
+#include "Poisson2D-template.pbcc"
+#define CURPREC 5
+#include "Poisson2D-template.pbcc"
+*/
