@@ -1,3 +1,6 @@
+#ifndef RESTRICT2DNEW_PBCC
+#define RESTRICT2DNEW_PBCC
+
 transform Restrict2Dnew
 //return 4*Residual for coarser grid (the factor of 4 due to Poisson's equation)
 from X[n,n]
@@ -25,3 +28,6 @@ to  Y[(n+1)/2,(n+1)/2]  //C will truncate
   //boundary for nonzero BC?
   secondary Y.cell(i,j) from(X.cell(2*i,2*j) x) {return x;}
 }
+
+#endif // RESTRICT2DNEW_PBCC
+

@@ -162,7 +162,7 @@ private:
 };
 
 
-class JTunableArray : std::vector<JTunable> {
+class JTunableArray : public std::vector<JTunable> {
 public: 
   JTunableArray( const char* name
                 , int n

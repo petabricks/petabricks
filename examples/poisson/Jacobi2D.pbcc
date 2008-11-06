@@ -1,3 +1,6 @@
+#ifndef JACOBI2D_PBCC
+#define JACOBI2D_PBCC
+
 #include "Jacobi2DInterior.pbcc"
 
 transform Jacobi2D
@@ -32,4 +35,6 @@ to OUT[n+2,n+2]
     return x;
   }
 }
+
+#endif // JACOBI2D_PBCC
 

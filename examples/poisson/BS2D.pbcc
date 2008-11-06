@@ -1,3 +1,6 @@
+#ifndef BS2D_PBCC
+#define BS2D_PBCC
+
 #include "BS2DInterior.pbcc"
 
 transform BS2D
@@ -29,4 +32,6 @@ to OUT[n+2,n+2]
     return x;
   }
 }
+
+#endif // BS2D_PBCC
 

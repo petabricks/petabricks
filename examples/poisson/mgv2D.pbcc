@@ -1,41 +1,20 @@
+#ifndef MGV2D_PBCC
+#define MGV2D_PBCC
+
 //Multigrid V-cycle 2D
 //assume dimension n = 2^k + 1
-
-%{
-
-JTUNABLE(numIterations, 1);
-
-%}
-
 #include "../add.pbcc"
+#include "../utilities.pbcc"
 #include "Interpolate2Dnew.pbcc"
 #include "Restrict2Dnew.pbcc"
 #include "Residual2D.pbcc"
 #include "SOR2D.pbcc"
-#include "BS2D.pbcc"
 
-transform mgv2D 
+transform mgv2D_inner 
 from X[n,n], B[n,n]
 to  Y[n,n]
 through zeros[(n+1)/2,(n+1)/2]
 {
-    //base case: solve iteratively with SOR
-    to(Y y) from(X x, B b) {
-        printf("SOR base case called for n = %d\n", n);
-        int iter[20] = {  1,   5,   7,  13,  26,
-                         52, 100, 100, 100, 100,
-                        100, 100, 100, 100, 100,
-                        100, 100, 100, 100, 100};  // values for greater than 6 not computed yet
-        printf("SOR base case called for n = %d (%d iterations)\n", n, iter[(int) log2(n-1) - 1]);
-        SOR2D(y, x, b, -1, iter[(int) log2(n-1) - 1]);
-    }
-
-    //base case: directly solve with BS
-    to(Y y) from(X x, B b) {
-        printf(" BS base case called for n = %d\n", n);
-        BS2D(y, x, b);
-    }
-
     //solve recursively on coarser grids, with zero initial guess
     //then map the coarse solution back to the fine grid by Interpolation
     zeros.cell(i,j) from() {
@@ -45,14 +24,38 @@ through zeros[(n+1)/2,(n+1)/2]
     //recursive case
     recursive(n / 2)
     to (Y y) from(X x, B b, zeros z) {
-        printf("recursive case called for n = %d\n", n);
-        JASSERT(floor(log2(n-1)) == log2(n-1));
-        MatrixRegion2D t, r;
-        t = SOR2D(x, b, -2, 1);
-        r = Restrict2Dnew(Residual2D(t,b));
-        r = mgv2D(z,r);
-        t = MatrixAdd(Interpolate2Dnew(r), t);
-        SOR2D(y, t, b, -2, 1);
+        JASSERT(floor(log2(n-1)) == log2(n-1)).Text("input must be 2^k+1");
+        if (n == 3) {
+//          printf("base case called for n = 3\n");
+          Copy2D(y, x);
+          y.cell(1, 1) = (x.cell(1, 0) + x.cell(0, 1) + x.cell(1, 2) + x.cell(2, 1) + b.cell(1, 1)) / 4;
+        } else {
+//          printf("recursive case called for n = %d\n", n);
+          MatrixRegion2D t, r;
+          t = SOR2D(x, b, -2, 1);
+          r = Restrict2Dnew(Residual2D(t,b));
+          r = mgv2D_inner(z,r);
+          t = MatrixAdd(Interpolate2Dnew(r), t);
+          SOR2D(y, t, b, -2, 1);
+        }
     }
 }
+
+transform mgv2D 
+from X[n,n], B[n,n], numIterations
+to Y[n,n]
+{
+  to (Y y) from (X x, B b, numIterations num)
+  {
+    if (num > 0) {
+      mgv2D_inner(y, x, b);
+    } else {
+      Copy2D(y, x);
+    }
+    if (num > 1)
+      mgv2D(y, y, b, num - 1);
+  }
+}
+
+#endif // MGV2D_PBCC
 
