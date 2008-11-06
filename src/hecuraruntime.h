@@ -89,6 +89,9 @@ public:
 
   static bool isTrainingRun();
   static void setIsTrainingRun(bool b);
+
+  void setSize(int n){randSize=n;};
+  int curSize() const { return randSize;};
 private:
   Main& main;
   int randSize;

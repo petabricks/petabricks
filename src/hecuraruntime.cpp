@@ -22,6 +22,7 @@
 #include "jfilesystem.h"
 #include "jtimer.h"
 #include "dynamictask.h"
+#include "autotuner.h"
 
 #include <algorithm>
 #include <math.h>
@@ -189,7 +190,9 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
   }
 
   if(isAutotuneMode){
-    runAutotuneMode(graphParam);
+//     runAutotuneMode(graphParam);
+    Autotuner at(*this, graphParam);
+    at.train(TRAIN_MIN, TRAIN_MAX);
     return 0;
   }
   
@@ -366,6 +369,8 @@ void hecura::HecuraRuntime::runAutotuneMode(const std::string& prefix){
       break;
     }
   }
+
+  JASSERT(numLevels>1)(prefix).Text("invalid prefix to autotune");
 
   //initialize
   for(int lvl=1; lvl<=numLevels; ++lvl){

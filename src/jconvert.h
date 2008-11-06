@@ -116,6 +116,11 @@ namespace jalib
     return std::string(b,e);
   }
 
+  inline std::string StringPad(const std::string& str, int n, char ch=' '){
+    if(str.size()>=n) return str;
+    return str+ std::string(n-str.size(), ch);
+  }
+
   ///
   /// Remove whitespace from both ends of a string, return result
   inline void SplitFirst(std::string& left, std::string& right, const std::string& str, char delim){
