@@ -88,6 +88,7 @@ public:
   void resetLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
 
   static bool isTrainingRun();
+  static void setIsTrainingRun(bool b);
 private:
   Main& main;
   int randSize;
