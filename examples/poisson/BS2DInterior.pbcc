@@ -3,32 +3,13 @@
 
 %{
 
-extern "C" void dposv_(char *uplo, int *n, int *nrhs, double *A, int *lda, double *B, int *ldb, int *info);
+extern "C" void dpbsv_(char *uplo, int *n, int *kd, int *nrhs, double *A, int *lda, double *B, int *ldb, int *info);
 
-void initDiagBlock(double *A, int n)
+void displayMatrix(double *A, int h, int w)
 {
-  int nSquared = n * n;
-  A[0] = 4;
-  for (int i = 1; i < n; i++) {
-    A[i * nSquared + i] = 4;
-    A[i * nSquared + (i - 1)] = -1;
-    A[(i - 1) * nSquared + i] = -1;
-  }
-}
-
-void initOffDiagBlock(double *A, int n)
-{
-  int nSquared = n * n;
-  for (int i = 0; i < n; i++) {
-    A[i * nSquared + i] = -1;
-  }
-}
-
-void displayMatrix(double *A, int n)
-{
-  for (int j = 0; j < n; j++) {
-    for (int i = 0; i < n; i++) {
-      printf("%3g", A[i * n + j]);
+  for (int i = 0; i < h; i++) {
+    for (int j = 0; j < w; j++) {
+      printf("%3g", A[j * h + i]);
     }
     printf("\n");
   }
@@ -44,23 +25,38 @@ to OUT[n,n]
 
   to (OUT out) from (B b)
   {
-    char uplo = 'U';
-    int nrhs = 1, nSquared = n * n, info = 0;
+    char uplo = 'L';
+    int kd = n, kdp1 = n + 1, nrhs = 1, nSquared = n * n, info = 0;
 
-    // allocate and initialize solver matrix
-    double *A = new double[n * n * n * n];
-    double *bFlat = new double[n * n];
+    // allocate solver matrix and RHS/solution vector
+    double *A = new double[nSquared * (n + 1)];
+    double *bFlat = new double[nSquared];
     if (!A || !bFlat) {
       // TODO: fix this error handler
       printf("Error allocating memory!\n");
       exit(-1);
     }
-    initDiagBlock(A, n);
-    for (int i = 1; i < n; i++) {
-      initDiagBlock(A + (i * nSquared + i) * n, n);
-      initOffDiagBlock(A + (i * nSquared + (i - 1)) * n, n);
-      initOffDiagBlock(A + ((i - 1) * nSquared + i) * n, n);
+
+    // initialize solver matrix
+    int idx = 0;
+    for (int k = 0; k < n; k++) {
+      for (int j = 0; j < n - 1; j++) {
+        A[idx++] = 4;
+        A[idx++] = -1;
+        for (int i = 2; i < n; i++) {
+          A[idx++] = 0;
+        }
+        A[idx++] = -1;
+      }
+      // last column of block is different
+      A[idx++] = 4;
+      for (int i = 1; i < n; i++) {
+        A[idx++] = 0;
+      }
+      A[idx++] = -1;
     }
+
+//    displayMatrix(A, n + 1, nSquared);
 
     // intialize flat RHS/solution vector
     int index = 0;
@@ -71,7 +67,7 @@ to OUT[n,n]
     }
 
     // call LAPACK to do linear solve
-    dposv_(&uplo, &nSquared, &nrhs, A, &nSquared, bFlat, &nSquared, &info);
+    dpbsv_(&uplo, &nSquared, &kd, &nrhs, A, &kdp1, bFlat, &nSquared, &info);
 
     // copy solution to output
     index = 0;

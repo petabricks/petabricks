@@ -40,7 +40,7 @@ static int GRAPH_STEP=8;
 static int GRAPH_TRIALS=3;
 static int GRAPH_SMOOTHING=0;
 static int SEARCH_BRANCH_FACTOR=8;
-static bool GRAPH_MULTIGRID=false;
+static bool MULTIGRID_FLAG=false;
 
 namespace{//file local
 
@@ -167,10 +167,12 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
       shift;
       shift;
     }else if(strcmp(argv[0],"--multigrid")==0){
-      GRAPH_MULTIGRID = true;
+      MULTIGRID_FLAG = true;
       GRAPH_MIN = 1;
       GRAPH_MAX = 9;
       GRAPH_STEP = 1;
+      TRAIN_MIN = 3;
+      TRAIN_MAX = 65;
       shift;
     }else if(strcmp(argv[0],"--reset")==0){
       jalib::JTunableManager::instance().reset();
@@ -237,9 +239,9 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
 
 void hecura::HecuraRuntime::runGraphMode(){
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
-    randSize = (GRAPH_MULTIGRID ? (1 << n): n);
+    randSize = (MULTIGRID_FLAG ? (1 << n) + 1 : n);
     double avg = runTrial();
-    printf("%d %.6f\n", (GRAPH_MULTIGRID ? randSize + 1 : randSize), avg);
+    printf("%d %.6f\n", randSize, avg);
     if(avg > GRAPH_MAX_SEC) break;
   }
 }
@@ -284,7 +286,7 @@ double hecura::HecuraRuntime::runTrial(){
   {
     double t=0;
     for(int z=0;z<GRAPH_TRIALS; ++z){
-      main.randomInputs(GRAPH_MULTIGRID ? n+1 : n);
+      main.randomInputs(n);
       jalib::JTime begin=jalib::JTime::Now();
       main.compute();
       jalib::JTime end=jalib::JTime::Now();
@@ -372,7 +374,7 @@ void hecura::HecuraRuntime::runAutotuneMode(const std::string& prefix){
 
   int curLevel = 1;
   for(randSize=TRAIN_MIN; randSize<TRAIN_MAX; randSize*=2){
-    if (GRAPH_MULTIGRID) {
+    if (MULTIGRID_FLAG) {
       randSize = (1 << (int) (floor(log2(randSize)))) + 1;
     }
     printf("autotune n=%d result... \n", randSize);
