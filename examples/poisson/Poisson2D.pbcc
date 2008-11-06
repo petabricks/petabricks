@@ -19,13 +19,16 @@
 
 #define CURPREC 1
 #include "Poisson2D-template.pbcc"
-/*
+#undef CURPREC
 #define CURPREC 2
 #include "Poisson2D-template.pbcc"
+#undef CURPREC
 #define CURPREC 3
 #include "Poisson2D-template.pbcc"
+#undef CURPREC
 #define CURPREC 4
 #include "Poisson2D-template.pbcc"
+#undef CURPREC
 #define CURPREC 5
 #include "Poisson2D-template.pbcc"
-*/
+

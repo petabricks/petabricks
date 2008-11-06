@@ -25,12 +25,12 @@ through zeros[(n+1)/2,(n+1)/2]
     SOR2D(y, x, b, -1, (int) CAT(  SORIters_Prec, CURPREC)[level]);
   }
 
-////base case: directly solve with BS
-//to(Y y) from(X x, B b) {
-//  int level = (int) log2(n-1);
-//  printf("prec1 BS case called for level %d\n", level);
-//  BS2D(y, x, b);
-//}
+  //base case: directly solve with BS
+  to(Y y) from(X x, B b) {
+    int level = (int) log2(n-1);
+    printf("prec1 BS case called for level %d\n", level);
+    BS2D(y, x, b);
+  }
 
   //solve recursively on coarser grids, with zero initial guess
   //then map the coarse solution back to the fine grid by Interpolation
@@ -57,6 +57,98 @@ through zeros[(n+1)/2,(n+1)/2]
         t = SOR2D(x, b, -2, 1);
         r = Restrict2Dnew(Residual2D(t,b));
         r = Poisson2D_Inner_Prec1(z,r);
+        t = MatrixAdd(Interpolate2Dnew(r), t);
+        SOR2D(y, t, b, -2, 1);
+      }
+    }
+  }
+
+  // precision 2
+  recursive(n / 2)
+  to (Y y) from(X x, B b, zeros z) {
+    if (n == 3) {
+      printf("prec2 recursive base case called for level 1\n");
+      Copy2D(y, x);
+      y.cell(1, 1) = (x.cell(1, 0) + x.cell(0, 1) + x.cell(1, 2) + x.cell(2, 1) + b.cell(1, 1)) / 4;
+    } else {
+      int i, level = (int) log2(n-1);
+      printf("prec2 recursive case called for level %d (%d iterations)\n", level, 
+             (int) CAT(prec2Iters_Prec, CURPREC)[level]);
+      MatrixRegion2D t, r;
+
+      for (i = 0; i < CAT(prec2Iters_Prec, CURPREC)[level]; i++) {
+        t = SOR2D(x, b, -2, 1);
+        r = Restrict2Dnew(Residual2D(t,b));
+        r = Poisson2D_Inner_Prec2(z,r);
+        t = MatrixAdd(Interpolate2Dnew(r), t);
+        SOR2D(y, t, b, -2, 1);
+      }
+    }
+  }
+
+  // precision 3
+  recursive(n / 2)
+  to (Y y) from(X x, B b, zeros z) {
+    if (n == 3) {
+      printf("prec3 recursive base case called for level 1\n");
+      Copy2D(y, x);
+      y.cell(1, 1) = (x.cell(1, 0) + x.cell(0, 1) + x.cell(1, 2) + x.cell(2, 1) + b.cell(1, 1)) / 4;
+    } else {
+      int i, level = (int) log2(n-1);
+      printf("prec3 recursive case called for level %d (%d iterations)\n", level, 
+             (int) CAT(prec3Iters_Prec, CURPREC)[level]);
+      MatrixRegion2D t, r;
+
+      for (i = 0; i < CAT(prec3Iters_Prec, CURPREC)[level]; i++) {
+        t = SOR2D(x, b, -2, 1);
+        r = Restrict2Dnew(Residual2D(t,b));
+        r = Poisson2D_Inner_Prec3(z,r);
+        t = MatrixAdd(Interpolate2Dnew(r), t);
+        SOR2D(y, t, b, -2, 1);
+      }
+    }
+  }
+
+  // precision 4
+  recursive(n / 2)
+  to (Y y) from(X x, B b, zeros z) {
+    if (n == 3) {
+      printf("prec4 recursive base case called for level 1\n");
+      Copy2D(y, x);
+      y.cell(1, 1) = (x.cell(1, 0) + x.cell(0, 1) + x.cell(1, 2) + x.cell(2, 1) + b.cell(1, 1)) / 4;
+    } else {
+      int i, level = (int) log2(n-1);
+      printf("prec4 recursive case called for level %d (%d iterations)\n", level, 
+             (int) CAT(prec4Iters_Prec, CURPREC)[level]);
+      MatrixRegion2D t, r;
+
+      for (i = 0; i < CAT(prec4Iters_Prec, CURPREC)[level]; i++) {
+        t = SOR2D(x, b, -2, 1);
+        r = Restrict2Dnew(Residual2D(t,b));
+        r = Poisson2D_Inner_Prec4(z,r);
+        t = MatrixAdd(Interpolate2Dnew(r), t);
+        SOR2D(y, t, b, -2, 1);
+      }
+    }
+  }
+
+  // precision 5
+  recursive(n / 2)
+  to (Y y) from(X x, B b, zeros z) {
+    if (n == 3) {
+      printf("prec5 recursive base case called for level 1\n");
+      Copy2D(y, x);
+      y.cell(1, 1) = (x.cell(1, 0) + x.cell(0, 1) + x.cell(1, 2) + x.cell(2, 1) + b.cell(1, 1)) / 4;
+    } else {
+      int i, level = (int) log2(n-1);
+      printf("prec5 recursive case called for level %d (%d iterations)\n", level, 
+             (int) CAT(prec5Iters_Prec, CURPREC)[level]);
+      MatrixRegion2D t, r;
+
+      for (i = 0; i < CAT(prec5Iters_Prec, CURPREC)[level]; i++) {
+        t = SOR2D(x, b, -2, 1);
+        r = Restrict2Dnew(Residual2D(t,b));
+        r = Poisson2D_Inner_Prec5(z,r);
         t = MatrixAdd(Interpolate2Dnew(r), t);
         SOR2D(y, t, b, -2, 1);
       }
@@ -122,7 +214,7 @@ through zeros[(n+1)/2,(n+1)/2]
         printf("    error = %g, ratio = %g\n", newError, newError / error);
 
       } while (newError / error > CAT(POISSON_PRECISION_, CURPREC));
-/*
+
       // compute number of iterations of recursive precision 2
       printf("  Testing prec2:\n");
       CAT(prec2Iters_Prec, CURPREC)[level].setValue(0);
@@ -194,7 +286,7 @@ through zeros[(n+1)/2,(n+1)/2]
         printf("    error = %g, ratio = %g\n", newError, newError / error);
 
       } while (newError / error > CAT(POISSON_PRECISION_, CURPREC));
-*/
+
     } else {
       printf("Timing run for level %d, precision %g\n", level, CAT(POISSON_PRECISION_, CURPREC));
       CAT(Poisson2D_Inner_Prec, CURPREC)(y, x, b);
