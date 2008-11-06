@@ -1,5 +1,5 @@
-#ifndef RADIXSORT_PBCC
-#define RADIXSORT_PBCC
+#ifndef RADIXSORT4_PBCC
+#define RADIXSORT4_PBCC
 
 #include "../utilities.pbcc"
 
@@ -106,5 +106,5 @@ to OUT[n]
   }
 }
 
-#endif // RADIXSORT_PBCC
+#endif // RADIXSORT4_PBCC
 
