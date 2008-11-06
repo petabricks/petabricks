@@ -1,3 +1,6 @@
+#ifndef BS2DINTERIOR_PBCC
+#define BS2DINTERIOR_PBCC
+
 %{
 
 extern "C" void dposv_(char *uplo, int *n, int *nrhs, double *A, int *lda, double *B, int *ldb, int *info);
@@ -47,6 +50,11 @@ to OUT[n,n]
     // allocate and initialize solver matrix
     double *A = new double[n * n * n * n];
     double *bFlat = new double[n * n];
+    if (!A || !bFlat) {
+      // TODO: fix this error handler
+      printf("Error allocating memory!\n");
+      exit(-1);
+    }
     initDiagBlock(A, n);
     for (int i = 1; i < n; i++) {
       initDiagBlock(A + (i * nSquared + i) * n, n);
@@ -78,4 +86,6 @@ to OUT[n,n]
   }
 
 }
+
+#endif // BS2DINTERIOR_PBCC
 

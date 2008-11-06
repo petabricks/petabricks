@@ -24,6 +24,7 @@
 #include "dynamictask.h"
 
 #include <algorithm>
+#include <math.h>
 
 static bool _isTrainingRun = false;
 static bool _needTraingingRun = false;
@@ -367,7 +368,10 @@ void hecura::HecuraRuntime::runAutotuneMode(const std::string& prefix){
 
   int curLevel = 1;
   for(randSize=TRAIN_MIN; randSize<TRAIN_MAX; randSize*=2){
-    printf("autotune n=%d result... ", randSize);
+    if (GRAPH_MULTIGRID) {
+      randSize = (1 << (int) (floor(log2(randSize)))) + 1;
+    }
+    printf("autotune n=%d result... \n", randSize);
     fflush(stdout);
     double cur;
 //     if(curLevel>1)

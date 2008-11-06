@@ -1,3 +1,6 @@
+#ifndef SOR2DINTERIOR_PBCC
+#define SOR2DINTERIOR_PBCC
+
 transform SplitRB
 from IN[n,n]
 to R[n+2,(n+4)/2], K[n+2,(n+4)/2]
@@ -82,10 +85,10 @@ to ROut[width,height], KOut[width,height]
 }
 
 transform Compute
-from RIn[n+2,(n+4)/2], KIn[n+2,(n+4)/2], 
-     RB [n+2,(n+4)/2], KB [n+2,(n+4)/2], 
+from RIn[width,height], KIn[width,height], 
+     RB [width,height], KB [width,height], 
      weight, numIterations
-to ROut[n+2,(n+4)/2], KOut[n+2,(n+4)/2]
+to ROut[width,height], KOut[width,height]
 {
   recursive
   to (ROut rOut, KOut kOut) from (RIn rIn, KIn kIn, RB rB, KB kB, weight w, numIterations num)
@@ -146,4 +149,6 @@ to OUT[n,n]
   }
 
 }
+
+#endif // SOR2DINTERIOR_PBCC
 

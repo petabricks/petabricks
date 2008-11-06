@@ -1,3 +1,6 @@
+#ifndef INTERPOLATE2DNEW_PBCC
+#define INTERPOLATE2DNEW_PBCC
+
 transform Interpolate2Dnew
 //Map from coarse grid to fine grid
 from X[n,n]
@@ -45,4 +48,6 @@ to  Y[2*n-1,2*n-1]
 	else {return (x1+x2)/2;}
    }
 }
+
+#endif // INTERPOLATE2DNEW_PBCC
 
