@@ -72,15 +72,22 @@ to OUT[n], TEMP[n]
   {
 //    printf("RadixsortSubArray called\n");
     int buckets[NUM_BUCKETS + 2] = {0};
+    int p = pos;
+
+    if (p > 64 - NUM_BITS_PER_RADIX) {
+      p = 64 - NUM_BITS_PER_RADIX;
+    }
+
     InlineCopy1D(temp, out);
-    Radix(out, temp, buckets, (int) pos);
-    if ((int) pos > 0) {
+    Radix(out, temp, buckets, p);
+    
+    if (p > 0) {
       for (int i = 0; i < NUM_BUCKETS; i++) {
         if (buckets[i + 1] > buckets[i] + 1) {
           SPAWN(SORTSUBARRAY,out.region(buckets[i], buckets[i + 1]), 
                             temp.region(buckets[i], buckets[i + 1]),
                             in.region(buckets[i], buckets[i + 1]), 
-                            (int) pos - NUM_BITS_PER_RADIX);
+                            p - NUM_BITS_PER_RADIX);
         }
       }
     }
@@ -101,7 +108,7 @@ to OUT[n]
   to (OUT out) from (IN in)
   {
     MatrixRegion1D temp = MatrixRegion1D::allocate(n);
-    Copy1D(out, in);
+    InlineCopy1D(out, in);
     RadixsortSubArray(out, temp, in, 64 - NUM_BITS_PER_RADIX);
   }
 }

@@ -7,19 +7,34 @@
 #define SORTSUBARRAY MergesortSubArray
 #endif
 
+#define WAY 4
+
 transform Merge
 from IN[n]
 to OUT[n]
 {
   to (OUT out) from (IN in)
   {
-    int middle = n / 2, ptr1 = 0, ptr2 = middle;
-    for (int i = 0; i < n; i++) {
-      if (ptr2 == n || ptr1 < middle && in.cell(ptr1) < in.cell(ptr2)) {
-        out.cell(i) = in.cell(ptr1++);
-      } else {
-        out.cell(i) = in.cell(ptr2++);
+    int i, j, ptr[WAY], minLoc;
+    double min;
+    for (i = 0; i < WAY; i++) {
+      ptr[i] = n * i / WAY;
+    }
+    for (i = 0; i < n; i++) {
+      min = HUGE_VAL;
+      minLoc = -1;
+      for (j = 0; j < WAY; j++) {
+        if (ptr[j] < n * (j + 1) / WAY && in.cell(ptr[j]) < min) {
+          min = in.cell(ptr[j]);
+          minLoc = j;
+        }
       }
+      if (minLoc == -1) {
+        printf("error\n");
+        exit(-1);
+      }
+      out.cell(i) = min;
+      ptr[minLoc]++;
     }
   }
 }
@@ -30,23 +45,20 @@ to OUT[n], TEMP[n]
 {
   recursive to(OUT out, TEMP temp) from (IN in, Pos p)
   {
-    int left=0;
-    int right=n-1;
-    int middle = (left + right + 1) / 2;
+    int i;
 
-    if (middle - left > 1)
-      SPAWN(SORTSUBARRAY,out .region(0,middle),
-                         temp.region(0,middle),
-                         in  .region(0,middle), p);
-    if (right - middle > 0)
-      SPAWN(SORTSUBARRAY,out .region(middle,n),
-                         temp.region(middle,n),
-                         in  .region(middle,n), p);
-    
+    for (i = 0; i < WAY; i++) {
+      if (n * (i + 1) / WAY - n * i / WAY > 1) {
+        SPAWN(SORTSUBARRAY, out .region(n * i / WAY, n * (i + 1) / WAY),
+                            temp.region(n * i / WAY, n * (i + 1) / WAY),
+                            in  .region(n * i / WAY, n * (i + 1) / WAY), p);
+      }
+    }
+
     SYNC();
-    SPAWN(Copy1D,temp.region((int) left, (int) right + 1), out.region((int) left, (int) right + 1));
+    SPAWN(Copy1D, temp, out);
     SYNC();
-    SPAWN(Merge,out.region((int) left, (int) right + 1), temp.region((int) left, (int) right + 1));
+    SPAWN(Merge, out, temp);
   }
 }
 
@@ -56,9 +68,9 @@ to OUT[n]
 {
   to(OUT out) from (IN in)
   {
-    Copy1D(out, in);
+    InlineCopy1D(out, in);
     MatrixRegion1D temp = MatrixRegion1D::allocate(n);
-    MergesortSubArray(out, temp, in, 60);
+    MergesortSubArray(out, temp, in, 64);
   }
 }
 
