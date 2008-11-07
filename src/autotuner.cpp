@@ -220,10 +220,14 @@ hecura::CandidateAlgorithmPtr hecura::CandidateAlgorithm::attemptBirth(HecuraRun
     int max = std::min(rt.curSize(), _cutoffTunable->max());
     if(max>500) max = std::min(max, _cutoff*4);
     double p = rt.optimizeParameter(*_cutoffTunable, min, max);
-    if(p<thresh){
+    if(p<thresh && p>=0){
       CandidateAlgorithmPtr c = new CandidateAlgorithm(_lvl, _alg, _algTunable, _cutoffTunable->value() , _cutoffTunable, _nextLevel);
       c->addResult(p);
-      return c;
+      if(c->isDuplicate(this)){
+        _cutoff=_cutoffTunable->value();
+        addResult(p);
+      }else
+        return c;
     }
     activate();
   }
@@ -242,7 +246,7 @@ hecura::CandidateAlgorithmPtr hecura::CandidateAlgorithm::attemptBirth(HecuraRun
       if(_lvl>1 && a==_alg) continue;
       if(at!=0) at->setValue(a);
       double p = rt.optimizeParameter(*ct, min, max); 
-      if(p<thresh){
+      if(p<thresh && p>=0){
         CandidateAlgorithmPtr c = new CandidateAlgorithm(_lvl+1, a, at, ct->value(), ct, this);
         c->addResult(p);
         possible.push_back(c);
