@@ -1,6 +1,11 @@
 //Multigrid V-cycle 2D
 //assume dimension n = 2^k + 1
 
+%{
+  JTUNABLE(prec_case, 5);
+  JTUNABLEARRAY(levelTrained, 30, 0);
+%}
+
 #include "../add.pbcc"
 #include "Interpolate2Dnew.pbcc"
 #include "Restrict2Dnew.pbcc"
@@ -54,8 +59,9 @@ through zeros[(n+1)/2,(n+1)/2]
     JASSERT(floor(log2(n-1)) == log2(n-1))(n)(floor(log2(n-1)))(log2(n-1)).Text("input must be 2^k+1");
     JASSERT(n > 1)(n).Text("input must be larger than 1");
 
-    if (HecuraRuntime::isTrainingRun()) {
-      printf("Training run for level %d\n", level);
+    if (HecuraRuntime::isTrainingRun() && levelTrained[level] == 0) {
+
+//      printf("Training run for level %d\n", level);
       MatrixRegion2D actual;
       if (level < 4) {
         actual = BS2D(x, b);
@@ -63,7 +69,7 @@ through zeros[(n+1)/2,(n+1)/2]
         actual = mgv2D(x, b, 15);
       }
       error = (double) ComputeError(x, actual);
-      printf("initial error = %g\n", error);
+//      printf("initial error = %g\n", error);
 
 #define CURPREC 1
 #include "Poisson2D_TrainingLoop.pbcc"
@@ -81,11 +87,27 @@ through zeros[(n+1)/2,(n+1)/2]
 #include "Poisson2D_TrainingLoop.pbcc"
 #undef CURPREC
 
+      levelTrained[level].setValue(1);
+
     } else {
-#define CURPREC 4
-      printf("Timing run for level %d, precision %g\n", level, CAT(POISSON_PRECISION_, CURPREC));
-      CAT(Poisson2D_Inner_Prec, CURPREC)(y, x, b);
-#undef CURPREC
+//      printf("Timing run for level %d, precision %d\n", level, (int) prec_case);
+      switch (prec_case) {
+        case 1:
+          Poisson2D_Inner_Prec1(y, x, b);
+          break;
+        case 2:
+          Poisson2D_Inner_Prec2(y, x, b);
+          break;
+        case 3:
+          Poisson2D_Inner_Prec3(y, x, b);
+          break;
+        case 4:
+          Poisson2D_Inner_Prec4(y, x, b);
+          break;
+        case 5:
+          Poisson2D_Inner_Prec5(y, x, b);
+          break;
+      }
     }
   }
 }

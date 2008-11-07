@@ -2,14 +2,17 @@
   recursive(n / 2)
   to (Y y) from(X x, B b, zeros z) {
     if (n == 3) {
-      printf("prec%d recursive base case called for level 1\n", CURPREC);
+//      printf("prec%d recursive base case called for level 1\n", CURPREC);
       Copy2D(y, x);
       y.cell(1, 1) = (x.cell(1, 0) + x.cell(0, 1) + x.cell(1, 2) + x.cell(2, 1) + b.cell(1, 1)) / 4;
     } else {
       int i, level = (int) log2(n-1);
-      printf("prec%d recursive case (call to prec%d) called for level %d (%d iterations)\n", 
-             CURPREC, LOCALPREC, level,
-             (int) CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level]);
+      if ((int) CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level] == -1) {
+        HecuraRuntime::abort();
+      }
+//    printf("prec%d recursive case (call to prec%d) called for level %d (%d iterations)\n", 
+//           CURPREC, LOCALPREC, level,
+//           (int) CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level]);
       MatrixRegion2D t, r;
 
       for (i = 0; i < CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level]; i++) {
