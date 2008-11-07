@@ -1,0 +1,64 @@
+#ifndef QRTRIDIAG_PBCC
+#define QRTRIDIAG_PBCC
+
+%{
+
+extern "C" void dsteqr_(char *compz, int *n, double *D, double *E, double *Z, int *ldz, double *work, int *info);
+
+
+
+%}
+
+
+// Find eigenvalues and eigenvectors of tridiagonal matrix by LAPACK QR iteration routines
+transform QRtridiag
+from Diag[n], Subdiag[n-1]
+to Eigenvalue[n], Eigenvector[n,n]
+{
+
+  to (Eigenvalue Eig, Eigenvector Vec) from (Diag dd, Subdiag ee)
+  {
+
+
+    char compz='I';
+    int size=n, lwork=2*n-2, info=0, nsquared=n*n;
+
+    // allocate and initialize matrices
+    double *Z = new double[nsquared];
+    double *D = new double[n];
+    double *E = new double[n-1];
+    double *work = new double[1];
+
+    // get input matrix in column major format
+    for (int i = 0; i < n; i++) {
+        D[i] = dd.cell(i);
+    }
+    for (int i = 0; i < n-1; i++) {
+        E[i] = ee.cell(i);
+    }
+
+    if (lwork > 1) { work = new double[lwork];}
+    dsteqr_(&compz, &size, D, E, Z, &size, work, &info);
+
+
+
+    // copy solution to output
+    for (int i = 0; i < n; i++) {
+        Eig.cell(i) = D[i];
+    }
+    int index = 0;
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        Vec.cell(i,j) = Z[index++];
+      }
+    }
+
+    delete [] D;
+    delete [] E;
+    delete [] Z;
+    delete [] work;
+  }
+
+}
+
+#endif // QRTRIDIAG_PBCC
