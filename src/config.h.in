@@ -3,6 +3,9 @@
 /* verbose debug printouts and log files in /tmp */
 #undef DEBUG
 
+/* allow abort without program shutdown (uses exceptions) */
+#undef GRACEFUL_ABORT
+
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 

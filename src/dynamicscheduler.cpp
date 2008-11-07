@@ -33,6 +33,11 @@
 
 namespace hecura {
 
+#ifdef GRACEFUL_ABORT
+bool DynamicScheduler::theIsAborting=false;
+jalib::JCondMutex DynamicScheduler::theAbortingLock;
+#endif
+
 extern "C" {
 void *workerStartup(void *);
 }
@@ -42,6 +47,9 @@ DynamicScheduler::DynamicScheduler()
 {
   numOfWorkers  = 0;
   workerThreads = new pthread_t[MAX_NUM_WORKERS];
+#ifdef GRACEFUL_ABORT
+  numAbortedThreads = 0;
+#endif
 }
 
 
@@ -69,10 +77,47 @@ void *workerStartup(void *args)
 
   // infinit loop to for executing tasks
   while(true) {
-    scheduler->dequeue()->runWrapper();
+#ifdef GRACEFUL_ABORT
+    try{
+#endif
+
+      scheduler->dequeue()->runWrapper();
+
+#ifdef GRACEFUL_ABORT
+    }catch(DynamicScheduler::AbortException e){
+      scheduler->abortWait();
+    }
+#endif
   }
 }
 
+#ifdef GRACEFUL_ABORT
+void DynamicScheduler::abortBegin() {
+  JLOCKSCOPE(theAbortingLock);
+  if(!theIsAborting){
+    theIsAborting=true; 
+    queue.clear();
+    for(int i=0; i<numOfWorkers+1; ++i)
+      queue.push(0);
+    JTRACE("Aborting!")(numOfWorkers);
+  }
+  throw AbortException();
+}
+void DynamicScheduler::abortEnd() {
+  JLOCKSCOPE(theAbortingLock);
+  while(numAbortedThreads != numOfWorkers) theAbortingLock.wait();
+  theIsAborting=false;
+  queue.clear();
+  theAbortingLock.broadcast();
+}
+void DynamicScheduler::abortWait() {
+  JLOCKSCOPE(theAbortingLock);
+  numAbortedThreads++;
+  theAbortingLock.broadcast();
+  while(isAborting()) theAbortingLock.wait();
+  numAbortedThreads--;
+}
+#endif
 
 }
 

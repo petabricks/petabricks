@@ -28,6 +28,9 @@
 #include <list>
 #include <set>
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 
 namespace hecura {
 
@@ -41,8 +44,7 @@ typedef jalib::JRef<DynamicTask> DynamicTaskPtr;
 
 
 class DynamicScheduler{
- public:
-  
+public:
   ///
   /// constructor
   DynamicScheduler();
@@ -67,8 +69,15 @@ class DynamicScheduler{
   /// blocked until get a task from queue for execution 
   DynamicTaskPtr dequeue() {
     DynamicTaskPtr task = queue.pop();
-//     JTRACE("running task")(queue.size());
+#ifndef GRACEFUL_ABORT
     return task;
+#else
+    if(task){
+      return task;
+    }else{
+      throw AbortException();
+    }
+#endif
   }
 
 
@@ -76,12 +85,29 @@ class DynamicScheduler{
   /// unblocked method, try to get a task from queue for execution
   DynamicTaskPtr tryDequeue() {
     DynamicTaskPtr task = queue.tryPop();
-//     JTRACE("waiting and trying to run task")(queue.size());
+#ifndef GRACEFUL_ABORT
     return task;
+#else
+    if(task){
+      return task;
+    }else{
+      JLOCKSCOPE(theAbortingLock);
+      if(isAborting())
+        throw AbortException();
+      else
+        return 0;
+    }
+#endif
   }
 
- protected:
-
+#ifdef GRACEFUL_ABORT
+  class AbortException {};
+  static bool isAborting() { return theIsAborting; }
+  void abortBegin();
+  void abortEnd();
+  void abortWait();
+#endif
+protected:
   ///
   /// Blocking queue for ready tasks
   jalib::JBlockingQueue<DynamicTaskPtr> queue;
@@ -93,6 +119,12 @@ class DynamicScheduler{
   ///
   /// worker threads for task execution
   pthread_t *workerThreads;
+
+#ifdef GRACEFUL_ABORT
+  static jalib::JCondMutex theAbortingLock;
+  static bool theIsAborting;
+  int numAbortedThreads;
+#endif
 };
 
 }

@@ -293,15 +293,20 @@ void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator
     o.write("SpatialTaskList "+nodename()+";");
     o.comment("Dual outputs compacted "+nodename());
     std::string region;
+    ScheduleNode* first = NULL;
     //test matching region extents in d
     for(ScheduleNodeSet::const_iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
-      if(region.empty()) region=(*i)->region()->toString();
+      if(first==NULL){
+        region=(*i)->region()->toString();
+        first=*i;
+      }
+      else if(first->region()->dimensions()<(*i)->region()->dimensions())
+        first=*i;
       JWARNING(region==(*i)->region()->toString())(region)((*i)->region()->toString())
         .Text("to(...) regions of differing size not yet supported");
     }
-    ScheduleNode& first = * * _originalNodes.begin();
-    RuleChoicePtr rule = trans.learner().makeRuleChoice(first.choices()->rules(), first.matrix(), first.region());
-    rule->generateCodeSimple(nodename(), trans, *this, first.region(), o);
+    RuleChoicePtr rule = trans.learner().makeRuleChoice(first->choices()->rules(), first->matrix(), first->region());
+    rule->generateCodeSimple(nodename(), trans, *this, first->region(), o);
   }else{
     o.write("DynamicTaskPtr "+nodename()+";");
     TaskCodeGenerator& task = o.createTask("coscheduled_"+nodename(), trans.maximalArgList(), "DynamicTask");

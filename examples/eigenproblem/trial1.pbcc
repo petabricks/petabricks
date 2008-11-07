@@ -1,0 +1,27 @@
+#ifndef TRIAL1_PBCC
+#define TRIAL1_PBCC
+
+
+
+#include "QRtridiagOne.pbcc"
+
+
+// Find eigenvalues and eigenvectors of input matrix IN (symmetric)
+transform trial1
+from Diag[n], Subdiag[n-1]
+to Eigenvalue[n]
+{
+
+
+
+  to (Eigenvalue Eig) from (Diag dd, Subdiag ee)
+  {
+        QRtridiagOne(Eig, dd, ee);
+  }
+
+
+
+
+}
+
+#endif // TRIAL1_PBCC

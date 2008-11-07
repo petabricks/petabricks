@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <math.h>
+#include <limits>
 
 static bool _isTrainingRun = false;
 static bool _needTraingingRun = false;
@@ -43,6 +44,7 @@ static int GRAPH_SMOOTHING=0;
 static int SEARCH_BRANCH_FACTOR=8;
 static bool MULTIGRID_FLAG=false;
 
+
 namespace{//file local
 
 typedef jalib::JTunableManager TunableManager;
@@ -57,7 +59,16 @@ public:
   double test(const JTunableConfiguration& cfg){
     cfg.makeActive();
     JTime start=JTime::Now();
+#ifndef GRACEFUL_ABORT
     _main.compute();
+#else
+    try{
+      _main.compute();
+    }catch(hecura::DynamicScheduler::AbortException e){
+      hecura::DynamicTask::scheduler->abortEnd();
+      return std::numeric_limits<double>::max();
+    }
+#endif
     return JTime::Now()-start;
   }
 private:
@@ -227,8 +238,19 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
     ConfigTesterGlue cfgtester(main);
     jalib::JTunableManager::instance().autotune(&cfgtester);
   }else{
+#ifndef GRACEFUL_ABORT
     JTIMER_SCOPE(compute);
     main.compute();
+#else
+    try{
+      JTIMER_SCOPE(compute);
+      main.compute();
+    }catch(hecura::DynamicScheduler::AbortException e){
+      hecura::DynamicTask::scheduler->abortEnd();
+      JWARNING(false).Text("HecuraRuntime::abort() called");
+      return 5;
+    }
+#endif
   }
 
   if(doIO){ //write outputs
@@ -279,33 +301,43 @@ void hecura::HecuraRuntime::runGraphParallelMode() {
 }
 
 double hecura::HecuraRuntime::runTrial(){
-  std::vector<double> rslts;
-  rslts.reserve(2*GRAPH_SMOOTHING+1);
-  _isTrainingRun = true;
-  _needTraingingRun = false;
-  for( int n =  randSize-GRAPH_SMOOTHING
-     ;     n <= randSize+GRAPH_SMOOTHING
-     ; ++n)
-  {
-    double t=0;
-    for(int z=0;z<GRAPH_TRIALS; ++z){
-      main.randomInputs(n);
-      jalib::JTime begin=jalib::JTime::Now();
-      main.compute();
-      jalib::JTime end=jalib::JTime::Now();
-
-      if(_needTraingingRun && _isTrainingRun){
-        _isTrainingRun=false;
-        --z; //redo this iteration 
-      }else{
-        t+=end-begin;
+#ifdef GRACEFUL_ABORT
+  try{
+#endif
+    std::vector<double> rslts;
+    rslts.reserve(2*GRAPH_SMOOTHING+1);
+    _isTrainingRun = true;
+    _needTraingingRun = false;
+    for( int n =  randSize-GRAPH_SMOOTHING
+      ;     n <= randSize+GRAPH_SMOOTHING
+      ; ++n)
+    {
+      double t=0;
+      for(int z=0;z<GRAPH_TRIALS; ++z){
+        main.randomInputs(n);
+  
+        jalib::JTime begin=jalib::JTime::Now();
+        main.compute();
+        jalib::JTime end=jalib::JTime::Now();
+  
+        if(_needTraingingRun && _isTrainingRun){
+          _isTrainingRun=false;
+          --z; //redo this iteration 
+        }else{
+          t+=end-begin;
+        }
       }
+      double avg = t/GRAPH_TRIALS;
+      rslts.push_back(avg);
     }
-    double avg = t/GRAPH_TRIALS;
-    rslts.push_back(avg);
+    std::sort(rslts.begin(), rslts.end());
+    return rslts[GRAPH_SMOOTHING];
+#ifdef GRACEFUL_ABORT
+  }catch(hecura::DynamicScheduler::AbortException e){
+    hecura::DynamicTask::scheduler->abortEnd();
+    return std::numeric_limits<double>::max();
   }
-  std::sort(rslts.begin(), rslts.end());
-  return rslts[GRAPH_SMOOTHING];
+#endif
 }
 
 
@@ -489,4 +521,12 @@ bool hecura::HecuraRuntime::isTrainingRun(){
 
 void hecura::HecuraRuntime::setIsTrainingRun(bool b){
   _isTrainingRun=b;
+}
+
+void hecura::HecuraRuntime::abort(){
+#ifdef GRACEFUL_ABORT
+  DynamicTask::scheduler->abortBegin();
+#else
+  JASSERT(false).Text("HecuraRuntime::abort() called");
+#endif
 }
