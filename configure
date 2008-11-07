@@ -20444,6 +20444,12 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 
+
+cat >>confdefs.h <<\_ACEOF
+#define GRACEFUL_ABORT 1
+_ACEOF
+
+
 # NCPUS=0
 # if test -e /proc/cpuinfo; then
 #   NCPUS=`$EGREP -c '^processor' /proc/cpuinfo`

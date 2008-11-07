@@ -18,6 +18,10 @@ utilities
 eigenproblem/Bisection
 eigenproblem/DC
 eigenproblem/QRiteration
+eigenproblem/QRtridiagOne
+eigenproblem/QRtridiag
+eigenproblem/trial1
+eigenproblem/trial2
 poisson/BS2DInterior
 poisson/BS2D
 poisson/error
@@ -26,6 +30,8 @@ poisson/Interpolate2Dnew
 poisson/Jacobi2DInterior
 poisson/Jacobi2D
 poisson/mgv2D
+poisson/Poisson2D
+poisson/Poisson2D-template
 poisson/Residual2D
 poisson/Restrict2Dnew
 poisson/SOR2DInterior
@@ -33,6 +39,7 @@ poisson/SOR2D
 sort/Insertionsort
 sort/Mergesort
 sort/Quicksort
+sort/Radixsort4
 sort/Radixsort
 sort/Sort
 *.cpp

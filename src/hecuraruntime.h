@@ -92,6 +92,8 @@ public:
 
   void setSize(int n){randSize=n;};
   int curSize() const { return randSize;};
+
+  static void abort();
 private:
   Main& main;
   int randSize;
