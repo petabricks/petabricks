@@ -1,5 +1,7 @@
+      printf("  Training precision %d\n", CURPREC);
+
       // compute iterations of SOR
-      printf("  Testing SOR:\n");
+      printf("    Training SOR for precision %d:\n", CURPREC);
       CAT(SORIters_Prec, CURPREC)[level].setValue(0);
       Copy2D(y, x);
       oldError = error;

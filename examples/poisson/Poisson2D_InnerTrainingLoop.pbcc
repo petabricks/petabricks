@@ -1,5 +1,5 @@
       // compute number of iterations of recursive precision LOCALPREC
-      printf("  Testing prec%d:\n", LOCALPREC);
+      printf("    Training prec%d for precision %d:\n", LOCALPREC, CURPREC);
       CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level].setValue(0);
       oldError = error;
       do {
@@ -15,7 +15,7 @@
         newError = ComputeError(y, actual);
         change = newError / oldError;
         oldError = newError;
-        printf("    error = %g, ratio = %g\n", newError, newError / error);
+        printf("      error = %g, ratio = %g\n", newError, newError / error);
         if (change >= 1) {
           // cannot achieve target precision, so this is an invalid selection
           // signal to timing run that it should abort

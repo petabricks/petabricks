@@ -183,8 +183,8 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
       GRAPH_MIN = 1;
       GRAPH_MAX = 9;
       GRAPH_STEP = 1;
-      TRAIN_MIN = 3;
-      TRAIN_MAX = 65;
+      TRAIN_MIN = 2
+      TRAIN_MAX = 64;
       shift;
     }else if(strcmp(argv[0],"--reset")==0){
       jalib::JTunableManager::instance().reset();
@@ -201,11 +201,30 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
   }
 
   if(isAutotuneMode){
-//     runAutotuneMode(graphParam);
-    Autotuner at(*this, graphParam);
-    at.train(TRAIN_MIN, TRAIN_MAX);
+    //     runAutotuneMode(graphParam);
+    if (!MULTIGRID_FLAG) {
+      Autotuner at(*this, graphParam);
+      at.train(TRAIN_MIN, TRAIN_MAX);
+    } else {
+      Autotuner at1(*this, "Poisson2D_Inner_Prec1_1");
+      Autotuner at2(*this, "Poisson2D_Inner_Prec2_1");
+      Autotuner at3(*this, "Poisson2D_Inner_Prec3_1");
+      Autotuner at4(*this, "Poisson2D_Inner_Prec4_1");
+      Autotuner at5(*this, "Poisson2D_Inner_Prec5_1");
+
+      for(int n=TRAIN_MIN; n<=TRAIN_MAX; n*=2){
+        setSize(n + 1);
+        at1.trainOnce();
+        at2.trainOnce();
+        at3.trainOnce();
+        at4.trainOnce();
+        at5.trainOnce();
+      }
+    }
+
     return 0;
   }
+
   
   argc++, argv--;
 
