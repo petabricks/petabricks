@@ -60,8 +60,12 @@ public:
   ///
   /// add a ready task into queue
   void enqueue(const DynamicTaskPtr& t) {
+#ifdef GRACEFUL_ABORT
+    if(isAborting()){
+      throw AbortException();
+    }
+#endif
     queue.push(t);
-//     JTRACE("added ready task")(queue.size());
   }
 
   
@@ -72,7 +76,7 @@ public:
 #ifndef GRACEFUL_ABORT
     return task;
 #else
-    if(task){
+    if(task && !isAborting()){
       return task;
     }else{
       throw AbortException();
@@ -88,7 +92,7 @@ public:
 #ifndef GRACEFUL_ABORT
     return task;
 #else
-    if(task){
+    if(task && !isAborting()){
       return task;
     }else{
       JLOCKSCOPE(theAbortingLock);
