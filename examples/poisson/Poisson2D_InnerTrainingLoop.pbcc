@@ -1,11 +1,12 @@
       // compute number of iterations of recursive precision LOCALPREC
 //      printf("    Training prec%d for precision %d:\n", LOCALPREC, CURPREC);
       CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level].setValue(0);
+      Copy2D(y, x);
       oldError = error;
       do {
 
         // compute one recursive iteration
-        t = SOR2D(x, b, -2, 1);
+        t = SOR2D(y, b, -2, 1);
         r = Restrict2Dnew(Residual2D(t,b));
         r = CAT(Poisson2D_Inner_Prec, LOCALPREC)(z,r);
         t = MatrixAdd(Interpolate2Dnew(r), t);
