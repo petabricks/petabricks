@@ -16,8 +16,15 @@ test9
 transpose
 utilities
 eigenproblem/Bisection
+eigenproblem/BisectionTD
 eigenproblem/DC
+eigenproblem/DCTD
+eigenproblem/EigSym
+eigenproblem/EigTD
+eigenproblem/getsub
+eigenproblem/mergeQ
 eigenproblem/QRiteration
+eigenproblem/QRTD
 eigenproblem/QRtridiagOne
 eigenproblem/QRtridiag
 eigenproblem/trial1
