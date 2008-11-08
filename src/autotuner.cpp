@@ -252,7 +252,7 @@ hecura::CandidateAlgorithmPtr hecura::CandidateAlgorithm::attemptBirth(HecuraRun
 #ifndef MULTIGRID_FLAG
       double p = rt.optimizeParameter(*ct, min, max); 
 #else
-      ct->setValue(rt.curSize() / 2 - 1);
+      ct->setValue(rt.curSize() * 3 / 4);
       if (ct->value() <= 1) {
         continue;
       }
