@@ -116,6 +116,14 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
     if(strcmp(argv[0],"--siman")==0){
       isSiman = true;
       shift;
+    }else if(strcmp(argv[0],"--multigrid")==0){
+      MULTIGRID_FLAG = true;
+      GRAPH_MIN = 1;
+      GRAPH_MAX = 9;
+      GRAPH_STEP = 1;
+      TRAIN_MIN = 2;
+      TRAIN_MAX = 64;
+      shift;
     }else if(strcmp(argv[0],"--autotune")==0){
       JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
       isAutotuneMode = true;
@@ -177,14 +185,6 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
       graphParam = argv[1];
       isOptimizeMode=true;
       shift;
-      shift;
-    }else if(strcmp(argv[0],"--multigrid")==0){
-      MULTIGRID_FLAG = true;
-      GRAPH_MIN = 1;
-      GRAPH_MAX = 9;
-      GRAPH_STEP = 1;
-      TRAIN_MIN = 2;
-      TRAIN_MAX = 64;
       shift;
     }else if(strcmp(argv[0],"--reset")==0){
       jalib::JTunableManager::instance().reset();
