@@ -94,6 +94,8 @@ public:
   int curSize() const { return randSize;};
 
   static void abort();
+  static void saveConfig();
+
 private:
   Main& main;
   int randSize;

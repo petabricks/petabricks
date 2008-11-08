@@ -91,6 +91,11 @@ hecura::HecuraRuntime::HecuraRuntime(Main& m) : main(m)
 
 hecura::HecuraRuntime::~HecuraRuntime()
 {
+  saveConfig();
+}
+
+void hecura::HecuraRuntime::saveConfig()
+{
   //save config to disk
   TunableManager& tm = TunableManager::instance();
   if(tm.size()>0){
@@ -239,6 +244,8 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
         at4.trainOnce();
         prec_case->setValue(5);
         at5.trainOnce();
+
+        saveConfig();
       }
     }
 
