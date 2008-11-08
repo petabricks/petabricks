@@ -33,7 +33,11 @@ JTUNABLE(autotune_improvement_threshold,    90, 10, 100);
 #define BIRTH_THRESH  (autotune_improvement_threshold.value()/100.0)
 #define FIXED_CUTOFF
 
+#ifdef FIXED_CUTOFF
+static const int DUP_CUTOFF_THRESH = 1; // how different cutoffs must be to be duplicates
+#else
 static const int DUP_CUTOFF_THRESH = 1024; // how different cutoffs must be to be duplicates
+#endif
 
 namespace{ //file local 
   struct CmpLastPerformance {
