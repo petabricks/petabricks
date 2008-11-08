@@ -128,6 +128,8 @@ public:
   ///
   /// Get rate of change for this region as rule center moves
   FormulaList diff(const Rule&) const;
+
+  bool isSingleElement() const { return _originalType==REGION_CELL; }
 private:
   std::string _name;
   std::string _fromMatrixName;

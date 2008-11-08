@@ -184,7 +184,7 @@ void hecura::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, const RulePtr& 
   bool printedBeforeDep = false;
 
   ScheduleDependencies::const_iterator sd = _indirectDepends.find(this);
-  if(sd==_indirectDepends.end()){
+  if(sd==_indirectDepends.end() && rule->isSingleElement()){
     o.write(nodename()+".spatialSplit("SPLIT_CHUNK_SIZE");");
   }else{
     //TODO split selfdep tasks too
