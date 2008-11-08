@@ -1,0 +1,119 @@
+#ifndef EIGTD_PBCC
+#define EIGTD_PBCC
+
+%{
+
+extern "C" void dlaed1_(int *n, double *D, double *Q, int *ldq, int *indxq, double *rho, int *cutpnt, double *work, int *iwork, int *info);
+
+%}
+
+
+#include "../utilities.pbcc"
+#include "getsub.pbcc"
+#include "mergeQ.pbcc"
+#include "QRTD.pbcc"
+#include "BisectionTD.pbcc"
+
+transform ComputeEig
+from Eig1[n1], Eig2[n2], Vec1[n1,n1],Vec2[n2,n2], RHO
+to Eigenvalue[n1+n2], Eigenvector[n1+n2,n1+n2]
+{
+   to (Eigenvalue eig, Eigenvector vec) from (Eig1 lam1, Eig2 lam2, Vec1 q1, Vec2 q2, RHO b) {
+	
+	int i,j,index,info,size=n1+n2,cutpnt=n1,nsquared=size*size;
+	double rho=b;
+	double *D = new double[size];
+	double *Q = new double[nsquared];
+	double *work = new double[4*size+nsquared];
+	int *indxq = new int[size];
+	int *iwork = new int[4*size];
+
+	MatrixRegion2D qin = MatrixRegion2D::allocate(size,size);
+
+        mergeQ(qin,q1,q2);
+
+
+	for(i=0; i<cutpnt; i++) {
+		D[i]=lam1.cell(i);
+		indxq[i]=i+1;
+	}
+        for(i=cutpnt; i<size; i++){
+		D[i]=lam2.cell(i-cutpnt);
+		indxq[i]=i-cutpnt+1;
+	}
+
+
+
+	index = 0;
+    	for (i = 0; i < size; i++) {
+      		for (j = 0; j < size; j++) {
+        		Q[index++] = qin.cell(i,j);
+      		}
+    	}
+
+	dlaed1_(&size, D, Q, &size, indxq, &rho, &cutpnt, work, iwork, &info);
+
+	index = 0;
+    	for (i = 0; i < size; i++) {
+      		for (j = 0; j < size; j++) {
+        		vec.cell(i,j) = Q[index++];
+      		}
+    	}
+
+	for(i=0;i<size;i++){
+		eig.cell(i)=D[i];
+	}
+
+	delete [] D;
+	delete [] Q;
+	delete [] work;
+	delete [] iwork;
+	delete [] indxq;
+   }
+}
+
+// Find eigenvalues and eigenvectors of input matrix T (tridiagonal symmetric)
+transform EigTD
+from T[n,n]
+to Eigenvalue[n], Eigenvector[n,n]
+{
+
+   //Bisection
+   to (Eigenvalue eig, Eigenvector vec) from (T t){
+	BisectionTD(eig, vec, t);
+	//printf("Bisection: n = %d\n", n);
+   }
+
+   //QR Iterations
+   to (Eigenvalue eig, Eigenvector vec) from (T t){
+	QRTD(eig, vec, t);
+	//printf("QR: n = %d\n", n);
+   }
+
+
+
+   //Recursive: Divide and Conquer
+   recursive
+   to (Eigenvalue eig, Eigenvector vec) from (T t){
+	
+	MatrixRegion2D t1 = MatrixRegion2D::allocate(n/2,n/2);
+	MatrixRegion2D q1 = MatrixRegion2D::allocate(n/2,n/2);
+	MatrixRegion2D t2 = MatrixRegion2D::allocate(n-n/2,n-n/2);
+	MatrixRegion2D q2 = MatrixRegion2D::allocate(n-n/2,n-n/2);
+	MatrixRegion1D lam1 = MatrixRegion1D::allocate(n/2);
+	MatrixRegion1D lam2 = MatrixRegion1D::allocate(n-n/2);
+
+	//printf("Recursion: n = %d\n", n);
+
+	getsub(t1,t2,t);
+	SPAWN(EigTD, lam1,q1,t1);
+	SPAWN(EigTD, lam2,q2,t2);
+	SYNC();
+	SPAWN(ComputeEig, eig, vec, lam1, lam2, q1, q2, t.cell(n/2,n/2-1));
+   }
+
+
+}
+
+
+#endif // EIGTD_PBCC
