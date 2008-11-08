@@ -1,5 +1,5 @@
   // precision LOCALPREC
-  recursive(n / 2)
+  recursive(n)
   to (Y y) from(X x, B b, zeros z) {
     if (n == 3) {
 //      printf("prec%d recursive base case called for level 1\n", CURPREC);
