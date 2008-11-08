@@ -1,0 +1,109 @@
+#ifndef DCTD_PBCC
+#define DCTD_PBCC
+
+%{
+
+extern "C" void dlaed1_(int *n, double *D, double *Q, int *ldq, int *indxq, double *rho, int *cutpnt, double *work, int *iwork, int *info);
+
+%}
+
+
+#include "../utilities.pbcc"
+#include "mergeQ.pbcc"
+#include "getsub.pbcc"
+
+
+// Find eigenvalues and eigenvectors of IN (tridiagonal symmetric) by LAPACK Divide-and-Conquer routine
+transform DCTDrecursive
+from T[n,n]
+to Eigenvalue[n], Eigenvector[n,n]
+
+{
+
+   //Recursive case
+   to (Eigenvalue eig, Eigenvector vec) from  (T t) {
+
+	int i,j,index,info,size=n,cutpnt=n/2,nsquared=n*n;
+	double rho=t.cell(cutpnt,cutpnt-1);
+	double *D = new double[n];
+	double *Q = new double[nsquared];
+	double *work = new double[4*n+nsquared];
+	int *indxq = new int[n];
+	int *iwork = new int[4*n];	
+
+	MatrixRegion2D t1 = MatrixRegion2D::allocate(n/2,n/2);
+	MatrixRegion2D q1 = MatrixRegion2D::allocate(n/2,n/2);
+        MatrixRegion2D t2 = MatrixRegion2D::allocate(n-n/2,n-n/2);
+        MatrixRegion2D q2 = MatrixRegion2D::allocate(n-n/2,n-n/2);
+	MatrixRegion1D lam1 = MatrixRegion1D::allocate(n/2);
+	MatrixRegion1D lam2 = MatrixRegion1D::allocate(n-n/2);
+	MatrixRegion2D qin = MatrixRegion2D::allocate(n,n);
+
+	getsub(t1,t2,t);
+	DCTD(lam1,q1,t1);
+	DCTD(lam2,q2,t2);
+	mergeQ(qin,q1,q2);
+
+
+	for(i=0; i<cutpnt; i++) {
+		D[i]=lam1.cell(i);
+		indxq[i]=i+1;
+	}
+        for(i=cutpnt; i<n; i++){
+		D[i]=lam2.cell(i-cutpnt);
+		indxq[i]=i-cutpnt+1;
+	}
+
+
+
+	index = 0;
+    	for (i = 0; i < n; i++) {
+      		for (j = 0; j < n; j++) {
+        		Q[index++] = qin.cell(i,j);
+      		}
+    	}
+
+//	printf("Recursive: n = %d\n", size);
+
+	dlaed1_(&size, D, Q, &size, indxq, &rho, &cutpnt, work, iwork, &info);
+
+	index = 0;
+    	for (i = 0; i < n; i++) {
+      		for (j = 0; j < n; j++) {
+        		vec.cell(i,j) = Q[index++];
+      		}
+    	}
+
+	for(i=0;i<n;i++){
+		eig.cell(i)=D[i];
+	}
+
+	delete [] D;
+	delete [] Q;
+	delete [] work;
+	delete [] iwork;
+	delete [] indxq;
+   }
+}
+
+// Find eigenvalues and eigenvectors of IN (tridiagonal symmetric) by LAPACK Divide-and-Conquer routine
+transform DCTD
+from T[n,n]
+to Eigenvalue[n], Eigenvector[n,n]
+
+{
+    
+    to (Eigenvalue eig, Eigenvector vec) from  (T t) {
+	if (n==1) {
+		//base case
+		vec.cell(0,0) = 1;
+		eig.cell(0)=t.cell(0,0);
+	}
+	else {
+		//recursive
+		DCTDrecursive(eig, vec, t);
+	}
+    }
+}
+
+#endif // DCTD_PBCC

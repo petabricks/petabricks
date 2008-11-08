@@ -1,0 +1,28 @@
+#ifndef GETSUB_PBCC
+#define GETSUB_PBCC
+
+transform getsub
+from T[n,n]
+through  TEMP[n,n]
+to T1[n/2,n/2], T2[n-n/2,n-n/2]
+{
+
+   TEMP.cell(n/2-1,n/2-1) from (T.cell(n/2-1,n/2-1) a, T.cell(n/2,n/2-1) b){
+	return a - b;
+   }
+   TEMP.cell(n/2,n/2) from (T.cell(n/2,n/2) a, T.cell(n/2,n/2-1) b){
+	return a - b;
+   }  
+   secondary TEMP.cell(i,j) from (T.cell(i,j) t) { return t;} 
+
+   to (T1 t1) from (TEMP.region(0,0,n/2,n/2) tmp){
+	Copy2D(t1,tmp);
+   }
+
+   to (T2 t2) from (TEMP.region(n/2,n/2,n,n) tmp){
+	Copy2D(t2,tmp);
+   }
+
+}
+
+#endif // GETSUB_PBCC
