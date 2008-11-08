@@ -62,11 +62,10 @@ hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
     rv=new RuleChoice(base); //the first rule
   }
 
-#ifndef MULTIGRID_FLAG
-  int levels = std::min<int>(MAX_REC_LEVELS, recursive.size());
-#else
-  int levels = recursive.empty() ? 0 : 12;
-#endif
+
+  int levels = MAX_REC_LEVELS;
+  if(recursive.size()==0) levels = 0;
+  if(recursive.size()==1) levels = 1;
   while(levels-->0){
     FormulaPtr condition;
     if(rv) condition = RuleChoice::autotuned();
