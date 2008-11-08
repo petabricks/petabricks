@@ -28,9 +28,9 @@ through zeros[(n+1)/2,(n+1)/2]
   //base case: directly solve with BS
   to(Y y) from(X x, B b) {
     int level = (int) log2(n-1);
-    if (level > 6) {
-      HecuraRuntime::abort();
-    }
+//  if (level > 6) {
+//    HecuraRuntime::abort();
+//  }
 //    printf("prec%d BS case called for level %d\n", CURPREC, level);
     BS2D(y, x, b);
   }
