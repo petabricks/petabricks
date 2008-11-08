@@ -1,10 +1,9 @@
   // precision LOCALPREC
   recursive(n)
   to (Y y) from(X x, B b, zeros z) {
-    if (n == 3) {
-//      printf("prec%d recursive base case called for level 1\n", CURPREC);
-      Copy2D(y, x);
-      y.cell(1, 1) = (x.cell(1, 0) + x.cell(0, 1) + x.cell(1, 2) + x.cell(2, 1) + b.cell(1, 1)) / 4;
+    int level = (int) log2(n - 1);
+    if (level <= 1) {
+      HecuraRuntime::abort();
     } else {
       int i, level = (int) log2(n-1);
       if ((int) CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level] == -1) {
