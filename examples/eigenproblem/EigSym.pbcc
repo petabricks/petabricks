@@ -1,0 +1,106 @@
+#ifndef EIGSYM_PBCC
+#define EIGSYM_PBCC
+
+%{
+
+extern "C" void dsytrd_(char *uplo, int *n, double *a, int *lda, double *d, double *e, double *tau, double *work, int *lwork, int *info);
+
+extern "C" void dormtr_(char *side, char *uplo, char *trans, int *m, int *n, double *a, int *lda, double *tau, double *c, int *ldc, double *work, int *lwork, int *info);
+
+%}
+
+#include "EigTD.pbcc"
+
+// Find eigenvalues and eigenvectors of input matrix IN (symmetric)
+transform EigSym
+from IN[n,n]
+to Eigenvalue[n], Eigenvector[n,n]
+{
+
+  to (Eigenvalue Eig, Eigenvector Vec) from (IN in)
+  {
+
+
+    char uplo ='U',side ='L', trans='N';
+    int size=n,lwork=-1,info = 0,nsquared=n*n,index;
+
+    // allocate and initialize matrices
+    double *A = new double[nsquared];
+    double *Z = new double[nsquared];
+    double *D = new double[n];
+    double *E = new double[n-1];
+    double *tau = new double[n-1];
+    double *work = new double[1];
+
+    MatrixRegion2D T = MatrixRegion2D::allocate(n,n);
+    MatrixRegion2D zz = MatrixRegion2D::allocate(n,n);
+
+    // get input matrix in column major format
+    index = 0;
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        A[index++] = in.cell(i, j);
+      }
+    }
+
+
+    // convert input matrix (symmetric) to a tridiagonal matrix
+    dsytrd_(&uplo, &size, A, &size, D, E, tau, work, &lwork, &info);
+    lwork=work[0];
+    delete [] work;
+    work = new double[lwork];
+    dsytrd_(&uplo, &size, A, &size, D, E, tau, work, &lwork, &info);
+
+    for (int i = 0; i < n; i++) {
+        T.cell(i,i) = D[i];
+    }
+    for (int i = 0; i < n-1; i++) {
+        T.cell(i+1,i) = E[i];
+    }
+    
+
+  
+
+    //get Eigenvalues and Eigenvectors of Tridiagonal T
+    EigTD(Eig,zz,T);   
+
+    // get Eigenvectors of T in column major format
+    index=0;
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+	Z[index++] = zz.cell(i, j);
+      }
+    }
+
+    // call LAPACK routine to rotate Z to get eigenvectors of originial matrix A
+    lwork=-1;
+    info=0;
+    delete [] work;
+    work = new double[1];
+    dormtr_(&side, &uplo, &trans, &size, &size, A, &size, tau, Z, &size, work, &lwork, &info);
+    lwork=work[0];
+    delete [] work;
+    work = new double[lwork];  
+    dormtr_(&side, &uplo, &trans, &size, &size, A, &size, tau, Z, &size, work, &lwork, &info);
+
+    // copy solution to output
+    index = 0;
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        Vec.cell(i,j) = Z[index++];
+      }
+    }
+
+    delete [] A;
+    delete [] D;
+    delete [] E;
+    delete [] Z;
+    delete [] tau;
+    delete [] work;
+
+  }
+
+
+}
+
+#endif // EIGSYM_PBCC

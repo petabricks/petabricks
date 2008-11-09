@@ -81,11 +81,11 @@ public:
 
   double runTrial();
 
-  void runAutotuneMode(const std::string& prefix);
-
-  double autotuneOneLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
-  double autotuneTwoLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
-  void resetLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
+//   void runAutotuneMode(const std::string& prefix);
+// 
+//   double autotuneOneLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
+//   double autotuneTwoLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
+//   void resetLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
 
   static bool isTrainingRun();
   static void setIsTrainingRun(bool b);
@@ -94,6 +94,8 @@ public:
   int curSize() const { return randSize;};
 
   static void abort();
+  static void saveConfig();
+
 private:
   Main& main;
   int randSize;

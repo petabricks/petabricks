@@ -1,0 +1,19 @@
+#ifndef MERGEQ_PBCC
+#define MERGEQ_PBCC
+
+transform mergeQ
+from Q1[n1,n1], Q2[n2,n2]
+to Q[n1+n2,n1+n2]
+{
+   to (Q.region(0,0,n1,n1) qin) from(Q1 q1){
+	Copy2D(qin,q1);
+   }
+
+   to (Q.region(n1,n1,n1+n2,n1+n2) qin) from(Q2 q2){
+	Copy2D(qin,q2);
+   }
+
+   secondary Q.cell(i,j) from () { return 0;}
+}
+
+#endif // MERGEQ_PBCC

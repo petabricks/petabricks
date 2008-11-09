@@ -91,6 +91,11 @@ hecura::HecuraRuntime::HecuraRuntime(Main& m) : main(m)
 
 hecura::HecuraRuntime::~HecuraRuntime()
 {
+  saveConfig();
+}
+
+void hecura::HecuraRuntime::saveConfig()
+{
   //save config to disk
   TunableManager& tm = TunableManager::instance();
   if(tm.size()>0){
@@ -115,6 +120,14 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
   while(argc>0){
     if(strcmp(argv[0],"--siman")==0){
       isSiman = true;
+      shift;
+    }else if(strcmp(argv[0],"--multigrid")==0){
+      MULTIGRID_FLAG = true;
+      GRAPH_MIN = 1;
+      GRAPH_MAX = 9;
+      GRAPH_STEP = 1;
+      TRAIN_MIN = 2;
+      TRAIN_MAX = 64;
       shift;
     }else if(strcmp(argv[0],"--autotune")==0){
       JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
@@ -178,14 +191,6 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
       isOptimizeMode=true;
       shift;
       shift;
-    }else if(strcmp(argv[0],"--multigrid")==0){
-      MULTIGRID_FLAG = true;
-      GRAPH_MIN = 1;
-      GRAPH_MAX = 9;
-      GRAPH_STEP = 1;
-      TRAIN_MIN = 3;
-      TRAIN_MAX = 65;
-      shift;
     }else if(strcmp(argv[0],"--reset")==0){
       jalib::JTunableManager::instance().reset();
       shift;
@@ -201,11 +206,52 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
   }
 
   if(isAutotuneMode){
-//     runAutotuneMode(graphParam);
-    Autotuner at(*this, graphParam);
-    at.train(TRAIN_MIN, TRAIN_MAX);
+
+    if (!MULTIGRID_FLAG) {
+      Autotuner at(*this, graphParam);
+      at.train(TRAIN_MIN, TRAIN_MAX);
+    } else {
+      std::string s1 = "Poisson2D_Inner_Prec1_1";
+      std::string s2 = "Poisson2D_Inner_Prec2_1";
+      std::string s3 = "Poisson2D_Inner_Prec3_1";
+      std::string s4 = "Poisson2D_Inner_Prec4_1";
+      std::string s5 = "Poisson2D_Inner_Prec5_1";
+      Autotuner at1(*this, s1);
+      Autotuner at2(*this, s2);
+      Autotuner at3(*this, s3);
+      Autotuner at4(*this, s4);
+      Autotuner at5(*this, s5);
+
+      jalib::JTunableReverseMap m = jalib::JTunableManager::instance().getReverseMap();
+      jalib::JTunable* prec_case = m["prec_case"];
+
+      jalib::JTunable* temp;
+      for (int level = 0; level < 30; level++) {
+        temp = m["levelTrained__" + jalib::XToString(level)];
+        temp->setValue(0);
+      }
+
+      JASSERT(prec_case != 0);
+      for(int n=TRAIN_MIN; n<=TRAIN_MAX; n*=2){
+        setSize(n + 1);
+        prec_case->setValue(1);
+        at1.trainOnce();
+        prec_case->setValue(2);
+        at2.trainOnce();
+        prec_case->setValue(3);
+        at3.trainOnce();
+        prec_case->setValue(4);
+        at4.trainOnce();
+        prec_case->setValue(5);
+        at5.trainOnce();
+
+        saveConfig();
+      }
+    }
+
     return 0;
   }
+
   
   argc++, argv--;
 
@@ -380,139 +426,139 @@ double hecura::HecuraRuntime::optimizeParameter(jalib::JTunable& tunable, int mi
   }
 }
 
-namespace{ //file local 
-  std::string _mktname(int lvl, const std::string& prefix, const std::string& type){
-    return prefix + "_lvl" + jalib::XToString(lvl) + "_" + type;
-  }
-}
-
-void hecura::HecuraRuntime::runAutotuneMode(const std::string& prefix){
-  typedef jalib::JTunable JTunable;
-  jalib::JTunableReverseMap m = jalib::JTunableManager::instance().getReverseMap();
-  
-  int numLevels = 1;
-
-  //find numlevels
-  for(int lvl=2; true; ++lvl){
-    JTunable* rule   = m[_mktname(lvl, prefix, "rule")];
-    JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
-    if(rule==0 && cutoff==0){
-      numLevels = lvl-1;
-      break;
-    }
-  }
-
-  JASSERT(numLevels>1)(prefix).Text("invalid prefix to autotune");
-
-  //initialize
-  for(int lvl=1; lvl<=numLevels; ++lvl){
-    resetLevel(lvl, prefix, m);
-  }
-
-  int curLevel = 1;
-  for(randSize=TRAIN_MIN; randSize<TRAIN_MAX; randSize*=2){
-    if (MULTIGRID_FLAG) {
-      randSize = (1 << (int) (floor(log2(randSize)))) + 1;
-    }
-    printf("autotune n=%d result... \n", randSize);
-    fflush(stdout);
-    double cur;
-//     if(curLevel>1)
-//       cur=autotuneTwoLevel(curLevel, prefix, m);
-//     else
-      cur=autotuneOneLevel(curLevel, prefix, m);
-    if(curLevel < numLevels){
-      double next = autotuneTwoLevel(curLevel+1, prefix, m);
-      if(cur > next*TRAIN_LEVEL_THRESH){
-        curLevel++;
-        JTRACE("promoting to next level")(curLevel)(randSize)(cur)(next);
-      }else{
-        resetLevel(curLevel+1, prefix, m);
-      }
-    }
-
-    for(int lvl=1; lvl<=curLevel; ++lvl){
-      JTunable* rule   = m[_mktname(lvl, prefix, "rule")];
-      JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
-      if(cutoff!=0) printf(" |%d| ", cutoff->value());
-      if(rule!=0) printf("ALG%d", rule->value());
-      else  printf("N/A");
-    }
-    printf("\n");
-  }
-}
-
-double hecura::HecuraRuntime::autotuneOneLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
-  typedef jalib::JTunable JTunable;
-  JTunable* rule = m[_mktname(lvl, prefix, "rule")];
-  JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
-  if(rule!=0){
-    int bestRule=0;
-    double best = std::numeric_limits<double>::max();
-    for(int r=rule->min(); r<=rule->max(); ++r){
-      rule->setValue(r);
-      double d = runTrial();
-      if(d<best){
-        best=d;
-        bestRule=r;
-      }
-      JTRACE("autotune level")(lvl)(best)(bestRule)(cutoff!=0?cutoff->value():-1);
-    }
-    rule->setValue(bestRule);
-    return best;
-  }else{
-    return runTrial();
-  }
-}
-
-double hecura::HecuraRuntime::autotuneTwoLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
-  typedef jalib::JTunable JTunable;
-  double best = std::numeric_limits<double>::max();
-  JTunable* rule1 =  m[_mktname(lvl-1,   prefix, "rule")];
-  JTunable* rule2 =  m[_mktname(lvl, prefix, "rule")];
-  JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
-  int bestRule1=0;
-  int bestRule2=0;
-  int bestCuttoff=0;
-  int r1min=0, r1max=0, r2min=0, r2max=0;
-  if(rule1!=0){
-    r1min=rule1->min();
-    r1max=rule1->max();
-  }
-  if(rule2!=0){
-    r2min=rule2->min();
-    r2max=rule2->max();
-  }
-  for(int r1=r1min; r1<=r1max; ++r1){
-    for(int r2=r2min; r2<=r2max; ++r2){
-      if(rule1!=0) rule1->setValue(r1);
-      if(rule2!=0) rule2->setValue(r2);
-      if(r1max==r2max && r1==r2) continue; //skip same rule
-      double d;
-      if(cutoff!=0)
-        d = optimizeParameter(*cutoff, cutoff->min(), randSize+1, (randSize+1-cutoff->min())/SEARCH_BRANCH_FACTOR);
-      else
-        d = runTrial();
-      if(d<best){
-        best=d;
-        bestRule1=r1;
-        bestRule2=r2;
-        if(cutoff!=0) bestCuttoff = *cutoff;
-      }
-    }
-  }
-  if(rule1!=0)  rule1->setValue(bestRule1);
-  if(rule2!=0)  rule2->setValue(bestRule2);
-  if(cutoff!=0) cutoff->setValue(bestCuttoff);
-  return best;
-}
-
-void hecura::HecuraRuntime::resetLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
-  jalib::JTunable* rule   = m[_mktname(lvl, prefix, "rule")];
-  jalib::JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
-  if(cutoff!=0) cutoff->setValue(cutoff->max());
-  if(rule!=0)   rule->setValue(rule->min());
-}
+// namespace{ //file local 
+//   std::string _mktname(int lvl, const std::string& prefix, const std::string& type){
+//     return prefix + "_lvl" + jalib::XToString(lvl) + "_" + type;
+//   }
+// }
+// 
+// void hecura::HecuraRuntime::runAutotuneMode(const std::string& prefix){
+//   typedef jalib::JTunable JTunable;
+//   jalib::JTunableReverseMap m = jalib::JTunableManager::instance().getReverseMap();
+//   
+//   int numLevels = 1;
+// 
+//   //find numlevels
+//   for(int lvl=2; true; ++lvl){
+//     JTunable* rule   = m[_mktname(lvl, prefix, "rule")];
+//     JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
+//     if(rule==0 && cutoff==0){
+//       numLevels = lvl-1;
+//       break;
+//     }
+//   }
+// 
+//   JASSERT(numLevels>1)(prefix).Text("invalid prefix to autotune");
+// 
+//   //initialize
+//   for(int lvl=1; lvl<=numLevels; ++lvl){
+//     resetLevel(lvl, prefix, m);
+//   }
+// 
+//   int curLevel = 1;
+//   for(randSize=TRAIN_MIN; randSize<TRAIN_MAX; randSize*=2){
+//     if (MULTIGRID_FLAG) {
+//       randSize = (1 << (int) (floor(log2(randSize)))) + 1;
+//     }
+//     printf("autotune n=%d result... \n", randSize);
+//     fflush(stdout);
+//     double cur;
+// //     if(curLevel>1)
+// //       cur=autotuneTwoLevel(curLevel, prefix, m);
+// //     else
+//       cur=autotuneOneLevel(curLevel, prefix, m);
+//     if(curLevel < numLevels){
+//       double next = autotuneTwoLevel(curLevel+1, prefix, m);
+//       if(cur > next*TRAIN_LEVEL_THRESH){
+//         curLevel++;
+//         JTRACE("promoting to next level")(curLevel)(randSize)(cur)(next);
+//       }else{
+//         resetLevel(curLevel+1, prefix, m);
+//       }
+//     }
+// 
+//     for(int lvl=1; lvl<=curLevel; ++lvl){
+//       JTunable* rule   = m[_mktname(lvl, prefix, "rule")];
+//       JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
+//       if(cutoff!=0) printf(" |%d| ", cutoff->value());
+//       if(rule!=0) printf("ALG%d", rule->value());
+//       else  printf("N/A");
+//     }
+//     printf("\n");
+//   }
+// }
+// 
+// double hecura::HecuraRuntime::autotuneOneLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
+//   typedef jalib::JTunable JTunable;
+//   JTunable* rule = m[_mktname(lvl, prefix, "rule")];
+//   JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
+//   if(rule!=0){
+//     int bestRule=0;
+//     double best = std::numeric_limits<double>::max();
+//     for(int r=rule->min(); r<=rule->max(); ++r){
+//       rule->setValue(r);
+//       double d = runTrial();
+//       if(d<best){
+//         best=d;
+//         bestRule=r;
+//       }
+//       JTRACE("autotune level")(lvl)(best)(bestRule)(cutoff!=0?cutoff->value():-1);
+//     }
+//     rule->setValue(bestRule);
+//     return best;
+//   }else{
+//     return runTrial();
+//   }
+// }
+// 
+// double hecura::HecuraRuntime::autotuneTwoLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
+//   typedef jalib::JTunable JTunable;
+//   double best = std::numeric_limits<double>::max();
+//   JTunable* rule1 =  m[_mktname(lvl-1,   prefix, "rule")];
+//   JTunable* rule2 =  m[_mktname(lvl, prefix, "rule")];
+//   JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
+//   int bestRule1=0;
+//   int bestRule2=0;
+//   int bestCuttoff=0;
+//   int r1min=0, r1max=0, r2min=0, r2max=0;
+//   if(rule1!=0){
+//     r1min=rule1->min();
+//     r1max=rule1->max();
+//   }
+//   if(rule2!=0){
+//     r2min=rule2->min();
+//     r2max=rule2->max();
+//   }
+//   for(int r1=r1min; r1<=r1max; ++r1){
+//     for(int r2=r2min; r2<=r2max; ++r2){
+//       if(rule1!=0) rule1->setValue(r1);
+//       if(rule2!=0) rule2->setValue(r2);
+//       if(r1max==r2max && r1==r2) continue; //skip same rule
+//       double d;
+//       if(cutoff!=0)
+//         d = optimizeParameter(*cutoff, cutoff->min(), randSize+1, (randSize+1-cutoff->min())/SEARCH_BRANCH_FACTOR);
+//       else
+//         d = runTrial();
+//       if(d<best){
+//         best=d;
+//         bestRule1=r1;
+//         bestRule2=r2;
+//         if(cutoff!=0) bestCuttoff = *cutoff;
+//       }
+//     }
+//   }
+//   if(rule1!=0)  rule1->setValue(bestRule1);
+//   if(rule2!=0)  rule2->setValue(bestRule2);
+//   if(cutoff!=0) cutoff->setValue(bestCuttoff);
+//   return best;
+// }
+// 
+// void hecura::HecuraRuntime::resetLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
+//   jalib::JTunable* rule   = m[_mktname(lvl, prefix, "rule")];
+//   jalib::JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
+//   if(cutoff!=0) cutoff->setValue(cutoff->max());
+//   if(rule!=0)   rule->setValue(rule->min());
+// }
 
 bool hecura::HecuraRuntime::isTrainingRun(){
   _needTraingingRun = true;

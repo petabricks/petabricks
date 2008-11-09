@@ -205,6 +205,11 @@ public:
     }
     JASSERT(false)(d)(_id);
   }
+
+  bool isSingleElement() const {
+    if(_to.size()!=1) return false;
+    return _to[0]->isSingleElement();
+  }
 private:
   int _id;
   RuleFlags   _flags;

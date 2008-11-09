@@ -25,6 +25,8 @@
 #include "config.h"
 #endif
 
+#define MULTIGRID_FLAG
+
 hecura::Learner::Learner() : _numIterations(0) {}
 
 
@@ -56,12 +58,17 @@ hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
   //default to base case
   RuleChoicePtr rv;
 
-  if(!base.empty()) rv=new RuleChoice(base); //the first rule
+  if(!base.empty()){
+    rv=new RuleChoice(base); //the first rule
+  }
 
-  int levels = std::min<int>(MAX_REC_LEVELS, recursive.size());
+
+  int levels = MAX_REC_LEVELS;
+  if(recursive.size()==0) levels = 0;
+  if(recursive.size()==1) levels = 1;
   while(levels-->0){
     FormulaPtr condition;
-    if(rv) condition = new FormulaGT((*recursive.begin())->recursiveHint(), RuleChoice::autotuned());
+    if(rv) condition = RuleChoice::autotuned();
     //add recursive case
     rv=new RuleChoice(recursive, condition, rv);
   }

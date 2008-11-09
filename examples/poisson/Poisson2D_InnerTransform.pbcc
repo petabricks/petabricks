@@ -17,15 +17,21 @@ through zeros[(n+1)/2,(n+1)/2]
   //base case: solve iteratively with SOR
   to(Y y) from(X x, B b) {
     int level = (int) log2(n-1);
-    printf("prec%d SOR case called for level %d (%d iterations)\n", CURPREC,
-           level, (int) CAT(SORIters_Prec, CURPREC)[level]);
+    if ((int) CAT(SORIters_Prec, CURPREC)[level] == -1) {
+      HecuraRuntime::abort();
+    }
+//  printf("prec%d SOR case called for level %d (%d iterations)\n", CURPREC,
+//         level, (int) CAT(SORIters_Prec, CURPREC)[level]);
     SOR2D(y, x, b, -1, (int) CAT(  SORIters_Prec, CURPREC)[level]);
   }
 
   //base case: directly solve with BS
   to(Y y) from(X x, B b) {
     int level = (int) log2(n-1);
-    printf("prec%d BS case called for level %d\n", CURPREC, level);
+//  if (level > 6) {
+//    HecuraRuntime::abort();
+//  }
+//    printf("prec%d BS case called for level %d\n", CURPREC, level);
     BS2D(y, x, b);
   }
 

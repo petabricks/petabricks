@@ -57,15 +57,16 @@ void hecura::RuleChoice::generateCodeSimple(  const std::string& taskname
 {
   std::string tpfx = _tpfx;
   if(tpfx.length()==0) tpfx = trans.createTunerPrefix();
+  std::string choicename = tpfx + "lvl" + jalib::XToString(level()) + "_rule";
 
   if(_condition){
-    o.beginIf(processCondition(tpfx + "lvl" + jalib::XToString(level()) + "_cutoff",_condition, o)->toString());
+    o.beginIf(processCondition(tpfx + "lvl" + jalib::XToString(level()) + "_cutoff",_condition, choicename, o));
   }
 
   std::vector<RulePtr> sortedRules(_rules.begin(), _rules.end());
   std::sort(sortedRules.begin(), sortedRules.end(), RuleIdComparer());
 
-  std::string choicename = tpfx + "lvl" + jalib::XToString(level()) + "_rule";
+
   int n=0;
   if(sortedRules.size()>1){
 //     for(std::vector<RulePtr>::const_iterator i=sortedRules.begin(); i!=sortedRules.end(); ++i){
@@ -98,12 +99,30 @@ void hecura::RuleChoice::generateCodeSimple(  const std::string& taskname
   }
 }
 
-hecura::FormulaPtr hecura::RuleChoice::processCondition(const std::string& name, const FormulaPtr& f, CodeGenerator& o)
+std::string hecura::RuleChoice::processCondition(const std::string& name, const FormulaPtr& f, const std::string& algchoicename, CodeGenerator& o)
 {
-  if(f->getFreeVariables()->contains(autotuned()->toString())){
+//   if(f->getFreeVariables()->contains(autotuned()->toString()))
+//     return f->replace(autotuned(), new FormulaVariable(name));
+
+  if(f==autotuned()){
+    std::string s;
+    FormulaPtr hint;
+    bool needComplex=false;
     o.createTunable(name, name, std::numeric_limits<int>::max(), 1);
-    return f->replace(autotuned(), new FormulaVariable(name));
+    std::vector<RulePtr> sortedRules(_rules.begin(), _rules.end());
+    std::sort(sortedRules.begin(), sortedRules.end(), RuleIdComparer());
+    for(size_t i=0; i<sortedRules.size(); ++i){
+      if(!s.empty()) s += " || ";
+      if(!hint) hint = sortedRules[i]->recursiveHint();
+      if(hint->toString()!=sortedRules[i]->recursiveHint()->toString()) needComplex=true;
+      FormulaPtr f=new FormulaGT(sortedRules[i]->recursiveHint(), new FormulaVariable(name));
+      s += "(" + algchoicename + "==" + jalib::XToString(i) + " && " + f->toString() + ")";
+    }
+    if(needComplex)
+      return s;
+    FormulaPtr f=new FormulaGT(hint, new FormulaVariable(name));
+    return f->toString();
   }else{
-    return f;
+    return f->toString();
   }
 }

@@ -1,3 +1,11 @@
+//Multigrid V-cycle 2D
+//assume dimension n = 2^k + 1
+
+%{
+  JTUNABLE(prec_case, 5);
+  JTUNABLEARRAY(levelTrained, 30, 0);
+%}
+
 #include "../add.pbcc"
 #include "Interpolate2Dnew.pbcc"
 #include "Restrict2Dnew.pbcc"
@@ -11,24 +19,96 @@
 #define _CAT( a, b) __CAT(a ## b)
 #define __CAT(ab) ab
 
-#define POISSON_PRECISION_1 0.8
-#define POISSON_PRECISION_2 0.4
-#define POISSON_PRECISION_3 0.2
-#define POISSON_PRECISION_4 0.1
-#define POISSON_PRECISION_5 0.05
+#define POISSON_PRECISION_1 0.1
+#define POISSON_PRECISION_2 0.01
+#define POISSON_PRECISION_3 0.001
+#define POISSON_PRECISION_4 0.0001
+#define POISSON_PRECISION_5 0.00001
 
 #define CURPREC 1
-#include "Poisson2D-template.pbcc"
+#include "Poisson2D_InnerTransform.pbcc"
 #undef CURPREC
 #define CURPREC 2
-#include "Poisson2D-template.pbcc"
+#include "Poisson2D_InnerTransform.pbcc"
 #undef CURPREC
 #define CURPREC 3
-#include "Poisson2D-template.pbcc"
+#include "Poisson2D_InnerTransform.pbcc"
 #undef CURPREC
 #define CURPREC 4
-#include "Poisson2D-template.pbcc"
+#include "Poisson2D_InnerTransform.pbcc"
 #undef CURPREC
 #define CURPREC 5
-#include "Poisson2D-template.pbcc"
+#include "Poisson2D_InnerTransform.pbcc"
+#undef CURPREC
+
+transform Poisson2D
+from X[n,n], B[n,n]
+to  Y[n,n]
+through zeros[(n+1)/2,(n+1)/2]
+{
+  zeros.cell(i,j) from() {
+    return 0;
+  }
+
+  to (Y y) from (X x, B b, zeros z)
+  {
+    double error, newError, oldError, change;
+    int level = (int) log2(n-1);
+    MatrixRegion2D t, r;
+
+    JASSERT(floor(log2(n-1)) == log2(n-1))(n)(floor(log2(n-1)))(log2(n-1)).Text("input must be 2^k+1");
+    JASSERT(n > 1)(n).Text("input must be larger than 1");
+
+    if (HecuraRuntime::isTrainingRun() && levelTrained[level] == 0) {
+
+//      printf("Training run for level %d\n", level);
+      MatrixRegion2D actual;
+      if (level < 4) {
+        actual = BS2D(x, b);
+      } else {
+        actual = mgv2D(x, b, 15);
+      }
+      error = (double) ComputeError(x, actual);
+//      printf("initial error = %g\n", error);
+
+#define CURPREC 1
+#include "Poisson2D_TrainingLoop.pbcc"
+#undef CURPREC
+#define CURPREC 2
+#include "Poisson2D_TrainingLoop.pbcc"
+#undef CURPREC
+#define CURPREC 3
+#include "Poisson2D_TrainingLoop.pbcc"
+#undef CURPREC
+#define CURPREC 4
+#include "Poisson2D_TrainingLoop.pbcc"
+#undef CURPREC
+#define CURPREC 5
+#include "Poisson2D_TrainingLoop.pbcc"
+#undef CURPREC
+
+      levelTrained[level].setValue(1);
+
+    } else {
+//      printf("Timing run for level %d, precision %d\n", level, (int) prec_case);
+      switch (prec_case) {
+        case 1:
+          Poisson2D_Inner_Prec1(y, x, b);
+          break;
+        case 2:
+          Poisson2D_Inner_Prec2(y, x, b);
+          break;
+        case 3:
+          Poisson2D_Inner_Prec3(y, x, b);
+          break;
+        case 4:
+          Poisson2D_Inner_Prec4(y, x, b);
+          break;
+        case 5:
+          Poisson2D_Inner_Prec5(y, x, b);
+          break;
+      }
+    }
+  }
+}
 

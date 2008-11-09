@@ -1,5 +1,7 @@
+//      printf("  Training precision %d\n", CURPREC);
+
       // compute iterations of SOR
-      printf("  Testing SOR:\n");
+//      printf("    Training SOR for precision %d:\n", CURPREC);
       CAT(SORIters_Prec, CURPREC)[level].setValue(0);
       Copy2D(y, x);
       oldError = error;
@@ -11,8 +13,8 @@
         newError = ComputeError(y, actual);
         change = newError / oldError;
         oldError = newError;
-        printf("    error = %g, ratio = %g\n", newError, newError / error);
-        if (change >= 1) {
+//        printf("    error = %g, ratio = %g\n", newError, newError / error);
+        if (change >= 1 || level > 6) {
           // cannot achieve target precision, so this is an invalid selection
           // signal to timing run that it should abort
           CAT(SORIters_Prec, CURPREC)[level].setValue(-1);

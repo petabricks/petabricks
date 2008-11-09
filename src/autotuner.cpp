@@ -31,8 +31,13 @@ JTUNABLE(autotune_improvement_threshold,    90, 10, 100);
 #define MAX_ALGS autotune_alg_slots
 #define BIRTH_ATTEMPTS autotune_branch_attempts
 #define BIRTH_THRESH  (autotune_improvement_threshold.value()/100.0)
+#define FIXED_CUTOFF
 
+#ifdef FIXED_CUTOFF
+static const int DUP_CUTOFF_THRESH = 1; // how different cutoffs must be to be duplicates
+#else
 static const int DUP_CUTOFF_THRESH = 1024; // how different cutoffs must be to be duplicates
+#endif
 
 namespace{ //file local 
   struct CmpLastPerformance {
@@ -214,6 +219,8 @@ void hecura::Autotuner::removeDuplicates(){
 hecura::CandidateAlgorithmPtr hecura::CandidateAlgorithm::attemptBirth(HecuraRuntime& rt, Autotuner& autotuner, double thresh) {
   CandidateAlgorithmList possible;
   activate();
+
+#ifndef FIXED_CUTOFF
   if(_cutoffTunable!=0){
     int min = _cutoffTunable->min();
     if(_nextLevel) min=_nextLevel->cutoff();
@@ -231,6 +238,7 @@ hecura::CandidateAlgorithmPtr hecura::CandidateAlgorithm::attemptBirth(HecuraRun
     }
     activate();
   }
+#endif 
 
   jalib::JTunable* at = autotuner.algTunable(_lvl+1);
   jalib::JTunable* ct = autotuner.cutoffTunable(_lvl+1);
@@ -245,7 +253,15 @@ hecura::CandidateAlgorithmPtr hecura::CandidateAlgorithm::attemptBirth(HecuraRun
     for(int a=amin; a<=amax; ++a){
       if(_lvl>1 && a==_alg) continue;
       if(at!=0) at->setValue(a);
+#ifndef FIXED_CUTOFF
       double p = rt.optimizeParameter(*ct, min, max); 
+#else
+      ct->setValue(rt.curSize() * 3 / 4);
+      if (ct->value() <= 1) {
+        continue;
+      }
+      double p = rt.runTrial();
+#endif
       if(p<thresh && p>=0){
         CandidateAlgorithmPtr c = new CandidateAlgorithm(_lvl+1, a, at, ct->value(), ct, this);
         c->addResult(p);
