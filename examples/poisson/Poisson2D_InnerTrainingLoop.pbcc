@@ -22,6 +22,7 @@
             // cannot achieve target precision, so this is an invalid selection
             // signal to timing run that it should abort
             CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level].setValue(-1);
+            break;
           }
 
         } while (newError / error > CAT(POISSON_PRECISION_, CURPREC) && change < 1);

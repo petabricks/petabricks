@@ -45,15 +45,17 @@ transform mgv2D
 from X[n,n], B[n,n], numIterations
 to Y[n,n]
 {
+  recursive
   to (Y y) from (X x, B b, numIterations num)
   {
     if (num > 0) {
-      mgv2D_inner(y, x, b);
+      SPAWN(mgv2D_inner, y, x, b);
     } else {
-      Copy2D(y, x);
+      SPAWN(Copy2D, y, x);
     }
+    SYNC();
     if (num > 1)
-      mgv2D(y, y, b, num - 1);
+      SPAWN(mgv2D, y, y, b, num - 1);
   }
 }
 

@@ -5,7 +5,15 @@
       CAT(SORIters_Prec, CURPREC)[level].setValue(0);
       Copy2D(y, x);
       oldError = error;
+
       do {
+
+        if (level > 6) {
+          // at higher levels, this takes too long, so just skip it
+          // signal to timing run that it should abort
+          CAT(SORIters_Prec, CURPREC)[level].setValue(-1);
+          break;
+        }
         
         SOR2D(y, y, b, -1, 1);
 
@@ -18,6 +26,7 @@
           // cannot achieve target precision, so this is an invalid selection
           // signal to timing run that it should abort
           CAT(SORIters_Prec, CURPREC)[level].setValue(-1);
+          break;
         }
 
       } while (newError / error > CAT(POISSON_PRECISION_, CURPREC) && change < 1);

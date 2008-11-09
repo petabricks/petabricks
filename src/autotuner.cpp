@@ -262,11 +262,14 @@ hecura::CandidateAlgorithmPtr hecura::CandidateAlgorithm::attemptBirth(HecuraRun
       }
       double p = rt.runTrial();
 #endif
+      CandidateAlgorithmPtr c = new CandidateAlgorithm(_lvl+1, a, at, ct->value(), ct, this);
+      c->addResult(p);
       if(p<thresh && p>=0){
-        CandidateAlgorithmPtr c = new CandidateAlgorithm(_lvl+1, a, at, ct->value(), ct, this);
-        c->addResult(p);
         possible.push_back(c);
+//        std::cout << "  SPAWN " << c << ' ' << p << std::endl;
       }
+//      else
+//        std::cout << "  FAILED SPAWN " << c << ' ' << p << std::endl;
     }
   }
 
