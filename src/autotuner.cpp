@@ -266,10 +266,10 @@ hecura::CandidateAlgorithmPtr hecura::CandidateAlgorithm::attemptBirth(HecuraRun
       c->addResult(p);
       if(p<thresh && p>=0){
         possible.push_back(c);
-//        std::cout << "  SPAWN " << c << ' ' << p << std::endl;
+        std::cout << "  SPAWN " << c << ' ' << p << std::endl;
       }
-//      else
-//        std::cout << "  FAILED SPAWN " << c << ' ' << p << std::endl;
+      else
+        std::cout << "  FAILED SPAWN " << c << ' ' << p << std::endl;
     }
   }
 
