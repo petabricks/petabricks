@@ -1,0 +1,59 @@
+#ifndef SOR2DGRAPH_PBCC
+#define SOR2DGRAPH_PBCC
+
+#include "SOR2D.pbcc"
+
+#define PRECISION1
+#define MAX_LEVEL 9
+
+transform SOR2DGraph
+from IN[n+2,n+2], B[n+2,n+2]
+to OUT[n+2,n+2]
+{
+  recursive
+  to (OUT o) from (IN in, B b)
+  {
+
+#ifdef PRECISION1
+    int iters[MAX_LEVEL + 1] = {1, 1, 2, 5, 10, 20, 40, 80, 159, 317};
+#endif
+
+#ifdef PRECISION2
+    int iters[MAX_LEVEL + 1] = {1, 1, 4, 9, 17, 34, 68, 136, 271, 541};
+#endif
+
+#ifdef PRECISION3
+    int iters[MAX_LEVEL + 1] = {1, 1, 5, 12, 24, 47, 94, 189, 376, 752};
+#endif
+
+#ifdef PRECISION4
+    int iters[MAX_LEVEL + 1] = {1, 1, 7, 15, 30, 60, 120, 240, 479, 958};
+#endif
+
+#ifdef PRECISION5
+    int iters[MAX_LEVEL + 1] = {1, 1, 8, 18, 37, 73, 145, 290, 580, 1160};
+#endif
+
+#ifdef PRECISION7
+    int iters[MAX_LEVEL + 1] = {1, 1, 11, 24, 49, 98, 195, 390, 779, 1558};
+#endif
+
+#ifdef PRECISION9
+    int iters[MAX_LEVEL + 1] = {1, 1, 14, 30, 61, 122, 244, 488, 976, 1951};
+#endif
+
+#ifdef PRECISION10
+    int iters[MAX_LEVEL + 1] = {1, 1, 15, 33, 67, 134, 269, 537, 1073, 2146};
+#endif
+
+#ifdef PRECISION13
+    int iters[MAX_LEVEL + 1] = {1, 1, 19, 42, 85, 171, 341, 682, 1382, 2793};
+#endif
+
+//    printf("Using %d iterations\n", iters[(int) log2(n)]);
+    SPAWN(SOR2D, o, in, b, -2, iters[(int) log2(n)]);
+  }
+}
+
+#endif // SOR2DGRAPH_PBCC
+
