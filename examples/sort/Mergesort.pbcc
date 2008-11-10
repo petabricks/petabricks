@@ -1,15 +1,17 @@
-#ifndef MERGESORT_PBCC
-#define MERGESORT_PBCC
-
 #include "../utilities.pbcc"
 
-#ifndef SORTSUBARRAY
-#define SORTSUBARRAY MergesortSubArray
+#ifndef WAY
+#define WAY 32
 #endif
 
-#define WAY 4
+#define CAT(a,b) _CAT(a,b)
+#define _CAT(a,b) a ## b
 
-transform Merge
+#ifndef SORTSUBARRAY
+#define SORTSUBARRAY CAT(MergesortSubArray, WAY)
+#endif
+
+transform CAT(Merge, WAY)
 from IN[n]
 to OUT[n]
 {
@@ -39,7 +41,7 @@ to OUT[n]
   }
 }
 
-transform MergesortSubArray
+transform CAT(MergesortSubArray, WAY)
 from IN[n], Pos
 to OUT[n], TEMP[n]
 {
@@ -58,11 +60,11 @@ to OUT[n], TEMP[n]
     SYNC();
     SPAWN(Copy1D, temp, out);
     SYNC();
-    SPAWN(Merge, out, temp);
+    SPAWN(CAT(Merge, WAY), out, temp);
   }
 }
 
-transform Mergesort
+transform CAT(Mergesort, WAY)
 from IN[n]
 to OUT[n]
 {
@@ -70,9 +72,8 @@ to OUT[n]
   {
     InlineCopy1D(out, in);
     MatrixRegion1D temp = MatrixRegion1D::allocate(n);
-    MergesortSubArray(out, temp, in, 64);
+    CAT(MergesortSubArray,WAY)(out, temp, in, 64);
   }
 }
 
-#endif // MERGESORT_PBCC
 
