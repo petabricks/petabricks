@@ -1,0 +1,21 @@
+transform SOR
+from A[w,h], B[w], P<0>[w], weight, k
+through P<0..k>[w]
+to  P<k>[w]
+{
+  P<n>[i] from(B[i]         b,
+               P<n>[0..i-1] p, 
+               P<n-1>[i..w] pl,
+               A.row(i)     a)
+  {
+    double t=0;
+    for j = 0 .. i-1 {
+      t+=a[j]*p[j];
+    }
+    for j = i+1 .. w-1 {
+      t+=a[j]*pl[j];
+    }
+    return (1-weight)*pl[i] + weight / a[i] * (b-t)
+  }
+}
+
