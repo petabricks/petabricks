@@ -99,7 +99,7 @@ void DynamicScheduler::abortBegin() {
     queue.clear();
     for(int i=0; i<numOfWorkers+1; ++i)
       queue.push(0);
-    JTRACE("Aborting!")(numOfWorkers);
+//    JTRACE("Aborting!")(numOfWorkers);
   }
   throw AbortException();
 }
