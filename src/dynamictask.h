@@ -67,32 +67,7 @@ public:
 
   ///
   /// check if the task should be enqueued of inlined
-  /// heuristics to check if task should be inlined
-  /// 1. fixed task size threshold
-  /// 2. function of input size
-  /// 3. function of max task size
-  /// 4. number of items in queue
-  /// 5. mix of above
-  bool inlineTask() {
-
-    //return (isNullTask() || size() < 256);
-    size_t taskSize = size();
-    if(isNullTask() || taskSize < 256)
-      return true;
-
-    if(maxSize  < taskSize) {
-      maxSize   = taskSize;
-      return false;
-    } 
-
-    if(scheduler->empty())
-      return false;
-
-    if(taskSize < (maxSize >> 8))
-      return true;
-
-    return false;
-  }
+  bool inlineTask();
 
   /// 
   /// Scheduler for scheduling the dynamic tasks
