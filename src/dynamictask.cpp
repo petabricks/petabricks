@@ -34,6 +34,8 @@ JTUNABLE(tunerNumOfWorkers, 8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
 namespace hecura {
 
 DynamicScheduler *DynamicTask::scheduler = NULL;
+size_t            DynamicTask::firstSize = 0;
+size_t            DynamicTask::maxSize   = 0;
 
 DynamicTask::DynamicTask()
 {
@@ -68,7 +70,7 @@ void DynamicTask::enqueue()
   }
   if(preds==0){
 #ifdef INLINE_NULL_TASKS
-    if(isNullTask()){
+    if(inlineTask()) {
       runWrapper(); //dont bother enqueuing null tasks
     }else
 #endif
@@ -119,7 +121,7 @@ void hecura::DynamicTask::decrementPredecessors(){
   }
   if(shouldEnqueue){
 #ifdef INLINE_NULL_TASKS
-    if(isNullTask()){
+    if(inlineTask()) {
       runWrapper(); //dont bother enqueuing null tasks
     }else
 #endif
@@ -180,9 +182,7 @@ void DynamicTask::waitUntilComplete()
     lock.unlock();
     // get a task for execution
     DynamicTaskPtr task = scheduler->tryDequeue();
-    if (!task) {
-      pthread_yield();
-    } else {
+    if (task) {
       task->runWrapper();
     }
     lock.lock();

@@ -104,6 +104,37 @@ public:
 #endif
   }
 
+  bool empty() {
+    return queue.empty();
+  }
+
+  size_t size() {
+    return queue.size();
+  }
+
+  int workers() {
+    return numOfWorkers;
+  }
+
+
+#ifdef QUEUE_STATISTICS
+  unsigned int contention() {
+    return queue.contention();
+  }
+
+  unsigned int totalEnqueue() {
+    return queue.totalEnqueue();
+  }  
+
+  uint64_t totalEmptyTime() {
+    return queue.totalEmptyTime();
+  }    
+
+  uint64_t totalFilledTime() {
+    return queue.totalFilledTime();
+  }    
+#endif // QUEUE_STATISTICS
+
 #ifdef GRACEFUL_ABORT
   class AbortException {};
   static bool isAborting() { return theIsAborting; }
