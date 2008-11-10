@@ -28,8 +28,11 @@
 
 #define MIN_NUM_WORKERS  0
 #define MAX_NUM_WORKERS  512
+#define MIN_INLINE_TASK_SIZE  64
+#define MAX_INLINE_TASK_SIZE  65536
 
-JTUNABLE(tunerNumOfWorkers, 8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
+JTUNABLE(tunerNumOfWorkers,   8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
+JTUNABLE(tunerInlineTaskSize, 1024, MIN_INLINE_TASK_SIZE, MAX_INLINE_TASK_SIZE);
 
 namespace hecura {
 
@@ -192,5 +195,39 @@ void DynamicTask::waitUntilComplete()
     continuation->waitUntilComplete();
 }
 #endif // PBCC_SEQUENTIAL
+
+
+///
+/// check if the task should be enqueued of inlined
+/// heuristics to check if task should be inlined
+/// 1. fixed task size threshold
+/// 2. function of input size
+/// 3. function of max task size
+/// 4. number of items in queue
+/// 5. mix of above
+bool DynamicTask::inlineTask()
+{
+  size_t taskSize = size();
+  // if too small, inline
+  if(isNullTask() || taskSize < tunerInlineTaskSize)
+    return true;
+
+  // if large task, do not inline
+  if(maxSize  < taskSize) {
+    maxSize   = taskSize;
+    return false;
+  } 
+
+  // if no tasks in queue, do not inline
+  // this is to increase parallelism
+  if(scheduler->empty())
+    return false;
+
+  // if task size is very small relative to max task, inline
+  if(taskSize < (maxSize >> 8))
+    return true;
+
+  return false;
+}
 
 }
