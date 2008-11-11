@@ -27,7 +27,13 @@ to OUT[n+2,n+2]
                                                BTEMP b,
                                                numIterations num)
   {
-    SPAWN(Jacobi2DInterior,o, in, b, num);
+    if (n > 0) {
+      if (n == 1) {
+        o.cell(0, 0) = b.cell(0, 0) / 4;
+      } else {
+        SPAWN(Jacobi2DInterior,o, in, b, num);
+      }
+    }
   }
 
   secondary OUT.cell(i,j) from (IN.cell(i,j) x)
