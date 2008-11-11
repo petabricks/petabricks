@@ -1,0 +1,59 @@
+#ifndef MGV2DGRAPH_PBCC
+#define MGV2DGRAPH_PBCC
+
+#include "mgv2D.pbcc"
+
+#define PRECISION1
+#define MAX_LEVEL 12
+
+transform mgv2DGraph
+from IN[n+2,n+2], B[n+2,n+2]
+to OUT[n+2,n+2]
+{
+  recursive
+  to (OUT o) from (IN in, B b)
+  {
+
+#ifdef PRECISION1
+    int iters[MAX_LEVEL + 1] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+#endif
+
+#ifdef PRECISION2
+    int iters[MAX_LEVEL + 1] = {1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
+#endif
+
+#ifdef PRECISION3
+    int iters[MAX_LEVEL + 1] = {1, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3};
+#endif
+
+#ifdef PRECISION4
+    int iters[MAX_LEVEL + 1] = {1, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3};
+#endif
+
+#ifdef PRECISION5
+    int iters[MAX_LEVEL + 1] = {1, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
+#endif
+
+#ifdef PRECISION7
+    int iters[MAX_LEVEL + 1] = {1, 1};
+#endif
+
+#ifdef PRECISION9
+    int iters[MAX_LEVEL + 1] = {1, 1};
+#endif
+
+#ifdef PRECISION10
+    int iters[MAX_LEVEL + 1] = {1, 1};
+#endif
+
+#ifdef PRECISION13
+    int iters[MAX_LEVEL + 1] = {1, 1};
+#endif
+
+//    printf("Using %d iterations\n", iters[(int) log2(n)]);
+    SPAWN(mgv2D, o, in, b, iters[(int) log2(n)]);
+  }
+}
+
+#endif // MGV2DGRAPH_PBCC
+
