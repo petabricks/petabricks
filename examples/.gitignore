@@ -18,6 +18,8 @@ utilities
 eigenproblem/Bisection
 eigenproblem/BisectionTD
 eigenproblem/DC
+eigenproblem/DCTDcutoff25
+eigenproblem/DCTDLAPACK
 eigenproblem/DCTD
 eigenproblem/EigSym
 eigenproblem/EigTD
@@ -35,6 +37,7 @@ poisson/ComputeError
 poisson/error
 poisson/fmgv2D
 poisson/Interpolate2Dnew
+poisson/Jacobi2DGraph
 poisson/Jacobi2DInterior
 poisson/Jacobi2D
 poisson/mgv2D
@@ -45,6 +48,7 @@ poisson/Poisson2D_RunLoop
 poisson/Poisson2D_TrainingLoop
 poisson/Residual2D
 poisson/Restrict2Dnew
+poisson/SOR2DGraph
 poisson/SOR2DInterior
 poisson/SOR2D
 sort/Insertionsort

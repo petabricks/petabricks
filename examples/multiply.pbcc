@@ -1,5 +1,6 @@
 
 #include "add.pbcc"
+#include "transpose.pbcc"
 
 transform MatrixMultiply
 from A[c,h], B[w,c] 
@@ -157,3 +158,29 @@ to C[n,n]
 //  SPAWN(MatrixMultiply, c, a, b);
 //}
 }
+
+transform MatrixMultiplyTransposed
+from A[n,n], B[n,n] 
+to C[n,n]
+{
+  // no transpose
+  to(C c) from(A a, B b) {
+    int power2 = (1<<(int)(log(n)/log(2))) ;
+    JASSERT(n==power2)(n)(power2).Text("n must be a power of 2");
+    MatrixMultiplySqr(c, a, b);
+  }
+  // transpose a
+  to(C c) from(A a, B b) {
+    int power2 = (1<<(int)(log(n)/log(2))) ;
+    JASSERT(n==power2)(n)(power2).Text("n must be a power of 2");
+    MatrixMultiplySqr(c, Transpose(a).transposed(), b);
+  }
+  // transpose b
+  to(C c) from(A a, B b) {
+    int power2 = (1<<(int)(log(n)/log(2))) ;
+    JASSERT(n==power2)(n)(power2).Text("n must be a power of 2");
+    MatrixMultiplySqr(c, a, Transpose(b).transposed());
+  }
+}
+
+

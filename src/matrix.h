@@ -152,6 +152,18 @@ public:
   MatrixRegion() : _base(NULL) {}
 
   ///
+  ///Return an iterator that accesses elements in a tranposed fasion
+  MatrixRegion transposed() const {
+    IndexT sizes[D];
+    IndexT multipliers[D];
+    for(int i=0; i<D; ++i){
+      sizes[i]       = _sizes[D-i-1];
+      multipliers[i] = _multipliers[D-i-1];
+    }
+    return MatrixRegion(_storage, _base, sizes, multipliers);
+  }
+
+  ///
   /// Copy constructor
   MatrixRegion( const MatrixRegion<D, MATRIX_ELEMENT_T>& that )
     : _storage(that.storage())
