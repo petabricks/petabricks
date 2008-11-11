@@ -15,31 +15,31 @@ to OUT[n,n]
   {
 
 #ifdef PRECISION1
-    int iters[MAX_LEVEL + 1] = {1, 1, 6, 28, 119, 476, 1908, 7628, 30513, 1};
+    int iters[MAX_LEVEL + 1] = {1, 1, 6, 28, 119, 476, 1908, 7628, 30513};
 #endif
 
 #ifdef PRECISION2
-    int iters[MAX_LEVEL + 1] = {1, 1, 13, 57, 237, 953, 3818, 15272, 61092, 1};
+    int iters[MAX_LEVEL + 1] = {1, 1, 13, 57, 237, 953, 3818, 15272, 61092};
 #endif
 
 #ifdef PRECISION3
-    int iters[MAX_LEVEL + 1] = {1, 1, 19, 86, 356, 1430, 5729, 22916, 91670, 1};
+    int iters[MAX_LEVEL + 1] = {1, 1, 19, 86, 356, 1430, 5729, 22916, 91670};
 #endif
 
 #ifdef PRECISION4
-    int iters[MAX_LEVEL + 1] = {1, 1, 26, 115, 475, 1907, 7639, 30560, 122249, 1};
+    int iters[MAX_LEVEL + 1] = {1, 1, 26, 115, 475, 1907, 7639, 30560, 122249};
 #endif
 
 #ifdef PRECISION5
-    int iters[MAX_LEVEL + 1] = {1, 1, 33, 144, 593, 2384, 9550, 38204, 152827, 1};
+    int iters[MAX_LEVEL + 1] = {1, 1, 33, 144, 593, 2384, 9550, 38204, 152827};
 #endif
 
 #ifdef PRECISION7
-    int iters[MAX_LEVEL + 1] = {1, 1};
+    int iters[MAX_LEVEL + 1] = {1, 1, 45, 201, 830, 3339, 13370, 53494};
 #endif
 
 #ifdef PRECISION9
-    int iters[MAX_LEVEL + 1] = {1, 1};
+    int iters[MAX_LEVEL + 1] = {1, 1, 58, 259, 1068, 4293, 17190, 68782};
 #endif
 
 #ifdef PRECISION10
