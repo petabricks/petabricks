@@ -14,34 +14,26 @@ extern "C" void dstein_(int *n, double *d, double *e, int *m, double *w, int *ib
 
 // Find eigenvalues and eigenvectors of input matrix IN (symmetric) by LAPACK Bisection routine
 transform BisectionTD
-from Tridiag[n,n]
+from Diag[n], Subdiag[n-1]
 to Eigenvalue[n], Eigenvector[n,n]
 {
 
-  to (Eigenvalue Eig, Eigenvector Vec) from (Tridiag T)
+  to (Eigenvalue Eig, Eigenvector Vec) from (Diag Din, Subdiag Ein)
   {
     char range = 'A', order = 'B';
     int size=n,info = 0,il,iu,m, nsplit, nsquared=n*n;
     double vl,vu, abstol=0;
 
     // allocate and initialize matrices
-    double *Z = new double[nsquared];
-    double *D = new double[n];
-    double *E = new double[n-1];
-    double *work = new double[4*n];
-    int *iwork = new int[3*n];
-    double *W = new double[n];
-    int *iblock = new int[n];
-    int *isplit = new int[n];
-    int *ifail = new int[n];
-
-    // get input matrix in column major format
-    for (int i = 0; i < n; i++) {
-        D[i] = T.cell(i,i);
-    }
-    for (int i = 0; i < n-1; i++) {
-        E[i] = T.cell(i+1,i);
-    }
+    double *Z = Vec.base();
+    double *D = Din.storage()->data();
+    double *E = Ein.storage()->data();
+    double *work = new double[4*size];
+    int *iwork = new int[3*size];
+    double *W = Eig.base();
+    int *iblock = new int[size];
+    int *isplit = new int[size];
+    int *ifail = new int[size];
 
     // call LAPACK bisection routine for tridiagonal matrix
     dstebz_(&range, &order, &size, &vl, &vu, &il, &iu, &abstol, D, E, &m, &nsplit, W, iblock, isplit, work, iwork, &info);
@@ -54,24 +46,8 @@ to Eigenvalue[n], Eigenvector[n,n]
     dstein_(&size, D, E, &size, W, iblock, isplit, Z, &size, work, iwork, ifail, &info);
 
 
-    // copy eigenvalues to output
-    for (int i = 0; i < n; i++) {
-        Eig.cell(i) = W[i];
-    }
-    // copy eigenvectors to output
-    int index = 0;
-    for (int i = 0; i < n; i++) {
-      for (int j = 0; j < n; j++) {
-        Vec.cell(i,j) = Z[index++];
-      }
-    }   
-
-    delete [] Z;	
-    delete [] D;
-    delete [] E;
     delete [] work;
     delete [] iwork;
-    delete [] W;
     delete [] iblock;
     delete [] isplit;
     delete [] ifail;

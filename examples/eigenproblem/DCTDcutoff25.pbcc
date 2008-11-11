@@ -1,5 +1,5 @@
-#ifndef DCTD_PBCC
-#define DCTD_PBCC
+#ifndef DCTDCUTOFF25_PBCC
+#define DCTDCUTOFF25_PBCC
 
 %{
 
@@ -9,19 +9,20 @@ extern "C" void dlaed1_(int *n, double *D, double *Q, int *ldq, int *indxq, doub
 
 #include "../utilities.pbcc"
 #include "mergeQ.pbcc"
+#include "QRTD.pbcc"
 
 
 // Find eigenvalues and eigenvectors of IN (tridiagonal symmetric) by LAPACK Divide-and-Conquer routine
-transform DCTDrecursive
-from Subdiag[n-1]
+transform DCTDcutoff25recursive
+from Diag[n], Subdiag[n-1]
 to Eigenvalue[n], Eigenvector[n,n]
 
 {
 
    //Recursive case
-   to (Eigenvalue eig, Eigenvector vec) from  (Subdiag Ein) {
+   to (Eigenvalue eig, Eigenvector vec) from  (Diag Din, Subdiag Ein) {
 
-	int i,j,info=0,size=n,cutpnt=n/2,nsquared=n*n;
+	int i,j,info,size=n,cutpnt=n/2,nsquared=n*n;
 
 	MatrixRegion2D q1 = MatrixRegion2D::allocate(cutpnt,cutpnt);
         MatrixRegion2D q2 = MatrixRegion2D::allocate(n-cutpnt,n-cutpnt);
@@ -34,18 +35,13 @@ to Eigenvalue[n], Eigenvector[n,n]
 	int *iwork = new int[4*size];	
 
 	MatrixRegion1D temp1 = MatrixRegion1D::allocate(n);
-
 	
-//	D[cutpnt-1] -= rho;
-//	D[cutpnt] -= rho;
-	eig.cell(cutpnt-1) -= rho;
-	eig.cell(cutpnt) -= rho;
+	D[cutpnt-1] -= rho;
+	D[cutpnt] -= rho;
 
-
-	DCTD(eig.region(0,cutpnt),q1,eig.region(0,cutpnt),Ein.region(0,cutpnt-1));
-	DCTD(eig.region(cutpnt,size),q2,eig.region(cutpnt,size),Ein.region(cutpnt,size-1));
+	DCTDcutoff25(eig.region(0,cutpnt),q1,eig.region(0,cutpnt),Ein.region(0,cutpnt-1));
+	DCTDcutoff25(eig.region(cutpnt,size),q2,eig.region(cutpnt,size),Ein.region(cutpnt,size-1));
 	mergeQ(vec,q1,q2);
-	
 
 	for(i=0; i<cutpnt; i++) {
 		indxq[i]=i+1;
@@ -66,31 +62,23 @@ to Eigenvalue[n], Eigenvector[n,n]
 }
 
 // Find eigenvalues and eigenvectors of IN (tridiagonal symmetric) by LAPACK Divide-and-Conquer routine
-transform DCTD
+transform DCTDcutoff25
 from Diag[n], Subdiag[n-1]
 to Eigenvalue[n], Eigenvector[n,n]
 
 {
     
     to (Eigenvalue eig, Eigenvector vec) from  (Diag Din, Subdiag Ein) {
-	//MatrixRegion1D temp1 = MatrixRegion1D::allocate(n);
-	//MatrixRegion1D temp2 = MatrixRegion1D::allocate(n-1);
-	//printf("all: n = %d\n", n);
-	//printout(temp1, Din);
-	//printout(temp2, Ein);
-	if (n==1) {
-		//base case
-		vec.cell(0,0) = 1;
-		eig.cell(0)=Din.cell(0,0);
-		//printf("base: %f\n", eig.cell(0));
+
+	if (n<=25) {
+		QRTD(eig,vec,Din,Ein);
 	}
 	else {
 		//recursive
-		//printf("call recursive: n = %d\n", n);
 		InlineCopy1D(eig, Din);
-		DCTDrecursive(eig, vec, Ein);
+		DCTDcutoff25recursive(eig, vec, Din, Ein);
 	}
     }
 }
 
-#endif // DCTD2_PBCC
+#endif // DCTDCUTOFF25_PBCC
