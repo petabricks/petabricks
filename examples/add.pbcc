@@ -1,6 +1,29 @@
 #ifndef MATRIXADD_PBCC
 #define MATRIXADD_PBCC
 
+transform MatrixSub
+from A[w,h], B[w,h] 
+to AB[w,h]
+{
+  AB.cell(x,y) from(A.cell(x,y) a, B.cell(x,y) b){
+    return a-b;
+  }
+}
+
+//return A+B+C-D
+transform MatrixAddAddSub
+from A[w,h], B[w,h], C[w,h], MinusD[w,h] 
+to OUT[w,h]
+{
+  OUT.cell(x,y) from( A.cell(x,y) a
+                     , B.cell(x,y) b
+                     , C.cell(x,y) c
+                     , MinusD.cell(x,y) d
+               ){
+    return a+b+c-d;
+  }
+}
+
 transform MatrixAdd
 from A[w,h], B[w,h] 
 to AB[w,h]
