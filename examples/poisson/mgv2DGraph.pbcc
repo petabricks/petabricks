@@ -3,12 +3,12 @@
 
 #include "mgv2D.pbcc"
 
-#define PRECISION1
+#define PRECISION5
 #define MAX_LEVEL 12
 
 transform mgv2DGraph
-from IN[n+2,n+2], B[n+2,n+2]
-to OUT[n+2,n+2]
+from IN[n,n], B[n,n]
+to OUT[n,n]
 {
   recursive
   to (OUT o) from (IN in, B b)
@@ -35,23 +35,23 @@ to OUT[n+2,n+2]
 #endif
 
 #ifdef PRECISION7
-    int iters[MAX_LEVEL + 1] = {1, 1};
+    int iters[MAX_LEVEL + 1] = {1, 1, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5};
 #endif
 
 #ifdef PRECISION9
-    int iters[MAX_LEVEL + 1] = {1, 1};
+    int iters[MAX_LEVEL + 1] = {1, 1, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7};
 #endif
 
 #ifdef PRECISION10
-    int iters[MAX_LEVEL + 1] = {1, 1};
+    int iters[MAX_LEVEL + 1] = {1, 1, 7, 8, 8, 7, 7, 7, 7, 7, 7, 7, 7};
 #endif
 
 #ifdef PRECISION13
-    int iters[MAX_LEVEL + 1] = {1, 1};
+    int iters[MAX_LEVEL + 1] = {1, 1, 9,10,10,10,10,10,10,10,10,10,10};
 #endif
 
-//    printf("Using %d iterations\n", iters[(int) log2(n)]);
-    SPAWN(mgv2D, o, in, b, iters[(int) log2(n)]);
+//    printf("Using %d iterations\n", iters[(int) log2(n - 1)]);
+    SPAWN(mgv2D, o, in, b, iters[(int) log2(n - 1)]);
   }
 }
 

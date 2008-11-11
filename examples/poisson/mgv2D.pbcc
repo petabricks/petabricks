@@ -24,7 +24,7 @@ through zeros[(n+1)/2,(n+1)/2]
     //recursive case
     recursive(n / 2)
     to (Y y) from(X x, B b, zeros z) {
-        JASSERT(floor(log2(n-1)) == log2(n-1)).Text("input must be 2^k+1");
+        JASSERT(floor(log2(n-1)) == log2(n-1))(n).Text("input must be 2^k+1");
         if (n == 3) {
 //          printf("base case called for n = 3\n");
           Copy2D(y, x);

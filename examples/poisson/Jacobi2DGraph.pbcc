@@ -7,8 +7,8 @@
 #define MAX_LEVEL 9
 
 transform Jacobi2DGraph
-from IN[n+2,n+2], B[n+2,n+2]
-to OUT[n+2,n+2]
+from IN[n,n], B[n,n]
+to OUT[n,n]
 {
   recursive
   to (OUT o) from (IN in, B b)
@@ -50,8 +50,8 @@ to OUT[n+2,n+2]
     int iters[MAX_LEVEL + 1] = {1, 1};
 #endif
 
-//    printf("Using %d iterations\n", iters[(int) log2(n)]);
-    SPAWN(Jacobi2D, o, in, b, iters[(int) log2(n)]);
+//    printf("Using %d iterations\n", iters[(int) log2(n - 1)]);
+    SPAWN(Jacobi2D, o, in, b, iters[(int) log2(n - 1)]);
   }
 }
 
