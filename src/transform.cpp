@@ -212,8 +212,8 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
     o.write("_input_perimeter += " + (*i)->name() + ".perimeter();");
     maxDims = std::max<int>(maxDims, (*i)->numDimensions());
   }
-  o.createTunable(_name, _name + "_split_chunks", 1, 1, 128);
-  o.varDecl("IndexT " SPLIT_CHUNK_SIZE " = _input_perimeter / ("+ jalib::XToString(maxDims) + "*" + _name + "_split_chunks )" );
+  o.createTunable(_name, _name + "_split_size", 512, 8);
+  o.varDecl("IndexT " SPLIT_CHUNK_SIZE " = " + _name + "_split_size" );
 
   extractSizeDefines(o);
 //   o.comment("Verify size of input/output");

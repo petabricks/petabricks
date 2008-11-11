@@ -8,14 +8,15 @@ extern "C" void dsteqr_(char *compz, int *n, double *D, double *E, double *Z, in
 
 %}
 
+#include "../utilities.pbcc"
 
 // Find eigenvalues and eigenvectors of tridiagonal matrix by LAPACK QR iteration routines
-transform QRTD
-from Tridiag[n,n]
+transform QRTDsub
+from Subdiag[n-1]
 to Eigenvalue[n], Eigenvector[n,n]
 {
 
-  to (Eigenvalue Eig, Eigenvector Vec) from (Tridiag T)
+  to (Eigenvalue Eig, Eigenvector Vec) from (Subdiag Ein)
   {
 
 
@@ -23,39 +24,29 @@ to Eigenvalue[n], Eigenvector[n,n]
     int size=n, lwork=2*n-2, info=0, nsquared=n*n;
 
     // allocate and initialize matrices
-    double *Z = new double[nsquared];
-    double *D = new double[n];
-    double *E = new double[n-1];
+    double *Z = Vec.base();
+    double *D = Eig.base();
+    double *E = Ein.storage()->data();
     double *work = new double[1];
-
-    // get input matrix in column major format
-    for (int i = 0; i < n; i++) {
-        D[i] = T.cell(i,i);
-    }
-    for (int i = 0; i < n-1; i++) {
-        E[i] = T.cell(i+1,i);
-    }
 
     if (lwork > 1) { work = new double[lwork];}
     dsteqr_(&compz, &size, D, E, Z, &size, work, &info);
 
-
-
-    // copy solution to output
-    for (int i = 0; i < n; i++) {
-        Eig.cell(i) = D[i];
-    }
-    int index = 0;
-    for (int i = 0; i < n; i++) {
-      for (int j = 0; j < n; j++) {
-        Vec.cell(i,j) = Z[index++];
-      }
-    }
-
-    delete [] D;
-    delete [] E;
-    delete [] Z;
     delete [] work;
+  }
+
+}
+
+transform QRTD
+from Diag[n], Subdiag[n-1]
+to Eigenvalue[n], Eigenvector[n,n]
+{
+
+  to (Eigenvalue Eig, Eigenvector Vec) from (Diag Din, Subdiag Ein)
+  {
+
+	InlineCopy1D(Eig, Din);
+	QRTDsub(Eig, Vec, Ein);
   }
 
 }
