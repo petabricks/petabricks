@@ -15,23 +15,23 @@ to OUT[n+2,n+2]
   {
 
 #ifdef PRECISION1
-    int iters[MAX_LEVEL + 1] = {1, 1, 6, 28, 119, 476, 1908, 7628};
+    int iters[MAX_LEVEL + 1] = {1, 1, 6, 28, 119, 476, 1908, 7628, 30513, 1};
 #endif
 
 #ifdef PRECISION2
-    int iters[MAX_LEVEL + 1] = {1, 1, 13, 57, 237, 953, 3818, 15272};
+    int iters[MAX_LEVEL + 1] = {1, 1, 13, 57, 237, 953, 3818, 15272, 61092, 1};
 #endif
 
 #ifdef PRECISION3
-    int iters[MAX_LEVEL + 1] = {1, 1, 19, 86, 356, 1430, 5729, 22916};
+    int iters[MAX_LEVEL + 1] = {1, 1, 19, 86, 356, 1430, 5729, 22916, 91670, 1};
 #endif
 
 #ifdef PRECISION4
-    int iters[MAX_LEVEL + 1] = {1, 1, 26, 115, 475, 1907, 7639, 30560};
+    int iters[MAX_LEVEL + 1] = {1, 1, 26, 115, 475, 1907, 7639, 30560, 122249, 1};
 #endif
 
 #ifdef PRECISION5
-    int iters[MAX_LEVEL + 1] = {1, 1, 33, 144, 593, 2384, 9550, 38204};
+    int iters[MAX_LEVEL + 1] = {1, 1, 33, 144, 593, 2384, 9550, 38204, 152827, 1};
 #endif
 
 #ifdef PRECISION7
