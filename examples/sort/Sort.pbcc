@@ -5,6 +5,7 @@
 #include "Quicksort.pbcc"
 #include "Insertionsort.pbcc"
 #include "Radixsort.pbcc"
+#include "Parallel_Mergesort.pbcc"
 
 #define WAY 4
 #include "Mergesort.pbcc"
@@ -26,9 +27,16 @@ to OUT[n], TEMP[n]
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
     //printf("ms %d\n",n);
+    SPAWN(Parallel_MergesortSubArray, out, temp, in, p);
+  }
+
+  recursive(n)
+  to (OUT out, TEMP temp) from (IN in, Pos p)
+  {
+    //printf("ms %d\n",n);
     SPAWN(MergesortSubArray4,out, temp, in, p);
   }
-  
+
   recursive(n)
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {

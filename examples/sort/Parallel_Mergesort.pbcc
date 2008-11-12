@@ -1,20 +1,15 @@
 #include "../utilities.pbcc"
 
-#ifndef WAY
-#define WAY 2
-#endif
-
 #define CAT(a,b) _CAT(a,b)
 #define _CAT(a,b) a ## b
 
 #ifndef SORTSUBARRAY
-#define SORTSUBARRAY CAT(MergesortSubArray, WAY)
+#define SORTSUBARRAY Parallel_MergesortSubArray
 #endif
-
 
 %{
 
-JTUNABLE(Parallel_Merge_Cuttoff, 100);
+JTUNABLE(Parallel_Merge_Cutoff, 100);
 
 inline int BinarySearch(double value, ConstMatrixRegion1D &A)
 {
@@ -37,63 +32,13 @@ inline int BinarySearch(double value, ConstMatrixRegion1D &A)
 %}
 
 
-transform Merge2_Parallel1
-from IN1[n], IN2[m]
-to OUT[n+m]
-{
-  to (OUT out) from (IN1 in1, IN2 in2)
-  {
-    int ptr1 = 0;
-    int ptr2 = 0;
-    int i = 0;
-
-    while (ptr1 < n && ptr2 < m) {
-      if (in1.cell(ptr1) < in2.cell(ptr2)) {
-        out.cell(i++) = in1.cell(ptr1++);
-      } else {
-        out.cell(i++) = in2.cell(ptr2++);
-      }
-    }
-
-    while (ptr1 < n) {
-      out.cell(i++) = in1.cell(ptr1++);
-    }
-
-    while (ptr2 < m) {
-      out.cell(i++) = in2.cell(ptr2++);
-    }
-  }
-}
-
-
-#if 0
-transform Merge2_Parallel
-from IN[n]
-to OUT[n]
-#endif
-
-#if 0
-
-transform Merge2_Parallel
-from IN1[n], IN2[m]
-to OUT[n+m]
-{
-  to (OUT out) from (IN1 in1, IN2 in2)
-  {
-  }
-}
-#else
-
-
 transform Merge2_Parallel
 from IN1[n1], IN2[n2]
 to OUT[n1 + n2]
 {
   recursive to (OUT out) from (IN1 in1, IN2 in2)
   {
-    if (n1 < n2) {
-      SPAWN(Merge2_Parallel, out, in2, in1);
-    } else if (n1 + n2 < Parallel_Merge_Cuttoff) {
+    if (n1 + n2 < 1000) {
       int ptr1 = 0;
       int ptr2 = 0;
       int i = 0;
@@ -113,84 +58,29 @@ to OUT[n1 + n2]
       while (ptr2 < n2) {
         out.cell(i++) = in2.cell(ptr2++);
       }
+    } else if (n1 < n2) {
+      int m1 = n2 / 2;
+      int m2 = BinarySearch(in2.cell(m1), in1);
+
+      out.cell(m1 + m2) = in2.cell(m1);
+
+      SPAWN(Merge2_Parallel, out.region(0, m1 + m2), in2.region(0, m1), in1.region(0, m2));
+      SPAWN(Merge2_Parallel, out.region(m1 + m2 + 1, n2 + n1), in2.region(m1 + 1, n2), in1.region(m2, n1));
     } else {
       int m1 = n1 / 2;
 
-      /*
-      int i;
-      printf("in1: ");
-      for (i = 0; i < in1.count(); i++) {
-        printf("%lf ", in1.cell(i));
-      }
-      printf("\n");
-
-      printf("in2: ", in1.cell(m1));
-      for (i = 0; i < in2.count(); i++) {
-        printf("%lf ", in2.cell(i));
-      }
-      printf("\n");
-      */
-
       int m2 = BinarySearch(in1.cell(m1), in2);
-
-      /*
-      printf("val: %f\n", in1.cell(m1));
-      printf("m1: %d, m2: %d\n", m1, m2);
-      */
 
       out.cell(m1 + m2) = in1.cell(m1);
 
       SPAWN(Merge2_Parallel, out.region(0, m1 + m2), in1.region(0, m1), in2.region(0, m2));
       SPAWN(Merge2_Parallel, out.region(m1 + m2 + 1, n1 + n2), in1.region(m1 + 1, n1), in2.region(m2, n2));
-
-      /*
-      SYNC();
-
-      printf("After: ");
-      for (i = 0; i < out.count(); i++) {
-        printf("%lf ", out.cell(i));
-      }
-      printf("\n");
-      */
     }
   }
 }
 
-#endif
 
-
-transform CAT(Merge, WAY)
-from IN[n]
-to OUT[n]
-{
-  to (OUT out) from (IN in)
-  {
-    int i, j, ptr[WAY], minLoc;
-    double min;
-    for (i = 0; i < WAY; i++) {
-      ptr[i] = n * i / WAY;
-      //printf("%d\n", ptr[i]);
-    }
-    for (i = 0; i < n; i++) {
-      min = HUGE_VAL;
-      minLoc = -1;
-      for (j = 0; j < WAY; j++) {
-        if (ptr[j] < n * (j + 1) / WAY && in.cell(ptr[j]) < min) {
-          min = in.cell(ptr[j]);
-          minLoc = j;
-        }
-      }
-      if (minLoc == -1) {
-        printf("error\n");
-        exit(-1);
-      }
-      out.cell(i) = min;
-      ptr[minLoc]++;
-    }
-  }
-}
-
-transform CAT(MergesortSubArray, WAY)
+transform Parallel_MergesortSubArray
 from IN[n], Pos
 to OUT[n], TEMP[n]
 {
@@ -198,27 +88,34 @@ to OUT[n], TEMP[n]
   {
     int i;
 
-    for (i = 0; i < WAY; i++) {
-      if (n * (i + 1) / WAY - n * i / WAY > 1) {
-        SPAWN(SORTSUBARRAY, out .region(n * i / WAY, n * (i + 1) / WAY),
-                            temp.region(n * i / WAY, n * (i + 1) / WAY),
-                            in  .region(n * i / WAY, n * (i + 1) / WAY), p);
+    for (i = 0; i < 2; i++) {
+      if (n * (i + 1) / 2 - n * i / 2 > 1) {
+        SPAWN(SORTSUBARRAY, out.region(n * i / 2, n * (i + 1) / 2),
+                            temp.region(n * i / 2, n * (i + 1) / 2),
+                            in  .region(n * i / 2, n * (i + 1) / 2), p);
       }
     }
+
+    /*
+    SPAWN(SORTSUBARRAY, out.region(0, n/2),
+                        temp.region(0, n/2),
+                        in.region(0, n/2), 
+                        p);
+
+    SPAWN(SORTSUBARRAY, out.region(n/2, n),
+                        temp.region(n/2, n),
+                        in.region(n/2, n), 
+                        p);
+                        */
 
     SYNC();
     SPAWN(Copy1D, temp, out);
     SYNC();
-   // if (WAY == 2) {
-      SPAWN(Merge2_Parallel, out, temp.region(0, n/2), temp.region(n/2, n));
-   //} else {
-   //  SPAWN(CAT(Merge, WAY), out, temp);
-   //}
-
+    SPAWN(Merge2_Parallel, out, temp.region(0, n/2), temp.region(n/2, n));
   }
 }
 
-transform CAT(Mergesort, WAY)
+transform Parallel_Mergesort
 from IN[n]
 to OUT[n]
 {
@@ -226,7 +123,7 @@ to OUT[n]
   {
     InlineCopy1D(out, in);
     MatrixRegion1D temp = MatrixRegion1D::allocate(n);
-    CAT(MergesortSubArray,WAY)(out, temp, in, 64);
+    Parallel_MergesortSubArray(out, temp, in, 64);
 
     int i;
 
