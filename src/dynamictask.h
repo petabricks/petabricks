@@ -68,6 +68,7 @@ public:
   ///
   /// check if the task should be enqueued of inlined
   bool inlineTask();
+  void inlineOrEnqueueTask();
 
   /// 
   /// Scheduler for scheduling the dynamic tasks

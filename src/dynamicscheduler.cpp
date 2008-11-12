@@ -69,7 +69,48 @@ void DynamicScheduler::startWorkerThreads(int newWorkers)
   JTRACE("start worker threads")(numOfWorkers);
 }
 
+std::list<DynamicTaskPtr>& DynamicScheduler::myThreadLocalQueue(){
+  static __thread std::list<DynamicTaskPtr>* q = 0;
+  if(q==0) q = new std::list<DynamicTaskPtr>();
+  return *q;
+}
 
+
+
+void DynamicScheduler::popAndRunOneTask(bool blocking){
+  std::list<DynamicTaskPtr>& myQ = DynamicScheduler::myThreadLocalQueue();
+
+#ifdef GRACEFUL_ABORT
+    try{
+#endif
+      DynamicTaskPtr task;
+
+      if(!myQ.empty()){
+        //try a thread local task
+        task = myQ.front();
+        myQ.pop_front();
+      }else{
+        //otherwise a global task
+        if(blocking)
+          task = dequeue();
+        else{
+          task = tryDequeue();
+        }
+      }
+
+#ifdef GRACEFUL_ABORT
+      if(DynamicScheduler::isAborting())
+        throw DynamicScheduler::AbortException();
+#endif
+
+      if(task) task->runWrapper();
+
+#ifdef GRACEFUL_ABORT
+    }catch(DynamicScheduler::AbortException e){
+      abortWait();
+    }
+#endif
+}
 
 void *workerStartup(void *args) 
 {
@@ -77,17 +118,7 @@ void *workerStartup(void *args)
 
   // infinit loop to for executing tasks
   while(true) {
-#ifdef GRACEFUL_ABORT
-    try{
-#endif
-
-      scheduler->dequeue()->runWrapper();
-
-#ifdef GRACEFUL_ABORT
-    }catch(DynamicScheduler::AbortException e){
-      scheduler->abortWait();
-    }
-#endif
+    scheduler->popAndRunOneTask(true);
   }
 }
 

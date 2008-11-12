@@ -40,10 +40,13 @@ namespace hecura {
 // forward declarsion for DynamicTaskPtr
 class DynamicTask;
 typedef jalib::JRef<DynamicTask> DynamicTaskPtr;
+typedef jalib::JBlockingQueue<DynamicTaskPtr> DynamicTaskQueue;
 
 
 class DynamicScheduler{
 public:
+  static std::list<DynamicTaskPtr>& myThreadLocalQueue();
+
   ///
   /// constructor
   DynamicScheduler();
@@ -116,6 +119,9 @@ public:
   }
 
 
+  void popAndRunOneTask(bool blocking);
+
+
 #ifdef QUEUE_STATISTICS
   unsigned int contention() {
     return queue.contention();
@@ -144,7 +150,7 @@ public:
 protected:
   ///
   /// Blocking queue for ready tasks
-  jalib::JBlockingQueue<DynamicTaskPtr> queue;
+  DynamicTaskQueue queue;
 
   ///
   /// Total number of worker threads

@@ -72,14 +72,7 @@ void DynamicTask::enqueue()
       state=S_PENDING;
   }
   if(preds==0){
-#ifdef INLINE_NULL_TASKS
-    if(inlineTask()) {
-      runWrapper(); //dont bother enqueuing null tasks
-    }else
-#endif
-    {
-      scheduler->enqueue(this);
-    }
+    inlineOrEnqueueTask();
   }
 }
 #endif // PBCC_SEQUENTIAL
@@ -123,14 +116,7 @@ void hecura::DynamicTask::decrementPredecessors(){
     }
   }
   if(shouldEnqueue){
-#ifdef INLINE_NULL_TASKS
-    if(inlineTask()) {
-      runWrapper(); //dont bother enqueuing null tasks
-    }else
-#endif
-    {
-      scheduler->enqueue(this);
-    }
+    inlineOrEnqueueTask();
   }
 }
 
@@ -184,10 +170,7 @@ void DynamicTask::waitUntilComplete()
   while(state != S_COMPLETE && state!= S_CONTINUED) {
     lock.unlock();
     // get a task for execution
-    DynamicTaskPtr task = scheduler->tryDequeue();
-    if (task) {
-      task->runWrapper();
-    }
+    scheduler->popAndRunOneTask(false);
     lock.lock();
   }
   lock.unlock();
@@ -213,21 +196,41 @@ bool DynamicTask::inlineTask()
     return true;
 
   // if large task, do not inline
-  if(maxSize  < taskSize) {
-    maxSize   = taskSize;
-    return false;
-  } 
+//   if(maxSize  < taskSize) {
+//     maxSize   = taskSize;
+//     return false;
+//   } 
 
   // if no tasks in queue, do not inline
   // this is to increase parallelism
-  if(scheduler->empty())
-    return false;
+//   if(scheduler->empty())
+//     return false;
 
   // if task size is very small relative to max task, inline
-  if(taskSize < (maxSize >> 8))
-    return true;
+//   if(taskSize < (maxSize >> 8))
+//     return true;
 
   return false;
+}
+
+void DynamicTask::inlineOrEnqueueTask()
+{
+#ifdef INLINE_NULL_TASKS
+  if(inlineTask()){
+//     static __thread int inlineCount=0;
+//     if(inlineCount<100){
+//      ++inlineCount;
+//      runWrapper(); //dont bother enqueuing just run it
+//      --inlineCount;
+//     }else{
+      //push it in local queue
+      DynamicScheduler::myThreadLocalQueue().push_back(this);
+//     }
+  }else
+#endif
+  {
+    scheduler->enqueue(this);
+  }
 }
 
 }
