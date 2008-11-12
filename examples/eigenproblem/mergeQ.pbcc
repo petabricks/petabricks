@@ -1,6 +1,8 @@
 #ifndef MERGEQ_PBCC
 #define MERGEQ_PBCC
 
+#include "../utilities.pbcc"
+
 transform mergeQ
 from Q1[n1,n1], Q2[n2,n2]
 to Q[n1+n2,n1+n2]
