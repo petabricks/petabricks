@@ -36,7 +36,6 @@ namespace hecura {
 
 // The major work of dynamic scheduler is to maintain two queues:
 // * ready queue: a queue of tasks ready to run
-// * wait  queue: a queue of tasks with unmet dependencies
 
 // forward declarsion for DynamicTaskPtr
 class DynamicTask;
