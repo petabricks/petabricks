@@ -15,9 +15,9 @@ extern "C" void dlaed1_(int *n, double *D, double *Q, int *ldq, int *indxq, doub
 
 transform ComputeEig
 from Vec1[n1,n1],Vec2[n2,n2], RHO
-to Eigenvalue[n1+n2], Eigenvector[n1+n2,n1+n2]
+to Eigenvalue[n1+n2], Eigenvector[n1+n2,n1+n2], WORK[(n1+n2)*(n1+n2)+4*(n1+n2)]
 {
-  to (Eigenvalue eig, Eigenvector vec) from (Vec1 q1, Vec2 q2, RHO b) {
+  to (Eigenvalue eig, Eigenvector vec, WORK work) from (Vec1 q1, Vec2 q2, RHO b) {
     int i, info,size=n1+n2,cutpnt=n1,nsquared=size*size;
     double rho=b;
     double *D = eig.base();
@@ -34,11 +34,11 @@ to Eigenvalue[n1+n2], Eigenvector[n1+n2,n1+n2]
       indxq[i]=i-cutpnt+1;
     }
     
-    double *work = new double[4*size+nsquared];
+    //double *work = new double[4*size+nsquared];
 
-    dlaed1_(&size, D, Q, &size, indxq, &rho, &cutpnt, work, iwork, &info);
+    dlaed1_(&size, D, Q, &size, indxq, &rho, &cutpnt, work.base(), iwork, &info);
 
-    delete [] work;
+    //delete [] work;
     delete [] iwork;
     delete [] indxq;
   }
@@ -47,7 +47,7 @@ to Eigenvalue[n1+n2], Eigenvector[n1+n2,n1+n2]
 // Find eigenvalues and eigenvectors of input matrix T (tridiagonal symmetric)
 transform EigTD
 from Diag[n], Subdiag[n-1]
-to Eigenvalue[n], Eigenvector[n,n], TMP[n,n]
+to Eigenvalue[n], Eigenvector[n,n], TMP[n,n], WORK[n*n+4*n]
 {
   //Bisection
   recursive
@@ -64,7 +64,7 @@ to Eigenvalue[n], Eigenvector[n,n], TMP[n,n]
 
   //Recursive: Divide and Conquer
   recursive
-  to (Eigenvalue eig, Eigenvector vec, TMP tmp) from  (Diag Din, Subdiag Ein){
+  to (Eigenvalue eig, Eigenvector vec, TMP tmp, WORK work) from  (Diag Din, Subdiag Ein){
     int cutpnt=n/2;	
     double rho=Ein.cell(cutpnt-1);
     //MatrixRegion2D q1 = MatrixRegion2D::allocate(cutpnt,cutpnt);
@@ -73,6 +73,10 @@ to Eigenvalue[n], Eigenvector[n,n], TMP[n,n]
     MatrixRegion2D q2 = tmp.region(n/2, n/2, n,   n);
     MatrixRegion2D t1 = tmp.region(n/2, 0,   n,   n/2);
     MatrixRegion2D t2 = tmp.region(0,   n/2, n/2, n);
+    int wSize =  (n/2)*(n/2) + 4*(n/2);
+    JASSERT(wSize < work.count()/2);
+    MatrixRegion1D w1 = work.region(0, wSize);
+    MatrixRegion1D w2 = work.region(work.count()/2, work.count()/2 + wSize);
 
     InlineCopy1D(eig, Din);
 
@@ -81,21 +85,21 @@ to Eigenvalue[n], Eigenvector[n,n], TMP[n,n]
 
     //printf("Recursion: n = %d\n", n);
 
-    SPAWN(EigTD, eig.region(0,cutpnt),q1, t1, eig.region(0,cutpnt),Ein.region(0,cutpnt-1));
-    SPAWN(EigTD, eig.region(cutpnt,n),q2, t2, eig.region(cutpnt,n),Ein.region(cutpnt,n-1));
+    SPAWN(EigTD, eig.region(0,cutpnt),q1, t1, w1, eig.region(0,cutpnt),Ein.region(0,cutpnt-1));
+    SPAWN(EigTD, eig.region(cutpnt,n),q2, t2, w2, eig.region(cutpnt,n),Ein.region(cutpnt,n-1));
     SYNC();
-    SPAWN(ComputeEig, eig, vec, q1, q2, Ein.cell(cutpnt-1));
+    SPAWN(ComputeEig, eig, vec, work, q1, q2, Ein.cell(cutpnt-1));
   }
 }
 
 
 transform EigTDMain
 from Diag[n], Subdiag[n-1]
-through TMP[n,n]
+through TMP[n,n], WORK[n*n+4*n]
 to Eigenvalue[n], Eigenvector[n,n]
 {
-  to (Eigenvalue eig, Eigenvector vec, TMP tmp) from  (Diag Din, Subdiag Ein){
-    EigTD(eig, vec, tmp, Din, Ein); 
+  to (Eigenvalue eig, Eigenvector vec, TMP tmp, WORK work) from  (Diag Din, Subdiag Ein){
+    EigTD(eig, vec, tmp, work, Din, Ein); 
   }
 }
 
