@@ -24,6 +24,9 @@
 # include <sys/types.h>
 
 #if !HAVE_DECL_GETLINE
+#ifndef __USE_GNU
 
-ssize_t getline (char **lineptr, unsigned int *n, FILE *stream);
+ssize_t getline (char **lineptr, size_t *n, FILE *stream);
+
+#endif 
 #endif /* !HAVE_GETLINE */
