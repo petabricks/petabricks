@@ -26,7 +26,9 @@
 #include "getline.h"
 
 ssize_t
-getline (char **lineptr, size_t *n, FILE *stream)
+getline (char **lineptr, unsigned int *n, FILE *stream)
 {
   return getdelim (lineptr, n, '\n', stream);
 }
+
+

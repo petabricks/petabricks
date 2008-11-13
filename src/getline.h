@@ -24,5 +24,6 @@
 # include <sys/types.h>
 
 #if !HAVE_DECL_GETLINE
-ssize_t getline (char **lineptr, size_t *n, FILE *stream);
+
+ssize_t getline (char **lineptr, unsigned int *n, FILE *stream);
 #endif /* !HAVE_GETLINE */

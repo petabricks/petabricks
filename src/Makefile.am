@@ -20,7 +20,7 @@ libhecura_a_SOURCES = autotuner.cpp choicegrid.cpp codegenerator.cpp \
 	jtunable.cpp learner.cpp matrix.cpp matrixdef.cpp matrixdependency.cpp matrixio.cpp \
 	matrixreader.lpp maximalexer.lpp maximaparser.ypp maximawrapper.cpp pblexer.lpp \
 	pbparser.ypp performancetester.cpp region.cpp rule.cpp rulechoice.cpp \
-	spatialdynamictask.cpp staticscheduler.cpp transform.cpp getline.c getdelim.c
+	spatialdynamictask.cpp staticscheduler.cpp transform.cpp getline.cpp getdelim.cpp
 
 pbc_SOURCES = pbc.cpp
 pbc_LDADD = libhecura.a -lpthread 
