@@ -25,10 +25,14 @@
 #include "getdelim.h"
 #include "getline.h"
 
+#ifndef __USE_GNU
+
 ssize_t
-getline (char **lineptr, unsigned int *n, FILE *stream)
+getline (char **lineptr, size_t *n, FILE *stream)
 {
   return getdelim (lineptr, n, '\n', stream);
 }
+
+#endif
 
 
