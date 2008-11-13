@@ -51,13 +51,13 @@ to Eigenvalue[n], Eigenvector[n,n], TMP[n,n], WORK[n*n+4*n]
 {
   //Bisection
   recursive
-  to (Eigenvalue eig, Eigenvector vec) from  (Diag Din, Subdiag Ein) {
+  to (Eigenvalue eig, Eigenvector vec, TMP tmp, WORK work) from  (Diag Din, Subdiag Ein) {
     SPAWN(BisectionTD, eig, vec, Din, Ein);
   }
 
   //QR Iterations
   recursive
-  to (Eigenvalue eig, Eigenvector vec) from  (Diag Din, Subdiag Ein){
+  to (Eigenvalue eig, Eigenvector vec, TMP tmp, WORK work) from  (Diag Din, Subdiag Ein){
     SPAWN(QRTD, eig, vec, Din, Ein);
   }
 
