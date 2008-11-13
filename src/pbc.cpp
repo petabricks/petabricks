@@ -47,8 +47,12 @@ std::string cmdCxxCompiler(const std::string& src, const std::string& bin);
 using namespace hecura;
 
 
-const static std::string theHecuraHPath = jalib::Filesystem::FindHelperUtility("hecura.h");
-const static std::string theLibHecuraPath = jalib::Filesystem::FindHelperUtility("libhecura.a");
+//const static std::string theHecuraHPath = jalib::Filesystem::FindHelperUtility("hecura.h");
+//const static std::string theLibHecuraPath = jalib::Filesystem::FindHelperUtility("libhecura.a");
+
+const static std::string theHecuraHPath = "/u/mareko/hecura/src/hecura.h";
+const static std::string theLibHecuraPath = "/u/mareko/hecura/src/libhecura.a";
+
 
 TransformListPtr parsePbFile(const char* filename);
 
