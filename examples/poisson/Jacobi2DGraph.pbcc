@@ -2,8 +2,8 @@
 #define JACOBI2DGRAPH_PBCC
 
 #include "Jacobi2D.pbcc"
+#include "Precision.h"
 
-#define PRECISION1
 #define MAX_LEVEL 9
 
 transform Jacobi2DGraph
