@@ -9,7 +9,7 @@
 
 %{
 
-JTUNABLE(Parallel_Merge_Cutoff, 100);
+JTUNABLE(Parallel_Merge_Cutoff, 5000);
 
 inline int BinarySearch(double value, ConstMatrixRegion1D &A)
 {
