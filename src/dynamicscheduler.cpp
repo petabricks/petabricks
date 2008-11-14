@@ -107,7 +107,10 @@ void DynamicScheduler::popAndRunOneTask(bool blocking){
 
 #ifdef GRACEFUL_ABORT
     }catch(DynamicScheduler::AbortException e){
-      abortWait();
+      if(blocking)
+        abortWait();
+      else
+        throw;
     }
 #endif
 }
