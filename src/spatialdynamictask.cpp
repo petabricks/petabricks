@@ -20,6 +20,9 @@
 #include "spatialdynamictask.h"
 
 void hecura::SpatialTaskList::spatialSplit(int dim, int n){
+  //HACK HACK HACK:
+  if(dim==0) return; // skip first dimension
+
   SpatialTaskList tmp;
   swap(tmp);
   for(iterator i=tmp.begin(); i!=tmp.end(); ++i)

@@ -17,7 +17,7 @@
           newError = ComputeError(y, actual);
           change = newError / oldError;
           oldError = newError;
-//          printf("      error = %g, ratio = %g\n", newError, newError / error);
+          printf("      error = %g, ratio = %g\n", newError, newError / error);
           if (change >= 1) {
             // cannot achieve target precision, so this is an invalid selection
             // signal to timing run that it should abort
@@ -26,5 +26,7 @@
           }
 
         } while (newError / error > CAT(POISSON_PRECISION_, CURPREC) && change < 1);
+
+	printf("Setting number of iterations of prec%dIters_Prec%d to %d\n", LOCALPREC, CURPREC, (int) CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level]);
       }
 

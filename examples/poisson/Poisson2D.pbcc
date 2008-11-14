@@ -20,10 +20,10 @@
 #define __CAT(ab) ab
 
 #define POISSON_PRECISION_1 1e-1
-#define POISSON_PRECISION_2 1e-4
-#define POISSON_PRECISION_3 1e-7
-#define POISSON_PRECISION_4 1e-10
-#define POISSON_PRECISION_5 1e-13
+#define POISSON_PRECISION_2 1e-3
+#define POISSON_PRECISION_3 1e-5
+#define POISSON_PRECISION_4 1e-7
+#define POISSON_PRECISION_5 1e-9
 
 #define CURPREC 1
 #include "Poisson2D_InnerTransform.pbcc"
