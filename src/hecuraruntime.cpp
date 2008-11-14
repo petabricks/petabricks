@@ -37,7 +37,7 @@ static int TRAIN_LEVEL_THRESH=1.2;
 
 static int GRAPH_MIN=8;
 static int GRAPH_MAX=2048;
-static int GRAPH_MAX_SEC=10;
+static int GRAPH_MAX_SEC=std::numeric_limits<int>::max();
 static int GRAPH_STEP=8;
 static int GRAPH_TRIALS=3;
 static int GRAPH_SMOOTHING=0;
