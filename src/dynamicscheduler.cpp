@@ -69,8 +69,8 @@ void DynamicScheduler::startWorkerThreads(int newWorkers)
   JTRACE("start worker threads")(numOfWorkers);
 }
 
+__thread std::list<DynamicTaskPtr>* q = 0;
 std::list<DynamicTaskPtr>& DynamicScheduler::myThreadLocalQueue(){
-  static __thread std::list<DynamicTaskPtr>* q = 0;
   if(q==0) q = new std::list<DynamicTaskPtr>();
   return *q;
 }
