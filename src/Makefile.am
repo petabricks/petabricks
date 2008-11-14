@@ -11,7 +11,8 @@ noinst_HEADERS = autotuner.h choicegrid.h codegenerator.h config.h \
 	jblockingqueue.h jbuffer.h jconvert.h jfilesystem.h jmutex.h jprintable.h jrefcounted.h \
 	jserialize.h jsocket.h jthread.h jtimer.h jtunable.h learner.h matrix.h matrixdef.h \
 	matrixdependency.h matrixio.h matrixoperations.h maximawrapper.h performancetester.h \
-	region.h rule.h rulechoice.h spatialdynamictask.h staticscheduler.h transform.h
+	region.h rule.h rulechoice.h spatialdynamictask.h staticscheduler.h \
+  transform.h getline.h getdelim.h
 
 libhecura_a_SOURCES = autotuner.cpp choicegrid.cpp codegenerator.cpp \
 	dynamicscheduler.cpp dynamictask.cpp formula.cpp hecuraruntime.cpp jassert.cpp jbuffer.cpp \
@@ -19,7 +20,7 @@ libhecura_a_SOURCES = autotuner.cpp choicegrid.cpp codegenerator.cpp \
 	jtunable.cpp learner.cpp matrix.cpp matrixdef.cpp matrixdependency.cpp matrixio.cpp \
 	matrixreader.lpp maximalexer.lpp maximaparser.ypp maximawrapper.cpp pblexer.lpp \
 	pbparser.ypp performancetester.cpp region.cpp rule.cpp rulechoice.cpp \
-	spatialdynamictask.cpp staticscheduler.cpp transform.cpp
+	spatialdynamictask.cpp staticscheduler.cpp transform.cpp getline.cpp getdelim.cpp
 
 pbc_SOURCES = pbc.cpp
 pbc_LDADD = libhecura.a -lpthread 

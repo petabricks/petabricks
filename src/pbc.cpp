@@ -47,8 +47,17 @@ std::string cmdCxxCompiler(const std::string& src, const std::string& bin);
 using namespace hecura;
 
 
+#if defined(__i386__) || defined(__x86_64__)
 const static std::string theHecuraHPath = jalib::Filesystem::FindHelperUtility("hecura.h");
 const static std::string theLibHecuraPath = jalib::Filesystem::FindHelperUtility("libhecura.a");
+
+#else
+
+const static std::string theHecuraHPath = "/u/mareko/hecura/src/hecura.h";
+const static std::string theLibHecuraPath = "/u/mareko/hecura/src/libhecura.a";
+
+#endif
+
 
 TransformListPtr parsePbFile(const char* filename);
 
@@ -122,6 +131,7 @@ std::string cmdCxxCompiler(const std::string& src, const std::string& bin){
 void callCxxCompiler(const std::string& src, const std::string& bin){
   std::string cmd = cmdCxxCompiler(src,bin);
   JTRACE("Running g++")(cmd);
+  std::cout << cmd << std::endl; 
   int rv = system(cmd.c_str());
   JASSERT(rv==0)(rv)(cmd).Text("g++ call failed");
 }

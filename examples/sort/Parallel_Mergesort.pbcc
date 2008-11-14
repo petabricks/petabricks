@@ -38,7 +38,7 @@ to OUT[n1 + n2]
 {
   recursive to (OUT out) from (IN1 in1, IN2 in2)
   {
-    if (n1 + n2 < 1000) {
+    if (n1 + n2 < Parallel_Merge_Cutoff) {
       int ptr1 = 0;
       int ptr2 = 0;
       int i = 0;
