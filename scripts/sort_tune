@@ -1,0 +1,17 @@
+cd ../examples/sort
+./Sort --reset
+#Manually change num workers to 1, then:
+./Sort --autotune SortSubArray_0 --max 500000 --trails 15
+./Sort --optimize tunerInlineTaskSize --min 200 --max 10000 --step 500 -n 500000
+./Sort --optimize Parallel_Merge_Cutoff --min 4500 --max 11500 --step 1000 -n
+500000 --trails 3
+./Sort --autotune SortSubArray_0 --max 500000 --trails 15
+./Sort --optimize tunerInlineTaskSize --min 200 --max 10000 --step 500 -n 500000
+./Sort --optimize Parallel_Merge_Cutoff --min 4500 --max 8500 --step 1000 -n
+500000 --trails 3
+./Sort --autotune SortSubArray_0 --max 500000 --trails 15
+./Sort --graph-parallel --min 0 --max 16 --step 1 -n 500000 --trails 5
+
+
+
+
