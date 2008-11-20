@@ -15,7 +15,7 @@
     centric conference.  Is our multigrid training technique novel?
 
 \item Port to a ``novel'' architecture (graphics cards, cell, etc)
-    and argue that our algorithmic adaptivity allows truly portable
+    and argue that our algorithmic adaptivity allows for truly portable
     applications.
 
 \item Implement the robustness ideas from the proposal. Automatic handling
@@ -111,13 +111,15 @@ the public.
 \subsection{Bug Fixes}
 \begin{itemize}
 
-\item Call MatrixRegion::slice on ``from(S<n> s)''
+\item Call MatrixRegion::slice on for entire versions.
 
 \item Fix support for multiple output regions of different size.
 
 \item Fix compiler warnings about failed comparisons.
 
 \item Strip \#line tags from input \%\{...\}\% regions.
+
+\item Fix the pesky applicable region bug.
 
 \end{itemize}
 
