@@ -42,6 +42,7 @@ public:
   ///print to stdout
   void print() const { print(std::cout); }
 
+
   template < typename T >
   static void printStlList(std::ostream& o, const T& obj){
     printStlList(o, obj.begin(), obj.end());

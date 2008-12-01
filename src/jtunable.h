@@ -32,6 +32,9 @@
 #define JTUNABLE(name, args...) \
   jalib::JTunable name(#name, args)
 
+#define JTUNABLESTATIC(name, value) \
+  jalib::JTunableStatic<value> name(#name)
+
 #define JTUNABLEARRAY(name, n, args...) \
   jalib::JTunableArray name(#name, n, args)
 
@@ -97,6 +100,8 @@ public:
   void autotune(JConfigurationTester* tester) const;
 
   void reset() const;
+
+  void addStaticTunable(const char* name, TunableValue val){}
 };
 
 /**
@@ -161,6 +166,36 @@ private:
   bool _isPegged;
 };
 
+//statically set tunable value
+template < TunableValue _value > 
+class JTunableStatic {
+public:
+  JTunableStatic( const char* name ){
+    JTunableManager::instance().addStaticTunable(name, _value);
+  }
+
+  //set/get _value
+  inline operator TunableValue () const { return _value; }
+  inline TunableValue value() const { return _value; }
+  void setValue(TunableValue v) { JWARNING(v==_value)(v)(_value).Text("Can't change static JTunable"); }
+
+  //set/get _isPegged
+  bool isPegged() const { return true; }
+  void setPegged(bool v) {}
+
+  const std::string& name() const {
+    static std::string t = "__static_tunable";
+    return t;
+  }
+  TunableValue min() const { return _value; }
+  TunableValue max() const { return _value; }
+
+
+  TunableValue rangeLength() const { return 1; }
+
+  void verify() {}
+  void reset() {}
+};
 
 class JTunableArray : public std::vector<JTunable> {
 public: 
