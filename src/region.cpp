@@ -140,6 +140,7 @@ void hecura::Region::initialize(Transform& trans) {
         }
       }
     }
+    if(_version) _originalType = REGION_SLICE;
     break;
   default:
     JASSERT(false).Text("Unreachable");
@@ -312,6 +313,8 @@ std::string hecura::Region::generateSignatureCode(CodeGenerator& o, bool isConst
   case REGION_BOX:
   case REGION_ALL:
     return (isConst?_fromMatrix->constMatrixTypeName():_fromMatrix->matrixTypeName())+" " + _name;
+  case REGION_SLICE:
+    return (isConst?_fromMatrix->constSliceTypeName():_fromMatrix->sliceTypeName())+" " + _name;
   default:
     JASSERT(false).Text("Unreachable");
     return "";
@@ -328,6 +331,8 @@ std::string hecura::Region::generateAccessorCode(CodeGenerator& o) const{
     return _fromMatrix->name() + ".row("+_minCoord[1]->toString()+")";
   case REGION_BOX:
     return _fromMatrix->name() + ".region("+_minCoord.toString() +", "+_maxCoord.toString()+")";
+  case REGION_SLICE:
+    return _fromMatrix->name() + ".slice("+jalib::XToString(_fromMatrix->numDimensions()-1)+","+jalib::XToString(_minCoord.back())+")";
   case REGION_ALL:
     return _fromMatrix->name();
   default:

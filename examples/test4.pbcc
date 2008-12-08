@@ -1,3 +1,5 @@
+#include "utilities.pbcc"
+
 transform Test4
 from IN[w,h] 
 through X<0..8>[w,h]
@@ -7,8 +9,8 @@ testcase A
   X<i>.cell(x,y) from(X<i-1>.cell(x,y) v){
     return v+1;
   }
-  X<0>.cell(x,y) from(IN.cell(x,y) i){
-    return i;
+  to(X<0> o) from(IN i){
+    InlineCopy2D(o, i);
   }
   OUT.cell(x,y) from(X<7>.cell(x,y) i){
     return i;

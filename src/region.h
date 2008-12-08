@@ -94,6 +94,7 @@ public:
     REGION_ROW,
     REGION_COL,
     REGION_BOX,
+    REGION_SLICE,
     REGION_ALL
   };
 

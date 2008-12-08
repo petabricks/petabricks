@@ -99,6 +99,23 @@ public:
   }
 
   
+  std::string sliceTypeName() const{
+    #ifdef SHORT_TYPE_NAMES
+    return "MatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
+    #else
+    return "hecura::MatrixRegion<"+jalib::XToString(numDimensions()-1)+">";
+    #endif
+  }
+
+  std::string constSliceTypeName() const{
+    #ifdef SHORT_TYPE_NAMES
+    return "ConstMatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
+    #else
+    return "hecura::MatrixRegion<"+jalib::XToString(numDimensions()-1)+", const MATRIX_ELEMENT_T>";
+    #endif
+  }
+
+  
 
   void argDeclRW(std::vector<std::string>& args, bool byRef=false) const;
   void argDeclRO(std::vector<std::string>& args, bool byRef=false) const;
