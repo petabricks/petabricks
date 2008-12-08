@@ -156,12 +156,8 @@ public:
 
   ///
   /// Return function the name of this rule in the code
-  std::string implcodename() const {
-    return "rule" + jalib::XToString(_id);
-  }
-  std::string trampcodename() const {
-    return "apply_rule" + jalib::XToString(_id);
-  }
+  std::string implcodename(Transform& trans) const;
+  std::string trampcodename(Transform& trans) const;
 
   ///
   /// 

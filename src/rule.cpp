@@ -234,7 +234,7 @@ void hecura::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
   for(int i=0; i<dimensions(); ++i)
     args.push_back("const IndexT "+getOffsetVar(i)->toString());
 
-  o.beginFunc(rt, implcodename(), args);
+  o.beginFunc(rt, implcodename(trans), args);
   {
     if(isRecursive()) o.write("DynamicTaskPtr _before, _after = new NullDynamicTask();");
     for(FormulaList::const_iterator i=_definitions.begin(); i!=_definitions.end(); ++i){
@@ -299,7 +299,7 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
     rt="hecura::DynamicTaskPtr";
   }
 
-  o.beginFunc(rt,trampcodename(), argsByRef);
+  o.beginFunc(rt,trampcodename(trans), argsByRef);
   {
   if(isRecursive()) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
 
@@ -327,14 +327,14 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   }
   o.endFunc();
 
-  TaskCodeGenerator& task = o.createTask(trampcodename(), args, "SpatialDynamicTask");
+  TaskCodeGenerator& task = o.createTask(trampcodename(trans), args, "SpatialDynamicTask");
   task.beginRunFunc();
   {
     if(isRecursive()){
-        task.setcall("DynamicTaskPtr _task", trampcodename(), task.argnames());
+        task.setcall("DynamicTaskPtr _task", trampcodename(trans), task.argnames());
         task.write("return _task;");
     }else{
-      task.call(trampcodename(), task.argnames());
+      task.call(trampcodename(trans), task.argnames());
       task.write("return NULL;");
     }
   }
@@ -404,7 +404,7 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
       }
       task.write("for(;"+t_begin+"<"+getOffsetVar(i,"end")->toString()+"; "+t_begin+"+=_thresh,"+t_end+"+=_thresh){");
       task.incIndent();
-      task.setcall("_t", "new "+trampcodename()+"_task", args);
+      task.setcall("_t", "new "+trampcodename(trans)+"_task", args);
       task.write("_list.push_back(_t);");
       task.endFor();
       task.endCase();
@@ -442,13 +442,13 @@ void hecura::Rule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& 
     args.push_back(getOffsetVar(i)->toString());
 
   if(isReturnStyle()){
-    o.setcall(_to.front()->generateAccessorCode(o),implcodename(), args);
+    o.setcall(_to.front()->generateAccessorCode(o),implcodename(trans), args);
   }else if(isRecursive()){
-    o.setcall("DynamicTaskPtr _task",implcodename(), args);
+    o.setcall("DynamicTaskPtr _task",implcodename(trans), args);
     o.write("_spawner->dependsOn(_task);");
     o.write("_task->enqueue();");
   }else{
-    o.call(implcodename(), args);
+    o.call(implcodename(trans), args);
   }
 }
 
@@ -484,12 +484,12 @@ std::vector<std::string> hecura::Rule::getCallArgs(Transform& trans, const Simpl
 
 void hecura::Rule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
   std::vector<std::string> args = getCallArgs(trans, region);
-  o.call(trampcodename(), args);
+  o.call(trampcodename(trans), args);
 }
 
 void hecura::Rule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
   std::vector<std::string> args = getCallArgs(trans, region);
-  o.setcall(name,"new "+trampcodename()+"_task", args);
+  o.setcall(name,"new "+trampcodename(trans)+"_task", args);
 }
 
 
@@ -570,5 +570,12 @@ void hecura::Rule::removeInvalidOrders(IterationOrderList& o){
       }
     }
   }
+}
+
+std::string hecura::Rule::implcodename(Transform& trans) const {
+  return trans.name()+"_rule" + jalib::XToString(_id-trans.ruleIdOffset());
+}
+std::string hecura::Rule::trampcodename(Transform& trans) const {
+  return trans.name()+"_apply_rule" + jalib::XToString(_id-trans.ruleIdOffset());
 }
 
