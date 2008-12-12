@@ -29,13 +29,6 @@ config.h
 stamp-h1
 pbc
 
-src/maximalexer.cpp
-src/maximaparser.cpp
-src/maximaparser.h
-src/pblexer.cpp
-src/pbparser.cpp
-src/pbparser.h
-src/matrixreader.cpp
 src/cxxconfig.h
 maxima.log
 schedule.pdf

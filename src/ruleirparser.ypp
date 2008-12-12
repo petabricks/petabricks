@@ -1,0 +1,45 @@
+%{
+#include <stdio.h>
+#include <map>
+#include "jconvert.h"
+#include "formula.h"
+
+using namespace hecura;
+
+extern int yylex (void);
+static int yyerror(const char* msg){ JASSERT(false)(msg).Text("parse error"); return 0;}
+
+static jalib::JRefPool theRefPool;
+#define REFALLOC(args...) (theRefPool.add(new args))
+
+static void clearParserCaches(){
+  theRefPool.clear();
+}
+
+%}
+
+%union {
+  bool b;
+  int i;
+  double d;
+  const char* str;
+}
+
+%defines
+%locations
+%expect 0
+%name-prefix="ruleir"
+%start Start
+
+%nonassoc '=' '<' '>' TOK_LE TOK_GE 
+%left '-' '+'
+%left '*' '/'
+%left '^'
+
+%%
+
+Start:;
+
+
+%%
+
