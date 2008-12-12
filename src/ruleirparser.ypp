@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 #include <map>
+#include "ruleir.h"
 #include "jconvert.h"
 #include "formula.h"
 
@@ -19,26 +20,94 @@ static void clearParserCaches(){
 %}
 
 %union {
-  bool b;
-  int i;
-  double d;
   const char* str;
+  hecura::RIRExpr*  expr;
+  hecura::RIRStmt*  stmt;
+  hecura::RIRBlock* block;
 }
 
 %defines
 %locations
-%expect 0
+%expect 1
 %name-prefix="ruleir"
 %start Start
 
-%nonassoc '=' '<' '>' TOK_LE TOK_GE 
-%left '-' '+'
-%left '*' '/'
-%left '^'
+%type <str> TOK_OP TOK_LIT TOK_IDENT
+%type <expr> Op
+%type <expr> Lit
+%type <expr> Ident
+%type <expr> ExprElement Expr
+%type <expr> Call
+%type <expr> Args OptArgs
+
+%type <stmt> Stmt IfStmt LoopStmt BlockStmt
+%type <block> Block
+
+%left TOK_OP TOK_LIT TOK_IDENT TOK_IF TOK_THEN TOK_ELSE TOK_FOR TOK_WHILE TOK_DO TOK_RETURN TOK_BREAK TOK_CONTINUE
 
 %%
 
-Start:;
+Start: Block;
+
+Block: Block Stmt {($$=$1)->addStmt($2);}
+     | Stmt      {($$=REFALLOC(RIRBlock()))->addStmt($1);};
+
+Stmt: Expr ';' {($$=REFALLOC(RIRStmt()))->addExpr($1);}
+    | Nil  ';' {($$=REFALLOC(RIRStmt()));}
+    | IfStmt   {$$=$1;}
+    | LoopStmt {$$=$1;}
+    | BlockStmt {$$=$1;};
+
+IfStmt: TOK_IF '(' Expr ')' Stmt                {
+  $$=REFALLOC(RIRStmt());
+};
+
+IfStmt: TOK_IF '(' Expr ')' Stmt TOK_ELSE  Stmt {
+  $$=REFALLOC(RIRStmt());
+};
+
+LoopStmt: TOK_FOR '(' Expr ';' Expr ';' Expr ')' Stmt {
+  $$=REFALLOC(RIRStmt());
+};
+
+LoopStmt: TOK_WHILE '(' Expr ')' Stmt {
+  $$=REFALLOC(RIRStmt());
+};
+
+LoopStmt: TOK_DO Stmt TOK_WHILE '(' Expr ')' ';'{
+  $$=REFALLOC(RIRStmt());
+};
+
+BlockStmt: '{' Block '}' {
+  $$=REFALLOC(RIRStmt());
+};
+
+Expr: Expr ExprElement     {($$=$1)->addSubExpr($2);}
+    | ExprElement           {($$=REFALLOC(RIRChainExpr()))->addSubExpr($1);};
+
+ExprElement: Op    {$$=$1;}
+           | Lit   {$$=$1;}
+           | Ident {$$=$1;}
+           | Call  {$$=$1;};
+
+Call: Ident '(' OptArgs ')'  { 
+  $$=REFALLOC(RIRCallExpr()); 
+  $$->addSubExpr($1);
+  $$->addSubExpr($3);
+};
+
+
+Args: Expr          { ($$=REFALLOC(RIRArgsExpr()))->addSubExpr($1); }
+    | Args ',' Expr { ($$=$1)->addSubExpr($3); };
+
+OptArgs: Nil   {$$=REFALLOC(RIRArgsExpr());}
+       | Args  {$$=$1;};
+
+Op:    TOK_OP    {$$=REFALLOC(RIROpExpr($1));};
+Lit:   TOK_LIT   {$$=REFALLOC(RIRLitExpr($1));};
+Ident: TOK_IDENT {$$=REFALLOC(RIRIdentExpr($1));};
+
+Nil:;
 
 
 %%

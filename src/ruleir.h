@@ -51,13 +51,20 @@ public:
  */
 class RIRExpr  : public RIRNode {
 public:
-  RIRExpr(const std::string& str) :_str(str) {}
+  RIRExpr(const std::string& str="") :_str(str) {}
   void addSubExpr(const RIRExprPtr& p) { _parts.push_back(p); }
   void print(std::ostream& o) const { o << _str; }
 private:
   std::string _str;
   RIRExprList _parts;
 };
+
+typedef RIRExpr RIROpExpr;
+typedef RIRExpr RIRLitExpr;
+typedef RIRExpr RIRIdentExpr;
+typedef RIRExpr RIRChainExpr;
+typedef RIRExpr RIRCallExpr;
+typedef RIRExpr RIRArgsExpr;
 
 /**
  * Rule IR Statement
@@ -74,7 +81,6 @@ private:
  */
 class RIRBlock : public RIRNode {
 public:
-  
   void addStmt(const RIRStmtPtr& p) { _stmts.push_back(p); }
 private:
   RIRStmtList _stmts;

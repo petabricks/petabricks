@@ -39,28 +39,48 @@
    /* Put the tokens into the symbol table, so that GDB and other debuggers
       know about them.  */
    enum yytokentype {
-     TOK_GE = 258,
-     TOK_LE = 259
+     TOK_CONTINUE = 258,
+     TOK_BREAK = 259,
+     TOK_RETURN = 260,
+     TOK_DO = 261,
+     TOK_WHILE = 262,
+     TOK_FOR = 263,
+     TOK_ELSE = 264,
+     TOK_THEN = 265,
+     TOK_IF = 266,
+     TOK_IDENT = 267,
+     TOK_LIT = 268,
+     TOK_OP = 269
    };
 #endif
 /* Tokens.  */
-#define TOK_GE 258
-#define TOK_LE 259
+#define TOK_CONTINUE 258
+#define TOK_BREAK 259
+#define TOK_RETURN 260
+#define TOK_DO 261
+#define TOK_WHILE 262
+#define TOK_FOR 263
+#define TOK_ELSE 264
+#define TOK_THEN 265
+#define TOK_IF 266
+#define TOK_IDENT 267
+#define TOK_LIT 268
+#define TOK_OP 269
 
 
 
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 21 "ruleirparser.ypp"
+#line 22 "ruleirparser.ypp"
 {
-  bool b;
-  int i;
-  double d;
   const char* str;
+  hecura::RIRExpr*  expr;
+  hecura::RIRStmt*  stmt;
+  hecura::RIRBlock* block;
 }
 /* Line 1489 of yacc.c.  */
-#line 64 "ruleirparser.h"
+#line 84 "ruleirparser.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
