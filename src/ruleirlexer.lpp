@@ -38,7 +38,7 @@ static const char* circularStringCache(const char* str){
 PASS_CHARS [,()]
 OPS [=<>^*/[\]+-]
 WS [ \r\n\t]
-STR ["]([^"]|[\\].)*["]
+STR ["]([^"]+|[\\].)*["]
 CHAR ['][\\]?.[']
 
 %%
@@ -63,6 +63,7 @@ CHAR ['][\\]?.[']
   [0-9]+              return TOK_LIT;
   [0-9]+[.][0-9]+     return TOK_LIT;
   [a-z:_][.:a-z0-9_]* return TOK_IDENT;
+  [%][{]([^%]+|[%][^}])*[%][}] return TOK_RAW;
   .                   JWARNING(false)(yytext).Text("Unhanded input");
 }
 

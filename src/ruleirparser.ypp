@@ -32,7 +32,7 @@ static void clearParserCaches(){
 %name-prefix="ruleir"
 %start Start
 
-%type <str> TOK_OP TOK_LIT TOK_IDENT
+%type <str> TOK_OP TOK_LIT TOK_IDENT TOK_RAW
 %type <expr> Op
 %type <expr> Lit
 %type <expr> Ident
@@ -40,10 +40,10 @@ static void clearParserCaches(){
 %type <expr> Call
 %type <expr> Args OptArgs
 
-%type <stmt> Stmt IfStmt LoopStmt BlockStmt
+%type <stmt> Stmt IfStmt LoopStmt BlockStmt RawStmt
 %type <block> Block
 
-%left TOK_OP TOK_LIT TOK_IDENT TOK_IF TOK_THEN TOK_ELSE TOK_FOR TOK_WHILE TOK_DO TOK_RETURN TOK_BREAK TOK_CONTINUE
+%left TOK_OP TOK_LIT TOK_IDENT TOK_IF TOK_THEN TOK_ELSE TOK_FOR TOK_WHILE TOK_DO TOK_RETURN TOK_BREAK TOK_CONTINUE TOK_RAW
 
 %%
 
@@ -52,34 +52,46 @@ Start: Block;
 Block: Block Stmt {($$=$1)->addStmt($2);}
      | Stmt      {($$=REFALLOC(RIRBlock()))->addStmt($1);};
 
-Stmt: Expr ';' {($$=REFALLOC(RIRStmt()))->addExpr($1);}
-    | Nil  ';' {($$=REFALLOC(RIRStmt()));}
-    | IfStmt   {$$=$1;}
-    | LoopStmt {$$=$1;}
-    | BlockStmt {$$=$1;};
+Stmt: Expr ';'  {($$=REFALLOC(RIRStmt()))->addExpr($1);}
+    | Nil  ';'  {($$=REFALLOC(RIRStmt()));}
+    | IfStmt    {$$=$1;}
+    | LoopStmt  {$$=$1;}
+    | BlockStmt {$$=$1;}
+    | RawStmt   {$$=$1;};
 
 IfStmt: TOK_IF '(' Expr ')' Stmt                {
   $$=REFALLOC(RIRStmt());
+  UNIMPLEMENTED();
 };
 
 IfStmt: TOK_IF '(' Expr ')' Stmt TOK_ELSE  Stmt {
   $$=REFALLOC(RIRStmt());
+  UNIMPLEMENTED();
 };
 
 LoopStmt: TOK_FOR '(' Expr ';' Expr ';' Expr ')' Stmt {
   $$=REFALLOC(RIRStmt());
+  UNIMPLEMENTED();
 };
 
 LoopStmt: TOK_WHILE '(' Expr ')' Stmt {
   $$=REFALLOC(RIRStmt());
+  UNIMPLEMENTED();
 };
 
 LoopStmt: TOK_DO Stmt TOK_WHILE '(' Expr ')' ';'{
   $$=REFALLOC(RIRStmt());
+  UNIMPLEMENTED();
 };
 
 BlockStmt: '{' Block '}' {
   $$=REFALLOC(RIRStmt());
+  UNIMPLEMENTED();
+};
+
+RawStmt: TOK_RAW {
+  $$=REFALLOC(RIRStmt());
+  UNIMPLEMENTED();
 };
 
 Expr: Expr ExprElement     {($$=$1)->addSubExpr($2);}

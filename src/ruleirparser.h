@@ -39,33 +39,35 @@
    /* Put the tokens into the symbol table, so that GDB and other debuggers
       know about them.  */
    enum yytokentype {
-     TOK_CONTINUE = 258,
-     TOK_BREAK = 259,
-     TOK_RETURN = 260,
-     TOK_DO = 261,
-     TOK_WHILE = 262,
-     TOK_FOR = 263,
-     TOK_ELSE = 264,
-     TOK_THEN = 265,
-     TOK_IF = 266,
-     TOK_IDENT = 267,
-     TOK_LIT = 268,
-     TOK_OP = 269
+     TOK_RAW = 258,
+     TOK_CONTINUE = 259,
+     TOK_BREAK = 260,
+     TOK_RETURN = 261,
+     TOK_DO = 262,
+     TOK_WHILE = 263,
+     TOK_FOR = 264,
+     TOK_ELSE = 265,
+     TOK_THEN = 266,
+     TOK_IF = 267,
+     TOK_IDENT = 268,
+     TOK_LIT = 269,
+     TOK_OP = 270
    };
 #endif
 /* Tokens.  */
-#define TOK_CONTINUE 258
-#define TOK_BREAK 259
-#define TOK_RETURN 260
-#define TOK_DO 261
-#define TOK_WHILE 262
-#define TOK_FOR 263
-#define TOK_ELSE 264
-#define TOK_THEN 265
-#define TOK_IF 266
-#define TOK_IDENT 267
-#define TOK_LIT 268
-#define TOK_OP 269
+#define TOK_RAW 258
+#define TOK_CONTINUE 259
+#define TOK_BREAK 260
+#define TOK_RETURN 261
+#define TOK_DO 262
+#define TOK_WHILE 263
+#define TOK_FOR 264
+#define TOK_ELSE 265
+#define TOK_THEN 266
+#define TOK_IF 267
+#define TOK_IDENT 268
+#define TOK_LIT 269
+#define TOK_OP 270
 
 
 
@@ -80,7 +82,7 @@ typedef union YYSTYPE
   hecura::RIRBlock* block;
 }
 /* Line 1489 of yacc.c.  */
-#line 84 "ruleirparser.h"
+#line 86 "ruleirparser.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
