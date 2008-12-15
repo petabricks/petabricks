@@ -1,0 +1,285 @@
+\documentclass[11pt]{article}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{fullpage}
+
+\lstdefinelanguage{pbcc}{
+morekeywords={transform, if, else, for, from, to, through, case, do, where, return, or,
+              MatrixRegion1D, MatrixRegion2D, MatrixRegion3D, cell, region, row, col},
+sensitive=true,
+morecomment=[l]{\#},
+morecomment=[l]{//},
+morestring=[b]',
+morestring=[b]",
+}
+\lstset{language=pbcc}
+\lstset{numbers=left}
+\lstset{tabsize=2}
+\lstset{commentstyle=\textit}
+\lstset{literate=
+{REFTransform}{{\ref{sec:transform}}}{3}
+{REFRule}     {{\ref{sec:rule}}}{3}
+{REFBody}     {{\ref{sec:body}}}{3}
+}
+
+
+\begin{document}
+\title{PetaBricks Language Specification}
+\author{Jason Ansel}
+\maketitle
+\tableofcontents
+
+\newpage
+\section{Syntax}
+
+\subsection{Minimal PetaBricks Program}
+
+The following is an example of a (near) minimal PetaBricks program. It
+copies the matrix A to the matrix B.
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}
+transform Copy2D                                                 REFTransform
+to B[w,h]                                                        REFTransform
+from A[w,h]                                                      REFTransform
+{
+  to(B.cell(x,y) b)                                              REFRule
+  from(A.cell(x,y) a)                                            REFRule  
+  {                                          
+    b=a;                                                         REFBody
+  }                                         
+}
+\end{lstlisting}
+\end{minipage}
+This defines the transform Copy2D, which can be invoked as follows:
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}
+MatrixRegion2D a,b;
+...
+Copy2D(a,b);
+\end{lstlisting}
+\end{minipage}
+
+This invocation will result in the rule defined on lines~5-9, to be invoked
+on every pair of elements in $a$ and $b$.
+
+
+\subsection{Transform Header}
+\label{sec:transform}
+
+\subsubsection{TRANSFORM Clause}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & Yes                    \\
+\bf Available In Version & 1.0        \\
+\bf Syntax & \tt transform IDENTIFIER \\
+\bf Example & \tt transform Foo       \\
+\hline
+\end{tabular}
+
+~
+
+\noindent
+Specifies the externally visible name of the transform.
+
+\subsubsection{FROM Clause}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & Yes                    \\
+\bf Available In Version & 1.0        \\
+\bf Syntax & \tt from MATRIXDEFLIST     \\
+\bf Example & \tt from A[w,h], B[w]     \\
+\hline
+\end{tabular}
+
+~
+
+\noindent
+\noindent Defines the inputs of the transform.  The sizes of the outputs
+are given as expressions containing unbound variables.  The compiler and
+runtime must find a valid assignment for these unbound variables to match
+the sizes of the inputs given.  The values assigned to these variables are
+visible both in rule headers and in rule bodies.
+
+
+\subsubsection{TO Clause}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & Yes                    \\
+\bf Available In Version & 1.0        \\
+\bf Syntax & \tt to MATRIXDEFLIST     \\
+\bf Example & \tt to C[w,h], D[w]     \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Defines the outputs of the transform.  The sizes of the outputs
+are given as expressions containing unbound variables that are set based on the size
+of the inputs.
+
+\subsubsection{THROUGH Clause}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No                          \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt through MATRIXDEFLIST     \\
+\bf Example & \tt through E[w,h], F[w]     \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Defines intermediate data used during the transform execution. This
+data is temporary and neither an input nor an output.  The sizes are given
+as expressions containing unbound variables that are set based on the size
+of the inputs.
+
+\subsubsection{GENERATOR Clause}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No \\
+\bf Available In Version & 2.0            \\
+\bf Syntax & \tt generator IDENTIFIERLIST \\
+\bf Example & \tt generator Bar\\
+\hline
+\end{tabular}
+
+~
+
+\noindent Specifies the name of another transform (or list of transforms)
+that should be used to generate inputs to this transform during training.
+The outputs of the other transforms are paired left to right with the inputs
+of this transform.  The other transforms inputs are seeded with random data
+of the desired input size.
+
+If this clause is not used, transforms will be given random data during
+training.
+
+\subsection{Rule Header}
+\label{sec:rule}
+
+\subsubsection{TO Clause}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & Yes                          \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt to( MATRIXARGLIST ) \\
+\bf Example & \tt to( A.cell(x,y) a, B.region(0, 0, x, y) b)\\
+\hline
+\end{tabular}
+
+~
+
+\noindent Specifies the outputs for the rule.
+
+\subsubsection{FROM Clause}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & Yes                          \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt from( MATRIXARGLIST ) \\
+\bf Example & \tt from( A.cell(x,y) a, B.region(0, 0, x, y) b)\\
+\hline
+\end{tabular}
+
+~
+
+\noindent Specifies the inputs for the rule.
+
+\subsubsection{RECURSIVE Clause}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt recursive( EXPRESSION )   \\
+\bf Example & \tt recursive( n )           \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Provide a hint to to autotuner that the decision to use this
+rule should be based on comparing the given EXPRESSION to some constant.
+Note that as of version 2.0 this language feature should no longer be needed
+except in special cases.
+
+
+\subsubsection{WHERE Clause}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No                          \\
+\bf Available In Version & 2.0             \\
+\bf Syntax & \tt where EXPRESSION          \\
+\bf Example & \tt where x<10               \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Limits the range where this rule may be applied.
+
+\noindent 
+
+\subsection{Return-style Syntactic Sugar}
+
+PetaBricks allows a shorter version of rule headers that eliminates
+the need for a TO clause.  It is similar to function style return syntax.
+ 
+\begin{minipage}{\linewidth}
+\begin{lstlisting}
+B.cell(x,y) from(A.cell(x,y) a) {
+  return a;
+}
+\end{lstlisting}
+\end{minipage}
+Is desugared to:
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}
+to(B.cell(x,y) _rv) from(A.cell(x,y) a) {
+  _rv=a;
+  return;
+}
+\end{lstlisting}
+\end{minipage}
+
+\subsection{OR-Keyword Syntactic Sugar}
+
+PetaBricks provides an ``OR'' keyword to eliminate the need for redundant 
+rule headers.  ``OR'' simply means repeat the last rule header. For example:
+ 
+\begin{minipage}{\linewidth}
+\begin{lstlisting}
+to(B b) from(A a) {
+  Foo(b,a);
+} or {
+  Bar(b,a);
+}
+\end{lstlisting}
+\end{minipage}
+Is desugared to:
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}
+to(B b) from(A a) {
+  Foo(b,a);
+}
+to(B b) from(A a) {
+  Bar(b,a);
+}
+\end{lstlisting}
+\end{minipage}
+
+\subsection{Rule Body}
+\label{sec:body}
+
+\end{document}
+
+
