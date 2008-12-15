@@ -64,6 +64,26 @@ Copy2D(a,b);
 This invocation will result in the rule defined on lines~5-9, to be invoked
 on every pair of elements in $a$ and $b$.
 
+\subsection{Transform Structure}
+\begin{minipage}{\linewidth}
+
+\begin{lstlisting}
+Transform Header  [REFTransform]
+{
+  Rule Header     [REFRule] 
+  {                       
+    Rule Body     [REFBody]
+  }                      
+  
+  Rule Header     [REFRule] 
+  {                       
+    Rule Body     [REFBody]
+  }                                         
+
+  ...
+}
+\end{lstlisting}
+\end{minipage}
 
 \subsection{Transform Header}
 \label{sec:transform}
@@ -74,7 +94,7 @@ on every pair of elements in $a$ and $b$.
 \hline
 \bf Required & Yes                    \\
 \bf Available In Version & 1.0        \\
-\bf Syntax & \tt transform IDENTIFIER \\
+\bf Syntax & \tt transform IDENTIFIER[\ref{IDENTIFIER}] \\
 \bf Example & \tt transform Foo       \\
 \hline
 \end{tabular}
@@ -90,7 +110,7 @@ Specifies the externally visible name of the transform.
 \hline
 \bf Required & Yes                    \\
 \bf Available In Version & 1.0        \\
-\bf Syntax & \tt from MATRIXDEFLIST     \\
+\bf Syntax & \tt from MATRIXDEFLIST[\ref{MATRIXDEFLIST}] \\
 \bf Example & \tt from A[w,h], B[w]     \\
 \hline
 \end{tabular}
@@ -111,7 +131,7 @@ visible both in rule headers and in rule bodies.
 \hline
 \bf Required & Yes                    \\
 \bf Available In Version & 1.0        \\
-\bf Syntax & \tt to MATRIXDEFLIST     \\
+\bf Syntax & \tt to MATRIXDEFLIST[\ref{MATRIXDEFLIST}]     \\
 \bf Example & \tt to C[w,h], D[w]     \\
 \hline
 \end{tabular}
@@ -128,7 +148,7 @@ of the inputs.
 \hline
 \bf Required & No                          \\
 \bf Available In Version & 1.0             \\
-\bf Syntax & \tt through MATRIXDEFLIST     \\
+\bf Syntax & \tt through MATRIXDEFLIST[\ref{MATRIXDEFLIST}]     \\
 \bf Example & \tt through E[w,h], F[w]     \\
 \hline
 \end{tabular}
@@ -146,7 +166,7 @@ of the inputs.
 \hline
 \bf Required & No \\
 \bf Available In Version & 2.0            \\
-\bf Syntax & \tt generator IDENTIFIERLIST \\
+\bf Syntax & \tt generator IDENTIFIERLIST[\ref{IDENTIFIERLIST}]\\
 \bf Example & \tt generator Bar\\
 \hline
 \end{tabular}
@@ -170,7 +190,7 @@ training.
 \hline
 \bf Required & Yes                          \\
 \bf Available In Version & 1.0             \\
-\bf Syntax & \tt to( MATRIXARGLIST ) \\
+\bf Syntax & \tt to( MATRIXARGLIST[\ref{MATRIXARGLIST}] ) \\
 \bf Example & \tt to( A.cell(x,y) a, B.region(0, 0, x, y) b)\\
 \hline
 \end{tabular}
@@ -184,7 +204,7 @@ training.
 \hline
 \bf Required & Yes                          \\
 \bf Available In Version & 1.0             \\
-\bf Syntax & \tt from( MATRIXARGLIST ) \\
+\bf Syntax & \tt from( MATRIXARGLIST[\ref{MATRIXARGLIST}] ) \\
 \bf Example & \tt from( A.cell(x,y) a, B.region(0, 0, x, y) b)\\
 \hline
 \end{tabular}
@@ -198,7 +218,7 @@ training.
 \hline
 \bf Required & No \\
 \bf Available In Version & 1.0             \\
-\bf Syntax & \tt recursive( EXPRESSION )   \\
+\bf Syntax & \tt recursive( EXPRESSION[\ref{EXPRESSION}] )   \\
 \bf Example & \tt recursive( n )           \\
 \hline
 \end{tabular}
@@ -216,7 +236,7 @@ except in special cases.
 \hline
 \bf Required & No                          \\
 \bf Available In Version & 2.0             \\
-\bf Syntax & \tt where EXPRESSION          \\
+\bf Syntax & \tt where EXPRESSION[\ref{EXPRESSION}] \\
 \bf Example & \tt where x<10               \\
 \hline
 \end{tabular}
@@ -227,7 +247,7 @@ except in special cases.
 
 \noindent 
 
-\subsection{Return-style Syntactic Sugar}
+\subsubsection{Return-style Syntactic Sugar}
 
 PetaBricks allows a shorter version of rule headers that eliminates
 the need for a TO clause.  It is similar to function style return syntax.
@@ -250,7 +270,7 @@ to(B.cell(x,y) _rv) from(A.cell(x,y) a) {
 \end{lstlisting}
 \end{minipage}
 
-\subsection{OR-Keyword Syntactic Sugar}
+\subsubsection{OR-Keyword Syntactic Sugar}
 
 PetaBricks provides an ``OR'' keyword to eliminate the need for redundant 
 rule headers.  ``OR'' simply means repeat the last rule header. For example:
@@ -279,6 +299,28 @@ to(B b) from(A a) {
 
 \subsection{Rule Body}
 \label{sec:body}
+
+\subsection{Definitions}
+\subsubsection{MATRIXDEFLIST}
+\label{MATRIXDEFLIST}
+
+\subsubsection{MATRIXDEF}
+\label{MATRIXDEF}
+
+\subsubsection{MATRIXARGLIST}
+\label{MATRIXARGLIST}
+
+\subsubsection{MATRIXARG}
+\label{MATRIXARG}
+
+\subsubsection{IDENTIFIERLIST}
+\label{IDENTIFIERLIST}
+
+\subsubsection{IDENTIFIER}
+\label{IDENTIFIER}
+
+\subsubsection{EXPRESSION}
+\label{EXPRESSION}
 
 \end{document}
 
