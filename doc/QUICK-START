@@ -1,0 +1,73 @@
+PetaBricks Development Quick-Start
+by Jason Ansel 12/19/2008
+
+PREREQUISITES:
+
+If you are running on a cagnode machine, all required packages are already
+installed.  If not, you may need the following programs:
+
+git
+maxima
+gcc (4.x)
+flex
+bison
+autoconf
+automake
+autoheader
+graphviz (optional for visualization)
+liblapack (required for some benchmarks)
+
+
+REPOSITORY:
+
+We use GIT for revision control.  A guide for using git can be found here:
+http://git.or.cz/course/svn.html
+
+On CSAIL Debian, clone our repository with:
+git clone /afs/csail/group/commit/reps/projects/hecura
+
+On non-CSAIL machines, clone our repository with:
+git clone login.csail.mit.edu:/afs/csail/group/commit/reps/projects/hecura
+
+This will create a "hecura" folder in the current directory containing
+the PetaBricks source code. Use `git pull` to grab new changes.
+
+
+BUILDING:
+
+To build the PetaBricks compiler (pbc) run the following commands:
+./configure
+make
+
+The compiler can then be found at ./src/pbc
+
+You may alternately run:
+./configure --enable-debug CXXFLAGS="-O0 -g"
+to enable debugging traces (very spammy).
+
+
+RUNNING:
+
+The usage for the compiler is:
+./src/pbc filename.pbcc
+
+For example:
+./src/pbc ./examples/add.pbcc
+
+This creates the binary ./example/add and the output source file
+./examples/add.cpp
+
+There are some sample inputs in ./testdata
+
+The usage for autotuning will change soon.  The current usage is not well
+documented.  Check hecuraruntime.cpp for the code that parses command line
+args to petabricks programs.
+
+./examples contains a lot of sample code in petabricks.
+
+Before you check in any changes, make sure to run our regression test script
+with `make check`
+
+
+
+
