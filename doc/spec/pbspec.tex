@@ -366,17 +366,36 @@ A comma separated list of {\tt IDENTIFIER[\ref{IDENTIFIER}]}.
 
 \section{Semantics}
 
-\section{Operational Semantics for Transform Execution}
+\subsection{Semantics for Rule Execution}
+
+The header (defined Sec.~\ref{sec:rule}) of each rule contains a set of
+free variables used to reference an explicit list input and output regions.
+A rule may be {\em instantiated} by binding these free variables to values
+determined by the compiler and runtime.  The compiler may bind these free
+variables to any value such that:
+\begin{itemize}
+\item All values are non-negative integers.
+\item All regions referenced exist (i.e. not out of bounds access).
+\item All input regions referenced have already been computed.
+\item Any WHERE clauses evaluate to true.
+\end{itemize}
+
+Once the inputs and outputs are bound to an explicit set of cells, rule
+execution follows a semantics and syntax similar to that of {\tt C++} with
+the additional features defined in Section~\ref{sec:body}.
+
+
+\subsection{Semantics for Transform Execution}
 
 The semantics for the execution of a transform revolve around executing
-rules in parallel.  The header (defined Sec.~\ref{sec:rule}) of each rule
-contains a set of free variables used to reference an explicit list input
-and output regions.
+rules in parallel.  This section defines a internal state of an executing
+transform and an operational semantics over this internal state for how a
+running transform may progress from an initial state to a completion state.
 
 The following definitions are required:
 \begin{itemize}
 \item
-Let $R[\alpha]$ represent rule $r$ instantiated with free variables
+Let $r[\alpha]$ represent rule $r$ instantiated with free variables
 bound to the set of definitions $\alpha$.
 \item
 Let $\mbox{depends}(r[\alpha])$ be the set of cells $r[\alpha]$
@@ -399,7 +418,17 @@ variables are bound using the mapping $\alpha_j$).
   \end{itemize}
 \end{itemize}
 
-Transform initialization:
+The following transition rules govern the progression of the internal state
+of a transform during execution.  This semantics intentionally gives a lot of
+freedom to the PetaBricks runtime.  Specifically,  the order of computation
+is defined only as producers-before-consumers, data may be computed more
+than once, and unfinished computations may be arbitrarily discarded.
+
+~
+
+\noindent
+{\it
+Transform initialization:}
 
 ~
 
@@ -413,14 +442,16 @@ $\rightarrow \langle T, \epsilon, D_0, D_1, D_2 \rangle$
 
 ~
 
-Rule execution begins:
+\noindent
+{\it
+Rule execution begins:}
 
 ~
 
 \begin{tabular}{c}
 $r \in T$ \\
-depends$(r[\alpha]) \subset D_0$  \\
-provides$(r[\alpha]) \subset  D_1 \cup D_2 $
+$\alpha$ is a legal assignment for free variables in $r$ \\
+depends$(r[\alpha]) \subset D_0$  
 \\\hline
 $
 \langle T, R, D_0, D_1, D_2 \rangle
@@ -430,11 +461,15 @@ $
 
 ~
 
-Rule execution ends:
+\noindent
+{\it
+Rule execution ends:}
 
 ~
 
 \begin{tabular}{c}
+$r[\alpha]$ has finished executing
+\\
 $D_0' = D_0 \cup {\mbox{provides}(r[\alpha])}$
 \\
 $D_1 = D_1' \cup {\mbox{provides}(r[\alpha])}$
@@ -449,7 +484,25 @@ $
 
 ~
 
-Transform completion:
+\noindent
+{\it
+Rule execution aborted:}
+
+~
+
+\begin{tabular}{c}
+$
+\langle T, R \cup \{r[\alpha]\}, D_0, D_1, D_2 \rangle
+\rightarrow
+\langle T, R, D_0, D_1, D_2 \rangle$
+\end{tabular}
+
+
+~
+
+\noindent
+{\it
+Transform completion:}
 
 ~
 
