@@ -2,6 +2,8 @@
 \usepackage{listings}
 \usepackage{hyperref}
 \usepackage{fullpage}
+\usepackage{amsmath}
+\usepackage{url}
 
 \lstdefinelanguage{pbcc}{
 morekeywords={transform, if, else, for, from, to, through, case, do, where, return, or,
@@ -37,7 +39,6 @@ morestring=[b]",
 The following is an example of a (near) minimal PetaBricks program. It
 copies the matrix A to the matrix B.
 
-\begin{minipage}{\linewidth}
 \begin{lstlisting}
 transform Copy2D                                                 REFTransform
 to B[w,h]                                                        REFTransform
@@ -50,22 +51,18 @@ from A[w,h]                                                      REFTransform
   }                                         
 }
 \end{lstlisting}
-\end{minipage}
 This defines the transform Copy2D, which can be invoked as follows:
 
-\begin{minipage}{\linewidth}
 \begin{lstlisting}
 MatrixRegion2D a,b;
 ...
 Copy2D(a,b);
 \end{lstlisting}
-\end{minipage}
 
 This invocation will result in the rule defined on lines~5-9, to be invoked
 on every pair of elements in $a$ and $b$.
 
 \subsection{Transform Structure}
-\begin{minipage}{\linewidth}
 
 \begin{lstlisting}
 Transform Header  [REFTransform]
@@ -83,7 +80,6 @@ Transform Header  [REFTransform]
   ...
 }
 \end{lstlisting}
-\end{minipage}
 
 \subsection{Transform Header}
 \label{sec:transform}
@@ -186,6 +182,7 @@ training.
 \label{sec:rule}
 
 \subsubsection{TO Clause}
+\label{TO}
 \begin{tabular}{| l | l |}
 \hline
 \bf Required & Yes                          \\
@@ -200,6 +197,7 @@ training.
 \noindent Specifies the outputs for the rule.
 
 \subsubsection{FROM Clause}
+\label{FROM}
 \begin{tabular}{| l | l |}
 \hline
 \bf Required & Yes                          \\
@@ -249,6 +247,15 @@ except in special cases.
 
 \subsubsection{Return-style Syntactic Sugar}
 
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No \\
+\bf Available In Version & 1.0        \\
+\hline
+\end{tabular}
+
+~
+
 PetaBricks allows a shorter version of rule headers that eliminates
 the need for a TO clause.  It is similar to function style return syntax.
  
@@ -271,6 +278,15 @@ to(B.cell(x,y) _rv) from(A.cell(x,y) a) {
 \end{minipage}
 
 \subsubsection{OR-Keyword Syntactic Sugar}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No \\
+\bf Available In Version & 2.0        \\
+\hline
+\end{tabular}
+
+~
 
 PetaBricks provides an ``OR'' keyword to eliminate the need for redundant 
 rule headers.  ``OR'' simply means repeat the last rule header. For example:
@@ -300,9 +316,31 @@ to(B b) from(A a) {
 \subsection{Rule Body}
 \label{sec:body}
 
+Rule bodies are standard {\tt C++} code with some preprocessing performed.
+All variables defined in the corresponding rule header are visible from the 
+rule body.
+
+\subsubsection{MatrixRegion Class}
+Inputs an output matrix regions are of the template type {\tt
+MatrixRegion<N,T>}, where $N$ is the number of dimensions and $T$ is the
+element type.  The typedefs: {\tt MatrixRegion0D}, {\tt MatrixRegion1D},
+{\tt MatrixRegion2D}, ... are provided to refer to output matrix regions of each
+dimensionality.  Additionally the typedefs {\tt ConstMatrixRegion0D}, {\tt
+ConstMatrixRegion1D}, {\tt ConstMatrixRegion2D}, ... refer to matrix
+regions with read only data and are used for inputs to a rule.
+
+This class provides references a to matrix regions and supports numerous operations
+not discussed here.  The API documentation for this class can be found here:
+
+\noindent
+\url{http://kleptocracy.csail.mit.edu/pbapi/d9/db0/classhecura_1_1MatrixRegion.html}
+
+
 \subsection{Definitions}
 \subsubsection{MATRIXDEFLIST}
 \label{MATRIXDEFLIST}
+ 
+A comma separated list of {\tt MATRIXDEF[\ref{MATRIXDEF}]}.
 
 \subsubsection{MATRIXDEF}
 \label{MATRIXDEF}
@@ -310,17 +348,120 @@ to(B b) from(A a) {
 \subsubsection{MATRIXARGLIST}
 \label{MATRIXARGLIST}
 
+A comma separated list of {\tt MATRIXARG[\ref{MATRIXARG}]}.
+
 \subsubsection{MATRIXARG}
 \label{MATRIXARG}
 
 \subsubsection{IDENTIFIERLIST}
 \label{IDENTIFIERLIST}
 
+A comma separated list of {\tt IDENTIFIER[\ref{IDENTIFIER}]}.
+
 \subsubsection{IDENTIFIER}
 \label{IDENTIFIER}
 
 \subsubsection{EXPRESSION}
 \label{EXPRESSION}
+
+\section{Semantics}
+
+\section{Operational Semantics for Transform Execution}
+
+The semantics for the execution of a transform revolve around executing
+rules in parallel.  The header (defined Sec.~\ref{sec:rule}) of each rule
+contains a set of free variables used to reference an explicit list input
+and output regions.
+
+The following definitions are required:
+\begin{itemize}
+\item
+Let $R[\alpha]$ represent rule $r$ instantiated with free variables
+bound to the set of definitions $\alpha$.
+\item
+Let $\mbox{depends}(r[\alpha])$ be the set of cells $r[\alpha]$
+depends on (all the regions specified in the FROM[\ref{FROM}] clause when
+free variables are bound using the mapping $\alpha$).
+\item
+Let $\mbox{provides}(r[\alpha])$ be the set of cells $r[\alpha]$
+outputs on (all the regions specified in the TO[\ref{TO}] clause when free
+variables are bound using the mapping $\alpha_j$).
+\item Let $T$ be a static reference of a transform, consisting of a set of rules.
+\item Let $R$ be a set of rule instances $r_0[\alpha_0] ... r_n[\alpha_n]$
+\item Let $D$ be a set of cells.  Each element in this contains both the $x,y$ coordinate and the matrix in which the cell belongs.
+\item Let $\langle T, R, D_0, D_1, D_2 \rangle$ represent the internal state for a running transform where:
+  \begin{itemize}
+  \item $T$ is the transform being executed.
+  \item $R$ are the rules that may currently executing in parallel.  (Initially $\epsilon$)
+  \item $D_0$ are cells already computed.  (Initially those defined by the FROM clause.)
+  \item $D_1$ are cells that can be computed, but need not be. (Initially those defined by the THROUGH clause.) 
+  \item $D_2$ are cells that must be computed.  (Initially those defined by the TO clause.)
+  \end{itemize}
+\end{itemize}
+
+Transform initialization:
+
+~
+
+\begin{tabular}{c}
+Transform $T$ is called with inputs $D_0$ and outputs $D_2$.
+\\
+$D_0$ is the intermediate (THROUGH) data required by $T$.
+\\\hline
+$\rightarrow \langle T, \epsilon, D_0, D_1, D_2 \rangle$ 
+\end{tabular}
+
+~
+
+Rule execution begins:
+
+~
+
+\begin{tabular}{c}
+$r \in T$ \\
+depends$(r[\alpha]) \subset D_0$  \\
+provides$(r[\alpha]) \subset  D_1 \cup D_2 $
+\\\hline
+$
+\langle T, R, D_0, D_1, D_2 \rangle
+\rightarrow
+\langle T, R \cup \{r[\alpha]\}, D_0, D_1, D_2 \rangle$ 
+\end{tabular}
+
+~
+
+Rule execution ends:
+
+~
+
+\begin{tabular}{c}
+$D_0' = D_0 \cup {\mbox{provides}(r[\alpha])}$
+\\
+$D_1 = D_1' \cup {\mbox{provides}(r[\alpha])}$
+\\
+$D_2 = D_2' \cup {\mbox{provides}(r[\alpha])}$
+\\\hline
+$
+\langle T, R \cup \{r[\alpha]\}, D_0, D_1, D_2 \rangle
+\rightarrow
+\langle T, R, D_0', D_1', D_2' \rangle$
+\end{tabular}
+
+~
+
+Transform completion:
+
+~
+
+\begin{tabular}{c}
+$R=\epsilon$
+\\
+$D_2=\epsilon$
+\\\hline
+$
+\langle T, R, D_0, D_1, D_2 \rangle
+\rightarrow$
+\end{tabular}
 
 \end{document}
 
