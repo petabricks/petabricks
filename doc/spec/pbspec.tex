@@ -24,8 +24,9 @@ morestring=[b]",
 {REFBody}     {{\ref{sec:body}}}{3}
 }
 
-
 \begin{document}
+
+
 \title{PetaBricks Language Specification}
 \author{Jason Ansel}
 \maketitle
@@ -178,6 +179,38 @@ of the desired input size.
 If this clause is not used, transforms will be given random data during
 training.
 
+\subsubsection{TEMPLATE Clause}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No \\
+\bf Available In Version & 2.0            \\
+\bf Syntax & \tt template < IDENTIFIER(INT, INT), ... > \\
+\bf Example & \tt template < precision(1,5) > \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Defines a parameter to the transform that requires independent
+training for each value.  This causes N transforms to be generated, one for
+each possible value.  The first INT specifies the minimum value while the
+second specifies the maximum value.  The new transforms can be called with
+the syntax: Name<ParamValue>.
+
+\subsubsection{Default Values}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No \\
+\bf Available In Version & 2.0            \\
+\bf Example & \tt from IN[h,w]=OUT[h,w], iterations=5 \\
+\hline
+\end{tabular}
+
+In the {\tt FROM} clause, the programmer may specify default values for transform inputs.
+These default values work the same way as default values in {\tt C++}.  
+
 \subsection{Rule Header}
 \label{sec:rule}
 
@@ -210,6 +243,22 @@ training.
 ~
 
 \noindent Specifies the inputs for the rule.
+
+\subsubsection{USING Clause}
+\label{USING}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No \\
+\bf Available In Version & 2.0             \\
+\bf Syntax & \tt using( MATRIXDEFLIST[\ref{MATRIXDEFLIST}] ) \\
+\bf Example & \tt using( T1[10], T2[w+h, w+h] ) \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Defines temporary buffers required by the body of the rule.
+PetaBricks will automatically allocate and reuse these temporary buffers.
 
 \subsubsection{RECURSIVE Clause}
 \begin{tabular}{| l | l |}
@@ -335,6 +384,41 @@ not discussed here.  The API documentation for this class can be found here:
 \noindent
 \url{http://kleptocracy.csail.mit.edu/pbapi/d9/db0/classhecura_1_1MatrixRegion.html}
 
+\subsubsection{Configuration/Tunable Parameters}
+
+The user may specify configuration parameters with:
+\begin{verbatim}
+config(name, initial, min, max);
+\end{verbatim}
+in the file header.  Both min and max are optional and default to 0 and
+MAX\_INT.  These parameters are stored in the program configion file, but are
+{\bf not} autotuned.  The value may be changed by hand, with {\tt configtool}
+(included in the scripts folder), and at runtime with {\tt name.setValue(int)}.
+The current value can be accessed with either {\tt name} or {\tt name.value()}.
+
+The user may specify tunable parameters with:
+\begin{verbatim}
+tunable(name, initial, min, max);
+\end{verbatim}
+in the file header.  This is the same as a {\tt config} except that autotuner 
+will attempt to determine an optimal value automatically.
+
+\subsubsection{Training Runs}
+
+Some transforms require a training phase to determine configuration parameters
+such as the number of iterations.  The autotuner supports this through the
+API function {\tt HecuraRuntime::isTrainingRun()}.  On the first execution
+with a given configuration, calling this method will return {\tt true} and
+as a side effect the timing results will be discarded and the test re-run.
+On subsequent executions this method will return {\tt false} and have no
+side effects.
+
+\subsubsection{Clean Abort}
+
+Transforms can abort execution (in the event of an invalid configuration or
+input) using the API function {\tt HecuraRuntime::abort()}.  During training
+this will cleanly end the current trail and remove the source configuration
+from consideration.
 
 \subsection{Definitions}
 \subsubsection{MATRIXDEFLIST}
