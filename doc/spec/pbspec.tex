@@ -292,7 +292,47 @@ except in special cases.
 
 \noindent Limits the range where this rule may be applied.
 
-\noindent 
+\subsubsection{PRIORITY Clause}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No                          \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt priority(int)             \\
+\bf Example & \tt priority(1)              \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Specify the priority for the given rule.  This is a clean way for
+specifying handling of corner cases.  For a given cell, only rule with a
+minimum priority may be applied.  The default priority is $1$.
+
+\subsubsection{PRIMARY Clause}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No                          \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt primary             \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Equivalent to {\tt priority(0)}
+
+\subsubsection{SECONDARY Clause}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No                          \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt secondary \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Equivalent to {\tt priority(2)}
 
 \subsubsection{Return-style Syntactic Sugar}
 
