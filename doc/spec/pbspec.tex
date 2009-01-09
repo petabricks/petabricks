@@ -60,10 +60,12 @@ MatrixRegion2D a,b;
 Copy2D(a,b);
 \end{lstlisting}
 
-This invocation will result in the rule defined on lines~5-9, to be invoked
-on every pair of elements in $a$ and $b$.
+This invocation will result in the rule, defined on lines~5-9, being invoked
+on every pair of elements in $a$ and $b$ in an undefined order.
 
 \subsection{Transform Structure}
+
+The high level structure of a transform is as follows.
 
 \begin{lstlisting}
 Transform Header  [REFTransform]
@@ -84,6 +86,10 @@ Transform Header  [REFTransform]
 
 \subsection{Transform Header}
 \label{sec:transform}
+
+The header of a transform consists of an unordered, whitespace separated
+list of clauses.  The minimal set of clauses are TRANSFORM, FROM, and TO.
+All of the allowed clauses are defined as follows:
 
 \subsubsection{TRANSFORM Clause}
 
@@ -196,7 +202,7 @@ training.
 training for each value.  This causes N transforms to be generated, one for
 each possible value.  The first INT specifies the minimum value while the
 second specifies the maximum value.  The new transforms can be called with
-the syntax: Name<ParamValue>.
+the syntax: Name$<$ParamValue$>$.
 
 \subsubsection{Default Values}
 
@@ -209,10 +215,14 @@ the syntax: Name<ParamValue>.
 \end{tabular}
 
 In the {\tt FROM} clause, the programmer may specify default values for transform inputs.
-These default values work the same way as default values in {\tt C++}.  
+These default values work the same way as default values in {\tt C++}.  This provides an easy way for defining in place transforms.
 
 \subsection{Rule Header}
 \label{sec:rule}
+
+The header for a rule consists of an unordered, whitespace-separated list
+of clauses.  The meanings of these clauses are defined below.  The only
+required clause is TO.
 
 \subsubsection{TO Clause}
 \label{TO}
@@ -233,7 +243,7 @@ These default values work the same way as default values in {\tt C++}.
 \label{FROM}
 \begin{tabular}{| l | l |}
 \hline
-\bf Required & Yes                          \\
+\bf Required & No                          \\
 \bf Available In Version & 1.0             \\
 \bf Syntax & \tt from( MATRIXARGLIST[\ref{MATRIXARGLIST}] ) \\
 \bf Example & \tt from( A.cell(x,y) a, B.region(0, 0, x, y) b)\\
@@ -308,7 +318,7 @@ except in special cases.
 specifying handling of corner cases.  For a given cell, only rule with a
 minimum priority may be applied.  The default priority is $1$.
 
-\subsubsection{PRIMARY Clause}
+\subsubsection{PRIMARY Keyword}
 \begin{tabular}{| l | l |}
 \hline
 \bf Required & No                          \\
@@ -321,7 +331,7 @@ minimum priority may be applied.  The default priority is $1$.
 
 \noindent Equivalent to {\tt priority(0)}
 
-\subsubsection{SECONDARY Clause}
+\subsubsection{SECONDARY Keyword}
 \begin{tabular}{| l | l |}
 \hline
 \bf Required & No                          \\
@@ -334,7 +344,21 @@ minimum priority may be applied.  The default priority is $1$.
 
 \noindent Equivalent to {\tt priority(2)}
 
-\subsubsection{Return-style Syntactic Sugar}
+\subsubsection{ROTATABLE Keyword}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No                          \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt rotatable \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Syntactic sugar for defining four rules with the coordinate 
+system rotated by $\frac \pi 2$ in each consecutive one.
+
+\subsubsection{Return-style}
 
 \begin{tabular}{| l | l |}
 \hline
@@ -366,7 +390,7 @@ to(B.cell(x,y) _rv) from(A.cell(x,y) a) {
 \end{lstlisting}
 \end{minipage}
 
-\subsubsection{OR-Keyword Syntactic Sugar}
+\subsubsection{OR Keyword}
 
 \begin{tabular}{| l | l |}
 \hline
@@ -418,8 +442,10 @@ dimensionality.  Additionally the typedefs {\tt ConstMatrixRegion0D}, {\tt
 ConstMatrixRegion1D}, {\tt ConstMatrixRegion2D}, ... refer to matrix
 regions with read only data and are used for inputs to a rule.
 
-This class provides references a to matrix regions and supports numerous operations
-not discussed here.  The API documentation for this class can be found here:
+This class is by reference, so using it never copies data. To make a copy,
+one must explicitly call {\tt MatrixRegion::allocate} and then copy.
+MatrixRegion supports numerous operations not discussed here.  The API
+documentation for this class can be found here:
 
 \noindent
 \url{http://kleptocracy.csail.mit.edu/pbapi/d9/db0/classhecura_1_1MatrixRegion.html}
@@ -469,6 +495,13 @@ A comma separated list of {\tt MATRIXDEF[\ref{MATRIXDEF}]}.
 \subsubsection{MATRIXDEF}
 \label{MATRIXDEF}
 
+Declares a new matrix of a given (symbolic) size.
+
+Of the format: {\tt NAME} [ {\tt DIMENSIONS} ] 
+
+Where {\tt NAME} is an identifier and {\tt DIMENSIONS} is a comma separated
+list of list of symbolic expressions.
+
 \subsubsection{MATRIXARGLIST}
 \label{MATRIXARGLIST}
 
@@ -476,6 +509,26 @@ A comma separated list of {\tt MATRIXARG[\ref{MATRIXARG}]}.
 
 \subsubsection{MATRIXARG}
 \label{MATRIXARG}
+
+Declares an argument to a rule that references a matrix defined by a MATRIXDEF.
+
+Of the format: {\tt MATRIX.REGIONSPEC } {\tt NAME}
+
+Where MATRIX is name of the matrix the data is from.  REGIONSPEC is the part
+of the matrix to get and NAME is the identifier defined by this statement.
+
+\subsubsection{REGIONSPEC}
+
+One of:
+
+\begin{itemize}
+\item \tt cell(EXPRESSION...)
+\item \tt region(EXPRESSION...)
+\item \tt row(EXPRESSION)
+\item \tt col(EXPRESSION)
+\item \tt all()
+
+\end{itemize}
 
 \subsubsection{IDENTIFIERLIST}
 \label{IDENTIFIERLIST}
@@ -485,8 +538,12 @@ A comma separated list of {\tt IDENTIFIER[\ref{IDENTIFIER}]}.
 \subsubsection{IDENTIFIER}
 \label{IDENTIFIER}
 
+A name matching the regular expression: {\tt [a-zA-Z\_][a-zA-Z0-9\_]*}
+
 \subsubsection{EXPRESSION}
 \label{EXPRESSION}
+
+An algebraic expression consisting of identifiers, integers, floats, and the operators: [*/()+-]
 
 \section{Semantics}
 
@@ -559,7 +616,7 @@ Transform initialization:}
 \begin{tabular}{c}
 Transform $T$ is called with inputs $D_0$ and outputs $D_2$.
 \\
-$D_0$ is the intermediate (THROUGH) data required by $T$.
+$D_1$ is the intermediate (THROUGH) data required by $T$.
 \\\hline
 $\rightarrow \langle T, \epsilon, D_0, D_1, D_2 \rangle$ 
 \end{tabular}
