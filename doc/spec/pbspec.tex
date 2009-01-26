@@ -135,7 +135,7 @@ from A[n]
     p=a1+a2;
   }
 
-  //lower priority rule to handle odd sizes arrays
+  //lower priority rule to handle odd sized arrays
   secondary to(Partial.cell(i) p) from(A.cell(2*i) a1){
     p=a1;
   }
@@ -481,6 +481,8 @@ minimum priority may be applied.  The default priority is $1$.
 \end{tabular}
 
 ~
+
+TODO: Define this more precisely.
 
 \noindent Syntactic sugar for defining four rules with the coordinate 
 system rotated by $\frac \pi 2$ in each consecutive one.
