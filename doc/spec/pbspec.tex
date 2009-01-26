@@ -6,7 +6,8 @@
 \usepackage{url}
 
 \lstdefinelanguage{pbcc}{
-morekeywords={transform, if, else, for, from, to, through, case, do, where, return, or,
+morekeywords={transform, if, else, for, from, to, using, case, do, where, return, or,
+              secondary, primary, priority, generator, template,
               MatrixRegion1D, MatrixRegion2D, MatrixRegion3D, cell, region, row, col},
 sensitive=true,
 morecomment=[l]{\#},
@@ -37,9 +38,10 @@ morestring=[b]",
 
 \subsection{Minimal PetaBricks Program}
 
-The following is an example of a (near) minimal PetaBricks program. It
+Figure~\ref{ex1} is an example of a (near) minimal PetaBricks program. It
 copies the matrix A to the matrix B.
 
+\begin{figure}
 \begin{lstlisting}
 transform Copy2D                                                 REFTransform
 to B[w,h]                                                        REFTransform
@@ -59,9 +61,14 @@ MatrixRegion2D a,b;
 ...
 Copy2D(a,b);
 \end{lstlisting}
+  \caption{
+  A minimal PetaBricks program.  This invocation will result in the rule,
+  defined on lines~5-9, being invoked on every pair of elements in $a$
+  and $b$ in an undefined order.
+  \label{ex1}
+  }
+\end{figure}
 
-This invocation will result in the rule, defined on lines~5-9, being invoked
-on every pair of elements in $a$ and $b$ in an undefined order.
 
 \subsection{Transform Structure}
 
@@ -91,6 +98,65 @@ The header of a transform consists of an unordered, whitespace separated
 list of clauses.  The minimal set of clauses are TRANSFORM, FROM, and TO.
 All of the allowed clauses are defined as follows:
 
+\begin{figure}[htb]
+\begin{lstlisting}
+transform Sum1Da
+to Total
+from A[n]
+{
+  //Compute the total sequentially
+  to(Total t) from(A a) {
+    t=0;
+    for(int i=0; i<n; ++i)
+      t+=a.cell(i); 
+  }
+  
+  //Divided and conquer
+  to(Total t) from(A.region(0,n/2) left, A.region(n/2,n) right) {
+    t=Sum1D(left)+Sum1D(right);
+  }
+}
+\end{lstlisting}
+  \caption{
+  Sum all of the elements in an array.
+  \label{ex2}
+  }
+\end{figure}
+
+\begin{figure}[htb]
+\begin{lstlisting}
+transform Sum1Db
+to Total
+using Partial[n/2]
+from A[n]
+{
+  //sum two neighboring elements
+  to(Partial.cell(i) p) from(A.cell(2*i) a1, A.cell(2*i+1) a2){
+    p=a1+a2;
+  }
+
+  //lower priority rule to handle odd sizes arrays
+  secondary to(Partial.cell(i) p) from(A.cell(2*i) a1){
+    p=a1;
+  }
+
+  //recursively call self to finish summing
+  to(Total t) from(Partial p){
+    Sum1Db(t,p);
+  }
+
+  //optionally skip Partial and just compute the output directly
+  to(Total t) from(A a){
+    Sum1Da(t,a);
+  }
+}
+\end{lstlisting}
+  \caption{
+  Sum all of the elements in an array, by making an intermediate array of size n/2 or by calling Sum1Da.
+  \label{ex3}
+  }
+\end{figure}
+
 \subsubsection{TRANSFORM Clause}
 
 \begin{tabular}{| l | l |}
@@ -99,6 +165,7 @@ All of the allowed clauses are defined as follows:
 \bf Available In Version & 1.0        \\
 \bf Syntax & \tt transform IDENTIFIER[\ref{IDENTIFIER}] \\
 \bf Example & \tt transform Foo       \\
+\bf Used in & \tt Figure~\ref{ex1}      \\
 \hline
 \end{tabular}
 
@@ -115,6 +182,7 @@ Specifies the externally visible name of the transform.
 \bf Available In Version & 1.0        \\
 \bf Syntax & \tt from MATRIXDEFLIST[\ref{MATRIXDEFLIST}] \\
 \bf Example & \tt from A[w,h], B[w]     \\
+\bf Used in & \tt Figure~\ref{ex2}      \\
 \hline
 \end{tabular}
 
@@ -136,6 +204,7 @@ visible both in rule headers and in rule bodies.
 \bf Available In Version & 1.0        \\
 \bf Syntax & \tt to MATRIXDEFLIST[\ref{MATRIXDEFLIST}]     \\
 \bf Example & \tt to C[w,h], D[w]     \\
+\bf Used in & \tt Figure~\ref{ex2}      \\
 \hline
 \end{tabular}
 
@@ -145,14 +214,15 @@ visible both in rule headers and in rule bodies.
 are given as expressions containing unbound variables that are set based on the size
 of the inputs.
 
-\subsubsection{THROUGH Clause}
+\subsubsection{USING Clause}
 
 \begin{tabular}{| l | l |}
 \hline
 \bf Required & No                          \\
 \bf Available In Version & 1.0             \\
-\bf Syntax & \tt through MATRIXDEFLIST[\ref{MATRIXDEFLIST}]     \\
-\bf Example & \tt through E[w,h], F[w]     \\
+\bf Syntax & \tt using MATRIXDEFLIST[\ref{MATRIXDEFLIST}]     \\
+\bf Example & \tt using E[w,h], F[w]     \\
+\bf Used in & \tt Figure~\ref{ex3}      \\
 \hline
 \end{tabular}
 
@@ -165,12 +235,42 @@ of the inputs.
 
 \subsubsection{GENERATOR Clause}
 
+\begin{figure}[htb]
+\begin{lstlisting}
+transform Permute
+to B[n]
+from A[n], Indices[n]
+generator PermuteGenerator
+{
+  to(B.cell(i) b) from(A a, Indices.cell(i) idx){
+    assert idx < n;
+    b=a.cell(idx);
+  }
+}
+
+//generate random test data for Permute
+transform PermuteGenerator 
+to A[n], Indices[n]
+from A[n]
+{
+  to(Indices.cell(i) idx) {
+    idx=randint(0, n-1);
+  }
+}
+\end{lstlisting}
+  \caption{
+  Example usage for generator keyword.  Computes $B[i]=A[Indicies[i]]$.
+  \label{ex4}
+  }
+\end{figure}
+
 \begin{tabular}{| l | l |}
 \hline
 \bf Required & No \\
 \bf Available In Version & 2.0            \\
 \bf Syntax & \tt generator IDENTIFIERLIST[\ref{IDENTIFIERLIST}]\\
 \bf Example & \tt generator Bar\\
+\bf Used in & \tt Figure~\ref{ex4}      \\
 \hline
 \end{tabular}
 
@@ -187,12 +287,33 @@ training.
 
 \subsubsection{TEMPLATE Clause}
 
+\begin{figure}[htb]
+\begin{lstlisting}
+template < reps(1,5) >
+transform Foo
+to B[n]
+from A[n]
+{
+  to(B b) from(A a) {
+    Bar(b, a);  
+    for(int i=1; i<reps; ++i)
+      Bar(b, b);
+  }
+}
+\end{lstlisting}
+\caption{
+Example usage for template keyword.
+\label{ex5}
+}
+\end{figure}
+
 \begin{tabular}{| l | l |}
 \hline
 \bf Required & No \\
 \bf Available In Version & 2.0            \\
 \bf Syntax & \tt template < IDENTIFIER(INT, INT), ... > \\
 \bf Example & \tt template < precision(1,5) > \\
+\bf Used in & \tt Figure~\ref{ex5}      \\
 \hline
 \end{tabular}
 
@@ -239,6 +360,9 @@ required clause is TO.
 
 \noindent Specifies the outputs for the rule.
 
+The coordinates in the TO and FROM clause must correspond to an affine
+transformation of each other.
+
 \subsubsection{FROM Clause}
 \label{FROM}
 \begin{tabular}{| l | l |}
@@ -253,6 +377,9 @@ required clause is TO.
 ~
 
 \noindent Specifies the inputs for the rule.
+
+The coordinates in the TO and FROM clause must correspond to an affine
+transformation of each other.
 
 \subsubsection{USING Clause}
 \label{USING}
@@ -270,13 +397,13 @@ required clause is TO.
 \noindent Defines temporary buffers required by the body of the rule.
 PetaBricks will automatically allocate and reuse these temporary buffers.
 
-\subsubsection{RECURSIVE Clause}
+\subsubsection{HINT Clause}
 \begin{tabular}{| l | l |}
 \hline
 \bf Required & No \\
 \bf Available In Version & 1.0             \\
-\bf Syntax & \tt recursive( EXPRESSION[\ref{EXPRESSION}] )   \\
-\bf Example & \tt recursive( n )           \\
+\bf Syntax & \tt hint( EXPRESSION[\ref{EXPRESSION}] )   \\
+\bf Example & \tt hint( n )           \\
 \hline
 \end{tabular}
 
@@ -545,6 +672,9 @@ A name matching the regular expression: {\tt [a-zA-Z\_][a-zA-Z0-9\_]*}
 
 An algebraic expression consisting of identifiers, integers, floats, and the operators: [*/()+-]
 
+Unless stated otherwise, expressions must correspond to affine transformation
+of the output coordinates.
+
 \section{Semantics}
 
 \subsection{Semantics for Rule Execution}
@@ -594,7 +724,7 @@ variables are bound using the mapping $\alpha_j$).
   \item $T$ is the transform being executed.
   \item $R$ are the rules that may currently executing in parallel.  (Initially $\epsilon$)
   \item $D_0$ are cells already computed.  (Initially those defined by the FROM clause.)
-  \item $D_1$ are cells that can be computed, but need not be. (Initially those defined by the THROUGH clause.) 
+  \item $D_1$ are cells that can be computed, but need not be. (Initially those defined by the USING clause.) 
   \item $D_2$ are cells that must be computed.  (Initially those defined by the TO clause.)
   \end{itemize}
 \end{itemize}
@@ -616,7 +746,7 @@ Transform initialization:}
 \begin{tabular}{c}
 Transform $T$ is called with inputs $D_0$ and outputs $D_2$.
 \\
-$D_1$ is the intermediate (THROUGH) data required by $T$.
+$D_1$ is the intermediate (USING) data required by $T$.
 \\\hline
 $\rightarrow \langle T, \epsilon, D_0, D_1, D_2 \rangle$ 
 \end{tabular}
