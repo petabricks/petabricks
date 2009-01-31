@@ -7,7 +7,7 @@
 
 \lstdefinelanguage{pbcc}{
 morekeywords={transform, if, else, for, from, to, using, case, do, where, return, or,
-              secondary, primary, priority, generator, template,
+              secondary, primary, priority, generator, template, assert, while, config,
               MatrixRegion1D, MatrixRegion2D, MatrixRegion3D, cell, region, row, col},
 sensitive=true,
 morecomment=[l]{\#},
@@ -599,6 +599,36 @@ in the file header.  This is the same as a {\tt config} except that autotuner
 will attempt to determine an optimal value automatically.
 
 \subsubsection{Training Runs}
+
+\begin{figure}[htb]
+\begin{lstlisting}
+transform Foo
+to B[n]
+from A[n]
+{
+  to(B b) from(A a) {
+    config(reps);
+    if(HecuraRuntime::isTrainingRun()){
+      // experimentally determine how many reps are needed
+      // for convergence in the current configuration
+      reps = 0;
+      while(! isConverged(b,a) ){
+        reps++;
+        Bar(b, b, a);
+      }
+    }else{
+      for(int i=1; i<reps; ++i){
+        Bar(b, b, a);
+      }
+    }
+  }
+}
+\end{lstlisting}
+\caption{
+Example usage for training runs
+\label{ex6}
+}
+\end{figure}
 
 Some transforms require a training phase to determine configuration parameters
 such as the number of iterations.  The autotuner supports this through the
