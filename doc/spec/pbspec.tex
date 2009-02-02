@@ -1,0 +1,864 @@
+\documentclass[11pt]{article}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{fullpage}
+\usepackage{amsmath}
+\usepackage{url}
+
+\lstdefinelanguage{pbcc}{
+morekeywords={transform, if, else, for, from, to, using, case, do, where, return, or,
+              secondary, primary, priority, generator, template, assert, while, config,
+              MatrixRegion1D, MatrixRegion2D, MatrixRegion3D, cell, region, row, col},
+sensitive=true,
+morecomment=[l]{\#},
+morecomment=[l]{//},
+morestring=[b]',
+morestring=[b]",
+}
+\lstset{language=pbcc}
+\lstset{numbers=left}
+\lstset{tabsize=2}
+\lstset{commentstyle=\textit}
+\lstset{literate=
+{REFTransform}{{\ref{sec:transform}}}{3}
+{REFRule}     {{\ref{sec:rule}}}{3}
+{REFBody}     {{\ref{sec:body}}}{3}
+}
+
+\begin{document}
+
+
+\title{PetaBricks Language Specification}
+\author{Jason Ansel}
+\maketitle
+\tableofcontents
+
+\newpage
+\section{Syntax}
+
+\subsection{Minimal PetaBricks Program}
+
+Figure~\ref{ex1} is an example of a (near) minimal PetaBricks program. It
+copies the matrix A to the matrix B.
+
+\begin{figure}
+\begin{lstlisting}
+transform Copy2D                                                 REFTransform
+to B[w,h]                                                        REFTransform
+from A[w,h]                                                      REFTransform
+{
+  to(B.cell(x,y) b)                                              REFRule
+  from(A.cell(x,y) a)                                            REFRule  
+  {                                          
+    b=a;                                                         REFBody
+  }                                         
+}
+\end{lstlisting}
+This defines the transform Copy2D, which can be invoked as follows:
+
+\begin{lstlisting}
+MatrixRegion2D a,b;
+...
+Copy2D(a,b);
+\end{lstlisting}
+  \caption{
+  A minimal PetaBricks program.  This invocation will result in the rule,
+  defined on lines~5-9, being invoked on every pair of elements in $a$
+  and $b$ in an undefined order.
+  \label{ex1}
+  }
+\end{figure}
+
+
+\subsection{Transform Structure}
+
+The high level structure of a transform is as follows.
+
+\begin{lstlisting}
+Transform Header  [REFTransform]
+{
+  Rule Header     [REFRule] 
+  {                       
+    Rule Body     [REFBody]
+  }                      
+  
+  Rule Header     [REFRule] 
+  {                       
+    Rule Body     [REFBody]
+  }                                         
+
+  ...
+}
+\end{lstlisting}
+
+\subsection{Transform Header}
+\label{sec:transform}
+
+The header of a transform consists of an unordered, whitespace separated
+list of clauses.  The minimal set of clauses are TRANSFORM, FROM, and TO.
+All of the allowed clauses are defined as follows:
+
+\begin{figure}[htb]
+\begin{lstlisting}
+transform Sum1Da
+to Total
+from A[n]
+{
+  //Compute the total sequentially
+  to(Total t) from(A a) {
+    t=0;
+    for(int i=0; i<n; ++i)
+      t+=a.cell(i); 
+  }
+  
+  //Divided and conquer
+  to(Total t) from(A.region(0,n/2) left, A.region(n/2,n) right) {
+    t=Sum1D(left)+Sum1D(right);
+  }
+}
+\end{lstlisting}
+  \caption{
+  Sum all of the elements in an array.
+  \label{ex2}
+  }
+\end{figure}
+
+\begin{figure}[htb]
+\begin{lstlisting}
+transform Sum1Db
+to Total
+using Partial[n/2]
+from A[n]
+{
+  //sum two neighboring elements
+  to(Partial.cell(i) p) from(A.cell(2*i) a1, A.cell(2*i+1) a2){
+    p=a1+a2;
+  }
+
+  //lower priority rule to handle odd sized arrays
+  secondary to(Partial.cell(i) p) from(A.cell(2*i) a1){
+    p=a1;
+  }
+
+  //recursively call self to finish summing
+  to(Total t) from(Partial p){
+    Sum1Db(t,p);
+  }
+
+  //optionally skip Partial and just compute the output directly
+  to(Total t) from(A a){
+    Sum1Da(t,a);
+  }
+}
+\end{lstlisting}
+  \caption{
+  Sum all of the elements in an array, by making an intermediate array of size n/2 or by calling Sum1Da.
+  \label{ex3}
+  }
+\end{figure}
+
+\subsubsection{TRANSFORM Clause}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & Yes                    \\
+\bf Available In Version & 1.0        \\
+\bf Syntax & \tt transform IDENTIFIER[\ref{IDENTIFIER}] \\
+\bf Example & \tt transform Foo       \\
+\bf Used in & \tt Figure~\ref{ex1}      \\
+\hline
+\end{tabular}
+
+~
+
+\noindent
+Specifies the externally visible name of the transform.
+
+\subsubsection{FROM Clause}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & Yes                    \\
+\bf Available In Version & 1.0        \\
+\bf Syntax & \tt from MATRIXDEFLIST[\ref{MATRIXDEFLIST}] \\
+\bf Example & \tt from A[w,h], B[w]     \\
+\bf Used in & \tt Figure~\ref{ex2}      \\
+\hline
+\end{tabular}
+
+~
+
+\noindent
+\noindent Defines the inputs of the transform.  The sizes of the outputs
+are given as expressions containing unbound variables.  The compiler and
+runtime must find a valid assignment for these unbound variables to match
+the sizes of the inputs given.  The values assigned to these variables are
+visible both in rule headers and in rule bodies.
+
+
+\subsubsection{TO Clause}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & Yes                    \\
+\bf Available In Version & 1.0        \\
+\bf Syntax & \tt to MATRIXDEFLIST[\ref{MATRIXDEFLIST}]     \\
+\bf Example & \tt to C[w,h], D[w]     \\
+\bf Used in & \tt Figure~\ref{ex2}      \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Defines the outputs of the transform.  The sizes of the outputs
+are given as expressions containing unbound variables that are set based on the size
+of the inputs.
+
+\subsubsection{USING Clause}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No                          \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt using MATRIXDEFLIST[\ref{MATRIXDEFLIST}]     \\
+\bf Example & \tt using E[w,h], F[w]     \\
+\bf Used in & \tt Figure~\ref{ex3}      \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Defines intermediate data used during the transform execution. This
+data is temporary and neither an input nor an output.  The sizes are given
+as expressions containing unbound variables that are set based on the size
+of the inputs.
+
+\subsubsection{GENERATOR Clause}
+
+\begin{figure}[htb]
+\begin{lstlisting}
+transform Permute
+to B[n]
+from A[n], Indices[n]
+generator PermuteGenerator
+{
+  to(B.cell(i) b) from(A a, Indices.cell(i) idx){
+    assert idx < n;
+    b=a.cell(idx);
+  }
+}
+
+//generate random test data for Permute
+transform PermuteGenerator 
+to A[n], Indices[n]
+from A[n]
+{
+  to(Indices.cell(i) idx) {
+    idx=randint(0, n-1);
+  }
+}
+\end{lstlisting}
+  \caption{
+  Example usage for generator keyword.  Computes $B[i]=A[Indicies[i]]$.
+  \label{ex4}
+  }
+\end{figure}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No \\
+\bf Available In Version & 2.0            \\
+\bf Syntax & \tt generator IDENTIFIERLIST[\ref{IDENTIFIERLIST}]\\
+\bf Example & \tt generator Bar\\
+\bf Used in & \tt Figure~\ref{ex4}      \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Specifies the name of another transform (or list of transforms)
+that should be used to generate inputs to this transform during training.
+The outputs of the other transforms are paired left to right with the inputs
+of this transform.  The other transforms inputs are seeded with random data
+of the desired input size.
+
+If this clause is not used, transforms will be given random data during
+training.
+
+\subsubsection{TEMPLATE Clause}
+
+\begin{figure}[htb]
+\begin{lstlisting}
+template < reps(1,5) >
+transform Foo
+to B[n]
+from A[n]
+{
+  to(B b) from(A a) {
+    Bar(b, a);  
+    for(int i=1; i<reps; ++i)
+      Bar(b, b);
+  }
+}
+\end{lstlisting}
+\caption{
+Example usage for template keyword.
+\label{ex5}
+}
+\end{figure}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No \\
+\bf Available In Version & 2.0            \\
+\bf Syntax & \tt template < IDENTIFIER(INT, INT), ... > \\
+\bf Example & \tt template < precision(1,5) > \\
+\bf Used in & \tt Figure~\ref{ex5}      \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Defines a parameter to the transform that requires independent
+training for each value.  This causes N transforms to be generated, one for
+each possible value.  The first INT specifies the minimum value while the
+second specifies the maximum value.  The new transforms can be called with
+the syntax: Name$<$ParamValue$>$.
+
+\subsubsection{Default Values}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No \\
+\bf Available In Version & 2.0            \\
+\bf Example & \tt from IN[h,w]=OUT[h,w], iterations=5 \\
+\hline
+\end{tabular}
+
+In the {\tt FROM} clause, the programmer may specify default values for transform inputs.
+These default values work the same way as default values in {\tt C++}.  This provides an easy way for defining in place transforms.
+
+\subsection{Rule Header}
+\label{sec:rule}
+
+The header for a rule consists of an unordered, whitespace-separated list
+of clauses.  The meanings of these clauses are defined below.  The only
+required clause is TO.
+
+\subsubsection{TO Clause}
+\label{TO}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & Yes                          \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt to( MATRIXARGLIST[\ref{MATRIXARGLIST}] ) \\
+\bf Example & \tt to( A.cell(x,y) a, B.region(0, 0, x, y) b)\\
+\hline
+\end{tabular}
+
+~
+
+\noindent Specifies the outputs for the rule.
+
+The coordinates in the TO and FROM clause must correspond to an affine
+transformation of each other.
+
+\subsubsection{FROM Clause}
+\label{FROM}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No                          \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt from( MATRIXARGLIST[\ref{MATRIXARGLIST}] ) \\
+\bf Example & \tt from( A.cell(x,y) a, B.region(0, 0, x, y) b)\\
+\hline
+\end{tabular}
+
+~
+
+\noindent Specifies the inputs for the rule.
+
+The coordinates in the TO and FROM clause must correspond to an affine
+transformation of each other.
+
+\subsubsection{USING Clause}
+\label{USING}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No \\
+\bf Available In Version & 2.0             \\
+\bf Syntax & \tt using( MATRIXDEFLIST[\ref{MATRIXDEFLIST}] ) \\
+\bf Example & \tt using( T1[10], T2[w+h, w+h] ) \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Defines temporary buffers required by the body of the rule.
+PetaBricks will automatically allocate and reuse these temporary buffers.
+
+\subsubsection{HINT Clause}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt hint( EXPRESSION[\ref{EXPRESSION}] )   \\
+\bf Example & \tt hint( n )           \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Provide a hint to to autotuner that the decision to use this
+rule should be based on comparing the given EXPRESSION to some constant.
+Note that as of version 2.0 this language feature should no longer be needed
+except in special cases.
+
+
+\subsubsection{WHERE Clause}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No                          \\
+\bf Available In Version & 2.0             \\
+\bf Syntax & \tt where EXPRESSION[\ref{EXPRESSION}] \\
+\bf Example & \tt where x<10               \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Limits the range where this rule may be applied.
+
+\subsubsection{PRIORITY Clause}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No                          \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt priority(int)             \\
+\bf Example & \tt priority(1)              \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Specify the priority for the given rule.  This is a clean way for
+specifying handling of corner cases.  For a given cell, only rule with a
+minimum priority may be applied.  The default priority is $1$.
+
+\subsubsection{PRIMARY Keyword}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No                          \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt primary             \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Equivalent to {\tt priority(0)}
+
+\subsubsection{SECONDARY Keyword}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No                          \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt secondary \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Equivalent to {\tt priority(2)}
+
+\subsubsection{ROTATABLE Keyword}
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No                          \\
+\bf Available In Version & 1.0             \\
+\bf Syntax & \tt rotatable \\
+\hline
+\end{tabular}
+
+~
+
+TODO: Define this more precisely.
+
+\noindent Syntactic sugar for defining four rules with the coordinate 
+system rotated by $\frac \pi 2$ in each consecutive one.
+
+\subsubsection{Return-style}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No \\
+\bf Available In Version & 1.0        \\
+\hline
+\end{tabular}
+
+~
+
+PetaBricks allows a shorter version of rule headers that eliminates
+the need for a TO clause.  It is similar to function style return syntax.
+ 
+\begin{minipage}{\linewidth}
+\begin{lstlisting}
+B.cell(x,y) from(A.cell(x,y) a) {
+  return a;
+}
+\end{lstlisting}
+\end{minipage}
+Is desugared to:
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}
+to(B.cell(x,y) _rv) from(A.cell(x,y) a) {
+  _rv=a;
+  return;
+}
+\end{lstlisting}
+\end{minipage}
+
+\subsubsection{OR Keyword}
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No \\
+\bf Available In Version & 2.0        \\
+\hline
+\end{tabular}
+
+~
+
+PetaBricks provides an ``OR'' keyword to eliminate the need for redundant 
+rule headers.  ``OR'' simply means repeat the last rule header. For example:
+ 
+\begin{minipage}{\linewidth}
+\begin{lstlisting}
+to(B b) from(A a) {
+  Foo(b,a);
+} or {
+  Bar(b,a);
+}
+\end{lstlisting}
+\end{minipage}
+Is desugared to:
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}
+to(B b) from(A a) {
+  Foo(b,a);
+}
+to(B b) from(A a) {
+  Bar(b,a);
+}
+\end{lstlisting}
+\end{minipage}
+
+\subsection{Rule Body}
+\label{sec:body}
+
+Rule bodies are standard {\tt C++} code with some preprocessing performed.
+All variables defined in the corresponding rule header are visible from the 
+rule body.
+
+\subsubsection{MatrixRegion Class}
+Inputs an output matrix regions are of the template type {\tt
+MatrixRegion<N,T>}, where $N$ is the number of dimensions and $T$ is the
+element type.  The typedefs: {\tt MatrixRegion0D}, {\tt MatrixRegion1D},
+{\tt MatrixRegion2D}, ... are provided to refer to output matrix regions of each
+dimensionality.  Additionally the typedefs {\tt ConstMatrixRegion0D}, {\tt
+ConstMatrixRegion1D}, {\tt ConstMatrixRegion2D}, ... refer to matrix
+regions with read only data and are used for inputs to a rule.
+
+This class is by reference, so using it never copies data. To make a copy,
+one must explicitly call {\tt MatrixRegion::allocate} and then copy.
+MatrixRegion supports numerous operations not discussed here.  The API
+documentation for this class can be found here:
+
+\noindent
+\url{http://kleptocracy.csail.mit.edu/pbapi/d9/db0/classhecura_1_1MatrixRegion.html}
+
+\subsubsection{Configuration/Tunable Parameters}
+
+The user may specify configuration parameters with:
+\begin{verbatim}
+config(name, initial, min, max);
+\end{verbatim}
+in the file header.  Both min and max are optional and default to 0 and
+MAX\_INT.  These parameters are stored in the program configion file, but are
+{\bf not} autotuned.  The value may be changed by hand, with {\tt configtool}
+(included in the scripts folder), and at runtime with {\tt name.setValue(int)}.
+The current value can be accessed with either {\tt name} or {\tt name.value()}.
+
+The user may specify tunable parameters with:
+\begin{verbatim}
+tunable(name, initial, min, max);
+\end{verbatim}
+in the file header.  This is the same as a {\tt config} except that autotuner 
+will attempt to determine an optimal value automatically.
+
+\subsubsection{Training Runs}
+
+\begin{figure}[htb]
+\begin{lstlisting}
+transform Foo
+to B[n]
+from A[n]
+{
+  to(B b) from(A a) {
+    config(reps);
+    if(HecuraRuntime::isTrainingRun()){
+      // experimentally determine how many reps are needed
+      // for convergence in the current configuration
+      reps = 0;
+      while(! isConverged(b,a) ){
+        reps++;
+        Bar(b, b, a);
+      }
+    }else{
+      for(int i=1; i<reps; ++i){
+        Bar(b, b, a);
+      }
+    }
+  }
+}
+\end{lstlisting}
+\caption{
+Example usage for training runs
+\label{ex6}
+}
+\end{figure}
+
+Some transforms require a training phase to determine configuration parameters
+such as the number of iterations.  The autotuner supports this through the
+API function {\tt HecuraRuntime::isTrainingRun()}.  On the first execution
+with a given configuration, calling this method will return {\tt true} and
+as a side effect the timing results will be discarded and the test re-run.
+On subsequent executions this method will return {\tt false} and have no
+side effects.
+
+\subsubsection{Clean Abort}
+
+Transforms can abort execution (in the event of an invalid configuration or
+input) using the API function {\tt HecuraRuntime::abort()}.  During training
+this will cleanly end the current trail and remove the source configuration
+from consideration.
+
+\subsection{Definitions}
+\subsubsection{MATRIXDEFLIST}
+\label{MATRIXDEFLIST}
+ 
+A comma separated list of {\tt MATRIXDEF[\ref{MATRIXDEF}]}.
+
+\subsubsection{MATRIXDEF}
+\label{MATRIXDEF}
+
+Declares a new matrix of a given (symbolic) size.
+
+Of the format: {\tt NAME} [ {\tt DIMENSIONS} ] 
+
+Where {\tt NAME} is an identifier and {\tt DIMENSIONS} is a comma separated
+list of list of symbolic expressions.
+
+\subsubsection{MATRIXARGLIST}
+\label{MATRIXARGLIST}
+
+A comma separated list of {\tt MATRIXARG[\ref{MATRIXARG}]}.
+
+\subsubsection{MATRIXARG}
+\label{MATRIXARG}
+
+Declares an argument to a rule that references a matrix defined by a MATRIXDEF.
+
+Of the format: {\tt MATRIX.REGIONSPEC } {\tt NAME}
+
+Where MATRIX is name of the matrix the data is from.  REGIONSPEC is the part
+of the matrix to get and NAME is the identifier defined by this statement.
+
+\subsubsection{REGIONSPEC}
+
+One of:
+
+\begin{itemize}
+\item \tt cell(EXPRESSION...)
+\item \tt region(EXPRESSION...)
+\item \tt row(EXPRESSION)
+\item \tt col(EXPRESSION)
+\item \tt all()
+
+\end{itemize}
+
+\subsubsection{IDENTIFIERLIST}
+\label{IDENTIFIERLIST}
+
+A comma separated list of {\tt IDENTIFIER[\ref{IDENTIFIER}]}.
+
+\subsubsection{IDENTIFIER}
+\label{IDENTIFIER}
+
+A name matching the regular expression: {\tt [a-zA-Z\_][a-zA-Z0-9\_]*}
+
+\subsubsection{EXPRESSION}
+\label{EXPRESSION}
+
+An algebraic expression consisting of identifiers, integers, floats, and the operators: [*/()+-]
+
+Unless stated otherwise, expressions must correspond to affine transformation
+of the output coordinates.
+
+\section{Semantics}
+
+\subsection{Semantics for Rule Execution}
+
+The header (defined Sec.~\ref{sec:rule}) of each rule contains a set of
+free variables used to reference an explicit list input and output regions.
+A rule may be {\em instantiated} by binding these free variables to values
+determined by the compiler and runtime.  The compiler may bind these free
+variables to any value such that:
+\begin{itemize}
+\item All values are non-negative integers.
+\item All regions referenced exist (i.e. not out of bounds access).
+\item All input regions referenced have already been computed.
+\item Any WHERE clauses evaluate to true.
+\end{itemize}
+
+Once the inputs and outputs are bound to an explicit set of cells, rule
+execution follows a semantics and syntax similar to that of {\tt C++} with
+the additional features defined in Section~\ref{sec:body}.
+
+
+\subsection{Semantics for Transform Execution}
+
+The semantics for the execution of a transform revolve around executing
+rules in parallel.  This section defines a internal state of an executing
+transform and an operational semantics over this internal state for how a
+running transform may progress from an initial state to a completion state.
+
+The following definitions are required:
+\begin{itemize}
+\item
+Let $r[\alpha]$ represent rule $r$ instantiated with free variables
+bound to the set of definitions $\alpha$.
+\item
+Let $\mbox{depends}(r[\alpha])$ be the set of cells $r[\alpha]$
+depends on (all the regions specified in the FROM[\ref{FROM}] clause when
+free variables are bound using the mapping $\alpha$).
+\item
+Let $\mbox{provides}(r[\alpha])$ be the set of cells $r[\alpha]$
+outputs on (all the regions specified in the TO[\ref{TO}] clause when free
+variables are bound using the mapping $\alpha_j$).
+\item Let $T$ be a static reference of a transform, consisting of a set of rules.
+\item Let $R$ be a set of rule instances $r_0[\alpha_0] ... r_n[\alpha_n]$
+\item Let $D$ be a set of cells.  Each element in this contains both the $x,y$ coordinate and the matrix in which the cell belongs.
+\item Let $\langle T, R, D_0, D_1, D_2 \rangle$ represent the internal state for a running transform where:
+  \begin{itemize}
+  \item $T$ is the transform being executed.
+  \item $R$ are the rules that may currently executing in parallel.  (Initially $\epsilon$)
+  \item $D_0$ are cells already computed.  (Initially those defined by the FROM clause.)
+  \item $D_1$ are cells that can be computed, but need not be. (Initially those defined by the USING clause.) 
+  \item $D_2$ are cells that must be computed.  (Initially those defined by the TO clause.)
+  \end{itemize}
+\end{itemize}
+
+The following transition rules govern the progression of the internal state
+of a transform during execution.  This semantics intentionally gives a lot of
+freedom to the PetaBricks runtime.  Specifically,  the order of computation
+is defined only as producers-before-consumers, data may be computed more
+than once, and unfinished computations may be arbitrarily discarded.
+
+~
+
+\noindent
+{\it
+Transform initialization:}
+
+~
+
+\begin{tabular}{c}
+Transform $T$ is called with inputs $D_0$ and outputs $D_2$.
+\\
+$D_1$ is the intermediate (USING) data required by $T$.
+\\\hline
+$\rightarrow \langle T, \epsilon, D_0, D_1, D_2 \rangle$ 
+\end{tabular}
+
+~
+
+\noindent
+{\it
+Rule execution begins:}
+
+~
+
+\begin{tabular}{c}
+$r \in T$ \\
+$\alpha$ is a legal assignment for free variables in $r$ \\
+depends$(r[\alpha]) \subset D_0$  
+\\\hline
+$
+\langle T, R, D_0, D_1, D_2 \rangle
+\rightarrow
+\langle T, R \cup \{r[\alpha]\}, D_0, D_1, D_2 \rangle$ 
+\end{tabular}
+
+~
+
+\noindent
+{\it
+Rule execution ends:}
+
+~
+
+\begin{tabular}{c}
+$r[\alpha]$ has finished executing
+\\
+$D_0' = D_0 \cup {\mbox{provides}(r[\alpha])}$
+\\
+$D_1 = D_1' \cup {\mbox{provides}(r[\alpha])}$
+\\
+$D_2 = D_2' \cup {\mbox{provides}(r[\alpha])}$
+\\\hline
+$
+\langle T, R \cup \{r[\alpha]\}, D_0, D_1, D_2 \rangle
+\rightarrow
+\langle T, R, D_0', D_1', D_2' \rangle$
+\end{tabular}
+
+~
+
+\noindent
+{\it
+Rule execution aborted:}
+
+~
+
+\begin{tabular}{c}
+$
+\langle T, R \cup \{r[\alpha]\}, D_0, D_1, D_2 \rangle
+\rightarrow
+\langle T, R, D_0, D_1, D_2 \rangle$
+\end{tabular}
+
+
+~
+
+\noindent
+{\it
+Transform completion:}
+
+~
+
+\begin{tabular}{c}
+$R=\epsilon$
+\\
+$D_2=\epsilon$
+\\\hline
+$
+\langle T, R, D_0, D_1, D_2 \rangle
+\rightarrow$
+\end{tabular}
+
+\end{document}
+
+
