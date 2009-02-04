@@ -6,9 +6,10 @@
 \usepackage{url}
 
 \lstdefinelanguage{pbcc}{
-morekeywords={transform, if, else, for, from, to, using, case, do, where, return, or,
-              secondary, primary, priority, generator, template, assert, while, config,
-              MatrixRegion1D, MatrixRegion2D, MatrixRegion3D, cell, region, row, col},
+morekeywords={transform, if, else, for, from, to, using, case, do, where,
+              return, or, in_training, secondary, primary, priority, generator,
+              template, assert, while, config, MatrixRegion1D, MatrixRegion2D,
+              MatrixRegion3D, cell, region, row, col},
 sensitive=true,
 morecomment=[l]{\#},
 morecomment=[l]{//},
@@ -41,7 +42,7 @@ morestring=[b]",
 Figure~\ref{ex1} is an example of a (near) minimal PetaBricks program. It
 copies the matrix A to the matrix B.
 
-\begin{figure}
+\begin{figure}[h]
 \begin{lstlisting}
 transform Copy2D                                                 REFTransform
 to B[w,h]                                                        REFTransform
@@ -98,7 +99,7 @@ The header of a transform consists of an unordered, whitespace separated
 list of clauses.  The minimal set of clauses are TRANSFORM, FROM, and TO.
 All of the allowed clauses are defined as follows:
 
-\begin{figure}[htb]
+\begin{figure}[h]
 \begin{lstlisting}
 transform Sum1Da
 to Total
@@ -113,7 +114,7 @@ from A[n]
   
   //Divided and conquer
   to(Total t) from(A.region(0,n/2) left, A.region(n/2,n) right) {
-    t=Sum1D(left)+Sum1D(right);
+    t=Sum1Da(left)+Sum1Da(right);
   }
 }
 \end{lstlisting}
@@ -123,7 +124,7 @@ from A[n]
   }
 \end{figure}
 
-\begin{figure}[htb]
+\begin{figure}[h]
 \begin{lstlisting}
 transform Sum1Db
 to Total
@@ -146,6 +147,7 @@ from A[n]
   }
 
   //optionally skip Partial and just compute the output directly
+  //this serves as the base case for the recursive calls
   to(Total t) from(A a){
     Sum1Da(t,a);
   }
@@ -235,7 +237,29 @@ of the inputs.
 
 \subsubsection{GENERATOR Clause}
 
-\begin{figure}[htb]
+
+\begin{tabular}{| l | l |}
+\hline
+\bf Required & No \\
+\bf Available In Version & 2.0            \\
+\bf Syntax & \tt generator IDENTIFIERLIST[\ref{IDENTIFIERLIST}]\\
+\bf Example & \tt generator Bar\\
+\bf Used in & \tt Figure~\ref{ex4}      \\
+\hline
+\end{tabular}
+
+~
+
+\noindent Specifies the name of another transform (or list of transforms)
+that should be used to generate inputs to this transform during training.
+The outputs of the other transforms are paired left to right with the inputs
+of this transform.  The other transforms inputs are seeded with random data
+of the desired input size.
+
+If this clause is not used, transforms will be given random data during
+training.
+
+\begin{figure}[h]
 \begin{lstlisting}
 transform Permute
 to B[n]
@@ -264,48 +288,8 @@ from A[n]
   }
 \end{figure}
 
-\begin{tabular}{| l | l |}
-\hline
-\bf Required & No \\
-\bf Available In Version & 2.0            \\
-\bf Syntax & \tt generator IDENTIFIERLIST[\ref{IDENTIFIERLIST}]\\
-\bf Example & \tt generator Bar\\
-\bf Used in & \tt Figure~\ref{ex4}      \\
-\hline
-\end{tabular}
-
-~
-
-\noindent Specifies the name of another transform (or list of transforms)
-that should be used to generate inputs to this transform during training.
-The outputs of the other transforms are paired left to right with the inputs
-of this transform.  The other transforms inputs are seeded with random data
-of the desired input size.
-
-If this clause is not used, transforms will be given random data during
-training.
-
 \subsubsection{TEMPLATE Clause}
 
-\begin{figure}[htb]
-\begin{lstlisting}
-template < reps(1,5) >
-transform Foo
-to B[n]
-from A[n]
-{
-  to(B b) from(A a) {
-    Bar(b, a);  
-    for(int i=1; i<reps; ++i)
-      Bar(b, b);
-  }
-}
-\end{lstlisting}
-\caption{
-Example usage for template keyword.
-\label{ex5}
-}
-\end{figure}
 
 \begin{tabular}{| l | l |}
 \hline
@@ -324,6 +308,30 @@ training for each value.  This causes N transforms to be generated, one for
 each possible value.  The first INT specifies the minimum value while the
 second specifies the maximum value.  The new transforms can be called with
 the syntax: Name$<$ParamValue$>$.
+
+\begin{figure}[h]
+\begin{lstlisting}
+template < reps(1,5) >
+transform Foo
+to B[n]
+from A[n]
+{
+  to(B b) from(A a) {
+    Bar(b, a);  
+    for(int i=1; i<reps; ++i)
+      Bar(b, b);
+  }
+}
+
+MatrixRegion1D a,b;
+...
+Foo<3>(b, a);
+\end{lstlisting}
+\caption{
+Example usage for template keyword.
+\label{ex5}
+}
+\end{figure}
 
 \subsubsection{Default Values}
 
@@ -600,7 +608,16 @@ will attempt to determine an optimal value automatically.
 
 \subsubsection{Training Runs}
 
-\begin{figure}[htb]
+
+Some transforms require a training phase to determine configuration parameters
+such as the number of iterations.  The autotuner supports this through the
+API function {\tt HecuraRuntime::isTrainingRun()}, or the conditional macro
+{\tt in\_training}.  On the first execution with a given configuration,
+calling this method will return {\tt true} and as a side effect the timing
+results will be discarded and the test re-run.  On subsequent executions
+this method will return {\tt false} and have no side effects.
+
+\begin{figure}[h]
 \begin{lstlisting}
 transform Foo
 to B[n]
@@ -608,7 +625,7 @@ from A[n]
 {
   to(B b) from(A a) {
     config(reps);
-    if(HecuraRuntime::isTrainingRun()){
+    in_training {
       // experimentally determine how many reps are needed
       // for convergence in the current configuration
       reps = 0;
@@ -629,14 +646,6 @@ Example usage for training runs
 \label{ex6}
 }
 \end{figure}
-
-Some transforms require a training phase to determine configuration parameters
-such as the number of iterations.  The autotuner supports this through the
-API function {\tt HecuraRuntime::isTrainingRun()}.  On the first execution
-with a given configuration, calling this method will return {\tt true} and
-as a side effect the timing results will be discarded and the test re-run.
-On subsequent executions this method will return {\tt false} and have no
-side effects.
 
 \subsubsection{Clean Abort}
 
