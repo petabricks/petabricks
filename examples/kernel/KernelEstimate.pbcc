@@ -1,0 +1,123 @@
+#ifndef KERNELESTIMATE_PBCC
+#define KERNELESTIMATE_PBCC
+
+#include "LinearSolvePosDef.pbcc"
+
+%{
+
+void printMatrix(ConstMatrixRegion2D A)
+{
+  for (int j = 0; j < A.size(1); j++) {
+    for (int i = 0; i < A.size(0); i++) {
+      printf("%g ", (double) A.cell(i, j));
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
+inline double kernel(ConstMatrixRegion1D x0, ConstMatrixRegion1D x1, double h)
+{
+  int i, dim = x0.count();
+  double temp, sum = 0;
+  for (i = 0; i < dim; i++) {
+    temp = (x0.cell(i) - x1.cell(i));
+    sum += temp * temp;
+  }
+  return exp(-sum / (2 * h));
+}
+
+%}
+
+// reduces a vector by adding all elements
+transform ReduceAdd
+from A[n]
+to OUT
+{
+  OUT from (A a)
+  {
+    int i;
+    double sum = 0;
+    for (i = 0; i < n; i++) {
+      sum += a.cell(i);
+    }
+    return sum;
+  }
+ 
+  OUT from (A a)
+  {
+    return ReduceAdd(a.region(0, n/2)) + ReduceAdd(a.region(n/2, n));
+  }
+}
+
+// computes a dot product
+transform DotProduct
+from A[n], B[n]
+through TEMP[n]
+to C
+{
+  TEMP.cell(i) from (A.cell(i) a, B.cell(i) b)
+  {
+    return a * b;
+  }
+
+  C from (TEMP t)
+  {
+    return ReduceAdd(t);
+  }
+}
+
+// evaluates kernel function between X0 and each of columns of X
+// using bandwidth H
+transform KernelEvaluate
+from X0[d], X[n,d], H
+to OUT[n]
+{
+  OUT.cell(i) from (X0 x0, X.col(i) x, H h)
+  {
+    return kernel(x0, x, h);
+  }
+}
+
+// n training samples, m test samples, d dimensions
+// K is the Gram matrix of kernel inner products between training vectors
+// A is the vector of regression coefficients
+// H is the bandwidth of the kernel
+transform KernelEstimate
+from TRAINX[n,d], TRAINY[n], TESTX[m,d], H, LAMBDA
+through A[n,1], K[n,n], K2[n,n], TRAINY2[n,1]
+to ESTIMATEY[m]
+{
+  K.cell(i,j) from (TRAINX.col(i) xi,
+                    TRAINX.col(j) xj,
+                    H h)
+  {
+    return kernel(xi, xj, h);
+  }
+
+  K2.cell(i,j) from (K.cell(i,j) k, LAMBDA lambda)
+  {
+    if (i == j) {
+      return k + lambda;
+    } else {
+      return k;
+    }
+  }
+
+  TRAINY2.cell(i,0) from (TRAINY.cell(i) trainY, LAMBDA lambda)
+  {
+    return lambda * trainY;
+  }
+
+  to (A a) from (K2 k2, TRAINY2 trainY2)
+  {
+    LinearSolvePosDef(a, k2, trainY2);
+  }
+
+  ESTIMATEY.cell(i) from (TRAINX trainX, TESTX.col(i) testX, A a, H h)
+  {
+    return DotProduct(KernelEvaluate(testX, trainX, h), a.row(0));
+  }
+}
+
+#endif // KERNELESTIMATE_PBCC
