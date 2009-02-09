@@ -1,0 +1,181 @@
+\documentclass{beamer}
+\usepackage{graphicx}
+\usepackage{listings}
+%\usepackage{beamerthemesplit}
+\usepackage{beamerthemesplit}
+\title{PetaBricks}
+\subtitle{Introduction}
+\author{Jason Ansel}
+% beamerthemebars.sty
+% beamerthemeclassic.sty
+% beamerthemetree.sty
+% beamerthemesidebar.sty
+% beamerthemeshadow.sty
+% beamerthemesplit.sty
+% beamerthemecompatibility.sty
+% beamerthemelined.sty
+% beamerthemeplain.sty
+
+\lstdefinelanguage{pbcc}{
+morekeywords={transform, if, else, for, from, to, using, case, do, where,
+              return, or, in_training, secondary, primary, priority, generator,
+              template, assert, while, config, MatrixRegion1D, MatrixRegion2D,
+              MatrixRegion3D, cell, region, row, col},
+sensitive=true,
+morecomment=[l]{\#},
+morecomment=[l]{//},
+morestring=[b]',
+morestring=[b]",
+}
+\lstset{language=pbcc}
+\lstset{numbers=left}
+\lstset{tabsize=2}
+\lstset{commentstyle=\textit}
+\lstset{literate=
+{REFTransform}{{\ref{sec:transform}}}{3}
+{REFRule}     {{\ref{sec:rule}}}{3}
+{REFBody}     {{\ref{sec:body}}}{3}
+}
+
+
+\begin{document}
+
+%\frame{\maketitle}
+
+%\section[Outline]{}
+%\frame{\tableofcontents}
+
+\section{PetaBricks Language}
+
+\subsection{A minimal PetaBricks transform}
+
+\begin{frame}[fragile]
+\begin{itemize}
+\item The {\em transform header} (lines~1-3), defines the inputs and the outputs
+\item The {\em rules} (lines~5-7), define how to generate a region of data
+given explicit dependencies.
+\item The outer control flow is inferred (and autotuned) by the compiler.
+\end{itemize}
+
+~~\begin{minipage}{.5\linewidth}\footnotesize
+\begin{lstlisting}
+transform Copy2D
+to B[w,h]
+from A[w,h]
+{
+  to(B.cell(x,y) b) from(A.cell(x,y) a) {
+    b=a;
+  }
+}
+\end{lstlisting}
+\end{minipage}
+\end{frame}
+
+\subsection{Algorithmic choices}
+
+\begin{frame}[fragile]
+\begin{itemize}
+\item The compiler decides when to use which rule
+\end{itemize}
+~~\begin{minipage}{.8\linewidth}\footnotesize
+\begin{lstlisting}
+transform Sum1D 
+to Total
+from A[n]
+{
+  //Compute the total directly 
+  to(Total t) from(A a) {
+    t=0;
+    for(int i=0; i<n; ++i)
+      t+=a.cell(i); 
+  }
+  //Divided and conquer
+  to(Total t) from(A.region(0, n/2) left,
+                   A.region(n/2, n) right) {
+    t=Sum1D(left)+Sum1D(right);
+  }
+}
+\end{lstlisting}
+\end{minipage}
+\end{frame}
+
+\subsection{Implicitly parallel}
+\begin{frame}[fragile]
+\begin{itemize}
+\item The recursive calls (line 14) are automatically paralyzed.
+\end{itemize}
+~~\begin{minipage}{.8\linewidth}\footnotesize
+\begin{lstlisting}
+transform Sum1D 
+to Total
+from A[n]
+{
+  //Compute the total directly 
+  to(Total t) from(A a) {
+    t=0;
+    for(int i=0; i<n; ++i)
+      t+=a.cell(i); 
+  }
+  //Divided and conquer
+  to(Total t) from(A.region(0, n/2) left,
+                   A.region(n/2, n) right) {
+    t=Sum1D(left)+Sum1D(right);
+  }
+}
+\end{lstlisting}
+\end{minipage}
+\end{frame}
+
+\begin{frame}[fragile]
+\begin{itemize}
+\item Data parallel rules are also automatically paralyzed.
+\item Automatic parallelization is possible because of explicit dependencies.
+\item Iteration order, parallelization schedule, and matrix storage are
+autotuned by the compiler.
+\end{itemize}
+~~\begin{minipage}{.8\linewidth}\footnotesize
+\begin{lstlisting}
+transform MatrixMultiply
+from A[c,h], B[w,c] 
+to AB[w,h]
+{
+  to(AB.cell(x,y) out) 
+  from(A.row(y) a, B.col(x) b) {
+    out = dot(a,b);
+  }
+}
+\end{lstlisting}
+\end{minipage}
+\end{frame}
+
+\subsection{More advanced language features}
+\begin{frame}[fragile]
+~~\begin{minipage}{.8\linewidth}\scriptsize
+\begin{lstlisting}
+transform Sum1Db
+to Total
+using Partial[n/2]
+from A[n]
+{
+  // Sum two neighboring elements
+  to(Partial.cell(i) p) from(A.cell(2*i) a1, A.cell(2*i+1) a2){
+    p=a1+a2;
+  }
+  // Lower priority rule to handle odd sized arrays
+  secondary to(Partial.cell(i) p) from(A.cell(2*i) a1){
+    p=a1;
+  }
+  // Recursively call self to finish summing
+  to(Total t) from(Partial p){
+    Sum1Db(t,p);
+  }
+  // Base case
+  to(Total t) from(A a){
+    Sum1Da(t,a);
+  }
+}
+\end{lstlisting}
+\end{minipage}
+\end{frame}
+
+\end{document}
