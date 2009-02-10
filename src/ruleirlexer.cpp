@@ -411,7 +411,7 @@ static yyconst flex_int32_t yy_ec[256] =
         1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
         1,    2,    1,    4,    1,    1,    5,    1,    6,    7,
         7,    8,    8,    7,    8,    9,    8,   10,   10,   10,
-       10,   10,   10,   10,   10,   10,   10,   11,    1,   12,
+       10,   10,   10,   10,   10,   10,   10,   11,    7,   12,
        13,   14,    1,    1,   15,   16,   17,   18,   19,   20,
        11,   21,   22,   11,   23,   24,   11,   25,   26,   11,
        11,   27,   28,   29,   30,   11,   31,   11,   11,   11,
@@ -543,7 +543,7 @@ int ruleir_flex_debug = 0;
 #define YY_RESTORE_YY_MORE_OFFSET
 char *ruleirtext;
 #line 1 "ruleirlexer.lpp"
-#line 14 "ruleirlexer.lpp"
+#line 12 "ruleirlexer.lpp"
 
 #include "ruleir.h"
 #include "formula.h"
@@ -645,8 +645,12 @@ static int input (void );
 
 /* Amount of stuff to slurp up with each read. */
 #ifndef YY_READ_BUF_SIZE
+#ifdef __ia64__
 /* On IA-64, the buffer size is 16k, not 8k */
 #define YY_READ_BUF_SIZE 16384
+#else
+#define YY_READ_BUF_SIZE 8192
+#endif /* __ia64__ */
 #endif
 
 /* Copy whatever the last rule matched to the standard output. */
@@ -654,7 +658,7 @@ static int input (void );
 /* This used to be an fputs(), but since the string might contain NUL's,
  * we now use fwrite().
  */
-#define ECHO fwrite( ruleirtext, ruleirleng, 1, ruleirout )
+#define ECHO do { if (fwrite( ruleirtext, ruleirleng, 1, ruleirout )) {} } while (0)
 #endif
 
 /* Gets input and stuffs it into "buf".  number of characters read, or YY_NULL,
@@ -747,10 +751,10 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 44 "ruleirlexer.lpp"
+#line 42 "ruleirlexer.lpp"
 
 
-#line 754 "ruleirlexer.cpp"
+#line 758 "ruleirlexer.cpp"
 
 	if ( !(yy_init) )
 		{
@@ -836,118 +840,118 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 /* rule 1 can match eol */
 YY_RULE_SETUP
-#line 47 "ruleirlexer.lpp"
+#line 45 "ruleirlexer.lpp"
 /* whitespace */
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 48 "ruleirlexer.lpp"
+#line 46 "ruleirlexer.lpp"
 return TOK_IF;
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 49 "ruleirlexer.lpp"
+#line 47 "ruleirlexer.lpp"
 return TOK_THEN;
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 50 "ruleirlexer.lpp"
+#line 48 "ruleirlexer.lpp"
 return TOK_ELSE;
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 51 "ruleirlexer.lpp"
+#line 49 "ruleirlexer.lpp"
 return TOK_FOR;
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 52 "ruleirlexer.lpp"
+#line 50 "ruleirlexer.lpp"
 return TOK_WHILE;
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 53 "ruleirlexer.lpp"
+#line 51 "ruleirlexer.lpp"
 return TOK_DO;
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 54 "ruleirlexer.lpp"
+#line 52 "ruleirlexer.lpp"
 return TOK_RETURN;
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 55 "ruleirlexer.lpp"
+#line 53 "ruleirlexer.lpp"
 return TOK_BREAK;
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 56 "ruleirlexer.lpp"
+#line 54 "ruleirlexer.lpp"
 return TOK_CONTINUE;
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 57 "ruleirlexer.lpp"
+#line 55 "ruleirlexer.lpp"
 return ruleirtext[0];
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 58 "ruleirlexer.lpp"
+#line 56 "ruleirlexer.lpp"
 return TOK_OP;
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 59 "ruleirlexer.lpp"
+#line 57 "ruleirlexer.lpp"
 return TOK_OP;
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 60 "ruleirlexer.lpp"
+#line 58 "ruleirlexer.lpp"
 return TOK_OP;
 	YY_BREAK
 case 15:
 /* rule 15 can match eol */
 YY_RULE_SETUP
-#line 61 "ruleirlexer.lpp"
+#line 59 "ruleirlexer.lpp"
 return TOK_LIT;
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 62 "ruleirlexer.lpp"
+#line 60 "ruleirlexer.lpp"
 return TOK_LIT;
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 63 "ruleirlexer.lpp"
+#line 61 "ruleirlexer.lpp"
 return TOK_LIT;
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 64 "ruleirlexer.lpp"
+#line 62 "ruleirlexer.lpp"
 return TOK_LIT;
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 65 "ruleirlexer.lpp"
+#line 63 "ruleirlexer.lpp"
 return TOK_IDENT;
 	YY_BREAK
 case 20:
 /* rule 20 can match eol */
 YY_RULE_SETUP
-#line 66 "ruleirlexer.lpp"
+#line 64 "ruleirlexer.lpp"
 return TOK_RAW;
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 67 "ruleirlexer.lpp"
+#line 65 "ruleirlexer.lpp"
 JWARNING(false)(ruleirtext).Text("Unhanded input");
 	YY_BREAK
 
 case 22:
 YY_RULE_SETUP
-#line 70 "ruleirlexer.lpp"
+#line 68 "ruleirlexer.lpp"
 ECHO;
 	YY_BREAK
-#line 951 "ruleirlexer.cpp"
+#line 955 "ruleirlexer.cpp"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(output):
 	yyterminate();
@@ -1461,6 +1465,10 @@ static void ruleir_load_buffer_state  (void)
 	ruleirfree((void *) b  );
 }
 
+#ifndef __cplusplus
+extern int isatty (int );
+#endif /* __cplusplus */
+    
 /* Initializes or reinitializes a buffer.
  * This function is sometimes called more than once on the same buffer,
  * such as during a ruleirrestart() or at EOF.
@@ -1484,8 +1492,8 @@ static void ruleir_load_buffer_state  (void)
         b->yy_bs_column = 0;
     }
 
-	b->yy_is_interactive = 1;
-
+        b->yy_is_interactive = file ? (isatty( fileno(file) ) > 0) : 0;
+    
 	errno = oerrno;
 }
 
@@ -1905,10 +1913,12 @@ void ruleirfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 70 "ruleirlexer.lpp"
+#line 68 "ruleirlexer.lpp"
 
 
 
-
+void _ruleirlexer_scan_string( const std::string& str) {
+  ruleir_scan_bytes(str.c_str(), str.length());
+}
 
 

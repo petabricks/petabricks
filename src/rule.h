@@ -28,6 +28,7 @@
 #include "region.h"
 #include "matrixdef.h"
 #include "formula.h"
+#include "ruleir.h"
 
 
 #include <vector>
@@ -214,7 +215,8 @@ private:
   FormulaList _conditions;
   FormulaList _definitions;
   SimpleRegionPtr _applicanbleRegion;
-  std::string     _body;
+  std::string     _bodysrc;
+  RIRBlockPtr     _bodyir;
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr          _recursiveHint;

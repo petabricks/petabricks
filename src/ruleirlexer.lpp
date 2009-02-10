@@ -5,8 +5,6 @@
 %option noyy_pop_state
 %option noyy_top_state
 %option nounput
-%option interactive
-%option always-interactive
 %option prefix="ruleir"
 %option outfile="lex.yy.c"
 
@@ -35,7 +33,7 @@ static const char* circularStringCache(const char* str){
 
 %x output
 
-PASS_CHARS [,()]
+PASS_CHARS [,();]
 OPS [=<>^*/[\]+-]
 WS [ \r\n\t]
 STR ["]([^"]+|[\\].)*["]
@@ -69,5 +67,7 @@ CHAR ['][\\]?.[']
 
 %%
 
-
+void _ruleirlexer_scan_string( const std::string& str) {
+  ruleir_scan_bytes(str.c_str(), str.length());
+}
 

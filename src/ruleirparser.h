@@ -74,7 +74,7 @@
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 22 "ruleirparser.ypp"
+#line 24 "ruleirparser.ypp"
 {
   const char* str;
   hecura::RIRExpr*  expr;

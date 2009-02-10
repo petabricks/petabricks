@@ -76,6 +76,8 @@ private:
   RIRExprList _exprs;
 };
 
+class RIRReturnStmt  : public RIRStmt {};
+
 /**
  * Rule IR Basic Block
  */
