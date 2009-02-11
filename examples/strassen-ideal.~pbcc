@@ -1,0 +1,84 @@
+
+#include "add.pbcc"
+
+transform Strassen
+from A11[n,n], A12[n,n], A21[n,n], A22[n,n],
+     B11[n,n], B12[n,n], B21[n,n], B22[n,n]
+using M1[n,n], M2[n,n], M3[n,n], M4[n,n], M5[n,n], M6[n,n], M7[n,n]
+to   C11[n,n], C12[n,n], C21[n,n], C22[n,n]
+{
+  to(M1 m1) from(A11 a11, A22 a22, B11 b11, B22 b22) using(t1[n,n], t2[n,n]){
+    t1=MatrixAdd(a11, a22);
+    t2=MatrixAdd(b11, b22);
+    m1=MatrixMultiplySqr(t1, t2);
+  }
+  to(M2 m2) from(A21 a21, A22 a22, B11 b11) using(t1[n,n]) {
+    t1=MatrixAdd(a21, a22);
+    m2=MatrixMultiplySqr(t1, b11);
+  }
+  to(M3 m3) from(A11 a11, B12 b12, B22 b22) using(t2[n,n]) {
+    t2=MatrixSub(b12, b22);
+    m3=MatrixMultiplySqr(a11, t2);
+  }
+  to(M4 m4) from(A22 a22, B21 b21, B11 b11) using(t2[n,n]) {
+    t2=MatrixSub(b21, b11);
+    m4=MatrixMultiplySqr(a22, t2);
+  }
+  to(M5 m5) from(A11 a11, A12 a12, B22 b22) using(t1[n,n]) {
+    t1=MatrixAdd(a11, a12);
+    m5=MatrixMultiplySqr(t1, b22);
+  }
+  to(M6 m6) from(A21 a21, A11 a11, B11 b11, B12 b12) using(t1[n,n], t2[n,n]) {
+    t1=MatrixSub(a21, a11);
+    t2=MatrixAdd(b11, b12);
+    m6=MatrixMultiplySqr(t1, t2);
+  }
+  to(M7 m7) from(A12 a12, A22 a22, B21 b21, B22 b22) using(t1[n,n], t2[n,n]) {
+    t1=MatrixSub(a12, a22);
+    t2=MatrixAdd(b21, b22);
+    m7=MatrixMultiplySqr(t1, t2);
+  }
+  
+  to(C11 c11) from(M1 m1, M4 m4, M5 m5, M7 m7){
+    c11=MatrixAddAddSub(m1, m4, m7, m5);
+  }
+  to(C12 c12) from(M3 m3, M5 m5){
+    c12=MatrixAdd(m3, m5);
+  }
+  to(C21 c21) from(M2 m2, M4 m4){
+    c21=MatrixAdd(m2, m4);
+  }
+  to(C22 c22) from(M1 m1, M2 m2, M3 m3, M6 m6){
+    c22=MatrixAddAddSub(m1, m3, m6, m2);
+  }
+}
+
+transform MatrixMultiplySqr
+from A[n,n], B[n,n] 
+to C[n,n]
+{
+  //call strassen
+  to(C.region(0,   0,   n/2, n/2) c11,
+     C.region(n/2, 0,   n,   n/2) c12,
+     C.region(0,   n/2, n/2, n)   c21,
+     C.region(n/2, n/2, n,   n)   c22)
+  from(A.region(0,   0,   n/2, n/2) a11,
+       A.region(n/2, 0,   n,   n/2) a12,
+       A.region(0,   n/2, n/2, n)   a21,
+       A.region(n/2, n/2, n,   n)   a22,
+       B.region(0,   0,   n/2, n/2) b11,
+       B.region(n/2, 0,   n,   n/2) b12,
+       B.region(0,   n/2, n/2, n)   b21,
+       B.region(n/2, n/2, n,   n)   b22)
+  {
+    Strassen(c11,c12,c21,c22, a11,a12,a21,a22, b11,b12,b21,b22);
+  }
+ 
+  //base case
+  C.cell(x,y) from(A.row(y) a, B.column(x) b){
+    return dot(a,b)
+  }
+
+  //... call last slides version of MM
+}
+
