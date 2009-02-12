@@ -1,5 +1,4 @@
 add
-ConvolutionFFT
 multiply
 rollingsum
 strassen
@@ -18,6 +17,8 @@ test8
 test9
 transpose
 utilities
+convolution/ConvolutionFFT
+convolution/Convolution
 eigenproblem/Bisection
 eigenproblem/BisectionTD
 eigenproblem/DC
