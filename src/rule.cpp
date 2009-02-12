@@ -25,7 +25,11 @@
 #include "maximawrapper.h"
 #include <algorithm>
 
+hecura::RIRBlockPtr parseRuleBody(const std::string& str);
+
 volatile long theNextRuleId = 0;
+
+
 
 hecura::Rule::Rule(const RegionPtr& to, const RegionList& from, const FormulaList& cond)
   : _id(jalib::atomicAdd<1>(&theNextRuleId))
@@ -54,11 +58,11 @@ hecura::FormulaPtr hecura::Rule::getOffsetVar(int id, const char* extra /*= NULL
 }
 
 void hecura::Rule::setBody(const char* str){
-  JWARNING(_body=="")(_body);
-  _body=str;
+  JWARNING(_bodysrc=="")(_bodysrc);
+  _bodysrc=str;
   //remove last char, a '}'
-  _body[_body.length()-1] = ' ';
-  _body=jalib::StringTrim(_body);
+  _bodysrc[_bodysrc.length()-1] = ' ';
+  _bodyir = parseRuleBody(_bodysrc);
 }
 
 void hecura::RuleFlags::print(std::ostream& os) const {
@@ -100,7 +104,7 @@ void hecura::Rule::print(std::ostream& os) const {
   for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
     os << "  " << i->first << ": " << i->second << "\n";
   }
-  os << "{\n" << _body << "\n}\n\n";
+  os << "{\n" << _bodysrc << "\n}\n\n";
 }
 
 namespace {// file local
@@ -240,7 +244,7 @@ void hecura::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
     for(FormulaList::const_iterator i=_definitions.begin(); i!=_definitions.end(); ++i){
       o.write("const IndexT "+(*i)->explodePrint()+";");
     }
-    o.write(_body);
+    o.write(_bodysrc);
     if(isRecursive()) o.write("return _after;");
   }
   o.endFunc();
