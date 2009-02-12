@@ -1,4 +1,5 @@
 add
+ConvolutionFFT
 multiply
 rollingsum
 strassen
@@ -33,6 +34,8 @@ eigenproblem/QRtridiagOne
 eigenproblem/QRtridiag
 eigenproblem/trial1
 eigenproblem/trial2
+kernel/KernelEstimate
+kernel/LinearSolvePosDef
 poisson/BS2DInterior
 poisson/BS2D
 poisson/ComputeError
