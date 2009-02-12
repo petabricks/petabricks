@@ -20,7 +20,7 @@ void unpackArray(MatrixRegion1D &out, double *in, int length)
 }
 
 // multiply Y1 by Y2, divide by N, store in Y1.  uses 3-mul complex multiply.
-void complexMultiplyScale(double Y1[2], double Y2[2], double N)
+inline void complexMultiplyScale(double Y1[2], double Y2[2], double N)
 {
   double ac, bd, abcd;
   ac = Y1[0] * Y2[0];
@@ -72,8 +72,6 @@ to C[n+m-1]
     fftw_free(X2);
     fftw_free(Y1);
     fftw_free(Y2);
-
-    //return 0;
   }
 }
 
