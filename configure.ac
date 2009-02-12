@@ -16,6 +16,7 @@ AC_PROG_EGREP
 AC_CHECK_LIB([m],[cos])
 AC_CHECK_LIB([pthread],[pthread_create])
 AC_CHECK_LIB([lapack], [dposv_])
+AC_CHECK_LIB([fftw3], [fftw_malloc])
 
 AC_CHECK_PROG([has_maxima], [maxima], [yes], [no])
 if test "$has_maxima" = "no"; then

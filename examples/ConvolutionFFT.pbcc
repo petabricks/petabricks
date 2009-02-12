@@ -1,0 +1,80 @@
+#ifndef CONVOLUTIONFFT_PBCC
+#define CONVOLUTIONFFT_PBCC
+
+%{
+
+void packArray(double *out, ConstMatrixRegion1D &in, int length)
+{
+  int i;
+  for (i = 0; i < length; i++) {
+    out[i] = in.cell(i);
+  }
+}
+
+void unpackArray(MatrixRegion1D &out, double *in, int length)
+{
+  int i;
+  for (i = 0; i < length; i++) {
+    out.cell(i) = in[i];
+  }
+}
+
+// multiply Y1 by Y2, divide by N, store in Y1.  uses 3-mul complex multiply.
+void complexMultiplyScale(double Y1[2], double Y2[2], double N)
+{
+  double ac, bd, abcd;
+  ac = Y1[0] * Y2[0];
+  bd = Y1[1] * Y2[1];
+  abcd = (Y1[0] + Y1[1]) * (Y2[0] + Y2[1]);
+  Y1[0] = (ac - bd) / N;
+  Y1[1] = (abcd - ac - bd) / N;
+}
+
+%}
+
+transform ConvolutionFFT
+from A[n], B[m]
+to C[n+m-1]
+{
+  to (C c) from (A a, B b)
+  {
+    int i, N = n + m - 1;
+    double *X1, *X2, *Z;
+    fftw_complex *Y1, *Y2;
+    X1 = (double *) fftw_malloc(sizeof(double) * N);
+    X2 = (double *) fftw_malloc(sizeof(double) * N);
+    Y1 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * (N/2 + 1));
+    Y2 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * (N/2 + 1));
+
+    fftw_plan p1, p2, p3;
+    p1 = fftw_plan_dft_r2c_1d(N, X1, Y1, FFTW_ESTIMATE);
+    p2 = fftw_plan_dft_r2c_1d(N, X2, Y2, FFTW_ESTIMATE);
+    p3 = fftw_plan_dft_c2r_1d(N, Y1, X1, FFTW_ESTIMATE);
+
+    packArray(X1, a, n);
+    packArray(X2, b, m);
+
+    fftw_execute(p1);
+    fftw_execute(p2);
+
+    for (i = 0; i < N/2 + 1; i++) {
+      complexMultiplyScale(Y1[i], Y2[i], N);
+    }
+
+    fftw_execute(p3);
+
+    unpackArray(c, X1, N);
+
+    fftw_destroy_plan(p1);
+    fftw_destroy_plan(p2);
+    fftw_destroy_plan(p3);
+    fftw_free(X1);
+    fftw_free(X2);
+    fftw_free(Y1);
+    fftw_free(Y2);
+
+    //return 0;
+  }
+}
+
+#endif // CONVOLUTIONFFT_PBCC

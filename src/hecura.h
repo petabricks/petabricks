@@ -26,6 +26,9 @@
 #include "jtunable.h"
 #include <math.h>
 #include "config.h"
+#ifdef HAVE_LIBFFTW3
+#  include <fftw3.h>
+#endif
 
 #define SPAWN(taskname, args...) \
   { DynamicTaskPtr _task = spawn_ ## taskname (args , _before); \
