@@ -1,11 +1,12 @@
 #ifndef CONVOLUTION_PBCC
 #define CONVOLUTION_PBCC
 
-%{
+#include "ConvolutionFFT.pbcc"
+#define WAYS 2
+#define MAX(x, y) ((x) >= (y) ? (x) : (y))
+#define MIN(x, y) ((x) <= (y) ? (x) : (y))
 
-%}
-
-transform Convolution
+transform ConvolutionRegular
 from A[n], B[m]
 to C[n+m-1]
 {
@@ -18,6 +19,69 @@ to C[n+m-1]
     for (i = 0; i < n; i++) {
       for (j = 0; j < m; j++) {
         c.cell(i+j) += a.cell(i) * b.cell(j);
+      }
+    }
+  }
+}
+
+// assumes first argument is longer
+// TODO: shouldn't assume n is divisible by WAYS
+// TODO: T should be smaller: (waySize x WAYS)
+transform ConvolutionRecursive
+from A[n], B[m]
+through T[n + m - 1, WAYS]
+to C[n+m-1]
+{
+  to (T.row(i) t) from (A a, B b)
+  {
+    int waySize = (n + WAYS - 1) / WAYS;
+    Convolution(t.region(0, waySize + m - 1),
+                a.region(i * waySize, (i + 1) * waySize),
+                b);
+    int j;
+    printf("(%g", t.cell(0));
+    for (j = 1; j < waySize + m - 1; j++) {
+      printf(", %g", t.cell(j));
+    }
+    printf(")\n");
+  }
+
+  to (C.cell(i) c) from (T t)
+  {
+    int j, waySize = (n + WAYS - 1) / WAYS;
+    c = 0;
+    for (j = MAX(0, (i - (m - 1)) / waySize);
+         j < MIN(WAYS, i / waySize + 1);
+         j++) {
+      c += t.cell(i - j * waySize, j);
+    }
+  }
+}
+
+transform Convolution
+from A[n], B[m]
+to C[n+m-1]
+{
+//to (C c) from (A a, B b)
+//{
+//  ConvolutionRegular(c, a, b);
+//}
+
+//to (C c) from (A a, B b)
+//{
+//  ConvolutionFFT(c, a, b);
+//}
+
+  to (C c) from (A a, B b)
+  {
+    if (a.count() <= 1 && b.count() <= 1) {
+      ConvolutionRegular(c, a, b);
+    } else {
+      if (a.count() >= b.count())
+      {
+        ConvolutionRecursive(c, a, b);
+      } else {
+        ConvolutionRecursive(c, b, a);
       }
     }
   }
