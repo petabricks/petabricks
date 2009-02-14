@@ -66,13 +66,11 @@ transform Convolution
 from A[n], B[m]
 to C[n+m-1]
 {
-  recursive(n+m-1)
   to (C c) from (A a, B b)
   {
     ConvolutionRegular(c, a, b);
   }
 
-  recursive(n+m-1)
   to (C c) from (A a, B b)
   {
     ConvolutionFFT(c, a, b);
