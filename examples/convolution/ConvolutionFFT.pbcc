@@ -3,11 +3,26 @@
 
 %{
 
-void packArray(double *out, ConstMatrixRegion1D &in, int length)
+void displayArray(double *a, int length)
 {
   int i;
-  for (i = 0; i < length; i++) {
+  printf("(%g", a[0]);
+  for (i = 1; i < length; i++) {
+    printf(", %g", a[i]);
+  }
+  printf(")\n");
+}
+
+void packArray(double *out, ConstMatrixRegion1D &in,
+               int numElements,
+               int length)
+{
+  int i;
+  for (i = 0; i < numElements; i++) {
     out[i] = in.cell(i);
+  }
+  for (i = numElements; i < length; i++) {
+    out[i] = 0;
   }
 }
 
@@ -38,7 +53,7 @@ to C[n+m-1]
 {
   to (C c) from (A a, B b)
   {
-    int i, N = n + m - 1;
+    int N = n + m - 1;
     double *X1, *X2, *Z;
     fftw_complex *Y1, *Y2;
     X1 = (double *) fftw_malloc(sizeof(double) * N);
@@ -51,12 +66,16 @@ to C[n+m-1]
     p2 = fftw_plan_dft_r2c_1d(N, X2, Y2, FFTW_ESTIMATE);
     p3 = fftw_plan_dft_c2r_1d(N, Y1, X1, FFTW_ESTIMATE);
 
-    packArray(X1, a, n);
-    packArray(X2, b, m);
+    packArray(X1, a, n, N);
+    packArray(X2, b, m, N);
+
+//  displayArray(X1, N);
+//  displayArray(X2, N);
 
     fftw_execute(p1);
     fftw_execute(p2);
 
+    int i;
     for (i = 0; i < N/2 + 1; i++) {
       complexMultiplyScale(Y1[i], Y2[i], N);
     }

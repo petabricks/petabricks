@@ -25,25 +25,28 @@ to C[n+m-1]
 }
 
 // assumes first argument is longer
-// TODO: shouldn't assume n is divisible by WAYS
-// TODO: T should be smaller: (waySize x WAYS)
+// TODO: T should be smaller: ((waySize + m - 1) x WAYS)
 transform ConvolutionRecursive
 from A[n], B[m]
+//through T[((n + WAYS - 1) / WAYS) + m - 1, WAYS]
 through T[n + m - 1, WAYS]
 to C[n+m-1]
 {
   to (T.row(i) t) from (A a, B b)
   {
     int waySize = (n + WAYS - 1) / WAYS;
-    Convolution(t.region(0, waySize + m - 1),
-                a.region(i * waySize, (i + 1) * waySize),
+    int aStart = i * waySize;
+    int aEnd = MIN((i + 1) * waySize, n);
+    int aSegLen = aEnd - aStart;
+    Convolution(t.region(0, aSegLen + m - 1),
+                a.region(aStart, aEnd),
                 b);
     int j;
-    printf("(%g", t.cell(0));
-    for (j = 1; j < waySize + m - 1; j++) {
-      printf(", %g", t.cell(j));
-    }
-    printf(")\n");
+//  printf("(%g", t.cell(0));
+//  for (j = 1; j < aSegLen + m - 1; j++) {
+//    printf(", %g", t.cell(j));
+//  }
+//  printf(")\n");
   }
 
   to (C.cell(i) c) from (T t)
