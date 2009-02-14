@@ -25,7 +25,8 @@ to C[n+m-1]
 }
 
 // assumes first argument is longer
-// TODO: T should be smaller: ((waySize + m - 1) x WAYS)
+// TODO: T should be smaller: ((waySize + m - 1) x WAYS),
+//       where waySize = ceiling(n / WAYS)
 transform ConvolutionRecursive
 from A[n], B[m]
 //through T[((n + WAYS - 1) / WAYS) + m - 1, WAYS]
@@ -65,15 +66,15 @@ transform Convolution
 from A[n], B[m]
 to C[n+m-1]
 {
-//to (C c) from (A a, B b)
-//{
-//  ConvolutionRegular(c, a, b);
-//}
+  to (C c) from (A a, B b)
+  {
+    ConvolutionRegular(c, a, b);
+  }
 
-//to (C c) from (A a, B b)
-//{
-//  ConvolutionFFT(c, a, b);
-//}
+  to (C c) from (A a, B b)
+  {
+    ConvolutionFFT(c, a, b);
+  }
 
   to (C c) from (A a, B b)
   {
