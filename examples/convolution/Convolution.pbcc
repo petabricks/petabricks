@@ -2,7 +2,7 @@
 #define CONVOLUTION_PBCC
 
 #include "ConvolutionFFT.pbcc"
-#define WAYS 2
+#define WAYS 4
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
 
@@ -33,21 +33,32 @@ from A[n], B[m]
 through T[n + m - 1, WAYS]
 to C[n+m-1]
 {
-  to (T.row(i) t) from (A a, B b)
+  to (T t) from (A a, B b)
   {
     int waySize = (n + WAYS - 1) / WAYS;
-    int aStart = i * waySize;
-    int aEnd = MIN((i + 1) * waySize, n);
-    int aSegLen = aEnd - aStart;
-    Convolution(t.region(0, aSegLen + m - 1),
-                a.region(aStart, aEnd),
-                b);
-    int j;
-//  printf("(%g", t.cell(0));
-//  for (j = 1; j < aSegLen + m - 1; j++) {
-//    printf(", %g", t.cell(j));
+    for (int i = 0; i < WAYS; i++) {
+      int aStart = i * waySize;
+      int aEnd = MIN((i + 1) * waySize, n);
+      int aSegLen = aEnd - aStart;
+      SPAWN(Convolution, t.region(0, i, aSegLen + m - 1, i + 1).row(0),
+                         a.region(aStart, aEnd),
+                         b);
+//    Convolution(t.region(0, i, aSegLen + m - 1, i + 1).row(0),
+//                a.region(aStart, aEnd),
+//                b);
+    }
+      SYNC();
+
+//  for (int i = 0; i < WAYS; i++) {
+//    int aStart = i * waySize;
+//    int aEnd = MIN((i + 1) * waySize, n);
+//    int aSegLen = aEnd - aStart;
+//    printf("(%g", t.cell(0, i));
+//    for (int j = 1; j < aSegLen + m - 1; j++) {
+//      printf(", %g", t.cell(j, i));
+//    }
+//    printf(")\n");
 //  }
-//  printf(")\n");
   }
 
   to (C.cell(i) c) from (T t)
@@ -68,18 +79,21 @@ to C[n+m-1]
 {
   to (C c) from (A a, B b)
   {
+    printf("Calling regular ...\n");
     ConvolutionRegular(c, a, b);
   }
 
   to (C c) from (A a, B b)
   {
+    printf("Calling FFT ...\n");
     ConvolutionFFT(c, a, b);
   }
 
   recursive(n+m-1)
   to (C c) from (A a, B b)
   {
-    if (a.count() <= 1 && b.count() <= 1) {
+    printf("Calling recursive ...\n");
+    if (a.count() <= WAYS && b.count() <= WAYS) {
       ConvolutionRegular(c, a, b);
     } else {
       if (a.count() >= b.count())
