@@ -19,26 +19,42 @@
  ***************************************************************************/
 #include "ruleir.h"
 
+const char* hecura::RIRNode::typeStr() const{
+  switch(type()){
+    case EXPR        : return "EXPR";
+    case EXPR_NIL    : return "EXPR_NIL";
+    case EXPR_OP     : return "EXPR_OP";
+    case EXPR_LIT    : return "EXPR_LIT";
+    case EXPR_IDENT  : return "EXPR_IDENT";
+    case EXPR_CHAIN  : return "EXPR_CHAIN";
+    case EXPR_CALL   : return "EXPR_CALL";
+    case EXPR_ARGS   : return "EXPR_ARGS";
+    case EXPR_KEYWORD: return "EXPR_KEYWORD";
+    case STMT        : return "STMT";
+    case STMT_BASIC  : return "STMT_BASIC";
+    case STMT_CONTROL: return "STMT_CONTROL";
+    case STMT_BLOCK  : return "STMT_BLOCK";
+    case STMT_RAW    : return "STMT_RAW";
+    case BLOCK       : return "BLOCK";
+    default          : return "INVALID";
+  }
+}
 
 void hecura::RIRExpr::print(std::ostream& o) const {
   o<<_str;
   printStlList(o, _parts.begin(), _parts.end(), " ");
 }
-
 void hecura::RIRBlock::print(std::ostream& o) const {
   printStlList(o, _stmts.begin(), _stmts.end(), "\n");
 }
-
 void hecura::RIRBasicStmt::print(std::ostream& o) const {
   printStlList(o, _exprs.begin(), _exprs.end(), " ");
   o<<";";
 }
-
 void hecura::RIRBlockStmt::print(std::ostream& o) const {
   JASSERT(_exprs.size()==0);
   o << "{\n" << _block << "\n}";
 }
-
 void hecura::RIRLoopStmt::print(std::ostream& o) const {
   JASSERT(_exprs.size()==3);
   o << "for(" << _exprs[0] << "; " 
@@ -46,11 +62,79 @@ void hecura::RIRLoopStmt::print(std::ostream& o) const {
               << _exprs[2] << ") "
               << _body;
 }
-
 void hecura::RIRIfStmt::print(std::ostream& o) const {
   JASSERT(_exprs.size()==1);
-  o << "if(" << _exprs[0] << ") " 
+  o << "if(" << _exprs[0] << ")\n" 
               << _then;
-  if (_else) o << " else " << _else;
+  if (_else) o << "\nelse\n" << _else;
 }
+void hecura::RIRRawStmt::print(std::ostream& o) const {
+  o << _src;
+}
+
+
+namespace{
+  template<typename T>
+  void _visithelper(hecura::RIRVisitor& v, jalib::JRef<T>& t){
+    v.before(t);
+    if(t && v.shouldDescend(*t)) t->accept(v);
+    v.after(t);
+  }
+  template<typename T>
+  void _visitlisthelper(hecura::RIRVisitor& v, std::vector<jalib::JRef<T> >& t){
+    std::vector<jalib::JRef<T> > t_alt;
+    std::vector<jalib::JRef<T> > splicer;
+    t_alt.swap(t);
+    t.reserve(t_alt.size());
+    v.pushSplicer(&splicer);
+    for(typename std::vector<jalib::JRef<T> >::const_iterator i=t_alt.begin(); i!=t_alt.end(); ++i){
+      jalib::JRef<T> p = *i;
+      //call before
+      v.before(p); 
+      //recurse
+      if(p && v.shouldDescend(*p)) p->accept(v);
+      //insert spliced statements
+      t.insert(t.end(), splicer.begin(), splicer.end());
+      splicer.clear();
+      //call after
+      v.after(p);
+      if(p) t.push_back(p);
+      //insert spliced statements
+      t.insert(t.end(), splicer.begin(), splicer.end());
+      splicer.clear();
+    }
+    v.popSplicer(&splicer);
+  }
+
+}
+
+void hecura::RIRExpr::accept(hecura::RIRVisitor& v) { 
+  _visitlisthelper(v, _parts);
+}
+void hecura::RIRStmt::accept(hecura::RIRVisitor& v) {
+  _visitlisthelper(v, _exprs);
+}
+void hecura::RIRBlock::accept(hecura::RIRVisitor& v) {
+  _visitlisthelper(v, _stmts);
+}
+void hecura::RIRBasicStmt::accept(hecura::RIRVisitor& v) {
+  RIRStmt::accept(v);
+}
+void hecura::RIRBlockStmt::accept(hecura::RIRVisitor& v) {
+  RIRStmt::accept(v);
+  _visithelper(v, _block);
+}
+void hecura::RIRLoopStmt::accept(hecura::RIRVisitor& v) {
+  RIRStmt::accept(v);
+  _visithelper(v, _body);
+}
+void hecura::RIRIfStmt::accept(hecura::RIRVisitor& v) {
+  RIRStmt::accept(v);
+  _visithelper(v, _then);
+  _visithelper(v, _else);
+}
+void hecura::RIRRawStmt::accept(hecura::RIRVisitor& v) {
+  RIRStmt::accept(v);
+}
+
 

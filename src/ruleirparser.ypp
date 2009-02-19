@@ -105,8 +105,7 @@ ReturnStmt: TOK_RETURN Expr ';' {
 };
 
 RawStmt: TOK_RAW {
-  $$=REFALLOC(RIRBasicStmt());
-  UNIMPLEMENTED();
+  $$=REFALLOC(RIRRawStmt($1));
 };
 
 Expr: Expr ExprElement     {($$=$1)->addSubExpr($2);}
@@ -135,7 +134,6 @@ Lit:   TOK_LIT   {$$=REFALLOC(RIRLitExpr($1));};
 Ident: TOK_IDENT {$$=REFALLOC(RIRIdentExpr($1));};
 
 Nil:;
-
 
 %%
 
