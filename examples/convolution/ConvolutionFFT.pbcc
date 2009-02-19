@@ -3,6 +3,8 @@
 
 %{
 
+pthread_mutex_t fftw_plan_mutex;
+
 void displayArray(double *a, int length)
 {
   int i;
@@ -62,9 +64,11 @@ to C[n+m-1]
     Y2 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * (N/2 + 1));
 
     fftw_plan p1, p2, p3;
+    pthread_mutex_lock(&fftw_plan_mutex);
     p1 = fftw_plan_dft_r2c_1d(N, X1, Y1, FFTW_ESTIMATE);
     p2 = fftw_plan_dft_r2c_1d(N, X2, Y2, FFTW_ESTIMATE);
     p3 = fftw_plan_dft_c2r_1d(N, Y1, X1, FFTW_ESTIMATE);
+    pthread_mutex_unlock(&fftw_plan_mutex);
 
     packArray(X1, a, n, N);
     packArray(X2, b, m, N);

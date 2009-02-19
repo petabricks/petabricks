@@ -5,7 +5,7 @@
 #define WAYS 4
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
-//#define ENABLE_SPAWN
+#define ENABLE_SPAWN
 
 transform ConvolutionRegular
 from A[n], B[m]
@@ -93,20 +93,34 @@ to C[n+m-1]
 {
   to (C c) from (A a, B b)
   {
-    printf("Calling regular ...\n");
+    //printf("Calling (%d + %d) regular ...\n", (int) n, (int) m);
     ConvolutionRegular(c, a, b);
   }
 
   to (C c) from (A a, B b)
   {
-    printf("Calling FFT ...\n");
+    //printf("Calling (%d + %d) FFT ...\n", (int) n, (int) m);
     ConvolutionFFT(c, a, b);
+    //printf("Finished (%d + %d) FFT ...\n", (int) n, (int) m);
   }
 
   recursive(n+m-1)
   to (C c) from (A a, B b)
   {
-    printf("Calling recursive ...\n");
+    // TODO: This is a bad idea.  Could potentially be inited by
+    //   multiple threads simultaneously.  Init is placed here
+    //   because this is the entry point for parallelism.  Long-term,
+    //   need somewhere in .pbcc file to place init code that will
+    //   only be called once.
+    //
+    //   Mutex is never destroyed.
+    static bool mutex_inited = false;
+    if (!mutex_inited) {
+      pthread_mutex_init(&fftw_plan_mutex, NULL);
+      mutex_inited = true;
+    }
+
+    //printf("Calling (%d + %d) recursive ...\n", (int) n, (int) m);
     if (a.count() <= WAYS && b.count() <= WAYS) {
       ConvolutionRegular(c, a, b);
     } else {
