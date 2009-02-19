@@ -115,6 +115,8 @@ runEachTest << EOF
   sort/Sort          $R1D
   sort/Sort          $R1Dodd
   kernel/KernelEstimate $TrainX $TrainY $TestX $ONE $ONE
+  convolution/ConvolutionFFT $R1D $R1D
+  convolution/Convolution $R1D $R1D
 EOF
 
 printf '+---------------------+---------+----------------------+\n'
