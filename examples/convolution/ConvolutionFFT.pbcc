@@ -77,7 +77,7 @@ to C[n+m-1]
 
     int i;
     for (i = 0; i < N/2 + 1; i++) {
-      complexMultiplyScale(Y1[i], Y2[i], N);
+      complexMultiplyScale(Y1[i], Y2[i], (double) N);
     }
 
     fftw_execute(p3);

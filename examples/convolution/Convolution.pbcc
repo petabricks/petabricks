@@ -5,6 +5,7 @@
 #define WAYS 4
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
+//#define ENABLE_SPAWN
 
 transform ConvolutionRegular
 from A[n], B[m]
@@ -33,6 +34,7 @@ from A[n], B[m]
 through T[n + m - 1, WAYS]
 to C[n+m-1]
 {
+  recursive
   to (T t) from (A a, B b)
   {
     int waySize = (n + WAYS - 1) / WAYS;
@@ -40,21 +42,33 @@ to C[n+m-1]
       int aStart = i * waySize;
       int aEnd = MIN((i + 1) * waySize, n);
       int aSegLen = aEnd - aStart;
-      SPAWN(Convolution, t.region(0, i, aSegLen + m - 1, i + 1).row(0),
-                         a.region(aStart, aEnd),
-                         b);
-//    Convolution(t.region(0, i, aSegLen + m - 1, i + 1).row(0),
-//                a.region(aStart, aEnd),
-//                b);
+      if (aSegLen > 0) {
+#ifdef ENABLE_SPAWN
+        SPAWN(Convolution, t.region(0, i, aSegLen + m - 1, i + 1).row(0),
+                           a.region(aStart, aEnd),
+                           b);
+#else
+        Convolution(t.region(0, i, aSegLen + m - 1, i + 1).row(0),
+                    a.region(aStart, aEnd),
+                    b);
+#endif
+      }
+      // zero out rest of row
+      int tZeroStart = (aSegLen == 0 ? 0 : aSegLen + m - 1);
+      for (int j = tZeroStart; j < t.size(0); j++) {
+        t.cell(j, i) = 0;
+      }
     }
-      SYNC();
+#ifdef ENABLE_SPAWN
+    SYNC();
+#endif
 
 //  for (int i = 0; i < WAYS; i++) {
 //    int aStart = i * waySize;
 //    int aEnd = MIN((i + 1) * waySize, n);
 //    int aSegLen = aEnd - aStart;
 //    printf("(%g", t.cell(0, i));
-//    for (int j = 1; j < aSegLen + m - 1; j++) {
+//    for (int j = 1; j < n + m - 1; j++) {
 //      printf(", %g", t.cell(j, i));
 //    }
 //    printf(")\n");
