@@ -104,7 +104,8 @@ void hecura::Rule::print(std::ostream& os) const {
   for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
     os << "  " << i->first << ": " << i->second << "\n";
   }
-  os << "{\n" << _bodysrc << "\n}\n\n";
+  os << "SRC = {" << _bodysrc << "}\n";
+  os << "IR = {" << _bodyir << "}\n";
 }
 
 namespace {// file local

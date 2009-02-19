@@ -19,3 +19,38 @@
  ***************************************************************************/
 #include "ruleir.h"
 
+
+void hecura::RIRExpr::print(std::ostream& o) const {
+  o<<_str;
+  printStlList(o, _parts.begin(), _parts.end(), " ");
+}
+
+void hecura::RIRBlock::print(std::ostream& o) const {
+  printStlList(o, _stmts.begin(), _stmts.end(), "\n");
+}
+
+void hecura::RIRBasicStmt::print(std::ostream& o) const {
+  printStlList(o, _exprs.begin(), _exprs.end(), " ");
+  o<<";";
+}
+
+void hecura::RIRBlockStmt::print(std::ostream& o) const {
+  JASSERT(_exprs.size()==0);
+  o << "{\n" << _block << "\n}";
+}
+
+void hecura::RIRLoopStmt::print(std::ostream& o) const {
+  JASSERT(_exprs.size()==3);
+  o << "for(" << _exprs[0] << "; " 
+              << _exprs[1] << "; "
+              << _exprs[2] << ") "
+              << _body;
+}
+
+void hecura::RIRIfStmt::print(std::ostream& o) const {
+  JASSERT(_exprs.size()==1);
+  o << "if(" << _exprs[0] << ") " 
+              << _then;
+  if (_else) o << " else " << _else;
+}
+

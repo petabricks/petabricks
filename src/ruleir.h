@@ -43,7 +43,6 @@ typedef std::vector<RIRExprPtr>  RIRExprList;
  */
 class RIRNode : public jalib::JRefCounted, public jalib::JPrintable {
 public:
-  void print(std::ostream& o) const { o << "RIRNode"; }
 };
 
 /**
@@ -53,30 +52,71 @@ class RIRExpr  : public RIRNode {
 public:
   RIRExpr(const std::string& str="") :_str(str) {}
   void addSubExpr(const RIRExprPtr& p) { _parts.push_back(p); }
-  void print(std::ostream& o) const { o << _str; }
+  void print(std::ostream& o) const;
 private:
   std::string _str;
   RIRExprList _parts;
 };
 
+typedef RIRExpr RIRNilExpr;
 typedef RIRExpr RIROpExpr;
 typedef RIRExpr RIRLitExpr;
 typedef RIRExpr RIRIdentExpr;
 typedef RIRExpr RIRChainExpr;
 typedef RIRExpr RIRCallExpr;
 typedef RIRExpr RIRArgsExpr;
+typedef RIRExpr RIRKeywordExpr;
 
 /**
  * Rule IR Statement
  */
 class RIRStmt  : public RIRNode {
 public:
-  void addExpr(const RIRExprPtr& p) { _exprs.push_back(p); }
-private:
+  void addExpr(const RIRExprPtr& p)   { _exprs.push_back(p); }
+protected:
   RIRExprList _exprs;
 };
 
-class RIRReturnStmt  : public RIRStmt {};
+class RIRBasicStmt  : public RIRStmt {
+public:
+  void print(std::ostream& o) const;
+};
+
+class RIRControlStmt  : public RIRStmt {
+public:
+};
+
+class RIRBlockStmt  : public RIRStmt{
+public:
+  RIRBlockStmt(const RIRBlockPtr& p) { _block=p; }
+  void print(std::ostream& o) const;
+private:
+  RIRBlockPtr _block;
+};
+
+class RIRLoopStmt: public RIRControlStmt{
+public:
+  RIRLoopStmt(const RIRStmtPtr& p) { _body=p; }
+  void print(std::ostream& o) const;
+private:
+  RIRStmtPtr _body;
+};
+
+class RIRIfStmt: public RIRControlStmt{
+public:
+  RIRIfStmt(const RIRStmtPtr& t, const RIRStmtPtr& e=0) 
+    : _then(t)
+    , _else(e) 
+  {}
+  void print(std::ostream& o) const;
+private:
+  RIRStmtPtr _then;
+  RIRStmtPtr _else;
+};
+
+typedef RIRBasicStmt RIRReturnStmt;
+typedef RIRControlStmt RIRBreakStmt;
+typedef RIRControlStmt RIRContinueStmt;
 
 /**
  * Rule IR Basic Block
@@ -84,6 +124,7 @@ class RIRReturnStmt  : public RIRStmt {};
 class RIRBlock : public RIRNode {
 public:
   void addStmt(const RIRStmtPtr& p) { _stmts.push_back(p); }
+  void print(std::ostream& o) const;
 private:
   RIRStmtList _stmts;
 };

@@ -484,9 +484,9 @@ static const yytype_int8 yyrhs[] =
 static const yytype_uint8 yyrline[] =
 {
        0,    53,    53,    57,    58,    60,    61,    62,    63,    64,
-      65,    66,    68,    73,    78,    83,    88,    93,    98,   103,
-     108,   109,   111,   112,   113,   114,   116,   123,   124,   126,
-     127,   129,   130,   131,   133
+      65,    66,    68,    73,    78,    85,    92,    97,   101,   107,
+     112,   113,   115,   116,   117,   118,   120,   127,   128,   130,
+     131,   133,   134,   135,   137
 };
 #endif
 
@@ -1483,12 +1483,12 @@ yyreduce:
 
   case 5:
 #line 60 "ruleirparser.ypp"
-    {((yyval.stmt)=REFALLOC(RIRStmt()))->addExpr((yyvsp[(1) - (2)].expr));}
+    {((yyval.stmt)=REFALLOC(RIRBasicStmt()))->addExpr((yyvsp[(1) - (2)].expr));}
     break;
 
   case 6:
 #line 61 "ruleirparser.ypp"
-    {((yyval.stmt)=REFALLOC(RIRStmt()));}
+    {((yyval.stmt)=REFALLOC(RIRBasicStmt()));}
     break;
 
   case 7:
@@ -1519,99 +1519,103 @@ yyreduce:
   case 12:
 #line 68 "ruleirparser.ypp"
     {
-  (yyval.stmt)=REFALLOC(RIRStmt());
-  UNIMPLEMENTED();
+  (yyval.stmt)=REFALLOC(RIRIfStmt((yyvsp[(5) - (5)].stmt)));
+  (yyval.stmt)->addExpr((yyvsp[(3) - (5)].expr));
 }
     break;
 
   case 13:
 #line 73 "ruleirparser.ypp"
     {
-  (yyval.stmt)=REFALLOC(RIRStmt());
-  UNIMPLEMENTED();
+  (yyval.stmt)=REFALLOC(RIRIfStmt((yyvsp[(5) - (7)].stmt), (yyvsp[(7) - (7)].stmt)));
+  (yyval.stmt)->addExpr((yyvsp[(3) - (7)].expr));
 }
     break;
 
   case 14:
 #line 78 "ruleirparser.ypp"
     {
-  (yyval.stmt)=REFALLOC(RIRStmt());
-  UNIMPLEMENTED();
+  (yyval.stmt)=REFALLOC(RIRLoopStmt((yyvsp[(9) - (9)].stmt)));
+  (yyval.stmt)->addExpr((yyvsp[(3) - (9)].expr));
+  (yyval.stmt)->addExpr((yyvsp[(5) - (9)].expr));
+  (yyval.stmt)->addExpr((yyvsp[(7) - (9)].expr));
 }
     break;
 
   case 15:
-#line 83 "ruleirparser.ypp"
+#line 85 "ruleirparser.ypp"
     {
-  (yyval.stmt)=REFALLOC(RIRStmt());
-  UNIMPLEMENTED();
+  (yyval.stmt)=REFALLOC(RIRLoopStmt((yyvsp[(5) - (5)].stmt)));
+  (yyval.stmt)->addExpr(REFALLOC(RIRNilExpr()));
+  (yyval.stmt)->addExpr((yyvsp[(3) - (5)].expr));
+  (yyval.stmt)->addExpr(REFALLOC(RIRNilExpr()));
 }
     break;
 
   case 16:
-#line 88 "ruleirparser.ypp"
+#line 92 "ruleirparser.ypp"
     {
-  (yyval.stmt)=REFALLOC(RIRStmt());
+  (yyval.stmt)=REFALLOC(RIRLoopStmt((yyvsp[(2) - (7)].stmt)));
   UNIMPLEMENTED();
 }
     break;
 
   case 17:
-#line 93 "ruleirparser.ypp"
+#line 97 "ruleirparser.ypp"
     {
-  (yyval.stmt)=REFALLOC(RIRStmt());
-  UNIMPLEMENTED();
+  (yyval.stmt)=REFALLOC(RIRBlockStmt((yyvsp[(2) - (3)].block)));
 }
     break;
 
   case 18:
-#line 98 "ruleirparser.ypp"
+#line 101 "ruleirparser.ypp"
     {
   (yyval.stmt)=REFALLOC(RIRReturnStmt());
+  (yyval.stmt)->addExpr(REFALLOC(RIRKeywordExpr("return")));
   (yyval.stmt)->addExpr((yyvsp[(2) - (3)].expr));
 }
     break;
 
   case 19:
-#line 103 "ruleirparser.ypp"
+#line 107 "ruleirparser.ypp"
     {
-  (yyval.stmt)=REFALLOC(RIRStmt());
+  (yyval.stmt)=REFALLOC(RIRBasicStmt());
   UNIMPLEMENTED();
 }
     break;
 
   case 20:
-#line 108 "ruleirparser.ypp"
+#line 112 "ruleirparser.ypp"
     {((yyval.expr)=(yyvsp[(1) - (2)].expr))->addSubExpr((yyvsp[(2) - (2)].expr));}
     break;
 
   case 21:
-#line 109 "ruleirparser.ypp"
+#line 113 "ruleirparser.ypp"
     {((yyval.expr)=REFALLOC(RIRChainExpr()))->addSubExpr((yyvsp[(1) - (1)].expr));}
     break;
 
   case 22:
-#line 111 "ruleirparser.ypp"
+#line 115 "ruleirparser.ypp"
     {(yyval.expr)=(yyvsp[(1) - (1)].expr);}
     break;
 
   case 23:
-#line 112 "ruleirparser.ypp"
+#line 116 "ruleirparser.ypp"
     {(yyval.expr)=(yyvsp[(1) - (1)].expr);}
     break;
 
   case 24:
-#line 113 "ruleirparser.ypp"
+#line 117 "ruleirparser.ypp"
     {(yyval.expr)=(yyvsp[(1) - (1)].expr);}
     break;
 
   case 25:
-#line 114 "ruleirparser.ypp"
+#line 118 "ruleirparser.ypp"
     {(yyval.expr)=(yyvsp[(1) - (1)].expr);}
     break;
 
   case 26:
-#line 116 "ruleirparser.ypp"
+#line 120 "ruleirparser.ypp"
     { 
   (yyval.expr)=REFALLOC(RIRCallExpr()); 
   (yyval.expr)->addSubExpr((yyvsp[(1) - (4)].expr));
@@ -1620,43 +1624,43 @@ yyreduce:
     break;
 
   case 27:
-#line 123 "ruleirparser.ypp"
+#line 127 "ruleirparser.ypp"
     { ((yyval.expr)=REFALLOC(RIRArgsExpr()))->addSubExpr((yyvsp[(1) - (1)].expr)); }
     break;
 
   case 28:
-#line 124 "ruleirparser.ypp"
+#line 128 "ruleirparser.ypp"
     { ((yyval.expr)=(yyvsp[(1) - (3)].expr))->addSubExpr((yyvsp[(3) - (3)].expr)); }
     break;
 
   case 29:
-#line 126 "ruleirparser.ypp"
+#line 130 "ruleirparser.ypp"
     {(yyval.expr)=REFALLOC(RIRArgsExpr());}
     break;
 
   case 30:
-#line 127 "ruleirparser.ypp"
+#line 131 "ruleirparser.ypp"
     {(yyval.expr)=(yyvsp[(1) - (1)].expr);}
     break;
 
   case 31:
-#line 129 "ruleirparser.ypp"
+#line 133 "ruleirparser.ypp"
     {(yyval.expr)=REFALLOC(RIROpExpr((yyvsp[(1) - (1)].str)));}
     break;
 
   case 32:
-#line 130 "ruleirparser.ypp"
+#line 134 "ruleirparser.ypp"
     {(yyval.expr)=REFALLOC(RIRLitExpr((yyvsp[(1) - (1)].str)));}
     break;
 
   case 33:
-#line 131 "ruleirparser.ypp"
+#line 135 "ruleirparser.ypp"
     {(yyval.expr)=REFALLOC(RIRIdentExpr((yyvsp[(1) - (1)].str)));}
     break;
 
 
 /* Line 1267 of yacc.c.  */
-#line 1660 "ruleirparser.cpp"
+#line 1664 "ruleirparser.cpp"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -1876,7 +1880,7 @@ yyreturn:
 }
 
 
-#line 136 "ruleirparser.ypp"
+#line 140 "ruleirparser.ypp"
 
 
 void _ruleirlexer_scan_string( const std::string& str);
