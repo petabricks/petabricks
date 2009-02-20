@@ -39,7 +39,7 @@ function compilePbcc(){
 }
 
 function testPbcc(){
-  TST=./testdata/.output/`echo $1 $(basename "$2") $(basename "$3") $(basename "$4") $(basename "$5") | tr -s '[ /.]' _`
+  TST=./testdata/.output/`echo $1 $(basename "$2") $(basename "$3") $(basename "$4") $(basename "$5") $(basename "$6")$(basename "$7")$(basename "$8")   $(basename "$9") | tr -s '[ /.]' _`
   if ./examples/$1 $2 $3 $4 $5 $6 $7 $8 $9 $TST >/dev/null 2>/dev/null
   then
     if git diff --exit-code $TST >/dev/null
@@ -82,6 +82,9 @@ ONEPOINTFIVE=./testdata/OnePointFive0D
 TWO=./testdata/Two0D
 TEN=./testdata/Ten0D
 MINUSONE=./testdata/MinusOne0D
+TrainX=./testdata/trainX
+TrainY=./testdata/trainY
+TestX=./testdata/testX
 
 runEachTest << EOF
   add       $R2Da $R2Db
@@ -111,6 +114,9 @@ runEachTest << EOF
   sort/Radixsort     $R1Dodd
   sort/Sort          $R1D
   sort/Sort          $R1Dodd
+  kernel/KernelEstimate $TrainX $TrainY $TestX $ONE $ONE
+  convolution/ConvolutionFFT $R1D $R1D
+  convolution/Convolution $R1D $R1D
 EOF
 
 printf '+---------------------+---------+----------------------+\n'
