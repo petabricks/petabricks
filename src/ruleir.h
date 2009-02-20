@@ -40,13 +40,21 @@ typedef std::vector<RIRExprPtr>  RIRExprList;
 // interface for compiler passes
 class RIRVisitor {
 public: 
-  //hooks called as we walk the tree
-  virtual void before(RIRExprPtr&)        {}
-  virtual void before(RIRStmtPtr&)        {}
-  virtual void before(RIRBlockPtr&)       {}
-  virtual void after(RIRExprPtr&)         {}
-  virtual void after(RIRStmtPtr&)         {}
-  virtual void after(RIRBlockPtr&)        {}
+  //hooks called as we walk the tree -- used by compiler passes
+  virtual void before(RIRExprPtr&)    {}
+  virtual void before(RIRStmtPtr&)    {}
+  virtual void before(RIRBlockPtr&)   {}
+  virtual void after(RIRExprPtr&)     {}
+  virtual void after(RIRStmtPtr&)     {}
+  virtual void after(RIRBlockPtr&)    {}
+
+  //base versions of the hooks used by infrastructure
+  virtual void _before(RIRExprPtr& p)  { before(p); }
+  virtual void _before(RIRStmtPtr& p)  { before(p); }
+  virtual void _before(RIRBlockPtr& p) { before(p); }
+  virtual void _after(RIRExprPtr& p)   { after(p);  }
+  virtual void _after(RIRStmtPtr& p)   { after(p);  }
+  virtual void _after(RIRBlockPtr& p)  { after(p);  }
    
   //allow visitor to short circuit over uninteresting nodes
   virtual bool shouldDescend(const RIRNode&) { return true; }

@@ -76,9 +76,9 @@ void hecura::RIRRawStmt::print(std::ostream& o) const {
 namespace{
   template<typename T>
   void _visithelper(hecura::RIRVisitor& v, jalib::JRef<T>& t){
-    v.before(t);
+    v._before(t);
     if(t && v.shouldDescend(*t)) t->accept(v);
-    v.after(t);
+    v._after(t);
   }
   template<typename T>
   void _visitlisthelper(hecura::RIRVisitor& v, std::vector<jalib::JRef<T> >& t){
@@ -90,14 +90,14 @@ namespace{
     for(typename std::vector<jalib::JRef<T> >::const_iterator i=t_alt.begin(); i!=t_alt.end(); ++i){
       jalib::JRef<T> p = *i;
       //call before
-      v.before(p); 
+      v._before(p); 
       //recurse
       if(p && v.shouldDescend(*p)) p->accept(v);
       //insert spliced statements
       t.insert(t.end(), splicer.begin(), splicer.end());
       splicer.clear();
       //call after
-      v.after(p);
+      v._after(p);
       if(p) t.push_back(p);
       //insert spliced statements
       t.insert(t.end(), splicer.begin(), splicer.end());
