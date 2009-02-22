@@ -63,8 +63,13 @@ public:
 
   void spatialSplit(int n){
     JASSERT(size()==1)(size());;
-    for(int i=0; i<back()->dimensions(); ++i)
-      spatialSplit(i, n);
+    // HACK HACK HACK: skip the first dimension unless task is 1D
+    if (back()->dimensions() == 1) {
+      spatialSplit(0, n);
+    } else {
+      for(int i=1; i<back()->dimensions(); ++i)
+        spatialSplit(i, n);
+    }
   }
 
   ///
