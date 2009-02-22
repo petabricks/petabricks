@@ -17,12 +17,6 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "matrix.h"
-#include <stdlib.h>
+#include "rircompilerpass.h"
 
-void hecura::MatrixStorage::randomize(){
-  for(int i=0; i<_count; ++i){
-    _data[i] = (2.0*drand48()-0.5)*4294967296.0;
-//     _data[i] = drand48();
-  }
-}
+

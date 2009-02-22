@@ -5,6 +5,7 @@
 *.a
 *.so
 *.bak
+tags
 
 #automake
 .deps
