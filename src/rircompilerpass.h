@@ -35,11 +35,15 @@ public:
 
   //bool shouldDescend(const RIRNode&) { return true; }
 
+  virtual void beforeAny(const RIRNodePtr& n){}
+  virtual void afterAny(const RIRNodePtr& n){}
 protected:
-  void splice(const RIRStmtPtr& stmt){
+  virtual void splice(const RIRStmtPtr& stmt){
     JASSERT(!_stmtSplicers.empty());
     _stmtSplicers.back()->push_back(stmt);
   }
+
+  int depth() const { return _stack.size(); } 
 
 private:
   void _before(RIRExprPtr& p)  { 
@@ -67,10 +71,13 @@ private:
     _afterAny(p.asPtr());
   } 
   void _beforeAny(const RIRNodePtr& n){
-
+    _stack.push_back(n);
+    beforeAny(n);
   }
   void _afterAny(const RIRNodePtr& n){
-
+    afterAny(n);
+    JASSERT(!_stack.empty());
+    _stack.pop_back();
   }
   void pushSplicer(RIRStmtList* s){
     _stmtSplicers.push_back(s); 
@@ -82,10 +89,23 @@ private:
   }
   //void popSplicer(RIRExprList* s){}
   //void pushSplicer(RIRExprList* s){}
-private:
+protected:
   RIRNodeList _stack;
   std::vector<RIRStmtList*> _stmtSplicers;
 };
+
+class DebugPrintPass : public RIRCompilerPass {
+public:
+  void beforeAny(const RIRNodePtr& n){
+    std::cout << std::string(depth(), '\t')
+              << n->typeStr() << std::endl; 
+  }
+  void afterAny(const RIRNodePtr& n){
+    std::cout << std::string(depth(), '\t')
+              << n->typeStr() << std::endl; 
+  }
+};
+
 
 }
 

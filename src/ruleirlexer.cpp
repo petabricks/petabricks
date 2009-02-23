@@ -478,8 +478,8 @@ static yyconst flex_int16_t yy_nxt[220] =
        15,   16,   13,   17,   15,   18,   19,   20,   21,   22,
        15,   23,   15,   15,   15,   15,   24,   15,   25,   15,
        26,    6,   15,   18,   19,   20,   21,   22,   15,   23,
-       15,   15,   15,   15,   24,   15,   25,   15,   26,    6,
-        6,   28,   28,   28,   28,   30,   35,   36,   40,   41,
+       15,   15,   15,   15,   24,   15,   25,   15,   26,   12,
+       12,   28,   28,   28,   28,   30,   35,   36,   40,   41,
        42,   43,   44,   45,   46,   30,   47,   48,   28,   28,
        29,   50,   35,   36,   57,   30,   40,   41,   42,   43,
        44,   45,   46,   31,   47,   48,   58,   59,   60,   61,
@@ -645,12 +645,7 @@ static int input (void );
 
 /* Amount of stuff to slurp up with each read. */
 #ifndef YY_READ_BUF_SIZE
-#ifdef __ia64__
-/* On IA-64, the buffer size is 16k, not 8k */
-#define YY_READ_BUF_SIZE 16384
-#else
 #define YY_READ_BUF_SIZE 8192
-#endif /* __ia64__ */
 #endif
 
 /* Copy whatever the last rule matched to the standard output. */
@@ -658,7 +653,7 @@ static int input (void );
 /* This used to be an fputs(), but since the string might contain NUL's,
  * we now use fwrite().
  */
-#define ECHO do { if (fwrite( ruleirtext, ruleirleng, 1, ruleirout )) {} } while (0)
+#define ECHO fwrite( ruleirtext, ruleirleng, 1, ruleirout )
 #endif
 
 /* Gets input and stuffs it into "buf".  number of characters read, or YY_NULL,
@@ -754,7 +749,7 @@ YY_DECL
 #line 42 "ruleirlexer.lpp"
 
 
-#line 758 "ruleirlexer.cpp"
+#line 753 "ruleirlexer.cpp"
 
 	if ( !(yy_init) )
 		{
@@ -951,7 +946,7 @@ YY_RULE_SETUP
 #line 68 "ruleirlexer.lpp"
 ECHO;
 	YY_BREAK
-#line 955 "ruleirlexer.cpp"
+#line 950 "ruleirlexer.cpp"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(output):
 	yyterminate();
@@ -1673,8 +1668,8 @@ YY_BUFFER_STATE ruleir_scan_string (yyconst char * yystr )
 
 /** Setup the input buffer state to scan the given bytes. The next call to ruleirlex() will
  * scan from a @e copy of @a bytes.
- * @param yybytes the byte buffer to scan
- * @param _yybytes_len the number of bytes in the buffer pointed to by @a bytes.
+ * @param bytes the byte buffer to scan
+ * @param len the number of bytes in the buffer pointed to by @a bytes.
  * 
  * @return the newly allocated buffer state object.
  */

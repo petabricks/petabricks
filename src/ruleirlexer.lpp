@@ -33,7 +33,7 @@ static const char* circularStringCache(const char* str){
 
 %x output
 
-PASS_CHARS [,();]
+PASS_CHARS [,();{}]
 OPS [=<>^*/[\]+-]
 WS [ \r\n\t]
 STR ["]([^"]+|[\\].)*["]

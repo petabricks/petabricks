@@ -23,6 +23,7 @@
 #include "jasm.h"
 #include "staticscheduler.h"
 #include "maximawrapper.h"
+#include "rircompilerpass.h"
 #include <algorithm>
 
 hecura::RIRBlockPtr parseRuleBody(const std::string& str);
@@ -63,6 +64,8 @@ void hecura::Rule::setBody(const char* str){
   //remove last char, a '}'
   _bodysrc[_bodysrc.length()-1] = ' ';
   _bodyir = parseRuleBody(_bodysrc);
+  DebugPrintPass p;
+  _bodyir->accept(p);
 }
 
 void hecura::RuleFlags::print(std::ostream& os) const {
