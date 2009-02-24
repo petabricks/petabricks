@@ -1613,7 +1613,7 @@ yyreduce:
 
   case 23:
 #line 115 "ruleirparser.ypp"
-    {((yyval.expr)=(yyvsp[(1) - (2)].expr))->addSubExpr(REFALLOC(RIROpExpr(","));}
+    {((yyval.expr)=(yyvsp[(1) - (2)].expr))->addSubExpr(REFALLOC(RIROpExpr(",")));}
     break;
 
   case 24:
