@@ -39,7 +39,7 @@ static void clearParserCaches(){
 %type <expr> Op
 %type <expr> Lit
 %type <expr> Ident
-%type <expr> ExprElement Expr
+%type <expr> ExprElement Expr RootExpr
 %type <expr> Call Paren
 %type <expr> Args OptArgs
 
@@ -57,8 +57,8 @@ Start: Block {
 Block: Block Stmt {($$=$1)->addStmt($2);}
      | Nil        {$$=REFALLOC(RIRBlock());};
 
-Stmt: Expr ';'   {($$=REFALLOC(RIRBasicStmt()))->addExpr($1);}
-    | Nil  ';'   {($$=REFALLOC(RIRBasicStmt()));}
+Stmt: RootExpr ';' {($$=REFALLOC(RIRBasicStmt()))->addExpr($1);}
+    | Nil      ';' {($$=REFALLOC(RIRBasicStmt()));}
     | IfStmt     {$$=$1;}
     | LoopStmt   {$$=$1;}
     | BlockStmt  {$$=$1;}
@@ -110,6 +110,10 @@ RawStmt: TOK_RAW {
 
 Expr: Expr ExprElement     {($$=$1)->addSubExpr($2);}
     | ExprElement          {($$=REFALLOC(RIRChainExpr()))->addSubExpr($1);};
+
+RootExpr: RootExpr ExprElement {($$=$1)->addSubExpr($2);}
+        | RootExpr ','         {($$=$1)->addSubExpr(REFALLOC(RIROpExpr(",")));}
+        | ExprElement          {($$=REFALLOC(RIRChainExpr()))->addSubExpr($1);};
 
 ExprElement: Op    {$$=$1;}
            | Lit   {$$=$1;}
