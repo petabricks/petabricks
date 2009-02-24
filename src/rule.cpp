@@ -61,8 +61,11 @@ hecura::FormulaPtr hecura::Rule::getOffsetVar(int id, const char* extra /*= NULL
 void hecura::Rule::setBody(const char* str){
   JWARNING(_bodysrc=="")(_bodysrc);
   _bodysrc=str;
-  //remove last char, a '}'
   _bodysrc[_bodysrc.length()-1] = ' ';
+  compileRuleBody();
+}
+
+void hecura::Rule::compileRuleBody(){
   _bodyir = parseRuleBody(_bodysrc);
   DebugPrintPass p;
   _bodyir->accept(p);
@@ -107,8 +110,8 @@ void hecura::Rule::print(std::ostream& os) const {
   for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
     os << "  " << i->first << ": " << i->second << "\n";
   }
-  os << "SRC = {" << _bodysrc << "}\n";
-  os << "IR = {" << _bodyir << "}\n";
+  //os << "SRC = {" << _bodysrc << "}\n";
+  os << "BodyIR= {" << _bodyir << "}\n";
 }
 
 namespace {// file local
@@ -248,7 +251,7 @@ void hecura::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
     for(FormulaList::const_iterator i=_definitions.begin(); i!=_definitions.end(); ++i){
       o.write("const IndexT "+(*i)->explodePrint()+";");
     }
-    o.write(_bodysrc);
+    o.write(_bodyir->toString());
     if(isRecursive()) o.write("return _after;");
   }
   o.endFunc();

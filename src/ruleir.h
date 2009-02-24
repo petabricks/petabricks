@@ -113,9 +113,23 @@ public:
   void accept(RIRVisitor&);
   RIRExpr* clone() const;
   std::string debugStr() const;
-private:
+protected:
   std::string _str;
   RIRExprList _parts;
+};
+
+class RIRCallExpr  : public RIRExpr{
+public:
+  RIRCallExpr(): RIRExpr(EXPR_CALL) {}
+  void print(std::ostream& o) const;
+  RIRCallExpr* clone() const;
+};
+
+class RIRArgsExpr: public RIRExpr{
+public:
+  RIRArgsExpr(): RIRExpr(EXPR_ARGS) {}
+  void print(std::ostream& o) const;
+  RIRArgsExpr* clone() const;
 };
 
 #define RIRNilExpr()       RIRExpr(RIRNode::EXPR_NIL)
@@ -123,8 +137,6 @@ private:
 #define RIRLitExpr(s)      RIRExpr(RIRNode::EXPR_LIT,s)
 #define RIRIdentExpr(s)    RIRExpr(RIRNode::EXPR_IDENT,s)
 #define RIRChainExpr()     RIRExpr(RIRNode::EXPR_CHAIN)
-#define RIRCallExpr()      RIRExpr(RIRNode::EXPR_CALL)
-#define RIRArgsExpr()      RIRExpr(RIRNode::EXPR_ARGS)
 #define RIRKeywordExpr(s)  RIRExpr(RIRNode::EXPR_KEYWORD, s)
 
 /**

@@ -20,6 +20,8 @@ transform Test1 from IN[w,h] to OUT[w,h]
   
   secondary OUT.cell(x,y) from(IN.cell(x,y) i)
   {
+    //int power2 = (1<<(int)(log(2)/log(2))) ;
+    int power2 = (1<<(int)(log(2)/log(2))) ;
     return i;
   }
 }

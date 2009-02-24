@@ -205,6 +205,9 @@ public:
     if(_to.size()!=1) return false;
     return _to[0]->isSingleElement();
   }
+
+
+  void compileRuleBody();
 private:
   int _id;
   RuleFlags   _flags;

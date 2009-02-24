@@ -44,6 +44,13 @@ void hecura::RIRExpr::print(std::ostream& o) const {
   o<<_str;
   printStlList(o, _parts.begin(), _parts.end(), " ");
 }
+void hecura::RIRArgsExpr::print(std::ostream& o) const {
+  printStlList(o, _parts.begin(), _parts.end(), ", ");
+}
+void hecura::RIRCallExpr::print(std::ostream& o) const {
+  JASSERT(_parts.size()==2)(_parts.size())(_str);
+  o << _parts[0] << '(' << _parts[1] << ')';
+}
 void hecura::RIRBlock::print(std::ostream& o) const {
   printStlList(o, _stmts.begin(), _stmts.end(), "\n");
 }
@@ -144,6 +151,8 @@ hecura::RIRBlockStmt* hecura::RIRBlockStmt::clone() const { return new RIRBlockS
 hecura::RIRLoopStmt * hecura::RIRLoopStmt ::clone() const { return new RIRLoopStmt (*this); }
 hecura::RIRIfStmt   * hecura::RIRIfStmt   ::clone() const { return new RIRIfStmt   (*this); }
 hecura::RIRRawStmt  * hecura::RIRRawStmt  ::clone() const { return new RIRRawStmt  (*this); }
+hecura::RIRCallExpr * hecura::RIRCallExpr ::clone() const { return new RIRCallExpr (*this); }
+hecura::RIRArgsExpr * hecura::RIRArgsExpr ::clone() const { return new RIRArgsExpr (*this); }
 
 std::string hecura::RIRNode::debugStr() const { 
   return typeStr(); 
