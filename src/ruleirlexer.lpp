@@ -58,6 +58,8 @@ CHAR ['][\\]?.[']
   "<<="               return TOK_OP;
   ">>"                return TOK_OP;
   "<<"                return TOK_OP;
+  "++"                return TOK_OP;
+  "--"                return TOK_OP;
   {OPS}               return TOK_OP;
   {STR}               return TOK_LIT;
   {CHAR}              return TOK_LIT;
