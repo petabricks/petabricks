@@ -97,13 +97,13 @@ protected:
 class DebugPrintPass : public RIRCompilerPass {
 public:
   void beforeAny(const RIRNodePtr& n){
-    std::cout << std::string(depth(), '\t')
-              << n->typeStr() << std::endl; 
+    std::cout << std::string(depth()*2, ' ')
+              << n->debugStr() << std::endl; 
   }
-  void afterAny(const RIRNodePtr& n){
-    std::cout << std::string(depth(), '\t')
-              << n->typeStr() << std::endl; 
-  }
+//void afterAny(const RIRNodePtr& n){
+//  std::cout << std::string(depth()*2, ' ')
+//            << n->debugStr() << std::endl; 
+//}
 };
 
 

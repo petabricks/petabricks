@@ -112,6 +112,7 @@ public:
   void print(std::ostream& o) const;
   void accept(RIRVisitor&);
   RIRExpr* clone() const;
+  std::string debugStr() const;
 private:
   std::string _str;
   RIRExprList _parts;
@@ -143,13 +144,12 @@ public:
   RIRBasicStmt() : RIRStmt(STMT_BASIC) {}
   void print(std::ostream& o) const;
   void accept(RIRVisitor&);
-  RIRStmt* clone() const;
+  RIRBasicStmt* clone() const;
 };
 
 class RIRControlStmt  : public RIRStmt {
 public:
   RIRControlStmt() : RIRStmt(STMT_CONTROL) {}
-  RIRStmt* clone() const;
 };
 
 class RIRLoopStmt: public RIRControlStmt{
@@ -157,7 +157,7 @@ public:
   RIRLoopStmt(const RIRStmtPtr& p) { _body=p; }
   void print(std::ostream& o) const;
   void accept(RIRVisitor&);
-  RIRStmt* clone() const;
+  RIRLoopStmt* clone() const;
 private:
   RIRStmtPtr _body;
 };
@@ -170,7 +170,7 @@ public:
   {}
   void print(std::ostream& o) const;
   void accept(RIRVisitor&);
-  RIRStmt* clone() const;
+  RIRIfStmt* clone() const;
 private:
   RIRStmtPtr _then;
   RIRStmtPtr _else;
@@ -185,6 +185,7 @@ public:
   RIRBlockStmt(const RIRBlockPtr& p) : RIRStmt(STMT_BLOCK) { _block=p; }
   void print(std::ostream& o) const;
   void accept(RIRVisitor&);
+  RIRBlockStmt* clone() const;
 private:
   RIRBlockPtr _block;
 };
@@ -194,7 +195,7 @@ public:
   RIRRawStmt(const std::string& txt) : RIRStmt(STMT_RAW) { _src=txt; }
   void print(std::ostream& o) const;
   void accept(RIRVisitor&);
-  RIRStmt* clone() const;
+  RIRRawStmt* clone() const;
 private:
   std::string _src;
 };
@@ -208,7 +209,7 @@ public:
   void addStmt(const RIRStmtPtr& p) { _stmts.push_back(p); }
   void print(std::ostream& o) const;
   void accept(RIRVisitor&);
-  RIRStmt* clone() const;
+  RIRBlock* clone() const;
 private:
   RIRStmtList _stmts;
 };

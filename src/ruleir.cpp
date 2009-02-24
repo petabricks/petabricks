@@ -137,13 +137,19 @@ void hecura::RIRRawStmt::accept(hecura::RIRVisitor& v) {
   RIRStmt::accept(v);
 }
 
-
 hecura::RIRExpr     * hecura::RIRExpr     ::clone() const { return new RIRExpr     (*this); }
-hecura::RIRStmt     * hecura::RIRStmt     ::clone() const { return new RIRStmt     (*this); }
 hecura::RIRBlock    * hecura::RIRBlock    ::clone() const { return new RIRBlock    (*this); }
 hecura::RIRBasicStmt* hecura::RIRBasicStmt::clone() const { return new RIRBasicStmt(*this); }
 hecura::RIRBlockStmt* hecura::RIRBlockStmt::clone() const { return new RIRBlockStmt(*this); }
 hecura::RIRLoopStmt * hecura::RIRLoopStmt ::clone() const { return new RIRLoopStmt (*this); }
 hecura::RIRIfStmt   * hecura::RIRIfStmt   ::clone() const { return new RIRIfStmt   (*this); }
 hecura::RIRRawStmt  * hecura::RIRRawStmt  ::clone() const { return new RIRRawStmt  (*this); }
+
+std::string hecura::RIRNode::debugStr() const { 
+  return typeStr(); 
+}
+std::string hecura::RIRExpr::debugStr() const { 
+  return typeStr() + std::string(" ") + _str;
+}
+
 
