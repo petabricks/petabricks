@@ -34,7 +34,7 @@ static const char* circularStringCache(const char* str){
 %x output
 
 PASS_CHARS [,();{}]
-OPS [=<>^*/[\]+-.]
+OPS [=<>^*/?:[\]+%.-]
 WS [ \r\n\t]
 STR ["]([^"]+|[\\].)*["]
 CHAR ['][\\]?.[']
@@ -60,6 +60,7 @@ CHAR ['][\\]?.[']
   "<<"                return TOK_OP;
   "++"                return TOK_OP;
   "--"                return TOK_OP;
+  "::"                return TOK_OP;
   {OPS}               return TOK_OP;
   {STR}               return TOK_LIT;
   {CHAR}              return TOK_LIT;
