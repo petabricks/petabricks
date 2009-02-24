@@ -138,7 +138,7 @@ void hecura::RIRLoopStmt::accept(hecura::RIRVisitor& v) {
 void hecura::RIRIfStmt::accept(hecura::RIRVisitor& v) {
   RIRStmt::accept(v);
   _visithelper(v, _then);
-  _visithelper(v, _else);
+  if(_else) _visithelper(v, _else);
 }
 void hecura::RIRRawStmt::accept(hecura::RIRVisitor& v) {
   RIRStmt::accept(v);

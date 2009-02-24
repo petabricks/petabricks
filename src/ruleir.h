@@ -179,9 +179,7 @@ public:
   RIRIfStmt(const RIRStmtPtr& t, const RIRStmtPtr& e=0) 
     : _then(t)
     , _else(e) 
-  {
-    if(!_else) _else = new RIRBasicStmt();
-  }
+  {}
   void print(std::ostream& o) const;
   void accept(RIRVisitor&);
   RIRIfStmt* clone() const;
