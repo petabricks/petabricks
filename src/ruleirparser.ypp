@@ -43,7 +43,7 @@ static void clearParserCaches(){
 %type <expr> Call Paren
 %type <expr> Args OptArgs
 
-%type <stmt> Stmt IfStmt LoopStmt BlockStmt RawStmt ReturnStmt
+%type <stmt> Stmt IfStmt LoopStmt BlockStmt RawStmt ReturnStmt IntlzrStmt
 %type <block> Block
 
 %left TOK_OP TOK_LIT TOK_IDENT TOK_IF TOK_THEN TOK_ELSE TOK_FOR TOK_WHILE TOK_DO TOK_RETURN TOK_BREAK TOK_CONTINUE TOK_RAW
@@ -63,6 +63,7 @@ Stmt: RootExpr ';' {($$=REFALLOC(RIRBasicStmt()))->addExpr($1);}
     | LoopStmt   {$$=$1;}
     | BlockStmt  {$$=$1;}
     | ReturnStmt {$$=$1;}
+    | IntlzrStmt {$$=$1;}
     | RawStmt    {$$=$1;};
 
 IfStmt: TOK_IF '(' Expr ')' Stmt                {
@@ -92,6 +93,14 @@ LoopStmt: TOK_WHILE '(' Expr ')' Stmt {
 LoopStmt: TOK_DO Stmt TOK_WHILE '(' Expr ')' ';'{
   $$=REFALLOC(RIRLoopStmt($2));
   UNIMPLEMENTED();
+};
+
+IntlzrStmt: RootExpr '{' RootExpr '}' ';' {
+  $$=REFALLOC(RIRBasicStmt());
+  $$->addExpr($1);
+  $$->addExpr(REFALLOC(RIROpExpr("{")));
+  $$->addExpr($3);
+  $$->addExpr(REFALLOC(RIROpExpr("}")));
 };
 
 BlockStmt: '{' Block '}' {
