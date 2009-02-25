@@ -8,9 +8,17 @@
 using namespace hecura;
 
 extern int ruleirlineno;
+extern std::string ruleirfilename;
 
 extern int yylex (void);
-static int yyerror(const RIRBlockPtr&, const char* msg){ JASSERT(false)(ruleirlineno)(msg).Text("parse error"); return 0;}
+static int yyerror(const RIRBlockPtr&, const char* msg){ 
+  JASSERT(false)
+    (ruleirfilename)
+    (ruleirlineno)
+    (msg)
+    .Text("parse error"); 
+  return 0;
+}
 
 static jalib::JRefPool theRefPool;
 #define REFALLOC(args...) (theRefPool.add(new args))

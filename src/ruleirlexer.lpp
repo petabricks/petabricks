@@ -26,6 +26,26 @@ static const char* circularStringCache(const char* str){
   return (strbuffers[n++ % NUM_STR_BUFFERS]=str).c_str();
 }
 
+std::string ruleirfilename;
+
+inline bool isNum(char c) { return c>='0' && c<='9'; }
+
+void handleNewLineNumber(const char* _str){
+  std::string str=_str;
+  char* i=&str[0]; 
+  const char* line;
+  const char* file=i;
+  //scroll to start of number
+  while(!isNum(*i) && *i!=0) ++i;
+  line=i;
+  //scroll to end of number
+  while(isNum(*i) && *i!=0) ++i;
+  if(*i!=0){
+    *i=0;
+    file=i+1;
+  }
+}
+
 #define YY_USER_ACTION yylval.str=circularStringCache(yytext);
 #define YY_DECL int yylex()
 
@@ -70,12 +90,14 @@ CHAR ['][\\]?.[']
   [0-9]+[.][0-9]+     return TOK_LIT;
   [a-z:_][.:a-z0-9_]* return TOK_IDENT;
   [%][{]([^%]+|[%][^}])*[%][}] return TOK_RAW;
+  ^[#][ ]+[0-9]*[ ]+["][^"]*["] handleNewLineNumber(yytext);
   .                   JWARNING(false)(yytext).Text("Unhanded input");
 }
 
 %%
 
 void _ruleirlexer_scan_string( const std::string& str) {
+  ruleirfilename="";
   ruleir_scan_bytes(str.c_str(), str.length());
 }
 
