@@ -54,7 +54,7 @@ void handleNewLineNumber(const char* _str){
 %x output
 
 PASS_CHARS [,();{}]
-OPS [=&|<>^*/?:[\]+%.-]
+OPS [=&|!<>^*/?:[\]+%.-]
 WS [ \r\n\t]
 STR ["]([^"]+|[\\].)*["]
 CHAR ['][\\]?.[']
