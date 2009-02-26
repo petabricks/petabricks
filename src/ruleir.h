@@ -174,6 +174,16 @@ private:
   RIRStmtPtr _body;
 };
 
+class RIRSwitchStmt: public RIRControlStmt{
+public:
+  RIRSwitchStmt(const RIRStmtPtr& p) { _body=p; }
+  void print(std::ostream& o) const;
+  void accept(RIRVisitor&);
+  RIRSwitchStmt* clone() const;
+private:
+  RIRStmtPtr _body;
+};
+
 class RIRIfStmt: public RIRControlStmt{
 public:
   RIRIfStmt(const RIRStmtPtr& t, const RIRStmtPtr& e=0) 
@@ -189,6 +199,7 @@ private:
 };
 
 typedef RIRBasicStmt   RIRReturnStmt;
+typedef RIRBasicStmt   RIRCaseStmt;
 typedef RIRControlStmt RIRBreakStmt;
 typedef RIRControlStmt RIRContinueStmt;
 

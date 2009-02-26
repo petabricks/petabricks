@@ -38,6 +38,7 @@ static void recordLitCode(){
   hecura::CodeGenerator::theFilePrefix() << std::string(str.begin(), str.end()-2);
 }
 
+int rulebodystart=0;
 std::string pbfilename;
 
 static void handleCppLine(const char* s){
@@ -89,7 +90,13 @@ PASS_CHARS [.<>,*/()[\]^+-]
   "secondary"      RETURN SECONDARY;
   "rotatable"      RETURN ROTATABLE;
   "recursive"      RETURN RECURSIVE;
-  "{"              yy_push_state(rule); theNestCount=1; RETURN *yytext;
+  "{"              {
+                     yy_push_state(rule); 
+                     theNestCount=1; 
+                     theParseLog.str("");
+                     theParseLog << "# " << pblineno << " \"" << pbfilename << "\"\n";
+                     return *yytext;
+                   }
   "}"              yy_pop_state();      RETURN *yytext;
 }
 

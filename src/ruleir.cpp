@@ -69,6 +69,10 @@ void hecura::RIRLoopStmt::print(std::ostream& o) const {
               << _exprs[2] << ") "
               << _body;
 }
+void hecura::RIRSwitchStmt::print(std::ostream& o) const {
+  JASSERT(_exprs.size()==1);
+  o << "switch(" << _exprs[0] << ") " << _body;
+}
 void hecura::RIRIfStmt::print(std::ostream& o) const {
   JASSERT(_exprs.size()==1);
   o << "if(" << _exprs[0] << ")\n" 
@@ -140,19 +144,24 @@ void hecura::RIRIfStmt::accept(hecura::RIRVisitor& v) {
   _visithelper(v, _then);
   if(_else) _visithelper(v, _else);
 }
+void hecura::RIRSwitchStmt::accept(hecura::RIRVisitor& v) {
+  RIRStmt::accept(v);
+  _visithelper(v, _body);
+}
 void hecura::RIRRawStmt::accept(hecura::RIRVisitor& v) {
   RIRStmt::accept(v);
 }
 
-hecura::RIRExpr     * hecura::RIRExpr     ::clone() const { return new RIRExpr     (*this); }
-hecura::RIRBlock    * hecura::RIRBlock    ::clone() const { return new RIRBlock    (*this); }
-hecura::RIRBasicStmt* hecura::RIRBasicStmt::clone() const { return new RIRBasicStmt(*this); }
-hecura::RIRBlockStmt* hecura::RIRBlockStmt::clone() const { return new RIRBlockStmt(*this); }
-hecura::RIRLoopStmt * hecura::RIRLoopStmt ::clone() const { return new RIRLoopStmt (*this); }
-hecura::RIRIfStmt   * hecura::RIRIfStmt   ::clone() const { return new RIRIfStmt   (*this); }
-hecura::RIRRawStmt  * hecura::RIRRawStmt  ::clone() const { return new RIRRawStmt  (*this); }
-hecura::RIRCallExpr * hecura::RIRCallExpr ::clone() const { return new RIRCallExpr (*this); }
-hecura::RIRArgsExpr * hecura::RIRArgsExpr ::clone() const { return new RIRArgsExpr (*this); }
+hecura::RIRExpr      * hecura::RIRExpr      ::clone() const { return new RIRExpr      (*this); }
+hecura::RIRBlock     * hecura::RIRBlock     ::clone() const { return new RIRBlock     (*this); }
+hecura::RIRBasicStmt * hecura::RIRBasicStmt ::clone() const { return new RIRBasicStmt (*this); }
+hecura::RIRBlockStmt * hecura::RIRBlockStmt ::clone() const { return new RIRBlockStmt (*this); }
+hecura::RIRLoopStmt  * hecura::RIRLoopStmt  ::clone() const { return new RIRLoopStmt  (*this); }
+hecura::RIRIfStmt    * hecura::RIRIfStmt    ::clone() const { return new RIRIfStmt    (*this); }
+hecura::RIRRawStmt   * hecura::RIRRawStmt   ::clone() const { return new RIRRawStmt   (*this); }
+hecura::RIRSwitchStmt* hecura::RIRSwitchStmt::clone() const { return new RIRSwitchStmt(*this); }
+hecura::RIRCallExpr  * hecura::RIRCallExpr  ::clone() const { return new RIRCallExpr  (*this); }
+hecura::RIRArgsExpr  * hecura::RIRArgsExpr  ::clone() const { return new RIRArgsExpr  (*this); }
 
 std::string hecura::RIRNode::debugStr() const { 
   return typeStr(); 

@@ -682,6 +682,7 @@ static void recordLitCode(){
   hecura::CodeGenerator::theFilePrefix() << std::string(str.begin(), str.end()-2);
 }
 
+int rulebodystart=0;
 std::string pbfilename;
 
 static void handleCppLine(const char* s){
@@ -702,7 +703,7 @@ static void handleCppLine(const char* s){
 static int theNestCount=0;
 
 
-#line 706 "pblexer.cpp"
+#line 707 "pblexer.cpp"
 
 #define INITIAL 0
 #define transform 1
@@ -797,7 +798,12 @@ static int input (void );
     
 /* Amount of stuff to slurp up with each read. */
 #ifndef YY_READ_BUF_SIZE
+#ifdef __ia64__
+/* On IA-64, the buffer size is 16k, not 8k */
+#define YY_READ_BUF_SIZE 16384
+#else
 #define YY_READ_BUF_SIZE 8192
+#endif /* __ia64__ */
 #endif
 
 /* Copy whatever the last rule matched to the standard output. */
@@ -805,7 +811,7 @@ static int input (void );
 /* This used to be an fputs(), but since the string might contain NUL's,
  * we now use fwrite().
  */
-#define ECHO fwrite( pbtext, pbleng, 1, pbout )
+#define ECHO do { if (fwrite( pbtext, pbleng, 1, pbout )) {} } while (0)
 #endif
 
 /* Gets input and stuffs it into "buf".  number of characters read, or YY_NULL,
@@ -901,9 +907,9 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 66 "pblexer.lpp"
+#line 67 "pblexer.lpp"
 
-#line 907 "pblexer.cpp"
+#line 913 "pblexer.cpp"
 
 	if ( !(yy_init) )
 		{
@@ -999,32 +1005,32 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 68 "pblexer.lpp"
+#line 69 "pblexer.lpp"
 RETURN MAIN;
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 69 "pblexer.lpp"
+#line 70 "pblexer.lpp"
 RETURN TRANSFORM;
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 70 "pblexer.lpp"
+#line 71 "pblexer.lpp"
 RETURN THROUGH;
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 71 "pblexer.lpp"
+#line 72 "pblexer.lpp"
 RETURN TESTCASE;
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 72 "pblexer.lpp"
+#line 73 "pblexer.lpp"
 yy_push_state(transform); RETURN '{';
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 73 "pblexer.lpp"
+#line 74 "pblexer.lpp"
 yy_push_state(litcode); theParseLog.str("");
 	YY_BREAK
 
@@ -1032,18 +1038,18 @@ yy_push_state(litcode); theParseLog.str("");
 case 7:
 /* rule 7 can match eol */
 YY_RULE_SETUP
-#line 77 "pblexer.lpp"
+#line 78 "pblexer.lpp"
 /*nothing*/
 	YY_BREAK
 case 8:
 /* rule 8 can match eol */
 YY_RULE_SETUP
-#line 78 "pblexer.lpp"
+#line 79 "pblexer.lpp"
 /*nothing*/
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 79 "pblexer.lpp"
+#line 80 "pblexer.lpp"
 {
       yy_pop_state();
       recordLitCode();
@@ -1053,131 +1059,137 @@ YY_RULE_SETUP
 
 case 10:
 YY_RULE_SETUP
-#line 86 "pblexer.lpp"
+#line 87 "pblexer.lpp"
 RETURN WHERE;
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 87 "pblexer.lpp"
+#line 88 "pblexer.lpp"
 RETURN PRIORITY;
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 88 "pblexer.lpp"
+#line 89 "pblexer.lpp"
 RETURN PRIMARY;
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 89 "pblexer.lpp"
+#line 90 "pblexer.lpp"
 RETURN SECONDARY;
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 90 "pblexer.lpp"
+#line 91 "pblexer.lpp"
 RETURN ROTATABLE;
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 91 "pblexer.lpp"
+#line 92 "pblexer.lpp"
 RETURN RECURSIVE;
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 92 "pblexer.lpp"
-yy_push_state(rule); theNestCount=1; RETURN *pbtext;
+#line 93 "pblexer.lpp"
+{
+                     yy_push_state(rule); 
+                     theNestCount=1; 
+                     theParseLog.str("");
+                     theParseLog << "# " << pblineno << " \"" << pbfilename << "\"\n";
+                     return *pbtext;
+                   }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 93 "pblexer.lpp"
+#line 100 "pblexer.lpp"
 yy_pop_state();      RETURN *pbtext;
 	YY_BREAK
 
 
 case 18:
 YY_RULE_SETUP
-#line 97 "pblexer.lpp"
+#line 104 "pblexer.lpp"
 RETURN TO;
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 98 "pblexer.lpp"
+#line 105 "pblexer.lpp"
 RETURN FROM;
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 99 "pblexer.lpp"
+#line 106 "pblexer.lpp"
 RETURN LE;
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 100 "pblexer.lpp"
+#line 107 "pblexer.lpp"
 RETURN GE;
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 101 "pblexer.lpp"
+#line 108 "pblexer.lpp"
 RETURN FLOAT;
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 102 "pblexer.lpp"
+#line 109 "pblexer.lpp"
 RETURN INTEGER;
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 103 "pblexer.lpp"
+#line 110 "pblexer.lpp"
 RETURN IDENT;
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 104 "pblexer.lpp"
+#line 111 "pblexer.lpp"
 RETURN pbtext[0];
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 105 "pblexer.lpp"
+#line 112 "pblexer.lpp"
 yy_push_state(comment);
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 106 "pblexer.lpp"
+#line 113 "pblexer.lpp"
 yy_push_state(linecomment);
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 107 "pblexer.lpp"
+#line 114 "pblexer.lpp"
 yy_push_state(linecomment);
 	YY_BREAK
 
 
 case 29:
 YY_RULE_SETUP
-#line 111 "pblexer.lpp"
+#line 118 "pblexer.lpp"
 yy_push_state(comment);
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 112 "pblexer.lpp"
+#line 119 "pblexer.lpp"
 yy_push_state(linecomment);
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 113 "pblexer.lpp"
+#line 120 "pblexer.lpp"
 yy_push_state(linecomment);
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 114 "pblexer.lpp"
+#line 121 "pblexer.lpp"
 ++theNestCount;
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 115 "pblexer.lpp"
+#line 122 "pblexer.lpp"
 yy_push_state(string);
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 116 "pblexer.lpp"
+#line 123 "pblexer.lpp"
 { 
                       if(--theNestCount==0){
                         yy_pop_state();
@@ -1189,30 +1201,30 @@ YY_RULE_SETUP
 case 35:
 /* rule 35 can match eol */
 YY_RULE_SETUP
-#line 123 "pblexer.lpp"
+#line 130 "pblexer.lpp"
 /*nothing*/
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 124 "pblexer.lpp"
+#line 131 "pblexer.lpp"
 /*nothing*/
 	YY_BREAK
 
 
 case 37:
 YY_RULE_SETUP
-#line 128 "pblexer.lpp"
+#line 135 "pblexer.lpp"
 yy_pop_state();
 	YY_BREAK
 case 38:
 /* rule 38 can match eol */
 YY_RULE_SETUP
-#line 129 "pblexer.lpp"
+#line 136 "pblexer.lpp"
 /*nothing*/
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 130 "pblexer.lpp"
+#line 137 "pblexer.lpp"
 /*nothing*/
 	YY_BREAK
 
@@ -1220,57 +1232,57 @@ YY_RULE_SETUP
 case 40:
 /* rule 40 can match eol */
 YY_RULE_SETUP
-#line 134 "pblexer.lpp"
+#line 141 "pblexer.lpp"
 yy_pop_state();
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 135 "pblexer.lpp"
+#line 142 "pblexer.lpp"
 /*nothing*/
 	YY_BREAK
 
 
 case 42:
 YY_RULE_SETUP
-#line 139 "pblexer.lpp"
+#line 146 "pblexer.lpp"
 yy_pop_state();
 	YY_BREAK
 case 43:
 /* rule 43 can match eol */
 YY_RULE_SETUP
-#line 140 "pblexer.lpp"
+#line 147 "pblexer.lpp"
 /*nothing*/
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 141 "pblexer.lpp"
+#line 148 "pblexer.lpp"
 /*nothing*/
 	YY_BREAK
 
 
 case 45:
 YY_RULE_SETUP
-#line 145 "pblexer.lpp"
+#line 152 "pblexer.lpp"
 handleCppLine(pbtext);
 	YY_BREAK
 case 46:
 /* rule 46 can match eol */
 YY_RULE_SETUP
-#line 146 "pblexer.lpp"
+#line 153 "pblexer.lpp"
 /* whitespace */;
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 147 "pblexer.lpp"
+#line 154 "pblexer.lpp"
 JASSERT(false)(pbtext)(pblineno).Text("Unhandled input");
 	YY_BREAK
 
 case 48:
 YY_RULE_SETUP
-#line 150 "pblexer.lpp"
+#line 157 "pblexer.lpp"
 ECHO;
 	YY_BREAK
-#line 1274 "pblexer.cpp"
+#line 1286 "pblexer.cpp"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(transform):
 case YY_STATE_EOF(rule):
@@ -2004,8 +2016,8 @@ YY_BUFFER_STATE pb_scan_string (yyconst char * yystr )
 
 /** Setup the input buffer state to scan the given bytes. The next call to pblex() will
  * scan from a @e copy of @a bytes.
- * @param bytes the byte buffer to scan
- * @param len the number of bytes in the buffer pointed to by @a bytes.
+ * @param yybytes the byte buffer to scan
+ * @param _yybytes_len the number of bytes in the buffer pointed to by @a bytes.
  * 
  * @return the newly allocated buffer state object.
  */
@@ -2292,7 +2304,7 @@ void pbfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 150 "pblexer.lpp"
+#line 157 "pblexer.lpp"
 
 
 

@@ -12,11 +12,10 @@ extern std::string ruleirfilename;
 
 extern int yylex (void);
 static int yyerror(const RIRBlockPtr&, const char* msg){ 
-  JASSERT(false)
-    (ruleirfilename)
-    (ruleirlineno)
-    (msg)
-    .Text("parse error"); 
+  JASSERT(false)(ruleirfilename)
+                (ruleirlineno)
+                (msg)
+                .Text("parse error"); 
   return 0;
 }
 
@@ -51,10 +50,10 @@ static void clearParserCaches(){
 %type <expr> Call Paren
 %type <expr> Args OptArgs
 
-%type <stmt> Stmt IfStmt LoopStmt BlockStmt RawStmt ReturnStmt IntlzrStmt
+%type <stmt> Stmt IfStmt LoopStmt BlockStmt RawStmt ReturnStmt IntlzrStmt SwitchStmt CaseStmt
 %type <block> Block
 
-%left TOK_OP TOK_LIT TOK_IDENT TOK_IF TOK_THEN TOK_ELSE TOK_FOR TOK_WHILE TOK_DO TOK_RETURN TOK_BREAK TOK_CONTINUE TOK_RAW
+%left TOK_OP TOK_LIT TOK_IDENT TOK_IF TOK_THEN TOK_ELSE TOK_FOR TOK_WHILE TOK_DO TOK_RETURN TOK_BREAK TOK_CONTINUE TOK_RAW TOK_SWITCH TOK_CASE
 
 %%
 
@@ -67,12 +66,14 @@ Block: Block Stmt {($$=$1)->addStmt($2);}
 
 Stmt: RootExpr ';' {($$=REFALLOC(RIRBasicStmt()))->addExpr($1);}
     | Nil      ';' {($$=REFALLOC(RIRBasicStmt()));}
-    | IfStmt     {$$=$1;}
-    | LoopStmt   {$$=$1;}
-    | BlockStmt  {$$=$1;}
-    | ReturnStmt {$$=$1;}
-    | IntlzrStmt {$$=$1;}
-    | RawStmt    {$$=$1;};
+    | IfStmt       {$$=$1;}
+    | LoopStmt     {$$=$1;}
+    | SwitchStmt   {$$=$1;}
+    | CaseStmt     {$$=$1;}
+    | BlockStmt    {$$=$1;}
+    | ReturnStmt   {$$=$1;}
+    | IntlzrStmt   {$$=$1;}
+    | RawStmt      {$$=$1;};
 
 IfStmt: TOK_IF '(' Expr ')' Stmt                {
   $$=REFALLOC(RIRIfStmt($5));
@@ -83,6 +84,12 @@ IfStmt: TOK_IF '(' Expr ')' Stmt TOK_ELSE  Stmt {
   $$=REFALLOC(RIRIfStmt($5, $7));
   $$->addExpr($3);
 };
+
+SwitchStmt: TOK_SWITCH '(' Expr ')' Stmt {
+  $$=REFALLOC(RIRSwitchStmt($5));
+  $$->addExpr($3);
+};
+
 
 LoopStmt: TOK_FOR '(' Expr ';' Expr ';' Expr ')' Stmt {
   $$=REFALLOC(RIRLoopStmt($9));
@@ -120,6 +127,14 @@ ReturnStmt: TOK_RETURN Expr ';' {
   $$->addExpr(REFALLOC(RIRKeywordExpr("return")));
   $$->addExpr($2);
 };
+
+CaseStmt: TOK_CASE Expr ':' {
+  $$=REFALLOC(RIRCaseStmt());
+  $$->addExpr(REFALLOC(RIRKeywordExpr("case")));
+  $$->addExpr($2);
+  $$->addExpr(REFALLOC(RIROpExpr(":")));
+};
+
 
 RawStmt: TOK_RAW {
   $$=REFALLOC(RIRRawStmt($1));
@@ -172,6 +187,7 @@ RIRBlockPtr parseRuleBody(const std::string& str){
   _ruleirlexer_scan_string(str);
   RIRBlockPtr ret;
   ruleirparse(ret);
+  clearParserCaches();
   return ret;
 }
 
