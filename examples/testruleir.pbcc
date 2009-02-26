@@ -1,10 +1,5 @@
-%{
-int thisIsATestOfFilePrefix=0;
-%}
 
-#define TEST define
-
-transform Test1 from IN[w,h] to OUT[w,h] 
+transform TestRuleIR from IN[w,h] to OUT[w,h] 
 {
   OUT.cell(x,y) from(IN.cell(x,y)     i,
                      OUT.cell(x-1, y-1) upleft)
@@ -23,6 +18,18 @@ transform Test1 from IN[w,h] to OUT[w,h]
     //int power2 = (1<<(int)(log(2)/log(2))) ;
     int power2 = (1<<(int)(log(2)/log(2))) ;
     return i;
+  }
+ 
+  secondary OUT.cell(x,y) from(IN.cell(x,y) i)
+  {
+    switch(x){
+   // case 1:
+   // case 2:
+      i+2;
+      1;
+
+    }
+    return 1;
   }
 }
 

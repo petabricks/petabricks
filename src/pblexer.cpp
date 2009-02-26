@@ -1094,7 +1094,7 @@ YY_RULE_SETUP
                      yy_push_state(rule); 
                      theNestCount=1; 
                      theParseLog.str("");
-                     theParseLog << "# " << pblineno << " \"" << pbfilename << "\"\n";
+                     theParseLog << "# " << pblineno << " " << pbfilename << "\n";
                      return *pbtext;
                    }
 	YY_BREAK

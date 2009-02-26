@@ -94,7 +94,7 @@ PASS_CHARS [.<>,*/()[\]^+-]
                      yy_push_state(rule); 
                      theNestCount=1; 
                      theParseLog.str("");
-                     theParseLog << "# " << pblineno << " \"" << pbfilename << "\"\n";
+                     theParseLog << "# " << pblineno << " " << pbfilename << "\n";
                      return *yytext;
                    }
   "}"              yy_pop_state();      RETURN *yytext;

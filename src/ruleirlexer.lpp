@@ -1,4 +1,5 @@
 %option caseless
+%option yylineno
 %option nostdinit
 %option noyywrap
 %option noyy_push_state
@@ -48,8 +49,8 @@ static void handleCppLine(const char* s){
 
 %x output
 
-PASS_CHARS [,();{}]
-OPS [=&|!<>^*/?:[\]+%.-]
+PASS_CHARS [,();:{}]
+OPS [=&|!<>^*/?[\]+%.-]
 WS [ \r\n\t]
 STR ["]([^"]+|[\\].)*["]
 CHAR ['][\\]?.[']
@@ -68,6 +69,7 @@ CHAR ['][\\]?.[']
   "break"                     return TOK_BREAK;
   "switch"                    return TOK_SWITCH;
   "case"                      return TOK_CASE;
+  "default"                   return TOK_DEFAULT;
   {PASS_CHARS}                return yytext[0];
   {OPS}"="                    return TOK_OP;
   ">>="                       return TOK_OP;

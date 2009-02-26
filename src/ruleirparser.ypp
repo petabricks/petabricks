@@ -53,7 +53,7 @@ static void clearParserCaches(){
 %type <stmt> Stmt IfStmt LoopStmt BlockStmt RawStmt ReturnStmt IntlzrStmt SwitchStmt CaseStmt
 %type <block> Block
 
-%left TOK_OP TOK_LIT TOK_IDENT TOK_IF TOK_THEN TOK_ELSE TOK_FOR TOK_WHILE TOK_DO TOK_RETURN TOK_BREAK TOK_CONTINUE TOK_RAW TOK_SWITCH TOK_CASE
+%left TOK_OP TOK_LIT TOK_IDENT TOK_IF TOK_THEN TOK_ELSE TOK_FOR TOK_WHILE TOK_DO TOK_RETURN TOK_BREAK TOK_CONTINUE TOK_RAW TOK_SWITCH TOK_CASE TOK_DEFAULT
 
 %%
 
@@ -75,7 +75,7 @@ Stmt: RootExpr ';' {($$=REFALLOC(RIRBasicStmt()))->addExpr($1);}
     | IntlzrStmt   {$$=$1;}
     | RawStmt      {$$=$1;};
 
-IfStmt: TOK_IF '(' Expr ')' Stmt                {
+IfStmt: TOK_IF '(' Expr ')' Stmt {
   $$=REFALLOC(RIRIfStmt($5));
   $$->addExpr($3);
 };
@@ -132,6 +132,12 @@ CaseStmt: TOK_CASE Expr ':' {
   $$=REFALLOC(RIRCaseStmt());
   $$->addExpr(REFALLOC(RIRKeywordExpr("case")));
   $$->addExpr($2);
+  $$->addExpr(REFALLOC(RIROpExpr(":")));
+};
+
+CaseStmt: TOK_DEFAULT ':' {
+  $$=REFALLOC(RIRCaseStmt());
+  $$->addExpr(REFALLOC(RIRKeywordExpr("default")));
   $$->addExpr(REFALLOC(RIROpExpr(":")));
 };
 
