@@ -37,16 +37,16 @@ static void clearParserCaches(){
 
 %defines
 %locations
-%expect 2
+//%expect 2
 %name-prefix="ruleir"
 %start Start
 %parse-param { hecura::RIRBlockPtr& ret };
 
 %type <str> TOK_OP TOK_LIT TOK_IDENT TOK_RAW
-%type <expr> Op
+%type <expr> Op ExtraOps
 %type <expr> Lit
 %type <expr> Ident
-%type <expr> ExprElement Expr RootExpr
+%type <expr> ExprElement Expr RootExpr 
 %type <expr> Call Paren
 %type <expr> Args OptArgs
 
@@ -90,7 +90,6 @@ SwitchStmt: TOK_SWITCH '(' Expr ')' Stmt {
   $$->addExpr($3);
 };
 
-
 LoopStmt: TOK_FOR '(' Expr ';' Expr ';' Expr ')' Stmt {
   $$=REFALLOC(RIRLoopStmt($9));
   $$->addExpr($3);
@@ -128,11 +127,10 @@ ReturnStmt: TOK_RETURN Expr ';' {
   $$->addExpr($2);
 };
 
-CaseStmt: TOK_CASE Expr ':' {
+CaseStmt: TOK_CASE Expr {
   $$=REFALLOC(RIRCaseStmt());
   $$->addExpr(REFALLOC(RIRKeywordExpr("case")));
   $$->addExpr($2);
-  $$->addExpr(REFALLOC(RIROpExpr(":")));
 };
 
 CaseStmt: TOK_DEFAULT ':' {
@@ -153,11 +151,15 @@ RootExpr: RootExpr ExprElement {($$=$1)->addSubExpr($2);}
         | RootExpr ','         {($$=$1)->addSubExpr(REFALLOC(RIROpExpr(",")));}
         | ExprElement          {($$=REFALLOC(RIRChainExpr()))->addSubExpr($1);};
 
-ExprElement: Op    {$$=$1;}
-           | Lit   {$$=$1;}
-           | Ident {$$=$1;}
-           | Call  {$$=$1;}
-           | Paren {$$=$1;};
+ExprElement: Op                {$$=$1;}
+           | ExtraOps          {$$=$1;}
+           | Lit               {$$=$1;}
+           | Ident             {$$=$1;}
+           | Call              {$$=$1;}
+           | Paren             {$$=$1;};
+
+ExtraOps: '?' {$$=REFALLOC(RIROpExpr("?"));}
+        | ':' {$$=REFALLOC(RIROpExpr(":"));};
 
 Call: Ident '(' OptArgs ')'  { 
   $$=REFALLOC(RIRCallExpr()); 

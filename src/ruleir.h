@@ -202,6 +202,7 @@ typedef RIRBasicStmt   RIRReturnStmt;
 typedef RIRBasicStmt   RIRCaseStmt;
 typedef RIRControlStmt RIRBreakStmt;
 typedef RIRControlStmt RIRContinueStmt;
+typedef RIRControlStmt RIRInlineConditional;
 
 class RIRBlockStmt  : public RIRStmt {
 public:
