@@ -83,43 +83,26 @@ int main( int argc, const char ** argv){
   TransformListPtr t = parsePbFile(input.c_str());
 
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
-      JTRACE("initializing")(input)(outputCode)((*i)->name());
-      (*i)->initialize();
-      #ifdef DEBUG
-      (*i)->print(std::cout);
-      #endif
+    JTRACE("initializing")(input)(outputCode)((*i)->name());
+    (*i)->initialize();
+    #ifdef DEBUG
+    (*i)->print(std::cout);
+    #endif
   }
 
-  for(bool isDone=false;!isDone;){
-    isDone=true;
-    JTRACE("begin learning iteration");
-    std::ofstream of(outputCode.c_str());
-    MainCodeGenerator o;  
-    for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
-      JTRACE("generating")(input)(outputCode)((*i)->name());
-      (*i)->learner().onIterationBegin();
-      (*i)->generateCodeSimple(o);
-      (*i)->learner().onIterationEnd();
-      if((*i)->learner().shouldIterateAgain()){
-        (*i)->generateMainCode(o);
-        o.outputFileTo(of);
-        of.flush();
-        of.close();
-        callCxxCompiler(outputCode, outputBin);
-        (*i)->tester().setBinary(outputBin);
-        (*i)->learner().runTests((*i)->tester());
-        isDone=false;
-        break;
-      }
-    }
-    if(isDone){
-      t->back()->generateMainCode(o);
-      o.outputFileTo(of);
-      of.flush();
-      of.close();
-      callCxxCompiler(outputCode, outputBin);
-    }
+  std::ofstream of(outputCode.c_str());
+  MainCodeGenerator o;  
+  for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
+    JTRACE("generating")(input)(outputCode)((*i)->name());
+    (*i)->generateCodeSimple(o);
   }
+  
+  t->back()->generateMainCode(o);
+  o.outputFileTo(of);
+  of.flush();
+  of.close();
+  callCxxCompiler(outputCode, outputBin);
+
   JTRACE("done")(input)(outputCode)(outputBin);
   return 0;
 }

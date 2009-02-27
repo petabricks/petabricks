@@ -34,36 +34,8 @@ class PerformanceTester;
 class Learner{
 public:
   ///
-  /// Constructor
-  Learner();
-
-  ///
-  /// Called before a code generation cycle
-  void onIterationBegin();
-
-  ///
   /// Pick which rules to use for a given region
   RuleChoicePtr makeRuleChoice(const RuleSet& choices, const MatrixDefPtr&, const SimpleRegionPtr&);
-
-  ///
-  /// Pick which order to iterate in, initial value of choices is allows directions
-  void makeIterationChoice(IterationOrderList& choices, const MatrixDefPtr&, const SimpleRegionPtr&){}
-
-  ///
-  /// Called after a code generation cycle
-  void onIterationEnd();
-
-  ///
-  /// Called after onIterationEnd().
-  /// True causes the compiler to call runTests then start over
-  bool shouldIterateAgain();
-
-  ///
-  /// Run performance tests on the output of the last iteration
-  void runTests(PerformanceTester& tester);
-
-private:
-  int _numIterations;
 };
 
 }
