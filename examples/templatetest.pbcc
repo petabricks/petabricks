@@ -1,0 +1,14 @@
+
+
+template < P( 1, 3 ) >
+transform Foo from A[n] to B[n]
+{
+  to(B b) from(A a) {
+        
+  }
+  to(B b) from(A a) {
+        
+  }
+}
+
+
