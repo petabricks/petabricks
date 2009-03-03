@@ -34,10 +34,30 @@
 namespace hecura {
 
 class Transform;
+class TemplateArg;
 typedef jalib::JRef<Transform> TransformPtr;
-class TransformList : public std::vector<TransformPtr> , public jalib::JRefCounted {};
+typedef jalib::JRef<TemplateArg> TemplateArgPtr;
+class TransformList: public std::vector<TransformPtr>, public jalib::JRefCounted {};
+class TemplateArgList: public std::vector<TemplateArgPtr>, public jalib::JRefCounted {};
 typedef jalib::JRef<TransformList> TransformListPtr;
+typedef jalib::JRef<TemplateArgList> TemplateArgListPtr;
 typedef std::set<std::string> ConstantSet;
+
+class TemplateArg : public jalib::JRefCounted, public jalib::JPrintable {
+public:
+  TemplateArg(std::string name, int min, int max)
+    :_name(name), _min(min), _max(max) {}
+  void print(std::ostream& o) const { o << _name << "(" << _min << ", " << _max << ")"; }
+  
+  std::string name() const { return _name; }
+  int min() const { return _min; }
+  int max() const { return _max; }
+private:
+  std::string _name;
+  int _min;
+  int _max;
+};
+
 
 /**
  * a transformation algorithm
@@ -46,9 +66,10 @@ class Transform : public jalib::JRefCounted, public jalib::JPrintable {
 public:
   ///
   /// Constructor
-  Transform(const char* name) : _name(name),_isMain(false),_tuneId(0) {}
+  Transform() :_isMain(false),_tuneId(0) {}
   
   //called durring parsing:
+  void setName(const std::string& str) { _name=str; }
   void addFrom(const MatrixDefList&);
   void addThrough(const MatrixDefList&);
   void addTo(const MatrixDefList&);
@@ -96,6 +117,10 @@ public:
 
 
   std::string taskname() const { return _name+"_fin"; }
+
+  void addTemplateArg(const TemplateArgList& args){
+    _templateargs.insert(_templateargs.end(), args.begin(), args.end());
+  }
 private:
   std::string   _name;
   MatrixDefList _from;
@@ -108,6 +133,7 @@ private:
   bool          _isMain;
   Learner       _learner;
   PerformanceTester _tester;
+  TemplateArgList _templateargs;
   int _tuneId;
 };
 

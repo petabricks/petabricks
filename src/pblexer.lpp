@@ -68,6 +68,9 @@ PASS_CHARS [.<>,*/()[\]^+-]
 <INITIAL>{
   "main"           RETURN MAIN;
   "transform"      RETURN TRANSFORM;
+  "template"       RETURN TEMPLATE;
+  "generator"      RETURN GENERATOR;
+  "gen"            RETURN GENERATOR;
   "through"        RETURN THROUGH;
   "testcase"       RETURN TESTCASE;
   "{"              yy_push_state(transform); RETURN '{';

@@ -53,10 +53,12 @@
      MAIN = 269,
      RECURSIVE = 270,
      TESTCASE = 271,
-     INTEGER = 272,
-     FLOAT = 273,
-     IDENT = 274,
-     RULEBODY = 275
+     GENERATOR = 272,
+     TEMPLATE = 273,
+     INTEGER = 274,
+     FLOAT = 275,
+     IDENT = 276,
+     RULEBODY = 277
    };
 #endif
 /* Tokens.  */
@@ -74,10 +76,12 @@
 #define MAIN 269
 #define RECURSIVE 270
 #define TESTCASE 271
-#define INTEGER 272
-#define FLOAT 273
-#define IDENT 274
-#define RULEBODY 275
+#define GENERATOR 272
+#define TEMPLATE 273
+#define INTEGER 274
+#define FLOAT 275
+#define IDENT 276
+#define RULEBODY 277
 
 
 
@@ -89,21 +93,23 @@ typedef union YYSTYPE
   int i;
   double d;
   const char* str;
-  hecura::Transform*      transform;
-  hecura::TransformList*  transforms;
-  hecura::MatrixDef*      matrixdef;
-  hecura::MatrixDefList*  matrixdefs;
-  hecura::Rule*           rule;
-  hecura::RuleList*       rules;
-  hecura::Formula*        formula;
-  hecura::FormulaList*    formulas;
-  hecura::Region*         region;
-  hecura::RegionList*     regions;
-  hecura::TestCase*       testcase;
+  hecura::Transform*       transform;
+  hecura::TransformList*   transforms;
+  hecura::MatrixDef*       matrixdef;
+  hecura::MatrixDefList*   matrixdefs;
+  hecura::Rule*            rule;
+  hecura::RuleList*        rules;
+  hecura::Formula*         formula;
+  hecura::FormulaList*     formulas;
+  hecura::Region*          region;
+  hecura::RegionList*      regions;
+  hecura::TestCase*        testcase;
+  hecura::TemplateArg*     templatearg;
+  hecura::TemplateArgList* templateargs;
   struct { const char* str; hecura::FormulaList* formulas; } str_formulas; 
 }
 /* Line 1489 of yacc.c.  */
-#line 107 "pbparser.h"
+#line 113 "pbparser.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1

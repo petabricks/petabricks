@@ -68,6 +68,10 @@ void hecura::Transform::setRules(const RuleList& l){
 }
 
 void hecura::Transform::print(std::ostream& o) const {
+  if(!_templateargs.empty()){ 
+    o << "template < ";   printStlList(o, _templateargs.begin(), _templateargs.end(), ", "); 
+    o << " > \n";
+  }
   o << "transform " << _name;
   if(!_from.empty()){ 
     o << "\nfrom ";   printStlList(o, _from.begin(),    _from.end(), ", ");
