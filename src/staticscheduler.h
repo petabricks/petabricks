@@ -33,9 +33,11 @@ namespace hecura {
 class Transform;
 class CodeGenerator;
 class ScheduleNode;
+class StaticScheduler;
 typedef std::set<ScheduleNode*> ScheduleNodeSet;
 typedef std::vector< jalib::JRef<ScheduleNode> > ScheduleNodeList; 
 typedef std::map<ScheduleNode*,ScheduleNode*> ScheduleNodeRemapping;
+typedef jalib::JRef<StaticScheduler> StaticSchedulerPtr;
 
 struct DependencyInformation {
   RuleSet rules;
@@ -188,7 +190,7 @@ private:
   int             _dimension;
 };
 
-class StaticScheduler : public jalib::JPrintable {
+class StaticScheduler : public jalib::JRefCounted, public jalib::JPrintable {
 public:
   ScheduleNodeSet lookupNode(const MatrixDefPtr& matrix, const SimpleRegionPtr& region);
 

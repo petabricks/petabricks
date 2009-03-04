@@ -31,11 +31,11 @@ public:
   /**
    * Interface used to construct a main routine in generated code
    */
-  class Main {
+  typedef class __usr_main_interface{
   public:
     ///
     /// destructor
-    virtual ~Main(){}
+    virtual ~__usr_main_interface(){}
 
     ///
     /// initialize with random inputs
@@ -56,7 +56,7 @@ public:
     ///
     /// initialize with random inputs
     virtual void randomInputs(int size) = 0;
-  };
+  } Main;
 
   ///
   /// Construct the runtime, parse any runtime-specific args

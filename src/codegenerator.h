@@ -113,9 +113,21 @@ protected:
 protected:
   int _indent;
 
+}
+;
+class BufferedCodeGenerator : public CodeGenerator {
+public:
+  virtual std::string str() const { return _os.str() ; }
+  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType){ UNIMPLEMENTED(); }
+protected:
+  std::ostream& os() { return _os; }
+protected:
+  std::ostringstream _os;
 };
 
-class TaskCodeGenerator : public CodeGenerator, public jalib::JRefCounted {
+
+
+class TaskCodeGenerator : public BufferedCodeGenerator, public jalib::JRefCounted {
 public:
   std::string str() const { return _os.str() + "};\n"; }
   TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType){ return *this;}
@@ -165,16 +177,13 @@ public:
   const std::vector<std::string>& argnames() const { return _names; }
   const std::vector<std::string>& argtypes() const { return _types; }
   const std::string& name() const { return _name; }
-protected:
-  std::ostream& os() { return _os; }
 private:
   std::string _name;
-  std::ostringstream _os;
   std::vector<std::string> _types;
   std::vector<std::string> _names;
 };
 
-class MainCodeGenerator : public CodeGenerator {
+class MainCodeGenerator : public BufferedCodeGenerator {
 public:
   void beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args);
 
@@ -193,11 +202,15 @@ public:
   }
 
   TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType);
-protected:
-  std::ostream& os() { return _os; }
+
+  void merge(const MainCodeGenerator& that){
+    _os << that._os.str();
+    _forwardDecls << that._forwardDecls.str();
+    _tasks.insert(_tasks.begin(), that._tasks.begin(), that._tasks.end());
+  }
+
 private:
   std::ostringstream _forwardDecls;
-  std::ostringstream _os;
   typedef std::list<jalib::JRef<TaskCodeGenerator> > TaskDecls;
   TaskDecls _tasks;
 };

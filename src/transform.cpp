@@ -148,35 +148,98 @@ void hecura::Transform::fillBaseCases(const MatrixDefPtr& matrix) {
   }
 }
 
-void hecura::Transform::generateCodeSimple(CodeGenerator& o){ 
+void hecura::Transform::compile(){ 
   MaximaWrapper::instance().pushContext();
   jalib::Map(&MatrixDef::exportAssumptions, _from);
   jalib::Map(&MatrixDef::exportAssumptions, _through);
   jalib::Map(&MatrixDef::exportAssumptions, _to);
 
-  StaticScheduler scheduler(_baseCases);
+  JASSERT(!_scheduler);
+
+  _scheduler=new StaticScheduler(_baseCases);
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    scheduler.markInputMatrix(*i);
+    _scheduler->markInputMatrix(*i);
   }
   for(RuleList::const_iterator i=_rules.begin(); i!=_rules.end(); ++i){
-    (*i)->collectDependencies(scheduler);
+    (*i)->collectDependencies(_scheduler);
   }
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    scheduler.markOutputMatrix(*i);
+    _scheduler->markOutputMatrix(*i);
   }
+  _scheduler->generateSchedule();
+  
+  MaximaWrapper::instance().popContext();
+}
 
-  scheduler.generateSchedule();
+void hecura::Transform::generateCode(CodeGenerator& o){ 
+  if(_templateargs.empty())
+    generateCodeSimple(o); //normal case
+  else {
+    std::string origName = _name;
+    //count number of times we need to explode it
+    int choiceCnt = 1;
+    for(size_t i=0; i<_templateargs.size(); ++i){
+      choiceCnt*=_templateargs[i]->range();
+    }
+    JWARNING(choiceCnt<15)(choiceCnt)(_name)
+      .Text("Explosion of choices for template... are you sure???");
+    //for each possible way
+    for(size_t c=0; c<choiceCnt; ++c){
+      _name = origName+"_tmpl";
+      int choice=c;
+      //add #defines
+      for(size_t i=0; i<_templateargs.size(); ++i){
+        int val=(choice%_templateargs[i]->range()) + _templateargs[i]->min();
+        choice/=_templateargs[i]->range();
+        o.write("#define " + _templateargs[i]->name() + " " + jalib::XToString(val));
+        _name += "_" + jalib::XToString(val);
+      }
+      JASSERT(choice==0)(choice);
 
+      JTRACE("generating template version")(c);
+      generateCodeSimple(o);
+
+      //remove defines
+      for(size_t i=0; i<_templateargs.size(); ++i){
+        o.write("#undef " + _templateargs[i]->name());
+      }
+    }
+    _name = origName;
+  }
+}
+
+std::vector<std::string> hecura::Transform::normalArgs() const{
   std::vector<std::string> args;
-  std::vector<std::string> argNames;
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->argDeclRW(args);
-    argNames.push_back((*i)->name());
   }
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->argDeclRO(args);
+  }
+  return args;
+}
+
+std::vector<std::string> hecura::Transform::normalArgNames() const{
+  std::vector<std::string> argNames;
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     argNames.push_back((*i)->name());
   }
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    argNames.push_back((*i)->name());
+  }
+  return argNames;
+}
+
+std::vector<std::string> hecura::Transform::spawnArgs() const{
+  std::vector<std::string> args = normalArgs();
+  args.push_back("const DynamicTaskPtr& _before");
+  return args;
+}
+
+
+void hecura::Transform::generateCodeSimple(CodeGenerator& o){ 
+  std::vector<std::string> args = normalArgs();
+  std::vector<std::string> argNames = normalArgNames();
   std::vector<std::string> returnStyleArgs = args;
   if(_to.size()==1) returnStyleArgs.erase(returnStyleArgs.begin());
 
@@ -199,9 +262,7 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   o.newline();
 
   o.comment(_name+" entry function");
-  args.push_back("const DynamicTaskPtr& _before");
-  o.beginFunc("DynamicTaskPtr", "spawn_"+_name, args);
-  args.pop_back();
+  o.beginFunc("DynamicTaskPtr", "spawn_"+_name, spawnArgs());
   o.varDecl("IndexT " INPUT_SIZE_STR " = 0");
   o.varDecl("IndexT " OUTPUT_SIZE_STR " = 0");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
@@ -220,7 +281,6 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   o.varDecl("IndexT " SPLIT_CHUNK_SIZE " = " + _name + "_split_size" );
 
   extractSizeDefines(o);
-//   o.comment("Verify size of input/output");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->verifyDefines(o);
   }
@@ -228,12 +288,10 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
     (*i)->verifyDefines(o);
   }
   if(!_through.empty())
-//     o.comment("Allocate intermediate matrices");
   for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
     (*i)->allocateTemporary(o, false);
   }
-//   o.comment("Run computation");
-  scheduler.generateCodeSimple(*this, o);
+  _scheduler->generateCodeSimple(*this, o);
   
   o.write("return "+taskname()+";");
   o.endFunc();
@@ -258,8 +316,6 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
     o.endFunc();
     o.newline();
   }
-
-  MaximaWrapper::instance().popContext();
 }
 
 void hecura::Transform::extractSizeDefines(CodeGenerator& o){

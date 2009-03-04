@@ -89,12 +89,17 @@ int main( int argc, const char ** argv){
     (*i)->print(std::cout);
     #endif
   }
+  
+  for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
+    JTRACE("compiling")(input)(outputCode)((*i)->name());
+    (*i)->compile();
+  }
 
   std::ofstream of(outputCode.c_str());
   MainCodeGenerator o;  
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
     JTRACE("generating")(input)(outputCode)((*i)->name());
-    (*i)->generateCodeSimple(o);
+    (*i)->generateCode(o);
   }
   
   t->back()->generateMainCode(o);

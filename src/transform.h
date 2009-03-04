@@ -27,6 +27,7 @@
 #include "rule.h"
 #include "learner.h"
 #include "performancetester.h"
+#include "staticscheduler.h"
 
 #include <vector>
 #include <set>
@@ -46,12 +47,15 @@ typedef std::set<std::string> ConstantSet;
 class TemplateArg : public jalib::JRefCounted, public jalib::JPrintable {
 public:
   TemplateArg(std::string name, int min, int max)
-    :_name(name), _min(min), _max(max) {}
+    :_name(name), _min(min), _max(max) {
+    JASSERT(max>=min)(min)(max);
+  }
   void print(std::ostream& o) const { o << _name << "(" << _min << ", " << _max << ")"; }
   
   std::string name() const { return _name; }
   int min() const { return _min; }
   int max() const { return _max; }
+  int range() const { return _max-_min+1; }
 private:
   std::string _name;
   int _min;
@@ -79,6 +83,8 @@ public:
   /// Initialize after parsing
   void initialize();
 
+  void compile();
+
   void print(std::ostream& o) const;
 
   const std::string& name() const { return _name; }
@@ -88,6 +94,8 @@ public:
     JASSERT(i != _matrices.end())(name).Text("Unknown input/output matrix");
     return i->second;
   }
+
+  void generateCode(CodeGenerator& o);
 
   void generateCodeSimple(CodeGenerator& o);
 
@@ -115,12 +123,17 @@ public:
 
   int ruleIdOffset() const { return _rules.front()->id()-1; }
 
-
   std::string taskname() const { return _name+"_fin"; }
 
   void addTemplateArg(const TemplateArgList& args){
     _templateargs.insert(_templateargs.end(), args.begin(), args.end());
   }
+
+  std::vector<std::string> spawnArgs() const;
+  std::vector<std::string> spawnArgNames() const;
+  std::vector<std::string> normalArgs() const;
+  std::vector<std::string> normalArgNames() const;
+
 private:
   std::string   _name;
   MatrixDefList _from;
@@ -132,6 +145,7 @@ private:
   FreeVars      _constants;
   bool          _isMain;
   Learner       _learner;
+  StaticSchedulerPtr _scheduler;
   PerformanceTester _tester;
   TemplateArgList _templateargs;
   int _tuneId;
