@@ -1,0 +1,55 @@
+      // compute estimate
+      if (ESTPREC > 0) {
+        r = restrict2Dnew(Residual2D(x, b));
+        r = CAT(FullPoisson2D_Inner_Prec, ESTPREC)(z, r);
+        est = MatrixAdd(Interpolate2Dnew(r), x);
+      } else {
+        est = y;
+      }
+
+      // compute iterations of SOR
+//      printf("    Training SOR for precision %d:\n", CURPREC);
+      CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level].setValue(0);
+      Copy2D(y, est);
+      oldError = error;
+
+      do {
+
+        if (level > 6) {
+          // at higher levels, this takes too long, so just skip it
+          // signal to timing run that it should abort
+          CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level].setValue(-1);
+          break;
+        }
+        
+        SOR2D(y, y, b, -1, 1);
+
+        CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level].setValue(CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level] + 1);
+        newError = ComputeError(y, actual);
+        change = newError / oldError;
+        oldError = newError;
+//        printf("    error = %g, ratio = %g\n", newError, newError / error);
+        if (change >= 1) {
+          // cannot achieve target precision, so this is an invalid selection
+          // signal to timing run that it should abort
+          CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level].setValue(-1);
+          break;
+        }
+
+      } while (newError / error > CAT(POISSON_PRECISION_, CURPREC) && change < 1);
+      
+#define LOCALPREC 1
+#include "FullPoisson2D_TrainingRecursive.pbcc"
+#undef LOCALPREC
+#define LOCALPREC 2
+#include "FullPoisson2D_TrainingRecursive.pbcc"
+#undef LOCALPREC
+#define LOCALPREC 3
+#include "FullPoisson2D_TrainingRecursive.pbcc"
+#undef LOCALPREC
+#define LOCALPREC 4
+#include "FullPoisson2D_TrainingRecursive.pbcc"
+#undef LOCALPREC
+#define LOCALPREC 5
+#include "FullPoisson2D_TrainingRecursive.pbcc"
+#undef LOCALPREC
