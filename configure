@@ -20501,6 +20501,13 @@ _ACEOF
 
 
 cat >>confdefs.h <<\_ACEOF
+#define JALIB_ALLOCATOR 1
+_ACEOF
+
+#AC_DEFINE([JALIB_USE_MALLOC],[1],[Cause the custom allocator to call malloc instead of mmap])
+
+
+cat >>confdefs.h <<\_ACEOF
 #define INPUT_SIZE_STR "input_count"
 _ACEOF
 

@@ -68,7 +68,7 @@ am_libhecura_a_OBJECTS = autotuner.$(OBJEXT) choicegrid.$(OBJEXT) \
 	rircompilerpass.$(OBJEXT) rule.$(OBJEXT) rulechoice.$(OBJEXT) \
 	ruleir.$(OBJEXT) ruleirlexer.$(OBJEXT) ruleirparser.$(OBJEXT) \
 	spatialdynamictask.$(OBJEXT) staticscheduler.$(OBJEXT) \
-	transform.$(OBJEXT)
+	transform.$(OBJEXT) jalloc.$(OBJEXT)
 libhecura_a_OBJECTS = $(am_libhecura_a_OBJECTS)
 PROGRAMS = $(noinst_PROGRAMS)
 am_pbc_OBJECTS = pbc.$(OBJEXT)
@@ -234,7 +234,7 @@ noinst_HEADERS = autotuner.h choicegrid.h codegenerator.h config.h \
 	jprintable.h jrefcounted.h jserialize.h jsocket.h jthread.h jtimer.h jtunable.h \
 	learner.h matrix.h matrixdef.h matrixdependency.h matrixio.h matrixoperations.h \
 	maximawrapper.h performancetester.h region.h rircompilerpass.h rule.h rulechoice.h \
-	ruleir.h spatialdynamictask.h staticscheduler.h transform.h
+	ruleir.h spatialdynamictask.h staticscheduler.h transform.h jalloc.h
 
 libhecura_a_SOURCES = autotuner.cpp choicegrid.cpp codegenerator.cpp \
 	dynamicscheduler.cpp dynamictask.cpp formula.cpp getdelim.cpp getline.cpp hecuraruntime.cpp \
@@ -243,7 +243,7 @@ libhecura_a_SOURCES = autotuner.cpp choicegrid.cpp codegenerator.cpp \
 	matrixdependency.cpp matrixio.cpp matrixreader.lpp maximalexer.lpp maximaparser.ypp \
 	maximawrapper.cpp pblexer.lpp pbparser.ypp performancetester.cpp region.cpp \
 	rircompilerpass.cpp rule.cpp rulechoice.cpp ruleir.cpp ruleirlexer.lpp ruleirparser.ypp \
-	spatialdynamictask.cpp staticscheduler.cpp transform.cpp
+	spatialdynamictask.cpp staticscheduler.cpp transform.cpp jalloc.cpp
 
 pbc_SOURCES = pbc.cpp
 pbc_LDADD = libhecura.a -lpthread 
@@ -261,9 +261,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign  src/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  src/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign  src/Makefile
+	  $(AUTOMAKE) --gnu  src/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -333,6 +333,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getdelim.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getline.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hecuraruntime.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jalloc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jassert.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jbuffer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jfilesystem.Po@am__quote@

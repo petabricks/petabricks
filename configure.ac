@@ -36,6 +36,9 @@ AC_DEFINE([SHORT_TYPE_NAMES],[1],[undefine this if a large number of dimensions 
 AC_DEFINE([RUN_CPP],[1],[undefine to disable cpp])
 AC_DEFINE([MAX_REC_LEVELS],[12],[number of levels for recursive choices])
 
+AC_DEFINE([JALIB_ALLOCATOR],[1],[Use a custom allocator from JALIB])
+#AC_DEFINE([JALIB_USE_MALLOC],[1],[Cause the custom allocator to call malloc instead of mmap])
+
 AC_DEFINE([INPUT_SIZE_STR],["input_count"],[var name in output code])
 AC_DEFINE([OUTPUT_SIZE_STR],["output_count"],[var name in output code])
 AC_DEFINE([SPLIT_CHUNK_SIZE],["chunk_size"],[var name in output code])

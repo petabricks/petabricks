@@ -51,6 +51,9 @@
 /* var name in output code */
 #undef INPUT_SIZE_STR
 
+/* Use a custom allocator from JALIB */
+#undef JALIB_ALLOCATOR
+
 /* log traces to /tmp/jassertlog.pid */
 #undef JASSERT_LOG
 
