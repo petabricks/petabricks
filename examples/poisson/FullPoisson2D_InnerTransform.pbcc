@@ -1,4 +1,4 @@
-#include "FullPoisson_Tunables.pbcc"
+#include "FullPoisson2D_Tunables.pbcc"
 
 transform CAT(FullPoisson2D_Inner_Prec,CURPREC)
 from X[n,n], B[n,n]

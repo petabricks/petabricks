@@ -36,7 +36,7 @@
           break;
         }
 
-      } while (newError / error > CAT(POISSON_PRECISION_, CURPREC) && change < 1);
+      } while (newError / error > CAT(FULL_POISSON_PRECISION_, CURPREC) && change < 1);
       
 #define LOCALPREC 1
 #include "FullPoisson2D_TrainingRecursive.pbcc"
