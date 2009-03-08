@@ -256,14 +256,9 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
         at10 = new Autotuner(*this, s10);
 
         full_prec_case = m["full_prec_case"];
-
-        for (int level = 0; level < 30; level++) {
-          temp = m["full_levelTrained__" + jalib::XToString(level)];
-          temp->setValue(0);
-        }
       }
 
-      JASSERT(prec_case != 0);
+      JASSERT(prec_case != 0 && full_prec_case != 0);
       for(int n=TRAIN_MIN; n<=TRAIN_MAX; n*=2){
         setSize(n + 1);
         prec_case->setValue(1);

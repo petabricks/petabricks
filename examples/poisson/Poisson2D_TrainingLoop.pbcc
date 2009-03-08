@@ -1,7 +1,7 @@
-//      printf("  Training precision %d\n", CURPREC);
+      printf("  Poisson Training precision %d\n", CURPREC);
 
       // compute iterations of SOR
-//      printf("    Training SOR for precision %d:\n", CURPREC);
+      printf("    Training SOR for precision %d:\n", CURPREC);
       CAT(SORIters_Prec, CURPREC)[level].setValue(0);
       Copy2D(y, x);
       oldError = error;
@@ -21,7 +21,7 @@
         newError = ComputeError(y, actual);
         change = newError / oldError;
         oldError = newError;
-//        printf("    error = %g, ratio = %g\n", newError, newError / error);
+        printf("      error = %g, ratio = %g\n", newError, newError / error);
         if (change >= 1) {
           // cannot achieve target precision, so this is an invalid selection
           // signal to timing run that it should abort
@@ -30,7 +30,8 @@
         }
 
       } while (newError / error > CAT(POISSON_PRECISION_, CURPREC) && change < 1);
-      
+      printf("      Setting number of iterations of SORIters_Prec%d to %d\n", CURPREC, (int) CAT(SORIters_Prec, CURPREC)[level]);
+
 #define LOCALPREC 1
 #include "Poisson2D_InnerTrainingLoop.pbcc"
 #undef LOCALPREC

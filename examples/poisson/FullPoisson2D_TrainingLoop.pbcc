@@ -1,4 +1,4 @@
-//      printf("  Training precision %d\n", CURPREC);
+printf("  FullPoisson Training precision %d\n", CURPREC);
 
 #define ESTPREC 0
 #include "FullPoisson2D_TrainingPerEst.pbcc"

@@ -9,7 +9,7 @@
 #endif
 
       // compute iterations of SOR
-//      printf("    Training SOR for precision %d:\n", CURPREC);
+      printf("    Training SOR for precision %d:\n", CURPREC);
       CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level].setValue(0);
       Copy2D(y, est);
       oldError = error;
@@ -29,7 +29,7 @@
         newError = ComputeError(y, actual);
         change = newError / oldError;
         oldError = newError;
-//        printf("    error = %g, ratio = %g\n", newError, newError / error);
+        printf("      error = %g, ratio = %g\n", newError, newError / error);
         if (change >= 1) {
           // cannot achieve target precision, so this is an invalid selection
           // signal to timing run that it should abort
@@ -38,6 +38,7 @@
         }
 
       } while (newError / error > CAT(FULL_POISSON_PRECISION_, CURPREC) && change < 1);
+      printf("      Setting number of iterations of full_SORIters_Est%d_Prec%d to %d\n", ESTPREC, CURPREC, (int) CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level]);
       
 #define LOCALPREC 1
 #include "FullPoisson2D_TrainingRecursive.pbcc"
