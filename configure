@@ -2278,7 +2278,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=hecura
- VERSION=0.10
+ VERSION=1.99
 
 
 cat >>confdefs.h <<_ACEOF

@@ -1,7 +1,7 @@
 AC_INIT(configure.ac)
 
 AM_CONFIG_HEADER(src/config.h)
-AM_INIT_AUTOMAKE(hecura, 0.10)
+AM_INIT_AUTOMAKE(hecura, 1.99)
 
 AC_LANG_CPLUSPLUS
 AC_PROG_CXX
