@@ -11,7 +11,7 @@ through zeros[(n+1)/2,(n+1)/2]
     if (level > 8) {
       HecuraRuntime::abort();
     }
-//    printf("prec%d BS case called for level %d\n", CURPREC, level);
+    printf("full prec%d BS case called for level %d\n", CURPREC, level);
     BS2D(y, x, b);
   }
 

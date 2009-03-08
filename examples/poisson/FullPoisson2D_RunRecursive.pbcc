@@ -9,20 +9,20 @@
       if ((int) CAT(CAT(CAT(CAT(CAT(full_prec, LOCALPREC), Iters_Est), ESTPREC), _Prec), CURPREC)[level] == -1) {
         HecuraRuntime::abort();
       }
-//    printf("prec%d recursive case (call to prec%d) called for level %d (%d iterations)\n", 
-//           CURPREC, LOCALPREC, level,
-//           (int) CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level]);
+      printf("full prec%d recursive case (call to prec%d) called for level %d (%d iterations)\n", 
+             CURPREC, LOCALPREC, level,
+             (int) CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level]);
       MatrixRegion2D t, r;
 
       Copy2D(y, x);
-      if (ESTPREC > 0) {
-        r = restrict2Dnew(Residual2D(y, b));
-        r = CAT(FullPoisson2D_Inner_Prec, ESTPREC)(z, r);
-        t = MatrixAdd(Interpolate2Dnew(r), y);
-      }
+#if ESTPREC > 0
+      r = Restrict2Dnew(Residual2D(y, b));
+      r = CAT(FullPoisson2D_Inner_Prec, ESTPREC)(z, r);
+      y = MatrixAdd(Interpolate2Dnew(r), y);
+#endif
 
       for (i = 0; i < CAT(CAT(CAT(CAT(CAT(full_prec, LOCALPREC), Iters_Est), ESTPREC), _Prec), CURPREC)[level]; i++) {
-        t = SOR2D(t, b, -2, 1);
+        t = SOR2D(y, b, -2, 1);
         r = Restrict2Dnew(Residual2D(t,b));
         r = CAT(Poisson2D_Inner_Prec, LOCALPREC)(z,r);
         t = MatrixAdd(Interpolate2Dnew(r), t);

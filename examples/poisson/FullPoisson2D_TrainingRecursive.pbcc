@@ -27,6 +27,6 @@
 
         } while (newError / error > CAT(FULL_POISSON_PRECISION_, CURPREC) && change < 1);
 
-	printf("Setting full_prec%dIters_Est%d_Prec%d to %d\n", LOCALPREC, ESTPREC, CURPREC, (int) CAT(CAT(CAT(CAT(CAT(full_prec, LOCALPREC), Iters_Est), ESTPREC), _Prec), CURPREC)[level]);
+//	printf("Setting full_prec%dIters_Est%d_Prec%d to %d\n", LOCALPREC, ESTPREC, CURPREC, (int) CAT(CAT(CAT(CAT(CAT(full_prec, LOCALPREC), Iters_Est), ESTPREC), _Prec), CURPREC)[level]);
       }
 

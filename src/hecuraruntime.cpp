@@ -43,6 +43,7 @@ static int GRAPH_TRIALS=3;
 static int GRAPH_SMOOTHING=0;
 static int SEARCH_BRANCH_FACTOR=8;
 static bool MULTIGRID_FLAG=false;
+static bool FULL_MULTIGRID_FLAG=false;
 
 
 namespace{//file local
@@ -123,6 +124,15 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
       shift;
     }else if(strcmp(argv[0],"--multigrid")==0){
       MULTIGRID_FLAG = true;
+      GRAPH_MIN = 1;
+      GRAPH_MAX = 9;
+      GRAPH_STEP = 1;
+      TRAIN_MIN = 2;
+      TRAIN_MAX = 64;
+      shift;
+    }else if(strcmp(argv[0],"--fullmg")==0){
+      MULTIGRID_FLAG = true;
+      FULL_MULTIGRID_FLAG = true;
       GRAPH_MIN = 1;
       GRAPH_MAX = 9;
       GRAPH_STEP = 1;
@@ -231,6 +241,28 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
         temp->setValue(0);
       }
 
+      Autotuner *at6, *at7, *at8, *at9, *at10;
+      jalib::JTunable* full_prec_case;
+      if (FULL_MULTIGRID_FLAG) {
+        std::string s6 = "FullPoisson2D_Inner_Prec1_1";
+        std::string s7 = "FullPoisson2D_Inner_Prec2_1";
+        std::string s8 = "FullPoisson2D_Inner_Prec3_1";
+        std::string s9 = "FullPoisson2D_Inner_Prec4_1";
+        std::string s10 = "FullPoisson2D_Inner_Prec5_1";
+        at6 = new Autotuner(*this, s6);
+        at7 = new Autotuner(*this, s7);
+        at8 = new Autotuner(*this, s8);
+        at9 = new Autotuner(*this, s9);
+        at10 = new Autotuner(*this, s10);
+
+        full_prec_case = m["full_prec_case"];
+
+        for (int level = 0; level < 30; level++) {
+          temp = m["full_levelTrained__" + jalib::XToString(level)];
+          temp->setValue(0);
+        }
+      }
+
       JASSERT(prec_case != 0);
       for(int n=TRAIN_MIN; n<=TRAIN_MAX; n*=2){
         setSize(n + 1);
@@ -244,6 +276,19 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
         at4.trainOnce();
         prec_case->setValue(5);
         at5.trainOnce();
+
+        if (FULL_MULTIGRID_FLAG) {
+          full_prec_case->setValue(1);
+          at6->trainOnce();
+          full_prec_case->setValue(2);
+          at7->trainOnce();
+          full_prec_case->setValue(3);
+          at8->trainOnce();
+          full_prec_case->setValue(4);
+          at9->trainOnce();
+          full_prec_case->setValue(5);
+          at10->trainOnce();
+        }
 
         saveConfig();
       }

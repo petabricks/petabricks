@@ -1,11 +1,12 @@
       // compute estimate
-      if (ESTPREC > 0) {
-        r = restrict2Dnew(Residual2D(x, b));
+#if ESTPREC > 0
+        r = Restrict2Dnew(Residual2D(x, b));
         r = CAT(FullPoisson2D_Inner_Prec, ESTPREC)(z, r);
         est = MatrixAdd(Interpolate2Dnew(r), x);
-      } else {
-        est = y;
-      }
+#else
+        est = MatrixRegion2D::allocate(n, n);
+        Copy2D(est, x);
+#endif
 
       // compute iterations of SOR
 //      printf("    Training SOR for precision %d:\n", CURPREC);

@@ -1,23 +1,27 @@
   //base case: solve iteratively with SOR
-  to(Y y) from(X x, B b) {
+  to(Y y) from(X x, B b, zeros z) {
     int level = (int) log2(n-1);
-    if ((int) CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level] == -1) {
+    if (level <= 1) {
       HecuraRuntime::abort();
-    }
-//  printf("prec%d SOR case called for level %d (%d iterations)\n", CURPREC,
-//         level, (int) CAT(SORIters_Prec, CURPREC)[level]);
-    MatrixRegion2D t, r;
+    } else {
+      if ((int) CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level] == -1) {
+        HecuraRuntime::abort();
+      }
+      printf("full prec%d SOR case called for level %d (%d iterations)\n", CURPREC,
+             level, (int) CAT(SORIters_Prec, CURPREC)[level]);
+      MatrixRegion2D t, r;
 
-    // compute estimate
-    Copy2D(y, x);
-    if (ESTPREC > 0) {
-      r = restrict2Dnew(Residual2D(y, b));
+      // compute estimate
+      Copy2D(y, x);
+#if ESTPREC > 0
+      r = Restrict2Dnew(Residual2D(y, b));
       r = CAT(FullPoisson2D_Inner_Prec, ESTPREC)(z, r);
-      t = MatrixAdd(Interpolate2Dnew(r), y);
-    }
+      y = MatrixAdd(Interpolate2Dnew(r), y);
+#endif
 
-    // do iteration
-    SOR2D(y, t, b, -1, (int) CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level]);
+      // do iteration
+      SOR2D(y, y, b, -1, (int) CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level]);
+    }
   }
 
 #define LOCALPREC 1

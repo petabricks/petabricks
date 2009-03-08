@@ -93,9 +93,6 @@ through zeros[(n+1)/2,(n+1)/2]
     } else {
 //      printf("Timing run for level %d, precision %d\n", level, (int) prec_case);
       switch (full_prec_case) {
-        case 0: // do nothing
-          y = x;
-          break;
         case 1:
           FullPoisson2D_Inner_Prec1(y, x, b);
           break;
