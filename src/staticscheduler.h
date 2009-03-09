@@ -174,9 +174,9 @@ class CoscheduledNode : public ScheduleNode {
 public:
   CoscheduledNode(const ScheduleNodeSet& set);
 
-  const MatrixDefPtr&    matrix() const { JASSERT(false); return MatrixDefPtr::null();    }
+  const MatrixDefPtr&    matrix() const { JASSERT(false); return MatrixDefPtr::null(); }
   const SimpleRegionPtr& region() const { JASSERT(false); return SimpleRegionPtr::null(); }
-  const ChoiceGridPtr& choices() const  { JASSERT(false); return ChoiceGridPtr::null();   }
+  const ChoiceGridPtr& choices() const  { JASSERT(false); return ChoiceGridPtr::null(); }
 
   void print(std::ostream& o) const {
     o << "Coscheduled:";
