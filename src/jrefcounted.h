@@ -30,28 +30,19 @@
 #endif
 
 namespace jalib {
+
 /**
- * Reference to a JRefCounted
+ * Base class for references
  */
-template < typename T> class JRef{
-public:
-  static const JRef& null() { static JRef t; return t; }
-
+template < typename T> class JRefCommon{
+protected:
   //constructors
-  JRef(T* o = NULL) : _obj(o) { inc(); }
-  JRef(const JRef& p) : _obj(p._obj) { inc(); }
-
-  //destructors
-  ~JRef() { dec(); }
-
-  //assignment
-  JRef& operator= (const JRef& p){
-    p.inc(); //must go first for self assignment
-    dec();
-    _obj = p._obj;
-    return *this;
-  }
-
+  JRefCommon(T* o)                : _obj(o) {}
+  JRefCommon(const JRefCommon& p) : _obj(p._obj) {}
+  void setObj(T* o) const { _obj = o;    }
+  T*   obj()        const { return _obj; }
+  
+public:
   //accessor
   T* operator->() const {
     check(); 
@@ -64,8 +55,8 @@ public:
     return *_obj; 
   }
 
-   T* asPtr() { return _obj; }
-   const T* asPtr() const { return _obj; }
+  T* asPtr() { return _obj; }
+  const T* asPtr() const { return _obj; }
 
   //is valid?
   operator bool() const { 
@@ -73,29 +64,93 @@ public:
   }
  
   //compare
-  friend bool operator == (const JRef& a, const JRef& b) { 
-    return a._obj == b._obj;
-  }
-  friend bool operator != (const JRef& a, const JRef& b) { 
-    return a._obj != b._obj;
-  }
-  bool operator < (const JRef& that) const { 
-    return that._obj < _obj;
-  }
+  friend bool operator == (const JRefCommon& a, const JRefCommon& b) { return a._obj == b._obj; }
+  friend bool operator == (T*                a, const JRefCommon& b) { return a      == b._obj; }
+  friend bool operator == (const JRefCommon& a, T*                b) { return a._obj == b     ; }
+  friend bool operator != (const JRefCommon& a, const JRefCommon& b) { return a._obj != b._obj; }
+  friend bool operator != (T*                a, const JRefCommon& b) { return a      != b._obj; }
+  friend bool operator != (const JRefCommon& a, T*                b) { return a._obj != b     ; }
+  friend bool operator <  (const JRefCommon& a, const JRefCommon& b) { return a._obj <  b._obj; }
 
   operator const T& () const { check(); return *_obj; }
   operator T& ()             { check(); return *_obj; }
 private: //helpers:
-  void inc() const { if(_obj!=NULL) _obj->incRefCount(); }
-  void dec() const { if(_obj!=NULL) _obj->decRefCount(); }
 #ifdef DEBUG
-  void check() const { JASSERT(_obj!=NULL).Text("Would have dereferenced null pointer."); }
+  inline void check() const { JASSERT(_obj!=NULL).Text("Would have dereferenced null pointer."); }
 #else
-  void check() const {}
+  inline void check() const {}
 #endif
 private:
   mutable T* _obj;
 };
+
+/**
+ * Reference to a JRefCounted
+ */
+template < typename T> class JRef : public JRefCommon<T>{
+public:
+  static const JRef& null() { static JRef t(NULL); return t; }
+
+  //constructors
+  JRef(T* o = NULL)   : JRefCommon<T>(o)       { inc(); }
+  JRef(const JRef& p) : JRefCommon<T>(p.obj()) { inc(); }
+
+  //destructors
+  ~JRef() { dec(); }
+
+  //assignment
+  JRef& operator= (const JRef& p){
+    p.inc(); //must go first for self assignment
+    dec();
+    setObj(p.obj());
+    return *this;
+  }
+private: //helpers:
+  inline void inc() const {
+    if(JRefCommon<T>::operator bool())
+      JRefCommon<T>::obj()->incRefCount(); 
+  }
+  inline void dec() const { 
+    if(JRefCommon<T>::operator bool()) 
+      JRefCommon<T>::obj()->decRefCount(); 
+  }
+};
+
+/**
+ * Reference to a JRefCounted, that copies on every assignment 
+ */
+template < typename T> class JCopyRef : public JRefCommon<T>{
+public:
+  static const JCopyRef& null() { static JCopyRef t(NULL); return t; }
+
+  //constructors
+  JCopyRef(T* o = NULL)            : JRefCommon<T>(copyOf(o))         {}
+  JCopyRef(const JRefCommon<T>& p) : JRefCommon<T>(copyOf(p.obj())) {}
+
+  //destructors
+  ~JCopyRef() { destroy(); }
+
+  //assignment
+  JCopyRef& operator= (const JRefCommon<T>& p){
+    T* tmp = copyOf(p.obj());
+    destroy();
+    setObj(tmp);
+    return *this;
+  }
+private: //helpers:
+  inline static T* copyOf(T* t){
+    if(t==NULL) return NULL;
+    t=t->clone();
+    t->incRefCount();
+    return t;
+  }
+  inline void destroy() const { 
+    if(JRefCommon<T>::operator bool()) 
+      JRefCommon<T>::obj()->decRefCount(); 
+  }
+};
+
+
 
 /**
  * Base class for ref counted objects
@@ -115,7 +170,7 @@ public:
   }
 private:
   mutable volatile long _refCount;
-};
+};;
 
 /**
  * A pool of references
