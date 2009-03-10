@@ -31,12 +31,18 @@
 
 namespace jalib {
 
+/**
+ * Basic policy for JRef, normal ref counted objects
+ */
 template < typename T > struct JRefPolicyShared{
   static void inc(T* o){ if(o!=NULL) o->incRefCount(); }
   static void dec(T* o){ if(o!=NULL) o->decRefCount(); }
   static void use(T*){}
 };
 
+/**
+ * Basic policy for JRef, copy on write objects
+ */
 template < typename T > struct JRefPolicyCopied{
   static void inc(T* o){ if(o!=NULL) o->incRefCount(); }
   static void dec(T* o){ if(o!=NULL) o->decRefCount(); }
