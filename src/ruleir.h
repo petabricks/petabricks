@@ -23,6 +23,8 @@
 #include "jrefcounted.h"
 #include "jprintable.h"
 
+#include <list>
+
 namespace hecura {
 
 class RIRNode;
@@ -33,9 +35,9 @@ typedef jalib::JRef<RIRNode,  jalib::JRefPolicyCopied<RIRNode>  > RIRNodePtr;
 typedef jalib::JRef<RIRBlock, jalib::JRefPolicyCopied<RIRBlock> > RIRBlockPtr;
 typedef jalib::JRef<RIRStmt,  jalib::JRefPolicyCopied<RIRStmt>  > RIRStmtPtr;
 typedef jalib::JRef<RIRExpr,  jalib::JRefPolicyCopied<RIRExpr>  > RIRExprPtr;
-typedef std::vector<RIRNodePtr>  RIRNodeList;
-typedef std::vector<RIRStmtPtr>  RIRStmtList;
-typedef std::vector<RIRExprPtr>  RIRExprList;
+typedef std::list<RIRNodePtr>  RIRNodeList;
+typedef std::list<RIRStmtPtr>  RIRStmtList;
+typedef std::list<RIRExprPtr>  RIRExprList;
 
 // interface for compiler passes
 class RIRVisitor {
@@ -60,10 +62,10 @@ public:
   virtual bool shouldDescend(const RIRNode&) { return true; }
 
   //splicers allow new code to be inserted into the tree
-  virtual void pushSplicer(RIRStmtList* s){}
-  virtual void pushSplicer(RIRExprList* s){}
-  virtual void popSplicer(RIRStmtList* s){}
-  virtual void popSplicer(RIRExprList* s){}
+  virtual void pushSplicer(RIRStmtList* bk, RIRStmtList* fwd){}
+  virtual void pushSplicer(RIRExprList* bk, RIRExprList* fwd){}
+  virtual void popSplicer(RIRStmtList* bk, RIRStmtList* fwd){}
+  virtual void popSplicer(RIRExprList* bk, RIRExprList* fwd){}
 };
 
 /**

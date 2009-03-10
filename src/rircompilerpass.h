@@ -25,6 +25,23 @@
 namespace hecura {
 
 class RIRCompilerPass : public RIRVisitor {
+protected:
+  template<typename T> class Context {
+  public:
+    typedef std::list<T> TList;
+    Context(TList* bk, TList* fw, int l) 
+      : _backward(bk), _forward(fw), _lvl(l)
+    {}
+  private:
+    TList* _backward;
+    TList* _forward;
+    int    _lvl;
+  };
+  typedef Context<RIRExprPtr> ExprContext;
+  typedef Context<RIRStmtPtr> StmtContext;
+  typedef std::vector<ExprContext> ExprContextStack;
+  typedef std::vector<StmtContext> StmtContextStack;
+
 public:
   //void before(RIRExprPtr&) {}
   //void before(RIRStmtPtr&) {}
@@ -38,11 +55,6 @@ public:
   virtual void beforeAny(const RIRNodePtr& n){}
   virtual void afterAny(const RIRNodePtr& n){}
 protected:
-  virtual void splice(const RIRStmtPtr& stmt){
-    JASSERT(!_stmtSplicers.empty());
-    _stmtSplicers.back()->push_back(stmt);
-  }
-
   int depth() const { return _stack.size(); } 
 
 private:
@@ -79,19 +91,25 @@ private:
     JASSERT(!_stack.empty());
     _stack.pop_back();
   }
-  void pushSplicer(RIRStmtList* s){
-    _stmtSplicers.push_back(s); 
+  void pushSplicer(RIRStmtList* bk, RIRStmtList* fwd){
+    _stmtCtx.push_back(StmtContext(bk, fwd, level()));
   }
-  void popSplicer(RIRStmtList* s){
-    JASSERT(!_stmtSplicers.empty());
-    JASSERT(_stmtSplicers.back()==s);
-    _stmtSplicers.pop_back();
+  void popSplicer(RIRStmtList* bk, RIRStmtList* fwd){
+    JASSERT(!_stmtCtx.empty());
+    _stmtCtx.pop_back();
   }
-  //void popSplicer(RIRExprList* s){}
-  //void pushSplicer(RIRExprList* s){}
+  void pushSplicer(RIRExprList* bk, RIRExprList* fwd){
+    _exprCtx.push_back(ExprContext(bk, fwd, level()));
+  }
+  void popSplicer(RIRExprList* bk, RIRExprList* fwd){
+    JASSERT(!_exprCtx.empty());
+    _exprCtx.pop_back();
+  }
+  int level() const { return _stack.size(); }
 protected:
   RIRNodeList _stack;
-  std::vector<RIRStmtList*> _stmtSplicers;
+  ExprContextStack _exprCtx;
+  StmtContextStack _stmtCtx;
 };
 
 class DebugPrintPass : public RIRCompilerPass {

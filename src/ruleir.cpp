@@ -19,6 +19,14 @@
  ***************************************************************************/
 #include "ruleir.h"
 
+namespace{ 
+  template<typename T> const T& get(const std::list<T>& lst, int n) {
+    typename std::list<T>::const_iterator i=lst.begin();
+    for(; n>0; --n,++i); 
+    return *i;
+  }
+}
+
 const char* hecura::RIRNode::typeStr() const {
   switch(type()){
     case EXPR        : return "EXPR";
@@ -49,7 +57,7 @@ void hecura::RIRArgsExpr::print(std::ostream& o) const {
 }
 void hecura::RIRCallExpr::print(std::ostream& o) const {
   JASSERT(_parts.size()==2)(_parts.size())(_str);
-  o << _parts[0] << '(' << _parts[1] << ')';
+  o << get(_parts,0) << '(' << get(_parts,1) << ')';
 }
 void hecura::RIRBlock::print(std::ostream& o) const {
   printStlList(o, _stmts.begin(), _stmts.end(), "\n");
@@ -64,18 +72,18 @@ void hecura::RIRBlockStmt::print(std::ostream& o) const {
 }
 void hecura::RIRLoopStmt::print(std::ostream& o) const {
   JASSERT(_exprs.size()==3);
-  o << "for(" << _exprs[0] << "; " 
-              << _exprs[1] << "; "
-              << _exprs[2] << ") "
+  o << "for(" << get(_exprs,0) << "; " 
+              << get(_exprs,1) << "; "
+              << get(_exprs,2) << ") "
               << _body;
 }
 void hecura::RIRSwitchStmt::print(std::ostream& o) const {
   JASSERT(_exprs.size()==1);
-  o << "switch(" << _exprs[0] << ") " << _body;
+  o << "switch(" << _exprs.front() << ") " << _body;
 }
 void hecura::RIRIfStmt::print(std::ostream& o) const {
   JASSERT(_exprs.size()==1);
-  o << "if(" << _exprs[0] << ")\n" 
+  o << "if(" << _exprs.front() << ")\n" 
               << _then;
   if (_else) o << "\nelse\n" << _else;
 }
@@ -92,29 +100,17 @@ namespace{
     v._after(t);
   }
   template<typename T>
-  void _visitlisthelper(hecura::RIRVisitor& v, std::vector<T>& t){
-    std::vector<T> t_alt;
-    std::vector<T> splicer;
-    t_alt.swap(t);
-    t.reserve(t_alt.size());
-    v.pushSplicer(&splicer);
-    for(typename std::vector<T>::const_iterator i=t_alt.begin(); i!=t_alt.end(); ++i){
-      T p = *i;
-      //call before
-      v._before(p); 
-      //recurse
-      if(p && v.shouldDescend(*p)) p->accept(v);
-      //insert spliced statements
-      t.insert(t.end(), splicer.begin(), splicer.end());
-      splicer.clear();
-      //call after
-      v._after(p);
-      if(p) t.push_back(p);
-      //insert spliced statements
-      t.insert(t.end(), splicer.begin(), splicer.end());
-      splicer.clear();
+  void _visitlisthelper(hecura::RIRVisitor& v, std::list<T>& bk){
+    std::list<T> fwd;
+    bk.swap(fwd);
+    v.pushSplicer(&bk, &fwd);
+    while(!fwd.empty()){
+      T p = fwd.front(); 
+      fwd.pop_front();
+      _visithelper(v, p);
+      if(p) bk.push_back(p);
     }
-    v.popSplicer(&splicer);
+    v.popSplicer(&bk, &fwd);
   }
 
 }
