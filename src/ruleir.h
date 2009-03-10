@@ -29,10 +29,10 @@ class RIRNode;
 class RIRBlock;
 class RIRStmt;
 class RIRExpr;
-typedef jalib::JRef<RIRNode>  RIRNodePtr;
-typedef jalib::JRef<RIRBlock> RIRBlockPtr;
-typedef jalib::JRef<RIRStmt>  RIRStmtPtr;
-typedef jalib::JRef<RIRExpr>  RIRExprPtr;
+typedef jalib::JRef<RIRNode,  jalib::JRefPolicyCopied<RIRNode>  > RIRNodePtr;
+typedef jalib::JRef<RIRBlock, jalib::JRefPolicyCopied<RIRBlock> > RIRBlockPtr;
+typedef jalib::JRef<RIRStmt,  jalib::JRefPolicyCopied<RIRStmt>  > RIRStmtPtr;
+typedef jalib::JRef<RIRExpr,  jalib::JRefPolicyCopied<RIRExpr>  > RIRExprPtr;
 typedef std::vector<RIRNodePtr>  RIRNodeList;
 typedef std::vector<RIRStmtPtr>  RIRStmtList;
 typedef std::vector<RIRExprPtr>  RIRExprList;
@@ -147,6 +147,7 @@ public:
   RIRStmt(Type t) : RIRNode(t) {}
   void addExpr(const RIRExprPtr& p)   { _exprs.push_back(p); }
   void accept(RIRVisitor&);
+  virtual RIRStmt* clone() const = 0;
 protected:
   RIRExprList _exprs;
 };

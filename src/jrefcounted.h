@@ -43,8 +43,8 @@ template < typename T > struct JRefPolicyCopied{
   static void use(T*& o){
     if(o!=NULL && o->refCount()>1){
       T* t=o->clone();
-      t->incRefCount();
-      o->decRefCount();
+      inc(t);
+      dec(o);
       o=t;
     }
   }
@@ -140,7 +140,7 @@ public:
     return _refCount; 
   }
 private:
-  mutable volatile long _refCount;
+  mutable volatile long _refCount; 
 };
 
 /**
@@ -159,8 +159,8 @@ private:
 
 }
 
-template < typename T >
-std::ostream& operator<< (std::ostream& o, const jalib::JRef<T>& ptr){
+template < typename T, typename P >
+std::ostream& operator<< (std::ostream& o, const jalib::JRef<T, P>& ptr){
     return ptr.operator bool() 
          ? o << ptr.operator *() 
          : o << "(null)";
