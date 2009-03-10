@@ -30,15 +30,35 @@
 #endif
 
 namespace jalib {
+
+template < typename T > struct JRefPolicyShared{
+  static void inc(T* o){ if(o!=NULL) o->incRefCount(); }
+  static void dec(T* o){ if(o!=NULL) o->decRefCount(); }
+  static void use(T*){}
+};
+
+template < typename T > struct JRefPolicyCopied{
+  static void inc(T* o){ if(o!=NULL) o->incRefCount(); }
+  static void dec(T* o){ if(o!=NULL) o->decRefCount(); }
+  static void use(T*& o){
+    if(o!=NULL && o->refCount()>1){
+      T* t=o->clone();
+      t->incRefCount();
+      o->decRefCount();
+      o=t;
+    }
+  }
+};
+
 /**
  * Reference to a JRefCounted
  */
-template < typename T> class JRef{
+template < typename T, typename Policy = JRefPolicyShared<T> > class JRef{
 public:
   static const JRef& null() { static JRef t; return t; }
 
   //constructors
-  JRef(T* o = NULL) : _obj(o) { inc(); }
+  JRef(T* o = NULL)   : _obj(o) { inc(); }
   JRef(const JRef& p) : _obj(p._obj) { inc(); }
 
   //destructors
@@ -55,17 +75,19 @@ public:
   //accessor
   T* operator->() const {
     check(); 
+    use();
     return _obj; 
   }
 
   //accessor
   T& operator*()  const {
     check(); 
+    use();
     return *_obj; 
   }
 
-   T* asPtr() { return _obj; }
-   const T* asPtr() const { return _obj; }
+   T* asPtr()             { use(); return _obj; }
+   const T* asPtr() const { use(); return _obj; }
 
   //is valid?
   operator bool() const { 
@@ -79,15 +101,16 @@ public:
   friend bool operator != (const JRef& a, const JRef& b) { 
     return a._obj != b._obj;
   }
-  bool operator < (const JRef& that) const { 
-    return that._obj < _obj;
+  friend bool operator < (const JRef& a, const JRef& b) { 
+    return a._obj < b._obj;
   }
 
-  operator const T& () const { check(); return *_obj; }
-  operator T& ()             { check(); return *_obj; }
+  operator const T& () const { check(); use(); return *_obj; }
+  operator T& ()             { check(); use(); return *_obj; }
 private: //helpers:
-  void inc() const { if(_obj!=NULL) _obj->incRefCount(); }
-  void dec() const { if(_obj!=NULL) _obj->decRefCount(); }
+  void inc() const { Policy::inc(_obj); }
+  void dec() const { Policy::dec(_obj); }
+  void use() const { Policy::use(_obj); }
 #ifdef DEBUG
   void check() const { JASSERT(_obj!=NULL).Text("Would have dereferenced null pointer."); }
 #else
@@ -106,12 +129,15 @@ protected:
   JRefCounted(const JRefCounted&) : _refCount(0) {}
   virtual ~JRefCounted(){}
 public:
-  void incRefCount() const{ 
+  inline void incRefCount() const{ 
     atomicAdd<1> (&_refCount); 
   }
-  void decRefCount() const{ 
+  inline void decRefCount() const{ 
     if(atomicAdd<-1>(&_refCount)==0)
       delete this;
+  }
+  inline long refCount() const{ 
+    return _refCount; 
   }
 private:
   mutable volatile long _refCount;
