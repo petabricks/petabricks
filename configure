@@ -20524,6 +20524,12 @@ _ACEOF
 
 
 cat >>confdefs.h <<\_ACEOF
+#define TMPL_IMPL_PFX "_tmlp"
+_ACEOF
+
+
+
+cat >>confdefs.h <<\_ACEOF
 #define GRACEFUL_ABORT 1
 _ACEOF
 

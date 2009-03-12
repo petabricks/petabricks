@@ -134,6 +134,15 @@ public:
   std::vector<std::string> normalArgs() const;
   std::vector<std::string> normalArgNames() const;
 
+  void genTmplJumpTable(CodeGenerator& o,
+                        const std::string& rt,
+                        const std::string& name,
+                        const std::vector<std::string>& args,
+                        const std::vector<std::string>& argNames);
+
+  int tmplChoiceCount() const;
+
+  std::string tmplName(int n, CodeGenerator* o=NULL) const;
 private:
   std::string   _name;
   MatrixDefList _from;

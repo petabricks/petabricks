@@ -170,6 +170,29 @@ void hecura::Transform::compile(){
   
   MaximaWrapper::instance().popContext();
 }
+  
+int hecura::Transform::tmplChoiceCount() const {
+  int choiceCnt = 1;
+  for(size_t i=0; i<_templateargs.size(); ++i){
+    choiceCnt*=_templateargs[i]->range();
+  }
+  return choiceCnt;
+}
+  
+std::string hecura::Transform::tmplName(int n, CodeGenerator* o) const {
+  std::string name = _name+TMPL_IMPL_PFX;
+  int choice=n;
+  //add #defines
+  for(size_t i=0; i<_templateargs.size(); ++i){
+    int val=(choice%_templateargs[i]->range()) + _templateargs[i]->min();
+    choice/=_templateargs[i]->range();
+    if(o!=NULL)
+      o->write("#define " + _templateargs[i]->name() + " " + jalib::XToString(val));
+    name += "_" + jalib::XToString(val);
+  }
+  JASSERT(choice==0)(choice);
+  return name;
+}
 
 void hecura::Transform::generateCode(CodeGenerator& o){ 
   if(_templateargs.empty())
@@ -177,24 +200,11 @@ void hecura::Transform::generateCode(CodeGenerator& o){
   else {
     std::string origName = _name;
     //count number of times we need to explode it
-    int choiceCnt = 1;
-    for(size_t i=0; i<_templateargs.size(); ++i){
-      choiceCnt*=_templateargs[i]->range();
-    }
-    JWARNING(choiceCnt<15)(choiceCnt)(_name)
+    int choiceCnt = tmplChoiceCount();    JWARNING(choiceCnt<15)(choiceCnt)(_name)
       .Text("Explosion of choices for template... are you sure???");
     //for each possible way
     for(size_t c=0; c<choiceCnt; ++c){
-      _name = origName+"_tmpl";
-      int choice=c;
-      //add #defines
-      for(size_t i=0; i<_templateargs.size(); ++i){
-        int val=(choice%_templateargs[i]->range()) + _templateargs[i]->min();
-        choice/=_templateargs[i]->range();
-        o.write("#define " + _templateargs[i]->name() + " " + jalib::XToString(val));
-        _name += "_" + jalib::XToString(val);
-      }
-      JASSERT(choice==0)(choice);
+      _name = tmplName(c, &o);
 
       JTRACE("generating template version")(c);
       generateCodeSimple(o);
@@ -203,10 +213,22 @@ void hecura::Transform::generateCode(CodeGenerator& o){
       for(size_t i=0; i<_templateargs.size(); ++i){
         o.write("#undef " + _templateargs[i]->name());
       }
+
+      _name = origName;
     }
-    _name = origName;
+    genTmplJumpTable(o, "void", _name, normalArgs(), normalArgNames());
   }
 }
+  
+void hecura::Transform::genTmplJumpTable(CodeGenerator& o,
+                    const std::string& rt,
+                    const std::string& name,
+                    const std::vector<std::string>& args,
+                    const std::vector<std::string>& argNames)
+{
+   
+}
+
 
 std::vector<std::string> hecura::Transform::normalArgs() const{
   std::vector<std::string> args;

@@ -106,6 +106,9 @@
 /* record timing information to stderr and jtimings.csv */
 #undef TIMING
 
+/* prefix for expanded template implementations */
+#undef TMPL_IMPL_PFX
+
 /* Version number of package */
 #undef VERSION
 
