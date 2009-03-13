@@ -200,8 +200,8 @@ void hecura::Transform::generateCode(CodeGenerator& o){
   else {
     std::string origName = _name;
     //count number of times we need to explode it
-    int choiceCnt = tmplChoiceCount();    JWARNING(choiceCnt<15)(choiceCnt)(_name)
-      .Text("Explosion of choices for template... are you sure???");
+    int choiceCnt = tmplChoiceCount();
+    JWARNING(choiceCnt<15)(choiceCnt)(_name).Text("Explosion of choices for template... are you sure???");
     //for each possible way
     for(size_t c=0; c<choiceCnt; ++c){
       _name = tmplName(c, &o);
@@ -216,17 +216,52 @@ void hecura::Transform::generateCode(CodeGenerator& o){
 
       _name = origName;
     }
-    genTmplJumpTable(o, "void", _name, normalArgs(), normalArgNames());
+    genTmplJumpTable(o, "void", "", normalArgs(), normalArgNames());
+    genTmplJumpTable(o, "hecura::DynamicTaskPtr", "spawn_", spawnArgs(), spawnArgNames());
   }
 }
   
 void hecura::Transform::genTmplJumpTable(CodeGenerator& o,
                     const std::string& rt,
-                    const std::string& name,
+                    const std::string& prefix,
                     const std::vector<std::string>& args,
                     const std::vector<std::string>& argNames)
 {
-   
+  std::ostringstream formula;
+  std::stringstream ss;
+  std::vector<std::string> targs;
+  for(size_t i=0, mult=1; i<_templateargs.size(); ++i){
+    targs.push_back("int "+_templateargs[i]->name());
+    if(mult>1) formula << " + " << mult << "*";
+    formula << '(' << _templateargs[i]->name() << '-' << _templateargs[i]->min() << ')';
+    mult *= _templateargs[i]->range();
+  }
+  targs.insert(targs.end(), args.begin(), args.end());
+  o.beginFunc(rt, prefix+_name, targs);
+  
+  for(size_t i=0, mult=1; i<_templateargs.size(); ++i){
+    ss << "JASSERT(" << _templateargs[i]->name() << ">=" << _templateargs[i]->min() << " && "
+                     << _templateargs[i]->name() << "<=" << _templateargs[i]->max() << ")"
+                     << "(" << _templateargs[i]->name() << ");";
+    o.write(ss.str());
+    ss.str("");
+  }
+
+  //count number of times we need to explode it
+  int choiceCnt = tmplChoiceCount();
+  //for each possible way
+  o.beginSwitch(formula.str());
+  for(size_t c=0; c<choiceCnt; ++c){
+    std::string fn = prefix+tmplName(c);
+    o.beginCase(c);
+    if(rt!="void") o.write("return ");
+    o.call(fn, argNames);
+    if(rt=="void") o.write("return;");
+    o.endCase();
+  }
+  o.write("default: JASSERT(false);");
+  o.endSwitch();
+  o.endFunc();
 }
 
 
@@ -255,6 +290,11 @@ std::vector<std::string> hecura::Transform::normalArgNames() const{
 std::vector<std::string> hecura::Transform::spawnArgs() const{
   std::vector<std::string> args = normalArgs();
   args.push_back("const DynamicTaskPtr& _before");
+  return args;
+}
+std::vector<std::string> hecura::Transform::spawnArgNames() const{
+  std::vector<std::string> args = normalArgNames();
+  args.push_back("_before");
   return args;
 }
 
