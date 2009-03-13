@@ -2,16 +2,18 @@
   recursive(n)
   to (Y y) from(X x, B b, zeros z) {
     int level = (int) log2(n - 1);
+    printf("prec%d recursive case (call to prec%d) called for level %d (%d iterations)\n", 
+        CURPREC, LOCALPREC, level,
+        (int) CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level]);
     if (level <= 1) {
+      printf("  aborting\n");
       HecuraRuntime::abort();
     } else {
       int i, level = (int) log2(n-1);
       if ((int) CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level] == -1) {
+        printf("  aborting\n");
         HecuraRuntime::abort();
       }
-//    printf("prec%d recursive case (call to prec%d) called for level %d (%d iterations)\n", 
-//           CURPREC, LOCALPREC, level,
-//           (int) CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level]);
       MatrixRegion2D t, r;
 
       Copy2D(y, x);

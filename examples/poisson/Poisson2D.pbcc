@@ -59,17 +59,17 @@ through zeros[(n+1)/2,(n+1)/2]
     JASSERT(floor(log2(n-1)) == log2(n-1))(n)(floor(log2(n-1)))(log2(n-1)).Text("input must be 2^k+1");
     JASSERT(n > 1)(n).Text("input must be larger than 1");
 
-    if (HecuraRuntime::isTrainingRun() && levelTrained[level] == 0) {
-
-//      printf("Training run for level %d\n", level);
-      MatrixRegion2D actual;
-      if (level < 4) {
-        actual = BS2D(x, b);
-      } else {
-        actual = mgv2D(x, b, 15);
-      }
-      error = (double) ComputeError(x, actual);
-//      printf("initial error = %g\n", error);
+    if (HecuraRuntime::isTrainingRun()) {
+      if (levelTrained[level] == 0) {
+        printf("Training run for level %d\n", level);
+        MatrixRegion2D actual;
+        if (level < 4) {
+          actual = BS2D(x, b);
+        } else {
+          actual = mgv2D(x, b, 15);
+        }
+        error = (double) ComputeError(x, actual);
+        printf("initial error = %g\n", error);
 
 #define CURPREC 1
 #include "Poisson2D_TrainingLoop.pbcc"
@@ -87,8 +87,8 @@ through zeros[(n+1)/2,(n+1)/2]
 #include "Poisson2D_TrainingLoop.pbcc"
 #undef CURPREC
 
-      levelTrained[level].setValue(1);
-
+        levelTrained[level].setValue(1);
+      }
     } else {
 //      printf("Timing run for level %d, precision %d\n", level, (int) prec_case);
       switch (prec_case) {
