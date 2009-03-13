@@ -55,20 +55,20 @@ libhecura_a_LIBADD =
 am_libhecura_a_OBJECTS = autotuner.$(OBJEXT) choicegrid.$(OBJEXT) \
 	codegenerator.$(OBJEXT) dynamicscheduler.$(OBJEXT) \
 	dynamictask.$(OBJEXT) formula.$(OBJEXT) getdelim.$(OBJEXT) \
-	getline.$(OBJEXT) hecuraruntime.$(OBJEXT) jassert.$(OBJEXT) \
-	jbuffer.$(OBJEXT) jfilesystem.$(OBJEXT) jprintable.$(OBJEXT) \
-	jserialize.$(OBJEXT) jsocket.$(OBJEXT) jthread.$(OBJEXT) \
-	jtimer.$(OBJEXT) jtunable.$(OBJEXT) learner.$(OBJEXT) \
-	matrix.$(OBJEXT) matrixdef.$(OBJEXT) \
+	getline.$(OBJEXT) hecuraruntime.$(OBJEXT) jalloc.$(OBJEXT) \
+	jassert.$(OBJEXT) jbuffer.$(OBJEXT) jfilesystem.$(OBJEXT) \
+	jprintable.$(OBJEXT) jserialize.$(OBJEXT) jsocket.$(OBJEXT) \
+	jthread.$(OBJEXT) jtimer.$(OBJEXT) jtunable.$(OBJEXT) \
+	learner.$(OBJEXT) matrix.$(OBJEXT) matrixdef.$(OBJEXT) \
 	matrixdependency.$(OBJEXT) matrixio.$(OBJEXT) \
 	matrixreader.$(OBJEXT) maximalexer.$(OBJEXT) \
 	maximaparser.$(OBJEXT) maximawrapper.$(OBJEXT) \
 	pblexer.$(OBJEXT) pbparser.$(OBJEXT) \
 	performancetester.$(OBJEXT) region.$(OBJEXT) \
-	rircompilerpass.$(OBJEXT) rule.$(OBJEXT) rulechoice.$(OBJEXT) \
-	ruleir.$(OBJEXT) ruleirlexer.$(OBJEXT) ruleirparser.$(OBJEXT) \
-	spatialdynamictask.$(OBJEXT) staticscheduler.$(OBJEXT) \
-	transform.$(OBJEXT) jalloc.$(OBJEXT)
+	rircompilerpass.$(OBJEXT) rirscope.$(OBJEXT) rule.$(OBJEXT) \
+	rulechoice.$(OBJEXT) ruleir.$(OBJEXT) ruleirlexer.$(OBJEXT) \
+	ruleirparser.$(OBJEXT) spatialdynamictask.$(OBJEXT) \
+	staticscheduler.$(OBJEXT) transform.$(OBJEXT)
 libhecura_a_OBJECTS = $(am_libhecura_a_OBJECTS)
 PROGRAMS = $(noinst_PROGRAMS)
 am_pbc_OBJECTS = pbc.$(OBJEXT)
@@ -230,20 +230,22 @@ AM_LFLAGS =
 noinst_LIBRARIES = libhecura.a
 noinst_HEADERS = autotuner.h choicegrid.h codegenerator.h config.h \
 	dynamicscheduler.h dynamictask.h formula.h getdelim.h getline.h hecura.h hecuraruntime.h \
-	jasm.h jassert.h jblockingqueue.h jbuffer.h jconvert.h jfilesystem.h jmutex.h \
-	jprintable.h jrefcounted.h jserialize.h jsocket.h jthread.h jtimer.h jtunable.h \
-	learner.h matrix.h matrixdef.h matrixdependency.h matrixio.h matrixoperations.h \
-	maximawrapper.h performancetester.h region.h rircompilerpass.h rule.h rulechoice.h \
-	ruleir.h spatialdynamictask.h staticscheduler.h transform.h jalloc.h
+	jalloc.h jasm.h jassert.h jblockingqueue.h jbuffer.h jconvert.h jfilesystem.h \
+	jmutex.h jprintable.h jrefcounted.h jserialize.h jsocket.h jthread.h jtimer.h \
+	jtunable.h learner.h matrix.h matrixdef.h matrixdependency.h matrixio.h \
+	matrixoperations.h maximawrapper.h performancetester.h region.h rircompilerpass.h \
+	rirscope.h rule.h rulechoice.h ruleir.h spatialdynamictask.h staticscheduler.h \
+	transform.h
 
 libhecura_a_SOURCES = autotuner.cpp choicegrid.cpp codegenerator.cpp \
 	dynamicscheduler.cpp dynamictask.cpp formula.cpp getdelim.cpp getline.cpp hecuraruntime.cpp \
-	jassert.cpp jbuffer.cpp jfilesystem.cpp jprintable.cpp jserialize.cpp jsocket.cpp \
-	jthread.cpp jtimer.cpp jtunable.cpp learner.cpp matrix.cpp matrixdef.cpp \
-	matrixdependency.cpp matrixio.cpp matrixreader.lpp maximalexer.lpp maximaparser.ypp \
-	maximawrapper.cpp pblexer.lpp pbparser.ypp performancetester.cpp region.cpp \
-	rircompilerpass.cpp rule.cpp rulechoice.cpp ruleir.cpp ruleirlexer.lpp ruleirparser.ypp \
-	spatialdynamictask.cpp staticscheduler.cpp transform.cpp jalloc.cpp
+	jalloc.cpp jassert.cpp jbuffer.cpp jfilesystem.cpp jprintable.cpp jserialize.cpp \
+	jsocket.cpp jthread.cpp jtimer.cpp jtunable.cpp learner.cpp matrix.cpp \
+	matrixdef.cpp matrixdependency.cpp matrixio.cpp matrixreader.lpp maximalexer.lpp \
+	maximaparser.ypp maximawrapper.cpp pblexer.lpp pbparser.ypp performancetester.cpp \
+	region.cpp rircompilerpass.cpp rirscope.cpp rule.cpp rulechoice.cpp ruleir.cpp \
+	ruleirlexer.lpp ruleirparser.ypp spatialdynamictask.cpp staticscheduler.cpp \
+	transform.cpp
 
 pbc_SOURCES = pbc.cpp
 pbc_LDADD = libhecura.a -lpthread 
@@ -261,9 +263,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign  src/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  src/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign  src/Makefile
+	  $(AUTOMAKE) --gnu  src/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -358,6 +360,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/performancetester.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/region.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rircompilerpass.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rirscope.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rule.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rulechoice.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ruleir.Po@am__quote@
