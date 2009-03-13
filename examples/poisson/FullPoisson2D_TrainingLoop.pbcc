@@ -1,0 +1,20 @@
+//      printf("  Training precision %d\n", CURPREC);
+
+#define ESTPREC 0
+#include "FullPoisson2D_TrainingPerEst.pbcc"
+#undef ESTPREC
+#define ESTPREC 1
+#include "FullPoisson2D_TrainingPerEst.pbcc"
+#undef ESTPREC
+#define ESTPREC 2
+#include "FullPoisson2D_TrainingPerEst.pbcc"
+#undef ESTPREC
+#define ESTPREC 3
+#include "FullPoisson2D_TrainingPerEst.pbcc"
+#undef ESTPREC
+#define ESTPREC 4
+#include "FullPoisson2D_TrainingPerEst.pbcc"
+#undef ESTPREC
+#define ESTPREC 5
+#include "FullPoisson2D_TrainingPerEst.pbcc"
+#undef ESTPREC

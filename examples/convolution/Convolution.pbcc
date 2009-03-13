@@ -91,16 +91,20 @@ transform Convolution
 from A[n], B[m]
 to C[n+m-1]
 {
+  recursive(n+m-1)
   to (C c) from (A a, B b)
   {
     //printf("Calling (%d + %d) regular ...\n", (int) n, (int) m);
-    ConvolutionRegular(c, a, b);
+    SPAWN(ConvolutionRegular, c, a, b);
+    SYNC();
   }
 
+  recursive(n+m-1)
   to (C c) from (A a, B b)
   {
     //printf("Calling (%d + %d) FFT ...\n", (int) n, (int) m);
-    ConvolutionFFT(c, a, b);
+    SPAWN(ConvolutionFFT, c, a, b);
+    SYNC();
     //printf("Finished (%d + %d) FFT ...\n", (int) n, (int) m);
   }
 
@@ -122,15 +126,16 @@ to C[n+m-1]
 
     //printf("Calling (%d + %d) recursive ...\n", (int) n, (int) m);
     if (a.count() <= WAYS && b.count() <= WAYS) {
-      ConvolutionRegular(c, a, b);
+      SPAWN(ConvolutionRegular, c, a, b);
     } else {
       if (a.count() >= b.count())
       {
-        ConvolutionRecursive(c, a, b);
+        SPAWN(ConvolutionRecursive, c, a, b);
       } else {
-        ConvolutionRecursive(c, b, a);
+        SPAWN(ConvolutionRecursive, c, b, a);
       }
     }
+    SYNC();
   }
 }
 

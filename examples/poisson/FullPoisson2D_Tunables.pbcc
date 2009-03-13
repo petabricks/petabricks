@@ -1,0 +1,19 @@
+#define ESTPREC 0
+#include "FullPoisson2D_TunablesPerEst.pbcc"
+#undef ESTPREC
+#define ESTPREC 1
+#include "FullPoisson2D_TunablesPerEst.pbcc"
+#undef ESTPREC
+#define ESTPREC 2
+#include "FullPoisson2D_TunablesPerEst.pbcc"
+#undef ESTPREC
+#define ESTPREC 3
+#include "FullPoisson2D_TunablesPerEst.pbcc"
+#undef ESTPREC
+#define ESTPREC 4
+#include "FullPoisson2D_TunablesPerEst.pbcc"
+#undef ESTPREC
+#define ESTPREC 5
+#include "FullPoisson2D_TunablesPerEst.pbcc"
+#undef ESTPREC
+
