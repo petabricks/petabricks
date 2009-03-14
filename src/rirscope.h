@@ -20,17 +20,58 @@
 #ifndef PETABRICKSRIRSCOPE_H
 #define PETABRICKSRIRSCOPE_H
 
+#include "jrefcounted.h"
+#include <map>
+
 namespace petabricks {
 
-/**
-	@author Jason Ansel <jansel@csail.mit.edu>
-*/
-class RIRScope{
+class RIRSymbol;
+typedef jalib::JRef<RIRSymbol> RIRSymbolPtr;
+typedef std::map<std::string, RIRSymbolPtr> RIRSymbolMap;
+class RIRScope;
+typedef jalib::JRef<RIRScope> RIRScopePtr;
+
+class RIRSymbol: public jalib::JRefCounted {
 public:
-    RIRScope();
+  enum SymbolType {
+    INVALID,
+    SYM_TRANSFORM,
+    SYM_TRANSFORM_TEMPLATE,
+    SYM_TUNABLE
+  };
+  RIRSymbol(SymbolType t) 
+    : _type(t)
+  {}
+private:
+  SymbolType  _type;
+};
 
-    ~RIRScope();
 
+class RIRScope: public jalib::JRefCounted {
+public:
+  RIRScope(const RIRScopePtr& parent) 
+    : _parent(parent) 
+  {}
+
+  void set(const std::string& name, const RIRSymbolPtr& val){
+    _symbols[name] = val;
+  }
+  
+  RIRSymbolPtr localLookup(const std::string& name) const{
+    RIRSymbolMap::const_iterator i = _symbols.find(name);
+    if(i!=_symbols.end())
+      return i->second;
+    return NULL;
+  }
+
+  RIRSymbolPtr lookup(const std::string& name) const{
+    RIRSymbolPtr t = localLookup(name);
+    if(_parent && !t) return _parent->lookup(name);
+    return t;
+  }
+private:
+  RIRScopePtr _parent;
+  RIRSymbolMap _symbols;
 };
 
 }

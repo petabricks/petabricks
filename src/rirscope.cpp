@@ -19,16 +19,3 @@
  ***************************************************************************/
 #include "rirscope.h"
 
-namespace petabricks {
-
-RIRScope::RIRScope()
-{
-}
-
-
-RIRScope::~RIRScope()
-{
-}
-
-
-}

@@ -59,7 +59,7 @@ through zeros[(n+1)/2,(n+1)/2]
     JASSERT(floor(log2(n-1)) == log2(n-1))(n)(floor(log2(n-1)))(log2(n-1)).Text("input must be 2^k+1");
     JASSERT(n > 1)(n).Text("input must be larger than 1");
 
-    if (HecuraRuntime::isTrainingRun() && levelTrained[level] == 0) {
+    if (PetabricksRuntime::isTrainingRun() && levelTrained[level] == 0) {
 
 //      printf("Training run for level %d\n", level);
       MatrixRegion2D actual;

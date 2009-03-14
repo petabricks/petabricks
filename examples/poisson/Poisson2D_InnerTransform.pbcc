@@ -18,7 +18,7 @@ through zeros[(n+1)/2,(n+1)/2]
   to(Y y) from(X x, B b) {
     int level = (int) log2(n-1);
     if ((int) CAT(SORIters_Prec, CURPREC)[level] == -1) {
-      HecuraRuntime::abort();
+      PetabricksRuntime::abort();
     }
 //  printf("prec%d SOR case called for level %d (%d iterations)\n", CURPREC,
 //         level, (int) CAT(SORIters_Prec, CURPREC)[level]);
@@ -29,7 +29,7 @@ through zeros[(n+1)/2,(n+1)/2]
   to(Y y) from(X x, B b) {
     int level = (int) log2(n-1);
   if (level > 8) {
-    HecuraRuntime::abort();
+    PetabricksRuntime::abort();
   }
 //    printf("prec%d BS case called for level %d\n", CURPREC, level);
     BS2D(y, x, b);

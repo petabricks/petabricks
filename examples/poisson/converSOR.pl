@@ -27,8 +27,8 @@ $Xerror ="Xerror";
 
 for ($count=$ARGV[0];$count<=$ARGV[1]; $count++){
 
-  system("~/hecura/scripts/genmatrixZeroBound.py $count > Xin");
-  system("~/hecura/scripts/genmatrixZeroBound.py $count > RHS");
+  system("~/petabricks/scripts/genmatrixZeroBound.py $count > Xin");
+  system("~/petabricks/scripts/genmatrixZeroBound.py $count > RHS");
   system("./BS2D Xin RHS $EXACT");
   system("./$fn Xin RHS $para $XTMP");
   system("./error $EXACT $XTMP $Xerror");

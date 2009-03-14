@@ -2,10 +2,10 @@
   to(Y y) from(X x, B b, zeros z) {
     int level = (int) log2(n-1);
     if (level <= 1) {
-      HecuraRuntime::abort();
+      PetabricksRuntime::abort();
     } else {
       if ((int) CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level] == -1) {
-        HecuraRuntime::abort();
+        PetabricksRuntime::abort();
       }
       printf("full prec%d SOR case called for level %d (%d iterations)\n", CURPREC,
              level, (int) CAT(SORIters_Prec, CURPREC)[level]);

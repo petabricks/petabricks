@@ -34,9 +34,9 @@ host_triplet = @host@
 subdir = .
 DIST_COMMON = $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(top_srcdir)/configure \
-	$(top_srcdir)/examples/Makefile.in AUTHORS COPYING ChangeLog \
-	INSTALL config.guess config.sub depcomp install-sh ltmain.sh \
-	missing mkinstalldirs ylwrap
+	$(top_srcdir)/examples/Makefile.in AUTHORS COPYING INSTALL \
+	config.guess config.sub depcomp install-sh ltmain.sh missing \
+	mkinstalldirs ylwrap
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \

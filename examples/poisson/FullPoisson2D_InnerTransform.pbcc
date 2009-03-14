@@ -9,7 +9,7 @@ through zeros[(n+1)/2,(n+1)/2]
   to(Y y) from(X x, B b) {
     int level = (int) log2(n-1);
     if (level > 8) {
-      HecuraRuntime::abort();
+      PetabricksRuntime::abort();
     }
     printf("full prec%d BS case called for level %d\n", CURPREC, level);
     BS2D(y, x, b);
