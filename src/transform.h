@@ -142,6 +142,8 @@ public:
 
   int tmplChoiceCount() const;
 
+  bool isTemplate() const { return !_templateargs.empty(); }
+
   std::string tmplName(int n, CodeGenerator* o=NULL) const;
 private:
   std::string   _name;

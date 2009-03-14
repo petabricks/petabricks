@@ -22,6 +22,7 @@
 #include "maximawrapper.h"
 #include "codegenerator.h"
 #include "staticscheduler.h"
+#include "rirscope.h"
 
 #include <algorithm>
 
@@ -115,6 +116,11 @@ void petabricks::Transform::initialize() {
     fillBaseCases(*m);
 
   tester().setIOSizes(_from.size(), _to.size());
+
+  if(isTemplate())
+    RIRScope::global()->set(_name, RIRSymbol::SYM_TRANSFORM_TEMPLATE);
+  else
+    RIRScope::global()->set(_name, RIRSymbol::SYM_TRANSFORM);
 
   MaximaWrapper::instance().popContext();
 }

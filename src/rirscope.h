@@ -35,7 +35,10 @@ class RIRSymbol: public jalib::JRefCounted {
 public:
   enum SymbolType {
     INVALID,
-    SYM_TRANSFORM,
+    SYM_TYPE               = 0x1000,
+    SYM_TYPE_BASIC,
+    SYM_TYPE_MATRIX,
+    SYM_TRANSFORM          = 0x2000,
     SYM_TRANSFORM_TEMPLATE,
     SYM_TUNABLE
   };
@@ -49,26 +52,26 @@ private:
 
 class RIRScope: public jalib::JRefCounted {
 public:
+  static const RIRScopePtr& global();
+
   RIRScope(const RIRScopePtr& parent) 
     : _parent(parent) 
   {}
+  
+  void set(const std::string& name, RIRSymbol::SymbolType val){
+    set(name, new RIRSymbol(val));
+  }
 
   void set(const std::string& name, const RIRSymbolPtr& val){
     _symbols[name] = val;
   }
   
-  RIRSymbolPtr localLookup(const std::string& name) const{
-    RIRSymbolMap::const_iterator i = _symbols.find(name);
-    if(i!=_symbols.end())
-      return i->second;
-    return NULL;
-  }
+  RIRSymbolPtr localLookup(const std::string& name) const;
 
-  RIRSymbolPtr lookup(const std::string& name) const{
-    RIRSymbolPtr t = localLookup(name);
-    if(_parent && !t) return _parent->lookup(name);
-    return t;
-  }
+  RIRSymbolPtr lookup(const std::string& name) const;
+
+  RIRScopePtr createChildLayer(){ return new RIRScope(this); }
+  const RIRScopePtr& parentLayer() const { return _parent; }
 private:
   RIRScopePtr _parent;
   RIRSymbolMap _symbols;

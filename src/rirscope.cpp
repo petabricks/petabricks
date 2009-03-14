@@ -19,3 +19,21 @@
  ***************************************************************************/
 #include "rirscope.h"
 
+const petabricks::RIRScopePtr& petabricks::RIRScope::global(){
+  static RIRScopePtr inst = new RIRScope(NULL);
+  return inst;
+}
+  
+petabricks::RIRSymbolPtr petabricks::RIRScope::localLookup(const std::string& name) const{
+  RIRSymbolMap::const_iterator i = _symbols.find(name);
+  if(i!=_symbols.end())
+    return i->second;
+  return NULL;
+}
+
+petabricks::RIRSymbolPtr petabricks::RIRScope::lookup(const std::string& name) const{
+  RIRSymbolPtr t = localLookup(name);
+  if(_parent && !t) return _parent->lookup(name);
+  return t;
+}
+

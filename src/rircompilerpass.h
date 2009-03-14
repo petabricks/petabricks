@@ -92,20 +92,19 @@ private:
     _stack.pop_back();
   }
   void pushSplicer(RIRStmtList* bk, RIRStmtList* fwd){
-    _stmtCtx.push_back(StmtContext(bk, fwd, level()));
+    _stmtCtx.push_back(StmtContext(bk, fwd, depth()));
   }
   void popSplicer(RIRStmtList* bk, RIRStmtList* fwd){
     JASSERT(!_stmtCtx.empty());
     _stmtCtx.pop_back();
   }
   void pushSplicer(RIRExprList* bk, RIRExprList* fwd){
-    _exprCtx.push_back(ExprContext(bk, fwd, level()));
+    _exprCtx.push_back(ExprContext(bk, fwd, depth()));
   }
   void popSplicer(RIRExprList* bk, RIRExprList* fwd){
     JASSERT(!_exprCtx.empty());
     _exprCtx.pop_back();
   }
-  int level() const { return _stack.size(); }
 protected:
   RIRNodeList _stack;
   ExprContextStack _exprCtx;
