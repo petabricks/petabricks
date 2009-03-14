@@ -22,7 +22,7 @@
 #include "matrixio.h"
 #include "dynamictask.h"
 #include "spatialdynamictask.h"
-#include "hecuraruntime.h"
+#include "petabricksruntime.h"
 #include "jtunable.h"
 #include <math.h>
 #include "config.h"

@@ -93,20 +93,20 @@ typedef union YYSTYPE
   int i;
   double d;
   const char* str;
-  hecura::Transform*       transform;
-  hecura::TransformList*   transforms;
-  hecura::MatrixDef*       matrixdef;
-  hecura::MatrixDefList*   matrixdefs;
-  hecura::Rule*            rule;
-  hecura::RuleList*        rules;
-  hecura::Formula*         formula;
-  hecura::FormulaList*     formulas;
-  hecura::Region*          region;
-  hecura::RegionList*      regions;
-  hecura::TestCase*        testcase;
-  hecura::TemplateArg*     templatearg;
-  hecura::TemplateArgList* templateargs;
-  struct { const char* str; hecura::FormulaList* formulas; } str_formulas; 
+  petabricks::Transform*       transform;
+  petabricks::TransformList*   transforms;
+  petabricks::MatrixDef*       matrixdef;
+  petabricks::MatrixDefList*   matrixdefs;
+  petabricks::Rule*            rule;
+  petabricks::RuleList*        rules;
+  petabricks::Formula*         formula;
+  petabricks::FormulaList*     formulas;
+  petabricks::Region*          region;
+  petabricks::RegionList*      regions;
+  petabricks::TestCase*        testcase;
+  petabricks::TemplateArg*     templatearg;
+  petabricks::TemplateArgList* templateargs;
+  struct { const char* str; petabricks::FormulaList* formulas; } str_formulas; 
 }
 /* Line 1489 of yacc.c.  */
 #line 113 "pbparser.h"

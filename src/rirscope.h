@@ -17,10 +17,10 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURARIRSCOPE_H
-#define HECURARIRSCOPE_H
+#ifndef PETABRICKSRIRSCOPE_H
+#define PETABRICKSRIRSCOPE_H
 
-namespace hecura {
+namespace petabricks {
 
 /**
 	@author Jason Ansel <jansel@csail.mit.edu>

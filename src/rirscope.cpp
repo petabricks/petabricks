@@ -19,7 +19,7 @@
  ***************************************************************************/
 #include "rirscope.h"
 
-namespace hecura {
+namespace petabricks {
 
 RIRScope::RIRScope()
 {

@@ -26,13 +26,13 @@
 #include "rircompilerpass.h"
 #include <algorithm>
 
-hecura::RIRBlockPtr parseRuleBody(const std::string& str);
+petabricks::RIRBlockPtr parseRuleBody(const std::string& str);
 
 volatile long theNextRuleId = 0;
 
 
 
-hecura::Rule::Rule(const RegionPtr& to, const RegionList& from, const FormulaList& cond)
+petabricks::Rule::Rule(const RegionPtr& to, const RegionList& from, const FormulaList& cond)
   : _id(jalib::atomicAdd<1>(&theNextRuleId))
   , _from(from)
   , _conditions(cond)
@@ -41,7 +41,7 @@ hecura::Rule::Rule(const RegionPtr& to, const RegionList& from, const FormulaLis
   _to.push_back(to);
 }
 
-hecura::Rule::Rule(const RegionList& to, const RegionList& from, const FormulaList& cond)
+petabricks::Rule::Rule(const RegionList& to, const RegionList& from, const FormulaList& cond)
   : _id(jalib::atomicAdd<1>(&theNextRuleId))
   , _from(from)
   , _to(to)
@@ -50,7 +50,7 @@ hecura::Rule::Rule(const RegionList& to, const RegionList& from, const FormulaLi
   _flags.isReturnStyle = false;
 }
 
-hecura::FormulaPtr hecura::Rule::getOffsetVar(int id, const char* extra /*= NULL*/) const{
+petabricks::FormulaPtr petabricks::Rule::getOffsetVar(int id, const char* extra /*= NULL*/) const{
   if(extra==NULL) extra="";
   static const char* strs[] = {"x","y","z","d4","d5","d6","d7","d8","d9","d10"};
   JASSERT(id>=0 && id<(int)(sizeof(strs)/sizeof(char*)))(id);
@@ -58,20 +58,20 @@ hecura::FormulaPtr hecura::Rule::getOffsetVar(int id, const char* extra /*= NULL
   return new FormulaVariable((extra+name).c_str()); //cache me!
 }
 
-void hecura::Rule::setBody(const char* str){
+void petabricks::Rule::setBody(const char* str){
   JWARNING(_bodysrc=="")(_bodysrc);
   _bodysrc=str;
   _bodysrc[_bodysrc.length()-1] = ' ';
   compileRuleBody();
 }
 
-void hecura::Rule::compileRuleBody(){
+void petabricks::Rule::compileRuleBody(){
   _bodyir = parseRuleBody(_bodysrc);
   DebugPrintPass p;
   _bodyir->accept(p);
 }
 
-void hecura::RuleFlags::print(std::ostream& os) const {
+void petabricks::RuleFlags::print(std::ostream& os) const {
   if(priority != PRIORITY_DEFAULT){
     os << "priority(" << priority << ") ";
   }
@@ -86,7 +86,7 @@ void hecura::RuleFlags::print(std::ostream& os) const {
   }
 }
 
-void hecura::Rule::print(std::ostream& os) const {
+void petabricks::Rule::print(std::ostream& os) const {
   _flags.print(os);
   os << "rule " << _id;
   if(!_from.empty()){
@@ -116,13 +116,13 @@ void hecura::Rule::print(std::ostream& os) const {
 
 namespace {// file local
   struct CmpRegionsByDimensions {
-    bool operator() ( const hecura::RegionPtr& a, const hecura::RegionPtr& b ){
+    bool operator() ( const petabricks::RegionPtr& a, const petabricks::RegionPtr& b ){
       return a->dimensions() > b->dimensions();
     }
   };
 }
 
-void hecura::Rule::initialize(Transform& trans) {
+void petabricks::Rule::initialize(Transform& trans) {
   MaximaWrapper::instance().pushContext();
 
   jalib::Map(&Region::initialize, trans, _from);
@@ -181,7 +181,7 @@ void hecura::Rule::initialize(Transform& trans) {
   MaximaWrapper::instance().popContext();
 }
 
-void hecura::Rule::getApplicableRegionDescriptors(RuleDescriptorList& output, 
+void petabricks::Rule::getApplicableRegionDescriptors(RuleDescriptorList& output, 
                                                   const MatrixDefPtr& matrix, 
                                                   int dimension) {
   MatrixDependencyMap::const_iterator i = _provides.find(matrix);
@@ -194,12 +194,12 @@ void hecura::Rule::getApplicableRegionDescriptors(RuleDescriptorList& output,
   }
 }
 
-hecura::FormulaPtr hecura::Rule::trimImpossible(const FormulaList& l){
+petabricks::FormulaPtr petabricks::Rule::trimImpossible(const FormulaList& l){
   JASSERT(l.size()==1)(l).Text("trimming formulas not yet implemented");
   return l.front();
 }
 
-bool hecura::RuleDescriptor::operator< (const RuleDescriptor& that) const{
+bool petabricks::RuleDescriptor::operator< (const RuleDescriptor& that) const{
   std::string strA = this->_formula->toString();
   std::string strB = that._formula->toString(); 
   const char* op = "<";
@@ -213,11 +213,11 @@ bool hecura::RuleDescriptor::operator< (const RuleDescriptor& that) const{
   return MaximaWrapper::instance().compare(this->_formula, op , that._formula);
 }
 
-bool hecura::RuleDescriptor::isSamePosition(const FormulaPtr& that) const{
+bool petabricks::RuleDescriptor::isSamePosition(const FormulaPtr& that) const{
    return MaximaWrapper::instance().compare(this->_formula, "=" , that);
 }
 
-void hecura::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
   std::string rt = "void";
   std::vector<std::string> args;
   if(isReturnStyle()){
@@ -227,7 +227,7 @@ void hecura::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
     rt = "ElementT";
   }else{
     if(isRecursive()){
-      rt="hecura::DynamicTaskPtr";
+      rt="petabricks::DynamicTaskPtr";
     }
     for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
       args.push_back((*i)->generateSignatureCode(o,false));
@@ -257,7 +257,7 @@ void hecura::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
   o.endFunc();
 }
 
-void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   CoordinateFormula begin, widths;
   CoordinateFormula end;
   std::vector<std::string> args;
@@ -307,7 +307,7 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
 
   const char* rt = "void";
   if(isRecursive()){
-    rt="hecura::DynamicTaskPtr";
+    rt="petabricks::DynamicTaskPtr";
   }
 
   o.beginFunc(rt,trampcodename(trans), argsByRef);
@@ -435,7 +435,7 @@ void hecura::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
 
 }
 
-void hecura::Rule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::Rule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o){
   std::vector<std::string> args;
   if(!isReturnStyle()){
     for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -463,7 +463,7 @@ void hecura::Rule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& 
   }
 }
 
-std::vector<std::string> hecura::Rule::getCallArgs(Transform& trans, const SimpleRegionPtr& region){
+std::vector<std::string> petabricks::Rule::getCallArgs(Transform& trans, const SimpleRegionPtr& region){
   std::vector<std::string> args;
   std::set<MatrixDefPtr> used;
   for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
@@ -493,18 +493,18 @@ std::vector<std::string> hecura::Rule::getCallArgs(Transform& trans, const Simpl
   return args;
 }
 
-void hecura::Rule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
+void petabricks::Rule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
   std::vector<std::string> args = getCallArgs(trans, region);
   o.call(trampcodename(trans), args);
 }
 
-void hecura::Rule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
+void petabricks::Rule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
   std::vector<std::string> args = getCallArgs(trans, region);
   o.setcall(name,"new "+trampcodename(trans)+"_task", args);
 }
 
 
-int hecura::Rule::dimensions() const {
+int petabricks::Rule::dimensions() const {
 //   return (int)_applicanbleRegion->dimensions();
   int m=0;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -513,7 +513,7 @@ int hecura::Rule::dimensions() const {
   return m;
 }
 
-void hecura::Rule::addAssumptions() const {
+void petabricks::Rule::addAssumptions() const {
   for(int i=0; i<dimensions(); ++i){
     MaximaWrapper::instance().assume(new FormulaGE(getOffsetVar(i), _applicanbleRegion->minCoord()[i]));
     MaximaWrapper::instance().assume(new FormulaLE(getOffsetVar(i), _applicanbleRegion->maxCoord()[i]));
@@ -528,7 +528,7 @@ void hecura::Rule::addAssumptions() const {
     MaximaWrapper::instance().assume(*i);
 }
 
-void hecura::Rule::collectDependencies(StaticScheduler& scheduler){
+void petabricks::Rule::collectDependencies(StaticScheduler& scheduler){
   for( MatrixDependencyMap::const_iterator p=_provides.begin()
      ; p!=_provides.end()
      ; ++p)
@@ -560,7 +560,7 @@ void hecura::Rule::collectDependencies(StaticScheduler& scheduler){
   //TODO collect edge/direction dependencies
 }
 
-void hecura::Rule::removeInvalidOrders(IterationOrderList& o){
+void petabricks::Rule::removeInvalidOrders(IterationOrderList& o){
   for( MatrixDependencyMap::const_iterator p=_provides.begin()
      ; p!=_provides.end()
      ; ++p)
@@ -583,10 +583,10 @@ void hecura::Rule::removeInvalidOrders(IterationOrderList& o){
   }
 }
 
-std::string hecura::Rule::implcodename(Transform& trans) const {
+std::string petabricks::Rule::implcodename(Transform& trans) const {
   return trans.name()+"_rule" + jalib::XToString(_id-trans.ruleIdOffset());
 }
-std::string hecura::Rule::trampcodename(Transform& trans) const {
+std::string petabricks::Rule::trampcodename(Transform& trans) const {
   return trans.name()+"_apply_rule" + jalib::XToString(_id-trans.ruleIdOffset());
 }
 

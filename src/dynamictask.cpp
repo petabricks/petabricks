@@ -34,7 +34,7 @@
 JTUNABLE(tunerNumOfWorkers,   8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
 JTUNABLE(tunerInlineTaskSize, 1024, MIN_INLINE_TASK_SIZE, MAX_INLINE_TASK_SIZE);
 
-namespace hecura {
+namespace petabricks {
 
 DynamicScheduler *DynamicTask::scheduler = NULL;
 size_t            DynamicTask::firstSize = 0;
@@ -106,7 +106,7 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
 }
 #endif // PBCC_SEQUENTIAL
 
-void hecura::DynamicTask::decrementPredecessors(){
+void petabricks::DynamicTask::decrementPredecessors(){
   bool shouldEnqueue = false;
   {
     JLOCKSCOPE(lock);
@@ -121,7 +121,7 @@ void hecura::DynamicTask::decrementPredecessors(){
 }
 
 
-void hecura::DynamicTask::runWrapper(){
+void petabricks::DynamicTask::runWrapper(){
   JASSERT(state==S_READY && numOfPredecessor==0)(state)(numOfPredecessor);
   continuation = run();
 

@@ -22,8 +22,8 @@
 #include "jasm.h"
 
 namespace { //file local
-void _remapSet(hecura::ScheduleNodeSet& set, const hecura::ScheduleNodeRemapping& map){
-  using namespace hecura;
+void _remapSet(petabricks::ScheduleNodeSet& set, const petabricks::ScheduleNodeRemapping& map){
+  using namespace petabricks;
   for(ScheduleNodeRemapping::const_iterator i=map.begin(); i!=map.end(); ++i){
     ScheduleNodeSet::iterator rslt = set.find(i->first);
     if(rslt!=set.end()){
@@ -35,7 +35,7 @@ void _remapSet(hecura::ScheduleNodeSet& set, const hecura::ScheduleNodeRemapping
 }
 
 
-hecura::ScheduleNode::ScheduleNode()
+petabricks::ScheduleNode::ScheduleNode()
   : _isInput(false)
 {
   static long i=0;
@@ -43,7 +43,7 @@ hecura::ScheduleNode::ScheduleNode()
 }
 
 
-hecura::StaticScheduler::StaticScheduler(const ChoiceGridMap& cg){
+petabricks::StaticScheduler::StaticScheduler(const ChoiceGridMap& cg){
   for(ChoiceGridMap::const_iterator m=cg.begin(); m!=cg.end(); ++m){
     ScheduleNodeList& regions = _matrixToNodes[m->first];
     for(ChoiceGridIndex::const_iterator i=m->second.begin(); i!=m->second.end(); ++i){
@@ -54,7 +54,7 @@ hecura::StaticScheduler::StaticScheduler(const ChoiceGridMap& cg){
   }
 }
 
-hecura::ScheduleNodeSet hecura::StaticScheduler::lookupNode(const MatrixDefPtr& matrix, const SimpleRegionPtr& region){
+petabricks::ScheduleNodeSet petabricks::StaticScheduler::lookupNode(const MatrixDefPtr& matrix, const SimpleRegionPtr& region){
   ScheduleNodeSet rv;
   ScheduleNodeList& regions = _matrixToNodes[matrix];
   if(matrix->numDimensions()==0){
@@ -75,7 +75,7 @@ hecura::ScheduleNodeSet hecura::StaticScheduler::lookupNode(const MatrixDefPtr& 
   return rv;
 }
 
-void hecura::StaticScheduler::generateSchedule(){
+void petabricks::StaticScheduler::generateSchedule(){
   #ifdef DEBUG 
 //   writeGraphAsPDF("schedule_initial.pdf");
   #endif
@@ -96,7 +96,7 @@ void hecura::StaticScheduler::generateSchedule(){
   }
 }
 
-void hecura::StaticScheduler::computeIndirectDependencies(){
+void petabricks::StaticScheduler::computeIndirectDependencies(){
   // this algorithm can be optimized, but since graphs are small it doesn't matter
   for(int c=1; c>0;){ //keep interating until no changes have been made
     c=0;
@@ -106,7 +106,7 @@ void hecura::StaticScheduler::computeIndirectDependencies(){
   }
 }
 
-void hecura::StaticScheduler::mergeCoscheduledNodes(){
+void petabricks::StaticScheduler::mergeCoscheduledNodes(){
   ScheduleNodeSet done;
   ScheduleNodeRemapping mapping;
   ScheduleNodeList tmp = _allNodes;
@@ -126,7 +126,7 @@ void hecura::StaticScheduler::mergeCoscheduledNodes(){
   applyRemapping(mapping);
 }
 
-void hecura::StaticScheduler::applyRemapping(const ScheduleNodeRemapping& m){
+void petabricks::StaticScheduler::applyRemapping(const ScheduleNodeRemapping& m){
   for(ScheduleNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i){
       (*i)->applyRemapping(m);
   }
@@ -144,7 +144,7 @@ void hecura::StaticScheduler::applyRemapping(const ScheduleNodeRemapping& m){
   }
 }
 
-void hecura::StaticScheduler::depthFirstSchedule(ScheduleNode* n){
+void petabricks::StaticScheduler::depthFirstSchedule(ScheduleNode* n){
   if(_generated.find(n)!=_generated.end())
     return;
 
@@ -163,7 +163,7 @@ void hecura::StaticScheduler::depthFirstSchedule(ScheduleNode* n){
   _generated.insert(n);
 }
 
-void hecura::StaticScheduler::generateCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::StaticScheduler::generateCodeSimple(Transform& trans, CodeGenerator& o){
   JASSERT(_schedule.size()>0);
 //   JTRACE("codegen")(_schedule.size());
   for(ScheduleNodeList::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
@@ -174,13 +174,13 @@ void hecura::StaticScheduler::generateCodeSimple(Transform& trans, CodeGenerator
     o.write(trans.taskname()+"->dependsOn(" + (*i)->nodename() + ".completionTask());");
 }
 
-void hecura::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
   RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
   o.write("SpatialTaskList "+nodename()+";");
   rule->generateCodeSimple(nodename(), trans, *this, _region, o);
 }
 
-void hecura::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, const RulePtr& rule, bool useDirections){
+void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, const RulePtr& rule, bool useDirections){
   bool printedBeforeDep = false;
 
   ScheduleDependencies::const_iterator sd = _indirectDepends.find(this);
@@ -221,7 +221,7 @@ void hecura::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, const RulePtr& 
     o.write(nodename()+"->enqueue();");
 }
 
-void hecura::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos){
+void petabricks::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos){
   RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
   
   CoordinateFormula min = _region->minCoord();
@@ -237,14 +237,14 @@ void hecura::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGenera
 }
 
 
-void hecura::StaticScheduler::writeGraphAsPDF(const char* filename) const{
+void petabricks::StaticScheduler::writeGraphAsPDF(const char* filename) const{
   std::string schedulerGraph = toString();
   FILE* fd = popen(("dot -Grankdir=LR -Tpdf -o "+std::string(filename)).c_str(), "w");
   fwrite(schedulerGraph.c_str(),1,schedulerGraph.length(),fd);
   pclose(fd);
 }
 
-int hecura::ScheduleNode::updateIndirectDepends(){
+int petabricks::ScheduleNode::updateIndirectDepends(){
   int c = 0;
   if(_indirectDepends.empty()){  // seed first iteration
     _indirectDepends = _directDepends;
@@ -262,7 +262,7 @@ int hecura::ScheduleNode::updateIndirectDepends(){
   return c;
 }
 
-hecura::ScheduleNodeSet hecura::ScheduleNode::getStronglyConnectedComponent(){
+petabricks::ScheduleNodeSet petabricks::ScheduleNode::getStronglyConnectedComponent(){
   /// compute strongly connected component
   ScheduleNodeSet s;
   s.insert(this);
@@ -276,7 +276,7 @@ hecura::ScheduleNodeSet hecura::ScheduleNode::getStronglyConnectedComponent(){
   return s;
 }
 
-hecura::CoscheduledNode::CoscheduledNode(const ScheduleNodeSet& set)
+petabricks::CoscheduledNode::CoscheduledNode(const ScheduleNodeSet& set)
   : _originalNodes(set)
 {
   for(ScheduleNodeSet::const_iterator i=set.begin(); i!=set.end(); ++i){
@@ -286,7 +286,7 @@ hecura::CoscheduledNode::CoscheduledNode(const ScheduleNodeSet& set)
 }
 
 
-void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
   const DependencyInformation& selfDep = _indirectDepends[this];
 
   if(selfDep.direction.isNone()){

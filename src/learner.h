@@ -17,13 +17,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURALEARNER_H
-#define HECURALEARNER_H
+#ifndef PETABRICKSLEARNER_H
+#define PETABRICKSLEARNER_H
 
 #include "rulechoice.h"
 #include "region.h"
 
-namespace hecura {
+namespace petabricks {
 
 class PerformanceTester;
 

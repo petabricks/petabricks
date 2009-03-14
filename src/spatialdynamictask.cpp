@@ -19,7 +19,7 @@
  ***************************************************************************/
 #include "spatialdynamictask.h"
 
-void hecura::SpatialTaskList::spatialSplit(int dim, int n){
+void petabricks::SpatialTaskList::spatialSplit(int dim, int n){
   SpatialTaskList tmp;
   swap(tmp);
   for(iterator i=tmp.begin(); i!=tmp.end(); ++i)

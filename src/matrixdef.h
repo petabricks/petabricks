@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURAMATRIXDEF_H
-#define HECURAMATRIXDEF_H
+#ifndef PETABRICKSMATRIXDEF_H
+#define PETABRICKSMATRIXDEF_H
 
 #include "jrefcounted.h"
 #include "jprintable.h"
@@ -33,7 +33,7 @@
 #include <map>
 #include <string>
 
-namespace hecura {
+namespace petabricks {
 class CodeGenerator;
 class Transform;
 class MatrixDef;
@@ -86,7 +86,7 @@ public:
     #ifdef SHORT_TYPE_NAMES
     return "MatrixRegion"+jalib::XToString(numDimensions())+"D";
     #else
-    return "hecura::MatrixRegion<"+jalib::XToString(numDimensions())+">";
+    return "petabricks::MatrixRegion<"+jalib::XToString(numDimensions())+">";
     #endif
   }
 
@@ -94,7 +94,7 @@ public:
     #ifdef SHORT_TYPE_NAMES
     return "ConstMatrixRegion"+jalib::XToString(numDimensions())+"D";
     #else
-    return "hecura::MatrixRegion<"+jalib::XToString(numDimensions())+", const MATRIX_ELEMENT_T>";
+    return "petabricks::MatrixRegion<"+jalib::XToString(numDimensions())+", const MATRIX_ELEMENT_T>";
     #endif
   }
 
@@ -103,7 +103,7 @@ public:
     #ifdef SHORT_TYPE_NAMES
     return "MatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
     #else
-    return "hecura::MatrixRegion<"+jalib::XToString(numDimensions()-1)+">";
+    return "petabricks::MatrixRegion<"+jalib::XToString(numDimensions()-1)+">";
     #endif
   }
 
@@ -111,7 +111,7 @@ public:
     #ifdef SHORT_TYPE_NAMES
     return "ConstMatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
     #else
-    return "hecura::MatrixRegion<"+jalib::XToString(numDimensions()-1)+", const MATRIX_ELEMENT_T>";
+    return "petabricks::MatrixRegion<"+jalib::XToString(numDimensions()-1)+", const MATRIX_ELEMENT_T>";
     #endif
   }
 

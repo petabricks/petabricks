@@ -503,7 +503,7 @@ char *matrixreadertext;
 #include "jconvert.h"
 #include "matrixio.h"
 #include <stdio.h>
-using namespace hecura;
+using namespace petabricks;
 
 #define YY_DECL int matrixreaderlex(MatrixReaderScratch& o)
 
@@ -592,7 +592,12 @@ static int input (void );
 
 /* Amount of stuff to slurp up with each read. */
 #ifndef YY_READ_BUF_SIZE
+#ifdef __ia64__
+/* On IA-64, the buffer size is 16k, not 8k */
+#define YY_READ_BUF_SIZE 16384
+#else
 #define YY_READ_BUF_SIZE 8192
+#endif /* __ia64__ */
 #endif
 
 /* Copy whatever the last rule matched to the standard output. */
@@ -600,7 +605,7 @@ static int input (void );
 /* This used to be an fputs(), but since the string might contain NUL's,
  * we now use fwrite().
  */
-#define ECHO fwrite( matrixreadertext, matrixreaderleng, 1, matrixreaderout )
+#define ECHO do { if (fwrite( matrixreadertext, matrixreaderleng, 1, matrixreaderout )) {} } while (0)
 #endif
 
 /* Gets input and stuffs it into "buf".  number of characters read, or YY_NULL,
@@ -696,7 +701,7 @@ YY_DECL
 #line 29 "matrixreader.lpp"
 
 
-#line 700 "matrixreader.cpp"
+#line 705 "matrixreader.cpp"
 
 	if ( !(yy_init) )
 		{
@@ -821,7 +826,7 @@ YY_RULE_SETUP
 {
     int n=1;
     for(int i=0; i<o.dimensions; ++i) n*=o.sizes[i];
-    o.storage=new hecura::MatrixStorage(n);
+    o.storage=new petabricks::MatrixStorage(n);
     o.buf = o.storage->data();
     o.remaining = n;
     BEGIN(DATA);
@@ -865,7 +870,7 @@ YY_RULE_SETUP
 #line 74 "matrixreader.lpp"
 ECHO;
 	YY_BREAK
-#line 869 "matrixreader.cpp"
+#line 874 "matrixreader.cpp"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(DATA):
 case YY_STATE_EOF(SIZE):
@@ -1588,8 +1593,8 @@ YY_BUFFER_STATE matrixreader_scan_string (yyconst char * yystr )
 
 /** Setup the input buffer state to scan the given bytes. The next call to matrixreaderlex() will
  * scan from a @e copy of @a bytes.
- * @param bytes the byte buffer to scan
- * @param len the number of bytes in the buffer pointed to by @a bytes.
+ * @param yybytes the byte buffer to scan
+ * @param _yybytes_len the number of bytes in the buffer pointed to by @a bytes.
  * 
  * @return the newly allocated buffer state object.
  */

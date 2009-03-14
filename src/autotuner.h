@@ -17,16 +17,16 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURAAUTOTUNER_H
-#define HECURAAUTOTUNER_H
+#ifndef PETABRICKSAUTOTUNER_H
+#define PETABRICKSAUTOTUNER_H
 
 #include "jtunable.h"
 #include "jrefcounted.h"
 #include <vector>
 #include <algorithm>
 
-namespace hecura {
-class HecuraRuntime;
+namespace petabricks {
+class PetabricksRuntime;
 class Autotuner;
 class CandidateAlgorithm;
 typedef jalib::JRef<CandidateAlgorithm> CandidateAlgorithmPtr;
@@ -63,7 +63,7 @@ public:
   int cutoff() const { return _cutoff; }
   const CandidateAlgorithmPtr& next() const { return _nextLevel; }
 
-  CandidateAlgorithmPtr attemptBirth(HecuraRuntime& rt, Autotuner& at, double thresh);
+  CandidateAlgorithmPtr attemptBirth(PetabricksRuntime& rt, Autotuner& at, double thresh);
 
   bool isDuplicate(const CandidateAlgorithmPtr& that);
 private:
@@ -78,7 +78,7 @@ private:
 
 class Autotuner {
 public:
-  Autotuner(HecuraRuntime& rt, std::string& prefix);
+  Autotuner(PetabricksRuntime& rt, std::string& prefix);
   jalib::JTunable* algTunable(int lvl);
   jalib::JTunable* cutoffTunable(int lvl);
 
@@ -92,7 +92,7 @@ public:
 
   void removeDuplicates();
 private:
-  HecuraRuntime&               _runtime;
+  PetabricksRuntime&               _runtime;
   CandidateAlgorithmList       _candidates;
   CandidateAlgorithmPtr        _initialConfig;
   jalib::JTunableReverseMap    _tunableMap;

@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURASTATICSCHEDULER_H
-#define HECURASTATICSCHEDULER_H
+#ifndef PETABRICKSSTATICSCHEDULER_H
+#define PETABRICKSSTATICSCHEDULER_H
 
 #include "matrixdef.h"
 #include "region.h"
@@ -29,7 +29,7 @@
 #include <list>
 #include <map>
 
-namespace hecura {
+namespace petabricks {
 class Transform;
 class CodeGenerator;
 class ScheduleNode;

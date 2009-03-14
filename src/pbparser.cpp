@@ -134,14 +134,14 @@
 #include "region.h"
 #include "config.h"
 #include "cxxconfig.h"
-using namespace hecura;
+using namespace petabricks;
 
 extern int pblineno;
 extern char* pbtext;
 extern int pblex (void);
 extern std::string pbfilename;
 
-int yyerror(hecura::TransformListPtr&, const char* msg){
+int yyerror(petabricks::TransformListPtr&, const char* msg){
   JASSERT(false)(pbfilename)(pblineno)(pbtext)(msg).Text("parse error"); return 0;
 }
 
@@ -179,20 +179,20 @@ typedef union YYSTYPE
   int i;
   double d;
   const char* str;
-  hecura::Transform*       transform;
-  hecura::TransformList*   transforms;
-  hecura::MatrixDef*       matrixdef;
-  hecura::MatrixDefList*   matrixdefs;
-  hecura::Rule*            rule;
-  hecura::RuleList*        rules;
-  hecura::Formula*         formula;
-  hecura::FormulaList*     formulas;
-  hecura::Region*          region;
-  hecura::RegionList*      regions;
-  hecura::TestCase*        testcase;
-  hecura::TemplateArg*     templatearg;
-  hecura::TemplateArgList* templateargs;
-  struct { const char* str; hecura::FormulaList* formulas; } str_formulas; 
+  petabricks::Transform*       transform;
+  petabricks::TransformList*   transforms;
+  petabricks::MatrixDef*       matrixdef;
+  petabricks::MatrixDefList*   matrixdefs;
+  petabricks::Rule*            rule;
+  petabricks::RuleList*        rules;
+  petabricks::Formula*         formula;
+  petabricks::FormulaList*     formulas;
+  petabricks::Region*          region;
+  petabricks::RegionList*      regions;
+  petabricks::TestCase*        testcase;
+  petabricks::TemplateArg*     templatearg;
+  petabricks::TemplateArgList* templateargs;
+  struct { const char* str; petabricks::FormulaList* formulas; } str_formulas; 
 }
 /* Line 187 of yacc.c.  */
 #line 199 "pbparser.cpp"
@@ -891,7 +891,7 @@ do {									  \
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, hecura::TransformListPtr& ret)
+yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, petabricks::TransformListPtr& ret)
 #else
 static void
 yy_symbol_value_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
@@ -899,7 +899,7 @@ yy_symbol_value_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
     int yytype;
     YYSTYPE const * const yyvaluep;
     YYLTYPE const * const yylocationp;
-    hecura::TransformListPtr& ret;
+    petabricks::TransformListPtr& ret;
 #endif
 {
   if (!yyvaluep)
@@ -927,7 +927,7 @@ yy_symbol_value_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, hecura::TransformListPtr& ret)
+yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, petabricks::TransformListPtr& ret)
 #else
 static void
 yy_symbol_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
@@ -935,7 +935,7 @@ yy_symbol_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
     int yytype;
     YYSTYPE const * const yyvaluep;
     YYLTYPE const * const yylocationp;
-    hecura::TransformListPtr& ret;
+    petabricks::TransformListPtr& ret;
 #endif
 {
   if (yytype < YYNTOKENS)
@@ -985,14 +985,14 @@ do {								\
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yy_reduce_print (YYSTYPE *yyvsp, YYLTYPE *yylsp, int yyrule, hecura::TransformListPtr& ret)
+yy_reduce_print (YYSTYPE *yyvsp, YYLTYPE *yylsp, int yyrule, petabricks::TransformListPtr& ret)
 #else
 static void
 yy_reduce_print (yyvsp, yylsp, yyrule, ret)
     YYSTYPE *yyvsp;
     YYLTYPE *yylsp;
     int yyrule;
-    hecura::TransformListPtr& ret;
+    petabricks::TransformListPtr& ret;
 #endif
 {
   int yynrhs = yyr2[yyrule];
@@ -1265,7 +1265,7 @@ yysyntax_error (char *yyresult, int yystate, int yychar)
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, YYLTYPE *yylocationp, hecura::TransformListPtr& ret)
+yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, YYLTYPE *yylocationp, petabricks::TransformListPtr& ret)
 #else
 static void
 yydestruct (yymsg, yytype, yyvaluep, yylocationp, ret)
@@ -1273,7 +1273,7 @@ yydestruct (yymsg, yytype, yyvaluep, yylocationp, ret)
     int yytype;
     YYSTYPE *yyvaluep;
     YYLTYPE *yylocationp;
-    hecura::TransformListPtr& ret;
+    petabricks::TransformListPtr& ret;
 #endif
 {
   YYUSE (yyvaluep);
@@ -1303,7 +1303,7 @@ int yyparse ();
 #endif
 #else /* ! YYPARSE_PARAM */
 #if defined __STDC__ || defined __cplusplus
-int yyparse (hecura::TransformListPtr& ret);
+int yyparse (petabricks::TransformListPtr& ret);
 #else
 int yyparse ();
 #endif
@@ -1342,11 +1342,11 @@ yyparse (YYPARSE_PARAM)
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 int
-yyparse (hecura::TransformListPtr& ret)
+yyparse (petabricks::TransformListPtr& ret)
 #else
 int
 yyparse (ret)
-    hecura::TransformListPtr& ret;
+    petabricks::TransformListPtr& ret;
 #endif
 #endif
 {

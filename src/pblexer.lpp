@@ -34,7 +34,7 @@ static const char* circularStringCache(const char* str){
 static void recordLitCode(){
   std::string str = theParseLog.str().c_str();
   theParseLog.str("");
-  hecura::CodeGenerator::theFilePrefix() << std::string(str.begin(), str.end()-2);
+  petabricks::CodeGenerator::theFilePrefix() << std::string(str.begin(), str.end()-2);
 }
 
 int rulebodystart=0;

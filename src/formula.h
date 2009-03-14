@@ -17,15 +17,15 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURAFORMULA_H
-#define HECURAFORMULA_H
+#ifndef PETABRICKSFORMULA_H
+#define PETABRICKSFORMULA_H
 
 #include "jrefcounted.h"
 #include "jprintable.h"
 #include <vector>
 #include <set>
 
-namespace hecura {
+namespace petabricks {
 
 class Formula;
 class FormulaList;
@@ -194,7 +194,7 @@ typedef FormulaBinop<'|'> FormulaOr;
 
 }
 
-inline std::ostream& operator<<(std::ostream& o,  const hecura::FormulaList& obj){
+inline std::ostream& operator<<(std::ostream& o,  const petabricks::FormulaList& obj){
   jalib::JPrintable::printStlList(o, obj.begin(), obj.end(), ",");
   return o;
 }

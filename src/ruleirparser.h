@@ -83,9 +83,9 @@ typedef union YYSTYPE
 #line 31 "ruleirparser.ypp"
 {
   const char* str;
-  hecura::RIRExpr*  expr;
-  hecura::RIRStmt*  stmt;
-  hecura::RIRBlock* block;
+  petabricks::RIRExpr*  expr;
+  petabricks::RIRStmt*  stmt;
+  petabricks::RIRBlock* block;
 }
 /* Line 1489 of yacc.c.  */
 #line 92 "ruleirparser.h"

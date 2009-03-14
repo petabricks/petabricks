@@ -17,15 +17,15 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURARULEIR_H
-#define HECURARULEIR_H
+#ifndef PETABRICKSRULEIR_H
+#define PETABRICKSRULEIR_H
 
 #include "jrefcounted.h"
 #include "jprintable.h"
 
 #include <list>
 
-namespace hecura {
+namespace petabricks {
 
 class RIRNode;
 class RIRBlock;

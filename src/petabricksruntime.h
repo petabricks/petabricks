@@ -17,16 +17,16 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURAHECURARUNTIME_H
-#define HECURAHECURARUNTIME_H
+#ifndef PETABRICKSPETABRICKSRUNTIME_H
+#define PETABRICKSPETABRICKSRUNTIME_H
 
 #include <string>
 
 #include "jtunable.h"
 
-namespace hecura {
+namespace petabricks {
 
-class HecuraRuntime{
+class PetabricksRuntime{
 public:
   /**
    * Interface used to construct a main routine in generated code
@@ -60,11 +60,11 @@ public:
 
   ///
   /// Construct the runtime, parse any runtime-specific args
-  HecuraRuntime(Main&);
+  PetabricksRuntime(Main&);
 
   ///
   /// Destruct the runtime, saving config to disk
-  ~HecuraRuntime();
+  ~PetabricksRuntime();
 
   ///
   /// Run the given main routine

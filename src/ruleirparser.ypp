@@ -5,7 +5,7 @@
 #include "jconvert.h"
 #include "formula.h"
 
-using namespace hecura;
+using namespace petabricks;
 
 extern int ruleirlineno;
 extern std::string ruleirfilename;
@@ -30,9 +30,9 @@ static void clearParserCaches(){
 
 %union {
   const char* str;
-  hecura::RIRExpr*  expr;
-  hecura::RIRStmt*  stmt;
-  hecura::RIRBlock* block;
+  petabricks::RIRExpr*  expr;
+  petabricks::RIRStmt*  stmt;
+  petabricks::RIRBlock* block;
 }
 
 %defines
@@ -40,7 +40,7 @@ static void clearParserCaches(){
 //%expect 2
 %name-prefix="ruleir"
 %start Start
-%parse-param { hecura::RIRBlockPtr& ret };
+%parse-param { petabricks::RIRBlockPtr& ret };
 
 %type <str> TOK_OP TOK_LIT TOK_IDENT TOK_RAW
 %type <expr> Op ExtraOps

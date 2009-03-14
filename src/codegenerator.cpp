@@ -19,76 +19,76 @@
  ***************************************************************************/
 #include "codegenerator.h"
 
-std::stringstream& hecura::CodeGenerator::theFilePrefix() { 
+std::stringstream& petabricks::CodeGenerator::theFilePrefix() { 
   static std::stringstream t; 
   return t; 
 }
 
-hecura::TunableDefs& hecura::CodeGenerator::theTunableDefs() {
+petabricks::TunableDefs& petabricks::CodeGenerator::theTunableDefs() {
   static TunableDefs t;
   return t;
 }
 
-hecura::CodeGenerator::CodeGenerator() : _indent(0) {}
+petabricks::CodeGenerator::CodeGenerator() : _indent(0) {}
 
-void hecura::CodeGenerator::beginFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end,  const FormulaPtr& step){
+void petabricks::CodeGenerator::beginFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end,  const FormulaPtr& step){
   indent();
   os() << "for(int " << var << "=" << begin << "; "<< var << "<" << end << "; " << var << "+="<< step <<" ){\n";
   _indent++;
 }
 
-void hecura::CodeGenerator::beginReverseFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end,  const FormulaPtr& step){
+void petabricks::CodeGenerator::beginReverseFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end,  const FormulaPtr& step){
   indent();
   os() << "for(int " << var << "=" << end->minusOne() << "; "<< var << ">=" << begin << "; " << var << "-="<< step <<" ){\n";
   _indent++;
 }
 
-void hecura::CodeGenerator::endFor(){
+void petabricks::CodeGenerator::endFor(){
   _indent--;
     indent();
   os() << "}\n";
 }
 
-void hecura::CodeGenerator::call(const std::string& func, const std::string& args){
+void petabricks::CodeGenerator::call(const std::string& func, const std::string& args){
   indent();
   os() << func << '(' << args << ");\n";
 }
 
-void hecura::CodeGenerator::call(const std::string& func, const std::vector<std::string>& args){
+void petabricks::CodeGenerator::call(const std::string& func, const std::vector<std::string>& args){
   indent();
   os() << func << '(';
   jalib::JPrintable::printStlList(os(), args.begin(), args.end(), ", ");
   os() << ");\n";
 }
 
-void hecura::CodeGenerator::setcall(const std::string& lv, const std::string& func, const std::vector<std::string>& args){
+void petabricks::CodeGenerator::setcall(const std::string& lv, const std::string& func, const std::vector<std::string>& args){
   indent();
   os() << lv << " = " << func << '(';
   jalib::JPrintable::printStlList(os(), args.begin(), args.end(), ", ");
   os() << ");\n";
 }
 
-// void hecura::CodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::string& args){
+// void petabricks::CodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::string& args){
 //   indent();
 //   os() << rt << " " << func << '(' << args << "){\n";
 //   _indent++;
 // }
 
-// void hecura::CodeGenerator::declareFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
+// void petabricks::CodeGenerator::declareFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
 //   indent();
 //   os() << rt << " " << func << '(';
 //   jalib::JPrintable::printStlList(os(), args.begin(), args.end(), ", ");
 //   os() << ");\n";
 // }
 
-void hecura::MainCodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
+void petabricks::MainCodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
   _forwardDecls << rt << " " << func << '(';
   jalib::JPrintable::printStlList(_forwardDecls, args.begin(), args.end(), ", ");
   _forwardDecls << ");\n";
-  hecura::CodeGenerator::beginFunc(rt, func, args);
+  petabricks::CodeGenerator::beginFunc(rt, func, args);
 }
 
-void hecura::CodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
+void petabricks::CodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
   indent();
   os() << rt << " " << func << '(';
   jalib::JPrintable::printStlList(os(), args.begin(), args.end(), ", ");
@@ -96,12 +96,12 @@ void hecura::CodeGenerator::beginFunc(const std::string& rt, const std::string& 
   _indent++;
 }
 
-void hecura::CodeGenerator::varDecl(const std::string& var){
+void petabricks::CodeGenerator::varDecl(const std::string& var){
   indent();
   os() << var << ";\n";
 } 
 
-void hecura::CodeGenerator::addAssert(const std::string& l, const std::string& r){
+void petabricks::CodeGenerator::addAssert(const std::string& l, const std::string& r){
   indent();
   os() << "JASSERT("<<l<<" == "<<r<<")"
     << "(" << l << ")"
@@ -109,38 +109,38 @@ void hecura::CodeGenerator::addAssert(const std::string& l, const std::string& r
     << ";\n";
 } 
 
-void hecura::CodeGenerator::endFunc(){
+void petabricks::CodeGenerator::endFunc(){
   _indent--;
     indent();
   os() << "}\n";
 }
 
-void hecura::CodeGenerator::indent(){ 
+void petabricks::CodeGenerator::indent(){ 
   if(_indent>0)
     os() << std::string(_indent*2,' '); 
 }
 
-void hecura::CodeGenerator::write(const std::string& str){
+void petabricks::CodeGenerator::write(const std::string& str){
   indent();
   os() << str << "\n";
 }
 
-void hecura::CodeGenerator::newline(){
+void petabricks::CodeGenerator::newline(){
   os() << "\n";
 }
 
-void hecura::CodeGenerator::comment(const std::string& str){
+void petabricks::CodeGenerator::comment(const std::string& str){
   indent();
   os() << "// " << str << "\n";
 }
 
-void hecura::CodeGenerator::beginIf(const std::string& v){
+void petabricks::CodeGenerator::beginIf(const std::string& v){
   indent();
   os() << "if(" << v << "){\n";
   _indent++;
 }
 
-void hecura::CodeGenerator::elseIf(const std::string& v /*= "true"*/){
+void petabricks::CodeGenerator::elseIf(const std::string& v /*= "true"*/){
   _indent--;
   indent();
   if(v=="true")
@@ -150,13 +150,13 @@ void hecura::CodeGenerator::elseIf(const std::string& v /*= "true"*/){
   _indent++;
 }
 
-void hecura::CodeGenerator::endIf(){
+void petabricks::CodeGenerator::endIf(){
   _indent--;
     indent();
   os() << "}\n";
 }
 
-hecura::TaskCodeGenerator& hecura::MainCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType){
+petabricks::TaskCodeGenerator& petabricks::MainCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType){
   _tasks.push_back(new TaskCodeGenerator(func, args, taskType));
   return *_tasks.back();
 }
@@ -174,7 +174,7 @@ namespace{//file local
   }
 }
 
-hecura::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args, const char* taskType){
+petabricks::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args, const char* taskType){
   _name=func + "_task";
   _indent=1;
   _types.resize(args.size());
@@ -182,7 +182,7 @@ hecura::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const std:
   for(size_t i=0; i!=args.size(); ++i)
     _splitTypeArgs(_types[i], _names[i], args[i]);
 
-  os() << "class " << _name << " : public hecura::"<< taskType <<" {\n";
+  os() << "class " << _name << " : public petabricks::"<< taskType <<" {\n";
   for(size_t i=0; i!=args.size(); ++i){
     indent();
     os() << args[i] << ";\n";

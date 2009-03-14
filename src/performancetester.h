@@ -17,15 +17,15 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURAPERFORMANCETESTER_H
-#define HECURAPERFORMANCETESTER_H
+#ifndef PETABRICKSPERFORMANCETESTER_H
+#define PETABRICKSPERFORMANCETESTER_H
 
 #include <string>
 #include <vector>
 #include "jrefcounted.h"
 #include "jprintable.h"
 
-namespace hecura {
+namespace petabricks {
 
   class TestCase;
   typedef jalib::JRef<TestCase> TestCasePtr;

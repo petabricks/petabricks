@@ -32,7 +32,7 @@ namespace{
   }
 }
 
-void hecura::Transform::addFrom(const MatrixDefList& l){
+void petabricks::Transform::addFrom(const MatrixDefList& l){
   appendAll(_from, l);
   for(MatrixDefList::const_iterator i=l.begin(); i!=l.end(); ++i){
     MatrixDefPtr& elmt = _matrices[(*i)->name()];
@@ -42,7 +42,7 @@ void hecura::Transform::addFrom(const MatrixDefList& l){
     elmt = *i;
   }
 }
-void hecura::Transform::addThrough(const MatrixDefList& l){
+void petabricks::Transform::addThrough(const MatrixDefList& l){
   appendAll(_through, l);
   for(MatrixDefList::const_iterator i=l.begin(); i!=l.end(); ++i){
     MatrixDefPtr& elmt = _matrices[(*i)->name()];
@@ -52,7 +52,7 @@ void hecura::Transform::addThrough(const MatrixDefList& l){
     elmt = *i;
   }
 }
-void hecura::Transform::addTo(const MatrixDefList& l){
+void petabricks::Transform::addTo(const MatrixDefList& l){
   appendAll(_to, l);
   for(MatrixDefList::const_iterator i=l.begin(); i!=l.end(); ++i){
     MatrixDefPtr& elmt = _matrices[(*i)->name()];
@@ -62,12 +62,12 @@ void hecura::Transform::addTo(const MatrixDefList& l){
     elmt = *i;
   }
 }
-void hecura::Transform::setRules(const RuleList& l){
+void petabricks::Transform::setRules(const RuleList& l){
   JWARNING(_rules.size()==0)(_rules.size());
   appendAll(_rules, l);
 }
 
-void hecura::Transform::print(std::ostream& o) const {
+void petabricks::Transform::print(std::ostream& o) const {
   if(!_templateargs.empty()){ 
     o << "template < ";   printStlList(o, _templateargs.begin(), _templateargs.end(), ", "); 
     o << " > \n";
@@ -89,7 +89,7 @@ void hecura::Transform::print(std::ostream& o) const {
   o << "\n";
 }
 
-void hecura::Transform::initialize() {
+void petabricks::Transform::initialize() {
   MaximaWrapper::instance().pushContext();
 
   jalib::Map(&MatrixDef::initialize, *this, _from);
@@ -119,7 +119,7 @@ void hecura::Transform::initialize() {
   MaximaWrapper::instance().popContext();
 }
 
-void hecura::Transform::fillBaseCases(const MatrixDefPtr& matrix) {
+void petabricks::Transform::fillBaseCases(const MatrixDefPtr& matrix) {
   RuleDescriptorListList boundaries;
   boundaries.resize( matrix->numDimensions() );
   RuleSet allowed;
@@ -148,7 +148,7 @@ void hecura::Transform::fillBaseCases(const MatrixDefPtr& matrix) {
   }
 }
 
-void hecura::Transform::compile(){ 
+void petabricks::Transform::compile(){ 
   MaximaWrapper::instance().pushContext();
   jalib::Map(&MatrixDef::exportAssumptions, _from);
   jalib::Map(&MatrixDef::exportAssumptions, _through);
@@ -171,7 +171,7 @@ void hecura::Transform::compile(){
   MaximaWrapper::instance().popContext();
 }
   
-int hecura::Transform::tmplChoiceCount() const {
+int petabricks::Transform::tmplChoiceCount() const {
   int choiceCnt = 1;
   for(size_t i=0; i<_templateargs.size(); ++i){
     choiceCnt*=_templateargs[i]->range();
@@ -179,7 +179,7 @@ int hecura::Transform::tmplChoiceCount() const {
   return choiceCnt;
 }
   
-std::string hecura::Transform::tmplName(int n, CodeGenerator* o) const {
+std::string petabricks::Transform::tmplName(int n, CodeGenerator* o) const {
   std::string name = _name+TMPL_IMPL_PFX;
   int choice=n;
   //add #defines
@@ -194,7 +194,7 @@ std::string hecura::Transform::tmplName(int n, CodeGenerator* o) const {
   return name;
 }
 
-void hecura::Transform::generateCode(CodeGenerator& o){ 
+void petabricks::Transform::generateCode(CodeGenerator& o){ 
   if(_templateargs.empty())
     generateCodeSimple(o); //normal case
   else {
@@ -217,11 +217,11 @@ void hecura::Transform::generateCode(CodeGenerator& o){
       _name = origName;
     }
     genTmplJumpTable(o, "void", "", normalArgs(), normalArgNames());
-    genTmplJumpTable(o, "hecura::DynamicTaskPtr", "spawn_", spawnArgs(), spawnArgNames());
+    genTmplJumpTable(o, "petabricks::DynamicTaskPtr", "spawn_", spawnArgs(), spawnArgNames());
   }
 }
   
-void hecura::Transform::genTmplJumpTable(CodeGenerator& o,
+void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
                     const std::string& rt,
                     const std::string& prefix,
                     const std::vector<std::string>& args,
@@ -265,7 +265,7 @@ void hecura::Transform::genTmplJumpTable(CodeGenerator& o,
 }
 
 
-std::vector<std::string> hecura::Transform::normalArgs() const{
+std::vector<std::string> petabricks::Transform::normalArgs() const{
   std::vector<std::string> args;
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->argDeclRW(args);
@@ -276,7 +276,7 @@ std::vector<std::string> hecura::Transform::normalArgs() const{
   return args;
 }
 
-std::vector<std::string> hecura::Transform::normalArgNames() const{
+std::vector<std::string> petabricks::Transform::normalArgNames() const{
   std::vector<std::string> argNames;
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     argNames.push_back((*i)->name());
@@ -287,19 +287,19 @@ std::vector<std::string> hecura::Transform::normalArgNames() const{
   return argNames;
 }
 
-std::vector<std::string> hecura::Transform::spawnArgs() const{
+std::vector<std::string> petabricks::Transform::spawnArgs() const{
   std::vector<std::string> args = normalArgs();
   args.push_back("const DynamicTaskPtr& _before");
   return args;
 }
-std::vector<std::string> hecura::Transform::spawnArgNames() const{
+std::vector<std::string> petabricks::Transform::spawnArgNames() const{
   std::vector<std::string> args = normalArgNames();
   args.push_back("_before");
   return args;
 }
 
 
-void hecura::Transform::generateCodeSimple(CodeGenerator& o){ 
+void petabricks::Transform::generateCodeSimple(CodeGenerator& o){ 
   std::vector<std::string> args = normalArgs();
   std::vector<std::string> argNames = normalArgNames();
   std::vector<std::string> returnStyleArgs = args;
@@ -380,7 +380,7 @@ void hecura::Transform::generateCodeSimple(CodeGenerator& o){
   }
 }
 
-void hecura::Transform::extractSizeDefines(CodeGenerator& o){
+void petabricks::Transform::extractSizeDefines(CodeGenerator& o){
   FreeVars fv;
 //   o.comment("Extract matrix size parameters");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
@@ -391,7 +391,7 @@ void hecura::Transform::extractSizeDefines(CodeGenerator& o){
   }
 }
 
-void hecura::Transform::generateMainCode(CodeGenerator& o){ 
+void petabricks::Transform::generateMainCode(CodeGenerator& o){ 
   std::vector<std::string> argNames;
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     argNames.push_back((*i)->name());
@@ -403,7 +403,7 @@ void hecura::Transform::generateMainCode(CodeGenerator& o){
   o.comment("Program main routine");
   std::string args[] = {"int argc", "const char** argv"};
   o.beginFunc("int", "main", std::vector<std::string>(args, args+2));
-  o.write("class _mainclass : public hecura::HecuraRuntime::Main {");
+  o.write("class _mainclass : public petabricks::PetabricksRuntime::Main {");
   o.write("public:");
   o.incIndent();
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
@@ -479,12 +479,12 @@ void hecura::Transform::generateMainCode(CodeGenerator& o){
 
   o.decIndent();
   o.write("} mc;");
-  o.write("hecura::HecuraRuntime runtime(mc);");
+  o.write("petabricks::PetabricksRuntime runtime(mc);");
   o.write("return runtime.runMain(argc,argv);");
   o.endFunc();
 }
 
-std::vector<std::string> hecura::Transform::maximalArgList() const{
+std::vector<std::string> petabricks::Transform::maximalArgList() const{
   std::vector<std::string> tmp; 
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->argDeclRO(tmp);

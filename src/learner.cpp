@@ -28,7 +28,7 @@
 #define MULTIGRID_FLAG
 
 
-hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
+petabricks::RuleChoicePtr petabricks::Learner::makeRuleChoice( const RuleSet& choices
                                                      , const MatrixDefPtr& m
                                                      , const SimpleRegionPtr& r)
 {

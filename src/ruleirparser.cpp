@@ -122,7 +122,7 @@
 #include "jconvert.h"
 #include "formula.h"
 
-using namespace hecura;
+using namespace petabricks;
 
 extern int ruleirlineno;
 extern std::string ruleirfilename;
@@ -168,9 +168,9 @@ typedef union YYSTYPE
 #line 31 "ruleirparser.ypp"
 {
   const char* str;
-  hecura::RIRExpr*  expr;
-  hecura::RIRStmt*  stmt;
-  hecura::RIRBlock* block;
+  petabricks::RIRExpr*  expr;
+  petabricks::RIRStmt*  stmt;
+  petabricks::RIRBlock* block;
 }
 /* Line 187 of yacc.c.  */
 #line 177 "ruleirparser.cpp"
@@ -816,7 +816,7 @@ do {									  \
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, hecura::RIRBlockPtr& ret)
+yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, petabricks::RIRBlockPtr& ret)
 #else
 static void
 yy_symbol_value_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
@@ -824,7 +824,7 @@ yy_symbol_value_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
     int yytype;
     YYSTYPE const * const yyvaluep;
     YYLTYPE const * const yylocationp;
-    hecura::RIRBlockPtr& ret;
+    petabricks::RIRBlockPtr& ret;
 #endif
 {
   if (!yyvaluep)
@@ -852,7 +852,7 @@ yy_symbol_value_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, hecura::RIRBlockPtr& ret)
+yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, petabricks::RIRBlockPtr& ret)
 #else
 static void
 yy_symbol_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
@@ -860,7 +860,7 @@ yy_symbol_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
     int yytype;
     YYSTYPE const * const yyvaluep;
     YYLTYPE const * const yylocationp;
-    hecura::RIRBlockPtr& ret;
+    petabricks::RIRBlockPtr& ret;
 #endif
 {
   if (yytype < YYNTOKENS)
@@ -910,14 +910,14 @@ do {								\
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yy_reduce_print (YYSTYPE *yyvsp, YYLTYPE *yylsp, int yyrule, hecura::RIRBlockPtr& ret)
+yy_reduce_print (YYSTYPE *yyvsp, YYLTYPE *yylsp, int yyrule, petabricks::RIRBlockPtr& ret)
 #else
 static void
 yy_reduce_print (yyvsp, yylsp, yyrule, ret)
     YYSTYPE *yyvsp;
     YYLTYPE *yylsp;
     int yyrule;
-    hecura::RIRBlockPtr& ret;
+    petabricks::RIRBlockPtr& ret;
 #endif
 {
   int yynrhs = yyr2[yyrule];
@@ -1190,7 +1190,7 @@ yysyntax_error (char *yyresult, int yystate, int yychar)
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, YYLTYPE *yylocationp, hecura::RIRBlockPtr& ret)
+yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, YYLTYPE *yylocationp, petabricks::RIRBlockPtr& ret)
 #else
 static void
 yydestruct (yymsg, yytype, yyvaluep, yylocationp, ret)
@@ -1198,7 +1198,7 @@ yydestruct (yymsg, yytype, yyvaluep, yylocationp, ret)
     int yytype;
     YYSTYPE *yyvaluep;
     YYLTYPE *yylocationp;
-    hecura::RIRBlockPtr& ret;
+    petabricks::RIRBlockPtr& ret;
 #endif
 {
   YYUSE (yyvaluep);
@@ -1228,7 +1228,7 @@ int yyparse ();
 #endif
 #else /* ! YYPARSE_PARAM */
 #if defined __STDC__ || defined __cplusplus
-int yyparse (hecura::RIRBlockPtr& ret);
+int yyparse (petabricks::RIRBlockPtr& ret);
 #else
 int yyparse ();
 #endif
@@ -1267,11 +1267,11 @@ yyparse (YYPARSE_PARAM)
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 int
-yyparse (hecura::RIRBlockPtr& ret)
+yyparse (petabricks::RIRBlockPtr& ret)
 #else
 int
 yyparse (ret)
-    hecura::RIRBlockPtr& ret;
+    petabricks::RIRBlockPtr& ret;
 #endif
 #endif
 {

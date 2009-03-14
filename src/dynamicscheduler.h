@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURADYNAMICSCHEDULER_H
-#define HECURADYNAMICSCHEDULER_H
+#ifndef PETABRICKSDYNAMICSCHEDULER_H
+#define PETABRICKSDYNAMICSCHEDULER_H
 
 #include "jmutex.h"
 #include "jrefcounted.h"
@@ -32,7 +32,7 @@
 # include "config.h"
 #endif
 
-namespace hecura {
+namespace petabricks {
 
 // The major work of dynamic scheduler is to maintain two queues:
 // * ready queue: a queue of tasks ready to run

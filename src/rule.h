@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURARULE_H
-#define HECURARULE_H
+#ifndef PETABRICKSRULE_H
+#define PETABRICKSRULE_H
 
 #include "matrixdependency.h"
 #include "jconvert.h"
@@ -33,7 +33,7 @@
 
 #include <vector>
 
-namespace hecura {
+namespace petabricks {
 class CodeGenerator;
 class RuleDescriptor;
 class MatrixDependencyMap;

@@ -11,7 +11,7 @@
       <keyword>Code</keyword>
     </keywords>
     <ignoreparts/>
-    <projectname>hecura</projectname>
+    <projectname>petabricks</projectname>
     <projectdirectory>.</projectdirectory>
     <absoluteprojectpath>false</absoluteprojectpath>
     <description/>
@@ -20,14 +20,14 @@
   </general>
   <kdevautoproject>
     <general>
-      <activetarget>src/libhecura.a</activetarget>
+      <activetarget>src/libpetabricks.a</activetarget>
       <useconfiguration>default</useconfiguration>
     </general>
     <run>
-      <mainprogram>/home/jansel/hecura</mainprogram>
+      <mainprogram>/home/jansel/petabricks</mainprogram>
       <programargs/>
       <globaldebugarguments/>
-      <globalcwd>/home/jansel/hecura</globalcwd>
+      <globalcwd>/home/jansel/petabricks</globalcwd>
       <useglobalprogram>false</useglobalprogram>
       <terminal>false</terminal>
       <autocompile>false</autocompile>
@@ -147,22 +147,22 @@
   <kdevdocumentation>
     <projectdoc>
       <docsystem>Doxygen Documentation Collection</docsystem>
-      <docurl>hecura.tag</docurl>
+      <docurl>petabricks.tag</docurl>
       <usermanualurl/>
     </projectdoc>
   </kdevdocumentation>
   <substmap>
-    <APPNAME>hecura</APPNAME>
-    <APPNAMELC>hecura</APPNAMELC>
-    <APPNAMESC>Hecura</APPNAMESC>
-    <APPNAMEUC>HECURA</APPNAMEUC>
+    <APPNAME>petabricks</APPNAME>
+    <APPNAMELC>petabricks</APPNAMELC>
+    <APPNAMESC>PetaBricks</APPNAMESC>
+    <APPNAMEUC>PETABRICKS</APPNAMEUC>
     <AUTHOR>Jason Ansel</AUTHOR>
     <EMAIL>jansel@csail.mit.edu</EMAIL>
     <LICENSE>GPL</LICENSE>
     <LICENSEFILE>COPYING</LICENSEFILE>
     <VERSION>0.10</VERSION>
     <YEAR>2008</YEAR>
-    <dest>/home/jansel/hecura</dest>
+    <dest>/home/jansel/petabricks</dest>
   </substmap>
   <kdevcppsupport>
     <qt>
@@ -239,7 +239,7 @@
   </kdevdebugger>
   <ctagspart>
     <customArguments/>
-    <customTagfilePath>/home/jansel/hecura/tags</customTagfilePath>
+    <customTagfilePath>/home/jansel/petabricks/tags</customTagfilePath>
     <activeTagsFiles/>
   </ctagspart>
 </kdevelop>

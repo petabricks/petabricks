@@ -17,15 +17,15 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURASPATIALDYNAMICTASK_H
-#define HECURASPATIALDYNAMICTASK_H
+#ifndef PETABRICKSSPATIALDYNAMICTASK_H
+#define PETABRICKSSPATIALDYNAMICTASK_H
 
 #include "dynamictask.h"
 #include "matrix.h"
 #include "matrixdependency.h"
 #include <vector>
 
-namespace hecura {
+namespace petabricks {
 
 class SpatialDynamicTask;
 class SpatialTaskList;

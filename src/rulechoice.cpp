@@ -26,29 +26,29 @@
 
 namespace {
   struct RuleIdComparer {
-    bool operator()(const hecura::RulePtr& x, const hecura::RulePtr& y){
+    bool operator()(const petabricks::RulePtr& x, const petabricks::RulePtr& y){
       return x->id() < y->id();
     }
   };
 
 }
 
-const hecura::FormulaPtr& hecura::RuleChoice::autotuned() {
+const petabricks::FormulaPtr& petabricks::RuleChoice::autotuned() {
   static FormulaPtr t = new FormulaVariable("AUTOTUNED");
   return t;
 }
 
-hecura::RuleChoice::RuleChoice( const RuleSet& rule
+petabricks::RuleChoice::RuleChoice( const RuleSet& rule
                               , const FormulaPtr& c/*=FormulaPtr()*/
                               , const RuleChoicePtr& n/*=RuleChoicePtr()*/)
   : _rules(rule), _condition(c), _next(n)
 {}
 
-void hecura::RuleChoice::print(std::ostream& o) const {
+void petabricks::RuleChoice::print(std::ostream& o) const {
   o << "RuleChoice"; //TODO
 }
 
-void hecura::RuleChoice::generateCodeSimple(  const std::string& taskname
+void petabricks::RuleChoice::generateCodeSimple(  const std::string& taskname
                                             , Transform& trans
                                             , ScheduleNode& node
                                             , const SimpleRegionPtr& region
@@ -99,7 +99,7 @@ void hecura::RuleChoice::generateCodeSimple(  const std::string& taskname
   }
 }
 
-std::string hecura::RuleChoice::processCondition(const std::string& name, const FormulaPtr& f, const std::string& algchoicename, CodeGenerator& o)
+std::string petabricks::RuleChoice::processCondition(const std::string& name, const FormulaPtr& f, const std::string& algchoicename, CodeGenerator& o)
 {
 //   if(f->getFreeVariables()->contains(autotuned()->toString()))
 //     return f->replace(autotuned(), new FormulaVariable(name));

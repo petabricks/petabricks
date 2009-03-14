@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURACODEGENERATOR_H
-#define HECURACODEGENERATOR_H
+#ifndef PETABRICKSCODEGENERATOR_H
+#define PETABRICKSCODEGENERATOR_H
 
 #include "formula.h"
 #include "jprintable.h"
@@ -35,7 +35,7 @@
 #include <algorithm>
 #include <limits>
 
-namespace hecura {
+namespace petabricks {
 
 typedef std::map<std::string, std::string> TunableDefs;
 
@@ -135,7 +135,7 @@ public:
   TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args, const char* taskType);
 
   void beginRunFunc(){
-    beginFunc("hecura::DynamicTaskPtr", "run", std::vector<std::string>());
+    beginFunc("petabricks::DynamicTaskPtr", "run", std::vector<std::string>());
   }
 
   void beginSizeFunc(){
@@ -149,7 +149,7 @@ public:
   }
 
   void beginSplitFunc(){
-    write("hecura::DynamicTaskPtr split(){");
+    write("petabricks::DynamicTaskPtr split(){");
     ++_indent;
   }
 

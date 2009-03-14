@@ -31,7 +31,7 @@
 #define MAX_NUM_WORKERS  512
 
 
-namespace hecura {
+namespace petabricks {
 
 #ifdef GRACEFUL_ABORT
 bool DynamicScheduler::theIsAborting=false;

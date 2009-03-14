@@ -17,12 +17,12 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURARIRCOMPILERPASS_H
-#define HECURARIRCOMPILERPASS_H
+#ifndef PETABRICKSRIRCOMPILERPASS_H
+#define PETABRICKSRIRCOMPILERPASS_H
 
 #include "ruleir.h"
 
-namespace hecura {
+namespace petabricks {
 
 class RIRCompilerPass : public RIRVisitor {
 protected:

@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "hecuraruntime.h"
+#include "petabricksruntime.h"
 #include "jtunable.h"
 #include "jfilesystem.h"
 #include "jtimer.h"
@@ -51,7 +51,7 @@ namespace{//file local
 typedef jalib::JTunableManager TunableManager;
 
 class ConfigTesterGlue : public jalib::JConfigurationTester {
-  typedef hecura::HecuraRuntime::Main Main;
+  typedef petabricks::PetabricksRuntime::Main Main;
   typedef jalib::JTime JTime;
   typedef jalib::JTunableConfiguration JTunableConfiguration;
 public:
@@ -65,8 +65,8 @@ public:
 #else
     try{
       _main.compute();
-    }catch(hecura::DynamicScheduler::AbortException e){
-      hecura::DynamicTask::scheduler->abortEnd();
+    }catch(petabricks::DynamicScheduler::AbortException e){
+      petabricks::DynamicTask::scheduler->abortEnd();
       return std::numeric_limits<double>::max();
     }
 #endif
@@ -78,7 +78,7 @@ private:
 
 }
 
-hecura::HecuraRuntime::HecuraRuntime(Main& m) : main(m)
+petabricks::PetabricksRuntime::PetabricksRuntime(Main& m) : main(m)
 {
   randSize = 4096;
   //load config from disk
@@ -90,12 +90,12 @@ hecura::HecuraRuntime::HecuraRuntime(Main& m) : main(m)
   }
 }
 
-hecura::HecuraRuntime::~HecuraRuntime()
+petabricks::PetabricksRuntime::~PetabricksRuntime()
 {
   saveConfig();
 }
 
-void hecura::HecuraRuntime::saveConfig()
+void petabricks::PetabricksRuntime::saveConfig()
 {
   //save config to disk
   TunableManager& tm = TunableManager::instance();
@@ -107,7 +107,7 @@ void hecura::HecuraRuntime::saveConfig()
 
 #define shift argc--,argv++;
 
-int hecura::HecuraRuntime::runMain(int argc, const char** argv){
+int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   bool isSiman = false;
   bool isAutotuneMode = false;
   bool isGraphMode = false;
@@ -336,9 +336,9 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
     try{
       JTIMER_SCOPE(compute);
       main.compute();
-    }catch(hecura::DynamicScheduler::AbortException e){
-      hecura::DynamicTask::scheduler->abortEnd();
-      JWARNING(false).Text("HecuraRuntime::abort() called");
+    }catch(petabricks::DynamicScheduler::AbortException e){
+      petabricks::DynamicTask::scheduler->abortEnd();
+      JWARNING(false).Text("PetabricksRuntime::abort() called");
       return 5;
     }
 #endif
@@ -353,7 +353,7 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
 }
 
 
-void hecura::HecuraRuntime::runGraphMode(){
+void petabricks::PetabricksRuntime::runGraphMode(){
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
     randSize = (MULTIGRID_FLAG ? (1 << n) + 1 : n);
     double avg = runTrial();
@@ -362,7 +362,7 @@ void hecura::HecuraRuntime::runGraphMode(){
   }
 }
 
-void hecura::HecuraRuntime::runGraphParamMode(const std::string& param){
+void petabricks::PetabricksRuntime::runGraphParamMode(const std::string& param){
   jalib::JTunable* tunable = jalib::JTunableManager::instance().getReverseMap()[param];
   JASSERT(tunable!=0)(param).Text("parameter not found");
   GRAPH_MIN = std::max(GRAPH_MIN, tunable->min());
@@ -375,7 +375,7 @@ void hecura::HecuraRuntime::runGraphParamMode(const std::string& param){
   }
 }
 
-void hecura::HecuraRuntime::runGraphParallelMode() {
+void petabricks::PetabricksRuntime::runGraphParallelMode() {
   jalib::JTunable* tunable = jalib::JTunableManager::instance().getReverseMap()[std::string("tunerNumOfWorkers")];
   JASSERT(tunable!=0).Text("parameter tunerNumOfWorkers not found");
   GRAPH_MIN = std::max(GRAPH_MIN, tunable->min());
@@ -391,7 +391,7 @@ void hecura::HecuraRuntime::runGraphParallelMode() {
   }
 }
 
-double hecura::HecuraRuntime::runTrial(){
+double petabricks::PetabricksRuntime::runTrial(){
 #ifdef GRACEFUL_ABORT
   try{
 #endif
@@ -424,21 +424,21 @@ double hecura::HecuraRuntime::runTrial(){
     std::sort(rslts.begin(), rslts.end());
     return rslts[GRAPH_SMOOTHING];
 #ifdef GRACEFUL_ABORT
-  }catch(hecura::DynamicScheduler::AbortException e){
-    hecura::DynamicTask::scheduler->abortEnd();
+  }catch(petabricks::DynamicScheduler::AbortException e){
+    petabricks::DynamicTask::scheduler->abortEnd();
     return std::numeric_limits<double>::max();
   }
 #endif
 }
 
 
-double hecura::HecuraRuntime::optimizeParameter(const std::string& param){
+double petabricks::PetabricksRuntime::optimizeParameter(const std::string& param){
   jalib::JTunable* tunable = jalib::JTunableManager::instance().getReverseMap()[param];
   JASSERT(tunable!=0)(param).Text("parameter not found");
   return optimizeParameter(*tunable, GRAPH_MIN, GRAPH_MAX, (GRAPH_MAX-GRAPH_MIN)/SEARCH_BRANCH_FACTOR);
 }
 
-double hecura::HecuraRuntime::optimizeParameter(jalib::JTunable& tunable, int min, int max, int step){
+double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable, int min, int max, int step){
   if(max<=min) return -1;
   if(step<0){
     step=(max-min)/SEARCH_BRANCH_FACTOR;
@@ -477,7 +477,7 @@ double hecura::HecuraRuntime::optimizeParameter(jalib::JTunable& tunable, int mi
 //   }
 // }
 // 
-// void hecura::HecuraRuntime::runAutotuneMode(const std::string& prefix){
+// void petabricks::PetabricksRuntime::runAutotuneMode(const std::string& prefix){
 //   typedef jalib::JTunable JTunable;
 //   jalib::JTunableReverseMap m = jalib::JTunableManager::instance().getReverseMap();
 //   
@@ -533,7 +533,7 @@ double hecura::HecuraRuntime::optimizeParameter(jalib::JTunable& tunable, int mi
 //   }
 // }
 // 
-// double hecura::HecuraRuntime::autotuneOneLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
+// double petabricks::PetabricksRuntime::autotuneOneLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
 //   typedef jalib::JTunable JTunable;
 //   JTunable* rule = m[_mktname(lvl, prefix, "rule")];
 //   JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
@@ -556,7 +556,7 @@ double hecura::HecuraRuntime::optimizeParameter(jalib::JTunable& tunable, int mi
 //   }
 // }
 // 
-// double hecura::HecuraRuntime::autotuneTwoLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
+// double petabricks::PetabricksRuntime::autotuneTwoLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
 //   typedef jalib::JTunable JTunable;
 //   double best = std::numeric_limits<double>::max();
 //   JTunable* rule1 =  m[_mktname(lvl-1,   prefix, "rule")];
@@ -598,26 +598,26 @@ double hecura::HecuraRuntime::optimizeParameter(jalib::JTunable& tunable, int mi
 //   return best;
 // }
 // 
-// void hecura::HecuraRuntime::resetLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
+// void petabricks::PetabricksRuntime::resetLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
 //   jalib::JTunable* rule   = m[_mktname(lvl, prefix, "rule")];
 //   jalib::JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
 //   if(cutoff!=0) cutoff->setValue(cutoff->max());
 //   if(rule!=0)   rule->setValue(rule->min());
 // }
 
-bool hecura::HecuraRuntime::isTrainingRun(){
+bool petabricks::PetabricksRuntime::isTrainingRun(){
   _needTraingingRun = true;
   return _isTrainingRun;
 }
 
-void hecura::HecuraRuntime::setIsTrainingRun(bool b){
+void petabricks::PetabricksRuntime::setIsTrainingRun(bool b){
   _isTrainingRun=b;
 }
 
-void hecura::HecuraRuntime::abort(){
+void petabricks::PetabricksRuntime::abort(){
 #ifdef GRACEFUL_ABORT
   DynamicTask::scheduler->abortBegin();
 #else
-  JASSERT(false).Text("HecuraRuntime::abort() called");
+  JASSERT(false).Text("PetabricksRuntime::abort() called");
 #endif
 }

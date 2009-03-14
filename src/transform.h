@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURATRANSFORM_H
-#define HECURATRANSFORM_H
+#ifndef PETABRICKSTRANSFORM_H
+#define PETABRICKSTRANSFORM_H
 
 #include "jrefcounted.h"
 #include "jprintable.h"
@@ -32,7 +32,7 @@
 #include <vector>
 #include <set>
 
-namespace hecura {
+namespace petabricks {
 
 class Transform;
 class TemplateArg;

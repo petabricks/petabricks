@@ -4,7 +4,7 @@
 #include "jconvert.h"
 #include "formula.h"
 
-using namespace hecura;
+using namespace petabricks;
 
 extern int yylex (void);
 static int yyerror(FormulaListPtr&, const char* msg){ JASSERT(false)(msg).Text("parse error"); return 0;}
@@ -23,8 +23,8 @@ static void clearParserCaches(){
   int i;
   double d;
   const char* str;
-  hecura::Formula*        formula;
-  hecura::FormulaList*    formulas;
+  petabricks::Formula*        formula;
+  petabricks::FormulaList*    formulas;
 }
 
 %defines
@@ -33,7 +33,7 @@ static void clearParserCaches(){
 %name-prefix="maxima"
 %start Start
 
-%parse-param { hecura::FormulaListPtr& ret };
+%parse-param { petabricks::FormulaListPtr& ret };
 
 %token IPROMPT OPROMPT LE GE BOOL_T BOOL_F STR_EQUAL STR_FLOOR STR_CEILING
 %token <str> IDENT INTEGER FLOAT

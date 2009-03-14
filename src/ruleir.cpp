@@ -27,7 +27,7 @@ namespace{
   }
 }
 
-const char* hecura::RIRNode::typeStr() const {
+const char* petabricks::RIRNode::typeStr() const {
   switch(type()){
     case EXPR        : return "EXPR";
     case EXPR_NIL    : return "EXPR_NIL";
@@ -48,59 +48,59 @@ const char* hecura::RIRNode::typeStr() const {
   }
 }
 
-void hecura::RIRExpr::print(std::ostream& o) const {
+void petabricks::RIRExpr::print(std::ostream& o) const {
   o<<_str;
   printStlList(o, _parts.begin(), _parts.end(), " ");
 }
-void hecura::RIRArgsExpr::print(std::ostream& o) const {
+void petabricks::RIRArgsExpr::print(std::ostream& o) const {
   printStlList(o, _parts.begin(), _parts.end(), ", ");
 }
-void hecura::RIRCallExpr::print(std::ostream& o) const {
+void petabricks::RIRCallExpr::print(std::ostream& o) const {
   JASSERT(_parts.size()==2)(_parts.size())(_str);
   o << get(_parts,0) << '(' << get(_parts,1) << ')';
 }
-void hecura::RIRBlock::print(std::ostream& o) const {
+void petabricks::RIRBlock::print(std::ostream& o) const {
   printStlList(o, _stmts.begin(), _stmts.end(), "\n");
 }
-void hecura::RIRBasicStmt::print(std::ostream& o) const {
+void petabricks::RIRBasicStmt::print(std::ostream& o) const {
   printStlList(o, _exprs.begin(), _exprs.end(), " ");
   o<<";";
 }
-void hecura::RIRBlockStmt::print(std::ostream& o) const {
+void petabricks::RIRBlockStmt::print(std::ostream& o) const {
   JASSERT(_exprs.size()==0);
   o << "{\n" << _block << "\n}";
 }
-void hecura::RIRLoopStmt::print(std::ostream& o) const {
+void petabricks::RIRLoopStmt::print(std::ostream& o) const {
   JASSERT(_exprs.size()==3);
   o << "for(" << get(_exprs,0) << "; " 
               << get(_exprs,1) << "; "
               << get(_exprs,2) << ") "
               << _body;
 }
-void hecura::RIRSwitchStmt::print(std::ostream& o) const {
+void petabricks::RIRSwitchStmt::print(std::ostream& o) const {
   JASSERT(_exprs.size()==1);
   o << "switch(" << _exprs.front() << ") " << _body;
 }
-void hecura::RIRIfStmt::print(std::ostream& o) const {
+void petabricks::RIRIfStmt::print(std::ostream& o) const {
   JASSERT(_exprs.size()==1);
   o << "if(" << _exprs.front() << ")\n" 
               << _then;
   if (_else) o << "\nelse\n" << _else;
 }
-void hecura::RIRRawStmt::print(std::ostream& o) const {
+void petabricks::RIRRawStmt::print(std::ostream& o) const {
   o << _src;
 }
 
 
 namespace{
   template<typename T>
-  void _visithelper(hecura::RIRVisitor& v, T& t){
+  void _visithelper(petabricks::RIRVisitor& v, T& t){
     v._before(t);
     if(t && v.shouldDescend(*t)) t->accept(v);
     v._after(t);
   }
   template<typename T>
-  void _visitlisthelper(hecura::RIRVisitor& v, std::list<T>& bk){
+  void _visitlisthelper(petabricks::RIRVisitor& v, std::list<T>& bk){
     std::list<T> fwd;
     bk.swap(fwd);
     v.pushSplicer(&bk, &fwd);
@@ -115,54 +115,54 @@ namespace{
 
 }
 
-void hecura::RIRExpr::accept(hecura::RIRVisitor& v) { 
+void petabricks::RIRExpr::accept(petabricks::RIRVisitor& v) { 
   _visitlisthelper(v, _parts);
 }
-void hecura::RIRStmt::accept(hecura::RIRVisitor& v) {
+void petabricks::RIRStmt::accept(petabricks::RIRVisitor& v) {
   _visitlisthelper(v, _exprs);
 }
-void hecura::RIRBlock::accept(hecura::RIRVisitor& v) {
+void petabricks::RIRBlock::accept(petabricks::RIRVisitor& v) {
   _visitlisthelper(v, _stmts);
 }
-void hecura::RIRBasicStmt::accept(hecura::RIRVisitor& v) {
+void petabricks::RIRBasicStmt::accept(petabricks::RIRVisitor& v) {
   RIRStmt::accept(v);
 }
-void hecura::RIRBlockStmt::accept(hecura::RIRVisitor& v) {
+void petabricks::RIRBlockStmt::accept(petabricks::RIRVisitor& v) {
   RIRStmt::accept(v);
   _visithelper(v, _block);
 }
-void hecura::RIRLoopStmt::accept(hecura::RIRVisitor& v) {
+void petabricks::RIRLoopStmt::accept(petabricks::RIRVisitor& v) {
   RIRStmt::accept(v);
   _visithelper(v, _body);
 }
-void hecura::RIRIfStmt::accept(hecura::RIRVisitor& v) {
+void petabricks::RIRIfStmt::accept(petabricks::RIRVisitor& v) {
   RIRStmt::accept(v);
   _visithelper(v, _then);
   if(_else) _visithelper(v, _else);
 }
-void hecura::RIRSwitchStmt::accept(hecura::RIRVisitor& v) {
+void petabricks::RIRSwitchStmt::accept(petabricks::RIRVisitor& v) {
   RIRStmt::accept(v);
   _visithelper(v, _body);
 }
-void hecura::RIRRawStmt::accept(hecura::RIRVisitor& v) {
+void petabricks::RIRRawStmt::accept(petabricks::RIRVisitor& v) {
   RIRStmt::accept(v);
 }
 
-hecura::RIRExpr      * hecura::RIRExpr      ::clone() const { return new RIRExpr      (*this); }
-hecura::RIRBlock     * hecura::RIRBlock     ::clone() const { return new RIRBlock     (*this); }
-hecura::RIRBasicStmt * hecura::RIRBasicStmt ::clone() const { return new RIRBasicStmt (*this); }
-hecura::RIRBlockStmt * hecura::RIRBlockStmt ::clone() const { return new RIRBlockStmt (*this); }
-hecura::RIRLoopStmt  * hecura::RIRLoopStmt  ::clone() const { return new RIRLoopStmt  (*this); }
-hecura::RIRIfStmt    * hecura::RIRIfStmt    ::clone() const { return new RIRIfStmt    (*this); }
-hecura::RIRRawStmt   * hecura::RIRRawStmt   ::clone() const { return new RIRRawStmt   (*this); }
-hecura::RIRSwitchStmt* hecura::RIRSwitchStmt::clone() const { return new RIRSwitchStmt(*this); }
-hecura::RIRCallExpr  * hecura::RIRCallExpr  ::clone() const { return new RIRCallExpr  (*this); }
-hecura::RIRArgsExpr  * hecura::RIRArgsExpr  ::clone() const { return new RIRArgsExpr  (*this); }
+petabricks::RIRExpr      * petabricks::RIRExpr      ::clone() const { return new RIRExpr      (*this); }
+petabricks::RIRBlock     * petabricks::RIRBlock     ::clone() const { return new RIRBlock     (*this); }
+petabricks::RIRBasicStmt * petabricks::RIRBasicStmt ::clone() const { return new RIRBasicStmt (*this); }
+petabricks::RIRBlockStmt * petabricks::RIRBlockStmt ::clone() const { return new RIRBlockStmt (*this); }
+petabricks::RIRLoopStmt  * petabricks::RIRLoopStmt  ::clone() const { return new RIRLoopStmt  (*this); }
+petabricks::RIRIfStmt    * petabricks::RIRIfStmt    ::clone() const { return new RIRIfStmt    (*this); }
+petabricks::RIRRawStmt   * petabricks::RIRRawStmt   ::clone() const { return new RIRRawStmt   (*this); }
+petabricks::RIRSwitchStmt* petabricks::RIRSwitchStmt::clone() const { return new RIRSwitchStmt(*this); }
+petabricks::RIRCallExpr  * petabricks::RIRCallExpr  ::clone() const { return new RIRCallExpr  (*this); }
+petabricks::RIRArgsExpr  * petabricks::RIRArgsExpr  ::clone() const { return new RIRArgsExpr  (*this); }
 
-std::string hecura::RIRNode::debugStr() const { 
+std::string petabricks::RIRNode::debugStr() const { 
   return typeStr(); 
 }
-std::string hecura::RIRExpr::debugStr() const { 
+std::string petabricks::RIRExpr::debugStr() const { 
   return typeStr() + std::string(" ") + _str;
 }
 

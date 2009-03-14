@@ -2277,7 +2277,7 @@ fi
 
 
 # Define the identity of the package.
- PACKAGE=hecura
+ PACKAGE=petabricks
  VERSION=1.99
 
 

@@ -17,14 +17,14 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURARULECHOICE_H
-#define HECURARULECHOICE_H
+#ifndef PETABRICKSRULECHOICE_H
+#define PETABRICKSRULECHOICE_H
 
 #include "rule.h"
 #include "formula.h"
 #include "jrefcounted.h"
 
-namespace hecura {
+namespace petabricks {
 
 class CodeGenerator;
 class RuleChoice;
