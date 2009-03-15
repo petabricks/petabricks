@@ -184,7 +184,7 @@ void hecura::Autotuner::trainOnce(){
   for(int i=_candidates.size()-1; i>0; --i){
       if(_candidates[i]->lastResult() > std::numeric_limits<double>::max()/2
         || i>=MAX_ALGS){
-        std::cout << "  REMOVED " << _candidates[i] << std::endl;
+        std::cout << "  REMOVED " << _candidates[i] << ' ' << _candidates[i]->lastResult() << std::endl;
         _candidates.pop_back();
       }else break;
   }
