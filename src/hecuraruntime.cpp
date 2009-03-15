@@ -234,6 +234,7 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
 
       jalib::JTunableReverseMap m = jalib::JTunableManager::instance().getReverseMap();
       jalib::JTunable* prec_case = m["prec_case"];
+      JASSERT(prec_case != 0);
 
       jalib::JTunable* temp;
       for (int level = 0; level < 30; level++) {
@@ -242,7 +243,7 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
       }
 
       Autotuner *at6, *at7, *at8, *at9, *at10;
-      jalib::JTunable* full_prec_case;
+      jalib::JTunable* run_fullmg_flag;
       if (FULL_MULTIGRID_FLAG) {
         std::string s6 = "FullPoisson2D_Inner_Prec1_1";
         std::string s7 = "FullPoisson2D_Inner_Prec2_1";
@@ -255,17 +256,17 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
         at9 = new Autotuner(*this, s9);
         at10 = new Autotuner(*this, s10);
 
-        full_prec_case = m["full_prec_case"];
-
-        for (int level = 0; level < 30; level++) {
-          temp = m["full_levelTrained__" + jalib::XToString(level)];
-          temp->setValue(0);
-        }
+        run_fullmg_flag = m["run_fullmg_flag"];
+        JASSERT(run_fullmg_flag != 0);
       }
 
-      JASSERT(prec_case != 0);
       for(int n=TRAIN_MIN; n<=TRAIN_MAX; n*=2){
         setSize(n + 1);
+
+        if (FULL_MULTIGRID_FLAG) {
+          run_fullmg_flag->setValue(0);
+        }
+
         prec_case->setValue(1);
         at1.trainOnce();
         prec_case->setValue(2);
@@ -278,15 +279,17 @@ int hecura::HecuraRuntime::runMain(int argc, const char** argv){
         at5.trainOnce();
 
         if (FULL_MULTIGRID_FLAG) {
-          full_prec_case->setValue(1);
+          run_fullmg_flag->setValue(1);
+
+          prec_case->setValue(1);
           at6->trainOnce();
-          full_prec_case->setValue(2);
+          prec_case->setValue(2);
           at7->trainOnce();
-          full_prec_case->setValue(3);
+          prec_case->setValue(3);
           at8->trainOnce();
-          full_prec_case->setValue(4);
+          prec_case->setValue(4);
           at9->trainOnce();
-          full_prec_case->setValue(5);
+          prec_case->setValue(5);
           at10->trainOnce();
         }
 
