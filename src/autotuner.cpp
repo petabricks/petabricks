@@ -168,7 +168,8 @@ void hecura::Autotuner::trainOnce(){
 
   // add new algorithms -- by last rounds performance
   std::sort(_candidates.begin(), _candidates.end(), CmpLastLastPerformance());
-  for(int i=0; i<BIRTH_ATTEMPTS && i<_candidates.size(); ++i){
+  int numCurrentCandidates = _candidates.size();
+  for(int i=0; i<BIRTH_ATTEMPTS && i<numCurrentCandidates; ++i){
     _initialConfig->activate();
     CandidateAlgorithmPtr b=_candidates[i]->attemptBirth(_runtime, *this, bestPerf*BIRTH_THRESH);
     if(b){
