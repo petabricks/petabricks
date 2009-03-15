@@ -2,8 +2,7 @@
 //assume dimension n = 2^k + 1
 
 %{
-  JTUNABLE(full_prec_case, 5);
-  JTUNABLEARRAY(full_levelTrained, 30, 0);
+  JTUNABLE(run_fullmg_flag, 1);
 %}
 
 #include "../add.pbcc"
@@ -25,6 +24,9 @@
 #define FULL_POISSON_PRECISION_3 1e-5
 #define FULL_POISSON_PRECISION_4 1e-7
 #define FULL_POISSON_PRECISION_5 1e-9
+
+#define TRAINPRINTF printf
+#define RUNPRINTF //printf
 
 #define CURPREC 1
 #include "FullPoisson2D_InnerTransform.pbcc"
@@ -60,17 +62,34 @@ through zeros[(n+1)/2,(n+1)/2]
     JASSERT(floor(log2(n-1)) == log2(n-1))(n)(floor(log2(n-1)))(log2(n-1)).Text("input must be 2^k+1");
     JASSERT(n > 1)(n).Text("input must be larger than 1");
 
-    if (PetabricksRuntime::isTrainingRun() && full_levelTrained[level] == 0) {
+    if (HecuraRuntime::isTrainingRun()) {
+      if ((int) levelTrained[level] == 0) {
 
-//      printf("Training run for level %d\n", level);
-      MatrixRegion2D actual;
-      if (level < 4) {
-        actual = BS2D(x, b);
-      } else {
-        actual = mgv2D(x, b, 15);
-      }
-      error = (double) ComputeError(x, actual);
-//      printf("initial error = %g\n", error);
+        TRAINPRINTF("Full Training run for level %d\n", level);
+        MatrixRegion2D actual;
+        if (level < 4) {
+          actual = BS2D(x, b);
+        } else {
+          actual = mgv2D(x, b, 15);
+        }
+        error = (double) ComputeError(x, actual);
+        TRAINPRINTF("initial error = %g\n", error);
+
+#define CURPREC 1
+#include "Poisson2D_TrainingLoop.pbcc"
+#undef CURPREC
+#define CURPREC 2
+#include "Poisson2D_TrainingLoop.pbcc"
+#undef CURPREC
+#define CURPREC 3
+#include "Poisson2D_TrainingLoop.pbcc"
+#undef CURPREC
+#define CURPREC 4
+#include "Poisson2D_TrainingLoop.pbcc"
+#undef CURPREC
+#define CURPREC 5
+#include "Poisson2D_TrainingLoop.pbcc"
+#undef CURPREC
 
 #define CURPREC 1
 #include "FullPoisson2D_TrainingLoop.pbcc"
@@ -88,26 +107,47 @@ through zeros[(n+1)/2,(n+1)/2]
 #include "FullPoisson2D_TrainingLoop.pbcc"
 #undef CURPREC
 
-      full_levelTrained[level].setValue(1);
-
+        levelTrained[level].setValue(1);
+      }
     } else {
-//      printf("Timing run for level %d, precision %d\n", level, (int) prec_case);
-      switch (full_prec_case) {
-        case 1:
-          FullPoisson2D_Inner_Prec1(y, x, b);
-          break;
-        case 2:
-          FullPoisson2D_Inner_Prec2(y, x, b);
-          break;
-        case 3:
-          FullPoisson2D_Inner_Prec3(y, x, b);
-          break;
-        case 4:
-          FullPoisson2D_Inner_Prec4(y, x, b);
-          break;
-        case 5:
-          FullPoisson2D_Inner_Prec5(y, x, b);
-          break;
+      if (! (int) run_fullmg_flag) {
+       RUNPRINTF("Timing run for MG level %d, precision %d\n", level, (int) prec_case);
+        switch (prec_case) {
+          case 1:
+            Poisson2D_Inner_Prec1(y, x, b);
+            break;
+          case 2:
+            Poisson2D_Inner_Prec2(y, x, b);
+            break;
+          case 3:
+            Poisson2D_Inner_Prec3(y, x, b);
+            break;
+          case 4:
+            Poisson2D_Inner_Prec4(y, x, b);
+            break;
+          case 5:
+            Poisson2D_Inner_Prec5(y, x, b);
+            break;
+        }
+      } else {
+        RUNPRINTF("Timing run for FULLMG level %d, precision %d\n", level, (int) prec_case);
+        switch (prec_case) {
+          case 1:
+            FullPoisson2D_Inner_Prec1(y, x, b);
+            break;
+          case 2:
+            FullPoisson2D_Inner_Prec2(y, x, b);
+            break;
+          case 3:
+            FullPoisson2D_Inner_Prec3(y, x, b);
+            break;
+          case 4:
+            FullPoisson2D_Inner_Prec4(y, x, b);
+            break;
+          case 5:
+            FullPoisson2D_Inner_Prec5(y, x, b);
+            break;
+        }
       }
     }
   }

@@ -19,6 +19,9 @@
 #define _CAT( a, b) __CAT(a ## b)
 #define __CAT(ab) ab
 
+#define PRINTF //printf
+//#define PRINTF printf
+
 #define POISSON_PRECISION_1 1e-1
 #define POISSON_PRECISION_2 1e-3
 #define POISSON_PRECISION_3 1e-5
@@ -59,17 +62,17 @@ through zeros[(n+1)/2,(n+1)/2]
     JASSERT(floor(log2(n-1)) == log2(n-1))(n)(floor(log2(n-1)))(log2(n-1)).Text("input must be 2^k+1");
     JASSERT(n > 1)(n).Text("input must be larger than 1");
 
-    if (PetabricksRuntime::isTrainingRun() && levelTrained[level] == 0) {
-
-//      printf("Training run for level %d\n", level);
-      MatrixRegion2D actual;
-      if (level < 4) {
-        actual = BS2D(x, b);
-      } else {
-        actual = mgv2D(x, b, 15);
-      }
-      error = (double) ComputeError(x, actual);
-//      printf("initial error = %g\n", error);
+    if (HecuraRuntime::isTrainingRun()) {
+      if (levelTrained[level] == 0) {
+        PRINTF("Training run for level %d\n", level);
+        MatrixRegion2D actual;
+        if (level < 4) {
+          actual = BS2D(x, b);
+        } else {
+          actual = mgv2D(x, b, 15);
+        }
+        error = (double) ComputeError(x, actual);
+        PRINTF("initial error = %g\n", error);
 
 #define CURPREC 1
 #include "Poisson2D_TrainingLoop.pbcc"
@@ -87,10 +90,10 @@ through zeros[(n+1)/2,(n+1)/2]
 #include "Poisson2D_TrainingLoop.pbcc"
 #undef CURPREC
 
-      levelTrained[level].setValue(1);
-
+        levelTrained[level].setValue(1);
+      }
     } else {
-//      printf("Timing run for level %d, precision %d\n", level, (int) prec_case);
+      PRINTF("Timing run for level %d, precision %d\n", level, (int) prec_case);
       switch (prec_case) {
         case 1:
           Poisson2D_Inner_Prec1(y, x, b);

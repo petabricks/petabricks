@@ -1,5 +1,5 @@
       // compute number of iterations of recursive precision LOCALPREC
-//      printf("    Training prec%d for precision %d:\n", LOCALPREC, CURPREC);
+      PRINTF("    Training prec%d for precision %d:\n", LOCALPREC, CURPREC);
       CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level].setValue(0);
       if (level > 1) {
         Copy2D(y, x);
@@ -17,7 +17,7 @@
           newError = ComputeError(y, actual);
           change = newError / oldError;
           oldError = newError;
-          printf("      error = %g, ratio = %g\n", newError, newError / error);
+          PRINTF("      error = %g, ratio = %g\n", newError, newError / error);
           if (change >= 1) {
             // cannot achieve target precision, so this is an invalid selection
             // signal to timing run that it should abort
@@ -27,6 +27,6 @@
 
         } while (newError / error > CAT(POISSON_PRECISION_, CURPREC) && change < 1);
 
-	printf("Setting number of iterations of prec%dIters_Prec%d to %d\n", LOCALPREC, CURPREC, (int) CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level]);
+        PRINTF("      Setting number of iterations of prec%dIters_Prec%d to %d\n", LOCALPREC, CURPREC, (int) CAT(CAT(CAT(prec, LOCALPREC), Iters_Prec), CURPREC)[level]);
       }
 

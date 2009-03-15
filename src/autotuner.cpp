@@ -168,7 +168,8 @@ void petabricks::Autotuner::trainOnce(){
 
   // add new algorithms -- by last rounds performance
   std::sort(_candidates.begin(), _candidates.end(), CmpLastLastPerformance());
-  for(int i=0; i<BIRTH_ATTEMPTS && i<_candidates.size(); ++i){
+  int numCurrentCandidates = _candidates.size();
+  for(int i=0; i<BIRTH_ATTEMPTS && i<numCurrentCandidates; ++i){
     _initialConfig->activate();
     CandidateAlgorithmPtr b=_candidates[i]->attemptBirth(_runtime, *this, bestPerf*BIRTH_THRESH);
     if(b){
@@ -184,7 +185,7 @@ void petabricks::Autotuner::trainOnce(){
   for(int i=_candidates.size()-1; i>0; --i){
       if(_candidates[i]->lastResult() > std::numeric_limits<double>::max()/2
         || i>=MAX_ALGS){
-        std::cout << "  REMOVED " << _candidates[i] << std::endl;
+        std::cout << "  REMOVED " << _candidates[i] << ' ' << _candidates[i]->lastResult() << std::endl;
         _candidates.pop_back();
       }else break;
   }
