@@ -7,6 +7,7 @@ AM_INIT_AUTOMAKE(petabricks, 1.99)
 default_cxxflags=no
 if test "x$CXXFLAGS" = "x"; then
   default_cxxflags=yes
+  CXXFLAGS="-O3"
 fi
 
 ################################################################################
