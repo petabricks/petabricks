@@ -1,4 +1,5 @@
 AC_INIT(configure.ac)
+AC_CANONICAL_TARGET
 
 AM_CONFIG_HEADER(src/config.h)
 AM_INIT_AUTOMAKE(hecura, 0.10)
@@ -80,6 +81,21 @@ AC_ARG_ENABLE([timing],
 if test "$use_jtiming" = "yes"; then
   AC_DEFINE([TIMING],[],[record timing information to stderr and jtimings.csv])
 fi
+
+case $target_cpu in
+  *sparc*) tuneflags="-mcpu=niagara -mcpu=v9 -mcpu=v8 -mcpu=v7";;
+  *)       tuneflags="-march=native -mcpu=native -mtune=native";;
+esac
+save_CXXFLAGS="$CXXFLAGS"
+
+for extraflags in $tuneflags
+do
+  AC_MSG_CHECKING([if compiler supports $extraflags])
+  CXXFLAGS="$CXXFLAGS $extraflags"
+  AC_RUN_IFELSE([AC_LANG_PROGRAM()],
+                [AC_MSG_RESULT([yes]); break                    ], 
+                [AC_MSG_RESULT([no]);  CXXFLAGS="$save_CXXFLAGS"])
+done
 
 AC_OUTPUT(Makefile src/Makefile src/cxxconfig.h examples/Makefile)
 
