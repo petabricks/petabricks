@@ -10,7 +10,7 @@
 #endif
 
       estimateError = ComputeError(est, actual);
-      TRAINPRINTF("      error after estimate = %g\n", newError);
+      TRAINPRINTF("      error after estimate = %g\n", estimateError);
 
       // compute iterations of SOR
       CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level].setValue(0);
