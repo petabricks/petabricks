@@ -21169,11 +21169,6 @@ _ACEOF
 
 
 cat >>confdefs.h <<\_ACEOF
-#define JALIB_ALLOCATOR 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
 #define INPUT_SIZE_STR "input_count"
 _ACEOF
 
@@ -21196,12 +21191,17 @@ if false; then
   #disabled by default:
 
 cat >>confdefs.h <<\_ACEOF
-#define JALIB_USE_MALLOC
+#define JASSERT_LOG
 _ACEOF
 
 
 cat >>confdefs.h <<\_ACEOF
-#define JASSERT_LOG
+#define JALIB_ALLOCATOR 1
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define JALIB_USE_MALLOC
 _ACEOF
 
 fi
