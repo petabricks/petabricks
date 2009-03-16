@@ -55,7 +55,7 @@ through zeros[(n+1)/2,(n+1)/2]
 
   to (Y y) from (X x, B b, zeros z)
   {
-    double error, newError, oldError, change;
+    double error, estimateError, newError, oldError, change;
     int level = (int) log2(n-1);
     MatrixRegion2D t, r, est;
 
