@@ -47,8 +47,8 @@ std::string cmdCxxCompiler(const std::string& src, const std::string& bin);
 using namespace petabricks;
 
 
-const static std::string theHecuraHPath = jalib::Filesystem::FindHelperUtility("hecura.h");
-const static std::string theLibHecuraPath = jalib::Filesystem::FindHelperUtility("libhecura.a");
+const static std::string thePetabricksHPath = jalib::Filesystem::FindHelperUtility("petabricks.h");
+const static std::string theLibPetabricksPath = jalib::Filesystem::FindHelperUtility("libpetabricks.a");
 
 TransformListPtr parsePbFile(const char* filename);
 
