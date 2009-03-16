@@ -35,6 +35,10 @@ typedef jalib::JRef<RIRNode,  jalib::JRefPolicyCopied<RIRNode>  > RIRNodePtr;
 typedef jalib::JRef<RIRBlock, jalib::JRefPolicyCopied<RIRBlock> > RIRBlockPtr;
 typedef jalib::JRef<RIRStmt,  jalib::JRefPolicyCopied<RIRStmt>  > RIRStmtPtr;
 typedef jalib::JRef<RIRExpr,  jalib::JRefPolicyCopied<RIRExpr>  > RIRExprPtr;
+typedef jalib::JRef<RIRNode > RIRNodeRef;
+typedef jalib::JRef<RIRBlock> RIRBlockRef;
+typedef jalib::JRef<RIRStmt > RIRStmtRef;
+typedef jalib::JRef<RIRExpr > RIRExprRef;
 typedef std::list<RIRNodePtr>  RIRNodeList;
 typedef std::list<RIRStmtPtr>  RIRStmtList;
 typedef std::list<RIRExprPtr>  RIRExprList;
@@ -115,6 +119,15 @@ public:
   void accept(RIRVisitor&);
   RIRExpr* clone() const;
   std::string debugStr() const;
+
+  bool isLeaf(const char* val) const{
+    return _parts.empty() && _str==val;
+  }
+  bool isLeaf() const{
+    return _parts.empty();
+  }
+  
+  RIRExprList& parts(){ return _parts; }
 protected:
   std::string _str;
   RIRExprList _parts;

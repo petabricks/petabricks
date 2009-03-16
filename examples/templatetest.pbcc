@@ -1,16 +1,10 @@
 
-
 template < prec(10, 12 ), iters(0, 2) >
 transform Foo from A[n] to B[n]
 {
   to(B b) from(A a) {
-        
-  }
-  to(B b) from(A a) {
-        
-  }
-  to(B b) from(A a) {
-        
+    if(prec!=10 || iters!=1)
+      Foo<12, 1>(b,a);
   }
 }
 

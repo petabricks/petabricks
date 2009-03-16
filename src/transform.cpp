@@ -160,6 +160,8 @@ void petabricks::Transform::compile(){
   jalib::Map(&MatrixDef::exportAssumptions, _through);
   jalib::Map(&MatrixDef::exportAssumptions, _to);
 
+  jalib::Map(&Rule::compileRuleBody, _rules);
+
   JASSERT(!_scheduler);
 
   _scheduler=new StaticScheduler(_baseCases);

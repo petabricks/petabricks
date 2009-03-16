@@ -21,6 +21,7 @@
 #define PETABRICKSRIRCOMPILERPASS_H
 
 #include "ruleir.h"
+#include "rirscope.h"
 
 namespace petabricks {
 
@@ -32,6 +33,9 @@ protected:
     Context(TList* bk, TList* fw, int l) 
       : _backward(bk), _forward(fw), _lvl(l)
     {}
+    TList* backward() const { return _backward;}
+    TList* forward () const { return _forward; }
+    int    lvl     () const { return _lvl;     }
   private:
     TList* _backward;
     TList* _forward;
@@ -41,6 +45,17 @@ protected:
   typedef Context<RIRStmtPtr> StmtContext;
   typedef std::vector<ExprContext> ExprContextStack;
   typedef std::vector<StmtContext> StmtContextStack;
+  
+  RIRExprRef peekExprForward() { 
+    RIRExprRef p = _exprCtx.back().forward()->front().asPtr();
+    JASSERT(p).Text("unexpected end of statement");
+    return p;
+  }
+  RIRExprRef popExprForward() { 
+    RIRExprRef p = peekExprForward();
+    _exprCtx.back().forward()->pop_front();
+    return p;
+  }
 
 public:
   //void before(RIRExprPtr&) {}
@@ -57,16 +72,10 @@ public:
 protected:
   int depth() const { return _stack.size(); } 
 
+  RIRCompilerPass() : _scope(RIRScope::global()->createChildLayer()) {}
+
 private:
   void _before(RIRExprPtr& p)  { 
-    _beforeAny(p.asPtr());
-    RIRVisitor::_before(p);
-  }
-  void _before(RIRStmtPtr& p)  { 
-    _beforeAny(p.asPtr());
-    RIRVisitor::_before(p);
-  }
-  void _before(RIRBlockPtr& p) { 
     _beforeAny(p.asPtr());
     RIRVisitor::_before(p);
   }
@@ -74,13 +83,25 @@ private:
     RIRVisitor::_after(p);
     _afterAny(p.asPtr());
   }
+  
+  void _before(RIRStmtPtr& p)  { 
+    _beforeAny(p.asPtr());
+    RIRVisitor::_before(p);
+  }
   void _after(RIRStmtPtr& p)   { 
     RIRVisitor::_after(p);
     _afterAny(p.asPtr());
   }
+ 
+  void _before(RIRBlockPtr& p) { 
+    _scope=_scope->createChildLayer();
+    _beforeAny(p.asPtr());
+    RIRVisitor::_before(p);
+  }
   void _after(RIRBlockPtr& p)  { 
     RIRVisitor::_after(p);
     _afterAny(p.asPtr());
+    _scope=_scope->parentLayer();
   } 
   void _beforeAny(const RIRNodePtr& n){
     _stack.push_back(n);
@@ -106,9 +127,10 @@ private:
     _exprCtx.pop_back();
   }
 protected:
-  RIRNodeList _stack;
+  RIRNodeList      _stack;
   ExprContextStack _exprCtx;
   StmtContextStack _stmtCtx;
+  RIRScopePtr      _scope;
 };
 
 class DebugPrintPass : public RIRCompilerPass {
@@ -121,6 +143,33 @@ public:
 //  std::cout << std::string(depth()*2, ' ')
 //            << n->debugStr() << std::endl; 
 //}
+};
+
+class ExpansionPass : public RIRCompilerPass {
+public:
+  void before(RIRExprPtr& e){
+    if(e->type() == RIRNode::EXPR_IDENT){
+      RIRSymbolPtr sym = _scope->lookup(e->toString());
+      if(sym && sym->type() == RIRSymbol::SYM_TRANSFORM_TEMPLATE){
+        RIRExprList tmp;
+        JASSERT(peekExprForward()->isLeaf("<"))(peekExprForward())
+          .Text("Expected < after template transform");
+        popExprForward();
+        while(!peekExprForward()->isLeaf(">")){
+          tmp.push_back(popExprForward().asPtr());
+        }
+        tmp.push_back(new RIROpExpr(","));
+        popExprForward();
+        JASSERT(!peekExprForward()->isLeaf())(peekExprForward())
+          .Text("Expected (...) after template transform");
+        RIRExprList::iterator i=peekExprForward()->parts().begin();
+        JASSERT((*i)->isLeaf("("))(*i);
+        ++i;
+        peekExprForward()->parts().insert(i, tmp.begin(), tmp.end());
+        JTRACE("handled template")(e)(tmp.size())(peekExprForward()->toString());
+      }
+    }
+  }
 };
 
 

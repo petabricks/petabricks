@@ -21,6 +21,7 @@
 #define PETABRICKSRIRSCOPE_H
 
 #include "jrefcounted.h"
+#include "jprintable.h"
 #include <map>
 
 namespace petabricks {
@@ -31,7 +32,7 @@ typedef std::map<std::string, RIRSymbolPtr> RIRSymbolMap;
 class RIRScope;
 typedef jalib::JRef<RIRScope> RIRScopePtr;
 
-class RIRSymbol: public jalib::JRefCounted {
+class RIRSymbol: public jalib::JRefCounted, public jalib::JPrintable {
 public:
   enum SymbolType {
     INVALID,
@@ -45,6 +46,11 @@ public:
   RIRSymbol(SymbolType t) 
     : _type(t)
   {}
+  SymbolType type() const { return _type; }
+
+  void print(std::ostream& o) const {
+    o<<"RIRSymbol";
+  }
 private:
   SymbolType  _type;
 };

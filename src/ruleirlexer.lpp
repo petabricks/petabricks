@@ -49,8 +49,8 @@ static void handleCppLine(const char* s){
 
 %x output
 
-PASS_CHARS [,();:?{}]
-OPS [=&|!<>^*/[\]+%.-]
+PASS_CHARS [();:?{}]
+OPS [,=&|!<>^*/[\]+%.-]
 WS [ \r\n\t]
 STR ["]([^"]+|[\\].)*["]
 CHAR ['][\\]?.[']

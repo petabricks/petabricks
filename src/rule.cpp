@@ -62,13 +62,14 @@ void petabricks::Rule::setBody(const char* str){
   JWARNING(_bodysrc=="")(_bodysrc);
   _bodysrc=str;
   _bodysrc[_bodysrc.length()-1] = ' ';
-  compileRuleBody();
 }
 
 void petabricks::Rule::compileRuleBody(){
   _bodyir = parseRuleBody(_bodysrc);
-  DebugPrintPass p;
-  _bodyir->accept(p);
+  DebugPrintPass p1;
+  ExpansionPass p2;
+  _bodyir->accept(p1);
+  _bodyir->accept(p2);
 }
 
 void petabricks::RuleFlags::print(std::ostream& os) const {
