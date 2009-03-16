@@ -67,8 +67,8 @@ public:
 
   //bool shouldDescend(const RIRNode&) { return true; }
 
-  virtual void beforeAny(const RIRNodeCopyRef& n){}
-  virtual void afterAny(const RIRNodeCopyRef& n){}
+  virtual void beforeAny(const RIRNodeRef& n){}
+  virtual void afterAny(const RIRNodeRef& n){}
 protected:
   int depth() const { return _stack.size(); } 
 
@@ -103,11 +103,11 @@ private:
     _afterAny(p.asPtr());
     _scope=_scope->parentLayer();
   } 
-  void _beforeAny(const RIRNodeCopyRef& n){
+  void _beforeAny(const RIRNodeRef& n){
     _stack.push_back(n);
     beforeAny(n);
   }
-  void _afterAny(const RIRNodeCopyRef& n){
+  void _afterAny(const RIRNodeRef& n){
     afterAny(n);
     JASSERT(!_stack.empty());
     _stack.pop_back();
@@ -127,7 +127,7 @@ private:
     _exprCtx.pop_back();
   }
 protected:
-  RIRNodeList      _stack;
+  std::vector<RIRNodeRef>_stack;
   ExprContextStack _exprCtx;
   StmtContextStack _stmtCtx;
   RIRScopePtr      _scope;
