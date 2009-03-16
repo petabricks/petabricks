@@ -9,16 +9,16 @@
         Copy2D(est, x);
 #endif
 
-      newError = ComputeError(y, actual);
-      TRAINPRINTF("      error after estimate = %g\n", newError);
+      estimateError = ComputeError(est, actual);
+      TRAINPRINTF("      error after estimate = %g\n", estimateError);
 
       // compute iterations of SOR
-      TRAINPRINTF("      Training SOR for precision %d:\n", CURPREC);
       CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level].setValue(0);
+      TRAINPRINTF("      Training SOR for precision %d:\n", CURPREC);
       Copy2D(y, est);
-      oldError = error;
-
       change = 0;
+      newError = estimateError;
+      oldError = error;
       while (newError / error > CAT(FULL_POISSON_PRECISION_, CURPREC) && change < 1) {
 
         if (level > 8 || CURPREC > 2 && level > 6) {
