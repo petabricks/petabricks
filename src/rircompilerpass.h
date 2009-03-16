@@ -152,21 +152,25 @@ public:
       RIRSymbolPtr sym = _scope->lookup(e->toString());
       if(sym && sym->type() == RIRSymbol::SYM_TRANSFORM_TEMPLATE){
         RIRExprList tmp;
-        JASSERT(peekExprForward()->isLeaf("<"))(peekExprForward())
-          .Text("Expected < after template transform");
-        popExprForward();
-        while(!peekExprForward()->isLeaf(">")){
-          tmp.push_back(popExprForward().asPtr());
+        if(peekExprForward()->isLeaf("<")){
+          //transform calls to templates from:
+          //   tmpl<a,b>(c,d)
+          //to:
+          //   tmpl(a,b,c,d)
+          popExprForward();
+          while(!peekExprForward()->isLeaf(">")){
+            tmp.push_back(popExprForward().asPtr());
+          }
+          tmp.push_back(new RIROpExpr(","));
+          popExprForward();
+          JASSERT(!peekExprForward()->isLeaf())(peekExprForward())
+            .Text("Expected (...) after template transform");
+          RIRExprList::iterator i=peekExprForward()->parts().begin();
+          JASSERT((*i)->isLeaf("("))(*i);
+          ++i;
+          peekExprForward()->parts().insert(i, tmp.begin(), tmp.end());
+          JTRACE("handled template")(e)(tmp.size())(peekExprForward()->toString());
         }
-        tmp.push_back(new RIROpExpr(","));
-        popExprForward();
-        JASSERT(!peekExprForward()->isLeaf())(peekExprForward())
-          .Text("Expected (...) after template transform");
-        RIRExprList::iterator i=peekExprForward()->parts().begin();
-        JASSERT((*i)->isLeaf("("))(*i);
-        ++i;
-        peekExprForward()->parts().insert(i, tmp.begin(), tmp.end());
-        JTRACE("handled template")(e)(tmp.size())(peekExprForward()->toString());
       }
     }
   }
