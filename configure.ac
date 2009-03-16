@@ -93,13 +93,14 @@ case $target_cpu in
 esac
 save_CXXFLAGS="$CXXFLAGS"
 
-for extraflags in $tuneflags
+for extraflag in $tuneflags
 do
-  AC_MSG_CHECKING([if compiler supports $extraflags])
-  CXXFLAGS="$CXXFLAGS $extraflags"
+  AC_MSG_CHECKING([if compiler supports $extraflag])
+  CXXFLAGS="$CXXFLAGS $extraflag"
   AC_RUN_IFELSE([AC_LANG_PROGRAM()],
-                [AC_MSG_RESULT([yes]); break                    ], 
-                [AC_MSG_RESULT([no]);  CXXFLAGS="$save_CXXFLAGS"])
+                [AC_MSG_RESULT([yes]);     break                    ], 
+                [AC_MSG_RESULT([no]);      CXXFLAGS="$save_CXXFLAGS"],
+                [AC_MSG_RESULT([unknown]); CXXFLAGS="$save_CXXFLAGS"])
 done
 
 AC_OUTPUT(Makefile src/Makefile src/cxxconfig.h examples/Makefile)
