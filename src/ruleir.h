@@ -31,36 +31,36 @@ class RIRNode;
 class RIRBlock;
 class RIRStmt;
 class RIRExpr;
-typedef jalib::JRef<RIRNode,  jalib::JRefPolicyCopied<RIRNode>  > RIRNodePtr;
-typedef jalib::JRef<RIRBlock, jalib::JRefPolicyCopied<RIRBlock> > RIRBlockPtr;
-typedef jalib::JRef<RIRStmt,  jalib::JRefPolicyCopied<RIRStmt>  > RIRStmtPtr;
-typedef jalib::JRef<RIRExpr,  jalib::JRefPolicyCopied<RIRExpr>  > RIRExprPtr;
+typedef jalib::JRef<RIRNode,  jalib::JRefPolicyCopied<RIRNode>  > RIRNodeCopyRef;
+typedef jalib::JRef<RIRBlock, jalib::JRefPolicyCopied<RIRBlock> > RIRBlockCopyRef;
+typedef jalib::JRef<RIRStmt,  jalib::JRefPolicyCopied<RIRStmt>  > RIRStmtCopyRef;
+typedef jalib::JRef<RIRExpr,  jalib::JRefPolicyCopied<RIRExpr>  > RIRExprCopyRef;
 typedef jalib::JRef<RIRNode > RIRNodeRef;
 typedef jalib::JRef<RIRBlock> RIRBlockRef;
 typedef jalib::JRef<RIRStmt > RIRStmtRef;
 typedef jalib::JRef<RIRExpr > RIRExprRef;
-typedef std::list<RIRNodePtr>  RIRNodeList;
-typedef std::list<RIRStmtPtr>  RIRStmtList;
-typedef std::list<RIRExprPtr>  RIRExprList;
+typedef std::list<RIRNodeCopyRef>  RIRNodeList;
+typedef std::list<RIRStmtCopyRef>  RIRStmtList;
+typedef std::list<RIRExprCopyRef>  RIRExprList;
 
 // interface for compiler passes
 class RIRVisitor {
 public: 
   //hooks called as we walk the tree -- used by compiler passes
-  virtual void before(RIRExprPtr&)    {}
-  virtual void before(RIRStmtPtr&)    {}
-  virtual void before(RIRBlockPtr&)   {}
-  virtual void after(RIRExprPtr&)     {}
-  virtual void after(RIRStmtPtr&)     {}
-  virtual void after(RIRBlockPtr&)    {}
+  virtual void before(RIRExprCopyRef&)    {}
+  virtual void before(RIRStmtCopyRef&)    {}
+  virtual void before(RIRBlockCopyRef&)   {}
+  virtual void after(RIRExprCopyRef&)     {}
+  virtual void after(RIRStmtCopyRef&)     {}
+  virtual void after(RIRBlockCopyRef&)    {}
 
   //base versions of the hooks used by infrastructure
-  virtual void _before(RIRExprPtr& p)  { before(p); }
-  virtual void _before(RIRStmtPtr& p)  { before(p); }
-  virtual void _before(RIRBlockPtr& p) { before(p); }
-  virtual void _after(RIRExprPtr& p)   { after(p);  }
-  virtual void _after(RIRStmtPtr& p)   { after(p);  }
-  virtual void _after(RIRBlockPtr& p)  { after(p);  }
+  virtual void _before(RIRExprCopyRef& p)  { before(p); }
+  virtual void _before(RIRStmtCopyRef& p)  { before(p); }
+  virtual void _before(RIRBlockCopyRef& p) { before(p); }
+  virtual void _after(RIRExprCopyRef& p)   { after(p);  }
+  virtual void _after(RIRStmtCopyRef& p)   { after(p);  }
+  virtual void _after(RIRBlockCopyRef& p)  { after(p);  }
    
   //allow visitor to short circuit over uninteresting nodes
   virtual bool shouldDescend(const RIRNode&) { return true; }
@@ -114,7 +114,7 @@ protected:
 class RIRExpr  : public RIRNode {
 public:
   RIRExpr(Type t, const std::string& str="") : RIRNode(t), _str(str) {}
-  void addSubExpr(const RIRExprPtr& p) { _parts.push_back(p); }
+  void addSubExpr(const RIRExprCopyRef& p) { _parts.push_back(p); }
   void print(std::ostream& o) const;
   void accept(RIRVisitor&);
   RIRExpr* clone() const;
@@ -160,7 +160,7 @@ public:
 class RIRStmt  : public RIRNode {
 public:
   RIRStmt(Type t) : RIRNode(t) {}
-  void addExpr(const RIRExprPtr& p)   { _exprs.push_back(p); }
+  void addExpr(const RIRExprCopyRef& p)   { _exprs.push_back(p); }
   void accept(RIRVisitor&);
   virtual RIRStmt* clone() const = 0;
 protected:
@@ -182,27 +182,27 @@ public:
 
 class RIRLoopStmt: public RIRControlStmt{
 public:
-  RIRLoopStmt(const RIRStmtPtr& p) { _body=p; }
+  RIRLoopStmt(const RIRStmtCopyRef& p) { _body=p; }
   void print(std::ostream& o) const;
   void accept(RIRVisitor&);
   RIRLoopStmt* clone() const;
 private:
-  RIRStmtPtr _body;
+  RIRStmtCopyRef _body;
 };
 
 class RIRSwitchStmt: public RIRControlStmt{
 public:
-  RIRSwitchStmt(const RIRStmtPtr& p) { _body=p; }
+  RIRSwitchStmt(const RIRStmtCopyRef& p) { _body=p; }
   void print(std::ostream& o) const;
   void accept(RIRVisitor&);
   RIRSwitchStmt* clone() const;
 private:
-  RIRStmtPtr _body;
+  RIRStmtCopyRef _body;
 };
 
 class RIRIfStmt: public RIRControlStmt{
 public:
-  RIRIfStmt(const RIRStmtPtr& t, const RIRStmtPtr& e=0) 
+  RIRIfStmt(const RIRStmtCopyRef& t, const RIRStmtCopyRef& e=0) 
     : _then(t)
     , _else(e) 
   {}
@@ -210,8 +210,8 @@ public:
   void accept(RIRVisitor&);
   RIRIfStmt* clone() const;
 private:
-  RIRStmtPtr _then;
-  RIRStmtPtr _else;
+  RIRStmtCopyRef _then;
+  RIRStmtCopyRef _else;
 };
 
 typedef RIRBasicStmt   RIRReturnStmt;
@@ -222,12 +222,12 @@ typedef RIRControlStmt RIRInlineConditional;
 
 class RIRBlockStmt  : public RIRStmt {
 public:
-  RIRBlockStmt(const RIRBlockPtr& p) : RIRStmt(STMT_BLOCK) { _block=p; }
+  RIRBlockStmt(const RIRBlockCopyRef& p) : RIRStmt(STMT_BLOCK) { _block=p; }
   void print(std::ostream& o) const;
   void accept(RIRVisitor&);
   RIRBlockStmt* clone() const;
 private:
-  RIRBlockPtr _block;
+  RIRBlockCopyRef _block;
 };
 
 class RIRRawStmt  : public RIRStmt {
@@ -246,7 +246,7 @@ private:
 class RIRBlock : public RIRNode {
 public:
   RIRBlock() : RIRNode(BLOCK) {}
-  void addStmt(const RIRStmtPtr& p) { _stmts.push_back(p); }
+  void addStmt(const RIRStmtCopyRef& p) { _stmts.push_back(p); }
   void print(std::ostream& o) const;
   void accept(RIRVisitor&);
   RIRBlock* clone() const;

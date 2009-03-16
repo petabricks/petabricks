@@ -41,8 +41,8 @@ protected:
     TList* _forward;
     int    _lvl;
   };
-  typedef Context<RIRExprPtr> ExprContext;
-  typedef Context<RIRStmtPtr> StmtContext;
+  typedef Context<RIRExprCopyRef> ExprContext;
+  typedef Context<RIRStmtCopyRef> StmtContext;
   typedef std::vector<ExprContext> ExprContextStack;
   typedef std::vector<StmtContext> StmtContextStack;
   
@@ -58,56 +58,56 @@ protected:
   }
 
 public:
-  //void before(RIRExprPtr&) {}
-  //void before(RIRStmtPtr&) {}
-  //void before(RIRBlockPtr&){}
-  //void after(RIRExprPtr&)  {}
-  //void after(RIRStmtPtr&)  {}
-  //void after(RIRBlockPtr&) {}
+  //void before(RIRExprCopyRef&) {}
+  //void before(RIRStmtCopyRef&) {}
+  //void before(RIRBlockCopyRef&){}
+  //void after(RIRExprCopyRef&)  {}
+  //void after(RIRStmtCopyRef&)  {}
+  //void after(RIRBlockCopyRef&) {}
 
   //bool shouldDescend(const RIRNode&) { return true; }
 
-  virtual void beforeAny(const RIRNodePtr& n){}
-  virtual void afterAny(const RIRNodePtr& n){}
+  virtual void beforeAny(const RIRNodeCopyRef& n){}
+  virtual void afterAny(const RIRNodeCopyRef& n){}
 protected:
   int depth() const { return _stack.size(); } 
 
   RIRCompilerPass() : _scope(RIRScope::global()->createChildLayer()) {}
 
 private:
-  void _before(RIRExprPtr& p)  { 
+  void _before(RIRExprCopyRef& p)  { 
     _beforeAny(p.asPtr());
     RIRVisitor::_before(p);
   }
-  void _after(RIRExprPtr& p)   { 
+  void _after(RIRExprCopyRef& p)   { 
     RIRVisitor::_after(p);
     _afterAny(p.asPtr());
   }
   
-  void _before(RIRStmtPtr& p)  { 
+  void _before(RIRStmtCopyRef& p)  { 
     _beforeAny(p.asPtr());
     RIRVisitor::_before(p);
   }
-  void _after(RIRStmtPtr& p)   { 
+  void _after(RIRStmtCopyRef& p)   { 
     RIRVisitor::_after(p);
     _afterAny(p.asPtr());
   }
  
-  void _before(RIRBlockPtr& p) { 
+  void _before(RIRBlockCopyRef& p) { 
     _scope=_scope->createChildLayer();
     _beforeAny(p.asPtr());
     RIRVisitor::_before(p);
   }
-  void _after(RIRBlockPtr& p)  { 
+  void _after(RIRBlockCopyRef& p)  { 
     RIRVisitor::_after(p);
     _afterAny(p.asPtr());
     _scope=_scope->parentLayer();
   } 
-  void _beforeAny(const RIRNodePtr& n){
+  void _beforeAny(const RIRNodeCopyRef& n){
     _stack.push_back(n);
     beforeAny(n);
   }
-  void _afterAny(const RIRNodePtr& n){
+  void _afterAny(const RIRNodeCopyRef& n){
     afterAny(n);
     JASSERT(!_stack.empty());
     _stack.pop_back();
@@ -135,11 +135,11 @@ protected:
 
 class DebugPrintPass : public RIRCompilerPass {
 public:
-  void beforeAny(const RIRNodePtr& n){
+  void beforeAny(const RIRNodeCopyRef& n){
     std::cout << std::string(depth()*2, ' ')
               << n->debugStr() << std::endl; 
   }
-//void afterAny(const RIRNodePtr& n){
+//void afterAny(const RIRNodeCopyRef& n){
 //  std::cout << std::string(depth()*2, ' ')
 //            << n->debugStr() << std::endl; 
 //}
@@ -147,7 +147,7 @@ public:
 
 class ExpansionPass : public RIRCompilerPass {
 public:
-  void before(RIRExprPtr& e){
+  void before(RIRExprCopyRef& e){
     if(e->type() == RIRNode::EXPR_IDENT){
       RIRSymbolPtr sym = _scope->lookup(e->toString());
       if(sym && sym->type() == RIRSymbol::SYM_TRANSFORM_TEMPLATE){

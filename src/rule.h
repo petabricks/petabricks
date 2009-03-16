@@ -217,7 +217,7 @@ private:
   FormulaList _definitions;
   SimpleRegionPtr _applicanbleRegion;
   std::string     _bodysrc;
-  RIRBlockPtr     _bodyir;
+  RIRBlockCopyRef _bodyir;
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr          _recursiveHint;

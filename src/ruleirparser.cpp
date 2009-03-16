@@ -128,7 +128,7 @@ extern int ruleirlineno;
 extern std::string ruleirfilename;
 
 extern int yylex (void);
-static int yyerror(const RIRBlockPtr&, const char* msg){ 
+static int yyerror(const RIRBlockCopyRef&, const char* msg){ 
   JASSERT(false)(ruleirfilename)
                 (ruleirlineno)
                 (msg)
@@ -806,7 +806,7 @@ do {									  \
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, petabricks::RIRBlockPtr& ret)
+yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, petabricks::RIRBlockCopyRef& ret)
 #else
 static void
 yy_symbol_value_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
@@ -814,7 +814,7 @@ yy_symbol_value_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
     int yytype;
     YYSTYPE const * const yyvaluep;
     YYLTYPE const * const yylocationp;
-    petabricks::RIRBlockPtr& ret;
+    petabricks::RIRBlockCopyRef& ret;
 #endif
 {
   if (!yyvaluep)
@@ -842,7 +842,7 @@ yy_symbol_value_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, petabricks::RIRBlockPtr& ret)
+yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, petabricks::RIRBlockCopyRef& ret)
 #else
 static void
 yy_symbol_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
@@ -850,7 +850,7 @@ yy_symbol_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
     int yytype;
     YYSTYPE const * const yyvaluep;
     YYLTYPE const * const yylocationp;
-    petabricks::RIRBlockPtr& ret;
+    petabricks::RIRBlockCopyRef& ret;
 #endif
 {
   if (yytype < YYNTOKENS)
@@ -900,14 +900,14 @@ do {								\
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yy_reduce_print (YYSTYPE *yyvsp, YYLTYPE *yylsp, int yyrule, petabricks::RIRBlockPtr& ret)
+yy_reduce_print (YYSTYPE *yyvsp, YYLTYPE *yylsp, int yyrule, petabricks::RIRBlockCopyRef& ret)
 #else
 static void
 yy_reduce_print (yyvsp, yylsp, yyrule, ret)
     YYSTYPE *yyvsp;
     YYLTYPE *yylsp;
     int yyrule;
-    petabricks::RIRBlockPtr& ret;
+    petabricks::RIRBlockCopyRef& ret;
 #endif
 {
   int yynrhs = yyr2[yyrule];
@@ -1180,7 +1180,7 @@ yysyntax_error (char *yyresult, int yystate, int yychar)
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, YYLTYPE *yylocationp, petabricks::RIRBlockPtr& ret)
+yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, YYLTYPE *yylocationp, petabricks::RIRBlockCopyRef& ret)
 #else
 static void
 yydestruct (yymsg, yytype, yyvaluep, yylocationp, ret)
@@ -1188,7 +1188,7 @@ yydestruct (yymsg, yytype, yyvaluep, yylocationp, ret)
     int yytype;
     YYSTYPE *yyvaluep;
     YYLTYPE *yylocationp;
-    petabricks::RIRBlockPtr& ret;
+    petabricks::RIRBlockCopyRef& ret;
 #endif
 {
   YYUSE (yyvaluep);
@@ -1218,7 +1218,7 @@ int yyparse ();
 #endif
 #else /* ! YYPARSE_PARAM */
 #if defined __STDC__ || defined __cplusplus
-int yyparse (petabricks::RIRBlockPtr& ret);
+int yyparse (petabricks::RIRBlockCopyRef& ret);
 #else
 int yyparse ();
 #endif
@@ -1257,11 +1257,11 @@ yyparse (YYPARSE_PARAM)
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 int
-yyparse (petabricks::RIRBlockPtr& ret)
+yyparse (petabricks::RIRBlockCopyRef& ret)
 #else
 int
 yyparse (ret)
-    petabricks::RIRBlockPtr& ret;
+    petabricks::RIRBlockCopyRef& ret;
 #endif
 #endif
 {
@@ -2028,10 +2028,10 @@ yyreturn:
 
 void _ruleirlexer_scan_string( const std::string& str);
 
-RIRBlockPtr parseRuleBody(const std::string& str){
+RIRBlockCopyRef parseRuleBody(const std::string& str){
   JTRACE("Parsing rule body")(str);
   _ruleirlexer_scan_string(str);
-  RIRBlockPtr ret;
+  RIRBlockCopyRef ret;
   ruleirparse(ret);
   clearParserCaches();
   return ret;

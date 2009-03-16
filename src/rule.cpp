@@ -26,7 +26,7 @@
 #include "rircompilerpass.h"
 #include <algorithm>
 
-petabricks::RIRBlockPtr parseRuleBody(const std::string& str);
+petabricks::RIRBlockCopyRef parseRuleBody(const std::string& str);
 
 volatile long theNextRuleId = 0;
 

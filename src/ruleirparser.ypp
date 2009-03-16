@@ -11,7 +11,7 @@ extern int ruleirlineno;
 extern std::string ruleirfilename;
 
 extern int yylex (void);
-static int yyerror(const RIRBlockPtr&, const char* msg){ 
+static int yyerror(const RIRBlockCopyRef&, const char* msg){ 
   JASSERT(false)(ruleirfilename)
                 (ruleirlineno)
                 (msg)
@@ -40,7 +40,7 @@ static void clearParserCaches(){
 //%expect 2
 %name-prefix="ruleir"
 %start Start
-%parse-param { petabricks::RIRBlockPtr& ret };
+%parse-param { petabricks::RIRBlockCopyRef& ret };
 
 %type <str> TOK_OP TOK_LIT TOK_IDENT TOK_RAW
 %type <expr> Op ExtraOps
@@ -188,10 +188,10 @@ Nil:;
 
 void _ruleirlexer_scan_string( const std::string& str);
 
-RIRBlockPtr parseRuleBody(const std::string& str){
+RIRBlockCopyRef parseRuleBody(const std::string& str){
   JTRACE("Parsing rule body")(str);
   _ruleirlexer_scan_string(str);
-  RIRBlockPtr ret;
+  RIRBlockCopyRef ret;
   ruleirparse(ret);
   clearParserCaches();
   return ret;
