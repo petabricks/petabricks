@@ -72,6 +72,8 @@ PASS_CHARS [.<>,*/()[\]^+-]
   "gen"            RETURN GENERATOR;
   "through"        RETURN THROUGH;
   "testcase"       RETURN TESTCASE;
+  "config"         RETURN CONFIG;
+  "tunable"        RETURN TUNABLE;
   "{"              yy_push_state(transform); RETURN '{';
   "%{"             yy_push_state(litcode); theParseLog.str("");
 }

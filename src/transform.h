@@ -62,6 +62,25 @@ private:
   int _max;
 };
 
+class ConfigItem {
+public:
+  ConfigItem(bool isTunable, std::string name, int initial, int min, int max)
+      :_isTunable(isTunable),
+       _name(name),
+       _initial(initial),
+       _min(min),
+       _max(max)
+  {}
+private:
+  bool        _isTunable;
+  std::string _name;
+  int         _initial;
+  int         _min;
+  int         _max;
+};
+
+typedef std::vector<ConfigItem> ConfigItems;
+
 
 /**
  * a transformation algorithm
@@ -145,6 +164,15 @@ public:
   bool isTemplate() const { return !_templateargs.empty(); }
 
   std::string tmplName(int n, CodeGenerator* o=NULL) const;
+
+  void addConfig(const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
+    _config.push_back(ConfigItem(false,n,initial, min,max));
+  }
+  
+  void addTunable(const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
+    _config.push_back(ConfigItem(true,n,initial, min,max));
+  }
+
 private:
   std::string   _name;
   MatrixDefList _from;
@@ -160,6 +188,7 @@ private:
   PerformanceTester _tester;
   TemplateArgList _templateargs;
   int _tuneId;
+  ConfigItems _config;
 };
 
 }

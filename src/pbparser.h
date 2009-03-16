@@ -55,10 +55,12 @@
      TESTCASE = 271,
      GENERATOR = 272,
      TEMPLATE = 273,
-     INTEGER = 274,
-     FLOAT = 275,
-     IDENT = 276,
-     RULEBODY = 277
+     TUNABLE = 274,
+     CONFIG = 275,
+     INTEGER = 276,
+     FLOAT = 277,
+     IDENT = 278,
+     RULEBODY = 279
    };
 #endif
 /* Tokens.  */
@@ -78,10 +80,12 @@
 #define TESTCASE 271
 #define GENERATOR 272
 #define TEMPLATE 273
-#define INTEGER 274
-#define FLOAT 275
-#define IDENT 276
-#define RULEBODY 277
+#define TUNABLE 274
+#define CONFIG 275
+#define INTEGER 276
+#define FLOAT 277
+#define IDENT 278
+#define RULEBODY 279
 
 
 
@@ -109,7 +113,7 @@ typedef union YYSTYPE
   struct { const char* str; petabricks::FormulaList* formulas; } str_formulas; 
 }
 /* Line 1489 of yacc.c.  */
-#line 113 "pbparser.h"
+#line 117 "pbparser.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
