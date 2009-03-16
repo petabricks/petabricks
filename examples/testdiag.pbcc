@@ -1,0 +1,14 @@
+transform testdiag
+from IN[n,n], A
+to OUT[n,n]
+{
+  primary OUT.cell(i,i) from(IN.cell(i,i) x, A a)
+  {
+        return x+a;
+  }
+
+  OUT.cell(i,j) from (IN.cell(i,j) x)
+  {
+  	return x;
+  }
+}
