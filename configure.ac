@@ -4,6 +4,11 @@ AC_CANONICAL_TARGET
 AM_CONFIG_HEADER(src/config.h)
 AM_INIT_AUTOMAKE(petabricks, 1.99)
 
+default_cxxflags=no
+if test "x$CXXFLAGS" = "x"; then
+  default_cxxflags=yes
+fi
+
 ################################################################################
 # PROGRAMS ####################################################################
 ################################################################################
@@ -74,6 +79,11 @@ if test "$use_jassert" = "yes"; then
   AC_DEFINE([DEBUG],[],[verbose debug printouts and log files in /tmp])
   if test "`hostname`" = "kleptocracy"; then
     AC_DEFINE([MAXIMA_LOG],[1],[define in order to generate maxima.log, (a log of maxima commands)])
+  fi
+  
+  if test "$default_cxxflags" = "yes"; then
+    CXXFLAGS="-g -O0"
+    default_cxxflags="no"
   fi
 fi
 
