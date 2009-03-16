@@ -14,7 +14,7 @@ function die(){
 function ec(){
   $@ || die "FAILED: $@"
 }
-NCPU=`grep -c '^processor' /proc/cpuinfo`
+NCPU=`grep -c -E '^(processor|CPU)' /proc/cpuinfo`
 #make sure we are in the right dir and compiled
 test -d ./examples || cd ..
 ec test -d ./examples
