@@ -25,6 +25,7 @@
 
 namespace jalib {
 
+#if defined(__i386__) || defined(__x86_64__)
 /**
  * Thread safe add, returns old value
  */
@@ -54,7 +55,59 @@ inline uint64_t ClockCyclesSinceBoot()
   return ((uint64_t ) lo) | (((uint64_t) hi) << 32);
 }
 
+#elif defined(__sparc__)
 
+inline bool
+cas(volatile long *m, long old_val, long new_val)
+{
+	__asm__ __volatile__("cas [%2], %3, %0\n\t"
+			     : "=&r" (new_val)
+			     : "0" (new_val), "r" (m), "r" (old_val)
+			     : "memory");
+
+	return new_val == old_val;
+}
+
+template<long v> long atomicAdd(volatile long *p)
+{
+  long new_val, old_val;
+  do {
+    old_val = *p;
+    new_val = old_val + v;
+  } while (!cas(p, old_val, new_val));
+  
+  return new_val;
+}
+
+/**
+ * Break into debugger
+ */
+inline void Breakpoint(){
+  asm volatile ("ta 0x70");
+}
+
+
+/** 
+ * Returns the number of clock cycles that have passed since the machine
+ * booted up.
+ */
+inline uint64_t ClockCyclesSinceBoot()
+{
+  uint64_t t;
+  asm volatile ("rd %%tick, %0" : "=r"(t));
+  return t;
+
+}
+
+#else
+
+int Need_To_Port_ASM_Functions[-1];
+// Port these
+template<long v> long atomicAdd(volatile long *p);
+inline void Breakpoint();
+inline uint64_t ClockCyclesSinceBoot();
+
+#endif
 }
 
 #endif 
