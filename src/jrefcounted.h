@@ -65,7 +65,9 @@ public:
 
   //constructors
   JRef(T* o = NULL)   : _obj(o) { inc(); }
-  JRef(const JRef& p) : _obj(p._obj) { inc(); }
+
+  template< typename SomePolicy >
+  JRef(const JRef<T, SomePolicy>& p) : _obj(p.asPtr()) { inc(); }
 
   //destructors
   ~JRef() { dec(); }
@@ -92,8 +94,7 @@ public:
     return *_obj; 
   }
 
-   T* asPtr()             { use(); return _obj; }
-   const T* asPtr() const { use(); return _obj; }
+  T* asPtr() const { use(); return _obj; }
 
   //is valid?
   operator bool() const { 

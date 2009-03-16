@@ -156,7 +156,7 @@ public:
           .Text("Expected < after template transform");
         popExprForward();
         while(!peekExprForward()->isLeaf(">")){
-          tmp.push_back(popExprForward().asPtr());
+          tmp.push_back(popExprForward());
         }
         tmp.push_back(new RIROpExpr(","));
         popExprForward();
