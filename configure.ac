@@ -25,12 +25,17 @@ AC_PROG_EGREP
 
 AC_CHECK_PROG([has_maxima], [maxima], [yes], [no])
 if test "$has_maxima" = "no"; then
-  AC_MSG_ERROR([failed to find maxima in \$path. (try running: sudo apt-get install maxima)])
+  AC_MSG_ERROR([failed to find 'maxima' in \$path, try running:`sudo apt-get install maxima`.])
 fi
 
 AC_CHECK_PROG([has_dot], [dot], [yes], [no])
 if test "$has_dot" = "no"; then
-  AC_MSG_WARN([failed to find dot in \$path. (try running: sudo apt-get install graphviz)])
+  AC_MSG_WARN([failed to find 'dot' in \$path, some debug outputs will not be generated.])
+fi
+
+AC_CHECK_PROG([has_doxygen], [doxygen], [yes], [no])
+if test "$has_doxygen" = "no"; then
+  AC_MSG_WARN([failed to find 'doxygen' in \$path, documentation will not be generated.])
 fi
 
 
