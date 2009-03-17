@@ -72,7 +72,7 @@ public:
 protected:
   int depth() const { return _stack.size(); } 
 
-  RIRCompilerPass() : _scope(RIRScope::global()->createChildLayer()) {}
+  RIRCompilerPass(const RIRScopePtr& scope) : _scope(scope) {}
 
 private:
   void _before(RIRExprCopyRef& p)  { 
@@ -135,6 +135,9 @@ protected:
 
 class DebugPrintPass : public RIRCompilerPass {
 public:
+  DebugPrintPass() : RIRCompilerPass(RIRScope::global()->createChildLayer()) {}
+
+
   void beforeAny(const RIRNodeCopyRef& n){
     std::cout << std::string(depth()*2, ' ')
               << n->debugStr() << std::endl; 
@@ -147,6 +150,8 @@ public:
 
 class ExpansionPass : public RIRCompilerPass {
 public:
+  ExpansionPass(const RIRScopePtr& p) : RIRCompilerPass(p->createChildLayer()) {}
+
   void before(RIRExprCopyRef& e){
     if(e->type() == RIRNode::EXPR_IDENT){
       RIRSymbolPtr sym = _scope->lookup(e->toString());
@@ -171,6 +176,10 @@ public:
           peekExprForward()->parts().insert(i, tmp.begin(), tmp.end());
           JTRACE("handled template")(e)(tmp.size())(peekExprForward()->toString());
         }
+      }
+      if(sym && sym->type() == RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL){
+        JTRACE("Expanding config item")(e);
+        e = new RIRIdentExpr("TRANSFORM_LOCAL("+e->toString()+")");
       }
     }
   }

@@ -41,7 +41,8 @@ public:
     SYM_TYPE_MATRIX,
     SYM_TRANSFORM          = 0x2000,
     SYM_TRANSFORM_TEMPLATE,
-    SYM_TUNABLE
+    SYM_CONFIG             = 0x4000,
+    SYM_CONFIG_TRANSFORM_LOCAL
   };
   RIRSymbol(SymbolType t) 
     : _type(t)
@@ -51,6 +52,8 @@ public:
   void print(std::ostream& o) const {
     o<<"RIRSymbol";
   }
+
+  bool isConfig() const { return (_type & SYM_CONFIG) != 0; }
 private:
   SymbolType  _type;
 };
@@ -76,7 +79,7 @@ public:
 
   RIRSymbolPtr lookup(const std::string& name) const;
 
-  RIRScopePtr createChildLayer(){ return new RIRScope(this); }
+  RIRScopePtr createChildLayer() { return new RIRScope(this); }
   const RIRScopePtr& parentLayer() const { return _parent; }
 private:
   RIRScopePtr _parent;

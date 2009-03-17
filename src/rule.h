@@ -34,6 +34,7 @@
 #include <vector>
 
 namespace petabricks {
+class RIRScope;
 class CodeGenerator;
 class RuleDescriptor;
 class MatrixDependencyMap;
@@ -206,8 +207,7 @@ public:
     return _to[0]->isSingleElement();
   }
 
-
-  void compileRuleBody();
+  void compileRuleBody(RIRScope& s);
 private:
   int _id;
   RuleFlags   _flags;

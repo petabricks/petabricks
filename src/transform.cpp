@@ -160,7 +160,13 @@ void petabricks::Transform::compile(){
   jalib::Map(&MatrixDef::exportAssumptions, _through);
   jalib::Map(&MatrixDef::exportAssumptions, _to);
 
-  jalib::Map(&Rule::compileRuleBody, _rules);
+  RIRScopePtr scope = RIRScope::global()->createChildLayer();
+
+  for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
+    scope->set(i->name(), RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL);
+  }
+
+  jalib::Map(&Rule::compileRuleBody, *scope, _rules);
 
   JASSERT(!_scheduler);
 
@@ -315,6 +321,13 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
 
   o.comment("Begin output for transform " + _name);
   o.newline();
+  
+  for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
+    o.createTunable( "user", _name+"_"+i->name(), i->initial(), i->min(), i->max());
+  }
+
+  o.write("#define TRANSFORM_LOCAL(x) PB_CAT("+_name+"_, x)");
+
 //   o.comment("Forward declarations");
 //   o.declareFunc("void", _name, args);
 //   if(_to.size()==1) o.declareFunc(_to.front()->matrixTypeName(), _name, returnStyleArgs);
@@ -386,6 +399,8 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
     o.endFunc();
     o.newline();
   }
+  
+  o.write("#undef TRANSFORM_LOCAL");
 }
 
 void petabricks::Transform::extractSizeDefines(CodeGenerator& o){

@@ -36,6 +36,10 @@
     _task->enqueue();\
   }
 
+#define PB_CAT(a,b) _PB_CAT(a,b)
+#define _PB_CAT(a,b) __PB_CAT(a,b)
+#define __PB_CAT(a,b) a ## b
+
 #define SYNC() \
   { \
     _before = _after; \

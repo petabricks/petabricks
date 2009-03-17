@@ -71,6 +71,12 @@ public:
        _min(min),
        _max(max)
   {}
+  
+  bool        isTunable() const { return _isTunable;}
+  std::string name     () const { return _name;     }
+  int         initial  () const { return _initial;  }
+  int         min      () const { return _min;      }
+  int         max      () const { return _max;      }
 private:
   bool        _isTunable;
   std::string _name;
