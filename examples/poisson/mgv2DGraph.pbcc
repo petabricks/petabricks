@@ -3,7 +3,12 @@
 
 #include "mgv2D.pbcc"
 
-#define PRECISION5
+%{
+
+JTUNABLE(_prec_case, 9);
+
+%}
+
 #define MAX_LEVEL 12
 
 transform mgv2DGraph
@@ -14,42 +19,32 @@ to OUT[n,n]
   to (OUT o) from (IN in, B b)
   {
 
-#ifdef PRECISION1
-    int iters[MAX_LEVEL + 1] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-#endif
+    int *iters;
+    int prec_case = (int) _prec_case;
 
-#ifdef PRECISION2
-    int iters[MAX_LEVEL + 1] = {1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
-#endif
+    int iters1 [MAX_LEVEL + 1] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    int iters2 [MAX_LEVEL + 1] = {1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
+    int iters3 [MAX_LEVEL + 1] = {1, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3};
+    int iters4 [MAX_LEVEL + 1] = {1, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3};
+    int iters5 [MAX_LEVEL + 1] = {1, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
+    int iters7 [MAX_LEVEL + 1] = {1, 1, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5};
+    int iters9 [MAX_LEVEL + 1] = {1, 1, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7};
+    int iters10[MAX_LEVEL + 1] = {1, 1, 7, 8, 8, 7, 7, 7, 7, 7, 7, 7, 7};
+    int iters13[MAX_LEVEL + 1] = {1, 1, 9,10,10,10,10,10,10,10,10,10,10};
 
-#ifdef PRECISION3
-    int iters[MAX_LEVEL + 1] = {1, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3};
-#endif
-
-#ifdef PRECISION4
-    int iters[MAX_LEVEL + 1] = {1, 1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3};
-#endif
-
-#ifdef PRECISION5
-    int iters[MAX_LEVEL + 1] = {1, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
-#endif
-
-#ifdef PRECISION7
-    int iters[MAX_LEVEL + 1] = {1, 1, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5};
-#endif
-
-#ifdef PRECISION9
-    int iters[MAX_LEVEL + 1] = {1, 1, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7};
-#endif
-
-#ifdef PRECISION10
-    int iters[MAX_LEVEL + 1] = {1, 1, 7, 8, 8, 7, 7, 7, 7, 7, 7, 7, 7};
-#endif
-
-#ifdef PRECISION13
-    int iters[MAX_LEVEL + 1] = {1, 1, 9,10,10,10,10,10,10,10,10,10,10};
-#endif
-
+    switch (prec_case) {
+      case 1:  iters = iters1;  break;
+      case 2:  iters = iters2;  break;
+      case 3:  iters = iters3;  break;
+      case 4:  iters = iters4;  break;
+      case 5:  iters = iters5;  break;
+      case 7:  iters = iters7;  break;
+      case 9:  iters = iters9;  break;
+      case 10: iters = iters10; break;
+      case 13: iters = iters13; break;
+      default: printf("error\n"); exit(-1);
+    }
+        
 //    printf("Using %d iterations\n", iters[(int) log2(n - 1)]);
     SPAWN(mgv2D, o, in, b, iters[(int) log2(n - 1)]);
   }
