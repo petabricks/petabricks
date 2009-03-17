@@ -52,7 +52,7 @@ public:
   }
   void print(std::ostream& o) const { o << _name << "(" << _min << ", " << _max << ")"; }
   
-  std::string name() const { return _name; }
+  const std::string& name() const { return _name; }
   int min() const { return _min; }
   int max() const { return _max; }
   int range() const { return _max-_min+1; }
@@ -123,8 +123,9 @@ public:
   void generateCode(CodeGenerator& o);
 
   void generateCodeSimple(CodeGenerator& o);
-
-  void generateMainCode(CodeGenerator& o);
+  
+  
+  void registerMainInterface(CodeGenerator& o);
 
   void generateMainInterface(CodeGenerator& o);
 

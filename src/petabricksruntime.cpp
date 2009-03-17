@@ -78,7 +78,7 @@ private:
 
 }
 
-petabricks::PetabricksRuntime::PetabricksRuntime(Main& m) : main(m)
+petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Main& m) : main(m)
 {
   randSize = 4096;
   //load config from disk

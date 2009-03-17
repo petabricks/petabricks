@@ -93,7 +93,16 @@ int main( int argc, const char ** argv){
     (*i)->generateCode(o);
   }
   
-  t->back()->generateMainCode(o);
+  o.comment("Program main routine");
+  std::string args[] = {"int argc", "const char** argv"};
+  o.beginFunc("int", "main", std::vector<std::string>(args, args+2));
+  o.write("petabricks::PetabricksRuntime runtime(argc, argv, "+t->back()->name()+"_main);");
+  for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
+    (*i)->registerMainInterface(o);
+  }
+  o.write("return runtime.runMain(argc,argv);");
+  o.endFunc();
+  
   o.outputFileTo(of);
   of.flush();
   of.close();

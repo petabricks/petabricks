@@ -62,7 +62,7 @@ public:
 
   ///
   /// Construct the runtime, parse any runtime-specific args
-  PetabricksRuntime(Main&);
+  PetabricksRuntime(int argc, const char** argv, Main&);
 
   ///
   /// Destruct the runtime, saving config to disk
@@ -71,6 +71,8 @@ public:
   ///
   /// Run the given main routine
   int runMain(int argc, const char** argv);
+
+  void addTransform(Main& tx){}
 
   void runGraphMode();
 

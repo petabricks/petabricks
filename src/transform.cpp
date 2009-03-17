@@ -417,6 +417,16 @@ void petabricks::Transform::extractSizeDefines(CodeGenerator& o){
   }
 }
 
+void petabricks::Transform::registerMainInterface(CodeGenerator& o){
+  if(_templateargs.empty())
+    o.write("runtime.addTransform("+name()+"_main);");
+  else{
+    int choiceCnt = tmplChoiceCount();
+    for(size_t c=0; c<choiceCnt; ++c)
+      o.write("runtime.addTransform("+tmplName(c)+"_main);");
+  }
+}
+
 void petabricks::Transform::generateMainInterface(CodeGenerator& o){ 
   std::vector<std::string> argNames = normalArgNames();
   int a = 1;
@@ -501,15 +511,6 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
   o.write("} "+_name+"_main;");
 }
 
-void petabricks::Transform::generateMainCode(CodeGenerator& o){ 
-  o.comment("Program main routine");
-  std::string args[] = {"int argc", "const char** argv"};
-  o.beginFunc("int", "main", std::vector<std::string>(args, args+2));
-  o.write("petabricks::PetabricksRuntime runtime("+_name+"_main);");
-  o.write("return runtime.runMain(argc,argv);");
-  o.endFunc();
-}
-
 std::vector<std::string> petabricks::Transform::maximalArgList() const{
   std::vector<std::string> tmp; 
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
@@ -526,3 +527,4 @@ std::vector<std::string> petabricks::Transform::maximalArgList() const{
   }
   return tmp;
 }
+
