@@ -399,8 +399,11 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
     o.endFunc();
     o.newline();
   }
-  
+  generateMainInterface(o);
   o.write("#undef TRANSFORM_LOCAL");
+  o.comment("End of output for "+_name);
+  o.newline();
+  o.newline();
 }
 
 void petabricks::Transform::extractSizeDefines(CodeGenerator& o){
@@ -414,21 +417,14 @@ void petabricks::Transform::extractSizeDefines(CodeGenerator& o){
   }
 }
 
-void petabricks::Transform::generateMainCode(CodeGenerator& o){ 
-  std::vector<std::string> argNames;
-  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    argNames.push_back((*i)->name());
-  }
-  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    argNames.push_back((*i)->name());
-  }
+void petabricks::Transform::generateMainInterface(CodeGenerator& o){ 
+  std::vector<std::string> argNames = normalArgNames();
   int a = 1;
-  o.comment("Program main routine");
-  std::string args[] = {"int argc", "const char** argv"};
-  o.beginFunc("int", "main", std::vector<std::string>(args, args+2));
-  o.write("class _mainclass : public petabricks::PetabricksRuntime::Main {");
+  o.write("class _"+_name+"_main_glue: public petabricks::PetabricksRuntime::Main {");
   o.write("public:");
   o.incIndent();
+  o.write("_"+_name+"_main_glue(): petabricks::PetabricksRuntime::Main(\""+_name+"\"){}");
+
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->varDeclCodeRO(o);
   }
@@ -438,6 +434,7 @@ void petabricks::Transform::generateMainCode(CodeGenerator& o){
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->varDeclCodeRW(o);
   }
+  std::string args[] = {"int argc", "const char** argv"};
   o.beginFunc("bool", "verifyArgs", std::vector<std::string>(args, args+2));
   {
     o.beginIf("argc!="+jalib::XToString(_to.size()+_from.size()+1));
@@ -501,8 +498,14 @@ void petabricks::Transform::generateMainCode(CodeGenerator& o){
   o.endFunc();
 
   o.decIndent();
-  o.write("} mc;");
-  o.write("petabricks::PetabricksRuntime runtime(mc);");
+  o.write("} "+_name+"_main;");
+}
+
+void petabricks::Transform::generateMainCode(CodeGenerator& o){ 
+  o.comment("Program main routine");
+  std::string args[] = {"int argc", "const char** argv"};
+  o.beginFunc("int", "main", std::vector<std::string>(args, args+2));
+  o.write("petabricks::PetabricksRuntime runtime("+_name+"_main);");
   o.write("return runtime.runMain(argc,argv);");
   o.endFunc();
 }

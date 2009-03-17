@@ -33,6 +33,8 @@ public:
    */
   typedef class __usr_main_interface{
   public:
+    __usr_main_interface(const char* name){}
+
     ///
     /// destructor
     virtual ~__usr_main_interface(){}

@@ -126,6 +126,8 @@ public:
 
   void generateMainCode(CodeGenerator& o);
 
+  void generateMainInterface(CodeGenerator& o);
+
   void fillBaseCases(const MatrixDefPtr& matrix);
   
   const FreeVars& constants() const { return _constants; }
