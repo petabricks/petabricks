@@ -64,15 +64,22 @@ void petabricks::Rule::setBody(const char* str){
   _bodysrc[_bodysrc.length()-1] = ' ';
 }
 
-void petabricks::Rule::compileRuleBody(RIRScope& scope){
+void petabricks::Rule::compileRuleBody(Transform& tx, RIRScope& scope){
   _bodyir = parseRuleBody(_bodysrc);
 #ifdef DEBUG
   std::cerr << "BEFORE compileRuleBody:\n" << _bodyir << std::endl;
+  {
+    DebugPrintPass p1;
+    _bodyir->accept(p1);
+  }
 #endif
-  DebugPrintPass p1;
-  ExpansionPass p2(scope.createChildLayer());
-  _bodyir->accept(p1);
-  _bodyir->accept(p2);
+  {
+    ExpansionPass p2(scope.createChildLayer());
+    _bodyir->accept(p2);
+  }{
+    AnalysisPass p3(tx.name(), scope.createChildLayer());
+    _bodyir->accept(p3);
+  }
 #ifdef DEBUG
   std::cerr << "AFTER compileRuleBody:\n" << _bodyir << std::endl;
 #endif

@@ -162,6 +162,20 @@ namespace jalib
       ((obj).*(func))(arg);
     }
   }
+  
+  ///
+  /// Call func on each element in list
+  template < typename Element, typename Arg1, typename Arg2,  typename List >
+  inline void Map(void (Element::*func)(Arg1&, Arg2&), Arg1& arg1, Arg2& arg2 , List& list)
+  {
+    for( typename List::iterator i=list.begin()
+          ; i!=list.end()
+          ; ++i)
+    {
+      Element& obj = *i;
+      ((obj).*(func))(arg1, arg2);
+    }
+  }
 
   ///
   /// Call func on each element in list

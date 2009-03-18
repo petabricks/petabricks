@@ -109,6 +109,9 @@ public:
     write("break;");
     _indent--;
   }
+
+  TrainingDeps& cg() { return _cg; }
+
 protected:
   void indent();
   virtual std::ostream& os() = 0;

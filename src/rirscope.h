@@ -54,6 +54,7 @@ public:
   }
 
   bool isConfig() const { return (_type & SYM_CONFIG) != 0; }
+  bool isTransform() const { return (_type & SYM_TRANSFORM) != 0; }
 private:
   SymbolType  _type;
 };

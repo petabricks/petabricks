@@ -207,7 +207,7 @@ public:
     return _to[0]->isSingleElement();
   }
 
-  void compileRuleBody(RIRScope& s);
+  void compileRuleBody(Transform& tx, RIRScope& s);
 private:
   int _id;
   RuleFlags   _flags;

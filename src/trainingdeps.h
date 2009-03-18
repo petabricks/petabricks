@@ -21,6 +21,7 @@
 #define PETABRICKSTRAININGDEPS_H
 
 #include <sstream>
+#include "jassert.h"
 
 namespace petabricks {
 
@@ -32,8 +33,14 @@ public:
                  , int initial
                  , int min
                  , int max)
-  {
+  {}
 
+  void beginTransform(const std::string& name){}
+  void endTransform(const std::string& name){}
+
+
+  static void addCallgraphEdge(const std::string& caller, const std::string& callee){
+    JTRACE("callgraph")(caller)(callee);
   }
 private:
   std::ostringstream _tunables;

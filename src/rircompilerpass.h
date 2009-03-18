@@ -22,6 +22,7 @@
 
 #include "ruleir.h"
 #include "rirscope.h"
+#include "trainingdeps.h"
 
 namespace petabricks {
 
@@ -136,16 +137,10 @@ protected:
 class DebugPrintPass : public RIRCompilerPass {
 public:
   DebugPrintPass() : RIRCompilerPass(RIRScope::global()->createChildLayer()) {}
-
-
-  void beforeAny(const RIRNodeCopyRef& n){
+  void beforeAny(const RIRNodeRef& n){
     std::cout << std::string(depth()*2, ' ')
               << n->debugStr() << std::endl; 
   }
-//void afterAny(const RIRNodeCopyRef& n){
-//  std::cout << std::string(depth()*2, ' ')
-//            << n->debugStr() << std::endl; 
-//}
 };
 
 class ExpansionPass : public RIRCompilerPass {
@@ -183,6 +178,25 @@ public:
       }
     }
   }
+};
+
+class AnalysisPass: public RIRCompilerPass {
+public:
+  AnalysisPass(const std::string& name, const RIRScopePtr& p) 
+    : RIRCompilerPass(p->createChildLayer()), _name(name) 
+  {}
+
+  void before(RIRExprCopyRef& e){
+    if(e->type() == RIRNode::EXPR_IDENT){
+      RIRSymbolPtr sym = _scope->lookup(e->toString());
+      if(sym && sym->isTransform()){
+        TrainingDeps::addCallgraphEdge(_name, e->toString());
+      }
+    }
+  }
+
+private:
+  std::string _name;
 };
 
 
