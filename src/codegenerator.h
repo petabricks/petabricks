@@ -24,7 +24,7 @@
 #include "jprintable.h"
 #include "jrefcounted.h"
 #include "jconvert.h"
-
+#include "trainingdeps.h"
 
 #include <iostream>
 #include <string>
@@ -79,7 +79,8 @@ public:
 
   virtual TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType) = 0;
 
-  void createTunable( const std::string& category
+  void createTunable( bool isTunable
+                    , const std::string& category
                     , const std::string& name
                     , int initial
                     , int min=0
@@ -91,6 +92,7 @@ public:
               +","+jalib::XToString(initial)
               +","+jalib::XToString(min)
               +","+jalib::XToString(max)+")";
+    _cg.addTunable( isTunable, category, name, initial, min, max);
   }
 
   void beginSwitch(const std::string& var){
@@ -112,7 +114,7 @@ protected:
   virtual std::ostream& os() = 0;
 protected:
   int _indent;
-
+  TrainingDeps _cg;
 }
 ;
 class BufferedCodeGenerator : public CodeGenerator {

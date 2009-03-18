@@ -19,16 +19,3 @@
  ***************************************************************************/
 #include "trainingdeps.h"
 
-namespace petabricks {
-
-TrainingDeps::TrainingDeps()
-{
-}
-
-
-TrainingDeps::~TrainingDeps()
-{
-}
-
-
-}

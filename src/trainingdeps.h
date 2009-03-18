@@ -20,17 +20,23 @@
 #ifndef PETABRICKSTRAININGDEPS_H
 #define PETABRICKSTRAININGDEPS_H
 
+#include <sstream>
+
 namespace petabricks {
 
-/**
-	@author Jason Ansel <jansel@csail.mit.edu>
-*/
 class TrainingDeps{
 public:
-    TrainingDeps();
+  void addTunable( bool isTunable
+                 , const std::string& category
+                 , const std::string& name
+                 , int initial
+                 , int min
+                 , int max)
+  {
 
-    ~TrainingDeps();
-
+  }
+private:
+  std::ostringstream _tunables;
 };
 
 }

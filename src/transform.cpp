@@ -323,7 +323,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   o.newline();
   
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
-    o.createTunable( "user", _name+"_"+i->name(), i->initial(), i->min(), i->max());
+    o.createTunable(i->isTunable(), i->isTunable() ? "user.tunable" : "user.config", _name+"_"+i->name(), i->initial(), i->min(), i->max());
   }
 
   o.write("#define TRANSFORM_LOCAL(x) PB_CAT("+_name+"_, x)");
@@ -360,7 +360,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
     o.write("_input_perimeter += " + (*i)->name() + ".perimeter();");
     maxDims = std::max<int>(maxDims, (*i)->numDimensions());
   }
-  o.createTunable(_name, _name + "_split_size", 64, 1);
+  o.createTunable(true, "splitsize", _name + "_split_size", 64, 1);
   o.varDecl("IndexT " SPLIT_CHUNK_SIZE " = " + _name + "_split_size" );
 
   extractSizeDefines(o);

@@ -72,7 +72,7 @@ void petabricks::RuleChoice::generateCodeSimple(  const std::string& taskname
 //     for(std::vector<RulePtr>::const_iterator i=sortedRules.begin(); i!=sortedRules.end(); ++i){
 //       choicename += "_"+jalib::XToString((*i)->id() - trans.ruleIdOffset());
 //     }
-    o.createTunable(trans.name(), choicename, 0, 0, sortedRules.size()-1);
+    o.createTunable(true ,"algchoice.alg", choicename, 0, 0, sortedRules.size()-1);
     o.beginSwitch(choicename);
   }
   for(std::vector<RulePtr>::const_iterator i=sortedRules.begin(); i!=sortedRules.end(); ++i){
@@ -108,7 +108,7 @@ std::string petabricks::RuleChoice::processCondition(const std::string& name, co
     std::string s;
     FormulaPtr hint;
     bool needComplex=false;
-    o.createTunable(name, name, std::numeric_limits<int>::max(), 1);
+    o.createTunable(true, "algchoice.cutoff", name, std::numeric_limits<int>::max(), 1);
     std::vector<RulePtr> sortedRules(_rules.begin(), _rules.end());
     std::sort(sortedRules.begin(), sortedRules.end(), RuleIdComparer());
     for(size_t i=0; i<sortedRules.size(); ++i){
