@@ -30,7 +30,7 @@ to Y[n,n]
     if (level < 6) {
       actual = BS2D(x, b);
     } else {
-      actual = mgv2D(x, b, 30);
+      actual = mgv2D(x, b, 15);
     }
     error = (double) ComputeError(x, actual);
     printf("initial error = %g\n", error);
