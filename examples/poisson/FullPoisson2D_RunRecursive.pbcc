@@ -18,7 +18,7 @@
 #if ESTPREC > 0
       r = Restrict2Dnew(Residual2D(y, b));
       r = CAT(FullPoisson2D_Inner_Prec, ESTPREC)(z, r);
-      y = MatrixAdd(Interpolate2Dnew(r), y);
+      MatrixAdd(y, Interpolate2Dnew(r), y);
 #endif
 
       for (i = 0; i < CAT(CAT(CAT(CAT(CAT(full_prec, LOCALPREC), Iters_Est), ESTPREC), _Prec), CURPREC)[level]; i++) {
