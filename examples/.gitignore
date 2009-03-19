@@ -45,15 +45,7 @@ poisson/ComputeError
 poisson/error
 poisson/fmgv2D
 poisson/FullPoisson2D_InnerTransform
-poisson/FullPoisson2D_InnerTransform.pbcc.BACKUP.24846
-poisson/FullPoisson2D_InnerTransform.pbcc.BASE.24846
-poisson/FullPoisson2D_InnerTransform.pbcc.LOCAL.24846
-poisson/FullPoisson2D_InnerTransform.pbcc.REMOTE.24846
 poisson/FullPoisson2D
-poisson/FullPoisson2D.pbcc.BACKUP.24949
-poisson/FullPoisson2D.pbcc.BASE.24949
-poisson/FullPoisson2D.pbcc.LOCAL.24949
-poisson/FullPoisson2D.pbcc.REMOTE.24949
 poisson/FullPoisson2D_PerEst
 poisson/FullPoisson2D_RunRecursive
 poisson/FullPoisson2D_TrainingLoop
@@ -86,3 +78,4 @@ sort/Radixsort
 sort/Sort
 *.cpp
 *.cfg
+*.info

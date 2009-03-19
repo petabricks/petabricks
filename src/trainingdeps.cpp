@@ -19,3 +19,4 @@
  ***************************************************************************/
 #include "trainingdeps.h"
 
+std::map<std::string, std::vector<std::string> > petabricks::TrainingDeps::_callgraph;

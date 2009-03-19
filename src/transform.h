@@ -98,7 +98,7 @@ public:
   Transform() :_isMain(false),_tuneId(0) {}
   
   //called durring parsing:
-  void setName(const std::string& str) { _name=str; }
+  void setName(const std::string& str) { _originalName=_name=str; }
   void addFrom(const MatrixDefList&);
   void addThrough(const MatrixDefList&);
   void addTo(const MatrixDefList&);
@@ -183,6 +183,7 @@ public:
   }
 
 private:
+  std::string   _originalName;
   std::string   _name;
   MatrixDefList _from;
   MatrixDefList _through;

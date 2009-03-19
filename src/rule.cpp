@@ -72,6 +72,7 @@ void petabricks::Rule::compileRuleBody(Transform& tx, RIRScope& scope){
     DebugPrintPass p1;
     _bodyir->accept(p1);
   }
+  std::cerr << "--------------------\n";
 #endif
   {
     ExpansionPass p2(scope.createChildLayer());
@@ -81,7 +82,12 @@ void petabricks::Rule::compileRuleBody(Transform& tx, RIRScope& scope){
     _bodyir->accept(p3);
   }
 #ifdef DEBUG
-  std::cerr << "AFTER compileRuleBody:\n" << _bodyir << std::endl;
+  std::cerr << "--------------------\nAFTER compileRuleBody:\n" << _bodyir << std::endl;
+  {
+    DebugPrintPass p1;
+    _bodyir->accept(p1);
+  }
+  std::cerr << "--------------------\n";
 #endif
 }
 

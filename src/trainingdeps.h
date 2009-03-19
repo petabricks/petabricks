@@ -21,6 +21,8 @@
 #define PETABRICKSTRAININGDEPS_H
 
 #include <sstream>
+#include <map>
+#include <vector>
 #include "jassert.h"
 
 namespace petabricks {
@@ -33,17 +35,49 @@ public:
                  , int initial
                  , int min
                  , int max)
-  {}
+  {
+    if(isTunable)
+      _os<< "    <tunable";
+    else
+      _os<< "    <config";
 
-  void beginTransform(const std::string& name){}
-  void endTransform(const std::string& name){}
+    _os << " name=\""    << name << "\""
+        << " type=\""    << category << "\""
+        << " initial=\"" << initial << "\""
+        << " min=\""     << min << "\""
+        << " max=\""     << max << "\""
+        << " />\n";
+  }
+
+  void beginTransform(const std::string& name, const std::string& instanceName){
+    _os << "  <transform ";
+    _os << " name=\""         << instanceName << "\"";
+    _os << " templateName=\"" << name << "\"";
+    _os << " isTemplateInstance=\"" << (name==instanceName ? "no" : "yes") << "\"";
+    _os << ">\n";
+  }
+  void endTransform(const std::string& name, const std::string& instanceName){
+    const std::vector<std::string>& calls = _callgraph[name];
+    for(size_t i=0; i<calls.size(); ++i)
+      _os << "    <calls caller=\"" << name << "\" callee=\"" << calls[i] << "\" />\n";
+    _os << "  </transform>\n"; 
+  }
+
 
 
   static void addCallgraphEdge(const std::string& caller, const std::string& callee){
-    JTRACE("callgraph")(caller)(callee);
+    _callgraph[caller].push_back(callee);
+  }
+
+
+  void dumpTo(std::ostream& o){
+    o << "<traininginfo>\n";
+    o << _os.str();
+    o << "</traininginfo>\n";
   }
 private:
-  std::ostringstream _tunables;
+  std::stringstream _os;
+  static std::map<std::string, std::vector<std::string> > _callgraph;
 };
 
 }

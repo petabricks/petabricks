@@ -319,7 +319,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   std::vector<std::string> returnStyleArgs = args;
   if(_to.size()==1) returnStyleArgs.erase(returnStyleArgs.begin());
 
-  o.cg().beginTransform(_name);
+  o.cg().beginTransform(_originalName, _name);
   o.comment("Begin output for transform " + _name);
   o.newline();
   
@@ -405,7 +405,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   o.comment("End of output for "+_name);
   o.newline();
   o.newline();
-  o.cg().endTransform(_name);
+  o.cg().endTransform(_originalName, _name);
 }
 
 void petabricks::Transform::extractSizeDefines(CodeGenerator& o){
