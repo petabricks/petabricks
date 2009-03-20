@@ -361,7 +361,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
     o.write("_input_perimeter += " + (*i)->name() + ".perimeter();");
     maxDims = std::max<int>(maxDims, (*i)->numDimensions());
   }
-  o.createTunable(true, "splitsize", _name + "_split_size", 64, 1);
+  o.createTunable(true, "system.splitsize", _name + "_split_size", 64, 1);
   o.varDecl("IndexT " SPLIT_CHUNK_SIZE " = " + _name + "_split_size" );
 
   extractSizeDefines(o);
