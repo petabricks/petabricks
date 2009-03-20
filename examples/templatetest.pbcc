@@ -1,8 +1,8 @@
 
 template < prec(10, 12 ), iters(0, 2) >
 transform Foo from A[n] to B[n]
-tunable tune1(5, 0, 2)
-config config1(5, 10, 12)
+tunable tune1(1, 0, 2)
+config config1(11, 10, 12)
 {
   to(B b) from(A a) {
     if(prec!=config1 || iters!=tune1)

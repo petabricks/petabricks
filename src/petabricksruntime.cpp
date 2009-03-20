@@ -28,6 +28,31 @@
 #include <math.h>
 #include <limits>
 
+
+const char theHelp[] = 
+"\nALTERNATE MODES:" "\n"
+"  --autotune PREFIX    : autotune a given alg choice site using a genetic tuner" "\n"
+"  --optimize PARAM     : optimize a given configuration parameter using binary search" "\n"
+"  --graph              : graph performance from --min to --max" "\n"
+"  --graph-parallel     : graph parallel scalability with number of threads" "\n"
+"  --graph-param PARAM  : graph the effect of changing a given parameter" "\n"
+"  --fullmg             : specialized tuning for multigrid" "\n"
+"  --multigrid          : specialized tuning for multigrid" "\n"
+"  --help               : print this message and exit"         "\n"
+"  --name               : print the name of the main transform and exit" "\n"
+"  --reset              : reset all configuration parameters to their default and exit" "\n"
+"  --siman              : autotune using simulated annealing (not working)"        "\n"
+"\nOPTIONS:" "\n"
+"  --random N           : populate inputs with randomly generated data of a given size" "\n"
+"  --transform NAME     : use a given transform instead of the default main transform" "\n"
+"  --max N              : end point for graphs and tuning" "\n"
+"  --max-sec N          : end point (in seconds) for graphs and tuning" "\n"
+"  --min N              : start point for graphs and tuning" "\n"
+"  --smoothing N        : apply smoothing to tests by averaging with similar sized inputs" "\n"
+"  --step N             : step size for graphs and tuning" "\n"
+"  --trials             : number of trails for graphs and tuning" "\n"
+;
+
 static bool _isTrainingRun = false;
 static bool _needTraingingRun = false;
 
@@ -78,15 +103,29 @@ private:
 
 }
 
-petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Main& m) : main(m)
+#define shift argc--,argv++;
+
+petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Main* m) 
+  : _main(m)
+  , _randSize(4096)
 {
-  randSize = 4096;
+  JASSERT(m!=NULL);
+  _mainName = m->name();
   //load config from disk
   TunableManager& tm = TunableManager::instance();
   if(tm.size()>0){
     std::string filename = jalib::Filesystem::GetProgramPath() + ".cfg";
     if(jalib::Filesystem::FileExists(filename))
       tm.load(filename);
+  }
+  
+  while(argc>0){
+    if(strcmp(argv[0],"--transform")==0 || strcmp(argv[0],"--tx")==0){
+      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
+      _mainName = argv[1];
+      shift;
+      shift;
+    }else shift;
   }
 }
 
@@ -105,9 +144,12 @@ void petabricks::PetabricksRuntime::saveConfig()
   }
 }
 
-#define shift argc--,argv++;
 
 int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
+  Main& main = *_main;
+
+  JASSERT(_mainName == main.name())(_mainName).Text("Unknown transform");
+
   bool isSiman = false;
   bool isAutotuneMode = false;
   bool isGraphMode = false;
@@ -119,7 +161,12 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   //parse args
   shift;
   while(argc>0){
-    if(strcmp(argv[0],"--siman")==0){
+    if(strcmp(argv[0],"-h")==0 || strcmp(argv[0],"--help")==0){
+      main.verifyArgs(-1, NULL);
+      std::cerr << theHelp << std::endl;
+      shift;
+      return 1;
+    }else if(strcmp(argv[0],"--siman")==0){
       isSiman = true;
       shift;
     }else if(strcmp(argv[0],"--multigrid")==0){
@@ -140,7 +187,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
       TRAIN_MAX = 64;
       shift;
     }else if(strcmp(argv[0],"--autotune")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
       isAutotuneMode = true;
       graphParam = argv[1];
       shift;
@@ -151,52 +198,52 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
     }else if(strcmp(argv[0],"-n")==0 || strcmp(argv[0],"--random")==0){
       JASSERT(argc>1)(argv[0])(argc).Text("--random expects an argument");
       doIO = false;
-      main.randomInputs(randSize=jalib::StringToInt(argv[1]));
+      main.randomInputs(_randSize=jalib::StringToInt(argv[1]));
       shift;
       shift;
     }else if(strcmp(argv[0],"--max")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
       TRAIN_MAX = GRAPH_MAX = jalib::StringToInt(argv[1]);
       shift;
       shift;
     }else if(strcmp(argv[0],"--min")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
       TRAIN_MIN = GRAPH_MIN = jalib::StringToInt(argv[1]);
       shift;
       shift;
     }else if(strcmp(argv[0],"--step")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
       GRAPH_STEP = jalib::StringToInt(argv[1]);
       shift;
       shift;
     }else if(strcmp(argv[0],"--trials")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
       GRAPH_TRIALS = jalib::StringToInt(argv[1]);
       shift;
       shift;
     }else if(strcmp(argv[0],"--smoothing")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
       GRAPH_SMOOTHING = jalib::StringToInt(argv[1]);
       shift;
       shift;
     }else if(strcmp(argv[0],"--max-sec")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
       GRAPH_MAX_SEC = jalib::StringToInt(argv[1]);
       shift;
       shift;
     }else if(strcmp(argv[0],"--graph-param")==0 || strcmp(argv[0],"--graph-tune")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
       graphParam = argv[1];
       if(strcmp(argv[1], "tunerNumOfWorkers") == 0)
       isGraphParallelMode = true;
       shift;
       shift;
     }else if(strcmp(argv[0],"--graph-parallel")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
       isGraphParallelMode = true;
       shift;
     }else if(strcmp(argv[0],"--optimize")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("arguement expected");
+      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
       graphParam = argv[1];
       isOptimizeMode=true;
       shift;
@@ -205,6 +252,14 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
       jalib::JTunableManager::instance().reset();
       shift;
       return 0;
+    }else if(strcmp(argv[0],"--name")==0){
+      std::cout << main.name() << std::endl;
+      shift;
+      return 0;
+    }else if(strcmp(argv[0],"--transform")==0 || strcmp(argv[0],"--tx")==0){
+      //parsed above
+      shift;
+      shift;
     }else{
       break;
     }
@@ -358,9 +413,9 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
 
 void petabricks::PetabricksRuntime::runGraphMode(){
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
-    randSize = (MULTIGRID_FLAG ? (1 << n) + 1 : n);
+    _randSize = (MULTIGRID_FLAG ? (1 << n) + 1 : n);
     double avg = runTrial();
-    printf("%d %.6f\n", randSize, avg);
+    printf("%d %.6f\n", _randSize, avg);
     if(avg > GRAPH_MAX_SEC) break;
   }
 }
@@ -402,16 +457,16 @@ double petabricks::PetabricksRuntime::runTrial(){
     rslts.reserve(2*GRAPH_SMOOTHING+1);
     _isTrainingRun = true;
     _needTraingingRun = false;
-    for( int n =  randSize-GRAPH_SMOOTHING
-      ;     n <= randSize+GRAPH_SMOOTHING
+    for( int n =  _randSize-GRAPH_SMOOTHING
+      ;     n <= _randSize+GRAPH_SMOOTHING
       ; ++n)
     {
       double t=0;
       for(int z=0;z<GRAPH_TRIALS; ++z){
-        main.randomInputs(n);
+        _main->randomInputs(n);
   
         jalib::JTime begin=jalib::JTime::Now();
-        main.compute();
+        _main->compute();
         jalib::JTime end=jalib::JTime::Now();
   
         if(_needTraingingRun && _isTrainingRun){

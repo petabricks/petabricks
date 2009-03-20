@@ -33,7 +33,7 @@ public:
    */
   typedef class __usr_main_interface{
   public:
-    __usr_main_interface(const char* name){}
+    __usr_main_interface(const char* name) : _name(name) {}
 
     ///
     /// destructor
@@ -58,11 +58,15 @@ public:
     ///
     /// initialize with random inputs
     virtual void randomInputs(int size) = 0;
+
+    const char* name() const { return _name; }
+  private:
+    const char* _name;
   } Main;
 
   ///
   /// Construct the runtime, parse any runtime-specific args
-  PetabricksRuntime(int argc, const char** argv, Main&);
+  PetabricksRuntime(int argc, const char** argv, Main*);
 
   ///
   /// Destruct the runtime, saving config to disk
@@ -72,7 +76,6 @@ public:
   /// Run the given main routine
   int runMain(int argc, const char** argv);
 
-  void addTransform(Main& tx){}
 
   void runGraphMode();
 
@@ -94,15 +97,19 @@ public:
   static bool isTrainingRun();
   static void setIsTrainingRun(bool b);
 
-  void setSize(int n){randSize=n;};
-  int curSize() const { return randSize;};
+  void setSize(int n){_randSize=n;};
+  int curSize() const { return _randSize;};
 
   static void abort();
   static void saveConfig();
 
+  bool alternateTransforms() const { return _main->name() != _mainName; }
+  void addTransform(Main* tx){ JASSERT(tx!=NULL); if(tx->name() == _mainName) _main=tx; }
+
 private:
-  Main& main;
-  int randSize;
+  Main* _main;
+  std::string _mainName;
+  int _randSize;
 };
 
 }

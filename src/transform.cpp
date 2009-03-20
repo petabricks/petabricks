@@ -421,11 +421,11 @@ void petabricks::Transform::extractSizeDefines(CodeGenerator& o){
 
 void petabricks::Transform::registerMainInterface(CodeGenerator& o){
   if(_templateargs.empty())
-    o.write("runtime.addTransform("+name()+"_main);");
+    o.write("runtime.addTransform(&"+name()+"_main);");
   else{
     int choiceCnt = tmplChoiceCount();
     for(size_t c=0; c<choiceCnt; ++c)
-      o.write("runtime.addTransform("+tmplName(c)+"_main);");
+      o.write("runtime.addTransform(&"+tmplName(c)+"_main);");
   }
 }
 
