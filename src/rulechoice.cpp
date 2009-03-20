@@ -58,7 +58,8 @@ void petabricks::RuleChoice::generateCodeSimple(  const std::string& taskname
   std::string tpfx = _tpfx;
   if(tpfx.length()==0){ 
     tpfx = trans.createTunerPrefix();
-    o.cg().addAlgchoice(tpfx, level());
+    if(_rules.size()>1 || level()>1) 
+      o.cg().addAlgchoice(tpfx, level());
   }
   std::string choicename = tpfx + "lvl" + jalib::XToString(level()) + "_rule";
 
