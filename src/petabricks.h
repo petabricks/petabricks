@@ -24,9 +24,13 @@
 #include "spatialdynamictask.h"
 #include "petabricksruntime.h"
 #include "jtunable.h"
-#include <math.h>
 #include "config.h"
-#ifdef HAVE_LIBFFTW3
+
+#ifdef HAVE_MATH_H
+#  include <math.h>
+#endif 
+
+#ifdef HAVE_FFTW3_H
 #  include <fftw3.h>
 #endif
 

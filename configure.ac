@@ -1,4 +1,5 @@
 AC_INIT(configure.ac)
+AC_CONFIG_SRCDIR([src/pbc.cpp])
 AC_CANONICAL_TARGET
 
 AM_CONFIG_HEADER(src/config.h)
@@ -19,9 +20,14 @@ AM_PROG_LIBTOOL
 
 AC_LANG_CPLUSPLUS
 AC_PROG_CXX
+AC_PROG_CXXCPP
 AM_PROG_LEX
 AC_PROG_YACC
 AC_PROG_EGREP
+
+AC_FUNC_MMAP
+#AC_CHECK_FUNCS([getdelim getline gettimeofday])
+
 
 AC_CHECK_PROG([has_maxima], [maxima], [yes], [no])
 if test "$has_maxima" = "no"; then
@@ -63,9 +69,11 @@ done
 # LIBRARIES ####################################################################
 ################################################################################
 
+AC_CHECK_HEADER([math.h],                [], [AC_MSG_WARN([failed to find math.h, some benchmarks may not work])])
 AC_CHECK_LIB([m],[cos],                  [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
 AC_CHECK_LIB([pthread],[pthread_create], [], [AC_MSG_WARN([failed to find -lpthread, some benchmarks may not work])])
 AC_CHECK_LIB([lapack], [dposv_],         [], [AC_MSG_WARN([failed to find -llapack, some benchmarks may not work])])
+AC_CHECK_HEADER([fftw3.h],               [], [AC_MSG_WARN([failed to find fftw3.h, some benchmarks may not work])])
 AC_CHECK_LIB([fftw3], [fftw_malloc],     [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
 #AC_CHECK_LIB([gslcblas],[cblas_dgemm],   [], [AC_MSG_WARN([failed to find -lgslcblas, some benchmarks may not work])]) 
 #AC_CHECK_LIB([gsl],[gsl_blas_dgemm],     [], [AC_MSG_WARN([failed to find -lgsl, some benchmarks may not work])])

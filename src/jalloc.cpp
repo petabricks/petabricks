@@ -38,7 +38,7 @@ namespace jalib
 {
 
 inline void* _alloc_raw(size_t n) {
-#ifdef JALIB_USE_MALLOC
+#if defined(JALIB_USE_MALLOC) || !defined(HAVE_MMAP)
   return malloc(n);
 #else
   void* p = mmap(NULL, n, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
