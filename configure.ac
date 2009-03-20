@@ -1,9 +1,10 @@
-AC_INIT(configure.ac)
+AC_INIT([petabricks], [1.99], [jansel@csail.mit.edu])
+
 AC_CONFIG_SRCDIR([src/pbc.cpp])
 AC_CANONICAL_TARGET
 
-AM_CONFIG_HEADER(src/config.h)
-AM_INIT_AUTOMAKE(petabricks, 1.99)
+AM_CONFIG_HEADER([src/config.h])
+AM_INIT_AUTOMAKE
 
 default_cxxflags=no
 if test "x$CXXFLAGS" = "x"; then
