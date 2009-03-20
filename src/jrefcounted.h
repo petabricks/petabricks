@@ -99,20 +99,18 @@ public:
   operator bool() const { 
     return _obj!=NULL; 
   }
- 
-  //compare
-  friend bool operator == (const JRef& a, const JRef& b) { 
-    return a._obj == b._obj;
-  }
-  friend bool operator != (const JRef& a, const JRef& b) { 
-    return a._obj != b._obj;
-  }
-  friend bool operator < (const JRef& a, const JRef& b) { 
-    return a._obj < b._obj;
-  }
-
+  
   operator const T& () const { check(); use(); return *_obj; }
   operator T& ()             { check(); use(); return *_obj; }
+ 
+  //compare
+  friend bool operator == (const JRef& a, const JRef& b) { return a._obj == b._obj; }
+  friend bool operator != (const JRef& a, const JRef& b) { return a._obj != b._obj; }
+  friend bool operator <= (const JRef& a, const JRef& b) { return a._obj <= b._obj; }
+  friend bool operator >= (const JRef& a, const JRef& b) { return a._obj >= b._obj; }
+  friend bool operator <  (const JRef& a, const JRef& b) { return a._obj <  b._obj; }
+  friend bool operator >  (const JRef& a, const JRef& b) { return a._obj >  b._obj; }
+
 private: //helpers:
   void inc() const { Policy::inc(_obj); }
   void dec() const { Policy::dec(_obj); }
