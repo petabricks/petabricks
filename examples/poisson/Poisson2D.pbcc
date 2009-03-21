@@ -19,8 +19,12 @@
 #define _CAT( a, b) __CAT(a ## b)
 #define __CAT(ab) ab
 
-#define PRINTF //printf
-//#define PRINTF printf
+#ifndef TRAINPRINTF
+#define TRAINPRINTF printf
+#endif
+#ifndef RUNPRINTF
+#define RUNPRINTF //printf
+#endif
 
 #define POISSON_PRECISION_1 1e-1
 #define POISSON_PRECISION_2 1e-3
@@ -64,7 +68,7 @@ through zeros[(n+1)/2,(n+1)/2]
 
     if (HecuraRuntime::isTrainingRun()) {
       if (levelTrained[level] == 0) {
-        PRINTF("Training run for level %d\n", level);
+        TRAINPRINTF("Training run for level %d\n", level);
         MatrixRegion2D actual;
         if (level < 4) {
           actual = BS2D(x, b);
@@ -72,7 +76,7 @@ through zeros[(n+1)/2,(n+1)/2]
           actual = mgv2D(x, b, 15);
         }
         error = (double) ComputeError(x, actual);
-        PRINTF("initial error = %g\n", error);
+        TRAINPRINTF("initial error = %g\n", error);
 
 #define CURPREC 1
 #include "Poisson2D_TrainingLoop.pbcc"
@@ -93,7 +97,7 @@ through zeros[(n+1)/2,(n+1)/2]
         levelTrained[level].setValue(1);
       }
     } else {
-      PRINTF("Timing run for level %d, precision %d\n", level, (int) prec_case);
+      RUNPRINTF("Timing run for level %d, precision %d\n", level, (int) prec_case);
       switch (prec_case) {
         case 1:
           Poisson2D_Inner_Prec1(y, x, b);
