@@ -148,12 +148,10 @@ do
   save_CXXFLAGS="$CXXFLAGS"
   AC_MSG_CHECKING([if compiler supports $extraflag])
   CXXFLAGS="$CXXFLAGS $extraflag"
-  AC_RUN_IFELSE([AC_LANG_PROGRAM()],
-                [AC_MSG_RESULT([yes])],
-                [AC_MSG_RESULT([no]);      CXXFLAGS="$save_CXXFLAGS"],
-                [AC_MSG_RESULT([unknown]); CXXFLAGS="$save_CXXFLAGS"])
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM()],
+                    [AC_MSG_RESULT([yes])],
+                    [AC_MSG_RESULT([no]);      CXXFLAGS="$save_CXXFLAGS"])
 done
-
 
 ################################################################################
 ################################################################################

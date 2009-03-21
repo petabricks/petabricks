@@ -29,6 +29,7 @@ config.h
 *.la
 stamp-h1
 pbc
+*.cache
 
 src/cxxconfig.h
 maxima.log
