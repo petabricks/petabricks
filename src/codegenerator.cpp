@@ -156,6 +156,11 @@ void petabricks::CodeGenerator::endIf(){
   os() << "}\n";
 }
 
+petabricks::TaskCodeGenerator& petabricks::BufferedCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType){
+  UNIMPLEMENTED();
+  return *(TaskCodeGenerator*)0;
+}
+
 petabricks::TaskCodeGenerator& petabricks::MainCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType){
   _tasks.push_back(new TaskCodeGenerator(func, args, taskType));
   return *_tasks.back();

@@ -206,7 +206,7 @@ void petabricks::Autotuner::printCanidates(){
 void petabricks::Autotuner::removeDuplicates(){
   std::sort(_candidates.begin(), _candidates.end(), CmpAlgType());
   //kill duplicates
-  for(int i=0; i<_candidates.size()-1; ++i){
+  for(int i=0; i<(int)_candidates.size()-1; ++i){
     if(_candidates[i]->isDuplicate(_candidates[i+1])){
       if(_candidates[i]->lastResult() > _candidates[i+1]->lastResult()){
         std::cout << "  DUPLICATE " << _candidates[i] << std::endl;
@@ -247,8 +247,6 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
   jalib::JTunable* at = autotuner.algTunable(_lvl+1);
   jalib::JTunable* ct = autotuner.cutoffTunable(_lvl+1);
   if(ct!=0){
-    int min = _cutoff;
-    int max = std::min(rt.curSize(), ct->max());
     int amin=0,amax=0;
     if(at!=0){
       amin=at->min();

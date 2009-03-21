@@ -9,7 +9,6 @@ AM_INIT_AUTOMAKE
 default_cxxflags=no
 if test "x$CXXFLAGS" = "x"; then
   default_cxxflags=yes
-  CXXFLAGS="-O3"
 fi
 
 ################################################################################
@@ -29,6 +28,9 @@ AC_PROG_EGREP
 AC_FUNC_MMAP
 #AC_CHECK_FUNCS([getdelim getline gettimeofday])
 
+AC_TYPE_UINT32_T
+AC_TYPE_UINT64_T
+
 
 AC_CHECK_PROG([has_maxima], [maxima], [yes], [no])
 if test "$has_maxima" = "no"; then
@@ -45,37 +47,15 @@ if test "$has_doxygen" = "no"; then
   AC_MSG_WARN([failed to find 'doxygen' in \$path, documentation will not be generated.])
 fi
 
-
-################################################################################
-# COMPILER FLAGS ###############################################################
-################################################################################
-
-case $target_cpu in
-  *sparc*) tuneflags="-mcpu=niagara -mtune=native";;
-  *)       tuneflags="-march=native";;
-esac
-
-for extraflag in $tuneflags
-do
-  save_CXXFLAGS="$CXXFLAGS"
-  AC_MSG_CHECKING([if compiler supports $extraflag])
-  CXXFLAGS="$CXXFLAGS $extraflag"
-  AC_RUN_IFELSE([AC_LANG_PROGRAM()],
-                [AC_MSG_RESULT([yes])],
-                [AC_MSG_RESULT([no]);      CXXFLAGS="$save_CXXFLAGS"],
-                [AC_MSG_RESULT([unknown]); CXXFLAGS="$save_CXXFLAGS"])
-done
-
 ################################################################################
 # LIBRARIES ####################################################################
 ################################################################################
 
-AC_CHECK_HEADER([math.h],                [], [AC_MSG_WARN([failed to find math.h, some benchmarks may not work])])
 AC_CHECK_LIB([m],[cos],                  [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
+AC_CHECK_LIB([fftw3], [fftw_malloc],     [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
 AC_CHECK_LIB([pthread],[pthread_create], [], [AC_MSG_WARN([failed to find -lpthread, some benchmarks may not work])])
 AC_CHECK_LIB([lapack], [dposv_],         [], [AC_MSG_WARN([failed to find -llapack, some benchmarks may not work])])
-AC_CHECK_HEADER([fftw3.h],               [], [AC_MSG_WARN([failed to find fftw3.h, some benchmarks may not work])])
-AC_CHECK_LIB([fftw3], [fftw_malloc],     [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
+AC_CHECK_HEADERS([math.h fftw3.h],       [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
 #AC_CHECK_LIB([gslcblas],[cblas_dgemm],   [], [AC_MSG_WARN([failed to find -lgslcblas, some benchmarks may not work])]) 
 #AC_CHECK_LIB([gsl],[gsl_blas_dgemm],     [], [AC_MSG_WARN([failed to find -lgsl, some benchmarks may not work])])
 
@@ -94,11 +74,6 @@ if test "$use_jassert" = "yes"; then
   AC_DEFINE([DEBUG],[],[verbose debug printouts and log files in /tmp])
   if test "`hostname`" = "kleptocracy"; then
     AC_DEFINE([MAXIMA_LOG],[1],[define in order to generate maxima.log, (a log of maxima commands)])
-  fi
-  
-  if test "$default_cxxflags" = "yes"; then
-    CXXFLAGS="-g -O0"
-    default_cxxflags="no"
   fi
 fi
 
@@ -130,6 +105,36 @@ if false; then
   AC_DEFINE([JALIB_ALLOCATOR],   [1],              [Use a custom allocator from JALIB])
   AC_DEFINE([JALIB_USE_MALLOC],  [],               [Cause the custom allocator to call malloc instead of mmap])
 fi
+
+################################################################################
+# COMPILER FLAGS ###############################################################
+################################################################################
+
+if test "$default_cxxflags" = "yes"; then
+  if test "$use_jassert" = "yes"; then
+    CXXFLAGS=""
+    tuneflags="-O0 -g"
+  else
+    CXXFLAGS=""
+    tuneflags="-O3"
+  fi
+  case $target_cpu in
+    *sparc*) tuneflags="$tuneflags -mcpu=niagara -mtune=native";;
+    *)       tuneflags="$tuneflags -march=native";;
+  esac
+fi
+
+for extraflag in $tuneflags
+do
+  save_CXXFLAGS="$CXXFLAGS"
+  AC_MSG_CHECKING([if compiler supports $extraflag])
+  CXXFLAGS="$CXXFLAGS $extraflag"
+  AC_RUN_IFELSE([AC_LANG_PROGRAM()],
+                [AC_MSG_RESULT([yes])],
+                [AC_MSG_RESULT([no]);      CXXFLAGS="$save_CXXFLAGS"],
+                [AC_MSG_RESULT([unknown]); CXXFLAGS="$save_CXXFLAGS"])
+done
+
 
 ################################################################################
 ################################################################################

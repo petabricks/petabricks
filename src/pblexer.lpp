@@ -2,6 +2,7 @@
 %option yylineno
 %option nostdinit
 %option noyywrap
+%option noyy_top_state
 %option nounput
 %option prefix="pb"
 %option outfile="lex.yy.c"

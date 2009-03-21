@@ -123,7 +123,7 @@ protected:
 class BufferedCodeGenerator : public CodeGenerator {
 public:
   virtual std::string str() const { return _os.str() ; }
-  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType){ UNIMPLEMENTED(); }
+  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType);
 protected:
   std::ostream& os() { return _os; }
 protected:

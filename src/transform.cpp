@@ -214,7 +214,7 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
   else {
     std::string origName = _name;
     //count number of times we need to explode it
-    int choiceCnt = tmplChoiceCount();
+    size_t choiceCnt = tmplChoiceCount();
     JWARNING(choiceCnt<15)(choiceCnt)(_name).Text("Explosion of choices for template... are you sure???");
     //for each possible way
     for(size_t c=0; c<choiceCnt; ++c){
@@ -253,7 +253,7 @@ void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
   targs.insert(targs.end(), args.begin(), args.end());
   o.beginFunc(rt, prefix+_name, targs);
   
-  for(size_t i=0, mult=1; i<_templateargs.size(); ++i){
+  for(size_t i=0; i<_templateargs.size(); ++i){
     ss << "JASSERT(" << _templateargs[i]->name() << ">=" << _templateargs[i]->min() << " && "
                      << _templateargs[i]->name() << "<=" << _templateargs[i]->max() << ")"
                      << "(" << _templateargs[i]->name() << ");";
@@ -262,7 +262,7 @@ void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
   }
 
   //count number of times we need to explode it
-  int choiceCnt = tmplChoiceCount();
+  size_t choiceCnt = tmplChoiceCount();
   //for each possible way
   o.beginSwitch(formula.str());
   for(size_t c=0; c<choiceCnt; ++c){
@@ -423,7 +423,7 @@ void petabricks::Transform::registerMainInterface(CodeGenerator& o){
   if(_templateargs.empty())
     o.write("runtime.addTransform(&"+name()+"_main);");
   else{
-    int choiceCnt = tmplChoiceCount();
+    size_t choiceCnt = tmplChoiceCount();
     for(size_t c=0; c<choiceCnt; ++c)
       o.write("runtime.addTransform(&"+tmplName(c)+"_main);");
   }

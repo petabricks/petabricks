@@ -117,7 +117,7 @@ namespace jalib
   }
 
   inline std::string StringPad(const std::string& str, int n, char ch=' '){
-    if(str.size()>=n) return str;
+    if((int)str.size()>=n) return str;
     return str+ std::string(n-str.size(), ch);
   }
 

@@ -102,7 +102,6 @@ void petabricks::StaticScheduler::computeIndirectDependencies(){
     c=0;
     for(ScheduleNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i)
       c+=(*i)->updateIndirectDepends();
-    if(c>0) JTRACE("Updated indirectDepends")(c);
   }
 }
 

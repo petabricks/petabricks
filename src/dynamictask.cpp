@@ -165,7 +165,6 @@ void DynamicTask::waitUntilComplete() {}
 #else
 void DynamicTask::waitUntilComplete()
 {
-  bool ready = false;
   lock.lock();
   while(state != S_COMPLETE && state!= S_CONTINUED) {
     lock.unlock();
@@ -192,7 +191,7 @@ bool DynamicTask::inlineTask()
 {
   size_t taskSize = size();
   // if too small, inline
-  if(isNullTask() || taskSize < tunerInlineTaskSize)
+  if(isNullTask() || (int)taskSize < tunerInlineTaskSize)
     return true;
 
   // if large task, do not inline

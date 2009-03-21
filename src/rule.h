@@ -195,11 +195,12 @@ public:
 
   FormulaPtr getSizeOfRuleIn(int d){
     for(size_t i=0; i<_to.size(); ++i){
-      if(d<_to[i]->dimensions()){
+      if(d < (int)_to[i]->dimensions()){
         return _to[i]->getSizeOfRuleIn(d);
       }
     }
     JASSERT(false)(d)(_id);
+    return 0;
   }
 
   bool isSingleElement() const {

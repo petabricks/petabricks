@@ -55,7 +55,7 @@ TransformListPtr parsePbFile(const char* filename);
 
 int main( int argc, const char ** argv){
   if(argc != 2){
-    fprintf(stderr, PACKAGE " PetaBricks compiler (pbc) v" VERSION "\n");
+    fprintf(stderr, PACKAGE " compiler (pbc) v" VERSION "\n");
     fprintf(stderr, "USAGE: %s filename.pbcc\n", argv[0]);
     return 1;
   }

@@ -21,7 +21,15 @@
 #ifndef JALIBJASM_H
 #define JALIBJASM_H
 
-#include <stdint.h>
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+#ifdef HAVE_INTTYPES_H
+# include <inttypes.h>
+#endif
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#endif
 
 namespace jalib {
 
@@ -60,7 +68,7 @@ inline uint64_t ClockCyclesSinceBoot()
 inline bool
 cas(volatile long *m, long old_val, long new_val)
 {
-	__asm__ __volatile__("cas [%2], %3, %0\n\t"
+	asm volatile("cas [%2], %3, %0\n\t"
 			     : "=&r" (new_val)
 			     : "0" (new_val), "r" (m), "r" (old_val)
 			     : "memory");
