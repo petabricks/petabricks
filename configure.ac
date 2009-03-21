@@ -47,6 +47,22 @@ if test "$has_doxygen" = "no"; then
   AC_MSG_WARN([failed to find 'doxygen' in \$path, documentation will not be generated.])
 fi
 
+AC_CHECK_PROG([has_git], [git], [yes], [no])
+if test "$has_git" = "no"; then
+  AC_MSG_WARN([failed to find 'git' in \$path, will not be able to use revision control.])
+fi
+
+rev_short="unknown"
+rev_long="unknown"
+AC_MSG_CHECKING([git revision])
+if test "$has_git" = "yes" -a -d .git ; then
+  rev_short=`git-log -n 1 --pretty=format:%h`
+  rev_long=`git-log -n 1 --pretty=format:%H`
+fi
+AC_MSG_RESULT([$rev_long])
+
+
+
 ################################################################################
 # LIBRARIES ####################################################################
 ################################################################################
@@ -105,6 +121,9 @@ if false; then
   AC_DEFINE([JALIB_ALLOCATOR],   [1],              [Use a custom allocator from JALIB])
   AC_DEFINE([JALIB_USE_MALLOC],  [],               [Cause the custom allocator to call malloc instead of mmap])
 fi
+
+AC_DEFINE_UNQUOTED([REVISION_SHORT],  ["$rev_short"],   [git sha1 hash for HEAD at the time ./configure was run])
+AC_DEFINE_UNQUOTED([REVISION_LONG],   ["$rev_long"],    [git sha1 hash for HEAD at the time ./configure was run])
 
 ################################################################################
 # COMPILER FLAGS ###############################################################

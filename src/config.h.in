@@ -105,6 +105,12 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* git sha1 hash for HEAD at the time ./configure was run */
+#undef REVISION_LONG
+
+/* git sha1 hash for HEAD at the time ./configure was run */
+#undef REVISION_SHORT
+
 /* undefine to disable cpp */
 #undef RUN_CPP
 
