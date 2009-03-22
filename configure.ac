@@ -26,7 +26,8 @@ AC_PROG_YACC
 AC_PROG_EGREP
 
 AC_FUNC_MMAP
-#AC_CHECK_FUNCS([getdelim getline gettimeofday])
+AC_CHECK_FUNCS([backtrace_symbols])
+#AC_CHECK_FUNCS([getdelim getline gettimeofday backtrace_symbols])
 
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
@@ -67,11 +68,11 @@ AC_MSG_RESULT([$rev_long])
 # LIBRARIES ####################################################################
 ################################################################################
 
+AC_CHECK_HEADERS([math.h fftw3.h execinfo.h cxxabi.h], [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
 AC_CHECK_LIB([m],[cos],                  [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
 AC_CHECK_LIB([fftw3], [fftw_malloc],     [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
 AC_CHECK_LIB([pthread],[pthread_create], [], [AC_MSG_WARN([failed to find -lpthread, some benchmarks may not work])])
 AC_CHECK_LIB([lapack], [dposv_],         [], [AC_MSG_WARN([failed to find -llapack, some benchmarks may not work])])
-AC_CHECK_HEADERS([math.h fftw3.h],       [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
 #AC_CHECK_LIB([gslcblas],[cblas_dgemm],   [], [AC_MSG_WARN([failed to find -lgslcblas, some benchmarks may not work])]) 
 #AC_CHECK_LIB([gsl],[gsl_blas_dgemm],     [], [AC_MSG_WARN([failed to find -lgsl, some benchmarks may not work])])
 
@@ -129,21 +130,28 @@ AC_DEFINE_UNQUOTED([REVISION_LONG],   ["$rev_long"],    [git sha1 hash for HEAD 
 # COMPILER FLAGS ###############################################################
 ################################################################################
 
+compileflags=""
+linkflags=""
+  
+if test "$use_jassert" = "yes"; then
+  linkflags="-rdynamic"
+fi
+
 if test "$default_cxxflags" = "yes"; then
   if test "$use_jassert" = "yes"; then
     CXXFLAGS=""
-    tuneflags="-O0 -g"
+    compileflags="-O0 -g"
   else
     CXXFLAGS=""
-    tuneflags="-O3"
+    compileflags="-O3"
   fi
   case $target_cpu in
-    *sparc*) tuneflags="$tuneflags -mcpu=niagara -mtune=native";;
-    *)       tuneflags="$tuneflags -march=native";;
+    *sparc*) compileflags="$compileflags -mcpu=niagara -mtune=native";;
+    *)       compileflags="$compileflags -march=native";;
   esac
 fi
 
-for extraflag in $tuneflags
+for extraflag in $compileflags
 do
   save_CXXFLAGS="$CXXFLAGS"
   AC_MSG_CHECKING([if compiler supports $extraflag])
@@ -151,6 +159,16 @@ do
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM()],
                     [AC_MSG_RESULT([yes])],
                     [AC_MSG_RESULT([no]);      CXXFLAGS="$save_CXXFLAGS"])
+done
+
+for extraflag in $linkflags
+do
+  save_LDFLAGS="$LDFLAGS"
+  AC_MSG_CHECKING([if linker supports $extraflag])
+  LDFLAGS="$LDFLAGS $extraflag"
+  AC_LINK_IFELSE([AC_LANG_PROGRAM()],
+                 [AC_MSG_RESULT([yes])],
+                 [AC_MSG_RESULT([no]);      LDFLAGS="$save_LDFLAGS"])
 done
 
 ################################################################################

@@ -22,6 +22,18 @@
 #include "jconvert.h"
 #include "jasm.h"
 
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+#ifdef HAVE_EXECINFO_H
+# include <execinfo.h>
+#else 
+# undef HAVE_BACKTRACE
+# undef HAVE_BACKTRACE_SYMBOLS
+# undef HAVE_BACKTRACE_SYMBOLS_FD
+#endif
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -30,6 +42,45 @@
 
 #undef JASSERT_CONT_A
 #undef JASSERT_CONT_B
+
+
+#if defined(HAVE_CXXABI_H) && defined(HAVE_BACKTRACE_SYMBOLS)
+#include <cxxabi.h>
+
+static std::string _cxxdemangle(const char* str){
+  int     status;
+  const char* b;
+  const char* e;
+  char   *tmp;
+
+  //find start and end of where to expand
+  b=str;
+  while(*b!='\0' && *b!='(') ++b;
+  e=b;
+  while(*e!='\0' && *e!=')' && *e!='+') ++e;
+
+  if(*b=='('){
+    ++b;
+    std::string mid(b, e);
+    tmp = abi::__cxa_demangle(mid.c_str(), 0, 0, &status);
+    if(tmp!=NULL){
+      //rebuild the string
+      mid=tmp;
+      free(tmp);
+      std::string left(str, b);
+      std::string right(e);
+      return left+mid+right;
+    }else{
+      //demangle failed, do nothing
+      return str; 
+    }
+  }
+  return str; 
+}
+
+#else
+static std::string _cxxdemangle(const std::string& str){ return str; }
+#endif
 
 /* 
    When updating value of DUP_STDERR_FD, the same value should be updated 
@@ -63,10 +114,20 @@ jassert_internal::JAssert::~JAssert()
 {
   if ( _exitWhenDone )
   {
-    Print ( "Terminating...\n" );
 #ifdef DEBUG
+# ifdef HAVE_BACKTRACE_SYMBOLS
+    Print( "Stack trace:\n" );
+    void *addresses[10];
+    int size = backtrace(addresses, 10);
+    char **strings = backtrace_symbols(addresses, size);
+    for(int i = 0; i-1 < size; i++){
+      Print("   "); Print(i); Print(": "); Print(_cxxdemangle(strings[i+1])); Print("\n");
+    }
+    free(strings);
+# endif
     jalib::Breakpoint();
 #endif
+    Print ( "Terminating...\n" );
     _exit ( 1 );
   }
 }

@@ -6,8 +6,17 @@
 /* allow abort without program shutdown (uses exceptions) */
 #undef GRACEFUL_ABORT
 
+/* Define to 1 if you have the `backtrace_symbols' function. */
+#undef HAVE_BACKTRACE_SYMBOLS
+
+/* Define to 1 if you have the <cxxabi.h> header file. */
+#undef HAVE_CXXABI_H
+
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
+
+/* Define to 1 if you have the <execinfo.h> header file. */
+#undef HAVE_EXECINFO_H
 
 /* Define to 1 if you have the <fftw3.h> header file. */
 #undef HAVE_FFTW3_H
