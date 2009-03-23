@@ -21,7 +21,7 @@
 #define JALIBJREFCOUNTED_H
 
 #include "jassert.h"
-#include "jprintable.h"
+#include "jprintable.h" //need to compile under ICC
 #include "jasm.h"
 
 #include <vector>
