@@ -3,7 +3,7 @@
 #define CXX "@CXX@"
 
 /* flags to compiler used to generate output binaries */
-#define CXXFLAGS "@CXXFLAGS@"
+#define CXXFLAGS "@CXXFLAGS@ @LDFLAGS@"
 
 /* flags to compiler used to generate output binaries */
 #define LIBS "@LIBS@"
