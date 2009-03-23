@@ -5,6 +5,9 @@
   JTUNABLE(run_fullmg_flag, 1);
 %}
 
+#define TRAINPRINTF printf
+#define RUNPRINTF //printf
+
 #include "../add.pbcc"
 #include "Interpolate2Dnew.pbcc"
 #include "Restrict2Dnew.pbcc"
@@ -24,9 +27,6 @@
 #define FULL_POISSON_PRECISION_3 1e-5
 #define FULL_POISSON_PRECISION_4 1e-7
 #define FULL_POISSON_PRECISION_5 1e-9
-
-#define TRAINPRINTF printf
-#define RUNPRINTF //printf
 
 #define CURPREC 1
 #include "FullPoisson2D_InnerTransform.pbcc"
