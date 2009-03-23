@@ -21,6 +21,7 @@
 #define JALIBJREFCOUNTED_H
 
 #include "jassert.h"
+#include "jprintable.h"
 #include "jasm.h"
 
 #include <vector>
@@ -165,11 +166,14 @@ private:
 
 template < typename T, typename P >
 std::ostream& operator<< (std::ostream& o, const jalib::JRef<T, P>& ptr){
-    return ptr.operator bool() 
-         ? o << ptr.operator *() 
-         : o << "(null)";
+  if(ptr.operator bool()){
+    const T& t = ptr.operator *();
+    o << t;
+  }else{
+    o << "(null)";
+  }
+  return o;
 }
 
-
-
 #endif
+
