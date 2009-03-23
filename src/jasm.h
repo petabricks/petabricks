@@ -35,7 +35,7 @@ namespace jalib {
 
 #if defined(__i386__) || defined(__x86_64__)
 /**
- * Thread safe add, returns old value
+ * Thread safe add, returns new value
  */
 template<long v> long atomicAdd(volatile long *p)
 {
