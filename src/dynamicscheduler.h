@@ -58,7 +58,7 @@ public:
   ///
   /// start worker threads
   void startWorkerThreads(int newWorkers);
-  
+
   ///
   /// add a ready task into queue
   void enqueue(const DynamicTaskPtr& t) {
@@ -70,9 +70,9 @@ public:
     queue.push(t);
   }
 
-  
+
   ///
-  /// blocked until get a task from queue for execution 
+  /// blocked until get a task from queue for execution
   DynamicTaskPtr dequeue() {
     DynamicTaskPtr task = queue.pop();
 #ifndef GRACEFUL_ABORT
@@ -129,15 +129,15 @@ public:
 
   unsigned int totalEnqueue() {
     return queue.totalEnqueue();
-  }  
+  }
 
   uint64_t totalEmptyTime() {
     return queue.totalEmptyTime();
-  }    
+  }
 
   uint64_t totalFilledTime() {
     return queue.totalFilledTime();
-  }    
+  }
 #endif // QUEUE_STATISTICS
 
 #ifdef GRACEFUL_ABORT
@@ -146,6 +146,7 @@ public:
   void abortBegin();
   void abortEnd();
   void abortWait();
+  void setAbortFlag();
 #endif
 protected:
   ///
