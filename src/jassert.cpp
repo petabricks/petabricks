@@ -47,39 +47,42 @@
 #if defined(HAVE_CXXABI_H) && defined(HAVE_BACKTRACE_SYMBOLS)
 #include <cxxabi.h>
 
-static std::string _cxxdemangle(const char* str){
-  int     status;
-  const char* b;
-  const char* e;
-  char   *tmp;
+static std::string _cxxdemangle(const char* i){
+  int status;
+  char buf[1024];
+  memset(buf, 0, sizeof(buf));
+  const char* end = buf+sizeof(buf)-1;
+  char* o = buf;
+  char* start = NULL;
 
-  //find start and end of where to expand
-  b=str;
-  while(*b!='\0' && *b!='(') ++b;
-  e=b;
-  while(*e!='\0' && *e!=')' && *e!='+') ++e;
-
-  if(*b=='('){
-    ++b;
-    std::string mid(b, e);
-    tmp = abi::__cxa_demangle(mid.c_str(), 0, 0, &status);
-    if(tmp!=NULL){
-      //rebuild the string
-      mid=tmp;
-      free(tmp);
-      std::string left(str, b);
-      std::string right(e);
-      return left+mid+right;
-    }else{
-      //demangle failed, do nothing
-      return str; 
+  while(*i!=0 && o<end){
+    if( (*o++=*i++) == '(' ){
+      start = o;   
+      break;
     }
   }
-  return str; 
+  while(*i!=0 && o<end){
+    if( *i == ')' || *i == '+' ){
+      char* tmp = abi::__cxa_demangle(start, 0, 0, &status);
+      if(tmp!=NULL){
+        o=start;
+        for(const char* t=tmp; *t!=0 && o<end;)
+          *o++=*t++;  
+        memset(o, 0, end-o);
+        free(tmp);
+      }
+      break;
+    }
+    *o++=*i++;
+  }
+  while(*i!=0 && o<end){
+    *o++=*i++;
+  }
+  return buf; 
 }
 
 #else
-static std::string _cxxdemangle(const std::string& str){ return str; }
+static std::string _cxxdemangle(const char* str){ return str; }
 #endif
 
 /* 
@@ -116,14 +119,16 @@ jassert_internal::JAssert::~JAssert()
   {
 #ifdef DEBUG
 # ifdef HAVE_BACKTRACE_SYMBOLS
-    Print( "Stack trace:\n" );
     void *addresses[10];
     int size = backtrace(addresses, 10);
     char **strings = backtrace_symbols(addresses, size);
-    for(int i = 0; i-1 < size; i++){
-      Print("   "); Print(i); Print(": "); Print(_cxxdemangle(strings[i+1])); Print("\n");
+    if(strings!=NULL){
+      Print( "Stack trace:\n" );
+      for(int i = 1; i < size; i++){
+        Print("   "); Print(i); Print(": "); Print(_cxxdemangle(strings[i])); Print("\n");
+      }
+      free(strings);
     }
-    free(strings);
 # endif
     jalib::Breakpoint();
 #endif
