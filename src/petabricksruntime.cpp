@@ -468,7 +468,7 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
 
         // Set up a time out so we don't waste time running things that are
         // slower than what we have seen already.
-        if (thresh < UINT_MAX - 1) {
+        if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
           alarm((unsigned int) thresh + 1);
         }
 
@@ -477,7 +477,7 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
         jalib::JTime end=jalib::JTime::Now();
 
         // Disable previous alarm
-        if (thresh < UINT_MAX) {
+        if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
           alarm(0);
         }
 
