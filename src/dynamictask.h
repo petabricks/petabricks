@@ -22,12 +22,15 @@
 
 #include "jrefcounted.h"
 #include "jmutex.h"
-#include "dynamicscheduler.h"
+//#include "dynamicscheduler.h"
 
 #include <vector>
 #include <algorithm>
 
 namespace petabricks {
+
+// forward declarsion for DynamicTaskScheduler pointer
+class DynamicScheduler;
 
 // forward declarsion for DynamicTaskPtr
 class DynamicTask;
@@ -36,6 +39,19 @@ typedef jalib::JRef<DynamicTask> DynamicTaskPtr;
 
 class DynamicTask : public jalib::JRefCounted {
 public:
+
+  enum TaskState {
+    S_NEW,       //after creation
+    S_PENDING,   //after enqueue()
+    S_READY,     //after all dependencies met
+    S_COMPLETE,  //after run()==NULL
+    S_CONTINUED  //after run()!=NULL
+  };
+
+  ///
+  /// indicate if the task is executed or not
+  TaskState state;
+
   ///
   /// Perform this task, return a continuation task that must be completed
   /// before this task is marked done, otherwise return NULL
@@ -70,21 +86,21 @@ public:
   bool inlineTask();
   void inlineOrEnqueueTask();
 
-  /// 
+  ///
   /// Scheduler for scheduling the dynamic tasks
   static DynamicScheduler *scheduler;
 
  protected:
 
-  /// 
+  ///
   /// a maxSize to remember the largest size
   static size_t maxSize;
-  
-  /// 
+
+  ///
   /// a maxSize to remember the first task size
   static size_t firstSize;
 
-  
+
   virtual bool isNullTask() const { return false; }
 
   ///
@@ -103,18 +119,6 @@ public:
   /// a counter of how many tasks I depends on
   long numOfPredecessor;
 
-
-  enum TaskState {
-    S_NEW,       //after creation
-    S_PENDING,   //after enqueue()
-    S_READY,     //after all dependencies met
-    S_COMPLETE,  //after run()==NULL
-    S_CONTINUED  //after run()!=NULL
-  };
-
-  /// 
-  /// indicate if the task is executed or not
-  TaskState state;
 
   ///
   /// Pointer to the continuation task
