@@ -29,7 +29,7 @@
 #include <limits>
 
 
-const char theHelp[] = 
+const char theHelp[] =
 "\nALTERNATE MODES:" "\n"
 "  --autotune PREFIX    : autotune a given alg choice site using a genetic tuner" "\n"
 "  --optimize PARAM     : optimize a given configuration parameter using binary search" "\n"
@@ -73,6 +73,7 @@ static bool FULL_MULTIGRID_FLAG=false;
 
 namespace{//file local
 
+
 typedef jalib::JTunableManager TunableManager;
 
 class ConfigTesterGlue : public jalib::JConfigurationTester {
@@ -105,7 +106,7 @@ private:
 
 #define shift argc--,argv++;
 
-petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Main* m) 
+petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Main* m)
   : _main(m)
   , _randSize(4096)
 {
@@ -118,7 +119,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     if(jalib::Filesystem::FileExists(filename))
       tm.load(filename);
   }
-  
+
   while(argc>0){
     if(strcmp(argv[0],"--transform")==0 || strcmp(argv[0],"--tx")==0){
       JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
@@ -355,7 +356,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
     return 0;
   }
 
-  
+
   argc++, argv--;
 
   if(doIO && !main.verifyArgs(argc, argv))
@@ -404,7 +405,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
 
   if(doIO){ //write outputs
     JTIMER_SCOPE(write);
-    main.write(argc,argv); 
+    main.write(argc,argv);
   }
 
   return 0;
@@ -449,7 +450,7 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
   }
 }
 
-double petabricks::PetabricksRuntime::runTrial(){
+double petabricks::PetabricksRuntime::runTrial(double thresh){
 #ifdef GRACEFUL_ABORT
   try{
 #endif
@@ -464,14 +465,25 @@ double petabricks::PetabricksRuntime::runTrial(){
       double t=0;
       for(int z=0;z<GRAPH_TRIALS; ++z){
         _main->randomInputs(n);
-  
+
+        // Set up a time out so we don't waste time running things that are
+        // slower than what we have seen already.
+        if (thresh < UINT_MAX - 1) {
+          alarm((unsigned int) thresh + 1);
+        }
+
         jalib::JTime begin=jalib::JTime::Now();
         _main->compute();
         jalib::JTime end=jalib::JTime::Now();
-  
+
+        // Disable previous alarm
+        if (thresh < UINT_MAX) {
+          alarm(0);
+        }
+
         if(_needTraingingRun && _isTrainingRun){
           _isTrainingRun=false;
-          --z; //redo this iteration 
+          --z; //redo this iteration
         }else{
           t+=end-begin;
         }
@@ -529,18 +541,18 @@ double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable
   }
 }
 
-// namespace{ //file local 
+// namespace{ //file local
 //   std::string _mktname(int lvl, const std::string& prefix, const std::string& type){
 //     return prefix + "_lvl" + jalib::XToString(lvl) + "_" + type;
 //   }
 // }
-// 
+//
 // void petabricks::PetabricksRuntime::runAutotuneMode(const std::string& prefix){
 //   typedef jalib::JTunable JTunable;
 //   jalib::JTunableReverseMap m = jalib::JTunableManager::instance().getReverseMap();
-//   
+//
 //   int numLevels = 1;
-// 
+//
 //   //find numlevels
 //   for(int lvl=2; true; ++lvl){
 //     JTunable* rule   = m[_mktname(lvl, prefix, "rule")];
@@ -550,14 +562,14 @@ double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable
 //       break;
 //     }
 //   }
-// 
+//
 //   JASSERT(numLevels>1)(prefix).Text("invalid prefix to autotune");
-// 
+//
 //   //initialize
 //   for(int lvl=1; lvl<=numLevels; ++lvl){
 //     resetLevel(lvl, prefix, m);
 //   }
-// 
+//
 //   int curLevel = 1;
 //   for(randSize=TRAIN_MIN; randSize<TRAIN_MAX; randSize*=2){
 //     if (MULTIGRID_FLAG) {
@@ -579,7 +591,7 @@ double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable
 //         resetLevel(curLevel+1, prefix, m);
 //       }
 //     }
-// 
+//
 //     for(int lvl=1; lvl<=curLevel; ++lvl){
 //       JTunable* rule   = m[_mktname(lvl, prefix, "rule")];
 //       JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
@@ -590,7 +602,7 @@ double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable
 //     printf("\n");
 //   }
 // }
-// 
+//
 // double petabricks::PetabricksRuntime::autotuneOneLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
 //   typedef jalib::JTunable JTunable;
 //   JTunable* rule = m[_mktname(lvl, prefix, "rule")];
@@ -613,7 +625,7 @@ double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable
 //     return runTrial();
 //   }
 // }
-// 
+//
 // double petabricks::PetabricksRuntime::autotuneTwoLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
 //   typedef jalib::JTunable JTunable;
 //   double best = std::numeric_limits<double>::max();
@@ -655,7 +667,7 @@ double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable
 //   if(cutoff!=0) cutoff->setValue(bestCuttoff);
 //   return best;
 // }
-// 
+//
 // void petabricks::PetabricksRuntime::resetLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m){
 //   jalib::JTunable* rule   = m[_mktname(lvl, prefix, "rule")];
 //   jalib::JTunable* cutoff = m[_mktname(lvl, prefix, "cutoff")];
@@ -679,3 +691,5 @@ void petabricks::PetabricksRuntime::abort(){
   JASSERT(false).Text("PetabricksRuntime::abort() called");
 #endif
 }
+
+

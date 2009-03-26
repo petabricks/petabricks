@@ -21,6 +21,8 @@
 #define PETABRICKSPETABRICKSRUNTIME_H
 
 #include <string>
+#include <float.h>
+#include <signal.h>
 
 #include "jtunable.h"
 
@@ -84,10 +86,10 @@ public:
   double optimizeParameter(const std::string& param);
   double optimizeParameter(jalib::JTunable& param, int min, int max, int step=-1);
 
-  double runTrial();
+  double runTrial(double thresh = DBL_MAX);
 
 //   void runAutotuneMode(const std::string& prefix);
-// 
+//
 //   double autotuneOneLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
 //   double autotuneTwoLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
 //   void resetLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
@@ -99,6 +101,7 @@ public:
   int curSize() const { return _randSize;};
 
   static void abort();
+
   static void saveConfig();
 
   bool alternateTransforms() const { return _main->name() != _mainName; }
