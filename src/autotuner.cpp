@@ -18,7 +18,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "autotuner.h"
-#include "hecuraruntime.h"
+#include "petabricksruntime.h"
 
 #include <limits>
 #include <algorithm>
@@ -39,23 +39,23 @@ static const int DUP_CUTOFF_THRESH = 1; // how different cutoffs must be to be d
 static const int DUP_CUTOFF_THRESH = 1024; // how different cutoffs must be to be duplicates
 #endif
 
-namespace{ //file local 
+namespace{ //file local
   struct CmpLastPerformance {
-    bool operator() (const hecura::CandidateAlgorithmPtr& a, const hecura::CandidateAlgorithmPtr& b){
+    bool operator() (const petabricks::CandidateAlgorithmPtr& a, const petabricks::CandidateAlgorithmPtr& b){
       return a->lastResult() < b->lastResult();
     }
   };
 
   struct CmpLastLastPerformance {
-    bool operator() (const hecura::CandidateAlgorithmPtr& a, const hecura::CandidateAlgorithmPtr& b){
+    bool operator() (const petabricks::CandidateAlgorithmPtr& a, const petabricks::CandidateAlgorithmPtr& b){
       return a->lastlastResult() < b->lastlastResult();
     }
   };
 
   struct CmpAlgType {
-    bool operator() (const hecura::CandidateAlgorithmPtr& a, const hecura::CandidateAlgorithmPtr& b){
+    bool operator() (const petabricks::CandidateAlgorithmPtr& a, const petabricks::CandidateAlgorithmPtr& b){
       if(a->lvl() != b->lvl()) return a->lvl() < b->lvl();
-      hecura::CandidateAlgorithmPtr ta=a, tb=b;
+      petabricks::CandidateAlgorithmPtr ta=a, tb=b;
       while(ta && tb){
         if(ta->alg() != tb->alg()) return ta->alg() < tb->alg();
         ta=ta->next();
@@ -70,15 +70,15 @@ namespace{ //file local
   }
 }
 
-jalib::JTunable* hecura::Autotuner::algTunable(int lvl){
+jalib::JTunable* petabricks::Autotuner::algTunable(int lvl){
   return _tunableMap[_mktname(lvl, _prefix, "rule")];
 }
-jalib::JTunable* hecura::Autotuner::cutoffTunable(int lvl){
+jalib::JTunable* petabricks::Autotuner::cutoffTunable(int lvl){
   return _tunableMap[_mktname(lvl, _prefix, "cutoff")];
 }
 
 
-hecura::Autotuner::Autotuner(HecuraRuntime& rt, std::string& prefix) 
+petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, std::string& prefix)
   : _runtime(rt)
   , _tunableMap(jalib::JTunableManager::instance().getReverseMap())
   , _prefix(prefix)
@@ -142,26 +142,32 @@ hecura::Autotuner::Autotuner(HecuraRuntime& rt, std::string& prefix)
 }
 
 
-void hecura::Autotuner::runAll(){
+void petabricks::Autotuner::runAll(){
+  double best = DBL_MAX / 11.0;
   for(CandidateAlgorithmList::iterator i=_candidates.begin(); i!=_candidates.end(); ++i){
     _initialConfig->activate();
     (*i)->activate();
-    double d = _runtime.runTrial();
+    double d = _runtime.runTrial(best * 10 + 1);
+    if (d < best) {
+      best = d;
+    }
     (*i)->addResult(d);
     fflush(stdout);
   }
 }
 
-void hecura::Autotuner::train(int min, int max){
+void petabricks::Autotuner::train(int min, int max){
   for(int n=min; n<=max; n*=2){
     _runtime.setSize(n);
     trainOnce();
   }
 }
 
-void hecura::Autotuner::trainOnce(){
+void petabricks::Autotuner::trainOnce(){
   std::cout << "BEGIN ITERATION " << _prefix << " / " << _runtime.curSize() << std::endl;
   runAll();
+
+  printCanidates();
 
   std::sort(_candidates.begin(), _candidates.end(), CmpLastPerformance());
   double bestPerf = _candidates[0]->lastResult();
@@ -177,9 +183,9 @@ void hecura::Autotuner::trainOnce(){
       std::cout << "  ADDED " << b << std::endl;
     }
   }
-  
+
   removeDuplicates();
-  
+
   std::sort(_candidates.begin(), _candidates.end(), CmpLastPerformance());
   //kill slowest algorithms
   for(int i=_candidates.size()-1; i>0; --i){
@@ -197,16 +203,16 @@ void hecura::Autotuner::trainOnce(){
   _candidates[0]->activate();
 }
 
-void hecura::Autotuner::printCanidates(){
+void petabricks::Autotuner::printCanidates(){
   for(CandidateAlgorithmList::iterator i=_candidates.begin(); i!=_candidates.end(); ++i){
-    std::cout << "  * " << jalib::StringPad((*i)->toString(),20) << " = " << (*i)->lastResult() << std::endl; 
+    std::cout << "  * " << jalib::StringPad((*i)->toString(),20) << " = " << (*i)->lastResult() << std::endl;
   }
 }
 
-void hecura::Autotuner::removeDuplicates(){
+void petabricks::Autotuner::removeDuplicates(){
   std::sort(_candidates.begin(), _candidates.end(), CmpAlgType());
   //kill duplicates
-  for(int i=0; i<_candidates.size()-1; ++i){
+  for(int i=0; i<(int)_candidates.size()-1; ++i){
     if(_candidates[i]->isDuplicate(_candidates[i+1])){
       if(_candidates[i]->lastResult() > _candidates[i+1]->lastResult()){
         std::cout << "  DUPLICATE " << _candidates[i] << std::endl;
@@ -220,7 +226,7 @@ void hecura::Autotuner::removeDuplicates(){
   }
 }
 
-hecura::CandidateAlgorithmPtr hecura::CandidateAlgorithm::attemptBirth(HecuraRuntime& rt, Autotuner& autotuner, double thresh) {
+petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(PetabricksRuntime& rt, Autotuner& autotuner, double thresh) {
   CandidateAlgorithmList possible;
   activate();
 
@@ -242,13 +248,11 @@ hecura::CandidateAlgorithmPtr hecura::CandidateAlgorithm::attemptBirth(HecuraRun
     }
     activate();
   }
-#endif 
+#endif
 
   jalib::JTunable* at = autotuner.algTunable(_lvl+1);
   jalib::JTunable* ct = autotuner.cutoffTunable(_lvl+1);
   if(ct!=0){
-    int min = _cutoff;
-    int max = std::min(rt.curSize(), ct->max());
     int amin=0,amax=0;
     if(at!=0){
       amin=at->min();
@@ -258,13 +262,13 @@ hecura::CandidateAlgorithmPtr hecura::CandidateAlgorithm::attemptBirth(HecuraRun
       if(_lvl>1 && a==_alg) continue;
       if(at!=0) at->setValue(a);
 #ifndef FIXED_CUTOFF
-      double p = rt.optimizeParameter(*ct, min, max); 
+      double p = rt.optimizeParameter(*ct, min, max);
 #else
       ct->setValue(rt.curSize() * 3 / 4);
       if (ct->value() <= 1) {
         continue;
       }
-      double p = rt.runTrial();
+      double p = rt.runTrial(thresh);
 #endif
       CandidateAlgorithmPtr c = new CandidateAlgorithm(_lvl+1, a, at, ct->value(), ct, this);
       c->addResult(p);
@@ -284,7 +288,7 @@ hecura::CandidateAlgorithmPtr hecura::CandidateAlgorithm::attemptBirth(HecuraRun
   return possible[0];
 }
 
-bool hecura::CandidateAlgorithm::isDuplicate(const CandidateAlgorithmPtr& that){
+bool petabricks::CandidateAlgorithm::isDuplicate(const CandidateAlgorithmPtr& that){
   if(!that) return false;
   if(_lvl != that->lvl()) return false;
   if(_alg != that->alg()) return false;
