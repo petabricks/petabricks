@@ -172,6 +172,17 @@ public:
           JTRACE("handled template")(e)(tmp.size())(peekExprForward()->toString());
         }
       }
+      if(sym && sym->type() == RIRSymbol::SYM_TRANSFORM){
+        if(peekExprForward()->type() == RIRNode::EXPR_ARGS){
+          //transform transform calls from:
+          //   Foo(c,d)
+          //to:
+          //   Foo
+          JTRACE("Creating call")(sym);
+          peekExprForward()->parts().push_front(e);
+          e = new RIRIdentExpr("PB_CALL");
+        }
+      }
       if(sym && sym->type() == RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL){
         JTRACE("Expanding config item")(e);
         e = new RIRIdentExpr("TRANSFORM_LOCAL("+e->toString()+")");

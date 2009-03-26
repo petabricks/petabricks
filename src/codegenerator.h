@@ -43,6 +43,13 @@ class TaskCodeGenerator;
 
 class CodeGenerator {
 public:
+  struct ClassMember {
+    std::string type;
+    std::string name;
+    std::string initializer;
+    static const char* PASSED() { return "PASSED"; }
+  };
+  typedef std::vector<ClassMember> ClassMembers;
 
   
   static std::stringstream& theFilePrefix();
@@ -50,7 +57,7 @@ public:
 
   void incIndent(){++_indent;}
   void decIndent(){--_indent;}
-
+  
   CodeGenerator();
   virtual ~CodeGenerator(){}
 
@@ -62,7 +69,7 @@ public:
   void call(const std::string& func, const std::vector<std::string>& args);
   void setcall(const std::string& lv, const std::string& func, const std::vector<std::string>& args);
 
-  virtual void beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args);
+  virtual void beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args = std::vector<std::string>());
   void endFunc();
 
   void varDecl(const std::string& var);
@@ -77,7 +84,7 @@ public:
   void elseIf(const std::string& v = "true");
   void endIf();
 
-  virtual TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType) = 0;
+  virtual TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix) = 0;
 
   void createTunable( bool isTunable
                     , const std::string& category
@@ -112,10 +119,96 @@ public:
 
   TrainingDeps& cg() { return _cg; }
 
+
+  void beginClass(const std::string& name, const std::string& base){
+    hos() << "class " << name << " : public " << base << " {\n";
+    hos() << ("  typedef "+base+" BASE;\npublic:\n");
+    _curClass=name;
+    _contCounter=0;
+    JASSERT(_curMembers.empty())(_curMembers.size());
+  }
+  void endClass(){
+    const char* delim="";
+    indent();
+    os() << _curClass << "::" << _curClass << "(";
+    hos() << _curClass << "(";
+    for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
+      if(i->initializer == ClassMember::PASSED()){
+        os() << delim << "const "<<i->type<<"& t_"<<i->name;
+        hos() << delim << "const "<<i->type<<"& t_"<<i->name;
+        delim=", ";
+      }
+    }
+    os() << ")\n";
+    hos() << ");\n";
+    indent();
+    os() << "  : BASE()";
+    for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
+      if(i->initializer == ClassMember::PASSED())
+        os() << ", " << i->name<<"(t_"<<i->name<<")";
+      else if(i->initializer.size()>0)
+        os() << ", " << i->name<<"("<<i->initializer<<")";
+    }
+    newline();
+    write("{}");
+
+    hos() << "//private:\n";
+    for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
+      hos() << "  " << i->type << " " << i->name <<";\n";
+    }
+    _curMembers.clear();
+    _curClass="";
+    hos() << "};\n\n";
+    newline();
+    newline();
+  }
+  void addMember(const std::string& type, const std::string& name, const std::string& initializer = ClassMember::PASSED()){
+    if(_curClass.size()>0){
+      ClassMember tmp;
+      tmp.type=type;
+      tmp.name=name;
+      tmp.initializer=initializer;
+      _curMembers.push_back(tmp);
+    }else{
+      if(initializer.size()>0)
+        varDecl(type+" "+name+" = "+initializer);
+      else
+        varDecl(type+" "+name);
+    }
+  }
+  void continuationPoint(){
+    std::string n = "cont_" + jalib::XToString(_contCounter++);
+    beginIf("useContinuation()");
+    write("return new petabricks::MethodCallTask<"+_curClass+">(this, &"+_curClass+"::"+n+");"); 
+    elseIf();
+    write("return "+n+"();"); 
+    endIf();
+    endFunc();
+    beginFunc("DynamicTaskPtr", n);
+  }
+
+  void define(const std::string& name, const std::string& val){
+    _defines.push_back(name);
+    write("#define "+name+" "+val);
+  }
+  void undefineAll(){
+    for(size_t i=0; i<_defines.size(); ++i)
+      write("#undef "+_defines[i]);
+    _defines.clear();
+  }
+  bool inClass() const { return _curClass.size()>0; }
+
+
+  void staticMember() { hos() << "static "; }
 protected:
   void indent();
   virtual std::ostream& os() = 0;
+  virtual std::ostream& hos() = 0;
 protected:
+  std::vector<std::string> _defines;
+  ClassMembers _curMembers;
+  std::string _curClass;
+  int         _contCounter;
   int _indent;
   TrainingDeps _cg;
 }
@@ -123,11 +216,13 @@ protected:
 class BufferedCodeGenerator : public CodeGenerator {
 public:
   virtual std::string str() const { return _os.str() ; }
-  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType);
+  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix);
 protected:
+  std::ostream& hos() { return _header; }
   std::ostream& os() { return _os; }
 protected:
   std::ostringstream _os;
+  std::ostringstream _header;
 };
 
 
@@ -135,9 +230,9 @@ protected:
 class TaskCodeGenerator : public BufferedCodeGenerator, public jalib::JRefCounted {
 public:
   std::string str() const { return _os.str() + "};\n"; }
-  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType){ return *this;}
+  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix){ return *this;}
 
-  TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args, const char* taskType);
+  TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix);
 
   void beginRunFunc(){
     beginFunc("petabricks::DynamicTaskPtr", "run", std::vector<std::string>());
@@ -190,15 +285,13 @@ private:
 
 class MainCodeGenerator : public BufferedCodeGenerator {
 public:
-  void beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args);
-
   void outputFileTo(std::ostream& o){
     o << theFilePrefix().str();
     o << "\n// Tunable declarations\n";
     for(TunableDefs::const_iterator i=theTunableDefs().begin(); i!=theTunableDefs().end(); ++i)
       o << i->second << ";\n";
     o << "\n// Forward declarations\n";
-    o << _forwardDecls.str();
+    o << _header.str();
     o << "\n// Task declarations\n";
     for(TaskDecls::iterator i=_tasks.begin(); i!=_tasks.end(); ++i)
       o << (*i)->str();
@@ -206,16 +299,15 @@ public:
     o << _os.str();
   }
 
-  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType);
+  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix);
 
-  void merge(const MainCodeGenerator& that){
-    _os << that._os.str();
-    _forwardDecls << that._forwardDecls.str();
-    _tasks.insert(_tasks.begin(), that._tasks.begin(), that._tasks.end());
-  }
+//void merge(const MainCodeGenerator& that){
+//  _os << that._os.str();
+//  _forwardDecls << that._forwardDecls.str();
+//  _tasks.insert(_tasks.begin(), that._tasks.begin(), that._tasks.end());
+//}
 
 private:
-  std::ostringstream _forwardDecls;
   typedef std::list<jalib::JRef<TaskCodeGenerator> > TaskDecls;
   TaskDecls _tasks;
 };

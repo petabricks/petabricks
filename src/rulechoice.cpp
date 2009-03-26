@@ -48,7 +48,8 @@ void petabricks::RuleChoice::print(std::ostream& o) const {
   o << "RuleChoice"; //TODO
 }
 
-void petabricks::RuleChoice::generateCodeSimple(  const std::string& taskname
+void petabricks::RuleChoice::generateCodeSimple( bool isStatic
+                                            , const std::string& taskname
                                             , Transform& trans
                                             , ScheduleNode& node
                                             , const SimpleRegionPtr& region
@@ -70,7 +71,6 @@ void petabricks::RuleChoice::generateCodeSimple(  const std::string& taskname
   std::vector<RulePtr> sortedRules(_rules.begin(), _rules.end());
   std::sort(sortedRules.begin(), sortedRules.end(), RuleIdComparer());
 
-
   int n=0;
   if(sortedRules.size()>1){
 //     for(std::vector<RulePtr>::const_iterator i=sortedRules.begin(); i!=sortedRules.end(); ++i){
@@ -81,9 +81,10 @@ void petabricks::RuleChoice::generateCodeSimple(  const std::string& taskname
   }
   for(std::vector<RulePtr>::const_iterator i=sortedRules.begin(); i!=sortedRules.end(); ++i){
     if(sortedRules.size()>1) o.beginCase(n++);
-    if(taskname.empty())
+    if(isStatic || taskname.empty()){
+      if(!isStatic) o.write("transform->");//hack
       (*i)->generateCallCodeSimple(trans, o, region);
-    else{
+    }else{
       (*i)->generateCallTaskCode(taskname, trans, o, region);
       node.printDepsAndEnqueue(o, sortedRules[0]);
     }
@@ -97,7 +98,7 @@ void petabricks::RuleChoice::generateCodeSimple(  const std::string& taskname
   if(_condition){
     if(_next){
       o.elseIf();
-      _next->generateCodeSimple(taskname, trans, node, region, o, tpfx);
+      _next->generateCodeSimple(isStatic, taskname, trans, node, region, o, tpfx);
     }
     o.endIf();
   }

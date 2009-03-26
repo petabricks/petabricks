@@ -57,13 +57,14 @@ public:
 
   ///
   /// Output c++ code
-  void generateCodeSimple( const std::string& taskname
-                         , Transform& trans
-                         , ScheduleNode& node
-                         , const SimpleRegionPtr& region
-                         , CodeGenerator& o
-                         , const std::string& tpfx = "");
- 
+  void generateCodeSimple ( bool isStatic
+                          , const std::string& taskname
+                          , Transform& trans
+                          , ScheduleNode& node
+                          , const SimpleRegionPtr& region
+                          , CodeGenerator& o
+                          , const std::string& tpfx = "");
+  
   const RuleSet& rules() const { return _rules; }
 
   static const FormulaPtr& autotuned();

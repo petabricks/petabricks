@@ -110,6 +110,8 @@ namespace jassert_internal
   const char* jassert_basename ( const char* str );
   std::ostream& jassert_output_stream();
   void jassert_safe_print ( const char* );
+  void set_log_file ( const std::string& path );
+  int jassert_console_fd();
 
   template < typename T >
   inline JAssert& JAssert::Print ( const T& t )
@@ -124,9 +126,19 @@ namespace jassert_internal
     return *this;
   }
 
-  void set_log_file ( const std::string& path );
+#ifndef JASSERT_FAST
+  template <>
+  inline JAssert& JAssert::Print( const std::string& t ){
+    jassert_safe_print ( t.c_str() );
+    return *this;
+  }
 
-  int jassert_console_fd();
+  template <>
+  inline JAssert& JAssert::Print( const char* const& t ){
+    jassert_safe_print( t );
+    return *this;
+  }
+#endif
 
 }//jassert_internal
 
@@ -168,3 +180,4 @@ namespace jassert_internal
     jassert_internal::JAssert(true).JASSERT_CONTEXT("ERROR","JASSERT(" #term ") failed").JASSERT_CONT_A
 
 #endif
+

@@ -13,7 +13,7 @@ noinst_HEADERS = autotuner.h choicegrid.h codegenerator.h config.h \
 	matrixdependency.h matrixio.h matrixoperations.h maximawrapper.h performancetester.h \
 	petabricks.h petabricksruntime.h region.h rircompilerpass.h rirscope.h rule.h \
 	rulechoice.h ruleir.h spatialdynamictask.h staticscheduler.h trainingdeps.h \
-	transform.h
+	transform.h transforminstance.h
 
 libpetabricks_a_SOURCES = autotuner.cpp choicegrid.cpp codegenerator.cpp \
 	dynamicscheduler.cpp dynamictask.cpp formula.cpp getdelim.cpp getline.cpp jalloc.cpp \
@@ -23,7 +23,7 @@ libpetabricks_a_SOURCES = autotuner.cpp choicegrid.cpp codegenerator.cpp \
 	maximawrapper.cpp pblexer.lpp pbparser.ypp performancetester.cpp petabricksruntime.cpp \
 	region.cpp rircompilerpass.cpp rirscope.cpp rule.cpp rulechoice.cpp ruleir.cpp \
 	ruleirlexer.lpp ruleirparser.ypp spatialdynamictask.cpp staticscheduler.cpp \
-	trainingdeps.cpp transform.cpp
+	trainingdeps.cpp transform.cpp transforminstance.cpp
 
 pbc_SOURCES = pbc.cpp
 pbc_LDADD = libpetabricks.a -lpthread 

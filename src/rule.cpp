@@ -254,7 +254,6 @@ void petabricks::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o
     }
   }
 
-
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     args.push_back((*i)->generateSignatureCode(o,true));
   }
@@ -280,49 +279,33 @@ void petabricks::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o
 void petabricks::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   CoordinateFormula begin, widths;
   CoordinateFormula end;
-  std::vector<std::string> args;
+  std::vector<std::string> taskargs;
   std::vector<std::string> matrixNames;
   std::vector<std::string> argsByRef;
-
-  std::set<MatrixDefPtr> used;
-  for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
-    used.insert(i->first);
-    i->first->argDeclRW(args);
-    i->first->argDeclRW(argsByRef, true);
-    matrixNames.push_back(i->first->name());
-  }
-  for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
-    if(used.find(i->first)==used.end()){
-      i->first->argDeclRO(args);
-      i->first->argDeclRO(argsByRef, true);
-      matrixNames.push_back(i->first->name());
-    }
-  }
+  std::vector<std::string> argnames;
 
   IterationOrderList order(dimensions(), IterationOrder::ANY);
   removeInvalidOrders(order);
   //TODO: call learner
 //   trans.learner().makeIterationChoice(order, _matrix, _region);
 
-  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i){
-    args.push_back("const IndexT "+(*i));
-    argsByRef.push_back("const IndexT "+(*i));
-    matrixNames.push_back((*i));
-  }
+  taskargs.push_back("const jalib::JRef<"+trans.instClassName()+"> transform");
 
   //populate begin
   for(int i=0; i<dimensions(); ++i){
     FormulaPtr tmp = getOffsetVar(i,"begin");
     begin.push_back(tmp);
-    args.push_back("const IndexT "+tmp->toString());
+    taskargs.push_back("const IndexT "+tmp->toString());
     argsByRef.push_back("const IndexT "+tmp->toString());
+    argnames.push_back(tmp->toString());
   }
   //populate end
   for(int i=0; i<dimensions(); ++i){
     FormulaPtr tmp = getOffsetVar(i,"end");
     end.push_back(tmp);
-    args.push_back("const IndexT "+tmp->toString());
+    taskargs.push_back("const IndexT "+tmp->toString());
     argsByRef.push_back("const IndexT "+tmp->toString());
+    argnames.push_back(tmp->toString());
   }
 
   const char* rt = "void";
@@ -330,16 +313,24 @@ void petabricks::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& 
     rt="petabricks::DynamicTaskPtr";
   }
 
-  o.beginFunc(rt,trampcodename(trans), argsByRef);
+  o.beginFunc(rt, trampcodename(trans), argsByRef);
   {
-  if(isRecursive()) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
+    if(isRecursive()) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
 
-//   FreeVars fv;
-//   for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i)
-//     i->first->extractDefines(fv, o);
-//   for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i)
-//     i->first->extractDefines(fv, o);
-
+ // std::set<MatrixDefPtr> used;
+ // for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
+ //   used.insert(i->first);
+ //   o.define(i->first->name(), "(*transform->"+i->first->name()+")");
+ // }
+ // for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
+ //   if(used.find(i->first)==used.end()){
+ //     o.define(i->first->name(), "(*transform->"+i->first->name()+")");
+ //   }
+ // }
+ // for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i){
+ //   o.define(*i, "(transform->"+*i+")");
+ // }
+    
     for(size_t i=0; i<begin.size(); ++i){
       FormulaPtr b=begin[i];
       FormulaPtr e=end[i];
@@ -355,17 +346,19 @@ void petabricks::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& 
       o.endFor();
     }
     if(isRecursive()) o.write("return _spawner;");
+
+    o.undefineAll();
   }
   o.endFunc();
 
-  TaskCodeGenerator& task = o.createTask(trampcodename(trans), args, "SpatialDynamicTask");
+  TaskCodeGenerator& task = o.createTask(trampcodename(trans), taskargs, "SpatialDynamicTask", "_task");
   task.beginRunFunc();
   {
     if(isRecursive()){
-        task.setcall("DynamicTaskPtr _task", trampcodename(trans), task.argnames());
+        task.setcall("DynamicTaskPtr _task", "transform->"+trampcodename(trans), argnames);
         task.write("return _task;");
     }else{
-      task.call(trampcodename(trans), task.argnames());
+      task.call("transform->"+trampcodename(trans), argnames);
       task.write("return NULL;");
     }
   }
@@ -420,7 +413,8 @@ void petabricks::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& 
       std::string t_end = getOffsetVar(i,"t_end")->toString();
       task.varDecl("IndexT "+t_begin +"="+getOffsetVar(i,"begin")->toString());
       task.varDecl("IndexT "+t_end +"="+t_begin+"+_thresh");
-      std::vector<std::string> args(matrixNames);
+      std::vector<std::string> args;
+      args.push_back("transform");
       for(int d=0; d<dimensions(); ++d){
         if(d==i)
           args.push_back(t_begin);
@@ -485,18 +479,18 @@ void petabricks::Rule::generateTrampCellCodeSimple(Transform& trans, CodeGenerat
 
 std::vector<std::string> petabricks::Rule::getCallArgs(Transform& trans, const SimpleRegionPtr& region){
   std::vector<std::string> args;
-  std::set<MatrixDefPtr> used;
-  for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
-    used.insert(i->first);
-    args.push_back(i->first->name());
-  }
-  for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
-    if(used.find(i->first)==used.end())
-      args.push_back(i->first->name());
-  }
+//std::set<MatrixDefPtr> used;
+//for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
+//  used.insert(i->first);
+//  args.push_back(i->first->name());
+//}
+//for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
+//  if(used.find(i->first)==used.end())
+//    args.push_back(i->first->name());
+//}
 
-  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i)
-    args.push_back((*i));
+//for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i)
+//  args.push_back((*i));
 
   for( CoordinateFormula::const_iterator i=region->minCoord().begin()
        ; i!=region->minCoord().end()
@@ -520,6 +514,7 @@ void petabricks::Rule::generateCallCodeSimple(Transform& trans, CodeGenerator& o
 
 void petabricks::Rule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
   std::vector<std::string> args = getCallArgs(trans, region);
+  args.insert(args.begin(), "this");
   o.setcall(name,"new "+trampcodename(trans)+"_task", args);
 }
 

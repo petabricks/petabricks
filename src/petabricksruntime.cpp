@@ -297,8 +297,8 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
         temp->setValue(0);
       }
 
-      Autotuner *at6, *at7, *at8, *at9, *at10;
-      jalib::JTunable* run_fullmg_flag;
+      Autotuner *at6 = 0, *at7 = 0, *at8 = 0, *at9 = 0, *at10 = 0;
+      jalib::JTunable* run_fullmg_flag = NULL;
       if (FULL_MULTIGRID_FLAG) {
         std::string s6 = "FullPoisson2D_Inner_Prec1_1";
         std::string s7 = "FullPoisson2D_Inner_Prec2_1";

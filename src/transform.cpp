@@ -328,84 +328,70 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   }
 
   o.write("#define TRANSFORM_LOCAL(x) PB_CAT("+_name+"_, x)");
+  o.newline();
 
-//   o.comment("Forward declarations");
-//   o.declareFunc("void", _name, args);
-//   if(_to.size()==1) o.declareFunc(_to.front()->matrixTypeName(), _name, returnStyleArgs);
-//   o.newline();
   o.comment("User rules");
-  for(RuleList::iterator i=_rules.begin(); i!=_rules.end(); ++i){
-    (*i)->generateDeclCodeSimple(*this, o);
-  }
+  Map(&Rule::generateDeclCodeSimple, *this, o, _rules);
   o.newline();
 
-  o.comment("Rule trampolines");
-  for(RuleList::iterator i=_rules.begin(); i!=_rules.end(); ++i){
-    (*i)->generateTrampCodeSimple(*this, o);
-  }
-  o.newline();
-
-  o.comment(_name+" entry function");
-  o.beginFunc("DynamicTaskPtr", "spawn_"+_name, spawnArgs());
-  o.varDecl("IndexT " INPUT_SIZE_STR " = 0");
-  o.varDecl("IndexT " OUTPUT_SIZE_STR " = 0");
-  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    o.write(INPUT_SIZE_STR " += " + (*i)->name() + ".count();");
-  }
+  o.beginClass(instClassName(), "petabricks::TransformInstance");
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    o.write(OUTPUT_SIZE_STR " += " + (*i)->name() + ".count();");
+    o.addMember((*i)->matrixTypeName(), (*i)->name());
   }
-  o.varDecl("IndexT _input_perimeter = 0");
-  int maxDims = 1;
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    o.write("_input_perimeter += " + (*i)->name() + ".perimeter();");
-    maxDims = std::max<int>(maxDims, (*i)->numDimensions());
+    o.addMember((*i)->constMatrixTypeName(), (*i)->name());
   }
   o.createTunable(true, "system.splitsize", _name + "_split_size", 64, 1);
-  o.varDecl("IndexT " SPLIT_CHUNK_SIZE " = " + _name + "_split_size" );
+  o.addMember("IndexT", SPLIT_CHUNK_SIZE, _name+"_split_size");
 
-  extractSizeDefines(o);
-  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    (*i)->verifyDefines(o);
-  }
-  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->verifyDefines(o);
-  }
-  if(!_through.empty())
-  for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
-    (*i)->allocateTemporary(o, false);
-  }
-  _scheduler->generateCodeSimple(*this, o);
-  
+  o.beginFunc("void", "init");
+  extractConstants(o);
+  o.endFunc();
+
+  o.beginFunc("DynamicTaskPtr", "runDynamic");
+  o.write("init();");
+  _scheduler->generateCodeDynamic(*this, o);
   o.write("return "+taskname()+";");
   o.endFunc();
-  o.beginFunc("void", _name, args);
-  argNames.push_back("DynamicTaskPtr::null()");
-  o.setcall("DynamicTaskPtr "+taskname(), "spawn_"+_name, argNames);
-  argNames.pop_back();
-  o.write(taskname()+"->enqueue();");
-  o.write(taskname()+"->waitUntilComplete();");
+
+  o.beginFunc("void", "runStatic");
+  o.write("init();");
+  _scheduler->generateCodeStatic(*this, o);
   o.endFunc();
+  
+  o.comment("Rule trampolines");
+  Map(&Rule::generateTrampCodeSimple, *this, o, _rules);
   o.newline();
 
-  if(_to.size()==1){
-    o.comment("Return style entry function");
-    o.beginFunc(_to.front()->matrixTypeName(), _name, returnStyleArgs);
-    extractSizeDefines(o);
-//     o.comment("Allocate to matrix");
-    _to.front()->allocateTemporary(o, false);
-//     o.comment("Call normal version");
-    o.call(_name, argNames);
-    o.write("return "+_to.front()->name()+";");
-    o.endFunc();
-    o.newline();
-  }
+  o.endClass();
+  
+
+
+//o.beginFunc("void", _name, args);
+//argNames.push_back("DynamicTaskPtr::null()");
+//o.setcall("DynamicTaskPtr "+taskname(), "spawn_"+_name, argNames);
+//argNames.pop_back();
+//o.write(taskname()+"->enqueue();");
+//o.write(taskname()+"->waitUntilComplete();");
+//o.endFunc();
+//o.newline();
+
+//if(_to.size()==1){
+//  o.comment("Return style entry function");
+//  o.beginFunc(_to.front()->matrixTypeName(), _name, returnStyleArgs);
+//  extractSizeDefines(o);
+//  _to.front()->allocateTemporary(o, false);
+//  o.call(_name, argNames);
+//  o.write("return "+_to.front()->name()+";");
+//  o.endFunc();
+//  o.newline();
+//}
   generateMainInterface(o);
   o.write("#undef TRANSFORM_LOCAL");
   o.comment("End of output for "+_name);
-  o.newline();
-  o.newline();
   o.cg().endTransform(_originalName, _name);
+  o.newline();
+  o.newline();
 }
 
 void petabricks::Transform::extractSizeDefines(CodeGenerator& o){
@@ -419,30 +405,48 @@ void petabricks::Transform::extractSizeDefines(CodeGenerator& o){
   }
 }
 
+void petabricks::Transform::extractConstants(CodeGenerator& o){
+  o.addMember("IndexT", INPUT_SIZE_STR,       "0");
+  o.addMember("IndexT", OUTPUT_SIZE_STR,      "0");
+  o.addMember("IndexT", INPUT_PERIMETER_STR,  "0");
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    o.write(INPUT_SIZE_STR " += " + (*i)->name() + ".count();");
+  }
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    o.write(OUTPUT_SIZE_STR " += " + (*i)->name() + ".count();");
+  }
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    o.write(INPUT_PERIMETER_STR " += " + (*i)->name() + ".perimeter();");
+  }
+  //int maxDims = 1;
+  //maxDims = std::max<int>(maxDims, (*i)->numDimensions());
+  extractSizeDefines(o);
+  Map(&MatrixDef::verifyDefines, o, _from);
+  Map(&MatrixDef::verifyDefines, o, _to);
+  for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
+    (*i)->allocateTemporary(o, false);
+  } }
+
 void petabricks::Transform::registerMainInterface(CodeGenerator& o){
   if(_templateargs.empty())
-    o.write("runtime.addTransform(&"+name()+"_main);");
+    o.write("runtime.addTransform("+name()+"_main::instance());");
   else{
     size_t choiceCnt = tmplChoiceCount();
     for(size_t c=0; c<choiceCnt; ++c)
-      o.write("runtime.addTransform(&"+tmplName(c)+"_main);");
+      o.write("runtime.addTransform("+tmplName(c)+"_main::instance());");
   }
 }
 
 void petabricks::Transform::generateMainInterface(CodeGenerator& o){ 
   std::vector<std::string> argNames = normalArgNames();
   int a = 1;
-  o.write("class _"+_name+"_main_glue: public petabricks::PetabricksRuntime::Main {");
-  o.write("public:");
-  o.incIndent();
-  o.write("_"+_name+"_main_glue(): petabricks::PetabricksRuntime::Main(\""+_name+"\"){}");
-
+  o.beginClass(_name+"_main", "petabricks::PetabricksRuntime::Main");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->varDeclCodeRO(o);
   }
-  for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
-    (*i)->varDeclCodeRW(o);
-  }
+//for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
+//  (*i)->varDeclCodeRW(o);
+//}
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->varDeclCodeRW(o);
   }
@@ -506,11 +510,21 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
   o.endFunc();
 
   o.beginFunc("void", "compute", std::vector<std::string>());
-  o.call(_name, argNames);
+  o.setcall("TransformInstancePtr p","new "+instClassName(), argNames);
+  o.write("p->runToCompletion();");
+  o.endFunc();
+  
+  o.beginFunc("const char*", "name");
+  o.write("return \""+_name+"\";");
   o.endFunc();
 
-  o.decIndent();
-  o.write("} "+_name+"_main;");
+  o.staticMember();
+  o.beginFunc(_name+"_main*", "instance");
+  o.write("static "+_name+"_main i;");
+  o.write("return &i;");
+  o.endFunc();
+
+  o.endClass();
 }
 
 std::vector<std::string> petabricks::Transform::maximalArgList() const{

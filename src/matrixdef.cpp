@@ -99,7 +99,10 @@ void petabricks::MatrixDef::extractDefines(FreeVars& defined, CodeGenerator& o){
         l.push_back(new FormulaEQ(tmp, *i));
         l = *MaximaWrapper::instance().solve(l, var);
         JASSERT(l.size()==1)(*i)(var).Text("Failed to solve");
-        o.varDecl("const IndexT "+var+"="+(*l.begin())->rhs()->replace(tmp, new FormulaVariable(_name+".size("+jalib::XToString(d)+")"))->toString());
+        o.addMember("IndexT", var, "");
+        o.write(var + " = " 
+                + (*l.begin())->rhs()->replace(tmp, new FormulaVariable(_name+".size("+jalib::XToString(d)+")"))->toString()
+                + ";");
       }
     }
   }
@@ -111,10 +114,9 @@ void petabricks::MatrixDef::verifyDefines(CodeGenerator& o){
   }
 }
 void petabricks::MatrixDef::allocateTemporary(CodeGenerator& o, bool setOnly){
-  if(setOnly)
-    o.varDecl(name()+" = "+matrixTypeName()+"::allocate("+_size.toString()+")");
-  else
-    o.varDecl(matrixTypeName()+" "+name()+" = "+matrixTypeName()+"::allocate("+_size.toString()+")");
+  if(!setOnly)
+    o.addMember(matrixTypeName(), name(), "");
+  o.varDecl(name()+" = "+matrixTypeName()+"::allocate("+_size.toString()+")");
 }
 
 void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn){
@@ -125,8 +127,8 @@ void petabricks::MatrixDef::writeToFileCode(CodeGenerator& o, const std::string&
   o.write("petabricks::MatrixIO("+fn+",\"w\").write("+name()+");");
 }
 void petabricks::MatrixDef::varDeclCodeRO(CodeGenerator& o){
-  o.write(constMatrixTypeName()+" "+name()+";");
+  o.addMember(constMatrixTypeName(), name(), "");
 }
 void petabricks::MatrixDef::varDeclCodeRW(CodeGenerator& o){
-  o.write(matrixTypeName()+" "+name()+";");
+  o.addMember(matrixTypeName(), name(), "");
 }

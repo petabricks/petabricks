@@ -29,7 +29,7 @@ petabricks::TunableDefs& petabricks::CodeGenerator::theTunableDefs() {
   return t;
 }
 
-petabricks::CodeGenerator::CodeGenerator() : _indent(0) {}
+petabricks::CodeGenerator::CodeGenerator() : _contCounter(0), _indent(0) {}
 
 void petabricks::CodeGenerator::beginFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end,  const FormulaPtr& step){
   indent();
@@ -81,19 +81,19 @@ void petabricks::CodeGenerator::setcall(const std::string& lv, const std::string
 //   os() << ");\n";
 // }
 
-void petabricks::MainCodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
-  _forwardDecls << rt << " " << func << '(';
-  jalib::JPrintable::printStlList(_forwardDecls, args.begin(), args.end(), ", ");
-  _forwardDecls << ");\n";
-  petabricks::CodeGenerator::beginFunc(rt, func, args);
-}
-
 void petabricks::CodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
   indent();
-  os() << rt << " " << func << '(';
+  os() << rt << " ";
+  if(inClass()) os() << _curClass << "::";
+  os() << func << '(';
   jalib::JPrintable::printStlList(os(), args.begin(), args.end(), ", ");
   os() << "){\n";
   _indent++;
+
+  if(inClass()) hos() << "  ";
+  hos() << rt << " " << func << '(';
+  jalib::JPrintable::printStlList(hos(), args.begin(), args.end(), ", ");
+  hos() << ");\n";
 }
 
 void petabricks::CodeGenerator::varDecl(const std::string& var){
@@ -156,13 +156,13 @@ void petabricks::CodeGenerator::endIf(){
   os() << "}\n";
 }
 
-petabricks::TaskCodeGenerator& petabricks::BufferedCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType){
+petabricks::TaskCodeGenerator& petabricks::BufferedCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string&){
   UNIMPLEMENTED();
   return *(TaskCodeGenerator*)0;
 }
 
-petabricks::TaskCodeGenerator& petabricks::MainCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType){
-  _tasks.push_back(new TaskCodeGenerator(func, args, taskType));
+petabricks::TaskCodeGenerator& petabricks::MainCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix){
+  _tasks.push_back(new TaskCodeGenerator(func, args, taskType, postfix));
   return *_tasks.back();
 }
 
@@ -179,8 +179,8 @@ namespace{//file local
   }
 }
 
-petabricks::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args, const char* taskType){
-  _name=func + "_task";
+petabricks::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix){
+  _name=func + postfix;
   _indent=1;
   _types.resize(args.size());
   _names.resize(args.size());
@@ -194,7 +194,7 @@ petabricks::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const 
   }
   os() << "public:\n"; 
   indent();
-  os() << func << "_task(";
+  os() << _name << "(";
   for(size_t i=0; i!=args.size(); ++i){
     if(i>0) os()<<", ";
     os() << _types[i] << "& a_" << _names[i];
