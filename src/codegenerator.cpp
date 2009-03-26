@@ -207,3 +207,87 @@ petabricks::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const 
   os() << "\n  {}\n\n";
 }
 
+
+static std::string _typeToConstRef(std::string s){
+  if(s[s.length()-1] != '&'){
+    s+='&';
+    if(   s[0]=='c'
+       && s[1]=='o'
+       && s[2]=='n'
+       && s[3]=='s'
+       && s[4]=='t'
+       && s[5]==' '){
+      return s;
+    }
+    s="const "+s;
+  }
+  return s;
+}
+
+void petabricks::CodeGenerator::beginClass(const std::string& name, const std::string& base){
+  hos() << "class " << name << " : public " << base << " {\n";
+  hos() << ("  typedef "+base+" BASE;\npublic:\n");
+  _curClass=name;
+  _contCounter=0;
+  JASSERT(_curMembers.empty())(_curMembers.size());
+}
+void petabricks::CodeGenerator::endClass(){
+  const char* delim="";
+  indent();
+  os() << _curClass << "::" << _curClass << "(";
+  hos() << _curClass << "(";
+  for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
+    if(i->initializer == ClassMember::PASSED()){
+      os() << delim << _typeToConstRef(i->type) <<" t_"<<i->name;
+      hos() << delim << _typeToConstRef(i->type) <<" t_"<<i->name;
+      delim=", ";
+    }
+  }
+  os() << ")\n";
+  hos() << ");\n";
+  indent();
+  os() << "  : BASE()";
+  for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
+    if(i->initializer == ClassMember::PASSED())
+      os() << ", " << i->name<<"(t_"<<i->name<<")";
+    else if(i->initializer.size()>0)
+      os() << ", " << i->name<<"("<<i->initializer<<")";
+  }
+  newline();
+  write("{}");
+
+  hos() << "//private:\n";
+  for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
+    hos() << "  " << i->type << " " << i->name <<";\n";
+  }
+  _curMembers.clear();
+  _curClass="";
+  hos() << "};\n\n";
+  newline();
+  newline();
+}
+void petabricks::CodeGenerator::addMember(const std::string& type, const std::string& name, const std::string& initializer){
+  if(_curClass.size()>0){
+    ClassMember tmp;
+    tmp.type=type;
+    tmp.name=name;
+    tmp.initializer=initializer;
+    _curMembers.push_back(tmp);
+  }else{
+    if(initializer.size()>0)
+      varDecl(type+" "+name+" = "+initializer);
+    else
+      varDecl(type+" "+name);
+  }
+}
+void petabricks::CodeGenerator::continuationPoint(){
+  std::string n = "cont_" + jalib::XToString(_contCounter++);
+  beginIf("useContinuation()");
+  write("return new petabricks::MethodCallTask<"+_curClass+">(this, &"+_curClass+"::"+n+");"); 
+  elseIf();
+  write("return "+n+"();"); 
+  endIf();
+  endFunc();
+  beginFunc("DynamicTaskPtr", n);
+}
+

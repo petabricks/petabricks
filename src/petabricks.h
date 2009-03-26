@@ -21,6 +21,7 @@
 #include "matrix.h"
 #include "matrixio.h"
 #include "transforminstance.h"
+#include "ruleinstance.h"
 #include "dynamictask.h"
 #include "spatialdynamictask.h"
 #include "petabricksruntime.h"
@@ -41,16 +42,22 @@
 #define PB_CALL(taskname, args...) \
   petabricks::call_hook( new taskname ## _instance(args) )
 
+#define PB_STATIC_CALL(taskname, args...) \
+  petabricks::static_call_hook( new taskname ## _instance(args) )
+
 #define PB_SYNC() \
   petabricks::sync_hook( _before, _after )
+
+#define PB_NOP() 
+
+#define PB_RETURN(rv)\
+  if(false){}else{ _pb_rv=(rv); return DEFAULT_RV; }
 
 #define PB_CAT(a,b) _PB_CAT(a,b)
 #define _PB_CAT(a,b) __PB_CAT(a,b)
 #define __PB_CAT(a,b) a ## b
 
-#define SPAWN PB_SPAWN
-#define CALL PB_CALL
-#define SYNC PB_SYNC
+
 
 namespace petabricks {
   inline void spawn_hook(const TransformInstancePtr& tx, const DynamicTaskPtr& before, const DynamicTaskPtr& after){
@@ -62,6 +69,10 @@ namespace petabricks {
   inline void call_hook(const TransformInstancePtr& tx){
     tx->runToCompletion();
   }
+  
+  inline void static_call_hook(const TransformInstancePtr& tx){
+    tx->runStatic();
+  }
 
   inline void sync_hook(DynamicTaskPtr& before, DynamicTaskPtr& after){
     before = after;
@@ -69,5 +80,6 @@ namespace petabricks {
     after->dependsOn(before);
     before->enqueue();
   }
+  
 }
 

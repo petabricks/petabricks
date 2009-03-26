@@ -113,8 +113,9 @@ public:
     _maxCoord.makeRelativeTo(defs);
   }
 
-  std::string generateSignatureCode(CodeGenerator& o, bool isConst) const;
-  std::string generateAccessorCode(CodeGenerator& o) const;
+  std::string genTypeStr(bool isConst) const;
+  std::string generateSignatureCode(bool isConst) const;
+  std::string generateAccessorCode() const;
 
   SimpleRegionPtr getApplicableRegion(Rule& rule, const FormulaList& defs, bool isOutput);
 
@@ -131,6 +132,8 @@ public:
   FormulaList diff(const Rule&) const;
 
   bool isSingleElement() const { return _originalType==REGION_CELL; }
+  
+  const std::string& name() const { return _name; }
 private:
   std::string _name;
   std::string _fromMatrixName;

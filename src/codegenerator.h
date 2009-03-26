@@ -120,72 +120,10 @@ public:
   TrainingDeps& cg() { return _cg; }
 
 
-  void beginClass(const std::string& name, const std::string& base){
-    hos() << "class " << name << " : public " << base << " {\n";
-    hos() << ("  typedef "+base+" BASE;\npublic:\n");
-    _curClass=name;
-    _contCounter=0;
-    JASSERT(_curMembers.empty())(_curMembers.size());
-  }
-  void endClass(){
-    const char* delim="";
-    indent();
-    os() << _curClass << "::" << _curClass << "(";
-    hos() << _curClass << "(";
-    for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
-      if(i->initializer == ClassMember::PASSED()){
-        os() << delim << "const "<<i->type<<"& t_"<<i->name;
-        hos() << delim << "const "<<i->type<<"& t_"<<i->name;
-        delim=", ";
-      }
-    }
-    os() << ")\n";
-    hos() << ");\n";
-    indent();
-    os() << "  : BASE()";
-    for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
-      if(i->initializer == ClassMember::PASSED())
-        os() << ", " << i->name<<"(t_"<<i->name<<")";
-      else if(i->initializer.size()>0)
-        os() << ", " << i->name<<"("<<i->initializer<<")";
-    }
-    newline();
-    write("{}");
-
-    hos() << "//private:\n";
-    for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
-      hos() << "  " << i->type << " " << i->name <<";\n";
-    }
-    _curMembers.clear();
-    _curClass="";
-    hos() << "};\n\n";
-    newline();
-    newline();
-  }
-  void addMember(const std::string& type, const std::string& name, const std::string& initializer = ClassMember::PASSED()){
-    if(_curClass.size()>0){
-      ClassMember tmp;
-      tmp.type=type;
-      tmp.name=name;
-      tmp.initializer=initializer;
-      _curMembers.push_back(tmp);
-    }else{
-      if(initializer.size()>0)
-        varDecl(type+" "+name+" = "+initializer);
-      else
-        varDecl(type+" "+name);
-    }
-  }
-  void continuationPoint(){
-    std::string n = "cont_" + jalib::XToString(_contCounter++);
-    beginIf("useContinuation()");
-    write("return new petabricks::MethodCallTask<"+_curClass+">(this, &"+_curClass+"::"+n+");"); 
-    elseIf();
-    write("return "+n+"();"); 
-    endIf();
-    endFunc();
-    beginFunc("DynamicTaskPtr", n);
-  }
+  void beginClass(const std::string& name, const std::string& base);
+  void endClass();
+  void addMember(const std::string& type, const std::string& name, const std::string& initializer = ClassMember::PASSED());
+  void continuationPoint();
 
   void define(const std::string& name, const std::string& val){
     _defines.push_back(name);
@@ -211,8 +149,8 @@ protected:
   int         _contCounter;
   int _indent;
   TrainingDeps _cg;
-}
-;
+};
+
 class BufferedCodeGenerator : public CodeGenerator {
 public:
   virtual std::string str() const { return _os.str() ; }

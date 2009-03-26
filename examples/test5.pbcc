@@ -22,10 +22,10 @@ to OUT[w,h]
 //  call Add(o,i,i);
 //}
 ////legacy forms:
-//recursive
-//to(OUT o) from(IN i) {
-//  SPAWN(Add, o, i, i);
-//}
+  recursive
+  to(OUT o) from(IN i) {
+    SPAWN(Add, o, i, i);
+  }
 //to(OUT o) from(IN i) {
 //  CALL(Add, o, i, i);
 //}

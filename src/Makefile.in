@@ -67,8 +67,8 @@ am_libpetabricks_a_OBJECTS = autotuner.$(OBJEXT) choicegrid.$(OBJEXT) \
 	pblexer.$(OBJEXT) pbparser.$(OBJEXT) \
 	performancetester.$(OBJEXT) petabricksruntime.$(OBJEXT) \
 	region.$(OBJEXT) rircompilerpass.$(OBJEXT) rirscope.$(OBJEXT) \
-	rule.$(OBJEXT) rulechoice.$(OBJEXT) ruleir.$(OBJEXT) \
-	ruleirlexer.$(OBJEXT) ruleirparser.$(OBJEXT) \
+	rule.$(OBJEXT) rulechoice.$(OBJEXT) ruleinstance.$(OBJEXT) \
+	ruleir.$(OBJEXT) ruleirlexer.$(OBJEXT) ruleirparser.$(OBJEXT) \
 	spatialdynamictask.$(OBJEXT) staticscheduler.$(OBJEXT) \
 	trainingdeps.$(OBJEXT) transform.$(OBJEXT) \
 	transforminstance.$(OBJEXT)
@@ -244,8 +244,8 @@ noinst_HEADERS = autotuner.h choicegrid.h codegenerator.h config.h \
 	jserialize.h jsocket.h jthread.h jtimer.h jtunable.h learner.h matrix.h matrixdef.h \
 	matrixdependency.h matrixio.h matrixoperations.h maximawrapper.h performancetester.h \
 	petabricks.h petabricksruntime.h region.h rircompilerpass.h rirscope.h rule.h \
-	rulechoice.h ruleir.h spatialdynamictask.h staticscheduler.h trainingdeps.h \
-	transform.h transforminstance.h
+	rulechoice.h ruleinstance.h ruleir.h spatialdynamictask.h staticscheduler.h \
+	trainingdeps.h transform.h transforminstance.h
 
 libpetabricks_a_SOURCES = autotuner.cpp choicegrid.cpp codegenerator.cpp \
 	dynamicscheduler.cpp dynamictask.cpp formula.cpp getdelim.cpp getline.cpp jalloc.cpp \
@@ -253,9 +253,9 @@ libpetabricks_a_SOURCES = autotuner.cpp choicegrid.cpp codegenerator.cpp \
 	jthread.cpp jtimer.cpp jtunable.cpp learner.cpp matrix.cpp matrixdef.cpp \
 	matrixdependency.cpp matrixio.cpp matrixreader.lpp maximalexer.lpp maximaparser.ypp \
 	maximawrapper.cpp pblexer.lpp pbparser.ypp performancetester.cpp petabricksruntime.cpp \
-	region.cpp rircompilerpass.cpp rirscope.cpp rule.cpp rulechoice.cpp ruleir.cpp \
-	ruleirlexer.lpp ruleirparser.ypp spatialdynamictask.cpp staticscheduler.cpp \
-	trainingdeps.cpp transform.cpp transforminstance.cpp
+	region.cpp rircompilerpass.cpp rirscope.cpp rule.cpp rulechoice.cpp \
+	ruleinstance.cpp ruleir.cpp ruleirlexer.lpp ruleirparser.ypp spatialdynamictask.cpp \
+	staticscheduler.cpp trainingdeps.cpp transform.cpp transforminstance.cpp
 
 pbc_SOURCES = pbc.cpp
 pbc_LDADD = libpetabricks.a -lpthread 
@@ -373,6 +373,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rirscope.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rule.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rulechoice.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ruleinstance.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ruleir.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ruleirlexer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ruleirparser.Po@am__quote@

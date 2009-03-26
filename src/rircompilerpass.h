@@ -177,15 +177,24 @@ public:
           //transform transform calls from:
           //   Foo(c,d)
           //to:
-          //   Foo
+          //   CALL(Foo,c,d)
           JTRACE("Creating call")(sym);
           peekExprForward()->parts().push_front(e);
-          e = new RIRIdentExpr("PB_CALL");
+          e = new RIRIdentExpr("CALL");
         }
       }
       if(sym && sym->type() == RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL){
         JTRACE("Expanding config item")(e);
         e = new RIRIdentExpr("TRANSFORM_LOCAL("+e->toString()+")");
+      }
+    }
+    if(e->type() == RIRNode::EXPR_KEYWORD){
+      if(e->toString() == "return" && peekExprForward()->type()==RIRNode::EXPR_CHAIN){
+        if(!peekExprForward()->parts().empty()){
+          peekExprForward()->parts().push_front(new RIROpExpr("("));
+          peekExprForward()->parts().push_back(new RIROpExpr(")"));
+          e = new RIRIdentExpr("PB_RETURN");
+        }
       }
     }
   }

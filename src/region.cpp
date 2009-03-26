@@ -24,7 +24,7 @@
 #include "rule.h"
 
 
-#define RETURN_VAL_STR ""
+#define RETURN_VAL_STR "_pb_rv"
 
 petabricks::Region::RegionType petabricks::Region::strToRegionType(const std::string& str){
   if(str=="cell")   return REGION_CELL;
@@ -307,25 +307,32 @@ bool petabricks::SimpleRegion::hasIntersect(const SimpleRegion& that) const {
   return true;
 }
 
-std::string petabricks::Region::generateSignatureCode(CodeGenerator& o, bool isConst) const{
+std::string petabricks::Region::genTypeStr(bool isConst) const{
   switch(_originalType){
   case REGION_CELL:
-    return std::string()+(isConst?"const ":"")+"ElementT& "  + _name;
+    if(isConst)
+      return "const ElementT";
+    else
+      return "ElementT&";
   case REGION_COL:
   case REGION_ROW:
-    return (isConst?MatrixDef::oneD().constMatrixTypeName():MatrixDef::oneD().matrixTypeName())+" " + _name;
+    return (isConst?MatrixDef::oneD().constMatrixTypeName():MatrixDef::oneD().matrixTypeName());
   case REGION_BOX:
   case REGION_ALL:
-    return (isConst?_fromMatrix->constMatrixTypeName():_fromMatrix->matrixTypeName())+" " + _name;
+    return (isConst?_fromMatrix->constMatrixTypeName():_fromMatrix->matrixTypeName());
   case REGION_SLICE:
-    return (isConst?_fromMatrix->constSliceTypeName():_fromMatrix->sliceTypeName())+" " + _name;
+    return (isConst?_fromMatrix->constSliceTypeName():_fromMatrix->sliceTypeName());
   default:
     JASSERT(false).Text("Unreachable");
     return "";
   }
 }
 
-std::string petabricks::Region::generateAccessorCode(CodeGenerator& o) const{
+std::string petabricks::Region::generateSignatureCode(bool isConst) const{
+  return genTypeStr(isConst) + " " + _name;
+}
+
+std::string petabricks::Region::generateAccessorCode() const{
   switch(_originalType){
   case REGION_CELL:
     return _fromMatrix->name() + ".cell("+_minCoord.toString()+")";
