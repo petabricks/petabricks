@@ -18,6 +18,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "dynamictask.h"
+#include "dynamicscheduler.h"
 #include "jasm.h"
 #include "jtunable.h"
 
@@ -26,8 +27,6 @@
 //#define PBCC_SEQUENTIAL
 #define INLINE_NULL_TASKS
 
-#define MIN_NUM_WORKERS  0
-#define MAX_NUM_WORKERS  512
 #define MIN_INLINE_TASK_SIZE  1
 #define MAX_INLINE_TASK_SIZE  65536
 
@@ -71,9 +70,12 @@ void DynamicTask::enqueue()
     else
       state=S_PENDING;
   }
+  /*
   if(preds==0){
     inlineOrEnqueueTask();
   }
+  */
+  inlineOrEnqueueTask();
 }
 #endif // PBCC_SEQUENTIAL
 
@@ -92,7 +94,7 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
     dependsOn(that->continuation);
   }else if(that->state != S_COMPLETE){
     that->dependents.push_back(this);
-    { 
+    {
       JLOCKSCOPE(lock);
       numOfPredecessor++;
     }
@@ -102,7 +104,7 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
   }
 #ifdef VERBOSE
     printf("thread %d: task %p depends on task %p counter: %d\n", pthread_self(), this, that.asPtr(), numOfPredecessor);
-#endif  
+#endif
 }
 #endif // PBCC_SEQUENTIAL
 
@@ -198,7 +200,7 @@ bool DynamicTask::inlineTask()
 //   if(maxSize  < taskSize) {
 //     maxSize   = taskSize;
 //     return false;
-//   } 
+//   }
 
   // if no tasks in queue, do not inline
   // this is to increase parallelism
@@ -215,7 +217,8 @@ bool DynamicTask::inlineTask()
 void DynamicTask::inlineOrEnqueueTask()
 {
 #ifdef INLINE_NULL_TASKS
-  if(inlineTask()){
+//  if(inlineTask()){
+  if (false) {
 //     static __thread int inlineCount=0;
 //     if(inlineCount<100){
 //      ++inlineCount;
@@ -223,7 +226,9 @@ void DynamicTask::inlineOrEnqueueTask()
 //      --inlineCount;
 //     }else{
       //push it in local queue
-      DynamicScheduler::myThreadLocalQueue().push_back(this);
+
+      //DynamicScheduler::myThreadLocalQueue().push_back(this);
+
 //     }
   }else
 #endif

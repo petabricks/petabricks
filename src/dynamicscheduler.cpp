@@ -28,8 +28,22 @@
 // #define VERBOSE
 
 
-#define MIN_NUM_WORKERS  0
-#define MAX_NUM_WORKERS  512
+namespace petabricks {
+
+// Thread local global types and functions
+__thread int _tid = -1;
+int tidGen = 0;
+jalib::JMutex _tid_lock;
+
+int tid() {
+  if (_tid == -1) {
+    JLOCKSCOPE(_tid_lock);
+    _tid = tidGen++;
+  }
+  return _tid;
+}
+
+// Timeout related global types and function
 
 static petabricks::DynamicScheduler *_dsPtr = NULL;
 
@@ -38,8 +52,6 @@ static void sigAlarmHandler(int signal) {
   _dsPtr->setAbortFlag();
 }
 
-
-namespace petabricks {
 
 #ifdef GRACEFUL_ABORT
 bool DynamicScheduler::theIsAborting=false;
@@ -84,22 +96,33 @@ void DynamicScheduler::startWorkerThreads(int newWorkers)
   JTRACE("start worker threads")(numOfWorkers);
 }
 
-__thread std::list<DynamicTaskPtr>* q = 0;
-std::list<DynamicTaskPtr>& DynamicScheduler::myThreadLocalQueue(){
-  if(q==0) q = new std::list<DynamicTaskPtr>();
+//__thread std::deque<DynamicTaskPtr>* q = NULL;
+
+/*
+std::deque<DynamicTaskPtr>& DynamicScheduler::myThreadLocalQueue(){
+  if (q == NULL) {
+    q = new std::deque<DynamicTaskPtr>();
+  }
   return *q;
 }
-
+*/
 
 
 void DynamicScheduler::popAndRunOneTask(bool blocking){
-  std::list<DynamicTaskPtr>& myQ = DynamicScheduler::myThreadLocalQueue();
+  //std::list<DynamicTaskPtr>& myQ = DynamicScheduler::myThreadLocalQueue();
 
 #ifdef GRACEFUL_ABORT
-    try{
+    try {
 #endif
       DynamicTaskPtr task;
 
+      if(blocking) {
+        task = dequeue();
+      } else {
+        task = tryDequeue();
+      }
+
+      /*
       if(!myQ.empty()){
         //try a thread local task
         task = myQ.front();
@@ -112,17 +135,20 @@ void DynamicScheduler::popAndRunOneTask(bool blocking){
           task = tryDequeue();
         }
       }
+      */
 
 #ifdef GRACEFUL_ABORT
-      if(DynamicScheduler::isAborting())
-        throw DynamicScheduler::AbortException();
+        if (DynamicScheduler::isAborting())
+          throw DynamicScheduler::AbortException();
 #endif
 
-      if(task) task->runWrapper();
+      if (task) {
+        task->runWrapper();
+      }
 
 #ifdef GRACEFUL_ABORT
-    }catch(DynamicScheduler::AbortException e){
-      if(blocking)
+    } catch (DynamicScheduler::AbortException e) {
+      if (blocking)
         abortWait();
       else
         throw;
@@ -135,7 +161,7 @@ void *workerStartup(void *args)
   DynamicScheduler *scheduler = (DynamicScheduler *)args;
 
   // infinit loop to for executing tasks
-  while(true) {
+  while (true) {
     scheduler->popAndRunOneTask(true);
   }
 }

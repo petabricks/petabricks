@@ -23,6 +23,7 @@
 #include "jtimer.h"
 #include "dynamictask.h"
 #include "autotuner.h"
+#include "dynamicscheduler.h"
 
 #include <algorithm>
 #include <math.h>

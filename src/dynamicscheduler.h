@@ -23,10 +23,13 @@
 #include "jmutex.h"
 #include "jrefcounted.h"
 #include "jblockingqueue.h"
+#include "jmutex.h"
+#include "dynamictask.h"
 
 #include <pthread.h>
 #include <list>
 #include <set>
+#include <deque>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -38,14 +41,95 @@ namespace petabricks {
 // * ready queue: a queue of tasks ready to run
 
 // forward declarsion for DynamicTaskPtr
-class DynamicTask;
+//class DynamicTask;
 typedef jalib::JRef<DynamicTask> DynamicTaskPtr;
 typedef jalib::JBlockingQueue<DynamicTaskPtr> DynamicTaskQueue;
 
+int tid(void);
 
 class DynamicScheduler{
+
+private:
+  class Deque {
+
+    char _prePadding[CACHE_LINE_SIZE];
+    jalib::JMutex _lock;
+    std::deque<DynamicTaskPtr> _deque;
+    struct { int z; int w; } _randomNumState;
+    char _postPadding[CACHE_LINE_SIZE];
+
+   public:
+
+    Deque()
+    {
+      _randomNumState.z = tid();
+      _randomNumState.w = tid() + 1;
+    }
+
+    void push(const DynamicTaskPtr& t)
+    {
+      JLOCKSCOPE(_lock);
+
+      _deque.push_back(t);
+
+    }
+
+    DynamicTaskPtr pop()
+    {
+      JLOCKSCOPE(_lock);
+
+      DynamicTaskPtr retVal(NULL);
+
+      if (!_deque.empty()) {
+        DynamicTaskPtr back = _deque.back();
+        if (back->state == DynamicTask::S_READY) {
+          retVal = back;
+          _deque.pop_back();
+        }
+      }
+
+      return retVal;
+    }
+
+    DynamicTaskPtr steal()
+    {
+      DynamicTaskPtr retVal(NULL);
+
+      if (!_lock.trylock()) {
+        return retVal;
+      }
+
+      if (!_deque.empty()) {
+        DynamicTaskPtr front = _deque.front();
+        if (front->state == DynamicTask::S_READY) {
+          retVal = front;
+          _deque.pop_front();
+        }
+      }
+
+      _lock.unlock();
+
+      return retVal;
+    }
+
+    int nextDeque(int numThreads) {
+
+      return (getRandInt() % numThreads);
+    }
+
+   private:
+
+    int getRandInt() {
+      _randomNumState.z = 36969 * (_randomNumState.z & 65535) + (_randomNumState.z >> 16);
+      _randomNumState.w = 18000 * (_randomNumState.w & 65535) + (_randomNumState.w >> 16);
+      return (_randomNumState.z << 16) + _randomNumState.w;
+    }
+  } __attribute__ ((aligned (64)));
+
 public:
-  static std::list<DynamicTaskPtr>& myThreadLocalQueue();
+  Deque deques[MAX_NUM_WORKERS];
+
+  static int myThreadID();
 
   ///
   /// constructor
@@ -74,38 +158,40 @@ public:
   ///
   /// blocked until get a task from queue for execution
   DynamicTaskPtr dequeue() {
-    DynamicTaskPtr task = queue.pop();
-#ifndef GRACEFUL_ABORT
-    return task;
-#else
-    if(task && !isAborting()){
-      return task;
-    }else{
-      throw AbortException();
-    }
-#endif
+    DynamicTaskPtr task;
+    do {
+      task = tryDequeue();
+    } while (!task);
   }
-
 
   ///
   /// unblocked method, try to get a task from queue for execution
   DynamicTaskPtr tryDequeue() {
-    DynamicTaskPtr task = queue.tryPop();
+
+    DynamicTaskPtr task = deques[tid()].pop();
+
+    if (!task) {
+      int stealDeque = deques[tid()].nextDeque(numOfWorkers);
+      task = deques[stealDeque].steal();
+    }
+
 #ifndef GRACEFUL_ABORT
     return task;
 #else
-    if(task && !isAborting()){
+    if(task && !isAborting()) {
       return task;
-    }else{
+    } else {
       JLOCKSCOPE(theAbortingLock);
-      if(isAborting())
+      if(isAborting()) {
         throw AbortException();
-      else
+      } else {
         return 0;
+      }
     }
 #endif
   }
 
+  /*
   bool empty() {
     return queue.empty();
   }
@@ -113,6 +199,7 @@ public:
   size_t size() {
     return queue.size();
   }
+  */
 
   int workers() {
     return numOfWorkers;
