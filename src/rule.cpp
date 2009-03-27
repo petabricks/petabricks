@@ -265,7 +265,7 @@ void petabricks::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o
     o.addMember("DynamicTaskPtr", "_completion", "new NullDynamicTask()");
 
     o.define("SPAWN", "PB_SPAWN");
-    o.define("CALL",  "PB_CALL");
+    o.define("CALL",  "PB_SPAWN");
     o.define("SYNC",  "PB_SYNC");
     o.define("DEFAULT_RV",  "_completion");
     o.beginFunc("petabricks::DynamicTaskPtr", "runDynamic");

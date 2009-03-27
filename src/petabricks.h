@@ -39,15 +39,10 @@
 #define PB_SPAWN(taskname, args...) \
   petabricks::spawn_hook( new taskname ## _instance(args), _completion)
 
-#define PB_CALL(taskname, args...) \
-  petabricks::call_hook( new taskname ## _instance(args) )
-
 #define PB_STATIC_CALL(taskname, args...) \
   petabricks::static_call_hook( new taskname ## _instance(args) )
 
-#define PB_SYNC() sync_in_loops_not_supported_yet!
-
-#define PB_NOP() 
+#define PB_NOP() 0
 
 #define PB_RETURN(rv)\
   if(false){}else{ _pb_rv=(rv); return DEFAULT_RV; }
@@ -55,6 +50,9 @@
 #define PB_CAT(a,b) _PB_CAT(a,b)
 #define _PB_CAT(a,b) __PB_CAT(a,b)
 #define __PB_CAT(a,b) a ## b
+
+#define PB_SYNC() sync_in_loops_not_supported_yet!
+
 
 
 
@@ -64,11 +62,7 @@ namespace petabricks {
     completion->dependsOn(task);
     task->enqueue();
   }
-  
-  inline void call_hook(const TransformInstancePtr& tx){
-    tx->runToCompletion();
-  }
-  
+ 
   inline void static_call_hook(const TransformInstancePtr& tx){
     tx->runStatic();
   }

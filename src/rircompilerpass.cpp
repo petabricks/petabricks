@@ -24,9 +24,12 @@
 
 void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
   if(s->containsLeaf("SYNC")){
+    o.comment("SYNC();");
     o.continuationRequired("petabricks::sync_hook(_completion, ");
   }else if(s->containsLeaf("CALL")){
     o.write(s->toString()); 
+    o.comment("SYNC(); // forced because of CALL");
+    o.continuationRequired("petabricks::sync_hook(_completion, ");
   }else if(s->containsLeaf("SPAWN")){
     o.write(s->toString()); 
     o.continuationPoint();
