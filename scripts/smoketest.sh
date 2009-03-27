@@ -20,11 +20,6 @@ test -d ./examples || cd ..
 ec test -d ./examples
 ec test -d ./src
 
-if test "$1" != "-f"; then
-  ec make -j$NCPU
-  (cd examples && ec make clean)
-  (cd examples && ec make -j$NCPU)
-fi
 
 function compilePbcc(){
 #  if ./src/pbc ./examples/$1.pbcc 2>/dev/null >/dev/null
@@ -60,16 +55,16 @@ function runTest(){
   printf "|\\n"
 }
 
-function runEachTest(){
-  while read X
-  do
-    runTest $X
-  done
+function firstArg(){
+  echo "$1"
 }
 
-printf '+---------------------+---------+----------------------+\n'
-printf '|                NAME | COMPILE | TEST                 |\n'
-printf '+---------------------+---------+----------------------+\n'
+function map(){
+  while read X
+  do
+    $@ $X
+  done
+}
 
 R2Da=./testdata/Rand2Da
 R2Db=./testdata/Rand2Db
@@ -86,7 +81,8 @@ TrainX=./testdata/trainX
 TrainY=./testdata/trainY
 TestX=./testdata/testX
 
-runEachTest << EOF
+function mapToTests(){
+map $@ << EOF
   add       $R2Da $R2Db
   multiply  $R2Da $R2Db
   transpose $R2Da 
@@ -118,6 +114,18 @@ runEachTest << EOF
   convolution/ConvolutionFFT $R1D $R1D
   convolution/Convolution $R1D $R1D
 EOF
+}
 
+if test "$1" != "-f"; then
+  ec make -j$NCPU 
+  (cd examples && ec make clean)
+  (cd examples && ec make -j$NCPU `mapToTests firstArg`)
+fi
+
+
+printf '+---------------------+---------+----------------------+\n'
+printf '|                NAME | COMPILE | TEST                 |\n'
+printf '+---------------------+---------+----------------------+\n'
+mapToTests runTest
 printf '+---------------------+---------+----------------------+\n'
 
