@@ -40,21 +40,19 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
       o.write(s->toString()); 
     }
     break;
-    o.write(s->toString()); 
-    break;
   case RIRNode::STMT_LOOP:
   case RIRNode::STMT_COND:
   case RIRNode::STMT_BLOCK:
-    o.comment("+cf");
-    o.write(s->toString()); 
-    o.comment("-cf");
+    if(s->containsLeaf("SYNC") || s->containsLeaf("CALL") || s->containsLeaf("SPAWN")){
+      o.write(s->toString()); 
+    }else{
+      o.write(s->toString()); 
+    }
     break;
   case RIRNode::STMT_SWITCH:
   case RIRNode::STMT_BREAKCONTINUE:
-    UNIMPLEMENTED();
-    break;
   default:
-    UNIMPLEMENTED()(s->type());
+    UNIMPLEMENTED()(s->typeStr());
   }
 }
 
