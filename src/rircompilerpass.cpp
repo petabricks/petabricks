@@ -44,6 +44,16 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
         std::string name = peekExprForward()->toString();
         std::string type = e->toString();
         e = NULL;
+        pushExprBackward(popExprForward().asPtr());//scroll forward 1
+        if(hasExprForward()){
+          JASSERT(!peekExprForward()->isLeaf(",")).Text("list style initializers not yet supported");
+          if(peekExprForward()->isLeaf("[")){
+            while(!peekExprForward()->isLeaf("]")){ 
+              name += popExprForward()->toString();
+            }
+            name += popExprForward()->toString();
+          }
+        }
         o.addMember(type, name, "");
       }
     }

@@ -63,8 +63,8 @@ protected:
     return !_exprCtx.back().forward()->empty();
   }
   RIRExprRef peekExprForward() { 
+    JASSERT(!_exprCtx.back().forward()->empty()).Text("unexpected end of statement");
     RIRExprRef p = _exprCtx.back().forward()->front().asPtr();
-    JASSERT(p).Text("unexpected end of statement");
     return p;
   }
   RIRExprRef popExprForward() { 
