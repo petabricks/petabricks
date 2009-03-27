@@ -1,0 +1,12 @@
+#! /bin/sh
+
+  echo "Compiling for Solaris, Sun Workshop"
+  echo "Generating 32-bit variant (libhoard_32.so)."
+  rm -rf SunWS_cache
+  CC -xthreadvar=dynamic -xildoff -dalign -fns -fsimple=2 -ftrap=%none -xlibmil -xlibmopt -xO4 -xtarget=ultra2 -xbuiltin=%all -G -mt -DNDEBUG -I. -I.. -I../../heaplayers -I../../heaplayers/util ../../heaplayers/util/sparc-interchange.il libhoard.cpp -o libhoard_32.so -ldl -lthread -lCrun
+  echo "Generating 64-bit variant (libhoard_64.so)."
+  rm -rf SunWS_cache
+  CC -xthreadvar=dynamic -xildoff -dalign -fns -fsimple=2 -ftrap=%none -xlibmil -xlibmopt -xO4 -xtarget=ultra2 -xarch=v9 -xcode=pic13 -xbuiltin=%all -G -mt -DNDEBUG -I. -I.. -I../../heaplayers -I../../heaplayers/util ../../heaplayers/util/sparc-interchange.il libhoard.cpp -lpthread -o libhoard_64.so -ldl -lthread -lCrun
+
+
+

@@ -31,7 +31,7 @@ class JMutex{
 public:
   JMutex(){ pthread_mutex_init(&_mux, NULL); }
   ~JMutex(){ pthread_mutex_destroy(&_mux); }
-    
+
   void lock()   const {JASSERT(pthread_mutex_lock(&_mux)   == 0);}
   void unlock() const {JASSERT(pthread_mutex_unlock(&_mux) == 0);}
 protected:
@@ -43,7 +43,7 @@ class JCondMutex : public JMutex {
 public:
   JCondMutex(){  pthread_cond_init(&_cond, NULL); }
   ~JCondMutex(){ pthread_cond_destroy(&_cond); }
-  
+
   void wait() const      {JASSERT(pthread_cond_wait(&_cond, &_mux) == 0);}
   void signal() const    {JASSERT(pthread_cond_signal(&_cond)      == 0);}
   void broadcast() const {JASSERT(pthread_cond_broadcast(&_cond)   == 0);}
@@ -56,7 +56,7 @@ class JLockScope{
 public:
   JLockScope(const JMutex& mux) : _mux(mux) { _mux.lock(); }
   ~JLockScope() { _mux.unlock(); }
-private: 
+private:
   const JMutex& _mux;
 };
 

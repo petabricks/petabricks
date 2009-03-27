@@ -1,5 +1,5 @@
 %{
-  volatile __thread int trash;
+  volatile __thread double trash;
 %}
 
 transform ScaleTest
@@ -7,8 +7,12 @@ from IN[n]
 to OUT[n] 
 {
   to(OUT o) from(IN i) {
+    double sum = 0;
     if(n<=1){
-      for(trash=0; trash<100000000; ++trash);
+      for(int i = 0; i < n * 1000; i++) {
+        sum += 1.0 / i;
+      }
+      trash = sum;
       return;
     }
     SPAWN(ScaleTest, o.region(0, n/2), i.region(0, n/2));

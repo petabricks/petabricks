@@ -81,29 +81,29 @@ public:
 
   //accessor
   T* operator->() const {
-    check(); 
+    check();
     use();
-    return _obj; 
+    return _obj;
   }
 
   //accessor
   T& operator*()  const {
-    check(); 
+    check();
     use();
-    return *_obj; 
+    return *_obj;
   }
 
    T* asPtr()             { use(); return _obj; }
    const T* asPtr() const { use(); return _obj; }
 
   //is valid?
-  operator bool() const { 
-    return _obj!=NULL; 
+  operator bool() const {
+    return _obj!=NULL;
   }
-  
+
   operator const T& () const { check(); use(); return *_obj; }
   operator T& ()             { check(); use(); return *_obj; }
- 
+
   //compare
   friend bool operator == (const JRef& a, const JRef& b) { return a._obj == b._obj; }
   friend bool operator != (const JRef& a, const JRef& b) { return a._obj != b._obj; }
@@ -134,18 +134,20 @@ protected:
   JRefCounted(const JRefCounted&) : _refCount(0) {}
   virtual ~JRefCounted(){}
 public:
-  inline void incRefCount() const{ 
-    atomicAdd<1> (&_refCount); 
+  inline void incRefCount() const{
+    atomicAdd<1> (&_refCount);
   }
-  inline void decRefCount() const{ 
+  inline void decRefCount() const{
     if(atomicAdd<-1>(&_refCount)==0)
       delete this;
   }
-  inline long refCount() const{ 
-    return _refCount; 
+  inline long refCount() const{
+    return _refCount;
   }
 private:
-  mutable volatile long _refCount; 
+  char pre_padding[56];
+  mutable volatile long _refCount;
+  char post_padding[64];
 };
 
 /**
@@ -153,9 +155,9 @@ private:
  */
 class JRefPool {
 public:
-  template < typename T >  T* add(T* t) { 
-    _pool.push_back(JRef<JRefCounted>(t)); 
-    return t; 
+  template < typename T >  T* add(T* t) {
+    _pool.push_back(JRef<JRefCounted>(t));
+    return t;
   }
   void clear() { return _pool.clear(); }
 private:
