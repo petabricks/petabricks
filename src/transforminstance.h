@@ -40,7 +40,7 @@ public:
 
   DynamicTaskPtr runAfter(const DynamicTaskPtr& before){
     if(before){
-      DynamicTaskPtr t = new MethodCallTask<TransformInstance>(this, &TransformInstance::runDynamic);
+      DynamicTaskPtr t = new MethodCallTask<TransformInstance, &TransformInstance::runDynamic>(this);
       t->dependsOn(before);
       return t;
     }else{

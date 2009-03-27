@@ -249,7 +249,7 @@ public:
   bool containsLeaf(const char* val) const{
     return RIRStmt::containsLeaf(val)
         || _then->containsLeaf(val)
-        || _else->containsLeaf(val);
+        ||(_else &&  _else->containsLeaf(val));
   }
 private:
   RIRStmtCopyRef _then;

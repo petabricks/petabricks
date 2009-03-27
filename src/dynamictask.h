@@ -128,19 +128,17 @@ public:
 };
 
 
-template< typename T>
+template< typename T, DynamicTaskPtr (T::*method)()>
 class MethodCallTask : public DynamicTask {
 public:
-  typedef DynamicTaskPtr (T::*MethodPtr)();
-  MethodCallTask(const jalib::JRef<T>& obj, MethodPtr method)
-    : _obj(obj), _method(method)
+  MethodCallTask(const jalib::JRef<T>& obj)
+    : _obj(obj)
   {}
   DynamicTaskPtr run(){ 
-    return ((*_obj).*(_method))();
+    return ((*_obj).*(method))();
   }
 private:
   jalib::JRef<T> _obj;
-  MethodPtr _method;
 };
 
 
