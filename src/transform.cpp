@@ -343,6 +343,11 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   }
   o.createTunable(true, "system.splitsize", _name + "_split_size", 64, 1);
   o.addMember("IndexT", SPLIT_CHUNK_SIZE, _name+"_split_size");
+  
+  o.beginFunc("bool", "useContinuation");
+  o.createTunable(true, "system.unrollschedule", _name + "_unroll_schedule", 1, 0, 1);
+  o.write("return "+_name + "_unroll_schedule == 0;");
+  o.endFunc();
 
   o.beginFunc("void", "init");
   extractConstants(o);
