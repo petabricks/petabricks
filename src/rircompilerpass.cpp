@@ -70,6 +70,7 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
     }else if(sym && sym->isType()){
       if(!hasExprBackward() && peekExprForward()->type()==RIRNode::EXPR_IDENT){
         std::string name = peekExprForward()->toString();
+        std::string nameExtra = "";
         std::string nameMangled = prefix() + name;
         std::string type = e->toString();
         e = NULL;
@@ -79,14 +80,14 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
           JASSERT(!peekExprForward()->isLeaf(",")).Text("list style initializers not yet supported");
           if(peekExprForward()->isLeaf("[")){
             while(!peekExprForward()->isLeaf("]")){ 
-              name += popExprForward()->toString();
+              nameExtra += popExprForward()->toString();
             }
-            name += popExprForward()->toString();
+            nameExtra += popExprForward()->toString();
           }
         }
         _scope->set(name, new RIRSymbol(RIRSymbol::SYM_LOCAL_VAR, nameMangled));
         _scope->set(nameMangled, new RIRSymbol(RIRSymbol::SYM_LOCAL_VAR));
-        o.addMember(type, nameMangled, "");
+        o.addMember(type, nameMangled+nameExtra, "");
         JTRACE("LIFTVAR - decl")(name)(nameMangled);
       }
     }else{
