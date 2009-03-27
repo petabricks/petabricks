@@ -347,6 +347,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   o.write("return "+_name + "_unroll_schedule == 0;");
   o.endFunc();
 
+  o.constructorBody("init();");
   o.beginFunc("void", "init");
   extractConstants(o);
   o.endFunc();
@@ -357,13 +358,11 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   o.write("runStatic();");
   o.write("return NULL;");
   o.endIf();
-  o.write("init();");
   _scheduler->generateCodeDynamic(*this, o);
   o.write("return "+taskname()+";");
   o.endFunc();
 
   o.beginFunc("void", "runStatic");
-  o.write("init();");
   _scheduler->generateCodeStatic(*this, o);
   o.endFunc();
   

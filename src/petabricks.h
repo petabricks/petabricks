@@ -62,8 +62,10 @@
 namespace petabricks {
   inline void spawn_hook(const TransformInstancePtr& tx,  const DynamicTaskPtr& completion){
     DynamicTaskPtr task = tx->runDynamic();
-    completion->dependsOn(task);
-    task->enqueue();
+    if(task){
+      completion->dependsOn(task);
+      task->enqueue();
+    }
   }
  
   inline void static_call_hook(const TransformInstancePtr& tx){
@@ -73,9 +75,11 @@ namespace petabricks {
   inline DynamicTaskPtr sync_hook(DynamicTaskPtr& completion, const DynamicTaskPtr& cont){
     DynamicTaskPtr tmp = completion;
     completion = new NullDynamicTask();
-    completion->dependsOn(tmp);
-    cont->dependsOn(tmp);
-    tmp->enqueue();
+    if(tmp){
+      completion->dependsOn(tmp);
+      cont->dependsOn(tmp);
+      tmp->enqueue();
+    }
     return cont;
   }
   

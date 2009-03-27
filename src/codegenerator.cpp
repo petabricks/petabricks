@@ -254,8 +254,8 @@ void petabricks::CodeGenerator::endClass(){
       os() << ", " << i->name<<"("<<i->initializer<<")";
   }
   newline();
-  write("{}");
-
+  write("{"+_curConstructorBody+"}");
+  _curConstructorBody="";
   hos() << "//private:\n";
   for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
     hos() << "  " << i->type << " " << i->name <<";\n";
