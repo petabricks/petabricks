@@ -114,7 +114,7 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
         JTRACE("LIFTVAR - decl")(name)(nameMangled);
       }
     }else{
-      JTRACE("LIFTVAR - unknown")(e->toString())(sym);
+      //JTRACE("LIFTVAR - unknown")(e->toString())(sym);
     }
   }
 }
