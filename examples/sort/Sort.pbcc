@@ -4,7 +4,7 @@
 #define SORTSUBARRAY SortSubArray
 #include "Quicksort.pbcc"
 #include "Insertionsort.pbcc"
-#include "Radixsort.pbcc"
+//#include "Radixsort.pbcc"
 #include "Parallel_Mergesort.pbcc"
 
 #define WAY 4
@@ -58,12 +58,12 @@ to OUT[n], TEMP[n]
     SPAWN(QuicksortSubArray,out, temp, in, p);
   }
 
-  recursive(n)
-  to (OUT out, TEMP temp) from (IN in, Pos p)
-  {
-    //printf("rs %d\n",n);
-    SPAWN(RadixsortSubArray,out, temp, in, p);
-  }
+//recursive(n)
+//to (OUT out, TEMP temp) from (IN in, Pos p)
+//{
+//  //printf("rs %d\n",n);
+//  SPAWN(RadixsortSubArray,out, temp, in, p);
+//}
 
   to (OUT out, TEMP temp) from (IN in)
   {
