@@ -124,6 +124,7 @@ public:
   void endClass();
   void addMember(const std::string& type, const std::string& name, const std::string& initializer = ClassMember::PASSED());
   void continuationPoint();
+  void continuationRequired(const std::string& prereq);
 
   void define(const std::string& name, const std::string& val){
     _defines.push_back(name);

@@ -19,8 +19,33 @@
  ***************************************************************************/
 #include "rirscope.h"
 
+#include "jconvert.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+static const petabricks::RIRScopePtr _makeTypeScope(){
+  using namespace petabricks;
+
+  RIRScopePtr t = new RIRScope(NULL);
+  t->set("int", RIRSymbol::SYM_TYPE_BASIC);
+  t->set("float", RIRSymbol::SYM_TYPE_BASIC);
+  t->set("long", RIRSymbol::SYM_TYPE_BASIC);
+  t->set("double", RIRSymbol::SYM_TYPE_BASIC);
+  t->set("size_t", RIRSymbol::SYM_TYPE_BASIC);
+  t->set("IndexT", RIRSymbol::SYM_TYPE_BASIC);
+  t->set("ElementT", RIRSymbol::SYM_TYPE_BASIC);
+  for(int i=0; i<=MAX_DIMENSIONS; ++i){
+    t->set("MatrixRegion"+jalib::XToString(i)+"D", RIRSymbol::SYM_TYPE_MATRIX);
+    t->set("ConstMatrixRegion"+jalib::XToString(i)+"D", RIRSymbol::SYM_TYPE_MATRIX);
+  }
+  return t;
+}
+
+
 const petabricks::RIRScopePtr& petabricks::RIRScope::global(){
-  static RIRScopePtr inst = new RIRScope(NULL);
+  static RIRScopePtr inst = new RIRScope(_makeTypeScope());
   return inst;
 }
   

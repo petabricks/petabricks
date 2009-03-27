@@ -77,11 +77,14 @@ void petabricks::Rule::compileRuleBody(Transform& tx, RIRScope& scope){
   {
     ExpansionPass p2(scope.createChildLayer());
     bodyir->accept(p2);
-  }{
-    AnalysisPass p3(tx.name(), scope.createChildLayer());
+  }
+  {
+    AnalysisPass p3(*this, tx.name(), scope.createChildLayer());
     bodyir->accept(p3);
   }
-#ifdef DEBUG
+
+  _bodyirStatic = bodyir;
+ #ifdef DEBUG
   std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
   {
     DebugPrintPass p1;
@@ -89,10 +92,8 @@ void petabricks::Rule::compileRuleBody(Transform& tx, RIRScope& scope){
   }
   std::cerr << "--------------------\n";
 #endif
-
-  _bodyirStatic = bodyir;
+  
   _bodyirDynamic = bodyir;
-  bodyir = 0;
 }
 
 void petabricks::RuleFlags::print(std::ostream& os) const {
@@ -243,52 +244,69 @@ bool petabricks::RuleDescriptor::isSamePosition(const FormulaPtr& that) const{
 
 void petabricks::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
 
-  o.beginClass(implcodename(trans)+TX_DYNAMIC_POSTFIX, "petabricks::RuleInstance");
+  if(isRecursive()){
+    o.beginClass(implcodename(trans)+TX_DYNAMIC_POSTFIX, "petabricks::RuleInstance");
 
+    for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      o.addMember((*i)->genTypeStr(false), (*i)->name());
+    }
+    for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      o.addMember((*i)->genTypeStr(true), (*i)->name());
+    }
+    for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i){
+      o.addMember("const IndexT", *i);
+    }
+    for(int i=0; i<dimensions(); ++i){
+      o.addMember("const IndexT", getOffsetVar(i)->toString());
+    }
+    for(FormulaList::const_iterator i=_definitions.begin(); i!=_definitions.end(); ++i){
+      o.addMember("const IndexT",(*i)->lhs()->toString(), (*i)->rhs()->toString());
+    }
+    o.addMember("DynamicTaskPtr", "_completion", "new NullDynamicTask()");
+
+    o.define("SPAWN", "PB_SPAWN");
+    o.define("CALL",  "PB_CALL");
+    o.define("SYNC",  "PB_SYNC");
+    o.define("DEFAULT_RV",  "_completion");
+    o.beginFunc("petabricks::DynamicTaskPtr", "runDynamic");
+    {
+      LiftVardeclPass p3(o);
+      _bodyirDynamic->accept(p3);
+    }
+    { 
+      DynamicBodyPrintPass dbpp(o);
+      _bodyirDynamic->accept(dbpp);
+    }
+    o.write("return DEFAULT_RV;");
+    o.endFunc();
+    o.undefineAll();
+
+    o.endClass();
+  }
+  
   std::vector<std::string> args;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    o.addMember((*i)->genTypeStr(false), (*i)->name());
     args.push_back((*i)->generateSignatureCode(false));
   }
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    o.addMember((*i)->genTypeStr(true), (*i)->name());
     args.push_back((*i)->generateSignatureCode(true));
   }
   for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i){
-    o.addMember("const IndexT", *i);
     args.push_back("const IndexT "+(*i));
   }
   for(int i=0; i<dimensions(); ++i){
-    o.addMember("const IndexT", getOffsetVar(i)->toString());
     args.push_back("const IndexT "+getOffsetVar(i)->toString());
   }
 
-  o.beginFunc("petabricks::DynamicTaskPtr", "runDynamic");
-  o.define("SPAWN", "PB_SPAWN");
-  o.define("CALL",  "PB_CALL");
-  o.define("SYNC",  "PB_SYNC");
-  o.define("DEFAULT_RV",  "_after");
-  o.write("DynamicTaskPtr _before, _after = new NullDynamicTask();");
-  for(FormulaList::const_iterator i=_definitions.begin(); i!=_definitions.end(); ++i){
-    o.write("const IndexT "+(*i)->explodePrint()+";");
-  }
-  o.write(_bodyirDynamic->toString());
-  o.write("return _after;");
-  o.undefineAll();
-  o.endFunc();
-
-  o.endClass();
-
-  
   //static version
   o.beginFunc("void", implcodename(trans)+TX_STATIC_POSTFIX, args);
+  for(FormulaList::const_iterator i=_definitions.begin(); i!=_definitions.end(); ++i){
+    o.addMember("const IndexT",(*i)->lhs()->toString(), (*i)->rhs()->toString());
+  }
   o.define("SPAWN", "PB_STATIC_CALL");
   o.define("CALL",  "PB_STATIC_CALL");
   o.define("SYNC",  "PB_NOP");
   o.define("DEFAULT_RV",  "");
-  for(FormulaList::const_iterator i=_definitions.begin(); i!=_definitions.end(); ++i){
-    o.write("const IndexT "+(*i)->explodePrint()+";");
-  }
   o.write(_bodyirStatic->toString());
   o.undefineAll();
   o.endFunc();
@@ -331,33 +349,45 @@ void petabricks::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& 
   else
     o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_DYNAMIC_POSTFIX, argsByRef);
 
-  if(!isStatic) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
-  
-  for(size_t i=0; i<begin.size(); ++i){
-    FormulaPtr b=begin[i];
-    FormulaPtr e=end[i];
-    FormulaPtr w=getSizeOfRuleIn(i);
-    if(order[i]==IterationOrder::BACKWARD)
-      o.beginReverseFor(getOffsetVar(i)->toString(), b, e, w);
-    else
-      o.beginFor(getOffsetVar(i)->toString(), b, e, w);
-    //TODO, better support for making sure given range is a multiple of size
+  if(!isStatic && !isRecursive()){
+    //shortcut
+    o.comment("rule is not recursive, so no sense in dynamically scheduling it");
+    o.call(trampcodename(trans)+TX_STATIC_POSTFIX, argnames);
+    o.write("return NULL;");
+  }else{
+    if(!isStatic) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
+    
+    for(size_t i=0; i<begin.size(); ++i){
+      FormulaPtr b=begin[i];
+      FormulaPtr e=end[i];
+      FormulaPtr w=getSizeOfRuleIn(i);
+      if(order[i]==IterationOrder::BACKWARD)
+        o.beginReverseFor(getOffsetVar(i)->toString(), b, e, w);
+      else
+        o.beginFor(getOffsetVar(i)->toString(), b, e, w);
+      //TODO, better support for making sure given range is a multiple of size
+    }
+    generateTrampCellCodeSimple(trans, o, isStatic);
+    //TODO, loop carry deps?
+    for(size_t i=0; i<begin.size(); ++i){
+      o.endFor();
+    }
+    
+    if(!isStatic) o.write("return _spawner;");
   }
-  generateTrampCellCodeSimple(trans, o, isStatic);
-  //TODO, loop carry deps?
-  for(size_t i=0; i<begin.size(); ++i){
-    o.endFor();
-  }
-  
-  if(!isStatic) o.write("return _spawner;");
   o.endFunc();
 
   if(!isStatic){
     TaskCodeGenerator& task = o.createTask(trampcodename(trans), taskargs, "SpatialDynamicTask", "_task");
     task.beginRunFunc();
     {
-      task.setcall("DynamicTaskPtr _task", "transform->"+trampcodename(trans)+TX_DYNAMIC_POSTFIX, argnames);
-      task.write("return _task;");
+      if(isRecursive()){
+        task.setcall("DynamicTaskPtr _task", "transform->"+trampcodename(trans)+TX_DYNAMIC_POSTFIX, argnames);
+        task.write("return _task;");
+      }else{
+        task.call("transform->"+trampcodename(trans)+TX_STATIC_POSTFIX, argnames);
+        task.write("return NULL;");
+      }
     }
     task.endFunc();
     task.beginSizeFunc();

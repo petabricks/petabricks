@@ -177,8 +177,10 @@ public:
   void collectDependencies(StaticScheduler& scheduler);
 
   void markRecursive(const FormulaPtr& rh = new FormulaVariable(INPUT_SIZE_STR)) { 
-    _flags.isRecursive = true; 
-    _recursiveHint = rh;
+    if(!_flags.isRecursive){
+      _flags.isRecursive = true; 
+      _recursiveHint = rh;
+    }
   }
 
   bool isRecursive() const { return _flags.isRecursive; }

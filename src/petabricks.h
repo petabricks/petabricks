@@ -37,7 +37,7 @@
 #endif
 
 #define PB_SPAWN(taskname, args...) \
-  petabricks::spawn_hook( new taskname ## _instance(args), _before, _after )
+  petabricks::spawn_hook( new taskname ## _instance(args), _completion)
 
 #define PB_CALL(taskname, args...) \
   petabricks::call_hook( new taskname ## _instance(args) )
@@ -45,8 +45,7 @@
 #define PB_STATIC_CALL(taskname, args...) \
   petabricks::static_call_hook( new taskname ## _instance(args) )
 
-#define PB_SYNC() \
-  petabricks::sync_hook( _before, _after )
+#define PB_SYNC() sync_in_loops_not_supported_yet!
 
 #define PB_NOP() 
 
@@ -60,9 +59,9 @@
 
 
 namespace petabricks {
-  inline void spawn_hook(const TransformInstancePtr& tx, const DynamicTaskPtr& before, const DynamicTaskPtr& after){
-    DynamicTaskPtr task = tx->runAfter(before);
-    after->dependsOn(task);
+  inline void spawn_hook(const TransformInstancePtr& tx,  const DynamicTaskPtr& completion){
+    DynamicTaskPtr task = tx->runDynamic();
+    completion->dependsOn(task);
     task->enqueue();
   }
   
@@ -74,11 +73,13 @@ namespace petabricks {
     tx->runStatic();
   }
 
-  inline void sync_hook(DynamicTaskPtr& before, DynamicTaskPtr& after){
-    before = after;
-    after = new NullDynamicTask();
-    after->dependsOn(before);
-    before->enqueue();
+  inline DynamicTaskPtr sync_hook(DynamicTaskPtr& completion, const DynamicTaskPtr& cont){
+    DynamicTaskPtr tmp = completion;
+    completion = new NullDynamicTask();
+    completion->dependsOn(tmp);
+    cont->dependsOn(tmp);
+    tmp->enqueue();
+    return cont;
   }
   
 }

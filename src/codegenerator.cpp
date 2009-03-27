@@ -280,6 +280,7 @@ void petabricks::CodeGenerator::addMember(const std::string& type, const std::st
       varDecl(type+" "+name);
   }
 }
+
 void petabricks::CodeGenerator::continuationPoint(){
   std::string n = "cont_" + jalib::XToString(_contCounter++);
   beginIf("useContinuation()");
@@ -290,4 +291,13 @@ void petabricks::CodeGenerator::continuationPoint(){
   endFunc();
   beginFunc("DynamicTaskPtr", n);
 }
+
+void petabricks::CodeGenerator::continuationRequired(const std::string& hookname){
+  std::string n = "cont_" + jalib::XToString(_contCounter++);
+  newline();
+  write("return "+hookname+" new petabricks::MethodCallTask<"+_curClass+">(this, &"+_curClass+"::"+n+"));"); 
+  endFunc();
+  beginFunc("DynamicTaskPtr", n);
+}
+
 

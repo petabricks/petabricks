@@ -26,6 +26,9 @@
 
 namespace petabricks {
 
+class CodeGenerator;
+class Rule;
+
 class RIRCompilerPass : public RIRVisitor {
 protected:
   template<typename T> class Context {
@@ -47,6 +50,18 @@ protected:
   typedef std::vector<ExprContext> ExprContextStack;
   typedef std::vector<StmtContext> StmtContextStack;
   
+  void pushExprForward(const RIRExprCopyRef& e){ 
+    _exprCtx.back().forward()->push_front(e);
+  }
+  void pushExprBackward(const RIRExprCopyRef& e){ 
+    _exprCtx.back().backward()->push_back(e);
+  }
+  bool hasExprBackward(){ 
+    return !_exprCtx.back().backward()->empty();
+  }
+  bool hasExprForward(){ 
+    return !_exprCtx.back().forward()->empty();
+  }
   RIRExprRef peekExprForward() { 
     RIRExprRef p = _exprCtx.back().forward()->front().asPtr();
     JASSERT(p).Text("unexpected end of statement");
@@ -73,7 +88,7 @@ public:
 protected:
   int depth() const { return _stack.size(); } 
 
-  RIRCompilerPass(const RIRScopePtr& scope) : _scope(scope) {}
+  RIRCompilerPass(const RIRScopePtr& scope = RIRScope::global()->createChildLayer()) : _scope(scope) {}
 
 private:
   void _before(RIRExprCopyRef& p)  { 
@@ -147,77 +162,48 @@ class ExpansionPass : public RIRCompilerPass {
 public:
   ExpansionPass(const RIRScopePtr& p) : RIRCompilerPass(p->createChildLayer()) {}
 
-  void before(RIRExprCopyRef& e){
-    if(e->type() == RIRNode::EXPR_IDENT){
-      RIRSymbolPtr sym = _scope->lookup(e->toString());
-      if(sym && sym->type() == RIRSymbol::SYM_TRANSFORM_TEMPLATE){
-        RIRExprList tmp;
-        if(peekExprForward()->isLeaf("<")){
-          //transform calls to templates from:
-          //   tmpl<a,b>(c,d)
-          //to:
-          //   tmpl(a,b,c,d)
-          popExprForward();
-          while(!peekExprForward()->isLeaf(">")){
-            tmp.push_back(popExprForward().asPtr());
-          }
-          tmp.push_back(new RIROpExpr(","));
-          popExprForward();
-          JASSERT(!peekExprForward()->isLeaf())(peekExprForward())
-            .Text("Expected (...) after template transform");
-          RIRExprList::iterator i=peekExprForward()->parts().begin();
-          JASSERT((*i)->isLeaf("("))(*i);
-          ++i;
-          peekExprForward()->parts().insert(i, tmp.begin(), tmp.end());
-          JTRACE("handled template")(e)(tmp.size())(peekExprForward()->toString());
-        }
-      }
-      if(sym && sym->type() == RIRSymbol::SYM_TRANSFORM){
-        if(peekExprForward()->type() == RIRNode::EXPR_ARGS){
-          //transform transform calls from:
-          //   Foo(c,d)
-          //to:
-          //   CALL(Foo,c,d)
-          JTRACE("Creating call")(sym);
-          peekExprForward()->parts().push_front(e);
-          e = new RIRIdentExpr("CALL");
-        }
-      }
-      if(sym && sym->type() == RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL){
-        JTRACE("Expanding config item")(e);
-        e = new RIRIdentExpr("TRANSFORM_LOCAL("+e->toString()+")");
-      }
-    }
-    if(e->type() == RIRNode::EXPR_KEYWORD){
-      if(e->toString() == "return" && peekExprForward()->type()==RIRNode::EXPR_CHAIN){
-        if(!peekExprForward()->parts().empty()){
-          peekExprForward()->parts().push_front(new RIROpExpr("("));
-          peekExprForward()->parts().push_back(new RIROpExpr(")"));
-          e = new RIRIdentExpr("PB_RETURN");
-        }
-      }
-    }
-  }
+  void before(RIRExprCopyRef& e);
 };
 
 class AnalysisPass: public RIRCompilerPass {
 public:
-  AnalysisPass(const std::string& name, const RIRScopePtr& p) 
-    : RIRCompilerPass(p->createChildLayer()), _name(name) 
+  AnalysisPass(Rule& r, const std::string& name, const RIRScopePtr& p) 
+    : RIRCompilerPass(p->createChildLayer()), _name(name), _rule(r)
   {}
 
-  void before(RIRExprCopyRef& e){
-    if(e->type() == RIRNode::EXPR_IDENT){
-      RIRSymbolPtr sym = _scope->lookup(e->toString());
-      if(sym && sym->isTransform()){
-        TrainingDeps::addCallgraphEdge(_name, e->toString());
-      }
-    }
-  }
+  void before(RIRExprCopyRef& e);
 
 private:
   std::string _name;
+  Rule& _rule;
 };
+
+class LiftVardeclPass : public RIRCompilerPass {
+public:
+  LiftVardeclPass(CodeGenerator& oo)
+    : RIRCompilerPass(), o(oo)
+  {}
+
+  void before(RIRExprCopyRef& s);
+
+  bool shouldDescend(const RIRNode& n) { return !(n.isStmt() && n.type()!=RIRNode::STMT_BASIC); }
+private:
+  CodeGenerator& o;
+};
+
+class DynamicBodyPrintPass : public RIRCompilerPass {
+public:
+  DynamicBodyPrintPass(CodeGenerator& oo )
+    : RIRCompilerPass(), o(oo)
+  {}
+
+  void before(RIRStmtCopyRef& s);
+
+  bool shouldDescend(const RIRNode& n) { return !n.isStmt(); }
+private:
+  CodeGenerator& o;
+};
+
 
 
 }
