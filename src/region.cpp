@@ -58,7 +58,6 @@ void petabricks::Region::print(std::ostream& o) const {
 }
 
 void petabricks::Region::setName(const char* name){ 
-  JWARNING(_name=="")(_name); 
   _name=name; 
   if(_name=="") _name=RETURN_VAL_STR;
 }

@@ -66,8 +66,7 @@ public:
   void runWrapper();
 
   ///
-  /// check if the task should be enqueued of inlined
-  bool inlineTask();
+  /// either enqueue or inline the task
   void inlineOrEnqueueTask();
 
   /// 
