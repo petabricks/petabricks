@@ -28,7 +28,7 @@
 
 petabricks::RIRBlockCopyRef parseRuleBody(const std::string& str);
 
-volatile long theNextRuleId = 0;
+jalib::AtomicT theNextRuleId = 0;
 
 
 

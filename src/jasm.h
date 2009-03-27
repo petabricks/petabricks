@@ -33,11 +33,13 @@
 
 namespace jalib {
 
+typedef volatile long AtomicT;
+
 #if defined(__i386__) || defined(__x86_64__)
 /**
  * Thread safe add, returns new value
  */
-template<long v> long atomicAdd(volatile long *p)
+template<long v> long atomicAdd(AtomicT *p)
 {
   long r;
   asm volatile ("lock; xadd %0, %1" : "=r"(r), "=m"(*p) : "0"(v), "m"(*p) : "memory");
@@ -76,7 +78,7 @@ cas(volatile long *m, long old_val, long new_val)
 	return new_val == old_val;
 }
 
-template<long v> long atomicAdd(volatile long *p)
+template<long v> long atomicAdd(AtomicT *p)
 {
   long new_val, old_val;
   do {

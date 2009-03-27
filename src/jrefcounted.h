@@ -145,7 +145,7 @@ public:
     return _refCount; 
   }
 private:
-  mutable volatile long _refCount; 
+  mutable jalib::AtomicT _refCount; 
 };
 
 /**
