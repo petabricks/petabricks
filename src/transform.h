@@ -95,7 +95,7 @@ class Transform : public jalib::JRefCounted, public jalib::JPrintable {
 public:
   ///
   /// Constructor
-  Transform() :_isMain(false),_tuneId(0) {}
+  Transform() :_isMain(false),_tuneId(0),_usesSplitSize(false) {}
   
   //called durring parsing:
   void setName(const std::string& str) { _originalName=_name=str; }
@@ -186,6 +186,8 @@ public:
 
   std::string instClassName() const { return _name+"_instance"; }
 
+  void markSplitSizeUse(CodeGenerator& o);
+
 private:
   std::string   _originalName;
   std::string   _name;
@@ -203,6 +205,7 @@ private:
   TemplateArgList _templateargs;
   int _tuneId;
   ConfigItems _config;
+  bool  _usesSplitSize;
 };
 
 }

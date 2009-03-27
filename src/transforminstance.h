@@ -48,8 +48,6 @@ public:
     }
   }
   
-  bool useContinuation() const { return true; }
-
   void runToCompletion(){
     DynamicTaskPtr p = runDynamic();
     if(p){

@@ -99,7 +99,7 @@ public:
   /// Name of this node as it appears in graphs
   std::string nodename() const { return "n"+jalib::XToString(_id); }
 
-  void printDepsAndEnqueue(CodeGenerator& o, const RulePtr& rule, bool useDirections = true);
+  void printDepsAndEnqueue(CodeGenerator& o, Transform& trans,  const RulePtr& rule, bool useDirections = true);
 
   ///
   /// Generate code for executing this node

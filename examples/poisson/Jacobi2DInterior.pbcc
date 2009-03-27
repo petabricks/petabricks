@@ -98,10 +98,9 @@ to OUT[n,n]
   to(OUT o) from(IN in, B b, numIterations k)
   {
     SPAWN(Jacobi2D_inner,o, in, b);
-    if (k > 1){
-      SYNC();
-      SPAWN(Jacobi2DInterior,o, o, b, k - 1);
-    }
+    if (k <= 1) return;
+    SYNC();
+    SPAWN(Jacobi2DInterior,o, o, b, k - 1);
   }
 }
 

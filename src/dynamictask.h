@@ -82,8 +82,7 @@ public:
   void runWrapper();
 
   ///
-  /// check if the task should be enqueued of inlined
-  bool inlineTask();
+  /// either enqueue or inline the task
   void inlineOrEnqueueTask();
 
   ///
@@ -119,17 +118,18 @@ public:
   /// a counter of how many tasks I depends on
   long numOfPredecessor;
 
-
   ///
   /// Pointer to the continuation task
   DynamicTaskPtr continuation;
 
+  char __post_padding[64];
 };
 
 class NullDynamicTask : public DynamicTask {
 public:
   DynamicTaskPtr run(){ return 0; }
   bool isNullTask() const { return true; }
+  char __post_padding[64];
 };
 
 
@@ -140,12 +140,13 @@ public:
   MethodCallTask(const jalib::JRef<T>& obj, MethodPtr method)
     : _obj(obj), _method(method)
   {}
-  DynamicTaskPtr run(){ 
+  DynamicTaskPtr run(){
     return ((*_obj).*(_method))();
   }
 private:
   jalib::JRef<T> _obj;
   MethodPtr _method;
+  char __post_padding[64];
 };
 
 

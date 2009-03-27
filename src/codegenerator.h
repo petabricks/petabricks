@@ -137,6 +137,7 @@ public:
   }
   bool inClass() const { return _curClass.size()>0; }
 
+  void constructorBody(const std::string& s){_curConstructorBody=s;}
 
   void staticMember() { hos() << "static "; }
 protected:
@@ -147,6 +148,7 @@ protected:
   std::vector<std::string> _defines;
   ClassMembers _curMembers;
   std::string _curClass;
+  std::string _curConstructorBody;
   int         _contCounter;
   int _indent;
   TrainingDeps _cg;

@@ -86,7 +86,7 @@ void petabricks::RuleChoice::generateCodeSimple( bool isStatic
       (*i)->generateCallCodeSimple(trans, o, region);
     }else{
       (*i)->generateCallTaskCode(taskname, trans, o, region);
-      node.printDepsAndEnqueue(o, sortedRules[0]);
+      node.printDepsAndEnqueue(o, trans,  sortedRules[0]);
     }
     if(sortedRules.size()>1) o.endCase();
   }

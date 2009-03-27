@@ -24,9 +24,12 @@
 
 void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
   if(s->containsLeaf("SYNC")){
+    o.comment("SYNC();");
     o.continuationRequired("petabricks::sync_hook(_completion, ");
   }else if(s->containsLeaf("CALL")){
     o.write(s->toString()); 
+    o.comment("SYNC(); // forced because of CALL");
+    o.continuationRequired("petabricks::sync_hook(_completion, ");
   }else if(s->containsLeaf("SPAWN")){
     o.write(s->toString()); 
     o.continuationPoint();
@@ -102,11 +105,13 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
     }
   }
   if(e->type() == RIRNode::EXPR_KEYWORD){
-    if(e->toString() == "return" && peekExprForward()->type()==RIRNode::EXPR_CHAIN){
-      if(!peekExprForward()->parts().empty()){
+    if(e->toString() == "return"){
+      if(hasExprForward() && !peekExprForward()->parts().empty()){
         peekExprForward()->parts().push_front(new RIROpExpr("("));
         peekExprForward()->parts().push_back(new RIROpExpr(")"));
         e = new RIRIdentExpr("PB_RETURN");
+      }else{
+        e = new RIRIdentExpr("PB_RETURN_VOID");
       }
     }
   }

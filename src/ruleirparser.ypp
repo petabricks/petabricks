@@ -127,6 +127,11 @@ ReturnStmt: TOK_RETURN Expr ';' {
   $$->addExpr($2);
 };
 
+ReturnStmt: TOK_RETURN ';' {
+  $$=REFALLOC(RIRReturnStmt());
+  $$->addExpr(REFALLOC(RIRKeywordExpr("return")));
+};
+
 CaseStmt: TOK_CASE Expr {
   $$=REFALLOC(RIRCaseStmt());
   $$->addExpr(REFALLOC(RIRKeywordExpr("case")));

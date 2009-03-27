@@ -341,21 +341,28 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     o.addMember((*i)->constMatrixTypeName(), (*i)->name());
   }
-  o.createTunable(true, "system.splitsize", _name + "_split_size", 64, 1);
-  o.addMember("IndexT", SPLIT_CHUNK_SIZE, _name+"_split_size");
+  
+  o.beginFunc("bool", "useContinuation");
+  o.createTunable(true, "system.unrollschedule", _name + "_unroll_schedule", 1, 0, 1);
+  o.write("return "+_name + "_unroll_schedule == 0;");
+  o.endFunc();
 
+  o.constructorBody("init();");
   o.beginFunc("void", "init");
   extractConstants(o);
   o.endFunc();
 
   o.beginFunc("DynamicTaskPtr", "runDynamic");
-  o.write("init();");
+  o.createTunable(true, "system.seqcutoff", _name + "_sequential_cutoff", 0);
+  o.beginIf(INPUT_SIZE_STR " < " + _name + "_sequential_cutoff");
+  o.write("runStatic();");
+  o.write("return NULL;");
+  o.endIf();
   _scheduler->generateCodeDynamic(*this, o);
   o.write("return "+taskname()+";");
   o.endFunc();
 
   o.beginFunc("void", "runStatic");
-  o.write("init();");
   _scheduler->generateCodeStatic(*this, o);
   o.endFunc();
   
@@ -392,6 +399,13 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   o.cg().endTransform(_originalName, _name);
   o.newline();
   o.newline();
+}
+void petabricks::Transform::markSplitSizeUse(CodeGenerator& o){
+  if(!_usesSplitSize){
+    _usesSplitSize=true;
+    o.createTunable(true, "system.splitsize", _name + "_split_size", 64, 1);
+    o.addMember("IndexT", SPLIT_CHUNK_SIZE, _name+"_split_size");
+  }
 }
 
 void petabricks::Transform::extractSizeDefines(CodeGenerator& o){
