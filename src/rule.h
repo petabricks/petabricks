@@ -148,13 +148,18 @@ public:
 
   ///
   /// Generate seqential code to declare this rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
-  void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic);
+  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
+    generateTrampCodeSimple(trans, o, true);
+    generateTrampCodeSimple(trans, o, false);
+  }
+  void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic);
 
 
   ///
   /// Generate seqential code to invoke this rule
   void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region); 
+  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
 
   ///
   /// Return function the name of this rule in the code
@@ -172,8 +177,10 @@ public:
   void collectDependencies(StaticScheduler& scheduler);
 
   void markRecursive(const FormulaPtr& rh = new FormulaVariable(INPUT_SIZE_STR)) { 
-    _flags.isRecursive = true; 
-    _recursiveHint = rh;
+    if(!_flags.isRecursive){
+      _flags.isRecursive = true; 
+      _recursiveHint = rh;
+    }
   }
 
   bool isRecursive() const { return _flags.isRecursive; }
@@ -187,7 +194,6 @@ public:
     return _provides.find(m) != _provides.end();
   }
 
-  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
   std::vector<std::string> getCallArgs(Transform& trans, const SimpleRegionPtr& region);
 
   const FormulaPtr& recursiveHint() const { return _recursiveHint; }
@@ -218,7 +224,8 @@ private:
   FormulaList _definitions;
   SimpleRegionPtr _applicanbleRegion;
   std::string     _bodysrc;
-  RIRBlockCopyRef _bodyir;
+  RIRBlockCopyRef _bodyirStatic;
+  RIRBlockCopyRef _bodyirDynamic;
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr          _recursiveHint;

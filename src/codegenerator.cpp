@@ -29,7 +29,7 @@ petabricks::TunableDefs& petabricks::CodeGenerator::theTunableDefs() {
   return t;
 }
 
-petabricks::CodeGenerator::CodeGenerator() : _indent(0) {}
+petabricks::CodeGenerator::CodeGenerator() : _contCounter(0), _indent(0) {}
 
 void petabricks::CodeGenerator::beginFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end,  const FormulaPtr& step){
   indent();
@@ -81,19 +81,19 @@ void petabricks::CodeGenerator::setcall(const std::string& lv, const std::string
 //   os() << ");\n";
 // }
 
-void petabricks::MainCodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
-  _forwardDecls << rt << " " << func << '(';
-  jalib::JPrintable::printStlList(_forwardDecls, args.begin(), args.end(), ", ");
-  _forwardDecls << ");\n";
-  petabricks::CodeGenerator::beginFunc(rt, func, args);
-}
-
 void petabricks::CodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
   indent();
-  os() << rt << " " << func << '(';
+  os() << rt << " ";
+  if(inClass()) os() << _curClass << "::";
+  os() << func << '(';
   jalib::JPrintable::printStlList(os(), args.begin(), args.end(), ", ");
   os() << "){\n";
   _indent++;
+
+  if(inClass()) hos() << "  ";
+  hos() << rt << " " << func << '(';
+  jalib::JPrintable::printStlList(hos(), args.begin(), args.end(), ", ");
+  hos() << ");\n";
 }
 
 void petabricks::CodeGenerator::varDecl(const std::string& var){
@@ -156,13 +156,13 @@ void petabricks::CodeGenerator::endIf(){
   os() << "}\n";
 }
 
-petabricks::TaskCodeGenerator& petabricks::BufferedCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType){
+petabricks::TaskCodeGenerator& petabricks::BufferedCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string&){
   UNIMPLEMENTED();
   return *(TaskCodeGenerator*)0;
 }
 
-petabricks::TaskCodeGenerator& petabricks::MainCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType){
-  _tasks.push_back(new TaskCodeGenerator(func, args, taskType));
+petabricks::TaskCodeGenerator& petabricks::MainCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix){
+  _tasks.push_back(new TaskCodeGenerator(func, args, taskType, postfix));
   return *_tasks.back();
 }
 
@@ -179,8 +179,8 @@ namespace{//file local
   }
 }
 
-petabricks::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args, const char* taskType){
-  _name=func + "_task";
+petabricks::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix){
+  _name=func + postfix;
   _indent=1;
   _types.resize(args.size());
   _names.resize(args.size());
@@ -194,7 +194,7 @@ petabricks::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const 
   }
   os() << "public:\n"; 
   indent();
-  os() << func << "_task(";
+  os() << _name << "(";
   for(size_t i=0; i!=args.size(); ++i){
     if(i>0) os()<<", ";
     os() << _types[i] << "& a_" << _names[i];
@@ -206,4 +206,98 @@ petabricks::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const 
   }
   os() << "\n  {}\n\n";
 }
+
+
+static std::string _typeToConstRef(std::string s){
+  if(s[s.length()-1] != '&'){
+    s+='&';
+    if(   s[0]=='c'
+       && s[1]=='o'
+       && s[2]=='n'
+       && s[3]=='s'
+       && s[4]=='t'
+       && s[5]==' '){
+      return s;
+    }
+    s="const "+s;
+  }
+  return s;
+}
+
+void petabricks::CodeGenerator::beginClass(const std::string& name, const std::string& base){
+  hos() << "class " << name << " : public " << base << " {\n";
+  hos() << ("  typedef "+base+" BASE;\npublic:\n");
+  _curClass=name;
+  _contCounter=0;
+  JASSERT(_curMembers.empty())(_curMembers.size());
+}
+void petabricks::CodeGenerator::endClass(){
+  const char* delim="";
+  indent();
+  os() << _curClass << "::" << _curClass << "(";
+  hos() << _curClass << "(";
+  for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
+    if(i->initializer == ClassMember::PASSED()){
+      os() << delim << _typeToConstRef(i->type) <<" t_"<<i->name;
+      hos() << delim << _typeToConstRef(i->type) <<" t_"<<i->name;
+      delim=", ";
+    }
+  }
+  os() << ")\n";
+  hos() << ");\n";
+  indent();
+  os() << "  : BASE()";
+  for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
+    if(i->initializer == ClassMember::PASSED())
+      os() << ", " << i->name<<"(t_"<<i->name<<")";
+    else if(i->initializer.size()>0)
+      os() << ", " << i->name<<"("<<i->initializer<<")";
+  }
+  newline();
+  write("{}");
+
+  hos() << "//private:\n";
+  for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
+    hos() << "  " << i->type << " " << i->name <<";\n";
+  }
+  _curMembers.clear();
+  _curClass="";
+  hos() << "};\n\n";
+  newline();
+  newline();
+}
+void petabricks::CodeGenerator::addMember(const std::string& type, const std::string& name, const std::string& initializer){
+  if(_curClass.size()>0){
+    ClassMember tmp;
+    tmp.type=type;
+    tmp.name=name;
+    tmp.initializer=initializer;
+    _curMembers.push_back(tmp);
+  }else{
+    if(initializer.size()>0)
+      varDecl(type+" "+name+" = "+initializer);
+    else
+      varDecl(type+" "+name);
+  }
+}
+
+void petabricks::CodeGenerator::continuationPoint(){
+  std::string n = "cont_" + jalib::XToString(_contCounter++);
+  beginIf("useContinuation()");
+  write("return new petabricks::MethodCallTask<"+_curClass+">(this, &"+_curClass+"::"+n+");"); 
+  elseIf();
+  write("return "+n+"();"); 
+  endIf();
+  endFunc();
+  beginFunc("DynamicTaskPtr", n);
+}
+
+void petabricks::CodeGenerator::continuationRequired(const std::string& hookname){
+  std::string n = "cont_" + jalib::XToString(_contCounter++);
+  newline();
+  write("return "+hookname+" new petabricks::MethodCallTask<"+_curClass+">(this, &"+_curClass+"::"+n+"));"); 
+  endFunc();
+  beginFunc("DynamicTaskPtr", n);
+}
+
 

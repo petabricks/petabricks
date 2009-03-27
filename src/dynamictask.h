@@ -126,12 +126,28 @@ public:
 
 };
 
-
 class NullDynamicTask : public DynamicTask {
 public:
   DynamicTaskPtr run(){ return 0; }
   bool isNullTask() const { return true; }
 };
+
+
+template< typename T>
+class MethodCallTask : public DynamicTask {
+public:
+  typedef DynamicTaskPtr (T::*MethodPtr)();
+  MethodCallTask(const jalib::JRef<T>& obj, MethodPtr method)
+    : _obj(obj), _method(method)
+  {}
+  DynamicTaskPtr run(){ 
+    return ((*_obj).*(_method))();
+  }
+private:
+  jalib::JRef<T> _obj;
+  MethodPtr _method;
+};
+
 
 }
 

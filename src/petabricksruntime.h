@@ -35,7 +35,6 @@ public:
    */
   typedef class __usr_main_interface{
   public:
-    __usr_main_interface(const char* name) : _name(name) {}
 
     ///
     /// destructor
@@ -61,9 +60,8 @@ public:
     /// initialize with random inputs
     virtual void randomInputs(int size) = 0;
 
-    const char* name() const { return _name; }
+    virtual const char* name() = 0;
   private:
-    const char* _name;
   } Main;
 
   ///

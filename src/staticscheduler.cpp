@@ -162,25 +162,35 @@ void petabricks::StaticScheduler::depthFirstSchedule(ScheduleNode* n){
   _generated.insert(n);
 }
 
-void petabricks::StaticScheduler::generateCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::StaticScheduler::generateCodeDynamic(Transform& trans, CodeGenerator& o){
   JASSERT(_schedule.size()>0);
-//   JTRACE("codegen")(_schedule.size());
   for(ScheduleNodeList::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
-    (*i)->generateCodeSimple(trans, o);
+    (*i)->generateCodeSimple(trans, o, false);
   }
-  o.write("DynamicTaskPtr "+trans.taskname()+" = new NullDynamicTask();");
+  o.addMember("DynamicTaskPtr", trans.taskname(), "new NullDynamicTask()");
   for(ScheduleNodeSet::iterator i=_goals.begin(); i!=_goals.end(); ++i)
     o.write(trans.taskname()+"->dependsOn(" + (*i)->nodename() + ".completionTask());");
 }
+void petabricks::StaticScheduler::generateCodeStatic(Transform& trans, CodeGenerator& o){
+  JASSERT(_schedule.size()>0);
+  for(ScheduleNodeList::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
+    (*i)->generateCodeSimple(trans, o, true);
+  }
+}
 
-void petabricks::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
   RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
-  o.write("SpatialTaskList "+nodename()+";");
-  rule->generateCodeSimple(nodename(), trans, *this, _region, o);
+  if(!isStatic){
+    o.addMember("SpatialTaskList", nodename(), "");
+    rule->generateCodeSimple(false, nodename(), trans, *this, _region, o);
+    o.continuationPoint();
+  }else{
+    rule->generateCodeSimple(true, "", trans, *this, _region, o);
+  }
 }
 
 void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, const RulePtr& rule, bool useDirections){
-  bool printedBeforeDep = false;
+//bool printedBeforeDep = false;
 
   ScheduleDependencies::const_iterator sd = _indirectDepends.find(this);
   if(sd==_indirectDepends.end() && rule->isSingleElement()){
@@ -192,13 +202,13 @@ void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, const RuleP
   for(ScheduleDependencies::const_iterator i=_directDepends.begin();  i!=_directDepends.end(); ++i){
     if(i->first!=this){
       if(i->first->isInput()){
-        if(!printedBeforeDep){
-         printedBeforeDep=true;
-         if(useDirections)
-           o.write(nodename()+".dependsOn(_before);");
-         else
-           o.write(nodename()+"->dependsOn(_before);");
-        }
+//      if(!printedBeforeDep){
+//       printedBeforeDep=true;
+//       if(useDirections)
+//         o.write(nodename()+".dependsOn(_before);");
+//       else
+//         o.write(nodename()+"->dependsOn(_before);");
+//      }
       }else{
         if(useDirections){
           o.write("{"); 
@@ -220,7 +230,7 @@ void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, const RuleP
     o.write(nodename()+"->enqueue();");
 }
 
-void petabricks::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos){
+void petabricks::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos, bool isStatic){
   RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
   
   CoordinateFormula min = _region->minCoord();
@@ -231,7 +241,7 @@ void petabricks::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGe
 
   SimpleRegionPtr t = new SimpleRegion(min,max);
 
-  rule->generateCodeSimple("", trans, *this, t, o);
+  rule->generateCodeSimple(isStatic, "", trans, *this, t, o);
   //TODO deps for slice
 }
 
@@ -285,11 +295,11 @@ petabricks::CoscheduledNode::CoscheduledNode(const ScheduleNodeSet& set)
 }
 
 
-void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
   const DependencyInformation& selfDep = _indirectDepends[this];
 
   if(selfDep.direction.isNone()){
-    o.write("SpatialTaskList "+nodename()+";");
+    if(!isStatic) o.addMember("SpatialTaskList", nodename(), "");
     o.comment("Dual outputs compacted "+nodename());
     std::string region;
     ScheduleNode* first = NULL;
@@ -305,12 +315,26 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
         .Text("to(...) regions of differing size not yet supported");
     }
     RuleChoicePtr rule = trans.learner().makeRuleChoice(first->choices()->rules(), first->matrix(), first->region());
-    rule->generateCodeSimple(nodename(), trans, *this, first->region(), o);
+    rule->generateCodeSimple(isStatic, nodename(), trans, *this, first->region(), o);
+    if(!isStatic) o.continuationPoint();
   }else{
-    o.write("DynamicTaskPtr "+nodename()+";");
-    TaskCodeGenerator& task = o.createTask("coscheduled_"+nodename(), trans.maximalArgList(), "DynamicTask");
+    if(!isStatic) o.addMember("DynamicTaskPtr", nodename(),"");
+    std::vector<std::string> args;
+    args.push_back("const jalib::JRef<"+trans.instClassName()+"> transform");
+    TaskCodeGenerator* task;
+    if(!isStatic) task=&o.createTask("coscheduled_"+nodename(), args, "DynamicTask", "_task");
+    CodeGenerator& ot = isStatic ? o : *task;
     std::string varname="coscheduled_"+nodename();
-    task.beginRunFunc();
+    if(!isStatic){
+      task->beginRunFunc();
+      for(FreeVars::const_iterator i=trans.constants().begin()
+         ;i!=trans.constants().end()
+         ;++i)
+      {
+        ot.define(*i, "(transform->"+*i+")");
+      }
+    }
+    
     for(size_t d=selfDep.direction.size()-1; d>=0; --d){
       bool passed=true;
       FormulaPtr begin,end;
@@ -332,10 +356,10 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
       //test direction
       if((selfDep.direction[d]& ~DependencyDirection::D_LE) == 0){
         JTRACE("Coscheduling forward")(d)(*this);
-        task.beginFor(varname, begin, end, FormulaInteger::one());
+        ot.beginFor(varname, begin, end, FormulaInteger::one());
       }else if((selfDep.direction[d]& ~DependencyDirection::D_GE) == 0){
         JTRACE("Coscheduling backward")(d)(*this);
-        task.beginReverseFor(varname, begin, end, FormulaInteger::one());
+        ot.beginReverseFor(varname, begin, end, FormulaInteger::one());
       }else{
         JTRACE("Can't coschedule due to mismatched direction")(d);
         passed=false;
@@ -343,13 +367,17 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
       }
 
       for(ScheduleNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
-        (*i)->generateCodeForSlice(trans, task, d, new FormulaVariable(varname));
+        (*i)->generateCodeForSlice(trans, ot, d, new FormulaVariable(varname), isStatic);
       }
-      task.endFor();
-      task.write("return NULL;");
-      task.endFunc();
-      o.setcall(nodename(),"new "+varname+"_task", task.argnames());
-      printDepsAndEnqueue(o, NULL, false);
+      ot.endFor();
+      if(!isStatic){
+        ot.write("return NULL;");
+        ot.undefineAll();
+        ot.endFunc();
+        std::vector<std::string> args(1, "this");
+        o.setcall(nodename(),"new "+varname+"_task", args);
+        printDepsAndEnqueue(o, NULL, false);
+      }
       return;
     }
     JASSERT(false)(*this)(selfDep.direction).Text("Unresolved dependency cycle");

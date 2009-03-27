@@ -70,6 +70,9 @@
 #undef HAVE_UNISTD_H
 
 /* var name in output code */
+#undef INPUT_PERIMETER_STR
+
+/* var name in output code */
 #undef INPUT_SIZE_STR
 
 /* Use a custom allocator from JALIB */
@@ -138,6 +141,12 @@
 
 /* prefix for expanded template implementations */
 #undef TMPL_IMPL_PFX
+
+/* postfix for static versions of transforms */
+#undef TX_DYNAMIC_POSTFIX
+
+/* postfix for static versions of transforms */
+#undef TX_STATIC_POSTFIX
 
 /* Version number of package */
 #undef VERSION

@@ -47,9 +47,8 @@
 #if defined(HAVE_CXXABI_H) && defined(HAVE_BACKTRACE_SYMBOLS)
 #include <cxxabi.h>
 
-static std::string _cxxdemangle(const char* i){
-  int status;
-  char buf[1024];
+static const char* _cxxdemangle(const char* i){
+  static char buf[1024];
   memset(buf, 0, sizeof(buf));
   const char* end = buf+sizeof(buf)-1;
   char* o = buf;
@@ -63,6 +62,7 @@ static std::string _cxxdemangle(const char* i){
   }
   while(*i!=0 && o<end){
     if( *i == ')' || *i == '+' ){
+      int status;
       char* tmp = abi::__cxa_demangle(start, 0, 0, &status);
       if(tmp!=NULL){
         o=start;
@@ -82,7 +82,7 @@ static std::string _cxxdemangle(const char* i){
 }
 
 #else
-static std::string _cxxdemangle(const char* str){ return str; }
+#define _cxxdemangle(x) x
 #endif
 
 /* 
@@ -117,22 +117,26 @@ jassert_internal::JAssert::~JAssert()
 {
   if ( _exitWhenDone )
   {
-#ifdef DEBUG
-# ifdef HAVE_BACKTRACE_SYMBOLS
+#if defined(DEBUG) && defined(HAVE_BACKTRACE_SYMBOLS)
     void *addresses[10];
     int size = backtrace(addresses, 10);
     char **strings = backtrace_symbols(addresses, size);
     if(strings!=NULL){
       Print( "Stack trace:\n" );
       for(int i = 1; i < size; i++){
-        Print("   "); Print(i); Print(": "); Print(_cxxdemangle(strings[i])); Print("\n");
+        Print("  "); 
+        Print(i); 
+        Print(": ");
+        Print(_cxxdemangle(strings[i]));
+        Print("\n");
       }
       free(strings);
     }
-# endif
-    jalib::Breakpoint();
 #endif
     Print ( "Terminating...\n" );
+#ifdef DEBUG
+    jalib::Breakpoint();
+#endif
     _exit ( 1 );
   }
 }
@@ -144,11 +148,6 @@ const char* jassert_internal::jassert_basename ( const char* str )
       str=c+1;
   return str;
 }
-
-// std::ostream& jassert_internal::jassert_output_stream(){
-//     return std::cerr;
-// }
-
 
 static FILE* _fopen_log_safe ( const char* filename, int protectedFd )
 {
@@ -166,7 +165,6 @@ static FILE* _fopen_log_safe ( const std::string& s, int protectedFd )
 { 
   return _fopen_log_safe ( s.c_str(), protectedFd ); 
 }
-
 
 static FILE* theLogFile = NULL;
 
@@ -204,8 +202,6 @@ static FILE* _initJassertOutputDevices()
   else
     return fdopen ( dup2 ( fileno ( stderr ),DUP_STDERR_FD ),"w" );;;
 }
-
-
 
 void jassert_internal::jassert_safe_print ( const char* str )
 {

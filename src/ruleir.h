@@ -126,7 +126,15 @@ public:
   bool isLeaf() const{
     return _parts.empty();
   }
-  
+
+  bool containsLeaf(const char* val) const{
+    if(isLeaf())
+      return isLeaf(val);
+    for(RIRExprList::const_iterator i=_parts.begin(); i!=_parts.end(); ++i)
+      if((*i)->containsLeaf(val))
+        return true;
+    return false;
+  }
   RIRExprList& parts(){ return _parts; }
 protected:
   std::string _str;
@@ -163,6 +171,14 @@ public:
   void addExpr(const RIRExprCopyRef& p)   { _exprs.push_back(p); }
   void accept(RIRVisitor&);
   virtual RIRStmt* clone() const = 0;
+  
+  //WARNING: this does not descend into sub-blocks
+  bool containsLeaf(const char* val) const{
+    for(RIRExprList::const_iterator i=_exprs.begin(); i!=_exprs.end(); ++i)
+      if((*i)->containsLeaf(val))
+        return true;
+    return false;
+  }
 protected:
   RIRExprList _exprs;
 };

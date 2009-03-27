@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2009 by Jason Ansel                                     *
+ *   Copyright (C) 2008 by Jason Ansel                                     *
  *   jansel@csail.mit.edu                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,3 +17,48 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifndef PETABRICKSTRANSFORMINSTANCE_H
+#define PETABRICKSTRANSFORMINSTANCE_H
+
+#include "jrefcounted.h"
+#include "dynamictask.h"
+
+namespace petabricks {
+
+class TransformInstance;
+typedef jalib::JRef<TransformInstance> TransformInstancePtr;
+
+/**
+ * base clase for instances of user transforms
+ */
+class TransformInstance : public jalib::JRefCounted {
+public:
+  virtual ~TransformInstance(){}
+  virtual DynamicTaskPtr runDynamic() = 0;
+  virtual void runStatic() = 0;
+
+
+  DynamicTaskPtr runAfter(const DynamicTaskPtr& before){
+    if(before){
+      DynamicTaskPtr t = new MethodCallTask<TransformInstance>(this, &TransformInstance::runDynamic);
+      t->dependsOn(before);
+      return t;
+    }else{
+      return runDynamic();
+    }
+  }
+  
+  bool useContinuation() const { return true; }
+
+  void runToCompletion(){
+    DynamicTaskPtr p = runDynamic();
+    if(p){
+      p->enqueue();
+      p->waitUntilComplete();
+    }
+  }
+};
+
+}
+
+#endif

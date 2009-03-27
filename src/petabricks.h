@@ -20,6 +20,8 @@
 
 #include "matrix.h"
 #include "matrixio.h"
+#include "transforminstance.h"
+#include "ruleinstance.h"
 #include "dynamictask.h"
 #include "spatialdynamictask.h"
 #include "petabricksruntime.h"
@@ -34,21 +36,51 @@
 #  include <fftw3.h>
 #endif
 
-#define SPAWN(taskname, args...) \
-  { DynamicTaskPtr _task = spawn_ ## taskname (args , _before); \
-    _after->dependsOn(_task);\
-    _task->enqueue();\
-  }
+#define PB_SPAWN(taskname, args...) \
+  petabricks::spawn_hook( new taskname ## _instance(args), _completion)
+
+#define PB_CALL(taskname, args...) \
+  petabricks::call_hook( new taskname ## _instance(args) )
+
+#define PB_STATIC_CALL(taskname, args...) \
+  petabricks::static_call_hook( new taskname ## _instance(args) )
+
+#define PB_SYNC() sync_in_loops_not_supported_yet!
+
+#define PB_NOP() 
+
+#define PB_RETURN(rv)\
+  if(false){}else{ _pb_rv=(rv); return DEFAULT_RV; }
 
 #define PB_CAT(a,b) _PB_CAT(a,b)
 #define _PB_CAT(a,b) __PB_CAT(a,b)
 #define __PB_CAT(a,b) a ## b
 
-#define SYNC() \
-  { \
-    _before = _after; \
-    _after = new NullDynamicTask(); \
-    _after->dependsOn(_before); \
-    _before->enqueue(); \
+
+
+namespace petabricks {
+  inline void spawn_hook(const TransformInstancePtr& tx,  const DynamicTaskPtr& completion){
+    DynamicTaskPtr task = tx->runDynamic();
+    completion->dependsOn(task);
+    task->enqueue();
   }
+  
+  inline void call_hook(const TransformInstancePtr& tx){
+    tx->runToCompletion();
+  }
+  
+  inline void static_call_hook(const TransformInstancePtr& tx){
+    tx->runStatic();
+  }
+
+  inline DynamicTaskPtr sync_hook(DynamicTaskPtr& completion, const DynamicTaskPtr& cont){
+    DynamicTaskPtr tmp = completion;
+    completion = new NullDynamicTask();
+    completion->dependsOn(tmp);
+    cont->dependsOn(tmp);
+    tmp->enqueue();
+    return cont;
+  }
+  
+}
 

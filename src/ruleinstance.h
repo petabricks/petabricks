@@ -17,3 +17,20 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifndef PETABRICKSRULEINSTANCE_H
+#define PETABRICKSRULEINSTANCE_H
+
+#include "jrefcounted.h"
+
+namespace petabricks {
+
+class RuleInstance : public jalib::JRefCounted {
+public:
+
+
+  bool useContinuation() const { return true; }
+};
+
+}
+
+#endif

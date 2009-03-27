@@ -167,6 +167,8 @@ public:
                         const std::string& name,
                         const std::vector<std::string>& args,
                         const std::vector<std::string>& argNames);
+  
+  void extractConstants(CodeGenerator& o);
 
   int tmplChoiceCount() const;
 
@@ -181,6 +183,8 @@ public:
   void addTunable(const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
     _config.push_back(ConfigItem(true,n,initial, min,max));
   }
+
+  std::string instClassName() const { return _name+"_instance"; }
 
 private:
   std::string   _originalName;

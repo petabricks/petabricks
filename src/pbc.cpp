@@ -98,7 +98,7 @@ int main( int argc, const char ** argv){
   o.comment("Program main routine");
   std::string args[] = {"int argc", "const char** argv"};
   o.beginFunc("int", "main", std::vector<std::string>(args, args+2));
-  o.write("petabricks::PetabricksRuntime runtime(argc, argv, &"+t->back()->name()+"_main);");
+  o.write("petabricks::PetabricksRuntime runtime(argc, argv, "+t->back()->name()+"_main::instance());");
   o.beginIf("runtime.alternateTransforms()");
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
     (*i)->registerMainInterface(o);

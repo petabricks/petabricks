@@ -65,30 +65,35 @@ void petabricks::Rule::setBody(const char* str){
 }
 
 void petabricks::Rule::compileRuleBody(Transform& tx, RIRScope& scope){
-  _bodyir = parseRuleBody(_bodysrc);
+  RIRBlockCopyRef bodyir = parseRuleBody(_bodysrc);
 #ifdef DEBUG
-  std::cerr << "BEFORE compileRuleBody:\n" << _bodyir << std::endl;
+  std::cerr << "BEFORE compileRuleBody:\n" << bodyir << std::endl;
   {
     DebugPrintPass p1;
-    _bodyir->accept(p1);
+    bodyir->accept(p1);
   }
   std::cerr << "--------------------\n";
 #endif
   {
     ExpansionPass p2(scope.createChildLayer());
-    _bodyir->accept(p2);
-  }{
-    AnalysisPass p3(tx.name(), scope.createChildLayer());
-    _bodyir->accept(p3);
+    bodyir->accept(p2);
   }
-#ifdef DEBUG
-  std::cerr << "--------------------\nAFTER compileRuleBody:\n" << _bodyir << std::endl;
+  {
+    AnalysisPass p3(*this, tx.name(), scope.createChildLayer());
+    bodyir->accept(p3);
+  }
+
+  _bodyirStatic = bodyir;
+ #ifdef DEBUG
+  std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
   {
     DebugPrintPass p1;
-    _bodyir->accept(p1);
+    bodyir->accept(p1);
   }
   std::cerr << "--------------------\n";
 #endif
+  
+  _bodyirDynamic = bodyir;
 }
 
 void petabricks::RuleFlags::print(std::ostream& os) const {
@@ -131,7 +136,7 @@ void petabricks::Rule::print(std::ostream& os) const {
     os << "  " << i->first << ": " << i->second << "\n";
   }
   //os << "SRC = {" << _bodysrc << "}\n";
-  os << "BodyIR= {" << _bodyir << "}\n";
+  os << "BodyIR= {" << _bodyirDynamic << "}\n";
 }
 
 namespace {// file local
@@ -238,108 +243,120 @@ bool petabricks::RuleDescriptor::isSamePosition(const FormulaPtr& that) const{
 }
 
 void petabricks::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
-  std::string rt = "void";
-  std::vector<std::string> args;
-  if(isReturnStyle()){
-    JASSERT(!isRecursive())(id())(trans.name())
-      .Text("Recursive rules must use to(...) from(...) {...} style");
-    JASSERT(_to.size()==1)(_to.size());
-    rt = "ElementT";
-  }else{
-    if(isRecursive()){
-      rt="petabricks::DynamicTaskPtr";
-    }
+
+  if(isRecursive()){
+    o.beginClass(implcodename(trans)+TX_DYNAMIC_POSTFIX, "petabricks::RuleInstance");
+
     for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      args.push_back((*i)->generateSignatureCode(o,false));
+      o.addMember((*i)->genTypeStr(false), (*i)->name());
     }
-  }
-
-
-  for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    args.push_back((*i)->generateSignatureCode(o,true));
-  }
-
-  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i)
-    args.push_back("const IndexT "+(*i));
-
-  for(int i=0; i<dimensions(); ++i)
-    args.push_back("const IndexT "+getOffsetVar(i)->toString());
-
-  o.beginFunc(rt, implcodename(trans), args);
-  {
-    if(isRecursive()) o.write("DynamicTaskPtr _before, _after = new NullDynamicTask();");
+    for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      o.addMember((*i)->genTypeStr(true), (*i)->name());
+    }
+    for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i){
+      o.addMember("const IndexT", *i);
+    }
+    for(int i=0; i<dimensions(); ++i){
+      o.addMember("const IndexT", getOffsetVar(i)->toString());
+    }
     for(FormulaList::const_iterator i=_definitions.begin(); i!=_definitions.end(); ++i){
-      o.write("const IndexT "+(*i)->explodePrint()+";");
+      o.addMember("const IndexT",(*i)->lhs()->toString(), (*i)->rhs()->toString());
     }
-    o.write(_bodyir->toString());
-    if(isRecursive()) o.write("return _after;");
+    o.addMember("DynamicTaskPtr", "_completion", "new NullDynamicTask()");
+
+    o.define("SPAWN", "PB_SPAWN");
+    o.define("CALL",  "PB_CALL");
+    o.define("SYNC",  "PB_SYNC");
+    o.define("DEFAULT_RV",  "_completion");
+    o.beginFunc("petabricks::DynamicTaskPtr", "runDynamic");
+    {
+      LiftVardeclPass p3(o);
+      _bodyirDynamic->accept(p3);
+    }
+    { 
+      DynamicBodyPrintPass dbpp(o);
+      _bodyirDynamic->accept(dbpp);
+    }
+    o.write("return DEFAULT_RV;");
+    o.endFunc();
+    o.undefineAll();
+
+    o.endClass();
   }
+  
+  std::vector<std::string> args;
+  for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    args.push_back((*i)->generateSignatureCode(false));
+  }
+  for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    args.push_back((*i)->generateSignatureCode(true));
+  }
+  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i){
+    args.push_back("const IndexT "+(*i));
+  }
+  for(int i=0; i<dimensions(); ++i){
+    args.push_back("const IndexT "+getOffsetVar(i)->toString());
+  }
+
+  //static version
+  o.beginFunc("void", implcodename(trans)+TX_STATIC_POSTFIX, args);
+  for(FormulaList::const_iterator i=_definitions.begin(); i!=_definitions.end(); ++i){
+    o.addMember("const IndexT",(*i)->lhs()->toString(), (*i)->rhs()->toString());
+  }
+  o.define("SPAWN", "PB_STATIC_CALL");
+  o.define("CALL",  "PB_STATIC_CALL");
+  o.define("SYNC",  "PB_NOP");
+  o.define("DEFAULT_RV",  "");
+  o.write(_bodyirStatic->toString());
+  o.undefineAll();
   o.endFunc();
 }
 
-void petabricks::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
   CoordinateFormula begin, widths;
   CoordinateFormula end;
-  std::vector<std::string> args;
+  std::vector<std::string> taskargs;
   std::vector<std::string> matrixNames;
   std::vector<std::string> argsByRef;
-
-  std::set<MatrixDefPtr> used;
-  for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
-    used.insert(i->first);
-    i->first->argDeclRW(args);
-    i->first->argDeclRW(argsByRef, true);
-    matrixNames.push_back(i->first->name());
-  }
-  for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
-    if(used.find(i->first)==used.end()){
-      i->first->argDeclRO(args);
-      i->first->argDeclRO(argsByRef, true);
-      matrixNames.push_back(i->first->name());
-    }
-  }
+  std::vector<std::string> argnames;
 
   IterationOrderList order(dimensions(), IterationOrder::ANY);
   removeInvalidOrders(order);
   //TODO: call learner
 //   trans.learner().makeIterationChoice(order, _matrix, _region);
 
-  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i){
-    args.push_back("const IndexT "+(*i));
-    argsByRef.push_back("const IndexT "+(*i));
-    matrixNames.push_back((*i));
-  }
+  taskargs.push_back("const jalib::JRef<"+trans.instClassName()+"> transform");
 
   //populate begin
   for(int i=0; i<dimensions(); ++i){
     FormulaPtr tmp = getOffsetVar(i,"begin");
     begin.push_back(tmp);
-    args.push_back("const IndexT "+tmp->toString());
+    taskargs.push_back("const IndexT "+tmp->toString());
     argsByRef.push_back("const IndexT "+tmp->toString());
+    argnames.push_back(tmp->toString());
   }
   //populate end
   for(int i=0; i<dimensions(); ++i){
     FormulaPtr tmp = getOffsetVar(i,"end");
     end.push_back(tmp);
-    args.push_back("const IndexT "+tmp->toString());
+    taskargs.push_back("const IndexT "+tmp->toString());
     argsByRef.push_back("const IndexT "+tmp->toString());
+    argnames.push_back(tmp->toString());
   }
 
-  const char* rt = "void";
-  if(isRecursive()){
-    rt="petabricks::DynamicTaskPtr";
-  }
+  if(isStatic)
+    o.beginFunc("void", trampcodename(trans)+TX_STATIC_POSTFIX, argsByRef);
+  else
+    o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_DYNAMIC_POSTFIX, argsByRef);
 
-  o.beginFunc(rt,trampcodename(trans), argsByRef);
-  {
-  if(isRecursive()) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
-
-//   FreeVars fv;
-//   for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i)
-//     i->first->extractDefines(fv, o);
-//   for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i)
-//     i->first->extractDefines(fv, o);
-
+  if(!isStatic && !isRecursive()){
+    //shortcut
+    o.comment("rule is not recursive, so no sense in dynamically scheduling it");
+    o.call(trampcodename(trans)+TX_STATIC_POSTFIX, argnames);
+    o.write("return NULL;");
+  }else{
+    if(!isStatic) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
+    
     for(size_t i=0; i<begin.size(); ++i){
       FormulaPtr b=begin[i];
       FormulaPtr e=end[i];
@@ -350,153 +367,156 @@ void petabricks::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& 
         o.beginFor(getOffsetVar(i)->toString(), b, e, w);
       //TODO, better support for making sure given range is a multiple of size
     }
-    generateTrampCellCodeSimple(trans, o);
+    generateTrampCellCodeSimple(trans, o, isStatic);
+    //TODO, loop carry deps?
     for(size_t i=0; i<begin.size(); ++i){
       o.endFor();
     }
-    if(isRecursive()) o.write("return _spawner;");
+    
+    if(!isStatic) o.write("return _spawner;");
   }
   o.endFunc();
 
-  TaskCodeGenerator& task = o.createTask(trampcodename(trans), args, "SpatialDynamicTask");
-  task.beginRunFunc();
-  {
-    if(isRecursive()){
-        task.setcall("DynamicTaskPtr _task", trampcodename(trans), task.argnames());
+  if(!isStatic){
+    TaskCodeGenerator& task = o.createTask(trampcodename(trans), taskargs, "SpatialDynamicTask", "_task");
+    task.beginRunFunc();
+    {
+      if(isRecursive()){
+        task.setcall("DynamicTaskPtr _task", "transform->"+trampcodename(trans)+TX_DYNAMIC_POSTFIX, argnames);
         task.write("return _task;");
-    }else{
-      task.call(trampcodename(trans), task.argnames());
-      task.write("return NULL;");
+      }else{
+        task.call("transform->"+trampcodename(trans)+TX_STATIC_POSTFIX, argnames);
+        task.write("return NULL;");
+      }
     }
-  }
-  task.endFunc();
-  task.beginSizeFunc();
-  FormulaPtr f = FormulaInteger::one();
-  for(int i=0; i<dimensions(); ++i){
-    FormulaPtr b = getOffsetVar(i,"begin");
-    FormulaPtr e = getOffsetVar(i,"end");
-    f=new FormulaMultiply(f, new FormulaSubtract(e, b));
-  }
-  task.write("return "+f->toString()+";");
-  task.endFunc();
-
-  task.beginBeginPosFunc();
-  task.beginSwitch("d");
-  for(int i=0; i<dimensions(); ++i){
-    task.beginCase( i );
-    task.write("return "+getOffsetVar(i,"begin")->toString()+";");
-    task.endCase();
-  }
-  task.write("default: return 0;");
-  task.endSwitch();
-  task.endFunc();
-
-  task.beginEndPosFunc();
-  task.beginSwitch("d");
-  for(int i=0; i<dimensions(); ++i){
-    task.beginCase( i );
-    task.write("return "+getOffsetVar(i,"end")->toString()+";");
-    task.endCase();
-  }
-  task.write("default: return 0;");
-  task.endSwitch();
-  task.endFunc();
-
-  task.beginDimensionsFunc();
-  task.write("return "+jalib::XToString(dimensions())+";");
-  task.endFunc();
-
-  task.beginSpatialSplitFunc();
-  {//spatialSplit(SpatialTaskList& _list, int _dim, int _thresh)
-    task.write("IndexT _wdth = "+task.name()+"::endPos(_dim)-"+task.name()+"::beginPos(_dim);");
-    task.beginIf("_wdth > _thresh && _thresh > 8");
-    task.beginSwitch("_dim");
+    task.endFunc();
+    task.beginSizeFunc();
+    FormulaPtr f = FormulaInteger::one();
     for(int i=0; i<dimensions(); ++i){
-      task.beginCase(i);
-      task.write("{"); 
-      task.incIndent();
-      task.write("SpatialTaskPtr _t;");
-      std::string t_begin = getOffsetVar(i,"t_begin")->toString();
-      std::string t_end = getOffsetVar(i,"t_end")->toString();
-      task.varDecl("IndexT "+t_begin +"="+getOffsetVar(i,"begin")->toString());
-      task.varDecl("IndexT "+t_end +"="+t_begin+"+_thresh");
-      std::vector<std::string> args(matrixNames);
-      for(int d=0; d<dimensions(); ++d){
-        if(d==i)
-          args.push_back(t_begin);
-        else
-          args.push_back(getOffsetVar(d,"begin")->toString());
-      }
-      for(int d=0; d<dimensions(); ++d){
-        if(d==i)
-          args.push_back("std::min("+t_end+","+getOffsetVar(i,"end")->toString()+")");
-        else
-          args.push_back(getOffsetVar(d,"end")->toString());
-      }
-      task.write("for(;"+t_begin+"<"+getOffsetVar(i,"end")->toString()+"; "+t_begin+"+=_thresh,"+t_end+"+=_thresh){");
-      task.incIndent();
-      task.setcall("_t", "new "+trampcodename(trans)+"_task", args);
-      task.write("_list.push_back(_t);");
-      task.endFor();
-      task.endCase();
-      task.write("}");
-      task.decIndent();
+      FormulaPtr b = getOffsetVar(i,"begin");
+      FormulaPtr e = getOffsetVar(i,"end");
+      f=new FormulaMultiply(f, new FormulaSubtract(e, b));
     }
-    task.write("default: _list.push_back(this); return;");
-    task.endSwitch();
+    task.write("return "+f->toString()+";");
+    task.endFunc();
 
-//     task.write("JTRACE(\"spatialSplit complete\")(_dim)(_wdth)(_thresh)(_wdth/_thresh)(_list.size());");
-    task.elseIf();
-    task.write("_list.push_back(this);");
-//     task.write("JTRACE(\"spatialSplit disabled\")(_list.size())(_dim)(_wdth)(size());");
-    task.endIf();
+    task.beginBeginPosFunc();
+    task.beginSwitch("d");
+    for(int i=0; i<dimensions(); ++i){
+      task.beginCase( i );
+      task.write("return "+getOffsetVar(i,"begin")->toString()+";");
+      task.endCase();
+    }
+    task.write("default: return 0;");
+    task.endSwitch();
+    task.endFunc();
+
+    task.beginEndPosFunc();
+    task.beginSwitch("d");
+    for(int i=0; i<dimensions(); ++i){
+      task.beginCase( i );
+      task.write("return "+getOffsetVar(i,"end")->toString()+";");
+      task.endCase();
+    }
+    task.write("default: return 0;");
+    task.endSwitch();
+    task.endFunc();
+
+    task.beginDimensionsFunc();
+    task.write("return "+jalib::XToString(dimensions())+";");
+    task.endFunc();
+
+    task.beginSpatialSplitFunc();
+    {//spatialSplit(SpatialTaskList& _list, int _dim, int _thresh)
+      task.write("IndexT _wdth = "+task.name()+"::endPos(_dim)-"+task.name()+"::beginPos(_dim);");
+      task.beginIf("_wdth > _thresh && _thresh > 8");
+      task.beginSwitch("_dim");
+      for(int i=0; i<dimensions(); ++i){
+        task.beginCase(i);
+        task.write("{"); 
+        task.incIndent();
+        task.write("SpatialTaskPtr _t;");
+        std::string t_begin = getOffsetVar(i,"t_begin")->toString();
+        std::string t_end = getOffsetVar(i,"t_end")->toString();
+        task.varDecl("IndexT "+t_begin +"="+getOffsetVar(i,"begin")->toString());
+        task.varDecl("IndexT "+t_end +"="+t_begin+"+_thresh");
+        std::vector<std::string> args;
+        args.push_back("transform");
+        for(int d=0; d<dimensions(); ++d){
+          if(d==i)
+            args.push_back(t_begin);
+          else
+            args.push_back(getOffsetVar(d,"begin")->toString());
+        }
+        for(int d=0; d<dimensions(); ++d){
+          if(d==i)
+            args.push_back("std::min("+t_end+","+getOffsetVar(i,"end")->toString()+")");
+          else
+            args.push_back(getOffsetVar(d,"end")->toString());
+        }
+        task.write("for(;"+t_begin+"<"+getOffsetVar(i,"end")->toString()+"; "+t_begin+"+=_thresh,"+t_end+"+=_thresh){");
+        task.incIndent();
+        task.setcall("_t", "new "+trampcodename(trans)+"_task", args);
+        task.write("_list.push_back(_t);");
+        task.endFor();
+        task.endCase();
+        task.write("}");
+        task.decIndent();
+      }
+      task.write("default: _list.push_back(this); return;");
+      task.endSwitch();
+
+  //     task.write("JTRACE(\"spatialSplit complete\")(_dim)(_wdth)(_thresh)(_wdth/_thresh)(_list.size());");
+      task.elseIf();
+      task.write("_list.push_back(this);");
+  //     task.write("JTRACE(\"spatialSplit disabled\")(_list.size())(_dim)(_wdth)(size());");
+      task.endIf();
+    }
+    task.endFunc();
   }
-  task.endFunc();
 
 }
 
-void petabricks::Rule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::Rule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
   std::vector<std::string> args;
-  if(!isReturnStyle()){
-    for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      args.push_back((*i)->generateAccessorCode(o));
-    }
+  for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    args.push_back((*i)->generateAccessorCode());
   }
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    args.push_back((*i)->generateAccessorCode(o));
+    args.push_back((*i)->generateAccessorCode());
   }
-
   for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i)
     args.push_back(*i);
 
   for(int i=0; i<dimensions(); ++i)
     args.push_back(getOffsetVar(i)->toString());
 
-  if(isReturnStyle()){
-    o.setcall(_to.front()->generateAccessorCode(o),implcodename(trans), args);
-  }else if(isRecursive()){
-    o.setcall("DynamicTaskPtr _task",implcodename(trans), args);
+  if(!isStatic){
+    o.setcall("jalib::JRef<"+implcodename(trans)+TX_DYNAMIC_POSTFIX+"> _rule", "new "+implcodename(trans)+TX_DYNAMIC_POSTFIX, args);
+    o.write("DynamicTaskPtr _task = _rule->runDynamic();");
+    o.beginIf("_task");
     o.write("_spawner->dependsOn(_task);");
     o.write("_task->enqueue();");
+    o.endIf();
   }else{
-    o.call(implcodename(trans), args);
+    o.call(implcodename(trans)+TX_STATIC_POSTFIX, args);
   }
 }
 
 std::vector<std::string> petabricks::Rule::getCallArgs(Transform& trans, const SimpleRegionPtr& region){
   std::vector<std::string> args;
-  std::set<MatrixDefPtr> used;
-  for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
-    used.insert(i->first);
-    args.push_back(i->first->name());
-  }
-  for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
-    if(used.find(i->first)==used.end())
-      args.push_back(i->first->name());
-  }
+//std::set<MatrixDefPtr> used;
+//for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
+//  used.insert(i->first);
+//  args.push_back(i->first->name());
+//}
+//for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
+//  if(used.find(i->first)==used.end())
+//    args.push_back(i->first->name());
+//}
 
-  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i)
-    args.push_back((*i));
+//for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i)
+//  args.push_back((*i));
 
   for( CoordinateFormula::const_iterator i=region->minCoord().begin()
        ; i!=region->minCoord().end()
@@ -515,11 +535,12 @@ std::vector<std::string> petabricks::Rule::getCallArgs(Transform& trans, const S
 
 void petabricks::Rule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
   std::vector<std::string> args = getCallArgs(trans, region);
-  o.call(trampcodename(trans), args);
+  o.call(trampcodename(trans)+TX_STATIC_POSTFIX, args);
 }
 
 void petabricks::Rule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
   std::vector<std::string> args = getCallArgs(trans, region);
+  args.insert(args.begin(), "this");
   o.setcall(name,"new "+trampcodename(trans)+"_task", args);
 }
 

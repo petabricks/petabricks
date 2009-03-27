@@ -299,8 +299,8 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
         temp->setValue(0);
       }
 
-      Autotuner *at6, *at7, *at8, *at9, *at10;
-      jalib::JTunable* run_fullmg_flag;
+      Autotuner *at6 = 0, *at7 = 0, *at8 = 0, *at9 = 0, *at10 = 0;
+      jalib::JTunable* run_fullmg_flag = NULL;
       if (FULL_MULTIGRID_FLAG) {
         std::string s6 = "FullPoisson2D_Inner_Prec1_1";
         std::string s7 = "FullPoisson2D_Inner_Prec2_1";
@@ -467,20 +467,24 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
       for(int z=0;z<GRAPH_TRIALS; ++z){
         _main->randomInputs(n);
 
+#ifdef GRACEFUL_ABORT
         // Set up a time out so we don't waste time running things that are
         // slower than what we have seen already.
-        if (thresh < UINT_MAX - 1) {
+        if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
           alarm((unsigned int) thresh + 1);
         }
+#endif
 
         jalib::JTime begin=jalib::JTime::Now();
         _main->compute();
         jalib::JTime end=jalib::JTime::Now();
 
+#ifdef GRACEFUL_ABORT
         // Disable previous alarm
-        if (thresh < UINT_MAX) {
+        if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
           alarm(0);
         }
+#endif
 
         if(_needTraingingRun && _isTrainingRun){
           _isTrainingRun=false;

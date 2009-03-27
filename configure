@@ -22522,8 +22522,24 @@ _ACEOF
 
 
 cat >>confdefs.h <<\_ACEOF
-#define TMPL_IMPL_PFX "_tmlp"
+#define INPUT_PERIMETER_STR "_input_perimeter"
 _ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define TMPL_IMPL_PFX "_tmpl"
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define TX_STATIC_POSTFIX "_static"
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define TX_DYNAMIC_POSTFIX "_dynamic"
+_ACEOF
+
 
 if false; then
   #disabled by default:

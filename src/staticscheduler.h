@@ -103,8 +103,8 @@ public:
 
   ///
   /// Generate code for executing this node
-  virtual void generateCodeSimple(Transform& trans, CodeGenerator& o) = 0;
-  virtual void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos) = 0;
+  virtual void generateCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic) = 0;
+  virtual void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos, bool isStatic) = 0;
 
 
   virtual const MatrixDefPtr&    matrix() const = 0;
@@ -162,8 +162,8 @@ public:
     o << _matrix->name() << ".region(" << _region << ")";
   }
 
-  virtual void generateCodeSimple(Transform& trans, CodeGenerator& o);
-  virtual void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos);
+  virtual void generateCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic);
+  virtual void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos, bool isStatic);
 private:
   MatrixDefPtr      _matrix;
   SimpleRegionPtr   _region;
@@ -183,8 +183,8 @@ public:
     for(ScheduleNodeSet::const_iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i)
       o << "\\n " << **i;
   }
-  void generateCodeSimple(Transform& trans, CodeGenerator& o);
-  void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos){ JASSERT(false); }
+  void generateCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic);
+  void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos, bool isStatic){ JASSERT(false); }
 private:
   ScheduleNodeSet _originalNodes;
   int             _dimension;
@@ -235,7 +235,8 @@ public:
     o << "}\n";
   }
 
-  void generateCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateCodeStatic(Transform& trans, CodeGenerator& o);
+  void generateCodeDynamic(Transform& trans, CodeGenerator& o);
   void applyRemapping(const ScheduleNodeRemapping& m);
 private:
   //storage of nodes

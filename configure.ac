@@ -115,7 +115,11 @@ AC_DEFINE([MAX_REC_LEVELS],    [12],             [number of levels for recursive
 AC_DEFINE([INPUT_SIZE_STR],    ["input_count"],  [var name in output code])
 AC_DEFINE([OUTPUT_SIZE_STR],   ["output_count"], [var name in output code])
 AC_DEFINE([SPLIT_CHUNK_SIZE],  ["chunk_size"],   [var name in output code])
-AC_DEFINE([TMPL_IMPL_PFX],     ["_tmlp"],        [prefix for expanded template implementations])
+AC_DEFINE([INPUT_PERIMETER_STR],  ["_input_perimeter"],   [var name in output code])
+AC_DEFINE([TMPL_IMPL_PFX],     ["_tmpl"],        [prefix for expanded template implementations])
+AC_DEFINE([TX_STATIC_POSTFIX], ["_static"], [postfix for static versions of transforms])
+AC_DEFINE([TX_DYNAMIC_POSTFIX], ["_dynamic"], [postfix for static versions of transforms])
+
 if false; then
   #disabled by default:
   AC_DEFINE([JASSERT_LOG],       [],               [log traces to /tmp/jassertlog.pid])
