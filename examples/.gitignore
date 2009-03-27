@@ -1,6 +1,7 @@
 add
 multiply
 rollingsum
+scaletest
 strassen
 templatetest
 test10
@@ -43,6 +44,7 @@ poisson/BS2DInterior
 poisson/BS2D
 poisson/ComputeError
 poisson/error
+poisson/fmgv2DGraph
 poisson/fmgv2D
 poisson/FullPoisson2D_InnerTransform
 poisson/FullPoisson2D
@@ -69,6 +71,8 @@ poisson/Restrict2Dnew
 poisson/SOR2DGraph
 poisson/SOR2DInterior
 poisson/SOR2D
+poisson/trainfmgv2D
+poisson/trainmgv2D
 sort/Insertionsort
 sort/Mergesort
 sort/Parallel_Mergesort
