@@ -349,6 +349,11 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   o.endFunc();
 
   o.beginFunc("DynamicTaskPtr", "runDynamic");
+  o.createTunable(true, "system.seqcutoff", _name + "_sequential_cutoff", 0);
+  o.beginIf(INPUT_SIZE_STR " < " + _name + "_sequential_cutoff");
+  o.write("runStatic();");
+  o.write("return NULL;");
+  o.endIf();
   o.write("init();");
   _scheduler->generateCodeDynamic(*this, o);
   o.write("return "+taskname()+";");
