@@ -341,8 +341,6 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     o.addMember((*i)->constMatrixTypeName(), (*i)->name());
   }
-  o.createTunable(true, "system.splitsize", _name + "_split_size", 64, 1);
-  o.addMember("IndexT", SPLIT_CHUNK_SIZE, _name+"_split_size");
   
   o.beginFunc("bool", "useContinuation");
   o.createTunable(true, "system.unrollschedule", _name + "_unroll_schedule", 1, 0, 1);
@@ -402,6 +400,13 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   o.cg().endTransform(_originalName, _name);
   o.newline();
   o.newline();
+}
+void petabricks::Transform::markSplitSizeUse(CodeGenerator& o){
+  if(!_usesSplitSize){
+    _usesSplitSize=true;
+    o.createTunable(true, "system.splitsize", _name + "_split_size", 64, 1);
+    o.addMember("IndexT", SPLIT_CHUNK_SIZE, _name+"_split_size");
+  }
 }
 
 void petabricks::Transform::extractSizeDefines(CodeGenerator& o){

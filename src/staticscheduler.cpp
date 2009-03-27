@@ -189,11 +189,12 @@ void petabricks::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGene
   }
 }
 
-void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, const RulePtr& rule, bool useDirections){
+void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, Transform& trans,  const RulePtr& rule, bool useDirections){
 //bool printedBeforeDep = false;
 
   ScheduleDependencies::const_iterator sd = _indirectDepends.find(this);
   if(sd==_indirectDepends.end() && rule->isSingleElement()){
+    trans.markSplitSizeUse(o);
     o.write(nodename()+".spatialSplit("SPLIT_CHUNK_SIZE");");
   }else{
     //TODO split selfdep tasks too
@@ -376,7 +377,7 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
         ot.endFunc();
         std::vector<std::string> args(1, "this");
         o.setcall(nodename(),"new "+varname+"_task", args);
-        printDepsAndEnqueue(o, NULL, false);
+        printDepsAndEnqueue(o, trans, NULL, false);
       }
       return;
     }
