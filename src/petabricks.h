@@ -47,6 +47,9 @@
 #define PB_RETURN(rv)\
   if(false){}else{ _pb_rv=(rv); return DEFAULT_RV; }
 
+#define PB_RETURN_VOID\
+  return DEFAULT_RV
+
 #define PB_CAT(a,b) _PB_CAT(a,b)
 #define _PB_CAT(a,b) __PB_CAT(a,b)
 #define __PB_CAT(a,b) a ## b
