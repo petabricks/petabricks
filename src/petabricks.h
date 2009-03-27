@@ -45,7 +45,7 @@
 #define PB_NOP() 0
 
 #define PB_RETURN(rv)\
-  if(false){}else{ _pb_rv=(rv); return DEFAULT_RV; }
+  { _pb_rv=(rv); return DEFAULT_RV; }
 
 #define PB_RETURN_VOID\
   return DEFAULT_RV
@@ -81,6 +81,11 @@ namespace petabricks {
       tmp->enqueue();
     }
     return cont;
+  }
+
+  template < typename A, typename B >
+  inline A side_effect_hook(const A& a, const B&){
+    return a;
   }
   
 }

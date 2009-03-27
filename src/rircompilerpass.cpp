@@ -23,31 +23,58 @@
 #include "rule.h"
 
 void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
-  if(s->containsLeaf("SYNC")){
-    o.comment("SYNC();");
-    o.continuationRequired("petabricks::sync_hook(_completion, ");
-  }else if(s->containsLeaf("CALL")){
+  switch(s->type()){
+  case RIRNode::STMT_BASIC:
+  case RIRNode::STMT_RAW:
+    if(s->containsLeaf("SYNC")){
+      o.comment("SYNC();");
+      o.continuationRequired("petabricks::sync_hook(_completion, ");
+    }else if(s->containsLeaf("CALL")){
+      o.write(s->toString()); 
+      o.comment("sync forced because of CALL");
+      o.continuationRequired("petabricks::sync_hook(_completion, ");
+    }else if(s->containsLeaf("SPAWN")){
+      o.write(s->toString()); 
+      o.continuationPoint();
+    }else{ 
+      o.write(s->toString()); 
+    }
+    break;
     o.write(s->toString()); 
-    o.comment("SYNC(); // forced because of CALL");
-    o.continuationRequired("petabricks::sync_hook(_completion, ");
-  }else if(s->containsLeaf("SPAWN")){
+    break;
+  case RIRNode::STMT_LOOP:
+  case RIRNode::STMT_COND:
+  case RIRNode::STMT_BLOCK:
+    o.comment("+cf");
     o.write(s->toString()); 
-    o.continuationPoint();
-  }else{ 
-    o.write(s->toString()); 
+    o.comment("-cf");
+    break;
+  case RIRNode::STMT_SWITCH:
+  case RIRNode::STMT_BREAKCONTINUE:
+    UNIMPLEMENTED();
+    break;
+  default:
+    UNIMPLEMENTED()(s->type());
   }
 }
 
 
 void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
   if(e->type() == RIRNode::EXPR_IDENT){
-    RIRSymbolPtr sym = RIRScope::global()->lookup(e->toString());
-    if(sym && sym->isType()){
+    RIRSymbolPtr sym = _scope->lookup(e->toString());
+    if(sym && sym->hasReplacement() && sym->replacement()!=e->toString()){
+      JTRACE("LIFTVAR - replace")(e->toString())(sym->replacement());
+      e = new RIRIdentExpr(sym->replacement());
+      before(e); 
+      return;
+    }else if(sym && sym->isType()){
       if(!hasExprBackward() && peekExprForward()->type()==RIRNode::EXPR_IDENT){
         std::string name = peekExprForward()->toString();
+        std::string nameMangled = prefix() + name;
         std::string type = e->toString();
         e = NULL;
-        pushExprBackward(popExprForward().asPtr());//scroll forward 1
+        popExprForward(); //scroll past name
+        pushExprBackward(new RIRIdentExpr(nameMangled));
         if(hasExprForward()){
           JASSERT(!peekExprForward()->isLeaf(",")).Text("list style initializers not yet supported");
           if(peekExprForward()->isLeaf("[")){
@@ -57,9 +84,25 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
             name += popExprForward()->toString();
           }
         }
-        o.addMember(type, name, "");
+        _scope->set(name, new RIRSymbol(RIRSymbol::SYM_LOCAL_VAR, nameMangled));
+        _scope->set(nameMangled, new RIRSymbol(RIRSymbol::SYM_LOCAL_VAR));
+        o.addMember(type, nameMangled, "");
+        JTRACE("LIFTVAR - decl")(name)(nameMangled);
       }
+    }else{
+      JTRACE("LIFTVAR - unknown")(e->toString())(sym);
     }
+  }
+}
+
+void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
+  if(s->type() != RIRNode::STMT_BLOCK 
+    && depth()>=2 
+    && parentNode()->isControl()){
+    // add {}'s to sloppy ifs() and loops
+    RIRBlockCopyRef tmp = new RIRBlock();
+    tmp->addStmt(s);
+    s=new RIRBlockStmt(tmp);
   }
 }
   

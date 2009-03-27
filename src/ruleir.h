@@ -90,9 +90,12 @@ public:
     EXPR_KEYWORD,
     STMT          = 0x20000,
     STMT_BASIC,
-    STMT_CONTROL,
     STMT_BLOCK,
     STMT_RAW,
+    STMT_LOOP,
+    STMT_COND,
+    STMT_BREAKCONTINUE,
+    STMT_SWITCH,
     BLOCK         = 0x40000
   };
   RIRNode(Type t) : _type(t) {}
@@ -104,6 +107,15 @@ public:
   bool isBlock() const { return (_type&BLOCK) != 0; }
   virtual void accept(RIRVisitor&) = 0;
   virtual RIRNode* clone() const = 0;
+
+  bool isControl() const { return _type==STMT_LOOP || _type==STMT_COND || _type==STMT_SWITCH || _type==STMT_BREAKCONTINUE; }
+
+
+  virtual void print(std::ostream& o, RIRVisitor* printVisitor) = 0;
+  void print(std::ostream& o) const {
+    RIRNodeRef t = clone();
+    t->print(o, NULL);
+  }
 protected:
   Type _type;
 };
@@ -115,7 +127,7 @@ class RIRExpr  : public RIRNode {
 public:
   RIRExpr(Type t, const std::string& str="") : RIRNode(t), _str(str) {}
   void addSubExpr(const RIRExprCopyRef& p) { _parts.push_back(p); }
-  void print(std::ostream& o) const;
+  void print(std::ostream& o, RIRVisitor* printVisitor);
   void accept(RIRVisitor&);
   RIRExpr* clone() const;
   std::string debugStr() const;
@@ -144,14 +156,14 @@ protected:
 class RIRCallExpr  : public RIRExpr{
 public:
   RIRCallExpr(): RIRExpr(EXPR_CALL) {}
-  void print(std::ostream& o) const;
+  void print(std::ostream& o, RIRVisitor* printVisitor);
   RIRCallExpr* clone() const;
 };
 
 class RIRArgsExpr: public RIRExpr{
 public:
   RIRArgsExpr(): RIRExpr(EXPR_ARGS) {}
-  void print(std::ostream& o) const;
+  void print(std::ostream& o, RIRVisitor* printVisitor);
   RIRArgsExpr* clone() const;
 };
 
@@ -173,7 +185,7 @@ public:
   virtual RIRStmt* clone() const = 0;
   
   //WARNING: this does not descend into sub-blocks
-  bool containsLeaf(const char* val) const{
+  virtual bool containsLeaf(const char* val) const{
     for(RIRExprList::const_iterator i=_exprs.begin(); i!=_exprs.end(); ++i)
       if((*i)->containsLeaf(val))
         return true;
@@ -186,32 +198,40 @@ protected:
 class RIRBasicStmt  : public RIRStmt {
 public:
   RIRBasicStmt() : RIRStmt(STMT_BASIC) {}
-  void print(std::ostream& o) const;
+  void print(std::ostream& o, RIRVisitor* printVisitor);
   void accept(RIRVisitor&);
   RIRBasicStmt* clone() const;
 };
 
 class RIRControlStmt  : public RIRStmt {
 public:
-  RIRControlStmt() : RIRStmt(STMT_CONTROL) {}
+  RIRControlStmt(Type t) : RIRStmt(t) {}
 };
 
 class RIRLoopStmt: public RIRControlStmt{
 public:
-  RIRLoopStmt(const RIRStmtCopyRef& p) { _body=p; }
-  void print(std::ostream& o) const;
+  RIRLoopStmt(const RIRStmtCopyRef& p) : RIRControlStmt(STMT_LOOP) { _body=p; }
+  void print(std::ostream& o, RIRVisitor* printVisitor);
   void accept(RIRVisitor&);
   RIRLoopStmt* clone() const;
+  bool containsLeaf(const char* val) const{
+    return RIRStmt::containsLeaf(val)
+        || _body->containsLeaf(val);
+  }
 private:
   RIRStmtCopyRef _body;
 };
 
 class RIRSwitchStmt: public RIRControlStmt{
 public:
-  RIRSwitchStmt(const RIRStmtCopyRef& p) { _body=p; }
-  void print(std::ostream& o) const;
+  RIRSwitchStmt(const RIRStmtCopyRef& p) : RIRControlStmt(STMT_SWITCH) { _body=p; }
+  void print(std::ostream& o, RIRVisitor* printVisitor);
   void accept(RIRVisitor&);
   RIRSwitchStmt* clone() const;
+  bool containsLeaf(const char* val) const{
+    return RIRStmt::containsLeaf(val)
+        || _body->containsLeaf(val);
+  }
 private:
   RIRStmtCopyRef _body;
 };
@@ -219,12 +239,18 @@ private:
 class RIRIfStmt: public RIRControlStmt{
 public:
   RIRIfStmt(const RIRStmtCopyRef& t, const RIRStmtCopyRef& e=0) 
-    : _then(t)
+    :RIRControlStmt(STMT_COND)
+    ,  _then(t)
     , _else(e) 
   {}
-  void print(std::ostream& o) const;
+  void print(std::ostream& o, RIRVisitor* printVisitor);
   void accept(RIRVisitor&);
   RIRIfStmt* clone() const;
+  bool containsLeaf(const char* val) const{
+    return RIRStmt::containsLeaf(val)
+        || _then->containsLeaf(val)
+        || _else->containsLeaf(val);
+  }
 private:
   RIRStmtCopyRef _then;
   RIRStmtCopyRef _else;
@@ -239,9 +265,10 @@ typedef RIRControlStmt RIRInlineConditional;
 class RIRBlockStmt  : public RIRStmt {
 public:
   RIRBlockStmt(const RIRBlockCopyRef& p) : RIRStmt(STMT_BLOCK) { _block=p; }
-  void print(std::ostream& o) const;
+  void print(std::ostream& o, RIRVisitor* printVisitor);
   void accept(RIRVisitor&);
   RIRBlockStmt* clone() const;
+  bool containsLeaf(const char* val) const;
 private:
   RIRBlockCopyRef _block;
 };
@@ -249,7 +276,7 @@ private:
 class RIRRawStmt  : public RIRStmt {
 public:
   RIRRawStmt(const std::string& txt) : RIRStmt(STMT_RAW) { _src=txt; }
-  void print(std::ostream& o) const;
+  void print(std::ostream& o, RIRVisitor* printVisitor);
   void accept(RIRVisitor&);
   RIRRawStmt* clone() const;
 private:
@@ -263,9 +290,15 @@ class RIRBlock : public RIRNode {
 public:
   RIRBlock() : RIRNode(BLOCK) {}
   void addStmt(const RIRStmtCopyRef& p) { _stmts.push_back(p); }
-  void print(std::ostream& o) const;
+  void print(std::ostream& o, RIRVisitor* printVisitor);
   void accept(RIRVisitor&);
   RIRBlock* clone() const;
+  bool containsLeaf(const char* val) const{
+    for(RIRStmtList::const_iterator i=_stmts.begin(); i!=_stmts.end(); ++i)
+      if((*i)->containsLeaf(val))
+        return true;
+    return false;
+  }
 private:
   RIRStmtList _stmts;
 };
