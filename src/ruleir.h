@@ -184,13 +184,14 @@ public:
   void accept(RIRVisitor&);
   virtual RIRStmt* clone() const = 0;
   
-  //WARNING: this does not descend into sub-blocks
   virtual bool containsLeaf(const char* val) const{
     for(RIRExprList::const_iterator i=_exprs.begin(); i!=_exprs.end(); ++i)
       if((*i)->containsLeaf(val))
         return true;
     return false;
   }
+  
+  virtual const RIRBlockCopyRef& extractBlock() const { UNIMPLEMENTED(); }
 protected:
   RIRExprList _exprs;
 };
@@ -251,6 +252,9 @@ public:
         || _then->containsLeaf(val)
         ||(_else &&  _else->containsLeaf(val));
   }
+  const RIRExprCopyRef& condPart() const { return _exprs.front(); }
+  const RIRStmtCopyRef& thenPart() const { return _then; }
+  const RIRStmtCopyRef& elsePart() const { return _else; }
 private:
   RIRStmtCopyRef _then;
   RIRStmtCopyRef _else;
@@ -269,6 +273,7 @@ public:
   void accept(RIRVisitor&);
   RIRBlockStmt* clone() const;
   bool containsLeaf(const char* val) const;
+  const RIRBlockCopyRef& extractBlock() const { return _block; }
 private:
   RIRBlockCopyRef _block;
 };

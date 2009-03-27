@@ -44,7 +44,32 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
   case RIRNode::STMT_COND:
   case RIRNode::STMT_BLOCK:
     if(s->containsLeaf("SYNC") || s->containsLeaf("CALL") || s->containsLeaf("SPAWN")){
-      o.write(s->toString()); 
+      if(s->type() == RIRNode::STMT_COND){
+        const RIRIfStmt& stmt = (const RIRIfStmt&)*s;
+        std::string jthen = o.nextContName("then_");
+        std::string jelse = o.nextContName("else_");
+        std::string jafter = o.nextContName("after_");
+        if(!stmt.elsePart()) jelse=jafter;
+        o.beginIf(stmt.condPart()->toString());
+        o.write("return "+jthen+"();");
+        o.elseIf();
+        o.write("return "+jelse+"();");
+        o.endIf();
+        o.endFunc();
+        o.beginFunc("petabricks::DynamicTaskPtr", jthen);
+        stmt.thenPart()->extractBlock()->accept(*this);
+        o.write("return "+jafter+"();");
+        o.endFunc();
+        if(stmt.elsePart()){
+          o.beginFunc("petabricks::DynamicTaskPtr", jelse);
+          stmt.elsePart()->extractBlock()->accept(*this);
+          o.write("return "+jafter+"();");
+          o.endFunc();
+        }
+        o.beginFunc("petabricks::DynamicTaskPtr", jafter);
+      }else{
+        o.write(s->toString()); 
+      }
     }else{
       o.write(s->toString()); 
     }
