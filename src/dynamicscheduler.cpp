@@ -101,7 +101,7 @@ void DynamicScheduler::popAndRunOneTask(bool blocking)
 #ifdef GRACEFUL_ABORT
     try {
 #endif
-      DynamicTaskPtr task;
+      DynamicTask *task;
 
       if (blocking) {
         task = dequeue();
@@ -109,7 +109,7 @@ void DynamicScheduler::popAndRunOneTask(bool blocking)
         task = tryDequeue();
       }
 
-      if (task) {
+      if (task != NULL) {
         task->runWrapper();
       }
 
@@ -139,9 +139,9 @@ void DynamicScheduler::setAbortFlag() {
   JLOCKSCOPE(theAbortingLock);
   if(!theIsAborting){
     theIsAborting=true;
-    queue.clear();
-    for(int i=0; i<numOfWorkers+1; ++i)
-      queue.push(0);
+    //queue.clear();
+    //for(int i=0; i<numOfWorkers+1; ++i)
+    //  queue.push(0);
 //    JTRACE("Aborting!")(numOfWorkers);
   }
 }
@@ -154,7 +154,7 @@ void DynamicScheduler::abortEnd() {
   JLOCKSCOPE(theAbortingLock);
   while(numAbortedThreads != numOfWorkers) theAbortingLock.wait();
   theIsAborting=false;
-  queue.clear();
+  //queue.clear();
   theAbortingLock.broadcast();
 }
 void DynamicScheduler::abortWait() {
