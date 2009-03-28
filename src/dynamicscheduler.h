@@ -54,6 +54,7 @@ private:
 
     char _prePadding[CACHE_LINE_SIZE];
     jalib::JMutex _lock;
+    std::deque<DynamicTaskPtr> _cont_deque;
     std::deque<DynamicTaskPtr> _deque;
     struct { int z; int w; } _randomNumState;
     char _postPadding[CACHE_LINE_SIZE];
@@ -68,9 +69,12 @@ private:
 
     void push(const DynamicTaskPtr& t)
     {
-      JLOCKSCOPE(_lock);
+      //JLOCKSCOPE(_lock);
 
-      _deque.push_back(t);
+      if (t->isContinuation)
+        _cont_deque.push_back(t);
+      else
+        _deque.push_back(t);
 
     }
 
@@ -86,6 +90,12 @@ private:
           retVal = back;
           _deque.pop_back();
         }
+      } else if (!_cont_deque.empty()){
+        DynamicTaskPtr back = _cont_deque.back();
+        if (back->state == DynamicTask::S_READY) {
+          retVal = back;
+          _cont_deque.pop_back();
+        }
       }
 
       return retVal;
@@ -95,11 +105,23 @@ private:
     {
       DynamicTaskPtr retVal(NULL);
 
+      /*
+      if (_cont_deque.empty()) {
+        return retVal;
+      }
+      */
+
       if (!_lock.trylock()) {
         return retVal;
       }
 
-      if (!_deque.empty()) {
+      if (!_cont_deque.empty()) {
+        DynamicTaskPtr front = _cont_deque.front();
+        if (front->state == DynamicTask::S_READY) {
+          retVal = front;
+          _cont_deque.pop_front();
+        }
+      } else if (!_deque.empty()) {
         DynamicTaskPtr front = _deque.front();
         if (front->state == DynamicTask::S_READY) {
           retVal = front;
@@ -151,7 +173,8 @@ public:
       throw AbortException();
     }
 #endif
-    queue.push(t);
+    deques[tid()].push(t);
+    //printf("Enqueued task in deque: %d\n", tid());
   }
 
 
@@ -162,6 +185,7 @@ public:
     do {
       task = tryDequeue();
     } while (!task);
+    return task;
   }
 
   ///
@@ -171,8 +195,16 @@ public:
     DynamicTaskPtr task = deques[tid()].pop();
 
     if (!task) {
-      int stealDeque = deques[tid()].nextDeque(numOfWorkers);
+      int stealDeque = deques[tid()].nextDeque(numOfWorkers + 1);
       task = deques[stealDeque].steal();
+      if (task) {
+        //printf("Stole task from deque: %d\n", stealDeque);
+      } else {
+        //printf("Failed to steal task from deque: %d\n", stealDeque);
+      }
+
+    } else {
+      //printf("Popped task from deque: %d\n", tid());
     }
 
 #ifndef GRACEFUL_ABORT

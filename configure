@@ -21661,6 +21661,25 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 
+
+cat >>confdefs.h <<\_ACEOF
+#define MAX_NUM_WORKERS 64
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define MIN_NUM_WORKERS 0
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define CACHE_LINE_SIZE 64
+_ACEOF
+
+
+
+
+
 if false; then
   #disabled by default:
 

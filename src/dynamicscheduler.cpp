@@ -27,7 +27,6 @@
 
 // #define VERBOSE
 
-
 namespace petabricks {
 
 // Thread local global types and functions
@@ -96,51 +95,19 @@ void DynamicScheduler::startWorkerThreads(int newWorkers)
   JTRACE("start worker threads")(numOfWorkers);
 }
 
-//__thread std::deque<DynamicTaskPtr>* q = NULL;
 
-/*
-std::deque<DynamicTaskPtr>& DynamicScheduler::myThreadLocalQueue(){
-  if (q == NULL) {
-    q = new std::deque<DynamicTaskPtr>();
-  }
-  return *q;
-}
-*/
-
-
-void DynamicScheduler::popAndRunOneTask(bool blocking){
-  //std::list<DynamicTaskPtr>& myQ = DynamicScheduler::myThreadLocalQueue();
-
+void DynamicScheduler::popAndRunOneTask(bool blocking)
+{
 #ifdef GRACEFUL_ABORT
     try {
 #endif
       DynamicTaskPtr task;
 
-      if(blocking) {
+      if (blocking) {
         task = dequeue();
       } else {
         task = tryDequeue();
       }
-
-      /*
-      if(!myQ.empty()){
-        //try a thread local task
-        task = myQ.front();
-        myQ.pop_front();
-      }else{
-        //otherwise a global task
-        if(blocking)
-          task = dequeue();
-        else{
-          task = tryDequeue();
-        }
-      }
-      */
-
-#ifdef GRACEFUL_ABORT
-        if (DynamicScheduler::isAborting())
-          throw DynamicScheduler::AbortException();
-#endif
 
       if (task) {
         task->runWrapper();

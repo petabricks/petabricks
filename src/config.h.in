@@ -1,5 +1,8 @@
 /* src/config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* larges cache line size in system */
+#undef CACHE_LINE_SIZE
+
 /* verbose debug printouts and log files in /tmp */
 #undef DEBUG
 
@@ -93,8 +96,14 @@
 /* the maximum number of dimensions supported */
 #undef MAX_DIMENSIONS
 
+/* max number of workers supported */
+#undef MAX_NUM_WORKERS
+
 /* number of levels for recursive choices */
 #undef MAX_REC_LEVELS
+
+/* min number of workers supported */
+#undef MIN_NUM_WORKERS
 
 /* var name in output code */
 #undef OUTPUT_SIZE_STR

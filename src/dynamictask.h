@@ -52,13 +52,14 @@ public:
   /// indicate if the task is executed or not
   TaskState state;
 
+  bool isContinuation;
   ///
   /// Perform this task, return a continuation task that must be completed
   /// before this task is marked done, otherwise return NULL
   virtual DynamicTaskPtr run() = 0;
 
   /// constructor
-  DynamicTask();
+  DynamicTask(bool isCont = false);
 
   ///
   /// Mark that this may not start before that

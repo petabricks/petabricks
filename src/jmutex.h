@@ -32,8 +32,8 @@ public:
   JMutex(){ pthread_mutex_init(&_mux, NULL); }
   ~JMutex(){ pthread_mutex_destroy(&_mux); }
 
-  bool lock()   const {JASSERT(pthread_mutex_lock(&_mux)   == 0);}
-  bool trylock()   const {return pthread_mutex_lock(&_mux) != EBUSY;}
+  void lock()   const {JASSERT(pthread_mutex_lock(&_mux)   == 0);}
+  bool trylock()   const {return pthread_mutex_trylock(&_mux) == 0;}
   void unlock() const {JASSERT(pthread_mutex_unlock(&_mux) == 0);}
 protected:
   mutable pthread_mutex_t _mux;

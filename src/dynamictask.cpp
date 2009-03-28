@@ -38,12 +38,13 @@ DynamicScheduler *DynamicTask::scheduler = NULL;
 size_t            DynamicTask::firstSize = 0;
 size_t            DynamicTask::maxSize   = 0;
 
-DynamicTask::DynamicTask()
+DynamicTask::DynamicTask(bool isCont)
 {
   // when this task is created, no other thread would touch it
   // so no lock for numOfPredecessor update
   state = S_NEW;
   numOfPredecessor = 0;
+  isContinuation = isCont;
 
 #ifndef PBCC_SEQUENTIAL
   // allocate scheduler when the first task is created
@@ -69,12 +70,10 @@ void DynamicTask::enqueue()
     else
       state=S_PENDING;
   }
-  /*
-  if(preds==0){
+  if(preds==0) { // || (isContinuation && !isNullTask())) {
     inlineOrEnqueueTask();
   }
-  */
-  inlineOrEnqueueTask();
+  //inlineOrEnqueueTask();
 }
 #endif // PBCC_SEQUENTIAL
 
@@ -136,6 +135,7 @@ void petabricks::DynamicTask::runWrapper(){
   }
 
   if(continuation){
+    continuation->isContinuation = true;
 #ifdef VERBOSE
     JTRACE("task complete, continued")(tmp.size());
 #endif
@@ -186,7 +186,9 @@ void DynamicTask::inlineOrEnqueueTask()
     runWrapper(); //dont bother enqueuing just run it
   else
 #endif
+  {
     scheduler->enqueue(this);
+  }
 }
 
 }
