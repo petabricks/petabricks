@@ -524,8 +524,12 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
   o.endFunc();
 
   o.beginFunc("void", "compute", std::vector<std::string>());
-  o.setcall("TransformInstancePtr p","new "+instClassName(), argNames);
-  o.write("p->runToCompletion();");
+  o.setcall("jalib::JRef<"+instClassName()+"> p","new "+instClassName(), argNames);
+  o.write("DynamicTaskPtr t = p->runDynamic();");
+  o.write("if(t){");
+  o.write("  t->enqueue();");
+  o.write("  t->waitUntilComplete();");
+  o.write("}");
   o.endFunc();
   
   o.beginFunc("const char*", "name");

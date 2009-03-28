@@ -6,6 +6,9 @@
 /* verbose debug printouts and log files in /tmp */
 #undef DEBUG
 
+/* don't generate continuation code after SPAWN/enqueue */
+#undef DISABLE_CONTINUATIONS
+
 /* allow abort without program shutdown (uses exceptions) */
 #undef GRACEFUL_ABORT
 

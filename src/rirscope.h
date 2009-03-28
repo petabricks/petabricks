@@ -42,10 +42,11 @@ public:
     SYM_TRANSFORM          = 0x2000,
     SYM_TRANSFORM_TEMPLATE,
     SYM_CONFIG             = 0x4000,
-    SYM_CONFIG_TRANSFORM_LOCAL
+    SYM_CONFIG_TRANSFORM_LOCAL, 
+    SYM_LOCAL_VAR          = 0x8000
   };
-  RIRSymbol(SymbolType t) 
-    : _type(t)
+  RIRSymbol(SymbolType t, const std::string& rp = "") 
+    : _type(t), _replacement(rp)
   {}
   SymbolType type() const { return _type; }
 
@@ -56,10 +57,13 @@ public:
   bool isType() const { return (_type & SYM_TYPE) != 0; }
   bool isConfig() const { return (_type & SYM_CONFIG) != 0; }
   bool isTransform() const { return (_type & SYM_TRANSFORM) != 0; }
+
+  bool hasReplacement() const { return _replacement.length()>0; } 
+  const std::string& replacement() const { return _replacement; }
 private:
   SymbolType  _type;
+  std::string  _replacement;
 };
-
 
 class RIRScope: public jalib::JRefCounted {
 public:

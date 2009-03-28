@@ -23,6 +23,7 @@
 #include "ruleir.h"
 #include "rirscope.h"
 #include "trainingdeps.h"
+#include "jprintable.h"
 
 namespace petabricks {
 
@@ -83,12 +84,17 @@ public:
 
   //bool shouldDescend(const RIRNode&) { return true; }
 
+  virtual void pushScope(){}
+  virtual void popScope(){}
+
   virtual void beforeAny(const RIRNodeRef& n){}
   virtual void afterAny(const RIRNodeRef& n){}
 protected:
   int depth() const { return _stack.size(); } 
 
   RIRCompilerPass(const RIRScopePtr& scope = RIRScope::global()->createChildLayer()) : _scope(scope) {}
+
+  const RIRNodeRef& parentNode() const { JASSERT(depth()>=2)(depth()); return _stack[_stack.size()-2]; }
 
 private:
   void _before(RIRExprCopyRef& p)  { 
@@ -111,12 +117,14 @@ private:
  
   void _before(RIRBlockCopyRef& p) { 
     _scope=_scope->createChildLayer();
+    pushScope();
     _beforeAny(p.asPtr());
     RIRVisitor::_before(p);
   }
   void _after(RIRBlockCopyRef& p)  { 
     RIRVisitor::_after(p);
     _afterAny(p.asPtr());
+    popScope();
     _scope=_scope->parentLayer();
   } 
   void _beforeAny(const RIRNodeRef& n){
@@ -163,6 +171,7 @@ public:
   ExpansionPass(const RIRScopePtr& p) : RIRCompilerPass(p->createChildLayer()) {}
 
   void before(RIRExprCopyRef& e);
+  void before(RIRStmtCopyRef& e);
 };
 
 class AnalysisPass: public RIRCompilerPass {
@@ -186,9 +195,29 @@ public:
 
   void before(RIRExprCopyRef& s);
 
-  bool shouldDescend(const RIRNode& n) { return !(n.isStmt() && n.type()!=RIRNode::STMT_BASIC); }
+protected:
+  std::string prefix() const {
+    std::ostringstream o;
+    o << "b";
+    if(_prefixStack.size()>1)
+      jalib::JPrintable::printStlList(o, _prefixStack.begin(), _prefixStack.end()-1, "b");
+    o << "local_";
+    return o.str();
+  }
+  void pushScope(){
+    if(_prefixStack.empty())
+      _prefixStack.push_back(-1); 
+    JTRACE("pushScope")(_prefixStack.size());
+    _prefixStack.back()++;
+    _prefixStack.push_back(-1);
+  }
+  void popScope(){
+    _prefixStack.pop_back();
+    JTRACE("popScope")(_prefixStack.size());
+  }
 private:
   CodeGenerator& o;
+  std::vector< int > _prefixStack;
 };
 
 class DynamicBodyPrintPass : public RIRCompilerPass {

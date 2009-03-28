@@ -28,12 +28,12 @@
 
 petabricks::RIRBlockCopyRef parseRuleBody(const std::string& str);
 
-volatile long theNextRuleId = 0;
+jalib::AtomicT theNextRuleId = 0;
 
 
 
 petabricks::Rule::Rule(const RegionPtr& to, const RegionList& from, const FormulaList& cond)
-  : _id(jalib::atomicAdd<1>(&theNextRuleId))
+  : _id(jalib::atomicIncrementReturn(&theNextRuleId))
   , _from(from)
   , _conditions(cond)
 {
@@ -42,7 +42,7 @@ petabricks::Rule::Rule(const RegionPtr& to, const RegionList& from, const Formul
 }
 
 petabricks::Rule::Rule(const RegionList& to, const RegionList& from, const FormulaList& cond)
-  : _id(jalib::atomicAdd<1>(&theNextRuleId))
+  : _id(jalib::atomicIncrementReturn(&theNextRuleId))
   , _from(from)
   , _to(to)
   , _conditions(cond)

@@ -34,27 +34,25 @@ typedef jalib::JRef<TransformInstance> TransformInstancePtr;
 class TransformInstance : public jalib::JRefCounted {
 public:
   virtual ~TransformInstance(){}
-  virtual DynamicTaskPtr runDynamic() = 0;
-  virtual void runStatic() = 0;
+// virtual DynamicTaskPtr runDynamic() = 0;
 
-
-  DynamicTaskPtr runAfter(const DynamicTaskPtr& before){
-    if(before){
-      DynamicTaskPtr t = new MethodCallTask<TransformInstance>(this, &TransformInstance::runDynamic);
-      t->dependsOn(before);
-      return t;
-    }else{
-      return runDynamic();
-    }
-  }
+//DynamicTaskPtr runAfter(const DynamicTaskPtr& before){
+//  if(before){
+//    DynamicTaskPtr t = new MethodCallTask<TransformInstance, &TransformInstance::runDynamic>(this);
+//    t->dependsOn(before);
+//    return t;
+//  }else{
+//    return runDynamic();
+//  }
+//}
   
-  void runToCompletion(){
-    DynamicTaskPtr p = runDynamic();
-    if(p){
-      p->enqueue();
-      p->waitUntilComplete();
-    }
-  }
+//void runToCompletion(){
+//  DynamicTaskPtr p = runDynamic();
+//  if(p){
+//    p->enqueue();
+//    p->waitUntilComplete();
+//  }
+//}
 };
 
 }

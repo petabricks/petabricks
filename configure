@@ -21697,6 +21697,11 @@ cat >>confdefs.h <<\_ACEOF
 #define JALIB_USE_MALLOC
 _ACEOF
 
+
+cat >>confdefs.h <<\_ACEOF
+#define DISABLE_CONTINUATIONS /**/
+_ACEOF
+
 fi
 
 
