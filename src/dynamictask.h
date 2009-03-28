@@ -41,20 +41,16 @@ class DynamicTask : public jalib::JRefCounted {
 public:
 
   enum TaskState {
-    S_NEW,       //after creation
-    S_PENDING,   //after enqueue()
-    S_READY,     //after all dependencies met
-    S_COMPLETE,  //after run()==NULL
-    S_CONTINUED  //after run()!=NULL
+    // >=1 not number of tasks we are waiting for
+    S_NEW = 1,   //after creation/enqueue()
+    S_READY = 0,     //after all dependencies met
+    S_COMPLETE = -1,  //after run()==NULL
+    S_CONTINUED = -2  //after run()!=NULL
   };
 
   ///
-  /// indicate if the task is executed or not
-  TaskState state;
-
-  ///
   /// a counter of how many tasks I depends on
-  long numOfPredecessor;
+  jalib::AtomicT state;
 
   bool isContinuation;
   ///

@@ -79,10 +79,22 @@ inline uint64_t ClockCyclesSinceBoot()
   return ((uint64_t ) lo) | (((uint64_t) hi) << 32);
 }
 
+inline bool compareAndSwap (AtomicT *p, long oldval, long newval)
+{
+  char ret;
+  int readval;
+
+  asm __volatile__ ("lock; cmpxchgl %3, %1; sete %0"
+                  : "=q" (ret), "=m" (*p), "=a" (readval)
+                  : "r" (newval), "m" (*p), "a" (oldval)
+                  : "memory");
+  return ret;
+}
+
 #elif defined(__sparc__)
 
 inline bool
-cas(volatile long *m, long old_val, long new_val)
+compareAndSwap(AtomicT *m, long old_val, long new_val)
 {
 	asm volatile("cas [%2], %3, %0\n\t"
 			     : "=&r" (new_val)
@@ -98,7 +110,7 @@ template<long v> long atomicAdd(AtomicT *p)
   do {
     old_val = *p;
     new_val = old_val + v;
-  } while (!cas(p, old_val, new_val));
+  } while (!compareAndSwap(p, old_val, new_val));
 
   return new_val;
 }
@@ -126,6 +138,23 @@ inline uint64_t ClockCyclesSinceBoot()
   asm volatile ("rd %%tick, %0" : "=r"(t));
   return t;
 
+}
+
+inline void storeFence(void) {
+  asm __volatile__("sfence;":::"memory");
+}
+
+inline void loadFence(void) {
+  asm __volatile__("lfence;":::"memory");
+}
+
+inline void memFence(void) {
+  asm __volatile__("mfence;":::"memory");
+}
+
+inline void staticMemFence(void)
+{
+  asm __volatile__ ("":::"memory");
 }
 
 #else
