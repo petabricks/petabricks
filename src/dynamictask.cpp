@@ -61,6 +61,7 @@ void DynamicTask::enqueue() { run();}
 #else
 void DynamicTask::enqueue()
 {
+  incRefCount(); // matches with runWrapper()
   int preds;
   {
     JLOCKSCOPE(lock);
@@ -125,7 +126,7 @@ void petabricks::DynamicTask::runWrapper(){
   JASSERT(state==S_READY && numOfPredecessor==0)(state)(numOfPredecessor);
   continuation = run();
 
-  std::vector<DynamicTaskPtr> tmp;
+  std::vector<DynamicTask*> tmp;
 
   {
     JLOCKSCOPE(lock);
@@ -153,11 +154,12 @@ void petabricks::DynamicTask::runWrapper(){
     #ifdef VERBOSE
     if(!isNullTask()) JTRACE("task complete")(tmp.size());
     #endif
-    std::vector<DynamicTaskPtr>::iterator it;
+    std::vector<DynamicTask*>::iterator it;
     for(it = tmp.begin(); it != tmp.end(); ++it) {
       (*it)->decrementPredecessors();
     }
   }
+  decRefCount(); //matches with enqueue();
 }
 
 
