@@ -88,7 +88,6 @@ to OUT[n], TEMP[n]
   {
     int i;
 
-/*
     for (i = 0; i < 2; i++) {
       if (n * (i + 1) / 2 - n * i / 2 > 1) {
         SPAWN(SORTSUBARRAY, out.region(n * i / 2, n * (i + 1) / 2),
@@ -96,8 +95,8 @@ to OUT[n], TEMP[n]
                             in  .region(n * i / 2, n * (i + 1) / 2), p);
       }
     }
-    */
 
+    /*
     SPAWN(SORTSUBARRAY, out.region(0, n/2),
                         temp.region(0, n/2),
                         in.region(0, n/2), 
@@ -107,7 +106,7 @@ to OUT[n], TEMP[n]
                         temp.region(n/2, n),
                         in.region(n/2, n), 
                         p);
-                        
+                        */
 
     SYNC();
     SPAWN(Copy1D, temp, out);

@@ -2,16 +2,11 @@
 #define SORT_PBCC
 
 #define SORTSUBARRAY SortSubArray
-//#include "Quicksort.pbcc"
+#include "Quicksort.pbcc"
 #include "Insertionsort.pbcc"
-//#include "Radixsort.pbcc"
-//#include "Parallel_Mergesort.pbcc"
+#include "Radixsort.pbcc"
+#include "Parallel_Mergesort.pbcc"
 
-#define WAY 2
-#include "Mergesort.pbcc"
-#undef WAY
-
-/*
 #define WAY 4
 #include "Mergesort.pbcc"
 #undef WAY
@@ -23,29 +18,25 @@
 #define WAY 16
 #include "Mergesort.pbcc"
 #undef WAY
-*/
 
 transform SortSubArray
 from IN[n], Pos
 to OUT[n], TEMP[n]
 {
-/*
   recursive(n)
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
     //printf("ms %d\n",n);
     SPAWN(Parallel_MergesortSubArray, out, temp, in, p);
   }
-  */
 
   recursive(n)
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
     //printf("ms %d\n",n);
-    SPAWN(MergesortSubArray2,out, temp, in, p);
+    SPAWN(MergesortSubArray4,out, temp, in, p);
   }
 
-/*
   recursive(n)
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
@@ -73,7 +64,6 @@ to OUT[n], TEMP[n]
     //printf("rs %d\n",n);
     SPAWN(RadixsortSubArray,out, temp, in, p);
   }
-  */
 
   to (OUT out, TEMP temp) from (IN in)
   {
