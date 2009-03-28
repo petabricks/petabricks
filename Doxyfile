@@ -4,8 +4,8 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 DOXYFILE_ENCODING      = UTF-8
-PROJECT_NAME           = hecura
-PROJECT_NUMBER         = 0.10
+PROJECT_NAME           = PetaBricks 
+PROJECT_NUMBER         = 1.5
 OUTPUT_DIRECTORY       = ./doc/api
 CREATE_SUBDIRS         = YES
 OUTPUT_LANGUAGE        = English
@@ -281,7 +281,7 @@ SKIP_FUNCTION_MACROS   = YES
 # Configuration::additions related to external references   
 #---------------------------------------------------------------------------
 TAGFILES               = 
-GENERATE_TAGFILE       = hecura.tag
+GENERATE_TAGFILE       = petabricks.tag
 ALLEXTERNALS           = NO
 EXTERNAL_GROUPS        = YES
 PERL_PATH              = /usr/bin/perl

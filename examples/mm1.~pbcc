@@ -1,0 +1,8 @@
+transform MatrixMultiply
+from A[c,h], B[w,c] 
+to AB[w,h]
+{
+  to(AB.cell(x,y) out) from(A.row(y) a, B.column(x) b) {
+    out = dot(a,b);
+  }
+}

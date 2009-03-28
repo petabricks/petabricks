@@ -27,14 +27,8 @@
 
 #define MULTIGRID_FLAG
 
-hecura::Learner::Learner() : _numIterations(0) {}
 
-
-void hecura::Learner::onIterationBegin(){
-
-}
-
-hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
+petabricks::RuleChoicePtr petabricks::Learner::makeRuleChoice( const RuleSet& choices
                                                      , const MatrixDefPtr& m
                                                      , const SimpleRegionPtr& r)
 {
@@ -62,7 +56,6 @@ hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
     rv=new RuleChoice(base); //the first rule
   }
 
-
   int levels = MAX_REC_LEVELS;
   if(recursive.size()==0) levels = 0;
   if(recursive.size()==1) levels = 1;
@@ -75,17 +68,3 @@ hecura::RuleChoicePtr hecura::Learner::makeRuleChoice( const RuleSet& choices
   return rv;
 }
 
-void hecura::Learner::onIterationEnd(){
-  _numIterations++;
-}
-
-bool hecura::Learner::shouldIterateAgain(){
-  //for testing... make learner always do 2 iterations
-//   return _numIterations < 3; 
-  return false;
-}
-
-void hecura::Learner::runTests(PerformanceTester& tester){
-  double totalTime = tester.runAllTests();
-  JTRACE("run PerformanceTester")(totalTime);
-} 

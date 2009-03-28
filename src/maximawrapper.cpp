@@ -82,9 +82,9 @@ static void launchMaximaWithLogging(){
 
   forwarder.maximaFd = forkopen(launchMaxima);
   jalib::JChunkReader maxima(forwarder.maximaFd, 1);
-  jalib::JChunkReader hecura(fileno(stdin),      1);
+  jalib::JChunkReader petabricks(fileno(stdin),      1);
   forwarder.addDataSocket(&maxima);
-  forwarder.addDataSocket(&hecura);
+  forwarder.addDataSocket(&petabricks);
   forwarder.monitorSockets();
   JASSERT(false);
 }
@@ -98,14 +98,14 @@ static const char * const theInitCode =
 ;
 
 extern FILE* maximain;
-extern hecura::FormulaListPtr readFormulaFromMaxima();
+extern petabricks::FormulaListPtr readFormulaFromMaxima();
 
-hecura::MaximaWrapper& hecura::MaximaWrapper::instance(){
+petabricks::MaximaWrapper& petabricks::MaximaWrapper::instance(){
   static MaximaWrapper inst;
   return inst;
 }
 
-hecura::MaximaWrapper::MaximaWrapper()
+petabricks::MaximaWrapper::MaximaWrapper()
   : _fd(-1)
   , _stackDepth(0)
 {
@@ -118,19 +118,19 @@ hecura::MaximaWrapper::MaximaWrapper()
   runCommand(theInitCode);
 }
 
-hecura::MaximaWrapper::~MaximaWrapper()
+petabricks::MaximaWrapper::~MaximaWrapper()
 {
   maximain=NULL;
   close(_fd);
 }
 
-hecura::FormulaListPtr hecura::MaximaWrapper::runCommand(const char* cmd, int len){
+petabricks::FormulaListPtr petabricks::MaximaWrapper::runCommand(const char* cmd, int len){
   static const char endCommand[] = ";\n";
   JASSERT(write(_fd, cmd, len)==len)(cmd)(JASSERT_ERRNO);
   JASSERT(write(_fd, endCommand, sizeof endCommand-1)==sizeof endCommand-1)(cmd)(JASSERT_ERRNO);
   fsync(_fd);
 //  JTRACE("Maxima query")(cmd);
-  hecura::FormulaListPtr result = readFormulaFromMaxima();
+  petabricks::FormulaListPtr result = readFormulaFromMaxima();
 //   #ifdef DEBUG
 //     JASSERT_STDERR << "     result = " << result << "\n";
 //   #endif

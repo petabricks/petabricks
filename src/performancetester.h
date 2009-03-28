@@ -17,60 +17,60 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURAPERFORMANCETESTER_H
-#define HECURAPERFORMANCETESTER_H
+#ifndef PETABRICKSPERFORMANCETESTER_H
+#define PETABRICKSPERFORMANCETESTER_H
 
 #include <string>
 #include <vector>
 #include "jrefcounted.h"
 #include "jprintable.h"
 
-namespace hecura {
+namespace petabricks {
 
-class TestCase;
-typedef jalib::JRef<TestCase> TestCasePtr;
-typedef std::vector<TestCasePtr> TestCaseList;
+  class TestCase;
+  typedef jalib::JRef<TestCase> TestCasePtr;
+  typedef std::vector<TestCasePtr> TestCaseList;
 
-/**
- * Stores a set of valid args to output progrm
- */
-class TestCase : public jalib::JRefCounted, public jalib::JPrintable {
-public:
-  void addMatrix(const std::string& m){_inputs.push_back(m);}
-  void print(std::ostream& o) const;
-private:
-  std::vector<std::string> _inputs;
-};
+  /**
+   * Stores a set of valid args to output progrm
+   */
+  class TestCase : public jalib::JRefCounted, public jalib::JPrintable {
+  public:
+    void addMatrix(const std::string& m){_inputs.push_back(m);}
+    void print(std::ostream& o) const;
+  private:
+    std::vector<std::string> _inputs;
+  };
 
-/**
- * Manages test cases and runs peformance tests
- */
-class PerformanceTester{
-public:
-  void setBinary(const std::string& path){_binary=path;}
-  void addTestCase(const TestCasePtr& tc){_testCases.push_back(tc);}
-  const TestCaseList& testCases() const {return _testCases;}
+  /**
+   * Manages test cases and runs peformance tests
+   */
+  class PerformanceTester{
+  public:
+    void setBinary(const std::string& path){_binary=path;}
+    void addTestCase(const TestCasePtr& tc){_testCases.push_back(tc);}
+    const TestCaseList& testCases() const {return _testCases;}
 
-  void setIOSizes(int i, int o){_numInputs=i; _numOutputs=o;}
+    void setIOSizes(int i, int o){_numInputs=i; _numOutputs=o;}
 
-  ///
-  /// Run a given test case, return how many seconds it took
-  double runTest(const TestCase& tc);
+    ///
+    /// Run a given test case, return how many seconds it took
+    double runTest(const TestCase& tc);
 
-  ///
-  /// Run all tests, return total time
-  double runAllTests(){
-    double d=0;
-    for(TestCaseList::const_iterator i=_testCases.begin(); i!=_testCases.end(); ++i)
-      d+=runTest(*i);
-    return d;
-  }
-private:
-  std::string _binary;
-  TestCaseList _testCases;
-  int _numInputs;
-  int _numOutputs;
-};
+    ///
+    /// Run all tests, return total time
+    double runAllTests(){
+      double d=0;
+      for(TestCaseList::const_iterator i=_testCases.begin(); i!=_testCases.end(); ++i)
+        d+=runTest(*i);
+      return d;
+    }
+  private:
+    std::string _binary;
+    TestCaseList _testCases;
+    int _numInputs;
+    int _numOutputs;
+  };
 
 }
 

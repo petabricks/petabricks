@@ -17,14 +17,14 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURARULECHOICE_H
-#define HECURARULECHOICE_H
+#ifndef PETABRICKSRULECHOICE_H
+#define PETABRICKSRULECHOICE_H
 
 #include "rule.h"
 #include "formula.h"
 #include "jrefcounted.h"
 
-namespace hecura {
+namespace petabricks {
 
 class CodeGenerator;
 class RuleChoice;
@@ -57,13 +57,14 @@ public:
 
   ///
   /// Output c++ code
-  void generateCodeSimple( const std::string& taskname
-                         , Transform& trans
-                         , ScheduleNode& node
-                         , const SimpleRegionPtr& region
-                         , CodeGenerator& o
-                         , const std::string& tpfx = "");
- 
+  void generateCodeSimple ( bool isStatic
+                          , const std::string& taskname
+                          , Transform& trans
+                          , ScheduleNode& node
+                          , const SimpleRegionPtr& region
+                          , CodeGenerator& o
+                          , const std::string& tpfx = "");
+  
   const RuleSet& rules() const { return _rules; }
 
   static const FormulaPtr& autotuned();

@@ -23,15 +23,15 @@
 #include "formula.h"
 
 // A hack for now, for inference we assume matrix is big
-inline static hecura::FormulaPtr LARGE(){
-  return new hecura::FormulaInteger(1000);
+inline static petabricks::FormulaPtr LARGE(){
+  return new petabricks::FormulaInteger(1000);
 }
 
-hecura::MatrixDef::MatrixDef(const char* name, const FormulaList& version, const FormulaList& size)
+petabricks::MatrixDef::MatrixDef(const char* name, const FormulaList& version, const FormulaList& size)
   : _name(name), _version(version), _size(size) 
 {}
 
-void hecura::MatrixDef::print(std::ostream& o) const {
+void petabricks::MatrixDef::print(std::ostream& o) const {
   o << _name;
   if(!_version.empty()){
     o << '<';
@@ -45,7 +45,7 @@ void hecura::MatrixDef::print(std::ostream& o) const {
   }
 }
 
-void hecura::MatrixDef::initialize(Transform& trans){
+void petabricks::MatrixDef::initialize(Transform& trans){
 //   _version.normalize();
 //   _size.normalize();
   if(_version.size()>0){
@@ -57,36 +57,36 @@ void hecura::MatrixDef::initialize(Transform& trans){
   }
 }
 
-void hecura::MatrixDef::exportConstants(Transform& trans){
+void petabricks::MatrixDef::exportConstants(Transform& trans){
   FreeVarsPtr tmp = _size.getFreeVariables();
   trans.constants().insert(tmp->begin(), tmp->end());
 }
 
-void hecura::MatrixDef::exportAssumptions(){
+void petabricks::MatrixDef::exportAssumptions(){
   for(FormulaList::const_iterator i=_size.begin(); i!=_size.end(); ++i){
     MaximaWrapper::instance().assume(new FormulaGT(*i, LARGE()));
   }
 }
 
-void hecura::MatrixDef::argDeclRW(std::vector<std::string>& args, bool byRef) const {
+void petabricks::MatrixDef::argDeclRW(std::vector<std::string>& args, bool byRef) const {
   if(byRef)
     args.push_back("const "+matrixTypeName()+"& " + _name);
   else
     args.push_back("const "+matrixTypeName()+" " + _name);
 }
-void hecura::MatrixDef::argDeclRO(std::vector<std::string>& args, bool byRef) const {
+void petabricks::MatrixDef::argDeclRO(std::vector<std::string>& args, bool byRef) const {
   if(byRef)
     args.push_back("const "+constMatrixTypeName()+"& " + _name);
   else
     args.push_back("const "+constMatrixTypeName()+" " + _name);
 }
-void hecura::MatrixDef::genAllocTmpCode(CodeGenerator& o){
+void petabricks::MatrixDef::genAllocTmpCode(CodeGenerator& o){
   o.varDecl(matrixTypeName()+" "+_name);
 }
-void hecura::MatrixDef::generateCodeSimple(CodeGenerator& o){
+void petabricks::MatrixDef::generateCodeSimple(CodeGenerator& o){
   o.varDecl("Matrix" + jalib::XToString(_size.size()) + "D " + _name);
 }
-void hecura::MatrixDef::extractDefines(FreeVars& defined, CodeGenerator& o){
+void petabricks::MatrixDef::extractDefines(FreeVars& defined, CodeGenerator& o){
   int d=0;
   for(FormulaList::const_iterator i=_size.begin(); i!=_size.end(); ++i,++d){
     FreeVarsPtr fv = (*i)->getFreeVariables();
@@ -99,34 +99,36 @@ void hecura::MatrixDef::extractDefines(FreeVars& defined, CodeGenerator& o){
         l.push_back(new FormulaEQ(tmp, *i));
         l = *MaximaWrapper::instance().solve(l, var);
         JASSERT(l.size()==1)(*i)(var).Text("Failed to solve");
-        o.varDecl("const IndexT "+var+"="+(*l.begin())->rhs()->replace(tmp, new FormulaVariable(_name+".size("+jalib::XToString(d)+")"))->toString());
+        o.addMember("IndexT", var, "");
+        o.write(var + " = " 
+                + (*l.begin())->rhs()->replace(tmp, new FormulaVariable(_name+".size("+jalib::XToString(d)+")"))->toString()
+                + ";");
       }
     }
   }
 }
-void hecura::MatrixDef::verifyDefines(CodeGenerator& o){
+void petabricks::MatrixDef::verifyDefines(CodeGenerator& o){
   int d=0;
   for(FormulaList::const_iterator i=_size.begin(); i!=_size.end(); ++i,++d){
     o.addAssert((*i)->toString(), _name+".size("+jalib::XToString(d)+")");
   }
 }
-void hecura::MatrixDef::allocateTemporary(CodeGenerator& o, bool setOnly){
-  if(setOnly)
-    o.varDecl(name()+" = "+matrixTypeName()+"::allocate("+_size.toString()+")");
-  else
-    o.varDecl(matrixTypeName()+" "+name()+" = "+matrixTypeName()+"::allocate("+_size.toString()+")");
+void petabricks::MatrixDef::allocateTemporary(CodeGenerator& o, bool setOnly){
+  if(!setOnly)
+    o.addMember(matrixTypeName(), name(), "");
+  o.varDecl(name()+" = "+matrixTypeName()+"::allocate("+_size.toString()+")");
 }
 
-void hecura::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn){
+void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn){
   o.varDecl(name()
-      +" = hecura::MatrixIO("+fn+",\"r\").read<"+jalib::XToString(numDimensions())+">()");
+      +" = petabricks::MatrixIO("+fn+",\"r\").read<"+jalib::XToString(numDimensions())+">()");
 }
-void hecura::MatrixDef::writeToFileCode(CodeGenerator& o, const std::string& fn){
-  o.write("hecura::MatrixIO("+fn+",\"w\").write("+name()+");");
+void petabricks::MatrixDef::writeToFileCode(CodeGenerator& o, const std::string& fn){
+  o.write("petabricks::MatrixIO("+fn+",\"w\").write("+name()+");");
 }
-void hecura::MatrixDef::varDeclCodeRO(CodeGenerator& o){
-  o.write(constMatrixTypeName()+" "+name()+";");
+void petabricks::MatrixDef::varDeclCodeRO(CodeGenerator& o){
+  o.addMember(constMatrixTypeName(), name(), "");
 }
-void hecura::MatrixDef::varDeclCodeRW(CodeGenerator& o){
-  o.write(matrixTypeName()+" "+name()+";");
+void petabricks::MatrixDef::varDeclCodeRW(CodeGenerator& o){
+  o.addMember(matrixTypeName(), name(), "");
 }

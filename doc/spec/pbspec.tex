@@ -585,7 +585,7 @@ MatrixRegion supports numerous operations not discussed here.  The API
 documentation for this class can be found here:
 
 \noindent
-\url{http://kleptocracy.csail.mit.edu/pbapi/d9/db0/classhecura_1_1MatrixRegion.html}
+\url{http://kleptocracy.csail.mit.edu/pbapi/d9/db0/classpetabricks_1_1MatrixRegion.html}
 
 \subsubsection{Configuration/Tunable Parameters}
 
@@ -611,7 +611,7 @@ will attempt to determine an optimal value automatically.
 
 Some transforms require a training phase to determine configuration parameters
 such as the number of iterations.  The autotuner supports this through the
-API function {\tt HecuraRuntime::isTrainingRun()}, or the conditional macro
+API function {\tt PetabricksRuntime::isTrainingRun()}, or the conditional macro
 {\tt in\_training}.  On the first execution with a given configuration,
 calling this method will return {\tt true} and as a side effect the timing
 results will be discarded and the test re-run.  On subsequent executions
@@ -650,7 +650,7 @@ Example usage for training runs
 \subsubsection{Clean Abort}
 
 Transforms can abort execution (in the event of an invalid configuration or
-input) using the API function {\tt HecuraRuntime::abort()}.  During training
+input) using the API function {\tt PetabricksRuntime::abort()}.  During training
 this will cleanly end the current trail and remove the source configuration
 from consideration.
 

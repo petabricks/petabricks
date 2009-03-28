@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURAMAXIMAWRAPPER_H
-#define HECURAMAXIMAWRAPPER_H
+#ifndef PETABRICKSMAXIMAWRAPPER_H
+#define PETABRICKSMAXIMAWRAPPER_H
 
 #include "formula.h"
 #include "jconvert.h"
@@ -29,7 +29,7 @@
 
 #include <stdio.h>
 
-namespace hecura {
+namespace petabricks {
 
 /**
  * A wrapper around an external maxima process

@@ -1,0 +1,39 @@
+transform MatrixMultiply
+from A[c,h], B[w,c] 
+to AB[w,h]
+{
+  // Base case, compute a single element
+  to(AB.cell(x,y) out) from(A.row(y) a, B.column(x) b) {
+    out = dot(a,b);
+  }
+
+  // Recursively decompose in c
+  to(AB ab)
+  from(A.region(0,   0, c/2, h  ) a1,
+       A.region(c/2, 0, c,   h  ) a2,
+       B.region(0,   0, w,   c/2) b1,
+       B.region(0, c/2, w,   c  ) b2) {
+    ab = MatrixAdd(MatrixMultiply(a1, b1),
+                   MatrixMultiply(a2, b2));
+  }
+  
+  // Recursively decompose in w
+  to(AB.region(0,   0, w/2, h  ) ab1,
+     AB.region(w/2, 0, w,   h  ) ab2)
+  from( A a,
+        B.region(0,   0, w/2, c  ) b1,
+        B.region(w/2, 0, w,   c  ) b2) {
+    ab1 = MatrixMultiply(a, b1);
+    ab2 = MatrixMultiply(a, b2);
+  }
+
+  // Recursively decompose in h
+  to(AB.region(0, 0,   w, h/2) ab1,
+     AB.region(0, h/2, w, h  ) ab2)
+  from(A.region(0,   0, c,   h/2) a1,
+       A.region(0, h/2, c,   h  ) a2,
+       B b) {
+    ab1=MatrixMultiply(a1, b);
+    ab2=MatrixMultiply(a2, b);
+  }
+}

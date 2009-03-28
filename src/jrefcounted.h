@@ -21,6 +21,7 @@
 #define JALIBJREFCOUNTED_H
 
 #include "jassert.h"
+#include "jprintable.h" //need to compile under ICC
 #include "jasm.h"
 
 #include <vector>
@@ -30,15 +31,41 @@
 #endif
 
 namespace jalib {
+
+/**
+ * Basic policy for JRef, normal ref counted objects
+ */
+template < typename T > struct JRefPolicyShared{
+  static void inc(T* o){ if(o!=NULL) o->incRefCount(); }
+  static void dec(T* o){ if(o!=NULL) o->decRefCount(); }
+  static void use(T*){}
+};
+
+/**
+ * Basic policy for JRef, copy on write objects
+ */
+template < typename T > struct JRefPolicyCopied{
+  static void inc(T* o){ if(o!=NULL) o->incRefCount(); }
+  static void dec(T* o){ if(o!=NULL) o->decRefCount(); }
+  static void use(T*& o){
+    if(o!=NULL && o->refCount()>1){
+      T* t=o->clone();
+      inc(t);
+      dec(o);
+      o=t;
+    }
+  }
+};
+
 /**
  * Reference to a JRefCounted
  */
-template < typename T> class JRef{
+template < typename T, typename Policy = JRefPolicyShared<T> > class JRef{
 public:
   static const JRef& null() { static JRef t; return t; }
 
   //constructors
-  JRef(T* o = NULL) : _obj(o) { inc(); }
+  JRef(T* o = NULL)   : _obj(o) { inc(); }
   JRef(const JRef& p) : _obj(p._obj) { inc(); }
 
   //destructors
@@ -54,40 +81,41 @@ public:
 
   //accessor
   T* operator->() const {
-    check(); 
-    return _obj; 
+    check();
+    use();
+    return _obj;
   }
 
   //accessor
   T& operator*()  const {
-    check(); 
-    return *_obj; 
+    check();
+    use();
+    return *_obj;
   }
 
-   T* asPtr() { return _obj; }
-   const T* asPtr() const { return _obj; }
+   T* asPtr()             { use(); return _obj; }
+   const T* asPtr() const { use(); return _obj; }
 
   //is valid?
-  operator bool() const { 
-    return _obj!=NULL; 
-  }
- 
-  //compare
-  friend bool operator == (const JRef& a, const JRef& b) { 
-    return a._obj == b._obj;
-  }
-  friend bool operator != (const JRef& a, const JRef& b) { 
-    return a._obj != b._obj;
-  }
-  bool operator < (const JRef& that) const { 
-    return that._obj < _obj;
+  operator bool() const {
+    return _obj!=NULL;
   }
 
-  operator const T& () const { check(); return *_obj; }
-  operator T& ()             { check(); return *_obj; }
+  operator const T& () const { check(); use(); return *_obj; }
+  operator T& ()             { check(); use(); return *_obj; }
+
+  //compare
+  friend bool operator == (const JRef& a, const JRef& b) { return a._obj == b._obj; }
+  friend bool operator != (const JRef& a, const JRef& b) { return a._obj != b._obj; }
+  friend bool operator <= (const JRef& a, const JRef& b) { return a._obj <= b._obj; }
+  friend bool operator >= (const JRef& a, const JRef& b) { return a._obj >= b._obj; }
+  friend bool operator <  (const JRef& a, const JRef& b) { return a._obj <  b._obj; }
+  friend bool operator >  (const JRef& a, const JRef& b) { return a._obj >  b._obj; }
+
 private: //helpers:
-  void inc() const { if(_obj!=NULL) _obj->incRefCount(); }
-  void dec() const { if(_obj!=NULL) _obj->decRefCount(); }
+  void inc() const { Policy::inc(_obj); }
+  void dec() const { Policy::dec(_obj); }
+  void use() const { Policy::use(_obj); }
 #ifdef DEBUG
   void check() const { JASSERT(_obj!=NULL).Text("Would have dereferenced null pointer."); }
 #else
@@ -106,15 +134,23 @@ protected:
   JRefCounted(const JRefCounted&) : _refCount(0) {}
   virtual ~JRefCounted(){}
 public:
-  void incRefCount() const{ 
-    atomicAdd<1> (&_refCount); 
+  inline void incRefCount() const{
+    atomicIncrement(&_refCount);
   }
-  void decRefCount() const{ 
-    if(atomicAdd<-1>(&_refCount)==0)
+  inline void decRefCount() const{
+    if(atomicDecrementReturn(&_refCount)==0)
       delete this;
   }
+  inline long refCount() const{
+    return _refCount;
+  }
+  inline void incRefCountUnsafe() const {
+    ++_refCount;
+  }
 private:
-  mutable volatile long _refCount;
+  char pre_padding[56];
+  mutable jalib::AtomicT _refCount;
+  char post_padding[64];
 };
 
 /**
@@ -122,9 +158,9 @@ private:
  */
 class JRefPool {
 public:
-  template < typename T >  T* add(T* t) { 
-    _pool.push_back(JRef<JRefCounted>(t)); 
-    return t; 
+  template < typename T >  T* add(T* t) {
+    _pool.push_back(JRef<JRefCounted>(t));
+    return t;
   }
   void clear() { return _pool.clear(); }
 private:
@@ -133,13 +169,16 @@ private:
 
 }
 
-template < typename T >
-std::ostream& operator<< (std::ostream& o, const jalib::JRef<T>& ptr){
-    return ptr.operator bool() 
-         ? o << ptr.operator *() 
-         : o << "(null)";
+template < typename T, typename P >
+std::ostream& operator<< (std::ostream& o, const jalib::JRef<T, P>& ptr){
+  if(ptr.operator bool()){
+    const T& t = ptr.operator *();
+    o << t;
+  }else{
+    o << "(null)";
+  }
+  return o;
 }
 
-
-
 #endif
+

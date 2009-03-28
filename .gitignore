@@ -5,6 +5,7 @@
 *.a
 *.so
 *.bak
+tags
 
 #automake
 .deps
@@ -28,6 +29,7 @@ config.h
 *.la
 stamp-h1
 pbc
+*.cache
 
 src/cxxconfig.h
 maxima.log
@@ -47,3 +49,5 @@ AB
 jtimings.csv
 stlsorttest
 doc/api
+
+.exrc

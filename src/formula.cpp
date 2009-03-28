@@ -22,7 +22,7 @@
 
 
 namespace { //file local
-  void printPower( std::string& o, const hecura::FormulaPtr& base, const hecura::FormulaPtr& power){
+  void printPower( std::string& o, const petabricks::FormulaPtr& base, const petabricks::FormulaPtr& power){
     JASSERT(power->size()==1)(base)(power).Text("Non-integer powers not yet supported");
     JASSERT(power->getFreeVariables()->size()==0)(base)(power).Text("Non-integer powers not yet supported");
     int p=jalib::StringToInt(power->toString());
@@ -34,18 +34,18 @@ namespace { //file local
   }
 }
 
-hecura::FormulaList::FormulaList(const FormulaList& that) 
+petabricks::FormulaList::FormulaList(const FormulaList& that) 
   : std::vector<FormulaPtr>(that) 
 {} 
 
-hecura::FormulaList::FormulaList() {}
+petabricks::FormulaList::FormulaList() {}
 
-static const hecura::FreeVarsPtr& theNullFreeVarsList(){
-  static hecura::FreeVarsPtr inst = new hecura::FreeVars();
+static const petabricks::FreeVarsPtr& theNullFreeVarsList(){
+  static petabricks::FreeVarsPtr inst = new petabricks::FreeVars();
   return inst;
 }
 
-hecura::FormulaVariable::FormulaVariable(const char* name) 
+petabricks::FormulaVariable::FormulaVariable(const char* name) 
   : Formula(theNullFreeVarsList())
   , _name(name) 
 {
@@ -54,7 +54,7 @@ hecura::FormulaVariable::FormulaVariable(const char* name)
   fv->insert(_name);
 }
 
-hecura::FormulaVariable::FormulaVariable(const std::string& name) 
+petabricks::FormulaVariable::FormulaVariable(const std::string& name) 
   : Formula(theNullFreeVarsList())
   , _name(name) 
 {
@@ -63,23 +63,23 @@ hecura::FormulaVariable::FormulaVariable(const std::string& name)
   fv->insert(_name);
 }
 
-void hecura::FormulaVariable::print(std::ostream& o) const { 
+void petabricks::FormulaVariable::print(std::ostream& o) const { 
   o << _name; 
 }
 
 template < typename T >
-hecura::FormulaLiteral<T>::FormulaLiteral(T v) 
+petabricks::FormulaLiteral<T>::FormulaLiteral(T v) 
   : Formula(theNullFreeVarsList())
   , _value(v) 
 {}
 
 template < typename T >
-void hecura::FormulaLiteral<T>::print(std::ostream& o) const { 
+void petabricks::FormulaLiteral<T>::print(std::ostream& o) const { 
   o << _value; 
 }
 
 template < char OP >
-hecura::FormulaBinop<OP>::FormulaBinop(const FormulaPtr& left, const FormulaPtr& right)
+petabricks::FormulaBinop<OP>::FormulaBinop(const FormulaPtr& left, const FormulaPtr& right)
   : Formula(theNullFreeVarsList())
   , _left(left)
   , _right(right) 
@@ -92,7 +92,7 @@ hecura::FormulaBinop<OP>::FormulaBinop(const FormulaPtr& left, const FormulaPtr&
 }
 
 template < char OP >
-void hecura::FormulaBinop<OP>::print(std::ostream& o) const {
+void petabricks::FormulaBinop<OP>::print(std::ostream& o) const {
   if(_toStringCache.length()==0){
     if(OP=='^'){
       printPower(_toStringCache, _left, _right);
@@ -106,7 +106,7 @@ void hecura::FormulaBinop<OP>::print(std::ostream& o) const {
 }
 
 template < char OP >
-const char* hecura::FormulaBinop<OP>::opStr() {
+const char* petabricks::FormulaBinop<OP>::opStr() {
   if(OP=='G') return ">=";
   if(OP=='L') return "<=";
   if(OP=='&') return "&&";
@@ -116,29 +116,29 @@ const char* hecura::FormulaBinop<OP>::opStr() {
 }
 
 template < char OP >
-void hecura::FormulaBinop<OP>::explodeEquality(FormulaPtr& l, FormulaPtr& r) const {
+void petabricks::FormulaBinop<OP>::explodeEquality(FormulaPtr& l, FormulaPtr& r) const {
   JASSERT(OP=='=')(*this).Text("expected an equality");
   l=_left;
   r=_right;
 }
 
 template < char OP >
-hecura::FormulaPtr hecura::FormulaBinop<OP>::replace(const FormulaPtr& what, const FormulaPtr& with) const{
+petabricks::FormulaPtr petabricks::FormulaBinop<OP>::replace(const FormulaPtr& what, const FormulaPtr& with) const{
   if(what->toString()==toString()) return with;
   else return new FormulaBinop(_left->replace(what,with), _right->replace(what,with));
 }
   
 
-void hecura::FormulaList::normalize(){
+void petabricks::FormulaList::normalize(){
   for(iterator i = begin(); i!=end(); ++i)
     (*i) = MaximaWrapper::instance().normalize( *i );
 }
 
-void hecura::FormulaList::print(std::ostream& o) const{
+void petabricks::FormulaList::print(std::ostream& o) const{
   printStlList(o, begin(), end(), ", ");
 } 
 
-hecura::FreeVarsPtr hecura::FormulaList::getFreeVariables() const {
+petabricks::FreeVarsPtr petabricks::FormulaList::getFreeVariables() const {
   FreeVarsPtr ret;
   FreeVars* fv;
   ret = fv = new FreeVars();
@@ -147,7 +147,7 @@ hecura::FreeVarsPtr hecura::FormulaList::getFreeVariables() const {
   return ret;
 }
 
-void hecura::FormulaList::makeRelativeTo(const FormulaList& defs){
+void petabricks::FormulaList::makeRelativeTo(const FormulaList& defs){
   for(iterator i=begin(); i!=end(); ++i){
     for(const_iterator d=defs.begin(); d!=defs.end(); ++d){
       *i = MaximaWrapper::instance().subst(*d, *i);
@@ -155,7 +155,7 @@ void hecura::FormulaList::makeRelativeTo(const FormulaList& defs){
   }
 } 
 
-bool hecura::Formula::hasIntersection(const Formula& that) const{
+bool petabricks::Formula::hasIntersection(const Formula& that) const{
   const FreeVars& a = getFreeVariables();
   const FreeVars& b = that.getFreeVariables();
 
@@ -170,38 +170,38 @@ bool hecura::Formula::hasIntersection(const Formula& that) const{
   return false;
 }
 
-hecura::FormulaPtr hecura::FormulaVariable::mktmp(){
-  static volatile long i = 0;
-  std::string name = "_tmp" + jalib::XToString(jalib::atomicAdd<1>(&i));
+petabricks::FormulaPtr petabricks::FormulaVariable::mktmp(){
+  static jalib::AtomicT i = 0;
+  std::string name = "_tmp" + jalib::XToString(jalib::atomicIncrementReturn(&i));
   return new FormulaVariable(name);
 }
 
-void hecura::Formula::explodeEquality(FormulaPtr& l, FormulaPtr& r) const {
+void petabricks::Formula::explodeEquality(FormulaPtr& l, FormulaPtr& r) const {
   JASSERT(false)(*this).Text("expected an equality");
 }
 
-std::string hecura::Formula::printAsAssumption() const { return toString(); }
+std::string petabricks::Formula::printAsAssumption() const { return toString(); }
 
-hecura::FormulaPtr hecura::Formula::replace(const FormulaPtr& what, const FormulaPtr& with) const {
+petabricks::FormulaPtr petabricks::Formula::replace(const FormulaPtr& what, const FormulaPtr& with) const {
   if(what->toString()==toString()) return with;
   else                             return this;
 }
 
 
-hecura::FormulaPtr hecura::Formula::plusOne() const {
+petabricks::FormulaPtr petabricks::Formula::plusOne() const {
   return MaximaWrapper::instance().normalize(new FormulaAdd(this, FormulaInteger::one()));
 }
-hecura::FormulaPtr hecura::Formula::minusOne() const {
+petabricks::FormulaPtr petabricks::Formula::minusOne() const {
   return MaximaWrapper::instance().normalize(new FormulaSubtract(this, FormulaInteger::one()));
 }
-hecura::FormulaPtr hecura::Formula::negative() const {
+petabricks::FormulaPtr petabricks::Formula::negative() const {
   return MaximaWrapper::instance().normalize(new FormulaSubtract(FormulaInteger::zero(), this));
 }
 
-std::string hecura::Formula::explodePrint() const { JASSERT(false); return "";}
+std::string petabricks::Formula::explodePrint() const { JASSERT(false); return "";}
 
 template < char OP >
-std::string hecura::FormulaBinop<OP>::printAsAssumption() const {
+std::string petabricks::FormulaBinop<OP>::printAsAssumption() const {
   if(OP=='=')
     return "equal(" + _left->toString()
               + "," + _right->toString() + ")";
@@ -209,12 +209,12 @@ std::string hecura::FormulaBinop<OP>::printAsAssumption() const {
 }
 
 template < char OP >
-std::string hecura::FormulaBinop<OP>::explodePrint() const{
+std::string petabricks::FormulaBinop<OP>::explodePrint() const{
   return _left->toString() +opStr()+ _right->toString();
 }
 
 template < char OP >
-hecura::FormulaPtr hecura::FormulaBinop<OP>::ceiling() const { 
+petabricks::FormulaPtr petabricks::FormulaBinop<OP>::ceiling() const { 
   if(OP=='/'){
     if(_freeVars->size()>0){
       JTRACE("Giving up on ceiling of")(*this);
@@ -228,7 +228,7 @@ hecura::FormulaPtr hecura::FormulaBinop<OP>::ceiling() const {
 }
 
 template < char OP >
-hecura::FormulaPtr hecura::FormulaBinop<OP>::floor() const { 
+petabricks::FormulaPtr petabricks::FormulaBinop<OP>::floor() const { 
   if(OP=='/'){
     if(_freeVars->size()>0){
       JTRACE("Giving up on floor of")(*this);
@@ -241,35 +241,35 @@ hecura::FormulaPtr hecura::FormulaBinop<OP>::floor() const {
     return new FormulaBinop(_left->floor(), _right->floor());
 }
 
-void hecura::FormulaList::addToEach(const FormulaPtr& x){
+void petabricks::FormulaList::addToEach(const FormulaPtr& x){
   for(iterator i=begin(); i!=end(); ++i)
     *i=new FormulaAdd(*i,x);
   normalize();
 }
 
-void hecura::FormulaList::subToEach(const FormulaPtr& x){
+void petabricks::FormulaList::subToEach(const FormulaPtr& x){
   for(iterator i=begin(); i!=end(); ++i)
     *i=new FormulaSubtract(*i,x);
   normalize();
 }
 
-hecura::FormulaPtr hecura::Formula::inf(){
+petabricks::FormulaPtr petabricks::Formula::inf(){
   return new FormulaVariable("inf");
 }
 
 //force implementations to be generated for templates
-template class hecura::FormulaLiteral<int>;
-template class hecura::FormulaLiteral<double>;
-template class hecura::FormulaLiteral<bool>;
-template class hecura::FormulaBinop<'+'>;
-template class hecura::FormulaBinop<'-'>;
-template class hecura::FormulaBinop<'*'>;
-template class hecura::FormulaBinop<'/'>;
-template class hecura::FormulaBinop<'^'>;
-template class hecura::FormulaBinop<'='>;
-template class hecura::FormulaBinop<'>'>;
-template class hecura::FormulaBinop<'G'>;
-template class hecura::FormulaBinop<'<'>;
-template class hecura::FormulaBinop<'L'>;
-template class hecura::FormulaBinop<'&'>;
-template class hecura::FormulaBinop<'|'>;
+template class petabricks::FormulaLiteral<int>;
+template class petabricks::FormulaLiteral<double>;
+template class petabricks::FormulaLiteral<bool>;
+template class petabricks::FormulaBinop<'+'>;
+template class petabricks::FormulaBinop<'-'>;
+template class petabricks::FormulaBinop<'*'>;
+template class petabricks::FormulaBinop<'/'>;
+template class petabricks::FormulaBinop<'^'>;
+template class petabricks::FormulaBinop<'='>;
+template class petabricks::FormulaBinop<'>'>;
+template class petabricks::FormulaBinop<'G'>;
+template class petabricks::FormulaBinop<'<'>;
+template class petabricks::FormulaBinop<'L'>;
+template class petabricks::FormulaBinop<'&'>;
+template class petabricks::FormulaBinop<'|'>;

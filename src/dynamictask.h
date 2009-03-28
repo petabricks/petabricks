@@ -17,17 +17,20 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURADYNAMICTASK_H
-#define HECURADYNAMICTASK_H
+#ifndef PETABRICKSDYNAMICTASK_H
+#define PETABRICKSDYNAMICTASK_H
 
 #include "jrefcounted.h"
 #include "jmutex.h"
-#include "dynamicscheduler.h"
+//#include "dynamicscheduler.h"
 
 #include <vector>
 #include <algorithm>
 
-namespace hecura {
+namespace petabricks {
+
+// forward declarsion for DynamicTaskScheduler pointer
+class DynamicScheduler;
 
 // forward declarsion for DynamicTaskPtr
 class DynamicTask;
@@ -36,13 +39,27 @@ typedef jalib::JRef<DynamicTask> DynamicTaskPtr;
 
 class DynamicTask : public jalib::JRefCounted {
 public:
+
+  enum TaskState {
+    // >=1 not number of tasks we are waiting for
+    S_NEW = 1,   //after creation/enqueue()
+    S_READY = 0,     //after all dependencies met
+    S_COMPLETE = -1,  //after run()==NULL
+    S_CONTINUED = -2  //after run()!=NULL
+  };
+
+  ///
+  /// a counter of how many tasks I depends on
+  jalib::AtomicT state;
+
+  bool isContinuation;
   ///
   /// Perform this task, return a continuation task that must be completed
   /// before this task is marked done, otherwise return NULL
   virtual DynamicTaskPtr run() = 0;
 
   /// constructor
-  DynamicTask();
+  DynamicTask(bool isCont = false);
 
   ///
   /// Mark that this may not start before that
@@ -66,25 +83,24 @@ public:
   void runWrapper();
 
   ///
-  /// check if the task should be enqueued of inlined
-  bool inlineTask();
+  /// either enqueue or inline the task
   void inlineOrEnqueueTask();
 
-  /// 
+  ///
   /// Scheduler for scheduling the dynamic tasks
   static DynamicScheduler *scheduler;
 
  protected:
 
-  /// 
+  ///
   /// a maxSize to remember the largest size
   static size_t maxSize;
-  
-  /// 
+
+  ///
   /// a maxSize to remember the first task size
   static size_t firstSize;
 
-  
+
   virtual bool isNullTask() const { return false; }
 
   ///
@@ -93,40 +109,39 @@ public:
  protected:
   ///
   /// a list of tasks that depends on me
-  std::vector<DynamicTaskPtr> dependents;
+  std::vector<DynamicTask*> dependents;
 
   ///
   /// a mutex lock for manipulating task status and dependents list
   jalib::JCondMutex  lock;
 
   ///
-  /// a counter of how many tasks I depends on
-  long numOfPredecessor;
-
-
-  enum TaskState {
-    S_NEW,       //after creation
-    S_PENDING,   //after enqueue()
-    S_READY,     //after all dependencies met
-    S_COMPLETE,  //after run()==NULL
-    S_CONTINUED  //after run()!=NULL
-  };
-
-  /// 
-  /// indicate if the task is executed or not
-  TaskState state;
-
-  ///
   /// Pointer to the continuation task
   DynamicTaskPtr continuation;
 
+  char __post_padding[64];
 };
-
 
 class NullDynamicTask : public DynamicTask {
 public:
   DynamicTaskPtr run(){ return 0; }
   bool isNullTask() const { return true; }
+  char __post_padding[64];
+};
+
+
+template< typename T, DynamicTaskPtr (T::*method)()>
+class MethodCallTask : public DynamicTask {
+public:
+  MethodCallTask(const jalib::JRef<T>& obj)
+    : _obj(obj)
+  {}
+  DynamicTaskPtr run(){
+    return ((*_obj).*(method))();
+  }
+private:
+  jalib::JRef<T> _obj;
+  char __post_padding[64];
 };
 
 }

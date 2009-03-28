@@ -20,7 +20,7 @@
 #include "matrix.h"
 #include <stdlib.h>
 
-void hecura::MatrixStorage::randomize(){
+void petabricks::MatrixStorage::randomize(){
   for(int i=0; i<_count; ++i){
     _data[i] = (2.0*drand48()-0.5)*4294967296.0;
 //     _data[i] = drand48();

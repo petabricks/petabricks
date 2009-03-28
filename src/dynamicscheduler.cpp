@@ -23,15 +23,34 @@
 
 #include <pthread.h>
 #include <unistd.h>
- 
+#include <signal.h>
+
 // #define VERBOSE
 
+namespace petabricks {
 
-#define MIN_NUM_WORKERS  0
-#define MAX_NUM_WORKERS  512
+// Thread local global types and functions
+__thread int _tid = -1;
+int tidGen = 0;
+jalib::JMutex _tid_lock;
 
+int tid() {
+  if (_tid == -1) {
+    JLOCKSCOPE(_tid_lock);
+    _tid = tidGen++;
+  }
+  return _tid;
+}
 
-namespace hecura {
+// Timeout related global types and function
+
+static petabricks::DynamicScheduler *_dsPtr = NULL;
+
+static void sigAlarmHandler(int signal) {
+  printf("  TIMED OUT!\n");
+  _dsPtr->setAbortFlag();
+}
+
 
 #ifdef GRACEFUL_ABORT
 bool DynamicScheduler::theIsAborting=false;
@@ -45,6 +64,13 @@ void *workerStartup(void *);
 
 DynamicScheduler::DynamicScheduler()
 {
+  // Allow only one scheduler
+  JASSERT(_dsPtr == NULL);
+  _dsPtr = this;
+
+  // Register abort handler
+  signal(SIGALRM, sigAlarmHandler);
+
   numOfWorkers  = 0;
   workerThreads = new pthread_t[MAX_NUM_WORKERS];
 #ifdef GRACEFUL_ABORT
@@ -59,7 +85,7 @@ DynamicScheduler::~DynamicScheduler()
 }
 
 
-void DynamicScheduler::startWorkerThreads(int newWorkers)  
+void DynamicScheduler::startWorkerThreads(int newWorkers)
 {
   // allocat and spawn a certain number of thread
   for(int i = 0; i < newWorkers; i++) {
@@ -69,45 +95,27 @@ void DynamicScheduler::startWorkerThreads(int newWorkers)
   JTRACE("start worker threads")(numOfWorkers);
 }
 
-__thread std::list<DynamicTaskPtr>* q = 0;
-std::list<DynamicTaskPtr>& DynamicScheduler::myThreadLocalQueue(){
-  if(q==0) q = new std::list<DynamicTaskPtr>();
-  return *q;
-}
 
-
-
-void DynamicScheduler::popAndRunOneTask(bool blocking){
-  std::list<DynamicTaskPtr>& myQ = DynamicScheduler::myThreadLocalQueue();
-
+void DynamicScheduler::popAndRunOneTask(bool blocking)
+{
 #ifdef GRACEFUL_ABORT
-    try{
+    try {
 #endif
       DynamicTaskPtr task;
 
-      if(!myQ.empty()){
-        //try a thread local task
-        task = myQ.front();
-        myQ.pop_front();
-      }else{
-        //otherwise a global task
-        if(blocking)
-          task = dequeue();
-        else{
-          task = tryDequeue();
-        }
+      if (blocking) {
+        task = dequeue();
+      } else {
+        task = tryDequeue();
+      }
+
+      if (task) {
+        task->runWrapper();
       }
 
 #ifdef GRACEFUL_ABORT
-      if(DynamicScheduler::isAborting())
-        throw DynamicScheduler::AbortException();
-#endif
-
-      if(task) task->runWrapper();
-
-#ifdef GRACEFUL_ABORT
-    }catch(DynamicScheduler::AbortException e){
-      if(blocking)
+    } catch (DynamicScheduler::AbortException e) {
+      if (blocking)
         abortWait();
       else
         throw;
@@ -115,26 +123,31 @@ void DynamicScheduler::popAndRunOneTask(bool blocking){
 #endif
 }
 
-void *workerStartup(void *args) 
+void *workerStartup(void *args)
 {
   DynamicScheduler *scheduler = (DynamicScheduler *)args;
 
   // infinit loop to for executing tasks
-  while(true) {
+  while (true) {
     scheduler->popAndRunOneTask(true);
   }
 }
 
 #ifdef GRACEFUL_ABORT
-void DynamicScheduler::abortBegin() {
+
+void DynamicScheduler::setAbortFlag() {
   JLOCKSCOPE(theAbortingLock);
   if(!theIsAborting){
-    theIsAborting=true; 
+    theIsAborting=true;
     queue.clear();
     for(int i=0; i<numOfWorkers+1; ++i)
       queue.push(0);
 //    JTRACE("Aborting!")(numOfWorkers);
   }
+}
+
+void DynamicScheduler::abortBegin() {
+  setAbortFlag();
   throw AbortException();
 }
 void DynamicScheduler::abortEnd() {

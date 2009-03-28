@@ -22,6 +22,18 @@
 #include "jconvert.h"
 #include "jasm.h"
 
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+#ifdef HAVE_EXECINFO_H
+# include <execinfo.h>
+#else 
+# undef HAVE_BACKTRACE
+# undef HAVE_BACKTRACE_SYMBOLS
+# undef HAVE_BACKTRACE_SYMBOLS_FD
+#endif
+
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -30,6 +42,48 @@
 
 #undef JASSERT_CONT_A
 #undef JASSERT_CONT_B
+
+
+#if defined(HAVE_CXXABI_H) && defined(HAVE_BACKTRACE_SYMBOLS)
+#include <cxxabi.h>
+
+static const char* _cxxdemangle(const char* i){
+  static char buf[1024];
+  memset(buf, 0, sizeof(buf));
+  const char* end = buf+sizeof(buf)-1;
+  char* o = buf;
+  char* start = NULL;
+
+  while(*i!=0 && o<end){
+    if( (*o++=*i++) == '(' ){
+      start = o;   
+      break;
+    }
+  }
+  while(*i!=0 && o<end){
+    if( *i == ')' || *i == '+' ){
+      int status;
+      char* tmp = abi::__cxa_demangle(start, 0, 0, &status);
+      if(tmp!=NULL){
+        o=start;
+        for(const char* t=tmp; *t!=0 && o<end;)
+          *o++=*t++;  
+        memset(o, 0, end-o);
+        free(tmp);
+      }
+      break;
+    }
+    *o++=*i++;
+  }
+  while(*i!=0 && o<end){
+    *o++=*i++;
+  }
+  return buf; 
+}
+
+#else
+#define _cxxdemangle(x) x
+#endif
 
 /* 
    When updating value of DUP_STDERR_FD, the same value should be updated 
@@ -63,6 +117,22 @@ jassert_internal::JAssert::~JAssert()
 {
   if ( _exitWhenDone )
   {
+#if defined(DEBUG) && defined(HAVE_BACKTRACE_SYMBOLS)
+    void *addresses[10];
+    int size = backtrace(addresses, 10);
+    char **strings = backtrace_symbols(addresses, size);
+    if(strings!=NULL){
+      Print( "Stack trace:\n" );
+      for(int i = 1; i < size; i++){
+        Print("  "); 
+        Print(i); 
+        Print(": ");
+        Print(_cxxdemangle(strings[i]));
+        Print("\n");
+      }
+      free(strings);
+    }
+#endif
     Print ( "Terminating...\n" );
 #ifdef DEBUG
     jalib::Breakpoint();
@@ -78,11 +148,6 @@ const char* jassert_internal::jassert_basename ( const char* str )
       str=c+1;
   return str;
 }
-
-// std::ostream& jassert_internal::jassert_output_stream(){
-//     return std::cerr;
-// }
-
 
 static FILE* _fopen_log_safe ( const char* filename, int protectedFd )
 {
@@ -100,7 +165,6 @@ static FILE* _fopen_log_safe ( const std::string& s, int protectedFd )
 { 
   return _fopen_log_safe ( s.c_str(), protectedFd ); 
 }
-
 
 static FILE* theLogFile = NULL;
 
@@ -138,8 +202,6 @@ static FILE* _initJassertOutputDevices()
   else
     return fdopen ( dup2 ( fileno ( stderr ),DUP_STDERR_FD ),"w" );;;
 }
-
-
 
 void jassert_internal::jassert_safe_print ( const char* str )
 {

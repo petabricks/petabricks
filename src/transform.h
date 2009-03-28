@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURATRANSFORM_H
-#define HECURATRANSFORM_H
+#ifndef PETABRICKSTRANSFORM_H
+#define PETABRICKSTRANSFORM_H
 
 #include "jrefcounted.h"
 #include "jprintable.h"
@@ -27,17 +27,66 @@
 #include "rule.h"
 #include "learner.h"
 #include "performancetester.h"
+#include "staticscheduler.h"
 
 #include <vector>
 #include <set>
 
-namespace hecura {
+namespace petabricks {
 
 class Transform;
+class TemplateArg;
 typedef jalib::JRef<Transform> TransformPtr;
-class TransformList : public std::vector<TransformPtr> , public jalib::JRefCounted {};
+typedef jalib::JRef<TemplateArg> TemplateArgPtr;
+class TransformList: public std::vector<TransformPtr>, public jalib::JRefCounted {};
+class TemplateArgList: public std::vector<TemplateArgPtr>, public jalib::JRefCounted {};
 typedef jalib::JRef<TransformList> TransformListPtr;
+typedef jalib::JRef<TemplateArgList> TemplateArgListPtr;
 typedef std::set<std::string> ConstantSet;
+
+class TemplateArg : public jalib::JRefCounted, public jalib::JPrintable {
+public:
+  TemplateArg(std::string name, int min, int max)
+    :_name(name), _min(min), _max(max) {
+    JASSERT(max>=min)(min)(max);
+  }
+  void print(std::ostream& o) const { o << _name << "(" << _min << ", " << _max << ")"; }
+  
+  const std::string& name() const { return _name; }
+  int min() const { return _min; }
+  int max() const { return _max; }
+  int range() const { return _max-_min+1; }
+private:
+  std::string _name;
+  int _min;
+  int _max;
+};
+
+class ConfigItem {
+public:
+  ConfigItem(bool isTunable, std::string name, int initial, int min, int max)
+      :_isTunable(isTunable),
+       _name(name),
+       _initial(initial),
+       _min(min),
+       _max(max)
+  {}
+  
+  bool        isTunable() const { return _isTunable;}
+  std::string name     () const { return _name;     }
+  int         initial  () const { return _initial;  }
+  int         min      () const { return _min;      }
+  int         max      () const { return _max;      }
+private:
+  bool        _isTunable;
+  std::string _name;
+  int         _initial;
+  int         _min;
+  int         _max;
+};
+
+typedef std::vector<ConfigItem> ConfigItems;
+
 
 /**
  * a transformation algorithm
@@ -46,9 +95,10 @@ class Transform : public jalib::JRefCounted, public jalib::JPrintable {
 public:
   ///
   /// Constructor
-  Transform(const char* name) : _name(name),_isMain(false),_tuneId(0) {}
+  Transform() :_isMain(false),_tuneId(0),_usesSplitSize(false) {}
   
   //called durring parsing:
+  void setName(const std::string& str) { _originalName=_name=str; }
   void addFrom(const MatrixDefList&);
   void addThrough(const MatrixDefList&);
   void addTo(const MatrixDefList&);
@@ -57,6 +107,8 @@ public:
   ///
   /// Initialize after parsing
   void initialize();
+
+  void compile();
 
   void print(std::ostream& o) const;
 
@@ -68,9 +120,14 @@ public:
     return i->second;
   }
 
-  void generateCodeSimple(CodeGenerator& o);
+  void generateCode(CodeGenerator& o);
 
-  void generateMainCode(CodeGenerator& o);
+  void generateCodeSimple(CodeGenerator& o);
+  
+  
+  void registerMainInterface(CodeGenerator& o);
+
+  void generateMainInterface(CodeGenerator& o);
 
   void fillBaseCases(const MatrixDefPtr& matrix);
   
@@ -94,9 +151,45 @@ public:
 
   int ruleIdOffset() const { return _rules.front()->id()-1; }
 
-
   std::string taskname() const { return _name+"_fin"; }
+
+  void addTemplateArg(const TemplateArgList& args){
+    _templateargs.insert(_templateargs.end(), args.begin(), args.end());
+  }
+
+  std::vector<std::string> spawnArgs() const;
+  std::vector<std::string> spawnArgNames() const;
+  std::vector<std::string> normalArgs() const;
+  std::vector<std::string> normalArgNames() const;
+
+  void genTmplJumpTable(CodeGenerator& o,
+                        const std::string& rt,
+                        const std::string& name,
+                        const std::vector<std::string>& args,
+                        const std::vector<std::string>& argNames);
+  
+  void extractConstants(CodeGenerator& o);
+
+  int tmplChoiceCount() const;
+
+  bool isTemplate() const { return !_templateargs.empty(); }
+
+  std::string tmplName(int n, CodeGenerator* o=NULL) const;
+
+  void addConfig(const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
+    _config.push_back(ConfigItem(false,n,initial, min,max));
+  }
+  
+  void addTunable(const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
+    _config.push_back(ConfigItem(true,n,initial, min,max));
+  }
+
+  std::string instClassName() const { return _name+"_instance"; }
+
+  void markSplitSizeUse(CodeGenerator& o);
+
 private:
+  std::string   _originalName;
   std::string   _name;
   MatrixDefList _from;
   MatrixDefList _through;
@@ -107,8 +200,12 @@ private:
   FreeVars      _constants;
   bool          _isMain;
   Learner       _learner;
+  StaticSchedulerPtr _scheduler;
   PerformanceTester _tester;
+  TemplateArgList _templateargs;
   int _tuneId;
+  ConfigItems _config;
+  bool  _usesSplitSize;
 };
 
 }

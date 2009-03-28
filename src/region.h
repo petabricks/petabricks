@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURAREGION_H
-#define HECURAREGION_H
+#ifndef PETABRICKSREGION_H
+#define PETABRICKSREGION_H
 
 #include "jrefcounted.h"
 #include "jprintable.h"
@@ -27,7 +27,7 @@
 
 #include <vector>
 
-namespace hecura {
+namespace petabricks {
 class Rule;
 class CodeGenerator;
 class Transform;
@@ -113,8 +113,9 @@ public:
     _maxCoord.makeRelativeTo(defs);
   }
 
-  std::string generateSignatureCode(CodeGenerator& o, bool isConst) const;
-  std::string generateAccessorCode(CodeGenerator& o) const;
+  std::string genTypeStr(bool isConst) const;
+  std::string generateSignatureCode(bool isConst) const;
+  std::string generateAccessorCode() const;
 
   SimpleRegionPtr getApplicableRegion(Rule& rule, const FormulaList& defs, bool isOutput);
 
@@ -131,6 +132,10 @@ public:
   FormulaList diff(const Rule&) const;
 
   bool isSingleElement() const { return _originalType==REGION_CELL; }
+  
+  const std::string& name() const { return _name; }
+
+  bool isAll() const { return _originalType == REGION_ALL; }
 private:
   std::string _name;
   std::string _fromMatrixName;

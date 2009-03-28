@@ -14,3 +14,5 @@ clean:
 
 ignore:
 	echo $(BINS) '*.cpp *.cfg' | xargs -n 1 echo > .gitignore
+
+pbc:; (cd .. && make)

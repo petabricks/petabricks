@@ -21,20 +21,41 @@
 #ifndef JALIBJASM_H
 #define JALIBJASM_H
 
-#include <stdint.h>
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+#ifdef HAVE_INTTYPES_H
+# include <inttypes.h>
+#endif
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#endif
+
 
 namespace jalib {
 
+typedef volatile long AtomicT;
+
 #if defined(__i386__) || defined(__x86_64__)
 /**
- * Thread safe add, returns old value
+ * Thread safe add, returns new value
  */
-template<long v> long atomicAdd(volatile long *p)
-{
+template<long v> long atomicAdd(AtomicT *p){
   long r;
   asm volatile ("lock; xadd %0, %1" : "=r"(r), "=m"(*p) : "0"(v), "m"(*p) : "memory");
   return r+v;
 }
+
+inline void atomicIncrement(AtomicT *p){
+  asm volatile ("lock; incl %0" : "=m"(*p) : : "memory");
+}
+
+inline void atomicDecrement(AtomicT *p){
+  asm volatile ("lock; decl %0" : "=m"(*p) : : "memory");
+}
+
+inline long atomicIncrementReturn(AtomicT *p){ return atomicAdd<1>(p); }
+inline long atomicDecrementReturn(AtomicT *p){ return atomicAdd<-1>(p); }
 
 /**
  * Break into debugger
@@ -43,8 +64,23 @@ inline void Breakpoint(){
   asm volatile ( "int3" );
 }
 
+inline void loadFence() {
+  asm __volatile__ ("mfence" : : : "memory");
+}
 
-/** 
+inline void memFence() {
+  asm __volatile__ ("mfence" : : : "memory");
+}
+
+
+inline void staticMemFence(void)
+{
+  asm __volatile__ ("":::"memory");
+}
+
+
+
+/**
  * Returns the number of clock cycles that have passed since the machine
  * booted up.
  */
@@ -55,12 +91,24 @@ inline uint64_t ClockCyclesSinceBoot()
   return ((uint64_t ) lo) | (((uint64_t) hi) << 32);
 }
 
+inline bool compareAndSwap (AtomicT *p, long oldval, long newval)
+{
+  char ret;
+  int readval;
+
+  asm __volatile__ ("lock; cmpxchgl %3, %1; sete %0"
+                  : "=q" (ret), "=m" (*p), "=a" (readval)
+                  : "r" (newval), "m" (*p), "a" (oldval)
+                  : "memory");
+  return ret;
+}
+
 #elif defined(__sparc__)
 
 inline bool
-cas(volatile long *m, long old_val, long new_val)
+compareAndSwap(AtomicT *m, long old_val, long new_val)
 {
-	__asm__ __volatile__("cas [%2], %3, %0\n\t"
+	asm volatile("cas [%2], %3, %0\n\t"
 			     : "=&r" (new_val)
 			     : "0" (new_val), "r" (m), "r" (old_val)
 			     : "memory");
@@ -68,16 +116,21 @@ cas(volatile long *m, long old_val, long new_val)
 	return new_val == old_val;
 }
 
-template<long v> long atomicAdd(volatile long *p)
+template<long v> long atomicAdd(AtomicT *p)
 {
   long new_val, old_val;
   do {
     old_val = *p;
     new_val = old_val + v;
-  } while (!cas(p, old_val, new_val));
-  
+  } while (!compareAndSwap(p, old_val, new_val));
+
   return new_val;
 }
+
+inline void atomicIncrement(AtomicT *p){ atomicAdd<1>(p); }
+inline void atomicDecrement(AtomicT *p){ atomicAdd<-1>(p); }
+inline long atomicIncrementReturn(AtomicT *p){ return atomicAdd<1>(p); }
+inline long atomicDecrementReturn(AtomicT *p){ return atomicAdd<-1>(p); }
 
 /**
  * Break into debugger
@@ -87,7 +140,7 @@ inline void Breakpoint(){
 }
 
 
-/** 
+/**
  * Returns the number of clock cycles that have passed since the machine
  * booted up.
  */
@@ -110,4 +163,4 @@ inline uint64_t ClockCyclesSinceBoot();
 #endif
 }
 
-#endif 
+#endif

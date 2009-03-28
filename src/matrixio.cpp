@@ -20,10 +20,10 @@
 #include "matrixio.h"
 
 void matrixreaderset_in (FILE *  in_str );
-int matrixreaderlex(hecura::MatrixReaderScratch&);
+int matrixreaderlex(petabricks::MatrixReaderScratch&);
 
-hecura::MatrixIO::MatrixIO(FILE* file) : _fd(file) {}
-hecura::MatrixIO::MatrixIO(const char* filename, const char* mode) 
+petabricks::MatrixIO::MatrixIO(FILE* file) : _fd(file) {}
+petabricks::MatrixIO::MatrixIO(const char* filename, const char* mode) 
 {
   if(std::string("-")==filename) 
     _fd = stdin;
@@ -32,7 +32,7 @@ hecura::MatrixIO::MatrixIO(const char* filename, const char* mode)
   JASSERT(_fd!=NULL)(filename)(mode).Text("failed to open file");
 }
 
-void hecura::MatrixIO::_read(MatrixReaderScratch& o){
+void petabricks::MatrixIO::_read(MatrixReaderScratch& o){
   if(_fd == stdout) _fd = stdin;
   matrixreaderset_in(_fd);
   matrixreaderlex(o);
@@ -43,7 +43,7 @@ void hecura::MatrixIO::_read(MatrixReaderScratch& o){
   JASSERT(o.remaining==0)(o.remaining).Text("failed to read input matrix");
 }
 
-// void hecura::MatrixIO::write(const MATRIX_ELEMENT_T* buf, int h, int w){
+// void petabricks::MatrixIO::write(const MATRIX_ELEMENT_T* buf, int h, int w){
 //   if(_fd == stdin) _fd = stdout;
 //   int i=0;
 //   for(int x=0; x<w; ++x){

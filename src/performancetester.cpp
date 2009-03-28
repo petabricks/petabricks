@@ -22,11 +22,11 @@
 #include "jtimer.h"
 using jalib::JTime;
 
-void hecura::TestCase::print(std::ostream& o) const{
+void petabricks::TestCase::print(std::ostream& o) const{
   printStlList(o, _inputs.begin(), _inputs.end(), " ");
 }
 
-double hecura::PerformanceTester::runTest(const TestCase& tc){
+double petabricks::PerformanceTester::runTest(const TestCase& tc){
   //TODO check correctness of output
   //TODO exclude time to load/write matrix
   std::ostringstream ss;
