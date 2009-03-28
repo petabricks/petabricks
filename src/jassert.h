@@ -173,11 +173,20 @@ namespace jassert_internal
 
 #define JNOTE(msg) jassert_internal::JAssert(false).JASSERT_CONTEXT("NOTE",msg).JASSERT_CONT_A
 
-#define JWARNING(term) if((term)){}else \
+#define _JWARNING(term) if((term)){}else \
     jassert_internal::JAssert(false).JASSERT_CONTEXT("WARNING","JWARNING(" #term ") failed").JASSERT_CONT_A
 
-#define JASSERT(term)  if((term)){}else \
+#define _JASSERT(term)  if((term)){}else \
     jassert_internal::JAssert(true).JASSERT_CONTEXT("ERROR","JASSERT(" #term ") failed").JASSERT_CONT_A
+
+#ifdef UNSAFE
+#define JWARNING(t) _JWARNING( (t) || true )
+#define JASSERT(t)  _JASSERT( (t) || true )
+#else
+#define JWARNING _JWARNING
+#define JASSERT  _JASSERT
+#endif
+
 
 #endif
 

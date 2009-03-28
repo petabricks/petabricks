@@ -58,9 +58,19 @@ template < typename T > struct JRefPolicyCopied{
 };
 
 /**
+ * Policy that does no reference counting 
+ */
+template < typename T > struct JRefPolicyLeaked {
+  static void inc(T* o){}
+  static void dec(T* o){}
+  static void use(T*){}
+};
+
+/**
  * Reference to a JRefCounted
  */
-template < typename T, typename Policy = JRefPolicyShared<T> > class JRef{
+template < typename T, typename Policy = JRefPolicyShared<T> >
+class JRef{
 public:
   static const JRef& null() { static JRef t; return t; }
 
