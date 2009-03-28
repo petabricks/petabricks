@@ -45,25 +45,25 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
   case RIRNode::STMT_BLOCK:
     if(s->containsLeaf("SYNC") || s->containsLeaf("CALL") || s->containsLeaf("SPAWN")){
       if(s->type() == RIRNode::STMT_COND){
+        o.comment("expanded if statement");
         const RIRIfStmt& stmt = (const RIRIfStmt&)*s;
         std::string jthen = o.nextContName("then_");
         std::string jelse = o.nextContName("else_");
         std::string jafter = o.nextContName("after_");
         if(!stmt.elsePart()) jelse=jafter;
-        o.beginIf(stmt.condPart()->toString());
-        o.continueJump(jthen);
-        o.elseIf();
+        o.beginIfNot(stmt.condPart()->toString());
         o.continueJump(jelse);
         o.endIf();
         o.continueLabel(jthen);
         stmt.thenPart()->extractBlock()->accept(*this);
-        o.continueJump(jafter);
         if(stmt.elsePart()){
+          o.continueJump(jafter);
           o.continueLabel(jelse);
           stmt.elsePart()->extractBlock()->accept(*this);
         }
         o.continueLabel(jafter);
       }else if(s->type() == RIRNode::STMT_LOOP){
+        o.comment("expanded loop statement");
         const RIRLoopStmt& stmt = (const RIRLoopStmt&)*s;
         std::string jbody = o.nextContName("loopbody_");
         std::string jafter = o.nextContName("after_");
@@ -77,6 +77,7 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
         o.continueJump(jbody);
         o.continueLabel(jafter);
       }else if(s->type() == RIRNode::STMT_BLOCK){
+        o.comment("expanded block statement");
         o.write(s->extractBlock()->toString()); 
       }else{
         UNIMPLEMENTED();
