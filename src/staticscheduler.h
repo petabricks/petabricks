@@ -238,6 +238,8 @@ public:
   void generateCodeStatic(Transform& trans, CodeGenerator& o);
   void generateCodeDynamic(Transform& trans, CodeGenerator& o);
   void applyRemapping(const ScheduleNodeRemapping& m);
+
+  size_t size() const { return _schedule.size(); }
 private:
   //storage of nodes
   std::map<MatrixDefPtr, ScheduleNodeList > _matrixToNodes;
