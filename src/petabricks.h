@@ -40,7 +40,7 @@
   petabricks::spawn_hook( new taskname ## _instance(args), _completion)
 
 #define PB_STATIC_CALL(taskname, args...) \
-  petabricks::static_call_hook( new taskname ## _instance(args) )
+  taskname ## _instance(args) . runStatic()
 
 #define PB_NOP() 0
 
@@ -57,16 +57,14 @@
 #define PB_SYNC() sync_in_loops_not_supported_yet!
 
 namespace petabricks {
-  inline void spawn_hook(const TransformInstancePtr& tx,  const DynamicTaskPtr& completion){
-    DynamicTaskPtr task = tx->runDynamic();
+  template< typename T >
+  inline void spawn_hook(T* tx,  const DynamicTaskPtr& completion){
+    TransformInstancePtr txPtr(tx); //make sure tx gets deleted
+    DynamicTaskPtr task = tx->T::runDynamic(); //run without vtable use
     if(task){
       completion->dependsOn(task);
       task->enqueue();
     }
-  }
- 
-  inline void static_call_hook(const TransformInstancePtr& tx){
-    tx->runStatic();
   }
 
   inline DynamicTaskPtr sync_hook(DynamicTaskPtr& completion, const DynamicTaskPtr& cont){
