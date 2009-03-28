@@ -81,7 +81,7 @@ int main( int argc, const char ** argv){
     (*i)->print(std::cout);
     #endif
   }
-  
+
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
     JTRACE("compiling")(input)(outputCode)((*i)->name());
     (*i)->compile();
@@ -89,12 +89,12 @@ int main( int argc, const char ** argv){
 
   std::ofstream of(outputCode.c_str());
   std::ofstream infofile(outputInfo.c_str());
-  MainCodeGenerator o;  
+  MainCodeGenerator o;
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
     JTRACE("generating")(input)(outputCode)((*i)->name());
     (*i)->generateCode(o);
   }
-  
+
   o.comment("Program main routine");
   std::string args[] = {"int argc", "const char** argv"};
   o.beginFunc("int", "main", std::vector<std::string>(args, args+2));
@@ -104,9 +104,11 @@ int main( int argc, const char ** argv){
     (*i)->registerMainInterface(o);
   }
   o.endIf();
-  o.write("return runtime.runMain(argc,argv);");
+  o.write("int rv = runtime.runMain(argc,argv);");
+  o.write("_exit(rv);");
+  o.write("return rv;");
   o.endFunc();
-  
+
   o.outputFileTo(of);
   of.flush();
   of.close();
@@ -126,7 +128,7 @@ std::string cmdCxxCompiler(const std::string& src, const std::string& bin){
 void callCxxCompiler(const std::string& src, const std::string& bin){
   std::string cmd = cmdCxxCompiler(src,bin);
   JTRACE("Running g++")(cmd);
-  std::cout << cmd << std::endl; 
+  std::cout << cmd << std::endl;
   int rv = system(cmd.c_str());
   JASSERT(rv==0)(rv)(cmd).Text("g++ call failed");
 }

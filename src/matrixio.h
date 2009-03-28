@@ -62,7 +62,7 @@ public:
   ///
   /// Constructor
   MatrixIO(FILE* file = stdin);
-  
+
   ///
   /// Constructor (opens the given filename)
   MatrixIO(const char* filename, const char* mode);
@@ -84,7 +84,7 @@ public:
   /// Write a given matrix to _fd
   template<int D, typename T>
   void write(MatrixRegion<D,T> m);
-  
+
   MatrixRegion0D read0D(){ return read<0>(); }
   MatrixRegion1D read1D(){ return read<1>(); }
   MatrixRegion2D read2D(){ return read<2>(); }
@@ -133,6 +133,7 @@ inline void petabricks::MatrixIO::write(MatrixRegion<D,T> m){
     fprintf(_fd,"%4.8g", (double) m.cell(coord));
   }
   fprintf(_fd,"\n");
+  fflush(_fd);
 }
 
 #endif
