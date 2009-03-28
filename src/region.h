@@ -134,6 +134,8 @@ public:
   bool isSingleElement() const { return _originalType==REGION_CELL; }
   
   const std::string& name() const { return _name; }
+
+  bool isAll() const { return _originalType == REGION_ALL; }
 private:
   std::string _name;
   std::string _fromMatrixName;

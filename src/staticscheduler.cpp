@@ -165,6 +165,7 @@ void petabricks::StaticScheduler::depthFirstSchedule(ScheduleNode* n){
 void petabricks::StaticScheduler::generateCodeDynamic(Transform& trans, CodeGenerator& o){
   JASSERT(_schedule.size()>0);
   for(ScheduleNodeList::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
+    if(i!=_schedule.begin()) o.continuationPoint();
     (*i)->generateCodeSimple(trans, o, false);
   }
   o.addMember("DynamicTaskPtr", trans.taskname(), "new NullDynamicTask()");
@@ -183,7 +184,6 @@ void petabricks::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGene
   if(!isStatic){
     o.addMember("SpatialTaskList", nodename(), "");
     rule->generateCodeSimple(false, nodename(), trans, *this, _region, o);
-    o.continuationPoint();
   }else{
     rule->generateCodeSimple(true, "", trans, *this, _region, o);
   }
@@ -317,7 +317,6 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
     }
     RuleChoicePtr rule = trans.learner().makeRuleChoice(first->choices()->rules(), first->matrix(), first->region());
     rule->generateCodeSimple(isStatic, nodename(), trans, *this, first->region(), o);
-    if(!isStatic) o.continuationPoint();
   }else{
     if(!isStatic) o.addMember("DynamicTaskPtr", nodename(),"");
     std::vector<std::string> args;

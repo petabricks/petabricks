@@ -45,30 +45,42 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
   case RIRNode::STMT_BLOCK:
     if(s->containsLeaf("SYNC") || s->containsLeaf("CALL") || s->containsLeaf("SPAWN")){
       if(s->type() == RIRNode::STMT_COND){
+        o.comment("expanded if statement");
         const RIRIfStmt& stmt = (const RIRIfStmt&)*s;
         std::string jthen = o.nextContName("then_");
         std::string jelse = o.nextContName("else_");
         std::string jafter = o.nextContName("after_");
         if(!stmt.elsePart()) jelse=jafter;
-        o.beginIf(stmt.condPart()->toString());
-        o.write("return "+jthen+"();");
-        o.elseIf();
-        o.write("return "+jelse+"();");
+        o.beginIfNot(stmt.condPart()->toString());
+        o.continueJump(jelse);
         o.endIf();
-        o.endFunc();
-        o.beginFunc("petabricks::DynamicTaskPtr", jthen);
+        o.continueLabel(jthen);
         stmt.thenPart()->extractBlock()->accept(*this);
-        o.write("return "+jafter+"();");
-        o.endFunc();
         if(stmt.elsePart()){
-          o.beginFunc("petabricks::DynamicTaskPtr", jelse);
+          o.continueJump(jafter);
+          o.continueLabel(jelse);
           stmt.elsePart()->extractBlock()->accept(*this);
-          o.write("return "+jafter+"();");
-          o.endFunc();
         }
-        o.beginFunc("petabricks::DynamicTaskPtr", jafter);
+        o.continueLabel(jafter);
+      }else if(s->type() == RIRNode::STMT_LOOP){
+        o.comment("expanded loop statement");
+        const RIRLoopStmt& stmt = (const RIRLoopStmt&)*s;
+        std::string jbody = o.nextContName("loopbody_");
+        std::string jafter = o.nextContName("after_");
+        o.write(stmt.declPart()->toString()+";");
+        o.continueLabel(jbody);
+        o.beginIfNot(stmt.testPart()->toString());
+        o.continueJump(jafter);
+        o.endIf();
+        stmt.body()->extractBlock()->accept(*this);
+        o.write(stmt.incPart()->toString()+";");
+        o.continueJump(jbody);
+        o.continueLabel(jafter);
+      }else if(s->type() == RIRNode::STMT_BLOCK){
+        o.comment("expanded block statement");
+        o.write(s->extractBlock()->toString()); 
       }else{
-        o.write(s->toString()); 
+        UNIMPLEMENTED();
       }
     }else{
       o.write(s->toString()); 

@@ -219,6 +219,10 @@ public:
     return RIRStmt::containsLeaf(val)
         || _body->containsLeaf(val);
   }
+  const RIRExprCopyRef& declPart() const { return *(_exprs.begin()); }
+  const RIRExprCopyRef& testPart() const { return *(++_exprs.begin()); }
+  const RIRExprCopyRef& incPart() const { return *(++(++(_exprs.begin()))); }
+  const RIRStmtCopyRef& body() const { return _body; }
 private:
   RIRStmtCopyRef _body;
 };

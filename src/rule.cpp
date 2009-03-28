@@ -357,20 +357,28 @@ void petabricks::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& 
   }else{
     if(!isStatic) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
     
-    for(size_t i=0; i<begin.size(); ++i){
-      FormulaPtr b=begin[i];
-      FormulaPtr e=end[i];
-      FormulaPtr w=getSizeOfRuleIn(i);
-      if(order[i]==IterationOrder::BACKWARD)
-        o.beginReverseFor(getOffsetVar(i)->toString(), b, e, w);
-      else
-        o.beginFor(getOffsetVar(i)->toString(), b, e, w);
-      //TODO, better support for making sure given range is a multiple of size
+    if(isSingleCall()){
+      for(size_t i=0; i<begin.size(); ++i){
+        o.varDecl("const IndexT "+getOffsetVar(i)->toString()+"=0");
+      }
+    }else{
+      for(size_t i=0; i<begin.size(); ++i){
+        FormulaPtr b=begin[i];
+        FormulaPtr e=end[i];
+        FormulaPtr w=getSizeOfRuleIn(i);
+        if(order[i]==IterationOrder::BACKWARD)
+          o.beginReverseFor(getOffsetVar(i)->toString(), b, e, w);
+        else
+          o.beginFor(getOffsetVar(i)->toString(), b, e, w);
+        //TODO, better support for making sure given range is a multiple of size
+      }
     }
     generateTrampCellCodeSimple(trans, o, isStatic);
     //TODO, loop carry deps?
-    for(size_t i=0; i<begin.size(); ++i){
-      o.endFor();
+    if(!isSingleCall()){
+      for(size_t i=0; i<begin.size(); ++i){
+        o.endFor();
+      }
     }
     
     if(!isStatic) o.write("return _spawner;");

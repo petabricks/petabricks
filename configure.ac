@@ -111,7 +111,7 @@ AC_DEFINE([MAX_DIMENSIONS],    [64],             [the maximum number of dimensio
 AC_DEFINE([GRACEFUL_ABORT],    [1],              [allow abort without program shutdown (uses exceptions)])
 AC_DEFINE([SHORT_TYPE_NAMES],  [1],              [undefine this if a large number of dimensions are needed, or one wants a cleaner user namespace])
 AC_DEFINE([RUN_CPP],           [1],              [undefine to disable cpp])
-AC_DEFINE([MAX_REC_LEVELS],    [12],             [number of levels for recursive choices])
+AC_DEFINE([MAX_REC_LEVELS],    [6],              [number of levels for recursive choices])
 AC_DEFINE([INPUT_SIZE_STR],    ["input_count"],  [var name in output code])
 AC_DEFINE([OUTPUT_SIZE_STR],   ["output_count"], [var name in output code])
 AC_DEFINE([SPLIT_CHUNK_SIZE],  ["chunk_size"],   [var name in output code])

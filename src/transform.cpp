@@ -342,10 +342,13 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
     o.addMember((*i)->constMatrixTypeName(), (*i)->name());
   }
   
-  o.beginFunc("bool", "useContinuation");
-  o.createTunable(true, "system.unrollschedule", _name + "_unroll_schedule", 1, 0, 1);
-  o.write("return "+_name + "_unroll_schedule == 0;");
-  o.endFunc();
+  if(_scheduler->size()>1){
+    o.beginFunc("bool", "useContinuation");
+    o.createTunable(true, "system.unrollschedule", _name + "_unroll_schedule", 1, 0, 1);
+    o.write("return "+_name + "_unroll_schedule == 0;");
+    o.endFunc();
+  }
+
 
   o.constructorBody("init();");
   o.beginFunc("void", "init");

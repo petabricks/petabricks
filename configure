@@ -21622,7 +21622,7 @@ _ACEOF
 
 
 cat >>confdefs.h <<\_ACEOF
-#define MAX_REC_LEVELS 12
+#define MAX_REC_LEVELS 6
 _ACEOF
 
 
