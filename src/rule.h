@@ -215,6 +215,13 @@ public:
   }
 
   void compileRuleBody(Transform& tx, RIRScope& s);
+
+  bool isSingleCall() const {
+    for(size_t i=0; i<_to.size(); ++i)
+      if(!_to[i]->isAll())
+        return false;
+    return true;
+  }
 private:
   int _id;
   RuleFlags   _flags;

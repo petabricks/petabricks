@@ -30,9 +30,10 @@ namespace petabricks {
 class TrainingDeps{
 public:
 
-  void addAlgchoice(const std::string& name, int levels){
+  void addAlgchoice(const std::string& name, bool isStatic, int levels){
     _os << "    <algchoice "
         << " name=\""    << name << "\""
+        << " type=\""    << (isStatic ? "sequential" : "dynamic") << "\""
         << " levels=\""    << levels << "\""
         << " />\n";
   }

@@ -81,6 +81,9 @@ public:
   void comment(const std::string& str);
 
   void beginIf(const std::string& v);
+  void beginIfNot(const std::string& v){
+    beginIf(" ! ("+v+") ");
+  }
   void elseIf(const std::string& v = "true");
   void endIf();
 
@@ -126,6 +129,15 @@ public:
   void continuationPoint();
   void continuationRequired(const std::string& prereq);
   std::string nextContName(const std::string& base);
+  
+  void continueLabel(const std::string& fn){
+    continueJump(fn);
+    endFunc();
+    beginFunc("petabricks::DynamicTaskPtr", fn);
+  }
+  void continueJump(const std::string& fn){
+    write("return "+fn+"();");
+  }
 
   void define(const std::string& name, const std::string& val){
     _defines.push_back(name);

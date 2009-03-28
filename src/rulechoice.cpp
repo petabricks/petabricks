@@ -60,7 +60,7 @@ void petabricks::RuleChoice::generateCodeSimple( bool isStatic
   if(tpfx.length()==0){ 
     tpfx = trans.createTunerPrefix();
     if(_rules.size()>1 || level()>1) 
-      o.cg().addAlgchoice(tpfx, level());
+      o.cg().addAlgchoice(tpfx.substr(0,tpfx.length()-1), isStatic, level());
   }
   std::string choicename = tpfx + "lvl" + jalib::XToString(level()) + "_rule";
 
