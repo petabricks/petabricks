@@ -24,6 +24,7 @@
 #include "jrefcounted.h"
 #include "jblockingqueue.h"
 #include "jmutex.h"
+#include "jasm.h"
 #include "dynamictask.h"
 
 #include <pthread.h>
@@ -51,82 +52,71 @@ class DynamicScheduler{
 
 private:
   class Deque {
+    private:
+      long _size;
+      DynamicTaskPtr *_array;
+      long _h; // head index
+      jalib::JMutex _lock;
+      char padding[56];
+      long _t; // tail index
 
-    char _prePadding[CACHE_LINE_SIZE];
-    jalib::JMutex _lock;
-    std::deque<DynamicTaskPtr> _cont_deque;
-    std::deque<DynamicTaskPtr> _deque;
-    struct { int z; int w; } _randomNumState;
-    char _postPadding[CACHE_LINE_SIZE];
+    public:
 
-   public:
-
-    Deque()
-    {
-      _randomNumState.z = tid();
-      _randomNumState.w = tid() + 1;
+    Deque() {
+      _t = 0;
+      _h = 0;
+      _size = 1000000;
+      _array = (DynamicTaskPtr *) malloc(sizeof(DynamicTaskPtr) * _size); // Use malloc so we can realloc
     }
 
-    void push(const DynamicTaskPtr& t)
-    {
-      //JLOCKSCOPE(_lock);
-
-      if (t->isContinuation)
-        _cont_deque.push_back(t);
-      else
-        _deque.push_back(t);
-
+    ~Deque() {
+      free(_array);
     }
 
-    DynamicTaskPtr pop()
-    {
-      JLOCKSCOPE(_lock);
+    void push(const DynamicTaskPtr& task) {
+      _array[_t] = task;
+      _t++;
 
-      DynamicTaskPtr retVal(NULL);
-
-      if (!_deque.empty()) {
-        DynamicTaskPtr back = _deque.back();
-        if (back->state == DynamicTask::S_READY) {
-          retVal = back;
-          _deque.pop_back();
-        }
-      } else if (!_cont_deque.empty()){
-        DynamicTaskPtr back = _cont_deque.back();
-        if (back->state == DynamicTask::S_READY) {
-          retVal = back;
-          _cont_deque.pop_back();
-        }
-      }
-
-      return retVal;
-    }
-
-    DynamicTaskPtr steal()
-    {
-      DynamicTaskPtr retVal(NULL);
+      JASSERT(_t < _size - 1);
 
       /*
-      if (_cont_deque.empty()) {
-        return retVal;
+      if (_t >= _size - 1) {
+        JLOCKSCOPE(_lock);
+
+        _size *= 3;
+        _array = (DynamicTaskPtr *) realloc(_array, sizeof(DynamicTaskPtr) * _size);
       }
       */
+    }
 
-      if (!_lock.trylock()) {
-        return retVal;
+#if 1
+    DynamicTaskPtr pop() {
+
+      if (_h == _t) {
+        return NULL;
       }
 
-      if (!_cont_deque.empty()) {
-        DynamicTaskPtr front = _cont_deque.front();
-        if (front->state == DynamicTask::S_READY) {
-          retVal = front;
-          _cont_deque.pop_front();
-        }
-      } else if (!_deque.empty()) {
-        DynamicTaskPtr front = _deque.front();
-        if (front->state == DynamicTask::S_READY) {
-          retVal = front;
-          _deque.pop_front();
-        }
+      JLOCKSCOPE(_lock);
+
+      if (_h == _t) {
+        return NULL;
+      } else {
+        _t--;
+        return _array[_t];
+      }
+    }
+
+    DynamicTaskPtr pop_bottom() {
+
+      if (_h == _t || !_lock.trylock()) {
+        return NULL;
+      }
+
+      DynamicTaskPtr retVal;
+
+      if (_h != _t) {
+        retVal = _array[_h];
+        _h++;
       }
 
       _lock.unlock();
@@ -134,7 +124,115 @@ private:
       return retVal;
     }
 
-    int nextDeque(int numThreads) {
+#else
+
+    DynamicTaskPtr pop() {
+
+      if (_h == _t) {
+        return NULL;
+      }
+
+      long t = _t - 1;
+      DynamicTaskPtr retVal = _array[t];
+
+      jalib::loadFence();
+
+      _t = t;
+
+      jalib::loadFence();
+
+      if (_h > _t) {
+        _t++;
+        {
+          JLOCKSCOPE(_lock);
+          if (_h >= _t) {
+            return NULL;
+          }
+          _t--;
+          return _array[_t];
+        }
+      } else {
+        return retVal;
+      }
+    }
+
+    DynamicTaskPtr pop_bottom() {
+
+      if (_h == _t || !_lock.trylock()) {
+        return NULL;
+      }
+
+      long h = _h;
+      DynamicTaskPtr retVal = _array[h];
+
+      jalib::loadFence();
+
+      _h = h + 1;
+
+      jalib::loadFence();
+
+      if (_h > _t) {
+        _h--;
+        _lock.unlock();
+        return NULL;
+      }
+
+      _lock.unlock();
+
+      return retVal;
+    }
+#endif
+  };
+
+  class TaskStack {
+
+    char _prePadding[CACHE_LINE_SIZE];
+    Deque _deque;
+    Deque _cont_deque;
+    struct { int z; int w; } _randomNumState;
+    char _postPadding[CACHE_LINE_SIZE];
+
+   public:
+
+    TaskStack()
+    {
+      _randomNumState.z = tid();
+      _randomNumState.w = tid() + 1;
+    }
+
+    void push(const DynamicTaskPtr& t)
+    {
+      if (t->isContinuation)
+        _cont_deque.push(t);
+      else
+        _deque.push(t);
+    }
+
+    DynamicTaskPtr pop()
+    {
+      DynamicTaskPtr retVal;
+
+      retVal = _deque.pop();
+      if (!retVal) {
+        retVal = _cont_deque.pop();
+      }
+
+      return retVal;
+    }
+
+    DynamicTaskPtr steal()
+    {
+      DynamicTaskPtr retVal;
+
+      retVal = _cont_deque.pop_bottom();
+      if (!retVal) {
+        retVal = _deque.pop_bottom();
+      }
+
+      return retVal;
+    }
+
+    int nextTaskStack(int numThreads) {
 
       return (getRandInt() % numThreads);
     }
@@ -149,7 +247,7 @@ private:
   } __attribute__ ((aligned (64)));
 
 public:
-  Deque deques[MAX_NUM_WORKERS];
+  TaskStack taskStacks[MAX_NUM_WORKERS];
 
   static int myThreadID();
 
@@ -173,8 +271,7 @@ public:
       throw AbortException();
     }
 #endif
-    deques[tid()].push(t);
-    //printf("Enqueued task in deque: %d\n", tid());
+    taskStacks[tid()].push(t);
   }
 
 
@@ -192,19 +289,11 @@ public:
   /// unblocked method, try to get a task from queue for execution
   DynamicTaskPtr tryDequeue() {
 
-    DynamicTaskPtr task = deques[tid()].pop();
+    DynamicTaskPtr task = taskStacks[tid()].pop();
 
     if (!task) {
-      int stealDeque = deques[tid()].nextDeque(numOfWorkers + 1);
-      task = deques[stealDeque].steal();
-      if (task) {
-        //printf("Stole task from deque: %d\n", stealDeque);
-      } else {
-        //printf("Failed to steal task from deque: %d\n", stealDeque);
-      }
-
-    } else {
-      //printf("Popped task from deque: %d\n", tid());
+      int stealTaskStack = taskStacks[tid()].nextTaskStack(numOfWorkers + 1);
+      task = taskStacks[stealTaskStack].steal();
     }
 
 #ifndef GRACEFUL_ABORT
@@ -222,16 +311,6 @@ public:
     }
 #endif
   }
-
-  /*
-  bool empty() {
-    return queue.empty();
-  }
-
-  size_t size() {
-    return queue.size();
-  }
-  */
 
   int workers() {
     return numOfWorkers;

@@ -52,6 +52,10 @@ public:
   /// indicate if the task is executed or not
   TaskState state;
 
+  ///
+  /// a counter of how many tasks I depends on
+  long numOfPredecessor;
+
   bool isContinuation;
   ///
   /// Perform this task, return a continuation task that must be completed
@@ -115,9 +119,6 @@ public:
   /// a mutex lock for manipulating task status and dependents list
   jalib::JCondMutex  lock;
 
-  ///
-  /// a counter of how many tasks I depends on
-  long numOfPredecessor;
 
   ///
   /// Pointer to the continuation task

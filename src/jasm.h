@@ -46,8 +46,14 @@ template<long v> long atomicAdd(AtomicT *p){
   return r+v;
 }
 
-inline void atomicIncrement(AtomicT *p){ atomicAdd<1>(p); }
-inline void atomicDecrement(AtomicT *p){ atomicAdd<-1>(p); }
+inline void atomicIncrement(AtomicT *p){
+  asm volatile ("lock; incl %0" : "=m"(*p) : : "memory");
+}
+
+inline void atomicDecrement(AtomicT *p){
+  asm volatile ("lock; decl %0" : "=m"(*p) : : "memory");
+}
+
 inline long atomicIncrementReturn(AtomicT *p){ return atomicAdd<1>(p); }
 inline long atomicDecrementReturn(AtomicT *p){ return atomicAdd<-1>(p); }
 
@@ -58,8 +64,11 @@ inline void Breakpoint(){
   asm volatile ( "int3" );
 }
 
+inline void loadFence() {
+  asm __volatile__ ("mfence" : : : "memory");
+}
 
-/** 
+/**
  * Returns the number of clock cycles that have passed since the machine
  * booted up.
  */
@@ -90,7 +99,7 @@ template<long v> long atomicAdd(AtomicT *p)
     old_val = *p;
     new_val = old_val + v;
   } while (!cas(p, old_val, new_val));
-  
+
   return new_val;
 }
 
@@ -107,7 +116,7 @@ inline void Breakpoint(){
 }
 
 
-/** 
+/**
  * Returns the number of clock cycles that have passed since the machine
  * booted up.
  */
@@ -130,4 +139,4 @@ inline uint64_t ClockCyclesSinceBoot();
 #endif
 }
 
-#endif 
+#endif
