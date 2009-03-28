@@ -38,8 +38,8 @@ void _remapSet(petabricks::ScheduleNodeSet& set, const petabricks::ScheduleNodeR
 petabricks::ScheduleNode::ScheduleNode()
   : _isInput(false)
 {
-  static long i=0;
-  _id=jalib::atomicAdd<1>(&i);
+  static jalib::AtomicT i=0;
+  _id=jalib::atomicIncrementReturn(&i);
 }
 
 

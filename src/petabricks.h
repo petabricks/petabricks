@@ -56,9 +56,6 @@
 
 #define PB_SYNC() sync_in_loops_not_supported_yet!
 
-
-
-
 namespace petabricks {
   inline void spawn_hook(const TransformInstancePtr& tx,  const DynamicTaskPtr& completion){
     DynamicTaskPtr task = tx->runDynamic();

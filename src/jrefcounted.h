@@ -135,14 +135,17 @@ protected:
   virtual ~JRefCounted(){}
 public:
   inline void incRefCount() const{ 
-    atomicAdd<1> (&_refCount); 
+    atomicIncrement(&_refCount); 
   }
   inline void decRefCount() const{ 
-    if(atomicAdd<-1>(&_refCount)==0)
+    if(atomicDecrementReturn(&_refCount)==0)
       delete this;
   }
   inline long refCount() const{ 
     return _refCount; 
+  }
+  inline void incRefCountUnsafe() const {
+    ++_refCount;
   }
 private:
   mutable jalib::AtomicT _refCount; 

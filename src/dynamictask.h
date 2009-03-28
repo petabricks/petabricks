@@ -141,7 +141,6 @@ private:
   jalib::JRef<T> _obj;
 };
 
-
 }
 
 #endif

@@ -172,7 +172,7 @@ bool petabricks::Formula::hasIntersection(const Formula& that) const{
 
 petabricks::FormulaPtr petabricks::FormulaVariable::mktmp(){
   static jalib::AtomicT i = 0;
-  std::string name = "_tmp" + jalib::XToString(jalib::atomicAdd<1>(&i));
+  std::string name = "_tmp" + jalib::XToString(jalib::atomicIncrementReturn(&i));
   return new FormulaVariable(name);
 }
 
