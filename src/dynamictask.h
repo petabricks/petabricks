@@ -40,23 +40,6 @@ typedef jalib::JRef<DynamicTask> DynamicTaskPtr;
 class DynamicTask : public jalib::JRefCounted {
 public:
 
-  enum TaskState {
-    S_NEW,       //after creation
-    S_PENDING,   //after enqueue()
-    S_READY,     //after all dependencies met
-    S_COMPLETE,  //after run()==NULL
-    S_CONTINUED  //after run()!=NULL
-  };
-
-  ///
-  /// indicate if the task is executed or not
-  TaskState state;
-
-  ///
-  /// a counter of how many tasks I depends on
-  long numOfPredecessor;
-
-  bool isContinuation;
   ///
   /// Perform this task, return a continuation task that must be completed
   /// before this task is marked done, otherwise return NULL
@@ -110,7 +93,7 @@ public:
   ///
   /// mark that a task that we dependOn has completed
   void decrementPredecessors();
- protected:
+
   ///
   /// a list of tasks that depends on me
   std::vector<DynamicTask*> dependents;
@@ -123,7 +106,27 @@ public:
   /// Pointer to the continuation task
   DynamicTaskPtr continuation;
 
+  enum TaskState {
+    S_NEW,       //after creation
+    S_PENDING,   //after enqueue()
+    S_READY,     //after all dependencies met
+    S_COMPLETE,  //after run()==NULL
+    S_CONTINUED  //after run()!=NULL
+  };
+
+  ///
+  /// indicate if the task is executed or not
+  TaskState state;
+
+  ///
+  /// a counter of how many tasks I depends on
+  long numOfPredecessor;
+
+  bool isContinuation;
+
   char __post_padding[64];
+
+  friend class DynamicScheduler;
 };
 
 class NullDynamicTask : public DynamicTask {

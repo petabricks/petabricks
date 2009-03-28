@@ -43,8 +43,8 @@ namespace petabricks {
 
 // forward declarsion for DynamicTaskPtr
 //class DynamicTask;
-typedef jalib::JRef<DynamicTask> DynamicTaskPtr;
-typedef jalib::JBlockingQueue<DynamicTaskPtr> DynamicTaskQueue;
+//typedef jalib::JRef<DynamicTask> DynamicTaskPtr;
+//typedef jalib::JBlockingQueue<DynamicTaskPtr> DynamicTaskQueue;
 
 int tid(void);
 
@@ -54,7 +54,7 @@ private:
   class Deque {
     private:
       long _size;
-      DynamicTaskPtr *_array;
+      DynamicTask **_array;
       long _h; // head index
       jalib::JMutex _lock;
       char padding[56];
@@ -65,32 +65,29 @@ private:
     Deque() {
       _t = 0;
       _h = 0;
-      _size = 1000000;
-      _array = (DynamicTaskPtr *) malloc(sizeof(DynamicTaskPtr) * _size); // Use malloc so we can realloc
+      _size = 1000;
+      _array = (DynamicTask **) malloc(sizeof(DynamicTask *) * _size); // Use malloc so we can realloc
     }
 
     ~Deque() {
       free(_array);
     }
 
-    void push(const DynamicTaskPtr& task) {
+    void push(DynamicTask *task) {
+
       _array[_t] = task;
       _t++;
 
-      JASSERT(_t < _size - 1);
-
-      /*
       if (_t >= _size - 1) {
         JLOCKSCOPE(_lock);
 
         _size *= 3;
-        _array = (DynamicTaskPtr *) realloc(_array, sizeof(DynamicTaskPtr) * _size);
+        _array = (DynamicTask **) realloc(_array, sizeof(DynamicTaskPtr) * _size);
       }
-      */
     }
 
 #if 1
-    DynamicTaskPtr pop() {
+    DynamicTask *pop() {
 
       if (_h == _t) {
         return NULL;
@@ -106,13 +103,13 @@ private:
       }
     }
 
-    DynamicTaskPtr pop_bottom() {
+    DynamicTask *pop_bottom() {
 
-      if (_h == _t || !_lock.trylock()) {
+      if ( _h == _t || !_lock.trylock()) {
         return NULL;
       }
 
-      DynamicTaskPtr retVal;
+      DynamicTask *retVal = NULL;
 
       if (_h != _t) {
         retVal = _array[_h];
@@ -124,16 +121,22 @@ private:
       return retVal;
     }
 
+    void clear() {
+      JLOCKSCOPE(_lock);
+      _h = 0;
+      _t = 0;
+    }
+
 #else
 
-    DynamicTaskPtr pop() {
+    DynamicTask *pop() {
 
       if (_h == _t) {
         return NULL;
       }
 
       long t = _t - 1;
-      DynamicTaskPtr retVal = _array[t];
+      DynamicTask *retVal = _array[t];
 
       jalib::loadFence();
 
@@ -156,14 +159,14 @@ private:
       }
     }
 
-    DynamicTaskPtr pop_bottom() {
+    DynamicTask *pop_bottom() {
 
       if (_h == _t || !_lock.trylock()) {
         return NULL;
       }
 
       long h = _h;
-      DynamicTaskPtr retVal = _array[h];
+      DynamicTask *retVal = _array[h];
 
       jalib::loadFence();
 
@@ -200,7 +203,7 @@ private:
       _randomNumState.w = tid() + 1;
     }
 
-    void push(const DynamicTaskPtr& t)
+    void push(DynamicTask *t)
     {
       if (t->isContinuation)
         _cont_deque.push(t);
@@ -208,24 +211,20 @@ private:
         _deque.push(t);
     }
 
-    DynamicTaskPtr pop()
+    DynamicTask *pop()
     {
-      DynamicTaskPtr retVal;
-
-      retVal = _deque.pop();
-      if (!retVal) {
+      DynamicTask *retVal = _deque.pop();
+      if (retVal == NULL) {
         retVal = _cont_deque.pop();
       }
 
       return retVal;
     }
 
-    DynamicTaskPtr steal()
+    DynamicTask *steal()
     {
-      DynamicTaskPtr retVal;
-
-      retVal = _cont_deque.pop_bottom();
-      if (!retVal) {
+      DynamicTask *retVal = _cont_deque.pop_bottom();
+      if (retVal == NULL) {
         retVal = _deque.pop_bottom();
       }
 
@@ -235,6 +234,11 @@ private:
     int nextTaskStack(int numThreads) {
 
       return (getRandInt() % numThreads);
+    }
+
+    void clear() {
+      _deque.clear();
+      _cont_deque.clear();
     }
 
    private:
@@ -265,7 +269,7 @@ public:
 
   ///
   /// add a ready task into queue
-  void enqueue(const DynamicTaskPtr& t) {
+  void enqueue(DynamicTask *t) {
 #ifdef GRACEFUL_ABORT
     if(isAborting()){
       throw AbortException();
@@ -277,23 +281,31 @@ public:
 
   ///
   /// blocked until get a task from queue for execution
-  DynamicTaskPtr dequeue() {
-    DynamicTaskPtr task;
+  DynamicTask *dequeue() {
+    DynamicTask *task;
     do {
       task = tryDequeue();
-    } while (!task);
+    } while (task == NULL);
     return task;
   }
 
   ///
   /// unblocked method, try to get a task from queue for execution
-  DynamicTaskPtr tryDequeue() {
+  DynamicTask *tryDequeue() {
 
-    DynamicTaskPtr task = taskStacks[tid()].pop();
+    DynamicTask *task = taskStacks[tid()].pop();
 
-    if (!task) {
+    if (task) {
+      JASSERT(task->state == DynamicTask::S_READY);
+    }
+
+    if (task == NULL) {
       int stealTaskStack = taskStacks[tid()].nextTaskStack(numOfWorkers + 1);
       task = taskStacks[stealTaskStack].steal();
+
+      if (task) {
+        JASSERT(task->state == DynamicTask::S_READY);
+      }
     }
 
 #ifndef GRACEFUL_ABORT
@@ -304,6 +316,7 @@ public:
     } else {
       JLOCKSCOPE(theAbortingLock);
       if(isAborting()) {
+        //taskStacks[tid()].clear();
         throw AbortException();
       } else {
         return 0;
@@ -320,24 +333,6 @@ public:
   void popAndRunOneTask(bool blocking);
 
 
-#ifdef QUEUE_STATISTICS
-  unsigned int contention() {
-    return queue.contention();
-  }
-
-  unsigned int totalEnqueue() {
-    return queue.totalEnqueue();
-  }
-
-  uint64_t totalEmptyTime() {
-    return queue.totalEmptyTime();
-  }
-
-  uint64_t totalFilledTime() {
-    return queue.totalFilledTime();
-  }
-#endif // QUEUE_STATISTICS
-
 #ifdef GRACEFUL_ABORT
   class AbortException {};
   static bool isAborting() { return theIsAborting; }
@@ -347,10 +342,6 @@ public:
   void setAbortFlag();
 #endif
 protected:
-  ///
-  /// Blocking queue for ready tasks
-  DynamicTaskQueue queue;
-
   ///
   /// Total number of worker threads
   int numOfWorkers;
