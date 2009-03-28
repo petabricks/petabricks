@@ -113,11 +113,12 @@ public:
  protected:
   ///
   /// a list of tasks that depends on me
-  std::vector<DynamicTask*> dependents;
+  std::vector<DynamicTaskPtr> dependents;
 
   ///
   /// a mutex lock for manipulating task status and dependents list
   jalib::JCondMutex  lock;
+
 
   ///
   /// Pointer to the continuation task
