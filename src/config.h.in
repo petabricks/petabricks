@@ -160,6 +160,9 @@
 /* postfix for static versions of transforms */
 #undef TX_STATIC_POSTFIX
 
+/* enable unsafe optimizations such as removing error checking. */
+#undef UNSAFE
+
 /* Version number of package */
 #undef VERSION
 

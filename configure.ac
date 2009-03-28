@@ -94,6 +94,17 @@ if test "$use_jassert" = "yes"; then
   fi
 fi
 
+AC_ARG_ENABLE([unsafe],
+            [AS_HELP_STRING([--enable-unsafe],
+                            [enable unsafe optimizations such as removing error checking.])],
+            [use_unsafe=$enableval],
+            [use_unsafe=no])
+
+if test "$use_unsafe" = "yes"; then
+  AC_DEFINE([UNSAFE],[],[enable unsafe optimizations such as removing error checking.])
+fi
+
+
 AC_ARG_ENABLE([timing],
             [AS_HELP_STRING([--enable-timing],
                             [record checkpoint/restart timing information
@@ -115,7 +126,7 @@ AC_DEFINE([MAX_REC_LEVELS],    [6],              [number of levels for recursive
 AC_DEFINE([INPUT_SIZE_STR],    ["input_count"],  [var name in output code])
 AC_DEFINE([OUTPUT_SIZE_STR],   ["output_count"], [var name in output code])
 AC_DEFINE([SPLIT_CHUNK_SIZE],  ["chunk_size"],   [var name in output code])
-AC_DEFINE([INPUT_PERIMETER_STR],  ["_input_perimeter"],   [var name in output code])
+AC_DEFINE([INPUT_PERIMETER_STR], ["_input_perimeter"],   [var name in output code])
 AC_DEFINE([TMPL_IMPL_PFX],     ["_tmpl"],        [prefix for expanded template implementations])
 AC_DEFINE([TX_STATIC_POSTFIX], ["_static"], [postfix for static versions of transforms])
 AC_DEFINE([TX_DYNAMIC_POSTFIX], ["_dynamic"], [postfix for static versions of transforms])
