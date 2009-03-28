@@ -125,6 +125,7 @@ if false; then
   AC_DEFINE([JASSERT_LOG],       [],               [log traces to /tmp/jassertlog.pid])
   AC_DEFINE([JALIB_ALLOCATOR],   [1],              [Use a custom allocator from JALIB])
   AC_DEFINE([JALIB_USE_MALLOC],  [],               [Cause the custom allocator to call malloc instead of mmap])
+  AC_DEFINE([DISABLE_CONTINUATIONS],  [],          [don't generate continuation code after SPAWN/enqueue])
 fi
 
 AC_DEFINE_UNQUOTED([REVISION_SHORT],  ["$rev_short"],   [git sha1 hash for HEAD at the time ./configure was run])

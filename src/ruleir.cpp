@@ -20,8 +20,8 @@
 #include "ruleir.h"
 
 namespace{ 
-  template<typename T> const T& get(const std::list<T>& lst, int n) {
-    typename std::list<T>::const_iterator i=lst.begin();
+  template<typename T> T& get(std::list<T>& lst, int n) {
+    typename std::list<T>::iterator i=lst.begin();
     for(; n>0; --n,++i); 
     return *i;
   }
@@ -40,57 +40,89 @@ const char* petabricks::RIRNode::typeStr() const {
     case EXPR_KEYWORD: return "EXPR_KEYWORD";
     case STMT        : return "STMT";
     case STMT_BASIC  : return "STMT_BASIC";
-    case STMT_CONTROL: return "STMT_CONTROL";
     case STMT_BLOCK  : return "STMT_BLOCK";
     case STMT_RAW    : return "STMT_RAW";
+    case STMT_LOOP   : return "STMT_LOOP";
+    case STMT_COND   : return "STMT_COND";
+    case STMT_BREAKCONTINUE: return "STMT_BREAKCONTINUE";
+    case STMT_SWITCH : return "STMT_SWITCH";
     case BLOCK       : return "BLOCK";
     default          : return "INVALID";
   }
 }
 
-void petabricks::RIRExpr::print(std::ostream& o) const {
-  o<<_str;
-  printStlList(o, _parts.begin(), _parts.end(), " ");
+template<typename A>
+static void pvHook(A& a, std::ostream& o, petabricks::RIRVisitor* v){
+    if(v!=NULL)
+      a->accept(*v);
+    else
+      o<<a;
 }
-void petabricks::RIRArgsExpr::print(std::ostream& o) const {
-  printStlList(o, _parts.begin(), _parts.end(), ", ");
-}
-void petabricks::RIRCallExpr::print(std::ostream& o) const {
-  JASSERT(_parts.size()==2)(_parts.size())(_str);
-  o << get(_parts,0) << '(' << get(_parts,1) << ')';
-}
-void petabricks::RIRBlock::print(std::ostream& o) const {
-  printStlList(o, _stmts.begin(), _stmts.end(), "\n");
-}
-void petabricks::RIRBasicStmt::print(std::ostream& o) const {
-  printStlList(o, _exprs.begin(), _exprs.end(), " ");
-  o<<";";
-}
-void petabricks::RIRBlockStmt::print(std::ostream& o) const {
-  JASSERT(_exprs.size()==0);
-  o << "{\n" << _block << "\n}";
-}
-void petabricks::RIRLoopStmt::print(std::ostream& o) const {
-  JASSERT(_exprs.size()==3);
-  o << "for(" << get(_exprs,0) << "; " 
-              << get(_exprs,1) << "; "
-              << get(_exprs,2) << ") "
-              << _body;
-}
-void petabricks::RIRSwitchStmt::print(std::ostream& o) const {
-  JASSERT(_exprs.size()==1);
-  o << "switch(" << _exprs.front() << ") " << _body;
-}
-void petabricks::RIRIfStmt::print(std::ostream& o) const {
-  JASSERT(_exprs.size()==1);
-  o << "if(" << _exprs.front() << ")\n" 
-              << _then;
-  if (_else) o << "\nelse\n" << _else;
-}
-void petabricks::RIRRawStmt::print(std::ostream& o) const {
-  o << _src;
+template<typename A>
+static void pvHook(A& a, std::ostream& o, petabricks::RIRVisitor* v, const char* delim){
+  for(typename A::iterator i=a.begin(); i!=a.end(); ++i){
+    if(i!=a.begin()) 
+      o<<delim;
+    pvHook((*i), o, v);
+  }
 }
 
+
+void petabricks::RIRExpr::print(std::ostream& o, RIRVisitor* v) {
+  o << _str;
+  pvHook(_parts, o, v, " ");
+}
+void petabricks::RIRArgsExpr::print(std::ostream& o, RIRVisitor* v) {
+  pvHook(_parts, o, v, ", ");
+}
+void petabricks::RIRCallExpr::print(std::ostream& o, RIRVisitor* v) {
+  JASSERT(_parts.size()==2)(_parts.size())(_str);
+  pvHook(get(_parts,0),o,v);
+  o << '(';
+  pvHook(get(_parts,1),o,v);
+  o << ')';
+}
+void petabricks::RIRBlock::print(std::ostream& o, RIRVisitor* v) {
+  pvHook(_stmts, o, v, "\n");
+}
+void petabricks::RIRBasicStmt::print(std::ostream& o, RIRVisitor* v) {
+  pvHook(_exprs, o, v, " ");
+  o<<";";
+}
+void petabricks::RIRBlockStmt::print(std::ostream& o, RIRVisitor* v) {
+  JASSERT(_exprs.size()==0);
+  o << "{\n";
+  pvHook(_block,o,v);
+  o << "\n}";
+}
+void petabricks::RIRLoopStmt::print(std::ostream& o, RIRVisitor* v) {
+  JASSERT(_exprs.size()==3);
+  o << "for("  ; pvHook(get(_exprs,0),o,v); o<< "; ";
+                 pvHook(get(_exprs,1),o,v); o<< "; ";
+                 pvHook(get(_exprs,2),o,v); o<< ") ";
+                 pvHook(_body, o, v);
+}
+void petabricks::RIRSwitchStmt::print(std::ostream& o, RIRVisitor* v) {
+  JASSERT(_exprs.size()==1);
+  o << "switch(" ;
+  pvHook(_exprs.front(),o,v); 
+  o << ") ";
+  pvHook(_body, o,v);
+}
+void petabricks::RIRIfStmt::print(std::ostream& o, RIRVisitor* v) {
+  JASSERT(_exprs.size()==1);
+  o << "if(" ; 
+  pvHook(_exprs.front(),o,v); 
+  o << ")\n" ;
+  pvHook(_then,o,v);
+  if (_else){
+    o << "\nelse\n";
+    pvHook(_else,o,v);
+  }
+}
+void petabricks::RIRRawStmt::print(std::ostream& o, RIRVisitor* v) {
+  o << _src;
+}
 
 namespace{
   template<typename T>
@@ -164,6 +196,11 @@ std::string petabricks::RIRNode::debugStr() const {
 }
 std::string petabricks::RIRExpr::debugStr() const { 
   return typeStr() + std::string(" ") + _str;
+}
+
+bool petabricks::RIRBlockStmt::containsLeaf(const char* val) const{
+  return RIRStmt::containsLeaf(val)
+      || _block->containsLeaf(val);
 }
 
 

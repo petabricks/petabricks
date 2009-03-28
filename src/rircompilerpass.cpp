@@ -23,43 +23,110 @@
 #include "rule.h"
 
 void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
-  if(s->containsLeaf("SYNC")){
-    o.comment("SYNC();");
-    o.continuationRequired("petabricks::sync_hook(_completion, ");
-  }else if(s->containsLeaf("CALL")){
-    o.write(s->toString()); 
-    o.comment("SYNC(); // forced because of CALL");
-    o.continuationRequired("petabricks::sync_hook(_completion, ");
-  }else if(s->containsLeaf("SPAWN")){
-    o.write(s->toString()); 
-    o.continuationPoint();
-  }else{ 
-    o.write(s->toString()); 
+  switch(s->type()){
+  case RIRNode::STMT_BASIC:
+  case RIRNode::STMT_RAW:
+    if(s->containsLeaf("SYNC")){
+      o.comment("SYNC();");
+      o.continuationRequired("petabricks::sync_hook(_completion, ");
+    }else if(s->containsLeaf("CALL")){
+      o.write(s->toString()); 
+      o.comment("sync forced because of CALL");
+      o.continuationRequired("petabricks::sync_hook(_completion, ");
+    }else if(s->containsLeaf("SPAWN")){
+      o.write(s->toString()); 
+      o.continuationPoint();
+    }else{ 
+      o.write(s->toString()); 
+    }
+    break;
+  case RIRNode::STMT_LOOP:
+  case RIRNode::STMT_COND:
+  case RIRNode::STMT_BLOCK:
+    if(s->containsLeaf("SYNC") || s->containsLeaf("CALL") || s->containsLeaf("SPAWN")){
+      if(s->type() == RIRNode::STMT_COND){
+        const RIRIfStmt& stmt = (const RIRIfStmt&)*s;
+        std::string jthen = o.nextContName("then_");
+        std::string jelse = o.nextContName("else_");
+        std::string jafter = o.nextContName("after_");
+        if(!stmt.elsePart()) jelse=jafter;
+        o.beginIf(stmt.condPart()->toString());
+        o.write("return "+jthen+"();");
+        o.elseIf();
+        o.write("return "+jelse+"();");
+        o.endIf();
+        o.endFunc();
+        o.beginFunc("petabricks::DynamicTaskPtr", jthen);
+        stmt.thenPart()->extractBlock()->accept(*this);
+        o.write("return "+jafter+"();");
+        o.endFunc();
+        if(stmt.elsePart()){
+          o.beginFunc("petabricks::DynamicTaskPtr", jelse);
+          stmt.elsePart()->extractBlock()->accept(*this);
+          o.write("return "+jafter+"();");
+          o.endFunc();
+        }
+        o.beginFunc("petabricks::DynamicTaskPtr", jafter);
+      }else{
+        o.write(s->toString()); 
+      }
+    }else{
+      o.write(s->toString()); 
+    }
+    break;
+  case RIRNode::STMT_SWITCH:
+  case RIRNode::STMT_BREAKCONTINUE:
+  default:
+    UNIMPLEMENTED()(s->typeStr());
   }
 }
 
 
 void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
   if(e->type() == RIRNode::EXPR_IDENT){
-    RIRSymbolPtr sym = RIRScope::global()->lookup(e->toString());
-    if(sym && sym->isType()){
-      if(!hasExprBackward() && peekExprForward()->type()==RIRNode::EXPR_IDENT){
+    RIRSymbolPtr sym = _scope->lookup(e->toString());
+    if(sym && sym->hasReplacement() && sym->replacement()!=e->toString()){
+      JTRACE("LIFTVAR - replace")(e->toString())(sym->replacement());
+      e = new RIRIdentExpr(sym->replacement());
+      before(e); 
+      return;
+    }else if(sym && sym->isType()){
+      if(!hasExprBackward() && hasExprForward() && peekExprForward()->type()==RIRNode::EXPR_IDENT){
         std::string name = peekExprForward()->toString();
+        std::string nameExtra = "";
+        std::string nameMangled = prefix() + name;
         std::string type = e->toString();
         e = NULL;
-        pushExprBackward(popExprForward().asPtr());//scroll forward 1
+        popExprForward(); //scroll past name
+        pushExprBackward(new RIRIdentExpr(nameMangled));
         if(hasExprForward()){
           JASSERT(!peekExprForward()->isLeaf(",")).Text("list style initializers not yet supported");
           if(peekExprForward()->isLeaf("[")){
             while(!peekExprForward()->isLeaf("]")){ 
-              name += popExprForward()->toString();
+              nameExtra += popExprForward()->toString();
             }
-            name += popExprForward()->toString();
+            nameExtra += popExprForward()->toString();
           }
         }
-        o.addMember(type, name, "");
+        _scope->set(name, new RIRSymbol(RIRSymbol::SYM_LOCAL_VAR, nameMangled));
+        _scope->set(nameMangled, new RIRSymbol(RIRSymbol::SYM_LOCAL_VAR));
+        o.addMember(type, nameMangled+nameExtra, "");
+        JTRACE("LIFTVAR - decl")(name)(nameMangled);
       }
+    }else{
+      //JTRACE("LIFTVAR - unknown")(e->toString())(sym);
     }
+  }
+}
+
+void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
+  if(s->type() != RIRNode::STMT_BLOCK 
+    && depth()>=2 
+    && parentNode()->isControl()){
+    // add {}'s to sloppy ifs() and loops
+    RIRBlockCopyRef tmp = new RIRBlock();
+    tmp->addStmt(s);
+    s=new RIRBlockStmt(tmp);
   }
 }
   

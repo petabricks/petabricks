@@ -19,6 +19,10 @@
  ***************************************************************************/
 #include "codegenerator.h"
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 std::stringstream& petabricks::CodeGenerator::theFilePrefix() { 
   static std::stringstream t; 
   return t; 
@@ -281,21 +285,27 @@ void petabricks::CodeGenerator::addMember(const std::string& type, const std::st
   }
 }
 
+std::string petabricks::CodeGenerator::nextContName(const std::string& base){
+  return base+"cont_" + jalib::XToString(_contCounter++);
+}
+
 void petabricks::CodeGenerator::continuationPoint(){
+#ifndef DISABLE_CONTINUATIONS
   std::string n = "cont_" + jalib::XToString(_contCounter++);
   beginIf("useContinuation()");
-  write("return new petabricks::MethodCallTask<"+_curClass+">(this, &"+_curClass+"::"+n+");"); 
+  write("return new petabricks::MethodCallTask<"+_curClass+", &"+_curClass+"::"+n+">( this );"); 
   elseIf();
   write("return "+n+"();"); 
   endIf();
   endFunc();
   beginFunc("DynamicTaskPtr", n);
+#endif
 }
 
 void petabricks::CodeGenerator::continuationRequired(const std::string& hookname){
   std::string n = "cont_" + jalib::XToString(_contCounter++);
   newline();
-  write("return "+hookname+" new petabricks::MethodCallTask<"+_curClass+">(this, &"+_curClass+"::"+n+"));"); 
+  write("return "+hookname+" new petabricks::MethodCallTask<"+_curClass+", &"+_curClass+"::"+n+">(this));"); 
   endFunc();
   beginFunc("DynamicTaskPtr", n);
 }

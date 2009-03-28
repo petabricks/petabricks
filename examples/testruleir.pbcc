@@ -1,4 +1,8 @@
 
+transform Nil from A to B {
+  to(B a) from() { a=0; }
+}
+
 transform TestRuleIR from IN[w,h] to OUT[w,h] 
 {
   OUT.cell(x,y) from(IN.cell(x,y)     i,
@@ -8,6 +12,8 @@ transform TestRuleIR from IN[w,h] to OUT[w,h]
      return i+upleft;
     else 
     { 
+      ElementT t;
+      SPAWN(Nil, t, t);
       int x=1;
       return 0; 
     }

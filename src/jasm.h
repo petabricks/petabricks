@@ -31,18 +31,25 @@
 # include <stdint.h>
 #endif
 
+
 namespace jalib {
+
+typedef volatile long AtomicT;
 
 #if defined(__i386__) || defined(__x86_64__)
 /**
  * Thread safe add, returns new value
  */
-template<long v> long atomicAdd(volatile long *p)
-{
+template<long v> long atomicAdd(AtomicT *p){
   long r;
   asm volatile ("lock; xadd %0, %1" : "=r"(r), "=m"(*p) : "0"(v), "m"(*p) : "memory");
   return r+v;
 }
+
+inline void atomicIncrement(AtomicT *p){ atomicAdd<1>(p); }
+inline void atomicDecrement(AtomicT *p){ atomicAdd<-1>(p); }
+inline long atomicIncrementReturn(AtomicT *p){ return atomicAdd<1>(p); }
+inline long atomicDecrementReturn(AtomicT *p){ return atomicAdd<-1>(p); }
 
 /**
  * Break into debugger
@@ -76,7 +83,7 @@ cas(volatile long *m, long old_val, long new_val)
 	return new_val == old_val;
 }
 
-template<long v> long atomicAdd(volatile long *p)
+template<long v> long atomicAdd(AtomicT *p)
 {
   long new_val, old_val;
   do {
@@ -86,6 +93,11 @@ template<long v> long atomicAdd(volatile long *p)
   
   return new_val;
 }
+
+inline void atomicIncrement(AtomicT *p){ atomicAdd<1>(p); }
+inline void atomicDecrement(AtomicT *p){ atomicAdd<-1>(p); }
+inline long atomicIncrementReturn(AtomicT *p){ return atomicAdd<1>(p); }
+inline long atomicDecrementReturn(AtomicT *p){ return atomicAdd<-1>(p); }
 
 /**
  * Break into debugger
