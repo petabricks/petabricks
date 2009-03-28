@@ -105,6 +105,7 @@ int main( int argc, const char ** argv){
   }
   o.endIf();
   o.write("int rv = runtime.runMain(argc,argv);");
+  o.write("runtime.~PetabricksRuntime();");
   o.write("_exit(rv);");
   o.write("return rv;");
   o.endFunc();
