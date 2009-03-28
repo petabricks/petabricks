@@ -89,7 +89,7 @@ private:
 #if 0
     DynamicTask *pop() {
 
-      if (_h == _t) {
+      if (isEmpty() {
         return NULL;
       }
 
@@ -105,7 +105,7 @@ private:
 
     DynamicTask *pop_bottom() {
 
-      if ( _h == _t || !_lock.trylock()) {
+      if (isEmpty() || !_lock.trylock()) {
         return NULL;
       }
 
@@ -125,7 +125,7 @@ private:
 
     DynamicTask *pop() {
 
-      if (_h == _t) {
+      if (isEmpty()) {
         return NULL;
       }
 
@@ -150,7 +150,7 @@ private:
 
     DynamicTask *pop_bottom() {
 
-      if (_h == _t || !_lock.trylock()) {
+      if (isEmpty() || !_lock.trylock()) {
         return NULL;
       }
 
@@ -174,8 +174,17 @@ private:
 
     void clear() {
       JLOCKSCOPE(_lock);
+
+      for (int i = _h; i < _t; i++) {
+        _array[i]->runWrapper(true);
+      }
+
       _h = 0;
       _t = 0;
+    }
+
+    bool isEmpty() {
+      return _h == _t;
     }
 
   };
@@ -232,6 +241,10 @@ private:
     void clear() {
       _deque.clear();
       _cont_deque.clear();
+    }
+
+    bool isEmpty() {
+      return _deque.isEmpty() && _deque.isEmpty();
     }
 
    private:
@@ -295,10 +308,6 @@ public:
     if (task == NULL) {
       int stealTaskStack = taskStacks[tid()].nextTaskStack(numOfWorkers + 1);
       task = taskStacks[stealTaskStack].steal();
-
-      if (task) {
-        JASSERT(task->state == DynamicTask::S_READY);
-      }
     }
 
 #ifndef GRACEFUL_ABORT
@@ -309,7 +318,6 @@ public:
     } else {
       JLOCKSCOPE(theAbortingLock);
       if(isAborting()) {
-        //taskStacks[tid()].clear();
         throw AbortException();
       } else {
         return 0;
@@ -320,6 +328,10 @@ public:
 
   int workers() {
     return numOfWorkers;
+  }
+
+  void clearPrivateTaskStack() {
+    taskStacks[tid()].clear();
   }
 
 
