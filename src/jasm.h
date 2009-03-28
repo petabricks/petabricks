@@ -68,6 +68,18 @@ inline void loadFence() {
   asm __volatile__ ("mfence" : : : "memory");
 }
 
+inline void memFence() {
+  asm __volatile__ ("mfence" : : : "memory");
+}
+
+
+inline void staticMemFence(void)
+{
+  asm __volatile__ ("":::"memory");
+}
+
+
+
 /**
  * Returns the number of clock cycles that have passed since the machine
  * booted up.
@@ -138,23 +150,6 @@ inline uint64_t ClockCyclesSinceBoot()
   asm volatile ("rd %%tick, %0" : "=r"(t));
   return t;
 
-}
-
-inline void storeFence(void) {
-  asm __volatile__("sfence;":::"memory");
-}
-
-inline void loadFence(void) {
-  asm __volatile__("lfence;":::"memory");
-}
-
-inline void memFence(void) {
-  asm __volatile__("mfence;":::"memory");
-}
-
-inline void staticMemFence(void)
-{
-  asm __volatile__ ("":::"memory");
 }
 
 #else
