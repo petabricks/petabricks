@@ -86,7 +86,7 @@ private:
       }
     }
 
-#if 1
+#if 0
     DynamicTask *pop() {
 
       if (_h == _t) {
@@ -121,12 +121,6 @@ private:
       return retVal;
     }
 
-    void clear() {
-      JLOCKSCOPE(_lock);
-      _h = 0;
-      _t = 0;
-    }
-
 #else
 
     DynamicTask *pop() {
@@ -135,12 +129,7 @@ private:
         return NULL;
       }
 
-      long t = _t - 1;
-      DynamicTask *retVal = _array[t];
-
-      jalib::loadFence();
-
-      _t = t;
+      _t--;
 
       jalib::loadFence();
 
@@ -155,7 +144,7 @@ private:
           return _array[_t];
         }
       } else {
-        return retVal;
+        return _array[_t];
       }
     }
 
@@ -165,12 +154,7 @@ private:
         return NULL;
       }
 
-      long h = _h;
-      DynamicTask *retVal = _array[h];
-
-      jalib::loadFence();
-
-      _h = h + 1;
+      _h++;
 
       jalib::loadFence();
 
@@ -180,11 +164,20 @@ private:
         return NULL;
       }
 
+      DynamicTask *task = _array[_h - 1];
+
       _lock.unlock();
 
-      return retVal;
+      return task;
     }
 #endif
+
+    void clear() {
+      JLOCKSCOPE(_lock);
+      _h = 0;
+      _t = 0;
+    }
+
   };
 
   class TaskStack {
