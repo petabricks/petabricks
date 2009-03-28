@@ -51,24 +51,35 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
         std::string jafter = o.nextContName("after_");
         if(!stmt.elsePart()) jelse=jafter;
         o.beginIf(stmt.condPart()->toString());
-        o.write("return "+jthen+"();");
+        o.continueJump(jthen);
         o.elseIf();
-        o.write("return "+jelse+"();");
+        o.continueJump(jelse);
         o.endIf();
-        o.endFunc();
-        o.beginFunc("petabricks::DynamicTaskPtr", jthen);
+        o.continueLabel(jthen);
         stmt.thenPart()->extractBlock()->accept(*this);
-        o.write("return "+jafter+"();");
-        o.endFunc();
+        o.continueJump(jafter);
         if(stmt.elsePart()){
-          o.beginFunc("petabricks::DynamicTaskPtr", jelse);
+          o.continueLabel(jelse);
           stmt.elsePart()->extractBlock()->accept(*this);
-          o.write("return "+jafter+"();");
-          o.endFunc();
         }
-        o.beginFunc("petabricks::DynamicTaskPtr", jafter);
+        o.continueLabel(jafter);
+      }else if(s->type() == RIRNode::STMT_LOOP){
+        const RIRLoopStmt& stmt = (const RIRLoopStmt&)*s;
+        std::string jbody = o.nextContName("loopbody_");
+        std::string jafter = o.nextContName("after_");
+        o.write(stmt.declPart()->toString()+";");
+        o.continueLabel(jbody);
+        o.beginIfNot(stmt.testPart()->toString());
+        o.continueJump(jafter);
+        o.endIf();
+        stmt.body()->extractBlock()->accept(*this);
+        o.write(stmt.incPart()->toString()+";");
+        o.continueJump(jbody);
+        o.continueLabel(jafter);
+      }else if(s->type() == RIRNode::STMT_BLOCK){
+        o.write(s->extractBlock()->toString()); 
       }else{
-        o.write(s->toString()); 
+        UNIMPLEMENTED();
       }
     }else{
       o.write(s->toString()); 
