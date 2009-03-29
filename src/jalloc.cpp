@@ -207,10 +207,10 @@ private:
   }
 };
                                                                                                     
-typedef JThreadAlloc< JFixedAllocStack<64   , 1024*64  , 0> > lvl0;
-typedef JThreadAlloc< JFixedAllocStack<192  , 1024*256 , 1> > lvl1;
-typedef JThreadAlloc< JFixedAllocStack<512  , 1024*8   , 2> > lvl2;
-typedef JThreadAlloc< JFixedAllocStack<1024 , 1024*8   , 3> > lvl3;
+typedef JThreadAlloc< JFixedAllocStack<32   , 1024*16  , 0> > lvl0;
+typedef JThreadAlloc< JFixedAllocStack<64   , 1024*32  , 1> > lvl1;
+typedef JThreadAlloc< JFixedAllocStack<128  , 1024*32  , 2> > lvl2;
+typedef JThreadAlloc< JFixedAllocStack<256  , 1024*32  , 3> > lvl3;
 typedef JThreadAlloc< JFixedAllocStack<2048 , 1024*8   , 4> > lvl4;
 typedef JThreadAlloc< JFixedAllocStack<4096 , 1024*8   , 5> > lvl5;
 
