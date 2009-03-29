@@ -98,12 +98,15 @@ def autotune(choice, trials, min, max):
 
 def getIgnoreList():
 
-  f = open(app + ".ignore")
   try:
-    for line in f:
-      ignore_list.append(line.replace("\n", ""))
-  finally:
-    f.close()
+    f = open(app + ".ignore")
+    try:
+      for line in f:
+        ignore_list.append(line.replace("\n", ""))
+    finally:
+      f.close()
+  except:
+    pass
 
 
 
