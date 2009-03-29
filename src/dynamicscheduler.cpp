@@ -47,7 +47,8 @@ int tid() {
 static petabricks::DynamicScheduler *_dsPtr = NULL;
 
 static void sigAlarmHandler(int signal) {
-  fprintf(stderr, "  TIMED OUT!\n");
+  printf("  TIMED OUT!\n");
+  fflush(stdout);
   _dsPtr->setAbortFlag();
 }
 
@@ -71,7 +72,7 @@ DynamicScheduler::DynamicScheduler()
   // Register abort handler
   signal(SIGALRM, sigAlarmHandler);
 
-  numOfWorkers  = 0;
+  numOfWorkers  = 1; //main thread counts as a worker
   workerThreads = new pthread_t[MAX_NUM_WORKERS];
 #ifdef GRACEFUL_ABORT
   numAbortedThreads = 0;
@@ -85,14 +86,14 @@ DynamicScheduler::~DynamicScheduler()
 }
 
 
-void DynamicScheduler::startWorkerThreads(int newWorkers)
+void DynamicScheduler::startWorkerThreads(int total)
 {
-  // allocat and spawn a certain number of thread
-  for(int i = 0; i < newWorkers; i++) {
-    JASSERT(pthread_create(&workerThreads[numOfWorkers + i], NULL, workerStartup, (void *)this) == 0);
+  JASSERT(numOfWorkers <= total)(numOfWorkers)(total);
+  for(int i = numOfWorkers; i < total; i++) {
+    JASSERT(pthread_create(&workerThreads[numOfWorkers++ - 1], NULL, workerStartup, (void *)this) == 0);
+    JTRACE("started worker")(total)(numOfWorkers);
   }
-  numOfWorkers += newWorkers;
-  JTRACE("start worker threads")(numOfWorkers);
+  JASSERT(numOfWorkers == total)(numOfWorkers)(total);
 }
 
 
@@ -141,6 +142,11 @@ void DynamicScheduler::setAbortFlag() {
     theIsAborting=true;
     JTRACE("Aborting!")(numOfWorkers);
   }
+}
+
+void DynamicScheduler::resetAbortFlag() {
+  JLOCKSCOPE(theAbortingLock);
+  theIsAborting=false;
 }
 
 void DynamicScheduler::abortBegin() {

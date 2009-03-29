@@ -71,9 +71,11 @@ static int SEARCH_BRANCH_FACTOR=8;
 static bool MULTIGRID_FLAG=false;
 static bool FULL_MULTIGRID_FLAG=false;
 
+JTUNABLE(worker_threads,   8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
+
+petabricks::DynamicScheduler* petabricks::PetabricksRuntime::scheduler = NULL;
 
 namespace{//file local
-
 
 typedef jalib::JTunableManager TunableManager;
 
@@ -93,7 +95,7 @@ public:
     try{
       _main.compute();
     }catch(petabricks::DynamicScheduler::AbortException e){
-      petabricks::DynamicTask::scheduler->abortEnd();
+      petabricks::PetabricksRuntime::scheduler->abortEnd();
       return std::numeric_limits<double>::max();
     }
 #endif
@@ -111,6 +113,8 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   : _main(m)
   , _randSize(4096)
 {
+  JASSERT(scheduler==NULL);
+  scheduler = new DynamicScheduler();
   JASSERT(m!=NULL);
   _mainName = m->name();
   //load config from disk
@@ -236,11 +240,12 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
     }else if(strcmp(argv[0],"--graph-param")==0 || strcmp(argv[0],"--graph-tune")==0){
       JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
       graphParam = argv[1];
-      if(strcmp(argv[1], "tunerNumOfWorkers") == 0)
+      if(strcmp(argv[1], "worker_threads") == 0)
       isGraphParallelMode = true;
       shift;
       shift;
     }else if(strcmp(argv[0],"--graph-parallel")==0){
+      worker_threads.setValue(1);
       JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
       isGraphParallelMode = true;
       shift;
@@ -266,6 +271,9 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
       break;
     }
   }
+
+  JASSERT(worker_threads>=1)(worker_threads);
+  scheduler->startWorkerThreads(worker_threads);
 
   if(isGraphMode){
     runGraphMode();
@@ -397,7 +405,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
       JTIMER_SCOPE(compute);
       main.compute();
     }catch(petabricks::DynamicScheduler::AbortException e){
-      petabricks::DynamicTask::scheduler->abortEnd();
+      scheduler->abortEnd();
       JWARNING(false).Text("PetabricksRuntime::abort() called");
       return 5;
     }
@@ -436,15 +444,11 @@ void petabricks::PetabricksRuntime::runGraphParamMode(const std::string& param){
 }
 
 void petabricks::PetabricksRuntime::runGraphParallelMode() {
-  jalib::JTunable* tunable = jalib::JTunableManager::instance().getReverseMap()[std::string("tunerNumOfWorkers")];
-  JASSERT(tunable!=0).Text("parameter tunerNumOfWorkers not found");
-  GRAPH_MIN = std::max(GRAPH_MIN, tunable->min());
-  GRAPH_MAX = std::min(GRAPH_MAX, tunable->max());
+  GRAPH_MIN = std::max(GRAPH_MIN, worker_threads.min());
+  GRAPH_MAX = std::min(GRAPH_MAX, worker_threads.max());
   for(int n = GRAPH_MIN; n <= GRAPH_MAX; n+= GRAPH_STEP) {
-    tunable->setValue(n);
-    // do not setup at the first time
-    if(DynamicTask::scheduler != NULL && n != GRAPH_MIN)
-      DynamicTask::scheduler->startWorkerThreads(GRAPH_STEP);
+    worker_threads.setValue(n);
+    scheduler->startWorkerThreads(worker_threads);
     double avg = runTrial();
     printf("%d %.6lf\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;
@@ -470,6 +474,7 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
 #ifdef GRACEFUL_ABORT
         // Set up a time out so we don't waste time running things that are
         // slower than what we have seen already.
+        scheduler->resetAbortFlag();
         if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
           alarm((unsigned int) thresh + 1);
         }
@@ -500,7 +505,7 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
     return rslts[GRAPH_SMOOTHING];
 #ifdef GRACEFUL_ABORT
   }catch(petabricks::DynamicScheduler::AbortException e){
-    petabricks::DynamicTask::scheduler->abortEnd();
+    scheduler->abortEnd();
     return std::numeric_limits<double>::max();
   }
 #endif
@@ -691,7 +696,7 @@ void petabricks::PetabricksRuntime::setIsTrainingRun(bool b){
 
 void petabricks::PetabricksRuntime::abort(){
 #ifdef GRACEFUL_ABORT
-  DynamicTask::scheduler->abortBegin();
+  scheduler->abortBegin();
 #else
   JASSERT(false).Text("PetabricksRuntime::abort() called");
 #endif

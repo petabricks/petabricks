@@ -73,10 +73,6 @@ public:
   /// either enqueue or inline the task
   void inlineOrEnqueueTask();
 
-  ///
-  /// Scheduler for scheduling the dynamic tasks
-  static DynamicScheduler *scheduler;
-
  protected:
 
   ///

@@ -22568,7 +22568,7 @@ _ACEOF
 
 
 cat >>confdefs.h <<\_ACEOF
-#define MIN_NUM_WORKERS 0
+#define MIN_NUM_WORKERS 1
 _ACEOF
 
 

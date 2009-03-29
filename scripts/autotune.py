@@ -7,7 +7,7 @@ Usage: ./autotune.py <options> <program>
 Options:
   -p             Number of threads to target 
                    - Must be greater than 1
-                   - Default is tunerNumOfWorkers + 1 (from config file)
+                   - Default is worker_threads + 1 (from config file)
   -n, --random   Size of random data to optimize on
                    - Default is 100000
   --min          Min size to autotune on
@@ -145,7 +145,7 @@ def main(argv):
       sys.exit(0)
     if o == "-p":
       num_threads = int(a)
-      setConfigVal("tunerNumOfWorkers", num_threads - 1)
+      setConfigVal("worker_threads", num_threads - 1)
     if o in ["-n", "--random"]:
       data_size = int(a)
     if o == "--min":
@@ -155,7 +155,7 @@ def main(argv):
 
   # process arguments
   if num_threads == -1:
-    num_threads = int(getConfigVal("tunerNumOfWorkers")) + 1
+    num_threads = int(getConfigVal("worker_threads")) + 1
 
   getIgnoreList()
 
