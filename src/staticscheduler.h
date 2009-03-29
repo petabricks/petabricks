@@ -141,9 +141,11 @@ public:
 
   bool isInput() const { return _isInput; }
   void markInput(){ _isInput=true; }
+  void markLast(){ _isLast=true; }
 protected:
   int _id;
   bool _isInput;
+  bool _isLast;
   ScheduleDependencies _directDepends;
   ScheduleDependencies _indirectDepends;
 };

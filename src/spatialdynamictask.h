@@ -56,6 +56,10 @@ public:
     return *this;
   }
 
+
+  SpatialTaskList* operator->() { return this; }
+  const SpatialTaskList* operator->() const { return this; }
+
   ///
   /// Split the task into smaller tasks
   void spatialSplit(int dim, int n);
