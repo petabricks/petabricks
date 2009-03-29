@@ -153,6 +153,12 @@ public:
   void constructorBody(const std::string& s){_curConstructorBody=s;}
 
   void staticMember() { hos() << "static "; }
+
+  void withEachMember(const std::string& type, const std::string& code){
+    for(size_t i=0; i<_curMembers.size(); ++i)
+      if(_curMembers[i].type == type)
+        write(_curMembers[i].name+code+";");
+  }
 protected:
   void indent();
   virtual std::ostream& os() = 0;

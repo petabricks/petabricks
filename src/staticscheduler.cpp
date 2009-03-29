@@ -171,6 +171,7 @@ void petabricks::StaticScheduler::generateCodeDynamic(Transform& trans, CodeGene
   o.write("DynamicTaskPtr  _fini = new NullDynamicTask();");
   for(ScheduleNodeSet::iterator i=_goals.begin(); i!=_goals.end(); ++i)
     o.write("_fini->dependsOn(" + (*i)->nodename() + ".completionTask());");
+  o.withEachMember("SpatialTaskList", ".clear()");
   o.write("return _fini;");
 }
 void petabricks::StaticScheduler::generateCodeStatic(Transform& trans, CodeGenerator& o){
