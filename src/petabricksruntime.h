@@ -28,11 +28,19 @@
 
 namespace petabricks {
 
+class DynamicScheduler;
+
 class PetabricksRuntime{
 public:
   /**
    * Interface used to construct a main routine in generated code
    */
+
+  ///
+  /// Scheduler for scheduling the dynamic tasks
+  static DynamicScheduler *scheduler;
+
+
   typedef class __usr_main_interface{
   public:
 

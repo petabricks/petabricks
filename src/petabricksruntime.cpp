@@ -71,9 +71,11 @@ static int SEARCH_BRANCH_FACTOR=8;
 static bool MULTIGRID_FLAG=false;
 static bool FULL_MULTIGRID_FLAG=false;
 
+JTUNABLE(tunerNumOfWorkers,   8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
+
+petabricks::DynamicScheduler* petabricks::PetabricksRuntime::scheduler = NULL;
 
 namespace{//file local
-
 
 typedef jalib::JTunableManager TunableManager;
 
@@ -93,7 +95,7 @@ public:
     try{
       _main.compute();
     }catch(petabricks::DynamicScheduler::AbortException e){
-      petabricks::DynamicTask::scheduler->abortEnd();
+      petabricks::PetabricksRuntime::scheduler->abortEnd();
       return std::numeric_limits<double>::max();
     }
 #endif
@@ -267,6 +269,12 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
     }
   }
 
+#ifndef PBCC_SEQUENTIAL
+  // allocate scheduler when the first task is created
+  scheduler = new DynamicScheduler();
+  scheduler->startWorkerThreads(tunerNumOfWorkers);
+#endif
+
   if(isGraphMode){
     runGraphMode();
     return 0;
@@ -397,7 +405,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
       JTIMER_SCOPE(compute);
       main.compute();
     }catch(petabricks::DynamicScheduler::AbortException e){
-      petabricks::DynamicTask::scheduler->abortEnd();
+      scheduler->abortEnd();
       JWARNING(false).Text("PetabricksRuntime::abort() called");
       return 5;
     }
@@ -443,8 +451,8 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
   for(int n = GRAPH_MIN; n <= GRAPH_MAX; n+= GRAPH_STEP) {
     tunable->setValue(n);
     // do not setup at the first time
-    if(DynamicTask::scheduler != NULL && n != GRAPH_MIN)
-      DynamicTask::scheduler->startWorkerThreads(GRAPH_STEP);
+    if(n != GRAPH_MIN)
+      scheduler->startWorkerThreads(GRAPH_STEP);
     double avg = runTrial();
     printf("%d %.6lf\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;
@@ -470,6 +478,7 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
 #ifdef GRACEFUL_ABORT
         // Set up a time out so we don't waste time running things that are
         // slower than what we have seen already.
+        scheduler->resetAbortFlag();
         if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
           alarm((unsigned int) thresh + 1);
         }
@@ -500,7 +509,7 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
     return rslts[GRAPH_SMOOTHING];
 #ifdef GRACEFUL_ABORT
   }catch(petabricks::DynamicScheduler::AbortException e){
-    petabricks::DynamicTask::scheduler->abortEnd();
+    scheduler->abortEnd();
     return std::numeric_limits<double>::max();
   }
 #endif
@@ -691,7 +700,7 @@ void petabricks::PetabricksRuntime::setIsTrainingRun(bool b){
 
 void petabricks::PetabricksRuntime::abort(){
 #ifdef GRACEFUL_ABORT
-  DynamicTask::scheduler->abortBegin();
+  scheduler->abortBegin();
 #else
   JASSERT(false).Text("PetabricksRuntime::abort() called");
 #endif
