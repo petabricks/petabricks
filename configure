@@ -22579,6 +22579,10 @@ _ACEOF
 
 
 
+cat >>confdefs.h <<\_ACEOF
+#define JALIB_ALLOCATOR 1
+_ACEOF
+
 
 if false; then
   #disabled by default:
@@ -22589,17 +22593,12 @@ _ACEOF
 
 
 cat >>confdefs.h <<\_ACEOF
-#define JALIB_ALLOCATOR 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define JALIB_USE_MALLOC /**/
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
 #define DISABLE_CONTINUATIONS /**/
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define JALIB_USE_MALLOC 1
 _ACEOF
 
 fi

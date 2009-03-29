@@ -57,7 +57,7 @@ private:
       DynamicTask **_array;
       long _h; // head index
       jalib::JMutex _lock;
-      char padding[56];
+      PADDING(CACHE_LINE_SIZE);
       long _t; // tail index
 
     public:
@@ -191,11 +191,11 @@ private:
 
   class TaskStack {
 
-    char _prePadding[CACHE_LINE_SIZE];
+    PADDING(CACHE_LINE_SIZE);
     Deque _deque;
     Deque _cont_deque;
     struct { int z; int w; } _randomNumState;
-    char _postPadding[CACHE_LINE_SIZE];
+    PADDING(CACHE_LINE_SIZE);
 
    public:
 

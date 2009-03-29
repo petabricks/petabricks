@@ -158,9 +158,9 @@ public:
     ++_refCount;
   }
 private:
-  char pre_padding[56];
+  //PADDING(56);
   mutable jalib::AtomicT _refCount;
-  char post_padding[64];
+  //PADDING(64-sizeof(jalib::AtomicT));
 };
 
 /**

@@ -124,7 +124,7 @@ public:
 
   bool isContinuation;
 
-  char __post_padding[64];
+  //PADDING(64);
 
   friend class DynamicScheduler;
 };
@@ -133,7 +133,7 @@ class NullDynamicTask : public DynamicTask {
 public:
   DynamicTaskPtr run(){ return 0; }
   bool isNullTask() const { return true; }
-  char __post_padding[64];
+  //PADDING(64);
 };
 
 
@@ -148,7 +148,7 @@ public:
   }
 private:
   jalib::JRef<T> _obj;
-  char __post_padding[64];
+  //PADDING(64);
 };
 
 }
