@@ -47,8 +47,7 @@ int tid() {
 static petabricks::DynamicScheduler *_dsPtr = NULL;
 
 static void sigAlarmHandler(int signal) {
-  printf("  TIMED OUT!\n");
-  fflush(stdout);
+  fprintf(stderr, "  TIMED OUT!\n");
   _dsPtr->setAbortFlag();
 }
 
@@ -142,11 +141,6 @@ void DynamicScheduler::setAbortFlag() {
     theIsAborting=true;
     JTRACE("Aborting!")(numOfWorkers);
   }
-}
-
-void DynamicScheduler::resetAbortFlag() {
-  JLOCKSCOPE(theAbortingLock);
-  theIsAborting=false;
 }
 
 void DynamicScheduler::abortBegin() {

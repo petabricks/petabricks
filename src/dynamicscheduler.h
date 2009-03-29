@@ -345,7 +345,6 @@ public:
   void abortEnd();
   void abortWait();
   void setAbortFlag();
-  void resetAbortFlag();
 #endif
 protected:
   ///

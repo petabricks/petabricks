@@ -17,7 +17,6 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "petabricksruntime.h"
 #include "dynamictask.h"
 #include "dynamicscheduler.h"
 #include "jasm.h"
@@ -31,9 +30,11 @@
 #define MIN_INLINE_TASK_SIZE  1
 #define MAX_INLINE_TASK_SIZE  65536
 
+JTUNABLE(tunerNumOfWorkers,   8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
 
 namespace petabricks {
 
+DynamicScheduler *DynamicTask::scheduler = NULL;
 size_t            DynamicTask::firstSize = 0;
 size_t            DynamicTask::maxSize   = 0;
 
@@ -46,6 +47,13 @@ DynamicTask::DynamicTask(bool isCont)
   isContinuation = isCont;
   continuation = NULL;
 
+#ifndef PBCC_SEQUENTIAL
+  // allocate scheduler when the first task is created
+  if(scheduler == NULL) {
+    scheduler = new DynamicScheduler();
+    scheduler->startWorkerThreads(tunerNumOfWorkers);
+  }
+#endif
 }
 
 
@@ -174,7 +182,7 @@ void DynamicTask::waitUntilComplete()
   while(state != S_COMPLETE && state!= S_CONTINUED) {
     lock.unlock();
     // get a task for execution
-    PetabricksRuntime::scheduler->popAndRunOneTask(false);
+    scheduler->popAndRunOneTask(false);
     lock.lock();
   }
   lock.unlock();
@@ -192,7 +200,7 @@ void DynamicTask::inlineOrEnqueueTask()
 #endif
   {
     JASSERT(this->state == S_READY);
-    PetabricksRuntime::scheduler->enqueue(this);
+    scheduler->enqueue(this);
   }
 }
 
