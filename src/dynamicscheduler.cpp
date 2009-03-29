@@ -47,7 +47,7 @@ int tid() {
 static petabricks::DynamicScheduler *_dsPtr = NULL;
 
 static void sigAlarmHandler(int signal) {
-  printf("  TIMED OUT!\n");
+  fprintf(stderr, "  TIMED OUT!\n");
   _dsPtr->setAbortFlag();
 }
 
