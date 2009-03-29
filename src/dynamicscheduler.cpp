@@ -89,11 +89,8 @@ DynamicScheduler::~DynamicScheduler()
 void DynamicScheduler::startWorkerThreads(int total)
 {
   JASSERT(numOfWorkers <= total)(numOfWorkers)(total);
-  for(int i = numOfWorkers; i < total; i++) {
+  while(numOfWorkers < total)
     JASSERT(pthread_create(&workerThreads[numOfWorkers++ - 1], NULL, workerStartup, (void *)this) == 0);
-    JTRACE("started worker")(total)(numOfWorkers);
-  }
-  JASSERT(numOfWorkers == total)(numOfWorkers)(total);
 }
 
 
