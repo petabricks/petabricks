@@ -103,11 +103,13 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
       before(e); 
       return;
     }else if(sym && sym->isType()){
-      if(!hasExprBackward() && hasExprForward() && peekExprForward()->type()==RIRNode::EXPR_IDENT){
+      if(!hasExprBackward() && hasExprForward() && (peekExprForward()->type()==RIRNode::EXPR_IDENT || peekExprForward()->isLeaf("*")) ){
+        std::string type = e->toString();
+        while(peekExprForward()->isLeaf("*"))
+          type+=popExprForward()->toString();
         std::string name = peekExprForward()->toString();
         std::string nameExtra = "";
         std::string nameMangled = prefix() + name;
-        std::string type = e->toString();
         e = NULL;
         popExprForward(); //scroll past name
         pushExprBackward(new RIRIdentExpr(nameMangled));
