@@ -135,7 +135,6 @@ AC_DEFINE([MAX_NUM_WORKERS], [64], [max number of workers supported])
 AC_DEFINE([MIN_NUM_WORKERS], [1 ], [min number of workers supported])
 AC_DEFINE([CACHE_LINE_SIZE], [64], [larges cache line size in system])
 
-
 AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
 
 if false; then

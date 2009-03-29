@@ -18,7 +18,11 @@ from Vec1[n1,n1],Vec2[n2,n2], RHO
 to Eigenvalue[n1+n2], Eigenvector[n1+n2,n1+n2], WORK[(n1+n2)*(n1+n2)+4*(n1+n2)]
 {
   to (Eigenvalue eig, Eigenvector vec, WORK work) from (Vec1 q1, Vec2 q2, RHO b) {
-    int i, info,size=n1+n2,cutpnt=n1,nsquared=size*size;
+    int i;
+    int info;
+    int size=n1+n2;
+    int cutpnt=n1;
+    int nsquared=size*size;
     double rho=b;
     double *D = eig.base();
     double *Q = vec.base();

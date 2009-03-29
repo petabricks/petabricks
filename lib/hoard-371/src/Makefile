@@ -29,7 +29,7 @@ SOLARIS_SUNW_x86_COMPILE_32_DEBUG := CC -mt -g -xildoff -xthreadvar=dynamic -L/u
 
 SOLARIS_SUNW_x86_COMPILE_64 := CC -xarch=amd64 -fns -fsimple=2 -ftrap=%none -xbuiltin=%all -xO5 -xildoff -xthreadvar=dynamic -L/usr/lib/lwp -R/usr/lib/lwp -DNDEBUG -I. -Iheaplayers -Iheaplayers/util -D_REENTRANT=1 -G -PIC libhoard.cpp heaplayers/util/x86_64-interchange.il -o libhoard_64.so -lthread -ldl -lCrun
 
-SOLARIS_GCC_SPARC_COMPILE := g++ -nostartfiles -pipe -DNDEBUG -mcpu=ultrasparc -O3 -finline-limit=20000 -fPIC -fkeep-inline-functions -finline-functions -ffast-math -fomit-frame-pointer -I. -Iheaplayers -Iheaplayers/util -D_REENTRANT=1 -shared libhoard.cpp -lthread -lpthread -ldl -o libhoard.so
+SOLARIS_GCC_SPARC_COMPILE := g++ -nostartfiles -pipe -DNDEBUG -mcpu=ultrasparc -O3 -finline-limit=20000 -fPIC -fkeep-inline-functions -finline-functions -ffast-math -fomit-frame-pointer -I. -Iheaplayers -Iheaplayers/util -D_REENTRANT=1 -shared libhoard.cpp -lpthread -ldl -o libhoard.so
 
 SOLARIS_GCC_SPARC_COMPILE_DEBUG := g++ -nostartfiles -pipe -mcpu=ultrasparc -g -fPIC -I. -Iheaplayers -Iheaplayers/util -D_REENTRANT=1 -shared libhoard.cpp -lthread -lpthread -ldl -o libhoard.so
 
