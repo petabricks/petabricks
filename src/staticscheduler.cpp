@@ -168,9 +168,10 @@ void petabricks::StaticScheduler::generateCodeDynamic(Transform& trans, CodeGene
     if(i!=_schedule.begin()) o.continuationPoint();
     (*i)->generateCodeSimple(trans, o, false);
   }
-  o.addMember("DynamicTaskPtr", trans.taskname(), "new NullDynamicTask()");
+  o.write("DynamicTaskPtr  _fini = new NullDynamicTask();");
   for(ScheduleNodeSet::iterator i=_goals.begin(); i!=_goals.end(); ++i)
-    o.write(trans.taskname()+"->dependsOn(" + (*i)->nodename() + ".completionTask());");
+    o.write("_fini->dependsOn(" + (*i)->nodename() + ".completionTask());");
+  o.write("return _fini;");
 }
 void petabricks::StaticScheduler::generateCodeStatic(Transform& trans, CodeGenerator& o){
   JASSERT(_schedule.size()>0);

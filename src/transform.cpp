@@ -362,7 +362,6 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   o.write("return NULL;");
   o.endIf();
   _scheduler->generateCodeDynamic(*this, o);
-  o.write("return "+taskname()+";");
   o.endFunc();
 
   o.beginFunc("void", "runStatic");

@@ -115,12 +115,16 @@ public:
   ///
   /// Return a task depending on all taks in this
   DynamicTaskPtr completionTask(){
-    DynamicTaskPtr tmp = new NullDynamicTask();
-    for(iterator a=begin(); a!=end(); ++a){
-      tmp->dependsOn(a->asPtr());
+    if(size()==1){
+      return front().asPtr();
+    }else{
+      DynamicTaskPtr tmp = new NullDynamicTask();
+      for(iterator a=begin(); a!=end(); ++a){
+        tmp->dependsOn(a->asPtr());
+      }
+      tmp->enqueue();
+      return tmp;
     }
-    tmp->enqueue();
-    return tmp;
   }
 
   operator DynamicTaskPtr () { return completionTask(); };
