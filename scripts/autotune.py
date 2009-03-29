@@ -29,6 +29,7 @@ from xml.dom.minidom import parse
 
 config_tool_path = ""
 app = ""
+parallel_autotune = False
 
 maxint = 2147483647
 
@@ -99,7 +100,10 @@ def getAlgChoices(xml):
 
 def autotune(choice, trials, min, max):
   print "Autotuning:", choice
-  run_command = ["./" + app, "--autotune", choice, "--min", str(min), "--max", str(max), "--trials", str(trials)]
+  if autotune_parallel:
+    run_command = ["./" + app, "--autotune", "--multigrid", choice, "--min", str(min), "--max", str(max), "--trials", str(trials)]
+  else:
+    run_command = ["./" + app, "--autotune", choice, "--min", str(min), "--max", str(max), "--trials", str(trials)]
   #print run_command
   p = subprocess.Popen(run_command, stdout = subprocess.PIPE, stderr =
       subprocess.PIPE)
@@ -139,6 +143,7 @@ def main(argv):
   global config_tool_path
   global app
   global ignore_list
+  global parallel_autotune
 
   config_tool_path = os.path.split(argv[0])[0] + "/configtool.py"
   app = argv[-1]
@@ -148,7 +153,7 @@ def main(argv):
   max = 4096
 
   try:
-    opts, args = getopt.getopt(argv[1:-1], "hn:p:", ["help","random=","min=","max="])
+    opts, args = getopt.getopt(argv[1:-1], "hn:p:", ["help","random=","min=","max=", "parallel_autotune"])
   except getopt.error, msg:
     print "Error.  For help, run:", argv[0], "-h"
     sys.exit(2)
@@ -159,17 +164,15 @@ def main(argv):
       sys.exit(0)
     if o == "-p":
       num_threads = int(a)
-      setConfigVal("worker_threads", num_threads)
     if o in ["-n", "--random"]:
       data_size = int(a)
+    if o == "--parallel_autotune":
+      parallel_autotune = True
     if o == "--min":
       min = int(a)
     if o == "--max":
       max = int(a)
 
-  # process arguments
-  if num_threads == -1:
-    num_threads = int(getConfigVal("worker_threads")) 
 
   getIgnoreList()
 
@@ -181,6 +184,12 @@ def main(argv):
 
   print "Reseting config entries"
   reset()
+
+  # Set worker num
+  if num_threads == -1:
+    num_threads = int(getConfigVal("worker_threads")) 
+  else:
+    setConfigVal("worker_threads", num_threads)
 
   if num_threads == 1:
     print "Tuning", app, "with", num_threads, "thread..."
