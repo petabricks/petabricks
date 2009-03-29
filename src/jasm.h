@@ -31,6 +31,9 @@
 # include <stdint.h>
 #endif
 
+#define __PADDING(n, l) char _padding_ ## l [ n ] ;
+#define _PADDING(n, l) __PADDING(n, l)
+#define PADDING(n) _PADDING(n, __LINE__)
 
 namespace jalib {
 

@@ -22579,17 +22579,16 @@ _ACEOF
 
 
 
+cat >>confdefs.h <<\_ACEOF
+#define JALIB_ALLOCATOR 1
+_ACEOF
+
 
 if false; then
   #disabled by default:
 
 cat >>confdefs.h <<\_ACEOF
 #define JASSERT_LOG /**/
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define JALIB_ALLOCATOR 1
 _ACEOF
 
 
