@@ -7,7 +7,7 @@ Usage: ./autotune.py <options> <program>
 Options:
   -p             Number of threads to target 
                    - Must be greater than 1
-                   - Default is worker_threads + 1 (from config file)
+                   - Default is worker_threads (from config file)
   -n, --random   Size of random data to optimize on
                    - Default is 100000
   --min          Min size to autotune on
@@ -47,6 +47,17 @@ def setConfigVal(key, val):
   p = subprocess.Popen(run_command)
   os.waitpid(p.pid, 0)
 
+def reset():
+  ignore_vals = []
+  for ignore in ignore_list:
+    ignore_vals.append((ignore, getConfigVal(ignore)))
+
+  run_command = ["./" + app, "--reset"]
+  p = subprocess.Popen(run_command)
+  os.waitpid(p.pid, 0)
+
+  for ignores in ignore_vals:
+    setConfigVal(ignores[0], ignores[1])
 
 
 def getTunables(xml, type):
@@ -148,7 +159,7 @@ def main(argv):
       sys.exit(0)
     if o == "-p":
       num_threads = int(a)
-      setConfigVal("worker_threads", num_threads - 1)
+      setConfigVal("worker_threads", num_threads)
     if o in ["-n", "--random"]:
       data_size = int(a)
     if o == "--min":
@@ -158,7 +169,7 @@ def main(argv):
 
   # process arguments
   if num_threads == -1:
-    num_threads = int(getConfigVal("worker_threads")) + 1
+    num_threads = int(getConfigVal("worker_threads")) 
 
   getIgnoreList()
 
@@ -167,6 +178,9 @@ def main(argv):
   except:
     print "Cannot parse:", app + ".info"
     sys.exit(-1)
+
+  print "Reseting config entries"
+  reset()
 
   if num_threads == 1:
     print "Tuning", app, "with", num_threads, "thread..."
@@ -183,7 +197,7 @@ def main(argv):
   for tunable in seq_cutoff_tunables:
     setConfigVal(tunable, maxint)
   for choice in static_choices:
-    autotune(choice, 1, min, max / 5)
+    autotune(choice, 1, min, max / 4)
 
   # Autotune parallel code
   for tunable in seq_cutoff_tunables:

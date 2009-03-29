@@ -55,10 +55,13 @@ private:
     private:
       long _size;
       DynamicTask **_array;
+      PADDING(CACHE_LINE_SIZE);
       long _h; // head index
-      jalib::JMutex _lock;
       PADDING(CACHE_LINE_SIZE);
       long _t; // tail index
+      PADDING(CACHE_LINE_SIZE);
+      jalib::JMutex _lock;
+      PADDING(CACHE_LINE_SIZE);
 
     public:
 
@@ -86,10 +89,9 @@ private:
       }
     }
 
-#if 0
     DynamicTask *pop() {
 
-      if (isEmpty() {
+      if (isEmpty()) {
         return NULL;
       }
 
@@ -121,9 +123,8 @@ private:
       return retVal;
     }
 
-#else
 
-    DynamicTask *pop() {
+    DynamicTask *pop_lock_free() {
 
       if (isEmpty()) {
         return NULL;
@@ -131,7 +132,7 @@ private:
 
       _t--;
 
-      jalib::loadFence();
+      jalib::memFence();
 
       if (_h > _t) {
         _t++;
@@ -148,7 +149,7 @@ private:
       }
     }
 
-    DynamicTask *pop_bottom() {
+    DynamicTask *pop_bottom_lock_free() {
 
       if (isEmpty() || !_lock.trylock()) {
         return NULL;
@@ -156,7 +157,7 @@ private:
 
       _h++;
 
-      jalib::loadFence();
+      jalib::memFence();
 
       if (_h > _t) {
         _h--;
@@ -170,7 +171,6 @@ private:
 
       return task;
     }
-#endif
 
     void clear() {
       JLOCKSCOPE(_lock);
@@ -201,7 +201,7 @@ private:
 
     TaskStack()
     {
-      _randomNumState.z = tid();
+      _randomNumState.z = tid() * tid() * 2;
       _randomNumState.w = tid() + 1;
     }
 
@@ -215,9 +215,9 @@ private:
 
     DynamicTask *pop()
     {
-      DynamicTask *retVal = _deque.pop();
+      DynamicTask *retVal = _deque.pop_lock_free();
       if (retVal == NULL) {
-        retVal = _cont_deque.pop();
+        retVal = _cont_deque.pop_lock_free();
       }
 
       return retVal;
@@ -225,17 +225,17 @@ private:
 
     DynamicTask *steal()
     {
-      DynamicTask *retVal = _cont_deque.pop_bottom();
+      DynamicTask *retVal = _cont_deque.pop_bottom_lock_free();
       if (retVal == NULL) {
-        retVal = _deque.pop_bottom();
+        retVal = _deque.pop_bottom_lock_free();
       }
 
       return retVal;
     }
 
     int nextTaskStack(int numThreads) {
-
-      return (getRandInt() % numThreads);
+      int next = (getRandInt() % numThreads);
+      return next;
     }
 
     void clear() {
@@ -252,7 +252,11 @@ private:
     int getRandInt() {
       _randomNumState.z = 36969 * (_randomNumState.z & 65535) + (_randomNumState.z >> 16);
       _randomNumState.w = 18000 * (_randomNumState.w & 65535) + (_randomNumState.w >> 16);
-      return (_randomNumState.z << 16) + _randomNumState.w;
+      int retVal = (_randomNumState.z << 16) + _randomNumState.w;
+      if (retVal < 0) {
+        retVal = -retVal;
+      }
+      return retVal;
     }
   } __attribute__ ((aligned (64)));
 
@@ -284,15 +288,31 @@ public:
     taskStacks[tid()].push(t);
   }
 
+  int lin_delay(int delay, int step, int min, int max) {
+
+    if (delay > min) {
+      for (int i = 0; i < delay; i++) {
+        pause();
+      }
+    }
+    if (delay < max - step) {
+      delay += step;
+    }
+    return delay;
+  }
 
   ///
   /// blocked until get a task from queue for execution
   DynamicTask *dequeue() {
     DynamicTask *task;
-    do {
+    int delay = 0;
+    while (true) {
       task = tryDequeue();
-    } while (task == NULL);
-    return task;
+      if (task != NULL) {
+        return task;
+      }
+      //delay = lin_delay(delay, 0, 100, 1000);
+    }
   }
 
   ///
@@ -301,12 +321,8 @@ public:
 
     DynamicTask *task = taskStacks[tid()].pop();
 
-    if (task) {
-      JASSERT(task->state == DynamicTask::S_READY);
-    }
-
     if (task == NULL) {
-      int stealTaskStack = taskStacks[tid()].nextTaskStack(numOfWorkers + 1);
+      int stealTaskStack = taskStacks[tid()].nextTaskStack(numOfWorkers);
       task = taskStacks[stealTaskStack].steal();
     }
 

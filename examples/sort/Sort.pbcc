@@ -62,6 +62,9 @@ to OUT[n], TEMP[n]
   to (OUT out, TEMP temp) from (IN in)
   {
     //printf("is %d\n",n);
+    if (n > 3000) {
+      PetabricksRuntime::abort();
+    }
     InsertionsortSubArray(out, in);
   }
 }

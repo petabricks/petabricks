@@ -191,7 +191,6 @@ void DynamicTask::inlineOrEnqueueTask()
   else
 #endif
   {
-    JASSERT(this->state == S_READY);
     PetabricksRuntime::scheduler->enqueue(this);
   }
 }

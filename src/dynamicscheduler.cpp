@@ -155,10 +155,12 @@ void DynamicScheduler::abortBegin() {
 }
 void DynamicScheduler::abortEnd() {
   JLOCKSCOPE(theAbortingLock);
-  while(numAbortedThreads != numOfWorkers) theAbortingLock.wait();
+  while(numAbortedThreads != numOfWorkers - 1) {
+    theAbortingLock.wait();
+  }
   theIsAborting=false;
 
-  for (int i = 0; i <= numOfWorkers; i++) {
+  for (int i = 0; i < numOfWorkers; i++) {
     taskStacks[i].clear();
     JASSERT(taskStacks[i].isEmpty());
   }

@@ -68,19 +68,23 @@ inline void Breakpoint(){
 }
 
 inline void loadFence() {
-  asm __volatile__ ("mfence" : : : "memory");
+  asm __volatile__ ("lfence" : : : "memory");
 }
 
 inline void memFence() {
   asm __volatile__ ("mfence" : : : "memory");
 }
 
-
 inline void staticMemFence(void)
 {
   asm __volatile__ ("":::"memory");
 }
 
+
+inline void pause(void)
+{
+  asm __volatile__ ("pause":::"memory");
+}
 
 
 /**
