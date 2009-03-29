@@ -3,6 +3,7 @@
 
 #include "../utilities.pbcc"
 
+/*
 transform InsertionsortSubArray
 from IN[n]
 to OUT[n]
@@ -20,6 +21,34 @@ to OUT[n]
     }
   }
 }
+*/
+
+transform InsertionsortSubArray
+from IN[n]
+to OUT[n]
+{
+  to(OUT out) from (IN in)
+  {
+    for (int i = 1; i < n; i++) {
+      double value = out.cell(i);
+      int j = i - 1;
+      if (value < out.cell(0)) {
+        while (j >= 0) {
+          out.cell(j + 1) = out.cell(j);
+          j--;
+        }
+      } else {
+        while (out.cell(j) > value) {
+          out.cell(j + 1) = out.cell(j);
+          j--;
+        }
+      }
+      out.cell(j + 1) = value;
+    }
+  }
+}
+
+
 
 transform Insertionsort
 from IN[n]

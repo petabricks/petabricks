@@ -81,9 +81,6 @@
 /* var name in output code */
 #undef INPUT_SIZE_STR
 
-/* Use a custom allocator from JALIB */
-#undef JALIB_ALLOCATOR
-
 /* Cause the custom allocator to call malloc instead of mmap */
 #undef JALIB_USE_MALLOC
 
@@ -171,12 +168,12 @@
 #undef YYTEXT_POINTER
 
 /* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
+   <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
    #define below would cause a syntax error. */
 #undef _UINT32_T
 
 /* Define for Solaris 2.5.1 so the uint64_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
+   <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
    #define below would cause a syntax error. */
 #undef _UINT64_T
 

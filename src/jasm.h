@@ -81,11 +81,6 @@ inline void staticMemFence(void)
 }
 
 
-inline void pause(void)
-{
-  asm __volatile__ ("pause":::"memory");
-}
-
 
 /**
  * Returns the number of clock cycles that have passed since the machine
@@ -146,6 +141,21 @@ inline uint64_t ClockCyclesSinceBoot()
   return t;
 
 }
+
+inline void loadFence() {
+  asm __volatile__ ("membar #StoreLoad" : : : "memory");
+}
+
+inline void memFence() {
+  asm __volatile__ ("membar #StoreLoad" : : : "memory");
+}
+
+inline void staticMemFence(void)
+{
+  asm __volatile__ ("":::"memory");
+}
+
+
 
 #else
 
