@@ -22,6 +22,7 @@
 
 #include <string>
 #include <float.h>
+#include <stdio.h>
 #include <signal.h>
 
 #include "jtunable.h"
@@ -114,6 +115,12 @@ public:
 
   bool alternateTransforms() const { return _main->name() != _mainName; }
   void addTransform(Main* tx){ JASSERT(tx!=NULL); if(tx->name() == _mainName) _main=tx; }
+
+  void exit(int rv){
+    fflush(stdout);
+    fflush(stderr);
+    _exit(rv);
+  }
 
 private:
   Main* _main;
