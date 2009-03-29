@@ -207,31 +207,33 @@ private:
   }
 };
                                                                                                     
-typedef JThreadAlloc< JFixedAllocStack<32   , 1024*16  , 0> > lvl0;
-typedef JThreadAlloc< JFixedAllocStack<64   , 1024*32  , 1> > lvl1;
-typedef JThreadAlloc< JFixedAllocStack<128  , 1024*32  , 2> > lvl2;
-typedef JThreadAlloc< JFixedAllocStack<256  , 1024*32  , 3> > lvl3;
-typedef JThreadAlloc< JFixedAllocStack<2048 , 1024*8   , 4> > lvl4;
-typedef JThreadAlloc< JFixedAllocStack<4096 , 1024*8   , 5> > lvl5;
+typedef JThreadAlloc< JFixedAllocStack<64   , 1024*16 , 0> > lvl0;
+typedef JThreadAlloc< JFixedAllocStack<128  , 1024*16 , 1> > lvl1;
+typedef JThreadAlloc< JFixedAllocStack<192  , 1024*64 , 2> > lvl2;
+//typedef JThreadAlloc< JFixedAllocStack<384  , 1024*16 , 3> > lvl3;
+//typedef JThreadAlloc< JFixedAllocStack<512  , 1024*8  , 4> > lvl4;
+//typedef JThreadAlloc< JFixedAllocStack<1024 , 1024*8  , 5> > lvl5;
 
 void* JAllocDispatcher::allocate(size_t n) {
   _profile_a(n);
   if(n <= lvl0::N) return lvl0::allocate(); else
   if(n <= lvl1::N) return lvl1::allocate(); else
   if(n <= lvl2::N) return lvl2::allocate(); else
-  if(n <= lvl3::N) return lvl3::allocate(); else
-  if(n <= lvl4::N) return lvl4::allocate(); else
-  if(n <= lvl5::N) return lvl5::allocate(); else
-  return _alloc_raw(n);
+//if(n <= lvl3::N) return lvl3::allocate(); else
+//if(n <= lvl4::N) return lvl4::allocate(); else
+//if(n <= lvl5::N) return lvl5::allocate(); else
+  //return _alloc_raw(n);
+  return malloc(n);
 }
 void JAllocDispatcher::deallocate(void* ptr, size_t n){
   if(n <= lvl0::N) lvl0::deallocate(ptr); else
   if(n <= lvl1::N) lvl1::deallocate(ptr); else
   if(n <= lvl2::N) lvl2::deallocate(ptr); else
-  if(n <= lvl3::N) lvl3::deallocate(ptr); else
-  if(n <= lvl4::N) lvl4::deallocate(ptr); else
-  if(n <= lvl5::N) lvl5::deallocate(ptr); else
-  _dealloc_raw(ptr, n);
+//if(n <= lvl3::N) lvl3::deallocate(ptr); else
+//if(n <= lvl4::N) lvl4::deallocate(ptr); else
+//if(n <= lvl5::N) lvl5::deallocate(ptr); else
+  //_dealloc_raw(ptr, n);
+  free(ptr);
 }
 }
 

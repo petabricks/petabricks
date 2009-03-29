@@ -136,13 +136,13 @@ AC_DEFINE([MIN_NUM_WORKERS], [0 ], [min number of workers supported])
 AC_DEFINE([CACHE_LINE_SIZE], [64], [larges cache line size in system])
 
 
-AC_DEFINE([JALIB_ALLOCATOR],   [1],              [Use a custom allocator from JALIB])
+AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
 
 if false; then
   #disabled by default:
   AC_DEFINE([JASSERT_LOG],       [],               [log traces to /tmp/jassertlog.pid])
-  AC_DEFINE([JALIB_USE_MALLOC],  [],               [Cause the custom allocator to call malloc instead of mmap])
   AC_DEFINE([DISABLE_CONTINUATIONS],  [],          [don't generate continuation code after SPAWN/enqueue])
+  AC_DEFINE([JALIB_USE_MALLOC],  [1], [Cause the custom allocator to call malloc instead of mmap])
 fi
 
 AC_DEFINE_UNQUOTED([REVISION_SHORT],  ["$rev_short"],   [git sha1 hash for HEAD at the time ./configure was run])

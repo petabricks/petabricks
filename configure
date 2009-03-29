@@ -22593,12 +22593,12 @@ _ACEOF
 
 
 cat >>confdefs.h <<\_ACEOF
-#define JALIB_USE_MALLOC /**/
+#define DISABLE_CONTINUATIONS /**/
 _ACEOF
 
 
 cat >>confdefs.h <<\_ACEOF
-#define DISABLE_CONTINUATIONS /**/
+#define JALIB_USE_MALLOC 1
 _ACEOF
 
 fi
