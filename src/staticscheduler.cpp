@@ -37,6 +37,7 @@ void _remapSet(petabricks::ScheduleNodeSet& set, const petabricks::ScheduleNodeR
 
 petabricks::ScheduleNode::ScheduleNode()
   : _isInput(false)
+  , _isLast(false)
 {
   static jalib::AtomicT i=0;
   _id=jalib::atomicIncrementReturn(&i);
@@ -172,6 +173,7 @@ void petabricks::StaticScheduler::generateCodeDynamic(Transform& trans, CodeGene
   for(ScheduleNodeSet::iterator i=_goals.begin(); i!=_goals.end(); ++i)
     o.write("_fini->dependsOn(" + (*i)->nodename() + ".completionTask());");
   o.withEachMember("SpatialTaskList", ".clear()");
+  o.withEachMember("DynamicTaskPtr", "=0");
   o.write("return _fini;");
 }
 void petabricks::StaticScheduler::generateCodeStatic(Transform& trans, CodeGenerator& o){
@@ -227,9 +229,7 @@ void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, Transform& 
       }
     }
   }
-  if(useDirections)
-    o.write(nodename()+".enqueue();");
-  else
+  if(!_isLast)
     o.write(nodename()+"->enqueue();");
 }
 
