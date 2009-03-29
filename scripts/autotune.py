@@ -179,9 +179,8 @@ def main(argv):
   # Autotune sequential code
   for tunable in seq_cutoff_tunables:
     setConfigVal(tunable, maxint)
-  sys.exit(0)
   for choice in static_choices:
-    autotune(choice, 1, min, max / 10)
+    autotune(choice, 1, min, max / 5)
 
   # Autotune parallel code
   for tunable in seq_cutoff_tunables:
