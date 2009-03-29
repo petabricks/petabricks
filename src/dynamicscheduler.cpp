@@ -139,10 +139,7 @@ void DynamicScheduler::setAbortFlag() {
   JLOCKSCOPE(theAbortingLock);
   if(!theIsAborting){
     theIsAborting=true;
-    //queue.clear();
-    //for(int i=0; i<numOfWorkers+1; ++i)
-    //  queue.push(0);
-//    JTRACE("Aborting!")(numOfWorkers);
+    JTRACE("Aborting!")(numOfWorkers);
   }
 }
 
@@ -154,7 +151,12 @@ void DynamicScheduler::abortEnd() {
   JLOCKSCOPE(theAbortingLock);
   while(numAbortedThreads != numOfWorkers) theAbortingLock.wait();
   theIsAborting=false;
-  //queue.clear();
+
+  for (int i = 0; i <= numOfWorkers; i++) {
+    taskStacks[i].clear();
+    JASSERT(taskStacks[i].isEmpty());
+  }
+
   theAbortingLock.broadcast();
 }
 void DynamicScheduler::abortWait() {

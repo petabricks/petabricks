@@ -67,7 +67,7 @@ public:
 
   ///
   /// Wrapper around run that changes state and handles dependencies
-  void runWrapper();
+  void runWrapper(bool isAborting = false);
 
   ///
   /// either enqueue or inline the task
@@ -92,7 +92,7 @@ public:
 
   ///
   /// mark that a task that we dependOn has completed
-  void decrementPredecessors();
+  void decrementPredecessors(bool isAborting = false);
 
   ///
   /// a list of tasks that depends on me

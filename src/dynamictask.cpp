@@ -45,6 +45,7 @@ DynamicTask::DynamicTask(bool isCont)
   state = S_NEW;
   numOfPredecessor = 0;
   isContinuation = isCont;
+  continuation = NULL;
 
 #ifndef PBCC_SEQUENTIAL
   // allocate scheduler when the first task is created
@@ -107,7 +108,7 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
 }
 #endif // PBCC_SEQUENTIAL
 
-void petabricks::DynamicTask::decrementPredecessors(){
+void petabricks::DynamicTask::decrementPredecessors(bool isAborting){
   bool shouldEnqueue = false;
   {
     JLOCKSCOPE(lock);
@@ -116,15 +117,24 @@ void petabricks::DynamicTask::decrementPredecessors(){
       shouldEnqueue = true;
     }
   }
-  if(shouldEnqueue){
-    inlineOrEnqueueTask();
+  if (shouldEnqueue) {
+    if (isAborting) {
+      runWrapper(true);
+    } else {
+      inlineOrEnqueueTask();
+    }
   }
 }
 
 
-void petabricks::DynamicTask::runWrapper(){
+void petabricks::DynamicTask::runWrapper(bool isAborting){
   JASSERT(state==S_READY && numOfPredecessor==0)(state)(numOfPredecessor);
-  continuation = run();
+
+  if (!isAborting) {
+    continuation = run();
+  } else {
+    continuation = NULL;
+  }
 
   std::vector<DynamicTask*> tmp;
 
@@ -156,7 +166,7 @@ void petabricks::DynamicTask::runWrapper(){
     #endif
     std::vector<DynamicTask*>::iterator it;
     for(it = tmp.begin(); it != tmp.end(); ++it) {
-      (*it)->decrementPredecessors();
+      (*it)->decrementPredecessors(isAborting);
     }
   }
   decRefCount(); //matches with enqueue();
