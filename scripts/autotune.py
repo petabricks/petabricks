@@ -100,7 +100,7 @@ def getAlgChoices(xml):
 
 def autotune(choice, trials, min, max):
   print "Autotuning:", choice
-  if autotune_parallel:
+  if parallel_autotune:
     run_command = ["./" + app, "--autotune", "--multigrid", choice, "--min", str(min), "--max", str(max), "--trials", str(trials)]
   else:
     run_command = ["./" + app, "--autotune", choice, "--min", str(min), "--max", str(max), "--trials", str(trials)]
