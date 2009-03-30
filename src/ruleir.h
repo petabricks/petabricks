@@ -94,7 +94,6 @@ public:
     STMT_RAW,
     STMT_LOOP,
     STMT_COND,
-    STMT_BREAKCONTINUE,
     STMT_SWITCH,
     BLOCK         = 0x40000
   };
@@ -108,7 +107,7 @@ public:
   virtual void accept(RIRVisitor&) = 0;
   virtual RIRNode* clone() const = 0;
 
-  bool isControl() const { return _type==STMT_LOOP || _type==STMT_COND || _type==STMT_SWITCH || _type==STMT_BREAKCONTINUE; }
+  bool isControl() const { return _type==STMT_LOOP || _type==STMT_COND || _type==STMT_SWITCH; }
 
 
   virtual void print(std::ostream& o, RIRVisitor* printVisitor) = 0;
@@ -266,8 +265,8 @@ private:
 
 typedef RIRBasicStmt   RIRReturnStmt;
 typedef RIRBasicStmt   RIRCaseStmt;
-typedef RIRControlStmt RIRBreakStmt;
-typedef RIRControlStmt RIRContinueStmt;
+typedef RIRBasicStmt   RIRBreakStmt;
+typedef RIRBasicStmt   RIRContinueStmt;
 typedef RIRControlStmt RIRInlineConditional;
 
 class RIRBlockStmt  : public RIRStmt {
