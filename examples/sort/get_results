@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cfgs="Sort.cfg.M2 Sort.cfg.X1 Sort.cfg.X8 Sort.cfg.X1 Sort.cfg.X8" 
+cfgs="Sort.cfg.M2 Sort.cfg.X8 Sort.cfg.X1 Sort.cfg.N8 Sort.cfg.N1" 
 
 for cfg in $cfgs; do
   echo $cfg
