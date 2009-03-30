@@ -44,7 +44,6 @@ const char* petabricks::RIRNode::typeStr() const {
     case STMT_RAW    : return "STMT_RAW";
     case STMT_LOOP   : return "STMT_LOOP";
     case STMT_COND   : return "STMT_COND";
-    case STMT_BREAKCONTINUE: return "STMT_BREAKCONTINUE";
     case STMT_SWITCH : return "STMT_SWITCH";
     case BLOCK       : return "BLOCK";
     default          : return "INVALID";

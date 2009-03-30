@@ -131,6 +131,14 @@ ReturnStmt: TOK_RETURN ';' {
   $$=REFALLOC(RIRReturnStmt());
   $$->addExpr(REFALLOC(RIRKeywordExpr("return")));
 };
+ReturnStmt: TOK_BREAK ';' {
+  $$=REFALLOC(RIRBreakStmt());
+  $$->addExpr(REFALLOC(RIRKeywordExpr("break")));
+};
+ReturnStmt: TOK_CONTINUE ';' {
+  $$=REFALLOC(RIRContinueStmt());
+  $$->addExpr(REFALLOC(RIRKeywordExpr("continue")));
+};
 
 CaseStmt: TOK_CASE Expr {
   $$=REFALLOC(RIRCaseStmt());

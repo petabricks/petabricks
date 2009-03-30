@@ -231,6 +231,8 @@ public:
   bool shouldDescend(const RIRNode& n) { return !n.isStmt(); }
 private:
   CodeGenerator& o;
+  std::vector<std::string> _breakTargets;
+  std::vector<std::string> _continueTargets;
 };
 
 

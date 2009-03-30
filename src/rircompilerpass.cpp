@@ -26,7 +26,15 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
   switch(s->type()){
   case RIRNode::STMT_BASIC:
   case RIRNode::STMT_RAW:
-    if(s->containsLeaf("SYNC")){
+    if(s->containsLeaf("break")){
+      o.comment("break;");
+      JASSERT(!_breakTargets.empty());
+      o.continueJump(_breakTargets.back());
+    }else if(s->containsLeaf("continue")){
+      o.comment("continue;");
+      JASSERT(!_continueTargets.empty());
+      o.continueJump(_continueTargets.back());
+    }else if(s->containsLeaf("SYNC")){
       o.comment("SYNC();");
       o.continuationRequired("petabricks::sync_hook(_completion, ");
     }else if(s->containsLeaf("CALL")){
@@ -43,7 +51,8 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
   case RIRNode::STMT_LOOP:
   case RIRNode::STMT_COND:
   case RIRNode::STMT_BLOCK:
-    if(s->containsLeaf("SYNC") || s->containsLeaf("CALL") || s->containsLeaf("SPAWN")){
+    if(s->containsLeaf("SYNC") || s->containsLeaf("CALL") || s->containsLeaf("SPAWN") 
+        || s->containsLeaf("break")  || s->containsLeaf("continue") ){
       if(s->type() == RIRNode::STMT_COND){
         o.comment("expanded if statement");
         const RIRIfStmt& stmt = (const RIRIfStmt&)*s;
@@ -72,7 +81,11 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
         o.beginIfNot(stmt.testPart()->toString());
         o.continueJump(jafter);
         o.endIf();
+        _breakTargets.push_back(jafter);
+        _continueTargets.push_back(jbody);
         stmt.body()->extractBlock()->accept(*this);
+        _continueTargets.pop_back();
+        _breakTargets.pop_back();
         o.write(stmt.incPart()->toString()+";");
         o.continueJump(jbody);
         o.continueLabel(jafter);
@@ -87,7 +100,6 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
     }
     break;
   case RIRNode::STMT_SWITCH:
-  case RIRNode::STMT_BREAKCONTINUE:
   default:
     UNIMPLEMENTED()(s->typeStr());
   }
