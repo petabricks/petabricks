@@ -151,9 +151,10 @@ def main(argv):
   data_size = 100000
   min = 64
   max = 4096
+  fast = False
 
   try:
-    opts, args = getopt.getopt(argv[1:-1], "hn:p:", ["help","random=","min=","max=", "parallel_autotune"])
+    opts, args = getopt.getopt(argv[1:-1], "hn:p:", ["help","random=","min=","max=", "parallel_autotune", "fast"])
   except getopt.error, msg:
     print "Error.  For help, run:", argv[0], "-h"
     sys.exit(2)
@@ -172,6 +173,8 @@ def main(argv):
       min = int(a)
     if o == "--max":
       max = int(a)
+    if o == "--fast":
+      fast = True
 
 
   getIgnoreList()
@@ -192,9 +195,9 @@ def main(argv):
     setConfigVal("worker_threads", num_threads)
 
   if num_threads == 1:
-    print "Tuning", app, "with", num_threads, "thread..."
+    print "Tuning", app, "with", num_threads, "thread...", "(fast =", str(fast) + ")" 
   else:
-    print "Tuning", app, "with", num_threads, "threads.."
+    print "Tuning", app, "with", num_threads, "threads...", "(fast =", str(fast) + ")" 
 
   (static_choices, dynamic_choices) = getAlgChoices(infoxml)
   seq_cutoff_tunables = getTunables(infoxml, "system.seqcutoff")
@@ -206,7 +209,7 @@ def main(argv):
   for tunable in seq_cutoff_tunables:
     setConfigVal(tunable, maxint)
   for choice in static_choices:
-    autotune(choice, 1, min, max / 4)
+    autotune(choice, 1, min, max / 8)
 
   # Autotune parallel code
   for tunable in seq_cutoff_tunables:
@@ -229,6 +232,9 @@ def main(argv):
   # Autotune parallel code
   for choice in dynamic_choices:
     autotune(choice, 1, min, max)
+
+  if fast:
+    sys.exit(0)
 
   # Optimize sequential cutoffs
   for tunable in seq_cutoff_tunables:
