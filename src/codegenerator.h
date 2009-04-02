@@ -112,10 +112,13 @@ public:
     write("}");
   }
   void beginCase(int n){
-    write("case "+jalib::XToString(n)+":");
+    _indent++;
+    write("case "+jalib::XToString(n)+": {");
     _indent++;
   }
   void endCase(){
+    _indent--;
+    write("}");
     write("break;");
     _indent--;
   }
@@ -159,10 +162,15 @@ public:
       if(_curMembers[i].type == type)
         write(_curMembers[i].name+code+";");
   }
+
+  void globalDefine(const std::string& n, const std::string& v){
+    dos() << "#define " << n << " " << v << "\n";
+  }
 protected:
   void indent();
   virtual std::ostream& os() = 0;
   virtual std::ostream& hos() = 0;
+  virtual std::ostream& dos() = 0;
 protected:
   std::vector<std::string> _defines;
   ClassMembers _curMembers;
@@ -179,10 +187,12 @@ public:
   TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix);
 protected:
   std::ostream& hos() { return _header; }
+  std::ostream& dos() { return _defines; }
   std::ostream& os() { return _os; }
 protected:
   std::ostringstream _os;
   std::ostringstream _header;
+  std::ostringstream _defines;
 };
 
 
@@ -247,6 +257,8 @@ class MainCodeGenerator : public BufferedCodeGenerator {
 public:
   void outputFileTo(std::ostream& o){
     o << theFilePrefix().str();
+    o << "\n// global defines \n";
+    o << _defines.str();
     o << "\n// Tunable declarations\n";
     for(TunableDefs::const_iterator i=theTunableDefs().begin(); i!=theTunableDefs().end(); ++i)
       o << i->second << ";\n";

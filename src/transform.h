@@ -163,8 +163,7 @@ public:
   std::vector<std::string> normalArgNames() const;
 
   void genTmplJumpTable(CodeGenerator& o,
-                        const std::string& rt,
-                        const std::string& name,
+                        bool isStatic,
                         const std::vector<std::string>& args,
                         const std::vector<std::string>& argNames);
   

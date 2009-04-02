@@ -34,7 +34,7 @@ typedef jalib::JRef<TransformInstance> TransformInstancePtr;
 class TransformInstance : public jalib::JRefCounted {
 public:
   virtual ~TransformInstance(){}
-// virtual DynamicTaskPtr runDynamic() = 0;
+//  virtual DynamicTaskPtr runDynamic() = 0;
 
 //DynamicTaskPtr runAfter(const DynamicTaskPtr& before){
 //  if(before){

@@ -37,10 +37,10 @@
 #endif
 
 #define PB_SPAWN(taskname, args...) \
-  petabricks::spawn_hook( new taskname ## _instance(args), _completion)
+  petabricks::spawn_hook( taskname ## _dynamic (args), _completion)
 
 #define PB_STATIC_CALL(taskname, args...) \
-  taskname ## _instance(args) . runStatic()
+  taskname ## _static (args)
 
 #define PB_NOP() 0
 
@@ -58,9 +58,12 @@
 
 namespace petabricks {
   template< typename T >
-  inline void spawn_hook(T* tx,  const DynamicTaskPtr& completion){
+  inline DynamicTaskPtr tx_call_dynamic(T* tx){
     TransformInstancePtr txPtr(tx); //make sure tx gets deleted
-    DynamicTaskPtr task = tx->T::runDynamic(); //run without vtable use
+    return tx->T::runDynamic(); //run without vtable use
+  }
+
+  inline void spawn_hook(const DynamicTaskPtr& task,  const DynamicTaskPtr& completion){
     if(task){
       completion->dependsOn(task);
       task->enqueue();

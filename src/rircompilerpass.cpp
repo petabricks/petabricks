@@ -160,13 +160,18 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
   if(e->type() == RIRNode::EXPR_IDENT){
     RIRSymbolPtr sym = _scope->lookup(e->toString());
     if(sym && sym->type() == RIRSymbol::SYM_TRANSFORM_TEMPLATE){
-      RIRExprList tmp;
       if(peekExprForward()->isLeaf("<")){
         //transform calls to templates from:
         //   tmpl<a,b>(c,d)
         //to:
         //   tmpl(a,b,c,d)
         popExprForward();
+        RIRExprList tmp;
+        tmp.push_back(e);
+        tmp.push_back(new RIROpExpr(","));
+        e = new RIRIdentExpr("CALL");
+        //tmp.push_back(e);
+        //tmp.push_back(new RIROpExpr(","));
         while(!peekExprForward()->isLeaf(">")){
           tmp.push_back(popExprForward().asPtr());
         }
@@ -181,7 +186,7 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
         JTRACE("handled template")(e)(tmp.size())(peekExprForward()->toString());
       }
     }
-    if(sym && sym->type() == RIRSymbol::SYM_TRANSFORM){
+    if(sym && sym->isTransform()){
       if(peekExprForward()->type() == RIRNode::EXPR_ARGS){
         //transform transform calls from:
         //   Foo(c,d)

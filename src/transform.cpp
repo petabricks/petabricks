@@ -230,14 +230,13 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
 
       _name = origName;
     }
-    genTmplJumpTable(o, "void", "", normalArgs(), normalArgNames());
-    genTmplJumpTable(o, "petabricks::DynamicTaskPtr", "spawn_", spawnArgs(), spawnArgNames());
+    genTmplJumpTable(o, true, normalArgs(), normalArgNames());
+    genTmplJumpTable(o, false, normalArgs(), normalArgNames());
   }
 }
   
 void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
-                    const std::string& rt,
-                    const std::string& prefix,
+                    bool isStatic,
                     const std::vector<std::string>& args,
                     const std::vector<std::string>& argNames)
 {
@@ -251,7 +250,10 @@ void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
     mult *= _templateargs[i]->range();
   }
   targs.insert(targs.end(), args.begin(), args.end());
-  o.beginFunc(rt, prefix+_name, targs);
+  if(isStatic)
+    o.beginFunc( "void" , _name+TX_STATIC_POSTFIX, targs);
+  else
+    o.beginFunc( "petabricks::DynamicTaskPtr" , _name+TX_DYNAMIC_POSTFIX, targs);
   
   for(size_t i=0; i<_templateargs.size(); ++i){
     ss << "JASSERT(" << _templateargs[i]->name() << ">=" << _templateargs[i]->min() << " && "
@@ -266,11 +268,14 @@ void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
   //for each possible way
   o.beginSwitch(formula.str());
   for(size_t c=0; c<choiceCnt; ++c){
-    std::string fn = prefix+tmplName(c);
+    std::string fn = tmplName(c);
     o.beginCase(c);
-    if(rt!="void") o.write("return ");
-    o.call(fn, argNames);
-    if(rt=="void") o.write("return;");
+    if(isStatic){
+      o.call(fn+TX_STATIC_POSTFIX, argNames);
+    }else{
+      o.write("return ");
+      o.call(fn+TX_DYNAMIC_POSTFIX, argNames);
+    }
     o.endCase();
   }
   o.write("default: JASSERT(false);");
@@ -335,6 +340,12 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   o.newline();
 
   o.beginClass(instClassName(), "petabricks::TransformInstance");
+
+  o.globalDefine(_name+TX_DYNAMIC_POSTFIX+"(args...)",
+      "petabricks::tx_call_dynamic(new "+instClassName()+"(args))");
+  o.globalDefine(_name+TX_STATIC_POSTFIX+"(args...)",
+      instClassName()+"(args).runStatic()");
+
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     o.addMember((*i)->matrixTypeName(), (*i)->name());
   }
