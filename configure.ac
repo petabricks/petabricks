@@ -57,8 +57,8 @@ rev_short="unknown"
 rev_long="unknown"
 AC_MSG_CHECKING([git revision])
 if test "$has_git" = "yes" -a -d .git ; then
-  rev_short=`git-log -n 1 --pretty=format:%h`
-  rev_long=`git-log -n 1 --pretty=format:%H`
+  rev_short=`git log -n 1 --pretty=format:%h`
+  rev_long=`git log -n 1 --pretty=format:%H`
 fi
 AC_MSG_RESULT([$rev_long])
 

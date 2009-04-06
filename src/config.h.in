@@ -90,6 +90,10 @@
 /* log traces to /tmp/jassertlog.pid */
 #undef JASSERT_LOG
 
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
+#undef LT_OBJDIR
+
 /* type for elements in the matrix */
 #undef MATRIX_ELEMENT_T
 
