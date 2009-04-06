@@ -21,6 +21,7 @@
 #define PETABRICKSPETABRICKSRUNTIME_H
 
 #include <string>
+#include <vector>
 #include <float.h>
 #include <stdio.h>
 #include <signal.h>
@@ -94,6 +95,9 @@ public:
 
   double optimizeParameter(const std::string& param);
   double optimizeParameter(jalib::JTunable& param, int min, int max, int step=-1);
+
+  void runAutotuneMode(const std::vector<std::string>& params);
+  void runMultigridAutotuneMode();
 
   double runTrial(double thresh = DBL_MAX);
 

@@ -78,7 +78,7 @@ jalib::JTunable* petabricks::Autotuner::cutoffTunable(int lvl){
 }
 
 
-petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, std::string& prefix)
+petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, const std::string& prefix)
   : _runtime(rt)
   , _tunableMap(jalib::JTunableManager::instance().getReverseMap())
   , _prefix(prefix)
@@ -156,12 +156,12 @@ void petabricks::Autotuner::runAll(){
   }
 }
 
-void petabricks::Autotuner::train(int min, int max){
-  for(int n=min; n<=max; n*=2){
-    _runtime.setSize(n);
-    trainOnce();
-  }
-}
+// void petabricks::Autotuner::train(int min, int max){
+//   for(int n=min; n<=max; n*=2){
+//     _runtime.setSize(n);
+//     trainOnce();
+//   }
+// }
 
 void petabricks::Autotuner::trainOnce(){
   std::cout << "BEGIN ITERATION " << _prefix << " / " << _runtime.curSize() << std::endl;

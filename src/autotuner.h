@@ -31,6 +31,7 @@ class Autotuner;
 class CandidateAlgorithm;
 typedef jalib::JRef<CandidateAlgorithm> CandidateAlgorithmPtr;
 typedef std::vector<CandidateAlgorithmPtr> CandidateAlgorithmList;
+typedef jalib::JRef<Autotuner> AutotunerPtr;
 
 class CandidateAlgorithm : public jalib::JRefCounted, public jalib::JPrintable {
 public:
@@ -76,15 +77,15 @@ private:
   std::vector<double>   _performance; 
 };
 
-class Autotuner {
+class Autotuner : public jalib::JRefCounted {
 public:
-  Autotuner(PetabricksRuntime& rt, std::string& prefix);
+  Autotuner(PetabricksRuntime& rt, const std::string& prefix);
   jalib::JTunable* algTunable(int lvl);
   jalib::JTunable* cutoffTunable(int lvl);
 
   void runAll();
 
-  void train(int min, int max);
+  //void train(int min, int max);
 
   void trainOnce();
 
@@ -92,7 +93,7 @@ public:
 
   void removeDuplicates();
 private:
-  PetabricksRuntime&               _runtime;
+  PetabricksRuntime&           _runtime;
   CandidateAlgorithmList       _candidates;
   CandidateAlgorithmPtr        _initialConfig;
   jalib::JTunableReverseMap    _tunableMap;

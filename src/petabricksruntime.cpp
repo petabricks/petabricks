@@ -163,6 +163,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   bool isOptimizeMode = false;
   bool doIO = true;
   std::string graphParam;
+  std::vector<std::string> autotuneParams;
 
   //parse args
   shift;
@@ -195,7 +196,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
     }else if(strcmp(argv[0],"--autotune")==0){
       JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
       isAutotuneMode = true;
-      graphParam = argv[1];
+      autotuneParams.push_back(argv[1]);
       shift;
       shift;
     }else if(strcmp(argv[0],"-g")==0 || strcmp(argv[0],"--graph")==0){
@@ -281,87 +282,11 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   }
 
   if(isAutotuneMode){
-
     if (!MULTIGRID_FLAG) {
-      Autotuner at(*this, graphParam);
-      at.train(TRAIN_MIN, TRAIN_MAX);
+      runAutotuneMode(autotuneParams);
     } else {
-      std::string s1 = "Poisson2D_Inner_Prec1_1";
-      std::string s2 = "Poisson2D_Inner_Prec2_1";
-      std::string s3 = "Poisson2D_Inner_Prec3_1";
-      std::string s4 = "Poisson2D_Inner_Prec4_1";
-      std::string s5 = "Poisson2D_Inner_Prec5_1";
-      Autotuner at1(*this, s1);
-      Autotuner at2(*this, s2);
-      Autotuner at3(*this, s3);
-      Autotuner at4(*this, s4);
-      Autotuner at5(*this, s5);
-
-      jalib::JTunableReverseMap m = jalib::JTunableManager::instance().getReverseMap();
-      jalib::JTunable* prec_case = m["prec_case"];
-      JASSERT(prec_case != 0);
-
-      jalib::JTunable* temp;
-      for (int level = 0; level < 30; level++) {
-        temp = m["levelTrained__" + jalib::XToString(level)];
-        temp->setValue(0);
-      }
-
-      Autotuner *at6 = 0, *at7 = 0, *at8 = 0, *at9 = 0, *at10 = 0;
-      jalib::JTunable* run_fullmg_flag = NULL;
-      if (FULL_MULTIGRID_FLAG) {
-        std::string s6 = "FullPoisson2D_Inner_Prec1_1";
-        std::string s7 = "FullPoisson2D_Inner_Prec2_1";
-        std::string s8 = "FullPoisson2D_Inner_Prec3_1";
-        std::string s9 = "FullPoisson2D_Inner_Prec4_1";
-        std::string s10 = "FullPoisson2D_Inner_Prec5_1";
-        at6 = new Autotuner(*this, s6);
-        at7 = new Autotuner(*this, s7);
-        at8 = new Autotuner(*this, s8);
-        at9 = new Autotuner(*this, s9);
-        at10 = new Autotuner(*this, s10);
-
-        run_fullmg_flag = m["run_fullmg_flag"];
-        JASSERT(run_fullmg_flag != 0);
-      }
-
-      for(int n=TRAIN_MIN; n<=TRAIN_MAX; n*=2){
-        setSize(n + 1);
-
-        if (FULL_MULTIGRID_FLAG) {
-          run_fullmg_flag->setValue(0);
-        }
-
-        prec_case->setValue(1);
-        at1.trainOnce();
-        prec_case->setValue(2);
-        at2.trainOnce();
-        prec_case->setValue(3);
-        at3.trainOnce();
-        prec_case->setValue(4);
-        at4.trainOnce();
-        prec_case->setValue(5);
-        at5.trainOnce();
-
-        if (FULL_MULTIGRID_FLAG) {
-          run_fullmg_flag->setValue(1);
-
-          prec_case->setValue(1);
-          at6->trainOnce();
-          prec_case->setValue(2);
-          at7->trainOnce();
-          prec_case->setValue(3);
-          at8->trainOnce();
-          prec_case->setValue(4);
-          at9->trainOnce();
-          prec_case->setValue(5);
-          at10->trainOnce();
-        }
-
-        saveConfig();
-      }
+      runMultigridAutotuneMode();
     }
-
     return 0;
   }
 
@@ -419,6 +344,98 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
 
   return 0;
 }
+  
+void petabricks::PetabricksRuntime::runAutotuneMode(const std::vector<std::string>& params){
+  std::vector<AutotunerPtr> tuners;
+  tuners.reserve(params.size());
+  for(size_t i=0; i<params.size(); ++i)
+    tuners.push_back(new Autotuner(*this, params[i]));
+
+  for(int n=TRAIN_MIN; n<=TRAIN_MAX; n*=2){
+    setSize(n + 1);
+    for(size_t i=0; i<tuners.size(); ++i)
+      tuners[i]->trainOnce();
+    saveConfig();
+  }
+}
+
+void petabricks::PetabricksRuntime::runMultigridAutotuneMode(){
+  std::string s1 = "Poisson2D_Inner_Prec1_1";
+  std::string s2 = "Poisson2D_Inner_Prec2_1";
+  std::string s3 = "Poisson2D_Inner_Prec3_1";
+  std::string s4 = "Poisson2D_Inner_Prec4_1";
+  std::string s5 = "Poisson2D_Inner_Prec5_1";
+  Autotuner at1(*this, s1);
+  Autotuner at2(*this, s2);
+  Autotuner at3(*this, s3);
+  Autotuner at4(*this, s4);
+  Autotuner at5(*this, s5);
+
+  jalib::JTunableReverseMap m = jalib::JTunableManager::instance().getReverseMap();
+  jalib::JTunable* prec_case = m["prec_case"];
+  JASSERT(prec_case != 0);
+
+  jalib::JTunable* temp;
+  for (int level = 0; level < 30; level++) {
+    temp = m["levelTrained__" + jalib::XToString(level)];
+    temp->setValue(0);
+  }
+
+  Autotuner *at6 = 0, *at7 = 0, *at8 = 0, *at9 = 0, *at10 = 0;
+  jalib::JTunable* run_fullmg_flag = NULL;
+  if (FULL_MULTIGRID_FLAG) {
+    std::string s6 = "FullPoisson2D_Inner_Prec1_1";
+    std::string s7 = "FullPoisson2D_Inner_Prec2_1";
+    std::string s8 = "FullPoisson2D_Inner_Prec3_1";
+    std::string s9 = "FullPoisson2D_Inner_Prec4_1";
+    std::string s10 = "FullPoisson2D_Inner_Prec5_1";
+    at6 = new Autotuner(*this, s6);
+    at7 = new Autotuner(*this, s7);
+    at8 = new Autotuner(*this, s8);
+    at9 = new Autotuner(*this, s9);
+    at10 = new Autotuner(*this, s10);
+
+    run_fullmg_flag = m["run_fullmg_flag"];
+    JASSERT(run_fullmg_flag != 0);
+  }
+
+  for(int n=TRAIN_MIN; n<=TRAIN_MAX; n*=2){
+    setSize(n + 1);
+
+    if (FULL_MULTIGRID_FLAG) {
+      run_fullmg_flag->setValue(0);
+    }
+
+    prec_case->setValue(1);
+    at1.trainOnce();
+    prec_case->setValue(2);
+    at2.trainOnce();
+    prec_case->setValue(3);
+    at3.trainOnce();
+    prec_case->setValue(4);
+    at4.trainOnce();
+    prec_case->setValue(5);
+    at5.trainOnce();
+
+    if (FULL_MULTIGRID_FLAG) {
+      run_fullmg_flag->setValue(1);
+
+      prec_case->setValue(1);
+      at6->trainOnce();
+      prec_case->setValue(2);
+      at7->trainOnce();
+      prec_case->setValue(3);
+      at8->trainOnce();
+      prec_case->setValue(4);
+      at9->trainOnce();
+      prec_case->setValue(5);
+      at10->trainOnce();
+    }
+
+    saveConfig();
+  }
+
+}
 
 
 void petabricks::PetabricksRuntime::runGraphMode(){
@@ -449,6 +466,7 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
   for(int n = GRAPH_MIN; n <= GRAPH_MAX; n+= GRAPH_STEP) {
     worker_threads.setValue(n);
     scheduler->startWorkerThreads(worker_threads);
+
     double avg = runTrial();
     printf("%d %.6lf\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;
