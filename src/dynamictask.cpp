@@ -17,7 +17,9 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#include "petabricksruntime.h"
 #include "dynamictask.h"
+#include "dynamicscheduler.h"
 #include "jasm.h"
 #include "jtunable.h"
 
@@ -26,34 +28,24 @@
 //#define PBCC_SEQUENTIAL
 #define INLINE_NULL_TASKS
 
-#define MIN_NUM_WORKERS  0
-#define MAX_NUM_WORKERS  512
 #define MIN_INLINE_TASK_SIZE  1
 #define MAX_INLINE_TASK_SIZE  65536
 
-JTUNABLE(tunerNumOfWorkers,   8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
-JTUNABLE(tunerInlineTaskSize, 1024, MIN_INLINE_TASK_SIZE, MAX_INLINE_TASK_SIZE);
 
-namespace hecura {
+namespace petabricks {
 
-DynamicScheduler *DynamicTask::scheduler = NULL;
 size_t            DynamicTask::firstSize = 0;
 size_t            DynamicTask::maxSize   = 0;
 
-DynamicTask::DynamicTask()
+DynamicTask::DynamicTask(bool isCont)
 {
   // when this task is created, no other thread would touch it
   // so no lock for numOfPredecessor update
   state = S_NEW;
   numOfPredecessor = 0;
+  isContinuation = isCont;
+  continuation = NULL;
 
-#ifndef PBCC_SEQUENTIAL
-  // allocate scheduler when the first task is created
-  if(scheduler == NULL) {
-    scheduler = new DynamicScheduler();
-    scheduler->startWorkerThreads(tunerNumOfWorkers);
-  }
-#endif
 }
 
 
@@ -62,6 +54,7 @@ void DynamicTask::enqueue() { run();}
 #else
 void DynamicTask::enqueue()
 {
+  incRefCount(); // matches with runWrapper()
   int preds;
   {
     JLOCKSCOPE(lock);
@@ -71,9 +64,10 @@ void DynamicTask::enqueue()
     else
       state=S_PENDING;
   }
-  if(preds==0){
+  if(preds==0) { // || (isContinuation && !isNullTask())) {
     inlineOrEnqueueTask();
   }
+  //inlineOrEnqueueTask();
 }
 #endif // PBCC_SEQUENTIAL
 
@@ -92,7 +86,7 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
     dependsOn(that->continuation);
   }else if(that->state != S_COMPLETE){
     that->dependents.push_back(this);
-    { 
+    {
       JLOCKSCOPE(lock);
       numOfPredecessor++;
     }
@@ -102,11 +96,11 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
   }
 #ifdef VERBOSE
     printf("thread %d: task %p depends on task %p counter: %d\n", pthread_self(), this, that.asPtr(), numOfPredecessor);
-#endif  
+#endif
 }
 #endif // PBCC_SEQUENTIAL
 
-void hecura::DynamicTask::decrementPredecessors(){
+void petabricks::DynamicTask::decrementPredecessors(bool isAborting){
   bool shouldEnqueue = false;
   {
     JLOCKSCOPE(lock);
@@ -115,17 +109,26 @@ void hecura::DynamicTask::decrementPredecessors(){
       shouldEnqueue = true;
     }
   }
-  if(shouldEnqueue){
-    inlineOrEnqueueTask();
+  if (shouldEnqueue) {
+    if (isAborting) {
+      runWrapper(true);
+    } else {
+      inlineOrEnqueueTask();
+    }
   }
 }
 
 
-void hecura::DynamicTask::runWrapper(){
+void petabricks::DynamicTask::runWrapper(bool isAborting){
   JASSERT(state==S_READY && numOfPredecessor==0)(state)(numOfPredecessor);
-  continuation = run();
 
-  std::vector<DynamicTaskPtr> tmp;
+  if (!isAborting) {
+    continuation = run();
+  } else {
+    continuation = NULL;
+  }
+
+  std::vector<DynamicTask*> tmp;
 
   {
     JLOCKSCOPE(lock);
@@ -135,6 +138,7 @@ void hecura::DynamicTask::runWrapper(){
   }
 
   if(continuation){
+    continuation->isContinuation = true;
 #ifdef VERBOSE
     JTRACE("task complete, continued")(tmp.size());
 #endif
@@ -152,11 +156,12 @@ void hecura::DynamicTask::runWrapper(){
     #ifdef VERBOSE
     if(!isNullTask()) JTRACE("task complete")(tmp.size());
     #endif
-    std::vector<DynamicTaskPtr>::iterator it;
+    std::vector<DynamicTask*>::iterator it;
     for(it = tmp.begin(); it != tmp.end(); ++it) {
-      (*it)->decrementPredecessors();
+      (*it)->decrementPredecessors(isAborting);
     }
   }
+  decRefCount(); //matches with enqueue();
 }
 
 
@@ -165,12 +170,11 @@ void DynamicTask::waitUntilComplete() {}
 #else
 void DynamicTask::waitUntilComplete()
 {
-  bool ready = false;
   lock.lock();
   while(state != S_COMPLETE && state!= S_CONTINUED) {
     lock.unlock();
     // get a task for execution
-    scheduler->popAndRunOneTask(false);
+    PetabricksRuntime::scheduler->popAndRunOneTask(false);
     lock.lock();
   }
   lock.unlock();
@@ -179,57 +183,15 @@ void DynamicTask::waitUntilComplete()
 }
 #endif // PBCC_SEQUENTIAL
 
-
-///
-/// check if the task should be enqueued of inlined
-/// heuristics to check if task should be inlined
-/// 1. fixed task size threshold
-/// 2. function of input size
-/// 3. function of max task size
-/// 4. number of items in queue
-/// 5. mix of above
-bool DynamicTask::inlineTask()
-{
-  size_t taskSize = size();
-  // if too small, inline
-  if(isNullTask() || taskSize < tunerInlineTaskSize)
-    return true;
-
-  // if large task, do not inline
-//   if(maxSize  < taskSize) {
-//     maxSize   = taskSize;
-//     return false;
-//   } 
-
-  // if no tasks in queue, do not inline
-  // this is to increase parallelism
-//   if(scheduler->empty())
-//     return false;
-
-  // if task size is very small relative to max task, inline
-//   if(taskSize < (maxSize >> 8))
-//     return true;
-
-  return false;
-}
-
 void DynamicTask::inlineOrEnqueueTask()
 {
 #ifdef INLINE_NULL_TASKS
-  if(inlineTask()){
-//     static __thread int inlineCount=0;
-//     if(inlineCount<100){
-//      ++inlineCount;
-//      runWrapper(); //dont bother enqueuing just run it
-//      --inlineCount;
-//     }else{
-      //push it in local queue
-      DynamicScheduler::myThreadLocalQueue().push_back(this);
-//     }
-  }else
+  if(isNullTask())
+    runWrapper(); //dont bother enqueuing just run it
+  else
 #endif
   {
-    scheduler->enqueue(this);
+    PetabricksRuntime::scheduler->enqueue(this);
   }
 }
 

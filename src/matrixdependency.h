@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURAMATRIXDEPENDENCY_H
-#define HECURAMATRIXDEPENDENCY_H
+#ifndef PETABRICKSMATRIXDEPENDENCY_H
+#define PETABRICKSMATRIXDEPENDENCY_H
 
 #include "jrefcounted.h"
 #include "jprintable.h"
@@ -30,7 +30,7 @@
 # include "config.h"
 #endif
 
-namespace hecura {
+namespace petabricks {
 
 class MatrixDependency;
 typedef jalib::JRef<MatrixDependency> MatrixDependencyPtr;

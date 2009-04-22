@@ -23,7 +23,7 @@
 #include "maximawrapper.h"
 #include "codegenerator.h"
 
-hecura::ChoiceGridPtr hecura::ChoiceGrid::constructFrom( 
+petabricks::ChoiceGridPtr petabricks::ChoiceGrid::constructFrom( 
   const RuleSet&                allowedRules,
   const RuleDescriptorListList& dimensions,
   size_t                        dimension /*= 0*/)
@@ -73,11 +73,11 @@ hecura::ChoiceGridPtr hecura::ChoiceGrid::constructFrom(
 }
 
 
-void hecura::ChoiceGrid::print(std::ostream& os) const {
+void petabricks::ChoiceGrid::print(std::ostream& os) const {
   jalib::ConstMap(&Rule::printIdentifier, os, _applicableRules);
 }
 
-// void hecura::ChoiceGrid::generateCodeSimple(CodeGenerator& o, const SimpleRegionPtr& prefix){
+// void petabricks::ChoiceGrid::generateCodeSimple(CodeGenerator& o, const SimpleRegionPtr& prefix){
 //   SimpleRegionPtr tmp = new SimpleRegion(prefix);
 //   tmp->addDimension(_begin, _end);
 // 
@@ -90,7 +90,7 @@ void hecura::ChoiceGrid::print(std::ostream& os) const {
 //   if(_nextElement) _nextElement->generateCodeSimple(o,prefix);
 // }
 
-void hecura::ChoiceGrid::buildIndex(ChoiceGridIndex& idx, const SimpleRegionPtr& prefix /*= 0*/){
+void petabricks::ChoiceGrid::buildIndex(ChoiceGridIndex& idx, const SimpleRegionPtr& prefix /*= 0*/){
   SimpleRegionPtr tmp = prefix ? new SimpleRegion(prefix) : new SimpleRegion();
   tmp->addDimension(_begin, _end);
 
@@ -102,12 +102,12 @@ void hecura::ChoiceGrid::buildIndex(ChoiceGridIndex& idx, const SimpleRegionPtr&
   if(_nextElement) _nextElement->buildIndex(idx, prefix);
 }
 
-void hecura::ChoiceGrid::finalizeConstruction(const FormulaPtr& end, const RuleSet& applicable){
+void petabricks::ChoiceGrid::finalizeConstruction(const FormulaPtr& end, const RuleSet& applicable){
   _end=end;
   _applicableRules = applicable;
 }
 
-void hecura::ChoiceGrid::applyRulePriorities(){
+void petabricks::ChoiceGrid::applyRulePriorities(){
   RuleSet rules;
   RuleFlags::PriorityT pri = RuleFlags::PRIORITY_MAX;
   for(RuleSet::const_iterator i=_applicableRules.begin(); i!=_applicableRules.end(); ++i){

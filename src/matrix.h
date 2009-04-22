@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURAMATRIX_H
-#define HECURAMATRIX_H
+#ifndef PETABRICKSMATRIX_H
+#define PETABRICKSMATRIX_H
 
 #include "jrefcounted.h"
 #include "jassert.h"
@@ -32,7 +32,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-namespace hecura {
+namespace petabricks {
 
 class MatrixStorage;
 typedef jalib::JRef<MatrixStorage> MatrixStoragePtr;
@@ -44,8 +44,8 @@ typedef MATRIX_ELEMENT_T ElementT;
  */
 class MatrixStorage : public jalib::JRefCounted {
 public:
-  typedef hecura::IndexT IndexT;
-  typedef hecura::ElementT ElementT;
+  typedef petabricks::IndexT IndexT;
+  typedef petabricks::ElementT ElementT;
 private:
   //no copy constructor
   MatrixStorage(const MatrixStorage&);
@@ -451,6 +451,6 @@ typedef MatrixRegion<7, const MATRIX_ELEMENT_T> ConstMatrixRegion7D;
 typedef MatrixRegion<8, const MATRIX_ELEMENT_T> ConstMatrixRegion8D;
 typedef MatrixRegion<9, const MATRIX_ELEMENT_T> ConstMatrixRegion9D;
 
-} /* namespace hecura*/
+} /* namespace petabricks*/
 
 #endif

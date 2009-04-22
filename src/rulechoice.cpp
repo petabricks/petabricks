@@ -26,29 +26,30 @@
 
 namespace {
   struct RuleIdComparer {
-    bool operator()(const hecura::RulePtr& x, const hecura::RulePtr& y){
+    bool operator()(const petabricks::RulePtr& x, const petabricks::RulePtr& y){
       return x->id() < y->id();
     }
   };
 
 }
 
-const hecura::FormulaPtr& hecura::RuleChoice::autotuned() {
+const petabricks::FormulaPtr& petabricks::RuleChoice::autotuned() {
   static FormulaPtr t = new FormulaVariable("AUTOTUNED");
   return t;
 }
 
-hecura::RuleChoice::RuleChoice( const RuleSet& rule
+petabricks::RuleChoice::RuleChoice( const RuleSet& rule
                               , const FormulaPtr& c/*=FormulaPtr()*/
                               , const RuleChoicePtr& n/*=RuleChoicePtr()*/)
   : _rules(rule), _condition(c), _next(n)
 {}
 
-void hecura::RuleChoice::print(std::ostream& o) const {
+void petabricks::RuleChoice::print(std::ostream& o) const {
   o << "RuleChoice"; //TODO
 }
 
-void hecura::RuleChoice::generateCodeSimple(  const std::string& taskname
+void petabricks::RuleChoice::generateCodeSimple( bool isStatic
+                                            , const std::string& taskname
                                             , Transform& trans
                                             , ScheduleNode& node
                                             , const SimpleRegionPtr& region
@@ -56,7 +57,11 @@ void hecura::RuleChoice::generateCodeSimple(  const std::string& taskname
                                             , const std::string& _tpfx)
 {
   std::string tpfx = _tpfx;
-  if(tpfx.length()==0) tpfx = trans.createTunerPrefix();
+  if(tpfx.length()==0){ 
+    tpfx = trans.createTunerPrefix();
+    if(_rules.size()>1 || level()>1) 
+      o.cg().addAlgchoice(tpfx.substr(0,tpfx.length()-1), isStatic, level());
+  }
   std::string choicename = tpfx + "lvl" + jalib::XToString(level()) + "_rule";
 
   if(_condition){
@@ -66,22 +71,22 @@ void hecura::RuleChoice::generateCodeSimple(  const std::string& taskname
   std::vector<RulePtr> sortedRules(_rules.begin(), _rules.end());
   std::sort(sortedRules.begin(), sortedRules.end(), RuleIdComparer());
 
-
   int n=0;
   if(sortedRules.size()>1){
 //     for(std::vector<RulePtr>::const_iterator i=sortedRules.begin(); i!=sortedRules.end(); ++i){
 //       choicename += "_"+jalib::XToString((*i)->id() - trans.ruleIdOffset());
 //     }
-    o.createTunable(trans.name(), choicename, 0, 0, sortedRules.size()-1);
+    o.createTunable(true ,"algchoice.alg", choicename, 0, 0, sortedRules.size()-1);
     o.beginSwitch(choicename);
   }
   for(std::vector<RulePtr>::const_iterator i=sortedRules.begin(); i!=sortedRules.end(); ++i){
     if(sortedRules.size()>1) o.beginCase(n++);
-    if(taskname.empty())
+    if(isStatic || taskname.empty()){
+      if(!isStatic) o.write("transform->");//hack
       (*i)->generateCallCodeSimple(trans, o, region);
-    else{
+    }else{
       (*i)->generateCallTaskCode(taskname, trans, o, region);
-      node.printDepsAndEnqueue(o, sortedRules[0]);
+      node.printDepsAndEnqueue(o, trans,  sortedRules[0]);
     }
     if(sortedRules.size()>1) o.endCase();
   }
@@ -93,13 +98,13 @@ void hecura::RuleChoice::generateCodeSimple(  const std::string& taskname
   if(_condition){
     if(_next){
       o.elseIf();
-      _next->generateCodeSimple(taskname, trans, node, region, o, tpfx);
+      _next->generateCodeSimple(isStatic, taskname, trans, node, region, o, tpfx);
     }
     o.endIf();
   }
 }
 
-std::string hecura::RuleChoice::processCondition(const std::string& name, const FormulaPtr& f, const std::string& algchoicename, CodeGenerator& o)
+std::string petabricks::RuleChoice::processCondition(const std::string& name, const FormulaPtr& f, const std::string& algchoicename, CodeGenerator& o)
 {
 //   if(f->getFreeVariables()->contains(autotuned()->toString()))
 //     return f->replace(autotuned(), new FormulaVariable(name));
@@ -108,7 +113,7 @@ std::string hecura::RuleChoice::processCondition(const std::string& name, const 
     std::string s;
     FormulaPtr hint;
     bool needComplex=false;
-    o.createTunable(name, name, std::numeric_limits<int>::max(), 1);
+    o.createTunable(true, "algchoice.cutoff", name, std::numeric_limits<int>::max(), 1);
     std::vector<RulePtr> sortedRules(_rules.begin(), _rules.end());
     std::sort(sortedRules.begin(), sortedRules.end(), RuleIdComparer());
     for(size_t i=0; i<sortedRules.size(); ++i){

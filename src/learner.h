@@ -17,13 +17,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURALEARNER_H
-#define HECURALEARNER_H
+#ifndef PETABRICKSLEARNER_H
+#define PETABRICKSLEARNER_H
 
 #include "rulechoice.h"
 #include "region.h"
 
-namespace hecura {
+namespace petabricks {
 
 class PerformanceTester;
 
@@ -34,36 +34,8 @@ class PerformanceTester;
 class Learner{
 public:
   ///
-  /// Constructor
-  Learner();
-
-  ///
-  /// Called before a code generation cycle
-  void onIterationBegin();
-
-  ///
   /// Pick which rules to use for a given region
   RuleChoicePtr makeRuleChoice(const RuleSet& choices, const MatrixDefPtr&, const SimpleRegionPtr&);
-
-  ///
-  /// Pick which order to iterate in, initial value of choices is allows directions
-  void makeIterationChoice(IterationOrderList& choices, const MatrixDefPtr&, const SimpleRegionPtr&){}
-
-  ///
-  /// Called after a code generation cycle
-  void onIterationEnd();
-
-  ///
-  /// Called after onIterationEnd().
-  /// True causes the compiler to call runTests then start over
-  bool shouldIterateAgain();
-
-  ///
-  /// Run performance tests on the output of the last iteration
-  void runTests(PerformanceTester& tester);
-
-private:
-  int _numIterations;
 };
 
 }

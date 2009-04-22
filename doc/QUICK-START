@@ -24,12 +24,12 @@ We use GIT for revision control.  A guide for using git can be found here:
 http://git.or.cz/course/svn.html
 
 On CSAIL Debian, clone our repository with:
-git clone /afs/csail/group/commit/reps/projects/hecura
+git clone /afs/csail/group/commit/reps/projects/petabricks
 
 On non-CSAIL machines, clone our repository with:
-git clone login.csail.mit.edu:/afs/csail/group/commit/reps/projects/hecura
+git clone login.csail.mit.edu:/afs/csail/group/commit/reps/projects/petabricks
 
-This will create a "hecura" folder in the current directory containing
+This will create a "petabricks" folder in the current directory containing
 the PetaBricks source code. Use `git pull` to grab new changes.
 
 
@@ -60,7 +60,7 @@ This creates the binary ./example/add and the output source file
 There are some sample inputs in ./testdata
 
 The usage for autotuning will change soon.  The current usage is not well
-documented.  Check hecuraruntime.cpp for the code that parses command line
+documented.  Check petabricksruntime.cpp for the code that parses command line
 args to petabricks programs.
 
 ./examples contains a lot of sample code in petabricks.

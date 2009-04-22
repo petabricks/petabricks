@@ -22,8 +22,8 @@
 #include "jasm.h"
 
 namespace { //file local
-void _remapSet(hecura::ScheduleNodeSet& set, const hecura::ScheduleNodeRemapping& map){
-  using namespace hecura;
+void _remapSet(petabricks::ScheduleNodeSet& set, const petabricks::ScheduleNodeRemapping& map){
+  using namespace petabricks;
   for(ScheduleNodeRemapping::const_iterator i=map.begin(); i!=map.end(); ++i){
     ScheduleNodeSet::iterator rslt = set.find(i->first);
     if(rslt!=set.end()){
@@ -35,15 +35,16 @@ void _remapSet(hecura::ScheduleNodeSet& set, const hecura::ScheduleNodeRemapping
 }
 
 
-hecura::ScheduleNode::ScheduleNode()
+petabricks::ScheduleNode::ScheduleNode()
   : _isInput(false)
+  , _isLast(false)
 {
-  static long i=0;
-  _id=jalib::atomicAdd<1>(&i);
+  static jalib::AtomicT i=0;
+  _id=jalib::atomicIncrementReturn(&i);
 }
 
 
-hecura::StaticScheduler::StaticScheduler(const ChoiceGridMap& cg){
+petabricks::StaticScheduler::StaticScheduler(const ChoiceGridMap& cg){
   for(ChoiceGridMap::const_iterator m=cg.begin(); m!=cg.end(); ++m){
     ScheduleNodeList& regions = _matrixToNodes[m->first];
     for(ChoiceGridIndex::const_iterator i=m->second.begin(); i!=m->second.end(); ++i){
@@ -54,7 +55,7 @@ hecura::StaticScheduler::StaticScheduler(const ChoiceGridMap& cg){
   }
 }
 
-hecura::ScheduleNodeSet hecura::StaticScheduler::lookupNode(const MatrixDefPtr& matrix, const SimpleRegionPtr& region){
+petabricks::ScheduleNodeSet petabricks::StaticScheduler::lookupNode(const MatrixDefPtr& matrix, const SimpleRegionPtr& region){
   ScheduleNodeSet rv;
   ScheduleNodeList& regions = _matrixToNodes[matrix];
   if(matrix->numDimensions()==0){
@@ -75,7 +76,7 @@ hecura::ScheduleNodeSet hecura::StaticScheduler::lookupNode(const MatrixDefPtr& 
   return rv;
 }
 
-void hecura::StaticScheduler::generateSchedule(){
+void petabricks::StaticScheduler::generateSchedule(){
   #ifdef DEBUG 
 //   writeGraphAsPDF("schedule_initial.pdf");
   #endif
@@ -96,17 +97,16 @@ void hecura::StaticScheduler::generateSchedule(){
   }
 }
 
-void hecura::StaticScheduler::computeIndirectDependencies(){
+void petabricks::StaticScheduler::computeIndirectDependencies(){
   // this algorithm can be optimized, but since graphs are small it doesn't matter
   for(int c=1; c>0;){ //keep interating until no changes have been made
     c=0;
     for(ScheduleNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i)
       c+=(*i)->updateIndirectDepends();
-    if(c>0) JTRACE("Updated indirectDepends")(c);
   }
 }
 
-void hecura::StaticScheduler::mergeCoscheduledNodes(){
+void petabricks::StaticScheduler::mergeCoscheduledNodes(){
   ScheduleNodeSet done;
   ScheduleNodeRemapping mapping;
   ScheduleNodeList tmp = _allNodes;
@@ -126,7 +126,7 @@ void hecura::StaticScheduler::mergeCoscheduledNodes(){
   applyRemapping(mapping);
 }
 
-void hecura::StaticScheduler::applyRemapping(const ScheduleNodeRemapping& m){
+void petabricks::StaticScheduler::applyRemapping(const ScheduleNodeRemapping& m){
   for(ScheduleNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i){
       (*i)->applyRemapping(m);
   }
@@ -144,7 +144,7 @@ void hecura::StaticScheduler::applyRemapping(const ScheduleNodeRemapping& m){
   }
 }
 
-void hecura::StaticScheduler::depthFirstSchedule(ScheduleNode* n){
+void petabricks::StaticScheduler::depthFirstSchedule(ScheduleNode* n){
   if(_generated.find(n)!=_generated.end())
     return;
 
@@ -163,28 +163,42 @@ void hecura::StaticScheduler::depthFirstSchedule(ScheduleNode* n){
   _generated.insert(n);
 }
 
-void hecura::StaticScheduler::generateCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::StaticScheduler::generateCodeDynamic(Transform& trans, CodeGenerator& o){
   JASSERT(_schedule.size()>0);
-//   JTRACE("codegen")(_schedule.size());
   for(ScheduleNodeList::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
-    (*i)->generateCodeSimple(trans, o);
+    if(i!=_schedule.begin()) o.continuationPoint();
+    (*i)->generateCodeSimple(trans, o, false);
   }
-  o.write("DynamicTaskPtr "+trans.taskname()+" = new NullDynamicTask();");
+  o.write("DynamicTaskPtr  _fini = new NullDynamicTask();");
   for(ScheduleNodeSet::iterator i=_goals.begin(); i!=_goals.end(); ++i)
-    o.write(trans.taskname()+"->dependsOn(" + (*i)->nodename() + ".completionTask());");
+    o.write("_fini->dependsOn(" + (*i)->nodename() + ".completionTask());");
+  o.withEachMember("SpatialTaskList", ".clear()");
+  o.withEachMember("DynamicTaskPtr", "=0");
+  o.write("return _fini;");
+}
+void petabricks::StaticScheduler::generateCodeStatic(Transform& trans, CodeGenerator& o){
+  JASSERT(_schedule.size()>0);
+  for(ScheduleNodeList::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
+    (*i)->generateCodeSimple(trans, o, true);
+  }
 }
 
-void hecura::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
   RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
-  o.write("SpatialTaskList "+nodename()+";");
-  rule->generateCodeSimple(nodename(), trans, *this, _region, o);
+  if(!isStatic){
+    o.addMember("SpatialTaskList", nodename(), "");
+    rule->generateCodeSimple(false, nodename(), trans, *this, _region, o);
+  }else{
+    rule->generateCodeSimple(true, "", trans, *this, _region, o);
+  }
 }
 
-void hecura::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, const RulePtr& rule, bool useDirections){
-  bool printedBeforeDep = false;
+void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, Transform& trans,  const RulePtr& rule, bool useDirections){
+//bool printedBeforeDep = false;
 
   ScheduleDependencies::const_iterator sd = _indirectDepends.find(this);
   if(sd==_indirectDepends.end() && rule->isSingleElement()){
+    trans.markSplitSizeUse(o);
     o.write(nodename()+".spatialSplit("SPLIT_CHUNK_SIZE");");
   }else{
     //TODO split selfdep tasks too
@@ -193,13 +207,13 @@ void hecura::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, const RulePtr& 
   for(ScheduleDependencies::const_iterator i=_directDepends.begin();  i!=_directDepends.end(); ++i){
     if(i->first!=this){
       if(i->first->isInput()){
-        if(!printedBeforeDep){
-         printedBeforeDep=true;
-         if(useDirections)
-           o.write(nodename()+".dependsOn(_before);");
-         else
-           o.write(nodename()+"->dependsOn(_before);");
-        }
+//      if(!printedBeforeDep){
+//       printedBeforeDep=true;
+//       if(useDirections)
+//         o.write(nodename()+".dependsOn(_before);");
+//       else
+//         o.write(nodename()+"->dependsOn(_before);");
+//      }
       }else{
         if(useDirections){
           o.write("{"); 
@@ -215,13 +229,11 @@ void hecura::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, const RulePtr& 
       }
     }
   }
-  if(useDirections)
-    o.write(nodename()+".enqueue();");
-  else
+  if(!_isLast)
     o.write(nodename()+"->enqueue();");
 }
 
-void hecura::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos){
+void petabricks::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos, bool isStatic){
   RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
   
   CoordinateFormula min = _region->minCoord();
@@ -232,19 +244,19 @@ void hecura::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGenera
 
   SimpleRegionPtr t = new SimpleRegion(min,max);
 
-  rule->generateCodeSimple("", trans, *this, t, o);
+  rule->generateCodeSimple(isStatic, "", trans, *this, t, o);
   //TODO deps for slice
 }
 
 
-void hecura::StaticScheduler::writeGraphAsPDF(const char* filename) const{
+void petabricks::StaticScheduler::writeGraphAsPDF(const char* filename) const{
   std::string schedulerGraph = toString();
   FILE* fd = popen(("dot -Grankdir=LR -Tpdf -o "+std::string(filename)).c_str(), "w");
   fwrite(schedulerGraph.c_str(),1,schedulerGraph.length(),fd);
   pclose(fd);
 }
 
-int hecura::ScheduleNode::updateIndirectDepends(){
+int petabricks::ScheduleNode::updateIndirectDepends(){
   int c = 0;
   if(_indirectDepends.empty()){  // seed first iteration
     _indirectDepends = _directDepends;
@@ -262,7 +274,7 @@ int hecura::ScheduleNode::updateIndirectDepends(){
   return c;
 }
 
-hecura::ScheduleNodeSet hecura::ScheduleNode::getStronglyConnectedComponent(){
+petabricks::ScheduleNodeSet petabricks::ScheduleNode::getStronglyConnectedComponent(){
   /// compute strongly connected component
   ScheduleNodeSet s;
   s.insert(this);
@@ -276,7 +288,7 @@ hecura::ScheduleNodeSet hecura::ScheduleNode::getStronglyConnectedComponent(){
   return s;
 }
 
-hecura::CoscheduledNode::CoscheduledNode(const ScheduleNodeSet& set)
+petabricks::CoscheduledNode::CoscheduledNode(const ScheduleNodeSet& set)
   : _originalNodes(set)
 {
   for(ScheduleNodeSet::const_iterator i=set.begin(); i!=set.end(); ++i){
@@ -286,11 +298,11 @@ hecura::CoscheduledNode::CoscheduledNode(const ScheduleNodeSet& set)
 }
 
 
-void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
   const DependencyInformation& selfDep = _indirectDepends[this];
 
   if(selfDep.direction.isNone()){
-    o.write("SpatialTaskList "+nodename()+";");
+    if(!isStatic) o.addMember("SpatialTaskList", nodename(), "");
     o.comment("Dual outputs compacted "+nodename());
     std::string region;
     ScheduleNode* first = NULL;
@@ -306,12 +318,25 @@ void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator
         .Text("to(...) regions of differing size not yet supported");
     }
     RuleChoicePtr rule = trans.learner().makeRuleChoice(first->choices()->rules(), first->matrix(), first->region());
-    rule->generateCodeSimple(nodename(), trans, *this, first->region(), o);
+    rule->generateCodeSimple(isStatic, nodename(), trans, *this, first->region(), o);
   }else{
-    o.write("DynamicTaskPtr "+nodename()+";");
-    TaskCodeGenerator& task = o.createTask("coscheduled_"+nodename(), trans.maximalArgList(), "DynamicTask");
+    if(!isStatic) o.addMember("DynamicTaskPtr", nodename(),"");
+    std::vector<std::string> args;
+    args.push_back("const jalib::JRef<"+trans.instClassName()+"> transform");
+    TaskCodeGenerator* task;
+    if(!isStatic) task=&o.createTask("coscheduled_"+nodename(), args, "DynamicTask", "_task");
+    CodeGenerator& ot = isStatic ? o : *task;
     std::string varname="coscheduled_"+nodename();
-    task.beginRunFunc();
+    if(!isStatic){
+      task->beginRunFunc();
+      for(FreeVars::const_iterator i=trans.constants().begin()
+         ;i!=trans.constants().end()
+         ;++i)
+      {
+        ot.define(*i, "(transform->"+*i+")");
+      }
+    }
+    
     for(size_t d=selfDep.direction.size()-1; d>=0; --d){
       bool passed=true;
       FormulaPtr begin,end;
@@ -333,10 +358,10 @@ void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator
       //test direction
       if((selfDep.direction[d]& ~DependencyDirection::D_LE) == 0){
         JTRACE("Coscheduling forward")(d)(*this);
-        task.beginFor(varname, begin, end, FormulaInteger::one());
+        ot.beginFor(varname, begin, end, FormulaInteger::one());
       }else if((selfDep.direction[d]& ~DependencyDirection::D_GE) == 0){
         JTRACE("Coscheduling backward")(d)(*this);
-        task.beginReverseFor(varname, begin, end, FormulaInteger::one());
+        ot.beginReverseFor(varname, begin, end, FormulaInteger::one());
       }else{
         JTRACE("Can't coschedule due to mismatched direction")(d);
         passed=false;
@@ -344,13 +369,17 @@ void hecura::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGenerator
       }
 
       for(ScheduleNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
-        (*i)->generateCodeForSlice(trans, task, d, new FormulaVariable(varname));
+        (*i)->generateCodeForSlice(trans, ot, d, new FormulaVariable(varname), isStatic);
       }
-      task.endFor();
-      task.write("return NULL;");
-      task.endFunc();
-      o.setcall(nodename(),"new "+varname+"_task", task.argnames());
-      printDepsAndEnqueue(o, NULL, false);
+      ot.endFor();
+      if(!isStatic){
+        ot.write("return NULL;");
+        ot.undefineAll();
+        ot.endFunc();
+        std::vector<std::string> args(1, "this");
+        o.setcall(nodename(),"new "+varname+"_task", args);
+        printDepsAndEnqueue(o, trans, NULL, false);
+      }
       return;
     }
     JASSERT(false)(*this)(selfDep.direction).Text("Unresolved dependency cycle");

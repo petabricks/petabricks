@@ -1,7 +1,9 @@
 add
 multiply
 rollingsum
+scaletest
 strassen
+templatetest
 test10
 test11
 test12
@@ -15,6 +17,7 @@ test6
 test7
 test8
 test9
+testruleir
 transpose
 utilities
 convolution/ConvolutionFFT
@@ -41,7 +44,17 @@ poisson/BS2DInterior
 poisson/BS2D
 poisson/ComputeError
 poisson/error
+poisson/fmgv2DGraph
 poisson/fmgv2D
+poisson/FullPoisson2D_InnerTransform
+poisson/FullPoisson2D
+poisson/FullPoisson2D_PerEst
+poisson/FullPoisson2D_RunRecursive
+poisson/FullPoisson2D_TrainingLoop
+poisson/FullPoisson2D_TrainingPerEst
+poisson/FullPoisson2D_TrainingRecursive
+poisson/FullPoisson2D_Tunables
+poisson/FullPoisson2D_TunablesPerEst
 poisson/Interpolate2Dnew
 poisson/Jacobi2DGraph
 poisson/Jacobi2DInterior
@@ -58,6 +71,8 @@ poisson/Restrict2Dnew
 poisson/SOR2DGraph
 poisson/SOR2DInterior
 poisson/SOR2D
+poisson/trainfmgv2D
+poisson/trainmgv2D
 sort/Insertionsort
 sort/Mergesort
 sort/Parallel_Mergesort
@@ -67,3 +82,4 @@ sort/Radixsort
 sort/Sort
 *.cpp
 *.cfg
+*.info

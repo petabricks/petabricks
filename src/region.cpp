@@ -24,9 +24,9 @@
 #include "rule.h"
 
 
-#define RETURN_VAL_STR ""
+#define RETURN_VAL_STR "_pb_rv"
 
-hecura::Region::RegionType hecura::Region::strToRegionType(const std::string& str){
+petabricks::Region::RegionType petabricks::Region::strToRegionType(const std::string& str){
   if(str=="cell")   return REGION_CELL;
   if(str=="row")    return REGION_ROW;
   if(str=="col")    return REGION_COL;
@@ -37,7 +37,7 @@ hecura::Region::RegionType hecura::Region::strToRegionType(const std::string& st
   return REGION_INVALID;
 }
 
-hecura::Region::Region(const char* fromMatrix, const FormulaList& version, const char* type, const FormulaList& bounds) 
+petabricks::Region::Region(const char* fromMatrix, const FormulaList& version, const char* type, const FormulaList& bounds) 
   : _name(RETURN_VAL_STR)
   , _fromMatrixName(fromMatrix)
   , _originalType(strToRegionType(type))
@@ -49,7 +49,7 @@ hecura::Region::Region(const char* fromMatrix, const FormulaList& version, const
   }
 }
 
-void hecura::Region::print(std::ostream& o) const {
+void petabricks::Region::print(std::ostream& o) const {
   o << _fromMatrixName << ".region(" ;
   printStlList(o, _minCoord.begin(), _minCoord.end(), ", ");
   o << ", ";
@@ -57,13 +57,12 @@ void hecura::Region::print(std::ostream& o) const {
   o << ") " << _name;
 }
 
-void hecura::Region::setName(const char* name){ 
-  JWARNING(_name=="")(_name); 
+void petabricks::Region::setName(const char* name){ 
   _name=name; 
   if(_name=="") _name=RETURN_VAL_STR;
 }
 
-void hecura::Region::initialize(Transform& trans) {
+void petabricks::Region::initialize(Transform& trans) {
   _originalBounds.normalize();
    _fromMatrix = trans.lookupMatrix( _fromMatrixName );
   JASSERT(_fromMatrix);
@@ -153,7 +152,7 @@ void hecura::Region::initialize(Transform& trans) {
   }
 }
 
-hecura::CoordinateFormula hecura::Region::calculateCenter() const {
+petabricks::CoordinateFormula petabricks::Region::calculateCenter() const {
 //   CoordinateFormula tmp;
 //   JASSERT(_minCoord.size()==_maxCoord.size())(_minCoord.size())(_maxCoord.size());
 //   for(size_t i=0; i<_minCoord.size(); ++i){
@@ -164,17 +163,17 @@ hecura::CoordinateFormula hecura::Region::calculateCenter() const {
   return _minCoord;
 }
 
-void hecura::RegionList::makeRelativeTo(const FormulaList& defs){
+void petabricks::RegionList::makeRelativeTo(const FormulaList& defs){
   for(iterator i=begin(); i!=end(); ++i){
     (*i)->makeRelativeTo(defs);
   }
 }
 
-void hecura::SimpleRegion::print(std::ostream& o) const {
+void petabricks::SimpleRegion::print(std::ostream& o) const {
   o << _minCoord << ", " << _maxCoord;
 }
 
-hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const FormulaList& _defs, bool isOutput){
+petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(Rule& rule, const FormulaList& _defs, bool isOutput){
   CoordinateFormula min;
   CoordinateFormula max;
 
@@ -246,7 +245,7 @@ hecura::SimpleRegionPtr hecura::Region::getApplicableRegion(Rule& rule, const Fo
   return new SimpleRegion(min,max);
 }
 
-hecura::FormulaList hecura::Region::diff(const Rule& rule) const {
+petabricks::FormulaList petabricks::Region::diff(const Rule& rule) const {
   FormulaList tmp = _maxCoord;
   for(size_t i=0; i<tmp.size(); ++i){
     if(tmp[i]->getFreeVariables()->size()==1){
@@ -269,7 +268,7 @@ hecura::FormulaList hecura::Region::diff(const Rule& rule) const {
   return tmp;
 }
 
-hecura::SimpleRegionPtr hecura::SimpleRegion::intersect(const SimpleRegion& that) const{
+petabricks::SimpleRegionPtr petabricks::SimpleRegion::intersect(const SimpleRegion& that) const{
   if(that.dimensions() > dimensions()) return that.intersect(*this);
   CoordinateFormula min,max;
   for(size_t i=0; i<that.dimensions(); ++i){
@@ -283,7 +282,7 @@ hecura::SimpleRegionPtr hecura::SimpleRegion::intersect(const SimpleRegion& that
   return new SimpleRegion(min, max);
 }
 
-hecura::SimpleRegionPtr hecura::SimpleRegion::regionUnion(const SimpleRegion& that) const{
+petabricks::SimpleRegionPtr petabricks::SimpleRegion::regionUnion(const SimpleRegion& that) const{
   JASSERT(dimensions()==that.dimensions());
   CoordinateFormula min,max;
   for(size_t i=0; i<dimensions(); ++i){
@@ -293,7 +292,7 @@ hecura::SimpleRegionPtr hecura::SimpleRegion::regionUnion(const SimpleRegion& th
   return new SimpleRegion(min, max);
 }
 
-bool hecura::SimpleRegion::hasIntersect(const SimpleRegion& that) const {
+bool petabricks::SimpleRegion::hasIntersect(const SimpleRegion& that) const {
   if(toString() == that.toString()) //optimization
     return true;
   JASSERT(dimensions()==that.dimensions());
@@ -307,25 +306,32 @@ bool hecura::SimpleRegion::hasIntersect(const SimpleRegion& that) const {
   return true;
 }
 
-std::string hecura::Region::generateSignatureCode(CodeGenerator& o, bool isConst) const{
+std::string petabricks::Region::genTypeStr(bool isConst) const{
   switch(_originalType){
   case REGION_CELL:
-    return std::string()+(isConst?"const ":"")+"ElementT& "  + _name;
+    if(isConst)
+      return "const ElementT";
+    else
+      return "ElementT&";
   case REGION_COL:
   case REGION_ROW:
-    return (isConst?MatrixDef::oneD().constMatrixTypeName():MatrixDef::oneD().matrixTypeName())+" " + _name;
+    return (isConst?MatrixDef::oneD().constMatrixTypeName():MatrixDef::oneD().matrixTypeName());
   case REGION_BOX:
   case REGION_ALL:
-    return (isConst?_fromMatrix->constMatrixTypeName():_fromMatrix->matrixTypeName())+" " + _name;
+    return (isConst?_fromMatrix->constMatrixTypeName():_fromMatrix->matrixTypeName());
   case REGION_SLICE:
-    return (isConst?_fromMatrix->constSliceTypeName():_fromMatrix->sliceTypeName())+" " + _name;
+    return (isConst?_fromMatrix->constSliceTypeName():_fromMatrix->sliceTypeName());
   default:
     JASSERT(false).Text("Unreachable");
     return "";
   }
 }
 
-std::string hecura::Region::generateAccessorCode(CodeGenerator& o) const{
+std::string petabricks::Region::generateSignatureCode(bool isConst) const{
+  return genTypeStr(isConst) + " " + _name;
+}
+
+std::string petabricks::Region::generateAccessorCode() const{
   switch(_originalType){
   case REGION_CELL:
     return _fromMatrix->name() + ".cell("+_minCoord.toString()+")";
@@ -345,7 +351,7 @@ std::string hecura::Region::generateAccessorCode(CodeGenerator& o) const{
   }
 }
 
-void hecura::Region::collectDependencies(const Rule& rule, MatrixDependencyMap& map) const {
+void petabricks::Region::collectDependencies(const Rule& rule, MatrixDependencyMap& map) const {
   //Determine dependency direction
   DependencyDirection direction(dimensions());
   for(size_t i=0; i<dimensions(); ++i){
@@ -395,11 +401,11 @@ void hecura::Region::collectDependencies(const Rule& rule, MatrixDependencyMap& 
   else         element->mergeWith(dep);
 }
 
-void hecura::Region::addAssumptions() const{
+void petabricks::Region::addAssumptions() const{
 
 }
 
-hecura::FormulaPtr hecura::Region::getSizeOfRuleIn(int d) const{
+petabricks::FormulaPtr petabricks::Region::getSizeOfRuleIn(int d) const{
   JASSERT((int)dimensions()>d)(dimensions())(d);
   return MaximaWrapper::instance().normalize(new FormulaSubtract(_maxCoord[d], _minCoord[d]));
 }

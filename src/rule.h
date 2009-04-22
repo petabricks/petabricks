@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURARULE_H
-#define HECURARULE_H
+#ifndef PETABRICKSRULE_H
+#define PETABRICKSRULE_H
 
 #include "matrixdependency.h"
 #include "jconvert.h"
@@ -28,11 +28,13 @@
 #include "region.h"
 #include "matrixdef.h"
 #include "formula.h"
+#include "ruleir.h"
 
 
 #include <vector>
 
-namespace hecura {
+namespace petabricks {
+class RIRScope;
 class CodeGenerator;
 class RuleDescriptor;
 class MatrixDependencyMap;
@@ -146,21 +148,24 @@ public:
 
   ///
   /// Generate seqential code to declare this rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
-  void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic);
+  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
+    generateTrampCodeSimple(trans, o, true);
+    generateTrampCodeSimple(trans, o, false);
+  }
+  void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic);
 
 
   ///
   /// Generate seqential code to invoke this rule
   void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region); 
+  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
 
   ///
   /// Return function the name of this rule in the code
   std::string implcodename(Transform& trans) const;
   std::string trampcodename(Transform& trans) const;
 
-  ///
-  /// 
   bool isReturnStyle() const { return _flags.isReturnStyle; }
 
   int dimensions() const;
@@ -172,8 +177,10 @@ public:
   void collectDependencies(StaticScheduler& scheduler);
 
   void markRecursive(const FormulaPtr& rh = new FormulaVariable(INPUT_SIZE_STR)) { 
-    _flags.isRecursive = true; 
-    _recursiveHint = rh;
+    if(!_flags.isRecursive){
+      _flags.isRecursive = true; 
+      _recursiveHint = rh;
+    }
   }
 
   bool isRecursive() const { return _flags.isRecursive; }
@@ -187,7 +194,6 @@ public:
     return _provides.find(m) != _provides.end();
   }
 
-  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
   std::vector<std::string> getCallArgs(Transform& trans, const SimpleRegionPtr& region);
 
   const FormulaPtr& recursiveHint() const { return _recursiveHint; }
@@ -195,16 +201,26 @@ public:
 
   FormulaPtr getSizeOfRuleIn(int d){
     for(size_t i=0; i<_to.size(); ++i){
-      if(d<_to[i]->dimensions()){
+      if(d < (int)_to[i]->dimensions()){
         return _to[i]->getSizeOfRuleIn(d);
       }
     }
     JASSERT(false)(d)(_id);
+    return 0;
   }
 
   bool isSingleElement() const {
     if(_to.size()!=1) return false;
     return _to[0]->isSingleElement();
+  }
+
+  void compileRuleBody(Transform& tx, RIRScope& s);
+
+  bool isSingleCall() const {
+    for(size_t i=0; i<_to.size(); ++i)
+      if(!_to[i]->isAll())
+        return false;
+    return true;
   }
 private:
   int _id;
@@ -214,7 +230,9 @@ private:
   FormulaList _conditions;
   FormulaList _definitions;
   SimpleRegionPtr _applicanbleRegion;
-  std::string     _body;
+  std::string     _bodysrc;
+  RIRBlockCopyRef _bodyirStatic;
+  RIRBlockCopyRef _bodyirDynamic;
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr          _recursiveHint;

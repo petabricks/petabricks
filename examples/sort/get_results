@@ -1,0 +1,9 @@
+#!/bin/bash
+
+cfgs="Sort.cfg.M2 Sort.cfg.X8 Sort.cfg.X1 Sort.cfg.N8 Sort.cfg.N1" 
+
+for cfg in $cfgs; do
+  echo $cfg
+  cp $cfg Sort.cfg
+  ./Sort --graph-parallel --min 1 --max 8 --step 1 -n 100000 --trails 1
+done

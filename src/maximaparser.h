@@ -78,8 +78,8 @@ typedef union YYSTYPE
   int i;
   double d;
   const char* str;
-  hecura::Formula*        formula;
-  hecura::FormulaList*    formulas;
+  petabricks::Formula*        formula;
+  petabricks::FormulaList*    formulas;
 }
 /* Line 1489 of yacc.c.  */
 #line 86 "maximaparser.h"

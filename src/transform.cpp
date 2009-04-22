@@ -22,6 +22,7 @@
 #include "maximawrapper.h"
 #include "codegenerator.h"
 #include "staticscheduler.h"
+#include "rirscope.h"
 
 #include <algorithm>
 
@@ -32,7 +33,7 @@ namespace{
   }
 }
 
-void hecura::Transform::addFrom(const MatrixDefList& l){
+void petabricks::Transform::addFrom(const MatrixDefList& l){
   appendAll(_from, l);
   for(MatrixDefList::const_iterator i=l.begin(); i!=l.end(); ++i){
     MatrixDefPtr& elmt = _matrices[(*i)->name()];
@@ -42,7 +43,7 @@ void hecura::Transform::addFrom(const MatrixDefList& l){
     elmt = *i;
   }
 }
-void hecura::Transform::addThrough(const MatrixDefList& l){
+void petabricks::Transform::addThrough(const MatrixDefList& l){
   appendAll(_through, l);
   for(MatrixDefList::const_iterator i=l.begin(); i!=l.end(); ++i){
     MatrixDefPtr& elmt = _matrices[(*i)->name()];
@@ -52,7 +53,7 @@ void hecura::Transform::addThrough(const MatrixDefList& l){
     elmt = *i;
   }
 }
-void hecura::Transform::addTo(const MatrixDefList& l){
+void petabricks::Transform::addTo(const MatrixDefList& l){
   appendAll(_to, l);
   for(MatrixDefList::const_iterator i=l.begin(); i!=l.end(); ++i){
     MatrixDefPtr& elmt = _matrices[(*i)->name()];
@@ -62,12 +63,16 @@ void hecura::Transform::addTo(const MatrixDefList& l){
     elmt = *i;
   }
 }
-void hecura::Transform::setRules(const RuleList& l){
+void petabricks::Transform::setRules(const RuleList& l){
   JWARNING(_rules.size()==0)(_rules.size());
   appendAll(_rules, l);
 }
 
-void hecura::Transform::print(std::ostream& o) const {
+void petabricks::Transform::print(std::ostream& o) const {
+  if(!_templateargs.empty()){ 
+    o << "template < ";   printStlList(o, _templateargs.begin(), _templateargs.end(), ", "); 
+    o << " > \n";
+  }
   o << "transform " << _name;
   if(!_from.empty()){ 
     o << "\nfrom ";   printStlList(o, _from.begin(),    _from.end(), ", ");
@@ -85,7 +90,7 @@ void hecura::Transform::print(std::ostream& o) const {
   o << "\n";
 }
 
-void hecura::Transform::initialize() {
+void petabricks::Transform::initialize() {
   MaximaWrapper::instance().pushContext();
 
   jalib::Map(&MatrixDef::initialize, *this, _from);
@@ -112,10 +117,15 @@ void hecura::Transform::initialize() {
 
   tester().setIOSizes(_from.size(), _to.size());
 
+  if(isTemplate())
+    RIRScope::global()->set(_name, RIRSymbol::SYM_TRANSFORM_TEMPLATE);
+  else
+    RIRScope::global()->set(_name, RIRSymbol::SYM_TRANSFORM);
+
   MaximaWrapper::instance().popContext();
 }
 
-void hecura::Transform::fillBaseCases(const MatrixDefPtr& matrix) {
+void petabricks::Transform::fillBaseCases(const MatrixDefPtr& matrix) {
   RuleDescriptorListList boundaries;
   boundaries.resize( matrix->numDimensions() );
   RuleSet allowed;
@@ -144,121 +154,274 @@ void hecura::Transform::fillBaseCases(const MatrixDefPtr& matrix) {
   }
 }
 
-void hecura::Transform::generateCodeSimple(CodeGenerator& o){ 
+void petabricks::Transform::compile(){ 
   MaximaWrapper::instance().pushContext();
   jalib::Map(&MatrixDef::exportAssumptions, _from);
   jalib::Map(&MatrixDef::exportAssumptions, _through);
   jalib::Map(&MatrixDef::exportAssumptions, _to);
 
-  StaticScheduler scheduler(_baseCases);
+  RIRScopePtr scope = RIRScope::global()->createChildLayer();
+
+  for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
+    scope->set(i->name(), RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL);
+  }
+
+  jalib::Map(&Rule::compileRuleBody, *this, *scope, _rules);
+
+  JASSERT(!_scheduler);
+
+  _scheduler=new StaticScheduler(_baseCases);
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    scheduler.markInputMatrix(*i);
+    _scheduler->markInputMatrix(*i);
   }
   for(RuleList::const_iterator i=_rules.begin(); i!=_rules.end(); ++i){
-    (*i)->collectDependencies(scheduler);
+    (*i)->collectDependencies(_scheduler);
   }
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    scheduler.markOutputMatrix(*i);
+    _scheduler->markOutputMatrix(*i);
+  }
+  _scheduler->generateSchedule();
+  
+  MaximaWrapper::instance().popContext();
+}
+  
+int petabricks::Transform::tmplChoiceCount() const {
+  int choiceCnt = 1;
+  for(size_t i=0; i<_templateargs.size(); ++i){
+    choiceCnt*=_templateargs[i]->range();
+  }
+  return choiceCnt;
+}
+  
+std::string petabricks::Transform::tmplName(int n, CodeGenerator* o) const {
+  std::string name = _name+TMPL_IMPL_PFX;
+  int choice=n;
+  //add #defines
+  for(size_t i=0; i<_templateargs.size(); ++i){
+    int val=(choice%_templateargs[i]->range()) + _templateargs[i]->min();
+    choice/=_templateargs[i]->range();
+    if(o!=NULL)
+      o->write("#define " + _templateargs[i]->name() + " " + jalib::XToString(val));
+    name += "_" + jalib::XToString(val);
+  }
+  JASSERT(choice==0)(choice);
+  return name;
+}
+
+void petabricks::Transform::generateCode(CodeGenerator& o){ 
+  if(_templateargs.empty())
+    generateCodeSimple(o); //normal case
+  else {
+    std::string origName = _name;
+    //count number of times we need to explode it
+    size_t choiceCnt = tmplChoiceCount();
+    JWARNING(choiceCnt<15)(choiceCnt)(_name).Text("Explosion of choices for template... are you sure???");
+    //for each possible way
+    for(size_t c=0; c<choiceCnt; ++c){
+      _name = tmplName(c, &o);
+
+      JTRACE("generating template version")(c);
+      generateCodeSimple(o);
+
+      //remove defines
+      for(size_t i=0; i<_templateargs.size(); ++i){
+        o.write("#undef " + _templateargs[i]->name());
+      }
+
+      _name = origName;
+    }
+    genTmplJumpTable(o, true, normalArgs(), normalArgNames());
+    genTmplJumpTable(o, false, normalArgs(), normalArgNames());
+  }
+}
+  
+void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
+                    bool isStatic,
+                    const std::vector<std::string>& args,
+                    const std::vector<std::string>& argNames)
+{
+  std::ostringstream formula;
+  std::stringstream ss;
+  std::vector<std::string> targs;
+  for(size_t i=0, mult=1; i<_templateargs.size(); ++i){
+    targs.push_back("int "+_templateargs[i]->name());
+    if(mult>1) formula << " + " << mult << "*";
+    formula << '(' << _templateargs[i]->name() << '-' << _templateargs[i]->min() << ')';
+    mult *= _templateargs[i]->range();
+  }
+  targs.insert(targs.end(), args.begin(), args.end());
+  if(isStatic)
+    o.beginFunc( "void" , _name+TX_STATIC_POSTFIX, targs);
+  else
+    o.beginFunc( "petabricks::DynamicTaskPtr" , _name+TX_DYNAMIC_POSTFIX, targs);
+  
+  for(size_t i=0; i<_templateargs.size(); ++i){
+    ss << "JASSERT(" << _templateargs[i]->name() << ">=" << _templateargs[i]->min() << " && "
+                     << _templateargs[i]->name() << "<=" << _templateargs[i]->max() << ")"
+                     << "(" << _templateargs[i]->name() << ");";
+    o.write(ss.str());
+    ss.str("");
   }
 
-  scheduler.generateSchedule();
+  //count number of times we need to explode it
+  size_t choiceCnt = tmplChoiceCount();
+  //for each possible way
+  o.beginSwitch(formula.str());
+  for(size_t c=0; c<choiceCnt; ++c){
+    std::string fn = tmplName(c);
+    o.beginCase(c);
+    if(isStatic){
+      o.call(fn+TX_STATIC_POSTFIX, argNames);
+    }else{
+      o.write("return ");
+      o.call(fn+TX_DYNAMIC_POSTFIX, argNames);
+    }
+    o.endCase();
+  }
+  o.write("default: JASSERT(false);");
+  o.endSwitch();
+  o.endFunc();
+}
 
+
+std::vector<std::string> petabricks::Transform::normalArgs() const{
   std::vector<std::string> args;
-  std::vector<std::string> argNames;
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->argDeclRW(args);
-    argNames.push_back((*i)->name());
   }
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->argDeclRO(args);
+  }
+  return args;
+}
+
+std::vector<std::string> petabricks::Transform::normalArgNames() const{
+  std::vector<std::string> argNames;
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     argNames.push_back((*i)->name());
   }
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    argNames.push_back((*i)->name());
+  }
+  return argNames;
+}
+
+std::vector<std::string> petabricks::Transform::spawnArgs() const{
+  std::vector<std::string> args = normalArgs();
+  args.push_back("const DynamicTaskPtr& _before");
+  return args;
+}
+std::vector<std::string> petabricks::Transform::spawnArgNames() const{
+  std::vector<std::string> args = normalArgNames();
+  args.push_back("_before");
+  return args;
+}
+
+
+void petabricks::Transform::generateCodeSimple(CodeGenerator& o){ 
+  std::vector<std::string> args = normalArgs();
+  std::vector<std::string> argNames = normalArgNames();
   std::vector<std::string> returnStyleArgs = args;
   if(_to.size()==1) returnStyleArgs.erase(returnStyleArgs.begin());
 
+  o.cg().beginTransform(_originalName, _name);
   o.comment("Begin output for transform " + _name);
   o.newline();
-//   o.comment("Forward declarations");
-//   o.declareFunc("void", _name, args);
-//   if(_to.size()==1) o.declareFunc(_to.front()->matrixTypeName(), _name, returnStyleArgs);
-//   o.newline();
-  o.comment("User rules");
-  for(RuleList::iterator i=_rules.begin(); i!=_rules.end(); ++i){
-    (*i)->generateDeclCodeSimple(*this, o);
-  }
-  o.newline();
-
-  o.comment("Rule trampolines");
-  for(RuleList::iterator i=_rules.begin(); i!=_rules.end(); ++i){
-    (*i)->generateTrampCodeSimple(*this, o);
-  }
-  o.newline();
-
-  o.comment(_name+" entry function");
-  args.push_back("const DynamicTaskPtr& _before");
-  o.beginFunc("DynamicTaskPtr", "spawn_"+_name, args);
-  args.pop_back();
-  o.varDecl("IndexT " INPUT_SIZE_STR " = 0");
-  o.varDecl("IndexT " OUTPUT_SIZE_STR " = 0");
-  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    o.write(INPUT_SIZE_STR " += " + (*i)->name() + ".count();");
-  }
-  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    o.write(OUTPUT_SIZE_STR " += " + (*i)->name() + ".count();");
-  }
-  o.varDecl("IndexT _input_perimeter = 0");
-  int maxDims = 1;
-  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    o.write("_input_perimeter += " + (*i)->name() + ".perimeter();");
-    maxDims = std::max<int>(maxDims, (*i)->numDimensions());
-  }
-  o.createTunable(_name, _name + "_split_size", 64, 1);
-  o.varDecl("IndexT " SPLIT_CHUNK_SIZE " = " + _name + "_split_size" );
-
-  extractSizeDefines(o);
-//   o.comment("Verify size of input/output");
-  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    (*i)->verifyDefines(o);
-  }
-  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->verifyDefines(o);
-  }
-  if(!_through.empty())
-//     o.comment("Allocate intermediate matrices");
-  for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
-    (*i)->allocateTemporary(o, false);
-  }
-//   o.comment("Run computation");
-  scheduler.generateCodeSimple(*this, o);
   
-  o.write("return "+taskname()+";");
-  o.endFunc();
-  o.beginFunc("void", _name, args);
-  argNames.push_back("DynamicTaskPtr::null()");
-  o.setcall("DynamicTaskPtr "+taskname(), "spawn_"+_name, argNames);
-  argNames.pop_back();
-  o.write(taskname()+"->enqueue();");
-  o.write(taskname()+"->waitUntilComplete();");
-  o.endFunc();
-  o.newline();
-
-  if(_to.size()==1){
-    o.comment("Return style entry function");
-    o.beginFunc(_to.front()->matrixTypeName(), _name, returnStyleArgs);
-    extractSizeDefines(o);
-//     o.comment("Allocate to matrix");
-    _to.front()->allocateTemporary(o, false);
-//     o.comment("Call normal version");
-    o.call(_name, argNames);
-    o.write("return "+_to.front()->name()+";");
-    o.endFunc();
-    o.newline();
+  for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
+    o.createTunable(i->isTunable(), i->isTunable() ? "user.tunable" : "user.config", _name+"_"+i->name(), i->initial(), i->min(), i->max());
   }
 
-  MaximaWrapper::instance().popContext();
+  o.write("#define TRANSFORM_LOCAL(x) PB_CAT("+_name+"_, x)");
+  o.newline();
+
+  o.comment("User rules");
+  Map(&Rule::generateDeclCodeSimple, *this, o, _rules);
+  o.newline();
+
+  o.beginClass(instClassName(), "petabricks::TransformInstance");
+
+  o.globalDefine(_name+TX_DYNAMIC_POSTFIX+"(args...)",
+      "petabricks::tx_call_dynamic(new "+instClassName()+"(args))");
+  o.globalDefine(_name+TX_STATIC_POSTFIX+"(args...)",
+      instClassName()+"(args).runStatic()");
+
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    o.addMember((*i)->matrixTypeName(), (*i)->name());
+  }
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    o.addMember((*i)->constMatrixTypeName(), (*i)->name());
+  }
+  
+  if(_scheduler->size()>1){
+    o.beginFunc("bool", "useContinuation");
+    o.createTunable(true, "system.unrollschedule", _name + "_unroll_schedule", 1, 0, 1);
+    o.write("return "+_name + "_unroll_schedule == 0;");
+    o.endFunc();
+  }
+
+
+  o.constructorBody("init();");
+  o.beginFunc("void", "init");
+  extractConstants(o);
+  o.endFunc();
+
+  o.beginFunc("DynamicTaskPtr", "runDynamic");
+  o.createTunable(true, "system.seqcutoff", _name + "_sequential_cutoff", 0);
+  o.beginIf(INPUT_SIZE_STR " < " + _name + "_sequential_cutoff");
+  o.write("runStatic();");
+  o.write("return NULL;");
+  o.endIf();
+  _scheduler->generateCodeDynamic(*this, o);
+  o.endFunc();
+
+  o.beginFunc("void", "runStatic");
+  _scheduler->generateCodeStatic(*this, o);
+  o.endFunc();
+  
+  o.comment("Rule trampolines");
+  Map(&Rule::generateTrampCodeSimple, *this, o, _rules);
+  o.newline();
+
+  o.endClass();
+  
+
+
+//o.beginFunc("void", _name, args);
+//argNames.push_back("DynamicTaskPtr::null()");
+//o.setcall("DynamicTaskPtr "+taskname(), "spawn_"+_name, argNames);
+//argNames.pop_back();
+//o.write(taskname()+"->enqueue();");
+//o.write(taskname()+"->waitUntilComplete();");
+//o.endFunc();
+//o.newline();
+
+//if(_to.size()==1){
+//  o.comment("Return style entry function");
+//  o.beginFunc(_to.front()->matrixTypeName(), _name, returnStyleArgs);
+//  extractSizeDefines(o);
+//  _to.front()->allocateTemporary(o, false);
+//  o.call(_name, argNames);
+//  o.write("return "+_to.front()->name()+";");
+//  o.endFunc();
+//  o.newline();
+//}
+  generateMainInterface(o);
+  o.write("#undef TRANSFORM_LOCAL");
+  o.comment("End of output for "+_name);
+  o.cg().endTransform(_originalName, _name);
+  o.newline();
+  o.newline();
+}
+void petabricks::Transform::markSplitSizeUse(CodeGenerator& o){
+  if(!_usesSplitSize){
+    _usesSplitSize=true;
+    o.createTunable(true, "system.splitsize", _name + "_split_size", 64, 1);
+    o.addMember("IndexT", SPLIT_CHUNK_SIZE, _name+"_split_size");
+  }
 }
 
-void hecura::Transform::extractSizeDefines(CodeGenerator& o){
+void petabricks::Transform::extractSizeDefines(CodeGenerator& o){
   FreeVars fv;
 //   o.comment("Extract matrix size parameters");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
@@ -269,30 +432,52 @@ void hecura::Transform::extractSizeDefines(CodeGenerator& o){
   }
 }
 
-void hecura::Transform::generateMainCode(CodeGenerator& o){ 
-  std::vector<std::string> argNames;
+void petabricks::Transform::extractConstants(CodeGenerator& o){
+  o.addMember("IndexT", INPUT_SIZE_STR,       "0");
+  o.addMember("IndexT", OUTPUT_SIZE_STR,      "0");
+  o.addMember("IndexT", INPUT_PERIMETER_STR,  "0");
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    o.write(INPUT_SIZE_STR " += " + (*i)->name() + ".count();");
+  }
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    argNames.push_back((*i)->name());
+    o.write(OUTPUT_SIZE_STR " += " + (*i)->name() + ".count();");
   }
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    argNames.push_back((*i)->name());
+    o.write(INPUT_PERIMETER_STR " += " + (*i)->name() + ".perimeter();");
   }
+  //int maxDims = 1;
+  //maxDims = std::max<int>(maxDims, (*i)->numDimensions());
+  extractSizeDefines(o);
+  Map(&MatrixDef::verifyDefines, o, _from);
+  Map(&MatrixDef::verifyDefines, o, _to);
+  for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
+    (*i)->allocateTemporary(o, false);
+  } }
+
+void petabricks::Transform::registerMainInterface(CodeGenerator& o){
+  if(_templateargs.empty())
+    o.write("runtime.addTransform("+name()+"_main::instance());");
+  else{
+    size_t choiceCnt = tmplChoiceCount();
+    for(size_t c=0; c<choiceCnt; ++c)
+      o.write("runtime.addTransform("+tmplName(c)+"_main::instance());");
+  }
+}
+
+void petabricks::Transform::generateMainInterface(CodeGenerator& o){ 
+  std::vector<std::string> argNames = normalArgNames();
   int a = 1;
-  o.comment("Program main routine");
-  std::string args[] = {"int argc", "const char** argv"};
-  o.beginFunc("int", "main", std::vector<std::string>(args, args+2));
-  o.write("class _mainclass : public hecura::HecuraRuntime::Main {");
-  o.write("public:");
-  o.incIndent();
+  o.beginClass(_name+"_main", "petabricks::PetabricksRuntime::Main");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->varDeclCodeRO(o);
   }
-  for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
-    (*i)->varDeclCodeRW(o);
-  }
+//for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
+//  (*i)->varDeclCodeRW(o);
+//}
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->varDeclCodeRW(o);
   }
+  std::string args[] = {"int argc", "const char** argv"};
   o.beginFunc("bool", "verifyArgs", std::vector<std::string>(args, args+2));
   {
     o.beginIf("argc!="+jalib::XToString(_to.size()+_from.size()+1));
@@ -352,17 +537,28 @@ void hecura::Transform::generateMainCode(CodeGenerator& o){
   o.endFunc();
 
   o.beginFunc("void", "compute", std::vector<std::string>());
-  o.call(_name, argNames);
+  o.setcall("jalib::JRef<"+instClassName()+"> p","new "+instClassName(), argNames);
+  o.write("DynamicTaskPtr t = p->runDynamic();");
+  o.write("if(t){");
+  o.write("  t->enqueue();");
+  o.write("  t->waitUntilComplete();");
+  o.write("}");
+  o.endFunc();
+  
+  o.beginFunc("const char*", "name");
+  o.write("return \""+_name+"\";");
   o.endFunc();
 
-  o.decIndent();
-  o.write("} mc;");
-  o.write("hecura::HecuraRuntime runtime(mc);");
-  o.write("return runtime.runMain(argc,argv);");
+  o.staticMember();
+  o.beginFunc(_name+"_main*", "instance");
+  o.write("static "+_name+"_main i;");
+  o.write("return &i;");
   o.endFunc();
+
+  o.endClass();
 }
 
-std::vector<std::string> hecura::Transform::maximalArgList() const{
+std::vector<std::string> petabricks::Transform::maximalArgList() const{
   std::vector<std::string> tmp; 
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->argDeclRO(tmp);
@@ -378,3 +574,4 @@ std::vector<std::string> hecura::Transform::maximalArgList() const{
   }
   return tmp;
 }
+

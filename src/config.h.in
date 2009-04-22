@@ -1,13 +1,34 @@
 /* src/config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* larges cache line size in system */
+#undef CACHE_LINE_SIZE
+
 /* verbose debug printouts and log files in /tmp */
 #undef DEBUG
+
+/* don't generate continuation code after SPAWN/enqueue */
+#undef DISABLE_CONTINUATIONS
 
 /* allow abort without program shutdown (uses exceptions) */
 #undef GRACEFUL_ABORT
 
+/* Define to 1 if you have the `backtrace_symbols' function. */
+#undef HAVE_BACKTRACE_SYMBOLS
+
+/* Define to 1 if you have the <cxxabi.h> header file. */
+#undef HAVE_CXXABI_H
+
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
+
+/* Define to 1 if you have the <execinfo.h> header file. */
+#undef HAVE_EXECINFO_H
+
+/* Define to 1 if you have the <fftw3.h> header file. */
+#undef HAVE_FFTW3_H
+
+/* Define to 1 if you have the `getpagesize' function. */
+#undef HAVE_GETPAGESIZE
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
@@ -24,8 +45,14 @@
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
 
+/* Define to 1 if you have the <math.h> header file. */
+#undef HAVE_MATH_H
+
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
+
+/* Define to 1 if you have a working `mmap' system call. */
+#undef HAVE_MMAP
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -49,10 +76,23 @@
 #undef HAVE_UNISTD_H
 
 /* var name in output code */
+#undef INPUT_PERIMETER_STR
+
+/* var name in output code */
 #undef INPUT_SIZE_STR
+
+/* Use a custom allocator from JALIB */
+#undef JALIB_ALLOCATOR
+
+/* Cause the custom allocator to call malloc instead of mmap */
+#undef JALIB_USE_MALLOC
 
 /* log traces to /tmp/jassertlog.pid */
 #undef JASSERT_LOG
+
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
+#undef LT_OBJDIR
 
 /* type for elements in the matrix */
 #undef MATRIX_ELEMENT_T
@@ -63,8 +103,14 @@
 /* the maximum number of dimensions supported */
 #undef MAX_DIMENSIONS
 
+/* max number of workers supported */
+#undef MAX_NUM_WORKERS
+
 /* number of levels for recursive choices */
 #undef MAX_REC_LEVELS
+
+/* min number of workers supported */
+#undef MIN_NUM_WORKERS
 
 /* var name in output code */
 #undef OUTPUT_SIZE_STR
@@ -87,6 +133,12 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* git sha1 hash for HEAD at the time ./configure was run */
+#undef REVISION_LONG
+
+/* git sha1 hash for HEAD at the time ./configure was run */
+#undef REVISION_SHORT
+
 /* undefine to disable cpp */
 #undef RUN_CPP
 
@@ -103,9 +155,39 @@
 /* record timing information to stderr and jtimings.csv */
 #undef TIMING
 
+/* prefix for expanded template implementations */
+#undef TMPL_IMPL_PFX
+
+/* postfix for static versions of transforms */
+#undef TX_DYNAMIC_POSTFIX
+
+/* postfix for static versions of transforms */
+#undef TX_STATIC_POSTFIX
+
+/* enable unsafe optimizations such as removing error checking. */
+#undef UNSAFE
+
 /* Version number of package */
 #undef VERSION
 
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */
 #undef YYTEXT_POINTER
+
+/* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
+   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
+   #define below would cause a syntax error. */
+#undef _UINT32_T
+
+/* Define for Solaris 2.5.1 so the uint64_t typedef from <sys/synch.h>,
+   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
+   #define below would cause a syntax error. */
+#undef _UINT64_T
+
+/* Define to the type of an unsigned integer type of width exactly 32 bits if
+   such a type exists and the standard includes do not define it. */
+#undef uint32_t
+
+/* Define to the type of an unsigned integer type of width exactly 64 bits if
+   such a type exists and the standard includes do not define it. */
+#undef uint64_t

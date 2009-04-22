@@ -9,7 +9,6 @@
 
 %{
 
-JTUNABLE(Parallel_Merge_Cutoff, 5000);
 
 inline int BinarySearch(double value, ConstMatrixRegion1D &A)
 {
@@ -35,10 +34,11 @@ inline int BinarySearch(double value, ConstMatrixRegion1D &A)
 transform Merge2_Parallel
 from IN1[n1], IN2[n2]
 to OUT[n1 + n2]
+tunable Cutoff(5000, 100, 100000)
 {
   recursive to (OUT out) from (IN1 in1, IN2 in2)
   {
-    if (n1 + n2 < Parallel_Merge_Cutoff) {
+    if (n1 + n2 < Cutoff) {
       int ptr1 = 0;
       int ptr2 = 0;
       int i = 0;

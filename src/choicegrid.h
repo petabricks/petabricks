@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURACHOICEGRID_H
-#define HECURACHOICEGRID_H
+#ifndef PETABRICKSCHOICEGRID_H
+#define PETABRICKSCHOICEGRID_H
 
 #include "jrefcounted.h"
 #include "jprintable.h"
@@ -29,7 +29,7 @@
 #include <vector>
 #include <map>
 
-namespace hecura {
+namespace petabricks {
 class CodeGenerator;
 class ChoiceGrid;
 typedef jalib::JRef<ChoiceGrid>                    ChoiceGridPtr;

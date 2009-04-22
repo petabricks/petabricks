@@ -110,6 +110,8 @@ namespace jassert_internal
   const char* jassert_basename ( const char* str );
   std::ostream& jassert_output_stream();
   void jassert_safe_print ( const char* );
+  void set_log_file ( const std::string& path );
+  int jassert_console_fd();
 
   template < typename T >
   inline JAssert& JAssert::Print ( const T& t )
@@ -124,9 +126,19 @@ namespace jassert_internal
     return *this;
   }
 
-  void set_log_file ( const std::string& path );
+#ifndef JASSERT_FAST
+  template <>
+  inline JAssert& JAssert::Print( const std::string& t ){
+    jassert_safe_print ( t.c_str() );
+    return *this;
+  }
 
-  int jassert_console_fd();
+  template <>
+  inline JAssert& JAssert::Print( const char* const& t ){
+    jassert_safe_print( t );
+    return *this;
+  }
+#endif
 
 }//jassert_internal
 
@@ -151,6 +163,8 @@ namespace jassert_internal
 #define JASSERT_FILE jassert_internal::jassert_basename(__FILE__)
 #define JASSERT_CONTEXT(type,reason) Print('[').Print(getpid()).Print("] " type " at ").Print(JASSERT_FILE).Print(":" JASSERT_LINE " in ").Print(JASSERT_FUNC).Print("; REASON='" reason "'\n")
 
+#define UNIMPLEMENTED() JASSERT(false).Text("Unimplemented");
+
 #ifdef DEBUG
 #define JTRACE(msg) jassert_internal::JAssert(false).JASSERT_CONTEXT("TRACE",msg).JASSERT_CONT_A
 #else
@@ -159,10 +173,20 @@ namespace jassert_internal
 
 #define JNOTE(msg) jassert_internal::JAssert(false).JASSERT_CONTEXT("NOTE",msg).JASSERT_CONT_A
 
-#define JWARNING(term) if((term)){}else \
+#define _JWARNING(term) if((term)){}else \
     jassert_internal::JAssert(false).JASSERT_CONTEXT("WARNING","JWARNING(" #term ") failed").JASSERT_CONT_A
 
-#define JASSERT(term)  if((term)){}else \
+#define _JASSERT(term)  if((term)){}else \
     jassert_internal::JAssert(true).JASSERT_CONTEXT("ERROR","JASSERT(" #term ") failed").JASSERT_CONT_A
 
+#ifdef UNSAFE
+#define JWARNING(t) _JWARNING( (t) || true )
+#define JASSERT(t)  _JASSERT( (t) || true )
+#else
+#define JWARNING _JWARNING
+#define JASSERT  _JASSERT
 #endif
+
+
+#endif
+

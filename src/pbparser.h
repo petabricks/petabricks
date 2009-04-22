@@ -53,10 +53,14 @@
      MAIN = 269,
      RECURSIVE = 270,
      TESTCASE = 271,
-     INTEGER = 272,
-     FLOAT = 273,
-     IDENT = 274,
-     RULEBODY = 275
+     GENERATOR = 272,
+     TEMPLATE = 273,
+     TUNABLE = 274,
+     CONFIG = 275,
+     INTEGER = 276,
+     FLOAT = 277,
+     IDENT = 278,
+     RULEBODY = 279
    };
 #endif
 /* Tokens.  */
@@ -74,10 +78,14 @@
 #define MAIN 269
 #define RECURSIVE 270
 #define TESTCASE 271
-#define INTEGER 272
-#define FLOAT 273
-#define IDENT 274
-#define RULEBODY 275
+#define GENERATOR 272
+#define TEMPLATE 273
+#define TUNABLE 274
+#define CONFIG 275
+#define INTEGER 276
+#define FLOAT 277
+#define IDENT 278
+#define RULEBODY 279
 
 
 
@@ -89,21 +97,23 @@ typedef union YYSTYPE
   int i;
   double d;
   const char* str;
-  hecura::Transform*      transform;
-  hecura::TransformList*  transforms;
-  hecura::MatrixDef*      matrixdef;
-  hecura::MatrixDefList*  matrixdefs;
-  hecura::Rule*           rule;
-  hecura::RuleList*       rules;
-  hecura::Formula*        formula;
-  hecura::FormulaList*    formulas;
-  hecura::Region*         region;
-  hecura::RegionList*     regions;
-  hecura::TestCase*       testcase;
-  struct { const char* str; hecura::FormulaList* formulas; } str_formulas; 
+  petabricks::Transform*       transform;
+  petabricks::TransformList*   transforms;
+  petabricks::MatrixDef*       matrixdef;
+  petabricks::MatrixDefList*   matrixdefs;
+  petabricks::Rule*            rule;
+  petabricks::RuleList*        rules;
+  petabricks::Formula*         formula;
+  petabricks::FormulaList*     formulas;
+  petabricks::Region*          region;
+  petabricks::RegionList*      regions;
+  petabricks::TestCase*        testcase;
+  petabricks::TemplateArg*     templatearg;
+  petabricks::TemplateArgList* templateargs;
+  struct { const char* str; petabricks::FormulaList* formulas; } str_formulas; 
 }
 /* Line 1489 of yacc.c.  */
-#line 107 "pbparser.h"
+#line 117 "pbparser.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1

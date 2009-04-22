@@ -18,12 +18,12 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef HECURAMATRIXOPERATIONS_H
-#define HECURAMATRIXOPERATIONS_H
+#ifndef PETABRICKSMATRIXOPERATIONS_H
+#define PETABRICKSMATRIXOPERATIONS_H
 
 #include "matrix.h"
 
-namespace hecura {
+namespace petabricks {
 /*
 template<typename AMatrix, typename BMatrix>
 void matrixCopy(AMatrix& dest,  const BMatrix& src){

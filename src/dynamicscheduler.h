@@ -17,35 +17,253 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURADYNAMICSCHEDULER_H
-#define HECURADYNAMICSCHEDULER_H
+#ifndef PETABRICKSDYNAMICSCHEDULER_H
+#define PETABRICKSDYNAMICSCHEDULER_H
 
 #include "jmutex.h"
 #include "jrefcounted.h"
 #include "jblockingqueue.h"
+#include "jmutex.h"
+#include "jasm.h"
+#include "dynamictask.h"
 
 #include <pthread.h>
 #include <list>
 #include <set>
+#include <deque>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
 
-namespace hecura {
+namespace petabricks {
 
 // The major work of dynamic scheduler is to maintain two queues:
 // * ready queue: a queue of tasks ready to run
 
 // forward declarsion for DynamicTaskPtr
-class DynamicTask;
-typedef jalib::JRef<DynamicTask> DynamicTaskPtr;
-typedef jalib::JBlockingQueue<DynamicTaskPtr> DynamicTaskQueue;
+//class DynamicTask;
+//typedef jalib::JRef<DynamicTask> DynamicTaskPtr;
+//typedef jalib::JBlockingQueue<DynamicTaskPtr> DynamicTaskQueue;
 
+int tid(void);
 
 class DynamicScheduler{
+
+private:
+  class Deque {
+    private:
+      long _size;
+      DynamicTask **_array;
+      PADDING(CACHE_LINE_SIZE);
+      long _h; // head index
+      PADDING(CACHE_LINE_SIZE);
+      long _t; // tail index
+      PADDING(CACHE_LINE_SIZE);
+      jalib::JMutex _lock;
+      PADDING(CACHE_LINE_SIZE);
+
+    public:
+
+    Deque() {
+      _t = 0;
+      _h = 0;
+      _size = 1000;
+      _array = (DynamicTask **) malloc(sizeof(DynamicTask *) * _size); // Use malloc so we can realloc
+    }
+
+    ~Deque() {
+      free(_array);
+    }
+
+    void push(DynamicTask *task) {
+
+      _array[_t] = task;
+      _t++;
+
+      if (_t >= _size - 1) {
+        JLOCKSCOPE(_lock);
+
+        _size *= 3;
+        _array = (DynamicTask **) realloc(_array, sizeof(DynamicTaskPtr) * _size);
+      }
+    }
+
+    DynamicTask *pop() {
+
+      if (isEmpty()) {
+        return NULL;
+      }
+
+      JLOCKSCOPE(_lock);
+
+      if (_h == _t) {
+        return NULL;
+      } else {
+        _t--;
+        return _array[_t];
+      }
+    }
+
+    DynamicTask *pop_bottom() {
+
+      if (isEmpty() || !_lock.trylock()) {
+        return NULL;
+      }
+
+      DynamicTask *retVal = NULL;
+
+      if (_h != _t) {
+        retVal = _array[_h];
+        _h++;
+      }
+
+      _lock.unlock();
+
+      return retVal;
+    }
+
+
+    DynamicTask *pop_lock_free() {
+
+      if (isEmpty()) {
+        return NULL;
+      }
+
+      _t--;
+
+      jalib::memFence();
+
+      if (_h > _t) {
+        _t++;
+        {
+          JLOCKSCOPE(_lock);
+          if (_h >= _t) {
+            return NULL;
+          }
+          _t--;
+          return _array[_t];
+        }
+      } else {
+        return _array[_t];
+      }
+    }
+
+    DynamicTask *pop_bottom_lock_free() {
+
+      if (isEmpty() || !_lock.trylock()) {
+        return NULL;
+      }
+
+      _h++;
+
+      jalib::memFence();
+
+      if (_h > _t) {
+        _h--;
+        _lock.unlock();
+        return NULL;
+      }
+
+      DynamicTask *task = _array[_h - 1];
+
+      _lock.unlock();
+
+      return task;
+    }
+
+    void clear() {
+      JLOCKSCOPE(_lock);
+
+      for (int i = _h; i < _t; i++) {
+        _array[i]->runWrapper(true);
+      }
+
+      _h = 0;
+      _t = 0;
+    }
+
+    bool isEmpty() {
+      return _h == _t;
+    }
+
+  };
+
+  class TaskStack {
+
+    PADDING(CACHE_LINE_SIZE);
+    Deque _deque;
+    Deque _cont_deque;
+    struct { int z; int w; } _randomNumState;
+    PADDING(CACHE_LINE_SIZE);
+
+   public:
+
+    TaskStack()
+    {
+      _randomNumState.z = tid() * tid() * 2;
+      _randomNumState.w = tid() + 1;
+    }
+
+    void push(DynamicTask *t)
+    {
+      if (t->isContinuation)
+        _cont_deque.push(t);
+      else
+        _deque.push(t);
+    }
+
+    DynamicTask *pop()
+    {
+      DynamicTask *retVal = _deque.pop_lock_free();
+      if (retVal == NULL) {
+        retVal = _cont_deque.pop_lock_free();
+      }
+
+      return retVal;
+    }
+
+    DynamicTask *steal()
+    {
+      DynamicTask *retVal = _cont_deque.pop_bottom_lock_free();
+      if (retVal == NULL) {
+        retVal = _deque.pop_bottom_lock_free();
+      }
+
+      return retVal;
+    }
+
+    int nextTaskStack(int numThreads) {
+      int next = (getRandInt() % numThreads);
+      return next;
+    }
+
+    void clear() {
+      _deque.clear();
+      _cont_deque.clear();
+    }
+
+    bool isEmpty() {
+      return _deque.isEmpty() && _deque.isEmpty();
+    }
+
+   private:
+
+    int getRandInt() {
+      _randomNumState.z = 36969 * (_randomNumState.z & 65535) + (_randomNumState.z >> 16);
+      _randomNumState.w = 18000 * (_randomNumState.w & 65535) + (_randomNumState.w >> 16);
+      int retVal = (_randomNumState.z << 16) + _randomNumState.w;
+      if (retVal < 0) {
+        retVal = -retVal;
+      }
+      return retVal;
+    }
+  } __attribute__ ((aligned (64)));
+
 public:
-  static std::list<DynamicTaskPtr>& myThreadLocalQueue();
+  TaskStack taskStacks[MAX_NUM_WORKERS];
+
+  static int myThreadID();
 
   ///
   /// constructor
@@ -58,87 +276,83 @@ public:
   ///
   /// start worker threads
   void startWorkerThreads(int newWorkers);
-  
+
   ///
   /// add a ready task into queue
-  void enqueue(const DynamicTaskPtr& t) {
+  void enqueue(DynamicTask *t) {
 #ifdef GRACEFUL_ABORT
     if(isAborting()){
       throw AbortException();
     }
 #endif
-    queue.push(t);
+    taskStacks[tid()].push(t);
   }
 
-  
-  ///
-  /// blocked until get a task from queue for execution 
-  DynamicTaskPtr dequeue() {
-    DynamicTaskPtr task = queue.pop();
-#ifndef GRACEFUL_ABORT
-    return task;
-#else
-    if(task && !isAborting()){
-      return task;
-    }else{
-      throw AbortException();
+  int lin_delay(int delay, int step, int min, int max) {
+
+    if (delay > min) {
+      for (int i = 0; i < delay; i++) {
+        pause();
+      }
     }
-#endif
+    if (delay < max - step) {
+      delay += step;
+    }
+    return delay;
   }
 
+  ///
+  /// blocked until get a task from queue for execution
+  DynamicTask *dequeue() {
+    DynamicTask *task;
+    int delay = 0;
+    while (true) {
+      task = tryDequeue();
+      if (task != NULL) {
+        return task;
+      }
+      //delay = lin_delay(delay, 0, 100, 1000);
+    }
+  }
 
   ///
   /// unblocked method, try to get a task from queue for execution
-  DynamicTaskPtr tryDequeue() {
-    DynamicTaskPtr task = queue.tryPop();
+  DynamicTask *tryDequeue() {
+
+    DynamicTask *task = taskStacks[tid()].pop();
+
+    if (task == NULL) {
+      int stealTaskStack = taskStacks[tid()].nextTaskStack(numOfWorkers);
+      task = taskStacks[stealTaskStack].steal();
+    }
+
 #ifndef GRACEFUL_ABORT
     return task;
 #else
-    if(task && !isAborting()){
+    if(task && !isAborting()) {
       return task;
-    }else{
+    } else {
       JLOCKSCOPE(theAbortingLock);
-      if(isAborting())
+      if(isAborting()) {
         throw AbortException();
-      else
+      } else {
         return 0;
+      }
     }
 #endif
-  }
-
-  bool empty() {
-    return queue.empty();
-  }
-
-  size_t size() {
-    return queue.size();
   }
 
   int workers() {
     return numOfWorkers;
   }
 
+  void clearPrivateTaskStack() {
+    taskStacks[tid()].clear();
+  }
+
 
   void popAndRunOneTask(bool blocking);
 
-
-#ifdef QUEUE_STATISTICS
-  unsigned int contention() {
-    return queue.contention();
-  }
-
-  unsigned int totalEnqueue() {
-    return queue.totalEnqueue();
-  }  
-
-  uint64_t totalEmptyTime() {
-    return queue.totalEmptyTime();
-  }    
-
-  uint64_t totalFilledTime() {
-    return queue.totalFilledTime();
-  }    
-#endif // QUEUE_STATISTICS
 
 #ifdef GRACEFUL_ABORT
   class AbortException {};
@@ -146,12 +360,10 @@ public:
   void abortBegin();
   void abortEnd();
   void abortWait();
+  void setAbortFlag();
+  void resetAbortFlag();
 #endif
 protected:
-  ///
-  /// Blocking queue for ready tasks
-  DynamicTaskQueue queue;
-
   ///
   /// Total number of worker threads
   int numOfWorkers;

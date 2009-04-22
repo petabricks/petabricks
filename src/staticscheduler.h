@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURASTATICSCHEDULER_H
-#define HECURASTATICSCHEDULER_H
+#ifndef PETABRICKSSTATICSCHEDULER_H
+#define PETABRICKSSTATICSCHEDULER_H
 
 #include "matrixdef.h"
 #include "region.h"
@@ -29,13 +29,15 @@
 #include <list>
 #include <map>
 
-namespace hecura {
+namespace petabricks {
 class Transform;
 class CodeGenerator;
 class ScheduleNode;
+class StaticScheduler;
 typedef std::set<ScheduleNode*> ScheduleNodeSet;
 typedef std::vector< jalib::JRef<ScheduleNode> > ScheduleNodeList; 
 typedef std::map<ScheduleNode*,ScheduleNode*> ScheduleNodeRemapping;
+typedef jalib::JRef<StaticScheduler> StaticSchedulerPtr;
 
 struct DependencyInformation {
   RuleSet rules;
@@ -97,12 +99,12 @@ public:
   /// Name of this node as it appears in graphs
   std::string nodename() const { return "n"+jalib::XToString(_id); }
 
-  void printDepsAndEnqueue(CodeGenerator& o, const RulePtr& rule, bool useDirections = true);
+  void printDepsAndEnqueue(CodeGenerator& o, Transform& trans,  const RulePtr& rule, bool useDirections = true);
 
   ///
   /// Generate code for executing this node
-  virtual void generateCodeSimple(Transform& trans, CodeGenerator& o) = 0;
-  virtual void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos) = 0;
+  virtual void generateCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic) = 0;
+  virtual void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos, bool isStatic) = 0;
 
 
   virtual const MatrixDefPtr&    matrix() const = 0;
@@ -139,9 +141,11 @@ public:
 
   bool isInput() const { return _isInput; }
   void markInput(){ _isInput=true; }
+  void markLast(){ _isLast=true; }
 protected:
   int _id;
   bool _isInput;
+  bool _isLast;
   ScheduleDependencies _directDepends;
   ScheduleDependencies _indirectDepends;
 };
@@ -160,8 +164,8 @@ public:
     o << _matrix->name() << ".region(" << _region << ")";
   }
 
-  virtual void generateCodeSimple(Transform& trans, CodeGenerator& o);
-  virtual void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos);
+  virtual void generateCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic);
+  virtual void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos, bool isStatic);
 private:
   MatrixDefPtr      _matrix;
   SimpleRegionPtr   _region;
@@ -181,14 +185,14 @@ public:
     for(ScheduleNodeSet::const_iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i)
       o << "\\n " << **i;
   }
-  void generateCodeSimple(Transform& trans, CodeGenerator& o);
-  void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos){ JASSERT(false); }
+  void generateCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic);
+  void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos, bool isStatic){ JASSERT(false); }
 private:
   ScheduleNodeSet _originalNodes;
   int             _dimension;
 };
 
-class StaticScheduler : public jalib::JPrintable {
+class StaticScheduler : public jalib::JRefCounted, public jalib::JPrintable {
 public:
   ScheduleNodeSet lookupNode(const MatrixDefPtr& matrix, const SimpleRegionPtr& region);
 
@@ -233,8 +237,11 @@ public:
     o << "}\n";
   }
 
-  void generateCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateCodeStatic(Transform& trans, CodeGenerator& o);
+  void generateCodeDynamic(Transform& trans, CodeGenerator& o);
   void applyRemapping(const ScheduleNodeRemapping& m);
+
+  size_t size() const { return _schedule.size(); }
 private:
   //storage of nodes
   std::map<MatrixDefPtr, ScheduleNodeList > _matrixToNodes;

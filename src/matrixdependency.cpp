@@ -20,11 +20,11 @@
 #include "matrixdependency.h"
 
 
-hecura::DependencyDirection::DependencyDirection(size_t dimensions) : _directionMask(dimensions, D_NONE) {}
+petabricks::DependencyDirection::DependencyDirection(size_t dimensions) : _directionMask(dimensions, D_NONE) {}
 
 ///
 /// Merge two DependencyDirections
-hecura::DependencyDirection::DependencyDirection(const DependencyDirection& left, const DependencyDirection& right){
+petabricks::DependencyDirection::DependencyDirection(const DependencyDirection& left, const DependencyDirection& right){
 //   JASSERT(left.size()==right.size())(left.size())(right.size());
   size_t d = std::max(left.size(), right.size());
   _directionMask.reserve(d);
@@ -38,12 +38,12 @@ hecura::DependencyDirection::DependencyDirection(const DependencyDirection& left
 
 ///
 /// Add a dependency in a given direction on a given dimension
-void hecura::DependencyDirection::addDirection(size_t dim, DirectionT dir){
+void petabricks::DependencyDirection::addDirection(size_t dim, DirectionT dir){
   JASSERT(dim<_directionMask.size())(dim)(_directionMask.size());
   _directionMask[dim] |= dir;
 }
 
-void hecura::DependencyDirection::print(std::ostream& o) const {
+void petabricks::DependencyDirection::print(std::ostream& o) const {
   static const char* maskToStr[DirectionT_count] = 
     {"NONE", "<", "=", "<=", ">", "<>", ">=", "*"};
   o << '(';
@@ -55,7 +55,7 @@ void hecura::DependencyDirection::print(std::ostream& o) const {
   o << ')';
 }
 
-std::string hecura::DependencyDirection::toCodeStr() const{
+std::string petabricks::DependencyDirection::toCodeStr() const{
   std::string str;
   static const char* maskToStr[DirectionT_count] = 
     {"D_NONE", "D_LT", "D_EQ", "D_LE", "D_GT", "D_NEQ", "D_GE", "D_ALL"};
@@ -68,9 +68,9 @@ std::string hecura::DependencyDirection::toCodeStr() const{
   return str;
 }
 
-size_t hecura::DependencyDirection::size() const { return _directionMask.size(); }
+size_t petabricks::DependencyDirection::size() const { return _directionMask.size(); }
 
-hecura::DependencyDirection::DirectionT hecura::DependencyDirection::operator[](size_t dim) const { 
+petabricks::DependencyDirection::DirectionT petabricks::DependencyDirection::operator[](size_t dim) const { 
   #ifdef DEBUG
     JASSERT(dim < size());
   #endif
@@ -78,16 +78,16 @@ hecura::DependencyDirection::DirectionT hecura::DependencyDirection::operator[](
 }
 
 
-hecura::MatrixDependency::MatrixDependency( const DependencyDirection& d
+petabricks::MatrixDependency::MatrixDependency( const DependencyDirection& d
                 , const SimpleRegionPtr&     r/* = NULL*/)
   : _direction(d), _region(r)
 {}
 
-void hecura::MatrixDependency::print(std::ostream& o) const {
+void petabricks::MatrixDependency::print(std::ostream& o) const {
   o << _direction << " @ region(" << _region << ")";
 }
 
-void hecura::MatrixDependency::mergeWith( MatrixDependency& that ){
+void petabricks::MatrixDependency::mergeWith( MatrixDependency& that ){
   _direction = DependencyDirection(_direction, that._direction);
   if(_region && that._region)
     _region = _region->regionUnion(that._region);

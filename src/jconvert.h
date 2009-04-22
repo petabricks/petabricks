@@ -117,7 +117,7 @@ namespace jalib
   }
 
   inline std::string StringPad(const std::string& str, int n, char ch=' '){
-    if(str.size()>=n) return str;
+    if((int)str.size()>=n) return str;
     return str+ std::string(n-str.size(), ch);
   }
 
@@ -160,6 +160,20 @@ namespace jalib
     {
       Element& obj = *i;
       ((obj).*(func))(arg);
+    }
+  }
+  
+  ///
+  /// Call func on each element in list
+  template < typename Element, typename Arg1, typename Arg2,  typename List >
+  inline void Map(void (Element::*func)(Arg1&, Arg2&), Arg1& arg1, Arg2& arg2 , List& list)
+  {
+    for( typename List::iterator i=list.begin()
+          ; i!=list.end()
+          ; ++i)
+    {
+      Element& obj = *i;
+      ((obj).*(func))(arg1, arg2);
     }
   }
 

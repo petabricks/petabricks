@@ -113,7 +113,7 @@
 #include "jconvert.h"
 #include "formula.h"
 
-using namespace hecura;
+using namespace petabricks;
 
 extern int yylex (void);
 static int yyerror(FormulaListPtr&, const char* msg){ JASSERT(false)(msg).Text("parse error"); return 0;}
@@ -153,8 +153,8 @@ typedef union YYSTYPE
   int i;
   double d;
   const char* str;
-  hecura::Formula*        formula;
-  hecura::FormulaList*    formulas;
+  petabricks::Formula*        formula;
+  petabricks::FormulaList*    formulas;
 }
 /* Line 187 of yacc.c.  */
 #line 161 "maximaparser.cpp"
@@ -763,7 +763,7 @@ do {									  \
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, hecura::FormulaListPtr& ret)
+yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, petabricks::FormulaListPtr& ret)
 #else
 static void
 yy_symbol_value_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
@@ -771,7 +771,7 @@ yy_symbol_value_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
     int yytype;
     YYSTYPE const * const yyvaluep;
     YYLTYPE const * const yylocationp;
-    hecura::FormulaListPtr& ret;
+    petabricks::FormulaListPtr& ret;
 #endif
 {
   if (!yyvaluep)
@@ -799,7 +799,7 @@ yy_symbol_value_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, hecura::FormulaListPtr& ret)
+yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, petabricks::FormulaListPtr& ret)
 #else
 static void
 yy_symbol_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
@@ -807,7 +807,7 @@ yy_symbol_print (yyoutput, yytype, yyvaluep, yylocationp, ret)
     int yytype;
     YYSTYPE const * const yyvaluep;
     YYLTYPE const * const yylocationp;
-    hecura::FormulaListPtr& ret;
+    petabricks::FormulaListPtr& ret;
 #endif
 {
   if (yytype < YYNTOKENS)
@@ -857,14 +857,14 @@ do {								\
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yy_reduce_print (YYSTYPE *yyvsp, YYLTYPE *yylsp, int yyrule, hecura::FormulaListPtr& ret)
+yy_reduce_print (YYSTYPE *yyvsp, YYLTYPE *yylsp, int yyrule, petabricks::FormulaListPtr& ret)
 #else
 static void
 yy_reduce_print (yyvsp, yylsp, yyrule, ret)
     YYSTYPE *yyvsp;
     YYLTYPE *yylsp;
     int yyrule;
-    hecura::FormulaListPtr& ret;
+    petabricks::FormulaListPtr& ret;
 #endif
 {
   int yynrhs = yyr2[yyrule];
@@ -1137,7 +1137,7 @@ yysyntax_error (char *yyresult, int yystate, int yychar)
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, YYLTYPE *yylocationp, hecura::FormulaListPtr& ret)
+yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, YYLTYPE *yylocationp, petabricks::FormulaListPtr& ret)
 #else
 static void
 yydestruct (yymsg, yytype, yyvaluep, yylocationp, ret)
@@ -1145,7 +1145,7 @@ yydestruct (yymsg, yytype, yyvaluep, yylocationp, ret)
     int yytype;
     YYSTYPE *yyvaluep;
     YYLTYPE *yylocationp;
-    hecura::FormulaListPtr& ret;
+    petabricks::FormulaListPtr& ret;
 #endif
 {
   YYUSE (yyvaluep);
@@ -1175,7 +1175,7 @@ int yyparse ();
 #endif
 #else /* ! YYPARSE_PARAM */
 #if defined __STDC__ || defined __cplusplus
-int yyparse (hecura::FormulaListPtr& ret);
+int yyparse (petabricks::FormulaListPtr& ret);
 #else
 int yyparse ();
 #endif
@@ -1214,11 +1214,11 @@ yyparse (YYPARSE_PARAM)
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 int
-yyparse (hecura::FormulaListPtr& ret)
+yyparse (petabricks::FormulaListPtr& ret)
 #else
 int
 yyparse (ret)
-    hecura::FormulaListPtr& ret;
+    petabricks::FormulaListPtr& ret;
 #endif
 #endif
 {

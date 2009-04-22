@@ -71,7 +71,8 @@ to OUT[n], TEMP[n]
   to (OUT out, TEMP temp) from (IN in, Position pos)
   {
 //    printf("RadixsortSubArray called\n");
-    int buckets[NUM_BUCKETS + 2] = {0};
+    int buckets[NUM_BUCKETS + 2];
+    memset(buckets, 0, sizeof(buckets));
     InlineCopy1D(temp, out);
     Radix(out, temp, buckets, (int) pos);
     if ((int) pos > 0) {

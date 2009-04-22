@@ -1,21 +1,21 @@
 %option caseless
+%option yylineno
 %option nostdinit
 %option noyywrap
 %option noyy_push_state
 %option noyy_pop_state
 %option noyy_top_state
 %option nounput
-%option interactive
-%option always-interactive
 %option prefix="ruleir"
 %option outfile="lex.yy.c"
 
 %{
 
+#include "ruleir.h"
 #include "formula.h"
 #include "jassert.h"
 #include "jconvert.h"
-#include "maximaparser.h"
+#include "ruleirparser.h"
 #include <stdio.h>
 
 #define yylval ruleirlval
@@ -27,45 +27,77 @@ static const char* circularStringCache(const char* str){
   return (strbuffers[n++ % NUM_STR_BUFFERS]=str).c_str();
 }
 
-//#define YY_USER_ACTION yylval.str=circularStringCache(yytext);
+std::string ruleirfilename;
+
+inline bool isNum(char c) { return c>='0' && c<='9'; }
+
+static void handleCppLine(const char* s){
+  const char* n_begin = s+2;
+  const char* n_end = n_begin;
+  while(*n_end>='0' && *n_end<='9') ++n_end;
+  const char* filename=n_end+1;
+  std::string n(n_begin, n_end);
+  //JTRACE("LINENO")(n)(filename);
+  ruleirlineno = jalib::StringToInt(n)-1;
+  ruleirfilename = filename;
+}
+
+#define YY_USER_ACTION yylval.str=circularStringCache(yytext);
 #define YY_DECL int yylex()
 
 %}
 
 %x output
 
-PASS_CHARS [=<>,*/()[\]\n^+-]
+PASS_CHARS [();:?{}]
+OPS [,=&|!<>^*/[\]+%.-]
 WS [ \r\n\t]
+STR ["]([^"]+|[\\].)*["]
+CHAR ['][\\]?.[']
 
 %%
 
 <INITIAL>{
-  [^()]+     /*nothing*/
-  .          /*nothing*/
-}
-
-<output>{
-  {WS}+               /* whitespace */
-  "<="                return LE;
-  ">="                return GE;
-  "true"              return BOOL_T;
-  "false"             return BOOL_F;
-  "equal"             return STR_EQUAL;
-  "ceiling"           return STR_CEILING;
-  "floor"             return STR_FLOOR;
-  {PASS_CHARS}        return yytext[0];
-  [0-9]+              return INTEGER;
-  [0-9]+[.][0-9]+     return FLOAT;
-  [a-z_][a-z0-9_]*    return IDENT;
-}
-
-<*>{
-  [(][%]o[0-9]+[)][ ] BEGIN(output);  return OPROMPT;
-  [(][%]i[0-9]+[)][ ] BEGIN(INITIAL); return IPROMPT;
-  .                   JASSERT(false)(yytext).Text("Unhandled input");
+  {WS}+                       /* whitespace */
+  "if"                        return TOK_IF;
+  "then"                      return TOK_THEN;
+  "else"                      return TOK_ELSE;
+  "for"                       return TOK_FOR;
+  "while"                     return TOK_WHILE;
+  "do"                        return TOK_DO;
+  "return"                    return TOK_RETURN;
+  "break"                     return TOK_BREAK;
+  "switch"                    return TOK_SWITCH;
+  "case"                      return TOK_CASE;
+  "default"                   return TOK_DEFAULT;
+  {PASS_CHARS}                return yytext[0];
+  {OPS}"="                    return TOK_OP;
+  "->"                        return TOK_OP;
+  "[]"                        return TOK_OP;
+  ">>="                       return TOK_OP;
+  "<<="                       return TOK_OP;
+  ">>"                        return TOK_OP;
+  "<<"                        return TOK_OP;
+  "&&"                        return TOK_OP;
+  "||"                        return TOK_OP;
+  "++"                        return TOK_OP;
+  "--"                        return TOK_OP;
+  "::"                        return TOK_OP;
+  {OPS}                       return TOK_OP;
+  {STR}                       return TOK_LIT;
+  {CHAR}                      return TOK_LIT;
+  [0-9]+                      return TOK_LIT;
+  [0-9]+[.][0-9]+             return TOK_LIT;
+  [a-z:_][.:a-z0-9_]*         return TOK_IDENT;
+  [%][{]([^%]+|[%][^}])*[%][}] return TOK_RAW;
+  ^[#][ ][0-9]+[ ][^\n]*      handleCppLine(yytext);
+  .                   JWARNING(false)(yytext).Text("Unhanded input");
 }
 
 %%
 
-
+void _ruleirlexer_scan_string( const std::string& str) {
+  ruleirfilename="";
+  ruleir_scan_bytes(str.c_str(), str.length());
+}
 

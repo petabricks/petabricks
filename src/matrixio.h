@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURAMATRIXIO_H
-#define HECURAMATRIXIO_H
+#ifndef PETABRICKSMATRIXIO_H
+#define PETABRICKSMATRIXIO_H
 
 #include "matrix.h"
 #include "jassert.h"
@@ -30,7 +30,7 @@
 # define MAX_DIMENSIONS   64
 #endif
 
-namespace hecura {
+namespace petabricks {
 
 /**
  * Struct for holding outputs of matrixreader.lpp, used for matrixread<->MatrixIO com
@@ -62,7 +62,7 @@ public:
   ///
   /// Constructor
   MatrixIO(FILE* file = stdin);
-  
+
   ///
   /// Constructor (opens the given filename)
   MatrixIO(const char* filename, const char* mode);
@@ -84,7 +84,7 @@ public:
   /// Write a given matrix to _fd
   template<int D, typename T>
   void write(MatrixRegion<D,T> m);
-  
+
   MatrixRegion0D read0D(){ return read<0>(); }
   MatrixRegion1D read1D(){ return read<1>(); }
   MatrixRegion2D read2D(){ return read<2>(); }
@@ -107,7 +107,7 @@ private:
 ///
 /// Write a given matrix to _fd
 template<int D, typename T>
-inline void hecura::MatrixIO::write(MatrixRegion<D,T> m){
+inline void petabricks::MatrixIO::write(MatrixRegion<D,T> m){
   if(_fd==stdin) _fd=stdout;
   fprintf(_fd,"SIZE");
   for(int i=0; i<D; ++i)
@@ -133,6 +133,7 @@ inline void hecura::MatrixIO::write(MatrixRegion<D,T> m){
     fprintf(_fd,"%4.8g", (double) m.cell(coord));
   }
   fprintf(_fd,"\n");
+  fflush(_fd);
 }
 
 #endif

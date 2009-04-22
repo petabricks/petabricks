@@ -23,42 +23,36 @@ transform SortSubArray
 from IN[n], Pos
 to OUT[n], TEMP[n]
 {
-  recursive(n)
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
     //printf("ms %d\n",n);
     SPAWN(Parallel_MergesortSubArray, out, temp, in, p);
   }
 
-  recursive(n)
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
     //printf("ms %d\n",n);
     SPAWN(MergesortSubArray4,out, temp, in, p);
   }
 
-  recursive(n)
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
     //printf("ms %d\n",n);
     SPAWN(MergesortSubArray8,out, temp, in, p);
   }
   
-  recursive(n)
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
     //printf("ms %d\n",n);
     SPAWN(MergesortSubArray16,out, temp, in, p);
   }
 
-  recursive(n)
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
     //printf("qs %d\n",n);
     SPAWN(QuicksortSubArray,out, temp, in, p);
   }
 
-  recursive(n)
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
     //printf("rs %d\n",n);
@@ -68,6 +62,9 @@ to OUT[n], TEMP[n]
   to (OUT out, TEMP temp) from (IN in)
   {
     //printf("is %d\n",n);
+    if (n > 3000) {
+      PetabricksRuntime::abort();
+    }
     InsertionsortSubArray(out, in);
   }
 }

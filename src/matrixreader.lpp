@@ -15,7 +15,7 @@
 #include "jconvert.h"
 #include "matrixio.h"
 #include <stdio.h>
-using namespace hecura;
+using namespace petabricks;
 
 #define YY_DECL int matrixreaderlex(MatrixReaderScratch& o)
 
@@ -47,7 +47,7 @@ YY_DECL;
   [\n]                  {
     int n=1;
     for(int i=0; i<o.dimensions; ++i) n*=o.sizes[i];
-    o.storage=new hecura::MatrixStorage(n);
+    o.storage=new petabricks::MatrixStorage(n);
     o.buf = o.storage->data();
     o.remaining = n;
     BEGIN(DATA);

@@ -17,15 +17,15 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef HECURASPATIALDYNAMICTASK_H
-#define HECURASPATIALDYNAMICTASK_H
+#ifndef PETABRICKSSPATIALDYNAMICTASK_H
+#define PETABRICKSSPATIALDYNAMICTASK_H
 
 #include "dynamictask.h"
 #include "matrix.h"
 #include "matrixdependency.h"
 #include <vector>
 
-namespace hecura {
+namespace petabricks {
 
 class SpatialDynamicTask;
 class SpatialTaskList;
@@ -55,6 +55,10 @@ public:
     push_back(b);
     return *this;
   }
+
+
+  SpatialTaskList* operator->() { return this; }
+  const SpatialTaskList* operator->() const { return this; }
 
   ///
   /// Split the task into smaller tasks
@@ -115,12 +119,16 @@ public:
   ///
   /// Return a task depending on all taks in this
   DynamicTaskPtr completionTask(){
-    DynamicTaskPtr tmp = new NullDynamicTask();
-    for(iterator a=begin(); a!=end(); ++a){
-      tmp->dependsOn(a->asPtr());
+    if(size()==1){
+      return front().asPtr();
+    }else{
+      DynamicTaskPtr tmp = new NullDynamicTask();
+      for(iterator a=begin(); a!=end(); ++a){
+        tmp->dependsOn(a->asPtr());
+      }
+      tmp->enqueue();
+      return tmp;
     }
-    tmp->enqueue();
-    return tmp;
   }
 
   operator DynamicTaskPtr () { return completionTask(); };
