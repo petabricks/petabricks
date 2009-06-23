@@ -48,6 +48,7 @@ jalib::JArgs::JArgs(int argc, const char** argv, const char* defaultParam)
         std::string name,val;
         jalib::SplitFirst(name, val, str, '=');
         _params[name].push_back(val);
+        //JTRACE("parsed param")(name)(val);
       }else{ // --foo
         _params[str];
       }
@@ -77,9 +78,9 @@ jalib::JArgs::ParamGlue jalib::JArgs::param<bool>(const char* name, bool& val) c
       val = true;
     }else{
       const char* v = i->second.front().c_str();
-      if(*v=='0' || *v=='t' || *v=='T' || *v=='y' || *v=='Y') {
+      if(*v=='1' || *v=='t' || *v=='T' || *v=='y' || *v=='Y') {
         val = true;
-      } else if(*v=='1' || *v=='f' || *v=='F' || *v=='n' || *v=='N') {
+      } else if(*v=='0' || *v=='f' || *v=='F' || *v=='n' || *v=='N') {
         val = false;
       } else {
         JASSERT(false)(name)(v)
@@ -100,4 +101,9 @@ jalib::JArgs::ParamGlue jalib::JArgs::param<std::vector<std::string> >(const cha
   return ParamGlue(name, true, _needHelp);
 }
 
+jalib::JArgs::ParamGlue jalib::JArgs::param(const char* name) const {
+  bool tmp=false;
+  param(name, tmp);
+  return ParamGlue(name, tmp, _needHelp);
+}
 

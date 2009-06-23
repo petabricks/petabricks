@@ -455,18 +455,25 @@ void petabricks::Transform::extractConstants(CodeGenerator& o){
   } }
 
 void petabricks::Transform::registerMainInterface(CodeGenerator& o){
-  if(_templateargs.empty())
-    o.write("runtime.addTransform("+name()+"_main::instance());");
-  else{
+  if(_templateargs.empty()){
+    std::string n = name()+"_main::instance()";
+    o.beginIf("name == \""+name()+"\"");
+    o.write("return "+n+";");
+    o.endIf();
+  }else{
     size_t choiceCnt = tmplChoiceCount();
-    for(size_t c=0; c<choiceCnt; ++c)
-      o.write("runtime.addTransform("+tmplName(c)+"_main::instance());");
+    for(size_t c=0; c<choiceCnt; ++c){
+      std::string n = tmplName(c)+"_main::instance()";
+      o.beginIf("name == \""+tmplName(c)+"\"");
+      o.write("return "+n+";");
+      o.endIf();
+    }
   }
 }
 
 void petabricks::Transform::generateMainInterface(CodeGenerator& o){ 
   std::vector<std::string> argNames = normalArgNames();
-  int a = 1;
+  int a = 0;
   o.beginClass(_name+"_main", "petabricks::PetabricksRuntime::Main");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->varDeclCodeRO(o);
@@ -477,29 +484,31 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->varDeclCodeRW(o);
   }
-  std::string args[] = {"int argc", "const char** argv"};
-  o.beginFunc("bool", "verifyArgs", std::vector<std::string>(args, args+2));
+  o.beginFunc("std::string", "helpString");
   {
-    o.beginIf("argc!="+jalib::XToString(_to.size()+_from.size()+1));
-    {
-      std::ostringstream os;
-      os <<"fprintf(stderr,\"USAGE: "+_name+" ";
-      for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i)
-        os << (*i)->name() << " ";
-      for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i)
-        os << (*i)->name() << " ";
-      os <<"\\n\");";
-      o.write(os.str());
-    }
-    o.endIf();
-    o.write("return argc=="+jalib::XToString(_to.size()+_from.size()+1)+";");
+    std::ostringstream os;
+    os <<"return \"";
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i)
+      os << (*i)->name() << " ";
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i)
+      os << (*i)->name() << " ";
+    os <<"\";";
+    o.write(os.str());
   }
   o.endFunc();
+  
+  o.beginFunc("int", "numInputs");
+  o.write("return "+jalib::XToString(_from.size())+";");
+  o.endFunc();
+  
+  o.beginFunc("int", "numOutputs");
+  o.write("return "+jalib::XToString(_to.size())+";");
+  o.endFunc();
 
-  o.beginFunc("void", "read", std::vector<std::string>(args, args+2));
+  o.beginFunc("void", "read", std::vector<std::string>(1, "ArgListT argv"));
   {
     for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-      (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"]");
+      (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
     }
     extractSizeDefines(o);
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -528,10 +537,10 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
   }
   o.endFunc();
 
-  o.beginFunc("void", "write", std::vector<std::string>(args, args+2));
+  o.beginFunc("void", "write", std::vector<std::string>(1, "ArgListT argv"));
   {
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"]");
+      (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
     }
   }
   o.endFunc();

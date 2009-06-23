@@ -3,7 +3,7 @@ METASOURCES = AUTO
 AM_YFLAGS = -d
 AM_LFLAGS = 
 
-noinst_LIBRARIES = libpetabricks.a
+noinst_LIBRARIES = libpetabricks.a libpetabricksmain.a
 noinst_PROGRAMS = pbc 
 
 noinst_HEADERS = autotuner.h choicegrid.h codegenerator.h config.h \
@@ -24,6 +24,8 @@ libpetabricks_a_SOURCES = autotuner.cpp choicegrid.cpp codegenerator.cpp \
 	region.cpp rircompilerpass.cpp rirscope.cpp rule.cpp rulechoice.cpp \
 	ruleinstance.cpp ruleir.cpp ruleirlexer.lpp ruleirparser.ypp spatialdynamictask.cpp \
 	staticscheduler.cpp trainingdeps.cpp transform.cpp transforminstance.cpp jargs.cpp
+
+libpetabricksmain_a_SOURCES = redirectmain.cpp
 
 pbc_SOURCES = pbc.cpp
 pbc_LDADD = libpetabricks.a -lpthread 

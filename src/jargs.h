@@ -41,14 +41,18 @@ public:
       , _exists(exists)
       , _needHelp(needHelp)
     {}
-    ParamGlue& help(const char* msg) const {
+    ParamGlue& help(const char* msg) {
       if(_needHelp){
         fprintf(stderr, "  --%s : %s\n", _name, msg);
       }
+      return *this;
     }
-    ParamGlue& required() const {
+    ParamGlue& required() {
       JASSERT(_exists)(_name).Text("Missing required parameter");
+      return *this;
     }
+
+    operator bool () const { return _exists && !_needHelp; }
   private:
     const char* _name;
     bool _exists;
@@ -57,10 +61,13 @@ public:
 
   template < typename T > 
   ParamGlue param(const char* name, T& val) const;
+  
+  ParamGlue param(const char* name) const;
 
   bool needHelp() const {
     return _needHelp; 
   }
+
 private:
   typedef std::vector<std::string> ArgList;
   typedef std::map<std::string, ArgList> ParamMap;
@@ -68,6 +75,7 @@ private:
   bool _needHelp;
 };
   
+//generic single arg parsing
 template < typename T > 
 inline JArgs::ParamGlue JArgs::param(const char* name, T& val) const {
   ParamMap::const_iterator i = _params.find(name);

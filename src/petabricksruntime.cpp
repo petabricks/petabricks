@@ -21,6 +21,7 @@
 #include "jtunable.h"
 #include "jfilesystem.h"
 #include "jtimer.h"
+#include "jargs.h"
 #include "dynamictask.h"
 #include "autotuner.h"
 #include "dynamicscheduler.h"
@@ -29,6 +30,9 @@
 #include <math.h>
 #include <limits>
 
+//these must be declared in the user code
+petabricks::PetabricksRuntime::Main* petabricksMainTransform();
+petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);
 
 const char theHelp[] =
 "\nALTERNATE MODES:" "\n"
@@ -54,6 +58,7 @@ const char theHelp[] =
 "  --trials             : number of trails for graphs and tuning" "\n"
 ;
 
+static std::string CONFIG_FILENAME;
 
 static bool _isTrainingRun = false;
 static bool _needTraingingRun = false;
@@ -124,26 +129,22 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   : _main(m)
   , _randSize(4096)
 {
+  jalib::JArgs args(argc, argv);
   JASSERT(scheduler==NULL);
   scheduler = new DynamicScheduler();
   JASSERT(m!=NULL);
   _mainName = m->name();
+  CONFIG_FILENAME = jalib::Filesystem::GetProgramPath() + ".cfg";
+  
+  args.param("cfg",    CONFIG_FILENAME);
+  args.param("config", CONFIG_FILENAME).help("filename of the program configuration");
+  args.param("tx",        _mainName);
+  args.param("transform", _mainName).help("name of the transform to run or tune");
+
   //load config from disk
   TunableManager& tm = TunableManager::instance();
-  if(tm.size()>0){
-    std::string filename = jalib::Filesystem::GetProgramPath() + ".cfg";
-    if(jalib::Filesystem::FileExists(filename))
-      tm.load(filename);
-  }
-
-  while(argc>0){
-    if(strcmp(argv[0],"--transform")==0 || strcmp(argv[0],"--tx")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
-      _mainName = argv[1];
-      shift;
-      shift;
-    }else shift;
-  }
+  if(tm.size()>0 && jalib::Filesystem::FileExists(CONFIG_FILENAME))
+    tm.load(CONFIG_FILENAME);
 }
 
 petabricks::PetabricksRuntime::~PetabricksRuntime()
@@ -156,15 +157,14 @@ void petabricks::PetabricksRuntime::saveConfig()
   //save config to disk
   TunableManager& tm = TunableManager::instance();
   if(tm.size()>0){
-    std::string filename = jalib::Filesystem::GetProgramPath() + ".cfg";
-    tm.save(filename);
+    tm.save(CONFIG_FILENAME);
   }
 }
 
 
 int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
+  jalib::JArgs args(argc, argv);
   Main& main = *_main;
-
   JASSERT(_mainName == main.name())(_mainName).Text("Unknown transform");
 
 //  bool isSiman = false;
@@ -176,134 +176,86 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   std::string graphParam;
   std::vector<std::string> autotuneParams;
 
-  //parse args
-  shift;
-  while(argc>0){
-    if(strcmp(argv[0],"-h")==0 || strcmp(argv[0],"--help")==0){
-      main.verifyArgs(-1, NULL);
-      std::cerr << theHelp << std::endl;
-      shift;
-      return 1;
-//  }else if(strcmp(argv[0],"--siman")==0){
-//    isSiman = true;
-//    shift;
-    }else if(strcmp(argv[0],"--multigrid")==0){
-      doIO=false;
-      MULTIGRID_FLAG = true;
-      GRAPH_MIN = 1;
-      GRAPH_MAX = 9;
-      GRAPH_STEP = 1;
-      TRAIN_MIN = 2;
-      TRAIN_MAX = 64;
-      shift;
-    }else if(strcmp(argv[0],"--fullmg")==0){
-      doIO=false;
-      MULTIGRID_FLAG = true;
-      FULL_MULTIGRID_FLAG = true;
-      GRAPH_MIN = 1;
-      GRAPH_MAX = 9;
-      GRAPH_STEP = 1;
-      TRAIN_MIN = 2;
-      TRAIN_MAX = 64;
-      shift;
-    }else if(strcmp(argv[0],"--autotune")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
-      isAutotuneMode = true;
-      doIO=false;
-      autotuneParams.push_back(argv[1]);
-      shift;
-      shift;
-    }else if(strcmp(argv[0],"-g")==0 || strcmp(argv[0],"--graph")==0){
-      isGraphMode = true;
-      doIO=false;
-      shift;
-    }else if(strcmp(argv[0],"-n")==0 || strcmp(argv[0],"--random")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("--random expects an argument");
-      doIO = false;
-      main.randomInputs(_randSize=jalib::StringToInt(argv[1]));
-      shift;
-      shift;
-    }else if(strcmp(argv[0],"--max")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
-      TRAIN_MAX = GRAPH_MAX = jalib::StringToInt(argv[1]);
-      shift;
-      shift;
-    }else if(strcmp(argv[0],"--min")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
-      TRAIN_MIN = GRAPH_MIN = jalib::StringToInt(argv[1]);
-      shift;
-      shift;
-    }else if(strcmp(argv[0],"--step")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
-      GRAPH_STEP = jalib::StringToInt(argv[1]);
-      shift;
-      shift;
-    }else if(strcmp(argv[0],"--trials")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
-      GRAPH_TRIALS = jalib::StringToInt(argv[1]);
-      shift;
-      shift;
-    }else if(strcmp(argv[0],"--smoothing")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
-      GRAPH_SMOOTHING = jalib::StringToInt(argv[1]);
-      shift;
-      shift;
-    }else if(strcmp(argv[0],"--max-sec")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
-      GRAPH_MAX_SEC = jalib::StringToInt(argv[1]);
-      shift;
-      shift;
-    }else if(strcmp(argv[0],"--graph-param")==0 || strcmp(argv[0],"--graph-tune")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
-      graphParam = argv[1];
-      if(strcmp(argv[1], "worker_threads") == 0)
-      isGraphParallelMode = true;
-      shift;
-      shift;
-    }else if(strcmp(argv[0],"--graph-parallel")==0){
-      worker_threads.setValue(1);
-      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
-      isGraphParallelMode = true;
-      shift;
-    }else if(strcmp(argv[0],"--optimize")==0){
-      JASSERT(argc>1)(argv[0])(argc).Text("argument expected");
-      graphParam = argv[1];
-      isOptimizeMode=true;
-      shift;
-      shift;
-    }else if(strcmp(argv[0],"--time")==0){
-      DUMPTIMING=true;
-      shift;
-    }else if(strcmp(argv[0],"--reset")==0){
-      jalib::JTunableManager::instance().reset();
-      shift;
-      return 0;
-    }else if(strcmp(argv[0],"--name")==0){
-      std::cout << main.name() << std::endl;
-      shift;
-      return 0;
-    }else if(strcmp(argv[0],"--transform")==0 || strcmp(argv[0],"--tx")==0){
-      //parsed above
-      shift;
-      shift;
-    }else{
-      break;
-    }
+  if(args.param("multigrid").help("autotune multigrid")){
+    doIO=false;
+    MULTIGRID_FLAG = true;
+    GRAPH_MIN = 1;
+    GRAPH_MAX = 9;
+    GRAPH_STEP = 1;
+    TRAIN_MIN = 2;
+    TRAIN_MAX = 64;
   }
-  unshift;
+  if(args.param("fullmg").help("autotune full multigrid")){
+    doIO=false;
+    MULTIGRID_FLAG = true;
+    FULL_MULTIGRID_FLAG = true;
+    GRAPH_MIN = 1;
+    GRAPH_MAX = 9;
+    GRAPH_STEP = 1;
+    TRAIN_MIN = 2;
+    TRAIN_MAX = 64;
+  }
+  if(args.param("autotune", autotuneParams)){
+    isAutotuneMode = true;
+    doIO=false;
+  }
+  if(args.param("n", _randSize) || args.param("random", _randSize)){
+    main.randomInputs(_randSize);
+    doIO = false;
+  }
+  args.param("max", TRAIN_MAX);
+  args.param("max", GRAPH_MAX);
+  args.param("min", TRAIN_MIN);
+  args.param("min", GRAPH_MIN);
+  args.param("step", GRAPH_STEP);
+  args.param("trials", GRAPH_TRIALS);
+  args.param("smoothing", GRAPH_SMOOTHING);
+  args.param("max-sec", GRAPH_MAX_SEC);
+  args.param("max-sec", GRAPH_MAX_SEC);
+    
+
+  if(args.param("graph-param", graphParam) || args.param("graph-tune", graphParam)){
+    if(graphParam == "worker_threads")
+      isGraphParallelMode = true;
+  }
+  if(args.param("graph-parallel")){
+    worker_threads.setValue(1);
+    isGraphParallelMode = true;
+  }
+  if(args.param("optimize", graphParam)){
+      isOptimizeMode=true;
+  }
+  args.param("time", DUMPTIMING);
+  if(args.param("reset")){
+    jalib::JTunableManager::instance().reset();
+    return 0;
+  }
+  if(args.param("name")){
+    std::cout << main.name() << std::endl;
+    return 0;
+  }
+  if(args.needHelp()){
+    return 1;
+  }
 
   JASSERT(worker_threads>=1)(worker_threads);
   scheduler->startWorkerThreads(worker_threads);
   
-  if(doIO && !main.verifyArgs(argc, argv))
+  std::vector<std::string> txArgs;
+  args.param("args", txArgs);
+
+  if(doIO && main.numArgs() != txArgs.size()){
+    JTRACE("wrong arg count")(txArgs.size())(main.numInputs())(main.numOutputs())(main.numArgs());
+    fprintf(stderr, "USAGE: %s %s\n", main.name(), main.helpString().c_str());
     return 1;
+  }
 
   if(doIO){ //read inputs
     JTIMER_SCOPE(read);
-    main.read(argc, argv);
+    main.read(txArgs);
   }
 
-  if(isGraphMode){
+  if(args.param("graph")){
     runGraphMode();
   }else if(isAutotuneMode){
     if (!MULTIGRID_FLAG) {
@@ -337,7 +289,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
 
     { //write outputs
       JTIMER_SCOPE(write);
-      main.write(argc,argv);
+      main.write(txArgs);
     }
   }
 
@@ -736,6 +688,13 @@ void petabricks::PetabricksRuntime::runMultigridAutotuneMode(){
 
 }
 
+int petabricks::petabricksMain(int argc, const char** argv){
+  PetabricksRuntime runtime(argc, argv, petabricksMainTransform());
+  int rv = runtime.runMain(argc,argv);
+  runtime.~PetabricksRuntime();
+  runtime.exit(rv);
+  return rv;
+}
 
 
 

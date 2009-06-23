@@ -73,6 +73,10 @@ am_libpetabricks_a_OBJECTS = autotuner.$(OBJEXT) choicegrid.$(OBJEXT) \
 	trainingdeps.$(OBJEXT) transform.$(OBJEXT) \
 	transforminstance.$(OBJEXT) jargs.$(OBJEXT)
 libpetabricks_a_OBJECTS = $(am_libpetabricks_a_OBJECTS)
+libpetabricksmain_a_AR = $(AR) $(ARFLAGS)
+libpetabricksmain_a_LIBADD =
+am_libpetabricksmain_a_OBJECTS = redirectmain.$(OBJEXT)
+libpetabricksmain_a_OBJECTS = $(am_libpetabricksmain_a_OBJECTS)
 PROGRAMS = $(noinst_PROGRAMS)
 am_pbc_OBJECTS = pbc.$(OBJEXT)
 pbc_OBJECTS = $(am_pbc_OBJECTS)
@@ -105,8 +109,10 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(libpetabricks_a_SOURCES) $(pbc_SOURCES)
-DIST_SOURCES = $(libpetabricks_a_SOURCES) $(pbc_SOURCES)
+SOURCES = $(libpetabricks_a_SOURCES) $(libpetabricksmain_a_SOURCES) \
+	$(pbc_SOURCES)
+DIST_SOURCES = $(libpetabricks_a_SOURCES) \
+	$(libpetabricksmain_a_SOURCES) $(pbc_SOURCES)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -243,7 +249,7 @@ INCLUDES =
 METASOURCES = AUTO
 AM_YFLAGS = -d
 AM_LFLAGS = 
-noinst_LIBRARIES = libpetabricks.a
+noinst_LIBRARIES = libpetabricks.a libpetabricksmain.a
 noinst_HEADERS = autotuner.h choicegrid.h codegenerator.h config.h \
 	dynamicscheduler.h dynamictask.h formula.h getdelim.h getline.h jalloc.h jasm.h jassert.h \
 	jblockingqueue.h jbuffer.h jconvert.h jfilesystem.h jmutex.h jprintable.h jrefcounted.h \
@@ -263,6 +269,7 @@ libpetabricks_a_SOURCES = autotuner.cpp choicegrid.cpp codegenerator.cpp \
 	ruleinstance.cpp ruleir.cpp ruleirlexer.lpp ruleirparser.ypp spatialdynamictask.cpp \
 	staticscheduler.cpp trainingdeps.cpp transform.cpp transforminstance.cpp jargs.cpp
 
+libpetabricksmain_a_SOURCES = redirectmain.cpp
 pbc_SOURCES = pbc.cpp
 pbc_LDADD = libpetabricks.a -lpthread 
 all: config.h
@@ -325,6 +332,10 @@ libpetabricks.a: $(libpetabricks_a_OBJECTS) $(libpetabricks_a_DEPENDENCIES)
 	-rm -f libpetabricks.a
 	$(libpetabricks_a_AR) libpetabricks.a $(libpetabricks_a_OBJECTS) $(libpetabricks_a_LIBADD)
 	$(RANLIB) libpetabricks.a
+libpetabricksmain.a: $(libpetabricksmain_a_OBJECTS) $(libpetabricksmain_a_DEPENDENCIES) 
+	-rm -f libpetabricksmain.a
+	$(libpetabricksmain_a_AR) libpetabricksmain.a $(libpetabricksmain_a_OBJECTS) $(libpetabricksmain_a_LIBADD)
+	$(RANLIB) libpetabricksmain.a
 
 clean-noinstPROGRAMS:
 	@list='$(noinst_PROGRAMS)'; for p in $$list; do \
@@ -375,6 +386,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbparser.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/performancetester.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/petabricksruntime.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/redirectmain.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/region.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rircompilerpass.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rirscope.Po@am__quote@

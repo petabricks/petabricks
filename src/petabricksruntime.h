@@ -30,6 +30,8 @@
 
 namespace petabricks {
 
+int petabricksMain(int argc, const char** argv);
+
 class DynamicScheduler;
 
 class PetabricksRuntime{
@@ -45,18 +47,19 @@ public:
 
   typedef class __usr_main_interface{
   public:
+    typedef const std::vector<std::string>& ArgListT;
 
     ///
     /// destructor
     virtual ~__usr_main_interface(){}
 
     ///
-    /// initialize with random inputs
-    virtual bool verifyArgs(int argc, const char** argv) = 0;
+    /// get a usage string
+    virtual std::string helpString() = 0;
 
     ///
     /// Read inputs from disk
-    virtual void read(int argc, const char** argv) = 0;
+    virtual void read(ArgListT) = 0;
 
     ///
     /// Perform the computation
@@ -64,13 +67,17 @@ public:
 
     ///
     /// Write inputs to disk
-    virtual void write(int argc, const char** argv) = 0;
+    virtual void write(ArgListT) = 0;
 
     ///
     /// initialize with random inputs
     virtual void randomInputs(int size) = 0;
 
     virtual const char* name() = 0;
+
+    virtual int numInputs() = 0;
+    virtual int numOutputs() = 0;
+    int numArgs() { return numInputs()+numOutputs(); }
   private:
   } Main;
 
