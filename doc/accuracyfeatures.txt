@@ -1,0 +1,87 @@
+Feature #1: Accuracy metric
+
+Provides an named transform for measuring accuracy of a given configuration.
+This transform takes as input all the inputs and outputs of the original
+transform and produces a double between 0.0 and 1.0 signifying the accuracy
+achieved.  The autotuner uses this accuracy tester during training to classify
+candidate algorithms.
+
+For now the keyword is 'accuracy_metric', open to better names.  Perhaps just
+'metric'?
+
+Examples:
+
+transform Foo
+from A[n]
+to B[n]
+accuracy_metric Bar
+{
+...
+}
+
+transform Bar
+from A[n], B[n]
+to Accuracy 
+{
+...
+}
+
+----------------------
+
+Feature #2: Iterative algorithms
+
+A "for_enough" loop that lets the compiler decide how many iterations of
+a loop should be run.  For this to make sense running the loop more times
+should increase accuracy.
+
+Example:
+
+transform Foo
+from A[n]
+to B[n]
+accuracy_metric Bar
+{
+  to(B b) from(A a) {
+    for_enough {
+      IterativeStep(b, a); 
+    }
+  }
+}
+
+-------------------------
+
+Feature #3: Grid coarsening
+
+Allows the compiler to change grid coarseness automatically in order to
+speed up algorithms.
+
+This is done using a 'scaled_by' keyword that specifies a transform the
+compiler can use to resize an input.  We reuse the 'tunable' keyword to
+allow the compiler to pick the output size for a transform.
+
+Example:
+
+transform Foo
+from A[n] scaled_by Resampler
+to B[n]
+accuracy_metric Bar
+{
+...
+}
+
+
+transform Resampler
+tunable c(1,10) //int from 1 to 10
+from A[n]
+to B[n/c] 
+{
+...
+}
+
+
+
+
+
+
+
+
