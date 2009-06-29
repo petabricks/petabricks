@@ -6,7 +6,7 @@ CFGS=$(addsuffix .cfg, $(OUTPUTS))
 
 all: $(BINS)
 
-%: %.pbcc
+%: %.pbcc ../src/pbc
 	@(../src/pbc $< 2>/dev/null >&2 && echo PASSED: $*) || echo FAILED: $*
 
 clean:
