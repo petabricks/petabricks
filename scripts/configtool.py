@@ -2,10 +2,15 @@
 import re
 import sys
 
-#raw options to parse
-IN="/dev/stdin"
-OUT="/dev/null"
-FILTERS=[]
+CONFIGLINERE=re.compile("[ \t]*([a-z0-9_-]+)[ \t]*[=][ \t]*([0-9-]+) (.*)", re.IGNORECASE)
+
+USAGE='''USAGE:
+  configtool <FILE> set <key> <val>
+  configtool <FILE> get <key>
+  configtool <FILE> search <regexp>
+  configtool <FILE> list
+  configtool <FILE> print
+'''
 
 def getfilter(key):
   def f(k,v):
@@ -43,54 +48,66 @@ def searchfilter(term):
     return k,v
   return f
 
-#parse args
-try:
-  IN=sys.argv[1]
-  i=2
-  while i<len(sys.argv):
-    act=sys.argv[i].lower()
-    if act=="set":
-      OUT=IN
-      FILTERS.append(setfilter(sys.argv[i+1], sys.argv[i+2]))
-      i+=3
-    elif act=="get":
-      FILTERS.append(getfilter(sys.argv[i+1]))
-      i+=2
-    elif act=="search":
-      FILTERS.append(searchfilter(sys.argv[i+1]))
-      i+=2
-    elif act=="list":
-      FILTERS.append(listfilter())
-      i+=1
-    elif act=="print":
-      FILTERS.append(printfilter())
-      i+=1
-    else:
-      raise None
-except:
-  sys.stderr.write('''USAGE:
-    configtool <FILE> set <key> <val>
-    configtool <FILE> get <key>
-    configtool <FILE> search <regexp>
-    configtool <FILE> list
-    configtool <FILE> print
-''')
-  sys.exit(1)
+def processConfigFile(IN, OUT, FILTERS):
+  #preload entire file
+  lines=[x for x in open(IN)]
+  o=open(OUT, "w")
+  #make output
+  for line in lines:
+    try:
+      key,val,com = CONFIGLINERE.match(line).group(1,2,3)
+      for f in FILTERS:
+        key,val=f(key,val)
+      o.write("%s = %s %s\n" % (key, val, com)) 
+    except:
+      o.write(line); 
 
-#preload entire file
-lines=[x for x in open(IN)]
+def getConfigVal(file, key):
+  val=None
+  def tmp(k,v):
+    if k==key:
+      val=v
+    return k,v
+  processConfigFile(file, "/dev/null", [tmp])
+  return val
 
-o=open(OUT, "w")
-p=re.compile("[ \t]*([a-z0-9_-]+)[ \t]*[=][ \t]*([0-9-]+) (.*)", re.IGNORECASE)
+def setConfigVal(file, key, val):
+  processConfigFile(file, file, [setfilter(key, val)])
 
-#make output
-for line in lines:
+def main(argv):
+  IN="/dev/stdin"
+  OUT="/dev/null"
+  FILTERS=[]
+  #parse args
   try:
-    key,val,com = p.match(line).group(1,2,3)
-    for f in FILTERS:
-      key,val=f(key,val)
-    o.write("%s = %s %s\n" % (key, val, com)) 
+    IN=argv[1]
+    i=2
+    while i<len(argv):
+      act=argv[i].lower()
+      if act=="set":
+        OUT=IN
+        FILTERS.append(setfilter(argv[i+1], argv[i+2]))
+        i+=3
+      elif act=="get":
+        FILTERS.append(getfilter(argv[i+1]))
+        i+=2
+      elif act=="search":
+        FILTERS.append(searchfilter(argv[i+1]))
+        i+=2
+      elif act=="list":
+        FILTERS.append(listfilter())
+        i+=1
+      elif act=="print":
+        FILTERS.append(printfilter())
+        i+=1
+      else:
+        raise None
   except:
-    o.write(line);
+    sys.stderr.write(USAGE)
+  processConfigFile(IN, OUT, FILTERS)
+
+
+if __name__ == "__main__":
+  main(sys.argv)
 
 
