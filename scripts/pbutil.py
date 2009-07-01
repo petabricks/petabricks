@@ -88,17 +88,13 @@ def collectTimingSamples(prog, n=100, step=100, maxTime=10.0, x=[], y=[], args=[
       raise
   return x,y
 
-def weightSamples((x,y)):
-  assert len(x) == len(y)
-  xw,yw=[],[]
-  for i in xrange(len(x)):
-    for z in xrange(int(math.ceil(math.log(x[i]-x[0]+1)))):
-      xw.append(x[i])
-      yw.append(y[i])
-  print "weightSamples",len(x),"became",len(xw)
-  return xw,yw
+def collectTimingSamples2(prog, maxTime=12.0, args=[]):
+  x,y=[],[]
+  x,y=collectTimingSamples(prog, 100,  100,  maxTime/2, x=x, y=y, args=args)
+  x,y=collectTimingSamples(prog, 1000, 1000, maxTime/2, x=x, y=y, args=args)
+  return x,y
 
-def estimateCurve(x,y):
+def polyFit(x,y):
   lastRes = 3600.0*24.0
   lastP=[1]
   for order in xrange(10):
@@ -107,49 +103,59 @@ def estimateCurve(x,y):
     improvement = (lastRes-res)/res
     #print order, improvement, p
     if improvement<0.005 or p[0]<=0:
-      return lastP
+      break
     lastRes=res
     lastP=p
-  return lastP
+  return lambda x: numpy.polyval(p,x), repr(p)
 
-fx=numpy.polyval
+#fit y = c1 * x**c2
+def expFit(x,y):
+  assert len(x)==len(y)
 
-#this could be done a much better way, but this is good enough
-def invFx(p, y, thresh=0.001, min=0.0, max=1000000000):
-  y0=fx(p,min)
-  yn=fx(p,max)
+  # shift to log scale
+  x=map(lambda z: math.log(z,2), x)
+  y=map(lambda z: math.log(z,2), y)
+  
+  # polyfit
+  c2,c1 = numpy.polyfit(x, y, 1)
+  c1=2**c1
+
+  return lambda x: c1*x**c2, \
+         "%.10f * x^%.4f"%(c1,c2)
+
+def binarySearchInverse(fx, y, thresh=0.001, min=0.0, max=1000000000):
+  y0=fx(min)
+  yn=fx(max)
   assert y0<=yn
   if y0 > y-thresh:
     return min
   if yn < y+thresh:
     return max
   guess=(min+max)/2.0
-  yguess=fx(p, guess)
+  yguess=fx(guess)
   #binary search
   if abs(yguess-y) < thresh:
     return guess
   if yguess>y:
-    return invFx(p, y, thresh, min, guess)
+    return binarySearchInverse(fx, y, thresh, min, guess)
   else:
-    return invFx(p, y, thresh, guess, max)
-  
-def estimatePerformance(prog, maxTime=12.0, args=[]):
-  x,y=collectTimingSamples(prog, 10,   10,   maxTime/3, args=args)
-  x,y=collectTimingSamples(prog, 100,  100,  maxTime/3, x=x, y=y, args=args)
-  x,y=collectTimingSamples(prog, 1000, 1000, maxTime/3, x=x, y=y, args=args)
-  return estimateCurve(x,y)
-
+    return binarySearchInverse(fx, y, thresh, guess, max)
+ 
 if __name__ == "__main__":
   #test executetimingrun
   print "executeTimingRun:"
   pprint(executeTimingRun("./examples/add", 100, ["--trials=10"]))
   print 
   print "estimatePerformance:"
-  p=estimatePerformance("./examples/add", 9)
-  print p
-  print fx(p, 10000)
-  secInput=invFx(p, 1)
-  print secInput, fx(p, secInput)
+  x,y=collectTimingSamples2("./examples/add")
+  poly,polyStr = polyFit(x,y)
+  exp,expStr = expFit(x,y)
+  print "poly",polyStr
+  print "exp",expStr
+  print "poly est 10k", poly(10000)
+  print "exp est 10k", exp(10000)
+  print "poly est 1 sec", binarySearchInverse(poly, 1)
+  print "exp est 1 sec", binarySearchInverse(exp, 1)
 
   
 
