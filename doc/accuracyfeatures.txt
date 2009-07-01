@@ -42,7 +42,8 @@ to B[n]
 accuracy_metric Bar
 {
   to(B b) from(A a) {
-    for_enough {
+    for_enough(min,max)
+    {
       IterativeStep(b, a); 
     }
   }
@@ -60,15 +61,6 @@ compiler can use to resize an input.  We reuse the 'tunable' keyword to
 allow the compiler to pick the output size for a transform.
 
 Example:
-
-transform Foo
-from A[n] scaled_by Resampler
-to B[n]
-accuracy_metric Bar
-{
-...
-}
-
 
 transform Resampler
 tunable c(1,10) //int from 1 to 10

@@ -200,7 +200,6 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
     doIO=false;
   }
   if(args.param("n", _randSize) || args.param("random", _randSize)){
-    main.randomInputs(_randSize);
     doIO = false;
   }
   args.param("max", TRAIN_MAX);
@@ -270,6 +269,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   }else if(!graphParam.empty()){
     runGraphParamMode(graphParam);
   }else if(!doIO) {
+    JTIMER_SCOPE(runtrial);
     runTrial();
   }else{
 #ifdef GRACEFUL_ABORT
@@ -370,7 +370,9 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
     {
       double t=0;
       for(int z=0;z<GRAPH_TRIALS; ++z){
-        _main->randomInputs(n);
+        {JTIMER_SCOPE(randomInputs);
+          _main->randomInputs(n);
+        }
 
 #ifdef GRACEFUL_ABORT
         // Set up a time out so we don't waste time running things that are

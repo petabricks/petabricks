@@ -139,9 +139,10 @@ AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
 
 if false; then
   #disabled by default:
-  AC_DEFINE([JASSERT_LOG],       [],               [log traces to /tmp/jassertlog.pid])
-  AC_DEFINE([DISABLE_CONTINUATIONS],  [],          [don't generate continuation code after SPAWN/enqueue])
-  AC_DEFINE([JALIB_USE_MALLOC],  [1], [Cause the custom allocator to call malloc instead of mmap])
+  AC_DEFINE([JASSERT_LOG],           [], [log traces to /tmp/jassertlog.pid])
+  AC_DEFINE([DISABLE_CONTINUATIONS], [], [dont generate continuation code after SPAWN/enqueue])
+  AC_DEFINE([JALIB_USE_MALLOC],      [1],[Cause the custom allocator to call malloc instead of mmap])
+  AC_DEFINE([GOOD_RANDOM],           [], [User a better random number generator in training])
 fi
 
 AC_DEFINE_UNQUOTED([REVISION_SHORT],  ["$rev_short"],   [git sha1 hash for HEAD at the time ./configure was run])
