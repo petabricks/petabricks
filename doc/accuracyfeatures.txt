@@ -42,7 +42,7 @@ to B[n]
 accuracy_metric Bar
 {
   to(B b) from(A a) {
-    for_enough(min,max)
+    for_enough(1,10) //1,10 is min,max (optional)
     {
       IterativeStep(b, a); 
     }
@@ -53,18 +53,18 @@ accuracy_metric Bar
 
 Feature #3: Grid coarsening
 
-Allows the compiler to change grid coarseness automatically in order to
-speed up algorithms.
+This does not have its own language feature instead the user should use
+intermediate matrices to represent data transformations.
 
-This is done using a 'scaled_by' keyword that specifies a transform the
-compiler can use to resize an input.  We reuse the 'tunable' keyword to
-allow the compiler to pick the output size for a transform.
+The compiler support for this involves allowing tunables to be used in
+matrix sizes.
 
 Example:
 
 transform Resampler
 tunable c(1,10) //int from 1 to 10
 from A[n]
+through Aprime[n/c] 
 to B[n/c] 
 {
 ...
