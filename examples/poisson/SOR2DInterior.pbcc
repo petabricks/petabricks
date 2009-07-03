@@ -1,7 +1,7 @@
 #ifndef SOR2DINTERIOR_PBCC
 #define SOR2DINTERIOR_PBCC
 
-#include "../utilities.pbcc"
+#include "../simple/copy.pbcc"
 
 transform SplitRB
 from IN[n,n]

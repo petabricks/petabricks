@@ -1,30 +1,36 @@
-add       Rand2Da Rand2Db
-multiply  Rand2Da Rand2Db
-transpose Rand2Da 
-test1  Rand2Da
-test2  Rand2Da
-test3  Rand2Da
-test4  Rand2Da
-test5  Rand2Da
-test6  Rand2Da
-test7  Rand2Da
-test8  Rand2Da Rand2Db Rand0D
-test9  Rand2Da Rand0D
-test10 Rand2Da
-test11 Rand2Dodd
-test12 Rand2Da
-test13 Rand2Da /dev/null
-poisson/Jacobi2D   Rand2Da Rand2Db One0D
-poisson/Jacobi2D   Rand2Da Rand2Db Ten0D
-poisson/SOR2D      Rand2Da Rand2Db MinusOne0D One0D
-poisson/SOR2D      Rand2Da Rand2Db MinusOne0D Ten0D
-poisson/BS2D       Rand2Da Rand2Db
-sort/Quicksort     Rand1Dodd
-sort/Mergesort     Rand1Dodd
-sort/Insertionsort Rand1Dodd
-sort/Radixsort     Rand1Dodd
-sort/Sort          Rand1D
-sort/Sort          Rand1Dodd
-#kernel/KernelEstimate trainX trainY testX One0D One0D
+simple/add                 Rand2Da Rand2Db
+simple/transpose           Rand2Da 
+simple/rollingsum          Rand1D
+simple/copy                Rand2Da
+multiply/multiply          Rand2Da Rand2Db
+regression/test1           Rand2Da
+regression/test2           Rand2Da
+regression/test3           Rand2Da
+regression/test4           Rand2Da
+regression/test5           Rand2Da
+regression/test6           Rand2Da
+regression/test7           Rand2Da
+regression/test8           Rand2Da Rand2Db Rand0D
+regression/test9           Rand2Da Rand0D
+regression/test10          Rand2Da
+regression/test11          Rand2Dodd
+regression/test12          Rand2Da
+regression/test13          Rand2Da /dev/null
+regression/testruleir      Rand2Da 
+regression/templatetest    Rand1D 
+poisson/Jacobi2D           Rand2Da Rand2Db One0D
+poisson/Jacobi2D           Rand2Da Rand2Db Ten0D
+poisson/SOR2D              Rand2Da Rand2Db MinusOne0D One0D
+poisson/SOR2D              Rand2Da Rand2Db MinusOne0D Ten0D
+poisson/BS2D               Rand2Da Rand2Db
+sort/Quicksort             Rand1Dodd
+sort/Mergesort             Rand1Dodd
+sort/Insertionsort         Rand1Dodd
+sort/Radixsort             Rand1Dodd
+sort/Sort                  Rand1D
+sort/Sort                  Rand1Dodd
 convolution/ConvolutionFFT Rand1D Rand1D
-convolution/Convolution Rand1D Rand1D
+convolution/Convolution    Rand1D Rand1D
+
+#this one is broken right now:
+#kernel/KernelEstimate     trainX trainY testX One0D One0D

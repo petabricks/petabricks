@@ -8,7 +8,7 @@
 #define TRAINPRINTF printf
 #define RUNPRINTF //printf
 
-#include "../add.pbcc"
+#include "../simple/add.pbcc"
 #include "Interpolate2Dnew.pbcc"
 #include "Restrict2Dnew.pbcc"
 #include "Residual2D.pbcc"

@@ -13,8 +13,8 @@ config config1(11, 10, 12)
 
 transform Main from A[n] to B[n]
 {
-  to(B b) from(A a) {
-        
+  B.cell(i) from(A.cell(i) a) { 
+    return a;
   }
 }
 

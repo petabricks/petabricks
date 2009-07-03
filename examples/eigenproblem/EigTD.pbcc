@@ -8,7 +8,7 @@ extern "C" void dlaed1_(int *n, double *D, double *Q, int *ldq, int *indxq, doub
 %}
 
 
-#include "../utilities.pbcc"
+#include "../simple/copy.pbcc"
 #include "mergeQ.pbcc"
 #include "QRTD.pbcc"
 #include "BisectionTD.pbcc"

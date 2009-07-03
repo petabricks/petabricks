@@ -8,7 +8,7 @@ extern "C" void dsteqr_(char *compz, int *n, double *D, double *E, double *Z, in
 
 %}
 
-#include "../utilities.pbcc"
+#include "../simple/copy.pbcc"
 
 // Find eigenvalues and eigenvectors of tridiagonal matrix by LAPACK QR iteration routines
 transform QRTDsub
