@@ -636,7 +636,7 @@ uninstall-am:
 
 
 check:
-	+./scripts/smoketest.sh
+	+./scripts/smoketest.py
 
 examples: all
 	+(cd examples && make)

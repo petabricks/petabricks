@@ -2,7 +2,7 @@ AUTOMAKE_OPTIONS = foreign
 SUBDIRS = src
 
 check:
-	+./scripts/smoketest.sh
+	+./scripts/smoketest.py
 
 examples: all
 	+(cd examples && make)
