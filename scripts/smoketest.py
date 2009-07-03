@@ -2,8 +2,10 @@
 
 import pbutil
 import os
+import sys
 import re
 import subprocess 
+import time
 
 benchmarks=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests")
 
@@ -39,7 +41,7 @@ for b in benchmarks:
     continue
 
   #build cmd
-  hash=b[0]
+  hash=name
   cmd=[bin]
   for x in b[1:]:
     cmd.append(resolveInputPath(x))
@@ -56,15 +58,19 @@ for msg,p in runjobs:
     print msg+" run FAILED (status=%d)"%rv
     continue
 
-  rv = run(["git","diff","--exit-code",outfile])
+  checkcmd=["git","diff","--exit-code",outfile]
+  rv = run(checkcmd)
   if rv != 0:
-    print msg+" run FAILED (wrong output)"
-    continue
+    time.sleep(0.1) #try letting the filesystem settle down
+    rv = run(checkcmd)
+    if rv != 0:
+      print msg+" run FAILED (wrong output)"
+      continue
   
   print msg+" run PASSED"
   passed+=1
 
 print "%d of %d tests passed"%(passed,total)
 
-
+sys.exit(min(total-passed, 124))
 
