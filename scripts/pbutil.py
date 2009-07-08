@@ -145,10 +145,11 @@ class TimingRunFailed(Exception):
 
 #parse timing results with a given time limit
 def executeTimingRun(prog, n, args=[], limit=None):
+  null=open("/dev/null", "w")
   cmd = [ prog, "--n=%d"%n, "--time" ]
   for x in args:
     cmd.append(x);
-  p = subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+  p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
 
   if limit is not None:
     signal.signal(signal.SIGALRM, lambda signum, frame: killSubprocess(p))
@@ -262,6 +263,14 @@ def inferGoodInputSizes(prog, desiredTimes, maxTime=8.0):
   sizes=map(int, map(pfy, desiredTimes))
   print "Estimating reasonable input sizes (exp model: %s):"%estr, sizes
   return sizes
+
+
+def getMakefileFlag(name):
+  r=re.compile("^"+name+"[ ]*[=][ ]*(.*)")
+  return r.match(filter(lambda l: r.match(l), open("src/Makefile"))[0]).group(1).strip()
+
+getCXX      = lambda: getMakefileFlag("CXX")
+getCXXFLAGS = lambda: getMakefileFlag("CXXFLAGS")
  
 if __name__ == "__main__":
   chdirToPetabricksRoot()
