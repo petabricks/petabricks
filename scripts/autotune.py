@@ -25,22 +25,40 @@ import os
 import getopt
 import subprocess
 import pbutil
+from pprint import pprint
 
 from xml.dom.minidom import parse
 
+config_tool_path = ""
 app = None
 cfg = None
 parallel_autotune = False
+
+
+NULL=open("/dev/null", "w")
 
 maxint = 2147483647
 
 ignore_list = []
 
 def getConfigVal(key):
-  return pbutil.getConfigVal("%s.cfg"%app, key)
+  run_command = [config_tool_path, app + ".cfg", "get", key]
+  p = subprocess.Popen(run_command, stdout = subprocess.PIPE)
+  os.waitpid(p.pid, 0)
+  return p.stdout.read()
 
 def setConfigVal(key, val):
-  return pbutil.getConfigVal("%s.cfg"%app, key, val)
+  run_command = [config_tool_path, app + ".cfg", "set", key, str(val)]
+  p = subprocess.Popen(run_command)
+  os.waitpid(p.pid, 0)
+
+# def getConfigVal(key):
+#   print "get", key
+#   return pbutil.getConfigVal("%s.cfg"%app, key)
+# 
+# def setConfigVal(key, val):
+#   print "set", key, val
+#   return pbutil.setConfigVal("%s.cfg"%app, key, val)
 
 
 def reset():
@@ -91,13 +109,11 @@ def getAlgChoices(xml):
 
 def autotune(choice, trials, min, max):
   print "Autotuning:", choice
+  run_command = ["./" + app, "--autotune=%s"%choice, "--min=%d"%min, "--max=%d"%max, "--trials=%d"%trials]
   if parallel_autotune:
-    run_command = ["./" + app, "--autotune", "--multigrid", choice, "--min", str(min), "--max", str(max), "--trials", str(trials)]
-  else:
-    run_command = ["./" + app, "--autotune", choice, "--min", str(min), "--max", str(max), "--trials", str(trials)]
+    run_command.append("--multigrid")
   #print run_command
-  p = subprocess.Popen(run_command, stdout = subprocess.PIPE, stderr =
-      subprocess.PIPE)
+  p = subprocess.Popen(run_command, stdout=subprocess.PIPE, stderr=NULL)
   os.waitpid(p.pid, 0)
   lines = p.stdout.readlines()
   print "Result:" + lines[-int(getConfigVal("autotune_alg_slots"))],
@@ -115,8 +131,8 @@ def getIgnoreList():
 
 def optimize(tunable, size):
   print "Optimizing:", tunable
-  run_command = ["./" + app, "--optimize", tunable, "--random", str(size)]
-  p = subprocess.Popen(run_command, stdout = subprocess.PIPE)
+  run_command = ["./" + app, "--optimize=%s"%tunable, "--random=%d"%size]
+  p = subprocess.Popen(run_command, stdout=subprocess.PIPE, stderr=NULL)
   os.waitpid(p.pid, 0)
   print "Result:", getConfigVal(tunable),
 
@@ -126,10 +142,12 @@ def main(argv):
     print "Error.  For help, run:", argv[0], "-h"
     sys.exit(2)
 
+  global config_tool_path
   global app
   global ignore_list
   global parallel_autotune
 
+  config_tool_path = os.path.split(argv[0])[0] + "/configtool.py"
   app = argv[-1]
   cfg = app+".cfg"
   num_threads = -1 # -1 -> use config file
