@@ -16,6 +16,7 @@ eigenproblem/QRtridiagOne
 eigenproblem/QRtridiag
 eigenproblem/trial1
 eigenproblem/trial2
+kclustering/kmeans
 kernel/KernelEstimate
 kernel/LinearSolvePosDef
 multiply/multiply
@@ -69,6 +70,7 @@ regression/test7
 regression/test8
 regression/test9
 regression/testruleir
+regression/whereclause
 simple/add
 simple/copy
 simple/rollingsum

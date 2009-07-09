@@ -1,0 +1,14 @@
+transform WhereTest1
+from IN[n] 
+to OUT[n] 
+{
+  OUT.cell(i) from() where i==0 {
+    return 1;
+  }
+  OUT.cell(i) from() where i>0 {
+    return 2;
+  }
+}
+
+
+
