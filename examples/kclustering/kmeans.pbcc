@@ -1,0 +1,22 @@
+#ifndef KMEANS_PBCC
+#define KMEANS_PBCC
+
+transform kmeans
+from X[n,2], K
+to C[K,2]
+{
+
+  to (C c) from (X x, K k)
+  {
+    int i;
+    for (i = 0; i < k; i++) {
+	c.cell(i,0) = x.cell(i,0);
+	c.cell(i,1) = x.cell(i,1);
+    }
+
+  }
+
+}
+
+
+#endif // KMEANS_PBCC
