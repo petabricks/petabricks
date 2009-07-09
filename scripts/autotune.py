@@ -24,11 +24,12 @@ import sys
 import os
 import getopt
 import subprocess
+import pbutil
 
 from xml.dom.minidom import parse
 
-config_tool_path = ""
-app = ""
+app = None
+cfg = None
 parallel_autotune = False
 
 maxint = 2147483647
@@ -36,17 +37,11 @@ maxint = 2147483647
 ignore_list = []
 
 def getConfigVal(key):
-  run_command = [config_tool_path, app + ".cfg", "get", key]
-  p = subprocess.Popen(run_command, stdout = subprocess.PIPE)
-  os.waitpid(p.pid, 0)
-  return p.stdout.read()
-
-
+  return pbutil.getConfigVal("%s.cfg"%app, key)
 
 def setConfigVal(key, val):
-  run_command = [config_tool_path, app + ".cfg", "set", key, str(val)]
-  p = subprocess.Popen(run_command)
-  os.waitpid(p.pid, 0)
+  return pbutil.getConfigVal("%s.cfg"%app, key, val)
+
 
 def reset():
   ignore_vals = []
@@ -76,8 +71,6 @@ def getTunables(xml, type):
         tunables.append(choice)
   return tunables
 
-
-
 def getAlgChoices(xml):
   transforms = xml.getElementsByTagName("transform")
 
@@ -96,8 +89,6 @@ def getAlgChoices(xml):
         dynamic_choices.append(choice)
   return (static_choices, dynamic_choices)
 
-
-
 def autotune(choice, trials, min, max):
   print "Autotuning:", choice
   if parallel_autotune:
@@ -112,7 +103,6 @@ def autotune(choice, trials, min, max):
   print "Result:" + lines[-int(getConfigVal("autotune_alg_slots"))],
 
 def getIgnoreList():
-
   try:
     f = open(app + ".ignore")
     try:
@@ -123,9 +113,6 @@ def getIgnoreList():
   except:
     pass
 
-
-
-
 def optimize(tunable, size):
   print "Optimizing:", tunable
   run_command = ["./" + app, "--optimize", tunable, "--random", str(size)]
@@ -135,18 +122,16 @@ def optimize(tunable, size):
 
 
 def main(argv):
-
   if len(argv) == 1:
     print "Error.  For help, run:", argv[0], "-h"
     sys.exit(2)
 
-  global config_tool_path
   global app
   global ignore_list
   global parallel_autotune
 
-  config_tool_path = os.path.split(argv[0])[0] + "/configtool.py"
   app = argv[-1]
+  cfg = app+".cfg"
   num_threads = -1 # -1 -> use config file
   data_size = 100000
   min = 64
@@ -154,7 +139,8 @@ def main(argv):
   fast = False
 
   try:
-    opts, args = getopt.getopt(argv[1:-1], "hn:p:", ["help","random=","min=","max=", "parallel_autotune", "fast"])
+    opts, args = getopt.getopt(argv[1:-1], "hn:p:", 
+        ["help","random=","min=","max=","config=","parallel_autotune","fast"])
   except getopt.error, msg:
     print "Error.  For help, run:", argv[0], "-h"
     sys.exit(2)
@@ -167,6 +153,8 @@ def main(argv):
       num_threads = int(a)
     if o in ["-n", "--random"]:
       data_size = int(a)
+    if o in ["-c", "--config"]:
+      cfg = a
     if o == "--parallel_autotune":
       parallel_autotune = True
     if o == "--min":
@@ -175,7 +163,6 @@ def main(argv):
       max = int(a)
     if o == "--fast":
       fast = True
-
 
   getIgnoreList()
 
@@ -194,16 +181,12 @@ def main(argv):
   else:
     setConfigVal("worker_threads", num_threads)
 
-  if num_threads == 1:
-    print "Tuning", app, "with", num_threads, "thread...", "(fast =", str(fast) + ")" 
-  else:
-    print "Tuning", app, "with", num_threads, "threads...", "(fast =", str(fast) + ")" 
+  print "Tuning", app, "with", num_threads, "threads...", "(fast =", str(fast) + ")" 
 
   (static_choices, dynamic_choices) = getAlgChoices(infoxml)
   seq_cutoff_tunables = getTunables(infoxml, "system.seqcutoff")
   splitsize_tunables = getTunables(infoxml, "system.splitsize")
   user_tunables = getTunables(infoxml, "user.tunable")
-
 
   # Autotune sequential code
   for tunable in seq_cutoff_tunables:
@@ -254,3 +237,4 @@ def main(argv):
 
 if __name__ == "__main__":
     main(sys.argv)
+

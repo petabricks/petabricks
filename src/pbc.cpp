@@ -46,12 +46,12 @@ std::string cmdCxxCompiler(const std::string& src, const std::string& bin);
 
 using namespace petabricks;
 
-
-const static std::string thePetabricksHPath = jalib::Filesystem::FindHelperUtility("petabricks.h");
-const static std::string theLibPetabricksPath = jalib::Filesystem::FindHelperUtility("libpetabricks.a");
+//do dynamic searches for the correct paths to needed libraries/headers
+const static std::string thePetabricksHPath       = jalib::Filesystem::FindHelperUtility("petabricks.h");
+const static std::string theLibPetabricksPath     = jalib::Filesystem::FindHelperUtility("libpetabricks.a");
+const static std::string theLibPetabricksMainPath = jalib::Filesystem::FindHelperUtility("libpetabricksmain.a");
 
 TransformListPtr parsePbFile(const char* filename);
-
 
 int main( int argc, const char ** argv){
   if(argc != 2){
@@ -95,21 +95,22 @@ int main( int argc, const char ** argv){
     (*i)->generateCode(o);
   }
 
-  o.comment("Program main routine");
-  std::string args[] = {"int argc", "const char** argv"};
-  o.beginFunc("int", "main", std::vector<std::string>(args, args+2));
-  o.write("petabricks::PetabricksRuntime runtime(argc, argv, "+t->back()->name()+"_main::instance());");
-  o.beginIf("runtime.alternateTransforms()");
+
+  o.comment("A hook called by PetabricksRuntime");
+  o.beginFunc("petabricks::PetabricksRuntime::Main*", "petabricksMainTransform");
+  o.write("return "+t->back()->name()+"_main::instance();");
+  o.endFunc();
+  
+  o.comment("A hook called by PetabricksRuntime");
+  o.beginFunc( "petabricks::PetabricksRuntime::Main*"
+             , "petabricksFindTransform"
+             , std::vector<std::string>(1, "const std::string& name"));
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
     (*i)->registerMainInterface(o);
   }
-  o.endIf();
-  o.write("int rv = runtime.runMain(argc,argv);");
-  o.write("runtime.~PetabricksRuntime();");
-  o.write("runtime.exit(rv);");
-  o.write("return rv;");
+  o.write("return NULL;");
   o.endFunc();
-
+  
   o.outputFileTo(of);
   of.flush();
   of.close();
@@ -123,7 +124,13 @@ int main( int argc, const char ** argv){
 }
 
 std::string cmdCxxCompiler(const std::string& src, const std::string& bin){
- return CXX " " CXXFLAGS " " DEFS " -o " + bin + " " + src + " " + theLibPetabricksPath + " " LIBS;
+  std::string ofile = bin + ".o";
+  return std::string()
+       + "echo -n Calling C++ compiler...\\ && \\\n"
+       + CXX " " CXXFLAGS " " DEFS " -c -o " + ofile + " " + src + " && \\\n"
+       + "echo done && echo -n Linking...\\ && \\\n"
+       + CXX " " CXXFLAGS " -o " + bin + " " + ofile + " " + theLibPetabricksPath+ " " + theLibPetabricksMainPath + " " LIBS " && \\\n"
+       + "echo done";
 }
 
 void callCxxCompiler(const std::string& src, const std::string& bin){
@@ -133,3 +140,4 @@ void callCxxCompiler(const std::string& src, const std::string& bin){
   int rv = system(cmd.c_str());
   JASSERT(rv==0)(rv)(cmd).Text("g++ call failed");
 }
+

@@ -7,7 +7,7 @@ extern "C" void dstevd_(char *jobz, int *n, double *D, double *E, double *Z, int
 
 %}
 
-#include "../utilities.pbcc"
+#include "../simple/copy.pbcc"
 
 // Find eigenvalues and eigenvectors of IN (tridiagonal symmetric) by LAPACK Divide-and-Conquer routines, which has a hardcoded cutoff at n=25
 transform DCTDLAPACKsub

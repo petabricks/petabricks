@@ -25,6 +25,7 @@ int matrixreaderlex(petabricks::MatrixReaderScratch&);
 petabricks::MatrixIO::MatrixIO(FILE* file) : _fd(file) {}
 petabricks::MatrixIO::MatrixIO(const char* filename, const char* mode) 
 {
+  JTRACE("MatrixIO")(filename)(mode);
   if(std::string("-")==filename) 
     _fd = stdin;
   else 

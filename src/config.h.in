@@ -6,8 +6,11 @@
 /* verbose debug printouts and log files in /tmp */
 #undef DEBUG
 
-/* don't generate continuation code after SPAWN/enqueue */
+/* dont generate continuation code after SPAWN/enqueue */
 #undef DISABLE_CONTINUATIONS
+
+/* User a better random number generator in training */
+#undef GOOD_RANDOM
 
 /* allow abort without program shutdown (uses exceptions) */
 #undef GRACEFUL_ABORT

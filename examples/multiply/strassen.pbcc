@@ -1,6 +1,6 @@
 
-#include "add.pbcc"
-#include "transpose.pbcc"
+#include "../simple/add.pbcc"
+#include "../simple/transpose.pbcc"
 
 
 transform Strassen

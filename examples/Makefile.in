@@ -1,18 +1,27 @@
 
 BINS=$(basename $(wildcard *.pbcc */*.pbcc */*/*.pbcc))
-CPPS=$(addsuffix .cpp, $(OUTPUTS))
-CFGS=$(addsuffix .cfg, $(OUTPUTS))
 
 
 all: $(BINS)
 
-%: %.pbcc
+%: %.pbcc ../src/pbc
 	@(../src/pbc $< 2>/dev/null >&2 && echo PASSED: $*) || echo FAILED: $*
 
 clean:
-	rm -f $(BINS) $(CPPS)
+	@echo removing binaries
+	@rm -f $(BINS)
+	@echo removing *.o 
+	@rm -f $(addsuffix .cpp, $(BINS))
+	@echo removing *.cpp
+	@rm -f $(addsuffix .o, $(BINS))
+	@echo removing *.info 
+	@rm -f $(addsuffix .info, $(BINS))
+
+distclean: clean
+	@echo removing *.cfg
+	@rm -f $(addsuffix .cfg, $(BINS))
 
 ignore:
-	echo $(BINS) '*.cpp *.cfg' | xargs -n 1 echo > .gitignore
+	echo $(BINS) '*.cpp *.cfg *.info' | xargs -n 1 echo > .gitignore
 
 pbc:; (cd .. && make)

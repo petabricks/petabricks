@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
+ *   Copyright (C) 2009 by Jason Ansel                                     *
  *   jansel@csail.mit.edu                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,26 +17,9 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "matrix.h"
-#include <stdlib.h>
-#include <stdio.h>
+#include "petabricksruntime.h"
 
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
-
-void petabricks::MatrixStorage::randomize(){
-#ifdef GOOD_RANDOM
-  for(int i;i<_count; ++i){
-    _data[i] = (2.0*drand48()-1.0)*4294967296.0;
-  }
-#else
-  //this method is bad... only use during compiler development
-  int x = mrand48();
-  int a = mrand48();
-  int b = mrand48();
-  for(int i;i<_count; ++i){
-    _data[i] = (x^=a*x+b);
-  }
-#endif
+int main(int argc, const char** argv){
+  return petabricks::petabricksMain(argc, argv);
 }
+

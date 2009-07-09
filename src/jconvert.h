@@ -204,6 +204,15 @@ namespace jalib
     }
   }
 
+  inline bool Contains(const char* str, char c) {
+    while(*str!=0 && *str!=c) ++str;
+    return *str==c;
+  }
+  inline bool Contains(const std::string& str, char c) {
+    return Contains(str.c_str(), c);
+  }
+
+
 }//namespace jalib
 
 #endif

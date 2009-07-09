@@ -1,0 +1,126 @@
+1) VARIABLE ACCURACY 
+*** Current main focus ***
+*** Target ASPLOS'10 Aug 10 deadline ***
+
+Language support for tuning the accuracy/speed trade-off of algorithms.
+For iterative algorithms, this means letting the compiler choose the number
+of iterations.  For image processing algorithms, this could mean letting the
+compiler automatically coarsen the grid size and interpolate the results of
+the algorithm back.  For recursive algorithms, this means letting the compiler
+choose the accuracy requirements of the sub-calls to other variable-accuracy
+algorithms.  This last case makes tuning difficult and requires a dynamic
+programming approach to tune well.
+
+The end result, is the user will either say "give me the fastest algorithm
+with accuracy X." or "give me the most accurate algorithm that is Y fast."
+
+-------------------------------------------------------------------------------
+
+2) GRAPHICS CARDS BACKEND
+
+Add a graphics cards backend for the subset of the language that is not
+recursive and has dependency patterns that can be represented as shaders.
+Essentially allow some transforms to be accelerated by running them on a
+graphics card, while the main program runs on the CPU.  Autotuner will decide
+when it makes sense to use the GPU and when it makes sense to use the CPU.
+
+-------------------------------------------------------------------------------
+
+3) INPUT FEATURE BASED TUNING
+
+Currently the autotuner looks only at input size.  We could have the autotuner
+look at other extracted features of the input and change the algorithm based
+on that.  For example, we may want to use different algorithms based on the
+aspect ratio or entropy of the input.
+
+-------------------------------------------------------------------------------
+
+4) RUNTIME ADAPTATION 
+
+Currently autotuning is done entirely in a training phase beforehand.
+It would be interesting to explore making changes to the algorithm at runtime
+to perhaps react to changing load or input characteristics.
+
+-------------------------------------------------------------------------------
+
+5) ADAPTIVE ALGORITHMS (PARTIAL RE-COMPUTATION)
+
+Suppose you run your algorithm on a very large input, then later a very small
+piece of that input changes.  Can you use your previously computed result
+to accelerate the updated computation.  Since we have explicit dependencies
+we should automatically be able to figure out what parts of the computation
+need to be re-run.
+
+-------------------------------------------------------------------------------
+
+6) ADVANCED CONSISTENCY CHECKING
+
+Since the user provides multiple algorithmic choices, we can do consistency
+checking by automatically verifying different choices against each other.
+Currently what we do is very simplistic, but there are a lot of opportunities
+for enhancing this.  
+
+-------------------------------------------------------------------------------
+
+7) MODULAR AUTOTUNER / TUNER HINTS
+
+Explore different ways of enhancing our autotuner.  Look into different
+autotuning algorithms.  Look into using multiple algorithms in a modular
+manner.  Look into having the user provide hints to help the autotuner get
+better results.
+
+-------------------------------------------------------------------------------
+
+8) LOW LEVEL OPTIMIZATIONS / RAW PERFORMANCE
+
+Look into autotuning lower level optimization such as prefetching,
+loop unrolling, inlining, specialization, instruction reordering, etc.
+Currently we simply allow the C++ compiler below us to handle this domain.
+Related is the goal of just getting our raw performance up, and doing
+profiling and other optimizations to meet this goal.
+
+-------------------------------------------------------------------------------
+
+9) HETEROGENEOUS ARCHITECTURES 
+
+Explore running petabricks on more exotic architectures with a simulator.
+The basic idea is to have a multicore architecture with many different types
+of cores, each with different ISAs.  For example you could have some cores
+much better at memory accesses, and other cores better at floating point, etc.
+Utilizing this more heterogeneous architecture will be much more challenging
+(more choices) and really show off the benefits of petabricks.
+
+(This idea is with Nathan Beckmann)
+
+-------------------------------------------------------------------------------
+
+10) DISTRIBUTED BACKEND
+
+Similar to the ZettaBricks grant proposal, we would add a distributed memory
+backend to petabricks and explore a lot of the choices surrounding data
+movement in a cluster.
+
+-------------------------------------------------------------------------------
+
+11) SPARSE (AND OTHER) DATA STRUCTURES
+
+Adding support for other data structures to the language and exploring how
+to autotune in the presence of less regular data structures.
+
+-------------------------------------------------------------------------------
+
+12) APPLIED MATH SIDE IDEAS
+
+This is a placeholder for ideas whose novelty rest on the math side of this
+project, such as our MultiGrid paper in SC'09. This part of the document
+needs to be filled in.
+
+
+
+
+
+
+
+
+
+
