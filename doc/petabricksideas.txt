@@ -115,6 +115,12 @@ This is a placeholder for ideas whose novelty rest on the math side of this
 project, such as our MultiGrid paper in SC'09. This part of the document
 needs to be filled in.
 
+-------------------------------------------------------------------------------
+
+13) USE SKETCHING TO TEST POTENTIAL OPTIMIZATIONS
+
+... fill in ...
+
 
 
 
