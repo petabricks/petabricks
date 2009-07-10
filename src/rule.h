@@ -222,6 +222,7 @@ public:
         return false;
     return true;
   }
+
 private:
   int _id;
   RuleFlags   _flags;

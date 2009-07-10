@@ -83,7 +83,7 @@ public:
   }
 
   virtual void explodeEquality(FormulaPtr& l, FormulaPtr& r) const;
-
+  
   FormulaPtr rhs() const {
     FormulaPtr l,r;
     explodeEquality(l,r);
@@ -112,6 +112,9 @@ public:
   FormulaPtr plusOne() const;
   FormulaPtr minusOne() const;
   FormulaPtr negative() const;
+
+
+  virtual char opType() const;
 protected:
   /// Set of all free variables in the tree
   FreeVarsPtr _freeVars;
@@ -173,6 +176,9 @@ public:
 
   std::string printAsAssumption() const;
   std::string explodePrint() const;
+
+  virtual char opType() const;
+
 private:
   FormulaPtr _left;
   FormulaPtr _right;

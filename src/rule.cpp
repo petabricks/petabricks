@@ -192,6 +192,23 @@ void petabricks::Rule::initialize(Transform& trans) {
     else
       _applicanbleRegion = ar;
   }
+  
+  for(FormulaList::iterator i=_conditions.begin(); i!=_conditions.end(); ++i){
+    FreeVarsPtr fv = (*i)->getFreeVariables();
+    char op = (*i)->opType();
+    FormulaPtr l,r;
+    (*i)->explodeEquality(l,r);
+    //normalize a bit
+    if(op==FormulaGT::CODE){
+      std::swap(l,r);
+      op = FormulaLT::CODE;
+    }
+    if(op==FormulaGE::CODE){
+      std::swap(l,r);
+      op = FormulaLE::CODE;
+    }
+    JTRACE("whereclause")(op)(l)(r)(fv->size());
+  }
 
   addAssumptions();
 
@@ -200,7 +217,8 @@ void petabricks::Rule::initialize(Transform& trans) {
     (*i)->collectDependencies(*this,_depends);
   }
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->collectDependencies(*this,_provides);
+    (*i)->collectDependencies(*this,_provides)
+;
   }
 
   MaximaWrapper::instance().popContext();
