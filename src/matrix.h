@@ -335,7 +335,7 @@ public:
   static MatrixRegion allocate(const IndexT sizes[D]) {
     MatrixStoragePtr tmp = new MatrixStorage(1);
     #ifdef DEBUG
-    *tmp->data() = 0xBadF00d;
+    *tmp->data() = -666;
     #endif
     return MatrixRegion(tmp, tmp->data(), sizes);
   }
@@ -423,6 +423,15 @@ public:
   const IndexT* multipliers() const { JWARNING(false);  return 0; };
 
   MatrixRegion all() const { return *this; }
+
+
+//MatrixRegion& operator= (ElementT v){
+//  cell()=v;
+//}
+//MatrixRegion& operator= (int v){
+//  cell()=v;
+//}
+  
 private:
   MatrixStoragePtr _storage;
   ElementT* _base;
