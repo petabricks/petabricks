@@ -1,18 +1,18 @@
 
-transform WhereTest1
+transform WhereTest1 //0 vars
 from IN[n] 
 to OUT[n] 
 {
-  OUT.cell(i) from() where 1>0 {
-    return 1;
+  OUT.cell(i) from() where 1<0 {
+    return -1;
   }
-  OUT.cell(i) from() where 0>1 {
-    return 2;
+  OUT.cell(i) from() where 0<1 {
+    return -2;
   }
 }
 
 
-transform WhereTest2
+transform WhereTest2 //1 vars
 from IN[n] 
 to OUT[n] 
 {
@@ -21,6 +21,57 @@ to OUT[n]
   }
   OUT.cell(i) from() where 0<i {
     return 2;
+  }
+}
+
+transform WhereTest3 //1 vars
+from IN[n] 
+to OUT[n] 
+{
+  OUT.cell(i) from() where i>n-5 {
+    return 3;
+  }
+  OUT.cell(i) from() where i<=n-5 {
+    return 4;
+  }
+}
+
+
+transform WhereTest4 //1 vars
+from IN[n,m] 
+to OUT[n,m] 
+{
+  OUT.cell(x,y) from() where x<y {
+    return 5;
+  }
+  OUT.cell(x,y) from() where x==y {
+    return 6;
+  }
+  secondary OUT.cell(x,y) from() {
+    return 7;
+  }
+}
+
+
+
+transform Main
+from IN[n, n] 
+to OUT[n, n+5] 
+{
+  to(OUT.row(1) o) from(IN.row(0) i){
+    WhereTest1(o,i);
+  }
+  to(OUT.row(2) o) from(IN.row(0) i){
+    WhereTest2(o,i);
+  }
+  to(OUT.row(3) o) from(IN.row(0) i){
+    WhereTest3(o,i);
+  }
+  to(OUT.region(0,5, n,n+5) o) from (IN i){
+    WhereTest4(o,i);
+  }
+  secondary OUT.cell(x,y) from() { 
+    return 9;
   }
 }
 
