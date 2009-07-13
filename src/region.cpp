@@ -378,7 +378,7 @@ void petabricks::Region::collectDependencies(const Rule& rule, MatrixDependencyM
   }
   JTRACE("compute direction")(_minCoord)(_maxCoord)(direction);
 
-  SimpleRegion applicable = rule.applicanbleRegion();
+  SimpleRegion applicable = rule.applicableRegion();
   applicable.maxCoord().subToEach(FormulaInteger::one());
   FormulaList minDefs;
   FormulaList maxDefs;

@@ -130,6 +130,10 @@ public:
   FormulaPtr getOffsetVar(int dimension, const char* extra=NULL) const;
   
   ///
+  /// invert the above function
+  int offsetVarToDimension(const std::string& dimension, const char* extra=NULL) const;
+  
+  ///
   /// Remove out-of-bounds solutions from the given formula list 
   FormulaPtr trimImpossible(const FormulaList& l);
   
@@ -172,7 +176,7 @@ public:
 
   void addAssumptions() const;
 
-  const SimpleRegionPtr& applicanbleRegion() const { return _applicanbleRegion; }
+  const SimpleRegionPtr& applicableRegion() const { return _applicableRegion; }
 
   void collectDependencies(StaticScheduler& scheduler);
 
@@ -230,7 +234,7 @@ private:
   RegionList  _to;
   FormulaList _conditions;
   FormulaList _definitions;
-  SimpleRegionPtr _applicanbleRegion;
+  SimpleRegionPtr _applicableRegion;
   std::string     _bodysrc;
   RIRBlockCopyRef _bodyirStatic;
   RIRBlockCopyRef _bodyirDynamic;

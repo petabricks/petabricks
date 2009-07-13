@@ -50,13 +50,29 @@ petabricks::Rule::Rule(const RegionList& to, const RegionList& from, const Formu
   _flags.isReturnStyle = false;
 }
 
-petabricks::FormulaPtr petabricks::Rule::getOffsetVar(int id, const char* extra /*= NULL*/) const{
-  if(extra==NULL) extra="";
-  static const char* strs[] = {"x","y","z","d4","d5","d6","d7","d8","d9","d10"};
-  JASSERT(id>=0 && id<(int)(sizeof(strs)/sizeof(char*)))(id);
-  std::string name = "_r" + jalib::XToString(_id) + "_" + strs[id];
-  return new FormulaVariable((extra+name).c_str()); //cache me!
+namespace{
+  static const char* theOffsetVarStrs[] = {"x","y","z","d4","d5","d6","d7","d8","d9","d10"};
+  std::string _getOffsetVarStr(int ruleid, int dim, const char* extra) {
+    if(extra==NULL) extra="";
+    JASSERT(dim>=0 && dim<(int)(sizeof(theOffsetVarStrs)/sizeof(char*)))(dim);
+    std::string name = "_r" + jalib::XToString(ruleid) + "_" + theOffsetVarStrs[dim];
+    return extra+name;
+  }
 }
+  
+petabricks::FormulaPtr petabricks::Rule::getOffsetVar(int dim, const char* extra /*= NULL*/) const{
+  return new FormulaVariable(_getOffsetVarStr(_id, dim, extra).c_str()); //cache me!
+}
+  
+int petabricks::Rule::offsetVarToDimension(const std::string& var, const char* extra /*=NULL*/) const
+{
+  for(int dim=0; dim<(sizeof(theOffsetVarStrs)/sizeof(char*)); ++dim){
+    if(_getOffsetVarStr(_id, dim, extra)==var)
+      return dim;
+  }
+  JASSERT(false)(var).Text("unknown variable name");
+}
+
 
 void petabricks::Rule::setBody(const char* str){
   JWARNING(_bodysrc=="")(_bodysrc);
@@ -126,7 +142,7 @@ void petabricks::Rule::print(std::ostream& os) const {
   if(!_definitions.empty()){
     os << "\ndefinitions ";  printStlList(os,_definitions.begin(),_definitions.end(), ", "); 
   }
-  os << "\napplicableregion " << _applicanbleRegion;
+  os << "\napplicableregion " << _applicableRegion;
   os << "\ndepends: \n";
   for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
     os << "  " << i->first << ": " << i->second << "\n";
@@ -180,34 +196,70 @@ void petabricks::Rule::initialize(Transform& trans) {
 
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
     SimpleRegionPtr ar = (*i)->getApplicableRegion(*this, _definitions, true);
-    if(_applicanbleRegion)
-      _applicanbleRegion = _applicanbleRegion->intersect(ar);
+    if(_applicableRegion)
+      _applicableRegion = _applicableRegion->intersect(ar);
     else
-      _applicanbleRegion = ar;
+      _applicableRegion = ar;
   }
   for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
     SimpleRegionPtr ar = (*i)->getApplicableRegion(*this, _definitions, false);
-    if(_applicanbleRegion)
-      _applicanbleRegion = _applicanbleRegion->intersect(ar);
+    if(_applicableRegion)
+      _applicableRegion = _applicableRegion->intersect(ar);
     else
-      _applicanbleRegion = ar;
+      _applicableRegion = ar;
   }
   
-  for(FormulaList::iterator i=_conditions.begin(); i!=_conditions.end(); ++i){
-    FreeVarsPtr fv = (*i)->getFreeVariables();
+  FormulaList condtmp;
+  condtmp.swap(_conditions);
+  //simplify simple where clauses 
+  for(FormulaList::iterator i=condtmp.begin(); i!=condtmp.end(); ++i){
     char op = (*i)->opType();
+    FreeVars fv;
+    (*i)->getFreeVariables(fv);
+    fv.eraseAll(trans.constants());
     FormulaPtr l,r;
     (*i)->explodeEquality(l,r);
-    //normalize a bit
-    if(op==FormulaGT::CODE){
-      std::swap(l,r);
-      op = FormulaLT::CODE;
+    if(fv.size() == 1){
+      //for a single var where we can just update the applicable region
+      std::string var = *fv.begin();
+      int dim =  offsetVarToDimension(var);
+      FormulaPtr varf = new FormulaVariable(var);
+      FormulaPtr criticalPoint = trimImpossible(MaximaWrapper::instance().solve(new FormulaEQ(l,r), var))->rhs();
+      bool smaller, larger, eq;
+      MAXIMA.pushContext();
+      MAXIMA.assume(*i);
+      smaller=MAXIMA.tryCompare(varf, "<", criticalPoint)!=MaximaWrapper::NO;
+      eq=     MAXIMA.tryCompare(varf, "=", criticalPoint)!=MaximaWrapper::NO;
+      larger= MAXIMA.tryCompare(varf, ">", criticalPoint)!=MaximaWrapper::NO;
+      MAXIMA.popContext();
+      JASSERT(smaller|eq|larger)(criticalPoint)(*i).Text("where clause is never true");
+
+      if(!smaller){
+        FormulaPtr& f = _applicableRegion->minCoord()[dim];
+        if(eq)
+          f=MAXIMA.max(f, criticalPoint);
+        else
+          f=MAXIMA.max(f, criticalPoint->plusOne());
+      }
+      if(!larger){
+        FormulaPtr& f = _applicableRegion->maxCoord()[dim];
+        if(eq)
+          f=MAXIMA.min(f, criticalPoint->plusOne());
+        else
+          f=MAXIMA.min(f, criticalPoint);
+      }
+      
+      JTRACE("where clause handled")(*i)(criticalPoint)(_applicableRegion);
+    }else{
+      //test if we can statically prove it
+      int rslt = MAXIMA.is((*i)->printAsAssumption());
+      if(rslt!=MaximaWrapper::YES){
+        //otherwise handle it dynamically
+        _conditions.push_back(*i);
+      }else{
+        JTRACE("where clause statically eliminated")(*i);
+      }
     }
-    if(op==FormulaGE::CODE){
-      std::swap(l,r);
-      op = FormulaLE::CODE;
-    }
-    JTRACE("whereclause")(op)(l)(r)(fv->size());
   }
 
   addAssumptions();
@@ -572,7 +624,7 @@ void petabricks::Rule::generateCallTaskCode(const std::string& name, Transform& 
 
 
 int petabricks::Rule::dimensions() const {
-//   return (int)_applicanbleRegion->dimensions();
+//   return (int)_applicableRegion->dimensions();
   int m=0;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     m=std::max(m, (int)(*i)->dimensions());
@@ -582,8 +634,8 @@ int petabricks::Rule::dimensions() const {
 
 void petabricks::Rule::addAssumptions() const {
   for(int i=0; i<dimensions(); ++i){
-    MaximaWrapper::instance().assume(new FormulaGE(getOffsetVar(i), _applicanbleRegion->minCoord()[i]));
-    MaximaWrapper::instance().assume(new FormulaLE(getOffsetVar(i), _applicanbleRegion->maxCoord()[i]));
+    MaximaWrapper::instance().assume(new FormulaGE(getOffsetVar(i), _applicableRegion->minCoord()[i]));
+    MaximaWrapper::instance().assume(new FormulaLE(getOffsetVar(i), _applicableRegion->maxCoord()[i]));
   }
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i)
     (*i)->addAssumptions();

@@ -36,6 +36,12 @@ typedef jalib::JRef<const FreeVars> FreeVarsPtr;
 class FreeVars : public std::set<std::string> , public jalib::JRefCounted {
 public:
   bool contains(const std::string& s) const{ return find(s)!=end(); } 
+
+  void eraseAll(const std::set<std::string>& that) {
+    std::set<std::string>::const_iterator i;
+    for(i=that.begin(); i!=that.end(); ++i)
+      erase(*i);
+  }
 };
 
 /**

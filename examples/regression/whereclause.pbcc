@@ -1,11 +1,25 @@
+
 transform WhereTest1
+from IN[n] 
+to OUT[n] 
+{
+  OUT.cell(i) from() where 1>0 {
+    return 1;
+  }
+  OUT.cell(i) from() where 0>1 {
+    return 2;
+  }
+}
+
+
+transform WhereTest2
 from IN[n] 
 to OUT[n] 
 {
   OUT.cell(i) from() where i==0 {
     return 1;
   }
-  OUT.cell(i) from() where i>0 {
+  OUT.cell(i) from() where 0<i {
     return 2;
   }
 }
