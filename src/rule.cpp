@@ -309,7 +309,7 @@ bool petabricks::RuleDescriptor::operator< (const RuleDescriptor& that) const{
 }
 
 bool petabricks::RuleDescriptor::isSamePosition(const FormulaPtr& that) const{
-   return MaximaWrapper::instance().compare(this->_formula, "=" , that);
+   return MAXIMA.tryCompare(this->_formula, "=" , that) == MaximaWrapper::YES;
 }
 
 void petabricks::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){

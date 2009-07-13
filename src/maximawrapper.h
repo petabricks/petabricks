@@ -118,7 +118,7 @@ public:
 
   bool compare(const FormulaPtr& a, const char* op, const FormulaPtr& b){
     tryCompareResult rslt = tryCompare(a,op,b);
-    JASSERT(rslt==NO || rslt==YES);
+    JASSERT(rslt==NO || rslt==YES)(a)(op)(b);
     return rslt==YES;
   }
 
