@@ -40,3 +40,13 @@ void petabricks::MatrixStorage::randomize(){
   }
 #endif
 }
+
+
+void petabricks::MatrixRegion<0, const MATRIX_ELEMENT_T>::randomize(){
+  _val = drand48();
+}
+
+void petabricks::MatrixRegion<0, MATRIX_ELEMENT_T>::randomize(){
+  *_val = drand48();
+}
+

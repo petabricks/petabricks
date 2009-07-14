@@ -290,6 +290,8 @@ public:
   IndexT bytes() const {
     return count()*sizeof(ElementT);
   }
+  
+  void randomize(){ storage()->randomize(); }
 protected:
   ///
   /// Compute the offset in _base for a given coordinate
@@ -316,83 +318,17 @@ private:
 /**
  * Specialized 0-Dimensional MatrixRegion
  */
-template< typename ElementT >
-class MatrixRegion < 0, ElementT> {
+class _MatrixRegion0DCommon {
 public:
   enum { D=0 };
   typedef MatrixStorage::IndexT IndexT;
 public:
   enum StockLayouts { LAYOUT_ASCENDING, LAYOUT_DECENDING };
-
-  ///
-  /// Copy constructor
-  MatrixRegion( const MatrixRegion<D, MATRIX_ELEMENT_T>& that )
-    : _storage(that.storage())
-    , _base(that.base())
-  {}
-
-  ///
-  /// Allocate a storage for a new MatrixRegion
-  static MatrixRegion allocate(const IndexT sizes[D]) {
-    MatrixStoragePtr tmp = new MatrixStorage(1);
-    #ifdef DEBUG
-    *tmp->data() = -666;
-    #endif
-    return MatrixRegion(tmp, tmp->data(), sizes);
-  }
-
-  ///
-  /// Allocate a storage for a new MatrixRegion (va_args version)
-  static MatrixRegion allocate(){
-    IndexT c1[D];
-    return allocate(c1);
-  }
-
-  ///
-  /// Constructor
-  MatrixRegion( const MatrixStoragePtr& s
-              , ElementT* b
-              , const IndexT sizes[D]
-              , const IndexT multipliers[D])
-    : _storage(s)
-    , _base(b)
-  {}
-
-  ///
-  /// Constructor
-  MatrixRegion( const MatrixStoragePtr& s
-              , ElementT* b
-              , const IndexT sizes[D]
-              , StockLayouts layout = LAYOUT_ASCENDING)
-    : _storage(s)
-    , _base(b)
-  {}
-
-  ///
-  /// Upcast from a lone value
-  MatrixRegion( ElementT value = -666 ){
-    MatrixRegion<0, MATRIX_ELEMENT_T> tmp = MatrixRegion<0, MATRIX_ELEMENT_T>::allocate();
-    _storage = tmp.storage();
-    _base = tmp.base();
-    tmp.cell()=value;
-  }
-
-  ///
-  /// 0-Dimensional region only has 1 cell
-  ElementT& cell() const{ return *_base; }
- 
-  ///
-  /// 0-Dimensional region only has 1 cell
-  ElementT& cell(const IndexT coord[D]) const{ return *_base; }
-
-  ///
-  /// Allow implicit conversion to ElementT
-  operator ElementT& () const { return cell(); }
-
+  
   ///
   /// 0-Dimensional region only has 1 sub-region
-  MatrixRegion region() const{ return *this; }
-  MatrixRegion region(const IndexT c1[D], const IndexT c2[D]) const{return *this; }
+  //MatrixRegion region() const{ return *this; }
+  //MatrixRegion region(const IndexT c1[D], const IndexT c2[D]) const{return *this; }
 
   ///
   /// This should never be called
@@ -418,32 +354,101 @@ public:
     return count()*sizeof(ElementT);
   }
   
-  const MatrixStoragePtr& storage() const { return _storage; }
-  ElementT* base() const { return _base; }
+  //const MatrixStoragePtr& storage() const { return _storage; }
+  //ElementT* base() const { return _base; }
   const IndexT* sizes() const { JWARNING(false); return 0; }
   const IndexT* multipliers() const { JWARNING(false);  return 0; };
 
-  MatrixRegion all() const { return *this; }
+  //MatrixRegion all() const { return *this; }
+
+};
 
 
-//MatrixRegion& operator= (ElementT v){
-//  cell()=v;
-//}
-//MatrixRegion& operator= (int v){
-//  cell()=v;
-//}
-
-  MatrixRegion& operator= (const MatrixRegion& that){
-    if(_storage){
-      *_base=that.cell();
-    }else{
-      _storage=that._storage;
-      _base=that._base;
-    }
+template <>
+class MatrixRegion<0, ElementT> : public _MatrixRegion0DCommon {
+public:
+  static MatrixRegion allocate(const IndexT sizes[D]) {
+    return allocate();
   }
+  static MatrixRegion allocate(){
+    const IndexT sizes[D]={};
+    MatrixStoragePtr t = new MatrixStorage(1);
+    #ifdef DEBUG
+    *t->data() = -666;
+    #endif
+    return MatrixRegion(t,t->data(),sizes);
+  }
+
+  MatrixRegion( const MatrixRegion& that){
+    operator=(that);
+  }
+  MatrixRegion( MATRIX_ELEMENT_T& value ) : _val(&value) {}
+  
+  MatrixRegion() : _val(NULL) {}
+
+  MatrixRegion( const MatrixStoragePtr& s
+              , ElementT* b
+              , const IndexT sizes[D]
+              , StockLayouts layout = LAYOUT_ASCENDING)
+  {
+    _storage=s;
+    _val=b;
+  }
+
+  
+  ///
+  /// 0-Dimensional region only has 1 cell
+  ElementT& cell() const{ return *_val; }
+ 
+  ///
+  /// 0-Dimensional region only has 1 cell
+  ElementT& cell(const IndexT coord[D]) const{ return cell(); }
+
+  ///
+  /// Allow implicit conversion to ElementT
+  operator ElementT& () const { return cell(); }
+
+  MatrixRegion& operator=( const MatrixRegion& that) {
+    _storage = that._storage;
+    _val = that._val;
+  }
+
+  const MatrixStoragePtr& storage() const { return _storage; }
+
+  void randomize();
 private:
   MatrixStoragePtr _storage;
-  ElementT* _base;
+  ElementT* _val;
+};
+
+template <>
+class MatrixRegion<0, const ElementT> : public _MatrixRegion0DCommon {
+public:
+  static MatrixRegion allocate(const IndexT sizes[D]) {
+    return MatrixRegion();
+  }
+  static MatrixRegion allocate(){
+    return MatrixRegion();
+  }
+  
+  ///
+  /// Copy constructor
+  MatrixRegion( const MatrixRegion<D, MATRIX_ELEMENT_T>& that ) 
+    : _val(that.cell())
+  {}
+  
+  ///
+  /// Upcast from a lone value
+  MatrixRegion( MATRIX_ELEMENT_T value = -666 ) : _val(value) {}
+  
+  
+  ElementT cell() const{ return _val; }
+  ElementT cell(const IndexT coord[D]) const{ return cell(); }
+  operator ElementT () const { return cell(); }
+  
+  void randomize();
+private:
+  ElementT _val;
 };
 
 
@@ -458,8 +463,8 @@ typedef MatrixRegion<7> MatrixRegion7D;
 typedef MatrixRegion<8> MatrixRegion8D;
 typedef MatrixRegion<9> MatrixRegion9D;
 
-typedef MatrixRegion0D ConstMatrixRegion0D;
-//typedef MatrixRegion<0, const MATRIX_ELEMENT_T> ConstMatrixRegion0D;
+//typedef MatrixRegion0D ConstMatrixRegion0D;
+typedef MatrixRegion<0, const MATRIX_ELEMENT_T> ConstMatrixRegion0D;
 typedef MatrixRegion<1, const MATRIX_ELEMENT_T> ConstMatrixRegion1D;
 typedef MatrixRegion<2, const MATRIX_ELEMENT_T> ConstMatrixRegion2D;
 typedef MatrixRegion<3, const MATRIX_ELEMENT_T> ConstMatrixRegion3D;
