@@ -245,6 +245,7 @@ public:
   
   
   MatrixRegion<D-1, ElementT> col(IndexT x) const{ return slice(0, x); }
+  MatrixRegion<D-1, ElementT> column(IndexT x) const{ return slice(0, x); }
   MatrixRegion<D-1, ElementT> row(IndexT y) const{  return slice(1, y); }
   
   ///
