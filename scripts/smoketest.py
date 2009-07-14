@@ -58,7 +58,7 @@ for msg,p,outfile in runjobs:
     print msg+" run FAILED (status=%d)"%rv
     continue
 
-  checkcmd=["git","diff","--exit-code","HEAD", outfile]
+  checkcmd=["git","diff","--exit-code", outfile]
   rv = run(checkcmd)
   if rv != 0:
     time.sleep(0.1) #try letting the filesystem settle down
