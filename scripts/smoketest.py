@@ -50,15 +50,15 @@ for b in benchmarks:
   cmd.append(outfile)
 
   #run
-  runjobs.append((msg,forkrun(cmd)))
+  runjobs.append((msg,forkrun(cmd),outfile))
 
-for msg,p in runjobs:
+for msg,p,outfile in runjobs:
   rv = p.wait()
   if rv != 0:
     print msg+" run FAILED (status=%d)"%rv
     continue
 
-  checkcmd=["git","diff","--exit-code",outfile]
+  checkcmd=["git","diff","--exit-code","HEAD", outfile]
   rv = run(checkcmd)
   if rv != 0:
     time.sleep(0.1) #try letting the filesystem settle down
