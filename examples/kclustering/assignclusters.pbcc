@@ -9,12 +9,12 @@ transform Distance
 from X[2], Y[2]
 to Dis
 {
-  to (Dis d) from (X x, Y y)
+  Dis  from (X x, Y y)
   {
         ElementT xdiff, ydiff;
         xdiff = x.cell(0)-y.cell(0);
         ydiff = x.cell(1)-y.cell(1);
-        d = sqrt(xdiff*xdiff + ydiff*ydiff);
+        return sqrt(xdiff*xdiff + ydiff*ydiff);
   }
 }
 
