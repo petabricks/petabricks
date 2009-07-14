@@ -431,7 +431,15 @@ public:
 //MatrixRegion& operator= (int v){
 //  cell()=v;
 //}
-  
+
+  MatrixRegion& operator= (const MatrixRegion& that){
+    if(_storage){
+      *_base=that.cell();
+    }else{
+      _storage=that._storage;
+      _base=that._base;
+    }
+  }
 private:
   MatrixStoragePtr _storage;
   ElementT* _base;
@@ -449,7 +457,8 @@ typedef MatrixRegion<7> MatrixRegion7D;
 typedef MatrixRegion<8> MatrixRegion8D;
 typedef MatrixRegion<9> MatrixRegion9D;
 
-typedef MatrixRegion<0, const MATRIX_ELEMENT_T> ConstMatrixRegion0D;
+typedef MatrixRegion0D ConstMatrixRegion0D;
+//typedef MatrixRegion<0, const MATRIX_ELEMENT_T> ConstMatrixRegion0D;
 typedef MatrixRegion<1, const MATRIX_ELEMENT_T> ConstMatrixRegion1D;
 typedef MatrixRegion<2, const MATRIX_ELEMENT_T> ConstMatrixRegion2D;
 typedef MatrixRegion<3, const MATRIX_ELEMENT_T> ConstMatrixRegion3D;
