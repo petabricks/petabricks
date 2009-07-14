@@ -529,10 +529,10 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
       (*i)->allocateTemporary(o, true);
     }
     for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-      o.write((*i)->name() + ".storage()->randomize();");
+      o.write((*i)->name() + ".randomize();");
     }
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      o.write((*i)->name() + ".storage()->randomize();");
+      o.write((*i)->name() + ".randomize();");
     }
   }
   o.endFunc();

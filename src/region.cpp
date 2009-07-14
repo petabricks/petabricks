@@ -131,7 +131,7 @@ void petabricks::Region::initialize(Transform& trans) {
       int d=_fromMatrix->numDimensions();
       if(_version) --d;
       if(d==0){
-        //_originalType=REGION_CELL;
+        _originalType=REGION_CELL;
       }else{
         for(int i=0; i<d; ++i){
           _minCoord.push_back(FormulaInteger::zero());

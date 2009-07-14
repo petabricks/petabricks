@@ -1,0 +1,34 @@
+transform A to Dis {
+  to(Dis d) from() {
+    d=1;
+  }
+}
+
+transform B to Dis {
+  to(Dis.cell() d) from() {
+    d=2;
+  }
+}
+
+transform C to Dis {
+  Dis from() {
+    return 3;
+  }
+}
+
+transform test
+to OUT[5]
+{
+  to(OUT.cell(0) out) from() {
+    A(out);
+  }
+  to(OUT.cell(1) out) from() {
+    B(out);
+  }
+  to(OUT.cell(2) out) from() {
+    C(out);
+  }
+  secondary OUT.cell(i) from() {
+    return 0;
+  }
+}
