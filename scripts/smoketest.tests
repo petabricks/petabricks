@@ -1,3 +1,14 @@
+# Format for this file is:
+# TESTNAME  INPUT1 INPUT2 INPUT3
+# 
+# - TESTNAME is relative to ../examples/
+# - INPUTs are relative to ../testdata/
+# - Each program is assumed to have 1 output (if more, pad with /dev/null)
+# - Outputs are placed in ../testdata/.output/ and should be checked into git
+#
+
+
+
 simple/add                 Rand2Da Rand2Db
 simple/transpose           Rand2Da 
 simple/rollingsum          Rand1D
