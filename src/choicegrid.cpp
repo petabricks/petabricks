@@ -28,6 +28,7 @@ petabricks::ChoiceGridPtr petabricks::ChoiceGrid::constructFrom(
   const RuleDescriptorListList& dimensions,
   size_t                        dimension /*= 0*/)
 {
+  JTRACE("Constructing choice grid")(allowedRules.size())(dimension);
   FormulaPtr    currentPos = FormulaInteger::zero();
   ChoiceGridPtr rootNode = new ChoiceGrid(dimension, currentPos);
   ChoiceGridPtr currentNode = rootNode;
@@ -108,18 +109,18 @@ void petabricks::ChoiceGrid::finalizeConstruction(const FormulaPtr& end, const R
 }
 
 void petabricks::ChoiceGrid::applyRulePriorities(){
-  RuleSet rules;
-  RuleFlags::PriorityT pri = RuleFlags::PRIORITY_MAX;
+  RuleSet rs;
+  RulePtr r,l;
+  int n=0;
   for(RuleSet::const_iterator i=_applicableRules.begin(); i!=_applicableRules.end(); ++i){
-    RulePtr r = *i;
-    JTRACE("Apply Priorities")(r->id())(r->priority());
-    if(r->priority() < pri){
-      rules.clear();
-      pri=r->priority();
+    r = *i;
+    if(l && r->priority()>l->priority() && !l->hasWhereClause()){
+      JTRACE("applying rule priorities")(rs.size())(_applicableRules.size());
+      _applicableRules.swap(rs);
+      return;
     }
-    if(r->priority()==pri)
-      rules.insert(r);
+    rs.insert(r);
+    l = r;
   }
-  _applicableRules.swap(rules);//faster than a copy
 }
 

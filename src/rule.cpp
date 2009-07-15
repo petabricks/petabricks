@@ -31,6 +31,13 @@ petabricks::RIRBlockCopyRef parseRuleBody(const std::string& str);
 jalib::AtomicT theNextRuleId = 0;
 
 
+bool petabricks::RulePriCmp::operator()(const RulePtr& r1, const RulePtr& r2) const 
+{
+  int p1 = r1->priority()*2 - r1->hasWhereClause();
+  int p2 = r2->priority()*2 - r2->hasWhereClause();
+  if(p1==p2) return r1<r2;
+  return p1<p2;
+}
 
 petabricks::Rule::Rule(const RegionPtr& to, const RegionList& from, const FormulaList& cond)
   : _id(jalib::atomicIncrementReturn(&theNextRuleId))

@@ -34,6 +34,8 @@
 #include <vector>
 
 namespace petabricks {
+
+
 class RIRScope;
 class CodeGenerator;
 class RuleDescriptor;
@@ -45,10 +47,15 @@ class Rule;
 class FreeVarList;
 typedef jalib::JRef<Rule> RulePtr;
 class RuleList : public std::vector<RulePtr> , public jalib::JRefCounted {};
-typedef std::set<RulePtr> RuleSet;
 typedef std::vector<RuleDescriptor>     RuleDescriptorList;
 typedef std::vector<RuleDescriptorList> RuleDescriptorListList;
 typedef jalib::JRef<MatrixDependencyMap> MatrixDependencyMapPtr;
+
+struct RulePriCmp
+{
+  bool operator()(const RulePtr& r1, const RulePtr& r2) const;
+};
+typedef std::set<RulePtr, RulePriCmp> RuleSet;
 
 
 /**
@@ -226,6 +233,8 @@ public:
         return false;
     return true;
   }
+
+  bool hasWhereClause() const { return _conditions.size()>0; }
 
 private:
   int _id;
