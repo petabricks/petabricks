@@ -107,6 +107,7 @@ public:
   int size() const { return _size; }
 
   virtual std::string printAsAssumption() const;
+  virtual std::string toCppString() const;
 
   virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const;
 
@@ -180,6 +181,7 @@ public:
   virtual FormulaPtr floor() const;
 
 
+  std::string toCppString() const;
   std::string printAsAssumption() const;
   std::string explodePrint() const;
 

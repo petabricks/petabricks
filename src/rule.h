@@ -236,6 +236,13 @@ public:
 
   bool hasWhereClause() const { return _conditions.size()>0; }
 
+
+  FormulaPtr getWhereClause(int start=0) const {
+    if(_conditions.size()==0) return NULL;
+    if(_conditions.size()-1==start) return _conditions[start];
+    return new FormulaAnd(_conditions[start], getWhereClause(start+1));
+  }
+
 private:
   int _id;
   RuleFlags   _flags;

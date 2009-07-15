@@ -182,6 +182,7 @@ void petabricks::Formula::explodeEquality(FormulaPtr& l, FormulaPtr& r) const {
 }
 
 std::string petabricks::Formula::printAsAssumption() const { return toString(); }
+std::string petabricks::Formula::toCppString() const { return toString(); }
 
 petabricks::FormulaPtr petabricks::Formula::replace(const FormulaPtr& what, const FormulaPtr& with) const {
   if(what->toString()==toString()) return with;
@@ -208,6 +209,15 @@ std::string petabricks::FormulaBinop<OP>::printAsAssumption() const {
               + "," + _right->toString() + ")";
   return toString();
 }
+
+template < char OP >
+std::string petabricks::FormulaBinop<OP>::toCppString() const {
+  if(OP=='=') return _left->toCppString() + "==" + _right->toCppString();
+  if(OP=='&') return _left->toCppString() + "&&" + _right->toCppString();
+  if(OP=='|') return _left->toCppString() + "||" + _right->toCppString();
+  return toString();
+}
+
 
 template < char OP >
 std::string petabricks::FormulaBinop<OP>::explodePrint() const{
