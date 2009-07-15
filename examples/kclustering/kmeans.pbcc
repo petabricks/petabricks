@@ -1,20 +1,49 @@
 #ifndef KMEANS_PBCC
 #define KMEANS_PBCC
 
+#ifndef k
+#define k 5
+
+#include "copy.pbcc"
+#include "newclusterlocations.pbcc"
+#include "assignclusters.pbcc"
+
+			
 transform kmeans
-from X[n,2], K
-to C[K,2]
+from X[n,2]    // X - x,y coordinates of n points,  k - number of clusters
+through CFLAG
+to C[k,2], A[n] //, WCSS   // C - centroids, A - cluster assignment, WCSS - within-cluster sum of squares  (error measures)
 {
 
-  to (C c) from (X x, K k)
+  to (C c, A a, CFLAG change) from (X x)
   {
-    int i;
-    for (i = 0; i < k; i++) {
-	c.cell(i,0) = x.cell(i,0);
-	c.cell(i,1) = x.cell(i,1);
+    change=1;
+    
+    //Assign initial cluster centers
+    InlineCopy2D(c,x.region(0,0,k,2));   //Copy2D doesn't work
+
+    //Assign initial clusters
+    //AssignCluster(a,change,x,c,a);
+
+    while (change > 0)  {
+	AssignClusters(a,change,x,c,a);
+	if (change > 0) { 
+		NewClusterLocations(c, x, a);
+	}
     }
+    
 
   }
+
+//  WCSS from(X x, C c, A a)
+//  {
+//	ElementT sum=0;
+//	int i;
+//	for (i=0; i< n; i++) {
+//		sum+= Distance(x.column(i), c.column(a.cell(i)));
+//        }
+//	return sum/n;
+//  }
 
 }
 

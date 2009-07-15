@@ -20,8 +20,8 @@ to Dis
 
 transform AssignClusters
 from X[n,2], C[k,2], A[n]
-//through D[n,k], ctemp[n]
-to Anew[n], cflag , D[n,k],ctemp[n]
+through D[n,k], ctemp[n]
+to Anew[n], cflag
 {
 
 	to (D.cell(i,j) d) from (X.column(i) x, C.column(j) c)
