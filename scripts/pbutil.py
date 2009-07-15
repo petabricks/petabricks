@@ -35,15 +35,24 @@ def cpuCount():
 
 def chdirToPetabricksRoot():
   isCurDirOk = lambda: os.path.isdir("examples") and os.path.isdir("src")
+  if isCurDirOk():
+    return
+  old=os.getcwd()
   if not isCurDirOk():
-    old=os.getcwd()
     os.chdir(os.pardir)
-    if not isCurDirOk():
-      os.chdir(old)
-      raise Exception("This script should be run from petabricks root directory")
+  if not isCurDirOk():
+    os.chdir(os.pardir)
+  if not isCurDirOk():
+    os.chdir(old)
+    raise Exception("This script should be run from petabricks root directory")
 
 def compilePetabricks():
-  subprocess.check_call(["make", "-j%d"%cpuCount(), "--no-print-directory"])
+  cmd=["make", "-j%d"%cpuCount(), "--no-print-directory"]
+  p=subprocess.Popen(cmd, stdout=sys.stderr, stderr=sys.stderr)
+  rv=p.wait()
+  if rv!=0:
+    raise Exception("pbc compile failed")
+  return rv
     
     
     
@@ -102,6 +111,13 @@ def compileBenchmarks(benchmarks):
       msgUpdate()
   waitForJobsLeq(0)
   msg("Done\n\n")
+
+
+def normalizeBenchmarkName(n):
+  n=re.sub("^[./]*examples[/]","",n);
+  n=re.sub("[.]pbcc$","",n);
+  return n
+  
 
 def loadAndCompileBenchmarks(file):
   chdirToPetabricksRoot()
