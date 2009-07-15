@@ -113,10 +113,18 @@ def compileBenchmarks(benchmarks):
   msg("Done\n\n")
 
 
-def normalizeBenchmarkName(n):
+def normalizeBenchmarkName(n, search=True):
   n=re.sub("^[./]*examples[/]","",n);
   n=re.sub("[.]pbcc$","",n);
-  return n
+  if os.path.isfile(benchmarkToSrc(n)) or not search:
+    return n
+  #search for the file
+  n+=".pbcc"
+  for root, dirs, files in os.walk("./examples"):
+    if n in files:
+      return normalizeBenchmarkName("%s/%s"%(root,n), False)
+  raise Exception("invalid benchmark name: "+n)
+  
   
 
 def loadAndCompileBenchmarks(file):

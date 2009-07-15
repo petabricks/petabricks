@@ -5,28 +5,34 @@ import os
 import sys
 
 relpath=None
+benchmark=None
+
 try:
   relpath=os.path.relpath #only in python 2.6
 except:
   relpath=lambda p: p[len(os.path.commonprefix([p,os.getcwd()])):]
-
-if len(sys.argv)<2:
-  print "USAGE: ",sys.argv[0], "BENCHMARK args"
-  print "Compiles and runs the given benchmark"
-  sys.exit(-1);
-
-benchmark=os.path.abspath(sys.argv[1])
-
-
+  
+if len(sys.argv)>1:  
+  if sys.argv[1] == "--help":
+    print "**** USAGE: ",sys.argv[0], "[BENCHMARK] [args]"
+    print "****    1) Compile pbc"
+    print "****    2) If BENCHMARK is given, compile BENCHMARK"
+    print "****    3) If args are given, run BENCHMARK"
+    sys.exit(1)
+  else:
+    benchmark=sys.argv[1]
+    if os.path.isfile(benchmark) or os.path.isfile(benchmark+".pbcc"):
+      benchmark=os.path.abspath(benchmark)
 
 pbutil.chdirToPetabricksRoot();
 pbutil.compilePetabricks();
 
-benchmark=pbutil.normalizeBenchmarkName(relpath(benchmark))
+if benchmark is not None:
+  benchmark=pbutil.normalizeBenchmarkName(relpath(benchmark))
+  pbutil.compileBenchmarks([benchmark])
 
-pbutil.compileBenchmarks([benchmark])
-
-cmd=[pbutil.benchmarkToBin(benchmark)]
-cmd.extend(sys.argv[2:])
-os.execv(cmd[0], cmd)
+if len(sys.argv)>2:
+  cmd=[pbutil.benchmarkToBin(benchmark)]
+  cmd.extend(sys.argv[2:])
+  os.execv(cmd[0], cmd)
 
