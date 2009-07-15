@@ -29,10 +29,14 @@ pbutil.compilePetabricks();
 
 if benchmark is not None:
   benchmark=pbutil.normalizeBenchmarkName(relpath(benchmark))
-  pbutil.compileBenchmarks([benchmark])
 
-if len(sys.argv)>2:
+if len(sys.argv)==2:
+  cmd=["./src/pbc", pbutil.benchmarkToSrc(benchmark)]
+  os.execv(cmd[0], cmd)
+elif len(sys.argv)>2:
+  pbutil.compileBenchmarks([benchmark])
   cmd=[pbutil.benchmarkToBin(benchmark)]
   cmd.extend(sys.argv[2:])
   os.execv(cmd[0], cmd)
+
 
