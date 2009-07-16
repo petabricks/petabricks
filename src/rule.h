@@ -44,8 +44,9 @@ class Transform;
 class StaticScheduler;
 class FormulaList;
 class Rule;
+class RuleInterface;
 class FreeVarList;
-typedef jalib::JRef<Rule> RulePtr;
+typedef jalib::JRef<RuleInterface> RulePtr;
 class RuleList : public std::vector<RulePtr> , public jalib::JRefCounted {};
 typedef std::vector<RuleDescriptor>     RuleDescriptorList;
 typedef std::vector<RuleDescriptorList> RuleDescriptorListList;
@@ -56,7 +57,6 @@ struct RulePriCmp
   bool operator()(const RulePtr& r1, const RulePtr& r2) const;
 };
 typedef std::set<RulePtr, RulePriCmp> RuleSet;
-
 
 /**
  * Priority/rotation flags for a Rule
@@ -92,9 +92,57 @@ public:
 };
 
 /**
+ * Base class for rules, both user defined and synthetic
+ */
+class RuleInterface : public jalib::JRefCounted, public jalib::JPrintable {
+public:
+  RuleInterface();
+
+  ///
+  /// Initialize this rule after parsing
+  virtual void initialize(Transform&) = 0;
+
+
+  
+
+  virtual bool isRecursive() const = 0;
+  virtual RuleFlags::PriorityT priority() const = 0;
+  virtual bool hasWhereClause() const = 0;
+  virtual const FormulaPtr& recursiveHint() const = 0;
+  virtual void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region) = 0; 
+  virtual void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region) = 0;
+  virtual bool canProvide(const MatrixDefPtr& m) const = 0;
+  virtual void collectDependencies(StaticScheduler& scheduler) = 0;
+  virtual void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension) = 0;
+  virtual void compileRuleBody(Transform& tx, RIRScope& s) = 0;
+  virtual bool isSingleElement() const = 0;
+  virtual void generateDeclCodeSimple(Transform& trans, CodeGenerator& o) = 0;
+  virtual void generateTrampCodeSimple(Transform& trans, CodeGenerator& o) = 0;
+  
+
+
+  ///
+  /// Get the offset variable for the "center" of this rule.
+  /// The offset variable is used to represent the location where the rule 
+  /// is applied.  All coordinates are rewritten to be relative to the
+  /// offset vars.
+  FormulaPtr getOffsetVar(int dimension, const char* extra=NULL) const;
+  
+  ///
+  /// invert the above function
+  int offsetVarToDimension(const std::string& dimension, const char* extra=NULL) const;
+  
+  void printIdentifier(std::ostream& o) const { o <<_id << " "; }
+  int id() const { return _id; }
+protected:
+  int _id;
+};
+
+
+/**
  * Represent a transform rule
  */
-class Rule : public jalib::JRefCounted, public jalib::JPrintable {
+class Rule : public RuleInterface{
 public:
   ///
   /// Constructor -- return style rule
@@ -124,21 +172,6 @@ public:
   /// Print this rule to a given stl stream
   /// implements JPrintable::print
   void print(std::ostream& o) const;
-
-  ///
-  /// ...
-  void printIdentifier(std::ostream& o) const { o <<_id << " "; }
-
-  ///
-  /// Get the offset variable for the "center" of this rule.
-  /// The offset variable is used to represent the location where the rule 
-  /// is applied.  All coordinates are rewritten to be relative to the
-  /// offset vars.
-  FormulaPtr getOffsetVar(int dimension, const char* extra=NULL) const;
-  
-  ///
-  /// invert the above function
-  int offsetVarToDimension(const std::string& dimension, const char* extra=NULL) const;
   
   ///
   /// Remove out-of-bounds solutions from the given formula list 
@@ -147,10 +180,6 @@ public:
   ///
   /// Add RuleDescriptors to output corresponding to the extrema of the applicable region in dimension
   void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension);
-
-  ///
-  /// Access member
-  int id() const { return _id; }
 
   ///
   /// Generate seqential code to declare this rule
@@ -244,7 +273,6 @@ public:
   }
 
 private:
-  int _id;
   RuleFlags   _flags;
   RegionList  _from;
   RegionList  _to;

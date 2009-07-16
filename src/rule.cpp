@@ -30,6 +30,9 @@ petabricks::RIRBlockCopyRef parseRuleBody(const std::string& str);
 
 jalib::AtomicT theNextRuleId = 0;
 
+petabricks::RuleInterface::RuleInterface()
+  : _id(jalib::atomicIncrementReturn(&theNextRuleId))
+{}
 
 bool petabricks::RulePriCmp::operator()(const RulePtr& r1, const RulePtr& r2) const 
 {
@@ -40,8 +43,7 @@ bool petabricks::RulePriCmp::operator()(const RulePtr& r1, const RulePtr& r2) co
 }
 
 petabricks::Rule::Rule(const RegionPtr& to, const RegionList& from, const FormulaList& cond)
-  : _id(jalib::atomicIncrementReturn(&theNextRuleId))
-  , _from(from)
+  : _from(from)
   , _conditions(cond)
 {
   _flags.isReturnStyle = true;
@@ -49,8 +51,7 @@ petabricks::Rule::Rule(const RegionPtr& to, const RegionList& from, const Formul
 }
 
 petabricks::Rule::Rule(const RegionList& to, const RegionList& from, const FormulaList& cond)
-  : _id(jalib::atomicIncrementReturn(&theNextRuleId))
-  , _from(from)
+  : _from(from)
   , _to(to)
   , _conditions(cond)
 {
@@ -67,11 +68,11 @@ namespace{
   }
 }
   
-petabricks::FormulaPtr petabricks::Rule::getOffsetVar(int dim, const char* extra /*= NULL*/) const{
+petabricks::FormulaPtr petabricks::RuleInterface::getOffsetVar(int dim, const char* extra /*= NULL*/) const{
   return new FormulaVariable(_getOffsetVarStr(_id, dim, extra).c_str()); //cache me!
 }
   
-int petabricks::Rule::offsetVarToDimension(const std::string& var, const char* extra /*=NULL*/) const
+int petabricks::RuleInterface::offsetVarToDimension(const std::string& var, const char* extra /*=NULL*/) const
 {
   for(int dim=0; dim<(sizeof(theOffsetVarStrs)/sizeof(char*)); ++dim){
     if(_getOffsetVarStr(_id, dim, extra)==var)
