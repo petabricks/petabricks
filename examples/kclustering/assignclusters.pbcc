@@ -5,18 +5,7 @@
 #define k 3
 #endif
 
-transform Distance
-from X[2], Y[2]
-to Dis
-{
-  Dis  from (X x, Y y)
-  {
-        ElementT xdiff, ydiff;
-        xdiff = x.cell(0)-y.cell(0);
-        ydiff = x.cell(1)-y.cell(1);
-        return sqrt(xdiff*xdiff + ydiff*ydiff);
-  }
-}
+#include "distance.pbcc"
 
 transform AssignClusters
 from X[n,2], C[k,2], A[n]
