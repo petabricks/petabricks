@@ -173,7 +173,7 @@ void petabricks::SimpleRegion::print(std::ostream& o) const {
   o << _minCoord << ", " << _maxCoord;
 }
 
-petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(Rule& rule, const FormulaList& _defs, bool isOutput){
+petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(UserRule& rule, const FormulaList& _defs, bool isOutput){
   CoordinateFormula min;
   CoordinateFormula max;
 
@@ -245,7 +245,7 @@ petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(Rule& rule, 
   return new SimpleRegion(min,max);
 }
 
-petabricks::FormulaList petabricks::Region::diff(const Rule& rule) const {
+petabricks::FormulaList petabricks::Region::diff(const RuleInterface& rule) const {
   FormulaList tmp = _maxCoord;
   for(size_t i=0; i<tmp.size(); ++i){
     if(tmp[i]->getFreeVariables()->size()==1){
@@ -351,7 +351,7 @@ std::string petabricks::Region::generateAccessorCode() const{
   }
 }
 
-void petabricks::Region::collectDependencies(const Rule& rule, MatrixDependencyMap& map) const {
+void petabricks::Region::collectDependencies(const UserRule& rule, MatrixDependencyMap& map) const {
   //Determine dependency direction
   DependencyDirection direction(dimensions());
   for(size_t i=0; i<dimensions(); ++i){

@@ -42,7 +42,7 @@ bool petabricks::RulePriCmp::operator()(const RulePtr& r1, const RulePtr& r2) co
   return p1<p2;
 }
 
-petabricks::Rule::Rule(const RegionPtr& to, const RegionList& from, const FormulaList& cond)
+petabricks::UserRule::UserRule(const RegionPtr& to, const RegionList& from, const FormulaList& cond)
   : _from(from)
   , _conditions(cond)
 {
@@ -50,7 +50,7 @@ petabricks::Rule::Rule(const RegionPtr& to, const RegionList& from, const Formul
   _to.push_back(to);
 }
 
-petabricks::Rule::Rule(const RegionList& to, const RegionList& from, const FormulaList& cond)
+petabricks::UserRule::UserRule(const RegionList& to, const RegionList& from, const FormulaList& cond)
   : _from(from)
   , _to(to)
   , _conditions(cond)
@@ -82,13 +82,13 @@ int petabricks::RuleInterface::offsetVarToDimension(const std::string& var, cons
 }
 
 
-void petabricks::Rule::setBody(const char* str){
+void petabricks::UserRule::setBody(const char* str){
   JWARNING(_bodysrc=="")(_bodysrc);
   _bodysrc=str;
   _bodysrc[_bodysrc.length()-1] = ' ';
 }
 
-void petabricks::Rule::compileRuleBody(Transform& tx, RIRScope& scope){
+void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& scope){
   RIRBlockCopyRef bodyir = parseRuleBody(_bodysrc);
 #ifdef DEBUG
   std::cerr << "BEFORE compileRuleBody:\n" << bodyir << std::endl;
@@ -135,7 +135,7 @@ void petabricks::RuleFlags::print(std::ostream& os) const {
   }
 }
 
-void petabricks::Rule::print(std::ostream& os) const {
+void petabricks::UserRule::print(std::ostream& os) const {
   _flags.print(os);
   os << "rule " << _id;
   if(!_from.empty()){
@@ -171,7 +171,7 @@ namespace {// file local
   };
 }
 
-void petabricks::Rule::initialize(Transform& trans) {
+void petabricks::UserRule::initialize(Transform& trans) {
   MaximaWrapper::instance().pushContext();
 
   jalib::Map(&Region::initialize, trans, _from);
@@ -284,7 +284,7 @@ void petabricks::Rule::initialize(Transform& trans) {
   MaximaWrapper::instance().popContext();
 }
 
-void petabricks::Rule::getApplicableRegionDescriptors(RuleDescriptorList& output, 
+void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& output, 
                                                   const MatrixDefPtr& matrix, 
                                                   int dimension) {
   MatrixDependencyMap::const_iterator i = _provides.find(matrix);
@@ -297,7 +297,7 @@ void petabricks::Rule::getApplicableRegionDescriptors(RuleDescriptorList& output
   }
 }
 
-petabricks::FormulaPtr petabricks::Rule::trimImpossible(const FormulaList& l){
+petabricks::FormulaPtr petabricks::UserRule::trimImpossible(const FormulaList& l){
   JASSERT(l.size()==1)(l).Text("trimming formulas not yet implemented");
   return l.front();
 }
@@ -320,7 +320,7 @@ bool petabricks::RuleDescriptor::isSamePosition(const FormulaPtr& that) const{
    return MAXIMA.tryCompare(this->_formula, "=" , that) == MaximaWrapper::YES;
 }
 
-void petabricks::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
 
   if(isRecursive()){
     o.beginClass(implcodename(trans)+TX_DYNAMIC_POSTFIX, "petabricks::RuleInstance");
@@ -390,7 +390,7 @@ void petabricks::Rule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o
   o.endFunc();
 }
 
-void petabricks::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
+void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
   CoordinateFormula begin, widths;
   CoordinateFormula end;
   std::vector<std::string> taskargs;
@@ -563,7 +563,7 @@ void petabricks::Rule::generateTrampCodeSimple(Transform& trans, CodeGenerator& 
 
 }
 
-void petabricks::Rule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
+void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
   std::vector<std::string> args;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     args.push_back((*i)->generateAccessorCode());
@@ -589,7 +589,7 @@ void petabricks::Rule::generateTrampCellCodeSimple(Transform& trans, CodeGenerat
   }
 }
 
-std::vector<std::string> petabricks::Rule::getCallArgs(Transform& trans, const SimpleRegionPtr& region){
+std::vector<std::string> petabricks::UserRule::getCallArgs(Transform& trans, const SimpleRegionPtr& region){
   std::vector<std::string> args;
 //std::set<MatrixDefPtr> used;
 //for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
@@ -619,19 +619,19 @@ std::vector<std::string> petabricks::Rule::getCallArgs(Transform& trans, const S
   return args;
 }
 
-void petabricks::Rule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
+void petabricks::UserRule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
   std::vector<std::string> args = getCallArgs(trans, region);
   o.call(trampcodename(trans)+TX_STATIC_POSTFIX, args);
 }
 
-void petabricks::Rule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
+void petabricks::UserRule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
   std::vector<std::string> args = getCallArgs(trans, region);
   args.insert(args.begin(), "this");
   o.setcall(name,"new "+trampcodename(trans)+"_task", args);
 }
 
 
-int petabricks::Rule::dimensions() const {
+int petabricks::UserRule::dimensions() const {
 //   return (int)_applicableRegion->dimensions();
   int m=0;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -640,7 +640,7 @@ int petabricks::Rule::dimensions() const {
   return m;
 }
 
-void petabricks::Rule::addAssumptions() const {
+void petabricks::UserRule::addAssumptions() const {
   for(int i=0; i<dimensions(); ++i){
     MaximaWrapper::instance().assume(new FormulaGE(getOffsetVar(i), _applicableRegion->minCoord()[i]));
     MaximaWrapper::instance().assume(new FormulaLE(getOffsetVar(i), _applicableRegion->maxCoord()[i]));
@@ -655,7 +655,7 @@ void petabricks::Rule::addAssumptions() const {
     MaximaWrapper::instance().assume(*i);
 }
 
-void petabricks::Rule::collectDependencies(StaticScheduler& scheduler){
+void petabricks::UserRule::collectDependencies(StaticScheduler& scheduler){
   for( MatrixDependencyMap::const_iterator p=_provides.begin()
      ; p!=_provides.end()
      ; ++p)
@@ -687,7 +687,7 @@ void petabricks::Rule::collectDependencies(StaticScheduler& scheduler){
   //TODO collect edge/direction dependencies
 }
 
-void petabricks::Rule::removeInvalidOrders(IterationOrderList& o){
+void petabricks::UserRule::removeInvalidOrders(IterationOrderList& o){
   for( MatrixDependencyMap::const_iterator p=_provides.begin()
      ; p!=_provides.end()
      ; ++p)
@@ -710,10 +710,10 @@ void petabricks::Rule::removeInvalidOrders(IterationOrderList& o){
   }
 }
 
-std::string petabricks::Rule::implcodename(Transform& trans) const {
+std::string petabricks::UserRule::implcodename(Transform& trans) const {
   return trans.name()+"_rule" + jalib::XToString(_id-trans.ruleIdOffset());
 }
-std::string petabricks::Rule::trampcodename(Transform& trans) const {
+std::string petabricks::UserRule::trampcodename(Transform& trans) const {
   return trans.name()+"_apply_rule" + jalib::XToString(_id-trans.ruleIdOffset());
 }
 

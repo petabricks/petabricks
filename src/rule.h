@@ -43,7 +43,7 @@ class MatrixDependencyMap;
 class Transform;
 class StaticScheduler;
 class FormulaList;
-class Rule;
+class UserRule;
 class RuleInterface;
 class FreeVarList;
 typedef jalib::JRef<RuleInterface> RulePtr;
@@ -119,6 +119,7 @@ public:
   virtual void generateDeclCodeSimple(Transform& trans, CodeGenerator& o) = 0;
   virtual void generateTrampCodeSimple(Transform& trans, CodeGenerator& o) = 0;
   
+  virtual void markRecursive() = 0;
 
 
   ///
@@ -142,15 +143,15 @@ protected:
 /**
  * Represent a transform rule
  */
-class Rule : public RuleInterface{
+class UserRule : public RuleInterface{
 public:
   ///
   /// Constructor -- return style rule
-  Rule(const RegionPtr& to, const RegionList& from, const FormulaList& where);
+  UserRule(const RegionPtr& to, const RegionList& from, const FormulaList& where);
 
   ///
   /// Constructor -- to style rule
-  Rule(const RegionList& to, const RegionList& from, const FormulaList& where);
+  UserRule(const RegionList& to, const RegionList& from, const FormulaList& where);
   
   ///
   /// Initialize this rule after parsing
@@ -216,7 +217,10 @@ public:
 
   void collectDependencies(StaticScheduler& scheduler);
 
-  void markRecursive(const FormulaPtr& rh = new FormulaVariable(INPUT_SIZE_STR)) { 
+  void markRecursive() { 
+    markRecursive(new FormulaVariable(INPUT_SIZE_STR));
+  }
+  void markRecursive(const FormulaPtr& rh) { 
     if(!_flags.isRecursive){
       _flags.isRecursive = true; 
       _recursiveHint = rh;
@@ -271,7 +275,7 @@ public:
     if(_conditions.size()-1==start) return _conditions[start];
     return new FormulaAnd(_conditions[start], getWhereClause(start+1));
   }
-
+  
 private:
   RuleFlags   _flags;
   RegionList  _from;

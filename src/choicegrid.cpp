@@ -75,7 +75,7 @@ petabricks::ChoiceGridPtr petabricks::ChoiceGrid::constructFrom(
 
 
 void petabricks::ChoiceGrid::print(std::ostream& os) const {
-  jalib::ConstMap(&Rule::printIdentifier, os, _applicableRules);
+  jalib::ConstMap(&RuleInterface::printIdentifier, os, _applicableRules);
 }
 
 // void petabricks::ChoiceGrid::generateCodeSimple(CodeGenerator& o, const SimpleRegionPtr& prefix){

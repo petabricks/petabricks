@@ -42,7 +42,7 @@ static void clearParserCaches(){
   petabricks::TransformList*   transforms;
   petabricks::MatrixDef*       matrixdef;
   petabricks::MatrixDefList*   matrixdefs;
-  petabricks::Rule*            rule;
+  petabricks::UserRule*        rule;
   petabricks::RuleList*        rules;
   petabricks::Formula*         formula;
   petabricks::FormulaList*     formulas;
@@ -182,11 +182,11 @@ Rule: RuleHeader RuleBody OptSemiCol { ($$=$1)->setBody($2); JTRACE("parsed Rule
 RuleHeader: BaseRuleHeader          { $$=$1; }
           | PriorityFlag RuleHeader { ($$=$2)->setPriority($1); }
           | ROTATABLE    RuleHeader { ($$=$2)->addRotations(RuleFlags::ROTATE); }
-          | RECURSIVE                     RuleHeader { ($$=$2)->markRecursive(); }
+          | RECURSIVE                  RuleHeader { ($$=$2)->markRecursive(); }
           | RECURSIVE '(' Formula ')'  RuleHeader { ($$=$5)->markRecursive($3); };
 
-BaseRuleHeader: Region       RuleHeaderFrom OptWhere { $$=REFALLOC(Rule($1,  *$2, *$3)); }
-              | RuleHeaderTo RuleHeaderFrom OptWhere { $$=REFALLOC(Rule(*$1, *$2, *$3)); };
+BaseRuleHeader: Region       RuleHeaderFrom OptWhere { $$=REFALLOC(UserRule($1,  *$2, *$3)); }
+              | RuleHeaderTo RuleHeaderFrom OptWhere { $$=REFALLOC(UserRule(*$1, *$2, *$3)); };
 
 RuleHeaderFrom: FROM '(' NamedRegionList ')' { $$=$3; };
 RuleHeaderTo:   TO   '(' NamedRegionList ')' { $$=$3; };

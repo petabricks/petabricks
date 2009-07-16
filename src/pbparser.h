@@ -106,7 +106,7 @@ typedef union YYSTYPE
   petabricks::TransformList*   transforms;
   petabricks::MatrixDef*       matrixdef;
   petabricks::MatrixDefList*   matrixdefs;
-  petabricks::Rule*            rule;
+  petabricks::UserRule*        rule;
   petabricks::RuleList*        rules;
   petabricks::Formula*         formula;
   petabricks::FormulaList*     formulas;

@@ -203,7 +203,7 @@ typedef union YYSTYPE
   petabricks::TransformList*   transforms;
   petabricks::MatrixDef*       matrixdef;
   petabricks::MatrixDefList*   matrixdefs;
-  petabricks::Rule*            rule;
+  petabricks::UserRule*        rule;
   petabricks::RuleList*        rules;
   petabricks::Formula*         formula;
   petabricks::FormulaList*     formulas;
@@ -2108,14 +2108,14 @@ yyreduce:
 
 /* Line 1455 of yacc.c  */
 #line 188 "pbparser.ypp"
-    { (yyval.rule)=REFALLOC(Rule((yyvsp[(1) - (3)].region),  *(yyvsp[(2) - (3)].regions), *(yyvsp[(3) - (3)].formulas))); }
+    { (yyval.rule)=REFALLOC(UserRule((yyvsp[(1) - (3)].region),  *(yyvsp[(2) - (3)].regions), *(yyvsp[(3) - (3)].formulas))); }
     break;
 
   case 63:
 
 /* Line 1455 of yacc.c  */
 #line 189 "pbparser.ypp"
-    { (yyval.rule)=REFALLOC(Rule(*(yyvsp[(1) - (3)].regions), *(yyvsp[(2) - (3)].regions), *(yyvsp[(3) - (3)].formulas))); }
+    { (yyval.rule)=REFALLOC(UserRule(*(yyvsp[(1) - (3)].regions), *(yyvsp[(2) - (3)].regions), *(yyvsp[(3) - (3)].formulas))); }
     break;
 
   case 64:
