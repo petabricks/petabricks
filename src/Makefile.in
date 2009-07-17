@@ -58,13 +58,12 @@ am_libpetabricks_a_OBJECTS = autotuner.$(OBJEXT) choicegrid.$(OBJEXT) \
 	dynamictask.$(OBJEXT) formula.$(OBJEXT) getdelim.$(OBJEXT) \
 	getline.$(OBJEXT) jalloc.$(OBJEXT) jassert.$(OBJEXT) \
 	jbuffer.$(OBJEXT) jfilesystem.$(OBJEXT) jprintable.$(OBJEXT) \
-	jserialize.$(OBJEXT) jsocket.$(OBJEXT) jthread.$(OBJEXT) \
-	jtimer.$(OBJEXT) jtunable.$(OBJEXT) learner.$(OBJEXT) \
-	matrix.$(OBJEXT) matrixdef.$(OBJEXT) \
-	matrixdependency.$(OBJEXT) matrixio.$(OBJEXT) \
-	matrixreader.$(OBJEXT) maximalexer.$(OBJEXT) \
-	maximaparser.$(OBJEXT) maximawrapper.$(OBJEXT) \
-	pblexer.$(OBJEXT) pbparser.$(OBJEXT) \
+	jserialize.$(OBJEXT) jsocket.$(OBJEXT) jtimer.$(OBJEXT) \
+	jtunable.$(OBJEXT) learner.$(OBJEXT) matrix.$(OBJEXT) \
+	matrixdef.$(OBJEXT) matrixdependency.$(OBJEXT) \
+	matrixio.$(OBJEXT) matrixreader.$(OBJEXT) \
+	maximalexer.$(OBJEXT) maximaparser.$(OBJEXT) \
+	maximawrapper.$(OBJEXT) pblexer.$(OBJEXT) pbparser.$(OBJEXT) \
 	performancetester.$(OBJEXT) petabricksruntime.$(OBJEXT) \
 	region.$(OBJEXT) rircompilerpass.$(OBJEXT) rirscope.$(OBJEXT) \
 	rule.$(OBJEXT) rulechoice.$(OBJEXT) ruleinstance.$(OBJEXT) \
@@ -253,7 +252,7 @@ noinst_LIBRARIES = libpetabricks.a libpetabricksmain.a
 noinst_HEADERS = autotuner.h choicegrid.h codegenerator.h config.h \
 	dynamicscheduler.h dynamictask.h formula.h getdelim.h getline.h jalloc.h jasm.h jassert.h \
 	jblockingqueue.h jbuffer.h jconvert.h jfilesystem.h jmutex.h jprintable.h jrefcounted.h \
-	jserialize.h jsocket.h jthread.h jtimer.h jtunable.h learner.h matrix.h matrixdef.h \
+	jserialize.h jsocket.h jtimer.h jtunable.h learner.h matrix.h matrixdef.h \
 	matrixdependency.h matrixio.h matrixoperations.h maximawrapper.h performancetester.h \
 	petabricks.h petabricksruntime.h region.h rircompilerpass.h rirscope.h rule.h \
 	rulechoice.h ruleinstance.h ruleir.h spatialdynamictask.h staticscheduler.h \
@@ -262,7 +261,7 @@ noinst_HEADERS = autotuner.h choicegrid.h codegenerator.h config.h \
 libpetabricks_a_SOURCES = autotuner.cpp choicegrid.cpp codegenerator.cpp \
 	dynamicscheduler.cpp dynamictask.cpp formula.cpp getdelim.cpp getline.cpp jalloc.cpp \
 	jassert.cpp jbuffer.cpp jfilesystem.cpp jprintable.cpp jserialize.cpp jsocket.cpp \
-	jthread.cpp jtimer.cpp jtunable.cpp learner.cpp matrix.cpp matrixdef.cpp \
+	jtimer.cpp jtunable.cpp learner.cpp matrix.cpp matrixdef.cpp \
 	matrixdependency.cpp matrixio.cpp matrixreader.lpp maximalexer.lpp maximaparser.ypp \
 	maximawrapper.cpp pblexer.lpp pbparser.ypp performancetester.cpp petabricksruntime.cpp \
 	region.cpp rircompilerpass.cpp rirscope.cpp rule.cpp rulechoice.cpp \
@@ -286,9 +285,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign  src/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  src/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign  src/Makefile
+	  $(AUTOMAKE) --gnu  src/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -369,7 +368,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jprintable.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jserialize.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jsocket.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jthread.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jtimer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/jtunable.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/learner.Po@am__quote@

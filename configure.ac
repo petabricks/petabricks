@@ -63,7 +63,6 @@ fi
 AC_MSG_RESULT([$rev_long])
 
 
-
 ################################################################################
 # LIBRARIES ####################################################################
 ################################################################################
@@ -75,6 +74,22 @@ AC_CHECK_LIB([pthread],[pthread_create], [], [AC_MSG_WARN([failed to find -lpthr
 AC_CHECK_LIB([lapack], [dposv_],         [], [AC_MSG_WARN([failed to find -llapack, some benchmarks may not work])])
 #AC_CHECK_LIB([gslcblas],[cblas_dgemm],   [], [AC_MSG_WARN([failed to find -lgslcblas, some benchmarks may not work])]) 
 #AC_CHECK_LIB([gsl],[gsl_blas_dgemm],     [], [AC_MSG_WARN([failed to find -lgsl, some benchmarks may not work])])
+
+################################################################################
+# COMPILER PROPERTIES ##########################################################
+################################################################################
+
+AC_MSG_CHECKING([if compiler supports __thread])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__thread int x;]])],
+                  [  
+                    AC_MSG_RESULT([yes]);
+                    has_threadlocal=yes; 
+                    AC_DEFINE([HAVE_THREADLOCAL],[],[define if __thread works with this compiler])
+                  ],
+                  [  
+                    AC_MSG_RESULT([no]); 
+                    has_threadlocal=no;
+                  ])
 
 ################################################################################
 # DEFINES   ####################################################################
@@ -117,6 +132,16 @@ if test "$use_jtiming" = "yes"; then
   AC_DEFINE([TIMING],[],[record timing information to stderr and jtimings.csv])
 fi
 
+AC_ARG_ENABLE([allocator],
+            [AS_HELP_STRING([--disable-allocator],
+                            [disable use of the custom memory block allocator])],
+            [use_jalloc=$enableval],
+            [use_jalloc=$has_threadlocal],])
+
+if test "$use_jalloc" = "yes"; then
+  AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
+fi
+
 AC_DEFINE([MATRIX_ELEMENT_T],  [double],         [type for elements in the matrix])
 AC_DEFINE([MAX_DIMENSIONS],    [64],             [the maximum number of dimensions supported])
 AC_DEFINE([GRACEFUL_ABORT],    [1],              [allow abort without program shutdown (uses exceptions)])
@@ -135,7 +160,6 @@ AC_DEFINE([MAX_NUM_WORKERS], [64], [max number of workers supported])
 AC_DEFINE([MIN_NUM_WORKERS], [1 ], [min number of workers supported])
 AC_DEFINE([CACHE_LINE_SIZE], [64], [larges cache line size in system])
 
-AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
 
 if false; then
   #disabled by default:
@@ -192,6 +216,7 @@ do
                  [AC_MSG_RESULT([yes])],
                  [AC_MSG_RESULT([no]);      LDFLAGS="$save_LDFLAGS"])
 done
+  
 
 ################################################################################
 ################################################################################

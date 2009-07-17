@@ -24,25 +24,50 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <signal.h>
+#include <jasm.h>
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+static jalib::AtomicT theTidGen = 0;
+
+#ifdef HAVE_THREADLOCAL
+int petabricks::tid() {
+  static __thread int _tid = -1;
+  if (_tid == -1) {
+    _tid = (int)jalib::atomicIncrementReturn(&theTidGen)-1;
+  }
+  return _tid;
+}
+#else
+//this is a backwards compatible version for archs that dont support __thread
+namespace { //file local
+  static pthread_key_t  tid_key;
+  static pthread_once_t tid_key_once = PTHREAD_ONCE_INIT;
+  static void tid_destroy(int* buf){ delete buf; }
+  static void tid_key_alloc(){  pthread_key_create(&tid_key, (void (*)(void*)) tid_destroy); }
+  static void tid_alloc(){
+    pthread_once(&tid_key_once, tid_key_alloc);
+    pthread_setspecific(tid_key, new int);
+  }
+}
+int petabricks::tid()
+{
+  int* t = (int*)pthread_getspecific(tid_key);
+  if(t==NULL){
+    tid_alloc();
+    t = (int*)pthread_getspecific(tid_key);
+    JASSERT(t!=NULL);
+    *t = (int)jalib::atomicIncrementReturn(&theTidGen)-1;
+  }
+  return *t;
+}
+#endif
 
 // #define VERBOSE
 
 namespace petabricks {
-
-// Thread local global types and functions
-__thread int _tid = -1;
-int tidGen = 0;
-jalib::JMutex _tid_lock;
-
-int tid() {
-  if (_tid == -1) {
-    JLOCKSCOPE(_tid_lock);
-    _tid = tidGen++;
-  }
-  return _tid;
-}
-
-// Timeout related global types and function
 
 static petabricks::DynamicScheduler *_dsPtr = NULL;
 
