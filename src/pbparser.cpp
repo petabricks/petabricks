@@ -82,7 +82,7 @@
 #include <map>
 #include "jconvert.h"
 #include "transform.h"
-#include "rule.h"
+#include "userrule.h"
 #include "formula.h"
 #include "matrixdef.h"
 #include "region.h"

@@ -20,21 +20,16 @@
 #ifndef PETABRICKSRULE_H
 #define PETABRICKSRULE_H
 
-#include "matrixdependency.h"
-#include "jconvert.h"
 #include "jrefcounted.h"
 #include "jprintable.h"
-#include "codegenerator.h"
 #include "region.h"
 #include "matrixdef.h"
 #include "formula.h"
-#include "ruleir.h"
-
 
 #include <vector>
+#include <string>
 
 namespace petabricks {
-
 
 class RIRScope;
 class CodeGenerator;
@@ -92,7 +87,7 @@ public:
 };
 
 /**
- * Base class for rules, both user defined and synthetic
+ * Base class for rules, both UserRule and SyntheticRule
  */
 class RuleInterface : public jalib::JRefCounted, public jalib::JPrintable {
 public:
@@ -101,9 +96,6 @@ public:
   ///
   /// Initialize this rule after parsing
   virtual void initialize(Transform&) = 0;
-
-
-  
 
   virtual bool isRecursive() const = 0;
   virtual RuleFlags::PriorityT priority() const = 0;
@@ -120,7 +112,12 @@ public:
   virtual void generateTrampCodeSimple(Transform& trans, CodeGenerator& o) = 0;
   
   virtual void markRecursive() = 0;
+  
+  virtual const SimpleRegionPtr& applicableRegion() const = 0;
 
+  ///
+  /// Remove out-of-bounds solutions from the given formula list 
+  virtual FormulaPtr trimImpossible(const FormulaList& l) = 0;
 
   ///
   /// Get the offset variable for the "center" of this rule.
@@ -135,161 +132,11 @@ public:
   
   void printIdentifier(std::ostream& o) const { o <<_id << " "; }
   int id() const { return _id; }
+  
 protected:
   int _id;
 };
 
-
-/**
- * Represent a transform rule
- */
-class UserRule : public RuleInterface{
-public:
-  ///
-  /// Constructor -- return style rule
-  UserRule(const RegionPtr& to, const RegionList& from, const FormulaList& where);
-
-  ///
-  /// Constructor -- to style rule
-  UserRule(const RegionList& to, const RegionList& from, const FormulaList& where);
-  
-  ///
-  /// Initialize this rule after parsing
-  void initialize(Transform&);
-  
-  ///
-  /// Set this->_body
-  void setBody(const char*);
-
-  ///
-  /// Set priority flag
-  void setPriority(RuleFlags::PriorityT v)  { _flags.priority = v; }
-  
-  ///
-  /// Set rotation flag
-  void addRotations(RuleFlags::RotationT v) { _flags.rotations |= v; }
-
-  ///
-  /// Print this rule to a given stl stream
-  /// implements JPrintable::print
-  void print(std::ostream& o) const;
-  
-  ///
-  /// Remove out-of-bounds solutions from the given formula list 
-  FormulaPtr trimImpossible(const FormulaList& l);
-  
-  ///
-  /// Add RuleDescriptors to output corresponding to the extrema of the applicable region in dimension
-  void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension);
-
-  ///
-  /// Generate seqential code to declare this rule
-  void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
-
-
-  ///
-  /// Generate seqential code to declare this rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic);
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
-    generateTrampCodeSimple(trans, o, true);
-    generateTrampCodeSimple(trans, o, false);
-  }
-  void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic);
-
-
-  ///
-  /// Generate seqential code to invoke this rule
-  void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region); 
-  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
-
-  ///
-  /// Return function the name of this rule in the code
-  std::string implcodename(Transform& trans) const;
-  std::string trampcodename(Transform& trans) const;
-
-  bool isReturnStyle() const { return _flags.isReturnStyle; }
-
-  int dimensions() const;
-
-  void addAssumptions() const;
-
-  const SimpleRegionPtr& applicableRegion() const { return _applicableRegion; }
-
-  void collectDependencies(StaticScheduler& scheduler);
-
-  void markRecursive() { 
-    markRecursive(new FormulaVariable(INPUT_SIZE_STR));
-  }
-  void markRecursive(const FormulaPtr& rh) { 
-    if(!_flags.isRecursive){
-      _flags.isRecursive = true; 
-      _recursiveHint = rh;
-    }
-  }
-
-  bool isRecursive() const { return _flags.isRecursive; }
-
-  RuleFlags::PriorityT priority() const { return _flags.priority; }
-  const FormulaList& conditions() const { return _conditions; }
-
-  void removeInvalidOrders(IterationOrderList& o);
-
-  bool canProvide(const MatrixDefPtr& m) const {
-    return _provides.find(m) != _provides.end();
-  }
-
-  std::vector<std::string> getCallArgs(Transform& trans, const SimpleRegionPtr& region);
-
-  const FormulaPtr& recursiveHint() const { return _recursiveHint; }
-
-
-  FormulaPtr getSizeOfRuleIn(int d){
-    for(size_t i=0; i<_to.size(); ++i){
-      if(d < (int)_to[i]->dimensions()){
-        return _to[i]->getSizeOfRuleIn(d);
-      }
-    }
-    JASSERT(false)(d)(_id);
-    return 0;
-  }
-
-  bool isSingleElement() const {
-    if(_to.size()!=1) return false;
-    return _to[0]->isSingleElement();
-  }
-
-  void compileRuleBody(Transform& tx, RIRScope& s);
-
-  bool isSingleCall() const {
-    for(size_t i=0; i<_to.size(); ++i)
-      if(!_to[i]->isAll())
-        return false;
-    return true;
-  }
-
-  bool hasWhereClause() const { return _conditions.size()>0; }
-
-
-  FormulaPtr getWhereClause(int start=0) const {
-    if(_conditions.size()==0) return NULL;
-    if(_conditions.size()-1==start) return _conditions[start];
-    return new FormulaAnd(_conditions[start], getWhereClause(start+1));
-  }
-  
-private:
-  RuleFlags   _flags;
-  RegionList  _from;
-  RegionList  _to;
-  FormulaList _conditions;
-  FormulaList _definitions;
-  SimpleRegionPtr _applicableRegion;
-  std::string     _bodysrc;
-  RIRBlockCopyRef _bodyirStatic;
-  RIRBlockCopyRef _bodyirDynamic;
-  MatrixDependencyMap _depends;
-  MatrixDependencyMap _provides;
-  FormulaPtr          _recursiveHint;
-};
 
 /**
  * A pointer to the begin/end of of a Rule in a given dimension, used to sort rules
@@ -326,7 +173,6 @@ public:
   /// Make a maxima call to test equality with a given formula
   bool isSamePosition(const FormulaPtr& that) const;
 
-
   void print(std::ostream& o) const {
     o << _formula << "{";
     if(isBegin())
@@ -335,6 +181,7 @@ public:
       o << "end";
     o << "_" << _rule->id() << "} ";
   }
+  
 private:
   Type          _type;
   RulePtr       _rule;

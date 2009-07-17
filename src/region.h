@@ -118,9 +118,9 @@ public:
   std::string generateSignatureCode(bool isConst) const;
   std::string generateAccessorCode() const;
 
-  SimpleRegionPtr getApplicableRegion(UserRule& rule, const FormulaList& defs, bool isOutput);
+  SimpleRegionPtr getApplicableRegion(RuleInterface& rule, const FormulaList& defs, bool isOutput);
 
-  void collectDependencies(const UserRule& rule, MatrixDependencyMap& map) const;
+  void collectDependencies(const RuleInterface& rule, MatrixDependencyMap& map) const;
 
   void addAssumptions() const;
 

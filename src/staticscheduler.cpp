@@ -20,6 +20,7 @@
 #include "staticscheduler.h"
 #include "transform.h"
 #include "jasm.h"
+#include "codegenerator.h"
 
 namespace { //file local
 void _remapSet(petabricks::ScheduleNodeSet& set, const petabricks::ScheduleNodeRemapping& map){

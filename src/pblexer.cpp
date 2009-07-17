@@ -652,7 +652,7 @@ char *pbtext;
 #line 1 "pblexer.lpp"
 #line 11 "pblexer.lpp"
 #include "transform.h"
-#include "rule.h"
+#include "userrule.h"
 #include "formula.h"
 #include "matrixdef.h"
 #include "jassert.h"
