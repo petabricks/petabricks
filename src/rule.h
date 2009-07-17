@@ -115,8 +115,6 @@ public:
   virtual void markRecursive() = 0;
   virtual const FormulaPtr& recursiveHint() const = 0;
   
-  virtual const SimpleRegionPtr& applicableRegion() const = 0;
-
   ///
   /// Remove out-of-bounds solutions from the given formula list 
   virtual FormulaPtr trimImpossible(const FormulaList& l) = 0;
@@ -135,8 +133,12 @@ public:
   void printIdentifier(std::ostream& o) const { o <<_id << " "; }
   int id() const { return _id; }
   
+  
+  const SimpleRegionPtr& applicableRegion() const { return _applicableRegion; }
+  
 protected:
   int _id;
+  SimpleRegionPtr _applicableRegion;
 };
 
 

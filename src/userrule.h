@@ -103,8 +103,6 @@ public:
 
   void addAssumptions() const;
 
-  const SimpleRegionPtr& applicableRegion() const { return _applicableRegion; }
-
   void collectDependencies(StaticScheduler& scheduler);
 
   void markRecursive() { 
@@ -172,7 +170,6 @@ private:
   RegionList  _to;
   FormulaList _conditions;
   FormulaList _definitions;
-  SimpleRegionPtr _applicableRegion;
   std::string     _bodysrc;
   RIRBlockCopyRef _bodyirStatic;
   RIRBlockCopyRef _bodyirDynamic;
