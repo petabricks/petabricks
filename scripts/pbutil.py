@@ -47,12 +47,15 @@ def chdirToPetabricksRoot():
     raise Exception("This script should be run from petabricks root directory")
 
 def compilePetabricks():
-  cmd=["make", "-j%d"%cpuCount(), "--no-print-directory"]
-  p=subprocess.Popen(cmd, stdout=sys.stderr, stderr=sys.stderr)
-  rv=p.wait()
-  if rv!=0:
-    raise Exception("pbc compile failed")
-  return rv
+  cmd=["make","-sqC","src","pbc"]
+  if subprocess.call(cmd) != 0: 
+    cmd=["make", "-j%d"%cpuCount(), "--no-print-directory"]
+    p=subprocess.Popen(cmd, stdout=sys.stderr, stderr=sys.stderr)
+    rv=p.wait()
+    if rv!=0:
+      raise Exception("pbc compile failed")
+    return rv
+  return 0
     
     
     
