@@ -96,22 +96,24 @@ public:
   ///
   /// Initialize this rule after parsing
   virtual void initialize(Transform&) = 0;
+  virtual void compileRuleBody(Transform& tx, RIRScope& s) = 0;
 
-  virtual bool isRecursive() const = 0;
   virtual RuleFlags::PriorityT priority() const = 0;
+  virtual bool isRecursive() const = 0;
   virtual bool hasWhereClause() const = 0;
-  virtual const FormulaPtr& recursiveHint() const = 0;
-  virtual void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region) = 0; 
-  virtual void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region) = 0;
   virtual bool canProvide(const MatrixDefPtr& m) const = 0;
+  virtual bool isSingleElement() const = 0;
+
   virtual void collectDependencies(StaticScheduler& scheduler) = 0;
   virtual void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension) = 0;
-  virtual void compileRuleBody(Transform& tx, RIRScope& s) = 0;
-  virtual bool isSingleElement() const = 0;
+  
+  virtual void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region) = 0; 
+  virtual void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region) = 0;
   virtual void generateDeclCodeSimple(Transform& trans, CodeGenerator& o) = 0;
   virtual void generateTrampCodeSimple(Transform& trans, CodeGenerator& o) = 0;
   
   virtual void markRecursive() = 0;
+  virtual const FormulaPtr& recursiveHint() const = 0;
   
   virtual const SimpleRegionPtr& applicableRegion() const = 0;
 
