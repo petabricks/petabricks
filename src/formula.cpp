@@ -117,7 +117,8 @@ const char* petabricks::FormulaBinop<OP>::opStr() {
 
 template < char OP >
 void petabricks::FormulaBinop<OP>::explodeEquality(FormulaPtr& l, FormulaPtr& r) const {
-  JASSERT(OP=='=')(*this).Text("expected an equality");
+  JASSERT(OP=='=' || OP=='<' || OP=='>' || OP==FormulaGE::CODE || OP==FormulaLE::CODE)
+    (*this).Text("expected an equality");
   l=_left;
   r=_right;
 }
@@ -181,6 +182,7 @@ void petabricks::Formula::explodeEquality(FormulaPtr& l, FormulaPtr& r) const {
 }
 
 std::string petabricks::Formula::printAsAssumption() const { return toString(); }
+std::string petabricks::Formula::toCppString() const { return toString(); }
 
 petabricks::FormulaPtr petabricks::Formula::replace(const FormulaPtr& what, const FormulaPtr& with) const {
   if(what->toString()==toString()) return with;
@@ -207,6 +209,15 @@ std::string petabricks::FormulaBinop<OP>::printAsAssumption() const {
               + "," + _right->toString() + ")";
   return toString();
 }
+
+template < char OP >
+std::string petabricks::FormulaBinop<OP>::toCppString() const {
+  if(OP=='=') return _left->toCppString() + "==" + _right->toCppString();
+  if(OP=='&') return _left->toCppString() + "&&" + _right->toCppString();
+  if(OP=='|') return _left->toCppString() + "||" + _right->toCppString();
+  return toString();
+}
+
 
 template < char OP >
 std::string petabricks::FormulaBinop<OP>::explodePrint() const{
@@ -256,6 +267,18 @@ void petabricks::FormulaList::subToEach(const FormulaPtr& x){
 petabricks::FormulaPtr petabricks::Formula::inf(){
   return new FormulaVariable("inf");
 }
+
+
+char petabricks::Formula::opType() const {
+  JASSERT(false).Text("not a binop");
+}
+  
+template < char OP >
+char petabricks::FormulaBinop<OP>::opType() const {
+  return OP;
+}
+  
+
 
 //force implementations to be generated for templates
 template class petabricks::FormulaLiteral<int>;

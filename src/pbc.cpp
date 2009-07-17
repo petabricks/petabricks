@@ -136,7 +136,7 @@ std::string cmdCxxCompiler(const std::string& src, const std::string& bin){
 void callCxxCompiler(const std::string& src, const std::string& bin){
   std::string cmd = cmdCxxCompiler(src,bin);
   JTRACE("Running g++")(cmd);
-  std::cout << cmd << std::endl;
+  //std::cout << cmd << std::endl;
   int rv = system(cmd.c_str());
   JASSERT(rv==0)(rv)(cmd).Text("g++ call failed");
 }

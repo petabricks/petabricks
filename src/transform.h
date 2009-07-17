@@ -31,6 +31,7 @@
 
 #include <vector>
 #include <set>
+#include <limits>
 
 namespace petabricks {
 

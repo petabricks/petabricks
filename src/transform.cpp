@@ -108,7 +108,7 @@ void petabricks::Transform::initialize() {
   for(FreeVars::const_iterator i=_constants.begin(); i!=_constants.end(); ++i)
     MaximaWrapper::instance().declareInteger(*i);
 
-  jalib::Map(&Rule::initialize,      *this, _rules);
+  jalib::Map(&RuleInterface::initialize,      *this, _rules);
 
   for(MatrixDefList::iterator m=_to.begin(); m!=_to.end(); ++m)
     fillBaseCases(*m);
@@ -166,7 +166,7 @@ void petabricks::Transform::compile(){
     scope->set(i->name(), RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL);
   }
 
-  jalib::Map(&Rule::compileRuleBody, *this, *scope, _rules);
+  jalib::Map(&RuleInterface::compileRuleBody, *this, *scope, _rules);
 
   JASSERT(!_scheduler);
 
@@ -336,7 +336,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   o.newline();
 
   o.comment("User rules");
-  Map(&Rule::generateDeclCodeSimple, *this, o, _rules);
+  Map(&RuleInterface::generateDeclCodeSimple, *this, o, _rules);
   o.newline();
 
   o.beginClass(instClassName(), "petabricks::TransformInstance");
@@ -380,7 +380,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   o.endFunc();
   
   o.comment("Rule trampolines");
-  Map(&Rule::generateTrampCodeSimple, *this, o, _rules);
+  Map(&RuleInterface::generateTrampCodeSimple, *this, o, _rules);
   o.newline();
 
   o.endClass();

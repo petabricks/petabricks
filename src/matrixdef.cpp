@@ -21,6 +21,7 @@
 #include "transform.h"
 #include "maximawrapper.h"
 #include "formula.h"
+#include "codegenerator.h"
 
 // A hack for now, for inference we assume matrix is big
 inline static petabricks::FormulaPtr LARGE(){

@@ -78,7 +78,7 @@ private:
   /// Rule to invoke
   RuleSet _rules;
   ///
-  /// This choice may only be applied if this evalates to true (may be null)
+  /// This choice may only be applied if this evaluates to true (may be null)
   FormulaPtr _condition;
   ///
   /// If _condition evaluates to false, use this choice instead (may be null)

@@ -1,24 +1,23 @@
-/* A Bison parser, made by GNU Bison 2.3.  */
+
+/* A Bison parser, made by GNU Bison 2.4.1.  */
 
 /* Skeleton interface for Bison's Yacc-like parsers in C
-
-   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   
+      Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
    Free Software Foundation, Inc.
-
-   This program is free software; you can redistribute it and/or modify
+   
+   This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
-
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+   
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-
+   
    You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -29,9 +28,10 @@
    special exception, which will cause the skeleton and the resulting
    Bison output files to be licensed under the GNU General Public
    License without this special exception.
-
+   
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
+
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -45,22 +45,23 @@
      THROUGH = 261,
      LE = 262,
      GE = 263,
-     WHERE = 264,
-     ROTATABLE = 265,
-     PRIMARY = 266,
-     SECONDARY = 267,
-     PRIORITY = 268,
-     MAIN = 269,
-     RECURSIVE = 270,
-     TESTCASE = 271,
-     GENERATOR = 272,
-     TEMPLATE = 273,
-     TUNABLE = 274,
-     CONFIG = 275,
-     INTEGER = 276,
-     FLOAT = 277,
-     IDENT = 278,
-     RULEBODY = 279
+     EQ = 264,
+     WHERE = 265,
+     ROTATABLE = 266,
+     PRIMARY = 267,
+     SECONDARY = 268,
+     PRIORITY = 269,
+     MAIN = 270,
+     RECURSIVE = 271,
+     TESTCASE = 272,
+     GENERATOR = 273,
+     TEMPLATE = 274,
+     TUNABLE = 275,
+     CONFIG = 276,
+     INTEGER = 277,
+     FLOAT = 278,
+     IDENT = 279,
+     RULEBODY = 280
    };
 #endif
 /* Tokens.  */
@@ -70,30 +71,34 @@
 #define THROUGH 261
 #define LE 262
 #define GE 263
-#define WHERE 264
-#define ROTATABLE 265
-#define PRIMARY 266
-#define SECONDARY 267
-#define PRIORITY 268
-#define MAIN 269
-#define RECURSIVE 270
-#define TESTCASE 271
-#define GENERATOR 272
-#define TEMPLATE 273
-#define TUNABLE 274
-#define CONFIG 275
-#define INTEGER 276
-#define FLOAT 277
-#define IDENT 278
-#define RULEBODY 279
+#define EQ 264
+#define WHERE 265
+#define ROTATABLE 266
+#define PRIMARY 267
+#define SECONDARY 268
+#define PRIORITY 269
+#define MAIN 270
+#define RECURSIVE 271
+#define TESTCASE 272
+#define GENERATOR 273
+#define TEMPLATE 274
+#define TUNABLE 275
+#define CONFIG 276
+#define INTEGER 277
+#define FLOAT 278
+#define IDENT 279
+#define RULEBODY 280
 
 
 
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 37 "pbparser.ypp"
 {
+
+/* Line 1676 of yacc.c  */
+#line 37 "pbparser.ypp"
+
   int i;
   double d;
   const char* str;
@@ -101,7 +106,7 @@ typedef union YYSTYPE
   petabricks::TransformList*   transforms;
   petabricks::MatrixDef*       matrixdef;
   petabricks::MatrixDefList*   matrixdefs;
-  petabricks::Rule*            rule;
+  petabricks::UserRule*        rule;
   petabricks::RuleList*        rules;
   petabricks::Formula*         formula;
   petabricks::FormulaList*     formulas;
@@ -111,13 +116,15 @@ typedef union YYSTYPE
   petabricks::TemplateArg*     templatearg;
   petabricks::TemplateArgList* templateargs;
   struct { const char* str; petabricks::FormulaList* formulas; } str_formulas; 
-}
-/* Line 1489 of yacc.c.  */
-#line 117 "pbparser.h"
-	YYSTYPE;
+
+
+
+/* Line 1676 of yacc.c  */
+#line 124 "pbparser.h"
+} YYSTYPE;
+# define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
-# define YYSTYPE_IS_TRIVIAL 1
 #endif
 
 extern YYSTYPE pblval;
@@ -136,3 +143,4 @@ typedef struct YYLTYPE
 #endif
 
 extern YYLTYPE pblloc;
+

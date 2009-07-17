@@ -36,6 +36,12 @@ typedef jalib::JRef<const FreeVars> FreeVarsPtr;
 class FreeVars : public std::set<std::string> , public jalib::JRefCounted {
 public:
   bool contains(const std::string& s) const{ return find(s)!=end(); } 
+
+  void eraseAll(const std::set<std::string>& that) {
+    std::set<std::string>::const_iterator i;
+    for(i=that.begin(); i!=that.end(); ++i)
+      erase(*i);
+  }
 };
 
 /**
@@ -83,7 +89,7 @@ public:
   }
 
   virtual void explodeEquality(FormulaPtr& l, FormulaPtr& r) const;
-
+  
   FormulaPtr rhs() const {
     FormulaPtr l,r;
     explodeEquality(l,r);
@@ -101,6 +107,7 @@ public:
   int size() const { return _size; }
 
   virtual std::string printAsAssumption() const;
+  virtual std::string toCppString() const;
 
   virtual FormulaPtr replace(const FormulaPtr& what, const FormulaPtr& with) const;
 
@@ -112,6 +119,9 @@ public:
   FormulaPtr plusOne() const;
   FormulaPtr minusOne() const;
   FormulaPtr negative() const;
+
+
+  virtual char opType() const;
 protected:
   /// Set of all free variables in the tree
   FreeVarsPtr _freeVars;
@@ -171,8 +181,12 @@ public:
   virtual FormulaPtr floor() const;
 
 
+  std::string toCppString() const;
   std::string printAsAssumption() const;
   std::string explodePrint() const;
+
+  virtual char opType() const;
+
 private:
   FormulaPtr _left;
   FormulaPtr _right;

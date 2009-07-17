@@ -29,6 +29,8 @@
 
 #include <stdio.h>
 
+#define MAXIMA MaximaWrapper::instance()
+
 namespace petabricks {
 
 /**
@@ -105,12 +107,18 @@ public:
     }
     return runCommand("solve([" + tmp.toString() + "], "+var+")");
   }
+  
+  FormulaListPtr solve(const FormulaPtr& eq, const std::string& var){
+    FormulaList t;
+    t.push_back(eq);
+    return solve(t, var);
+  }
 
   enum tryCompareResult { NO, YES, UNKNOWN };
 
   bool compare(const FormulaPtr& a, const char* op, const FormulaPtr& b){
     tryCompareResult rslt = tryCompare(a,op,b);
-    JASSERT(rslt==NO || rslt==YES);
+    JASSERT(rslt==NO || rslt==YES)(a)(op)(b);
     return rslt==YES;
   }
 
@@ -120,12 +128,21 @@ public:
     if(strcmp(op,"=")==0){
       //optimize equal
       if(aStr == bStr) return YES;
+      return is( "equal("+ aStr + "," + bStr + ")" );
     }
-    std::string rslt = runCommandSingleOutput( "is("+ aStr + op + bStr + ")" )->toString();
+    else
+    {
+      return is( aStr + op + bStr );
+    }
+  }
+
+  tryCompareResult is(const std::string& formula){
+    std::string rslt = runCommandSingleOutput( "is("+ formula + ")" )->toString();
     if(rslt=="1") return YES;
     if(rslt=="0") return NO;
     //JWARNING(false)(a)(op)(b)(rslt).Text("Failed to determine relation between a and b");
     return UNKNOWN;
+
   }
   
   

@@ -28,7 +28,8 @@
 #include <vector>
 
 namespace petabricks {
-class Rule;
+class RuleInterface;
+class UserRule;
 class CodeGenerator;
 class Transform;
 class SimpleRegion;
@@ -117,9 +118,9 @@ public:
   std::string generateSignatureCode(bool isConst) const;
   std::string generateAccessorCode() const;
 
-  SimpleRegionPtr getApplicableRegion(Rule& rule, const FormulaList& defs, bool isOutput);
+  SimpleRegionPtr getApplicableRegion(RuleInterface& rule, const FormulaList& defs, bool isOutput);
 
-  void collectDependencies(const Rule& rule, MatrixDependencyMap& map) const;
+  void collectDependencies(const RuleInterface& rule, MatrixDependencyMap& map) const;
 
   void addAssumptions() const;
 
@@ -129,7 +130,7 @@ public:
   
   ///
   /// Get rate of change for this region as rule center moves
-  FormulaList diff(const Rule&) const;
+  FormulaList diff(const RuleInterface&) const;
 
   bool isSingleElement() const { return _originalType==REGION_CELL; }
   

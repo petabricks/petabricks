@@ -72,6 +72,7 @@ regression/test7
 regression/test8
 regression/test9
 regression/testruleir
+regression/whereclause
 simple/add
 simple/copy
 simple/rollingsum

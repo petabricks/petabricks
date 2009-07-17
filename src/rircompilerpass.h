@@ -28,7 +28,7 @@
 namespace petabricks {
 
 class CodeGenerator;
-class Rule;
+class RuleInterface;
 
 class RIRCompilerPass : public RIRVisitor {
 protected:
@@ -176,7 +176,7 @@ public:
 
 class AnalysisPass: public RIRCompilerPass {
 public:
-  AnalysisPass(Rule& r, const std::string& name, const RIRScopePtr& p) 
+  AnalysisPass(RuleInterface& r, const std::string& name, const RIRScopePtr& p) 
     : RIRCompilerPass(p->createChildLayer()), _name(name), _rule(r)
   {}
 
@@ -184,7 +184,7 @@ public:
 
 private:
   std::string _name;
-  Rule& _rule;
+  RuleInterface& _rule;
 };
 
 class LiftVardeclPass : public RIRCompilerPass {

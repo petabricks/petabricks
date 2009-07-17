@@ -126,8 +126,8 @@ std::string petabricks::RuleChoice::processCondition(const std::string& name, co
     if(needComplex)
       return s;
     FormulaPtr f=new FormulaGT(hint, new FormulaVariable(name));
-    return f->toString();
+    return f->toCppString();
   }else{
-    return f->toString();
+    return f->toCppString();
   }
 }

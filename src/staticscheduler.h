@@ -21,6 +21,7 @@
 #define PETABRICKSSTATICSCHEDULER_H
 
 #include "matrixdef.h"
+#include "matrixdependency.h"
 #include "region.h"
 #include "jrefcounted.h"
 #include "choicegrid.h"
