@@ -1,0 +1,45 @@
+#ifndef COPY_PBCC
+#define COPY_PBCC
+
+%{
+
+void InlineCopy1D(const MatrixRegion1D& out, const ConstMatrixRegion1D& in){
+  JASSERT(in.count()==out.count());
+  for(int x=0; x<in.width(); ++x){
+    out.cell(x) = in.cell(x);
+  }
+}
+
+void InlineCopy2D(const MatrixRegion2D& out, const ConstMatrixRegion2D& in){
+  JASSERT(in.count()==out.count());
+  for(int x=0; x<in.width(); ++x){
+    for(int y=0; y<in.height(); ++y){
+      out.cell(x,y) = in.cell(x,y);
+    }
+  }
+}
+
+%}
+
+transform Copy1D
+from IN[n]
+to OUT[n]
+{
+  OUT.cell(i) from (IN.cell(i) x)
+  {
+    return x;
+  }
+}
+
+transform Copy2D
+from IN[w,h]
+to OUT[w,h]
+{
+  OUT.cell(i,j) from (IN.cell(i,j) x)
+  {
+    return x;
+  }
+}
+
+#endif // COPY_PBCC
+
