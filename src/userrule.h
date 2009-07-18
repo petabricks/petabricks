@@ -65,10 +65,6 @@ public:
   void print(std::ostream& o) const;
   
   ///
-  /// Remove out-of-bounds solutions from the given formula list 
-  FormulaPtr trimImpossible(const FormulaList& l);
-  
-  ///
   /// Add RuleDescriptors to output corresponding to the extrema of the applicable region in dimension
   void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension);
 

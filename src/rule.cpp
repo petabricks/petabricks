@@ -54,4 +54,9 @@ bool petabricks::RuleDescriptor::isSamePosition(const FormulaPtr& that) const{
    return MAXIMA.tryCompare(this->_formula, "=" , that) == MaximaWrapper::YES;
 }
 
+petabricks::FormulaPtr petabricks::RuleInterface::trimImpossible(const FormulaList& l){
+  JASSERT(l.size()==1)(l).Text("trimming formulas not yet implemented");
+  return l.front();
+}
+
 

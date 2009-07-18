@@ -117,7 +117,7 @@ public:
   
   ///
   /// Remove out-of-bounds solutions from the given formula list 
-  virtual FormulaPtr trimImpossible(const FormulaList& l) = 0;
+  FormulaPtr trimImpossible(const FormulaList& l);
 
   ///
   /// Get the offset variable for the "center" of this rule.

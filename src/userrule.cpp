@@ -282,11 +282,6 @@ void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& ou
   }
 }
 
-petabricks::FormulaPtr petabricks::UserRule::trimImpossible(const FormulaList& l){
-  JASSERT(l.size()==1)(l).Text("trimming formulas not yet implemented");
-  return l.front();
-}
-
 void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
 
   if(isRecursive()){
