@@ -31,16 +31,6 @@ class RuleChoice;
 class ScheduleNode;
 typedef jalib::JRef<RuleChoice> RuleChoicePtr;
 
-namespace IterationOrder {
-  enum IterationOrder {
-    NONE=0,
-    FORWARD=1,
-    BACKWARD=2,
-    ANY=FORWARD|BACKWARD
-  };
-}
-typedef std::vector<int> IterationOrderList;
-
 
 /**
  * Stores the choice made by the Learner for a given region

@@ -31,6 +31,7 @@
 
 namespace petabricks {
 
+class IterationOrderList;
 class RIRScope;
 class CodeGenerator;
 class RuleDescriptor;
@@ -100,7 +101,6 @@ public:
 
   virtual RuleFlags::PriorityT priority() const = 0;
   virtual bool isRecursive() const = 0;
-  virtual bool hasWhereClause() const = 0;
   virtual bool canProvide(const MatrixDefPtr& m) const = 0;
   virtual bool isSingleElement() const = 0;
 
@@ -115,6 +115,9 @@ public:
   virtual void markRecursive() = 0;
   virtual const FormulaPtr& recursiveHint() const = 0;
   
+  virtual bool hasWhereClause() const = 0;
+  virtual FormulaPtr getWhereClause() const = 0;
+
   ///
   /// Remove out-of-bounds solutions from the given formula list 
   FormulaPtr trimImpossible(const FormulaList& l);
@@ -135,6 +138,12 @@ public:
   
   
   const SimpleRegionPtr& applicableRegion() const { return _applicableRegion; }
+  
+  
+  virtual int dimensions() const = 0;
+  virtual void removeInvalidOrders(IterationOrderList& o) = 0;
+  virtual FormulaPtr getSizeOfRuleIn(int d) = 0;
+  virtual void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic) = 0;
   
 protected:
   int _id;

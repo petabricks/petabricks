@@ -19,6 +19,9 @@
  ***************************************************************************/
 
 #include "syntheticrule.h"
+#include "codegenerator.h"
+#include "maximawrapper.h"
+#include "iterationorders.h"
   
 void petabricks::SyntheticRule::initialize(Transform&){}
 void petabricks::SyntheticRule::compileRuleBody(Transform& tx, RIRScope& s){}
@@ -32,17 +35,14 @@ bool petabricks::SyntheticRule::isRecursive() const {
 bool petabricks::SyntheticRule::hasWhereClause() const { 
   return false; 
 }
+petabricks::FormulaPtr petabricks::SyntheticRule::getWhereClause() const { 
+  return NULL; 
+}
 
 bool petabricks::SyntheticRule::canProvide(const MatrixDefPtr& m) const { 
   UNIMPLEMENTED(); 
 }
-bool petabricks::SyntheticRule::isSingleElement() const { 
-  UNIMPLEMENTED(); 
-}
 
-void petabricks::SyntheticRule::collectDependencies(StaticScheduler& scheduler) { 
-  UNIMPLEMENTED(); 
-}
 void petabricks::SyntheticRule::getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension) { 
   UNIMPLEMENTED(); 
 }
@@ -63,14 +63,109 @@ const petabricks::FormulaPtr& petabricks::SyntheticRule::recursiveHint() const {
   static FormulaPtr t = new FormulaVariable(INPUT_SIZE_STR);  
   return t;
 }
-
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
+void petabricks::SyntheticRule::print(std::ostream& os) const {
+  os << "SyntheticRule " << _id << std::endl;;
+}
 
 
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
+void petabricks::WhereExpansionRule::generateCallCodeSimple( Transform& trans
+                                                           , CodeGenerator& o
+                                                           , const SimpleRegionPtr& region){
+  o.call(codename()+TX_STATIC_POSTFIX, region->argnames());
+}
+
+void petabricks::WhereExpansionRule::generateCallTaskCode( const std::string& name
+                                                         , Transform& trans
+                                                         , CodeGenerator& o
+                                                         , const SimpleRegionPtr& region){
+  o.call(codename()+TX_STATIC_POSTFIX, region->argnames());
+}
+  
+
+void petabricks::WhereExpansionRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
+  //for now static only:
+  IterationDefinition iterdef(*this, false);
+  o.beginFunc("void", codename()+TX_STATIC_POSTFIX, iterdef.args());
+  iterdef.genLoopBegin(o);
+  genWhereSwitch(trans,o);
+  iterdef.genLoopEnd(o);
+  o.endFunc();
+}
+
+
+void petabricks::WhereExpansionRule::genWhereSwitch(Transform& trans, CodeGenerator& o){
+  RuleSet::iterator i;
+  for(i=_rules.begin(); i!=_rules.end(); ++i){
+    for(int d=0; d<(*i)->dimensions(); ++d){
+      o._define((*i)->getOffsetVar(d)->toString(), getOffsetVar(d)->toString());
+    }
+
+    FormulaPtr wc = (*i)->getWhereClause();
+    if(!wc)
+      o.elseIf();
+    else if(i==_rules.begin())
+      o.beginIf(wc->toCppString());
+    else
+      o.elseIf(wc->toCppString());
+
+    (*i)->generateTrampCellCodeSimple(trans, o, true);
+    
+    for(int d=0; d<(*i)->dimensions(); ++d){
+      o._undefine((*i)->getOffsetVar(d)->toString());
+    }
+
+    if(!wc){
+      o.endIf();
+      return; //we reached an unconditioned rule
+    }
+  }
+  o.elseIf();
+  o.write("JASSERT(false).Text(\"All where clauses failed, no rule to compute region\");");
+  o.endIf();
+}
+
+
+bool petabricks::WhereExpansionRule::isSingleElement() const { 
+  return false;
+}
+
+int petabricks::WhereExpansionRule::dimensions() const {
+  RuleSet::const_iterator i=_rules.begin();
+  int rv = (*i)->dimensions();
+  for(++i ;i!=_rules.end(); ++i)
+    JASSERT(rv==(*i)->dimensions())(rv)((*i)->dimensions())
+      .Text("where clauses only work with common number of dimensions");;
+  return rv;
+}
+void petabricks::WhereExpansionRule::removeInvalidOrders(IterationOrderList& o) {
+  RuleSet::const_iterator i;
+  for(i=_rules.begin(); i!=_rules.end(); ++i)
+    (*i)->removeInvalidOrders(o);
+
+}
+petabricks::FormulaPtr petabricks::WhereExpansionRule::getSizeOfRuleIn(int d) {
+  RuleSet::const_iterator i=_rules.begin();
+  FormulaPtr rv = (*i)->getSizeOfRuleIn(d);
+  for(++i ;i!=_rules.end(); ++i)
+    JASSERT(MAXIMA.compare(rv,"=", (*i)->getSizeOfRuleIn(d)))
+      .Text("where clauses only work with common sizes in each choice");;
+  return rv;
+}
+
+std::string petabricks::WhereExpansionRule::codename() const {
+  return "whereExpansion"+jalib::XToString(_id); 
+}
+
+void petabricks::WhereExpansionRule::collectDependencies(StaticScheduler& scheduler) { 
+  RuleSet::const_iterator i;
+  for(i=_rules.begin(); i!=_rules.end(); ++i)
+    (*i)->collectDependencies(scheduler);
+}
 
 

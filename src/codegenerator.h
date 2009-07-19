@@ -144,8 +144,16 @@ public:
 
   void define(const std::string& name, const std::string& val){
     _defines.push_back(name);
+    _define(name,val);
+  }
+
+  void _define(const std::string& name, const std::string& val){
     write("#define "+name+" "+val);
   }
+  void _undefine(const std::string& name){
+    write("#undef "+name);
+  }
+
   void undefineAll(){
     for(size_t i=0; i<_defines.size(); ++i)
       write("#undef "+_defines[i]);
