@@ -69,6 +69,12 @@ public:
   void buildIndex(ChoiceGridIndex& idx, const SimpleRegionPtr& prefix = 0);
 
   const RuleSet& rules() const { return _applicableRules; }
+  RuleSet& rules() { return _applicableRules; }
+
+  bool hasWhereClauses() const {
+    if(_applicableRules.empty()) return false;
+    return (*_applicableRules.begin())->hasWhereClause();
+  }
 
   void applyRulePriorities();
 private:

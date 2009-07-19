@@ -23,6 +23,7 @@
 #include "staticscheduler.h"
 #include "maximawrapper.h"
 #include "rircompilerpass.h"
+#include "iterationorders.h"
 #include <algorithm>
 
 petabricks::RIRBlockCopyRef parseRuleBody(const std::string& str);
@@ -122,7 +123,7 @@ void petabricks::RuleFlags::print(std::ostream& os) const {
 
 void petabricks::UserRule::print(std::ostream& os) const {
   _flags.print(os);
-  os << "rule " << _id;
+  os << "UserRule " << _id;
   if(!_from.empty()){
     os << "\nfrom(";  printStlList(os,_from.begin(),_from.end(), ", "); os << ")"; 
   } 
@@ -353,36 +354,13 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
 }
 
 void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
-  CoordinateFormula begin, widths;
-  CoordinateFormula end;
-  std::vector<std::string> taskargs;
-  std::vector<std::string> matrixNames;
-  std::vector<std::string> argsByRef;
-  std::vector<std::string> argnames;
+  IterationDefinition iterdef(*this, isSingleCall());
+  std::vector<std::string> taskargs = iterdef.args();
+  std::vector<std::string> matrixNames = iterdef.args();
+  std::vector<std::string> argsByRef = iterdef.args();
+  std::vector<std::string> argnames = iterdef.argnames();
 
-  IterationOrderList order(dimensions(), IterationOrder::ANY);
-  removeInvalidOrders(order);
-  //TODO: call learner
-//   trans.learner().makeIterationChoice(order, _matrix, _region);
-
-  taskargs.push_back("const jalib::JRef<"+trans.instClassName()+"> transform");
-
-  //populate begin
-  for(int i=0; i<dimensions(); ++i){
-    FormulaPtr tmp = getOffsetVar(i,"begin");
-    begin.push_back(tmp);
-    taskargs.push_back("const IndexT "+tmp->toString());
-    argsByRef.push_back("const IndexT "+tmp->toString());
-    argnames.push_back(tmp->toString());
-  }
-  //populate end
-  for(int i=0; i<dimensions(); ++i){
-    FormulaPtr tmp = getOffsetVar(i,"end");
-    end.push_back(tmp);
-    taskargs.push_back("const IndexT "+tmp->toString());
-    argsByRef.push_back("const IndexT "+tmp->toString());
-    argnames.push_back(tmp->toString());
-  }
+  taskargs.insert(taskargs.begin(), "const jalib::JRef<"+trans.instClassName()+"> transform");
 
   if(isStatic)
     o.beginFunc("void", trampcodename(trans)+TX_STATIC_POSTFIX, argsByRef);
@@ -397,29 +375,9 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   }else{
     if(!isStatic) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
     
-    if(isSingleCall()){
-      for(size_t i=0; i<begin.size(); ++i){
-        o.varDecl("const IndexT "+getOffsetVar(i)->toString()+"=0");
-      }
-    }else{
-      for(size_t i=0; i<begin.size(); ++i){
-        FormulaPtr b=begin[i];
-        FormulaPtr e=end[i];
-        FormulaPtr w=getSizeOfRuleIn(i);
-        if(order[i]==IterationOrder::BACKWARD)
-          o.beginReverseFor(getOffsetVar(i)->toString(), b, e, w);
-        else
-          o.beginFor(getOffsetVar(i)->toString(), b, e, w);
-        //TODO, better support for making sure given range is a multiple of size
-      }
-    }
+    iterdef.genLoopBegin(o);
     generateTrampCellCodeSimple(trans, o, isStatic);
-    //TODO, loop carry deps?
-    if(!isSingleCall()){
-      for(size_t i=0; i<begin.size(); ++i){
-        o.endFor();
-      }
-    }
+    iterdef.genLoopEnd(o);
     
     if(!isStatic) o.write("return _spawner;");
   }
@@ -566,19 +524,19 @@ std::vector<std::string> petabricks::UserRule::getCallArgs(Transform& trans, con
 //for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i)
 //  args.push_back((*i));
 
-  for( CoordinateFormula::const_iterator i=region->minCoord().begin()
-       ; i!=region->minCoord().end()
-       ; ++i)
-  {
-    args.push_back((*i)->toString());
-  }
-  for( CoordinateFormula::const_iterator i=region->maxCoord().begin()
-       ; i!=region->maxCoord().end()
-       ; ++i)
-  {
-    args.push_back((*i)->toString());
-  }
-  return args;
+//for( CoordinateFormula::const_iterator i=region->minCoord().begin()
+//     ; i!=region->minCoord().end()
+//     ; ++i)
+//{
+//  args.push_back((*i)->toString());
+//}
+//for( CoordinateFormula::const_iterator i=region->maxCoord().begin()
+//     ; i!=region->maxCoord().end()
+//     ; ++i)
+//{
+//  args.push_back((*i)->toString());
+//}
+  return region->argnames();
 }
 
 void petabricks::UserRule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){

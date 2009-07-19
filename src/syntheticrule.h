@@ -24,7 +24,6 @@
 
 namespace petabricks {
 
-
 class SyntheticRule : public RuleInterface {
 public:
   void initialize(Transform&);
@@ -33,11 +32,10 @@ public:
   RuleFlags::PriorityT priority() const;
   bool isRecursive() const;
   bool hasWhereClause() const;
+  FormulaPtr getWhereClause() const;
 
   bool canProvide(const MatrixDefPtr& m) const;
-  bool isSingleElement() const;
 
-  void collectDependencies(StaticScheduler& scheduler);
   void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension);
   
   void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
@@ -47,8 +45,47 @@ public:
   
   void markRecursive();
   const FormulaPtr& recursiveHint() const;
-  
+
+
+  void print(std::ostream& os) const;
+
+
+  int dimensions() const { UNIMPLEMENTED(); }
+  void removeInvalidOrders(IterationOrderList& o) { UNIMPLEMENTED(); }
+  FormulaPtr getSizeOfRuleIn(int d) { UNIMPLEMENTED(); }
+  void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic) { UNIMPLEMENTED(); }
 };
+
+
+
+class WhereExpansionRule : public SyntheticRule {
+public:
+
+  WhereExpansionRule(const RuleSet& rules) 
+    : _rules(rules) 
+  {}
+
+  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+
+  void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
+  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
+  
+  bool isSingleElement() const;
+  
+  int dimensions() const;
+  void removeInvalidOrders(IterationOrderList& o);
+  FormulaPtr getSizeOfRuleIn(int d);
+
+  std::string codename() const;
+
+  void collectDependencies(StaticScheduler& scheduler);
+
+  void genWhereSwitch(Transform& trans, CodeGenerator& o);
+
+private:
+  RuleSet _rules;
+};
+
 
 }
 

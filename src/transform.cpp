@@ -21,6 +21,7 @@
 #include "jconvert.h"
 #include "maximawrapper.h"
 #include "codegenerator.h"
+#include "syntheticrule.h"
 #include "staticscheduler.h"
 #include "rirscope.h"
 
@@ -152,6 +153,29 @@ void petabricks::Transform::fillBaseCases(const MatrixDefPtr& matrix) {
   }else{
     _baseCases[matrix][new SimpleRegion()] = tmp;
   }
+
+  //convert any where clauses
+  ChoiceGridIndex& regions=_baseCases[matrix];
+  for(ChoiceGridIndex::iterator i=regions.begin(); i!=regions.end(); ++i){
+    ChoiceGrid& cg = *i->second;
+    if(cg.hasWhereClauses()){
+      JTRACE("converting where clauses to WhereExpansionRule")(matrix)(i->first);
+      expandWhereClauses(cg.rules(), matrix, i->first);
+    }
+  }
+}
+
+void petabricks::Transform::expandWhereClauses( RuleSet& rules
+                                              , const MatrixDefPtr&
+                                              , const SimpleRegionPtr&){
+  //TODO: it is possible that some subset of the rules could make a complete choice
+  //      at some point we may want to detect such subsets and create multiple
+  //      WhereExpansionRules for each of those subsets
+  // for now, just find first allowed rule dynamically
+  RulePtr t = new WhereExpansionRule(rules);
+  rules.clear();
+  rules.insert(t);
+  _rules.push_back(t);
 }
 
 void petabricks::Transform::compile(){ 

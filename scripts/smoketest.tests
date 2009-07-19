@@ -28,6 +28,7 @@ regression/test11          Rand2Dodd
 regression/test12          Rand2Da
 regression/test13          Rand2Da /dev/null
 regression/test14
+regression/whereclause     Rand2Da
 regression/testruleir      Rand2Da 
 regression/templatetest    Rand1D 
 poisson/Jacobi2D           Rand2Da Rand2Db One0D
