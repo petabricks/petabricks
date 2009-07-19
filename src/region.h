@@ -37,7 +37,6 @@ class Region;
 class MatrixDependencyMap;
 typedef jalib::JRef<Region> RegionPtr;
 typedef jalib::JRef<SimpleRegion> SimpleRegionPtr;
-typedef std::vector<int> IterationOrderList;
 class RegionList : public std::vector<RegionPtr> , public jalib::JRefCounted {
 public:
   void makeRelativeTo(const FormulaList& defs);
@@ -80,6 +79,23 @@ public:
     for(CoordinateFormula::iterator i=_maxCoord.begin(); i!=_maxCoord.end(); ++i)
       *i = new FormulaAdd(*i, val);
     _maxCoord.normalize();
+  }
+  
+  std::vector<std::string> argnames() const {
+    std::vector<std::string> args;
+    for( CoordinateFormula::const_iterator i=minCoord().begin()
+         ; i!=minCoord().end()
+         ; ++i)
+    {
+      args.push_back((*i)->toString());
+    }
+    for( CoordinateFormula::const_iterator i=maxCoord().begin()
+         ; i!=maxCoord().end()
+         ; ++i)
+    {
+      args.push_back((*i)->toString());
+    }
+    return args;
   }
 
 protected:

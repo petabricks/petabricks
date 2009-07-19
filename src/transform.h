@@ -188,6 +188,8 @@ public:
 
   void markSplitSizeUse(CodeGenerator& o);
 
+  void expandWhereClauses(RuleSet&, const MatrixDefPtr&, const SimpleRegionPtr&);
+
 private:
   std::string   _originalName;
   std::string   _name;

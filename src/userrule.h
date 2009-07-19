@@ -65,10 +65,6 @@ public:
   void print(std::ostream& o) const;
   
   ///
-  /// Remove out-of-bounds solutions from the given formula list 
-  FormulaPtr trimImpossible(const FormulaList& l);
-  
-  ///
   /// Add RuleDescriptors to output corresponding to the extrema of the applicable region in dimension
   void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension);
 
@@ -157,8 +153,8 @@ public:
 
   bool hasWhereClause() const { return _conditions.size()>0; }
 
-
-  FormulaPtr getWhereClause(int start=0) const {
+  FormulaPtr getWhereClause() const { return getWhereClause(0); }
+  FormulaPtr getWhereClause(int start) const {
     if(_conditions.size()==0) return NULL;
     if(_conditions.size()-1==start) return _conditions[start];
     return new FormulaAnd(_conditions[start], getWhereClause(start+1));
