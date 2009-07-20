@@ -1,0 +1,67 @@
+#ifndef MATRIXAPPROX_PBCC
+#define MATRIXAPPROX_PBCC
+
+#ifndef k
+#define k 4
+#endif
+
+#include "../multiply/multiply.pbcc"
+#include "../simple/copy.pbcc"
+#include "../eigenproblem/EigSym.pbcc"
+#include "../simple/transpose.pbcc"
+
+
+transform MatrixApprox
+from IN[n,n] //, K
+through H[2*n,2*n], Lambda[2*n], X[2*n,2*n], U[n,n], VT[n,n]
+to OUT[n,n]
+{
+
+
+	to (H.region(n,0,2*n,n) h) from (IN a) {
+		Transpose(h, a);
+	}
+	to (H.region(0,n,n,2*n) h )from (IN a){
+		Copy2D(h, a);
+	}
+	secondary H.cell(i,j) from() {
+		return 0;
+	}
+
+	to (Lambda lam, X x) from (H h){ 
+		EigSym(lam, x, h);
+	}
+
+//	Sigma.cell(i) from (Lambda.cell(i) lam) {
+//		return -lam;
+//	}
+
+//      U.cell(i,j) from (X.cell(i,j+n) x){
+//              return -sqrt(2)*x;
+//      }
+
+	//combine sigma(k) * U(k)
+	U.cell(i,j) from (X.cell(i,j+n) x, Lambda.cell(i) lam){
+		return lam*sqrt(2)*x;
+	}
+
+	//V tranposed
+	VT.cell(j,i) from (X.cell(i,j) x){
+		return sqrt(2)*x;	
+	}
+		
+
+
+	to (OUT out) from (U u, VT vt){
+		int i;
+		MatrixMultiply(out, u.column(0), vt.row(0));
+		for (i=1; i<k; i++) {
+			MatrixAdd(out, out, MatrixMultiply(u.column(i), vt.row(i)) );
+		}
+	} 
+
+			
+}
+
+
+#endif // MATRIXAPPROX_PBCC

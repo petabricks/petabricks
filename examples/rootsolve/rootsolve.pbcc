@@ -1,0 +1,137 @@
+#ifndef ROOTSOLVE_PBCC
+#define ROOTSOLVE_PBCC
+
+#define k 20
+
+#include "evalf.pbcc"
+
+transform Bisection
+from F[n], A, B, C, FA, FB, FC 
+through FMID
+to Aout, Bout, Cout, FAout, FBout, FCout
+{
+   to (Aout aout, Bout bout, Cout cout, FAout faout, FBout fbout, FCout fcout, FMID fmid) 
+   from (F f, A a, B b, C c, FA fa, FB fb, FC fc)
+   {
+	double temp;
+	ElementT mid=(a+b)/2;
+	evalf(fmid,f,mid);
+
+	//bisection step
+	if (fa * fmid < 0) {
+		bout = mid;
+		fbout=fmid;
+		aout=a;
+		faout=fa;
+	}
+	else  {
+		aout = mid;
+		faout =fmid;
+		bout=b;
+		fbout=fb;
+	}
+
+        //set c to the old b
+        cout = b;
+        fcout = fb;
+
+   	//switch a and b if a is a better root
+	if ( fabs(fbout) > fabs(faout) ) {
+		temp=bout; bout=aout; aout=temp;
+		temp=fbout; fbout=faout; faout=temp;
+		cout=aout;fcout=faout;
+	}
+   }
+}
+
+
+transform Secant
+from F[n], A, B, C, FA, FB, FC
+to Aout, Bout, Cout, FAout, FBout, FCout
+{
+   to (Aout aout, Bout bout, Cout cout, FAout faout, FBout fbout, FCout fcout)
+   from (F f, A a, B b, C c, FA fa, FB fb, FC fc)
+   {
+	double temp;        
+
+	//secant step
+	bout=b- (b-c)/(fb-fc) *fb;
+        evalf(fbout,f,bout);
+
+        //set c to the old b
+        cout = b;
+        fcout = fb;
+
+	//if sign of f(b) change, set a equal to the old b to maintain a bracketing interval
+	if (faout*fbout > 0 ) {
+		aout=b;
+		faout=fb;
+	}
+	else {
+		aout=a;
+		faout=fa;
+	}
+
+        //switch a and b if a is a better root
+        if ( fabs(fbout) > fabs(faout) ) {
+                temp=bout; bout=aout; aout=temp;
+                temp=fbout; fbout=faout; faout=temp;
+                cout=aout;fcout=faout;
+        }
+  
+  }
+
+}
+
+
+
+transform RootSolve
+from F[n], Astart, Bstart
+through B[k],A, C, FA, FB, FC
+to X
+{
+
+   to (FA fa)  from (F f, Astart a){
+	evalf(fa, f, a);
+   }
+
+
+   to (FB fb)  from (F f, Bstart b){
+        evalf(fb, f, b);
+   }
+   
+   A from (Astart a){
+        return a;
+   }
+   
+   B.cell(0) from (Bstart b){
+        return b;
+   }
+   
+   C from (Astart a){
+	return a;
+   }
+
+
+   to (B.cell(i) bnext, A a, C c, FA fa, FB fb, FC fc) from (B.cell(i-1) bold,  F f) 
+   { 
+	//Bisection(a,bnext,c,fa,fb,fc,  f,a,bold,c,fa,fb,fc);
+   	bnext=bold+2;
+   }
+
+   to (B.cell(i) bnext, A a, C c, FA fa, FB fb, FC fc) from (B.cell(i-1) bold,  F f)
+   {
+        //Secant(a,bnext,c,fa,fb,fc,  f,a,bold,c,fa,fb,fc);
+   	bnext=bold+1;
+   }
+
+
+   X from (B.cell(k-1) blast){
+	return blast;
+   }
+			
+
+}
+
+
+#endif // ROOTSOLVE_PBCC
