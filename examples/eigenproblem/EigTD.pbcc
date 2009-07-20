@@ -99,11 +99,12 @@ to Eigenvalue[n], Eigenvector[n,n], TMP[n,n], WORK[n*n+4*n]
 
 transform EigTDMain
 from Diag[n], Subdiag[n-1]
-through TMP[n,n], WORK[n*n+4*n]
+through TMP[n,n], WORK[n*n+4*n], Eigvectemp[n,n]
 to Eigenvalue[n], Eigenvector[n,n]
 {
-  to (Eigenvalue eig, Eigenvector vec, TMP tmp, WORK work) from  (Diag Din, Subdiag Ein){
-    EigTD(eig, vec, tmp, work, Din, Ein); 
+  to (Eigenvalue eig, Eigenvector vec, Eigvectemp vectemp, TMP tmp, WORK work) from  (Diag Din, Subdiag Ein){
+    EigTD(eig, vectemp, tmp, work, Din, Ein); 
+    Transpose(vec, vectemp);
   }
 }
 
