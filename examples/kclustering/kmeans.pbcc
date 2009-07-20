@@ -81,7 +81,7 @@ to C[k,2]
 transform kmeans
 from X[n,2]    // X - x,y coordinates of n points,  k - number of clusters
 through CFLAG, Ctemp[k,2]
-to C[k,2], A[n]// , WCSS   // C - centroids, A - cluster assignment, WCSS - within-cluster sum of squares  (error measures)
+to C[k,2], A[n], WCSS   // C - centroids, A - cluster assignment, WCSS - within-cluster sum of squares  (error measures)
 {
 
   //Assign initial cluster centers randomly
@@ -111,19 +111,23 @@ to C[k,2], A[n]// , WCSS   // C - centroids, A - cluster assignment, WCSS - with
 
   }
 
-//  //accuracy measure
-//  WCSS from(X x, C c, A a)
-//  {
-//	ElementT dis;
-//	ElementT sum;
-//	int i;
-//	sum=0;
-//	for (i=0; i< n; i++) {
-//		Distance(dis, x.column(i), c.column(a.cell(i)));
-//		sum+=dis;
-//        }
-//	return sum/n;
-//  }
+  //accuracy measure
+  WCSS from(X x, C c, A a)
+  {
+	ElementT dis;
+	ElementT sum;
+	int i;
+	sum=0;
+	for (i=0; i< n; i++) {
+		Distance(dis, x.column(i), c.column(a.cell(i)));
+		sum+=dis;
+        }
+	
+	//scale between 0 and 1:
+	//assuming input is 2D-random matrix with entries from the range  0-100,
+	//maximum possible distance is sqrt(20000); 
+	return 1-sum/n/sqrt(20000);
+  }
 
 }
 
