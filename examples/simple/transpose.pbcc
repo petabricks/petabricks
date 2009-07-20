@@ -1,3 +1,5 @@
+#ifndef TRANSPOSE_PBCC
+#define TRANSPOSE_PBCC
 
 transform Transpose
 from IN[w,h]
@@ -8,3 +10,4 @@ to  OUT[h,w]
   }
 }
 
+#endif // TRANSPOSE_PBCC
