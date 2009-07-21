@@ -29,9 +29,11 @@ static const petabricks::RIRScopePtr _makeTypeScope(){
   using namespace petabricks;
 
   RIRScopePtr t = new RIRScope(NULL);
+  t->set("char", RIRSymbol::SYM_TYPE_BASIC);
+  t->set("short", RIRSymbol::SYM_TYPE_BASIC);
   t->set("int", RIRSymbol::SYM_TYPE_BASIC);
-  t->set("float", RIRSymbol::SYM_TYPE_BASIC);
   t->set("long", RIRSymbol::SYM_TYPE_BASIC);
+  t->set("float", RIRSymbol::SYM_TYPE_BASIC);
   t->set("double", RIRSymbol::SYM_TYPE_BASIC);
   t->set("size_t", RIRSymbol::SYM_TYPE_BASIC);
   t->set("IndexT", RIRSymbol::SYM_TYPE_BASIC);
