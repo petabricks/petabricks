@@ -1,0 +1,8 @@
+
+transform A
+param n
+to Out[n]
+{
+  Out.cell(i) from() { return i; }
+}
+

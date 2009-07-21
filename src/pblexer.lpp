@@ -74,6 +74,8 @@ PASS_CHARS [.<>,*/()[\]^+-]
   "through"        RETURN THROUGH;
   "testcase"       RETURN TESTCASE;
   "config"         RETURN CONFIG;
+  "param"          RETURN KW_PARAM;
+  "parameter"      RETURN KW_PARAM;
   "tunable"        RETURN TUNABLE;
   "{"              yy_push_state(transform); RETURN '{';
   "%{"             yy_push_state(litcode); theParseLog.str("");

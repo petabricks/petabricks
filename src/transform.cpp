@@ -75,6 +75,9 @@ void petabricks::Transform::print(std::ostream& o) const {
     o << " > \n";
   }
   o << "transform " << _name;
+  if(!_parameters.empty()){ 
+    o << "\nparam ";   printStlList(o, _parameters.begin(), _parameters.end(), ", ");
+  }
   if(!_from.empty()){ 
     o << "\nfrom ";   printStlList(o, _from.begin(),    _from.end(), ", ");
   }

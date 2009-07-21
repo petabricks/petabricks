@@ -190,6 +190,8 @@ public:
 
   void expandWhereClauses(RuleSet&, const MatrixDefPtr&, const SimpleRegionPtr&);
 
+  void addParams(const OrderedFreeVars& p) { _parameters.insert(_parameters.end(), p.begin(), p.end()); }
+
 private:
   std::string   _originalName;
   std::string   _name;
@@ -200,6 +202,7 @@ private:
   RuleList      _rules;
   ChoiceGridMap _baseCases;
   FreeVars      _constants;
+  OrderedFreeVars _parameters;
   bool          _isMain;
   Learner       _learner;
   StaticSchedulerPtr _scheduler;
