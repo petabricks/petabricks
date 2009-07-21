@@ -87,6 +87,9 @@ void petabricks::Transform::print(std::ostream& o) const {
   if(!_to.empty()){ 
     o << "\nto ";     printStlList(o, _to.begin(),      _to.end(), ", ");
   }
+  if(!_constants.empty()){ 
+    o << "\nconstants ";   printStlList(o, _constants.begin(), _constants.end(), ", ");
+  }
   o << "\n{\n";
   printStlList(o, _rules);
   o << "}\n";
@@ -448,8 +451,8 @@ void petabricks::Transform::markSplitSizeUse(CodeGenerator& o){
   }
 }
 
-void petabricks::Transform::extractSizeDefines(CodeGenerator& o){
-  FreeVars fv;
+void petabricks::Transform::extractSizeDefines(CodeGenerator& o, FreeVars fv){
+  
 //   o.comment("Extract matrix size parameters");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->extractDefines(fv, o);
@@ -474,7 +477,7 @@ void petabricks::Transform::extractConstants(CodeGenerator& o){
   }
   //int maxDims = 1;
   //maxDims = std::max<int>(maxDims, (*i)->numDimensions());
-  extractSizeDefines(o);
+  extractSizeDefines(o, FreeVars());
   Map(&MatrixDef::verifyDefines, o, _from);
   Map(&MatrixDef::verifyDefines, o, _to);
   for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
@@ -515,6 +518,10 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
   {
     std::ostringstream os;
     os <<"return \"";
+    for( OrderedFreeVars::const_iterator i=_parameters.begin()
+       ; i!=_parameters.end()
+       ; ++i )
+      os << (*i) << " ";
     for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i)
       os << (*i)->name() << " ";
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i)
@@ -525,7 +532,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
   o.endFunc();
   
   o.beginFunc("int", "numInputs");
-  o.write("return "+jalib::XToString(_from.size())+";");
+  o.write("return "+jalib::XToString(_from.size()+_parameters.size())+";");
   o.endFunc();
   
   o.beginFunc("int", "numOutputs");
@@ -534,10 +541,19 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
 
   o.beginFunc("void", "read", std::vector<std::string>(1, "ArgListT argv"));
   {
+    for( OrderedFreeVars::const_iterator i=_parameters.begin()
+       ; i!=_parameters.end()
+       ; ++i )
+    {
+      o.addMember("IndexT", *i,       "0");
+      o.write(*i + " = jalib::StringToInt(argv["+jalib::XToString(a++)+"]);");
+    }
     for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
       (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
     }
-    extractSizeDefines(o);
+    FreeVars t;
+    t.insertAll(_parameters);
+    extractSizeDefines(o, t);
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
       (*i)->allocateTemporary(o, true);
     }

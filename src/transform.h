@@ -135,7 +135,7 @@ public:
   const FreeVars& constants() const { return _constants; }
   FreeVars& constants() { return _constants; }
 
-  void extractSizeDefines(CodeGenerator& o);
+  void extractSizeDefines(CodeGenerator& o, FreeVars fv);
 
   void markMain() { _isMain=true; }
 
