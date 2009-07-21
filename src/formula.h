@@ -33,6 +33,7 @@ class FreeVars;
 typedef jalib::JRef<const Formula> FormulaPtr;
 typedef jalib::JRef<FormulaList> FormulaListPtr;
 typedef jalib::JRef<const FreeVars> FreeVarsPtr;
+class OrderedFreeVars : public std::vector<std::string> , public jalib::JRefCounted {};
 class FreeVars : public std::set<std::string> , public jalib::JRefCounted {
 public:
   bool contains(const std::string& s) const{ return find(s)!=end(); } 
@@ -42,6 +43,9 @@ public:
     for(i=that.begin(); i!=that.end(); ++i)
       erase(*i);
   }
+
+  template< typename T>
+  void insertAll(const T& t) { insert(t.begin(), t.end()); }
 };
 
 /**

@@ -48,6 +48,7 @@ static void clearParserCaches(){
   petabricks::FormulaList*     formulas;
   petabricks::Region*          region;
   petabricks::RegionList*      regions;
+  petabricks::OrderedFreeVars* freevars;
   petabricks::TestCase*        testcase;
   petabricks::TemplateArg*     templatearg;
   petabricks::TemplateArgList* templateargs;
@@ -61,7 +62,7 @@ static void clearParserCaches(){
   theRefPool.clear();
 }
 
-%token TRANSFORM FROM TO THROUGH LE GE EQ WHERE ROTATABLE PRIMARY SECONDARY PRIORITY MAIN RECURSIVE TESTCASE GENERATOR TEMPLATE TUNABLE CONFIG
+%token TRANSFORM FROM TO THROUGH LE GE EQ WHERE ROTATABLE PRIMARY SECONDARY PRIORITY MAIN RECURSIVE TESTCASE GENERATOR TEMPLATE TUNABLE CONFIG KW_PARAM
 %token <str> INTEGER FLOAT IDENT RULEBODY
 %type <str> RuleBody
 %type <i> Integer PriorityFlag
@@ -80,6 +81,7 @@ static void clearParserCaches(){
 %type <templatearg> TemplateArg
 %type <templateargs> TemplateArgs
 %type <str_formulas> RegionAccessor
+%type <freevars> FreeVars
 
 %nonassoc '=' '<' '>' LE GE EQ
 %left '-' '+'
@@ -110,7 +112,8 @@ TransformHeader: Nil                { $$=REFALLOC(Transform()); }
                | TransformTest      {$$=$1;};
 
 TransformHeader:    TransformHeader MAIN { ($$=$1)->markMain(); }
-TransformName:      TransformHeader TRANSFORM IDENT OptSemiCol        { ($$=$1)->setName($3);     } 
+TransformName:      TransformHeader TRANSFORM IDENT        OptSemiCol { ($$=$1)->setName($3);     } 
+TransformName:      TransformHeader KW_PARAM FreeVars      OptSemiCol { ($$=$1)->addParams(*$3);    } 
 TransformFrom:      TransformHeader FROM     MatrixDefList OptSemiCol { ($$=$1)->addFrom(*$3);   };
 TransformThrough:   TransformHeader THROUGH  MatrixDefList OptSemiCol { ($$=$1)->addThrough(*$3);};
 TransformTo:        TransformHeader TO       MatrixDefList OptSemiCol { ($$=$1)->addTo(*$3);     };
@@ -236,6 +239,9 @@ NamedRegionList: Nil                             { ($$=REFALLOC(RegionList())); 
 OptFormulaList: Nil         { $$=REFALLOC(FormulaList()); }
               | FormulaList { $$=$1; };
 
+
+FreeVars: IDENT             { ($$=REFALLOC(OrderedFreeVars()))->push_back($1); }
+        | FreeVars',' IDENT { ($$=$1)->push_back($3); };
 
 %%
 

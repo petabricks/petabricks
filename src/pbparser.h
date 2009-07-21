@@ -58,10 +58,11 @@
      TEMPLATE = 274,
      TUNABLE = 275,
      CONFIG = 276,
-     INTEGER = 277,
-     FLOAT = 278,
-     IDENT = 279,
-     RULEBODY = 280
+     KW_PARAM = 277,
+     INTEGER = 278,
+     FLOAT = 279,
+     IDENT = 280,
+     RULEBODY = 281
    };
 #endif
 /* Tokens.  */
@@ -84,10 +85,11 @@
 #define TEMPLATE 274
 #define TUNABLE 275
 #define CONFIG 276
-#define INTEGER 277
-#define FLOAT 278
-#define IDENT 279
-#define RULEBODY 280
+#define KW_PARAM 277
+#define INTEGER 278
+#define FLOAT 279
+#define IDENT 280
+#define RULEBODY 281
 
 
 
@@ -112,6 +114,7 @@ typedef union YYSTYPE
   petabricks::FormulaList*     formulas;
   petabricks::Region*          region;
   petabricks::RegionList*      regions;
+  petabricks::OrderedFreeVars* freevars;
   petabricks::TestCase*        testcase;
   petabricks::TemplateArg*     templatearg;
   petabricks::TemplateArgList* templateargs;
@@ -120,7 +123,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 124 "pbparser.h"
+#line 127 "pbparser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

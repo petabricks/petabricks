@@ -17,9 +17,13 @@ eigenproblem/QRtridiag
 eigenproblem/trial1
 eigenproblem/trial2
 kclustering/assignclusters
+kclustering/copy
+kclustering/distance
 kclustering/kmeans
+kclustering/newclusterlocations
 kernel/KernelEstimate
 kernel/LinearSolvePosDef
+matrixapproximation/matrixapprox
 multiply/multiply
 multiply/strassen
 poisson/BS2DInterior
@@ -55,6 +59,7 @@ poisson/SOR2DInterior
 poisson/SOR2D
 poisson/trainfmgv2D
 poisson/trainmgv2D
+regression/params
 regression/scaletest
 regression/templatetest
 regression/test10
@@ -73,6 +78,8 @@ regression/test8
 regression/test9
 regression/testruleir
 regression/whereclause
+rootsolve/evalf
+rootsolve/rootsolve
 simple/add
 simple/copy
 simple/rollingsum
