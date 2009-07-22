@@ -202,6 +202,10 @@ public:
     return tmp;
   }
 
+  bool isMain() const { return _isMain; }
+
+  void setAccuracyMetric(const std::string& str){_accuracyMetric=str;}
+
 private:
   std::string   _originalName;
   std::string   _name;
@@ -221,6 +225,7 @@ private:
   int _tuneId;
   ConfigItems _config;
   bool  _usesSplitSize;
+  std::string _accuracyMetric;
 };
 
 }

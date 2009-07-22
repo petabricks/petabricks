@@ -66,19 +66,22 @@ PASS_CHARS [.<>,*/()[\]^+-]
 
 %%
 <INITIAL>{
-  "main"           RETURN KW_MAIN;
-  "transform"      RETURN KW_TRANSFORM;
-  "template"       RETURN KW_TEMPLATE;
-  "generator"      RETURN KW_GENERATOR;
-  "gen"            RETURN KW_GENERATOR;
-  "through"        RETURN KW_THROUGH;
-  "testcase"       RETURN KW_TESTCASE;
-  "config"         RETURN KW_CONFIG;
-  "param"          RETURN KW_PARAM;
-  "parameter"      RETURN KW_PARAM;
-  "tunable"        RETURN KW_TUNABLE;
-  "{"              yy_push_state(transform); RETURN '{';
-  "%{"             yy_push_state(litcode); theParseLog.str("");
+  "main"            RETURN KW_MAIN;
+  "transform"       RETURN KW_TRANSFORM;
+  "template"        RETURN KW_TEMPLATE;
+  "generator"       RETURN KW_GENERATOR;
+  "gen"             RETURN KW_GENERATOR;
+  "through"         RETURN KW_THROUGH;
+  "testcase"        RETURN KW_TESTCASE;
+  "config"          RETURN KW_CONFIG;
+  "param"           RETURN KW_PARAM;
+  "parameter"       RETURN KW_PARAM;
+  "tunable"         RETURN KW_TUNABLE;
+  "accuracy"        RETURN KW_ACCURACYMETRIC;
+  "accuracy_metric" RETURN KW_ACCURACYMETRIC;
+  "metric"          RETURN KW_ACCURACYMETRIC;
+  "{"               yy_push_state(transform); RETURN '{';
+  "%{"              yy_push_state(litcode); theParseLog.str("");
 }
 
 <litcode>{

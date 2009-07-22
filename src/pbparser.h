@@ -59,10 +59,11 @@
      KW_TUNABLE = 275,
      KW_CONFIG = 276,
      KW_PARAM = 277,
-     TOK_INTEGER = 278,
-     TOK_FLOAT = 279,
-     TOK_RULEBODY = 280,
-     IDENT = 281
+     KW_ACCURACYMETRIC = 278,
+     TOK_INTEGER = 279,
+     TOK_FLOAT = 280,
+     TOK_RULEBODY = 281,
+     IDENT = 282
    };
 #endif
 /* Tokens.  */
@@ -86,10 +87,11 @@
 #define KW_TUNABLE 275
 #define KW_CONFIG 276
 #define KW_PARAM 277
-#define TOK_INTEGER 278
-#define TOK_FLOAT 279
-#define TOK_RULEBODY 280
-#define IDENT 281
+#define KW_ACCURACYMETRIC 278
+#define TOK_INTEGER 279
+#define TOK_FLOAT 280
+#define TOK_RULEBODY 281
+#define IDENT 282
 
 
 
@@ -123,7 +125,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 127 "pbparser.h"
+#line 129 "pbparser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
