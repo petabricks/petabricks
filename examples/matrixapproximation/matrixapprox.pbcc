@@ -1,9 +1,9 @@
 #ifndef MATRIXAPPROX_PBCC
 #define MATRIXAPPROX_PBCC
 
-#ifndef k
-#define k 4
-#endif
+//#ifndef k
+//#define k 4
+//#endif
 
 #include "../multiply/multiply.pbcc"
 #include "../simple/copy.pbcc"
@@ -12,8 +12,9 @@
 
 
 transform MatrixApprox
-from IN[n,n] //, K
-through H[2*n,2*n], Lambda[2*n], X[2*n,2*n], U[n,n], VT[n,n]
+param k  //input param: number of singular values used k<=n
+from IN[n,n]
+through Lambda[2*n], X[2*n,2*n], U[n,n], VT[n,n], H[2*n,2*n], TEMP[n,n]
 to OUT[n,n]
 {
 
@@ -52,11 +53,13 @@ to OUT[n,n]
 		
 
 
-	to (OUT out) from (U u, VT vt){
+	to (OUT out, TEMP temp) from (U u, VT vt){
 		int i;
-		MatrixMultiply(out, u.column(0), vt.row(0));
+		MatrixMultiply(out, u.region(0,0,1,n), vt.region(0,0,n,1) );
 		for (i=1; i<k; i++) {
-			MatrixAdd(out, out, MatrixMultiply(u.column(i), vt.row(i)) );
+			//MatrixAdd(out, out, MatrixMultiply(u.region(i,0,i+1,n), vt.region(0,i,n,i+1)) );
+			MatrixMultiply(temp, u.region(i,0,i+1,n), vt.region(0,i,n,i+1));
+			MatrixAdd(out, out, temp);
 		}
 	} 
 
