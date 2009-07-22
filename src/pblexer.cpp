@@ -1010,42 +1010,42 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 YY_RULE_SETUP
 #line 69 "pblexer.lpp"
-RETURN MAIN;
+RETURN KW_MAIN;
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
 #line 70 "pblexer.lpp"
-RETURN TRANSFORM;
+RETURN KW_TRANSFORM;
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
 #line 71 "pblexer.lpp"
-RETURN TEMPLATE;
+RETURN KW_TEMPLATE;
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
 #line 72 "pblexer.lpp"
-RETURN GENERATOR;
+RETURN KW_GENERATOR;
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
 #line 73 "pblexer.lpp"
-RETURN GENERATOR;
+RETURN KW_GENERATOR;
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
 #line 74 "pblexer.lpp"
-RETURN THROUGH;
+RETURN KW_THROUGH;
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
 #line 75 "pblexer.lpp"
-RETURN TESTCASE;
+RETURN KW_TESTCASE;
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
 #line 76 "pblexer.lpp"
-RETURN CONFIG;
+RETURN KW_CONFIG;
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
@@ -1060,7 +1060,7 @@ RETURN KW_PARAM;
 case 11:
 YY_RULE_SETUP
 #line 79 "pblexer.lpp"
-RETURN TUNABLE;
+RETURN KW_TUNABLE;
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
@@ -1099,32 +1099,32 @@ YY_RULE_SETUP
 case 17:
 YY_RULE_SETUP
 #line 94 "pblexer.lpp"
-RETURN WHERE;
+RETURN KW_WHERE;
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
 #line 95 "pblexer.lpp"
-RETURN PRIORITY;
+RETURN KW_PRIORITY;
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
 #line 96 "pblexer.lpp"
-RETURN PRIMARY;
+RETURN KW_PRIMARY;
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
 #line 97 "pblexer.lpp"
-RETURN SECONDARY;
+RETURN KW_SECONDARY;
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
 #line 98 "pblexer.lpp"
-RETURN ROTATABLE;
+RETURN KW_ROTATABLE;
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
 #line 99 "pblexer.lpp"
-RETURN RECURSIVE;
+RETURN KW_RECURSIVE;
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
@@ -1147,37 +1147,37 @@ yy_pop_state();      RETURN *pbtext;
 case 25:
 YY_RULE_SETUP
 #line 111 "pblexer.lpp"
-RETURN TO;
+RETURN KW_TO;
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
 #line 112 "pblexer.lpp"
-RETURN FROM;
+RETURN KW_FROM;
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
 #line 113 "pblexer.lpp"
-RETURN LE;
+RETURN KW_LE;
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
 #line 114 "pblexer.lpp"
-RETURN GE;
+RETURN KW_GE;
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
 #line 115 "pblexer.lpp"
-RETURN EQ;
+RETURN KW_EQ;
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
 #line 116 "pblexer.lpp"
-RETURN FLOAT;
+RETURN TOK_FLOAT;
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
 #line 117 "pblexer.lpp"
-RETURN INTEGER;
+RETURN TOK_INTEGER;
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
@@ -1238,7 +1238,7 @@ YY_RULE_SETUP
                       if(--theNestCount==0){
                         yy_pop_state();
                         pblval.str=circularStringCache(theParseLog.str().c_str());
-                        RETURN RULEBODY;
+                        RETURN TOK_RULEBODY;
                       }
                    }
 	YY_BREAK
