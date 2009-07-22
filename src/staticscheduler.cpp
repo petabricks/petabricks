@@ -336,6 +336,7 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
       {
         ot.define(*i, "(transform->"+*i+")");
       }
+      ot.define("input_count", "(transform->input_count)");
     }
     
     for(size_t d=selfDep.direction.size()-1; d>=0; --d){

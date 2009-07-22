@@ -160,6 +160,13 @@ namespace {// file local
 void petabricks::UserRule::initialize(Transform& trans) {
   MaximaWrapper::instance().pushContext();
 
+  MatrixDefList extraFrom = trans.defaultVisibleInputs();
+  for(MatrixDefList::const_iterator i=extraFrom.begin(); i!=extraFrom.end(); ++i){
+    RegionPtr r = new Region((*i)->name().c_str(), FormulaList(), "all", FormulaList());
+    r->setName((*i)->name().c_str());
+    _from.push_back(r);
+  }
+
   jalib::Map(&Region::initialize, trans, _from);
   jalib::Map(&Region::initialize, trans, _to);
   _conditions.normalize();

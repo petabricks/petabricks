@@ -1,13 +1,14 @@
 #ifndef ASSIGNCLUSTERS_PBCC
 #define ASSIGNCLUSTERS_PBCC
 
-#ifndef
-#define k 3
-#endif
+//#ifndef
+//#define k 3
+//#endif
 
 #include "distance.pbcc"
 
 transform AssignClusters
+param k   //input parameter: number of clusters
 from X[n,2], C[k,2], A[n]
 through D[n,k], ctemp[n]
 to Anew[n], cflag
