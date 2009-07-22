@@ -576,16 +576,16 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    96,    96,   101,   106,   107,   108,   109,   110,   111,
-     112,   113,   114,   115,   116,   117,   119,   121,   123,   125,
-     127,   129,   132,   135,   136,   138,   139,   141,   143,   144,
-     145,   152,   153,   155,   156,   157,   158,   159,   161,   162,
-     163,   164,   165,   166,   168,   169,   170,   171,   172,   173,
-     176,   178,   180,   181,   182,   183,   184,   186,   187,   189,
-     190,   192,   193,   194,   196,   198,   199,   201,   203,   204,
-     206,   208,   208,   209,   209,   211,   211,   212,   213,   213,
-     214,   215,   217,   218,   220,   221,   223,   224,   226,   227,
-     229,   230,   231,   234,   235,   238,   239
+       0,    96,    96,   101,   105,   106,   107,   108,   109,   110,
+     111,   112,   113,   114,   115,   116,   118,   120,   122,   124,
+     126,   128,   131,   134,   135,   137,   138,   140,   142,   143,
+     144,   151,   152,   154,   155,   156,   157,   158,   160,   161,
+     162,   163,   164,   165,   167,   168,   169,   170,   171,   172,
+     175,   177,   179,   180,   181,   182,   183,   185,   186,   188,
+     189,   191,   192,   193,   195,   197,   198,   200,   202,   203,
+     205,   207,   207,   208,   208,   210,   210,   211,   212,   212,
+     213,   214,   216,   217,   219,   220,   222,   223,   225,   226,
+     228,   229,   230,   233,   234,   237,   238
 };
 #endif
 
@@ -1684,140 +1684,139 @@ yyreduce:
 #line 101 "pbparser.ypp"
     {
    ((yyval.transform)=(yyvsp[(1) - (2)].transform))->setRules(*(yyvsp[(2) - (2)].rules)); 
-   JTRACE("parsed Transform")((yyval.transform)->name()); 
 }
     break;
 
   case 4:
 
 /* Line 1455 of yacc.c  */
-#line 106 "pbparser.ypp"
+#line 105 "pbparser.ypp"
     {(yyval.transform)=REFALLOC(Transform());}
     break;
 
   case 5:
 
 /* Line 1455 of yacc.c  */
-#line 107 "pbparser.ypp"
+#line 106 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (2)].transform)); }
     break;
 
   case 6:
 
 /* Line 1455 of yacc.c  */
-#line 108 "pbparser.ypp"
+#line 107 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (2)].transform))->markMain(); }
     break;
 
   case 7:
 
 /* Line 1455 of yacc.c  */
-#line 109 "pbparser.ypp"
+#line 108 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (3)].transform))->setName((yyvsp[(3) - (3)].str));     }
     break;
 
   case 8:
 
 /* Line 1455 of yacc.c  */
-#line 110 "pbparser.ypp"
+#line 109 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (3)].transform))->addParams(*(yyvsp[(3) - (3)].freevars));    }
     break;
 
   case 9:
 
 /* Line 1455 of yacc.c  */
-#line 111 "pbparser.ypp"
+#line 110 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (3)].transform))->addFrom(*(yyvsp[(3) - (3)].matrixdefs));   }
     break;
 
   case 10:
 
 /* Line 1455 of yacc.c  */
-#line 112 "pbparser.ypp"
+#line 111 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (3)].transform))->addThrough(*(yyvsp[(3) - (3)].matrixdefs));}
     break;
 
   case 11:
 
 /* Line 1455 of yacc.c  */
-#line 113 "pbparser.ypp"
+#line 112 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (3)].transform))->addTo(*(yyvsp[(3) - (3)].matrixdefs));     }
     break;
 
   case 12:
 
 /* Line 1455 of yacc.c  */
-#line 114 "pbparser.ypp"
+#line 113 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (5)].transform))->addTemplateArg(*(yyvsp[(4) - (5)].templateargs)); }
     break;
 
   case 13:
 
 /* Line 1455 of yacc.c  */
-#line 115 "pbparser.ypp"
+#line 114 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (3)].transform))->addTestCase((yyvsp[(3) - (3)].testcase));}
     break;
 
   case 14:
 
 /* Line 1455 of yacc.c  */
-#line 116 "pbparser.ypp"
+#line 115 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (3)].transform))->setAccuracyMetric((yyvsp[(3) - (3)].str));}
     break;
 
   case 15:
 
 /* Line 1455 of yacc.c  */
-#line 117 "pbparser.ypp"
-    { UNIMPLEMENTED(); }
+#line 116 "pbparser.ypp"
+    { ((yyval.transform)=(yyvsp[(1) - (3)].transform))->setGenerator((yyvsp[(3) - (3)].str));}
     break;
 
   case 16:
 
 /* Line 1455 of yacc.c  */
-#line 120 "pbparser.ypp"
+#line 119 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (6)].transform))->addConfig((yyvsp[(3) - (6)].str), (yyvsp[(5) - (6)].i)); }
     break;
 
   case 17:
 
 /* Line 1455 of yacc.c  */
-#line 122 "pbparser.ypp"
+#line 121 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (8)].transform))->addConfig((yyvsp[(3) - (8)].str), (yyvsp[(5) - (8)].i), (yyvsp[(7) - (8)].i)); }
     break;
 
   case 18:
 
 /* Line 1455 of yacc.c  */
-#line 124 "pbparser.ypp"
+#line 123 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (10)].transform))->addConfig((yyvsp[(3) - (10)].str), (yyvsp[(5) - (10)].i), (yyvsp[(7) - (10)].i), (yyvsp[(9) - (10)].i)); }
     break;
 
   case 19:
 
 /* Line 1455 of yacc.c  */
-#line 126 "pbparser.ypp"
+#line 125 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (6)].transform))->addTunable((yyvsp[(3) - (6)].str), (yyvsp[(5) - (6)].i)); }
     break;
 
   case 20:
 
 /* Line 1455 of yacc.c  */
-#line 128 "pbparser.ypp"
+#line 127 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (8)].transform))->addTunable((yyvsp[(3) - (8)].str), (yyvsp[(5) - (8)].i), (yyvsp[(7) - (8)].i)); }
     break;
 
   case 21:
 
 /* Line 1455 of yacc.c  */
-#line 130 "pbparser.ypp"
+#line 129 "pbparser.ypp"
     { ((yyval.transform)=(yyvsp[(1) - (10)].transform))->addTunable((yyvsp[(3) - (10)].str), (yyvsp[(5) - (10)].i), (yyvsp[(7) - (10)].i), (yyvsp[(9) - (10)].i)); }
     break;
 
   case 22:
 
 /* Line 1455 of yacc.c  */
-#line 132 "pbparser.ypp"
+#line 131 "pbparser.ypp"
     {
   (yyval.templatearg)=REFALLOC(TemplateArg((yyvsp[(1) - (6)].str), (yyvsp[(3) - (6)].i), (yyvsp[(5) - (6)].i)));
 }
@@ -1826,56 +1825,56 @@ yyreduce:
   case 23:
 
 /* Line 1455 of yacc.c  */
-#line 135 "pbparser.ypp"
+#line 134 "pbparser.ypp"
     { ((yyval.templateargs)=REFALLOC(TemplateArgList()))->push_back((yyvsp[(1) - (1)].templatearg)); }
     break;
 
   case 24:
 
 /* Line 1455 of yacc.c  */
-#line 136 "pbparser.ypp"
+#line 135 "pbparser.ypp"
     { ((yyval.templateargs)=(yyvsp[(1) - (3)].templateargs))->push_back((yyvsp[(3) - (3)].templatearg)); }
     break;
 
   case 25:
 
 /* Line 1455 of yacc.c  */
-#line 138 "pbparser.ypp"
+#line 137 "pbparser.ypp"
     { (yyval.testcase)=REFALLOC(TestCase()); }
     break;
 
   case 26:
 
 /* Line 1455 of yacc.c  */
-#line 139 "pbparser.ypp"
+#line 138 "pbparser.ypp"
     { ((yyval.testcase)=(yyvsp[(1) - (2)].testcase))->addMatrix((yyvsp[(2) - (2)].str)); }
     break;
 
   case 27:
 
 /* Line 1455 of yacc.c  */
-#line 141 "pbparser.ypp"
+#line 140 "pbparser.ypp"
     { (yyval.matrixdef)=REFALLOC(MatrixDef((yyvsp[(1) - (3)].str),*(yyvsp[(2) - (3)].formulas),*(yyvsp[(3) - (3)].formulas))); }
     break;
 
   case 28:
 
 /* Line 1455 of yacc.c  */
-#line 143 "pbparser.ypp"
+#line 142 "pbparser.ypp"
     { ((yyval.formulas)=REFALLOC(FormulaList())); }
     break;
 
   case 29:
 
 /* Line 1455 of yacc.c  */
-#line 144 "pbparser.ypp"
+#line 143 "pbparser.ypp"
     { ((yyval.formulas)=REFALLOC(FormulaList()))->push_back((yyvsp[(2) - (3)].formula)); }
     break;
 
   case 30:
 
 /* Line 1455 of yacc.c  */
-#line 146 "pbparser.ypp"
+#line 145 "pbparser.ypp"
     { 
   (yyval.formulas)=REFALLOC(FormulaList()); 
   (yyval.formulas)->push_back((yyvsp[(2) - (5)].formula));
@@ -1886,406 +1885,406 @@ yyreduce:
   case 31:
 
 /* Line 1455 of yacc.c  */
-#line 152 "pbparser.ypp"
+#line 151 "pbparser.ypp"
     { (yyval.formulas)=REFALLOC(FormulaList()); }
     break;
 
   case 32:
 
 /* Line 1455 of yacc.c  */
-#line 153 "pbparser.ypp"
+#line 152 "pbparser.ypp"
     { (yyval.formulas)=(yyvsp[(2) - (3)].formulas); }
     break;
 
   case 33:
 
 /* Line 1455 of yacc.c  */
-#line 155 "pbparser.ypp"
+#line 154 "pbparser.ypp"
     {(yyval.formula)=REFALLOC( FormulaVariable((yyvsp[(1) - (1)].str)) ); }
     break;
 
   case 34:
 
 /* Line 1455 of yacc.c  */
-#line 156 "pbparser.ypp"
+#line 155 "pbparser.ypp"
     {(yyval.formula)=REFALLOC( FormulaInteger( (yyvsp[(1) - (1)].i)) ); }
     break;
 
   case 35:
 
 /* Line 1455 of yacc.c  */
-#line 157 "pbparser.ypp"
+#line 156 "pbparser.ypp"
     {(yyval.formula)=REFALLOC( FormulaFloat(  (yyvsp[(1) - (1)].d)) );  }
     break;
 
   case 36:
 
 /* Line 1455 of yacc.c  */
-#line 158 "pbparser.ypp"
+#line 157 "pbparser.ypp"
     { (yyval.formula)=(yyvsp[(2) - (3)].formula); }
     break;
 
   case 37:
 
 /* Line 1455 of yacc.c  */
-#line 159 "pbparser.ypp"
+#line 158 "pbparser.ypp"
     { (yyval.formula)=(yyvsp[(1) - (1)].formula); }
     break;
 
   case 38:
 
 /* Line 1455 of yacc.c  */
-#line 161 "pbparser.ypp"
+#line 160 "pbparser.ypp"
     { (yyval.formula)=REFALLOC(FormulaBinop<'+'>((yyvsp[(1) - (3)].formula),(yyvsp[(3) - (3)].formula))); }
     break;
 
   case 39:
 
 /* Line 1455 of yacc.c  */
-#line 162 "pbparser.ypp"
+#line 161 "pbparser.ypp"
     { (yyval.formula)=REFALLOC(FormulaBinop<'-'>((yyvsp[(1) - (3)].formula),(yyvsp[(3) - (3)].formula))); }
     break;
 
   case 40:
 
 /* Line 1455 of yacc.c  */
-#line 163 "pbparser.ypp"
+#line 162 "pbparser.ypp"
     { (yyval.formula)=REFALLOC(FormulaBinop<'*'>((yyvsp[(1) - (3)].formula),(yyvsp[(3) - (3)].formula))); }
     break;
 
   case 41:
 
 /* Line 1455 of yacc.c  */
-#line 164 "pbparser.ypp"
+#line 163 "pbparser.ypp"
     { (yyval.formula)=REFALLOC(FormulaBinop<'/'>((yyvsp[(1) - (3)].formula),(yyvsp[(3) - (3)].formula))); }
     break;
 
   case 42:
 
 /* Line 1455 of yacc.c  */
-#line 165 "pbparser.ypp"
+#line 164 "pbparser.ypp"
     { (yyval.formula)=REFALLOC(FormulaBinop<'^'>((yyvsp[(1) - (3)].formula),(yyvsp[(3) - (3)].formula))); }
     break;
 
   case 43:
 
 /* Line 1455 of yacc.c  */
-#line 166 "pbparser.ypp"
+#line 165 "pbparser.ypp"
     { (yyval.formula)=REFALLOC(FormulaBinop<'-'>(FormulaInteger::zero(),(yyvsp[(2) - (2)].formula))); }
     break;
 
   case 44:
 
 /* Line 1455 of yacc.c  */
-#line 168 "pbparser.ypp"
+#line 167 "pbparser.ypp"
     { (yyval.formula)=REFALLOC(FormulaBinop<'='>((yyvsp[(1) - (3)].formula),(yyvsp[(3) - (3)].formula))); }
     break;
 
   case 45:
 
 /* Line 1455 of yacc.c  */
-#line 169 "pbparser.ypp"
+#line 168 "pbparser.ypp"
     { (yyval.formula)=REFALLOC(FormulaBinop<'='>((yyvsp[(1) - (3)].formula),(yyvsp[(3) - (3)].formula))); }
     break;
 
   case 46:
 
 /* Line 1455 of yacc.c  */
-#line 170 "pbparser.ypp"
+#line 169 "pbparser.ypp"
     { (yyval.formula)=REFALLOC(FormulaBinop<'<'>((yyvsp[(1) - (3)].formula),(yyvsp[(3) - (3)].formula))); }
     break;
 
   case 47:
 
 /* Line 1455 of yacc.c  */
-#line 171 "pbparser.ypp"
+#line 170 "pbparser.ypp"
     { (yyval.formula)=REFALLOC(FormulaBinop<'>'>((yyvsp[(1) - (3)].formula),(yyvsp[(3) - (3)].formula))); }
     break;
 
   case 48:
 
 /* Line 1455 of yacc.c  */
-#line 172 "pbparser.ypp"
+#line 171 "pbparser.ypp"
     { (yyval.formula)=REFALLOC(FormulaLE((yyvsp[(1) - (3)].formula),(yyvsp[(3) - (3)].formula))); }
     break;
 
   case 49:
 
 /* Line 1455 of yacc.c  */
-#line 173 "pbparser.ypp"
+#line 172 "pbparser.ypp"
     { (yyval.formula)=REFALLOC(FormulaGE((yyvsp[(1) - (3)].formula),(yyvsp[(3) - (3)].formula))); }
     break;
 
   case 50:
 
 /* Line 1455 of yacc.c  */
-#line 176 "pbparser.ypp"
+#line 175 "pbparser.ypp"
     { (yyval.rules)=(yyvsp[(2) - (3)].rules); }
     break;
 
   case 51:
 
 /* Line 1455 of yacc.c  */
-#line 178 "pbparser.ypp"
+#line 177 "pbparser.ypp"
     { ((yyval.rule)=(yyvsp[(1) - (3)].rule))->setBody((yyvsp[(2) - (3)].str)); JTRACE("parsed Rule"); }
     break;
 
   case 52:
 
 /* Line 1455 of yacc.c  */
-#line 180 "pbparser.ypp"
+#line 179 "pbparser.ypp"
     { (yyval.rule)=(yyvsp[(1) - (1)].rule); }
     break;
 
   case 53:
 
 /* Line 1455 of yacc.c  */
-#line 181 "pbparser.ypp"
+#line 180 "pbparser.ypp"
     { ((yyval.rule)=(yyvsp[(2) - (2)].rule))->setPriority((yyvsp[(1) - (2)].i)); }
     break;
 
   case 54:
 
 /* Line 1455 of yacc.c  */
-#line 182 "pbparser.ypp"
+#line 181 "pbparser.ypp"
     { ((yyval.rule)=(yyvsp[(2) - (2)].rule))->addRotations(RuleFlags::ROTATE); }
     break;
 
   case 55:
 
 /* Line 1455 of yacc.c  */
-#line 183 "pbparser.ypp"
+#line 182 "pbparser.ypp"
     { ((yyval.rule)=(yyvsp[(2) - (2)].rule))->markRecursive(); }
     break;
 
   case 56:
 
 /* Line 1455 of yacc.c  */
-#line 184 "pbparser.ypp"
+#line 183 "pbparser.ypp"
     { ((yyval.rule)=(yyvsp[(5) - (5)].rule))->markRecursive((yyvsp[(3) - (5)].formula)); }
     break;
 
   case 57:
 
 /* Line 1455 of yacc.c  */
-#line 186 "pbparser.ypp"
+#line 185 "pbparser.ypp"
     { (yyval.rule)=REFALLOC(UserRule((yyvsp[(1) - (3)].region),  *(yyvsp[(2) - (3)].regions), *(yyvsp[(3) - (3)].formulas))); }
     break;
 
   case 58:
 
 /* Line 1455 of yacc.c  */
-#line 187 "pbparser.ypp"
+#line 186 "pbparser.ypp"
     { (yyval.rule)=REFALLOC(UserRule(*(yyvsp[(1) - (3)].regions), *(yyvsp[(2) - (3)].regions), *(yyvsp[(3) - (3)].formulas))); }
     break;
 
   case 59:
 
 /* Line 1455 of yacc.c  */
-#line 189 "pbparser.ypp"
+#line 188 "pbparser.ypp"
     { (yyval.regions)=(yyvsp[(3) - (4)].regions); }
     break;
 
   case 60:
 
 /* Line 1455 of yacc.c  */
-#line 190 "pbparser.ypp"
+#line 189 "pbparser.ypp"
     { (yyval.regions)=(yyvsp[(3) - (4)].regions); }
     break;
 
   case 61:
 
 /* Line 1455 of yacc.c  */
-#line 192 "pbparser.ypp"
+#line 191 "pbparser.ypp"
     {(yyval.i)=RuleFlags::PRIORITY_PRIMARY;}
     break;
 
   case 62:
 
 /* Line 1455 of yacc.c  */
-#line 193 "pbparser.ypp"
+#line 192 "pbparser.ypp"
     {(yyval.i)=RuleFlags::PRIORITY_SECONDARY;}
     break;
 
   case 63:
 
 /* Line 1455 of yacc.c  */
-#line 194 "pbparser.ypp"
+#line 193 "pbparser.ypp"
     {(yyval.i)=(yyvsp[(3) - (4)].i);}
     break;
 
   case 64:
 
 /* Line 1455 of yacc.c  */
-#line 196 "pbparser.ypp"
+#line 195 "pbparser.ypp"
     { (yyval.str)=(yyvsp[(2) - (2)].str); }
     break;
 
   case 65:
 
 /* Line 1455 of yacc.c  */
-#line 198 "pbparser.ypp"
+#line 197 "pbparser.ypp"
     { (yyval.formulas)=REFALLOC(FormulaList()); }
     break;
 
   case 66:
 
 /* Line 1455 of yacc.c  */
-#line 199 "pbparser.ypp"
+#line 198 "pbparser.ypp"
     { ((yyval.formulas)=REFALLOC(FormulaList()))->push_back((yyvsp[(2) - (2)].formula)); }
     break;
 
   case 67:
 
 /* Line 1455 of yacc.c  */
-#line 201 "pbparser.ypp"
+#line 200 "pbparser.ypp"
     { (yyval.region)=REFALLOC(Region((yyvsp[(1) - (3)].str),*(yyvsp[(2) - (3)].formulas), (yyvsp[(3) - (3)].str_formulas).str,*(yyvsp[(3) - (3)].str_formulas).formulas)); }
     break;
 
   case 68:
 
 /* Line 1455 of yacc.c  */
-#line 203 "pbparser.ypp"
+#line 202 "pbparser.ypp"
     { (yyval.str_formulas).str=(yyvsp[(2) - (5)].str); (yyval.str_formulas).formulas=(yyvsp[(4) - (5)].formulas);}
     break;
 
   case 69:
 
 /* Line 1455 of yacc.c  */
-#line 204 "pbparser.ypp"
+#line 203 "pbparser.ypp"
     { (yyval.str_formulas).str="all"; (yyval.str_formulas).formulas=REFALLOC(FormulaList());}
     break;
 
   case 70:
 
 /* Line 1455 of yacc.c  */
-#line 206 "pbparser.ypp"
+#line 205 "pbparser.ypp"
     { ((yyval.region)=(yyvsp[(1) - (2)].region))->setName((yyvsp[(2) - (2)].str)); }
     break;
 
   case 80:
 
 /* Line 1455 of yacc.c  */
-#line 214 "pbparser.ypp"
+#line 213 "pbparser.ypp"
     { (yyval.i)=     jalib::StringToX<int>((yyvsp[(1) - (1)].str)); }
     break;
 
   case 81:
 
 /* Line 1455 of yacc.c  */
-#line 215 "pbparser.ypp"
+#line 214 "pbparser.ypp"
     { (yyval.d)=jalib::StringToX<double>((yyvsp[(1) - (1)].str)); }
     break;
 
   case 82:
 
 /* Line 1455 of yacc.c  */
-#line 217 "pbparser.ypp"
+#line 216 "pbparser.ypp"
     { ((yyval.rules)=REFALLOC(RuleList()))->push_back((yyvsp[(1) - (1)].rule)); }
     break;
 
   case 83:
 
 /* Line 1455 of yacc.c  */
-#line 218 "pbparser.ypp"
+#line 217 "pbparser.ypp"
     { ((yyval.rules)=(yyvsp[(1) - (2)].rules))->push_back((yyvsp[(2) - (2)].rule)); }
     break;
 
   case 84:
 
 /* Line 1455 of yacc.c  */
-#line 220 "pbparser.ypp"
+#line 219 "pbparser.ypp"
     { ((yyval.transforms)=REFALLOC(TransformList()))->push_back((yyvsp[(1) - (1)].transform)); }
     break;
 
   case 85:
 
 /* Line 1455 of yacc.c  */
-#line 221 "pbparser.ypp"
+#line 220 "pbparser.ypp"
     { ((yyval.transforms)=(yyvsp[(1) - (2)].transforms))->push_back((yyvsp[(2) - (2)].transform)); }
     break;
 
   case 86:
 
 /* Line 1455 of yacc.c  */
-#line 223 "pbparser.ypp"
+#line 222 "pbparser.ypp"
     { ((yyval.matrixdefs)=REFALLOC(MatrixDefList()))->push_back((yyvsp[(1) - (1)].matrixdef)); }
     break;
 
   case 87:
 
 /* Line 1455 of yacc.c  */
-#line 224 "pbparser.ypp"
+#line 223 "pbparser.ypp"
     { ((yyval.matrixdefs)=(yyvsp[(1) - (3)].matrixdefs))->push_back((yyvsp[(3) - (3)].matrixdef));                      }
     break;
 
   case 88:
 
 /* Line 1455 of yacc.c  */
-#line 226 "pbparser.ypp"
+#line 225 "pbparser.ypp"
     { ((yyval.formulas)=REFALLOC(FormulaList()))->push_back((yyvsp[(1) - (1)].formula)); }
     break;
 
   case 89:
 
 /* Line 1455 of yacc.c  */
-#line 227 "pbparser.ypp"
+#line 226 "pbparser.ypp"
     { ((yyval.formulas)=(yyvsp[(1) - (3)].formulas))->push_back((yyvsp[(3) - (3)].formula)); }
     break;
 
   case 90:
 
 /* Line 1455 of yacc.c  */
-#line 229 "pbparser.ypp"
+#line 228 "pbparser.ypp"
     { ((yyval.regions)=REFALLOC(RegionList())); }
     break;
 
   case 91:
 
 /* Line 1455 of yacc.c  */
-#line 230 "pbparser.ypp"
+#line 229 "pbparser.ypp"
     { ((yyval.regions)=REFALLOC(RegionList()))->push_back((yyvsp[(1) - (1)].region)); }
     break;
 
   case 92:
 
 /* Line 1455 of yacc.c  */
-#line 231 "pbparser.ypp"
+#line 230 "pbparser.ypp"
     { ((yyval.regions)=(yyvsp[(1) - (3)].regions))->push_back((yyvsp[(3) - (3)].region)); }
     break;
 
   case 93:
 
 /* Line 1455 of yacc.c  */
-#line 234 "pbparser.ypp"
+#line 233 "pbparser.ypp"
     { (yyval.formulas)=REFALLOC(FormulaList()); }
     break;
 
   case 94:
 
 /* Line 1455 of yacc.c  */
-#line 235 "pbparser.ypp"
+#line 234 "pbparser.ypp"
     { (yyval.formulas)=(yyvsp[(1) - (1)].formulas); }
     break;
 
   case 95:
 
 /* Line 1455 of yacc.c  */
-#line 238 "pbparser.ypp"
+#line 237 "pbparser.ypp"
     { ((yyval.freevars)=REFALLOC(OrderedFreeVars()))->push_back((yyvsp[(1) - (1)].str)); }
     break;
 
   case 96:
 
 /* Line 1455 of yacc.c  */
-#line 239 "pbparser.ypp"
+#line 238 "pbparser.ypp"
     { ((yyval.freevars)=(yyvsp[(1) - (3)].freevars))->push_back((yyvsp[(3) - (3)].str)); }
     break;
 
 
 
 /* Line 1455 of yacc.c  */
-#line 2289 "pbparser.cpp"
+#line 2288 "pbparser.cpp"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -2504,7 +2503,7 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 241 "pbparser.ypp"
+#line 240 "pbparser.ypp"
 
 
 extern FILE* pbin;

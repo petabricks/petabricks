@@ -100,7 +100,6 @@ Start: TransformList {
 
 Transform: TransformHeader TransformBody {
    ($$=$1)->setRules(*$2); 
-   JTRACE("parsed Transform")($$->name()); 
 };
 
 TransformHeader: Nil {$$=REFALLOC(Transform());};
@@ -114,7 +113,7 @@ TransformHeader: TransformHeader KW_TO      MatrixDefList             { ($$=$1)-
 TransformHeader: TransformHeader KW_TEMPLATE OptLT TemplateArgs OptGT { ($$=$1)->addTemplateArg(*$4); };
 TransformHeader: TransformHeader KW_TESTCASE TestCase                 { ($$=$1)->addTestCase($3);};
 TransformHeader: TransformHeader KW_ACCURACYMETRIC IDENT              { ($$=$1)->setAccuracyMetric($3);};
-TransformHeader: TransformHeader KW_GENERATOR IDENT                   { UNIMPLEMENTED(); }
+TransformHeader: TransformHeader KW_GENERATOR IDENT                   { ($$=$1)->setGenerator($3);};
 
 TransformHeader: TransformHeader KW_CONFIG IDENT '(' Integer ')' 
          { ($$=$1)->addConfig($3, $5); };

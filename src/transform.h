@@ -204,7 +204,14 @@ public:
 
   bool isMain() const { return _isMain; }
 
-  void setAccuracyMetric(const std::string& str){_accuracyMetric=str;}
+  void setAccuracyMetric(const std::string& str){
+    JASSERT(_accuracyMetric=="")(_name).Text("accuracy_metric declared twice");
+    _accuracyMetric=str;
+  }
+  void setGenerator(const std::string& str){
+    JASSERT(_generator=="")(_name).Text("generator declared twice");
+    _generator=str;
+  }
 
 private:
   std::string   _originalName;
@@ -226,6 +233,7 @@ private:
   ConfigItems _config;
   bool  _usesSplitSize;
   std::string _accuracyMetric;
+  std::string _generator;
 };
 
 }
