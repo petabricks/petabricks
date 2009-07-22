@@ -7,7 +7,7 @@ import re
 import subprocess 
 import time
 
-benchmarks=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests")
+benchmarks=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:])
 
 def resolveInputPath(path):
   if os.path.isfile("./testdata/"+path):
@@ -21,7 +21,7 @@ def forkrun(cmd):
 def run(cmd):
   return forkrun(cmd).wait()
 
-width=reduce(max, map(lambda b: len(b[0]), benchmarks))
+width=reduce(max, map(lambda b: len(b[0]), benchmarks), 0)
 
 passed=0
 total=0

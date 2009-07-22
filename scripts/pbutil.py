@@ -70,7 +70,7 @@ def compileBenchmarks(benchmarks):
   NCPU=cpuCount()
   failed=[]
   pbc="./src/pbc"
-  benchmarkMaxLen=reduce(max,map(len,benchmarks))
+  benchmarkMaxLen=reduce(max,map(len,benchmarks), 0)
 
   msgMaxLen= len("[%d/%d jobs] "%(NCPU,NCPU))
   msgPfx=lambda:("[%d/%d jobs]"%(len(jobs),NCPU)).ljust(msgMaxLen)
@@ -130,7 +130,7 @@ def normalizeBenchmarkName(n, search=True):
   
   
 
-def loadAndCompileBenchmarks(file):
+def loadAndCompileBenchmarks(file, searchterms=[]):
   chdirToPetabricksRoot()
   compilePetabricks()
   benchmarks=open(file)
@@ -139,6 +139,10 @@ def loadAndCompileBenchmarks(file):
   benchmarks=filter(lambda x: len(x)>0, benchmarks)
   ws = re.compile("[ \t]+")
   benchmarks=map(lambda x: ws.split(x), benchmarks)
+
+  if len(searchterms)>0:
+    benchmarks=filter(lambda b: any(s in b[0] for s in searchterms), benchmarks)
+
   compileBenchmarks(map(lambda x: x[0], benchmarks))
   return benchmarks
 
