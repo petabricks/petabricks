@@ -28,6 +28,10 @@
 
 #include "jtunable.h"
 
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
 namespace petabricks {
 
 int petabricksMain(int argc, const char** argv);
@@ -72,6 +76,9 @@ public:
     ///
     /// initialize with random inputs
     virtual void randomInputs(int size) = 0;
+
+
+    virtual MATRIX_ELEMENT_T accuracy() = 0;
 
     virtual const char* name() = 0;
 

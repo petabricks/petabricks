@@ -77,13 +77,15 @@ static int SEARCH_BRANCH_FACTOR=8;
 static bool MULTIGRID_FLAG=false;
 static bool FULL_MULTIGRID_FLAG=false;
 static bool DUMPTIMING=false;
+static bool ACCURACY=false;
 
 static struct {
   int count;
   double total;
+  double total_accuracy;
   double min;
   double max;
-} timing = {0, 0.0, std::numeric_limits<double>::max(), std::numeric_limits<double>::min() };
+} timing = {0, 0.0, 0.0, std::numeric_limits<double>::max(), std::numeric_limits<double>::min() };
 
 
 JTUNABLE(worker_threads,   8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
@@ -211,6 +213,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   args.param("smoothing", GRAPH_SMOOTHING);
   args.param("max-sec", GRAPH_MAX_SEC);
   args.param("max-sec", GRAPH_MAX_SEC);
+  args.param("accuracy", ACCURACY).help("print out accuracy of answer");
     
 
   if(args.param("graph-param", graphParam) || args.param("graph-tune", graphParam)){
@@ -273,14 +276,19 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
     runTrial();
   }else{
 #ifdef GRACEFUL_ABORT
-    try
+    try{
 #endif
-    {
-      JTIMER_SCOPE(compute);
-      main.compute();
-    }
+      {
+        JTIMER_SCOPE(compute);
+        main.compute();
+      }
+      if(ACCURACY) {
+        JTIMER_SCOPE(accuracy);
+        timing.total_accuracy += main.accuracy();
+        timing.count += 1;
+      }
 #ifdef GRACEFUL_ABORT
-    catch(petabricks::DynamicScheduler::AbortException e){
+    }catch(petabricks::DynamicScheduler::AbortException e){
       scheduler->abortEnd();
       JWARNING(false).Text("PetabricksRuntime::abort() called");
       return 5;
@@ -293,15 +301,19 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
     }
   }
 
-
-  if(DUMPTIMING){
-    std::cout << "<timing"
-              << " average=\"" << (timing.total/timing.count) << "\""
-              << " total=\"" << timing.total << "\""
-              << " count=\"" << timing.count<< "\""
-              << " min=\"" << timing.min<< "\""
-              << " max=\"" << timing.max<< "\""
-              << " />\n" << std::flush;
+  if(DUMPTIMING | ACCURACY){
+    std::cout << "<timing";
+    std::cout << " count=\"" << timing.count<< "\"";
+    if(ACCURACY) {
+      std::cout << " accuracy=\"" << (timing.total_accuracy/timing.count) << "\"";
+    }
+    if(DUMPTIMING) {
+      std::cout << " average=\"" << (timing.total/timing.count) << "\"";
+      std::cout << " total=\"" << timing.total << "\"";
+      std::cout << " min=\"" << timing.min<< "\"";
+      std::cout << " max=\"" << timing.max<< "\"";
+    }
+    std::cout << " />\n" << std::flush;
   }
 
   return 0;
@@ -386,6 +398,10 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
         jalib::JTime begin=jalib::JTime::Now();
         _main->compute();
         jalib::JTime end=jalib::JTime::Now();
+        double acc = 0;
+        if(ACCURACY){
+          acc = _main->accuracy();
+        }
 
 #ifdef GRACEFUL_ABORT
         // Disable previous alarm
@@ -401,9 +417,10 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
           double v=end-begin;
           t+=v;
 
-          if(DUMPTIMING){
+          if(DUMPTIMING || ACCURACY){
             timing.count++;
             timing.total+=v;
+            timing.total_accuracy+=acc;
             timing.min=std::min(timing.min,v);
             timing.max=std::max(timing.max,v);
           }
