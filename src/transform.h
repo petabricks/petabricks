@@ -192,6 +192,16 @@ public:
 
   void addParams(const OrderedFreeVars& p) { _parameters.insert(_parameters.end(), p.begin(), p.end()); }
 
+  
+  MatrixDefList defaultVisibleInputs() const {
+    MatrixDefList tmp;
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      if( (*i)->numDimensions() == 0 )
+        tmp.push_back(*i);
+    }
+    return tmp;
+  }
+
 private:
   std::string   _originalName;
   std::string   _name;

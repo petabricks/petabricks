@@ -44,7 +44,7 @@ petabricks::Region::Region(const char* fromMatrix, const FormulaList& version, c
   , _originalBounds(bounds)
 {
   if(version.size()>0){
-    JASSERT(version.size()==1)(version).Text("only one version allowed in matrix accessor");
+    JASSERT(version.size()==1)(version).Text("only one version allowed in matrix accessors");
     _version = version[0];
   }
 }

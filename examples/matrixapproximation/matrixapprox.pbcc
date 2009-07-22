@@ -12,8 +12,8 @@
 
 
 transform MatrixApprox
-param k  //input param: number of singular values used k<=n
-from IN[n,n]
+//param k  //input param: number of singular values used k<=n
+from IN[n,n], k
 through Lambda[2*n], X[2*n,2*n], U[n,n], VT[n,n], H[2*n,2*n], TEMP[n,n]
 to OUT[n,n]
 {
