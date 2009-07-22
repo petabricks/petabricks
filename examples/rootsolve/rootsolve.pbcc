@@ -120,7 +120,7 @@ to X, FX
 
 
    to (A.cell(i) a, B.cell(i) b, C.cell(i) c, FA.cell(i) fa, FB.cell(i) fb, FC.cell(i) fc) 
-   from (A.cell(i-1) aold, B.cell(i-1) bold, C.cell(i-1) cold, FA.cell(i-1) faold, FB.cell(i-1) fbold, FC.cell(i-1) fcold, F f) 
+   from (A.cell(i-1) aold, B.cell(i-1) bold, C.cell(i-1) cold, FA.cell(i-1) faold, FB.cell(i-1) fbold, FC.cell(i-1) fcold, F f)
    { 
 	Bisection(a,b,c,fa,fb,fc,  f,aold,bold,cold,faold,fbold,fcold);
    }
