@@ -1,8 +1,8 @@
 #ifndef KMEANS_PBCC
 #define KMEANS_PBCC
 
-#ifndef k
-#define k 5
+//#ifndef k
+//#define k 5
 
 #include "../simple/copy.pbcc"
 #include "newclusterlocations.pbcc"
@@ -38,6 +38,7 @@ to MinX[m]
 }
 
 transform centerplus
+//param k //input parameter: number of clusters
 from X[n,2]
 through D[n,k], DMIN[n], DSQ[n], Xtemp[n,2]
 to C[k,2]
@@ -79,7 +80,8 @@ to C[k,2]
 
 			
 transform kmeans
-from X[n,2]    // X - x,y coordinates of n points,  k - number of clusters
+param k //input parameter: number of clusters
+from X[n,2]    // X - x,y coordinates of n points
 through CFLAG, Ctemp[k,2]
 to C[k,2], A[n], WCSS   // C - centroids, A - cluster assignment, WCSS - within-cluster sum of squares  (error measures)
 {

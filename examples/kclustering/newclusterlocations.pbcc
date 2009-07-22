@@ -1,11 +1,12 @@
 #ifndef NEWCLUSTERLOCATIONS_PBCC
 #define NEWCLUSTERLOCATIONS_PBCC
 
-#ifndef k
-#define k 3
-#endif
+//#ifndef k
+//#define k 3
+//#endif
 
 transform NewClusterLocations
+param k //input parameter: number of clusters
 from X[n,2], A[n]
 through Sum[k,2], Count[k]
 to C[k,2] 
