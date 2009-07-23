@@ -30,6 +30,7 @@
 #  include "config.h"
 #endif
 
+
 static jalib::AtomicT theTidGen = 0;
 
 #ifdef HAVE_THREADLOCAL
@@ -67,19 +68,23 @@ int petabricks::tid()
 
 // #define VERBOSE
 
-namespace petabricks {
 
-static petabricks::DynamicScheduler *_dsPtr = NULL;
+petabricks::DynamicScheduler& petabricks::DynamicScheduler::instance(){
+  static DynamicScheduler t;
+  return t;
+}
+
+namespace petabricks {
 
 static void sigAlarmHandler(int signal) {
   printf("  TIMED OUT!\n");
   fflush(stdout);
-  _dsPtr->setAbortFlag();
+  DynamicScheduler::instance().setAbortFlag();
 }
-
 
 #ifdef GRACEFUL_ABORT
 bool DynamicScheduler::theIsAborting=false;
+bool DynamicScheduler::theIsTerminating=false;
 jalib::JCondMutex DynamicScheduler::theAbortingLock;
 #endif
 
@@ -90,10 +95,6 @@ void *workerStartup(void *);
 
 DynamicScheduler::DynamicScheduler()
 {
-  // Allow only one scheduler
-  JASSERT(_dsPtr == NULL);
-  _dsPtr = this;
-
   // Register abort handler
   signal(SIGALRM, sigAlarmHandler);
 
@@ -107,7 +108,6 @@ DynamicScheduler::DynamicScheduler()
 
 DynamicScheduler::~DynamicScheduler()
 {
-  // nothing to do so far
 }
 
 
@@ -117,8 +117,7 @@ void DynamicScheduler::startWorkerThreads(int total)
   while(numOfWorkers < total)
     JASSERT(pthread_create(&workerThreads[numOfWorkers++ - 1], NULL, workerStartup, (void *)this) == 0);
 }
-
-
+  
 void DynamicScheduler::popAndRunOneTask(bool blocking)
 {
 #ifdef GRACEFUL_ABORT
@@ -150,9 +149,17 @@ void *workerStartup(void *args)
 {
   DynamicScheduler *scheduler = (DynamicScheduler *)args;
 
-  // infinit loop to for executing tasks
-  while (true) {
-    scheduler->popAndRunOneTask(true);
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+
+  // infinite loop to for executing tasks
+  try {
+    while (true) {
+      scheduler->popAndRunOneTask(true);
+    }
+  } catch(...) {
+    //JTRACE("Thread aborted");
+    throw;
   }
 }
 
@@ -195,6 +202,15 @@ void DynamicScheduler::abortWait() {
   theAbortingLock.broadcast();
   while(isAborting()) theAbortingLock.wait();
   numAbortedThreads--;
+  if(isTerminating()) pthread_exit(NULL);
+}
+void DynamicScheduler::shutdown() {
+  theIsTerminating = true;
+  setAbortFlag();
+  abortEnd();
+  for(int i=0; i<numOfWorkers-1; ++i)
+    JASSERT(pthread_join(workerThreads[i], NULL) == 0)(i);
+  numOfWorkers=1;
 }
 #endif
 

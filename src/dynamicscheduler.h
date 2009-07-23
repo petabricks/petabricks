@@ -37,7 +37,7 @@
 #endif
 
 namespace petabricks {
-
+  
 // The major work of dynamic scheduler is to maintain two queues:
 // * ready queue: a queue of tasks ready to run
 
@@ -49,6 +49,8 @@ namespace petabricks {
 int tid(void);
 
 class DynamicScheduler{
+public:
+  static DynamicScheduler& instance();
 
 private:
   class Deque {
@@ -276,7 +278,7 @@ public:
   ///
   /// start worker threads
   void startWorkerThreads(int newWorkers);
-
+  
   ///
   /// add a ready task into queue
   void enqueue(DynamicTask *t) {
@@ -357,10 +359,12 @@ public:
 #ifdef GRACEFUL_ABORT
   class AbortException {};
   static bool isAborting() { return theIsAborting; }
+  static bool isTerminating() { return theIsTerminating; }
   void abortBegin();
   void abortEnd();
   void abortWait();
   void setAbortFlag();
+  void shutdown();
   void resetAbortFlag();
 #endif
 protected:
@@ -375,6 +379,7 @@ protected:
 #ifdef GRACEFUL_ABORT
   static jalib::JCondMutex theAbortingLock;
   static bool theIsAborting;
+  static bool theIsTerminating;
   int numAbortedThreads;
 #endif
 };

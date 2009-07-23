@@ -43,12 +43,6 @@ public:
   /**
    * Interface used to construct a main routine in generated code
    */
-
-  ///
-  /// Scheduler for scheduling the dynamic tasks
-  static DynamicScheduler *scheduler;
-
-
   typedef class __usr_main_interface{
   public:
     typedef const std::vector<std::string>& ArgListT;
@@ -134,11 +128,11 @@ public:
   bool alternateTransforms() const { return _main->name() != _mainName; }
   void addTransform(Main* tx){ JASSERT(tx!=NULL); if(tx->name() == _mainName) _main=tx; }
 
-  void exit(int rv){
-    fflush(stdout);
-    fflush(stderr);
-    _exit(rv);
-  }
+//void exit(int rv){
+//  fflush(stdout);
+//  fflush(stderr);
+//  _exit(rv);
+//}
 
 private:
   Main* _main;

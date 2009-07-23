@@ -139,7 +139,7 @@ std::string cmdCxxCompiler(const std::string& src, const std::string& bin){
        + "echo -n Calling C++ compiler...\\ && \\\n"
        + CXX " " CXXFLAGS " " DEFS " -c -o " + ofile + " " + src + " && \\\n"
        + "echo done && echo -n Linking...\\ && \\\n"
-       + CXX " " CXXFLAGS " -o " + bin + " " + ofile + " " + theLibPetabricksPath+ " " + theLibPetabricksMainPath + " " LIBS " && \\\n"
+       + CXX " " CXXFLAGS " -o " + bin + " " + ofile + " " + theLibPetabricksMainPath+ " " + theLibPetabricksPath + " " LIBS " && \\\n"
        + "echo done";
 }
 

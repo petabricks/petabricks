@@ -90,8 +90,6 @@ static struct {
 
 JTUNABLE(worker_threads,   8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
 
-petabricks::DynamicScheduler* petabricks::PetabricksRuntime::scheduler = NULL;
-
 namespace{//file local
 
 typedef jalib::JTunableManager TunableManager;
@@ -132,8 +130,6 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   , _randSize(4096)
 {
   jalib::JArgs args(argc, argv);
-  JASSERT(scheduler==NULL);
-  scheduler = new DynamicScheduler();
   JASSERT(m!=NULL);
   _mainName = m->name();
   CONFIG_FILENAME = jalib::Filesystem::GetProgramPath() + ".cfg";
@@ -152,6 +148,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
 petabricks::PetabricksRuntime::~PetabricksRuntime()
 {
   saveConfig();
+  DynamicScheduler::instance().shutdown();
 }
 
 void petabricks::PetabricksRuntime::saveConfig()
@@ -241,7 +238,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   }
 
   JASSERT(worker_threads>=1)(worker_threads);
-  scheduler->startWorkerThreads(worker_threads);
+  DynamicScheduler::instance().startWorkerThreads(worker_threads);
   
   std::vector<std::string> txArgs;
   args.param("args", txArgs);
@@ -289,7 +286,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
       }
 #ifdef GRACEFUL_ABORT
     }catch(petabricks::DynamicScheduler::AbortException e){
-      scheduler->abortEnd();
+      DynamicScheduler::instance().abortEnd();
       JWARNING(false).Text("PetabricksRuntime::abort() called");
       return 5;
     }
@@ -360,7 +357,7 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
   GRAPH_MAX = std::min(GRAPH_MAX, worker_threads.max());
   for(int n = GRAPH_MIN; n <= GRAPH_MAX; n+= GRAPH_STEP) {
     worker_threads.setValue(n);
-    scheduler->startWorkerThreads(worker_threads);
+    DynamicScheduler::instance().startWorkerThreads(worker_threads);
 
     double avg = runTrial();
     printf("%d %.6lf\n", n, avg);
@@ -389,7 +386,7 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
 #ifdef GRACEFUL_ABORT
         // Set up a time out so we don't waste time running things that are
         // slower than what we have seen already.
-        scheduler->resetAbortFlag();
+        DynamicScheduler::instance().resetAbortFlag();
         if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
           alarm((unsigned int) thresh + 1);
         }
@@ -433,7 +430,7 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
     return rslts[GRAPH_SMOOTHING];
 #ifdef GRACEFUL_ABORT
   }catch(petabricks::DynamicScheduler::AbortException e){
-    scheduler->abortEnd();
+    DynamicScheduler::instance().abortEnd();
     return std::numeric_limits<double>::max();
   }
 #endif
@@ -624,7 +621,7 @@ void petabricks::PetabricksRuntime::setIsTrainingRun(bool b){
 
 void petabricks::PetabricksRuntime::abort(){
 #ifdef GRACEFUL_ABORT
-  scheduler->abortBegin();
+  DynamicScheduler::instance().abortBegin();
 #else
   JASSERT(false).Text("PetabricksRuntime::abort() called");
 #endif
@@ -709,10 +706,7 @@ void petabricks::PetabricksRuntime::runMultigridAutotuneMode(){
 
 int petabricks::petabricksMain(int argc, const char** argv){
   PetabricksRuntime runtime(argc, argv, petabricksMainTransform());
-  int rv = runtime.runMain(argc,argv);
-  runtime.~PetabricksRuntime();
-  runtime.exit(rv);
-  return rv;
+  return runtime.runMain(argc,argv);
 }
 
 

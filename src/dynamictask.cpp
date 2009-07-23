@@ -174,7 +174,7 @@ void DynamicTask::waitUntilComplete()
   while(state != S_COMPLETE && state!= S_CONTINUED) {
     lock.unlock();
     // get a task for execution
-    PetabricksRuntime::scheduler->popAndRunOneTask(false);
+    DynamicScheduler::instance().popAndRunOneTask(false);
     lock.lock();
   }
   lock.unlock();
@@ -191,7 +191,7 @@ void DynamicTask::inlineOrEnqueueTask()
   else
 #endif
   {
-    PetabricksRuntime::scheduler->enqueue(this);
+    DynamicScheduler::instance().enqueue(this);
   }
 }
 
