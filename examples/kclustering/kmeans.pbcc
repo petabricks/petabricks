@@ -104,7 +104,7 @@ to C[k,2], A[n], WCSS   // C - centroids, A - cluster assignment, WCSS - within-
     change=1;
     InlineCopy2D(c,ctemp);    
 
-    while (change > 0)  {
+    while (change > 0)  {//forenough?
 	AssignClusters(a,change,x,c,a);
 	if (change > 0) { 
 		NewClusterLocations(c, x, a);

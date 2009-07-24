@@ -202,6 +202,28 @@ public:
     return tmp;
   }
 
+  bool isMain() const { return _isMain; }
+
+  void setAccuracyMetric(const std::string& str){
+    JASSERT(_accuracyMetric=="")(_name).Text("accuracy_metric declared twice");
+    _accuracyMetric=str;
+  }
+  void setGenerator(const std::string& str){
+    JASSERT(_generator=="")(_name).Text("generator declared twice");
+    _generator=str;
+  }
+    
+  std::vector<std::string> argnames() const {
+    std::vector<std::string> args;
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      args.push_back((*i)->name());
+    }
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      args.push_back((*i)->name());
+    }
+    return args;
+  }
+
 private:
   std::string   _originalName;
   std::string   _name;
@@ -221,6 +243,8 @@ private:
   int _tuneId;
   ConfigItems _config;
   bool  _usesSplitSize;
+  std::string _accuracyMetric;
+  std::string _generator;
 };
 
 }

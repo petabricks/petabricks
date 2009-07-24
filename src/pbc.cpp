@@ -95,10 +95,20 @@ int main( int argc, const char ** argv){
     (*i)->generateCode(o);
   }
 
+  //find the main transform
+  std::string mainName = "";
+  for(TransformList::const_iterator i=t->begin(); i!=t->end(); ++i){
+    if((*i)->isMain()){
+      JASSERT(mainName=="")(mainName)((*i)->name())
+        .Text("Two transforms both have the 'main' keyword");
+      mainName = (*i)->name();
+    }
+  }
+  if(mainName=="") mainName = t->back()->name();
 
   o.comment("A hook called by PetabricksRuntime");
   o.beginFunc("petabricks::PetabricksRuntime::Main*", "petabricksMainTransform");
-  o.write("return "+t->back()->name()+"_main::instance();");
+  o.write("return "+mainName+"_main::instance();");
   o.endFunc();
   
   o.comment("A hook called by PetabricksRuntime");
@@ -129,7 +139,7 @@ std::string cmdCxxCompiler(const std::string& src, const std::string& bin){
        + "echo -n Calling C++ compiler...\\ && \\\n"
        + CXX " " CXXFLAGS " " DEFS " -c -o " + ofile + " " + src + " && \\\n"
        + "echo done && echo -n Linking...\\ && \\\n"
-       + CXX " " CXXFLAGS " -o " + bin + " " + ofile + " " + theLibPetabricksPath+ " " + theLibPetabricksMainPath + " " LIBS " && \\\n"
+       + CXX " " CXXFLAGS " -o " + bin + " " + ofile + " " + theLibPetabricksMainPath+ " " + theLibPetabricksPath + " " LIBS " && \\\n"
        + "echo done";
 }
 

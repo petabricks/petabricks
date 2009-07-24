@@ -39,57 +39,59 @@
    /* Put the tokens into the symbol table, so that GDB and other debuggers
       know about them.  */
    enum yytokentype {
-     TRANSFORM = 258,
-     FROM = 259,
-     TO = 260,
-     THROUGH = 261,
-     LE = 262,
-     GE = 263,
-     EQ = 264,
-     WHERE = 265,
-     ROTATABLE = 266,
-     PRIMARY = 267,
-     SECONDARY = 268,
-     PRIORITY = 269,
-     MAIN = 270,
-     RECURSIVE = 271,
-     TESTCASE = 272,
-     GENERATOR = 273,
-     TEMPLATE = 274,
-     TUNABLE = 275,
-     CONFIG = 276,
+     KW_TRANSFORM = 258,
+     KW_FROM = 259,
+     KW_TO = 260,
+     KW_THROUGH = 261,
+     KW_LE = 262,
+     KW_GE = 263,
+     KW_EQ = 264,
+     KW_WHERE = 265,
+     KW_ROTATABLE = 266,
+     KW_PRIMARY = 267,
+     KW_SECONDARY = 268,
+     KW_PRIORITY = 269,
+     KW_MAIN = 270,
+     KW_RECURSIVE = 271,
+     KW_TESTCASE = 272,
+     KW_GENERATOR = 273,
+     KW_TEMPLATE = 274,
+     KW_TUNABLE = 275,
+     KW_CONFIG = 276,
      KW_PARAM = 277,
-     INTEGER = 278,
-     FLOAT = 279,
-     IDENT = 280,
-     RULEBODY = 281
+     KW_ACCURACYMETRIC = 278,
+     TOK_INTEGER = 279,
+     TOK_FLOAT = 280,
+     TOK_RULEBODY = 281,
+     IDENT = 282
    };
 #endif
 /* Tokens.  */
-#define TRANSFORM 258
-#define FROM 259
-#define TO 260
-#define THROUGH 261
-#define LE 262
-#define GE 263
-#define EQ 264
-#define WHERE 265
-#define ROTATABLE 266
-#define PRIMARY 267
-#define SECONDARY 268
-#define PRIORITY 269
-#define MAIN 270
-#define RECURSIVE 271
-#define TESTCASE 272
-#define GENERATOR 273
-#define TEMPLATE 274
-#define TUNABLE 275
-#define CONFIG 276
+#define KW_TRANSFORM 258
+#define KW_FROM 259
+#define KW_TO 260
+#define KW_THROUGH 261
+#define KW_LE 262
+#define KW_GE 263
+#define KW_EQ 264
+#define KW_WHERE 265
+#define KW_ROTATABLE 266
+#define KW_PRIMARY 267
+#define KW_SECONDARY 268
+#define KW_PRIORITY 269
+#define KW_MAIN 270
+#define KW_RECURSIVE 271
+#define KW_TESTCASE 272
+#define KW_GENERATOR 273
+#define KW_TEMPLATE 274
+#define KW_TUNABLE 275
+#define KW_CONFIG 276
 #define KW_PARAM 277
-#define INTEGER 278
-#define FLOAT 279
-#define IDENT 280
-#define RULEBODY 281
+#define KW_ACCURACYMETRIC 278
+#define TOK_INTEGER 279
+#define TOK_FLOAT 280
+#define TOK_RULEBODY 281
+#define IDENT 282
 
 
 
@@ -123,7 +125,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 127 "pbparser.h"
+#line 129 "pbparser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

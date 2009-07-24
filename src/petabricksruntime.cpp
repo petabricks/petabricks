@@ -77,18 +77,18 @@ static int SEARCH_BRANCH_FACTOR=8;
 static bool MULTIGRID_FLAG=false;
 static bool FULL_MULTIGRID_FLAG=false;
 static bool DUMPTIMING=false;
+static bool ACCURACY=false;
 
 static struct {
   int count;
   double total;
+  double total_accuracy;
   double min;
   double max;
-} timing = {0, 0.0, std::numeric_limits<double>::max(), std::numeric_limits<double>::min() };
+} timing = {0, 0.0, 0.0, std::numeric_limits<double>::max(), std::numeric_limits<double>::min() };
 
 
 JTUNABLE(worker_threads,   8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
-
-petabricks::DynamicScheduler* petabricks::PetabricksRuntime::scheduler = NULL;
 
 namespace{//file local
 
@@ -130,8 +130,6 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   , _randSize(4096)
 {
   jalib::JArgs args(argc, argv);
-  JASSERT(scheduler==NULL);
-  scheduler = new DynamicScheduler();
   JASSERT(m!=NULL);
   _mainName = m->name();
   CONFIG_FILENAME = jalib::Filesystem::GetProgramPath() + ".cfg";
@@ -150,6 +148,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
 petabricks::PetabricksRuntime::~PetabricksRuntime()
 {
   saveConfig();
+  DynamicScheduler::instance().shutdown();
 }
 
 void petabricks::PetabricksRuntime::saveConfig()
@@ -211,6 +210,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   args.param("smoothing", GRAPH_SMOOTHING);
   args.param("max-sec", GRAPH_MAX_SEC);
   args.param("max-sec", GRAPH_MAX_SEC);
+  args.param("accuracy", ACCURACY).help("print out accuracy of answer");
     
 
   if(args.param("graph-param", graphParam) || args.param("graph-tune", graphParam)){
@@ -238,7 +238,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   }
 
   JASSERT(worker_threads>=1)(worker_threads);
-  scheduler->startWorkerThreads(worker_threads);
+  DynamicScheduler::instance().startWorkerThreads(worker_threads);
   
   std::vector<std::string> txArgs;
   args.param("args", txArgs);
@@ -273,15 +273,20 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
     runTrial();
   }else{
 #ifdef GRACEFUL_ABORT
-    try
+    try{
 #endif
-    {
-      JTIMER_SCOPE(compute);
-      main.compute();
-    }
+      {
+        JTIMER_SCOPE(compute);
+        main.compute();
+      }
+      if(ACCURACY) {
+        JTIMER_SCOPE(accuracy);
+        timing.total_accuracy += main.accuracy();
+        timing.count += 1;
+      }
 #ifdef GRACEFUL_ABORT
-    catch(petabricks::DynamicScheduler::AbortException e){
-      scheduler->abortEnd();
+    }catch(petabricks::DynamicScheduler::AbortException e){
+      DynamicScheduler::instance().abortEnd();
       JWARNING(false).Text("PetabricksRuntime::abort() called");
       return 5;
     }
@@ -293,15 +298,19 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
     }
   }
 
-
-  if(DUMPTIMING){
-    std::cout << "<timing"
-              << " average=\"" << (timing.total/timing.count) << "\""
-              << " total=\"" << timing.total << "\""
-              << " count=\"" << timing.count<< "\""
-              << " min=\"" << timing.min<< "\""
-              << " max=\"" << timing.max<< "\""
-              << " />\n" << std::flush;
+  if(DUMPTIMING | ACCURACY){
+    std::cout << "<timing";
+    std::cout << " count=\"" << timing.count<< "\"";
+    if(ACCURACY) {
+      std::cout << " accuracy=\"" << (timing.total_accuracy/timing.count) << "\"";
+    }
+    if(DUMPTIMING) {
+      std::cout << " average=\"" << (timing.total/timing.count) << "\"";
+      std::cout << " total=\"" << timing.total << "\"";
+      std::cout << " min=\"" << timing.min<< "\"";
+      std::cout << " max=\"" << timing.max<< "\"";
+    }
+    std::cout << " />\n" << std::flush;
   }
 
   return 0;
@@ -348,7 +357,7 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
   GRAPH_MAX = std::min(GRAPH_MAX, worker_threads.max());
   for(int n = GRAPH_MIN; n <= GRAPH_MAX; n+= GRAPH_STEP) {
     worker_threads.setValue(n);
-    scheduler->startWorkerThreads(worker_threads);
+    DynamicScheduler::instance().startWorkerThreads(worker_threads);
 
     double avg = runTrial();
     printf("%d %.6lf\n", n, avg);
@@ -377,7 +386,7 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
 #ifdef GRACEFUL_ABORT
         // Set up a time out so we don't waste time running things that are
         // slower than what we have seen already.
-        scheduler->resetAbortFlag();
+        DynamicScheduler::instance().resetAbortFlag();
         if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
           alarm((unsigned int) thresh + 1);
         }
@@ -386,6 +395,10 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
         jalib::JTime begin=jalib::JTime::Now();
         _main->compute();
         jalib::JTime end=jalib::JTime::Now();
+        double acc = 0;
+        if(ACCURACY){
+          acc = _main->accuracy();
+        }
 
 #ifdef GRACEFUL_ABORT
         // Disable previous alarm
@@ -401,9 +414,10 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
           double v=end-begin;
           t+=v;
 
-          if(DUMPTIMING){
+          if(DUMPTIMING || ACCURACY){
             timing.count++;
             timing.total+=v;
+            timing.total_accuracy+=acc;
             timing.min=std::min(timing.min,v);
             timing.max=std::max(timing.max,v);
           }
@@ -416,7 +430,7 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
     return rslts[GRAPH_SMOOTHING];
 #ifdef GRACEFUL_ABORT
   }catch(petabricks::DynamicScheduler::AbortException e){
-    scheduler->abortEnd();
+    DynamicScheduler::instance().abortEnd();
     return std::numeric_limits<double>::max();
   }
 #endif
@@ -607,7 +621,7 @@ void petabricks::PetabricksRuntime::setIsTrainingRun(bool b){
 
 void petabricks::PetabricksRuntime::abort(){
 #ifdef GRACEFUL_ABORT
-  scheduler->abortBegin();
+  DynamicScheduler::instance().abortBegin();
 #else
   JASSERT(false).Text("PetabricksRuntime::abort() called");
 #endif
@@ -692,10 +706,7 @@ void petabricks::PetabricksRuntime::runMultigridAutotuneMode(){
 
 int petabricks::petabricksMain(int argc, const char** argv){
   PetabricksRuntime runtime(argc, argv, petabricksMainTransform());
-  int rv = runtime.runMain(argc,argv);
-  runtime.~PetabricksRuntime();
-  runtime.exit(rv);
-  return rv;
+  return runtime.runMain(argc,argv);
 }
 
 

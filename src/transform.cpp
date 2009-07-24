@@ -577,6 +577,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
       o.write((*i)->name() + ".randomize();");
     }
+    JWARNING(_generator=="")(_generator).Text("'generator' keyword not yet supported");
   }
   o.endFunc();
 
@@ -587,14 +588,25 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
     }
   }
   o.endFunc();
+  
+  
+  o.beginFunc("ElementT", "accuracy");
+  if(_accuracyMetric != "")
+  {
+    o.write("MatrixRegion0D _acc = MatrixRegion0D::allocate();");
+    std::vector<std::string> args = argnames();
+    args.insert(args.begin(), "_acc");
+    o.setcall("DynamicTaskPtr p", _accuracyMetric+TX_DYNAMIC_POSTFIX, args);
+    o.write("petabricks::enqueue_and_wait(p);");
+    o.write("return _acc.cell();");
+  }else{
+    o.write("return 1;");
+  }
+  o.endFunc();
 
-  o.beginFunc("void", "compute", std::vector<std::string>());
-  o.setcall("jalib::JRef<"+instClassName()+"> p","new "+instClassName(), argNames);
-  o.write("DynamicTaskPtr t = p->runDynamic();");
-  o.write("if(t){");
-  o.write("  t->enqueue();");
-  o.write("  t->waitUntilComplete();");
-  o.write("}");
+  o.beginFunc("void", "compute");
+  o.setcall("DynamicTaskPtr p",name()+TX_DYNAMIC_POSTFIX, argNames);
+  o.write("petabricks::enqueue_and_wait(p);");
   o.endFunc();
   
   o.beginFunc("const char*", "name");

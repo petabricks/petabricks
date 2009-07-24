@@ -66,19 +66,22 @@ PASS_CHARS [.<>,*/()[\]^+-]
 
 %%
 <INITIAL>{
-  "main"           RETURN MAIN;
-  "transform"      RETURN TRANSFORM;
-  "template"       RETURN TEMPLATE;
-  "generator"      RETURN GENERATOR;
-  "gen"            RETURN GENERATOR;
-  "through"        RETURN THROUGH;
-  "testcase"       RETURN TESTCASE;
-  "config"         RETURN CONFIG;
-  "param"          RETURN KW_PARAM;
-  "parameter"      RETURN KW_PARAM;
-  "tunable"        RETURN TUNABLE;
-  "{"              yy_push_state(transform); RETURN '{';
-  "%{"             yy_push_state(litcode); theParseLog.str("");
+  "main"            RETURN KW_MAIN;
+  "transform"       RETURN KW_TRANSFORM;
+  "template"        RETURN KW_TEMPLATE;
+  "generator"       RETURN KW_GENERATOR;
+  "gen"             RETURN KW_GENERATOR;
+  "through"         RETURN KW_THROUGH;
+  "testcase"        RETURN KW_TESTCASE;
+  "config"          RETURN KW_CONFIG;
+  "param"           RETURN KW_PARAM;
+  "parameter"       RETURN KW_PARAM;
+  "tunable"         RETURN KW_TUNABLE;
+  "accuracy"        RETURN KW_ACCURACYMETRIC;
+  "accuracy_metric" RETURN KW_ACCURACYMETRIC;
+  "metric"          RETURN KW_ACCURACYMETRIC;
+  "{"               yy_push_state(transform); RETURN '{';
+  "%{"              yy_push_state(litcode); theParseLog.str("");
 }
 
 <litcode>{
@@ -91,12 +94,12 @@ PASS_CHARS [.<>,*/()[\]^+-]
 }
 
 <transform>{
-  "where"          RETURN WHERE;
-  "priority"       RETURN PRIORITY;
-  "primary"        RETURN PRIMARY;
-  "secondary"      RETURN SECONDARY;
-  "rotatable"      RETURN ROTATABLE;
-  "recursive"      RETURN RECURSIVE;
+  "where"          RETURN KW_WHERE;
+  "priority"       RETURN KW_PRIORITY;
+  "primary"        RETURN KW_PRIMARY;
+  "secondary"      RETURN KW_SECONDARY;
+  "rotatable"      RETURN KW_ROTATABLE;
+  "recursive"      RETURN KW_RECURSIVE;
   "{"              {
                      yy_push_state(rule); 
                      theNestCount=1; 
@@ -108,13 +111,13 @@ PASS_CHARS [.<>,*/()[\]^+-]
 }
 
 <INITIAL,transform>{
-  "to"              RETURN TO;
-  "from"            RETURN FROM;
-  "<="              RETURN LE;
-  ">="              RETURN GE;
-  "=="              RETURN EQ;
-  [0-9]+[.][0-9]+   RETURN FLOAT;
-  [0-9]+            RETURN INTEGER;
+  "to"              RETURN KW_TO;
+  "from"            RETURN KW_FROM;
+  "<="              RETURN KW_LE;
+  ">="              RETURN KW_GE;
+  "=="              RETURN KW_EQ;
+  [0-9]+[.][0-9]+   RETURN TOK_FLOAT;
+  [0-9]+            RETURN TOK_INTEGER;
   [a-zA-Z_][a-zA-Z0-9_]* RETURN IDENT;
   {PASS_CHARS}      RETURN yytext[0];
   [/][*]            yy_push_state(comment);
@@ -132,7 +135,7 @@ PASS_CHARS [.<>,*/()[\]^+-]
                       if(--theNestCount==0){
                         yy_pop_state();
                         pblval.str=circularStringCache(theParseLog.str().c_str());
-                        RETURN RULEBODY;
+                        RETURN TOK_RULEBODY;
                       }
                    }
   [^*/{}"]+        /*nothing*/

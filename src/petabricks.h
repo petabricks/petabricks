@@ -86,5 +86,11 @@ namespace petabricks {
     return a;
   }
   
+  inline void enqueue_and_wait(const DynamicTaskPtr& task){
+    if(task){
+      task->enqueue();
+      task->waitUntilComplete();
+    }
+  }
 }
 

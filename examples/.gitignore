@@ -59,6 +59,7 @@ poisson/SOR2DInterior
 poisson/SOR2D
 poisson/trainfmgv2D
 poisson/trainmgv2D
+regression/accuracymetric
 regression/params
 regression/scaletest
 regression/templatetest

@@ -55,7 +55,7 @@ to OUT[n,n], NORM
 	to (OUT out, TEMP temp) from (U u, VT vt){
 		int i;
 		MatrixMultiply(out, u.region(0,0,1,n), vt.region(0,0,n,1) );
-		for (i=1; i<k; i++) {
+		for (i=1; i<k; i++) { //forenough?
 			//MatrixAdd(out, out, MatrixMultiply(u.region(i,0,i+1,n), vt.region(0,i,n,i+1)) );
 			MatrixMultiply(temp, u.region(i,0,i+1,n), vt.region(0,i,n,i+1));
 			MatrixAdd(out, out, temp);
