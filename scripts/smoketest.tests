@@ -47,6 +47,7 @@ sort/Sort                  Rand1Dodd
 convolution/ConvolutionFFT Rand1D Rand1D
 convolution/Convolution    Rand1D Rand1D
 kclustering/kmeans         5 KmeansRandInput /dev/null /dev/null
+matrixapproximation/matrixapprox   MatApproxRand2D MatApproxK /dev/null
 
 #this one is broken right now:
 #kernel/KernelEstimate     trainX trainY testX One0D One0D
