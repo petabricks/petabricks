@@ -60,10 +60,11 @@
      KW_CONFIG = 276,
      KW_PARAM = 277,
      KW_ACCURACYMETRIC = 278,
-     TOK_INTEGER = 279,
-     TOK_FLOAT = 280,
-     TOK_RULEBODY = 281,
-     IDENT = 282
+     KW_ACCURACYBINS = 279,
+     TOK_INTEGER = 280,
+     TOK_FLOAT = 281,
+     TOK_RULEBODY = 282,
+     IDENT = 283
    };
 #endif
 /* Tokens.  */
@@ -88,10 +89,11 @@
 #define KW_CONFIG 276
 #define KW_PARAM 277
 #define KW_ACCURACYMETRIC 278
-#define TOK_INTEGER 279
-#define TOK_FLOAT 280
-#define TOK_RULEBODY 281
-#define IDENT 282
+#define KW_ACCURACYBINS 279
+#define TOK_INTEGER 280
+#define TOK_FLOAT 281
+#define TOK_RULEBODY 282
+#define IDENT 283
 
 
 
@@ -120,12 +122,13 @@ typedef union YYSTYPE
   petabricks::TestCase*        testcase;
   petabricks::TemplateArg*     templatearg;
   petabricks::TemplateArgList* templateargs;
+  petabricks::DoubleList*      doublelist;
   struct { const char* str; petabricks::FormulaList* formulas; } str_formulas; 
 
 
 
 /* Line 1676 of yacc.c  */
-#line 129 "pbparser.h"
+#line 132 "pbparser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

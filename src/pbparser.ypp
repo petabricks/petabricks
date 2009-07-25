@@ -52,6 +52,7 @@ static void clearParserCaches(){
   petabricks::TestCase*        testcase;
   petabricks::TemplateArg*     templatearg;
   petabricks::TemplateArgList* templateargs;
+  petabricks::DoubleList*      doublelist;
   struct { const char* str; petabricks::FormulaList* formulas; } str_formulas; 
 }
 
@@ -65,11 +66,11 @@ static void clearParserCaches(){
 %token KW_TRANSFORM KW_FROM KW_TO KW_THROUGH KW_LE KW_GE KW_EQ KW_WHERE 
 %token KW_ROTATABLE KW_PRIMARY KW_SECONDARY KW_PRIORITY KW_MAIN KW_RECURSIVE
 %token KW_TESTCASE KW_GENERATOR KW_TEMPLATE KW_TUNABLE KW_CONFIG KW_PARAM
-%token KW_ACCURACYMETRIC
+%token KW_ACCURACYMETRIC KW_ACCURACYBINS
 %token <str> TOK_INTEGER TOK_FLOAT TOK_RULEBODY IDENT 
 %type <str> RuleBody
 %type <i> Integer PriorityFlag
-%type <d> Float
+%type <d> Float FloatOrInt
 %type <transform> Transform TransformHeader 
 %type <transforms> TransformList
 %type <rules> TransformBody RuleList
@@ -85,6 +86,7 @@ static void clearParserCaches(){
 %type <templateargs> TemplateArgs
 %type <str_formulas> RegionAccessor
 %type <freevars> FreeVars
+%type <doublelist> FloatList 
 
 %nonassoc '=' '<' '>' KW_LE KW_GE KW_EQ
 %left '-' '+'
@@ -113,6 +115,7 @@ TransformHeader: TransformHeader KW_TO      MatrixDefList             { ($$=$1)-
 TransformHeader: TransformHeader KW_TEMPLATE OptLT TemplateArgs OptGT { ($$=$1)->addTemplateArg(*$4); };
 TransformHeader: TransformHeader KW_TESTCASE TestCase                 { ($$=$1)->addTestCase($3);};
 TransformHeader: TransformHeader KW_ACCURACYMETRIC IDENT              { ($$=$1)->setAccuracyMetric($3);};
+TransformHeader: TransformHeader KW_ACCURACYBINS FloatList            { ($$=$1)->setAccuracyBins(*$3);};
 TransformHeader: TransformHeader KW_GENERATOR IDENT                   { ($$=$1)->setGenerator($3);};
 
 TransformHeader: TransformHeader KW_CONFIG IDENT '(' Integer ')' 
@@ -210,8 +213,9 @@ OptGT: Nil | '>';
 Dots: '.' '.' |  '.' '.' '.' ;
 Nil:;
 OptSemiCol : ';' OptSemiCol | Nil;
-Integer: TOK_INTEGER { $$=     jalib::StringToX<int>($1); };
+Integer: TOK_INTEGER { $$=jalib::StringToX<int>($1); };
 Float:   TOK_FLOAT   { $$=jalib::StringToX<double>($1); };
+FloatOrInt: Float { $$=$1; } | Integer { $$=$1; }; 
 
 RuleList: Rule          { ($$=REFALLOC(RuleList()))->push_back($1); }
         | RuleList Rule { ($$=$1)->push_back($2); };
@@ -236,6 +240,9 @@ OptFormulaList: Nil         { $$=REFALLOC(FormulaList()); }
 
 FreeVars: IDENT             { ($$=REFALLOC(OrderedFreeVars()))->push_back($1); }
         | FreeVars',' IDENT { ($$=$1)->push_back($3); };
+
+FloatList: FloatOrInt               { ($$=REFALLOC(DoubleList()))->push_back($1); }
+         | FloatList ',' FloatOrInt { ($$=$1)->push_back($3); };
 
 %%
 

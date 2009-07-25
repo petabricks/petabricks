@@ -77,9 +77,10 @@ PASS_CHARS [.<>,*/()[\]^+-]
   "param"           RETURN KW_PARAM;
   "parameter"       RETURN KW_PARAM;
   "tunable"         RETURN KW_TUNABLE;
-  "accuracy"        RETURN KW_ACCURACYMETRIC;
   "accuracy_metric" RETURN KW_ACCURACYMETRIC;
   "metric"          RETURN KW_ACCURACYMETRIC;
+  "accuracy_bins"   RETURN KW_ACCURACYBINS;
+  "bins"            RETURN KW_ACCURACYBINS;
   "{"               yy_push_state(transform); RETURN '{';
   "%{"              yy_push_state(litcode); theParseLog.str("");
 }

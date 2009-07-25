@@ -45,6 +45,8 @@ typedef jalib::JRef<TransformList> TransformListPtr;
 typedef jalib::JRef<TemplateArgList> TemplateArgListPtr;
 typedef std::set<std::string> ConstantSet;
 
+class DoubleList: public std::vector<double>, public jalib::JRefCounted {};
+
 class TemplateArg : public jalib::JRefCounted, public jalib::JPrintable {
 public:
   TemplateArg(std::string name, int min, int max)
@@ -207,6 +209,9 @@ public:
   void setAccuracyMetric(const std::string& str){
     JASSERT(_accuracyMetric=="")(_name).Text("accuracy_metric declared twice");
     _accuracyMetric=str;
+  }
+  void setAccuracyBins(const std::vector<double>& str){
+
   }
   void setGenerator(const std::string& str){
     JASSERT(_generator=="")(_name).Text("generator declared twice");
