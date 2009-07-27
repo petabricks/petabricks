@@ -1,0 +1,78 @@
+#ifndef PCGINTERIOR_PBCC
+#define PCGINTERIOR_PBCC
+
+#include "demv.pbcc"
+#include "vectoradd.pbcc"
+#include "dotproduct.pbcc"
+
+
+transform PCG_inner
+from IN[n], A[n,n], R[n], D[n], Z[n], P[n,n]
+through AD[n], ALPHA,BETA, RDOTZ
+to OUT[n],RR[n],DD[n], ZZ[n]
+{
+
+   to (AD ad) from (A a, D d)
+   {
+   	demv(ad, a, d);
+   }
+
+   to (RDOTZ RdotZ) from (R r, Z z)
+   {
+   	DotProduct(RdotZ, r, z);
+   }
+
+   to (ALPHA alpha) from(RDOTZ rz, D d, AD ad)
+   {
+	DotProduct(alpha,d,ad);
+	alpha=rz/alpha;
+   }
+
+   OUT.cell(i) from(IN.cell(i) x, ALPHA alpha, D.cell(i) d)
+   {
+   	return x + alpha *d;
+   }
+  
+   RR.cell(i) from(R.cell(i) r, ALPHA alpha, AD.cell(i) ad)
+   {
+   	return r - alpha*ad;
+   }
+
+   to (ZZ zz) from (P p, RR rr)
+   {
+	demv(zz, p, rr);
+   }
+
+   to (BETA beta) from(RR rr, ZZ zz, RDOTZ rzold)
+   {
+   	DotProduct(beta, rr,zz);
+	beta=beta/rzold;
+   }
+
+   DD.cell(i) from(ZZ.cell(i) zz, BETA beta, D.cell(i) d)
+   {
+   	return zz + beta*d;
+   }
+
+
+
+}
+
+transform PCGInterior
+from IN[n], A[n,n], R[n], D[n], Z[n], P[n,n], numIterations
+to OUT[n],RR[n],DD[n], ZZ[n]
+{
+  	
+
+  recursive
+  to(OUT o, RR rr, DD dd, ZZ zz) from(IN in, A a, R r, D d, Z z, P p, numIterations k)
+  {
+    SPAWN(PCG_inner,o, rr, dd,zz, in, a, r,d,z,p);
+    if (k > 1){
+      SYNC();
+      SPAWN(PCGInterior,o, rr, dd, zz, o, a, rr, dd,zz, p,k - 1);
+    }
+  }
+}
+
+#endif // PCGINTERIOR_PBCC

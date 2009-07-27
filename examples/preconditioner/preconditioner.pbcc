@@ -1,0 +1,28 @@
+#ifndef PRECONDITIONER_PBCC
+#define PRECONDITIONER_PBCC
+
+#include "PCG.pbcc"
+
+transform preconditioner
+from IN[n], A[n,n], B[n], NumIterations
+through P[n,n]
+to OUT[n]
+{
+	P.cell(i,j) from (A.cell(i,j) a)  where i==j
+	{
+		return 1/a;
+	}
+
+	secondary P.cell(i,j) from () { return 0;}
+
+	to (OUT out) from (IN x, A a, B b, P p, NumIterations num)
+	{
+		PCG(out, x, a, b, p, num);
+	}
+
+}
+
+			
+
+
+#endif // PRECONDITIONER_PBCC
