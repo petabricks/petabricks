@@ -9,12 +9,12 @@ transform Test1 from IN[w,h] to OUT[w,h]
   OUT.cell(x,y) from(IN.cell(x,y)     i,
                      OUT.cell(x-1, y-1) upleft)
   {
-     return i+upleft;
+     return i+upleft+thisIsATestOfFilePrefix;
   }
   
   secondary OUT.cell(x,y) from(IN.cell(x,y) i)
   {
-    return i;
+    return i+thisIsATestOfFilePrefix;
   }
 }
 
