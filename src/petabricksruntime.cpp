@@ -298,6 +298,16 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
     }
   }
 
+  if(args.param("force-output")){
+    JTIMER_SCOPE(force-write);
+    std::vector<std::string> tmp;
+    for(int i=main.numInputs(); i-->0;)
+      tmp.push_back("/dev/null");
+    for(int i=main.numOutputs(); i-->0;)
+      tmp.push_back("-");
+    main.write(tmp);
+  }
+
   if(DUMPTIMING | ACCURACY){
     std::cout << "<timing";
     std::cout << " count=\"" << timing.count<< "\"";

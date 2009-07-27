@@ -11,7 +11,7 @@ generator Gen
 transform Gen
 to A[n]
 {
-  A.cell(i) from() { return 5; }
+  A.cell(i) from() { return i; }
 }
 
 
