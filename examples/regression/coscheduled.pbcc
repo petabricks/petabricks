@@ -1,4 +1,4 @@
-transform Test12 
+transform CoscheduledTest
 from IN[n,n]
 to O1[n], O2[n,n]
 {

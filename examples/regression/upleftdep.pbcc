@@ -1,4 +1,4 @@
-transform Test3 from IN[w,h] to OUT[w,h] 
+transform UpLeftDep from IN[w,h] to OUT[w,h] 
 {
   //recursive case
   OUT.cell(x,y) from(IN.cell(x-1, y-1)  i, 

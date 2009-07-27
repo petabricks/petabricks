@@ -1,4 +1,4 @@
-transform Test7
+transform ScaleDown
 from IN[w,h] 
 to OUT[w/2,h/2] 
 {

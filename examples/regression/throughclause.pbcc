@@ -1,4 +1,4 @@
-transform Test2
+transform ThroughClause
 from IN[w,h] 
 through A[w,h], B[w,h] 
 to OUT 

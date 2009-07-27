@@ -7,7 +7,7 @@ to OUT[w,h]
   }
 }
 
-transform Test5
+transform CallTxTest
 from IN[w,h] 
 to OUT[w,h] 
 {

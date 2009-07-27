@@ -1,6 +1,6 @@
 #include "../simple/copy.pbcc"
 
-transform Test4
+transform MatrixVersionsTest 
 from IN[w,h] 
 through X<0..8>[w,h]
 to OUT[w,h] 

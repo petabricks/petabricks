@@ -1,4 +1,4 @@
-transform Test6
+transform RuleConstants
 from IN[w,h] 
 to OUT[w,h] 
 {

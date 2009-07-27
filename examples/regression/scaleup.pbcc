@@ -1,4 +1,4 @@
-transform Test10
+transform ScaleUp
 from IN[w/2,h/2] 
 to OUT[w,h] 
 {

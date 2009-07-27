@@ -1,4 +1,4 @@
-transform Test9
+transform TxConstants
 from X[n,n], v
 to  Y[n,n]
 {

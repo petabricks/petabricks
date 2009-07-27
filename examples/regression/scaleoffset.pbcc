@@ -1,4 +1,4 @@
-transform Test11
+transform ScaleOffset
 from IN[n,n]
 to R[n,(n+1)/2]
 {

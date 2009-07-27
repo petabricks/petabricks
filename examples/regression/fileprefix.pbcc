@@ -4,7 +4,7 @@ int thisIsATestOfFilePrefix=0;
 
 #define TEST define
 
-transform Test1 from IN[w,h] to OUT[w,h] 
+transform FilePrefixTest from IN[w,h] to OUT[w,h] 
 {
   OUT.cell(x,y) from(IN.cell(x,y)     i,
                      OUT.cell(x-1, y-1) upleft)
