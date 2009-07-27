@@ -503,6 +503,7 @@ void petabricks::Transform::registerMainInterface(CodeGenerator& o){
 
 void petabricks::Transform::generateMainInterface(CodeGenerator& o){ 
   std::vector<std::string> argNames = normalArgNames();
+  
   int a = 0;
   o.beginClass(_name+"_main", "petabricks::PetabricksRuntime::Main");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
@@ -571,13 +572,24 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
       (*i)->allocateTemporary(o, true);
     }
-    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-      o.write((*i)->name() + ".randomize();");
+    if(_generator==""){
+      for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+        o.write((*i)->name() + ".randomize();");
+      }
+      for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+        o.write((*i)->name() + ".randomize();");
+      }
+    }else{
+      std::vector<std::string> args;
+      for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+        args.push_back((*i)->name()+".forceMutable()");
+      }
+      o.comment("Call generator "+_generator);
+      o.write(_generator+"_main& _gen = *"+_generator+"_main::instance();");
+      o.write("_gen.randomInputs(_size_inputs);");
+      o.call("_gen.setOutputs", args);
+      o.write("_gen.compute();");
     }
-    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      o.write((*i)->name() + ".randomize();");
-    }
-    JWARNING(_generator=="")(_generator).Text("'generator' keyword not yet supported");
   }
   o.endFunc();
 
@@ -589,6 +601,16 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
   }
   o.endFunc();
   
+  std::vector<std::string> outputArgTypes;
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    outputArgTypes.push_back("const "+(*i)->matrixTypeName()+"& _"+(*i)->name());
+  }
+  o.beginFunc("void", "setOutputs", outputArgTypes);
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    std::string n = (*i)->name();
+    o.write("this->"+n+" = _"+n+";");
+  }
+  o.endFunc();
   
   o.beginFunc("ElementT", "accuracy");
   if(_accuracyMetric != "")

@@ -33,6 +33,7 @@ regression/testruleir      Rand2Da
 regression/templatetest    Rand1D 
 regression/params          20 
 regression/accuracymetric  Rand1D 
+regression/generators      Rand1D 
 poisson/Jacobi2D           Rand2Da Rand2Db One0D
 poisson/Jacobi2D           Rand2Da Rand2Db Ten0D
 poisson/SOR2D              Rand2Da Rand2Db MinusOne0D One0D

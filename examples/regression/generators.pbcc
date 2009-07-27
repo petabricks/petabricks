@@ -1,0 +1,17 @@
+
+main transform Foo 
+from A[n]
+to B[n]
+generator Gen
+{
+  B.cell(i) from(A.cell(i) a) { return a+1; }
+}
+
+
+transform Gen
+to B[n]
+{
+  B.cell(i) from() { return 5; }
+}
+
+

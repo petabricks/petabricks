@@ -126,6 +126,17 @@ public:
   }
 
   ///
+  /// force this region to be a mutable type (removes constness)
+  /// this is evil
+  MatrixRegion<D, MATRIX_ELEMENT_T> forceMutable() {
+    return MatrixRegion<D, MATRIX_ELEMENT_T>(
+        _storage,
+        (MATRIX_ELEMENT_T*) _base,
+        _sizes,
+        _multipliers);
+  }
+
+  ///
   /// Constructor with a stock layout
   MatrixRegion( const MatrixStoragePtr& s
               , ElementT* b
@@ -416,6 +427,10 @@ public:
   const MatrixStoragePtr& storage() const { return _storage; }
 
   void randomize();
+
+  MatrixRegion<0, MATRIX_ELEMENT_T> forceMutable() {
+    return *this;
+  }
 private:
   MatrixStoragePtr _storage;
   ElementT* _val;
@@ -447,6 +462,10 @@ public:
   operator ElementT () const { return cell(); }
   
   void randomize();
+  
+  MatrixRegion<0, MATRIX_ELEMENT_T> forceMutable() {
+    return MatrixRegion<0, MATRIX_ELEMENT_T>(_val);
+  }
 private:
   ElementT _val;
 };
