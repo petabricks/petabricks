@@ -9,9 +9,9 @@ generator Gen
 
 
 transform Gen
-to B[n]
+to A[n]
 {
-  B.cell(i) from() { return 5; }
+  A.cell(i) from() { return 5; }
 }
 
 
