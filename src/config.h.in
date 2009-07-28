@@ -21,9 +21,6 @@
 /* Define to 1 if you have the <cxxabi.h> header file. */
 #undef HAVE_CXXABI_H
 
-/* Define to 1 if you have the <dlfcn.h> header file. */
-#undef HAVE_DLFCN_H
-
 /* Define to 1 if you have the <execinfo.h> header file. */
 #undef HAVE_EXECINFO_H
 
@@ -95,10 +92,6 @@
 
 /* log traces to /tmp/jassertlog.pid */
 #undef JASSERT_LOG
-
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
-#undef LT_OBJDIR
 
 /* type for elements in the matrix */
 #undef MATRIX_ELEMENT_T
