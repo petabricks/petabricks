@@ -15,15 +15,13 @@ fi
 # PROGRAMS ####################################################################
 ################################################################################
 
-AC_DISABLE_SHARED
-AM_PROG_LIBTOOL
-
 AC_LANG_CPLUSPLUS
 AC_PROG_CXX
 AC_PROG_CXXCPP
 AM_PROG_LEX
 AC_PROG_YACC
 AC_PROG_EGREP
+AC_PROG_RANLIB
 
 AC_FUNC_MMAP
 AC_CHECK_FUNCS([backtrace_symbols])

@@ -222,6 +222,14 @@ public:
   const RIRExprCopyRef& testPart() const { return *(++_exprs.begin()); }
   const RIRExprCopyRef& incPart() const { return *(++(++(_exprs.begin()))); }
   const RIRStmtCopyRef& body() const { return _body; }
+
+  RIRLoopStmt* initForEnough(const RIRExprCopyRef& min = new RIRLitExpr("1"), const RIRExprCopyRef& max = 0)
+  {
+    addExpr(new RIRNilExpr());
+    addExpr(new RIRIdentExpr("false"));
+    addExpr(new RIRNilExpr());
+    return this;
+  }
 private:
   RIRStmtCopyRef _body;
 };

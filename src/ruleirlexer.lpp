@@ -63,6 +63,7 @@ CHAR ['][\\]?.[']
   "then"                      return TOK_THEN;
   "else"                      return TOK_ELSE;
   "for"                       return TOK_FOR;
+  "for_enough"                return TOK_FORENOUGH;
   "while"                     return TOK_WHILE;
   "do"                        return TOK_DO;
   "return"                    return TOK_RETURN;
