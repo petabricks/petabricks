@@ -4,7 +4,7 @@
 #include "demv.pbcc"
 #include "vectoradd.pbcc"
 #include "dotproduct.pbcc"
-
+#include "../simple/copy.pbcc"
 
 transform CG_inner
 from IN[n], A[n,n], R[n], D[n]
@@ -53,8 +53,9 @@ to OUT[n],RR[n],DD[n]
 }
 
 transform CGInterior
-from IN[n], A[n,n], R[n], D[n], numIterations
-to OUT[n],RR[n],DD[n]
+//param k
+from IN[n], A[n,n], R[n], D[n],numIterations
+to OUT[n], RR[n], DD[n]
 {
   	
 
@@ -63,10 +64,27 @@ to OUT[n],RR[n],DD[n]
   {
     SPAWN(CG_inner,o, rr, dd, in, a, r,d);
     if (k > 1){
-      SYNC();
+      SYNC();      
       SPAWN(CGInterior,o, rr, dd, o, a, rr, dd,k - 1);
     }
   }
+
+
+
+//    to (X.col(0) x, RR.col(0) rr, DD.col(0) dd)
+//    from (IN in, A a, R r, D d)
+//    {
+//	CG_inner(x, rr, dd, in, a, r, d);
+//    }
+
+//    to (X.col(i) x, RR.col(i) rr, DD.col(i) dd)
+//    from (X.col(i-1) in, A a, RR.col(i-1) r, DD.col(i-1) d)
+//    {
+//        CG_inner(x, rr, dd, in, a, r, d);
+//    }
+
+//    to (OUT out) from (X.col(k-1) x) { Copy1D(out, x);}
+
 }
 
 #endif // CGINTERIOR_PBCC

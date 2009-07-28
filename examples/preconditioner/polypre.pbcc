@@ -1,0 +1,44 @@
+#ifndef POLYPRE_PBCC
+#define POLYPRE_PBCC
+
+#include "../simple/add.pbcc"
+#include "../simple/copy.pbcc"
+#include "../multiply/multiply.pbcc"
+
+transform PolyPre
+from A[n,n]
+through Identity[n,n], IA[n,n], TEMP[n,n]
+to P[n,n]
+{
+
+//      Identity.cell(i,j) from () where i==j
+//      {
+//              return 1;
+//      }
+//      secondary Identity.cell(i,j) from ()  { return 0;}
+	
+ 
+      Identity.cell(i,j) from ()
+      {
+		if (i==j) { return 1; }
+		else { return 0; }
+      }
+
+      IA.cell(i,j) from (Identity.cell(i,j) id, A.cell(i,j) a)
+      {
+              return id-a;
+      }
+
+      to (P p, TEMP temp) from (IA ia, Identity id)
+      {
+		int i;
+                Copy2D(p, id);
+                for (i=0; i<3; i++) {
+            		MatrixMultiply(temp,ia,p);
+                    	MatrixAdd(p,temp,id);
+              }
+      }
+}
+
+
+#endif // POLYPRE_PBCC

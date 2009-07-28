@@ -1,0 +1,17 @@
+#ifndef JACOBIPRE_PBCC
+#define JACOBIPRE_PBCC
+
+transform JacobiPre
+from A[n,n]
+to P[n,n]
+{
+        P.cell(i,j) from (A.cell(i,j) a)  where i==j
+        {
+                return 1/a;
+        }
+
+        secondary P.cell(i,j) from () { return 0;}
+}
+
+
+#endif // JACOBIPRE_PBCC
