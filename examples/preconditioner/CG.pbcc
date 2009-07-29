@@ -6,7 +6,6 @@
 #include "CGInterior.pbcc"
 
 transform CG
-//param k  //number of Iterations
 from X[n], A[n,n], B[n], numIterations
 through R[n], D[n],Rtemp[n], Dtemp[n], AX[n]
 to OUT[n]

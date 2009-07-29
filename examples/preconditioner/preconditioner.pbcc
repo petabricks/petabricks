@@ -1,6 +1,7 @@
 #ifndef PRECONDITIONER_PBCC
 #define PRECONDITIONER_PBCC
 
+#include "CG.pbcc"
 #include "PCG.pbcc"
 #include "jacobipre.pbcc"
 #include "polypre.pbcc"
@@ -14,14 +15,23 @@ to OUT[n],Accuracy
 //accuracy_bins 0, 0.3, 0.6, 0.9
 {
 	//Jacobi preconditioner
-//	to (P p) from (A a)  {  JacobiPre(p, a); }
-
-	//Polynomial preconditioner
-	to (P p) from (A a)  {  PolyPre(p,a); }
-
-	to (OUT out) from (X x, A a, B b, P p, NumIterations num)
+	to (OUT out, P p) from (X x, A a, B b, NumIterations num)
 	{
+		JacobiPre(p,a);
 		PCG(out, x, a, b, p, num);
+	}
+
+	//Polynomoial preconditioner
+        to (OUT out, P p) from (X x, A a, B b, NumIterations num)
+        {
+                PolyPre(p,a);
+                PCG(out, x, a, b, p, num);
+        }
+
+	//no preconditioner
+	to (OUT out, P p) from (X x, A a, B b, NumIterations num)
+	{
+		CG(out, x, a, b, num);
 	}
 
 	to (Accuracy acc) from (B b, A a, OUT o)
