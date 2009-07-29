@@ -2,27 +2,56 @@
 #define PRECONDITIONER_PBCC
 
 #include "PCG.pbcc"
+#include "jacobipre.pbcc"
+#include "polypre.pbcc"
+#include "demv.pbcc"
 
-transform preconditioner
-from IN[n], A[n,n], B[n], NumIterations
-through P[n,n]
-to OUT[n]
+main transform preconditioner
+from X[n], A[n,n], B[n], NumIterations  // X - initial guess, A - input matrice, B - RHS vector
+through P[n,n]  // P - preconditioner
+to OUT[n],Accuracy
+//accuracy_metric ResidualNorm
+//accuracy_bins 0, 0.3, 0.6, 0.9
 {
-	P.cell(i,j) from (A.cell(i,j) a)  where i==j
-	{
-		return 1/a;
-	}
+	//Jacobi preconditioner
+//	to (P p) from (A a)  {  JacobiPre(p, a); }
 
-	secondary P.cell(i,j) from () { return 0;}
+	//Polynomial preconditioner
+	to (P p) from (A a)  {  PolyPre(p,a); }
 
-	to (OUT out) from (IN x, A a, B b, P p, NumIterations num)
+	to (OUT out) from (X x, A a, B b, P p, NumIterations num)
 	{
 		PCG(out, x, a, b, p, num);
 	}
 
+	to (Accuracy acc) from (B b, A a, OUT o)
+	{
+		ResidualNorm(acc, b, a, o);
+	}
+
 }
 
-			
+
+transform ResidualNorm
+from B[n], A[n,n], OUT[n]
+through AX[n]
+to Accuracy
+{
+  to (Accuracy acc, AX ax) from(B b, A a, OUT o) 
+  { 
+	int i;
+	ElementT temp;
+	ElementT sum=0;
+	demv(ax,a,o);
+	for (i=0; i<n; i++) 
+	{
+		temp=ax.cell(i)-b.cell(i);
+		sum+=temp*temp;
+	}
+	acc=sqrt(sum/n);
+
+  }
+}			
 
 
 #endif // PRECONDITIONER_PBCC

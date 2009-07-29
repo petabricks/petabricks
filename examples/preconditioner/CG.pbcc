@@ -6,16 +6,17 @@
 #include "CGInterior.pbcc"
 
 transform CG
-from IN[n], A[n,n], B[n], numIterations
+//param k  //number of Iterations
+from X[n], A[n,n], B[n], numIterations
 through R[n], D[n],Rtemp[n], Dtemp[n], AX[n]
 to OUT[n]
 {
-   to (AX ax) from(IN in, A a)
+   to (AX ax) from(X x, A a)
    {
-	demv(ax, a, in);
+	demv(ax, a, x);
    }
 
-   to (R r) from (IN in, B b, AX ax)
+   to (R r) from (B b, AX ax)
    {
    	VectorSub(r, b, ax);
    }
@@ -25,9 +26,9 @@ to OUT[n]
    	return r;
    } 
 
-   to (OUT o, Rtemp rout, Dtemp dout) from(IN in, A a,R r, D d, numIterations k)
+   to (OUT o, Rtemp rout, Dtemp dout) from(X x, A a,R r, D d, numIterations k)
    {
-      CGInterior(o, rout, dout,in, a, r, d, k);
+      CGInterior(o, rout, dout,x, a, r, d, k);
    }
 
 }
