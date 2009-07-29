@@ -9,6 +9,14 @@
 /* dont generate continuation code after SPAWN/enqueue */
 #undef DISABLE_CONTINUATIONS
 
+/* the default maximum number of iterations for forenough{} loops (can be
+   overridden by users) */
+#undef FORENOUGH_MAX_ITERS
+
+/* the default minimum number of iterations for forenough{} loops (can be
+   overridden by users) */
+#undef FORENOUGH_MIN_ITERS
+
 /* User a better random number generator in training */
 #undef GOOD_RANDOM
 

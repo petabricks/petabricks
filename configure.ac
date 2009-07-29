@@ -154,9 +154,11 @@ AC_DEFINE([TMPL_IMPL_PFX],     ["_tmpl"],        [prefix for expanded template i
 AC_DEFINE([TX_STATIC_POSTFIX], ["_static"], [postfix for static versions of transforms])
 AC_DEFINE([TX_DYNAMIC_POSTFIX], ["_dynamic"], [postfix for static versions of transforms])
 
-AC_DEFINE([MAX_NUM_WORKERS], [64], [max number of workers supported])
-AC_DEFINE([MIN_NUM_WORKERS], [1 ], [min number of workers supported])
-AC_DEFINE([CACHE_LINE_SIZE], [64], [larges cache line size in system])
+AC_DEFINE([MAX_NUM_WORKERS],     [64], [max number of workers supported])
+AC_DEFINE([MIN_NUM_WORKERS],     [1 ], [min number of workers supported])
+AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
+AC_DEFINE([FORENOUGH_MIN_ITERS], [1],    [the default minimum number of iterations for forenough{} loops (can be overridden by users)])
+AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for forenough{} loops (can be overridden by users)])
 
 
 if false; then

@@ -5847,6 +5847,16 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 
+cat >>confdefs.h <<\_ACEOF
+#define FORENOUGH_MIN_ITERS 1
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define FORENOUGH_MAX_ITERS 1000
+_ACEOF
+
+
 
 if false; then
   #disabled by default:
