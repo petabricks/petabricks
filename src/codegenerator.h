@@ -96,7 +96,7 @@ public:
                     , int min=0
                     , int max=std::numeric_limits<int>::max())
   {
-    JTRACE("new tunable")(name)(initial)(min)(max);
+    //JTRACE("new tunable")(name)(initial)(min)(max);
     theTunableDefs()[name] =
        "JTUNABLE("+name
               +","+jalib::XToString(initial)

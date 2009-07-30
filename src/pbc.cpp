@@ -75,7 +75,7 @@ int main( int argc, const char ** argv){
   TransformListPtr t = parsePbFile(input.c_str());
 
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
-    JTRACE("initializing")(input)(outputCode)((*i)->name());
+    //JTRACE("initializing")(input)(outputCode)((*i)->name());
     (*i)->initialize();
     #ifdef DEBUG
     (*i)->print(std::cout);
@@ -83,7 +83,7 @@ int main( int argc, const char ** argv){
   }
 
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
-    JTRACE("compiling")(input)(outputCode)((*i)->name());
+    //JTRACE("compiling")(input)(outputCode)((*i)->name());
     (*i)->compile();
   }
 
@@ -91,7 +91,7 @@ int main( int argc, const char ** argv){
   std::ofstream infofile(outputInfo.c_str());
   MainCodeGenerator o;
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
-    JTRACE("generating")(input)(outputCode)((*i)->name());
+    //JTRACE("generating")(input)(outputCode)((*i)->name());
     (*i)->generateCode(o);
   }
 

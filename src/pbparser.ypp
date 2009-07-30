@@ -177,7 +177,7 @@ FormulaRelation: Formula '=' Formula { $$=REFALLOC(FormulaBinop<'='>($1,$3)); }
 
 TransformBody: '{' RuleList '}' { $$=$2; };
 
-Rule: RuleHeader RuleBody OptSemiCol { ($$=$1)->setBody($2); JTRACE("parsed Rule"); };
+Rule: RuleHeader RuleBody OptSemiCol { ($$=$1)->setBody($2); };
 
 RuleHeader: BaseRuleHeader          { $$=$1; }
           | PriorityFlag RuleHeader { ($$=$2)->setPriority($1); }

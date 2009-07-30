@@ -2047,7 +2047,7 @@ yyreduce:
 
 /* Line 1455 of yacc.c  */
 #line 180 "pbparser.ypp"
-    { ((yyval.rule)=(yyvsp[(1) - (3)].rule))->setBody((yyvsp[(2) - (3)].str)); JTRACE("parsed Rule"); }
+    { ((yyval.rule)=(yyvsp[(1) - (3)].rule))->setBody((yyvsp[(2) - (3)].str)); }
     break;
 
   case 53:
