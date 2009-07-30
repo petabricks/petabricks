@@ -29,6 +29,7 @@ namespace petabricks {
 
 class CodeGenerator;
 class RuleInterface;
+class Transform;
 
 class RIRCompilerPass : public RIRVisitor {
 protected:
@@ -189,8 +190,8 @@ private:
 
 class LiftVardeclPass : public RIRCompilerPass {
 public:
-  LiftVardeclPass(CodeGenerator& oo)
-    : RIRCompilerPass(), o(oo)
+  LiftVardeclPass(Transform& t, RuleInterface& r, CodeGenerator& oo)
+    : RIRCompilerPass(), o(oo), _transform(t), _rule(r)
   {}
 
   void before(RIRExprCopyRef& s);
@@ -218,6 +219,8 @@ protected:
 private:
   CodeGenerator& o;
   std::vector< int > _prefixStack;
+  Transform&     _transform;
+  RuleInterface& _rule;
 };
 
 class DynamicBodyPrintPass : public RIRCompilerPass {
