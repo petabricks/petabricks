@@ -17,9 +17,21 @@ to Y[n,n]
   to (Y y) from (X x, B b, zeros z)
   {
     double error, estimateError, newError, oldError, change;
-    double prec[5] = {1e-1, 1e-3, 1e-5, 1e-7, 1e-9};
-    int level = (int) log2(n-1), iterations = 0,
-        result[5] = {0, 0, 0, 0, 0}, ptr = 0;
+//    double prec[5] = {1e-1, 1e-3, 1e-5, 1e-7, 1e-9};
+    double prec[5];
+    prec[0] = 1e-1;
+    prec[1] = 1e-3;
+    prec[2] = 1e-5;
+    prec[3] = 1e-7;
+    prec[4] = 1e-9;
+    int level = (int) log2(n-1), iterations = 0, ptr = 0;
+//    int result[5] = {0, 0, 0, 0, 0};
+    int result[5];
+    result[0] = 0;
+    result[1] = 0;
+    result[2] = 0;
+    result[3] = 0;
+    result[4] = 0;
     MatrixRegion2D r;
 
     printf("Accuracy levels: (%g, %g, %g, %g, %g)\n",

@@ -21,6 +21,7 @@
 
 #include "codegenerator.h"
 #include "rule.h"
+#include "transform.h"
 
 void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
   switch(s->type()){
@@ -126,7 +127,8 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
         popExprForward(); //scroll past name
         pushExprBackward(new RIRIdentExpr(nameMangled));
         if(hasExprForward()){
-          JASSERT(!peekExprForward()->isLeaf(",")).Text("list style initializers not yet supported");
+          JASSERT(!peekExprForward()->isLeaf(","))(_transform.name())(_rule.id()-_transform.ruleIdOffset())
+            .Text("list style initializers not yet supported");
           if(peekExprForward()->isLeaf("[")){
             while(!peekExprForward()->isLeaf("]")){ 
               nameExtra += popExprForward()->toString();

@@ -4,7 +4,7 @@
 #include "demv.pbcc"
 #include "vectoradd.pbcc"
 #include "dotproduct.pbcc"
-
+#include "../simple/copy.pbcc"
 
 transform PCG_inner
 from IN[n], A[n,n], R[n], D[n], Z[n], P[n,n]
@@ -60,19 +60,26 @@ to OUT[n],RR[n],DD[n], ZZ[n]
 
 transform PCGInterior
 from IN[n], A[n,n], R[n], D[n], Z[n], P[n,n], numIterations
-to OUT[n],RR[n],DD[n], ZZ[n]
-{
-  	
+through TEMPX[n], TEMPR[n], TEMPD[n], TEMPZ[n]
+to OUT[n], RR[n], DD[n], ZZ[n]
 
-  recursive
-  to(OUT o, RR rr, DD dd, ZZ zz) from(IN in, A a, R r, D d, Z z, P p, numIterations k)
-  {
-    SPAWN(PCG_inner,o, rr, dd,zz, in, a, r,d,z,p);
-    if (k > 1){
-      SYNC();
-      SPAWN(PCGInterior,o, rr, dd, zz, o, a, rr, dd,zz, p,k - 1);
-    }
-  }
+{
+        to (OUT out, RR rr, DD dd, ZZ zz, TEMPX tx, TEMPR tr, TEMPD td, TEMPZ tz)
+        from (IN x, A a, R r, D d, Z z, P p)
+        {
+                int i;
+                PCG_inner(out, rr, dd, zz, x, a, r, d, z, p);
+
+                for (i=1; i < numIterations; i++)
+                {
+                        Copy1D(tx, out);
+                        Copy1D(tr, rr);
+                        Copy1D(td, dd);
+			Copy1D(tz, zz);
+                        PCG_inner(out,rr,dd, zz, tx, a, tr, td, tz, p);
+                }
+        }
+
 }
 
 #endif // PCGINTERIOR_PBCC

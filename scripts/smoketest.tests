@@ -19,6 +19,7 @@ poisson/Jacobi2D           Rand2Da Rand2Db One0D
 poisson/Jacobi2D           Rand2Da Rand2Db Ten0D
 poisson/SOR2D              Rand2Da Rand2Db MinusOne0D One0D
 poisson/SOR2D              Rand2Da Rand2Db MinusOne0D Ten0D
+preconditioner/preconditioner	PrecondX PrecondA PrecondB Precondk /dev/null
 simple/add                 Rand2Da Rand2Db
 simple/copy                Rand2Da
 simple/rollingsum          Rand1D

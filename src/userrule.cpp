@@ -318,7 +318,7 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
     o.define("DEFAULT_RV",  "_completion");
     o.beginFunc("petabricks::DynamicTaskPtr", "runDynamic");
     {
-      LiftVardeclPass p3(o);
+      LiftVardeclPass p3(trans,*this, o);
       _bodyirDynamic->accept(p3);
     }
     { 
