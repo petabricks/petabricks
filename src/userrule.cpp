@@ -26,7 +26,6 @@
 #include "iterationorders.h"
 #include <algorithm>
 
-petabricks::RIRBlockCopyRef parseRuleBody(const std::string& str);
 
 petabricks::UserRule::UserRule(const RegionPtr& to, const RegionList& from, const FormulaList& cond)
   : _from(from)
@@ -75,7 +74,7 @@ void petabricks::UserRule::setBody(const char* str){
 }
 
 void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& scope){
-  RIRBlockCopyRef bodyir = parseRuleBody(_bodysrc);
+  RIRBlockCopyRef bodyir = RIRBlock::parse(_bodysrc);
 #ifdef DEBUG
   std::cerr << "BEFORE compileRuleBody:\n" << bodyir << std::endl;
   {
@@ -85,7 +84,7 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& scope){
   std::cerr << "--------------------\n";
 #endif
   {
-    ExpansionPass p2(scope.createChildLayer());
+    ExpansionPass p2(tx, *this, scope.createChildLayer());
     bodyir->accept(p2);
   }
   {

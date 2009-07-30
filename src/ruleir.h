@@ -22,8 +22,15 @@
 
 #include "jrefcounted.h"
 #include "jprintable.h"
+#include "jconvert.h"
 
 #include <list>
+#include <string>
+#include <map>
+
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 
 namespace petabricks {
 
@@ -76,7 +83,9 @@ public:
  * Base class for all Rule IR types
  */
 class RIRNode : public jalib::JRefCounted, public jalib::JPrintable {
+  typedef std::map<std::string, std::string> AnnotationT;
 public:
+
   enum Type {
     INVALID,
     EXPR          = 0x10000,
@@ -109,14 +118,31 @@ public:
 
   bool isControl() const { return _type==STMT_LOOP || _type==STMT_COND || _type==STMT_SWITCH; }
 
-
   virtual void print(std::ostream& o, RIRVisitor* printVisitor) = 0;
   void print(std::ostream& o) const {
     RIRNodeRef t = clone();
     t->print(o, NULL);
   }
+  
+  void addAnnotation(const std::string& name, const std::string& val=""){
+    JWARNING(!hasAnnotation(name))(name);
+    _annotations[name]=val;
+  }
+  void removeAnnotation(const std::string& name){
+    JASSERT(hasAnnotation(name))(name);
+    _annotations.erase(_annotations.find(name));
+  }
+  bool hasAnnotation(const std::string& name) const {
+    return _annotations.find(name) != _annotations.end();
+  }
+  const std::string& getAnnotation(const std::string& name) const {
+    AnnotationT::const_iterator i = _annotations.find(name);
+    JASSERT(i != _annotations.end())(name);
+    return i->second;
+  }
 protected:
   Type _type;
+  AnnotationT _annotations;
 };
 
 /**
@@ -124,6 +150,7 @@ protected:
  */
 class RIRExpr  : public RIRNode {
 public:
+  static RIRExprCopyRef parse(const std::string& str);
   RIRExpr(Type t, const std::string& str="") : RIRNode(t), _str(str) {}
   void addSubExpr(const RIRExprCopyRef& p) { _parts.push_back(p); }
   void print(std::ostream& o, RIRVisitor* printVisitor);
@@ -178,8 +205,10 @@ public:
  */
 class RIRStmt  : public RIRNode {
 public:
+  static RIRStmtCopyRef parse(const std::string& str);
+
   RIRStmt(Type t) : RIRNode(t) {}
-  void addExpr(const RIRExprCopyRef& p)   { _exprs.push_back(p); }
+  void addExpr(const RIRExprCopyRef& p){ _exprs.push_back(p); }
   void accept(RIRVisitor&);
   virtual RIRStmt* clone() const = 0;
   
@@ -189,6 +218,18 @@ public:
         return true;
     return false;
   }
+  
+  const RIRExprCopyRef& part(int n) const;
+  RIRExprCopyRef& part(int n);
+  
+  //remove the last Expr and return it
+  RIRExprCopyRef popExpr(){
+    RIRExprCopyRef t = _exprs.back();
+    _exprs.pop_back();
+    return t;
+  }
+
+  int numExprs() const { return (int)_exprs.size(); }
   
   virtual const RIRBlockCopyRef& extractBlock() const { UNIMPLEMENTED(); }
 protected:
@@ -218,16 +259,24 @@ public:
     return RIRStmt::containsLeaf(val)
         || _body->containsLeaf(val);
   }
-  const RIRExprCopyRef& declPart() const { return *(_exprs.begin()); }
-  const RIRExprCopyRef& testPart() const { return *(++_exprs.begin()); }
-  const RIRExprCopyRef& incPart() const { return *(++(++(_exprs.begin()))); }
+  const RIRExprCopyRef& declPart() const { return part(0); }
+  const RIRExprCopyRef& testPart() const { return part(1); }
+  const RIRExprCopyRef& incPart() const { return part(2); }
   const RIRStmtCopyRef& body() const { return _body; }
+  RIRExprCopyRef& declPart() { return part(0); }
+  RIRExprCopyRef& testPart() { return part(1); }
+  RIRExprCopyRef& incPart() { return part(2); }
+  RIRStmtCopyRef& body() { return _body; }
 
-  RIRLoopStmt* initForEnough(const RIRExprCopyRef& min = new RIRLitExpr("1"), const RIRExprCopyRef& max = 0)
+  RIRLoopStmt* initForEnough(const RIRExprCopyRef& min = new RIRLitExpr(jalib::XToString(FORENOUGH_MIN_ITERS)),
+                             const RIRExprCopyRef& max = new RIRLitExpr(jalib::XToString(FORENOUGH_MAX_ITERS)))
   {
+    addAnnotation("for_enough");
     addExpr(new RIRNilExpr());
-    addExpr(new RIRIdentExpr("false"));
     addExpr(new RIRNilExpr());
+    addExpr(new RIRNilExpr());
+    addExpr(min);
+    addExpr(max);
     return this;
   }
 private:
@@ -304,6 +353,8 @@ private:
  */
 class RIRBlock : public RIRNode {
 public:
+  static RIRBlockCopyRef parse(const std::string& str);
+
   RIRBlock() : RIRNode(BLOCK) {}
   void addStmt(const RIRStmtCopyRef& p) { _stmts.push_back(p); }
   void print(std::ostream& o, RIRVisitor* printVisitor);
@@ -315,6 +366,8 @@ public:
         return true;
     return false;
   }
+
+  const RIRStmtList& stmts() const { return _stmts; }
 private:
   RIRStmtList _stmts;
 };

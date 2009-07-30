@@ -304,7 +304,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   }
 
   if(args.param("force-output")){
-    JTIMER_SCOPE(force-write);
+    JTIMER_SCOPE(forceoutput);
     std::vector<std::string> tmp;
     for(int i=main.numInputs(); i-->0;)
       tmp.push_back("/dev/null");

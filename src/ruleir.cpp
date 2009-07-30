@@ -19,6 +19,27 @@
  ***************************************************************************/
 #include "ruleir.h"
 
+#include <algorithm>
+
+
+//defined in ruleirparser.{ypp,cpp}
+petabricks::RIRBlockCopyRef parseRuleBody(const std::string& str);
+
+petabricks::RIRBlockCopyRef petabricks::RIRBlock::parse(const std::string& str){
+  return parseRuleBody(str);
+}
+petabricks::RIRStmtCopyRef petabricks::RIRStmt::parse(const std::string& str){
+  RIRBlockCopyRef t = RIRBlock::parse(str);
+  JASSERT(t->stmts().size()==1)(t->stmts().size());
+  return t->stmts().front();
+}
+petabricks::RIRExprCopyRef petabricks::RIRExpr::parse(const std::string& str){
+  RIRStmtCopyRef t = RIRStmt::parse(str+";");
+  JASSERT(t->numExprs()==1)(t->numExprs());
+  return t->part(0);
+}
+  
+
 namespace{ 
   template<typename T> T& get(std::list<T>& lst, int n) {
     typename std::list<T>::iterator i=lst.begin();
@@ -95,7 +116,7 @@ void petabricks::RIRBlockStmt::print(std::ostream& o, RIRVisitor* v) {
   o << "\n}";
 }
 void petabricks::RIRLoopStmt::print(std::ostream& o, RIRVisitor* v) {
-  JASSERT(_exprs.size()==3);
+  JASSERT(_exprs.size()>=3);
   o << "for("  ; pvHook(get(_exprs,0),o,v); o<< "; ";
                  pvHook(get(_exprs,1),o,v); o<< "; ";
                  pvHook(get(_exprs,2),o,v); o<< ") ";
@@ -201,5 +222,24 @@ bool petabricks::RIRBlockStmt::containsLeaf(const char* val) const{
   return RIRStmt::containsLeaf(val)
       || _block->containsLeaf(val);
 }
+
+const petabricks::RIRExprCopyRef& petabricks::RIRStmt::part(int n) const { 
+  JASSERT(_exprs.size()>n)(n)(_exprs.size());
+  RIRExprList::const_iterator i = _exprs.begin();
+  std::advance(i, n);
+  return *i;
+}
+petabricks::RIRExprCopyRef& petabricks::RIRStmt::part(int n) { 
+  JASSERT(_exprs.size()>n)(n)(_exprs.size());
+  RIRExprList::iterator i = _exprs.begin();
+  std::advance(i, n);
+  return *i;
+}
+
+
+
+
+
+
 
 
