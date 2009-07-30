@@ -74,6 +74,12 @@ protected:
     _exprCtx.back().forward()->pop_front();
     return p;
   }
+  void pushStmtForward(const RIRStmtCopyRef& s){ 
+    _stmtCtx.back().forward()->push_front(s);
+  }
+  void pushStmtBackward(const RIRStmtCopyRef& s){ 
+    _stmtCtx.back().backward()->push_back(s);
+  }
 
 public:
   //void before(RIRExprCopyRef&) {}
@@ -169,10 +175,15 @@ public:
 
 class ExpansionPass : public RIRCompilerPass {
 public:
-  ExpansionPass(const RIRScopePtr& p) : RIRCompilerPass(p->createChildLayer()) {}
+  ExpansionPass(Transform& t, RuleInterface& r, const RIRScopePtr& p) 
+    : RIRCompilerPass(p->createChildLayer()), _transform(t), _rule(r)
+  {}
 
   void before(RIRExprCopyRef& e);
   void before(RIRStmtCopyRef& e);
+private:
+  Transform&     _transform;
+  const RuleInterface& _rule;
 };
 
 class AnalysisPass: public RIRCompilerPass {
@@ -219,8 +230,8 @@ protected:
 private:
   CodeGenerator& o;
   std::vector< int > _prefixStack;
-  Transform&     _transform;
-  RuleInterface& _rule;
+  const Transform&     _transform;
+  const RuleInterface& _rule;
 };
 
 class DynamicBodyPrintPass : public RIRCompilerPass {

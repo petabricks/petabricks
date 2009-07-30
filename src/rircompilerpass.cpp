@@ -21,7 +21,15 @@
 
 #include "codegenerator.h"
 #include "rule.h"
+#include "jconvert.h"
 #include "transform.h"
+
+namespace {//file local
+  std::string _uniquify(const std::string& prefix) {
+    static std::map<std::string, int> idmap;
+    return prefix+"_"+jalib::XToString(idmap[prefix]++);
+  }
+}
 
 void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
   switch(s->type()){
@@ -148,13 +156,44 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
 }
 
 void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
-  if(s->type() != RIRNode::STMT_BLOCK 
-    && depth()>=2 
-    && parentNode()->isControl()){
+  if(s->type() != RIRNode::STMT_BLOCK && depth()>=2 && parentNode()->isControl()){
     // add {}'s to sloppy ifs() and loops
     RIRBlockCopyRef tmp = new RIRBlock();
     tmp->addStmt(s);
     s=new RIRBlockStmt(tmp);
+  }
+  if(s->type() == RIRNode::STMT_LOOP && s->hasAnnotation("for_enough")){
+    //expand forenough loops
+    s->removeAnnotation("for_enough");
+    RIRLoopStmt& loop = (RIRLoopStmt&)*s;
+    RIRStmtCopyRef t;
+    JASSERT(s->numExprs()==5)(s->numExprs()); 
+    RIRExprCopyRef maxExp = s->popExpr();
+    RIRExprCopyRef minExp = s->popExpr();
+    int minI = jalib::StringToX<int>(minExp->toString());
+    int maxI = jalib::StringToX<int>(maxExp->toString());
+    JTRACE("for_enough expansion")(minExp)(minI)(maxExp)(maxI);
+    std::string config=     _uniquify("forenough_iterations");
+    _transform.addConfig(config, minI, minI, maxI);
+    std::string vI=         _uniquify("_forenough_i");
+    std::string vCount=     _uniquify("_forenough_count");
+    //std::string vIsTraining=_uniquify("_forenough_isTraining");
+
+    // insert some code before the for_enough loop
+    t = RIRStmt::parse("int "+vCount+"="+_transform.name()+"_"+config+";");
+    t->accept(*this);
+    pushStmtBackward(t);
+    // t = RIRStmt::parse("bool "+vIsTraining+" = petabricks::PetabricksRuntime::isTrainingRun();");
+    // t->accept(*this);
+    // pushStmtBackward(t);
+    // t = RIRStmt::parse("if("+vIsTraining+") "+vCount+" = "+jalib::XToString(maxI)+";");
+    // t->accept(*this);
+    // pushStmtBackward(t);
+
+    // set the iteration bounds
+    loop.declPart() = RIRExpr::parse("int "+vI+" = 0");
+    loop.testPart() = RIRExpr::parse(vI+" < "+vCount);
+    loop.incPart()  = RIRExpr::parse("++"+vI);
   }
 }
   
