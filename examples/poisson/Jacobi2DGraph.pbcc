@@ -2,9 +2,9 @@
 #define JACOBI2DGRAPH_PBCC
 
 #include "Jacobi2D.pbcc"
-#include "Precision.h"
 
-#define MAX_LEVEL 9
+#define PRECISION1
+#define MAX_LEVEL 8
 
 transform Jacobi2DGraph
 from IN[n,n], B[n,n]
@@ -15,39 +15,129 @@ to OUT[n,n]
   {
 
 #ifdef PRECISION1
-    int iters[MAX_LEVEL + 1] = {1, 1, 6, 28, 119, 476, 1908, 7628, 30513};
+//    int iters[MAX_LEVEL + 1] = {1, 1, 6, 28, 119, 476, 1908, 7628, 30513};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 6;
+    iters[3] = 28;
+    iters[4] = 119;
+    iters[5] = 476;
+    iters[6] = 1908;
+    iters[7] = 7628;
+    iters[8] = 30513;
 #endif
 
 #ifdef PRECISION2
-    int iters[MAX_LEVEL + 1] = {1, 1, 13, 57, 237, 953, 3818, 15272, 61092};
+//    int iters[MAX_LEVEL + 1] = {1, 1, 13, 57, 237, 953, 3818, 15272, 61092};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 13;
+    iters[3] = 57;
+    iters[4] = 237;
+    iters[5] = 953;
+    iters[6] = 3818;
+    iters[7] = 15272;
+    iters[8] = 61092;
 #endif
 
 #ifdef PRECISION3
-    int iters[MAX_LEVEL + 1] = {1, 1, 19, 86, 356, 1430, 5729, 22916, 91670};
+//    int iters[MAX_LEVEL + 1] = {1, 1, 19, 86, 356, 1430, 5729, 22916, 91670};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 19;
+    iters[3] = 86;
+    iters[4] = 356;
+    iters[5] = 1430;
+    iters[6] = 5729;
+    iters[7] = 22916;
+    iters[8] = 91670;
 #endif
 
 #ifdef PRECISION4
-    int iters[MAX_LEVEL + 1] = {1, 1, 26, 115, 475, 1907, 7639, 30560, 122249};
+//    int iters[MAX_LEVEL + 1] = {1, 1, 26, 115, 475, 1907, 7639, 30560, 122249};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 26;
+    iters[3] = 115;
+    iters[4] = 475;
+    iters[5] = 1907;
+    iters[6] = 7639;
+    iters[7] = 30560;
+    iters[8] = 122249;
 #endif
 
 #ifdef PRECISION5
-    int iters[MAX_LEVEL + 1] = {1, 1, 33, 144, 593, 2384, 9550, 38204, 152827};
+//    int iters[MAX_LEVEL + 1] = {1, 1, 33, 144, 593, 2384, 9550, 38204, 152827};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 33;
+    iters[3] = 144;
+    iters[4] = 593;
+    iters[5] = 2384;
+    iters[6] = 9550;
+    iters[7] = 38204;
+    iters[8] = 152827;
 #endif
 
 #ifdef PRECISION7
-    int iters[MAX_LEVEL + 1] = {1, 1, 45, 201, 830, 3339, 13370, 53494};
+//    int iters[MAX_LEVEL + 1] = {1, 1, 45, 201, 830, 3339, 13370, 53494};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 45;
+    iters[3] = 201;
+    iters[4] = 830;
+    iters[5] = 3339;
+    iters[6] = 13370;
+    iters[7] = 53494;
+    iters[8] = 0;
 #endif
 
 #ifdef PRECISION9
-    int iters[MAX_LEVEL + 1] = {1, 1, 58, 259, 1068, 4293, 17190, 68782};
+//    int iters[MAX_LEVEL + 1] = {1, 1, 58, 259, 1068, 4293, 17190, 68782};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 58;
+    iters[3] = 259;
+    iters[4] = 1068;
+    iters[5] = 4293;
+    iters[6] = 17190;
+    iters[7] = 68782;
+    iters[8] = 0;
 #endif
 
 #ifdef PRECISION10
-    int iters[MAX_LEVEL + 1] = {1, 1};
+//    int iters[MAX_LEVEL + 1] = {1, 1};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 0;
+    iters[3] = 0;
+    iters[4] = 0;
+    iters[5] = 0;
+    iters[6] = 0;
+    iters[7] = 0;
+    iters[8] = 0;
 #endif
 
 #ifdef PRECISION13
-    int iters[MAX_LEVEL + 1] = {1, 1};
+//    int iters[MAX_LEVEL + 1] = {1, 1};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 0;
+    iters[3] = 0;
+    iters[4] = 0;
+    iters[5] = 0;
+    iters[6] = 0;
+    iters[7] = 0;
+    iters[8] = 0;
 #endif
 
 //    printf("Using %d iterations\n", iters[(int) log2(n - 1)]);
