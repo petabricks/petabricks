@@ -110,6 +110,7 @@ to ROut[width,height], KOut[width,height]
 
 /* Specify a weight of -1 as sentinel for optimal SOR weight for iterative SOR for Poisson equation */
 /* Specify a weight of -2 as sentinel for "optimal" SOR weight for multigrid step for Poisson equation */
+// performance note: OUT can point to the same matrix region as IN or B
 transform SOR2DInterior
 from IN[n,n], B[n,n], weight, numIterations
 through RIn [n+2,(n+4)/2], KIn [n+2,(n+4)/2], 

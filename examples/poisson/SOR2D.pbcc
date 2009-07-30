@@ -3,6 +3,7 @@
 
 #include "SOR2DInterior.pbcc"
 
+// performance note: OUT can point to the same matrix region as IN or B
 transform SOR2D
 from IN[n+2,n+2], B[n+2,n+2], weight, numIterations
 through BTEMP[n,n]
