@@ -157,6 +157,7 @@ AC_DEFINE([TX_DYNAMIC_POSTFIX], ["_dynamic"], [postfix for static versions of tr
 AC_DEFINE([MAX_NUM_WORKERS], [64], [max number of workers supported])
 AC_DEFINE([MIN_NUM_WORKERS], [1 ], [min number of workers supported])
 AC_DEFINE([CACHE_LINE_SIZE], [64], [larges cache line size in system])
+AC_DEFINE([GOOD_RANDOM],           [], [User a better random number generator in training])
 
 
 if false; then
@@ -164,7 +165,6 @@ if false; then
   AC_DEFINE([JASSERT_LOG],           [], [log traces to /tmp/jassertlog.pid])
   AC_DEFINE([DISABLE_CONTINUATIONS], [], [dont generate continuation code after SPAWN/enqueue])
   AC_DEFINE([JALIB_USE_MALLOC],      [1],[Cause the custom allocator to call malloc instead of mmap])
-  AC_DEFINE([GOOD_RANDOM],           [], [User a better random number generator in training])
 fi
 
 AC_DEFINE_UNQUOTED([REVISION_SHORT],  ["$rev_short"],   [git sha1 hash for HEAD at the time ./configure was run])
