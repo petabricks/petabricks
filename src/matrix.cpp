@@ -27,7 +27,7 @@
 
 void petabricks::MatrixStorage::randomize(){
 #ifdef GOOD_RANDOM
-  for(int i;i<_count; ++i){
+  for(int i=0;i<_count; ++i){
     _data[i] = (2.0*drand48()-1.0)*4294967296.0;
   }
 #else
@@ -35,7 +35,7 @@ void petabricks::MatrixStorage::randomize(){
   int x = mrand48();
   int a = mrand48();
   int b = mrand48();
-  for(int i;i<_count; ++i){
+  for(int i=0;i<_count; ++i){
     _data[i] = (x^=a*x+b);
   }
 #endif
