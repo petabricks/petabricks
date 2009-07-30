@@ -37,8 +37,33 @@ to MinX[m]
         }
 }
 
+transform randomcenter
+from X[n,2]
+through Xtemp[n,2]
+to C[k,2]
+{
+  to (C c, Xtemp x) from (X xin){
+
+        int l;
+        int m;
+
+        srand(time(0));
+
+        Copy2D(x,xin);
+        Copy1D(c.column(0), x.column(0));
+
+        for (m=1; m<k; m++) 
+	{
+		l = (rand()%(k-m))+m;
+                Copy1D(c.column(m),x.column(l)); //new center picked
+                if (l!=m) { Copy1D(x.column(l), x.column(m)); }//swap columns for next iteration
+        }
+   }
+
+}
+
+
 transform centerplus
-//param k //input parameter: number of clusters
 from X[n,2]
 through D[n,k], DMIN[n], DSQ[n], Xtemp[n,2]
 to C[k,2]
@@ -89,7 +114,8 @@ to C[k,2], A[n], WCSS   // C - centroids, A - cluster assignment, WCSS - within-
   //Assign initial cluster centers randomly
   to (Ctemp ctemp) from (X x)
   {
-	InlineCopy2D(ctemp,x.region(0,0,k,2));
+	//Copy2D(ctemp,x.region(0,0,k,2));
+	randomcenter(ctemp, x);
   }
 
   //or Assign initial cluster centers using k-means++ algorithm
