@@ -238,9 +238,19 @@ public:
     JASSERT(_accuracyMetric=="")(_name).Text("accuracy_metric declared twice");
     _accuracyMetric=str;
   }
-  void setAccuracyBins(const std::vector<double>& str){
-
+  void setAccuracyBins(const std::vector<double>& v){
+      _accuracyBins = v;
   }
+  void addAccuracyVariable(const std::string& s){
+      _accuracyVariables.insert(s);
+  }
+  void addAccuracyVariable(const FreeVars& v){
+      _accuracyVariables.insert(v.begin(), v.end());
+  }
+  void addAccuracyVariable(const OrderedFreeVars& v){
+      _accuracyVariables.insert(v.begin(), v.end());
+  }
+
   void setGenerator(const std::string& str){
     JASSERT(_generator=="")(_name).Text("generator declared twice");
     _generator=str;
@@ -269,8 +279,9 @@ private:
   MatrixDefMap    _matrices;
   RuleList        _rules;
   ChoiceGridMap   _baseCases;
-  FreeVars        _constants;
-  FreeVars        _accuracyVariables;
+  FreeVars            _constants;
+  FreeVars            _accuracyVariables;
+  std::vector<double> _accuracyBins;
   OrderedFreeVars _parameters;
   bool            _isMain;
   Learner         _learner;

@@ -66,7 +66,7 @@ static void clearParserCaches(){
 %token KW_TRANSFORM KW_FROM KW_TO KW_THROUGH KW_LE KW_GE KW_EQ KW_WHERE 
 %token KW_ROTATABLE KW_PRIMARY KW_SECONDARY KW_PRIORITY KW_MAIN KW_RECURSIVE
 %token /*KW_TESTCASE*/ KW_GENERATOR KW_TEMPLATE KW_TUNABLE KW_CONFIG KW_PARAM
-%token KW_ACCURACYMETRIC KW_ACCURACYBINS
+%token KW_ACCURACYMETRIC KW_ACCURACYBINS KW_ACCURACYVARIABLE
 %token <str> TOK_INTEGER TOK_FLOAT TOK_RULEBODY IDENT 
 %type <str> RuleBody
 %type <i> Integer PriorityFlag
@@ -116,6 +116,7 @@ TransformHeader: TransformHeader KW_TEMPLATE OptLT TemplateArgs OptGT { ($$=$1)-
 //TransformHeader: TransformHeader KW_TESTCASE TestCase                 { ($$=$1)->addTestCase($3);};
 TransformHeader: TransformHeader KW_ACCURACYMETRIC IDENT              { ($$=$1)->setAccuracyMetric($3);};
 TransformHeader: TransformHeader KW_ACCURACYBINS FloatList            { ($$=$1)->setAccuracyBins(*$3);};
+TransformHeader: TransformHeader KW_ACCURACYVARIABLE FreeVars         { ($$=$1)->addAccuracyVariable(*$3);    } ;
 TransformHeader: TransformHeader KW_GENERATOR IDENT                   { ($$=$1)->setGenerator($3);};
 
 TransformHeader: TransformHeader KW_CONFIG IDENT '(' Integer ')' 
