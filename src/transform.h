@@ -257,6 +257,9 @@ public:
     return args;
   }
 
+
+  void addConstant(const std::string& c) { _constants.insert(c); }
+
 private:
   std::string   _originalName;
   std::string   _name;
