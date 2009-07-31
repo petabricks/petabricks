@@ -18,6 +18,9 @@ to OUT[n,n]
   recursive
   to (OUT o) from (IN in, B b)
   {
+    // TODO: recollect iteration data.  the data here appears to be wrong
+    printf("Incorrect data in this file.  Please update using trainfmgv2D.\n");
+    exit(-1);
 
     int iters[MAX_LEVEL + 1];
     int prec_case = (int) _prec_case;

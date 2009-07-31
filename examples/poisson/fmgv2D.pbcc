@@ -23,6 +23,7 @@ void printMatrix(ConstMatrixRegion2D A)
 }
 %}
 
+// performance note: Y can point to the same matrix region as X
 transform fmgv2D_inner
 from X[n,n], B[n,n]
 through zeros[(n+1)/2,(n+1)/2]
@@ -44,15 +45,20 @@ to  Y[n,n]
           y.cell(1, 1) = (x.cell(1, 0) + x.cell(0, 1) + x.cell(1, 2) + x.cell(2, 1) + b.cell(1, 1)) / 4;
         } else {
 //          printf("recursive case called for n = %d\n", n);
-          MatrixRegion2D r;
-          r = Restrict2Dnew(Residual2D(x,b));
-          r = fmgv2D_inner(z,r);
-          MatrixAdd(y, Interpolate2Dnew(r), x);
-          mgv2D(y, y, b, 1);
+          MatrixRegion2D t2 = MatrixRegion2D::allocate(n, n);
+          MatrixRegion2D r1 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
+          MatrixRegion2D r2 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
+          Residual2D(t2, x, b);     // t2 gets residual
+          Restrict2Dnew(r1, t2);    // r1 gets restricted residual
+          fmgv2D_inner(r2, z, r1);  // r2 gets coarse update
+          Interpolate2Dnew(t2, r2); // t2 gets interpolated update
+          MatrixAdd(t2, t2, x);     // t2 gets updated guess
+          mgv2D(y, t2, b, 1);
         }
     }
 }
 
+// performance note: Y can point to the same matrix region as X
 transform fmgv2D
 from X[n,n], B[n,n], numIterations
 to Y[n,n]
