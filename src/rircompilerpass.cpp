@@ -174,7 +174,7 @@ void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
     int maxI = jalib::StringToX<int>(maxExp->toString());
     JTRACE("for_enough expansion")(minExp)(minI)(maxExp)(maxI);
     std::string config=     _uniquify("forenough_iterations");
-    _transform.addConfig(config, minI, minI, maxI);
+    _transform.addConfigItem(ConfigItem::FLAG_SIZE_SPECIFIC, config, minI, minI, maxI);
     std::string vI=         _uniquify("_forenough_i");
     std::string vCount=     _uniquify("_forenough_count");
     //std::string vIsTraining=_uniquify("_forenough_isTraining");

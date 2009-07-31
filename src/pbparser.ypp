@@ -119,17 +119,17 @@ TransformHeader: TransformHeader KW_ACCURACYBINS FloatList            { ($$=$1)-
 TransformHeader: TransformHeader KW_GENERATOR IDENT                   { ($$=$1)->setGenerator($3);};
 
 TransformHeader: TransformHeader KW_CONFIG IDENT '(' Integer ')' 
-         { ($$=$1)->addConfig($3, $5); };
+         { ($$=$1)->addUserConfig($3, $5); };
 TransformHeader: TransformHeader KW_CONFIG IDENT '(' Integer ',' Integer ')' 
-         { ($$=$1)->addConfig($3, $5, $7); };
+         { ($$=$1)->addUserConfig($3, $5, $7); };
 TransformHeader: TransformHeader KW_CONFIG IDENT '(' Integer ',' Integer ',' Integer ')' 
-         { ($$=$1)->addConfig($3, $5, $7, $9); };
+         { ($$=$1)->addUserConfig($3, $5, $7, $9); };
 TransformHeader: TransformHeader KW_TUNABLE IDENT '(' Integer ')' 
-         { ($$=$1)->addTunable($3, $5); };
+         { ($$=$1)->addUserTunable($3, $5); };
 TransformHeader: TransformHeader KW_TUNABLE IDENT '(' Integer ',' Integer ')' 
-         { ($$=$1)->addTunable($3, $5, $7); };
+         { ($$=$1)->addUserTunable($3, $5, $7); };
 TransformHeader: TransformHeader KW_TUNABLE IDENT '(' Integer ',' Integer ',' Integer ')' 
-         { ($$=$1)->addTunable($3, $5, $7, $9); };
+         { ($$=$1)->addUserTunable($3, $5, $7, $9); };
 
 TemplateArg: IDENT '(' Integer ',' Integer ')' {
   $$=REFALLOC(TemplateArg($1, $3, $5));

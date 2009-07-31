@@ -67,21 +67,45 @@ private:
 
 class ConfigItem {
 public:
-  ConfigItem(bool isTunable, std::string name, int initial, int min, int max)
-      :_isTunable(isTunable),
+  ConfigItem(int flags, std::string name, int initial, int min, int max)
+      :_flags(flags),
        _name(name),
        _initial(initial),
        _min(min),
        _max(max)
   {}
   
-  bool        isTunable() const { return _isTunable;}
   std::string name     () const { return _name;     }
   int         initial  () const { return _initial;  }
   int         min      () const { return _min;      }
   int         max      () const { return _max;      }
+
+  std::string category() const {
+    std::string cat;
+
+    if(hasFlag(ConfigItem::FLAG_USER))
+      cat+="user.";
+    else
+      cat+="system.";
+
+    if(hasFlag(ConfigItem::FLAG_TUNABLE))
+      cat+="tunable";
+    else
+      cat+="config";
+
+    return cat;
+  }
+
+  enum FlagT {
+    FLAG_TUNABLE       = 1, 
+    FLAG_USER          = 2,
+    FLAG_SIZE_SPECIFIC = 4
+  };
+  bool hasFlag(FlagT f) const {
+    return (_flags & f) != 0;
+  }
 private:
-  bool        _isTunable;
+  int         _flags;
   std::string _name;
   int         _initial;
   int         _min;
@@ -178,12 +202,16 @@ public:
 
   std::string tmplName(int n, CodeGenerator* o=NULL) const;
 
-  void addConfig(const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
-    _config.push_back(ConfigItem(false,n,initial, min,max));
+  void addUserConfig(const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
+    addConfigItem(ConfigItem::FLAG_USER,n,initial, min,max);
   }
   
-  void addTunable(const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
-    _config.push_back(ConfigItem(true,n,initial, min,max));
+  void addUserTunable(const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
+    addConfigItem(ConfigItem::FLAG_USER|ConfigItem::FLAG_TUNABLE,n,initial, min,max);
+  }
+  
+  void addConfigItem(int flags, const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
+    _config.push_back(ConfigItem(flags,n,initial, min,max));
   }
 
   std::string instClassName() const { return _name+"_instance"; }

@@ -359,7 +359,11 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   o.newline();
   
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
-    o.createTunable(i->isTunable(), i->isTunable() ? "user.tunable" : "user.config", _name+"_"+i->name(), i->initial(), i->min(), i->max());
+    if(i->hasFlag(ConfigItem::FLAG_SIZE_SPECIFIC)){
+      o.createTunableArray(i->category()+".array", _name+"_"+i->name(), MAX_INPUT_BITS, i->initial(), i->min(), i->max());
+    }else{
+      o.createTunable(i->hasFlag(ConfigItem::FLAG_TUNABLE), i->category(), _name+"_"+i->name(), i->initial(), i->min(), i->max());
+    }
   }
 
   o.write("#define TRANSFORM_LOCAL(x) PB_CAT("+_name+"_, x)");

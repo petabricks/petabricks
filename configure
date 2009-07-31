@@ -4878,6 +4878,9 @@ $as_echo "#define MATRIX_ELEMENT_T double" >>confdefs.h
 $as_echo "#define MAX_DIMENSIONS 64" >>confdefs.h
 
 
+$as_echo "#define MAX_INPUT_BITS 32" >>confdefs.h
+
+
 $as_echo "#define GRACEFUL_ABORT 1" >>confdefs.h
 
 

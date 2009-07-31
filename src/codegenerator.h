@@ -104,6 +104,22 @@ public:
               +","+jalib::XToString(max)+")";
     _cg.addTunable( isTunable, category, name, initial, min, max);
   }
+  void createTunableArray(const std::string& category
+                    , const std::string& name
+                    , int count
+                    , int initial
+                    , int min=0
+                    , int max=std::numeric_limits<int>::max())
+  {
+    //JTRACE("new tunable")(name)(initial)(min)(max);
+    theTunableDefs()[name] =
+       "JTUNABLEARRAY("+name
+              +","+jalib::XToString(count)
+              +","+jalib::XToString(initial)
+              +","+jalib::XToString(min)
+              +","+jalib::XToString(max)+")";
+    _cg.addTunable( false, category, name, initial, min, max);
+  }
 
   void beginSwitch(const std::string& var){
     write("switch("+var+"){");

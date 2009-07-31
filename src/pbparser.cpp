@@ -1796,42 +1796,42 @@ yyreduce:
 
 /* Line 1455 of yacc.c  */
 #line 122 "pbparser.ypp"
-    { ((yyval.transform)=(yyvsp[(1) - (6)].transform))->addConfig((yyvsp[(3) - (6)].str), (yyvsp[(5) - (6)].i)); }
+    { ((yyval.transform)=(yyvsp[(1) - (6)].transform))->addUserConfig((yyvsp[(3) - (6)].str), (yyvsp[(5) - (6)].i)); }
     break;
 
   case 18:
 
 /* Line 1455 of yacc.c  */
 #line 124 "pbparser.ypp"
-    { ((yyval.transform)=(yyvsp[(1) - (8)].transform))->addConfig((yyvsp[(3) - (8)].str), (yyvsp[(5) - (8)].i), (yyvsp[(7) - (8)].i)); }
+    { ((yyval.transform)=(yyvsp[(1) - (8)].transform))->addUserConfig((yyvsp[(3) - (8)].str), (yyvsp[(5) - (8)].i), (yyvsp[(7) - (8)].i)); }
     break;
 
   case 19:
 
 /* Line 1455 of yacc.c  */
 #line 126 "pbparser.ypp"
-    { ((yyval.transform)=(yyvsp[(1) - (10)].transform))->addConfig((yyvsp[(3) - (10)].str), (yyvsp[(5) - (10)].i), (yyvsp[(7) - (10)].i), (yyvsp[(9) - (10)].i)); }
+    { ((yyval.transform)=(yyvsp[(1) - (10)].transform))->addUserConfig((yyvsp[(3) - (10)].str), (yyvsp[(5) - (10)].i), (yyvsp[(7) - (10)].i), (yyvsp[(9) - (10)].i)); }
     break;
 
   case 20:
 
 /* Line 1455 of yacc.c  */
 #line 128 "pbparser.ypp"
-    { ((yyval.transform)=(yyvsp[(1) - (6)].transform))->addTunable((yyvsp[(3) - (6)].str), (yyvsp[(5) - (6)].i)); }
+    { ((yyval.transform)=(yyvsp[(1) - (6)].transform))->addUserTunable((yyvsp[(3) - (6)].str), (yyvsp[(5) - (6)].i)); }
     break;
 
   case 21:
 
 /* Line 1455 of yacc.c  */
 #line 130 "pbparser.ypp"
-    { ((yyval.transform)=(yyvsp[(1) - (8)].transform))->addTunable((yyvsp[(3) - (8)].str), (yyvsp[(5) - (8)].i), (yyvsp[(7) - (8)].i)); }
+    { ((yyval.transform)=(yyvsp[(1) - (8)].transform))->addUserTunable((yyvsp[(3) - (8)].str), (yyvsp[(5) - (8)].i), (yyvsp[(7) - (8)].i)); }
     break;
 
   case 22:
 
 /* Line 1455 of yacc.c  */
 #line 132 "pbparser.ypp"
-    { ((yyval.transform)=(yyvsp[(1) - (10)].transform))->addTunable((yyvsp[(3) - (10)].str), (yyvsp[(5) - (10)].i), (yyvsp[(7) - (10)].i), (yyvsp[(9) - (10)].i)); }
+    { ((yyval.transform)=(yyvsp[(1) - (10)].transform))->addUserTunable((yyvsp[(3) - (10)].str), (yyvsp[(5) - (10)].i), (yyvsp[(7) - (10)].i), (yyvsp[(9) - (10)].i)); }
     break;
 
   case 23:

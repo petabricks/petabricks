@@ -110,6 +110,9 @@
 /* the maximum number of dimensions supported */
 #undef MAX_DIMENSIONS
 
+/* the maximum number of dimensions supported */
+#undef MAX_INPUT_BITS
+
 /* max number of workers supported */
 #undef MAX_NUM_WORKERS
 
