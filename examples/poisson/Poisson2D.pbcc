@@ -1,121 +1,90 @@
 //Multigrid V-cycle 2D
 //assume dimension n = 2^k + 1
 
-%{
-  JTUNABLE(prec_case, 5);
-  JTUNABLEARRAY(levelTrained, 30, 0);
-%}
-
 #include "../simple/add.pbcc"
 #include "Interpolate2Dnew.pbcc"
 #include "Restrict2Dnew.pbcc"
 #include "Residual2D.pbcc"
 #include "SOR2D.pbcc"
 #include "BS2D.pbcc"
-#include "mgv2D.pbcc"
 #include "ComputeError.pbcc"
 
-#define CAT( a, b) _CAT(a,b)
-#define _CAT( a, b) __CAT(a ## b)
-#define __CAT(ab) ab
-
-#ifndef TRAINPRINTF
-#define TRAINPRINTF printf
-#endif
 #ifndef RUNPRINTF
 #define RUNPRINTF //printf
 #endif
 
-#define POISSON_PRECISION_1 0.1
-#define POISSON_PRECISION_2 0.001
-#define POISSON_PRECISION_3 0.00001
-#define POISSON_PRECISION_4 0.0000001
-#define POISSON_PRECISION_5 0.000000001
+main transform Poisson2D
+from X[n,n], B[n,n]
+to  Y[n,n]
+{
+  to (Y y) from (X x, B b)
+  {
+    JASSERT(floor(log2(n-1)) == log2(n-1))(n)(floor(log2(n-1)))(log2(n-1)).Text("input must be 2^k+1");
+    JASSERT(n > 1)(n).Text("input must be size larger than 1");
 
-#define CURPREC 1
-#include "Poisson2D_InnerTransform.pbcc"
-#undef CURPREC
-#define CURPREC 2
-#include "Poisson2D_InnerTransform.pbcc"
-#undef CURPREC
-#define CURPREC 3
-#include "Poisson2D_InnerTransform.pbcc"
-#undef CURPREC
-#define CURPREC 4
-#include "Poisson2D_InnerTransform.pbcc"
-#undef CURPREC
-#define CURPREC 5
-#include "Poisson2D_InnerTransform.pbcc"
-#undef CURPREC
+    Poisson2D_Inner(y, x, b);
+  }
+}
 
-transform Poisson2D
+transform Poisson2D_Inner
 from X[n,n], B[n,n]
 to  Y[n,n]
 through zeros[(n+1)/2,(n+1)/2]
+accuracy_bins 0.1, 0.001, 0.00001, 0.0000001, 0.000000001
+accuracy_variable numIterations
+accuracy_metric ComputeError
 {
+  //base case: directly solve with BS
+  to(Y y) from(X x, B b) {
+    int level = (int) log2(n-1);
+    if (level > 8) {
+      RUNPRINTF("  ERROR: cannot call BS case for level > 8\n");
+      PetabricksRuntime::abort();
+    }
+    RUNPRINTF("BS case called for level %d, acc %d\n", level, accLvl);
+    BS2D(y, x, b);
+  }
+
+  //base case: solve iteratively with SOR
+  to(Y y) from(X x, B b) {
+    int level = (int) log2(n-1);
+    RUNPRINTF("SOR case called for level %d, acc %d (%d iterations)\n", level, accLvl, numIterations);
+    SOR2D(y, x, b, -1, numIterations);
+  }
+
+  //solve recursively on coarser grids, with zero initial guess
+  //then map the coarse solution back to the fine grid by Interpolation
   zeros.cell(i,j) from() {
     return 0;
   }
 
-  to (Y y) from (X x, B b, zeros z)
-  {
-    double error;
-    double newError;
-    double oldError;
-    double change;
-    int level = (int) log2(n-1);
-    MatrixRegion2D t1 = MatrixRegion2D::allocate(n, n);
-    MatrixRegion2D t2 = MatrixRegion2D::allocate(n, n);
-    MatrixRegion2D r1 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
-    MatrixRegion2D r2 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
-
-    JASSERT(floor(log2(n-1)) == log2(n-1))(n)(floor(log2(n-1)))(log2(n-1)).Text("input must be 2^k+1");
-    JASSERT(n > 1)(n).Text("input must be larger than 1");
-
-    if (PetabricksRuntime::isTrainingRun()) {
-      if (levelTrained[level] == 0) {
-        TRAINPRINTF("Training run for level %d\n", level);
-        MatrixRegion2D actual = MatrixRegion2D::allocate(n,n);
-        if (level < 4) {
-          BS2D(actual, x, b);
-        } else {
-          mgv2D(actual, x, b, 15);
-        }
-        ComputeError(error, x, actual);
-        TRAINPRINTF("initial error = %g\n", error);
-
-#define CURPREC 1
-#include "Poisson2D_TrainingLoop.pbcc"
-#undef CURPREC
-#define CURPREC 2
-#include "Poisson2D_TrainingLoop.pbcc"
-#undef CURPREC
-#define CURPREC 3
-#include "Poisson2D_TrainingLoop.pbcc"
-#undef CURPREC
-#define CURPREC 4
-#include "Poisson2D_TrainingLoop.pbcc"
-#undef CURPREC
-#define CURPREC 5
-#include "Poisson2D_TrainingLoop.pbcc"
-#undef CURPREC
-
-        levelTrained[level].setValue(1);
-      }
+  //recursive case: call itself using multigrid
+  recursive(n)
+  to (Y y) from(X x, B b, zeros z) {
+    int level = (int) log2(n - 1);
+    RUNPRINTF("recursive case called for level %d, acc %d (%d iterations)\n", level, accLvl, numIterations);
+    if (level <= 1) {
+      RUNPRINTF("  ERROR: cannot call recursive case for level < 2\n");
+      PetabricksRuntime::abort();
     } else {
-      RUNPRINTF("Timing run for level %d, precision %d\n", level, (int) prec_case);
-      if (prec_case == 1) {
-          Poisson2D_Inner_Prec1(y, x, b);
-      } else if (prec_case == 2) {
-          Poisson2D_Inner_Prec2(y, x, b);
-      } else if (prec_case == 3) {
-          Poisson2D_Inner_Prec3(y, x, b);
-      } else if (prec_case == 4) {
-          Poisson2D_Inner_Prec4(y, x, b);
-      } else if (prec_case == 5) {
-          Poisson2D_Inner_Prec5(y, x, b);
+      int i;
+      int level = (int) log2(n-1);
+      MatrixRegion2D t1 = MatrixRegion2D::allocate(n, n);
+      MatrixRegion2D t2 = MatrixRegion2D::allocate(n, n);
+      MatrixRegion2D r1 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
+      MatrixRegion2D r2 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
+
+      Copy2D(y, x);
+      // forenough
+      for (i = 0; i < numIterations; i++) {
+        SOR2D(t1, y, b, -2, 1);     // t1 gets relaxed guess
+        Residual2D(t2, t1, b);      // t2 gets new residual
+        Restrict2Dnew(r1, t2);      // r1 gets restricted residual
+        Poisson2D_Inner(r2, z, r1); // r2 gets coarse update
+        Interpolate2Dnew(t2, r2);   // t2 gets interpolated update
+        MatrixAdd(t2, t2, t1);      // t2 gets updated guess
+        SOR2D(y, t2, b, -2, 1);     //  y gets relaxed guess
       }
     }
   }
 }
-
