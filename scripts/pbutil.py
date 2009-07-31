@@ -49,8 +49,8 @@ def chdirToPetabricksRoot():
 def compilePetabricks():
   cmd=["make","-sqC","src","pbc"]
   if subprocess.call(cmd) != 0: 
-    cmd=["make", "-j%d"%cpuCount(), "--no-print-directory"]
-    p=subprocess.Popen(cmd, stdout=sys.stderr, stderr=sys.stderr)
+    cmd=["make", "-j%d"%cpuCount()]
+    p=subprocess.Popen(cmd)
     rv=p.wait()
     if rv!=0:
       raise Exception("pbc compile failed")

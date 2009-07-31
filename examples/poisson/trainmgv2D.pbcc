@@ -1,6 +1,5 @@
 #ifndef TRAINMGV2D_PBCC
 #define TRAINMGV2D_PBCC
-#include "BS2D.pbcc"
 #include "ComputeError.pbcc"
 #include "mgv2D.pbcc"
 #include "Func2D.pbcc"
