@@ -6,12 +6,6 @@
         oldError = error;
 
         // compute one recursive iteration
-//        t = SOR2D(y, b, -2, 1);
-//        r = Restrict2Dnew(Residual2D(t,b));
-//        r = CAT(Poisson2D_Inner_Prec, LOCALPREC)(z,r);
-//        t = MatrixAdd(Interpolate2Dnew(r), t);
-//        SOR2D(y, t, b, -2, 1);
-
         SOR2D(t1, y, b, -2, 1);   // t1 gets relaxed guess
         Residual2D(t2, t1, b);    // t2 gets new residual
         Restrict2Dnew(r1, t2);    // r1 gets restricted residual
@@ -33,12 +27,6 @@
         } else {
           while (newError / error > CAT(POISSON_PRECISION_, CURPREC) && change < 1){
             // compute one recursive iteration
-            //        t = SOR2D(y, b, -2, 1);
-            //        r = Restrict2Dnew(Residual2D(t,b));
-            //        r = CAT(Poisson2D_Inner_Prec, LOCALPREC)(z,r);
-            //        t = MatrixAdd(Interpolate2Dnew(r), t);
-            //        SOR2D(y, t, b, -2, 1);
-
             SOR2D(t1, y, b, -2, 1);   // t1 gets relaxed guess
             Residual2D(t2, t1, b);    // t2 gets new residual
             Restrict2Dnew(r1, t2);    // r1 gets restricted residual
