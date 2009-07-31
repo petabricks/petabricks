@@ -5857,6 +5857,11 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 
+cat >>confdefs.h <<\_ACEOF
+#define GOOD_RANDOM /**/
+_ACEOF
+
+
 
 if false; then
   #disabled by default:
@@ -5873,11 +5878,6 @@ _ACEOF
 
 cat >>confdefs.h <<\_ACEOF
 #define JALIB_USE_MALLOC 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define GOOD_RANDOM /**/
 _ACEOF
 
 fi
