@@ -86,10 +86,10 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* var name in output code */
+/* define to add a system var to transform scope */
 #undef INPUT_PERIMETER_STR
 
-/* var name in output code */
+/* define to add a system var to transform scope */
 #undef INPUT_SIZE_STR
 
 /* Use a custom allocator from JALIB */
@@ -122,7 +122,7 @@
 /* min number of workers supported */
 #undef MIN_NUM_WORKERS
 
-/* var name in output code */
+/* define to add a system var to transform scope */
 #undef OUTPUT_SIZE_STR
 
 /* Name of package */
@@ -170,6 +170,9 @@
 
 /* prefix for expanded template implementations */
 #undef TMPL_IMPL_PFX
+
+/* define to add a system var to transform scope */
+#undef TRANSFORM_N_STR
 
 /* postfix for static versions of transforms */
 #undef TX_DYNAMIC_POSTFIX

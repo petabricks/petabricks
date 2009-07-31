@@ -467,26 +467,46 @@ void petabricks::Transform::extractSizeDefines(CodeGenerator& o, FreeVars fv){
 }
 
 void petabricks::Transform::extractConstants(CodeGenerator& o){
+  FreeVars sysvars, uservars;
+#ifdef INPUT_SIZE_STR
   o.addMember("IndexT", INPUT_SIZE_STR,       "0");
-  o.addMember("IndexT", OUTPUT_SIZE_STR,      "0");
-  o.addMember("IndexT", INPUT_PERIMETER_STR,  "0");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     o.write(INPUT_SIZE_STR " += " + (*i)->name() + ".count();");
   }
-  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    o.write(OUTPUT_SIZE_STR " += " + (*i)->name() + ".count();");
-  }
+  sysvars.insert(INPUT_SIZE_STR);
+#endif
+#ifdef INPUT_PERIMETER_STR
+  o.addMember("IndexT", INPUT_PERIMETER_STR,  "0");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     o.write(INPUT_PERIMETER_STR " += " + (*i)->name() + ".perimeter();");
   }
-  //int maxDims = 1;
-  //maxDims = std::max<int>(maxDims, (*i)->numDimensions());
-  extractSizeDefines(o, FreeVars());
+  sysvars.insert(INPUT_PERIMETER_STR);
+#endif
+#ifdef OUTPUT_SIZE_STR
+  o.addMember("IndexT", OUTPUT_SIZE_STR,      "0");
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    o.write(OUTPUT_SIZE_STR " += " + (*i)->name() + ".count();");
+  }
+  sysvars.insert(OUTPUT_SIZE_STR);
+#endif
+
+  extractSizeDefines(o, sysvars);
   Map(&MatrixDef::verifyDefines, o, _from);
   Map(&MatrixDef::verifyDefines, o, _to);
   for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
     (*i)->allocateTemporary(o, false);
-  } }
+  } 
+
+#ifdef TRANSFORM_N_STR
+  sysvars.insert(TRANSFORM_N_STR);
+  uservars = _constants;
+  uservars.eraseAll(sysvars);
+  o.addMember("IndexT", TRANSFORM_N_STR ,     "1");
+  for(FreeVars::const_iterator i=uservars.begin(); i!=uservars.end(); ++i){
+    o.write(TRANSFORM_N_STR" = std::max<IndexT>("TRANSFORM_N_STR", "+*i+");");
+  }
+#endif
+}
 
 void petabricks::Transform::registerMainInterface(CodeGenerator& o){
   if(_templateargs.empty()){
