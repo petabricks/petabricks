@@ -2223,7 +2223,7 @@ yyreturn:
 void _ruleirlexer_scan_string( const std::string& str);
 
 RIRBlockCopyRef parseRuleBody(const std::string& str){
-  JTRACE("Parsing rule body")(str);
+  //JTRACE("Parsing rule body")(str);
   _ruleirlexer_scan_string(str);
   RIRBlockCopyRef ret;
   ruleirparse(ret);

@@ -94,7 +94,7 @@ void petabricks::Region::initialize(Transform& trans) {
 //       _maxCoord.push_back(_originalBounds.front());
       _maxCoord.push_back(new FormulaAdd(_originalBounds.front(), FormulaInteger::one()));
       _maxCoord.push_back(_fromMatrix->height());
-      JTRACE("made column")(_fromMatrix)(_minCoord)(_maxCoord);
+      //JTRACE("made column")(_fromMatrix)(_minCoord)(_maxCoord);
     }
     break;
   case REGION_ROW: {
@@ -109,7 +109,7 @@ void petabricks::Region::initialize(Transform& trans) {
       _maxCoord.push_back(_fromMatrix->width());
 //       _maxCoord.push_back(_originalBounds.front());
       _maxCoord.push_back(new FormulaAdd(_originalBounds.front(), FormulaInteger::one()));
-      JTRACE("made row")(_fromMatrix)(_minCoord)(_maxCoord);
+      //JTRACE("made row")(_fromMatrix)(_minCoord)(_maxCoord);
     }
     break;
   case REGION_BOX: {
@@ -377,7 +377,7 @@ void petabricks::Region::collectDependencies(const RuleInterface& rule, MatrixDe
       }
     }
   }
-  JTRACE("compute direction")(_minCoord)(_maxCoord)(direction);
+  //JTRACE("compute direction")(_minCoord)(_maxCoord)(direction);
 
   SimpleRegion applicable = rule.applicableRegion();
   applicable.maxCoord().subToEach(FormulaInteger::one());
