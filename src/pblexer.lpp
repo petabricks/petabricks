@@ -72,7 +72,6 @@ PASS_CHARS [.<>,*/()[\]^+-]
   "generator"       RETURN KW_GENERATOR;
   "gen"             RETURN KW_GENERATOR;
   "through"         RETURN KW_THROUGH;
-  "testcase"        RETURN KW_TESTCASE;
   "config"          RETURN KW_CONFIG;
   "param"           RETURN KW_PARAM;
   "parameter"       RETURN KW_PARAM;

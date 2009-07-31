@@ -26,11 +26,11 @@
 #define RUNPRINTF //printf
 #endif
 
-#define POISSON_PRECISION_1 1e-1
-#define POISSON_PRECISION_2 1e-3
-#define POISSON_PRECISION_3 1e-5
-#define POISSON_PRECISION_4 1e-7
-#define POISSON_PRECISION_5 1e-9
+#define POISSON_PRECISION_1 0.1
+#define POISSON_PRECISION_2 0.001
+#define POISSON_PRECISION_3 0.00001
+#define POISSON_PRECISION_4 0.0000001
+#define POISSON_PRECISION_5 0.000000001
 
 #define CURPREC 1
 #include "Poisson2D_InnerTransform.pbcc"
@@ -59,23 +59,29 @@ through zeros[(n+1)/2,(n+1)/2]
 
   to (Y y) from (X x, B b, zeros z)
   {
-    double error, newError, oldError, change;
+    double error;
+    double newError;
+    double oldError;
+    double change;
     int level = (int) log2(n-1);
-    MatrixRegion2D t, r;
+    MatrixRegion2D t1 = MatrixRegion2D::allocate(n, n);
+    MatrixRegion2D t2 = MatrixRegion2D::allocate(n, n);
+    MatrixRegion2D r1 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
+    MatrixRegion2D r2 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
 
     JASSERT(floor(log2(n-1)) == log2(n-1))(n)(floor(log2(n-1)))(log2(n-1)).Text("input must be 2^k+1");
     JASSERT(n > 1)(n).Text("input must be larger than 1");
 
-    if (HecuraRuntime::isTrainingRun()) {
+    if (PetabricksRuntime::isTrainingRun()) {
       if (levelTrained[level] == 0) {
         TRAINPRINTF("Training run for level %d\n", level);
-        MatrixRegion2D actual;
+        MatrixRegion2D actual = MatrixRegion2D::allocate(n,n);
         if (level < 4) {
-          actual = BS2D(x, b);
+          BS2D(actual, x, b);
         } else {
-          actual = mgv2D(x, b, 15);
+          mgv2D(actual, x, b, 15);
         }
-        error = (double) ComputeError(x, actual);
+        ComputeError(error, x, actual);
         TRAINPRINTF("initial error = %g\n", error);
 
 #define CURPREC 1
@@ -98,22 +104,16 @@ through zeros[(n+1)/2,(n+1)/2]
       }
     } else {
       RUNPRINTF("Timing run for level %d, precision %d\n", level, (int) prec_case);
-      switch (prec_case) {
-        case 1:
+      if (prec_case == 1) {
           Poisson2D_Inner_Prec1(y, x, b);
-          break;
-        case 2:
+      } else if (prec_case == 2) {
           Poisson2D_Inner_Prec2(y, x, b);
-          break;
-        case 3:
+      } else if (prec_case == 3) {
           Poisson2D_Inner_Prec3(y, x, b);
-          break;
-        case 4:
+      } else if (prec_case == 4) {
           Poisson2D_Inner_Prec4(y, x, b);
-          break;
-        case 5:
+      } else if (prec_case == 5) {
           Poisson2D_Inner_Prec5(y, x, b);
-          break;
       }
     }
   }
