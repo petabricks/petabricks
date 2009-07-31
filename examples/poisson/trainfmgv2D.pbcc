@@ -1,11 +1,11 @@
 #ifndef TRAINFMGV2D_PBCC
 #define TRAINFMGV2D_PBCC
-#include "BS2D.pbcc"
 #include "ComputeError.pbcc"
 #include "fmgv2D.pbcc"
+#include "Func2D.pbcc"
 
 transform trainfmgv2D
-from X[n,n], B[n,n]
+from X[n,n], ACTUAL[n,n]
 through zeros[(n+1)/2,(n+1)/2]
 to Y[n,n]
 {
@@ -14,56 +14,75 @@ to Y[n,n]
   }
 
   recursive
-  to (Y y) from (X x, B b, zeros z)
+  to (Y y) from (X x, ACTUAL actual, zeros z)
   {
-    double error, estimateError, newError, oldError, change;
+    double error;
+    double estimateError;
+    double newError;
+    double oldError;
+    double change;
 //    double prec[5] = {1e-1, 1e-3, 1e-5, 1e-7, 1e-9};
     double prec[5];
-    prec[0] = 1e-1;
-    prec[1] = 1e-3;
-    prec[2] = 1e-5;
-    prec[3] = 1e-7;
-    prec[4] = 1e-9;
-    int level = (int) log2(n-1), iterations = 0, ptr = 0;
+    prec[0] = 0.1;
+    prec[1] = 0.001;
+    prec[2] = 0.00001;
+    prec[3] = 0.0000001;
+    prec[4] = 0.000000001;
+
+    int level = (int) log2(n-1);
+    int iterations = 0;
+    int ptr = 0;
 //    int result[5] = {0, 0, 0, 0, 0};
     int result[5];
-    results[0] = 0;
-    results[1] = 0;
-    results[2] = 0;
-    results[3] = 0;
-    results[4] = 0;
-    MatrixRegion2D r;
+    result[0] = 0;
+    result[1] = 0;
+    result[2] = 0;
+    result[3] = 0;
+    result[4] = 0;
 
     printf("Accuracy levels: (%g, %g, %g, %g, %g)\n",
         prec[0], prec[1], prec[2], prec[3], prec[4]);
 
     printf("Training run for level %d\n", level);
-    MatrixRegion2D actual;
-    if (level < 6) {
-      actual = BS2D(x, b);
-    } else {
-      actual = mgv2D(x, b, 15);
-    }
-    error = (double) ComputeError(x, actual);
+    MatrixRegion2D b = MatrixRegion2D::allocate(n,n);
+    Func2D(b, actual);
+
+    // y is our working guess
+    Copy2D(y, x);
+
+    // initialize borders of y to true values
+    Copy2D(y.region(0,0,n,1), actual.region(0,0,n,1));
+    Copy2D(y.region(0,n-1,n,n), actual.region(0,n-1,n,n));
+    Copy2D(y.region(0,0,1,n), actual.region(0,0,1,n));
+    Copy2D(y.region(n-1,0,n,n), actual.region(n-1,0,n,n));
+
+    ComputeError(error, y, actual);
     printf("initial error = %g\n", error);
 
     // compute estimate
     if (level > 1) {
-      r = Restrict2Dnew(Residual2D(x,b));
-      r = fmgv2D_inner(z,r);
-      MatrixAdd(y, Interpolate2Dnew(r), x);
+      MatrixRegion2D t2 = MatrixRegion2D::allocate(n, n);
+      MatrixRegion2D r1 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
+      MatrixRegion2D r2 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
+      Residual2D(t2, y, b);     // t2 gets residual
+      Restrict2Dnew(r1, t2);    // r1 gets restricted residual
+      fmgv2D_inner(r2, z, r1);  // r2 gets coarse update
+      Interpolate2Dnew(t2, r2); // t2 gets interpolated update
+      MatrixAdd(y, t2, y);      // t2 gets updated guess
     } else {
       Copy2D(y, x);
     }
 
-    estimateError = (double) ComputeError(y, actual);
+    ComputeError(estimateError, y, actual);
     printf("estimate error = %g\n", estimateError);
+
     newError = estimateError;
     oldError = error;
-    while (newError / error > prec[4] && change < 1) {
+    change = 0;
+    while (newError / error > prec[4] && (iterations < 5 || change < 1)) {
       iterations++;
       mgv2D(y, y, b, 1);
-      newError = ComputeError(y, actual);
+      ComputeError(newError, y, actual);
       change = newError / oldError;
       oldError = newError;
       printf("%d: error = %g, ratio = %g\n",
@@ -71,9 +90,9 @@ to Y[n,n]
       while (ptr < 5 && newError / error <= prec[ptr]) {
         result[ptr++] = iterations;
       }
-      if (change >= 1) {
-        break;
-      }
+    }
+    if (change >= 1) {
+      printf("Failure to converge to highest specified precision\n");
     }
     printf("Level %d: {%d, %d, %d, %d, %d}\n", level, 
         result[0], result[1], result[2], result[3], result[4], result[5]);
