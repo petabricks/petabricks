@@ -43,7 +43,7 @@ accuracy_bins 0, 0.3, 0.6, 0.9
 
 
 transform ResidualNorm
-from B[n], A[n,n], OUT[n]
+from OUT[n], X[n], A[n,n], B[n], NumIterations 
 through AX[n]
 to Accuracy
 {
