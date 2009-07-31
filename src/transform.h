@@ -142,9 +142,9 @@ public:
   void markMain() { _isMain=true; }
 
   Learner& learner() { return _learner; }
-  PerformanceTester& tester() { return _tester; }
+  //PerformanceTester& tester() { return _tester; }
 
-  void addTestCase(const TestCasePtr& p) {tester().addTestCase(p);}
+  //void addTestCase(const TestCasePtr& p) {tester().addTestCase(p);}
 
   std::vector<std::string> maximalArgList() const;
 
@@ -230,26 +230,27 @@ public:
   }
 
 private:
-  std::string   _originalName;
-  std::string   _name;
-  MatrixDefList _from;
-  MatrixDefList _through;
-  MatrixDefList _to;
-  MatrixDefMap  _matrices;
-  RuleList      _rules;
-  ChoiceGridMap _baseCases;
-  FreeVars      _constants;
+  std::string     _originalName;
+  std::string     _name;
+  MatrixDefList   _from;
+  MatrixDefList   _through;
+  MatrixDefList   _to;
+  MatrixDefMap    _matrices;
+  RuleList        _rules;
+  ChoiceGridMap   _baseCases;
+  FreeVars        _constants;
+  FreeVars        _accuracyVariables;
   OrderedFreeVars _parameters;
-  bool          _isMain;
-  Learner       _learner;
+  bool            _isMain;
+  Learner         _learner;
   StaticSchedulerPtr _scheduler;
-  PerformanceTester _tester;
-  TemplateArgList _templateargs;
-  int _tuneId;
-  ConfigItems _config;
-  bool  _usesSplitSize;
-  std::string _accuracyMetric;
-  std::string _generator;
+  //PerformanceTester  _tester;
+  TemplateArgList    _templateargs;
+  int                _tuneId;
+  ConfigItems        _config;
+  bool               _usesSplitSize;
+  std::string        _accuracyMetric;
+  std::string        _generator;
 };
 
 }

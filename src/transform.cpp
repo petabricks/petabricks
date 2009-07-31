@@ -122,7 +122,7 @@ void petabricks::Transform::initialize() {
   for(MatrixDefList::iterator m=_through.begin(); m!=_through.end(); ++m)
     fillBaseCases(*m);
 
-  tester().setIOSizes(_from.size(), _to.size());
+  //tester().setIOSizes(_from.size(), _to.size());
 
   if(isTemplate())
     RIRScope::global()->set(_name, RIRSymbol::SYM_TRANSFORM_TEMPLATE);
