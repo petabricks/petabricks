@@ -1,15 +1,16 @@
       TRAINPRINTF("    Training Estimate level %d:\n", ESTPREC);
       // compute estimate
 #if ESTPREC > 0
-        r = Restrict2Dnew(Residual2D(x, b));
-        r = CAT(FullPoisson2D_Inner_Prec, ESTPREC)(z, r);
-        est = MatrixAdd(Interpolate2Dnew(r), x);
+        Residual2D(t2, x, b);     // t2 gets new residual
+        Restrict2Dnew(r1, t2);    // r1 gets restricted residual
+        CAT(FullPoisson2D_Inner_Prec, ESTPREC)(r2, z, r1); // r2 gets coarse update
+        Interpolate2Dnew(t2, r2); // t2 gets interpolated update
+        MatrixAdd(est, t2, x);    // t2 gets updated guess
 #else
-        est = MatrixRegion2D::allocate(n, n);
         Copy2D(est, x);
 #endif
 
-      estimateError = ComputeError(est, actual);
+      ComputeError(estimateError, est, actual);
       TRAINPRINTF("      error after estimate = %g\n", estimateError);
 
       // compute iterations of SOR
@@ -31,7 +32,7 @@
         SOR2D(y, y, b, -1, 1);
 
         CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level].setValue(CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level] + 1);
-        newError = ComputeError(y, actual);
+        ComputeError(newError, y, actual);
         change = newError / oldError;
         oldError = newError;
         TRAINPRINTF("        error = %g, ratio = %g\n", newError, newError / error);
