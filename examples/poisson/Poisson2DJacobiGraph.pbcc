@@ -1,12 +1,12 @@
-#ifndef JACOBI2DGRAPH_PBCC
-#define JACOBI2DGRAPH_PBCC
+#ifndef POISSON2DJACOBIGRAPH_PBCC
+#define POISSON2DJACOBIGRAPH_PBCC
 
 #include "Jacobi2D.pbcc"
 
 #define PRECISION1
 #define MAX_LEVEL 8
 
-transform Jacobi2DGraph
+transform Poisson2DJacobiGraph
 from IN[n,n], B[n,n]
 to OUT[n,n]
 {
@@ -141,9 +141,9 @@ to OUT[n,n]
 #endif
 
 //    printf("Using %d iterations\n", iters[(int) log2(n - 1)]);
-    SPAWN(Jacobi2D, o, in, b, iters[(int) log2(n - 1)]);
+    Poisson2DJacobi(o, in, b, iters[(int) log2(n - 1)]);
   }
 }
 
-#endif // JACOBI2DGRAPH_PBCC
+#endif // POISSON2DJACOBIGRAPH_PBCC
 

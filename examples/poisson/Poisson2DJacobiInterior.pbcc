@@ -1,9 +1,9 @@
-#ifndef JACOBI2DINTERIOR_PBCC
-#define JACOBI2DINTERIOR_PBCC
+#ifndef POISSON2DJACOBIINTERIOR_PBCC
+#define POISSON2DJACOBIINTERIOR_PBCC
 
 #define NUM_ITERATIONS 1
 
-transform Jacobi2D_inner
+transform Poisson2DJacobi_inner
 from IN[n,n], B[n,n]
 through S<0 .. NUM_ITERATIONS>[n,n]
 to OUT[n,n]
@@ -90,19 +90,18 @@ to OUT[n,n]
   }
 }
 
-transform Jacobi2DInterior
+transform Poisson2DJacobiInterior
 from IN[n,n], B[n,n], numIterations
 to OUT[n,n]
 {
-  recursive
   to(OUT o) from(IN in, B b, numIterations k)
   {
-    SPAWN(Jacobi2D_inner,o, in, b);
-    if (k <= 1) return;
-    SYNC();
-    SPAWN(Jacobi2DInterior,o, o, b, k - 1);
+    Poisson2DJacobi_inner(o, in, b);
+    for (int i = 1; i < k; i++) {
+      Poisson2DJacobi_inner(o, o, b);
+    }
   }
 }
 
-#endif // JACOBI2DINTERIOR_PBCC
+#endif // POISSON2DJACOBIINTERIOR_PBCC
 

@@ -1,10 +1,15 @@
-#ifndef TRAINMGV2D_PBCC
-#define TRAINMGV2D_PBCC
-#include "ComputeError.pbcc"
-#include "mgv2D.pbcc"
-#include "Func2D.pbcc"
+#ifndef FMGV2DTRAIN_PBCC
+#define FMGV2DTRAIN_PBCC
 
-transform trainmgv2D
+// User must provide: fmgv2D() and ForwardFunc().
+//
+// This transform won't compile on its own since the user must define
+// the desired mgv and func (forward) operators.  Include those operators
+// and then include this file.  See TrainPoisson2Dmgv.pbcc for an example.
+
+#include "ComputeError.pbcc"
+
+transform fmgv2DTrain
 from X[n,n], ACTUAL[n,n]
 through zeros[(n+1)/2,(n+1)/2]
 to Y[n,n]
@@ -13,7 +18,6 @@ to Y[n,n]
     return 0;
   }
 
-  recursive
   to (Y y) from (X x, ACTUAL actual, zeros z)
   {
     double error;
@@ -45,7 +49,7 @@ to Y[n,n]
 
     printf("Training run for level %d\n", level);
     MatrixRegion2D b = MatrixRegion2D::allocate(n,n);
-    Func2D(b, actual);
+    ForwardFunc2D(b, actual);
 
     // y is our working guess
     Copy2D(y, x);
@@ -59,7 +63,12 @@ to Y[n,n]
     ComputeError(error, y, actual);
     printf("initial error = %g\n", error);
 
-    newError = error;
+    // compute estimate
+    fmgv2D(y, y, b, 0);
+    ComputeError(estimateError, y, actual);
+    printf("estimate error = %g\n", estimateError);
+
+    newError = estimateError;
     oldError = error;
     change = 0;
     while (newError / error > prec[4] && (iterations < 5 || change < 1)) {
@@ -82,5 +91,5 @@ to Y[n,n]
   }
 }
 
-#endif // TRAINMGV2D_PBCC
+#endif // FMGV2DTRAIN_PBCC
 

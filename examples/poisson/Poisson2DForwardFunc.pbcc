@@ -1,7 +1,17 @@
-#ifndef FUNC2D_PBCC
-#define FUNC2D_PBCC
+#ifndef POISSON2DFORWARDFUNC_PBCC
+#define POISSON2DFORWARDFUNC_PBCC
 
-transform Func2D
+transform ForwardFunc2D
+from IN[n,n]
+to OUT[n,n]
+{
+  to (OUT out) from (IN in)
+  {
+    Poisson2DForwardFunc(out, in);
+  }
+}
+
+transform Poisson2DForwardFunc
 from IN[n+2,n+2]
 to OUT[n+2,n+2]
 {
@@ -20,5 +30,5 @@ to OUT[n+2,n+2]
   }
 }
 
-#endif // FUNC2D_PBCC
+#endif // POISSON2DFORWARDFUNC_PBCC
 

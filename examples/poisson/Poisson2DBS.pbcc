@@ -1,11 +1,10 @@
-#ifndef SOR2D_PBCC
-#define SOR2D_PBCC
+#ifndef POISSON2DBS_PBCC
+#define POISSON2DBS_PBCC
 
-#include "SOR2DInterior.pbcc"
+#include "Poisson2DBSInterior.pbcc"
 
-// performance note: OUT can point to the same matrix region as IN
-transform SOR2D
-from IN[n+2,n+2], B[n+2,n+2], weight, numIterations
+transform Poisson2DBS
+from IN[n+2,n+2], B[n+2,n+2]
 through BTEMP[n,n]
 to OUT[n+2,n+2]
 {
@@ -23,13 +22,13 @@ to OUT[n+2,n+2]
     return result;
   }
 
-  recursive
-  primary to (OUT.region(1,1,n+1,n+1) o) from (IN.region(1,1,n+1,n+1) in,
-                                               BTEMP b,
-                                               weight w,
-                                               numIterations num)
+  primary to (OUT.region(1,1,n+1,n+1) o) from (BTEMP b)
   {
-    SPAWN(SOR2DInterior, o, in, b, w, num);
+    if (n == 1) {
+      o.cell(0, 0) = b.cell(0,0) / 4;
+    } else {
+      Poisson2DBSInterior(o, b);
+    }
   }
 
   secondary OUT.cell(i,j) from (IN.cell(i,j) x)
@@ -38,5 +37,5 @@ to OUT[n+2,n+2]
   }
 }
 
-#endif // SOR2D_PBCC
+#endif // POISSON2DBS_PBCC
 

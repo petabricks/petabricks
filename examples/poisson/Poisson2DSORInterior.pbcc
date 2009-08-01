@@ -1,5 +1,5 @@
-#ifndef SOR2DINTERIOR_PBCC
-#define SOR2DINTERIOR_PBCC
+#ifndef POISSON2DSORINTERIOR_PBCC
+#define POISSON2DSORINTERIOR_PBCC
 
 #include "../simple/copy.pbcc"
 
@@ -111,7 +111,7 @@ to ROut[width,height], KOut[width,height]
 /* Specify a weight of -1 as sentinel for optimal SOR weight for iterative SOR for Poisson equation */
 /* Specify a weight of -2 as sentinel for "optimal" SOR weight for multigrid step for Poisson equation */
 // performance note: OUT can point to the same matrix region as IN
-transform SOR2DInterior
+transform Poisson2DSORInterior
 from IN[n,n], B[n,n], weight, numIterations
 through RIn [n+2,(n+4)/2], KIn [n+2,(n+4)/2], 
         ROut[n+2,(n+4)/2], KOut[n+2,(n+4)/2], 
@@ -156,5 +156,5 @@ to OUT[n,n]
 
 }
 
-#endif // SOR2DINTERIOR_PBCC
+#endif // POISSON2DSORINTERIOR_PBCC
 

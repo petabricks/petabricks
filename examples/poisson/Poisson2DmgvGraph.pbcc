@@ -1,27 +1,18 @@
-#ifndef MGV2DGRAPH_PBCC
-#define MGV2DGRAPH_PBCC
+#ifndef POISSON2DMGVGRAPH_PBCC
+#define POISSON2DMGVGRAPH_PBCC
 
-#include "mgv2D.pbcc"
+#include "Poisson2Dmgv.pbcc"
 
 #define PRECISION1
-
-%{
-
-JTUNABLE(_prec_case, 9);
-
-%}
-
 #define MAX_LEVEL 13
 
-transform mgv2DGraph
+transform Poisson2DmgvGraph
 from IN[n,n], B[n,n]
 to OUT[n,n]
 {
-  recursive
   to (OUT o) from (IN in, B b)
   {
     int iters[MAX_LEVEL + 1];
-    int prec_case = (int) _prec_case;
 
 #ifdef PRECISION1
 //    int iters[MAX_LEVEL + 1] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
@@ -99,9 +90,9 @@ to OUT[n,n]
 #endif
 
 //    printf("Using %d iterations\n", iters[(int) log2(n - 1)]);
-    SPAWN(mgv2D, o, in, b, iters[(int) log2(n - 1)]);
+    Poisson2Dmgv(o, in, b, iters[(int) log2(n - 1)]);
   }
 }
 
-#endif // MGV2DGRAPH_PBCC
+#endif // POISSON2DMGVGRAPH_PBCC
 

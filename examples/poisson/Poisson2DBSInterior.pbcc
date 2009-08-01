@@ -1,5 +1,5 @@
-#ifndef BS2DINTERIOR_PBCC
-#define BS2DINTERIOR_PBCC
+#ifndef POISSON2DBSINTERIOR_PBCC
+#define POISSON2DBSINTERIOR_PBCC
 
 %{
 
@@ -18,7 +18,7 @@ void displayMatrix(double *A, int h, int w)
 
 %}
 
-transform BS2DInterior
+transform Poisson2DBSInterior
 from B[n,n]
 to OUT[n,n]
 {
@@ -83,5 +83,5 @@ to OUT[n,n]
 
 }
 
-#endif // BS2DINTERIOR_PBCC
+#endif // POISSON2DBSINTERIOR_PBCC
 

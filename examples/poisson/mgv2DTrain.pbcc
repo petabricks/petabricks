@@ -1,10 +1,15 @@
-#ifndef TRAINFMGV2D_PBCC
-#define TRAINFMGV2D_PBCC
-#include "ComputeError.pbcc"
-#include "fmgv2D.pbcc"
-#include "Func2D.pbcc"
+#ifndef MGV2DTRAIN_PBCC
+#define MGV2DTRAIN_PBCC
 
-transform trainfmgv2D
+// User must provide: mgv2D() and ForwardFunc().
+//
+// This transform won't compile on its own since the user must define
+// the desired mgv and func (forward) operators.  Include those operators
+// and then include this file.  See TrainPoisson2Dmgv.pbcc for an example.
+
+#include "ComputeError.pbcc"
+
+transform mgv2DTrain
 from X[n,n], ACTUAL[n,n]
 through zeros[(n+1)/2,(n+1)/2]
 to Y[n,n]
@@ -13,7 +18,6 @@ to Y[n,n]
     return 0;
   }
 
-  recursive
   to (Y y) from (X x, ACTUAL actual, zeros z)
   {
     double error;
@@ -45,7 +49,7 @@ to Y[n,n]
 
     printf("Training run for level %d\n", level);
     MatrixRegion2D b = MatrixRegion2D::allocate(n,n);
-    Func2D(b, actual);
+    ForwardFunc2D(b, actual);
 
     // y is our working guess
     Copy2D(y, x);
@@ -59,24 +63,7 @@ to Y[n,n]
     ComputeError(error, y, actual);
     printf("initial error = %g\n", error);
 
-    // compute estimate
-    if (level > 1) {
-      MatrixRegion2D t2 = MatrixRegion2D::allocate(n, n);
-      MatrixRegion2D r1 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
-      MatrixRegion2D r2 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
-      Residual2D(t2, y, b);     // t2 gets residual
-      Restrict2Dnew(r1, t2);    // r1 gets restricted residual
-      fmgv2D_inner(r2, z, r1);  // r2 gets coarse update
-      Interpolate2Dnew(t2, r2); // t2 gets interpolated update
-      MatrixAdd(y, t2, y);      // t2 gets updated guess
-    } else {
-      Copy2D(y, x);
-    }
-
-    ComputeError(estimateError, y, actual);
-    printf("estimate error = %g\n", estimateError);
-
-    newError = estimateError;
+    newError = error;
     oldError = error;
     change = 0;
     while (newError / error > prec[4] && (iterations < 5 || change < 1)) {
@@ -99,5 +86,5 @@ to Y[n,n]
   }
 }
 
-#endif // TRAINFMGV2D_PBCC
+#endif // MGV2DTRAIN_PBCC
 

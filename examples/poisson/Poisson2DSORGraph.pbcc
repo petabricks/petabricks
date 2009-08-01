@@ -1,16 +1,15 @@
-#ifndef SOR2DGRAPH_PBCC
-#define SOR2DGRAPH_PBCC
+#ifndef POISSON2DSORGRAPH_PBCC
+#define POISSON2DSORGRAPH_PBCC
 
-#include "SOR2D.pbcc"
+#include "Poisson2DSOR.pbcc"
 
 #define PRECISION1
 #define MAX_LEVEL 9
 
-transform SOR2DGraph
+transform Poisson2DSORGraph
 from IN[n+2,n+2], B[n+2,n+2]
 to OUT[n+2,n+2]
 {
-  recursive
   to (OUT o) from (IN in, B b)
   {
 
@@ -150,9 +149,9 @@ to OUT[n+2,n+2]
 #endif
 
 //    printf("Using %d iterations\n", iters[(int) log2(n)]);
-    SPAWN(SOR2D, o, in, b, -2, iters[(int) log2(n)]);
+    Poisson2DSOR(o, in, b, -2, iters[(int) log2(n)]);
   }
 }
 
-#endif // SOR2DGRAPH_PBCC
+#endif // POISSON2DSORGRAPH_PBCC
 

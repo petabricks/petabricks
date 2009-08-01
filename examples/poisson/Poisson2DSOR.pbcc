@@ -1,10 +1,23 @@
-#ifndef JACOBI2D_PBCC
-#define JACOBI2D_PBCC
+#ifndef POISSON2DSOR_PBCC
+#define POISSON2DSOR_PBCC
 
-#include "Jacobi2DInterior.pbcc"
+#include "Poisson2DSORInterior.pbcc"
 
-transform Jacobi2D
-from IN[n+2,n+2], B[n+2,n+2], numIterations
+// stub transform for use in multigrid template
+//   Relax2D => Poisson2DSOR
+transform Relax2D
+from X[n,n], B[n,n], weight, numIterations
+to OUT[n,n]
+{
+  to (OUT out) from (X x, B b, weight w, numIterations num)
+  {
+    Poisson2DSOR(out, x, b, w, num);
+  }
+}
+
+// performance note: OUT can point to the same matrix region as IN
+transform Poisson2DSOR
+from IN[n+2,n+2], B[n+2,n+2], weight, numIterations
 through BTEMP[n,n]
 to OUT[n+2,n+2]
 {
@@ -25,15 +38,10 @@ to OUT[n+2,n+2]
   recursive
   primary to (OUT.region(1,1,n+1,n+1) o) from (IN.region(1,1,n+1,n+1) in,
                                                BTEMP b,
+                                               weight w,
                                                numIterations num)
   {
-    if (n > 0) {
-      if (n == 1) {
-        o.cell(0, 0) = b.cell(0, 0) / 4;
-      } else {
-        SPAWN(Jacobi2DInterior,o, in, b, num);
-      }
-    }
+    SPAWN(Poisson2DSORInterior, o, in, b, w, num);
   }
 
   secondary OUT.cell(i,j) from (IN.cell(i,j) x)
@@ -42,5 +50,5 @@ to OUT[n+2,n+2]
   }
 }
 
-#endif // JACOBI2D_PBCC
+#endif // POISSON2DSOR_PBCC
 

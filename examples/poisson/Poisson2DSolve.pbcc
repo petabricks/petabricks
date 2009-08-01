@@ -4,16 +4,16 @@
 #include "../simple/add.pbcc"
 #include "Interpolate2Dnew.pbcc"
 #include "Restrict2Dnew.pbcc"
-#include "Residual2D.pbcc"
-#include "SOR2D.pbcc"
-#include "BS2D.pbcc"
+#include "Poisson2DResidual.pbcc"
+#include "Poisson2DSOR.pbcc"
+#include "Poisson2DBS.pbcc"
 #include "ComputeError.pbcc"
 
 #ifndef RUNPRINTF
 #define RUNPRINTF //printf
 #endif
 
-main transform Poisson2D
+main transform Poisson2DSolve
 from X[n,n], B[n,n]
 to  Y[n,n]
 {
@@ -22,11 +22,11 @@ to  Y[n,n]
     JASSERT(floor(log2(n-1)) == log2(n-1))(n)(floor(log2(n-1)))(log2(n-1)).Text("input must be 2^k+1");
     JASSERT(n > 1)(n).Text("input must be size larger than 1");
 
-    Poisson2D_Inner(y, x, b);
+    Poisson2DSolveInner(y, x, b);
   }
 }
 
-transform Poisson2D_Inner
+transform Poisson2DSolveInner
 from X[n,n], B[n,n]
 to  Y[n,n]
 through zeros[(n+1)/2,(n+1)/2]
@@ -42,14 +42,14 @@ accuracy_metric ComputeError
       PetabricksRuntime::abort();
     }
     RUNPRINTF("BS case called for level %d, acc %d\n", level, accLvl);
-    BS2D(y, x, b);
+    Poisson2DBS(y, x, b);
   }
 
   //base case: solve iteratively with SOR
   to(Y y) from(X x, B b) {
     int level = (int) log2(n-1);
     RUNPRINTF("SOR case called for level %d, acc %d (%d iterations)\n", level, accLvl, numIterations);
-    SOR2D(y, x, b, -1, numIterations);
+    Poisson2DSOR(y, x, b, -1, numIterations);
   }
 
   //solve recursively on coarser grids, with zero initial guess
@@ -77,13 +77,13 @@ accuracy_metric ComputeError
       Copy2D(y, x);
       // forenough
       for (i = 0; i < numIterations; i++) {
-        SOR2D(t1, y, b, -2, 1);     // t1 gets relaxed guess
-        Residual2D(t2, t1, b);      // t2 gets new residual
-        Restrict2Dnew(r1, t2);      // r1 gets restricted residual
-        Poisson2D_Inner(r2, z, r1); // r2 gets coarse update
-        Interpolate2Dnew(t2, r2);   // t2 gets interpolated update
-        MatrixAdd(t2, t2, t1);      // t2 gets updated guess
-        SOR2D(y, t2, b, -2, 1);     //  y gets relaxed guess
+        Poisson2DSOR(t1, y, b, -2, 1);  // t1 gets relaxed guess
+        Poisson2DResidual(t2, t1, b);   // t2 gets new residual
+        Restrict2Dnew(r1, t2);          // r1 gets restricted residual
+        Poisson2DSolveInner(r2, z, r1); // r2 gets coarse update
+        Interpolate2Dnew(t2, r2);       // t2 gets interpolated update
+        MatrixAdd(t2, t2, t1);          // t2 gets updated guess
+        Poisson2DSOR(y, t2, b, -2, 1);  //  y gets relaxed guess
       }
     }
   }
