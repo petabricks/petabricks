@@ -90,6 +90,15 @@ void petabricks::Transform::print(std::ostream& o) const {
   if(!_constants.empty()){ 
     o << "\nconstants ";   printStlList(o, _constants.begin(), _constants.end(), ", ");
   }
+  if(!_accuracyMetric.empty()) o << "\naccuracy_metric " << _accuracyMetric;
+  if(!_accuracyVariables.empty()){ 
+    o << "\naccuracy_variable ";   printStlList(o, _accuracyVariables.begin(), _accuracyVariables.end(), ", ");
+  }
+  if(!_accuracyBins.empty()){ 
+    o << "\naccuracy_bins";   printStlList(o, _accuracyBins.begin(), _accuracyBins.end(), ", ");
+  }
+  if(!_generator.empty()) o << "\ngenerator" << _generator;
+
   o << "\n{\n";
   printStlList(o, _rules);
   o << "}\n";

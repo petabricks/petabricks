@@ -280,8 +280,6 @@ private:
   RuleList        _rules;
   ChoiceGridMap   _baseCases;
   FreeVars            _constants;
-  FreeVars            _accuracyVariables;
-  std::vector<double> _accuracyBins;
   OrderedFreeVars _parameters;
   bool            _isMain;
   Learner         _learner;
@@ -291,7 +289,9 @@ private:
   int                _tuneId;
   ConfigItems        _config;
   bool               _usesSplitSize;
-  std::string        _accuracyMetric;
+  std::string         _accuracyMetric;
+  FreeVars            _accuracyVariables;
+  std::vector<double> _accuracyBins;
   std::string        _generator;
 };
 
