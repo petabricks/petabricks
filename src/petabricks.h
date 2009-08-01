@@ -27,6 +27,7 @@
 #include "petabricksruntime.h"
 #include "jtunable.h"
 #include "config.h"
+#include <algorithm>
 
 #ifdef HAVE_MATH_H
 #  include <math.h>
@@ -92,5 +93,15 @@ namespace petabricks {
       task->waitUntilComplete();
     }
   }
+
+  inline int interpolate_iteration_count(jalib::JTunableArray& cnts, int input_size, int min){
+    int bin = (int)log2(input_size);
+    if(!(bin>=0)) bin = 0;
+#ifdef DEBUG
+    JASSERT(bin<cnts.size())(bin)(cnts.size());
+#endif
+    return std::max<int>(min, cnts[bin]);
+  }
 }
+
 

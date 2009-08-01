@@ -67,21 +67,45 @@ private:
 
 class ConfigItem {
 public:
-  ConfigItem(bool isTunable, std::string name, int initial, int min, int max)
-      :_isTunable(isTunable),
+  ConfigItem(int flags, std::string name, int initial, int min, int max)
+      :_flags(flags),
        _name(name),
        _initial(initial),
        _min(min),
        _max(max)
   {}
   
-  bool        isTunable() const { return _isTunable;}
   std::string name     () const { return _name;     }
   int         initial  () const { return _initial;  }
   int         min      () const { return _min;      }
   int         max      () const { return _max;      }
+
+  std::string category() const {
+    std::string cat;
+
+    if(hasFlag(ConfigItem::FLAG_USER))
+      cat+="user.";
+    else
+      cat+="system.";
+
+    if(hasFlag(ConfigItem::FLAG_TUNABLE))
+      cat+="tunable";
+    else
+      cat+="config";
+
+    return cat;
+  }
+
+  enum FlagT {
+    FLAG_TUNABLE       = 1, 
+    FLAG_USER          = 2,
+    FLAG_SIZE_SPECIFIC = 4
+  };
+  bool hasFlag(FlagT f) const {
+    return (_flags & f) != 0;
+  }
 private:
-  bool        _isTunable;
+  int         _flags;
   std::string _name;
   int         _initial;
   int         _min;
@@ -142,9 +166,9 @@ public:
   void markMain() { _isMain=true; }
 
   Learner& learner() { return _learner; }
-  PerformanceTester& tester() { return _tester; }
+  //PerformanceTester& tester() { return _tester; }
 
-  void addTestCase(const TestCasePtr& p) {tester().addTestCase(p);}
+  //void addTestCase(const TestCasePtr& p) {tester().addTestCase(p);}
 
   std::vector<std::string> maximalArgList() const;
 
@@ -178,12 +202,16 @@ public:
 
   std::string tmplName(int n, CodeGenerator* o=NULL) const;
 
-  void addConfig(const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
-    _config.push_back(ConfigItem(false,n,initial, min,max));
+  void addUserConfig(const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
+    addConfigItem(ConfigItem::FLAG_USER,n,initial, min,max);
   }
   
-  void addTunable(const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
-    _config.push_back(ConfigItem(true,n,initial, min,max));
+  void addUserTunable(const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
+    addConfigItem(ConfigItem::FLAG_USER|ConfigItem::FLAG_TUNABLE,n,initial, min,max);
+  }
+  
+  void addConfigItem(int flags, const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
+    _config.push_back(ConfigItem(flags,n,initial, min,max));
   }
 
   std::string instClassName() const { return _name+"_instance"; }
@@ -210,9 +238,19 @@ public:
     JASSERT(_accuracyMetric=="")(_name).Text("accuracy_metric declared twice");
     _accuracyMetric=str;
   }
-  void setAccuracyBins(const std::vector<double>& str){
-
+  void setAccuracyBins(const std::vector<double>& v){
+      _accuracyBins = v;
   }
+  void addAccuracyVariable(const std::string& s){
+      _accuracyVariables.insert(s);
+  }
+  void addAccuracyVariable(const FreeVars& v){
+      _accuracyVariables.insert(v.begin(), v.end());
+  }
+  void addAccuracyVariable(const OrderedFreeVars& v){
+      _accuracyVariables.insert(v.begin(), v.end());
+  }
+
   void setGenerator(const std::string& str){
     JASSERT(_generator=="")(_name).Text("generator declared twice");
     _generator=str;
@@ -229,27 +267,32 @@ public:
     return args;
   }
 
+
+  void addConstant(const std::string& c) { _constants.insert(c); }
+
 private:
-  std::string   _originalName;
-  std::string   _name;
-  MatrixDefList _from;
-  MatrixDefList _through;
-  MatrixDefList _to;
-  MatrixDefMap  _matrices;
-  RuleList      _rules;
-  ChoiceGridMap _baseCases;
-  FreeVars      _constants;
+  std::string     _originalName;
+  std::string     _name;
+  MatrixDefList   _from;
+  MatrixDefList   _through;
+  MatrixDefList   _to;
+  MatrixDefMap    _matrices;
+  RuleList        _rules;
+  ChoiceGridMap   _baseCases;
+  FreeVars            _constants;
+  FreeVars            _accuracyVariables;
+  std::vector<double> _accuracyBins;
   OrderedFreeVars _parameters;
-  bool          _isMain;
-  Learner       _learner;
+  bool            _isMain;
+  Learner         _learner;
   StaticSchedulerPtr _scheduler;
-  PerformanceTester _tester;
-  TemplateArgList _templateargs;
-  int _tuneId;
-  ConfigItems _config;
-  bool  _usesSplitSize;
-  std::string _accuracyMetric;
-  std::string _generator;
+  //PerformanceTester  _tester;
+  TemplateArgList    _templateargs;
+  int                _tuneId;
+  ConfigItems        _config;
+  bool               _usesSplitSize;
+  std::string        _accuracyMetric;
+  std::string        _generator;
 };
 
 }
