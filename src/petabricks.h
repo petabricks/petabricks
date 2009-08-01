@@ -94,7 +94,7 @@ namespace petabricks {
     }
   }
 
-  inline int interpolate_iteration_count(jalib::JTunableArray& cnts, int input_size, int min){
+  inline IndexT interpolate_sizespecific(jalib::JTunableArray& cnts, int input_size, int min){
     int bin = (int)log2(input_size);
     if(!(bin>=0)) bin = 0;
 #ifdef DEBUG

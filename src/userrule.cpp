@@ -175,15 +175,14 @@ void petabricks::UserRule::initialize(Transform& trans) {
   std::sort(_to.begin(), _to.end(), CmpRegionsByDimensions());
 
   FormulaList centerEqs = _to.front()->calculateCenter();
-  std::set<std::string> vars = centerEqs.getFreeVariables();
+  FreeVars vars = centerEqs.getFreeVariables();
   const FreeVars& cv = trans.constants();
-  for(FreeVars::const_iterator i=cv.begin(); i!=cv.end(); ++i)
-    vars.erase(*i);
+  vars.eraseAll(cv);
 
   for(size_t i=0; i<centerEqs.size(); ++i)
     centerEqs[i] = new FormulaEQ(getOffsetVar(i), centerEqs[i]);
 
-  for( std::set<std::string>::const_iterator i = vars.begin(); i!=vars.end(); ++i )
+  for( FreeVars::const_iterator i = vars.begin(); i!=vars.end(); ++i )
   {
     FormulaListPtr v = MaximaWrapper::instance().solve(centerEqs, *i);
     JASSERT(v->size()>0)(v)(*i).Text("failed to solve for i in v");

@@ -23,7 +23,6 @@
 #include "codegenerator.h"
 #include "syntheticrule.h"
 #include "staticscheduler.h"
-#include "rirscope.h"
 
 #include <algorithm>
 
@@ -33,6 +32,13 @@ namespace{
     dst.insert(dst.end(), src.begin(), src.end());
   }
 }
+  
+petabricks::Transform::Transform() 
+  : _isMain(false)
+  , _tuneId(0)
+  , _usesSplitSize(false)
+  , _scope(RIRScope::global()->createChildLayer())
+{}
 
 void petabricks::Transform::addFrom(const MatrixDefList& l){
   appendAll(_from, l);
@@ -196,13 +202,8 @@ void petabricks::Transform::compile(){
   jalib::Map(&MatrixDef::exportAssumptions, _through);
   jalib::Map(&MatrixDef::exportAssumptions, _to);
 
-  RIRScopePtr scope = RIRScope::global()->createChildLayer();
 
-  for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
-    scope->set(i->name(), RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL);
-  }
-
-  jalib::Map(&RuleInterface::compileRuleBody, *this, *scope, _rules);
+  jalib::Map(&RuleInterface::compileRuleBody, *this, *_scope, _rules);
 
   JASSERT(!_scheduler);
 
@@ -366,7 +367,9 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     if(i->hasFlag(ConfigItem::FLAG_SIZESPECIFIC)){
-      o.createTunableArray(i->category()+".array", _name+"_"+i->name(), MAX_INPUT_BITS, i->initial(), i->min(), i->max());
+      int tmp = i->initial();
+      if(tmp==i->min()) tmp--;
+      o.createTunableArray(i->category()+".array", _name+"_"+i->name(), MAX_INPUT_BITS, tmp, i->min()-1, i->max());
     }else{
       o.createTunable(i->hasFlag(ConfigItem::FLAG_TUNABLE), i->category(), _name+"_"+i->name(), i->initial(), i->min(), i->max());
     }
@@ -473,45 +476,50 @@ void petabricks::Transform::extractSizeDefines(CodeGenerator& o, FreeVars fv){
 }
 
 void petabricks::Transform::extractConstants(CodeGenerator& o){
-  FreeVars sysvars, uservars;
 #ifdef INPUT_SIZE_STR
   o.addMember("IndexT", INPUT_SIZE_STR,       "0");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     o.write(INPUT_SIZE_STR " += " + (*i)->name() + ".count();");
   }
-  sysvars.insert(INPUT_SIZE_STR);
 #endif
 #ifdef INPUT_PERIMETER_STR
   o.addMember("IndexT", INPUT_PERIMETER_STR,  "0");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     o.write(INPUT_PERIMETER_STR " += " + (*i)->name() + ".perimeter();");
   }
-  sysvars.insert(INPUT_PERIMETER_STR);
 #endif
 #ifdef OUTPUT_SIZE_STR
   o.addMember("IndexT", OUTPUT_SIZE_STR,      "0");
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     o.write(OUTPUT_SIZE_STR " += " + (*i)->name() + ".count();");
   }
-  sysvars.insert(OUTPUT_SIZE_STR);
 #endif
 
-  extractSizeDefines(o, sysvars);
+  extractSizeDefines(o, FreeVars());
   Map(&MatrixDef::verifyDefines, o, _from);
   Map(&MatrixDef::verifyDefines, o, _to);
   for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
     (*i)->allocateTemporary(o, false);
   } 
 
-#ifdef TRANSFORM_N_STR
-  sysvars.insert(TRANSFORM_N_STR);
-  uservars = _constants;
-  uservars.eraseAll(sysvars);
+//#ifdef TRANSFORM_N_STR
   o.addMember("IndexT", TRANSFORM_N_STR ,     "1");
-  for(FreeVars::const_iterator i=uservars.begin(); i!=uservars.end(); ++i){
-    o.write(TRANSFORM_N_STR" = std::max<IndexT>("TRANSFORM_N_STR", "+*i+");");
+  for(FreeVars::const_iterator i=_constants.begin(); i!=_constants.end(); ++i){
+    if(i->hasFlag(FreeVar::FLAG_SIZEVAR))
+      o.write(TRANSFORM_N_STR" = std::max<IndexT>("TRANSFORM_N_STR", "+*i+");");
   }
-#endif
+//#endif
+  
+  //construct size specific config items
+  for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
+    if(i->hasFlag(ConfigItem::FLAG_SIZESPECIFIC)){
+      o.addMember("IndexT", i->name(), "0");
+      o.write(i->name()+" = petabricks::interpolate_sizespecific("
+                                       "TRANSFORM_LOCAL("+i->name()+"),"
+                                       TRANSFORM_N_STR ","+
+                                       jalib::XToString(i->min())+");");
+    }
+  }
 }
 
 void petabricks::Transform::registerMainInterface(CodeGenerator& o){
@@ -594,7 +602,8 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
   o.beginFunc("void", "randomInputs", std::vector<std::string>(1,"IndexT _size_inputs"));
   {
     for(FreeVars::const_iterator i=_constants.begin(); i!=_constants.end(); ++i){
-      o.write("IndexT "+*i+" = _size_inputs;");
+      if(i->hasFlag(FreeVar::FLAG_SIZEVAR))
+        o.write("IndexT "+*i+" = _size_inputs;");
     }
     for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
       (*i)->allocateTemporary(o, true);

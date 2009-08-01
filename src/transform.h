@@ -28,6 +28,7 @@
 #include "learner.h"
 #include "performancetester.h"
 #include "staticscheduler.h"
+#include "rirscope.h"
 
 #include <vector>
 #include <set>
@@ -123,7 +124,7 @@ class Transform : public jalib::JRefCounted, public jalib::JPrintable {
 public:
   ///
   /// Constructor
-  Transform() :_isMain(false),_tuneId(0),_usesSplitSize(false) {}
+  Transform();
   
   //called durring parsing:
   void setName(const std::string& str) { _originalName=_name=str; }
@@ -205,6 +206,10 @@ public:
   
   void addConfigItem(int flags, const std::string& n, int initial=0, int min=0, int max=std::numeric_limits<int>::max()){
     _config.push_back(ConfigItem(flags,n,initial, min,max));
+    if(_config.back().hasFlag(ConfigItem::FLAG_SIZESPECIFIC))
+      addConstant(n, FreeVar::FLAG_SIZESPECIFICCFG);
+    else
+      _scope->set(n, RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL);
   }
 
   std::string instClassName() const { return _name+"_instance"; }
@@ -215,7 +220,6 @@ public:
 
   void addParams(const OrderedFreeVars& p) { _parameters.insert(_parameters.end(), p.begin(), p.end()); }
 
-  
   MatrixDefList defaultVisibleInputs() const {
     MatrixDefList tmp;
     for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
@@ -250,8 +254,9 @@ public:
     return args;
   }
 
-
-  void addConstant(const std::string& c) { _constants.insert(c); }
+  void addConstant(const std::string& c, int flags=0) { 
+    _constants.insert(FreeVar(c,flags)); 
+  }
 
 private:
   std::string     _originalName;
@@ -271,6 +276,7 @@ private:
   TemplateArgList     _templateargs;
   int                 _tuneId;
   ConfigItems         _config;
+  RIRScopePtr         _scope;
   bool                _usesSplitSize;
   std::string         _accuracyMetric;
   std::vector<double> _accuracyBins;
