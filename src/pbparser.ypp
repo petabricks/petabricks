@@ -49,7 +49,6 @@ static void clearParserCaches(){
   petabricks::Region*          region;
   petabricks::RegionList*      regions;
   petabricks::OrderedFreeVars* freevars;
-  petabricks::TestCase*        testcase;
   petabricks::TemplateArg*     templatearg;
   petabricks::TemplateArgList* templateargs;
   petabricks::DoubleList*      doublelist;
@@ -69,7 +68,7 @@ static void clearParserCaches(){
 %token KW_ACCURACYMETRIC KW_ACCURACYBINS KW_ACCURACYVARIABLE
 %token <str> TOK_INTEGER TOK_FLOAT TOK_RULEBODY IDENT 
 %type <str> RuleBody
-%type <i> Integer PriorityFlag
+%type <i> Integer PriorityFlag ConfigItemType
 %type <d> Float FloatOrInt
 %type <transform> Transform TransformHeader 
 %type <transforms> TransformList
@@ -81,7 +80,6 @@ static void clearParserCaches(){
 %type <formula>    Formula FormulaExpr FormulaRelation
 %type <region>     Region NamedRegion
 %type <regions>    NamedRegionList RuleHeaderFrom RuleHeaderTo
-%type <testcase>   TestCase
 %type <templatearg> TemplateArg
 %type <templateargs> TemplateArgs
 %type <str_formulas> RegionAccessor
@@ -116,21 +114,24 @@ TransformHeader: TransformHeader KW_TEMPLATE OptLT TemplateArgs OptGT { ($$=$1)-
 //TransformHeader: TransformHeader KW_TESTCASE TestCase                 { ($$=$1)->addTestCase($3);};
 TransformHeader: TransformHeader KW_ACCURACYMETRIC IDENT              { ($$=$1)->setAccuracyMetric($3);};
 TransformHeader: TransformHeader KW_ACCURACYBINS FloatList            { ($$=$1)->setAccuracyBins(*$3);};
-TransformHeader: TransformHeader KW_ACCURACYVARIABLE FreeVars         { ($$=$1)->addAccuracyVariable(*$3);    } ;
 TransformHeader: TransformHeader KW_GENERATOR IDENT                   { ($$=$1)->setGenerator($3);};
 
-TransformHeader: TransformHeader KW_CONFIG IDENT '(' Integer ')' 
-         { ($$=$1)->addUserConfig($3, $5); };
-TransformHeader: TransformHeader KW_CONFIG IDENT '(' Integer ',' Integer ')' 
-         { ($$=$1)->addUserConfig($3, $5, $7); };
-TransformHeader: TransformHeader KW_CONFIG IDENT '(' Integer ',' Integer ',' Integer ')' 
-         { ($$=$1)->addUserConfig($3, $5, $7, $9); };
-TransformHeader: TransformHeader KW_TUNABLE IDENT '(' Integer ')' 
-         { ($$=$1)->addUserTunable($3, $5); };
-TransformHeader: TransformHeader KW_TUNABLE IDENT '(' Integer ',' Integer ')' 
-         { ($$=$1)->addUserTunable($3, $5, $7); };
-TransformHeader: TransformHeader KW_TUNABLE IDENT '(' Integer ',' Integer ',' Integer ')' 
-         { ($$=$1)->addUserTunable($3, $5, $7, $9); };
+TransformHeader: TransformHeader ConfigItemType IDENT
+         { ($$=$1)->addConfigItem($2, $3); };
+TransformHeader: TransformHeader ConfigItemType IDENT '(' ')'
+         { ($$=$1)->addConfigItem($2, $3); };
+TransformHeader: TransformHeader ConfigItemType IDENT '(' Integer ')' 
+         { ($$=$1)->addConfigItem($2, $3, $5); };
+TransformHeader: TransformHeader ConfigItemType IDENT '(' Integer ',' Integer ')' 
+         { ($$=$1)->addConfigItem($2, $3, $5, $7); };
+TransformHeader: TransformHeader ConfigItemType IDENT '(' Integer ',' Integer ',' Integer ')' 
+         { ($$=$1)->addConfigItem($2, $3, $5, $7, $9); };
+
+
+ConfigItemType: KW_CONFIG           { $$=ConfigItem::FLAG_USER; }
+              | KW_TUNABLE          { $$=ConfigItem::FLAG_USER|ConfigItem::FLAG_TUNABLE; }
+              | KW_ACCURACYVARIABLE { $$=ConfigItem::FLAG_USER|ConfigItem::FLAG_ACCURACY|ConfigItem::FLAG_SIZESPECIFIC; };
+
 
 TemplateArg: IDENT '(' Integer ',' Integer ')' {
   $$=REFALLOC(TemplateArg($1, $3, $5));
@@ -138,8 +139,8 @@ TemplateArg: IDENT '(' Integer ',' Integer ')' {
 TemplateArgs: TemplateArg                  { ($$=REFALLOC(TemplateArgList()))->push_back($1); }
             | TemplateArgs ',' TemplateArg { ($$=$1)->push_back($3); }
 
-TestCase: Nil            { $$=REFALLOC(TestCase()); }
-        | TestCase IDENT { ($$=$1)->addMatrix($2); };
+/*TestCase: Nil            { $$=REFALLOC(TestCase()); }
+       | TestCase IDENT { ($$=$1)->addMatrix($2); }; */
 
 MatrixDef: IDENT OptVersion OptSize { $$=REFALLOC(MatrixDef($1,*$2,*$3)); };
 

@@ -41,7 +41,6 @@ class StaticScheduler;
 class FormulaList;
 class UserRule;
 class RuleInterface;
-class FreeVarList;
 typedef jalib::JRef<RuleInterface> RulePtr;
 class RuleList : public std::vector<RulePtr> , public jalib::JRefCounted {};
 typedef std::vector<RuleDescriptor>     RuleDescriptorList;

@@ -177,13 +177,9 @@ void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
     std::string vI=         _uniquify("_forenough_i");
     std::string vCount=     _uniquify("_forenough_count");
     //std::string vIsTraining=_uniquify("_forenough_isTraining");
-    _transform.addConfigItem(ConfigItem::FLAG_SIZE_SPECIFIC, config, minI-1, minI-1, maxI);
-    _transform.addConstant(TRANSFORM_N_STR);//force input size to be passed to us
+    _transform.addConfigItem(ConfigItem::FLAG_SIZESPECIFIC|ConfigItem::FLAG_ACCURACY, config, minI, minI, maxI);
 
     // insert some code before the for_enough loop
-    t = RIRStmt::parse("int "+vCount+"= petabricks::interpolate_iteration_count("+_transform.name()+"_"+config+", "TRANSFORM_N_STR", "+jalib::XToString(minI)+" );");
-    t->accept(*this);
-    pushStmtBackward(t);
     // t = RIRStmt::parse("bool "+vIsTraining+" = petabricks::PetabricksRuntime::isTrainingRun();");
     // t->accept(*this);
     // pushStmtBackward(t);
@@ -193,7 +189,7 @@ void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
 
     // set the iteration bounds
     loop.declPart() = RIRExpr::parse("int "+vI+" = 0");
-    loop.testPart() = RIRExpr::parse(vI+" < "+vCount);
+    loop.testPart() = RIRExpr::parse(vI+" < "+config);
     loop.incPart()  = RIRExpr::parse("++"+vI);
   }
 }

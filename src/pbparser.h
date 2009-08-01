@@ -119,7 +119,6 @@ typedef union YYSTYPE
   petabricks::Region*          region;
   petabricks::RegionList*      regions;
   petabricks::OrderedFreeVars* freevars;
-  petabricks::TestCase*        testcase;
   petabricks::TemplateArg*     templatearg;
   petabricks::TemplateArgList* templateargs;
   petabricks::DoubleList*      doublelist;
@@ -128,7 +127,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 132 "pbparser.h"
+#line 131 "pbparser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

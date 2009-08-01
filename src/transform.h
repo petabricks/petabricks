@@ -28,6 +28,7 @@
 #include "learner.h"
 #include "performancetester.h"
 #include "staticscheduler.h"
+#include "rirscope.h"
 
 #include <vector>
 #include <set>
@@ -97,9 +98,10 @@ public:
   }
 
   enum FlagT {
-    FLAG_TUNABLE       = 1, 
-    FLAG_USER          = 2,
-    FLAG_SIZE_SPECIFIC = 4
+    FLAG_TUNABLE       = 1<<0, 
+    FLAG_USER          = 1<<1,
+    FLAG_SIZESPECIFIC = 1<<2,
+    FLAG_ACCURACY      = 1<<3
   };
   bool hasFlag(FlagT f) const {
     return (_flags & f) != 0;
@@ -122,7 +124,7 @@ class Transform : public jalib::JRefCounted, public jalib::JPrintable {
 public:
   ///
   /// Constructor
-  Transform() :_isMain(false),_tuneId(0),_usesSplitSize(false) {}
+  Transform();
   
   //called durring parsing:
   void setName(const std::string& str) { _originalName=_name=str; }
@@ -201,17 +203,13 @@ public:
   bool isTemplate() const { return !_templateargs.empty(); }
 
   std::string tmplName(int n, CodeGenerator* o=NULL) const;
-
-  void addUserConfig(const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
-    addConfigItem(ConfigItem::FLAG_USER,n,initial, min,max);
-  }
   
-  void addUserTunable(const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
-    addConfigItem(ConfigItem::FLAG_USER|ConfigItem::FLAG_TUNABLE,n,initial, min,max);
-  }
-  
-  void addConfigItem(int flags, const std::string& n, int initial, int min=0, int max=std::numeric_limits<int>::max()){
+  void addConfigItem(int flags, const std::string& n, int initial=0, int min=0, int max=std::numeric_limits<int>::max()){
     _config.push_back(ConfigItem(flags,n,initial, min,max));
+    if(_config.back().hasFlag(ConfigItem::FLAG_SIZESPECIFIC))
+      addConstant(n, FreeVar::FLAG_SIZESPECIFICCFG);
+    else
+      _scope->set(n, RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL);
   }
 
   std::string instClassName() const { return _name+"_instance"; }
@@ -222,7 +220,6 @@ public:
 
   void addParams(const OrderedFreeVars& p) { _parameters.insert(_parameters.end(), p.begin(), p.end()); }
 
-  
   MatrixDefList defaultVisibleInputs() const {
     MatrixDefList tmp;
     for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
@@ -239,18 +236,8 @@ public:
     _accuracyMetric=str;
   }
   void setAccuracyBins(const std::vector<double>& v){
-      _accuracyBins = v;
+    _accuracyBins = v;
   }
-  void addAccuracyVariable(const std::string& s){
-      _accuracyVariables.insert(s);
-  }
-  void addAccuracyVariable(const FreeVars& v){
-      _accuracyVariables.insert(v.begin(), v.end());
-  }
-  void addAccuracyVariable(const OrderedFreeVars& v){
-      _accuracyVariables.insert(v.begin(), v.end());
-  }
-
   void setGenerator(const std::string& str){
     JASSERT(_generator=="")(_name).Text("generator declared twice");
     _generator=str;
@@ -267,8 +254,9 @@ public:
     return args;
   }
 
-
-  void addConstant(const std::string& c) { _constants.insert(c); }
+  void addConstant(const std::string& c, int flags=0) { 
+    _constants.insert(FreeVar(c,flags)); 
+  }
 
 private:
   std::string     _originalName;
@@ -278,21 +266,21 @@ private:
   MatrixDefList   _to;
   MatrixDefMap    _matrices;
   RuleList        _rules;
-  ChoiceGridMap   _baseCases;
-  FreeVars            _constants;
-  FreeVars            _accuracyVariables;
-  std::vector<double> _accuracyBins;
+  ChoiceGridMap   _choiceGrid;
+  FreeVars        _constants;
   OrderedFreeVars _parameters;
   bool            _isMain;
   Learner         _learner;
   StaticSchedulerPtr _scheduler;
   //PerformanceTester  _tester;
-  TemplateArgList    _templateargs;
-  int                _tuneId;
-  ConfigItems        _config;
-  bool               _usesSplitSize;
-  std::string        _accuracyMetric;
-  std::string        _generator;
+  TemplateArgList     _templateargs;
+  int                 _tuneId;
+  ConfigItems         _config;
+  RIRScopePtr         _scope;
+  bool                _usesSplitSize;
+  std::string         _accuracyMetric;
+  std::vector<double> _accuracyBins;
+  std::string         _generator;
 };
 
 }
