@@ -91,9 +91,6 @@ void petabricks::Transform::print(std::ostream& o) const {
     o << "\nconstants ";   printStlList(o, _constants.begin(), _constants.end(), ", ");
   }
   if(!_accuracyMetric.empty()) o << "\naccuracy_metric " << _accuracyMetric;
-  if(!_accuracyVariables.empty()){ 
-    o << "\naccuracy_variable ";   printStlList(o, _accuracyVariables.begin(), _accuracyVariables.end(), ", ");
-  }
   if(!_accuracyBins.empty()){ 
     o << "\naccuracy_bins";   printStlList(o, _accuracyBins.begin(), _accuracyBins.end(), ", ");
   }
@@ -102,7 +99,7 @@ void petabricks::Transform::print(std::ostream& o) const {
   o << "\n{\n";
   printStlList(o, _rules);
   o << "}\n";
-  o << "ChoiceGrid:\n" << _baseCases;
+  o << "ChoiceGrid:\n" << _choiceGrid;
   o << "\n";
 }
 
@@ -164,13 +161,13 @@ void petabricks::Transform::fillBaseCases(const MatrixDefPtr& matrix) {
   }
   ChoiceGridPtr tmp = ChoiceGrid::constructFrom(allowed, boundaries);
   if(matrix->numDimensions()>0){
-    tmp->buildIndex(_baseCases[matrix]);
+    tmp->buildIndex(_choiceGrid[matrix]);
   }else{
-    _baseCases[matrix][new SimpleRegion()] = tmp;
+    _choiceGrid[matrix][new SimpleRegion()] = tmp;
   }
 
   //convert any where clauses
-  ChoiceGridIndex& regions=_baseCases[matrix];
+  ChoiceGridIndex& regions=_choiceGrid[matrix];
   for(ChoiceGridIndex::iterator i=regions.begin(); i!=regions.end(); ++i){
     ChoiceGrid& cg = *i->second;
     if(cg.hasWhereClauses()){
@@ -209,7 +206,7 @@ void petabricks::Transform::compile(){
 
   JASSERT(!_scheduler);
 
-  _scheduler=new StaticScheduler(_baseCases);
+  _scheduler=new StaticScheduler(_choiceGrid);
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     _scheduler->markInputMatrix(*i);
   }
@@ -368,7 +365,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
   o.newline();
   
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
-    if(i->hasFlag(ConfigItem::FLAG_SIZE_SPECIFIC)){
+    if(i->hasFlag(ConfigItem::FLAG_SIZESPECIFIC)){
       o.createTunableArray(i->category()+".array", _name+"_"+i->name(), MAX_INPUT_BITS, i->initial(), i->min(), i->max());
     }else{
       o.createTunable(i->hasFlag(ConfigItem::FLAG_TUNABLE), i->category(), _name+"_"+i->name(), i->initial(), i->min(), i->max());
