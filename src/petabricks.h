@@ -93,9 +93,13 @@ namespace petabricks {
       task->waitUntilComplete();
     }
   }
+    
+  inline int size_to_bin(IndexT size){
+    return (int)log2(size);
+  }
 
   inline IndexT interpolate_sizespecific(jalib::JTunableArray& cnts, int input_size, int min){
-    int bin = (int)log2(input_size);
+    int bin = size_to_bin(input_size);
     if(!(bin>=0)) bin = 0;
 #ifdef DEBUG
     JASSERT(bin<cnts.size())(bin)(cnts.size());

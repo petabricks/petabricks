@@ -3,7 +3,7 @@ main transform Foo
 from A[n] 
 to X
 accuracy_metric Bar
-accuracy_bins 1, 2, 3
+accuracy_bins 3
 {
   to(X x) from() {
     x = 0;
@@ -13,19 +13,19 @@ accuracy_bins 1, 2, 3
   }
 }
 
-transform Foo2
-from A[n] 
-to X
-accuracy_metric Bar
-accuracy_bins 1, 2, 3
-{
-  to(X x) from() {
-    x = 0;
-    for_enough {
-      x=x+1;
-    }
-  }
-}
+// transform Foo2
+// from A[n] 
+// to X
+// accuracy_metric Bar
+// accuracy_bins 1, 2, 3
+// {
+//   to(X x) from() {
+//     x = 0;
+//     for_enough {
+//       x=x+1;
+//     }
+//   }
+// }
 
 transform Bar
 to Accuracy

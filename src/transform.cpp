@@ -648,19 +648,6 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
   }
   o.endFunc();
   
-  o.beginFunc("ElementT", "accuracy");
-  if(_accuracyMetric != "")
-  {
-    o.write("MatrixRegion0D _acc = MatrixRegion0D::allocate();");
-    std::vector<std::string> args = argnames();
-    args.insert(args.begin(), "_acc");
-    o.setcall("DynamicTaskPtr p", _accuracyMetric+TX_DYNAMIC_POSTFIX, args);
-    o.write("petabricks::enqueue_and_wait(p);");
-    o.write("return _acc.cell();");
-  }else{
-    o.write("return 1;");
-  }
-  o.endFunc();
 
   o.beginFunc("void", "compute");
   o.setcall("DynamicTaskPtr p",name()+TX_DYNAMIC_POSTFIX, argNames);
@@ -676,8 +663,48 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
   o.write("static "+_name+"_main i;");
   o.write("return &i;");
   o.endFunc();
+  
+  o.beginFunc("petabricks::TunableListT", "accuracyVariables", std::vector<std::string>(1,"int _size"));
+  o.write("TunableListT _tl;");
+  o.write("int _bin = petabricks::size_to_bin(_size);");
+  for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
+    if(i->hasFlag(ConfigItem::FLAG_ACCURACY)){
+      if(i->hasFlag(ConfigItem::FLAG_SIZESPECIFIC)){
+        o.write("_tl.push_back(& TRANSFORM_LOCAL("+i->name()+")[_bin]);");
+      }else{
+        o.write("_tl.push_back(& TRANSFORM_LOCAL("+i->name()+"));");
+      }
+    }
+  }
+  o.write("return _tl;");
+  o.endFunc();
+  
+  o.beginFunc("ElementT", "accuracy");
+  if(_accuracyMetric != "")
+  {
+    o.write("MatrixRegion0D _acc = MatrixRegion0D::allocate();");
+    std::vector<std::string> args = argnames();
+    args.insert(args.begin(), "_acc");
+    o.setcall("DynamicTaskPtr p", _accuracyMetric+TX_DYNAMIC_POSTFIX, args);
+    o.write("petabricks::enqueue_and_wait(p);");
+    o.write("return _acc.cell();");
+  }else{
+    o.write("return std::numeric_limits<ElementT>::max();");
+  }
+  o.endFunc();
+  
+  o.beginFunc("ElementT", "accuracyTarget");
+  if(!_accuracyBins.empty())
+  {
+    o.write("return "+jalib::XToString(_accuracyBins.back())+";");
+  }else{
+    o.write("return std::numeric_limits<ElementT>::min();");
+  }
+  o.endFunc();
 
   o.endClass();
+
+
 }
 
 std::vector<std::string> petabricks::Transform::maximalArgList() const{

@@ -236,6 +236,7 @@ public:
     _accuracyMetric=str;
   }
   void setAccuracyBins(const std::vector<double>& v){
+    JASSERT(_accuracyBins.empty())(_name).Text("accuracy_bins declared twice");
     _accuracyBins = v;
   }
   void setGenerator(const std::string& str){
