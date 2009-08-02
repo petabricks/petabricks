@@ -45,13 +45,16 @@ to OUT[n,n,n]
                         ALPHA alpha, BETA beta,
                         WEIGHT w,
                         PARITY p)
-//  where (((int) (i + j + k)) & 1 == p)
-  where ((i + j + k) % 2 == p)
   {
-    double K = alpha * a + beta * (bwe + bea + bno + bso + bfr + bba);
-    double newVal = (beta * (bwe * we + bea * ea + bno * no +
-                             bso * so + bfr * fr + bba * ba) + rhs) / K;
-    return (1 - w) * me + w * newVal;
+    // this condition not yet supported in where clause
+    if (((int) (i + j + k)) & 1 == p) {
+      double K = alpha * a + beta * (bwe + bea + bno + bso + bfr + bba);
+      double newVal = (beta * (bwe * we + bea * ea + bno * no +
+            bso * so + bfr * fr + bba * ba) + rhs) / K;
+      return (1 - w) * me + w * newVal;
+    } else {
+      return me;
+    }
   }
 
   // borders are unchanged

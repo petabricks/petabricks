@@ -2,6 +2,7 @@
 #define HELMHOLTZ3DJACOBI_PBCC
 
 #include "Helmholtz3DSORInterior.pbcc"
+#include "../simple/copy.pbcc"
 
 // stub transform for use in multigrid template
 //   Relax3D => Helmholtz3DSOR
@@ -70,25 +71,29 @@ to OUT[n,n,n]
                      WEIGHT w, NUMITERS numIters)
   {
     int i;
-    MatrixRegion3D temp;
+    MatrixRegion3D temp = MatrixRegion3D::allocate(n,n,n);
 
     JASSERT(numIters > 0)(numIters)("numIters must be positive");
 
-    // need a temporary matrix if more than one iteration
-    if (numIters > 1) {
-      temp = MatrixRegion3D::allocate(n,n,n);
-    }
-
-    if (((int) numIters) & 1) { // if numIters is odd
-      Helmholtz3DJacobiIterate(out, in, a, b1, b2, b3, rhs, alpha, beta, w);
+    if (numIters == 1) {
+      // we need this copy since 'out' may point to 'in'
+      Helmholtz3DJacobiIterate(temp, in, a, b1, b2, b3, rhs, alpha, beta, w);
+      Copy3D(out, temp);
       i = 1;
-    } else {
+    } else if (((int) numIters) & 1 == 0) { // if numIters is even
       Helmholtz3DJacobiIterate(temp, in, a, b1, b2, b3, rhs, alpha, beta, w);
       Helmholtz3DJacobiIterate(out, temp, a, b1, b2, b3, rhs, alpha, beta, w);
       i = 2;
+    } else {
+      MatrixRegion3D temp2 = MatrixRegion3D::allocate(n,n,n);
+      Helmholtz3DJacobiIterate(temp, in, a, b1, b2, b3, rhs, alpha, beta, w);
+      Helmholtz3DJacobiIterate(temp2, temp, a, b1, b2, b3, rhs, alpha, beta, w);
+      Helmholtz3DJacobiIterate(out, temp2, a, b1, b2, b3, rhs, alpha, beta, w);
+      i = 3;
     }
 
     // finish up the rest of the iterations
+    // j is a dummy var just to get it to compile
     for (int j = 0; i < numIters; i += 2) {
       Helmholtz3DJacobiIterate(temp, out, a, b1, b2, b3, rhs, alpha, beta, w);
       Helmholtz3DJacobiIterate(out, temp, a, b1, b2, b3, rhs, alpha, beta, w);
