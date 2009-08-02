@@ -11,8 +11,8 @@
 
 convolution/ConvolutionFFT Rand1D Rand1D
 convolution/Convolution    Rand1D Rand1D
-kclustering/kmeans         5 KmeansRandInput /dev/null /dev/null
-matrixapproximation/matrixapprox   MatApproxRand2D MatApproxK /dev/null
+kclustering/kmeans         5 KmeansRandInput /dev/null
+matrixapproximation/matrixapprox   MatApproxRand2D MatApproxK
 multiply/multiply          Rand2Da Rand2Db
 multigrid/Poisson2DBS      Rand2Da Rand2Db
 multigrid/Poisson2DJacobi  Rand2Da Rand2Db One0D
