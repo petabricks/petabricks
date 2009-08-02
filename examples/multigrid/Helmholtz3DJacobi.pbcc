@@ -1,0 +1,99 @@
+#ifndef HELMHOLTZ3DJACOBI_PBCC
+#define HELMHOLTZ3DJACOBI_PBCC
+
+#include "Helmholtz3DSORInterior.pbcc"
+
+// stub transform for use in multigrid template
+//   Relax3D => Helmholtz3DSOR
+transform Relax3D
+from IN[n,n,n], A[n,n,n], B1[n,n,n], B2[n,n,n], B3[n,n,n],
+     RHS[n,n,n], ALPHA, BETA, WEIGHT, NUMITERS
+to OUT[n,n,n]
+{
+  to (OUT out) from (IN in, A a, B1 b1, B2 b2, B3 b3,
+                     RHS rhs, ALPHA alpha, BETA beta,
+                     WEIGHT w, NUMITERS numIters)
+  {
+    Helmholtz3DJacobi(out, in, a, b1, b2, b3, rhs,
+                      alpha, beta, w, numIters);
+  }
+}
+
+// OUT may NOT point to the same matrix region as IN
+transform Helmholtz3DJacobiIterate
+from IN[n,n,n], A[n,n,n], B1[n,n,n], B2[n,n,n], B3[n,n,n],
+     RHS[n,n,n], ALPHA, BETA, WEIGHT
+to OUT[n,n,n]
+{
+  primary
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k-1) fr,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B1.cell(i-1,j  ,k  ) bwe,
+                         B1.cell(i  ,j  ,k  ) bea,
+                         B2.cell(i  ,j-1,k  ) bno,
+                         B2.cell(i  ,j  ,k  ) bso,
+                         B3.cell(i  ,j  ,k-1) bfr,
+                         B3.cell(i  ,j  ,k  ) bba,
+                        RHS.cell(i  ,j  ,k  ) rhs,
+                        ALPHA alpha, BETA beta,
+                        WEIGHT w)
+  {
+    double K = alpha * a + beta * (bwe + bea + bno + bso + bfr + bba);
+    double newVal = (beta * (bwe * we + bea * ea + bno * no +
+                             bso * so + bfr * fr + bba * ba) + rhs) / K;
+    return (1 - w) * me + w * newVal;
+  }
+
+  // borders are unchanged
+  secondary
+  OUT.cell(i,j,k) from (IN.cell(i,j,k) me)
+  {
+    return me;
+  }
+
+}
+
+// performance note: OUT can point to the same matrix region as IN
+transform Helmholtz3DJacobi
+from IN[n,n,n], A[n,n,n], B1[n,n,n], B2[n,n,n], B3[n,n,n],
+     RHS[n,n,n], ALPHA, BETA, WEIGHT, NUMITERS
+to OUT[n,n,n]
+{
+  to (OUT out) from (IN in, A a, B1 b1, B2 b2, B3 b3, RHS rhs,
+                     ALPHA alpha, BETA beta,
+                     WEIGHT w, NUMITERS numIters)
+  {
+    int i;
+    MatrixRegion3D temp;
+
+    JASSERT(numIters > 0)(numIters)("numIters must be positive");
+
+    // need a temporary matrix if more than one iteration
+    if (numIters > 1) {
+      temp = MatrixRegion3D::allocate(n,n,n);
+    }
+
+    if (((int) numIters) & 1) { // if numIters is odd
+      Helmholtz3DJacobiIterate(out, in, a, b1, b2, b3, rhs, alpha, beta, w);
+      i = 1;
+    } else {
+      Helmholtz3DJacobiIterate(temp, in, a, b1, b2, b3, rhs, alpha, beta, w);
+      Helmholtz3DJacobiIterate(out, temp, a, b1, b2, b3, rhs, alpha, beta, w);
+      i = 2;
+    }
+
+    // finish up the rest of the iterations
+    for (int j = 0; i < numIters; i += 2) {
+      Helmholtz3DJacobiIterate(temp, out, a, b1, b2, b3, rhs, alpha, beta, w);
+      Helmholtz3DJacobiIterate(out, temp, a, b1, b2, b3, rhs, alpha, beta, w);
+    }
+  }
+}
+
+#endif // HELMHOLTZ3DJACOBI_PBCC
