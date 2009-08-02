@@ -34,12 +34,39 @@ typedef jalib::JRef<const Formula> FormulaPtr;
 typedef jalib::JRef<FormulaList> FormulaListPtr;
 typedef jalib::JRef<const FreeVars> FreeVarsPtr;
 class OrderedFreeVars : public std::vector<std::string> , public jalib::JRefCounted {};
-class FreeVars : public std::set<std::string> , public jalib::JRefCounted {
+
+
+class FreeVar : public std::string {
+public:
+  FreeVar(const std::string& s, int flags=0) : std::string(s), _flags(flags) {}
+  FreeVar(const char* s="", int flags=0)     : std::string(s), _flags(flags) {}
+
+  enum FlagT {
+    FLAG_SIZEVAR         = 1<<0,
+    FLAG_SIZESPECIFICCFG = 1<<1
+  };
+  
+  friend bool operator< (const FreeVar& a, const FreeVar& b){
+    return reinterpret_cast<const std::string&>(a)
+         < reinterpret_cast<const std::string&>(b);
+  }
+
+
+  bool hasFlag(FlagT f) const { return (_flags&f)!=0; }
+
+
+private:
+  int _flags;
+};
+
+
+class FreeVars : public std::set<FreeVar> , public jalib::JRefCounted {
 public:
   bool contains(const std::string& s) const{ return find(s)!=end(); } 
 
-  void eraseAll(const std::set<std::string>& that) {
-    std::set<std::string>::const_iterator i;
+  template <typename T>
+  void eraseAll(const T& that) {
+    typename T::const_iterator i;
     for(i=that.begin(); i!=that.end(); ++i)
       erase(*i);
   }
