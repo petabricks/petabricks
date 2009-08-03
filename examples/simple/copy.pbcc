@@ -42,21 +42,21 @@ to OUT[n]
   }
 }
 
-transform Copy2D
-from IN[w,h]
-to OUT[w,h]
-{
-  OUT.cell(i,j) from (IN.cell(i,j) x)
-  {
-    return x;
-  }
-}
-
 transform Copy3D
 from IN[w,h,d]
 to OUT[w,h,d]
 {
   OUT.cell(i,j,k) from (IN.cell(i,j,k) x)
+  {
+    return x;
+  }
+}
+
+transform Copy2D //last for regression tests
+from IN[w,h]
+to OUT[w,h]
+{
+  OUT.cell(i,j) from (IN.cell(i,j) x)
   {
     return x;
   }

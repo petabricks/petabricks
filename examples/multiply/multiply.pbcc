@@ -1,3 +1,5 @@
+#ifndef MULTIPLY_PBCC
+#define MULTIPLY_PBCC
 
 #include "../simple/add.pbcc"
 #include "../simple/transpose.pbcc"
@@ -76,4 +78,4 @@ to C[n,n]
   }
 }
 
-
+#endif // MULTIPLY_PBCC

@@ -47,14 +47,12 @@ to C[k,2]
         int l;
         int m;
 
-        srand(time(0));
-
         Copy2D(x,xin);
         Copy1D(c.column(0), x.column(0));
 
         for (m=1; m<k; m++) 
 	{
-		l = (rand()%(k-m))+m;
+		l = PetabricksRuntime::randInt(m,k);
                 Copy1D(c.column(m),x.column(l)); //new center picked
                 if (l!=m) { Copy1D(x.column(l), x.column(m)); }//swap columns for next iteration
         }
@@ -74,7 +72,6 @@ to C[k,2]
         int m;
         ElementT rvalue;
 
-        srand(time(0));
 
         Copy2D(x,xin);
         Copy1D(c.column(0), x.column(0));
@@ -89,7 +86,7 @@ to C[k,2]
                 RollingSum(dsq.region(m,n),dmin.region(m,n));
 
                 //pick center with probability proportional to dmin (D(x)^2)
-                rvalue= (   (double)rand() / ((double)(RAND_MAX)+(double)(1)) );
+                rvalue= (   (double)PetabricksRuntime::randInt() / ((double)(RAND_MAX)+(double)(1)) );
                 rvalue*=dsq.cell(n-1);
                 for (l=m; l<n; l++){
                         if (rvalue<=dsq.cell(l)){
@@ -104,11 +101,13 @@ to C[k,2]
 }
 
 			
-transform kmeans
+main transform kmeans
 param k //input parameter: number of clusters
 from X[n,2]    // X - x,y coordinates of n points
 through CFLAG, Ctemp[k,2]
-to C[k,2], A[n], WCSS   // C - centroids, A - cluster assignment, WCSS - within-cluster sum of squares  (error measures)
+to C[k,2], A[n]   // C - centroids, A - cluster assignment, WCSS - within-cluster sum of squares  (error measures)
+accuracy_metric WCSS
+accuracy_bins 0, 0.3, 0.6, 0.9
 {
 
   //Assign initial cluster centers randomly
@@ -139,8 +138,15 @@ to C[k,2], A[n], WCSS   // C - centroids, A - cluster assignment, WCSS - within-
 
   }
 
+}
+
+transform WCSS
+from C[k,2], A[n], X[n,2]
+to Accuracy
+{
+
   //accuracy measure
-  WCSS from(X x, C c, A a)
+  Accuracy from(X x, C c, A a)
   {
 	ElementT dis;
 	ElementT sum;

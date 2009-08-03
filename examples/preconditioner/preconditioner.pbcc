@@ -6,13 +6,16 @@
 #include "jacobipre.pbcc"
 #include "polypre.pbcc"
 #include "demv.pbcc"
+#include "../simple/transpose.pbcc"
+#include "../multiply/multiply.pbcc"
 
 main transform preconditioner
 from X[n], A[n,n], B[n], NumIterations  // X - initial guess, A - input matrice, B - RHS vector
 through P[n,n]  // P - preconditioner
-to OUT[n] //,Accuracy
+to OUT[n]  //,Accuracy
+generator SPDGenerator
 accuracy_metric ResidualNorm
-accuracy_bins 0, 0.3, 0.6, 0.9
+accuracy_bins 0.9, 0.6, 0.3, 0
 {
 	//Jacobi preconditioner
 	to (OUT out, P p) from (X x, A a, B b, NumIterations num)
@@ -38,6 +41,26 @@ accuracy_bins 0, 0.3, 0.6, 0.9
 //	{
 //		ResidualNorm(acc, b, a, o);
 //	}
+
+}
+
+
+transform SPDGenerator
+to  X[n], A[n,n], B[n], NumIterations
+through AT[n,n]
+from RandA[n,n], T
+{
+  to (B b) from () { b.randomize(); }
+
+  to (X x) from () { x.randomize(); }
+
+  to (NumIterations num) from () { num=T; }
+
+  to (A a, AT at) from (RandA randa)
+  {
+	Transpose(at, randa);
+	MatrixMultiply(a, at, randa);
+  }
 
 }
 
