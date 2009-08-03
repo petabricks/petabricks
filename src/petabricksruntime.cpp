@@ -159,14 +159,15 @@ void petabricks::PetabricksRuntime::saveConfig()
 
 
 int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
-  //seed rand48
-  struct timeval currentTimeVal;
-  gettimeofday(&currentTimeVal, NULL);
-  srand48(currentTimeVal.tv_usec);
-
   jalib::JArgs args(argc, argv);
   Main& main = *_main;
   JASSERT(_mainName == main.name())(_mainName).Text("Unknown transform");
+
+  if(! args.param("fixedrandom")){
+    struct timeval currentTimeVal;
+    gettimeofday(&currentTimeVal, NULL);
+    srand48(currentTimeVal.tv_usec);
+  }
 
 //  bool isSiman = false;
   bool isAutotuneMode = false;

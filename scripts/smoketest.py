@@ -42,7 +42,7 @@ for b in benchmarks:
 
   #build cmd
   hash=name
-  cmd=[bin]
+  cmd=[bin, '--fixedrandom']
   for x in b[1:]:
     cmd.append(resolveInputPath(x))
     hash+=" "+os.path.basename(x)
