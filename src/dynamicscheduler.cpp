@@ -169,7 +169,6 @@ void DynamicScheduler::setAbortFlag() {
   JLOCKSCOPE(theAbortingLock);
   if(!theIsAborting){
     theIsAborting=true;
-    JTRACE("Aborting!")(numOfWorkers);
   }
 }
 

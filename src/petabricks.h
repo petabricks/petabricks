@@ -31,7 +31,7 @@
 
 #ifdef HAVE_MATH_H
 #  include <math.h>
-#endif 
+#endif
 
 #ifdef HAVE_FFTW3_H
 #  include <fftw3.h>
@@ -86,14 +86,14 @@ namespace petabricks {
   inline A side_effect_hook(const A& a, const B&){
     return a;
   }
-  
+
   inline void enqueue_and_wait(const DynamicTaskPtr& task){
     if(task){
       task->enqueue();
       task->waitUntilComplete();
     }
   }
-    
+
   inline int size_to_bin(IndexT size){
     return (int)log2(size);
   }

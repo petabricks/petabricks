@@ -33,7 +33,7 @@
 #endif
 
 namespace petabricks {
-    
+
 typedef std::vector<jalib::JTunable*> TunableListT;
 
 int petabricksMain(int argc, const char** argv);
@@ -83,7 +83,7 @@ public:
     virtual MATRIX_ELEMENT_T accuracy() = 0;
     virtual MATRIX_ELEMENT_T accuracyTarget() = 0;
     virtual TunableListT accuracyVariables(int n) = 0;
-    
+
     bool isVariableAccuracy(){
       return accuracyTarget() != std::numeric_limits<MATRIX_ELEMENT_T>::min();
     }
@@ -142,6 +142,14 @@ public:
 //  fflush(stderr);
 //  _exit(rv);
 //}
+
+  double computeWrapper(double thresh = DBL_MAX);
+  double trainAndComputeWrapper(double thresh = DBL_MAX);
+  
+  
+  void variableAccuracyTrainingLoop();
+
+  class ComputeRetryException {};
 
 private:
   Main* _main;

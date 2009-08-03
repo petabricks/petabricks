@@ -122,9 +122,6 @@ typedef jalib::JTunableManager TunableManager;
 
 }
 
-#define shift argc--,argv++;
-#define unshift argc++,argv--;
-
 petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Main* m)
   : _main(m)
   , _randSize(4096)
@@ -277,25 +274,23 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
     JTIMER_SCOPE(runtrial);
     runTrial();
   }else{
-#ifdef GRACEFUL_ABORT
     try{
-#endif
-      {
-        JTIMER_SCOPE(compute);
-        main.compute();
-      }
-      if(ACCURACY) {
-        JTIMER_SCOPE(accuracy);
-        timing.total_accuracy += main.accuracy();
-        timing.count += 1;
-      }
+
+      if(args.param("accuracytrain"))
+        trainAndComputeWrapper();
+      else
+        computeWrapper();
+
 #ifdef GRACEFUL_ABORT
     }catch(petabricks::DynamicScheduler::AbortException e){
       DynamicScheduler::instance().abortEnd();
       JWARNING(false).Text("PetabricksRuntime::abort() called");
       return 5;
-    }
 #endif
+    }catch(ComputeRetryException e){
+      UNIMPLEMENTED();
+      return 6;
+    }
 
     { //write outputs
       JTIMER_SCOPE(write);
@@ -315,16 +310,14 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
 
   if(DUMPTIMING | ACCURACY){
     std::cout << "<timing";
-    std::cout << " count=\"" << timing.count<< "\"";
     if(ACCURACY) {
       std::cout << " accuracy=\"" << (timing.total_accuracy/timing.count) << "\"";
     }
-    if(DUMPTIMING) {
-      std::cout << " average=\"" << (timing.total/timing.count) << "\"";
-      std::cout << " total=\"" << timing.total << "\"";
-      std::cout << " min=\"" << timing.min<< "\"";
-      std::cout << " max=\"" << timing.max<< "\"";
-    }
+    std::cout << " count=\"" << timing.count<< "\"";
+    std::cout << " average=\"" << (timing.total/timing.count) << "\"";
+    std::cout << " total=\"" << timing.total << "\"";
+    std::cout << " min=\"" << timing.min<< "\"";
+    std::cout << " max=\"" << timing.max<< "\"";
     std::cout << " />\n" << std::flush;
   }
 
@@ -386,57 +379,15 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
 #endif
     std::vector<double> rslts;
     rslts.reserve(2*GRAPH_SMOOTHING+1);
-    _isTrainingRun = true;
-    _needTraingingRun = false;
     for( int n =  _randSize-GRAPH_SMOOTHING
-      ;     n <= _randSize+GRAPH_SMOOTHING
-      ; ++n)
+       ; n <= _randSize+GRAPH_SMOOTHING
+       ; ++n)
     {
-      double t=0;
-      for(int z=0;z<GRAPH_TRIALS; ++z){
-        {JTIMER_SCOPE(randomInputs);
-          _main->randomInputs(n);
-        }
-
-#ifdef GRACEFUL_ABORT
-        // Set up a time out so we don't waste time running things that are
-        // slower than what we have seen already.
-        DynamicScheduler::instance().resetAbortFlag();
-        if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
-          alarm((unsigned int) thresh + 1);
-        }
-#endif
-
-        jalib::JTime begin=jalib::JTime::Now();
-        _main->compute();
-        jalib::JTime end=jalib::JTime::Now();
-        double acc = 0;
-        if(ACCURACY){
-          acc = _main->accuracy();
-        }
-
-#ifdef GRACEFUL_ABORT
-        // Disable previous alarm
-        if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
-          alarm(0);
-        }
-#endif
-
-        if(_needTraingingRun && _isTrainingRun){
-          _isTrainingRun=false;
-          --z; //redo this iteration
-        }else{
-          double v=end-begin;
-          t+=v;
-
-          if(DUMPTIMING || ACCURACY){
-            timing.count++;
-            timing.total+=v;
-            timing.total_accuracy+=acc;
-            timing.min=std::min(timing.min,v);
-            timing.max=std::max(timing.max,v);
-          }
-        }
+      _main->randomInputs(n);
+      double t = trainAndComputeWrapper(thresh); // first trial can train
+      for(int z=0;z<GRAPH_TRIALS-1; ++z){
+        _main->randomInputs(n);
+        t += computeWrapper(thresh); // rest of trials cant train
       }
       double avg = t/GRAPH_TRIALS;
       rslts.push_back(avg);
@@ -449,6 +400,101 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
     return std::numeric_limits<double>::max();
   }
 #endif
+}
+
+double petabricks::PetabricksRuntime::trainAndComputeWrapper(double thresh){
+  if(_main->isVariableAccuracy()){
+    variableAccuracyTrainingLoop();
+  }
+
+  _isTrainingRun = true;
+  _needTraingingRun = false;
+  double t;
+  try {
+    t=computeWrapper(thresh);
+  }catch(ComputeRetryException e) {
+    _isTrainingRun = false;
+    _needTraingingRun = false;
+    t=computeWrapper(thresh);
+  }
+  _isTrainingRun = false;
+  _needTraingingRun = false;
+  return t;
+}
+
+double petabricks::PetabricksRuntime::computeWrapper(double thresh){
+#ifdef GRACEFUL_ABORT
+  // Set up a time out so we don't waste time running things that are
+  // slower than what we have seen already.
+  DynamicScheduler::instance().resetAbortFlag();
+  if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
+    alarm((unsigned int) thresh + 1);
+  }
+#endif
+
+  jalib::JTime begin=jalib::JTime::Now();
+  _main->compute();
+  jalib::JTime end=jalib::JTime::Now();
+
+#ifdef GRACEFUL_ABORT
+  // Disable previous alarm
+  if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
+    alarm(0);
+  }
+#endif
+  
+  if(_needTraingingRun && _isTrainingRun){
+    _isTrainingRun=false;
+    throw ComputeRetryException();
+  }
+
+  double v=end-begin;
+  if(DUMPTIMING || ACCURACY){
+    double acc = 0;
+    if(ACCURACY){
+      JTIMER_SCOPE(accuracycompute);
+      acc = _main->accuracy();
+    }
+    timing.count++;
+    timing.total+=v;
+    timing.total_accuracy+=acc;
+    timing.min=std::min(timing.min,v);
+    timing.max=std::max(timing.max,v);
+  }
+  return v;
+}
+  
+void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(){
+  typedef MATRIX_ELEMENT_T ElementT;
+  ElementT cur = std::numeric_limits<ElementT>::min();
+  ElementT last = std::numeric_limits<ElementT>::min();
+  ElementT target = _main->accuracyTarget();
+  TunableListT tunables = _main->accuracyVariables(_randSize);
+  //reset tunables to min+1
+  for(TunableListT::iterator i=tunables.begin(); i!=tunables.end(); ++i)
+    (*i)->setValue((*i)->min()+1); 
+
+  for(int i=0; true;++i){
+    _main->compute();
+    cur = _main->accuracy();
+    if(cur >= target){
+      JTRACE("training goal reached")(i)(cur)(target);
+      break;
+    }
+    if(cur <= last){
+      JWARNING(false)(i)(cur)(target).Text("training goal failed, no progress");
+      break;
+    }
+    //increment tuning var
+    for(TunableListT::iterator i=tunables.begin(); i!=tunables.end(); ++i){
+      (*i)->setValue((*i)->value()+1); 
+      (*i)->verify();
+    }
+    JTRACE("training")(cur);
+    last=cur;
+  }
+
+
 }
 
 
