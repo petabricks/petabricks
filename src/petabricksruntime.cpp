@@ -482,7 +482,7 @@ void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(){
       break;
     }
     if(cur <= last){
-      JWARNING(false)(i)(cur)(target).Text("training goal failed, no progress");
+      JASSERT(false)(i)(cur)(target).Text("training goal failed, no progress");
       break;
     }
     //increment tuning var
