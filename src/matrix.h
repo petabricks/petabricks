@@ -275,6 +275,7 @@ public:
 
   IndexT width() const { return size(0); }
   IndexT height() const { return size(1); }
+  IndexT depth() const { return size(2); }
 
   MatrixRegion all() const { return *this; }
 

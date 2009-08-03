@@ -104,11 +104,13 @@ to C[k,2]
 }
 
 			
-transform kmeans
+main transform kmeans
 param k //input parameter: number of clusters
 from X[n,2]    // X - x,y coordinates of n points
 through CFLAG, Ctemp[k,2]
-to C[k,2], A[n], WCSS   // C - centroids, A - cluster assignment, WCSS - within-cluster sum of squares  (error measures)
+to C[k,2], A[n]   // C - centroids, A - cluster assignment, WCSS - within-cluster sum of squares  (error measures)
+accuracy_metric WCSS
+accuracy_bins 0, 0.3, 0.6, 0.9
 {
 
   //Assign initial cluster centers randomly
@@ -139,8 +141,15 @@ to C[k,2], A[n], WCSS   // C - centroids, A - cluster assignment, WCSS - within-
 
   }
 
+}
+
+transform WCSS
+from C[k,2], A[n], X[n,2]
+to Accuracy
+{
+
   //accuracy measure
-  WCSS from(X x, C c, A a)
+  Accuracy from(X x, C c, A a)
   {
 	ElementT dis;
 	ElementT sum;
