@@ -112,6 +112,11 @@ void petabricks::Transform::print(std::ostream& o) const {
 void petabricks::Transform::initialize() {
   MaximaWrapper::instance().pushContext();
 
+  if(_accuracyBins.size()>1){
+    JWARNING(_templateargs.empty())(_name).Text("variable accuracy templates not yet supported");
+    _templateargs.push_back(new TemplateArg(TEMPLATE_BIN_STR, 0, _accuracyBins.size()-1));
+  }
+
   jalib::Map(&MatrixDef::initialize, *this, _from);
   jalib::Map(&MatrixDef::initialize, *this, _through);
   jalib::Map(&MatrixDef::initialize, *this, _to);
@@ -255,10 +260,12 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
     JWARNING(choiceCnt<15)(choiceCnt)(_name).Text("Explosion of choices for template... are you sure???");
     //for each possible way
     for(size_t c=0; c<choiceCnt; ++c){
+      std::string nextName = "NULL";
+      if(c+1 < choiceCnt) nextName = tmplName(c+1)+"_main::instance()";
       _name = tmplName(c, &o);
 
       JTRACE("generating template version")(c);
-      generateCodeSimple(o);
+      generateCodeSimple(o, nextName);
 
       //remove defines
       for(size_t i=0; i<_templateargs.size(); ++i){
@@ -269,6 +276,7 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
     }
     genTmplJumpTable(o, true, normalArgs(), normalArgNames());
     genTmplJumpTable(o, false, normalArgs(), normalArgNames());
+    o.write("typedef "+tmplName(0)+"_main "+_name+"_main;");
   }
 }
   
@@ -355,7 +363,8 @@ std::vector<std::string> petabricks::Transform::spawnArgNames() const{
 }
 
 
-void petabricks::Transform::generateCodeSimple(CodeGenerator& o){ 
+void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::string& nextMain){ 
+  _usesSplitSize=false;
   std::vector<std::string> args = normalArgs();
   std::vector<std::string> argNames = normalArgNames();
   std::vector<std::string> returnStyleArgs = args;
@@ -449,7 +458,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o){
 //  o.endFunc();
 //  o.newline();
 //}
-  generateMainInterface(o);
+  generateMainInterface(o, nextMain);
   o.write("#undef TRANSFORM_LOCAL");
   o.comment("End of output for "+_name);
   o.cg().endTransform(_originalName, _name);
@@ -539,7 +548,7 @@ void petabricks::Transform::registerMainInterface(CodeGenerator& o){
   }
 }
 
-void petabricks::Transform::generateMainInterface(CodeGenerator& o){ 
+void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::string& nextMain){ 
   std::vector<std::string> argNames = normalArgNames();
   
   int a = 0;
@@ -687,7 +696,10 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
     args.insert(args.begin(), "_acc");
     o.setcall("DynamicTaskPtr p", _accuracyMetric+TX_DYNAMIC_POSTFIX, args);
     o.write("petabricks::enqueue_and_wait(p);");
-    o.write("return _acc.cell();");
+    if(isAccuracyInverted())
+      o.write("return -1*_acc.cell();");
+    else
+      o.write("return _acc.cell();");
   }else{
     o.write("return std::numeric_limits<ElementT>::max();");
   }
@@ -696,15 +708,30 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o){
   o.beginFunc("ElementT", "accuracyTarget");
   if(!_accuracyBins.empty())
   {
-    o.write("return "+jalib::XToString(_accuracyBins.back())+";");
+    std::ostringstream t;
+    t << "double targets[] = {";
+    if(isAccuracyInverted())
+      printStlList(t, _accuracyBins.rbegin(), _accuracyBins.rend(), ", ");
+    else
+      printStlList(t, _accuracyBins.begin(), _accuracyBins.end(), ", ");
+    t << "};";
+    o.write(t.str());
+    if(_accuracyBins.size()==1)
+      o.write("return targets[0];");
+    else if(isAccuracyInverted())
+      o.write("return -1*targets["TEMPLATE_BIN_STR"];");
+    else
+      o.write("return targets["TEMPLATE_BIN_STR"];");
   }else{
     o.write("return std::numeric_limits<ElementT>::min();");
   }
   o.endFunc();
 
+  o.beginFunc("petabricks::PetabricksRuntime::Main*", "nextTemplateMain");
+  o.write("return "+nextMain+";");
+  o.endFunc();
+  
   o.endClass();
-
-
 }
 
 std::vector<std::string> petabricks::Transform::maximalArgList() const{

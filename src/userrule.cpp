@@ -315,13 +315,14 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
     o.define("SYNC",  "PB_SYNC");
     o.define("DEFAULT_RV",  "_completion");
     o.beginFunc("petabricks::DynamicTaskPtr", "runDynamic");
+    RIRBlockCopyRef bodytmp = _bodyirDynamic;
     {
       LiftVardeclPass p3(trans,*this, o);
-      _bodyirDynamic->accept(p3);
+      bodytmp->accept(p3);
     }
     { 
       DynamicBodyPrintPass dbpp(o);
-      _bodyirDynamic->accept(dbpp);
+      bodytmp->accept(dbpp);
     }
     o.write("return DEFAULT_RV;");
     o.endFunc();

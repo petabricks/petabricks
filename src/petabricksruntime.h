@@ -88,6 +88,7 @@ public:
       return accuracyTarget() != std::numeric_limits<MATRIX_ELEMENT_T>::min();
     }
 
+    virtual __usr_main_interface* nextTemplateMain() = 0;
   private:
   } Main;
 

@@ -151,12 +151,11 @@ public:
 
   void generateCode(CodeGenerator& o);
 
-  void generateCodeSimple(CodeGenerator& o);
-  
+  void generateCodeSimple(CodeGenerator& o, const std::string& nextMain = "NULL");
   
   void registerMainInterface(CodeGenerator& o);
 
-  void generateMainInterface(CodeGenerator& o);
+  void generateMainInterface(CodeGenerator& o, const std::string& nextMain);
 
   void fillBaseCases(const MatrixDefPtr& matrix);
   
@@ -257,6 +256,21 @@ public:
 
   void addConstant(const std::string& c, int flags=0) { 
     _constants.insert(FreeVar(c,flags)); 
+  }
+
+
+  bool isAccuracyInverted() const {
+    int forward = 0;
+    int backward = 0;
+    for(size_t i=1; i<_accuracyBins.size(); ++i){
+      double a=_accuracyBins[i-1];
+      double b=_accuracyBins[i];
+      JASSERT(a!=b)(_name)(a)(b).Text("invalid accuracy_bins");
+      if(a<b) ++forward;
+      else ++backward;
+    }
+    JASSERT(forward==0 || backward==0)(forward)(backward)(_name).Text("invalid accuracy_bins");
+    return backward>0;
   }
 
 private:

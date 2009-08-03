@@ -148,7 +148,7 @@ public:
   /// Get rate of change for this region as rule center moves
   FormulaList diff(const RuleInterface&) const;
 
-  bool isSingleElement() const { return _originalType==REGION_CELL; }
+  bool isSingleElement() const { return _originalType==REGION_CELL && dimensions()>0; }
   
   const std::string& name() const { return _name; }
 

@@ -4902,6 +4902,9 @@ $as_echo "#define TRANSFORM_N_STR \"transform_n\"" >>confdefs.h
 $as_echo "#define SPLIT_CHUNK_SIZE \"chunk_size\"" >>confdefs.h
 
 
+$as_echo "#define TEMPLATE_BIN_STR \"_acc_bin\"" >>confdefs.h
+
+
 $as_echo "#define TMPL_IMPL_PFX \"_tmpl\"" >>confdefs.h
 
 
@@ -4915,7 +4918,7 @@ $as_echo "#define TX_DYNAMIC_POSTFIX \"_dynamic\"" >>confdefs.h
 $as_echo "#define MAX_NUM_WORKERS 512" >>confdefs.h
 
 
-$as_echo "#define MIN_NUM_WORKERS 1 " >>confdefs.h
+$as_echo "#define MIN_NUM_WORKERS 1" >>confdefs.h
 
 
 $as_echo "#define CACHE_LINE_SIZE 64" >>confdefs.h

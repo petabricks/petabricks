@@ -145,24 +145,25 @@ AC_DEFINE([MAX_DIMENSIONS],    [64],             [the maximum number of dimensio
 AC_DEFINE([MAX_INPUT_BITS],    [32],             [the maximum number of dimensions supported])
 AC_DEFINE([GRACEFUL_ABORT],    [1],              [allow abort without program shutdown (uses exceptions)])
 AC_DEFINE([SHORT_TYPE_NAMES],  [1],              [undefine this if a large number of dimensions are needed, or one wants a cleaner user namespace])
-AC_DEFINE([RUN_CPP],           [1],              [undefine to disable cpp])
-AC_DEFINE([MAX_REC_LEVELS],    [6],              [number of levels for recursive choices])
-AC_DEFINE([INPUT_SIZE_STR],     ["input_count"],        [define to add a system var to transform scope])
-AC_DEFINE([TRANSFORM_N_STR],    ["transform_n"],        [define to add a system var to transform scope])
+AC_DEFINE([RUN_CPP],           [1],               [undefine to disable cpp])
+AC_DEFINE([MAX_REC_LEVELS],    [6],               [number of levels for recursive choices])
+AC_DEFINE([INPUT_SIZE_STR],     ["input_count"],  [define to add a system var to transform scope])
+AC_DEFINE([TRANSFORM_N_STR],    ["transform_n"],  [define to add a system var to transform scope])
 AC_DEFINE([SPLIT_CHUNK_SIZE],   ["chunk_size"],   [var name in output code])
+AC_DEFINE([TEMPLATE_BIN_STR],   ["_acc_bin"],     [var name in output code])
 AC_DEFINE([TMPL_IMPL_PFX],     ["_tmpl"],        [prefix for expanded template implementations])
 AC_DEFINE([TX_STATIC_POSTFIX], ["_static"], [postfix for static versions of transforms])
 AC_DEFINE([TX_DYNAMIC_POSTFIX], ["_dynamic"], [postfix for static versions of transforms])
 
 AC_DEFINE([MAX_NUM_WORKERS],     [512], [max number of workers supported])
-AC_DEFINE([MIN_NUM_WORKERS],     [1 ],  [min number of workers supported])
+AC_DEFINE([MIN_NUM_WORKERS],     [1],  [min number of workers supported])
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1],    [the default minimum number of iterations for forenough{} loops (can be overridden by users)])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for forenough{} loops (can be overridden by users)])
 AC_DEFINE([GOOD_RANDOM],         [], [User a better random number generator in training])
 
-AC_DEFINE_UNQUOTED([REVISION_SHORT],  ["$rev_short"],   [git sha1 hash for HEAD at the time ./configure was run])
-AC_DEFINE_UNQUOTED([REVISION_LONG],   ["$rev_long"],    [git sha1 hash for HEAD at the time ./configure was run])
+AC_DEFINE_UNQUOTED([REVISION_SHORT],  ["$rev_short"],   [git revision for HEAD at the time ./configure was run])
+AC_DEFINE_UNQUOTED([REVISION_LONG],   ["$rev_long"],    [git revision for HEAD at the time ./configure was run])
 
 if false; then
   #disabled by default:
