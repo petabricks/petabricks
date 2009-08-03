@@ -134,6 +134,10 @@ public:
 //  _exit(rv);
 //}
 
+  static int randInt(int min=0, int max=RAND_MAX){
+    return (mrand48()%(max-min)) + min;
+  }
+
 private:
   Main* _main;
   std::string _mainName;
