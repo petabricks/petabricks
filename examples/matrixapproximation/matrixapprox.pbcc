@@ -9,6 +9,7 @@
 #include "../simple/copy.pbcc"
 #include "../eigenproblem/EigSym.pbcc"
 #include "../simple/transpose.pbcc"
+#include "Bisection.pbcc"
 
 main transform MatrixApprox
 //param k  //input param: number of singular values used k<=n
@@ -30,8 +31,14 @@ accuracy_bins 0.9, 0.6, 0.3, 0
 		return 0;
 	}
 
-	to (Lambda lam, X x) from (H h){ 
-		EigSym(lam, x, h);
+	// use optimized hybrid algorithm to find all eigenvalues/eigenvectors
+        to (Lambda lam, X x) from (H h){
+                EigSym(lam, x, h);
+        }
+
+	// find only the k eigenvalues/eigenvectors by Bisection method
+	to (Lambda lam, X x) from (H h) {
+		Bisection(lam,x,h,k);
 	}
 
 //	Sigma.cell(i) from (Lambda.cell(i) lam) {
