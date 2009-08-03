@@ -27,12 +27,16 @@
 #include <signal.h>
 
 #include "jtunable.h"
+#include "jrefcounted.h"
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
 namespace petabricks {
+class Autotuner;
+typedef jalib::JRef<Autotuner> AutotunerPtr;
+typedef std::vector<AutotunerPtr> AutotunerList;
 
 typedef std::vector<jalib::JTunable*> TunableListT;
 
@@ -115,6 +119,8 @@ public:
   double optimizeParameter(jalib::JTunable& param, int min, int max, int step=-1);
 
   void runAutotuneMode(const std::vector<std::string>& params);
+  void runAutotune2Mode(const std::string& param);
+  void runAutotuneLoop(const AutotunerList& tuners);
   void runMultigridAutotuneMode();
 
   double runTrial(double thresh = DBL_MAX);

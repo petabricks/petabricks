@@ -22,11 +22,11 @@
 
 #include "jtunable.h"
 #include "jrefcounted.h"
+#include "petabricksruntime.h"
 #include <vector>
 #include <algorithm>
 
 namespace petabricks {
-class PetabricksRuntime;
 class Autotuner;
 class CandidateAlgorithm;
 typedef jalib::JRef<CandidateAlgorithm> CandidateAlgorithmPtr;
@@ -79,7 +79,7 @@ private:
 
 class Autotuner : public jalib::JRefCounted {
 public:
-  Autotuner(PetabricksRuntime& rt, const std::string& prefix);
+  Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main* m, const std::string& prefix);
   jalib::JTunable* algTunable(int lvl);
   jalib::JTunable* cutoffTunable(int lvl);
 
@@ -92,13 +92,18 @@ public:
   void printCanidates();
 
   void removeDuplicates();
+  
+  PetabricksRuntime::Main* main() const { return _main; }
+
+  static bool isValidAlgChoiceSite(const std::string& prefix);
 private:
-  PetabricksRuntime&           _runtime;
-  CandidateAlgorithmList       _candidates;
-  CandidateAlgorithmPtr        _initialConfig;
-  jalib::JTunableReverseMap    _tunableMap;
-  std::string                  _prefix;
-  int                          _maxLevels;
+  PetabricksRuntime&        _runtime;
+  PetabricksRuntime::Main*  _main;
+  CandidateAlgorithmList    _candidates;
+  CandidateAlgorithmPtr     _initialConfig;
+  jalib::JTunableReverseMap _tunableMap;
+  std::string               _prefix;
+  int                       _maxLevels;
 };
 
 }
