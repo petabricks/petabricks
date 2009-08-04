@@ -50,9 +50,9 @@ public:
   void print(std::ostream& os) const;
 
 
-  int dimensions() const { UNIMPLEMENTED(); }
+  int dimensions() const { UNIMPLEMENTED(); return 0; }
   void removeInvalidOrders(IterationOrderList& o) { UNIMPLEMENTED(); }
-  FormulaPtr getSizeOfRuleIn(int d) { UNIMPLEMENTED(); }
+  FormulaPtr getSizeOfRuleIn(int d) { UNIMPLEMENTED(); return 0; }
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic) { UNIMPLEMENTED(); }
 };
 

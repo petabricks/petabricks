@@ -174,7 +174,6 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
 
 //  bool isSiman = false;
   bool isAutotuneMode = false;
-  bool isGraphMode = false;
   bool isGraphParallelMode = false;
   bool isOptimizeMode = false;
   bool doIO = true;
@@ -249,7 +248,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   std::vector<std::string> txArgs;
   args.param("args", txArgs);
 
-  if(doIO && main.numArgs() != txArgs.size()){
+  if(doIO && main.numArgs() != (int)txArgs.size()){
     JTRACE("wrong arg count")(txArgs.size())(main.numInputs())(main.numOutputs())(main.numArgs());
     fprintf(stderr, "USAGE: %s %s\n", main.name(), main.helpString().c_str());
     return 1;

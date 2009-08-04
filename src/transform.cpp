@@ -36,8 +36,8 @@ namespace{
 petabricks::Transform::Transform() 
   : _isMain(false)
   , _tuneId(0)
-  , _usesSplitSize(false)
   , _scope(RIRScope::global()->createChildLayer())
+  , _usesSplitSize(false)
 {}
 
 void petabricks::Transform::addFrom(const MatrixDefList& l){

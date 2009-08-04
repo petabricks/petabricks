@@ -231,7 +231,7 @@ public:
 
   int numExprs() const { return (int)_exprs.size(); }
   
-  virtual const RIRBlockCopyRef& extractBlock() const { UNIMPLEMENTED(); }
+  virtual const RIRBlockCopyRef& extractBlock() const { UNIMPLEMENTED(); return *static_cast<const RIRBlockCopyRef*>(0); }
 protected:
   RIRExprList _exprs;
 };

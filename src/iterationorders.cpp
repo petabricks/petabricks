@@ -27,7 +27,7 @@ petabricks::IterationDefinition::IterationDefinition(RuleInterface& rule, bool i
   : _order(rule.dimensions())
 {
   rule.removeInvalidOrders(_order);
-  for(int i=0; i<_order.size(); ++i){
+  for(size_t i=0; i<_order.size(); ++i){
     _var.push_back(rule.getOffsetVar(i));
     _begin.push_back(rule.getOffsetVar(i,"begin"));
     _end.push_back(rule.getOffsetVar(i,  "end"));

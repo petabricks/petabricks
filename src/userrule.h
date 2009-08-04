@@ -156,7 +156,7 @@ public:
   FormulaPtr getWhereClause() const { return getWhereClause(0); }
   FormulaPtr getWhereClause(int start) const {
     if(_conditions.size()==0) return NULL;
-    if(_conditions.size()-1==start) return _conditions[start];
+    if((int)_conditions.size()-1==start) return _conditions[start];
     return new FormulaAnd(_conditions[start], getWhereClause(start+1));
   }
   

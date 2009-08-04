@@ -423,6 +423,7 @@ public:
   MatrixRegion& operator=( const MatrixRegion& that) {
     _storage = that._storage;
     _val = that._val;
+    return *this;
   }
 
   const MatrixStoragePtr& storage() const { return _storage; }

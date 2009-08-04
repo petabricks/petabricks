@@ -307,7 +307,7 @@ public:
   /// blocked until get a task from queue for execution
   DynamicTask *dequeue() {
     DynamicTask *task;
-    int delay = 0;
+    //int delay = 0;
     while (true) {
       task = tryDequeue();
       if (task != NULL) {
