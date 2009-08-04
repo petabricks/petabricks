@@ -365,6 +365,7 @@ std::vector<std::string> petabricks::Transform::spawnArgNames() const{
 
 void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::string& nextMain){ 
   _usesSplitSize=false;
+  _tuneId = 0;
   std::vector<std::string> args = normalArgs();
   std::vector<std::string> argNames = normalArgNames();
   std::vector<std::string> returnStyleArgs = args;

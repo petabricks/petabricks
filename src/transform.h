@@ -173,8 +173,8 @@ public:
 
   std::vector<std::string> maximalArgList() const;
 
-  std::string createTunerPrefix(){
-    return _name + "_" + jalib::XToString(_tuneId++) + "_";
+  int nextTunerId() {
+    return _tuneId++;
   }
 
   int ruleIdOffset() const { return _rules.front()->id()-1; }

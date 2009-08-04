@@ -86,6 +86,8 @@ public:
     JTRACE("user modified tunable")(tunable->name())(oldVal)(newVal);
     _extraConfig[tunable] = newVal;
   }
+
+  double run(PetabricksRuntime& rt, Autotuner& at, double thresh);
 private:
   int                   _lvl;
   int                   _alg;
@@ -116,6 +118,8 @@ public:
   PetabricksRuntime::Main* main() const { return _main; }
 
   static bool isValidAlgChoiceSite(const std::string& prefix);
+
+  void resetConfig() { _initialConfig->activate(); }
 private:
   PetabricksRuntime&        _runtime;
   PetabricksRuntime::Main*  _main;

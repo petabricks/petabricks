@@ -23,7 +23,6 @@
 #include <limits>
 #include <algorithm>
 
-
 JTUNABLE(autotune_alg_slots,                5, 1, 32);
 JTUNABLE(autotune_branch_attempts,          3, 1, 32);
 JTUNABLE(autotune_improvement_threshold,    90, 10, 100);
@@ -31,13 +30,8 @@ JTUNABLE(autotune_improvement_threshold,    90, 10, 100);
 #define MAX_ALGS autotune_alg_slots
 #define BIRTH_ATTEMPTS autotune_branch_attempts
 #define BIRTH_THRESH  (autotune_improvement_threshold.value()/100.0)
-#define FIXED_CUTOFF
 
-#ifdef FIXED_CUTOFF
 static const int DUP_CUTOFF_THRESH = 1; // how different cutoffs must be to be duplicates
-#else
-static const int DUP_CUTOFF_THRESH = 1024; // how different cutoffs must be to be duplicates
-#endif
 
 namespace{ //file local
   struct CmpLastPerformance {
@@ -147,16 +141,9 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
 void petabricks::Autotuner::runAll(){
   double best = DBL_MAX / 11.0;
   for(CandidateAlgorithmList::iterator i=_candidates.begin(); i!=_candidates.end(); ++i){
-    _initialConfig->activate();
-    (*i)->activate();
-    jalib::JTunable::setModificationCallback(i->asPtr());
-    double d = _runtime.runTrial(best * 10 + 1);
-    jalib::JTunable::setModificationCallback();
-    if (d < best) {
-      best = d;
-    }
-    (*i)->addResult(d);
-    fflush(stdout);
+    double d = (*i)->run(_runtime, *this, best*10+1);
+    std::cout << std::flush;
+    best = std::min(d, best);
   }
 }
 
@@ -223,6 +210,16 @@ void petabricks::Autotuner::removeDuplicates(){
   }
 }
 
+double petabricks::CandidateAlgorithm::run(PetabricksRuntime& rt, Autotuner& autotuner, double thresh){
+  autotuner.resetConfig();
+  activate();
+  jalib::JTunable::setModificationCallback(this);
+  double d = rt.runTrial(thresh);
+  jalib::JTunable::setModificationCallback();
+  addResult(d);
+  return d;
+}
+
 petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(PetabricksRuntime& rt, Autotuner& autotuner, double thresh) {
   CandidateAlgorithmList possible;
   activate();
@@ -243,16 +240,13 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
         continue;
       }
       CandidateAlgorithmPtr c = new CandidateAlgorithm(_lvl+1, a, at, ct->value(), ct, this);
-      jalib::JTunable::setModificationCallback(c.asPtr());
-      double p = rt.runTrial(thresh);
-      jalib::JTunable::setModificationCallback();
-      c->addResult(p);
+      double p = c->run(rt, autotuner, thresh);
       if(p<thresh && p>=0){
         possible.push_back(c);
         std::cout << "  SPAWN " << c << ' ' << p << std::endl;
-      }
-      else
+      }else{
         std::cout << "  FAILED SPAWN " << c << ' ' << p << std::endl;
+      }
     }
   }
 

@@ -143,12 +143,15 @@ public:
   bool isInput() const { return _isInput; }
   void markInput(){ _isInput=true; }
   void markLast(){ _isLast=true; }
+
+  std::string getChoicePrefix(Transform& t);
 protected:
   int _id;
   bool _isInput;
   bool _isLast;
   ScheduleDependencies _directDepends;
   ScheduleDependencies _indirectDepends;
+  int _choiceId;
 };
 
 class UnischeduledNode : public ScheduleNode {

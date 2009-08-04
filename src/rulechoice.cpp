@@ -54,14 +54,10 @@ void petabricks::RuleChoice::generateCodeSimple( bool isStatic
                                             , ScheduleNode& node
                                             , const SimpleRegionPtr& region
                                             , CodeGenerator& o
-                                            , const std::string& _tpfx)
+                                            , const std::string& tpfx)
 {
-  std::string tpfx = _tpfx;
-  if(tpfx.length()==0){ 
-    tpfx = trans.createTunerPrefix();
-    if(_rules.size()>1 || level()>1) 
-      o.cg().addAlgchoice(tpfx.substr(0,tpfx.length()-1), isStatic, level());
-  }
+  // o.cg().addAlgchoice(tpfx.substr(0,tpfx.length()-1), isStatic, level());
+
   std::string choicename = tpfx + "lvl" + jalib::XToString(level()) + "_rule";
 
   if(_condition){

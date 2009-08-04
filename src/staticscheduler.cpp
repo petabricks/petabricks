@@ -39,9 +39,15 @@ void _remapSet(petabricks::ScheduleNodeSet& set, const petabricks::ScheduleNodeR
 petabricks::ScheduleNode::ScheduleNode()
   : _isInput(false)
   , _isLast(false)
+  , _choiceId(-1)
 {
   static jalib::AtomicT i=0;
   _id=jalib::atomicIncrementReturn(&i);
+}
+
+std::string petabricks::ScheduleNode::getChoicePrefix(Transform& t){
+  if(_choiceId<0) _choiceId = t.nextTunerId();
+  return t.name() + "_" + jalib::XToString(_choiceId) + "_";
 }
 
 
@@ -183,14 +189,15 @@ void petabricks::StaticScheduler::generateCodeStatic(Transform& trans, CodeGener
     (*i)->generateCodeSimple(trans, o, true);
   }
 }
+  
 
 void petabricks::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
   RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
   if(!isStatic){
     o.addMember("SpatialTaskList", nodename(), "");
-    rule->generateCodeSimple(false, nodename(), trans, *this, _region, o);
+    rule->generateCodeSimple(false, nodename(), trans, *this, _region, o, getChoicePrefix(trans));
   }else{
-    rule->generateCodeSimple(true, "", trans, *this, _region, o);
+    rule->generateCodeSimple(true, "", trans, *this, _region, o, getChoicePrefix(trans));
   }
 }
 
@@ -245,7 +252,7 @@ void petabricks::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGe
 
   SimpleRegionPtr t = new SimpleRegion(min,max);
 
-  rule->generateCodeSimple(isStatic, "", trans, *this, t, o);
+  rule->generateCodeSimple(isStatic, "", trans, *this, t, o, getChoicePrefix(trans));
   //TODO deps for slice
 }
 
@@ -319,7 +326,7 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
         .Text("to(...) regions of differing size not yet supported");
     }
     RuleChoicePtr rule = trans.learner().makeRuleChoice(first->choices()->rules(), first->matrix(), first->region());
-    rule->generateCodeSimple(isStatic, nodename(), trans, *this, first->region(), o);
+    rule->generateCodeSimple(isStatic, nodename(), trans, *this, first->region(), o, getChoicePrefix(trans));
   }else{
     if(!isStatic) o.addMember("DynamicTaskPtr", nodename(),"");
     std::vector<std::string> args;

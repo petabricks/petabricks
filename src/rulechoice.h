@@ -53,7 +53,7 @@ public:
                           , ScheduleNode& node
                           , const SimpleRegionPtr& region
                           , CodeGenerator& o
-                          , const std::string& tpfx = "");
+                          , const std::string& tpfx);
   
   const RuleSet& rules() const { return _rules; }
 
@@ -73,6 +73,8 @@ private:
   ///
   /// If _condition evaluates to false, use this choice instead (may be null)
   RuleChoicePtr _next;
+
+  std::string _tunablePrefix;
 };
 
 }
