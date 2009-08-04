@@ -149,7 +149,9 @@ void petabricks::Autotuner::runAll(){
   for(CandidateAlgorithmList::iterator i=_candidates.begin(); i!=_candidates.end(); ++i){
     _initialConfig->activate();
     (*i)->activate();
+    jalib::JTunable::setModificationCallback(i->asPtr());
     double d = _runtime.runTrial(best * 10 + 1);
+    jalib::JTunable::setModificationCallback();
     if (d < best) {
       best = d;
     }
@@ -157,12 +159,6 @@ void petabricks::Autotuner::runAll(){
     fflush(stdout);
   }
 }
-// void petabricks::Autotuner::train(int min, int max){
-//   for(int n=min; n<=max; n*=2){
-//     _runtime.setSize(n);
-//     trainOnce();
-//   }
-// }
 
 void petabricks::Autotuner::trainOnce(){
   std::cout << "BEGIN ITERATION " << _prefix << " / " << _runtime.curSize() << std::endl;
@@ -231,26 +227,6 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
   CandidateAlgorithmList possible;
   activate();
 
-#ifndef FIXED_CUTOFF
-  if(_cutoffTunable!=0){
-    int min = _cutoffTunable->min();
-    if(_nextLevel) min=_nextLevel->cutoff();
-    int max = std::min(rt.curSize(), _cutoffTunable->max());
-    if(max>500) max = std::min(max, _cutoff*4);
-    double p = rt.optimizeParameter(*_cutoffTunable, min, max);
-    if(p<thresh && p>=0){
-      CandidateAlgorithmPtr c = new CandidateAlgorithm(_lvl, _alg, _algTunable, _cutoffTunable->value() , _cutoffTunable, _nextLevel);
-      c->addResult(p);
-      if(c->isDuplicate(this)){
-        _cutoff=_cutoffTunable->value();
-        addResult(p);
-      }else
-        return c;
-    }
-    activate();
-  }
-#endif
-
   jalib::JTunable* at = autotuner.algTunable(_lvl+1);
   jalib::JTunable* ct = autotuner.cutoffTunable(_lvl+1);
   if(ct!=0){
@@ -262,16 +238,14 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
     for(int a=amin; a<=amax; ++a){
       if(_lvl>1 && a==_alg) continue;
       if(at!=0) at->setValue(a);
-#ifndef FIXED_CUTOFF
-      double p = rt.optimizeParameter(*ct, min, max);
-#else
       ct->setValue(rt.curSize() * 3 / 4);
       if (ct->value() <= 1) {
         continue;
       }
-      double p = rt.runTrial(thresh);
-#endif
       CandidateAlgorithmPtr c = new CandidateAlgorithm(_lvl+1, a, at, ct->value(), ct, this);
+      jalib::JTunable::setModificationCallback(c.asPtr());
+      double p = rt.runTrial(thresh);
+      jalib::JTunable::setModificationCallback();
       c->addResult(p);
       if(p<thresh && p>=0){
         possible.push_back(c);

@@ -33,16 +33,30 @@ typedef jalib::JRef<CandidateAlgorithm> CandidateAlgorithmPtr;
 typedef std::vector<CandidateAlgorithmPtr> CandidateAlgorithmList;
 typedef jalib::JRef<Autotuner> AutotunerPtr;
 
-class CandidateAlgorithm : public jalib::JRefCounted, public jalib::JPrintable {
+class CandidateAlgorithm : public jalib::JRefCounted
+                         , public jalib::JPrintable
+                         , public jalib::JTunableModificationMonitor 
+{
 public:
-  CandidateAlgorithm(int l, int a, jalib::JTunable* at, int c, jalib::JTunable* ct, const CandidateAlgorithmPtr& n)
-    : _lvl(l), _alg(a), _algTunable(at), _cutoff(c), _cutoffTunable(ct), _nextLevel(n)
+  CandidateAlgorithm( int l
+                    , int a
+                    , jalib::JTunable* at
+                    , int c
+                    , jalib::JTunable* ct
+                    , const CandidateAlgorithmPtr& n)
+    : _lvl(l)
+    , _alg(a)
+    , _algTunable(at)
+    , _cutoff(c)
+    , _cutoffTunable(ct)
+    , _nextLevel(n)
   {}
   
   void activate(){
     if(_algTunable)    _algTunable->setValue(_alg);
     if(_cutoffTunable) _cutoffTunable->setValue(_cutoff);
     if(_nextLevel)     _nextLevel->activate();
+    _extraConfig.makeActive();
   }
 
   void addResult(double d) { _performance.push_back(d); }
@@ -67,6 +81,11 @@ public:
   CandidateAlgorithmPtr attemptBirth(PetabricksRuntime& rt, Autotuner& at, double thresh);
 
   bool isDuplicate(const CandidateAlgorithmPtr& that);
+
+  void onTunableModification(jalib::JTunable* tunable, jalib::TunableValue oldVal, jalib::TunableValue newVal){
+    JTRACE("user modified tunable")(tunable->name())(oldVal)(newVal);
+    _extraConfig[tunable] = newVal;
+  }
 private:
   int                   _lvl;
   int                   _alg;
@@ -75,6 +94,7 @@ private:
   jalib::JTunable*      _cutoffTunable;
   CandidateAlgorithmPtr _nextLevel;
   std::vector<double>   _performance; 
+  jalib::JTunableConfiguration _extraConfig;
 };
 
 class Autotuner : public jalib::JRefCounted {
