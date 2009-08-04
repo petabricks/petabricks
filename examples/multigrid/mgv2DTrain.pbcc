@@ -1,16 +1,16 @@
 #ifndef MGV2DTRAIN_PBCC
 #define MGV2DTRAIN_PBCC
 
-// User must provide: mgv2D() and ForwardFunc().
+// User must provide: mgv2D().
 //
 // This transform won't compile on its own since the user must define
-// the desired mgv and func (forward) operators.  Include those operators
-// and then include this file.  See TrainPoisson2Dmgv.pbcc for an example.
+// the desired mgv operator.  Include this operator and then include
+// this file.  See Poisson2DmgvTrain.pbcc for an example.
 
 #include "ComputeError.pbcc"
 
 transform mgv2DTrain
-from X[n,n], ACTUAL[n,n]
+from X[n,n], B[n,n]
 through zeros[(n+1)/2,(n+1)/2]
 to Y[n,n]
 {
@@ -18,7 +18,7 @@ to Y[n,n]
     return 0;
   }
 
-  to (Y y) from (X x, ACTUAL actual, zeros z)
+  to (Y y) from (X x, B b, zeros z)
   {
     double error;
     double estimateError;
@@ -48,17 +48,13 @@ to Y[n,n]
         prec[0], prec[1], prec[2], prec[3], prec[4]);
 
     printf("Training run for level %d\n", level);
-    MatrixRegion2D b = MatrixRegion2D::allocate(n,n);
-    ForwardFunc2D(b, actual);
+
+    // compute actual by use of mgv2D 15 times
+    MatrixRegion2D actual = MatrixRegion2D::allocate(n,n);
+    mgv2D(actual, x, b, 15);
 
     // y is our working guess
     Copy2D(y, x);
-
-    // initialize borders of y to true values
-    Copy2D(y.region(0,0,n,1), actual.region(0,0,n,1));
-    Copy2D(y.region(0,n-1,n,n), actual.region(0,n-1,n,n));
-    Copy2D(y.region(0,0,1,n), actual.region(0,0,1,n));
-    Copy2D(y.region(n-1,0,n,n), actual.region(n-1,0,n,n));
 
     ComputeError(error, y, actual);
     printf("initial error = %g\n", error);
