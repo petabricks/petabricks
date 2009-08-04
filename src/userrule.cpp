@@ -59,11 +59,12 @@ petabricks::FormulaPtr petabricks::RuleInterface::getOffsetVar(int dim, const ch
   
 int petabricks::RuleInterface::offsetVarToDimension(const std::string& var, const char* extra /*=NULL*/) const
 {
-  for(int dim=0; dim<(sizeof(theOffsetVarStrs)/sizeof(char*)); ++dim){
+  for(size_t dim=0; dim<(sizeof(theOffsetVarStrs)/sizeof(char*)); ++dim){
     if(_getOffsetVarStr(_id, dim, extra)==var)
       return dim;
   }
   JASSERT(false)(var).Text("unknown variable name");
+  return 0;
 }
 
 
@@ -212,7 +213,6 @@ void petabricks::UserRule::initialize(Transform& trans) {
   condtmp.swap(_conditions);
   //simplify simple where clauses 
   for(FormulaList::iterator i=condtmp.begin(); i!=condtmp.end(); ++i){
-    char op = (*i)->opType();
     FreeVars fv;
     (*i)->getFreeVariables(fv);
     fv.eraseAll(trans.constants());

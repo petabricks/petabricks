@@ -111,7 +111,6 @@ void petabricks::ChoiceGrid::finalizeConstruction(const FormulaPtr& end, const R
 void petabricks::ChoiceGrid::applyRulePriorities(){
   RuleSet rs;
   RulePtr r,l;
-  int n=0;
   for(RuleSet::const_iterator i=_applicableRules.begin(); i!=_applicableRules.end(); ++i){
     r = *i;
     if(l && r->priority()>l->priority() && !l->hasWhereClause()){

@@ -224,13 +224,13 @@ bool petabricks::RIRBlockStmt::containsLeaf(const char* val) const{
 }
 
 const petabricks::RIRExprCopyRef& petabricks::RIRStmt::part(int n) const { 
-  JASSERT(_exprs.size()>n)(n)(_exprs.size());
+  JASSERT((int)_exprs.size()>n)(n)(_exprs.size());
   RIRExprList::const_iterator i = _exprs.begin();
   std::advance(i, n);
   return *i;
 }
 petabricks::RIRExprCopyRef& petabricks::RIRStmt::part(int n) { 
-  JASSERT(_exprs.size()>n)(n)(_exprs.size());
+  JASSERT((int)_exprs.size()>n)(n)(_exprs.size());
   RIRExprList::iterator i = _exprs.begin();
   std::advance(i, n);
   return *i;

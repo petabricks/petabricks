@@ -271,6 +271,7 @@ petabricks::FormulaPtr petabricks::Formula::inf(){
 
 char petabricks::Formula::opType() const {
   JASSERT(false).Text("not a binop");
+  return 0;
 }
   
 template < char OP >

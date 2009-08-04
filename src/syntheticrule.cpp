@@ -41,6 +41,7 @@ petabricks::FormulaPtr petabricks::SyntheticRule::getWhereClause() const {
 
 bool petabricks::SyntheticRule::canProvide(const MatrixDefPtr& m) const { 
   UNIMPLEMENTED(); 
+  return false;
 }
 
 void petabricks::SyntheticRule::getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension) { 
