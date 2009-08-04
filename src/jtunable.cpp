@@ -35,6 +35,8 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+  
+jalib::JTunableModificationMonitor* jalib::JTunable::theModCallback = NULL;
 
 jalib::JTunableManager& jalib::JTunableManager::instance(){ 
   static JTunableManager t; 

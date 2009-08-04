@@ -44,6 +44,12 @@ typedef int TunableValue;
 class JTunable;
 typedef std::map<std::string, JTunable*> JTunableReverseMap;
 
+class JTunableModificationMonitor {
+public:
+  virtual void onTunableModification(JTunable* tunable, TunableValue oldVal, TunableValue newVal) = 0;
+  virtual ~JTunableModificationMonitor(){}
+};
+
 /**
  * A snapshot of the state of JTunables
  */
@@ -137,7 +143,14 @@ public:
   //set/get _value
   operator TunableValue () const { return _value; }
   TunableValue value() const { return _value; }
-  void setValue(TunableValue v) { _value=v; }
+  void setValue(TunableValue v) { 
+    if(theModCallback == NULL){
+      _value = v; 
+    }else{
+      std::swap(_value,v);
+      theModCallback->onTunableModification(this, v, _value);
+    }
+  }
 
   //set/get _isPegged
   bool isPegged() const { return _isPegged; }
@@ -156,7 +169,11 @@ public:
 
   TunableValue rangeLength() const { return _max-_min+1; }
 
-  void reset() { _value = _initial; };
+  void reset() { setValue(_initial); };
+
+  static void setModificationCallback(JTunableModificationMonitor* m = NULL){
+    theModCallback = m;
+  }
 private:
   std::string  _name;
   TunableValue _value;
@@ -164,6 +181,7 @@ private:
   TunableValue _min;
   TunableValue _max;
   bool _isPegged;
+  static JTunableModificationMonitor* theModCallback;
 };
 
 //statically set tunable value
