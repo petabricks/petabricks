@@ -25,7 +25,6 @@
 #include <sys/types.h>
 #include <fstream>
 
-#include "jthread.h"
 #include "jrefcounted.h"
 #include "jfilesystem.h"
 #include "maximawrapper.h"

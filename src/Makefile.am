@@ -38,7 +38,6 @@ pkglib_HEADERS=  \
   common/jasm.h \
   common/jassert.h \
   common/jblockingqueue.h \
-  common/jbuffer.h \
   common/jconvert.h \
   common/jfilesystem.h \
   common/jmutex.h \
@@ -46,7 +45,6 @@ pkglib_HEADERS=  \
   common/jrefcounted.h \
   common/jserialize.h \
   common/jsocket.h \
-  common/jthread.h \
   common/jtimer.h \
   common/jtunable.h \
   runtime/autotuner.h \
@@ -59,6 +57,19 @@ pkglib_HEADERS=  \
   runtime/ruleinstance.h \
   runtime/spatialdynamictask.h \
   runtime/transforminstance.h
+
+libpbcommon_a_CXXFLAGS = 
+libpbcommon_a_SOURCES =  \
+  common/jalloc.cpp \
+  common/jargs.cpp \
+  common/jassert.cpp \
+  common/jfilesystem.cpp \
+  common/jprintable.cpp \
+  common/jrefcounted.cpp \
+  common/jserialize.cpp \
+  common/jsocket.cpp \
+  common/jtimer.cpp \
+  common/jtunable.cpp
 
 libpbcompiler_a_LFLAGS = 
 libpbcompiler_a_YFLAGS = -d
@@ -90,23 +101,6 @@ libpbcompiler_a_SOURCES = \
   compiler/trainingdeps.cpp \
   compiler/transform.cpp \
   compiler/userrule.cpp
-
-libpbcommon_a_CXXFLAGS = 
-libpbcommon_a_SOURCES =  \
-  common/jalloc.cpp \
-  common/jargs.cpp \
-  common/jassert.cpp \
-  common/jfilesystem.cpp \
-  common/jprintable.cpp \
-  common/jrefcounted.cpp \
-  common/jserialize.cpp \
-  common/jsocket.cpp \
-  common/jtimer.cpp \
-  common/jtunable.cpp
-
-# not currently used:
-#  common/jbuffer.cpp
-#  common/jthread.cpp
 
 libpbruntime_a_LFLAGS = 
 libpbruntime_a_CXXFLAGS = -Iruntime
