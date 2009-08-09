@@ -1,0 +1,6 @@
+
+default: all
+
+%:
+	+(cd .. && make $*)
+
