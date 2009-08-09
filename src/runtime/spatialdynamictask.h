@@ -83,9 +83,7 @@ public:
     for(iterator a=begin(); a!=end(); ++a){
       for(iterator b=that.begin(); b!=that.end(); ++b){
         if(*a!=*b){
-             for(int d=0; d<D; ++d){
             (*a)->dependsOn(b->asPtr());
-             }
         }
       }
     }
