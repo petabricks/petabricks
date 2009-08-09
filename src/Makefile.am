@@ -1,42 +1,149 @@
-INCLUDES = 
+INCLUDES = -Icommon
 METASOURCES = AUTO
 AM_YFLAGS = -d
 AM_LFLAGS = 
+OBJDIR=obj
 
-noinst_LIBRARIES = libpetabricks.a libpetabricksmain.a
+noinst_LIBRARIES = libpbcommon.a libpbcompiler.a libpbruntime.a libpbmain.a
 noinst_PROGRAMS = pbc 
 
-noinst_HEADERS = autotuner.h choicegrid.h codegenerator.h config.h \
-	dynamicscheduler.h dynamictask.h formula.h getdelim.h getline.h jalloc.h jasm.h jassert.h \
-	jblockingqueue.h jbuffer.h jconvert.h jfilesystem.h jmutex.h jprintable.h jrefcounted.h \
-	jserialize.h jsocket.h jtimer.h jtunable.h learner.h matrix.h matrixdef.h \
-	matrixdependency.h matrixio.h matrixoperations.h maximawrapper.h performancetester.h \
-	petabricks.h petabricksruntime.h region.h rircompilerpass.h rirscope.h rule.h \
-	rulechoice.h ruleinstance.h ruleir.h spatialdynamictask.h staticscheduler.h \
-	trainingdeps.h transform.h transforminstance.h jargs.h userrule.cpp \
-  syntheticrule.h iterationorders.h
+noinst_HEADERS = \
+  compiler/choicegrid.h \
+  compiler/codegenerator.h \
+  compiler/formula.h \
+  compiler/iterationorders.h \
+  compiler/learner.h \
+  compiler/matrixdef.h \
+  compiler/matrixdependency.h \
+  compiler/maximawrapper.h \
+  compiler/performancetester.h \
+  compiler/region.h \
+  compiler/rircompilerpass.h \
+  compiler/rirscope.h \
+  compiler/rulechoice.h \
+  compiler/rule.h \
+  compiler/ruleir.h \
+  compiler/staticscheduler.h \
+  compiler/syntheticrule.h \
+  compiler/trainingdeps.h \
+  compiler/transform.h \
+  compiler/userrule.h \
+  compiler/maximaparser.h \
+  compiler/pbparser.h \
+  compiler/ruleirparser.h
 
-libpetabricks_a_SOURCES = autotuner.cpp choicegrid.cpp codegenerator.cpp \
-	dynamicscheduler.cpp dynamictask.cpp formula.cpp getdelim.cpp getline.cpp jalloc.cpp \
-	jassert.cpp jbuffer.cpp jfilesystem.cpp jprintable.cpp jserialize.cpp jsocket.cpp \
-	jtimer.cpp jtunable.cpp learner.cpp matrix.cpp matrixdef.cpp \
-	matrixdependency.cpp matrixio.cpp matrixreader.lpp maximalexer.lpp maximaparser.ypp \
-	maximawrapper.cpp pblexer.lpp pbparser.ypp performancetester.cpp petabricksruntime.cpp \
-	region.cpp rircompilerpass.cpp rirscope.cpp rule.cpp rulechoice.cpp \
-	ruleinstance.cpp ruleir.cpp ruleirlexer.lpp ruleirparser.ypp spatialdynamictask.cpp \
-	staticscheduler.cpp trainingdeps.cpp transform.cpp transforminstance.cpp jargs.cpp userrule.cpp \
-  syntheticrule.cpp iterationorders.cpp
+pkglib_HEADERS=  \
+  common/getdelim.h \
+  common/getline.h \
+  common/jalloc.h \
+  common/jargs.h \
+  common/jasm.h \
+  common/jassert.h \
+  common/jblockingqueue.h \
+  common/jbuffer.h \
+  common/jconvert.h \
+  common/jfilesystem.h \
+  common/jmutex.h \
+  common/jprintable.h \
+  common/jrefcounted.h \
+  common/jserialize.h \
+  common/jsocket.h \
+  common/jthread.h \
+  common/jtimer.h \
+  common/jtunable.h \
+  runtime/autotuner.h \
+  runtime/dynamicscheduler.h \
+  runtime/dynamictask.h \
+  runtime/matrix.h \
+  runtime/matrixio.h \
+  runtime/petabricks.h \
+  runtime/petabricksruntime.h \
+  runtime/ruleinstance.h \
+  runtime/spatialdynamictask.h \
+  runtime/transforminstance.h
 
-libpetabricksmain_a_SOURCES = redirectmain.cpp
+libpbcompiler_a_LFLAGS = 
+libpbcompiler_a_YFLAGS = 
+libpbcompiler_a_CXXFLAGS = -Icompiler
+libpbcompiler_a_SOURCES = \
+  compiler/choicegrid.cpp \
+  compiler/codegenerator.cpp \
+  compiler/formula.cpp \
+  compiler/iterationorders.cpp \
+  compiler/learner.cpp \
+  compiler/matrixdef.cpp \
+  compiler/matrixdependency.cpp \
+  compiler/maximalexer.lpp \
+  compiler/maximaparser.ypp \
+  compiler/maximawrapper.cpp \
+  compiler/pblexer.lpp \
+  compiler/pbparser.ypp \
+  compiler/performancetester.cpp \
+  compiler/region.cpp \
+  compiler/rircompilerpass.cpp \
+  compiler/rirscope.cpp \
+  compiler/rulechoice.cpp \
+  compiler/rule.cpp \
+  compiler/ruleir.cpp \
+  compiler/ruleirlexer.lpp \
+  compiler/ruleirparser.ypp \
+  compiler/staticscheduler.cpp \
+  compiler/syntheticrule.cpp \
+  compiler/trainingdeps.cpp \
+  compiler/transform.cpp \
+  compiler/userrule.cpp
 
-pbc_SOURCES = pbc.cpp
-pbc_LDADD = libpetabricks.a -lpthread 
+libpbcommon_a_CXXFLAGS = 
+libpbcommon_a_SOURCES =  \
+  common/jalloc.cpp \
+  common/jargs.cpp \
+  common/jassert.cpp \
+  common/jfilesystem.cpp \
+  common/jprintable.cpp \
+  common/jrefcounted.cpp \
+  common/jserialize.cpp \
+  common/jsocket.cpp \
+  common/jtimer.cpp \
+  common/jtunable.cpp
 
-#force bison before flex
-pbparser.h: pbparser.cpp
-pblexer.cpp pblexer.lpp: pbparser.h
-maximaparser.h: maximaparser.cpp
-maximalexer.cpp maximalexer.lpp: maximaparser.h
-ruleirparser.h: ruleirparser.cpp
-ruleirlexer.cpp ruleirlexer.lpp: ruleirparser.h
+# not currently used:
+#  common/jbuffer.cpp
+#  common/jthread.cpp
+#  common/getdelim.cpp
+#  common/getline.cpp
+
+libpbruntime_a_LFLAGS = 
+libpbruntime_a_CXXFLAGS = -Iruntime
+libpbruntime_a_SOURCES =  \
+  runtime/autotuner.cpp \
+  runtime/dynamicscheduler.cpp \
+  runtime/dynamictask.cpp \
+  runtime/matrix.cpp \
+  runtime/matrixio.cpp \
+  runtime/matrixreader.lpp \
+  runtime/petabricksruntime.cpp \
+  runtime/ruleinstance.cpp \
+  runtime/spatialdynamictask.cpp \
+  runtime/transforminstance.cpp
+
+libpbmain_a_CXXFLAGS = -Iruntime
+libpbmain_a_SOURCES = runtime/redirectmain.cpp
+
+pbc_CXXFLAGS = -Icompiler
+pbc_SOURCES = compiler/pbc.cpp
+pbc_LDADD = libpbcompiler.a libpbcommon.a 
+
+CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp libpbcompiler_a-maximaparser.h \
+             libpbcompiler_a-pblexer.cpp libpbcompiler_a-pbparser.cpp libpbcompiler_a-pbparser.h \
+             libpbcompiler_a-ruleirlexer.cpp libpbcompiler_a-ruleirparser.cpp libpbcompiler_a-ruleirparser.h \
+             libpbruntime_a-matrixreader.cpp
+
+#copy bison headers to compiler dir
+compiler/maximaparser.h: libpbcompiler_a-maximaparser.cpp
+	cp libpbcompiler_a-maximaparser.h compiler/maximaparser.h
+compiler/pbparser.h:		 libpbcompiler_a-pbparser.cpp
+	cp libpbcompiler_a-pbparser.h compiler/pbparser.h
+compiler/ruleirparser.h: libpbcompiler_a-ruleirparser.cpp
+	cp libpbcompiler_a-ruleirparser.h compiler/ruleirparser.h
+
 

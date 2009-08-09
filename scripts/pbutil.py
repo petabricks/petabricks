@@ -47,7 +47,7 @@ def chdirToPetabricksRoot():
     raise Exception("This script should be run from petabricks root directory")
 
 def compilePetabricks():
-  cmd=["make","-sqC","src","pbc"]
+  cmd=["make","-sqC","src","all"]
   if subprocess.call(cmd) != 0: 
     cmd=["make", "-j%d"%cpuCount()]
     p=subprocess.Popen(cmd)
@@ -70,6 +70,7 @@ def compileBenchmarks(benchmarks):
   NCPU=cpuCount()
   failed=[]
   pbc="./src/pbc"
+  libdepends=[pbc, "./src/libpbmain.a", "./src/libpbruntime.a", "./src/libpbcommon.a"]
   benchmarkMaxLen=reduce(max,map(len,benchmarks), 0)
 
   msgMaxLen= len("[%d/%d jobs] "%(NCPU,NCPU))
@@ -103,7 +104,7 @@ def compileBenchmarks(benchmarks):
     bin=benchmarkToBin(name)
     if not os.path.isfile(src):
       raise Exception("invalid benchmark "+name)
-    srcModTime=max(os.path.getmtime(src), os.path.getmtime(pbc))
+    srcModTime=max(os.path.getmtime(src), reduce(max, map(os.path.getmtime, libdepends)))
     if os.path.isfile(bin) and os.path.getmtime(bin) > srcModTime:
       msg(name.ljust(benchmarkMaxLen)+" is up to date")
     else:

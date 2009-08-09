@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
+ *   Copyright (C) 2006 by Jason Ansel                                     *
  *   jansel@csail.mit.edu                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,44 +17,42 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+#ifndef JALIBJFILESYSTEM_H
+#define JALIBJFILESYSTEM_H
 
-#ifndef PETABRICKSMATRIXOPERATIONS_H
-#define PETABRICKSMATRIXOPERATIONS_H
+#include <string>
+#include <vector>
 
-#include "matrix.h"
+namespace jalib
+{
 
-namespace petabricks {
-/*
-template<typename AMatrix, typename BMatrix>
-void matrixCopy(AMatrix& dest,  const BMatrix& src){
-  for( typename AMatrix::Iterator i = dest.Begin(); i!=dest.End(); ++i){
-    *i = src.get(i.x(), i.y());
+  namespace Filesystem
+  {
+
+    //true if a given file exists
+    bool FileExists ( const std::string& str );
+
+    //search for a given utility in many different places
+    std::string FindHelperUtility ( const std::string& name, bool dieOnError = true );
+
+    std::string GetProgramDir();
+    std::string GetProgramName();
+    std::string GetProgramPath();
+
+    std::string ResolveSymlink ( const std::string& file );
+
+    std::vector<std::string> GetProgramArgs();
+
+    std::vector<int> ListOpenFds();
+
+
+    std::string GetCurrentHostname();
+
+    std::string Basename( const std::string& );
+    
+    std::string Dirname( const std::string& );
+
   }
-}
-
-template<typename AMatrix>
-void matrixFill(AMatrix& dest,  Matrix::ElementT value){
-  for( typename AMatrix::Iterator i = dest.Begin(); i!=dest.End(); ++i){
-    *i = value;
-  }
-}
-
-template<typename AMatrix>
-void matrixFill(AMatrix& dest,  Matrix::ElementT (*generator)(int x, int y)){
-  for( typename AMatrix::Iterator i = dest.Begin(); i!=dest.End(); ++i){
-    *i = (*generator)(i.x(), i.y());
-  }
-}
-
-template<typename AMatrix, typename BMatrix>
-bool matrixEquals(const AMatrix& left,  const BMatrix& right){
-  for( typename AMatrix::ConstIterator i = left.Begin(); i!=left.End(); ++i){
-    if(*i != right.get(i.x(), i.y()))
-      return false;
-  }
-  return true;
-}
-*/
 
 }
 

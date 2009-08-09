@@ -23,7 +23,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "maximaparser.h"
 #include <sys/socket.h>
 #include <sys/types.h>
 

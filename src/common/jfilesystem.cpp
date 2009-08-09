@@ -43,20 +43,11 @@ namespace
         lastSlash = i;
     return str.substr ( lastSlash+1 );
   }
-
-  std::string _DirBaseName ( const std::string& str )
-  {
-    int lastSlash = 0;
-    for ( size_t i = 0; i<str.length(); ++i )
-      if ( str[i] == '/' )
-        lastSlash = i;
-    return str.substr ( 0,lastSlash );
-  }
 }
 
 std::string jalib::Filesystem::GetProgramDir()
 {
-  static std::string value = _DirBaseName ( GetProgramPath() );
+  static std::string value = Dirname( GetProgramPath() );
   return value;
 }
 
@@ -201,3 +192,12 @@ std::string jalib::Filesystem::Basename( const std::string& s) {
   }
   return std::string(s.begin(), e);
 }
+
+std::string jalib::Filesystem::Dirname( const std::string& str) {
+  int lastSlash = 0;
+  for ( size_t i = 0; i<str.length(); ++i )
+    if ( str[i] == '/' )
+      lastSlash = i;
+  return str.substr ( 0,lastSlash );
+}
+

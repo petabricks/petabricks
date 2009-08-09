@@ -554,7 +554,7 @@ PACKAGE_STRING='petabricks 1.99'
 PACKAGE_BUGREPORT='jansel@csail.mit.edu'
 PACKAGE_URL=''
 
-ac_unique_file="src/pbc.cpp"
+ac_unique_file="src/compiler/pbc.cpp"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
@@ -5049,7 +5049,7 @@ done
 ################################################################################
 ################################################################################
 
-ac_config_files="$ac_config_files Makefile src/Makefile src/cxxconfig.h examples/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile src/compiler/cxxconfig.h examples/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -5753,7 +5753,7 @@ do
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
-    "src/cxxconfig.h") CONFIG_FILES="$CONFIG_FILES src/cxxconfig.h" ;;
+    "src/compiler/cxxconfig.h") CONFIG_FILES="$CONFIG_FILES src/compiler/cxxconfig.h" ;;
     "examples/Makefile") CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
 
   *) as_fn_error "invalid argument: \`$ac_config_target'" "$LINENO" 5;;

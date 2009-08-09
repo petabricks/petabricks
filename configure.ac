@@ -1,6 +1,6 @@
 AC_INIT([petabricks], [1.99], [jansel@csail.mit.edu])
 
-AC_CONFIG_SRCDIR([src/pbc.cpp])
+AC_CONFIG_SRCDIR([src/compiler/pbc.cpp])
 AC_CANONICAL_TARGET
 
 AM_CONFIG_HEADER([src/config.h])
@@ -225,5 +225,5 @@ done
 ################################################################################
 ################################################################################
 
-AC_OUTPUT(Makefile src/Makefile src/cxxconfig.h examples/Makefile)
+AC_OUTPUT(Makefile src/Makefile src/compiler/cxxconfig.h examples/Makefile)
 
