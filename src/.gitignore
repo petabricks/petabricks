@@ -9,4 +9,4 @@ libpbcompiler_a-ruleirparser.cpp
 libpbcompiler_a-ruleirparser.h
 libpbruntime_a-matrixreader.cpp
 config.h
-compiler/cxxconfig.h
+cxxconfig.h

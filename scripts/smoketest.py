@@ -50,12 +50,12 @@ for b in benchmarks:
   cmd.append(outfile)
 
   #run
-  runjobs.append((msg,forkrun(cmd),outfile))
+  runjobs.append((msg,forkrun(cmd),outfile, cmd))
 
-for msg,p,outfile in runjobs:
+for msg,p,outfile,cmd in runjobs:
   rv = p.wait()
   if rv != 0:
-    print msg+" run FAILED (status=%d)"%rv
+    print msg+" run FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd))
     continue
 
   checkcmd=["git","diff","--exit-code", outfile]
