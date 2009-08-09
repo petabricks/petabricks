@@ -4826,6 +4826,7 @@ $as_echo "#define DEBUG /**/" >>confdefs.h
 $as_echo "#define MAXIMA_LOG 1" >>confdefs.h
 
   fi
+  YFLAGS="$YFLAGS -v"
 fi
 
 # Check whether --enable-unsafe was given.

@@ -1,6 +1,6 @@
 INCLUDES = -Icommon
 METASOURCES = AUTO
-AM_YFLAGS = -d
+AM_YFLAGS = 
 AM_LFLAGS = 
 OBJDIR=obj
 
@@ -63,7 +63,7 @@ pkglib_HEADERS=  \
   runtime/transforminstance.h
 
 libpbcompiler_a_LFLAGS = 
-libpbcompiler_a_YFLAGS = 
+libpbcompiler_a_YFLAGS = -d
 libpbcompiler_a_CXXFLAGS = -Icompiler
 libpbcompiler_a_SOURCES = \
   compiler/choicegrid.cpp \
@@ -136,14 +136,15 @@ pbc_LDADD = libpbcompiler.a libpbcommon.a
 CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp libpbcompiler_a-maximaparser.h \
              libpbcompiler_a-pblexer.cpp libpbcompiler_a-pbparser.cpp libpbcompiler_a-pbparser.h \
              libpbcompiler_a-ruleirlexer.cpp libpbcompiler_a-ruleirparser.cpp libpbcompiler_a-ruleirparser.h \
+             libpbcompiler_a-maximaparser.output libpbcompiler_a-pbparser.output libpbcompiler_a-ruleirparser.output \
              libpbruntime_a-matrixreader.cpp
 
 #copy bison headers to compiler dir
 compiler/maximaparser.h: libpbcompiler_a-maximaparser.cpp
-	cp libpbcompiler_a-maximaparser.h compiler/maximaparser.h
+	cp   libpbcompiler_a-maximaparser.h $(srcdir)/compiler/maximaparser.h
 compiler/pbparser.h:		 libpbcompiler_a-pbparser.cpp
-	cp libpbcompiler_a-pbparser.h compiler/pbparser.h
+	cp   libpbcompiler_a-pbparser.h     $(srcdir)/compiler/pbparser.h
 compiler/ruleirparser.h: libpbcompiler_a-ruleirparser.cpp
-	cp libpbcompiler_a-ruleirparser.h compiler/ruleirparser.h
+	cp   libpbcompiler_a-ruleirparser.h $(srcdir)/compiler/ruleirparser.h
 
 

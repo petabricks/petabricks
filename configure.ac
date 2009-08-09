@@ -105,6 +105,7 @@ if test "$use_jassert" = "yes"; then
   if test "`hostname`" = "kleptocracy"; then
     AC_DEFINE([MAXIMA_LOG],[1],[define in order to generate maxima.log, (a log of maxima commands)])
   fi
+  YFLAGS="$YFLAGS -v"
 fi
 
 AC_ARG_ENABLE([unsafe],

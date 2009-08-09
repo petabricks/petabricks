@@ -40,10 +40,12 @@ subdir = src
 DIST_COMMON = $(noinst_HEADERS) $(pkglib_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/config.h.in libpbcompiler_a-maximalexer.cpp \
-	libpbcompiler_a-maximaparser.cpp libpbcompiler_a-pblexer.cpp \
-	libpbcompiler_a-pbparser.cpp libpbcompiler_a-ruleirlexer.cpp \
+	libpbcompiler_a-maximaparser.cpp \
+	libpbcompiler_a-maximaparser.h libpbcompiler_a-pblexer.cpp \
+	libpbcompiler_a-pbparser.cpp libpbcompiler_a-pbparser.h \
+	libpbcompiler_a-ruleirlexer.cpp \
 	libpbcompiler_a-ruleirparser.cpp \
-	libpbruntime_a-matrixreader.cpp
+	libpbcompiler_a-ruleirparser.h libpbruntime_a-matrixreader.cpp
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -260,7 +262,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 INCLUDES = -Icommon
 METASOURCES = AUTO
-AM_YFLAGS = -d
+AM_YFLAGS = 
 AM_LFLAGS = 
 OBJDIR = obj
 noinst_LIBRARIES = libpbcommon.a libpbcompiler.a libpbruntime.a libpbmain.a
@@ -320,7 +322,7 @@ pkglib_HEADERS = \
   runtime/transforminstance.h
 
 libpbcompiler_a_LFLAGS = 
-libpbcompiler_a_YFLAGS = 
+libpbcompiler_a_YFLAGS = -d
 libpbcompiler_a_CXXFLAGS = -Icompiler
 libpbcompiler_a_SOURCES = \
   compiler/choicegrid.cpp \
@@ -391,6 +393,7 @@ pbc_LDADD = libpbcompiler.a libpbcommon.a
 CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp libpbcompiler_a-maximaparser.h \
              libpbcompiler_a-pblexer.cpp libpbcompiler_a-pbparser.cpp libpbcompiler_a-pbparser.h \
              libpbcompiler_a-ruleirlexer.cpp libpbcompiler_a-ruleirparser.cpp libpbcompiler_a-ruleirparser.h \
+             libpbcompiler_a-maximaparser.output libpbcompiler_a-pbparser.output libpbcompiler_a-ruleirparser.output \
              libpbruntime_a-matrixreader.cpp
 
 all: config.h
@@ -451,6 +454,21 @@ libpbcommon.a: $(libpbcommon_a_OBJECTS) $(libpbcommon_a_DEPENDENCIES)
 	-rm -f libpbcommon.a
 	$(libpbcommon_a_AR) libpbcommon.a $(libpbcommon_a_OBJECTS) $(libpbcommon_a_LIBADD)
 	$(RANLIB) libpbcommon.a
+libpbcompiler_a-maximaparser.h: libpbcompiler_a-maximaparser.cpp
+	@if test ! -f $@; then \
+	  rm -f libpbcompiler_a-maximaparser.cpp; \
+	  $(MAKE) $(AM_MAKEFLAGS) libpbcompiler_a-maximaparser.cpp; \
+	else :; fi
+libpbcompiler_a-pbparser.h: libpbcompiler_a-pbparser.cpp
+	@if test ! -f $@; then \
+	  rm -f libpbcompiler_a-pbparser.cpp; \
+	  $(MAKE) $(AM_MAKEFLAGS) libpbcompiler_a-pbparser.cpp; \
+	else :; fi
+libpbcompiler_a-ruleirparser.h: libpbcompiler_a-ruleirparser.cpp
+	@if test ! -f $@; then \
+	  rm -f libpbcompiler_a-ruleirparser.cpp; \
+	  $(MAKE) $(AM_MAKEFLAGS) libpbcompiler_a-ruleirparser.cpp; \
+	else :; fi
 libpbcompiler.a: $(libpbcompiler_a_OBJECTS) $(libpbcompiler_a_DEPENDENCIES) 
 	-rm -f libpbcompiler.a
 	$(libpbcompiler_a_AR) libpbcompiler.a $(libpbcompiler_a_OBJECTS) $(libpbcompiler_a_LIBADD)
@@ -1369,10 +1387,13 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 	-rm -f libpbcompiler_a-maximalexer.cpp
 	-rm -f libpbcompiler_a-maximaparser.cpp
+	-rm -f libpbcompiler_a-maximaparser.h
 	-rm -f libpbcompiler_a-pblexer.cpp
 	-rm -f libpbcompiler_a-pbparser.cpp
+	-rm -f libpbcompiler_a-pbparser.h
 	-rm -f libpbcompiler_a-ruleirlexer.cpp
 	-rm -f libpbcompiler_a-ruleirparser.cpp
+	-rm -f libpbcompiler_a-ruleirparser.h
 	-rm -f libpbruntime_a-matrixreader.cpp
 clean: clean-am
 
@@ -1450,11 +1471,11 @@ uninstall-am: uninstall-pkglibHEADERS
 
 #copy bison headers to compiler dir
 compiler/maximaparser.h: libpbcompiler_a-maximaparser.cpp
-	cp libpbcompiler_a-maximaparser.h compiler/maximaparser.h
+	cp   libpbcompiler_a-maximaparser.h $(srcdir)/compiler/maximaparser.h
 compiler/pbparser.h:		 libpbcompiler_a-pbparser.cpp
-	cp libpbcompiler_a-pbparser.h compiler/pbparser.h
+	cp   libpbcompiler_a-pbparser.h     $(srcdir)/compiler/pbparser.h
 compiler/ruleirparser.h: libpbcompiler_a-ruleirparser.cpp
-	cp libpbcompiler_a-ruleirparser.h compiler/ruleirparser.h
+	cp   libpbcompiler_a-ruleirparser.h $(srcdir)/compiler/ruleirparser.h
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
