@@ -3,6 +3,21 @@
 /* larges cache line size in system */
 #undef CACHE_LINE_SIZE
 
+/* C++ compiler used by pbc */
+#undef CXX
+
+/* C++ preprocessor used by pbc */
+#undef CXXCPP
+
+/* C++ compiler defines used by pbc */
+#undef CXXDEFS
+
+/* C++ compiler flags used by pbc */
+#undef CXXFLAGS
+
+/* C++ compiler libraries used by pbc */
+#undef CXXLIBS
+
 /* verbose debug printouts and log files in /tmp */
 #undef DEBUG
 

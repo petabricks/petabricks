@@ -1,4 +1,4 @@
-INCLUDES = -Icommon
+INCLUDES = -I$(srcdir)/common
 METASOURCES = AUTO
 AM_YFLAGS = 
 AM_LFLAGS = 
@@ -73,7 +73,7 @@ libpbcommon_a_SOURCES =  \
 
 libpbcompiler_a_LFLAGS = 
 libpbcompiler_a_YFLAGS = -d
-libpbcompiler_a_CXXFLAGS = -Icompiler
+libpbcompiler_a_CXXFLAGS = -I$(srcdir)/compiler
 libpbcompiler_a_SOURCES = \
   compiler/choicegrid.cpp \
   compiler/codegenerator.cpp \
@@ -103,7 +103,7 @@ libpbcompiler_a_SOURCES = \
   compiler/userrule.cpp
 
 libpbruntime_a_LFLAGS = 
-libpbruntime_a_CXXFLAGS = -Iruntime
+libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime
 libpbruntime_a_SOURCES =  \
   runtime/autotuner.cpp \
   runtime/dynamicscheduler.cpp \

@@ -4945,6 +4945,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
+
 if false; then
   #disabled by default:
 
@@ -4963,7 +4964,6 @@ $as_echo "#define OUTPUT_SIZE_STR \"output_count\"" >>confdefs.h
 $as_echo "#define INPUT_PERIMETER_STR \"input_perimeter\"" >>confdefs.h
 
 fi
-
 
 ################################################################################
 # COMPILER FLAGS ###############################################################
@@ -5045,12 +5045,42 @@ rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 done
 
+################################################################################
+################################################################################
+################################################################################
+
+#pass compiler configuration to config.h
+
+cat >>confdefs.h <<_ACEOF
+#define CXX "$CXX"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define CXXFLAGS "$CXXFLAGS"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define CXXCPP "$CXXCPP -x c++"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define CXXDEFS "$DEFS -DHAVE_CONFIG_H"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define CXXLIBS "$LIBS"
+_ACEOF
+
 
 ################################################################################
 ################################################################################
 ################################################################################
 
-ac_config_files="$ac_config_files Makefile src/Makefile src/compiler/cxxconfig.h examples/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile examples/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -5754,7 +5784,6 @@ do
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
-    "src/compiler/cxxconfig.h") CONFIG_FILES="$CONFIG_FILES src/compiler/cxxconfig.h" ;;
     "examples/Makefile") CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
 
   *) as_fn_error "invalid argument: \`$ac_config_target'" "$LINENO" 5;;

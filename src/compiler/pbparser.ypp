@@ -7,8 +7,9 @@
 #include "formula.h"
 #include "matrixdef.h"
 #include "region.h"
-#include "config.h"
-#include "cxxconfig.h"
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 using namespace petabricks;
 
 extern int pblineno;
@@ -253,7 +254,7 @@ extern FILE* pbin;
 TransformListPtr parsePbFile(const char* filename){
   TransformListPtr ret;
 #ifdef RUN_CPP
-  pbin = popen((std::string(CPP " ")+filename).c_str(),"r");
+  pbin = popen((std::string(CXXCPP " ")+filename).c_str(),"r");
 #else
   pbin = fopen(filename,"r");
 #endif

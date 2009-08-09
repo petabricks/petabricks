@@ -34,7 +34,6 @@
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
-#  include "cxxconfig.h"
 #endif
 
 void callCxxCompiler(const std::string& src, const std::string& bin);
@@ -134,9 +133,9 @@ std::string cmdCxxCompiler(const std::string& src, const std::string& bin){
   std::string ofile = bin + ".o";
   return std::string()
        + "echo -n Calling C++ compiler...\\ && \\\n"
-       + CXX " " CXXFLAGS " " DEFS " -c -o " + ofile + " " + src + " -I\""+theLibDir+"\" -I\""+theCommonDir+"\" -I\""+theRuntimeDir+"\" && \\\n"
+       + CXX " " CXXFLAGS " " CXXDEFS " -c -o " + ofile + " " + src + " -I\""+theLibDir+"\" -I\""+theCommonDir+"\" -I\""+theRuntimeDir+"\" && \\\n"
        + "echo done && echo -n Linking...\\ && \\\n"
-       + CXX " " CXXFLAGS " -o " + bin + " " + ofile + " -L\""+theLibDir+"\" -lpbmain -lpbruntime -lpbcommon " LIBS " && \\\n"
+       + CXX " " CXXFLAGS " -o " + bin + " " + ofile + " -L\""+theLibDir+"\" -lpbmain -lpbruntime -lpbcommon " CXXLIBS " && \\\n"
        + "echo done";
 }
 
