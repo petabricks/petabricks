@@ -18,12 +18,16 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "jfilesystem.h"
-#include <sys/types.h>
-#include <unistd.h>
-#include "jconvert.h"
+
 #include <dirent.h>
-#include "errno.h"
+#include <sys/types.h>
 #include <sys/utsname.h>
+#include <unistd.h>
+
+#include <fstream>
+#include <string>
+
+#include "jconvert.h"
 
 namespace
 {
@@ -124,23 +128,17 @@ std::string jalib::Filesystem::FindHelperUtility ( const std::string& file, bool
 
 std::vector<std::string> jalib::Filesystem::GetProgramArgs()
 {
-  std::vector<std::string> rv;
-
   std::string path = "/proc/" + jalib::XToString ( getpid() ) + "/cmdline";
   FILE* args = fopen ( path.c_str(),"r" );
+  std::ifstream fp(path.c_str());
+  JASSERT ( fp.is_open() ) ( path ).Text ( "failed to open command line" );
+  std::string line;
 
-  JASSERT ( args != NULL ) ( path ).Text ( "failed to open command line" );
-
-  char * lineptr = ( char* ) malloc ( 512 ); //getdelim will auto-grow this buffer
-  size_t len = 511;
-
-  while ( getdelim ( &lineptr, &len, '\0', args ) >= 0 )
+  std::vector<std::string> rv;
+  while(getline(fp, line, '\0'))
   {
-    rv.push_back ( lineptr );
+    rv.push_back ( line );
   }
-
-  free ( lineptr );
-
   return rv;
 }
 

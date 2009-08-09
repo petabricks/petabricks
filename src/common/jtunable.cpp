@@ -22,11 +22,8 @@
 
 #include "jtunable.h"
 
-#include "getline.h"
-
-#include <stdlib.h>
-#include <string.h>
 #include <fstream>
+#include <string>
 #include <algorithm>
 
 #include "jconvert.h"
@@ -65,12 +62,10 @@ void jalib::JTunableConfiguration::makeActive() const{
 
 void jalib::JTunableManager::load(const std::string& filename) const{
   const JTunableReverseMap m = getReverseMap();
-  FILE* fp= fopen(filename.c_str(), "r");
-  JASSERT(fp!=NULL)(filename).Text("failed to open file");
-  char * line = NULL;
-  size_t len = 0;
-  ssize_t read;
-  while((read=getline(&line, &len, fp)) != -1) {
+  std::ifstream fp(filename.c_str());
+  JASSERT(fp.is_open())(filename).Text("failed to open file");
+  std::string line;
+  while(getline(fp, line)){
     std::string t,l,r;
     jalib::SplitFirst(t, r, line, '#');
     jalib::SplitFirst(l, r, t,    '=');
@@ -85,8 +80,6 @@ void jalib::JTunableManager::load(const std::string& filename) const{
       }
     }
   }
-  if (line)
-      free(line);
 }
 
 void jalib::JTunableManager::save(const std::string& filename) const{

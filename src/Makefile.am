@@ -33,8 +33,6 @@ noinst_HEADERS = \
   compiler/ruleirparser.h
 
 pkglib_HEADERS=  \
-  common/getdelim.h \
-  common/getline.h \
   common/jalloc.h \
   common/jargs.h \
   common/jasm.h \
@@ -109,8 +107,6 @@ libpbcommon_a_SOURCES =  \
 # not currently used:
 #  common/jbuffer.cpp
 #  common/jthread.cpp
-#  common/getdelim.cpp
-#  common/getline.cpp
 
 libpbruntime_a_LFLAGS = 
 libpbruntime_a_CXXFLAGS = -Iruntime
@@ -141,10 +137,12 @@ CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp li
 
 #copy bison headers to compiler dir
 compiler/maximaparser.h: libpbcompiler_a-maximaparser.cpp
-	cp   libpbcompiler_a-maximaparser.h $(srcdir)/compiler/maximaparser.h
+	cp libpbcompiler_a-maximaparser.h $(srcdir)/compiler/maximaparser.h
 compiler/pbparser.h:		 libpbcompiler_a-pbparser.cpp
-	cp   libpbcompiler_a-pbparser.h     $(srcdir)/compiler/pbparser.h
+	cp libpbcompiler_a-pbparser.h     $(srcdir)/compiler/pbparser.h
 compiler/ruleirparser.h: libpbcompiler_a-ruleirparser.cpp
-	cp   libpbcompiler_a-ruleirparser.h $(srcdir)/compiler/ruleirparser.h
+	cp libpbcompiler_a-ruleirparser.h $(srcdir)/compiler/ruleirparser.h
+
+
 
 

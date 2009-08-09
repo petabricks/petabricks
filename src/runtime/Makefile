@@ -1,5 +1,5 @@
 
-default: all
+all:
 
 %:
 	+(cd .. && make $*)
