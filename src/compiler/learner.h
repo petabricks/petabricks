@@ -20,8 +20,8 @@
 #ifndef PETABRICKSLEARNER_H
 #define PETABRICKSLEARNER_H
 
-#include "rulechoice.h"
 #include "region.h"
+#include "rulechoice.h"
 
 namespace petabricks {
 

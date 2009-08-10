@@ -20,11 +20,12 @@
 #ifndef PETABRICKSUSERRULE_H
 #define PETABRICKSUSERRULE_H
 
-#include "rule.h"
-#include "matrixdependency.h"
-#include "jconvert.h"
 #include "codegenerator.h"
+#include "matrixdependency.h"
+#include "rule.h"
 #include "ruleir.h"
+
+#include "common/jconvert.h"
 
 #include <vector>
 

@@ -20,9 +20,9 @@
 #include "rulechoice.h"
 
 #include "codegenerator.h"
-#include "transform.h"
 #include "rule.h"
 #include "staticscheduler.h"
+#include "transform.h"
 
 namespace {
   struct RuleIdComparer {

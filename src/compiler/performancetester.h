@@ -20,10 +20,11 @@
 #ifndef PETABRICKSPERFORMANCETESTER_H
 #define PETABRICKSPERFORMANCETESTER_H
 
+#include "common/jprintable.h"
+#include "common/jrefcounted.h"
+
 #include <string>
 #include <vector>
-#include "jrefcounted.h"
-#include "jprintable.h"
 
 namespace petabricks {
 

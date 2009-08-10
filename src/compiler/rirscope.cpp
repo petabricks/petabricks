@@ -19,7 +19,7 @@
  ***************************************************************************/
 #include "rirscope.h"
 
-#include "jconvert.h"
+#include "common/jconvert.h"
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"

@@ -18,11 +18,13 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "transform.h"
-#include "jconvert.h"
-#include "maximawrapper.h"
+
 #include "codegenerator.h"
-#include "syntheticrule.h"
+#include "maximawrapper.h"
 #include "staticscheduler.h"
+#include "syntheticrule.h"
+
+#include "common/jconvert.h"
 
 #include <algorithm>
 

@@ -7,14 +7,17 @@
 
 %{
 
+#include "matrixio.h"
+
+#include "common/jassert.h"
+#include "common/jconvert.h"
+
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#include "jassert.h"
-#include "jconvert.h"
-#include "matrixio.h"
 #include <stdio.h>
+
 using namespace petabricks;
 
 #define YY_DECL int matrixreaderlex(MatrixReaderScratch& o)

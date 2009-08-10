@@ -20,19 +20,20 @@
 #ifndef PETABRICKSTRANSFORM_H
 #define PETABRICKSTRANSFORM_H
 
-#include "jrefcounted.h"
-#include "jprintable.h"
-#include "matrixdef.h"
 #include "choicegrid.h"
-#include "rule.h"
 #include "learner.h"
+#include "matrixdef.h"
 #include "performancetester.h"
-#include "staticscheduler.h"
 #include "rirscope.h"
+#include "rule.h"
+#include "staticscheduler.h"
 
-#include <vector>
-#include <set>
+#include "common/jprintable.h"
+#include "common/jrefcounted.h"
+
 #include <limits>
+#include <set>
+#include <vector>
 
 namespace petabricks {
 

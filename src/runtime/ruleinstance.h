@@ -20,7 +20,7 @@
 #ifndef PETABRICKSRULEINSTANCE_H
 #define PETABRICKSRULEINSTANCE_H
 
-#include "jrefcounted.h"
+#include "common/jrefcounted.h"
 
 namespace petabricks {
 

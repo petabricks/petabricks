@@ -20,8 +20,9 @@
 #ifndef PETABRICKSRIRSCOPE_H
 #define PETABRICKSRIRSCOPE_H
 
-#include "jrefcounted.h"
-#include "jprintable.h"
+#include "common/jprintable.h"
+#include "common/jrefcounted.h"
+
 #include <map>
 
 namespace petabricks {

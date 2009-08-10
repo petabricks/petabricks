@@ -20,9 +20,8 @@
 #ifndef PETABRICKSRULECHOICE_H
 #define PETABRICKSRULECHOICE_H
 
-#include "rule.h"
 #include "formula.h"
-#include "jrefcounted.h"
+#include "rule.h"
 
 namespace petabricks {
 

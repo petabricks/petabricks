@@ -21,10 +21,11 @@
 #include "dynamicscheduler.h"
 #include "dynamictask.h"
 
+#include <common/jasm.h>
+
 #include <pthread.h>
-#include <unistd.h>
 #include <signal.h>
-#include <jasm.h>
+#include <unistd.h>
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"

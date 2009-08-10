@@ -20,14 +20,15 @@
 #ifndef PETABRICKSPETABRICKSRUNTIME_H
 #define PETABRICKSPETABRICKSRUNTIME_H
 
+#include "common/jrefcounted.h"
+#include "common/jtunable.h"
+
+#include <float.h>
+#include <signal.h>
+#include <stdio.h>
 #include <string>
 #include <vector>
-#include <float.h>
-#include <stdio.h>
-#include <signal.h>
 
-#include "jtunable.h"
-#include "jrefcounted.h"
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"

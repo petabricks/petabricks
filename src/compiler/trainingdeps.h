@@ -20,10 +20,11 @@
 #ifndef PETABRICKSTRAININGDEPS_H
 #define PETABRICKSTRAININGDEPS_H
 
-#include <sstream>
+#include "common/jassert.h"
+
 #include <map>
+#include <sstream>
 #include <vector>
-#include "jassert.h"
 
 namespace petabricks {
 

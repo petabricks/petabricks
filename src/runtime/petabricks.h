@@ -18,16 +18,21 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+#include "dynamictask.h"
 #include "matrix.h"
 #include "matrixio.h"
-#include "transforminstance.h"
-#include "ruleinstance.h"
-#include "dynamictask.h"
-#include "spatialdynamictask.h"
 #include "petabricksruntime.h"
-#include "jtunable.h"
-#include "config.h"
+#include "ruleinstance.h"
+#include "spatialdynamictask.h"
+#include "transforminstance.h"
+
+#include "common/jtunable.h"
+
 #include <algorithm>
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
 #ifdef HAVE_MATH_H
 #  include <math.h>
@@ -36,6 +41,7 @@
 #ifdef HAVE_FFTW3_H
 #  include <fftw3.h>
 #endif
+
 
 #define PB_SPAWN(taskname, args...) \
   petabricks::spawn_hook( taskname ## _dynamic (args), _completion)

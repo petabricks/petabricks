@@ -1,9 +1,9 @@
 %{
+#include "ruleir.h"
+#include "formula.h"
+#include "common/jconvert.h"
 #include <stdio.h>
 #include <map>
-#include "ruleir.h"
-#include "jconvert.h"
-#include "formula.h"
 
 using namespace petabricks;
 

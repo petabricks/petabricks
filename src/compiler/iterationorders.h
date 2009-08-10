@@ -22,8 +22,8 @@
 
 #include "formula.h"
 
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace petabricks {
 class RuleInterface;

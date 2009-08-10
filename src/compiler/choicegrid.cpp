@@ -17,11 +17,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
+
 #include "choicegrid.h"
-#include "rule.h"
-#include "jconvert.h"
-#include "maximawrapper.h"
 #include "codegenerator.h"
+#include "maximawrapper.h"
+#include "rule.h"
+
+#include "common/jconvert.h"
 
 petabricks::ChoiceGridPtr petabricks::ChoiceGrid::constructFrom( 
   const RuleSet&                allowedRules,

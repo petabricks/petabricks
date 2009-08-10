@@ -161,6 +161,9 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* var name in output code for rule output variable */
+#undef RETURN_VAL_STR
+
 /* git revision for HEAD at the time ./configure was run */
 #undef REVISION_LONG
 
@@ -180,7 +183,7 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
-/* var name in output code */
+/* var name in output code for accuracy template parameter */
 #undef TEMPLATE_BIN_STR
 
 /* record timing information to stderr and jtimings.csv */

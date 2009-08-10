@@ -18,13 +18,16 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "region.h"
-#include "transform.h"
-#include "maximawrapper.h"
+
 #include "matrixdependency.h"
+#include "maximawrapper.h"
 #include "rule.h"
+#include "transform.h"
 
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
-#define RETURN_VAL_STR "_pb_rv"
 
 petabricks::Region::RegionType petabricks::Region::strToRegionType(const std::string& str){
   if(str=="cell")   return REGION_CELL;

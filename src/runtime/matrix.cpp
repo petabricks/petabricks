@@ -18,8 +18,9 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "matrix.h"
-#include <stdlib.h>
+
 #include <stdio.h>
+#include <stdlib.h>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"

@@ -20,17 +20,17 @@
 #ifndef PETABRICKSMATRIX_H
 #define PETABRICKSMATRIX_H
 
-#include "jrefcounted.h"
-#include "jassert.h"
+#include "common/jassert.h"
+#include "common/jrefcounted.h"
+
+#include <stdarg.h>
+#include <stdio.h>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #else
 # define MATRIX_ELEMENT_T double
 #endif
-
-#include <stdio.h>
-#include <stdarg.h>
 
 namespace petabricks {
 

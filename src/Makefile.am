@@ -1,4 +1,4 @@
-INCLUDES = -I$(srcdir)/common
+INCLUDES =
 METASOURCES = AUTO
 AM_YFLAGS = 
 AM_LFLAGS = 
@@ -15,7 +15,9 @@ noinst_HEADERS = \
   compiler/learner.h \
   compiler/matrixdef.h \
   compiler/matrixdependency.h \
+  compiler/maximaparser.h \
   compiler/maximawrapper.h \
+  compiler/pbparser.h \
   compiler/performancetester.h \
   compiler/region.h \
   compiler/rircompilerpass.h \
@@ -23,14 +25,12 @@ noinst_HEADERS = \
   compiler/rulechoice.h \
   compiler/rule.h \
   compiler/ruleir.h \
+  compiler/ruleirparser.h \
   compiler/staticscheduler.h \
   compiler/syntheticrule.h \
   compiler/trainingdeps.h \
   compiler/transform.h \
-  compiler/userrule.h \
-  compiler/maximaparser.h \
-  compiler/pbparser.h \
-  compiler/ruleirparser.h
+  compiler/userrule.h
 
 pkglib_HEADERS=  \
   common/jalloc.h \
@@ -58,7 +58,7 @@ pkglib_HEADERS=  \
   runtime/spatialdynamictask.h \
   runtime/transforminstance.h
 
-libpbcommon_a_CXXFLAGS = 
+libpbcommon_a_CXXFLAGS = -I$(srcdir)/common
 libpbcommon_a_SOURCES =  \
   common/jalloc.cpp \
   common/jargs.cpp \

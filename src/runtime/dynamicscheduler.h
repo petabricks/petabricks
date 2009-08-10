@@ -20,17 +20,18 @@
 #ifndef PETABRICKSDYNAMICSCHEDULER_H
 #define PETABRICKSDYNAMICSCHEDULER_H
 
-#include "jmutex.h"
-#include "jrefcounted.h"
-#include "jblockingqueue.h"
-#include "jmutex.h"
-#include "jasm.h"
 #include "dynamictask.h"
 
-#include <pthread.h>
-#include <list>
-#include <set>
+#include "common/jasm.h"
+#include "common/jblockingqueue.h"
+#include "common/jmutex.h"
+#include "common/jmutex.h"
+#include "common/jrefcounted.h"
+
 #include <deque>
+#include <list>
+#include <pthread.h>
+#include <set>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"

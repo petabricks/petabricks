@@ -22,8 +22,12 @@
 
 #include "dynamictask.h"
 #include "matrix.h"
+
+//TODO: remove this dependency on an enum in compiler lib
 #include "compiler/matrixdependency.h"
+
 #include <vector>
+
 
 namespace petabricks {
 

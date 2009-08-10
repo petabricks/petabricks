@@ -20,18 +20,20 @@
 #ifndef PETABRICKSMATRIXDEF_H
 #define PETABRICKSMATRIXDEF_H
 
-#include "jrefcounted.h"
-#include "jprintable.h"
 #include "formula.h"
-#include "jconvert.h"
+
+#include "common/jconvert.h"
+#include "common/jprintable.h"
+#include "common/jrefcounted.h"
+
+#include <map>
+#include <string>
+#include <vector>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
 
-#include <vector>
-#include <map>
-#include <string>
 
 namespace petabricks {
 class CodeGenerator;

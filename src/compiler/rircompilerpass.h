@@ -20,10 +20,11 @@
 #ifndef PETABRICKSRIRCOMPILERPASS_H
 #define PETABRICKSRIRCOMPILERPASS_H
 
-#include "ruleir.h"
 #include "rirscope.h"
+#include "ruleir.h"
 #include "trainingdeps.h"
-#include "jprintable.h"
+
+#include "common/jprintable.h"
 
 namespace petabricks {
 

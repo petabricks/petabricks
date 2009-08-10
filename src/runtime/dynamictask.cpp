@@ -18,10 +18,11 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "petabricksruntime.h"
-#include "dynamictask.h"
 #include "dynamicscheduler.h"
-#include "jasm.h"
-#include "jtunable.h"
+#include "dynamictask.h"
+
+#include "common/jasm.h"
+#include "common/jtunable.h"
 
 #include <pthread.h>
 

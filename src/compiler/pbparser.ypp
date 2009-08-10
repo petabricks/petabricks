@@ -1,12 +1,15 @@
 %{
-#include <stdio.h>
-#include <map>
-#include "jconvert.h"
 #include "transform.h"
 #include "userrule.h"
 #include "formula.h"
 #include "matrixdef.h"
 #include "region.h"
+
+#include "common/jconvert.h"
+
+#include <stdio.h>
+#include <map>
+
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif

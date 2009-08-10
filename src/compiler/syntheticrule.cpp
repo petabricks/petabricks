@@ -17,14 +17,14 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-
 #include "syntheticrule.h"
+
 #include "codegenerator.h"
-#include "maximawrapper.h"
 #include "iterationorders.h"
-  
-void petabricks::SyntheticRule::initialize(Transform&){}
+#include "maximawrapper.h"
+
 void petabricks::SyntheticRule::compileRuleBody(Transform& tx, RIRScope& s){}
+void petabricks::SyntheticRule::initialize(Transform&){}
 
 petabricks::RuleFlags::PriorityT petabricks::SyntheticRule::priority() const { 
   return RuleFlags::PRIORITY_DEFAULT; 

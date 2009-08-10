@@ -21,8 +21,9 @@
 
 #include "codegenerator.h"
 #include "rule.h"
-#include "jconvert.h"
 #include "transform.h"
+
+#include "common/jconvert.h"
 
 namespace {//file local
   std::string _uniquify(const std::string& prefix) {

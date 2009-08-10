@@ -20,8 +20,9 @@
 #ifndef PETABRICKSTRANSFORMINSTANCE_H
 #define PETABRICKSTRANSFORMINSTANCE_H
 
-#include "jrefcounted.h"
 #include "dynamictask.h"
+
+#include "common/jrefcounted.h"
 
 namespace petabricks {
 

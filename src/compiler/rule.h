@@ -20,14 +20,15 @@
 #ifndef PETABRICKSRULE_H
 #define PETABRICKSRULE_H
 
-#include "jrefcounted.h"
-#include "jprintable.h"
-#include "region.h"
-#include "matrixdef.h"
 #include "formula.h"
+#include "matrixdef.h"
+#include "region.h"
 
-#include <vector>
+#include "common/jprintable.h"
+#include "common/jrefcounted.h"
+
 #include <string>
+#include <vector>
 
 namespace petabricks {
 

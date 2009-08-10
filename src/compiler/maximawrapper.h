@@ -21,13 +21,14 @@
 #define PETABRICKSMAXIMAWRAPPER_H
 
 #include "formula.h"
-#include "jconvert.h"
+
+#include "common/jconvert.h"
+
+#include <stdio.h>
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
-
-#include <stdio.h>
 
 #define MAXIMA MaximaWrapper::instance()
 

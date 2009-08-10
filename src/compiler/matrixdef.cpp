@@ -18,10 +18,11 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "matrixdef.h"
-#include "transform.h"
-#include "maximawrapper.h"
-#include "formula.h"
+
 #include "codegenerator.h"
+#include "formula.h"
+#include "maximawrapper.h"
+#include "transform.h"
 
 // A hack for now, for inference we assume matrix is big
 inline static petabricks::FormulaPtr LARGE(){

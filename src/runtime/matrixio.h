@@ -21,7 +21,8 @@
 #define PETABRICKSMATRIXIO_H
 
 #include "matrix.h"
-#include "jassert.h"
+
+#include "common/jassert.h"
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"

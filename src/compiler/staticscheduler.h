@@ -20,15 +20,16 @@
 #ifndef PETABRICKSSTATICSCHEDULER_H
 #define PETABRICKSSTATICSCHEDULER_H
 
+#include "choicegrid.h"
 #include "matrixdef.h"
 #include "matrixdependency.h"
 #include "region.h"
-#include "jrefcounted.h"
-#include "choicegrid.h"
 
-#include <vector>
+#include "common/jrefcounted.h"
+
 #include <list>
 #include <map>
+#include <vector>
 
 namespace petabricks {
 class Transform;

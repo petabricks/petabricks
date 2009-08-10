@@ -20,13 +20,13 @@
 #ifndef PETABRICKSRULEIR_H
 #define PETABRICKSRULEIR_H
 
-#include "jrefcounted.h"
-#include "jprintable.h"
-#include "jconvert.h"
+#include "common/jconvert.h"
+#include "common/jprintable.h"
+#include "common/jrefcounted.h"
 
 #include <list>
-#include <string>
 #include <map>
+#include <string>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"

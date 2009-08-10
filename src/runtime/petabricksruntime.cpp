@@ -18,17 +18,19 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "petabricksruntime.h"
-#include "jtunable.h"
-#include "jfilesystem.h"
-#include "jtimer.h"
-#include "jargs.h"
-#include "dynamictask.h"
+
 #include "autotuner.h"
 #include "dynamicscheduler.h"
+#include "dynamictask.h"
+
+#include "common/jargs.h"
+#include "common/jfilesystem.h"
+#include "common/jtimer.h"
+#include "common/jtunable.h"
 
 #include <algorithm>
-#include <math.h>
 #include <limits>
+#include <math.h>
 
 //these must be declared in the user code
 petabricks::PetabricksRuntime::Main* petabricksMainTransform();

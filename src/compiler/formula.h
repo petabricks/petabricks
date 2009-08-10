@@ -20,10 +20,11 @@
 #ifndef PETABRICKSFORMULA_H
 #define PETABRICKSFORMULA_H
 
-#include "jrefcounted.h"
-#include "jprintable.h"
-#include <vector>
 #include <set>
+#include <vector>
+
+#include "common/jprintable.h"
+#include "common/jrefcounted.h"
 
 namespace petabricks {
 

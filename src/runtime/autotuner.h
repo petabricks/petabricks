@@ -20,9 +20,11 @@
 #ifndef PETABRICKSAUTOTUNER_H
 #define PETABRICKSAUTOTUNER_H
 
-#include "jtunable.h"
-#include "jrefcounted.h"
 #include "petabricksruntime.h"
+
+#include "common/jrefcounted.h"
+#include "common/jtunable.h"
+
 #include <vector>
 #include <algorithm>
 

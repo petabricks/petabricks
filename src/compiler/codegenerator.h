@@ -21,19 +21,20 @@
 #define PETABRICKSCODEGENERATOR_H
 
 #include "formula.h"
-#include "jprintable.h"
-#include "jrefcounted.h"
-#include "jconvert.h"
 #include "trainingdeps.h"
 
+#include "common/jconvert.h"
+#include "common/jprintable.h"
+#include "common/jrefcounted.h"
+
+#include <algorithm>
 #include <iostream>
-#include <string>
-#include <sstream>
-#include <vector>
+#include <limits>
 #include <list>
 #include <map>
-#include <algorithm>
-#include <limits>
+#include <sstream>
+#include <string>
+#include <vector>
 
 namespace petabricks {
 

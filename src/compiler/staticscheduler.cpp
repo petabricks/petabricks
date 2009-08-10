@@ -18,9 +18,11 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "staticscheduler.h"
-#include "transform.h"
-#include "jasm.h"
+
 #include "codegenerator.h"
+#include "transform.h"
+
+#include "common/jasm.h"
 
 namespace { //file local
 void _remapSet(petabricks::ScheduleNodeSet& set, const petabricks::ScheduleNodeRemapping& map){

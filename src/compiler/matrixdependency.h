@@ -20,10 +20,12 @@
 #ifndef PETABRICKSMATRIXDEPENDENCY_H
 #define PETABRICKSMATRIXDEPENDENCY_H
 
-#include "jrefcounted.h"
-#include "jprintable.h"
-#include "region.h"
 #include "matrixdef.h"
+#include "region.h"
+
+#include "common/jprintable.h"
+#include "common/jrefcounted.h"
+
 #include <map>
 
 #ifdef HAVE_CONFIG_H

@@ -20,12 +20,11 @@
 #ifndef PETABRICKSDYNAMICTASK_H
 #define PETABRICKSDYNAMICTASK_H
 
-#include "jrefcounted.h"
-#include "jmutex.h"
-//#include "dynamicscheduler.h"
+#include "common/jmutex.h"
+#include "common/jrefcounted.h"
 
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 namespace petabricks {
 

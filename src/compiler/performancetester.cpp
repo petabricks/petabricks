@@ -19,7 +19,8 @@
  ***************************************************************************/
 #include "performancetester.h"
 
-#include "jtimer.h"
+#include "common/jtimer.h"
+
 using jalib::JTime;
 
 void petabricks::TestCase::print(std::ostream& o) const{

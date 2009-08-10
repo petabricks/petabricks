@@ -20,14 +20,15 @@
 #ifndef PETABRICKSCHOICEGRID_H
 #define PETABRICKSCHOICEGRID_H
 
-#include "jrefcounted.h"
-#include "jprintable.h"
-#include "rule.h"
 #include "formula.h"
 #include "matrixdef.h"
+#include "rule.h"
 
-#include <vector>
+#include "common/jprintable.h"
+#include "common/jrefcounted.h"
+
 #include <map>
+#include <vector>
 
 namespace petabricks {
 class CodeGenerator;

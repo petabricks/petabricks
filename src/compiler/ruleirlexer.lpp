@@ -13,9 +13,11 @@
 
 #include "ruleir.h"
 #include "formula.h"
-#include "jassert.h"
-#include "jconvert.h"
 #include "ruleirparser.h"
+
+#include "common/jassert.h"
+#include "common/jconvert.h"
+
 #include <stdio.h>
 
 #define yylval ruleirlval

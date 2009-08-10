@@ -12,10 +12,12 @@
 #include "userrule.h"
 #include "formula.h"
 #include "matrixdef.h"
-#include "jassert.h"
-#include "jconvert.h"
 #include "pbparser.h"
 #include "codegenerator.h"
+
+#include "common/jassert.h"
+#include "common/jconvert.h"
+
 #include <stdio.h>
 #include <string>
 #include <sstream>

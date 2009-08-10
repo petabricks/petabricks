@@ -18,12 +18,15 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "userrule.h"
-#include "jconvert.h"
-#include "transform.h"
-#include "staticscheduler.h"
+
+#include "iterationorders.h"
 #include "maximawrapper.h"
 #include "rircompilerpass.h"
-#include "iterationorders.h"
+#include "staticscheduler.h"
+#include "transform.h"
+
+#include "common/jconvert.h"
+
 #include <algorithm>
 
 

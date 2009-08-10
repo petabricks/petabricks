@@ -18,19 +18,17 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+#include "codegenerator.h"
+#include "transform.h"
+
+#include "common/jfilesystem.h"
+
+#include <fstream>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <pthread.h>
 #include <sys/types.h>
-#include <fstream>
-
-#include "jrefcounted.h"
-#include "jfilesystem.h"
-#include "maximawrapper.h"
-#include "transform.h"
-#include "codegenerator.h"
-#include "jfilesystem.h"
+#include <unistd.h>
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"

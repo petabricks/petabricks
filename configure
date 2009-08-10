@@ -4906,6 +4906,9 @@ $as_echo "#define SPLIT_CHUNK_SIZE \"chunk_size\"" >>confdefs.h
 $as_echo "#define TEMPLATE_BIN_STR \"_acc_bin\"" >>confdefs.h
 
 
+$as_echo "#define RETURN_VAL_STR \"_pb_rv\"" >>confdefs.h
+
+
 $as_echo "#define TMPL_IMPL_PFX \"_tmpl\"" >>confdefs.h
 
 

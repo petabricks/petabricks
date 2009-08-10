@@ -20,10 +20,11 @@
 #ifndef PETABRICKSREGION_H
 #define PETABRICKSREGION_H
 
-#include "jrefcounted.h"
-#include "jprintable.h"
 #include "formula.h"
 #include "matrixdef.h"
+
+#include "common/jprintable.h"
+#include "common/jrefcounted.h"
 
 #include <vector>
 

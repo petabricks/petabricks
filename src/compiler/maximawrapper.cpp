@@ -18,13 +18,15 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "maximawrapper.h"
-#include "jassert.h"
-#include "jsocket.h"
-#include <unistd.h>
+
+#include "common/jassert.h"
+#include "common/jsocket.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 static int forkopen(void (*fn)()){
   int fds[2];
