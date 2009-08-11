@@ -222,8 +222,7 @@ double petabricks::CandidateAlgorithm::run(PetabricksRuntime& rt, Autotuner& aut
 
 petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(PetabricksRuntime& rt, Autotuner& autotuner, double thresh) const {
   CandidateAlgorithmList possible;
-  activate();
-
+  
   jalib::JTunable* at = autotuner.algTunable(_lvl+1);
   jalib::JTunable* ct = autotuner.cutoffTunable(_lvl+1);
   if(ct!=0){

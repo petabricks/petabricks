@@ -423,7 +423,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
 
   o.beginFunc("DynamicTaskPtr", "runDynamic");
   o.createTunable(true, "system.seqcutoff", _name + "_sequential_cutoff", 0);
-  o.beginIf(INPUT_SIZE_STR " < " + _name + "_sequential_cutoff");
+  o.beginIf(TRANSFORM_N_STR " < " + _name + "_sequential_cutoff");
   o.write("runStatic();");
   o.write("return NULL;");
   o.endIf();

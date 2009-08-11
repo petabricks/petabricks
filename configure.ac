@@ -148,7 +148,6 @@ AC_DEFINE([GRACEFUL_ABORT],    [1],              [allow abort without program sh
 AC_DEFINE([SHORT_TYPE_NAMES],  [1],              [undefine this if a large number of dimensions are needed, or one wants a cleaner user namespace])
 AC_DEFINE([RUN_CPP],           [1],               [undefine to disable cpp])
 AC_DEFINE([MAX_REC_LEVELS],    [6],               [number of levels for recursive choices])
-AC_DEFINE([INPUT_SIZE_STR],     ["input_count"],  [define to add a system var to transform scope])
 AC_DEFINE([TRANSFORM_N_STR],    ["transform_n"],  [define to add a system var to transform scope])
 AC_DEFINE([SPLIT_CHUNK_SIZE],   ["chunk_size"],   [var name in output code])
 AC_DEFINE([TEMPLATE_BIN_STR],   ["_acc_bin"],     [var name in output code for accuracy template parameter])
@@ -176,8 +175,9 @@ if false; then
   AC_DEFINE([JASSERT_LOG],           [], [log traces to /tmp/jassertlog.pid])
   AC_DEFINE([DISABLE_CONTINUATIONS], [], [dont generate continuation code after SPAWN/enqueue])
   AC_DEFINE([JALIB_USE_MALLOC],      [1],[Cause the custom allocator to call malloc instead of mmap])
-  AC_DEFINE([OUTPUT_SIZE_STR],    ["output_count"],      [define to add a system var to transform scope])
+  AC_DEFINE([OUTPUT_SIZE_STR],    ["output_count"],     [define to add a system var to transform scope])
   AC_DEFINE([INPUT_PERIMETER_STR], ["input_perimeter"], [define to add a system var to transform scope])
+  AC_DEFINE([INPUT_SIZE_STR],     ["input_count"],      [define to add a system var to transform scope])
 fi
 
 ################################################################################

@@ -103,7 +103,7 @@ public:
   void collectDependencies(StaticScheduler& scheduler);
 
   void markRecursive() { 
-    markRecursive(new FormulaVariable(INPUT_SIZE_STR));
+    markRecursive(new FormulaVariable(TRANSFORM_N_STR));
   }
   void markRecursive(const FormulaPtr& rh) { 
     if(!_flags.isRecursive){

@@ -348,6 +348,9 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
 #ifdef INPUT_SIZE_STR
       ot.define(INPUT_SIZE_STR, "(transform->"INPUT_SIZE_STR")");
 #endif
+#ifdef TRANSFORM_N_STR 
+      ot.define(TRANSFORM_N_STR, "(transform->"TRANSFORM_N_STR")");
+#endif
     }
     
     for(size_t d=selfDep.direction.size()-1; d>=0; --d){

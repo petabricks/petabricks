@@ -4894,9 +4894,6 @@ $as_echo "#define RUN_CPP 1" >>confdefs.h
 $as_echo "#define MAX_REC_LEVELS 6" >>confdefs.h
 
 
-$as_echo "#define INPUT_SIZE_STR \"input_count\"" >>confdefs.h
-
-
 $as_echo "#define TRANSFORM_N_STR \"transform_n\"" >>confdefs.h
 
 
@@ -4972,6 +4969,9 @@ $as_echo "#define OUTPUT_SIZE_STR \"output_count\"" >>confdefs.h
 
 
 $as_echo "#define INPUT_PERIMETER_STR \"input_perimeter\"" >>confdefs.h
+
+
+$as_echo "#define INPUT_SIZE_STR \"input_count\"" >>confdefs.h
 
 fi
 

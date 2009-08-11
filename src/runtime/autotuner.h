@@ -64,9 +64,15 @@ public:
   }
 
   void addResult(double d) { _performance.push_back(d); }
-  double lastResult() const { JASSERT(!_performance.empty()); return _performance.back(); }
+  double lastResult() const {
+    JASSERT(!_performance.empty());
+    return _performance.back(); 
+  }
 
-  double lastlastResult() const { JASSERT(!_performance.empty()); return _performance.size()>1 ? _performance[_performance.size()-2] :_performance.back(); }
+  double lastlastResult() const { 
+    JASSERT(!_performance.empty()); 
+    return _performance.size()>1 ? _performance[_performance.size()-2] :_performance.back(); 
+  }
 
   void print(std::ostream& o) const {
     if(_cutoffTunable!=0){
