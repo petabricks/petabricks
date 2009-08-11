@@ -4919,6 +4919,13 @@ $as_echo "#define TX_DYNAMIC_POSTFIX \"_dynamic\"" >>confdefs.h
 
 
 
+$as_echo "#define UTIL_SEARCH_DIR_A \"src\"" >>confdefs.h
+
+
+$as_echo "#define UTIL_SEARCH_DIR_B \"scripts\"" >>confdefs.h
+
+
+
 $as_echo "#define MAX_NUM_WORKERS 512" >>confdefs.h
 
 

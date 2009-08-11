@@ -19,15 +19,18 @@
  ***************************************************************************/
 #include "jfilesystem.h"
 
+#include "jconvert.h"
+
 #include <dirent.h>
+#include <fstream>
+#include <string>
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <unistd.h>
 
-#include <fstream>
-#include <string>
-
-#include "jconvert.h"
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 
 namespace
 {
@@ -90,38 +93,45 @@ bool jalib::Filesystem::FileExists ( const std::string& str )
     if(FileExists(pth)) \
         return pth;}
 
-
 std::string jalib::Filesystem::FindHelperUtility ( const std::string& file, bool dieOnError /*= true*/ )
 {
-  const char* d = NULL;
-  if ( ( d=getenv ( "JALIB_UTILITY_DIR" ) ) != NULL )
-  {
-    std::string udir = d;
-    FHU_TRY_DIR ( udir + "/" + file );
-    FHU_TRY_DIR ( udir + "/mtcp/" + file );
-    FHU_TRY_DIR ( udir + "/../mtcp/" + file );
-    FHU_TRY_DIR ( udir + "/../../mtcp/" + file );
-    FHU_TRY_DIR ( udir + "/../../../mtcp/" + file );
-    FHU_TRY_DIR ( udir + "/../" + file );
-    FHU_TRY_DIR ( udir + "/../../" + file );
-    FHU_TRY_DIR ( udir + "/../../../" + file );
+  std::string progDir = GetProgramDir();
+  const char* prefixes[] = {
+    getenv("JALIB_UTILITY_DIR"),
+    progDir.c_str(),
+#ifdef PACKAGE
+    "/usr/lib/" PACKAGE,
+    "/usr/share/" PACKAGE,
+#endif
+    "."
+  };
+  for(int i=0; i<sizeof(prefixes)/sizeof(const char*); ++i){
+    if(prefixes[i]==NULL || *prefixes[i]==0)
+      continue;
+    std::string pfx = prefixes[i];
+    FHU_TRY_DIR ( pfx + "/" + file );
+#ifdef UTIL_SEARCH_DIR_A
+    FHU_TRY_DIR ( pfx + "/"UTIL_SEARCH_DIR_A"/" + file );
+    FHU_TRY_DIR ( pfx + "/../"UTIL_SEARCH_DIR_A"/" + file );
+#endif
+#ifdef UTIL_SEARCH_DIR_B
+    FHU_TRY_DIR ( pfx + "/"UTIL_SEARCH_DIR_B"/" + file );
+    FHU_TRY_DIR ( pfx + "/../"UTIL_SEARCH_DIR_B"/" + file );
+#endif
+#ifdef UTIL_SEARCH_DIR_C
+    FHU_TRY_DIR ( pfx + "/"UTIL_SEARCH_DIR_C"/" + file );
+    FHU_TRY_DIR ( pfx + "/../"UTIL_SEARCH_DIR_C"/" + file );
+#endif
+#ifdef UTIL_SEARCH_DIR_D
+    FHU_TRY_DIR ( pfx + "/"UTIL_SEARCH_DIR_D"/" + file );
+    FHU_TRY_DIR ( pfx + "/../"UTIL_SEARCH_DIR_D"/" + file );
+#endif
+    FHU_TRY_DIR ( pfx + "/../" + file );
   }
-  FHU_TRY_DIR ( GetProgramDir() + "/" + file );
-  FHU_TRY_DIR ( GetProgramDir() + "/mtcp/" + file );
-  FHU_TRY_DIR ( GetProgramDir() + "/../mtcp/" + file );
-  FHU_TRY_DIR ( GetProgramDir() + "/../../mtcp/" + file );
-  FHU_TRY_DIR ( GetProgramDir() + "/../../../mtcp/" + file );
-  FHU_TRY_DIR ( GetProgramDir() + "/../" + file );
-  FHU_TRY_DIR ( GetProgramDir() + "/../../" + file );
-  FHU_TRY_DIR ( GetProgramDir() + "/../../../" + file );
-  FHU_TRY_DIR ( "./" + file );
-  FHU_TRY_DIR ( "../" + file );
-  FHU_TRY_DIR ( "../../" + file );
-  FHU_TRY_DIR ( "../../../" + file );
   FHU_TRY_DIR ( "/usr/bin/" + file );
   FHU_TRY_DIR ( "/bin/" + file );
-  JASSERT ( !dieOnError ) ( file ) ( GetProgramDir() ) ( d )
-  .Text ( "failed to find needed file" );
+  JASSERT ( !dieOnError ) ( file ) ( GetProgramDir() )
+    .Text ( "failed to find needed file" );
   return file;
 }
 

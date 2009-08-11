@@ -204,6 +204,12 @@
 /* enable unsafe optimizations such as removing error checking. */
 #undef UNSAFE
 
+/* extra directory to search for files in */
+#undef UTIL_SEARCH_DIR_A
+
+/* extra directory to search for files in */
+#undef UTIL_SEARCH_DIR_B
+
 /* Version number of package */
 #undef VERSION
 

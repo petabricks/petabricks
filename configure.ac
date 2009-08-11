@@ -157,6 +157,9 @@ AC_DEFINE([TMPL_IMPL_PFX],     ["_tmpl"],        [prefix for expanded template i
 AC_DEFINE([TX_STATIC_POSTFIX], ["_static"], [postfix for static versions of transforms])
 AC_DEFINE([TX_DYNAMIC_POSTFIX], ["_dynamic"], [postfix for static versions of transforms])
 
+AC_DEFINE([UTIL_SEARCH_DIR_A], ["src"],     [extra directory to search for files in])
+AC_DEFINE([UTIL_SEARCH_DIR_B], ["scripts"], [extra directory to search for files in])
+
 AC_DEFINE([MAX_NUM_WORKERS],     [512], [max number of workers supported])
 AC_DEFINE([MIN_NUM_WORKERS],     [1],  [min number of workers supported])
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
