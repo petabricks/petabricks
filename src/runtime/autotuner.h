@@ -35,6 +35,7 @@ typedef jalib::JRef<CandidateAlgorithm> CandidateAlgorithmPtr;
 typedef jalib::JRef<const CandidateAlgorithm> ConstCandidateAlgorithmPtr;
 typedef std::vector<CandidateAlgorithmPtr> CandidateAlgorithmList;
 typedef jalib::JRef<Autotuner> AutotunerPtr;
+typedef std::vector<jalib::JTunable*> ExtraCutoffList;
 
 class CandidateAlgorithm : public jalib::JRefCounted
                          , public jalib::JPrintable
@@ -47,21 +48,9 @@ public:
                     , int c
                     , jalib::JTunable* ct
                     , const ConstCandidateAlgorithmPtr& n
-                    , const std::vector<std::string>& extraCutoffs)
-    : _lvl(l)
-    , _alg(a)
-    , _algTunable(at)
-    , _cutoff(c)
-    , _cutoffTunable(ct)
-    , _nextLevel(n)
-  {}
+                    , const ExtraCutoffList& unusedCutoffs);
   
-  void activate() const {
-    if(_algTunable)    _algTunable->setValue(_alg);
-    if(_cutoffTunable) _cutoffTunable->setValue(_cutoff);
-    if(_nextLevel)     _nextLevel->activate();
-    _extraConfig.makeActive();
-  }
+  void activate() const;
 
   void addResult(double d) { _performance.push_back(d); }
   double lastResult() const {
@@ -74,14 +63,7 @@ public:
     return _performance.size()>1 ? _performance[_performance.size()-2] :_performance.back(); 
   }
 
-  void print(std::ostream& o) const {
-    if(_cutoffTunable!=0){
-      if(_nextLevel) _nextLevel->print(o);
-      o << " #" << _cutoff;
-    }
-    if(_lvl==1)    o << "B" << _alg;
-    else           o << " R" << _alg;
-  }
+  void print(std::ostream& o) const;
 
   int alg() const { return _alg; }
   int lvl() const { return _lvl; }
@@ -95,10 +77,7 @@ public:
   }
   bool isDuplicate(const ConstCandidateAlgorithmPtr& that) const;
 
-  void onTunableModification(jalib::JTunable* tunable, jalib::TunableValue oldVal, jalib::TunableValue newVal){
-    JTRACE("user modified tunable")(tunable->name())(oldVal)(newVal);
-    _extraConfig[tunable] = newVal;
-  }
+  void onTunableModification(jalib::JTunable* tunable, jalib::TunableValue oldVal, jalib::TunableValue newVal);
 
   double run(PetabricksRuntime& rt, Autotuner& at, double thresh);
 private:
@@ -110,7 +89,7 @@ private:
   ConstCandidateAlgorithmPtr   _nextLevel;
   std::vector<double>          _performance; 
   jalib::JTunableConfiguration _extraConfig;
-  std::vector<std::string>     _unusedCutoffs; 
+  ExtraCutoffList              _unusedCutoffs; 
 };
 
 class Autotuner : public jalib::JRefCounted {

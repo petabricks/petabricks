@@ -94,7 +94,6 @@ public:
     }
 
     virtual __usr_main_interface* nextTemplateMain() = 0;
-  private:
   } Main;
 
   ///
@@ -126,12 +125,6 @@ public:
 
   double runTrial(double thresh = DBL_MAX);
 
-//   void runAutotuneMode(const std::string& prefix);
-//
-//   double autotuneOneLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
-//   double autotuneTwoLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
-//   void resetLevel(int lvl, const std::string& prefix, jalib::JTunableReverseMap& m);
-
   static bool isTrainingRun();
   static void setIsTrainingRun(bool b);
 
@@ -141,15 +134,6 @@ public:
   static void abort();
 
   static void saveConfig();
-
-  bool alternateTransforms() const { return _main->name() != _mainName; }
-  void addTransform(Main* tx){ JASSERT(tx!=NULL); if(tx->name() == _mainName) _main=tx; }
-
-//void exit(int rv){
-//  fflush(stdout);
-//  fflush(stderr);
-//  _exit(rv);
-//}
 
   double computeWrapper(double thresh = DBL_MAX);
   double trainAndComputeWrapper(double thresh = DBL_MAX);

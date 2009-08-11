@@ -448,12 +448,12 @@ double petabricks::PetabricksRuntime::trainAndComputeWrapper(double thresh){
 
 double petabricks::PetabricksRuntime::computeWrapper(double thresh){
 #ifdef GRACEFUL_ABORT
-  // Set up a time out so we don't waste time running things that are
-  // slower than what we have seen already.
-  DynamicScheduler::instance().resetAbortFlag();
-  if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
-    alarm((unsigned int) thresh + 1);
-  }
+//// Set up a time out so we don't waste time running things that are
+//// slower than what we have seen already.
+//DynamicScheduler::instance().resetAbortFlag();
+//if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
+//  alarm((unsigned int) thresh + 1);
+//}
 #endif
 
   jalib::JTime begin=jalib::JTime::Now();
@@ -461,10 +461,10 @@ double petabricks::PetabricksRuntime::computeWrapper(double thresh){
   jalib::JTime end=jalib::JTime::Now();
 
 #ifdef GRACEFUL_ABORT
-  // Disable previous alarm
-  if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
-    alarm(0);
-  }
+//// Disable previous alarm
+//if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
+//  alarm(0);
+//}
 #endif
   
   if(_needTraingingRun && _isTrainingRun){

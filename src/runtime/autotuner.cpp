@@ -27,6 +27,9 @@ JTUNABLE(autotune_alg_slots,                5, 1, 32);
 JTUNABLE(autotune_branch_attempts,          3, 1, 32);
 JTUNABLE(autotune_improvement_threshold,    90, 10, 100);
 
+
+#define FIRST_DEATH_THRESH 0.005
+
 #define MAX_ALGS autotune_alg_slots
 #define BIRTH_ATTEMPTS autotune_branch_attempts
 #define BIRTH_THRESH  (autotune_improvement_threshold.value()/100.0)
@@ -71,7 +74,7 @@ jalib::JTunable* petabricks::Autotuner::cutoffTunable(int lvl){
   return _tunableMap[_mktname(lvl, _prefix, "cutoff")];
 }
 
-petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main* m, const std::string& prefix, const std::vector<std::string>& extraCutoffs)
+petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main* m, const std::string& prefix, const std::vector<std::string>& extraCutoffNames)
   : _runtime(rt)
   , _main(m)
   , _tunableMap(jalib::JTunableManager::instance().getReverseMap())
@@ -79,6 +82,14 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
 {
   using jalib::JTunable;
   _maxLevels=0; 
+
+  ExtraCutoffList extraCutoffs;
+  extraCutoffs.reserve(extraCutoffNames.size());
+  for(size_t i=0; i<extraCutoffNames.size(); ++i){
+    extraCutoffs.push_back(_tunableMap[extraCutoffNames[i]]);
+    if(extraCutoffs.back()==NULL)
+      extraCutoffs.pop_back();
+  }
 
   //find numlevels
   for(int lvl=2; true; ++lvl){
@@ -174,7 +185,7 @@ void petabricks::Autotuner::trainOnce(){
   //kill slowest algorithms
   for(int i=_candidates.size()-1; i>0; --i){
       if(_candidates[i]->lastResult() > std::numeric_limits<double>::max()/2
-        || i>=MAX_ALGS){
+        || (i>=MAX_ALGS && _candidates[i]->lastResult() > FIRST_DEATH_THRESH )){
         std::cout << "  REMOVED " << _candidates[i] << ' ' << _candidates[i]->lastResult() << std::endl;
         _candidates.pop_back();
       }else break;
@@ -222,10 +233,12 @@ double petabricks::CandidateAlgorithm::run(PetabricksRuntime& rt, Autotuner& aut
 
 petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(PetabricksRuntime& rt, Autotuner& autotuner, double thresh) const {
   CandidateAlgorithmList possible;
+  int newCutoff = rt.curSize() * 3 / 4;
   
+  //algorithmic candidates
   jalib::JTunable* at = autotuner.algTunable(_lvl+1);
   jalib::JTunable* ct = autotuner.cutoffTunable(_lvl+1);
-  if(ct!=0){
+  if(ct!=0 && newCutoff > 1){
     int amin=0,amax=0;
     if(at!=0){
       amin=at->min();
@@ -234,25 +247,31 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
     for(int a=amin; a<=amax; ++a){
       if(_lvl>1 && a==_alg) continue;
       if(at!=0) at->setValue(a);
-      ct->setValue(rt.curSize() * 3 / 4);
-      if (ct->value() <= 1) {
-        continue;
-      }
-      CandidateAlgorithmPtr c = new CandidateAlgorithm(_lvl+1, a, at, ct->value(), ct, this, _unusedCutoffs);
-      double p = c->run(rt, autotuner, thresh);
-      if(p<thresh && p>=0){
-        possible.push_back(c);
-        std::cout << "  SPAWN " << c << ' ' << p << std::endl;
-      }else{
-        std::cout << "  FAILED SPAWN " << c << ' ' << p << std::endl;
-      }
+      possible.push_back(new CandidateAlgorithm(_lvl+1, a, at, newCutoff, ct, this, _unusedCutoffs));
     }
   }
 
+  // candidates from _unusedCutoffs (sequential, blocking, etc)
+  for(size_t i=0; i<_unusedCutoffs.size(); ++i){
+    ExtraCutoffList remaining = _unusedCutoffs; 
+    remaining.erase(remaining.begin()+i);
+    possible.push_back(new CandidateAlgorithm(_lvl, -1, NULL, newCutoff, _unusedCutoffs[i], this, remaining));
+  }
+      
   if(possible.empty())
-    return 0;
+    return NULL;
 
+  //run them all
+  for(CandidateAlgorithmList::iterator i=possible.begin(); i!=possible.end(); ++i)
+    (*i)->run(rt, autotuner, thresh);
+
+  //sort by performance
   std::sort(possible.begin(), possible.end(), CmpLastPerformance());
+
+  //see if fastest is good enough
+  if(possible[0]->lastResult() > thresh)
+    return NULL;
+
   return possible[0];
 }
 
@@ -264,4 +283,58 @@ bool petabricks::CandidateAlgorithm::isDuplicate(const ConstCandidateAlgorithmPt
   if(_nextLevel) return _nextLevel->isDuplicate(that->next());
   return true;
 }
+  
+petabricks::CandidateAlgorithm::CandidateAlgorithm( int l
+                  , int a
+                  , jalib::JTunable* at
+                  , int c
+                  , jalib::JTunable* ct
+                  , const ConstCandidateAlgorithmPtr& n
+                  , const ExtraCutoffList& unusedCutoffs)
+  : _lvl(l)
+  , _alg(a)
+  , _algTunable(at)
+  , _cutoff(c)
+  , _cutoffTunable(ct)
+  , _nextLevel(n)
+  , _unusedCutoffs(unusedCutoffs)
+{}
+
+void petabricks::CandidateAlgorithm::activate() const {
+  for(  ExtraCutoffList::const_iterator i=_unusedCutoffs.begin()
+      ; i!=_unusedCutoffs.end()
+      ; ++i)
+  {
+    (*i)->setValue((*i)->max());
+  }
+  if(_algTunable)    _algTunable->setValue(_alg);
+  if(_cutoffTunable) _cutoffTunable->setValue(_cutoff);
+  if(_nextLevel)     _nextLevel->activate();
+  _extraConfig.makeActive();
+}
+
+std::string _shortenTunableName(const std::string& s){
+  if(jalib::Contains(s, '_'))
+    return std::string(s.begin()+s.rfind('_')+1, s.end());
+  else
+    return s;
+}
+
+void petabricks::CandidateAlgorithm::print(std::ostream& o) const {
+  if(_cutoffTunable!=0){
+    if(_nextLevel) _nextLevel->print(o);
+    o << " #" << _shortenTunableName(_cutoffTunable->name()) << '=' << _cutoff;
+  }
+  if(_algTunable){
+    o << " " << _shortenTunableName(_algTunable->name()) << "=" << _alg;
+  }
+  if(_extraConfig.size()>0){
+    o << " (*" << _extraConfig.size() << ")";
+  }
+}
+
+void petabricks::CandidateAlgorithm::onTunableModification(jalib::JTunable* tunable, jalib::TunableValue oldVal, jalib::TunableValue newVal){
+  _extraConfig[tunable] = newVal;
+}
+
 
