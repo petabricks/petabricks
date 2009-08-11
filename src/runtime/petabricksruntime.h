@@ -162,6 +162,9 @@ public:
   static int randInt(int min=0, int max=RAND_MAX){
     return (mrand48()%(max-min)) + min;
   }
+  static double randDouble(double min=0, double max=std::numeric_limits<int>::max()){
+    return (drand48()*(max-min)) + min;
+  }
 
 private:
   Main* _main;
