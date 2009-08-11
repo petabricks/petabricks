@@ -58,6 +58,10 @@ public:
     return _performance.back(); 
   }
 
+  size_t numResults() const {
+    return _performance.size();
+  }
+
   double lastlastResult() const { 
     JASSERT(!_performance.empty()); 
     return _performance.size()>1 ? _performance[_performance.size()-2] :_performance.back(); 

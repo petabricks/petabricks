@@ -118,7 +118,7 @@ public:
   double optimizeParameter(const std::string& param);
   double optimizeParameter(jalib::JTunable& param, int min, int max, int step=-1);
 
-  void runAutotuneMode(const std::vector<std::string>& params);
+  void runAutotuneMode(const std::vector<std::string>& params, const std::vector<std::string>& extraCutoffs);
   void runAutotune2Mode(const std::string& param);
   void runAutotuneLoop(const AutotunerList& tuners);
   void runMultigridAutotuneMode();

@@ -69,7 +69,7 @@ static int TRAIN_MIN=64;
 static int TRAIN_MAX=4096;
 //static int TRAIN_LEVEL_THRESH=1.2;
 
-static int GRAPH_MIN=8;
+static int GRAPH_MIN=1;
 static int GRAPH_MAX=2048;
 static int GRAPH_MAX_SEC=std::numeric_limits<int>::max();
 static int GRAPH_STEP=8;
@@ -178,6 +178,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   bool doIO = true;
   std::string graphParam;
   std::vector<std::string> autotuneParams;
+  std::vector<std::string> cutoffparams;
   std::string autotune2Param;
 
   if(args.param("multigrid").help("autotune multigrid")){
@@ -218,9 +219,9 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   args.param("trials", GRAPH_TRIALS);
   args.param("smoothing", GRAPH_SMOOTHING);
   args.param("max-sec", GRAPH_MAX_SEC);
-  args.param("max-sec", GRAPH_MAX_SEC);
   args.param("accuracy", ACCURACY).help("print out accuracy of answer");
-    
+  
+  args.param("cuttoffparam", cutoffparams);
 
   if(args.param("graph-param", graphParam) || args.param("graph-tune", graphParam)){
     if(graphParam == "worker_threads")
@@ -268,7 +269,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   }else if(isAutotuneMode){
     if (!MULTIGRID_FLAG) {
       if(autotune2Param.empty())
-        runAutotuneMode(autotuneParams);
+        runAutotuneMode(autotuneParams, cutoffparams);
       else
         runAutotune2Mode(autotune2Param);
     } else {
@@ -334,10 +335,10 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   return 0;
 }
   
-void petabricks::PetabricksRuntime::runAutotuneMode(const std::vector<std::string>& params){
+void petabricks::PetabricksRuntime::runAutotuneMode(const std::vector<std::string>& params, const std::vector<std::string>& extraCutoffs){
   AutotunerList tuners;
   for(size_t i=0; i<params.size(); ++i)
-    tuners.push_back(new Autotuner(*this, _main, params[i], std::vector<std::string>()));
+    tuners.push_back(new Autotuner(*this, _main, params[i], extraCutoffs));
   runAutotuneLoop(tuners);
 }
   
