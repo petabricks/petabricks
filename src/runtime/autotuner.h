@@ -32,6 +32,7 @@ namespace petabricks {
 class Autotuner;
 class CandidateAlgorithm;
 typedef jalib::JRef<CandidateAlgorithm> CandidateAlgorithmPtr;
+typedef jalib::JRef<const CandidateAlgorithm> ConstCandidateAlgorithmPtr;
 typedef std::vector<CandidateAlgorithmPtr> CandidateAlgorithmList;
 typedef jalib::JRef<Autotuner> AutotunerPtr;
 
@@ -45,7 +46,8 @@ public:
                     , jalib::JTunable* at
                     , int c
                     , jalib::JTunable* ct
-                    , const CandidateAlgorithmPtr& n)
+                    , const ConstCandidateAlgorithmPtr& n
+                    , const std::vector<std::string>& extraCutoffs)
     : _lvl(l)
     , _alg(a)
     , _algTunable(at)
@@ -54,7 +56,7 @@ public:
     , _nextLevel(n)
   {}
   
-  void activate(){
+  void activate() const {
     if(_algTunable)    _algTunable->setValue(_alg);
     if(_cutoffTunable) _cutoffTunable->setValue(_cutoff);
     if(_nextLevel)     _nextLevel->activate();
@@ -78,11 +80,14 @@ public:
   int alg() const { return _alg; }
   int lvl() const { return _lvl; }
   int cutoff() const { return _cutoff; }
-  const CandidateAlgorithmPtr& next() const { return _nextLevel; }
+  const ConstCandidateAlgorithmPtr& next() const { return _nextLevel; }
 
-  CandidateAlgorithmPtr attemptBirth(PetabricksRuntime& rt, Autotuner& at, double thresh);
+  CandidateAlgorithmPtr attemptBirth(PetabricksRuntime& rt, Autotuner& at, double thresh) const;
 
-  bool isDuplicate(const CandidateAlgorithmPtr& that);
+  bool isDuplicate(const CandidateAlgorithmPtr& that) const{ 
+    return isDuplicate(ConstCandidateAlgorithmPtr(that.asPtr()));
+  }
+  bool isDuplicate(const ConstCandidateAlgorithmPtr& that) const;
 
   void onTunableModification(jalib::JTunable* tunable, jalib::TunableValue oldVal, jalib::TunableValue newVal){
     JTRACE("user modified tunable")(tunable->name())(oldVal)(newVal);
@@ -91,19 +96,20 @@ public:
 
   double run(PetabricksRuntime& rt, Autotuner& at, double thresh);
 private:
-  int                   _lvl;
-  int                   _alg;
-  jalib::JTunable*      _algTunable;
-  int                   _cutoff;
-  jalib::JTunable*      _cutoffTunable;
-  CandidateAlgorithmPtr _nextLevel;
-  std::vector<double>   _performance; 
+  int                          _lvl;
+  int                          _alg;
+  jalib::JTunable*             _algTunable;
+  int                          _cutoff;
+  jalib::JTunable*             _cutoffTunable;
+  ConstCandidateAlgorithmPtr   _nextLevel;
+  std::vector<double>          _performance; 
   jalib::JTunableConfiguration _extraConfig;
+  std::vector<std::string>     _unusedCutoffs; 
 };
 
 class Autotuner : public jalib::JRefCounted {
 public:
-  Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main* m, const std::string& prefix);
+  Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main* m, const std::string& prefix, const std::vector<std::string>& extraCutoffs);
   jalib::JTunable* algTunable(int lvl);
   jalib::JTunable* cutoffTunable(int lvl);
 

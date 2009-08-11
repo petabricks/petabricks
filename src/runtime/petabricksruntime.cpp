@@ -337,7 +337,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
 void petabricks::PetabricksRuntime::runAutotuneMode(const std::vector<std::string>& params){
   AutotunerList tuners;
   for(size_t i=0; i<params.size(); ++i)
-    tuners.push_back(new Autotuner(*this, _main, params[i]));
+    tuners.push_back(new Autotuner(*this, _main, params[i], std::vector<std::string>()));
   runAutotuneLoop(tuners);
 }
   
@@ -345,7 +345,7 @@ void petabricks::PetabricksRuntime::runAutotuneMode(const std::vector<std::strin
 void petabricks::PetabricksRuntime::runAutotune2Mode(const std::string& param){
   AutotunerList tuners;
   for(Main* m = _main; m!=NULL; m=m->nextTemplateMain())
-    tuners.push_back(new Autotuner(*this, m, std::string(m->name())+"_"+param));
+    tuners.push_back(new Autotuner(*this, m, std::string(m->name())+"_"+param, std::vector<std::string>()));
   runAutotuneLoop(tuners);
 }
 
@@ -583,11 +583,11 @@ void petabricks::PetabricksRuntime::runMultigridAutotuneMode(){
   std::string s3 = "Poisson2D_Inner_Prec3_1";
   std::string s4 = "Poisson2D_Inner_Prec4_1";
   std::string s5 = "Poisson2D_Inner_Prec5_1";
-  Autotuner at1(*this, _main, s1);
-  Autotuner at2(*this, _main, s2);
-  Autotuner at3(*this, _main, s3);
-  Autotuner at4(*this, _main, s4);
-  Autotuner at5(*this, _main, s5);
+  Autotuner at1(*this, _main, s1, std::vector<std::string>());
+  Autotuner at2(*this, _main, s2, std::vector<std::string>());
+  Autotuner at3(*this, _main, s3, std::vector<std::string>());
+  Autotuner at4(*this, _main, s4, std::vector<std::string>());
+  Autotuner at5(*this, _main, s5, std::vector<std::string>());
 
   jalib::JTunableReverseMap m = jalib::JTunableManager::instance().getReverseMap();
   jalib::JTunable* prec_case = m["prec_case"];
@@ -607,11 +607,11 @@ void petabricks::PetabricksRuntime::runMultigridAutotuneMode(){
     std::string s8 = "FullPoisson2D_Inner_Prec3_1";
     std::string s9 = "FullPoisson2D_Inner_Prec4_1";
     std::string s10 = "FullPoisson2D_Inner_Prec5_1";
-    at6 = new Autotuner(*this, _main, s6);
-    at7 = new Autotuner(*this, _main, s7);
-    at8 = new Autotuner(*this, _main, s8);
-    at9 = new Autotuner(*this, _main, s9);
-    at10 = new Autotuner(*this, _main, s10);
+    at6 = new Autotuner(*this, _main, s6, std::vector<std::string>());
+    at7 = new Autotuner(*this, _main, s7, std::vector<std::string>());
+    at8 = new Autotuner(*this, _main, s8, std::vector<std::string>());
+    at9 = new Autotuner(*this, _main, s9, std::vector<std::string>());
+    at10 = new Autotuner(*this, _main,s10,std::vector<std::string>());
 
     run_fullmg_flag = m["run_fullmg_flag"];
     JASSERT(run_fullmg_flag != 0);

@@ -49,7 +49,7 @@ namespace{ //file local
   struct CmpAlgType {
     bool operator() (const petabricks::CandidateAlgorithmPtr& a, const petabricks::CandidateAlgorithmPtr& b){
       if(a->lvl() != b->lvl()) return a->lvl() < b->lvl();
-      petabricks::CandidateAlgorithmPtr ta=a, tb=b;
+      petabricks::ConstCandidateAlgorithmPtr ta=a.asPtr(), tb=b.asPtr();
       while(ta && tb){
         if(ta->alg() != tb->alg()) return ta->alg() < tb->alg();
         ta=ta->next();
@@ -71,7 +71,7 @@ jalib::JTunable* petabricks::Autotuner::cutoffTunable(int lvl){
   return _tunableMap[_mktname(lvl, _prefix, "cutoff")];
 }
 
-petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main* m, const std::string& prefix)
+petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main* m, const std::string& prefix, const std::vector<std::string>& extraCutoffs)
   : _runtime(rt)
   , _main(m)
   , _tunableMap(jalib::JTunableManager::instance().getReverseMap())
@@ -97,7 +97,7 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
     JTunable* ct = cutoffTunable(lvl);
     int a=0, c=std::numeric_limits<int>::max();
     if(ct!=0) c=ct->max();
-    _initialConfig = new CandidateAlgorithm(lvl, a, at, c, ct, _initialConfig);
+    _initialConfig = new CandidateAlgorithm(lvl, a, at, c, ct, _initialConfig.asPtr(), extraCutoffs);
   }
 
   //add 1 level candidates
@@ -107,10 +107,10 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
     JTunable* ct = cutoffTunable(1);
     int a=0, c=1;
     if(at==0){
-      lvl1Candidates.push_back(new CandidateAlgorithm(1, a, at, c, ct, NULL));
+      lvl1Candidates.push_back(new CandidateAlgorithm(1, a, at, c, ct, NULL, extraCutoffs));
     }else{
       for(a=at->min(); a<=at->max(); ++a){
-        lvl1Candidates.push_back(new CandidateAlgorithm(1, a, at, c, ct, NULL));
+        lvl1Candidates.push_back(new CandidateAlgorithm(1, a, at, c, ct, NULL, extraCutoffs));
       }
     }
   }
@@ -123,11 +123,11 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
     int a=0, c=1;
     if(at==0){
       for(CandidateAlgorithmList::const_iterator i=lvl1Candidates.begin(); i!=lvl1Candidates.end(); ++i)
-        lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, *i));
+        lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, i->asPtr(), extraCutoffs));
     }else{
       for(a=at->min(); a<=at->max(); ++a){
         for(CandidateAlgorithmList::const_iterator i=lvl1Candidates.begin(); i!=lvl1Candidates.end(); ++i)
-          lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, *i));
+          lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, i->asPtr(), extraCutoffs));
       }
     }
   }
@@ -220,7 +220,7 @@ double petabricks::CandidateAlgorithm::run(PetabricksRuntime& rt, Autotuner& aut
   return d;
 }
 
-petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(PetabricksRuntime& rt, Autotuner& autotuner, double thresh) {
+petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(PetabricksRuntime& rt, Autotuner& autotuner, double thresh) const {
   CandidateAlgorithmList possible;
   activate();
 
@@ -239,7 +239,7 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
       if (ct->value() <= 1) {
         continue;
       }
-      CandidateAlgorithmPtr c = new CandidateAlgorithm(_lvl+1, a, at, ct->value(), ct, this);
+      CandidateAlgorithmPtr c = new CandidateAlgorithm(_lvl+1, a, at, ct->value(), ct, this, _unusedCutoffs);
       double p = c->run(rt, autotuner, thresh);
       if(p<thresh && p>=0){
         possible.push_back(c);
@@ -257,7 +257,7 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
   return possible[0];
 }
 
-bool petabricks::CandidateAlgorithm::isDuplicate(const CandidateAlgorithmPtr& that){
+bool petabricks::CandidateAlgorithm::isDuplicate(const ConstCandidateAlgorithmPtr& that) const{
   if(!that) return false;
   if(_lvl != that->lvl()) return false;
   if(_alg != that->alg()) return false;
