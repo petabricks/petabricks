@@ -18,18 +18,18 @@ fi
 AC_LANG_CPLUSPLUS
 AC_PROG_CXX
 AC_PROG_CXXCPP
-AM_PROG_LEX
-AC_PROG_YACC
 AC_PROG_EGREP
 AC_PROG_RANLIB
 
-AC_FUNC_MMAP
-AC_CHECK_FUNCS([backtrace_symbols])
-#AC_CHECK_FUNCS([getdelim getline gettimeofday backtrace_symbols])
+AM_PROG_LEX
+if test "x$ac_cv_prog_LEX" = "x"; then
+  AC_MSG_ERROR([failed to find 'flex' in \$path, try running:`sudo apt-get install flex`.])
+fi
 
-AC_TYPE_UINT32_T
-AC_TYPE_UINT64_T
-
+AC_PROG_YACC
+if test "x$ac_cv_prog_YACC" = "x"; then
+  AC_MSG_ERROR([failed to find 'bison' in \$path, try running:`sudo apt-get install bison`.])
+fi
 
 AC_CHECK_PROG([has_maxima], [maxima], [yes], [no])
 if test "$has_maxima" = "no"; then
@@ -64,6 +64,13 @@ AC_MSG_RESULT([$rev_long])
 ################################################################################
 # LIBRARIES ####################################################################
 ################################################################################
+
+
+AC_FUNC_MMAP
+AC_CHECK_FUNCS([backtrace_symbols])
+
+AC_TYPE_UINT32_T
+AC_TYPE_UINT64_T
 
 AC_CHECK_HEADERS([math.h fftw3.h execinfo.h cxxabi.h], [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
 AC_CHECK_LIB([m],[cos],                  [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
@@ -199,7 +206,7 @@ if test "$default_cxxflags" = "yes"; then
     CXXFLAGS=""
     compileflags="-O3"
   fi
-  case $target_cpu in
+  case "$target_cpu" in
     *sparc*) compileflags="$compileflags -mcpu=niagara -mtune=native";;
     *)       compileflags="$compileflags -march=native";;
   esac
@@ -224,7 +231,7 @@ do
                  [AC_MSG_RESULT([yes])],
                  [AC_MSG_RESULT([no]);      LDFLAGS="$save_LDFLAGS"])
 done
-  
+
 ################################################################################
 ################################################################################
 ################################################################################
