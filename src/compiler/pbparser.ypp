@@ -221,7 +221,7 @@ Nil:;
 OptSemiCol : ';' OptSemiCol | Nil;
 Integer: TOK_INTEGER { $$=jalib::StringToX<int>($1); };
 Float:   TOK_FLOAT   { $$=jalib::StringToX<double>($1); };
-FloatOrInt: Float { $$=$1; } | Integer { $$=$1; }; 
+FloatOrInt: Float { $$=$1; } | Integer { $$=$1; } | '-' FloatOrInt { $$=-1*$2; }; 
 
 RuleList: Rule          { ($$=REFALLOC(RuleList()))->push_back($1); }
         | RuleList Rule { ($$=$1)->push_back($2); };
