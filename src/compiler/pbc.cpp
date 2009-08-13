@@ -53,9 +53,8 @@ static std::string theRuntimeDir;
 TransformListPtr parsePbFile(const char* filename);
 
 int main( int argc, const char ** argv){
+  jalib::JArgs args(argc, argv);
   std::vector<std::string> inputs;
-  
-  jalib::JArgs args(argc, argv, "input");
   if(args.needHelp())
     std::cerr << "OPTIONS:" << std::endl;
 
@@ -74,6 +73,8 @@ int main( int argc, const char ** argv){
     std::cerr << PACKAGE " compiler (pbc) v" VERSION " " REVISION_LONG << std::endl;
     return 1;
   }
+
+  args.finishParsing(inputs);
 
   if(inputs.empty() || args.needHelp()){
     std::cerr << "\n" PACKAGE " compiler (pbc) v" VERSION " " REVISION_SHORT << std::endl;

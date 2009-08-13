@@ -108,6 +108,7 @@ public:
   /// Run the given main routine
   int runMain(int argc, const char** argv);
 
+  void runNormal();
 
   void runGraphMode();
 

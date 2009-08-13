@@ -86,6 +86,9 @@ namespace jassert_internal
       /// print out a string in format "Message: msg"
       JAssert& Text ( const char* msg );
       ///
+      /// print out a string in format "Message: msg"
+      JAssert& Text ( const std::string& msg ){ return Text(msg.c_str()); }
+      ///
       /// constructor: sets members
       JAssert ( bool exitWhenDone );
       ///

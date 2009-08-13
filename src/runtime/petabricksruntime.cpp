@@ -65,7 +65,7 @@ static std::string CONFIG_FILENAME;
 static bool _isTrainingRun = false;
 static bool _needTraingingRun = false;
 
-static int TRAIN_MIN=64;
+static int TRAIN_MIN=1;
 static int TRAIN_MAX=4096;
 //static int TRAIN_LEVEL_THRESH=1.2;
 
@@ -80,6 +80,23 @@ static bool MULTIGRID_FLAG=false;
 static bool FULL_MULTIGRID_FLAG=false;
 static bool DUMPTIMING=false;
 static bool ACCURACY=false;
+static bool FORCEOUTPUT=false;
+std::vector<std::string> txArgs;
+
+static enum {
+  MODE_RUN_IO,
+  MODE_RUN_RANDOM,
+  MODE_GRAPH_INPUTSIZE,
+  MODE_GRAPH_PARAM,
+  MODE_GRAPH_THREADS,
+  MODE_AUTOTUNE_GENETIC,
+  MODE_AUTOTUNE_PARAM,
+  MODE_ABORT
+} MODE = MODE_RUN_IO;
+
+std::vector<std::string> autotuneParams;
+std::vector<std::string> cutoffparams;
+std::string graphParam;
 
 static struct {
   int count;
@@ -89,59 +106,98 @@ static struct {
   double max;
 } timing = {0, 0.0, 0.0, std::numeric_limits<double>::max(), std::numeric_limits<double>::min() };
 
-
 JTUNABLE(worker_threads,   8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
 
 namespace{//file local
-
-typedef jalib::JTunableManager TunableManager;
-
-// class ConfigTesterGlue : public jalib::JConfigurationTester {
-//   typedef petabricks::PetabricksRuntime::Main Main;
-//   typedef jalib::JTime JTime;
-//   typedef jalib::JTunableConfiguration JTunableConfiguration;
-// public:
-//   ConfigTesterGlue(Main& m) : _main(m) {}
-//
-//   double test(const JTunableConfiguration& cfg){
-//     cfg.makeActive();
-//     JTime start=JTime::Now();
-//#ifndef GRACEFUL_ABORT
-//     _main.compute();
-//#else
-//     try{
-//       _main.compute();
-//     }catch(petabricks::DynamicScheduler::AbortException e){
-//       petabricks::PetabricksRuntime::scheduler->abortEnd();
-//       return std::numeric_limits<double>::max();
-//     }
-//#endif
-//     return JTime::Now()-start;
-//   }
-// private:
-//   Main& _main;
-// };
-
+  typedef jalib::JTunableManager TunableManager;
 }
 
 petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Main* m)
   : _main(m)
-  , _randSize(4096)
+  , _randSize(-1)
 {
   jalib::JArgs args(argc, argv);
-  JASSERT(m!=NULL);
-  _mainName = m->name();
-  CONFIG_FILENAME = jalib::Filesystem::GetProgramPath() + ".cfg";
+
+  //set the main transform
+  if(args.param("transform", _mainName).help("name of the transform to run or tune")){
+    _main = m = petabricksFindTransform(_mainName);
+    JASSERT(m!=NULL)(_mainName).Text("unknown transform");
+  }else{
+    JASSERT(m!=NULL);
+    _mainName = m->name();
+  }
   
-  args.param("cfg",    CONFIG_FILENAME);
-  args.param("config", CONFIG_FILENAME).help("filename of the program configuration");
-  args.param("tx",        _mainName);
-  args.param("transform", _mainName).help("name of the transform to run or tune");
+  //seed the random number generator 
+  if(! args.param("fixedrandom").help("don't seed the random number generator")){
+    struct timeval currentTimeVal;
+    gettimeofday(&currentTimeVal, NULL);
+    srand48(currentTimeVal.tv_usec);
+  }
+
+  if(args.param("n", _randSize)){
+    MODE=MODE_RUN_RANDOM;//default mode
+  }else{
+    MODE=MODE_RUN_IO;//default mode
+  }
+
+  //figure out what mode we are in
+  if(args.param("autotune", autotuneParams)){
+    MODE=MODE_AUTOTUNE_GENETIC;
+  } else if(args.param("optimize", graphParam)){
+    MODE=MODE_AUTOTUNE_PARAM;
+  } else if(args.param("graph-input")){
+    MODE=MODE_GRAPH_INPUTSIZE;
+  } else if(args.param("graph-param", graphParam)){
+    if(graphParam == worker_threads.name())
+      MODE=MODE_GRAPH_THREADS;
+    else
+      MODE=MODE_GRAPH_PARAM;
+  }else if(args.param("graph-parallel")){
+    MODE=MODE_GRAPH_THREADS;
+  }
+  
+  //flags that cause aborts
+  if(args.param("reset")){
+    jalib::JTunableManager::instance().reset();
+    MODE=MODE_ABORT;
+  }
+  if(args.param("name")){
+    std::cout << _mainName << std::endl;
+    MODE=MODE_ABORT;
+  }
+  if(args.needHelp()){
+    MODE=MODE_ABORT;
+  }
+  
+  args.param("max", TRAIN_MAX);
+  args.param("max", GRAPH_MAX);
+  args.param("min", TRAIN_MIN);
+  args.param("min", GRAPH_MIN);
+  args.param("step", GRAPH_STEP);
+  args.param("trials", GRAPH_TRIALS);
+  args.param("smoothing", GRAPH_SMOOTHING);
+  args.param("max-sec", GRAPH_MAX_SEC);
+  args.param("accuracy", ACCURACY).help("print out accuracy of answer");
+  args.param("cutoffparam", cutoffparams);
+  args.param("args", txArgs);
+  args.param("time", DUMPTIMING);
+  args.param("force-output", FORCEOUTPUT);
 
   //load config from disk
+  CONFIG_FILENAME = jalib::Filesystem::GetProgramPath() + ".cfg";
+  args.param("cfg",    CONFIG_FILENAME);
+  args.param("config", CONFIG_FILENAME).help("filename of the program configuration");
   TunableManager& tm = TunableManager::instance();
   if(tm.size()>0 && jalib::Filesystem::FileExists(CONFIG_FILENAME))
     tm.load(CONFIG_FILENAME);
+
+  args.finishParsing(txArgs);
+  
+  //startup requested number of threads
+  if(MODE!=MODE_GRAPH_THREADS && MODE!=MODE_ABORT){
+    JASSERT(worker_threads>=1)(worker_threads);
+    DynamicScheduler::instance().startWorkerThreads(worker_threads);
+  }
 }
 
 petabricks::PetabricksRuntime::~PetabricksRuntime()
@@ -161,162 +217,42 @@ void petabricks::PetabricksRuntime::saveConfig()
 
 
 int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
-  jalib::JArgs args(argc, argv);
-  Main& main = *_main;
-  JASSERT(_mainName == main.name())(_mainName).Text("Unknown transform");
-
-  if(! args.param("fixedrandom")){
-    struct timeval currentTimeVal;
-    gettimeofday(&currentTimeVal, NULL);
-    srand48(currentTimeVal.tv_usec);
+  switch(MODE){
+    case MODE_RUN_IO:
+      runNormal();
+      break;
+    case MODE_RUN_RANDOM:
+      runTrial();
+      break;
+    case MODE_GRAPH_INPUTSIZE:
+      runGraphMode();
+      break;
+    case MODE_GRAPH_PARAM:
+      runGraphParamMode(graphParam);
+      break;
+    case MODE_GRAPH_THREADS:
+      runGraphParallelMode();
+      break;
+    case MODE_AUTOTUNE_GENETIC:
+      runAutotuneMode(autotuneParams, cutoffparams);
+      break;
+    case MODE_AUTOTUNE_PARAM:
+      optimizeParameter(graphParam);
+      break;
+    case MODE_ABORT:
+      return 1;
+      break;
   }
-
-//  bool isSiman = false;
-  bool isAutotuneMode = false;
-  bool isGraphParallelMode = false;
-  bool isOptimizeMode = false;
-  bool doIO = true;
-  std::string graphParam;
-  std::vector<std::string> autotuneParams;
-  std::vector<std::string> cutoffparams;
-  std::string autotune2Param;
-
-  if(args.param("multigrid").help("autotune multigrid")){
-    doIO=false;
-    MULTIGRID_FLAG = true;
-    GRAPH_MIN = 1;
-    GRAPH_MAX = 9;
-    GRAPH_STEP = 1;
-    TRAIN_MIN = 2;
-    TRAIN_MAX = 64;
-  }
-  if(args.param("fullmg").help("autotune full multigrid")){
-    doIO=false;
-    MULTIGRID_FLAG = true;
-    FULL_MULTIGRID_FLAG = true;
-    GRAPH_MIN = 1;
-    GRAPH_MAX = 9;
-    GRAPH_STEP = 1;
-    TRAIN_MIN = 2;
-    TRAIN_MAX = 64;
-  }
-  if(args.param("autotune", autotuneParams)){
-    isAutotuneMode = true;
-    doIO=false;
-  }
-  if(args.param("autotune2", autotune2Param)){
-    isAutotuneMode = true;
-    doIO=false;
-  }
-  if(args.param("n", _randSize) || args.param("random", _randSize)){
-    doIO = false;
-  }
-  args.param("max", TRAIN_MAX);
-  args.param("max", GRAPH_MAX);
-  args.param("min", TRAIN_MIN);
-  args.param("min", GRAPH_MIN);
-  args.param("step", GRAPH_STEP);
-  args.param("trials", GRAPH_TRIALS);
-  args.param("smoothing", GRAPH_SMOOTHING);
-  args.param("max-sec", GRAPH_MAX_SEC);
-  args.param("accuracy", ACCURACY).help("print out accuracy of answer");
   
-  args.param("cuttoffparam", cutoffparams);
 
-  if(args.param("graph-param", graphParam) || args.param("graph-tune", graphParam)){
-    if(graphParam == "worker_threads")
-      isGraphParallelMode = true;
-  }
-  if(args.param("graph-parallel")){
-    worker_threads.setValue(1);
-    isGraphParallelMode = true;
-  }
-  if(args.param("optimize", graphParam)){
-    isOptimizeMode=true;
-  }
-  args.param("time", DUMPTIMING);
-  if(args.param("reset")){
-    jalib::JTunableManager::instance().reset();
-    return 0;
-  }
-  if(args.param("name")){
-    std::cout << main.name() << std::endl;
-    return 0;
-  }
-  if(args.needHelp()){
-    return 1;
-  }
-
-  JASSERT(worker_threads>=1)(worker_threads);
-  DynamicScheduler::instance().startWorkerThreads(worker_threads);
-  
-  std::vector<std::string> txArgs;
-  args.param("args", txArgs);
-
-  if(doIO && main.numArgs() != (int)txArgs.size()){
-    JTRACE("wrong arg count")(txArgs.size())(main.numInputs())(main.numOutputs())(main.numArgs());
-    fprintf(stderr, "USAGE: %s %s\n", main.name(), main.helpString().c_str());
-    return 1;
-  }
-
-  if(doIO){ //read inputs
-    JTIMER_SCOPE(read);
-    main.read(txArgs);
-  }
-
-  if(args.param("graph")){
-    runGraphMode();
-  }else if(isAutotuneMode){
-    if (!MULTIGRID_FLAG) {
-      if(autotune2Param.empty())
-        runAutotuneMode(autotuneParams, cutoffparams);
-      else
-        runAutotune2Mode(autotune2Param);
-    } else {
-      runMultigridAutotuneMode();
-    }
-  }else if(isOptimizeMode){
-    optimizeParameter(graphParam);
-  }else if(isGraphParallelMode) {
-    runGraphParallelMode();
-  }else if(!graphParam.empty()){
-    runGraphParamMode(graphParam);
-  }else if(!doIO) {
-    JTIMER_SCOPE(runtrial);
-    runTrial();
-  }else{
-    try{
-
-      if(args.param("accuracytrain"))
-        trainAndComputeWrapper();
-      else
-        computeWrapper();
-
-#ifdef GRACEFUL_ABORT
-    }catch(petabricks::DynamicScheduler::AbortException e){
-      DynamicScheduler::instance().abortEnd();
-      JWARNING(false).Text("PetabricksRuntime::abort() called");
-      return 5;
-#endif
-    }catch(ComputeRetryException e){
-      UNIMPLEMENTED();
-      return 6;
-    }
-
-    { //write outputs
-      JTIMER_SCOPE(write);
-      main.write(txArgs);
-    }
-  }
-
-  if(args.param("force-output")){
+  if(FORCEOUTPUT){
     JTIMER_SCOPE(forceoutput);
     std::vector<std::string> tmp;
-    for(int i=main.numInputs(); i-->0;)
+    for(int i=_main->numInputs(); i-->0;)
       tmp.push_back("/dev/null");
-    for(int i=main.numOutputs(); i-->0;)
+    for(int i=_main->numOutputs(); i-->0;)
       tmp.push_back("-");
-    main.write(tmp);
+    _main->write(tmp);
   }
 
   if(DUMPTIMING | ACCURACY){
@@ -333,6 +269,26 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
   }
 
   return 0;
+}
+
+void petabricks::PetabricksRuntime::runNormal(){
+  Main& main = *_main;
+  if(main.numArgs() != (int)txArgs.size()){
+    std::cerr << "USAGE: " << main.name() << " [OPTIONS] " << main.helpString() << std::endl;
+    std::cerr << "USAGE: " << main.name() << " OPTIONS" << std::endl;
+    std::cerr << "run `" << main.name() << " --help` for options" << std::endl;
+    exit(1);
+  }
+  main.read(txArgs);
+  try{
+    computeWrapper();
+  }catch(petabricks::DynamicScheduler::AbortException e){
+    DynamicScheduler::instance().abortEnd();
+    JASSERT(false).Text("PetabricksRuntime::abort() called");
+  }catch(ComputeRetryException e){
+    UNIMPLEMENTED();
+  }
+  main.write(txArgs);
 }
   
 void petabricks::PetabricksRuntime::runAutotuneMode(const std::vector<std::string>& params, const std::vector<std::string>& extraCutoffs){
@@ -391,7 +347,6 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
   for(int n = GRAPH_MIN; n <= GRAPH_MAX; n+= GRAPH_STEP) {
     worker_threads.setValue(n);
     DynamicScheduler::instance().startWorkerThreads(worker_threads);
-
     double avg = runTrial();
     printf("%d %.6lf\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;
@@ -399,6 +354,7 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
 }
 
 double petabricks::PetabricksRuntime::runTrial(double thresh){
+  JASSERT(_randSize>0)(_randSize).Text("'--n=NUMBER' is required");
 #ifdef GRACEFUL_ABORT
   try{
 #endif
@@ -518,8 +474,6 @@ void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(){
     JTRACE("training")(cur);
     last=cur;
   }
-
-
 }
 
 

@@ -17,22 +17,21 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-
 #ifndef JALIBJARGS_H
 #define JALIBJARGS_H
 
 #include "jassert.h"
 #include "jconvert.h"
 
-#include <vector>
 #include <map>
 #include <string>
+#include <vector>
 
 namespace jalib {
 
 class JArgs {
 public:
-  JArgs(int argc, const char** argv, const char* defaultParam = "args");
+  JArgs(int argc, const char** argv);
   
   class ParamGlue {
   public:
@@ -60,41 +59,73 @@ public:
   };
 
   template < typename T > 
-  ParamGlue param(const char* name, T& val) const;
+  ParamGlue param(const char* name, T& val);
   
-  ParamGlue param(const char* name) const;
+  ParamGlue param(const char* name);
+
+  void finishParsing(std::vector<std::string>& outputArgs);
+  void finishParsing(){ std::vector<std::string> t; finishParsing(t); }
 
   bool needHelp() const {
     return _needHelp; 
   }
 
+protected:
+
+  class Arg : public std::string {
+  public:
+    enum Flag {
+      T_NONE            = 0,
+      T_USED            = 1,
+      T_PROGNAME        = 2,
+      T_PARAM_NAME      = 4,   // --foo
+      T_PARAM_VALUE     = 8,   // bar (in --foo bar)
+      T_PARAM_NAMEVALUE = T_PARAM_NAME|T_PARAM_VALUE, //--foo=bar
+      T_ARG             = 16,
+      T_END_OF_ARGS     = 32
+    };
+
+    Arg(Flag t, const char* s="") : std::string(s), _flags(t) {}
+    Arg(const char* s) : std::string(s), _flags(T_NONE) {}
+
+    void setFlag(Flag t) { _flags = _flags | t; }
+    bool hasFlag(Flag t) const { return (_flags&t)==t; }
+  private:
+    int _flags;
+  };
+  
+  void rebuildParamMap();
+  std::string getValueOfArg(Arg* arg);
 private:
-  typedef std::vector<std::string> ArgList;
-  typedef std::map<std::string, ArgList> ParamMap;
-  ParamMap  _params;
+  typedef std::vector<Arg>  ArgList;
+  typedef std::vector<Arg*> ArgPosList;
+  typedef std::map<std::string, ArgPosList> ParamMap;
   bool _needHelp;
+
+  ParamMap  _params;
+  ArgList   _args;
 };
   
 //generic single arg parsing
 template < typename T > 
-inline JArgs::ParamGlue JArgs::param(const char* name, T& val) const {
+inline JArgs::ParamGlue JArgs::param(const char* name, T& val){
   ParamMap::const_iterator i = _params.find(name);
   if(i == _params.end()){
     return ParamGlue(name, false, _needHelp);
   }
   JASSERT(i->second.size()==1)(i->second.size())(name)
-    .Text("Expected exactly one argument for parameter");
-  val = jalib::StringToX<T>(i->second.front());
+    .Text("parameter given multiple times");
+  val = jalib::StringToX<T>(getValueOfArg(i->second.front()));
   return ParamGlue(name, true, _needHelp);
 }
 
 //specialized version for parsing boolean parameters
 template <>
-JArgs::ParamGlue JArgs::param<bool>(const char* name, bool& val) const;
+JArgs::ParamGlue JArgs::param<bool>(const char* name, bool& val);
 
 //specialized version for parsing list parameters
 template <>
-JArgs::ParamGlue JArgs::param<std::vector<std::string> >(const char* name, std::vector<std::string>& val) const;
+JArgs::ParamGlue JArgs::param<std::vector<std::string> >(const char* name, std::vector<std::string>& val);
 
 
 }
