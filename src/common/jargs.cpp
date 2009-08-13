@@ -48,6 +48,8 @@ void jalib::JArgs::rebuildParamMap() {
   //parse params
   for(size_t i=1; i+1<_args.size(); ++i){
     const char* str=_args[i].c_str();
+    if(str==dashdash)
+      break;
     if(isParamLike(str)){
       while(*str=='-') ++str;
       if(jalib::Contains(str, '=')){ // --foo=bar
@@ -59,8 +61,6 @@ void jalib::JArgs::rebuildParamMap() {
         _params[str].push_back(&_args[i]);
         _args[i].setFlag(Arg::T_PARAM_NAME);
       }
-    }else{ // -- 
-      break;
     }
   }
 
