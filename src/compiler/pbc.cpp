@@ -65,8 +65,8 @@ int main( int argc, const char ** argv){
   args.param("outputobj",  theObjectFile).help("output *.o file to be produced");
   args.param("runtimedir", theRuntimeDir).help("directory where petabricks.h may be found");
   args.param("libdir",     theLibDir).help("directory where libpbruntime.a may be found");
-  args.param("compile",    shouldCompile).help("set to 'no' to disable compilation step");
-  args.param("link",       shouldLink).help("set to 'no' to disable linking step");
+  args.param("compile",    shouldCompile).help("disable the compilation step");
+  args.param("link",       shouldLink).help("disable the linking step");
   args.param("main",       theMainName).help("transform name to use as program entry point");
 
   if(args.param("version").help("print out version number and exit") ){

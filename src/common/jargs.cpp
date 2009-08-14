@@ -102,6 +102,10 @@ static bool _argToBool(const std::string& name, const char* v){
 
 template <>
 jalib::JArgs::ParamGlue jalib::JArgs::param<bool>(const char* name, bool& val) {
+  if(_needHelp){
+    _help[name].type=HelpInfo::mktypestr<bool>();
+    _help[name].initial=val?"yes":"no";
+  }
   std::string invname="no"+std::string(name);
   ParamMap::const_iterator i = _params.find(name);
   ParamMap::const_iterator inv = _params.find(invname);
@@ -119,21 +123,48 @@ jalib::JArgs::ParamGlue jalib::JArgs::param<bool>(const char* name, bool& val) {
     param<bool>(invname.c_str(), val);
     val = !val;
   }
-  return ParamGlue(name, val, _needHelp);
+  return ParamGlue(name, val, *this);
 }
 
 template <>
 jalib::JArgs::ParamGlue jalib::JArgs::param<std::vector<std::string> >(const char* name, std::vector<std::string>& val) {
+  if(_needHelp){
+    _help[name].type=HelpInfo::mktypestr<std::vector<std::string> >();
+  }
   ParamMap::const_iterator i = _params.find(name);
   if(i == _params.end()){
-    return ParamGlue(name, false, _needHelp);
+    return ParamGlue(name, false, *this);
   }
   for(ArgPosList::const_iterator a=i->second.begin(); a!=i->second.end(); ++a){
     val.push_back(getValueOfArg(*a));
   }
-  return ParamGlue(name, true, _needHelp);
+  return ParamGlue(name, true, *this);
 }
   
+jalib::JArgs::ParamGlue jalib::JArgs::param(const char* name) {
+  bool tmp=false;
+  param(name, tmp);
+  return ParamGlue(name, tmp, *this);
+}
+
+void jalib::JArgs::addHelpMsg(const char* name, const char* msg){
+  if(_needHelp){
+    HelpInfo& h = _help[name];
+    h.msg = msg;
+    if(h.type=="bool"){
+      if(h.initial=="no")
+        std::cerr << "  --" << name;
+      else
+        std::cerr << "  --no" << name;
+    }else{
+      std::cerr << "  --" << name << h.type;
+      if(h.initial!="") std::cerr << " (default: " << h.initial << ")";
+    }
+    std::cerr << std::endl;
+    std::cerr << "      " << h.msg << std::endl;
+  }
+}
+
 void jalib::JArgs::finishParsing(std::vector<std::string>& outputArgs){
   for(size_t i=1; i+1<_args.size(); ++i){
     if( ! _args[i].hasFlag(Arg::T_USED)){
@@ -146,11 +177,16 @@ void jalib::JArgs::finishParsing(std::vector<std::string>& outputArgs){
       outputArgs.push_back(_args[i]);
     }
   }
+  if(needHelp()){
+    for(HelpInfos::const_iterator i=_help.begin(); i!=_help.end(); ++i){
+      if(i->second.msg==""){
+        if(i->first=="help")
+          addHelpMsg(i->first.c_str(), "display this message" );
+        else
+          addHelpMsg(i->first.c_str(), "undocumented" );
+      }
+    }
+  }
 }
 
-jalib::JArgs::ParamGlue jalib::JArgs::param(const char* name) {
-  bool tmp=false;
-  param(name, tmp);
-  return ParamGlue(name, tmp, _needHelp);
-}
 

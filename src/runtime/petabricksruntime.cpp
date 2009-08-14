@@ -117,6 +117,8 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   , _randSize(-1)
 {
   jalib::JArgs args(argc, argv);
+  if(args.needHelp())
+    std::cerr << "OPTIONS:" << std::endl;
 
   //set the main transform
   if(args.param("transform", _mainName).help("name of the transform to run or tune")){
@@ -198,6 +200,9 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     JASSERT(worker_threads>=1)(worker_threads);
     DynamicScheduler::instance().startWorkerThreads(worker_threads);
   }
+
+  JASSERT(MODE==MODE_RUN_IO||txArgs.size()==0)(txArgs.size())
+    .Text("too many arguments");
 }
 
 petabricks::PetabricksRuntime::~PetabricksRuntime()

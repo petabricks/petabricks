@@ -28,6 +28,7 @@
 #include <vector>
 
 namespace jalib {
+class JArgs;
 
 class JArgs {
 public:
@@ -35,27 +36,25 @@ public:
   
   class ParamGlue {
   public:
-    ParamGlue(const char* name, bool exists, bool needHelp) 
+    ParamGlue(const char* name, bool exists, JArgs& a) 
       : _name(name)
       , _exists(exists)
-      , _needHelp(needHelp)
+      , _args(a)
     {}
     ParamGlue& help(const char* msg) {
-      if(_needHelp){
-        fprintf(stderr, "  --%s : %s\n", _name, msg);
-      }
+      _args.addHelpMsg(_name,msg);
       return *this;
     }
     ParamGlue& required() {
-      JASSERT(_exists)(_name).Text("Missing required parameter");
+      JASSERT(_exists || _args.needHelp())(_name).Text("Missing required parameter");
       return *this;
     }
 
-    operator bool () const { return _exists && !_needHelp; }
+    operator bool () const { return _exists && !_args.needHelp(); }
   private:
     const char* _name;
-    bool _exists;
-    bool _needHelp;
+    bool        _exists;
+    JArgs&      _args;
   };
 
   template < typename T > 
@@ -96,6 +95,8 @@ protected:
   
   void rebuildParamMap();
   std::string getValueOfArg(Arg* arg);
+
+  void addHelpMsg(const char* name, const char* msg);
 private:
   typedef std::vector<Arg>  ArgList;
   typedef std::vector<Arg*> ArgPosList;
@@ -104,19 +105,34 @@ private:
 
   ParamMap  _params;
   ArgList   _args;
+
+  struct HelpInfo { 
+    template <typename T> static const char* mktypestr() { return "=..."; }
+    std::string type;
+    std::string msg;
+    std::string initial;
+    std::vector<std::string> aliases;
+  };
+  typedef std::map<std::string, HelpInfo> HelpInfos;
+  HelpInfos _help;
 };
   
 //generic single arg parsing
 template < typename T > 
 inline JArgs::ParamGlue JArgs::param(const char* name, T& val){
+  if(_needHelp){
+    _help[name].type=HelpInfo::mktypestr<T>();
+    _help[name].initial=jalib::XToString<T>(val);
+  }
+
   ParamMap::const_iterator i = _params.find(name);
   if(i == _params.end()){
-    return ParamGlue(name, false, _needHelp);
+    return ParamGlue(name, false, *this);
   }
   JASSERT(i->second.size()==1)(i->second.size())(name)
     .Text("parameter given multiple times");
   val = jalib::StringToX<T>(getValueOfArg(i->second.front()));
-  return ParamGlue(name, true, _needHelp);
+  return ParamGlue(name, true, *this);
 }
 
 //specialized version for parsing boolean parameters
@@ -126,7 +142,16 @@ JArgs::ParamGlue JArgs::param<bool>(const char* name, bool& val);
 //specialized version for parsing list parameters
 template <>
 JArgs::ParamGlue JArgs::param<std::vector<std::string> >(const char* name, std::vector<std::string>& val);
+    
 
+template <> inline const char* JArgs::HelpInfo::mktypestr<bool>()         { return "bool"; }
+template <> inline const char* JArgs::HelpInfo::mktypestr<int>()          { return "=<INTEGER>"; }
+template <> inline const char* JArgs::HelpInfo::mktypestr<short>()        { return "=<INTEGER>"; }
+template <> inline const char* JArgs::HelpInfo::mktypestr<unsigned int>() { return "=<INTEGER>"; }
+template <> inline const char* JArgs::HelpInfo::mktypestr<double>()       { return "=<NUMBER>"; }
+template <> inline const char* JArgs::HelpInfo::mktypestr<float>()        { return "=<NUMBER>"; }
+template <> inline const char* JArgs::HelpInfo::mktypestr<std::string>()  { return "=<STRING>"; }
+template <> inline const char* JArgs::HelpInfo::mktypestr<std::vector<std::string> >()  { return "=<STRING>"; }
 
 }
 
