@@ -155,6 +155,7 @@ private:
   Main* _main;
   std::string _mainName;
   int _randSize;
+  int _rv;//return val
 };
 
 }

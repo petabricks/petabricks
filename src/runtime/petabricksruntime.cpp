@@ -36,43 +36,14 @@
 petabricks::PetabricksRuntime::Main* petabricksMainTransform();
 petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);
 
-const char theHelp[] =
-"\nALTERNATE MODES:" "\n"
-"  --autotune PREFIX    : autotune a given alg choice site using a genetic tuner" "\n"
-"  --optimize PARAM     : optimize a given configuration parameter using binary search" "\n"
-"  --graph              : graph performance from --min to --max" "\n"
-"  --graph-parallel     : graph parallel scalability with number of threads" "\n"
-"  --graph-param PARAM  : graph the effect of changing a given parameter" "\n"
-"  --fullmg             : specialized tuning for multigrid" "\n"
-"  --multigrid          : specialized tuning for multigrid" "\n"
-"  --help               : print this message and exit"         "\n"
-"  --name               : print the name of the main transform and exit" "\n"
-"  --reset              : reset all configuration parameters to their default and exit" "\n"
-//"  --siman              : autotune using simulated annealing (not working)"        "\n"
-"\nOPTIONS:" "\n"
-"  --random N           : populate inputs with randomly generated data of a given size" "\n"
-"  --transform NAME     : use a given transform instead of the default main transform" "\n"
-"  --max N              : end point for graphs and tuning" "\n"
-"  --max-sec N          : end point (in seconds) for graphs and tuning" "\n"
-"  --min N              : start point for graphs and tuning" "\n"
-"  --smoothing N        : apply smoothing to tests by averaging with similar sized inputs" "\n"
-"  --step N             : step size for graphs and tuning" "\n"
-"  --trials             : number of trails for graphs and tuning" "\n"
-;
-
-static std::string CONFIG_FILENAME;
-
 static bool _isTrainingRun = false;
 static bool _needTraingingRun = false;
 
-static int TRAIN_MIN=1;
-static int TRAIN_MAX=4096;
-//static int TRAIN_LEVEL_THRESH=1.2;
-
+static std::string CONFIG_FILENAME;
 static int GRAPH_MIN=1;
-static int GRAPH_MAX=2048;
+static int GRAPH_MAX=5000;
 static int GRAPH_MAX_SEC=std::numeric_limits<int>::max();
-static int GRAPH_STEP=8;
+static int GRAPH_STEP=50;
 static int GRAPH_TRIALS=1;
 static int GRAPH_SMOOTHING=0;
 static int SEARCH_BRANCH_FACTOR=8;
@@ -91,7 +62,8 @@ static enum {
   MODE_GRAPH_THREADS,
   MODE_AUTOTUNE_GENETIC,
   MODE_AUTOTUNE_PARAM,
-  MODE_ABORT
+  MODE_ABORT,
+  MODE_HELP
 } MODE = MODE_RUN_IO;
 
 std::vector<std::string> autotuneParams;
@@ -115,13 +87,28 @@ namespace{//file local
 petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Main* m)
   : _main(m)
   , _randSize(-1)
+  , _rv(0)
 {
   jalib::JArgs args(argc, argv);
+
   if(args.needHelp())
-    std::cerr << "OPTIONS:" << std::endl;
+    std::cerr << "GENERAL OPTIONS:" << std::endl;
+
+  //aliases
+  args.alias("cfg", "config");
+  args.alias("random", "n");
+  args.alias("tx", "transform");
+  args.alias("graph", "graph-input");
+  
+  //load config from disk
+  CONFIG_FILENAME = jalib::Filesystem::GetProgramPath() + ".cfg";
+  args.param("config", CONFIG_FILENAME).help("filename of the program configuration");
+  TunableManager& tm = TunableManager::instance();
+  if(tm.size()>0 && jalib::Filesystem::FileExists(CONFIG_FILENAME))
+    tm.load(CONFIG_FILENAME);
 
   //set the main transform
-  if(args.param("transform", _mainName).help("name of the transform to run or tune")){
+  if(args.param("transform", _mainName).help("specify an alternate main transform to run")){
     _main = m = petabricksFindTransform(_mainName);
     JASSERT(m!=NULL)(_mainName).Text("unknown transform");
   }else{
@@ -135,63 +122,59 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     gettimeofday(&currentTimeVal, NULL);
     srand48(currentTimeVal.tv_usec);
   }
+  
+  args.param("accuracy",  ACCURACY).help("print out accuracy of answer");
+  args.param("time",      DUMPTIMING).help("print timing results in xml format");
+  args.param("force-output", FORCEOUTPUT).help("also write copies of outputs to stdout");
 
-  if(args.param("n", _randSize)){
+  if(args.needHelp())
+    std::cerr << std::endl << "ALTERNATE EXECUTION MODES:" << std::endl;
+
+  if(args.param("n", _randSize).help("generate a random input of the given size")){
     MODE=MODE_RUN_RANDOM;//default mode
   }else{
     MODE=MODE_RUN_IO;//default mode
   }
 
   //figure out what mode we are in
-  if(args.param("autotune", autotuneParams)){
+  if(args.param("autotune", autotuneParams).help("run the genetic autotuner at a given choice cite")){
     MODE=MODE_AUTOTUNE_GENETIC;
-  } else if(args.param("optimize", graphParam)){
+  } else if(args.param("optimize", graphParam).help("autotune a single given config parameter")){
     MODE=MODE_AUTOTUNE_PARAM;
-  } else if(args.param("graph-input")){
+  } else if(args.param("graph-input").help("graph run time with changing input size")){
     MODE=MODE_GRAPH_INPUTSIZE;
-  } else if(args.param("graph-param", graphParam)){
+  } else if(args.param("graph-param", graphParam).help("graph run time with changing parameter value")){
     if(graphParam == worker_threads.name())
       MODE=MODE_GRAPH_THREADS;
     else
       MODE=MODE_GRAPH_PARAM;
-  }else if(args.param("graph-parallel")){
+  }else if(args.param("graph-parallel").help("graph run time with changing number of threads")){
     MODE=MODE_GRAPH_THREADS;
   }
   
   //flags that cause aborts
-  if(args.param("reset")){
+  if(args.param("reset").help("reset the config file to the default state and exit")){
     jalib::JTunableManager::instance().reset();
     MODE=MODE_ABORT;
   }
-  if(args.param("name")){
+  if(args.param("name").help("print out the name of the main transform and exit")){
     std::cout << _mainName << std::endl;
     MODE=MODE_ABORT;
   }
   if(args.needHelp()){
-    MODE=MODE_ABORT;
+    MODE=MODE_HELP;
   }
   
-  args.param("max", TRAIN_MAX);
-  args.param("max", GRAPH_MAX);
-  args.param("min", TRAIN_MIN);
-  args.param("min", GRAPH_MIN);
-  args.param("step", GRAPH_STEP);
-  args.param("trials", GRAPH_TRIALS);
-  args.param("smoothing", GRAPH_SMOOTHING);
-  args.param("max-sec", GRAPH_MAX_SEC);
-  args.param("accuracy", ACCURACY).help("print out accuracy of answer");
-  args.param("cutoffparam", cutoffparams);
-  args.param("args", txArgs);
-  args.param("time", DUMPTIMING);
-  args.param("force-output", FORCEOUTPUT);
-
-  //load config from disk
-  CONFIG_FILENAME = jalib::Filesystem::GetProgramPath() + ".cfg";
-  args.param("cfg",    CONFIG_FILENAME);
-  args.param("config", CONFIG_FILENAME).help("filename of the program configuration");
-  TunableManager& tm = TunableManager::instance();
-  if(tm.size()>0 && jalib::Filesystem::FileExists(CONFIG_FILENAME))
-    tm.load(CONFIG_FILENAME);
+  if(args.needHelp())
+    std::cerr << std::endl << "OPTIONS FOR ALTERNATE EXECUTION MODES:" << std::endl;
+  
+  args.param("cutoffparam", cutoffparams).help("additional cutoff tunables for use in --autotune mode");
+  args.param("min",       GRAPH_MIN).help("minimum input size for graph/autotuning");
+  args.param("max",       GRAPH_MAX).help("maximum input size for graph/autotuning");
+  args.param("step",      GRAPH_STEP).help("step size for graph/autotuning");
+  args.param("trials",    GRAPH_TRIALS).help("number of times to run each data point in graph/autotuning (averaged)");
+  args.param("smoothing", GRAPH_SMOOTHING).help("smooth graphs by also running smaller/larger input sizes");
+  args.param("max-sec",   GRAPH_MAX_SEC).help("stop graphs/autotuning after algorithm runs too slow");
 
   args.finishParsing(txArgs);
   
@@ -199,6 +182,13 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   if(MODE!=MODE_GRAPH_THREADS && MODE!=MODE_ABORT){
     JASSERT(worker_threads>=1)(worker_threads);
     DynamicScheduler::instance().startWorkerThreads(worker_threads);
+  }
+
+  if(MODE==MODE_HELP){
+    //normal mode with no options will print usage
+    txArgs.clear();
+    MODE=MODE_RUN_IO;
+    std::cerr << std::endl;
   }
 
   JASSERT(MODE==MODE_RUN_IO||txArgs.size()==0)(txArgs.size())
@@ -245,12 +235,11 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
       optimizeParameter(graphParam);
       break;
     case MODE_ABORT:
-      return 1;
       break;
   }
   
 
-  if(FORCEOUTPUT){
+  if(FORCEOUTPUT && _rv==0){
     JTIMER_SCOPE(forceoutput);
     std::vector<std::string> tmp;
     for(int i=_main->numInputs(); i-->0;)
@@ -273,27 +262,28 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
     std::cout << " />\n" << std::flush;
   }
 
-  return 0;
+  return _rv;
 }
 
 void petabricks::PetabricksRuntime::runNormal(){
   Main& main = *_main;
   if(main.numArgs() != (int)txArgs.size()){
-    std::cerr << "USAGE: " << main.name() << " [OPTIONS] " << main.helpString() << std::endl;
-    std::cerr << "USAGE: " << main.name() << " OPTIONS" << std::endl;
+    std::cerr << "USAGE: " << main.name() << " [GENERAL OPTIONS] " << main.helpString() << std::endl;
+    std::cerr << "USAGE: " << main.name() << " ALTERNATE_EXECUTION_MODE [OPTIONS]" << std::endl;
     std::cerr << "run `" << main.name() << " --help` for options" << std::endl;
-    exit(1);
+    _rv = 1;
+  }else{
+    main.read(txArgs);
+    try{
+      computeWrapper();
+    }catch(petabricks::DynamicScheduler::AbortException e){
+      DynamicScheduler::instance().abortEnd();
+      JASSERT(false).Text("PetabricksRuntime::abort() called");
+    }catch(ComputeRetryException e){
+      UNIMPLEMENTED();
+    }
+    main.write(txArgs);
   }
-  main.read(txArgs);
-  try{
-    computeWrapper();
-  }catch(petabricks::DynamicScheduler::AbortException e){
-    DynamicScheduler::instance().abortEnd();
-    JASSERT(false).Text("PetabricksRuntime::abort() called");
-  }catch(ComputeRetryException e){
-    UNIMPLEMENTED();
-  }
-  main.write(txArgs);
 }
   
 void petabricks::PetabricksRuntime::runAutotuneMode(const std::vector<std::string>& params, const std::vector<std::string>& extraCutoffs){
@@ -313,7 +303,7 @@ void petabricks::PetabricksRuntime::runAutotune2Mode(const std::string& param){
 
 void petabricks::PetabricksRuntime::runAutotuneLoop(const AutotunerList& tuners){
   Main* old = _main;
-  for(int n=TRAIN_MIN; n<=TRAIN_MAX; n*=2){
+  for(int n=GRAPH_MIN; n<=GRAPH_MAX; n*=2){
     setSize(n+1);
     for(size_t i=0; i<tuners.size(); ++i){
       _main = tuners[i]->main();
@@ -577,7 +567,7 @@ void petabricks::PetabricksRuntime::runMultigridAutotuneMode(){
     JASSERT(run_fullmg_flag != 0);
   }
 
-  for(int n=TRAIN_MIN; n<=TRAIN_MAX; n*=2){
+  for(int n=GRAPH_MIN; n<=GRAPH_MAX; n*=2){
     setSize(n + 1);
 
     if (FULL_MULTIGRID_FLAG) {

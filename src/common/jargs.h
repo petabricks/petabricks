@@ -69,6 +69,7 @@ public:
     return _needHelp; 
   }
 
+  void alias(const char* alias, const char* orig);
 protected:
 
   class Arg : public std::string {
@@ -97,6 +98,8 @@ protected:
   std::string getValueOfArg(Arg* arg);
 
   void addHelpMsg(const char* name, const char* msg);
+
+
 private:
   typedef std::vector<Arg>  ArgList;
   typedef std::vector<Arg*> ArgPosList;

@@ -20,6 +20,7 @@
 #include "jargs.h"
 #include "jconvert.h"
 
+#include <algorithm>
 
 namespace{ //helpers
   bool isParamLike(const char* param){
@@ -149,15 +150,23 @@ jalib::JArgs::ParamGlue jalib::JArgs::param(const char* name) {
 
 void jalib::JArgs::addHelpMsg(const char* name, const char* msg){
   if(_needHelp){
+    std::vector<std::string>::const_iterator i;
     HelpInfo& h = _help[name];
     h.msg = msg;
     if(h.type=="bool"){
-      if(h.initial=="no")
+      if(h.initial=="no"){
         std::cerr << "  --" << name;
-      else
+        for(i=h.aliases.begin(); i!=h.aliases.end(); ++i)
+          std::cerr << ", --" << *i;
+      }else{
         std::cerr << "  --no" << name;
+        for(i=h.aliases.begin(); i!=h.aliases.end(); ++i)
+          std::cerr << ", --no" << *i;
+      }
     }else{
       std::cerr << "  --" << name << h.type;
+      for(i=h.aliases.begin(); i!=h.aliases.end(); ++i)
+        std::cerr << ", --" << *i << h.type;
       if(h.initial!="") std::cerr << " (default: " << h.initial << ")";
     }
     std::cerr << std::endl;
@@ -188,5 +197,26 @@ void jalib::JArgs::finishParsing(std::vector<std::string>& outputArgs){
     }
   }
 }
+  
+void jalib::JArgs::alias(const char* alias, const char* orig){
+  ParamMap::iterator i = _params.find(alias);
+  if(i!=_params.end()){
+    ArgPosList& a = _params[orig];
+    ArgPosList& b = i->second;
+    if(a.size()==0){
+      a.swap(b);
+    }else{
+      a.insert(a.end(), b.begin(), b.end());
+      sort(a.begin(), a.end());
+    }
+    _params.erase(i);
+  }
+  if(needHelp()){
+    _help[orig].aliases.push_back(alias);
+  }
+}
+
+
+
 
 
