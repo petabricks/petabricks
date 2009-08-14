@@ -28,6 +28,7 @@
 #include <vector>
 
 namespace jalib {
+class JTunable;
 class JArgs;
 
 class JArgs {
@@ -146,6 +147,8 @@ JArgs::ParamGlue JArgs::param<bool>(const char* name, bool& val);
 template <>
 JArgs::ParamGlue JArgs::param<std::vector<std::string> >(const char* name, std::vector<std::string>& val);
     
+template <>
+JArgs::ParamGlue JArgs::param<JTunable>(const char* name, JTunable& val);
 
 template <> inline const char* JArgs::HelpInfo::mktypestr<bool>()         { return "bool"; }
 template <> inline const char* JArgs::HelpInfo::mktypestr<int>()          { return "=<INTEGER>"; }

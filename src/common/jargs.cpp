@@ -18,7 +18,7 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "jargs.h"
-#include "jconvert.h"
+#include "jtunable.h"
 
 #include <algorithm>
 
@@ -140,6 +140,15 @@ jalib::JArgs::ParamGlue jalib::JArgs::param<std::vector<std::string> >(const cha
     val.push_back(getValueOfArg(*a));
   }
   return ParamGlue(name, true, *this);
+}
+
+template <>
+jalib::JArgs::ParamGlue jalib::JArgs::param<jalib::JTunable>(const char* name, JTunable& val) {
+  TunableValue t = val;
+  ParamGlue rv = param(name, t);
+  if(t != val)
+    val.setValue(t);
+  return rv;
 }
   
 jalib::JArgs::ParamGlue jalib::JArgs::param(const char* name) {

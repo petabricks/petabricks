@@ -21,13 +21,13 @@
 #define JALIBJTUNABLE_H
 
 #include "jassert.h"
-#include "jprintable.h"
 #include "jconvert.h"
+#include "jprintable.h"
 
-#include <vector>
 #include <limits>
-#include <set>
 #include <map>
+#include <set>
+#include <vector>
 
 #define JTUNABLE(name, args...) \
   jalib::JTunable name(#name, args)

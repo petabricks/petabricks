@@ -126,6 +126,8 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("accuracy",  ACCURACY).help("print out accuracy of answer");
   args.param("time",      DUMPTIMING).help("print timing results in xml format");
   args.param("force-output", FORCEOUTPUT).help("also write copies of outputs to stdout");
+  
+  args.param("threads", worker_threads).help("number of threads to use");
 
   if(args.needHelp())
     std::cerr << std::endl << "ALTERNATE EXECUTION MODES:" << std::endl;
