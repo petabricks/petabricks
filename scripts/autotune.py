@@ -29,11 +29,22 @@ from pprint import pprint
 
 from xml.dom.minidom import parse
 
-config_tool_path = ""
+INFERINPUTSIZES_SEC=5
+
+desiredTimings=[1.0]
+
 app = None
 cfg = None
-parallel_autotune = False
-
+transforms=dict()
+defaultArgs = None
+def mkcmd(args):
+  t=[pbutil.benchmarkToBin(app)]
+  t.extend(defaultArgs)
+  if type(args) is type([]):
+    t.extend(args)
+  else:
+    t.append(args)
+  return t
 
 NULL=open("/dev/null", "w")
 
@@ -42,81 +53,90 @@ maxint = 2147483647
 ignore_list = []
 
 def getConfigVal(key):
-  run_command = [config_tool_path, app + ".cfg", "get", key]
-  p = subprocess.Popen(run_command, stdout = subprocess.PIPE)
-  os.waitpid(p.pid, 0)
-  return p.stdout.read()
+  val = pbutil.getConfigVal(cfg, key)
+  return val
 
 def setConfigVal(key, val):
-  run_command = [config_tool_path, app + ".cfg", "set", key, str(val)]
-  p = subprocess.Popen(run_command)
-  os.waitpid(p.pid, 0)
-
-# def getConfigVal(key):
-#   print "get", key
-#   return pbutil.getConfigVal("%s.cfg"%app, key)
-# 
-# def setConfigVal(key, val):
-#   print "set", key, val
-#   return pbutil.setConfigVal("%s.cfg"%app, key, val)
-
+  return pbutil.setConfigVal(cfg, key, val)
 
 def reset():
   ignore_vals = []
   for ignore in ignore_list:
     ignore_vals.append((ignore, getConfigVal(ignore)))
-
-  run_command = ["./" + app, "--reset"]
-  p = subprocess.Popen(run_command)
-  os.waitpid(p.pid, 0)
-
+  run_command = mkcmd("--reset")
+  subprocess.check_call(run_command)
   for ignores in ignore_vals:
     setConfigVal(ignores[0], ignores[1])
 
+nameof = lambda t: str(t.getAttribute("name"))
 
-def getTunables(xml, type):
-  transforms = xml.getElementsByTagName("transform")
-
-  algchoices = []
-  for transform in transforms:
-    algchoices += transform.getElementsByTagName("tunable")
-
-  tunables = []
-  for algchoice in algchoices:
-    choice = str(algchoice.getAttribute("name"))
-    if choice not in ignore_list:
-      if algchoice.getAttribute("type") == type:
-        tunables.append(choice)
-  return tunables
-
-def getAlgChoices(xml):
-  transforms = xml.getElementsByTagName("transform")
-
-  algchoices = []
-  for transform in transforms:
-    algchoices += transform.getElementsByTagName("algchoice")
-
-  static_choices = []
-  dynamic_choices = []
-  for algchoice in algchoices:
-    choice = str(algchoice.getAttribute("name"))
-    if choice not in ignore_list:
-      if algchoice.getAttribute("type") == "sequential":
-        static_choices.append(choice)
-      else:
-        dynamic_choices.append(choice)
-  return (static_choices, dynamic_choices)
-
-def autotune(choice, trials, min, max):
-  print "Autotuning:", choice
-  run_command = ["./" + app, "--autotune=%s"%choice, "--min=%d"%min, "--max=%d"%max, "--trials=%d"%trials]
-  if parallel_autotune:
-    run_command.append("--multigrid")
-  #print run_command
-  p = subprocess.Popen(run_command, stdout=subprocess.PIPE, stderr=NULL)
-  os.waitpid(p.pid, 0)
-  lines = p.stdout.readlines()
-  print "Result:" + lines[-int(getConfigVal("autotune_alg_slots"))],
+# def getTunables(xml, type):
+#   transforms = xml.getElementsByTagName("transform")
+#
+#   algchoices = []
+#   for transform in transforms:
+#     algchoices += transform.getElementsByTagName("tunable")
+#
+#   tunables = []
+#   for algchoice in algchoices:
+#     choice = str(algchoice.getAttribute("name"))
+#     if choice not in ignore_list:
+#       if algchoice.getAttribute("type") == type:
+#         tunables.append(choice)
+#   return tunables
+#
+# def getAlgChoices(xml):
+#   transforms = xml.getElementsByTagName("transform")
+#
+#   algchoices = []
+#   for transform in transforms:
+#     algchoices += transform.getElementsByTagName("algchoice")
+#
+#   static_choices = []
+#   dynamic_choices = []
+#   for algchoice in algchoices:
+#     choice = str(algchoice.getAttribute("name"))
+#     if choice not in ignore_list:
+#       if algchoice.getAttribute("type") == "sequential":
+#         static_choices.append(choice)
+#       else:
+#         dynamic_choices.append(choice)
+#   return (static_choices, dynamic_choices)
+#
+# def autotune(choice, trials, min, max):
+#   print "Autotuning:", choice
+#   run_command = ["./" + app, "--autotune=%s"%choice, "--min=%d"%min, "--max=%d"%max, "--trials=%d"%trials]
+#   if parallel_autotune:
+#     run_command.append("--multigrid")
+#   #print run_command
+#   p = subprocess.Popen(run_command, stdout=subprocess.PIPE, stderr=NULL)
+#   os.waitpid(p.pid, 0)
+#   lines = p.stdout.readlines()
+#   print "Result:" + lines[-int(getConfigVal("autotune_alg_slots"))],
+#
+# def optimize(tunable, size):
+#   print "Optimizing:", tunable
+#   run_command = ["./" + app, "--optimize=%s"%tunable, "--random=%d"%size]
+#   p = subprocess.Popen(run_command, stdout=subprocess.PIPE, stderr=NULL)
+#   os.waitpid(p.pid, 0)
+#   print "Result:", getConfigVal(tunable),
+#
+#   transforms = xml.getElementsByTagName("transform")
+#
+#   algchoices = []
+#   for transform in transforms:
+#     algchoices += transform.getElementsByTagName("algchoice")
+#
+#   static_choices = []
+#   dynamic_choices = []
+#   for algchoice in algchoices:
+#     choice = str(algchoice.getAttribute("name"))
+#     if choice not in ignore_list:
+#       if algchoice.getAttribute("type") == "sequential":
+#         static_choices.append(choice)
+#       else:
+#         dynamic_choices.append(choice)
+#   return (static_choices, dynamic_choices)
 
 def getIgnoreList():
   try:
@@ -129,14 +149,65 @@ def getIgnoreList():
   except:
     pass
 
-def optimize(tunable, size):
-  print "Optimizing:", tunable
-  run_command = ["./" + app, "--optimize=%s"%tunable, "--random=%d"%size]
+def mainname():
+  run_command = mkcmd("--name")
   p = subprocess.Popen(run_command, stdout=subprocess.PIPE, stderr=NULL)
   os.waitpid(p.pid, 0)
-  print "Result:", getConfigVal(tunable),
+  lines = p.stdout.readlines()
+  return lines[-1].strip()
 
+def getCallees(tx):
+  return map( lambda c: transforms[c.getAttribute("callee")], tx.getElementsByTagName("calls") )
 
+def getTunables(tx, type):
+  return filter( lambda t: t.getAttribute("type")==type, tx.getElementsByTagName("tunable") )
+
+def getChoiceSites(tx):
+  #it would be nice to export this data, for now parse it from tunable names
+  getSiteRe = re.compile( re.escape(nameof(tx)) + "_([0-9]*)_lvl[0-9]*_.*" )
+  getSite=lambda t: int(getSiteRe.match(nameof(t)).group(1))
+  sites=[]
+  sites.extend(map(getSite, getTunables(tx,"algchoice.cutoff")))
+  sites.extend(map(getSite, getTunables(tx,"algchoice.alg")))
+  return list(set(sites))
+  
+def walkCallTree(tx, fn):
+  seen = set()
+  seen.add(nameof(tx))
+  def _walkCallTree(tx, depth=0):
+    loops=0
+    for t in getCallees(tx):
+      n=nameof(t)
+      if n not in seen:
+        seen.add(n) 
+        _walkCallTree(t, depth+1)
+      else: 
+        loops+=1
+    fn(tx, depth, loops)
+  _walkCallTree(tx)
+
+def autotuneCutoff(tx, tunable, n, min=0, max=-1):
+  if max<0:
+    max=n
+  print "  * cutoff", nameof(tunable), "in", nameof(tx), "from", min, "to", max
+
+def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
+  print "  * algchoice", nameof(tx), "site", site, "in", nameof(ctx), "cutoffs", map(nameof, cutoffs)
+
+def autotuneTx(tx, maintx, n, depth, loops):
+  #print "Autotuning", nameof(tx), "(loops=%d, depth=%d)"%(loops, depth)
+  cutoffs = []
+  ctx=tx
+  if loops > 0:
+    ctx=maintx
+  if loops == 0:
+    cutoffs.extend(getTunables(tx, "system.seqcutoff"))
+  cutoffs.extend(getTunables(tx, "system.splitsize"))
+  for site in getChoiceSites(tx):
+    autotuneAlgchoice(tx, site, ctx, n, cutoffs)
+  for tunable in cutoffs:
+    autotuneCutoff(tx, tunable, n)
+  
 def main(argv):
   if len(argv) == 1:
     print "Error.  For help, run:", argv[0], "-h"
@@ -146,12 +217,12 @@ def main(argv):
   global app
   global ignore_list
   global parallel_autotune
+  global defaultArgs
 
   config_tool_path = os.path.split(argv[0])[0] + "/configtool.py"
   app = argv[-1]
-  cfg = app+".cfg"
-  num_threads = -1 # -1 -> use config file
-  data_size = 100000
+  num_threads = pbutil.cpuCount()
+  data_size = -1
   min = 64
   max = 4096
   fast = False
@@ -181,77 +252,37 @@ def main(argv):
       max = int(a)
     if o == "--fast":
       fast = True
-
+  
+  pbutil.chdirToPetabricksRoot()
+  pbutil.compilePetabricks()
+  app = pbutil.normalizeBenchmarkName(app)
+  pbutil.compileBenchmarks([app])
+  cfg = pbutil.benchmarkToCfg(app)
+  defaultArgs = ['--config='+cfg, '--threads=%d'%num_threads]
   getIgnoreList()
 
   try:
-    infoxml = parse(app + ".info")
+    infoxml = parse(pbutil.benchmarkToInfo(app))
   except:
-    print "Cannot parse:", app + ".info"
+    print "Cannot parse:", pbutil.benchmarkToInfo(app)
     sys.exit(-1)
 
   print "Reseting config entries"
   reset()
 
-  # Set worker num
-  if num_threads == -1:
-    num_threads = int(getConfigVal("worker_threads")) 
-  else:
-    setConfigVal("worker_threads", num_threads)
+  #build index of transforms
+  for t in infoxml.getElementsByTagName("transform"):
+    transforms[nameof(t)]=t
 
-  print "Tuning", app, "with", num_threads, "threads...", "(fast =", str(fast) + ")" 
+  maintx = transforms[mainname()]
+ 
+  if data_size <= 0:
+    print "Finding a reasonable input size for training... (%d sec) " % INFERINPUTSIZES_SEC
+    data_size=pbutil.inferGoodInputSizes(pbutil.benchmarkToBin(app), desiredTimings,  INFERINPUTSIZES_SEC)[-1]
+    print "Using",data_size
 
-  (static_choices, dynamic_choices) = getAlgChoices(infoxml)
-  seq_cutoff_tunables = getTunables(infoxml, "system.seqcutoff")
-  splitsize_tunables = getTunables(infoxml, "system.splitsize")
-  user_tunables = getTunables(infoxml, "user.tunable")
-
-  # Autotune sequential code
-  for tunable in seq_cutoff_tunables:
-    setConfigVal(tunable, maxint)
-  for choice in static_choices:
-    autotune(choice, 1, min, max / 8)
-
-  # Autotune parallel code
-  for tunable in seq_cutoff_tunables:
-    setConfigVal(tunable, 50)
-  for choice in dynamic_choices:
-    autotune(choice, 1, min, max)
-
-  # Optimize sequential cutoffs
-  for tunable in seq_cutoff_tunables:
-    optimize(tunable, data_size)
-
-  # Optimize split sizes
-  for tunable in splitsize_tunables:
-    optimize(tunable, data_size)
-
-  # Optimize user tunables
-  for tunable in user_tunables:
-    optimize(tunable, data_size)
-
-  # Autotune parallel code
-  for choice in dynamic_choices:
-    autotune(choice, 1, min, max)
-
-  if fast:
-    sys.exit(0)
-
-  # Optimize sequential cutoffs
-  for tunable in seq_cutoff_tunables:
-    optimize(tunable, data_size)
-
-  # Optimize split sizes
-  for tunable in splitsize_tunables:
-    optimize(tunable, data_size)
-
-  # Optimize user tunables
-  for tunable in user_tunables:
-    optimize(tunable, data_size)
-
-  # Autotune parallel code
-  for choice in dynamic_choices:
-    autotune(choice, 1, min, max)
+  print "Autotuning pass 1..."
+  walkCallTree(maintx, lambda tx, depth, loops: autotuneTx(tx, maintx, data_size, depth, loops))
 
 if __name__ == "__main__":
     main(sys.argv)

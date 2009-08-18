@@ -57,10 +57,10 @@ def compilePetabricks():
     return rv
   return 0
     
-    
-    
-benchmarkToSrc=lambda name:"./examples/%s.pbcc"%name
 benchmarkToBin=lambda name:"./examples/%s"%name
+benchmarkToSrc=lambda name:"./examples/%s.pbcc"%name
+benchmarkToInfo=lambda name:"./examples/%s.info"%name
+benchmarkToCfg=lambda name:"./examples/%s.cfg"%name
 
 jobs=[]
 def compileBenchmarks(benchmarks):
@@ -267,17 +267,7 @@ def polyFit(x,y):
 
 def collectTimingSamples2(prog, maxTime=12.0, args=[]):
   #make initial guess at order
-  x,y=collectTimingSamples(prog, 5,   1,   maxTime/4, args=args, scaler=lambda x: 2**x)
-  fx, invFx, str = polyFit(x,y)
-  #print "Initial guess... ", len(x), str
-
-  x,y=collectTimingSamples(prog, 0.01,  0.01,  maxTime/4, x=x, y=y, args=args, scaler=invFx)
-  fx, invFx, str = polyFit(x,y)
-  #print "Refinement... ", len(x), str
-  
-  x,y=collectTimingSamples(prog, 0.5,  0.1,  2*maxTime/4, x=x, y=y, args=args, scaler=invFx)
-  fx, invFx, str = polyFit(x,y)
-  #print "Refinement... ", len(x), str
+  x,y=collectTimingSamples(prog, 4,   1,   maxTime, args=args, scaler=lambda x: 2**x)
   return x,y
 
 def testEstimation(x, y, fit, prog):
@@ -288,12 +278,11 @@ def testEstimation(x, y, fit, prog):
   print "   est 2 sec", (pinv(2))
   print "   est 3 sec", (pinv(3))
 
-def inferGoodInputSizes(prog, desiredTimes, maxTime=8.0):
+def inferGoodInputSizes(prog, desiredTimes, maxTime=5.0):
   x,y=collectTimingSamples2(prog, maxTime)
   efx, efy, estr = expFit(x,y)
-  pfx, pfy, pstr = polyFit(x,y)
-  sizes=map(int, map(pfy, desiredTimes))
-  print "Estimating reasonable input sizes (exp model: %s):"%estr, sizes
+  #pfx, pfy, pstr = polyFit(x,y)
+  sizes=map(int, map(efy, desiredTimes))
   return sizes
 
 
@@ -307,19 +296,9 @@ getCXXFLAGS = lambda: getMakefileFlag("CXXFLAGS")
 if __name__ == "__main__":
   chdirToPetabricksRoot()
   compilePetabricks()
-  compileBenchmarks(["add", "multiply", "transpose","test1","test2","test3","test4","test5","test6","test7","test8","test9","test10","test11"])
-  #test executetimingrun
-  print "executeTimingRun:"
-  pprint(executeTimingRun("./examples/add", 100, ["--trials=10"]))
-  print 
-  x,y=collectTimingSamples2("./examples/add", 4)
-  print "test polyFit"
-  testEstimation(x,y,polyFit, "./examples/add")
-  print "test expFit"
-  testEstimation(x,y,expFit, "./examples/add")
-  print 
+  compileBenchmarks(map(normalizeBenchmarkName, ["add", "multiply", "transpose"]))
   print "Estimating input sizes"
-  inferGoodInputSizes("./examples/add", [0.1,0.5,1.0], 8)
+  inferGoodInputSizes("./examples/simple/add", [0.1,0.5,1.0], 2)
   
 
 
