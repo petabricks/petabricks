@@ -130,12 +130,12 @@ CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp li
              libpbruntime_a-matrixreader.cpp
 
 #copy bison headers to compiler dir
-compiler/maximaparser.h: libpbcompiler_a-maximaparser.cpp
-	cp libpbcompiler_a-maximaparser.h $(srcdir)/compiler/maximaparser.h
-compiler/pbparser.h:		 libpbcompiler_a-pbparser.cpp
-	cp libpbcompiler_a-pbparser.h     $(srcdir)/compiler/pbparser.h
-compiler/ruleirparser.h: libpbcompiler_a-ruleirparser.cpp
-	cp libpbcompiler_a-ruleirparser.h $(srcdir)/compiler/ruleirparser.h
+$(srcdir)/compiler/maximaparser.h: libpbcompiler_a-maximaparser.h
+	cp $< $@ 
+$(srcdir)/compiler/pbparser.h:		 libpbcompiler_a-pbparser.h
+	cp $< $@ 
+$(srcdir)/compiler/ruleirparser.h: libpbcompiler_a-ruleirparser.h
+	cp $< $@ 
 
 
 
