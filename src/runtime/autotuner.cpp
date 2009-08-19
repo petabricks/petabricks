@@ -26,6 +26,7 @@
 JTUNABLE(autotune_alg_slots,                3, 1, 32);
 JTUNABLE(autotune_branch_attempts,          1, 1, 32);
 JTUNABLE(autotune_improvement_threshold,    90, 10, 100);
+JTUNABLE(autotune_cutoff_divisor,           16, 2, 1024);
 
 
 #define FIRST_DEATH_THRESH 0.005
@@ -255,11 +256,14 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
     }
   }
 
-  // candidates from _unusedCutoffs (sequential, blocking, etc)
-  for(size_t i=0; i<_unusedCutoffs.size(); ++i){
-    ExtraCutoffList remaining = _unusedCutoffs; 
-    remaining.erase(remaining.begin()+i);
-    possible.push_back(new CandidateAlgorithm(_lvl, -1, NULL, newCutoff, _unusedCutoffs[i], this, remaining));
+  newCutoff = rt.curSize()/autotune_cutoff_divisor;
+  if(newCutoff>1){
+    // candidates from _unusedCutoffs (sequential, blocking, etc)
+    for(size_t i=0; i<_unusedCutoffs.size(); ++i){
+      ExtraCutoffList remaining = _unusedCutoffs; 
+      remaining.erase(remaining.begin()+i);
+      possible.push_back(new CandidateAlgorithm(_lvl, -1, NULL, newCutoff, _unusedCutoffs[i], this, remaining));
+    }
   }
       
   if(possible.empty())
