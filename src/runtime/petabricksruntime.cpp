@@ -66,8 +66,9 @@ static enum {
   MODE_HELP
 } MODE = MODE_RUN_IO;
 
-std::vector<std::string> autotuneParams;
-std::vector<std::string> cutoffparams;
+std::string autotunetx;
+std::vector<std::string> autotunesites;
+std::vector<std::string> autotunecutoffs;
 std::string graphParam;
 
 static struct {
@@ -89,6 +90,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   , _randSize(-1)
   , _rv(0)
 {
+  if(m) _mainName = m->name();
   jalib::JArgs args(argc, argv);
 
   if(args.needHelp())
@@ -113,7 +115,6 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     JASSERT(m!=NULL)(_mainName).Text("unknown transform");
   }else{
     JASSERT(m!=NULL);
-    _mainName = m->name();
   }
   
   //seed the random number generator 
@@ -139,7 +140,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   }
 
   //figure out what mode we are in
-  if(args.param("autotune", autotuneParams).help("run the genetic autotuner at a given choice cite")){
+  if(args.param("autotune").help("run the genetic autotuner at a given choice cite")){
     MODE=MODE_AUTOTUNE_GENETIC;
   } else if(args.param("optimize", graphParam).help("autotune a single given config parameter")){
     MODE=MODE_AUTOTUNE_PARAM;
@@ -170,7 +171,9 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   if(args.needHelp())
     std::cerr << std::endl << "OPTIONS FOR ALTERNATE EXECUTION MODES:" << std::endl;
   
-  args.param("cutoffparam", cutoffparams).help("additional cutoff tunables for use in --autotune mode");
+  args.param("autotune-transform", autotunetx).help("transform name to tune in --autotune mode");
+  args.param("autotune-site",      autotunesites).help("choice sites to tune in --autotune mode");
+  args.param("autotune-tunable",   autotunecutoffs).help("additional cutoff tunables to tune in --autotune mode");
   args.param("min",       GRAPH_MIN).help("minimum input size for graph/autotuning");
   args.param("max",       GRAPH_MAX).help("maximum input size for graph/autotuning");
   args.param("step",      GRAPH_STEP).help("step size for graph/autotuning");
@@ -231,7 +234,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
       runGraphParallelMode();
       break;
     case MODE_AUTOTUNE_GENETIC:
-      runAutotuneMode(autotuneParams, cutoffparams);
+      runAutotuneMode();
       break;
     case MODE_AUTOTUNE_PARAM:
       optimizeParameter(graphParam);
@@ -288,21 +291,33 @@ void petabricks::PetabricksRuntime::runNormal(){
   }
 }
   
-void petabricks::PetabricksRuntime::runAutotuneMode(const std::vector<std::string>& params, const std::vector<std::string>& extraCutoffs){
+void petabricks::PetabricksRuntime::runAutotuneMode(){
   AutotunerList tuners;
-  for(size_t i=0; i<params.size(); ++i)
-    tuners.push_back(new Autotuner(*this, _main, params[i], extraCutoffs));
-  runAutotuneLoop(tuners);
-}
-  
-  
-void petabricks::PetabricksRuntime::runAutotune2Mode(const std::string& param){
-  AutotunerList tuners;
-  for(Main* m = _main; m!=NULL; m=m->nextTemplateMain())
-    tuners.push_back(new Autotuner(*this, m, std::string(m->name())+"_"+param, std::vector<std::string>()));
-  runAutotuneLoop(tuners);
-}
+  Main* tx = _main;
+  bool inContext = true;
+  if(!autotunetx.empty()){
+    tx = petabricksFindTransform(autotunetx);
+    JASSERT(tx!=NULL)(autotunetx).Text("unknown transform name");
+    if(tx != _main) inContext==false;
+  }
+  if(autotunesites.empty()){
+    autotunesites.push_back("0");
+  }
+  for(; tx!=NULL; tx=tx->nextTemplateMain()){
+    for( std::vector<std::string>::const_iterator site=autotunesites.begin()
+       ; site!=autotunesites.end()
+       ; ++site)
+    {
+      Main* ctx=_main;
+      if(inContext || tx->isVariableAccuracy())
+        ctx = tx;
 
+      tuners.push_back(new Autotuner(*this, ctx, std::string(tx->name())+"_"+(*site), autotunecutoffs));
+    }
+  }
+
+  runAutotuneLoop(tuners);
+}
 void petabricks::PetabricksRuntime::runAutotuneLoop(const AutotunerList& tuners){
   Main* old = _main;
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n*=2){
