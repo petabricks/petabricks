@@ -627,6 +627,10 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
       for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
         o.write((*i)->name() + ".randomize();");
       }
+      //also randomize outputs
+      for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+        o.write((*i)->name() + ".randomize();");
+      }
     }else{
       std::vector<std::string> args;
       for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){

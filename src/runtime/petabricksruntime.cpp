@@ -298,7 +298,7 @@ void petabricks::PetabricksRuntime::runAutotuneMode(){
   if(!autotunetx.empty()){
     tx = petabricksFindTransform(autotunetx);
     JASSERT(tx!=NULL)(autotunetx).Text("unknown transform name");
-    if(tx != _main) inContext==false;
+    if(tx != _main) inContext=false;
   }
   if(autotunesites.empty()){
     autotunesites.push_back("0");

@@ -159,7 +159,7 @@ void petabricks::Autotuner::runAll(){
 }
 
 void petabricks::Autotuner::trainOnce(){
-  std::cout << "BEGIN ITERATION " << _prefix << " / " << _runtime.curSize() << std::endl;
+  std::cout << "BEGIN ITERATION " << _prefix << " / " << _runtime.curSize() <<  " (in " << _main->name() << ")" << std::endl;
   runAll();
 
   std::sort(_candidates.begin(), _candidates.end(), CmpLastPerformance());
@@ -266,14 +266,15 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
     return NULL;
 
   //run them all
-  for(CandidateAlgorithmList::iterator i=possible.begin(); i!=possible.end(); ++i)
+  for(CandidateAlgorithmList::iterator i=possible.begin(); i!=possible.end(); ++i){
+    std::cout << "  * TRY " << *i << " = "<< std::flush;
     (*i)->run(rt, autotuner, thresh);
+    std::cout << (*i)->lastResult() << std::endl;
+  }
 
   //sort by performance
   std::sort(possible.begin(), possible.end(), CmpLastPerformance());
 
-  for(CandidateAlgorithmList::iterator i=possible.begin(); i!=possible.end(); ++i)
-    std::cout << "  * TRY " << *i << " = " << (*i)->lastResult() << std::endl;
 
   //see if fastest is good enough
   if(possible[0]->lastResult() > thresh)
