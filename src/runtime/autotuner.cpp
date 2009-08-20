@@ -26,7 +26,9 @@
 JTUNABLE(autotune_alg_slots,                3, 1, 32);
 JTUNABLE(autotune_branch_attempts,          1, 1, 32);
 JTUNABLE(autotune_improvement_threshold,    90, 10, 100);
+#ifdef USE_CUTOFF_DIVISOR
 JTUNABLE(autotune_cutoff_divisor,           16, 2, 1024);
+#endif
 
 
 #define FIRST_DEATH_THRESH 0.005
@@ -256,7 +258,9 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
     }
   }
 
+#ifdef USE_CUTOFF_DIVISOR
   newCutoff = rt.curSize()/autotune_cutoff_divisor;
+#endif
   if(newCutoff>1){
     // candidates from _unusedCutoffs (sequential, blocking, etc)
     for(size_t i=0; i<_unusedCutoffs.size(); ++i){
