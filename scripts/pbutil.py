@@ -73,11 +73,11 @@ def compileBenchmarks(benchmarks):
   pbc="./src/pbc"
   libdepends=[pbc, "./src/libpbmain.a", "./src/libpbruntime.a", "./src/libpbcommon.a"]
   benchmarkMaxLen=reduce(max,map(len,benchmarks), 0)
-  left=len(benchmarks)
   progress.push()
   progress.remainingTicks(len(benchmarks))
+  if len(benchmarks)>1:
+    progress.echo("Compiling benchmarks:")
   progress.status(lambda: "compiling benchmarks - currently using %d of %d processors"%(len(jobs),NCPU))
-  progress.echo("Compiling benchmarks:")
   assert os.path.isfile(pbc)
   def checkJob(name, status):
     global left
