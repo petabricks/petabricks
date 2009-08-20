@@ -8,6 +8,7 @@ import subprocess
 import time
 import signal
 import math
+import progress
 from xml.dom.minidom import parse
 from pprint import pprint
 from configtool import getConfigVal, setConfigVal
@@ -72,21 +73,21 @@ def compileBenchmarks(benchmarks):
   pbc="./src/pbc"
   libdepends=[pbc, "./src/libpbmain.a", "./src/libpbruntime.a", "./src/libpbcommon.a"]
   benchmarkMaxLen=reduce(max,map(len,benchmarks), 0)
-
-  msgMaxLen= len("[%d/%d jobs] "%(NCPU,NCPU))
-  msgPfx=lambda:("[%d/%d jobs]"%(len(jobs),NCPU)).ljust(msgMaxLen)
-  msg=lambda m: sys.stderr.write("\n"+msgPfx()+m)
-  msgUpdate=lambda: sys.stderr.write("\r"+msgPfx())
-  msg("Compiling benchmarks:")
-
+  left=len(benchmarks)
+  progress.push()
+  progress.remainingTicks(len(benchmarks))
+  progress.status(lambda: "compiling benchmarks - currently using %d of %d processors"%(len(jobs),NCPU))
+  progress.echo("Compiling benchmarks:")
   assert os.path.isfile(pbc)
   def checkJob(name, status):
+    global left
     if status is not None:
       if status == 0:
-        msg(name.ljust(benchmarkMaxLen)+" compile PASSED")
+        progress.echo(name.ljust(benchmarkMaxLen)+" compile PASSED")
       else:
-        msg(name.ljust(benchmarkMaxLen)+" compile FAILED (rc=%d)"%status)
+        progress.echo(name.ljust(benchmarkMaxLen)+" compile FAILED (rc=%d)"%status)
         failed.append(name)
+      progress.tick()
     return status is None
 
   def waitForJobsLeq(n):
@@ -106,16 +107,17 @@ def compileBenchmarks(benchmarks):
       raise Exception("invalid benchmark "+name)
     srcModTime=max(os.path.getmtime(src), reduce(max, map(os.path.getmtime, libdepends)))
     if os.path.isfile(bin) and os.path.getmtime(bin) > srcModTime:
-      msg(name.ljust(benchmarkMaxLen)+" is up to date")
+      progress.echo(name.ljust(benchmarkMaxLen)+" is up to date")
+      progress.tick()
     else:
       if os.path.isfile(bin):
         os.unlink(bin)
       waitForJobsLeq(NCPU-1)
       jobs.append((name,subprocess.Popen([pbc, src], stdout=NULL, stderr=NULL)))
-      msgUpdate()
+      progress.update()
   waitForJobsLeq(0)
-  msg("Done\n\n")
-
+  progress.echo("")
+  progress.pop()
 
 def normalizeBenchmarkName(n, search=True):
   n=re.sub("^[./]*examples[/]","",n);
