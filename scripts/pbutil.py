@@ -77,7 +77,7 @@ def compileBenchmarks(benchmarks):
   progress.remainingTicks(len(benchmarks))
   if len(benchmarks)>1:
     progress.echo("Compiling benchmarks:")
-  progress.status(lambda: "compiling benchmarks - currently using %d of %d processors"%(len(jobs),NCPU))
+  progress.status(lambda: "[%d/%d jobs] - compiling benchmarks"%(len(jobs),NCPU))
   assert os.path.isfile(pbc)
   def checkJob(name, status):
     global left

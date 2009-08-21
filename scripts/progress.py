@@ -49,16 +49,18 @@ class Progress:
     return self.startPercent()+(self.scale()*(1-(self.curRemaining-1.0)/self.maxRemaining))
 
   def update(self):
-    self.clear()
+    m=""
     if self.maxRemaining >= 0:
-      self.displayed="[%.0f%%]"%self.percent()
+      m="[%.0f%%]"%self.percent()
     if type(self.curMsg) is type(lambda:""):
-      self.displayed+=" - "+self.curMsg()
+      m+=" - "+self.curMsg()
     if type(self.curMsg) is type("") and len(self.curMsg)>0:
-      self.displayed+=" - "+self.curMsg
+      m+=" - "+self.curMsg
     if self.hasParent():
-      self.displayed+=" (%.0f%%)"%self.localPercent()
-    sys.stderr.write(self.displayed)
+      m+=" (%.0f%%)"%self.localPercent()
+    if self.displayed!=m:
+      sys.stderr.write("\r"+m+"".ljust(len(self.displayed)-len(m)))
+      self.displayed=m
   
   def clear(self):
     if len(self.displayed)>0:

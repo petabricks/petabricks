@@ -240,7 +240,6 @@ def optimizeParam(ctx, n, param, start=0, stop=-1, branchfactor=7, best=(-1, max
       return optimizeParam(ctx, n, param, newStart, newStop, branchfactor, best, worst)
   return best[0], (worst[1]-best[1])/best[1]
 
-
 def autotuneCutoff(tx, tunable, n, min=0, max=-1):
   if max<0:
     max=n
