@@ -21,6 +21,7 @@ class Progress:
   parent=None
   maxRemaining=-1
   curRemaining=0
+  nextRemaining=0
   curMsg=""
   displayed=""
   def __init__(self, parent=None):
@@ -29,10 +30,14 @@ class Progress:
   def hasParent(self):
     return self.parent is not None and self.parent.maxRemaining>=0
 
-  def remaining(self, n):
+  def remaining(self, n, nx=None):
     n=float(n)
     self.maxRemaining=max(self.maxRemaining, n)
     self.curRemaining=n
+    if nx is None:
+      self.nextRemaining=max(0,n-1.0)
+    else:
+      self.nextRemaining=nx
     self.update()
 
   def status(self, m):
@@ -60,7 +65,7 @@ class Progress:
     return self.startPercent()+(self.scale()*(1-self.curRemaining/self.maxRemaining))
   
   def nextPercent(self):
-    return self.startPercent()+(self.scale()*(1-max(0,self.curRemaining-1.0)/self.maxRemaining))
+    return self.startPercent()+(self.scale()*(1-self.nextRemaining/self.maxRemaining))
 
   def update(self):
     m=""
@@ -88,7 +93,7 @@ class Progress:
 
 current=Progress()
 
-remaining=lambda n: current.remaining(n)
+remaining=lambda n, nx=None: current.remaining(n,nx)
 status=lambda m: current.status(m)
 echo=lambda m: current.echo(m)
 clear=lambda : current.clear()
@@ -114,11 +119,15 @@ def subtask(n, fn):
   pop()
 
 def remainingTicks(n):
-  remaining(n)
   current.ticks=n
+  remaining(n)
 
 def tick(n=1):
   current.ticks-=n
   remaining(current.ticks)
   assert current.ticks >= 0
+
+def untick(n=1):
+  current.ticks+=n
+  remaining(current.ticks)
 

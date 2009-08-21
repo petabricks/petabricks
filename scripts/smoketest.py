@@ -8,7 +8,9 @@ import subprocess
 import time
 import progress
 
-progress.remaining(1.05)
+runPct=0.05 #percent of time spent in run phase
+
+progress.remaining(1.00, 0.05)
 progress.status("running smoketest")
 
 t1=time.time()
@@ -35,7 +37,7 @@ total=0
 runjobs=[]
 
 
-progress.remaining(0.05)
+progress.remaining(runPct)
 progress.push()
 progress.status("running benchmarks")
 progress.echo("Running benchmarks:")
