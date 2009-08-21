@@ -1,6 +1,20 @@
 #!/usr/bin/python
 
 import sys
+import math 
+
+barwidth=15
+barchars=" -=#"
+
+def prettybar(pct):
+  p=int(math.floor(pct*barwidth*len(barchars)/100.0))
+  box=p/len(barchars)
+  chr=p%len(barchars)
+  s=''.join([barchars[-1] for i in xrange(box)])
+  if box<barchars:
+    s+=barchars[chr]
+  s+=''.join([barchars[0] for i in xrange(barwidth-1-box)])
+  return "[" + s + "]"
 
 class Progress:
   ticks=0
@@ -46,12 +60,12 @@ class Progress:
     return self.startPercent()+(self.scale()*(1-self.curRemaining/self.maxRemaining))
   
   def nextPercent(self):
-    return self.startPercent()+(self.scale()*(1-(self.curRemaining-1.0)/self.maxRemaining))
+    return self.startPercent()+(self.scale()*(1-max(0,self.curRemaining-1.0)/self.maxRemaining))
 
   def update(self):
     m=""
     if self.maxRemaining >= 0:
-      m="[%.0f%%]"%self.percent()
+      m=prettybar(self.percent())
     if type(self.curMsg) is type(lambda:""):
       m+=" - "+self.curMsg()
     if type(self.curMsg) is type("") and len(self.curMsg)>0:

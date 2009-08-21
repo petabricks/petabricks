@@ -8,10 +8,12 @@ import subprocess
 import time
 import progress
 
-progress.remaining(2)
+progress.remaining(1.05)
 progress.status("running smoketest")
 
+t1=time.time()
 benchmarks=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:])
+t2=time.time()
 
 def resolveInputPath(path):
   if os.path.isfile("./testdata/"+path):
@@ -32,7 +34,8 @@ total=0
 
 runjobs=[]
 
-progress.remaining(1)
+
+progress.remaining(0.05)
 progress.push()
 progress.status("running benchmarks")
 progress.echo("Running benchmarks:")
@@ -82,7 +85,8 @@ for msg,p,outfile,cmd in runjobs:
   progress.echo(msg+" run PASSED")
   passed+=1
 
-progress.echo("%d of %d tests passed"%(passed,total))
+t3=time.time()
+progress.echo("%d of %d tests passed (%.2fs compile, %.2fs run)"%(passed,total,(t2-t1),(t3-t2)))
 
 progress.pop()
 progress.remaining(0)
