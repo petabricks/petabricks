@@ -202,11 +202,13 @@ void petabricks::Autotuner::trainOnce(){
 }
 
 void petabricks::Autotuner::printCanidates(){
+  int slot=0;
   for(CandidateAlgorithmList::iterator i=_candidates.begin(); i!=_candidates.end(); ++i){
+    std::cout << "SLOT[" << slot++ << "] ";
     if((*i)->numResults()==1)
-      std::cout << "  ADD    " ;
+      std::cout << "ADD    " ;
     else
-      std::cout << "  KEEP   " ;
+      std::cout << "KEEP   " ;
     std::cout << jalib::StringPad((*i)->toString(),20) << " = " << (*i)->lastResult() << std::endl;
   }
 }

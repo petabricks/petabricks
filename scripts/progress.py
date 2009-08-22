@@ -42,6 +42,7 @@ class Progress:
 
   def status(self, m):
     self.curMsg=m
+    self.update()
 
   def startPercent(self):
     if not self.hasParent() or self.maxRemaining < 0:
@@ -67,14 +68,20 @@ class Progress:
   def nextPercent(self):
     return self.startPercent()+(self.scale()*(1-self.nextRemaining/self.maxRemaining))
 
+  def getStatus(self):
+    if type(self.curMsg) is type(lambda:""):
+      return " - "+self.curMsg()
+    if len(self.curMsg)>0:
+      return " - "+self.curMsg
+    if self.parent is not None:
+      return self.parent.getStatus()
+    return ""
+
   def update(self):
     m=""
     if self.maxRemaining >= 0:
       m=prettybar(self.percent())
-    if type(self.curMsg) is type(lambda:""):
-      m+=" - "+self.curMsg()
-    if type(self.curMsg) is type("") and len(self.curMsg)>0:
-      m+=" - "+self.curMsg
+    m += self.getStatus()
     if self.hasParent():
       m+=" (%.0f%%)"%self.localPercent()
     if self.displayed!=m:
