@@ -10,10 +10,6 @@ Options:
                    - Default is worker_threads (from config file)
   -n, --random   Size of random data to optimize on
                    - Default is 100000
-  --min          Min size to autotune on
-                   - Default is 64
-  --max          Max size to autotune on
-                   - Default is 4096
   -h, --help     This help screen
 
 """
@@ -65,7 +61,9 @@ class TaskStats():
   def __init__(self, w=1):
     self.weight=w
 
-taskStats=dict()
+#these initial weights make the progress bar run more smoothly 
+#generated from performance breakdown for Sort on kleptocracy
+taskStats = {'cutoff':TaskStats(2.54), 'determineInputSizes':TaskStats(1.18), 'runTimingTest':TaskStats(0.20), 'algchoice':TaskStats(0.08)}
 tasks=[]
 
 class TuneTask():
@@ -81,8 +79,15 @@ class TuneTask():
       taskStats[self.type]=TaskStats()
     t=time.time()
     self.fn()
-    taskStats[self.type].count+=1
-    taskStats[self.type].sec+=time.time()-t
+    taskStats[self.type].count += self.multiplier
+    taskStats[self.type].sec += (time.time()-t)
+  def weight(self):
+    if not taskStats.has_key(self.type):
+      taskStats[self.type]=TaskStats()
+    return taskStats[self.type].weight * self.multiplier
+
+def remainingTaskWeight():
+  return sum(map(lambda x: x.weight(), tasks))
 
 def reset():
   ignore_vals = []
@@ -117,14 +122,23 @@ def getCallees(tx):
 def getTunables(tx, type):
   return filter( lambda t: t.getAttribute("type")==type, tx.getElementsByTagName("tunable") )
 
+
+
 def getChoiceSites(tx):
-  #it would be nice to export this data, for now parse it from tunable names
   getSiteRe = re.compile( re.escape(nameof(tx)) + "_([0-9]*)_lvl[0-9]*_.*" )
   getSite=lambda t: int(getSiteRe.match(nameof(t)).group(1))
+  #it would be nice to export this data, for now parse it from tunable names
   sites=[]
   sites.extend(map(getSite, getTunables(tx,"algchoice.cutoff")))
   sites.extend(map(getSite, getTunables(tx,"algchoice.alg")))
   return list(set(sites))
+
+def getChoiceSiteWeight(tx, site, cutoffs):
+  getSiteRe = re.compile( re.escape(nameof(tx)) + "_([0-9]*)_lvl[0-9]*_.*" )
+  getSite=lambda t: int(getSiteRe.match(nameof(t)).group(1))
+  tunables=filter(lambda x: getSite(x)==site, getTunables(tx,"algchoice.alg"))
+  algcounts=map(lambda x: int(x.getAttribute("max"))-int(x.getAttribute("min")),tunables) 
+  return reduce(max, algcounts, 1)+len(cutoffs)
   
 def walkCallTree(tx, fndown=lambda x,y,z: None, fnup=lambda x,y,z: None):
   seen = set()
@@ -239,7 +253,7 @@ def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
     cutoffs.extend(getTunables(tx, "system.seqcutoff"))
   cutoffs.extend(getTunables(tx, "system.splitsize"))
   for site in getChoiceSites(tx):
-    tasks.append(TuneTask("algchoice" , lambda: autotuneAlgchoice(tx, site, ctx, inputSize, cutoffs)))
+    tasks.append(TuneTask("algchoice" , lambda: autotuneAlgchoice(tx, site, ctx, inputSize, cutoffs), getChoiceSiteWeight(tx, site, cutoffs)))
   for tunable in cutoffs:
     tasks.append(TuneTask("cutoff" , lambda: autotuneCutoff(ctx, tunable, inputSize)))
 
@@ -346,13 +360,29 @@ def main(argv):
   progress.status("autotuning")
 
   while len(tasks)>0:
-    progress.remaining(len(tasks))
-    t=tasks.pop(0)
-    t.run()
+    w1=remainingTaskWeight()
+    task=tasks.pop(0)
+    w2=remainingTaskWeight()
+    progress.remaining(w1, w2)
+    task.run()
   progress.clear()
-  
+
   t2=time.time()
+  sec=t2-t1
+
+  
+
   print "autotuning took %.2f sec"%(t2-t1)
+  for k,v in taskStats.items():
+    print "  %.2f sec in %s"%(v.sec, k)
+    sec -= v.sec
+  print "  %.2f sec in unknown"%sec
+  
+  names=taskStats.keys()
+  weights=map(lambda x: x.sec/float(x.count), taskStats.values())
+  scale=len(weights)/sum(weights)
+  print "Suggested weights:"
+  print "taskStats = {" + ", ".join(map(lambda i: "'%s':TaskStats(%.2f)"%(names[i], scale*weights[i]), xrange(len(names)))) + "}"
 
 
 if __name__ == "__main__":
