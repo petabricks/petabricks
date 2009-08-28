@@ -28,17 +28,12 @@
 
 namespace petabricks {
 
-// forward declarsion for DynamicTaskScheduler pointer
-class DynamicScheduler;
-
-// forward declarsion for DynamicTaskPtr
 class DynamicTask;
 typedef jalib::JRef<DynamicTask> DynamicTaskPtr;
 
 
 class DynamicTask : public jalib::JRefCounted {
 public:
-
   ///
   /// Perform this task, return a continuation task that must be completed
   /// before this task is marked done, otherwise return NULL

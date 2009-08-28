@@ -29,7 +29,6 @@
 # include "config.h"
 #endif
 
-
 namespace petabricks {
 
 int tid();
@@ -42,31 +41,25 @@ class WorkerThread {
   PADDING(CACHE_LINE_SIZE);
 
  public:
-
-  WorkerThread()
-  {
+  WorkerThread(){
     _randomNumState.z = tid() * tid() * 2;
     _randomNumState.w = tid() + 1;
   }
 
-  void push(DynamicTask *t)
-  {
+  void push(DynamicTask *t){
     _deque.push(t);
   }
 
-  DynamicTask *pop()
-  {
+  DynamicTask *pop(){
     return _deque.pop_lock_free();
   }
 
-  DynamicTask *steal()
-  {
+  DynamicTask *steal(){
     return _deque.pop_bottom_lock_free();
   }
 
   int nextTaskStack(int numThreads) {
-    int next = (getRandInt() % numThreads);
-    return next;
+    return getRandInt() % numThreads;
   }
 
   void clear() {

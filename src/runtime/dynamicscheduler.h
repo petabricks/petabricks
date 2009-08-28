@@ -125,9 +125,7 @@ public:
     taskStacks[tid()].clear();
   }
 
-
   void popAndRunOneTask(bool blocking);
-
 
 #ifdef GRACEFUL_ABORT
   class AbortException {};
