@@ -93,6 +93,50 @@ inline uint64_t ClockCyclesSinceBoot()
   return ((uint64_t ) lo) | (((uint64_t) hi) << 32);
 }
 
+/**
+ * Raw compare and swap, specialized for each number of bits
+ * Returns value of *ptr before CAS
+ */
+template < int bytes >
+long _casBytes(volatile long* ptr, long oldVal, long newVal);
+//specialized template for 1 byte CAS
+template <>
+inline long _casBytes<1>(volatile long* ptr, long oldVal, long newVal){
+  long prev;
+  asm volatile("cmpxchgb %b1,%2" : "=a"(prev) : "q"(newVal), "m"(*ptr), "0"(oldVal) : "memory");
+  return prev;
+}
+//specialized template for 2 byte CAS
+template <>
+inline long _casBytes<2>(volatile long* ptr, long oldVal, long newVal){
+  long prev;
+  asm volatile("cmpxchgw %w1,%2" : "=a"(prev) : "r"(newVal), "m"(*ptr), "0"(oldVal) : "memory");
+  return prev;
+}
+//specialized template for 4 byte CAS
+template <>
+inline long _casBytes<4>(volatile long* ptr, long oldVal, long newVal){
+  long prev;
+  asm volatile("cmpxchgl %k1,%2" : "=a"(prev) : "r"(newVal), "m"(*ptr), "0"(oldVal) : "memory");
+  return prev;
+}
+//specialized template for 8 byte CAS
+template <>
+inline long _casBytes<8>(volatile long* ptr, long oldVal, long newVal){
+  long prev;
+  asm volatile("cmpxchgq %1,%2" : "=a"(prev) : "r"(newVal), "m"(*ptr), "0"(oldVal) : "memory");
+  return prev;
+}
+
+/**
+ * Properly type checked CAS
+ * Returns true if the newVal was put in place
+ */
+template<typename T>
+inline bool compareAndSwap(volatile T* ptr, T oldVal, T newVal){
+  return (long)oldVal==_casBytes<sizeof(T)>((volatile long*)ptr,(long)oldVal,(long)newVal);
+}
+
 #elif defined(__sparc__)
 
 inline bool
