@@ -282,7 +282,6 @@ void petabricks::PetabricksRuntime::runNormal(){
     try{
       computeWrapper();
     }catch(petabricks::DynamicScheduler::AbortException e){
-      DynamicScheduler::instance().abortEnd();
       JASSERT(false).Text("PetabricksRuntime::abort() called");
     }catch(ComputeRetryException e){
       UNIMPLEMENTED();
@@ -367,9 +366,7 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
 
 double petabricks::PetabricksRuntime::runTrial(double thresh){
   JASSERT(_randSize>0)(_randSize).Text("'--n=NUMBER' is required");
-#ifdef GRACEFUL_ABORT
   try{
-#endif
     std::vector<double> rslts;
     rslts.reserve(2*GRAPH_SMOOTHING+1);
     for( int n =  _randSize-GRAPH_SMOOTHING
@@ -387,12 +384,9 @@ double petabricks::PetabricksRuntime::runTrial(double thresh){
     }
     std::sort(rslts.begin(), rslts.end());
     return rslts[GRAPH_SMOOTHING];
-#ifdef GRACEFUL_ABORT
   }catch(petabricks::DynamicScheduler::AbortException e){
-    DynamicScheduler::instance().abortEnd();
     return std::numeric_limits<double>::max();
   }
-#endif
 }
 
 double petabricks::PetabricksRuntime::trainAndComputeWrapper(double thresh){
@@ -538,11 +532,7 @@ void petabricks::PetabricksRuntime::setIsTrainingRun(bool b){
 }
 
 void petabricks::PetabricksRuntime::abort(){
-#ifdef GRACEFUL_ABORT
-  DynamicScheduler::instance().abortBegin();
-#else
-  JASSERT(false).Text("PetabricksRuntime::abort() called");
-#endif
+  DynamicScheduler::instance().abort();
 }
 void petabricks::PetabricksRuntime::runMultigridAutotuneMode(){
   std::string s1 = "Poisson2D_Inner_Prec1_1";

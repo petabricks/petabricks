@@ -4937,7 +4937,7 @@ $as_echo "#define MAX_DIMENSIONS 64" >>confdefs.h
 $as_echo "#define MAX_INPUT_BITS 32" >>confdefs.h
 
 
-$as_echo "#define GRACEFUL_ABORT 1" >>confdefs.h
+$as_echo "#define STEAL_ATTEMPTS_WAITING 3" >>confdefs.h
 
 
 $as_echo "#define SHORT_TYPE_NAMES 1" >>confdefs.h

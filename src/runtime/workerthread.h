@@ -23,7 +23,7 @@
 #include "dynamictask.h"
 #include "thedeque.h"
 
-#include <pthread.h>
+#include <set>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -31,57 +31,87 @@
 
 namespace petabricks {
 
-int tid();
+class WorkerThreadPool;
 
 class WorkerThread {
-  typedef THEDeque<DynamicTask*> Deque;
-  PADDING(CACHE_LINE_SIZE);
-  Deque _deque;
-  struct { int z; int w; } _randomNumState;
-  PADDING(CACHE_LINE_SIZE);
+public:
+  static WorkerThread* self();
 
- public:
-  WorkerThread(){
-    _randomNumState.z = tid() * tid() * 2;
-    _randomNumState.w = tid() + 1;
-  }
-
-  void push(DynamicTask *t){
-    _deque.push(t);
-  }
-
-  DynamicTask *pop(){
-    return _deque.pop_lock_free();
-  }
+  WorkerThread(WorkerThreadPool& pool);
+  ~WorkerThread();
 
   DynamicTask *steal(){
-    return _deque.pop_bottom_lock_free();
+    return _deque.pop_bottom();
+  }
+  
+  void push(DynamicTask* t){
+    return _deque.push_top(t);
   }
 
-  int nextTaskStack(int numThreads) {
-    return getRandInt() % numThreads;
-  }
+  int threadRandInt() const;
 
-  void clear() {
-    _deque.clear();
-  }
+  void popAndRunOneTask(int stealLimit);
+  void mainLoop();
 
-  bool isEmpty() {
-    return _deque.isEmpty();
-  }
+  int id() const { return _id; }
 
- private:
+  bool hasWork() const { return !_deque.empty(); }
+  int workCount() const { return (int)_deque.size(); }
 
-  int getRandInt() {
-    _randomNumState.z = 36969 * (_randomNumState.z & 65535) + (_randomNumState.z >> 16);
-    _randomNumState.w = 18000 * (_randomNumState.w & 65535) + (_randomNumState.w >> 16);
-    int retVal = (_randomNumState.z << 16) + _randomNumState.w;
-    if (retVal < 0) {
-      retVal = -retVal;
-    }
-    return retVal;
-  }
+  WorkerThreadPool& pool() { return _pool; }
+  const WorkerThreadPool& pool() const { return _pool; }
+private:
+  int _id;
+  THEDeque<DynamicTask*> _deque;
+  mutable struct { int z; int w; } _randomNumState;
+  WorkerThreadPool& _pool;
 } __attribute__ ((aligned (64)));
+
+/**
+ * A pool of worker threads
+ * This data structure becomes inefficient when/after removals occur
+ */
+class WorkerThreadPool {
+public:
+  //
+  // constructor 
+  WorkerThreadPool();
+
+  //
+  // insert a new thread into the pool in a lock-free way
+  void insert(WorkerThread* thread);
+  
+  //
+  // remove a thread from the pool in a lock-free way
+  void remove(WorkerThread* thread);
+
+  //
+  // pick a random thread from the pool
+  WorkerThread* getRandom(const WorkerThread* caller);
+  
+  //
+  // pick a thread from the pool, using i as a hint of the location
+  WorkerThread* getFixed(int i=0);
+
+private:
+  WorkerThread* _pool[MAX_NUM_WORKERS];
+  int _count;
+};
+
+
+/**
+ * A task that aborts all threads in the pool
+ */
+class AbortTask : public DynamicTask {
+public:
+  AbortTask(int totalThreads, bool shouldExit = false);
+  DynamicTaskPtr run();
+private:
+  jalib::AtomicT    _numLive;
+  jalib::AtomicT    _numAborting;
+  jalib::JCondMutex _lock;
+  bool _shutdown;
+};
 
 }
 

@@ -23,6 +23,8 @@
 #include "common/jasm.h"
 #include "common/jmutex.h"
 
+#include <deque>
+
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
@@ -31,6 +33,37 @@ namespace petabricks {
 
 template < typename T >
 class THEDeque {
+#if 1
+public:
+  void push_top(const T& task) { 
+    JLOCKSCOPE(_lock);
+    _deque.push_back(task);
+  }
+  T pop_top() {
+    JLOCKSCOPE(_lock);
+    if(_deque.empty()) return NULL;
+    T t = _deque.back();
+    _deque.pop_back();
+    return t;
+  }
+  T pop_bottom() {
+    if(_deque.empty() || !_lock.trylock()) return NULL;
+    T t = NULL;
+    if(!_deque.empty()){
+      t = _deque.front();
+      _deque.pop_front();
+    }
+    _lock.unlock();
+    return t;
+  }
+  int size() const { return (int)_deque.size(); }
+  bool empty() const { return _deque.empty(); }
+private:
+  std::deque<T> _deque;
+  jalib::JMutex _lock;
+
+#endif
+#if 0
   private:
     long _size;
     T* _array;
@@ -54,7 +87,7 @@ class THEDeque {
     free(_array);
   }
 
-  void push(const T& task) {
+  void push_top(const T& task) {
 
     _array[_t] = task;
     _t++;
@@ -67,7 +100,9 @@ class THEDeque {
     }
   }
 
-  T pop() {
+#ifdef THEDEQUE_DISABLE_LOCKFREE
+
+  T pop_top() {
 
     if (isEmpty()) {
       return NULL;
@@ -101,8 +136,9 @@ class THEDeque {
     return retVal;
   }
 
+#else
 
-  T pop_lock_free() {
+  T pop_top() {
 
     if (isEmpty()) {
       return NULL;
@@ -127,7 +163,7 @@ class THEDeque {
     }
   }
 
-  T pop_bottom_lock_free() {
+  T pop_bottom() {
 
     if (isEmpty() || !_lock.trylock()) {
       return NULL;
@@ -150,6 +186,8 @@ class THEDeque {
     return task;
   }
 
+#endif
+
   void clear() {
     JLOCKSCOPE(_lock);
 
@@ -161,10 +199,11 @@ class THEDeque {
     _t = 0;
   }
 
-  bool isEmpty() {
+  bool isEmpty() const {
     return _h == _t;
   }
 
+#endif
 };
 }
 

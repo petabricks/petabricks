@@ -114,7 +114,8 @@ am_libpbruntime_a_OBJECTS = libpbruntime_a-autotuner.$(OBJEXT) \
 	libpbruntime_a-petabricksruntime.$(OBJEXT) \
 	libpbruntime_a-ruleinstance.$(OBJEXT) \
 	libpbruntime_a-spatialdynamictask.$(OBJEXT) \
-	libpbruntime_a-transforminstance.$(OBJEXT)
+	libpbruntime_a-transforminstance.$(OBJEXT) \
+	libpbruntime_a-workerthread.$(OBJEXT)
 libpbruntime_a_OBJECTS = $(am_libpbruntime_a_OBJECTS)
 PROGRAMS = $(noinst_PROGRAMS)
 am_pbc_OBJECTS = pbc-pbc.$(OBJEXT)
@@ -333,7 +334,9 @@ pkglib_HEADERS = \
   runtime/petabricksruntime.h \
   runtime/ruleinstance.h \
   runtime/spatialdynamictask.h \
-  runtime/transforminstance.h
+  runtime/thedeque.h \
+  runtime/transforminstance.h \
+  runtime/workerthread.h
 
 libpbcommon_a_CXXFLAGS = -I$(srcdir)/common
 libpbcommon_a_SOURCES = \
@@ -391,7 +394,8 @@ libpbruntime_a_SOURCES = \
   runtime/petabricksruntime.cpp \
   runtime/ruleinstance.cpp \
   runtime/spatialdynamictask.cpp \
-  runtime/transforminstance.cpp
+  runtime/transforminstance.cpp \
+  runtime/workerthread.cpp
 
 libpbmain_a_CXXFLAGS = -Iruntime
 libpbmain_a_SOURCES = runtime/redirectmain.cpp
@@ -550,6 +554,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-ruleinstance.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-spatialdynamictask.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-transforminstance.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-workerthread.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbc-pbc.Po@am__quote@
 
 .cpp.o:
@@ -1223,6 +1228,20 @@ libpbruntime_a-transforminstance.obj: runtime/transforminstance.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/transforminstance.cpp' object='libpbruntime_a-transforminstance.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-transforminstance.obj `if test -f 'runtime/transforminstance.cpp'; then $(CYGPATH_W) 'runtime/transforminstance.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/transforminstance.cpp'; fi`
+
+libpbruntime_a-workerthread.o: runtime/workerthread.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-workerthread.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-workerthread.Tpo -c -o libpbruntime_a-workerthread.o `test -f 'runtime/workerthread.cpp' || echo '$(srcdir)/'`runtime/workerthread.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-workerthread.Tpo $(DEPDIR)/libpbruntime_a-workerthread.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/workerthread.cpp' object='libpbruntime_a-workerthread.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-workerthread.o `test -f 'runtime/workerthread.cpp' || echo '$(srcdir)/'`runtime/workerthread.cpp
+
+libpbruntime_a-workerthread.obj: runtime/workerthread.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-workerthread.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-workerthread.Tpo -c -o libpbruntime_a-workerthread.obj `if test -f 'runtime/workerthread.cpp'; then $(CYGPATH_W) 'runtime/workerthread.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/workerthread.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-workerthread.Tpo $(DEPDIR)/libpbruntime_a-workerthread.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/workerthread.cpp' object='libpbruntime_a-workerthread.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-workerthread.obj `if test -f 'runtime/workerthread.cpp'; then $(CYGPATH_W) 'runtime/workerthread.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/workerthread.cpp'; fi`
 
 pbc-pbc.o: compiler/pbc.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pbc_CXXFLAGS) $(CXXFLAGS) -MT pbc-pbc.o -MD -MP -MF $(DEPDIR)/pbc-pbc.Tpo -c -o pbc-pbc.o `test -f 'compiler/pbc.cpp' || echo '$(srcdir)/'`compiler/pbc.cpp

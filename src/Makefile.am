@@ -56,7 +56,9 @@ pkglib_HEADERS=  \
   runtime/petabricksruntime.h \
   runtime/ruleinstance.h \
   runtime/spatialdynamictask.h \
-  runtime/transforminstance.h
+  runtime/thedeque.h \
+  runtime/transforminstance.h \
+  runtime/workerthread.h
 
 libpbcommon_a_CXXFLAGS = -I$(srcdir)/common
 libpbcommon_a_SOURCES =  \
@@ -114,7 +116,8 @@ libpbruntime_a_SOURCES =  \
   runtime/petabricksruntime.cpp \
   runtime/ruleinstance.cpp \
   runtime/spatialdynamictask.cpp \
-  runtime/transforminstance.cpp
+  runtime/transforminstance.cpp \
+  runtime/workerthread.cpp
 
 libpbmain_a_CXXFLAGS = -Iruntime
 libpbmain_a_SOURCES = runtime/redirectmain.cpp

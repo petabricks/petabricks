@@ -64,6 +64,10 @@ public:
   void runWrapper(bool isAborting = false);
 
   ///
+  /// Pretend this task was run successfully, recursively cancel tasks that depend on this
+  void cancel(){ runWrapper(true); }
+
+  ///
   /// either enqueue or inline the task
   void inlineOrEnqueueTask();
 

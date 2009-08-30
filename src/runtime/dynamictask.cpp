@@ -18,13 +18,19 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "petabricksruntime.h"
+
 #include "dynamicscheduler.h"
 #include "dynamictask.h"
+#include "workerthread.h"
 
 #include "common/jasm.h"
 #include "common/jtunable.h"
 
 #include <pthread.h>
+
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 
 //#define PBCC_SEQUENTIAL
 #define INLINE_NULL_TASKS
@@ -171,11 +177,12 @@ void DynamicTask::waitUntilComplete() {}
 #else
 void DynamicTask::waitUntilComplete()
 {
+  WorkerThread* self = WorkerThread::self();
+  JASSERT(self!=NULL);
   lock.lock();
   while(state != S_COMPLETE && state!= S_CONTINUED) {
     lock.unlock();
-    // get a task for execution
-    DynamicScheduler::instance().popAndRunOneTask(false);
+    self->popAndRunOneTask(STEAL_ATTEMPTS_WAITING);
     lock.lock();
   }
   lock.unlock();
@@ -192,7 +199,11 @@ void DynamicTask::inlineOrEnqueueTask()
   else
 #endif
   {
-    DynamicScheduler::instance().enqueue(this);
+    WorkerThread* self = WorkerThread::self();
+#ifdef DEBUG
+    JASSERT(self!=NULL);
+#endif
+    self->push(this);
   }
 }
 
