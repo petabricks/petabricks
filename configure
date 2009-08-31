@@ -5000,6 +5000,10 @@ $as_echo "#define GOOD_RANDOM /**/" >>confdefs.h
 
 
 
+$as_echo "#define WORKERTHREAD_ONDECK /**/" >>confdefs.h
+
+
+
 cat >>confdefs.h <<_ACEOF
 #define REVISION_SHORT "$rev_short"
 _ACEOF
@@ -5030,6 +5034,10 @@ $as_echo "#define INPUT_PERIMETER_STR \"input_perimeter\"" >>confdefs.h
 
 
 $as_echo "#define INPUT_SIZE_STR \"input_count\"" >>confdefs.h
+
+
+
+$as_echo "#define WORKERTHREAD_INJECT /**/" >>confdefs.h
 
 fi
 

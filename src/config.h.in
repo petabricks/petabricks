@@ -216,6 +216,13 @@
 /* Version number of package */
 #undef VERSION
 
+/* support WorkerThread::inject() with a separate queue */
+#undef WORKERTHREAD_INJECT
+
+/* use a special 1-element queue for the first item pushed, for better
+   locality */
+#undef WORKERTHREAD_ONDECK
+
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */
 #undef YYTEXT_POINTER

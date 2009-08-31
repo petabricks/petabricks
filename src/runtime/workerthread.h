@@ -30,10 +30,6 @@
 # include "config.h"
 #endif
 
-// use a special 1-element queue for the first item pushed
-// this gives us a 5-10% performance boost because of better locality
-#define WORKERTHREAD_ONDECK
-
 namespace petabricks {
 
 class DynamicScheduler;
@@ -49,26 +45,43 @@ public:
   ///
   /// called from a remote thread, taking work
   DynamicTask* steal(){
-    return _deque.pop_bottom();
+    DynamicTask* t = NULL;
+#ifdef WORKERTHREAD_INJECT
+    if(!_injectQueue.empty())
+      t=_injectQueue.pop_bottom();
+#endif
+    if(t==NULL)
+      t = _deque.pop_bottom();
+    return t;
   }
   
   ///
   /// called from a remote thread, giving work
   void inject(DynamicTask* t){
-    UNIMPLEMENTED();
+#ifdef WORKERTHREAD_INJECT
+    _injectQueue.push_bottom(t);
+#else
+    JASSERT(false).Text("support for WorkerThread::inject() not compiled in");
+#endif
   }
   
   ///
   /// called on WorkerThread::self(), taking work
   DynamicTask* popLocal(){
+    DynamicTask* t = NULL;
 #ifdef WORKERTHREAD_ONDECK
     if(_ondeck != NULL){
-      DynamicTask* t = _ondeck;
+      t = _ondeck;
       _ondeck=NULL;
       return t;
     }
 #endif
-    return _deque.pop_top();
+    t = _deque.pop_top();
+#ifdef WORKERTHREAD_INJECT
+    if(t==NULL && !_injectQueue.empty())
+      t=_injectQueue.pop_top();
+#endif
+    return t;
   }
   
   ///
@@ -112,6 +125,9 @@ private:
   DynamicTask* _ondeck; // a special queue for the *first* task pushed (improves locality)
 #endif
   THEDeque<DynamicTask*> _deque;
+#ifdef WORKERTHREAD_INJECT
+  LockingDeque<DynamicTask*> _injectQueue;
+#endif
   mutable struct { int z; int w; } _randomNumState;
   WorkerThreadPool& _pool;
   pthread_t _thread;
