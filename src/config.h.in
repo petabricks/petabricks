@@ -180,6 +180,9 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
+/* number of times to attempt to steal in mainLoop */
+#undef STEAL_ATTEMPTS_MAINLOOP
+
 /* number of times to attempt to steal in waitUntilComplete */
 #undef STEAL_ATTEMPTS_WAITING
 

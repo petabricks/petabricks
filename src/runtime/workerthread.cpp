@@ -117,7 +117,7 @@ void petabricks::WorkerThread::popAndRunOneTask(int stealLimit)
 void petabricks::WorkerThread::mainLoop(){
   for(;;){
     try {
-      for(;;) popAndRunOneTask(32);
+      for(;;) popAndRunOneTask(STEAL_ATTEMPTS_MAINLOOP);
     }catch(DynamicScheduler::AbortException e){}
   }
 }

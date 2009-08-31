@@ -62,18 +62,34 @@ void petabricks::DynamicScheduler::startWorkerThreads(int total)
 }
 
 void petabricks::DynamicScheduler::abort(){
-  static int n = -1;
   static DynamicTaskPtr t;
-  if(n != numThreads()){
-    n = numThreads();
-    t = new AbortTask(n, false);
+  static jalib::JMutex lock;
+  if(lock.trylock()){
+    t = new AbortTask(numThreads(), false);
+    try{
+      t->run();
+    }catch(...){
+      lock.unlock();
+      throw;
+    }
+    JASSERT(false);
+  }else{
+    //another thread beat us to the abort()
+    WorkerThread* self = WorkerThread::self();
+    //cancel all our pending tasks
+    while(self->hasWork()){
+      DynamicTask* t = self->steal();
+      if(t!=NULL) t->cancel();
+    }
+    //wait until the other thread aborts us
+    for(;;) self->popAndRunOneTask(STEAL_ATTEMPTS_MAINLOOP);
   }
-  t->run();
 }
 
 void petabricks::DynamicScheduler::shutdown(){
   try {
-    static DynamicTaskPtr t = new AbortTask(numThreads(), true);
+    static DynamicTaskPtr t;
+    t = new AbortTask(numThreads(), true);
     t->run();
   }catch(AbortException e){}
   pthread_t self = pthread_self();

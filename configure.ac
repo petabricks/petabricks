@@ -152,6 +152,7 @@ AC_DEFINE([MATRIX_ELEMENT_T],  [double],         [type for elements in the matri
 AC_DEFINE([MAX_DIMENSIONS],    [64],             [the maximum number of dimensions supported])
 AC_DEFINE([MAX_INPUT_BITS],    [32],             [the maximum number of dimensions supported])
 AC_DEFINE([STEAL_ATTEMPTS_WAITING], [3], [number of times to attempt to steal in waitUntilComplete])
+AC_DEFINE([STEAL_ATTEMPTS_MAINLOOP], [32], [number of times to attempt to steal in mainLoop])
 AC_DEFINE([SHORT_TYPE_NAMES],  [1],              [undefine this if a large number of dimensions are needed, or one wants a cleaner user namespace])
 AC_DEFINE([RUN_CPP],           [1],               [undefine to disable cpp])
 AC_DEFINE([MAX_REC_LEVELS],    [6],               [number of levels for recursive choices])
