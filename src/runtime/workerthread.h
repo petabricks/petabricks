@@ -99,7 +99,12 @@ public:
   ///
   /// Racy count of the number of items of work left
   int workCount() const {
-    return (int)_deque.size();
+    //ondeck is excluded purposefully (it cant be stolen)
+    return (int)_deque.size()
+#ifdef WORKERTHREAD_INJECT
+         + (int)injectQueue.size()
+#endif
+    ;
   }
   
   ///
@@ -114,8 +119,6 @@ public:
   /// Main loop for worker threads
   void mainLoop();
 
-  
-  bool hasWork() const { return workCount()>0; }
   int id() const { return _id; }
   WorkerThreadPool& pool() { return _pool; }
   const WorkerThreadPool& pool() const { return _pool; }

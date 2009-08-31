@@ -195,9 +195,9 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
   //until all threads are aborted, steal and cancel tasks
   while(_numLive>0){
     jalib::staticMemFence();
-    //make sure there is something to be stolen from us
-    if(!self->hasWork())
-      for(int i=0; i<10; ++i)
+    //make sure there is something to be stolen from us, 5 and 15 are arbitrary
+    if(self->workCount()<5)
+      for(int i=0; i<15; ++i)
         self->pushLocal(this);
     //pick a victim to steal work from
     WorkerThread* victim = pool.getRandom(self);
