@@ -80,6 +80,9 @@ petabricks::WorkerThread::WorkerThread(DynamicScheduler& ds)
   setSelf(this);
   _pool.insert(this);
   _thread = pthread_self();
+#ifdef WORKERTHREAD_ONDECK
+  _ondeck = NULL;
+#endif
 }
 petabricks::WorkerThread::~WorkerThread(){
   _pool.remove(this);

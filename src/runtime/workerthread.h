@@ -30,6 +30,10 @@
 # include "config.h"
 #endif
 
+// use a special 1-element queue for the first item pushed
+// this gives us a 5-10% performance boost because of better locality
+#define WORKERTHREAD_ONDECK
+
 namespace petabricks {
 
 class DynamicScheduler;
@@ -57,13 +61,26 @@ public:
   ///
   /// called on WorkerThread::self(), taking work
   DynamicTask* popLocal(){
+#ifdef WORKERTHREAD_ONDECK
+    if(_ondeck != NULL){
+      DynamicTask* t = _ondeck;
+      _ondeck=NULL;
+      return t;
+    }
+#endif
     return _deque.pop_top();
   }
   
   ///
   /// called on WorkerThread::self(), giving work
   void pushLocal(DynamicTask* t){
-    return _deque.push_top(t);
+#ifdef WORKERTHREAD_ONDECK
+    if(_ondeck == NULL){
+      _ondeck = t;
+      return;
+    }
+#endif
+    _deque.push_top(t);
   }
   
   ///
@@ -91,6 +108,9 @@ public:
   const WorkerThreadPool& pool() const { return _pool; }
 private:
   int _id;
+#ifdef WORKERTHREAD_ONDECK
+  DynamicTask* _ondeck; // a special queue for the *first* task pushed (improves locality)
+#endif
   THEDeque<DynamicTask*> _deque;
   mutable struct { int z; int w; } _randomNumState;
   WorkerThreadPool& _pool;
