@@ -41,19 +41,9 @@
 
 namespace petabricks {
 
-size_t            DynamicTask::firstSize = 0;
-size_t            DynamicTask::maxSize   = 0;
-
-DynamicTask::DynamicTask(bool isCont)
-{
-  // when this task is created, no other thread would touch it
-  // so no lock for numOfPredecessor update
-  state = S_NEW;
-  numOfPredecessor = 0;
-  isContinuation = isCont;
-  continuation = NULL;
-
-}
+DynamicTask::DynamicTask(TaskType t)
+ :_state(S_NEW), _numPredecessors(0), _continuation(NULL), _type(t)
+{}
 
 
 #ifdef PBCC_SEQUENTIAL
@@ -64,17 +54,16 @@ void DynamicTask::enqueue()
   incRefCount(); // matches with runWrapper()
   int preds;
   {
-    JLOCKSCOPE(lock);
-    preds=numOfPredecessor;
+    JLOCKSCOPE(_lock);
+    preds=_numPredecessors;
     if(preds==0)
-      state=S_READY;
+      _state=S_READY;
     else
-      state=S_PENDING;
+      _state=S_PENDING;
   }
-  if(preds==0) { // || (isContinuation && !isNullTask())) {
+  if(preds==0) {
     inlineOrEnqueueTask();
   }
-  //inlineOrEnqueueTask();
 }
 #endif // PBCC_SEQUENTIAL
 
@@ -86,23 +75,23 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
 {
   if(!that) return;
   JASSERT(that!=this).Text("task cant depend on itself");
-  JASSERT(state==S_NEW)(state).Text(".dependsOn must be called before enqueue()");
-  that->lock.lock();
-  if(that->state == S_CONTINUED){
-    that->lock.unlock();
-    dependsOn(that->continuation);
-  }else if(that->state != S_COMPLETE){
-    that->dependents.push_back(this);
+  JASSERT(_state==S_NEW)(_state).Text(".dependsOn must be called before enqueue()");
+  that->_lock.lock();
+  if(that->_state == S_CONTINUED){
+    that->_lock.unlock();
+    dependsOn(that->_continuation);
+  }else if(that->_state != S_COMPLETE){
+    that->_dependents.push_back(this);
     {
-      JLOCKSCOPE(lock);
-      numOfPredecessor++;
+      JLOCKSCOPE(_lock);
+      _numPredecessors++;
     }
-    that->lock.unlock();
+    that->_lock.unlock();
   }else{
-    that->lock.unlock();
+    that->_lock.unlock();
   }
 #ifdef VERBOSE
-    printf("thread %d: task %p depends on task %p counter: %d\n", pthread_self(), this, that.asPtr(), numOfPredecessor);
+    printf("thread %d: task %p depends on task %p counter: %d\n", pthread_self(), this, that.asPtr(), _numPredecessors);
 #endif
 }
 #endif // PBCC_SEQUENTIAL
@@ -110,9 +99,9 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
 void petabricks::DynamicTask::decrementPredecessors(bool isAborting){
   bool shouldEnqueue = false;
   {
-    JLOCKSCOPE(lock);
-    if(--numOfPredecessor==0 && state==S_PENDING){
-      state = S_READY;
+    JLOCKSCOPE(_lock);
+    if(--_numPredecessors==0 && _state==S_PENDING){
+      _state = S_READY;
       shouldEnqueue = true;
     }
   }
@@ -127,38 +116,37 @@ void petabricks::DynamicTask::decrementPredecessors(bool isAborting){
 
 
 void petabricks::DynamicTask::runWrapper(bool isAborting){
-  JASSERT(state==S_READY && numOfPredecessor==0)(state)(numOfPredecessor);
+  JASSERT(_state==S_READY && _numPredecessors==0)(_state)(_numPredecessors);
 
   if (!isAborting) {
-    continuation = run();
+    _continuation = run();
   } else {
-    continuation = NULL;
+    _continuation = NULL;
   }
 
   std::vector<DynamicTask*> tmp;
 
   {
-    JLOCKSCOPE(lock);
-    dependents.swap(tmp);
-    if(continuation) state = S_CONTINUED;
-    else             state = S_COMPLETE;
+    JLOCKSCOPE(_lock);
+    _dependents.swap(tmp);
+    if(_continuation) _state = S_CONTINUED;
+    else             _state = S_COMPLETE;
   }
 
-  if(continuation){
-    continuation->isContinuation = true;
+  if(_continuation){
 #ifdef VERBOSE
     JTRACE("task complete, continued")(tmp.size());
 #endif
     {
-      JLOCKSCOPE(continuation->lock);
-      if(continuation->dependents.empty()){
+      JLOCKSCOPE(_continuation->_lock);
+      if(_continuation->_dependents.empty()){
         //swap is faster than insert
-        continuation->dependents.swap(tmp);
+        _continuation->_dependents.swap(tmp);
       }else{
-        continuation->dependents.insert(continuation->dependents.end(), tmp.begin(), tmp.end());
+        _continuation->_dependents.insert(_continuation->_dependents.end(), tmp.begin(), tmp.end());
       }
     }
-    continuation->enqueue();
+    _continuation->enqueue();
   }else{
     #ifdef VERBOSE
     if(!isNullTask()) JTRACE("task complete")(tmp.size());
@@ -179,15 +167,15 @@ void DynamicTask::waitUntilComplete()
 {
   WorkerThread* self = WorkerThread::self();
   JASSERT(self!=NULL);
-  lock.lock();
-  while(state != S_COMPLETE && state!= S_CONTINUED) {
-    lock.unlock();
+  _lock.lock();
+  while(_state != S_COMPLETE && _state!= S_CONTINUED) {
+    _lock.unlock();
     self->popAndRunOneTask(STEAL_ATTEMPTS_WAITING);
-    lock.lock();
+    _lock.lock();
   }
-  lock.unlock();
-  if(state == S_CONTINUED)
-    continuation->waitUntilComplete();
+  _lock.unlock();
+  if(_state == S_CONTINUED)
+    _continuation->waitUntilComplete();
 }
 #endif // PBCC_SEQUENTIAL
 

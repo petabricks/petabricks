@@ -186,7 +186,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   //startup requested number of threads
   if(MODE!=MODE_GRAPH_THREADS && MODE!=MODE_ABORT){
     JASSERT(worker_threads>=1)(worker_threads);
-    DynamicScheduler::instance().startWorkerThreads(worker_threads);
+    DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
   }
 
   if(MODE==MODE_HELP){
@@ -203,7 +203,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
 petabricks::PetabricksRuntime::~PetabricksRuntime()
 {
   saveConfig();
-  DynamicScheduler::instance().shutdown();
+  DynamicScheduler::cpuScheduler().shutdown();
 }
 
 void petabricks::PetabricksRuntime::saveConfig()
@@ -357,7 +357,7 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
   GRAPH_MAX = std::min(GRAPH_MAX, worker_threads.max());
   for(int n = GRAPH_MIN; n <= GRAPH_MAX; n+= GRAPH_STEP) {
     worker_threads.setValue(n);
-    DynamicScheduler::instance().startWorkerThreads(worker_threads);
+    DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
     double avg = runTrial();
     printf("%d %.6lf\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;
@@ -413,7 +413,7 @@ double petabricks::PetabricksRuntime::computeWrapper(double thresh){
 #ifdef GRACEFUL_ABORT
 //// Set up a time out so we don't waste time running things that are
 //// slower than what we have seen already.
-//DynamicScheduler::instance().resetAbortFlag();
+//DynamicScheduler::cpuScheduler().resetAbortFlag();
 //if (thresh < std::numeric_limits<unsigned int>::max() - 1) {
 //  alarm((unsigned int) thresh + 1);
 //}
@@ -532,7 +532,7 @@ void petabricks::PetabricksRuntime::setIsTrainingRun(bool b){
 }
 
 void petabricks::PetabricksRuntime::abort(){
-  DynamicScheduler::instance().abort();
+  DynamicScheduler::cpuScheduler().abort();
 }
 void petabricks::PetabricksRuntime::runMultigridAutotuneMode(){
   std::string s1 = "Poisson2D_Inner_Prec1_1";

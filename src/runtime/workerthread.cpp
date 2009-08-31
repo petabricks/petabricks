@@ -32,7 +32,7 @@
   
 
 //singleton main thread
-static petabricks::WorkerThread theMainWorkerThread(petabricks::DynamicScheduler::instance().pool());
+static petabricks::WorkerThread theMainWorkerThread(petabricks::DynamicScheduler::cpuScheduler());
 
 #ifdef HAVE_THREADLOCAL
 //this is the simple/fast version
@@ -70,8 +70,8 @@ void setSelf(petabricks::WorkerThread* v){
 }
 #endif
 
-petabricks::WorkerThread::WorkerThread(WorkerThreadPool& pool)
-  : _pool(pool)
+petabricks::WorkerThread::WorkerThread(DynamicScheduler& ds)
+  : _pool(ds.pool())
 {
   static jalib::AtomicT lastId = -1;
   _id = (int)jalib::atomicIncrementReturn(&lastId);
@@ -79,6 +79,7 @@ petabricks::WorkerThread::WorkerThread(WorkerThreadPool& pool)
   _randomNumState.w = _id + 1;
   setSelf(this);
   _pool.insert(this);
+  _thread = pthread_self();
 }
 petabricks::WorkerThread::~WorkerThread(){
   _pool.remove(this);
@@ -172,7 +173,7 @@ petabricks::AbortTask::AbortTask(int totalThreads, bool shouldExit) {
   _numLive = totalThreads;
   _numAborting = totalThreads;
   _shutdown = shouldExit;
-  state = S_READY;
+  _state = S_READY;
 }
 petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
   WorkerThread* self = WorkerThread::self();

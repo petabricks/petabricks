@@ -33,7 +33,8 @@ namespace petabricks {
 
 class DynamicScheduler{
 public:
-  static DynamicScheduler& instance();
+  static DynamicScheduler& cpuScheduler();
+  static DynamicScheduler& lookupScheduler(DynamicTask::TaskType t);
  
   ///
   /// start worker threads

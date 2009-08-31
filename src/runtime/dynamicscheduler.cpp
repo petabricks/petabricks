@@ -27,7 +27,7 @@
 #  include "config.h"
 #endif
 
-petabricks::DynamicScheduler& petabricks::DynamicScheduler::instance(){
+petabricks::DynamicScheduler& petabricks::DynamicScheduler::cpuScheduler(){
   static DynamicScheduler t;
   if(t._rawThreads.empty()){
     // add the main thread
@@ -35,10 +35,19 @@ petabricks::DynamicScheduler& petabricks::DynamicScheduler::instance(){
   }
   return t;
 }
+petabricks::DynamicScheduler& petabricks::DynamicScheduler::lookupScheduler(DynamicTask::TaskType t){
+  static DynamicScheduler extraSchedulers[DynamicTask::TYPE_COUNT-1];
+  //TODO: once we get more than 2 or 3 task types we should convert this to a table
+  switch(t){
+    case DynamicTask::TYPE_CPU:    return cpuScheduler();  
+    case DynamicTask::TYPE_OPENCL: return extraSchedulers[0];  
+    default: UNIMPLEMENTED();
+  }
+}
 
 extern "C" void *workerStartup(void *arg) {
   JASSERT(arg!=0);
-  petabricks::WorkerThread worker(*(petabricks::WorkerThreadPool*)arg);
+  petabricks::WorkerThread worker(*(petabricks::DynamicScheduler*)arg);
   worker.mainLoop();
 }
 
@@ -48,7 +57,7 @@ void petabricks::DynamicScheduler::startWorkerThreads(int total)
   while(numThreads() < total){
     pthread_t tmp;
     _rawThreads.push_back(tmp);
-    JASSERT(pthread_create(&_rawThreads.back(), NULL, workerStartup, &_pool) == 0);
+    JASSERT(pthread_create(&_rawThreads.back(), NULL, workerStartup, this) == 0);
   }
 }
 

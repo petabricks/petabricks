@@ -34,13 +34,21 @@ typedef jalib::JRef<DynamicTask> DynamicTaskPtr;
 
 class DynamicTask : public jalib::JRefCounted {
 public:
+  enum TaskType {
+    TYPE_CPU    = 1<<0,
+    TYPE_OPENCL = 1<<1,
+
+    TYPE_ANY    = TYPE_CPU | TYPE_OPENCL,
+    TYPE_COUNT  = 2
+  };
+
   ///
   /// Perform this task, return a continuation task that must be completed
   /// before this task is marked done, otherwise return NULL
   virtual DynamicTaskPtr run() = 0;
 
   /// constructor
-  DynamicTask(bool isCont = false);
+  DynamicTask(TaskType t = TYPE_CPU);
 
   ///
   /// Mark that this may not start before that
@@ -68,19 +76,20 @@ public:
   void cancel(){ runWrapper(true); }
 
   ///
+  /// add a type of processor this can run on
+  void addType(TaskType t) { _type |= t; }
+  
+  ///
+  /// remove a type of processor this can run on
+  void removeType(TaskType t) { _type &= ~t; }
+
+  ///
+  /// test if this can run on a given processor type
+  bool hasType(TaskType t) const { return (_type&t)!=0; }
+ protected:
+  ///
   /// either enqueue or inline the task
   void inlineOrEnqueueTask();
-
- protected:
-
-  ///
-  /// a maxSize to remember the largest size
-  static size_t maxSize;
-
-  ///
-  /// a maxSize to remember the first task size
-  static size_t firstSize;
-
 
   virtual bool isNullTask() const { return false; }
 
@@ -90,15 +99,15 @@ public:
 
   ///
   /// a list of tasks that depends on me
-  std::vector<DynamicTask*> dependents;
+  std::vector<DynamicTask*> _dependents;
 
   ///
   /// a mutex lock for manipulating task status and dependents list
-  jalib::JCondMutex  lock;
+  jalib::JCondMutex  _lock;
 
   ///
   /// Pointer to the continuation task
-  DynamicTaskPtr continuation;
+  DynamicTaskPtr _continuation;
 
   enum TaskState {
     S_NEW,       //after creation
@@ -110,17 +119,15 @@ public:
 
   ///
   /// indicate if the task is executed or not
-  TaskState state;
+  TaskState _state;
 
   ///
-  /// a counter of how many tasks I depends on
-  long numOfPredecessor;
-
-  bool isContinuation;
-
-  //PADDING(64);
-
-  friend class DynamicScheduler;
+  /// a counter of how many incomplete tasks I still depends on
+  long _numPredecessors;
+  
+  ///
+  /// cpu types this task can run on
+  int _type;
 };
 
 class NullDynamicTask : public DynamicTask {

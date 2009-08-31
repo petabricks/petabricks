@@ -24,6 +24,7 @@
 #include "thedeque.h"
 
 #include <set>
+#include <pthread.h>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -32,12 +33,13 @@
 namespace petabricks {
 
 class WorkerThreadPool;
+class DynamicScheduler;
 
 class WorkerThread {
 public:
   static WorkerThread* self();
 
-  WorkerThread(WorkerThreadPool& pool);
+  WorkerThread(DynamicScheduler& ds);
   ~WorkerThread();
 
   DynamicTask *steal(){
@@ -65,6 +67,7 @@ private:
   THEDeque<DynamicTask*> _deque;
   mutable struct { int z; int w; } _randomNumState;
   WorkerThreadPool& _pool;
+  pthread_t _thread;
 } __attribute__ ((aligned (64)));
 
 /**
