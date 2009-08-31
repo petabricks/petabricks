@@ -153,7 +153,7 @@ public:
 
   //
   // pick a random thread from the pool
-  WorkerThread* getRandom(const WorkerThread* caller);
+  WorkerThread* getRandom(const WorkerThread* caller = WorkerThread::self());
   
   //
   // pick a thread from the pool, using i as a hint of the location
