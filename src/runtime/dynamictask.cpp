@@ -191,7 +191,7 @@ void DynamicTask::inlineOrEnqueueTask()
 #ifdef DEBUG
     JASSERT(self!=NULL);
 #endif
-    self->push(this);
+    self->pushLocal(this);
   }
 }
 

@@ -23,8 +23,8 @@
 #include "dynamictask.h"
 #include "thedeque.h"
 
-#include <set>
 #include <pthread.h>
+#include <set>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -32,8 +32,8 @@
 
 namespace petabricks {
 
-class WorkerThreadPool;
 class DynamicScheduler;
+class WorkerThreadPool;
 
 class WorkerThread {
 public:
@@ -42,24 +42,51 @@ public:
   WorkerThread(DynamicScheduler& ds);
   ~WorkerThread();
 
-  DynamicTask *steal(){
+  ///
+  /// called from a remote thread, taking work
+  DynamicTask* steal(){
     return _deque.pop_bottom();
   }
   
-  void push(DynamicTask* t){
+  ///
+  /// called from a remote thread, giving work
+  void inject(DynamicTask* t){
+    UNIMPLEMENTED();
+  }
+  
+  ///
+  /// called on WorkerThread::self(), taking work
+  DynamicTask* popLocal(){
+    return _deque.pop_top();
+  }
+  
+  ///
+  /// called on WorkerThread::self(), giving work
+  void pushLocal(DynamicTask* t){
     return _deque.push_top(t);
   }
-
+  
+  ///
+  /// Racy count of the number of items of work left
+  int workCount() const {
+    return (int)_deque.size();
+  }
+  
+  ///
+  /// thread local random number generator
   int threadRandInt() const;
 
+  ///
+  /// A single iteration of the main loop
   void popAndRunOneTask(int stealLimit);
+
+  ///
+  /// Main loop for worker threads
   void mainLoop();
 
+  
+  bool hasWork() const { return workCount()>0; }
   int id() const { return _id; }
-
-  bool hasWork() const { return !_deque.empty(); }
-  int workCount() const { return (int)_deque.size(); }
-
   WorkerThreadPool& pool() { return _pool; }
   const WorkerThreadPool& pool() const { return _pool; }
 private:

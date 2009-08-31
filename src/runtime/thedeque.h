@@ -33,10 +33,10 @@ namespace petabricks {
 
 /** 
  * Implementation of the Cilk THE protocol for a work stealing deque 
+ * Supports a SINGLE thread at the top, and MANY threads at the bottom
  */
 template < typename T >
 class THEDeque {
-#if 1
 public:
   THEDeque() {
     _t = 0;
@@ -137,12 +137,22 @@ private:
   PADDING(CACHE_LINE_SIZE);
   jalib::JMutex _lock;
   PADDING(CACHE_LINE_SIZE);
-#else
-//THIS IS IS SIMPLIFIED/SLOW VERSION FOR TESTING:
+};
+
+/**
+ * A deque protected by a lock
+ * Supports a MANY thread at the top, and MANY threads at the bottom
+ */
+template < typename T >
+class LockingDeque {
 public:
   void push_top(const T& task) { 
     JLOCKSCOPE(_lock);
     _deque.push_back(task);
+  }
+  void push_bottom(const T& task) { 
+    JLOCKSCOPE(_lock);
+    _deque.push_front(task);
   }
   T pop_top() {
     JLOCKSCOPE(_lock);
@@ -166,7 +176,6 @@ public:
 private:
   std::deque<T> _deque;
   jalib::JMutex _lock;
-#endif
 };
 }
 

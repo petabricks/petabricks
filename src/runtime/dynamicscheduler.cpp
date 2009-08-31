@@ -62,44 +62,45 @@ void petabricks::DynamicScheduler::startWorkerThreads(int total)
 }
 
 void petabricks::DynamicScheduler::abort(){
-  static DynamicTaskPtr t;
   static jalib::JMutex lock;
   if(lock.trylock()){
-    t = new AbortTask(numThreads(), false);
+    DynamicTaskPtr t = new AbortTask(numThreads(), false);
     try{
       t->run();
     }catch(...){
       lock.unlock();
       throw;
     }
-    JASSERT(false);
   }else{
     //another thread beat us to the abort()
     WorkerThread* self = WorkerThread::self();
+    JASSERT(self!=NULL);
     //cancel all our pending tasks
-    while(self->hasWork()){
-      DynamicTask* t = self->steal();
-      if(t!=NULL) t->cancel();
-    }
+    DynamicTask* t;
+    while((t=self->popLocal())!=NULL)
+      t->cancel();
     //wait until the other thread aborts us
     for(;;) self->popAndRunOneTask(STEAL_ATTEMPTS_MAINLOOP);
   }
+  JASSERT(false).Text("unreachable");
 }
 
 void petabricks::DynamicScheduler::shutdown(){
   try {
-    static DynamicTaskPtr t;
-    t = new AbortTask(numThreads(), true);
+    DynamicTaskPtr t = new AbortTask(numThreads(), true);
     t->run();
   }catch(AbortException e){}
   pthread_t self = pthread_self();
+  bool hadSelf = false;
   while(!_rawThreads.empty()){
-    if(_rawThreads.front()!=self){
+    if(_rawThreads.front()!=self)
       JASSERT(pthread_join(_rawThreads.front(), 0)==0);
-    }
+    else
+      hadSelf = true;
     _rawThreads.pop_front();
   }
-  _rawThreads.push_back(self);
+  if(hadSelf)
+    _rawThreads.push_back(self);
 }
   
 

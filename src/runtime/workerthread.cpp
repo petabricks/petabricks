@@ -100,7 +100,7 @@ void petabricks::WorkerThread::popAndRunOneTask(int stealLimit)
   DynamicTask *task;
 
   //try from the local deque
-  task = _deque.pop_top();
+  task = popLocal();
   
   //try stealing a bunch of times
   while(task == NULL && stealLimit-->0){
@@ -176,16 +176,17 @@ petabricks::AbortTask::AbortTask(int totalThreads, bool shouldExit) {
   _state = S_READY;
 }
 petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
+  DynamicTaskPtr abortTask = this; // ensure this task isn't deleted
   WorkerThread* self = WorkerThread::self();
   JASSERT(self!=NULL);
   WorkerThreadPool& pool = self->pool();
+  DynamicTask* t=NULL;
   
   jalib::atomicDecrement(&_numLive);
 
   //cancel all our pending tasks
-  while(self->hasWork()){
-    DynamicTask* t = self->steal();
-    if(t!=NULL) t->cancel();
+  while((t=self->popLocal())!=NULL){
+    t->cancel();
   }
 
   //until all threads are aborted, steal and cancel tasks
@@ -194,31 +195,31 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
     //make sure there is something to be stolen from us
     if(!self->hasWork())
       for(int i=0; i<10; ++i)
-        self->push(this);
+        self->pushLocal(this);
     //pick a victim to steal work from
     WorkerThread* victim = pool.getRandom(self);
     if(victim!=NULL){
       //try to steal all of the victim's work
       for(int c=victim->workCount(); c>0; --c){
-        DynamicTask* t = victim->steal();
+        t = victim->steal();
         if(t!=NULL && t!=this) t->cancel();
         else break;
       }
     }
   }
-
+  
   //drain off all our abort tasks
-  while(self->hasWork()){
-    DynamicTask* t = self->steal();
-    JASSERT(t==this || t==NULL);
+  while((t=self->popLocal())!=NULL){
+    JASSERT(t==this);
   }
 
   //wait until all threads reach this point
-  JLOCKSCOPE(_lock);
+  _lock.lock();
   if(--_numAborting==0)
     _lock.broadcast();
   else
     _lock.wait();
+  _lock.unlock();
   
   //either exit or throw
   if(_shutdown && self!=&theMainWorkerThread){
