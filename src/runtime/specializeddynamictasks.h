@@ -17,8 +17,8 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef PETABRICKSSPATIALDYNAMICTASK_H
-#define PETABRICKSSPATIALDYNAMICTASK_H
+#ifndef PETABRICKSSPECIALIZEDDYNAMICTASK_H
+#define PETABRICKSSPECIALIZEDDYNAMICTASK_H
 
 #include "dynamictask.h"
 #include "matrix.h"
@@ -28,6 +28,38 @@
 
 namespace petabricks {
 
+/**
+ * A dynamic task that does nothing
+ * For building dependency chains
+ */
+class NullDynamicTask : public DynamicTask {
+public:
+  DynamicTaskPtr run(){ return 0; }
+  bool isNullTask() const { return true; }
+  //PADDING(64);
+};
+
+
+/**
+ * A task that calls a method on a given object
+ */
+template< typename T, DynamicTaskPtr (T::*method)()>
+class MethodCallTask : public DynamicTask {
+public:
+  MethodCallTask(const jalib::JRef<T>& obj)
+    : _obj(obj)
+  {}
+  DynamicTaskPtr run(){
+    return ((*_obj).*(method))();
+  }
+private:
+  jalib::JRef<T> _obj;
+  //PADDING(64);
+};
+
+/**
+ * A task that calls a method on a given object, with a given region
+ */
 template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D])>
 class SpatialMethodCallTask : public DynamicTask {
 public:

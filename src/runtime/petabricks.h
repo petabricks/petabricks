@@ -23,7 +23,7 @@
 #include "matrixio.h"
 #include "petabricksruntime.h"
 #include "ruleinstance.h"
-#include "spatialdynamictask.h"
+#include "specializeddynamictasks.h"
 #include "transforminstance.h"
 
 #include "common/jtunable.h"

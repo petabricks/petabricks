@@ -55,7 +55,7 @@ pkglib_HEADERS=  \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
   runtime/ruleinstance.h \
-  runtime/spatialdynamictask.h \
+  runtime/specializeddynamictasks.h \
   runtime/thedeque.h \
   runtime/transforminstance.h \
   runtime/workerthread.h
@@ -115,7 +115,7 @@ libpbruntime_a_SOURCES =  \
   runtime/matrixreader.lpp \
   runtime/petabricksruntime.cpp \
   runtime/ruleinstance.cpp \
-  runtime/spatialdynamictask.cpp \
+  runtime/specializeddynamictasks.cpp \
   runtime/transforminstance.cpp \
   runtime/workerthread.cpp
 
