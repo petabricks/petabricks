@@ -78,7 +78,6 @@ void petabricks::RuleChoice::generateCodeSimple( bool isStatic
   for(std::vector<RulePtr>::const_iterator i=sortedRules.begin(); i!=sortedRules.end(); ++i){
     if(sortedRules.size()>1) o.beginCase(n++);
     if(isStatic || taskname.empty()){
-      if(!isStatic) o.write("transform->");//hack
       (*i)->generateCallCodeSimple(trans, o, region);
     }else{
       (*i)->generateCallTaskCode(taskname, trans, o, region);

@@ -23,6 +23,8 @@
 #include "maximawrapper.h"
 #include "rule.h"
 
+#include "common/jconvert.h"
+
 petabricks::IterationDefinition::IterationDefinition(RuleInterface& rule, bool isSingleCall)
   : _order(rule.dimensions())
 {
@@ -86,5 +88,26 @@ std::vector<std::string> petabricks::IterationDefinition::argnames() const {
   for(i=_end.begin(); i!=_end.end(); ++i) 
     rv.push_back((*i)->toString());
   return rv;
+}
+
+std::vector<std::string> petabricks::IterationDefinition::packedargs() const {
+  std::string t[] = {
+    "IndexT _iter_begin["+jalib::XToString(dimensions())+"]",
+    "IndexT _iter_end["+jalib::XToString(dimensions())+"]"
+  };
+  return std::vector<std::string>(t, t+2);
+}
+std::vector<std::string> petabricks::IterationDefinition::packedargnames() const {
+  std::string t[] = {
+    "_iter_begin",
+    "_iter_end"
+  };
+  return std::vector<std::string>(t, t+2);
+}
+void petabricks::IterationDefinition::unpackargs(CodeGenerator& o) const {
+  for(size_t i=0; i<_var.size(); ++i){
+    o.write("const IndexT "+_begin[i]->toString()+" = _iter_begin["+jalib::XToString(i)+"];");
+    o.write("const IndexT "+_end[i]->toString()+" = _iter_end["+jalib::XToString(i)+"];");
+  }
 }
 

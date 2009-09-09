@@ -22,120 +22,29 @@
 
 #include "dynamictask.h"
 #include "matrix.h"
-
-//TODO: remove this dependency on an enum in compiler lib
-#include "compiler/matrixdependency.h"
+#include "string.h"
 
 #include <vector>
 
-
 namespace petabricks {
 
-class SpatialDynamicTask;
-class SpatialTaskList;
-typedef jalib::JRef<SpatialDynamicTask> SpatialTaskPtr;
-typedef jalib::JRef<SpatialTaskList> SpatialTaskListPtr;
-
-
-class SpatialDynamicTask : public DynamicTask {
+template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D])>
+class SpatialMethodCallTask : public DynamicTask {
 public:
-  virtual IndexT beginPos(int dimension) const = 0;
-  virtual IndexT endPos(int dimension) const = 0;
-  virtual int dimensions() const = 0;
-  virtual void spatialSplit(SpatialTaskList& output, int dim, int n) = 0;
+  SpatialMethodCallTask(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D])
+    : _obj(obj)
+  {
+    memcpy(_begin, begin, sizeof _begin);
+    memcpy(_end,   end,   sizeof _end);
+  }
+  DynamicTaskPtr run(){
+    return ((*_obj).*(method))(_begin, _end);
+  }
+private:
+  jalib::JRef<T> _obj;
+  IndexT _begin[D];
+  IndexT _end[D];
 };
-
-class SpatialTaskList : public std::vector< SpatialTaskPtr > {
-public:
-  ///
-  /// Constructor
-  SpatialTaskList(const SpatialTaskPtr& initial) : std::vector< SpatialTaskPtr >(1, initial) {}
-  SpatialTaskList() {}
-
-  SpatialTaskList& operator=(const SpatialTaskPtr& b){
-    #ifdef DEBUG
-    JASSERT(empty());
-    #endif
-    push_back(b);
-    return *this;
-  }
-
-
-  SpatialTaskList* operator->() { return this; }
-  const SpatialTaskList* operator->() const { return this; }
-
-  ///
-  /// Split the task into smaller tasks
-  void spatialSplit(int dim, int n);
-
-
-  void spatialSplit(int n){
-    JASSERT(size()==1)(size());;
-    // HACK HACK HACK: skip the first dimension unless task is 1D
-    if (back()->dimensions() == 1) {
-      spatialSplit(0, n);
-    } else {
-      for(int i=1; i<back()->dimensions(); ++i)
-        spatialSplit(i, n);
-    }
-  }
-
-  ///
-  /// Add a directed dependency between tasklists
-  template< int D >
-  void dependsOn(SpatialTaskList& that, DependencyDirection::DirectionT dir[D]){
-    for(iterator a=begin(); a!=end(); ++a){
-      for(iterator b=that.begin(); b!=that.end(); ++b){
-        if(*a!=*b){
-            (*a)->dependsOn(b->asPtr());
-        }
-      }
-    }
-  }
-
-  ///
-  /// Add a directed dependency between tasklists
-  template< int D >
-  void dependsOn(DynamicTaskPtr& that, DependencyDirection::DirectionT dir[D]){
-    dependsOn(that);
-  }
-
-  ///
-  /// Make all tasks in this depend on b
-  void dependsOn(const DynamicTaskPtr& b){
-    if(b){
-      for(const_iterator a=begin(); a!=end(); ++a){
-        (*a)->dependsOn(b);
-      }
-    }
-  }
-
-  ///
-  /// Make all tasks in this depend on b
-  void enqueue(){
-    for(const_iterator a=begin(); a!=end(); ++a){
-      (*a)->enqueue();
-    }
-  }
-
-  ///
-  /// Return a task depending on all taks in this
-  DynamicTaskPtr completionTask(){
-    if(size()==1){
-      return front().asPtr();
-    }else{
-      DynamicTaskPtr tmp = new NullDynamicTask();
-      for(iterator a=begin(); a!=end(); ++a){
-        tmp->dependsOn(a->asPtr());
-      }
-      tmp->enqueue();
-      return tmp;
-    }
-  }
-
-  operator DynamicTaskPtr () { return completionTask(); };
-};
-
 
 }
 

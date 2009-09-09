@@ -123,10 +123,9 @@ public:
     return _provides.find(m) != _provides.end();
   }
 
-  std::vector<std::string> getCallArgs(Transform& trans, const SimpleRegionPtr& region);
-
   const FormulaPtr& recursiveHint() const { return _recursiveHint; }
 
+  std::vector<std::string> genCallPackedPfx(CodeGenerator& o, const SimpleRegionPtr& region);
 
   FormulaPtr getSizeOfRuleIn(int d){
     for(size_t i=0; i<_to.size(); ++i){

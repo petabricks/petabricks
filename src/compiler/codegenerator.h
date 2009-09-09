@@ -40,9 +40,13 @@ namespace petabricks {
 
 typedef std::map<std::string, std::string> TunableDefs;
 
+class CodeGenerator;
+typedef jalib::JRef<CodeGenerator> CodeGeneratorPtr;
+typedef std::vector<CodeGeneratorPtr> CodeGenerators;
+
 class TaskCodeGenerator;
 
-class CodeGenerator {
+class CodeGenerator : public jalib::JRefCounted {
 public:
   struct ClassMember {
     std::string type;
@@ -87,8 +91,6 @@ public:
   }
   void elseIf(const std::string& v = "true");
   void endIf();
-
-  virtual TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix) = 0;
 
   void createTunable( bool isTunable
                     , const std::string& category
@@ -191,122 +193,45 @@ public:
   void globalDefine(const std::string& n, const std::string& v){
     dos() << "#define " << n << " " << v << "\n";
   }
-protected:
-  void indent();
-  virtual std::ostream& os() = 0;
-  virtual std::ostream& hos() = 0;
-  virtual std::ostream& dos() = 0;
-protected:
-  std::vector<std::string> _defines;
-  ClassMembers _curMembers;
-  std::string _curClass;
-  std::string _curConstructorBody;
-  int         _contCounter;
-  int _indent;
-  TrainingDeps _cg;
-};
 
-class BufferedCodeGenerator : public CodeGenerator {
-public:
-  virtual std::string str() const { return _os.str() ; }
-  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix);
-protected:
-  std::ostream& hos() { return _header; }
-  std::ostream& dos() { return _defines; }
-  std::ostream& os() { return _os; }
-protected:
-  std::ostringstream _os;
-  std::ostringstream _header;
-  std::ostringstream _defines;
-};
+  ///
+  /// Create a parallel code generator 
+  /// (for writing other function bodies before current function is finished)
+  CodeGenerator& forkhelper();
 
-
-
-class TaskCodeGenerator : public BufferedCodeGenerator, public jalib::JRefCounted {
-public:
-  std::string str() const { return _os.str() + "};\n"; }
-  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix){ return *this;}
-
-  TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix);
-
-  void beginRunFunc(){
-    beginFunc("petabricks::DynamicTaskPtr", "run", std::vector<std::string>());
-  }
-
-  void beginSizeFunc(){
-    write("size_t size() const {");
-    ++_indent;
-  }
-
-  void beginCanSplitFunc(){
-    write("bool canSplit() const {");
-    ++_indent;
-  }
-
-  void beginSplitFunc(){
-    write("petabricks::DynamicTaskPtr split(){");
-    ++_indent;
-  }
-
-  void beginBeginPosFunc(){
-    write("IndexT beginPos(int d) const {");
-    ++_indent;
-  }
-
-
-  void beginEndPosFunc(){
-    write("IndexT endPos(int d) const {");
-    ++_indent;
-  }
-
-  void beginSpatialSplitFunc(){
-    write("void spatialSplit(SpatialTaskList& _list, int _dim, int _thresh) {");
-    ++_indent;
-  }
-
-  void beginDimensionsFunc(){
-    write("int dimensions() const {");
-    ++_indent;
-  }
-
-  const std::vector<std::string>& argnames() const { return _names; }
-  const std::vector<std::string>& argtypes() const { return _types; }
-  const std::string& name() const { return _name; }
-private:
-  std::string _name;
-  std::vector<std::string> _types;
-  std::vector<std::string> _names;
-};
-
-class MainCodeGenerator : public BufferedCodeGenerator {
-public:
+  ///
+  /// Write the bodies from any calles to forkhelp
+  void mergehelpers();
+  
   void outputFileTo(std::ostream& o){
     o << theFilePrefix().str();
     o << "\n// global defines \n";
-    o << _defines.str();
+    o << _dos.str();
     o << "\n// Tunable declarations\n";
     for(TunableDefs::const_iterator i=theTunableDefs().begin(); i!=theTunableDefs().end(); ++i)
       o << i->second << ";\n";
-    o << "\n// Forward declarations\n";
-    o << _header.str();
-    o << "\n// Task declarations\n";
-    for(TaskDecls::iterator i=_tasks.begin(); i!=_tasks.end(); ++i)
-      o << (*i)->str();
-    o << "\n\n";
+    o << "\n\n//////////////////////////////////////////////////////////////////////\n\n";
+    o << _hos.str();
+    o << "\n\n//////////////////////////////////////////////////////////////////////\n\n";
     o << _os.str();
   }
-
-  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix);
-
-//void merge(const MainCodeGenerator& that){
-//  _os << that._os.str();
-//  _forwardDecls << that._forwardDecls.str();
-//  _tasks.insert(_tasks.begin(), that._tasks.begin(), that._tasks.end());
-//}
-
-private:
-  typedef std::list<jalib::JRef<TaskCodeGenerator> > TaskDecls;
-  TaskDecls _tasks;
+protected:
+  void indent();
+  std::ostream& hos() { return _hos; }
+  std::ostream& dos() { return _dos; }
+  std::ostream& os()  { return _os; }
+protected:
+  std::vector<std::string> _defines;
+  ClassMembers   _curMembers;
+  std::string    _curClass;
+  std::string    _curConstructorBody;
+  int            _contCounter;
+  int            _indent;
+  TrainingDeps   _cg;
+  CodeGenerators _helpers;
+  std::ostringstream _os;
+  std::ostringstream _hos;
+  std::ostringstream _dos;
 };
 
 }

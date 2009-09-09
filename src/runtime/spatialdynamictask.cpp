@@ -19,10 +19,4 @@
  ***************************************************************************/
 #include "spatialdynamictask.h"
 
-void petabricks::SpatialTaskList::spatialSplit(int dim, int n){
-  SpatialTaskList tmp;
-  swap(tmp);
-  for(iterator i=tmp.begin(); i!=tmp.end(); ++i)
-    (*i)->spatialSplit(*this, dim, n);
-}
 

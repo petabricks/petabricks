@@ -438,6 +438,8 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   Map(&RuleInterface::generateTrampCodeSimple, *this, o, _rules);
   o.newline();
 
+  o.mergehelpers();
+
   o.endClass();
   
 
@@ -737,6 +739,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.beginFunc("petabricks::PetabricksRuntime::Main*", "nextTemplateMain");
   o.write("return "+nextMain+";");
   o.endFunc();
+
   
   o.endClass();
 }

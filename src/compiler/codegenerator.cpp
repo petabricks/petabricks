@@ -160,16 +160,6 @@ void petabricks::CodeGenerator::endIf(){
   os() << "}\n";
 }
 
-petabricks::TaskCodeGenerator& petabricks::BufferedCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string&){
-  UNIMPLEMENTED();
-  return *(TaskCodeGenerator*)0;
-}
-
-petabricks::TaskCodeGenerator& petabricks::MainCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix){
-  _tasks.push_back(new TaskCodeGenerator(func, args, taskType, postfix));
-  return *_tasks.back();
-}
-
 namespace{//file local
   void _splitTypeArgs(std::string& type, std::string& name, const std::string& str){
     const char* begin=str.c_str();
@@ -182,35 +172,6 @@ namespace{//file local
     name.assign(mid+1,end);
   }
 }
-
-petabricks::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix){
-  _name=func + postfix;
-  _indent=1;
-  _types.resize(args.size());
-  _names.resize(args.size());
-  for(size_t i=0; i!=args.size(); ++i)
-    _splitTypeArgs(_types[i], _names[i], args[i]);
-
-  os() << "class " << _name << " : public petabricks::"<< taskType <<" {\n";
-  for(size_t i=0; i!=args.size(); ++i){
-    indent();
-    os() << args[i] << ";\n";
-  }
-  os() << "public:\n"; 
-  indent();
-  os() << _name << "(";
-  for(size_t i=0; i!=args.size(); ++i){
-    if(i>0) os()<<", ";
-    os() << _types[i] << "& a_" << _names[i];
-  }
-  os() << ") \n    : ";
-  for(size_t i=0; i!=args.size(); ++i){
-    if(i>0) os()<<", ";
-    os() << _names[i] << "(a_" << _names[i] << ")";
-  }
-  os() << "\n  {}\n\n";
-}
-
 
 static std::string _typeToConstRef(std::string s){
   if(s[s.length()-1] != '&'){
@@ -311,5 +272,19 @@ void petabricks::CodeGenerator::continuationRequired(const std::string& hookname
 }
 
 
+petabricks::CodeGenerator& petabricks::CodeGenerator::forkhelper(){
+  CodeGenerator* cg;
+  _helpers.push_back(cg=new CodeGenerator());
+  cg->_curClass = _curClass;
+  return *cg;
+}
+
+void petabricks::CodeGenerator::mergehelpers(){
+  for(; !_helpers.empty(); _helpers.pop_back()){
+    os() << _helpers.front()->_os.str();
+    hos() << _helpers.front()->_hos.str();
+    dos() << _helpers.front()->_dos.str();
+  }
+}
 
 

@@ -22,6 +22,7 @@
 
 #include "formula.h"
 
+
 #include <string>
 #include <vector>
 
@@ -61,9 +62,14 @@ public:
 
   bool isSingleCall() const { return _step.empty(); }
 
-
   std::vector<std::string> args() const;
   std::vector<std::string> argnames() const;
+
+  int dimensions() const { return (int) _var.size(); }
+
+  std::vector<std::string> packedargs() const;
+  std::vector<std::string> packedargnames() const;
+  void unpackargs(CodeGenerator& o) const;
 private:
   IterationOrderList _order;
   CoordinateFormula  _var;

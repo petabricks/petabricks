@@ -118,7 +118,7 @@ int main( int argc, const char ** argv){
 
   std::ofstream of(theOutputCode.c_str());
   std::ofstream infofile(theOutputInfo.c_str());
-  MainCodeGenerator o;
+  CodeGenerator o;
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
     (*i)->generateCode(o);
   }
