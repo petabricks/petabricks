@@ -205,14 +205,14 @@ public:
   
   void outputFileTo(std::ostream& o){
     o << theFilePrefix().str();
-    o << "\n// global defines \n";
+    o << "\n\n// Defines: //////////////////////////////////////////////////////\n\n";
     o << _dos.str();
-    o << "\n// Tunable declarations\n";
+    o << "\n\n// Tunables: /////////////////////////////////////////////////////\n\n";
     for(TunableDefs::const_iterator i=theTunableDefs().begin(); i!=theTunableDefs().end(); ++i)
       o << i->second << ";\n";
-    o << "\n\n//////////////////////////////////////////////////////////////////////\n\n";
+    o << "\n\n// Header Decls: /////////////////////////////////////////////////\n\n";
     o << _hos.str();
-    o << "\n\n//////////////////////////////////////////////////////////////////////\n\n";
+    o << "\n\n// Body Decls: ///////////////////////////////////////////////////\n\n";
     o << _os.str();
   }
 protected:

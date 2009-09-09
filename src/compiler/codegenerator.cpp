@@ -72,19 +72,6 @@ void petabricks::CodeGenerator::setcall(const std::string& lv, const std::string
   os() << ");\n";
 }
 
-// void petabricks::CodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::string& args){
-//   indent();
-//   os() << rt << " " << func << '(' << args << "){\n";
-//   _indent++;
-// }
-
-// void petabricks::CodeGenerator::declareFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
-//   indent();
-//   os() << rt << " " << func << '(';
-//   jalib::JPrintable::printStlList(os(), args.begin(), args.end(), ", ");
-//   os() << ");\n";
-// }
-
 void petabricks::CodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
   indent();
   os() << rt << " ";
@@ -98,6 +85,8 @@ void petabricks::CodeGenerator::beginFunc(const std::string& rt, const std::stri
   hos() << rt << " " << func << '(';
   jalib::JPrintable::printStlList(hos(), args.begin(), args.end(), ", ");
   hos() << ");\n";
+  
+  if(!inClass()) hos() << "\n";
 }
 
 void petabricks::CodeGenerator::varDecl(const std::string& var){
@@ -281,6 +270,8 @@ petabricks::CodeGenerator& petabricks::CodeGenerator::forkhelper(){
 
 void petabricks::CodeGenerator::mergehelpers(){
   for(; !_helpers.empty(); _helpers.pop_back()){
+    JASSERT(_helpers.front()->_defines.empty())
+      .Text("helper CodeGenerator leaked defines");
     os() << _helpers.front()->_os.str();
     hos() << _helpers.front()->_hos.str();
     dos() << _helpers.front()->_dos.str();
