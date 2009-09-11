@@ -96,6 +96,39 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__thread int x;]])],
                     has_threadlocal=no;
                   ])
 
+AC_MSG_CHECKING([if compiler supports forced inlining])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((always_inline)) __attribute__((flatten)) void foo(){}]])],
+                  [  
+                    AC_DEFINE([INLINE],[inline __attribute__((always_inline)) __attribute__((flatten))], [keyword to force inlining])
+                    AC_MSG_RESULT([yes]);
+                  ],
+                  [  
+                    AC_DEFINE([INLINE],[inline])
+                    AC_MSG_RESULT([no]); 
+                  ])
+
+AC_MSG_CHECKING([if compiler supports __restrict__])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[void foo(int *__restrict__ t);]])],
+                  [  
+                    AC_DEFINE([RESTRICT],[__restrict__], [keyword to indicate non-aliased pointers/refs])
+                    AC_MSG_RESULT([yes]);
+                  ],
+                  [  
+                    AC_DEFINE([RESTRICT],[])
+                    AC_MSG_RESULT([no]); 
+                  ])
+
+AC_MSG_CHECKING([if compiler supports __attribute__])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__attribute__((undefinedabdef)) void foo();]])],
+                  [  
+                    AC_DEFINE([ATTRIBUTE(x)],[__attribute__((x))], [macro for gcc function __attribute__s])
+                    AC_MSG_RESULT([yes]);
+                  ],
+                  [  
+                    AC_DEFINE([ATTRIBUTE(x)],[])
+                    AC_MSG_RESULT([no]); 
+                  ])
+
 ################################################################################
 # DEFINES   ####################################################################
 ################################################################################

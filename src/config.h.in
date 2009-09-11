@@ -1,5 +1,8 @@
 /* src/config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* macro for gcc function __attribute__s */
+#undef ATTRIBUTE
+
 /* larges cache line size in system */
 #undef CACHE_LINE_SIZE
 
@@ -98,6 +101,9 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
+/* keyword to force inlining */
+#undef INLINE
+
 /* define to add a system var to transform scope */
 #undef INPUT_PERIMETER_STR
 
@@ -157,6 +163,9 @@
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
+
+/* keyword to indicate non-aliased pointers/refs */
+#undef RESTRICT
 
 /* var name in output code for rule output variable */
 #undef RETURN_VAL_STR
