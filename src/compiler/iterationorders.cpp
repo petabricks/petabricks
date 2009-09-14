@@ -25,10 +25,9 @@
 
 #include "common/jconvert.h"
 
-petabricks::IterationDefinition::IterationDefinition(RuleInterface& rule, bool isSingleCall)
-  : _order(rule.dimensions())
+petabricks::IterationDefinition::IterationDefinition(RuleInterface& rule, const DependencyDirection& order, bool isSingleCall)
+  : _order(order)
 {
-  rule.removeInvalidOrders(_order);
   for(size_t i=0; i<_order.size(); ++i){
     _var.push_back(rule.getOffsetVar(i));
     _begin.push_back(rule.getOffsetVar(i,"begin"));
@@ -52,10 +51,13 @@ void petabricks::IterationDefinition::genLoopBegin(CodeGenerator& o){
       FormulaPtr e=_end[i];
       FormulaPtr s=_step[i];
       FormulaPtr v=_var[i];
-      if(_order[i]==IterationOrder::BACKWARD)
-        o.beginReverseFor(v->toString(), b, e, s);
-      else
+      //TODO: expand to reorder dimensions
+      if(_order.canIterateForward(i) || !_order.canIterateBackward(i)){
+        JWARNING(_order.canIterateForward(i))(_order).Text("couldn't find valid iteration order, assuming forward");
         o.beginFor(v->toString(), b, e, s);
+      } else {
+        o.beginReverseFor(v->toString(), b, e, s);
+      }
     }
   }
 }

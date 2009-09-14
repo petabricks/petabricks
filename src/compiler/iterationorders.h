@@ -21,7 +21,7 @@
 #define PETABRICKSITERATIONORDERS_H
 
 #include "formula.h"
-
+#include "matrixdependency.h"
 
 #include <string>
 #include <vector>
@@ -30,32 +30,18 @@ namespace petabricks {
 class RuleInterface;
 class CodeGenerator;
 
-namespace IterationOrder {
-  enum IterationOrder {
-    NONE=0,
-    FORWARD=1,
-    BACKWARD=2,
-    ANY=FORWARD|BACKWARD
-  };
-}
-class  IterationOrderList : public std::vector<int> {
-public:
-  IterationOrderList(int d) : std::vector<int>(d, IterationOrder::ANY) {}
-};
-
-
 class IterationDefinition {
 public:
-  IterationDefinition(RuleInterface& rule, bool isSingleCall);
+  IterationDefinition(RuleInterface& rule, const DependencyDirection& order, bool isSingleCall);
 
   void genLoopBegin(CodeGenerator& o);
   void genLoopEnd(CodeGenerator& o);
 
-  IterationOrderList& order() { return _order;}
+  DependencyDirection& order() { return _order;}
   CoordinateFormula&  begin() { return _begin;}
   CoordinateFormula&  end  () { return _end;}
   CoordinateFormula&  step () { return _step;}
-  const IterationOrderList& order() const { return _order;}
+  const DependencyDirection& order() const { return _order;}
   const CoordinateFormula&  begin() const { return _begin;}
   const CoordinateFormula&  end  () const { return _end;}
   const CoordinateFormula&  step () const { return _step;}
@@ -71,11 +57,11 @@ public:
   std::vector<std::string> packedargnames() const;
   void unpackargs(CodeGenerator& o) const;
 private:
-  IterationOrderList _order;
-  CoordinateFormula  _var;
-  CoordinateFormula  _begin;
-  CoordinateFormula  _end;
-  CoordinateFormula  _step;
+  DependencyDirection _order;
+  CoordinateFormula   _var;
+  CoordinateFormula   _begin;
+  CoordinateFormula   _end;
+  CoordinateFormula   _step;
 };
 
 }

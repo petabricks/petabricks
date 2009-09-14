@@ -91,7 +91,7 @@ void petabricks::WhereExpansionRule::generateCallTaskCode( const std::string& na
 
 void petabricks::WhereExpansionRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   //for now static only:
-  IterationDefinition iterdef(*this, false);
+  IterationDefinition iterdef(*this, getSelfDependency() , false);
   o.beginFunc("void", codename()+TX_STATIC_POSTFIX, iterdef.args());
   iterdef.genLoopBegin(o);
   genWhereSwitch(trans,o);
@@ -144,11 +144,12 @@ int petabricks::WhereExpansionRule::dimensions() const {
       .Text("where clauses only work with common number of dimensions");;
   return rv;
 }
-void petabricks::WhereExpansionRule::removeInvalidOrders(IterationOrderList& o) {
+petabricks::DependencyDirection petabricks::WhereExpansionRule::getSelfDependency() const {
+  DependencyDirection rv;
   RuleSet::const_iterator i;
   for(i=_rules.begin(); i!=_rules.end(); ++i)
-    (*i)->removeInvalidOrders(o);
-
+    rv.addDirection((*i)->getSelfDependency());
+  return rv;
 }
 petabricks::FormulaPtr petabricks::WhereExpansionRule::getSizeOfRuleIn(int d) {
   RuleSet::const_iterator i=_rules.begin();

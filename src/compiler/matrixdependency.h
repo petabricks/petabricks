@@ -83,6 +83,9 @@ public:
   }
 
   std::string toCodeStr() const;
+
+  bool canIterateForward(int d) const { return (operator[](d) & D_GT)==0; }
+  bool canIterateBackward(int d) const { return (operator[](d) & D_LT)==0; }
 private:
   std::vector<int> _directionMask;
 };

@@ -363,7 +363,7 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
 }
 
 void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
-  IterationDefinition iterdef(*this, isSingleCall());
+  IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
   std::vector<std::string> taskargs = iterdef.packedargs();
   std::vector<std::string> packedargs = iterdef.packedargs();
   std::vector<std::string> packedargnames = iterdef.packedargnames();
@@ -505,7 +505,8 @@ void petabricks::UserRule::collectDependencies(StaticScheduler& scheduler){
   //TODO collect edge/direction dependencies
 }
 
-void petabricks::UserRule::removeInvalidOrders(IterationOrderList& o){
+petabricks::DependencyDirection petabricks::UserRule::getSelfDependency() const {
+  DependencyDirection rv(dimensions());
   for( MatrixDependencyMap::const_iterator p=_provides.begin()
      ; p!=_provides.end()
      ; ++p)
@@ -513,19 +514,10 @@ void petabricks::UserRule::removeInvalidOrders(IterationOrderList& o){
     MatrixDependencyMap::const_iterator d = _depends.find(p->first);
     if(d!=_depends.end()){
       const DependencyDirection& dir = d->second->direction();
-      JASSERT(dir.size()==o.size());
-      for(size_t i=0; i<dir.size(); ++i){
-        if((dir[i]&DependencyDirection::D_GT)!=0){
-          o[i] &= ~IterationOrder::FORWARD;
-          JTRACE("Forward iteration not allowed")(id());
-        }
-        if((dir[i]&DependencyDirection::D_LT)!=0){
-          o[i] &= ~IterationOrder::BACKWARD;
-          JTRACE("Backward iteration not allowed")(id());
-        }
-      }
+      rv.addDirection(dir);
     }
   }
+  return rv;
 }
 
 std::string petabricks::UserRule::implcodename(Transform& trans) const {

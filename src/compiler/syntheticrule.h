@@ -51,9 +51,9 @@ public:
 
 
   int dimensions() const { UNIMPLEMENTED(); return 0; }
-  void removeInvalidOrders(IterationOrderList& o) { UNIMPLEMENTED(); }
   FormulaPtr getSizeOfRuleIn(int d) { UNIMPLEMENTED(); return 0; }
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic) { UNIMPLEMENTED(); }
+
 };
 
 
@@ -73,7 +73,6 @@ public:
   bool isSingleElement() const;
   
   int dimensions() const;
-  void removeInvalidOrders(IterationOrderList& o);
   FormulaPtr getSizeOfRuleIn(int d);
 
   std::string codename() const;
@@ -82,6 +81,7 @@ public:
 
   void genWhereSwitch(Transform& trans, CodeGenerator& o);
 
+  DependencyDirection getSelfDependency() const;
 private:
   RuleSet _rules;
 };

@@ -117,8 +117,6 @@ public:
   RuleFlags::PriorityT priority() const { return _flags.priority; }
   const FormulaList& conditions() const { return _conditions; }
 
-  void removeInvalidOrders(IterationOrderList& o);
-
   bool canProvide(const MatrixDefPtr& m) const {
     return _provides.find(m) != _provides.end();
   }
@@ -160,6 +158,7 @@ public:
     return new FormulaAnd(_conditions[start], getWhereClause(start+1));
   }
   
+  DependencyDirection getSelfDependency() const;
 private:
   RuleFlags   _flags;
   RegionList  _from;

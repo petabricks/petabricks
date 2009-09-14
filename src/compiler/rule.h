@@ -32,16 +32,17 @@
 
 namespace petabricks {
 
-class IterationOrderList;
-class RIRScope;
 class CodeGenerator;
-class RuleDescriptor;
-class MatrixDependencyMap;
-class Transform;
-class StaticScheduler;
+class DependencyDirection;
 class FormulaList;
-class UserRule;
+class IterationOrderList;
+class MatrixDependencyMap;
+class RIRScope;
+class RuleDescriptor;
 class RuleInterface;
+class StaticScheduler;
+class Transform;
+class UserRule;
 typedef jalib::JRef<RuleInterface> RulePtr;
 class RuleList : public std::vector<RulePtr> , public jalib::JRefCounted {};
 typedef std::vector<RuleDescriptor>     RuleDescriptorList;
@@ -141,10 +142,10 @@ public:
   
   
   virtual int dimensions() const = 0;
-  virtual void removeInvalidOrders(IterationOrderList& o) = 0;
   virtual FormulaPtr getSizeOfRuleIn(int d) = 0;
   virtual void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic) = 0;
-  
+
+  virtual DependencyDirection getSelfDependency() const = 0;
 protected:
   int _id;
   SimpleRegionPtr _applicableRegion;
