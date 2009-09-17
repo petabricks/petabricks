@@ -90,94 +90,36 @@ private:
   IndexT _end[D];
 };
 
-
-template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D]), DimMaskT LTMask, DimMaskT EQMask, DimMaskT ReverseMask>
-class SpatialBlockingTask : public DynamicTask {
+/**
+ * A task that bundles many unstarted tasks together
+ */
+template< int N >
+class GroupedDynamicTask : public DynamicTask {
 public:
-  typedef SpatialMethodCallTask<T,D,method> SubTask;
-
-  static DynamicTaskPtr create(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D], IndexT blockingSize){
-    if(D <= 8*sizeof(DimMaskT)){ // our mask type is not large enough?
-      //check of size of region is 0
-      for(int i=0; i<D; ++i){
-        if(end[i] == begin[i])
-          return new NullDynamicTask();
-      }
-      //check if we need to block more
-      for(int i=0; i<D; ++i){
-        if(end[i]-begin[i] > blockingSize)
-          return new SpatialBlockingTask(obj, begin, end, blockingSize);
-      }
-    }
-    //just run the task directly
-    return new SubTask(obj, begin, end);
-  }
-
-  
-  SpatialBlockingTask(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D], int blockingSize)
-    : _blockingSize(blockingSize)
-    , _i(0)
-    , _obj(obj)
-  {
-    memcpy(_begin, begin, sizeof _begin);
-    memcpy(_end,   end,   sizeof _end);
-  }
-
-  inline static DimMaskT mask(int d) { return ((DimMaskT)1)<<d; }
+  GroupedDynamicTask() : _i(0), _all(new NullDynamicTask()) {}
 
   DynamicTaskPtr run(){
-    IndexT begin[D];
-    IndexT end[D];
-
-    //fill begin and end regions
-    for(DimMaskT d=0; d<D; ++d){
-      IndexT mid = (_begin[d]+_end[d])/2;
-      bool isFirst    = ((mask(d)&_i) == 0);
-      bool isReversed = ((mask(d)&ReverseMask) != 0);
-      if( isFirst != isReversed ){
-        begin[d] = _begin[d];
-        end[d] = mid;
-      }else{
-        begin[d] = mid;
-        end[d] = _end[d];
-      }
+    if(_i < N){
+      _parts[_i++]->enqueue();
+      return new MethodCallTask<GroupedDynamicTask, &GroupedDynamicTask::run>(this);
     }
-
-    //create the task
-    DynamicTaskPtr t = create(_obj, _begin, _end, _blockingSize);
-    _subtasks[_i] = t;
-
-    //add deps
-    for(DimMaskT n=0; n<_i; ++n){
-      for(DimMaskT d=0; d<D; ++d){
-        bool ldep = ((mask(d)&LTMask) != 0);
-        bool edep = ((mask(d)&EQMask) != 0);
-        if( ( ldep && (mask(d)&n) != (mask(d)&_i) )
-         || ( edep && (mask(d)&n) == (mask(d)&_i) )){
-          _subtasks[_i]->dependsOn(_subtasks[n]);
-        }
-      }
+    if(_i == N){
+      //make sure all tasks have completed
+      for(int i=0; i<N; ++i)
+        _all->dependsOn(_parts[i]);
+      return _all;
     }
-    
-    //increment our progress
-    ++_i;
-
-    if(_i<D){
-      //still more work to do, return continuation task
-      t->enqueue();
-      return new MethodCallTask<SpatialBlockingTask, &SpatialBlockingTask::run>(this);
-    }else{
-      return t;
-    }
+    return NULL;
   }
+
+  DynamicTaskPtr& operator[] ( size_t i ) { return _parts[i]; }
 private:
-  int _blockingSize;
-  int _i;
-  jalib::JRef<T> _obj;
-  IndexT _begin[D];
-  IndexT _end[D];
-  DynamicTaskPtr _subtasks[1<<D];
+  IndexT _i;
+  DynamicTaskPtr _all;
+  DynamicTaskPtr _parts[N];
 };
+
+
 
 }
 

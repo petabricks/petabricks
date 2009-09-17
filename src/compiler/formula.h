@@ -28,14 +28,16 @@
 
 namespace petabricks {
 
+class CoordinateFormula;
 class Formula;
 class FormulaList;
 class FreeVars;
 typedef jalib::JRef<const Formula> FormulaPtr;
-typedef jalib::JRef<FormulaList> FormulaListPtr;
 typedef jalib::JRef<const FreeVars> FreeVarsPtr;
-class OrderedFreeVars : public std::vector<std::string> , public jalib::JRefCounted {};
+typedef jalib::JRef<CoordinateFormula> CoordinateFormulaPtr;
+typedef jalib::JRef<FormulaList> FormulaListPtr;
 
+class OrderedFreeVars : public std::vector<std::string> , public jalib::JRefCounted {};
 
 class FreeVar : public std::string {
 public:
@@ -152,7 +154,6 @@ public:
   FormulaPtr minusOne() const;
   FormulaPtr negative() const;
 
-
   virtual char opType() const;
 protected:
   /// Set of all free variables in the tree
@@ -182,6 +183,7 @@ template< typename T >
 class FormulaLiteral: public Formula {
 public:
   static FormulaPtr one()    { return new FormulaLiteral( 1); }
+  static FormulaPtr two()    { return new FormulaLiteral( 2); }
   static FormulaPtr negOne() { return new FormulaLiteral(-1); }
   static FormulaPtr zero()   { return new FormulaLiteral( 0); }
   FormulaLiteral(T v);

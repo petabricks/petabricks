@@ -375,21 +375,33 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   else
     o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_DYNAMIC_POSTFIX, packedargs);
 
-  if(!isStatic && !isRecursive()){
+  if(!isStatic && !isRecursive() && !isSingleElement()){
     //shortcut
-    o.comment("rule is not recursive, so no sense in dynamically scheduling it");
+    o.comment("rule is a leaf, no sense in dynamically scheduling it");
+    o.write("return");
     o.call(trampcodename(trans)+TX_STATIC_POSTFIX, packedargnames);
-    o.write("return NULL;");
   }else{
     if(!isStatic) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
 
     iterdef.unpackargs(o);
+    
+    if(isSingleElement()){
+      trans.markSplitSizeUse(o);
+      o.beginIf("petabricks::split_condition<"+jalib::XToString(dimensions())+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")");
+      iterdef.genSplitCode(o, trans, *this, isStatic);
+      // return written in get split code
+      o.elseIf();
+    }
+
     iterdef.genLoopBegin(o);
-    generateTrampCellCodeSimple(trans, o, isStatic);
+    generateTrampCellCodeSimple(trans, o, isStatic || !isRecursive());
     iterdef.genLoopEnd(o);
     
     if(!isStatic) o.write("return _spawner;");
     else o.write("return NULL;");
+    
+    if(isSingleElement())
+      o.endIf();
   }
   o.endFunc();
 }

@@ -99,6 +99,7 @@ public:
     return args;
   }
 
+  size_t size() const { return dimensions(); }
 protected:
   CoordinateFormula _minCoord;
   CoordinateFormula _maxCoord;

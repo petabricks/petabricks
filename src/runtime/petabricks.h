@@ -69,6 +69,12 @@ namespace petabricks {
     TransformInstancePtr txPtr(tx); //make sure tx gets deleted
     return tx->T::runDynamic(); //run without vtable use
   }
+  
+  template< typename T >
+  inline DynamicTaskPtr run_task(T* task){
+    DynamicTaskPtr ptr(task); //make sure task gets deleted
+    return task->T::run(); //no vtable use
+  }
 
   inline void spawn_hook(const DynamicTaskPtr& task,  const DynamicTaskPtr& completion){
     if(task){
@@ -112,6 +118,22 @@ namespace petabricks {
 #endif
     return std::max<int>(min, cnts[bin]);
   }
+  
+  
+  template < int D >
+  inline bool split_condition(jalib::TunableValue thresh, IndexT begin[D], IndexT end[D]){
+    //too small to split?
+    for(int i=0; i<D; ++i)
+      if(end[i]-begin[i] < 2)
+        return false;
+    //big enough to split?
+    for(int i=0; i<D; ++i)
+      if(end[i]-begin[i] > thresh)
+        return true;
+    //i guess not...
+    return false;
+  }
+
 }
 
 

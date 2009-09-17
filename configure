@@ -5067,6 +5067,13 @@ $as_echo "#define TX_DYNAMIC_POSTFIX \"_dynamic\"" >>confdefs.h
 
 
 
+$as_echo "#define COORD_BEGIN_STR \"_iter_begin\"" >>confdefs.h
+
+
+$as_echo "#define COORD_END_STR \"_iter_end\"" >>confdefs.h
+
+
+
 $as_echo "#define UTIL_SEARCH_DIR_A \"src\"" >>confdefs.h
 
 

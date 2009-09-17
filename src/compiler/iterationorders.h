@@ -27,8 +27,11 @@
 #include <vector>
 
 namespace petabricks {
-class RuleInterface;
 class CodeGenerator;
+class RuleInterface;
+class Transform;
+class SplitRegion;
+typedef std::vector<SplitRegion> SplitRegionList;
 
 class IterationDefinition {
 public:
@@ -56,6 +59,13 @@ public:
   std::vector<std::string> packedargs() const;
   std::vector<std::string> packedargnames() const;
   void unpackargs(CodeGenerator& o) const;
+  
+
+  void genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, bool isStatic) const;
+
+protected:
+  void fillSplitRegionList(SplitRegionList& regions, SplitRegion& seed) const;
+  bool canDependOn(const SplitRegion& a, const SplitRegion& b) const;
 private:
   DependencyDirection _order;
   CoordinateFormula   _var;
