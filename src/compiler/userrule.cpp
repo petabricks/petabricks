@@ -449,7 +449,7 @@ void petabricks::UserRule::generateCallCodeSimple(Transform& trans, CodeGenerato
 void petabricks::UserRule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
   o.write("{");
   std::vector<std::string> args = genCallPackedPfx(o, region);
-  std::string fn = trans.instClassName()+"::"+trampcodename(trans)+TX_STATIC_POSTFIX;
+  std::string fn = trans.instClassName()+"::"+trampcodename(trans)+TX_DYNAMIC_POSTFIX;
   std::string taskclass = "petabricks::SpatialMethodCallTask<"+trans.instClassName()
                         + ", " + jalib::XToString(region->dimensions())
                         + ", &" + fn
