@@ -37,9 +37,9 @@
 #include <vector>
 
 namespace petabricks {
-
 typedef std::map<std::string, std::string> TunableDefs;
 
+class SimpleRegion;
 class CodeGenerator;
 typedef jalib::JRef<CodeGenerator> CodeGeneratorPtr;
 typedef std::vector<CodeGeneratorPtr> CodeGenerators;
@@ -215,6 +215,9 @@ public:
     o << "\n\n// Body Decls: ///////////////////////////////////////////////////\n\n";
     o << _os.str();
   }
+
+  void callSpatial(const std::string& methodname, const SimpleRegion& region);
+  void mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region);
 protected:
   void indent();
   std::ostream& hos() { return _hos; }

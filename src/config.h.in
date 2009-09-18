@@ -24,6 +24,9 @@
 /* C++ compiler flags used by pbc */
 #undef CXXFLAGS
 
+/* C++ compiler link flags used by pbc */
+#undef CXXLDFLAGS
+
 /* C++ compiler libraries used by pbc */
 #undef CXXLIBS
 

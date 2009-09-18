@@ -250,8 +250,8 @@ def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
   if loops > 0 or passNumber>1:
     ctx=maintx
   if loops == 0:
-    cutoffs.extend(getTunables(tx, "system.seqcutoff"))
-  cutoffs.extend(getTunables(tx, "system.splitsize"))
+    cutoffs.extend(getTunables(tx, "system.cutoff.sequential"))
+  cutoffs.extend(getTunables(tx, "system.cutoff.splitsize"))
   for site in getChoiceSites(tx):
     tasks.append(TuneTask("algchoice" , lambda: autotuneAlgchoice(tx, site, ctx, inputSize, cutoffs), getChoiceSiteWeight(tx, site, cutoffs)))
   for tunable in cutoffs:

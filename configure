@@ -5048,7 +5048,7 @@ $as_echo "#define MAX_REC_LEVELS 6" >>confdefs.h
 $as_echo "#define TRANSFORM_N_STR \"transform_n\"" >>confdefs.h
 
 
-$as_echo "#define SPLIT_CHUNK_SIZE \"chunk_size\"" >>confdefs.h
+$as_echo "#define SPLIT_CHUNK_SIZE \"TRANSFORM_LOCAL(splitsize)\"" >>confdefs.h
 
 
 $as_echo "#define TEMPLATE_BIN_STR \"_acc_bin\"" >>confdefs.h
@@ -5249,6 +5249,11 @@ _ACEOF
 
 cat >>confdefs.h <<_ACEOF
 #define CXXLIBS "$LIBS"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define CXXLDFLAGS "$LDFLAGS"
 _ACEOF
 
 

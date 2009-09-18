@@ -205,14 +205,6 @@ void petabricks::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGene
 void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, Transform& trans,  const RulePtr& rule, bool useDirections){
 //bool printedBeforeDep = false;
 
-//ScheduleDependencies::const_iterator sd = _indirectDepends.find(this);
-//if(sd==_indirectDepends.end() && rule->isSingleElement()){
-//  trans.markSplitSizeUse(o);
-//  o.write(nodename()+".spatialSplit("SPLIT_CHUNK_SIZE");");
-//}else{
-//  //TODO split selfdep tasks too
-//}
-
   for(ScheduleDependencies::const_iterator i=_directDepends.begin();  i!=_directDepends.end(); ++i){
     if(i->first!=this){
       if(i->first->isInput()){

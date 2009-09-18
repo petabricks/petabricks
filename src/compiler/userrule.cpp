@@ -432,32 +432,12 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   }
 }
 
-std::vector<std::string> petabricks::UserRule::genCallPackedPfx(CodeGenerator& o, const SimpleRegionPtr& region){
-  o.write("IndexT _tmp_begin[] = {" + region->minCoord().toString() + "};");
-  o.write("IndexT _tmp_end[] = {"   + region->maxCoord().toString() + "};");
-  std::string t[] = {"_tmp_begin", "_tmp_end"};
-  return std::vector<std::string>(t, t+2);
-}
-
 void petabricks::UserRule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
-  o.write("{");
-  std::vector<std::string> args = genCallPackedPfx(o, region);
-  o.call(trampcodename(trans)+TX_STATIC_POSTFIX, args);
-  o.write("}");
+  o.callSpatial(trampcodename(trans)+TX_STATIC_POSTFIX, region);
 }
 
 void petabricks::UserRule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
-  o.write("{");
-  std::vector<std::string> args = genCallPackedPfx(o, region);
-  std::string fn = trans.instClassName()+"::"+trampcodename(trans)+TX_DYNAMIC_POSTFIX;
-  std::string taskclass = "petabricks::SpatialMethodCallTask<"+trans.instClassName()
-                        + ", " + jalib::XToString(region->dimensions())
-                        + ", &" + fn
-                        + ">"
-                        ;
-  args.insert(args.begin(), "this");
-  o.setcall(name,"new "+taskclass, args);
-  o.write("}");
+  o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+TX_DYNAMIC_POSTFIX, region);
 }
 
 

@@ -170,7 +170,7 @@ std::string cmdCxxCompiler(){
      << " && \\\n echo done";
   if(shouldLink)
     os <<" && echo -n Linking...\\ && \\\n"
-       << CXX " " CXXFLAGS " -o " << theOutputBin << " " << theObjectFile << " -L\""<< theLibDir <<"\" -lpbmain -lpbruntime -lpbcommon " CXXLIBS 
+       << CXX " " CXXFLAGS " -o " << theOutputBin << " " << theObjectFile << CXXLDFLAGS " -L\""<< theLibDir <<"\" -lpbmain -lpbruntime -lpbcommon " CXXLIBS 
        << " && \\\n echo done";
   return os.str();
 }

@@ -410,7 +410,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   
   if(_scheduler->size()>1){
     o.beginFunc("bool", "useContinuation");
-    o.createTunable(true, "system.unrollschedule", _name + "_unrollschedule", 1, 0, 1);
+    o.createTunable(true, "system.flag.unrollschedule", _name + "_unrollschedule", 1, 0, 1);
     o.write("return "+_name + "_unrollschedule == 0;");
     o.endFunc();
   }
@@ -422,8 +422,8 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.endFunc();
 
   o.beginFunc("DynamicTaskPtr", "runDynamic");
-  o.createTunable(true, "system.seqcutoff", _name + "_sequentialcutoff", 0);
-  o.beginIf(TRANSFORM_N_STR " < " + _name + "_sequentialcutoff");
+  o.createTunable(true, "system.cutoff.sequential", _name + "_sequentialcutoff", 0);
+  o.beginIf(TRANSFORM_N_STR " < TRANSFORM_LOCAL(sequentialcutoff)");
   o.write("runStatic();");
   o.write("return NULL;");
   o.endIf();
@@ -473,8 +473,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
 void petabricks::Transform::markSplitSizeUse(CodeGenerator& o){
   if(!_usesSplitSize){
     _usesSplitSize=true;
-    o.createTunable(true, "system.splitsize", _name + "_splitsize", 64, 1);
-    o.addMember("IndexT", SPLIT_CHUNK_SIZE, _name+"_splitsize");
+    o.createTunable(true, "system.cutoff.splitsize", _name + "_splitsize", 64, 1);
   }
 }
 

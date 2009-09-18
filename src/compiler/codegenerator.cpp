@@ -19,6 +19,8 @@
  ***************************************************************************/
 #include "codegenerator.h"
 
+#include "region.h"
+
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
@@ -277,5 +279,28 @@ void petabricks::CodeGenerator::mergehelpers(){
     dos() << _helpers.front()->_dos.str();
   }
 }
+void petabricks::CodeGenerator::callSpatial(const std::string& methodname, const SimpleRegion& region) {
+  write("{");
+  incIndent();
+  write("IndexT _tmp_begin[] = {" + region.minCoord().toString() + "};");
+  write("IndexT _tmp_end[] = {"   + region.maxCoord().toString() + "};");
+  write(methodname+"(_tmp_begin, _tmp_end);");
+  decIndent();
+  write("}");
+}
+void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region) {
+  std::string taskclass = "petabricks::SpatialMethodCallTask<"+objname
+                        + ", " + jalib::XToString(region.dimensions())
+                        + ", &" + objname + "::" + methodname
+                        + ">";
+  write("{");
+  incIndent();
+  write("IndexT _tmp_begin[] = {" + region.minCoord().toString() + "};");
+  write("IndexT _tmp_end[] = {"   + region.maxCoord().toString() + "};");
+  write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end);");
+  decIndent();
+  write("}");
+}
+
 
 

@@ -190,7 +190,7 @@ AC_DEFINE([SHORT_TYPE_NAMES],  [1],              [undefine this if a large numbe
 AC_DEFINE([RUN_CPP],           [1],               [undefine to disable cpp])
 AC_DEFINE([MAX_REC_LEVELS],    [6],               [number of levels for recursive choices])
 AC_DEFINE([TRANSFORM_N_STR],   ["transform_n"],  [define to add a system var to transform scope])
-AC_DEFINE([SPLIT_CHUNK_SIZE],  ["chunk_size"],   [var name in output code])
+AC_DEFINE([SPLIT_CHUNK_SIZE],  ["TRANSFORM_LOCAL(splitsize)"],   [var name in output code])
 AC_DEFINE([TEMPLATE_BIN_STR],  ["_acc_bin"],     [var name in output code for accuracy template parameter])
 AC_DEFINE([RETURN_VAL_STR],   ["_pb_rv"],     [var name in output code for rule output variable])
 AC_DEFINE([TMPL_IMPL_PFX],     ["_tmpl"],        [prefix for expanded template implementations])
@@ -278,11 +278,12 @@ done
 ################################################################################
 
 #pass compiler configuration to config.h
-AC_DEFINE_UNQUOTED([CXX],      ["$CXX"],                  [C++ compiler used by pbc])
-AC_DEFINE_UNQUOTED([CXXFLAGS], ["$CXXFLAGS"],             [C++ compiler flags used by pbc])
-AC_DEFINE_UNQUOTED([CXXCPP],   ["$CXXCPP -x c++"],        [C++ preprocessor used by pbc])
-AC_DEFINE_UNQUOTED([CXXDEFS],  ["$DEFS -DHAVE_CONFIG_H"], [C++ compiler defines used by pbc])
-AC_DEFINE_UNQUOTED([CXXLIBS],  ["$LIBS"],                 [C++ compiler libraries used by pbc])
+AC_DEFINE_UNQUOTED([CXX],        ["$CXX"],                  [C++ compiler used by pbc])
+AC_DEFINE_UNQUOTED([CXXFLAGS],   ["$CXXFLAGS"],             [C++ compiler flags used by pbc])
+AC_DEFINE_UNQUOTED([CXXCPP],     ["$CXXCPP -x c++"],        [C++ preprocessor used by pbc])
+AC_DEFINE_UNQUOTED([CXXDEFS],    ["$DEFS -DHAVE_CONFIG_H"], [C++ compiler defines used by pbc])
+AC_DEFINE_UNQUOTED([CXXLIBS],    ["$LIBS"],                 [C++ compiler libraries used by pbc])
+AC_DEFINE_UNQUOTED([CXXLDFLAGS], ["$LDFLAGS"],              [C++ compiler link flags used by pbc])
 
 ################################################################################
 ################################################################################

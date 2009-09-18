@@ -123,8 +123,6 @@ public:
 
   const FormulaPtr& recursiveHint() const { return _recursiveHint; }
 
-  std::vector<std::string> genCallPackedPfx(CodeGenerator& o, const SimpleRegionPtr& region);
-
   FormulaPtr getSizeOfRuleIn(int d){
     for(size_t i=0; i<_to.size(); ++i){
       if(d < (int)_to[i]->dimensions()){

@@ -22,6 +22,7 @@
 #include "codegenerator.h"
 #include "iterationorders.h"
 #include "maximawrapper.h"
+#include "transform.h"
 
 void petabricks::SyntheticRule::compileRuleBody(Transform& tx, RIRScope& s){}
 void petabricks::SyntheticRule::initialize(Transform&){}
@@ -78,24 +79,27 @@ void petabricks::SyntheticRule::print(std::ostream& os) const {
 void petabricks::WhereExpansionRule::generateCallCodeSimple( Transform& trans
                                                            , CodeGenerator& o
                                                            , const SimpleRegionPtr& region){
-  o.call(codename()+TX_STATIC_POSTFIX, region->argnames());
+  o.callSpatial(codename()+TX_STATIC_POSTFIX, region);
 }
 
 void petabricks::WhereExpansionRule::generateCallTaskCode( const std::string& name
                                                          , Transform& trans
                                                          , CodeGenerator& o
                                                          , const SimpleRegionPtr& region){
-  o.call(codename()+TX_STATIC_POSTFIX, region->argnames());
+  o.mkSpatialTask(name, trans.instClassName(), codename()+TX_STATIC_POSTFIX, region);
 }
   
 
 void petabricks::WhereExpansionRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   //for now static only:
   IterationDefinition iterdef(*this, getSelfDependency() , false);
-  o.beginFunc("void", codename()+TX_STATIC_POSTFIX, iterdef.args());
+  std::vector<std::string> packedargs = iterdef.packedargs();
+  o.beginFunc("petabricks::DynamicTaskPtr", codename()+TX_STATIC_POSTFIX, packedargs);
+  iterdef.unpackargs(o);
   iterdef.genLoopBegin(o);
   genWhereSwitch(trans,o);
   iterdef.genLoopEnd(o);
+  o.write("return NULL;");
   o.endFunc();
 }
 
