@@ -140,7 +140,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   }
 
   //figure out what mode we are in
-  if(args.param("autotune").help("run the genetic autotuner at a given choice cite")){
+  if(args.param("autotune").help("run the genetic autotuner at a given choice site")){
     MODE=MODE_AUTOTUNE_GENETIC;
   } else if(args.param("optimize", graphParam).help("autotune a single given config parameter")){
     MODE=MODE_AUTOTUNE_PARAM;
