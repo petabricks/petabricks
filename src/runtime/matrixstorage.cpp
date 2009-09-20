@@ -27,7 +27,7 @@
 #endif
 
 MATRIX_ELEMENT_T petabricks::MatrixStorage::rand(){
-  return (2.0*rand()-1.0)*4294967296.0;
+  return (2.0*drand48()-1.0)*4294967296.0;
 }
 
 void petabricks::MatrixStorage::randomize(){
