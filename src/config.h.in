@@ -131,6 +131,9 @@
 /* type for elements in the matrix */
 #undef MATRIX_ELEMENT_T
 
+/* type for indices into the matrix */
+#undef MATRIX_INDEX_T
+
 /* define in order to generate maxima.log, (a log of maxima commands) */
 #undef MAXIMA_LOG
 

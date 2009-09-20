@@ -26,10 +26,14 @@
 # include "config.h"
 #endif
 
+MATRIX_ELEMENT_T petabricks::MatrixStorage::rand(){
+  return (2.0*rand()-1.0)*4294967296.0;
+}
+
 void petabricks::MatrixStorage::randomize(){
 #ifdef GOOD_RANDOM
   for(int i=0;i<_count; ++i){
-    _data[i] = (2.0*drand48()-1.0)*4294967296.0;
+    _data[i] = rand();
   }
 #else
   //this method is bad... only use during compiler development
@@ -40,14 +44,5 @@ void petabricks::MatrixStorage::randomize(){
     _data[i] = (x^=a*x+b);
   }
 #endif
-}
-
-
-void petabricks::MatrixRegion<0, const MATRIX_ELEMENT_T>::randomize(){
-  _val = drand48();
-}
-
-void petabricks::MatrixRegion<0, MATRIX_ELEMENT_T>::randomize(){
-  *_val = drand48();
 }
 

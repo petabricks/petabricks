@@ -114,7 +114,7 @@ namespace petabricks {
     int bin = size_to_bin(input_size);
     if(!(bin>=0)) bin = 0;
 #ifdef DEBUG
-    JASSERT(bin<cnts.size())(bin)(cnts.size());
+    JASSERT(bin<(int)cnts.size())(bin)(cnts.size());
 #endif
     return std::max<int>(min, cnts[bin]);
   }

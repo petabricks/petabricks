@@ -52,6 +52,7 @@ pkglib_HEADERS=  \
   runtime/dynamictask.h \
   runtime/matrix.h \
   runtime/matrixio.h \
+  runtime/matrixspecializations.h \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
   runtime/ruleinstance.h \

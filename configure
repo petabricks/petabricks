@@ -5021,6 +5021,9 @@ $as_echo "#define JALIB_ALLOCATOR 1" >>confdefs.h
 fi
 
 
+$as_echo "#define MATRIX_INDEX_T int" >>confdefs.h
+
+
 $as_echo "#define MATRIX_ELEMENT_T double" >>confdefs.h
 
 

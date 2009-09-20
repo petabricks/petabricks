@@ -42,7 +42,7 @@
 namespace petabricks {
 
 DynamicTask::DynamicTask(TaskType t)
- :_state(S_NEW), _numPredecessors(0), _continuation(NULL), _type(t)
+ :_continuation(NULL), _state(S_NEW), _numPredecessors(0), _type(t)
 {}
 
 

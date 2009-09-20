@@ -240,6 +240,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
       optimizeParameter(graphParam);
       break;
     case MODE_ABORT:
+    case MODE_HELP:
       break;
   }
   

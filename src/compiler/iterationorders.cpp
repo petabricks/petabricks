@@ -199,7 +199,7 @@ void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& 
 }
 
 void petabricks::IterationDefinition::fillSplitRegionList(SplitRegionList& regions, SplitRegion& r) const {
-  size_t d = r.dimensions();
+  int d = r.dimensions();
   if(d<dimensions()){
     FormulaPtr begin = _begin[d];
     FormulaPtr mid = new FormulaDivide( new FormulaAdd( _begin[d], _end[d] ), FormulaInteger::two());

@@ -181,7 +181,8 @@ if test "$use_jalloc" = "yes"; then
   AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
 fi
 
-AC_DEFINE([MATRIX_ELEMENT_T],  [double],         [type for elements in the matrix])
+AC_DEFINE([MATRIX_INDEX_T],    [int],         [type for indices into the matrix])
+AC_DEFINE([MATRIX_ELEMENT_T],  [double],      [type for elements in the matrix])
 AC_DEFINE([MAX_DIMENSIONS],    [64],             [the maximum number of dimensions supported])
 AC_DEFINE([MAX_INPUT_BITS],    [32],             [the maximum number of dimensions supported])
 AC_DEFINE([STEAL_ATTEMPTS_WAITING], [3], [number of times to attempt to steal in waitUntilComplete])

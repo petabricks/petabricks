@@ -98,6 +98,7 @@ static bool _argToBool(const std::string& name, const char* v){
   } else {
     JASSERT(false)(name)(v)
       .Text("expected 'true' or 'false'");
+    return false;
   }
 }
 

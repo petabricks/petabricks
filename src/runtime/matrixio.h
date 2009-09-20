@@ -71,14 +71,14 @@ public:
   ///
   /// Read a D-dimensional matrix from _fd
   template<int D>
-  MatrixRegion<D> read(){
+  MatrixRegion<D, MATRIX_ELEMENT_T> read(){
     MatrixReaderScratch o;
     _read(o);
     JASSERT(o.dimensions==D)(o.dimensions)(D)
       .Text("Unexpected number of dimensions in input matrix");
     MatrixStorage::IndexT sizes[D];
     for(int i=0; i<D; ++i) sizes[i]=o.sizes[i];
-    return MatrixRegion<D>(o.storage, o.storage->data(), sizes);
+    return MatrixRegion<D, MATRIX_ELEMENT_T>(o.storage, o.storage->data(), sizes);
   }
 
   ///

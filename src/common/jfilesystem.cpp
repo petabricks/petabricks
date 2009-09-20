@@ -105,7 +105,7 @@ std::string jalib::Filesystem::FindHelperUtility ( const std::string& file, bool
 #endif
     "."
   };
-  for(int i=0; i<sizeof(prefixes)/sizeof(const char*); ++i){
+  for(size_t i=0; i<sizeof(prefixes)/sizeof(const char*); ++i){
     if(prefixes[i]==NULL || *prefixes[i]==0)
       continue;
     std::string pfx = prefixes[i];
@@ -139,7 +139,6 @@ std::string jalib::Filesystem::FindHelperUtility ( const std::string& file, bool
 std::vector<std::string> jalib::Filesystem::GetProgramArgs()
 {
   std::string path = "/proc/" + jalib::XToString ( getpid() ) + "/cmdline";
-  FILE* args = fopen ( path.c_str(),"r" );
   std::ifstream fp(path.c_str());
   JASSERT ( fp.is_open() ) ( path ).Text ( "failed to open command line" );
   std::string line;

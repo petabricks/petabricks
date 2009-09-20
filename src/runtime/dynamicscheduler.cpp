@@ -41,7 +41,11 @@ petabricks::DynamicScheduler& petabricks::DynamicScheduler::lookupScheduler(Dyna
   switch(t){
     case DynamicTask::TYPE_CPU:    return cpuScheduler();  
     case DynamicTask::TYPE_OPENCL: return extraSchedulers[0];  
-    default: UNIMPLEMENTED();
+    default:
+    {
+      UNIMPLEMENTED();
+      return *(DynamicScheduler*)NULL;
+    }
   }
 }
 
@@ -49,6 +53,7 @@ extern "C" void *workerStartup(void *arg) {
   JASSERT(arg!=0);
   petabricks::WorkerThread worker(*(petabricks::DynamicScheduler*)arg);
   worker.mainLoop();
+  return NULL;
 }
 
 void petabricks::DynamicScheduler::startWorkerThreads(int total)
