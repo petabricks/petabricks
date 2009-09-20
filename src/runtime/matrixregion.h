@@ -25,6 +25,22 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+//
+// Class structure looks like this:
+//
+//  MatrixRegion  (specialized for MatrixRegion0D and  ConstMatrixRegion0D)
+//    extends 
+//  MatrixRegionVaArgsMethods (specialized a lot, for performance only; GCC optimizes VA_ARGS poorly)
+//    extends
+//  MatrixRegionBasicMethods
+//    extends
+//  MatrixRegionMembers (specialized for ConstMatrixRegion0D)
+//
+// Specializations can be found in matrixspecializations.h
+//
+// Now the main classes in reverse order of whats listed above:
+//
+
 namespace petabricks {
 
 template< int D, typename ElementT> class MatrixRegion;
@@ -60,9 +76,9 @@ template< typename TypeSpec >
 class MatrixRegionMembers {
 public:
   enum { D = TypeSpec::D };
-  typedef typename TypeSpec::StorageT            StorageT;
-  typedef typename TypeSpec::IndexT              IndexT;
-  typedef typename TypeSpec::ElementT            ElementT;
+  typedef typename TypeSpec::StorageT StorageT;
+  typedef typename TypeSpec::IndexT   IndexT;
+  typedef typename TypeSpec::ElementT ElementT;
   
   ///
   /// Constructor
@@ -296,9 +312,9 @@ template< typename TypeSpec >
 class MatrixRegionVaArgsMethods : public MatrixRegionBasicMethods< TypeSpec > {
 public:
   enum { D = TypeSpec::D };
-  typedef typename TypeSpec::IndexT              IndexT;
-  typedef typename TypeSpec::ElementT            ElementT;
-  typedef typename TypeSpec::MatrixRegion        MatrixRegion;
+  typedef typename TypeSpec::IndexT       IndexT;
+  typedef typename TypeSpec::ElementT     ElementT;
+  typedef typename TypeSpec::MatrixRegion MatrixRegion;
   typedef MatrixRegionBasicMethods<TypeSpec> Base;
   MatrixRegionVaArgsMethods( const typename TypeSpec::StorageT& s
                           , typename TypeSpec::ElementT* b
