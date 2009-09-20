@@ -99,8 +99,11 @@ int main( int argc, const char ** argv){
   CodeGenerator::theFilePrefix() << "// Compile with:\n";
   CodeGenerator::theFilePrefix() << "/*\n " << cmdCxxCompiler() << "\n*/\n";
   CodeGenerator::theFilePrefix() << "#include \"petabricks.h\"\n";
-  //CodeGenerator::theFilePrefix() <<"#pragma GCC diagnostic ignored \"-Wunused-variable\"\n";
-  //CodeGenerator::theFilePrefix() <<"#pragma GCC diagnostic ignored \"-Wunused-parameter\"\n";
+  CodeGenerator::theFilePrefix() <<"#ifdef __GNUC__\n";
+  CodeGenerator::theFilePrefix() <<"#pragma GCC diagnostic ignored \"-Wunused-variable\"\n";
+  CodeGenerator::theFilePrefix() <<"#pragma GCC diagnostic ignored \"-Wunused-parameter\"\n";
+  CodeGenerator::theFilePrefix() <<"#pragma GCC diagnostic ignored \"-Wunused-value\"\n";
+  CodeGenerator::theFilePrefix() <<"#endif\n";
   #ifdef SHORT_TYPE_NAMES
   CodeGenerator::theFilePrefix() <<"using namespace petabricks;\n\n";
   #endif
