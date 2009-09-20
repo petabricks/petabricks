@@ -20,7 +20,7 @@
 #ifndef PETABRICKSMATRIXSPECIALIZATIONS_H
 #define PETABRICKSMATRIXSPECIALIZATIONS_H
 
-#include "matrix.h"
+#include "matrixregion.h"
 
 namespace petabricks {
 

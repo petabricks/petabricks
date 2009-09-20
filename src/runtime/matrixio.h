@@ -20,7 +20,7 @@
 #ifndef PETABRICKSMATRIXIO_H
 #define PETABRICKSMATRIXIO_H
 
-#include "matrix.h"
+#include "matrixregion.h"
 
 #include "common/jassert.h"
 

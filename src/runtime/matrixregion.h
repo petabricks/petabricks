@@ -20,71 +20,18 @@
 #ifndef PETABRICKSMATRIX_H
 #define PETABRICKSMATRIX_H
 
-#include "common/jassert.h"
-#include "common/jrefcounted.h"
+#include "matrixstorage.h"
 
 #include <stdarg.h>
 #include <stdio.h>
 
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#else
-# define MATRIX_INDEX_T   int 
-# define MATRIX_ELEMENT_T double
-#endif
-
 namespace petabricks {
 
-class MatrixStorage;
-typedef jalib::JRef<MatrixStorage> MatrixStoragePtr;
 template< int D, typename ElementT> class MatrixRegion;
-
-/**
- * The raw data for a Matrix
- */
-class MatrixStorage : public jalib::JRefCounted {
-public:
-  typedef MATRIX_INDEX_T IndexT;
-  typedef MATRIX_ELEMENT_T ElementT;
-private:
-  //no copy constructor
-  MatrixStorage(const MatrixStorage&);
-public:
-  ///
-  /// Constructor
-  MatrixStorage(IndexT n) : _count(n) {
-    _data = new ElementT[n];
-  }
-
-  ///
-  /// Destructor
-  ~MatrixStorage(){
-    delete [] _data;
-  }
-
-  ElementT* data() { return _data; }
-  const ElementT* data() const { return _data; }
-
-  IndexT count() const { return _count; }
-
-  ///
-  /// Fill the matrix with random data
-  void randomize();
-
-
-  ///
-  /// generate a single random number
-  static double rand();
-private:
-  ElementT* _data;
-  IndexT _count;
-};
-
 
 //trick to break the cycle for SliceMatrixRegion going to MatrixRegion<-1>
 template<int _D> struct _slicesize    { enum { D = _D-1 }; };
 template< >      struct _slicesize<0> { enum { D = 0    }; };
-
 
 /**
  * We have divided MatrixRegion into many smaller classes (combined through a chain of inheritance)

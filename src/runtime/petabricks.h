@@ -19,7 +19,7 @@
  ***************************************************************************/
 
 #include "dynamictask.h"
-#include "matrix.h"
+#include "matrixregion.h"
 #include "matrixio.h"
 #include "petabricksruntime.h"
 #include "ruleinstance.h"

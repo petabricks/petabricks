@@ -50,9 +50,10 @@ pkglib_HEADERS=  \
   runtime/autotuner.h \
   runtime/dynamicscheduler.h \
   runtime/dynamictask.h \
-  runtime/matrix.h \
   runtime/matrixio.h \
+  runtime/matrixregion.h \
   runtime/matrixspecializations.h \
+  runtime/matrixstorage.h \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
   runtime/ruleinstance.h \
@@ -111,9 +112,9 @@ libpbruntime_a_SOURCES =  \
   runtime/autotuner.cpp \
   runtime/dynamicscheduler.cpp \
   runtime/dynamictask.cpp \
-  runtime/matrix.cpp \
   runtime/matrixio.cpp \
   runtime/matrixreader.lpp \
+  runtime/matrixstorage.cpp \
   runtime/petabricksruntime.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \

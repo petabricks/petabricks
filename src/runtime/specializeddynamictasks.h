@@ -21,7 +21,7 @@
 #define PETABRICKSSPECIALIZEDDYNAMICTASK_H
 
 #include "dynamictask.h"
-#include "matrix.h"
+#include "matrixregion.h"
 #include "string.h"
 
 #include <vector>
