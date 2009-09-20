@@ -54,8 +54,8 @@ to ROut[width,height], KOut[width,height]
                                    _weight weight)
   {
     int n = width - 2;
-    if (i % 2 == 1 && 2 * j - 2 >= 0 && 2 * j - 2 < n ||
-        i % 2 == 0 && 2 * j - 1 >= 0 && 2 * j - 1 < n) {
+    if ((i % 2 == 1 && 2 * j - 2 >= 0 && 2 * j - 2 < n) ||
+        (i % 2 == 0 && 2 * j - 1 >= 0 && 2 * j - 1 < n)) {
       return (1 - weight) * me + weight * (c + (i % 2 == 0 ? w + e : nw + ne) + no + b) / 4;
     } else {
       return 0;
@@ -73,8 +73,8 @@ to ROut[width,height], KOut[width,height]
                                    _weight weight)
   {
     int n = width - 2;
-    if (i % 2 == 1 && 2 * j - 1 >= 0 && 2 * j - 1 < n || 
-        i % 2 == 0 && 2 * j     >= 0 && 2 * j     < n) {
+    if ((i % 2 == 1 && 2 * j - 1 >= 0 && 2 * j - 1 < n) || 
+        (i % 2 == 0 && 2 * j     >= 0 && 2 * j     < n)) {
       return (1 - weight) * me + weight * (c + (i % 2 == 1 ? w + e : sw + se) + s + b) / 4;
     } else {
       return 0;

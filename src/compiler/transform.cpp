@@ -325,7 +325,10 @@ void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
     }
     o.endCase();
   }
-  o.write("default: JASSERT(false);");
+  if(isStatic)
+    o.write("default: JASSERT(false); return;");
+  else
+    o.write("default: JASSERT(false); return 0;");
   o.endSwitch();
   o.endFunc();
 }
