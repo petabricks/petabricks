@@ -72,7 +72,7 @@ namespace jalib
 //     return x;
 // }
 
-  template<> inline std::string StringToX<std::string> ( const std::string& s, bool strict )
+  template<> inline std::string StringToX<std::string> ( const std::string& s, bool /*strict*/ )
   {
     return s;
   }
@@ -81,15 +81,15 @@ namespace jalib
     template<> inline T StringToX<T>(const std::string& s, bool strict){ \
         return jconvert_internal::StdLibEC<TFunc,Function>(s,strict);}
 
-  JCONVERT_DECLARE_StringToX ( short, long, strtol );
-  JCONVERT_DECLARE_StringToX ( int, long, strtol );
-  JCONVERT_DECLARE_StringToX ( long, long, strtol );
-  JCONVERT_DECLARE_StringToX ( unsigned int, unsigned long, strtoul );
-  JCONVERT_DECLARE_StringToX ( unsigned long, unsigned long, strtoul );
-  JCONVERT_DECLARE_StringToX ( long long, long long, strtoll );
-  JCONVERT_DECLARE_StringToX ( unsigned long long, unsigned long long, strtoull );
-  JCONVERT_DECLARE_StringToX ( float, float, strtof );
-  JCONVERT_DECLARE_StringToX ( double, double, strtod );
+  JCONVERT_DECLARE_StringToX ( short, long, strtol )
+  JCONVERT_DECLARE_StringToX ( int, long, strtol )
+  JCONVERT_DECLARE_StringToX ( long, long, strtol )
+  JCONVERT_DECLARE_StringToX ( unsigned int, unsigned long, strtoul )
+  JCONVERT_DECLARE_StringToX ( unsigned long, unsigned long, strtoul )
+  JCONVERT_DECLARE_StringToX ( long long, long long, strtoll )
+  JCONVERT_DECLARE_StringToX ( unsigned long long, unsigned long long, strtoull )
+  JCONVERT_DECLARE_StringToX ( float, float, strtof )
+  JCONVERT_DECLARE_StringToX ( double, double, strtod )
   JCONVERT_DECLARE_StringToX ( long double, long double, strtold )
 
 

@@ -233,7 +233,7 @@ fi
 # COMPILER FLAGS ###############################################################
 ################################################################################
 
-compileflags=""
+compileflags="-Wall -Wextra"
 linkflags=""
   
 if test "$use_jassert" = "yes"; then
@@ -243,10 +243,10 @@ fi
 if test "$default_cxxflags" = "yes"; then
   if test "$use_jassert" = "yes"; then
     CXXFLAGS=""
-    compileflags="-O0 -g"
+    compileflags="-O0 -g $compileflags -fdiagnostics-show-option"
   else
     CXXFLAGS=""
-    compileflags="-O3"
+    compileflags="-O3 $compileflags"
   fi
   case "$target_cpu" in
     *sparc*) compileflags="$compileflags -mcpu=niagara -mtune=native";;

@@ -95,8 +95,8 @@ public:
   virtual void pushScope(){}
   virtual void popScope(){}
 
-  virtual void beforeAny(const RIRNodeRef& n){}
-  virtual void afterAny(const RIRNodeRef& n){}
+  virtual void beforeAny(const RIRNodeRef&){}
+  virtual void afterAny(const RIRNodeRef&){}
 protected:
   int depth() const { return _stack.size(); } 
 
@@ -147,14 +147,14 @@ private:
   void pushSplicer(RIRStmtList* bk, RIRStmtList* fwd){
     _stmtCtx.push_back(StmtContext(bk, fwd, depth()));
   }
-  void popSplicer(RIRStmtList* bk, RIRStmtList* fwd){
+  void popSplicer(RIRStmtList* /*bk*/, RIRStmtList* /*fwd*/){
     JASSERT(!_stmtCtx.empty());
     _stmtCtx.pop_back();
   }
   void pushSplicer(RIRExprList* bk, RIRExprList* fwd){
     _exprCtx.push_back(ExprContext(bk, fwd, depth()));
   }
-  void popSplicer(RIRExprList* bk, RIRExprList* fwd){
+  void popSplicer(RIRExprList* /*bk*/, RIRExprList* /*fwd*/){
     JASSERT(!_exprCtx.empty());
     _exprCtx.pop_back();
   }

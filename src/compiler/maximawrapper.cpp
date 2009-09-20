@@ -58,8 +58,8 @@ static void launchMaxima(){
 static void launchMaximaWithLogging(){
   class LogForwarder : public jalib::JMultiSocketProgram {
   public:
-    void onConnect ( const jalib::JSocket& sock, const struct sockaddr* remoteAddr,socklen_t remoteLen ){JASSERT(false);}
-    void onDisconnect ( jalib::JReaderInterface* sock ) { exit(0); };
+    void onConnect ( const jalib::JSocket& /*sock*/, const struct sockaddr* /*remoteAddr*/, socklen_t /*remoteLen*/ ){JASSERT(false);}
+    void onDisconnect ( jalib::JReaderInterface* /*sock*/ ) { exit(0); };
 
     void onData ( jalib::JReaderInterface* sock ){
       static int stdinfd  = fileno(stdin);

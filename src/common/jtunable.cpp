@@ -241,7 +241,7 @@ void jalib::JTunableManager::autotune(JConfigurationTester* tester) const{
 
 #else//HAVE_LIBGSL
 
-void jalib::JTunableManager::autotune(JConfigurationTester* tester) const{
+void jalib::JTunableManager::autotune(JConfigurationTester* /*tester*/) const{
   JASSERT(false).Text("Can't autotune because not compiled with -lgsl, run: 'apt-get install libgsl0-dev' then './configure'");
 }
 

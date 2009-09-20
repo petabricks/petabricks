@@ -73,10 +73,10 @@ public:
   virtual bool shouldDescend(const RIRNode&) { return true; }
 
   //splicers allow new code to be inserted into the tree
-  virtual void pushSplicer(RIRStmtList* bk, RIRStmtList* fwd){}
-  virtual void pushSplicer(RIRExprList* bk, RIRExprList* fwd){}
-  virtual void popSplicer(RIRStmtList* bk, RIRStmtList* fwd){}
-  virtual void popSplicer(RIRExprList* bk, RIRExprList* fwd){}
+  virtual void pushSplicer(RIRStmtList* /*bk*/, RIRStmtList* /*fwd*/){}
+  virtual void pushSplicer(RIRExprList* /*bk*/, RIRExprList* /*fwd*/){}
+  virtual void popSplicer(RIRStmtList*  /*bk*/, RIRStmtList* /*fwd*/){}
+  virtual void popSplicer(RIRExprList*  /*bk*/, RIRExprList* /*fwd*/){}
 };
 
 /**

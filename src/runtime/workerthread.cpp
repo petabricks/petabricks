@@ -139,7 +139,7 @@ void petabricks::WorkerThreadPool::insert(WorkerThread* thread){
     // try again on the next slot
   }
   //ensure _count>i
-  while(! jalib::compareAndSwap(&_count, _count, std::max(_count, i+1)) );
+  while(! jalib::compareAndSwap(&_count, _count, std::max(_count, i+1)) ) ;
 }
 
 void petabricks::WorkerThreadPool::remove(WorkerThread* thread){

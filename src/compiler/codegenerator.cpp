@@ -156,7 +156,7 @@ namespace{//file local
     const char* begin=str.c_str();
     const char* mid=begin+str.length();
     const char* end=mid;
-    while(mid>begin && *(--mid)!=' ');
+    while(mid>begin && *(--mid)!=' ') ;
 //     JTRACE("SPLIT")(begin)(mid+1);
     JASSERT(mid!=begin);
     type.assign(begin,mid);

@@ -61,7 +61,7 @@ public:
 #ifdef WORKERTHREAD_INJECT
     _injectQueue.push_bottom(t);
 #else
-    JASSERT(false).Text("support for WorkerThread::inject() not compiled in");
+    JASSERT(false)(t).Text("support for WorkerThread::inject() not compiled in");
 #endif
   }
   

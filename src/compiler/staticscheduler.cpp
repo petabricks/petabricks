@@ -202,7 +202,7 @@ void petabricks::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGene
   }
 }
 
-void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, Transform& trans,  const RulePtr& rule, bool useDirections){
+void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, Transform&,  const RulePtr&, bool){
 //bool printedBeforeDep = false;
 
   for(ScheduleDependencies::const_iterator i=_directDepends.begin();  i!=_directDepends.end(); ++i){
@@ -328,7 +328,7 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
     if(!isStatic) ot.beginFunc("DynamicTaskPtr", taskname);
     std::string varname="coscheduled_"+nodename();
 
-    for(size_t d=selfDep.direction.size()-1; d>=0; --d){
+    for(int d=(int)selfDep.direction.size()-1; d>=0; --d){
       bool passed=true;
       FormulaPtr begin,end;
     

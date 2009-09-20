@@ -43,7 +43,7 @@ petabricks::RIRExprCopyRef petabricks::RIRExpr::parse(const std::string& str){
 namespace{ 
   template<typename T> T& get(std::list<T>& lst, int n) {
     typename std::list<T>::iterator i=lst.begin();
-    for(; n>0; --n,++i); 
+    for(; n>0; --n,++i) ; 
     return *i;
   }
 }
@@ -140,7 +140,7 @@ void petabricks::RIRIfStmt::print(std::ostream& o, RIRVisitor* v) {
     pvHook(_else,o,v);
   }
 }
-void petabricks::RIRRawStmt::print(std::ostream& o, RIRVisitor* v) {
+void petabricks::RIRRawStmt::print(std::ostream& o, RIRVisitor*) {
   o << _src;
 }
 

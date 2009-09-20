@@ -216,7 +216,7 @@ void petabricks::PetabricksRuntime::saveConfig()
 }
 
 
-int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
+int petabricks::PetabricksRuntime::runMain(){
   switch(MODE){
     case MODE_RUN_IO:
       runNormal();
@@ -410,7 +410,7 @@ double petabricks::PetabricksRuntime::trainAndComputeWrapper(double thresh){
   return t;
 }
 
-double petabricks::PetabricksRuntime::computeWrapper(double thresh){
+double petabricks::PetabricksRuntime::computeWrapper(double /*thresh*/){
 #ifdef GRACEFUL_ABORT
 //// Set up a time out so we don't waste time running things that are
 //// slower than what we have seen already.
@@ -615,7 +615,7 @@ void petabricks::PetabricksRuntime::runMultigridAutotuneMode(){
 
 int petabricks::petabricksMain(int argc, const char** argv){
   PetabricksRuntime runtime(argc, argv, petabricksMainTransform());
-  return runtime.runMain(argc,argv);
+  return runtime.runMain();
 }
 
 

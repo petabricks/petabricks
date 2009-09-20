@@ -49,7 +49,7 @@
 #define PB_STATIC_CALL(taskname, args...) \
   taskname ## _static (args)
 
-#define PB_NOP() 0
+#define PB_NOP() (void)0
 
 #define PB_RETURN(rv)\
   { _pb_rv=(rv); return DEFAULT_RV; }

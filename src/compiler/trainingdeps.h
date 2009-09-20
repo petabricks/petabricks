@@ -66,7 +66,7 @@ public:
     _os << " isTemplateInstance=\"" << (name==instanceName ? "no" : "yes") << "\"";
     _os << ">\n";
   }
-  void endTransform(const std::string& name, const std::string& instanceName){
+  void endTransform(const std::string& name, const std::string& /*instanceName*/){
     const std::vector<std::string>& calls = _callgraph[name];
     for(size_t i=0; i<calls.size(); ++i)
       _os << "    <calls caller=\"" << name << "\" callee=\"" << calls[i] << "\" />\n";

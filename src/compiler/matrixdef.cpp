@@ -47,7 +47,7 @@ void petabricks::MatrixDef::print(std::ostream& o) const {
   }
 }
 
-void petabricks::MatrixDef::initialize(Transform& trans){
+void petabricks::MatrixDef::initialize(Transform& ){
 //   _version.normalize();
 //   _size.normalize();
   if(_version.size()>0){

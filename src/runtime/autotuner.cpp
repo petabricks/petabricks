@@ -351,7 +351,7 @@ void petabricks::CandidateAlgorithm::print(std::ostream& o) const {
   }
 }
 
-void petabricks::CandidateAlgorithm::onTunableModification(jalib::JTunable* tunable, jalib::TunableValue oldVal, jalib::TunableValue newVal){
+void petabricks::CandidateAlgorithm::onTunableModification(jalib::JTunable* tunable, jalib::TunableValue /*oldVal*/, jalib::TunableValue newVal){
   _extraConfig[tunable] = newVal;
 }
 

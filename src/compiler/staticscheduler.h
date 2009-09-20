@@ -191,7 +191,7 @@ public:
       o << "\\n " << **i;
   }
   void generateCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic);
-  void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos, bool isStatic){ JASSERT(false); }
+  void generateCodeForSlice(Transform&, CodeGenerator&, int, const FormulaPtr&, bool){ UNIMPLEMENTED(); }
 private:
   ScheduleNodeSet _originalNodes;
   int             _dimension;

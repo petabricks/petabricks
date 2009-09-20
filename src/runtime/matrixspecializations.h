@@ -50,8 +50,8 @@ public:
   MatrixRegion( const MatrixStoragePtr& s
               , ElementT* b
               , const IndexT sizes[D]
-              , typename Base::StockLayouts layout = Base::LAYOUT_ASCENDING)
-    : Base(s, b, NULL, NULL) 
+              , typename Base::StockLayouts = Base::LAYOUT_ASCENDING)
+    : Base(s, b, sizes, NULL) 
   {}
   
   ///

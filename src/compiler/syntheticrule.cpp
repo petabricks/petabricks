@@ -24,7 +24,7 @@
 #include "maximawrapper.h"
 #include "transform.h"
 
-void petabricks::SyntheticRule::compileRuleBody(Transform& tx, RIRScope& s){}
+void petabricks::SyntheticRule::compileRuleBody(Transform&, RIRScope&){}
 void petabricks::SyntheticRule::initialize(Transform&){}
 
 petabricks::RuleFlags::PriorityT petabricks::SyntheticRule::priority() const { 
@@ -40,23 +40,19 @@ petabricks::FormulaPtr petabricks::SyntheticRule::getWhereClause() const {
   return NULL; 
 }
 
-bool petabricks::SyntheticRule::canProvide(const MatrixDefPtr& m) const { 
+bool petabricks::SyntheticRule::canProvide(const MatrixDefPtr&) const { 
   UNIMPLEMENTED(); 
   return false;
 }
 
-void petabricks::SyntheticRule::getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension) { 
+void petabricks::SyntheticRule::getApplicableRegionDescriptors(RuleDescriptorList&, const MatrixDefPtr&, int) { 
   UNIMPLEMENTED(); 
 }
 
-void petabricks::SyntheticRule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
-}
-void petabricks::SyntheticRule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region) {
-}
-void petabricks::SyntheticRule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o) {
-}
-void petabricks::SyntheticRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o) {
-}
+void petabricks::SyntheticRule::generateCallCodeSimple(Transform&, CodeGenerator&, const SimpleRegionPtr&){}
+void petabricks::SyntheticRule::generateCallTaskCode(const std::string&, Transform&, CodeGenerator&, const SimpleRegionPtr&) {}
+void petabricks::SyntheticRule::generateDeclCodeSimple(Transform&, CodeGenerator&) {}
+void petabricks::SyntheticRule::generateTrampCodeSimple(Transform&, CodeGenerator&) {}
 
 void petabricks::SyntheticRule::markRecursive() { 
   UNIMPLEMENTED();
@@ -76,7 +72,7 @@ void petabricks::SyntheticRule::print(std::ostream& os) const {
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-void petabricks::WhereExpansionRule::generateCallCodeSimple( Transform& trans
+void petabricks::WhereExpansionRule::generateCallCodeSimple( Transform&
                                                            , CodeGenerator& o
                                                            , const SimpleRegionPtr& region){
   o.callSpatial(codename()+TX_STATIC_POSTFIX, region);

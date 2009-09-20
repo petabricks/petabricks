@@ -35,7 +35,7 @@ namespace { //file local
 }
 
 petabricks::FormulaList::FormulaList(const FormulaList& that) 
-  : std::vector<FormulaPtr>(that) 
+  :std::vector<FormulaPtr>(that), jalib::JRefCounted() 
 {} 
 
 petabricks::FormulaList::FormulaList() {}
@@ -178,7 +178,7 @@ petabricks::FormulaPtr petabricks::FormulaVariable::mktmp(){
 }
 
 void petabricks::Formula::explodeEquality(FormulaPtr& l, FormulaPtr& r) const {
-  JASSERT(false)(*this).Text("expected an equality");
+  JASSERT(false)(l)(r)(*this).Text("expected an equality");
 }
 
 std::string petabricks::Formula::printAsAssumption() const { return toString(); }

@@ -107,7 +107,7 @@ public:
 
   void reset() const;
 
-  void addStaticTunable(const char* name, TunableValue val){}
+  void addStaticTunable(const char* /*name*/, TunableValue /*val*/){}
 };
 
 /**

@@ -51,8 +51,8 @@ public:
 
 
   int dimensions() const { UNIMPLEMENTED(); return 0; }
-  FormulaPtr getSizeOfRuleIn(int d) { UNIMPLEMENTED(); return 0; }
-  void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic) { UNIMPLEMENTED(); }
+  FormulaPtr getSizeOfRuleIn(int) { UNIMPLEMENTED(); return 0; }
+  void generateTrampCellCodeSimple(Transform&, CodeGenerator&, bool) { UNIMPLEMENTED(); }
 
 };
 

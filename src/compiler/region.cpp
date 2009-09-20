@@ -176,7 +176,7 @@ void petabricks::SimpleRegion::print(std::ostream& o) const {
   o << _minCoord << ", " << _maxCoord;
 }
 
-petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(RuleInterface& rule, const FormulaList& _defs, bool isOutput){
+petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(RuleInterface& rule, const FormulaList&, bool isOutput){
   CoordinateFormula min;
   CoordinateFormula max;
 

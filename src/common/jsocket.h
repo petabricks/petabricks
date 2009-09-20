@@ -52,7 +52,9 @@ namespace jalib
     public:
       ///
       /// Create new socket
-  protected: JSocket(); public:
+    protected: 
+      JSocket(); 
+    public:
       //so we dont leak FDs
       inline static JSocket Create() { return JSocket(); }
       ///
@@ -190,7 +192,7 @@ namespace jalib
       void monitorSockets ( double timeoutSec = -1 );
       virtual void onData ( JReaderInterface* sock ) = 0;
       virtual void onConnect ( const JSocket& sock, const struct sockaddr* remoteAddr,socklen_t remoteLen ) = 0;
-      virtual void onDisconnect ( JReaderInterface* sock ) {};
+      virtual void onDisconnect ( JReaderInterface* /*sock*/ ) {};
       virtual void onTimeoutInterval() {};
       void addWrite ( JWriterInterface* write );
     protected:
