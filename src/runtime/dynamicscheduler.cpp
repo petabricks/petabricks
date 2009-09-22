@@ -60,8 +60,7 @@ void petabricks::DynamicScheduler::startWorkerThreads(int total)
 {
   JASSERT(numThreads() <= total)(numThreads())(total);
   while(numThreads() < total){
-    pthread_t tmp;
-    _rawThreads.push_back(tmp);
+    _rawThreads.push_back(pthread_t());
     JASSERT(pthread_create(&_rawThreads.back(), NULL, workerStartup, this) == 0);
   }
 }

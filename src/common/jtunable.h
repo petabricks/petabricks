@@ -43,6 +43,7 @@ namespace jalib {
 typedef int TunableValue;
 class JTunable;
 typedef std::map<std::string, JTunable*> JTunableReverseMap;
+typedef std::map<std::string, TunableValue> TunableValueMap;
 
 class JTunableModificationMonitor {
 public:
@@ -108,6 +109,10 @@ public:
   void reset() const;
 
   void addStaticTunable(const char* /*name*/, TunableValue /*val*/){}
+  
+  ///
+  /// Load a configuration from disk, just do the parsing part 
+  static TunableValueMap loadRaw(const std::string& filename);
 };
 
 /**

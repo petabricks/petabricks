@@ -24,6 +24,8 @@
 #include "staticscheduler.h"
 #include "transform.h"
 
+#include <algorithm>
+
 namespace {
   struct RuleIdComparer {
     bool operator()(const petabricks::RulePtr& x, const petabricks::RulePtr& y){

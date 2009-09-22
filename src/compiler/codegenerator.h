@@ -26,8 +26,8 @@
 #include "common/jconvert.h"
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
+#include "common/jtunable.h"
 
-#include <algorithm>
 #include <iostream>
 #include <limits>
 #include <list>
@@ -59,6 +59,7 @@ public:
   
   static std::stringstream& theFilePrefix();
   static TunableDefs& theTunableDefs();
+  static jalib::TunableValueMap& theHardcodedTunables();
 
   void incIndent(){++_indent;}
   void decIndent(){--_indent;}
@@ -99,12 +100,14 @@ public:
                     , int min=0
                     , int max=std::numeric_limits<int>::max())
   {
-    //JTRACE("new tunable")(name)(initial)(min)(max);
-    theTunableDefs()[name] =
-       "JTUNABLE("+name
-              +","+jalib::XToString(initial)
-              +","+jalib::XToString(min)
-              +","+jalib::XToString(max)+")";
+    std::ostringstream o;
+    jalib::TunableValueMap::const_iterator i = theHardcodedTunables().find(name);
+    if(i==theHardcodedTunables().end()){
+      o << "JTUNABLE(" << name<< ","  << initial << ","  << min << ","  << max << ");\n";
+    }else{
+      o << "JTUNABLESTATIC(" << name<< ","<< i->second << ");\n";
+    }
+    theTunableDefs()[name] = o.str();
     _cg.addTunable( isTunable, category, name, initial, min, max);
   }
   void createTunableArray(const std::string& category
@@ -120,7 +123,7 @@ public:
               +","+jalib::XToString(count)
               +","+jalib::XToString(initial)
               +","+jalib::XToString(min)
-              +","+jalib::XToString(max)+")";
+              +","+jalib::XToString(max)+");";
     _cg.addTunable( false, category, name, initial, min, max);
   }
 
@@ -209,7 +212,7 @@ public:
     o << _dos.str();
     o << "\n\n// Tunables: /////////////////////////////////////////////////////\n\n";
     for(TunableDefs::const_iterator i=theTunableDefs().begin(); i!=theTunableDefs().end(); ++i)
-      o << i->second << ";\n";
+      o << i->second << "\n";
     o << "\n\n// Header Decls: /////////////////////////////////////////////////\n\n";
     o << _hos.str();
     o << "\n\n// Body Decls: ///////////////////////////////////////////////////\n\n";

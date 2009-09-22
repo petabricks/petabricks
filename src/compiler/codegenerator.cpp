@@ -35,6 +35,11 @@ petabricks::TunableDefs& petabricks::CodeGenerator::theTunableDefs() {
   return t;
 }
 
+jalib::TunableValueMap& petabricks::CodeGenerator::theHardcodedTunables() {
+  static jalib::TunableValueMap t;
+  return t;
+}
+
 petabricks::CodeGenerator::CodeGenerator() : _contCounter(0), _indent(0) {}
 
 void petabricks::CodeGenerator::beginFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end,  const FormulaPtr& step){

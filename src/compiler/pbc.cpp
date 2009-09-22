@@ -23,6 +23,7 @@
 
 #include "common/jargs.h"
 #include "common/jfilesystem.h"
+#include "common/jtunable.h"
 
 #include <iostream>
 #include <fstream>
@@ -48,6 +49,7 @@ static std::string theOutputBin;
 static std::string theOutputCode;
 static std::string theOutputInfo;
 static std::string theRuntimeDir;
+static std::string theHardcodedConfig;
 
 //defined in pbparser.ypp
 TransformListPtr parsePbFile(const char* filename);
@@ -68,6 +70,7 @@ int main( int argc, const char ** argv){
   args.param("compile",    shouldCompile).help("disable the compilation step");
   args.param("link",       shouldLink).help("disable the linking step");
   args.param("main",       theMainName).help("transform name to use as program entry point");
+  args.param("hardcode",   theHardcodedConfig).help("a config file containing tunables to set to hardcoded values");
 
   if(args.param("version").help("print out version number and exit") ){
     std::cerr << PACKAGE " compiler (pbc) v" VERSION " " REVISION_LONG << std::endl;
@@ -91,6 +94,10 @@ int main( int argc, const char ** argv){
   if(theOutputCode.empty()) theOutputCode = theOutputBin + ".cpp";
   if(theOutputInfo.empty()) theOutputInfo = theOutputBin + ".info";
   if(theObjectFile.empty()) theObjectFile = theOutputBin + ".o";
+  
+  
+  if(!theHardcodedConfig.empty())
+    CodeGenerator::theHardcodedTunables() = jalib::JTunableManager::loadRaw(theHardcodedConfig);
 
   JASSERT(jalib::Filesystem::FileExists(theInput))(theInput)
     .Text("input file does not exist");
