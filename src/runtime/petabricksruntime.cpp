@@ -53,6 +53,7 @@ static bool DUMPTIMING=false;
 static bool ACCURACY=false;
 static bool FORCEOUTPUT=false;
 std::vector<std::string> txArgs;
+static std::string ATLOG;
 
 static enum {
   MODE_RUN_IO,
@@ -174,6 +175,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("autotune-transform", autotunetx).help("transform name to tune in --autotune mode");
   args.param("autotune-site",      autotunesites).help("choice sites to tune in --autotune mode");
   args.param("autotune-tunable",   autotunecutoffs).help("additional cutoff tunables to tune in --autotune mode");
+  args.param("autotune-log",   ATLOG).help("log autotuner actions to given filename prefix");
   args.param("min",       GRAPH_MIN).help("minimum input size for graph/autotuning");
   args.param("max",       GRAPH_MAX).help("maximum input size for graph/autotuning");
   args.param("step",      GRAPH_STEP).help("step size for graph/autotuning");
@@ -290,6 +292,13 @@ void petabricks::PetabricksRuntime::runNormal(){
     main.write(txArgs);
   }
 }
+
+static const char* _uniquifyatlogname() {
+  static int i = 0;
+  static std::string buf;
+  buf = ATLOG+"."+jalib::XToString(i++)+".log";
+  return buf.c_str();
+}
   
 void petabricks::PetabricksRuntime::runAutotuneMode(){
   AutotunerList tuners;
@@ -312,7 +321,10 @@ void petabricks::PetabricksRuntime::runAutotuneMode(){
       if(inContext || tx->isVariableAccuracy())
         ctx = tx;
 
-      tuners.push_back(new Autotuner(*this, ctx, std::string(tx->name())+"_"+(*site), autotunecutoffs));
+      if(ATLOG.empty())
+        tuners.push_back(new Autotuner(*this, ctx, std::string(tx->name())+"_"+(*site), autotunecutoffs));
+      else
+        tuners.push_back(new Autotuner(*this, ctx, std::string(tx->name())+"_"+(*site), autotunecutoffs, _uniquifyatlogname()));
     }
   }
 

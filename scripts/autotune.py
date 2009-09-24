@@ -223,6 +223,7 @@ def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
   cmd=mkcmd(["--transform="+nameof(ctx), "--autotune", "--autotune-transform="+nameof(tx),  "--autotune-site=%d"%site, "--max=%d"%n])
   for x in cutoffs:
     cmd.append("--autotune-tunable="+nameof(x))
+  progress.echo(' '.join(cmd))
   p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=NULL)
   pfx="tuning "+nameof(tx)+":%d - "%site
   str=""

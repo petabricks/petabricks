@@ -44,7 +44,7 @@
 #undef JASSERT_CONT_B
 
 
-#if defined(HAVE_CXXABI_H) && defined(HAVE_BACKTRACE_SYMBOLS)
+#if defined(HAVE_CXXABI_H) && defined(HAVE_BACKTRACE_SYMBOLS) && defined(DEBUG)
 #include <cxxabi.h>
 
 static const char* _cxxdemangle(const char* i){

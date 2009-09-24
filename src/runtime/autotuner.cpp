@@ -25,7 +25,7 @@
 
 JTUNABLE(autotune_alg_slots,                3, 1, 32);
 JTUNABLE(autotune_branch_attempts,          1, 1, 32);
-JTUNABLE(autotune_improvement_threshold,    90, 10, 100);
+JTUNABLE(autotune_improvement_threshold,    95, 10, 100);
 #ifdef USE_CUTOFF_DIVISOR
 JTUNABLE(autotune_cutoff_divisor,           16, 2, 1024);
 #endif
@@ -77,11 +77,12 @@ jalib::JTunable* petabricks::Autotuner::cutoffTunable(int lvl){
   return _tunableMap[_mktname(lvl, _prefix, "cutoff")];
 }
 
-petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main* m, const std::string& prefix, const std::vector<std::string>& extraCutoffNames)
+petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main* m, const std::string& prefix, const std::vector<std::string>& extraCutoffNames, const char* logfile)
   : _runtime(rt)
   , _main(m)
   , _tunableMap(jalib::JTunableManager::instance().getReverseMap())
   , _prefix(prefix)
+  , _log(logfile)
 {
   using jalib::JTunable;
   _maxLevels=0; 
@@ -91,6 +92,9 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
   for(size_t i=0; i<extraCutoffNames.size(); ++i){
     extraCutoffs.push_back(_tunableMap[extraCutoffNames[i]]);
     JASSERT(extraCutoffs.back()!=NULL)(extraCutoffNames[i]);
+    _log.addTunable(extraCutoffs.back());
+    
+    _initialConfig = new CandidateAlgorithm(0, extraCutoffs.back()->max(), extraCutoffs.back(), 0, 0, _initialConfig.asPtr(), extraCutoffs);
   }
 
   //find numlevels
@@ -112,6 +116,8 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
     int a=0, c=std::numeric_limits<int>::max();
     if(ct!=0) c=ct->max();
     _initialConfig = new CandidateAlgorithm(lvl, a, at, c, ct, _initialConfig.asPtr(), extraCutoffs);
+    _log.addTunable(at);
+    _log.addTunable(ct);
   }
 
   //add 1 level candidates
@@ -149,13 +155,15 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
   JTRACE("Autotuner constructed")(lvl1Candidates.size())(lvl2Candidates.size());
   _candidates.swap(lvl1Candidates);
   _candidates.insert(_candidates.end(), lvl2Candidates.begin(), lvl2Candidates.end());
+
+  _log.logHeader();
 }
 
 
 void petabricks::Autotuner::runAll(){
   double best = DBL_MAX / 11.0;
   for(CandidateAlgorithmList::iterator i=_candidates.begin(); i!=_candidates.end(); ++i){
-    double d = (*i)->run(_runtime, *this, best*10+1);
+    double d = (*i)->run(_runtime, *this, best*10+1, true);
     std::cout << std::flush;
     best = std::min(d, best);
   }
@@ -230,13 +238,14 @@ void petabricks::Autotuner::removeDuplicates(){
   }
 }
 
-double petabricks::CandidateAlgorithm::run(PetabricksRuntime& rt, Autotuner& autotuner, double thresh){
+double petabricks::CandidateAlgorithm::run(PetabricksRuntime& rt, Autotuner& autotuner, double thresh, bool inPop){
   autotuner.resetConfig();
   activate();
   jalib::JTunable::setModificationCallback(this);
   double d = rt.runTrial(thresh);
   jalib::JTunable::setModificationCallback();
   addResult(d);
+  autotuner.log().logLine(rt.curSize(), d, inPop);
   return d;
 }
 
@@ -278,7 +287,7 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
   //run them all
   for(CandidateAlgorithmList::iterator i=possible.begin(); i!=possible.end(); ++i){
     std::cout << "  * TRY " << *i << " = "<< std::flush;
-    (*i)->run(rt, autotuner, thresh);
+    (*i)->run(rt, autotuner, thresh, false);
     std::cout << (*i)->lastResult() << std::endl;
   }
 
@@ -319,12 +328,12 @@ petabricks::CandidateAlgorithm::CandidateAlgorithm( int l
 {}
 
 void petabricks::CandidateAlgorithm::activate() const {
-  for(  ExtraCutoffList::const_iterator i=_unusedCutoffs.begin()
-      ; i!=_unusedCutoffs.end()
-      ; ++i)
-  {
-    (*i)->setValue((*i)->max());
-  }
+//for(  ExtraCutoffList::const_iterator i=_unusedCutoffs.begin()
+//    ; i!=_unusedCutoffs.end()
+//    ; ++i)
+//{
+//  (*i)->setValue((*i)->max());
+//}
   if(_algTunable)    _algTunable->setValue(_alg);
   if(_cutoffTunable) _cutoffTunable->setValue(_cutoff);
   if(_nextLevel)     _nextLevel->activate();

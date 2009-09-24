@@ -25,8 +25,10 @@
 #include "common/jrefcounted.h"
 #include "common/jtunable.h"
 
-#include <vector>
 #include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <vector>
 
 namespace petabricks {
 class Autotuner;
@@ -35,7 +37,49 @@ typedef jalib::JRef<CandidateAlgorithm> CandidateAlgorithmPtr;
 typedef jalib::JRef<const CandidateAlgorithm> ConstCandidateAlgorithmPtr;
 typedef std::vector<CandidateAlgorithmPtr> CandidateAlgorithmList;
 typedef jalib::JRef<Autotuner> AutotunerPtr;
-typedef std::vector<jalib::JTunable*> ExtraCutoffList;
+typedef std::vector<jalib::JTunable*> TunableList;
+typedef TunableList ExtraCutoffList;
+  
+#define COL '\t'
+#define ROW '\n'
+
+/**
+ * Log of autotuner actions
+ */
+class ATLogger {
+public:
+  ATLogger(const char* filename)
+    : _of(filename)
+  {
+    JASSERT(_of.is_open())(filename);
+    _of.precision(10);
+    _of << std::showpoint;
+  }
+  void addTunable(jalib::JTunable* t){
+    if(t!=NULL)
+      _tunables.push_back(t);
+  }
+
+  void logHeader() {
+    _of << "N" << COL;
+    _of << "InPopulation" << COL;
+    for(TunableList::const_iterator i=_tunables.begin(); i!=_tunables.end(); ++i){
+      _of << (*i)->name() << COL;
+    }
+    _of << "Time" << ROW;
+  }
+  void logLine(int n, double time, bool inPop) {
+    _of << n << COL;
+    _of << inPop << COL;
+    for(TunableList::const_iterator i=_tunables.begin(); i!=_tunables.end(); ++i){
+      _of << (*i)->value() << COL;
+    }
+    _of << std::showpoint << time << ROW << std::flush;
+  }
+private:
+  TunableList _tunables;
+  std::ofstream _of;
+};
 
 class CandidateAlgorithm : public jalib::JRefCounted
                          , public jalib::JPrintable
@@ -83,7 +127,7 @@ public:
 
   void onTunableModification(jalib::JTunable* tunable, jalib::TunableValue oldVal, jalib::TunableValue newVal);
 
-  double run(PetabricksRuntime& rt, Autotuner& at, double thresh);
+  double run(PetabricksRuntime& rt, Autotuner& at, double thresh, bool inPop);
 private:
   int                          _lvl;
   int                          _alg;
@@ -98,7 +142,7 @@ private:
 
 class Autotuner : public jalib::JRefCounted {
 public:
-  Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main* m, const std::string& prefix, const std::vector<std::string>& extraCutoffs);
+  Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main* m, const std::string& prefix, const std::vector<std::string>& extraCutoffs, const char* logfile = "/dev/null");
   jalib::JTunable* algTunable(int lvl);
   jalib::JTunable* cutoffTunable(int lvl);
 
@@ -117,6 +161,8 @@ public:
   static bool isValidAlgChoiceSite(const std::string& prefix);
 
   void resetConfig() { _initialConfig->activate(); }
+
+  ATLogger& log() { return _log; }
 private:
   PetabricksRuntime&        _runtime;
   PetabricksRuntime::Main*  _main;
@@ -125,6 +171,7 @@ private:
   jalib::JTunableReverseMap _tunableMap;
   std::string               _prefix;
   int                       _maxLevels;
+  ATLogger                  _log;
 };
 
 }
