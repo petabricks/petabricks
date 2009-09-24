@@ -35,8 +35,8 @@ double petabricks::PerformanceTester::runTest(const TestCase& tc){
   for(int i=0; i<_numOutputs; ++i)
     ss << " /dev/null";
   JTRACE("Running TestCase")(tc)(ss.str());
-  JTime start = JTime::Now();
+  JTime start = JTime::now();
   int rv = system(ss.str().c_str());
   JASSERT(rv==0)(rv)(ss.str()).Text("Failed to run TestCase");
-  return JTime::Now()-start;;
+  return JTime::now()-start;;
 }

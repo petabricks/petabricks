@@ -77,6 +77,9 @@
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
 
+/* Define to 1 if you have the `rt' library (-lrt). */
+#undef HAVE_LIBRT
+
 /* Define to 1 if you have the <math.h> header file. */
 #undef HAVE_MATH_H
 
@@ -100,6 +103,9 @@
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/time.h> header file. */
+#undef HAVE_SYS_TIME_H
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
@@ -227,6 +233,9 @@
 
 /* enable unsafe optimizations such as removing error checking. */
 #undef UNSAFE
+
+/* define if clock_gettime() doesnt work */
+#undef USE_GETTIMEOFDAY
 
 /* extra directory to search for files in */
 #undef UTIL_SEARCH_DIR_A

@@ -52,7 +52,7 @@ public:
     : _of(filename)
   {
     JASSERT(_of.is_open())(filename);
-    _of.precision(10);
+    _of.precision(15);
     _of << std::showpoint;
   }
   void addTunable(jalib::JTunable* t){

@@ -17,22 +17,32 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#define __USE_BSD
 #include "jtimer.h"
-#include <iostream>
-#include <fstream>
 #include "jassert.h"
 #include "jfilesystem.h"
 
+#include <iostream>
+#include <fstream>
+
 jalib::JTime::JTime()
 {
-  JASSERT ( gettimeofday ( &_value,NULL ) == 0 );
+#ifdef USE_GETTIMEOFDAY
+  JASSERT ( gettimeofday ( &_value, NULL ) == 0 );
+#else
+  JASSERT ( clock_gettime ( CLOCK_MONOTONIC, &_value ) == 0 );
+#endif
+}
+
+void jalib::JTime::print(std::ostream& os) const {
+  char buf[128];
+  snprintf(buf, sizeof buf, "%ld.%09ld", (long)sec(), (long)nsec());
+  os << buf;
 }
 
 double jalib::operator- ( const jalib::JTime& a, const jalib::JTime& b )
 {
   double sec = a._value.tv_sec - b._value.tv_sec;
-  sec += ( a._value.tv_usec-b._value.tv_usec ) /1000000.0;
+  sec += ( a.nsec() - b.nsec() ) / (double)1e9;
   if ( sec < 0 ) sec *= -1;
   return sec;
 }
@@ -40,6 +50,7 @@ double jalib::operator- ( const jalib::JTime& a, const jalib::JTime& b )
 jalib::JTimeRecorder::JTimeRecorder ( const std::string& name )
     : _name ( name )
     , _isStarted ( false )
+    , _start(JTime::null())
 {}
 
 namespace

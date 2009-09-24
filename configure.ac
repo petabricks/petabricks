@@ -72,11 +72,12 @@ AC_CHECK_FUNCS([backtrace_symbols])
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 
-AC_CHECK_HEADERS([math.h fftw3.h execinfo.h cxxabi.h], [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
+AC_CHECK_HEADERS([math.h fftw3.h execinfo.h cxxabi.h sys/time.h], [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
 AC_CHECK_LIB([m],[cos],                  [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
 AC_CHECK_LIB([fftw3], [fftw_malloc],     [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
 AC_CHECK_LIB([pthread],[pthread_create], [], [AC_MSG_WARN([failed to find -lpthread, some benchmarks may not work])])
 AC_CHECK_LIB([lapack], [dposv_],         [], [AC_MSG_WARN([failed to find -llapack, some benchmarks may not work])])
+AC_CHECK_LIB([rt], [clock_gettime],      [], [AC_DEFINE([USE_GETTIMEOFDAY],[],[define if clock_gettime() doesnt work])])
 #AC_CHECK_LIB([gslcblas],[cblas_dgemm],   [], [AC_MSG_WARN([failed to find -lgslcblas, some benchmarks may not work])]) 
 #AC_CHECK_LIB([gsl],[gsl_blas_dgemm],     [], [AC_MSG_WARN([failed to find -lgsl, some benchmarks may not work])])
 

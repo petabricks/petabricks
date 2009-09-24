@@ -328,15 +328,9 @@ petabricks::CandidateAlgorithm::CandidateAlgorithm( int l
 {}
 
 void petabricks::CandidateAlgorithm::activate() const {
-//for(  ExtraCutoffList::const_iterator i=_unusedCutoffs.begin()
-//    ; i!=_unusedCutoffs.end()
-//    ; ++i)
-//{
-//  (*i)->setValue((*i)->max());
-//}
+  if(_nextLevel)     _nextLevel->activate();
   if(_algTunable)    _algTunable->setValue(_alg);
   if(_cutoffTunable) _cutoffTunable->setValue(_cutoff);
-  if(_nextLevel)     _nextLevel->activate();
   _extraConfig.makeActive();
 }
 

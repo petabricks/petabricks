@@ -120,9 +120,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   
   //seed the random number generator 
   if(! args.param("fixedrandom").help("don't seed the random number generator")){
-    struct timeval currentTimeVal;
-    gettimeofday(&currentTimeVal, NULL);
-    srand48(currentTimeVal.tv_usec);
+    srand48(jalib::JTime::now().usec());
   }
   
   args.param("accuracy",  ACCURACY).help("print out accuracy of answer");
@@ -432,9 +430,9 @@ double petabricks::PetabricksRuntime::computeWrapper(double /*thresh*/){
 //}
 #endif
 
-  jalib::JTime begin=jalib::JTime::Now();
+  jalib::JTime begin=jalib::JTime::now();
   _main->compute();
-  jalib::JTime end=jalib::JTime::Now();
+  jalib::JTime end=jalib::JTime::now();
 
 #ifdef GRACEFUL_ABORT
 //// Disable previous alarm
