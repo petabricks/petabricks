@@ -47,6 +47,7 @@ pkglib_HEADERS=  \
   common/jsocket.h \
   common/jtimer.h \
   common/jtunable.h \
+  common/thedeque.h \
   runtime/autotuner.h \
   runtime/dynamicscheduler.h \
   runtime/dynamictask.h \
@@ -58,7 +59,6 @@ pkglib_HEADERS=  \
   runtime/petabricksruntime.h \
   runtime/ruleinstance.h \
   runtime/specializeddynamictasks.h \
-  runtime/thedeque.h \
   runtime/transforminstance.h \
   runtime/workerthread.h
 

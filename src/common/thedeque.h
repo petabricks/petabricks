@@ -20,8 +20,8 @@
 #ifndef PETABRICKSTHEDEQUE_H
 #define PETABRICKSTHEDEQUE_H
 
-#include "common/jasm.h"
-#include "common/jmutex.h"
+#include "jasm.h"
+#include "jmutex.h"
 
 #include <deque>
 

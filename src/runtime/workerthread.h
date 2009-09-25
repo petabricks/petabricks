@@ -21,7 +21,7 @@
 #define PETABRICKSWORKERTHREAD_H
 
 #include "dynamictask.h"
-#include "thedeque.h"
+#include "common/thedeque.h"
 
 #include <pthread.h>
 #include <set>
