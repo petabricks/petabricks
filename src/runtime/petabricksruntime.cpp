@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <iostream>
 #include <math.h>
 
 //these must be declared in the user code
@@ -72,19 +73,44 @@ std::vector<std::string> autotunesites;
 std::vector<std::string> autotunecutoffs;
 std::string graphParam;
 
-static struct {
-  int count;
-  double total;
-  double total_accuracy;
-  double min;
-  double max;
-} timing = {0, 0.0, 0.0, std::numeric_limits<double>::max(), std::numeric_limits<double>::min() };
+std::vector<double> theTimings;
+std::vector<double> theAccuracies;
 
 JTUNABLE(worker_threads,   8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
 
 namespace{//file local
   typedef jalib::JTunableManager TunableManager;
+
+  void _dumpStats(std::ostream& o, const std::vector<double>& _data){
+    if(_data.empty()) return;
+    std::vector<double> data = _data;
+    std::sort(data.begin(), data.end());
+
+    double sum = 0;
+    for(size_t i=0; i<data.size(); ++i)
+      sum += data[i];
+    double mean = sum / (double) data.size();
+
+    double variance = 0;
+    for(size_t i=0; i<data.size(); ++i)
+      variance += (data[i]-mean) * (data[i]-mean);
+    variance /= (double) data.size();
+
+    double mid = (data.size()-1.0)/2.0;
+    double median = (data[(size_t)ceil(mid)] + data[(size_t)floor(mid)]) / 2.0;
+
+    o.precision(15);
+    o << " count=\""    << data.size()         << '"'
+      << " average=\""  << mean                << '"'
+      << " total=\""    << sum                 << '"'
+      << " min=\""      << data[0]             << '"'
+      << " max=\""      << data[data.size()-1] << '"'
+      << " median=\""   << median              << '"'
+      << " variance=\"" << variance            << '"'
+      << " stddev=\""   << sqrt(variance)      << '"';
+  }
 }
+
 
 petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Main* m)
   : _main(m)
@@ -259,18 +285,18 @@ int petabricks::PetabricksRuntime::runMain(){
     _main->write(tmp);
   }
 
-  if(DUMPTIMING | ACCURACY){
-    std::cout << "<timing";
-    if(ACCURACY) {
-      std::cout << " accuracy=\"" << (timing.total_accuracy/timing.count) << "\"";
-    }
-    std::cout << " count=\"" << timing.count<< "\"";
-    std::cout << " average=\"" << (timing.total/timing.count) << "\"";
-    std::cout << " total=\"" << timing.total << "\"";
-    std::cout << " min=\"" << timing.min<< "\"";
-    std::cout << " max=\"" << timing.max<< "\"";
-    std::cout << " />\n" << std::flush;
+  if(ACCURACY || DUMPTIMING) std::cout << "<root>\n  <stats>\n";
+  if(ACCURACY){
+    std::cout << "    <accuracy";
+    _dumpStats(std::cout, theAccuracies);
+    std::cout << " />\n";
   }
+  if(DUMPTIMING){
+    std::cout << "    <timing";
+    _dumpStats(std::cout, theTimings);
+    std::cout << " />\n";
+  }
+  if(ACCURACY || DUMPTIMING) std::cout << "  </stats>\n</root>\n" << std::flush;
 
   return _rv;
 }
@@ -451,17 +477,12 @@ double petabricks::PetabricksRuntime::computeWrapper(double /*thresh*/){
   }
 
   double v=end-begin;
-  if(DUMPTIMING || ACCURACY){
-    double acc = 0;
-    if(ACCURACY){
-      JTIMER_SCOPE(accuracycompute);
-      acc = _main->accuracy();
-    }
-    timing.count++;
-    timing.total+=v;
-    timing.total_accuracy+=acc;
-    timing.min=std::min(timing.min,v);
-    timing.max=std::max(timing.max,v);
+  if(DUMPTIMING){
+    theTimings.push_back(v);
+  }
+  if(ACCURACY){
+    JTIMER_SCOPE(accuracycompute);
+    theAccuracies.push_back(_main->accuracy());
   }
   return v;
 }
