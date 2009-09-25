@@ -58,8 +58,7 @@ void petabricks::SyntheticRule::markRecursive() {
   UNIMPLEMENTED();
 }
 const petabricks::FormulaPtr& petabricks::SyntheticRule::recursiveHint() const { 
-  static FormulaPtr t = new FormulaVariable(TRANSFORM_N_STR);  
-  return t;
+  return FormulaPtr::null();
 }
 void petabricks::SyntheticRule::print(std::ostream& os) const {
   os << "SyntheticRule " << _id << std::endl;;

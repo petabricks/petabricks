@@ -115,9 +115,17 @@ std::string petabricks::RuleChoice::processCondition(const std::string& name, co
     std::sort(sortedRules.begin(), sortedRules.end(), RuleIdComparer());
     for(size_t i=0; i<sortedRules.size(); ++i){
       if(!s.empty()) s += " || ";
-      if(!hint) hint = sortedRules[i]->recursiveHint();
-      if(hint->toString()!=sortedRules[i]->recursiveHint()->toString()) needComplex=true;
-      FormulaPtr f=new FormulaGT(sortedRules[i]->recursiveHint(), new FormulaVariable(name));
+      FormulaPtr curhint = sortedRules[i]->recursiveHint();
+      if(!curhint){
+        static FormulaPtr t = new FormulaVariable(TRANSFORM_N_STR);
+        curhint = t;
+      }
+      if(!hint) {
+        hint = curhint;
+      } else if(hint->toString() != curhint->toString()) {
+        needComplex=true;
+      }
+      FormulaPtr f=new FormulaGT(hint, new FormulaVariable(name));
       s += "(" + algchoicename + "==" + jalib::XToString(i) + " && " + f->toString() + ")";
     }
     if(needComplex)

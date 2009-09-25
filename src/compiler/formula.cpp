@@ -84,6 +84,8 @@ petabricks::FormulaBinop<OP>::FormulaBinop(const FormulaPtr& left, const Formula
   , _left(left)
   , _right(right) 
 {
+  JASSERT(left);
+  JASSERT(right);
   _size = _left->size() + _right->size();
   FreeVars* fv;
   _freeVars = fv = new FreeVars();
