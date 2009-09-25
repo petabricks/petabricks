@@ -24,13 +24,25 @@
 #include <iostream>
 #include <fstream>
 
-jalib::JTime::JTime()
-{
+jalib::JTime jalib::JTime::now() {
+  JTime t;
 #ifdef USE_GETTIMEOFDAY
-  JASSERT ( gettimeofday ( &_value, NULL ) == 0 );
+  JASSERT ( gettimeofday ( &t._value, NULL ) == 0 );
 #else
-  JASSERT ( clock_gettime ( CLOCK_MONOTONIC, &_value ) == 0 );
+  JASSERT ( clock_gettime ( CLOCK_MONOTONIC, &t._value ) == 0 );
 #endif
+  return t;
+}
+
+jalib::JTime jalib::JTime::resolution() {
+  JTime t;
+#ifdef USE_GETTIMEOFDAY
+  t._value.tv_sec=0;
+  t._value.tv_usec=1;
+#else
+  JASSERT ( clock_getres( CLOCK_MONOTONIC, &t._value ) == 0 );
+#endif
+  return t;
 }
 
 void jalib::JTime::print(std::ostream& os) const {

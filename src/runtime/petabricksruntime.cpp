@@ -163,6 +163,10 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     std::cout << _mainName << std::endl;
     MODE=MODE_ABORT;
   }
+  if(args.param("resolution").help("print out the timer resolution an exit")){
+    std::cout << jalib::JTime::resolution() << std::endl;
+    MODE=MODE_ABORT;
+  }
   if(args.needHelp()){
     MODE=MODE_HELP;
   }

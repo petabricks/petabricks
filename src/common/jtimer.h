@@ -59,7 +59,8 @@ class JTime : public JPrintable
 {
 public:
   friend double operator- ( const JTime& a, const JTime& b );
-  static JTime now() {return JTime();}
+  static JTime now();
+  static JTime resolution();
   static JTime null() {return JTime();}
 
   void print(std::ostream& os) const;
@@ -80,7 +81,7 @@ public:
 #endif
   }
 protected:
-  JTime();
+  JTime(){}
 private:
 #ifdef USE_GETTIMEOFDAY
   struct timeval _value;
