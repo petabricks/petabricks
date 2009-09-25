@@ -44,10 +44,11 @@ petabricks::RuleChoicePtr petabricks::Learner::makeRuleChoice( const RuleSet& ch
   //split choices into recursive and base
   RuleSet recursive,base;
   for(RuleSet::const_iterator i=choices.begin(); i!=choices.end(); ++i){
-    if((*i)->isRecursive())
+    //assume all recursive fornow:
+   // if((*i)->isRecursive())
       recursive.insert(*i);
-    else
-      base.insert(*i);
+   // else
+   //   base.insert(*i);
   }
   JASSERT(base.size()+recursive.size()>0)(m)(r).Text("No choics exist for region");
 

@@ -113,6 +113,11 @@ public:
 
   void print(std::ostream& o) const;
 
+  int lastalg() const {
+    if(_algTunable) return _alg; 
+    if(_nextLevel) return _nextLevel->lastalg(); 
+    return -1;
+  }
   int alg() const { return _alg; }
   int lvl() const { return _lvl; }
   int cutoff() const { return _cutoff; }

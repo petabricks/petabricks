@@ -23,8 +23,8 @@
 #include <limits>
 #include <algorithm>
 
-JTUNABLE(autotune_alg_slots,                3, 1, 32);
-JTUNABLE(autotune_branch_attempts,          1, 1, 32);
+JTUNABLE(autotune_alg_slots,                5, 1, 32);
+JTUNABLE(autotune_branch_attempts,          3, 1, 32);
 JTUNABLE(autotune_improvement_threshold,    95, 10, 100);
 #ifdef USE_CUTOFF_DIVISOR
 JTUNABLE(autotune_cutoff_divisor,           16, 2, 1024);
@@ -94,7 +94,7 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
     JASSERT(extraCutoffs.back()!=NULL)(extraCutoffNames[i]);
     _log.addTunable(extraCutoffs.back());
     
-    _initialConfig = new CandidateAlgorithm(0, extraCutoffs.back()->max(), extraCutoffs.back(), 0, 0, _initialConfig.asPtr(), extraCutoffs);
+    _initialConfig = new CandidateAlgorithm(0, 0, 0, extraCutoffs.back()->max(), extraCutoffs.back(), _initialConfig.asPtr(), extraCutoffs);
   }
 
   //find numlevels
@@ -135,22 +135,22 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
     }
   }
 
-  //add 2 level candidates
+////add 2 level candidates
   CandidateAlgorithmList lvl2Candidates;
-  {
-    JTunable* at = algTunable(2);
-    JTunable* ct = cutoffTunable(2);
-    int a=0, c=1;
-    if(at==0){
-      for(CandidateAlgorithmList::const_iterator i=lvl1Candidates.begin(); i!=lvl1Candidates.end(); ++i)
-        lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, i->asPtr(), extraCutoffs));
-    }else{
-      for(a=at->min(); a<=at->max(); ++a){
-        for(CandidateAlgorithmList::const_iterator i=lvl1Candidates.begin(); i!=lvl1Candidates.end(); ++i)
-          lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, i->asPtr(), extraCutoffs));
-      }
-    }
-  }
+//{
+//  JTunable* at = algTunable(2);
+//  JTunable* ct = cutoffTunable(2);
+//  int a=0, c=1;
+//  if(at==0){
+//    for(CandidateAlgorithmList::const_iterator i=lvl1Candidates.begin(); i!=lvl1Candidates.end(); ++i)
+//      lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, i->asPtr(), extraCutoffs));
+//  }else{
+//    for(a=at->min(); a<=at->max(); ++a){
+//      for(CandidateAlgorithmList::const_iterator i=lvl1Candidates.begin(); i!=lvl1Candidates.end(); ++i)
+//        lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, i->asPtr(), extraCutoffs));
+//    }
+//  }
+//}
 
   JTRACE("Autotuner constructed")(lvl1Candidates.size())(lvl2Candidates.size());
   _candidates.swap(lvl1Candidates);
@@ -263,7 +263,7 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
       amax=at->max();
     }
     for(int a=amin; a<=amax; ++a){
-      if(_lvl>1 && a==_alg) continue;
+      if(/*_lvl>1 &&*/ a==lastalg()) continue;
       if(at!=0) at->setValue(a);
       possible.push_back(new CandidateAlgorithm(_lvl+1, a, at, newCutoff, ct, this, _unusedCutoffs));
     }
