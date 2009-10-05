@@ -75,7 +75,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 21 "maximaparser.ypp"
+#line 22 "maximaparser.ypp"
 
   bool b;
   int i;
