@@ -26,9 +26,7 @@
 JTUNABLE(autotune_alg_slots,                5, 1, 32);
 JTUNABLE(autotune_branch_attempts,          3, 1, 32);
 JTUNABLE(autotune_improvement_threshold,    95, 10, 100);
-#ifdef USE_CUTOFF_DIVISOR
 JTUNABLE(autotune_cutoff_divisor,           16, 2, 1024);
-#endif
 
 
 #define FIRST_DEATH_THRESH 0.005
@@ -107,7 +105,7 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
     }
   }
 
-  JASSERT(algTunable(1)!=NULL || cutoffTunable(2)!=NULL)(prefix).Text("invalid prefix to autotune");
+  JASSERT(algTunable(1)!=NULL || cutoffTunable(2)!=NULL || _prefix=="")(prefix).Text("invalid prefix to autotune");
 
   //make initialconfig (all level disabled)
   for(int lvl=1; lvl<=_maxLevels; ++lvl){
@@ -269,11 +267,18 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
     }
   }
 
-#ifdef USE_CUTOFF_DIVISOR
-  newCutoff = rt.curSize()/autotune_cutoff_divisor;
-#endif
   if(newCutoff>1){
     // candidates from _unusedCutoffs (sequential, blocking, etc)
+    for(size_t i=0; i<_unusedCutoffs.size(); ++i){
+      ExtraCutoffList remaining = _unusedCutoffs; 
+      remaining.erase(remaining.begin()+i);
+      possible.push_back(new CandidateAlgorithm(_lvl, -1, NULL, newCutoff, _unusedCutoffs[i], this, remaining));
+    }
+  }
+
+  newCutoff = rt.curSize()/autotune_cutoff_divisor;
+  if(newCutoff>1){
+    // candidates from _unusedCutoffs (sequential, blocking, etc), lower cutoff point
     for(size_t i=0; i<_unusedCutoffs.size(); ++i){
       ExtraCutoffList remaining = _unusedCutoffs; 
       remaining.erase(remaining.begin()+i);

@@ -27,10 +27,18 @@
 namespace jalib
 {
 
-class JAllocDispatcher {
+class JAlloc {
 public:
   static void* allocate(size_t n);
   static void deallocate(void* ptr, size_t n);
+  static void* reallocate(void* ptr, size_t oldn, size_t newn);
+};
+
+class JAllocRaw {
+public:
+  static void* allocate(size_t n);
+  static void deallocate(void* ptr, size_t n);
+  static void* reallocate(void* ptr, size_t oldn, size_t newn);
 };
 
 }

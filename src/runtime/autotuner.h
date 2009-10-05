@@ -168,6 +168,11 @@ public:
   void resetConfig() { _initialConfig->activate(); }
 
   ATLogger& log() { return _log; }
+
+  double lastBestResult() const {
+    if(_candidates.empty()) return 0.0;
+    return _candidates[0]->lastResult();
+  }
 private:
   PetabricksRuntime&        _runtime;
   PetabricksRuntime::Main*  _main;

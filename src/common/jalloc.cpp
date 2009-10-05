@@ -22,20 +22,27 @@
 #include "jalloc.h"
 #include "jasm.h"
 
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
 
-
-#ifdef JALIB_ALLOCATOR
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
 #ifdef HAVE_MMAP
-#include <sys/mman.h>
+# include <sys/mman.h>
 #endif
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <pthread.h>
+
+#ifdef HAVE_STRING_H
+# include <string.h>
+#endif
+
+//#undef JALIB_ALLOCATOR
 
 //#define PROFILE_ALLOCATOR
 #ifdef PROFILE_ALLOCATOR
@@ -73,11 +80,17 @@ void jalloc_profile_print(){
 #define _profile_c(x)
 #endif
 
-namespace jalib
-{
+template<typename T>
+INLINE void* _default_reallocate(void* ptr, size_t oldn, size_t newn){
+  if(oldn==newn) return ptr;
+  void* newptr = T::allocate(newn);
+  memcpy(newptr, ptr, oldn);
+  T::deallocate(ptr, oldn);
+  return newptr;
+}
 
-inline void* _alloc_raw(size_t n) {
-#if defined(JALIB_USE_MALLOC) || !defined(HAVE_MMAP)
+void* jalib::JAllocRaw::allocate(size_t n) {
+#if defined(JALIB_USE_MALLOC) || !defined(HAVE_MMAP) || !defined(JALIB_ALLOCATOR)
   return malloc(n);
 #else
   void* p = mmap(NULL, n, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -87,8 +100,8 @@ inline void* _alloc_raw(size_t n) {
 #endif
 }
 
-inline void _dealloc_raw(void* ptr, size_t n) {
-#if defined(JALIB_USE_MALLOC) || !defined(HAVE_MMAP)
+void jalib::JAllocRaw::deallocate(void* ptr, size_t n) {
+#if defined(JALIB_USE_MALLOC) || !defined(HAVE_MMAP) || !defined(JALIB_ALLOCATOR)
   free(ptr);
 #else
   if(ptr==0 || n==0) return;
@@ -97,6 +110,20 @@ inline void _dealloc_raw(void* ptr, size_t n) {
     perror("_dealloc_raw: ");
 #endif
 }
+
+void* jalib::JAllocRaw::reallocate(void* ptr, size_t oldn, size_t newn){
+#if defined(JALIB_USE_MALLOC) || !defined(HAVE_MMAP) || !defined(JALIB_ALLOCATOR)
+  if(oldn==newn) return ptr;
+  return realloc(ptr, newn);
+#else
+  return _default_reallocate<JAllocRaw>(ptr,oldn,newn);
+#endif
+}
+
+#ifdef JALIB_ALLOCATOR
+
+
+namespace jalib {
 
 template < size_t _N, size_t BLOCKSIZE, int pidx>
 class JFixedAllocStack {
@@ -124,7 +151,7 @@ protected:
   //allocate more raw memory when stack is empty
   void expand() {
     _profile_c(pidx);
-    FreeItem* bufs = static_cast<FreeItem*>(_alloc_raw(BLOCKSIZE));
+    FreeItem* bufs = static_cast<FreeItem*>(JAllocRaw::allocate(BLOCKSIZE));
     int count=BLOCKSIZE / sizeof(FreeItem);
     for(int i=0; i<count-1; ++i){
       bufs[i].next=bufs+i+1;
@@ -214,7 +241,9 @@ typedef JThreadAlloc< JFixedAllocStack<192  , 1024*64 , 2> > lvl2;
 //typedef JThreadAlloc< JFixedAllocStack<512  , 1024*8  , 4> > lvl4;
 //typedef JThreadAlloc< JFixedAllocStack<1024 , 1024*8  , 5> > lvl5;
 
-void* JAllocDispatcher::allocate(size_t n) {
+}
+
+void* jalib::JAlloc::allocate(size_t n) {
   _profile_a(n);
   if(n <= lvl0::N) return lvl0::allocate(); else
   if(n <= lvl1::N) return lvl1::allocate(); else
@@ -225,7 +254,7 @@ void* JAllocDispatcher::allocate(size_t n) {
   //return _alloc_raw(n);
   return malloc(n);
 }
-void JAllocDispatcher::deallocate(void* ptr, size_t n){
+void jalib::JAlloc::deallocate(void* ptr, size_t n){
   if(n <= lvl0::N) lvl0::deallocate(ptr); else
   if(n <= lvl1::N) lvl1::deallocate(ptr); else
   if(n <= lvl2::N) lvl2::deallocate(ptr); else
@@ -235,10 +264,13 @@ void JAllocDispatcher::deallocate(void* ptr, size_t n){
   //_dealloc_raw(ptr, n);
   free(ptr);
 }
+void* jalib::JAlloc::reallocate(void* ptr, size_t oldn, size_t newn){
+  return _default_reallocate<JAlloc>(ptr,oldn,newn);
 }
 
+
 void* operator new(size_t nbytes){
-  size_t* p = (size_t*) jalib::JAllocDispatcher::allocate(nbytes+sizeof(size_t));
+  size_t* p = (size_t*) jalib::JAlloc::allocate(nbytes+sizeof(size_t));
   *p = nbytes;
   p+=1;
   return p;
@@ -247,18 +279,21 @@ void* operator new(size_t nbytes){
 void operator delete(void* _p){
   size_t* p = (size_t*) _p;
   p-=1;
-  jalib::JAllocDispatcher::deallocate(p, *p+sizeof(size_t));
+  jalib::JAlloc::deallocate(p, *p+sizeof(size_t));
 }
 
 #else
 
 #include <stdlib.h>
 
-void* jalib::JAllocDispatcher::allocate(size_t n) {
-  return malloc(n);
+void* jalib::JAlloc::allocate(size_t n) {
+  return JAllocRaw::allocate(n);
 }
-void jalib::JAllocDispatcher::deallocate(void* ptr, size_t){
-  free(ptr);
+void jalib::JAlloc::deallocate(void* ptr, size_t n){
+  JAllocRaw::deallocate(ptr, n);
+}
+void* jalib::JAlloc::reallocate(void* ptr, size_t oldn, size_t newn);
+  return JAllocRaw::reallocate(ptr, oldn, newn);
 }
 
 #endif

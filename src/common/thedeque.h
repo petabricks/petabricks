@@ -20,6 +20,7 @@
 #ifndef PETABRICKSTHEDEQUE_H
 #define PETABRICKSTHEDEQUE_H
 
+#include "jalloc.h"
 #include "jasm.h"
 #include "jmutex.h"
 

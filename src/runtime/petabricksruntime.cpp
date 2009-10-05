@@ -349,10 +349,14 @@ void petabricks::PetabricksRuntime::runAutotuneMode(){
       if(inContext || tx->isVariableAccuracy())
         ctx = tx;
 
+      std::string pfx = std::string(tx->name())+"_"+(*site);
+
+      if(*site == "-1") pfx = "";
+
       if(ATLOG.empty())
-        tuners.push_back(new Autotuner(*this, ctx, std::string(tx->name())+"_"+(*site), autotunecutoffs));
+        tuners.push_back(new Autotuner(*this, ctx, pfx, autotunecutoffs));
       else
-        tuners.push_back(new Autotuner(*this, ctx, std::string(tx->name())+"_"+(*site), autotunecutoffs, _uniquifyatlogname()));
+        tuners.push_back(new Autotuner(*this, ctx, pfx, autotunecutoffs, _uniquifyatlogname()));
     }
   }
 
@@ -362,11 +366,15 @@ void petabricks::PetabricksRuntime::runAutotuneLoop(const AutotunerList& tuners)
   Main* old = _main;
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n*=2){
     setSize(n+1);
+    double best = std::numeric_limits<double>::max();
     for(size_t i=0; i<tuners.size(); ++i){
       _main = tuners[i]->main();
       tuners[i]->trainOnce();
+      best = std::min(best, tuners[i]->lastBestResult());
     }
     saveConfig();
+    if(best > GRAPH_MAX_SEC)
+      break;
   }
   _main=old;
 }
