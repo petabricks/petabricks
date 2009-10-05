@@ -28,6 +28,8 @@ from pprint import pprint
 
 from xml.dom.minidom import parse
 
+pbutil.setmemlimit()
+
 INFERINPUTSIZES_SEC=5
 
 inputSize=-1
@@ -267,7 +269,11 @@ def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
   #  tasks.append(TuneTask("cutoff" , lambda: autotuneCutoff(ctx, tunable, inputSize)))
 
 def printTx(tx, depth, loops):
-  print ''.ljust(2*depth) + ' - ' + nameof(tx)
+  t = len(getTunables(tx, "system.cutoff.splitsize"))
+  cs = len(getChoiceSites(tx))
+  if loops == 0:
+    t+=len(getTunables(tx, "system.cutoff.sequential"))
+  print ''.ljust(2*depth) + ' - ' + nameof(tx) + " (%d choice site, %d cutoffs)"%(cs,t)
     
 def determineInputSizes():
   global inputSize

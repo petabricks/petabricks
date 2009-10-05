@@ -16,7 +16,7 @@ from configtool import getConfigVal, setConfigVal
 try:
   import numpy
 except:
-  sys.stderr.write("Failed to import numpy\n")
+  sys.stderr.write("failed to import numpy\n")
 
 #return number of cpus online
 def cpuCount():
@@ -31,8 +31,24 @@ def cpuCount():
   try:
     return int(os.environ["NUM_PROCESSORS"])
   except:
-    None
-  return 1
+    sys.write("failed to get the number of processors\n")
+  return 1 # guess 1
+
+def getmemorysize():
+  try:
+    return int(re.match("MemTotal: *([0-9]+) *kB", open("/proc/meminfo").read()).group(1))*1024
+  except:
+    sys.write("failed to get total memory\n"%n)
+    return 8 * (1024**3) # guess 8gb
+
+def setmemlimit(n = getmemorysize()):
+  try:
+    import resource
+    resource.setrlimit(resource.RLIMIT_AS, (n,n))
+  except:
+    sys.write("failed to set memory limit\n"%n)
+
+
 
 def chdirToPetabricksRoot():
   isCurDirOk = lambda: os.path.isdir("examples") and os.path.isdir("src")
