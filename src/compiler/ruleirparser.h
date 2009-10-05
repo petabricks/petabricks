@@ -85,7 +85,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 32 "ruleirparser.ypp"
+#line 42 "ruleirparser.ypp"
 
   const char* str;
   petabricks::RIRExpr*  expr;
