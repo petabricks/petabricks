@@ -303,6 +303,7 @@ def main(argv):
   global inputSize 
   global ignore_list
   global defaultArgs
+  global DEBUG
 
   config_tool_path = os.path.split(argv[0])[0] + "/configtool.py"
   app = argv[-1]
