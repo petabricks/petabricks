@@ -12,6 +12,7 @@
 #ifndef PETABRICKSRULE_H
 #define PETABRICKSRULE_H
 
+#include "pbc.h"
 #include "formula.h"
 #include "matrixdef.h"
 #include "region.h"
@@ -135,7 +136,7 @@ public:
   
   virtual int dimensions() const = 0;
   virtual FormulaPtr getSizeOfRuleIn(int d) = 0;
-  virtual void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic) = 0;
+  virtual void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor) = 0;
 
   virtual DependencyDirection getSelfDependency() const = 0;
 protected:

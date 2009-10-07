@@ -44,7 +44,7 @@ public:
 
   int dimensions() const { UNIMPLEMENTED(); return 0; }
   FormulaPtr getSizeOfRuleIn(int) { UNIMPLEMENTED(); return 0; }
-  void generateTrampCellCodeSimple(Transform&, CodeGenerator&, bool) { UNIMPLEMENTED(); }
+  void generateTrampCellCodeSimple(Transform&, CodeGenerator&, RuleFlavor) { UNIMPLEMENTED(); }
 
 };
 

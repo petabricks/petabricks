@@ -354,7 +354,7 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
   o.endFunc();
 }
 
-void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
+void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
   std::vector<std::string> taskargs = iterdef.packedargs();
   std::vector<std::string> packedargs = iterdef.packedargs();
@@ -362,34 +362,37 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
   taskargs.insert(taskargs.begin(), "const jalib::JRef<"+trans.instClassName()+"> transform");
 
-  if(isStatic)
+  if(E_RF_STATIC == flavor)
     o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_STATIC_POSTFIX, packedargs);
   else
     o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_DYNAMIC_POSTFIX, packedargs);
 
-  if(!isStatic && !isRecursive() && !isSingleElement()){
+  if((E_RF_STATIC != flavor) && !isRecursive() && !isSingleElement()){
     //shortcut
     o.comment("rule is a leaf, no sense in dynamically scheduling it");
     o.write("return");
     o.call(trampcodename(trans)+TX_STATIC_POSTFIX, packedargnames);
   }else{
-    if(!isStatic) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
+    if(E_RF_STATIC != flavor) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
 
     iterdef.unpackargs(o);
     
     if(isSingleElement()){
       trans.markSplitSizeUse(o);
       o.beginIf("petabricks::split_condition<"+jalib::XToString(dimensions())+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")");
-      iterdef.genSplitCode(o, trans, *this, isStatic);
+      iterdef.genSplitCode(o, trans, *this, flavor);
       // return written in get split code
       o.elseIf();
     }
 
     iterdef.genLoopBegin(o);
-    generateTrampCellCodeSimple(trans, o, isStatic || !isRecursive());
+    if( ( E_RF_DYNAMIC == flavor ) && !isRecursive( ) )
+      generateTrampCellCodeSimple( trans, o, E_RF_STATIC );
+    else
+      generateTrampCellCodeSimple( trans, o, flavor );
     iterdef.genLoopEnd(o);
     
-    if(!isStatic) o.write("return _spawner;");
+    if(E_RF_STATIC != flavor) o.write("return _spawner;");
     else o.write("return NULL;");
     
     if(isSingleElement())
@@ -398,7 +401,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   o.endFunc();
 }
 
-void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
+void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   std::vector<std::string> args;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     args.push_back((*i)->generateAccessorCode());
@@ -412,7 +415,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   for(int i=0; i<dimensions(); ++i)
     args.push_back(getOffsetVar(i)->toString());
 
-  if(!isStatic){
+  if(E_RF_STATIC != flavor){
     o.setcall("jalib::JRef<"+implcodename(trans)+TX_DYNAMIC_POSTFIX+"> _rule", "new "+implcodename(trans)+TX_DYNAMIC_POSTFIX, args);
     o.write("DynamicTaskPtr _task = _rule->runDynamic();");
     o.beginIf("_task");
