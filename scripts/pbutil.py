@@ -92,16 +92,16 @@ def compileBenchmarks(benchmarks):
   progress.push()
   progress.remainingTicks(len(benchmarks))
   if len(benchmarks)>1:
-    progress.echo("Compiling benchmarks:")
+    print "Compiling benchmarks:"
   progress.status(lambda: "[%d/%d jobs] - compiling benchmarks"%(len(jobs),NCPU))
   assert os.path.isfile(pbc)
   def checkJob(name, status):
     global left
     if status is not None:
       if status == 0:
-        progress.echo(name.ljust(benchmarkMaxLen)+" compile PASSED")
+        print name.ljust(benchmarkMaxLen),"compile PASSED"
       else:
-        progress.echo(name.ljust(benchmarkMaxLen)+" compile FAILED (rc=%d)"%status)
+        print name.ljust(benchmarkMaxLen),"compile FAILED (rc=%d)"%status
         failed.append(name)
       progress.tick()
     return status is None
@@ -123,7 +123,7 @@ def compileBenchmarks(benchmarks):
       raise Exception("invalid benchmark "+name)
     srcModTime=max(os.path.getmtime(src), reduce(max, map(os.path.getmtime, libdepends)))
     if os.path.isfile(bin) and os.path.getmtime(bin) > srcModTime:
-      progress.echo(name.ljust(benchmarkMaxLen)+" is up to date")
+      print name.ljust(benchmarkMaxLen),"is up to date"
       progress.tick()
     else:
       if os.path.isfile(bin):
@@ -132,7 +132,7 @@ def compileBenchmarks(benchmarks):
       jobs.append((name,subprocess.Popen([pbc, src], stdout=NULL, stderr=NULL)))
       progress.update()
   waitForJobsLeq(0)
-  progress.echo("")
+  print
   progress.pop()
 
 def normalizeBenchmarkName(n, search=True):

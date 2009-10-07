@@ -214,7 +214,7 @@ def autotuneCutoffBinarySearch(tx, tunable, n, min=0, max=-1):
   progress.push()
   progress.status("* optimize " + nameof(tx) + " tunable " + nameof(tunable))
   val, impact = optimizeParam(tx, n, nameof(tunable), min, max, best=(-1, goottimelimit()))
-  progress.echo("* optimize " + nameof(tx) + " tunable " + nameof(tunable) + " = %d "%val + "(impact=%.2f)"%impact)
+  print "* optimize " + nameof(tx) + " tunable " + nameof(tunable) + " = %d "%val + "(impact=%.2f)"%impact
   setConfigVal(tunable, val)
   progress.pop()
 
@@ -228,7 +228,7 @@ def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
   for x in cutoffs:
     cmd.append("--autotune-tunable="+nameof(x))
   if DEBUG:
-    progress.echo(' '.join(cmd))
+    print ' '.join(cmd)
   p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=NULL)
   pfx="tuning "+nameof(tx)+":%d - "%site
   if site == -1:
@@ -248,7 +248,7 @@ def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
         str=m.group(3)
         progress.status(pfx+str)
   assert p.wait()==0
-  progress.echo("* "+pfx+str)
+  print "* "+pfx+str
   progress.pop()
 
 def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
@@ -281,7 +281,7 @@ def determineInputSizes():
   inputSize=pbutil.inferGoodInputSizes( pbutil.benchmarkToBin(app)
                                       , [inputSizeTarget]
                                       , INFERINPUTSIZES_SEC)[0]
-  progress.echo("* finding reasonable input size for training... %d" % inputSize)
+  print "* finding reasonable input size for training... %d" % inputSize
 
 def runTimingTest(tx):
   progress.push()
@@ -291,9 +291,9 @@ def runTimingTest(tx):
   progress.remaining(0)
   if len(results)>0:
     speedup=results[-1]/t-1.0
-    progress.echo("* timing test... %.4f (%.2fx speedup)"%(t, speedup))
+    print "* timing test... %.4f (%.2fx speedup)"%(t, speedup)
   else:
-    progress.echo("* initial timing test... %.4f s"%t)
+    print "* initial timing test... %.4f s"%t
   results.append(t)
   progress.pop()
 

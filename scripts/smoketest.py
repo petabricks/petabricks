@@ -40,7 +40,7 @@ runjobs=[]
 progress.remaining(runPct)
 progress.push()
 progress.status("running benchmarks")
-progress.echo("Running benchmarks:")
+print "Running benchmarks:"
 progress.remainingTicks(2*len(benchmarks))
 
 for b in benchmarks:
@@ -52,7 +52,7 @@ for b in benchmarks:
   msg=name.ljust(width)
 
   if not os.path.isfile(bin):
-    progress.echo(msg+" compile FAILED")
+    print msgm, "compile FAILED"
     progress.tick()
     continue
 
@@ -72,7 +72,7 @@ for msg,p,outfile,cmd in runjobs:
   rv = p.wait()
   progress.tick()
   if rv != 0:
-    progress.echo(msg+" run FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd)))
+    print msg, "run FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd))
     continue
 
   checkcmd=["git","diff","--exit-code", outfile]
@@ -81,14 +81,14 @@ for msg,p,outfile,cmd in runjobs:
     time.sleep(0.1) #try letting the filesystem settle down
     rv = run(checkcmd)
     if rv != 0:
-      progress.echo(msg+" run FAILED (wrong output)")
+      print msg,"run FAILED (wrong output)"
       continue
   
-  progress.echo(msg+" run PASSED")
+  print msg," run PASSED"
   passed+=1
 
 t3=time.time()
-progress.echo("%d of %d tests passed (%.2fs compile, %.2fs run)"%(passed,total,(t2-t1),(t3-t2)))
+print "%d of %d tests passed (%.2fs compile, %.2fs run)"%(passed,total,(t2-t1),(t3-t2))
 
 progress.pop()
 progress.remaining(0)

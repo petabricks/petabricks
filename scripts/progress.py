@@ -106,14 +106,10 @@ class Progress:
       m+=" (%.0f%%)"%self.localPercent()
     setstatusline(m)
 
-  def echo(self, msg):
-    print msg
-
 current=Progress()
 
 remaining=lambda n, nx=None: current.remaining(n,nx)
 status=lambda m: current.status(m)
-echo=lambda m: current.echo(m)
 clear=lambda : setstatusline("")
 update=lambda : current.update()
 
