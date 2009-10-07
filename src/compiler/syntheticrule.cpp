@@ -178,7 +178,7 @@ void petabricks::WhereExpansionRule::genWhereSwitch(Transform& trans, CodeGenera
     else
       o.elseIf(wc->toCppString());
 
-    (*i)->generateTrampCellCodeSimple(trans, o, true);
+    (*i)->generateTrampCellCodeSimple(trans, o, E_RF_STATIC);
     
     for(int d=0; d<(*i)->dimensions(); ++d){
       o._undefine((*i)->getOffsetVar(d)->toString());
