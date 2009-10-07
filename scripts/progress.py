@@ -1,10 +1,31 @@
 #!/usr/bin/python
-
 import sys
 import math 
 
 barwidth=15
 barchars=" -=#"
+
+class StatusWrapper:
+  def __init__(self, fd):
+    self.displayed=""
+    self.fd = fd
+  def write(self, s):
+    if self.displayed== "":
+      sys.__stdout__.write(s)
+    else:
+      old=self.displayed
+      self.status("")
+      self.write(s)
+      self.status(old)
+  def status(self, m):
+    if self.displayed!=m:
+      self.fd.write("\r"+m+"".ljust(len(self.displayed)-len(m)))
+      if m == "":
+        self.fd.write("\r")
+      self.displayed=m
+
+sys.stdout    = StatusWrapper(sys.stderr)
+setstatusline = lambda s: sys.stdout.status(s)
 
 def prettybar(pct):
   p=int(math.floor(pct*barwidth*len(barchars)/100.0))
@@ -23,7 +44,6 @@ class Progress:
   curRemaining=0
   nextRemaining=0
   curMsg=""
-  displayed=""
   def __init__(self, parent=None):
     self.parent=parent
 
@@ -84,37 +104,28 @@ class Progress:
     m += self.getStatus()
     if self.hasParent():
       m+=" (%.0f%%)"%self.localPercent()
-    if self.displayed!=m:
-      sys.stderr.write("\r"+m+"".ljust(len(self.displayed)-len(m)))
-      self.displayed=m
-  
-  def clear(self):
-    if len(self.displayed)>0:
-      sys.stderr.write("\r"+"".ljust(len(self.displayed))+"\r")
-      self.displayed=""
+    setstatusline(m)
 
   def echo(self, msg):
-    self.clear()
     print msg
-    self.update()
 
 current=Progress()
 
 remaining=lambda n, nx=None: current.remaining(n,nx)
 status=lambda m: current.status(m)
 echo=lambda m: current.echo(m)
-clear=lambda : current.clear()
+clear=lambda : setstatusline("")
 update=lambda : current.update()
 
 def push():
   global current
-  current.clear()
+  clear()
   current=Progress(current)
   current.update()
 
 def pop():
   global current
-  current.clear()
+  clear()
   current=current.parent
   current.update()
 
@@ -137,4 +148,72 @@ def tick(n=1):
 def untick(n=1):
   current.ticks+=n
   remaining(current.ticks)
+
+def curseswrapper(fn):
+  clear()
+  import curses
+  #redirect a stream to curses
+  class CursesPrinter:
+    def __init__(self, window):
+      self.window = window
+      self.log = [""]
+    def write(self, s):
+      lines=str(s).split('\n')
+      self.log[-1] += lines[0]
+      for l in lines[1:]:
+        self.log.append(l)
+      self.window.erase()
+      h,w=self.window.getmaxyx()
+      cnt=map(lambda s: s[:w], self.log[-h:])
+      for i in xrange(len(cnt)):
+        self.window.insstr(i,0,cnt[i])
+      self.window.refresh()
+    def dump(self):
+      for str in log.log:
+        sys.__stdout__.write(str + "\n")
+    def replace(self, s = ""):
+      self.log = [""]
+      self.write(s)
+
+  stdscr = curses.initscr()
+  curses.curs_set(0)
+  h,w = stdscr.getmaxyx()
+  log    = CursesPrinter(stdscr.derwin(h-1, w, 0,   0))
+  status = CursesPrinter(stdscr.derwin(1,   w, h-1, 0))
+  
+  global setstatusline
+  oldstdout = sys.stdout
+  oldstderr = sys.stderr
+  oldstatusline = setstatusline
+  sys.stdout = log
+  sys.stderr = log
+  setstatusline = lambda s: status.replace(s)
+
+  def cleanup():
+    status.replace()
+    curses.endwin()
+    sys.stdout = oldstdout
+    sys.stderr = oldstderr
+    setstatusline =  oldstatusline
+    log.dump()
+  try:
+    fn()
+  except:
+    cleanup()
+    raise
+  cleanup()
+    
+def test():
+  import time
+  for i in xrange(100):
+    print "hello",i
+    remaining(100-i)
+    status("foo foo foo foo "+str(i))
+    time.sleep(0.1)
+
+if __name__ == "__main__":
+  test()
+  curseswrapper(test)
+
+
 
