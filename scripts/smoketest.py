@@ -56,16 +56,14 @@ def testBenchmark(b):
   return True
 
 t1=time.time()
-#progress.curseswrapper(lambda: pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:], testBenchmark))
-pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:], testBenchmark)
+results=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:], testBenchmark)
 t2=time.time()
 
-# t3=time.time()
-# print "%d of %d tests passed (%.2fs compile, %.2fs run)"%(passed,total,(t2-t1),(t3-t2))
 
-# progress.pop()
-# progress.remaining(0)
-# progress.clear()
+passed=len(filter(lambda x: x.rv==0, results))
+total=len(results)
 
-# sys.exit(min(total-passed, 124))
+print "%d of %d tests passed (took %.2fs)"%(passed,total,(t2-t1))
+
+sys.exit(min(total-passed, 124))
 

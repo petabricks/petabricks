@@ -169,9 +169,9 @@ def parallelRunJobs(jobs):
     jobs_done.extend(newdone)
     jobs_done.sort()
     updatestatus(True)
-
   updatestatus()
   progress.pop()
+  return jobs_done
 
 def chdirToPetabricksRoot():
   isCurDirOk = lambda: os.path.isdir("examples") and os.path.isdir("src")
@@ -264,7 +264,7 @@ def compileBenchmarks(benchmarks):
       jobs.append(newjob(name,fn))
       lastname=name
 
-  parallelRunJobs(jobs)
+  return parallelRunJobs(jobs)
 
 def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True):
   chdirToPetabricksRoot()
@@ -279,8 +279,7 @@ def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True):
   if len(searchterms)>0:
     benchmarks=filter(lambda b: any(s in b[0] for s in searchterms), benchmarks)
 
-  compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x)), benchmarks))
-  return benchmarks
+  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x)), benchmarks))
 
 def killSubprocess(p):
   if p.poll() is None:
