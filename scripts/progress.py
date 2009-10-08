@@ -11,7 +11,7 @@ class StatusWrapper:
     self.fd = fd
   def write(self, s):
     if self.displayed== "":
-      sys.__stdout__.write(s)
+      self.fd.write(s)
     else:
       old=self.displayed
       self.status("")
@@ -19,13 +19,18 @@ class StatusWrapper:
       self.status(old)
   def status(self, m):
     if self.displayed!=m:
-      self.fd.write("\r"+m+"".ljust(len(self.displayed)-len(m)))
+      sys.__stderr__.write("\r"+m+"".ljust(len(self.displayed)-len(m)))
       if m == "":
-        self.fd.write("\r")
+        sys.__stderr__.write("\r")
       self.displayed=m
+  def flush(self):
+    self.fd.flush()
 
-sys.stdout    = StatusWrapper(sys.stderr)
+sys.stdout = StatusWrapper(sys.stdout)
+sys.stderr = StatusWrapper(sys.stderr)
 setstatusline = lambda s: sys.stdout.status(s)
+currentline = lambda: 0
+replaceline = None
 
 def prettybar(pct):
   p=int(math.floor(pct*barwidth*len(barchars)/100.0))
@@ -170,6 +175,15 @@ def curseswrapper(fn):
     def replace(self, s = ""):
       self.log = [""]
       self.write(s)
+    def replaceline(self, n, s):
+      while len(self.log)<n:
+        self.log.append("")
+      if self.log[n] == s:
+        return
+      self.log[n] = s
+      self.flush()
+    def flush(self):
+      self.write("")
 
   stdscr = curses.initscr()
   curses.curs_set(0)
@@ -178,12 +192,15 @@ def curseswrapper(fn):
   status = CursesPrinter(stdscr.derwin(1,   w, h-1, 0))
   
   global setstatusline
+  global replaceline
   oldstdout = sys.stdout
   oldstderr = sys.stderr
   oldstatusline = setstatusline
+  oldreplaceline = replaceline
   sys.stdout = log
   sys.stderr = log
   setstatusline = lambda s: status.replace(s)
+  replaceline = lambda n, s: log.replaceline(n, s)
 
   def cleanup():
     status.replace()
@@ -191,6 +208,7 @@ def curseswrapper(fn):
     sys.stdout = oldstdout
     sys.stderr = oldstderr
     setstatusline =  oldstatusline
+    replaceline = oldreplaceline
     log.dump()
   try:
     fn()
