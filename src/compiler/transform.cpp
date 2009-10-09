@@ -42,6 +42,7 @@ void petabricks::Transform::addFrom(const MatrixDefList& l){
       JASSERT(false)(elmt)(*i).Text("Overlapping input/outputs not yet supported");
     }
     elmt = *i;
+    elmt->addType(MatrixDef::T_FROM);
   }
 }
 void petabricks::Transform::addThrough(const MatrixDefList& l){
@@ -52,6 +53,7 @@ void petabricks::Transform::addThrough(const MatrixDefList& l){
       JASSERT(false)(elmt)(*i).Text("Overlapping input/outputs not yet supported");
     }
     elmt = *i;
+    elmt->addType(MatrixDef::T_THROUGH);
   }
 }
 void petabricks::Transform::addTo(const MatrixDefList& l){
@@ -62,6 +64,7 @@ void petabricks::Transform::addTo(const MatrixDefList& l){
       JASSERT(false)(elmt)(*i).Text("Overlapping input/outputs not yet supported");
     }
     elmt = *i;
+    elmt->addType(MatrixDef::T_TO);
   }
 }
 void petabricks::Transform::setRules(const RuleList& l){

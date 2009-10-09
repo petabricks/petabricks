@@ -41,6 +41,14 @@ class MatrixDefMap : public std::map<std::string, MatrixDefPtr> , public jalib::
  */
 class MatrixDef : public jalib::JRefCounted, public jalib::JPrintable {
 public:
+  enum Type {
+    T_UNKNOWN = 0,
+    T_FROM    = 1,
+    T_TO      = 2,
+    T_THROUGH = 4
+  };
+
+
   static const MatrixDef& oneD(){
     FormulaList l;
     l.push_back(FormulaInteger::one());
@@ -123,12 +131,16 @@ public:
   void extractDefines(FreeVars& defined, CodeGenerator& o);
   void verifyDefines(CodeGenerator& o);
   void allocateTemporary(CodeGenerator& o, bool setOnly);
+
+  void addType(Type t){  _type |= t; }
+  bool isAllInput() const { return _type == T_FROM; }
 private:
   std::string _name;
   FormulaList _version;
   FormulaList _size;
+  int _type;
 };
-
+ 
 }
 
 #endif

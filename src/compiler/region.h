@@ -147,6 +147,8 @@ public:
   const std::string& name() const { return _name; }
 
   bool isAll() const { return _originalType == REGION_ALL; }
+
+  void assertNotInput();
 private:
   std::string _name;
   std::string _fromMatrixName;

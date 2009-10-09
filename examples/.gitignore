@@ -98,6 +98,7 @@ regression/whereclause
 rootsolve/evalf
 rootsolve/rootsolve
 simple/add
+simple/bufferrotate
 simple/copy
 simple/rollingsum
 simple/transpose

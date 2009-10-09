@@ -164,6 +164,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
 
   jalib::Map(&Region::initialize, trans, _from);
   jalib::Map(&Region::initialize, trans, _to);
+  jalib::Map(&Region::assertNotInput,    _to);
   _conditions.normalize();
 //   JASSERT(_to.size()==1)(_to.size())
 //     .Text("Currently only one output region per rule is supported.");

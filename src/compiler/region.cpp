@@ -401,6 +401,11 @@ void petabricks::Region::addAssumptions() const{
 
 }
 
+void petabricks::Region::assertNotInput(){
+  JASSERT(!_fromMatrix->isAllInput())(_name)(_fromMatrixName)
+    .Text("Error, input region cannot appear in to() clause.");
+}
+
 petabricks::FormulaPtr petabricks::Region::getSizeOfRuleIn(int d) const{
   JASSERT((int)dimensions()>d)(dimensions())(d);
   return MaximaWrapper::instance().normalize(new FormulaSubtract(_maxCoord[d], _minCoord[d]));
