@@ -191,14 +191,14 @@ void petabricks::UserRule::initialize(Transform& trans) {
   _conditions.makeRelativeTo(_definitions);
 
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
-    SimpleRegionPtr ar = (*i)->getApplicableRegion(*this, _definitions, true);
+    SimpleRegionPtr ar = (*i)->getApplicableRegion(trans, *this, _definitions, true);
     if(_applicableRegion)
       _applicableRegion = _applicableRegion->intersect(ar);
     else
       _applicableRegion = ar;
   }
   for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
-    SimpleRegionPtr ar = (*i)->getApplicableRegion(*this, _definitions, false);
+    SimpleRegionPtr ar = (*i)->getApplicableRegion(trans, *this, _definitions, false);
     if(_applicableRegion)
       _applicableRegion = _applicableRegion->intersect(ar);
     else
@@ -261,11 +261,10 @@ void petabricks::UserRule::initialize(Transform& trans) {
 
   //fill dependencies
   for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
-    (*i)->collectDependencies(*this,_depends);
+    (*i)->collectDependencies(trans, *this,_depends);
   }
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->collectDependencies(*this,_provides)
-;
+    (*i)->collectDependencies(trans, *this,_provides);
   }
 
   MaximaWrapper::instance().popContext();

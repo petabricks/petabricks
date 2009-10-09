@@ -168,16 +168,26 @@ void petabricks::SimpleRegion::print(std::ostream& o) const {
   o << _minCoord << ", " << _maxCoord;
 }
 
-petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(RuleInterface& rule, const FormulaList&, bool isOutput){
+petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(Transform& tx, RuleInterface& rule, const FormulaList&, bool isOutput){
   CoordinateFormula min;
   CoordinateFormula max;
+    
+  FormulaList offsets = diff(tx,rule);
+  FormulaList minDefs /*= _defs*/;
+  FormulaList maxDefs /*= _defs*/;
+  for(size_t i=0; i<_minCoord.size(); ++i){
+      minDefs.push_back(new FormulaEQ(FormulaInteger::zero(), _minCoord[i]));
+      maxDefs.push_back(new FormulaEQ(_fromMatrix->getSizeOfDimension(i), _maxCoord[i]));
+    if(MAXIMA.tryCompare(offsets[i],"<",FormulaInteger::zero())==MaximaWrapper::YES){
+      //special case... coordinate grows inversely proportional to x
+      std::swap(minDefs[i], maxDefs[i]);
+      offsets[i]=offsets[i]->negative();
+    }
+  }
 
   //first do min
   {
-    FormulaList defs /*= _defs*/;
-    for(size_t i=0; i<_minCoord.size(); ++i){
-      defs.push_back(new FormulaEQ(FormulaInteger::zero(), _minCoord[i]));
-    }
+    FormulaList& defs = minDefs;
     FreeVarsPtr fv = defs.getFreeVariables();
     for(size_t i=0; i<_minCoord.size(); ++i){
       std::string var = rule.getOffsetVar(i)->toString();
@@ -194,11 +204,7 @@ petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(RuleInterfac
 
   //then do max
   {
-    FormulaList offsets = diff(rule);
-    FormulaList defs /*= _defs*/;
-    for(size_t i=0; i<_maxCoord.size(); ++i){
-      defs.push_back(new FormulaEQ(_fromMatrix->getSizeOfDimension(i), _maxCoord[i]));
-    }
+    FormulaList& defs = maxDefs;
     FreeVarsPtr fv = defs.getFreeVariables();
     for(size_t i=0; i<_maxCoord.size(); ++i){
       std::string var = rule.getOffsetVar(i)->toString();
@@ -234,19 +240,20 @@ petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(RuleInterfac
         max.push_back(f);
       }
     }
-    JTRACE("Computed applicable max")(_fromMatrix)(_maxCoord)(offsets)(defs)(max);
   }
-
+  JTRACE("Computed applicable region")(_fromMatrix)(_minCoord)(_maxCoord)(offsets)(minDefs)(maxDefs)(min)(max);
   return new SimpleRegion(min,max);
 }
 
-petabricks::FormulaList petabricks::Region::diff(const RuleInterface& rule) const {
+petabricks::FormulaList petabricks::Region::diff(const Transform& tx, const RuleInterface& rule) const {
   FormulaList tmp = _maxCoord;
   for(size_t i=0; i<tmp.size(); ++i){
-    if(tmp[i]->getFreeVariables()->size()==1){
+    FreeVars fv = *tmp[i]->getFreeVariables();
+    fv.eraseAll(tx.constants());
+    if(fv.size()==1){
       bool found=false;
       for(size_t d=0; d<tmp.size(); ++d){
-        if(tmp[i]->getFreeVariables()->contains(rule.getOffsetVar(d)->toString())){
+        if(fv.contains(rule.getOffsetVar(d)->toString())){
           tmp[i]=MaximaWrapper::instance().diff(tmp[i], rule.getOffsetVar(d));
           found=true;
           break;
@@ -255,7 +262,7 @@ petabricks::FormulaList petabricks::Region::diff(const RuleInterface& rule) cons
       if(!found) tmp[i]=FormulaInteger::zero();
     }else{
       //TODO suppport multiple free vars in coordinates
-      JWARNING(tmp[i]->getFreeVariables()->size()<=1)(tmp.getFreeVariables()->size());
+      JWARNING(fv.size()<=1)(fv.size());
       tmp[i]=FormulaInteger::zero();
     }
   }
@@ -347,7 +354,7 @@ std::string petabricks::Region::generateAccessorCode() const{
   }
 }
 
-void petabricks::Region::collectDependencies(const RuleInterface& rule, MatrixDependencyMap& map) const {
+void petabricks::Region::collectDependencies(const Transform& tx, const RuleInterface& rule, MatrixDependencyMap& map) const {
   //Determine dependency direction
   DependencyDirection direction(dimensions());
   for(size_t i=0; i<dimensions(); ++i){
@@ -373,7 +380,7 @@ void petabricks::Region::collectDependencies(const RuleInterface& rule, MatrixDe
     }
   }
   //JTRACE("compute direction")(_minCoord)(_maxCoord)(direction);
-
+  FormulaList offsets = diff(tx,rule);
   SimpleRegion applicable = rule.applicableRegion();
   applicable.maxCoord().subToEach(FormulaInteger::one());
   FormulaList minDefs;
@@ -384,11 +391,23 @@ void petabricks::Region::collectDependencies(const RuleInterface& rule, MatrixDe
   }
   CoordinateFormula minAbsolute = minCoord();
   CoordinateFormula maxAbsolute = maxCoord();
-//   maxAbsolute.subToEach(FormulaInteger::one());
+  for(size_t i=0; i<offsets.size(); ++i){
+    if(MAXIMA.tryCompare(offsets[i],"<",FormulaInteger::zero())==MaximaWrapper::YES){
+      //this dimension is inversely proportional to var
+      //swap it so the next step makes it relative to the opposite formulas
+      std::swap(minAbsolute[i], maxAbsolute[i]);
+    }
+  }
   minAbsolute.makeRelativeTo(minDefs);
   maxAbsolute.makeRelativeTo(maxDefs);
+  for(size_t i=0; i<offsets.size(); ++i){
+    if(MAXIMA.tryCompare(offsets[i],"<",FormulaInteger::zero())==MaximaWrapper::YES){
+      //this dimension is inversely proportional to var
+      //now swap its back to its original place
+      std::swap(minAbsolute[i], maxAbsolute[i]);
+    }
+  }
   SimpleRegionPtr region = new SimpleRegion(minAbsolute, maxAbsolute);
-//   region->offsetMaxBy(FormulaInteger::one());
       
   //Merge with existing entry
   MatrixDependencyPtr dep = new MatrixDependency(direction, region);
