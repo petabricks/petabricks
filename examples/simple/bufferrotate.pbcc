@@ -1,0 +1,16 @@
+
+#define R 100
+
+transform BufferRotate
+from IN[n]
+to OUT[n]
+{
+ to(OUT out)
+ from(IN in)
+ {
+   for (int i = 0; i < n; ++i) {
+     out.cell(i) = in.cell((i + R) % n);
+   }
+ }
+}
+
