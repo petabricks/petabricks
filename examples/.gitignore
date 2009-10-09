@@ -76,6 +76,7 @@ preconditioner/vectoradd
 regression/accuracymetric
 regression/assign0d
 regression/calltx
+regression/coordflip
 regression/coscheduled1
 regression/coscheduled2
 regression/fileprefix
@@ -100,6 +101,7 @@ rootsolve/rootsolve
 simple/add
 simple/bufferrotate
 simple/copy
+simple/matrixrotate
 simple/rollingsum
 simple/transpose
 sort/Insertionsort

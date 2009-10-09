@@ -1,0 +1,9 @@
+transform MatrixRotate
+from IN[n,n]
+to OUT[n,n]
+{
+ OUT.cell(i, j) from(IN.cell(j, n - 1 - i) x) {
+   return x;
+ }
+}
+
