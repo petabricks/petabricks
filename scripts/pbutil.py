@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import errno
 import re
 import sys
 import os
@@ -321,7 +322,18 @@ def executeTimingRun(prog, n, args=[], limit=None):
     signal.signal(signal.SIGALRM, lambda signum, frame: killSubprocess(p))
     signal.alarm(limit)
 
-  p.wait()
+  # Python doesn't check if its system calls return EINTR, which is kind of
+  # dumb, so we have to catch this here.
+  while True:
+    try:
+      p.wait()
+    except OSError, e:
+      if e.errno == errno.EINTR:
+        continue
+      else:
+        raise
+    else:
+      break
 
   if limit is not None:
     signal.alarm(0)
@@ -433,9 +445,3 @@ if __name__ == "__main__":
   compileBenchmarks(map(normalizeBenchmarkName, ["add", "multiply", "transpose"]))
   print "Estimating input sizes"
   inferGoodInputSizes("./examples/simple/add", [0.1,0.5,1.0], 2)
-  
-
-
-  
-
-
