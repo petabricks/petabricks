@@ -1,3 +1,5 @@
+#ifndef BUFFERROTATE_PBCC
+#define BUFFERROTATE_PBCC
 
 #define R 100
 
@@ -14,3 +16,4 @@ to OUT[n]
  }
 }
 
+#endif // BUFFERROTATE_PBCC
