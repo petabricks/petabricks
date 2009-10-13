@@ -11,4 +11,29 @@
  ***************************************************************************/
 #include "trainingdeps.h"
 
+#include "rule.h"
+#include "rulechoice.h"
+
+#include <algorithm>
+
 std::map<std::string, std::vector<std::string> > petabricks::TrainingDeps::_callgraph;
+
+namespace petabricks {
+
+void TrainingDeps::emitRules(const RuleList& rules) {
+  // Sort the rules as they would be sorted in rulechoice.cpp so the label <->
+  // index mappings are the same.
+  std::vector<RulePtr> sortedRules(rules.begin(), rules.end());
+  std::sort(sortedRules.begin(), sortedRules.end(), RuleIdComparer());
+  _os << "    <rules>\n";
+  int index = 0;
+  for (std::vector<RulePtr>::const_iterator i = sortedRules.begin(),
+       e = sortedRules.end(); i != e; ++i) {
+    _os << "      <rule index=\"" << index << "\" label=\"" << (*i)->getLabel()
+        << "\" />\n";
+    ++index;
+  }
+  _os << "    </rules>\n";
+}
+
+}

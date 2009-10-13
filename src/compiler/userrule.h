@@ -53,9 +53,15 @@ public:
   void addRotations(RuleFlags::RotationT v) { _flags.rotations |= v; }
 
   ///
-  /// Set label
-  void setLabel(const char *label)  {
+  /// Set rule label
+  void setLabel(const char *label) {
     _label = label;
+  }
+
+  ///
+  /// Get rule label
+  std::string getLabel() const {
+    return _label;
   }
 
   ///
@@ -167,7 +173,7 @@ private:
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr          _recursiveHint;
-  std::string _label;  // TODO(rnk): Does this need to be freed?
+  std::string _label;
 };
 
 }

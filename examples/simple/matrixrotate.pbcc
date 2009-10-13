@@ -5,11 +5,13 @@ transform MatrixRotate
 from IN[n,n]
 to OUT[n,n]
 {
+  rule SimpleRotate
   OUT.cell(i, j) from(IN.cell(j, n - 1 - i) x) {
     return x;
   }
 
   // Recursively divide the matrix into fourths.
+  rule RecursiveRotate
   to(OUT.region(0    , 0    , n/2, n/2) out_a0,
      OUT.region(n-n/2, 0    , n  , n/2) out_a1,
      OUT.region(0    , n-n/2, n/2, n  ) out_b0,

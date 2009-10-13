@@ -372,6 +372,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   if(_to.size()==1) returnStyleArgs.erase(returnStyleArgs.begin());
 
   o.cg().beginTransform(_originalName, _name);
+  o.cg().emitRules(_rules);
   o.comment("Begin output for transform " + _name);
   o.newline();
   
@@ -757,4 +758,3 @@ std::vector<std::string> petabricks::Transform::maximalArgList() const{
   }
   return tmp;
 }
-
