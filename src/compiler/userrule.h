@@ -167,7 +167,7 @@ private:
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr          _recursiveHint;
-  const char *_label;  // TODO(rnk): Does this need to be freed?
+  std::string _label;  // TODO(rnk): Does this need to be freed?
 };
 
 }

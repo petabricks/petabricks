@@ -25,7 +25,6 @@
 petabricks::UserRule::UserRule(const RegionPtr& to, const RegionList& from, const FormulaList& cond)
   : _from(from)
   , _conditions(cond)
-  , _label(NULL)
 {
   _flags.isReturnStyle = true;
   _to.push_back(to);
@@ -35,7 +34,6 @@ petabricks::UserRule::UserRule(const RegionList& to, const RegionList& from, con
   : _from(from)
   , _to(to)
   , _conditions(cond)
-  , _label(NULL)
 {
   _flags.isReturnStyle = false;
 }
@@ -120,7 +118,7 @@ void petabricks::RuleFlags::print(std::ostream& os) const {
 
 void petabricks::UserRule::print(std::ostream& os) const {
   _flags.print(os);
-  os << "UserRule " << _id;
+  os << "UserRule " << _id << " " << _label;
   if(!_from.empty()){
     os << "\nfrom(";  printStlList(os,_from.begin(),_from.end(), ", "); os << ")"; 
   } 
