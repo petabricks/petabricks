@@ -31,18 +31,22 @@
 
 #include <stdio.h>
 #include <string>
+#include <string.h>
 #include <sstream>
 
 using namespace std;
 
-#define NUM_STR_BUFFERS 64
+void pbparser_addRefPoolItem(jalib::JRefCounted* i);//pbparser.ypp
 
 static std::stringstream theParseLog;
 
-static const char* circularStringCache(const char* str){
-  static std::string strbuffers[NUM_STR_BUFFERS];
-  static int n = 0;
-  return (strbuffers[n++ % NUM_STR_BUFFERS]=str).c_str();
+static const char* allocPoolString(const char* str){
+  struct StrStorage : public std::string, public jalib::JRefCounted {
+    StrStorage(const char* s) : std::string(s) {}
+  };
+  StrStorage* s = new StrStorage(str);
+  pbparser_addRefPoolItem(s);
+  return s->c_str();
 }
 
 static void recordLitCode(){
@@ -65,7 +69,7 @@ static void handleCppLine(const char* s){
   pbfilename = filename;
 }
 
-#define YY_USER_ACTION pblval.str=circularStringCache(yytext); theParseLog<<yytext;
+#define YY_USER_ACTION pblval.str=allocPoolString(yytext); theParseLog<<yytext;
 #define YY_DECL int yylex()
 #define RETURN theParseLog.str(""); return
 
@@ -147,7 +151,7 @@ PASS_CHARS [.<>,*/()[\]^+-]
   "}"              { 
                       if(--theNestCount==0){
                         yy_pop_state();
-                        pblval.str=circularStringCache(theParseLog.str().c_str());
+                        pblval.str=allocPoolString(theParseLog.str().c_str());
                         RETURN TOK_RULEBODY;
                       }
                    }
