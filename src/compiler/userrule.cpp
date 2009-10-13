@@ -25,6 +25,7 @@
 petabricks::UserRule::UserRule(const RegionPtr& to, const RegionList& from, const FormulaList& cond)
   : _from(from)
   , _conditions(cond)
+  , _label(NULL)
 {
   _flags.isReturnStyle = true;
   _to.push_back(to);
@@ -34,6 +35,7 @@ petabricks::UserRule::UserRule(const RegionList& to, const RegionList& from, con
   : _from(from)
   , _to(to)
   , _conditions(cond)
+  , _label(NULL)
 {
   _flags.isReturnStyle = false;
 }
@@ -510,4 +512,3 @@ std::string petabricks::UserRule::implcodename(Transform& trans) const {
 std::string petabricks::UserRule::trampcodename(Transform& trans) const {
   return trans.name()+"_apply_rule" + jalib::XToString(_id-trans.ruleIdOffset());
 }
-

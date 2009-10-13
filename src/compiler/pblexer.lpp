@@ -112,6 +112,7 @@ PASS_CHARS [.<>,*/()[\]^+-]
   "secondary"      RETURN KW_SECONDARY;
   "rotatable"      RETURN KW_ROTATABLE;
   "recursive"      RETURN KW_RECURSIVE;
+  "rule"           RETURN KW_RULE;
   "{"              {
                      yy_push_state(rule); 
                      theNestCount=1; 

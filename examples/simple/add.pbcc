@@ -5,6 +5,7 @@ transform MatrixSub
 from A[w,h], B[w,h] 
 to AB[w,h]
 {
+  rule SimpleSub
   AB.cell(x,y) from(A.cell(x,y) a, B.cell(x,y) b){
     return a-b;
   }
@@ -15,6 +16,7 @@ transform MatrixAddAddSub
 from A[w,h], B[w,h], C[w,h], MinusD[w,h] 
 to OUT[w,h]
 {
+  rule SimpleAddAddSub
   OUT.cell(x,y) from( A.cell(x,y) a
                      , B.cell(x,y) b
                      , C.cell(x,y) c
@@ -28,6 +30,7 @@ transform MatrixAdd
 from A[w,h], B[w,h] 
 to AB[w,h]
 {
+  rule SimpleAdd
   AB.cell(x,y) from(A.cell(x,y) a, B.cell(x,y) b){
     return a+b;
   }
