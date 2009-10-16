@@ -27,6 +27,7 @@
 #endif
 
 namespace petabricks {
+class TestIsolation;
 class Autotuner;
 typedef jalib::JRef<Autotuner> AutotunerPtr;
 typedef std::vector<AutotunerPtr> AutotunerList;
@@ -115,7 +116,8 @@ public:
   void runAutotuneLoop(const AutotunerList& tuners);
   void runMultigridAutotuneMode();
 
-  double runTrial(double thresh = DBL_MAX);
+  double runTrial(TestIsolation&);
+  double runTrial(double thresh);
 
   static bool isTrainingRun();
   static void setIsTrainingRun(bool b);
@@ -127,8 +129,8 @@ public:
 
   static void saveConfig();
 
-  double computeWrapper(double thresh = DBL_MAX);
-  double trainAndComputeWrapper(double thresh = DBL_MAX);
+  double computeWrapper(TestIsolation&);
+  double trainAndComputeWrapper(TestIsolation&);
   
   
   void variableAccuracyTrainingLoop();

@@ -216,6 +216,9 @@
 /* var name in output code for accuracy template parameter */
 #undef TEMPLATE_BIN_STR
 
+/* Grace period before slow tests are killed */
+#undef TIMEOUT_GRACESEC
+
 /* record timing information to stderr and jtimings.csv */
 #undef TIMING
 

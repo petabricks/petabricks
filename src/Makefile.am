@@ -59,6 +59,7 @@ pkglib_HEADERS=  \
   runtime/petabricksruntime.h \
   runtime/ruleinstance.h \
   runtime/specializeddynamictasks.h \
+  runtime/testisolation.h \
   runtime/transforminstance.h \
   runtime/workerthread.h
 
@@ -118,6 +119,7 @@ libpbruntime_a_SOURCES =  \
   runtime/petabricksruntime.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \
+  runtime/testisolation.cpp \
   runtime/transforminstance.cpp \
   runtime/workerthread.cpp
 

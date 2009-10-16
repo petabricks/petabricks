@@ -114,6 +114,7 @@ am_libpbruntime_a_OBJECTS = libpbruntime_a-autotuner.$(OBJEXT) \
 	libpbruntime_a-petabricksruntime.$(OBJEXT) \
 	libpbruntime_a-ruleinstance.$(OBJEXT) \
 	libpbruntime_a-specializeddynamictasks.$(OBJEXT) \
+	libpbruntime_a-testisolation.$(OBJEXT) \
 	libpbruntime_a-transforminstance.$(OBJEXT) \
 	libpbruntime_a-workerthread.$(OBJEXT)
 libpbruntime_a_OBJECTS = $(am_libpbruntime_a_OBJECTS)
@@ -337,6 +338,7 @@ pkglib_HEADERS = \
   runtime/petabricksruntime.h \
   runtime/ruleinstance.h \
   runtime/specializeddynamictasks.h \
+  runtime/testisolation.h \
   runtime/transforminstance.h \
   runtime/workerthread.h
 
@@ -396,6 +398,7 @@ libpbruntime_a_SOURCES = \
   runtime/petabricksruntime.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \
+  runtime/testisolation.cpp \
   runtime/transforminstance.cpp \
   runtime/workerthread.cpp
 
@@ -555,6 +558,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-petabricksruntime.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-ruleinstance.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-specializeddynamictasks.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-testisolation.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-transforminstance.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-workerthread.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbc-pbc.Po@am__quote@
@@ -1216,6 +1220,20 @@ libpbruntime_a-specializeddynamictasks.obj: runtime/specializeddynamictasks.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/specializeddynamictasks.cpp' object='libpbruntime_a-specializeddynamictasks.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-specializeddynamictasks.obj `if test -f 'runtime/specializeddynamictasks.cpp'; then $(CYGPATH_W) 'runtime/specializeddynamictasks.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/specializeddynamictasks.cpp'; fi`
+
+libpbruntime_a-testisolation.o: runtime/testisolation.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-testisolation.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-testisolation.Tpo -c -o libpbruntime_a-testisolation.o `test -f 'runtime/testisolation.cpp' || echo '$(srcdir)/'`runtime/testisolation.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-testisolation.Tpo $(DEPDIR)/libpbruntime_a-testisolation.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/testisolation.cpp' object='libpbruntime_a-testisolation.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-testisolation.o `test -f 'runtime/testisolation.cpp' || echo '$(srcdir)/'`runtime/testisolation.cpp
+
+libpbruntime_a-testisolation.obj: runtime/testisolation.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-testisolation.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-testisolation.Tpo -c -o libpbruntime_a-testisolation.obj `if test -f 'runtime/testisolation.cpp'; then $(CYGPATH_W) 'runtime/testisolation.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/testisolation.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-testisolation.Tpo $(DEPDIR)/libpbruntime_a-testisolation.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/testisolation.cpp' object='libpbruntime_a-testisolation.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-testisolation.obj `if test -f 'runtime/testisolation.cpp'; then $(CYGPATH_W) 'runtime/testisolation.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/testisolation.cpp'; fi`
 
 libpbruntime_a-transforminstance.o: runtime/transforminstance.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-transforminstance.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-transforminstance.Tpo -c -o libpbruntime_a-transforminstance.o `test -f 'runtime/transforminstance.cpp' || echo '$(srcdir)/'`runtime/transforminstance.cpp

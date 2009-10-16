@@ -5151,6 +5151,9 @@ $as_echo "#define FORENOUGH_MAX_ITERS 1000" >>confdefs.h
 $as_echo "#define GOOD_RANDOM /**/" >>confdefs.h
 
 
+$as_echo "#define TIMEOUT_GRACESEC 0.2" >>confdefs.h
+
+
 
 $as_echo "#define WORKERTHREAD_ONDECK /**/" >>confdefs.h
 
