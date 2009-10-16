@@ -60,7 +60,8 @@ pkglib_HEADERS=  \
   runtime/ruleinstance.h \
   runtime/specializeddynamictasks.h \
   runtime/transforminstance.h \
-  runtime/workerthread.h
+  runtime/workerthread.h \
+  runtime/openclutil.h
 
 libpbcommon_a_CXXFLAGS = -I$(srcdir)/common
 libpbcommon_a_SOURCES =  \
@@ -119,7 +120,8 @@ libpbruntime_a_SOURCES =  \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \
   runtime/transforminstance.cpp \
-  runtime/workerthread.cpp
+  runtime/workerthread.cpp \
+  runtime/openclutil.cpp
 
 libpbmain_a_CXXFLAGS = -Iruntime
 libpbmain_a_SOURCES = runtime/redirectmain.cpp
