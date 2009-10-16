@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2009 by Jason Ansel                                     *
+ *   Copyright (C) 2006-2009 by Jason Ansel                                *
  *   jansel@csail.mit.edu                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -98,6 +98,7 @@ static bool _argToBool(const std::string& name, const char* v){
   } else {
     JASSERT(false)(name)(v)
       .Text("expected 'true' or 'false'");
+    return false;
   }
 }
 

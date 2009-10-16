@@ -1,21 +1,13 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
- *   jansel@csail.mit.edu                                                  *
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #include "petabricksruntime.h"
 
@@ -30,6 +22,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <iostream>
 #include <math.h>
 
 //these must be declared in the user code
@@ -53,6 +46,7 @@ static bool DUMPTIMING=false;
 static bool ACCURACY=false;
 static bool FORCEOUTPUT=false;
 std::vector<std::string> txArgs;
+static std::string ATLOG;
 
 static enum {
   MODE_RUN_IO,
@@ -71,19 +65,44 @@ std::vector<std::string> autotunesites;
 std::vector<std::string> autotunecutoffs;
 std::string graphParam;
 
-static struct {
-  int count;
-  double total;
-  double total_accuracy;
-  double min;
-  double max;
-} timing = {0, 0.0, 0.0, std::numeric_limits<double>::max(), std::numeric_limits<double>::min() };
+std::vector<double> theTimings;
+std::vector<double> theAccuracies;
 
 JTUNABLE(worker_threads,   8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
 
 namespace{//file local
   typedef jalib::JTunableManager TunableManager;
+
+  void _dumpStats(std::ostream& o, const std::vector<double>& _data){
+    if(_data.empty()) return;
+    std::vector<double> data = _data;
+    std::sort(data.begin(), data.end());
+
+    double sum = 0;
+    for(size_t i=0; i<data.size(); ++i)
+      sum += data[i];
+    double mean = sum / (double) data.size();
+
+    double variance = 0;
+    for(size_t i=0; i<data.size(); ++i)
+      variance += (data[i]-mean) * (data[i]-mean);
+    variance /= (double) data.size();
+
+    double mid = (data.size()-1.0)/2.0;
+    double median = (data[(size_t)ceil(mid)] + data[(size_t)floor(mid)]) / 2.0;
+
+    o.precision(15);
+    o << " count=\""    << data.size()         << '"'
+      << " average=\""  << mean                << '"'
+      << " total=\""    << sum                 << '"'
+      << " min=\""      << data[0]             << '"'
+      << " max=\""      << data[data.size()-1] << '"'
+      << " median=\""   << median              << '"'
+      << " variance=\"" << variance            << '"'
+      << " stddev=\""   << sqrt(variance)      << '"';
+  }
 }
+
 
 petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Main* m)
   : _main(m)
@@ -119,9 +138,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   
   //seed the random number generator 
   if(! args.param("fixedrandom").help("don't seed the random number generator")){
-    struct timeval currentTimeVal;
-    gettimeofday(&currentTimeVal, NULL);
-    srand48(currentTimeVal.tv_usec);
+    srand48(jalib::JTime::now().usec());
   }
   
   args.param("accuracy",  ACCURACY).help("print out accuracy of answer");
@@ -140,7 +157,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   }
 
   //figure out what mode we are in
-  if(args.param("autotune").help("run the genetic autotuner at a given choice cite")){
+  if(args.param("autotune").help("run the genetic autotuner at a given choice site")){
     MODE=MODE_AUTOTUNE_GENETIC;
   } else if(args.param("optimize", graphParam).help("autotune a single given config parameter")){
     MODE=MODE_AUTOTUNE_PARAM;
@@ -164,6 +181,10 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     std::cout << _mainName << std::endl;
     MODE=MODE_ABORT;
   }
+  if(args.param("resolution").help("print out the timer resolution an exit")){
+    std::cout << jalib::JTime::resolution() << std::endl;
+    MODE=MODE_ABORT;
+  }
   if(args.needHelp()){
     MODE=MODE_HELP;
   }
@@ -174,6 +195,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("autotune-transform", autotunetx).help("transform name to tune in --autotune mode");
   args.param("autotune-site",      autotunesites).help("choice sites to tune in --autotune mode");
   args.param("autotune-tunable",   autotunecutoffs).help("additional cutoff tunables to tune in --autotune mode");
+  args.param("autotune-log",   ATLOG).help("log autotuner actions to given filename prefix");
   args.param("min",       GRAPH_MIN).help("minimum input size for graph/autotuning");
   args.param("max",       GRAPH_MAX).help("maximum input size for graph/autotuning");
   args.param("step",      GRAPH_STEP).help("step size for graph/autotuning");
@@ -216,7 +238,7 @@ void petabricks::PetabricksRuntime::saveConfig()
 }
 
 
-int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
+int petabricks::PetabricksRuntime::runMain(){
   switch(MODE){
     case MODE_RUN_IO:
       runNormal();
@@ -240,6 +262,7 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
       optimizeParameter(graphParam);
       break;
     case MODE_ABORT:
+    case MODE_HELP:
       break;
   }
   
@@ -254,18 +277,18 @@ int petabricks::PetabricksRuntime::runMain(int argc, const char** argv){
     _main->write(tmp);
   }
 
-  if(DUMPTIMING | ACCURACY){
-    std::cout << "<timing";
-    if(ACCURACY) {
-      std::cout << " accuracy=\"" << (timing.total_accuracy/timing.count) << "\"";
-    }
-    std::cout << " count=\"" << timing.count<< "\"";
-    std::cout << " average=\"" << (timing.total/timing.count) << "\"";
-    std::cout << " total=\"" << timing.total << "\"";
-    std::cout << " min=\"" << timing.min<< "\"";
-    std::cout << " max=\"" << timing.max<< "\"";
-    std::cout << " />\n" << std::flush;
+  if(ACCURACY || DUMPTIMING) std::cout << "<root>\n  <stats>\n";
+  if(ACCURACY){
+    std::cout << "    <accuracy";
+    _dumpStats(std::cout, theAccuracies);
+    std::cout << " />\n";
   }
+  if(DUMPTIMING){
+    std::cout << "    <timing";
+    _dumpStats(std::cout, theTimings);
+    std::cout << " />\n";
+  }
+  if(ACCURACY || DUMPTIMING) std::cout << "  </stats>\n</root>\n" << std::flush;
 
   return _rv;
 }
@@ -289,6 +312,13 @@ void petabricks::PetabricksRuntime::runNormal(){
     main.write(txArgs);
   }
 }
+
+static const char* _uniquifyatlogname() {
+  static int i = 0;
+  static std::string buf;
+  buf = ATLOG+"."+jalib::XToString(i++)+".log";
+  return buf.c_str();
+}
   
 void petabricks::PetabricksRuntime::runAutotuneMode(){
   AutotunerList tuners;
@@ -311,7 +341,14 @@ void petabricks::PetabricksRuntime::runAutotuneMode(){
       if(inContext || tx->isVariableAccuracy())
         ctx = tx;
 
-      tuners.push_back(new Autotuner(*this, ctx, std::string(tx->name())+"_"+(*site), autotunecutoffs));
+      std::string pfx = std::string(tx->name())+"_"+(*site);
+
+      if(*site == "-1") pfx = "";
+
+      if(ATLOG.empty())
+        tuners.push_back(new Autotuner(*this, ctx, pfx, autotunecutoffs));
+      else
+        tuners.push_back(new Autotuner(*this, ctx, pfx, autotunecutoffs, _uniquifyatlogname()));
     }
   }
 
@@ -321,11 +358,15 @@ void petabricks::PetabricksRuntime::runAutotuneLoop(const AutotunerList& tuners)
   Main* old = _main;
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n*=2){
     setSize(n+1);
+    double best = std::numeric_limits<double>::max();
     for(size_t i=0; i<tuners.size(); ++i){
       _main = tuners[i]->main();
       tuners[i]->trainOnce();
+      best = std::min(best, tuners[i]->lastBestResult());
     }
     saveConfig();
+    if(best > GRAPH_MAX_SEC)
+      break;
   }
   _main=old;
 }
@@ -409,7 +450,7 @@ double petabricks::PetabricksRuntime::trainAndComputeWrapper(double thresh){
   return t;
 }
 
-double petabricks::PetabricksRuntime::computeWrapper(double thresh){
+double petabricks::PetabricksRuntime::computeWrapper(double /*thresh*/){
 #ifdef GRACEFUL_ABORT
 //// Set up a time out so we don't waste time running things that are
 //// slower than what we have seen already.
@@ -419,9 +460,9 @@ double petabricks::PetabricksRuntime::computeWrapper(double thresh){
 //}
 #endif
 
-  jalib::JTime begin=jalib::JTime::Now();
+  jalib::JTime begin=jalib::JTime::now();
   _main->compute();
-  jalib::JTime end=jalib::JTime::Now();
+  jalib::JTime end=jalib::JTime::now();
 
 #ifdef GRACEFUL_ABORT
 //// Disable previous alarm
@@ -436,17 +477,12 @@ double petabricks::PetabricksRuntime::computeWrapper(double thresh){
   }
 
   double v=end-begin;
-  if(DUMPTIMING || ACCURACY){
-    double acc = 0;
-    if(ACCURACY){
-      JTIMER_SCOPE(accuracycompute);
-      acc = _main->accuracy();
-    }
-    timing.count++;
-    timing.total+=v;
-    timing.total_accuracy+=acc;
-    timing.min=std::min(timing.min,v);
-    timing.max=std::max(timing.max,v);
+  if(DUMPTIMING){
+    theTimings.push_back(v);
+  }
+  if(ACCURACY){
+    JTIMER_SCOPE(accuracycompute);
+    theAccuracies.push_back(_main->accuracy());
   }
   return v;
 }
@@ -614,7 +650,7 @@ void petabricks::PetabricksRuntime::runMultigridAutotuneMode(){
 
 int petabricks::petabricksMain(int argc, const char** argv){
   PetabricksRuntime runtime(argc, argv, petabricksMainTransform());
-  return runtime.runMain(argc,argv);
+  return runtime.runMain();
 }
 
 

@@ -1,23 +1,17 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
- *   jansel@csail.mit.edu                                                  *
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #include "codegenerator.h"
+
+#include "region.h"
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -30,6 +24,11 @@ std::stringstream& petabricks::CodeGenerator::theFilePrefix() {
 
 petabricks::TunableDefs& petabricks::CodeGenerator::theTunableDefs() {
   static TunableDefs t;
+  return t;
+}
+
+jalib::TunableValueMap& petabricks::CodeGenerator::theHardcodedTunables() {
+  static jalib::TunableValueMap t;
   return t;
 }
 
@@ -72,19 +71,6 @@ void petabricks::CodeGenerator::setcall(const std::string& lv, const std::string
   os() << ");\n";
 }
 
-// void petabricks::CodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::string& args){
-//   indent();
-//   os() << rt << " " << func << '(' << args << "){\n";
-//   _indent++;
-// }
-
-// void petabricks::CodeGenerator::declareFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
-//   indent();
-//   os() << rt << " " << func << '(';
-//   jalib::JPrintable::printStlList(os(), args.begin(), args.end(), ", ");
-//   os() << ");\n";
-// }
-
 void petabricks::CodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
   indent();
   os() << rt << " ";
@@ -98,6 +84,8 @@ void petabricks::CodeGenerator::beginFunc(const std::string& rt, const std::stri
   hos() << rt << " " << func << '(';
   jalib::JPrintable::printStlList(hos(), args.begin(), args.end(), ", ");
   hos() << ");\n";
+  
+  if(!inClass()) hos() << "\n";
 }
 
 void petabricks::CodeGenerator::varDecl(const std::string& var){
@@ -160,57 +148,18 @@ void petabricks::CodeGenerator::endIf(){
   os() << "}\n";
 }
 
-petabricks::TaskCodeGenerator& petabricks::BufferedCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string&){
-  UNIMPLEMENTED();
-  return *(TaskCodeGenerator*)0;
-}
-
-petabricks::TaskCodeGenerator& petabricks::MainCodeGenerator::createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix){
-  _tasks.push_back(new TaskCodeGenerator(func, args, taskType, postfix));
-  return *_tasks.back();
-}
-
 namespace{//file local
   void _splitTypeArgs(std::string& type, std::string& name, const std::string& str){
     const char* begin=str.c_str();
     const char* mid=begin+str.length();
     const char* end=mid;
-    while(mid>begin && *(--mid)!=' ');
+    while(mid>begin && *(--mid)!=' ') ;
 //     JTRACE("SPLIT")(begin)(mid+1);
     JASSERT(mid!=begin);
     type.assign(begin,mid);
     name.assign(mid+1,end);
   }
 }
-
-petabricks::TaskCodeGenerator::TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix){
-  _name=func + postfix;
-  _indent=1;
-  _types.resize(args.size());
-  _names.resize(args.size());
-  for(size_t i=0; i!=args.size(); ++i)
-    _splitTypeArgs(_types[i], _names[i], args[i]);
-
-  os() << "class " << _name << " : public petabricks::"<< taskType <<" {\n";
-  for(size_t i=0; i!=args.size(); ++i){
-    indent();
-    os() << args[i] << ";\n";
-  }
-  os() << "public:\n"; 
-  indent();
-  os() << _name << "(";
-  for(size_t i=0; i!=args.size(); ++i){
-    if(i>0) os()<<", ";
-    os() << _types[i] << "& a_" << _names[i];
-  }
-  os() << ") \n    : ";
-  for(size_t i=0; i!=args.size(); ++i){
-    if(i>0) os()<<", ";
-    os() << _names[i] << "(a_" << _names[i] << ")";
-  }
-  os() << "\n  {}\n\n";
-}
-
 
 static std::string _typeToConstRef(std::string s){
   if(s[s.length()-1] != '&'){
@@ -310,6 +259,45 @@ void petabricks::CodeGenerator::continuationRequired(const std::string& hookname
   beginFunc("DynamicTaskPtr", n);
 }
 
+
+petabricks::CodeGenerator& petabricks::CodeGenerator::forkhelper(){
+  CodeGenerator* cg;
+  _helpers.push_back(cg=new CodeGenerator());
+  cg->_curClass = _curClass;
+  return *cg;
+}
+
+void petabricks::CodeGenerator::mergehelpers(){
+  for(; !_helpers.empty(); _helpers.pop_back()){
+    JASSERT(_helpers.front()->_defines.empty())
+      .Text("helper CodeGenerator leaked defines");
+    os() << _helpers.front()->_os.str();
+    hos() << _helpers.front()->_hos.str();
+    dos() << _helpers.front()->_dos.str();
+  }
+}
+void petabricks::CodeGenerator::callSpatial(const std::string& methodname, const SimpleRegion& region) {
+  write("{");
+  incIndent();
+  write("IndexT _tmp_begin[] = {" + region.minCoord().toString() + "};");
+  write("IndexT _tmp_end[] = {"   + region.maxCoord().toString() + "};");
+  write(methodname+"(_tmp_begin, _tmp_end);");
+  decIndent();
+  write("}");
+}
+void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region) {
+  std::string taskclass = "petabricks::SpatialMethodCallTask<"+objname
+                        + ", " + jalib::XToString(region.dimensions())
+                        + ", &" + objname + "::" + methodname
+                        + ">";
+  write("{");
+  incIndent();
+  write("IndexT _tmp_begin[] = {" + region.minCoord().toString() + "};");
+  write("IndexT _tmp_end[] = {"   + region.maxCoord().toString() + "};");
+  write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end);");
+  decIndent();
+  write("}");
+}
 
 
 

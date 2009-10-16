@@ -1,21 +1,13 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
- *   jansel@csail.mit.edu                                                  *
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #include "rulechoice.h"
 
@@ -23,6 +15,8 @@
 #include "rule.h"
 #include "staticscheduler.h"
 #include "transform.h"
+
+#include <algorithm>
 
 namespace {
   struct RuleIdComparer {
@@ -78,7 +72,6 @@ void petabricks::RuleChoice::generateCodeSimple( bool isStatic
   for(std::vector<RulePtr>::const_iterator i=sortedRules.begin(); i!=sortedRules.end(); ++i){
     if(sortedRules.size()>1) o.beginCase(n++);
     if(isStatic || taskname.empty()){
-      if(!isStatic) o.write("transform->");//hack
       (*i)->generateCallCodeSimple(trans, o, region);
     }else{
       (*i)->generateCallTaskCode(taskname, trans, o, region);
@@ -114,9 +107,17 @@ std::string petabricks::RuleChoice::processCondition(const std::string& name, co
     std::sort(sortedRules.begin(), sortedRules.end(), RuleIdComparer());
     for(size_t i=0; i<sortedRules.size(); ++i){
       if(!s.empty()) s += " || ";
-      if(!hint) hint = sortedRules[i]->recursiveHint();
-      if(hint->toString()!=sortedRules[i]->recursiveHint()->toString()) needComplex=true;
-      FormulaPtr f=new FormulaGT(sortedRules[i]->recursiveHint(), new FormulaVariable(name));
+      FormulaPtr curhint = sortedRules[i]->recursiveHint();
+      if(!curhint){
+        static FormulaPtr t = new FormulaVariable(TRANSFORM_N_STR);
+        curhint = t;
+      }
+      if(!hint) {
+        hint = curhint;
+      } else if(hint->toString() != curhint->toString()) {
+        needComplex=true;
+      }
+      FormulaPtr f=new FormulaGT(hint, new FormulaVariable(name));
       s += "(" + algchoicename + "==" + jalib::XToString(i) + " && " + f->toString() + ")";
     }
     if(needComplex)

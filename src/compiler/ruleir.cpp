@@ -1,21 +1,13 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
- *   jansel@csail.mit.edu                                                  *
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #include "ruleir.h"
 
@@ -43,7 +35,7 @@ petabricks::RIRExprCopyRef petabricks::RIRExpr::parse(const std::string& str){
 namespace{ 
   template<typename T> T& get(std::list<T>& lst, int n) {
     typename std::list<T>::iterator i=lst.begin();
-    for(; n>0; --n,++i); 
+    for(; n>0; --n,++i) ; 
     return *i;
   }
 }
@@ -140,7 +132,7 @@ void petabricks::RIRIfStmt::print(std::ostream& o, RIRVisitor* v) {
     pvHook(_else,o,v);
   }
 }
-void petabricks::RIRRawStmt::print(std::ostream& o, RIRVisitor* v) {
+void petabricks::RIRRawStmt::print(std::ostream& o, RIRVisitor*) {
   o << _src;
 }
 

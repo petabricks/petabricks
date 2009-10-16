@@ -1,21 +1,13 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
- *   jansel@csail.mit.edu                                                  *
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #include "transform.h"
 
@@ -325,7 +317,10 @@ void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
     }
     o.endCase();
   }
-  o.write("default: JASSERT(false);");
+  if(isStatic)
+    o.write("default: JASSERT(false); return;");
+  else
+    o.write("default: JASSERT(false); return 0;");
   o.endSwitch();
   o.endFunc();
 }
@@ -410,7 +405,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   
   if(_scheduler->size()>1){
     o.beginFunc("bool", "useContinuation");
-    o.createTunable(true, "system.unrollschedule", _name + "_unrollschedule", 1, 0, 1);
+    o.createTunable(true, "system.flag.unrollschedule", _name + "_unrollschedule", 1, 0, 1);
     o.write("return "+_name + "_unrollschedule == 0;");
     o.endFunc();
   }
@@ -422,8 +417,8 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.endFunc();
 
   o.beginFunc("DynamicTaskPtr", "runDynamic");
-  o.createTunable(true, "system.seqcutoff", _name + "_sequentialcutoff", 0);
-  o.beginIf(TRANSFORM_N_STR " < " + _name + "_sequentialcutoff");
+  o.createTunable(true, "system.cutoff.sequential", _name + "_sequentialcutoff", 0);
+  o.beginIf(TRANSFORM_N_STR " < TRANSFORM_LOCAL(sequentialcutoff)");
   o.write("runStatic();");
   o.write("return NULL;");
   o.endIf();
@@ -437,6 +432,8 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.comment("Rule trampolines");
   Map(&RuleInterface::generateTrampCodeSimple, *this, o, _rules);
   o.newline();
+
+  o.mergehelpers();
 
   o.endClass();
   
@@ -471,8 +468,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
 void petabricks::Transform::markSplitSizeUse(CodeGenerator& o){
   if(!_usesSplitSize){
     _usesSplitSize=true;
-    o.createTunable(true, "system.splitsize", _name + "_splitsize", 64, 1);
-    o.addMember("IndexT", SPLIT_CHUNK_SIZE, _name+"_splitsize");
+    o.createTunable(true, "system.cutoff.splitsize", _name + "_splitsize", 64, 1);
   }
 }
 
@@ -737,6 +733,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.beginFunc("petabricks::PetabricksRuntime::Main*", "nextTemplateMain");
   o.write("return "+nextMain+";");
   o.endFunc();
+
   
   o.endClass();
 }

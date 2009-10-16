@@ -23,6 +23,7 @@ kclustering/kmeans
 kclustering/newclusterlocations
 kernel/KernelEstimate
 kernel/LinearSolvePosDef
+matrixapproximation/Bisection
 matrixapproximation/matrixapprox
 multigrid/ComputeError
 multigrid/error
@@ -37,6 +38,8 @@ multigrid/FullPoisson2D_TrainingPerEst
 multigrid/FullPoisson2D_TrainingRecursive
 multigrid/FullPoisson2D_Tunables
 multigrid/FullPoisson2D_TunablesPerEst
+multigrid/Helmholtz3DJacobi
+multigrid/Helmholtz3DSOR
 multigrid/Interpolate2Dnew
 multigrid/mgv2D
 multigrid/mgv2DTrain
@@ -73,12 +76,12 @@ preconditioner/vectoradd
 regression/accuracymetric
 regression/assign0d
 regression/calltx
-regression/coscheduled
+regression/coscheduled1
+regression/coscheduled2
 regression/fileprefix
 regression/forenough
 regression/generators
-regression/matrixversions1
-regression/matrixversions2
+regression/matrixversions
 regression/padding
 regression/params
 regression/ruleconstants

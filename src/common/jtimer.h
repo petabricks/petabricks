@@ -1,10 +1,10 @@
 /***************************************************************************
- *   Copyright (C) 2006 by Jason Ansel                                     *
+ *   Copyright (C) 2006-2009 by Jason Ansel                                *
  *   jansel@csail.mit.edu                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
+ *   the Free Software Foundation; either version 3 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
  *   This program is distributed in the hope that it will be useful,       *
@@ -20,15 +20,20 @@
 #ifndef JTIMER_H
 #define JTIMER_H
 
-#include <sys/time.h>
-#include <time.h>
 
 #include "jconvert.h"
 #include "jassert.h"
+#include "jprintable.h"
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
+
+#if defined(USE_GETTIMEOFDAY) && defined(HAVE_SYS_TIME_H)
+# include <sys/time.h>
+#endif
+
+#include <time.h>
 
 #ifdef TIMING
 #define JTIMER(name) static jalib::JTimeRecorder _jtimer_ ## name (#name);
@@ -47,52 +52,77 @@
 namespace jalib
 {
 
-  class JTime;
-  double operator- ( const JTime& a, const JTime& b );
+class JTime;
+double operator- ( const JTime& a, const JTime& b );
 
-  class JTime
-  {
-    public:
-      JTime();
-      friend double operator- ( const JTime& a, const JTime& b );
-      static JTime Now() {return JTime();}
-    private:
-      struct timeval _value;
-  };
+class JTime : public JPrintable
+{
+public:
+  friend double operator- ( const JTime& a, const JTime& b );
+  static JTime now();
+  static JTime resolution();
+  static JTime null() {return JTime();}
 
-  class JTimeRecorder
-  {
-    public:
-      JTimeRecorder ( const std::string& name );
-      void start()
-      {
-        JWARNING ( !_isStarted ) ( _name );
-        _start = JTime::Now();
-        _isStarted = true;
-      }
-      void stop()
-      {
-        JWARNING ( _isStarted ) ( _name );
-        if ( !_isStarted ) return;
-        _isStarted = false;
-        recordTime ( JTime::Now() - _start );
-      }
-    protected:
-      void recordTime ( double time );
-    private:
-      std::string _name;
-      bool  _isStarted;
-      JTime _start;
-  };
+  void print(std::ostream& os) const;
+  
+  long sec() const { return _value.tv_sec; }
+  long usec() const {
+#ifdef USE_GETTIMEOFDAY
+    return _value.tv_usec;
+#else
+    return _value.tv_nsec / 1e3;
+#endif
+  }
+  long nsec() const {
+#ifdef USE_GETTIMEOFDAY
+    return _value.tv_usec * 1e3;
+#else
+    return _value.tv_nsec;
+#endif
+  }
+protected:
+  JTime(){}
+private:
+#ifdef USE_GETTIMEOFDAY
+  struct timeval _value;
+#else
+  struct timespec _value;
+#endif
+};
 
-  class JScopeTimer
-  {
-    public:
-      JScopeTimer ( JTimeRecorder& tm ) :_tm ( tm ) { _tm.start(); }
-      ~JScopeTimer() { _tm.stop(); }
-    private:
-      JTimeRecorder& _tm;
-  };
+class JTimeRecorder
+{
+  public:
+    JTimeRecorder ( const std::string& name );
+    void start()
+    {
+      JWARNING ( !_isStarted ) ( _name );
+      _start = JTime::now();
+      _isStarted = true;
+    }
+    void stop()
+    {
+      JWARNING ( _isStarted ) ( _name );
+      if ( !_isStarted ) return;
+      _isStarted = false;
+      recordTime ( JTime::now() - _start );
+    }
+  protected:
+    void recordTime ( double time );
+  private:
+    std::string _name;
+    bool  _isStarted;
+    JTime _start;
+};
+
+class JScopeTimer
+{
+  public:
+    JScopeTimer ( JTimeRecorder& tm ) :_tm ( tm ) { _tm.start(); }
+    ~JScopeTimer() { _tm.stop(); }
+  private:
+    JTimeRecorder& _tm;
+};
 
 }
 #endif

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
+ *   Copyright (C) 2006-2009 by Jason Ansel                                *
  *   jansel@csail.mit.edu                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -60,8 +60,8 @@ void jalib::JTunableConfiguration::makeActive() const{
   }
 }
 
-void jalib::JTunableManager::load(const std::string& filename) const{
-  const JTunableReverseMap m = getReverseMap();
+jalib::TunableValueMap jalib::JTunableManager::loadRaw(const std::string& filename){
+  TunableValueMap rv;
   std::ifstream fp(filename.c_str());
   JASSERT(fp.is_open())(filename).Text("failed to open file");
   std::string line;
@@ -72,12 +72,22 @@ void jalib::JTunableManager::load(const std::string& filename) const{
     l=jalib::StringTrim(l);
     r=jalib::StringTrim(r);
     if(!r.empty() && !l.empty()){
-      JTunableReverseMap::const_iterator i=m.find(l);
-      JWARNING(i!=m.end())(l)(r).Text("unknown tunable parameter");
-      if(i!=m.end()){
-        i->second->setValue(StringToX<TunableValue>(r));
-        i->second->verify();
-      }
+      rv[l] = StringToX<TunableValue>(r);
+    }
+  }
+  return rv;
+}
+
+void jalib::JTunableManager::load(const std::string& filename) const{
+  const TunableValueMap f = loadRaw(filename);
+  const JTunableReverseMap m = getReverseMap();
+  TunableValueMap::const_iterator i;
+  for(i=f.begin(); i!=f.end(); ++i){
+    JTunableReverseMap::const_iterator t=m.find(i->first);
+    JWARNING(t!=m.end())(i->first)(i->second).Text("unknown tunable parameter");
+    if(t!=m.end()){
+      t->second->setValue(i->second);
+      t->second->verify();
     }
   }
 }
@@ -241,7 +251,7 @@ void jalib::JTunableManager::autotune(JConfigurationTester* tester) const{
 
 #else//HAVE_LIBGSL
 
-void jalib::JTunableManager::autotune(JConfigurationTester* tester) const{
+void jalib::JTunableManager::autotune(JConfigurationTester* /*tester*/) const{
   JASSERT(false).Text("Can't autotune because not compiled with -lgsl, run: 'apt-get install libgsl0-dev' then './configure'");
 }
 

@@ -1,24 +1,18 @@
 /***************************************************************************
- *   Copyright (C) 2009 by Jason Ansel                                     *
- *   jansel@csail.mit.edu                                                  *
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #ifndef PETABRICKSUSERRULE_H
 #define PETABRICKSUSERRULE_H
+
+#include "pbc.h"
 
 #include "codegenerator.h"
 #include "matrixdependency.h"
@@ -76,12 +70,12 @@ public:
 
   ///
   /// Generate seqential code to declare this rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic);
+  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
-    generateTrampCodeSimple(trans, o, true);
-    generateTrampCodeSimple(trans, o, false);
+    generateTrampCodeSimple(trans, o, E_RF_STATIC);
+    generateTrampCodeSimple(trans, o, E_RF_DYNAMIC);
   }
-  void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic);
+  void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
 
   ///
@@ -103,7 +97,7 @@ public:
   void collectDependencies(StaticScheduler& scheduler);
 
   void markRecursive() { 
-    markRecursive(new FormulaVariable(TRANSFORM_N_STR));
+    markRecursive(NULL);
   }
   void markRecursive(const FormulaPtr& rh) { 
     if(!_flags.isRecursive){
@@ -117,16 +111,11 @@ public:
   RuleFlags::PriorityT priority() const { return _flags.priority; }
   const FormulaList& conditions() const { return _conditions; }
 
-  void removeInvalidOrders(IterationOrderList& o);
-
   bool canProvide(const MatrixDefPtr& m) const {
     return _provides.find(m) != _provides.end();
   }
 
-  std::vector<std::string> getCallArgs(Transform& trans, const SimpleRegionPtr& region);
-
   const FormulaPtr& recursiveHint() const { return _recursiveHint; }
-
 
   FormulaPtr getSizeOfRuleIn(int d){
     for(size_t i=0; i<_to.size(); ++i){
@@ -161,6 +150,7 @@ public:
     return new FormulaAnd(_conditions[start], getWhereClause(start+1));
   }
   
+  DependencyDirection getSelfDependency() const;
 private:
   RuleFlags   _flags;
   RegionList  _from;

@@ -1,10 +1,10 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
+ *   Copyright (C) 2006-2009 by Jason Ansel                                *
  *   jansel@csail.mit.edu                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
+ *   the Free Software Foundation; either version 3 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
  *   This program is distributed in the hope that it will be useful,       *
@@ -43,6 +43,7 @@ namespace jalib {
 typedef int TunableValue;
 class JTunable;
 typedef std::map<std::string, JTunable*> JTunableReverseMap;
+typedef std::map<std::string, TunableValue> TunableValueMap;
 
 class JTunableModificationMonitor {
 public:
@@ -107,7 +108,11 @@ public:
 
   void reset() const;
 
-  void addStaticTunable(const char* name, TunableValue val){}
+  void addStaticTunable(const char* /*name*/, TunableValue /*val*/){}
+  
+  ///
+  /// Load a configuration from disk, just do the parsing part 
+  static TunableValueMap loadRaw(const std::string& filename);
 };
 
 /**

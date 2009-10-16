@@ -1,21 +1,13 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
- *   jansel@csail.mit.edu                                                  *
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #include "staticscheduler.h"
 
@@ -180,8 +172,7 @@ void petabricks::StaticScheduler::generateCodeDynamic(Transform& trans, CodeGene
   }
   o.write("DynamicTaskPtr  _fini = new NullDynamicTask();");
   for(ScheduleNodeSet::iterator i=_goals.begin(); i!=_goals.end(); ++i)
-    o.write("_fini->dependsOn(" + (*i)->nodename() + ".completionTask());");
-  o.withEachMember("SpatialTaskList", ".clear()");
+    o.write("_fini->dependsOn(" + (*i)->nodename() + ");");
   o.withEachMember("DynamicTaskPtr", "=0");
   o.write("return _fini;");
 }
@@ -196,23 +187,15 @@ void petabricks::StaticScheduler::generateCodeStatic(Transform& trans, CodeGener
 void petabricks::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
   RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
   if(!isStatic){
-    o.addMember("SpatialTaskList", nodename(), "");
+    o.addMember("DynamicTaskPtr", nodename(), "");
     rule->generateCodeSimple(false, nodename(), trans, *this, _region, o, getChoicePrefix(trans));
   }else{
     rule->generateCodeSimple(true, "", trans, *this, _region, o, getChoicePrefix(trans));
   }
 }
 
-void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, Transform& trans,  const RulePtr& rule, bool useDirections){
+void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, Transform&,  const RulePtr&, bool){
 //bool printedBeforeDep = false;
-
-  ScheduleDependencies::const_iterator sd = _indirectDepends.find(this);
-  if(sd==_indirectDepends.end() && rule->isSingleElement()){
-    trans.markSplitSizeUse(o);
-    o.write(nodename()+".spatialSplit("SPLIT_CHUNK_SIZE");");
-  }else{
-    //TODO split selfdep tasks too
-  }
 
   for(ScheduleDependencies::const_iterator i=_directDepends.begin();  i!=_directDepends.end(); ++i){
     if(i->first!=this){
@@ -225,17 +208,17 @@ void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, Transform& 
 //         o.write(nodename()+"->dependsOn(_before);");
 //      }
       }else{
-        if(useDirections){
-          o.write("{"); 
-          o.incIndent();
-          o.write("DependencyDirection::DirectionT _dir[] = {"+i->second.direction.toCodeStr()+"};");
-          o.write(nodename()+".dependsOn<"+jalib::XToString(i->second.direction.size())+">"
-                            "("+i->first->nodename()+", _dir);");
-          o.decIndent();
-          o.write("}"); 
-        }else{
-          o.write(nodename()+"->dependsOn("+i->first->nodename()+");");
-        }
+       // if(useDirections){
+       //   o.write("{"); 
+       //   o.incIndent();
+       //   o.write("DependencyDirection::DirectionT _dir[] = {"+i->second.direction.toCodeStr()+"};");
+       //   o.write(nodename()+".dependsOn<"+jalib::XToString(i->second.direction.size())+">"
+       //                     "("+i->first->nodename()+", _dir);");
+       //   o.decIndent();
+       //   o.write("}"); 
+       // }else{
+        o.write(nodename()+"->dependsOn("+i->first->nodename()+");");
+       // }
       }
     }
   }
@@ -312,7 +295,7 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
   const DependencyInformation& selfDep = _indirectDepends[this];
 
   if(selfDep.direction.isNone()){
-    if(!isStatic) o.addMember("SpatialTaskList", nodename(), "");
+    if(!isStatic) o.addMember("DynamicTaskPtr", nodename(), "");
     o.comment("Dual outputs compacted "+nodename());
     std::string region;
     ScheduleNode* first = NULL;
@@ -330,30 +313,14 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
     RuleChoicePtr rule = trans.learner().makeRuleChoice(first->choices()->rules(), first->matrix(), first->region());
     rule->generateCodeSimple(isStatic, nodename(), trans, *this, first->region(), o, getChoicePrefix(trans));
   }else{
-    if(!isStatic) o.addMember("DynamicTaskPtr", nodename(),"");
     std::vector<std::string> args;
     args.push_back("const jalib::JRef<"+trans.instClassName()+"> transform");
-    TaskCodeGenerator* task;
-    if(!isStatic) task=&o.createTask("coscheduled_"+nodename(), args, "DynamicTask", "_task");
-    CodeGenerator& ot = isStatic ? o : *task;
+    std::string taskname= "coscheduled_"+nodename()+"_task";
+    CodeGenerator& ot = isStatic ? o : o.forkhelper();
+    if(!isStatic) ot.beginFunc("DynamicTaskPtr", taskname);
     std::string varname="coscheduled_"+nodename();
-    if(!isStatic){
-      task->beginRunFunc();
-      for(FreeVars::const_iterator i=trans.constants().begin()
-         ;i!=trans.constants().end()
-         ;++i)
-      {
-        ot.define(*i, "(transform->"+*i+")");
-      }
-#ifdef INPUT_SIZE_STR
-      ot.define(INPUT_SIZE_STR, "(transform->"INPUT_SIZE_STR")");
-#endif
-#ifdef TRANSFORM_N_STR 
-      ot.define(TRANSFORM_N_STR, "(transform->"TRANSFORM_N_STR")");
-#endif
-    }
-    
-    for(size_t d=selfDep.direction.size()-1; d>=0; --d){
+
+    for(int d=(int)selfDep.direction.size()-1; d>=0; --d){
       bool passed=true;
       FormulaPtr begin,end;
     
@@ -390,10 +357,12 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
       ot.endFor();
       if(!isStatic){
         ot.write("return NULL;");
-        ot.undefineAll();
         ot.endFunc();
+        o.addMember("DynamicTaskPtr", nodename(),"");
         std::vector<std::string> args(1, "this");
-        o.setcall(nodename(),"new "+varname+"_task", args);
+        o.setcall(nodename(), "new petabricks::MethodCallTask<" + trans.instClassName()
+                            + ", &" + trans.instClassName() + "::" + taskname + ">"
+            , args);
         printDepsAndEnqueue(o, trans, NULL, false);
       }
       return;

@@ -1,7 +1,9 @@
+//compile with:
+// g++ -o stlsorttest stlsorttest.cpp ../src/libpbcommon.a
 
-#include "../src/jconvert.h"
-#include "../src/jassert.h"
-#include "../src/jtimer.h"
+#include "../src/common/jconvert.h"
+#include "../src/common/jassert.h"
+#include "../src/common/jtimer.h"
 
 #include <vector>
 #include <algorithm>
@@ -22,9 +24,11 @@ double test(size_t n){
 }
 
 int main(int argc, const char** argv){
-  JASSERT(argc==2)(argc);
-  int n = jalib::StringToInt(argv[1]);
-  for(size_t i=8; i<=n; i+=8){
+  JASSERT(argc==4)(argc).Text("USAGE: stlsorttest MIN MAX STEP");
+  int min  = jalib::StringToInt(argv[1]);
+  int max  = jalib::StringToInt(argv[2]);
+  int step = jalib::StringToInt(argv[3]);
+  for(size_t i=min; i<=max; i+=step){
     printf("%d %.8lf\n", i, test(i));
   }
 }

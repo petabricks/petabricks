@@ -1,10 +1,10 @@
 /***************************************************************************
- *   Copyright (C) 2006 by Jason Ansel                                     *
+ *   Copyright (C) 2006-2009 by Jason Ansel                                *
  *   jansel@csail.mit.edu                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
+ *   the Free Software Foundation; either version 3 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
  *   This program is distributed in the hope that it will be useful,       *
@@ -105,7 +105,7 @@ std::string jalib::Filesystem::FindHelperUtility ( const std::string& file, bool
 #endif
     "."
   };
-  for(int i=0; i<sizeof(prefixes)/sizeof(const char*); ++i){
+  for(size_t i=0; i<sizeof(prefixes)/sizeof(const char*); ++i){
     if(prefixes[i]==NULL || *prefixes[i]==0)
       continue;
     std::string pfx = prefixes[i];
@@ -139,7 +139,6 @@ std::string jalib::Filesystem::FindHelperUtility ( const std::string& file, bool
 std::vector<std::string> jalib::Filesystem::GetProgramArgs()
 {
   std::string path = "/proc/" + jalib::XToString ( getpid() ) + "/cmdline";
-  FILE* args = fopen ( path.c_str(),"r" );
   std::ifstream fp(path.c_str());
   JASSERT ( fp.is_open() ) ( path ).Text ( "failed to open command line" );
   std::string line;

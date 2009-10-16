@@ -1,10 +1,10 @@
 /***************************************************************************
- *   Copyright (C) 2006 by Jason Ansel                                     *
+ *   Copyright (C) 2006-2009 by Jason Ansel                                *
  *   jansel@csail.mit.edu                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
+ *   the Free Software Foundation; either version 3 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
  *   This program is distributed in the hope that it will be useful,       *
@@ -17,22 +17,44 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#define __USE_BSD
 #include "jtimer.h"
-#include <iostream>
-#include <fstream>
 #include "jassert.h"
 #include "jfilesystem.h"
 
-jalib::JTime::JTime()
-{
-  JASSERT ( gettimeofday ( &_value,NULL ) == 0 );
+#include <iostream>
+#include <fstream>
+
+jalib::JTime jalib::JTime::now() {
+  JTime t;
+#ifdef USE_GETTIMEOFDAY
+  JASSERT ( gettimeofday ( &t._value, NULL ) == 0 );
+#else
+  JASSERT ( clock_gettime ( CLOCK_MONOTONIC, &t._value ) == 0 );
+#endif
+  return t;
+}
+
+jalib::JTime jalib::JTime::resolution() {
+  JTime t;
+#ifdef USE_GETTIMEOFDAY
+  t._value.tv_sec=0;
+  t._value.tv_usec=1;
+#else
+  JASSERT ( clock_getres( CLOCK_MONOTONIC, &t._value ) == 0 );
+#endif
+  return t;
+}
+
+void jalib::JTime::print(std::ostream& os) const {
+  char buf[128];
+  snprintf(buf, sizeof buf, "%ld.%09ld", (long)sec(), (long)nsec());
+  os << buf;
 }
 
 double jalib::operator- ( const jalib::JTime& a, const jalib::JTime& b )
 {
   double sec = a._value.tv_sec - b._value.tv_sec;
-  sec += ( a._value.tv_usec-b._value.tv_usec ) /1000000.0;
+  sec += ( a.nsec() - b.nsec() ) / (double)1e9;
   if ( sec < 0 ) sec *= -1;
   return sec;
 }
@@ -40,6 +62,7 @@ double jalib::operator- ( const jalib::JTime& a, const jalib::JTime& b )
 jalib::JTimeRecorder::JTimeRecorder ( const std::string& name )
     : _name ( name )
     , _isStarted ( false )
+    , _start(JTime::null())
 {}
 
 namespace

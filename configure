@@ -4614,7 +4614,7 @@ _ACEOF
   esac
 
 
-for ac_header in math.h fftw3.h execinfo.h cxxabi.h
+for ac_header in math.h fftw3.h execinfo.h cxxabi.h sys/time.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_cxx_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -4823,6 +4823,55 @@ else
 $as_echo "$as_me: WARNING: failed to find -llapack, some benchmarks may not work" >&2;}
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for clock_gettime in -lrt" >&5
+$as_echo_n "checking for clock_gettime in -lrt... " >&6; }
+if test "${ac_cv_lib_rt_clock_gettime+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lrt  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char clock_gettime ();
+int
+main ()
+{
+return clock_gettime ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_rt_clock_gettime=yes
+else
+  ac_cv_lib_rt_clock_gettime=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_rt_clock_gettime" >&5
+$as_echo "$ac_cv_lib_rt_clock_gettime" >&6; }
+if test "x$ac_cv_lib_rt_clock_gettime" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBRT 1
+_ACEOF
+
+  LIBS="-lrt $LIBS"
+
+else
+
+$as_echo "#define USE_GETTIMEOFDAY /**/" >>confdefs.h
+
+fi
+
 #AC_CHECK_LIB([gslcblas],[cblas_dgemm],   [], [AC_MSG_WARN([failed to find -lgslcblas, some benchmarks may not work])])
 #AC_CHECK_LIB([gsl],[gsl_blas_dgemm],     [], [AC_MSG_WARN([failed to find -lgsl, some benchmarks may not work])])
 
@@ -4857,6 +4906,99 @@ else
                     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; };
                     has_threadlocal=no;
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if compiler supports forced inlining" >&5
+$as_echo_n "checking if compiler supports forced inlining... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+inline __attribute__((always_inline)) __attribute__((flatten)) void foo(){}
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+
+
+$as_echo "#define INLINE inline __attribute__((always_inline)) __attribute__((flatten))" >>confdefs.h
+
+                    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; };
+
+else
+
+                    $as_echo "#define INLINE inline" >>confdefs.h
+
+                    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; };
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if compiler supports __restrict__" >&5
+$as_echo_n "checking if compiler supports __restrict__... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+void foo(int *__restrict__ t);
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+
+
+$as_echo "#define RESTRICT __restrict__" >>confdefs.h
+
+                    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; };
+
+else
+
+                    $as_echo "#define RESTRICT /**/" >>confdefs.h
+
+                    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; };
+
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if compiler supports __attribute__" >&5
+$as_echo_n "checking if compiler supports __attribute__... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+__attribute__((undefinedabdef)) void foo();
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+
+
+$as_echo "#define ATTRIBUTE(x) __attribute__((x))" >>confdefs.h
+
+                    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; };
+
+else
+
+                    $as_echo "#define ATTRIBUTE(x) /**/" >>confdefs.h
+
+                    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; };
 
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
@@ -4928,6 +5070,9 @@ $as_echo "#define JALIB_ALLOCATOR 1" >>confdefs.h
 fi
 
 
+$as_echo "#define MATRIX_INDEX_T int" >>confdefs.h
+
+
 $as_echo "#define MATRIX_ELEMENT_T double" >>confdefs.h
 
 
@@ -4955,7 +5100,7 @@ $as_echo "#define MAX_REC_LEVELS 6" >>confdefs.h
 $as_echo "#define TRANSFORM_N_STR \"transform_n\"" >>confdefs.h
 
 
-$as_echo "#define SPLIT_CHUNK_SIZE \"chunk_size\"" >>confdefs.h
+$as_echo "#define SPLIT_CHUNK_SIZE \"TRANSFORM_LOCAL(splitsize)\"" >>confdefs.h
 
 
 $as_echo "#define TEMPLATE_BIN_STR \"_acc_bin\"" >>confdefs.h
@@ -4971,6 +5116,13 @@ $as_echo "#define TX_STATIC_POSTFIX \"_static\"" >>confdefs.h
 
 
 $as_echo "#define TX_DYNAMIC_POSTFIX \"_dynamic\"" >>confdefs.h
+
+
+
+$as_echo "#define COORD_BEGIN_STR \"_iter_begin\"" >>confdefs.h
+
+
+$as_echo "#define COORD_END_STR \"_iter_end\"" >>confdefs.h
 
 
 
@@ -5045,7 +5197,7 @@ fi
 # COMPILER FLAGS ###############################################################
 ################################################################################
 
-compileflags=""
+compileflags="-Wall -Wextra"
 linkflags=""
 
 if test "$use_jassert" = "yes"; then
@@ -5055,10 +5207,10 @@ fi
 if test "$default_cxxflags" = "yes"; then
   if test "$use_jassert" = "yes"; then
     CXXFLAGS=""
-    compileflags="-O0 -g"
+    compileflags="-O0 -g $compileflags -fdiagnostics-show-option"
   else
     CXXFLAGS=""
-    compileflags="-O3"
+    compileflags="-O3 $compileflags"
   fi
   case "$target_cpu" in
     *sparc*) compileflags="$compileflags -mcpu=niagara -mtune=native";;
@@ -5149,6 +5301,11 @@ _ACEOF
 
 cat >>confdefs.h <<_ACEOF
 #define CXXLIBS "$LIBS"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define CXXLDFLAGS "$LDFLAGS"
 _ACEOF
 
 

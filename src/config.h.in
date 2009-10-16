@@ -1,7 +1,16 @@
 /* src/config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* macro for gcc function __attribute__s */
+#undef ATTRIBUTE
+
 /* larges cache line size in system */
 #undef CACHE_LINE_SIZE
+
+/* var name in output code for begin coord */
+#undef COORD_BEGIN_STR
+
+/* var name in output code for end coord */
+#undef COORD_END_STR
 
 /* C++ compiler used by pbc */
 #undef CXX
@@ -14,6 +23,9 @@
 
 /* C++ compiler flags used by pbc */
 #undef CXXFLAGS
+
+/* C++ compiler link flags used by pbc */
+#undef CXXLDFLAGS
 
 /* C++ compiler libraries used by pbc */
 #undef CXXLIBS
@@ -65,6 +77,9 @@
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
 
+/* Define to 1 if you have the `rt' library (-lrt). */
+#undef HAVE_LIBRT
+
 /* Define to 1 if you have the <math.h> header file. */
 #undef HAVE_MATH_H
 
@@ -89,6 +104,9 @@
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
 
+/* Define to 1 if you have the <sys/time.h> header file. */
+#undef HAVE_SYS_TIME_H
+
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
 
@@ -97,6 +115,9 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* keyword to force inlining */
+#undef INLINE
 
 /* define to add a system var to transform scope */
 #undef INPUT_PERIMETER_STR
@@ -115,6 +136,9 @@
 
 /* type for elements in the matrix */
 #undef MATRIX_ELEMENT_T
+
+/* type for indices into the matrix */
+#undef MATRIX_INDEX_T
 
 /* define in order to generate maxima.log, (a log of maxima commands) */
 #undef MAXIMA_LOG
@@ -157,6 +181,9 @@
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
+
+/* keyword to indicate non-aliased pointers/refs */
+#undef RESTRICT
 
 /* var name in output code for rule output variable */
 #undef RETURN_VAL_STR
@@ -206,6 +233,9 @@
 
 /* enable unsafe optimizations such as removing error checking. */
 #undef UNSAFE
+
+/* define if clock_gettime() doesnt work */
+#undef USE_GETTIMEOFDAY
 
 /* extra directory to search for files in */
 #undef UTIL_SEARCH_DIR_A

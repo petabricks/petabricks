@@ -1,25 +1,18 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
- *   jansel@csail.mit.edu                                                  *
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #ifndef PETABRICKSRULE_H
 #define PETABRICKSRULE_H
 
+#include "pbc.h"
 #include "formula.h"
 #include "matrixdef.h"
 #include "region.h"
@@ -32,16 +25,17 @@
 
 namespace petabricks {
 
-class IterationOrderList;
-class RIRScope;
 class CodeGenerator;
-class RuleDescriptor;
-class MatrixDependencyMap;
-class Transform;
-class StaticScheduler;
+class DependencyDirection;
 class FormulaList;
-class UserRule;
+class IterationOrderList;
+class MatrixDependencyMap;
+class RIRScope;
+class RuleDescriptor;
 class RuleInterface;
+class StaticScheduler;
+class Transform;
+class UserRule;
 typedef jalib::JRef<RuleInterface> RulePtr;
 class RuleList : public std::vector<RulePtr> , public jalib::JRefCounted {};
 typedef std::vector<RuleDescriptor>     RuleDescriptorList;
@@ -141,10 +135,10 @@ public:
   
   
   virtual int dimensions() const = 0;
-  virtual void removeInvalidOrders(IterationOrderList& o) = 0;
   virtual FormulaPtr getSizeOfRuleIn(int d) = 0;
-  virtual void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic) = 0;
-  
+  virtual void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor) = 0;
+
+  virtual DependencyDirection getSelfDependency() const = 0;
 protected:
   int _id;
   SimpleRegionPtr _applicableRegion;

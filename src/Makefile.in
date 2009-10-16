@@ -108,12 +108,12 @@ libpbruntime_a_LIBADD =
 am_libpbruntime_a_OBJECTS = libpbruntime_a-autotuner.$(OBJEXT) \
 	libpbruntime_a-dynamicscheduler.$(OBJEXT) \
 	libpbruntime_a-dynamictask.$(OBJEXT) \
-	libpbruntime_a-matrix.$(OBJEXT) \
 	libpbruntime_a-matrixio.$(OBJEXT) \
 	libpbruntime_a-libpbruntime_a-matrixreader.$(OBJEXT) \
+	libpbruntime_a-matrixstorage.$(OBJEXT) \
 	libpbruntime_a-petabricksruntime.$(OBJEXT) \
 	libpbruntime_a-ruleinstance.$(OBJEXT) \
-	libpbruntime_a-spatialdynamictask.$(OBJEXT) \
+	libpbruntime_a-specializeddynamictasks.$(OBJEXT) \
 	libpbruntime_a-transforminstance.$(OBJEXT) \
 	libpbruntime_a-workerthread.$(OBJEXT)
 libpbruntime_a_OBJECTS = $(am_libpbruntime_a_OBJECTS)
@@ -325,16 +325,18 @@ pkglib_HEADERS = \
   common/jsocket.h \
   common/jtimer.h \
   common/jtunable.h \
+  common/thedeque.h \
   runtime/autotuner.h \
   runtime/dynamicscheduler.h \
   runtime/dynamictask.h \
-  runtime/matrix.h \
   runtime/matrixio.h \
+  runtime/matrixregion.h \
+  runtime/matrixspecializations.h \
+  runtime/matrixstorage.h \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
   runtime/ruleinstance.h \
-  runtime/spatialdynamictask.h \
-  runtime/thedeque.h \
+  runtime/specializeddynamictasks.h \
   runtime/transforminstance.h \
   runtime/workerthread.h
 
@@ -388,12 +390,12 @@ libpbruntime_a_SOURCES = \
   runtime/autotuner.cpp \
   runtime/dynamicscheduler.cpp \
   runtime/dynamictask.cpp \
-  runtime/matrix.cpp \
   runtime/matrixio.cpp \
   runtime/matrixreader.lpp \
+  runtime/matrixstorage.cpp \
   runtime/petabricksruntime.cpp \
   runtime/ruleinstance.cpp \
-  runtime/spatialdynamictask.cpp \
+  runtime/specializeddynamictasks.cpp \
   runtime/transforminstance.cpp \
   runtime/workerthread.cpp
 
@@ -548,11 +550,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-dynamicscheduler.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-dynamictask.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-libpbruntime_a-matrixreader.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-matrix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-matrixio.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-matrixstorage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-petabricksruntime.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-ruleinstance.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-spatialdynamictask.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-specializeddynamictasks.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-transforminstance.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-workerthread.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbc-pbc.Po@am__quote@
@@ -1131,20 +1133,6 @@ libpbruntime_a-dynamictask.obj: runtime/dynamictask.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-dynamictask.obj `if test -f 'runtime/dynamictask.cpp'; then $(CYGPATH_W) 'runtime/dynamictask.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/dynamictask.cpp'; fi`
 
-libpbruntime_a-matrix.o: runtime/matrix.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-matrix.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-matrix.Tpo -c -o libpbruntime_a-matrix.o `test -f 'runtime/matrix.cpp' || echo '$(srcdir)/'`runtime/matrix.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-matrix.Tpo $(DEPDIR)/libpbruntime_a-matrix.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/matrix.cpp' object='libpbruntime_a-matrix.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-matrix.o `test -f 'runtime/matrix.cpp' || echo '$(srcdir)/'`runtime/matrix.cpp
-
-libpbruntime_a-matrix.obj: runtime/matrix.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-matrix.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-matrix.Tpo -c -o libpbruntime_a-matrix.obj `if test -f 'runtime/matrix.cpp'; then $(CYGPATH_W) 'runtime/matrix.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/matrix.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-matrix.Tpo $(DEPDIR)/libpbruntime_a-matrix.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/matrix.cpp' object='libpbruntime_a-matrix.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-matrix.obj `if test -f 'runtime/matrix.cpp'; then $(CYGPATH_W) 'runtime/matrix.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/matrix.cpp'; fi`
-
 libpbruntime_a-matrixio.o: runtime/matrixio.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-matrixio.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-matrixio.Tpo -c -o libpbruntime_a-matrixio.o `test -f 'runtime/matrixio.cpp' || echo '$(srcdir)/'`runtime/matrixio.cpp
 @am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-matrixio.Tpo $(DEPDIR)/libpbruntime_a-matrixio.Po
@@ -1172,6 +1160,20 @@ libpbruntime_a-libpbruntime_a-matrixreader.obj: libpbruntime_a-matrixreader.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='libpbruntime_a-matrixreader.cpp' object='libpbruntime_a-libpbruntime_a-matrixreader.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-libpbruntime_a-matrixreader.obj `if test -f 'libpbruntime_a-matrixreader.cpp'; then $(CYGPATH_W) 'libpbruntime_a-matrixreader.cpp'; else $(CYGPATH_W) '$(srcdir)/libpbruntime_a-matrixreader.cpp'; fi`
+
+libpbruntime_a-matrixstorage.o: runtime/matrixstorage.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-matrixstorage.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-matrixstorage.Tpo -c -o libpbruntime_a-matrixstorage.o `test -f 'runtime/matrixstorage.cpp' || echo '$(srcdir)/'`runtime/matrixstorage.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-matrixstorage.Tpo $(DEPDIR)/libpbruntime_a-matrixstorage.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/matrixstorage.cpp' object='libpbruntime_a-matrixstorage.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-matrixstorage.o `test -f 'runtime/matrixstorage.cpp' || echo '$(srcdir)/'`runtime/matrixstorage.cpp
+
+libpbruntime_a-matrixstorage.obj: runtime/matrixstorage.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-matrixstorage.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-matrixstorage.Tpo -c -o libpbruntime_a-matrixstorage.obj `if test -f 'runtime/matrixstorage.cpp'; then $(CYGPATH_W) 'runtime/matrixstorage.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/matrixstorage.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-matrixstorage.Tpo $(DEPDIR)/libpbruntime_a-matrixstorage.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/matrixstorage.cpp' object='libpbruntime_a-matrixstorage.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-matrixstorage.obj `if test -f 'runtime/matrixstorage.cpp'; then $(CYGPATH_W) 'runtime/matrixstorage.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/matrixstorage.cpp'; fi`
 
 libpbruntime_a-petabricksruntime.o: runtime/petabricksruntime.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-petabricksruntime.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-petabricksruntime.Tpo -c -o libpbruntime_a-petabricksruntime.o `test -f 'runtime/petabricksruntime.cpp' || echo '$(srcdir)/'`runtime/petabricksruntime.cpp
@@ -1201,19 +1203,19 @@ libpbruntime_a-ruleinstance.obj: runtime/ruleinstance.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-ruleinstance.obj `if test -f 'runtime/ruleinstance.cpp'; then $(CYGPATH_W) 'runtime/ruleinstance.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/ruleinstance.cpp'; fi`
 
-libpbruntime_a-spatialdynamictask.o: runtime/spatialdynamictask.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-spatialdynamictask.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-spatialdynamictask.Tpo -c -o libpbruntime_a-spatialdynamictask.o `test -f 'runtime/spatialdynamictask.cpp' || echo '$(srcdir)/'`runtime/spatialdynamictask.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-spatialdynamictask.Tpo $(DEPDIR)/libpbruntime_a-spatialdynamictask.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/spatialdynamictask.cpp' object='libpbruntime_a-spatialdynamictask.o' libtool=no @AMDEPBACKSLASH@
+libpbruntime_a-specializeddynamictasks.o: runtime/specializeddynamictasks.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-specializeddynamictasks.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-specializeddynamictasks.Tpo -c -o libpbruntime_a-specializeddynamictasks.o `test -f 'runtime/specializeddynamictasks.cpp' || echo '$(srcdir)/'`runtime/specializeddynamictasks.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-specializeddynamictasks.Tpo $(DEPDIR)/libpbruntime_a-specializeddynamictasks.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/specializeddynamictasks.cpp' object='libpbruntime_a-specializeddynamictasks.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-spatialdynamictask.o `test -f 'runtime/spatialdynamictask.cpp' || echo '$(srcdir)/'`runtime/spatialdynamictask.cpp
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-specializeddynamictasks.o `test -f 'runtime/specializeddynamictasks.cpp' || echo '$(srcdir)/'`runtime/specializeddynamictasks.cpp
 
-libpbruntime_a-spatialdynamictask.obj: runtime/spatialdynamictask.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-spatialdynamictask.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-spatialdynamictask.Tpo -c -o libpbruntime_a-spatialdynamictask.obj `if test -f 'runtime/spatialdynamictask.cpp'; then $(CYGPATH_W) 'runtime/spatialdynamictask.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/spatialdynamictask.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-spatialdynamictask.Tpo $(DEPDIR)/libpbruntime_a-spatialdynamictask.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/spatialdynamictask.cpp' object='libpbruntime_a-spatialdynamictask.obj' libtool=no @AMDEPBACKSLASH@
+libpbruntime_a-specializeddynamictasks.obj: runtime/specializeddynamictasks.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-specializeddynamictasks.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-specializeddynamictasks.Tpo -c -o libpbruntime_a-specializeddynamictasks.obj `if test -f 'runtime/specializeddynamictasks.cpp'; then $(CYGPATH_W) 'runtime/specializeddynamictasks.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/specializeddynamictasks.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-specializeddynamictasks.Tpo $(DEPDIR)/libpbruntime_a-specializeddynamictasks.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/specializeddynamictasks.cpp' object='libpbruntime_a-specializeddynamictasks.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-spatialdynamictask.obj `if test -f 'runtime/spatialdynamictask.cpp'; then $(CYGPATH_W) 'runtime/spatialdynamictask.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/spatialdynamictask.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-specializeddynamictasks.obj `if test -f 'runtime/specializeddynamictasks.cpp'; then $(CYGPATH_W) 'runtime/specializeddynamictasks.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/specializeddynamictasks.cpp'; fi`
 
 libpbruntime_a-transforminstance.o: runtime/transforminstance.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-transforminstance.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-transforminstance.Tpo -c -o libpbruntime_a-transforminstance.o `test -f 'runtime/transforminstance.cpp' || echo '$(srcdir)/'`runtime/transforminstance.cpp

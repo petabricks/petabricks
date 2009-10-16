@@ -9,49 +9,32 @@
  *                                                                         *
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
-#ifndef PETABRICKSDYNAMICSCHEDULER_H
-#define PETABRICKSDYNAMICSCHEDULER_H
+#include "matrixstorage.h"
 
-#include "workerthread.h"
-
-#include <list>
-#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
 
-namespace petabricks {
-
-class DynamicScheduler{
-public:
-  static DynamicScheduler& cpuScheduler();
-  static DynamicScheduler& lookupScheduler(DynamicTask::TaskType t);
- 
-  ///
-  /// start worker threads
-  void startWorkerThreads(int newWorkers);
-
-  ///
-  /// Cancel all pending tasks (including caller)
-  void abort();
-
-  ///
-  /// Shutdown all threads
-  void shutdown();
-  
-  ///
-  /// Exception thrown by aborting threads 
-  class AbortException {};
-
-  WorkerThreadPool& pool() { return _pool; }  
-
-  int numThreads() const { return (int)_rawThreads.size(); }
-protected:
-  std::list<pthread_t> _rawThreads;
-  WorkerThreadPool _pool;
-};
-
+MATRIX_ELEMENT_T petabricks::MatrixStorage::rand(){
+  return (2.0*drand48()-1.0)*4294967296.0;
 }
 
+void petabricks::MatrixStorage::randomize(){
+#ifdef GOOD_RANDOM
+  for(int i=0;i<_count; ++i){
+    _data[i] = rand();
+  }
+#else
+  //this method is bad... only use during compiler development
+  int x = mrand48();
+  int a = mrand48();
+  int b = mrand48();
+  for(int i=0;i<_count; ++i){
+    _data[i] = (x^=a*x+b);
+  }
 #endif
+}
+

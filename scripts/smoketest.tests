@@ -33,11 +33,11 @@ sort/Sort                  Rand1Dodd
 regression/accuracymetric  Rand1D
 regression/assign0d
 regression/calltx          Rand2Da
-regression/coscheduled     Rand2Da /dev/null
+regression/coscheduled1    Rand2Da /dev/null
+regression/coscheduled2    Rand2Da
 regression/fileprefix      Rand2Da
 regression/generators      Rand1D Rand1D
-regression/matrixversions1 Rand2Da
-regression/matrixversions2 Rand2Da
+regression/matrixversions Rand2Da
 regression/padding         Rand2Da Rand2Db Rand0D
 regression/params          20
 regression/ruleconstants   Rand2Da

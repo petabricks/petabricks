@@ -1,21 +1,13 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
- *   jansel@csail.mit.edu                                                  *
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #ifndef PETABRICKSCODEGENERATOR_H
 #define PETABRICKSCODEGENERATOR_H
@@ -26,8 +18,8 @@
 #include "common/jconvert.h"
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
+#include "common/jtunable.h"
 
-#include <algorithm>
 #include <iostream>
 #include <limits>
 #include <list>
@@ -37,12 +29,16 @@
 #include <vector>
 
 namespace petabricks {
-
 typedef std::map<std::string, std::string> TunableDefs;
+
+class SimpleRegion;
+class CodeGenerator;
+typedef jalib::JRef<CodeGenerator> CodeGeneratorPtr;
+typedef std::vector<CodeGeneratorPtr> CodeGenerators;
 
 class TaskCodeGenerator;
 
-class CodeGenerator {
+class CodeGenerator : public jalib::JRefCounted {
 public:
   struct ClassMember {
     std::string type;
@@ -55,6 +51,7 @@ public:
   
   static std::stringstream& theFilePrefix();
   static TunableDefs& theTunableDefs();
+  static jalib::TunableValueMap& theHardcodedTunables();
 
   void incIndent(){++_indent;}
   void decIndent(){--_indent;}
@@ -88,8 +85,6 @@ public:
   void elseIf(const std::string& v = "true");
   void endIf();
 
-  virtual TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix) = 0;
-
   void createTunable( bool isTunable
                     , const std::string& category
                     , const std::string& name
@@ -97,12 +92,14 @@ public:
                     , int min=0
                     , int max=std::numeric_limits<int>::max())
   {
-    //JTRACE("new tunable")(name)(initial)(min)(max);
-    theTunableDefs()[name] =
-       "JTUNABLE("+name
-              +","+jalib::XToString(initial)
-              +","+jalib::XToString(min)
-              +","+jalib::XToString(max)+")";
+    std::ostringstream o;
+    jalib::TunableValueMap::const_iterator i = theHardcodedTunables().find(name);
+    if(i==theHardcodedTunables().end()){
+      o << "JTUNABLE(" << name<< ","  << initial << ","  << min << ","  << max << ");\n";
+    }else{
+      o << "JTUNABLESTATIC(" << name<< ","<< i->second << ");\n";
+    }
+    theTunableDefs()[name] = o.str();
     _cg.addTunable( isTunable, category, name, initial, min, max);
   }
   void createTunableArray(const std::string& category
@@ -118,7 +115,7 @@ public:
               +","+jalib::XToString(count)
               +","+jalib::XToString(initial)
               +","+jalib::XToString(min)
-              +","+jalib::XToString(max)+")";
+              +","+jalib::XToString(max)+");";
     _cg.addTunable( false, category, name, initial, min, max);
   }
 
@@ -191,122 +188,48 @@ public:
   void globalDefine(const std::string& n, const std::string& v){
     dos() << "#define " << n << " " << v << "\n";
   }
-protected:
-  void indent();
-  virtual std::ostream& os() = 0;
-  virtual std::ostream& hos() = 0;
-  virtual std::ostream& dos() = 0;
-protected:
-  std::vector<std::string> _defines;
-  ClassMembers _curMembers;
-  std::string _curClass;
-  std::string _curConstructorBody;
-  int         _contCounter;
-  int _indent;
-  TrainingDeps _cg;
-};
 
-class BufferedCodeGenerator : public CodeGenerator {
-public:
-  virtual std::string str() const { return _os.str() ; }
-  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix);
-protected:
-  std::ostream& hos() { return _header; }
-  std::ostream& dos() { return _defines; }
-  std::ostream& os() { return _os; }
-protected:
-  std::ostringstream _os;
-  std::ostringstream _header;
-  std::ostringstream _defines;
-};
+  ///
+  /// Create a parallel code generator 
+  /// (for writing other function bodies before current function is finished)
+  CodeGenerator& forkhelper();
 
-
-
-class TaskCodeGenerator : public BufferedCodeGenerator, public jalib::JRefCounted {
-public:
-  std::string str() const { return _os.str() + "};\n"; }
-  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix){ return *this;}
-
-  TaskCodeGenerator(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix);
-
-  void beginRunFunc(){
-    beginFunc("petabricks::DynamicTaskPtr", "run", std::vector<std::string>());
-  }
-
-  void beginSizeFunc(){
-    write("size_t size() const {");
-    ++_indent;
-  }
-
-  void beginCanSplitFunc(){
-    write("bool canSplit() const {");
-    ++_indent;
-  }
-
-  void beginSplitFunc(){
-    write("petabricks::DynamicTaskPtr split(){");
-    ++_indent;
-  }
-
-  void beginBeginPosFunc(){
-    write("IndexT beginPos(int d) const {");
-    ++_indent;
-  }
-
-
-  void beginEndPosFunc(){
-    write("IndexT endPos(int d) const {");
-    ++_indent;
-  }
-
-  void beginSpatialSplitFunc(){
-    write("void spatialSplit(SpatialTaskList& _list, int _dim, int _thresh) {");
-    ++_indent;
-  }
-
-  void beginDimensionsFunc(){
-    write("int dimensions() const {");
-    ++_indent;
-  }
-
-  const std::vector<std::string>& argnames() const { return _names; }
-  const std::vector<std::string>& argtypes() const { return _types; }
-  const std::string& name() const { return _name; }
-private:
-  std::string _name;
-  std::vector<std::string> _types;
-  std::vector<std::string> _names;
-};
-
-class MainCodeGenerator : public BufferedCodeGenerator {
-public:
+  ///
+  /// Write the bodies from any calles to forkhelp
+  void mergehelpers();
+  
   void outputFileTo(std::ostream& o){
     o << theFilePrefix().str();
-    o << "\n// global defines \n";
-    o << _defines.str();
-    o << "\n// Tunable declarations\n";
+    o << "\n\n// Defines: //////////////////////////////////////////////////////\n\n";
+    o << _dos.str();
+    o << "\n\n// Tunables: /////////////////////////////////////////////////////\n\n";
     for(TunableDefs::const_iterator i=theTunableDefs().begin(); i!=theTunableDefs().end(); ++i)
-      o << i->second << ";\n";
-    o << "\n// Forward declarations\n";
-    o << _header.str();
-    o << "\n// Task declarations\n";
-    for(TaskDecls::iterator i=_tasks.begin(); i!=_tasks.end(); ++i)
-      o << (*i)->str();
-    o << "\n\n";
+      o << i->second << "\n";
+    o << "\n\n// Header Decls: /////////////////////////////////////////////////\n\n";
+    o << _hos.str();
+    o << "\n\n// Body Decls: ///////////////////////////////////////////////////\n\n";
     o << _os.str();
   }
 
-  TaskCodeGenerator& createTask(const std::string& func, const std::vector<std::string>& args, const char* taskType, const std::string& postfix);
-
-//void merge(const MainCodeGenerator& that){
-//  _os << that._os.str();
-//  _forwardDecls << that._forwardDecls.str();
-//  _tasks.insert(_tasks.begin(), that._tasks.begin(), that._tasks.end());
-//}
-
-private:
-  typedef std::list<jalib::JRef<TaskCodeGenerator> > TaskDecls;
-  TaskDecls _tasks;
+  void callSpatial(const std::string& methodname, const SimpleRegion& region);
+  void mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region);
+protected:
+  void indent();
+  std::ostream& hos() { return _hos; }
+  std::ostream& dos() { return _dos; }
+  std::ostream& os()  { return _os; }
+protected:
+  std::vector<std::string> _defines;
+  ClassMembers   _curMembers;
+  std::string    _curClass;
+  std::string    _curConstructorBody;
+  int            _contCounter;
+  int            _indent;
+  TrainingDeps   _cg;
+  CodeGenerators _helpers;
+  std::ostringstream _os;
+  std::ostringstream _hos;
+  std::ostringstream _dos;
 };
 
 }

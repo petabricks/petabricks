@@ -1,29 +1,21 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
- *   jansel@csail.mit.edu                                                  *
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 
 #include "dynamictask.h"
-#include "matrix.h"
+#include "matrixregion.h"
 #include "matrixio.h"
 #include "petabricksruntime.h"
 #include "ruleinstance.h"
-#include "spatialdynamictask.h"
+#include "specializeddynamictasks.h"
 #include "transforminstance.h"
 
 #include "common/jtunable.h"
@@ -49,7 +41,7 @@
 #define PB_STATIC_CALL(taskname, args...) \
   taskname ## _static (args)
 
-#define PB_NOP() 0
+#define PB_NOP() (void)0
 
 #define PB_RETURN(rv)\
   { _pb_rv=(rv); return DEFAULT_RV; }
@@ -68,6 +60,12 @@ namespace petabricks {
   inline DynamicTaskPtr tx_call_dynamic(T* tx){
     TransformInstancePtr txPtr(tx); //make sure tx gets deleted
     return tx->T::runDynamic(); //run without vtable use
+  }
+  
+  template< typename T >
+  inline DynamicTaskPtr run_task(T* task){
+    DynamicTaskPtr ptr(task); //make sure task gets deleted
+    return task->T::run(); //no vtable use
   }
 
   inline void spawn_hook(const DynamicTaskPtr& task,  const DynamicTaskPtr& completion){
@@ -108,10 +106,26 @@ namespace petabricks {
     int bin = size_to_bin(input_size);
     if(!(bin>=0)) bin = 0;
 #ifdef DEBUG
-    JASSERT(bin<cnts.size())(bin)(cnts.size());
+    JASSERT(bin<(int)cnts.size())(bin)(cnts.size());
 #endif
     return std::max<int>(min, cnts[bin]);
   }
+  
+  
+  template < int D >
+  inline bool split_condition(jalib::TunableValue thresh, IndexT begin[D], IndexT end[D]){
+    //too small to split?
+    for(int i=0; i<D; ++i)
+      if(end[i]-begin[i] < 2)
+        return false;
+    //big enough to split?
+    for(int i=0; i<D; ++i)
+      if(end[i]-begin[i] > thresh)
+        return true;
+    //i guess not...
+    return false;
+  }
+
 }
 
 

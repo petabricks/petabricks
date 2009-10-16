@@ -1,10 +1,10 @@
 /***************************************************************************
- *   Copyright (C) 2006 by Jason Ansel                                     *
+ *   Copyright (C) 2006-2009 by Jason Ansel                                *
  *   jansel@csail.mit.edu                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
+ *   the Free Software Foundation; either version 3 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
  *   This program is distributed in the hope that it will be useful,       *
@@ -52,7 +52,9 @@ namespace jalib
     public:
       ///
       /// Create new socket
-  protected: JSocket(); public:
+    protected: 
+      JSocket(); 
+    public:
       //so we dont leak FDs
       inline static JSocket Create() { return JSocket(); }
       ///
@@ -190,7 +192,7 @@ namespace jalib
       void monitorSockets ( double timeoutSec = -1 );
       virtual void onData ( JReaderInterface* sock ) = 0;
       virtual void onConnect ( const JSocket& sock, const struct sockaddr* remoteAddr,socklen_t remoteLen ) = 0;
-      virtual void onDisconnect ( JReaderInterface* sock ) {};
+      virtual void onDisconnect ( JReaderInterface* /*sock*/ ) {};
       virtual void onTimeoutInterval() {};
       void addWrite ( JWriterInterface* write );
     protected:

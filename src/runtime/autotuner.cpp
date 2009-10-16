@@ -1,21 +1,13 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
- *   jansel@csail.mit.edu                                                  *
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #include "autotuner.h"
 #include "petabricksruntime.h"
@@ -23,12 +15,10 @@
 #include <limits>
 #include <algorithm>
 
-JTUNABLE(autotune_alg_slots,                3, 1, 32);
-JTUNABLE(autotune_branch_attempts,          1, 1, 32);
-JTUNABLE(autotune_improvement_threshold,    90, 10, 100);
-#ifdef USE_CUTOFF_DIVISOR
+JTUNABLE(autotune_alg_slots,                5, 1, 32);
+JTUNABLE(autotune_branch_attempts,          3, 1, 32);
+JTUNABLE(autotune_improvement_threshold,    95, 10, 100);
 JTUNABLE(autotune_cutoff_divisor,           16, 2, 1024);
-#endif
 
 
 #define FIRST_DEATH_THRESH 0.005
@@ -77,11 +67,12 @@ jalib::JTunable* petabricks::Autotuner::cutoffTunable(int lvl){
   return _tunableMap[_mktname(lvl, _prefix, "cutoff")];
 }
 
-petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main* m, const std::string& prefix, const std::vector<std::string>& extraCutoffNames)
+petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main* m, const std::string& prefix, const std::vector<std::string>& extraCutoffNames, const char* logfile)
   : _runtime(rt)
   , _main(m)
   , _tunableMap(jalib::JTunableManager::instance().getReverseMap())
   , _prefix(prefix)
+  , _log(logfile)
 {
   using jalib::JTunable;
   _maxLevels=0; 
@@ -91,6 +82,9 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
   for(size_t i=0; i<extraCutoffNames.size(); ++i){
     extraCutoffs.push_back(_tunableMap[extraCutoffNames[i]]);
     JASSERT(extraCutoffs.back()!=NULL)(extraCutoffNames[i]);
+    _log.addTunable(extraCutoffs.back());
+    
+    _initialConfig = new CandidateAlgorithm(0, 0, 0, extraCutoffs.back()->max(), extraCutoffs.back(), _initialConfig.asPtr(), extraCutoffs);
   }
 
   //find numlevels
@@ -103,7 +97,7 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
     }
   }
 
-  JASSERT(algTunable(1)!=NULL || cutoffTunable(2)!=NULL)(prefix).Text("invalid prefix to autotune");
+  JASSERT(algTunable(1)!=NULL || cutoffTunable(2)!=NULL || _prefix=="")(prefix).Text("invalid prefix to autotune");
 
   //make initialconfig (all level disabled)
   for(int lvl=1; lvl<=_maxLevels; ++lvl){
@@ -112,6 +106,8 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
     int a=0, c=std::numeric_limits<int>::max();
     if(ct!=0) c=ct->max();
     _initialConfig = new CandidateAlgorithm(lvl, a, at, c, ct, _initialConfig.asPtr(), extraCutoffs);
+    _log.addTunable(at);
+    _log.addTunable(ct);
   }
 
   //add 1 level candidates
@@ -129,33 +125,35 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
     }
   }
 
-  //add 2 level candidates
+////add 2 level candidates
   CandidateAlgorithmList lvl2Candidates;
-  {
-    JTunable* at = algTunable(2);
-    JTunable* ct = cutoffTunable(2);
-    int a=0, c=1;
-    if(at==0){
-      for(CandidateAlgorithmList::const_iterator i=lvl1Candidates.begin(); i!=lvl1Candidates.end(); ++i)
-        lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, i->asPtr(), extraCutoffs));
-    }else{
-      for(a=at->min(); a<=at->max(); ++a){
-        for(CandidateAlgorithmList::const_iterator i=lvl1Candidates.begin(); i!=lvl1Candidates.end(); ++i)
-          lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, i->asPtr(), extraCutoffs));
-      }
-    }
-  }
+//{
+//  JTunable* at = algTunable(2);
+//  JTunable* ct = cutoffTunable(2);
+//  int a=0, c=1;
+//  if(at==0){
+//    for(CandidateAlgorithmList::const_iterator i=lvl1Candidates.begin(); i!=lvl1Candidates.end(); ++i)
+//      lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, i->asPtr(), extraCutoffs));
+//  }else{
+//    for(a=at->min(); a<=at->max(); ++a){
+//      for(CandidateAlgorithmList::const_iterator i=lvl1Candidates.begin(); i!=lvl1Candidates.end(); ++i)
+//        lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, i->asPtr(), extraCutoffs));
+//    }
+//  }
+//}
 
   JTRACE("Autotuner constructed")(lvl1Candidates.size())(lvl2Candidates.size());
   _candidates.swap(lvl1Candidates);
   _candidates.insert(_candidates.end(), lvl2Candidates.begin(), lvl2Candidates.end());
+
+  _log.logHeader();
 }
 
 
 void petabricks::Autotuner::runAll(){
   double best = DBL_MAX / 11.0;
   for(CandidateAlgorithmList::iterator i=_candidates.begin(); i!=_candidates.end(); ++i){
-    double d = (*i)->run(_runtime, *this, best*10+1);
+    double d = (*i)->run(_runtime, *this, best*10+1, true);
     std::cout << std::flush;
     best = std::min(d, best);
   }
@@ -230,13 +228,14 @@ void petabricks::Autotuner::removeDuplicates(){
   }
 }
 
-double petabricks::CandidateAlgorithm::run(PetabricksRuntime& rt, Autotuner& autotuner, double thresh){
+double petabricks::CandidateAlgorithm::run(PetabricksRuntime& rt, Autotuner& autotuner, double thresh, bool inPop){
   autotuner.resetConfig();
   activate();
   jalib::JTunable::setModificationCallback(this);
   double d = rt.runTrial(thresh);
   jalib::JTunable::setModificationCallback();
   addResult(d);
+  autotuner.log().logLine(rt.curSize(), d, inPop);
   return d;
 }
 
@@ -254,17 +253,24 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
       amax=at->max();
     }
     for(int a=amin; a<=amax; ++a){
-      if(_lvl>1 && a==_alg) continue;
+      if(/*_lvl>1 &&*/ a==lastalg()) continue;
       if(at!=0) at->setValue(a);
       possible.push_back(new CandidateAlgorithm(_lvl+1, a, at, newCutoff, ct, this, _unusedCutoffs));
     }
   }
 
-#ifdef USE_CUTOFF_DIVISOR
-  newCutoff = rt.curSize()/autotune_cutoff_divisor;
-#endif
   if(newCutoff>1){
     // candidates from _unusedCutoffs (sequential, blocking, etc)
+    for(size_t i=0; i<_unusedCutoffs.size(); ++i){
+      ExtraCutoffList remaining = _unusedCutoffs; 
+      remaining.erase(remaining.begin()+i);
+      possible.push_back(new CandidateAlgorithm(_lvl, -1, NULL, newCutoff, _unusedCutoffs[i], this, remaining));
+    }
+  }
+
+  newCutoff = rt.curSize()/autotune_cutoff_divisor;
+  if(newCutoff>1){
+    // candidates from _unusedCutoffs (sequential, blocking, etc), lower cutoff point
     for(size_t i=0; i<_unusedCutoffs.size(); ++i){
       ExtraCutoffList remaining = _unusedCutoffs; 
       remaining.erase(remaining.begin()+i);
@@ -278,7 +284,7 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
   //run them all
   for(CandidateAlgorithmList::iterator i=possible.begin(); i!=possible.end(); ++i){
     std::cout << "  * TRY " << *i << " = "<< std::flush;
-    (*i)->run(rt, autotuner, thresh);
+    (*i)->run(rt, autotuner, thresh, false);
     std::cout << (*i)->lastResult() << std::endl;
   }
 
@@ -319,15 +325,9 @@ petabricks::CandidateAlgorithm::CandidateAlgorithm( int l
 {}
 
 void petabricks::CandidateAlgorithm::activate() const {
-  for(  ExtraCutoffList::const_iterator i=_unusedCutoffs.begin()
-      ; i!=_unusedCutoffs.end()
-      ; ++i)
-  {
-    (*i)->setValue((*i)->max());
-  }
+  if(_nextLevel)     _nextLevel->activate();
   if(_algTunable)    _algTunable->setValue(_alg);
   if(_cutoffTunable) _cutoffTunable->setValue(_cutoff);
-  if(_nextLevel)     _nextLevel->activate();
   _extraConfig.makeActive();
 }
 
@@ -351,7 +351,7 @@ void petabricks::CandidateAlgorithm::print(std::ostream& o) const {
   }
 }
 
-void petabricks::CandidateAlgorithm::onTunableModification(jalib::JTunable* tunable, jalib::TunableValue oldVal, jalib::TunableValue newVal){
+void petabricks::CandidateAlgorithm::onTunableModification(jalib::JTunable* tunable, jalib::TunableValue /*oldVal*/, jalib::TunableValue newVal){
   _extraConfig[tunable] = newVal;
 }
 

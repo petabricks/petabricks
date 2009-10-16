@@ -28,6 +28,8 @@ from pprint import pprint
 
 from xml.dom.minidom import parse
 
+pbutil.setmemlimit()
+
 INFERINPUTSIZES_SEC=5
 
 inputSize=-1
@@ -40,6 +42,9 @@ results=[]
 NULL=open("/dev/null", "w")
 maxint = 2147483647
 ignore_list = []
+DEBUG=False
+
+goodtimelimit = lambda: 1.0+reduce(min, results)
 
 def mkcmd(args):
   t=[pbutil.benchmarkToBin(app)]
@@ -63,7 +68,7 @@ class TaskStats():
 
 #these initial weights make the progress bar run more smoothly 
 #generated from performance breakdown for Sort on kleptocracy
-taskStats = {'cutoff':TaskStats(2.54), 'determineInputSizes':TaskStats(1.18), 'runTimingTest':TaskStats(0.20), 'algchoice':TaskStats(0.08)}
+taskStats = {'cutoff':TaskStats(1.43), 'determineInputSizes':TaskStats(1.56), 'runTimingTest':TaskStats(0.44), 'algchoice':TaskStats(0.57)}
 tasks=[]
 
 class TuneTask():
@@ -205,10 +210,10 @@ def optimizeParam(ctx, n, param, start=0, stop=-1, branchfactor=7, best=(-1, max
       return optimizeParam(ctx, n, param, newStart, newStop, branchfactor, best, worst)
   return best[0], worst[1]/best[1]-1.0
 
-def autotuneCutoff(tx, tunable, n, min=0, max=-1):
+def autotuneCutoffBinarySearch(tx, tunable, n, min=0, max=-1):
   progress.push()
   progress.status("* optimize " + nameof(tx) + " tunable " + nameof(tunable))
-  val, impact = optimizeParam(tx, n, nameof(tunable), min, max, best=(-1, 1.0+reduce(min, results)))
+  val, impact = optimizeParam(tx, n, nameof(tunable), min, max, best=(-1, goottimelimit()))
   progress.echo("* optimize " + nameof(tx) + " tunable " + nameof(tunable) + " = %d "%val + "(impact=%.2f)"%impact)
   setConfigVal(tunable, val)
   progress.pop()
@@ -217,14 +222,17 @@ iterRe = re.compile(r"^BEGIN ITERATION .* / ([0-9]+) .*")
 slotRe = re.compile(r"^SLOT\[([0-9]+)\] (ADD|KEEP) *(.*) = [0-9.]+")
 
 def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
-  assert n>0
-  #print "* algchoice", nameof(tx), "site", site, "in", nameof(ctx), "cutoffs", map(nameof, cutoffs)
   progress.push()
-  cmd=mkcmd(["--transform="+nameof(ctx), "--autotune", "--autotune-transform="+nameof(tx),  "--autotune-site=%d"%site, "--max=%d"%n])
+  cmd=mkcmd(["--transform="+nameof(ctx), "--autotune", "--autotune-transform="+nameof(tx),  "--autotune-site=%d"%site,
+             "--max=%d"%n, "--max-sec=%d"%goodtimelimit()])
   for x in cutoffs:
     cmd.append("--autotune-tunable="+nameof(x))
+  if DEBUG:
+    progress.echo(' '.join(cmd))
   p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=NULL)
   pfx="tuning "+nameof(tx)+":%d - "%site
+  if site == -1:
+    pfx="tuning %d cutoffs in %s - " % (len(cutoffs), nameof(tx))
   str=""
   progress.status(pfx)
   while True:
@@ -238,9 +246,9 @@ def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
     if m:
       if m.group(1)=="0":
         str=m.group(3)
-        progress.status(str)
+        progress.status(pfx+str)
   assert p.wait()==0
-  progress.echo("* algchoice "+nameof(tx)+":%d - "%site+str)
+  progress.echo("* "+pfx+str)
   progress.pop()
 
 def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
@@ -250,33 +258,44 @@ def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
   if loops > 0 or passNumber>1:
     ctx=maintx
   if loops == 0:
-    cutoffs.extend(getTunables(tx, "system.seqcutoff"))
-  cutoffs.extend(getTunables(tx, "system.splitsize"))
-  for site in getChoiceSites(tx):
+    cutoffs.extend(getTunables(tx, "system.cutoff.sequential"))
+  cutoffs.extend(getTunables(tx, "system.cutoff.splitsize"))
+  choicesites = getChoiceSites(tx)
+  for site in choicesites:
     tasks.append(TuneTask("algchoice" , lambda: autotuneAlgchoice(tx, site, ctx, inputSize, cutoffs), getChoiceSiteWeight(tx, site, cutoffs)))
-  for tunable in cutoffs:
-    tasks.append(TuneTask("cutoff" , lambda: autotuneCutoff(ctx, tunable, inputSize)))
+  if len(choicesites)==0 and len(cutoffs)>0:
+    tasks.append(TuneTask("cutoff" , lambda: autotuneAlgchoice(tx, -1, ctx, inputSize, cutoffs), len(cutoffs)))
+  #for tunable in cutoffs:
+  #  tasks.append(TuneTask("cutoff" , lambda: autotuneCutoff(ctx, tunable, inputSize)))
 
 def printTx(tx, depth, loops):
-  print ''.ljust(2*depth) + ' - ' + nameof(tx)
+  t = len(getTunables(tx, "system.cutoff.splitsize"))
+  cs = len(getChoiceSites(tx))
+  if loops == 0:
+    t+=len(getTunables(tx, "system.cutoff.sequential"))
+  print ''.ljust(2*depth) + ' - ' + nameof(tx) + " (%d choice site, %d cutoffs)"%(cs,t)
     
 def determineInputSizes():
   global inputSize
-  progress.status("Finding reasonable input size for training... (%d sec) " % INFERINPUTSIZES_SEC)
+  progress.status("finding reasonable input size for training... (%d sec) " % INFERINPUTSIZES_SEC)
   inputSize=pbutil.inferGoodInputSizes( pbutil.benchmarkToBin(app)
                                       , [inputSizeTarget]
                                       , INFERINPUTSIZES_SEC)[0]
   progress.echo("* finding reasonable input size for training... %d" % inputSize)
 
 def runTimingTest(tx):
+  progress.push()
+  progress.remaining(1)
   progress.status("running timing test")
   t=timingRun(tx, inputSize)
+  progress.remaining(0)
   if len(results)>0:
     speedup=results[-1]/t-1.0
     progress.echo("* timing test... %.4f (%.2fx speedup)"%(t, speedup))
   else:
     progress.echo("* initial timing test... %.4f s"%t)
   results.append(t)
+  progress.pop()
 
 def main(argv):
   t1=time.time()
@@ -290,6 +309,7 @@ def main(argv):
   global inputSize 
   global ignore_list
   global defaultArgs
+  global DEBUG
 
   config_tool_path = os.path.split(argv[0])[0] + "/configtool.py"
   app = argv[-1]
@@ -298,7 +318,7 @@ def main(argv):
 
   try:
     opts, args = getopt.getopt(argv[1:-1], "hn:p:", 
-        ["help","random=","min=","max=","config=","parallel_autotune","fast"])
+        ["help","random=","min=","max=","config=","parallel_autotune","fast", "debug"])
   except getopt.error, msg:
     print "Error.  For help, run:", argv[0], "-h"
     sys.exit(2)
@@ -315,6 +335,8 @@ def main(argv):
       cfg = a
     if o == "--fast":
       fast = True
+    if o in ["-d", "--debug"]:
+      DEBUG = True
   
   pbutil.chdirToPetabricksRoot()
   pbutil.compilePetabricks()
@@ -379,7 +401,7 @@ def main(argv):
   print "  %.2f sec in unknown"%sec
   
   names=taskStats.keys()
-  weights=map(lambda x: x.sec/float(x.count), taskStats.values())
+  weights=map(lambda x: x.sec/float(max(x.count, 1)), taskStats.values())
   scale=len(weights)/sum(weights)
   print "Suggested weights:"
   print "taskStats = {" + ", ".join(map(lambda i: "'%s':TaskStats(%.2f)"%(names[i], scale*weights[i]), xrange(len(names)))) + "}"

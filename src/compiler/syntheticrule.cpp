@@ -1,29 +1,22 @@
 /***************************************************************************
- *   Copyright (C) 2009 by Jason Ansel                                     *
- *   jansel@csail.mit.edu                                                  *
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #include "syntheticrule.h"
 
 #include "codegenerator.h"
 #include "iterationorders.h"
 #include "maximawrapper.h"
+#include "transform.h"
 
-void petabricks::SyntheticRule::compileRuleBody(Transform& tx, RIRScope& s){}
+void petabricks::SyntheticRule::compileRuleBody(Transform&, RIRScope&){}
 void petabricks::SyntheticRule::initialize(Transform&){}
 
 petabricks::RuleFlags::PriorityT petabricks::SyntheticRule::priority() const { 
@@ -39,30 +32,25 @@ petabricks::FormulaPtr petabricks::SyntheticRule::getWhereClause() const {
   return NULL; 
 }
 
-bool petabricks::SyntheticRule::canProvide(const MatrixDefPtr& m) const { 
+bool petabricks::SyntheticRule::canProvide(const MatrixDefPtr&) const { 
   UNIMPLEMENTED(); 
   return false;
 }
 
-void petabricks::SyntheticRule::getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension) { 
+void petabricks::SyntheticRule::getApplicableRegionDescriptors(RuleDescriptorList&, const MatrixDefPtr&, int) { 
   UNIMPLEMENTED(); 
 }
 
-void petabricks::SyntheticRule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
-}
-void petabricks::SyntheticRule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region) {
-}
-void petabricks::SyntheticRule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o) {
-}
-void petabricks::SyntheticRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o) {
-}
+void petabricks::SyntheticRule::generateCallCodeSimple(Transform&, CodeGenerator&, const SimpleRegionPtr&){}
+void petabricks::SyntheticRule::generateCallTaskCode(const std::string&, Transform&, CodeGenerator&, const SimpleRegionPtr&) {}
+void petabricks::SyntheticRule::generateDeclCodeSimple(Transform&, CodeGenerator&) {}
+void petabricks::SyntheticRule::generateTrampCodeSimple(Transform&, CodeGenerator&) {}
 
 void petabricks::SyntheticRule::markRecursive() { 
   UNIMPLEMENTED();
 }
 const petabricks::FormulaPtr& petabricks::SyntheticRule::recursiveHint() const { 
-  static FormulaPtr t = new FormulaVariable(TRANSFORM_N_STR);  
-  return t;
+  return FormulaPtr::null();
 }
 void petabricks::SyntheticRule::print(std::ostream& os) const {
   os << "SyntheticRule " << _id << std::endl;;
@@ -75,27 +63,30 @@ void petabricks::SyntheticRule::print(std::ostream& os) const {
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-void petabricks::WhereExpansionRule::generateCallCodeSimple( Transform& trans
+void petabricks::WhereExpansionRule::generateCallCodeSimple( Transform&
                                                            , CodeGenerator& o
                                                            , const SimpleRegionPtr& region){
-  o.call(codename()+TX_STATIC_POSTFIX, region->argnames());
+  o.callSpatial(codename()+TX_STATIC_POSTFIX, region);
 }
 
 void petabricks::WhereExpansionRule::generateCallTaskCode( const std::string& name
                                                          , Transform& trans
                                                          , CodeGenerator& o
                                                          , const SimpleRegionPtr& region){
-  o.call(codename()+TX_STATIC_POSTFIX, region->argnames());
+  o.mkSpatialTask(name, trans.instClassName(), codename()+TX_STATIC_POSTFIX, region);
 }
   
 
 void petabricks::WhereExpansionRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   //for now static only:
-  IterationDefinition iterdef(*this, false);
-  o.beginFunc("void", codename()+TX_STATIC_POSTFIX, iterdef.args());
+  IterationDefinition iterdef(*this, getSelfDependency() , false);
+  std::vector<std::string> packedargs = iterdef.packedargs();
+  o.beginFunc("petabricks::DynamicTaskPtr", codename()+TX_STATIC_POSTFIX, packedargs);
+  iterdef.unpackargs(o);
   iterdef.genLoopBegin(o);
   genWhereSwitch(trans,o);
   iterdef.genLoopEnd(o);
+  o.write("return NULL;");
   o.endFunc();
 }
 
@@ -115,7 +106,7 @@ void petabricks::WhereExpansionRule::genWhereSwitch(Transform& trans, CodeGenera
     else
       o.elseIf(wc->toCppString());
 
-    (*i)->generateTrampCellCodeSimple(trans, o, true);
+    (*i)->generateTrampCellCodeSimple(trans, o, E_RF_STATIC);
     
     for(int d=0; d<(*i)->dimensions(); ++d){
       o._undefine((*i)->getOffsetVar(d)->toString());
@@ -144,11 +135,12 @@ int petabricks::WhereExpansionRule::dimensions() const {
       .Text("where clauses only work with common number of dimensions");;
   return rv;
 }
-void petabricks::WhereExpansionRule::removeInvalidOrders(IterationOrderList& o) {
+petabricks::DependencyDirection petabricks::WhereExpansionRule::getSelfDependency() const {
+  DependencyDirection rv;
   RuleSet::const_iterator i;
   for(i=_rules.begin(); i!=_rules.end(); ++i)
-    (*i)->removeInvalidOrders(o);
-
+    rv.addDirection((*i)->getSelfDependency());
+  return rv;
 }
 petabricks::FormulaPtr petabricks::WhereExpansionRule::getSizeOfRuleIn(int d) {
   RuleSet::const_iterator i=_rules.begin();

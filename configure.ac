@@ -72,11 +72,12 @@ AC_CHECK_FUNCS([backtrace_symbols])
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 
-AC_CHECK_HEADERS([math.h fftw3.h execinfo.h cxxabi.h], [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
+AC_CHECK_HEADERS([math.h fftw3.h execinfo.h cxxabi.h sys/time.h], [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
 AC_CHECK_LIB([m],[cos],                  [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
 AC_CHECK_LIB([fftw3], [fftw_malloc],     [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
 AC_CHECK_LIB([pthread],[pthread_create], [], [AC_MSG_WARN([failed to find -lpthread, some benchmarks may not work])])
 AC_CHECK_LIB([lapack], [dposv_],         [], [AC_MSG_WARN([failed to find -llapack, some benchmarks may not work])])
+AC_CHECK_LIB([rt], [clock_gettime],      [], [AC_DEFINE([USE_GETTIMEOFDAY],[],[define if clock_gettime() doesnt work])])
 #AC_CHECK_LIB([gslcblas],[cblas_dgemm],   [], [AC_MSG_WARN([failed to find -lgslcblas, some benchmarks may not work])]) 
 #AC_CHECK_LIB([gsl],[gsl_blas_dgemm],     [], [AC_MSG_WARN([failed to find -lgsl, some benchmarks may not work])])
 
@@ -94,6 +95,39 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__thread int x;]])],
                   [  
                     AC_MSG_RESULT([no]); 
                     has_threadlocal=no;
+                  ])
+
+AC_MSG_CHECKING([if compiler supports forced inlining])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((always_inline)) __attribute__((flatten)) void foo(){}]])],
+                  [  
+                    AC_DEFINE([INLINE],[inline __attribute__((always_inline)) __attribute__((flatten))], [keyword to force inlining])
+                    AC_MSG_RESULT([yes]);
+                  ],
+                  [  
+                    AC_DEFINE([INLINE],[inline])
+                    AC_MSG_RESULT([no]); 
+                  ])
+
+AC_MSG_CHECKING([if compiler supports __restrict__])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[void foo(int *__restrict__ t);]])],
+                  [  
+                    AC_DEFINE([RESTRICT],[__restrict__], [keyword to indicate non-aliased pointers/refs])
+                    AC_MSG_RESULT([yes]);
+                  ],
+                  [  
+                    AC_DEFINE([RESTRICT],[])
+                    AC_MSG_RESULT([no]); 
+                  ])
+
+AC_MSG_CHECKING([if compiler supports __attribute__])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__attribute__((undefinedabdef)) void foo();]])],
+                  [  
+                    AC_DEFINE([ATTRIBUTE(x)],[__attribute__((x))], [macro for gcc function __attribute__s])
+                    AC_MSG_RESULT([yes]);
+                  ],
+                  [  
+                    AC_DEFINE([ATTRIBUTE(x)],[])
+                    AC_MSG_RESULT([no]); 
                   ])
 
 ################################################################################
@@ -148,7 +182,8 @@ if test "$use_jalloc" = "yes"; then
   AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
 fi
 
-AC_DEFINE([MATRIX_ELEMENT_T],  [double],         [type for elements in the matrix])
+AC_DEFINE([MATRIX_INDEX_T],    [int],         [type for indices into the matrix])
+AC_DEFINE([MATRIX_ELEMENT_T],  [double],      [type for elements in the matrix])
 AC_DEFINE([MAX_DIMENSIONS],    [64],             [the maximum number of dimensions supported])
 AC_DEFINE([MAX_INPUT_BITS],    [32],             [the maximum number of dimensions supported])
 AC_DEFINE([STEAL_ATTEMPTS_WAITING], [3], [number of times to attempt to steal in waitUntilComplete])
@@ -157,12 +192,15 @@ AC_DEFINE([SHORT_TYPE_NAMES],  [1],              [undefine this if a large numbe
 AC_DEFINE([RUN_CPP],           [1],               [undefine to disable cpp])
 AC_DEFINE([MAX_REC_LEVELS],    [6],               [number of levels for recursive choices])
 AC_DEFINE([TRANSFORM_N_STR],   ["transform_n"],  [define to add a system var to transform scope])
-AC_DEFINE([SPLIT_CHUNK_SIZE],  ["chunk_size"],   [var name in output code])
+AC_DEFINE([SPLIT_CHUNK_SIZE],  ["TRANSFORM_LOCAL(splitsize)"],   [var name in output code])
 AC_DEFINE([TEMPLATE_BIN_STR],  ["_acc_bin"],     [var name in output code for accuracy template parameter])
 AC_DEFINE([RETURN_VAL_STR],   ["_pb_rv"],     [var name in output code for rule output variable])
 AC_DEFINE([TMPL_IMPL_PFX],     ["_tmpl"],        [prefix for expanded template implementations])
 AC_DEFINE([TX_STATIC_POSTFIX], ["_static"], [postfix for static versions of transforms])
 AC_DEFINE([TX_DYNAMIC_POSTFIX], ["_dynamic"], [postfix for static versions of transforms])
+
+AC_DEFINE([COORD_BEGIN_STR],["_iter_begin"],[var name in output code for begin coord])
+AC_DEFINE([COORD_END_STR],  ["_iter_end"],  [var name in output code for end coord])
 
 AC_DEFINE([UTIL_SEARCH_DIR_A], ["src"],     [extra directory to search for files in])
 AC_DEFINE([UTIL_SEARCH_DIR_B], ["scripts"], [extra directory to search for files in])
@@ -196,7 +234,7 @@ fi
 # COMPILER FLAGS ###############################################################
 ################################################################################
 
-compileflags=""
+compileflags="-Wall -Wextra"
 linkflags=""
   
 if test "$use_jassert" = "yes"; then
@@ -206,10 +244,10 @@ fi
 if test "$default_cxxflags" = "yes"; then
   if test "$use_jassert" = "yes"; then
     CXXFLAGS=""
-    compileflags="-O0 -g"
+    compileflags="-O0 -g $compileflags -fdiagnostics-show-option"
   else
     CXXFLAGS=""
-    compileflags="-O3"
+    compileflags="-O3 $compileflags"
   fi
   case "$target_cpu" in
     *sparc*) compileflags="$compileflags -mcpu=niagara -mtune=native";;
@@ -242,11 +280,12 @@ done
 ################################################################################
 
 #pass compiler configuration to config.h
-AC_DEFINE_UNQUOTED([CXX],      ["$CXX"],                  [C++ compiler used by pbc])
-AC_DEFINE_UNQUOTED([CXXFLAGS], ["$CXXFLAGS"],             [C++ compiler flags used by pbc])
-AC_DEFINE_UNQUOTED([CXXCPP],   ["$CXXCPP -x c++"],        [C++ preprocessor used by pbc])
-AC_DEFINE_UNQUOTED([CXXDEFS],  ["$DEFS -DHAVE_CONFIG_H"], [C++ compiler defines used by pbc])
-AC_DEFINE_UNQUOTED([CXXLIBS],  ["$LIBS"],                 [C++ compiler libraries used by pbc])
+AC_DEFINE_UNQUOTED([CXX],        ["$CXX"],                  [C++ compiler used by pbc])
+AC_DEFINE_UNQUOTED([CXXFLAGS],   ["$CXXFLAGS"],             [C++ compiler flags used by pbc])
+AC_DEFINE_UNQUOTED([CXXCPP],     ["$CXXCPP -x c++"],        [C++ preprocessor used by pbc])
+AC_DEFINE_UNQUOTED([CXXDEFS],    ["$DEFS -DHAVE_CONFIG_H"], [C++ compiler defines used by pbc])
+AC_DEFINE_UNQUOTED([CXXLIBS],    ["$LIBS"],                 [C++ compiler libraries used by pbc])
+AC_DEFINE_UNQUOTED([CXXLDFLAGS], ["$LDFLAGS"],              [C++ compiler link flags used by pbc])
 
 ################################################################################
 ################################################################################

@@ -1,21 +1,13 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
- *   jansel@csail.mit.edu                                                  *
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #ifndef PETABRICKSRIRCOMPILERPASS_H
 #define PETABRICKSRIRCOMPILERPASS_H
@@ -95,8 +87,8 @@ public:
   virtual void pushScope(){}
   virtual void popScope(){}
 
-  virtual void beforeAny(const RIRNodeRef& n){}
-  virtual void afterAny(const RIRNodeRef& n){}
+  virtual void beforeAny(const RIRNodeRef&){}
+  virtual void afterAny(const RIRNodeRef&){}
 protected:
   int depth() const { return _stack.size(); } 
 
@@ -147,14 +139,14 @@ private:
   void pushSplicer(RIRStmtList* bk, RIRStmtList* fwd){
     _stmtCtx.push_back(StmtContext(bk, fwd, depth()));
   }
-  void popSplicer(RIRStmtList* bk, RIRStmtList* fwd){
+  void popSplicer(RIRStmtList* /*bk*/, RIRStmtList* /*fwd*/){
     JASSERT(!_stmtCtx.empty());
     _stmtCtx.pop_back();
   }
   void pushSplicer(RIRExprList* bk, RIRExprList* fwd){
     _exprCtx.push_back(ExprContext(bk, fwd, depth()));
   }
-  void popSplicer(RIRExprList* bk, RIRExprList* fwd){
+  void popSplicer(RIRExprList* /*bk*/, RIRExprList* /*fwd*/){
     JASSERT(!_exprCtx.empty());
     _exprCtx.pop_back();
   }

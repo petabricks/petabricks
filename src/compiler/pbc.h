@@ -38,14 +38,23 @@ extern OpenCLMode theOpenCLMode;
 #endif
 
 enum CodeGenerationMode
-{
-	E_CGM_STATIC,
-	E_CGM_DYNAMIC,
-	#if defined(HAVE_OPENCL)
-	E_CGM_OPENCL,
-	#endif
-};
+  {
+    E_CGM_STATIC,
+    E_CGM_DYNAMIC,
+  #if defined(HAVE_OPENCL)
+    E_CGM_OPENCL,
+  #endif
+  };
 
 }
 
 #endif
+
+enum RuleFlavor
+  {
+    E_RF_STATIC,
+    E_RF_DYNAMIC,
+    E_RF_OPENCL,
+  };
+
+}

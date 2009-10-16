@@ -1,21 +1,13 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
- *   jansel@csail.mit.edu                                                  *
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #include "userrule.h"
 
@@ -362,137 +354,54 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
   o.endFunc();
 }
 
-void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
-  IterationDefinition iterdef(*this, isSingleCall());
-  std::vector<std::string> taskargs = iterdef.args();
-  std::vector<std::string> matrixNames = iterdef.args();
-  std::vector<std::string> argsByRef = iterdef.args();
-  std::vector<std::string> argnames = iterdef.argnames();
+void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
+  IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
+  std::vector<std::string> taskargs = iterdef.packedargs();
+  std::vector<std::string> packedargs = iterdef.packedargs();
+  std::vector<std::string> packedargnames = iterdef.packedargnames();
 
   taskargs.insert(taskargs.begin(), "const jalib::JRef<"+trans.instClassName()+"> transform");
 
-  if(isStatic)
-    o.beginFunc("void", trampcodename(trans)+TX_STATIC_POSTFIX, argsByRef);
+  if(E_RF_STATIC == flavor)
+    o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_STATIC_POSTFIX, packedargs);
   else
-    o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_DYNAMIC_POSTFIX, argsByRef);
+    o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_DYNAMIC_POSTFIX, packedargs);
 
-  if(!isStatic && !isRecursive()){
+  if((E_RF_STATIC != flavor) && !isRecursive() && !isSingleElement()){
     //shortcut
-    o.comment("rule is not recursive, so no sense in dynamically scheduling it");
-    o.call(trampcodename(trans)+TX_STATIC_POSTFIX, argnames);
-    o.write("return NULL;");
+    o.comment("rule is a leaf, no sense in dynamically scheduling it");
+    o.write("return");
+    o.call(trampcodename(trans)+TX_STATIC_POSTFIX, packedargnames);
   }else{
-    if(!isStatic) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
+    if(E_RF_STATIC != flavor) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
+
+    iterdef.unpackargs(o);
     
+    if(isSingleElement()){
+      trans.markSplitSizeUse(o);
+      o.beginIf("petabricks::split_condition<"+jalib::XToString(dimensions())+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")");
+      iterdef.genSplitCode(o, trans, *this, flavor);
+      // return written in get split code
+      o.elseIf();
+    }
+
     iterdef.genLoopBegin(o);
-    generateTrampCellCodeSimple(trans, o, isStatic);
+    if( ( E_RF_DYNAMIC == flavor ) && !isRecursive( ) )
+      generateTrampCellCodeSimple( trans, o, E_RF_STATIC );
+    else
+      generateTrampCellCodeSimple( trans, o, flavor );
     iterdef.genLoopEnd(o);
     
-    if(!isStatic) o.write("return _spawner;");
+    if(E_RF_STATIC != flavor) o.write("return _spawner;");
+    else o.write("return NULL;");
+    
+    if(isSingleElement())
+      o.endIf();
   }
   o.endFunc();
-
-  if(!isStatic){
-    TaskCodeGenerator& task = o.createTask(trampcodename(trans), taskargs, "SpatialDynamicTask", "_task");
-    task.beginRunFunc();
-    {
-      if(isRecursive()){
-        task.setcall("DynamicTaskPtr _task", "transform->"+trampcodename(trans)+TX_DYNAMIC_POSTFIX, argnames);
-        task.write("return _task;");
-      }else{
-        task.call("transform->"+trampcodename(trans)+TX_STATIC_POSTFIX, argnames);
-        task.write("return NULL;");
-      }
-    }
-    task.endFunc();
-    task.beginSizeFunc();
-    FormulaPtr f = FormulaInteger::one();
-    for(int i=0; i<dimensions(); ++i){
-      FormulaPtr b = getOffsetVar(i,"begin");
-      FormulaPtr e = getOffsetVar(i,"end");
-      f=new FormulaMultiply(f, new FormulaSubtract(e, b));
-    }
-    task.write("return "+f->toString()+";");
-    task.endFunc();
-
-    task.beginBeginPosFunc();
-    task.beginSwitch("d");
-    for(int i=0; i<dimensions(); ++i){
-      task.beginCase( i );
-      task.write("return "+getOffsetVar(i,"begin")->toString()+";");
-      task.endCase();
-    }
-    task.write("default: return 0;");
-    task.endSwitch();
-    task.endFunc();
-
-    task.beginEndPosFunc();
-    task.beginSwitch("d");
-    for(int i=0; i<dimensions(); ++i){
-      task.beginCase( i );
-      task.write("return "+getOffsetVar(i,"end")->toString()+";");
-      task.endCase();
-    }
-    task.write("default: return 0;");
-    task.endSwitch();
-    task.endFunc();
-
-    task.beginDimensionsFunc();
-    task.write("return "+jalib::XToString(dimensions())+";");
-    task.endFunc();
-
-    task.beginSpatialSplitFunc();
-    {//spatialSplit(SpatialTaskList& _list, int _dim, int _thresh)
-      task.write("IndexT _wdth = "+task.name()+"::endPos(_dim)-"+task.name()+"::beginPos(_dim);");
-      task.beginIf("_wdth > _thresh && _thresh > 8");
-      task.beginSwitch("_dim");
-      for(int i=0; i<dimensions(); ++i){
-        task.beginCase(i);
-        task.write("{"); 
-        task.incIndent();
-        task.write("SpatialTaskPtr _t;");
-        std::string t_begin = getOffsetVar(i,"t_begin")->toString();
-        std::string t_end = getOffsetVar(i,"t_end")->toString();
-        task.varDecl("IndexT "+t_begin +"="+getOffsetVar(i,"begin")->toString());
-        task.varDecl("IndexT "+t_end +"="+t_begin+"+_thresh");
-        std::vector<std::string> args;
-        args.push_back("transform");
-        for(int d=0; d<dimensions(); ++d){
-          if(d==i)
-            args.push_back(t_begin);
-          else
-            args.push_back(getOffsetVar(d,"begin")->toString());
-        }
-        for(int d=0; d<dimensions(); ++d){
-          if(d==i)
-            args.push_back("std::min("+t_end+","+getOffsetVar(i,"end")->toString()+")");
-          else
-            args.push_back(getOffsetVar(d,"end")->toString());
-        }
-        task.write("for(;"+t_begin+"<"+getOffsetVar(i,"end")->toString()+"; "+t_begin+"+=_thresh,"+t_end+"+=_thresh){");
-        task.incIndent();
-        task.setcall("_t", "new "+trampcodename(trans)+"_task", args);
-        task.write("_list.push_back(_t);");
-        task.endFor();
-        task.endCase();
-        task.write("}");
-        task.decIndent();
-      }
-      task.write("default: _list.push_back(this); return;");
-      task.endSwitch();
-
-  //     task.write("JTRACE(\"spatialSplit complete\")(_dim)(_wdth)(_thresh)(_wdth/_thresh)(_list.size());");
-      task.elseIf();
-      task.write("_list.push_back(this);");
-  //     task.write("JTRACE(\"spatialSplit disabled\")(_list.size())(_dim)(_wdth)(size());");
-      task.endIf();
-    }
-    task.endFunc();
-  }
-
 }
 
-void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
+void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   std::vector<std::string> args;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     args.push_back((*i)->generateAccessorCode());
@@ -506,7 +415,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   for(int i=0; i<dimensions(); ++i)
     args.push_back(getOffsetVar(i)->toString());
 
-  if(!isStatic){
+  if(E_RF_STATIC != flavor){
     o.setcall("jalib::JRef<"+implcodename(trans)+TX_DYNAMIC_POSTFIX+"> _rule", "new "+implcodename(trans)+TX_DYNAMIC_POSTFIX, args);
     o.write("DynamicTaskPtr _task = _rule->runDynamic();");
     o.beginIf("_task");
@@ -518,45 +427,12 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   }
 }
 
-std::vector<std::string> petabricks::UserRule::getCallArgs(Transform& trans, const SimpleRegionPtr& region){
-  std::vector<std::string> args;
-//std::set<MatrixDefPtr> used;
-//for(MatrixDependencyMap::const_iterator i=_provides.begin(); i!=_provides.end(); ++i){
-//  used.insert(i->first);
-//  args.push_back(i->first->name());
-//}
-//for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
-//  if(used.find(i->first)==used.end())
-//    args.push_back(i->first->name());
-//}
-
-//for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i)
-//  args.push_back((*i));
-
-//for( CoordinateFormula::const_iterator i=region->minCoord().begin()
-//     ; i!=region->minCoord().end()
-//     ; ++i)
-//{
-//  args.push_back((*i)->toString());
-//}
-//for( CoordinateFormula::const_iterator i=region->maxCoord().begin()
-//     ; i!=region->maxCoord().end()
-//     ; ++i)
-//{
-//  args.push_back((*i)->toString());
-//}
-  return region->argnames();
-}
-
 void petabricks::UserRule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
-  std::vector<std::string> args = getCallArgs(trans, region);
-  o.call(trampcodename(trans)+TX_STATIC_POSTFIX, args);
+  o.callSpatial(trampcodename(trans)+TX_STATIC_POSTFIX, region);
 }
 
 void petabricks::UserRule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
-  std::vector<std::string> args = getCallArgs(trans, region);
-  args.insert(args.begin(), "this");
-  o.setcall(name,"new "+trampcodename(trans)+"_task", args);
+  o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+TX_DYNAMIC_POSTFIX, region);
 }
 
 
@@ -616,7 +492,8 @@ void petabricks::UserRule::collectDependencies(StaticScheduler& scheduler){
   //TODO collect edge/direction dependencies
 }
 
-void petabricks::UserRule::removeInvalidOrders(IterationOrderList& o){
+petabricks::DependencyDirection petabricks::UserRule::getSelfDependency() const {
+  DependencyDirection rv(dimensions());
   for( MatrixDependencyMap::const_iterator p=_provides.begin()
      ; p!=_provides.end()
      ; ++p)
@@ -624,19 +501,10 @@ void petabricks::UserRule::removeInvalidOrders(IterationOrderList& o){
     MatrixDependencyMap::const_iterator d = _depends.find(p->first);
     if(d!=_depends.end()){
       const DependencyDirection& dir = d->second->direction();
-      JASSERT(dir.size()==o.size());
-      for(size_t i=0; i<dir.size(); ++i){
-        if((dir[i]&DependencyDirection::D_GT)!=0){
-          o[i] &= ~IterationOrder::FORWARD;
-          JTRACE("Forward iteration not allowed")(id());
-        }
-        if((dir[i]&DependencyDirection::D_LT)!=0){
-          o[i] &= ~IterationOrder::BACKWARD;
-          JTRACE("Backward iteration not allowed")(id());
-        }
-      }
+      rv.addDirection(dir);
     }
   }
+  return rv;
 }
 
 std::string petabricks::UserRule::implcodename(Transform& trans) const {

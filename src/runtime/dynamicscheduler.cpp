@@ -1,21 +1,13 @@
 /***************************************************************************
- *   Copyright (C) 2008 by Jason Ansel                                     *
- *   jansel@csail.mit.edu                                                  *
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 3 of the License, or     *
- *   (at your option) any later version.                                   *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #include "dynamicscheduler.h"
 
@@ -41,7 +33,11 @@ petabricks::DynamicScheduler& petabricks::DynamicScheduler::lookupScheduler(Dyna
   switch(t){
     case DynamicTask::TYPE_CPU:    return cpuScheduler();  
     case DynamicTask::TYPE_OPENCL: return extraSchedulers[0];  
-    default: UNIMPLEMENTED();
+    default:
+    {
+      UNIMPLEMENTED();
+      return *(DynamicScheduler*)NULL;
+    }
   }
 }
 
@@ -49,14 +45,14 @@ extern "C" void *workerStartup(void *arg) {
   JASSERT(arg!=0);
   petabricks::WorkerThread worker(*(petabricks::DynamicScheduler*)arg);
   worker.mainLoop();
+  return NULL;
 }
 
 void petabricks::DynamicScheduler::startWorkerThreads(int total)
 {
   JASSERT(numThreads() <= total)(numThreads())(total);
   while(numThreads() < total){
-    pthread_t tmp;
-    _rawThreads.push_back(tmp);
+    _rawThreads.push_back(pthread_t());
     JASSERT(pthread_create(&_rawThreads.back(), NULL, workerStartup, this) == 0);
   }
 }

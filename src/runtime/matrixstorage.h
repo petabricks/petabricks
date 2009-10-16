@@ -9,49 +9,66 @@
  *                                                                         *
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
-#ifndef PETABRICKSDYNAMICSCHEDULER_H
-#define PETABRICKSDYNAMICSCHEDULER_H
+#ifndef PETABRICKSMATRIXSTORAGE_H
+#define PETABRICKSMATRIXSTORAGE_H
 
-#include "workerthread.h"
-
-#include <list>
-#include <pthread.h>
+#include "common/jassert.h"
+#include "common/jrefcounted.h"
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
+#else
+# define MATRIX_INDEX_T   int 
+# define MATRIX_ELEMENT_T double
 #endif
 
 namespace petabricks {
 
-class DynamicScheduler{
+class MatrixStorage;
+typedef jalib::JRef<MatrixStorage> MatrixStoragePtr;
+
+/**
+ * The raw data for a Matrix
+ */
+class MatrixStorage : public jalib::JRefCounted {
 public:
-  static DynamicScheduler& cpuScheduler();
-  static DynamicScheduler& lookupScheduler(DynamicTask::TaskType t);
- 
+  typedef MATRIX_INDEX_T IndexT;
+  typedef MATRIX_ELEMENT_T ElementT;
+private:
+  //no copy constructor
+  MatrixStorage(const MatrixStorage&);
+public:
   ///
-  /// start worker threads
-  void startWorkerThreads(int newWorkers);
+  /// Constructor
+  MatrixStorage(IndexT n) : _count(n) {
+    _data = new ElementT[n];
+  }
 
   ///
-  /// Cancel all pending tasks (including caller)
-  void abort();
+  /// Destructor
+  ~MatrixStorage(){
+    delete [] _data;
+  }
+
+  ElementT* data() { return _data; }
+  const ElementT* data() const { return _data; }
+
+  IndexT count() const { return _count; }
 
   ///
-  /// Shutdown all threads
-  void shutdown();
-  
+  /// Fill the matrix with random data
+  void randomize();
+
+
   ///
-  /// Exception thrown by aborting threads 
-  class AbortException {};
-
-  WorkerThreadPool& pool() { return _pool; }  
-
-  int numThreads() const { return (int)_rawThreads.size(); }
-protected:
-  std::list<pthread_t> _rawThreads;
-  WorkerThreadPool _pool;
+  /// generate a single random number
+  static double rand();
+private:
+  ElementT* _data;
+  IndexT _count;
 };
 
 }
 
 #endif
+

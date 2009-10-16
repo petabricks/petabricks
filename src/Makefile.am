@@ -47,16 +47,18 @@ pkglib_HEADERS=  \
   common/jsocket.h \
   common/jtimer.h \
   common/jtunable.h \
+  common/thedeque.h \
   runtime/autotuner.h \
   runtime/dynamicscheduler.h \
   runtime/dynamictask.h \
-  runtime/matrix.h \
   runtime/matrixio.h \
+  runtime/matrixregion.h \
+  runtime/matrixspecializations.h \
+  runtime/matrixstorage.h \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
   runtime/ruleinstance.h \
-  runtime/spatialdynamictask.h \
-  runtime/thedeque.h \
+  runtime/specializeddynamictasks.h \
   runtime/transforminstance.h \
   runtime/workerthread.h
 
@@ -110,12 +112,12 @@ libpbruntime_a_SOURCES =  \
   runtime/autotuner.cpp \
   runtime/dynamicscheduler.cpp \
   runtime/dynamictask.cpp \
-  runtime/matrix.cpp \
   runtime/matrixio.cpp \
   runtime/matrixreader.lpp \
+  runtime/matrixstorage.cpp \
   runtime/petabricksruntime.cpp \
   runtime/ruleinstance.cpp \
-  runtime/spatialdynamictask.cpp \
+  runtime/specializeddynamictasks.cpp \
   runtime/transforminstance.cpp \
   runtime/workerthread.cpp
 
