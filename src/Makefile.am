@@ -10,6 +10,7 @@ noinst_PROGRAMS = pbc
 noinst_HEADERS = \
   compiler/choicegrid.h \
   compiler/codegenerator.h \
+  compiler/clcodegenerator.h \
   compiler/formula.h \
   compiler/iterationorders.h \
   compiler/learner.h \
@@ -82,6 +83,7 @@ libpbcompiler_a_CXXFLAGS = -I$(srcdir)/compiler
 libpbcompiler_a_SOURCES = \
   compiler/choicegrid.cpp \
   compiler/codegenerator.cpp \
+  compiler/clcodegenerator.cpp \
   compiler/formula.cpp \
   compiler/iterationorders.cpp \
   compiler/learner.cpp \

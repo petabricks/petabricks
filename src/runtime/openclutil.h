@@ -60,6 +60,7 @@ namespace petabricks
 				    bool verbose = true );
     static void printDeviceDetails( unsigned int dev_idx,
 				    bool verbose = true );
+    static cl_context getContext( );
 
   private:
     /** Class is a singleton. */

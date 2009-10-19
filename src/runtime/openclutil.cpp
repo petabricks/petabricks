@@ -105,6 +105,12 @@ OpenCLUtil::deinit( )
   clReleaseContext( context );
 }
 
+cl_context
+OpenCLUtil::getContext( )
+{
+  return context;
+}
+
 void
 OpenCLUtil::printDeviceList( bool verbose )
 {
