@@ -182,6 +182,16 @@ if test "$use_jalloc" = "yes"; then
   AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
 fi
 
+AC_ARG_ENABLE([opencl],
+	[AS_HELP_STRING([--enable-opencl],[build compiler and runtime with support for OpenCL-enabled GPUs.])],
+	[use_opencl=$enableval],
+	[use_opencl=no])
+
+if test "$use_opencl" = "yes"; then
+   AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
+   AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
+fi
+
 AC_DEFINE([MATRIX_INDEX_T],    [int],         [type for indices into the matrix])
 AC_DEFINE([MATRIX_ELEMENT_T],  [double],      [type for elements in the matrix])
 AC_DEFINE([MAX_DIMENSIONS],    [64],             [the maximum number of dimensions supported])
