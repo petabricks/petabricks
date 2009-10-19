@@ -370,9 +370,11 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     case E_RF_DYNAMIC:
       o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_DYNAMIC_POSTFIX, packedargs);
       break;
+    #ifdef HAVE_OPENCL
     case E_RF_OPENCL:
       o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_OPENCL_POSTFIX, packedargs);
       break;
+    #endif
     default:
       UNIMPLEMENTED( );
     }
@@ -382,12 +384,16 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     o.comment("rule is a leaf, no sense in dynamically scheduling it");
     o.write("return");
     o.call(trampcodename(trans)+TX_STATIC_POSTFIX, packedargnames);
-  }else if( E_RF_OPENCL == flavor ) {
+  }
+  #ifdef HAVE_OPENCL
+  else if( E_RF_OPENCL == flavor ) {
 
     o.comment( "opencl code to go here" );
 
 
-  } else {
+  }
+  #endif
+  else {
     if(E_RF_STATIC != flavor) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
 
     iterdef.unpackargs(o);
