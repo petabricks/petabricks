@@ -1,0 +1,30 @@
+transform MatrixVersions2
+from IN[w,h]
+through S<0..10>[w,h], X[w], Y[w]
+to OUT[w,h]
+{
+  //normal case
+  priority(0) S<p>.cell(i,j) from(S<p-1>.cell(i-1, j) n)
+  {
+    return n+1;
+  }
+  
+  ////edge cases
+  priority(1) S<p>.cell(i,j) from(S<p-1>.cell(i+1, j) s)
+  {
+    return s+1;
+  }
+
+  to(X.cell(i) x, Y.cell(i) y) from(){
+    x=y=0.5;
+  }
+
+  //initialize and finalize
+  S<0>.cell(i,j) from(IN.cell(i,j) x) {
+    return x;
+  }
+
+  OUT.cell(i,j) from(S<9>.cell(i,j) v, X.cell(i) x, Y.cell(i) y) {
+    return v*x*y;
+  }
+}

@@ -1,0 +1,78 @@
+#ifndef CGINTERIOR_PBCC
+#define CGINTERIOR_PBCC
+
+#include "demv.pbcc"
+#include "vectoradd.pbcc"
+#include "dotproduct.pbcc"
+#include "../simple/copy.pbcc"
+
+transform CG_inner
+from IN[n], A[n,n], R[n], D[n]
+through AD[n], ALPHA,BETA, RDOTR
+to OUT[n],RR[n],DD[n]
+{
+   to (AD ad) from (A a, D d)
+   {
+   	demv(ad, a, d);
+   }
+
+   to (RDOTR RdotR) from (R r)
+   {
+   	DotProduct(RdotR, r, r);
+   }
+
+   to (ALPHA alpha) from(RDOTR r2, D d, AD ad)
+   {
+	DotProduct(alpha,d,ad);
+	alpha=r2/alpha;
+   }
+
+   OUT.cell(i) from(IN.cell(i) x, ALPHA alpha, D.cell(i) d)
+   {
+   	return x + alpha *d;
+   }
+  
+   RR.cell(i) from(R.cell(i) r, ALPHA alpha, AD.cell(i) ad)
+   {
+   	return r - alpha*ad;
+   }
+
+   to (BETA beta) from(RR rr, RDOTR r2old)
+   {
+   	DotProduct(beta, rr,rr);
+	beta=beta/r2old;
+   }
+
+   DD.cell(i) from(RR.cell(i) rr, BETA beta, D.cell(i) d)
+   {
+   	return rr + beta*d;
+   }
+
+
+
+}
+
+transform CGInterior
+from IN[n], A[n,n], R[n], D[n], numIterations
+through TEMPX[n], TEMPR[n], TEMPD[n]
+to OUT[n], RR[n], DD[n]
+
+{
+	to (OUT out, RR rr, DD dd, TEMPX tx, TEMPR tr, TEMPD td)
+	from (IN x, A a, R r, D d)
+	{
+		int i;
+		CG_inner(out, rr, dd, x, a, r, d);
+		
+		for (i=1; i < numIterations; i++)
+		{
+			Copy1D(tx,out);
+			Copy1D(tr, rr);
+			Copy1D(td, dd);
+			CG_inner(out,rr,dd, tx, a, tr, td);
+		}
+	}
+
+}
+
+#endif // CGINTERIOR_PBCC

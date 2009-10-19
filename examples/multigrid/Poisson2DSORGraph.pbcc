@@ -1,0 +1,157 @@
+#ifndef POISSON2DSORGRAPH_PBCC
+#define POISSON2DSORGRAPH_PBCC
+
+#include "Poisson2DSOR.pbcc"
+
+#define PRECISION1
+#define MAX_LEVEL 9
+
+transform Poisson2DSORGraph
+from IN[n+2,n+2], B[n+2,n+2]
+to OUT[n+2,n+2]
+{
+  to (OUT o) from (IN in, B b)
+  {
+
+#ifdef PRECISION1
+//    int iters[MAX_LEVEL + 1] = {1, 1, 2, 5, 10, 20, 40, 80, 159, 317};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 2;
+    iters[3] = 5;
+    iters[4] = 10;
+    iters[5] = 20;
+    iters[6] = 40;
+    iters[7] = 80;
+    iters[8] = 159;
+    iters[9] = 317;
+#endif
+
+#ifdef PRECISION2
+//    int iters[MAX_LEVEL + 1] = {1, 1, 4, 9, 17, 34, 68, 136, 271, 541};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 4;
+    iters[3] = 9;
+    iters[4] = 17;
+    iters[5] = 34;
+    iters[6] = 68;
+    iters[7] = 136;
+    iters[8] = 271;
+    iters[9] = 541;
+#endif
+
+#ifdef PRECISION3
+//    int iters[MAX_LEVEL + 1] = {1, 1, 5, 12, 24, 47, 94, 189, 376, 752};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 5;
+    iters[3] = 12;
+    iters[4] = 24;
+    iters[5] = 47;
+    iters[6] = 94;
+    iters[7] = 189;
+    iters[8] = 376;
+    iters[9] = 752;
+#endif
+
+#ifdef PRECISION4
+//    int iters[MAX_LEVEL + 1] = {1, 1, 7, 15, 30, 60, 120, 240, 479, 958};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 7;
+    iters[3] = 15;
+    iters[4] = 30;
+    iters[5] = 60;
+    iters[6] = 120;
+    iters[7] = 240;
+    iters[8] = 479;
+    iters[9] = 958;
+#endif
+
+#ifdef PRECISION5
+//    int iters[MAX_LEVEL + 1] = {1, 1, 8, 18, 37, 73, 145, 290, 580, 1160};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 8;
+    iters[3] = 18;
+    iters[4] = 37;
+    iters[5] = 73;
+    iters[6] = 145;
+    iters[7] = 290;
+    iters[8] = 580;
+    iters[9] = 1160;
+#endif
+
+#ifdef PRECISION7
+//    int iters[MAX_LEVEL + 1] = {1, 1, 11, 24, 49, 98, 195, 390, 779, 1558};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 11;
+    iters[3] = 24;
+    iters[4] = 49;
+    iters[5] = 98;
+    iters[6] = 195;
+    iters[7] = 390;
+    iters[8] = 779;
+    iters[9] = 1558;
+#endif
+
+#ifdef PRECISION9
+//    int iters[MAX_LEVEL + 1] = {1, 1, 14, 30, 61, 122, 244, 488, 976, 1951};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 14;
+    iters[3] = 30;
+    iters[4] = 61;
+    iters[5] = 122;
+    iters[6] = 244;
+    iters[7] = 488;
+    iters[8] = 976;
+    iters[9] = 1951;
+#endif
+
+#ifdef PRECISION10
+//    int iters[MAX_LEVEL + 1] = {1, 1, 15, 33, 67, 134, 269, 537, 1073, 2146};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 15;
+    iters[3] = 33;
+    iters[4] = 67;
+    iters[5] = 134;
+    iters[6] = 269;
+    iters[7] = 537;
+    iters[8] = 1073;
+    iters[9] = 2146;
+#endif
+
+#ifdef PRECISION13
+//    int iters[MAX_LEVEL + 1] = {1, 1, 19, 42, 85, 171, 341, 682, 1382, 2793};
+    int iters[MAX_LEVEL + 1];
+    iters[0] = 1;
+    iters[1] = 1;
+    iters[2] = 19;
+    iters[3] = 42;
+    iters[4] = 85;
+    iters[5] = 171;
+    iters[6] = 341;
+    iters[7] = 682;
+    iters[8] = 1382;
+    iters[9] = 2793;
+#endif
+
+//    printf("Using %d iterations\n", iters[(int) log2(n)]);
+    Poisson2DSOR(o, in, b, -2, iters[(int) log2(n)]);
+  }
+}
+
+#endif // POISSON2DSORGRAPH_PBCC
+

@@ -1,0 +1,34 @@
+#ifndef CG_PBCC
+#define CG_PBCC
+
+#include "vectoradd.pbcc"
+#include "demv.pbcc"
+#include "CGInterior.pbcc"
+
+transform CG
+from X[n], A[n,n], B[n], numIterations
+through R[n], D[n],Rtemp[n], Dtemp[n], AX[n]
+to OUT[n]
+{
+   to (AX ax) from(X x, A a)
+   {
+	demv(ax, a, x);
+   }
+
+   to (R r) from (B b, AX ax)
+   {
+   	VectorSub(r, b, ax);
+   }
+
+   D.cell(i) from (R.cell(i) r)
+   {	
+   	return r;
+   } 
+
+   to (OUT o, Rtemp rout, Dtemp dout) from(X x, A a,R r, D d, numIterations k)
+   {
+      CGInterior(o, rout, dout,x, a, r, d, k);
+   }
+
+}
+#endif // CG_PBCC

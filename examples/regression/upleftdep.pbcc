@@ -1,0 +1,20 @@
+transform UpLeftDep from IN[w,h] to OUT[w,h] 
+{
+  //recursive case
+  OUT.cell(x,y) from(IN.cell(x-1, y-1)  i, 
+                     OUT.cell(x+1, y) left,
+                     OUT.cell(x, y+1) up)
+
+  {
+     return i+left+up;
+  }
+  
+  //base case 1
+  secondary OUT.cell(x,y) from(IN.cell(x,y) i) 
+  {
+    return i;
+  }
+}
+
+
+

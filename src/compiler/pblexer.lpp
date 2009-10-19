@@ -1,0 +1,182 @@
+/***************************************************************************
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
+ *                                                                         *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
+ *                                                                         *
+ *  A full list of authors may be found in the file AUTHORS.               *
+ ***************************************************************************/
+%option stack
+%option yylineno
+%option nostdinit
+%option noyywrap
+%option noyy_top_state
+%option nounput
+%option prefix="pb"
+%option outfile="lex.yy.c"
+
+%{
+#include "transform.h"
+#include "userrule.h"
+#include "formula.h"
+#include "matrixdef.h"
+#include "pbparser.h"
+#include "codegenerator.h"
+
+#include "common/jassert.h"
+#include "common/jconvert.h"
+
+#include <stdio.h>
+#include <string>
+#include <sstream>
+
+using namespace std;
+
+#define NUM_STR_BUFFERS 64
+
+static std::stringstream theParseLog;
+
+static const char* circularStringCache(const char* str){
+  static std::string strbuffers[NUM_STR_BUFFERS];
+  static int n = 0;
+  return (strbuffers[n++ % NUM_STR_BUFFERS]=str).c_str();
+}
+
+static void recordLitCode(){
+  std::string str = theParseLog.str().c_str();
+  theParseLog.str("");
+  petabricks::CodeGenerator::theFilePrefix() << std::string(str.begin(), str.end()-2);
+}
+
+int rulebodystart=0;
+std::string pbfilename;
+
+static void handleCppLine(const char* s){
+  const char* n_begin = s+2;
+  const char* n_end = n_begin;
+  while(*n_end>='0' && *n_end<='9') ++n_end;
+  const char* filename=n_end+1;
+  std::string n(n_begin, n_end);
+  //JTRACE("LINENO")(n)(filename);
+  pblineno = jalib::StringToInt(n)-1;
+  pbfilename = filename;
+}
+
+#define YY_USER_ACTION pblval.str=circularStringCache(yytext); theParseLog<<yytext;
+#define YY_DECL int yylex()
+#define RETURN theParseLog.str(""); return
+
+static int theNestCount=0;
+
+%}
+
+%x transform rule comment linecomment string litcode
+
+PASS_CHARS [.<>,*/()[\]^+-]
+
+%%
+<INITIAL>{
+  "main"            RETURN KW_MAIN;
+  "transform"       RETURN KW_TRANSFORM;
+  "template"        RETURN KW_TEMPLATE;
+  "generator"       RETURN KW_GENERATOR;
+  "gen"             RETURN KW_GENERATOR;
+  "through"         RETURN KW_THROUGH;
+  "config"          RETURN KW_CONFIG;
+  "param"           RETURN KW_PARAM;
+  "parameter"       RETURN KW_PARAM;
+  "tunable"         RETURN KW_TUNABLE;
+  "accuracy_metric" RETURN KW_ACCURACYMETRIC;
+  "accuracy_bins"   RETURN KW_ACCURACYBINS;
+  "accuracy_variable" RETURN KW_ACCURACYVARIABLE;
+  "{"               yy_push_state(transform); RETURN '{';
+  "%{"              yy_push_state(litcode); theParseLog.str("");
+}
+
+<litcode>{
+  [^%]*            /*nothing*/
+  [%][^}]          /*nothing*/
+  "%}"             {
+      yy_pop_state();
+      recordLitCode();
+  }
+}
+
+<transform>{
+  "where"          RETURN KW_WHERE;
+  "priority"       RETURN KW_PRIORITY;
+  "primary"        RETURN KW_PRIMARY;
+  "secondary"      RETURN KW_SECONDARY;
+  "rotatable"      RETURN KW_ROTATABLE;
+  "recursive"      RETURN KW_RECURSIVE;
+  "{"              {
+                     yy_push_state(rule); 
+                     theNestCount=1; 
+                     theParseLog.str("");
+                     theParseLog << "# " << pblineno << " " << pbfilename << "\n";
+                     return *yytext;
+                   }
+  "}"              yy_pop_state();      RETURN *yytext;
+}
+
+<INITIAL,transform>{
+  "to"              RETURN KW_TO;
+  "from"            RETURN KW_FROM;
+  "<="              RETURN KW_LE;
+  ">="              RETURN KW_GE;
+  "=="              RETURN KW_EQ;
+  [0-9]+[.][0-9]+   RETURN TOK_FLOAT;
+  [0-9]+            RETURN TOK_INTEGER;
+  [a-zA-Z_][a-zA-Z0-9_]* RETURN IDENT;
+  {PASS_CHARS}      RETURN yytext[0];
+  [/][*]            yy_push_state(comment);
+  [/][/]            yy_push_state(linecomment);
+  ^[#]              yy_push_state(linecomment);
+}
+
+<rule>{
+  [/][*]           yy_push_state(comment);
+  [/][/]           yy_push_state(linecomment);
+  ^[#]             yy_push_state(linecomment);
+  "{"              ++theNestCount;
+  ["]              yy_push_state(string);
+  "}"              { 
+                      if(--theNestCount==0){
+                        yy_pop_state();
+                        pblval.str=circularStringCache(theParseLog.str().c_str());
+                        RETURN TOK_RULEBODY;
+                      }
+                   }
+  [^*/{}"]+        /*nothing*/
+  .                /*nothing*/
+}
+
+<comment>{
+  "*/"             yy_pop_state();
+  [^*]+            /*nothing*/
+  .                /*nothing*/
+}
+
+<linecomment>{
+  [\n]           yy_pop_state();
+  [^\n]+         /*nothing*/
+}
+
+<string>{
+  ["]            yy_pop_state();
+  [^"]           /*nothing*/
+  [\\]["]        /*nothing*/
+}
+
+<*>{
+  ^[#][ ][0-9]+[ ][^\n]*   handleCppLine(yytext);
+  [ \t\r\n]      /* whitespace */;
+  .              JASSERT(false)(yytext)(yylineno).Text("Unhandled input");
+}
+
+%%
+
+

@@ -1,0 +1,11 @@
+transform ScaleUp
+from IN[w/2,h/2] 
+to OUT[w,h] 
+{
+  OUT.cell(x,y) from( IN.cell(x/2-1,y/2-1) a,
+                      IN.cell(x/2+1,y/2+1) b) {
+    return a+b;
+  }
+  secondary OUT.cell(x,y) from() { return 0; }
+}
+

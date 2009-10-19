@@ -1,0 +1,10 @@
+transform TxConstants
+from X[n,n], v
+to  Y[n,n]
+{
+   Y.cell(x,y) from()
+   {
+      if (x%2) { return 0;}
+      return v;
+   }
+} 

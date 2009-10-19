@@ -1,0 +1,63 @@
+      TRAINPRINTF("    Training Estimate level %d:\n", ESTPREC);
+      // compute estimate
+#if ESTPREC > 0
+        Residual2D(t2, x, b);     // t2 gets new residual
+        Restrict2Dnew(r1, t2);    // r1 gets restricted residual
+        CAT(FullPoisson2D_Inner_Prec, ESTPREC)(r2, z, r1); // r2 gets coarse update
+        Interpolate2Dnew(t2, r2); // t2 gets interpolated update
+        MatrixAdd(est, t2, x);    // t2 gets updated guess
+#else
+        Copy2D(est, x);
+#endif
+
+      ComputeError(estimateError, est, actual);
+      TRAINPRINTF("      error after estimate = %g\n", estimateError);
+
+      // compute iterations of SOR
+      CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level].setValue(0);
+      TRAINPRINTF("      Training SOR for precision %d:\n", CURPREC);
+      Copy2D(y, est);
+      change = 0;
+      newError = estimateError;
+      oldError = error;
+      while (newError / error > CAT(FULL_POISSON_PRECISION_, CURPREC) && change < 1) {
+
+        if (level > 8 || CURPREC > 2 && level > 6) {
+          // at higher levels, this takes too long, so just skip it
+          // signal to timing run that it should abort
+          CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level].setValue(-1);
+          break;
+        }
+        
+        SOR2D(y, y, b, -1, 1);
+
+        CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level].setValue(CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level] + 1);
+        ComputeError(newError, y, actual);
+        change = newError / oldError;
+        oldError = newError;
+        TRAINPRINTF("        error = %g, ratio = %g\n", newError, newError / error);
+        if (change >= 1) {
+          // cannot achieve target precision, so this is an invalid selection
+          // signal to timing run that it should abort
+          CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level].setValue(-1);
+          break;
+        }
+
+      }
+      TRAINPRINTF("        Setting number of iterations of full_SORIters_Est%d_Prec%d to %d\n", ESTPREC, CURPREC, (int) CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC)[level]);
+      
+#define LOCALPREC 1
+#include "FullPoisson2D_TrainingRecursive.pbcc"
+#undef LOCALPREC
+#define LOCALPREC 2
+#include "FullPoisson2D_TrainingRecursive.pbcc"
+#undef LOCALPREC
+#define LOCALPREC 3
+#include "FullPoisson2D_TrainingRecursive.pbcc"
+#undef LOCALPREC
+#define LOCALPREC 4
+#include "FullPoisson2D_TrainingRecursive.pbcc"
+#undef LOCALPREC
+#define LOCALPREC 5
+#include "FullPoisson2D_TrainingRecursive.pbcc"
+#undef LOCALPREC

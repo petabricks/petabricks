@@ -8,6 +8,7 @@ import subprocess
 import time
 import signal
 import math
+import progress
 from xml.dom.minidom import parse
 from pprint import pprint
 from configtool import getConfigVal, setConfigVal
@@ -15,7 +16,7 @@ from configtool import getConfigVal, setConfigVal
 try:
   import numpy
 except:
-  sys.stderr.write("Failed to import numpy\n")
+  sys.stderr.write("failed to import numpy\n")
 
 #return number of cpus online
 def cpuCount():
@@ -30,8 +31,24 @@ def cpuCount():
   try:
     return int(os.environ["NUM_PROCESSORS"])
   except:
-    None
-  return 1
+    sys.write("failed to get the number of processors\n")
+  return 1 # guess 1
+
+def getmemorysize():
+  try:
+    return int(re.match("MemTotal: *([0-9]+) *kB", open("/proc/meminfo").read()).group(1))*1024
+  except:
+    sys.write("failed to get total memory\n"%n)
+    return 8 * (1024**3) # guess 8gb
+
+def setmemlimit(n = getmemorysize()):
+  try:
+    import resource
+    resource.setrlimit(resource.RLIMIT_AS, (n,n))
+  except:
+    sys.write("failed to set memory limit\n"%n)
+
+
 
 def chdirToPetabricksRoot():
   isCurDirOk = lambda: os.path.isdir("examples") and os.path.isdir("src")
@@ -47,20 +64,20 @@ def chdirToPetabricksRoot():
     raise Exception("This script should be run from petabricks root directory")
 
 def compilePetabricks():
-  cmd=["make","-sqC","src","pbc"]
+  cmd=["make","-sqC","src","all"]
   if subprocess.call(cmd) != 0: 
-    cmd=["make", "-j%d"%cpuCount(), "--no-print-directory"]
-    p=subprocess.Popen(cmd, stdout=sys.stderr, stderr=sys.stderr)
+    cmd=["make", "-j%d"%cpuCount()]
+    p=subprocess.Popen(cmd)
     rv=p.wait()
     if rv!=0:
       raise Exception("pbc compile failed")
     return rv
   return 0
     
-    
-    
-benchmarkToSrc=lambda name:"./examples/%s.pbcc"%name
 benchmarkToBin=lambda name:"./examples/%s"%name
+benchmarkToSrc=lambda name:"./examples/%s.pbcc"%name
+benchmarkToInfo=lambda name:"./examples/%s.info"%name
+benchmarkToCfg=lambda name:"./examples/%s.cfg"%name
 
 jobs=[]
 def compileBenchmarks(benchmarks):
@@ -70,22 +87,23 @@ def compileBenchmarks(benchmarks):
   NCPU=cpuCount()
   failed=[]
   pbc="./src/pbc"
-  benchmarkMaxLen=reduce(max,map(len,benchmarks))
-
-  msgMaxLen= len("[%d/%d jobs] "%(NCPU,NCPU))
-  msgPfx=lambda:("[%d/%d jobs]"%(len(jobs),NCPU)).ljust(msgMaxLen)
-  msg=lambda m: sys.stderr.write("\n"+msgPfx()+m)
-  msgUpdate=lambda: sys.stderr.write("\r"+msgPfx())
-  msg("Compiling benchmarks:")
-
+  libdepends=[pbc, "./src/libpbmain.a", "./src/libpbruntime.a", "./src/libpbcommon.a"]
+  benchmarkMaxLen=reduce(max,map(len,benchmarks), 0)
+  progress.push()
+  progress.remainingTicks(len(benchmarks))
+  if len(benchmarks)>1:
+    progress.echo("Compiling benchmarks:")
+  progress.status(lambda: "[%d/%d jobs] - compiling benchmarks"%(len(jobs),NCPU))
   assert os.path.isfile(pbc)
   def checkJob(name, status):
+    global left
     if status is not None:
       if status == 0:
-        msg(name.ljust(benchmarkMaxLen)+" compile PASSED")
+        progress.echo(name.ljust(benchmarkMaxLen)+" compile PASSED")
       else:
-        msg(name.ljust(benchmarkMaxLen)+" compile FAILED (rc=%d)"%status)
+        progress.echo(name.ljust(benchmarkMaxLen)+" compile FAILED (rc=%d)"%status)
         failed.append(name)
+      progress.tick()
     return status is None
 
   def waitForJobsLeq(n):
@@ -103,18 +121,19 @@ def compileBenchmarks(benchmarks):
     bin=benchmarkToBin(name)
     if not os.path.isfile(src):
       raise Exception("invalid benchmark "+name)
-    srcModTime=max(os.path.getmtime(src), os.path.getmtime(pbc))
+    srcModTime=max(os.path.getmtime(src), reduce(max, map(os.path.getmtime, libdepends)))
     if os.path.isfile(bin) and os.path.getmtime(bin) > srcModTime:
-      msg(name.ljust(benchmarkMaxLen)+" is up to date")
+      progress.echo(name.ljust(benchmarkMaxLen)+" is up to date")
+      progress.tick()
     else:
       if os.path.isfile(bin):
         os.unlink(bin)
       waitForJobsLeq(NCPU-1)
       jobs.append((name,subprocess.Popen([pbc, src], stdout=NULL, stderr=NULL)))
-      msgUpdate()
+      progress.update()
   waitForJobsLeq(0)
-  msg("Done\n\n")
-
+  progress.echo("")
+  progress.pop()
 
 def normalizeBenchmarkName(n, search=True):
   n=re.sub("^[./]*examples[/]","",n);
@@ -130,7 +149,7 @@ def normalizeBenchmarkName(n, search=True):
   
   
 
-def loadAndCompileBenchmarks(file):
+def loadAndCompileBenchmarks(file, searchterms=[]):
   chdirToPetabricksRoot()
   compilePetabricks()
   benchmarks=open(file)
@@ -139,6 +158,10 @@ def loadAndCompileBenchmarks(file):
   benchmarks=filter(lambda x: len(x)>0, benchmarks)
   ws = re.compile("[ \t]+")
   benchmarks=map(lambda x: ws.split(x), benchmarks)
+
+  if len(searchterms)>0:
+    benchmarks=filter(lambda b: any(s in b[0] for s in searchterms), benchmarks)
+
   compileBenchmarks(map(lambda x: x[0], benchmarks))
   return benchmarks
 
@@ -262,17 +285,7 @@ def polyFit(x,y):
 
 def collectTimingSamples2(prog, maxTime=12.0, args=[]):
   #make initial guess at order
-  x,y=collectTimingSamples(prog, 5,   1,   maxTime/4, args=args, scaler=lambda x: 2**x)
-  fx, invFx, str = polyFit(x,y)
-  #print "Initial guess... ", len(x), str
-
-  x,y=collectTimingSamples(prog, 0.01,  0.01,  maxTime/4, x=x, y=y, args=args, scaler=invFx)
-  fx, invFx, str = polyFit(x,y)
-  #print "Refinement... ", len(x), str
-  
-  x,y=collectTimingSamples(prog, 0.5,  0.1,  2*maxTime/4, x=x, y=y, args=args, scaler=invFx)
-  fx, invFx, str = polyFit(x,y)
-  #print "Refinement... ", len(x), str
+  x,y=collectTimingSamples(prog, 4,   1,   maxTime, args=args, scaler=lambda x: 2**x)
   return x,y
 
 def testEstimation(x, y, fit, prog):
@@ -283,12 +296,11 @@ def testEstimation(x, y, fit, prog):
   print "   est 2 sec", (pinv(2))
   print "   est 3 sec", (pinv(3))
 
-def inferGoodInputSizes(prog, desiredTimes, maxTime=8.0):
+def inferGoodInputSizes(prog, desiredTimes, maxTime=5.0):
   x,y=collectTimingSamples2(prog, maxTime)
   efx, efy, estr = expFit(x,y)
-  pfx, pfy, pstr = polyFit(x,y)
-  sizes=map(int, map(pfy, desiredTimes))
-  print "Estimating reasonable input sizes (exp model: %s):"%estr, sizes
+  #pfx, pfy, pstr = polyFit(x,y)
+  sizes=map(int, map(efy, desiredTimes))
   return sizes
 
 
@@ -302,19 +314,9 @@ getCXXFLAGS = lambda: getMakefileFlag("CXXFLAGS")
 if __name__ == "__main__":
   chdirToPetabricksRoot()
   compilePetabricks()
-  compileBenchmarks(["add", "multiply", "transpose","test1","test2","test3","test4","test5","test6","test7","test8","test9","test10","test11"])
-  #test executetimingrun
-  print "executeTimingRun:"
-  pprint(executeTimingRun("./examples/add", 100, ["--trials=10"]))
-  print 
-  x,y=collectTimingSamples2("./examples/add", 4)
-  print "test polyFit"
-  testEstimation(x,y,polyFit, "./examples/add")
-  print "test expFit"
-  testEstimation(x,y,expFit, "./examples/add")
-  print 
+  compileBenchmarks(map(normalizeBenchmarkName, ["add", "multiply", "transpose"]))
   print "Estimating input sizes"
-  inferGoodInputSizes("./examples/add", [0.1,0.5,1.0], 8)
+  inferGoodInputSizes("./examples/simple/add", [0.1,0.5,1.0], 2)
   
 
 

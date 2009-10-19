@@ -1,0 +1,18 @@
+#ifndef POISSON2DMGVTRAIN_PBCC
+#define POISSON2DMGVTRAIN_PBCC
+
+#include "Poisson2Dmgv.pbcc"
+#include "mgv2DTrain.pbcc"
+
+transform Poisson2DmgvTrain
+from X[n,n], B[n,n]
+through zeros[(n+1)/2,(n+1)/2]
+to Y[n,n]
+{
+  to (Y y) from (X x, B b)
+  {
+    mgv2DTrain(y, x, b);
+  }
+}
+
+#endif // POISSON2DMGVTRAIN_PBCC

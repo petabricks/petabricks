@@ -5,6 +5,11 @@ default: all
 all:
 	aclocal
 	autoheader
-	automake
+	automake --foreign 
 	autoconf
 
+files:
+	aclocal
+	autoheader
+	automake --foreign -fca
+	autoconf

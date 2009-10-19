@@ -32,7 +32,6 @@ stamp-h1
 pbc
 *.cache
 
-src/cxxconfig.h
 maxima.log
 schedule.pdf
 
@@ -52,3 +51,4 @@ stlsorttest
 doc/api
 
 .exrc
+.aliases

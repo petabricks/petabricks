@@ -1,0 +1,233 @@
+/***************************************************************************
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
+ *                                                                         *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
+ *                                                                         *
+ *  A full list of authors may be found in the file AUTHORS.               *
+ ***************************************************************************/
+%{
+#include "ruleir.h"
+#include "formula.h"
+#include "common/jconvert.h"
+#include <stdio.h>
+#include <map>
+
+using namespace petabricks;
+
+extern int ruleirlineno;
+extern std::string ruleirfilename;
+
+extern int yylex (void);
+static int yyerror(const RIRBlockCopyRef&, const char* msg){ 
+  JASSERT(false)(ruleirfilename)
+                (ruleirlineno)
+                (msg)
+                .Text("parse error"); 
+  return 0;
+}
+
+static jalib::JRefPool theRefPool;
+#define REFALLOC(args...) (theRefPool.add(new args))
+
+static void clearParserCaches(){
+  theRefPool.clear();
+}
+
+%}
+
+%union {
+  const char* str;
+  petabricks::RIRExpr*  expr;
+  petabricks::RIRStmt*  stmt;
+  petabricks::RIRBlock* block;
+}
+
+%defines
+%locations
+//%expect 2
+%name-prefix="ruleir"
+%start Start
+%parse-param { petabricks::RIRBlockCopyRef& ret };
+
+%type <str> TOK_OP TOK_LIT TOK_IDENT TOK_RAW
+%type <expr> Op ExtraOps
+%type <expr> Lit
+%type <expr> Ident
+%type <expr> ExprElement Expr RootExpr 
+%type <expr> Call Paren
+%type <expr> Args OptArgs
+
+%type <stmt> Stmt IfStmt LoopStmt BlockStmt RawStmt ReturnStmt IntlzrStmt SwitchStmt CaseStmt
+%type <block> Block
+
+%left TOK_OP TOK_LIT TOK_IDENT TOK_IF TOK_THEN TOK_ELSE TOK_FOR TOK_WHILE TOK_DO TOK_RETURN TOK_BREAK TOK_CONTINUE TOK_RAW TOK_SWITCH TOK_CASE TOK_DEFAULT TOK_FORENOUGH
+
+%%
+
+Start: Block {
+  ret=$1;
+}
+
+Block: Block Stmt {($$=$1)->addStmt($2);}
+     | Nil        {$$=REFALLOC(RIRBlock());};
+
+Stmt: RootExpr ';' {($$=REFALLOC(RIRBasicStmt()))->addExpr($1);}
+    | Nil      ';' {($$=REFALLOC(RIRBasicStmt()));}
+    | IfStmt       {$$=$1;}
+    | LoopStmt     {$$=$1;}
+    | SwitchStmt   {$$=$1;}
+    | CaseStmt     {$$=$1;}
+    | BlockStmt    {$$=$1;}
+    | ReturnStmt   {$$=$1;}
+    | IntlzrStmt   {$$=$1;}
+    | RawStmt      {$$=$1;};
+
+IfStmt: TOK_IF '(' Expr ')' Stmt {
+  $$=REFALLOC(RIRIfStmt($5));
+  $$->addExpr($3);
+};
+
+IfStmt: TOK_IF '(' Expr ')' Stmt TOK_ELSE  Stmt {
+  $$=REFALLOC(RIRIfStmt($5, $7));
+  $$->addExpr($3);
+};
+
+SwitchStmt: TOK_SWITCH '(' Expr ')' Stmt {
+  $$=REFALLOC(RIRSwitchStmt($5));
+  $$->addExpr($3);
+};
+
+LoopStmt: TOK_FORENOUGH '(' Expr ';' Expr ')' Stmt {
+  $$=REFALLOC(RIRLoopStmt($7))->initForEnough($3, $5);
+};
+
+LoopStmt: TOK_FORENOUGH Stmt {
+  $$=REFALLOC(RIRLoopStmt($2))->initForEnough();
+};
+
+LoopStmt: TOK_FOR '(' Expr ';' Expr ';' Expr ')' Stmt {
+  $$=REFALLOC(RIRLoopStmt($9));
+  $$->addExpr($3);
+  $$->addExpr($5);
+  $$->addExpr($7);
+};
+
+LoopStmt: TOK_WHILE '(' Expr ')' Stmt {
+  $$=REFALLOC(RIRLoopStmt($5));
+  $$->addExpr(REFALLOC(RIRNilExpr()));
+  $$->addExpr($3);
+  $$->addExpr(REFALLOC(RIRNilExpr()));
+};
+
+LoopStmt: TOK_DO Stmt TOK_WHILE '(' Expr ')' ';'{
+  $$=REFALLOC(RIRLoopStmt($2));
+  UNIMPLEMENTED();
+};
+
+IntlzrStmt: RootExpr '{' RootExpr '}' ';' {
+  $$=REFALLOC(RIRBasicStmt());
+  $$->addExpr($1);
+  $$->addExpr(REFALLOC(RIROpExpr("{")));
+  $$->addExpr($3);
+  $$->addExpr(REFALLOC(RIROpExpr("}")));
+};
+
+BlockStmt: '{' Block '}' {
+  $$=REFALLOC(RIRBlockStmt($2));
+};
+
+ReturnStmt: TOK_RETURN Expr ';' {
+  $$=REFALLOC(RIRReturnStmt());
+  $$->addExpr(REFALLOC(RIRKeywordExpr("return")));
+  $$->addExpr($2);
+};
+
+ReturnStmt: TOK_RETURN ';' {
+  $$=REFALLOC(RIRReturnStmt());
+  $$->addExpr(REFALLOC(RIRKeywordExpr("return")));
+};
+ReturnStmt: TOK_BREAK ';' {
+  $$=REFALLOC(RIRBreakStmt());
+  $$->addExpr(REFALLOC(RIRKeywordExpr("break")));
+};
+ReturnStmt: TOK_CONTINUE ';' {
+  $$=REFALLOC(RIRContinueStmt());
+  $$->addExpr(REFALLOC(RIRKeywordExpr("continue")));
+};
+
+CaseStmt: TOK_CASE Expr {
+  $$=REFALLOC(RIRCaseStmt());
+  $$->addExpr(REFALLOC(RIRKeywordExpr("case")));
+  $$->addExpr($2);
+};
+
+CaseStmt: TOK_DEFAULT ':' {
+  $$=REFALLOC(RIRCaseStmt());
+  $$->addExpr(REFALLOC(RIRKeywordExpr("default")));
+  $$->addExpr(REFALLOC(RIROpExpr(":")));
+};
+
+
+
+RawStmt: TOK_RAW {
+  $$=REFALLOC(RIRRawStmt($1));
+};
+
+Expr: Expr ExprElement     {($$=$1)->addSubExpr($2);}
+    | ExprElement          {($$=REFALLOC(RIRChainExpr()))->addSubExpr($1);};
+
+RootExpr: RootExpr ExprElement {($$=$1)->addSubExpr($2);}
+        | ExprElement          {($$=REFALLOC(RIRChainExpr()))->addSubExpr($1);};
+
+ExprElement: Op                {$$=$1;}
+           | ExtraOps          {$$=$1;}
+           | Lit               {$$=$1;}
+           | Ident             {$$=$1;}
+           | Call              {$$=$1;}
+           | Paren             {$$=$1;};
+
+ExtraOps: '?' {$$=REFALLOC(RIROpExpr("?"));}
+        | ':' {$$=REFALLOC(RIROpExpr(":"));};
+
+Call: Ident '(' OptArgs ')'  { 
+  $$=REFALLOC(RIRCallExpr()); 
+  $$->addSubExpr($1);
+  $$->addSubExpr($3);
+};
+
+Paren: '(' Expr ')' {
+  $$=REFALLOC(RIRChainExpr());
+  $$->addSubExpr(REFALLOC(RIROpExpr("(")));
+  $$->addSubExpr($2);
+  $$->addSubExpr(REFALLOC(RIROpExpr(")")));
+};
+
+Args: Expr { ($$=REFALLOC(RIRArgsExpr()))->addSubExpr($1); }
+
+OptArgs: Nil   {$$=REFALLOC(RIRArgsExpr());}
+       | Args  {$$=$1;};
+
+Op:    TOK_OP    {$$=REFALLOC(RIROpExpr($1));};
+Lit:   TOK_LIT   {$$=REFALLOC(RIRLitExpr($1));};
+Ident: TOK_IDENT {$$=REFALLOC(RIRIdentExpr($1));};
+
+Nil:;
+
+%%
+
+void _ruleirlexer_scan_string( const std::string& str);
+
+RIRBlockCopyRef parseRuleBody(const std::string& str){
+  //JTRACE("Parsing rule body")(str);
+  _ruleirlexer_scan_string(str);
+  RIRBlockCopyRef ret;
+  ruleirparse(ret);
+  clearParserCaches();
+  return ret;
+}
+
+

@@ -1,0 +1,90 @@
+#ifndef PRECONDITIONER_PBCC
+#define PRECONDITIONER_PBCC
+
+#include "CG.pbcc"
+#include "PCG.pbcc"
+#include "jacobipre.pbcc"
+#include "polypre.pbcc"
+#include "demv.pbcc"
+#include "../simple/transpose.pbcc"
+#include "../multiply/multiply.pbcc"
+
+main transform preconditioner
+from X[n], A[n,n], B[n], NumIterations  // X - initial guess, A - input matrice, B - RHS vector
+through P[n,n]  // P - preconditioner
+to OUT[n]  //,Accuracy
+generator SPDGenerator
+accuracy_metric ResidualNorm
+accuracy_bins 0.9, 0.6, 0.3, 0
+{
+	//Jacobi preconditioner
+	to (OUT out, P p) from (X x, A a, B b, NumIterations num)
+	{
+		JacobiPre(p,a);
+		PCG(out, x, a, b, p, num);
+	}
+
+	//Polynomoial preconditioner
+        to (OUT out, P p) from (X x, A a, B b, NumIterations num)
+        {
+                PolyPre(p,a);
+                PCG(out, x, a, b, p, num);
+        }
+
+	//no preconditioner
+	to (OUT out, P p) from (X x, A a, B b, NumIterations num)
+	{
+		CG(out, x, a, b, num);
+	}
+
+//	to (Accuracy acc) from (B b, A a, OUT o)
+//	{
+//		ResidualNorm(acc, b, a, o);
+//	}
+
+}
+
+
+transform SPDGenerator
+to  X[n], A[n,n], B[n], NumIterations
+through AT[n,n]
+from RandA[n,n], T
+{
+  to (B b) from () { b.randomize(); }
+
+  to (X x) from () { x.randomize(); }
+
+  to (NumIterations num) from () { num=T; }
+
+  to (A a, AT at) from (RandA randa)
+  {
+	Transpose(at, randa);
+	MatrixMultiply(a, at, randa);
+  }
+
+}
+
+
+transform ResidualNorm
+from OUT[n], X[n], A[n,n], B[n], NumIterations 
+through AX[n]
+to Accuracy
+{
+  to (Accuracy acc, AX ax) from(B b, A a, OUT o) 
+  { 
+	int i;
+	ElementT temp;
+	ElementT sum=0;
+	demv(ax,a,o);
+	for (i=0; i<n; i++) 
+	{
+		temp=ax.cell(i)-b.cell(i);
+		sum+=temp*temp;
+	}
+	acc=sqrt(sum/n);
+
+  }
+}			
+
+
+#endif // PRECONDITIONER_PBCC

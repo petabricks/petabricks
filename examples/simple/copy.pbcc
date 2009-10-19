@@ -19,6 +19,17 @@ void InlineCopy2D(const MatrixRegion2D& out, const ConstMatrixRegion2D& in){
   }
 }
 
+void InlineCopy3D(const MatrixRegion3D& out, const ConstMatrixRegion3D& in){
+  JASSERT(in.count()==out.count());
+  for(int x=0; x<in.width(); ++x){
+    for(int y=0; y<in.height(); ++y){
+      for (int z=0; z<in.depth(); ++z){
+        out.cell(x,y,z) = in.cell(x,y,z);
+      }
+    }
+  }
+}
+
 %}
 
 transform Copy1D
@@ -31,7 +42,17 @@ to OUT[n]
   }
 }
 
-transform Copy2D
+transform Copy3D
+from IN[w,h,d]
+to OUT[w,h,d]
+{
+  OUT.cell(i,j,k) from (IN.cell(i,j,k) x)
+  {
+    return x;
+  }
+}
+
+transform Copy2D //last for regression tests
 from IN[w,h]
 to OUT[w,h]
 {

@@ -63,13 +63,16 @@ def processConfigFile(IN, OUT, FILTERS):
       o.write(line); 
 
 def getConfigVal(file, key):
-  val=None
+  val=[]
   def tmp(k,v):
     if k==key:
-      val=v
+      val.append(v)
     return k,v
   processConfigFile(file, "/dev/null", [tmp])
-  return val
+  if len(val)>0:
+    return val[0]
+  else:
+    return None
 
 def setConfigVal(file, key, val):
   processConfigFile(file, file, [setfilter(key, val)])

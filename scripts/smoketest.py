@@ -6,8 +6,16 @@ import sys
 import re
 import subprocess 
 import time
+import progress
 
-benchmarks=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests")
+runPct=0.05 #percent of time spent in run phase
+
+progress.remaining(1.00, 0.05)
+progress.status("running smoketest")
+
+t1=time.time()
+benchmarks=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:])
+t2=time.time()
 
 def resolveInputPath(path):
   if os.path.isfile("./testdata/"+path):
@@ -21,15 +29,22 @@ def forkrun(cmd):
 def run(cmd):
   return forkrun(cmd).wait()
 
-width=reduce(max, map(lambda b: len(b[0]), benchmarks))
+width=reduce(max, map(lambda b: len(b[0]), benchmarks), 0)
 
 passed=0
 total=0
 
 runjobs=[]
 
-print "Running benchmarks:"
+
+progress.remaining(runPct)
+progress.push()
+progress.status("running benchmarks")
+progress.echo("Running benchmarks:")
+progress.remainingTicks(2*len(benchmarks))
+
 for b in benchmarks:
+  progress.tick()
   total+=1
   name=b[0]
   bin=pbutil.benchmarkToBin(b[0])
@@ -37,12 +52,13 @@ for b in benchmarks:
   msg=name.ljust(width)
 
   if not os.path.isfile(bin):
-    print msg+" compile FAILED"
+    progress.echo(msg+" compile FAILED")
+    progress.tick()
     continue
 
   #build cmd
   hash=name
-  cmd=[bin]
+  cmd=[bin, '--fixedrandom']
   for x in b[1:]:
     cmd.append(resolveInputPath(x))
     hash+=" "+os.path.basename(x)
@@ -50,12 +66,13 @@ for b in benchmarks:
   cmd.append(outfile)
 
   #run
-  runjobs.append((msg,forkrun(cmd),outfile))
+  runjobs.append((msg,forkrun(cmd),outfile, cmd))
 
-for msg,p,outfile in runjobs:
+for msg,p,outfile,cmd in runjobs:
   rv = p.wait()
+  progress.tick()
   if rv != 0:
-    print msg+" run FAILED (status=%d)"%rv
+    progress.echo(msg+" run FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd)))
     continue
 
   checkcmd=["git","diff","--exit-code", outfile]
@@ -64,13 +81,18 @@ for msg,p,outfile in runjobs:
     time.sleep(0.1) #try letting the filesystem settle down
     rv = run(checkcmd)
     if rv != 0:
-      print msg+" run FAILED (wrong output)"
+      progress.echo(msg+" run FAILED (wrong output)")
       continue
   
-  print msg+" run PASSED"
+  progress.echo(msg+" run PASSED")
   passed+=1
 
-print "%d of %d tests passed"%(passed,total)
+t3=time.time()
+progress.echo("%d of %d tests passed (%.2fs compile, %.2fs run)"%(passed,total,(t2-t1),(t3-t2)))
+
+progress.pop()
+progress.remaining(0)
+progress.clear()
 
 sys.exit(min(total-passed, 124))
 

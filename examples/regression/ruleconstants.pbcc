@@ -1,0 +1,9 @@
+transform RuleConstants
+from IN[w,h] 
+to OUT[w,h] 
+{
+  to(OUT.cell(x,y) o) from(IN.cell(x,y) i) {
+    o=x+y;
+  }
+}
+
