@@ -20,6 +20,7 @@ namespace petabricks
 
 bool OpenCLUtil::has_init = false;
 std::vector<OpenCLDevice> OpenCLUtil::devices;
+cl_context OpenCLUtil::context;
 
 int
 OpenCLUtil::init( )
@@ -28,6 +29,10 @@ OpenCLUtil::init( )
 
   if( true == has_init )
     return 0;
+
+  // Create context.
+  if( (cl_context)0 == ( context = clCreateContextFromType( 0, CL_DEVICE_TYPE_GPU, NULL, NULL, NULL ) ) )
+    return -3;
 
   // Get device count.
   cl_uint device_count;
@@ -72,9 +77,14 @@ OpenCLUtil::init( )
       // Queue properties
       cl_command_queue_properties queue_props;
       clGetDeviceInfo( device_ids[i], CL_DEVICE_QUEUE_PROPERTIES,
-		       sizeof(queue_props), &dev_info->max_workgroup_size, NULL );
+		       sizeof(queue_props), &queue_props, NULL );
       dev_info->has_queue_outoforder_exec = queue_props & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
       dev_info->has_queue_profiling = queue_props & CL_QUEUE_PROFILING_ENABLE;
+
+      // Create queue
+      if( (cl_command_queue)0 == ( dev_info->queue =
+				   clCreateCommandQueue( context, device_ids[i], 0, NULL ) ) )
+	return -4;
     }
 
   // Clean up.
@@ -82,6 +92,17 @@ OpenCLUtil::init( )
 
   has_init = true;
   return 0;
+}
+
+void
+OpenCLUtil::deinit( )
+{
+  // Release command queues.
+  for( std::vector<OpenCLDevice>::iterator it = devices.begin( ); it != devices.end( ); ++it )
+    clReleaseCommandQueue( (*it).queue );
+
+  // Release context.
+  clReleaseContext( context );
 }
 
 void

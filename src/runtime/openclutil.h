@@ -28,6 +28,8 @@ namespace petabricks
 
     /** OpenCL-assigned unique identifier for this device. */
     cl_device_id id;
+    /** Handle to command queue for this device. */
+    cl_command_queue queue;
     /** True iff we're using this device. */
     bool enabled;
     /** Arbitrary string returned by OpenCL driver.  Typically the name of
@@ -63,6 +65,7 @@ namespace petabricks
     /** Class is a singleton. */
     OpenCLUtil( ) { }
 
+    static cl_context context;
     static bool has_init;
     static std::vector<OpenCLDevice> devices;
   };
