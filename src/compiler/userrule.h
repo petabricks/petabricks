@@ -74,6 +74,7 @@ public:
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
     generateTrampCodeSimple(trans, o, E_RF_STATIC);
     generateTrampCodeSimple(trans, o, E_RF_DYNAMIC);
+    generateTrampCodeSimple(trans, o, E_RF_OPENCL);
   }
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 

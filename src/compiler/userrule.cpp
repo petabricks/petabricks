@@ -362,17 +362,32 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
   taskargs.insert(taskargs.begin(), "const jalib::JRef<"+trans.instClassName()+"> transform");
 
-  if(E_RF_STATIC == flavor)
-    o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_STATIC_POSTFIX, packedargs);
-  else
-    o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_DYNAMIC_POSTFIX, packedargs);
+  switch( flavor )
+    {
+    case E_RF_STATIC:
+      o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_STATIC_POSTFIX, packedargs);
+      break;
+    case E_RF_DYNAMIC:
+      o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_DYNAMIC_POSTFIX, packedargs);
+      break;
+    case E_RF_OPENCL:
+      o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_OPENCL_POSTFIX, packedargs);
+      break;
+    default:
+      UNIMPLEMENTED( );
+    }
 
-  if((E_RF_STATIC != flavor) && !isRecursive() && !isSingleElement()){
+  if((E_RF_DYNAMIC == flavor) && !isRecursive() && !isSingleElement()){
     //shortcut
     o.comment("rule is a leaf, no sense in dynamically scheduling it");
     o.write("return");
     o.call(trampcodename(trans)+TX_STATIC_POSTFIX, packedargnames);
-  }else{
+  }else if( E_RF_OPENCL == flavor ) {
+
+    o.comment( "opencl code to go here" );
+
+
+  } else {
     if(E_RF_STATIC != flavor) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
 
     iterdef.unpackargs(o);

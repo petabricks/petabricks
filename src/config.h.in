@@ -176,9 +176,6 @@
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
 
-/* Define to the home page for this package. */
-#undef PACKAGE_URL
-
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
@@ -225,8 +222,11 @@
 /* define to add a system var to transform scope */
 #undef TRANSFORM_N_STR
 
-/* postfix for static versions of transforms */
+/* postfix for dynamic versions of transforms */
 #undef TX_DYNAMIC_POSTFIX
+
+/* postfix for opencl versions of transforms */
+#undef TX_OPENCL_POSTFIX
 
 /* postfix for static versions of transforms */
 #undef TX_STATIC_POSTFIX
