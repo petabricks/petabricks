@@ -197,7 +197,8 @@ AC_DEFINE([TEMPLATE_BIN_STR],  ["_acc_bin"],     [var name in output code for ac
 AC_DEFINE([RETURN_VAL_STR],   ["_pb_rv"],     [var name in output code for rule output variable])
 AC_DEFINE([TMPL_IMPL_PFX],     ["_tmpl"],        [prefix for expanded template implementations])
 AC_DEFINE([TX_STATIC_POSTFIX], ["_static"], [postfix for static versions of transforms])
-AC_DEFINE([TX_DYNAMIC_POSTFIX], ["_dynamic"], [postfix for static versions of transforms])
+AC_DEFINE([TX_DYNAMIC_POSTFIX], ["_dynamic"], [postfix for dynamic versions of transforms])
+AC_DEFINE([TX_OPENCL_POSTFIX], ["_opencl"], [postfix for opencl versions of transforms])
 
 AC_DEFINE([COORD_BEGIN_STR],["_iter_begin"],[var name in output code for begin coord])
 AC_DEFINE([COORD_END_STR],  ["_iter_end"],  [var name in output code for end coord])
