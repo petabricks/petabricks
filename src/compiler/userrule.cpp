@@ -433,6 +433,8 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   o.endFunc();
 }
 
+#ifdef HAVE_OPENCL
+
 void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef )
 {
   clo.os( ) << "#define ElementT double\n\n";
@@ -441,6 +443,8 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
 
   clo.endKernel( );
 }
+
+#endif
 
 void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
 

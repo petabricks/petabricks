@@ -82,9 +82,11 @@ public:
   }
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
+#ifdef HAVE_OPENCL
   ///
   /// Generate an OpenCL program implementing this rule
   void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef );
+#endif
 
   ///
   /// Generate seqential code to invoke this rule
