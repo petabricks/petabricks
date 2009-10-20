@@ -17,41 +17,41 @@ to AB[w,h]
   }
 
   //recursively chop the matrix in half
-  recursive(c) 
-  to(AB ab)
-  from( A.region(0,   0, c/2, h  ) a1,
-        A.region(c/2, 0, c,   h  ) a2,
-        B.region(0,   0, w,   c/2) b1,
-        B.region(0, c/2, w,   c  ) b2)
-  {
-    MatrixRegion2D tmp = MatrixRegion2D::allocate(w,h);
-    SPAWN(MatrixMultiply, ab,  a1, b1);
-    SPAWN(MatrixMultiply, tmp, a2, b2);
-    SYNC();
-    SPAWN(MatrixAdd, ab, ab, tmp);
-  }
+//recursive(c) 
+//to(AB ab)
+//from( A.region(0,   0, c/2, h  ) a1,
+//      A.region(c/2, 0, c,   h  ) a2,
+//      B.region(0,   0, w,   c/2) b1,
+//      B.region(0, c/2, w,   c  ) b2)
+//{
+//  MatrixRegion2D tmp = MatrixRegion2D::allocate(w,h);
+//  SPAWN(MatrixMultiply, ab,  a1, b1);
+//  SPAWN(MatrixMultiply, tmp, a2, b2);
+//  SYNC();
+//  SPAWN(MatrixAdd, ab, ab, tmp);
+//}
   
-  recursive(w)
-  to(AB.region(0,   0, w/2, h  ) ab1,
-     AB.region(w/2, 0, w,   h  ) ab2)
-  from( A a,
-        B.region(0,   0, w/2, c  ) b1,
-        B.region(w/2, 0, w,   c  ) b2)
-  {
-    SPAWN(MatrixMultiply, ab1, a, b1);
-    SPAWN(MatrixMultiply, ab2, a, b2);
-  }
+//recursive(w)
+//to(AB.region(0,   0, w/2, h  ) ab1,
+//   AB.region(w/2, 0, w,   h  ) ab2)
+//from( A a,
+//      B.region(0,   0, w/2, c  ) b1,
+//      B.region(w/2, 0, w,   c  ) b2)
+//{
+//  SPAWN(MatrixMultiply, ab1, a, b1);
+//  SPAWN(MatrixMultiply, ab2, a, b2);
+//}
 
-  recursive(h)
-  to(AB.region(0, 0,   w, h/2) ab1,
-     AB.region(0, h/2, w, h  ) ab2)
-  from(A.region(0,   0, c,   h/2) a1,
-       A.region(0, h/2, c,   h  ) a2,
-       B b)
-  {
-    SPAWN(MatrixMultiply, ab1, a1, b);
-    SPAWN(MatrixMultiply, ab2, a2, b);
-  }
+//recursive(h)
+//to(AB.region(0, 0,   w, h/2) ab1,
+//   AB.region(0, h/2, w, h  ) ab2)
+//from(A.region(0,   0, c,   h/2) a1,
+//     A.region(0, h/2, c,   h  ) a2,
+//     B b)
+//{
+//  SPAWN(MatrixMultiply, ab1, a1, b);
+//  SPAWN(MatrixMultiply, ab2, a2, b);
+//}
 }
 
 transform MatrixMultiplyTransposed
