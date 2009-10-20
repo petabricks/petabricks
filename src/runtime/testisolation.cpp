@@ -136,7 +136,7 @@ double petabricks::SubprocessTestIsolation::recvResult() {
     }
   }else{
     {
-      //perform a test read
+      //perform a test read -- we dont expect reads to block because of pselect above
       char buf[sizeof COOKIE];
       memset(buf, 0, sizeof buf);
       for(ssize_t n=0; n==0;){
