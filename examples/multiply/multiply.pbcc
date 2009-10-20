@@ -59,17 +59,14 @@ from A[n,n], B[n,n]
 through T[n,n]
 to C[n,n]
 {
-  //int power2 = (1<<(int)(log(n)/log(2))) ;
-  //JASSERT(n==power2)(n)(power2).Text("n must be a power of 2");
-
+  // no transpose
+  to(C c, T t) from(A a, B b) {
+    MatrixMultiply(c, a, b);
+  }
   // transpose b
   to(C c, T t) from(A a, B b) {
     Transpose(t,b);
     MatrixMultiply(c, a, t.transposed());
-  }
-  // no transpose
-  to(C c, T t) from(A a, B b) {
-    MatrixMultiply(c, a, b);
   }
   // transpose a
   to(C c, T t) from(A a, B b) {

@@ -61,9 +61,6 @@ to OUT[n], TEMP[n]
   rule InsertionSort
   to (OUT out, TEMP temp) from (IN in)
   {
-    if (n >= 4096) {
-      PetabricksRuntime::abort();
-    }
     InsertionsortSubArray(out, in);
   }
 }
