@@ -43,6 +43,7 @@ NULL=open("/dev/null", "w")
 maxint = 2147483647
 ignore_list = []
 DEBUG=False
+substderr=open("/dev/null","w")
 
 goodtimelimit = lambda: 1.0+reduce(min, results)
 
@@ -116,7 +117,7 @@ def getIgnoreList():
 
 def mainname():
   run_command = mkcmd("--name")
-  p = subprocess.Popen(run_command, stdout=subprocess.PIPE, stderr=NULL)
+  p = subprocess.Popen(run_command, stdout=subprocess.PIPE, stderr=substderr)
   os.waitpid(p.pid, 0)
   lines = p.stdout.readlines()
   return lines[-1].strip()
@@ -229,7 +230,7 @@ def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
     cmd.append("--autotune-tunable="+nameof(x))
   if DEBUG:
     print ' '.join(cmd)
-  p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=NULL)
+  p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=substderr)
   pfx="tuning "+nameof(tx)+":%d - "%site
   if site == -1:
     pfx="tuning %d cutoffs in %s - " % (len(cutoffs), nameof(tx))
@@ -310,6 +311,7 @@ def main(argv):
   global ignore_list
   global defaultArgs
   global DEBUG
+  global substderr
 
   config_tool_path = os.path.split(argv[0])[0] + "/configtool.py"
   app = argv[-1]
@@ -337,6 +339,7 @@ def main(argv):
       fast = True
     if o in ["-d", "--debug"]:
       DEBUG = True
+      substderr = sys.__stderr__
   
   pbutil.chdirToPetabricksRoot()
   pbutil.compilePetabricks()

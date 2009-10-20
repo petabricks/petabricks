@@ -360,14 +360,13 @@ void petabricks::PetabricksRuntime::runAutotuneLoop(const AutotunerList& tuners)
   Main* old = _main;
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n*=2){
     setSize(n+1);
-    double best = std::numeric_limits<double>::max();
+    bool overtime=false;
     for(size_t i=0; i<tuners.size(); ++i){
       _main = tuners[i]->main();
-      tuners[i]->trainOnce();
-      best = std::min(best, tuners[i]->lastBestResult());
+      overtime |= ! tuners[i]->trainOnce(GRAPH_MAX_SEC);
     }
     saveConfig();
-    if(best > GRAPH_MAX_SEC)
+    if(overtime) 
       break;
   }
   _main=old;
@@ -571,7 +570,13 @@ void petabricks::PetabricksRuntime::setIsTrainingRun(bool b){
 }
 
 void petabricks::PetabricksRuntime::abort(){
-  DynamicScheduler::cpuScheduler().abort();
+  TestIsolation* master = SubprocessTestIsolation::masterProcess();
+  if(master!=NULL){
+    master->endTest(std::numeric_limits<double>::max());//should abort us
+    UNIMPLEMENTED();
+  }else{
+    DynamicScheduler::cpuScheduler().abort();
+  }
 }
 void petabricks::PetabricksRuntime::runMultigridAutotuneMode(){
   std::string s1 = "Poisson2D_Inner_Prec1_1";
@@ -621,29 +626,29 @@ void petabricks::PetabricksRuntime::runMultigridAutotuneMode(){
     }
 
     prec_case->setValue(1);
-    at1.trainOnce();
+    at1.trainOnce(GRAPH_MAX_SEC);
     prec_case->setValue(2);
-    at2.trainOnce();
+    at2.trainOnce(GRAPH_MAX_SEC);
     prec_case->setValue(3);
-    at3.trainOnce();
+    at3.trainOnce(GRAPH_MAX_SEC);
     prec_case->setValue(4);
-    at4.trainOnce();
+    at4.trainOnce(GRAPH_MAX_SEC);
     prec_case->setValue(5);
-    at5.trainOnce();
+    at5.trainOnce(GRAPH_MAX_SEC);
 
     if (FULL_MULTIGRID_FLAG) {
       run_fullmg_flag->setValue(1);
 
       prec_case->setValue(1);
-      at6->trainOnce();
+      at6->trainOnce(GRAPH_MAX_SEC);
       prec_case->setValue(2);
-      at7->trainOnce();
+      at7->trainOnce(GRAPH_MAX_SEC);
       prec_case->setValue(3);
-      at8->trainOnce();
+      at8->trainOnce(GRAPH_MAX_SEC);
       prec_case->setValue(4);
-      at9->trainOnce();
+      at9->trainOnce(GRAPH_MAX_SEC);
       prec_case->setValue(5);
-      at10->trainOnce();
+      at10->trainOnce(GRAPH_MAX_SEC);
     }
 
     saveConfig();

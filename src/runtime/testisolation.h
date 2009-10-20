@@ -39,6 +39,9 @@ namespace petabricks {
       TunableMod(jalib::JTunable* tt=0, jalib::TunableValue vv=0):tunable(tt),value(vv){}
     };
   public:
+    static TestIsolation* masterProcess();
+
+
     SubprocessTestIsolation(double to);
 
     void onTunableModification(jalib::JTunable* t, jalib::TunableValue, jalib::TunableValue newVal);
