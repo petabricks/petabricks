@@ -34,6 +34,8 @@
 #  include <fftw3.h>
 #endif
 
+// Has to be after config.h
+#include "openclutil.h"
 
 #define PB_SPAWN(taskname, args...) \
   petabricks::spawn_hook( taskname ## _dynamic (args), _completion)

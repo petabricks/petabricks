@@ -9,32 +9,27 @@
  *                                                                         *
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
-#if !defined(PETABRICKSCODEGENERATOR_H) && defined(HAVE_OPENCL)
-#define PETABRICKSCODEGENERATOR_H
+#if !defined(PETABRICKSCLCODEGENERATOR_H) && defined(HAVE_OPENCL)
+#define PETABRICKSCLCODEGENERATOR_H
 
-#include "formula.h"
-#include "trainingdeps.h"
+#include "codegenerator.h"
 
 #include "common/jconvert.h"
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
 #include "common/jtunable.h"
 
-#include <iostream>
-#include <limits>
-#include <list>
-#include <map>
 #include <sstream>
 #include <string>
-#include <vector>
 
 namespace petabricks {
 
-class CodeGenerator;
+class CLCodeGenerator;
 typedef jalib::JRef<CLCodeGenerator> CLCodeGeneratorPtr;
 
 class CLCodeGenerator : public CodeGenerator
 {
+ public:
   /** Writes a properly-escaped C/C++ string literal to the specified output
    stream. */
   void outputEscapedStringTo( std::ostream& o );
@@ -42,6 +37,13 @@ class CLCodeGenerator : public CodeGenerator
   /** Returns a string holding a properly-escaped C/C++ string literal
    corresponding to the code generator's output. */
   std::string outputEscapedString( );
+
+  void localMemoryBarrier( );
+
+  void beginKernel( const std::vector<std::string>& outputs, const std::vector<std::string>& inputs, unsigned int dims );
+
+  void endKernel( );
+
 };
 
 }

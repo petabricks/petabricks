@@ -215,6 +215,7 @@ public:
   void mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region);
 protected:
   void indent();
+public:
   std::ostream& hos() { return _hos; }
   std::ostream& dos() { return _dos; }
   std::ostream& os()  { return _os; }

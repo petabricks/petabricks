@@ -11,7 +11,6 @@
  ***************************************************************************/
 #include "userrule.h"
 
-#include "iterationorders.h"
 #include "maximawrapper.h"
 #include "rircompilerpass.h"
 #include "staticscheduler.h"
@@ -386,12 +385,24 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     o.call(trampcodename(trans)+TX_STATIC_POSTFIX, packedargnames);
   }
   #ifdef HAVE_OPENCL
-  else if( E_RF_OPENCL == flavor ) {
+  else if( E_RF_OPENCL == flavor )
+    {
+      // Generate CL program
+      CLCodeGenerator clcodegen;
+      generateOpenCLKernel( trans, clcodegen, iterdef );
 
-    o.comment( "opencl code to go here" );
+      o.os( ) << "const char* clsrc = ";
+      clcodegen.outputEscapedStringTo( o.os( ) );
+      o.os( ) << ";\nsize_t clsrclen = strlen( clsrc );\n";
 
+      // Build program and create kernel
+      o.os( ) << "cl_program clprog = clCreateProgramWithSource( OpenCLUtil::getContext( ), 1, &clsrc, &clsrclen, NULL );\n";
+      o.os( ) << "clBuildProgram( clprog, 0, NULL, NULL, NULL, NULL );\n";
+      o.os( ) << "cl_kernel clkern = clCreateKernel( clprog, \"kernel_main\", NULL );\n";
 
-  }
+      // Trampoline will do copy-in/copy-out and invoke kernel
+      generateTrampCellCodeSimple( trans, o, E_RF_OPENCL );
+    }
   #endif
   else {
     if(E_RF_STATIC != flavor) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
@@ -422,7 +433,24 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   o.endFunc();
 }
 
+void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef )
+{
+  clo.os( ) << "#define ElementT double\n\n";
+  std::vector<std::string> foo;
+  clo.beginKernel( foo, foo, iterdef.dimensions( ) );
+
+  clo.endKernel( );
+}
+
 void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
+
+  // temporary
+  if( E_RF_OPENCL == flavor )
+    {
+      o.write( "return NULL;" );
+      return;
+    }
+
   std::vector<std::string> args;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     args.push_back((*i)->generateAccessorCode());

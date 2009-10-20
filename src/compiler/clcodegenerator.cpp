@@ -9,13 +9,13 @@
  *                                                                         *
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
-#ifdef HAVE_OPENCL
-
-#include "clcodegenerator.h"
-
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
+
+#ifdef HAVE_OPENCL
+
+#include "clcodegenerator.h"
 
 namespace petabricks
 {
@@ -26,7 +26,7 @@ CLCodeGenerator::outputEscapedStringTo( std::ostream& o )
   std::string str = _os.str( );
 
   o << "\"";
-  for( string::const_iterator it = str.begin( ); it != str.end( ); ++it )
+  for( std::string::const_iterator it = str.begin( ); it != str.end( ); ++it )
       switch( *it )
 	{
 	case '\\':
@@ -53,8 +53,26 @@ std::string
 CLCodeGenerator::outputEscapedString( )
 {
   std::stringstream ss;
-  outputEscapedTo( ss );
+  outputEscapedStringTo( ss );
   return ss.str( );
+}
+
+void
+CLCodeGenerator::localMemoryBarrier( )
+{
+  _os << "barrier( CLK_LOCAL_MEM_FENCE );\n";
+}
+
+void
+CLCodeGenerator::beginKernel( const std::vector<std::string>& outputs, const std::vector<std::string>& inputs, unsigned int dims )
+{
+  _os << "__kernel kernel_main( ) {\n";
+}
+
+void
+CLCodeGenerator::endKernel( )
+{
+  _os << "}\n";
 }
 
 }

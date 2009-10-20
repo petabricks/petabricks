@@ -15,9 +15,11 @@
 #include "pbc.h"
 
 #include "codegenerator.h"
+#include "clcodegenerator.h"
 #include "matrixdependency.h"
 #include "rule.h"
 #include "ruleir.h"
+#include "iterationorders.h"
 
 #include "common/jconvert.h"
 
@@ -80,6 +82,9 @@ public:
   }
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
+  ///
+  /// Generate an OpenCL program implementing this rule
+  void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef );
 
   ///
   /// Generate seqential code to invoke this rule
