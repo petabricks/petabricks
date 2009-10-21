@@ -1,12 +1,15 @@
 #!/usr/bin/python
 
-import pbutil
 import os
-import sys
+import pbutil
+import progress
 import re
 import subprocess 
+import sys
+import configtool
 import time
-import progress
+from xml.dom.minidom import parse
+
 
 def resolveInputPath(path):
   if os.path.isfile("./testdata/"+path):
@@ -23,37 +26,59 @@ def run(cmd):
 def testBenchmark(b):
   name=b[0]
   bin=pbutil.benchmarkToBin(name)
+  cfg=pbutil.benchmarkToCfg(name)
 
   if not os.path.isfile(bin):
     return False
-
+  
   #build cmd
   hash=name
-  cmd=[bin, '--fixedrandom']
+  iofiles=[]
   for x in b[1:]:
-    cmd.append(resolveInputPath(x))
+    iofiles.append(resolveInputPath(x))
     hash+=" "+os.path.basename(x)
   outfile="./testdata/.output/"+re.sub("[ /.]",'_',hash)
-  cmd.append(outfile)
+  iofiles.append(outfile)
 
-  #run
-  p = forkrun(cmd)
-  rv = p.wait()
-  if rv != 0:
-    print "run FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd))
+  cmd=[bin, '--fixedrandom', '--config=%s.cfg'%outfile, '--reset']
+  if run(cmd) != 0:
+    print "reset config failed"
     return False
 
-  checkcmd=["git","diff","--exit-code", outfile]
-  rv = run(checkcmd)
-  if rv != 0:
-    time.sleep(0.1) #try letting the filesystem settle down
+  try:
+    infoxml=parse(pbutil.benchmarkToInfo(name))
+  except:
+    print "invalid *.info file"
+    return False
+
+ #splitsto3  = map(lambda x: configtool.setfilter(x.getAttribute("name"), 3), pbutil.getTunablesSplitSize(infoxml))
+ #cfgStatic  = map(lambda x: configtool.setfilter(x.getAttribute("name"), 2147483648), pbutil.getTunablesSequential(infoxml))
+ #cfgDynamic = map(lambda x: configtool.setfilter(x.getAttribute("name"), 0), pbutil.getTunablesSequential(infoxml))
+
+  def setCfg(x):
+    configtool.processConfigFile(cfg,cfg,x)
+    return True
+  def test():
+    cmd=[bin, '--fixedrandom', '--config=%s.cfg'%outfile]
+    cmd.extend(iofiles)
+    rv = run(cmd)
+    if rv != 0:
+      print "run FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd))
+      return False
+
+    checkcmd=["git","diff","--exit-code", outfile]
     rv = run(checkcmd)
     if rv != 0:
-      print "run FAILED (wrong output)"
-      return False
-  
-  print "run PASSED"
-  return True
+      time.sleep(0.1) #try letting the filesystem settle down
+      rv = run(checkcmd)
+      if rv != 0:
+        print "run FAILED (wrong output)"
+        return False
+    
+    print "run PASSED"
+    return True
+
+  return test()
 
 t1=time.time()
 results=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:], testBenchmark)

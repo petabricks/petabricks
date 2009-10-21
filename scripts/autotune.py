@@ -25,6 +25,7 @@ import pbutil
 import progress
 import time
 from pprint import pprint
+from pbutil import getTunables
 
 from xml.dom.minidom import parse
 
@@ -124,11 +125,6 @@ def mainname():
 
 def getCallees(tx):
   return map( lambda c: transforms[c.getAttribute("callee")], tx.getElementsByTagName("calls") )
-
-def getTunables(tx, type):
-  return filter( lambda t: t.getAttribute("type")==type, tx.getElementsByTagName("tunable") )
-
-
 
 def getChoiceSites(tx):
   getSiteRe = re.compile( re.escape(nameof(tx)) + "_([0-9]*)_lvl[0-9]*_.*" )
@@ -259,8 +255,8 @@ def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
   if loops > 0 or passNumber>1:
     ctx=maintx
   if loops == 0:
-    cutoffs.extend(getTunables(tx, "system.cutoff.sequential"))
-  cutoffs.extend(getTunables(tx, "system.cutoff.splitsize"))
+    cutoffs.extend(pbutil.getTunablesSequential(tx))
+  cutoffs.extend(pbutil.getTunablesSplitSize(tx))
   choicesites = getChoiceSites(tx)
   for site in choicesites:
     tasks.append(TuneTask("algchoice" , lambda: autotuneAlgchoice(tx, site, ctx, inputSize, cutoffs), getChoiceSiteWeight(tx, site, cutoffs)))

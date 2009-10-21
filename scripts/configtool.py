@@ -13,6 +13,7 @@ USAGE='''USAGE:
 '''
 
 def getfilter(key):
+  key=key.encode('ascii')
   def f(k,v):
     if k==key:
       print v
@@ -20,6 +21,7 @@ def getfilter(key):
   return f
 
 def setfilter(key, val):
+  key=key.encode('ascii')
   def f(k,v):
     if k==key:
       v=val

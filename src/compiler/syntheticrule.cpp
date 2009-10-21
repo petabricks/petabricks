@@ -33,7 +33,7 @@ petabricks::FormulaPtr petabricks::SyntheticRule::getWhereClause() const {
 }
 
 std::string petabricks::SyntheticRule::getLabel() const {
-  return "<synthetic>";
+  return "synthetic";
 }
 
 bool petabricks::SyntheticRule::canProvide(const MatrixDefPtr&) const { 

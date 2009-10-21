@@ -438,10 +438,17 @@ def getMakefileFlag(name):
 
 getCXX      = lambda: getMakefileFlag("CXX")
 getCXXFLAGS = lambda: getMakefileFlag("CXXFLAGS")
- 
+
+def getTunables(tx, type):
+  return filter( lambda t: t.getAttribute("type")==type, tx.getElementsByTagName("tunable") )
+
+getTunablesSequential=lambda tx: getTunables(tx, "system.cutoff.sequential")
+getTunablesSplitSize=lambda tx: getTunables(tx, "system.cutoff.splitsize") 
+
 if __name__ == "__main__":
   chdirToPetabricksRoot()
   compilePetabricks()
   compileBenchmarks(map(normalizeBenchmarkName, ["add", "multiply", "transpose"]))
   print "Estimating input sizes"
   inferGoodInputSizes("./examples/simple/add", [0.1,0.5,1.0], 2)
+
