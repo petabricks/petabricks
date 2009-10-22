@@ -459,7 +459,7 @@ double petabricks::PetabricksRuntime::trainAndComputeWrapper(TestIsolation& ti){
 }
 
 double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti){
-  double v;
+  double v, acc=std::numeric_limits<double>::max();
 
   if(ti.beginTest(worker_threads)){
     jalib::JTime begin=jalib::JTime::now();
@@ -471,9 +471,13 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti){
     }else{
       v=end-begin;
     }
-    ti.endTest(v);
+    if(ACCURACY){
+      ti.disableTimeout();
+      acc=_main->accuracy();
+    }
+    ti.endTest(v,acc);
   }else{
-    v=ti.recvResult();
+    ti.recvResult(v,acc);
   }
     
   if(v==-1){
@@ -484,8 +488,7 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti){
     theTimings.push_back(v);
   }
   if(ACCURACY){
-    JTIMER_SCOPE(accuracycompute);
-    theAccuracies.push_back(_main->accuracy());
+    theAccuracies.push_back(acc);
   }
   return v;
 }
@@ -572,7 +575,7 @@ void petabricks::PetabricksRuntime::setIsTrainingRun(bool b){
 void petabricks::PetabricksRuntime::abort(){
   TestIsolation* master = SubprocessTestIsolation::masterProcess();
   if(master!=NULL){
-    master->endTest(std::numeric_limits<double>::max());//should abort us
+    master->endTest(std::numeric_limits<double>::max(), std::numeric_limits<double>::min());//should abort us
     UNIMPLEMENTED();
   }else{
     DynamicScheduler::cpuScheduler().abort();

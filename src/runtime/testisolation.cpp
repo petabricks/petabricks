@@ -59,6 +59,7 @@ static void _settestprocflags(){
 }
 
 static const char COOKIE[] = "!";
+static const char COOKIE_DISABLETIMEOUT[] = "E";
 
 petabricks::SubprocessTestIsolation::SubprocessTestIsolation(double to) 
   : _pid(-1), _fd(-1), _timeout(to)
@@ -100,19 +101,25 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads) {
   }
 }
 
-void petabricks::SubprocessTestIsolation::endTest(double result) {
+void petabricks::SubprocessTestIsolation::disableTimeout() {
+  JASSERT(write(_fd, COOKIE_DISABLETIMEOUT, strlen(COOKIE_DISABLETIMEOUT))>0)(JASSERT_ERRNO);
+  fsync(_fd);
+}
+
+void petabricks::SubprocessTestIsolation::endTest(double time, double accuracy) {
   JASSERT(_pid==0);
   JASSERT(write(_fd, COOKIE, strlen(COOKIE))>0)(JASSERT_ERRNO);
   jalib::JBinarySerializeWriterRaw o("pipe", _fd);
-  o.serialize(result);
+  o.serialize(time);
+  o.serialize(accuracy);
   o.serializeVector(_modifications);
+  fsync(_fd);
   DynamicScheduler::cpuScheduler().shutdown();
   _exit(0);
 }
 
-double petabricks::SubprocessTestIsolation::recvResult() {
+void petabricks::SubprocessTestIsolation::recvResult(double& time, double& accuracy) {
   int rv=-1;
-  double result = std::numeric_limits<double>::max();
   //wait for _timeout
   JASSERT(_pid>0);
   fd_set rfds;
@@ -136,6 +143,7 @@ double petabricks::SubprocessTestIsolation::recvResult() {
     }
   }else{
     {
+      JASSERT(sizeof COOKIE == sizeof COOKIE_DISABLETIMEOUT);
       //perform a test read -- we dont expect reads to block because of pselect above
       char buf[sizeof COOKIE];
       memset(buf, 0, sizeof buf);
@@ -145,12 +153,16 @@ double petabricks::SubprocessTestIsolation::recvResult() {
           n=0;
         if(rv==-1 && waitpid(_pid, &rv, WNOHANG)==_pid && rv!=0)
           break;
+        if(strncmp(buf, COOKIE_DISABLETIMEOUT, sizeof COOKIE_DISABLETIMEOUT)==0){
+          n=0; // wait for the real cookie
+        }
       }
       JASSERT(strncmp(COOKIE, buf, sizeof COOKIE)==0).Text("subprocess failed");
     }
     //read the result
     jalib::JBinarySerializeReaderRaw o("pipe", _fd);
-    o.serialize(result);
+    o.serialize(time);
+    o.serialize(accuracy);
     o.serializeVector(_modifications);
     for(size_t i=0; i<_modifications.size(); ++i)
       _modifications[i].tunable->setValue(_modifications[i].value);
@@ -161,7 +173,6 @@ double petabricks::SubprocessTestIsolation::recvResult() {
     JASSERT(rv==0)(rv).Text("test subprocess failed");
   }
   close(_fd);
-  return result;
 }
 
 bool petabricks::DummyTestIsolation::beginTest(int workerThreads) {
@@ -169,10 +180,9 @@ bool petabricks::DummyTestIsolation::beginTest(int workerThreads) {
   return true;
 }
 
-void petabricks::DummyTestIsolation::endTest(double /*result*/) {}
+void petabricks::DummyTestIsolation::endTest(double /*time*/, double /*accuracy*/) {}
 
-double petabricks::DummyTestIsolation::recvResult() {
+void petabricks::DummyTestIsolation::recvResult(double& /*time*/, double& /*accuracy*/) {
   JASSERT(false);
-  return -1;
 }
 

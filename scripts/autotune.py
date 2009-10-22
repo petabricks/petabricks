@@ -316,7 +316,7 @@ def main(argv):
 
   try:
     opts, args = getopt.getopt(argv[1:-1], "hn:p:", 
-        ["help","random=","min=","max=","config=","parallel_autotune","fast", "debug"])
+        ["help","random=","config=", "debug"])
   except getopt.error, msg:
     print "Error.  For help, run:", argv[0], "-h"
     sys.exit(2)
@@ -331,8 +331,6 @@ def main(argv):
       inputSize = int(a)
     if o in ["-c", "--config"]:
       cfg = a
-    if o == "--fast":
-      fast = True
     if o in ["-d", "--debug"]:
       DEBUG = True
       substderr = sys.__stderr__
@@ -357,6 +355,9 @@ def main(argv):
   #build index of transforms
   for t in infoxml.getElementsByTagName("transform"):
     transforms[nameof(t)]=t
+    if t.getAttribute("isTemplateInstance")=="yes":
+      if re.search("_0$", nameof(t)) is not None:
+        transforms[t.getAttribute("templateName")] = t
 
   maintx = transforms[mainname()]
   

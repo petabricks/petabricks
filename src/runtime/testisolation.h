@@ -23,8 +23,9 @@ namespace petabricks {
   public:
     virtual ~TestIsolation(){}
     virtual bool beginTest(int workerThreads)=0;
-    virtual void endTest(double result)=0;
-    virtual double recvResult()=0;
+    virtual void endTest(double time, double accuracy)=0;
+    virtual void recvResult(double& time, double& accuracy)=0;
+    virtual void disableTimeout(){}
   };
 
   /**
@@ -47,8 +48,9 @@ namespace petabricks {
     void onTunableModification(jalib::JTunable* t, jalib::TunableValue, jalib::TunableValue newVal);
 
     bool beginTest(int workerThreads);
-    void endTest(double result);
-    double recvResult();
+    void endTest(double time, double accuracy);
+    void recvResult(double& time, double& accuracy);
+    void disableTimeout();
   private:
     pid_t _pid;
     int _fd;
@@ -63,8 +65,8 @@ namespace petabricks {
   {
   public:
     bool beginTest(int workerThreads);
-    void endTest(double result);
-    double recvResult();
+    void endTest(double time, double accuracy);
+    void recvResult(double& time, double& accuracy);
   };
 
 }
