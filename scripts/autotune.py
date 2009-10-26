@@ -215,8 +215,9 @@ def autotuneCutoffBinarySearch(tx, tunable, n, min=0, max=-1):
   setConfigVal(tunable, val)
   progress.pop()
 
-iterRe = re.compile(r"^BEGIN ITERATION .* / ([0-9]+) .*")
-slotRe = re.compile(r"^SLOT\[([0-9]+)\] (ADD|KEEP) *(.*) = [0-9.]+")
+iterRe = re.compile(r"^BEGIN ITERATION .* / ([0-9]+)")
+slotRe = re.compile(r"^SLOT\[([0-9]+)\] (ADD|KEEP) *(.*) = ([0-9.eE-]+)")
+runRe = re.compile(r"^ *[*] *(TRY|TEST)")
 
 def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
   progress.push()
@@ -226,6 +227,11 @@ def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
     cmd.append("--autotune-tunable="+nameof(x))
   if DEBUG:
     print ' '.join(cmd)
+  runsCur=1
+  runsLast=1
+  inputCur=1
+  #progress formula assumes linear runtime of program
+  calcprog=lambda: 1.0 - (math.log(inputCur,2) + min(1.0,runsCur/float(runsLast)))/(math.log(n,2)+1)
   p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=substderr)
   pfx="tuning "+nameof(tx)+":%d - "%site
   if site == -1:
@@ -236,14 +242,24 @@ def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
     line=p.stdout.readline()
     if line == "":
       break
+    #BEGIN ITERATION .... / 4096
     m=iterRe.match(line)
     if m:
-      progress.remaining(1.0 - math.log(int(m.group(1)), 2)/math.log(n,2))
+      inputCur=int(m.group(1))
+      runsLast=runsCur
+      runsCur=0
+      progress.remaining(calcprog())
+    #SLOT[0] KEEP .... = 1.25
     m=slotRe.match(line)
     if m:
       if m.group(1)=="0":
         str=m.group(3)
         progress.status(pfx+str)
+    #  * TRY ... 
+    m=runRe.match(line)
+    if m:
+      runsCur+=1
+      progress.remaining(calcprog())
   assert p.wait()==0
   print "* "+pfx+str
   progress.pop()

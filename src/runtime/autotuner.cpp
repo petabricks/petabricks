@@ -11,6 +11,7 @@
  ***************************************************************************/
 #include "autotuner.h"
 #include "petabricksruntime.h"
+#include "common/jtimer.h"
 
 #include <limits>
 #include <algorithm>
@@ -239,6 +240,12 @@ void petabricks::Autotuner::removeDuplicates(){
 }
 
 double petabricks::CandidateAlgorithm::run(PetabricksRuntime& rt, Autotuner& autotuner, double thresh, bool inPop){
+  jalib::JTime begin = jalib::JTime::now();
+  if(inPop)
+    std::cout << "  * TEST ";
+  else
+    std::cout << "  * TRY  ";
+  std::cout << *this << " (limit "<<thresh<<") = " << std::flush;
   autotuner.resetConfig();
   activate();
   jalib::JTunable::setModificationCallback(this);
@@ -246,6 +253,7 @@ double petabricks::CandidateAlgorithm::run(PetabricksRuntime& rt, Autotuner& aut
   jalib::JTunable::setModificationCallback();
   addResult(d);
   autotuner.log().logLine(rt.curSize(), d, inPop);
+  std::cout << d << " (cost " << (jalib::JTime::now()-begin) << ")" << std::endl;
   return d;
 }
 
@@ -293,9 +301,7 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
 
   //run them all
   for(CandidateAlgorithmList::iterator i=possible.begin(); i!=possible.end(); ++i){
-    std::cout << "  * TRY " << *i << " = "<< std::flush;
     (*i)->run(rt, autotuner, thresh, false);
-    std::cout << (*i)->lastResult() << std::endl;
   }
 
   //sort by performance
