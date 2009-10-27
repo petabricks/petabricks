@@ -26,6 +26,7 @@ namespace petabricks {
     virtual void endTest(double time, double accuracy)=0;
     virtual void recvResult(double& time, double& accuracy)=0;
     virtual void disableTimeout(){}
+    virtual void restartTimeout(){}
   };
 
   /**
@@ -51,6 +52,9 @@ namespace petabricks {
     void endTest(double time, double accuracy);
     void recvResult(double& time, double& accuracy);
     void disableTimeout();
+    void restartTimeout();
+  protected:
+    std::string recvControlCookie(int& rv);
   private:
     pid_t _pid;
     int _fd;

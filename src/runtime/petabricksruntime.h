@@ -120,7 +120,7 @@ public:
   double runTrial(double thresh);
 
   static bool isTrainingRun();
-  static void setIsTrainingRun(bool b);
+  //static void setIsTrainingRun(bool b);
 
   void setSize(int n){_randSize=n;};
   int curSize() const { return _randSize;};
@@ -133,7 +133,7 @@ public:
   double trainAndComputeWrapper(TestIsolation&);
   
   
-  void variableAccuracyTrainingLoop();
+  void variableAccuracyTrainingLoop(TestIsolation& ti);
 
   class ComputeRetryException {};
 

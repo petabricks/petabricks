@@ -439,29 +439,25 @@ double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti){
 }
 
 double petabricks::PetabricksRuntime::trainAndComputeWrapper(TestIsolation& ti){
-  if(_main->isVariableAccuracy()){
-    variableAccuracyTrainingLoop();
-  }
-
-  _isTrainingRun = true;
-  _needTraingingRun = false;
-  double t;
   try {
-    t=computeWrapper(ti);
+    _isTrainingRun = true;
+    double t=computeWrapper(ti);
+    _isTrainingRun = false;
+    return t;
   }catch(ComputeRetryException e) {
     _isTrainingRun = false;
-    _needTraingingRun = false;
-    t=computeWrapper(ti);
+    return computeWrapper(ti);
   }
-  _isTrainingRun = false;
-  _needTraingingRun = false;
-  return t;
 }
 
 double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti){
   double v, acc=std::numeric_limits<double>::max();
-
   if(ti.beginTest(worker_threads)){
+    if(_isTrainingRun && _main->isVariableAccuracy()){
+      variableAccuracyTrainingLoop(ti);
+    }
+    _needTraingingRun = false;//reset flag set by isTrainingRun()
+
     jalib::JTime begin=jalib::JTime::now();
     _main->compute();
     jalib::JTime end=jalib::JTime::now();
@@ -480,20 +476,13 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti){
     ti.recvResult(v,acc);
   }
     
-  if(v==-1){
-    _isTrainingRun=false;
-    throw ComputeRetryException();
-  }
-  if(DUMPTIMING){
-    theTimings.push_back(v);
-  }
-  if(ACCURACY){
-    theAccuracies.push_back(acc);
-  }
+  if(v==-1)      throw ComputeRetryException();
+  if(DUMPTIMING) theTimings.push_back(v);
+  if(ACCURACY)   theAccuracies.push_back(acc);
   return v;
 }
   
-void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(){
+void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& ti){
   typedef MATRIX_ELEMENT_T ElementT;
   ElementT cur = std::numeric_limits<ElementT>::min();
   ElementT last = std::numeric_limits<ElementT>::min();
@@ -504,24 +493,33 @@ void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(){
     (*i)->setValue((*i)->min()+1); 
 
   for(int i=0; true;++i){
+    ti.restartTimeout();
     _main->compute();
+    ti.disableTimeout();
     cur = _main->accuracy();
     if(cur >= target){
       JTRACE("training goal reached")(i)(cur)(target);
-      break;
+      return;
     }
     if(cur <= last){
-      JASSERT(false)(i)(cur)(target).Text("training goal failed, no progress");
+      JTRACE("training goal failed, no progress")(i)(cur)(target);
       break;
     }
     //increment tuning var
     for(TunableListT::iterator i=tunables.begin(); i!=tunables.end(); ++i){
-      (*i)->setValue((*i)->value()+1); 
-      (*i)->verify();
+      if((*i)->value() < (*i)->max())
+        (*i)->setValue((*i)->value()+1); 
+      else{
+        JTRACE("training goal failed, max iterations")(cur)(target);
+        break; 
+      }
     }
-    JTRACE("training")(cur);
     last=cur;
   }
+  //failure if we reach here, reset tunables and abort
+  for(TunableListT::iterator i=tunables.begin(); i!=tunables.end(); ++i)
+    (*i)->setValue((*i)->min()); 
+  abort();
 }
 
 
@@ -568,9 +566,9 @@ bool petabricks::PetabricksRuntime::isTrainingRun(){
   return _isTrainingRun;
 }
 
-void petabricks::PetabricksRuntime::setIsTrainingRun(bool b){
-  _isTrainingRun=b;
-}
+// void petabricks::PetabricksRuntime::setIsTrainingRun(bool b){
+//   _isTrainingRun=b;
+// }
 
 void petabricks::PetabricksRuntime::abort(){
   TestIsolation* master = SubprocessTestIsolation::masterProcess();

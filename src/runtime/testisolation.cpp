@@ -58,8 +58,10 @@ static void _settestprocflags(){
 #endif
 }
 
+//keep these 1 char long: (all must be same size)
 static const char COOKIE[] = "!";
 static const char COOKIE_DISABLETIMEOUT[] = "E";
+static const char COOKIE_RESTARTTIMEOUT[] = "R";
 
 petabricks::SubprocessTestIsolation::SubprocessTestIsolation(double to) 
   : _pid(-1), _fd(-1), _timeout(to)
@@ -106,6 +108,11 @@ void petabricks::SubprocessTestIsolation::disableTimeout() {
   fsync(_fd);
 }
 
+void petabricks::SubprocessTestIsolation::restartTimeout() {
+  JASSERT(write(_fd, COOKIE_RESTARTTIMEOUT, strlen(COOKIE_RESTARTTIMEOUT))>0)(JASSERT_ERRNO);
+  fsync(_fd);
+}
+
 void petabricks::SubprocessTestIsolation::endTest(double time, double accuracy) {
   JASSERT(_pid==0);
   JASSERT(write(_fd, COOKIE, strlen(COOKIE))>0)(JASSERT_ERRNO);
@@ -118,61 +125,89 @@ void petabricks::SubprocessTestIsolation::endTest(double time, double accuracy) 
   _exit(0);
 }
 
-void petabricks::SubprocessTestIsolation::recvResult(double& time, double& accuracy) {
-  int rv=-1;
-  //wait for _timeout
-  JASSERT(_pid>0);
-  fd_set rfds;
-  FD_ZERO(&rfds);
-  FD_SET(_fd, &rfds);
-  struct timespec timeout;
-  timeout.tv_sec = (long) _timeout;
-  timeout.tv_nsec = (long)((_timeout-(double)timeout.tv_sec)*1.0e9);
-  if(_timeout>=std::numeric_limits<long>::max()){
+inline static void _settimespec(struct timespec& timeout, double sec){
+  if(sec>=std::numeric_limits<long>::max()){
     timeout.tv_sec=std::numeric_limits<long>::max();
     timeout.tv_nsec=0;
-  }
-  int s=pselect(_fd+1, &rfds, NULL, NULL, &timeout, NULL);
-  JASSERT(s>=0)(s);
-
-  if(s==0){
-    //timeout
-    if(rv==-1){
-      kill(_pid, SIGTERM);//error not checked
-      JASSERT(waitpid(_pid, &rv, NULL)==_pid);
-    }
   }else{
-    {
-      JASSERT(sizeof COOKIE == sizeof COOKIE_DISABLETIMEOUT);
-      //perform a test read -- we dont expect reads to block because of pselect above
-      char buf[sizeof COOKIE];
-      memset(buf, 0, sizeof buf);
-      for(ssize_t n=0; n==0;){
-        n=recv(_fd, buf, strlen(COOKIE), MSG_DONTWAIT);
-        if(n<0 && errno==EAGAIN)
-          n=0;
-        if(rv==-1 && waitpid(_pid, &rv, WNOHANG)==_pid && rv!=0)
-          break;
-        if(strncmp(buf, COOKIE_DISABLETIMEOUT, sizeof COOKIE_DISABLETIMEOUT)==0){
-          n=0; // wait for the real cookie
-        }
+    timeout.tv_sec = (long)sec;
+    timeout.tv_nsec = (long)((sec-(double)timeout.tv_sec)*1.0e9);
+  }
+}
+
+void petabricks::SubprocessTestIsolation::recvResult(double& time, double& accuracy) {
+  time = std::numeric_limits<double>::max();
+  accuracy = std::numeric_limits<double>::min();
+  int rv=-257;//special value means still running
+  struct timespec timeout;
+  fd_set rfds;
+  FD_ZERO(&rfds);
+  _settimespec(timeout, _timeout);
+
+  for(;;){
+    FD_SET(_fd, &rfds);
+    int s=pselect(_fd+1, &rfds, NULL, NULL, &timeout, NULL);
+    JASSERT(s>=0)(s);
+
+    if(s==0){
+      //timeout... kill the subprocess
+      if(rv<-256){
+        kill(_pid, SIGTERM);
+        JASSERT(waitpid(_pid,&rv,0)==_pid);
       }
-      JASSERT(strncmp(COOKIE, buf, sizeof COOKIE)==0).Text("subprocess failed");
+      break;
     }
+
+    //receive a control code
+    std::string cnt = recvControlCookie(rv);
+
+    //special control codes:
+    if(cnt==COOKIE_DISABLETIMEOUT){
+      _settimespec(timeout, std::numeric_limits<double>::max());
+      continue;
+    }
+    if(cnt==COOKIE_RESTARTTIMEOUT){
+      _settimespec(timeout, _timeout);
+      continue;
+    }
+
+    JASSERT(cnt==COOKIE)(cnt)(rv).Text("subprocess test failed");
+
     //read the result
     jalib::JBinarySerializeReaderRaw o("pipe", _fd);
     o.serialize(time);
     o.serialize(accuracy);
     o.serializeVector(_modifications);
+
+    //reapply tunable modifications to this process
     for(size_t i=0; i<_modifications.size(); ++i)
       _modifications[i].tunable->setValue(_modifications[i].value);
     _modifications.clear();
-    if(rv==-1){
+
+    //wait for subprocess to exit cleanly
+    if(rv<-256){
       JASSERT(waitpid(_pid,&rv,0)==_pid);
     }
     JASSERT(rv==0)(rv).Text("test subprocess failed");
+    break;
   }
   close(_fd);
+}
+
+std::string petabricks::SubprocessTestIsolation::recvControlCookie(int& rv) {
+  JASSERT(sizeof COOKIE == sizeof COOKIE_DISABLETIMEOUT);
+  JASSERT(sizeof COOKIE == sizeof COOKIE_RESTARTTIMEOUT);
+  //perform a test read -- we dont expect reads to block because of pselect above
+  char buf[sizeof COOKIE];
+  for(ssize_t n=0; n==0;){
+    memset(buf, 0, sizeof buf);
+    n=recv(_fd, buf, strlen(COOKIE), MSG_DONTWAIT);
+    if(n<0 && errno==EAGAIN)
+      n=0;
+    if(rv<-256 && waitpid(_pid, &rv, WNOHANG)==_pid && rv!=0)
+      break;//child failed
+  }
+  return buf;
 }
 
 bool petabricks::DummyTestIsolation::beginTest(int workerThreads) {
