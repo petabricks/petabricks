@@ -14,13 +14,13 @@
 
 #include "common/jassert.h"
 
+#include "rule.h"
+
 #include <map>
 #include <sstream>
 #include <vector>
 
 namespace petabricks {
-
-class RuleList;
 
 class TrainingDeps {
 public:
@@ -61,7 +61,8 @@ public:
     _os << ">\n";
   }
 
-  void emitRules(const RuleList& rules);
+  void emitRules(std::string& choicename,
+                 const std::vector<RulePtr>& sortedRules);
 
   void endTransform(const std::string& name, const std::string& /*instanceName*/){
     const std::vector<std::string>& calls = _callgraph[name];
