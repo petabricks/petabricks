@@ -16,6 +16,8 @@
 
 #include "common/jasm.h"
 
+#include <cstdio>
+
 namespace { //file local
 void _remapSet(petabricks::ScheduleNodeSet& set, const petabricks::ScheduleNodeRemapping& map){
   using namespace petabricks;
