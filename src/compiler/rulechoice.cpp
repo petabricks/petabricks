@@ -61,6 +61,7 @@ void petabricks::RuleChoice::generateCodeSimple( bool isStatic
     // the first rule.
     o.createTunable(true, "algchoice.alg", choicename, 0, 0,
                     sortedRules.size()-1);
+    o.cg().emitRules(choicename, sortedRules);
     o.beginSwitch(choicename);
   }
   for(std::vector<RulePtr>::const_iterator i=sortedRules.begin(); i!=sortedRules.end(); ++i){
