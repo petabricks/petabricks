@@ -44,9 +44,6 @@
    overridden by users) */
 #undef FORENOUGH_MIN_ITERS
 
-/* User a better random number generator in training */
-#undef GOOD_RANDOM
-
 /* Define to 1 if you have the `backtrace_symbols' function. */
 #undef HAVE_BACKTRACE_SYMBOLS
 

@@ -23,18 +23,8 @@ MATRIX_ELEMENT_T petabricks::MatrixStorage::rand(){
 }
 
 void petabricks::MatrixStorage::randomize(){
-#ifdef GOOD_RANDOM
   for(int i=0;i<_count; ++i){
     _data[i] = rand();
   }
-#else
-  //this method is bad... only use during compiler development
-  int x = mrand48();
-  int a = mrand48();
-  int b = mrand48();
-  for(int i=0;i<_count; ++i){
-    _data[i] = (x^=a*x+b);
-  }
-#endif
 }
 

@@ -211,7 +211,6 @@ AC_DEFINE([MIN_NUM_WORKERS],     [1],  [min number of workers supported])
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1],    [the default minimum number of iterations for forenough{} loops (can be overridden by users)])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for forenough{} loops (can be overridden by users)])
-AC_DEFINE([GOOD_RANDOM],         [], [User a better random number generator in training])
 AC_DEFINE([TIMEOUT_GRACESEC],  [0.2],  [Grace period before slow tests are killed])
 
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
