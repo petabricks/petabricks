@@ -249,7 +249,7 @@ double petabricks::CandidateAlgorithm::run(PetabricksRuntime& rt, Autotuner& aut
   autotuner.resetConfig();
   activate();
   jalib::JTunable::setModificationCallback(this);
-  double d = rt.runTrial(thresh);
+  double d = rt.runTrial(thresh, true);
   jalib::JTunable::setModificationCallback();
   addResult(d);
   autotuner.log().logLine(rt.curSize(), d, inPop);

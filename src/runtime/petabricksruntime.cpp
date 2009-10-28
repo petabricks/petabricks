@@ -245,7 +245,7 @@ int petabricks::PetabricksRuntime::runMain(){
       runNormal();
       break;
     case MODE_RUN_RANDOM:
-      runTrial(GRAPH_MAX_SEC);
+      runTrial(GRAPH_MAX_SEC, false);
       break;
     case MODE_GRAPH_INPUTSIZE:
       runGraphMode();
@@ -375,7 +375,7 @@ void petabricks::PetabricksRuntime::runAutotuneLoop(const AutotunerList& tuners)
 void petabricks::PetabricksRuntime::runGraphMode(){
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
     _randSize = (MULTIGRID_FLAG ? (1 << n) + 1 : n);
-    double avg = runTrial(GRAPH_MAX_SEC);
+    double avg = runTrial(GRAPH_MAX_SEC, false);
     if(avg<std::numeric_limits<double>::max())
       printf("%d %.6f\n", _randSize, avg);
     if(avg > GRAPH_MAX_SEC) break;
@@ -389,7 +389,7 @@ void petabricks::PetabricksRuntime::runGraphParamMode(const std::string& param){
   GRAPH_MAX = std::min(GRAPH_MAX, tunable->max());
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
     tunable->setValue(n);
-    double avg = runTrial(GRAPH_MAX_SEC);
+    double avg = runTrial(GRAPH_MAX_SEC, false);
     if(avg<std::numeric_limits<double>::max())
       printf("%d %.6lf\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;
@@ -402,18 +402,18 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
   for(int n = GRAPH_MIN; n <= GRAPH_MAX; n+= GRAPH_STEP) {
     worker_threads.setValue(n);
     DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
-    double avg = runTrial(GRAPH_MAX_SEC);
+    double avg = runTrial(GRAPH_MAX_SEC, false);
     if(avg<std::numeric_limits<double>::max())
       printf("%d %.6lf\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;
   }
 }
-double petabricks::PetabricksRuntime::runTrial(double thresh){
+double petabricks::PetabricksRuntime::runTrial(double thresh, bool train){
   SubprocessTestIsolation ti(thresh);
-  return runTrial(ti);
+  return runTrial(ti, train);
 }
 
-double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti){
+double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti, bool train){
   JASSERT(_randSize>0)(_randSize).Text("'--n=NUMBER' is required");
   try{
     std::vector<double> rslts;
@@ -422,14 +422,15 @@ double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti){
        ; n <= _randSize+GRAPH_SMOOTHING
        ; ++n)
     {
-      _main->randomInputs(n);
-      double t = trainAndComputeWrapper(ti); // first trial can train
-      for(int z=0;z<GRAPH_TRIALS-1; ++z){
+      double t = 0;
+      for(int z=0;z<GRAPH_TRIALS; ++z){
         _main->randomInputs(n);
-        t += computeWrapper(ti); // rest of trials cant train
+        if(z==0 && train)
+          t += trainAndComputeWrapper(ti); // first trial can train
+        else
+          t += computeWrapper(ti); // rest of trials cant train
       }
-      double avg = t/GRAPH_TRIALS;
-      rslts.push_back(avg);
+      rslts.push_back(t/GRAPH_TRIALS);//record average
     }
     std::sort(rslts.begin(), rslts.end());
     return rslts[GRAPH_SMOOTHING];
@@ -476,7 +477,7 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti){
     ti.recvResult(v,acc);
   }
     
-  if(v==-1)      throw ComputeRetryException();
+  if(v<0)      throw ComputeRetryException();
   if(DUMPTIMING) theTimings.push_back(v);
   if(ACCURACY)   theAccuracies.push_back(acc);
   return v;
@@ -541,7 +542,7 @@ double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable
   //scan the search space
   for(int n=min; n<max+step; n+=step){
     tunable.setValue(n);
-    double avg = runTrial(bestVal+1);
+    double avg = runTrial(bestVal+1, true);
     if(avg<=bestVal){
       bestVal=avg;
       best=n;

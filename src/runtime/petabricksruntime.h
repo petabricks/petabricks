@@ -116,8 +116,8 @@ public:
   void runAutotuneLoop(const AutotunerList& tuners);
   void runMultigridAutotuneMode();
 
-  double runTrial(TestIsolation&);
-  double runTrial(double thresh);
+  double runTrial(TestIsolation&, bool train);
+  double runTrial(double thresh, bool train);
 
   static bool isTrainingRun();
   //static void setIsTrainingRun(bool b);
