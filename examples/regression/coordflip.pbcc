@@ -1,0 +1,8 @@
+
+transform CoordFlip
+to A[n]
+from B[n]
+{
+  A.cell(i) from(B.cell(n-1-i) b) { return b; }
+}
+

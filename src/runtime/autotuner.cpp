@@ -11,6 +11,7 @@
  ***************************************************************************/
 #include "autotuner.h"
 #include "petabricksruntime.h"
+#include "common/jtimer.h"
 
 #include <limits>
 #include <algorithm>
@@ -22,6 +23,7 @@ JTUNABLE(autotune_cutoff_divisor,           16, 2, 1024);
 
 
 #define FIRST_DEATH_THRESH 0.005
+#define POP_PERFORMANCE_CUTOFF 1.5
 
 #define MAX_ALGS autotune_alg_slots
 #define BIRTH_ATTEMPTS autotune_branch_attempts
@@ -125,24 +127,25 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
     }
   }
 
-////add 2 level candidates
+  //add 2 level candidates
   CandidateAlgorithmList lvl2Candidates;
-//{
-//  JTunable* at = algTunable(2);
-//  JTunable* ct = cutoffTunable(2);
-//  int a=0, c=1;
-//  if(at==0){
-//    for(CandidateAlgorithmList::const_iterator i=lvl1Candidates.begin(); i!=lvl1Candidates.end(); ++i)
-//      lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, i->asPtr(), extraCutoffs));
-//  }else{
-//    for(a=at->min(); a<=at->max(); ++a){
-//      for(CandidateAlgorithmList::const_iterator i=lvl1Candidates.begin(); i!=lvl1Candidates.end(); ++i)
-//        lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, i->asPtr(), extraCutoffs));
-//    }
-//  }
-//}
+  {
+    JTunable* at = algTunable(2);
+    JTunable* ct = cutoffTunable(2);
+    int a=0, c=1;
+    if(at==0){
+      for(CandidateAlgorithmList::const_iterator i=lvl1Candidates.begin(); i!=lvl1Candidates.end(); ++i)
+        lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, i->asPtr(), extraCutoffs));
+    }else{
+      for(a=at->min(); a<=at->max(); ++a){
+        for(CandidateAlgorithmList::const_iterator i=lvl1Candidates.begin(); i!=lvl1Candidates.end(); ++i)
+          if(a!=(*i)->alg())
+            lvl2Candidates.push_back(new CandidateAlgorithm(2, a, at, c, ct, i->asPtr(), extraCutoffs));
+      }
+    }
+  }
 
-  JTRACE("Autotuner constructed")(lvl1Candidates.size())(lvl2Candidates.size());
+  //JTRACE("Autotuner constructed")(lvl1Candidates.size())(lvl2Candidates.size());
   _candidates.swap(lvl1Candidates);
   _candidates.insert(_candidates.end(), lvl2Candidates.begin(), lvl2Candidates.end());
 
@@ -150,24 +153,31 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
 }
 
 
-void petabricks::Autotuner::runAll(){
-  double best = DBL_MAX / 11.0;
+void petabricks::Autotuner::runAll(double timelimit){
   for(CandidateAlgorithmList::iterator i=_candidates.begin(); i!=_candidates.end(); ++i){
-    double d = (*i)->run(_runtime, *this, best*10+1, true);
+    double d = (*i)->run(_runtime, *this, timelimit , true);
     std::cout << std::flush;
-    best = std::min(d, best);
+    timelimit=std::min(timelimit, std::max(d*POP_PERFORMANCE_CUTOFF, 1.0));
   }
 }
 
-void petabricks::Autotuner::trainOnce(){
+bool petabricks::Autotuner::trainOnce(double limit){
   std::cout << "BEGIN ITERATION " << _prefix << " / " << _runtime.curSize() <<  " (in " << _main->name() << ")" << std::endl;
-  runAll();
+  runAll(limit);
 
+  //get the best performance for this round
   std::sort(_candidates.begin(), _candidates.end(), CmpLastPerformance());
   double bestPerf = _candidates[0]->lastResult();
+  std::sort(_candidates.begin(), _candidates.end(), CmpLastLastPerformance());
+
+  if(bestPerf > std::numeric_limits<double>::max()/2){
+    //test ran too slowly, abort
+    _initialConfig->activate();
+    _candidates[0]->activate();
+    return false;
+  }
 
   // add new algorithms -- by last rounds performance
-  std::sort(_candidates.begin(), _candidates.end(), CmpLastLastPerformance());
   int numCurrentCandidates = _candidates.size();
   for(int i=0; i<BIRTH_ATTEMPTS && i<numCurrentCandidates; ++i){
     _initialConfig->activate();
@@ -197,6 +207,7 @@ void petabricks::Autotuner::trainOnce(){
   //reset config
   _initialConfig->activate();
   _candidates[0]->activate();
+  return true;
 }
 
 void petabricks::Autotuner::printCanidates(){
@@ -229,13 +240,20 @@ void petabricks::Autotuner::removeDuplicates(){
 }
 
 double petabricks::CandidateAlgorithm::run(PetabricksRuntime& rt, Autotuner& autotuner, double thresh, bool inPop){
+  jalib::JTime begin = jalib::JTime::now();
+  if(inPop)
+    std::cout << "  * TEST ";
+  else
+    std::cout << "  * TRY  ";
+  std::cout << *this << " (limit "<<thresh<<") = " << std::flush;
   autotuner.resetConfig();
   activate();
   jalib::JTunable::setModificationCallback(this);
-  double d = rt.runTrial(thresh);
+  double d = rt.runTrial(thresh, true);
   jalib::JTunable::setModificationCallback();
   addResult(d);
   autotuner.log().logLine(rt.curSize(), d, inPop);
+  std::cout << d << " (cost " << (jalib::JTime::now()-begin) << ")" << std::endl;
   return d;
 }
 
@@ -283,9 +301,7 @@ petabricks::CandidateAlgorithmPtr petabricks::CandidateAlgorithm::attemptBirth(P
 
   //run them all
   for(CandidateAlgorithmList::iterator i=possible.begin(); i!=possible.end(); ++i){
-    std::cout << "  * TRY " << *i << " = "<< std::flush;
     (*i)->run(rt, autotuner, thresh, false);
-    std::cout << (*i)->lastResult() << std::endl;
   }
 
   //sort by performance

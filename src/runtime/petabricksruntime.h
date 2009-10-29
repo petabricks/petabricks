@@ -27,6 +27,7 @@
 #endif
 
 namespace petabricks {
+class TestIsolation;
 class Autotuner;
 typedef jalib::JRef<Autotuner> AutotunerPtr;
 typedef std::vector<AutotunerPtr> AutotunerList;
@@ -115,10 +116,11 @@ public:
   void runAutotuneLoop(const AutotunerList& tuners);
   void runMultigridAutotuneMode();
 
-  double runTrial(double thresh = DBL_MAX);
+  double runTrial(TestIsolation&, bool train);
+  double runTrial(double thresh, bool train);
 
   static bool isTrainingRun();
-  static void setIsTrainingRun(bool b);
+  //static void setIsTrainingRun(bool b);
 
   void setSize(int n){_randSize=n;};
   int curSize() const { return _randSize;};
@@ -127,16 +129,16 @@ public:
 
   static void saveConfig();
 
-  double computeWrapper(double thresh = DBL_MAX);
-  double trainAndComputeWrapper(double thresh = DBL_MAX);
+  double computeWrapper(TestIsolation&);
+  double trainAndComputeWrapper(TestIsolation&);
   
   
-  void variableAccuracyTrainingLoop();
+  void variableAccuracyTrainingLoop(TestIsolation& ti);
 
   class ComputeRetryException {};
 
   static int randInt(int min=0, int max=RAND_MAX){
-    return (mrand48()%(max-min)) + min;
+    return (lrand48()%(max-min)) + min;
   }
   static double randDouble(double min=0, double max=std::numeric_limits<int>::max()){
     return (drand48()*(max-min)) + min;

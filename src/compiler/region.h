@@ -128,9 +128,9 @@ public:
   std::string generateSignatureCode(bool isConst) const;
   std::string generateAccessorCode() const;
 
-  SimpleRegionPtr getApplicableRegion(RuleInterface& rule, const FormulaList& defs, bool isOutput);
+  SimpleRegionPtr getApplicableRegion(Transform& tx, RuleInterface& rule, const FormulaList& defs, bool isOutput);
 
-  void collectDependencies(const RuleInterface& rule, MatrixDependencyMap& map) const;
+  void collectDependencies(const Transform& tx, const RuleInterface& rule, MatrixDependencyMap& map) const;
 
   void addAssumptions() const;
 
@@ -140,13 +140,15 @@ public:
   
   ///
   /// Get rate of change for this region as rule center moves
-  FormulaList diff(const RuleInterface&) const;
+  FormulaList diff(const Transform&, const RuleInterface&) const;
 
   bool isSingleElement() const { return _originalType==REGION_CELL && dimensions()>0; }
   
   const std::string& name() const { return _name; }
 
   bool isAll() const { return _originalType == REGION_ALL; }
+
+  void assertNotInput();
 private:
   std::string _name;
   std::string _fromMatrixName;

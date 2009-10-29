@@ -14,13 +14,15 @@
 
 #include "common/jassert.h"
 
+#include "rule.h"
+
 #include <map>
 #include <sstream>
 #include <vector>
 
 namespace petabricks {
 
-class TrainingDeps{
+class TrainingDeps {
 public:
 
   void addAlgchoice(const std::string& name, bool isStatic, int levels){
@@ -58,25 +60,29 @@ public:
     _os << " isTemplateInstance=\"" << (name==instanceName ? "no" : "yes") << "\"";
     _os << ">\n";
   }
+
+  void emitRules(std::string& choicename,
+                 const std::vector<RulePtr>& sortedRules);
+
   void endTransform(const std::string& name, const std::string& /*instanceName*/){
     const std::vector<std::string>& calls = _callgraph[name];
-    for(size_t i=0; i<calls.size(); ++i)
-      _os << "    <calls caller=\"" << name << "\" callee=\"" << calls[i] << "\" />\n";
-    _os << "  </transform>\n"; 
+    for(size_t i=0; i<calls.size(); ++i) {
+      _os << "    <calls caller=\"" << name << "\" callee=\"" << calls[i]
+          << "\" />\n";
+    }
+    _os << "  </transform>\n";
   }
-
-
 
   static void addCallgraphEdge(const std::string& caller, const std::string& callee){
     _callgraph[caller].push_back(callee);
   }
-
 
   void dumpTo(std::ostream& o){
     o << "<traininginfo>\n";
     o << _os.str();
     o << "</traininginfo>\n";
   }
+
 private:
   std::stringstream _os;
   static std::map<std::string, std::vector<std::string> > _callgraph;

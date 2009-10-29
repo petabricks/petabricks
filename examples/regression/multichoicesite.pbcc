@@ -1,0 +1,19 @@
+
+transform Test
+from IN[n] 
+to OUT[n] 
+{
+  rule A
+  OUT.cell(i) from() where i<n/2 {
+    return i;
+  }
+  rule B
+  OUT.cell(i) from() {
+    return i;
+  }
+  rule C
+  OUT.cell(i) from() {
+    return i;
+  }
+}
+

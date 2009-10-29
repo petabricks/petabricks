@@ -32,6 +32,10 @@ petabricks::FormulaPtr petabricks::SyntheticRule::getWhereClause() const {
   return NULL; 
 }
 
+std::string petabricks::SyntheticRule::getLabel() const {
+  return "synthetic";
+}
+
 bool petabricks::SyntheticRule::canProvide(const MatrixDefPtr&) const { 
   UNIMPLEMENTED(); 
   return false;
@@ -160,5 +164,3 @@ void petabricks::WhereExpansionRule::collectDependencies(StaticScheduler& schedu
   for(i=_rules.begin(); i!=_rules.end(); ++i)
     (*i)->collectDependencies(scheduler);
 }
-
-

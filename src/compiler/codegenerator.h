@@ -100,14 +100,14 @@ public:
       o << "JTUNABLESTATIC(" << name<< ","<< i->second << ");\n";
     }
     theTunableDefs()[name] = o.str();
-    _cg.addTunable( isTunable, category, name, initial, min, max);
+    _cg.addTunable(isTunable, category, name, initial, min, max);
   }
-  void createTunableArray(const std::string& category
-                    , const std::string& name
-                    , int count
-                    , int initial
-                    , int min=0
-                    , int max=std::numeric_limits<int>::max())
+  void createTunableArray( const std::string& category
+                         , const std::string& name
+                         , int count
+                         , int initial
+                         , int min=0
+                         , int max=std::numeric_limits<int>::max())
   {
     //JTRACE("new tunable")(name)(initial)(min)(max);
     theTunableDefs()[name] =
@@ -116,7 +116,7 @@ public:
               +","+jalib::XToString(initial)
               +","+jalib::XToString(min)
               +","+jalib::XToString(max)+");";
-    _cg.addTunable( false, category, name, initial, min, max);
+    _cg.addTunable(false, category, name, initial, min, max);
   }
 
   void beginSwitch(const std::string& var){
