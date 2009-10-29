@@ -21,6 +21,12 @@ namespace petabricks
 {
 
 void
+CLCodeGenerator::outputStringTo( std::ostream& o )
+{
+  o << _os.str( );
+}
+
+void
 CLCodeGenerator::outputEscapedStringTo( std::ostream& o )
 {
   std::string str = _os.str( );
@@ -36,10 +42,10 @@ CLCodeGenerator::outputEscapedStringTo( std::ostream& o )
 	  o << "\\\"";
 	  break;
 	case '\n':
-	  o << "\\\n";
+	  o << "\\n";
 	  break;
 	case '\t':
-	  o << "\\\t";
+	  o << "\\t";
 	  break;
 	default:
 	  o << *it;
@@ -63,10 +69,32 @@ CLCodeGenerator::localMemoryBarrier( )
   _os << "barrier( CLK_LOCAL_MEM_FENCE );\n";
 }
 
+#define STRINGIFY(x) STRINGIFY_INNER(x)
+#define STRINGIFY_INNER(x) #x
+
 void
 CLCodeGenerator::beginKernel( const std::vector<std::string>& outputs, const std::vector<std::string>& inputs, unsigned int dims )
 {
-  _os << "__kernel kernel_main( ) {\n";
+  JASSERT( dims >= 1 );
+  JASSERT( outputs.size( ) > 0 );
+  JASSERT( inputs.size( ) > 0 );
+
+  _os << "__kernel kernel_main( ";
+
+  // The kernel will need a pointer to an appropriate chunk of each input and output matrix
+  for( std::vector<std::string>::const_iterator it = outputs.begin( ); it != outputs.end( ); ++it )
+    _os << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* " << *it << ", ";
+  for( std::vector<std::string>::const_iterator it = inputs.begin( ); it != inputs.end( ); ++it )
+    _os << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* " << *it << ", ";
+  // And we'll need to provide the size of the region that we want the kernel to operate on.
+  for( unsigned int i = 0; i < dims; ++i )
+    {
+      _os << "int dim_d" << i;
+      if( i != ( dims - 1 ) )
+	_os << ", ";
+    }
+
+  _os << " ) {\n";
 }
 
 void

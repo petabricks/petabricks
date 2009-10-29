@@ -44,6 +44,8 @@ class CLCodeGenerator : public CodeGenerator
 
   void endKernel( );
 
+  void outputStringTo( std::ostream& o );
+
 };
 
 }

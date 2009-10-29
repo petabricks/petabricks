@@ -391,6 +391,10 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       CLCodeGenerator clcodegen;
       generateOpenCLKernel( trans, clcodegen, iterdef );
 
+      o.os( ) << "/* -- Testing purposes only, to make this easy to read --\n";
+      clcodegen.outputStringTo( o.os( ) );
+      o.os( ) << "\n*/\n";
+
       o.os( ) << "const char* clsrc = ";
       clcodegen.outputEscapedStringTo( o.os( ) );
       o.os( ) << ";\nsize_t clsrclen = strlen( clsrc );\n";
@@ -437,10 +441,43 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
 void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef )
 {
-  clo.os( ) << "#define ElementT double\n\n";
-  std::vector<std::string> foo;
-  clo.beginKernel( foo, foo, iterdef.dimensions( ) );
+  std::vector<std::string> from_matrices, to_matrices;
+  for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+    to_matrices.push_back( (*i)->matrix( )->name( ) );
+  for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
+    from_matrices.push_back( (*i)->matrix( )->name( ) );
 
+  clo.beginKernel( to_matrices, from_matrices, iterdef.dimensions( ) );
+
+  // Get indices.
+  for( int i = 0; i < iterdef.dimensions( ); ++i )
+    clo.os( ) << "unsigned int " << _getOffsetVarStr( _id, i, NULL ) << " = get_global_id( " << i << " );\n";
+
+  // Conditional to ensure we are about to work on a valid part of the buffer.
+  clo.os( ) << "if( ";
+  for( int i = 0; i < iterdef.dimensions( ); ++i )
+    {
+      clo.os( ) << "pos_d" << i << " < dim_d" << i << " ";
+      if( i != ( iterdef.dimensions( ) - 1 ) )
+	clo.os( ) << "&& ";
+    }
+  clo.os( ) << ") {\n";
+
+  // Generate indices into input and output arrays.
+  for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+    {
+      clo.os( ) << "unsigned int idx_" << (*i)->matrix( )->name( ) << " = ";
+      //	      << (*i)->generateAccessorCode( )
+      //	      << (*i)->minCoord( )
+      (*i)->minCoord( ).print( clo.os( ) );
+      clo.os( ) << ";\n";
+    }
+
+  // Generate OpenCL implementation of rule logic.
+  /** \todo */
+
+  // Close conditional and kernel.
+  clo.os( ) << "}\n";
   clo.endKernel( );
 }
 
