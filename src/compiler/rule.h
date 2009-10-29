@@ -112,6 +112,8 @@ public:
   virtual bool hasWhereClause() const = 0;
   virtual FormulaPtr getWhereClause() const = 0;
 
+  virtual std::string getLabel() const = 0;
+
   ///
   /// Remove out-of-bounds solutions from the given formula list 
   FormulaPtr trimImpossible(const FormulaList& l);

@@ -17,11 +17,16 @@
 
 namespace petabricks {
 
+struct RuleIdComparer {
+  bool operator()(const petabricks::RulePtr& x, const petabricks::RulePtr& y){
+    return x->id() < y->id();
+  }
+};
+
 class CodeGenerator;
 class RuleChoice;
 class ScheduleNode;
 typedef jalib::JRef<RuleChoice> RuleChoicePtr;
-
 
 /**
  * Stores the choice made by the Learner for a given region

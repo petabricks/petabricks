@@ -117,7 +117,7 @@ void petabricks::RuleFlags::print(std::ostream& os) const {
 
 void petabricks::UserRule::print(std::ostream& os) const {
   _flags.print(os);
-  os << "UserRule " << _id;
+  os << "UserRule " << _id << " " << _label;
   if(!_from.empty()){
     os << "\nfrom(";  printStlList(os,_from.begin(),_from.end(), ", "); os << ")"; 
   } 
@@ -163,6 +163,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
 
   jalib::Map(&Region::initialize, trans, _from);
   jalib::Map(&Region::initialize, trans, _to);
+  jalib::Map(&Region::assertNotInput,    _to);
   _conditions.normalize();
 //   JASSERT(_to.size()==1)(_to.size())
 //     .Text("Currently only one output region per rule is supported.");
@@ -189,14 +190,14 @@ void petabricks::UserRule::initialize(Transform& trans) {
   _conditions.makeRelativeTo(_definitions);
 
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
-    SimpleRegionPtr ar = (*i)->getApplicableRegion(*this, _definitions, true);
+    SimpleRegionPtr ar = (*i)->getApplicableRegion(trans, *this, _definitions, true);
     if(_applicableRegion)
       _applicableRegion = _applicableRegion->intersect(ar);
     else
       _applicableRegion = ar;
   }
   for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
-    SimpleRegionPtr ar = (*i)->getApplicableRegion(*this, _definitions, false);
+    SimpleRegionPtr ar = (*i)->getApplicableRegion(trans, *this, _definitions, false);
     if(_applicableRegion)
       _applicableRegion = _applicableRegion->intersect(ar);
     else
@@ -259,11 +260,10 @@ void petabricks::UserRule::initialize(Transform& trans) {
 
   //fill dependencies
   for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
-    (*i)->collectDependencies(*this,_depends);
+    (*i)->collectDependencies(trans, *this,_depends);
   }
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->collectDependencies(*this,_provides)
-;
+    (*i)->collectDependencies(trans, *this,_provides);
   }
 
   MaximaWrapper::instance().popContext();
@@ -485,12 +485,14 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
 
 void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
 
+#ifdef HAVE_OPENCL
   // temporary
   if( E_RF_OPENCL == flavor )
-    {
+  {
       o.write( "return NULL;" );
       return;
-    }
+  }
+#endif
 
   std::vector<std::string> args;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -603,4 +605,3 @@ std::string petabricks::UserRule::implcodename(Transform& trans) const {
 std::string petabricks::UserRule::trampcodename(Transform& trans) const {
   return trans.name()+"_apply_rule" + jalib::XToString(_id-trans.ruleIdOffset());
 }
-

@@ -22,7 +22,7 @@ inline static petabricks::FormulaPtr LARGE(){
 }
 
 petabricks::MatrixDef::MatrixDef(const char* name, const FormulaList& version, const FormulaList& size)
-  : _name(name), _version(version), _size(size) 
+  : _name(name), _version(version), _size(size), _type(T_UNKNOWN)
 {}
 
 void petabricks::MatrixDef::print(std::ostream& o) const {

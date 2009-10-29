@@ -57,6 +57,18 @@ public:
   void addRotations(RuleFlags::RotationT v) { _flags.rotations |= v; }
 
   ///
+  /// Set rule label
+  void setLabel(const char *label) {
+    _label = label;
+  }
+
+  ///
+  /// Get rule label
+  std::string getLabel() const {
+    return _label;
+  }
+
+  ///
   /// Print this rule to a given stl stream
   /// implements JPrintable::print
   void print(std::ostream& o) const;
@@ -173,6 +185,7 @@ private:
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr          _recursiveHint;
+  std::string _label;
 };
 
 }

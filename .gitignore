@@ -1,6 +1,9 @@
 #programming general
 *~
 .*.swp
+.swp
+.*.swo
+.swo
 *.o
 *.a
 *.so

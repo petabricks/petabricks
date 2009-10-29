@@ -143,11 +143,11 @@ public:
   jalib::JTunable* algTunable(int lvl);
   jalib::JTunable* cutoffTunable(int lvl);
 
-  void runAll();
+  void runAll(double thresh);
 
   //void train(int min, int max);
 
-  void trainOnce();
+  bool trainOnce(double thresh);
 
   void printCanidates();
 

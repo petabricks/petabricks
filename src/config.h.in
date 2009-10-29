@@ -44,9 +44,6 @@
    overridden by users) */
 #undef FORENOUGH_MIN_ITERS
 
-/* User a better random number generator in training */
-#undef GOOD_RANDOM
-
 /* Define to 1 if you have the `backtrace_symbols' function. */
 #undef HAVE_BACKTRACE_SYMBOLS
 
@@ -95,6 +92,9 @@
 /* Enable OpenCL code generation */
 #undef HAVE_OPENCL
 
+/* Define to 1 if you have the <signal.h> header file. */
+#undef HAVE_SIGNAL_H
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 
@@ -107,6 +107,15 @@
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
 
+/* Define to 1 if you have the <sys/prctl.h> header file. */
+#undef HAVE_SYS_PRCTL_H
+
+/* Define to 1 if you have the <sys/select.h> header file. */
+#undef HAVE_SYS_SELECT_H
+
+/* Define to 1 if you have the <sys/socket.h> header file. */
+#undef HAVE_SYS_SOCKET_H
+
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
 
@@ -115,6 +124,9 @@
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <sys/wait.h> header file. */
+#undef HAVE_SYS_WAIT_H
 
 /* define if __thread works with this compiler */
 #undef HAVE_THREADLOCAL
@@ -182,6 +194,9 @@
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
 
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
@@ -218,6 +233,9 @@
 
 /* var name in output code for accuracy template parameter */
 #undef TEMPLATE_BIN_STR
+
+/* Grace period before slow tests are killed */
+#undef TIMEOUT_GRACESEC
 
 /* record timing information to stderr and jtimings.csv */
 #undef TIMING

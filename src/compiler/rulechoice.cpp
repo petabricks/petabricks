@@ -18,15 +18,6 @@
 
 #include <algorithm>
 
-namespace {
-  struct RuleIdComparer {
-    bool operator()(const petabricks::RulePtr& x, const petabricks::RulePtr& y){
-      return x->id() < y->id();
-    }
-  };
-
-}
-
 const petabricks::FormulaPtr& petabricks::RuleChoice::autotuned() {
   static FormulaPtr t = new FormulaVariable("AUTOTUNED");
   return t;
@@ -66,7 +57,11 @@ void petabricks::RuleChoice::generateCodeSimple( bool isStatic
 //     for(std::vector<RulePtr>::const_iterator i=sortedRules.begin(); i!=sortedRules.end(); ++i){
 //       choicename += "_"+jalib::XToString((*i)->id() - trans.ruleIdOffset());
 //     }
-    o.createTunable(true ,"algchoice.alg", choicename, 0, 0, sortedRules.size()-1);
+    // Create a tunables configuration for the rule choice.  Initialize it to
+    // the first rule.
+    o.createTunable(true, "algchoice.alg", choicename, 0, 0,
+                    sortedRules.size()-1);
+    o.cg().emitRules(choicename, sortedRules);
     o.beginSwitch(choicename);
   }
   for(std::vector<RulePtr>::const_iterator i=sortedRules.begin(); i!=sortedRules.end(); ++i){
