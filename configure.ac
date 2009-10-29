@@ -72,7 +72,8 @@ AC_CHECK_FUNCS([backtrace_symbols])
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 
-AC_CHECK_HEADERS([math.h fftw3.h execinfo.h cxxabi.h sys/time.h], [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
+AC_CHECK_HEADERS([math.h fftw3.h], [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
+AC_CHECK_HEADERS([cxxabi.h execinfo.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h])
 AC_CHECK_LIB([m],[cos],                  [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
 AC_CHECK_LIB([fftw3], [fftw_malloc],     [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
 AC_CHECK_LIB([pthread],[pthread_create], [], [AC_MSG_WARN([failed to find -lpthread, some benchmarks may not work])])
@@ -221,7 +222,7 @@ AC_DEFINE([MIN_NUM_WORKERS],     [1],  [min number of workers supported])
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1],    [the default minimum number of iterations for forenough{} loops (can be overridden by users)])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for forenough{} loops (can be overridden by users)])
-AC_DEFINE([GOOD_RANDOM],         [], [User a better random number generator in training])
+AC_DEFINE([TIMEOUT_GRACESEC],  [0.2],  [Grace period before slow tests are killed])
 
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
 

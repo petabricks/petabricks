@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import errno
 import re
 import sys
 import os
@@ -8,7 +9,9 @@ import subprocess
 import time
 import signal
 import math
+import select
 import progress
+import socket
 from xml.dom.minidom import parse
 from pprint import pprint
 from configtool import getConfigVal, setConfigVal
@@ -50,6 +53,127 @@ def setmemlimit(n = getmemorysize()):
 
 
 
+def parallelRunJobs(jobs):
+  class JobInfo:
+    def __init__(self, id, fn):
+      self.id=id
+      self.fn=fn
+      self.pid=None
+      self.fd=None
+      self.msg=""
+      self.rv=None
+    def __cmp__(this, that):
+      return this.id-that.id
+    def fileno(self):
+      return self.fd.fileno()
+    def forkrun(self):
+      self.fd, w = socket.socketpair()
+      self.pid = os.fork()
+      if self.pid == 0:
+        #child
+        self.fd.close()
+        class Redir():
+          def __init__(self, fd):
+            self.fd=fd
+          def write(self, s):
+            self.fd.sendall(s)
+        sys.stdout = Redir(w)
+        try:
+          rv = self.fn()
+        except Exception, e:
+          print "Exception:",e
+          rv = False
+        print exitval
+        if rv:
+          sys.exit(0)
+        else:
+          sys.exit(1)
+      else:
+        #parent
+        w.close()
+        self.fd.setblocking(0)
+        return self 
+    def handleevent(self):
+      if self.pid is None:
+        return None
+      try:
+        m=self.fd.recv(1024)
+        if m is not None:
+          self.msg+=m
+        if self.msg.rfind(exitval) >= 0:
+          raise Exception("done")
+      except:
+        pid, self.rv = os.waitpid(self.pid, 0)
+        assert self.pid == pid
+        self.pid = None
+        self.fd.close()
+        self.fd = None
+    def getmsg(self):
+      return self.msg.replace(exitval,"") \
+                     .replace('\n',' ')   \
+                     .strip()
+    
+  startline = progress.currentline()
+  NCPU=cpuCount()+2
+  exitval="!EXIT!"
+  maxprinted=[0]
+
+  jobs_pending = map(lambda id: JobInfo(id, jobs[id]), xrange(len(jobs)))
+  jobs_running = []   # JobInfo list
+  jobs_done    = []   # JobInfo list
+
+  def mkstatus():
+    s="running jobs: "
+    failed=len(filter(lambda x: x.rv!=0, jobs_done))
+    complete=(len(jobs_done)-failed)
+    if complete>0:
+      s += "%d complete, "%complete
+    if failed>0:
+      s += "%d failed, "%failed
+    s += "%d running, "%len(jobs_running)
+    s += "%d pending"%len(jobs_pending)
+    return s
+  def updatestatus(fast=False):
+    progress.remaining(2*len(jobs_pending)+len(jobs_running))
+    if not fast:
+      for j in jobs_done[maxprinted[0]:]:
+        if j.id==maxprinted[0]:
+          print j.getmsg()
+          maxprinted[0]+=1
+        else:
+          break
+
+  progress.push()
+  progress.status(mkstatus)
+  updatestatus()
+
+  while len(jobs_pending)>0 or len(jobs_running)>0:
+    #spawn new jobs
+    while len(jobs_pending)>0 and len(jobs_running)<NCPU:
+      jobs_running.append(jobs_pending.pop(0).forkrun())
+    updatestatus()
+      
+    #wait for an event
+    rj, wj, xj = select.select(jobs_running, [], jobs_running)
+
+    #handle pending data
+    for j in rj:
+      j.handleevent()
+    for j in wj:
+      j.handleevent()
+    for j in xj:
+      j.handleevent()
+
+    #move completed jobs to jobs_done list
+    newdone=filter(lambda x: x.pid is None, jobs_running)
+    jobs_running = filter(lambda x: x.pid is not None, jobs_running)
+    jobs_done.extend(newdone)
+    jobs_done.sort()
+    updatestatus(True)
+  updatestatus()
+  progress.pop()
+  return jobs_done
+
 def chdirToPetabricksRoot():
   isCurDirOk = lambda: os.path.isdir("examples") and os.path.isdir("src")
   if isCurDirOk():
@@ -79,61 +203,6 @@ benchmarkToSrc=lambda name:"./examples/%s.pbcc"%name
 benchmarkToInfo=lambda name:"./examples/%s.info"%name
 benchmarkToCfg=lambda name:"./examples/%s.cfg"%name
 
-jobs=[]
-def compileBenchmarks(benchmarks):
-  global jobs
-  benchmarks=set(benchmarks)#remove dups
-  NULL=open("/dev/null","w")
-  NCPU=cpuCount()
-  failed=[]
-  pbc="./src/pbc"
-  libdepends=[pbc, "./src/libpbmain.a", "./src/libpbruntime.a", "./src/libpbcommon.a"]
-  benchmarkMaxLen=reduce(max,map(len,benchmarks), 0)
-  progress.push()
-  progress.remainingTicks(len(benchmarks))
-  if len(benchmarks)>1:
-    progress.echo("Compiling benchmarks:")
-  progress.status(lambda: "[%d/%d jobs] - compiling benchmarks"%(len(jobs),NCPU))
-  assert os.path.isfile(pbc)
-  def checkJob(name, status):
-    global left
-    if status is not None:
-      if status == 0:
-        progress.echo(name.ljust(benchmarkMaxLen)+" compile PASSED")
-      else:
-        progress.echo(name.ljust(benchmarkMaxLen)+" compile FAILED (rc=%d)"%status)
-        failed.append(name)
-      progress.tick()
-    return status is None
-
-  def waitForJobsLeq(n):
-    global jobs
-    jobs=filter(lambda j: checkJob(j[0], j[1].poll()), jobs)
-    while len(jobs)>n:
-      pid, status = os.wait()
-      done=filter(lambda j: j[1].pid == pid, jobs)
-      jobs=filter(lambda j: j[1].pid != pid, jobs)
-      assert len(done) == 1
-      checkJob(done[0][0], status)
-
-  for name in benchmarks:
-    src=benchmarkToSrc(name)
-    bin=benchmarkToBin(name)
-    if not os.path.isfile(src):
-      raise Exception("invalid benchmark "+name)
-    srcModTime=max(os.path.getmtime(src), reduce(max, map(os.path.getmtime, libdepends)))
-    if os.path.isfile(bin) and os.path.getmtime(bin) > srcModTime:
-      progress.echo(name.ljust(benchmarkMaxLen)+" is up to date")
-      progress.tick()
-    else:
-      if os.path.isfile(bin):
-        os.unlink(bin)
-      waitForJobsLeq(NCPU-1)
-      jobs.append((name,subprocess.Popen([pbc, src], stdout=NULL, stderr=NULL)))
-      progress.update()
-  waitForJobsLeq(0)
-  progress.echo("")
-  progress.pop()
 
 def normalizeBenchmarkName(n, search=True):
   n=re.sub("^[./]*examples[/]","",n);
@@ -146,10 +215,59 @@ def normalizeBenchmarkName(n, search=True):
     if n in files:
       return normalizeBenchmarkName("%s/%s"%(root,n), False)
   raise Exception("invalid benchmark name: "+n)
-  
-  
 
-def loadAndCompileBenchmarks(file, searchterms=[]):
+def compileBenchmarks(benchmarks):
+  NULL=open("/dev/null","w")
+  pbc="./src/pbc"
+  libdepends=[pbc, "./src/libpbmain.a", "./src/libpbruntime.a", "./src/libpbcommon.a"]
+  assert os.path.isfile(pbc)
+  benchmarkMaxLen=0
+
+  def compileBenchmark(name):
+    print name.ljust(benchmarkMaxLen)
+    src=benchmarkToSrc(name)
+    bin=benchmarkToBin(name)
+    if not os.path.isfile(src):
+      print "invalid benchmark"
+      return False
+    srcModTime=max(os.path.getmtime(src), reduce(max, map(os.path.getmtime, libdepends)))
+    if os.path.isfile(bin) and os.path.getmtime(bin) > srcModTime:
+      print "compile SKIPPED"
+      return True
+    else:
+      if os.path.isfile(bin):
+        os.unlink(bin)
+      p = subprocess.Popen([pbc, src], stdout=NULL, stderr=NULL)
+      status = p.wait()
+      if status == 0:
+        print "compile PASSED"
+        return True
+      else:
+        print "compile FAILED (rc=%d)"%status
+        return False
+  
+  newjob = lambda name, fn: lambda: compileBenchmark(name) and fn()
+  mergejob = lambda oldfn, fn: lambda: oldfn() and fn()
+
+  jobs=[]
+  #benchmarks.sort()
+  lastname=""
+  #build list of jobs
+  for b in benchmarks:
+    if type(b) is type(()):
+      name, fn = b
+    else:
+      name, fn = b, lambda: True
+    benchmarkMaxLen=max(benchmarkMaxLen, len(name))
+    if lastname==name:
+      jobs.append(mergejob(jobs.pop(), fn))
+    else:
+      jobs.append(newjob(name,fn))
+      lastname=name
+
+  return parallelRunJobs(jobs)
+
+def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True):
   chdirToPetabricksRoot()
   compilePetabricks()
   benchmarks=open(file)
@@ -162,8 +280,7 @@ def loadAndCompileBenchmarks(file, searchterms=[]):
   if len(searchterms)>0:
     benchmarks=filter(lambda b: any(s in b[0] for s in searchterms), benchmarks)
 
-  compileBenchmarks(map(lambda x: x[0], benchmarks))
-  return benchmarks
+  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x)), benchmarks))
 
 def killSubprocess(p):
   if p.poll() is None:
@@ -205,7 +322,18 @@ def executeTimingRun(prog, n, args=[], limit=None):
     signal.signal(signal.SIGALRM, lambda signum, frame: killSubprocess(p))
     signal.alarm(limit)
 
-  p.wait()
+  # Python doesn't check if its system calls return EINTR, which is kind of
+  # dumb, so we have to catch this here.
+  while True:
+    try:
+      p.wait()
+    except OSError, e:
+      if e.errno == errno.EINTR:
+        continue
+      else:
+        raise
+    else:
+      break
 
   if limit is not None:
     signal.alarm(0)
@@ -310,16 +438,17 @@ def getMakefileFlag(name):
 
 getCXX      = lambda: getMakefileFlag("CXX")
 getCXXFLAGS = lambda: getMakefileFlag("CXXFLAGS")
- 
+
+def getTunables(tx, type):
+  return filter( lambda t: t.getAttribute("type")==type, tx.getElementsByTagName("tunable") )
+
+getTunablesSequential=lambda tx: getTunables(tx, "system.cutoff.sequential")
+getTunablesSplitSize=lambda tx: getTunables(tx, "system.cutoff.splitsize") 
+
 if __name__ == "__main__":
   chdirToPetabricksRoot()
   compilePetabricks()
   compileBenchmarks(map(normalizeBenchmarkName, ["add", "multiply", "transpose"]))
   print "Estimating input sizes"
   inferGoodInputSizes("./examples/simple/add", [0.1,0.5,1.0], 2)
-  
-
-
-  
-
 

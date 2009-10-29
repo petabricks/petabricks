@@ -82,6 +82,8 @@ void petabricks::DynamicScheduler::abort(){
 }
 
 void petabricks::DynamicScheduler::shutdown(){
+  if(numThreads()==1)
+    return;
   try {
     DynamicTaskPtr t = new AbortTask(numThreads(), true);
     t->run();

@@ -42,6 +42,10 @@ static void clearParserCaches(){
   theRefPool.clear();
 }
 
+void pbparser_addRefPoolItem(jalib::JRefCounted* i){
+  theRefPool.add(i);
+}
+
 %}
 
 %defines
@@ -80,7 +84,7 @@ static void clearParserCaches(){
 %token KW_TRANSFORM KW_FROM KW_TO KW_THROUGH KW_LE KW_GE KW_EQ KW_WHERE 
 %token KW_ROTATABLE KW_PRIMARY KW_SECONDARY KW_PRIORITY KW_MAIN KW_RECURSIVE
 %token /*KW_TESTCASE*/ KW_GENERATOR KW_TEMPLATE KW_TUNABLE KW_CONFIG KW_PARAM
-%token KW_ACCURACYMETRIC KW_ACCURACYBINS KW_ACCURACYVARIABLE
+%token KW_ACCURACYMETRIC KW_ACCURACYBINS KW_ACCURACYVARIABLE KW_RULE
 %token <str> TOK_INTEGER TOK_FLOAT TOK_RULEBODY IDENT 
 %type <str> RuleBody
 %type <i> Integer PriorityFlag ConfigItemType
@@ -200,7 +204,8 @@ RuleHeader: BaseRuleHeader          { $$=$1; }
           | PriorityFlag RuleHeader { ($$=$2)->setPriority($1); }
           | KW_ROTATABLE    RuleHeader { ($$=$2)->addRotations(RuleFlags::ROTATE); }
           | KW_RECURSIVE                  RuleHeader { ($$=$2)->markRecursive(); }
-          | KW_RECURSIVE '(' Formula ')'  RuleHeader { ($$=$5)->markRecursive($3); };
+          | KW_RECURSIVE '(' Formula ')'  RuleHeader { ($$=$5)->markRecursive($3); }
+          | KW_RULE IDENT RuleHeader { ($$=$3)->setLabel($2); };
 
 BaseRuleHeader: Region       RuleHeaderFrom OptWhere { $$=REFALLOC(UserRule($1,  *$2, *$3)); }
               | RuleHeaderTo RuleHeaderFrom OptWhere { $$=REFALLOC(UserRule(*$1, *$2, *$3)); };

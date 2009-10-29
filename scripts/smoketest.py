@@ -1,21 +1,15 @@
 #!/usr/bin/python
 
-import pbutil
 import os
-import sys
+import pbutil
+import progress
 import re
 import subprocess 
+import sys
+import configtool
 import time
-import progress
+from xml.dom.minidom import parse
 
-runPct=0.05 #percent of time spent in run phase
-
-progress.remaining(1.00, 0.05)
-progress.status("running smoketest")
-
-t1=time.time()
-benchmarks=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:])
-t2=time.time()
 
 def resolveInputPath(path):
   if os.path.isfile("./testdata/"+path):
@@ -29,70 +23,72 @@ def forkrun(cmd):
 def run(cmd):
   return forkrun(cmd).wait()
 
-width=reduce(max, map(lambda b: len(b[0]), benchmarks), 0)
-
-passed=0
-total=0
-
-runjobs=[]
-
-
-progress.remaining(runPct)
-progress.push()
-progress.status("running benchmarks")
-progress.echo("Running benchmarks:")
-progress.remainingTicks(2*len(benchmarks))
-
-for b in benchmarks:
-  progress.tick()
-  total+=1
+def testBenchmark(b):
   name=b[0]
-  bin=pbutil.benchmarkToBin(b[0])
-
-  msg=name.ljust(width)
+  bin=pbutil.benchmarkToBin(name)
+  cfg=pbutil.benchmarkToCfg(name)
 
   if not os.path.isfile(bin):
-    progress.echo(msg+" compile FAILED")
-    progress.tick()
-    continue
-
+    return False
+  
   #build cmd
   hash=name
-  cmd=[bin, '--fixedrandom']
+  iofiles=[]
   for x in b[1:]:
-    cmd.append(resolveInputPath(x))
+    iofiles.append(resolveInputPath(x))
     hash+=" "+os.path.basename(x)
   outfile="./testdata/.output/"+re.sub("[ /.]",'_',hash)
-  cmd.append(outfile)
+  iofiles.append(outfile)
 
-  #run
-  runjobs.append((msg,forkrun(cmd),outfile, cmd))
+  cmd=[bin, '--fixedrandom', '--config=%s.cfg'%outfile, '--reset']
+  if run(cmd) != 0:
+    print "reset config failed"
+    return False
 
-for msg,p,outfile,cmd in runjobs:
-  rv = p.wait()
-  progress.tick()
-  if rv != 0:
-    progress.echo(msg+" run FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd)))
-    continue
+  try:
+    infoxml=parse(pbutil.benchmarkToInfo(name))
+  except:
+    print "invalid *.info file"
+    return False
 
-  checkcmd=["git","diff","--exit-code", outfile]
-  rv = run(checkcmd)
-  if rv != 0:
-    time.sleep(0.1) #try letting the filesystem settle down
+ #splitsto3  = map(lambda x: configtool.setfilter(x.getAttribute("name"), 3), pbutil.getTunablesSplitSize(infoxml))
+ #cfgStatic  = map(lambda x: configtool.setfilter(x.getAttribute("name"), 2147483648), pbutil.getTunablesSequential(infoxml))
+ #cfgDynamic = map(lambda x: configtool.setfilter(x.getAttribute("name"), 0), pbutil.getTunablesSequential(infoxml))
+
+  def setCfg(x):
+    configtool.processConfigFile(cfg,cfg,x)
+    return True
+  def test():
+    cmd=[bin, '--fixedrandom', '--config=%s.cfg'%outfile]
+    cmd.extend(iofiles)
+    rv = run(cmd)
+    if rv != 0:
+      print "run FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd))
+      return False
+
+    checkcmd=["git","diff","--exit-code", outfile]
     rv = run(checkcmd)
     if rv != 0:
-      progress.echo(msg+" run FAILED (wrong output)")
-      continue
-  
-  progress.echo(msg+" run PASSED")
-  passed+=1
+      time.sleep(0.1) #try letting the filesystem settle down
+      rv = run(checkcmd)
+      if rv != 0:
+        print "run FAILED (wrong output)"
+        return False
+    
+    print "run PASSED"
+    return True
 
-t3=time.time()
-progress.echo("%d of %d tests passed (%.2fs compile, %.2fs run)"%(passed,total,(t2-t1),(t3-t2)))
+  return test()
 
-progress.pop()
-progress.remaining(0)
-progress.clear()
+t1=time.time()
+results=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:], testBenchmark)
+t2=time.time()
+
+
+passed=len(filter(lambda x: x.rv==0, results))
+total=len(results)
+
+print "%d of %d tests passed (took %.2fs)"%(passed,total,(t2-t1))
 
 sys.exit(min(total-passed, 124))
 

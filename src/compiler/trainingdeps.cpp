@@ -12,3 +12,20 @@
 #include "trainingdeps.h"
 
 std::map<std::string, std::vector<std::string> > petabricks::TrainingDeps::_callgraph;
+
+namespace petabricks {
+
+void TrainingDeps::emitRules(std::string& choicename,
+                             const std::vector<RulePtr>& sortedRules) {
+  _os << "    <rules choicename=\"" << choicename << "\">\n";
+  int index = 0;
+  for (std::vector<RulePtr>::const_iterator i = sortedRules.begin(),
+       e = sortedRules.end(); i != e; ++i) {
+    _os << "      <rule index=\"" << index << "\" label=\"" << (*i)->getLabel()
+        << "\" />\n";
+    ++index;
+  }
+  _os << "    </rules>\n";
+}
+
+}

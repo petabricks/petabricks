@@ -25,6 +25,7 @@ import pbutil
 import progress
 import time
 from pprint import pprint
+from pbutil import getTunables
 
 from xml.dom.minidom import parse
 
@@ -43,6 +44,7 @@ NULL=open("/dev/null", "w")
 maxint = 2147483647
 ignore_list = []
 DEBUG=False
+substderr=open("/dev/null","w")
 
 goodtimelimit = lambda: 1.0+reduce(min, results)
 
@@ -116,18 +118,13 @@ def getIgnoreList():
 
 def mainname():
   run_command = mkcmd("--name")
-  p = subprocess.Popen(run_command, stdout=subprocess.PIPE, stderr=NULL)
+  p = subprocess.Popen(run_command, stdout=subprocess.PIPE, stderr=substderr)
   os.waitpid(p.pid, 0)
   lines = p.stdout.readlines()
   return lines[-1].strip()
 
 def getCallees(tx):
   return map( lambda c: transforms[c.getAttribute("callee")], tx.getElementsByTagName("calls") )
-
-def getTunables(tx, type):
-  return filter( lambda t: t.getAttribute("type")==type, tx.getElementsByTagName("tunable") )
-
-
 
 def getChoiceSites(tx):
   getSiteRe = re.compile( re.escape(nameof(tx)) + "_([0-9]*)_lvl[0-9]*_.*" )
@@ -214,12 +211,13 @@ def autotuneCutoffBinarySearch(tx, tunable, n, min=0, max=-1):
   progress.push()
   progress.status("* optimize " + nameof(tx) + " tunable " + nameof(tunable))
   val, impact = optimizeParam(tx, n, nameof(tunable), min, max, best=(-1, goottimelimit()))
-  progress.echo("* optimize " + nameof(tx) + " tunable " + nameof(tunable) + " = %d "%val + "(impact=%.2f)"%impact)
+  print "* optimize " + nameof(tx) + " tunable " + nameof(tunable) + " = %d "%val + "(impact=%.2f)"%impact
   setConfigVal(tunable, val)
   progress.pop()
 
-iterRe = re.compile(r"^BEGIN ITERATION .* / ([0-9]+) .*")
-slotRe = re.compile(r"^SLOT\[([0-9]+)\] (ADD|KEEP) *(.*) = [0-9.]+")
+iterRe = re.compile(r"^BEGIN ITERATION .* / ([0-9]+)")
+slotRe = re.compile(r"^SLOT\[([0-9]+)\] (ADD|KEEP) *(.*) = ([0-9.eE-]+)")
+runRe = re.compile(r"^ *[*] *(TRY|TEST)")
 
 def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
   progress.push()
@@ -228,8 +226,13 @@ def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
   for x in cutoffs:
     cmd.append("--autotune-tunable="+nameof(x))
   if DEBUG:
-    progress.echo(' '.join(cmd))
-  p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=NULL)
+    print ' '.join(cmd)
+  runsCur=1
+  runsLast=1
+  inputCur=1
+  #progress formula assumes linear runtime of program
+  calcprog=lambda: 1.0 - (math.log(inputCur,2) + min(1.0,runsCur/float(runsLast)))/(math.log(n,2)+1)
+  p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=substderr)
   pfx="tuning "+nameof(tx)+":%d - "%site
   if site == -1:
     pfx="tuning %d cutoffs in %s - " % (len(cutoffs), nameof(tx))
@@ -239,16 +242,26 @@ def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
     line=p.stdout.readline()
     if line == "":
       break
+    #BEGIN ITERATION .... / 4096
     m=iterRe.match(line)
     if m:
-      progress.remaining(1.0 - math.log(int(m.group(1)), 2)/math.log(n,2))
+      inputCur=int(m.group(1))
+      runsLast=runsCur
+      runsCur=0
+      progress.remaining(calcprog())
+    #SLOT[0] KEEP .... = 1.25
     m=slotRe.match(line)
     if m:
       if m.group(1)=="0":
         str=m.group(3)
         progress.status(pfx+str)
+    #  * TRY ... 
+    m=runRe.match(line)
+    if m:
+      runsCur+=1
+      progress.remaining(calcprog())
   assert p.wait()==0
-  progress.echo("* "+pfx+str)
+  print "* "+pfx+str
   progress.pop()
 
 def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
@@ -258,8 +271,8 @@ def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
   if loops > 0 or passNumber>1:
     ctx=maintx
   if loops == 0:
-    cutoffs.extend(getTunables(tx, "system.cutoff.sequential"))
-  cutoffs.extend(getTunables(tx, "system.cutoff.splitsize"))
+    cutoffs.extend(pbutil.getTunablesSequential(tx))
+  cutoffs.extend(pbutil.getTunablesSplitSize(tx))
   choicesites = getChoiceSites(tx)
   for site in choicesites:
     tasks.append(TuneTask("algchoice" , lambda: autotuneAlgchoice(tx, site, ctx, inputSize, cutoffs), getChoiceSiteWeight(tx, site, cutoffs)))
@@ -281,7 +294,7 @@ def determineInputSizes():
   inputSize=pbutil.inferGoodInputSizes( pbutil.benchmarkToBin(app)
                                       , [inputSizeTarget]
                                       , INFERINPUTSIZES_SEC)[0]
-  progress.echo("* finding reasonable input size for training... %d" % inputSize)
+  print "* finding reasonable input size for training... %d" % inputSize
 
 def runTimingTest(tx):
   progress.push()
@@ -291,9 +304,9 @@ def runTimingTest(tx):
   progress.remaining(0)
   if len(results)>0:
     speedup=results[-1]/t-1.0
-    progress.echo("* timing test... %.4f (%.2fx speedup)"%(t, speedup))
+    print "* timing test... %.4f (%.2fx speedup)"%(t, speedup)
   else:
-    progress.echo("* initial timing test... %.4f s"%t)
+    print "* initial timing test... %.4f s"%t
   results.append(t)
   progress.pop()
 
@@ -310,6 +323,7 @@ def main(argv):
   global ignore_list
   global defaultArgs
   global DEBUG
+  global substderr
 
   config_tool_path = os.path.split(argv[0])[0] + "/configtool.py"
   app = argv[-1]
@@ -318,7 +332,7 @@ def main(argv):
 
   try:
     opts, args = getopt.getopt(argv[1:-1], "hn:p:", 
-        ["help","random=","min=","max=","config=","parallel_autotune","fast", "debug"])
+        ["help","random=","config=", "debug"])
   except getopt.error, msg:
     print "Error.  For help, run:", argv[0], "-h"
     sys.exit(2)
@@ -333,10 +347,9 @@ def main(argv):
       inputSize = int(a)
     if o in ["-c", "--config"]:
       cfg = a
-    if o == "--fast":
-      fast = True
     if o in ["-d", "--debug"]:
       DEBUG = True
+      substderr = sys.__stderr__
   
   pbutil.chdirToPetabricksRoot()
   pbutil.compilePetabricks()
@@ -358,6 +371,9 @@ def main(argv):
   #build index of transforms
   for t in infoxml.getElementsByTagName("transform"):
     transforms[nameof(t)]=t
+    if t.getAttribute("isTemplateInstance")=="yes":
+      if re.search("_0$", nameof(t)) is not None:
+        transforms[t.getAttribute("templateName")] = t
 
   maintx = transforms[mainname()]
   

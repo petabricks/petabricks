@@ -51,8 +51,8 @@ to C[k,2]
         Copy1D(c.column(0), x.column(0));
 
         for (m=1; m<k; m++) 
-	{
-		l = PetabricksRuntime::randInt(m,k);
+    {
+        l = PetabricksRuntime::randInt(m,k);
                 Copy1D(c.column(m),x.column(l)); //new center picked
                 if (l!=m) { Copy1D(x.column(l), x.column(m)); }//swap columns for next iteration
         }
@@ -100,7 +100,7 @@ to C[k,2]
 
 }
 
-			
+            
 main transform kmeans
 param k //input parameter: number of clusters
 from X[n,2]    // X - x,y coordinates of n points
@@ -113,14 +113,14 @@ accuracy_bins 0, 0.3, 0.6, 0.9
   //Assign initial cluster centers randomly
   to (Ctemp ctemp) from (X x)
   {
-	//Copy2D(ctemp,x.region(0,0,k,2));
-	randomcenter(ctemp, x);
+    //Copy2D(ctemp,x.region(0,0,k,2));
+    randomcenter(ctemp, x);
   }
 
   //or Assign initial cluster centers using k-means++ algorithm
   to (Ctemp ctemp) from (X x)
   {
-	centerplus(ctemp, x);
+    centerplus(ctemp, x);
   }
 
   //iteratively find local optimum
@@ -130,10 +130,10 @@ accuracy_bins 0, 0.3, 0.6, 0.9
     InlineCopy2D(c,ctemp);    
 
     while (change > 0)  {//forenough?
-	AssignClusters(a,change,x,c,a);
-	if (change > 0) { 
-		NewClusterLocations(c, x, a);
-	}
+    AssignClusters(a,change,x,c,a);
+    if (change > 0) { 
+        NewClusterLocations(c, x, a);
+    }
     }
 
   }
@@ -148,19 +148,19 @@ to Accuracy
   //accuracy measure
   Accuracy from(X x, C c, A a)
   {
-	ElementT dis;
-	ElementT sum;
-	int i;
-	sum=0;
-	for (i=0; i< n; i++) {
-		Distance(dis, x.column(i), c.column(a.cell(i)));
-		sum+=dis;
+    ElementT dis;
+    ElementT sum;
+    int i;
+    sum=0;
+    for (i=0; i< n; i++) {
+        Distance(dis, x.column(i), c.column(a.cell(i)));
+        sum+=dis;
         }
-	
-	//scale between 0 and 1:
-	//assuming input is 2D-random matrix with entries from the range  0-100,
-	//maximum possible distance is sqrt(20000); 
-	return 1-sum/n/sqrt(20000);
+    
+    //scale between 0 and 1:
+    //assuming input is 2D-random matrix with entries from the range  0-100,
+    //maximum possible distance is sqrt(20000); 
+    return 1-sum/n/sqrt(20000);
   }
 
 }

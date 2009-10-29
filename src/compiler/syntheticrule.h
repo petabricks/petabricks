@@ -26,25 +26,30 @@ public:
   bool hasWhereClause() const;
   FormulaPtr getWhereClause() const;
 
+  std::string getLabel() const;
+
   bool canProvide(const MatrixDefPtr& m) const;
 
-  void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension);
-  
-  void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
-  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
+  void getApplicableRegionDescriptors(RuleDescriptorList& output,
+                                      const MatrixDefPtr& matrix, int dimension);
+
+  void generateCallCodeSimple(Transform& trans, CodeGenerator& o,
+                              const SimpleRegionPtr& region);
+  void generateCallTaskCode(const std::string& name, Transform& trans,
+                            CodeGenerator& o, const SimpleRegionPtr& region);
   void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
-  
+
   void markRecursive();
   const FormulaPtr& recursiveHint() const;
 
-
   void print(std::ostream& os) const;
-
 
   int dimensions() const { UNIMPLEMENTED(); return 0; }
   FormulaPtr getSizeOfRuleIn(int) { UNIMPLEMENTED(); return 0; }
-  void generateTrampCellCodeSimple(Transform&, CodeGenerator&, RuleFlavor) { UNIMPLEMENTED(); }
+  void generateTrampCellCodeSimple(Transform&, CodeGenerator&, RuleFlavor) {
+    UNIMPLEMENTED();
+  }
 
 };
 
@@ -82,4 +87,3 @@ private:
 }
 
 #endif
-

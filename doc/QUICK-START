@@ -8,7 +8,7 @@ installed.  If not, you may need the following programs:
 
 git
 maxima
-gcc (4.x)
+g++ (4.x)
 flex
 bison
 autoconf
@@ -16,6 +16,9 @@ automake
 autoheader
 graphviz (optional for visualization)
 liblapack (required for some benchmarks)
+dot
+doxygen
+numpy
 
 
 REPOSITORY:

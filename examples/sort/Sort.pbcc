@@ -28,36 +28,39 @@ to OUT[n], TEMP[n]
   //  Parallel_MergesortSubArray( out, temp, in, p);
   //}
 
+  rule MergeSort4
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
     MergesortSubArray4(out, temp, in, p);
   }
 
+  rule MergeSort8
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
     MergesortSubArray8(out, temp, in, p);
   }
-  
+
+  rule MergeSort16
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
     MergesortSubArray16(out, temp, in, p);
   }
 
+  rule QuickSort
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
     QuicksortSubArray(out, temp, in, p);
   }
 
+  rule RadixSort
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
     RadixsortSubArray(out, temp, in, p);
   }
 
+  rule InsertionSort
   to (OUT out, TEMP temp) from (IN in)
   {
-    if (n >= 4096) {
-      PetabricksRuntime::abort();
-    }
     InsertionsortSubArray(out, in);
   }
 }

@@ -1,24 +1,23 @@
-/* A Bison parser, made by GNU Bison 2.3.  */
+
+/* A Bison parser, made by GNU Bison 2.4.1.  */
 
 /* Skeleton interface for Bison's Yacc-like parsers in C
-
-   Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+   
+      Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
    Free Software Foundation, Inc.
-
-   This program is free software; you can redistribute it and/or modify
+   
+   This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
-
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+   
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-
+   
    You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 51 Franklin Street, Fifth Floor,
-   Boston, MA 02110-1301, USA.  */
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -29,9 +28,10 @@
    special exception, which will cause the skeleton and the resulting
    Bison output files to be licensed under the GNU General Public
    License without this special exception.
-
+   
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
+
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -61,10 +61,11 @@
      KW_ACCURACYMETRIC = 277,
      KW_ACCURACYBINS = 278,
      KW_ACCURACYVARIABLE = 279,
-     TOK_INTEGER = 280,
-     TOK_FLOAT = 281,
-     TOK_RULEBODY = 282,
-     IDENT = 283
+     KW_RULE = 280,
+     TOK_INTEGER = 281,
+     TOK_FLOAT = 282,
+     TOK_RULEBODY = 283,
+     IDENT = 284
    };
 #endif
 /* Tokens.  */
@@ -90,18 +91,22 @@
 #define KW_ACCURACYMETRIC 277
 #define KW_ACCURACYBINS 278
 #define KW_ACCURACYVARIABLE 279
-#define TOK_INTEGER 280
-#define TOK_FLOAT 281
-#define TOK_RULEBODY 282
-#define IDENT 283
+#define KW_RULE 280
+#define TOK_INTEGER 281
+#define TOK_FLOAT 282
+#define TOK_RULEBODY 283
+#define IDENT 284
 
 
 
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 52 "pbparser.ypp"
 {
+
+/* Line 1676 of yacc.c  */
+#line 56 "pbparser.ypp"
+
   int i;
   double d;
   const char* str;
@@ -120,13 +125,15 @@ typedef union YYSTYPE
   petabricks::TemplateArgList* templateargs;
   petabricks::DoubleList*      doublelist;
   struct { const char* str; petabricks::FormulaList* formulas; } str_formulas; 
-}
-/* Line 1489 of yacc.c.  */
-#line 126 "libpbcompiler_a-pbparser.h"
-	YYSTYPE;
+
+
+
+/* Line 1676 of yacc.c  */
+#line 133 "libpbcompiler_a-pbparser.h"
+} YYSTYPE;
+# define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
-# define YYSTYPE_IS_TRIVIAL 1
 #endif
 
 extern YYSTYPE pblval;
@@ -145,3 +152,4 @@ typedef struct YYLTYPE
 #endif
 
 extern YYLTYPE pblloc;
+

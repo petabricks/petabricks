@@ -64,12 +64,24 @@ bool jalib::JBinarySerializeReaderRaw::isReader() {return true;}
 
 void jalib::JBinarySerializeWriterRaw::readOrWrite ( void* buffer, size_t len )
 {
-  JASSERT ( write (_fd, buffer, len) == (ssize_t)len ) ( filename() ) ( len ).Text ( "write() failed" );
+  char* b=(char*)buffer;
+  for(ssize_t n; len>0; ){
+    n=write(_fd, b, len);
+    JASSERT(n>0 && n<=(ssize_t)len)(filename())(n)(len)(JASSERT_ERRNO).Text("write() failed");
+    len -= n;
+    b += n;
+  }
 }
 
 
 void jalib::JBinarySerializeReaderRaw::readOrWrite ( void* buffer, size_t len )
 {
-  JASSERT ( read (_fd, buffer, len) == (ssize_t)len ) ( filename() ) ( len ).Text ( "read() failed" );
+  char* b=(char*)buffer;
+  for(ssize_t n; len>0; ){
+    n=read (_fd, b, len);
+    JASSERT(n>0 && n<=(ssize_t)len)(filename())(n)(len)(JASSERT_ERRNO).Text("read() failed");
+    len -= n;
+    b += n;
+  }
 }
 

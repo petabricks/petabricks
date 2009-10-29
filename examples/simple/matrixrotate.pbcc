@@ -1,0 +1,51 @@
+#ifndef MATRIXROTATE_PBCC
+#define MATRIXROTATE_PBCC
+
+transform MatrixRotate
+from IN[n,n]
+to OUT[n,n]
+{
+  rule SimpleRotate
+  OUT.cell(i, j) from(IN.cell(j, n - 1 - i) x) {
+    return x;
+  }
+
+  // Recursively divide the matrix into fourths.
+  rule RecursiveRotate
+  to(OUT.region(0    , 0    , n/2, n/2) out_a0,
+     OUT.region(n-n/2, 0    , n  , n/2) out_a1,
+     OUT.region(0    , n-n/2, n/2, n  ) out_b0,
+     OUT.region(n-n/2, n-n/2, n  , n  ) out_b1,
+     OUT out)
+  from(IN.region(0    , 0    , n/2, n/2) in_a0,
+       IN.region(n-n/2, 0    , n  , n/2) in_a1,
+       IN.region(0    , n-n/2, n/2, n  ) in_b0,
+       IN.region(n-n/2, n-n/2, n  , n  ) in_b1,
+       IN in)
+  {
+    MatrixRotate(out_a0, in_a1);
+    MatrixRotate(out_a1, in_b1);
+    MatrixRotate(out_b1, in_b0);
+    MatrixRotate(out_b0, in_a0);
+
+    // If the matrix did not divide evenly (ie the block size was not a multiple
+    // of two), then we have a single-pixel cross in the middle of the matrix
+    // that we have to rotate ourselves.
+    int new_n = n / 2;
+    int shift = n - new_n;
+    if (new_n != shift) {
+      int i;
+      int j;
+      i = new_n;
+      for (j = 0; j < n; j++) {
+        out.cell(i, j) = in.cell(j, n - 1 - i);
+      }
+      j = new_n;
+      for (i = 0; i < n; i++) {
+        out.cell(i, j) = in.cell(j, n - 1 - i);
+      }
+    }
+  }
+}
+
+#endif // MATRIXROTATE_PBCC
