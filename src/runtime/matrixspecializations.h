@@ -66,7 +66,10 @@ public:
 
 
   MatrixRegion reallocate() {
-    return MatrixRegion(this->storage(), this->base(), NULL, NULL);
+    if(this->base()!=0)
+      return MatrixRegion(this->storage(), this->base(), NULL, NULL);
+    else
+      return this->allocate();
   }
 };
 
