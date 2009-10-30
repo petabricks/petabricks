@@ -415,13 +415,15 @@ double petabricks::PetabricksRuntime::runTrial(double thresh, bool train){
 
 double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti, bool train){
   JASSERT(_randSize>0)(_randSize).Text("'--n=NUMBER' is required");
+  int origN = _randSize;
   try{
     std::vector<double> rslts;
     rslts.reserve(2*GRAPH_SMOOTHING+1);
-    for( int n =  _randSize-GRAPH_SMOOTHING
-       ; n <= _randSize+GRAPH_SMOOTHING
+    for( int n =  origN-GRAPH_SMOOTHING
+       ; n <= origN+GRAPH_SMOOTHING
        ; ++n)
     {
+      _randSize=n;
       double t = 0;
       for(int z=0;z<GRAPH_TRIALS; ++z){
         _main->reallocate(n);
@@ -434,8 +436,10 @@ double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti, bool train){
       rslts.push_back(t/GRAPH_TRIALS);//record average
     }
     std::sort(rslts.begin(), rslts.end());
+    _randSize=origN;
     return rslts[GRAPH_SMOOTHING];
   }catch(petabricks::DynamicScheduler::AbortException e){
+    _randSize=origN;
     return std::numeric_limits<double>::max();
   }
 }
@@ -486,13 +490,14 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti){
   
 void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& ti){
   typedef MATRIX_ELEMENT_T ElementT;
-  ElementT cur = std::numeric_limits<ElementT>::min();
-  ElementT last = std::numeric_limits<ElementT>::min();
+  ElementT cur, last;
+  cur=last= std::min(-1.0*std::numeric_limits<ElementT>::max(), std::numeric_limits<ElementT>::min());
   ElementT target = _main->accuracyTarget();
   TunableListT tunables = _main->accuracyVariables(_randSize);
   //reset tunables to min+1
   for(TunableListT::iterator i=tunables.begin(); i!=tunables.end(); ++i)
     (*i)->setValue((*i)->min()+1); 
+  _main->reallocate(_randSize);
 
   for(int i=0; true;++i){
     ti.restartTimeout();
@@ -504,7 +509,7 @@ void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& 
       return;
     }
     if(cur <= last){
-      JTRACE("training goal failed, no progress")(i)(cur)(target);
+      JTRACE("training goal failed, no progress")(i)(cur)(last)(target);
       break;
     }
     //increment tuning var
@@ -516,11 +521,13 @@ void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& 
         break; 
       }
     }
+    _main->reallocate(_randSize);
     last=cur;
   }
   //failure if we reach here, reset tunables and abort
   for(TunableListT::iterator i=tunables.begin(); i!=tunables.end(); ++i)
     (*i)->setValue((*i)->min()); 
+  _main->reallocate(_randSize);
   abort();
 }
 

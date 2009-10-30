@@ -84,6 +84,7 @@ regression/forenough
 regression/generators
 regression/matrixversions
 regression/multichoicesite
+regression/outputsizeacc
 regression/padding
 regression/params
 regression/ruleconstants
