@@ -170,7 +170,7 @@ void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
     std::string vI=         _uniquify("_forenough_i");
     std::string vCount=     _uniquify("_forenough_count");
     //std::string vIsTraining=_uniquify("_forenough_isTraining");
-    _transform.addConfigItem(ConfigItem::FLAG_SIZESPECIFIC|ConfigItem::FLAG_ACCURACY, config, minI, minI, maxI);
+    _transform.addConfigItem(ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_SIZESPECIFIC|ConfigItem::FLAG_ACCURACY, config, minI, minI, maxI);
 
     // insert some code before the for_enough loop
     // t = RIRStmt::parse("bool "+vIsTraining+" = petabricks::PetabricksRuntime::isTrainingRun();");

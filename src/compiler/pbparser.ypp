@@ -147,9 +147,9 @@ TransformHeader: TransformHeader ConfigItemType IDENT '(' Integer ',' Integer ',
          { ($$=$1)->addConfigItem($2, $3, $5, $7, $9); };
 
 
-ConfigItemType: KW_CONFIG           { $$=ConfigItem::FLAG_USER; }
-              | KW_TUNABLE          { $$=ConfigItem::FLAG_USER|ConfigItem::FLAG_TUNABLE; }
-              | KW_ACCURACYVARIABLE { $$=ConfigItem::FLAG_USER|ConfigItem::FLAG_ACCURACY|ConfigItem::FLAG_SIZESPECIFIC; };
+ConfigItemType: KW_CONFIG           { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER; }
+              | KW_TUNABLE          { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER|ConfigItem::FLAG_TUNABLE; }
+              | KW_ACCURACYVARIABLE { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER|ConfigItem::FLAG_ACCURACY|ConfigItem::FLAG_SIZESPECIFIC; };
 
 
 TemplateArg: IDENT '(' Integer ',' Integer ')' {

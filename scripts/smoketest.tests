@@ -50,6 +50,7 @@ regression/scaleup         Rand2Da
 regression/templatetest    Rand1D
 regression/testruleir      Rand2Da
 regression/throughclause   Rand2Da
+regression/tunoutputn      Rand1D
 regression/txconstants     Rand2Da Rand0D
 regression/upleftdep       Rand2Da
 regression/whereclause     Rand2Da

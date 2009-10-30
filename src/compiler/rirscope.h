@@ -36,6 +36,7 @@ public:
     SYM_TRANSFORM_TEMPLATE,
     SYM_CONFIG             = 0x4000,
     SYM_CONFIG_TRANSFORM_LOCAL, 
+    SYM_CONFIG_PASSED, 
     SYM_LOCAL_VAR          = 0x8000
   };
   RIRSymbol(SymbolType t, const std::string& rp = "") 
