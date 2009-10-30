@@ -1,6 +1,6 @@
 
 transform Foo
-tunable m
+tunable m(5,5,5)
 from A[n]
 to B[m]
 {

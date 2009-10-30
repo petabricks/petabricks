@@ -383,12 +383,14 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.newline();
   
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
-    if(i->hasFlag(ConfigItem::FLAG_SIZESPECIFIC)){
-      int tmp = i->initial();
-      if(tmp==i->min()) tmp--;
-      o.createTunableArray(i->category()+".array", _name+"_"+i->name(), MAX_INPUT_BITS, tmp, i->min()-1, i->max());
-    }else{
-      o.createTunable(i->hasFlag(ConfigItem::FLAG_TUNABLE), i->category(), _name+"_"+i->name(), i->initial(), i->min(), i->max());
+    if(i->hasFlag(ConfigItem::FLAG_FROMCFG)){
+      if(i->hasFlag(ConfigItem::FLAG_SIZESPECIFIC)){
+        int tmp = i->initial();
+        if(tmp==i->min()) tmp--;
+        o.createTunableArray(i->category()+".array", _name+"_"+i->name(), MAX_INPUT_BITS, tmp, i->min()-1, i->max());
+      }else{
+        o.createTunable(i->hasFlag(ConfigItem::FLAG_TUNABLE), i->category(), _name+"_"+i->name(), i->initial(), i->min(), i->max());
+      }
     }
   }
 
