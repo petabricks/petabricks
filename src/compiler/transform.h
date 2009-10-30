@@ -59,7 +59,7 @@ private:
   int _max;
 };
 
-class ConfigItem {
+class ConfigItem : public jalib::JPrintable {
 public:
   ConfigItem(int flags, std::string name, int initial, int min, int max)
       :_flags(flags),
@@ -91,13 +91,30 @@ public:
   }
 
   enum FlagT {
-    FLAG_TUNABLE       = 1<<0, 
+    FLAG_TUNABLE       = 1<<0,
     FLAG_USER          = 1<<1,
-    FLAG_SIZESPECIFIC = 1<<2,
-    FLAG_ACCURACY      = 1<<3
+    FLAG_SIZESPECIFIC  = 1<<2,//value depends on transform_n
+    FLAG_ACCURACY      = 1<<3,
+    FLAG_SIZEVAR       = 1<<4,//value used in to/from/through
+    FLAG_FROMCFG       = 1<<5 
   };
   bool hasFlag(FlagT f) const {
     return (_flags & f) != 0;
+  }
+  bool shouldPass() const { return hasFlag(FLAG_SIZEVAR) || hasFlag(FLAG_SIZESPECIFIC); }
+
+
+  void merge(int flags, std::string name, int initial, int min, int max){
+    _flags|=flags;
+    JASSERT(name==_name);
+    _initial=std::max(_initial, initial);
+    _min=std::max(_min, min);
+    _max=std::min(_max, max);
+    JTRACE("merged cfg")(_flags)(_name);
+  }
+
+  void print(std::ostream& o) const{
+    o << _name << "(flags: " << _flags << ")";
   }
 private:
   int         _flags;
@@ -152,8 +169,12 @@ public:
 
   void fillBaseCases(const MatrixDefPtr& matrix);
   
-  const FreeVars& constants() const { return _constants; }
-  FreeVars& constants() { return _constants; }
+  FreeVars constants() const {
+    FreeVars fv;
+    for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i)
+      fv.insert(i->name());
+    return fv;
+  }
 
   void extractSizeDefines(CodeGenerator& o, FreeVars fv);
 
@@ -197,11 +218,21 @@ public:
   std::string tmplName(int n, CodeGenerator* o=NULL) const;
   
   void addConfigItem(int flags, const std::string& n, int initial=0, int min=0, int max=std::numeric_limits<int>::max()){
-    _config.push_back(ConfigItem(flags,n,initial, min,max));
-    if(_config.back().hasFlag(ConfigItem::FLAG_SIZESPECIFIC))
-      addConstant(n, FreeVar::FLAG_SIZESPECIFICCFG);
-    else
-      _scope->set(n, RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL);
+    ConfigItems::iterator i;
+    //check if its already there?
+    for(i=_config.begin(); i!=_config.end(); ++i)
+      if(i->name()==n)
+        break;
+    if(i==_config.end()){
+      _config.push_back(ConfigItem(flags,n,initial,min,max));
+      i=_config.end()-1;
+    }else{
+      i->merge(flags,n,initial,min,max);
+    }
+  }
+
+  void addSizeVar(const std::string& name){
+    addConfigItem(ConfigItem::FLAG_SIZEVAR, name);
   }
 
   std::string instClassName() const { return _name+"_instance"; }
@@ -247,11 +278,6 @@ public:
     return args;
   }
 
-  void addConstant(const std::string& c, int flags=0) { 
-    _constants.insert(FreeVar(c,flags)); 
-  }
-
-
   bool isAccuracyInverted() const {
     int forward = 0;
     int backward = 0;
@@ -266,6 +292,9 @@ public:
     return backward>0;
   }
 
+
+  const ConfigItems& config() const { return _config; }
+
 private:
   std::string     _originalName;
   std::string     _name;
@@ -275,7 +304,6 @@ private:
   MatrixDefMap    _matrices;
   RuleList        _rules;
   ChoiceGridMap   _choiceGrid;
-  FreeVars        _constants;
   OrderedFreeVars _parameters;
   bool            _isMain;
   Learner         _learner;

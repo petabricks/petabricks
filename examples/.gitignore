@@ -94,6 +94,7 @@ regression/scaleup
 regression/templatetest
 regression/testruleir
 regression/throughclause
+regression/tunoutputn
 regression/txconstants
 regression/upleftdep
 regression/whereclause

@@ -1,0 +1,11 @@
+
+transform Foo
+tunable m
+from A[n]
+to B[m]
+{
+  B.cell(i) from(A a){
+    return a.cell(i%n)+m;
+  }
+}
+

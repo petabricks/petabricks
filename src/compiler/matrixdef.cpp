@@ -55,7 +55,7 @@ void petabricks::MatrixDef::exportConstants(Transform& trans){
   FreeVarsPtr tmp = _size.getFreeVariables();
   FreeVars::const_iterator i;
   for(i=tmp->begin(); i!=tmp->end(); ++i)
-    trans.addConstant(*i, FreeVar::FLAG_SIZEVAR);
+    trans.addSizeVar(*i);
 }
 
 void petabricks::MatrixDef::exportAssumptions(){
