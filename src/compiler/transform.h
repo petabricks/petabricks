@@ -176,7 +176,9 @@ public:
     return fv;
   }
 
-  void extractSizeDefines(CodeGenerator& o, FreeVars fv);
+  void extractSizeDefines(CodeGenerator& o, FreeVars fv, const char* inputsizestr);
+  
+  void declTransformNFunc(CodeGenerator& o);
 
   void markMain() { _isMain=true; }
 

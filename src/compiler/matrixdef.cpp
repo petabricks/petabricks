@@ -109,10 +109,14 @@ void petabricks::MatrixDef::verifyDefines(CodeGenerator& o){
     o.addAssert((*i)->toString(), _name+".size("+jalib::XToString(d)+")");
   }
 }
-void petabricks::MatrixDef::allocateTemporary(CodeGenerator& o, bool setOnly){
+void petabricks::MatrixDef::allocateTemporary(CodeGenerator& o, bool setOnly, bool reallocAllowed){
   if(!setOnly)
     o.addMember(matrixTypeName(), name(), "");
-  o.varDecl(name()+" = "+matrixTypeName()+"::allocate("+_size.toString()+")");
+  if(reallocAllowed){
+    o.write(name()+"="+name()+".reallocate("+_size.toString()+");");
+  }else{
+    o.write(name()+" = "+matrixTypeName()+"::allocate("+_size.toString()+");");
+  }
 }
 
 void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn){

@@ -63,6 +63,11 @@ public:
   ///
   /// Allow implicit conversion to ElementT
   operator ElementT& () const { return this->cell(); }
+
+
+  MatrixRegion reallocate() {
+    return MatrixRegion(this->storage(), this->base(), NULL, NULL);
+  }
 };
 
 /**

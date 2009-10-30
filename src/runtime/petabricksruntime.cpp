@@ -424,7 +424,8 @@ double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti, bool train){
     {
       double t = 0;
       for(int z=0;z<GRAPH_TRIALS; ++z){
-        _main->randomInputs(n);
+        _main->reallocate(n);
+        _main->randomize();
         if(z==0 && train)
           t += trainAndComputeWrapper(ti); // first trial can train
         else
