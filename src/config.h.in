@@ -36,12 +36,10 @@
 /* dont generate continuation code after SPAWN/enqueue */
 #undef DISABLE_CONTINUATIONS
 
-/* the default maximum number of iterations for forenough{} loops (can be
-   overridden by users) */
+/* the default maximum number of iterations for for_enough{} */
 #undef FORENOUGH_MAX_ITERS
 
-/* the default minimum number of iterations for forenough{} loops (can be
-   overridden by users) */
+/* the default minimum number of iterations for for_enough{} */
 #undef FORENOUGH_MIN_ITERS
 
 /* Define to 1 if you have the `backtrace_symbols' function. */
@@ -131,6 +129,9 @@
 /* keyword to force inlining */
 #undef INLINE
 
+/* run null tasks immediately when they are enqueued */
+#undef INLINE_NULL_TASKS
+
 /* define to add a system var to transform scope */
 #undef INPUT_PERIMETER_STR
 
@@ -194,6 +195,9 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
+/* define to run tasks inline instead of enqueuing them */
+#undef PBCC_SEQUENTIAL
+
 /* keyword to indicate non-aliased pointers/refs */
 #undef RESTRICT
 
@@ -209,8 +213,7 @@
 /* undefine to disable cpp */
 #undef RUN_CPP
 
-/* undefine this if a large number of dimensions are needed, or one wants a
-   cleaner user namespace */
+/* add using namespace petabricks to output */
 #undef SHORT_TYPE_NAMES
 
 /* var name in output code */
