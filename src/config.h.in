@@ -1,5 +1,8 @@
 /* src/config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* number of increments tried with no accuracy improvement */
+#undef ACCIMPROVETRIES
+
 /* macro for gcc function __attribute__s */
 #undef ATTRIBUTE
 

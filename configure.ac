@@ -183,6 +183,7 @@ if test "$use_jalloc" = "yes"; then
   AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
 fi
 
+AC_DEFINE([ACCIMPROVETRIES],     [3], [number of increments tried with no accuracy improvement])
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
 AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for begin coord])
 AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])

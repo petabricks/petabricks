@@ -5084,6 +5084,9 @@ $as_echo "#define JALIB_ALLOCATOR 1" >>confdefs.h
 fi
 
 
+$as_echo "#define ACCIMPROVETRIES 3" >>confdefs.h
+
+
 $as_echo "#define CACHE_LINE_SIZE 64" >>confdefs.h
 
 
