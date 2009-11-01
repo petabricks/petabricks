@@ -125,7 +125,14 @@ public:
   void setSize(int n){_randSize=n;};
   int curSize() const { return _randSize;};
 
+  ///
+  /// Semi-gracefully end the current execution (means invalid config)
   static void abort();
+  
+  ///
+  /// Indicate that the current configuration has not been trained
+  /// Usually equivalent to abort()
+  static void untrained();
 
   static void saveConfig();
 

@@ -30,6 +30,7 @@
 petabricks::PetabricksRuntime::Main* petabricksMainTransform();
 petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);
 
+static bool _isRunning = false;
 static bool _isTrainingRun = false;
 static bool _needTraingingRun = false;
 
@@ -46,6 +47,7 @@ static bool FULL_MULTIGRID_FLAG=false;
 static bool DUMPTIMING=false;
 static bool ACCURACY=false;
 static bool FORCEOUTPUT=false;
+static bool ACCTRAIN=false;
 std::vector<std::string> txArgs;
 static std::string ATLOG;
 
@@ -197,6 +199,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("autotune-site",      autotunesites).help("choice sites to tune in --autotune mode");
   args.param("autotune-tunable",   autotunecutoffs).help("additional cutoff tunables to tune in --autotune mode");
   args.param("autotune-log",   ATLOG).help("log autotuner actions to given filename prefix");
+  args.param("acctrain",  ACCTRAIN).help("retrain for accuracy requirements in -n mode");
   args.param("min",       GRAPH_MIN).help("minimum input size for graph/autotuning");
   args.param("max",       GRAPH_MAX).help("maximum input size for graph/autotuning");
   args.param("step",      GRAPH_STEP).help("step size for graph/autotuning");
@@ -245,7 +248,7 @@ int petabricks::PetabricksRuntime::runMain(){
       runNormal();
       break;
     case MODE_RUN_RANDOM:
-      runTrial(GRAPH_MAX_SEC, false);
+      runTrial(GRAPH_MAX_SEC, ACCTRAIN);
       break;
     case MODE_GRAPH_INPUTSIZE:
       runGraphMode();
@@ -428,10 +431,11 @@ double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti, bool train){
       for(int z=0;z<GRAPH_TRIALS; ++z){
         _main->reallocate(n);
         _main->randomize();
-        if(z==0 && train)
+        if(z==0 && train){
           t += trainAndComputeWrapper(ti); // first trial can train
-        else
+        }else{
           t += computeWrapper(ti); // rest of trials cant train
+        }
       }
       rslts.push_back(t/GRAPH_TRIALS);//record average
     }
@@ -463,10 +467,11 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti){
       variableAccuracyTrainingLoop(ti);
     }
     _needTraingingRun = false;//reset flag set by isTrainingRun()
-
+    _isRunning = true;
     jalib::JTime begin=jalib::JTime::now();
     _main->compute();
     jalib::JTime end=jalib::JTime::now();
+    _isRunning = false;
     
     if(_needTraingingRun && _isTrainingRun){
       v=-1;
@@ -575,10 +580,6 @@ bool petabricks::PetabricksRuntime::isTrainingRun(){
   return _isTrainingRun;
 }
 
-// void petabricks::PetabricksRuntime::setIsTrainingRun(bool b){
-//   _isTrainingRun=b;
-// }
-
 void petabricks::PetabricksRuntime::abort(){
   TestIsolation* master = SubprocessTestIsolation::masterProcess();
   if(master!=NULL){
@@ -588,6 +589,16 @@ void petabricks::PetabricksRuntime::abort(){
     DynamicScheduler::cpuScheduler().abort();
   }
 }
+
+void petabricks::PetabricksRuntime::untrained(){
+  if(_isRunning){
+    std::cerr << "ERROR: untrained, accuracy is unknown" << std::endl;
+    PetabricksRuntime::abort();
+  }
+}
+
+
+
 void petabricks::PetabricksRuntime::runMultigridAutotuneMode(){
   std::string s1 = "Poisson2D_Inner_Prec1_1";
   std::string s2 = "Poisson2D_Inner_Prec2_1";
