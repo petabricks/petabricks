@@ -199,6 +199,7 @@ AC_DEFINE([RETURN_VAL_STR],   ["_pb_rv"],     [var name in output code for rule 
 AC_DEFINE([TMPL_IMPL_PFX],     ["_tmpl"],        [prefix for expanded template implementations])
 AC_DEFINE([TX_STATIC_POSTFIX], ["_static"], [postfix for static versions of transforms])
 AC_DEFINE([TX_DYNAMIC_POSTFIX], ["_dynamic"], [postfix for static versions of transforms])
+AC_DEFINE([TIMEOUTKILLSIG], [SIGKILL], [Signal used to kill processes that timeout])
 
 AC_DEFINE([COORD_BEGIN_STR],["_iter_begin"],[var name in output code for begin coord])
 AC_DEFINE([COORD_END_STR],  ["_iter_end"],  [var name in output code for end coord])
@@ -292,5 +293,5 @@ AC_DEFINE_UNQUOTED([CXXLDFLAGS], ["$LDFLAGS"],              [C++ compiler link f
 ################################################################################
 ################################################################################
 
-AC_OUTPUT(Makefile src/Makefile examples/Makefile)
+AC_OUTPUT(Makefile src/Makefile)
 

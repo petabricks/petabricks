@@ -228,6 +228,9 @@
 /* var name in output code for accuracy template parameter */
 #undef TEMPLATE_BIN_STR
 
+/* Signal used to kill processes that timeout */
+#undef TIMEOUTKILLSIG
+
 /* Grace period before slow tests are killed */
 #undef TIMEOUT_GRACESEC
 
