@@ -13,11 +13,13 @@
 
 main transform MatrixApprox
 //param k  //input param: number of singular values used k<=n
-from IN[n,n], k
+from IN[n,n]
 through Lambda[2*n], X[2*n,2*n], U[n,n], VT[n,n], H[2*n,2*n], TEMP[n,n]
 to OUT[n,n]
 accuracy_metric Norm
-accuracy_bins 0.9, 0.6, 0.3, 0
+accuracy_bins 0, 0.2, 0.4, 0.6, 0.8, 1
+accuracy_variable k(1,1,n-1) //min=1, initial=1, max=n-1
+generator matrixapproinputgen
 {
 
 
@@ -73,7 +75,7 @@ accuracy_bins 0.9, 0.6, 0.3, 0
 }
 
 transform Norm
-from OUT[n,n], IN[n,n], k
+from OUT[n,n], IN[n,n]
 to Accuracy
 {
 	//accuracy measure
@@ -87,11 +89,17 @@ to Accuracy
 				sum+=fabs(in.cell(i,j)-out.cell(i,j));
 			}
 		}
-		sum=sum/n/n/50;
-		if (sum > 1) return 0;
-		return 1-sum;
+		sum=sum/n/n;
+		return -log10(sum);
 	}
 			
+}
+
+transform matrixapproinputgen
+to IN[n,n]
+{
+  //todo... we need something better than this
+  IN.cell(i,j) from() { return PetabricksRuntime::rand(0,1); }
 }
 
 
