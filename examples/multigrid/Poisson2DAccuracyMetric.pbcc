@@ -1,0 +1,52 @@
+#ifndef POISSON2DACCURACYMETRIC
+#define POISSON2DACCURACYMETRIC
+
+#include "Poisson2DForwardFunc.pbcc"
+#include "Poisson2DBS.pbcc"
+#include "Poisson2Dmgv.pbcc"
+#include "ComputeError.pbcc"
+
+/* Uncomment this line if you wish to use a residual metric
+ * instead of an error metric
+ */
+//#define RESIDUAL_METRIC
+
+transform Poisson2DAccuracyMetric
+from Y[n,n], X[n,n], B[n,n]
+to Accuracy
+{
+    to (Accuracy a) from (Y y, X x, B b)
+    {
+        // these store the errors of the input and output
+        double e1;
+        double e2;
+
+        MatrixRegion2D z = MatrixRegion2D::allocate(n, n);
+#ifdef RESIDUAL_METRIC
+        // compute residual of input
+        Poisson2DForwardFunc(z, x);
+        ComputeError(e1, b, z);
+
+        // compute residual of output
+        Poisson2DForwardFunc(z, y);
+        ComputeError(e2, b, z);
+#else
+        // compute true solution
+        int level = (int) log2(n - 1);
+        if (level < 4) {
+            Poisson2DBS(z, x, b);
+        } else {
+            Poisson2Dmgv(z, x, b, 15);
+        }
+
+        // compute errors of input and output
+        ComputeError(e1, x, z);
+        ComputeError(e2, y, z);
+#endif
+
+        // accuracy is ratio of errors
+        a = e1 / e2;
+    }
+}
+
+#endif // POISSON2DACCURACYMETRIC
