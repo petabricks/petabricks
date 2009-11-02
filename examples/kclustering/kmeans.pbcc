@@ -15,48 +15,51 @@ transform GetD
 from X[m,2], C[n,2]
 to D[m,n]
 {
-        to (D.cell(i,j) d) from (X.column(i) x, C.column(j) c)
-        {
-                Distance(d,x,c);
-        }
+  to (D.cell(i,j) d) from (X.column(i) x, C.column(j) c)
+  {
+    Distance(d,x,c);
+  }
 }
 
 transform GetMin
 from X[m,n]
 to MinX[m]
+generator kmeansinputgen
 {
-        MinX.cell(i) from(X.column(i) x){
-                int j;
-                ElementT minvalue=x.cell(0);
-                for (j=1; j<n; j++) {
-                        if (x.cell(j) < minvalue) {
-                                minvalue=x.cell(j);
-                        }
-                }
-                return minvalue*minvalue;
-        }
+  MinX.cell(i) from(X.column(i) x){
+    int j;
+    ElementT minvalue=x.cell(0);
+    for (j=1; j<n; j++) {
+      if (x.cell(j) < minvalue) {
+        minvalue=x.cell(j);
+      }
+    }
+    return minvalue*minvalue;
+  }
 }
 
 transform randomcenter
 from X[n,2]
 through Xtemp[n,2]
 to C[k,2]
+generator kmeansinputgen
 {
   to (C c, Xtemp x) from (X xin){
+    int l;
+    int m;
 
-        int l;
-        int m;
+    Copy2D(x,xin);
+    Copy1D(c.column(0), x.column(0));
 
-        Copy2D(x,xin);
-        Copy1D(c.column(0), x.column(0));
-
-        for (m=1; m<k; m++) 
+    for (m=1; m<k; m++) 
     {
-        l = PetabricksRuntime::randInt(m,k);
-                Copy1D(c.column(m),x.column(l)); //new center picked
-                if (l!=m) { Copy1D(x.column(l), x.column(m)); }//swap columns for next iteration
-        }
-   }
+      l = PetabricksRuntime::randInt(m,k);
+      Copy1D(c.column(m),x.column(l)); //new center picked
+      if (l!=m) { 
+        Copy1D(x.column(l), x.column(m)); 
+      }//swap columns for next iteration
+    }
+  }
 
 }
 
@@ -65,39 +68,38 @@ transform centerplus
 from X[n,2]
 through D[n,k], DMIN[n], DSQ[n], Xtemp[n,2]
 to C[k,2]
+generator kmeansinputgen
 {
   to (C c, D d, DMIN dmin, DSQ dsq, Xtemp x) from (X xin){
+    int l;
+    int m;
+    ElementT rvalue;
 
-        int l;
-        int m;
-        ElementT rvalue;
 
+    Copy2D(x,xin);
+    Copy1D(c.column(0), x.column(0));
 
-        Copy2D(x,xin);
-        Copy1D(c.column(0), x.column(0));
+    for (m=1; m<k; m++) {
 
-        for (m=1; m<k; m++) {
+      //get distance of all remanining x with current cluster centers
+      GetD(d.region(m,0,n,m), x.region(m,0,n,2), c.region(0,0,m,2));
 
-                //get distance of all remanining x with current cluster centers
-                GetD(d.region(m,0,n,m), x.region(m,0,n,2), c.region(0,0,m,2));
+      //find minimum of each column, squared and compute cumulative sum
+      GetMin(dmin.region(m,n), d.region(m,0,n,m));
+      RollingSum(dsq.region(m,n),dmin.region(m,n));
 
-                //find minimum of each column, squared and compute cumulative sum
-                GetMin(dmin.region(m,n), d.region(m,0,n,m));
-                RollingSum(dsq.region(m,n),dmin.region(m,n));
-
-                //pick center with probability proportional to dmin (D(x)^2)
-                rvalue= (   (double)PetabricksRuntime::randInt() / ((double)(RAND_MAX)+(double)(1)) );
-                rvalue*=dsq.cell(n-1);
-                for (l=m; l<n; l++){
-                        if (rvalue<=dsq.cell(l)){
-                                Copy1D(c.column(m),x.column(l)); //new center picked
-                                if (l!=m) { Copy1D(x.column(l), x.column(m)); }//swap columns for next iteration
-                                break;
-                        }
-                }
+      //pick center with probability proportional to dmin (D(x)^2)
+      rvalue= ( (double)PetabricksRuntime::randInt() / ((double)(RAND_MAX)+(double)(1)) );
+      rvalue*=dsq.cell(n-1);
+      for (l=m; l<n; l++){
+        if (rvalue<=dsq.cell(l)){
+          Copy1D(c.column(m),x.column(l)); //new center picked
+          if (l!=m) { Copy1D(x.column(l), x.column(m)); }//swap columns for next iteration
+          break;
         }
-   }
-
+      }
+    }
+  }
 }
 
             
@@ -107,8 +109,9 @@ through CFLAG, Ctemp[k,2]
 to C[k,2], A[n]   // C - centroids, A - cluster assignment, WCSS - within-cluster sum of squares  (error measures)
 accuracy_metric WCSS
 accuracy_bins 0, 0.3, 0.6, 0.9
-accuracy_variable k(1,1)
+accuracy_variable k(1,1)//min=1, initial=1
 //param k
+generator kmeansinputgen
 {
 
   //Assign initial cluster centers randomly
@@ -131,10 +134,10 @@ accuracy_variable k(1,1)
     InlineCopy2D(c,ctemp);    
 
     while (change > 0)  {//forenough?
-    AssignClusters(a,change,x,c,a);
-    if (change > 0) { 
+      AssignClusters(a,change,x,c,a);
+      if (change > 0) { 
         NewClusterLocations(c, x, a);
-    }
+      }
     }
 
   }
@@ -154,9 +157,9 @@ to Accuracy
     int i;
     sum=0;
     for (i=0; i< n; i++) {
-        Distance(dis, x.column(i), c.column(a.cell(i)));
-        sum+=dis;
-        }
+      Distance(dis, x.column(i), c.column(a.cell(i)));
+      sum+=dis;
+    }
     
     //scale between 0 and 1:
     //assuming input is 2D-random matrix with entries from the range  0-100,
@@ -166,5 +169,11 @@ to Accuracy
 
 }
 
+transform kmeansinputgen
+to X[n,2]
+{
+  //todo... we need something better than this
+  X.cell(i,j) from() { return PetabricksRuntime::randInt(1,100); }
+}
 
 #endif // KMEANS_PBCC
