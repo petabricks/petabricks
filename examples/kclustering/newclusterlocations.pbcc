@@ -1,11 +1,19 @@
 #ifndef NEWCLUSTERLOCATIONS_PBCC
 #define NEWCLUSTERLOCATIONS_PBCC
 
+transform NewClusterLocationsGen
+to X[n,2], A[n]
+{
+  X.cell(i,j) from() { return PetabricksRuntime::randInt(1,100); }
+  A.cell(i) from() { return PetabricksRuntime::randInt(0,n-1); }
+}
+
 transform NewClusterLocations
 param k //input parameter: number of clusters
 from X[n,2], A[n]
 through Sum[k,2], Count[k]
 to C[k,2] 
+generator NewClusterLocationsGen
 {
   to (Sum s, Count count) from (X x, A a)
   {
@@ -37,13 +45,5 @@ to C[k,2]
     }
   }
 }
-
-transform NewClusterLocationsGen
-to X[n,2], A[n]
-{
-  X.cell(i,j) from() { return PetabricksRuntime::randInt(1,100); }
-  A.cell(i) from() { return PetabricksRuntime::randInt(0,n-1); }
-}
-
 
 #endif // NEWCLUSTERLOCATIONS_PBCC

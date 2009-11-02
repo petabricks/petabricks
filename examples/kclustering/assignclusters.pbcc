@@ -7,6 +7,15 @@
 
 #include "distance.pbcc"
 
+transform AssignClustersGen
+to X[n,2], C[n/10,2], A[n]
+{
+  X.cell(i,j) from() { return PetabricksRuntime::randInt(1,100); }
+  C.cell(i,j) from() { return PetabricksRuntime::randInt(1,100); }
+  A.cell(i) from() { return PetabricksRuntime::randInt(0,n/10-1); }
+}
+
+
 transform AssignClusters
 from X[n,2], C[k,2], A[n]
 through D[n,k], ctemp[n]
@@ -47,13 +56,5 @@ generator AssignClustersGen
 
 }
 
-
-transform AssignClustersGen
-to X[n,2], C[n/10,2], A[n]
-{
-  X.cell(i,j) from() { return PetabricksRuntime::randInt(1,100); }
-  C.cell(i,j) from() { return PetabricksRuntime::randInt(1,100); }
-  A.cell(i) from() { return PetabricksRuntime::randInt(0,n/10-1); }
-}
 
 #endif // ASSIGNCLUSTERS_PBCC
