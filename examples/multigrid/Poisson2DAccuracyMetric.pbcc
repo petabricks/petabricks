@@ -45,7 +45,11 @@ to Accuracy
 #endif
 
         // accuracy is ratio of errors
-        a = e1 / e2;
+        if (e2 == 0) {
+            a = std::numeric_limits<double>::max();
+        } else {
+            a = e1 / e2;
+        }
     }
 }
 
