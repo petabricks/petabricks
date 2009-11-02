@@ -32,7 +32,23 @@ class Autotuner;
 typedef jalib::JRef<Autotuner> AutotunerPtr;
 typedef std::vector<AutotunerPtr> AutotunerList;
 
-typedef std::vector<jalib::JTunable*> TunableListT;
+class TunableListT : public std::vector<jalib::JTunable*> {
+public:
+  void resetMinAll(int offset){
+    for(iterator i=begin(); i!=end(); ++i)
+      (*i)->setValue((*i)->min()+offset); 
+  }
+  bool incrementAll(){
+    for(iterator i=begin(); i!=end(); ++i){
+      if((*i)->value() < (*i)->max())
+        (*i)->setValue((*i)->value()+1); 
+      else{
+        return false;
+      }
+    }
+    return true;
+  }
+};
 
 int petabricksMain(int argc, const char** argv);
 
@@ -114,7 +130,6 @@ public:
 
   void runAutotuneMode();
   void runAutotuneLoop(const AutotunerList& tuners);
-  void runMultigridAutotuneMode();
 
   double runTrial(TestIsolation&, bool train);
   double runTrial(double thresh, bool train);
@@ -125,7 +140,14 @@ public:
   void setSize(int n){_randSize=n;};
   int curSize() const { return _randSize;};
 
+  ///
+  /// Semi-gracefully end the current execution (means invalid config)
   static void abort();
+  
+  ///
+  /// Indicate that the current configuration has not been trained
+  /// Usually equivalent to abort()
+  static void untrained();
 
   static void saveConfig();
 
@@ -143,6 +165,10 @@ public:
   static double randDouble(double min=0, double max=std::numeric_limits<int>::max()){
     return (drand48()*(max-min)) + min;
   }
+
+
+protected:
+  void reallocate() { _main->reallocate(_randSize); }
 
 private:
   Main* _main;

@@ -5084,53 +5084,10 @@ $as_echo "#define JALIB_ALLOCATOR 1" >>confdefs.h
 fi
 
 
-$as_echo "#define MATRIX_INDEX_T int" >>confdefs.h
+$as_echo "#define ACCIMPROVETRIES 3" >>confdefs.h
 
 
-$as_echo "#define MATRIX_ELEMENT_T double" >>confdefs.h
-
-
-$as_echo "#define MAX_DIMENSIONS 64" >>confdefs.h
-
-
-$as_echo "#define MAX_INPUT_BITS 32" >>confdefs.h
-
-
-$as_echo "#define STEAL_ATTEMPTS_WAITING 3" >>confdefs.h
-
-
-$as_echo "#define STEAL_ATTEMPTS_MAINLOOP 32" >>confdefs.h
-
-
-$as_echo "#define SHORT_TYPE_NAMES 1" >>confdefs.h
-
-
-$as_echo "#define RUN_CPP 1" >>confdefs.h
-
-
-$as_echo "#define MAX_REC_LEVELS 6" >>confdefs.h
-
-
-$as_echo "#define TRANSFORM_N_STR \"transform_n\"" >>confdefs.h
-
-
-$as_echo "#define SPLIT_CHUNK_SIZE \"TRANSFORM_LOCAL(splitsize)\"" >>confdefs.h
-
-
-$as_echo "#define TEMPLATE_BIN_STR \"_acc_bin\"" >>confdefs.h
-
-
-$as_echo "#define RETURN_VAL_STR \"_pb_rv\"" >>confdefs.h
-
-
-$as_echo "#define TMPL_IMPL_PFX \"_tmpl\"" >>confdefs.h
-
-
-$as_echo "#define TX_STATIC_POSTFIX \"_static\"" >>confdefs.h
-
-
-$as_echo "#define TX_DYNAMIC_POSTFIX \"_dynamic\"" >>confdefs.h
-
+$as_echo "#define CACHE_LINE_SIZE 64" >>confdefs.h
 
 
 $as_echo "#define COORD_BEGIN_STR \"_iter_begin\"" >>confdefs.h
@@ -5139,6 +5096,74 @@ $as_echo "#define COORD_BEGIN_STR \"_iter_begin\"" >>confdefs.h
 $as_echo "#define COORD_END_STR \"_iter_end\"" >>confdefs.h
 
 
+$as_echo "#define FORENOUGH_MAX_ITERS 1000" >>confdefs.h
+
+
+$as_echo "#define FORENOUGH_MIN_ITERS 1" >>confdefs.h
+
+
+$as_echo "#define INLINE_NULL_TASKS /**/" >>confdefs.h
+
+
+$as_echo "#define MATRIX_ELEMENT_T double" >>confdefs.h
+
+
+$as_echo "#define MATRIX_INDEX_T int" >>confdefs.h
+
+
+$as_echo "#define MAX_DIMENSIONS 64" >>confdefs.h
+
+
+$as_echo "#define MAX_INPUT_BITS 32" >>confdefs.h
+
+
+$as_echo "#define MAX_NUM_WORKERS 512" >>confdefs.h
+
+
+$as_echo "#define MAX_REC_LEVELS 6" >>confdefs.h
+
+
+$as_echo "#define MIN_NUM_WORKERS 1" >>confdefs.h
+
+
+$as_echo "#define RETURN_VAL_STR \"_pb_rv\"" >>confdefs.h
+
+
+$as_echo "#define RUN_CPP 1" >>confdefs.h
+
+
+$as_echo "#define SHORT_TYPE_NAMES 1" >>confdefs.h
+
+
+$as_echo "#define SPLIT_CHUNK_SIZE \"TRANSFORM_LOCAL(splitsize)\"" >>confdefs.h
+
+
+$as_echo "#define STEAL_ATTEMPTS_MAINLOOP 32" >>confdefs.h
+
+
+$as_echo "#define STEAL_ATTEMPTS_WAITING 3" >>confdefs.h
+
+
+$as_echo "#define TEMPLATE_BIN_STR \"_acc_bin\"" >>confdefs.h
+
+
+$as_echo "#define TIMEOUT_GRACESEC 0.2" >>confdefs.h
+
+
+$as_echo "#define TIMEOUTKILLSIG SIGKILL" >>confdefs.h
+
+
+$as_echo "#define TMPL_IMPL_PFX \"_tmpl\"" >>confdefs.h
+
+
+$as_echo "#define TRANSFORM_N_STR \"transform_n\"" >>confdefs.h
+
+
+$as_echo "#define TX_DYNAMIC_POSTFIX \"_dynamic\"" >>confdefs.h
+
+
+$as_echo "#define TX_STATIC_POSTFIX \"_static\"" >>confdefs.h
+
 
 $as_echo "#define UTIL_SEARCH_DIR_A \"src\"" >>confdefs.h
 
@@ -5146,33 +5171,8 @@ $as_echo "#define UTIL_SEARCH_DIR_A \"src\"" >>confdefs.h
 $as_echo "#define UTIL_SEARCH_DIR_B \"scripts\"" >>confdefs.h
 
 
-
-$as_echo "#define MAX_NUM_WORKERS 512" >>confdefs.h
-
-
-$as_echo "#define MIN_NUM_WORKERS 1" >>confdefs.h
-
-
-$as_echo "#define CACHE_LINE_SIZE 64" >>confdefs.h
-
-
-$as_echo "#define FORENOUGH_MIN_ITERS 1" >>confdefs.h
-
-
-$as_echo "#define FORENOUGH_MAX_ITERS 1000" >>confdefs.h
-
-
-$as_echo "#define TIMEOUT_GRACESEC 0.2" >>confdefs.h
-
-
-
 $as_echo "#define WORKERTHREAD_ONDECK /**/" >>confdefs.h
 
-
-
-cat >>confdefs.h <<_ACEOF
-#define REVISION_SHORT "$rev_short"
-_ACEOF
 
 
 cat >>confdefs.h <<_ACEOF
@@ -5180,20 +5180,16 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
+cat >>confdefs.h <<_ACEOF
+#define REVISION_SHORT "$rev_short"
+_ACEOF
+
+
 
 if false; then
   #disabled by default:
 
-$as_echo "#define JASSERT_LOG /**/" >>confdefs.h
-
-
 $as_echo "#define DISABLE_CONTINUATIONS /**/" >>confdefs.h
-
-
-$as_echo "#define JALIB_USE_MALLOC 1" >>confdefs.h
-
-
-$as_echo "#define OUTPUT_SIZE_STR \"output_count\"" >>confdefs.h
 
 
 $as_echo "#define INPUT_PERIMETER_STR \"input_perimeter\"" >>confdefs.h
@@ -5201,6 +5197,17 @@ $as_echo "#define INPUT_PERIMETER_STR \"input_perimeter\"" >>confdefs.h
 
 $as_echo "#define INPUT_SIZE_STR \"input_count\"" >>confdefs.h
 
+
+$as_echo "#define JALIB_USE_MALLOC 1" >>confdefs.h
+
+
+$as_echo "#define JASSERT_LOG /**/" >>confdefs.h
+
+
+$as_echo "#define OUTPUT_SIZE_STR \"output_count\"" >>confdefs.h
+
+
+$as_echo "#define PBCC_SEQUENTIAL /**/" >>confdefs.h
 
 
 $as_echo "#define WORKERTHREAD_INJECT /**/" >>confdefs.h
@@ -5299,11 +5306,6 @@ _ACEOF
 
 
 cat >>confdefs.h <<_ACEOF
-#define CXXFLAGS "$CXXFLAGS"
-_ACEOF
-
-
-cat >>confdefs.h <<_ACEOF
 #define CXXCPP "$CXXCPP -x c++"
 _ACEOF
 
@@ -5314,7 +5316,7 @@ _ACEOF
 
 
 cat >>confdefs.h <<_ACEOF
-#define CXXLIBS "$LIBS"
+#define CXXFLAGS "$CXXFLAGS"
 _ACEOF
 
 
@@ -5323,11 +5325,16 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
+cat >>confdefs.h <<_ACEOF
+#define CXXLIBS "$LIBS"
+_ACEOF
+
+
 ################################################################################
 ################################################################################
 ################################################################################
 
-ac_config_files="$ac_config_files Makefile src/Makefile examples/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -6039,7 +6046,6 @@ do
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
-    "examples/Makefile") CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
 
   *) as_fn_error "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

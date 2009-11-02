@@ -32,11 +32,13 @@ if benchmark is not None:
 
 if len(sys.argv)==2:
   cmd=["./src/pbc", pbutil.benchmarkToSrc(benchmark)]
+  print " ".join(cmd)
   os.execv(cmd[0], cmd)
 elif len(sys.argv)>2:
   pbutil.compileBenchmarks([benchmark])
   cmd=[pbutil.benchmarkToBin(benchmark)]
   cmd.extend(sys.argv[2:])
+  print " ".join(cmd)
   os.execv(cmd[0], cmd)
 
 

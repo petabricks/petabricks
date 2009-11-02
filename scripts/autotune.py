@@ -19,7 +19,7 @@ import re
 import sys
 import os
 import math 
-import getopt
+import optparse 
 import subprocess
 import pbutil
 import progress
@@ -46,7 +46,7 @@ ignore_list = []
 DEBUG=False
 substderr=open("/dev/null","w")
 
-goodtimelimit = lambda: 1.0+reduce(min, results)
+goodtimelimit = lambda: 1.0+reduce(min, results, 1)
 
 def mkcmd(args):
   t=[pbutil.benchmarkToBin(app)]
@@ -306,7 +306,7 @@ def runTimingTest(tx):
     speedup=results[-1]/t-1.0
     print "* timing test... %.4f (%.2fx speedup)"%(t, speedup)
   else:
-    print "* initial timing test... %.4f s"%t
+    print "* initial timing test... %.4lf s"%t
   results.append(t)
   progress.pop()
 
@@ -330,32 +330,33 @@ def main(argv):
   num_threads = pbutil.cpuCount()
   fast = False
 
-  try:
-    opts, args = getopt.getopt(argv[1:-1], "hn:p:", 
-        ["help","random=","config=", "debug"])
-  except getopt.error, msg:
-    print "Error.  For help, run:", argv[0], "-h"
-    sys.exit(2)
-  # process options
-  for o, a in opts:
-    if o in ["-h", "--help"]:
-      print __doc__
-      sys.exit(0)
-    if o == "-p":
-      num_threads = int(a)
-    if o in ["-n", "--random"]:
-      inputSize = int(a)
-    if o in ["-c", "--config"]:
-      cfg = a
-    if o in ["-d", "--debug"]:
-      DEBUG = True
-      substderr = sys.__stderr__
-  
+  parser = optparse.OptionParser(usage="usage: %prog [options] BENCHMARK")
+  parser.add_option("--threads",      type="int", dest="threads", default=pbutil.cpuCount())
+  parser.add_option("-n", "--random", type="int", dest="n", default=-1)
+  parser.add_option("-c", "--config", dest="config", default=None)
+  parser.add_option("-d", "--debug",  action="store_true", dest="debug", default=False)
+  options,args = parser.parse_args()
+
+  if len(args) != 1:
+    parser.error("expected benchmark name as arg")
+
+  num_threads=options.threads
+  inputSize=options.n
+  cfg=options.config
+  DEBUG=options.debug
+  app=args[0]
+
   pbutil.chdirToPetabricksRoot()
   pbutil.compilePetabricks()
   app = pbutil.normalizeBenchmarkName(app)
   pbutil.compileBenchmarks([app])
-  cfg = pbutil.benchmarkToCfg(app)
+  
+  if DEBUG:
+    substderr = sys.__stderr__
+
+  if cfg is None:
+    cfg = pbutil.benchmarkToCfg(app)
+
   defaultArgs = ['--config='+cfg, '--threads=%d'%num_threads]
   getIgnoreList()
 

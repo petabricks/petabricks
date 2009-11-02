@@ -11,8 +11,8 @@
  ***************************************************************************/
 
 #include "dynamictask.h"
-#include "matrixregion.h"
 #include "matrixio.h"
+#include "matrixregion.h"
 #include "petabricksruntime.h"
 #include "ruleinstance.h"
 #include "specializeddynamictasks.h"
@@ -108,7 +108,12 @@ namespace petabricks {
 #ifdef DEBUG
     JASSERT(bin<(int)cnts.size())(bin)(cnts.size());
 #endif
-    return std::max<int>(min, cnts[bin]);
+    IndexT rv = cnts[bin];
+    if(rv<min){
+      PetabricksRuntime::untrained();//usually aborts us
+      return min;
+    }
+    return rv;
   }
   
   

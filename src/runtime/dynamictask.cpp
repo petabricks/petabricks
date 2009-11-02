@@ -24,13 +24,6 @@
 # include "config.h"
 #endif
 
-//#define PBCC_SEQUENTIAL
-#define INLINE_NULL_TASKS
-
-#define MIN_INLINE_TASK_SIZE  1
-#define MAX_INLINE_TASK_SIZE  65536
-
-
 namespace petabricks {
 
 DynamicTask::DynamicTask(TaskType t)
