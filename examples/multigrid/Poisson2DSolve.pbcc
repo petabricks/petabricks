@@ -49,13 +49,13 @@ to Y[n,n]
 
             // iterate the recursive call for iters iterations
             for (i = 0; i < (int) iters; i++) {
-                Poisson2DSOR(t1, y, b, -2, 1);  // t1 gets relaxed guess
-                Poisson2DResidual(t2, t1, b);   // t2 gets new residual
-                Restrict2Dnew(r1, t2);          // r1 gets restricted residual
-                Poisson2DSolve((int) bin, r2, z, r1); // r2 gets coarse update
-                Interpolate2Dnew(t2, r2);       // t2 gets interpolated update
-                MatrixAdd(t2, t2, t1);          // t2 gets updated guess
-                Poisson2DSOR(y, t2, b, -2, 1);  //  y gets relaxed guess
+                Poisson2DSOR(t1, y, b, -2, 1);        // t1 gets relaxed guess
+                Poisson2DResidual(t2, t1, b);         // t2 gets new residual
+                Restrict2Dnew(r1, t2);                // r1 gets restricted residual
+                Poisson2DSolve<(int) bin>(r2, z, r1); // r2 gets coarse update
+                Interpolate2Dnew(t2, r2);             // t2 gets interpolated update
+                MatrixAdd(t2, t2, t1);                // t2 gets updated guess
+                Poisson2DSOR(y, t2, b, -2, 1);        //  y gets relaxed guess
             }
         }
     }
@@ -78,7 +78,7 @@ accuracy_metric Poisson2DAccuracyMetric
             PetabricksRuntime::abort();
         }
 #ifdef DEBUG
-        printf("BS case called for level %d, acc %d\n", level, 0);
+        printf("BS case called for level %d, acc %d\n", level, _acc_bin);
 #endif
         Poisson2DBS(y, x, b);
     }
@@ -87,13 +87,19 @@ accuracy_metric Poisson2DAccuracyMetric
     to(Y y) from(X x, B b) {
         int level = (int) log2(n-1);
 #ifdef DEBUG
-        printf("SOR case called for level %d, acc %d (%d iterations)\n", level, 0, numIterations);
+        printf("SOR case called for level %d, acc %d (%d iterations)\n", level, _acc_bin, numIterations);
 #endif
         Poisson2DSOR(y, x, b, -1, numIterations);
     }
 
     //solve recursively on coarser grids, with zero initial guess
     //then map the coarse solution back to the fine grid by Interpolation
+
+    //recursive case with accuracy bin 0
+    recursive(n)
+    to (Y y) from(X x, B b) {
+        recursiveMGV(y, x, b, 0, numIterations);
+    }
 
     //recursive case with accuracy bin 1
     recursive(n)
@@ -117,11 +123,5 @@ accuracy_metric Poisson2DAccuracyMetric
     recursive(n)
     to (Y y) from(X x, B b) {
         recursiveMGV(y, x, b, 4, numIterations);
-    }
-
-    //recursive case with accuracy bin 5
-    recursive(n)
-    to (Y y) from(X x, B b) {
-        recursiveMGV(y, x, b, 5, numIterations);
     }
 }
