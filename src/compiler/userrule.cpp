@@ -172,8 +172,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
 
   FormulaList centerEqs = _to.front()->calculateCenter();
   FreeVars vars = centerEqs.getFreeVariables();
-  const FreeVars& cv = trans.constants();
-  vars.eraseAll(cv);
+  vars.eraseAll(trans.constants());
 
   for(size_t i=0; i<centerEqs.size(); ++i)
     centerEqs[i] = new FormulaEQ(getOffsetVar(i), centerEqs[i]);
@@ -293,8 +292,9 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
     for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
       o.addMember((*i)->genTypeStr(true), (*i)->name());
     }
-    for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i){
-      o.addMember("const IndexT", *i);
+    for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
+      if(i->shouldPass())
+        o.addMember("const IndexT", i->name());
     }
     for(int i=0; i<dimensions(); ++i){
       o.addMember("const IndexT", getOffsetVar(i)->toString());
@@ -332,8 +332,9 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     args.push_back((*i)->generateSignatureCode(true));
   }
-  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i){
-    args.push_back("const IndexT "+(*i));
+  for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
+    if(i->shouldPass())
+      args.push_back("const IndexT "+i->name());
   }
   for(int i=0; i<dimensions(); ++i){
     args.push_back("const IndexT "+getOffsetVar(i)->toString());
@@ -501,8 +502,10 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     args.push_back((*i)->generateAccessorCode());
   }
-  for(FreeVars::const_iterator i=trans.constants().begin(); i!=trans.constants().end(); ++i)
-    args.push_back(*i);
+  for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
+    if(i->shouldPass())
+      args.push_back(i->name());
+  }
 
   for(int i=0; i<dimensions(); ++i)
     args.push_back(getOffsetVar(i)->toString());

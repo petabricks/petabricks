@@ -17,13 +17,15 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-
 #ifndef JCONVERT_H
 #define JCONVERT_H
 
-#include <stdlib.h>
-#include <sstream>
 #include "jassert.h"
+
+#include <algorithm>
+#include <limits>
+#include <sstream>
+#include <stdlib.h>
 #include <string>
 
 namespace jalib
@@ -212,6 +214,17 @@ namespace jalib
     return Contains(str.c_str(), c);
   }
 
+  template < typename T >
+  inline T minval(){ 
+    return std::min<T>(-1.0*std::numeric_limits<T>::max(),//min for floats 
+           std::min<T>(std::numeric_limits<T>::min(),
+                       0));//min for unsigned
+  }
+  
+  template < typename T >
+  inline T maxval(){
+    return std::numeric_limits<T>::max();
+  }
 
 }//namespace jalib
 

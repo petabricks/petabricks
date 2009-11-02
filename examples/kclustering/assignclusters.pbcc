@@ -7,11 +7,20 @@
 
 #include "distance.pbcc"
 
+transform AssignClustersGen
+to X[n,2], C[n/10,2], A[n]
+{
+  X.cell(i,j) from() { return PetabricksRuntime::randInt(1,100); }
+  C.cell(i,j) from() { return PetabricksRuntime::randInt(1,100); }
+  A.cell(i) from() { return PetabricksRuntime::randInt(0,n/10-1); }
+}
+
+
 transform AssignClusters
-param k   //input parameter: number of clusters
 from X[n,2], C[k,2], A[n]
 through D[n,k], ctemp[n]
 to Anew[n], cflag
+generator AssignClustersGen
 {
 
 	to (D.cell(i,j) d) from (X.column(i) x, C.column(j) c)
@@ -19,28 +28,22 @@ to Anew[n], cflag
 		Distance(d,x,c);
 	}
 
-
-	to (Anew.cell(i) anew, ctemp.cell(i) change)  from(D.column(i) d, A.cell(i) a)
+	Anew.cell(i) from(D.column(i) d)
 	{
-		int j;
-		ElementT minindex, mindist;
-		minindex=0;
-		mindist=d.cell(0);
-		for (j=1; j<k; j++) {
+		IndexT   minindex = 0;
+		ElementT mindist=d.cell(0);
+		for (int j=1; j<k; j++) {
 			if (d.cell(j) < mindist) {
 				minindex=j;
 				mindist = d.cell(j);
 			}
 		}
-		if (minindex == a ){
-			anew=a;
-			change=0;
-		}
-		else {
-			anew=minindex;
-			change=1;
-		}
+    return minindex;
 	}
+	
+  ctemp.cell(i) from(A.cell(i) aold, Anew.cell(i) anew) {
+    return aold!=anew;
+  }
 
 	cflag from (ctemp c) {
 		int i;
@@ -52,5 +55,6 @@ to Anew[n], cflag
 	}
 
 }
+
 
 #endif // ASSIGNCLUSTERS_PBCC

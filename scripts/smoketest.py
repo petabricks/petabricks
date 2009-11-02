@@ -8,6 +8,7 @@ import subprocess
 import sys
 import configtool
 import time
+import shutil
 from xml.dom.minidom import parse
 
 
@@ -44,6 +45,9 @@ def testBenchmark(b):
   if run(cmd) != 0:
     print "reset config failed"
     return False
+
+  if os.path.isfile("%s.cfg.default"%outfile):
+    shutil.copy("%s.cfg.default"%outfile, "%s.cfg"%outfile)
 
   try:
     infoxml=parse(pbutil.benchmarkToInfo(name))

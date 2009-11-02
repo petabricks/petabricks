@@ -114,6 +114,9 @@ public:
   int id() const { return _id; }
   WorkerThreadPool& pool() { return _pool; }
   const WorkerThreadPool& pool() const { return _pool; }
+#ifdef DEBUG
+  bool isWorking() const { return _isWorking; }
+#endif
 private:
   int _id;
 #ifdef WORKERTHREAD_ONDECK
@@ -126,6 +129,9 @@ private:
   mutable struct { int z; int w; } _randomNumState;
   WorkerThreadPool& _pool;
   pthread_t _thread;
+#ifdef DEBUG
+  bool _isWorking;
+#endif
 } __attribute__ ((aligned (64)));
 
 /**
@@ -154,6 +160,8 @@ public:
   // pick a thread from the pool, using i as a hint of the location
   WorkerThread* getFixed(int i=0);
 
+
+  void debugPrint() const;
 private:
   WorkerThread* _pool[MAX_NUM_WORKERS];
   int _count;

@@ -6,6 +6,11 @@ import sys
 
 relpath=None
 benchmark=None
+gdb = False
+
+if "--gdb" in sys.argv:
+  gdb=True
+  sys.argv=filter(lambda x: x!="--gdb", sys.argv)
 
 try:
   relpath=os.path.relpath #only in python 2.6
@@ -30,13 +35,19 @@ pbutil.compilePetabricks();
 if benchmark is not None:
   benchmark=pbutil.normalizeBenchmarkName(relpath(benchmark))
 
+cmd=[]
+if gdb:
+  cmd.extend(["/usr/bin/gdb", "--args"])
+
 if len(sys.argv)==2:
-  cmd=["./src/pbc", pbutil.benchmarkToSrc(benchmark)]
+  cmd.extend(["./src/pbc", pbutil.benchmarkToSrc(benchmark)])
+  print " ".join(cmd)
   os.execv(cmd[0], cmd)
 elif len(sys.argv)>2:
   pbutil.compileBenchmarks([benchmark])
-  cmd=[pbutil.benchmarkToBin(benchmark)]
+  cmd.extend([pbutil.benchmarkToBin(benchmark)])
   cmd.extend(sys.argv[2:])
+  print " ".join(cmd)
   os.execv(cmd[0], cmd)
 
 

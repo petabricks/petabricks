@@ -38,7 +38,8 @@ public:
 
   enum FlagT {
     FLAG_SIZEVAR         = 1<<0,
-    FLAG_SIZESPECIFICCFG = 1<<1
+    FLAG_SIZESPECIFICCFG = 1<<1,
+    FLAG_FROMTUNABLE     = 1<<2
   };
   
   friend bool operator< (const FreeVar& a, const FreeVar& b){
@@ -48,8 +49,7 @@ public:
 
 
   bool hasFlag(FlagT f) const { return (_flags&f)!=0; }
-
-
+  void addFlag(FlagT f) { _flags |= f; }
 private:
   int _flags;
 };

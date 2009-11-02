@@ -79,15 +79,13 @@ public:
   {
     if(multipliers != NULL)
       memcpy(this->_multipliers, multipliers, sizeof this->_multipliers );
+    else
+      memset(this->_multipliers, 0, sizeof _multipliers);
+
     if(sizes != NULL)
       memcpy(this->_sizes, sizes, sizeof this->_sizes);
-
-#ifdef DEBUG
-    if(multipliers == NULL)
-      memset(_multipliers, 0, sizeof _multipliers);
-    if(sizes == NULL)
-      memset(_sizes, -1, sizeof _sizes);
-#endif
+    else
+      memset(this->_sizes, -1, sizeof _sizes);
   }
   
   ElementT* base() const { return _base; }
@@ -145,6 +143,26 @@ public:
       tmp->data()[i] = -666;
     #endif
     return MatrixRegion(tmp, tmp->data(), sizes);
+  }
+  
+  ///
+  ///same as allocate unless this->sizes()==sizes
+  MatrixRegion reallocate(const IndexT sizes[D]) {
+    for(int i=0; i<D; ++i){
+      if(this->sizes()[i]!=sizes[i]){
+        return allocate(sizes);
+      }
+    }
+    return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
+  }
+  MatrixRegion reallocate(IndexT x, ...){
+    IndexT c1[D];
+    va_list ap;
+    va_start(ap, x);
+    c1[0]=x;
+    for(int i=1; i<D; ++i) c1[i]=va_arg(ap, IndexT);
+    va_end(ap);
+    return reallocate(c1);
   }
 
   ///

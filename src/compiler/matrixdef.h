@@ -130,7 +130,7 @@ public:
 
   void extractDefines(FreeVars& defined, CodeGenerator& o);
   void verifyDefines(CodeGenerator& o);
-  void allocateTemporary(CodeGenerator& o, bool setOnly);
+  void allocateTemporary(CodeGenerator& o, bool setOnly, bool reallocAllowed);
 
   void addType(Type t){  _type |= t; }
   bool isAllInput() const { return _type == T_FROM; }

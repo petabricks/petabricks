@@ -104,7 +104,7 @@ std::string petabricks::RuleChoice::processCondition(const std::string& name, co
       if(!s.empty()) s += " || ";
       FormulaPtr curhint = sortedRules[i]->recursiveHint();
       if(!curhint){
-        static FormulaPtr t = new FormulaVariable(TRANSFORM_N_STR);
+        static FormulaPtr t = new FormulaVariable(TRANSFORM_N_STR"()");
         curhint = t;
       }
       if(!hint) {

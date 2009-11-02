@@ -24,13 +24,6 @@
 # include "config.h"
 #endif
 
-//#define PBCC_SEQUENTIAL
-#define INLINE_NULL_TASKS
-
-#define MIN_INLINE_TASK_SIZE  1
-#define MAX_INLINE_TASK_SIZE  65536
-
-
 namespace petabricks {
 
 DynamicTask::DynamicTask(TaskType t)
@@ -74,6 +67,9 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
     dependsOn(that->_continuation);
   }else if(that->_state != S_COMPLETE){
     that->_dependents.push_back(this);
+#ifdef DEBUG
+    JASSERT(that->_dependents.back()!=NULL);
+#endif
     {
       JLOCKSCOPE(_lock);
       _numPredecessors++;
@@ -134,7 +130,7 @@ void petabricks::DynamicTask::runWrapper(bool isAborting){
       if(_continuation->_dependents.empty()){
         //swap is faster than insert
         _continuation->_dependents.swap(tmp);
-      }else{
+      }else if(!tmp.empty()){
         _continuation->_dependents.insert(_continuation->_dependents.end(), tmp.begin(), tmp.end());
       }
     }
@@ -145,6 +141,9 @@ void petabricks::DynamicTask::runWrapper(bool isAborting){
     #endif
     std::vector<DynamicTask*>::iterator it;
     for(it = tmp.begin(); it != tmp.end(); ++it) {
+#ifdef DEBUG
+      JASSERT(*it != 0)(tmp.size());
+#endif
       (*it)->decrementPredecessors(isAborting);
     }
   }

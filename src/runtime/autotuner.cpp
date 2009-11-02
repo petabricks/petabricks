@@ -17,7 +17,7 @@
 #include <algorithm>
 
 JTUNABLE(autotune_alg_slots,                5, 1, 32);
-JTUNABLE(autotune_branch_attempts,          3, 1, 32);
+JTUNABLE(autotune_branch_attempts,          1, 1, 32);
 JTUNABLE(autotune_improvement_threshold,    95, 10, 100);
 JTUNABLE(autotune_cutoff_divisor,           16, 2, 1024);
 
