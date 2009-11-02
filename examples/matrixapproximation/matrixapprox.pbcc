@@ -99,7 +99,7 @@ transform matrixapproinputgen
 to IN[n,n]
 {
   //todo... we need something better than this
-  IN.cell(i,j) from() { return PetabricksRuntime::rand(0,1); }
+  IN.cell(i,j) from() { return PetabricksRuntime::randDouble(0,1); }
 }
 
 
