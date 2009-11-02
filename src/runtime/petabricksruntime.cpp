@@ -46,6 +46,7 @@ static bool DUMPTIMING=false;
 static bool ACCURACY=false;
 static bool FORCEOUTPUT=false;
 static bool ACCTRAIN=false;
+static bool ISOLATION=true;
 static int OFFSET=0;
 std::vector<std::string> txArgs;
 static std::string ATLOG;
@@ -206,6 +207,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("smoothing", GRAPH_SMOOTHING).help("smooth graphs by also running smaller/larger input sizes");
   args.param("offset",    OFFSET).help("size to add to N for each trial");
   args.param("max-sec",   GRAPH_MAX_SEC).help("stop graphs/autotuning after algorithm runs too slow");
+  args.param("isolation", ISOLATION).help("don't run timing tests in a forked subprocess");
 
   args.finishParsing(txArgs);
   
@@ -411,8 +413,12 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
   }
 }
 double petabricks::PetabricksRuntime::runTrial(double thresh, bool train){
-  SubprocessTestIsolation ti(thresh);
-  return runTrial(ti, train);
+  SubprocessTestIsolation sti(thresh);
+  DummyTestIsolation dti;
+  TestIsolation* ti;
+  if(ISOLATION) ti = &sti;
+  else          ti = &dti;
+  return runTrial(*ti, train);
 }
 
 double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti, bool train){

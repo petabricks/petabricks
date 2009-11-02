@@ -33,7 +33,6 @@ pbutil.setmemlimit()
 
 INFERINPUTSIZES_SEC=5
 
-inputSize=-1
 inputSizeTarget=1.0
 app = None
 cfg = None
@@ -43,7 +42,7 @@ results=[]
 NULL=open("/dev/null", "w")
 maxint = 2147483647
 ignore_list = []
-DEBUG=False
+options=None
 substderr=open("/dev/null","w")
 
 goodtimelimit = lambda: 1.0+reduce(min, results, 1)
@@ -225,7 +224,7 @@ def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
              "--max=%d"%n, "--max-sec=%d"%goodtimelimit()])
   for x in cutoffs:
     cmd.append("--autotune-tunable="+nameof(x))
-  if DEBUG:
+  if options.debug:
     print ' '.join(cmd)
   runsCur=1
   runsLast=1
@@ -265,7 +264,6 @@ def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
   progress.pop()
 
 def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
-  global inputSize
   cutoffs = []
   ctx=tx
   if loops > 0 or passNumber>1:
@@ -275,11 +273,11 @@ def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
   cutoffs.extend(pbutil.getTunablesSplitSize(tx))
   choicesites = getChoiceSites(tx)
   for site in choicesites:
-    tasks.append(TuneTask("algchoice" , lambda: autotuneAlgchoice(tx, site, ctx, inputSize, cutoffs), getChoiceSiteWeight(tx, site, cutoffs)))
-  if len(choicesites)==0 and len(cutoffs)>0:
-    tasks.append(TuneTask("cutoff" , lambda: autotuneAlgchoice(tx, -1, ctx, inputSize, cutoffs), len(cutoffs)))
+    tasks.append(TuneTask("algchoice" , lambda: autotuneAlgchoice(tx, site, ctx, options.n, cutoffs), getChoiceSiteWeight(tx, site, cutoffs)))
+  if len(choicesites)==0 and len(cutoffs)>0 and not options.fast:
+    tasks.append(TuneTask("cutoff" , lambda: autotuneAlgchoice(tx, -1, ctx, options.n, cutoffs), len(cutoffs)))
   #for tunable in cutoffs:
-  #  tasks.append(TuneTask("cutoff" , lambda: autotuneCutoff(ctx, tunable, inputSize)))
+  #  tasks.append(TuneTask("cutoff" , lambda: autotuneCutoff(ctx, tunable, options.n)))
 
 def printTx(tx, depth, loops):
   t = len(getTunables(tx, "system.cutoff.splitsize"))
@@ -289,18 +287,17 @@ def printTx(tx, depth, loops):
   print ''.ljust(2*depth) + ' - ' + nameof(tx) + " (%d choice site, %d cutoffs)"%(cs,t)
     
 def determineInputSizes():
-  global inputSize
   progress.status("finding reasonable input size for training... (%d sec) " % INFERINPUTSIZES_SEC)
-  inputSize=pbutil.inferGoodInputSizes( pbutil.benchmarkToBin(app)
+  options.n=pbutil.inferGoodInputSizes( pbutil.benchmarkToBin(app)
                                       , [inputSizeTarget]
                                       , INFERINPUTSIZES_SEC)[0]
-  print "* finding reasonable input size for training... %d" % inputSize
+  print "* finding reasonable input size for training... %d" % options.n 
 
 def runTimingTest(tx):
   progress.push()
   progress.remaining(1)
   progress.status("running timing test")
-  t=timingRun(tx, inputSize)
+  t=timingRun(tx, options.n)
   progress.remaining(0)
   if len(results)>0:
     speedup=results[-1]/t-1.0
@@ -313,21 +310,14 @@ def runTimingTest(tx):
 def main(argv):
   t1=time.time()
 
-  if len(argv) == 1:
-    print "Error.  For help, run:", argv[0], "-h"
-    sys.exit(2)
-
   global app
   global cfg 
-  global inputSize 
   global ignore_list
   global defaultArgs
-  global DEBUG
   global substderr
+  global options 
 
   config_tool_path = os.path.split(argv[0])[0] + "/configtool.py"
-  app = argv[-1]
-  num_threads = pbutil.cpuCount()
   fast = False
 
   parser = optparse.OptionParser(usage="usage: %prog [options] BENCHMARK")
@@ -335,15 +325,14 @@ def main(argv):
   parser.add_option("-n", "--random", type="int", dest="n", default=-1)
   parser.add_option("-c", "--config", dest="config", default=None)
   parser.add_option("-d", "--debug",  action="store_true", dest="debug", default=False)
+  parser.add_option("-f", "--fast",  action="store_true", dest="fast", default=False)
+  parser.add_option("--offset", type="int", dest="offset", default=0)
   options,args = parser.parse_args()
 
   if len(args) != 1:
     parser.error("expected benchmark name as arg")
 
-  num_threads=options.threads
-  inputSize=options.n
   cfg=options.config
-  DEBUG=options.debug
   app=args[0]
 
   pbutil.chdirToPetabricksRoot()
@@ -351,13 +340,13 @@ def main(argv):
   app = pbutil.normalizeBenchmarkName(app)
   pbutil.compileBenchmarks([app])
   
-  if DEBUG:
+  if options.debug:
     substderr = sys.__stderr__
 
   if cfg is None:
     cfg = pbutil.benchmarkToCfg(app)
 
-  defaultArgs = ['--config='+cfg, '--threads=%d'%num_threads]
+  defaultArgs = ['--config='+cfg, '--threads=%d'%options.threads, '--offset=%d'%options.offset]
   getIgnoreList()
 
   try:
@@ -385,13 +374,14 @@ def main(argv):
 
   progress.status("building work queue")
  
-  if inputSize <= 0:
+  if options.n <= 0:
     tasks.append(TuneTask("determineInputSizes", determineInputSizes))
     
   tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
 
   #build list of tasks
-  walkCallTree(maintx, lambda tx, depth, loops: enqueueAutotuneCmds(tx, maintx, 1, depth, loops))
+  if not options.fast:
+    walkCallTree(maintx, lambda tx, depth, loops: enqueueAutotuneCmds(tx, maintx, 1, depth, loops))
   walkCallTree(maintx, lambda tx, depth, loops: enqueueAutotuneCmds(tx, maintx, 2, depth, loops))
   
   tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
