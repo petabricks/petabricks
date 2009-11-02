@@ -107,8 +107,8 @@ through CFLAG, Ctemp[k,2]
 to C[k,2], A[n]   // C - centroids, A - cluster assignment, WCSS - within-cluster sum of squares  (error measures)
 accuracy_metric WCSS
 accuracy_bins 0, 0.3, 0.6, 0.9
-param k
-//accuracy_variable k(2,2)
+accuracy_variable k(1,1)
+//param k
 {
 
   //Assign initial cluster centers randomly
