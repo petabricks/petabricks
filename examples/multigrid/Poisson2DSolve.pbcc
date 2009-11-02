@@ -78,6 +78,7 @@ accuracy_metric Poisson2DAccuracyMetric
             PetabricksRuntime::abort();
         }
 #ifdef DEBUG
+        printf("n = %d\n", (int) n);
         printf("BS case called for level %d, acc %d\n", level, _acc_bin);
 #endif
         Poisson2DBS(y, x, b);
@@ -87,6 +88,7 @@ accuracy_metric Poisson2DAccuracyMetric
     to(Y y) from(X x, B b) {
         int level = (int) log2(n-1);
 #ifdef DEBUG
+        printf("n = %d\n", (int) n);
         printf("SOR case called for level %d, acc %d (%d iterations)\n", level, _acc_bin, numIterations);
 #endif
         Poisson2DSOR(y, x, b, -1, numIterations);
@@ -98,30 +100,45 @@ accuracy_metric Poisson2DAccuracyMetric
     //recursive case with accuracy bin 0
     recursive(n)
     to (Y y) from(X x, B b) {
+#ifdef DEBUG
+        printf("n = %d\n", (int) n);
+#endif
         recursiveMGV(y, x, b, 0, numIterations);
     }
 
     //recursive case with accuracy bin 1
     recursive(n)
     to (Y y) from(X x, B b) {
+#ifdef DEBUG
+        printf("n = %d\n", (int) n);
+#endif
         recursiveMGV(y, x, b, 1, numIterations);
     }
 
     //recursive case with accuracy bin 2
     recursive(n)
     to (Y y) from(X x, B b) {
+#ifdef DEBUG
+        printf("n = %d\n", (int) n);
+#endif
         recursiveMGV(y, x, b, 2, numIterations);
     }
 
     //recursive case with accuracy bin 3
     recursive(n)
     to (Y y) from(X x, B b) {
+#ifdef DEBUG
+        printf("n = %d\n", (int) n);
+#endif
         recursiveMGV(y, x, b, 3, numIterations);
     }
 
     //recursive case with accuracy bin 4
     recursive(n)
     to (Y y) from(X x, B b) {
+#ifdef DEBUG
+        printf("n = %d\n", (int) n);
+#endif
         recursiveMGV(y, x, b, 4, numIterations);
     }
 }
