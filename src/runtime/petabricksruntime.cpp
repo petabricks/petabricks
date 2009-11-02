@@ -379,7 +379,7 @@ void petabricks::PetabricksRuntime::runAutotuneLoop(const AutotunerList& tuners)
 
 void petabricks::PetabricksRuntime::runGraphMode(){
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
-    double avg = runTrial(GRAPH_MAX_SEC, false);
+    double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
     if(avg<std::numeric_limits<double>::max())
       printf("%d %.6f\n", _randSize, avg);
     if(avg > GRAPH_MAX_SEC) break;
@@ -393,7 +393,7 @@ void petabricks::PetabricksRuntime::runGraphParamMode(const std::string& param){
   GRAPH_MAX = std::min(GRAPH_MAX, tunable->max());
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
     tunable->setValue(n);
-    double avg = runTrial(GRAPH_MAX_SEC, false);
+    double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
     if(avg<std::numeric_limits<double>::max())
       printf("%d %.6lf\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;
@@ -406,7 +406,7 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
   for(int n = GRAPH_MIN; n <= GRAPH_MAX; n+= GRAPH_STEP) {
     worker_threads.setValue(n);
     DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
-    double avg = runTrial(GRAPH_MAX_SEC, false);
+    double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
     if(avg<std::numeric_limits<double>::max())
       printf("%d %.6lf\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;
@@ -414,7 +414,7 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
 }
 double petabricks::PetabricksRuntime::runTrial(double thresh, bool train){
   SubprocessTestIsolation sti(thresh);
-  DummyTestIsolation dti;
+  static DummyTestIsolation dti;
   TestIsolation* ti;
   if(ISOLATION) ti = &sti;
   else          ti = &dti;
@@ -557,7 +557,7 @@ double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable
   //scan the search space
   for(int n=min; n<max+step; n+=step){
     tunable.setValue(n);
-    double avg = runTrial(bestVal+1, true);
+    double avg = runTrial(bestVal, ACCTRAIN);
     if(avg<=bestVal){
       bestVal=avg;
       best=n;

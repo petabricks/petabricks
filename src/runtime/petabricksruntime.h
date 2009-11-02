@@ -160,9 +160,11 @@ public:
   class ComputeRetryException {};
 
   static int randInt(int min=0, int max=RAND_MAX){
+    if(min==max) return min;
     return (lrand48()%(max-min)) + min;
   }
   static double randDouble(double min=0, double max=std::numeric_limits<int>::max()){
+    if(min==max) return min;
     return (drand48()*(max-min)) + min;
   }
 
