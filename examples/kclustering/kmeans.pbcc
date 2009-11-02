@@ -24,7 +24,6 @@ to D[m,n]
 transform GetMin
 from X[m,n]
 to MinX[m]
-generator kmeansinputgen
 {
   MinX.cell(i) from(X.column(i) x){
     int j;

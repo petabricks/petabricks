@@ -330,12 +330,15 @@ def main(argv):
   num_threads = pbutil.cpuCount()
   fast = False
 
-  parser = optparse.OptionParser()
+  parser = optparse.OptionParser(usage="usage: %prog [options] BENCHMARK")
   parser.add_option("--threads",      type="int", dest="threads", default=pbutil.cpuCount())
   parser.add_option("-n", "--random", type="int", dest="n", default=-1)
   parser.add_option("-c", "--config", dest="config", default=None)
   parser.add_option("-d", "--debug",  action="store_true", dest="debug", default=False)
   options,args = parser.parse_args()
+
+  if len(args) != 1:
+    parser.error("expected benchmark name as arg")
 
   num_threads=options.threads
   inputSize=options.n
