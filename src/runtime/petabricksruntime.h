@@ -143,7 +143,7 @@ public:
   ///
   /// Semi-gracefully end the current execution (means invalid config)
   static void abort();
-  
+
   ///
   /// Indicate that the current configuration has not been trained
   /// Usually equivalent to abort()

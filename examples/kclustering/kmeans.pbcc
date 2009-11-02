@@ -104,7 +104,7 @@ generator kmeansinputgen
             
 main transform kmeans
 from X[n,2]    // X - x,y coordinates of n points
-through CFLAG, Ctemp[k,2]
+through Ctemp[k,2]
 to C[k,2], A[n]   // C - centroids, A - cluster assignment, WCSS - within-cluster sum of squares  (error measures)
 accuracy_metric WCSS
 accuracy_bins 0, 0.3, 0.6, 0.9
@@ -127,9 +127,9 @@ generator kmeansinputgen
   }
 
   //iteratively find local optimum
-  to (C c, A a, CFLAG change) from (X x, Ctemp ctemp)
+  to (C c, A a) from (X x, Ctemp ctemp)
   {
-    change=1;
+    ElementT change=1;
     InlineCopy2D(c,ctemp);    
 
     while (change > 0)  {//forenough?

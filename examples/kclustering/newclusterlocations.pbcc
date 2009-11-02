@@ -1,10 +1,6 @@
 #ifndef NEWCLUSTERLOCATIONS_PBCC
 #define NEWCLUSTERLOCATIONS_PBCC
 
-//#ifndef k
-//#define k 3
-//#endif
-
 transform NewClusterLocations
 param k //input parameter: number of clusters
 from X[n,2], A[n]
@@ -13,33 +9,41 @@ to C[k,2]
 {
   to (Sum s, Count count) from (X x, A a)
   {
-	int i, j;
-	for(i=0;i<k;i++){
-		s.cell(i,0)=0;
-		s.cell(i,1)=0;
-		count.cell(i)=0;
-	}
-	for (i=0; i<n; i++) {
-		j=a.cell(i);
-		s.cell(j,0)+=x.cell(i,0);
-		s.cell(j,1)+=x.cell(i,1);
-		count.cell(j)+=1;
-	}
+    int i, j;
+    //zero s and count
+    for(i=0;i<k;i++){
+      s.cell(i,0)=0;
+      s.cell(i,1)=0;
+      count.cell(i)=0;
+    }
+    for (i=0; i<n; i++) {
+      j=a.cell(i);
+      JASSERT(j>=0 && j<=k)(j);
+      s.cell(j,0)+=x.cell(i,0);
+      s.cell(j,1)+=x.cell(i,1);
+      count.cell(j)+=1;
+    }
   }
 
   to (C.column(i) c) from (Sum.column(i) s, Count.cell(i) count) 
   {
-	if (count == 0) {
-		c.cell(0)=0;
-		c.cell(1)=0;
-	}
-	else {
-		c.cell(0)=s.cell(0)/count;
-		c.cell(1)=s.cell(1)/count;
-	}
+    if (count == 0) {
+      c.cell(0)=0;
+      c.cell(1)=0;
+    }
+    else {
+      c.cell(0)=s.cell(0)/count;
+      c.cell(1)=s.cell(1)/count;
+    }
   }
 }
 
+transform NewClusterLocationsGen
+to X[n,2], A[n]
+{
+  X.cell(i,j) from() { return PetabricksRuntime::randInt(1,100); }
+  A.cell(i) from() { return PetabricksRuntime::randInt(0,n-1); }
+}
 
 
 #endif // NEWCLUSTERLOCATIONS_PBCC
