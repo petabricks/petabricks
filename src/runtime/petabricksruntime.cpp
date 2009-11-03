@@ -36,12 +36,13 @@ static bool _needTraingingRun = false;
 
 static std::string CONFIG_FILENAME;
 static int GRAPH_MIN=1;
-static int GRAPH_MAX=5000;
+static int GRAPH_MAX=4096;
 static double GRAPH_MAX_SEC=std::numeric_limits<double>::max();
-static int GRAPH_STEP=50;
-static int GRAPH_TRIALS=1;
-static int GRAPH_SMOOTHING=0;
-static int SEARCH_BRANCH_FACTOR=8;
+static int  GRAPH_STEP=1;
+static bool GRAPH_EXP=false;
+static int  GRAPH_TRIALS=1;
+static int  GRAPH_SMOOTHING=0;
+static int  SEARCH_BRANCH_FACTOR=8;
 static bool DUMPTIMING=false;
 static bool ACCURACY=false;
 static bool FORCEOUTPUT=false;
@@ -50,6 +51,16 @@ static bool ISOLATION=true;
 static int OFFSET=0;
 std::vector<std::string> txArgs;
 static std::string ATLOG;
+
+
+static int _incN(int n){
+  if(GRAPH_EXP){
+    JASSERT(GRAPH_STEP>1)(GRAPH_STEP);
+    return GRAPH_STEP*n;
+  }else{
+    return GRAPH_STEP+n;
+  }
+}
 
 static enum {
   MODE_RUN_IO,
@@ -162,6 +173,8 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   //figure out what mode we are in
   if(args.param("autotune").help("run the genetic autotuner at a given choice site")){
     MODE=MODE_AUTOTUNE_GENETIC;
+    GRAPH_EXP=true;
+    GRAPH_STEP=2;
   } else if(args.param("optimize", graphParam).help("autotune a single given config parameter")){
     MODE=MODE_AUTOTUNE_PARAM;
   } else if(args.param("graph-input").help("graph run time with changing input size")){
@@ -203,6 +216,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("min",       GRAPH_MIN).help("minimum input size for graph/autotuning");
   args.param("max",       GRAPH_MAX).help("maximum input size for graph/autotuning");
   args.param("step",      GRAPH_STEP).help("step size for graph/autotuning");
+  args.param("exp",       GRAPH_EXP).help("grow input size exponentially in graph/autotuning mode");
   args.param("trials",    GRAPH_TRIALS).help("number of times to run each data point in graph/autotuning (averaged)");
   args.param("smoothing", GRAPH_SMOOTHING).help("smooth graphs by also running smaller/larger input sizes");
   args.param("offset",    OFFSET).help("size to add to N for each trial");
@@ -361,8 +375,8 @@ void petabricks::PetabricksRuntime::runAutotuneMode(){
 }
 void petabricks::PetabricksRuntime::runAutotuneLoop(const AutotunerList& tuners){
   Main* old = _main;
-  for(int n=GRAPH_MIN; n<=GRAPH_MAX; n*=2){
-    setSize(n+1);
+  for(int n=GRAPH_MIN; n<=GRAPH_MAX; n=_incN(n)){
+    setSize(n);
     bool overtime=false;
     for(size_t i=0; i<tuners.size(); ++i){
       _main = tuners[i]->main();
@@ -376,7 +390,8 @@ void petabricks::PetabricksRuntime::runAutotuneLoop(const AutotunerList& tuners)
 }
 
 void petabricks::PetabricksRuntime::runGraphMode(){
-  for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
+  for(int n=GRAPH_MIN; n<=GRAPH_MAX; n=_incN(n)){
+    setSize(n);
     double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
     if(avg<std::numeric_limits<double>::max())
       printf("%d %.6f\n", _randSize, avg);
@@ -389,7 +404,7 @@ void petabricks::PetabricksRuntime::runGraphParamMode(const std::string& param){
   JASSERT(tunable!=0)(param).Text("parameter not found");
   GRAPH_MIN = std::max(GRAPH_MIN, tunable->min());
   GRAPH_MAX = std::min(GRAPH_MAX, tunable->max());
-  for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
+  for(int n=GRAPH_MIN; n<=GRAPH_MAX; n=_incN(n)){
     tunable->setValue(n);
     double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
     if(avg<std::numeric_limits<double>::max())
@@ -401,7 +416,7 @@ void petabricks::PetabricksRuntime::runGraphParamMode(const std::string& param){
 void petabricks::PetabricksRuntime::runGraphParallelMode() {
   GRAPH_MIN = std::max(GRAPH_MIN, worker_threads.min());
   GRAPH_MAX = std::min(GRAPH_MAX, worker_threads.max());
-  for(int n = GRAPH_MIN; n <= GRAPH_MAX; n+= GRAPH_STEP) {
+  for(int n=GRAPH_MIN; n<=GRAPH_MAX; n=_incN(n)){
     worker_threads.setValue(n);
     DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
     double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
@@ -424,6 +439,7 @@ double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti, bool train){
   int origN = _randSize;
   std::vector<double> rslts;
   rslts.reserve(2*GRAPH_SMOOTHING+1);
+  //JTRACE("runtrial")(_randSize)(GRAPH_SMOOTHING)(OFFSET);
   for( int n =  origN-GRAPH_SMOOTHING+OFFSET
      ; n <= origN+GRAPH_SMOOTHING+OFFSET
      ; ++n)
