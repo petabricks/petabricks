@@ -43,6 +43,7 @@ multigrid/Helmholtz3DSOR
 multigrid/Interpolate2Dnew
 multigrid/mgv2D
 multigrid/mgv2DTrain
+multigrid/Poisson2DAccuracyMetric
 multigrid/Poisson2DBSInterior
 multigrid/Poisson2DBS
 multigrid/Poisson2DfmgvGraph
@@ -76,6 +77,7 @@ preconditioner/vectoradd
 regression/accuracymetric
 regression/assign0d
 regression/calltx
+regression/commadecl
 regression/coordflip
 regression/coscheduled1
 regression/coscheduled2
