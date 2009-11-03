@@ -1,0 +1,21 @@
+#ifndef COMPUTEERROR_PBCC
+#define COMPUTEERROR_PBCC
+
+transform ComputeError
+from A[n], B[n]
+to Error
+{
+  Error from (A a, B b)
+  {
+    int i;
+    double temp, sum = 0;
+    for (i = 0; i < n; i++) {
+        temp = a.cell(i) - b.cell();
+        sum += temp * temp;
+    }
+    return sqrt(sum / n);
+  }
+}
+
+#endif // COMPUTEERROR_PBCC
+
