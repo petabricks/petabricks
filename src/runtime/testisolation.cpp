@@ -121,7 +121,10 @@ void petabricks::SubprocessTestIsolation::endTest(double time, double accuracy) 
   o.serialize(time);
   o.serialize(accuracy);
   o.serializeVector(_modifications);
+  fflush(NULL);
   fsync(_fd);
+  fsync(fileno(stdout));
+  fsync(fileno(stderr));
   //DynamicScheduler::cpuScheduler().shutdown();
   _exit(0);
 }
