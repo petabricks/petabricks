@@ -311,9 +311,7 @@ void petabricks::PetabricksRuntime::runNormal(){
     try{
       DummyTestIsolation ti;
       computeWrapper(ti);
-    }catch(petabricks::DynamicScheduler::AbortException e){
-      JASSERT(false).Text("PetabricksRuntime::abort() called");
-    }catch(ComputeRetryException e){
+    }catch(...){
       UNIMPLEMENTED();
     }
     main.write(txArgs);
@@ -424,33 +422,28 @@ double petabricks::PetabricksRuntime::runTrial(double thresh, bool train){
 double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti, bool train){
   JASSERT(_randSize>0)(_randSize).Text("'--n=NUMBER' is required");
   int origN = _randSize;
-  try{
-    std::vector<double> rslts;
-    rslts.reserve(2*GRAPH_SMOOTHING+1);
-    for( int n =  origN-GRAPH_SMOOTHING+OFFSET
-       ; n <= origN+GRAPH_SMOOTHING+OFFSET
-       ; ++n)
-    {
-      _randSize=n;
-      double t = 0;
-      for(int z=0;z<GRAPH_TRIALS; ++z){
-        _main->reallocate(n);
-        _main->randomize();
-        if(z==0 && train){
-          t += trainAndComputeWrapper(ti); // first trial can train
-        }else{
-          t += computeWrapper(ti); // rest of trials cant train
-        }
+  std::vector<double> rslts;
+  rslts.reserve(2*GRAPH_SMOOTHING+1);
+  for( int n =  origN-GRAPH_SMOOTHING+OFFSET
+     ; n <= origN+GRAPH_SMOOTHING+OFFSET
+     ; ++n)
+  {
+    _randSize=n;
+    double t = 0;
+    for(int z=0;z<GRAPH_TRIALS; ++z){
+      _main->reallocate(n);
+      _main->randomize();
+      if(z==0 && train){
+        t += trainAndComputeWrapper(ti); // first trial can train
+      }else{
+        t += computeWrapper(ti); // rest of trials cant train
       }
-      rslts.push_back(t/GRAPH_TRIALS);//record average
     }
-    std::sort(rslts.begin(), rslts.end());
-    _randSize=origN;
-    return rslts[GRAPH_SMOOTHING];
-  }catch(petabricks::DynamicScheduler::AbortException e){
-    _randSize=origN;
-    return std::numeric_limits<double>::max();
+    rslts.push_back(t/GRAPH_TRIALS);//record average
   }
+  std::sort(rslts.begin(), rslts.end());
+  _randSize=origN;
+  return rslts[GRAPH_SMOOTHING];
 }
 
 double petabricks::PetabricksRuntime::trainAndComputeWrapper(TestIsolation& ti){
@@ -466,33 +459,40 @@ double petabricks::PetabricksRuntime::trainAndComputeWrapper(TestIsolation& ti){
 }
 
 double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti){
-  double v, acc=std::numeric_limits<double>::max();
+  double v, acc=jalib::maxval<double>();
   if(ti.beginTest(worker_threads)){
-    if(_isTrainingRun && _main->isVariableAccuracy()){
-      variableAccuracyTrainingLoop(ti);
-    }
-    _needTraingingRun = false;//reset flag set by isTrainingRun()
-    _isRunning = true;
-    jalib::JTime begin=jalib::JTime::now();
-    _main->compute();
-    jalib::JTime end=jalib::JTime::now();
-    _isRunning = false;
-    
-    if(_needTraingingRun && _isTrainingRun){
-      v=-1;
-    }else{
-      v=end-begin;
-    }
-    if(ACCURACY){
-      ti.disableTimeout();
-      acc=_main->accuracy();
+    try {
+      if(_isTrainingRun && _main->isVariableAccuracy()){
+        variableAccuracyTrainingLoop(ti);
+      }
+      _needTraingingRun = false;//reset flag set by isTrainingRun()
+      _isRunning = true;
+      jalib::JTime begin=jalib::JTime::now();
+      _main->compute();
+      jalib::JTime end=jalib::JTime::now();
+      _isRunning = false;
+      
+      if(_needTraingingRun && _isTrainingRun){
+        v=-1;
+      }else{
+        v=end-begin;
+      }
+      if(ACCURACY){
+        ti.disableTimeout();
+        acc=_main->accuracy();
+      }
+    } catch(petabricks::DynamicScheduler::AbortException) {
+      v=jalib::maxval<double>();
+    } catch(...) {
+      UNIMPLEMENTED();
+      throw;
     }
     ti.endTest(v,acc);
   }else{
     ti.recvResult(v,acc);
   }
     
-  if(v<0)      throw ComputeRetryException();
+  if(v<0)        throw ComputeRetryException();
   if(DUMPTIMING) theTimings.push_back(v);
   if(ACCURACY)   theAccuracies.push_back(acc);
   return v;
@@ -509,9 +509,11 @@ void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& 
 
   for(int i=0; true;++i){
     reallocate();
+    _isRunning = true;
     ti.restartTimeout();
     _main->compute();
     ti.disableTimeout();
+    _isRunning = false;
     ElementT cur = _main->accuracy();
     if(cur >= target){
       JTRACE("training goal reached")(i)(cur)(target);

@@ -252,7 +252,8 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
   }
 }
 
-extern "C" void threadstatus() {
+extern "C" int threadstatus() {
   petabricks::WorkerThread::self()->pool().debugPrint();
+  return petabricks::DynamicScheduler::cpuScheduler().numThreads();
 }
 

@@ -80,6 +80,7 @@ petabricks::TestIsolation* petabricks::SubprocessTestIsolation::masterProcess() 
 }
 
 bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads) {
+  JASSERT(theMasterProcess==NULL);
   _modifications.clear();
   DynamicScheduler::cpuScheduler().shutdown();
   int fds[2];
@@ -120,8 +121,11 @@ void petabricks::SubprocessTestIsolation::endTest(double time, double accuracy) 
   o.serialize(time);
   o.serialize(accuracy);
   o.serializeVector(_modifications);
+  fflush(NULL);
   fsync(_fd);
-  DynamicScheduler::cpuScheduler().shutdown();
+  fsync(fileno(stdout));
+  fsync(fileno(stderr));
+  //DynamicScheduler::cpuScheduler().shutdown();
   _exit(0);
 }
 
