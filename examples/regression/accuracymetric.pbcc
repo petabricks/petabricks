@@ -22,8 +22,9 @@ accuracy_bins 0, 0.3, 0.6, 0.9
   B.cell(i) from(A.cell(i) t) {
     return t;
   }
+  duplicate(acc, 0, 3)
   to(B b) from(A a) {
-    Foo2(b,a);
+    Foo2(acc,b,a);
   }
 }
 
