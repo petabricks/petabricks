@@ -1,3 +1,6 @@
+#ifndef POISSON2DMG
+#define POISSON2DMG
+
 //Multigrid V-cycle 2D
 //assume dimension n = 2^k + 1
 
@@ -59,7 +62,7 @@ to Y[n,n]
     }
 }
 
-transform Poisson2DSolve
+transform Poisson2DMG
 from X[n,n], B[n,n]
 to  Y[n,n]
 accuracy_bins 10, 1000, 100000, 10000000, 1000000000
@@ -106,6 +109,7 @@ accuracy_metric Poisson2DAccuracyMetric
     //solve recursively on coarser grids
 
     recursive(n)
+    duplicate(recurseBin, 0, 4)
     to (Y y) from(X x, B b) {
 #ifdef DEBUG
         printf("recursive %d case called for n = %d, acc %d (%d iterations)\n", recurseBin, n, _acc_bin, numIterations);
@@ -113,3 +117,5 @@ accuracy_metric Poisson2DAccuracyMetric
         Poisson2DRecurse(y, x, b, recurseBin, numIterations);
     }
 }
+
+#endif // POISSON2DMG

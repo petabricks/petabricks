@@ -3,18 +3,6 @@
 
 #include "Poisson2DJacobiInterior.pbcc"
 
-// stub transform for use in multigrid template
-//   Relax2D => Poisson2DJacobi
-transform Relax2D
-from X[n,n], B[n,n], weight, numIterations
-to OUT[n,n]
-{
-  to (OUT out) from (X x, B b, numIterations num)
-  {
-    Poisson2DJacobi(out, x, b, num);
-  }
-}
-
 transform Poisson2DJacobi
 from IN[n+2,n+2], B[n+2,n+2], numIterations
 through BTEMP[n,n]
