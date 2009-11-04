@@ -12,10 +12,10 @@
 // Helper function that recursively computes an estimation cycle of full multigrid.
 //
 // Performance note: Y can point to the same matrix region as X
-transform Poisson2DRefFMGInner
+transform Poisson2DRefFMGHelper
 from X[n,n], B[n,n], NumIters
-through Z[(n+1)/2,(n+1)/2]
 to  Y[n,n]
+through Z[(n+1)/2,(n+1)/2]
 {
     Z.cell(i,j) from() {
         return 0;
@@ -24,8 +24,11 @@ to  Y[n,n]
     //solve recursively on coarser grids, with zero initial guess
     //then map the coarse solution back to the fine grid by Interpolation
     to (Y y) from(X x, B b, Z z, NumIters numIters) {
+
+        JASSERT(n >= 3)(n).Text("input must be >= 3");
         JASSERT(floor(log2(n-1)) == log2(n-1))(n).Text("input must be 2^k+1");
         JASSERT(numIters >= 0)(numIters).Text("num iterations must be non-negative");
+
         if (n == 3) {
 
 #ifdef DEBUG
@@ -47,15 +50,15 @@ to  Y[n,n]
             MatrixRegion2D r2 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
 
             // do recursive estimation
-            Poisson2DResidual(t2, x, b);        // t2 gets residual
-            Restrict2Dnew(r1, t2);              // r1 gets restricted residual
-            Poisson2DRefFMGInner(r2, z, r1, 1); // r2 gets coarse update
-            Interpolate2Dnew(t2, r2);           // t2 gets interpolated update
-            MatrixAdd(y, t2, x);                //  y gets updated guess
+            Poisson2DResidual(t2, x, b);         // t2 gets residual
+            Restrict2Dnew(r1, t2);               // r1 gets restricted residual
+            Poisson2DRefFMGHelper(r2, z, r1, 1); // r2 gets coarse update
+            Interpolate2Dnew(t2, r2);            // t2 gets interpolated update
+            MatrixAdd(y, t2, x);                 //  y gets updated guess
 
             // do reference V-cycles for numIters iterations
             if (numIters > 0) {
-                Poisson2DRefMG(y, y, b, numIters); //  y gets iterated with V-cycles
+                Poisson2DRefMGHelper(y, y, b, numIters); //  y gets iterated with V-cycles
             }
         }
     }
@@ -75,14 +78,14 @@ accuracy_metric Poisson2DAccuracyMetric
 {
     to (Y y) from(X x, B b) {
 
-        // Estimation is called with a numIters argument of 0 because we will
-        // control the number of reference V-cycles to do at this level in
-        // this transform.
-        Poisson2DRefFMGInner(y, x, b, 0);
+        // This estimation is called with an iteration argument of 0
+        // because we will control the number of reference V-cycles to
+        // do at this level in the next step.
+        Poisson2DRefFMGHelper(y, x, b, 0);
 
         // do reference V-cycles for numIterations
-        if (numIters > 0) {
-            Poisson2DRefMG(y, y, b, numIterations);
+        if (numIterations > 0) {
+            Poisson2DRefMGHelper(y, y, b, numIterations);
         }
     }
 }
