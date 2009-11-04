@@ -13,6 +13,7 @@
 #define PETABRICKSUSERRULE_H
 
 #include "codegenerator.h"
+#include "configitem.h"
 #include "matrixdependency.h"
 #include "rule.h"
 #include "ruleir.h"
@@ -40,6 +41,11 @@ public:
   /// Initialize this rule after parsing
   void initialize(Transform&);
   
+
+  ///
+  /// Expand any duplicates by generating synthetic rules
+  void performExpansion(Transform&);
+
   ///
   /// Set this->_body
   void setBody(const char*);
@@ -71,12 +77,11 @@ public:
   
   ///
   /// Add RuleDescriptors to output corresponding to the extrema of the applicable region in dimension
-  void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension);
+  void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension, const RulePtr& rule);
 
   ///
   /// Generate seqential code to declare this rule
   void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
-
 
   ///
   /// Generate seqential code to declare this rule
@@ -151,9 +156,16 @@ public:
     return true;
   }
 
-
+  ///
+  /// add a variable to duplicate the rulebody max-min times with
   void addDuplicateVar(const std::string& name, int min, int max){
+    _duplicateVars.push_back(ConfigItem(ConfigItem::FLAG_TEMPLATEVAR, name, min, min, max));
   }
+
+  size_t duplicateCount() const;
+  ///returns old duplicate number
+  size_t setDuplicateNumber(size_t c);
+  size_t getDuplicateNumber();
 
   bool hasWhereClause() const { return _conditions.size()>0; }
 
@@ -166,18 +178,19 @@ public:
   
   DependencyDirection getSelfDependency() const;
 private:
-  RuleFlags   _flags;
-  RegionList  _from;
-  RegionList  _to;
+  RuleFlags _flags;
+  RegionList _from;
+  RegionList _to;
   FormulaList _conditions;
   FormulaList _definitions;
-  std::string     _bodysrc;
+  std::string _bodysrc;
   RIRBlockCopyRef _bodyirStatic;
   RIRBlockCopyRef _bodyirDynamic;
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
-  FormulaPtr          _recursiveHint;
+  FormulaPtr _recursiveHint;
   std::string _label;
+  ConfigItems _duplicateVars;
 };
 
 }

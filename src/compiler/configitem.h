@@ -12,6 +12,7 @@
 #ifndef PETABRICKSCONFIGITEM_H
 #define PETABRICKSCONFIGITEM_H
 
+
 #include "common/jassert.h"
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
@@ -25,6 +26,7 @@ class ConfigItem;
 typedef std::vector<ConfigItem> ConfigItems;
 
 //TemplateArg is the same as config item, but ref counted
+//TODO: finish renaming all the uses so we can get rid of the typedef
 typedef ConfigItem TemplateArg;
 typedef jalib::JRef<TemplateArg> TemplateArgPtr;
 class TemplateArgList: public std::vector<TemplateArgPtr>, public jalib::JRefCounted {};
@@ -38,18 +40,21 @@ public:
     FLAG_SIZESPECIFIC  = 1<<2,//value depends on transform_n
     FLAG_ACCURACY      = 1<<3,
     FLAG_SIZEVAR       = 1<<4,//value used in to/from/through
-    FLAG_FROMCFG       = 1<<5 
+    FLAG_FROMCFG       = 1<<5,
+    FLAG_TEMPLATEVAR   = 1<<6
   };
 
   ConfigItem(int flags, std::string name, int initial, int min, int max);
   ConfigItem(std::string name, int min, int max);
   
-  std::string name     () const { return _name;     }
-  int initial  () const { return _initial;  }
-  int min      () const { return _min;      }
-  int max      () const { return _max;      }
+  std::string name() const { return _name; }
+  int initial() const { return _initial; }
+  int min() const { return _min; }
+  int max() const { return _max; }
   int range() const { return _max-_min+1; }
 
+  ///
+  /// the category string is based on _flags and put in the .info file
   std::string category() const;
 
   bool hasFlag(FlagT f) const {
@@ -59,8 +64,13 @@ public:
   bool shouldPass() const { return hasFlag(FLAG_SIZEVAR) || hasFlag(FLAG_SIZESPECIFIC); }
 
   void merge(int flags, std::string name, int initial, int min, int max);
+  
+  void addFlag(int flag){ _flags|=flag; }
 
   void print(std::ostream& o) const;
+
+
+  void setInitial(int i) { _initial=i; }
 private:
   int         _flags;
   std::string _name;
@@ -69,6 +79,7 @@ private:
   int         _max;
 };
 
-
 }
+
 #endif
+

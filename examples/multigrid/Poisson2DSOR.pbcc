@@ -3,18 +3,6 @@
 
 #include "Poisson2DSORInterior.pbcc"
 
-// stub transform for use in multigrid template
-//   Relax2D => Poisson2DSOR
-transform Relax2D
-from X[n,n], B[n,n], weight, numIterations
-to OUT[n,n]
-{
-  to (OUT out) from (X x, B b, weight w, numIterations num)
-  {
-    Poisson2DSOR(out, x, b, w, num);
-  }
-}
-
 // performance note: OUT can point to the same matrix region as IN
 transform Poisson2DSOR
 from IN[n+2,n+2], B[n+2,n+2], weight, numIterations

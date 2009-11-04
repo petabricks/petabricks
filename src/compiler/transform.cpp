@@ -136,7 +136,11 @@ void petabricks::Transform::initialize() {
       _scope->set(i->name(), RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL);
   }
 
-  jalib::Map(&RuleInterface::initialize,      *this, _rules);
+  jalib::Map(&RuleInterface::initialize, *this, _rules);
+
+  for(size_t i=0; i<_rules.size(); ++i){
+    _rules[i]->performExpansion(*this);
+  }
 
   for(MatrixDefList::iterator m=_to.begin(); m!=_to.end(); ++m)
     fillBaseCases(*m);
@@ -152,7 +156,6 @@ void petabricks::Transform::initialize() {
   else
     RIRScope::global()->set(_name, RIRSymbol::SYM_TRANSFORM);
 
-
   theTransformMap()[_name] = this;
 
   MaximaWrapper::instance().popContext();
@@ -163,21 +166,17 @@ void petabricks::Transform::fillBaseCases(const MatrixDefPtr& matrix) {
   boundaries.resize( matrix->numDimensions() );
   RuleSet allowed;
   for(RuleList::iterator i=_rules.begin(); i!=_rules.end(); ++i){
-    if((*i)->canProvide(matrix))
+    if((*i)->canProvide(matrix)){
       allowed.insert(*i);
+      //JTRACE("adding allowed rule")((*i)->id());
+    }
   }
 
   for(size_t d=0; d<boundaries.size(); ++d){
     for(RuleSet::iterator i=allowed.begin(); i!=allowed.end(); ++i){
-      (*i)->getApplicableRegionDescriptors(boundaries[d], matrix, d);
+      (*i)->getApplicableRegionDescriptors(boundaries[d], matrix, d, *i);
     }
     std::sort(boundaries[d].begin(), boundaries[d].end());
-//     JTRACE("boundaryList")(d)(matrix);
-//     #ifdef DEBUG
-//     std::cerr << "\t";
-//     printStlList(std::cerr, boundaries[d]);
-//     std::cerr << std::endl;
-//     #endif
   }
   ChoiceGridPtr tmp = ChoiceGrid::constructFrom(allowed, boundaries);
   if(matrix->numDimensions()>0){

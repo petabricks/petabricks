@@ -1,3 +1,6 @@
+#ifndef POISSON2DMG
+#define POISSON2DMG
+
 //Multigrid V-cycle 2D
 //assume dimension n = 2^k + 1
 
@@ -6,13 +9,13 @@
 #include "Restrict2Dnew.pbcc"
 #include "Poisson2DResidual.pbcc"
 #include "Poisson2DSOR.pbcc"
-#include "Poisson2DBS.pbcc"
+#include "Poisson2DDirect.pbcc"
 #include "Poisson2DAccuracyMetric.pbcc"
 
 // Uncomment the following define to enable debug execution
 // #define DEBUG
 
-transform recursiveMGV
+transform Poisson2DRecurse
 from X[n,n], B[n,n], Bin, Iters
 through Z[(n+1)/2,(n+1)/2]
 to Y[n,n]
@@ -59,14 +62,14 @@ to Y[n,n]
     }
 }
 
-transform Poisson2DSolve
+transform Poisson2DMG
 from X[n,n], B[n,n]
 to  Y[n,n]
 accuracy_bins 10, 1000, 100000, 10000000, 1000000000
 accuracy_variable numIterations
 accuracy_metric Poisson2DAccuracyMetric
 {
-    //base case: directly solve with BS
+    //base case: directly solve
     to(Y y) from(X x, B b) {
 
         int level = (int) log2(n-1);
@@ -78,10 +81,10 @@ accuracy_metric Poisson2DAccuracyMetric
         }
 
 #ifdef DEBUG
-        printf("BS case called for n = %d, acc %d\n", n, _acc_bin);
+        printf("Direct case called for n = %d, acc %d\n", n, _acc_bin);
 #endif
 
-        Poisson2DBS(y, x, b);
+        Poisson2DDirect(y, x, b);
 
     }
 
@@ -105,48 +108,14 @@ accuracy_metric Poisson2DAccuracyMetric
 
     //solve recursively on coarser grids
 
-    //recursive case with accuracy bin 0
     recursive(n)
+    duplicate(recurseBin, 0, 4)
     to (Y y) from(X x, B b) {
 #ifdef DEBUG
-        printf("recursive 0 case called for n = %d, acc %d (%d iterations)\n", (int) n, _acc_bin, numIterations);
+        printf("recursive %d case called for n = %d, acc %d (%d iterations)\n", recurseBin, n, _acc_bin, numIterations);
 #endif
-        recursiveMGV(y, x, b, 0, numIterations);
-    }
-
-    //recursive case with accuracy bin 1
-    recursive(n)
-    to (Y y) from(X x, B b) {
-#ifdef DEBUG
-        printf("recursive 1 case called for n = %d, acc %d (%d iterations)\n", (int) n, _acc_bin, numIterations);
-#endif
-        recursiveMGV(y, x, b, 1, numIterations);
-    }
-
-    //recursive case with accuracy bin 2
-    recursive(n)
-    to (Y y) from(X x, B b) {
-#ifdef DEBUG
-        printf("recursive 2 case called for n = %d, acc %d (%d iterations)\n", (int) n, _acc_bin, numIterations);
-#endif
-        recursiveMGV(y, x, b, 2, numIterations);
-    }
-
-    //recursive case with accuracy bin 3
-    recursive(n)
-    to (Y y) from(X x, B b) {
-#ifdef DEBUG
-        printf("recursive 3 case called for n = %d, acc %d (%d iterations)\n", (int) n, _acc_bin, numIterations);
-#endif
-        recursiveMGV(y, x, b, 3, numIterations);
-    }
-
-    //recursive case with accuracy bin 4
-    recursive(n)
-    to (Y y) from(X x, B b) {
-#ifdef DEBUG
-        printf("recursive 4 case called for n = %d, acc %d (%d iterations)\n", (int) n, _acc_bin, numIterations);
-#endif
-        recursiveMGV(y, x, b, 4, numIterations);
+        Poisson2DRecurse(y, x, b, recurseBin, numIterations);
     }
 }
+
+#endif // POISSON2DMG

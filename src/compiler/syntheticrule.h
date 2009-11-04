@@ -20,6 +20,7 @@ class SyntheticRule : public RuleInterface {
 public:
   void initialize(Transform&);
   void compileRuleBody(Transform& tx, RIRScope& s);
+  void performExpansion(Transform&){}
 
   RuleFlags::PriorityT priority() const;
   bool isRecursive() const;
@@ -31,7 +32,7 @@ public:
   bool canProvide(const MatrixDefPtr& m) const;
 
   void getApplicableRegionDescriptors(RuleDescriptorList& output,
-                                      const MatrixDefPtr& matrix, int dimension);
+                                      const MatrixDefPtr& matrix, int dimension, const RulePtr&);
 
   void generateCallCodeSimple(Transform& trans, CodeGenerator& o,
                               const SimpleRegionPtr& region);
@@ -53,8 +54,8 @@ public:
 
 };
 
-
-
+///
+///combines multiple rules with where clauses
 class WhereExpansionRule : public SyntheticRule {
 public:
 
@@ -81,6 +82,49 @@ public:
   DependencyDirection getSelfDependency() const;
 private:
   RuleSet _rules;
+};
+
+///
+/// duplicate a rule which has a duplicate keyword
+class DuplicateExpansionRule : public SyntheticRule {
+public:
+  DuplicateExpansionRule(const RulePtr& rule, size_t dup) 
+    : _rule(rule), _dup(dup)
+  {
+    JASSERT(_rule && dup<_rule->duplicateCount());
+    _applicableRegion = _rule->applicableRegion();
+  }
+
+  ///
+  /// calls setDuplicateNumber() then forwards the call to _rule
+  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+
+  ///
+  /// calls setDuplicateNumber() then forwards the call to _rule
+  void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
+
+  ///
+  /// calls setDuplicateNumber() then forwards the call to _rule
+  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
+  
+
+  //these just forward to _rule
+  bool isSingleElement() const;
+  int dimensions() const;
+  FormulaPtr getSizeOfRuleIn(int d);
+  std::string codename() const;
+  void collectDependencies(StaticScheduler& scheduler);
+  DependencyDirection getSelfDependency() const;
+  petabricks::RuleFlags::PriorityT priority() const;
+  bool isRecursive() const;
+  bool hasWhereClause() const;
+  petabricks::FormulaPtr getWhereClause() const;
+  bool canProvide(const MatrixDefPtr& md) const;
+  void getApplicableRegionDescriptors(RuleDescriptorList& rdl, const MatrixDefPtr& md, int i, const RulePtr&);
+  const petabricks::FormulaPtr& recursiveHint() const;
+private:
+  RulePtr _rule;
+  size_t _dup;
 };
 
 

@@ -57,6 +57,14 @@ void petabricks::ConfigItem::merge(int flags, std::string name, int initial, int
 }
 
 void petabricks::ConfigItem::print(std::ostream& o) const{
-  o << _name << "(flags: " << _flags << ")";
+  o << _name << "(range: " << _min << " to " << _max << " flags:";
+  if(hasFlag(FLAG_TUNABLE))       o << " FLAG_TUNABLE";
+  if(hasFlag(FLAG_USER))          o << " FLAG_USER";
+  if(hasFlag(FLAG_SIZESPECIFIC))  o << " FLAG_SIZESPECIFIC";
+  if(hasFlag(FLAG_ACCURACY))      o << " FLAG_ACCURACY";
+  if(hasFlag(FLAG_SIZEVAR))       o << " FLAG_SIZEVAR";
+  if(hasFlag(FLAG_FROMCFG))       o << " FLAG_FROMCFG";
+  if(hasFlag(FLAG_TEMPLATEVAR))   o << " FLAG_TEMPLATEVAR";
+  o << ")";
 }
 

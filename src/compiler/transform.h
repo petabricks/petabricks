@@ -110,6 +110,8 @@ public:
   std::string taskname() const { return _name+"_fin"; }
 
   void addTemplateArg(const TemplateArgList& args){
+    for(size_t i=0; i<args.size(); ++i)
+      args[i]->addFlag(ConfigItem::FLAG_TEMPLATEVAR);
     _templateargs.insert(_templateargs.end(), args.begin(), args.end());
   }
 
@@ -210,6 +212,7 @@ public:
 
   const ConfigItems& config() const { return _config; }
 
+  void addRule(const RulePtr& rp) { _rules.push_back(rp); }
 protected:
   static std::map<std::string, TransformPtr> theTransformMap();
 

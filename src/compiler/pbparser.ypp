@@ -205,7 +205,7 @@ RuleHeader: BaseRuleHeader          { $$=$1; }
           | KW_ROTATABLE RuleHeader { ($$=$2)->addRotations(RuleFlags::ROTATE); }
           | KW_RECURSIVE RuleHeader { ($$=$2)->markRecursive(); }
           | KW_RECURSIVE '(' Formula ')' RuleHeader { ($$=$5)->markRecursive($3); }
-          | KW_DUPLICATE IDENT '(' Integer ',' Integer ')' RuleHeader { ($$=$8)->addDuplicateVar($2, $4, $6); }
+          | KW_DUPLICATE '(' IDENT ',' Integer ',' Integer ')' RuleHeader { ($$=$9)->addDuplicateVar($3, $5, $7); }
           | KW_RULE IDENT RuleHeader { ($$=$3)->setLabel($2); };
 
 BaseRuleHeader: Region       RuleHeaderFrom OptWhere { $$=REFALLOC(UserRule($1,  *$2, *$3)); }
