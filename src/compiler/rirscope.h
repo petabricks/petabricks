@@ -52,6 +52,7 @@ public:
   bool isType() const { return (_type & SYM_TYPE) != 0; }
   bool isConfig() const { return (_type & SYM_CONFIG) != 0; }
   bool isTransform() const { return (_type & SYM_TRANSFORM) != 0; }
+  bool isTemplateTransform() const { return _type == SYM_TRANSFORM_TEMPLATE || _type==SYM_TRANSFORM_VARACCURACY; }
 
   bool hasReplacement() const { return _replacement.length()>0; } 
   const std::string& replacement() const { return _replacement; }

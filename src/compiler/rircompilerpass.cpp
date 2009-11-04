@@ -183,7 +183,7 @@ void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
 void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
   if(e->type() == RIRNode::EXPR_IDENT){
     RIRSymbolPtr sym = _scope->lookup(e->toString());
-    if(sym && sym->type() == RIRSymbol::SYM_TRANSFORM_TEMPLATE){
+    if(sym && sym->isTemplateTransform()){
       if(peekExprForward()->isLeaf("<")){
         //transform calls to templates from:
         //   tmpl<a,b>(c,d)
