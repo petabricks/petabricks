@@ -2,8 +2,8 @@
 #define POISSON2DACCURACYMETRIC
 
 #include "Poisson2DForwardFunc.pbcc"
-#include "Poisson2DBS.pbcc"
-#include "Poisson2Dmgv.pbcc"
+#include "Poisson2DDirect.pbcc"
+#include "Poisson2DRefMG.pbcc"
 #include "ComputeError.pbcc"
 
 /* Uncomment this line if you wish to use a residual metric
@@ -34,9 +34,9 @@ to Accuracy
         // compute true solution
         int level = (int) log2(n - 1);
         if (level < 4) {
-            Poisson2DBS(z, x, b);
+            Poisson2DDirect(z, x, b);
         } else {
-            Poisson2Dmgv(z, x, b, 15);
+            Poisson2DRefMG(z, x, b, 15);
         }
 
         // compute errors of input and output

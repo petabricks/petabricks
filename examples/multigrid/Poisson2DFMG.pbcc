@@ -6,7 +6,7 @@
 #include "Restrict2Dnew.pbcc"
 #include "Poisson2DResidual.pbcc"
 #include "Poisson2DSOR.pbcc"
-#include "Poisson2DBS.pbcc"
+#include "Poisson2DDirect.pbcc"
 #include "Poisson2DMG.pbcc"
 #include "Poisson2DAccuracyMetric.pbcc"
 
@@ -104,7 +104,7 @@ accuracy_bins 10, 1000, 100000, 10000000, 1000000000
 accuracy_variable numIterations
 accuracy_metric Poisson2DAccuracyMetric
 {
-    //base case: directly solve with BS
+    //base case: directly solve
     to(Y y) from(X x, B b) {
 
         int level = (int) log2(n-1);
@@ -116,10 +116,10 @@ accuracy_metric Poisson2DAccuracyMetric
         }
 
 #ifdef DEBUG
-        printf("BS case called for n = %d, acc %d\n", n, _acc_bin);
+        printf("Direct case called for n = %d, acc %d\n", n, _acc_bin);
 #endif
 
-        Poisson2DBS(y, x, b);
+        Poisson2DDirect(y, x, b);
 
     }
 

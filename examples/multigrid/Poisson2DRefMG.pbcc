@@ -67,7 +67,7 @@ through zeros[(n+1)/2,(n+1)/2]
 transform Poisson2DRefMG
 from X[n,n], B[n,n]
 to Y[n,n]
-accuracy_bins 10 1000 100000 10000000 1000000000
+accuracy_bins 10, 1000, 100000, 10000000, 1000000000
 accuracy_variable numIterations
 accuracy_metric Poisson2DAccuracyMetric
 {
