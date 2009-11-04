@@ -74,6 +74,7 @@ libpbcompiler_a_AR = $(AR) $(ARFLAGS)
 libpbcompiler_a_LIBADD =
 am_libpbcompiler_a_OBJECTS = libpbcompiler_a-choicegrid.$(OBJEXT) \
 	libpbcompiler_a-codegenerator.$(OBJEXT) \
+	libpbcompiler_a-configitem.$(OBJEXT) \
 	libpbcompiler_a-formula.$(OBJEXT) \
 	libpbcompiler_a-iterationorders.$(OBJEXT) \
 	libpbcompiler_a-learner.$(OBJEXT) \
@@ -289,6 +290,7 @@ noinst_LIBRARIES = libpbcommon.a libpbcompiler.a libpbruntime.a libpbmain.a
 noinst_HEADERS = \
   compiler/choicegrid.h \
   compiler/codegenerator.h \
+  compiler/configitem.h \
   compiler/formula.h \
   compiler/iterationorders.h \
   compiler/learner.h \
@@ -361,6 +363,7 @@ libpbcompiler_a_CXXFLAGS = -I$(srcdir)/compiler
 libpbcompiler_a_SOURCES = \
   compiler/choicegrid.cpp \
   compiler/codegenerator.cpp \
+  compiler/configitem.cpp \
   compiler/formula.cpp \
   compiler/iterationorders.cpp \
   compiler/learner.cpp \
@@ -524,6 +527,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcommon_a-jtunable.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-choicegrid.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-codegenerator.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-configitem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-formula.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-iterationorders.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-learner.Po@am__quote@
@@ -744,6 +748,20 @@ libpbcompiler_a-codegenerator.obj: compiler/codegenerator.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/codegenerator.cpp' object='libpbcompiler_a-codegenerator.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-codegenerator.obj `if test -f 'compiler/codegenerator.cpp'; then $(CYGPATH_W) 'compiler/codegenerator.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/codegenerator.cpp'; fi`
+
+libpbcompiler_a-configitem.o: compiler/configitem.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-configitem.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-configitem.Tpo -c -o libpbcompiler_a-configitem.o `test -f 'compiler/configitem.cpp' || echo '$(srcdir)/'`compiler/configitem.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbcompiler_a-configitem.Tpo $(DEPDIR)/libpbcompiler_a-configitem.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/configitem.cpp' object='libpbcompiler_a-configitem.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-configitem.o `test -f 'compiler/configitem.cpp' || echo '$(srcdir)/'`compiler/configitem.cpp
+
+libpbcompiler_a-configitem.obj: compiler/configitem.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-configitem.obj -MD -MP -MF $(DEPDIR)/libpbcompiler_a-configitem.Tpo -c -o libpbcompiler_a-configitem.obj `if test -f 'compiler/configitem.cpp'; then $(CYGPATH_W) 'compiler/configitem.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/configitem.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbcompiler_a-configitem.Tpo $(DEPDIR)/libpbcompiler_a-configitem.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/configitem.cpp' object='libpbcompiler_a-configitem.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-configitem.obj `if test -f 'compiler/configitem.cpp'; then $(CYGPATH_W) 'compiler/configitem.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/configitem.cpp'; fi`
 
 libpbcompiler_a-formula.o: compiler/formula.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-formula.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-formula.Tpo -c -o libpbcompiler_a-formula.o `test -f 'compiler/formula.cpp' || echo '$(srcdir)/'`compiler/formula.cpp

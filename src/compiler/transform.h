@@ -13,6 +13,7 @@
 #define PETABRICKSTRANSFORM_H
 
 #include "choicegrid.h"
+#include "configitem.h"
 #include "learner.h"
 #include "matrixdef.h"
 #include "performancetester.h"
@@ -30,108 +31,19 @@
 namespace petabricks {
 
 class Transform;
-class TemplateArg;
 typedef jalib::JRef<Transform> TransformPtr;
-typedef jalib::JRef<TemplateArg> TemplateArgPtr;
 class TransformList: public std::vector<TransformPtr>, public jalib::JRefCounted {};
-class TemplateArgList: public std::vector<TemplateArgPtr>, public jalib::JRefCounted {};
 typedef jalib::JRef<TransformList> TransformListPtr;
-typedef jalib::JRef<TemplateArgList> TemplateArgListPtr;
 typedef std::set<std::string> ConstantSet;
 
 class DoubleList: public std::vector<double>, public jalib::JRefCounted {};
-
-class TemplateArg : public jalib::JRefCounted, public jalib::JPrintable {
-public:
-  TemplateArg(std::string name, int min, int max)
-    :_name(name), _min(min), _max(max) {
-    JASSERT(max>=min)(min)(max);
-  }
-  void print(std::ostream& o) const { o << _name << "(" << _min << ", " << _max << ")"; }
-  
-  const std::string& name() const { return _name; }
-  int min() const { return _min; }
-  int max() const { return _max; }
-  int range() const { return _max-_min+1; }
-private:
-  std::string _name;
-  int _min;
-  int _max;
-};
-
-class ConfigItem : public jalib::JPrintable {
-public:
-  ConfigItem(int flags, std::string name, int initial, int min, int max)
-      :_flags(flags),
-       _name(name),
-       _initial(initial),
-       _min(min),
-       _max(max)
-  {}
-  
-  std::string name     () const { return _name;     }
-  int         initial  () const { return _initial;  }
-  int         min      () const { return _min;      }
-  int         max      () const { return _max;      }
-
-  std::string category() const {
-    std::string cat;
-
-    if(hasFlag(ConfigItem::FLAG_USER))
-      cat+="user.";
-    else
-      cat+="system.";
-
-    if(hasFlag(ConfigItem::FLAG_TUNABLE))
-      cat+="tunable";
-    else
-      cat+="config";
-
-    return cat;
-  }
-
-  enum FlagT {
-    FLAG_TUNABLE       = 1<<0,
-    FLAG_USER          = 1<<1,
-    FLAG_SIZESPECIFIC  = 1<<2,//value depends on transform_n
-    FLAG_ACCURACY      = 1<<3,
-    FLAG_SIZEVAR       = 1<<4,//value used in to/from/through
-    FLAG_FROMCFG       = 1<<5 
-  };
-  bool hasFlag(FlagT f) const {
-    return (_flags & f) != 0;
-  }
-  bool shouldPass() const { return hasFlag(FLAG_SIZEVAR) || hasFlag(FLAG_SIZESPECIFIC); }
-
-
-  void merge(int flags, std::string name, int initial, int min, int max){
-    _flags|=flags;
-    JASSERT(name==_name);
-    _initial=std::max(_initial, initial);
-    _min=std::max(_min, min);
-    _max=std::min(_max, max);
-    JTRACE("merged cfg")(_flags)(_name);
-  }
-
-  void print(std::ostream& o) const{
-    o << _name << "(flags: " << _flags << ")";
-  }
-private:
-  int         _flags;
-  std::string _name;
-  int         _initial;
-  int         _min;
-  int         _max;
-};
-
-typedef std::vector<ConfigItem> ConfigItems;
-
 
 /**
  * a transformation algorithm
  */
 class Transform : public jalib::JRefCounted, public jalib::JPrintable {
 public:
+
   ///
   /// Constructor
   Transform();
@@ -216,6 +128,7 @@ public:
   int tmplChoiceCount() const;
 
   bool isTemplate() const { return !_templateargs.empty(); }
+  bool isVariableAccuracy() const { return !_accuracyBins.empty(); }
 
   std::string tmplName(int n, CodeGenerator* o=NULL) const;
   
@@ -296,6 +209,9 @@ public:
 
 
   const ConfigItems& config() const { return _config; }
+
+protected:
+  static std::map<std::string, TransformPtr> theTransformMap();
 
 private:
   std::string     _originalName;

@@ -53,19 +53,20 @@
      KW_PRIORITY = 269,
      KW_MAIN = 270,
      KW_RECURSIVE = 271,
-     KW_GENERATOR = 272,
-     KW_TEMPLATE = 273,
-     KW_TUNABLE = 274,
-     KW_CONFIG = 275,
-     KW_PARAM = 276,
-     KW_ACCURACYMETRIC = 277,
-     KW_ACCURACYBINS = 278,
-     KW_ACCURACYVARIABLE = 279,
-     KW_RULE = 280,
-     TOK_INTEGER = 281,
-     TOK_FLOAT = 282,
-     TOK_RULEBODY = 283,
-     IDENT = 284
+     KW_DUPLICATE = 272,
+     KW_GENERATOR = 273,
+     KW_TEMPLATE = 274,
+     KW_TUNABLE = 275,
+     KW_CONFIG = 276,
+     KW_PARAM = 277,
+     KW_ACCURACYMETRIC = 278,
+     KW_ACCURACYBINS = 279,
+     KW_ACCURACYVARIABLE = 280,
+     KW_RULE = 281,
+     TOK_INTEGER = 282,
+     TOK_FLOAT = 283,
+     TOK_RULEBODY = 284,
+     IDENT = 285
    };
 #endif
 /* Tokens.  */
@@ -83,19 +84,20 @@
 #define KW_PRIORITY 269
 #define KW_MAIN 270
 #define KW_RECURSIVE 271
-#define KW_GENERATOR 272
-#define KW_TEMPLATE 273
-#define KW_TUNABLE 274
-#define KW_CONFIG 275
-#define KW_PARAM 276
-#define KW_ACCURACYMETRIC 277
-#define KW_ACCURACYBINS 278
-#define KW_ACCURACYVARIABLE 279
-#define KW_RULE 280
-#define TOK_INTEGER 281
-#define TOK_FLOAT 282
-#define TOK_RULEBODY 283
-#define IDENT 284
+#define KW_DUPLICATE 272
+#define KW_GENERATOR 273
+#define KW_TEMPLATE 274
+#define KW_TUNABLE 275
+#define KW_CONFIG 276
+#define KW_PARAM 277
+#define KW_ACCURACYMETRIC 278
+#define KW_ACCURACYBINS 279
+#define KW_ACCURACYVARIABLE 280
+#define KW_RULE 281
+#define TOK_INTEGER 282
+#define TOK_FLOAT 283
+#define TOK_RULEBODY 284
+#define IDENT 285
 
 
 
@@ -129,7 +131,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 133 "libpbcompiler_a-pbparser.h"
+#line 135 "libpbcompiler_a-pbparser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

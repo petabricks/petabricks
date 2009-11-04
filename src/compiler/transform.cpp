@@ -145,10 +145,15 @@ void petabricks::Transform::initialize() {
 
   //tester().setIOSizes(_from.size(), _to.size());
 
-  if(isTemplate())
+  if(isVariableAccuracy())
+    RIRScope::global()->set(_name, RIRSymbol::SYM_TRANSFORM_VARACCURACY);
+  else if(isTemplate())
     RIRScope::global()->set(_name, RIRSymbol::SYM_TRANSFORM_TEMPLATE);
   else
     RIRScope::global()->set(_name, RIRSymbol::SYM_TRANSFORM);
+
+
+  theTransformMap()[_name] = this;
 
   MaximaWrapper::instance().popContext();
 }
@@ -785,3 +790,9 @@ std::vector<std::string> petabricks::Transform::maximalArgList() const{
   }
   return tmp;
 }
+  
+std::map<std::string, petabricks::TransformPtr> petabricks::Transform::theTransformMap(){
+  static std::map<std::string, petabricks::TransformPtr> m;
+  return m;
+}
+

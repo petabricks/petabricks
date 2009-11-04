@@ -82,7 +82,7 @@ void pbparser_addRefPoolItem(jalib::JRefCounted* i){
 }
 
 %token KW_TRANSFORM KW_FROM KW_TO KW_THROUGH KW_LE KW_GE KW_EQ KW_WHERE 
-%token KW_ROTATABLE KW_PRIMARY KW_SECONDARY KW_PRIORITY KW_MAIN KW_RECURSIVE
+%token KW_ROTATABLE KW_PRIMARY KW_SECONDARY KW_PRIORITY KW_MAIN KW_RECURSIVE KW_DUPLICATE
 %token /*KW_TESTCASE*/ KW_GENERATOR KW_TEMPLATE KW_TUNABLE KW_CONFIG KW_PARAM
 %token KW_ACCURACYMETRIC KW_ACCURACYBINS KW_ACCURACYVARIABLE KW_RULE
 %token <str> TOK_INTEGER TOK_FLOAT TOK_RULEBODY IDENT 
@@ -202,9 +202,10 @@ Rule: RuleHeader RuleBody OptSemiCol { ($$=$1)->setBody($2); };
 
 RuleHeader: BaseRuleHeader          { $$=$1; }
           | PriorityFlag RuleHeader { ($$=$2)->setPriority($1); }
-          | KW_ROTATABLE    RuleHeader { ($$=$2)->addRotations(RuleFlags::ROTATE); }
-          | KW_RECURSIVE                  RuleHeader { ($$=$2)->markRecursive(); }
-          | KW_RECURSIVE '(' Formula ')'  RuleHeader { ($$=$5)->markRecursive($3); }
+          | KW_ROTATABLE RuleHeader { ($$=$2)->addRotations(RuleFlags::ROTATE); }
+          | KW_RECURSIVE RuleHeader { ($$=$2)->markRecursive(); }
+          | KW_RECURSIVE '(' Formula ')' RuleHeader { ($$=$5)->markRecursive($3); }
+          | KW_DUPLICATE IDENT '(' Integer ',' Integer ')' RuleHeader { ($$=$8)->addDuplicateVar($2, $4, $6); }
           | KW_RULE IDENT RuleHeader { ($$=$3)->setLabel($2); };
 
 BaseRuleHeader: Region       RuleHeaderFrom OptWhere { $$=REFALLOC(UserRule($1,  *$2, *$3)); }

@@ -151,6 +151,10 @@ public:
     return true;
   }
 
+
+  void addDuplicateVar(const std::string& name, int min, int max){
+  }
+
   bool hasWhereClause() const { return _conditions.size()>0; }
 
   FormulaPtr getWhereClause() const { return getWhereClause(0); }
