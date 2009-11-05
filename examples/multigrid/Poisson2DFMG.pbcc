@@ -1,3 +1,6 @@
+#ifndef POISSON2DFMG_PBCC
+#define POISSON2DFMG_PBCC
+
 // Full Multigrid V-cycle 2D Poisson
 // assume dimension n = 2^k + 1
 
@@ -49,54 +52,6 @@ to Y[n,n]
     }
 }
 
-transform Poisson2DRecurse
-from X[n,n], B[n,n], Bin, Iters
-through Z[(n+1)/2,(n+1)/2]
-to Y[n,n]
-{
-    to (Z.cell(i,j) z) from () {
-        z = 0;
-    }
-
-    to (Y y) from (X x, B b, Z z, Bin bin, Iters iters)
-    {
-        int level = (int) log2(n - 1);
-
-        if (level <= 1) {
-
-            PetabricksRuntime::abort();
-
-        } else {
-
-            int i;
-            MatrixRegion2D t1 = MatrixRegion2D::allocate(n, n);
-            MatrixRegion2D t2 = MatrixRegion2D::allocate(n, n);
-            MatrixRegion2D r1 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
-            MatrixRegion2D r2 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
-
-            // copy input to output
-            // should add "if (y != x)" around this line
-            Copy2D(y, x);
-
-            // iterate the recursive call for iters iterations
-            for (i = 0; i < (int) iters; i++) {
-
-                // relax, compute residual and solve on coarser grid with zero
-                // initial guess, then map the coarse solution back to the
-                // fine grid by interpolation, and relax again
-
-                Poisson2DSOR(t1, y, b, -2, 1);        // t1 gets relaxed guess
-                Poisson2DResidual(t2, t1, b);         // t2 gets new residual
-                Restrict2Dnew(r1, t2);                // r1 gets restricted residual
-                Poisson2DSolve<(int) bin>(r2, z, r1); // r2 gets coarse update
-                Interpolate2Dnew(t2, r2);             // t2 gets interpolated update
-                MatrixAdd(t2, t2, t1);                // t2 gets updated guess
-                Poisson2DSOR(y, t2, b, -2, 1);        //  y gets relaxed guess
-            }
-        }
-    }
-}
-
 transform Poisson2DFMG
 from X[n,n], B[n,n]
 to  Y[n,n]
@@ -124,6 +79,7 @@ accuracy_metric Poisson2DAccuracyMetric
     }
 
     //base case: solve iteratively with SOR
+    duplicate(estBin, 0, 4)
     to(Y y) from(X x, B b) {
 
         int level = (int) log2(n-1);
@@ -144,13 +100,18 @@ accuracy_metric Poisson2DAccuracyMetric
 
     //solve recursively on coarser grids
 
-    //recursive case for estBin and recurseBin \in [0, 4]
+    //recursive case for estBin and recurseBin \in {0..4}
     recursive(n)
+    duplicate(estBin, 0, 4)
+    duplicate(recurseBin, 0, 4)
     to (Y y) from(X x, B b) {
 #ifdef DEBUG
-        printf("(estimate %d, recursive %d) case called for n = %d, acc %d (%d iterations)\n", estBin, recurseBin, n, _acc_bin, numIterations);
+        printf("(estimate %d, recursive %d) case called for n = %d, acc %d (%d iterations)\n",
+               estBin, recurseBin, n, _acc_bin, numIterations);
 #endif
         Poisson2DEstimate(y, x, b, estBin);
-        Poisson2DRecurse(y, y, b, recurseBin, numIterations);
+        Poisson2DMGRecurse(y, y, b, recurseBin, numIterations);
     }
 }
+
+#endif // POISSON2DFMG_PBCC
