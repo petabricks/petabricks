@@ -545,6 +545,7 @@ void petabricks::Transform::extractConstants(CodeGenerator& o){
 }
 
 void petabricks::Transform::registerMainInterface(CodeGenerator& o){
+  //TODO: generate as a binary search
   if(_templateargs.empty()){
     std::string n = name()+"_main::instance()";
     o.beginIf("name == \""+name()+"\"");
@@ -554,7 +555,11 @@ void petabricks::Transform::registerMainInterface(CodeGenerator& o){
     size_t choiceCnt = tmplChoiceCount();
     for(size_t c=0; c<choiceCnt; ++c){
       std::string n = tmplName(c)+"_main::instance()";
-      o.beginIf("name == \""+tmplName(c)+"\"");
+      if(c==0){
+        o.beginIf("name == \""+tmplName(c)+"\"" + " || name==\""+name()+"\"");
+      }else{
+        o.beginIf("name == \""+tmplName(c)+"\"");
+      }
       o.write("return "+n+";");
       o.endIf();
     }
