@@ -743,7 +743,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     else
       o.write("return _acc.cell();");
   }else{
-    o.write("return std::numeric_limits<ElementT>::max();");
+    o.write("return jalib::maxval<ElementT>();");
   }
   o.endFunc();
   
@@ -765,7 +765,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     else
       o.write("return targets["TEMPLATE_BIN_STR"];");
   }else{
-    o.write("return std::numeric_limits<ElementT>::min();");
+    o.write("return jalib::minval<ElementT>();");
   }
   o.endFunc();
 

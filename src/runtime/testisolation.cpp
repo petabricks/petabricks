@@ -140,8 +140,8 @@ inline static void _settimespec(struct timespec& timeout, double sec){
 }
 
 void petabricks::SubprocessTestIsolation::recvResult(double& time, double& accuracy) {
-  time = std::numeric_limits<double>::max();
-  accuracy = std::numeric_limits<double>::min();
+  time = jalib::maxval<double>();
+  accuracy = jalib::minval<double>();
   int rv=-257;//special value means still running
   struct timespec timeout;
   fd_set rfds;

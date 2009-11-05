@@ -90,7 +90,7 @@ public:
                     , const std::string& name
                     , int initial
                     , int min=0
-                    , int max=std::numeric_limits<int>::max())
+                    , int max=jalib::maxval<int>())
   {
     std::ostringstream o;
     jalib::TunableValueMap::const_iterator i = theHardcodedTunables().find(name);
@@ -107,7 +107,7 @@ public:
                          , int count
                          , int initial
                          , int min=0
-                         , int max=std::numeric_limits<int>::max())
+                         , int max=jalib::maxval<int>())
   {
     //JTRACE("new tunable")(name)(initial)(min)(max);
     theTunableDefs()[name] =

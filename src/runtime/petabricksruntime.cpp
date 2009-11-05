@@ -603,7 +603,7 @@ bool petabricks::PetabricksRuntime::isTrainingRun(){
 void petabricks::PetabricksRuntime::abort(){
   TestIsolation* master = SubprocessTestIsolation::masterProcess();
   if(master!=NULL){
-    master->endTest(std::numeric_limits<double>::max(), std::numeric_limits<double>::min());//should abort us
+    master->endTest(jalib::maxval<double>(), jalib::minval<double>());//should abort us
     UNIMPLEMENTED();
   }else{
     DynamicScheduler::cpuScheduler().abort();
