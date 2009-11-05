@@ -19,6 +19,8 @@ multigrid/Poisson2DJacobi  Rand2Da Rand2Db One0D
 multigrid/Poisson2DJacobi  Rand2Da Rand2Db Ten0D
 multigrid/Poisson2DSOR     Rand2Da Rand2Db MinusOne0D One0D
 multigrid/Poisson2DSOR     Rand2Da Rand2Db MinusOne0D Ten0D
+multigrid/Restrict3D       Rand3D
+multigrid/Interpolate3D    Rand3D
 preconditioner/preconditioner	PrecondX PrecondA PrecondB Precondk
 simple/add                 Rand2Da Rand2Db
 simple/bufferrotate        Rand1D
