@@ -29,7 +29,7 @@ to OUT[n,n,n]
                         DX dx, WEIGHT w, PARITY p)
   {
     // this condition not yet supported in where clause
-    if (((int) (i + j + k)) & 1 == p) {
+    if ((((int) (i + j + k)) & 1) == p) {
       double dxSq = dx * dx;
       double K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
       double newVal = (beta / dxSq * (bwe * we + bea * ea + bno * no +
