@@ -555,11 +555,11 @@ void petabricks::Transform::registerMainInterface(CodeGenerator& o){
     size_t choiceCnt = tmplChoiceCount();
     for(size_t c=0; c<choiceCnt; ++c){
       std::string n = tmplName(c)+"_main::instance()";
-      if(c==0){
-        o.beginIf("name == \""+tmplName(c)+"\"" + " || name==\""+name()+"\"");
-      }else{
-        o.beginIf("name == \""+tmplName(c)+"\"");
-      }
+      std::string ifcond = "name == \""+tmplName(c)+"\"";
+      ifcond += " || name == \""+name()+"<"+jalib::XToString(c)+">\"";
+      if(c==0)
+        ifcond += " || name==\""+name()+"\"";
+      o.beginIf(ifcond);
       o.write("return "+n+";");
       o.endIf();
     }
