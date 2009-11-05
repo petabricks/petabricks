@@ -29,6 +29,7 @@ multigrid/ComputeError
 multigrid/Helmholtz3DJacobi
 multigrid/Helmholtz3DSOR
 multigrid/Interpolate2Dnew
+multigrid/Interpolate3D
 multigrid/Poisson2DAccuracyMetric
 multigrid/Poisson2DDirect
 multigrid/Poisson2DFMG
@@ -36,6 +37,7 @@ multigrid/Poisson2DForwardFunc
 multigrid/Poisson2DJacobiGraph
 multigrid/Poisson2DJacobiInterior
 multigrid/Poisson2DJacobi
+multigrid/Poisson2DJacobiVA
 multigrid/Poisson2DMG
 multigrid/Poisson2DRefFMG
 multigrid/Poisson2DRefMG
@@ -43,7 +45,9 @@ multigrid/Poisson2DResidual
 multigrid/Poisson2DSORGraph
 multigrid/Poisson2DSORInterior
 multigrid/Poisson2DSOR
+multigrid/Poisson2DSORVA
 multigrid/Restrict2Dnew
+multigrid/Restrict3D
 multiply/multiply
 multiply/strassen
 preconditioner/CGInterior

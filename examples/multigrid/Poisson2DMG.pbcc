@@ -4,6 +4,8 @@
 //Multigrid V-cycle 2D
 //assume dimension n = 2^k + 1
 
+#include "Poisson2DConfig.h"
+
 #include "../simple/add.pbcc"
 #include "Interpolate2Dnew.pbcc"
 #include "Restrict2Dnew.pbcc"
@@ -64,7 +66,7 @@ through Z[(n+1)/2,(n+1)/2]
 transform Poisson2DMG
 from X[n,n], B[n,n]
 to  Y[n,n]
-accuracy_bins 10, 1000, 100000, 10000000, 1000000000
+accuracy_bins POISSON2D_BINS
 accuracy_variable numIterations
 accuracy_metric Poisson2DAccuracyMetric
 {
