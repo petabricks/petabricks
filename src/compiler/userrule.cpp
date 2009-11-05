@@ -102,21 +102,6 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& scope){
   _bodyirDynamic = bodyir;
 }
 
-void petabricks::RuleFlags::print(std::ostream& os) const {
-  if(priority != PRIORITY_DEFAULT){
-    os << "priority(" << priority << ") ";
-  }
-  if(rotations != NOROTATE){
-    os << "rotations(";
-    if((ROTATE_90  & rotations)!=0) os << " 90";
-    if((ROTATE_180 & rotations)!=0) os << " 180";
-    if((ROTATE_270 & rotations)!=0) os << " 270";
-    if((MIRROR_X   & rotations)!=0) os << " mirrorx";
-    if((MIRROR_Y   & rotations)!=0) os << " mirrory";
-    os << " ) ";
-  }
-}
-
 void petabricks::UserRule::print(std::ostream& os) const {
   _flags.print(os);
   os << "UserRule " << _id << " " << _label;

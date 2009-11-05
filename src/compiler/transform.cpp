@@ -29,6 +29,7 @@ namespace{
   
 petabricks::Transform::Transform() 
   : _isMain(false)
+  , _memoized(false)
   , _tuneId(0)
   , _scope(RIRScope::global()->createChildLayer())
   , _usesSplitSize(false)

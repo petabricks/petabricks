@@ -47,26 +47,27 @@
      KW_GE = 263,
      KW_EQ = 264,
      KW_WHERE = 265,
-     KW_ROTATABLE = 266,
-     KW_PRIMARY = 267,
-     KW_SECONDARY = 268,
-     KW_PRIORITY = 269,
+     KW_PRIMARY = 266,
+     KW_SECONDARY = 267,
+     KW_PRIORITY = 268,
+     KW_ROTATABLE = 269,
      KW_MAIN = 270,
      KW_RECURSIVE = 271,
      KW_DUPLICATE = 272,
-     KW_GENERATOR = 273,
-     KW_TEMPLATE = 274,
-     KW_TUNABLE = 275,
-     KW_CONFIG = 276,
-     KW_PARAM = 277,
-     KW_ACCURACYMETRIC = 278,
-     KW_ACCURACYBINS = 279,
-     KW_ACCURACYVARIABLE = 280,
-     KW_RULE = 281,
-     TOK_INTEGER = 282,
-     TOK_FLOAT = 283,
-     TOK_RULEBODY = 284,
-     IDENT = 285
+     KW_MEMOIZED = 273,
+     KW_GENERATOR = 274,
+     KW_TEMPLATE = 275,
+     KW_TUNABLE = 276,
+     KW_CONFIG = 277,
+     KW_PARAM = 278,
+     KW_ACCURACYMETRIC = 279,
+     KW_ACCURACYBINS = 280,
+     KW_ACCURACYVARIABLE = 281,
+     KW_RULE = 282,
+     TOK_INTEGER = 283,
+     TOK_FLOAT = 284,
+     TOK_RULEBODY = 285,
+     IDENT = 286
    };
 #endif
 /* Tokens.  */
@@ -78,26 +79,27 @@
 #define KW_GE 263
 #define KW_EQ 264
 #define KW_WHERE 265
-#define KW_ROTATABLE 266
-#define KW_PRIMARY 267
-#define KW_SECONDARY 268
-#define KW_PRIORITY 269
+#define KW_PRIMARY 266
+#define KW_SECONDARY 267
+#define KW_PRIORITY 268
+#define KW_ROTATABLE 269
 #define KW_MAIN 270
 #define KW_RECURSIVE 271
 #define KW_DUPLICATE 272
-#define KW_GENERATOR 273
-#define KW_TEMPLATE 274
-#define KW_TUNABLE 275
-#define KW_CONFIG 276
-#define KW_PARAM 277
-#define KW_ACCURACYMETRIC 278
-#define KW_ACCURACYBINS 279
-#define KW_ACCURACYVARIABLE 280
-#define KW_RULE 281
-#define TOK_INTEGER 282
-#define TOK_FLOAT 283
-#define TOK_RULEBODY 284
-#define IDENT 285
+#define KW_MEMOIZED 273
+#define KW_GENERATOR 274
+#define KW_TEMPLATE 275
+#define KW_TUNABLE 276
+#define KW_CONFIG 277
+#define KW_PARAM 278
+#define KW_ACCURACYMETRIC 279
+#define KW_ACCURACYBINS 280
+#define KW_ACCURACYVARIABLE 281
+#define KW_RULE 282
+#define TOK_INTEGER 283
+#define TOK_FLOAT 284
+#define TOK_RULEBODY 285
+#define IDENT 286
 
 
 
@@ -131,7 +133,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 135 "libpbcompiler_a-pbparser.h"
+#line 137 "libpbcompiler_a-pbparser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
