@@ -499,6 +499,7 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti){
       }
     } catch(petabricks::DynamicScheduler::AbortException) {
       v=jalib::maxval<double>();
+      _isRunning = false;
     } catch(...) {
       UNIMPLEMENTED();
       throw;
