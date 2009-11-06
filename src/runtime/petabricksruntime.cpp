@@ -321,14 +321,19 @@ void petabricks::PetabricksRuntime::runNormal(){
     std::cerr << "run `" << main.name() << " --help` for options" << std::endl;
     _rv = 1;
   }else{
+    double t = jalib::maxval<double>();
     main.read(txArgs);
     try{
       DummyTestIsolation ti;
-      computeWrapper(ti);
+      t = computeWrapper(ti);
     }catch(...){
       UNIMPLEMENTED();
     }
-    main.write(txArgs);
+    if(t>=0 && t<jalib::maxval<double>()/2.0){
+      main.write(txArgs);
+    }else{
+      _rv=66;
+    }
   }
 }
 
