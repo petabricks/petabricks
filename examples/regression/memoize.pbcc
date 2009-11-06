@@ -11,22 +11,17 @@ to X, B[n]
 }
 
 transform Bar 
-from A[1] 
-to B[1]
+from A[n] 
+to B[n]
 {
   to(B b) from(A a){
-    MatrixRegion1D t = MatrixRegion1D::allocate(1);
-    t.cell(0)=a.cell(0);
     MatrixRegion0D e1 = MatrixRegion0D::allocate();
     MatrixRegion0D e2 = MatrixRegion0D::allocate();
     Foo(e1, b, a, 11); 
-    JTRACE("e")(e1.cell())(b.cell(0));
-    Foo(e2, b, t, 11);
-    JTRACE("e")(e2.cell())(b.cell(0)); 
-    t.cell(0)=a.cell(0)+1;
-    Foo(e1, b, t, 11);
-    Foo(e1, b, t, 11);
-    Foo(e1, b, t, 11);
+    Foo(e2, b, a, 11);
+    Foo(e1, b, a, 7);
+    Foo(e1, b, a, 7);
+    Foo(e1, b, a, 7);
   }
 }
 
