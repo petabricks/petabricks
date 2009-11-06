@@ -56,6 +56,7 @@ pkglib_HEADERS=  \
   runtime/matrixregion.h \
   runtime/matrixspecializations.h \
   runtime/matrixstorage.h \
+  runtime/memoization.h \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
   runtime/ruleinstance.h \
@@ -118,6 +119,7 @@ libpbruntime_a_SOURCES =  \
   runtime/matrixio.cpp \
   runtime/matrixreader.lpp \
   runtime/matrixstorage.cpp \
+  runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \

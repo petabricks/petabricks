@@ -91,6 +91,7 @@ public:
   void extractSizeDefines(CodeGenerator& o, FreeVars fv, const char* inputsizestr);
   
   void declTransformNFunc(CodeGenerator& o);
+  void declTryMemoizeFunc(CodeGenerator& o);
 
   void markMain() { _isMain=true; }
   void markMemoized() { _memoized=true; }

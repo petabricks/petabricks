@@ -94,6 +94,24 @@ public:
   const StorageT& storage() const { return _storage; }
 
   void randomize(){ this->storage()->randomize(); }
+
+  ///
+  /// export to a more generic container (used in memoization)
+  void exportTo(MatrixStorageInfo& ms) const {
+    ms.setStorage(_storage, _base);
+    ms.setSizeMultipliers(D, _multipliers, _sizes);
+    ms.setExtraVal();
+  }
+  
+  ///
+  /// copy from a more generic container (used in memoization)
+  void copyFrom(const MatrixStorageInfo& ms){
+    JASSERT(_base!=0);
+    if(ms.storage()!=storage()){
+      JASSERT(ms.storage()->count()==storage()->count());
+      memcpy(storage()->data(), ms.storage()->data(), storage()->count()*sizeof(ElementT));
+    }
+  }
 protected: 
   IndexT* sizes() { return _sizes; }
   IndexT* multipliers() { return _multipliers; };
@@ -276,8 +294,13 @@ public:
         this->sizes(),
         this->multipliers());
   }
-  
 
+  ///
+  /// true if this region occupies the entire buffer _storage
+  bool isEntireBuffer(){
+    if(D==0) return true;
+    return this->storage() && this->storage()->count()==count();
+  }
 protected:
   ///
   /// Compute the offset in _base for a given coordinate

@@ -1,0 +1,32 @@
+
+memoized
+transform Foo 
+from A[n], Y
+to X, B[n]
+{
+  to(X x) from() {
+    x=Y;
+  }
+  B.cell(i) from(A.cell(i) a) { return a; }
+}
+
+transform Bar 
+from A[1] 
+to B[1]
+{
+  to(B b) from(A a){
+    MatrixRegion1D t = MatrixRegion1D::allocate(1);
+    t.cell(0)=a.cell(0);
+    MatrixRegion0D e1 = MatrixRegion0D::allocate();
+    MatrixRegion0D e2 = MatrixRegion0D::allocate();
+    Foo(e1, b, a, 11); 
+    JTRACE("e")(e1.cell())(b.cell(0));
+    Foo(e2, b, t, 11);
+    JTRACE("e")(e2.cell())(b.cell(0)); 
+    t.cell(0)=a.cell(0)+1;
+    Foo(e1, b, t, 11);
+    Foo(e1, b, t, 11);
+    Foo(e1, b, t, 11);
+  }
+}
+

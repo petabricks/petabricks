@@ -13,6 +13,7 @@
 #include "dynamictask.h"
 #include "matrixio.h"
 #include "matrixregion.h"
+#include "memoization.h"
 #include "petabricksruntime.h"
 #include "ruleinstance.h"
 #include "specializeddynamictasks.h"

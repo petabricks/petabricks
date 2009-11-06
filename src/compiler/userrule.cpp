@@ -544,7 +544,9 @@ size_t petabricks::UserRule::duplicateCount() const {
 }
 size_t petabricks::UserRule::setDuplicateNumber(size_t c) {
   size_t prev = getDuplicateNumber();
+#ifdef DEBUG
   size_t origC=c;
+#endif
   for(size_t i=0; i<_duplicateVars.size(); ++i){
     ConfigItem& dv = _duplicateVars[i];
     dv.setInitial( dv.min() + (c % dv.range()));
