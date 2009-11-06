@@ -1,7 +1,7 @@
-#ifndef COMPUTEERROR_PBCC
-#define COMPUTEERROR_PBCC
+#ifndef COMPUTEERROR2D_PBCC
+#define COMPUTEERROR2D_PBCC
 
-transform ComputeError
+transform ComputeError2D
 from A[w,h], B[w,h]
 to Error
 {
@@ -19,5 +19,4 @@ to Error
   }
 }
 
-#endif // COMPUTEERROR_PBCC
-
+#endif // COMPUTEERROR2D_PBCC

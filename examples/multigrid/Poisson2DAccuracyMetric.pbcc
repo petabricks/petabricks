@@ -4,7 +4,7 @@
 #include "Poisson2DForwardFunc.pbcc"
 #include "Poisson2DDirect.pbcc"
 #include "Poisson2DRefMG.pbcc"
-#include "ComputeError.pbcc"
+#include "ComputeError2D.pbcc"
 
 /* Uncomment this line if you wish to use a residual metric
  * instead of an error metric
@@ -25,11 +25,11 @@ to Accuracy
 #ifdef RESIDUAL_METRIC
         // compute residual of input
         Poisson2DForwardFunc(z, x);
-        ComputeError(e1, b, z);
+        ComputeError2D(e1, b, z);
 
         // compute residual of output
         Poisson2DForwardFunc(z, y);
-        ComputeError(e2, b, z);
+        ComputeError2D(e2, b, z);
 #else
         // compute true solution
         int level = (int) log2(n - 1);
@@ -40,8 +40,8 @@ to Accuracy
         }
 
         // compute errors of input and output
-        ComputeError(e1, x, z);
-        ComputeError(e2, y, z);
+        ComputeError2D(e1, x, z);
+        ComputeError2D(e2, y, z);
 #endif
 
         // accuracy is ratio of errors
