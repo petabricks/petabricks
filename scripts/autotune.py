@@ -45,7 +45,10 @@ ignore_list = []
 options=None
 substderr=open("/dev/null","w")
 
-goodtimelimit = lambda: 1.0+reduce(min, results, 1)
+def goodtimelimit():
+  if options.maxsec>0:
+    return options.maxsec
+  return 1.0+reduce(min, results, 1)
 
 def mkcmd(args):
   t=[pbutil.benchmarkToBin(app)]
@@ -321,12 +324,14 @@ def main(argv):
   fast = False
 
   parser = optparse.OptionParser(usage="usage: %prog [options] BENCHMARK")
-  parser.add_option("--threads",      type="int", dest="threads", default=pbutil.cpuCount())
-  parser.add_option("-n", "--random", type="int", dest="n", default=-1)
-  parser.add_option("-c", "--config", dest="config", default=None)
+  parser.add_option("--min", type="int", dest="min", default=1)
+  parser.add_option("-n", "--random", "--max", type="int", dest="n", default=-1)
+  parser.add_option("--offset", type="int", dest="offset", default=0)
+  parser.add_option("--max-sec", type="float", dest="maxsec", default=0)
   parser.add_option("-d", "--debug",  action="store_true", dest="debug", default=False)
   parser.add_option("-f", "--fast",  action="store_true", dest="fast", default=False)
-  parser.add_option("--offset", type="int", dest="offset", default=0)
+  parser.add_option("--threads",      type="int", dest="threads", default=pbutil.cpuCount())
+  parser.add_option("-c", "--config", dest="config", default=None)
   parser.add_option("--noisolation", action="store_true", dest="noisolation", default=False)
   options,args = parser.parse_args()
 
@@ -347,7 +352,7 @@ def main(argv):
   if cfg is None:
     cfg = pbutil.benchmarkToCfg(app)
 
-  defaultArgs = ['--config='+cfg, '--threads=%d'%options.threads, '--offset=%d'%options.offset]
+  defaultArgs = ['--config='+cfg, '--threads=%d'%options.threads, '--offset=%d'%options.offset, '--min=%d'%options.min]
 
   if options.noisolation:
     defaultArgs.append("--noisolation")
