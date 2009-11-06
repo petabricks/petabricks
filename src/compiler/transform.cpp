@@ -29,6 +29,7 @@ namespace{
   
 petabricks::Transform::Transform() 
   : _isMain(false)
+  , _memoized(false)
   , _tuneId(0)
   , _scope(RIRScope::global()->createChildLayer())
   , _usesSplitSize(false)
@@ -432,6 +433,11 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.endFunc();
   
   o.beginFunc("DynamicTaskPtr", "runDynamic");
+  if(_memoized){
+    o.beginIf("tryMemoize()");
+    o.write("return NULL;");
+    o.endIf();
+  }
   o.createTunable(true, "system.cutoff.sequential", _name + "_sequentialcutoff", 0);
   o.beginIf(TRANSFORM_N_STR "() < TRANSFORM_LOCAL(sequentialcutoff)");
   o.write("runStatic();");
@@ -441,6 +447,11 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.endFunc();
 
   o.beginFunc("void", "runStatic");
+  if(_memoized){
+    o.beginIf("tryMemoize()");
+    o.write("return;");
+    o.endIf();
+  }
   _scheduler->generateCodeStatic(*this, o);
   o.endFunc();
   
@@ -449,6 +460,10 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.newline();
 
   declTransformNFunc(o);
+  
+  if(_memoized){
+    declTryMemoizeFunc(o);
+  }
 
   o.mergehelpers();
 
@@ -470,6 +485,32 @@ void petabricks::Transform::declTransformNFunc(CodeGenerator& o){
       o.write("_rv_n = std::max<IndexT>(_rv_n, "+i->name()+");");
   }
   o.write("return _rv_n;");
+  o.endFunc();
+}
+
+void petabricks::Transform::declTryMemoizeFunc(CodeGenerator& o){
+  o.beginFunc("bool", "tryMemoize");
+  std::string abortCond = "false";
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i)
+    abortCond += " || !"+(*i)->name()+".isEntireBuffer()";
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i)
+    abortCond += " || !"+(*i)->name()+".isEntireBuffer()";
+  o.beginIf(abortCond);
+  o.write("return false;");
+  o.endIf();
+  o.write("MemoizationInstance<"+jalib::XToString(_from.size())+","+jalib::XToString(_to.size())+"> _memo;");
+  o.write("static MemoizationSite<"+jalib::XToString(_from.size())+","+jalib::XToString(_to.size())+"> _cache;");
+  for(size_t i=0; i!=_from.size(); ++i)
+    o.write(_from[i]->name()+".exportTo(_memo.input("+jalib::XToString(i)+"));");
+  for(size_t i=0; i!=_to.size(); ++i)
+    o.write(_to[i]->name()+".exportTo(_memo.output("+jalib::XToString(i)+"));");
+  o.beginIf("_cache.memoize(_memo)");
+  for(size_t i=0; i!=_to.size(); ++i)
+    o.write(_to[i]->name()+".copyFrom(_memo.output("+jalib::XToString(i)+"));");
+  o.write("return true;");
+  o.elseIf();
+  o.write("return false;");
+  o.endIf();
   o.endFunc();
 }
 
@@ -545,6 +586,7 @@ void petabricks::Transform::extractConstants(CodeGenerator& o){
 }
 
 void petabricks::Transform::registerMainInterface(CodeGenerator& o){
+  //TODO: generate as a binary search
   if(_templateargs.empty()){
     std::string n = name()+"_main::instance()";
     o.beginIf("name == \""+name()+"\"");
@@ -554,7 +596,11 @@ void petabricks::Transform::registerMainInterface(CodeGenerator& o){
     size_t choiceCnt = tmplChoiceCount();
     for(size_t c=0; c<choiceCnt; ++c){
       std::string n = tmplName(c)+"_main::instance()";
-      o.beginIf("name == \""+tmplName(c)+"\"");
+      std::string ifcond = "name == \""+tmplName(c)+"\"";
+      ifcond += " || name == \""+name()+"<"+jalib::XToString(c)+">\"";
+      if(c==0)
+        ifcond += " || name==\""+name()+"\"";
+      o.beginIf(ifcond);
       o.write("return "+n+";");
       o.endIf();
     }
@@ -738,7 +784,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     else
       o.write("return _acc.cell();");
   }else{
-    o.write("return std::numeric_limits<ElementT>::max();");
+    o.write("return jalib::maxval<ElementT>();");
   }
   o.endFunc();
   
@@ -760,7 +806,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     else
       o.write("return targets["TEMPLATE_BIN_STR"];");
   }else{
-    o.write("return std::numeric_limits<ElementT>::min();");
+    o.write("return jalib::minval<ElementT>();");
   }
   o.endFunc();
 

@@ -91,8 +91,10 @@ public:
   void extractSizeDefines(CodeGenerator& o, FreeVars fv, const char* inputsizestr);
   
   void declTransformNFunc(CodeGenerator& o);
+  void declTryMemoizeFunc(CodeGenerator& o);
 
   void markMain() { _isMain=true; }
+  void markMemoized() { _memoized=true; }
 
   Learner& learner() { return _learner; }
   //PerformanceTester& tester() { return _tester; }
@@ -227,6 +229,7 @@ private:
   ChoiceGridMap   _choiceGrid;
   OrderedFreeVars _parameters;
   bool            _isMain;
+  bool            _memoized;
   Learner         _learner;
   StaticSchedulerPtr _scheduler;
   //PerformanceTester  _tester;

@@ -327,6 +327,7 @@ def main(argv):
   parser.add_option("-d", "--debug",  action="store_true", dest="debug", default=False)
   parser.add_option("-f", "--fast",  action="store_true", dest="fast", default=False)
   parser.add_option("--offset", type="int", dest="offset", default=0)
+  parser.add_option("--noisolation", action="store_true", dest="noisolation", default=False)
   options,args = parser.parse_args()
 
   if len(args) != 1:
@@ -347,6 +348,10 @@ def main(argv):
     cfg = pbutil.benchmarkToCfg(app)
 
   defaultArgs = ['--config='+cfg, '--threads=%d'%options.threads, '--offset=%d'%options.offset]
+
+  if options.noisolation:
+    defaultArgs.append("--noisolation")
+
   getIgnoreList()
 
   try:

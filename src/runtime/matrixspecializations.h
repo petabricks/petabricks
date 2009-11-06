@@ -71,6 +71,7 @@ public:
     else
       return this->allocate();
   }
+  
 };
 
 /**
@@ -95,6 +96,26 @@ public:
   const StorageT& storage() const { static StorageT dummy; return dummy; }
 
   void randomize(){ _val = MatrixStorage::rand(); }
+  
+  ///
+  /// export to a more generic container (used in memoization)
+  void exportTo(MatrixStorageInfo& ms) const{
+    ms.setStorage(0, 0);
+    ms.setSizeMultipliers(0, NULL, NULL);
+    ms.setExtraVal(_val);
+  }
+  
+  ///
+  /// import from a more generic container (used in memoization)
+  void importFrom(MatrixStorageInfo& ms){
+    copyFrom(ms);
+  }
+  
+  ///
+  /// import from a more generic container (used in memoization)
+  void copyFrom(MatrixStorageInfo& ms){
+    _val = ms.extraVal();
+  }
 protected: 
   IndexT* sizes() { return NULL; }
   IndexT* multipliers() { return NULL; };

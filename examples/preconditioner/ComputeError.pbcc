@@ -10,7 +10,7 @@ to Error
     int i;
     double temp, sum = 0;
     for (i = 0; i < n; i++) {
-        temp = a.cell(i) - b.cell();
+        temp = a.cell(i) - b.cell(i);
         sum += temp * temp;
     }
     return sqrt(sum / n);

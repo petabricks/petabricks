@@ -44,6 +44,7 @@ regression/duplicate       Rand1D
 regression/fileprefix      Rand2Da
 regression/generators      Rand1D Rand1D
 regression/matrixversions Rand2Da
+regression/memoize         Rand1D
 regression/padding         Rand2Da Rand2Db Rand0D
 regression/params          20
 regression/ruleconstants   Rand2Da

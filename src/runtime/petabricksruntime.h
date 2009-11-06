@@ -99,7 +99,7 @@ public:
     virtual TunableListT accuracyVariables(int n) = 0;
 
     bool isVariableAccuracy(){
-      return accuracyTarget() != std::numeric_limits<MATRIX_ELEMENT_T>::min();
+      return accuracyTarget() != jalib::minval<MATRIX_ELEMENT_T>();
     }
 
     virtual __usr_main_interface* nextTemplateMain() = 0;

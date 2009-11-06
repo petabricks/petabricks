@@ -81,8 +81,9 @@ void pbparser_addRefPoolItem(jalib::JRefCounted* i){
   theRefPool.clear();
 }
 
-%token KW_TRANSFORM KW_FROM KW_TO KW_THROUGH KW_LE KW_GE KW_EQ KW_WHERE 
-%token KW_ROTATABLE KW_PRIMARY KW_SECONDARY KW_PRIORITY KW_MAIN KW_RECURSIVE KW_DUPLICATE
+%token KW_TRANSFORM KW_FROM KW_TO KW_THROUGH KW_LE KW_GE KW_EQ KW_WHERE
+%token KW_PRIMARY KW_SECONDARY KW_PRIORITY
+%token KW_ROTATABLE KW_MAIN KW_RECURSIVE KW_DUPLICATE KW_MEMOIZED
 %token /*KW_TESTCASE*/ KW_GENERATOR KW_TEMPLATE KW_TUNABLE KW_CONFIG KW_PARAM
 %token KW_ACCURACYMETRIC KW_ACCURACYBINS KW_ACCURACYVARIABLE KW_RULE
 %token <str> TOK_INTEGER TOK_FLOAT TOK_RULEBODY IDENT 
@@ -124,6 +125,7 @@ Transform: TransformHeader TransformBody {
 TransformHeader: Nil {$$=REFALLOC(Transform());};
 TransformHeader: TransformHeader ';'                                  { ($$=$1); };
 TransformHeader: TransformHeader KW_MAIN                              { ($$=$1)->markMain(); };
+TransformHeader: TransformHeader KW_MEMOIZED                          { ($$=$1)->markMemoized(); };
 TransformHeader: TransformHeader KW_TRANSFORM IDENT                   { ($$=$1)->setName($3);     } ;
 TransformHeader: TransformHeader KW_PARAM FreeVars                    { ($$=$1)->addParams(*$3);    } ;
 TransformHeader: TransformHeader KW_FROM    MatrixDefList             { ($$=$1)->addFrom(*$3);   };

@@ -73,6 +73,7 @@ regression/fileprefix
 regression/forenough
 regression/generators
 regression/matrixversions
+regression/memoize
 regression/multichoicesite
 regression/outputsizeacc
 regression/padding
