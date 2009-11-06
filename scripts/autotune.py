@@ -262,9 +262,13 @@ def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
     if m:
       runsCur+=1
       progress.remaining(calcprog())
-  assert p.wait()==0
-  print "* "+pfx+str
   progress.pop()
+  if p.wait()==0:
+    print "* "+pfx+str
+    return True
+  else:
+    print 'FAILURE OF TUNING STEP:', ' '.join(cmd)
+    return False
 
 def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
   cutoffs = []
