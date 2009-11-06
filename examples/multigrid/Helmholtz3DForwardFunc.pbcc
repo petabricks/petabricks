@@ -1,0 +1,640 @@
+#ifndef HELMHOLTZ3DFORWARDFUNC_PBCC
+#define HELMHOLTZ3DFORWARDFUNC_PBCC
+
+%{
+
+double helmholtz3DForwardFuncHelper(double me, double we, double ea, double no,
+                                    double so, double fr, double ba, double a,
+                                    double bwe, double bea, double bno, double bso,
+                                    double bfr, double bba, double alpha, double beta,
+                                    double dx)
+{
+    double dxSq = dx * dx;
+    double K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
+    return K * me - (beta / dxSq * (bwe * we + bea * ea + bno * no +
+                                    bso * so + bfr * fr + bba * ba));
+}
+
+%}
+
+transform Helmholtz3DForwardFunc
+from IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
+     ALPHA, BETA, DX
+to OUT[n,n,n]
+{
+  // interior point
+  priority(0)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k-1) fr,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // west face
+  priority(1)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k-1) fr,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double we = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // east face
+  priority(1)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k-1) fr,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double ea = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // north face
+  priority(1)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k-1) fr,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double no = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // south face
+  priority(1)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j  ,k-1) fr,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double so = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // front face
+  priority(1)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double fr = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // back face
+  priority(1)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k-1) fr,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double ba = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // north-west edge
+  priority(2)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k-1) fr,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double no, we;
+    no = we = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // north-east edge
+  priority(2)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k-1) fr,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double no, ea;
+    no = ea = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // south-west edge
+  priority(2)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j  ,k-1) fr,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double so, we;
+    so = we = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // south-east edge
+  priority(2)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j  ,k-1) fr,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double so, ea;
+    so = ea = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // front-west edge
+  priority(2)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double fr, we;
+    fr = we = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // front-east edge
+  priority(2)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double fr, ea;
+    fr = ea = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // front-north edge
+  priority(2)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double fr, no;
+    fr = no = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // front-south edge
+  priority(2)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double fr, so;
+    fr = so = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // back-west edge
+  priority(2)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k-1) fr,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double ba, we;
+    ba = we = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // back-east edge
+  priority(2)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k-1) fr,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double ba, ea;
+    ba = ea = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // back-north edge
+  priority(2)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k-1) fr,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double ba, no;
+    ba = no = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // back-south edge
+  priority(2)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j  ,k-1) fr,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double ba, so;
+    ba = so = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // front-north-west corner
+  priority(3)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double fr, no, we;
+    fr = no = we = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // front-north-east corner
+  priority(3)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double fr, no, ea;
+    fr = no = ea = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // front-south-west corner
+  priority(3)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double fr, so, we;
+    fr = so = we = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // front-south-east corner
+  priority(3)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double fr, so, ea;
+    fr = so = ea = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // back-north-west corner
+  priority(3)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k-1) fr,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double ba, no, we;
+    ba = no = we = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // back-north-east corner
+  priority(3)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k-1) fr,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double ba, no, ea;
+    ba = no = ea = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // back-south-west corner
+  priority(3)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j  ,k-1) fr,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double ba, so, we;
+    ba = so = we = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+
+  // back-south-east corner
+  priority(3)
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j  ,k-1) fr,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        ALPHA alpha, BETA beta, DX dx)
+  {
+    double ba, so, ea;
+    ba = so = ea = -me;
+    return helmholtz3DForwardFuncHelper(me, we, ea, no, so, fr, ba,
+                                        a, bwe, bea, bno, bso, bfr, bba,
+                                        alpha, beta, dx);
+  }
+}
+
+#endif // HELMHOLTZ3DFORWARDFUNC_PBCC
+
