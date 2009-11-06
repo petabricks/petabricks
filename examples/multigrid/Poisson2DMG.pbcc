@@ -116,6 +116,10 @@ accuracy_metric Poisson2DAccuracyMetric
         printf("recursive %d case called for n = %d, acc %d (%d iterations)\n",
                recurseBin, n, _acc_bin, numIterations);
 #endif
+        JASSERT(n >= 3)(n).Text("input must be >= 3");
+        JASSERT(floor(log2(n-1)) == log2(n-1))(n).Text("input must be 2^k+1");
+        JASSERT(numIterations >= 0)(numIterations).Text("num iterations must be non-negative");
+
         Poisson2DMGRecurse(y, x, b, recurseBin, numIterations);
     }
 }
