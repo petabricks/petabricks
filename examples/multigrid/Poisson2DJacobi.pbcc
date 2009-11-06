@@ -5,8 +5,8 @@
 
 transform Poisson2DJacobi
 from IN[n+2,n+2], B[n+2,n+2], numIterations
-through BTEMP[n,n]
 to OUT[n+2,n+2]
+through BTEMP[n,n]
 {
   BTEMP.cell(i,j) from(B.cell(i + 1, j + 1) b,
                        IN.cell(i, j + 1) no,
@@ -43,4 +43,3 @@ to OUT[n+2,n+2]
 }
 
 #endif // POISSON2DJACOBI_PBCC
-

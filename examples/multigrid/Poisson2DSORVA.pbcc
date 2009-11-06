@@ -1,0 +1,22 @@
+#ifndef POISSON2DSORVA_PBCC
+#define POISSON2DSORVA_PBCC
+
+#include "Poisson2DConfig.h"
+#include "Poisson2DAccuracyMetric.pbcc"
+#include "Poisson2DSOR.pbcc"
+
+// performance note: OUT can point to the same matrix region as IN
+transform Poisson2DSORVA
+from IN[n+2,n+2], B[n+2,n+2]
+to OUT[n+2,n+2]
+accuracy_bins POISSON2D_BINS
+accuracy_variable numIterations
+accuracy_metric Poisson2DAccuracyMetric
+{
+    to (OUT out) from (IN in, B b)
+    {
+        Poisson2DSOR(out, in, b, -1, numIterations);
+    }
+}
+
+#endif // POISSON2DSORVA_PBCC

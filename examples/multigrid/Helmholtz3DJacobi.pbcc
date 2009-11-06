@@ -62,7 +62,7 @@ to OUT[n,n,n]
     if (numIters == 1) {
 
       // we need this copy since 'out' may point to 'in'
-      Helmholtz3DJacobiIterate(temp, in, a, b1, b2, b3, rhs, alpha, beta, w);
+      Helmholtz3DJacobiIterate(temp, in, a, b1, b2, b3, rhs, alpha, beta, dx, w);
       Copy3D(out, temp);
       i = 1; // set number of iterations done to 1
 

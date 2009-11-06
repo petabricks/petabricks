@@ -1,0 +1,35 @@
+#ifndef RESTRICT3D_PBCC
+#define RESTRICT3D_PBCC
+
+// Restricts matrix from dimension 2^k+2 to 2^{k-1}+2
+//
+// Assumes a one cell boundary ghost layer around data.  During restriction,
+// every cube of 8 interior cells gets averaged to 1 interior cell of the
+// output.
+transform Restrict3D
+from X[n+2, n+2, n+2]
+to   Y[n/2+2, n/2+2, n/2+2]
+{
+    // interior cells (i.e. {1..n} x {1..n} x {1..n}) use this rule
+    primary Y.cell(i,j,k)
+    from( X.cell(2*i-1, 2*j-1, 2*k-1) x000,
+          X.cell(2*i-1, 2*j-1, 2*k  ) x001,
+          X.cell(2*i-1, 2*j  , 2*k-1) x010,
+          X.cell(2*i-1, 2*j  , 2*k  ) x011,
+          X.cell(2*i  , 2*j-1, 2*k-1) x100,
+          X.cell(2*i  , 2*j-1, 2*k  ) x101,
+          X.cell(2*i  , 2*j  , 2*k-1) x110,
+          X.cell(2*i  , 2*j  , 2*k  ) x111 )
+    {
+        return (x000 + x001 + x010 + x011 +
+                x100 + x101 + x110 + x111) / 8;
+    }
+
+    // boundary is zeros
+    secondary Y.cell(i,j,k) from ()
+    {
+        return 0;
+    }
+}
+
+#endif // RESTRICT3D_PBCC
