@@ -5,52 +5,42 @@
 
 // OUT may NOT point to the same matrix region as IN
 transform Helmholtz3DJacobiIterate
-from IN[n,n,n], A[n,n,n], B1[n,n,n], B2[n,n,n], B3[n,n,n],
+from IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
      RHS[n,n,n], ALPHA, BETA, DX, WEIGHT
 to OUT[n,n,n]
 {
-  primary
-  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
-                         IN.cell(i-1,j  ,k  ) we,
-                         IN.cell(i+1,j  ,k  ) ea,
-                         IN.cell(i  ,j-1,k  ) no,
-                         IN.cell(i  ,j+1,k  ) so,
-                         IN.cell(i  ,j  ,k-1) fr,
-                         IN.cell(i  ,j  ,k+1) ba,
-                          A.cell(i  ,j  ,k  ) a,
-                         B1.cell(i-1,j  ,k  ) bwe,
-                         B1.cell(i  ,j  ,k  ) bea,
-                         B2.cell(i  ,j-1,k  ) bno,
-                         B2.cell(i  ,j  ,k  ) bso,
-                         B3.cell(i  ,j  ,k-1) bfr,
-                         B3.cell(i  ,j  ,k  ) bba,
-                        RHS.cell(i  ,j  ,k  ) rhs,
-                        ALPHA alpha, BETA beta,
-                        DX dx, WEIGHT w)
-  {
-    double dxSq = dx * dx;
-    double K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
-    double newVal = (beta / dxSq * (bwe * we + bea * ea + bno * no +
-                                    bso * so + bfr * fr + bba * ba) + rhs) / K;
-    return (1 - w) * me + w * newVal;
-  }
+#define OTHER_ARGS , A.cell(i  ,j  ,k  ) a, \
+                    B0.cell(i  ,j  ,k  ) bwe, \
+                    B0.cell(i+1,j  ,k  ) bea, \
+                    B1.cell(i  ,j  ,k  ) bno, \
+                    B1.cell(i  ,j+1,k  ) bso, \
+                    B2.cell(i  ,j  ,k  ) bfr, \
+                    B2.cell(i  ,j  ,k+1) bba, \
+                   RHS.cell(i  ,j  ,k  ) rhs, \
+                   ALPHA alpha, BETA beta, \
+                   DX dx, WEIGHT w
 
-  // borders are unchanged
-  secondary
-  OUT.cell(i,j,k) from (IN.cell(i,j,k) me)
-  {
-    return me;
-  }
+#define BODY \
+    double dxSq = dx * dx; \
+    double K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba); \
+    double newVal = (beta / dxSq * (bwe * we + bea * ea + bno * no + \
+                                    bso * so + bfr * fr + bba * ba) + rhs) / K; \
+    return (1 - w) * me + w * newVal;
+
+#include "CubeRulesTemplate.pbcc"
+
+#undef BODY
+#undef OTHER_ARGS
 
 }
 
 // performance note: OUT can point to the same matrix region as IN
 transform Helmholtz3DJacobi
-from IN[n,n,n], A[n,n,n], B1[n,n,n], B2[n,n,n], B3[n,n,n],
+from IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
      RHS[n,n,n], ALPHA, BETA, DX, WEIGHT, NUMITERS
 to OUT[n,n,n]
 {
-  to (OUT out) from (IN in, A a, B1 b1, B2 b2, B3 b3, RHS rhs,
+  to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2, RHS rhs,
                      ALPHA alpha, BETA beta,
                      DX dx, WEIGHT w, NUMITERS numIters)
   {
@@ -62,22 +52,22 @@ to OUT[n,n,n]
     if (numIters == 1) {
 
       // we need this copy since 'out' may point to 'in'
-      Helmholtz3DJacobiIterate(temp, in, a, b1, b2, b3, rhs, alpha, beta, dx, w);
+      Helmholtz3DJacobiIterate(temp, in, a, b0, b1, b2, rhs, alpha, beta, dx, w);
       Copy3D(out, temp);
       i = 1; // set number of iterations done to 1
 
     } else if (((int) numIters) & 1 == 0) { // numIters is even
 
-      Helmholtz3DJacobiIterate(temp, in  , a, b1, b2, b3, rhs, alpha, beta, dx, w);
-      Helmholtz3DJacobiIterate(out , temp, a, b1, b2, b3, rhs, alpha, beta, dx, w);
+      Helmholtz3DJacobiIterate(temp, in  , a, b0, b1, b2, rhs, alpha, beta, dx, w);
+      Helmholtz3DJacobiIterate(out , temp, a, b0, b1, b2, rhs, alpha, beta, dx, w);
       i = 2; // set number of iterations done to 2
 
     } else { // numIters is odd and >= 3
 
       MatrixRegion3D temp2 = MatrixRegion3D::allocate(n,n,n);
-      Helmholtz3DJacobiIterate(temp , in   , a, b1, b2, b3, rhs, alpha, beta, dx, w);
-      Helmholtz3DJacobiIterate(temp2, temp , a, b1, b2, b3, rhs, alpha, beta, dx, w);
-      Helmholtz3DJacobiIterate(out  , temp2, a, b1, b2, b3, rhs, alpha, beta, dx, w);
+      Helmholtz3DJacobiIterate(temp , in   , a, b0, b1, b2, rhs, alpha, beta, dx, w);
+      Helmholtz3DJacobiIterate(temp2, temp , a, b0, b1, b2, rhs, alpha, beta, dx, w);
+      Helmholtz3DJacobiIterate(out  , temp2, a, b0, b1, b2, rhs, alpha, beta, dx, w);
       i = 3; // set number of iterations done to 3
 
     }
@@ -85,8 +75,8 @@ to OUT[n,n,n]
     // finish up the rest of the iterations
     // j is a dummy var just to get it to compile
     for (int j = 0; i < numIters; i += 2) {
-      Helmholtz3DJacobiIterate(temp, out, a, b1, b2, b3, rhs, alpha, beta, dx, w);
-      Helmholtz3DJacobiIterate(out, temp, a, b1, b2, b3, rhs, alpha, beta, dx, w);
+      Helmholtz3DJacobiIterate(temp, out, a, b0, b1, b2, rhs, alpha, beta, dx, w);
+      Helmholtz3DJacobiIterate(out, temp, a, b0, b1, b2, rhs, alpha, beta, dx, w);
     }
   }
 }

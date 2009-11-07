@@ -1,71 +1,62 @@
 #ifndef HELMHOLTZ3DSOR_PBCC
 #define HELMHOLTZ3DSOR_PBCC
 
+// TODO: fix to boundary needed
+
 // performance note: OUT can point to the same matrix region as IN
 // because of red-black pattern
 transform Helmholtz3DSORIterate
 from IN[n,n,n], A[n,n,n],
-     B1[n,n,n], B2[n,n,n], B3[n,n,n],
+     B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
      RHS[n,n,n], ALPHA, BETA, DX, WEIGHT, PARITY
 to OUT[n,n,n]
 {
-  primary
-  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
-                         IN.cell(i-1,j  ,k  ) we,
-                         IN.cell(i+1,j  ,k  ) ea,
-                         IN.cell(i  ,j-1,k  ) no,
-                         IN.cell(i  ,j+1,k  ) so,
-                         IN.cell(i  ,j  ,k-1) fr,
-                         IN.cell(i  ,j  ,k+1) ba,
-                          A.cell(i  ,j  ,k  ) a,
-                         B1.cell(i-1,j  ,k  ) bwe,
-                         B1.cell(i  ,j  ,k  ) bea,
-                         B2.cell(i  ,j-1,k  ) bno,
-                         B2.cell(i  ,j  ,k  ) bso,
-                         B3.cell(i  ,j  ,k-1) bfr,
-                         B3.cell(i  ,j  ,k  ) bba,
-                        RHS.cell(i  ,j  ,k  ) rhs,
-                        ALPHA alpha, BETA beta,
-                        DX dx, WEIGHT w, PARITY p)
-  {
-    // this condition not yet supported in where clause
-    if ((((int) (i + j + k)) & 1) == p) {
-      double dxSq = dx * dx;
-      double K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
-      double newVal = (beta / dxSq * (bwe * we + bea * ea + bno * no +
-                                      bso * so + bfr * fr + bba * ba) + rhs) / K;
-      return (1 - w) * me + w * newVal;
-    } else {
-      return me;
-    }
-  }
+#define OTHER_ARGS , A.cell(i  ,j  ,k  ) a, \
+                    B0.cell(i  ,j  ,k  ) bwe, \
+                    B0.cell(i+1,j  ,k  ) bea, \
+                    B1.cell(i  ,j  ,k  ) bno, \
+                    B1.cell(i  ,j+1,k  ) bso, \
+                    B2.cell(i  ,j  ,k  ) bfr, \
+                    B2.cell(i  ,j  ,k+1) bba, \
+                   RHS.cell(i  ,j  ,k  ) rhs, \
+                   ALPHA alpha, BETA beta, \
+                   DX dx, WEIGHT w, PARITY p
 
-  // borders are unchanged
-  secondary
-  OUT.cell(i,j,k) from (IN.cell(i,j,k) me)
-  {
-    return me;
-  }
+#define BODY \
+    if ((((int) (i + j + k)) & 1) == p) { \
+      double dxSq = dx * dx; \
+      double K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba); \
+      double newVal = (beta / dxSq * (bwe * we + bea * ea + bno * no + \
+                                      bso * so + bfr * fr + bba * ba) + rhs) / K; \
+      return (1 - w) * me + w * newVal; \
+    } else { \
+      return me; \
+    } \
+
+#include "CubeRulesTemplate.pbcc"
+
+#undef BODY
+#undef OTHER_ARGS
 
 }
 
 // performance note: OUT can point to the same matrix region as IN
 transform Helmholtz3DSOR
-from IN[n,n,n], A[n,n,n], B1[n,n,n], B2[n,n,n], B3[n,n,n],
+from IN[n,n,n], A[n,n,n], B0[n,n,n], B1[n,n,n], B2[n,n,n],
      RHS[n,n,n], ALPHA, BETA, DX, WEIGHT, NUMITERS
 to OUT[n,n,n]
 {
-  to (OUT out) from (IN in, A a, B1 b1, B2 b2, B3 b3,
+  to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
                      RHS rhs, ALPHA alpha, BETA beta,
                      DX dx, WEIGHT w, NUMITERS numIters)
   {
     JASSERT(numIters > 0)(numIters)("numIters must be positive");
 
-    Helmholtz3DSORIterate(out,  in, a, b1, b2, b3, rhs, alpha, beta, dx, w, 0); // red
-    Helmholtz3DSORIterate(out, out, a, b1, b2, b3, rhs, alpha, beta, dx, w, 1); // black
+    Helmholtz3DSORIterate(out,  in, a, b0, b1, b2, rhs, alpha, beta, dx, w, 0); // red
+    Helmholtz3DSORIterate(out, out, a, b0, b1, b2, rhs, alpha, beta, dx, w, 1); // black
     for (int i = 1; i < numIters; i++) {
-      Helmholtz3DSORIterate(out, out, a, b1, b2, b3, rhs, alpha, beta, dx, w, 0); // red
-      Helmholtz3DSORIterate(out, out, a, b1, b2, b3, rhs, alpha, beta, dx, w, 1); // black
+      Helmholtz3DSORIterate(out, out, a, b0, b1, b2, rhs, alpha, beta, dx, w, 0); // red
+      Helmholtz3DSORIterate(out, out, a, b0, b1, b2, rhs, alpha, beta, dx, w, 1); // black
     }
   }
 }
