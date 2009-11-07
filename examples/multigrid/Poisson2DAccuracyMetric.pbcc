@@ -11,6 +11,24 @@
  */
 //#define RESIDUAL_METRIC
 
+memoized
+transform Poisson2DSolveMemoized
+from X[n,n], B[n,n]
+to   Y[n,n]
+{
+    to (Y y) from (X x, B b)
+    {
+        int level = (int) log2(n - 1);
+        if (level < 4) {
+            // if small enough, compute solution using direct solver
+            Poisson2DDirect(y, x, b);
+        } else {
+            // otherwise use 15 multigrid reference V-cycles
+            Poisson2DRefMGHelper(y, x, b, 15);
+        }
+    }
+}
+
 transform Poisson2DAccuracyMetric
 from Y[n,n], X[n,n], B[n,n]
 to Accuracy
@@ -32,12 +50,7 @@ to Accuracy
         ComputeError2D(e2, b, z);
 #else
         // compute true solution
-        int level = (int) log2(n - 1);
-        if (level < 4) {
-            Poisson2DDirect(z, x, b);
-        } else {
-            Poisson2DRefMGHelper(z, x, b, 15);
-        }
+        Poisson2DSolveMemoized(z, x, b);
 
         // compute errors of input and output
         ComputeError2D(e1, x, z);
