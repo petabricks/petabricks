@@ -6,8 +6,8 @@
 #include "Poisson2DJacobi.pbcc"
 
 transform Poisson2DJacobiVA
-from IN[n+2,n+2], B[n+2,n+2]
-to OUT[n+2,n+2]
+from IN[n,n], B[n,n]
+to OUT[n,n]
 accuracy_bins POISSON2D_BINS
 accuracy_variable numIterations
 accuracy_metric Poisson2DAccuracyMetric

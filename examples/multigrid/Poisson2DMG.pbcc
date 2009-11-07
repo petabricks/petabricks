@@ -94,9 +94,9 @@ accuracy_metric Poisson2DAccuracyMetric
 
         int level = (int) log2(n-1);
 
-        // for level greater than 4, just abort since
+        // for level greater than 8, just abort since
         // this will likely be slow and not the best choice
-        if (level > 4) {
+        if (level > 8) {
             PetabricksRuntime::abort();
         }
 
