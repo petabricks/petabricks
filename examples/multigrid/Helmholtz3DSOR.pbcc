@@ -1,8 +1,6 @@
 #ifndef HELMHOLTZ3DSOR_PBCC
 #define HELMHOLTZ3DSOR_PBCC
 
-// TODO: fix to boundary needed
-
 // performance note: OUT can point to the same matrix region as IN
 // because of red-black pattern
 transform Helmholtz3DSORIterate
@@ -42,7 +40,7 @@ to OUT[n,n,n]
 
 // performance note: OUT can point to the same matrix region as IN
 transform Helmholtz3DSOR
-from IN[n,n,n], A[n,n,n], B0[n,n,n], B1[n,n,n], B2[n,n,n],
+from IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
      RHS[n,n,n], ALPHA, BETA, DX, WEIGHT, NUMITERS
 to OUT[n,n,n]
 {
