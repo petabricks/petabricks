@@ -41,6 +41,8 @@
 #include <sys/wait.h>
 #endif
 
+#define SUCCESS_RV 198
+
 static void _settestprocflags(){
 #ifdef HAVE_SYS_PRCTL_H
 # ifdef PR_SET_PDEATHSIG //linux 2.1.57
@@ -126,7 +128,7 @@ void petabricks::SubprocessTestIsolation::endTest(double time, double accuracy) 
   fsync(fileno(stdout));
   fsync(fileno(stderr));
   //DynamicScheduler::cpuScheduler().shutdown();
-  _exit(0);
+  _exit(SUCCESS_RV);
 }
 
 inline static void _settimespec(struct timespec& timeout, double sec){
@@ -192,7 +194,7 @@ void petabricks::SubprocessTestIsolation::recvResult(double& time, double& accur
     if(rv<-256){
       JASSERT(waitpid(_pid,&rv,0)==_pid);
     }
-    JASSERT(rv==0)(rv).Text("test subprocess failed");
+    JASSERT(WEXITSTATUS(rv)==SUCCESS_RV)(rv).Text("test subprocess failed");
     break;
   }
   close(_fd);
@@ -208,7 +210,7 @@ std::string petabricks::SubprocessTestIsolation::recvControlCookie(int& rv) {
     n=recv(_fd, buf, strlen(COOKIE), MSG_DONTWAIT);
     if(n<0 && errno==EAGAIN)
       n=0;
-    if(rv<-256 && waitpid(_pid, &rv, WNOHANG)==_pid && rv!=0)
+    if(rv<-256 && waitpid(_pid, &rv, WNOHANG)==_pid && WEXITSTATUS(rv)!=SUCCESS_RV)
       break;//child failed
   }
   return buf;
