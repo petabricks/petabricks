@@ -4,9 +4,9 @@
 #include "Poisson2DJacobiInterior.pbcc"
 
 transform Poisson2DJacobi
-from IN[n+2,n+2], B[n+2,n+2], numIterations
-to OUT[n+2,n+2]
-through BTEMP[n,n]
+from IN[n,n], B[n,n], numIterations
+to OUT[n,n]
+through BTEMP[n-2,n-2]
 {
   BTEMP.cell(i,j) from(B.cell(i + 1, j + 1) b,
                        IN.cell(i, j + 1) no,
@@ -16,23 +16,21 @@ through BTEMP[n,n]
   {
     double result = b;
     if (i == 0) result += no;
-    if (i == n - 1) result += so;
+    if (i == n - 3) result += so;
     if (j == 0) result += we;
-    if (j == n - 1) result += ea;
+    if (j == n - 3) result += ea;
     return result;
   }
 
   recursive
-  primary to (OUT.region(1,1,n+1,n+1) o) from (IN.region(1,1,n+1,n+1) in,
+  primary to (OUT.region(1,1,n-1,n-1) o) from (IN.region(1,1,n-1,n-1) in,
                                                BTEMP b,
                                                numIterations num)
   {
-    if (n > 0) {
-      if (n == 1) {
-        o.cell(0, 0) = b.cell(0, 0) / 4;
-      } else {
-        SPAWN(Poisson2DJacobiInterior,o, in, b, num);
-      }
+    if (n == 3) {
+      o.cell(0, 0) = b.cell(0, 0) / 4;
+    } else {
+      SPAWN(Poisson2DJacobiInterior,o, in, b, num);
     }
   }
 
