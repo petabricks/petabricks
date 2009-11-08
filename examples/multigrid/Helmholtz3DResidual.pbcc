@@ -1,0 +1,28 @@
+#ifndef HELMHOLTZ3DRESIDUAL_PBCC
+#define HELMHOLTZ3DRESIDUAL_PBCC
+
+#include "../simple/add.pbcc"
+#include "Helmholtz3DForwardFunc.pbcc"
+
+// Computes the residual RHS - F(IN), where F is the 3D Helmholtz
+// operator.
+transform Helmholtz3DResidual
+from IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
+     RHS[n,n,n], ALPHA, BETA, DX
+to OUT[n,n,n]
+{
+    to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
+                       RHS rhs, ALPHA alpha, BETA beta, DX dx)
+    {
+        // allocate temporary storage for forward value
+        MatrixRegion3D z = MatrixRegion3D::allocate(n, n, n);
+
+        // compute forward function on input
+        Helmholtz3DForwardFunc(z, in, a, b0, b1, b2, alpha, beta, dx);
+
+        // compute residual
+        Subtract3D(out, rhs, z);
+    }
+}
+
+#endif // HELMHOLTZ3DRESIDUAL_PBCC

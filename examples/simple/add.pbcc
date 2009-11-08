@@ -36,5 +36,23 @@ to AB[w,h]
   }
 }
 
+transform Subtract2D
+from A[w,h], B[w,h]
+to C[w,h]
+{
+  C.cell(i,j) from (A.cell(i,j) a, B.cell(i,j) b) {
+    return a - b;
+  }
+}
+
+transform Subtract3D
+from A[w,h,d], B[w,h,d]
+to C[w,h,d]
+{
+  C.cell(i,j,k) from (A.cell(i,j,k) a, B.cell(i,j,k) b) {
+    return a - b;
+  }
+}
+
 #endif // MATRIXADD_PBCC
 

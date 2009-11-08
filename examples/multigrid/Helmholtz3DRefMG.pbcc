@@ -1,0 +1,122 @@
+#ifndef HELMHOLTZ3DREFMG_PBCC
+#define HELMHOLTZ3DREFMG_PBCC
+
+// 3D Helmholtz Reference Multigrid V-cycle
+// assume dimension n = 2^k
+
+#include "Helmholtz3DConfig.h"
+
+#include "../simple/add.pbcc"
+#include "../simple/copy.pbcc"
+#include "Interpolate3D.pbcc"
+#include "Restrict3D.pbcc"
+#include "Helmholtz3DResidual.pbcc"
+#include "Helmholtz3DSOR.pbcc"
+#include "Helmholtz3DAccuracyMetric.pbcc"
+
+// Uncomment the following define to enable debug execution
+// #define DEBUG
+
+// Helper function that computes a specified number of reference V-cycles
+//
+// Performance note: Y can point to the same matrix region as X
+transform Helmholtz3DRefMGHelper
+from IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
+     RHS[n,n,n], ALPHA, BETA, DX, NUMITERS
+to OUT[n,n,n]
+through Z[n/2, n/2, n/2]
+{
+    Z.cell(i,j,k) from () {
+        return 0;
+    }
+
+    // solve recursively on coarser grids, with zero initial guess
+    // then map the coarse solution back to the fine grid by interpolation
+    to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2, RHS rhs,
+                       ALPHA alpha, BETA beta, DX dx, NUMITERS numIters, Z z)
+    {
+        JASSERT(n >= 2)(n).Text("input must be >= 2");
+        JASSERT(floor(log2(n)) == log2(n))(n).Text("input must be 2^k+1");
+        JASSERT(numIters >= 0)(numIters).Text("num iterations must be non-negative");
+
+        // only proceed if number of iterations is positive
+        if (numIters > 0) {
+
+            if (n == 1) {
+
+#ifdef DEBUG
+                printf("base case called for n = 1\n");
+#endif
+
+                Helmholtz3DDirect(out, a, b0, b1, b2, rhs, alpha, beta, dx);
+
+            } else {
+
+#ifdef DEBUG
+                printf("recursive case called for n = %d\n", n);
+#endif
+
+                // allocate temporary storage
+                MatrixRegion3D t1 = MatrixRegion3D::allocate(n, n, n);
+                MatrixRegion3D t2 = MatrixRegion3D::allocate(n, n, n);
+                MatrixRegion3D r1 = MatrixRegion3D::allocate(n/2, n/2, n/2);
+                MatrixRegion3D r2 = MatrixRegion3D::allocate(n/2, n/2, n/2);
+
+                // allocate restricted coefficient arrays
+                MatrixRegion3D  aR = MatrixRegion3D::allocate(n/2  , n/2  , n/2  );
+                MatrixRegion3D b0R = MatrixRegion3D::allocate(n/2+1, n/2  , n/2  );
+                MatrixRegion3D b1R = MatrixRegion3D::allocate(n/2  , n/2+1, n/2  );
+                MatrixRegion3D b2R = MatrixRegion3D::allocate(n/2  , n/2  , n/2+1);
+
+                // compute restricted coefficient arrays
+                Restrict3D(aR, a);
+                Restrict3DB0(b0R, b0);
+                Restrict3DB1(b1R, b1);
+                Restrict3DB2(b2R, b2);
+
+                for (int i = 0; i < numIters; ++i) {
+                    // t1 gets relaxed guess
+                    if (i == 0) {
+                        Helmholtz3DSOR(t1,  in, a, b0, b1, b2, rhs, alpha, beta, dx, -2, 1);
+                    } else {
+                        Helmholtz3DSOR(t1, out, a, b0, b1, b2, rhs, alpha, beta, dx, -2, 1);
+                    }
+                    // t2 gets new residual
+                    Helmholtz3DResidual(t2, t1, a, b0, b1, b2, rhs, alpha, beta, dx);
+                    // r1 gets restricted residual
+                    Restrict3D(r1, t2);
+                    // r2 gets coarse update
+                    Helmholtz3DRefMGHelper(r2, z, aR, b0R, b1R, b2R, r1, alpha, beta, 2 * dx, 1);
+                    // t2 gets interpolated update
+                    Interpolate3D(t2, r2);
+                    // t2 gets updated guess
+                    MatrixAdd(t2, t2, t1);
+                    //  y gets relaxed guess
+                    Helmholtz3DSOR(out, t2, a, b0, b1, b2, rhs, alpha, beta, dx, -2, 1);
+                }
+            }
+        }
+    }
+}
+
+// Variable-accuracy transform that computes enough reference V-cycles
+// to achieve target accuracy.
+//
+// Performance note: Y can point to the same matrix region as X
+transform Helmholtz3DRefMG
+from IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
+     RHS[n,n,n], ALPHA, BETA, DX
+to OUT[n,n,n]
+accuracy_bins HELMHOLTZ3D_BINS
+accuracy_variable numIterations
+accuracy_metric Helmholtz3DAccuracyMetric
+{
+    to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
+                       RHS rhs, ALPHA alpha, BETA beta, DX dx)
+    {
+        Helmholtz3DRefMGHelper(out, in, a, b0, b1, b2, rhs, 
+                               alpha, beta, dx, numIterations);
+    }
+}
+
+#endif // HELMHOLTZ3DREFMG_PBCC
