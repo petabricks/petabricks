@@ -126,7 +126,7 @@ public:
 
   std::string genTypeStr(bool isConst) const;
   std::string generateSignatureCode(bool isConst) const;
-  std::string generateAccessorCode() const;
+  std::string generateAccessorCode(bool allowOptional=true) const;
 
   SimpleRegionPtr getApplicableRegion(Transform& tx, RuleInterface& rule, const FormulaList& defs, bool isOutput);
 
@@ -151,10 +151,13 @@ public:
   void assertNotInput();
 
   void setOptionalDefault(const FormulaPtr& f){
-    _optionalDefault = f;
+    if(f->toString()=="OPTIONAL")
+      _optionalDefault = new FormulaVariable("petabricks::the_missing_val()");  
+    else 
+      _optionalDefault = f;
   }
   bool isOptional() const { return _optionalDefault; }
-  const FormulaPtr& optionalDefault() { return _optionalDefault; }
+  const FormulaPtr& optionalDefault() const { return _optionalDefault; }
 private:
   std::string _name;
   std::string _fromMatrixName;
