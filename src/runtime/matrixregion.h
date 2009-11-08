@@ -97,7 +97,7 @@ public:
     if(D==0){
       //0D version may not use storage(), so just set the element directly
       JASSERT(base()!=0);
-      *base() = MatrixStorage::rand();
+      *const_cast<MATRIX_ELEMENT_T*>(base()) = MatrixStorage::rand();
     }else{
       this->storage()->randomize();
     }
