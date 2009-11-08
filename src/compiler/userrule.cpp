@@ -178,20 +178,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
   _to.makeRelativeTo(_definitions);
   _conditions.makeRelativeTo(_definitions);
 
-  for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
-    SimpleRegionPtr ar = (*i)->getApplicableRegion(trans, *this, _definitions, true);
-    if(_applicableRegion)
-      _applicableRegion = _applicableRegion->intersect(ar);
-    else
-      _applicableRegion = ar;
-  }
-  for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
-    SimpleRegionPtr ar = (*i)->getApplicableRegion(trans, *this, _definitions, false);
-    if(_applicableRegion)
-      _applicableRegion = _applicableRegion->intersect(ar);
-    else
-      _applicableRegion = ar;
-  }
+  buildApplicableRegion(trans, _applicableRegion, true);
   
   FormulaList condtmp;
   condtmp.swap(_conditions);
@@ -256,6 +243,22 @@ void petabricks::UserRule::initialize(Transform& trans) {
   }
 
   MaximaWrapper::instance().popContext();
+}
+  
+void petabricks::UserRule::buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional){
+  for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
+    JASSERT(!(*i)->isOptional())((*i)->name())
+      .Text("optional regions are not allowed in outputs");
+    SimpleRegionPtr t = (*i)->getApplicableRegion(trans, *this, _definitions, true);
+    ar = ar ? ar->intersect(t) : t;
+  }
+  for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
+    if(allowOptional && (*i)->isOptional())
+      continue;
+    SimpleRegionPtr t = (*i)->getApplicableRegion(trans, *this, _definitions, false);
+    ar = ar ? ar->intersect(t) : t;
+  }
+  JASSERT(ar);
 }
   
 void petabricks::UserRule::performExpansion(Transform& trans){

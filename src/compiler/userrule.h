@@ -179,6 +179,9 @@ public:
   }
   
   DependencyDirection getSelfDependency() const;
+
+
+  void buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional);
 private:
   RuleFlags _flags;
   RegionList _from;

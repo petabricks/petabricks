@@ -56,6 +56,8 @@
 
 #define PB_SYNC() sync_in_loops_not_supported_yet!
 
+#define IS_MISSING petabricks::is_the_missing_val
+
 namespace petabricks {
   template< typename T >
   inline DynamicTaskPtr tx_call_dynamic(T* tx){
@@ -132,6 +134,21 @@ namespace petabricks {
     return false;
   }
 
+
+  ElementT the_missing_val() {
+    union {
+      ElementT d;
+      uint64_t u;
+    };
+    d = std::numeric_limits<ElementT>::quiet_NaN();
+    u ^= 0x1234;
+    return d;
+  }
+  
+  bool is_the_missing_val(ElementT a) {
+    ElementT b=the_missing_val();
+    return memcmp(&a, &b, sizeof(ElementT))==0;
+  }
 }
 
 

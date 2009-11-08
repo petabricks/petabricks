@@ -155,6 +155,10 @@ public:
     IndexT c1[0];
     return cell(c1);
   }
+  INLINE bool contains() const{
+    IndexT c1[0];
+    return contains(c1);
+  }
   INLINE MatrixRegion region() const{
     IndexT c1[0];
     IndexT c2[0];
@@ -187,16 +191,20 @@ public:
   
   INLINE static MatrixRegion allocate(IndexT x){
     IndexT c1[] = {x};
-    return allocate(c1);
+    return Base::allocate(c1);
   }
   INLINE ElementT& cell(IndexT x) const{
     IndexT c1[] = {x};
-    return cell(c1);
+    return Base::cell(c1);
+  }
+  INLINE bool contains(IndexT x) const{
+    IndexT c1[] = {x};
+    return Base::contains(c1);
   }
   INLINE MatrixRegion region(IndexT x1, IndexT x2) const{
     IndexT c1[] = {x1};
     IndexT c2[] = {x2};
-    return region(c1,c2);
+    return Base::region(c1,c2);
   }
 };
 
@@ -230,6 +238,10 @@ public:
   INLINE ElementT& cell(IndexT x, IndexT y) const{
     IndexT c1[] = {x, y};
     return cell(c1);
+  }
+  INLINE bool contains(IndexT x, IndexT y) const{
+    IndexT c1[] = {x, y};
+    return contains(c1);
   }
   INLINE MatrixRegion region(IndexT x1, IndexT y1, IndexT x2, IndexT y2) const{
     IndexT c1[] = {x1, y1};
@@ -269,6 +281,10 @@ public:
     IndexT c1[] = {x, y, z};
     return cell(c1);
   }
+  INLINE bool contains(IndexT x, IndexT y, IndexT z) const{
+    IndexT c1[] = {x, y, z};
+    return contains(c1);
+  }
   INLINE MatrixRegion region(IndexT x1, IndexT y1, IndexT z1, IndexT x2, IndexT y2, IndexT z2) const{
     IndexT c1[] = {x1, y1, z1};
     IndexT c2[] = {x2, y2, z2};
@@ -306,6 +322,10 @@ public:
   INLINE ElementT& cell(IndexT x, IndexT y, IndexT z, IndexT a) const{
     IndexT c1[] = {x, y, z, a};
     return cell(c1);
+  }
+  INLINE bool contains(IndexT x, IndexT y, IndexT z, IndexT a) const{
+    IndexT c1[] = {x, y, z, a};
+    return contains(c1);
   }
   INLINE MatrixRegion region(IndexT x1, IndexT y1, IndexT z1, IndexT a1, IndexT x2, IndexT y2, IndexT z2, IndexT a2) const{
     IndexT c1[] = {x1, y1, z1, a1};

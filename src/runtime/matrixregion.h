@@ -254,6 +254,15 @@ public:
   SliceMatrixRegion row(IndexT y) const{  return slice(1, y); }
   
   ///
+  /// true if c1 is in bounds
+  bool contains(const IndexT coord[D]) const { 
+    for(int i=0; i<D; ++i)
+      if(coord[i]<0 || coord[i]>=size(i))
+        return false;
+    return true;
+  }
+  
+  ///
   /// Return the size of a given dimension
   IndexT size(int d) const {
     #ifdef DEBUG
@@ -393,6 +402,18 @@ public:
     return cell(c1);
   }
   
+
+  ///
+  /// true if coord is in bounds
+  bool contains(IndexT x, ...) const { 
+    IndexT c1[D];
+    va_list ap;
+    va_start(ap, x);
+    c1[0]=x;
+    for(int i=1; i<D; ++i) c1[i]=va_arg(ap, IndexT);
+    va_end(ap);
+    return contains(c1);
+  }
 
   ///
   /// Create a new iterator for a region of target matrix
