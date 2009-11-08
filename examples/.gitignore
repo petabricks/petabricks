@@ -25,7 +25,10 @@ kernel/KernelEstimate
 kernel/LinearSolvePosDef
 matrixapproximation/Bisection
 matrixapproximation/matrixapprox
-multigrid/ComputeError
+multigrid/ComputeError2D
+multigrid/ComputeError3D
+multigrid/Helmholtz3DDirect
+multigrid/Helmholtz3DForwardFunc
 multigrid/Helmholtz3DJacobi
 multigrid/Helmholtz3DSOR
 multigrid/Interpolate2Dnew

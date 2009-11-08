@@ -21,8 +21,12 @@ multigrid/Poisson2DSOR     Rand2Da Rand2Db MinusOne0D One0D
 multigrid/Poisson2DSOR     Rand2Da Rand2Db MinusOne0D Ten0D
 multigrid/Restrict3D       Rand3D
 multigrid/Interpolate3D    Rand3D
-multigrid/Helmholtz3DForwardFunc   Helmholtz3DPhi Helmholtz3DA Helmholtz3DB0 Helmholtz3DB1 Helmholtz3DB2 One0D Two0D One0D
 multigrid/Helmholtz3DDirect        Helmholtz3DA Helmholtz3DB0 Helmholtz3DB1 Helmholtz3DB2 Helmholtz3DRHS One0D Two0D One0D
+multigrid/Helmholtz3DForwardFunc   Helmholtz3DPhi Helmholtz3DA Helmholtz3DB0 Helmholtz3DB1 Helmholtz3DB2 One0D Two0D One0D
+multigrid/Helmholtz3DJacobi        Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 Helmholtz3DB1 Helmholtz3DB2 Helmholtz3DRHS One0D Two0D One0D Helmholtz3DWeight One0D
+multigrid/Helmholtz3DJacobi        Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 Helmholtz3DB1 Helmholtz3DB2 Helmholtz3DRHS One0D Two0D One0D Helmholtz3DWeight Ten0D
+multigrid/Helmholtz3DSOR           Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 Helmholtz3DB1 Helmholtz3DB2 Helmholtz3DRHS One0D Two0D One0D Helmholtz3DWeight One0D
+multigrid/Helmholtz3DSOR           Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 Helmholtz3DB1 Helmholtz3DB2 Helmholtz3DRHS One0D Two0D One0D Helmholtz3DWeight Ten0D
 preconditioner/preconditioner	   PrecondX PrecondA PrecondB
 simple/add                 Rand2Da Rand2Db
 simple/bufferrotate        Rand1D
