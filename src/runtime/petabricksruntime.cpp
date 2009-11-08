@@ -42,6 +42,7 @@ static int  GRAPH_STEP=1;
 static bool GRAPH_EXP=false;
 static int  GRAPH_TRIALS=1;
 static int  GRAPH_SMOOTHING=0;
+static int  RETRIES=3;
 static int  SEARCH_BRANCH_FACTOR=8;
 static bool DUMPTIMING=false;
 static bool ACCURACY=false;
@@ -222,6 +223,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("offset",    OFFSET).help("size to add to N for each trial");
   args.param("max-sec",   GRAPH_MAX_SEC).help("stop graphs/autotuning after algorithm runs too slow");
   args.param("isolation", ISOLATION).help("don't run timing tests in a forked subprocess");
+  args.param("retries",   RETRIES).help("times to retry on test failure");
 
   args.finishParsing(txArgs);
   
@@ -477,51 +479,65 @@ double petabricks::PetabricksRuntime::trainAndComputeWrapper(TestIsolation& ti, 
   }
 }
 
-double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n){
+double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, int retries){
   double v, acc=jalib::maxval<double>();
-  if(ti.beginTest(worker_threads)){
-    try {
-      if(n>0){
-        ti.disableTimeout();
-        _main->reallocate(n);
-        _main->randomize();
-        ti.restartTimeout();
+  try{
+    if(ti.beginTest(worker_threads)){
+      try {
+        computeWrapperSubproc(ti, n, v, acc);
+      } catch(petabricks::DynamicScheduler::AbortException) {
+        v=jalib::maxval<double>();
+        _isRunning = false;
+      } catch(...) {
+        UNIMPLEMENTED();
+        throw;
       }
-      if(_isTrainingRun && _main->isVariableAccuracy()){
-        variableAccuracyTrainingLoop(ti);
-      }
-      _needTraingingRun = false;//reset flag set by isTrainingRun()
-      _isRunning = true;
-      jalib::JTime begin=jalib::JTime::now();
-      _main->compute();
-      jalib::JTime end=jalib::JTime::now();
-      _isRunning = false;
-      
-      if(_needTraingingRun && _isTrainingRun){
-        v=-1;
-      }else{
-        v=end-begin;
-      }
-      if(ACCURACY){
-        ti.disableTimeout();
-        acc=_main->accuracy();
-      }
-    } catch(petabricks::DynamicScheduler::AbortException) {
-      v=jalib::maxval<double>();
-      _isRunning = false;
-    } catch(...) {
-      UNIMPLEMENTED();
-      throw;
+      ti.endTest(v,acc);
+    }else{
+      ti.recvResult(v,acc);
     }
-    ti.endTest(v,acc);
-  }else{
-    ti.recvResult(v,acc);
+  }catch(TestIsolation::UnknownTestFailure e){
+    if(retries<0) retries=RETRIES;//from cmd line
+    if(retries>0){
+      std::cerr << "WARNING: test aborted unexpectedly (" << retries << " retries left)" << std::endl;
+    }else{
+      std::cerr << "ERROR: test aborted unexpectedly" << std::endl;
+      return computeWrapper(ti, n, retries-1);
+    }
   }
     
   if(v<0)        throw ComputeRetryException();
   if(DUMPTIMING) theTimings.push_back(v);
   if(ACCURACY)   theAccuracies.push_back(acc);
   return v;
+}
+  
+void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti, int n, double&  time, double&  acc){
+  if(n>0){
+    ti.disableTimeout();
+    _main->reallocate(n);
+    _main->randomize();
+    ti.restartTimeout();
+  }
+  if(_isTrainingRun && _main->isVariableAccuracy()){
+    variableAccuracyTrainingLoop(ti);
+  }
+  _needTraingingRun = false;//reset flag set by isTrainingRun()
+  _isRunning = true;
+  jalib::JTime begin=jalib::JTime::now();
+  _main->compute();
+  jalib::JTime end=jalib::JTime::now();
+  _isRunning = false;
+  
+  if(_needTraingingRun && _isTrainingRun){
+    time=-1;
+  }else{
+    time=end-begin;
+  }
+  if(ACCURACY){
+    ti.disableTimeout();
+    acc=_main->accuracy();
+  }
 }
   
 void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& ti){
