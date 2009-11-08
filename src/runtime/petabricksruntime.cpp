@@ -515,6 +515,7 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
 void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti, int n, double&  time, double&  acc){
   if(n>0){
     ti.disableTimeout();
+    _main->deallocate();
     _main->reallocate(n);
     _main->randomize();
     ti.restartTimeout();

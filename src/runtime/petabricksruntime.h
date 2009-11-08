@@ -85,8 +85,10 @@ public:
 
     ///
     /// initialize with random inputs
-    virtual void reallocate(int size) = 0;
     virtual void randomize() = 0;
+
+    virtual void deallocate() = 0;
+    virtual void reallocate(int size) = 0;
 
     virtual const char* name() = 0;
 
