@@ -173,22 +173,23 @@ public:
   
   ///
   ///same as allocate unless this->sizes()==sizes
-  MatrixRegion reallocate(const IndexT sizes[D]) {
+  bool isSize(const IndexT sizes[D]) const{
+    if(this->base()==0) return false;
     for(int i=0; i<D; ++i){
       if(this->sizes()[i]!=sizes[i]){
-        return allocate(sizes);
+        return false;
       }
     }
-    return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
+    return true;
   }
-  MatrixRegion reallocate(IndexT x, ...){
+  bool isSize(IndexT x, ...) const{
     IndexT c1[D];
     va_list ap;
     va_start(ap, x);
     c1[0]=x;
     for(int i=1; i<D; ++i) c1[i]=va_arg(ap, IndexT);
     va_end(ap);
-    return reallocate(c1);
+    return isSize(c1);
   }
 
   ///

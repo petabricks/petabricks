@@ -695,6 +695,17 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     }
   }
   o.endFunc();
+  
+  o.beginFunc("void", "deallocate");
+  {
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      o.write((*i)->name()+" = "+(*i)->matrixTypeName()+"();");
+    }
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      o.write((*i)->name()+" = "+(*i)->matrixTypeName()+"();");
+    }
+  }
+  o.endFunc();
 
   o.beginFunc("void", "randomize");
   {

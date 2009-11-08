@@ -33,7 +33,7 @@
 # include <unistd.h>
 #endif
 
-#ifdef HAVE_MMAP
+#ifdef HAVE_SYS_MMAN_H
 # include <sys/mman.h>
 #endif
 
@@ -291,7 +291,7 @@ void* jalib::JAlloc::allocate(size_t n) {
 void jalib::JAlloc::deallocate(void* ptr, size_t n){
   JAllocRaw::deallocate(ptr, n);
 }
-void* jalib::JAlloc::reallocate(void* ptr, size_t oldn, size_t newn);
+void* jalib::JAlloc::reallocate(void* ptr, size_t oldn, size_t newn){
   return JAllocRaw::reallocate(ptr, oldn, newn);
 }
 

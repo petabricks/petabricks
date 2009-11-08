@@ -27,6 +27,12 @@ namespace petabricks {
     virtual void recvResult(double& time, double& accuracy)=0;
     virtual void disableTimeout(){}
     virtual void restartTimeout(){}
+
+    // thrown when we get no response from child process
+    struct UnknownTestFailure {
+      UnknownTestFailure(int r):rv(r){};
+      int rv; 
+    };
   };
 
   /**
@@ -43,7 +49,6 @@ namespace petabricks {
   public:
     static TestIsolation* masterProcess();
 
-
     SubprocessTestIsolation(double to);
 
     void onTunableModification(jalib::JTunable* t, jalib::TunableValue, jalib::TunableValue newVal);
@@ -54,10 +59,16 @@ namespace petabricks {
     void disableTimeout();
     void restartTimeout();
   protected:
-    std::string recvControlCookie(int& rv);
+    std::string recvControlCookie();
+    void killChild();
+    void waitExited();
+    void testExited();
+    bool running();
+    int rv();
   private:
     pid_t _pid;
     int _fd;
+    int _rv;
     std::vector<TunableMod>  _modifications;
     double _timeout;
   };
