@@ -16,6 +16,9 @@
 
 namespace petabricks {
 
+/**
+ * Provides reasonable no-op defaults for RuleInterface (base class for synthetic rules)
+ */
 class SyntheticRule : public RuleInterface {
 public:
   void initialize(Transform&);
@@ -54,11 +57,44 @@ public:
 
 };
 
+
+/**
+ * Base class for synthetic rules that wrap other rules
+ * provides default implementations that forward to _rule
+ */
+class WrapperSyntheticRule : public SyntheticRule {
+public:
+  WrapperSyntheticRule(const RulePtr& rule) 
+    : _rule(rule)
+  {
+    _applicableRegion = _rule->applicableRegion();
+  }
+  
+  //these just forward to _rule
+  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
+  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
+  bool isSingleElement() const;
+  int dimensions() const;
+  FormulaPtr getSizeOfRuleIn(int d);
+  void collectDependencies(StaticScheduler& scheduler);
+  DependencyDirection getSelfDependency() const;
+  petabricks::RuleFlags::PriorityT priority() const;
+  bool isRecursive() const;
+  bool hasWhereClause() const;
+  petabricks::FormulaPtr getWhereClause() const;
+  bool canProvide(const MatrixDefPtr& md) const;
+  void getApplicableRegionDescriptors(RuleDescriptorList& rdl, const MatrixDefPtr& md, int i, const RulePtr&);
+  const petabricks::FormulaPtr& recursiveHint() const;
+protected:
+  RulePtr _rule;
+};
+
+
 ///
 ///combines multiple rules with where clauses
 class WhereExpansionRule : public SyntheticRule {
 public:
-
   WhereExpansionRule(const RuleSet& rules) 
     : _rules(rules) 
   {}
@@ -84,15 +120,15 @@ private:
   RuleSet _rules;
 };
 
+
 ///
-/// duplicate a rule which has a duplicate keyword
-class DuplicateExpansionRule : public SyntheticRule {
+/// duplicate a rule that has a duplicate keyword
+class DuplicateExpansionRule : public WrapperSyntheticRule {
 public:
   DuplicateExpansionRule(const RulePtr& rule, size_t dup) 
-    : _rule(rule), _dup(dup)
+    : WrapperSyntheticRule(rule), _dup(dup)
   {
     JASSERT(_rule && dup<_rule->duplicateCount());
-    _applicableRegion = _rule->applicableRegion();
   }
 
   ///
@@ -106,24 +142,7 @@ public:
   ///
   /// calls setDuplicateNumber() then forwards the call to _rule
   void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
-  
-
-  //these just forward to _rule
-  bool isSingleElement() const;
-  int dimensions() const;
-  FormulaPtr getSizeOfRuleIn(int d);
-  std::string codename() const;
-  void collectDependencies(StaticScheduler& scheduler);
-  DependencyDirection getSelfDependency() const;
-  petabricks::RuleFlags::PriorityT priority() const;
-  bool isRecursive() const;
-  bool hasWhereClause() const;
-  petabricks::FormulaPtr getWhereClause() const;
-  bool canProvide(const MatrixDefPtr& md) const;
-  void getApplicableRegionDescriptors(RuleDescriptorList& rdl, const MatrixDefPtr& md, int i, const RulePtr&);
-  const petabricks::FormulaPtr& recursiveHint() const;
 private:
-  RulePtr _rule;
   size_t _dup;
 };
 

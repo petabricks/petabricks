@@ -149,6 +149,12 @@ public:
   bool isAll() const { return _originalType == REGION_ALL; }
 
   void assertNotInput();
+
+  void setOptionalDefault(const FormulaPtr& f){
+    _optionalDefault = f;
+  }
+  bool isOptional() const { return _optionalDefault; }
+  const FormulaPtr& optionalDefault() { return _optionalDefault; }
 private:
   std::string _name;
   std::string _fromMatrixName;
@@ -156,6 +162,7 @@ private:
   RegionType  _originalType;
   FormulaList _originalBounds;
   MatrixDefPtr _fromMatrix;
+  FormulaPtr  _optionalDefault;
 };
 
 }
