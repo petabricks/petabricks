@@ -452,12 +452,10 @@ double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti, bool train){
     _randSize=n;
     double t = 0;
     for(int z=0;z<GRAPH_TRIALS; ++z){
-      _main->reallocate(n);
-      _main->randomize();
       if(z==0 && train){
-        t += trainAndComputeWrapper(ti); // first trial can train
+        t += trainAndComputeWrapper(ti, n); // first trial can train
       }else{
-        t += computeWrapper(ti); // rest of trials cant train
+        t += computeWrapper(ti, n); // rest of trials cant train
       }
     }
     rslts.push_back(t/GRAPH_TRIALS);//record average
@@ -467,22 +465,28 @@ double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti, bool train){
   return rslts[GRAPH_SMOOTHING];
 }
 
-double petabricks::PetabricksRuntime::trainAndComputeWrapper(TestIsolation& ti){
+double petabricks::PetabricksRuntime::trainAndComputeWrapper(TestIsolation& ti, int n){
   try {
     _isTrainingRun = true;
-    double t=computeWrapper(ti);
+    double t=computeWrapper(ti, n);
     _isTrainingRun = false;
     return t;
   }catch(ComputeRetryException e) {
     _isTrainingRun = false;
-    return computeWrapper(ti);
+    return computeWrapper(ti, n);
   }
 }
 
-double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti){
+double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n){
   double v, acc=jalib::maxval<double>();
   if(ti.beginTest(worker_threads)){
     try {
+      if(n>0){
+        ti.disableTimeout();
+        _main->reallocate(n);
+        _main->randomize();
+        ti.restartTimeout();
+      }
       if(_isTrainingRun && _main->isVariableAccuracy()){
         variableAccuracyTrainingLoop(ti);
       }

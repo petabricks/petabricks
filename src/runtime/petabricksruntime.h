@@ -151,8 +151,8 @@ public:
 
   static void saveConfig();
 
-  double computeWrapper(TestIsolation&);
-  double trainAndComputeWrapper(TestIsolation&);
+  double computeWrapper(TestIsolation&, int n=-1);
+  double trainAndComputeWrapper(TestIsolation&, int n);
   
   
   void variableAccuracyTrainingLoop(TestIsolation& ti);
