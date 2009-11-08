@@ -144,25 +144,26 @@ public:
   
   //these passthroughs must be declared here for overloading to work
   INLINE ElementT& cell(IndexT c[D]) const{ return this->Base::cell(c); }
+  INLINE bool contains(IndexT c[D]) const{ return this->Base::contains(c); }
   INLINE MatrixRegion region(const IndexT c1[D], const IndexT c2[D]) const{ return this->Base::region(c1,c2); }
   INLINE static MatrixRegion allocate(IndexT s[D]){ return Base::allocate(s); }
   
   INLINE static MatrixRegion allocate(){
     IndexT c1[0];
-    return allocate(c1);
+    return Base::allocate(c1);
   }
   INLINE ElementT& cell() const{
     IndexT c1[0];
-    return cell(c1);
+    return Base::cell(c1);
   }
   INLINE bool contains() const{
     IndexT c1[0];
-    return contains(c1);
+    return Base::contains(c1);
   }
   INLINE MatrixRegion region() const{
     IndexT c1[0];
     IndexT c2[0];
-    return region(c1,c2);
+    return Base::region(c1,c2);
   }
 };
 
@@ -186,6 +187,7 @@ public:
   
   //these passthroughs must be declared here for overloading to work
   INLINE ElementT& cell(IndexT c[D]) const{ return this->Base::cell(c); }
+  INLINE bool contains(IndexT c[D]) const{ return this->Base::contains(c); }
   INLINE MatrixRegion region(const IndexT c1[D], const IndexT c2[D]) const{ return this->Base::region(c1,c2); }
   INLINE static MatrixRegion allocate(IndexT s[D]){ return Base::allocate(s); }
   
@@ -228,25 +230,26 @@ public:
   
   //these passthroughs must be declared here for overloading to work
   INLINE ElementT& cell(IndexT c[D]) const{ return this->Base::cell(c); }
+  INLINE bool contains(IndexT c[D]) const{ return this->Base::contains(c); }
   INLINE MatrixRegion region(const IndexT c1[D], const IndexT c2[D]) const{ return this->Base::region(c1,c2); }
   INLINE static MatrixRegion allocate(IndexT s[D]){ return Base::allocate(s); }
   
   INLINE static MatrixRegion allocate(IndexT x, IndexT y){
     IndexT c1[] = {x, y};
-    return allocate(c1);
+    return Base::allocate(c1);
   }
   INLINE ElementT& cell(IndexT x, IndexT y) const{
     IndexT c1[] = {x, y};
-    return cell(c1);
+    return Base::cell(c1);
   }
   INLINE bool contains(IndexT x, IndexT y) const{
     IndexT c1[] = {x, y};
-    return contains(c1);
+    return Base::contains(c1);
   }
   INLINE MatrixRegion region(IndexT x1, IndexT y1, IndexT x2, IndexT y2) const{
     IndexT c1[] = {x1, y1};
     IndexT c2[] = {x2, y2};
-    return region(c1,c2);
+    return Base::region(c1,c2);
   }
 };
 
@@ -270,25 +273,26 @@ public:
   
   //these passthroughs must be declared here for overloading to work
   INLINE ElementT& cell(IndexT c[D]) const{ return this->Base::cell(c); }
+  INLINE bool contains(IndexT c[D]) const{ return this->Base::contains(c); }
   INLINE MatrixRegion region(const IndexT c1[D], const IndexT c2[D]) const{ return this->Base::region(c1,c2); }
   INLINE static MatrixRegion allocate(IndexT s[D]){ return Base::allocate(s); }
   
   INLINE static MatrixRegion allocate(IndexT x, IndexT y, IndexT z){
     IndexT c1[] = {x, y, z};
-    return allocate(c1);
+    return Base::allocate(c1);
   }
   INLINE ElementT& cell(IndexT x, IndexT y, IndexT z) const{
     IndexT c1[] = {x, y, z};
-    return cell(c1);
+    return Base::cell(c1);
   }
   INLINE bool contains(IndexT x, IndexT y, IndexT z) const{
     IndexT c1[] = {x, y, z};
-    return contains(c1);
+    return Base::contains(c1);
   }
   INLINE MatrixRegion region(IndexT x1, IndexT y1, IndexT z1, IndexT x2, IndexT y2, IndexT z2) const{
     IndexT c1[] = {x1, y1, z1};
     IndexT c2[] = {x2, y2, z2};
-    return region(c1,c2);
+    return Base::region(c1,c2);
   }
 };
 
@@ -312,25 +316,26 @@ public:
   
   //these passthroughs must be declared here for overloading to work
   INLINE ElementT& cell(IndexT c[D]) const{ return this->Base::cell(c); }
+  INLINE bool contains(IndexT c[D]) const{ return this->Base::contains(c); }
   INLINE MatrixRegion region(const IndexT c1[D], const IndexT c2[D]) const{ return this->Base::region(c1,c2); }
   INLINE static MatrixRegion allocate(IndexT s[D]){ return Base::allocate(s); }
   
   INLINE static MatrixRegion allocate(IndexT x, IndexT y, IndexT z, IndexT a){
     IndexT c1[] = {x, y, z, a};
-    return allocate(c1);
+    return Base::allocate(c1);
   }
   INLINE ElementT& cell(IndexT x, IndexT y, IndexT z, IndexT a) const{
     IndexT c1[] = {x, y, z, a};
-    return cell(c1);
+    return Base::cell(c1);
   }
   INLINE bool contains(IndexT x, IndexT y, IndexT z, IndexT a) const{
     IndexT c1[] = {x, y, z, a};
-    return contains(c1);
+    return Base::contains(c1);
   }
   INLINE MatrixRegion region(IndexT x1, IndexT y1, IndexT z1, IndexT a1, IndexT x2, IndexT y2, IndexT z2, IndexT a2) const{
     IndexT c1[] = {x1, y1, z1, a1};
     IndexT c2[] = {x2, y2, z2, a2};
-    return region(c1,c2);
+    return Base::region(c1,c2);
   }
 };
 
