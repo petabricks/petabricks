@@ -29,9 +29,17 @@ multigrid/ComputeError2D
 multigrid/ComputeError3D
 multigrid/CubeRulesTemplate
 multigrid/Helmholtz3DDirect
+multigrid/Helmholtz3DFMG
 multigrid/Helmholtz3DForwardFunc
 multigrid/Helmholtz3DJacobi
+multigrid/Helmholtz3DJacobiVA
+multigrid/Helmholtz3DMG
+multigrid/Helmholtz3DRefMG
+multigrid/Helmholtz3DRefMGVA
+multigrid/Helmholtz3DRefFMG
+multigrid/Helmholtz3DRefFMGVA
 multigrid/Helmholtz3DSOR
+multigrid/Helmholtz3DSORVA
 multigrid/Interpolate2Dnew
 multigrid/Interpolate3D
 multigrid/Poisson2DAccuracyMetric
@@ -44,7 +52,9 @@ multigrid/Poisson2DJacobi
 multigrid/Poisson2DJacobiVA
 multigrid/Poisson2DMG
 multigrid/Poisson2DRefFMG
+multigrid/Poisson2DRefFMGVA
 multigrid/Poisson2DRefMG
+multigrid/Poisson2DRefMGVA
 multigrid/Poisson2DResidual
 multigrid/Poisson2DSORGraph
 multigrid/Poisson2DSORInterior
