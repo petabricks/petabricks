@@ -60,6 +60,73 @@ void petabricks::SyntheticRule::print(std::ostream& os) const {
   os << "SyntheticRule " << _id << std::endl;;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//WrapperSyntheticRule:
+
+void petabricks::WrapperSyntheticRule::generateCallCodeSimple( Transform& trans
+                                                           , CodeGenerator& o
+                                                           , const SimpleRegionPtr& region){
+  _rule->generateCallCodeSimple(trans, o, region);
+}
+
+void petabricks::WrapperSyntheticRule::generateCallTaskCode( const std::string& name
+                                                         , Transform& trans
+                                                         , CodeGenerator& o
+                                                         , const SimpleRegionPtr& region){
+  _rule->generateCallTaskCode(name, trans, o, region);
+}
+  
+
+void petabricks::WrapperSyntheticRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
+  _rule->generateTrampCodeSimple(trans, o);
+}
+
+
+bool petabricks::WrapperSyntheticRule::isSingleElement() const { 
+  return _rule->isSingleElement();
+}
+
+int petabricks::WrapperSyntheticRule::dimensions() const {
+  return _rule->dimensions();
+}
+petabricks::DependencyDirection petabricks::WrapperSyntheticRule::getSelfDependency() const {
+  return _rule->getSelfDependency();
+}
+petabricks::FormulaPtr petabricks::WrapperSyntheticRule::getSizeOfRuleIn(int d) {
+  return _rule->getSizeOfRuleIn(d);
+}
+
+void petabricks::WrapperSyntheticRule::collectDependencies(StaticScheduler& scheduler) { 
+  _rule->collectDependencies(scheduler);
+}
+
+petabricks::RuleFlags::PriorityT petabricks::WrapperSyntheticRule::priority() const { 
+  return _rule->priority();
+}
+bool petabricks::WrapperSyntheticRule::isRecursive() const { 
+  return _rule->isRecursive();
+}
+bool petabricks::WrapperSyntheticRule::hasWhereClause() const { 
+  return _rule->hasWhereClause();
+}
+petabricks::FormulaPtr petabricks::WrapperSyntheticRule::getWhereClause() const { 
+  return _rule->getWhereClause();
+}
+bool petabricks::WrapperSyntheticRule::canProvide(const MatrixDefPtr& md) const { 
+  return _rule->canProvide(md);
+}
+void petabricks::WrapperSyntheticRule::getApplicableRegionDescriptors(RuleDescriptorList& rdl, const MatrixDefPtr& md, int i, const RulePtr& rule) { 
+  _rule->getApplicableRegionDescriptors(rdl, md, i, rule);
+}
+const petabricks::FormulaPtr& petabricks::WrapperSyntheticRule::recursiveHint() const { 
+  return _rule->recursiveHint();
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -111,7 +178,7 @@ void petabricks::WhereExpansionRule::genWhereSwitch(Transform& trans, CodeGenera
     else
       o.elseIf(wc->toCppString());
 
-    (*i)->generateTrampCellCodeSimple(trans, o, true);
+    (*i)->generateTrampCellCodeSimple(trans, o, E_RF_STATIC);
     
     for(int d=0; d<(*i)->dimensions(); ++d){
       o._undefine((*i)->getOffsetVar(d)->toString());
@@ -178,7 +245,7 @@ void petabricks::DuplicateExpansionRule::generateCallCodeSimple( Transform& tran
                                                            , CodeGenerator& o
                                                            , const SimpleRegionPtr& region){
   size_t old = _rule->setDuplicateNumber(_dup);
-  _rule->generateCallCodeSimple(trans, o, region);
+  WrapperSyntheticRule::generateCallCodeSimple(trans, o, region);
   _rule->setDuplicateNumber(old);
 }
 
@@ -187,59 +254,14 @@ void petabricks::DuplicateExpansionRule::generateCallTaskCode( const std::string
                                                          , CodeGenerator& o
                                                          , const SimpleRegionPtr& region){
   size_t old = _rule->setDuplicateNumber(_dup);
-  _rule->generateCallTaskCode(name, trans, o, region);
+  WrapperSyntheticRule::generateCallTaskCode(name, trans, o, region);
   _rule->setDuplicateNumber(old);
 }
   
 
 void petabricks::DuplicateExpansionRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
   size_t old = _rule->setDuplicateNumber(_dup);
-  _rule->generateTrampCodeSimple(trans, o);
+  WrapperSyntheticRule::generateTrampCodeSimple(trans, o);
   _rule->setDuplicateNumber(old);
-}
-
-
-bool petabricks::DuplicateExpansionRule::isSingleElement() const { 
-  return _rule->isSingleElement();
-}
-
-int petabricks::DuplicateExpansionRule::dimensions() const {
-  return _rule->dimensions();
-}
-petabricks::DependencyDirection petabricks::DuplicateExpansionRule::getSelfDependency() const {
-  return _rule->getSelfDependency();
-}
-petabricks::FormulaPtr petabricks::DuplicateExpansionRule::getSizeOfRuleIn(int d) {
-  return _rule->getSizeOfRuleIn(d);
-}
-
-std::string petabricks::DuplicateExpansionRule::codename() const {
-  return "duplicateExpansion"+jalib::XToString(_id); 
-}
-
-void petabricks::DuplicateExpansionRule::collectDependencies(StaticScheduler& scheduler) { 
-  _rule->collectDependencies(scheduler);
-}
-
-petabricks::RuleFlags::PriorityT petabricks::DuplicateExpansionRule::priority() const { 
-  return _rule->priority();
-}
-bool petabricks::DuplicateExpansionRule::isRecursive() const { 
-  return _rule->isRecursive();
-}
-bool petabricks::DuplicateExpansionRule::hasWhereClause() const { 
-  return _rule->hasWhereClause();
-}
-petabricks::FormulaPtr petabricks::DuplicateExpansionRule::getWhereClause() const { 
-  return _rule->getWhereClause();
-}
-bool petabricks::DuplicateExpansionRule::canProvide(const MatrixDefPtr& md) const { 
-  return _rule->canProvide(md);
-}
-void petabricks::DuplicateExpansionRule::getApplicableRegionDescriptors(RuleDescriptorList& rdl, const MatrixDefPtr& md, int i, const RulePtr& rule) { 
-  _rule->getApplicableRegionDescriptors(rdl, md, i, rule);
-}
-const petabricks::FormulaPtr& petabricks::DuplicateExpansionRule::recursiveHint() const { 
-  return _rule->recursiveHint();
 }
 

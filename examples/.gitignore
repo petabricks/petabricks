@@ -27,6 +27,7 @@ matrixapproximation/Bisection
 matrixapproximation/matrixapprox
 multigrid/ComputeError2D
 multigrid/ComputeError3D
+multigrid/CubeRulesTemplate
 multigrid/Helmholtz3DDirect
 multigrid/Helmholtz3DForwardFunc
 multigrid/Helmholtz3DJacobi
@@ -78,6 +79,7 @@ regression/generators
 regression/matrixversions
 regression/memoize
 regression/multichoicesite
+regression/optional
 regression/outputsizeacc
 regression/padding
 regression/params

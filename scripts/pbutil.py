@@ -1,17 +1,17 @@
 #!/usr/bin/python
 
 import errno
-import re
-import sys
-import os
 import getopt
-import subprocess
-import time
-import signal
 import math
-import select
+import os
 import progress
+import re
+import select
+import signal
 import socket
+import subprocess
+import sys
+import time
 from xml.dom.minidom import parse
 from pprint import pprint
 from configtool import getConfigVal, setConfigVal
@@ -108,6 +108,11 @@ def parallelRunJobs(jobs):
         self.pid = None
         self.fd.close()
         self.fd = None
+    def kill(self):
+      if self.pid is not None:
+        os.kill(self.pid, signal.SIGKILL)
+    def addmsg(self, msg):
+      self.msg+=msg
     def getmsg(self):
       return self.msg.replace(exitval,"") \
                      .replace('\n',' ')   \
@@ -147,29 +152,38 @@ def parallelRunJobs(jobs):
   progress.status(mkstatus)
   updatestatus()
 
-  while len(jobs_pending)>0 or len(jobs_running)>0:
-    #spawn new jobs
-    while len(jobs_pending)>0 and len(jobs_running)<NCPU:
-      jobs_running.append(jobs_pending.pop(0).forkrun())
-    updatestatus()
-      
-    #wait for an event
-    rj, wj, xj = select.select(jobs_running, [], jobs_running)
+  try:
+    while len(jobs_pending)>0 or len(jobs_running)>0:
+      #spawn new jobs
+      while len(jobs_pending)>0 and len(jobs_running)<NCPU:
+        jobs_running.append(jobs_pending.pop(0).forkrun())
+      updatestatus()
+        
+      #wait for an event
+      rj, wj, xj = select.select(jobs_running, [], jobs_running)
 
-    #handle pending data
-    for j in rj:
-      j.handleevent()
-    for j in wj:
-      j.handleevent()
-    for j in xj:
-      j.handleevent()
+      #handle pending data
+      for j in rj:
+        j.handleevent()
+      for j in wj:
+        j.handleevent()
+      for j in xj:
+        j.handleevent()
 
-    #move completed jobs to jobs_done list
-    newdone=filter(lambda x: x.pid is None, jobs_running)
-    jobs_running = filter(lambda x: x.pid is not None, jobs_running)
-    jobs_done.extend(newdone)
+      #move completed jobs to jobs_done list
+      newdone=filter(lambda x: x.pid is None, jobs_running)
+      jobs_running = filter(lambda x: x.pid is not None, jobs_running)
+      jobs_done.extend(newdone)
+      jobs_done.sort()
+      updatestatus(True)
+  except KeyboardInterrupt:
+    for j in jobs_running:
+      j.kill()
+      j.addmsg("INTERRUPTED")
+    jobs_done.extend(jobs_running)
     jobs_done.sort()
-    updatestatus(True)
+    updatestatus()
+    raise
   updatestatus()
   progress.pop()
   return jobs_done

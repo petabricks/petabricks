@@ -230,7 +230,8 @@ Region: IDENT OptVersion RegionAccessor { $$=REFALLOC(Region($1,*$2, $3.str,*$3.
 RegionAccessor: '.' IDENT '(' OptFormulaList ')' { $$.str=$2; $$.formulas=$4;}
               | Nil { $$.str="all"; $$.formulas=REFALLOC(FormulaList());};
 
-NamedRegion: Region IDENT { ($$=$1)->setName($2); };
+NamedRegion: Region IDENT             { ($$=$1)->setName($2); }
+           | Region IDENT '=' Formula { ($$=$1)->setName($2); $$->setOptionalDefault($4); } ;
 
 OptLT: Nil | '<';
 OptGT: Nil | '>';

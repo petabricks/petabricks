@@ -12,6 +12,8 @@
 #ifndef PETABRICKSUSERRULE_H
 #define PETABRICKSUSERRULE_H
 
+#include "pbc.h"
+
 #include "codegenerator.h"
 #include "configitem.h"
 #include "matrixdependency.h"
@@ -85,12 +87,12 @@ public:
 
   ///
   /// Generate seqential code to declare this rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic);
+  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
-    generateTrampCodeSimple(trans, o, true);
-    generateTrampCodeSimple(trans, o, false);
+    generateTrampCodeSimple(trans, o, E_RF_STATIC);
+    generateTrampCodeSimple(trans, o, E_RF_DYNAMIC);
   }
-  void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic);
+  void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
 
   ///
