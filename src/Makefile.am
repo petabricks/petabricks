@@ -18,6 +18,7 @@ noinst_HEADERS = \
   compiler/matrixdependency.h \
   compiler/maximaparser.h \
   compiler/maximawrapper.h \
+  compiler/pbc.h \
   compiler/pbparser.h \
   compiler/performancetester.h \
   compiler/region.h \
