@@ -1,0 +1,73 @@
+#ifndef HELMHOLTZ3DACCURACYMETRIC_PBCC
+#define HELMHOLTZ3DACCURACYMETRIC_PBCC
+
+#include "Helmholtz3DForwardFunc.pbcc"
+#include "Helmholtz3DDirect.pbcc"
+#include "Helmholtz3DRefMG.pbcc"
+#include "ComputeError3D.pbcc"
+
+// Uncomment the following line if you wish to use a residual metric
+// instead of an error metric
+// #define RESIDUAL_METRIC
+
+memoized
+transform Helmholtz3DSolveMemoized
+from IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
+     RHS[n,n,n], ALPHA, BETA, DX
+to OUT[n,n,n]
+{
+    to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2, RHS rhs,
+                       ALPHA alpha, BETA beta, DX dx)
+    {
+        if ((int) log2(n) < 4) {
+            // if small enough, compute solution using direct solver
+            Helmholtz3DDirect(out, a, b0, b1, b2, rhs, alpha, beta, dx);
+        } else {
+            // otherwise use 15 multigrid reference V-cycles
+            Helmholtz3DRefMGHelper(out, in, a, b0, b1, b2, rhs, alpha, beta, dx, 15);
+        }
+    }
+}
+
+transform Helmholtz3DAccuracyMetric
+from OUT[n,n,n], IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
+     RHS[n,n,n], ALPHA, BETA, DX
+to Accuracy
+{
+    Accuracy from (OUT out, IN in, A a, B0 b0, B1 b1, B2 b2,
+                   RHS rhs, ALPHA alpha, BETA beta, DX dx)
+    {
+        // these store the errors of the input and output
+        double e1;
+        double e2;
+
+        // temporary storage for either the forward values or the true solution
+        MatrixRegion3D z = MatrixRegion3D::allocate(n, n, n);
+
+#ifdef RESIDUAL_METRIC
+        // compute residual of input
+        Helmholtz3DForwardFunc(z,  in, a, b0, b1, b2, alpha, beta, dx);
+        ComputeError3D(e1, rhs, z);
+
+        // compute residual of output
+        Helmholtz3DForwardFunc(z, out, a, b0, b1, b2, alpha, beta, dx);
+        ComputeError3D(e2, rhs, z);
+#else
+        // compute true solution
+        Helmholtz3DSolveMemoized(z, in, a, b0, b1, b2, rhs, alpha, beta, dx);
+
+        // compute errors of input and output
+        ComputeError3D(e1,  in, z);
+        ComputeError3D(e2, out, z);
+#endif
+
+        // accuracy is ratio of errors
+        if (e2 == 0) {
+            return std::numeric_limits<double>::max();
+        } else {
+            return e1 / e2;
+        }
+    }
+}
+
+#endif // HELMHOLTZ3DACCURACYMETRIC_PBCC
