@@ -227,8 +227,11 @@ def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
              "--max=%d"%n, "--max-sec=%d"%goodtimelimit()])
   for x in cutoffs:
     cmd.append("--autotune-tunable="+nameof(x))
-  if options.debug:
+  if options.debug or options.justprint:
     print ' '.join(cmd)
+  if options.justprint:
+    progress.pop()
+    return True
   runsCur=1
   runsLast=1
   inputCur=1
@@ -337,6 +340,7 @@ def main(argv):
   parser.add_option("--threads",      type="int", dest="threads", default=pbutil.cpuCount())
   parser.add_option("-c", "--config", dest="config", default=None)
   parser.add_option("--noisolation", action="store_true", dest="noisolation", default=False)
+  parser.add_option("--print", action="store_true", dest="justprint", default=False)
   options,args = parser.parse_args()
 
   if len(args) != 1:
@@ -391,14 +395,16 @@ def main(argv):
   if options.n <= 0:
     tasks.append(TuneTask("determineInputSizes", determineInputSizes))
     
-  tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
+  if not options.justprint:
+    tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
 
   #build list of tasks
   if not options.fast:
     walkCallTree(maintx, lambda tx, depth, loops: enqueueAutotuneCmds(tx, maintx, 1, depth, loops))
   walkCallTree(maintx, lambda tx, depth, loops: enqueueAutotuneCmds(tx, maintx, 2, depth, loops))
   
-  tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
+  if not options.justprint:
+    tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
 
   progress.status("autotuning")
 
