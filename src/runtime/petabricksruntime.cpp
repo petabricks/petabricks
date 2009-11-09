@@ -14,6 +14,7 @@
 #include "autotuner.h"
 #include "dynamicscheduler.h"
 #include "dynamictask.h"
+#include "petabricks.h"
 #include "testisolation.h"
 
 #include "common/jargs.h"
@@ -26,9 +27,6 @@
 #include <iostream>
 #include <math.h>
 
-//these must be declared in the user code
-petabricks::PetabricksRuntime::Main* petabricksMainTransform();
-petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);
 
 static bool _isRunning = false;
 static bool _isTrainingRun = false;

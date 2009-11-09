@@ -16,9 +16,10 @@ namespace petabricks
 
   enum RuleFlavor
   {
-    E_RF_STATIC,
+    //dynamic first for backward compatibility with isStatic (if we missed any more places)
     E_RF_DYNAMIC,
-    E_RF_OPENCL,
+    E_RF_STATIC,
+    E_RF_OPENCL
   };
 
 }
