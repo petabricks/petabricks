@@ -85,8 +85,10 @@ public:
 
     ///
     /// initialize with random inputs
-    virtual void reallocate(int size) = 0;
     virtual void randomize() = 0;
+
+    virtual void deallocate() = 0;
+    virtual void reallocate(int size) = 0;
 
     virtual const char* name() = 0;
 
@@ -151,8 +153,9 @@ public:
 
   static void saveConfig();
 
-  double computeWrapper(TestIsolation&);
-  double trainAndComputeWrapper(TestIsolation&);
+  double trainAndComputeWrapper(TestIsolation&, int n);
+  double computeWrapper(TestIsolation&, int n=-1, int retries=-1);
+  void computeWrapperSubproc(TestIsolation&, int n, double&  time, double&  acc);
   
   
   void variableAccuracyTrainingLoop(TestIsolation& ti);

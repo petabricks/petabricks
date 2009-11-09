@@ -24,7 +24,7 @@ to   Y[n,n]
             Poisson2DDirect(y, x, b);
         } else {
             // otherwise use 15 multigrid reference V-cycles
-            Poisson2DRefMGHelper(y, x, b, 15);
+            Poisson2DRefMG(y, x, b, 15);
         }
     }
 }

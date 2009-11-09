@@ -1,10 +1,8 @@
 #ifndef POISSON2DREFMG_PBCC
 #define POISSON2DREFMG_PBCC
 
-//Multigrid V-cycle 2D
-//assume dimension n = 2^k + 1
-
-#include "Poisson2DConfig.h"
+// 2D Poisson Multigrid V-cycle
+// assume dimension n = 2^k + 1
 
 #include "../simple/add.pbcc"
 #include "../simple/copy.pbcc"
@@ -12,12 +10,11 @@
 #include "Restrict2Dnew.pbcc"
 #include "Poisson2DResidual.pbcc"
 #include "Poisson2DSOR.pbcc"
-#include "Poisson2DAccuracyMetric.pbcc"
 
-// Helper function that computes a specified number of reference V-cycles
+// Computes a specified number of reference V-cycles
 //
 // Performance note: Y can point to the same matrix region as X
-transform Poisson2DRefMGHelper
+transform Poisson2DRefMG
 from X[n,n], B[n,n], NumIters
 to  Y[n,n]
 through Z[(n+1)/2,(n+1)/2]
@@ -61,33 +58,16 @@ through Z[(n+1)/2,(n+1)/2]
                 MatrixRegion2D r2 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
 
                 for (int i = 0; i < numIters; ++i) {
-                    Poisson2DSOR(t1, y, b, -2, 1);      // t1 gets relaxed guess
-                    Poisson2DResidual(t2, t1, b);       // t2 gets new residual
-                    Restrict2Dnew(r1, t2);              // r1 gets restricted residual
-                    Poisson2DRefMGHelper(r2, z, r1, 1); // r2 gets coarse update
-                    Interpolate2Dnew(t2, r2);           // t2 gets interpolated update
-                    MatrixAdd(t2, t2, t1);              // t2 gets updated guess
-                    Poisson2DSOR(y, t2, b, -2, 1);      //  y gets relaxed guess
+                    Poisson2DSOR(t1, y, b, -2, 1); // t1 gets relaxed guess
+                    Poisson2DResidual(t2, t1, b);  // t2 gets new residual
+                    Restrict2Dnew(r1, t2);         // r1 gets restricted residual
+                    Poisson2DRefMG(r2, z, r1, 1);  // r2 gets coarse update
+                    Interpolate2Dnew(t2, r2);      // t2 gets interpolated update
+                    MatrixAdd(t2, t2, t1);         // t2 gets updated guess
+                    Poisson2DSOR(y, t2, b, -2, 1); //  y gets relaxed guess
                 }
             }
         }
-    }
-}
-
-// Variable-accuracy transform that computes enough reference V-cycles to
-// achieve target accuracy.
-//
-// Performance note: Y can point to the same matrix region as X
-transform Poisson2DRefMG
-from X[n,n], B[n,n]
-to Y[n,n]
-accuracy_bins POISSON2D_BINS
-accuracy_variable numIterations
-accuracy_metric Poisson2DAccuracyMetric
-{
-    to (Y y) from (X x, B b)
-    {
-        Poisson2DRefMGHelper(y, x, b, numIterations);
     }
 }
 

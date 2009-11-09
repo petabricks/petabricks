@@ -35,6 +35,9 @@
 #  include <fftw3.h>
 #endif
 
+//these must be declared in the user code
+petabricks::PetabricksRuntime::Main* petabricksMainTransform();
+petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);
 
 #define PB_SPAWN(taskname, args...) \
   petabricks::spawn_hook( taskname ## _dynamic (args), _completion)
@@ -118,8 +121,8 @@ namespace petabricks {
     }
     return rv;
   }
-  
-  
+ 
+
   template < int D >
   inline bool split_condition(jalib::TunableValue thresh, IndexT begin[D], IndexT end[D]){
     //too small to split?
@@ -135,7 +138,8 @@ namespace petabricks {
   }
 
 
-  ElementT the_missing_val() {
+  //special val for optional values that dont exist 
+  inline ElementT the_missing_val() {
     union {
       ElementT d;
       uint64_t u;
@@ -144,8 +148,7 @@ namespace petabricks {
     u ^= 0x1234;
     return d;
   }
-  
-  bool is_the_missing_val(ElementT a) {
+  inline bool is_the_missing_val(ElementT a) {
     ElementT b=the_missing_val();
     return memcmp(&a, &b, sizeof(ElementT))==0;
   }

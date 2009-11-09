@@ -24,7 +24,7 @@ to OUT[n,n,n]
             Helmholtz3DDirect(out, a, b0, b1, b2, rhs, alpha, beta, dx);
         } else {
             // otherwise use 15 multigrid reference V-cycles
-            Helmholtz3DRefMGHelper(out, in, a, b0, b1, b2, rhs, alpha, beta, dx, 15);
+            Helmholtz3DRefMG(out, in, a, b0, b1, b2, rhs, alpha, beta, dx, 15);
         }
     }
 }
