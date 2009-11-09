@@ -1,20 +1,18 @@
 #ifndef POISSON2DREFFMG_PBCC
 #define POISSON2DREFFMG_PBCC
 
-#include "Poisson2DConfig.h"
-
 #include "../simple/add.pbcc"
 #include "../simple/copy.pbcc"
 #include "Interpolate2Dnew.pbcc"
 #include "Restrict2Dnew.pbcc"
 #include "Poisson2DResidual.pbcc"
 #include "Poisson2DSOR.pbcc"
-#include "Poisson2DAccuracyMetric.pbcc"
+#include "Poisson2DRefMG.pbcc"
 
-// Helper function that recursively computes an estimation cycle of full multigrid.
+// Recursively compute an estimation cycle of full multigrid.
 //
 // Performance note: Y can point to the same matrix region as X
-transform Poisson2DRefFMGHelper
+transform Poisson2DRefFMG
 from X[n,n], B[n,n], NumIters
 to  Y[n,n]
 through Z[(n+1)/2,(n+1)/2]
@@ -52,42 +50,16 @@ through Z[(n+1)/2,(n+1)/2]
             MatrixRegion2D r2 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
 
             // do recursive estimation
-            Poisson2DResidual(t2, x, b);         // t2 gets residual
-            Restrict2Dnew(r1, t2);               // r1 gets restricted residual
-            Poisson2DRefFMGHelper(r2, z, r1, 1); // r2 gets coarse update
-            Interpolate2Dnew(t2, r2);            // t2 gets interpolated update
-            MatrixAdd(y, t2, x);                 //  y gets updated guess
+            Poisson2DResidual(t2, x, b);   // t2 gets residual
+            Restrict2Dnew(r1, t2);         // r1 gets restricted residual
+            Poisson2DRefFMG(r2, z, r1, 1); // r2 gets coarse update
+            Interpolate2Dnew(t2, r2);      // t2 gets interpolated update
+            MatrixAdd(y, t2, x);           //  y gets updated guess
 
             // do reference V-cycles for numIters iterations
             if (numIters > 0) {
-                Poisson2DRefMGHelper(y, y, b, numIters); //  y gets iterated with V-cycles
+                Poisson2DRefMG(y, y, b, numIters); //  y gets iterated with V-cycles
             }
-        }
-    }
-}
-
-// Variable-accuracy transform that does an estimation, then computes enough
-// reference V-cycles to achieve target accuracy.
-//
-// numIterations specifies the number of Iterations of reference V-cycles to do
-// after the initial estimation is done.
-transform Poisson2DRefFMG
-from X[n,n], B[n,n]
-to   Y[n,n]
-accuracy_bins POISSON2D_BINS
-accuracy_variable numIterations
-accuracy_metric Poisson2DAccuracyMetric
-{
-    to (Y y) from(X x, B b) {
-
-        // This estimation is called with an iteration argument of 0
-        // because we will control the number of reference V-cycles to
-        // do at this level in the next step.
-        Poisson2DRefFMGHelper(y, x, b, 0);
-
-        // do reference V-cycles for numIterations
-        if (numIterations > 0) {
-            Poisson2DRefMGHelper(y, y, b, numIterations);
         }
     }
 }

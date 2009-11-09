@@ -88,9 +88,16 @@ to OUT[n,n,n]
 {
   to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
                      RHS rhs, ALPHA alpha, BETA beta,
-                     DX dx, WEIGHT w, NUMITERS numIters)
+                     DX dx, WEIGHT r_w, NUMITERS numIters)
   {
     JASSERT(numIters > 0)(numIters)("numIters must be positive");
+
+    // decode sentinel values for the weight:
+    //  -1 : choose value for iterative solve
+    //  -2 : choose value for use inside multigrid V-cycles
+    // 
+    // for now, both values default to 0.9 since I don't know what else to use
+    double w = (r_w == -1 || r_w == -2 ? 0.9 : r_w);
 
     Helmholtz3DSORIterate(out,  in, a, b0, b1, b2, rhs, alpha, beta, dx, w, 0); // red
     Helmholtz3DSORIterate(out, out, a, b0, b1, b2, rhs, alpha, beta, dx, w, 1); // black
