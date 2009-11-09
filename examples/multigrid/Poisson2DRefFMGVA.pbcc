@@ -20,16 +20,7 @@ accuracy_metric Poisson2DAccuracyMetric
 generator POISSON2D_GENERATOR
 {
     to (Y y) from(X x, B b) {
-
-        // This estimation is called with an iteration argument of 0
-        // because we will control the number of reference V-cycles to
-        // do at this level in the next step.
-        Poisson2DRefFMG(y, x, b, 0);
-
-        // do reference V-cycles for numIterations
-        if (numIterations > 0) {
-            Poisson2DRefMG(y, y, b, numIterations);
-        }
+        Poisson2DRefFMG(y, x, b, numIterations);
     }
 }
 

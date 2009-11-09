@@ -13,6 +13,7 @@
 #include "Poisson2DSOR.pbcc"
 #include "Poisson2DDirect.pbcc"
 #include "Poisson2DAccuracyMetric.pbcc"
+#include "Generators.pbcc"
 
 // Uncomment the following define to enable debug execution
 // #define DEBUG
@@ -69,6 +70,7 @@ to  Y[n,n]
 accuracy_bins POISSON2D_BINS
 accuracy_variable numIterations
 accuracy_metric Poisson2DAccuracyMetric
+generator POISSON2D_GENERATOR
 {
     //base case: directly solve
     to(Y y) from(X x, B b) {
