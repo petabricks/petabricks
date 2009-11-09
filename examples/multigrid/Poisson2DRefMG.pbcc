@@ -10,6 +10,7 @@
 #include "Restrict2Dnew.pbcc"
 #include "Poisson2DResidual.pbcc"
 #include "Poisson2DSOR.pbcc"
+#include "Generators.pbcc"
 
 // Computes a specified number of reference V-cycles
 //
@@ -18,6 +19,7 @@ transform Poisson2DRefMG
 from X[n,n], B[n,n], NumIters
 to  Y[n,n]
 through Z[(n+1)/2,(n+1)/2]
+generator Poisson2DJacobiGenerator
 {
     Z.cell(i,j) from() {
         return 0;

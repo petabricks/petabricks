@@ -1,6 +1,9 @@
 #ifndef GENERATORS_PBCC
 #define GENERATORS_PBCC
 
+// Undefine the following line to display debug output
+// #define DEBUG
+
 //#ifndef MAX_LEVEL
 //#define MAX_LEVEL 12
 //#endif
@@ -180,7 +183,6 @@ to X[n,n], B[n,n]
 #endif
 
 transform FillZeros2D
-from DUMMY[w,h]
 to OUT[w,h]
 {
   OUT.cell(i,j) from ()
@@ -190,29 +192,53 @@ to OUT[w,h]
 }
 
 transform UniformPoisson2DGenerator
-from IN1[n,n], IN2[n,n]
+from IN[n,n]
 to X[n,n], B[n,n]
 {
-  to (X x, B b) from (IN1 in1, IN2 in2)
+  to (X x, B b) from (IN in)
   {
-    FillZeros2D(x, in1);
-    RandUniform2D(b, in2);
+    FillZeros2D(x);
+    RandUniform2D(b, in);
   }
 }
 
 transform BiasedPoisson2DGenerator
-from IN1[n,n], IN2[n,n]
+from IN[n,n]
 to X[n,n], B[n,n]
 {
-  to (X x, B b) from (IN1 in1, IN2 in2)
+  to (X x, B b) from (IN in)
   {
-    FillZeros2D(x, in1);
-    RandUniformBiased2D(b, in2);
+    FillZeros2D(x);
+    RandUniformBiased2D(b, in);
+  }
+}
+
+transform Poisson2DJacobiGenerator
+from IN[n,n]
+to X[n,n], B[n,n], NUMITERS
+{
+  to (X x, B b, NUMITERS numIters) from (IN in)
+  {
+    FillZeros2D(x);
+    RandUniform2D(b, in);
+    numIters = 1;
+  }
+}
+
+transform Poisson2DSORGenerator
+from IN[n,n]
+to X[n,n], B[n,n], WEIGHT, NUMITERS
+{
+  to (X x, B b, WEIGHT w, NUMITERS numIters) from (IN in)
+  {
+    FillZeros2D(x);
+    RandUniform2D(b, in);
+    w = 1.15;
+    numIters = 1;
   }
 }
 
 transform FillZeros3D
-from DUMMY[w,h,d]
 to OUT[w,h,d]
 {
   OUT.cell(i,j,k) from ()
@@ -222,34 +248,86 @@ to OUT[w,h,d]
 }
 
 transform FillRandHalfToOne3D
-from DUMMY[w,h,d]
 to OUT[w,h,d]
 {
   OUT.cell(i,j,k) from ()
   {
-    return (double) 0.5 * drand48() + 0.5;
+    return PetabricksRuntime::randDouble(0.5, 1.0);
   }
 }
 
 transform UniformHelmholtz3DGenerator
-from r_IN[n,n,n], r_B0[n+1,n,n], r_B1[n,n+1,n], r_B2[n,n,n+1]
 to IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
    RHS[n,n,n], ALPHA, BETA, DX
 {
   to (IN in, A a, B0 b0, B1 b1, B2 b2, RHS rhs,
       ALPHA alpha, BETA beta, DX dx)
-  from (r_IN r_in, r_B0 r_b0, r_B1 r_b1, r_B2 r_b2)
+  from ()
   {
-    FillZeros3D(in, r_in);
-    FillRandHalfToOne3D(a, r_in);
-    FillRandHalfToOne3D(b0, r_b0);
-    FillRandHalfToOne3D(b1, r_b1);
-    FillRandHalfToOne3D(b2, r_b2);
-    FillRandHalfToOne3D(rhs, r_in);
+#ifdef DEBUG
+    printf("UniformHelmholtz3DGenerator called for n = %d\n", (int) n);
+#endif
+    FillZeros3D(in);
+    FillRandHalfToOne3D(a);
+    FillRandHalfToOne3D(b0);
+    FillRandHalfToOne3D(b1);
+    FillRandHalfToOne3D(b2);
+    FillRandHalfToOne3D(rhs);
     alpha = 1;
     beta = 2;
     dx = 1;
   }
 }
+
+transform Helmholtz3DSORGenerator
+to IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
+   RHS[n,n,n], ALPHA, BETA, DX, WEIGHT, NUMITERS
+{
+  to (IN in, A a, B0 b0, B1 b1, B2 b2, RHS rhs,
+      ALPHA alpha, BETA beta, DX dx, WEIGHT w, NUMITERS numIters)
+  from ()
+  {
+#ifdef DEBUG
+    printf("Helmholtz3DSORGenerator called for n = %d\n", (int) n);
+#endif
+    FillZeros3D(in);
+    FillRandHalfToOne3D(a);
+    FillRandHalfToOne3D(b0);
+    FillRandHalfToOne3D(b1);
+    FillRandHalfToOne3D(b2);
+    FillRandHalfToOne3D(rhs);
+    alpha = 1;
+    beta = 2;
+    dx = 1;
+    w = 0.9;
+    numIters = 1;
+  }
+}
+
+transform Helmholtz3DRefMGGenerator
+to IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
+   RHS[n,n,n], ALPHA, BETA, DX, NUMITERS
+{
+  to (IN in, A a, B0 b0, B1 b1, B2 b2, RHS rhs,
+      ALPHA alpha, BETA beta, DX dx, NUMITERS numIters)
+  from ()
+  {
+#ifdef DEBUG
+    printf("Helmholtz3DRefMGGenerator called for n = %d\n", (int) n);
+#endif
+    FillZeros3D(in);
+    FillRandHalfToOne3D(a);
+    FillRandHalfToOne3D(b0);
+    FillRandHalfToOne3D(b1);
+    FillRandHalfToOne3D(b2);
+    FillRandHalfToOne3D(rhs);
+    alpha = 1;
+    beta = 2;
+    dx = 1;
+    numIters = 1;
+  }
+}
+
+#undef DEBUG
 
 #endif // GENERATORS_PBCC

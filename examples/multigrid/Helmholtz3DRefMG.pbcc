@@ -11,6 +11,7 @@
 #include "Helmholtz3DDirect.pbcc"
 #include "Helmholtz3DResidual.pbcc"
 #include "Helmholtz3DSOR.pbcc"
+#include "Generators.pbcc"
 
 // Uncomment the following define to enable debug execution
 // #define DEBUG
@@ -23,6 +24,7 @@ from IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
      RHS[n,n,n], ALPHA, BETA, DX, NUMITERS
 to OUT[n,n,n]
 through Z[n/2, n/2, n/2]
+generator Helmholtz3DRefMGGenerator
 {
     Z.cell(i,j,k) from () {
         return 0;

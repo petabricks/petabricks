@@ -2,11 +2,13 @@
 #define POISSON2DJACOBI_PBCC
 
 #include "Poisson2DJacobiInterior.pbcc"
+#include "Generators.pbcc"
 
 transform Poisson2DJacobi
 from IN[n,n], B[n,n], numIterations
 to OUT[n,n]
 through BTEMP[n-2,n-2]
+generator Poisson2DJacobiGenerator
 {
   BTEMP.cell(i,j) from(B.cell(i + 1, j + 1) b,
                        IN.cell(i, j + 1) no,
