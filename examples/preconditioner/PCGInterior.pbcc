@@ -7,19 +7,14 @@
 #include "../simple/copy.pbcc"
 
 transform PCG_inner
-from IN[n], A[n,n], R[n], D[n], Z[n], P[n,n]
-through AD[n], ALPHA,BETA, RDOTZ
+from IN[n], A[n,n], R[n], D[n], Z[n], P[n,n], RDOTZ
+through AD[n], ALPHA,BETA
 to OUT[n],RR[n],DD[n], ZZ[n]
 {
 
    to (AD ad) from (A a, D d)
    {
    	demv(ad, a, d);
-   }
-
-   to (RDOTZ RdotZ) from (R r, Z z)
-   {
-   	DotProduct(RdotZ, r, z);
    }
 
    to (ALPHA alpha) from(RDOTZ rz, D d, AD ad)
@@ -68,15 +63,19 @@ to OUT[n], RR[n], DD[n], ZZ[n]
         from (IN x, A a, R r, D d, Z z, P p)
         {
                 int i;
-                PCG_inner(out, rr, dd, zz, x, a, r, d, z, p);
+		double RdotZ;
+        	DotProduct(RdotZ, r, z);
+                PCG_inner(out, rr, dd, zz, x, a, r, d, z, p, RdotZ);
 
                 for (i=1; i < numIterations; i++)
                 {
+                 	DotProduct(RdotZ, rr, zz);
+			if (RdotZ == 0) { break; }
                         Copy1D(tx, out);
                         Copy1D(tr, rr);
                         Copy1D(td, dd);
 			Copy1D(tz, zz);
-                        PCG_inner(out,rr,dd, zz, tx, a, tr, td, tz, p);
+                        PCG_inner(out,rr,dd, zz, tx, a, tr, td, tz, p, RdotZ);
                 }
         }
 
