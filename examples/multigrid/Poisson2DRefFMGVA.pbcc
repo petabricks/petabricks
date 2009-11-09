@@ -4,6 +4,7 @@
 #include "Poisson2DConfig.h"
 #include "Poisson2DRefFMG.pbcc"
 #include "Poisson2DAccuracyMetric.pbcc"
+#include "Generators.pbcc"
 
 // Variable-accuracy transform that does an estimation, then computes enough
 // reference V-cycles to achieve target accuracy.
@@ -16,6 +17,7 @@ to   Y[n,n]
 accuracy_bins POISSON2D_BINS
 accuracy_variable numIterations
 accuracy_metric Poisson2DAccuracyMetric
+generator POISSON2D_GENERATOR
 {
     to (Y y) from(X x, B b) {
 

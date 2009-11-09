@@ -34,64 +34,65 @@ through Z[n/2, n/2, n/2]
                        ALPHA alpha, BETA beta, DX dx, NUMITERS numIters, Z z)
     {
         JASSERT(n >= 1)(n).Text("input must be >= 1");
-        JASSERT(floor(log2(n)) == log2(n))(n).Text("input must be 2^k+1");
+        JASSERT(floor(log2(n)) == log2(n))(n).Text("input must be 2^k");
         JASSERT(numIters >= 0)(numIters).Text("num iterations must be non-negative");
 
-        // only proceed if number of iterations is positive
-        if (numIters > 0) {
+        if (numIters == 0) {
+          Copy3D(out, in);
+          return;
+        }
 
-            if (n == 1) {
-
-#ifdef DEBUG
-                printf("base case called for n = 1\n");
-#endif
-
-                Helmholtz3DDirect(out, a, b0, b1, b2, rhs, alpha, beta, dx);
-
-            } else {
+        if (n == 1) {
 
 #ifdef DEBUG
-                printf("recursive case called for n = %d\n", n);
+            printf("base case called for n = 1\n");
 #endif
 
-                // allocate temporary storage
-                MatrixRegion3D t1 = MatrixRegion3D::allocate(n, n, n);
-                MatrixRegion3D t2 = MatrixRegion3D::allocate(n, n, n);
-                MatrixRegion3D r1 = MatrixRegion3D::allocate(n/2, n/2, n/2);
-                MatrixRegion3D r2 = MatrixRegion3D::allocate(n/2, n/2, n/2);
+            Helmholtz3DDirect(out, a, b0, b1, b2, rhs, alpha, beta, dx);
 
-                // allocate restricted coefficient arrays
-                MatrixRegion3D  aR = MatrixRegion3D::allocate(n/2  , n/2  , n/2  );
-                MatrixRegion3D b0R = MatrixRegion3D::allocate(n/2+1, n/2  , n/2  );
-                MatrixRegion3D b1R = MatrixRegion3D::allocate(n/2  , n/2+1, n/2  );
-                MatrixRegion3D b2R = MatrixRegion3D::allocate(n/2  , n/2  , n/2+1);
+        } else {
 
-                // compute restricted coefficient arrays
-                Restrict3D(aR, a);
-                Restrict3DB0(b0R, b0);
-                Restrict3DB1(b1R, b1);
-                Restrict3DB2(b2R, b2);
+#ifdef DEBUG
+            printf("recursive case called for n = %d\n", n);
+#endif
 
-                for (int i = 0; i < numIters; ++i) {
-                    // t1 gets relaxed guess
-                    if (i == 0) {
-                        Helmholtz3DSOR(t1,  in, a, b0, b1, b2, rhs, alpha, beta, dx, -2, 1);
-                    } else {
-                        Helmholtz3DSOR(t1, out, a, b0, b1, b2, rhs, alpha, beta, dx, -2, 1);
-                    }
-                    // t2 gets new residual
-                    Helmholtz3DResidual(t2, t1, a, b0, b1, b2, rhs, alpha, beta, dx);
-                    // r1 gets restricted residual
-                    Restrict3D(r1, t2);
-                    // r2 gets coarse update
-                    Helmholtz3DRefMG(r2, z, aR, b0R, b1R, b2R, r1, alpha, beta, 2 * dx, 1);
-                    // t2 gets interpolated update
-                    Interpolate3D(t2, r2);
-                    // t2 gets updated guess
-                    Add3D(t2, t2, t1);
-                    //  y gets relaxed guess
-                    Helmholtz3DSOR(out, t2, a, b0, b1, b2, rhs, alpha, beta, dx, -2, 1);
+            // allocate temporary storage
+            MatrixRegion3D t1 = MatrixRegion3D::allocate(n, n, n);
+            MatrixRegion3D t2 = MatrixRegion3D::allocate(n, n, n);
+            MatrixRegion3D r1 = MatrixRegion3D::allocate(n/2, n/2, n/2);
+            MatrixRegion3D r2 = MatrixRegion3D::allocate(n/2, n/2, n/2);
+
+            // allocate restricted coefficient arrays
+            MatrixRegion3D  aR = MatrixRegion3D::allocate(n/2  , n/2  , n/2  );
+            MatrixRegion3D b0R = MatrixRegion3D::allocate(n/2+1, n/2  , n/2  );
+            MatrixRegion3D b1R = MatrixRegion3D::allocate(n/2  , n/2+1, n/2  );
+            MatrixRegion3D b2R = MatrixRegion3D::allocate(n/2  , n/2  , n/2+1);
+
+            // compute restricted coefficient arrays
+            Restrict3D(aR, a);
+            Restrict3DB0(b0R, b0);
+            Restrict3DB1(b1R, b1);
+            Restrict3DB2(b2R, b2);
+
+            for (int i = 0; i < numIters; ++i) {
+                // t1 gets relaxed guess
+                if (i == 0) {
+                    Helmholtz3DSOR(t1,  in, a, b0, b1, b2, rhs, alpha, beta, dx, -2, 1);
+                } else {
+                    Helmholtz3DSOR(t1, out, a, b0, b1, b2, rhs, alpha, beta, dx, -2, 1);
                 }
+                // t2 gets new residual
+                Helmholtz3DResidual(t2, t1, a, b0, b1, b2, rhs, alpha, beta, dx);
+                // r1 gets restricted residual
+                Restrict3D(r1, t2);
+                // r2 gets coarse update
+                Helmholtz3DRefMG(r2, z, aR, b0R, b1R, b2R, r1, alpha, beta, 2 * dx, 1);
+                // t2 gets interpolated update
+                Interpolate3D(t2, r2);
+                // t2 gets updated guess
+                Add3D(t2, t2, t1);
+                //  y gets relaxed guess
+                Helmholtz3DSOR(out, t2, a, b0, b1, b2, rhs, alpha, beta, dx, -2, 1);
             }
         }
     }

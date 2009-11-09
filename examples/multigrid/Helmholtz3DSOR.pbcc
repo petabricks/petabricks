@@ -1,6 +1,9 @@
 #ifndef HELMHOLTZ3DSOR_PBCC
 #define HELMHOLTZ3DSOR_PBCC
 
+#include "../simple/copy.pbcc"
+#include "Helmholtz3DDirect.pbcc"
+
 // performance note: OUT can point to the same matrix region as IN
 // because of red-black pattern
 transform Helmholtz3DSORIterate
@@ -90,18 +93,28 @@ to OUT[n,n,n]
                      RHS rhs, ALPHA alpha, BETA beta,
                      DX dx, WEIGHT r_w, NUMITERS numIters)
   {
-    JASSERT(numIters > 0)(numIters)("numIters must be positive");
+    // if iterations is 0, just copy to output
+    if ((int) numIters == 0) {
+      Copy3D(out, in);
+      return;
+    }
+
+    // if base case, use direct solver
+    if (n == 1) {
+      Helmholtz3DDirect(out, a, b0, b1, b2, rhs, alpha, beta, dx);
+      return;
+    }
 
     // decode sentinel values for the weight:
     //  -1 : choose value for iterative solve
     //  -2 : choose value for use inside multigrid V-cycles
-    // 
+    //
     // for now, both values default to 0.9 since I don't know what else to use
     double w = (r_w == -1 || r_w == -2 ? 0.9 : r_w);
 
     Helmholtz3DSORIterate(out,  in, a, b0, b1, b2, rhs, alpha, beta, dx, w, 0); // red
     Helmholtz3DSORIterate(out, out, a, b0, b1, b2, rhs, alpha, beta, dx, w, 1); // black
-    for (int i = 1; i < numIters; i++) {
+    for (int i = 1; i < (int) numIters; i++) {
       Helmholtz3DSORIterate(out, out, a, b0, b1, b2, rhs, alpha, beta, dx, w, 0); // red
       Helmholtz3DSORIterate(out, out, a, b0, b1, b2, rhs, alpha, beta, dx, w, 1); // black
     }

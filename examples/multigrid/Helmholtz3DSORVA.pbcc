@@ -4,6 +4,7 @@
 #include "Helmholtz3DConfig.h"
 #include "Helmholtz3DSOR.pbcc"
 #include "Helmholtz3DAccuracyMetric.pbcc"
+#include "Generators.pbcc"
 
 // performance note: OUT can point to the same matrix region as IN
 transform Helmholtz3DSORVA
@@ -13,6 +14,7 @@ to OUT[n,n,n]
 accuracy_bins HELMHOLTZ3D_BINS
 accuracy_variable numIterations
 accuracy_metric Helmholtz3DAccuracyMetric
+generator HELMHOLTZ3D_GENERATOR
 {
     to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
                        RHS rhs, ALPHA alpha, BETA beta,

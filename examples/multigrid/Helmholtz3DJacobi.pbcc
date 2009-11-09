@@ -2,6 +2,7 @@
 #define HELMHOLTZ3DJACOBI_PBCC
 
 #include "../simple/copy.pbcc"
+#include "Helmholtz3DDirect.pbcc"
 
 // OUT may NOT point to the same matrix region as IN
 transform Helmholtz3DJacobiIterate
@@ -82,10 +83,21 @@ to OUT[n,n,n]
                      ALPHA alpha, BETA beta,
                      DX dx, WEIGHT w, NUMITERS numIters)
   {
-    int i;
-    MatrixRegion3D temp = MatrixRegion3D::allocate(n,n,n);
+    int i = 0;
 
-    JASSERT(numIters > 0)(numIters)("numIters must be positive");
+    // if iterations is 0, just copy to output
+    if ((int) numIters == 0) {
+      Copy3D(out, in);
+      return;
+    }
+
+    // if base case, use direct solver
+    if (n == 1) {
+      Helmholtz3DDirect(out, a, b0, b1, b2, rhs, alpha, beta, dx);
+      return;
+    }
+
+    MatrixRegion3D temp = MatrixRegion3D::allocate(n,n,n);
 
     if ((int) numIters == 1) {
 

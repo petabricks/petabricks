@@ -3,6 +3,7 @@
 
 #include "Poisson2DConfig.h"
 #include "Poisson2DAccuracyMetric.pbcc"
+#include "Generators.pbcc"
 #include "Poisson2DJacobi.pbcc"
 
 transform Poisson2DJacobiVA
@@ -11,6 +12,7 @@ to OUT[n,n]
 accuracy_bins POISSON2D_BINS
 accuracy_variable numIterations
 accuracy_metric Poisson2DAccuracyMetric
+generator POISSON2D_GENERATOR
 {
     to (OUT out) from (IN in, B b)
     {
