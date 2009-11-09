@@ -52,8 +52,9 @@ enum CodeGenerationMode
 
 enum RuleFlavor
   {
-    E_RF_STATIC,
+    //dynamic first for backward compatibility with isStatic (if we missed any more places)
     E_RF_DYNAMIC,
+    E_RF_STATIC,
   #if defined(HAVE_OPENCL)
     E_RF_OPENCL,
   #endif

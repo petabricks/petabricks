@@ -417,7 +417,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     if(isSingleElement()){
       trans.markSplitSizeUse(o);
       o.beginIf("petabricks::split_condition<"+jalib::XToString(dimensions())+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")");
-      iterdef.genSplitCode(o, trans, *this, flavor);
+      iterdef.genSplitCode(o, trans, *this, flavor==E_RF_STATIC);
       // return written in get split code
       o.elseIf();
     }
