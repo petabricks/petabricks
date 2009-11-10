@@ -1,0 +1,16 @@
+
+transform OptionalTest 
+from I[n]
+to O[n]
+{
+  O.cell(i) from(I.cell(i) x,
+                 I.cell(i+1) right = -1, 
+                 I.cell(i-1) left  = OPTIONAL) {
+    if(IS_MISSING(left)){
+      return 0;
+    }else{
+      return x+right+left;
+    }
+  }
+}
+

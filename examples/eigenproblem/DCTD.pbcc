@@ -7,7 +7,8 @@ extern "C" void dlaed1_(int *n, double *D, double *Q, int *ldq, int *indxq, doub
 
 %}
 
-#include "../utilities.pbcc"
+#include "../simple/transpose.pbcc"
+#include "../simple/copy.pbcc"
 #include "mergeQ.pbcc"
 
 
@@ -21,7 +22,12 @@ to Eigenvalue[n], Eigenvector[n,n]
    //Recursive case
    to (Eigenvalue eig, Eigenvector vec) from  (Subdiag Ein) {
 
-	int i,j,info=0,size=n,cutpnt=n/2,nsquared=n*n;
+	int i;
+	int j;
+	int info=0;
+	int size=n;
+	int cutpnt=n/2;
+	int nsquared=n*n;
 
 	MatrixRegion2D q1 = MatrixRegion2D::allocate(cutpnt,cutpnt);
         MatrixRegion2D q2 = MatrixRegion2D::allocate(n-cutpnt,n-cutpnt);
@@ -42,8 +48,8 @@ to Eigenvalue[n], Eigenvector[n,n]
 	eig.cell(cutpnt) -= rho;
 
 
-	DCTD(eig.region(0,cutpnt),q1,eig.region(0,cutpnt),Ein.region(0,cutpnt-1));
-	DCTD(eig.region(cutpnt,size),q2,eig.region(cutpnt,size),Ein.region(cutpnt,size-1));
+	DCTDsub(eig.region(0,cutpnt),q1,eig.region(0,cutpnt),Ein.region(0,cutpnt-1));
+	DCTDsub(eig.region(cutpnt,size),q2,eig.region(cutpnt,size),Ein.region(cutpnt,size-1));
 	mergeQ(vec,q1,q2);
 	
 
@@ -58,7 +64,6 @@ to Eigenvalue[n], Eigenvector[n,n]
 
 	dlaed1_(&size, D, Q, &size, indxq, &rho, &cutpnt, work, iwork, &info);
 
-
 	delete [] work;
 	delete [] iwork;
 	delete [] indxq;
@@ -66,7 +71,7 @@ to Eigenvalue[n], Eigenvector[n,n]
 }
 
 // Find eigenvalues and eigenvectors of IN (tridiagonal symmetric) by LAPACK Divide-and-Conquer routine
-transform DCTD
+transform DCTDsub
 from Diag[n], Subdiag[n-1]
 to Eigenvalue[n], Eigenvector[n,n]
 
@@ -91,6 +96,21 @@ to Eigenvalue[n], Eigenvector[n,n]
 		DCTDrecursive(eig, vec, Ein);
 	}
     }
+
 }
 
-#endif // DCTD2_PBCC
+// Find eigenvalues and eigenvectors of IN (tridiagonal symmetric) by LAPACK Divide-and-Conquer routine
+transform DCTD
+from Diag[n], Subdiag[n-1]
+through Eigvectemp[n,n]
+to Eigenvalue[n], Eigenvector[n,n]
+
+{
+
+    to (Eigenvalue eig, Eigenvector vecout,  Eigvectemp vectemp) from  (Diag Din, Subdiag Ein) {
+        DCTDsub(eig, vectemp, Din, Ein);
+        Transpose(vecout, vectemp);
+    }
+}
+
+#endif // DCTD_PBCC

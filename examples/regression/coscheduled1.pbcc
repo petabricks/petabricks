@@ -1,0 +1,13 @@
+transform CoscheduledTest
+from IN[n,n]
+to O1[n], O2[n,n]
+{
+  to(O1 o1, O2 o2) from(IN i){
+    for(int x=0; x<n; ++x){
+      for(int y=0; y<n; ++y){
+        o2.cell(x,y) = i.cell(x,y);
+      }
+      o1.cell(x) = i.cell(x,0);
+    }
+  }
+}

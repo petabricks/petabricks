@@ -1,0 +1,43 @@
+#ifndef POISSON2DSOR_PBCC
+#define POISSON2DSOR_PBCC
+
+#include "Poisson2DSORInterior.pbcc"
+#include "Generators.pbcc"
+
+// performance note: OUT can point to the same matrix region as IN
+transform Poisson2DSOR
+from IN[n,n], B[n,n], weight, numIterations
+to OUT[n,n]
+through BTEMP[n-2,n-2]
+generator Poisson2DSORGenerator
+{
+  BTEMP.cell(i,j) from(B.cell(i + 1, j + 1) b,
+                       IN.cell(i, j + 1) no,
+                       IN.cell(i + 2, j + 1) so,
+                       IN.cell(i + 1, j) we,
+                       IN.cell(i + 1, j + 2) ea)
+  {
+    double result = b;
+    if (i == 0) result += no;
+    if (i == n - 3) result += so;
+    if (j == 0) result += we;
+    if (j == n - 3) result += ea;
+    return result;
+  }
+
+  recursive
+  primary to (OUT.region(1,1,n-1,n-1) o) from (IN.region(1,1,n-1,n-1) in,
+                                               BTEMP b,
+                                               weight w,
+                                               numIterations num)
+  {
+    SPAWN(Poisson2DSORInterior, o, in, b, w, num);
+  }
+
+  secondary OUT.cell(i,j) from (IN.cell(i,j) x)
+  {
+    return x;
+  }
+}
+
+#endif // POISSON2DSOR_PBCC

@@ -1,0 +1,13 @@
+#ifndef TRANSPOSE_PBCC
+#define TRANSPOSE_PBCC
+
+transform Transpose
+from IN[w,h]
+to  OUT[h,w]
+{
+  OUT.cell(y,x) from(IN.cell(x,y) i){
+    return i;
+  }
+}
+
+#endif // TRANSPOSE_PBCC

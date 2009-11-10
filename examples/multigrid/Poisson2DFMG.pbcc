@@ -1,0 +1,118 @@
+#ifndef POISSON2DFMG_PBCC
+#define POISSON2DFMG_PBCC
+
+// Full Multigrid V-cycle 2D Poisson
+// assume dimension n = 2^k + 1
+
+#include "Poisson2DConfig.h"
+
+#include "../simple/add.pbcc"
+#include "Interpolate2Dnew.pbcc"
+#include "Restrict2Dnew.pbcc"
+#include "Poisson2DResidual.pbcc"
+#include "Poisson2DSOR.pbcc"
+#include "Poisson2DDirect.pbcc"
+#include "Poisson2DMG.pbcc"
+#include "Poisson2DAccuracyMetric.pbcc"
+#include "Generators.pbcc"
+
+// Uncomment the following define to enable debug execution
+// #define DEBUG
+
+transform Poisson2DEstimate
+from X[n,n], B[n,n], BIN
+through Z[(n+1)/2,(n+1)/2]
+to Y[n,n]
+{
+    Z.cell(i,j) from () {
+        return 0;
+    }
+
+    to (Y y) from (X x, B b, Z z, BIN bin)
+    {
+        JASSERT(n >= 3)(n).Text("input must be >= 3");
+        JASSERT(floor(log2(n-1)) == log2(n-1))(n).Text("input must be 2^k+1");
+
+        if (n == 3) {
+            PetabricksRuntime::abort();
+        }
+
+        MatrixRegion2D t2 = MatrixRegion2D::allocate(n, n);
+        MatrixRegion2D r1 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
+        MatrixRegion2D r2 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
+
+        // compute residual and recursively compute estimation on coarser
+        // grid with zero initial guess, then map the coarse solution back
+        // to the fine grid by interpolation
+
+        Poisson2DResidual(t2, x, b);        // t2 gets new residual
+        Restrict2Dnew(r1, t2);              // r1 gets restricted residual
+        Poisson2DFMG<(int) bin>(r2, z, r1); // r2 gets coarse update
+        Interpolate2Dnew(t2, r2);           // t2 gets interpolated update
+        MatrixAdd(y, x, t2);                // t2 gets updated guess
+    }
+}
+
+transform Poisson2DFMG
+from X[n,n], B[n,n]
+to  Y[n,n]
+accuracy_bins POISSON2D_BINS
+accuracy_variable numIterations
+accuracy_metric Poisson2DAccuracyMetric
+generator POISSON2D_GENERATOR
+{
+    //base case: directly solve
+    to(Y y) from(X x, B b) {
+
+        int level = (int) log2(n-1);
+
+        // for level greater than 8, just abort since
+        // this will likely be slow and not the best choice
+        if (level > 8) {
+            PetabricksRuntime::abort();
+        }
+
+#ifdef DEBUG
+        printf("Direct case called for n = %d, acc %d\n", n, _acc_bin);
+#endif
+
+        Poisson2DDirect(y, x, b);
+
+    }
+
+    //base case: solve iteratively with SOR
+    duplicate(estBin, 0, 4)
+    to(Y y) from(X x, B b) {
+
+        int level = (int) log2(n-1);
+
+        // for level greater than 8, just abort since
+        // this will likely be slow and not the best choice
+        if (level > 8) {
+            PetabricksRuntime::abort();
+        }
+
+#ifdef DEBUG
+        printf("(estimate %d, SOR) case called for n = %d, acc %d (%d iterations)\n", estBin, n, _acc_bin, numIterations);
+#endif
+
+        Poisson2DEstimate(y, x, b, estBin);
+        Poisson2DSOR(y, y, b, -1, numIterations);
+    }
+
+    //solve recursively on coarser grids
+
+    duplicate(estBin, 0, 4)
+    duplicate(recurseBin, 0, 4)
+    to (Y y) from(X x, B b) {
+#ifdef DEBUG
+        printf("(estimate %d, recursive %d) case called for n = %d, acc %d (%d iterations)\n",
+               estBin, recurseBin, n, _acc_bin, numIterations);
+#endif
+
+        Poisson2DEstimate(y, x, b, estBin);
+        Poisson2DMGRecurse(y, y, b, recurseBin, numIterations);
+    }
+}
+
+#endif // POISSON2DFMG_PBCC

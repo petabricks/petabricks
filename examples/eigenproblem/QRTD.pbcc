@@ -8,9 +8,11 @@ extern "C" void dsteqr_(char *compz, int *n, double *D, double *E, double *Z, in
 
 %}
 
-#include "../utilities.pbcc"
+#include "../simple/copy.pbcc"
+#include "../simple/transpose.pbcc"
 
 // Find eigenvalues and eigenvectors of tridiagonal matrix by LAPACK QR iteration routines
+// note output is Transposed because of row-major and column major difference for LAPACK and PetaBricks
 transform QRTDsub
 from Subdiag[n-1]
 to Eigenvalue[n], Eigenvector[n,n]
@@ -39,6 +41,7 @@ to Eigenvalue[n], Eigenvector[n,n]
 
 transform QRTD
 from Diag[n], Subdiag[n-1]
+//through Eigvectemp[n,n]
 to Eigenvalue[n], Eigenvector[n,n]
 {
 
@@ -47,6 +50,7 @@ to Eigenvalue[n], Eigenvector[n,n]
 
 	InlineCopy1D(Eig, Din);
 	QRTDsub(Eig, Vec, Ein);
+	//Transpose(Vec,Vtemp);
   }
 
 }

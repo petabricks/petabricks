@@ -1,25 +1,61 @@
 /* src/config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* number of increments tried with no accuracy improvement */
+#undef ACCIMPROVETRIES
+
+/* macro for gcc function __attribute__s */
+#undef ATTRIBUTE
+
 /* larges cache line size in system */
 #undef CACHE_LINE_SIZE
+
+/* var name in output code for begin coord */
+#undef COORD_BEGIN_STR
+
+/* var name in output code for end coord */
+#undef COORD_END_STR
+
+/* C++ compiler used by pbc */
+#undef CXX
+
+/* C++ preprocessor used by pbc */
+#undef CXXCPP
+
+/* C++ compiler defines used by pbc */
+#undef CXXDEFS
+
+/* C++ compiler flags used by pbc */
+#undef CXXFLAGS
+
+/* C++ compiler link flags used by pbc */
+#undef CXXLDFLAGS
+
+/* C++ compiler libraries used by pbc */
+#undef CXXLIBS
 
 /* verbose debug printouts and log files in /tmp */
 #undef DEBUG
 
-/* don't generate continuation code after SPAWN/enqueue */
+/* dont generate continuation code after SPAWN/enqueue */
 #undef DISABLE_CONTINUATIONS
 
-/* allow abort without program shutdown (uses exceptions) */
-#undef GRACEFUL_ABORT
+/* the default maximum number of iterations for for_enough{} */
+#undef FORENOUGH_MAX_ITERS
+
+/* the default minimum number of iterations for for_enough{} */
+#undef FORENOUGH_MIN_ITERS
+
+/* hash function used for memoization (MD5 or SHA1) */
+#undef HASH_FN
+
+/* length of hash used for memoization (must match HASH_FN) */
+#undef HASH_LEN
 
 /* Define to 1 if you have the `backtrace_symbols' function. */
 #undef HAVE_BACKTRACE_SYMBOLS
 
 /* Define to 1 if you have the <cxxabi.h> header file. */
 #undef HAVE_CXXABI_H
-
-/* Define to 1 if you have the <dlfcn.h> header file. */
-#undef HAVE_DLFCN_H
 
 /* Define to 1 if you have the <execinfo.h> header file. */
 #undef HAVE_EXECINFO_H
@@ -45,6 +81,12 @@
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
 
+/* Define to 1 if you have the `rt' library (-lrt). */
+#undef HAVE_LIBRT
+
+/* Define to 1 if you have the `ssl' library (-lssl). */
+#undef HAVE_LIBSSL
+
 /* Define to 1 if you have the <math.h> header file. */
 #undef HAVE_MATH_H
 
@@ -53,6 +95,12 @@
 
 /* Define to 1 if you have a working `mmap' system call. */
 #undef HAVE_MMAP
+
+/* Define to 1 if you have the <openssl/md5.h> header file. */
+#undef HAVE_OPENSSL_MD5_H
+
+/* Define to 1 if you have the <signal.h> header file. */
+#undef HAVE_SIGNAL_H
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -66,19 +114,46 @@
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
 
+/* Define to 1 if you have the <sys/mman.h> header file. */
+#undef HAVE_SYS_MMAN_H
+
+/* Define to 1 if you have the <sys/prctl.h> header file. */
+#undef HAVE_SYS_PRCTL_H
+
+/* Define to 1 if you have the <sys/select.h> header file. */
+#undef HAVE_SYS_SELECT_H
+
+/* Define to 1 if you have the <sys/socket.h> header file. */
+#undef HAVE_SYS_SOCKET_H
+
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/time.h> header file. */
+#undef HAVE_SYS_TIME_H
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
 
+/* Define to 1 if you have the <sys/wait.h> header file. */
+#undef HAVE_SYS_WAIT_H
+
+/* define if __thread works with this compiler */
+#undef HAVE_THREADLOCAL
+
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* var name in output code */
+/* keyword to force inlining */
+#undef INLINE
+
+/* run null tasks immediately when they are enqueued */
+#undef INLINE_NULL_TASKS
+
+/* define to add a system var to transform scope */
 #undef INPUT_PERIMETER_STR
 
-/* var name in output code */
+/* define to add a system var to transform scope */
 #undef INPUT_SIZE_STR
 
 /* Use a custom allocator from JALIB */
@@ -90,18 +165,20 @@
 /* log traces to /tmp/jassertlog.pid */
 #undef JASSERT_LOG
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
-#undef LT_OBJDIR
-
 /* type for elements in the matrix */
 #undef MATRIX_ELEMENT_T
+
+/* type for indices into the matrix */
+#undef MATRIX_INDEX_T
 
 /* define in order to generate maxima.log, (a log of maxima commands) */
 #undef MAXIMA_LOG
 
 /* the maximum number of dimensions supported */
 #undef MAX_DIMENSIONS
+
+/* the maximum number of dimensions supported */
+#undef MAX_INPUT_BITS
 
 /* max number of workers supported */
 #undef MAX_NUM_WORKERS
@@ -112,7 +189,7 @@
 /* min number of workers supported */
 #undef MIN_NUM_WORKERS
 
-/* var name in output code */
+/* define to add a system var to transform scope */
 #undef OUTPUT_SIZE_STR
 
 /* Name of package */
@@ -130,20 +207,31 @@
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
 
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* git sha1 hash for HEAD at the time ./configure was run */
+/* define to run tasks inline instead of enqueuing them */
+#undef PBCC_SEQUENTIAL
+
+/* keyword to indicate non-aliased pointers/refs */
+#undef RESTRICT
+
+/* var name in output code for rule output variable */
+#undef RETURN_VAL_STR
+
+/* git revision for HEAD at the time ./configure was run */
 #undef REVISION_LONG
 
-/* git sha1 hash for HEAD at the time ./configure was run */
+/* git revision for HEAD at the time ./configure was run */
 #undef REVISION_SHORT
 
 /* undefine to disable cpp */
 #undef RUN_CPP
 
-/* undefine this if a large number of dimensions are needed, or one wants a
-   cleaner user namespace */
+/* add using namespace petabricks to output */
 #undef SHORT_TYPE_NAMES
 
 /* var name in output code */
@@ -152,11 +240,29 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
+/* number of times to attempt to steal in mainLoop */
+#undef STEAL_ATTEMPTS_MAINLOOP
+
+/* number of times to attempt to steal in waitUntilComplete */
+#undef STEAL_ATTEMPTS_WAITING
+
+/* var name in output code for accuracy template parameter */
+#undef TEMPLATE_BIN_STR
+
+/* Signal used to kill processes that timeout */
+#undef TIMEOUTKILLSIG
+
+/* Grace period before slow tests are killed */
+#undef TIMEOUT_GRACESEC
+
 /* record timing information to stderr and jtimings.csv */
 #undef TIMING
 
 /* prefix for expanded template implementations */
 #undef TMPL_IMPL_PFX
+
+/* define to add a system var to transform scope */
+#undef TRANSFORM_N_STR
 
 /* postfix for static versions of transforms */
 #undef TX_DYNAMIC_POSTFIX
@@ -167,8 +273,24 @@
 /* enable unsafe optimizations such as removing error checking. */
 #undef UNSAFE
 
+/* define if clock_gettime() doesnt work */
+#undef USE_GETTIMEOFDAY
+
+/* extra directory to search for files in */
+#undef UTIL_SEARCH_DIR_A
+
+/* extra directory to search for files in */
+#undef UTIL_SEARCH_DIR_B
+
 /* Version number of package */
 #undef VERSION
+
+/* support WorkerThread::inject() with a separate queue */
+#undef WORKERTHREAD_INJECT
+
+/* use a special 1-element queue for the first item pushed, for better
+   locality */
+#undef WORKERTHREAD_ONDECK
 
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */

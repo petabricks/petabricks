@@ -1,0 +1,25 @@
+#ifndef POISSON2DRESIDUAL_PBCC
+#define POISSON2DRESIDUAL_PBCC
+
+transform Poisson2DResidual
+from X[n,n], B[n,n]
+to  R[n,n]
+{
+   //interior components
+   R.cell(i,j) from(B.cell(i,j) b, 
+    	 	    X.cell(i,j+1) xn,
+                    X.cell(i+1,j) xe,	
+		    X.cell(i,j-1) xs,
+		    X.cell(i-1,j) xw,
+		    X.cell(i,j) me   )
+   {
+     return b - (4*me-xn-xe-xs-xw);								
+   }
+   
+   //boundary is 0
+   secondary R.cell(i,j) from() {return 0;}
+
+}
+
+#endif // POISSON2DRESIDUAL_PBCC
+

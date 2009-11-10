@@ -1,0 +1,11 @@
+transform ScaleDown
+from IN[w,h] 
+to OUT[w/2,h/2] 
+{
+  OUT.cell(x,y) from( IN.cell(2*x-1,2*y-1) a,
+                      IN.cell(2*x+1,2*y+1) b) {
+    return a+b;
+  }
+  secondary OUT.cell(x,y) from() { return 0; }
+}
+

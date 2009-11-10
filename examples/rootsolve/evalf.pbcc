@@ -1,0 +1,33 @@
+#ifndef EVALF_PBCC
+#define EVALF_PBCC
+
+transform evalf
+from F[n], X
+through Xpower[n], TEMP[n]
+to FX
+{
+        Xpower.cell(0) from() {
+                return 1;
+        }
+
+        Xpower.cell(i) from(Xpower.cell(i-1) xleft, X x) {
+                return xleft*x;
+        }
+
+        TEMP.cell(i) from (Xpower.cell(i) a, F.cell(i) b)
+        {
+                return a * b;
+        }
+
+        FX from (TEMP t)
+        {
+                double sum=0;
+                int i;
+                for (i=0; i<n; i++) {
+                        sum+=t.cell(i);
+                }
+                return sum;
+        }
+}
+
+#endif // EVALF_PBCC

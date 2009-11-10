@@ -1,0 +1,24 @@
+#ifndef POISSON2DFORWARDFUNC_PBCC
+#define POISSON2DFORWARDFUNC_PBCC
+
+transform Poisson2DForwardFunc
+from IN[n+2,n+2]
+to OUT[n+2,n+2]
+{
+  primary OUT.cell(i,j) from (IN.cell(i,j) ce,
+                              IN.cell(i-1,j) we,
+                              IN.cell(i+1,j) ea,
+                              IN.cell(i,j-1) no,
+                              IN.cell(i,j+1) so)
+  {
+    return 4 * ce - (we + ea + no + so);
+  }
+
+  secondary OUT.cell(i,j) from ()
+  {
+    return 0;
+  }
+}
+
+#endif // POISSON2DFORWARDFUNC_PBCC
+

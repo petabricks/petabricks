@@ -1,0 +1,22 @@
+#ifndef VECTORADD_PBCC
+#define VECTORADD_PBCC
+
+transform VectorSub
+from A[n], B[n] 
+to C[n]
+{
+  C.cell(x) from(A.cell(x) a, B.cell(x) b){
+    return a-b;
+  }
+}
+
+transform VectorAdd
+from A[n], B[n] 
+to C[n]
+{
+  C.cell(x) from(A.cell(x) a, B.cell(x) b){
+    return a+b;
+  }
+}
+
+#endif // VECTORADD_PBCC

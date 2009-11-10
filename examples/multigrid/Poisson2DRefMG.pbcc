@@ -1,0 +1,76 @@
+#ifndef POISSON2DREFMG_PBCC
+#define POISSON2DREFMG_PBCC
+
+// 2D Poisson Multigrid V-cycle
+// assume dimension n = 2^k + 1
+
+#include "../simple/add.pbcc"
+#include "../simple/copy.pbcc"
+#include "Interpolate2Dnew.pbcc"
+#include "Restrict2Dnew.pbcc"
+#include "Poisson2DResidual.pbcc"
+#include "Poisson2DSOR.pbcc"
+#include "Generators.pbcc"
+
+// Computes a specified number of reference V-cycles
+//
+// Performance note: Y can point to the same matrix region as X
+transform Poisson2DRefMG
+from X[n,n], B[n,n], NumIters
+to  Y[n,n]
+through Z[(n+1)/2,(n+1)/2]
+generator Poisson2DJacobiGenerator
+{
+    Z.cell(i,j) from() {
+        return 0;
+    }
+
+    //solve recursively on coarser grids, with zero initial guess
+    //then map the coarse solution back to the fine grid by Interpolation
+    to (Y y) from(X x, B b, Z z, NumIters numIters) {
+
+        JASSERT(n >= 3)(n).Text("input must be >= 3");
+        JASSERT(floor(log2(n-1)) == log2(n-1))(n).Text("input must be 2^k+1");
+        JASSERT(numIters >= 0)(numIters).Text("num iterations must be non-negative");
+
+        // do a copy at the beginning
+        Copy2D(y, x);
+
+        // only proceed if number of iterations is positive
+        if (numIters > 0) {
+
+            if (n == 3) {
+
+#ifdef DEBUG
+                printf("base case called for n = 3\n");
+#endif
+
+                y.cell(1, 1) = (x.cell(1, 0) + x.cell(0, 1) +
+                                x.cell(1, 2) + x.cell(2, 1) + b.cell(1, 1)) / 4;
+
+            } else {
+
+#ifdef DEBUG
+                printf("recursive case called for n = %d\n", n);
+#endif
+
+                MatrixRegion2D t1 = MatrixRegion2D::allocate(n, n);
+                MatrixRegion2D t2 = MatrixRegion2D::allocate(n, n);
+                MatrixRegion2D r1 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
+                MatrixRegion2D r2 = MatrixRegion2D::allocate((n+1)/2, (n+1)/2);
+
+                for (int i = 0; i < numIters; ++i) {
+                    Poisson2DSOR(t1, y, b, -2, 1); // t1 gets relaxed guess
+                    Poisson2DResidual(t2, t1, b);  // t2 gets new residual
+                    Restrict2Dnew(r1, t2);         // r1 gets restricted residual
+                    Poisson2DRefMG(r2, z, r1, 1);  // r2 gets coarse update
+                    Interpolate2Dnew(t2, r2);      // t2 gets interpolated update
+                    MatrixAdd(t2, t2, t1);         // t2 gets updated guess
+                    Poisson2DSOR(y, t2, b, -2, 1); //  y gets relaxed guess
+                }
+            }
+        }
+    }
+}
+
+#endif // POISSON2DREFMG_PBCC

@@ -1,0 +1,43 @@
+%{
+
+  static volatile __thread int t = 0;
+
+%}
+
+
+transform GetAccuracy 
+to Accuracy
+from X, A[n]
+{
+  Accuracy from() { return X; }
+}
+
+transform Foo 
+from A[n] 
+to X
+accuracy_metric GetAccuracy 
+accuracy_bins 1, 3, 5
+{
+  to(X x) from(A a) {
+    x = 0;
+    for_enough { //from 1 to MAX_INT
+      for(int i=0; i<a.count(); ++i)
+        for(int j=0; j<a.count(); ++j)
+          t+=a.cell(i)*a.cell(j); //waste time
+      x=x+1;
+    }
+    if(t==-666) x = 999;//dont let t be optimized away
+  }
+  to(X x) from(A.region(0, n/2) a) {
+    if(n<2) PetabricksRuntime::abort();
+    x=0;
+    ElementT t=0;
+    for_enough(1; 10) { //from 1 to 10 iterations
+      Foo<1>(t, a);
+      x+=t;
+    }
+  }
+}
+
+
+

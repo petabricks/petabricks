@@ -1,0 +1,77 @@
+#ifndef ROOTSOLVE_PBCC
+#define ROOTSOLVE_PBCC
+
+#ifndef k
+#define k 10
+#endif
+
+#include "evalf.pbcc"
+#include "bisection.pbcc"
+#include "secant.pbcc"
+#include "laguerre.pbcc"
+
+
+transform RootSolve
+from F[n], Astart, Bstart
+through B[k], A[k], C[k], FA[k], FB[k], FC[k]
+to X, FX
+{
+
+   to (FA.cell(0) fa)  from (F f, Astart a){
+	evalf(fa, f, a);
+   }
+
+
+   to (FB.cell(0) fb)  from (F f, Bstart b){
+        evalf(fb, f, b);
+   }
+   
+   FC.cell(0) from (FA.cell(0) fa) {
+	return fa;
+   }
+
+   A.cell(0) from (Astart a){
+        return a;
+   }
+   
+   B.cell(0) from (Bstart b){
+        return b;
+   }
+   
+   C.cell(0) from (Astart a){
+	return a;
+   }
+
+
+   to (A.cell(i) a, B.cell(i) b, C.cell(i) c, FA.cell(i) fa, FB.cell(i) fb, FC.cell(i) fc) 
+   from (A.cell(i-1) aold, B.cell(i-1) bold, C.cell(i-1) cold, FA.cell(i-1) faold, FB.cell(i-1) fbold, FC.cell(i-1) fcold, F f)
+   { 
+	Bisection(a,b,c,fa,fb,fc,  f,aold,bold,cold,faold,fbold,fcold);
+   }
+
+   to (A.cell(i) a, B.cell(i) b, C.cell(i) c, FA.cell(i) fa, FB.cell(i) fb, FC.cell(i) fc)
+   from (A.cell(i-1) aold, B.cell(i-1) bold, C.cell(i-1) cold, FA.cell(i-1) faold, FB.cell(i-1) fbold, FC.cell(i-1) fcold, F f)
+   {
+       Secant(a,b,c,fa,fb,fc,  f,aold,bold,cold,faold,fbold,fcold);
+   }
+
+   to (A.cell(i) a, B.cell(i) b, C.cell(i) c, FA.cell(i) fa, FB.cell(i) fb, FC.cell(i) fc)
+   from (A.cell(i-1) aold, B.cell(i-1) bold, C.cell(i-1) cold, FA.cell(i-1) faold, FB.cell(i-1) fbold, FC.cell(i-1) fcold, F f)
+   {
+       Laguerre(a,b,c,fa,fb,fc,  f,aold,bold,cold,faold,fbold,fcold);
+   }
+
+
+   X from (B.cell(k-1) blast){
+	return blast;
+   }
+			
+   to (FX fx)  from ( F f, X x){
+	evalf(fx, f,x);
+   }
+
+
+}
+
+
+#endif // ROOTSOLVE_PBCC

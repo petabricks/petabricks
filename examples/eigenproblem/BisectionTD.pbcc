@@ -12,17 +12,30 @@ extern "C" void dstein_(int *n, double *d, double *e, int *m, double *w, int *ib
 
 %}
 
+#include "../simple/transpose.pbcc"
+
 // Find eigenvalues and eigenvectors of input matrix IN (symmetric) by LAPACK Bisection routine
+// note output is Transposed because of row-major and column major difference for LAPACK and PetaBricks
 transform BisectionTD
 from Diag[n], Subdiag[n-1]
+//through Eigvectemp[n,n]
 to Eigenvalue[n], Eigenvector[n,n]
 {
 
   to (Eigenvalue Eig, Eigenvector Vec) from (Diag Din, Subdiag Ein)
   {
-    char range = 'A', order = 'B';
-    int size=n,info = 0,il,iu,m, nsplit, nsquared=n*n;
-    double vl,vu, abstol=0;
+    char range = 'A';
+    char order = 'B';
+    int size=n;
+    int info = 0;
+    int il;
+    int iu;
+    int m;
+    int nsplit;
+    int nsquared=n*n;
+    double vl;
+    double vu;
+    double abstol=0;
 
     // allocate and initialize matrices
     double *Z = Vec.base();
@@ -45,6 +58,7 @@ to Eigenvalue[n], Eigenvector[n,n]
     iwork = new int[n];
     dstein_(&size, D, E, &size, W, iblock, isplit, Z, &size, work, iwork, ifail, &info);
 
+    //Transpose(VecOut,Vec);
 
     delete [] work;
     delete [] iwork;

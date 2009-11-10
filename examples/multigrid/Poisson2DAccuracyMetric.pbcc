@@ -1,0 +1,69 @@
+#ifndef POISSON2DACCURACYMETRIC
+#define POISSON2DACCURACYMETRIC
+
+#include "Poisson2DForwardFunc.pbcc"
+#include "Poisson2DDirect.pbcc"
+#include "Poisson2DRefMG.pbcc"
+#include "ComputeError2D.pbcc"
+
+/* Uncomment this line if you wish to use a residual metric
+ * instead of an error metric
+ */
+//#define RESIDUAL_METRIC
+
+memoized
+transform Poisson2DSolveMemoized
+from X[n,n], B[n,n]
+to   Y[n,n]
+{
+    to (Y y) from (X x, B b)
+    {
+        int level = (int) log2(n - 1);
+        if (level < 4) {
+            // if small enough, compute solution using direct solver
+            Poisson2DDirect(y, x, b);
+        } else {
+            // otherwise use 15 multigrid reference V-cycles
+            Poisson2DRefMG(y, x, b, 15);
+        }
+    }
+}
+
+transform Poisson2DAccuracyMetric
+from Y[n,n], X[n,n], B[n,n]
+to Accuracy
+{
+    to (Accuracy a) from (Y y, X x, B b)
+    {
+        // these store the errors of the input and output
+        double e1;
+        double e2;
+
+        MatrixRegion2D z = MatrixRegion2D::allocate(n, n);
+#ifdef RESIDUAL_METRIC
+        // compute residual of input
+        Poisson2DForwardFunc(z, x);
+        ComputeError2D(e1, b, z);
+
+        // compute residual of output
+        Poisson2DForwardFunc(z, y);
+        ComputeError2D(e2, b, z);
+#else
+        // compute true solution
+        Poisson2DSolveMemoized(z, x, b);
+
+        // compute errors of input and output
+        ComputeError2D(e1, x, z);
+        ComputeError2D(e2, y, z);
+#endif
+
+        // accuracy is ratio of errors
+        if (e2 == 0) {
+            a = std::numeric_limits<double>::max();
+        } else {
+            a = e1 / e2;
+        }
+    }
+}
+
+#endif // POISSON2DACCURACYMETRIC

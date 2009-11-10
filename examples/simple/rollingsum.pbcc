@@ -1,0 +1,20 @@
+transform RollingSum 
+from A[n] 
+to B[n] 
+{
+  // use the previously computed value 
+  to(B.cell(i) b) from(A.cell(i) a,
+                       B.cell(i-1) leftSum){
+    b=a+leftSum;
+  }
+  
+  // sum all elements to the left
+  secondary to(B.cell(i) b) from(A.region(0, i+1) in){
+    b=0;
+    for(int j=0; j<=i; ++j)
+      b += in.cell(j);
+  }
+}
+
+
+

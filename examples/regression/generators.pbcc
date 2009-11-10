@@ -1,0 +1,21 @@
+
+main transform Foo 
+from A[n], B[n]
+to C[n]
+generator Gen
+{
+  C.cell(i) from(A.cell(i) a) { return a+1; }
+}
+
+
+transform Gen
+to A[n], B[n]
+{
+  A.cell(i) from() { return i; }
+
+  to(B b) from() { 
+    b.randomize();
+  }
+}
+
+

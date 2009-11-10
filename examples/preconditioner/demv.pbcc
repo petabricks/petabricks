@@ -1,0 +1,18 @@
+#ifndef DEMV_PBCC
+#define DEMV_PBCC
+
+transform demv
+from A[w,h], X[w]
+to Y[h]
+{
+   Y.cell(i) from(A.row(i) a,  X x)
+   {
+      ElementT sum=0;
+      for (IndexT j=0;j<a.width();++j){
+         sum+=a.cell(j)*x.cell(j);
+	 }
+      return sum;
+   }
+}
+#endif // DEMV_PBCC
+

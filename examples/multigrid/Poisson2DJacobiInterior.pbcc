@@ -1,0 +1,107 @@
+#ifndef POISSON2DJACOBIINTERIOR_PBCC
+#define POISSON2DJACOBIINTERIOR_PBCC
+
+#define NUM_ITERATIONS 1
+
+transform Poisson2DJacobi_inner
+from IN[n,n], B[n,n]
+through S<0 .. NUM_ITERATIONS>[n,n]
+to OUT[n,n]
+{
+  //normal case
+  priority(0) S<p>.cell(i,j) from(S<p-1>.cell(i-1, j  ) no,
+                                  S<p-1>.cell(i+1, j  ) so,
+                                  S<p-1>.cell(i  , j-1) we,
+                                  S<p-1>.cell(i  , j+1) ea,
+                                  B.cell(i,j) b)
+  {
+    return (no+so+we+ea+b) / 4.0;
+  }
+  
+  //edge cases
+  priority(1) S<p>.cell(i,j) from(S<p-1>.cell(i+1, j  ) so,
+                                  S<p-1>.cell(i  , j-1) we,
+                                  S<p-1>.cell(i  , j+1) ea,
+                                  B.cell(i,j) b)
+  {
+    return (so+we+ea+b) / 4.0;
+  }
+  
+  priority(1) S<p>.cell(i,j) from(S<p-1>.cell(i-1, j  ) no,
+                                  S<p-1>.cell(i  , j-1) we,
+                                  S<p-1>.cell(i  , j+1) ea,
+                                  B.cell(i,j) b)
+  {
+    return (no+we+ea+b) / 4.0;
+  }
+  
+  priority(1) S<p>.cell(i,j) from(S<p-1>.cell(i-1, j  ) no,
+                                  S<p-1>.cell(i+1, j  ) so,
+                                  S<p-1>.cell(i  , j+1) ea,
+                                  B.cell(i,j) b)
+  {
+    return (no+so+ea+b) / 4.0;
+  }
+  
+  priority(1) S<p>.cell(i,j) from(S<p-1>.cell(i-1, j  ) no,
+                                  S<p-1>.cell(i+1, j  ) so,
+                                  S<p-1>.cell(i  , j-1) we,
+                                  B.cell(i,j) b)
+  {
+    return (no+so+we+b) / 4.0;
+  }
+  
+  //corner case
+  priority(2) S<p>.cell(i,j) from(S<p-1>.cell(i+1, j  ) so,
+                                  S<p-1>.cell(i  , j+1) ea,
+                                  B.cell(i,j) b)
+  {
+    return (so+ea+b) / 4.0;
+  }
+
+  priority(2) S<p>.cell(i,j) from(S<p-1>.cell(i+1, j  ) so,
+                                  S<p-1>.cell(i  , j-1) we,
+                                  B.cell(i,j) b)
+  {
+    return (so+we+b) / 4.0;
+  }
+
+  priority(2) S<p>.cell(i,j) from(S<p-1>.cell(i-1, j  ) no,
+                                  S<p-1>.cell(i  , j+1) ea,
+                                  B.cell(i,j) b)
+  {
+    return (no+ea+b) / 4.0;
+  }
+
+  priority(2) S<p>.cell(i,j) from(S<p-1>.cell(i-1, j  ) no,
+                                  S<p-1>.cell(i  , j-1) we,
+                                  B.cell(i,j) b)
+  {
+    return (no+we+b) / 4.0;
+  }
+
+  //initialize and finalize
+  S<0>.cell(i,j) from(IN.cell(i,j) x) {
+    return x;
+  }
+
+  OUT.cell(i,j) from(S<NUM_ITERATIONS>.cell(i,j) x) {
+    return x;
+  }
+}
+
+transform Poisson2DJacobiInterior
+from IN[n,n], B[n,n], numIterations
+to OUT[n,n]
+{
+  to(OUT o) from(IN in, B b, numIterations k)
+  {
+    Poisson2DJacobi_inner(o, in, b);
+    for (int i = 1; i < k; i++) {
+      Poisson2DJacobi_inner(o, o, b);
+    }
+  }
+}
+
+#endif // POISSON2DJACOBIINTERIOR_PBCC
+

@@ -1,0 +1,77 @@
+#ifndef MATRIXADD_PBCC
+#define MATRIXADD_PBCC
+
+transform Add2D
+from A[w,h], B[w,h]
+to C[w,h]
+{
+  C.cell(i,j) from (A.cell(i,j) a, B.cell(i,j) b) {
+    return a + b;
+  }
+}
+
+transform Add3D
+from A[w,h,d], B[w,h,d]
+to C[w,h,d]
+{
+  C.cell(i,j,k) from (A.cell(i,j,k) a, B.cell(i,j,k) b) {
+    return a + b;
+  }
+}
+
+transform Subtract2D
+from A[w,h], B[w,h]
+to C[w,h]
+{
+  C.cell(i,j) from (A.cell(i,j) a, B.cell(i,j) b) {
+    return a - b;
+  }
+}
+
+transform Subtract3D
+from A[w,h,d], B[w,h,d]
+to C[w,h,d]
+{
+  C.cell(i,j,k) from (A.cell(i,j,k) a, B.cell(i,j,k) b) {
+    return a - b;
+  }
+}
+
+transform MatrixSub
+from A[w,h], B[w,h] 
+to AB[w,h]
+{
+  rule SimpleSub
+  AB.cell(x,y) from(A.cell(x,y) a, B.cell(x,y) b){
+    return a-b;
+  }
+}
+
+//return A+B+C-D
+transform MatrixAddAddSub
+from A[w,h], B[w,h], C[w,h], MinusD[w,h] 
+to OUT[w,h]
+{
+  rule SimpleAddAddSub
+  OUT.cell(x,y) from( A.cell(x,y) a
+                     , B.cell(x,y) b
+                     , C.cell(x,y) c
+                     , MinusD.cell(x,y) d
+               ){
+    return a+b+c-d;
+  }
+}
+
+//last for regression tests
+transform MatrixAdd
+from A[w,h], B[w,h] 
+to AB[w,h]
+{
+  rule SimpleAdd
+  AB.cell(x,y) from(A.cell(x,y) a, B.cell(x,y) b){
+    return a+b;
+  }
+}
+
+#endif // MATRIXADD_PBCC
+

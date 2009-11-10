@@ -1,0 +1,136 @@
+#ifndef HELMHOLTZ3DJACOBI_PBCC
+#define HELMHOLTZ3DJACOBI_PBCC
+
+#include "../simple/copy.pbcc"
+#include "Helmholtz3DDirect.pbcc"
+#include "Generators.pbcc"
+
+// OUT may NOT point to the same matrix region as IN
+transform Helmholtz3DJacobiIterate
+from IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
+     RHS[n,n,n], ALPHA, BETA, DX, WEIGHT
+to OUT[n,n,n]
+{
+  // interior point
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) we,
+                         IN.cell(i+1,j  ,k  ) ea,
+                         IN.cell(i  ,j-1,k  ) no,
+                         IN.cell(i  ,j+1,k  ) so,
+                         IN.cell(i  ,j  ,k-1) fr,
+                         IN.cell(i  ,j  ,k+1) ba,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        RHS.cell(i  ,j  ,k  ) rhs,
+                        ALPHA alpha, BETA beta,
+                        DX dx, WEIGHT w)
+  {
+    double dxSq = dx * dx;
+    double K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
+    double newVal = (beta / dxSq * (bwe * we + bea * ea + bno * no +
+                                    bso * so + bfr * fr + bba * ba) + rhs) / K;
+    return (1 - w) * me + w * newVal;
+  }
+
+  // boundary point
+  secondary
+  OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
+                         IN.cell(i-1,j  ,k  ) r_we = OPTIONAL,
+                         IN.cell(i+1,j  ,k  ) r_ea = OPTIONAL,
+                         IN.cell(i  ,j-1,k  ) r_no = OPTIONAL,
+                         IN.cell(i  ,j+1,k  ) r_so = OPTIONAL,
+                         IN.cell(i  ,j  ,k-1) r_fr = OPTIONAL,
+                         IN.cell(i  ,j  ,k+1) r_ba = OPTIONAL,
+                          A.cell(i  ,j  ,k  ) a,
+                         B0.cell(i  ,j  ,k  ) bwe,
+                         B0.cell(i+1,j  ,k  ) bea,
+                         B1.cell(i  ,j  ,k  ) bno,
+                         B1.cell(i  ,j+1,k  ) bso,
+                         B2.cell(i  ,j  ,k  ) bfr,
+                         B2.cell(i  ,j  ,k+1) bba,
+                        RHS.cell(i  ,j  ,k  ) rhs,
+                        ALPHA alpha, BETA beta,
+                        DX dx, WEIGHT w)
+  {
+    double we, ea, no, so, fr, ba;
+
+    we = (IS_MISSING(r_we) ? -me : r_we);
+    ea = (IS_MISSING(r_ea) ? -me : r_ea);
+    no = (IS_MISSING(r_no) ? -me : r_no);
+    so = (IS_MISSING(r_so) ? -me : r_so);
+    fr = (IS_MISSING(r_fr) ? -me : r_fr);
+    ba = (IS_MISSING(r_ba) ? -me : r_ba);
+
+    double dxSq = dx * dx;
+    double K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
+    double newVal = (beta / dxSq * (bwe * we + bea * ea + bno * no +
+                                    bso * so + bfr * fr + bba * ba) + rhs) / K;
+    return (1 - w) * me + w * newVal;
+  }
+}
+
+// performance note: OUT can point to the same matrix region as IN
+transform Helmholtz3DJacobi
+from IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
+     RHS[n,n,n], ALPHA, BETA, DX, WEIGHT, NUMITERS
+to OUT[n,n,n]
+generator Helmholtz3DSORGenerator
+{
+  to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2, RHS rhs,
+                     ALPHA alpha, BETA beta,
+                     DX dx, WEIGHT w, NUMITERS numIters)
+  {
+    int i = 0;
+
+    // if iterations is 0, just copy to output
+    if ((int) numIters == 0) {
+      Copy3D(out, in);
+      return;
+    }
+
+    // if base case, use direct solver
+    if (n == 1) {
+      Helmholtz3DDirect(out, a, b0, b1, b2, rhs, alpha, beta, dx);
+      return;
+    }
+
+    MatrixRegion3D temp = MatrixRegion3D::allocate(n,n,n);
+
+    if ((int) numIters == 1) {
+
+      // we need this copy since 'out' may point to 'in'
+      Helmholtz3DJacobiIterate(temp, in, a, b0, b1, b2, rhs, alpha, beta, dx, w);
+      Copy3D(out, temp);
+      i = 1; // set number of iterations done to 1
+
+    } else if ((((int) numIters) & 1) == 0) { // numIters is even
+
+      Helmholtz3DJacobiIterate(temp, in  , a, b0, b1, b2, rhs, alpha, beta, dx, w);
+      Helmholtz3DJacobiIterate(out , temp, a, b0, b1, b2, rhs, alpha, beta, dx, w);
+      i = 2; // set number of iterations done to 2
+
+    } else { // numIters is odd and >= 3
+
+      MatrixRegion3D temp2 = MatrixRegion3D::allocate(n,n,n);
+      Helmholtz3DJacobiIterate(temp , in   , a, b0, b1, b2, rhs, alpha, beta, dx, w);
+      Helmholtz3DJacobiIterate(temp2, temp , a, b0, b1, b2, rhs, alpha, beta, dx, w);
+      Helmholtz3DJacobiIterate(out  , temp2, a, b0, b1, b2, rhs, alpha, beta, dx, w);
+      i = 3; // set number of iterations done to 3
+
+    }
+
+    // finish up the rest of the iterations
+    // j is a dummy var just to get it to compile
+    for (int j = 0; i < (int) numIters; i += 2) {
+      Helmholtz3DJacobiIterate(temp, out, a, b0, b1, b2, rhs, alpha, beta, dx, w);
+      Helmholtz3DJacobiIterate(out, temp, a, b0, b1, b2, rhs, alpha, beta, dx, w);
+    }
+  }
+}
+
+#endif // HELMHOLTZ3DJACOBI_PBCC

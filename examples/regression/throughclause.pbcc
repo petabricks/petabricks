@@ -1,0 +1,31 @@
+transform ThroughClause
+from IN[w,h] 
+through A[w,h], B[w,h] 
+to OUT 
+{
+  A.cell(x,y) from(B.cell(x,y) i){
+    return i;
+  }
+  A.cell(x,y) from(B.cell(x,y) i){
+    return i;
+  }
+  to(B.cell(x,y) o) from(IN.cell(x,y) i){
+    o=i;
+  }
+  to(B.cell(x,y) o) from(IN.cell(x,y) i){
+    o=i;
+  }
+  to(B.cell(x,y) o) from(IN.cell(x,y) i){
+    o=i;
+  }
+  to(B.cell(x,y) o) from(IN.cell(x,y) i){
+    o=i;
+  }
+  OUT from(A.cell(0,0) i){
+    return i;
+  }
+}
+
+
+
+

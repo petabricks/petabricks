@@ -1,0 +1,20 @@
+
+template < prec(10, 12 ), iters(0, 2) >
+transform Foo from A[n] to B[n]
+tunable tune1(1, 0, 2)
+config config1(11, 10, 12)
+{
+  to(B b) from(A a) {
+    if(prec!=config1 || iters!=tune1)
+      Foo<12, 1>(b,a);
+  }
+}
+
+
+transform Main from A[n] to B[n]
+{
+  B.cell(i) from(A.cell(i) a) { 
+    return a;
+  }
+}
+

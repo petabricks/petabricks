@@ -1,0 +1,94 @@
+#ifndef PRECONDITIONER_PBCC
+#define PRECONDITIONER_PBCC
+
+#include "CG.pbcc"
+#include "PCG.pbcc"
+#include "jacobipre.pbcc"
+#include "polypre.pbcc"
+#include "demv.pbcc"
+#include "ComputeError.pbcc"
+#include "../simple/transpose.pbcc"
+#include "../multiply/multiply.pbcc"
+
+main transform preconditioner
+from X[n], A[n,n], B[n]  // X - initial guess, A - input matrice, B - RHS vector
+through P[n,n]  // P - preconditioner
+to OUT[n]  //,Accuracy
+generator SPDGenerator
+accuracy_metric ResidualNorm
+accuracy_bins 0, 1, 2, 3, 4, 5
+accuracy_variable NumIterations
+{
+	//Jacobi preconditioner
+	to (OUT out, P p) from (X x, A a, B b)
+	{
+		JacobiPre(p,a);
+		PCG(out, x, a, b, p, NumIterations);
+	}
+
+	//Polynomoial preconditioner
+        to (OUT out, P p) from (X x, A a, B b)
+        {
+                PolyPre(p,a);
+                PCG(out, x, a, b, p, NumIterations);
+        }
+
+	//no preconditioner
+	to (OUT out, P p) from (X x, A a, B b)
+	{
+		CG(out, x, a, b, NumIterations);
+	}
+
+//	to (Accuracy acc) from (B b, A a, OUT o)
+//	{
+//		ResidualNorm(acc, b, a, o);
+//	}
+
+}
+
+
+transform SPDGenerator
+to  X[n], A[n,n], B[n]
+through AA[n,n], AT[n,n]
+//from RandA[n,n]
+{
+
+  B.cell(i) from() { return PetabricksRuntime::randDouble(0,100); }
+
+  X.cell(i) from() { return PetabricksRuntime::randDouble(0,100); }
+
+  AA.cell(i,j) from()  { return PetabricksRuntime::randDouble(0,100); }
+
+  to (A a, AT at) from (AA aa)
+  {
+	Transpose(at, aa);
+	MatrixMultiply(a, at, aa);
+  }
+
+}
+
+
+transform ResidualNorm
+from OUT[n], X[n], A[n,n], B[n]
+through AY[n], AX[n],E1,E2
+to Accuracy
+{
+  to (Accuracy acc, AX ax, AY ay, E1 e1, E2 e2) from(B b, A a, X in, OUT out) 
+  { 
+	int i;
+	ElementT error;
+	demv(ax,a,in);
+	demv(ay,a,out);
+	ComputeError(e1,ax,b);
+	ComputeError(e2,ay,b);
+	if (e2 == 0) {
+            acc = std::numeric_limits<double>::max();
+        }
+	else {
+	    acc=log10(e1/e2);
+	}
+  }
+}			
+
+
+#endif // PRECONDITIONER_PBCC

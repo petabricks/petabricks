@@ -1,0 +1,27 @@
+
+transform SubCall
+param n
+to Out[n]
+{
+  Out.cell(i) from() { return i; }
+}
+
+
+transform Main
+param n //an arg on the commandline
+to Out[n,2]
+{
+  to(Out.region(x,y,x+1,y+1) o) from() where y==0 
+  { 
+    //in subcalls, n is determined from the size of o
+    SubCall(o.row(0));
+  }
+  
+  to(Out.row(i) o) from() where i==1 
+  {
+    //in subcalls, n is determined from the size of o
+    SubCall(o);
+  }
+}
+
+

@@ -1,6 +1,6 @@
 AC_INIT([petabricks], [1.99], [jansel@csail.mit.edu])
 
-AC_CONFIG_SRCDIR([src/pbc.cpp])
+AC_CONFIG_SRCDIR([src/compiler/pbc.cpp])
 AC_CANONICAL_TARGET
 
 AM_CONFIG_HEADER([src/config.h])
@@ -15,23 +15,21 @@ fi
 # PROGRAMS ####################################################################
 ################################################################################
 
-AC_DISABLE_SHARED
-AM_PROG_LIBTOOL
-
 AC_LANG_CPLUSPLUS
 AC_PROG_CXX
 AC_PROG_CXXCPP
-AM_PROG_LEX
-AC_PROG_YACC
 AC_PROG_EGREP
+AC_PROG_RANLIB
 
-AC_FUNC_MMAP
-AC_CHECK_FUNCS([backtrace_symbols])
-#AC_CHECK_FUNCS([getdelim getline gettimeofday backtrace_symbols])
+AM_PROG_LEX
+if test "x$ac_cv_prog_LEX" = "x"; then
+  AC_MSG_ERROR([failed to find 'flex' in \$path, try running:`sudo apt-get install flex`.])
+fi
 
-AC_TYPE_UINT32_T
-AC_TYPE_UINT64_T
-
+AC_PROG_YACC
+if test "x$ac_cv_prog_YACC" = "x"; then
+  AC_MSG_ERROR([failed to find 'bison' in \$path, try running:`sudo apt-get install bison`.])
+fi
 
 AC_CHECK_PROG([has_maxima], [maxima], [yes], [no])
 if test "$has_maxima" = "no"; then
@@ -63,18 +61,77 @@ fi
 AC_MSG_RESULT([$rev_long])
 
 
-
 ################################################################################
 # LIBRARIES ####################################################################
 ################################################################################
 
-AC_CHECK_HEADERS([math.h fftw3.h execinfo.h cxxabi.h], [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
+
+AC_FUNC_MMAP
+AC_CHECK_FUNCS([backtrace_symbols])
+
+AC_TYPE_UINT32_T
+AC_TYPE_UINT64_T
+
+AC_CHECK_HEADERS([math.h fftw3.h], [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
+AC_CHECK_HEADERS([openssl/md5.h],  [], [AC_MSG_ERROR([missing package libssl-dev])])
+AC_CHECK_HEADERS([cxxabi.h execinfo.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h sys/mman.h])
+AC_CHECK_LIB([ssl],[MD5],                [], [AC_MSG_ERROR([missing package libssl-dev])])
 AC_CHECK_LIB([m],[cos],                  [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
 AC_CHECK_LIB([fftw3], [fftw_malloc],     [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
 AC_CHECK_LIB([pthread],[pthread_create], [], [AC_MSG_WARN([failed to find -lpthread, some benchmarks may not work])])
 AC_CHECK_LIB([lapack], [dposv_],         [], [AC_MSG_WARN([failed to find -llapack, some benchmarks may not work])])
+AC_CHECK_LIB([rt], [clock_gettime],      [], [AC_DEFINE([USE_GETTIMEOFDAY],[],[define if clock_gettime() doesnt work])])
 #AC_CHECK_LIB([gslcblas],[cblas_dgemm],   [], [AC_MSG_WARN([failed to find -lgslcblas, some benchmarks may not work])]) 
 #AC_CHECK_LIB([gsl],[gsl_blas_dgemm],     [], [AC_MSG_WARN([failed to find -lgsl, some benchmarks may not work])])
+
+################################################################################
+# COMPILER PROPERTIES ##########################################################
+################################################################################
+
+AC_MSG_CHECKING([if compiler supports __thread])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__thread int x;]])],
+                  [  
+                    AC_MSG_RESULT([yes]);
+                    has_threadlocal=yes; 
+                    AC_DEFINE([HAVE_THREADLOCAL],[],[define if __thread works with this compiler])
+                  ],
+                  [  
+                    AC_MSG_RESULT([no]); 
+                    has_threadlocal=no;
+                  ])
+
+AC_MSG_CHECKING([if compiler supports forced inlining])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((always_inline)) __attribute__((flatten)) void foo(){}]])],
+                  [  
+                    AC_DEFINE([INLINE],[inline __attribute__((always_inline)) __attribute__((flatten))], [keyword to force inlining])
+                    AC_MSG_RESULT([yes]);
+                  ],
+                  [  
+                    AC_DEFINE([INLINE],[inline])
+                    AC_MSG_RESULT([no]); 
+                  ])
+
+AC_MSG_CHECKING([if compiler supports __restrict__])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[void foo(int *__restrict__ t);]])],
+                  [  
+                    AC_DEFINE([RESTRICT],[__restrict__], [keyword to indicate non-aliased pointers/refs])
+                    AC_MSG_RESULT([yes]);
+                  ],
+                  [  
+                    AC_DEFINE([RESTRICT],[])
+                    AC_MSG_RESULT([no]); 
+                  ])
+
+AC_MSG_CHECKING([if compiler supports __attribute__])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__attribute__((undefinedabdef)) void foo();]])],
+                  [  
+                    AC_DEFINE([ATTRIBUTE(x)],[__attribute__((x))], [macro for gcc function __attribute__s])
+                    AC_MSG_RESULT([yes]);
+                  ],
+                  [  
+                    AC_DEFINE([ATTRIBUTE(x)],[])
+                    AC_MSG_RESULT([no]); 
+                  ])
 
 ################################################################################
 # DEFINES   ####################################################################
@@ -92,6 +149,7 @@ if test "$use_jassert" = "yes"; then
   if test "`hostname`" = "kleptocracy"; then
     AC_DEFINE([MAXIMA_LOG],[1],[define in order to generate maxima.log, (a log of maxima commands)])
   fi
+  YFLAGS="$YFLAGS -v"
 fi
 
 AC_ARG_ENABLE([unsafe],
@@ -117,41 +175,70 @@ if test "$use_jtiming" = "yes"; then
   AC_DEFINE([TIMING],[],[record timing information to stderr and jtimings.csv])
 fi
 
-AC_DEFINE([MATRIX_ELEMENT_T],  [double],         [type for elements in the matrix])
-AC_DEFINE([MAX_DIMENSIONS],    [64],             [the maximum number of dimensions supported])
-AC_DEFINE([GRACEFUL_ABORT],    [1],              [allow abort without program shutdown (uses exceptions)])
-AC_DEFINE([SHORT_TYPE_NAMES],  [1],              [undefine this if a large number of dimensions are needed, or one wants a cleaner user namespace])
-AC_DEFINE([RUN_CPP],           [1],              [undefine to disable cpp])
-AC_DEFINE([MAX_REC_LEVELS],    [6],              [number of levels for recursive choices])
-AC_DEFINE([INPUT_SIZE_STR],    ["input_count"],  [var name in output code])
-AC_DEFINE([OUTPUT_SIZE_STR],   ["output_count"], [var name in output code])
-AC_DEFINE([SPLIT_CHUNK_SIZE],  ["chunk_size"],   [var name in output code])
-AC_DEFINE([INPUT_PERIMETER_STR], ["_input_perimeter"],   [var name in output code])
-AC_DEFINE([TMPL_IMPL_PFX],     ["_tmpl"],        [prefix for expanded template implementations])
-AC_DEFINE([TX_STATIC_POSTFIX], ["_static"], [postfix for static versions of transforms])
-AC_DEFINE([TX_DYNAMIC_POSTFIX], ["_dynamic"], [postfix for static versions of transforms])
+AC_ARG_ENABLE([allocator],
+            [AS_HELP_STRING([--disable-allocator],
+                            [disable use of the custom memory block allocator])],
+            [use_jalloc=$enableval],
+            [use_jalloc=$has_threadlocal],])
 
-AC_DEFINE([MAX_NUM_WORKERS], [64], [max number of workers supported])
-AC_DEFINE([MIN_NUM_WORKERS], [1 ], [min number of workers supported])
-AC_DEFINE([CACHE_LINE_SIZE], [64], [larges cache line size in system])
+if test "$use_jalloc" = "yes"; then
+  AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
+fi
 
-AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
+AC_DEFINE([ACCIMPROVETRIES],     [3], [number of increments tried with no accuracy improvement])
+AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
+AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for begin coord])
+AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
+AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
+AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])
+AC_DEFINE([HASH_FN],             [MD5], [hash function used for memoization (MD5 or SHA1)])
+AC_DEFINE([HASH_LEN],            [MD5_DIGEST_LENGTH], [length of hash used for memoization (must match HASH_FN)])
+AC_DEFINE([INLINE_NULL_TASKS],   [], [run null tasks immediately when they are enqueued])
+AC_DEFINE([MATRIX_ELEMENT_T],    [double], [type for elements in the matrix])
+AC_DEFINE([MATRIX_INDEX_T],      [int], [type for indices into the matrix])
+AC_DEFINE([MAX_DIMENSIONS],      [64], [the maximum number of dimensions supported])
+AC_DEFINE([MAX_INPUT_BITS],      [32], [the maximum number of dimensions supported])
+AC_DEFINE([MAX_NUM_WORKERS],     [512], [max number of workers supported])
+AC_DEFINE([MAX_REC_LEVELS],      [6], [number of levels for recursive choices])
+AC_DEFINE([MIN_NUM_WORKERS],     [1], [min number of workers supported])
+AC_DEFINE([RETURN_VAL_STR],      ["_pb_rv"], [var name in output code for rule output variable])
+AC_DEFINE([RUN_CPP],             [1], [undefine to disable cpp])
+AC_DEFINE([SHORT_TYPE_NAMES],    [1], [add using namespace petabricks to output])
+AC_DEFINE([SPLIT_CHUNK_SIZE],    ["TRANSFORM_LOCAL(splitsize)"], [var name in output code])
+AC_DEFINE([STEAL_ATTEMPTS_MAINLOOP], [32], [number of times to attempt to steal in mainLoop])
+AC_DEFINE([STEAL_ATTEMPTS_WAITING],  [3], [number of times to attempt to steal in waitUntilComplete])
+AC_DEFINE([TEMPLATE_BIN_STR],    ["_acc_bin"], [var name in output code for accuracy template parameter])
+AC_DEFINE([TIMEOUT_GRACESEC],    [0.2], [Grace period before slow tests are killed])
+AC_DEFINE([TIMEOUTKILLSIG],      [SIGKILL], [Signal used to kill processes that timeout])
+AC_DEFINE([TMPL_IMPL_PFX],       ["_tmpl"], [prefix for expanded template implementations])
+AC_DEFINE([TRANSFORM_N_STR],     ["transform_n"], [define to add a system var to transform scope])
+AC_DEFINE([TX_DYNAMIC_POSTFIX],  ["_dynamic"], [postfix for static versions of transforms])
+AC_DEFINE([TX_STATIC_POSTFIX],   ["_static"], [postfix for static versions of transforms])
+AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files in])
+AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
+AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
+
+AC_DEFINE_UNQUOTED([REVISION_LONG], ["$rev_long"], [git revision for HEAD at the time ./configure was run])
+AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at the time ./configure was run])
+
 
 if false; then
   #disabled by default:
-  AC_DEFINE([JASSERT_LOG],       [],               [log traces to /tmp/jassertlog.pid])
-  AC_DEFINE([DISABLE_CONTINUATIONS],  [],          [don't generate continuation code after SPAWN/enqueue])
-  AC_DEFINE([JALIB_USE_MALLOC],  [1], [Cause the custom allocator to call malloc instead of mmap])
+  AC_DEFINE([DISABLE_CONTINUATIONS], [], [dont generate continuation code after SPAWN/enqueue])
+  AC_DEFINE([INPUT_PERIMETER_STR], ["input_perimeter"], [define to add a system var to transform scope])
+  AC_DEFINE([INPUT_SIZE_STR],     ["input_count"],      [define to add a system var to transform scope])
+  AC_DEFINE([JALIB_USE_MALLOC],      [1],[Cause the custom allocator to call malloc instead of mmap])
+  AC_DEFINE([JASSERT_LOG],           [], [log traces to /tmp/jassertlog.pid])
+  AC_DEFINE([OUTPUT_SIZE_STR],    ["output_count"],     [define to add a system var to transform scope])
+  AC_DEFINE([PBCC_SEQUENTIAL], [], [define to run tasks inline instead of enqueuing them])
+  AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
 fi
-
-AC_DEFINE_UNQUOTED([REVISION_SHORT],  ["$rev_short"],   [git sha1 hash for HEAD at the time ./configure was run])
-AC_DEFINE_UNQUOTED([REVISION_LONG],   ["$rev_long"],    [git sha1 hash for HEAD at the time ./configure was run])
 
 ################################################################################
 # COMPILER FLAGS ###############################################################
 ################################################################################
 
-compileflags=""
+compileflags="-Wall -Wextra"
 linkflags=""
   
 if test "$use_jassert" = "yes"; then
@@ -161,14 +248,14 @@ fi
 if test "$default_cxxflags" = "yes"; then
   if test "$use_jassert" = "yes"; then
     CXXFLAGS=""
-    compileflags="-O0 -g"
+    compileflags="-O0 -g $compileflags -fdiagnostics-show-option"
   else
     CXXFLAGS=""
-    compileflags="-O3"
+    compileflags="-O3 $compileflags"
   fi
-  case $target_cpu in
+  case "$target_cpu" in
     *sparc*) compileflags="$compileflags -mcpu=niagara -mtune=native";;
-    *)       compileflags="$compileflags -march=native";;
+    *)       compileflags="$compileflags -march=native -fno-rtti";;
   esac
 fi
 
@@ -196,5 +283,17 @@ done
 ################################################################################
 ################################################################################
 
-AC_OUTPUT(Makefile src/Makefile src/cxxconfig.h examples/Makefile)
+#pass compiler configuration to config.h
+AC_DEFINE_UNQUOTED([CXX],        ["$CXX"],                  [C++ compiler used by pbc])
+AC_DEFINE_UNQUOTED([CXXCPP],     ["$CXXCPP -x c++"],        [C++ preprocessor used by pbc])
+AC_DEFINE_UNQUOTED([CXXDEFS],    ["$DEFS -DHAVE_CONFIG_H"], [C++ compiler defines used by pbc])
+AC_DEFINE_UNQUOTED([CXXFLAGS],   ["$CXXFLAGS"],             [C++ compiler flags used by pbc])
+AC_DEFINE_UNQUOTED([CXXLDFLAGS], ["$LDFLAGS"],              [C++ compiler link flags used by pbc])
+AC_DEFINE_UNQUOTED([CXXLIBS],    ["$LIBS"],                 [C++ compiler libraries used by pbc])
+
+################################################################################
+################################################################################
+################################################################################
+
+AC_OUTPUT(Makefile src/Makefile)
 

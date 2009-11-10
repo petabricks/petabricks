@@ -1,0 +1,17 @@
+#ifndef DISTANCE_PBCC
+#define DISTANCE_PBCC
+
+transform Distance
+from A[2], B[2]
+to Dis
+{
+  Dis from (A a, B b)
+  {
+        ElementT xdiff, ydiff;
+        xdiff = a.cell(0)-b.cell(0);
+        ydiff = a.cell(1)-b.cell(1);
+        return sqrt(xdiff*xdiff + ydiff*ydiff);
+  }
+}
+
+#endif //DISTANCE_PBCC

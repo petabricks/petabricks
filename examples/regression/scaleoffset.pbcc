@@ -1,0 +1,17 @@
+transform ScaleOffset
+from IN[n,n]
+to R[n,(n+1)/2]
+{
+  // INITIALIZE
+  priority(0) R.cell(i,j) from (IN.cell(i, 2*j    ) in1,
+                                IN.cell(i, 2*j + 1) in2)
+  {
+    return (i % 2 == 0) ? in1 : in2;
+  }
+  priority(1) R.cell(i,j) from(IN.cell(i, 2*j) in1)
+  {
+    return (i % 2 == 0) ? in1 : 0;
+  }
+
+}
+

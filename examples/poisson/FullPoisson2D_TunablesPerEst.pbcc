@@ -1,9 +1,0 @@
-%{
-  JTUNABLEARRAY(CAT(CAT(CAT(full_SORIters_Est, ESTPREC), _Prec), CURPREC), 30, 1);
-  JTUNABLEARRAY(CAT(CAT(CAT(full_prec1Iters_Est, ESTPREC), _Prec), CURPREC), 30, 1);
-  JTUNABLEARRAY(CAT(CAT(CAT(full_prec2Iters_Est, ESTPREC), _Prec), CURPREC), 30, 1);
-  JTUNABLEARRAY(CAT(CAT(CAT(full_prec3Iters_Est, ESTPREC), _Prec), CURPREC), 30, 1);
-  JTUNABLEARRAY(CAT(CAT(CAT(full_prec4Iters_Est, ESTPREC), _Prec), CURPREC), 30, 1);
-  JTUNABLEARRAY(CAT(CAT(CAT(full_prec5Iters_Est, ESTPREC), _Prec), CURPREC), 30, 1);
-%}
-

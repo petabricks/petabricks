@@ -23,48 +23,44 @@ transform SortSubArray
 from IN[n], Pos
 to OUT[n], TEMP[n]
 {
+  //to (OUT out, TEMP temp) from (IN in, Pos p)
+  //{
+  //  Parallel_MergesortSubArray( out, temp, in, p);
+  //}
+
+  rule MergeSort4
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
-    //printf("ms %d\n",n);
-    SPAWN(Parallel_MergesortSubArray, out, temp, in, p);
+    MergesortSubArray4(out, temp, in, p);
   }
 
+  rule MergeSort8
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
-    //printf("ms %d\n",n);
-    SPAWN(MergesortSubArray4,out, temp, in, p);
+    MergesortSubArray8(out, temp, in, p);
   }
 
+  rule MergeSort16
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
-    //printf("ms %d\n",n);
-    SPAWN(MergesortSubArray8,out, temp, in, p);
-  }
-  
-  to (OUT out, TEMP temp) from (IN in, Pos p)
-  {
-    //printf("ms %d\n",n);
-    SPAWN(MergesortSubArray16,out, temp, in, p);
+    MergesortSubArray16(out, temp, in, p);
   }
 
+  rule QuickSort
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
-    //printf("qs %d\n",n);
-    SPAWN(QuicksortSubArray,out, temp, in, p);
+    QuicksortSubArray(out, temp, in, p);
   }
 
+  rule RadixSort
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
-    //printf("rs %d\n",n);
-    SPAWN(RadixsortSubArray,out, temp, in, p);
+    RadixsortSubArray(out, temp, in, p);
   }
 
+  rule InsertionSort
   to (OUT out, TEMP temp) from (IN in)
   {
-    //printf("is %d\n",n);
-    if (n > 3000) {
-      PetabricksRuntime::abort();
-    }
     InsertionsortSubArray(out, in);
   }
 }

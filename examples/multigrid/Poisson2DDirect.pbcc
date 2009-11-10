@@ -1,0 +1,121 @@
+#ifndef POISSON2DDIRECT_PBCC
+#define POISSON2DDIRECT_PBCC
+
+%{
+
+extern "C" void dpbsv_(char *uplo, int *n, int *kd, int *nrhs, double *A, int *lda, double *B, int *ldb, int *info);
+
+void displayMatrix(double *A, int h, int w)
+{
+  for (int i = 0; i < h; i++) {
+    for (int j = 0; j < w; j++) {
+      printf("%3g", A[j * h + i]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
+%}
+
+transform Poisson2DDirectInterior
+from B[n,n]
+to OUT[n,n]
+{
+
+  to (OUT out) from (B b)
+  {
+    char uplo = 'L';
+    int kd = n, kdp1 = n + 1, nrhs = 1, nSquared = n * n, info = 0;
+
+    // allocate solver matrix and RHS/solution vector
+    double *A = new double[nSquared * (n + 1)];
+    double *bFlat = new double[nSquared];
+    if (!A || !bFlat) {
+      // TODO: fix this error handler
+      printf("Error allocating memory!\n");
+      exit(-1);
+    }
+
+    // initialize solver matrix
+    int idx = 0;
+    for (int k = 0; k < n; k++) {
+      for (int j = 0; j < n - 1; j++) {
+        A[idx++] = 4;
+        A[idx++] = -1;
+        for (int i = 2; i < n; i++) {
+          A[idx++] = 0;
+        }
+        A[idx++] = -1;
+      }
+      // last column of block is different
+      A[idx++] = 4;
+      for (int i = 1; i < n; i++) {
+        A[idx++] = 0;
+      }
+      A[idx++] = -1;
+    }
+
+//    displayMatrix(A, n + 1, nSquared);
+
+    // intialize flat RHS/solution vector
+    int index = 0;
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        bFlat[index++] = b.cell(i, j);
+      }
+    }
+
+    // call LAPACK to do linear solve
+    dpbsv_(&uplo, &nSquared, &kd, &nrhs, A, &kdp1, bFlat, &nSquared, &info);
+
+    // copy solution to output
+    index = 0;
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        out.cell(i, j) = bFlat[index++];
+      }
+    }
+
+    delete [] A;
+    delete [] bFlat;
+  }
+
+}
+
+transform Poisson2DDirect
+from IN[n+2,n+2], B[n+2,n+2]
+through BTEMP[n,n]
+to OUT[n+2,n+2]
+{
+  BTEMP.cell(i,j) from(B.cell(i + 1, j + 1) b,
+                       IN.cell(i, j + 1) no,
+                       IN.cell(i + 2, j + 1) so,
+                       IN.cell(i + 1, j) we,
+                       IN.cell(i + 1, j + 2) ea)
+  {
+    double result = b;
+    if (i == 0) result += no;
+    if (i == n - 1) result += so;
+    if (j == 0) result += we;
+    if (j == n - 1) result += ea;
+    return result;
+  }
+
+  primary to (OUT.region(1,1,n+1,n+1) o) from (BTEMP b)
+  {
+    if (n == 1) {
+      o.cell(0, 0) = b.cell(0,0) / 4;
+    } else {
+      Poisson2DDirectInterior(o, b);
+    }
+  }
+
+  secondary OUT.cell(i,j) from (IN.cell(i,j) x)
+  {
+    return x;
+  }
+}
+
+#endif // POISSON2DDIRECT_PBCC
+
