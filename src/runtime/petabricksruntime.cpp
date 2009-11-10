@@ -123,6 +123,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   , _randSize(-1)
   , _rv(0)
 {
+  JTIMER_SCOPE(init);
   if(m) _mainName = m->name();
   jalib::JArgs args(argc, argv);
 
@@ -154,7 +155,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   if(! args.param("fixedrandom").help("don't seed the random number generator")){
     srand48(jalib::JTime::now().usec());
   }
-  
+
   args.param("accuracy",  ACCURACY).help("print out accuracy of answer");
   args.param("time",      DUMPTIMING).help("print timing results in xml format");
   args.param("force-output", FORCEOUTPUT).help("also write copies of outputs to stdout");
@@ -226,11 +227,27 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("retries",   RETRIES).help("times to retry on test failure");
 
   args.finishParsing(txArgs);
-  
-  //startup requested number of threads
-  if(MODE!=MODE_GRAPH_THREADS && MODE!=MODE_ABORT){
-    JASSERT(worker_threads>=1)(worker_threads);
-    DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
+
+  switch(MODE){
+    case MODE_RUN_RANDOM:
+    case MODE_GRAPH_INPUTSIZE:
+    case MODE_GRAPH_PARAM:
+    case MODE_GRAPH_THREADS:
+    case MODE_AUTOTUNE_GENETIC:
+    case MODE_AUTOTUNE_PARAM:
+      if(ISOLATION)
+        break;
+      //fall through
+    case MODE_RUN_IO:
+      //startup requested number of threads
+      if(MODE!=MODE_GRAPH_THREADS && MODE!=MODE_ABORT){
+        JTIMER_SCOPE(startworkers);
+        JASSERT(worker_threads>=1)(worker_threads);
+        DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
+      }
+    case MODE_ABORT:
+    case MODE_HELP:
+      break;
   }
 
   if(MODE==MODE_HELP){
@@ -261,6 +278,7 @@ void petabricks::PetabricksRuntime::saveConfig()
 
 
 int petabricks::PetabricksRuntime::runMain(){
+  JTIMER_SCOPE(runMain);
   switch(MODE){
     case MODE_RUN_IO:
       runNormal();
@@ -517,6 +535,7 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti, int
     variableAccuracyTrainingLoop(ti);
   }
   if(n>0){
+    JTIMER_SCOPE(randomize);
     JASSERT(n==_randSize);
     ti.disableTimeout();
     _main->deallocate();
