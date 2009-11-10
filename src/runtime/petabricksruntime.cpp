@@ -38,10 +38,11 @@ static int GRAPH_MAX=4096;
 static double GRAPH_MAX_SEC=std::numeric_limits<double>::max();
 static int  GRAPH_STEP=1;
 static bool GRAPH_EXP=false;
-static int  GRAPH_TRIALS=1;
-static int  GRAPH_SMOOTHING=0;
-static int  RETRIES=3;
-static int  SEARCH_BRANCH_FACTOR=8;
+static int GRAPH_TRIALS=1;
+static int GRAPH_SMOOTHING=0;
+static int RETRIES=3;
+static int SEARCH_BRANCH_FACTOR=8;
+static int ACCTRIALS=3;
 static bool DUMPTIMING=false;
 static bool ACCURACY=false;
 static bool FORCEOUTPUT=false;
@@ -212,6 +213,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("autotune-tunable",   autotunecutoffs).help("additional cutoff tunables to tune in --autotune mode");
   args.param("autotune-log",   ATLOG).help("log autotuner actions to given filename prefix");
   args.param("acctrain",  ACCTRAIN).help("retrain for accuracy requirements in -n mode");
+  args.param("acctrials", ACCTRIALS).help("number of tests to run when setting accuracy variabls");
   args.param("min",       GRAPH_MIN).help("minimum input size for graph/autotuning");
   args.param("max",       GRAPH_MAX).help("maximum input size for graph/autotuning");
   args.param("step",      GRAPH_STEP).help("step size for graph/autotuning");
@@ -511,15 +513,16 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
 }
   
 void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti, int n, double&  time, double&  acc){
+  if(_isTrainingRun && _main->isVariableAccuracy()){
+    variableAccuracyTrainingLoop(ti);
+  }
   if(n>0){
+    JASSERT(n==_randSize);
     ti.disableTimeout();
     _main->deallocate();
     _main->reallocate(n);
     _main->randomize();
     ti.restartTimeout();
-  }
-  if(_isTrainingRun && _main->isVariableAccuracy()){
-    variableAccuracyTrainingLoop(ti);
   }
   _needTraingingRun = false;//reset flag set by isTrainingRun()
   _isRunning = true;
@@ -540,6 +543,30 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti, int
 }
   
 void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& ti){
+  ti.disableTimeout();
+  TunableListT tunables = _main->accuracyVariables(_randSize);
+  std::vector<int> itersNeeded;
+
+  for(int z=0; z<ACCTRIALS; ++z){
+    reallocate();
+    _main->randomize();
+    int i=variableAccuracyTrainingLoopInner(ti);
+    if(i>0) itersNeeded.push_back(i);
+  }
+
+  if(itersNeeded.empty())
+    abort();
+
+  std::sort(itersNeeded.begin(), itersNeeded.end());
+  
+  //median
+  int i= itersNeeded[ (itersNeeded.size()+1)/2 ];
+
+  tunables.resetMinAll(i);
+  reallocate();
+  ti.restartTimeout();
+}
+int petabricks::PetabricksRuntime::variableAccuracyTrainingLoopInner(TestIsolation& ti){
   typedef MATRIX_ELEMENT_T ElementT;
   ElementT best   = jalib::minval<ElementT>();
   ElementT target = _main->accuracyTarget();
@@ -548,7 +575,7 @@ void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& 
   tunables.resetMinAll(1);
   int triesLeft = 0;
 
-  for(int i=0; true;++i){
+  for(int i=1; true;++i){
     reallocate();
     _isRunning = true;
     ti.restartTimeout();
@@ -558,7 +585,7 @@ void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& 
     ElementT cur = _main->accuracy();
     if(cur >= target){
       JTRACE("training goal reached")(i)(cur)(target);
-      return;
+      return i;
     }
     if(cur>best){
       //improvement
@@ -578,8 +605,9 @@ void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& 
   //failure if we reach here, reset tunables and abort
   tunables.resetMinAll(0);
   reallocate();
-  abort();
+  return 0;
 }
+
 
 
 double petabricks::PetabricksRuntime::optimizeParameter(const std::string& param){

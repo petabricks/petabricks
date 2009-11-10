@@ -159,6 +159,7 @@ public:
   
   
   void variableAccuracyTrainingLoop(TestIsolation& ti);
+  int variableAccuracyTrainingLoopInner(TestIsolation& ti);
 
   class ComputeRetryException {};
 

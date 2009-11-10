@@ -341,6 +341,7 @@ def main(argv):
   parser.add_option("-c", "--config", dest="config", default=None)
   parser.add_option("--noisolation", action="store_true", dest="noisolation", default=False)
   parser.add_option("--print", action="store_true", dest="justprint", default=False)
+  parser.add_option("--acctrials", type="int", dest="acctrials", default=None)
   options,args = parser.parse_args()
 
   if len(args) != 1:
@@ -364,6 +365,10 @@ def main(argv):
 
   if options.noisolation:
     defaultArgs.append("--noisolation")
+
+  if options.acctrials is not None:
+    defaultArgs.append("--acctrials=%d"%options.acctrials)
+
 
   getIgnoreList()
 
