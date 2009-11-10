@@ -17,6 +17,7 @@
 
 #include <vector>
 #include <unistd.h>
+#include <stdio.h>
 
 namespace petabricks {
   class TestIsolation {
