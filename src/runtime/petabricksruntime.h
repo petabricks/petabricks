@@ -16,6 +16,7 @@
 #include "common/jtunable.h"
 
 #include <float.h>
+#include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <string>
@@ -172,7 +173,14 @@ public:
     return (drand48()*(max-min)) + min;
   }
 
-
+  static double randNormal(double mean, double sigma){
+    //formaula taken from boost
+    //TODO: link with and call boost directly
+    double r1 = randDouble(0,1);
+    double r2 = randDouble(0,1);
+    double pi =  3.14159265358979323846;
+    return sqrt(-2.0 * log(1.0-r2)) * cos(2.0*pi*r1) * sigma + mean;
+  }
 protected:
   void reallocate() { _main->reallocate(_randSize); }
 
