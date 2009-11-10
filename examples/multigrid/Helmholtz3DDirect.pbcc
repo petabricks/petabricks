@@ -2,7 +2,7 @@
 #define HELMHOLTZ3DDIRECT_PBCC
 
 // use up to this much memory for the solver matrix
-#define MAX_MEMORY 500000000 // 500 MB
+#define MAX_MEMORY 1000000000 // 1 GB
 
 // macro for translating regular 2D matrix index (col-major) into 
 // LAPACK packed storage index

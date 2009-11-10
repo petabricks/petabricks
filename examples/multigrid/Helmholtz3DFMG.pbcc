@@ -85,9 +85,9 @@ generator HELMHOLTZ3D_GENERATOR
 
         int level = (int) log2(n);
 
-        // for level greater than 8, just abort since
+        // for level greater than 5, just abort since
         // this will likely be slow and not the best choice
-        if (level > 8) {
+        if (level > 5) {
             PetabricksRuntime::abort();
         }
 
@@ -107,9 +107,9 @@ generator HELMHOLTZ3D_GENERATOR
 
         int level = (int) log2(n);
 
-        // for level greater than 8, just abort since
+        // for level greater than 5, just abort since
         // this will likely be slow and not the best choice
-        if (level > 8) {
+        if (level > 5) {
             PetabricksRuntime::abort();
         }
 
