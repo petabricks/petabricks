@@ -234,6 +234,9 @@
 /* add using namespace petabricks to output */
 #undef SHORT_TYPE_NAMES
 
+/* define to use a global sequential cutoff instead of a per-transform one */
+#undef SINGLE_SEQ_CUTOFF
+
 /* var name in output code */
 #undef SPLIT_CHUNK_SIZE
 

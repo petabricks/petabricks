@@ -5202,6 +5202,9 @@ $as_echo "#define RUN_CPP 1" >>confdefs.h
 $as_echo "#define SHORT_TYPE_NAMES 1" >>confdefs.h
 
 
+$as_echo "#define SINGLE_SEQ_CUTOFF 1" >>confdefs.h
+
+
 $as_echo "#define SPLIT_CHUNK_SIZE \"TRANSFORM_LOCAL(splitsize)\"" >>confdefs.h
 
 
@@ -5239,6 +5242,7 @@ $as_echo "#define UTIL_SEARCH_DIR_B \"scripts\"" >>confdefs.h
 
 
 $as_echo "#define WORKERTHREAD_ONDECK /**/" >>confdefs.h
+
 
 
 
