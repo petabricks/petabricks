@@ -27,6 +27,13 @@
 #include <iostream>
 #include <math.h>
 
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+#ifdef HAVE_BOOST_RANDOM_HPP
+#  include <boost/random.hpp>
+#endif
 
 static bool _isRunning = false;
 static bool _isTrainingRun = false;
@@ -51,6 +58,26 @@ static bool ISOLATION=true;
 static int OFFSET=0;
 std::vector<std::string> txArgs;
 static std::string ATLOG;
+
+
+#ifdef HAVE_BOOST_RANDOM_HPP
+static boost::lagged_fibonacci607 theRandomGen;
+#endif
+
+static void _seedRandom(){
+  srand48(jalib::JTime::now().usec());
+#ifdef HAVE_BOOST_RANDOM_HPP
+  theRandomGen.seed(jalib::JTime::now().usec());
+#endif
+}
+
+double petabricks::PetabricksRuntime::rand01(){
+#ifdef HAVE_BOOST_RANDOM_HPP
+  return theRandomGen();
+#else
+  return drand48()
+#endif
+}
 
 
 static int _incN(int n){
@@ -152,9 +179,8 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   }
   
   //seed the random number generator 
-  if(! args.param("fixedrandom").help("don't seed the random number generator")){
-    srand48(jalib::JTime::now().usec());
-  }
+  if(! args.param("fixedrandom").help("don't seed the random number generator"))
+    _seedRandom();
 
   args.param("accuracy",  ACCURACY).help("print out accuracy of answer");
   args.param("time",      DUMPTIMING).help("print timing results in xml format");

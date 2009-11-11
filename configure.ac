@@ -75,6 +75,7 @@ AC_TYPE_UINT64_T
 AC_CHECK_HEADERS([math.h fftw3.h], [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
 AC_CHECK_HEADERS([openssl/md5.h],  [], [AC_MSG_ERROR([missing package libssl-dev])])
 AC_CHECK_HEADERS([cxxabi.h execinfo.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h sys/mman.h])
+AC_CHECK_HEADERS([boost/random.hpp], [], [AC_MSG_WARN([missing boost/random, falling back to slower random number generation])])
 AC_CHECK_LIB([ssl],[MD5],                [], [AC_MSG_ERROR([missing package libssl-dev])])
 AC_CHECK_LIB([m],[cos],                  [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
 AC_CHECK_LIB([fftw3], [fftw_malloc],     [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])

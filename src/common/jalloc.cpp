@@ -90,13 +90,15 @@ INLINE void* _default_reallocate(void* ptr, size_t oldn, size_t newn){
 
 void* jalib::JAllocRaw::allocate(size_t n) {
 #if defined(JALIB_USE_MALLOC) || !defined(HAVE_MMAP) || !defined(JALIB_ALLOCATOR)
-  return malloc(n);
+  void* p = malloc(n);
+  if(p==0)
+    perror("malloc: ");
 #else
   void* p = mmap(NULL, n, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
   if(p==MAP_FAILED)
     perror("_alloc_raw: ");
-  return p;
 #endif
+  return p;
 }
 
 void jalib::JAllocRaw::deallocate(void* ptr, size_t n) {
@@ -275,10 +277,19 @@ void* operator new(size_t nbytes){
   return p;
 }
 
+void* operator new[](size_t nbytes){
+  return operator new(nbytes);
+}
+
 void operator delete(void* _p){
+  if(_p==0) return;
   size_t* p = (size_t*) _p;
   p-=1;
   jalib::JAlloc::deallocate(p, *p+sizeof(size_t));
+}
+
+void operator delete[](void* _p){
+  operator delete(_p);
 }
 
 #else
