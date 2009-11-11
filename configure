@@ -4659,6 +4659,21 @@ fi
 
 done
 
+for ac_header in boost/random.hpp
+do :
+  ac_fn_cxx_check_header_mongrel "$LINENO" "boost/random.hpp" "ac_cv_header_boost_random_hpp" "$ac_includes_default"
+if test "x$ac_cv_header_boost_random_hpp" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_BOOST_RANDOM_HPP 1
+_ACEOF
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: missing boost/random, falling back to slower random number generation" >&5
+$as_echo "$as_me: WARNING: missing boost/random, falling back to slower random number generation" >&2;}
+fi
+
+done
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for MD5 in -lssl" >&5
 $as_echo_n "checking for MD5 in -lssl... " >&6; }
 if test "${ac_cv_lib_ssl_MD5+set}" = set; then :

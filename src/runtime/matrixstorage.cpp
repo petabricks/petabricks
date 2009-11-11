@@ -11,20 +11,15 @@
  ***************************************************************************/
 #include "matrixstorage.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
+#include "petabricksruntime.h"
 
 MATRIX_ELEMENT_T petabricks::MatrixStorage::rand(){
-  return (2.0*drand48()-1.0)*4294967296.0;
+  return petabricks::PetabricksRuntime::randDouble(-2147483648, 2147483648);
 }
 
 void petabricks::MatrixStorage::randomize(){
   for(int i=0;i<_count; ++i){
-    _data[i] = rand();
+    _data[i] = MatrixStorage::rand();
   }
 }
 

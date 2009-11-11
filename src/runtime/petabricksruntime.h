@@ -22,7 +22,6 @@
 #include <string>
 #include <vector>
 
-
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
@@ -164,20 +163,20 @@ public:
 
   class ComputeRetryException {};
 
+  static double rand01();
   static int randInt(int min=0, int max=RAND_MAX){
     if(min==max) return min;
     return (lrand48()%(max-min)) + min;
   }
   static double randDouble(double min=0, double max=std::numeric_limits<int>::max()){
     if(min==max) return min;
-    return (drand48()*(max-min)) + min;
+    return (rand01()*(max-min)) + min;
   }
-
   static double randNormal(double mean, double sigma){
     //formaula taken from boost
     //TODO: link with and call boost directly
-    double r1 = randDouble(0,1);
-    double r2 = randDouble(0,1);
+    double r1 = rand01();
+    double r2 = rand01();
     double pi =  3.14159265358979323846;
     return sqrt(-2.0 * log(1.0-r2)) * cos(2.0*pi*r1) * sigma + mean;
   }
