@@ -17,7 +17,7 @@ from IN[n,n]
 through Lambda[2*n], X[2*n,2*n], U[n,n], VT[n,n], H[2*n,2*n], TEMP[n,n]
 to OUT[n,n]
 accuracy_metric Norm
-accuracy_bins 0, 0.2, 0.4, 0.6, 0.8, 1
+accuracy_bins 0, 1, 2, 3, 4, 5
 accuracy_variable k(1,1) //min=1, initial=1
 generator matrixapproinputgen
 {
@@ -38,7 +38,7 @@ generator matrixapproinputgen
 
 	// find only the k eigenvalues/eigenvectors by Bisection method
 	to (Lambda lam, X x) from (H h) {
-//	        if (k>=n)  PetabricksRuntime::abort(); 
+	        if (k>=n)  PetabricksRuntime::abort(); 
 		Bisection(lam,x,h,k);
 	}
 
@@ -64,7 +64,7 @@ generator matrixapproinputgen
 
 	to (OUT out, TEMP temp) from (U u, VT vt){
 		int i;
-//		if (k>=n)  PetabricksRuntime::abort(); 
+		if (k>=n)  PetabricksRuntime::abort(); 
 		MatrixMultiply(out, u.region(0,0,1,n), vt.region(0,0,n,1) );
 		for (i=1; i<k; i++) { 
 			//MatrixAdd(out, out, MatrixMultiply(u.region(i,0,i+1,n), vt.region(0,i,n,i+1)) );
@@ -74,23 +74,47 @@ generator matrixapproinputgen
 	} 
 }
 
+
+transform ComputeError
+from A[w,h], B[w,h]
+to Error
+{
+  Error from (A a, B b)
+  {
+    int i, j;
+    double temp, sum = 0;
+    for (j = 0; j < h; j++) {
+      for (i = 0; i < w; i++) {
+        temp = a.cell(i, j) - b.cell(i, j);
+        sum += temp * temp;
+      }
+    }
+    return sqrt(sum / (w * h));
+  }
+}
+
 transform Norm
 from OUT[n,n], IN[n,n]
+through ZERO[n,n]
 to Accuracy
 {
+	ZERO.cell(i,j) from() { return 0;}
+
 	//accuracy measure
-	Accuracy  from(IN in, OUT out) 
+	Accuracy  from(IN in, OUT out, ZERO Z) 
 	{
 		int i;
 		int j;
-		ElementT sum=0;
-		for (i=0; i<n; i++) {
-			for (j=0; j<n; j++) {
-				sum+=fabs(in.cell(i,j)-out.cell(i,j));
-			}
-		}
-		sum=sum/n/n;
-		return -log10(sum);
+		double e1;
+		double e2;
+		ComputeError(e1, Z, in);
+		ComputeError(e2, out, in);
+		if (e2 == 0) {
+            		return std::numeric_limits<double>::max();
+        	}
+        	else {
+            		return log10(e1/e2);
+        	}
 	}
 			
 }

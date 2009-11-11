@@ -446,6 +446,7 @@ void petabricks::PetabricksRuntime::runGraphMode(){
     double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
     if(avg<std::numeric_limits<double>::max())
       printf("%d %.6f\n", _randSize, avg);
+    fflush(stdout);
     if(avg > GRAPH_MAX_SEC) break;
   }
 }
@@ -460,6 +461,7 @@ void petabricks::PetabricksRuntime::runGraphParamMode(const std::string& param){
     double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
     if(avg<std::numeric_limits<double>::max())
       printf("%d %.6lf\n", n, avg);
+    fflush(stdout);
     if(avg > GRAPH_MAX_SEC) break;
   }
 }
@@ -473,6 +475,7 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
     double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
     if(avg<std::numeric_limits<double>::max())
       printf("%d %.6lf\n", n, avg);
+    fflush(stdout);
     if(avg > GRAPH_MAX_SEC) break;
   }
 }
