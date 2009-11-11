@@ -48,7 +48,7 @@ substderr=open("/dev/null","w")
 def goodtimelimit():
   if options.maxsec>0:
     return options.maxsec
-  return 1.0+reduce(min, results, 1)
+  return 1.0+reduce(min, results, 3600*24*7)
 
 def mkcmd(args):
   t=[pbutil.benchmarkToBin(app)]

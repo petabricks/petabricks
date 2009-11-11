@@ -18,7 +18,7 @@ MATRIX_ELEMENT_T petabricks::MatrixStorage::rand(){
 }
 
 void petabricks::MatrixStorage::randomize(){
-  for(int i=0;i<_count; ++i){
+  for(size_t i=0;i<_count; ++i){
     _data[i] = MatrixStorage::rand();
   }
 }
