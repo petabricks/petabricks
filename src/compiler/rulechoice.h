@@ -49,7 +49,8 @@ public:
                           , ScheduleNode& node
                           , const SimpleRegionPtr& region
                           , CodeGenerator& o
-                          , const std::string& tpfx);
+                          , const std::string& tpfx
+                          , int levelOffset = 0);
   
   const RuleSet& rules() const { return _rules; }
 
@@ -57,8 +58,9 @@ public:
 
   std::string processCondition(const std::string& name, const FormulaPtr& f, const std::string& choicename, CodeGenerator& o);
 
-
   int level() const { return 1+(_next?_next->level():0); }
+
+  bool hasCondition() const { return _condition; }
 private: 
   ///
   /// Rule to invoke
