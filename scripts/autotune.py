@@ -378,8 +378,8 @@ def main(argv):
     print "Cannot parse:", pbutil.benchmarkToInfo(app)
     sys.exit(-1)
 
-  print "Reseting config entries"
-  reset()
+ #print "Reseting config entries"
+ #reset()
 
   #build index of transforms
   for t in infoxml.getElementsByTagName("transform"):
@@ -400,16 +400,16 @@ def main(argv):
   if options.n <= 0:
     tasks.append(TuneTask("determineInputSizes", determineInputSizes))
     
-  if not options.justprint:
-    tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
+ #if not options.justprint:
+ #  tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
 
   #build list of tasks
   if not options.fast:
     walkCallTree(maintx, lambda tx, depth, loops: enqueueAutotuneCmds(tx, maintx, 1, depth, loops))
   walkCallTree(maintx, lambda tx, depth, loops: enqueueAutotuneCmds(tx, maintx, 2, depth, loops))
   
-  if not options.justprint:
-    tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
+ #if not options.justprint:
+ #  tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
 
   progress.status("autotuning")
 

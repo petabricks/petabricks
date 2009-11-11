@@ -438,8 +438,12 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
     o.write("return NULL;");
     o.endIf();
   }
+#ifndef SINGLE_SEQ_CUTOFF
   o.createTunable(true, "system.cutoff.sequential", _name + "_sequentialcutoff", 0);
   o.beginIf(TRANSFORM_N_STR "() < TRANSFORM_LOCAL(sequentialcutoff)");
+#else
+  o.beginIf(TRANSFORM_N_STR "() < sequentialcutoff");
+#endif
   o.write("runStatic();");
   o.write("return NULL;");
   o.endIf();

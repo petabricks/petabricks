@@ -204,6 +204,7 @@ AC_DEFINE([MIN_NUM_WORKERS],     [1], [min number of workers supported])
 AC_DEFINE([RETURN_VAL_STR],      ["_pb_rv"], [var name in output code for rule output variable])
 AC_DEFINE([RUN_CPP],             [1], [undefine to disable cpp])
 AC_DEFINE([SHORT_TYPE_NAMES],    [1], [add using namespace petabricks to output])
+AC_DEFINE([SINGLE_SEQ_CUTOFF],   [1], [define to use a global sequential cutoff instead of a per-transform one])
 AC_DEFINE([SPLIT_CHUNK_SIZE],    ["TRANSFORM_LOCAL(splitsize)"], [var name in output code])
 AC_DEFINE([STEAL_ATTEMPTS_MAINLOOP], [32], [number of times to attempt to steal in mainLoop])
 AC_DEFINE([STEAL_ATTEMPTS_WAITING],  [3], [number of times to attempt to steal in waitUntilComplete])
@@ -217,6 +218,7 @@ AC_DEFINE([TX_STATIC_POSTFIX],   ["_static"], [postfix for static versions of tr
 AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files in])
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
+
 
 AC_DEFINE_UNQUOTED([REVISION_LONG], ["$rev_long"], [git revision for HEAD at the time ./configure was run])
 AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at the time ./configure was run])
