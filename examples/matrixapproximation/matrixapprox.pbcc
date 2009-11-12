@@ -17,7 +17,7 @@ from IN[n,n]
 through Lambda[2*n], X[2*n,2*n], U[n,n], VT[n,n], H[2*n,2*n], TEMP[n,n]
 to OUT[n,n]
 accuracy_metric Norm
-accuracy_bins 0, 1, 2, 3, 4, 5
+accuracy_bins 0, 0.3, 0.6, 0.8, 1, 1.5, 2
 accuracy_variable k(1,1) //min=1, initial=1
 generator matrixapproinputgen
 {
