@@ -1,5 +1,5 @@
-#ifndef PRECONDITIONER_PBCC
-#define PRECONDITIONER_PBCC
+#ifndef POISSONPRECOND_PBCC
+#define POISSONPRECOND_PBCC
 
 #include "CG.pbcc"
 #include "PCG.pbcc"
@@ -10,15 +10,16 @@
 #include "../simple/transpose.pbcc"
 #include "../multiply/multiply.pbcc"
 
-main transform preconditioner
+main transform poissonprecond	
 from X[n], A[n,n], B[n]  // X - initial guess, A - input matrice, B - RHS vector
 through P[n,n]  // P - preconditioner
-to OUT[n]  //,Accuracy
-generator SPDGenerator
+to OUT[n] //,Accuracy
+generator PoissonGenerator
 accuracy_metric ResidualNorm
 accuracy_bins 0, 1, 2, 3, 4, 5
 accuracy_variable NumIterations
 {
+
 	//Jacobi preconditioner
 	to (OUT out, P p) from (X x, A a, B b)
 	{
@@ -39,34 +40,28 @@ accuracy_variable NumIterations
 		CG(out, x, a, b, NumIterations);
 	}
 
-//	to (Accuracy acc) from (B b, A a, OUT o)
-//	{
-//		ResidualNorm(acc, b, a, o);
-//	}
-
 }
 
 
-transform SPDGenerator
+transform PoissonGenerator
 to  X[n], A[n,n], B[n]
-through AA[n,n], AT[n,n]
-//from RandA[n,n]
 {
 
   B.cell(i) from() { return PetabricksRuntime::randDouble(0,100); }
 
-  X.cell(i) from() 
-  { 
-	//return PetabricksRuntime::randDouble(0,100);
-	return 0; //initial guess is 0
-  }
+  X.cell(i) from() { return 0; }
 
-  AA.cell(i,j) from()  { return PetabricksRuntime::randDouble(0,100); }
-
-  to (A a, AT at) from (AA aa)
+  to (A a) from()
   {
-	Transpose(at, aa);
-	MatrixMultiply(a, at, aa);
+	int i,j;
+	for (i=0; i<n; i++) {
+		for (j=0; j<n; j++) {
+			if (i== j) {  a.cell(i,j) = 2; }
+			else if (i==j+1) { a.cell(i,j) = -1;}
+			else if (j==i+1) { a.cell(i,j) = -1;}
+			else { a.cell(i,j) = 0; }
+		}
+	}
   }
 
 }
@@ -95,4 +90,4 @@ to Accuracy
 }			
 
 
-#endif // PRECONDITIONER_PBCC
+#endif // POISSONPRECOND_PBCC
