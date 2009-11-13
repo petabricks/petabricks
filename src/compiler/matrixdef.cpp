@@ -112,11 +112,14 @@ void petabricks::MatrixDef::verifyDefines(CodeGenerator& o){
 void petabricks::MatrixDef::allocateTemporary(CodeGenerator& o, bool setOnly, bool reallocAllowed){
   if(!setOnly)
     o.addMember(matrixTypeName(), name(), "");
-  if(reallocAllowed){
-    o.write(name()+"="+name()+".reallocate("+_size.toString()+");");
-  }else{
-    o.write(name()+" = "+matrixTypeName()+"::allocate("+_size.toString()+");");
-  }
+
+  if(reallocAllowed)
+    o.beginIf("!"+name()+".isSize("+_size.toString()+")");
+
+  o.write(name()+" = "+matrixTypeName()+"::allocate("+_size.toString()+");");
+
+  if(reallocAllowed)
+    o.endIf();
 }
 
 void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn){

@@ -34,6 +34,7 @@ public:
     SYM_TYPE_MATRIX,
     SYM_TRANSFORM          = 0x2000,
     SYM_TRANSFORM_TEMPLATE,
+    SYM_TRANSFORM_VARACCURACY,
     SYM_CONFIG             = 0x4000,
     SYM_CONFIG_TRANSFORM_LOCAL, 
     SYM_CONFIG_PASSED, 
@@ -51,6 +52,7 @@ public:
   bool isType() const { return (_type & SYM_TYPE) != 0; }
   bool isConfig() const { return (_type & SYM_CONFIG) != 0; }
   bool isTransform() const { return (_type & SYM_TRANSFORM) != 0; }
+  bool isTemplateTransform() const { return _type == SYM_TRANSFORM_TEMPLATE || _type==SYM_TRANSFORM_VARACCURACY; }
 
   bool hasReplacement() const { return _replacement.length()>0; } 
   const std::string& replacement() const { return _replacement; }

@@ -1,0 +1,92 @@
+#ifndef POISSONPRECOND_PBCC
+#define POISSONPRECOND_PBCC
+
+#include "CG.pbcc"
+#include "PCG.pbcc"
+#include "jacobipre.pbcc"
+#include "polypre.pbcc"
+#include "demv.pbcc"
+#include "ComputeError.pbcc"
+#include "../simple/transpose.pbcc"
+#include "../multiply/multiply.pbcc"
+
+main transform poissonprecond	
+from X[n], A[n,n], B[n]  // X - initial guess, A - input matrice, B - RHS vector
+through P[n,n]  // P - preconditioner
+to OUT[n] //,Accuracy
+generator PoissonGenerator
+accuracy_metric ResidualNorm
+accuracy_bins 0, 1, 2, 3, 4, 5
+accuracy_variable NumIterations
+{
+
+	//Jacobi preconditioner
+	to (OUT out) from (X x, A a, B b)
+	{
+		JacobiPre(out, x, a, b, NumIterations);
+	}
+
+	//Polynomoial preconditioner
+        to (OUT out, P p) from (X x, A a, B b)
+        {
+                PolyPre(p,a);
+                PCG(out, x, a, b, p, NumIterations);
+        }
+
+	//no preconditioner
+	to (OUT out) from (X x, A a, B b)
+	{
+		CG(out, x, a, b, NumIterations);
+	}
+
+}
+
+
+transform PoissonGenerator
+to  X[n], A[n,n], B[n]
+{
+
+  B.cell(i) from() { return PetabricksRuntime::randDouble(); }
+
+  X.cell(i) from() { return 0; }
+
+  to (A a) from()
+  {
+	int i,j;
+	for (i=0; i<n; i++) {
+		for (j=0; j<n; j++) {
+			if (i== j) {  a.cell(i,j) = 2; }
+			else if (i==j+1) { a.cell(i,j) = -1;}
+			else if (j==i+1) { a.cell(i,j) = -1;}
+			else { a.cell(i,j) = 0; }
+		}
+	}
+  }
+
+}
+
+
+transform ResidualNorm
+from OUT[n], X[n], A[n,n], B[n]
+through AY[n], AX[n],E1,E2
+to Accuracy
+{
+  to (Accuracy acc, AX ax, AY ay, E1 e1, E2 e2) from(B b, A a, X in, OUT out) 
+  { 
+	int i;
+	ElementT error;
+	demv(ax,a,in);
+	demv(ay,a,out);
+	ComputeError(e1,ax,b);
+	ComputeError(e2,ay,b);
+	if (e2 == 0) {
+            acc = 10;
+        }
+	else {
+	    acc=log10(e1/e2);
+	}
+  }
+}			
+
+
+#endif // POISSONPRECOND_PBCC

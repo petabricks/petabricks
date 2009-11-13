@@ -13,6 +13,7 @@
 #include "dynamictask.h"
 #include "matrixio.h"
 #include "matrixregion.h"
+#include "memoization.h"
 #include "petabricksruntime.h"
 #include "ruleinstance.h"
 #include "specializeddynamictasks.h"
@@ -60,6 +61,8 @@ petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& 
 #define __PB_CAT(a,b) a ## b
 
 #define PB_SYNC() sync_in_loops_not_supported_yet!
+
+#define IS_MISSING petabricks::is_the_missing_val
 
 namespace petabricks {
   template< typename T >

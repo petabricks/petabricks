@@ -1,0 +1,27 @@
+
+memoized
+transform Foo 
+from A[n], Y
+to X, B[n]
+{
+  to(X x) from() {
+    x=Y;
+  }
+  B.cell(i) from(A.cell(i) a) { return a; }
+}
+
+transform Bar 
+from A[n] 
+to B[n]
+{
+  to(B b) from(A a){
+    MatrixRegion0D e1 = MatrixRegion0D::allocate();
+    MatrixRegion0D e2 = MatrixRegion0D::allocate();
+    Foo(e1, b, a, 11); 
+    Foo(e2, b, a, 11);
+    Foo(e1, b, a, 7);
+    Foo(e1, b, a, 7);
+    Foo(e1, b, a, 7);
+  }
+}
+

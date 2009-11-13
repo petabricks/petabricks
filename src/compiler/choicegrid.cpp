@@ -56,10 +56,8 @@ petabricks::ChoiceGridPtr petabricks::ChoiceGrid::constructFrom(
     if(allowedRules.find(rd.rule()) != allowedRules.end()){
       if(rd.isBegin()){ //add new rule 
         activeRules.insert(rd.rule());
-//         JTRACE("begin")(dimension)(rd.rule()->id());
       }else{ //remove expired rule
         activeRules.erase(rd.rule());
-//         JTRACE("end")(dimension)(rd.rule()->id());
       }
     }
   }

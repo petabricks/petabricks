@@ -117,7 +117,8 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
       before(e); 
       return;
     }else if(sym && sym->isType()){
-      if(!hasExprBackward() && hasExprForward() && (peekExprForward()->type()==RIRNode::EXPR_IDENT || peekExprForward()->isLeaf("*")) ){
+      if(!hasExprBackward() && hasExprForward() 
+          && (peekExprForward()->type()==RIRNode::EXPR_IDENT || peekExprForward()->isLeaf("*")) ){
         std::string type = e->toString();
         while(peekExprForward()->isLeaf("*"))
           type+=popExprForward()->toString();
@@ -172,14 +173,6 @@ void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
     //std::string vIsTraining=_uniquify("_forenough_isTraining");
     _transform.addConfigItem(ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_SIZESPECIFIC|ConfigItem::FLAG_ACCURACY, config, minI, minI, maxI);
 
-    // insert some code before the for_enough loop
-    // t = RIRStmt::parse("bool "+vIsTraining+" = petabricks::PetabricksRuntime::isTrainingRun();");
-    // t->accept(*this);
-    // pushStmtBackward(t);
-    // t = RIRStmt::parse("if("+vIsTraining+") "+vCount+" = "+jalib::XToString(maxI)+";");
-    // t->accept(*this);
-    // pushStmtBackward(t);
-
     // set the iteration bounds
     loop.declPart() = RIRExpr::parse("int "+vI+" = 0");
     loop.testPart() = RIRExpr::parse(vI+" < "+config);
@@ -190,7 +183,7 @@ void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
 void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
   if(e->type() == RIRNode::EXPR_IDENT){
     RIRSymbolPtr sym = _scope->lookup(e->toString());
-    if(sym && sym->type() == RIRSymbol::SYM_TRANSFORM_TEMPLATE){
+    if(sym && sym->isTemplateTransform()){
       if(peekExprForward()->isLeaf("<")){
         //transform calls to templates from:
         //   tmpl<a,b>(c,d)
@@ -231,6 +224,35 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
     if(sym && sym->type() == RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL){
       JTRACE("Expanding config item")(e);
       e = new RIRIdentExpr("TRANSFORM_LOCAL("+e->toString()+")");
+    }
+    if(sym && sym->isType()){
+      if(!hasExprBackward() && hasExprForward() 
+          && (peekExprForward()->type()==RIRNode::EXPR_IDENT || peekExprForward()->isLeaf("*")) ){
+        //tranfrom:
+        // int a,b=0,c;
+        //into:
+        // int a; int b=0; int c;
+        for(;;){
+          RIRStmtRef stmt = new RIRBasicStmt();
+          stmt->addExpr(e);
+          //collect everything till the next ,
+          while(hasExprForward() && !peekExprForward()->isLeaf(","))
+            stmt->addExpr(popExprForward().asPtr());
+          if(hasExprForward() && peekExprForward()->isLeaf(",")){
+            //add an extra statement behind this
+            stmt->accept(*this);
+            JTRACE("expanded ,decl")(stmt);
+            pushStmtBackward(stmt.asPtr());
+            popExprForward();//","
+          }else{
+            //replace this stmt
+            while(stmt->numExprs()>1){
+              pushExprForward(stmt->popExpr());
+            }
+            break;
+          }
+        }
+      }
     }
   }
   if(e->type() == RIRNode::EXPR_KEYWORD){

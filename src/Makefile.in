@@ -73,8 +73,9 @@ libpbcommon_a_OBJECTS = $(am_libpbcommon_a_OBJECTS)
 libpbcompiler_a_AR = $(AR) $(ARFLAGS)
 libpbcompiler_a_LIBADD =
 am_libpbcompiler_a_OBJECTS = libpbcompiler_a-choicegrid.$(OBJEXT) \
-	libpbcompiler_a-codegenerator.$(OBJEXT) \
 	libpbcompiler_a-clcodegenerator.$(OBJEXT) \
+	libpbcompiler_a-codegenerator.$(OBJEXT) \
+	libpbcompiler_a-configitem.$(OBJEXT) \
 	libpbcompiler_a-formula.$(OBJEXT) \
 	libpbcompiler_a-iterationorders.$(OBJEXT) \
 	libpbcompiler_a-learner.$(OBJEXT) \
@@ -112,6 +113,7 @@ am_libpbruntime_a_OBJECTS = libpbruntime_a-autotuner.$(OBJEXT) \
 	libpbruntime_a-matrixio.$(OBJEXT) \
 	libpbruntime_a-libpbruntime_a-matrixreader.$(OBJEXT) \
 	libpbruntime_a-matrixstorage.$(OBJEXT) \
+	libpbruntime_a-memoization.$(OBJEXT) \
 	libpbruntime_a-petabricksruntime.$(OBJEXT) \
 	libpbruntime_a-ruleinstance.$(OBJEXT) \
 	libpbruntime_a-specializeddynamictasks.$(OBJEXT) \
@@ -290,8 +292,9 @@ OBJDIR = obj
 noinst_LIBRARIES = libpbcommon.a libpbcompiler.a libpbruntime.a libpbmain.a
 noinst_HEADERS = \
   compiler/choicegrid.h \
-  compiler/codegenerator.h \
   compiler/clcodegenerator.h \
+  compiler/codegenerator.h \
+  compiler/configitem.h \
   compiler/formula.h \
   compiler/iterationorders.h \
   compiler/learner.h \
@@ -299,6 +302,7 @@ noinst_HEADERS = \
   compiler/matrixdependency.h \
   compiler/maximaparser.h \
   compiler/maximawrapper.h \
+  compiler/pbc.h \
   compiler/pbparser.h \
   compiler/performancetester.h \
   compiler/region.h \
@@ -337,6 +341,7 @@ pkglib_HEADERS = \
   runtime/matrixregion.h \
   runtime/matrixspecializations.h \
   runtime/matrixstorage.h \
+  runtime/memoization.h \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
   runtime/ruleinstance.h \
@@ -364,8 +369,9 @@ libpbcompiler_a_YFLAGS = -d
 libpbcompiler_a_CXXFLAGS = -I$(srcdir)/compiler
 libpbcompiler_a_SOURCES = \
   compiler/choicegrid.cpp \
-  compiler/codegenerator.cpp \
   compiler/clcodegenerator.cpp \
+  compiler/codegenerator.cpp \
+  compiler/configitem.cpp \
   compiler/formula.cpp \
   compiler/iterationorders.cpp \
   compiler/learner.cpp \
@@ -400,6 +406,7 @@ libpbruntime_a_SOURCES = \
   runtime/matrixio.cpp \
   runtime/matrixreader.lpp \
   runtime/matrixstorage.cpp \
+  runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \
@@ -531,6 +538,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-choicegrid.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-clcodegenerator.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-codegenerator.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-configitem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-formula.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-iterationorders.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-learner.Po@am__quote@
@@ -562,6 +570,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-libpbruntime_a-matrixreader.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-matrixio.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-matrixstorage.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-memoization.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-openclutil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-petabricksruntime.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-ruleinstance.Po@am__quote@
@@ -739,6 +748,20 @@ libpbcompiler_a-choicegrid.obj: compiler/choicegrid.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-choicegrid.obj `if test -f 'compiler/choicegrid.cpp'; then $(CYGPATH_W) 'compiler/choicegrid.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/choicegrid.cpp'; fi`
 
+libpbcompiler_a-clcodegenerator.o: compiler/clcodegenerator.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-clcodegenerator.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-clcodegenerator.Tpo -c -o libpbcompiler_a-clcodegenerator.o `test -f 'compiler/clcodegenerator.cpp' || echo '$(srcdir)/'`compiler/clcodegenerator.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbcompiler_a-clcodegenerator.Tpo $(DEPDIR)/libpbcompiler_a-clcodegenerator.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/clcodegenerator.cpp' object='libpbcompiler_a-clcodegenerator.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-clcodegenerator.o `test -f 'compiler/clcodegenerator.cpp' || echo '$(srcdir)/'`compiler/clcodegenerator.cpp
+
+libpbcompiler_a-clcodegenerator.obj: compiler/clcodegenerator.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-clcodegenerator.obj -MD -MP -MF $(DEPDIR)/libpbcompiler_a-clcodegenerator.Tpo -c -o libpbcompiler_a-clcodegenerator.obj `if test -f 'compiler/clcodegenerator.cpp'; then $(CYGPATH_W) 'compiler/clcodegenerator.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/clcodegenerator.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbcompiler_a-clcodegenerator.Tpo $(DEPDIR)/libpbcompiler_a-clcodegenerator.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/clcodegenerator.cpp' object='libpbcompiler_a-clcodegenerator.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-clcodegenerator.obj `if test -f 'compiler/clcodegenerator.cpp'; then $(CYGPATH_W) 'compiler/clcodegenerator.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/clcodegenerator.cpp'; fi`
+
 libpbcompiler_a-codegenerator.o: compiler/codegenerator.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-codegenerator.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-codegenerator.Tpo -c -o libpbcompiler_a-codegenerator.o `test -f 'compiler/codegenerator.cpp' || echo '$(srcdir)/'`compiler/codegenerator.cpp
 @am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbcompiler_a-codegenerator.Tpo $(DEPDIR)/libpbcompiler_a-codegenerator.Po
@@ -753,19 +776,19 @@ libpbcompiler_a-codegenerator.obj: compiler/codegenerator.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-codegenerator.obj `if test -f 'compiler/codegenerator.cpp'; then $(CYGPATH_W) 'compiler/codegenerator.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/codegenerator.cpp'; fi`
 
-libpbcompiler_a-clcodegenerator.o: compiler/clcodegenerator.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-clcodegenerator.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-clcodegenerator.Tpo -c -o libpbcompiler_a-clcodegenerator.o `test -f 'compiler/clcodegenerator.cpp' || echo '$(srcdir)/'`compiler/clcodegenerator.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbcompiler_a-clcodegenerator.Tpo $(DEPDIR)/libpbcompiler_a-clcodegenerator.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/clcodegenerator.cpp' object='libpbcompiler_a-clcodegenerator.o' libtool=no @AMDEPBACKSLASH@
+libpbcompiler_a-configitem.o: compiler/configitem.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-configitem.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-configitem.Tpo -c -o libpbcompiler_a-configitem.o `test -f 'compiler/configitem.cpp' || echo '$(srcdir)/'`compiler/configitem.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbcompiler_a-configitem.Tpo $(DEPDIR)/libpbcompiler_a-configitem.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/configitem.cpp' object='libpbcompiler_a-configitem.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-clcodegenerator.o `test -f 'compiler/clcodegenerator.cpp' || echo '$(srcdir)/'`compiler/clcodegenerator.cpp
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-configitem.o `test -f 'compiler/configitem.cpp' || echo '$(srcdir)/'`compiler/configitem.cpp
 
-libpbcompiler_a-clcodegenerator.obj: compiler/clcodegenerator.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-clcodegenerator.obj -MD -MP -MF $(DEPDIR)/libpbcompiler_a-clcodegenerator.Tpo -c -o libpbcompiler_a-clcodegenerator.obj `if test -f 'compiler/clcodegenerator.cpp'; then $(CYGPATH_W) 'compiler/clcodegenerator.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/clcodegenerator.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbcompiler_a-clcodegenerator.Tpo $(DEPDIR)/libpbcompiler_a-clcodegenerator.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/clcodegenerator.cpp' object='libpbcompiler_a-clcodegenerator.obj' libtool=no @AMDEPBACKSLASH@
+libpbcompiler_a-configitem.obj: compiler/configitem.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-configitem.obj -MD -MP -MF $(DEPDIR)/libpbcompiler_a-configitem.Tpo -c -o libpbcompiler_a-configitem.obj `if test -f 'compiler/configitem.cpp'; then $(CYGPATH_W) 'compiler/configitem.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/configitem.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbcompiler_a-configitem.Tpo $(DEPDIR)/libpbcompiler_a-configitem.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/configitem.cpp' object='libpbcompiler_a-configitem.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-clcodegenerator.obj `if test -f 'compiler/clcodegenerator.cpp'; then $(CYGPATH_W) 'compiler/clcodegenerator.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/clcodegenerator.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-configitem.obj `if test -f 'compiler/configitem.cpp'; then $(CYGPATH_W) 'compiler/configitem.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/configitem.cpp'; fi`
 
 libpbcompiler_a-formula.o: compiler/formula.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-formula.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-formula.Tpo -c -o libpbcompiler_a-formula.o `test -f 'compiler/formula.cpp' || echo '$(srcdir)/'`compiler/formula.cpp
@@ -1200,6 +1223,20 @@ libpbruntime_a-matrixstorage.obj: runtime/matrixstorage.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/matrixstorage.cpp' object='libpbruntime_a-matrixstorage.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-matrixstorage.obj `if test -f 'runtime/matrixstorage.cpp'; then $(CYGPATH_W) 'runtime/matrixstorage.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/matrixstorage.cpp'; fi`
+
+libpbruntime_a-memoization.o: runtime/memoization.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-memoization.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-memoization.Tpo -c -o libpbruntime_a-memoization.o `test -f 'runtime/memoization.cpp' || echo '$(srcdir)/'`runtime/memoization.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-memoization.Tpo $(DEPDIR)/libpbruntime_a-memoization.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/memoization.cpp' object='libpbruntime_a-memoization.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-memoization.o `test -f 'runtime/memoization.cpp' || echo '$(srcdir)/'`runtime/memoization.cpp
+
+libpbruntime_a-memoization.obj: runtime/memoization.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-memoization.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-memoization.Tpo -c -o libpbruntime_a-memoization.obj `if test -f 'runtime/memoization.cpp'; then $(CYGPATH_W) 'runtime/memoization.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/memoization.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-memoization.Tpo $(DEPDIR)/libpbruntime_a-memoization.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/memoization.cpp' object='libpbruntime_a-memoization.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-memoization.obj `if test -f 'runtime/memoization.cpp'; then $(CYGPATH_W) 'runtime/memoization.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/memoization.cpp'; fi`
 
 libpbruntime_a-petabricksruntime.o: runtime/petabricksruntime.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-petabricksruntime.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-petabricksruntime.Tpo -c -o libpbruntime_a-petabricksruntime.o `test -f 'runtime/petabricksruntime.cpp' || echo '$(srcdir)/'`runtime/petabricksruntime.cpp

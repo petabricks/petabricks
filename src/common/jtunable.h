@@ -124,8 +124,8 @@ public:
   /// Constructor
   JTunable( const char* name
           , TunableValue initial
-          , TunableValue min=std::numeric_limits<TunableValue>::min()
-          , TunableValue max=std::numeric_limits<TunableValue>::max())
+          , TunableValue min
+          , TunableValue max=jalib::maxval<TunableValue>())
     : _name(name), _value(initial), _initial(initial), _min(min), _max(max), _isPegged(false)
   {
     JTunableManager::instance().insert(this);
@@ -225,8 +225,8 @@ public:
   JTunableArray( const char* name
                 , int n
                 , TunableValue initial
-                , TunableValue min=std::numeric_limits<TunableValue>::min()
-                , TunableValue max=std::numeric_limits<TunableValue>::max())
+                , TunableValue min=0
+                , TunableValue max=jalib::maxval<TunableValue>())
   {
     JASSERT(n>0)(n);
     reserve(n);

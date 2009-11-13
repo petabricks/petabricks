@@ -15,8 +15,23 @@
 
 #include "common/jasm.h"
 
-jalib::AtomicT theNextRuleId = 0;
 
+void petabricks::RuleFlags::print(std::ostream& os) const {
+  if(priority != PRIORITY_DEFAULT){
+    os << "priority(" << priority << ") ";
+  }
+  if(rotations != NOROTATE){
+    os << "rotations(";
+    if((ROTATE_90  & rotations)!=0) os << " 90";
+    if((ROTATE_180 & rotations)!=0) os << " 180";
+    if((ROTATE_270 & rotations)!=0) os << " 270";
+    if((MIRROR_X   & rotations)!=0) os << " mirrorx";
+    if((MIRROR_Y   & rotations)!=0) os << " mirrory";
+    os << " ) ";
+  }
+}
+
+static jalib::AtomicT theNextRuleId = 0;
 petabricks::RuleInterface::RuleInterface()
   : _id(jalib::atomicIncrementReturn(&theNextRuleId))
 {}

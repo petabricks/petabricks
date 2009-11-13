@@ -1,0 +1,25 @@
+#ifndef COMPUTEERROR3D_PBCC
+#define COMPUTEERROR3D_PBCC
+
+transform ComputeError3D
+from A[w,h,d], B[w,h,d]
+to Error
+{
+  Error from (A a, B b)
+  {
+    int i, j, k;
+    double temp, sum = 0;
+    for (k = 0; k < d; k++) {
+      for (j = 0; j < h; j++) {
+        for (i = 0; i < w; i++) {
+          temp = a.cell(i, j, k) - b.cell(i, j, k);
+          sum += temp * temp;
+        }
+      }
+    }
+    return sqrt(sum / (w * h * d));
+  }
+}
+
+#endif // COMPUTEERROR3D_PBCC
+

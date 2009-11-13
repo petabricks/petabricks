@@ -1,17 +1,36 @@
 #ifndef JACOBIPRE_PBCC
 #define JACOBIPRE_PBCC
 
+#include "vectoradd.pbcc"
+#include "demv.pbcc"
+#include "jacobipreInterior.pbcc"
+
 transform JacobiPre
-from A[n,n]
-to P[n,n]
+from IN[n], A[n,n], B[n], numIterations
+through P[n], R[n], D[n],Rtemp[n], Dtemp[n], Ztemp[n], AX[n]
+to OUT[n]
 {
-        P.cell(i,j) from (A.cell(i,j) a)  where i==j
-        {
-                return 1/a;
-        }
+   to (AX ax) from(IN in, A a)
+   {
+	demv(ax, a, in);
+   }
 
-        secondary P.cell(i,j) from () { return 0;}
+   to (R r) from (IN in, B b, AX ax)
+   {
+   	VectorSub(r, b, ax);
+   }
+
+   P.cell(i) from (A.col(i) a) { return 1/a.cell(i); }
+
+   D.cell(i) from (R.cell(i) r, P.cell(i) p)
+   {	
+   	return r*p;
+   } 
+
+   to (OUT o, Rtemp rout, Dtemp dout, Ztemp zout) from(IN in, A a, R r, D d, P p, numIterations k)
+   {
+      JacobiPreInterior(o, rout, dout,zout, in, a, r, d,d, p, k);
+   }
+
 }
-
-
 #endif // JACOBIPRE_PBCC

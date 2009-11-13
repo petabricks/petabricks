@@ -39,14 +39,18 @@ void petabricks::RuleChoice::generateCodeSimple( bool isStatic
                                             , ScheduleNode& node
                                             , const SimpleRegionPtr& region
                                             , CodeGenerator& o
-                                            , const std::string& tpfx)
+                                            , const std::string& tpfx
+                                            , int levelOffset)
 {
+  if(levelOffset==0)
+    levelOffset=level()+1;
   // o.cg().addAlgchoice(tpfx.substr(0,tpfx.length()-1), isStatic, level());
 
-  std::string choicename = tpfx + "lvl" + jalib::XToString(level()) + "_rule";
+  std::string choicename = tpfx + "lvl" + jalib::XToString(levelOffset-level()) + "_rule";
+
 
   if(_condition){
-    o.beginIf(processCondition(tpfx + "lvl" + jalib::XToString(level()) + "_cutoff",_condition, choicename, o));
+    o.beginIf(processCondition(tpfx + "lvl" + jalib::XToString(levelOffset+1-level()) + "_cutoff",_condition, choicename, o));
   }
 
   std::vector<RulePtr> sortedRules(_rules.begin(), _rules.end());
@@ -82,7 +86,7 @@ void petabricks::RuleChoice::generateCodeSimple( bool isStatic
   if(_condition){
     if(_next){
       o.elseIf();
-      _next->generateCodeSimple(isStatic, taskname, trans, node, region, o, tpfx);
+      _next->generateCodeSimple(isStatic, taskname, trans, node, region, o, tpfx, levelOffset);
     }
     o.endIf();
   }
@@ -97,7 +101,7 @@ std::string petabricks::RuleChoice::processCondition(const std::string& name, co
     std::string s;
     FormulaPtr hint;
     bool needComplex=false;
-    o.createTunable(true, "algchoice.cutoff", name, std::numeric_limits<int>::max(), 1);
+    o.createTunable(true, "algchoice.cutoff", name, jalib::maxval<int>(), 1);
     std::vector<RulePtr> sortedRules(_rules.begin(), _rules.end());
     std::sort(sortedRules.begin(), sortedRules.end(), RuleIdComparer());
     for(size_t i=0; i<sortedRules.size(); ++i){
@@ -112,12 +116,12 @@ std::string petabricks::RuleChoice::processCondition(const std::string& name, co
       } else if(hint->toString() != curhint->toString()) {
         needComplex=true;
       }
-      FormulaPtr f=new FormulaGT(hint, new FormulaVariable(name));
+      FormulaPtr f=new FormulaLE(hint, new FormulaVariable(name));
       s += "(" + algchoicename + "==" + jalib::XToString(i) + " && " + f->toString() + ")";
     }
     if(needComplex)
       return s;
-    FormulaPtr f=new FormulaGT(hint, new FormulaVariable(name));
+    FormulaPtr f=new FormulaLE(hint, new FormulaVariable(name));
     return f->toCppString();
   }else{
     return f->toCppString();

@@ -145,9 +145,16 @@ protected:
   virtual ~JRefCounted(){}
 public:
   inline void incRefCount() const{
+#ifdef DEBUG
+    JASSERT(atomicIncrementReturn(&_refCount)>0)(_refCount);
+#else
     atomicIncrement(&_refCount);
+#endif
   }
   inline void decRefCount() const{
+#ifdef DEBUG
+    JASSERT(_refCount>0)(_refCount);
+#endif
     if(atomicDecrementReturn(&_refCount)==0)
       delete this;
   }

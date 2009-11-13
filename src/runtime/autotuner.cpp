@@ -129,6 +129,7 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
 
   //add 2 level candidates
   CandidateAlgorithmList lvl2Candidates;
+#ifdef TWO_LEVEL_CANDIDATES
   {
     JTunable* at = algTunable(2);
     JTunable* ct = cutoffTunable(2);
@@ -144,6 +145,7 @@ petabricks::Autotuner::Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main*
       }
     }
   }
+#endif
 
   //JTRACE("Autotuner constructed")(lvl1Candidates.size())(lvl2Candidates.size());
   _candidates.swap(lvl1Candidates);

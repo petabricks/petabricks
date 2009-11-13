@@ -16,11 +16,11 @@
 #include "common/jtunable.h"
 
 #include <float.h>
+#include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <string>
 #include <vector>
-
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -85,8 +85,10 @@ public:
 
     ///
     /// initialize with random inputs
-    virtual void reallocate(int size) = 0;
     virtual void randomize() = 0;
+
+    virtual void deallocate() = 0;
+    virtual void reallocate(int size) = 0;
 
     virtual const char* name() = 0;
 
@@ -99,7 +101,7 @@ public:
     virtual TunableListT accuracyVariables(int n) = 0;
 
     bool isVariableAccuracy(){
-      return accuracyTarget() != std::numeric_limits<MATRIX_ELEMENT_T>::min();
+      return accuracyTarget() != jalib::minval<MATRIX_ELEMENT_T>();
     }
 
     virtual __usr_main_interface* nextTemplateMain() = 0;
@@ -151,24 +153,33 @@ public:
 
   static void saveConfig();
 
-  double computeWrapper(TestIsolation&);
-  double trainAndComputeWrapper(TestIsolation&);
+  double trainAndComputeWrapper(TestIsolation&, int n);
+  double computeWrapper(TestIsolation&, int n=-1, int retries=-1);
+  void computeWrapperSubproc(TestIsolation&, int n, double&  time, double&  acc);
   
   
   void variableAccuracyTrainingLoop(TestIsolation& ti);
+  int variableAccuracyTrainingLoopInner(TestIsolation& ti);
 
   class ComputeRetryException {};
 
+  static double rand01();
   static int randInt(int min=0, int max=RAND_MAX){
     if(min==max) return min;
     return (lrand48()%(max-min)) + min;
   }
   static double randDouble(double min=0, double max=std::numeric_limits<int>::max()){
     if(min==max) return min;
-    return (drand48()*(max-min)) + min;
+    return (rand01()*(max-min)) + min;
   }
-
-
+  static double randNormal(double mean, double sigma){
+    //formaula taken from boost
+    //TODO: link with and call boost directly
+    double r1 = rand01();
+    double r2 = rand01();
+    double pi =  3.14159265358979323846;
+    return sqrt(-2.0 * log(1.0-r2)) * cos(2.0*pi*r1) * sigma + mean;
+  }
 protected:
   void reallocate() { _main->reallocate(_randSize); }
 

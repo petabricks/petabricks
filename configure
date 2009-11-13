@@ -4634,7 +4634,21 @@ fi
 
 done
 
-for ac_header in cxxabi.h execinfo.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h
+for ac_header in openssl/md5.h
+do :
+  ac_fn_cxx_check_header_mongrel "$LINENO" "openssl/md5.h" "ac_cv_header_openssl_md5_h" "$ac_includes_default"
+if test "x$ac_cv_header_openssl_md5_h" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_OPENSSL_MD5_H 1
+_ACEOF
+
+else
+  as_fn_error "missing package libssl-dev" "$LINENO" 5
+fi
+
+done
+
+for ac_header in cxxabi.h execinfo.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h sys/mman.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_cxx_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -4647,6 +4661,68 @@ _ACEOF
 fi
 
 done
+
+for ac_header in boost/random.hpp
+do :
+  ac_fn_cxx_check_header_mongrel "$LINENO" "boost/random.hpp" "ac_cv_header_boost_random_hpp" "$ac_includes_default"
+if test "x$ac_cv_header_boost_random_hpp" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_BOOST_RANDOM_HPP 1
+_ACEOF
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: missing boost/random, falling back to slower random number generation" >&5
+$as_echo "$as_me: WARNING: missing boost/random, falling back to slower random number generation" >&2;}
+fi
+
+done
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for MD5 in -lssl" >&5
+$as_echo_n "checking for MD5 in -lssl... " >&6; }
+if test "${ac_cv_lib_ssl_MD5+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lssl  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char MD5 ();
+int
+main ()
+{
+return MD5 ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_ssl_MD5=yes
+else
+  ac_cv_lib_ssl_MD5=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ssl_MD5" >&5
+$as_echo "$ac_cv_lib_ssl_MD5" >&6; }
+if test "x$ac_cv_lib_ssl_MD5" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSSL 1
+_ACEOF
+
+  LIBS="-lssl $LIBS"
+
+else
+  as_fn_error "missing package libssl-dev" "$LINENO" 5
+fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for cos in -lm" >&5
 $as_echo_n "checking for cos in -lm... " >&6; }
@@ -5167,6 +5243,12 @@ $as_echo "#define FORENOUGH_MAX_ITERS 1000" >>confdefs.h
 $as_echo "#define FORENOUGH_MIN_ITERS 1" >>confdefs.h
 
 
+$as_echo "#define HASH_FN MD5" >>confdefs.h
+
+
+$as_echo "#define HASH_LEN MD5_DIGEST_LENGTH" >>confdefs.h
+
+
 $as_echo "#define INLINE_NULL_TASKS /**/" >>confdefs.h
 
 
@@ -5198,6 +5280,9 @@ $as_echo "#define RUN_CPP 1" >>confdefs.h
 
 
 $as_echo "#define SHORT_TYPE_NAMES 1" >>confdefs.h
+
+
+$as_echo "#define SINGLE_SEQ_CUTOFF 1" >>confdefs.h
 
 
 $as_echo "#define SPLIT_CHUNK_SIZE \"TRANSFORM_LOCAL(splitsize)\"" >>confdefs.h
@@ -5240,6 +5325,7 @@ $as_echo "#define UTIL_SEARCH_DIR_B \"scripts\"" >>confdefs.h
 
 
 $as_echo "#define WORKERTHREAD_ONDECK /**/" >>confdefs.h
+
 
 
 
@@ -5303,7 +5389,7 @@ if test "$default_cxxflags" = "yes"; then
   fi
   case "$target_cpu" in
     *sparc*) compileflags="$compileflags -mcpu=niagara -mtune=native";;
-    *)       compileflags="$compileflags -march=native";;
+    *)       compileflags="$compileflags -march=native -fno-rtti";;
   esac
 fi
 

@@ -7,18 +7,13 @@
 #include "../simple/copy.pbcc"
 
 transform CG_inner
-from IN[n], A[n,n], R[n], D[n]
-through AD[n], ALPHA,BETA, RDOTR
+from IN[n], A[n,n], R[n], D[n], RDOTR
+through AD[n], ALPHA,BETA
 to OUT[n],RR[n],DD[n]
 {
    to (AD ad) from (A a, D d)
    {
    	demv(ad, a, d);
-   }
-
-   to (RDOTR RdotR) from (R r)
-   {
-   	DotProduct(RdotR, r, r);
    }
 
    to (ALPHA alpha) from(RDOTR r2, D d, AD ad)
@@ -62,14 +57,18 @@ to OUT[n], RR[n], DD[n]
 	from (IN x, A a, R r, D d)
 	{
 		int i;
-		CG_inner(out, rr, dd, x, a, r, d);
+		double RdotR;
+		DotProduct(RdotR, r, r);
+		CG_inner(out, rr, dd, x, a, r, d, RdotR);
 		
 		for (i=1; i < numIterations; i++)
 		{
+			DotProduct(RdotR, rr, rr);
+			if (RdotR==0) {break;}
 			Copy1D(tx,out);
 			Copy1D(tr, rr);
 			Copy1D(td, dd);
-			CG_inner(out,rr,dd, tx, a, tr, td);
+			CG_inner(out,rr,dd, tx, a, tr, td, RdotR);
 		}
 	}
 

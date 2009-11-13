@@ -91,6 +91,7 @@ public:
   ///
   /// Initialize this rule after parsing
   virtual void initialize(Transform&) = 0;
+  virtual void performExpansion(Transform&) = 0;
   virtual void compileRuleBody(Transform& tx, RIRScope& s) = 0;
 
   virtual RuleFlags::PriorityT priority() const = 0;
@@ -99,7 +100,7 @@ public:
   virtual bool isSingleElement() const = 0;
 
   virtual void collectDependencies(StaticScheduler& scheduler) = 0;
-  virtual void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension) = 0;
+  virtual void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension, const RulePtr&) = 0;
   
   virtual void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region) = 0; 
   virtual void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region) = 0;
@@ -141,6 +142,12 @@ public:
   virtual void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor) = 0;
 
   virtual DependencyDirection getSelfDependency() const = 0;
+  
+  bool isDuplicated() const { return duplicateCount()>1; }
+  virtual size_t duplicateCount() const { return 1; }
+  /// returns old duplicate number
+  virtual size_t setDuplicateNumber(size_t c){ JASSERT(c==0); return 0; }
+  virtual size_t getDuplicateNumber() { return 0; }
 protected:
   int _id;
   SimpleRegionPtr _applicableRegion;

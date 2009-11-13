@@ -13,10 +13,18 @@ extern "C" void dormtr_(char *side, char *uplo, char *trans, int *m, int *n, dou
 
 %}
 
+transform BisectionGen
+to IN[n,n], K
+{
+  K from() { return PetabricksRuntime::randInt(1,n); }
+  IN.cell(i,j) from() { return PetabricksRuntime::randDouble(); }
+}
+
 // Find eigenvalues and eigenvectors of input matrix IN (symmetric) by LAPACK Bisection routine
 transform Bisection
 from IN[n,n], K
 to Eigenvalue[n], Eigenvector[n,n]
+generator BisectionGen
 {
 
   to ( Eigenvalue eig, Eigenvector Vec) from (IN in, K k)
