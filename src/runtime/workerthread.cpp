@@ -75,6 +75,9 @@ petabricks::WorkerThread::WorkerThread(DynamicScheduler& ds)
 #ifdef WORKERTHREAD_ONDECK
   _ondeck = NULL;
 #endif
+#ifdef DEBUG
+  _isWorking=false;
+#endif
 }
 petabricks::WorkerThread::~WorkerThread(){
   _pool.remove(this);
@@ -105,7 +108,13 @@ void petabricks::WorkerThread::popAndRunOneTask(int stealLimit)
 
   //if we got something, run it
   if (task != NULL) {
+#ifdef DEBUG
+    _isWorking=true;
+#endif 
     task->runWrapper();
+#ifdef DEBUG
+    _isWorking=false;
+#endif
   }
 }
 
@@ -142,6 +151,25 @@ void petabricks::WorkerThreadPool::remove(WorkerThread* thread){
   // reduce _count if possible
   for(int t; _pool[t=_count-1] == NULL; ){
     jalib::compareAndSwap(&_count, t+1, t);//tryDecrement
+  }
+}
+
+void petabricks::WorkerThreadPool::debugPrint() const {
+  std::cerr << "thread status: " << std::endl;
+  
+  for(int i=0; i<_count; ++i){
+    const WorkerThread* t = _pool[i];
+    if(t == 0){
+      std::cerr << "  * empty slot " << std::endl;
+    }else{
+      std::cerr << "  * thread " << t->id() << " workCount:" << t->workCount();
+#ifdef DEBUG
+      std::cerr << " isWorking:" << t->isWorking();
+#endif
+      if(t==WorkerThread::self())
+        std::cerr << " (current)";
+      std::cerr << std::endl;
+    }
   }
 }
 
@@ -222,5 +250,9 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
   }else{
     throw DynamicScheduler::AbortException();
   }
+}
+
+extern "C" void threadstatus() {
+  petabricks::WorkerThread::self()->pool().debugPrint();
 }
 

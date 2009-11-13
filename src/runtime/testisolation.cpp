@@ -152,7 +152,7 @@ void petabricks::SubprocessTestIsolation::recvResult(double& time, double& accur
     if(s==0){
       //timeout... kill the subprocess
       if(rv<-256){
-        kill(_pid, SIGTERM);
+        kill(_pid, TIMEOUTKILLSIG);
         JASSERT(waitpid(_pid,&rv,0)==_pid);
       }
       break;

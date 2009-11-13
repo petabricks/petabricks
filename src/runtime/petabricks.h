@@ -11,8 +11,8 @@
  ***************************************************************************/
 
 #include "dynamictask.h"
-#include "matrixregion.h"
 #include "matrixio.h"
+#include "matrixregion.h"
 #include "petabricksruntime.h"
 #include "ruleinstance.h"
 #include "specializeddynamictasks.h"
@@ -36,6 +36,10 @@
 
 // Has to be after config.h
 #include "openclutil.h"
+
+//these must be declared in the user code
+petabricks::PetabricksRuntime::Main* petabricksMainTransform();
+petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);
 
 #define PB_SPAWN(taskname, args...) \
   petabricks::spawn_hook( taskname ## _dynamic (args), _completion)
@@ -110,10 +114,15 @@ namespace petabricks {
 #ifdef DEBUG
     JASSERT(bin<(int)cnts.size())(bin)(cnts.size());
 #endif
-    return std::max<int>(min, cnts[bin]);
+    IndexT rv = cnts[bin];
+    if(rv<min){
+      PetabricksRuntime::untrained();//usually aborts us
+      return min;
+    }
+    return rv;
   }
-  
-  
+ 
+
   template < int D >
   inline bool split_condition(jalib::TunableValue thresh, IndexT begin[D], IndexT end[D]){
     //too small to split?
@@ -128,6 +137,21 @@ namespace petabricks {
     return false;
   }
 
+
+  //special val for optional values that dont exist 
+  inline ElementT the_missing_val() {
+    union {
+      ElementT d;
+      uint64_t u;
+    };
+    d = std::numeric_limits<ElementT>::quiet_NaN();
+    u ^= 0x1234;
+    return d;
+  }
+  inline bool is_the_missing_val(ElementT a) {
+    ElementT b=the_missing_val();
+    return memcmp(&a, &b, sizeof(ElementT))==0;
+  }
 }
 
 

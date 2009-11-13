@@ -14,6 +14,7 @@
 #include "autotuner.h"
 #include "dynamicscheduler.h"
 #include "dynamictask.h"
+#include "petabricks.h"
 #include "testisolation.h"
 
 #include "common/jargs.h"
@@ -34,10 +35,8 @@
 #include "openclutil.h"
 #endif
 
-//these must be declared in the user code
-petabricks::PetabricksRuntime::Main* petabricksMainTransform();
-petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);
 
+static bool _isRunning = false;
 static bool _isTrainingRun = false;
 static bool _needTraingingRun = false;
 
@@ -49,11 +48,12 @@ static int GRAPH_STEP=50;
 static int GRAPH_TRIALS=1;
 static int GRAPH_SMOOTHING=0;
 static int SEARCH_BRANCH_FACTOR=8;
-static bool MULTIGRID_FLAG=false;
-static bool FULL_MULTIGRID_FLAG=false;
 static bool DUMPTIMING=false;
 static bool ACCURACY=false;
 static bool FORCEOUTPUT=false;
+static bool ACCTRAIN=false;
+static bool ISOLATION=true;
+static int OFFSET=0;
 std::vector<std::string> txArgs;
 static std::string ATLOG;
 
@@ -215,12 +215,15 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("autotune-site",      autotunesites).help("choice sites to tune in --autotune mode");
   args.param("autotune-tunable",   autotunecutoffs).help("additional cutoff tunables to tune in --autotune mode");
   args.param("autotune-log",   ATLOG).help("log autotuner actions to given filename prefix");
+  args.param("acctrain",  ACCTRAIN).help("retrain for accuracy requirements in -n mode");
   args.param("min",       GRAPH_MIN).help("minimum input size for graph/autotuning");
   args.param("max",       GRAPH_MAX).help("maximum input size for graph/autotuning");
   args.param("step",      GRAPH_STEP).help("step size for graph/autotuning");
   args.param("trials",    GRAPH_TRIALS).help("number of times to run each data point in graph/autotuning (averaged)");
   args.param("smoothing", GRAPH_SMOOTHING).help("smooth graphs by also running smaller/larger input sizes");
+  args.param("offset",    OFFSET).help("size to add to N for each trial");
   args.param("max-sec",   GRAPH_MAX_SEC).help("stop graphs/autotuning after algorithm runs too slow");
+  args.param("isolation", ISOLATION).help("don't run timing tests in a forked subprocess");
 
   args.finishParsing(txArgs);
   
@@ -263,7 +266,7 @@ int petabricks::PetabricksRuntime::runMain(){
       runNormal();
       break;
     case MODE_RUN_RANDOM:
-      runTrial(GRAPH_MAX_SEC, false);
+      runTrial(GRAPH_MAX_SEC, ACCTRAIN);
       break;
     case MODE_GRAPH_INPUTSIZE:
       runGraphMode();
@@ -392,8 +395,7 @@ void petabricks::PetabricksRuntime::runAutotuneLoop(const AutotunerList& tuners)
 
 void petabricks::PetabricksRuntime::runGraphMode(){
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
-    _randSize = (MULTIGRID_FLAG ? (1 << n) + 1 : n);
-    double avg = runTrial(GRAPH_MAX_SEC, false);
+    double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
     if(avg<std::numeric_limits<double>::max())
       printf("%d %.6f\n", _randSize, avg);
     if(avg > GRAPH_MAX_SEC) break;
@@ -407,7 +409,7 @@ void petabricks::PetabricksRuntime::runGraphParamMode(const std::string& param){
   GRAPH_MAX = std::min(GRAPH_MAX, tunable->max());
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n+=GRAPH_STEP){
     tunable->setValue(n);
-    double avg = runTrial(GRAPH_MAX_SEC, false);
+    double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
     if(avg<std::numeric_limits<double>::max())
       printf("%d %.6lf\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;
@@ -420,39 +422,49 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
   for(int n = GRAPH_MIN; n <= GRAPH_MAX; n+= GRAPH_STEP) {
     worker_threads.setValue(n);
     DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
-    double avg = runTrial(GRAPH_MAX_SEC, false);
+    double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
     if(avg<std::numeric_limits<double>::max())
       printf("%d %.6lf\n", n, avg);
     if(avg > GRAPH_MAX_SEC) break;
   }
 }
 double petabricks::PetabricksRuntime::runTrial(double thresh, bool train){
-  SubprocessTestIsolation ti(thresh);
-  return runTrial(ti, train);
+  SubprocessTestIsolation sti(thresh);
+  static DummyTestIsolation dti;
+  TestIsolation* ti;
+  if(ISOLATION) ti = &sti;
+  else          ti = &dti;
+  return runTrial(*ti, train);
 }
 
 double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti, bool train){
   JASSERT(_randSize>0)(_randSize).Text("'--n=NUMBER' is required");
+  int origN = _randSize;
   try{
     std::vector<double> rslts;
     rslts.reserve(2*GRAPH_SMOOTHING+1);
-    for( int n =  _randSize-GRAPH_SMOOTHING
-       ; n <= _randSize+GRAPH_SMOOTHING
+    for( int n =  origN-GRAPH_SMOOTHING+OFFSET
+       ; n <= origN+GRAPH_SMOOTHING+OFFSET
        ; ++n)
     {
+      _randSize=n;
       double t = 0;
       for(int z=0;z<GRAPH_TRIALS; ++z){
-        _main->randomInputs(n);
-        if(z==0 && train)
+        _main->reallocate(n);
+        _main->randomize();
+        if(z==0 && train){
           t += trainAndComputeWrapper(ti); // first trial can train
-        else
+        }else{
           t += computeWrapper(ti); // rest of trials cant train
+        }
       }
       rslts.push_back(t/GRAPH_TRIALS);//record average
     }
     std::sort(rslts.begin(), rslts.end());
+    _randSize=origN;
     return rslts[GRAPH_SMOOTHING];
   }catch(petabricks::DynamicScheduler::AbortException e){
+    _randSize=origN;
     return std::numeric_limits<double>::max();
   }
 }
@@ -476,10 +488,11 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti){
       variableAccuracyTrainingLoop(ti);
     }
     _needTraingingRun = false;//reset flag set by isTrainingRun()
-
+    _isRunning = true;
     jalib::JTime begin=jalib::JTime::now();
     _main->compute();
     jalib::JTime end=jalib::JTime::now();
+    _isRunning = false;
     
     if(_needTraingingRun && _isTrainingRun){
       v=-1;
@@ -503,41 +516,41 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti){
   
 void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& ti){
   typedef MATRIX_ELEMENT_T ElementT;
-  ElementT cur = std::numeric_limits<ElementT>::min();
-  ElementT last = std::numeric_limits<ElementT>::min();
+  ElementT best   = jalib::minval<ElementT>();
   ElementT target = _main->accuracyTarget();
   TunableListT tunables = _main->accuracyVariables(_randSize);
   //reset tunables to min+1
-  for(TunableListT::iterator i=tunables.begin(); i!=tunables.end(); ++i)
-    (*i)->setValue((*i)->min()+1); 
+  tunables.resetMinAll(1);
+  int triesLeft = 0;
 
   for(int i=0; true;++i){
+    reallocate();
     ti.restartTimeout();
     _main->compute();
     ti.disableTimeout();
-    cur = _main->accuracy();
+    ElementT cur = _main->accuracy();
     if(cur >= target){
       JTRACE("training goal reached")(i)(cur)(target);
       return;
     }
-    if(cur <= last){
-      JTRACE("training goal failed, no progress")(i)(cur)(target);
+    if(cur>best){
+      //improvement
+      best=cur;
+      triesLeft=ACCIMPROVETRIES;
+    }else if(--triesLeft <= 0){
+      //no improvement for ACCIMPROVETRIES
+      JTRACE("training goal failed, no progress")(i)(cur)(best)(target);
       break;
     }
     //increment tuning var
-    for(TunableListT::iterator i=tunables.begin(); i!=tunables.end(); ++i){
-      if((*i)->value() < (*i)->max())
-        (*i)->setValue((*i)->value()+1); 
-      else{
-        JTRACE("training goal failed, max iterations")(cur)(target);
-        break; 
-      }
+    if(!tunables.incrementAll()){
+      JTRACE("training goal failed, max iterations")(cur)(target);
+      break; 
     }
-    last=cur;
   }
   //failure if we reach here, reset tunables and abort
-  for(TunableListT::iterator i=tunables.begin(); i!=tunables.end(); ++i)
-    (*i)->setValue((*i)->min()); 
+  tunables.resetMinAll(0);
+  reallocate();
   abort();
 }
 
@@ -560,7 +573,7 @@ double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable
   //scan the search space
   for(int n=min; n<max+step; n+=step){
     tunable.setValue(n);
-    double avg = runTrial(bestVal+1, true);
+    double avg = runTrial(bestVal, ACCTRAIN);
     if(avg<=bestVal){
       bestVal=avg;
       best=n;
@@ -585,10 +598,6 @@ bool petabricks::PetabricksRuntime::isTrainingRun(){
   return _isTrainingRun;
 }
 
-// void petabricks::PetabricksRuntime::setIsTrainingRun(bool b){
-//   _isTrainingRun=b;
-// }
-
 void petabricks::PetabricksRuntime::abort(){
   TestIsolation* master = SubprocessTestIsolation::masterProcess();
   if(master!=NULL){
@@ -598,82 +607,12 @@ void petabricks::PetabricksRuntime::abort(){
     DynamicScheduler::cpuScheduler().abort();
   }
 }
-void petabricks::PetabricksRuntime::runMultigridAutotuneMode(){
-  std::string s1 = "Poisson2D_Inner_Prec1_1";
-  std::string s2 = "Poisson2D_Inner_Prec2_1";
-  std::string s3 = "Poisson2D_Inner_Prec3_1";
-  std::string s4 = "Poisson2D_Inner_Prec4_1";
-  std::string s5 = "Poisson2D_Inner_Prec5_1";
-  Autotuner at1(*this, _main, s1, std::vector<std::string>());
-  Autotuner at2(*this, _main, s2, std::vector<std::string>());
-  Autotuner at3(*this, _main, s3, std::vector<std::string>());
-  Autotuner at4(*this, _main, s4, std::vector<std::string>());
-  Autotuner at5(*this, _main, s5, std::vector<std::string>());
 
-  jalib::JTunableReverseMap m = jalib::JTunableManager::instance().getReverseMap();
-  jalib::JTunable* prec_case = m["prec_case"];
-  JASSERT(prec_case != 0);
-
-  jalib::JTunable* temp;
-  for (int level = 0; level < 30; level++) {
-    temp = m["levelTrained__" + jalib::XToString(level)];
-    temp->setValue(0);
+void petabricks::PetabricksRuntime::untrained(){
+  if(_isRunning){
+    std::cerr << "ERROR: untrained, accuracy is unknown" << std::endl;
+    PetabricksRuntime::abort();
   }
-
-  Autotuner *at6 = 0, *at7 = 0, *at8 = 0, *at9 = 0, *at10 = 0;
-  jalib::JTunable* run_fullmg_flag = NULL;
-  if (FULL_MULTIGRID_FLAG) {
-    std::string s6 = "FullPoisson2D_Inner_Prec1_1";
-    std::string s7 = "FullPoisson2D_Inner_Prec2_1";
-    std::string s8 = "FullPoisson2D_Inner_Prec3_1";
-    std::string s9 = "FullPoisson2D_Inner_Prec4_1";
-    std::string s10 = "FullPoisson2D_Inner_Prec5_1";
-    at6 = new Autotuner(*this, _main, s6, std::vector<std::string>());
-    at7 = new Autotuner(*this, _main, s7, std::vector<std::string>());
-    at8 = new Autotuner(*this, _main, s8, std::vector<std::string>());
-    at9 = new Autotuner(*this, _main, s9, std::vector<std::string>());
-    at10 = new Autotuner(*this, _main,s10,std::vector<std::string>());
-
-    run_fullmg_flag = m["run_fullmg_flag"];
-    JASSERT(run_fullmg_flag != 0);
-  }
-
-  for(int n=GRAPH_MIN; n<=GRAPH_MAX; n*=2){
-    setSize(n + 1);
-
-    if (FULL_MULTIGRID_FLAG) {
-      run_fullmg_flag->setValue(0);
-    }
-
-    prec_case->setValue(1);
-    at1.trainOnce(GRAPH_MAX_SEC);
-    prec_case->setValue(2);
-    at2.trainOnce(GRAPH_MAX_SEC);
-    prec_case->setValue(3);
-    at3.trainOnce(GRAPH_MAX_SEC);
-    prec_case->setValue(4);
-    at4.trainOnce(GRAPH_MAX_SEC);
-    prec_case->setValue(5);
-    at5.trainOnce(GRAPH_MAX_SEC);
-
-    if (FULL_MULTIGRID_FLAG) {
-      run_fullmg_flag->setValue(1);
-
-      prec_case->setValue(1);
-      at6->trainOnce(GRAPH_MAX_SEC);
-      prec_case->setValue(2);
-      at7->trainOnce(GRAPH_MAX_SEC);
-      prec_case->setValue(3);
-      at8->trainOnce(GRAPH_MAX_SEC);
-      prec_case->setValue(4);
-      at9->trainOnce(GRAPH_MAX_SEC);
-      prec_case->setValue(5);
-      at10->trainOnce(GRAPH_MAX_SEC);
-    }
-
-    saveConfig();
-  }
-
 }
 
 int petabricks::petabricksMain(int argc, const char** argv){

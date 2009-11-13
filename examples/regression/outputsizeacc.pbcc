@@ -1,0 +1,21 @@
+transform GetAccuracy 
+to Accuracy
+from X[m], A[n]
+{
+  Accuracy from() { return m/(double)n; }
+}
+
+transform Foo 
+from A[n] 
+to X[m]
+accuracy_metric GetAccuracy 
+accuracy_bins 0.5, 1 
+accuracy_variable m
+{
+  X.cell(i) from(A a){
+    return a.cell(i%n);
+  }
+}
+
+
+

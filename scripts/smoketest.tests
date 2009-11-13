@@ -11,7 +11,7 @@
 
 convolution/ConvolutionFFT Rand1D Rand1D
 convolution/Convolution    Rand1D Rand1D
-kclustering/kmeans         5 KmeansRandInput /dev/null
+kclustering/kmeans         KmeansRandInput /dev/null
 matrixapproximation/matrixapprox   MatApproxRand2D MatApproxK
 multiply/multiply          Rand2Da Rand2Db
 multigrid/Poisson2DBS      Rand2Da Rand2Db
@@ -50,6 +50,7 @@ regression/scaleup         Rand2Da
 regression/templatetest    Rand1D
 regression/testruleir      Rand2Da
 regression/throughclause   Rand2Da
+regression/tunoutputn      Rand1D
 regression/txconstants     Rand2Da Rand0D
 regression/upleftdep       Rand2Da
 regression/whereclause     Rand2Da

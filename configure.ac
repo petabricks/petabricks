@@ -193,52 +193,52 @@ if test "$use_opencl" = "yes"; then
    AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
 fi
 
-AC_DEFINE([MATRIX_INDEX_T],    [int],         [type for indices into the matrix])
-AC_DEFINE([MATRIX_ELEMENT_T],  [double],      [type for elements in the matrix])
-AC_DEFINE([MAX_DIMENSIONS],    [64],             [the maximum number of dimensions supported])
-AC_DEFINE([MAX_INPUT_BITS],    [32],             [the maximum number of dimensions supported])
-AC_DEFINE([STEAL_ATTEMPTS_WAITING], [3], [number of times to attempt to steal in waitUntilComplete])
-AC_DEFINE([STEAL_ATTEMPTS_MAINLOOP], [32], [number of times to attempt to steal in mainLoop])
-AC_DEFINE([SHORT_TYPE_NAMES],  [1],              [undefine this if a large number of dimensions are needed, or one wants a cleaner user namespace])
-AC_DEFINE([RUN_CPP],           [1],               [undefine to disable cpp])
-AC_DEFINE([MAX_REC_LEVELS],    [6],               [number of levels for recursive choices])
-AC_DEFINE([TRANSFORM_N_STR],   ["transform_n"],  [define to add a system var to transform scope])
-AC_DEFINE([SPLIT_CHUNK_SIZE],  ["TRANSFORM_LOCAL(splitsize)"],   [var name in output code])
-AC_DEFINE([TEMPLATE_BIN_STR],  ["_acc_bin"],     [var name in output code for accuracy template parameter])
-AC_DEFINE([RETURN_VAL_STR],   ["_pb_rv"],     [var name in output code for rule output variable])
-AC_DEFINE([TMPL_IMPL_PFX],     ["_tmpl"],        [prefix for expanded template implementations])
-AC_DEFINE([TX_STATIC_POSTFIX], ["_static"], [postfix for static versions of transforms])
-AC_DEFINE([TX_DYNAMIC_POSTFIX], ["_dynamic"], [postfix for dynamic versions of transforms])
-AC_DEFINE([TX_OPENCL_POSTFIX], ["_opencl"], [postfix for opencl versions of transforms])
 
-AC_DEFINE([COORD_BEGIN_STR],["_iter_begin"],[var name in output code for begin coord])
-AC_DEFINE([COORD_END_STR],  ["_iter_end"],  [var name in output code for end coord])
-
-AC_DEFINE([UTIL_SEARCH_DIR_A], ["src"],     [extra directory to search for files in])
-AC_DEFINE([UTIL_SEARCH_DIR_B], ["scripts"], [extra directory to search for files in])
-
-AC_DEFINE([MAX_NUM_WORKERS],     [512], [max number of workers supported])
-AC_DEFINE([MIN_NUM_WORKERS],     [1],  [min number of workers supported])
+AC_DEFINE([ACCIMPROVETRIES],     [3], [number of increments tried with no accuracy improvement])
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
-AC_DEFINE([FORENOUGH_MIN_ITERS], [1],    [the default minimum number of iterations for forenough{} loops (can be overridden by users)])
-AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for forenough{} loops (can be overridden by users)])
-AC_DEFINE([TIMEOUT_GRACESEC],  [0.2],  [Grace period before slow tests are killed])
-
+AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for begin coord])
+AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
+AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
+AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])
+AC_DEFINE([INLINE_NULL_TASKS],   [], [run null tasks immediately when they are enqueued])
+AC_DEFINE([MATRIX_ELEMENT_T],    [double], [type for elements in the matrix])
+AC_DEFINE([MATRIX_INDEX_T],      [int], [type for indices into the matrix])
+AC_DEFINE([MAX_DIMENSIONS],      [64], [the maximum number of dimensions supported])
+AC_DEFINE([MAX_INPUT_BITS],      [32], [the maximum number of dimensions supported])
+AC_DEFINE([MAX_NUM_WORKERS],     [512], [max number of workers supported])
+AC_DEFINE([MAX_REC_LEVELS],      [6], [number of levels for recursive choices])
+AC_DEFINE([MIN_NUM_WORKERS],     [1], [min number of workers supported])
+AC_DEFINE([RETURN_VAL_STR],      ["_pb_rv"], [var name in output code for rule output variable])
+AC_DEFINE([RUN_CPP],             [1], [undefine to disable cpp])
+AC_DEFINE([SHORT_TYPE_NAMES],    [1], [add using namespace petabricks to output])
+AC_DEFINE([SPLIT_CHUNK_SIZE],    ["TRANSFORM_LOCAL(splitsize)"], [var name in output code])
+AC_DEFINE([STEAL_ATTEMPTS_MAINLOOP], [32], [number of times to attempt to steal in mainLoop])
+AC_DEFINE([STEAL_ATTEMPTS_WAITING],  [3], [number of times to attempt to steal in waitUntilComplete])
+AC_DEFINE([TEMPLATE_BIN_STR],    ["_acc_bin"], [var name in output code for accuracy template parameter])
+AC_DEFINE([TIMEOUT_GRACESEC],    [0.2], [Grace period before slow tests are killed])
+AC_DEFINE([TIMEOUTKILLSIG],      [SIGKILL], [Signal used to kill processes that timeout])
+AC_DEFINE([TMPL_IMPL_PFX],       ["_tmpl"], [prefix for expanded template implementations])
+AC_DEFINE([TRANSFORM_N_STR],     ["transform_n"], [define to add a system var to transform scope])
+AC_DEFINE([TX_DYNAMIC_POSTFIX],  ["_dynamic"], [postfix for dynamic versions of transforms])
+AC_DEFINE([TX_OPENCL_POSTFIX],   ["_opencl"], [postfix for opencl versions of transforms])
+AC_DEFINE([TX_STATIC_POSTFIX],   ["_static"], [postfix for static versions of transforms])
+AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files in])
+AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
 
-AC_DEFINE_UNQUOTED([REVISION_SHORT],  ["$rev_short"],   [git revision for HEAD at the time ./configure was run])
-AC_DEFINE_UNQUOTED([REVISION_LONG],   ["$rev_long"],    [git revision for HEAD at the time ./configure was run])
+AC_DEFINE_UNQUOTED([REVISION_LONG], ["$rev_long"], [git revision for HEAD at the time ./configure was run])
+AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at the time ./configure was run])
 
 
 if false; then
   #disabled by default:
-  AC_DEFINE([JASSERT_LOG],           [], [log traces to /tmp/jassertlog.pid])
   AC_DEFINE([DISABLE_CONTINUATIONS], [], [dont generate continuation code after SPAWN/enqueue])
-  AC_DEFINE([JALIB_USE_MALLOC],      [1],[Cause the custom allocator to call malloc instead of mmap])
-  AC_DEFINE([OUTPUT_SIZE_STR],    ["output_count"],     [define to add a system var to transform scope])
   AC_DEFINE([INPUT_PERIMETER_STR], ["input_perimeter"], [define to add a system var to transform scope])
   AC_DEFINE([INPUT_SIZE_STR],     ["input_count"],      [define to add a system var to transform scope])
-
+  AC_DEFINE([JALIB_USE_MALLOC],      [1],[Cause the custom allocator to call malloc instead of mmap])
+  AC_DEFINE([JASSERT_LOG],           [], [log traces to /tmp/jassertlog.pid])
+  AC_DEFINE([OUTPUT_SIZE_STR],    ["output_count"],     [define to add a system var to transform scope])
+  AC_DEFINE([PBCC_SEQUENTIAL], [], [define to run tasks inline instead of enqueuing them])
   AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
 fi
 
@@ -293,15 +293,15 @@ done
 
 #pass compiler configuration to config.h
 AC_DEFINE_UNQUOTED([CXX],        ["$CXX"],                  [C++ compiler used by pbc])
-AC_DEFINE_UNQUOTED([CXXFLAGS],   ["$CXXFLAGS"],             [C++ compiler flags used by pbc])
 AC_DEFINE_UNQUOTED([CXXCPP],     ["$CXXCPP -x c++"],        [C++ preprocessor used by pbc])
 AC_DEFINE_UNQUOTED([CXXDEFS],    ["$DEFS -DHAVE_CONFIG_H"], [C++ compiler defines used by pbc])
-AC_DEFINE_UNQUOTED([CXXLIBS],    ["$LIBS"],                 [C++ compiler libraries used by pbc])
+AC_DEFINE_UNQUOTED([CXXFLAGS],   ["$CXXFLAGS"],             [C++ compiler flags used by pbc])
 AC_DEFINE_UNQUOTED([CXXLDFLAGS], ["$LDFLAGS"],              [C++ compiler link flags used by pbc])
+AC_DEFINE_UNQUOTED([CXXLIBS],    ["$LIBS"],                 [C++ compiler libraries used by pbc])
 
 ################################################################################
 ################################################################################
 ################################################################################
 
-AC_OUTPUT(Makefile src/Makefile examples/Makefile)
+AC_OUTPUT(Makefile src/Makefile)
 

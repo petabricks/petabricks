@@ -84,6 +84,7 @@ regression/forenough
 regression/generators
 regression/matrixversions
 regression/multichoicesite
+regression/outputsizeacc
 regression/padding
 regression/params
 regression/ruleconstants
@@ -94,6 +95,7 @@ regression/scaleup
 regression/templatetest
 regression/testruleir
 regression/throughclause
+regression/tunoutputn
 regression/txconstants
 regression/upleftdep
 regression/whereclause

@@ -2,14 +2,14 @@
 #define DISTANCE_PBCC
 
 transform Distance
-from X[2], Y[2]
+from A[2], B[2]
 to Dis
 {
-  Dis from (X x, Y y)
+  Dis from (A a, B b)
   {
         ElementT xdiff, ydiff;
-        xdiff = x.cell(0)-y.cell(0);
-        ydiff = x.cell(1)-y.cell(1);
+        xdiff = a.cell(0)-b.cell(0);
+        ydiff = a.cell(1)-b.cell(1);
         return sqrt(xdiff*xdiff + ydiff*ydiff);
   }
 }
