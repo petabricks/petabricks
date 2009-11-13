@@ -25,6 +25,9 @@
 namespace petabricks
 {
 
+#define STRINGIFY(x) STRINGIFY_INNER(x)
+#define STRINGIFY_INNER(x) #x
+
 #if defined(HAVE_OPENCL)
 
 enum OpenCLMode

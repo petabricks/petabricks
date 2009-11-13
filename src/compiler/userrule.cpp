@@ -98,6 +98,10 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& scope){
 #endif
   
   _bodyirDynamic = bodyir;
+
+#ifdef HAVE_OPENCL
+  _bodyirOpenCL = bodyir;
+#endif
 }
 
 void petabricks::RuleFlags::print(std::ostream& os) const {
@@ -391,6 +395,8 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       CLCodeGenerator clcodegen;
       generateOpenCLKernel( trans, clcodegen, iterdef );
 
+      o.os( ) << "cl_int err;";
+
       o.os( ) << "/* -- Testing purposes only, to make this easy to read --\n";
       clcodegen.outputStringTo( o.os( ) );
       o.os( ) << "\n*/\n";
@@ -400,12 +406,65 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       o.os( ) << ";\nsize_t clsrclen = strlen( clsrc );\n";
 
       // Build program and create kernel
-      o.os( ) << "cl_program clprog = clCreateProgramWithSource( OpenCLUtil::getContext( ), 1, &clsrc, &clsrclen, NULL );\n";
-      o.os( ) << "clBuildProgram( clprog, 0, NULL, NULL, NULL, NULL );\n";
-      o.os( ) << "cl_kernel clkern = clCreateKernel( clprog, \"kernel_main\", NULL );\n";
+      o.os( ) << "cl_program clprog = clCreateProgramWithSource( OpenCLUtil::getContext( ), 1, &clsrc, &clsrclen, &err );\n";
+      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create program.\" );\n";
+      o.os( ) << "err = clBuildProgram( clprog, 0, NULL, NULL, NULL, NULL );\n";
+      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to build program.\" );\n";
+      o.os( ) << "cl_kernel clkern = clCreateKernel( clprog, \"kernel_main\", &err );\n";
+      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create kernel.\" );\n\n";
 
+      // Create memory objects for outputs.
+      for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+	{
+	  o.os( ) << "cl_mem clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " << "->bytes( ), NULL, &err );\n";
+	  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object for " << (*i)->matrix( )->name( ) << ".\" );\n";
+	}
+
+      // Create memory objects for inputs.
+
+      // Bind arguments.
+
+      // Invoke kernel.
+
+      // Copy results back to host memory.
+
+
+      // -----
+
+      /*
       // Trampoline will do copy-in/copy-out and invoke kernel
-      generateTrampCellCodeSimple( trans, o, E_RF_OPENCL );
+      //      generateTrampCellCodeSimple( trans, o, E_RF_OPENCL );
+
+      {
+	int arg_count = 0;
+
+	// Memory allocation and copy-in.
+    
+
+    // Bind arguments.
+    // - out ptrs
+    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_count++ << ", sizeof(cl_mem), (void*)&devbuf_" << (*i)->matrix( )->name( ) << " );\n";
+    // - in ptrs
+    for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
+      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_count++ << ", sizeof(cl_mem), (void*)&devbuf_" << (*i)->matrix( )->name( ) << " );\n";
+    // - iter dims
+    for( unsigned int i = 0; i < iterdef.dimensions( ); ++i )
+      o.os( ) << "int _iter_dim[] = { };\n"
+	      << "err |= clSetKernelArg( clkern, );\n";
+    // - matrix region dims (out, then in)
+
+    // Set execution parameters.
+
+    // Launch kernel.
+
+    // Copy-out.
+
+    o.write( "return NULL;" );
+    return;
+  }
+      */
+
     }
   #endif
   else {
@@ -466,15 +525,55 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   // Generate indices into input and output arrays.
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
+      // Build & normalize formula for index.
+      FormulaPtr idx_formula = FormulaInteger::zero( );
+      for( int j = (*i)->minCoord( ).size( ) - 1; j >= 0; --j )
+	{
+	  std::stringstream sizevar;
+	  sizevar << "dim_" << (*i)->matrix( )->name( ) << "_d" << j; 
+	  idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
+					new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
+	}
+      idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );
+
       clo.os( ) << "unsigned int idx_" << (*i)->matrix( )->name( ) << " = ";
-      //	      << (*i)->generateAccessorCode( )
-      //	      << (*i)->minCoord( )
-      (*i)->minCoord( ).print( clo.os( ) );
+      idx_formula->print( clo.os( ) );
+      clo.os( ) << ";\n";
+    }
+  for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
+    {
+      // Build & normalize formula for index.
+      FormulaPtr idx_formula = FormulaInteger::zero( );
+      for( int j = (*i)->minCoord( ).size( ) - 1; j >= 0; --j )
+	{
+	  std::stringstream sizevar;
+	  sizevar << "dim_" << (*i)->matrix( )->name( ) << "_d" << j; 
+	  idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
+					new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
+	}
+      idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );
+
+      clo.os( ) << "unsigned int idx_" << (*i)->matrix( )->name( ) << " = ";
+      idx_formula->print( clo.os( ) );
       clo.os( ) << ";\n";
     }
 
+  // Load inputs to rule.
+  for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
+    {
+      clo.os( ) << STRINGIFY( MATRIX_ELEMENT_T ) << " " << (*i)->name( ) << " = " << (*i)->matrix( )->name( ) << "[idx_" <<
+	(*i)->matrix( )->name( ) << "];\n";
+    }
+
+  // Quick hack -- generate a macro that will store the output from the rule.
+  /** \todo this mechanism won't work with rules with multiple outputs */
+  {
+    RegionList::const_iterator i = _to.begin( );
+    clo.os( ) << "#define PB_RETURN(x) " << (*i)->matrix( )->name( ) << "[idx_" << (*i)->matrix( )->name( ) << "] = x\n";
+  }
+
   // Generate OpenCL implementation of rule logic.
-  /** \todo */
+  clo.write( _bodyirOpenCL->toString( ) );
 
   // Close conditional and kernel.
   clo.os( ) << "}\n";
@@ -486,12 +585,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
 void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
 
 #ifdef HAVE_OPENCL
-  // temporary
-  if( E_RF_OPENCL == flavor )
-  {
-      o.write( "return NULL;" );
-      return;
-  }
+  JASSERT( E_RF_OPENCL != flavor );
 #endif
 
   std::vector<std::string> args;

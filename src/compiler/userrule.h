@@ -182,6 +182,9 @@ private:
   std::string     _bodysrc;
   RIRBlockCopyRef _bodyirStatic;
   RIRBlockCopyRef _bodyirDynamic;
+#ifdef HAVE_OPENCL
+  RIRBlockCopyRef _bodyirOpenCL;
+#endif
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr          _recursiveHint;

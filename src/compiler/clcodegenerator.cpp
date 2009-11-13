@@ -69,9 +69,6 @@ CLCodeGenerator::localMemoryBarrier( )
   _os << "barrier( CLK_LOCAL_MEM_FENCE );\n";
 }
 
-#define STRINGIFY(x) STRINGIFY_INNER(x)
-#define STRINGIFY_INNER(x) #x
-
 void
 CLCodeGenerator::beginKernel( const std::vector<std::string>& outputs, const std::vector<std::string>& inputs, unsigned int dims )
 {
@@ -83,15 +80,28 @@ CLCodeGenerator::beginKernel( const std::vector<std::string>& outputs, const std
 
   // The kernel will need a pointer to an appropriate chunk of each input and output matrix
   for( std::vector<std::string>::const_iterator it = outputs.begin( ); it != outputs.end( ); ++it )
-    _os << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* " << *it << ", ";
-  for( std::vector<std::string>::const_iterator it = inputs.begin( ); it != inputs.end( ); ++it )
-    _os << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* " << *it << ", ";
-  // And we'll need to provide the size of the region that we want the kernel to operate on.
-  for( unsigned int i = 0; i < dims; ++i )
     {
-      _os << "int dim_d" << i;
-      if( i != ( dims - 1 ) )
+      if( it != outputs.begin( ) )
 	_os << ", ";
+      _os << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* " << *it;
+    }
+  for( std::vector<std::string>::const_iterator it = inputs.begin( ); it != inputs.end( ); ++it )
+    _os << ", __global " << STRINGIFY(MATRIX_ELEMENT_T) << "* " << *it;
+
+  // And we'll need to provide the size of the region that we want the kernel to operate on.  (This is where the 'center' of the rule will be.)
+  for( unsigned int i = 0; i < dims; ++i )
+      _os << ", int dim_d" << i;
+
+  // Finally, we need to provide some of the dimensions of each of the matrices we've passed in, so that we can calculate indices.
+  for( std::vector<std::string>::const_iterator it = outputs.begin( ); it != outputs.end( ); ++it )
+    {
+      for( unsigned int i = 0; i < dims-1; ++i )
+	_os << ", int dim_" << *it << "_d" << i;
+    }
+  for( std::vector<std::string>::const_iterator it = inputs.begin( ); it != inputs.end( ); ++it )
+    {
+      for( unsigned int i = 0; i < dims-1; ++i )
+	_os << ", int dim_" << *it << "_d" << i;
     }
 
   _os << " ) {\n";
