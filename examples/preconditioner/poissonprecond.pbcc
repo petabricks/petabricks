@@ -21,10 +21,9 @@ accuracy_variable NumIterations
 {
 
 	//Jacobi preconditioner
-	to (OUT out, P p) from (X x, A a, B b)
+	to (OUT out) from (X x, A a, B b)
 	{
-		JacobiPre(p,a);
-		PCG(out, x, a, b, p, NumIterations);
+		JacobiPre(out, x, a, b, NumIterations);
 	}
 
 	//Polynomoial preconditioner
@@ -35,7 +34,7 @@ accuracy_variable NumIterations
         }
 
 	//no preconditioner
-	to (OUT out, P p) from (X x, A a, B b)
+	to (OUT out) from (X x, A a, B b)
 	{
 		CG(out, x, a, b, NumIterations);
 	}
@@ -47,7 +46,7 @@ transform PoissonGenerator
 to  X[n], A[n,n], B[n]
 {
 
-  B.cell(i) from() { return PetabricksRuntime::randDouble(0,100); }
+  B.cell(i) from() { return PetabricksRuntime::randDouble(); }
 
   X.cell(i) from() { return 0; }
 

@@ -20,10 +20,9 @@ accuracy_bins 0, 1, 2, 3, 4, 5
 accuracy_variable NumIterations
 {
 	//Jacobi preconditioner
-	to (OUT out, P p) from (X x, A a, B b)
+	to (OUT out) from (X x, A a, B b)
 	{
-		JacobiPre(p,a);
-		PCG(out, x, a, b, p, NumIterations);
+		JacobiPre(out, x, a, b, NumIterations);
 	}
 
 	//Polynomoial preconditioner
@@ -34,7 +33,7 @@ accuracy_variable NumIterations
         }
 
 	//no preconditioner
-	to (OUT out, P p) from (X x, A a, B b)
+	to (OUT out) from (X x, A a, B b)
 	{
 		CG(out, x, a, b, NumIterations);
 	}
