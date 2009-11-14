@@ -3,6 +3,9 @@
 /* number of increments tried with no accuracy improvement */
 #undef ACCIMPROVETRIES
 
+/* var name in output code for target accuracy */
+#undef ACCTARGET_STR
+
 /* macro for gcc function __attribute__s */
 #undef ATTRIBUTE
 

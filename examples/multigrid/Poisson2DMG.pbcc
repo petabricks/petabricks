@@ -77,9 +77,9 @@ generator POISSON2D_GENERATOR
 
         int level = (int) log2(n-1);
 
-        // for level greater than 8, just abort since
+        // for level greater than 6, just abort since
         // this will likely be slow and not the best choice
-        if (level > 8) {
+        if (level > 6) {
             PetabricksRuntime::abort();
         }
 
@@ -96,9 +96,9 @@ generator POISSON2D_GENERATOR
 
         int level = (int) log2(n-1);
 
-        // for level greater than 8, just abort since
+        // for level greater than 6, just abort since
         // this will likely be slow and not the best choice
-        if (level > 8) {
+        if (level > 6) {
             PetabricksRuntime::abort();
         }
 
@@ -107,6 +107,16 @@ generator POISSON2D_GENERATOR
 #endif
 
         Poisson2DSOR(y, x, b, -1, numIterations);
+    }
+
+    //base case: solve iteratively with RefMG
+    to(Y y) from(X x, B b) {
+
+#ifdef DEBUG
+        printf("RefMG case called for n = %d, acc %d (%d iterations)\n", n, _acc_bin, numIterations);
+#endif
+
+        Poisson2DRefMG(y, x, b, numIterations);
     }
 
     //solve recursively on coarser grids

@@ -5163,6 +5163,9 @@ fi
 $as_echo "#define ACCIMPROVETRIES 3" >>confdefs.h
 
 
+$as_echo "#define ACCTARGET_STR \"accuracyTarget\"" >>confdefs.h
+
+
 $as_echo "#define CACHE_LINE_SIZE 64" >>confdefs.h
 
 
