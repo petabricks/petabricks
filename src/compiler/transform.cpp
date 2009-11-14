@@ -804,22 +804,8 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.endFunc();
   
   o.beginFunc("ElementT", "accuracyTarget");
-  if(!_accuracyBins.empty())
-  {
-    std::ostringstream t;
-    t << "double targets[] = {";
-    if(isAccuracyInverted())
-      printStlList(t, _accuracyBins.rbegin(), _accuracyBins.rend(), ", ");
-    else
-      printStlList(t, _accuracyBins.begin(), _accuracyBins.end(), ", ");
-    t << "};";
-    o.write(t.str());
-    if(_accuracyBins.size()==1)
-      o.write("return targets[0];");
-    else if(isAccuracyInverted())
-      o.write("return -1*targets["TEMPLATE_BIN_STR"];");
-    else
-      o.write("return targets["TEMPLATE_BIN_STR"];");
+  if(!_accuracyBins.empty()){
+    o.write("return ACCURACY_TARGET;");
   }else{
     o.write("return jalib::minval<ElementT>();");
   }
@@ -828,9 +814,26 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.beginFunc("petabricks::PetabricksRuntime::Main*", "nextTemplateMain");
   o.write("return "+nextMain+";");
   o.endFunc();
-
-  
   o.endClass();
+  
+  if(!_accuracyBins.empty()){
+    o.beginFunc("ElementT", _name+ "_"ACCTARGET_STR);
+    std::ostringstream t;
+    t << "double targets[] = {";
+    if(isAccuracyInverted()){
+      t << "-";
+      printStlList(t, _accuracyBins.begin(), _accuracyBins.end(), ", -");
+    }else{
+      printStlList(t, _accuracyBins.rbegin(), _accuracyBins.rend(), ", ");
+    }
+    t << "};";
+    o.write(t.str());
+    if(_accuracyBins.size()==1)
+      o.write("return targets[0];");
+    else
+      o.write("return targets["TEMPLATE_BIN_STR"];");
+    o.endFunc();
+  }
 }
 
 std::vector<std::string> petabricks::Transform::maximalArgList() const{
