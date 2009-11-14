@@ -118,6 +118,7 @@ public:
   }
 
   
+  std::string allocateStr() const;
 
   void argDeclRW(std::vector<std::string>& args, bool byRef=false) const;
   void argDeclRO(std::vector<std::string>& args, bool byRef=false) const;
