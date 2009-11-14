@@ -507,7 +507,10 @@ double petabricks::PetabricksRuntime::runTrial(double thresh, bool train){
 
 double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti, bool train){
   if(GRAPH_SMOOTHING==0){
-    return runTrialNoSmoothing(ti, train);
+    _randSize+=OFFSET;
+    double rv=runTrialNoSmoothing(ti, train);
+    _randSize-=OFFSET;
+    return rv;
   }else{
     int origN = _randSize;
     std::vector<double> rslts;
