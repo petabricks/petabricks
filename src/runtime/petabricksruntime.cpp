@@ -57,28 +57,38 @@ static bool ACCURACY=false;
 static bool FORCEOUTPUT=false;
 static bool ACCTRAIN=false;
 static bool ISOLATION=true;
+static bool FIXEDRANDOM=false;
 static int OFFSET=0;
 std::vector<std::string> txArgs;
 static std::string ATLOG;
 
 
 #ifdef HAVE_BOOST_RANDOM_HPP
-static boost::lagged_fibonacci607 theRandomGen;
+static boost::lagged_fibonacci607& myRandomGen(){
+  //ouch... lagged_fibonacci is NOT THREAD SAFE
+  static __thread char lf_buf[sizeof(boost::lagged_fibonacci607)];
+  static __thread boost::lagged_fibonacci607* lf = NULL;
+  if(lf==NULL){
+    lf=new (lf_buf) boost::lagged_fibonacci607();
+    if(!FIXEDRANDOM){
+      lf->seed(jalib::JTime::now().usec());
+    }
+  }
+  return *lf;
+}
 #endif
 
 static void _seedRandom(){
   srand48(jalib::JTime::now().usec());
-#ifdef HAVE_BOOST_RANDOM_HPP
-  theRandomGen.seed(jalib::JTime::now().usec());
-#endif
 }
 
 double petabricks::PetabricksRuntime::rand01(){
 #ifdef HAVE_BOOST_RANDOM_HPP
-  return theRandomGen();
+  double d = myRandomGen()();
 #else
-  return drand48()
+  double d = drand48()
 #endif
+  return d;
 }
 
 
@@ -181,7 +191,9 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   }
   
   //seed the random number generator 
-  if(! args.param("fixedrandom").help("don't seed the random number generator"))
+  args.param("fixedrandom", FIXEDRANDOM).help("don't seed the random number generator");
+
+  if(!FIXEDRANDOM)
     _seedRandom();
 
   args.param("accuracy",  ACCURACY).help("print out accuracy of answer");
