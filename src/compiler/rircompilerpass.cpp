@@ -271,9 +271,9 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
       pushStmtBackward(s2);
 
       if(_transform.isAccuracyInverted())
-        e = RIRExpr::parse(var + " > -1*ACCURACY_TARGET");
+        e = RIRExpr::parse(var + "*-1 >= ACCURACY_TARGET");
       else
-        e = RIRExpr::parse(var + " > ACCURACY_TARGET");
+        e = RIRExpr::parse(var + " >= ACCURACY_TARGET");
     }
   }
   if(e->type() == RIRNode::EXPR_KEYWORD){
