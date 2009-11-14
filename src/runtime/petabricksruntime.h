@@ -134,6 +134,7 @@ public:
   void runAutotuneLoop(const AutotunerList& tuners);
 
   double runTrial(TestIsolation&, bool train);
+  double runTrialNoSmoothing(TestIsolation&, bool train);
   double runTrial(double thresh, bool train);
 
   static bool isTrainingRun();

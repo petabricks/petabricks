@@ -42,10 +42,12 @@ static bool _needTraingingRun = false;
 static std::string CONFIG_FILENAME;
 static int GRAPH_MIN=1;
 static int GRAPH_MAX=4096;
-static double GRAPH_MAX_SEC=std::numeric_limits<double>::max();
+static double GRAPH_MAX_SEC=jalib::maxval<double>();
 static int  GRAPH_STEP=1;
 static bool GRAPH_EXP=false;
 static int GRAPH_TRIALS=1;
+static int GRAPH_TRIALS_MAX=jalib::maxval<int>();
+static double GRAPH_TRIALS_SEC=0;
 static int GRAPH_SMOOTHING=0;
 static int RETRIES=3;
 static int SEARCH_BRANCH_FACTOR=8;
@@ -55,28 +57,38 @@ static bool ACCURACY=false;
 static bool FORCEOUTPUT=false;
 static bool ACCTRAIN=false;
 static bool ISOLATION=true;
+static bool FIXEDRANDOM=false;
 static int OFFSET=0;
 std::vector<std::string> txArgs;
 static std::string ATLOG;
 
 
 #ifdef HAVE_BOOST_RANDOM_HPP
-static boost::lagged_fibonacci607 theRandomGen;
+static boost::lagged_fibonacci607& myRandomGen(){
+  //ouch... lagged_fibonacci is NOT THREAD SAFE
+  static __thread char lf_buf[sizeof(boost::lagged_fibonacci607)];
+  static __thread boost::lagged_fibonacci607* lf = NULL;
+  if(lf==NULL){
+    lf=new (lf_buf) boost::lagged_fibonacci607();
+    if(!FIXEDRANDOM){
+      lf->seed(jalib::JTime::now().usec());
+    }
+  }
+  return *lf;
+}
 #endif
 
 static void _seedRandom(){
   srand48(jalib::JTime::now().usec());
-#ifdef HAVE_BOOST_RANDOM_HPP
-  theRandomGen.seed(jalib::JTime::now().usec());
-#endif
 }
 
 double petabricks::PetabricksRuntime::rand01(){
 #ifdef HAVE_BOOST_RANDOM_HPP
-  return theRandomGen();
+  double d = myRandomGen()();
 #else
-  return drand48()
+  double d = drand48()
 #endif
+  return d;
 }
 
 
@@ -179,7 +191,9 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   }
   
   //seed the random number generator 
-  if(! args.param("fixedrandom").help("don't seed the random number generator"))
+  args.param("fixedrandom", FIXEDRANDOM).help("don't seed the random number generator");
+
+  if(!FIXEDRANDOM)
     _seedRandom();
 
   args.param("accuracy",  ACCURACY).help("print out accuracy of answer");
@@ -239,18 +253,20 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("autotune-site",      autotunesites).help("choice sites to tune in --autotune mode");
   args.param("autotune-tunable",   autotunecutoffs).help("additional cutoff tunables to tune in --autotune mode");
   args.param("autotune-log",   ATLOG).help("log autotuner actions to given filename prefix");
-  args.param("acctrain",  ACCTRAIN).help("retrain for accuracy requirements in -n mode");
-  args.param("acctrials", ACCTRIALS).help("number of tests to run when setting accuracy variabls");
-  args.param("min",       GRAPH_MIN).help("minimum input size for graph/autotuning");
-  args.param("max",       GRAPH_MAX).help("maximum input size for graph/autotuning");
-  args.param("step",      GRAPH_STEP).help("step size for graph/autotuning");
-  args.param("exp",       GRAPH_EXP).help("grow input size exponentially in graph/autotuning mode");
-  args.param("trials",    GRAPH_TRIALS).help("number of times to run each data point in graph/autotuning (averaged)");
-  args.param("smoothing", GRAPH_SMOOTHING).help("smooth graphs by also running smaller/larger input sizes");
-  args.param("offset",    OFFSET).help("size to add to N for each trial");
-  args.param("max-sec",   GRAPH_MAX_SEC).help("stop graphs/autotuning after algorithm runs too slow");
-  args.param("isolation", ISOLATION).help("don't run timing tests in a forked subprocess");
-  args.param("retries",   RETRIES).help("times to retry on test failure");
+  args.param("acctrain",    ACCTRAIN).help("retrain for accuracy requirements in -n mode");
+  args.param("acctrials",   ACCTRIALS).help("number of tests to run when setting accuracy variabls");
+  args.param("min",         GRAPH_MIN).help("minimum input size for graph/autotuning");
+  args.param("max",         GRAPH_MAX).help("maximum input size for graph/autotuning");
+  args.param("step",        GRAPH_STEP).help("step size for graph/autotuning");
+  args.param("exp",         GRAPH_EXP).help("grow input size exponentially in graph/autotuning mode");
+  args.param("trials",      GRAPH_TRIALS).help("number of times to run each data point in graph/autotuning (averaged)");
+  args.param("trials-sec",  GRAPH_TRIALS_SEC).help("keep running trials until total measured time is greater than a given number");
+  args.param("trials-max",  GRAPH_TRIALS_MAX).help("maximum number of trials to run per configuration");
+  args.param("smoothing",   GRAPH_SMOOTHING).help("smooth graphs by also running smaller/larger input sizes");
+  args.param("offset",      OFFSET).help("size to add to N for each trial");
+  args.param("max-sec",     GRAPH_MAX_SEC).help("stop graphs/autotuning after algorithm runs too slow");
+  args.param("isolation",   ISOLATION).help("don't run timing tests in a forked subprocess");
+  args.param("retries",     RETRIES).help("times to retry on test failure");
 
   args.finishParsing(txArgs);
 
@@ -471,7 +487,8 @@ void petabricks::PetabricksRuntime::runGraphParallelMode() {
   GRAPH_MAX = std::min(GRAPH_MAX, worker_threads.max());
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n=_incN(n)){
     worker_threads.setValue(n);
-    DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
+    if(!ISOLATION)
+      DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
     double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
     if(avg<std::numeric_limits<double>::max())
       printf("%d %.6lf\n", n, avg);
@@ -489,29 +506,45 @@ double petabricks::PetabricksRuntime::runTrial(double thresh, bool train){
 }
 
 double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti, bool train){
-  JASSERT(_randSize>0)(_randSize).Text("'--n=NUMBER' is required");
-  int origN = _randSize;
-  std::vector<double> rslts;
-  rslts.reserve(2*GRAPH_SMOOTHING+1);
-  //JTRACE("runtrial")(_randSize)(GRAPH_SMOOTHING)(OFFSET);
-  for( int n =  origN-GRAPH_SMOOTHING+OFFSET
-     ; n <= origN+GRAPH_SMOOTHING+OFFSET
-     ; ++n)
-  {
-    _randSize=n;
-    double t = 0;
-    for(int z=0;z<GRAPH_TRIALS; ++z){
-      if(z==0 && train){
-        t += trainAndComputeWrapper(ti, n); // first trial can train
-      }else{
-        t += computeWrapper(ti, n); // rest of trials cant train
-      }
+  if(GRAPH_SMOOTHING==0){
+    return runTrialNoSmoothing(ti, train);
+  }else{
+    int origN = _randSize;
+    std::vector<double> rslts;
+    rslts.reserve(2*GRAPH_SMOOTHING+1);
+    for( int n =  origN-GRAPH_SMOOTHING+OFFSET
+       ; n <= origN+GRAPH_SMOOTHING+OFFSET
+       ; ++n)
+    {
+      _randSize=n;
+      rslts.push_back(runTrialNoSmoothing(ti,train));
+      _randSize=origN;
     }
-    rslts.push_back(t/GRAPH_TRIALS);//record average
+    std::sort(rslts.begin(), rslts.end());
+    return rslts[GRAPH_SMOOTHING];
   }
-  std::sort(rslts.begin(), rslts.end());
-  _randSize=origN;
-  return rslts[GRAPH_SMOOTHING];
+}
+
+double petabricks::PetabricksRuntime::runTrialNoSmoothing(TestIsolation& ti, bool train){
+  JASSERT(_randSize>0 && GRAPH_TRIALS>=1 && GRAPH_TRIALS_SEC>=0)(_randSize).Text("'--n=NUMBER' is required");
+  JASSERT(GRAPH_TRIALS>=1).Text("invalid --trials");
+  JASSERT(GRAPH_TRIALS_SEC>=0).Text("invalid --trials-sec");
+  JASSERT(GRAPH_TRIALS_MAX>=GRAPH_TRIALS).Text("invalid --trials and --trials-max");
+  double total = 0;
+  int count = 0;
+  do {
+    if(count==0 && train)
+      total += trainAndComputeWrapper(ti, _randSize); // first trial can train
+    else
+      total += computeWrapper(ti, _randSize); // rest of trials cant train
+    ++count;
+
+    if(total>=jalib::maxval<double>())
+      return jalib::maxval<double>();
+
+  } while( count<GRAPH_TRIALS || ( total<GRAPH_TRIALS_SEC && count<GRAPH_TRIALS_MAX) );
+
+  return total/count;
 }
 
 double petabricks::PetabricksRuntime::trainAndComputeWrapper(TestIsolation& ti, int n){

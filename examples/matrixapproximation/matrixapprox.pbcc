@@ -38,7 +38,7 @@ generator matrixapproinputgen
 
 	// find only the k eigenvalues/eigenvectors by Bisection method
 	to (Lambda lam, X x) from (H h) {
-	        if (k>=n)  PetabricksRuntime::abort(); 
+	        if (k>n)  PetabricksRuntime::abort(); 
 		Bisection(lam,x,h,k);
 	}
 
@@ -64,7 +64,7 @@ generator matrixapproinputgen
 
 	to (OUT out, TEMP temp) from (U u, VT vt){
 		int i;
-		if (k>=n)  PetabricksRuntime::abort(); 
+		if (k>n)  PetabricksRuntime::abort(); 
 		MatrixMultiply(out, u.region(0,0,1,n), vt.region(0,0,n,1) );
 		for (i=1; i<k; i++) { 
 			//MatrixAdd(out, out, MatrixMultiply(u.region(i,0,i+1,n), vt.region(0,i,n,i+1)) );
@@ -110,7 +110,7 @@ to Accuracy
 		ComputeError(e1, Z, in);
 		ComputeError(e2, out, in);
 		if (e2 == 0) {
-            		return std::numeric_limits<double>::max();
+            		return 10;
         	}
         	else {
             		return log10(e1/e2);
