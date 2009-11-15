@@ -822,9 +822,9 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     t << "double targets[] = {";
     if(isAccuracyInverted()){
       t << "-";
-      printStlList(t, _accuracyBins.begin(), _accuracyBins.end(), ", -");
+      printStlList(t, _accuracyBins.rbegin(), _accuracyBins.rend(), ", -");
     }else{
-      printStlList(t, _accuracyBins.rbegin(), _accuracyBins.rend(), ", ");
+      printStlList(t, _accuracyBins.begin(), _accuracyBins.end(), ", ");
     }
     t << "};";
     o.write(t.str());
