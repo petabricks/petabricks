@@ -5160,9 +5160,6 @@ $as_echo "#define JALIB_ALLOCATOR 1" >>confdefs.h
 fi
 
 
-$as_echo "#define ACCIMPROVETRIES 3" >>confdefs.h
-
-
 $as_echo "#define ACCTARGET_STR \"accuracyTarget\"" >>confdefs.h
 
 
