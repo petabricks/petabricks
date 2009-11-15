@@ -9,7 +9,6 @@
  *                                                                         *
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
-%option caseless
 %option yylineno
 %option nostdinit
 %option noyywrap
@@ -84,6 +83,7 @@ CHAR ['][\\]?.[']
   "switch"                    return TOK_SWITCH;
   "case"                      return TOK_CASE;
   "default"                   return TOK_DEFAULT;
+  "spawn"                     return TOK_SPAWN;
   {PASS_CHARS}                return yytext[0];
   {OPS}"="                    return TOK_OP;
   "->"                        return TOK_OP;
@@ -102,7 +102,7 @@ CHAR ['][\\]?.[']
   {CHAR}                      return TOK_LIT;
   [0-9]+                      return TOK_LIT;
   [0-9]+[.][0-9]+             return TOK_LIT;
-  [a-z:_][:a-z0-9_]*         return TOK_IDENT;
+  [a-zA-Z:_][:a-zA-Z0-9_]*    return TOK_IDENT;
   [%][{]([^%]+|[%][^}])*[%][}] return TOK_RAW;
   ^[#][ ][0-9]+[ ][^\n]*      handleCppLine(yytext);
   .                   JWARNING(false)(yytext).Text("Unhanded input");

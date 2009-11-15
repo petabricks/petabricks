@@ -39,43 +39,45 @@
    /* Put the tokens into the symbol table, so that GDB and other debuggers
       know about them.  */
    enum yytokentype {
-     TOK_FORENOUGH = 258,
-     TOK_DEFAULT = 259,
-     TOK_CASE = 260,
-     TOK_SWITCH = 261,
-     TOK_RAW = 262,
-     TOK_CONTINUE = 263,
-     TOK_BREAK = 264,
-     TOK_RETURN = 265,
-     TOK_DO = 266,
-     TOK_WHILE = 267,
-     TOK_FOR = 268,
-     TOK_ELSE = 269,
-     TOK_THEN = 270,
-     TOK_IF = 271,
-     TOK_IDENT = 272,
-     TOK_LIT = 273,
-     TOK_OP = 274
+     TOK_SPAWN = 258,
+     TOK_FORENOUGH = 259,
+     TOK_DEFAULT = 260,
+     TOK_CASE = 261,
+     TOK_SWITCH = 262,
+     TOK_RAW = 263,
+     TOK_CONTINUE = 264,
+     TOK_BREAK = 265,
+     TOK_RETURN = 266,
+     TOK_DO = 267,
+     TOK_WHILE = 268,
+     TOK_FOR = 269,
+     TOK_ELSE = 270,
+     TOK_THEN = 271,
+     TOK_IF = 272,
+     TOK_IDENT = 273,
+     TOK_LIT = 274,
+     TOK_OP = 275
    };
 #endif
 /* Tokens.  */
-#define TOK_FORENOUGH 258
-#define TOK_DEFAULT 259
-#define TOK_CASE 260
-#define TOK_SWITCH 261
-#define TOK_RAW 262
-#define TOK_CONTINUE 263
-#define TOK_BREAK 264
-#define TOK_RETURN 265
-#define TOK_DO 266
-#define TOK_WHILE 267
-#define TOK_FOR 268
-#define TOK_ELSE 269
-#define TOK_THEN 270
-#define TOK_IF 271
-#define TOK_IDENT 272
-#define TOK_LIT 273
-#define TOK_OP 274
+#define TOK_SPAWN 258
+#define TOK_FORENOUGH 259
+#define TOK_DEFAULT 260
+#define TOK_CASE 261
+#define TOK_SWITCH 262
+#define TOK_RAW 263
+#define TOK_CONTINUE 264
+#define TOK_BREAK 265
+#define TOK_RETURN 266
+#define TOK_DO 267
+#define TOK_WHILE 268
+#define TOK_FOR 269
+#define TOK_ELSE 270
+#define TOK_THEN 271
+#define TOK_IF 272
+#define TOK_IDENT 273
+#define TOK_LIT 274
+#define TOK_OP 275
 
 
 
@@ -95,7 +97,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 99 "libpbcompiler_a-ruleirparser.h"
+#line 101 "libpbcompiler_a-ruleirparser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */

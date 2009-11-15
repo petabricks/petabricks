@@ -218,7 +218,12 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
         //   CALL(Foo,c,d)
         JTRACE("Creating call")(sym);
         peekExprForward()->parts().push_front(e);
-        e = new RIRIdentExpr("CALL");
+        if(hasExprBackward()&&peekExprBackward()->isLeaf("spawn")){
+          popExprBackward();
+          e = new RIRIdentExpr("SPAWN");
+        }else{
+          e = new RIRIdentExpr("CALL");
+        }
       }
     }
     if(sym && sym->type() == RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL){
@@ -254,7 +259,7 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
         }
       }
     }
-    if(e->toString()=="verify_accuracy"){
+    if(e->isLeaf("verify_accuracy")){
       std::string var = _uniquify("tmpacc");
 
       RIRStmtCopyRef s1 = RIRStmt::parse("ElementT "+var+";");
@@ -274,6 +279,9 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
         e = RIRExpr::parse(var + "*-1 >= ACCURACY_TARGET");
       else
         e = RIRExpr::parse(var + " >= ACCURACY_TARGET");
+    }
+    if(e->isLeaf("sync")){
+      e = RIRExpr::parse("SYNC()");
     }
   }
   if(e->type() == RIRNode::EXPR_KEYWORD){
