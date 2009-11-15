@@ -1,8 +1,5 @@
 /* src/config.h.in.  Generated from configure.ac by autoheader.  */
 
-/* number of increments tried with no accuracy improvement */
-#undef ACCIMPROVETRIES
-
 /* var name in output code for target accuracy */
 #undef ACCTARGET_STR
 

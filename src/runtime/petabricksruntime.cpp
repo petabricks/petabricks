@@ -59,6 +59,7 @@ static bool ACCTRAIN=false;
 static bool ISOLATION=true;
 static bool FIXEDRANDOM=false;
 static int OFFSET=0;
+static int ACCIMPROVETRIES=3;
 std::vector<std::string> txArgs;
 static std::string ATLOG;
 
@@ -255,6 +256,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("autotune-log",   ATLOG).help("log autotuner actions to given filename prefix");
   args.param("acctrain",    ACCTRAIN).help("retrain for accuracy requirements in -n mode");
   args.param("acctrials",   ACCTRIALS).help("number of tests to run when setting accuracy variabls");
+  args.param("accimprovetries",   ACCIMPROVETRIES).help("number of increments tried with no accuracy improvement");
   args.param("min",         GRAPH_MIN).help("minimum input size for graph/autotuning");
   args.param("max",         GRAPH_MAX).help("maximum input size for graph/autotuning");
   args.param("step",        GRAPH_STEP).help("step size for graph/autotuning");

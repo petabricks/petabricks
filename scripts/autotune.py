@@ -342,6 +342,7 @@ def main(argv):
   parser.add_option("--noisolation", action="store_true", dest="noisolation", default=False)
   parser.add_option("--print", action="store_true", dest="justprint", default=False)
   parser.add_option("--acctrials", type="int", dest="acctrials", default=None)
+  parser.add_option("--accimprovetries", type="int", dest="accimprovetries", default=None)
   parser.add_option("--trials", type="int", dest="trials", default=None)
   parser.add_option("--trials-sec", type="float", dest="trialssec", default=None)
   parser.add_option("--trials-max", type="int", dest="trialsmax", default=None)
@@ -377,6 +378,8 @@ def main(argv):
     defaultArgs.append("--trials-sec=%f"%options.trialssec)
   if options.trialsmax is not None:
     defaultArgs.append("--trials-max=%d"%options.trialsmax)
+  if options.accimprovetries is not None:
+    defaultArgs.append("--accimprovetries=%d"%options.accimprovetries)
 
   getIgnoreList()
 
