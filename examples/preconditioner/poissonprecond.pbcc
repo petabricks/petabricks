@@ -12,7 +12,7 @@
 
 main transform poissonprecond	
 from X[n], A[n,n], B[n]  // X - initial guess, A - input matrice, B - RHS vector
-through P[n,n]  // P - preconditioner
+//through P[n,n]  // P - preconditioner
 to OUT[n] //,Accuracy
 generator PoissonGenerator
 accuracy_metric ResidualNorm
@@ -27,8 +27,9 @@ accuracy_variable NumIterations
 	}
 
 	//Polynomoial preconditioner
-        to (OUT out, P p) from (X x, A a, B b)
+        to (OUT out) from (X x, A a, B b)
         {
+                MatrixRegion2D p = MatrixRegion2D::allocate(n,n);	 
                 PolyPre(p,a);
                 PCG(out, x, a, b, p, NumIterations);
         }
@@ -46,7 +47,7 @@ transform PoissonGenerator
 to  X[n], A[n,n], B[n]
 {
 
-  B.cell(i) from() { return PetabricksRuntime::randDouble(); }
+  B.cell(i) from() { return PetabricksRuntime::randDouble(0,100); }
 
   X.cell(i) from() { return 0; }
 

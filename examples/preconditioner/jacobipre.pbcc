@@ -5,10 +5,32 @@
 #include "demv.pbcc"
 #include "jacobipreInterior.pbcc"
 
+transform jacobigen
+to  IN[n], A[n,n], B[n], numIterations
+{
+
+  B.cell(i) from() { return PetabricksRuntime::randDouble(); }
+
+  IN.cell(i) from()
+  {
+        //return PetabricksRuntime::randDouble();
+        return 0; //initial guess is 0
+  }
+
+  A.cell(i,j) from()  { return PetabricksRuntime::randDouble(); }
+
+  numIterations from ()
+  {
+        return 5;
+  }
+
+}
+
 transform JacobiPre
 from IN[n], A[n,n], B[n], numIterations
 through P[n], R[n], D[n],Rtemp[n], Dtemp[n], Ztemp[n], AX[n]
 to OUT[n]
+generator jacobigen
 {
    to (AX ax) from(IN in, A a)
    {
@@ -20,7 +42,13 @@ to OUT[n]
    	VectorSub(r, b, ax);
    }
 
-   P.cell(i) from (A.col(i) a) { return 1/a.cell(i); }
+   to (P p) from (A a) { 
+	int i;
+	for (i=0; i<n; i++) {
+		if (a.cell(i,i) == 0 ) {  p.cell(i)=0; }
+		else { p.cell(i)=1/a.cell(i,i); } 
+	}
+   }
 
    D.cell(i) from (R.cell(i) r, P.cell(i) p)
    {	
@@ -33,4 +61,6 @@ to OUT[n]
    }
 
 }
+
+
 #endif // JACOBIPRE_PBCC
