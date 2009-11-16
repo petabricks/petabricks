@@ -134,6 +134,7 @@ generator kmeansinputgen
 
     while (change > 0)  {//forenough?
       AssignClusters(a,change,x,c,a);
+      //printf ("change %f\n", change);
       if (change > 0) { 
         NewClusterLocations(c, x, a);
       }
