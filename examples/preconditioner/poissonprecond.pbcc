@@ -16,7 +16,7 @@ from X[n], A[n,n], B[n]  // X - initial guess, A - input matrice, B - RHS vector
 to OUT[n] //,Accuracy
 generator PoissonGenerator
 accuracy_metric ResidualNorm
-accuracy_bins 0, 1, 2, 3, 4, 5
+accuracy_bins 0, 0.5, 1, 1.5, 2, 3
 accuracy_variable NumIterations
 {
 
