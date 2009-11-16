@@ -1,17 +1,9 @@
 #include "../simple/copy.pbcc"
 
-#ifndef WAY
-#define WAY 32
-#endif
+#define WAY (1<<W)
 
-#define CAT(a,b) _CAT(a,b)
-#define _CAT(a,b) a ## b
-
-#ifndef SORTSUBARRAY
-#define SORTSUBARRAY CAT(MergesortSubArray, WAY)
-#endif
-
-transform CAT(Merge, WAY)
+template<W(1,5)>
+transform Merge
 from IN[n]
 to OUT[n]
 {
@@ -41,38 +33,43 @@ to OUT[n]
   }
 }
 
-transform CAT(MergesortSubArray, WAY)
+template<W(1,5)>
+transform MergesortSubArray
 from IN[n], Pos
 to OUT[n], TEMP[n]
 {
-  recursive to(OUT out, TEMP temp) from (IN in, Pos p)
+  to(OUT out, TEMP temp) from (IN in, Pos p)
   {
     int i;
 
     for (i = 0; i < WAY; i++) {
       if (n * (i + 1) / WAY - n * i / WAY > 1) {
-        SPAWN(SORTSUBARRAY, out .region(n * i / WAY, n * (i + 1) / WAY),
-                            temp.region(n * i / WAY, n * (i + 1) / WAY),
-                            in  .region(n * i / WAY, n * (i + 1) / WAY), p);
+#ifndef SORTSUBARRAY
+        spawn MergesortSubArray(W, out .region(n * i / WAY, n * (i + 1) / WAY),
+                                   temp.region(n * i / WAY, n * (i + 1) / WAY),
+                                   in  .region(n * i / WAY, n * (i + 1) / WAY), p);
+#else
+        spawn SORTSUBARRAY(out .region(n * i / WAY, n * (i + 1) / WAY),
+                           temp.region(n * i / WAY, n * (i + 1) / WAY),
+                           in  .region(n * i / WAY, n * (i + 1) / WAY), p);
+#endif
       }
     }
-
-    SYNC();
-    SPAWN(Copy1D, temp, out);
-    SYNC();
-    SPAWN(CAT(Merge, WAY), out, temp);
+    sync;
+    Copy1D(temp, out);
+    Merge<WAY>(out, temp);
   }
 }
 
-transform CAT(Mergesort, WAY)
+template<W(1,5)>
+transform Mergesort
 from IN[n]
 to OUT[n]
 {
-  to(OUT out) from (IN in)
+  to(OUT out) from (IN in) using(temp[n])
   {
-    InlineCopy1D(out, in);
-    MatrixRegion1D temp = MatrixRegion1D::allocate(n);
-    CAT(MergesortSubArray,WAY)(out, temp, in, 64);
+    Copy1D(out, in);
+    MergesortSubArray<WAY>(out, temp, in, 64);
   }
 }
 
