@@ -134,13 +134,37 @@ generator kmeansinputgen
 
     while (change > 0)  {//forenough?
       AssignClusters(a,change,x,c,a);
+      //printf ("change %f\n", change);
       if (change > 0) { 
+        NewClusterLocations(c, x, a);
+      }
+    }
+  }
+  
+  //iteratively find local optimum
+  to (C c, A a) from (X x, Ctemp ctemp)
+  {
+    ElementT change=1;
+    InlineCopy2D(c,ctemp);    
+
+    while (change > 0)  {//forenough?
+      AssignClusters(a,change,x,c,a);
+      //printf ("change %f\n", change);
+      if (change > n/10) { //stop when only 10% change
         NewClusterLocations(c, x, a);
       }
     }
 
   }
-
+  
+  
+  to (C c, A a) from (X x, Ctemp ctemp)
+  {
+    ElementT change=1;
+    InlineCopy2D(c,ctemp);    
+    //just once...
+    AssignClusters(a,change,x,c,a);
+  }
 }
 
 transform WCSS

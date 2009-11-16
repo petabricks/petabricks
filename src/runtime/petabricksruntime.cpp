@@ -108,6 +108,7 @@ static enum {
   MODE_GRAPH_INPUTSIZE,
   MODE_GRAPH_PARAM,
   MODE_GRAPH_THREADS,
+  MODE_GRAPH_TEMPLATE,
   MODE_AUTOTUNE_GENETIC,
   MODE_AUTOTUNE_PARAM,
   MODE_ABORT,
@@ -127,15 +128,19 @@ JTUNABLE(worker_threads,   8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
 namespace{//file local
   typedef jalib::JTunableManager TunableManager;
 
+  double _mean(const std::vector<double>& data){
+    double sum = 0;
+    for(size_t i=0; i<data.size(); ++i)
+      sum += data[i];
+    return sum / (double) data.size();
+  }
+
   void _dumpStats(std::ostream& o, const std::vector<double>& _data){
     if(_data.empty()) return;
     std::vector<double> data = _data;
     std::sort(data.begin(), data.end());
 
-    double sum = 0;
-    for(size_t i=0; i<data.size(); ++i)
-      sum += data[i];
-    double mean = sum / (double) data.size();
+    double mean = _mean(data);
 
     double variance = 0;
     for(size_t i=0; i<data.size(); ++i)
@@ -148,7 +153,6 @@ namespace{//file local
     o.precision(15);
     o << " count=\""    << data.size()         << '"'
       << " average=\""  << mean                << '"'
-      << " total=\""    << sum                 << '"'
       << " min=\""      << data[0]             << '"'
       << " max=\""      << data[data.size()-1] << '"'
       << " median=\""   << median              << '"'
@@ -175,6 +179,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.alias("random", "n");
   args.alias("tx", "transform");
   args.alias("graph", "graph-input");
+  args.alias("graph-accuracy", "graph-template");
   
   //load config from disk
   CONFIG_FILENAME = jalib::Filesystem::GetProgramPath() + ".cfg";
@@ -228,6 +233,8 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
       MODE=MODE_GRAPH_PARAM;
   }else if(args.param("graph-parallel").help("graph run time with changing number of threads")){
     MODE=MODE_GRAPH_THREADS;
+  }else if(args.param("graph-template").help("graph run time for each template instance")){
+    MODE=MODE_GRAPH_TEMPLATE;
   }
   
   //flags that cause aborts
@@ -277,6 +284,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     case MODE_GRAPH_INPUTSIZE:
     case MODE_GRAPH_PARAM:
     case MODE_GRAPH_THREADS:
+    case MODE_GRAPH_TEMPLATE:
     case MODE_AUTOTUNE_GENETIC:
     case MODE_AUTOTUNE_PARAM:
       if(ISOLATION)
@@ -336,6 +344,9 @@ int petabricks::PetabricksRuntime::runMain(){
     case MODE_GRAPH_PARAM:
       runGraphParamMode(graphParam);
       break;
+    case MODE_GRAPH_TEMPLATE:
+      runGraphTemplate();
+      break;
     case MODE_GRAPH_THREADS:
       runGraphParallelMode();
       break;
@@ -361,6 +372,8 @@ int petabricks::PetabricksRuntime::runMain(){
     _main->write(tmp);
   }
 
+  ACCURACY=!theAccuracies.empty();
+  DUMPTIMING=!theTimings.empty();
   if(ACCURACY || DUMPTIMING) std::cout << "<root>\n  <stats>\n";
   if(ACCURACY){
     std::cout << "    <accuracy";
@@ -466,6 +479,19 @@ void petabricks::PetabricksRuntime::runGraphMode(){
       printf("%d %.6f\n", _randSize, avg);
     fflush(stdout);
     if(avg > GRAPH_MAX_SEC) break;
+  }
+}
+
+void petabricks::PetabricksRuntime::runGraphTemplate(){
+  int i=0;
+  for(; _main!=NULL; _main=_main->nextTemplateMain(),++i){
+    double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
+    if(theAccuracies.empty()){
+      printf("%d %.6f\n", i, avg);
+    }else{
+      printf("%d %.6f %.6f %.6f\n", i, avg, _main->accuracyTarget(), _mean(theAccuracies));
+      theAccuracies.clear();
+    }
   }
 }
 
@@ -635,7 +661,7 @@ void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& 
 
   for(int z=0; z<ACCTRIALS; ++z){
     reallocate();
-    _main->randomize();
+    _main->randomizeInputs();
     int i=variableAccuracyTrainingLoopInner(ti);
     if(i>0) itersNeeded.push_back(i);
   }
@@ -663,6 +689,7 @@ int petabricks::PetabricksRuntime::variableAccuracyTrainingLoopInner(TestIsolati
 
   for(int i=1; true;++i){
     reallocate();
+    _main->randomizeOutputs();
     _isRunning = true;
     ti.restartTimeout();
     _main->compute();
