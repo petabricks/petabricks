@@ -118,8 +118,7 @@ generator POISSON2D_GENERATOR
         Poisson2DSOR(y, y, b, -1, numIterations);
     }
 
-    //solve recursively on coarser grids
-
+    // solve recursively on coarser grids, no estimation
     duplicate(recurseBin, 0, 4)
     to (Y y) from(X x, B b) {
 #ifdef DEBUG
@@ -130,8 +129,7 @@ generator POISSON2D_GENERATOR
         Poisson2DMGRecurse(y, x, b, recurseBin, numIterations);
     }
 
-    //solve recursively on coarser grids
-
+    // solve recursively on coarser grids, with estimation
     duplicate(estBin, 0, 4)
     duplicate(recurseBin, 0, 4)
     to (Y y) from(X x, B b) {
