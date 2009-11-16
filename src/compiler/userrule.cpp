@@ -415,13 +415,20 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create kernel.\" );\n\n";
 
       // Create memory objects for outputs.
+      /*
       for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
 	{
-	  o.os( ) << "cl_mem clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " << "->bytes( ), NULL, &err );\n";
+	  o.os( ) << "cl_mem SOMEVARNAME = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " << "->bytes( ), NULL, &err );\n";
 	  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object for " << (*i)->matrix( )->name( ) << ".\" );\n";
 	}
+      */
 
       // Create memory objects for inputs.
+      for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
+	{
+	  o.os( ) << "cl_mem SOMEVARNAME = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " << (*i)->name( ) << "->size( ), mem_buf, &err );\n";
+	  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for " << (*i)->matrix( )->name( ) << ".\" );\n";
+	}
 
       // Bind arguments.
 
