@@ -1,0 +1,195 @@
+#ifndef HELMHOLTZ3DDIRECT_PBCC
+#define HELMHOLTZ3DDIRECT_PBCC
+
+// use up to this much memory for the solver matrix
+#define MAX_MEMORY 1000000000 // 1 GB
+
+// macro for translating regular 2D matrix index (col-major) into 
+// LAPACK packed storage index
+#define IDXP2D(i0, i1, s0, klu) ((i1) * ((s0) - 1) + (i0) + (klu))
+
+// uncomment the following line to see debug printfs
+// #define DEBUG
+
+%{
+
+extern "C" void dgbtrf_(int *m, int *n, int *kl, int *ku, double *ab, int *ldab, int *ipiv, int *info);
+extern "C" void dgbtrs_(const char *trans, int *n, int *kl, int *ku, int *nrhs, double *ab, int *ldab, int *ipiv, double *b, int *ldb, int *info);
+
+void displayMatrix2D(double *A, int h, int w)
+{
+  for (int i = 0; i < h; i++) {
+    for (int j = 0; j < w; j++) {
+      printf("%g ", A[j * h + i]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
+%}
+
+transform Helmholtz3DDirect
+from A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
+     RHS[n,n,n], ALPHA, BETA, DX
+to OUT[n,n,n]
+{
+  to (OUT out) from (A a, B0 b0, B1 b1, B2 b2,
+                     RHS rhs, ALPHA alpha, BETA beta,
+                     DX dx)
+  {
+    int nSquared = n * n, nCubed = n * nSquared;
+    double dxSqInv = 1 / (dx * dx);
+    double *S = NULL, *rhsFlat = NULL;
+
+    // variables needed for LAPACK routines
+    int kl = nSquared, ku = nSquared, ldab = 2 * kl + ku + 1,
+        ldb = nCubed, nrhs = 1, info = 0, *ipiv = NULL;
+
+    // needed to help compute band matrix index
+    int klu = kl + ku; 
+
+    // check to see if memory needs are too great
+    if (ldab * nCubed * sizeof(double) > MAX_MEMORY)
+    {
+      fprintf(stderr, "Problem too large to solve directly\n");
+      PetabricksRuntime::abort();
+    }
+
+    // allocate memory for solver matrix and pivots
+    S = (double *) calloc(ldab * nCubed, sizeof(double));
+    ipiv = (int *) calloc(nCubed, sizeof(int));
+    if (!S || !ipiv) {
+      if (S) free(S);
+      fprintf(stderr, "Error allocating memory!\n");
+      PetabricksRuntime::abort();
+    }
+
+    // initialize solver matrix
+
+    int col = 0;
+    for (int k = 0; k < n; ++k) {
+      for (int j = 0; j < n; ++j) {
+        for (int i = 0; i < n; ++i) {
+
+          // compute center coefficient
+          S[IDXP2D(col, col, ldab, klu)] =
+            alpha * a.cell(i, j, k) +
+            beta * (b0.cell(i, j, k) + b0.cell(i+1, j, k) +
+                    b1.cell(i, j, k) + b1.cell(i, j+1, k) +
+                    b2.cell(i, j, k) + b2.cell(i, j, k+1)) * dxSqInv;
+
+          // correct the center coefficient if it's on the boundary
+          if (i == 0) {
+            S[IDXP2D(col, col, ldab, klu)] += beta * dxSqInv * b0.cell(i  , j, k);
+          } else if (i == n - 1) {
+            S[IDXP2D(col, col, ldab, klu)] += beta * dxSqInv * b0.cell(i+1, j, k);
+          }
+          if (j == 0) {
+            S[IDXP2D(col, col, ldab, klu)] += beta * dxSqInv * b1.cell(i, j  , k);
+          } else if (j == n - 1) {
+            S[IDXP2D(col, col, ldab, klu)] += beta * dxSqInv * b1.cell(i, j+1, k);
+          }
+          if (k == 0) {
+            S[IDXP2D(col, col, ldab, klu)] += beta * dxSqInv * b2.cell(i, j, k  );
+          } else if (k == n - 1) {
+            S[IDXP2D(col, col, ldab, klu)] += beta * dxSqInv * b2.cell(i, j, k+1);
+          }
+
+          // add neighbor coefficients in the stencil
+          if (i != n - 1) {
+            S[IDXP2D(col+1, col, ldab, klu)] = -beta * dxSqInv * b0.cell(i+1, j, k);
+            S[IDXP2D(col, col+1, ldab, klu)] = -beta * dxSqInv * b0.cell(i+1, j, k);
+          }
+          if (j != n - 1) {
+            S[IDXP2D(col+n, col, ldab, klu)] = -beta * dxSqInv * b1.cell(i, j+1, k);
+            S[IDXP2D(col, col+n, ldab, klu)] = -beta * dxSqInv * b1.cell(i, j+1, k);
+          }
+          if (k != n - 1) {
+            S[IDXP2D(col+nSquared, col, ldab, klu)] = -beta * dxSqInv * b2.cell(i, j, k+1);
+            S[IDXP2D(col, col+nSquared, ldab, klu)] = -beta * dxSqInv * b2.cell(i, j, k+1);
+          }
+
+          // increment the current column
+          ++col;
+        }
+      }
+    }
+
+#ifdef DEBUG
+    displayMatrix2D(S, ldab, nCubed);
+#endif
+
+    // factor solver matrix
+    dgbtrf_(&nCubed, &nCubed, &kl, &ku, S, &ldab, ipiv, &info);
+    if (info != 0)
+    {
+      if (info < 0) {
+        free(S);
+        free(ipiv);
+        fprintf(stderr, "Illegal value passed to dpbtrf\n");
+        PetabricksRuntime::abort();
+      } else {
+        free(S);
+        free(ipiv);
+        fprintf(stderr, "Solver matrix not positive definite!\n");
+        PetabricksRuntime::abort();
+      }
+    }
+
+    // allocate RHS/solution vector
+    rhsFlat = (double *) malloc(nCubed * sizeof(double));
+    if (!rhsFlat) {
+      free(S);
+      free(ipiv);
+      fprintf(stderr, "Error allocating memory!\n");
+      PetabricksRuntime::abort();
+    }
+
+    // intialize flat RHS/solution vector
+    // incorporate the boundary conditions into the rhs during intialization
+    // easier to multiply b by dx^2 instead of dividing S by dx^2
+    int idx = 0;
+    for (int k = 0; k < n; ++k) {
+      for (int j = 0; j < n; ++j) {
+        for (int i = 0; i < n; ++i) {
+          rhsFlat[idx++] = rhs.cell(i, j, k);
+        }
+      }
+    }
+
+#ifdef DEBUG
+    displayMatrix2D(rhsFlat, nCubed, 1);
+#endif
+
+    // call LAPACK to do linear solve
+    dgbtrs_("N", &nCubed, &kl, &ku, &nrhs, S, &ldab, ipiv, rhsFlat, &ldb, &info);
+    if (info < 0) {
+      free(S);
+      free(ipiv);
+      free(rhsFlat);
+      fprintf(stderr, "Illegal value passed to dpbtrs\n");
+      PetabricksRuntime::abort();
+    }
+
+#ifdef DEBUG
+    displayMatrix2D(rhsFlat, nCubed, 1);
+#endif
+
+    // copy solution to output
+    idx = 0;
+    for (int k = 0; k < n; ++k) {
+      for (int j = 0; j < n; ++j) {
+        for (int i = 0; i < n; ++i) {
+          out.cell(i, j, k) = rhsFlat[idx++];
+        }
+      }
+    }
+
+    free(S);
+    free(ipiv);
+    free(rhsFlat);
+  }
+}
+
+#endif // HELMHOLTZ3DDIRECT_PBCC

@@ -79,16 +79,16 @@ static int theNestCount=0;
 
 %x transform rule comment linecomment string litcode
 
-PASS_CHARS [.<>,*/()[\]^+-]
+PASS_CHARS [=.<>,*/()[\]^+-]
 
 %%
 <INITIAL>{
   "main"            RETURN KW_MAIN;
+  "memoized"        RETURN KW_MEMOIZED;
   "transform"       RETURN KW_TRANSFORM;
   "template"        RETURN KW_TEMPLATE;
   "generator"       RETURN KW_GENERATOR;
   "gen"             RETURN KW_GENERATOR;
-  "through"         RETURN KW_THROUGH;
   "config"          RETURN KW_CONFIG;
   "param"           RETURN KW_PARAM;
   "parameter"       RETURN KW_PARAM;
@@ -116,6 +116,7 @@ PASS_CHARS [.<>,*/()[\]^+-]
   "secondary"      RETURN KW_SECONDARY;
   "rotatable"      RETURN KW_ROTATABLE;
   "recursive"      RETURN KW_RECURSIVE;
+  "duplicate"      RETURN KW_DUPLICATE;
   "rule"           RETURN KW_RULE;
   "{"              {
                      yy_push_state(rule); 
@@ -130,6 +131,8 @@ PASS_CHARS [.<>,*/()[\]^+-]
 <INITIAL,transform>{
   "to"              RETURN KW_TO;
   "from"            RETURN KW_FROM;
+  "using"           RETURN KW_THROUGH;
+  "through"         RETURN KW_THROUGH;
   "<="              RETURN KW_LE;
   ">="              RETURN KW_GE;
   "=="              RETURN KW_EQ;

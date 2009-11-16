@@ -1,0 +1,27 @@
+#ifndef POISSON2DREFFMGVA_PBCC
+#define POISSON2DREFFMGVA_PBCC
+
+#include "Poisson2DConfig.h"
+#include "Poisson2DRefFMG.pbcc"
+#include "Poisson2DAccuracyMetric.pbcc"
+#include "Generators.pbcc"
+
+// Variable-accuracy transform that does an estimation, then computes enough
+// reference V-cycles to achieve target accuracy.
+//
+// numIterations specifies the number of Iterations of reference V-cycles to do
+// after the initial estimation is done.
+transform Poisson2DRefFMGVA
+from X[n,n], B[n,n]
+to   Y[n,n]
+accuracy_bins POISSON2D_BINS
+accuracy_variable numIterations
+accuracy_metric Poisson2DAccuracyMetric
+generator POISSON2D_GENERATOR
+{
+    to (Y y) from(X x, B b) {
+        Poisson2DRefFMG(y, x, b, numIterations);
+    }
+}
+
+#endif // POISSON2DREFFMGVA_PBCC

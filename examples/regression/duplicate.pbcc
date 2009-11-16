@@ -1,0 +1,24 @@
+
+
+transform Foo2
+to B[n]
+from x
+{
+  B.cell(i) from() {
+    return x;
+  }
+}
+
+main transform Foo //main keyword makes this get called from commandline
+to B[n]
+from A[n] 
+{
+  duplicate(x, 5, 5)
+  duplicate(y, 1, 3)
+  to(B b) from(A a) {
+    Foo2(b,x);
+  }
+}
+
+
+

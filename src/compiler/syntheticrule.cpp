@@ -41,7 +41,7 @@ bool petabricks::SyntheticRule::canProvide(const MatrixDefPtr&) const {
   return false;
 }
 
-void petabricks::SyntheticRule::getApplicableRegionDescriptors(RuleDescriptorList&, const MatrixDefPtr&, int) { 
+void petabricks::SyntheticRule::getApplicableRegionDescriptors(RuleDescriptorList&, const MatrixDefPtr&, int, const RulePtr&) { 
   UNIMPLEMENTED(); 
 }
 
@@ -60,12 +60,80 @@ void petabricks::SyntheticRule::print(std::ostream& os) const {
   os << "SyntheticRule " << _id << std::endl;;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//WrapperSyntheticRule:
+
+void petabricks::WrapperSyntheticRule::generateCallCodeSimple( Transform& trans
+                                                           , CodeGenerator& o
+                                                           , const SimpleRegionPtr& region){
+  _rule->generateCallCodeSimple(trans, o, region);
+}
+
+void petabricks::WrapperSyntheticRule::generateCallTaskCode( const std::string& name
+                                                         , Transform& trans
+                                                         , CodeGenerator& o
+                                                         , const SimpleRegionPtr& region){
+  _rule->generateCallTaskCode(name, trans, o, region);
+}
+  
+
+void petabricks::WrapperSyntheticRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
+  _rule->generateTrampCodeSimple(trans, o);
+}
+
+
+bool petabricks::WrapperSyntheticRule::isSingleElement() const { 
+  return _rule->isSingleElement();
+}
+
+int petabricks::WrapperSyntheticRule::dimensions() const {
+  return _rule->dimensions();
+}
+petabricks::DependencyDirection petabricks::WrapperSyntheticRule::getSelfDependency() const {
+  return _rule->getSelfDependency();
+}
+petabricks::FormulaPtr petabricks::WrapperSyntheticRule::getSizeOfRuleIn(int d) {
+  return _rule->getSizeOfRuleIn(d);
+}
+
+void petabricks::WrapperSyntheticRule::collectDependencies(StaticScheduler& scheduler) { 
+  _rule->collectDependencies(scheduler);
+}
+
+petabricks::RuleFlags::PriorityT petabricks::WrapperSyntheticRule::priority() const { 
+  return _rule->priority();
+}
+bool petabricks::WrapperSyntheticRule::isRecursive() const { 
+  return _rule->isRecursive();
+}
+bool petabricks::WrapperSyntheticRule::hasWhereClause() const { 
+  return _rule->hasWhereClause();
+}
+petabricks::FormulaPtr petabricks::WrapperSyntheticRule::getWhereClause() const { 
+  return _rule->getWhereClause();
+}
+bool petabricks::WrapperSyntheticRule::canProvide(const MatrixDefPtr& md) const { 
+  return _rule->canProvide(md);
+}
+void petabricks::WrapperSyntheticRule::getApplicableRegionDescriptors(RuleDescriptorList& rdl, const MatrixDefPtr& md, int i, const RulePtr& rule) { 
+  _rule->getApplicableRegionDescriptors(rdl, md, i, rule);
+}
+const petabricks::FormulaPtr& petabricks::WrapperSyntheticRule::recursiveHint() const { 
+  return _rule->recursiveHint();
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
+//TODO: consider new file for WhereExpansionRule
 
 void petabricks::WhereExpansionRule::generateCallCodeSimple( Transform&
                                                            , CodeGenerator& o
@@ -164,3 +232,36 @@ void petabricks::WhereExpansionRule::collectDependencies(StaticScheduler& schedu
   for(i=_rules.begin(); i!=_rules.end(); ++i)
     (*i)->collectDependencies(scheduler);
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//TODO: consider new file for DuplicateExpansionRule
+
+void petabricks::DuplicateExpansionRule::generateCallCodeSimple( Transform& trans
+                                                           , CodeGenerator& o
+                                                           , const SimpleRegionPtr& region){
+  size_t old = _rule->setDuplicateNumber(_dup);
+  WrapperSyntheticRule::generateCallCodeSimple(trans, o, region);
+  _rule->setDuplicateNumber(old);
+}
+
+void petabricks::DuplicateExpansionRule::generateCallTaskCode( const std::string& name
+                                                         , Transform& trans
+                                                         , CodeGenerator& o
+                                                         , const SimpleRegionPtr& region){
+  size_t old = _rule->setDuplicateNumber(_dup);
+  WrapperSyntheticRule::generateCallTaskCode(name, trans, o, region);
+  _rule->setDuplicateNumber(old);
+}
+  
+
+void petabricks::DuplicateExpansionRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
+  size_t old = _rule->setDuplicateNumber(_dup);
+  WrapperSyntheticRule::generateTrampCodeSimple(trans, o);
+  _rule->setDuplicateNumber(old);
+}
+

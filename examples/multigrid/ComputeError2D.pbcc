@@ -1,0 +1,22 @@
+#ifndef COMPUTEERROR2D_PBCC
+#define COMPUTEERROR2D_PBCC
+
+transform ComputeError2D
+from A[w,h], B[w,h]
+to Error
+{
+  Error from (A a, B b)
+  {
+    int i, j;
+    double temp, sum = 0;
+    for (j = 0; j < h; j++) {
+      for (i = 0; i < w; i++) {
+        temp = a.cell(i, j) - b.cell(i, j);
+        sum += temp * temp;
+      }
+    }
+    return sqrt(sum / (w * h));
+  }
+}
+
+#endif // COMPUTEERROR2D_PBCC

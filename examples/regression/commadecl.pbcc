@@ -1,0 +1,21 @@
+
+
+transform Foo
+from A
+to B
+{
+  to(B b) from(A a) { b=a+1; }
+}
+
+
+transform Bar 
+from A
+to B
+{
+  to(B bb) from(A aa){
+    int a,b,*c;
+    int y=0,*w=NULL,z[3];
+    Foo(bb,aa);
+  }
+}
+

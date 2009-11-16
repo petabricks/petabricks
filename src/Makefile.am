@@ -9,8 +9,9 @@ noinst_PROGRAMS = pbc
 
 noinst_HEADERS = \
   compiler/choicegrid.h \
-  compiler/codegenerator.h \
   compiler/clcodegenerator.h \
+  compiler/codegenerator.h \
+  compiler/configitem.h \
   compiler/formula.h \
   compiler/iterationorders.h \
   compiler/learner.h \
@@ -18,6 +19,7 @@ noinst_HEADERS = \
   compiler/matrixdependency.h \
   compiler/maximaparser.h \
   compiler/maximawrapper.h \
+  compiler/pbc.h \
   compiler/pbparser.h \
   compiler/performancetester.h \
   compiler/region.h \
@@ -56,6 +58,7 @@ pkglib_HEADERS=  \
   runtime/matrixregion.h \
   runtime/matrixspecializations.h \
   runtime/matrixstorage.h \
+  runtime/memoization.h \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
   runtime/ruleinstance.h \
@@ -83,8 +86,9 @@ libpbcompiler_a_YFLAGS = -d
 libpbcompiler_a_CXXFLAGS = -I$(srcdir)/compiler
 libpbcompiler_a_SOURCES = \
   compiler/choicegrid.cpp \
-  compiler/codegenerator.cpp \
   compiler/clcodegenerator.cpp \
+  compiler/codegenerator.cpp \
+  compiler/configitem.cpp \
   compiler/formula.cpp \
   compiler/iterationorders.cpp \
   compiler/learner.cpp \
@@ -119,6 +123,7 @@ libpbruntime_a_SOURCES =  \
   runtime/matrixio.cpp \
   runtime/matrixreader.lpp \
   runtime/matrixstorage.cpp \
+  runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \

@@ -2,23 +2,13 @@
 #define POISSON2DJACOBI_PBCC
 
 #include "Poisson2DJacobiInterior.pbcc"
-
-// stub transform for use in multigrid template
-//   Relax2D => Poisson2DJacobi
-transform Relax2D
-from X[n,n], B[n,n], weight, numIterations
-to OUT[n,n]
-{
-  to (OUT out) from (X x, B b, numIterations num)
-  {
-    Poisson2DJacobi(out, x, b, num);
-  }
-}
+#include "Generators.pbcc"
 
 transform Poisson2DJacobi
-from IN[n+2,n+2], B[n+2,n+2], numIterations
-through BTEMP[n,n]
-to OUT[n+2,n+2]
+from IN[n,n], B[n,n], numIterations
+to OUT[n,n]
+through BTEMP[n-2,n-2]
+generator Poisson2DJacobiGenerator
 {
   BTEMP.cell(i,j) from(B.cell(i + 1, j + 1) b,
                        IN.cell(i, j + 1) no,
@@ -28,23 +18,21 @@ to OUT[n+2,n+2]
   {
     double result = b;
     if (i == 0) result += no;
-    if (i == n - 1) result += so;
+    if (i == n - 3) result += so;
     if (j == 0) result += we;
-    if (j == n - 1) result += ea;
+    if (j == n - 3) result += ea;
     return result;
   }
 
   recursive
-  primary to (OUT.region(1,1,n+1,n+1) o) from (IN.region(1,1,n+1,n+1) in,
+  primary to (OUT.region(1,1,n-1,n-1) o) from (IN.region(1,1,n-1,n-1) in,
                                                BTEMP b,
                                                numIterations num)
   {
-    if (n > 0) {
-      if (n == 1) {
-        o.cell(0, 0) = b.cell(0, 0) / 4;
-      } else {
-        SPAWN(Poisson2DJacobiInterior,o, in, b, num);
-      }
+    if (n == 3) {
+      o.cell(0, 0) = b.cell(0, 0) / 4;
+    } else {
+      SPAWN(Poisson2DJacobiInterior,o, in, b, num);
     }
   }
 
@@ -55,4 +43,3 @@ to OUT[n+2,n+2]
 }
 
 #endif // POISSON2DJACOBI_PBCC
-

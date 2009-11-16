@@ -1,18 +1,6 @@
 #ifndef POISSON2DRESIDUAL_PBCC
 #define POISSON2DRESIDUAL_PBCC
 
-// stub transform for use in multigrid template
-//   Residual2D => Poisson2DResidual
-transform Residual2D
-from X[n,n], B[n,n]
-to  R[n,n]
-{
-  to (R r) from (X x, B b)
-  {
-    Poisson2DResidual(r, x, b);
-  }
-}
-
 transform Poisson2DResidual
 from X[n,n], B[n,n]
 to  R[n,n]

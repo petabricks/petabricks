@@ -1,0 +1,333 @@
+#ifndef GENERATORS_PBCC
+#define GENERATORS_PBCC
+
+// Undefine the following line to display debug output
+// #define DEBUG
+
+//#ifndef MAX_LEVEL
+//#define MAX_LEVEL 12
+//#endif
+
+#define BIAS 2147483648
+
+//#include "Restrict2Dnew.pbcc"
+//#include "../utilities.pbcc"
+
+transform RandUniform2D
+from IN[w,h]
+to OUT[w,h]
+{
+  OUT.cell(i,j) from (IN.cell(i,j) in)
+  {
+    return in;
+  }
+}
+
+transform RandUniformBiased2D
+from IN[w,h]
+to OUT[w,h]
+{
+  OUT.cell(i,j) from (IN.cell(i,j) in)
+  {
+    // shift by BIAS
+    return in + BIAS;
+  }
+}
+
+#if 0
+
+#define MAX(i, j) ((i) >= (j) ? (i) : (j))
+
+transform RandSinusoid2D
+from IN[w,h], NUMSINS, MAXAMP
+to OUT[w,h]
+{
+  to (OUT out)
+  from (NUMSINS numSins, MAXAMP maxAmp)
+  {
+    for (int j = 0; j < h; j++) {
+      for (int i = 0; i < w; i++) {
+        out.cell(i, j) = 0;
+      }
+    }
+
+    for (int k = 0; k < numSins; k++) {
+      int wFreq = (int) floor(drand48() * w);
+      int hFreq = (int) floor(drand48() * h);
+      double amp = drand48() * maxAmp;
+//      printf("(wFreq, hFreq, amp) = (%d, %d, %g)\n", wFreq, hFreq, amp);
+      double c1 = 2 * M_PI * wFreq / w;
+      double c2 = 2 * M_PI * hFreq / h;
+      for (int j = 0; j < h; j++) {
+        for (int i = 0; i < w; i++) {
+          out.cell(i, j) += amp * sin(c1 * i) * sin(c2 * j);
+        }
+      }
+    }
+  }
+}
+
+transform RandBandSinusoid2D
+from IN[n,n], MAXAMP
+to OUT[n,n]
+{
+  to (OUT out)
+  from (MAXAMP maxAmp)
+  {
+    int maxSize = (1 << MAX_LEVEL) + 1;
+
+    if (1 << (int) floor(log2(n - 1)) != n - 1) {
+      printf("input size %d not a power of 2 + 1\n", n);
+      exit(-1);
+    }
+    if (n > maxSize) {
+      printf("input size %d greater than %d\n", n, maxSize);
+      exit(-1);
+    }
+
+    MatrixRegion2D large = MatrixRegion2D::allocate(maxSize, maxSize);
+
+    for (int j = 0; j < maxSize; j++) {
+      for (int i = 0; i < maxSize; i++) {
+        large.cell(i, j) = 0;
+      }
+    }
+
+    // add sinusoids in frequency band [5, 10)
+    for (int hFreq = 5; hFreq < 10; hFreq++) {
+      for (int wFreq = 5; wFreq < 10; wFreq++) {
+        double amp = drand48() * maxAmp,
+               off1 = drand48() * maxSize,
+               off2 = drand48() * maxSize,
+               c1 = 2 * M_PI * wFreq / maxSize,
+               c2 = 2 * M_PI * hFreq / maxSize;
+        printf("adding (%d, %d) sinusoid ..\n", wFreq, hFreq);
+        for (int j = 0; j < maxSize; j++) {
+          for (int i = 0; i < maxSize; i++) {
+            large.cell(i, j) += amp * sin(c1 * (i+off1)) * sin(c2 * (j+off2));
+          }
+        }
+      }
+    }
+
+    MatrixRegion2D t = large;
+    int curSize = maxSize;
+    while (curSize > n) {
+//      printf("restricting to %d ...\n", (curSize - 1) / 2 + 1);
+      t = Restrict2Dnew(t);
+      curSize = (curSize - 1) / 2 + 1;
+    }
+    Copy2D(out, t);
+  }
+}
+
+transform RandPoints2D
+from IN[w,h], NUMPOINTS, MAXAMP
+to OUT[w,h]
+{
+  to (OUT out)
+  from (NUMPOINTS numPoints, MAXAMP maxAmp)
+  {
+    for (int j = 0; j < h; j++) {
+      for (int i = 0; i < w; i++) {
+        out.cell(i, j) = 0;
+      }
+    }
+
+    for (int k = 0; k < numPoints; k++) {
+      int i = MAX(0, (int) floor(drand48() * (w - 2)) + 1);
+      int j = MAX(0, (int) floor(drand48() * (h - 2)) + 1);
+      double amp = drand48() * maxAmp * 2 - maxAmp;
+//      printf("out.cell(%d, %d) = %g\n", i, j, amp);
+      out.cell(i, j) = amp;
+    }
+  }
+}
+
+transform PointsPoisson2DGenerator
+from IN[n,n]
+to X[n,n], B[n,n]
+{
+  to (X x, B b) from (IN in)
+  {
+//    printf("call to points generator\n");
+
+    // x gets zeros
+    for (int j = 0; j < n; j++) {
+      for (int i = 0; i < n; i++) {
+        x.cell(i, j) = 0;
+      }
+    }
+
+    RandPoints2D(b, in, 10, 100);
+  }
+}
+
+transform SinusoidPoisson2DGenerator
+from IN[n,n]
+to X[n,n], B[n,n]
+{
+  to (X x, B b) from (IN in)
+  {
+    // x gets zeros
+    for (int j = 0; j < n; j++) {
+      for (int i = 0; i < n; i++) {
+        x.cell(i, j) = 0;
+      }
+    }
+
+    RandBandSinusoid2D(b, in, 100);
+  }
+}
+
+#endif
+
+transform FillZeros2D
+to OUT[w,h]
+{
+  OUT.cell(i,j) from ()
+  {
+    return 0;
+  }
+}
+
+transform UniformPoisson2DGenerator
+from IN[n,n]
+to X[n,n], B[n,n]
+{
+  to (X x, B b) from (IN in)
+  {
+    FillZeros2D(x);
+    RandUniform2D(b, in);
+  }
+}
+
+transform BiasedPoisson2DGenerator
+from IN[n,n]
+to X[n,n], B[n,n]
+{
+  to (X x, B b) from (IN in)
+  {
+    FillZeros2D(x);
+    RandUniformBiased2D(b, in);
+  }
+}
+
+transform Poisson2DJacobiGenerator
+from IN[n,n]
+to X[n,n], B[n,n], NUMITERS
+{
+  to (X x, B b, NUMITERS numIters) from (IN in)
+  {
+    FillZeros2D(x);
+    RandUniform2D(b, in);
+    numIters = 1;
+  }
+}
+
+transform Poisson2DSORGenerator
+from IN[n,n]
+to X[n,n], B[n,n], WEIGHT, NUMITERS
+{
+  to (X x, B b, WEIGHT w, NUMITERS numIters) from (IN in)
+  {
+    FillZeros2D(x);
+    RandUniform2D(b, in);
+    w = 1.15;
+    numIters = 1;
+  }
+}
+
+transform FillZeros3D
+to OUT[w,h,d]
+{
+  OUT.cell(i,j,k) from ()
+  {
+    return 0;
+  }
+}
+
+transform FillRandHalfToOne3D
+to OUT[w,h,d]
+{
+  OUT.cell(i,j,k) from ()
+  {
+    return PetabricksRuntime::randDouble(0.5, 1.0);
+  }
+}
+
+transform UniformHelmholtz3DGenerator
+to IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
+   RHS[n,n,n], ALPHA, BETA, DX
+{
+  to (IN in, A a, B0 b0, B1 b1, B2 b2, RHS rhs,
+      ALPHA alpha, BETA beta, DX dx)
+  from ()
+  {
+#ifdef DEBUG
+    printf("UniformHelmholtz3DGenerator called for n = %d\n", (int) n);
+#endif
+    FillZeros3D(in);
+    FillRandHalfToOne3D(a);
+    FillRandHalfToOne3D(b0);
+    FillRandHalfToOne3D(b1);
+    FillRandHalfToOne3D(b2);
+    FillRandHalfToOne3D(rhs);
+    alpha = 1;
+    beta = 2;
+    dx = 1;
+  }
+}
+
+transform Helmholtz3DSORGenerator
+to IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
+   RHS[n,n,n], ALPHA, BETA, DX, WEIGHT, NUMITERS
+{
+  to (IN in, A a, B0 b0, B1 b1, B2 b2, RHS rhs,
+      ALPHA alpha, BETA beta, DX dx, WEIGHT w, NUMITERS numIters)
+  from ()
+  {
+#ifdef DEBUG
+    printf("Helmholtz3DSORGenerator called for n = %d\n", (int) n);
+#endif
+    FillZeros3D(in);
+    FillRandHalfToOne3D(a);
+    FillRandHalfToOne3D(b0);
+    FillRandHalfToOne3D(b1);
+    FillRandHalfToOne3D(b2);
+    FillRandHalfToOne3D(rhs);
+    alpha = 1;
+    beta = 2;
+    dx = 1;
+    w = 0.9;
+    numIters = 1;
+  }
+}
+
+transform Helmholtz3DRefMGGenerator
+to IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
+   RHS[n,n,n], ALPHA, BETA, DX, NUMITERS
+{
+  to (IN in, A a, B0 b0, B1 b1, B2 b2, RHS rhs,
+      ALPHA alpha, BETA beta, DX dx, NUMITERS numIters)
+  from ()
+  {
+#ifdef DEBUG
+    printf("Helmholtz3DRefMGGenerator called for n = %d\n", (int) n);
+#endif
+    FillZeros3D(in);
+    FillRandHalfToOne3D(a);
+    FillRandHalfToOne3D(b0);
+    FillRandHalfToOne3D(b1);
+    FillRandHalfToOne3D(b2);
+    FillRandHalfToOne3D(rhs);
+    alpha = 1;
+    beta = 2;
+    dx = 1;
+    numIters = 1;
+  }
+}
+
+#undef DEBUG
+
+#endif // GENERATORS_PBCC

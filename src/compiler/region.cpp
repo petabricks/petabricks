@@ -61,6 +61,9 @@ void petabricks::Region::initialize(Transform& trans) {
   _originalBounds.normalize();
    _fromMatrix = trans.lookupMatrix( _fromMatrixName );
   JASSERT(_fromMatrix);
+
+  JASSERT(!isOptional() || _originalType == REGION_CELL)(_name)(_fromMatrix)
+    .Text("optional rule inputs currently only supported for .cell() inputs");
   
   //convert given coordinates to a region
   switch(_originalType){
@@ -334,10 +337,17 @@ std::string petabricks::Region::generateSignatureCode(bool isConst) const{
   return genTypeStr(isConst) + " " + _name;
 }
 
-std::string petabricks::Region::generateAccessorCode() const{
+std::string petabricks::Region::generateAccessorCode(bool allowOptional) const{
   switch(_originalType){
   case REGION_CELL:
-    return _fromMatrix->name() + ".cell("+_minCoord.toString()+")";
+    {
+      std::string s = _fromMatrix->name() + ".cell("+_minCoord.toString()+")";
+      if(allowOptional && isOptional())
+        return "(" + _fromMatrix->name() + ".contains("+_minCoord.toString()+")"
+                   + " ? " + s + " : " + optionalDefault()->toString() + ")";
+      else
+        return s;
+    }
   case REGION_COL:
     return _fromMatrix->name() + ".col("+_minCoord[0]->toString()+")";
   case REGION_ROW:

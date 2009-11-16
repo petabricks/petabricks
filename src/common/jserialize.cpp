@@ -76,12 +76,15 @@ void jalib::JBinarySerializeWriterRaw::readOrWrite ( void* buffer, size_t len )
 
 void jalib::JBinarySerializeReaderRaw::readOrWrite ( void* buffer, size_t len )
 {
+  ssize_t retries=len*32;
   char* b=(char*)buffer;
   for(ssize_t n; len>0; ){
     n=read (_fd, b, len);
-    JASSERT(n>0 && n<=(ssize_t)len)(filename())(n)(len)(JASSERT_ERRNO).Text("read() failed");
+    JASSERT(n>=0 && n<=(ssize_t)len)(filename())(n)(len)(JASSERT_ERRNO).Text("read() failed");
     len -= n;
     b += n;
+    JASSERT(n>0 || retries-->0)(len)
+      .Text("still reading 0 bytes, broken pipe?");
   }
 }
 

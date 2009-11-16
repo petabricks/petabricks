@@ -15,6 +15,7 @@
 #include "rircompilerpass.h"
 #include "staticscheduler.h"
 #include "transform.h"
+#include "syntheticrule.h"
 
 #include "common/jconvert.h"
 
@@ -104,21 +105,6 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& scope){
 #endif
 }
 
-void petabricks::RuleFlags::print(std::ostream& os) const {
-  if(priority != PRIORITY_DEFAULT){
-    os << "priority(" << priority << ") ";
-  }
-  if(rotations != NOROTATE){
-    os << "rotations(";
-    if((ROTATE_90  & rotations)!=0) os << " 90";
-    if((ROTATE_180 & rotations)!=0) os << " 180";
-    if((ROTATE_270 & rotations)!=0) os << " 270";
-    if((MIRROR_X   & rotations)!=0) os << " mirrorx";
-    if((MIRROR_Y   & rotations)!=0) os << " mirrory";
-    os << " ) ";
-  }
-}
-
 void petabricks::UserRule::print(std::ostream& os) const {
   _flags.print(os);
   os << "UserRule " << _id << " " << _label;
@@ -133,6 +119,9 @@ void petabricks::UserRule::print(std::ostream& os) const {
   } 
   if(!_definitions.empty()){
     os << "\ndefinitions ";  printStlList(os,_definitions.begin(),_definitions.end(), ", "); 
+  }
+  if(!_duplicateVars.empty()){
+    os << "\nduplicateVars ";  printStlList(os,_duplicateVars.begin(),_duplicateVars.end(), ", "); 
   }
   os << "\napplicableregion " << _applicableRegion;
   os << "\ndepends: \n";
@@ -192,20 +181,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
   _to.makeRelativeTo(_definitions);
   _conditions.makeRelativeTo(_definitions);
 
-  for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
-    SimpleRegionPtr ar = (*i)->getApplicableRegion(trans, *this, _definitions, true);
-    if(_applicableRegion)
-      _applicableRegion = _applicableRegion->intersect(ar);
-    else
-      _applicableRegion = ar;
-  }
-  for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
-    SimpleRegionPtr ar = (*i)->getApplicableRegion(trans, *this, _definitions, false);
-    if(_applicableRegion)
-      _applicableRegion = _applicableRegion->intersect(ar);
-    else
-      _applicableRegion = ar;
-  }
+  buildApplicableRegion(trans, _applicableRegion, true);
   
   FormulaList condtmp;
   condtmp.swap(_conditions);
@@ -271,17 +247,46 @@ void petabricks::UserRule::initialize(Transform& trans) {
 
   MaximaWrapper::instance().popContext();
 }
+  
+void petabricks::UserRule::buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional){
+  for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
+    JASSERT(!(*i)->isOptional())((*i)->name())
+      .Text("optional regions are not allowed in outputs");
+    SimpleRegionPtr t = (*i)->getApplicableRegion(trans, *this, _definitions, true);
+    ar = ar ? ar->intersect(t) : t;
+  }
+  for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
+    if(allowOptional && (*i)->isOptional())
+      continue;
+    SimpleRegionPtr t = (*i)->getApplicableRegion(trans, *this, _definitions, false);
+    ar = ar ? ar->intersect(t) : t;
+  }
+  JASSERT(ar);
+}
+  
+void petabricks::UserRule::performExpansion(Transform& trans){
+  if(isDuplicated()){
+    JTRACE("expanding duplicates")(duplicateCount());
+    JASSERT(getDuplicateNumber()==0)(getDuplicateNumber());
+    size_t dc = duplicateCount();
+    for(size_t i=1; i<dc; ++i){
+      trans.addRule(new DuplicateExpansionRule(this, i));
+    }
+  }
+}
 
 void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& output, 
-                                                  const MatrixDefPtr& matrix, 
-                                                  int dimension) {
+                                                          const MatrixDefPtr& matrix, 
+                                                          int dimension,
+                                                          const RulePtr& rule 
+                                                          ) {
   MatrixDependencyMap::const_iterator i = _provides.find(matrix);
   if(i!=_provides.end()){
     FormulaPtr beginPos = i->second->region()->minCoord()[dimension];
     FormulaPtr endPos = i->second->region()->maxCoord()[dimension];
     endPos = MaximaWrapper::instance().normalize(endPos);
-    output.push_back(RuleDescriptor(RuleDescriptor::RULE_BEGIN, this, matrix, beginPos));
-    output.push_back(RuleDescriptor(RuleDescriptor::RULE_END,   this, matrix, endPos));
+    output.push_back(RuleDescriptor(RuleDescriptor::RULE_BEGIN, rule, matrix, beginPos));
+    output.push_back(RuleDescriptor(RuleDescriptor::RULE_END,   rule, matrix, endPos));
   }
 }
 
@@ -298,6 +303,9 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
     }
     for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
       if(i->shouldPass())
+        o.addMember("const IndexT", i->name());
+    }
+    for(ConfigItems::const_iterator i=_duplicateVars.begin(); i!=_duplicateVars.end(); ++i){
         o.addMember("const IndexT", i->name());
     }
     for(int i=0; i<dimensions(); ++i){
@@ -339,6 +347,9 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
   for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
     if(i->shouldPass())
       args.push_back("const IndexT "+i->name());
+  }
+  for(ConfigItems::const_iterator i=_duplicateVars.begin(); i!=_duplicateVars.end(); ++i){
+    args.push_back("const IndexT "+i->name());
   }
   for(int i=0; i<dimensions(); ++i){
     args.push_back("const IndexT "+getOffsetVar(i)->toString());
@@ -382,6 +393,10 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     default:
       UNIMPLEMENTED( );
     }
+
+  for(size_t i=0; i<_duplicateVars.size(); ++i){
+    o.varDecl("const IndexT "+_duplicateVars[i].name() + " = " + jalib::XToString(_duplicateVars[i].initial()));
+  }
 
   if((E_RF_DYNAMIC == flavor) && !isRecursive() && !isSingleElement()){
     //shortcut
@@ -607,6 +622,9 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
     if(i->shouldPass())
       args.push_back(i->name());
   }
+  for(ConfigItems::const_iterator i=_duplicateVars.begin(); i!=_duplicateVars.end(); ++i){
+    args.push_back(i->name());
+  }
 
   for(int i=0; i<dimensions(); ++i)
     args.push_back(getOffsetVar(i)->toString());
@@ -707,5 +725,47 @@ std::string petabricks::UserRule::implcodename(Transform& trans) const {
   return trans.name()+"_rule" + jalib::XToString(_id-trans.ruleIdOffset());
 }
 std::string petabricks::UserRule::trampcodename(Transform& trans) const {
-  return trans.name()+"_apply_rule" + jalib::XToString(_id-trans.ruleIdOffset());
+  std::string s = trans.name()+"_apply_rule" + jalib::XToString(_id-trans.ruleIdOffset());
+  for(size_t i=0; i<_duplicateVars.size(); ++i){
+    long t = _duplicateVars[i].initial();
+    if(_duplicateVars[i].min()<0)
+      t-=_duplicateVars[i].min(); //handle negative case
+    s += "_" + _duplicateVars[i].name() + jalib::XToString(t);
+  }
+  return s;
 }
+  
+size_t petabricks::UserRule::duplicateCount() const { 
+  int c = 1;
+  for(size_t i=0; i<_duplicateVars.size(); ++i)
+    c*=_duplicateVars[i].range();
+  return c;
+}
+size_t petabricks::UserRule::setDuplicateNumber(size_t c) {
+  size_t prev = getDuplicateNumber();
+#ifdef DEBUG
+  size_t origC=c;
+#endif
+  for(size_t i=0; i<_duplicateVars.size(); ++i){
+    ConfigItem& dv = _duplicateVars[i];
+    dv.setInitial( dv.min() + (c % dv.range()));
+    c /= dv.range();
+  }
+#ifdef DEBUG
+  //make sure we did it right
+  JASSERT(getDuplicateNumber()==origC)(getDuplicateNumber())(origC);
+#endif
+  return prev;
+}
+size_t petabricks::UserRule::getDuplicateNumber() {
+  int lastRange = 1;
+  int c = 0;
+  for(ssize_t i=_duplicateVars.size()-1; i>=0; --i){
+    ConfigItem& dv = _duplicateVars[i];
+    c*=lastRange;
+    c+=dv.initial()-dv.min();
+    lastRange = dv.range();
+  }
+  return c;
+}
+

@@ -1,4 +1,17 @@
 
+
+transform Foo2 //main keyword makes this get called from commandline
+to B[n]
+from A[n] 
+accuracy_metric Bar
+accuracy_variable k 
+accuracy_bins 0, 0.3, 0.6, 0.9
+{
+  B.cell(i) from(A.cell(i) t) {
+    return t;
+  }
+}
+
 main transform Foo //main keyword makes this get called from commandline
 to B[n]
 from A[n] 
@@ -8,6 +21,10 @@ accuracy_bins 0, 0.3, 0.6, 0.9
 {
   B.cell(i) from(A.cell(i) t) {
     return t;
+  }
+  duplicate(acc, 0, 3)
+  to(B b) from(A a) {
+    Foo2(acc,b,a);
   }
 }
 

@@ -1,0 +1,69 @@
+#ifndef RESTRICT3D_PBCC
+#define RESTRICT3D_PBCC
+
+transform Restrict3DB0
+from X[n+1, n, n]
+to   Y[n/2+1, n/2, n/2]
+{
+    Y.cell(i,j,k)
+    from(X.cell(2*i  , 2*j  , 2*k  ) x000,
+         X.cell(2*i  , 2*j  , 2*k+1) x001,
+         X.cell(2*i  , 2*j+1, 2*k  ) x010,
+         X.cell(2*i  , 2*j+1, 2*k+1) x011)
+    {
+        return (x000 + x001 + x010 + x011) / 4;
+    }
+}
+
+transform Restrict3DB1
+from X[n, n+1, n]
+to   Y[n/2, n/2+1, n/2]
+{
+    Y.cell(i,j,k)
+    from(X.cell(2*i  , 2*j  , 2*k  ) x000,
+         X.cell(2*i  , 2*j  , 2*k+1) x001,
+         X.cell(2*i+1, 2*j  , 2*k  ) x100,
+         X.cell(2*i+1, 2*j  , 2*k+1) x101)
+    {
+        return (x000 + x001 + x100 + x101) / 4;
+    }
+}
+
+transform Restrict3DB2
+from X[n, n, n+1]
+to   Y[n/2, n/2, n/2+1]
+{
+    Y.cell(i,j,k)
+    from(X.cell(2*i  , 2*j  , 2*k  ) x000,
+         X.cell(2*i  , 2*j+1, 2*k  ) x010,
+         X.cell(2*i+1, 2*j  , 2*k  ) x100,
+         X.cell(2*i+1, 2*j+1, 2*k  ) x110)
+    {
+        return (x000 + x010 + x100 + x110) / 4;
+    }
+}
+
+// Restricts matrix from dimension 2^k to 2^{k-1}
+//
+// During restriction, every cube of 8 interior cells gets averaged to one
+// interior cell of the output.
+transform Restrict3D
+from X[n, n, n]
+to   Y[n/2, n/2, n/2]
+{
+    Y.cell(i,j,k)
+    from(X.cell(2*i  , 2*j  , 2*k  ) x000,
+         X.cell(2*i  , 2*j  , 2*k+1) x001,
+         X.cell(2*i  , 2*j+1, 2*k  ) x010,
+         X.cell(2*i  , 2*j+1, 2*k+1) x011,
+         X.cell(2*i+1, 2*j  , 2*k  ) x100,
+         X.cell(2*i+1, 2*j  , 2*k+1) x101,
+         X.cell(2*i+1, 2*j+1, 2*k  ) x110,
+         X.cell(2*i+1, 2*j+1, 2*k+1) x111)
+    {
+        return (x000 + x001 + x010 + x011 +
+                x100 + x101 + x110 + x111) / 8;
+    }
+}
+
+#endif // RESTRICT3D_PBCC

@@ -93,7 +93,33 @@ public:
   const IndexT* multipliers() const { return _multipliers; };
   const StorageT& storage() const { return _storage; }
 
-  void randomize(){ this->storage()->randomize(); }
+  void randomize(){
+    if(D==0){
+      //0D version may not use storage(), so just set the element directly
+      JASSERT(base()!=0);
+      *const_cast<MATRIX_ELEMENT_T*>(base()) = MatrixStorage::rand();
+    }else{
+      this->storage()->randomize();
+    }
+  }
+
+  ///
+  /// export to a more generic container (used in memoization)
+  void exportTo(MatrixStorageInfo& ms) const {
+    ms.setStorage(_storage, _base);
+    ms.setSizeMultipliers(D, _multipliers, _sizes);
+    ms.setExtraVal();
+  }
+  
+  ///
+  /// copy from a more generic container (used in memoization)
+  void copyFrom(const MatrixStorageInfo& ms){
+    JASSERT(_base!=0);
+    if(ms.storage()!=storage()){
+      JASSERT(ms.storage()->count()==storage()->count());
+      memcpy(storage()->data(), ms.storage()->data(), storage()->count()*sizeof(ElementT));
+    }
+  }
 protected: 
   IndexT* sizes() { return _sizes; }
   IndexT* multipliers() { return _multipliers; };
@@ -133,7 +159,7 @@ public:
   ///
   /// Allocate a storage for a new MatrixRegion
   static MatrixRegion allocate(const IndexT sizes[D]) {
-    IndexT s=1;
+    size_t s=1;
     for(int i=0; i<D; ++i)
       s*=sizes[i];
     MatrixStoragePtr tmp = new MatrixStorage(s);
@@ -147,22 +173,23 @@ public:
   
   ///
   ///same as allocate unless this->sizes()==sizes
-  MatrixRegion reallocate(const IndexT sizes[D]) {
+  bool isSize(const IndexT sizes[D]) const{
+    if(this->base()==0) return false;
     for(int i=0; i<D; ++i){
       if(this->sizes()[i]!=sizes[i]){
-        return allocate(sizes);
+        return false;
       }
     }
-    return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
+    return true;
   }
-  MatrixRegion reallocate(IndexT x, ...){
+  bool isSize(IndexT x, ...) const{
     IndexT c1[D];
     va_list ap;
     va_start(ap, x);
     c1[0]=x;
     for(int i=1; i<D; ++i) c1[i]=va_arg(ap, IndexT);
     va_end(ap);
-    return reallocate(c1);
+    return isSize(c1);
   }
 
   ///
@@ -228,6 +255,15 @@ public:
   SliceMatrixRegion row(IndexT y) const{  return slice(1, y); }
   
   ///
+  /// true if c1 is in bounds
+  bool contains(const IndexT coord[D]) const { 
+    for(int i=0; i<D; ++i)
+      if(coord[i]<0 || coord[i]>=size(i))
+        return false;
+    return true;
+  }
+  
+  ///
   /// Return the size of a given dimension
   IndexT size(int d) const {
     #ifdef DEBUG
@@ -244,8 +280,8 @@ public:
 
   ///
   /// Number of elements in this region
-  IndexT count() const {
-    IndexT s=1;
+  size_t count() const {
+    size_t s=1;
     for(int i=0; i<D; ++i)
       s*=this->sizes()[i];
     return s;
@@ -262,7 +298,7 @@ public:
 
   ///
   /// Number of elements in this region
-  IndexT bytes() const {
+  size_t bytes() const {
     return count()*sizeof(ElementT);
   }
   
@@ -276,8 +312,13 @@ public:
         this->sizes(),
         this->multipliers());
   }
-  
 
+  ///
+  /// true if this region occupies the entire buffer _storage
+  bool isEntireBuffer(){
+    if(D==0) return true;
+    return this->storage() && this->storage()->count()==count();
+  }
 protected:
   ///
   /// Compute the offset in _base for a given coordinate
@@ -362,6 +403,18 @@ public:
     return cell(c1);
   }
   
+
+  ///
+  /// true if coord is in bounds
+  bool contains(IndexT x, ...) const { 
+    IndexT c1[D];
+    va_list ap;
+    va_start(ap, x);
+    c1[0]=x;
+    for(int i=1; i<D; ++i) c1[i]=va_arg(ap, IndexT);
+    va_end(ap);
+    return contains(c1);
+  }
 
   ///
   /// Create a new iterator for a region of target matrix

@@ -1,0 +1,28 @@
+#ifndef HELMHOLTZ3DJACOBIVA_PBCC
+#define HELMHOLTZ3DJACOBIVA_PBCC
+
+#include "Helmholtz3DConfig.h"
+#include "Helmholtz3DJacobi.pbcc"
+#include "Helmholtz3DAccuracyMetric.pbcc"
+#include "Generators.pbcc"
+
+// performance note: OUT can point to the same matrix region as IN
+transform Helmholtz3DJacobiVA
+from IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
+     RHS[n,n,n], ALPHA, BETA, DX
+to OUT[n,n,n]
+accuracy_bins HELMHOLTZ3D_BINS
+accuracy_variable numIterations
+accuracy_metric Helmholtz3DAccuracyMetric
+generator HELMHOLTZ3D_GENERATOR
+{
+    to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
+                       RHS rhs, ALPHA alpha, BETA beta,
+                       DX dx)
+    {
+        Helmholtz3DJacobi(out, in, a, b0, b1, b2, rhs, alpha, beta,
+                       dx, 1, numIterations);
+    }
+}
+
+#endif // HELMHOLTZ3DJACOBIVA_PBCC

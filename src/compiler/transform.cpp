@@ -29,6 +29,7 @@ namespace{
   
 petabricks::Transform::Transform() 
   : _isMain(false)
+  , _memoized(false)
   , _tuneId(0)
   , _scope(RIRScope::global()->createChildLayer())
   , _usesSplitSize(false)
@@ -136,7 +137,11 @@ void petabricks::Transform::initialize() {
       _scope->set(i->name(), RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL);
   }
 
-  jalib::Map(&RuleInterface::initialize,      *this, _rules);
+  jalib::Map(&RuleInterface::initialize, *this, _rules);
+
+  for(size_t i=0; i<_rules.size(); ++i){
+    _rules[i]->performExpansion(*this);
+  }
 
   for(MatrixDefList::iterator m=_to.begin(); m!=_to.end(); ++m)
     fillBaseCases(*m);
@@ -145,10 +150,14 @@ void petabricks::Transform::initialize() {
 
   //tester().setIOSizes(_from.size(), _to.size());
 
-  if(isTemplate())
+  if(isVariableAccuracy())
+    RIRScope::global()->set(_name, RIRSymbol::SYM_TRANSFORM_VARACCURACY);
+  else if(isTemplate())
     RIRScope::global()->set(_name, RIRSymbol::SYM_TRANSFORM_TEMPLATE);
   else
     RIRScope::global()->set(_name, RIRSymbol::SYM_TRANSFORM);
+
+  theTransformMap()[_name] = this;
 
   MaximaWrapper::instance().popContext();
 }
@@ -158,21 +167,17 @@ void petabricks::Transform::fillBaseCases(const MatrixDefPtr& matrix) {
   boundaries.resize( matrix->numDimensions() );
   RuleSet allowed;
   for(RuleList::iterator i=_rules.begin(); i!=_rules.end(); ++i){
-    if((*i)->canProvide(matrix))
+    if((*i)->canProvide(matrix)){
       allowed.insert(*i);
+      //JTRACE("adding allowed rule")((*i)->id());
+    }
   }
 
   for(size_t d=0; d<boundaries.size(); ++d){
     for(RuleSet::iterator i=allowed.begin(); i!=allowed.end(); ++i){
-      (*i)->getApplicableRegionDescriptors(boundaries[d], matrix, d);
+      (*i)->getApplicableRegionDescriptors(boundaries[d], matrix, d, *i);
     }
     std::sort(boundaries[d].begin(), boundaries[d].end());
-//     JTRACE("boundaryList")(d)(matrix);
-//     #ifdef DEBUG
-//     std::cerr << "\t";
-//     printStlList(std::cerr, boundaries[d]);
-//     std::cerr << std::endl;
-//     #endif
   }
   ChoiceGridPtr tmp = ChoiceGrid::constructFrom(allowed, boundaries);
   if(matrix->numDimensions()>0){
@@ -428,8 +433,17 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.endFunc();
   
   o.beginFunc("DynamicTaskPtr", "runDynamic");
+  if(_memoized){
+    o.beginIf("tryMemoize()");
+    o.write("return NULL;");
+    o.endIf();
+  }
+#ifndef SINGLE_SEQ_CUTOFF
   o.createTunable(true, "system.cutoff.sequential", _name + "_sequentialcutoff", 0);
   o.beginIf(TRANSFORM_N_STR "() < TRANSFORM_LOCAL(sequentialcutoff)");
+#else
+  o.beginIf(TRANSFORM_N_STR "() < sequentialcutoff");
+#endif
   o.write("runStatic();");
   o.write("return NULL;");
   o.endIf();
@@ -437,6 +451,11 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.endFunc();
 
   o.beginFunc("void", "runStatic");
+  if(_memoized){
+    o.beginIf("tryMemoize()");
+    o.write("return;");
+    o.endIf();
+  }
   _scheduler->generateCodeStatic(*this, o);
   o.endFunc();
   
@@ -445,6 +464,10 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.newline();
 
   declTransformNFunc(o);
+  
+  if(_memoized){
+    declTryMemoizeFunc(o);
+  }
 
   o.mergehelpers();
 
@@ -466,6 +489,32 @@ void petabricks::Transform::declTransformNFunc(CodeGenerator& o){
       o.write("_rv_n = std::max<IndexT>(_rv_n, "+i->name()+");");
   }
   o.write("return _rv_n;");
+  o.endFunc();
+}
+
+void petabricks::Transform::declTryMemoizeFunc(CodeGenerator& o){
+  o.beginFunc("bool", "tryMemoize");
+  std::string abortCond = "false";
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i)
+    abortCond += " || !"+(*i)->name()+".isEntireBuffer()";
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i)
+    abortCond += " || !"+(*i)->name()+".isEntireBuffer()";
+  o.beginIf(abortCond);
+  o.write("return false;");
+  o.endIf();
+  o.write("MemoizationInstance<"+jalib::XToString(_from.size())+","+jalib::XToString(_to.size())+"> _memo;");
+  o.write("static MemoizationSite<"+jalib::XToString(_from.size())+","+jalib::XToString(_to.size())+"> _cache;");
+  for(size_t i=0; i!=_from.size(); ++i)
+    o.write(_from[i]->name()+".exportTo(_memo.input("+jalib::XToString(i)+"));");
+  for(size_t i=0; i!=_to.size(); ++i)
+    o.write(_to[i]->name()+".exportTo(_memo.output("+jalib::XToString(i)+"));");
+  o.beginIf("_cache.memoize(_memo)");
+  for(size_t i=0; i!=_to.size(); ++i)
+    o.write(_to[i]->name()+".copyFrom(_memo.output("+jalib::XToString(i)+"));");
+  o.write("return true;");
+  o.elseIf();
+  o.write("return false;");
+  o.endIf();
   o.endFunc();
 }
 
@@ -541,6 +590,7 @@ void petabricks::Transform::extractConstants(CodeGenerator& o){
 }
 
 void petabricks::Transform::registerMainInterface(CodeGenerator& o){
+  //TODO: generate as a binary search
   if(_templateargs.empty()){
     std::string n = name()+"_main::instance()";
     o.beginIf("name == \""+name()+"\"");
@@ -550,7 +600,11 @@ void petabricks::Transform::registerMainInterface(CodeGenerator& o){
     size_t choiceCnt = tmplChoiceCount();
     for(size_t c=0; c<choiceCnt; ++c){
       std::string n = tmplName(c)+"_main::instance()";
-      o.beginIf("name == \""+tmplName(c)+"\"");
+      std::string ifcond = "name == \""+tmplName(c)+"\"";
+      ifcond += " || name == \""+name()+"<"+jalib::XToString(c)+">\"";
+      if(c==0)
+        ifcond += " || name==\""+name()+"\"";
+      o.beginIf(ifcond);
       o.write("return "+n+";");
       o.endIf();
     }
@@ -645,6 +699,17 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     }
   }
   o.endFunc();
+  
+  o.beginFunc("void", "deallocate");
+  {
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      o.write((*i)->name()+" = "+(*i)->matrixTypeName()+"();");
+    }
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      o.write((*i)->name()+" = "+(*i)->matrixTypeName()+"();");
+    }
+  }
+  o.endFunc();
 
   o.beginFunc("void", "randomize");
   {
@@ -734,7 +799,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     else
       o.write("return _acc.cell();");
   }else{
-    o.write("return std::numeric_limits<ElementT>::max();");
+    o.write("return jalib::maxval<ElementT>();");
   }
   o.endFunc();
   
@@ -756,7 +821,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     else
       o.write("return targets["TEMPLATE_BIN_STR"];");
   }else{
-    o.write("return std::numeric_limits<ElementT>::min();");
+    o.write("return jalib::minval<ElementT>();");
   }
   o.endFunc();
 
@@ -785,3 +850,9 @@ std::vector<std::string> petabricks::Transform::maximalArgList() const{
   }
   return tmp;
 }
+  
+std::map<std::string, petabricks::TransformPtr> petabricks::Transform::theTransformMap(){
+  static std::map<std::string, petabricks::TransformPtr> m;
+  return m;
+}
+

@@ -73,7 +73,10 @@ AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
 
 AC_CHECK_HEADERS([math.h fftw3.h], [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
-AC_CHECK_HEADERS([cxxabi.h execinfo.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h])
+AC_CHECK_HEADERS([openssl/md5.h],  [], [AC_MSG_ERROR([missing package libssl-dev])])
+AC_CHECK_HEADERS([cxxabi.h execinfo.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h sys/mman.h])
+AC_CHECK_HEADERS([boost/random.hpp], [], [AC_MSG_WARN([missing boost/random, falling back to slower random number generation])])
+AC_CHECK_LIB([ssl],[MD5],                [], [AC_MSG_ERROR([missing package libssl-dev])])
 AC_CHECK_LIB([m],[cos],                  [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
 AC_CHECK_LIB([fftw3], [fftw_malloc],     [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
 AC_CHECK_LIB([pthread],[pthread_create], [], [AC_MSG_WARN([failed to find -lpthread, some benchmarks may not work])])
@@ -200,6 +203,8 @@ AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for b
 AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])
+AC_DEFINE([HASH_FN],             [MD5], [hash function used for memoization (MD5 or SHA1)])
+AC_DEFINE([HASH_LEN],            [MD5_DIGEST_LENGTH], [length of hash used for memoization (must match HASH_FN)])
 AC_DEFINE([INLINE_NULL_TASKS],   [], [run null tasks immediately when they are enqueued])
 AC_DEFINE([MATRIX_ELEMENT_T],    [double], [type for elements in the matrix])
 AC_DEFINE([MATRIX_INDEX_T],      [int], [type for indices into the matrix])
@@ -211,6 +216,7 @@ AC_DEFINE([MIN_NUM_WORKERS],     [1], [min number of workers supported])
 AC_DEFINE([RETURN_VAL_STR],      ["_pb_rv"], [var name in output code for rule output variable])
 AC_DEFINE([RUN_CPP],             [1], [undefine to disable cpp])
 AC_DEFINE([SHORT_TYPE_NAMES],    [1], [add using namespace petabricks to output])
+AC_DEFINE([SINGLE_SEQ_CUTOFF],   [1], [define to use a global sequential cutoff instead of a per-transform one])
 AC_DEFINE([SPLIT_CHUNK_SIZE],    ["TRANSFORM_LOCAL(splitsize)"], [var name in output code])
 AC_DEFINE([STEAL_ATTEMPTS_MAINLOOP], [32], [number of times to attempt to steal in mainLoop])
 AC_DEFINE([STEAL_ATTEMPTS_WAITING],  [3], [number of times to attempt to steal in waitUntilComplete])
@@ -225,6 +231,7 @@ AC_DEFINE([TX_STATIC_POSTFIX],   ["_static"], [postfix for static versions of tr
 AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files in])
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
+
 
 AC_DEFINE_UNQUOTED([REVISION_LONG], ["$rev_long"], [git revision for HEAD at the time ./configure was run])
 AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at the time ./configure was run])
@@ -263,7 +270,7 @@ if test "$default_cxxflags" = "yes"; then
   fi
   case "$target_cpu" in
     *sparc*) compileflags="$compileflags -mcpu=niagara -mtune=native";;
-    *)       compileflags="$compileflags -march=native";;
+    *)       compileflags="$compileflags -march=native -fno-rtti";;
   esac
 fi
 

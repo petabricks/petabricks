@@ -1,0 +1,16 @@
+#ifndef INTERPOLATE3D_PBCC
+#define INTERPOLATE3D_PBCC
+
+transform Interpolate3D
+//Map from coarse grid to fine grid
+from X[n, n, n]
+to   Y[2*n, 2*n, 2*n]
+{
+    // piece-wise constant interpolation
+    Y.cell(i,j,k) from( X.cell(i/2, j/2, k/2) x )
+    {
+        return x;
+    }
+}
+
+#endif // INTERPOLATE3D_PBCC
