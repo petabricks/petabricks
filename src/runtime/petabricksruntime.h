@@ -122,6 +122,7 @@ public:
   void runNormal();
 
   void runGraphMode();
+  void runGraphTemplate();
 
   void runGraphParamMode(const std::string& param);
 
