@@ -274,6 +274,8 @@ def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
     return False
 
 def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
+  mkAlgchoiceTask=lambda tx, site, ctx, n, cutoffs: TuneTask("algchoice" , lambda: autotuneAlgchoice(tx, site, ctx, n, cutoffs), getChoiceSiteWeight(tx, site, cutoffs))
+
   cutoffs = []
   ctx=tx
   if loops > 0 or passNumber>1:
@@ -283,7 +285,7 @@ def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
   cutoffs.extend(pbutil.getTunablesSplitSize(tx))
   choicesites = getChoiceSites(tx)
   for site in choicesites:
-    tasks.append(TuneTask("algchoice" , lambda: autotuneAlgchoice(tx, site, ctx, options.n, cutoffs), getChoiceSiteWeight(tx, site, cutoffs)))
+    tasks.append(mkAlgchoiceTask(tx,site,ctx,options.n, cutoffs))
   if len(choicesites)==0 and len(cutoffs)>0 and not options.fast:
     tasks.append(TuneTask("cutoff" , lambda: autotuneAlgchoice(tx, -1, ctx, options.n, cutoffs), len(cutoffs)))
   #for tunable in cutoffs:

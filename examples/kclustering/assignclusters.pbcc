@@ -28,9 +28,10 @@ generator AssignClustersGen
 		Distance(d,x,c);
 	}
 
-	Anew.cell(i) from(D.column(i) d)
+	to(Anew.cell(i) anew, ctemp.cell(i) changed) from(D.column(i) d, A.cell(i) aold)
 	{
-		IndexT   minindex = 0;
+    IndexT oldindex = aold;
+		IndexT minindex = 0;
 		ElementT mindist=d.cell(0);
 		for (int j=1; j<k; j++) {
 			if (d.cell(j) < mindist) {
@@ -38,13 +39,10 @@ generator AssignClustersGen
 				mindist = d.cell(j);
 			}
 		}
-    return minindex;
+    anew = minindex;
+    changed = (oldindex!=minindex);
 	}
 	
-  ctemp.cell(i) from(A.cell(i) aold, Anew.cell(i) anew) {
-    return aold!=anew;
-  }
-
 	cflag from (ctemp c) {
 		int i;
 		ElementT sum=0;
