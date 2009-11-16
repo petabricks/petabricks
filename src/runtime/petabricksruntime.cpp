@@ -661,7 +661,7 @@ void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& 
 
   for(int z=0; z<ACCTRIALS; ++z){
     reallocate();
-    _main->randomize();
+    _main->randomizeInputs();
     int i=variableAccuracyTrainingLoopInner(ti);
     if(i>0) itersNeeded.push_back(i);
   }
@@ -689,6 +689,7 @@ int petabricks::PetabricksRuntime::variableAccuracyTrainingLoopInner(TestIsolati
 
   for(int i=1; true;++i){
     reallocate();
+    _main->randomizeOutputs();
     _isRunning = true;
     ti.restartTimeout();
     _main->compute();
