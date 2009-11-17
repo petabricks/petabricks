@@ -1,0 +1,23 @@
+
+#include "../simple/copy.pbcc"
+
+
+transform Range to A[n] {
+  A.cell(i) from() { return i; }
+}
+
+transform RandomShuffle
+from I[n]
+to O[n]
+generator Range
+{
+  to(O o) from(I i){
+    Copy1D(o,i);
+    for(int x=0; x<3*n; ++x){
+      int x1=PetabricksRuntime::randInt(0,n);
+      int x2=PetabricksRuntime::randInt(0,n);
+      std::swap(o.cell(x1), o.cell(x2));
+    }
+  }
+}
+
