@@ -65,7 +65,7 @@ through Z[n/2,n/2,n/2]
         // t2 gets interpolated update
         Interpolate3D(t2, r2);
         // t2 gets updated guess
-        Add3D(t2, t2, in);
+        Add3D(out, t2, in);
     }
 }
 
