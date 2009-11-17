@@ -1,0 +1,89 @@
+#include "../simple/randomshuffle.pbcc"
+
+transform Zero to A[n] {
+  A.cell(i) from() { return 0; }
+}
+transform NegOne to A[n] {
+  A.cell(i) from() { return 0; }
+}
+
+transform PackGen
+to Objects[n]
+{
+  // n/2 bins is always the optimal
+  // we generate objects by cutting n/2 fully packed bins in half
+  to(Objects out) from() {
+    for(int i=0; i<n; i+=2){
+      double b0 = PetabricksRuntime::randDouble(0, 1);
+      double b1 = PetabricksRuntime::randDouble(0, 1);
+      double sum=b0+b1;
+      if(i+0<n) out.cell(i+0)=b0/sum;
+      if(i+1<n) out.cell(i+1)=b1/sum;
+    }
+    RandomShuffle(out, out);
+  }
+}
+
+transform FirstFit
+from Objects[n]
+to Bins[n], Assignments[n]
+generator PackGen
+{
+  to(Bins bin, Assignments asgn) from(Objects obj) {
+    Zero(bin);
+    for(int i=0; i<n; ++i){
+      for(int j=0; j<n; ++j){
+        if(bin.cell(j) + obj.cell(i) <= 1.0){
+          //place obj i in bin j
+          bin.cell(j) += obj.cell(i);
+          asgn.cell(i) = j;
+          break;
+        }
+      }
+    }
+  }
+}
+
+transform NextFit 
+from Objects[n]
+to Bins[n], Assignments[n]
+generator PackGen
+{
+  to(Bins bin, Assignments asgn) from(Objects obj) {
+    Zero(bin);
+    int j=0;
+    for(int i=0; i<n; ++i){
+      while(bin.cell(j) + obj.cell(i) > 1.0) j++;
+      //place obj i in bin j
+      bin.cell(j) += obj.cell(i);
+      asgn.cell(i) = j;
+    }
+  }
+}
+
+transform BestFit
+from Objects[n]
+to Bins[n], Assignments[n]
+generator PackGen
+{
+  to(Bins bin, Assignments asgn) from(Objects obj) {
+    Zero(bin);
+    for(int i=0; i<n; ++i){
+      double best=2;
+      int bestIdx=-1;
+      for(int j=0; j<n; ++j){
+        double extra = 1.0 - bin.cell(j) - obj.cell(i);
+        if(extra>=0 && extra<best){
+          bestIdx=j;
+          best=extra;
+        }
+        if(bin.cell(j)==0) break;
+      }
+      //place obj i in bin bestIdx
+      bin.cell(bestIdx) += obj.cell(i);
+      asgn.cell(i) = bestIdx;
+    }
+  }
+}
+
+
