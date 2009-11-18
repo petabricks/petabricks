@@ -50,12 +50,13 @@ accuracy_metric PackAcc
   to(Bins bin, Assignments asgn) from(Objects obj) {
     Zero(bin);
     for(int i=0; i<n; ++i){
-      for(int j=0; j<n; ++j){
+      bool placed=false;
+      for(int j=0; !placed && j<n; ++j){
         if(bin.cell(j) + obj.cell(i) <= 1.0){
           //place obj i in bin j
           bin.cell(j) += obj.cell(i);
           asgn.cell(i) = j;
-          break;
+          placed=true;
         }
       }
     }
@@ -73,13 +74,12 @@ accuracy_metric PackAcc
     int lastBin=0;
     for(int i=0; i<n; ++i){
       bool placed=false;
-      for(int j=lastBin; j>=0; --j){
+      for(int j=lastBin; !placed && j>=0; --j){
         if(bin.cell(j) + obj.cell(i) <= 1.0){
           //place obj i in bin j
           bin.cell(j) += obj.cell(i);
           asgn.cell(i) = j;
           placed=true;
-          break;
         }
       }
       if(!placed){
@@ -119,17 +119,18 @@ accuracy_metric PackAcc
 {
   to(Bins bin, Assignments asgn) from(Objects obj) {
     Zero(bin);
+    int maxBin=0;
     for(int i=0; i<n; ++i){
       double best=2;
       int bestIdx=-1;
-      for(int j=0; j<n; ++j){
+      for(int j=0; j<=maxBin; ++j){
         double extra = 1.0 - bin.cell(j) - obj.cell(i);
         if(extra>=0 && extra<best){
           bestIdx=j;
           best=extra;
         }
-        if(bin.cell(j)==0) break;
       }
+      if(bestIdx==maxBin) ++maxBin;
       //place obj i in bin bestIdx
       bin.cell(bestIdx) += obj.cell(i);
       asgn.cell(i) = bestIdx;
