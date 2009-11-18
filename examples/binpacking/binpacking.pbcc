@@ -1,0 +1,248 @@
+#include "../simple/randomshuffle.pbcc"
+
+
+transform Zero to A[n] {
+  A.cell(i) from() { return 0; }
+}
+transform NegOne to A[n] {
+  A.cell(i) from() { return 0; }
+}
+
+transform PackGen
+to Objects[n]
+{
+  // n/2 bins is always the optimal
+  // we generate objects by cutting n/2 fully packed bins in half
+  to(Objects out) from() {
+    for(int i=0; i<n; i+=2){
+      double b0 = PetabricksRuntime::randDouble(0, 1);
+      double b1 = PetabricksRuntime::randDouble(0, 1);
+      double sum=b0+b1;
+      if(i+0<n) out.cell(i+0)=b0/sum;
+      if(i+1<n) out.cell(i+1)=b1/sum;
+    }
+    RandomShuffle(out, out);
+  }
+}
+
+
+transform PackAcc
+from Bins[n], Assignents[n], Objects[n]
+to Accuracy
+{
+  Accuracy from(Bins b){
+    int c=0;
+    for(int i=0; i<n; ++i){
+      if(b.cell(i)!=0)
+        ++c;
+    }
+    return (n-c)/(double)n*2;
+  }
+}
+
+
+transform FirstFit
+to Bins[n], Assignments[n]
+from Objects[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins bin, Assignments asgn) from(Objects obj) {
+    Zero(bin);
+    for(int i=0; i<n; ++i){
+      for(int j=0; j<n; ++j){
+        if(bin.cell(j) + obj.cell(i) <= 1.0){
+          //place obj i in bin j
+          bin.cell(j) += obj.cell(i);
+          asgn.cell(i) = j;
+          break;
+        }
+      }
+    }
+  }
+}
+
+transform LastFit
+to Bins[n], Assignments[n]
+from Objects[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins bin, Assignments asgn) from(Objects obj) {
+    Zero(bin);
+    int lastBin=0;
+    for(int i=0; i<n; ++i){
+      bool placed=false;
+      for(int j=lastBin; j>=0; --j){
+        if(bin.cell(j) + obj.cell(i) <= 1.0){
+          //place obj i in bin j
+          bin.cell(j) += obj.cell(i);
+          asgn.cell(i) = j;
+          placed=true;
+          break;
+        }
+      }
+      if(!placed){
+        int j=++lastBin;
+        //place obj i in bin j
+        bin.cell(j) += obj.cell(i);
+        asgn.cell(i) = j;
+      }
+    }
+  }
+}
+
+
+transform NextFit 
+from Objects[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins bin, Assignments asgn) from(Objects obj) {
+    Zero(bin);
+    int j=0;
+    for(int i=0; i<n; ++i){
+      if(bin.cell(j) + obj.cell(i) > 1.0) j++;
+      //place obj i in bin j
+      bin.cell(j) += obj.cell(i);
+      asgn.cell(i) = j;
+    }
+  }
+}
+
+transform BestFit
+from Objects[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins bin, Assignments asgn) from(Objects obj) {
+    Zero(bin);
+    for(int i=0; i<n; ++i){
+      double best=2;
+      int bestIdx=-1;
+      for(int j=0; j<n; ++j){
+        double extra = 1.0 - bin.cell(j) - obj.cell(i);
+        if(extra>=0 && extra<best){
+          bestIdx=j;
+          best=extra;
+        }
+        if(bin.cell(j)==0) break;
+      }
+      //place obj i in bin bestIdx
+      bin.cell(bestIdx) += obj.cell(i);
+      asgn.cell(i) = bestIdx;
+    }
+  }
+}
+
+%{
+  void bubbleup(const MatrixRegion1D& heap, const MatrixRegion1D& bins, IndexT cur){
+    if(cur==0) return;
+    IndexT parent=cur/2;
+    if(bins.cell(heap.cell(cur)) < bins.cell(heap.cell(parent))){
+      std::swap(heap.cell(cur), heap.cell(parent));
+      bubbleup(heap, bins, parent);
+    }
+  }
+  
+  void bubbledown(const MatrixRegion1D& heap, const MatrixRegion1D& bins, IndexT cur){
+    IndexT left=cur*2;
+    IndexT right=cur*2+1;
+    ElementT val=bins.cell(heap.cell(cur));
+    ElementT leftVal= 1;
+    ElementT rightVal= 1;
+    if(left<heap.count()) leftVal=bins.cell(heap.cell(left));
+    if(right<heap.count()) rightVal=bins.cell(heap.cell(left));
+
+    if(left<heap.count() && leftVal<=rightVal){
+      //left side is smaller
+      if(leftVal < val){
+        std::swap(heap.cell(cur), heap.cell(left));
+        bubbledown(heap, bins, left);
+      }
+    }else if(right<heap.count()){
+      //right side is smaller
+      if(rightVal < val){
+        std::swap(heap.cell(cur), heap.cell(right));
+        bubbledown(heap, bins, right);
+      }
+    }
+  }
+
+%}
+
+transform WorstFit
+from Objects[n]
+through Heap[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins bin, Assignments asgn, Heap heap) from(Objects obj) {
+    Zero(bin);
+    Range(heap);
+    IndexT heapSize = 1;
+    for(int i=0; i<n; ++i){
+      int j=heap.cell(0);
+      if(bin.cell(j)+obj.cell(i) <= 1 ){
+        //place obj i in bin j 
+        bin.cell(j) += obj.cell(i);
+        asgn.cell(i) = j;
+        bubbledown(heap.region(0, heapSize), bin, 0);
+      }else{
+        j=heapSize++;//open new bin
+        bin.cell(j) += obj.cell(i);
+        asgn.cell(i) = j;
+        bubbleup(heap.region(0, heapSize), bin, j);
+      }
+    }
+  }
+}
+
+#define WINDOW 3
+transform AlmostWorstFit
+from Objects[n]
+through Heap[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins bin, Assignments asgn, Heap heap) from(Objects obj) {
+    Zero(bin);
+    Range(heap);
+    IndexT heapSize = 1;
+    for(int i=0; i<n; ++i){
+      int bestHeapZ = -1;
+      ElementT bestHeapVal = -1;
+
+      //check upper window of the heap
+      for(int z=std::min(heapSize-1,WINDOW); z>=0; --z){
+        int j = heap.cell(z);
+        ElementT v = bin.cell(j);
+        if(v+obj.cell(i) <= 1 && v>bestHeapVal ){
+          bestHeapZ=z;
+          bestHeapVal=v;
+        }
+      }
+          
+      if(bestHeapZ>=0){
+        int j=heap.cell(bestHeapZ);
+        //place obj i in bin j 
+        bin.cell(j) += obj.cell(i);
+        asgn.cell(i) = j;
+        bubbledown(heap.region(0, heapSize), bin, bestHeapZ);
+      }else{
+        int j=heapSize++;//open new bin
+        //JASSERT(heap.cell(j)==j);
+        bin.cell(j) += obj.cell(i);
+        asgn.cell(i) = j;
+        bubbleup(heap.region(0, heapSize), bin, j);
+      }
+    }
+  }
+}
+
+
+
