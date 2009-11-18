@@ -330,3 +330,50 @@ accuracy_metric PackAcc
   }
 }
 
+transform BinPacking
+from Objects[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins b, Assignments a) from(Objects o) {
+    FirstFit(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    LastFit(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    NextFit(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    BestFit(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    WorstFit(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    AlmostWorstFit(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    ReverseSort(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    FirstFitDecreasing(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    LastFitDecreasing(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    NextFitDecreasing(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    BestFitDecreasing(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    WorstFitDecreasing(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    AlmostWorstFitDecreasing(b,a,o);
+  }
+}
+
