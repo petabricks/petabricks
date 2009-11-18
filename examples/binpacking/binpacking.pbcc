@@ -1,10 +1,7 @@
 #include "../simple/randomshuffle.pbcc"
-
+#include "../sort/Sort.pbcc"
 
 transform Zero to A[n] {
-  A.cell(i) from() { return 0; }
-}
-transform NegOne to A[n] {
   A.cell(i) from() { return 0; }
 }
 
@@ -245,5 +242,91 @@ accuracy_metric PackAcc
   }
 }
 
+transform ReverseSort
+from IN[n]
+through T[n]
+to OUT[n]
+{
+  to(T t) from(IN i) { Sort(t, i); }
+  OUT.cell(i) from(T.cell(n-1-i) x) { return x; }
+}
 
+transform FirstFitDecreasing
+from Objects[n]
+through ObjectsSorted[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins b, Assignments a, ObjectsSorted os) from(Objects o) {
+    ReverseSort(os, o);
+    FirstFit(b,a,os);
+  }
+}
+
+
+transform LastFitDecreasing
+from Objects[n]
+through ObjectsSorted[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins b, Assignments a, ObjectsSorted os) from(Objects o) {
+    ReverseSort(os, o);
+    LastFit(b,a,os);
+  }
+}
+
+transform NextFitDecreasing
+from Objects[n]
+through ObjectsSorted[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins b, Assignments a, ObjectsSorted os) from(Objects o) {
+    ReverseSort(os, o);
+    NextFit(b,a,os);
+  }
+}
+
+transform BestFitDecreasing
+from Objects[n]
+through ObjectsSorted[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins b, Assignments a, ObjectsSorted os) from(Objects o) {
+    ReverseSort(os, o);
+    BestFit(b,a,os);
+  }
+}
+
+transform WorstFitDecreasing
+from Objects[n]
+through ObjectsSorted[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins b, Assignments a, ObjectsSorted os) from(Objects o) {
+    ReverseSort(os, o);
+    WorstFit(b,a,os);
+  }
+}
+
+transform AlmostWorstFitDecreasing
+from Objects[n]
+through ObjectsSorted[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins b, Assignments a, ObjectsSorted os) from(Objects o) {
+    ReverseSort(os, o);
+    AlmostWorstFit(b,a,os);
+  }
+}
 
