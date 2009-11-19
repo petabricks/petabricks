@@ -10,8 +10,8 @@
 transform AssignClustersGen
 to X[n,2], C[n/10,2], A[n]
 {
-  X.cell(i,j) from() { return PetabricksRuntime::randInt(1,100); }
-  C.cell(i,j) from() { return PetabricksRuntime::randInt(1,100); }
+  X.cell(i,j) from() { return PetabricksRuntime::randDouble(-50,50); }
+  C.cell(i,j) from() { return PetabricksRuntime::randDouble(-50,50); }
   A.cell(i) from() { return PetabricksRuntime::randInt(0,n/10-1); }
 }
 
