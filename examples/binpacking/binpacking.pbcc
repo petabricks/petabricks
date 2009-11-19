@@ -292,6 +292,146 @@ accuracy_metric PackAcc
 #define ASSIGN(x, bin) {bins.cell(bin) += os.cell(x); a.cell(x) = bin; os.cell(x) = 0.0; }
 #define FITS(x, bin) (os.cell(x) != 0.0 && (bins.cell(bin) + os.cell(x) <= 1.0))
 
+%{
+
+void MFFDInner(const MatrixRegion1D& bins, const MatrixRegion1D& a, const MatrixRegion1D& os){
+  const IndexT n = os.count();
+  int A_bins = 0;
+  int i;
+  int j;
+
+#ifdef MFFD_PRINT
+  printf("Step 1: ");
+  printf("%f", os.cell(0));
+  for (i = 1; i<n; i++) {
+    printf(", %f", os.cell(i));
+  }
+  printf("\n");
+#endif
+
+
+  // Step 1.
+  for (i=0; i<n; ++i) {
+    if (is_A(os.cell(i))) {
+      ASSIGN(i, A_bins);
+      A_bins++;
+    } else { 
+      break;
+    }
+  }
+
+#ifdef MFFD_PRINT
+  printf("Step 2: ");
+  printf("%f", os.cell(0));
+  for (i = 1; i<n; i++) {
+    printf(", %f", os.cell(i));
+  }
+  printf("\n");
+#endif
+
+  // Step 2.
+  bool *bin_has_B = new bool[A_bins];
+
+  int start_B = A_bins;
+  for (j=0; j<A_bins; ++j) {
+    for (i=start_B; is_B(os.cell(i)); i++) {
+      if (FITS(i, j)) {
+        ASSIGN(i, j);
+        bin_has_B[j] = true;
+      }
+    }
+  }
+
+  // Step 3.
+
+  // Find start and end of CDE classes
+  int start_CDE = -1;
+  int end_CDE = -1;
+  for (i = A_bins; i<n; ++i) {
+    if (start_CDE == -1 && os.cell(i) != 0.0 && os.cell(i) <= B) {
+      start_CDE = i;
+    }
+    if (start_CDE != -1 && os.cell(i) > E) {
+      end_CDE = i;
+    }
+  }
+
+#ifdef MFFD_PRINT
+  printf("Step 3: ");
+  printf("%f", os.cell(0));
+  for (i = 1; i<n; i++) {
+    printf(", %f", os.cell(i));
+  }
+  printf("\n");
+  printf("start_CDE: %d, end_CDE: %d\n", start_CDE, end_CDE);
+#endif
+
+  //JASSERT(start_CDE == -1 || end_CDE != -1);
+
+  if (start_CDE != -1 && end_CDE != -1) {
+    for (j=A_bins-1; j>=0; --j) {
+      if (bin_has_B[j]) 
+        continue;
+      if (start_CDE == end_CDE)
+        break;
+      if (bins.cell(j) + os.cell(end_CDE) + os.cell(end_CDE - 1) > 1.0) 
+        continue;
+
+      ASSIGN(end_CDE, j);
+      end_CDE--;
+
+      // TODO: move start_CDE up when possible
+      for (i = start_CDE; i <= end_CDE; i++) {
+        if (FITS(i, j)) {
+          ASSIGN(i, j);
+          break;
+        }
+      }
+
+      /*
+      bool found_non_assigned = false;
+      for (i = start_CDE; i <= end_CDE; i++) {
+        if (os.cell(i) == 0.0) {
+          if (!found_non_assigned)
+            start_CDE++;
+          continue;
+        }
+        found_non_assigned = true;
+        if (bins.cell(j) + os.cell(i) <= 1.0) {
+          ASSIGN(i, j);
+          break;
+        }
+      }
+      */
+    }
+  }
+
+  // Step 4.
+
+#ifdef MFFD_PRINT
+  printf("Step 4: ");
+  printf("%f", os.cell(0));
+  for (i = 1; i<n; i++) {
+    printf(", %f", os.cell(i));
+  }
+  printf("\n");
+#endif
+
+
+  // TODO: probably only need to look at things in F & G;
+  for (j=0; j<A_bins; ++j) {
+    for (i = start_B; i<n; ++i) {
+      if (FITS(i, j)) {
+        ASSIGN(i, j);
+      }
+    }
+  }
+  
+  delete[] bin_has_B;
+}
+
+%}
+
 transform ModifiedFirstFitDecreasing
 from Objects[n]
 through ObjectsSorted[n]
@@ -300,147 +440,14 @@ generator PackGen
 accuracy_metric PackAcc
 {
   to(Bins bins, Assignments a, ObjectsSorted os) from(Objects o) {
-    
     ReverseSort(os, o);
-
     Zero(bins);
 
-    int A_bins = 0;
-    int i;
-    int j;
-
-#ifdef MFFD_PRINT
-    printf("Step 1: ");
-    printf("%f", os.cell(0));
-    for (i = 1; i<n; i++) {
-      printf(", %f", os.cell(i));
-    }
-    printf("\n");
-#endif
-
-
-    // Step 1.
-    for (i=0; i<n; ++i) {
-      if (is_A(os.cell(i))) {
-        ASSIGN(i, A_bins);
-        A_bins++;
-      } else { 
-        break;
-      }
-    }
-
-#ifdef MFFD_PRINT
-    printf("Step 2: ");
-    printf("%f", os.cell(0));
-    for (i = 1; i<n; i++) {
-      printf(", %f", os.cell(i));
-    }
-    printf("\n");
-#endif
-
-    // Step 2.
-    bool *bin_has_B = new bool[A_bins];
-
-    int start_B = A_bins;
-    for (j=0; j<A_bins; ++j) {
-      for (i=start_B; is_B(os.cell(i)); i++) {
-        if (FITS(i, j)) {
-          ASSIGN(i, j);
-          bin_has_B[j] = true;
-        }
-      }
-    }
-
-    // Step 3.
-
-    // Find start and end of CDE classes
-    int start_CDE = -1;
-    int end_CDE = -1;
-    for (i = A_bins; i<n; ++i) {
-      if (start_CDE == -1 && os.cell(i) != 0.0 && os.cell(i) <= B) {
-        start_CDE = i;
-      }
-      if (start_CDE != -1 && os.cell(i) > E) {
-        end_CDE = i;
-      }
-    }
-
-#ifdef MFFD_PRINT
-    printf("Step 3: ");
-    printf("%f", os.cell(0));
-    for (i = 1; i<n; i++) {
-      printf(", %f", os.cell(i));
-    }
-    printf("\n");
-    printf("start_CDE: %d, end_CDE: %d\n", start_CDE, end_CDE);
-#endif
-
-    //JASSERT(start_CDE == -1 || end_CDE != -1);
-
-    if (start_CDE != -1 && end_CDE != -1) {
-      for (j=A_bins-1; j>=0; --j) {
-        if (bin_has_B[j]) 
-          continue;
-        if (start_CDE == end_CDE)
-          break;
-        if (bins.cell(j) + os.cell(end_CDE) + os.cell(end_CDE - 1) > 1.0) 
-          continue;
-
-        ASSIGN(end_CDE, j);
-        end_CDE--;
-
-        // TODO: move start_CDE up when possible
-        for (i = start_CDE; i <= end_CDE; i++) {
-          if (FITS(i, j)) {
-            ASSIGN(i, j);
-            break;
-          }
-        }
-
-        /*
-        bool found_non_assigned = false;
-        for (i = start_CDE; i <= end_CDE; i++) {
-          if (os.cell(i) == 0.0) {
-            if (!found_non_assigned)
-              start_CDE++;
-            continue;
-          }
-          found_non_assigned = true;
-          if (bins.cell(j) + os.cell(i) <= 1.0) {
-            ASSIGN(i, j);
-            break;
-          }
-        }
-        */
-      }
-    }
-
-    // Step 4.
-
-#ifdef MFFD_PRINT
-    printf("Step 4: ");
-    printf("%f", os.cell(0));
-    for (i = 1; i<n; i++) {
-      printf(", %f", os.cell(i));
-    }
-    printf("\n");
-#endif
-
-
-    // TODO: probably only need to look at things in F & G;
-    for (j=0; j<A_bins; ++j) {
-      for (i = start_B; i<n; ++i) {
-        if (FITS(i, j)) {
-          ASSIGN(i, j);
-        }
-      }
-    }
+    MFFDInner(bins, a, os);
 
     // Step 5.
-
     FirstFitNoZero(bins,a,os);
 
-    delete[] bin_has_B;
   }
 }
 
