@@ -475,8 +475,14 @@ void petabricks::PetabricksRuntime::runGraphMode(){
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n=_incN(n)){
     setSize(n);
     double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
-    if(avg<std::numeric_limits<double>::max())
-      printf("%d %.6f\n", _randSize, avg);
+    if(avg<std::numeric_limits<double>::max()){
+      if(theAccuracies.empty()){
+        printf("%d %.6f\n", n, avg);
+      }else{
+        printf("%d %.6f %.6f\n", n, avg, _mean(theAccuracies));
+        theAccuracies.clear();
+      }
+    }
     fflush(stdout);
     if(avg > GRAPH_MAX_SEC) break;
   }
@@ -503,8 +509,14 @@ void petabricks::PetabricksRuntime::runGraphParamMode(const std::string& param){
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n=_incN(n)){
     tunable->setValue(n);
     double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
-    if(avg<std::numeric_limits<double>::max())
-      printf("%d %.6lf\n", n, avg);
+    if(avg<std::numeric_limits<double>::max()){
+      if(theAccuracies.empty()){
+        printf("%d %.6f\n", n, avg);
+      }else{
+        printf("%d %.6f %.6f\n", n, avg, _mean(theAccuracies));
+        theAccuracies.clear();
+      }
+    }
     fflush(stdout);
     if(avg > GRAPH_MAX_SEC) break;
   }
