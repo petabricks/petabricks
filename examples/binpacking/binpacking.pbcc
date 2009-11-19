@@ -355,9 +355,6 @@ accuracy_metric PackAcc
     AlmostWorstFit(b,a,o);
   }
   to(Bins b, Assignments a) from(Objects o) {
-    ReverseSort(b,a,o);
-  }
-  to(Bins b, Assignments a) from(Objects o) {
     FirstFitDecreasing(b,a,o);
   }
   to(Bins b, Assignments a) from(Objects o) {
