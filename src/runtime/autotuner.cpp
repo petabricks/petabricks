@@ -172,12 +172,6 @@ bool petabricks::Autotuner::trainOnce(double limit){
   double bestPerf = _candidates[0]->lastResult();
   std::sort(_candidates.begin(), _candidates.end(), CmpLastLastPerformance());
 
-  if(bestPerf > std::numeric_limits<double>::max()/2){
-    //test ran too slowly, abort
-    _initialConfig->activate();
-    _candidates[0]->activate();
-    return false;
-  }
 
   // add new algorithms -- by last rounds performance
   int numCurrentCandidates = _candidates.size();
@@ -185,8 +179,16 @@ bool petabricks::Autotuner::trainOnce(double limit){
     _initialConfig->activate();
     CandidateAlgorithmPtr b=_candidates[i]->attemptBirth(_runtime, *this, bestPerf*BIRTH_THRESH);
     if(b){
+      bestPerf = std::min(bestPerf,b->lastResult());
       _candidates.push_back(b);
     }
+  }
+  
+  if(bestPerf > std::numeric_limits<double>::max()/2){
+    //test ran too slowly, abort
+    _initialConfig->activate();
+    _candidates[0]->activate();
+    return false;
   }
 
   removeDuplicates();
