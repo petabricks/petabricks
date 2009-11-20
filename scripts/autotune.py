@@ -348,6 +348,7 @@ def main(argv):
   parser.add_option("--trials", type="int", dest="trials", default=None)
   parser.add_option("--trials-sec", type="float", dest="trialssec", default=None)
   parser.add_option("--trials-max", type="int", dest="trialsmax", default=None)
+  parser.add_option("--transform", dest="transform", default=None)
   options,args = parser.parse_args()
 
   if len(args) != 1:
@@ -401,7 +402,10 @@ def main(argv):
       if re.search("_0$", nameof(t)) is not None:
         transforms[t.getAttribute("templateName")] = t
 
-  maintx = transforms[mainname()]
+  if options.transform is None:
+    maintx = transforms[mainname()]
+  else:
+    maintx = transforms[options.transform]
   
   print "Call tree:"
   walkCallTree(maintx, fnup=printTx)
@@ -422,7 +426,7 @@ def main(argv):
   walkCallTree(maintx, lambda tx, depth, loops: enqueueAutotuneCmds(tx, maintx, 2, depth, loops))
   
  #if not options.justprint:
- #  tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
+  tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
 
   progress.status("autotuning")
 
