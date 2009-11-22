@@ -16,13 +16,13 @@
 #include <limits>
 #include <algorithm>
 
-JTUNABLE(autotune_alg_slots,                5, 1, 32);
+JTUNABLE(autotune_alg_slots,                1, 1, 32);
 JTUNABLE(autotune_branch_attempts,          1, 1, 32);
-JTUNABLE(autotune_improvement_threshold,    95, 10, 100);
+JTUNABLE(autotune_improvement_threshold,    98, 10, 100);
 JTUNABLE(autotune_cutoff_divisor,           16, 2, 1024);
 
 
-#define FIRST_DEATH_THRESH 0.005
+#define FIRST_DEATH_THRESH 0
 #define POP_PERFORMANCE_CUTOFF 1.5
 
 #define MAX_ALGS autotune_alg_slots
