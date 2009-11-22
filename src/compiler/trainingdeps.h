@@ -53,11 +53,12 @@ public:
         << " />\n";
   }
 
-  void beginTransform(const std::string& name, const std::string& instanceName){
+  void beginTransform(const std::string& name, const std::string& instanceName, int templateChoice){
     _os << "  <transform ";
     _os << " name=\""         << instanceName << "\"";
     _os << " templateName=\"" << name << "\"";
     _os << " isTemplateInstance=\"" << (name==instanceName ? "no" : "yes") << "\"";
+    _os << " templateChoice=\"" << jalib::XToString(templateChoice) << "\"";
     _os << ">\n";
   }
 

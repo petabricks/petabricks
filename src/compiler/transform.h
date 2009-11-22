@@ -245,6 +245,7 @@ private:
   std::string         _accuracyMetric;
   std::vector<double> _accuracyBins;
   std::string         _generator;
+  int                 _templateChoice;
 };
 
 }

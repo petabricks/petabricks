@@ -33,6 +33,7 @@ petabricks::Transform::Transform()
   , _tuneId(0)
   , _scope(RIRScope::global()->createChildLayer())
   , _usesSplitSize(false)
+  , _templateChoice(-1)
 {}
 
 void petabricks::Transform::addFrom(const MatrixDefList& l){
@@ -266,12 +267,14 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
     std::string origName = _name;
     //count number of times we need to explode it
     size_t choiceCnt = tmplChoiceCount();
-    JWARNING(choiceCnt<15)(choiceCnt)(_name).Text("Explosion of choices for template... are you sure???");
+    JWARNING(choiceCnt<25)(choiceCnt)(_name).Text("Explosion of choices for template... are you sure???");
     //for each possible way
     for(size_t c=0; c<choiceCnt; ++c){
       std::string nextName = "NULL";
       if(c+1 < choiceCnt) nextName = tmplName(c+1)+"_main::instance()";
       _name = tmplName(c, &o);
+      _templateChoice = c;
+    
 
       JTRACE("generating template version")(c);
       generateCodeSimple(o, nextName);
@@ -283,6 +286,7 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
 
       _name = origName;
     }
+    _templateChoice = -1;
     genTmplJumpTable(o, true, normalArgs(), normalArgNames());
     genTmplJumpTable(o, false, normalArgs(), normalArgNames());
     o.write("typedef "+tmplName(0)+"_main "+_name+"_main;");
@@ -383,7 +387,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   std::vector<std::string> returnStyleArgs = args;
   if(_to.size()==1) returnStyleArgs.erase(returnStyleArgs.begin());
 
-  o.cg().beginTransform(_originalName, _name);
+  o.cg().beginTransform(_originalName, _name, _templateChoice);
   o.comment("Begin output for transform " + _name);
   o.newline();
   
