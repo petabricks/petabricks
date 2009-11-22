@@ -5202,7 +5202,7 @@ $as_echo "#define MAX_INPUT_BITS 32" >>confdefs.h
 $as_echo "#define MAX_NUM_WORKERS 512" >>confdefs.h
 
 
-$as_echo "#define MAX_REC_LEVELS 6" >>confdefs.h
+$as_echo "#define MAX_REC_LEVELS 12" >>confdefs.h
 
 
 $as_echo "#define MIN_NUM_WORKERS 1" >>confdefs.h
