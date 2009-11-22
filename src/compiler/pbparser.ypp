@@ -94,7 +94,7 @@ void pbparser_addRefPoolItem(jalib::JRefCounted* i){
 %type <transforms> TransformList
 %type <rules> TransformBody RuleList
 %type <rule> Rule RuleHeader BaseRuleHeader
-%type <matrixdefs> MatrixDefList
+%type <matrixdefs> MatrixDefList RuleHeaderThrough
 %type <matrixdef>  MatrixDef
 %type <formulas>   OptFormulaList FormulaList OptSize OptVersion OptWhere
 %type <formula>    Formula FormulaExpr FormulaRelation
@@ -210,11 +210,13 @@ RuleHeader: BaseRuleHeader          { $$=$1; }
           | KW_DUPLICATE '(' IDENT ',' Integer ',' Integer ')' RuleHeader { ($$=$9)->addDuplicateVar($3, $5, $7); }
           | KW_RULE IDENT RuleHeader { ($$=$3)->setLabel($2); };
 
-BaseRuleHeader: Region       RuleHeaderFrom OptWhere { $$=REFALLOC(UserRule($1,  *$2, *$3)); }
-              | RuleHeaderTo RuleHeaderFrom OptWhere { $$=REFALLOC(UserRule(*$1, *$2, *$3)); };
+BaseRuleHeader: Region       RuleHeaderFrom RuleHeaderThrough OptWhere { $$=REFALLOC(UserRule($1,  *$2, *$3, *$4)); }
+              | RuleHeaderTo RuleHeaderFrom RuleHeaderThrough OptWhere { $$=REFALLOC(UserRule(*$1, *$2, *$3, *$4)); };
 
 RuleHeaderFrom: KW_FROM '(' NamedRegionList ')' { $$=$3; };
 RuleHeaderTo:   KW_TO   '(' NamedRegionList ')' { $$=$3; };
+RuleHeaderThrough: KW_THROUGH '(' MatrixDefList ')' { $$=$3; }
+               | Nil { $$=REFALLOC(MatrixDefList()); };
 
 PriorityFlag: KW_PRIMARY                  {$$=RuleFlags::PRIORITY_PRIMARY;}
             | KW_SECONDARY                {$$=RuleFlags::PRIORITY_SECONDARY;}

@@ -218,7 +218,12 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
         //   CALL(Foo,c,d)
         JTRACE("Creating call")(sym);
         peekExprForward()->parts().push_front(e);
-        e = new RIRIdentExpr("CALL");
+        if(hasExprBackward()&&peekExprBackward()->isLeaf("spawn")){
+          popExprBackward();
+          e = new RIRIdentExpr("SPAWN");
+        }else{
+          e = new RIRIdentExpr("CALL");
+        }
       }
     }
     if(sym && sym->type() == RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL){
@@ -228,7 +233,7 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
     if(sym && sym->isType()){
       if(!hasExprBackward() && hasExprForward() 
           && (peekExprForward()->type()==RIRNode::EXPR_IDENT || peekExprForward()->isLeaf("*")) ){
-        //tranfrom:
+        //transform:
         // int a,b=0,c;
         //into:
         // int a; int b=0; int c;
@@ -253,6 +258,30 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
           }
         }
       }
+    }
+    if(e->isLeaf("verify_accuracy")){
+      std::string var = _uniquify("tmpacc");
+
+      RIRStmtCopyRef s1 = RIRStmt::parse("ElementT "+var+";");
+      s1->accept(*this);
+      pushStmtBackward(s1);
+
+      std::vector<std::string> argnames = _transform.normalArgNames();
+      std::ostringstream os;
+      os << _transform.accuracyMetric() << "(" <<  var << ", transform->";
+      jalib::JPrintable::printStlList(os, argnames.begin(), argnames.end(), ", transform->");
+      os << ");";
+      RIRStmtCopyRef s2 = RIRStmt::parse(os.str());
+      s2->accept(*this);
+      pushStmtBackward(s2);
+
+      if(_transform.isAccuracyInverted())
+        e = RIRExpr::parse(var + "*-1 >= ACCURACY_TARGET");
+      else
+        e = RIRExpr::parse(var + " >= ACCURACY_TARGET");
+    }
+    if(e->isLeaf("sync")){
+      e = RIRExpr::parse("SYNC()");
     }
   }
   if(e->type() == RIRNode::EXPR_KEYWORD){

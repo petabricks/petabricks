@@ -67,6 +67,16 @@ protected:
     _exprCtx.back().forward()->pop_front();
     return p;
   }
+  RIRExprRef peekExprBackward() { 
+    JASSERT(!_exprCtx.back().backward()->empty()).Text("unexpected end of statement");
+    RIRExprRef p = _exprCtx.back().backward()->back().asPtr();
+    return p;
+  }
+  RIRExprRef popExprBackward() { 
+    RIRExprRef p = peekExprBackward();
+    _exprCtx.back().backward()->pop_back();
+    return p;
+  }
   void pushStmtForward(const RIRStmtCopyRef& s){ 
     _stmtCtx.back().forward()->push_front(s);
   }

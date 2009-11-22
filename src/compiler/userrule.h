@@ -16,6 +16,7 @@
 
 #include "codegenerator.h"
 #include "configitem.h"
+#include "matrixdef.h"
 #include "matrixdependency.h"
 #include "rule.h"
 #include "ruleir.h"
@@ -33,11 +34,11 @@ class UserRule : public RuleInterface{
 public:
   ///
   /// Constructor -- return style rule
-  UserRule(const RegionPtr& to, const RegionList& from, const FormulaList& where);
+  UserRule(const RegionPtr& to, const RegionList& from, const MatrixDefList& through, const FormulaList& where);
 
   ///
   /// Constructor -- to style rule
-  UserRule(const RegionList& to, const RegionList& from, const FormulaList& where);
+  UserRule(const RegionList& to, const RegionList& from, const MatrixDefList& through, const FormulaList& where);
   
   ///
   /// Initialize this rule after parsing
@@ -186,6 +187,7 @@ private:
   RuleFlags _flags;
   RegionList _from;
   RegionList _to;
+  MatrixDefList _through;
   FormulaList _conditions;
   FormulaList _definitions;
   std::string _bodysrc;

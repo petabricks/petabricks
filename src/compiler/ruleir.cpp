@@ -88,10 +88,11 @@ void petabricks::RIRArgsExpr::print(std::ostream& o, RIRVisitor* v) {
   pvHook(_parts, o, v, ", ");
 }
 void petabricks::RIRCallExpr::print(std::ostream& o, RIRVisitor* v) {
-  JASSERT(_parts.size()==2)(_parts.size())(_str);
-  pvHook(get(_parts,0),o,v);
+  JASSERT(_parts.size()>=2)(_parts.size())(_str);
+  for(size_t i=0; i<_parts.size()-1; ++i)
+    pvHook(get(_parts,i),o,v);
   o << '(';
-  pvHook(get(_parts,1),o,v);
+  pvHook(get(_parts,_parts.size()-1),o,v);
   o << ')';
 }
 void petabricks::RIRBlock::print(std::ostream& o, RIRVisitor* v) {
