@@ -46,9 +46,29 @@ void pbparser_addRefPoolItem(jalib::JRefCounted* i){
   theRefPool.add(i);
 }
 
+//logic for combining locations (modified from bison default to ignore Nil token locations)
+# define YYLLOC_DEFAULT(Current, Rhs, N)                                         \
+  do{                                                                            \
+    (Current).first_line   = (Current).last_line   = YYRHSLOC(Rhs, 0).last_line; \
+    (Current).first_column = (Current).last_column = -1;                         \
+    if(YYID(N))                                                                  \
+    {                                                                            \
+      for(int i=1;i<=N && (Current).first_column==-1; ++i) {                     \
+        (Current).first_line   = YYRHSLOC (Rhs, i).first_line;                   \
+        (Current).first_column = YYRHSLOC (Rhs, i).first_column;                 \
+      }                                                                          \
+      for(int i=N;i>=1 && (Current).last_column==-1; --i) {                      \
+        (Current).last_line    = YYRHSLOC (Rhs, N).last_line;                    \
+        (Current).last_column  = YYRHSLOC (Rhs, N).last_column;                  \
+      }                                                                          \
+    }                                                                            \
+  }while (YYID(0))
+
+
 #define YYLEX_PARAM &yylval, &yylloc
 extern int pblex(YYSTYPE * yylval_param,YYLTYPE * yylloc_param );
 
+#define DEBUGLINENO(x) printf("DEBUGLINENO %d %d - %d %d\n", (x).first_line, (x).first_column, (x).last_line, (x).last_column)
 %}
 
 %defines
