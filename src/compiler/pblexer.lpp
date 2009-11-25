@@ -10,13 +10,15 @@
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 %option stack
-%option yylineno
 %option nostdinit
 %option noyywrap
 %option noyy_top_state
 %option nounput
 %option prefix="pb"
 %option outfile="lex.yy.c"
+%option bison-bridge
+%option bison-locations
+%option yylineno
 
 %{
 #include "transform.h"
@@ -57,6 +59,8 @@ static void recordLitCode(){
 
 int rulebodystart=0;
 std::string pbfilename;
+int pbcolno=0;
+int pblastlineno=-1;
 
 static void handleCppLine(const char* s){
   const char* n_begin = s+2;
@@ -69,8 +73,19 @@ static void handleCppLine(const char* s){
   pbfilename = filename;
 }
 
-#define YY_USER_ACTION pblval.str=allocPoolString(yytext); theParseLog<<yytext;
-#define YY_DECL int yylex()
+#define YY_USER_ACTION \
+  pblval.str=allocPoolString(yytext);  \
+  theParseLog<<yytext;                 \
+  pblloc.first_line=pblineno;          \
+  pblloc.last_line=pblineno;           \
+  if(pblineno!=pblastlineno) {         \
+    pblastlineno=pblineno;             \
+    pbcolno=0;                         \
+  }                                    \
+  pblloc.first_column=pbcolno;         \
+  pbcolno+=strlen(yytext);             \
+  pblloc.last_column=pbcolno;
+
 #define RETURN theParseLog.str(""); return
 
 static int theNestCount=0;

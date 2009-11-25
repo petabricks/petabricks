@@ -15,6 +15,7 @@
 #include "formula.h"
 #include "matrixdef.h"
 #include "region.h"
+#include "pbparser.h"
 
 #include "common/jconvert.h"
 
@@ -28,7 +29,6 @@ using namespace petabricks;
 
 extern int pblineno;
 extern char* pbtext;
-extern int pblex (void);
 extern std::string pbfilename;
 
 int yyerror(petabricks::TransformListPtr&, const char* msg){
@@ -46,10 +46,14 @@ void pbparser_addRefPoolItem(jalib::JRefCounted* i){
   theRefPool.add(i);
 }
 
+#define YYLEX_PARAM &yylval, &yylloc
+extern int pblex(YYSTYPE * yylval_param,YYLTYPE * yylloc_param );
+
 %}
 
 %defines
 %locations
+%error-verbose
 %expect 0
 %name-prefix="pb"
 
@@ -111,6 +115,8 @@ void pbparser_addRefPoolItem(jalib::JRefCounted* i){
 %left '*' '/'
 %left '^'
 
+
+
 %%
 
 Start: TransformList {
@@ -125,12 +131,12 @@ Transform: TransformHeader TransformBody {
 TransformHeader: Nil {$$=REFALLOC(Transform());};
 TransformHeader: TransformHeader ';'                                  { ($$=$1); };
 TransformHeader: TransformHeader KW_MAIN                              { ($$=$1)->markMain(); };
-TransformHeader: TransformHeader KW_MEMOIZED                          { ($$=$1)->markMemoized(); };
-TransformHeader: TransformHeader KW_TRANSFORM IDENT                   { ($$=$1)->setName($3);     } ;
-TransformHeader: TransformHeader KW_PARAM FreeVars                    { ($$=$1)->addParams(*$3);    } ;
-TransformHeader: TransformHeader KW_FROM    MatrixDefList             { ($$=$1)->addFrom(*$3);   };
-TransformHeader: TransformHeader KW_THROUGH MatrixDefList             { ($$=$1)->addThrough(*$3);};
-TransformHeader: TransformHeader KW_TO      MatrixDefList             { ($$=$1)->addTo(*$3);     };
+TransformHeader: TransformHeader KW_MEMOIZED                          { ($$=$1)->markMemoized();  };
+TransformHeader: TransformHeader KW_TRANSFORM IDENT                   { ($$=$1)->setName($3);     };
+TransformHeader: TransformHeader KW_PARAM FreeVars                    { ($$=$1)->addParams(*$3);  };
+TransformHeader: TransformHeader KW_FROM    MatrixDefList             { ($$=$1)->addFrom(*$3);    };
+TransformHeader: TransformHeader KW_THROUGH MatrixDefList             { ($$=$1)->addThrough(*$3); };
+TransformHeader: TransformHeader KW_TO      MatrixDefList             { ($$=$1)->addTo(*$3);      };
 TransformHeader: TransformHeader KW_TEMPLATE OptLT TemplateArgs OptGT { ($$=$1)->addTemplateArg(*$4); };
 //TransformHeader: TransformHeader KW_TESTCASE TestCase                 { ($$=$1)->addTestCase($3);};
 TransformHeader: TransformHeader KW_ACCURACYMETRIC IDENT              { ($$=$1)->setAccuracyMetric($3);};
