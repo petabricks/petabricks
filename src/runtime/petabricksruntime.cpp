@@ -87,7 +87,7 @@ double petabricks::PetabricksRuntime::rand01(){
 #ifdef HAVE_BOOST_RANDOM_HPP
   double d = myRandomGen()();
 #else
-  double d = drand48()
+  double d = drand48();
 #endif
   return d;
 }
