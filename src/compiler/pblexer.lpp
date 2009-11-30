@@ -21,20 +21,23 @@
 %option yylineno
 
 %{
-#include "transform.h"
-#include "userrule.h"
+
+#include "codegenerator.h"
 #include "formula.h"
 #include "matrixdef.h"
-#include "pbparser.h"
-#include "codegenerator.h"
+#include "transform.h"
+#include "userrule.h"
 
 #include "common/jassert.h"
 #include "common/jconvert.h"
+#include "common/srcpos.h"
 
 #include <stdio.h>
 #include <string>
 #include <string.h>
 #include <sstream>
+
+#include "pbparser.h"
 
 using namespace std;
 
@@ -74,17 +77,9 @@ static void handleCppLine(const char* s){
 }
 
 #define YY_USER_ACTION \
-  pblval.str=allocPoolString(yytext);  \
-  theParseLog<<yytext;                 \
-  pblloc.first_line=pblineno;          \
-  pblloc.last_line=pblineno;           \
-  if(pblineno!=pblastlineno) {         \
-    pblastlineno=pblineno;             \
-    pbcolno=0;                         \
-  }                                    \
-  pblloc.first_column=pbcolno;         \
-  pbcolno+=strlen(yytext);             \
-  pblloc.last_column=pbcolno;
+  pblval.str=allocPoolString(yytext);                              \
+  theParseLog<<yytext;                                             \
+  SRCPOS_FILL(*yylloc, pbfilename, pblineno, pblastlineno, pbcolno)
 
 #define RETURN theParseLog.str(""); return
 

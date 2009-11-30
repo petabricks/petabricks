@@ -49,6 +49,7 @@ pkglib_HEADERS=  \
   common/jsocket.h \
   common/jtimer.h \
   common/jtunable.h \
+  common/srcpos.h \
   common/thedeque.h \
   runtime/autotuner.h \
   runtime/dynamicscheduler.h \
@@ -77,7 +78,8 @@ libpbcommon_a_SOURCES =  \
   common/jserialize.cpp \
   common/jsocket.cpp \
   common/jtimer.cpp \
-  common/jtunable.cpp
+  common/jtunable.cpp \
+  common/srcpos.cpp
 
 libpbcompiler_a_LFLAGS = 
 libpbcompiler_a_YFLAGS = -d

@@ -68,7 +68,8 @@ am_libpbcommon_a_OBJECTS = libpbcommon_a-jalloc.$(OBJEXT) \
 	libpbcommon_a-jrefcounted.$(OBJEXT) \
 	libpbcommon_a-jserialize.$(OBJEXT) \
 	libpbcommon_a-jsocket.$(OBJEXT) libpbcommon_a-jtimer.$(OBJEXT) \
-	libpbcommon_a-jtunable.$(OBJEXT)
+	libpbcommon_a-jtunable.$(OBJEXT) \
+	libpbcommon_a-srcpos.$(OBJEXT)
 libpbcommon_a_OBJECTS = $(am_libpbcommon_a_OBJECTS)
 libpbcompiler_a_AR = $(AR) $(ARFLAGS)
 libpbcompiler_a_LIBADD =
@@ -330,6 +331,7 @@ pkglib_HEADERS = \
   common/jsocket.h \
   common/jtimer.h \
   common/jtunable.h \
+  common/srcpos.h \
   common/thedeque.h \
   runtime/autotuner.h \
   runtime/dynamicscheduler.h \
@@ -358,7 +360,8 @@ libpbcommon_a_SOURCES = \
   common/jserialize.cpp \
   common/jsocket.cpp \
   common/jtimer.cpp \
-  common/jtunable.cpp
+  common/jtunable.cpp \
+  common/srcpos.cpp
 
 libpbcompiler_a_LFLAGS = 
 libpbcompiler_a_YFLAGS = -d
@@ -529,6 +532,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcommon_a-jsocket.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcommon_a-jtimer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcommon_a-jtunable.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcommon_a-srcpos.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-choicegrid.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-codegenerator.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-configitem.Po@am__quote@
@@ -725,6 +729,20 @@ libpbcommon_a-jtunable.obj: common/jtunable.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='common/jtunable.cpp' object='libpbcommon_a-jtunable.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcommon_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcommon_a-jtunable.obj `if test -f 'common/jtunable.cpp'; then $(CYGPATH_W) 'common/jtunable.cpp'; else $(CYGPATH_W) '$(srcdir)/common/jtunable.cpp'; fi`
+
+libpbcommon_a-srcpos.o: common/srcpos.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcommon_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcommon_a-srcpos.o -MD -MP -MF $(DEPDIR)/libpbcommon_a-srcpos.Tpo -c -o libpbcommon_a-srcpos.o `test -f 'common/srcpos.cpp' || echo '$(srcdir)/'`common/srcpos.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbcommon_a-srcpos.Tpo $(DEPDIR)/libpbcommon_a-srcpos.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='common/srcpos.cpp' object='libpbcommon_a-srcpos.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcommon_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcommon_a-srcpos.o `test -f 'common/srcpos.cpp' || echo '$(srcdir)/'`common/srcpos.cpp
+
+libpbcommon_a-srcpos.obj: common/srcpos.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcommon_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcommon_a-srcpos.obj -MD -MP -MF $(DEPDIR)/libpbcommon_a-srcpos.Tpo -c -o libpbcommon_a-srcpos.obj `if test -f 'common/srcpos.cpp'; then $(CYGPATH_W) 'common/srcpos.cpp'; else $(CYGPATH_W) '$(srcdir)/common/srcpos.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbcommon_a-srcpos.Tpo $(DEPDIR)/libpbcommon_a-srcpos.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='common/srcpos.cpp' object='libpbcommon_a-srcpos.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcommon_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcommon_a-srcpos.obj `if test -f 'common/srcpos.cpp'; then $(CYGPATH_W) 'common/srcpos.cpp'; else $(CYGPATH_W) '$(srcdir)/common/srcpos.cpp'; fi`
 
 libpbcompiler_a-choicegrid.o: compiler/choicegrid.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-choicegrid.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-choicegrid.Tpo -c -o libpbcompiler_a-choicegrid.o `test -f 'compiler/choicegrid.cpp' || echo '$(srcdir)/'`compiler/choicegrid.cpp

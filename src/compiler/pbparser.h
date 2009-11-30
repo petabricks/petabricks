@@ -109,7 +109,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 80 "pbparser.ypp"
+#line 65 "pbparser.ypp"
 
   int i;
   double d;

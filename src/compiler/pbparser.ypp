@@ -10,17 +10,20 @@
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 %{
-#include "transform.h"
-#include "userrule.h"
+
 #include "formula.h"
 #include "matrixdef.h"
 #include "region.h"
-#include "pbparser.h"
+#include "transform.h"
+#include "userrule.h"
 
 #include "common/jconvert.h"
+#include "common/srcpos.h"
 
 #include <stdio.h>
 #include <map>
+
+#include "pbparser.h"
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -46,29 +49,11 @@ void pbparser_addRefPoolItem(jalib::JRefCounted* i){
   theRefPool.add(i);
 }
 
-//logic for combining locations (modified from bison default to ignore Nil token locations)
-# define YYLLOC_DEFAULT(Current, Rhs, N)                                         \
-  do{                                                                            \
-    (Current).first_line   = (Current).last_line   = YYRHSLOC(Rhs, 0).last_line; \
-    (Current).first_column = (Current).last_column = -1;                         \
-    if(YYID(N))                                                                  \
-    {                                                                            \
-      for(int i=1;i<=(N) && (Current).first_column==-1; ++i) {                   \
-        (Current).first_line   = YYRHSLOC (Rhs, i).first_line;                   \
-        (Current).first_column = YYRHSLOC (Rhs, i).first_column;                 \
-      }                                                                          \
-      for(int i=(N);i>=1 && (Current).last_column==-1; --i) {                    \
-        (Current).last_line    = YYRHSLOC (Rhs, N).last_line;                    \
-        (Current).last_column  = YYRHSLOC (Rhs, N).last_column;                  \
-      }                                                                          \
-    }                                                                            \
-  }while (YYID(0))
 
 
 #define YYLEX_PARAM &yylval, &yylloc
 extern int pblex(YYSTYPE * yylval_param,YYLTYPE * yylloc_param );
 
-#define DEBUGLINENO(x) printf("DEBUGLINENO %d %d - %d %d\n", (x).first_line, (x).first_column, (x).last_line, (x).last_column)
 %}
 
 %defines
@@ -145,7 +130,7 @@ Start: TransformList {
 };
 
 Transform: TransformHeader TransformBody {
-   ($$=$1)->setRules(*$2); 
+  ($$=$1)->setRules(*$2); 
 };
 
 TransformHeader: Nil {$$=REFALLOC(Transform());};
@@ -158,7 +143,7 @@ TransformHeader: TransformHeader KW_FROM    MatrixDefList             { ($$=$1)-
 TransformHeader: TransformHeader KW_THROUGH MatrixDefList             { ($$=$1)->addThrough(*$3); };
 TransformHeader: TransformHeader KW_TO      MatrixDefList             { ($$=$1)->addTo(*$3);      };
 TransformHeader: TransformHeader KW_TEMPLATE OptLT TemplateArgs OptGT { ($$=$1)->addTemplateArg(*$4); };
-//TransformHeader: TransformHeader KW_TESTCASE TestCase                 { ($$=$1)->addTestCase($3);};
+//TransformHeader: TransformHeader KW_TESTCASE TestCase               { ($$=$1)->addTestCase($3);};
 TransformHeader: TransformHeader KW_ACCURACYMETRIC IDENT              { ($$=$1)->setAccuracyMetric($3);};
 TransformHeader: TransformHeader KW_ACCURACYBINS FloatList            { ($$=$1)->setAccuracyBins(*$3);};
 TransformHeader: TransformHeader KW_GENERATOR IDENT                   { ($$=$1)->setGenerator($3);};
@@ -189,7 +174,9 @@ TemplateArgs: TemplateArg                  { ($$=REFALLOC(TemplateArgList()))->p
 /*TestCase: Nil            { $$=REFALLOC(TestCase()); }
        | TestCase IDENT { ($$=$1)->addMatrix($2); }; */
 
-MatrixDef: IDENT OptVersion OptSize { $$=REFALLOC(MatrixDef($1,*$2,*$3)); };
+MatrixDef: IDENT OptVersion OptSize { 
+  $$=REFALLOC(MatrixDef($1,*$2,*$3)); 
+};
 
 OptVersion: Nil                          { ($$=REFALLOC(FormulaList())); }
           | '<' Formula              '>' { ($$=REFALLOC(FormulaList()))->push_back($2); }
