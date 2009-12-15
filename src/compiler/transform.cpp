@@ -75,6 +75,7 @@ void petabricks::Transform::setRules(const RuleList& l){
 }
 
 void petabricks::Transform::print(std::ostream& o) const {
+  o << "lineno " << srcPos() << std::endl;
   if(!_templateargs.empty()){ 
     o << "template < ";   printStlList(o, _templateargs.begin(), _templateargs.end(), ", "); 
     o << " > \n";

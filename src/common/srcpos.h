@@ -15,13 +15,19 @@
 #include "jprintable.h"
 #include "jrefcounted.h"
 
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
+
+//in global scope, so one can run _lexicalSrcPos() anywhere and not get an error
+void _lexicalSrcPos(std::ostream& o);
 
 namespace jalib {
 
 class SrcPos;
 typedef JRef<const SrcPos> SrcPosPtr;
+
 
 struct FileLineCol {
   std::string filename;
@@ -32,6 +38,19 @@ struct FileLineCol {
   {}
   bool isFullyDefined() { return filename.length()>0 && line>=0 && column>=0; }
   FileLineCol fileline() { return FileLineCol(filename, line); }
+
+  FileLineCol operator+(int i) const { return FileLineCol(filename,line+i); }
+  FileLineCol operator-(int i) const { return FileLineCol(filename,line-i); }
+  friend bool operator< (const FileLineCol& a, const FileLineCol& b) {
+    if(a.filename==b.filename){
+      if(a.line==b.line)
+        return a.column<b.column;
+      else
+        return a.line<b.line;
+    }
+    return a.filename<b.filename;
+  }
+  bool sameFile(const FileLineCol& b) const { return filename==b.filename; }
 };
 
 class SrcPos : public JRefCounted, public JPrintable {
@@ -77,14 +96,18 @@ private:
 };
 
 
-class SrcPosTagable {
+class SrcPosTaggable {
 public:
-  void tagPosition(const SrcPosPtr& p) { _positions.push_back(p); }
+  void tagPosition(const SrcPosPtr& p) { if(p) _positions.push_back(p); }
+  bool srcPos(std::ostream& os) const;
+  std::string srcPos() const;
+  void _lexicalSrcPos(std::ostream& os) const;
 private:
-  std::vector<SrcPosPtr> _positions;
+  mutable std::vector<SrcPosPtr> _positions;
 };
 
-}
+}//namespace jalib
+
 
 
 //these defines are for bison/flex integration
@@ -111,9 +134,9 @@ private:
   }                                                                \
   col+=strlen(yytext);
 #define YY_LOCATION_PRINT(File, Loc) fprintf(File, "%s", (Loc)->toString().c_str())
-#define TAGPOS(T) _tagposhelper(T, @$)
+#define TAGPOS _tagposhelper
 template<typename T>
-inline T& _tagposhelper(T& t, const jalib::SrcPos& pos){
+inline T* _tagposhelper(T* t, const jalib::SrcPos& pos){
   t->tagPosition(pos.clone());
   return t;
 }

@@ -23,6 +23,7 @@
 
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
+#include "common/srcpos.h"
 
 #include <limits>
 #include <set>
@@ -32,16 +33,16 @@ namespace petabricks {
 
 class Transform;
 typedef jalib::JRef<Transform> TransformPtr;
-class TransformList: public std::vector<TransformPtr>, public jalib::JRefCounted {};
+class TransformList: public std::vector<TransformPtr>, public jalib::JRefCounted, public jalib::SrcPosTaggable {};
 typedef jalib::JRef<TransformList> TransformListPtr;
 typedef std::set<std::string> ConstantSet;
 
-class DoubleList: public std::vector<double>, public jalib::JRefCounted {};
+class DoubleList: public std::vector<double>, public jalib::JRefCounted, public jalib::SrcPosTaggable {};
 
 /**
  * a transformation algorithm
  */
-class Transform : public jalib::JRefCounted, public jalib::JPrintable {
+class Transform : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
 public:
 
   ///

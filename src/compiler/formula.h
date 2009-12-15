@@ -17,6 +17,7 @@
 
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
+#include "common/srcpos.h"
 
 namespace petabricks {
 
@@ -29,7 +30,7 @@ typedef jalib::JRef<const FreeVars> FreeVarsPtr;
 typedef jalib::JRef<CoordinateFormula> CoordinateFormulaPtr;
 typedef jalib::JRef<FormulaList> FormulaListPtr;
 
-class OrderedFreeVars : public std::vector<std::string> , public jalib::JRefCounted {};
+class OrderedFreeVars : public std::vector<std::string> , public jalib::JRefCounted , public jalib::SrcPosTaggable {};
 
 class FreeVar : public std::string {
 public:
@@ -55,7 +56,7 @@ private:
 };
 
 
-class FreeVars : public std::set<FreeVar> , public jalib::JRefCounted {
+class FreeVars : public std::set<FreeVar>, public jalib::JRefCounted, public jalib::SrcPosTaggable {
 public:
   bool contains(const std::string& s) const{ return find(s)!=end(); } 
 
@@ -75,7 +76,8 @@ public:
  */
 class FormulaList : public std::vector<FormulaPtr> 
                   , public jalib::JRefCounted
-                  , public jalib::JPrintable 
+                  , public jalib::JPrintable
+                  , public jalib::SrcPosTaggable 
 {
 public:
   FormulaList();
@@ -101,7 +103,7 @@ public:
 /**
  * Abstract base class for formla tree
  */
-class Formula : public jalib::JRefCounted, public jalib::JPrintable {
+class Formula : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
 protected:
   Formula(const FreeVarsPtr& fv) : _freeVars(fv), _size(1) {}
 public:
