@@ -73,13 +73,14 @@
 # include "config.h"
 #endif
 
-namespace jalib { class SrcPosTaggable; };
+namespace jalib{
+  class SrcPosTaggable;
 
-namespace jassert_internal
-{
-  class JAssert
-  {
+  class JAssert{
     public:
+      typedef void (*CallbackT)(JAssert&);
+      static int onBeginError(CallbackT fn);
+
       ///
       /// print a value of any type
       template < typename T > JAssert& Print ( const T& t );
@@ -115,6 +116,8 @@ namespace jassert_internal
       JAssert& VarName(const char* name);
       JAssert& Prefix();
       JAssert& EndLine(){ return Print('\n'); }
+
+      bool IsFatal() const { return _exitWhenDone; }
     private:
       ///
       /// if set true (on construction) call exit() on destruction
@@ -156,15 +159,16 @@ namespace jassert_internal
   }
 #endif
 
-}//jassert_internal
 
+}//jalib
+  
 //helpers:
 #define JASSERT_ERRNO          (strerror(errno))
 #define JASSERT_INIT()         JASSERT_PRINT("")
-#define JASSERT_PRINT(str)     jassert_internal::JAssert(false).Print(str)
-#define JASSERT_SET_LOGFILE(p) jassert_internal::set_log_file(p)
-#define JASSERT_STDERR_FD      jassert_internal::jassert_console_fd()
-#define JASSERT_STDERR         jassert_internal::JAssert(false)
+#define JASSERT_PRINT(str)     jalib::JAssert(false).Print(str)
+#define JASSERT_SET_LOGFILE(p) jalib::set_log_file(p)
+#define JASSERT_STDERR_FD      jalib::jassert_console_fd()
+#define JASSERT_STDERR         jalib::JAssert(false)
 #define JASSERT_CAT(a,b)       a ## b
 #define JASSERT_STRINGIFY(x)   JASSERT_STRINGIFY_(x)
 #define JASSERT_STRINGIFY_(x)  #x
@@ -186,10 +190,10 @@ namespace jassert_internal
 #define JASSERT_CONT_B(term) JASSERT_CONT(A,term)
 
 //actual macros follow
-#define JASSERT_NOP if(true){}else jassert_internal::JAssert(false).JASSERT_CONT_A
+#define JASSERT_NOP if(true){}else jalib::JAssert(false).JASSERT_CONT_A
 
 #ifdef DEBUG
-#define JTRACE(msg) jassert_internal::JAssert(false).JASSERT_CONTEXT("TRACE",msg).JASSERT_CONT_A
+#define JTRACE(msg) jalib::JAssert(false).JASSERT_CONTEXT("TRACE",msg).JASSERT_CONT_A
 #define JDEBUGWARNING JWARNING
 #define JDEBUGASSER JASSERT
 #else
@@ -199,11 +203,11 @@ namespace jassert_internal
 #endif
 
 #define JNOTE(msg) \
-    jassert_internal::JAssert(false).JASSERT_CONTEXT("NOTE",msg).JASSERT_CONT_A
+    jalib::JAssert(false).JASSERT_CONTEXT("NOTE",msg).JASSERT_CONT_A
 #define JWARNING(term) if((term)){}else \
-    jassert_internal::JAssert(false).JASSERT_CONTEXT("WARNING","JWARNING(" #term ") failed").JASSERT_CONT_A
+    jalib::JAssert(false).JASSERT_CONTEXT("WARNING","JWARNING(" #term ") failed").JASSERT_CONT_A
 #define JASSERT(term)  if((term)){}else \
-    jassert_internal::JAssert(true).JASSERT_CONTEXT("ERROR","JASSERT(" #term ") failed").JASSERT_CONT_A
+    jalib::JAssert(true).JASSERT_CONTEXT("ERROR","JASSERT(" #term ") failed").JASSERT_CONT_A
 
 #ifdef UNSAFE
 #undef  JWARNING

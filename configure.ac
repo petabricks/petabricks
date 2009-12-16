@@ -230,11 +230,11 @@ if false; then
   #disabled by default:
   AC_DEFINE([DISABLE_CONTINUATIONS], [], [dont generate continuation code after SPAWN/enqueue])
   AC_DEFINE([INPUT_PERIMETER_STR], ["input_perimeter"], [define to add a system var to transform scope])
-  AC_DEFINE([INPUT_SIZE_STR],     ["input_count"],      [define to add a system var to transform scope])
-  AC_DEFINE([JALIB_USE_MALLOC],      [1],[Cause the custom allocator to call malloc instead of mmap])
-  AC_DEFINE([JASSERT_LOG],           [], [log traces to /tmp/jassertlog.pid])
-  AC_DEFINE([OUTPUT_SIZE_STR],    ["output_count"],     [define to add a system var to transform scope])
-  AC_DEFINE([PBCC_SEQUENTIAL], [], [define to run tasks inline instead of enqueuing them])
+  AC_DEFINE([INPUT_SIZE_STR],      ["input_count"],      [define to add a system var to transform scope])
+  AC_DEFINE([JALIB_USE_MALLOC],    [1],[Cause the custom allocator to call malloc instead of mmap])
+  AC_DEFINE([JASSERT_LOG],         [], [log traces to /tmp/jassertlog.pid])
+  AC_DEFINE([OUTPUT_SIZE_STR],     ["output_count"],     [define to add a system var to transform scope])
+  AC_DEFINE([PBCC_SEQUENTIAL],     [], [define to run tasks inline instead of enqueuing them])
   AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
 fi
 

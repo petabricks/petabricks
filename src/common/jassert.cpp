@@ -84,7 +84,14 @@ static const char* _cxxdemangle(const char* i){
 #define _cxxdemangle(x) x
 #endif
 
-jassert_internal::JAssert& jassert_internal::JAssert::Text ( const char* msg )
+static jalib::JAssert::CallbackT theBeginCallback = 0;
+
+int jalib::JAssert::onBeginError(CallbackT fn){
+  theBeginCallback=fn;
+  return 0;
+}
+
+jalib::JAssert& jalib::JAssert::Text ( const char* msg )
 {
   Prefix();
   Print ( "Message: " );
@@ -93,7 +100,7 @@ jassert_internal::JAssert& jassert_internal::JAssert::Text ( const char* msg )
   return *this;
 }
 
-jassert_internal::JAssert::JAssert ( bool exitWhenDone )
+jalib::JAssert::JAssert ( bool exitWhenDone )
     : JASSERT_CONT_A ( *this )
     , JASSERT_CONT_B ( *this )
     , _exitWhenDone ( exitWhenDone )
@@ -102,7 +109,7 @@ jassert_internal::JAssert::JAssert ( bool exitWhenDone )
   _id=jalib::atomicIncrementReturn(&next);
 }
 
-jassert_internal::JAssert& jassert_internal::JAssert::SetContext( 
+jalib::JAssert& jalib::JAssert::SetContext( 
     const char* type,
     const char* reason,
     const char* file,
@@ -110,10 +117,42 @@ jassert_internal::JAssert& jassert_internal::JAssert::SetContext(
     const char* func,
     const jalib::SrcPosTaggable* srcpos)
 {
-  Prefix();
-  Print("From process "); 
-  Print(getpid()); 
-  EndLine();
+  
+#if defined(DEBUG) && defined(HAVE_BACKTRACE_SYMBOLS)
+#define MAX_BT_LEN 10
+  if ( _exitWhenDone )
+  {
+    void *addresses[MAX_BT_LEN+1];
+    int size = backtrace(addresses, MAX_BT_LEN+1);
+    char **strings = backtrace_symbols(addresses, size);
+    if(strings!=NULL){
+      Prefix();
+      Print( "Stack trace:\n" );
+      for(int i = 1; i < size; i++){
+        if(i<MAX_BT_LEN){
+          Prefix();
+          Print("  ");
+          Print(i); 
+          Print(": ");
+          Print(_cxxdemangle(strings[i]));
+          EndLine();
+        }else{
+          Prefix();
+          Print("  ...");
+          EndLine();
+          break;
+        }
+      }
+      free(strings);
+      Prefix();
+      EndLine();
+    }
+  }
+#endif
+
+  if(theBeginCallback!=0){
+    (*theBeginCallback)(*this);
+  }
 
   Prefix();
   Print("In function "); 
@@ -150,14 +189,16 @@ jassert_internal::JAssert& jassert_internal::JAssert::SetContext(
   return *this;
 }
 
-jassert_internal::JAssert& jassert_internal::JAssert::Prefix(){
+jalib::JAssert& jalib::JAssert::Prefix(){
   Print('[');
+  Print(getpid());
+  Print('-');
   Print(_id);
   Print("] ");
   return *this;
 }
 
-jassert_internal::JAssert& jassert_internal::JAssert::VarName(const char* n){
+jalib::JAssert& jalib::JAssert::VarName(const char* n){
   Prefix();
   Print("   "); 
   Print(n);
@@ -165,26 +206,11 @@ jassert_internal::JAssert& jassert_internal::JAssert::VarName(const char* n){
   return *this;
 }
 
-jassert_internal::JAssert::~JAssert()
+jalib::JAssert::~JAssert()
 {
   if ( _exitWhenDone )
   {
-#if defined(DEBUG) && defined(HAVE_BACKTRACE_SYMBOLS)
-    void *addresses[10];
-    int size = backtrace(addresses, 10);
-    char **strings = backtrace_symbols(addresses, size);
-    if(strings!=NULL){
-      Print( "Stack trace:\n" );
-      for(int i = 1; i < size; i++){
-        Print("  "); 
-        Print(i); 
-        Print(": ");
-        Print(_cxxdemangle(strings[i]));
-        Print("\n");
-      }
-      free(strings);
-    }
-#endif
+    Prefix();
     Print ( "Terminating...\n" );
 #ifdef DEBUG
     jalib::Breakpoint();
@@ -193,7 +219,7 @@ jassert_internal::JAssert::~JAssert()
   }
 }
 
-const char* jassert_internal::jassert_basename ( const char* str )
+const char* jalib::jassert_basename ( const char* str )
 {
   for ( const char* c = str; c[0] != '\0' && c[1] !='\0' ; ++c )
     if ( c[0]=='/' )
@@ -227,7 +253,7 @@ static FILE* theLogFile = NULL;
 
 static std::string& theLogFilePath() {static std::string s;return s;};
 
-void jassert_internal::set_log_file ( const std::string& path )
+void jalib::set_log_file ( const std::string& path )
 {
   theLogFilePath() = path;
   if ( theLogFile != NULL ) fclose ( theLogFile );
@@ -260,14 +286,14 @@ static FILE* _initJassertOutputDevices()
     return fdopen ( dup2 ( fileno ( stderr ),DUP_STDERR_FD ),"w" );;;
 }
 
-int jassert_internal::jassert_console_fd()
+int jalib::jassert_console_fd()
 {
   //make sure stream is open
   jassert_safe_print ( "" );
   return DUP_STDERR_FD;
 }
 
-void jassert_internal::jassert_safe_print ( const char* str )
+void jalib::jassert_safe_print ( const char* str )
 {
   static FILE* errconsole = _initJassertOutputDevices();
 
@@ -294,7 +320,7 @@ void jassert_internal::jassert_safe_print ( const char* str )
 JASSERT_STATIC(false);
 # endif
 
-std::ostream& jassert_internal::jassert_output_stream(){
+std::ostream& jalib::jassert_output_stream(){
   static const char* errpath = getenv ( "JALIB_STDERR_PATH" );
   if(errpath !=0){
     static std::ofstream output(errpath);
