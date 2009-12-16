@@ -9,7 +9,7 @@ to OUT[w,h]
 
 transform CallTxTest
 from IN[w,h] 
-to OUT[w,h], IN
+to OUT[w,h] 
 {
   to(OUT o) from(IN i) {
     Add(o,i,i);
