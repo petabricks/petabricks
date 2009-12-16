@@ -17,19 +17,6 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#ifndef JASSERT_H
-#define JASSERT_H
-
-
-#include <iostream>
-#include <sstream>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
 
 /**  USAGE EXAMPLE:
  *
@@ -73,8 +60,24 @@
  *
  */
 
+#ifndef JASSERT_H
+#define JASSERT_H
+
+#include <errno.h>
+#include <iostream>
+#include <sstream>
+#include <string.h>
+#include <unistd.h>
+
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
+namespace jalib { class SrcPosTaggable; };
+
 namespace jassert_internal
 {
+
 
   class JAssert
   {
@@ -103,10 +106,23 @@ namespace jassert_internal
 
       template < typename T > JAssert& operator << ( const T& t )
       { Print ( t ); return *this; }
+
+      JAssert& SetContext( const char* type
+                         , const char* reason
+                         , const char* file
+                         , const char* line
+                         , const char* func
+                         , const jalib::SrcPosTaggable* srcpos);
+
+      JAssert& VarName(const char* name);
+      JAssert& Prefix();
+      JAssert& EndLine(){ return Print('\n'); }
     private:
       ///
       /// if set true (on construction) call exit() on destruction
       bool _exitWhenDone;
+
+      long _id;
   };
 
 
@@ -145,51 +161,67 @@ namespace jassert_internal
 
 }//jassert_internal
 
+
+//helpers:
 #define JASSERT_INIT() jassert_internal::jassert_safe_print("")
-
 #define JASSERT_SET_LOGFILE(p) (jassert_internal::set_log_file(p));
-
 #define JASSERT_ERRNO (strerror(errno))
-
 #define JASSERT_PRINT(str) jassert_internal::JAssert(false).Print(str)
 #define JASSERT_STDERR      jassert_internal::JAssert(false)
 #define JASSERT_STDERR_FD   (jassert_internal::jassert_console_fd())
+#define JASSERT_STRINGIFY_(x) #x
+#define JASSERT_STRINGIFY(x) JASSERT_STRINGIFY_(x)
+#define UNIMPLEMENTED() JASSERT(false).Text("Unimplemented");
 
-#define JASSERT_CONT(AB,term) Print("     " #term " = ").Print(term).Print("\n").JASSERT_CONT_##AB
+//glue for variable printing
+#define JASSERT_CONT(AB,term) VarName(#term).Print(term).EndLine().JASSERT_CONT_##AB
 #define JASSERT_CONT_A(term) JASSERT_CONT(B,term)
 #define JASSERT_CONT_B(term) JASSERT_CONT(A,term)
 
-#define JASSERT_STRINGIFY_(x) #x
-#define JASSERT_STRINGIFY(x) JASSERT_STRINGIFY_(x)
+//detecting context 
 #define JASSERT_FUNC __FUNCTION__
 #define JASSERT_LINE JASSERT_STRINGIFY(__LINE__)
-#define JASSERT_FILE jassert_internal::jassert_basename(__FILE__)
-#define JASSERT_CONTEXT(type,reason) Print('[').Print(getpid()).Print("] " type " at ").Print(JASSERT_FILE).Print(":" JASSERT_LINE " in ").Print(JASSERT_FUNC).Print("; REASON='" reason "'\n")
+#define JASSERT_FILE __FILE__
+#ifdef JASSERT_USE_SRCPOS
+#define JASSERT_SRCPOS (_lexicalSrcPos())
+#else
+#define JASSERT_SRCPOS NULL
+#endif
+#define JASSERT_CONTEXT(type,reason) SetContext(type, reason, JASSERT_FILE, JASSERT_LINE, JASSERT_FUNC, JASSERT_SRCPOS)
 
-#define UNIMPLEMENTED() JASSERT(false).Text("Unimplemented");
+//actual macros follow
+#define JASSERT_NOP if(true){}else jassert_internal::JAssert(false).JASSERT_CONT_A
 
+//JTRACE/JDEBUGWARNING in DEBUG mode only
 #ifdef DEBUG
 #define JTRACE(msg) jassert_internal::JAssert(false).JASSERT_CONTEXT("TRACE",msg).JASSERT_CONT_A
+#define JDEBUGWARNING JWARNING
+#define JDEBUGASSER JASSERT
 #else
-#define JTRACE(msg) if(true){}else jassert_internal::JAssert(false).JASSERT_CONTEXT("NOTE",msg).JASSERT_CONT_A
+#define JTRACE(msg) JASSERT_NOP
+#define JDEBUGWARNING(term) JASSERT_NOP
+#define JDEBUGASSERT(term) JASSERT_NOP
 #endif
 
 #define JNOTE(msg) jassert_internal::JAssert(false).JASSERT_CONTEXT("NOTE",msg).JASSERT_CONT_A
 
-#define _JWARNING(term) if((term)){}else \
+#define JWARNING(term) if((term)){}else \
     jassert_internal::JAssert(false).JASSERT_CONTEXT("WARNING","JWARNING(" #term ") failed").JASSERT_CONT_A
-
-#define _JASSERT(term)  if((term)){}else \
+#define JASSERT(term)  if((term)){}else \
     jassert_internal::JAssert(true).JASSERT_CONTEXT("ERROR","JASSERT(" #term ") failed").JASSERT_CONT_A
 
 #ifdef UNSAFE
-#define JWARNING(t) _JWARNING( (t) || true )
-#define JASSERT(t)  _JASSERT( (t) || true )
-#else
-#define JWARNING _JWARNING
-#define JASSERT  _JASSERT
+#undef  JWARNING
+#define JWARNING(t) if((t)) JASSERT_NOP
+#undef  JASSERT
+#define JASSERT(t)  if((t)) JASSERT_NOP
+#undef  JNOTE
+#define JNOTE(m)  JASSERT_NOP
 #endif
 
+#ifdef JASSERT_USE_SRCPOS
+#include "srcpos.h"
+#endif
 
 #endif
 

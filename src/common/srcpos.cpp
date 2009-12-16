@@ -53,15 +53,13 @@ bool jalib::SrcPosTaggable::srcPos(std::ostream& os) const {
 }
 std::string jalib::SrcPosTaggable::srcPos() const {
   std::ostringstream os;
-  srcPos(os);
-  return os.str();
+  if(srcPos(os))
+    return os.str();
+  else
+    return "<unknown>";
 }
-void jalib::SrcPosTaggable::_lexicalSrcPos(std::ostream& o) const {
-  if(!srcPos(o))
-    ::_lexicalSrcPos(o);//go to global location guessing
-}
-void _lexicalSrcPos(std::ostream& o) {
-  o << "<unknown-location>";
+const jalib::SrcPosTaggable* _lexicalSrcPos() {
+  return NULL;
 }
 
 

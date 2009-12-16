@@ -20,16 +20,19 @@
 #  include "config.h"
 #endif
 
+static petabricks::Region::RegionType _strToRegionType(const std::string& str){
+  if(str=="cell")   return petabricks::Region::REGION_CELL;
+  if(str=="row")    return petabricks::Region::REGION_ROW;
+  if(str=="col")    return petabricks::Region::REGION_COL;
+  if(str=="column") return petabricks::Region::REGION_COL;
+  if(str=="region") return petabricks::Region::REGION_BOX;
+  if(str=="all")    return petabricks::Region::REGION_ALL;
+  JASSERT(false)(str).Text("Unknown region type");
+  return petabricks::Region::REGION_INVALID;
+}
 
 petabricks::Region::RegionType petabricks::Region::strToRegionType(const std::string& str){
-  if(str=="cell")   return REGION_CELL;
-  if(str=="row")    return REGION_ROW;
-  if(str=="col")    return REGION_COL;
-  if(str=="column") return REGION_COL;
-  if(str=="region") return REGION_BOX;
-  if(str=="all")    return REGION_ALL;
-  JASSERT(false)(str).Text("Unknown region type");
-  return REGION_INVALID;
+  return _strToRegionType(str);
 }
 
 petabricks::Region::Region(const char* fromMatrix, const FormulaList& version, const char* type, const FormulaList& bounds) 

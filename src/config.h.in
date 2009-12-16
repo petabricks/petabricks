@@ -171,6 +171,9 @@
 /* log traces to /tmp/jassertlog.pid */
 #undef JASSERT_LOG
 
+/* include source line numbers in error messages */
+#undef JASSERT_USE_SRCPOS
+
 /* type for elements in the matrix */
 #undef MATRIX_ELEMENT_T
 

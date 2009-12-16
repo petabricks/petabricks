@@ -20,8 +20,10 @@
 #include <string>
 #include <vector>
 
+
+namespace jalib { class SrcPosTaggable; }
 //in global scope, so one can run _lexicalSrcPos() anywhere and not get an error
-void _lexicalSrcPos(std::ostream& o);
+const jalib::SrcPosTaggable* _lexicalSrcPos();
 
 namespace jalib {
 
@@ -101,7 +103,7 @@ public:
   void tagPosition(const SrcPosPtr& p) { if(p) _positions.push_back(p); }
   bool srcPos(std::ostream& os) const;
   std::string srcPos() const;
-  void _lexicalSrcPos(std::ostream& os) const;
+  const SrcPosTaggable* _lexicalSrcPos() const { return this; }
 private:
   mutable std::vector<SrcPosPtr> _positions;
 };

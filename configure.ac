@@ -195,6 +195,7 @@ AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations 
 AC_DEFINE([HASH_FN],             [MD5], [hash function used for memoization (MD5 or SHA1)])
 AC_DEFINE([HASH_LEN],            [MD5_DIGEST_LENGTH], [length of hash used for memoization (must match HASH_FN)])
 AC_DEFINE([INLINE_NULL_TASKS],   [], [run null tasks immediately when they are enqueued])
+AC_DEFINE([JASSERT_USE_SRCPOS],  [],[include source line numbers in error messages])
 AC_DEFINE([MATRIX_ELEMENT_T],    [double], [type for elements in the matrix])
 AC_DEFINE([MATRIX_INDEX_T],      [int], [type for indices into the matrix])
 AC_DEFINE([MAX_DIMENSIONS],      [64], [the maximum number of dimensions supported])
@@ -219,7 +220,6 @@ AC_DEFINE([TX_STATIC_POSTFIX],   ["_static"], [postfix for static versions of tr
 AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files in])
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
-
 
 AC_DEFINE_UNQUOTED([REVISION_LONG], ["$rev_long"], [git revision for HEAD at the time ./configure was run])
 AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at the time ./configure was run])

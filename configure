@@ -5240,6 +5240,9 @@ $as_echo "#define HASH_LEN MD5_DIGEST_LENGTH" >>confdefs.h
 $as_echo "#define INLINE_NULL_TASKS /**/" >>confdefs.h
 
 
+$as_echo "#define JASSERT_USE_SRCPOS /**/" >>confdefs.h
+
+
 $as_echo "#define MATRIX_ELEMENT_T double" >>confdefs.h
 
 
@@ -5310,7 +5313,6 @@ $as_echo "#define UTIL_SEARCH_DIR_B \"scripts\"" >>confdefs.h
 
 
 $as_echo "#define WORKERTHREAD_ONDECK /**/" >>confdefs.h
-
 
 
 

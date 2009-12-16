@@ -34,11 +34,12 @@
 # undef HAVE_BACKTRACE_SYMBOLS_FD
 #endif
 
-#include <unistd.h>
+
 #include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fstream>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #undef JASSERT_CONT_A
 #undef JASSERT_CONT_B
@@ -101,6 +102,7 @@ int jassert_internal::jassert_console_fd()
 
 jassert_internal::JAssert& jassert_internal::JAssert::Text ( const char* msg )
 {
+  Prefix();
   Print ( "Message: " );
   Print ( msg );
   Print ( "\n" );
@@ -111,7 +113,64 @@ jassert_internal::JAssert::JAssert ( bool exitWhenDone )
     : JASSERT_CONT_A ( *this )
     , JASSERT_CONT_B ( *this )
     , _exitWhenDone ( exitWhenDone )
-{}
+{
+  static jalib::AtomicT next=-1;
+  _id=jalib::atomicIncrementReturn(&next);
+}
+
+jassert_internal::JAssert& jassert_internal::JAssert::SetContext( 
+    const char* type,
+    const char* reason,
+    const char* file,
+    const char* line,
+    const char* func,
+    const jalib::SrcPosTaggable* srcpos)
+{
+  Prefix();
+  Print("From process "); 
+  Print(getpid()); 
+  EndLine();
+
+  Prefix();
+  Print("In "); 
+  Print(func);
+  Print(" at ");
+  Print(jassert_basename(file)); 
+  Print(':'); 
+  Print(line);
+  EndLine();
+
+#ifdef JASSERT_USE_SRCPOS
+  if(srcpos!=0){
+    Prefix();
+    Print("Source ");
+    Print(srcpos->srcPos());
+    EndLine();
+  }
+#endif
+
+  Prefix();
+  Print(type);
+  Print(": ");
+  Print(reason);
+  EndLine();
+  return *this;
+}
+
+jassert_internal::JAssert& jassert_internal::JAssert::Prefix(){
+  Print('[');
+  Print(_id);
+  Print("] ");
+  return *this;
+}
+
+jassert_internal::JAssert& jassert_internal::JAssert::VarName(const char* n){
+  Prefix();
+  Print("   "); 
+  Print(n);
+  Print(" = ");
+  return *this;
+}
 
 jassert_internal::JAssert::~JAssert()
 {
@@ -140,6 +199,7 @@ jassert_internal::JAssert::~JAssert()
     _exit ( 1 );
   }
 }
+
 
 const char* jassert_internal::jassert_basename ( const char* str )
 {
@@ -241,4 +301,5 @@ void jassert_internal::jassert_safe_print ( const char* str )
 //     }
 // #endif
 }
+
 
