@@ -195,6 +195,7 @@ AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations 
 AC_DEFINE([HASH_FN],             [MD5], [hash function used for memoization (MD5 or SHA1)])
 AC_DEFINE([HASH_LEN],            [MD5_DIGEST_LENGTH], [length of hash used for memoization (must match HASH_FN)])
 AC_DEFINE([INLINE_NULL_TASKS],   [], [run null tasks immediately when they are enqueued])
+AC_DEFINE([JASSERT_FAST],        [],[skip some copies in debug printing, conflicts with JASSERT_LOG])
 AC_DEFINE([JASSERT_USE_SRCPOS],  [],[include source line numbers in error messages])
 AC_DEFINE([MATRIX_ELEMENT_T],    [double], [type for elements in the matrix])
 AC_DEFINE([MATRIX_INDEX_T],      [int], [type for indices into the matrix])

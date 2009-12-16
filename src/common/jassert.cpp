@@ -34,7 +34,6 @@
 # undef HAVE_BACKTRACE_SYMBOLS_FD
 #endif
 
-
 #include <fcntl.h>
 #include <fstream>
 #include <sys/stat.h>
@@ -43,7 +42,6 @@
 
 #undef JASSERT_CONT_A
 #undef JASSERT_CONT_B
-
 
 #if defined(HAVE_CXXABI_H) && defined(HAVE_BACKTRACE_SYMBOLS) && defined(DEBUG)
 #include <cxxabi.h>
@@ -86,20 +84,6 @@ static const char* _cxxdemangle(const char* i){
 #define _cxxdemangle(x) x
 #endif
 
-/* 
-   When updating value of DUP_STDERR_FD, the same value should be updated 
-   in mtcp_printf.c. The two consts must always in sync.
-*/
-static const int DUP_STDERR_FD = 826;
-static const int DUP_LOG_FD    = 827;
-
-int jassert_internal::jassert_console_fd()
-{
-  //make sure stream is open
-  jassert_safe_print ( "" );
-  return DUP_STDERR_FD;
-}
-
 jassert_internal::JAssert& jassert_internal::JAssert::Text ( const char* msg )
 {
   Prefix();
@@ -132,7 +116,7 @@ jassert_internal::JAssert& jassert_internal::JAssert::SetContext(
   EndLine();
 
   Prefix();
-  Print("In "); 
+  Print("In function "); 
   Print(func);
   Print(" at ");
   Print(jassert_basename(file)); 
@@ -148,6 +132,15 @@ jassert_internal::JAssert& jassert_internal::JAssert::SetContext(
     EndLine();
   }
 #endif
+
+  if(errno!=0){
+    Prefix();
+    Print("errno ");
+    Print(errno);
+    Print(": ");
+    Print(JASSERT_ERRNO);
+    EndLine();
+  }
 
   Prefix();
   Print(type);
@@ -200,7 +193,6 @@ jassert_internal::JAssert::~JAssert()
   }
 }
 
-
 const char* jassert_internal::jassert_basename ( const char* str )
 {
   for ( const char* c = str; c[0] != '\0' && c[1] !='\0' ; ++c )
@@ -208,6 +200,11 @@ const char* jassert_internal::jassert_basename ( const char* str )
       str=c+1;
   return str;
 }
+
+#ifndef JASSERT_FAST
+static const int DUP_STDERR_FD = 826;
+static const int DUP_LOG_FD    = 827;
+
 
 static FILE* _fopen_log_safe ( const char* filename, int protectedFd )
 {
@@ -263,6 +260,13 @@ static FILE* _initJassertOutputDevices()
     return fdopen ( dup2 ( fileno ( stderr ),DUP_STDERR_FD ),"w" );;;
 }
 
+int jassert_internal::jassert_console_fd()
+{
+  //make sure stream is open
+  jassert_safe_print ( "" );
+  return DUP_STDERR_FD;
+}
+
 void jassert_internal::jassert_safe_print ( const char* str )
 {
   static FILE* errconsole = _initJassertOutputDevices();
@@ -283,23 +287,22 @@ void jassert_internal::jassert_safe_print ( const char* str )
     fflush ( theLogFile );
   }
 
-// #ifdef DEBUG
-//     static pid_t logPd = -1;
-//     static FILE* log = NULL;
-//
-//     if(logPd != getpid())
-//     {
-//         if(log != NULL) fclose(log);
-//         logPd = getpid();
-//         log = _fopen_log_safe(("/tmp/jassertlog." + jalib::XToString(logPd)).c_str());
-//     }
-//
-//     if(log != NULL)
-//     {
-//         fprintf(log,"%s",str);
-//         fflush(log);
-//     }
-// #endif
 }
+#else
+# ifdef JASSERT_LOG
+//JASSERT_FAST conflicts with JASSERT_LOG
+JASSERT_STATIC(false);
+# endif
+
+std::ostream& jassert_internal::jassert_output_stream(){
+  static const char* errpath = getenv ( "JALIB_STDERR_PATH" );
+  if(errpath !=0){
+    static std::ofstream output(errpath);
+    if(output.is_open())
+      return output;
+  }
+  return std::cerr;
+}
+#endif
 
 

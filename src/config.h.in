@@ -168,6 +168,9 @@
 /* Cause the custom allocator to call malloc instead of mmap */
 #undef JALIB_USE_MALLOC
 
+/* skip some copies in debug printing, conflicts with JASSERT_LOG */
+#undef JASSERT_FAST
+
 /* log traces to /tmp/jassertlog.pid */
 #undef JASSERT_LOG
 
