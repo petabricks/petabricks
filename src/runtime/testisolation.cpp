@@ -65,6 +65,8 @@ static void _settestprocflags(){
 static const char COOKIE_DONE[] = "D";
 static const char COOKIE_DISABLETIMEOUT[] = "E";
 static const char COOKIE_RESTARTTIMEOUT[] = "R";
+JASSERT_STATIC(sizeof COOKIE_DONE == sizeof COOKIE_DISABLETIMEOUT);
+JASSERT_STATIC(sizeof COOKIE_DONE == sizeof COOKIE_RESTARTTIMEOUT);
 
 petabricks::SubprocessTestIsolation::SubprocessTestIsolation(double to) 
   : _pid(-1), _fd(-1), _rv(-257), _timeout(to)
@@ -201,8 +203,6 @@ void petabricks::SubprocessTestIsolation::recvResult(double& time, double& accur
 }
 
 std::string petabricks::SubprocessTestIsolation::recvControlCookie() {
-  JASSERT(sizeof COOKIE_DONE == sizeof COOKIE_DISABLETIMEOUT);
-  JASSERT(sizeof COOKIE_DONE == sizeof COOKIE_RESTARTTIMEOUT);
   //perform a test read -- we dont expect reads to block because of pselect above
   char buf[sizeof COOKIE_DONE];
   for(ssize_t n=0; n==0;){

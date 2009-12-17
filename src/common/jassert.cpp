@@ -22,6 +22,9 @@
 #include "jconvert.h"
 #include "jasm.h"
 
+#undef JASSERT_CONT_A
+#undef JASSERT_CONT_B
+
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
@@ -41,14 +44,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#undef JASSERT_CONT_A
-#undef JASSERT_CONT_B
 
 #if defined(HAVE_CXXABI_H) && defined(HAVE_BACKTRACE_SYMBOLS) && defined(DEBUG)
 #include <cxxabi.h>
-
-static pthread_mutex_t theMutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-
 static const char* _cxxdemangle(const char* i){
   static char buf[1024];
   memset(buf, 0, sizeof(buf));
@@ -82,11 +80,11 @@ static const char* _cxxdemangle(const char* i){
   }
   return buf; 
 }
-
 #else
 #define _cxxdemangle(x) x
 #endif
 
+static pthread_mutex_t theMutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 static jalib::JAssert::CallbackT theBeginCallback = 0;
 
 int jalib::JAssert::onBegin(CallbackT fn){
@@ -205,7 +203,7 @@ const char* jalib::jassert_basename ( const char* str )
 #ifndef JASSERT_FAST
 static const int DUP_STDERR_FD = 826;
 static const int DUP_LOG_FD    = 827;
-
+static FILE* theLogFile = NULL;
 
 static FILE* _fopen_log_safe ( const char* filename, int protectedFd )
 {
@@ -223,8 +221,6 @@ static FILE* _fopen_log_safe ( const std::string& s, int protectedFd )
 { 
   return _fopen_log_safe ( s.c_str(), protectedFd ); 
 }
-
-static FILE* theLogFile = NULL;
 
 static std::string& theLogFilePath() {static std::string s;return s;};
 
