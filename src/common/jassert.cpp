@@ -36,6 +36,7 @@
 
 #include <fcntl.h>
 #include <fstream>
+#include <pthread.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -45,6 +46,8 @@
 
 #if defined(HAVE_CXXABI_H) && defined(HAVE_BACKTRACE_SYMBOLS) && defined(DEBUG)
 #include <cxxabi.h>
+
+static pthread_mutex_t theMutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
 static const char* _cxxdemangle(const char* i){
   static char buf[1024];
@@ -86,17 +89,15 @@ static const char* _cxxdemangle(const char* i){
 
 static jalib::JAssert::CallbackT theBeginCallback = 0;
 
-int jalib::JAssert::onBeginError(CallbackT fn){
+int jalib::JAssert::onBegin(CallbackT fn){
   theBeginCallback=fn;
   return 0;
 }
 
 jalib::JAssert& jalib::JAssert::Text ( const char* msg )
 {
-  Prefix();
-  Print ( "Message: " );
-  Print ( msg );
-  Print ( "\n" );
+  Prefix() << "Message: " << msg;
+  EndLine();
   return *this;
 }
 
@@ -105,6 +106,7 @@ jalib::JAssert::JAssert ( bool exitWhenDone )
     , JASSERT_CONT_B ( *this )
     , _exitWhenDone ( exitWhenDone )
 {
+  pthread_mutex_lock(&theMutex);
   static jalib::AtomicT next=-1;
   _id=jalib::atomicIncrementReturn(&next);
 }
@@ -126,19 +128,15 @@ jalib::JAssert& jalib::JAssert::SetContext(
     int size = backtrace(addresses, MAX_BT_LEN+1);
     char **strings = backtrace_symbols(addresses, size);
     if(strings!=NULL){
-      Prefix();
-      Print( "Stack trace:\n" );
+      Prefix() << "Stack trace:";
+      EndLine();
+
       for(int i = 1; i < size; i++){
         if(i<MAX_BT_LEN){
-          Prefix();
-          Print("  ");
-          Print(i); 
-          Print(": ");
-          Print(_cxxdemangle(strings[i]));
+          Prefix() << " " << i << ": " << _cxxdemangle(strings[i]);
           EndLine();
         }else{
-          Prefix();
-          Print("  ...");
+          Prefix() << "  ...";
           EndLine();
           break;
         }
@@ -154,69 +152,46 @@ jalib::JAssert& jalib::JAssert::SetContext(
     (*theBeginCallback)(*this);
   }
 
-  Prefix();
-  Print("In function "); 
-  Print(func);
-  Print(" at ");
-  Print(jassert_basename(file)); 
-  Print(':'); 
-  Print(line);
+  Prefix() << "In function " << func << " at " << jassert_basename(file) << ':' << line;
   EndLine();
 
 #ifdef JASSERT_USE_SRCPOS
   if(srcpos!=0){
-    Prefix();
-    Print("Source ");
-    Print(srcpos->srcPos());
+    Prefix() << "Source " << srcpos->srcPos();
     EndLine();
   }
 #endif
 
   if(errno!=0){
-    Prefix();
-    Print("errno ");
-    Print(errno);
-    Print(": ");
-    Print(JASSERT_ERRNO);
+    Prefix() << "errno " << errno << ": " << JASSERT_ERRNO;
     EndLine();
   }
 
-  Prefix();
-  Print(type);
-  Print(": ");
-  Print(reason);
+  Prefix() << type << ": " << reason;
   EndLine();
   return *this;
 }
 
 jalib::JAssert& jalib::JAssert::Prefix(){
-  Print('[');
-  Print(getpid());
-  Print('-');
-  Print(_id);
-  Print("] ");
-  return *this;
+  return *this << '[' << getpid() << '-' << _id << "] ";
 }
 
 jalib::JAssert& jalib::JAssert::VarName(const char* n){
-  Prefix();
-  Print("   "); 
-  Print(n);
-  Print(" = ");
-  return *this;
+  return Prefix() << " " << n << " = ";
 }
 
 jalib::JAssert::~JAssert()
 {
   if ( _exitWhenDone )
   {
-    Prefix();
-    Print ( "Terminating...\n" );
+    Prefix() << "Terminating...";
+    EndLine();
 #ifdef DEBUG
     jalib::Breakpoint();
 #endif
     _exit ( 1 );
   }
+  pthread_mutex_unlock(&theMutex);
 }
 
 const char* jalib::jassert_basename ( const char* str )

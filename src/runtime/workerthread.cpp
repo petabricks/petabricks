@@ -154,25 +154,6 @@ void petabricks::WorkerThreadPool::remove(WorkerThread* thread){
   }
 }
 
-void petabricks::WorkerThreadPool::debugPrint() const {
-  std::cerr << "thread status: " << std::endl;
-  
-  for(int i=0; i<_count; ++i){
-    const WorkerThread* t = _pool[i];
-    if(t == 0){
-      std::cerr << "  * empty slot " << std::endl;
-    }else{
-      std::cerr << "  * thread " << t->id() << " workCount:" << t->workCount();
-#ifdef DEBUG
-      std::cerr << " isWorking:" << t->isWorking();
-#endif
-      if(t==WorkerThread::self())
-        std::cerr << " (current)";
-      std::cerr << std::endl;
-    }
-  }
-}
-
 petabricks::WorkerThread* petabricks::WorkerThreadPool::getRandom(const WorkerThread* caller){
   WorkerThread* rv;
   do {
@@ -252,8 +233,61 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
   }
 }
 
+void petabricks::WorkerThreadPool::debugPrint() const {
+  std::cerr << "thread status: " << std::endl;
+  
+  for(int i=0; i<_count; ++i){
+    const WorkerThread* t = _pool[i];
+    if(t == 0){
+      std::cerr << "  * empty slot " << std::endl;
+    }else{
+      std::cerr << "  * thread " << t->id() << " workCount:" << t->workCount();
+#ifdef DEBUG
+      std::cerr << " isWorking:" << t->isWorking();
+#endif
+      if(t==WorkerThread::self())
+        std::cerr << " (current)";
+      std::cerr << std::endl;
+    }
+  }
+}
+
+void petabricks::WorkerThreadPool::debugPrint(jalib::JAssert& o) const {
+  if(!o.IsFatal())
+    return;
+  o.Prefix();
+  o << "WorkerThread status:";
+  o.EndLine();
+  
+  for(int i=0; i<_count; ++i){
+    const WorkerThread* t = _pool[i];
+    o.Prefix();
+    if(t == 0){
+      o << "  - empty slot";
+    }else{
+      o << "  - thread " << t->id() << " workCount:" << t->workCount();
+#ifdef DEBUG
+      o << " isWorking:" << t->isWorking();
+#endif
+      if(t==WorkerThread::self())
+        o << " (current)";
+    }
+    o.EndLine();
+  }
+  o.Prefix();
+  o.EndLine();
+}
+
+
 extern "C" int threadstatus() {
   petabricks::WorkerThread::self()->pool().debugPrint();
   return petabricks::DynamicScheduler::cpuScheduler().numThreads();
 }
+
+namespace{
+  void onJassert(jalib::JAssert& o) {
+    petabricks::WorkerThread::self()->pool().debugPrint(o);
+  }
+}
+int _ignored = jalib::JAssert::onBegin(&onJassert);
 

@@ -79,7 +79,7 @@ namespace jalib{
   class JAssert{
     public:
       typedef void (*CallbackT)(JAssert&);
-      static int onBeginError(CallbackT fn);
+      static int onBegin(CallbackT fn);
 
       ///
       /// print a value of any type
