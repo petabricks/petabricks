@@ -1,0 +1,14 @@
+autoconf
+automake
+bison
+build-essential
+doxygen
+fftw3-dev
+flex
+g++
+git-core
+graphviz
+libboost-dev
+liblapack-dev
+libssl-dev
+maxima
