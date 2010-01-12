@@ -45,11 +45,8 @@
 /* the default minimum number of iterations for for_enough{} */
 #undef FORENOUGH_MIN_ITERS
 
-/* hash function used for memoization (MD5 or SHA1) */
-#undef HASH_FN
-
-/* length of hash used for memoization (must match HASH_FN) */
-#undef HASH_LEN
+/* set to 1 to use SHA1 instead of MD5 */
+#undef HASH_USE_SHA1
 
 /* Define to 1 if you have the `backtrace_symbols' function. */
 #undef HAVE_BACKTRACE_SYMBOLS
@@ -101,6 +98,9 @@
 
 /* Define to 1 if you have the <openssl/md5.h> header file. */
 #undef HAVE_OPENSSL_MD5_H
+
+/* Define to 1 if you have the <openssl/sha.h> header file. */
+#undef HAVE_OPENSSL_SHA_H
 
 /* Define to 1 if you have the <signal.h> header file. */
 #undef HAVE_SIGNAL_H

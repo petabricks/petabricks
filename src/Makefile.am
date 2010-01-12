@@ -35,6 +35,7 @@ noinst_HEADERS = \
   compiler/userrule.h
 
 pkglib_HEADERS=  \
+  common/hash.h \
   common/jalloc.h \
   common/jargs.h \
   common/jasm.h \

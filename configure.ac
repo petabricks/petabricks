@@ -74,6 +74,7 @@ AC_TYPE_UINT64_T
 
 AC_CHECK_HEADERS([math.h fftw3.h], [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
 AC_CHECK_HEADERS([openssl/md5.h],  [], [AC_MSG_ERROR([missing package libssl-dev])])
+AC_CHECK_HEADERS([openssl/sha.h],  [], [])
 AC_CHECK_HEADERS([cxxabi.h execinfo.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h sys/mman.h])
 AC_CHECK_HEADERS([boost/random.hpp], [], [AC_MSG_WARN([missing boost/random, falling back to slower random number generation])])
 AC_CHECK_LIB([ssl],[MD5],                [], [AC_MSG_ERROR([missing package libssl-dev])])
@@ -192,8 +193,7 @@ AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for b
 AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])
-AC_DEFINE([HASH_FN],             [MD5], [hash function used for memoization (MD5 or SHA1)])
-AC_DEFINE([HASH_LEN],            [MD5_DIGEST_LENGTH], [length of hash used for memoization (must match HASH_FN)])
+AC_DEFINE([HASH_USE_SHA1],       [0], [set to 1 to use SHA1 instead of MD5])
 AC_DEFINE([INLINE_NULL_TASKS],   [], [run null tasks immediately when they are enqueued])
 AC_DEFINE([JASSERT_FAST],        [],[skip some copies in debug printing, conflicts with JASSERT_LOG])
 AC_DEFINE([JASSERT_USE_SRCPOS],  [],[include source line numbers in error messages])

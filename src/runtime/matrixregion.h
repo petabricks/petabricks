@@ -13,6 +13,7 @@
 #define PETABRICKSMATRIX_H
 
 #include "matrixstorage.h"
+#include "common/hash.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -318,6 +319,31 @@ public:
   bool isEntireBuffer(){
     if(D==0) return true;
     return this->storage() && this->storage()->count()==count();
+  }
+
+  ///
+  /// increment a raw coord in ascending order, return largest dimension incremented
+  int incCoord(IndexT coord[D]) const{
+    int i;
+    coord[0]++;
+    for(i=0; i<D-1; ++i){
+      if(coord[i] >= size(i)){
+        coord[i]=0;
+        coord[i+1]++;
+      }else{
+        return i;
+      }
+    }
+    if(coord[D-1] >= size(D-1)){
+      return -1;
+    }else{
+      return D-1;
+    }
+  }
+
+  void hash(jalib::HashGenerator& gen) {
+    IndexT coord[D];
+    memset(coord, 0, sizeof coord);
   }
 protected:
   ///
