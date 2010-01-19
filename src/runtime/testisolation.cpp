@@ -119,12 +119,14 @@ void petabricks::SubprocessTestIsolation::restartTimeout() {
   fsync(_fd);
 }
 
-void petabricks::SubprocessTestIsolation::endTest(double time, double accuracy) {
+void petabricks::SubprocessTestIsolation::endTest(double time, double accuracy, const jalib::Hash& _hash) {
+  jalib::Hash hash = _hash;
   JASSERT(_pid==0);
   JASSERT(write(_fd, COOKIE_DONE, strlen(COOKIE_DONE))>0)(JASSERT_ERRNO);
   jalib::JBinarySerializeWriterRaw o("pipe", _fd);
   o.serialize(time);
   o.serialize(accuracy);
+  o & hash;
   o.serializeVector(_modifications);
   fflush(NULL);
   fsync(_fd);
@@ -144,7 +146,7 @@ inline static void _settimespec(struct timespec& timeout, double sec){
   }
 }
 
-void petabricks::SubprocessTestIsolation::recvResult(double& time, double& accuracy) {
+void petabricks::SubprocessTestIsolation::recvResult(double& time, double& accuracy, jalib::Hash& hash) {
   time = jalib::maxval<double>();
   accuracy = jalib::minval<double>();
   _rv=-257;//special value means still running
@@ -186,6 +188,7 @@ void petabricks::SubprocessTestIsolation::recvResult(double& time, double& accur
     jalib::JBinarySerializeReaderRaw o("pipe", _fd);
     o.serialize(time);
     o.serialize(accuracy);
+    o & hash;
     o.serializeVector(_modifications);
 
     //reapply tunable modifications to this process
@@ -257,9 +260,9 @@ bool petabricks::DummyTestIsolation::beginTest(int workerThreads) {
   return true;
 }
 
-void petabricks::DummyTestIsolation::endTest(double /*time*/, double /*accuracy*/) {}
+void petabricks::DummyTestIsolation::endTest(double /*time*/, double /*accuracy*/, const jalib::Hash&) {}
 
-void petabricks::DummyTestIsolation::recvResult(double& /*time*/, double& /*accuracy*/) {
+void petabricks::DummyTestIsolation::recvResult(double& /*time*/, double& /*accuracy*/, jalib::Hash&) {
   JASSERT(false);
 }
 

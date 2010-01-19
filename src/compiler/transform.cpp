@@ -819,6 +819,14 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     o.write("return jalib::minval<ElementT>();");
   }
   o.endFunc();
+  
+  o.beginFunc("void", "hash", std::vector<std::string>(1,"jalib::HashGenerator& _hashgen"));
+  {
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      o.write((*i)->name() + ".hash(_hashgen);");
+    }
+  }
+  o.endFunc();
 
   o.beginFunc("petabricks::PetabricksRuntime::Main*", "nextTemplateMain");
   o.write("return "+nextMain+";");
@@ -843,6 +851,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
       o.write("return targets["TEMPLATE_BIN_STR"];");
     o.endFunc();
   }
+
 }
 
 std::vector<std::string> petabricks::Transform::maximalArgList() const{

@@ -14,6 +14,7 @@
 
 #include "common/jtunable.h"
 #include "common/jserialize.h"
+#include "common/hash.h"
 
 #include <vector>
 #include <unistd.h>
@@ -24,8 +25,8 @@ namespace petabricks {
   public:
     virtual ~TestIsolation(){}
     virtual bool beginTest(int workerThreads)=0;
-    virtual void endTest(double time, double accuracy)=0;
-    virtual void recvResult(double& time, double& accuracy)=0;
+    virtual void endTest(double time, double accurac, const jalib::Hash& hash)=0;
+    virtual void recvResult(double& time, double& accuracy, jalib::Hash& hash)=0;
     virtual void disableTimeout(){}
     virtual void restartTimeout(){}
 
@@ -55,8 +56,8 @@ namespace petabricks {
     void onTunableModification(jalib::JTunable* t, jalib::TunableValue, jalib::TunableValue newVal);
 
     bool beginTest(int workerThreads);
-    void endTest(double time, double accuracy);
-    void recvResult(double& time, double& accuracy);
+    void endTest(double time, double accuracy, const jalib::Hash& hash);
+    void recvResult(double& time, double& accuracy, jalib::Hash& hash);
     void disableTimeout();
     void restartTimeout();
   protected:
@@ -81,8 +82,8 @@ namespace petabricks {
   {
   public:
     bool beginTest(int workerThreads);
-    void endTest(double time, double accuracy);
-    void recvResult(double& time, double& accuracy);
+    void endTest(double time, double accuracy, const jalib::Hash& hash);
+    void recvResult(double& time, double& accuracy, jalib::Hash& hash);
   };
 
 }

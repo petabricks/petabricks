@@ -14,6 +14,7 @@
 
 #include "common/jrefcounted.h"
 #include "common/jtunable.h"
+#include "common/hash.h"
 
 #include <float.h>
 #include <math.h>
@@ -108,6 +109,8 @@ public:
     bool isVariableAccuracy(){
       return accuracyTarget() != jalib::minval<MATRIX_ELEMENT_T>();
     }
+    
+    virtual void hash(jalib::HashGenerator&) = 0;
 
     virtual __usr_main_interface* nextTemplateMain() = 0;
   } Main;
@@ -162,7 +165,7 @@ public:
 
   double trainAndComputeWrapper(TestIsolation&, int n);
   double computeWrapper(TestIsolation&, int n=-1, int retries=-1);
-  void computeWrapperSubproc(TestIsolation&, int n, double&  time, double&  acc);
+  void computeWrapperSubproc(TestIsolation&, int n, double&  time, double&  acc, jalib::Hash& hash);
   
   
   void variableAccuracyTrainingLoop(TestIsolation& ti);

@@ -50,6 +50,11 @@ namespace jalib {
     }
     unsigned char* buf() { return _buf; }
     const unsigned char* buf() const { return _buf; }
+
+    void print() const {
+      for(int i=0; i<HASH_LEN; ++i)
+        printf("%02x", _buf[i]);
+    }
   private:
     unsigned char _buf[HASH_LEN];
   };

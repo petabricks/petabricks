@@ -322,28 +322,38 @@ public:
   }
 
   ///
-  /// increment a raw coord in ascending order, return largest dimension incremented
+  /// increment a raw coord in ascending order
+  /// return largest dimension incremented or -1 for end
   int incCoord(IndexT coord[D]) const{
+    if(D==0) 
+     return -1;
     int i;
     coord[0]++;
     for(i=0; i<D-1; ++i){
-      if(coord[i] >= size(i)){
+      if(coord[i] >= this->size(i)){
         coord[i]=0;
         coord[i+1]++;
       }else{
         return i;
       }
     }
-    if(coord[D-1] >= size(D-1)){
+    if(coord[D-1] >= this->size(D-1)){
       return -1;
     }else{
       return D-1;
     }
   }
 
-  void hash(jalib::HashGenerator& gen) {
-    IndexT coord[D];
-    memset(coord, 0, sizeof coord);
+  ///
+  /// hash the content of this to gen
+  void hash(jalib::HashGenerator& gen) const{
+    if(this->count()>0){
+      IndexT coord[D];
+      memset(coord, 0, sizeof coord);
+      do {
+        gen.update(this->coordToPtr(coord), sizeof(ElementT));
+      } while(this->incCoord(coord)>0);
+    }
   }
 protected:
   ///
