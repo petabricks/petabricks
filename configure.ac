@@ -212,7 +212,7 @@ AC_DEFINE([SPLIT_CHUNK_SIZE],    ["TRANSFORM_LOCAL(splitsize)"], [var name in ou
 AC_DEFINE([STEAL_ATTEMPTS_MAINLOOP], [32], [number of times to attempt to steal in mainLoop])
 AC_DEFINE([STEAL_ATTEMPTS_WAITING],  [3], [number of times to attempt to steal in waitUntilComplete])
 AC_DEFINE([TEMPLATE_BIN_STR],    ["_acc_bin"], [var name in output code for accuracy template parameter])
-AC_DEFINE([TIMEOUT_GRACESEC],    [0.2], [Grace period before slow tests are killed])
+AC_DEFINE([TIMEOUT_GRACESEC],    [0.1], [Grace period before slow tests are killed])
 AC_DEFINE([TIMEOUTKILLSIG],      [SIGKILL], [Signal used to kill processes that timeout])
 AC_DEFINE([TMPL_IMPL_PFX],       ["_tmpl"], [prefix for expanded template implementations])
 AC_DEFINE([TRANSFORM_N_STR],     ["transform_n"], [define to add a system var to transform scope])

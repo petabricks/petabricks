@@ -219,7 +219,7 @@ benchmarkToCfg=lambda name:"./examples/%s.cfg"%name
 
 
 def normalizeBenchmarkName(n, search=True):
-  n=re.sub("^[./]*examples[/]","",n);
+  n=re.sub("^[./]*examples[/]", "", n);
   n=re.sub("[.]pbcc$","",n);
   if os.path.isfile(benchmarkToSrc(n)) or not search:
     return n
