@@ -370,7 +370,7 @@ def executeRun(cmd, returnTags=['timing', 'accuracy', 'outputhash']):
   if type(returnTags) is type(""):
     return xmlToDict(xml, returnTags)
   else:
-    return map(lambda t: xmlToDict(xml, t), returnNodes)
+    return map(lambda t: xmlToDict(xml, t), returnTags)
 
 #parse timing results with a given time limit
 def executeTimingRun(prog, n, args=[], limit=None, returnTags='timing'):

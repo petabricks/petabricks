@@ -13,10 +13,16 @@ USAGE='''USAGE:
 
 class ConfigFile:
   '''manages a config file with dict()-like semantics, no further documentation needed'''
-  def __init__(self, filename = None):
-    self.values = dict()
-    if filename:
-      self.load(filename)
+  def __init__(self, src):
+    if type(src) == type(self):
+      '''copy constructor'''
+      self.values = dict(src.values)
+    elif type(src) == type(""):
+      '''construct from file'''
+      self.values = dict()
+      self.load(src)
+    else:
+      raise Exception("invalid arg")
 
   def load(self, filename):
     fd = open(filename)
@@ -30,8 +36,8 @@ class ConfigFile:
 
   def save(self, filename):
     fd = open(filename, "w")
-    for k in self.values.keys():
-      val, com = self.values[k]
+    for k,valcom in self.values.iteritems():
+      val, com = valcom
       fd.write("%s = %d %s\n" % (k, val, com))
     fd.close()
 
@@ -39,10 +45,10 @@ class ConfigFile:
     return self.values[k][0]
   
   def __setitem__(self, k, v):
-    self.values[k][0] = int(v)
+    self.values[k] = (int(v), self.values[k][1])
 
   def add(self, k, v, com="# added in script"):
-    self.values[k] = [int(v), com]
+    self.values[k] = (int(v), com)
 
   def keys(self):
     return self.values.keys()
