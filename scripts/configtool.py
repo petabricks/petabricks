@@ -12,6 +12,7 @@ USAGE='''USAGE:
 '''
 
 class ConfigFile:
+  '''manages a config file with dict()-like semantics, no further documentation needed'''
   def __init__(self, filename = None):
     self.values = dict()
     if filename:
@@ -47,12 +48,14 @@ class ConfigFile:
     return self.values.keys()
 
 def getConfigVal(filename, key):
+  '''legacy entry point to this file'''
   try:
     return ConfigFile(filename)[key]
   except:
     return None
 
 def setConfigVal(filename, key, val):
+  '''legacy entry point to this file'''
   cfg = ConfigFile() 
   try:
     cfg.load(filename)
@@ -69,7 +72,7 @@ def main(argv):
   #parse args
   try:
     IN=argv[1]
-    OUT="/dev/null"
+    OUT=None
     cfg = ConfigFile(IN)
     i=2
     while i<len(argv):
@@ -96,10 +99,11 @@ def main(argv):
         i+=1
       else:
         raise None
+    if OUT:
+      cfg.save(OUT)
   except Exception, e:
     print e
     sys.stderr.write(USAGE)
-  cfg.save(OUT)
 
 if __name__ == "__main__":
   main(sys.argv)

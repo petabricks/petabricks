@@ -63,6 +63,7 @@ static int OFFSET=0;
 static int ACCIMPROVETRIES=3;
 std::vector<std::string> txArgs;
 static std::string ATLOG;
+static jalib::Hash theLastHash;
 
 
 #ifdef HAVE_BOOST_RANDOM_HPP
@@ -376,7 +377,7 @@ int petabricks::PetabricksRuntime::runMain(){
 
   ACCURACY=!theAccuracies.empty();
   DUMPTIMING=!theTimings.empty();
-  if(ACCURACY || DUMPTIMING) std::cout << "<root>\n  <stats>\n";
+  if(ACCURACY || DUMPTIMING || HASH) std::cout << "<root>\n  <stats>\n";
   if(ACCURACY){
     std::cout << "    <accuracy";
     _dumpStats(std::cout, theAccuracies);
@@ -387,7 +388,12 @@ int petabricks::PetabricksRuntime::runMain(){
     _dumpStats(std::cout, theTimings);
     std::cout << " />\n";
   }
-  if(ACCURACY || DUMPTIMING) std::cout << "  </stats>\n</root>\n" << std::flush;
+  if(HASH){
+    std::cout << "    <outputhash value=\"0x";
+    theLastHash.print();
+    std::cout << "\" />\n";
+  }
+  if(ACCURACY || DUMPTIMING || HASH) std::cout << "  </stats>\n</root>\n" << std::flush;
 
   return _rv;
 }
@@ -635,8 +641,7 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
   if(DUMPTIMING) theTimings.push_back(v);
   if(ACCURACY)   theAccuracies.push_back(acc);
   if(HASH){
-    hash.print();  
-    printf("\n");
+    theLastHash = hash;
   }
   return v;
 }
