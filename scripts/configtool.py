@@ -2,8 +2,7 @@
 import re
 import sys
 
-CONFIGLINERE=re.compile("[ \t]*([a-z0-9_-]+)[ \t]*[=][ \t]*([0-9-]+) (.*)", re.IGNORECASE)
-
+CONFIGLINERE=re.compile("[ \t]*([a-z0-9_-]+)[ \t]*[=][ \t]*([0-9-]+)(.*)", re.IGNORECASE)
 USAGE='''USAGE:
   configtool <FILE> set <key> <val>
   configtool <FILE> get <key>
@@ -12,105 +11,99 @@ USAGE='''USAGE:
   configtool <FILE> print
 '''
 
-def getfilter(key):
-  key=key.encode('ascii')
-  def f(k,v):
-    if k==key:
-      print v
-    return k,v
-  return f
+class ConfigFile:
+  '''manages a config file with dict()-like semantics, no further documentation needed'''
+  def __init__(self, filename = None):
+    self.values = dict()
+    if filename:
+      self.load(filename)
 
-def setfilter(key, val):
-  key=key.encode('ascii')
-  def f(k,v):
-    if k==key:
-      v=val
-    return k,v
-  return f
+  def load(self, filename):
+    fd = open(filename)
+    for n, line in enumerate(fd):
+      try:
+        key,val,com = CONFIGLINERE.match(line).group(1,2,3)
+        self.add(key, val, com.strip())
+      except:
+        sys.stderr.write("WARNING: %s:%d -- failed to parse config line\n" % (filename,n))
+    fd.close()
 
-def listfilter():
-  def f(k,v):
-    print k
-    return k,v
-  return f
+  def save(self, filename):
+    fd = open(filename, "w")
+    for k in self.values.keys():
+      val, com = self.values[k]
+      fd.write("%s = %d %s\n" % (k, val, com))
+    fd.close()
 
-def printfilter():
-  def f(k,v):
-    print k,'=',v
-    return k,v
-  return f
+  def __getitem__(self, k):
+    return self.values[k][0]
+  
+  def __setitem__(self, k, v):
+    self.values[k][0] = int(v)
 
-def searchfilter(term):
-  printer=printfilter()
-  pat=re.compile(term)
-  def f(k,v):
-    m=pat.search(k)
-    if m:
-      printer(k,v)
-    return k,v
-  return f
+  def add(self, k, v, com="# added in script"):
+    self.values[k] = [int(v), com]
 
-def processConfigFile(IN, OUT, FILTERS):
-  #preload entire file
-  lines=[x for x in open(IN)]
-  o=open(OUT, "w")
-  #make output
-  for line in lines:
-    try:
-      key,val,com = CONFIGLINERE.match(line).group(1,2,3)
-      for f in FILTERS:
-        key,val=f(key,val)
-      o.write("%s = %s %s\n" % (key, val, com)) 
-    except:
-      o.write(line); 
+  def keys(self):
+    return self.values.keys()
 
-def getConfigVal(file, key):
-  val=[]
-  def tmp(k,v):
-    if k==key:
-      val.append(v)
-    return k,v
-  processConfigFile(file, "/dev/null", [tmp])
-  if len(val)>0:
-    return val[0]
-  else:
+def getConfigVal(filename, key):
+  '''legacy entry point to this file'''
+  try:
+    return ConfigFile(filename)[key]
+  except:
     return None
 
-def setConfigVal(file, key, val):
-  processConfigFile(file, file, [setfilter(key, val)])
+def setConfigVal(filename, key, val):
+  '''legacy entry point to this file'''
+  cfg = ConfigFile() 
+  try:
+    cfg.load(filename)
+  except:
+    sys.stderr.write("WARNING: failed to load config file "+filename+"\n")
+  try:
+    cfg[key]=val
+  except:
+    sys.stderr.write("WARNING: missing val %s in %s\n" % (key, filename))
+    cfg.add(key,val)
+  cfg.save(filename)
 
 def main(argv):
-  IN="/dev/stdin"
-  OUT="/dev/null"
-  FILTERS=[]
   #parse args
   try:
     IN=argv[1]
+    OUT=None
+    cfg = ConfigFile(IN)
     i=2
     while i<len(argv):
       act=argv[i].lower()
       if act=="set":
         OUT=IN
-        FILTERS.append(setfilter(argv[i+1], argv[i+2]))
+        cfg[argv[i+1]] = argv[i+2]
         i+=3
       elif act=="get":
-        FILTERS.append(getfilter(argv[i+1]))
+        print cfg[argv[i+1]]
         i+=2
       elif act=="search":
-        FILTERS.append(searchfilter(argv[i+1]))
+        r = re.compile(argv[i+1], re.IGNORECASE)
+        for k in filter(lambda x: r.search(x), cfg.keys()):
+          print k
         i+=2
       elif act=="list":
-        FILTERS.append(listfilter())
+        for k in cfg.keys():
+            print k
         i+=1
       elif act=="print":
-        FILTERS.append(printfilter())
+        for k in cfg.keys():
+            print k,'=',cfg[k]
         i+=1
       else:
         raise None
-  except:
+    if OUT:
+      cfg.save(OUT)
+  except Exception, e:
+    print e
     sys.stderr.write(USAGE)
-  processConfigFile(IN, OUT, FILTERS)
-
 
 if __name__ == "__main__":
   main(sys.argv)
