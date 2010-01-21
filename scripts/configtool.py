@@ -39,6 +39,9 @@ class ConfigFile:
       val, com = valcom
       fd.write("%s = %d %s\n" % (k, val, com))
     fd.close()
+        
+  def __str__(self):
+    return "\n".join(map(lambda x: "%s = %d"%(x[0],x[1][0]), sorted(self.values.items())))
 
   def __getitem__(self, k):
     return self.values[k][0]
@@ -108,8 +111,7 @@ def main(argv):
             print k
         i+=1
       elif act=="print":
-        for k in cfg.keys():
-            print k,'=',cfg[k]
+        print str(cfg)
         i+=1
       else:
         raise None

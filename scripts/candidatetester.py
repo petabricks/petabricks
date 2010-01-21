@@ -78,12 +78,33 @@ class ResultsDB:
     return "ResultsDB(%s, {"%repr(self.metric)+\
            ', '.join(map(lambda x: "%d: %s"%(x[0], repr(x[1])), self.nToResults.iteritems()))+\
            "})"
+  def keys(self):
+    return self.nToResults.keys()
 
 class Candidate:
   '''A candidate algorithm in the population'''
   def __init__(self, cfg):
-    self.cfg = ConfigFile(cfg)
+    self.config  = ConfigFile(cfg)
     self.metrics = map(ResultsDB, config.metrics)
+
+  def clone(self):
+    '''this creates result *ALIASES*, not copies, so new results will be added to both algs'''
+    t=Candidate(self.config)
+    for i in xrange(len(self.metrics)):
+      for n in self.metrics[i].keys():
+        t.metrics[i][n] = self.metrics[i][n]
+    return t
+
+  def clearResultsAbove(self, val):
+    for i in xrange(len(self.metrics)):
+      for n in self.metrics[i].keys():
+        if n>=val:
+          self.metrics[i][n] = Results()
+
+  def clearResults(self, val):
+    for i in xrange(len(self.metrics)):
+      for n in self.metrics[i].keys():
+        self.metrics[i][n] = Results()
 
 class CandidateTester:
   def __init__(self, app, n, timeout=2**31):
@@ -101,7 +122,7 @@ class CandidateTester:
       ]
     self.timeout = timeout
   def test(self, candidate):
-    candidate.cfg.save(self.cfgTmp)
+    candidate.config.save(self.cfgTmp)
     cmd = list(self.cmd)
     cmd.append("--max-sec=%f"%self.timeout)
     try:
