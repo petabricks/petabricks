@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from configtool import ConfigFile
+from configtool import ConfigFile, defaultConfigFile
 import pbutil
 import tempfile, os, math
 from scipy import stats
@@ -33,11 +33,9 @@ class Results:
     a=md.ppf((1.0-config.display_confidence)/2.0)
     b=md.ppf(0.5)
     delta = b-a
-    return "%.4f \xb1 %.4f" % (b, delta)
-
+    return "%.4f (+- %.4f)" % (b, delta)
   def __len__(self):
     return len(self.results)+len(self.timeoutResults)
-
   def dataDistribution(self):
     '''estimated probability distribution of a single timing run'''
     assert len(self)>0
@@ -58,7 +56,6 @@ class Results:
       points.append(max(p, min(dd.isf(dd.sf(p)/2.0), p*2)))
       dd = mkdistrib(points)
     return dd
-
   def meanDistribution(self):
     '''estimated probability distribution of the real mean value'''
     dd=self.dataDistribution()
@@ -83,6 +80,7 @@ class ResultsDB:
            "})"
 
 class Candidate:
+  '''A candidate algorithm in the population'''
   def __init__(self, cfg):
     self.cfg = ConfigFile(cfg)
     self.metrics = map(ResultsDB, config.metrics)
@@ -116,18 +114,17 @@ class CandidateTester:
       timingIdx = filter(lambda x: x[1]=='timing', enumerate(config.metrics))[0][0]
       candidate.metrics[timingIdx][self.n].timeoutResults.append(self.timeout)
       return False
-
   def cleanup(self):
     os.unlink(self.cfgTmp)
 
 if __name__ == "__main__":
   pbutil.chdirToPetabricksRoot();
   pbutil.compilePetabricks();
-  benchmark=pbutil.normalizeBenchmarkName('multiply/multiply')
+  benchmark=pbutil.normalizeBenchmarkName('multiply')
   pbutil.compileBenchmarks([benchmark])
-  tester = CandidateTester(benchmark, 768, 1.0)
+  tester = CandidateTester(benchmark, 768, 5.0)
   try:
-    candidate = Candidate(pbutil.benchmarkToCfg(tester.app))
+    candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)))
     tester.test(candidate)
     tester.test(candidate)
     print len(candidate.metrics[0][768])

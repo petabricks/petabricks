@@ -1,6 +1,5 @@
 #!/usr/bin/python
-import re
-import sys
+import re, sys, os, tempfile, subprocess
 
 CONFIGLINERE=re.compile("[ \t]*([a-z0-9_-]+)[ \t]*[=][ \t]*([0-9-]+)(.*)", re.IGNORECASE)
 USAGE='''USAGE:
@@ -52,6 +51,15 @@ class ConfigFile:
 
   def keys(self):
     return self.values.keys()
+
+def defaultConfigFile(bin):
+  fd, name = tempfile.mkstemp(suffix='.cfg')
+  os.close(fd)
+  cmd = [bin, '--config='+name, '--reset']
+  subprocess.check_call(cmd)
+  cfg = ConfigFile(name)
+  os.unlink(name)
+  return cfg
 
 def getConfigVal(filename, key):
   '''legacy entry point to this file'''

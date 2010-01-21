@@ -12,3 +12,6 @@ libboost-dev
 liblapack-dev
 libssl-dev
 maxima
+python-numpy
+python-scipy
+python-scientific
