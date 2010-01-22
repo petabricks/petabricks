@@ -29,3 +29,21 @@ algorithms that incur timeouts will likely be eliminated from the population
 so accurately predicting their performance is less important and these prior
 assumptions suffice.
 
+Configurations and Candidate Algorithms
+
+Candidate algorithms in the autotuner are represented as configuration files
+that fully define the behavior of the algorithm.  The configuration files
+can be read by the PetaBricks compiler and by testing binaries. Configuration
+files are implemented as a flat list of named integer values for efficiency.
+However, one could logically think of these configuration files as consisting
+of three distinct types of entities:
+
+\begin{enumerate}
+\item Decision trees for algorithmic choices ...
+\item Switches ....
+\item Cutoffs ....
+\end{enumerate}
+
+
+
+
