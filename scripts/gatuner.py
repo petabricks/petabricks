@@ -24,9 +24,8 @@ class Mutator:
   def mutate(self, candidate, n):
     raise Exception('must be implemented in subclass')
 
-
 class AddAlgLevelMutator(Mutator):
-    '''add a new alg level to the target choice site'''
+  '''add a new alg level to the target choice site'''
   def __init__(self, transform, choicesite, alg, weight=1.0):
     self.transform = transform
     self.choicesite = choicesite
