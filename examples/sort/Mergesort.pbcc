@@ -57,7 +57,7 @@ to OUT[n], TEMP[n]
     }
     sync;
     Copy1D(temp, out);
-    Merge<WAY>(out, temp);
+    Merge<W>(out, temp);
   }
 }
 
@@ -69,7 +69,7 @@ to OUT[n]
   to(OUT out) from (IN in) using(temp[n])
   {
     Copy1D(out, in);
-    MergesortSubArray<WAY>(out, temp, in, 64);
+    MergesortSubArray<W>(out, temp, in, 64);
   }
 }
 
