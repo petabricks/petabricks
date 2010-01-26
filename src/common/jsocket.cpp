@@ -88,12 +88,15 @@ bool jalib::JSocket::connect ( const JSockAddr& addr, int port )
 
 bool jalib::JSocket::connect ( const  struct  sockaddr  *addr,  socklen_t addrlen, int port )
 {
-  struct sockaddr_storage addrbuf;
+  union {
+    struct sockaddr_storage addrbuf;
+    struct sockaddr_in      addrbuf_in;
+  };
   memset ( &addrbuf,0,sizeof ( addrbuf ) );
   JASSERT ( addrlen <= sizeof ( addrbuf ) ) ( addrlen ) ( sizeof ( addrbuf ) );
   memcpy ( &addrbuf,addr,addrlen );
   JWARNING ( addrlen == sizeof ( sockaddr_in ) ) ( addrlen ) ( sizeof ( sockaddr_in ) ).Text ( "may not be correct socket type" );
-  ( ( sockaddr_in* ) &addrbuf )->sin_port = htons ( port );
+  addrbuf_in.sin_port = htons ( port );
   return DECORATE_FN ( connect ) ( _sockfd, ( sockaddr* ) &addrbuf, addrlen ) == 0;
 }
 
