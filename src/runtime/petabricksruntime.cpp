@@ -28,11 +28,15 @@
 #include <math.h>
 
 #ifdef HAVE_CONFIG_H
-#  include "config.h"
+# include "config.h"
+#endif
+
+#ifdef HAVE_OPENCL
+# include "openclutil.h"
 #endif
 
 #ifdef HAVE_BOOST_RANDOM_HPP
-#  include <boost/random.hpp>
+# include <boost/random.hpp>
 #endif
 
 static bool _isRunning = false;
@@ -246,10 +250,20 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     std::cout << _mainName << std::endl;
     MODE=MODE_ABORT;
   }
-  if(args.param("resolution").help("print out the timer resolution an exit")){
+  if(args.param("resolution").help("print out the timer resolution and exit")){
     std::cout << jalib::JTime::resolution() << std::endl;
     MODE=MODE_ABORT;
   }
+#ifdef HAVE_OPENCL
+  if(args.param("opencl-info").help("display information about OpenCL devices and exit")){
+    if( 0 != OpenCLUtil::init( ) )
+      std::cout << "Failed to initialize OpenCL." << std::endl;
+    else
+      OpenCLUtil::printDeviceList( );
+
+    MODE=MODE_ABORT;
+  }
+#endif
   if(args.needHelp()){
     MODE=MODE_HELP;
   }

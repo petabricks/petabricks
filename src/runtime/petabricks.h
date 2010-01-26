@@ -35,6 +35,9 @@
 #  include <fftw3.h>
 #endif
 
+// Has to be after config.h
+#include "openclutil.h"
+
 //these must be declared in the user code
 petabricks::PetabricksRuntime::Main* petabricksMainTransform();
 petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);

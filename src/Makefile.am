@@ -9,6 +9,7 @@ noinst_PROGRAMS = pbc
 
 noinst_HEADERS = \
   compiler/choicegrid.h \
+  compiler/clcodegenerator.h \
   compiler/codegenerator.h \
   compiler/configitem.h \
   compiler/formula.h \
@@ -64,7 +65,8 @@ pkglib_HEADERS=  \
   runtime/specializeddynamictasks.h \
   runtime/testisolation.h \
   runtime/transforminstance.h \
-  runtime/workerthread.h
+  runtime/workerthread.h \
+  runtime/openclutil.h
 
 libpbcommon_a_CXXFLAGS = -I$(srcdir)/common
 libpbcommon_a_SOURCES =  \
@@ -84,6 +86,7 @@ libpbcompiler_a_YFLAGS = -d
 libpbcompiler_a_CXXFLAGS = -I$(srcdir)/compiler
 libpbcompiler_a_SOURCES = \
   compiler/choicegrid.cpp \
+  compiler/clcodegenerator.cpp \
   compiler/codegenerator.cpp \
   compiler/configitem.cpp \
   compiler/formula.cpp \
@@ -126,7 +129,8 @@ libpbruntime_a_SOURCES =  \
   runtime/specializeddynamictasks.cpp \
   runtime/testisolation.cpp \
   runtime/transforminstance.cpp \
-  runtime/workerthread.cpp
+  runtime/workerthread.cpp \
+  runtime/openclutil.cpp
 
 libpbmain_a_CXXFLAGS = -Iruntime
 libpbmain_a_SOURCES = runtime/redirectmain.cpp

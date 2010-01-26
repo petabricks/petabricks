@@ -73,6 +73,7 @@ libpbcommon_a_OBJECTS = $(am_libpbcommon_a_OBJECTS)
 libpbcompiler_a_AR = $(AR) $(ARFLAGS)
 libpbcompiler_a_LIBADD =
 am_libpbcompiler_a_OBJECTS = libpbcompiler_a-choicegrid.$(OBJEXT) \
+	libpbcompiler_a-clcodegenerator.$(OBJEXT) \
 	libpbcompiler_a-codegenerator.$(OBJEXT) \
 	libpbcompiler_a-configitem.$(OBJEXT) \
 	libpbcompiler_a-formula.$(OBJEXT) \
@@ -118,7 +119,8 @@ am_libpbruntime_a_OBJECTS = libpbruntime_a-autotuner.$(OBJEXT) \
 	libpbruntime_a-specializeddynamictasks.$(OBJEXT) \
 	libpbruntime_a-testisolation.$(OBJEXT) \
 	libpbruntime_a-transforminstance.$(OBJEXT) \
-	libpbruntime_a-workerthread.$(OBJEXT)
+	libpbruntime_a-workerthread.$(OBJEXT) \
+	libpbruntime_a-openclutil.$(OBJEXT)
 libpbruntime_a_OBJECTS = $(am_libpbruntime_a_OBJECTS)
 PROGRAMS = $(noinst_PROGRAMS)
 am_pbc_OBJECTS = pbc-pbc.$(OBJEXT)
@@ -290,6 +292,7 @@ OBJDIR = obj
 noinst_LIBRARIES = libpbcommon.a libpbcompiler.a libpbruntime.a libpbmain.a
 noinst_HEADERS = \
   compiler/choicegrid.h \
+  compiler/clcodegenerator.h \
   compiler/codegenerator.h \
   compiler/configitem.h \
   compiler/formula.h \
@@ -345,7 +348,8 @@ pkglib_HEADERS = \
   runtime/specializeddynamictasks.h \
   runtime/testisolation.h \
   runtime/transforminstance.h \
-  runtime/workerthread.h
+  runtime/workerthread.h \
+  runtime/openclutil.h
 
 libpbcommon_a_CXXFLAGS = -I$(srcdir)/common
 libpbcommon_a_SOURCES = \
@@ -365,6 +369,7 @@ libpbcompiler_a_YFLAGS = -d
 libpbcompiler_a_CXXFLAGS = -I$(srcdir)/compiler
 libpbcompiler_a_SOURCES = \
   compiler/choicegrid.cpp \
+  compiler/clcodegenerator.cpp \
   compiler/codegenerator.cpp \
   compiler/configitem.cpp \
   compiler/formula.cpp \
@@ -407,7 +412,8 @@ libpbruntime_a_SOURCES = \
   runtime/specializeddynamictasks.cpp \
   runtime/testisolation.cpp \
   runtime/transforminstance.cpp \
-  runtime/workerthread.cpp
+  runtime/workerthread.cpp \
+  runtime/openclutil.cpp
 
 libpbmain_a_CXXFLAGS = -Iruntime
 libpbmain_a_SOURCES = runtime/redirectmain.cpp
@@ -530,6 +536,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcommon_a-jtimer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcommon_a-jtunable.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-choicegrid.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-clcodegenerator.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-codegenerator.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-configitem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-formula.Po@am__quote@
@@ -564,6 +571,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-matrixio.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-matrixstorage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-memoization.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-openclutil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-petabricksruntime.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-ruleinstance.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-specializeddynamictasks.Po@am__quote@
@@ -739,6 +747,20 @@ libpbcompiler_a-choicegrid.obj: compiler/choicegrid.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/choicegrid.cpp' object='libpbcompiler_a-choicegrid.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-choicegrid.obj `if test -f 'compiler/choicegrid.cpp'; then $(CYGPATH_W) 'compiler/choicegrid.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/choicegrid.cpp'; fi`
+
+libpbcompiler_a-clcodegenerator.o: compiler/clcodegenerator.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-clcodegenerator.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-clcodegenerator.Tpo -c -o libpbcompiler_a-clcodegenerator.o `test -f 'compiler/clcodegenerator.cpp' || echo '$(srcdir)/'`compiler/clcodegenerator.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbcompiler_a-clcodegenerator.Tpo $(DEPDIR)/libpbcompiler_a-clcodegenerator.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/clcodegenerator.cpp' object='libpbcompiler_a-clcodegenerator.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-clcodegenerator.o `test -f 'compiler/clcodegenerator.cpp' || echo '$(srcdir)/'`compiler/clcodegenerator.cpp
+
+libpbcompiler_a-clcodegenerator.obj: compiler/clcodegenerator.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-clcodegenerator.obj -MD -MP -MF $(DEPDIR)/libpbcompiler_a-clcodegenerator.Tpo -c -o libpbcompiler_a-clcodegenerator.obj `if test -f 'compiler/clcodegenerator.cpp'; then $(CYGPATH_W) 'compiler/clcodegenerator.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/clcodegenerator.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbcompiler_a-clcodegenerator.Tpo $(DEPDIR)/libpbcompiler_a-clcodegenerator.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/clcodegenerator.cpp' object='libpbcompiler_a-clcodegenerator.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-clcodegenerator.obj `if test -f 'compiler/clcodegenerator.cpp'; then $(CYGPATH_W) 'compiler/clcodegenerator.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/clcodegenerator.cpp'; fi`
 
 libpbcompiler_a-codegenerator.o: compiler/codegenerator.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-codegenerator.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-codegenerator.Tpo -c -o libpbcompiler_a-codegenerator.o `test -f 'compiler/codegenerator.cpp' || echo '$(srcdir)/'`compiler/codegenerator.cpp
@@ -1299,6 +1321,20 @@ libpbruntime_a-workerthread.obj: runtime/workerthread.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/workerthread.cpp' object='libpbruntime_a-workerthread.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-workerthread.obj `if test -f 'runtime/workerthread.cpp'; then $(CYGPATH_W) 'runtime/workerthread.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/workerthread.cpp'; fi`
+
+libpbruntime_a-openclutil.o: runtime/openclutil.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-openclutil.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-openclutil.Tpo -c -o libpbruntime_a-openclutil.o `test -f 'runtime/openclutil.cpp' || echo '$(srcdir)/'`runtime/openclutil.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-openclutil.Tpo $(DEPDIR)/libpbruntime_a-openclutil.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/openclutil.cpp' object='libpbruntime_a-openclutil.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-openclutil.o `test -f 'runtime/openclutil.cpp' || echo '$(srcdir)/'`runtime/openclutil.cpp
+
+libpbruntime_a-openclutil.obj: runtime/openclutil.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-openclutil.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-openclutil.Tpo -c -o libpbruntime_a-openclutil.obj `if test -f 'runtime/openclutil.cpp'; then $(CYGPATH_W) 'runtime/openclutil.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/openclutil.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-openclutil.Tpo $(DEPDIR)/libpbruntime_a-openclutil.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/openclutil.cpp' object='libpbruntime_a-openclutil.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-openclutil.obj `if test -f 'runtime/openclutil.cpp'; then $(CYGPATH_W) 'runtime/openclutil.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/openclutil.cpp'; fi`
 
 pbc-pbc.o: compiler/pbc.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pbc_CXXFLAGS) $(CXXFLAGS) -MT pbc-pbc.o -MD -MP -MF $(DEPDIR)/pbc-pbc.Tpo -c -o pbc-pbc.o `test -f 'compiler/pbc.cpp' || echo '$(srcdir)/'`compiler/pbc.cpp

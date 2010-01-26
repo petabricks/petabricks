@@ -186,7 +186,19 @@ if test "$use_jalloc" = "yes"; then
   AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
 fi
 
+AC_ARG_ENABLE([opencl],
+	[AS_HELP_STRING([--enable-opencl],[build compiler and runtime with support for OpenCL-enabled GPUs.])],
+	[use_opencl=$enableval],
+	[use_opencl=no])
+
+if test "$use_opencl" = "yes"; then
+   AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
+   AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
+fi
+
+
 AC_DEFINE([ACCTARGET_STR],       ["accuracyTarget"], [var name in output code for target accuracy])
+AC_DEFINE([ACCIMPROVETRIES],     [3], [number of increments tried with no accuracy improvement])
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
 AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for begin coord])
 AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
@@ -214,7 +226,8 @@ AC_DEFINE([TIMEOUT_GRACESEC],    [0.2], [Grace period before slow tests are kill
 AC_DEFINE([TIMEOUTKILLSIG],      [SIGKILL], [Signal used to kill processes that timeout])
 AC_DEFINE([TMPL_IMPL_PFX],       ["_tmpl"], [prefix for expanded template implementations])
 AC_DEFINE([TRANSFORM_N_STR],     ["transform_n"], [define to add a system var to transform scope])
-AC_DEFINE([TX_DYNAMIC_POSTFIX],  ["_dynamic"], [postfix for static versions of transforms])
+AC_DEFINE([TX_DYNAMIC_POSTFIX],  ["_dynamic"], [postfix for dynamic versions of transforms])
+AC_DEFINE([TX_OPENCL_POSTFIX],   ["_opencl"], [postfix for opencl versions of transforms])
 AC_DEFINE([TX_STATIC_POSTFIX],   ["_static"], [postfix for static versions of transforms])
 AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files in])
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])

@@ -14,8 +14,10 @@
 
 #include "pbc.h"
 
+#include "clcodegenerator.h"
 #include "codegenerator.h"
 #include "configitem.h"
+#include "iterationorders.h"
 #include "matrixdef.h"
 #include "matrixdependency.h"
 #include "rule.h"
@@ -92,9 +94,17 @@ public:
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
     generateTrampCodeSimple(trans, o, E_RF_STATIC);
     generateTrampCodeSimple(trans, o, E_RF_DYNAMIC);
+    #ifdef HAVE_OPENCL
+    generateTrampCodeSimple(trans, o, E_RF_OPENCL);
+    #endif
   }
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
+#ifdef HAVE_OPENCL
+  ///
+  /// Generate an OpenCL program implementing this rule
+  void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef );
+#endif
 
   ///
   /// Generate seqential code to invoke this rule
@@ -193,6 +203,9 @@ private:
   std::string _bodysrc;
   RIRBlockCopyRef _bodyirStatic;
   RIRBlockCopyRef _bodyirDynamic;
+#ifdef HAVE_OPENCL
+  RIRBlockCopyRef _bodyirOpenCL;
+#endif
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr _recursiveHint;
