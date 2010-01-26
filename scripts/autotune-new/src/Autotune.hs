@@ -660,8 +660,9 @@ autotune options =
        putStr "Resetting config to default... "
        expectRight "Could not reset configuration to its defaults" $ resetConfig p
        putStrLn "OK"
-       putStrLn "Call graph:"
-       putStrLn $ showCallGraph main info
+
+--       putStrLn "Call graph:"
+--       putStrLn $ showCallGraph main info
                
        let allTunableInfos = getHiddenTunables ++ (concat $ map transformTunables info)
 
