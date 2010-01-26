@@ -1,15 +1,20 @@
 #!/usr/bin/python
 from configtool import ConfigFile, defaultConfigFile
 import pbutil
-import tempfile, os, math
+import tempfile, os, math, warnings
 from scipy import stats
+warnings.simplefilter('ignore', DeprecationWarning)
 
 class config:
   metrics               = ['timing', 'accuracy']
   offset                = 0
   tmpdir                = "/tmp"
+  '''confidence intervals when displaying numbers'''
   display_confidence    = 0.95
+  '''guessed stddev when only 1 test is taken'''
   prior_stddev_pct      = 0.15
+  '''percentage change to be viewed as insignificant when testing if two algs are equal'''
+  same_threshold_pct    = 0.01
 
 def tmpcfgfile(n=0):
   fd, name = tempfile.mkstemp(prefix='pbtune_%d_'%n, suffix='.cfg', dir=config.tmpdir)
@@ -39,7 +44,7 @@ class Results:
   def __len__(self):
     return len(self.interpolatedResults)
   def reinterpolate(self):
-    '''estimated probability distribution of a single timing run'''
+    '''recreate interpolatedResults from realResults and timeoutResults'''
     self.interpolatedResults = list(self.realResults)
     mkdistrib = lambda: stats.norm(*stats.norm.fit(self.interpolatedResults))
     if len(self.interpolatedResults) == 0:
@@ -54,16 +59,21 @@ class Results:
     for p in sorted(self.timeoutResults):
       '''now lets estimate values for the points that timed out'''
       '''new points are assigned the median value above their timeout'''
-      points.append(max(p, min(self.distribution.isf(dd.sf(p)/2.0), p*2)))
+      points.append(max(p, min(self.distribution.isf(dd.sf(p)/2.0), p*4)))
       self.distribution = mkdistrib()
   def dataDistribution(self):
+    '''estimated probability distribution of a single timing run'''
     return self.distribution
   def meanDistribution(self):
     '''estimated probability distribution of the real mean value'''
-    dd=self.dataDistribution()
-    mean, var = dd.stats()
-    var/=len(self)
-    return stats.norm(mean, math.sqrt(var))
+    return stats.norm(self.mean(), math.sqrt(self.meanVariance()))
+  def mean(self):
+    return self.distribution.stats('m')
+  def meanVariance(self, offset=0):
+    '''square of stderror'''
+    return self.distribution.stats('v')/float(len(self)+offset)
+  def estimatedBenifitNextTest(self, offset=1):
+    return self.meanVariance()-self.meanVariance(offset)
   def add(self, p):
     self.realResults.append(p)
     self.reinterpolate();
@@ -71,9 +81,19 @@ class Results:
     self.timeoutResults.append(p)
     self.reinterpolate();
   def ttest(self, that):
+    '''estimate probability P(data | self and that have same mean)'''
     assert len(self)>0
     assert len(that)>0
     return stats.ttest_ind(self.interpolatedResults, that.interpolatedResults, 0)[1]
+  def diffChance(self, that):
+    '''estimate probability self and that have different means'''
+    return 1.0 - self.ttest(that)
+  def sameChance(self, that):
+    '''estimate probability self and that have means within config.same_threshold_pct'''
+    assert len(self)>0
+    assert len(that)>0
+    dd=stats.norm(self.mean()-that.mean(), math.sqrt(self.meanVariance()+that.meanVariance()))
+    return dd.cdf(config.same_threshold_pct)-dd.cdf(-config.same_threshold_pct)
 
 class ResultsDB:
   '''stores many Results for different input sizes'''
@@ -119,7 +139,7 @@ class Candidate:
         self.metrics[i][n] = Results()
 
 class CandidateTester:
-  def __init__(self, app, n, timeout=2**31):
+  def __init__(self, app, n, args=[]):
     self.app = app
     self.bin = pbutil.benchmarkToBin(app)
     self.n = n
@@ -130,13 +150,15 @@ class CandidateTester:
         "--n=%d"%self.n,
         "--time",
         "--trials=1",
-        "--offset=%d"%config.offset,
+        "--offset=%d"%config.offset
       ]
-    self.timeout = timeout
+    self.cmd.extend(args)
+    self.timeout = None
   def test(self, candidate):
     candidate.config.save(self.cfgTmp)
     cmd = list(self.cmd)
-    cmd.append("--max-sec=%f"%self.timeout)
+    if self.timeout is not None:
+      cmd.append("--max-sec=%f"%self.timeout)
     try:
       results = pbutil.executeRun(cmd, config.metrics)
       for i,result in enumerate(results):
@@ -155,10 +177,11 @@ if __name__ == "__main__":
   pbutil.compilePetabricks();
   benchmark=pbutil.normalizeBenchmarkName('multiply')
   pbutil.compileBenchmarks([benchmark])
-  tester = CandidateTester(benchmark, 768, 5.0)
+  tester = CandidateTester(benchmark, 768)
   try:
     candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)))
     candidate2 = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)))
+    #candidate2.config['MatrixMultiplyTransposed_0_lvl1_rule']=1
     tester.test(candidate)
     tester.test(candidate)
     tester.test(candidate)
@@ -169,7 +192,8 @@ if __name__ == "__main__":
     print candidate2.metrics[0]
     print str(candidate.metrics[0][768])
     print str(candidate2.metrics[0][768])
-    print candidate.metrics[0][768].ttest(candidate2.metrics[0][768])
+    print candidate.metrics[0][768].sameChance(candidate2.metrics[0][768])
+    print candidate.metrics[0][768].diffChance(candidate2.metrics[0][768])
   finally:
     tester.cleanup()
 
