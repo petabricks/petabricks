@@ -138,13 +138,18 @@ class ResultsDB:
 
 class Candidate:
   '''A candidate algorithm in the population'''
-  def __init__(self, cfg):
+  def __init__(self, cfg, mutators=[]):
     self.config  = ConfigFile(cfg)
     self.metrics = [ResultsDB(x) for x in config.metrics]
+    self.mutators = list(mutators)
 
   def clone(self):
-    '''this creates result *ALIASES*, not copies, so new results will be added to both algs'''
-    t=Candidate(self.config)
+    '''
+    this creates ResultDB *references*, not copies
+    so new results will be added to both algs
+    use clearResults to remove the copies
+    '''
+    t=Candidate(self.config, self.mutators)
     for i in xrange(len(self.metrics)):
       for n in self.metrics[i].keys():
         t.metrics[i][n] = self.metrics[i][n]
@@ -156,10 +161,13 @@ class Candidate:
         if n>=val:
           self.metrics[i][n] = Results()
 
-  def clearResults(self, val):
+  def clearResults(self):
     for i in xrange(len(self.metrics)):
       for n in self.metrics[i].keys():
         self.metrics[i][n] = Results()
+
+  def addMutator(self, m):
+    self.mutators.append(m)
 
 class CandidateTester:
   def __init__(self, app, n, args=[]):
