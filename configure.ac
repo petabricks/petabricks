@@ -204,6 +204,7 @@ AC_DEFINE([MAX_INPUT_BITS],      [32], [the maximum number of dimensions support
 AC_DEFINE([MAX_NUM_WORKERS],     [512], [max number of workers supported])
 AC_DEFINE([MAX_REC_LEVELS],      [12], [number of levels for recursive choices])
 AC_DEFINE([MIN_NUM_WORKERS],     [1], [min number of workers supported])
+AC_DEFINE([OPT_LOWLEVEL],        [1], [enable low level optimization such as specializations and prefetching])
 AC_DEFINE([RETURN_VAL_STR],      ["_pb_rv"], [var name in output code for rule output variable])
 AC_DEFINE([RUN_CPP],             [1], [undefine to disable cpp])
 AC_DEFINE([SHORT_TYPE_NAMES],    [1], [add using namespace petabricks to output])

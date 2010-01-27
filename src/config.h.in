@@ -198,6 +198,9 @@
 /* min number of workers supported */
 #undef MIN_NUM_WORKERS
 
+/* enable low level optimization such as specializations and prefetching */
+#undef OPT_LOWLEVEL
+
 /* define to add a system var to transform scope */
 #undef OUTPUT_SIZE_STR
 
