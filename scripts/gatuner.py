@@ -5,13 +5,9 @@ from configtool import defaultConfigFile
 from candidatetester import Candidate, CandidateTester
 
 class config:
-
-
-
   fmt_cutoff = "%s_%d_lvl%d_cutoff"
   fmt_rule   = "%s_%d_lvl%d_rule"
   first_lvl = 1
-
 
 class MutateFailed(Exception):
   '''Exception thrown when a mutation can't be applied'''
@@ -50,6 +46,8 @@ class AddAlgLevelMutator(Mutator):
         return
       if co >= newco:
         raise MutateFailed("higher levels already exist")
+
+class Population:
 
 if __name__ == "__main__":
   pbutil.chdirToPetabricksRoot();

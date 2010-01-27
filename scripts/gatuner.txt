@@ -8,7 +8,7 @@ a least squares fit of test results.
 
 We run each candidate algorithm at least 3 times per tested input size.
 When comparing candidate algorithms, we require that the difference be
-statistically significant with at least a 95\% confidence.  If the confidence
+statistically significant (as determined by t-tests) with at least a 95\% confidence.  If the confidence
 in the difference is lower than 95\%, we dynamically run additional tests in
 an attempt to improve this confidence.  Additional tests are performed in
 the order resulting in the highest expected reduction in standard error of
