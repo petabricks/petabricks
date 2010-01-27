@@ -337,12 +337,17 @@ printProgress state = do let c = evaluationCount state
                                      else 2*size
                              progress = printf "%.2f" ((100 * (fromIntegral c) / (fromIntegral total)) :: Double)
                          
-                         let msg = progress ++ "% evaluations done"
+                         let msgTemplate = "% evaluations done"
+                             textWidth = (length "    00.00") + (length msgTemplate)
+                             msg = padLeft textWidth $ progress ++ msgTemplate
                          if showProgress state
-                            then do putStr $ replicate 400 '\b'
-                                    putStr $ "\t" ++ msg
+                            then do putStr $ replicate (if c == 1 then 0 else textWidth) '\b'
+                                    putStr msg
                             else return ()
                          (progressOutput state) $ msg ++ "\n"
+    where
+      padLeft :: Int -> String -> String
+      padLeft l str = (replicate (l - (length str)) ' ') ++ str
                          
                         
 
@@ -456,7 +461,7 @@ evoReporter gen state trees =
                                    (timeLimit state)
                                    (\n -> timeConfiguration
                                           n
-                                          10
+                                          2
                                           (2 * timeLimit state)
                                           tunables
                                     (program state))
