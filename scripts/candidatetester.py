@@ -201,6 +201,7 @@ class CandidateTester:
         ra=a.metrics[0][self.n]
         rb=b.metrics[0][self.n]
         if ra.diffChance(rb) >= confidence:
+          # we can eliminate the null hypothesis, just compare
           return cmp(ra.mean(), rb.mean())
         if ra.sameChance(rb) >= confidence:
           return 0
