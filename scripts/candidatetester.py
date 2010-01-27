@@ -11,6 +11,8 @@ class config:
   tmpdir                = "/tmp"
   '''confidence intervals when displaying numbers'''
   display_confidence    = 0.95
+  '''confidence intervals when comparing results'''
+  compare_confidence    = 0.95
   '''guessed stddev when only 1 test is taken'''
   prior_stddev_pct      = 0.15
   '''percentage change to be viewed as insignificant when testing if two algs are equal'''
@@ -28,11 +30,13 @@ class Results:
     self.timeoutResults=[]      #listof(float)
     self.interpolatedResults=[] #listof(float)
     self.distribution = None
+
   def __repr__(self):
     v=[]
-    v.extend(map(lambda x: "%.4f"%x, self.realResults))
+    v.extend(map(lambda x: "%.4f"%x,  self.realResults))
     v.extend(map(lambda x: ">%.4f"%x, self.timeoutResults))
     return ', '.join(v)
+
   def __str__(self):
     if len(self)==0:
       return '???'
@@ -41,8 +45,18 @@ class Results:
     b=md.ppf(0.5)
     delta = b-a
     return "%.4f (+- %.4f)" % (b, delta)
+
   def __len__(self):
     return len(self.interpolatedResults)
+
+  def add(self, p):
+    self.realResults.append(p)
+    self.reinterpolate();
+
+  def addTimeout(self, p):
+    self.timeoutResults.append(p)
+    self.reinterpolate();
+
   def reinterpolate(self):
     '''recreate interpolatedResults from realResults and timeoutResults'''
     self.interpolatedResults = list(self.realResults)
@@ -61,55 +75,64 @@ class Results:
       '''new points are assigned the median value above their timeout'''
       points.append(max(p, min(self.distribution.isf(dd.sf(p)/2.0), p*4)))
       self.distribution = mkdistrib()
+
   def dataDistribution(self):
     '''estimated probability distribution of a single timing run'''
     return self.distribution
+
   def meanDistribution(self):
     '''estimated probability distribution of the real mean value'''
     return stats.norm(self.mean(), math.sqrt(self.meanVariance()))
+
   def mean(self):
+    assert len(self)>0
     return self.distribution.stats('m')
+
+  def variance(self):
+    assert len(self)>0
+    return self.distribution.stats('v')
+
   def meanVariance(self, offset=0):
     '''square of stderror'''
-    return self.distribution.stats('v')/float(len(self)+offset)
+    assert len(self)>0
+    return self.variance()/float(len(self)+offset)
+
   def estimatedBenifitNextTest(self, offset=1):
     return self.meanVariance()-self.meanVariance(offset)
-  def add(self, p):
-    self.realResults.append(p)
-    self.reinterpolate();
-  def addTimeout(self, p):
-    self.timeoutResults.append(p)
-    self.reinterpolate();
+
   def ttest(self, that):
     '''estimate probability P(data | self and that have same mean)'''
     assert len(self)>0
     assert len(that)>0
     return stats.ttest_ind(self.interpolatedResults, that.interpolatedResults, 0)[1]
+
   def diffChance(self, that):
     '''estimate probability self and that have different means'''
     return 1.0 - self.ttest(that)
+
   def sameChance(self, that):
     '''estimate probability self and that have means within config.same_threshold_pct'''
-    assert len(self)>0
-    assert len(that)>0
     dd=stats.norm(self.mean()-that.mean(), math.sqrt(self.meanVariance()+that.meanVariance()))
-    return dd.cdf(config.same_threshold_pct)-dd.cdf(-config.same_threshold_pct)
+    return dd.cdf(config.same_threshold_pct/2.0)-dd.cdf(-config.same_threshold_pct/2.0)
 
 class ResultsDB:
   '''stores many Results for different input sizes'''
   def __init__(self, metric, vals=dict()):
     self.metric = metric
     self.nToResults = dict(vals)
+
   def __getitem__(self, n):
     try:
       return self.nToResults[n]
     except:
       self.nToResults[n]=Results()
       return self[n]
+
   def __repr__(self):
     return "ResultsDB(%s, {"%repr(self.metric)+\
            ', '.join(map(lambda x: "%d: %s"%(x[0], repr(x[1])), self.nToResults.iteritems()))+\
            "})"
+
   def keys(self):
     return self.nToResults.keys()
 
@@ -154,6 +177,7 @@ class CandidateTester:
       ]
     self.cmd.extend(args)
     self.timeout = None
+
   def test(self, candidate):
     candidate.config.save(self.cfgTmp)
     cmd = list(self.cmd)
@@ -169,6 +193,29 @@ class CandidateTester:
       timingIdx = filter(lambda x: x[1]=='timing', enumerate(config.metrics))[0][0]
       candidate.metrics[timingIdx][self.n].addTimeout(self.timeout)
       return False
+
+  def comparer(self, metricIdx, confidence, maxTests):
+    '''return a cmp like function that dynamically runs more tests to improve confidence'''
+    def compare(a, b):
+      for x in xrange(2*maxTests+1):
+        ra=a.metrics[0][self.n]
+        rb=b.metrics[0][self.n]
+        if ra.diffChance(rb) >= confidence:
+          return cmp(ra.mean(), rb.mean())
+        if ra.sameChance(rb) >= confidence:
+          return 0
+        if ra.estimatedBenifitNextTest() >= rb.estimatedBenifitNextTest() and len(ra)<maxTests:
+          self.test(a)
+        elif len(rb)<maxTests:
+          self.test(b)
+        elif len(ra)<maxTests:
+          self.test(a)
+        else:
+          warnings.warn("comparison failed between two candidates")
+          return 0
+      assert False
+    return compare
+
   def cleanup(self):
     os.unlink(self.cfgTmp)
 
@@ -181,7 +228,7 @@ if __name__ == "__main__":
   try:
     candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)))
     candidate2 = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)))
-    #candidate2.config['MatrixMultiplyTransposed_0_lvl1_rule']=1
+    candidate2.config['MatrixMultiplyTransposed_0_lvl1_rule']=1
     tester.test(candidate)
     tester.test(candidate)
     tester.test(candidate)
@@ -192,8 +239,12 @@ if __name__ == "__main__":
     print candidate2.metrics[0]
     print str(candidate.metrics[0][768])
     print str(candidate2.metrics[0][768])
+    c=tester.comparer(0, .95, 25)
+    print c(candidate, candidate2)
     print candidate.metrics[0][768].sameChance(candidate2.metrics[0][768])
     print candidate.metrics[0][768].diffChance(candidate2.metrics[0][768])
+    print candidate.metrics[0]
+    print candidate2.metrics[0]
   finally:
     tester.cleanup()
 
