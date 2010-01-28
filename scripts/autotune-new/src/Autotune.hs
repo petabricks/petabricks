@@ -129,6 +129,7 @@ data Options = Options {
     , optTimeCutoff                      :: Double
     , optDumpPopulation                  :: Bool
     , optPopulationOutput                :: String -> IO ()
+    , optSelectionMethod                 :: SelectionMethod
     }
 
 
@@ -746,6 +747,7 @@ autotune options =
                                                       [("median_hook"
                                                        , (medianHook, randomRs (0.0, 1.0)
                                                                         (mkStdGen $ rs !! 4) :: [Double]))]
+                              , selectionMethod = optSelectionMethod options
                            }
 
        putStrLn "Invoking the GP system..."
