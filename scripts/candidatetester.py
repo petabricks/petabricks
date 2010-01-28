@@ -169,6 +169,10 @@ class Candidate:
   def addMutator(self, m):
     self.mutators.append(m)
 
+  def mutate(self, n):
+    m = random.choice(self.mutators)
+    m.mutate(self, n)
+
 class CandidateTester:
   def __init__(self, app, n, args=[]):
     self.app = app
