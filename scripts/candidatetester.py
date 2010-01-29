@@ -205,7 +205,7 @@ class CandidateTester:
       timingIdx = filter(lambda x: x[1]=='timing', enumerate(config.metrics))[0][0]
       candidate.metrics[timingIdx][self.n].addTimeout(self.timeout)
       return False
-
+  
   def comparer(self, metricIdx, confidence, maxTests):
     '''return a cmp like function that dynamically runs more tests to improve confidence'''
     def compare(a, b):

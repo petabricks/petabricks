@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import itertools, random
 import pbutil
+import logging
 from configtool import defaultConfigFile
 from candidatetester import Candidate, CandidateTester
 
@@ -12,6 +13,8 @@ class config:
   mutate_retries = 10
   compare_confidence_pct = 0.95
   compare_max_trials     = 25
+  offspring_confidence_pct = 0.95
+  offspring_max_trials     = 10
 
 class MutateFailed(Exception):
   '''Exception thrown when a mutation can't be applied'''
@@ -65,24 +68,37 @@ class Population:
     self.members=[initial]
     self.testers=[tester]
   
-  def test(self, n):
-    pass
+  def test(self, count):
+    logging.debug("testing %d population members, %d times each" % (len(self.members), count))
+    for z in xrange(count):
+      for m in self.members:
+        self.testers[-1].test(m)
 
-  def grow(self, popsize):
-    '''grow the population to popsize using cloning and random mutation'''
+  def grow(self, tries, maxpopsize=None):  
+    '''grow the population using cloning and random mutation'''
+    childCmp = self.testers[-1].comparer(0, config.offspring_confidence_pct, config.offspring_max_trials)
     originalPop = list(self.members)
-    while len(self.members) < popsize:
-      c=random.choice(originalPop).clone()
+    for y in tries:
+      if maxpopsize and len(self.members) >= maxpopsize:
+        break
+      p=random.choice(originalPop)
+      c=p.clone()
       for z in xrange(config.mutate_retries):
         try:
           c.mutate(self.testers[-1].n)
           break
         except MutateFailed:
+          logging.debug("mutate failed, try %d of %d" % (z, config.mutate_retries-1))
           continue
-      self.members.append(c)
+      if childCmp(p, c) > 0:
+        logging.debug("new candidate added to population")
+        self.members.append(c)
+      else:
+        logging.debug("add attempt failed")
 
   def prune(self, popsize, n):
     '''shrink the population to popsize by removing low scoring candidates'''
+    logging.debug("pruning %d of %d population members" % (max(0,len(self.members)-popsize), len(self.members)))
     fastCmp = self.testers[-1].comparer(0, 0.00, 0)
     fullCmp = self.testers[-1].comparer(0, config.compare_confidence_pct, config.compare_max_trials)
     # a rough partitioning based on fastCmp
