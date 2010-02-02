@@ -143,12 +143,13 @@ nextCandidateId=0
 
 class Candidate:
   '''A candidate algorithm in the population'''
-  def __init__(self, cfg, mutators=[]):
+  def __init__(self, cfg, infoxml, mutators=[]):
     global nextCandidateId
     self.config  = ConfigFile(cfg)
     self.metrics = [ResultsDB(x) for x in config.metrics]
     self.mutators = list(mutators)
     self.cid = nextCandidateId
+    self.infoxml = infoxml
     nextCandidateId+=1
 
   def __str__(self):
@@ -160,7 +161,7 @@ class Candidate:
     so new results will be added to both algs
     use clearResults to remove the copies
     '''
-    t=Candidate(self.config, self.mutators)
+    t=Candidate(self.config, self.infoxml, self.mutators)
     for i in xrange(len(self.metrics)):
       for n in self.metrics[i].keys():
         t.metrics[i][n] = self.metrics[i][n]

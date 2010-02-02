@@ -49,6 +49,12 @@ class ConfigFile:
   def __setitem__(self, k, v):
     self.values[k] = (int(v), self.values[k][1])
 
+  def __hash__(self):
+    return hash(str(self))
+  
+  def __cmp__(a, b):
+    return cmp(a.values, b.values)
+
   def add(self, k, v, com="# added in script"):
     self.values[k] = (int(v), com)
 

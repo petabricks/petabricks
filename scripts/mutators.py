@@ -7,6 +7,7 @@ class config:
   fmt_rule   = "%s_%d_lvl%d_rule"
   first_lvl = 1
   cutoff_max_val = 2**30
+  rand_retries = 10
 
 class MutateFailed(Exception):
   '''Exception thrown when a mutation can't be applied'''
@@ -54,7 +55,7 @@ class AddAlgLevelMutator(Mutator):
     candidate.clearResultsAbove(newco)
     candidate.config[kco] = newco
     candidate.config[krn] = self.alg
-    candidate.addMutator(ExpRandomizeCutoffMutator(self.transform, self.choicesite, lvl))
+    candidate.addMutator(LognormRandAlgCutoffMutator(self.transform, self.choicesite, lvl))
 
 class SetTunableMutator(Mutator):
   def __init__(self, tunable, val=None, weight=1.0):
@@ -89,16 +90,22 @@ class SetAlgMutator(SetTunableMutator):
       return candidate.config[self.lowerCutoff]
     return 0
 
-class ExpRandomizeCutoffMutator(SetTunableMutator):
+class LognormRandCutoffMutator(SetTunableMutator):
+  '''randomize cutoff using lognorm distribution'''
+  def invalidatesThreshold(self, candidate, oldVal, newVal):
+    return min(oldVal, newVal)
+  def getVal(self, candidate, oldVal):
+    return int(oldVal*stats.lognorm.rvs(1))
+
+class LognormRandAlgCutoffMutator(LognormRandCutoffMutator):
+  '''randomize alg cutoff using lognorm distribution'''
   def __init__(self, transform, choicesite, lvl, weight=1.0):
     self.kcodown = config.fmt_cutoff % (transform, choicesite, lvl-1)
     self.kco     = config.fmt_cutoff % (transform, choicesite, lvl)
     self.kcoup   = config.fmt_cutoff % (transform, choicesite, lvl+1)
-    SetTunableMutator.__init__(self, self.kco, None, weight)
-  def invalidatesThreshold(self, candidate, oldVal, newVal):
-    return min(oldVal, newVal)
+    LognormRandCutoffMutator.__init__(self, self.kco, None, weight)
   def getVal(self, candidate, oldVal):
-    newVal = int(oldVal*stats.lognorm.rvs(1))
+    '''threshold the random value'''
     down = 1
     up = config.cutoff_max_val
     try:
@@ -109,6 +116,11 @@ class ExpRandomizeCutoffMutator(SetTunableMutator):
       up=self.config[self.kcoup]-1
     except:
       pass
-    return max(down,min(newVal, up))
+    v=0
+    for z in xrange(config.rand_retries):
+      v=LognormRandCutoffMutator.getVal(self,candidate,oldVal)
+      if z>=down and z<=up:
+        break
+    return max(down,min(v, up))
 
 

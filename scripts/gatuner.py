@@ -5,6 +5,7 @@ import logging
 from configtool import defaultConfigFile
 from candidatetester import Candidate, CandidateTester
 from mutators import MutateFailed
+from xml.dom.minidom import parse
 
 class config:
   mutate_retries = 10
@@ -17,6 +18,7 @@ class config:
   population_growth_attempts = 10
   population_high_size = 20
   population_low_size  = 1
+  multimutation = True
 
 class Population:
   def __init__(self, initial, tester):
@@ -24,7 +26,7 @@ class Population:
     self.testers=[tester]
   
   def test(self, count):
-    logging.debug("testing %d population members, %d times each" % (len(self.members), count))
+    '''test each member of the pop count times'''
     for z in xrange(count):
       for m in self.members:
         self.testers[-1].test(m)
@@ -32,10 +34,15 @@ class Population:
   def grow(self, tries, maxpopsize=None):  
     '''grow the population using cloning and random mutation'''
     originalPop = list(self.members)
-    for y in xrange(tries):
+    triedConfigs = set(map(lambda x: x.config, self.members))
+    while tries>0:
+      tries-=1
       if maxpopsize and len(self.members) >= maxpopsize:
         break
-      p=random.choice(originalPop)
+      if config.multimutation:
+        p=random.choice(self.members)
+      else:
+        p=random.choice(originalPop)
       c=p.clone()
       for z in xrange(config.mutate_retries):
         try:
@@ -44,17 +51,21 @@ class Population:
         except MutateFailed:
           logging.debug("mutate failed, try %d of %d" % (z, config.mutate_retries-1))
           continue
+      if c.config in triedConfigs:
+        continue
+      triedConfigs.add(c.config)
       for z in xrange(config.offspring_min_trials):
         self.testers[-1].test(c)
       if self.birthFilter(p,c):
-        logging.debug("new candidate added to population")
         self.members.append(c)
-      else:
-        logging.debug("add attempt failed")
+    if len(originalPop)<len(self.members):
+      logging.debug("added "+', '.join(map(str,set(self.members)-set(originalPop))))
+    return tries
 
   def prune(self, popsize):
     '''shrink the population to popsize by removing low scoring candidates'''
-    logging.debug("pruning %d of %d population members" % (max(0,len(self.members)-popsize), len(self.members)))
+    if len(self.members)<=popsize:
+      return
     fastCmp = self.testers[-1].comparer(0, 0.00, 0)
     fullCmp = self.testers[-1].comparer(0, config.compare_confidence_pct, config.compare_max_trials)
     # a rough partitioning based on fastCmp
@@ -68,9 +79,13 @@ class Population:
     membersfast.extend(filter(lambda x: fullCmp(cutoffAlg,x)>0, membersslow))
     # fully order membersfast again and store final population
     membersfast.sort(cmp=fullCmp)
+    pruned=set(self.members)-set(membersfast[0:popsize])
     self.members = membersfast[0:popsize]
+    if len(pruned):
+      logging.debug("removed "+', '.join(map(str,pruned)))
 
   def birthFilter(self, parent, child):
+    '''called when considering adding child to population'''
     childCmp = self.testers[-1].comparer(0, config.offspring_confidence_pct, config.offspring_max_trials)
     return childCmp(parent, child) > 0
 
@@ -89,31 +104,16 @@ if __name__ == "__main__":
   pbutil.compilePetabricks();
   benchmark=pbutil.normalizeBenchmarkName('Sort')
   pbutil.compileBenchmarks([benchmark])
-  tester = CandidateTester(benchmark, 2)
+  infoxml = parse(pbutil.benchmarkToInfo(benchmark))
+  tester = CandidateTester(benchmark, 1)
   try:
-    candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)))
+    candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml)
     for a in xrange(7):
       candidate.addMutator(mutators.AddAlgLevelMutator("SortSubArray", 0, a))
       candidate.addMutator(mutators.SetAlgMutator("SortSubArray",0, mutators.config.first_lvl, a))
     pop = Population(candidate, tester)
-    pop.generation()
-    pop.generation()
-    pop.generation()
-    pop.generation()
-    pop.generation()
-    pop.generation()
-    pop.generation()
-    pop.generation()
-    pop.generation()
-    pop.generation()
-    pop.generation()
-    pop.generation()
-    pop.generation()
-    pop.generation()
-    pop.generation()
-    pop.generation()
-    pop.generation()
-    pop.generation()
+    for x in xrange(20):
+      pop.generation()
   finally:
     tester.cleanup()
 
