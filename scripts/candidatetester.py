@@ -1,7 +1,7 @@
 #!/usr/bin/python
 from configtool import ConfigFile, defaultConfigFile
 import pbutil
-import tempfile, os, math, warnings
+import tempfile, os, math, warnings, random
 from scipy import stats
 warnings.simplefilter('ignore', DeprecationWarning)
 
@@ -127,6 +127,9 @@ class ResultsDB:
     except:
       self.nToResults[n]=Results()
       return self[n]
+  
+  def __setitem__(self, n, v):
+    self.nToResults[n] = v
 
   def __repr__(self):
     return "ResultsDB(%s, {"%repr(self.metric)+\
@@ -138,10 +141,14 @@ class ResultsDB:
 
 class Candidate:
   '''A candidate algorithm in the population'''
-  def __init__(self, cfg, mutators=[]):
+  def __init__(self, cfg, mutators=[], log=[]):
     self.config  = ConfigFile(cfg)
     self.metrics = [ResultsDB(x) for x in config.metrics]
     self.mutators = list(mutators)
+    self.log = list(log)
+
+  def __str__(self):
+    return ' '.join(self.log)
 
   def clone(self):
     '''
@@ -149,7 +156,7 @@ class Candidate:
     so new results will be added to both algs
     use clearResults to remove the copies
     '''
-    t=Candidate(self.config, self.mutators)
+    t=Candidate(self.config, self.mutators, self.log)
     for i in xrange(len(self.metrics)):
       for n in self.metrics[i].keys():
         t.metrics[i][n] = self.metrics[i][n]
@@ -170,8 +177,7 @@ class Candidate:
     self.mutators.append(m)
 
   def mutate(self, n):
-    m = random.choice(self.mutators)
-    m.mutate(self, n)
+    random.choice(self.mutators).mutate(self, n)
 
 class CandidateTester:
   def __init__(self, app, n, args=[]):
@@ -189,6 +195,10 @@ class CandidateTester:
       ]
     self.cmd.extend(args)
     self.timeout = None
+    self.args=args
+
+  def nextTester(self):
+    return CandidateTester(self.app, self.n*2, self.args)
 
   def test(self, candidate):
     candidate.config.save(self.cfgTmp)

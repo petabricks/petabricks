@@ -12,9 +12,14 @@ class config:
   cutoff_max_val = 2**30
   mutate_retries = 10
   compare_confidence_pct = 0.95
-  compare_max_trials     = 25
+  compare_max_trials = 25
+  compare_min_trials = 3
   offspring_confidence_pct = 0.95
-  offspring_max_trials     = 10
+  offspring_max_trials = 10
+  offspring_min_trials = 3
+  population_growth_attempts = 10
+  population_high_size = 20
+  population_low_size  = 3
 
 class MutateFailed(Exception):
   '''Exception thrown when a mutation can't be applied'''
@@ -62,6 +67,7 @@ class AddAlgLevelMutator(Mutator):
     candidate.clearResultsAbove(newco)
     candidate.config[kco] = newco
     candidate.config[krn] = self.alg
+    candidate.log.append("@%d R%d" % (newco, self.alg))
 
 class Population:
   def __init__(self, initial, tester):
@@ -73,12 +79,11 @@ class Population:
     for z in xrange(count):
       for m in self.members:
         self.testers[-1].test(m)
-
+  
   def grow(self, tries, maxpopsize=None):  
     '''grow the population using cloning and random mutation'''
-    childCmp = self.testers[-1].comparer(0, config.offspring_confidence_pct, config.offspring_max_trials)
     originalPop = list(self.members)
-    for y in tries:
+    for y in xrange(tries):
       if maxpopsize and len(self.members) >= maxpopsize:
         break
       p=random.choice(originalPop)
@@ -90,13 +95,15 @@ class Population:
         except MutateFailed:
           logging.debug("mutate failed, try %d of %d" % (z, config.mutate_retries-1))
           continue
-      if childCmp(p, c) > 0:
+      for z in xrange(config.offspring_min_trials):
+        self.testers[-1].test(c)
+      if self.birthFilter(p,c):
         logging.debug("new candidate added to population")
         self.members.append(c)
       else:
         logging.debug("add attempt failed")
 
-  def prune(self, popsize, n):
+  def prune(self, popsize):
     '''shrink the population to popsize by removing low scoring candidates'''
     logging.debug("pruning %d of %d population members" % (max(0,len(self.members)-popsize), len(self.members)))
     fastCmp = self.testers[-1].comparer(0, 0.00, 0)
@@ -114,30 +121,49 @@ class Population:
     membersfast.sort(cmp=fullCmp)
     self.members = membersfast[0:popsize]
 
+  def birthFilter(self, parent, child):
+    childCmp = self.testers[-1].comparer(0, config.offspring_confidence_pct, config.offspring_max_trials)
+    return childCmp(parent, child) > 0
+
+  def generation(self):
+    self.test(config.compare_min_trials)
+    self.grow(config.population_growth_attempts, config.population_high_size)
+    self.prune(config.population_low_size)
+    logging.debug("begin round n = %d"%self.testers[-1].n)
+    for m in self.members:
+      print "  > ", m, "=", m.metrics[0][self.testers[-1].n]
+    self.testers.append(self.testers[-1].nextTester())
+
 if __name__ == "__main__":
+  logging.basicConfig(level=logging.DEBUG)
   pbutil.chdirToPetabricksRoot();
   pbutil.compilePetabricks();
   benchmark=pbutil.normalizeBenchmarkName('Sort')
   pbutil.compileBenchmarks([benchmark])
-  tester = CandidateTester(benchmark, 768)
+  tester = CandidateTester(benchmark, 64)
   try:
     candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)))
-    candidate2 = candidate.clone()
-    candidate3 = candidate.clone()
-    m2 = AddAlgLevelMutator("SortSubArray",0, 2)
-    m3 = AddAlgLevelMutator("SortSubArray",0, 3)
-    m4 = AddAlgLevelMutator("SortSubArray",0, 4)
-    m5 = AddAlgLevelMutator("SortSubArray",0, 5)
-    m2.mutate(candidate3, 100)
-    m3.mutate(candidate3, 200)
-    m4.mutate(candidate3, 300)
-    m5.mutate(candidate3, 400)
-    print "CANDIDATE1"
-    print candidate.config
-    print "CANDIDATE2"
-    print candidate2.config
-    print "CANDIDATE3"
-    print candidate3.config
+    for a in xrange(7):
+      candidate.addMutator(AddAlgLevelMutator("SortSubArray", 0, a))
+    pop = Population(candidate, tester)
+    pop.generation()
+    pop.generation()
+    pop.generation()
+    pop.generation()
+    pop.generation()
+    pop.generation()
+    pop.generation()
+    pop.generation()
+    pop.generation()
+    pop.generation()
+    pop.generation()
+    pop.generation()
+    pop.generation()
+    pop.generation()
+    pop.generation()
+    pop.generation()
+    pop.generation()
+    pop.generation()
   finally:
     tester.cleanup()
 
