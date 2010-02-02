@@ -139,16 +139,20 @@ class ResultsDB:
   def keys(self):
     return self.nToResults.keys()
 
+nextCandidateId=0
+
 class Candidate:
   '''A candidate algorithm in the population'''
-  def __init__(self, cfg, mutators=[], log=[]):
+  def __init__(self, cfg, mutators=[]):
+    global nextCandidateId
     self.config  = ConfigFile(cfg)
     self.metrics = [ResultsDB(x) for x in config.metrics]
     self.mutators = list(mutators)
-    self.log = list(log)
+    self.cid = nextCandidateId
+    nextCandidateId+=1
 
   def __str__(self):
-    return ' '.join(self.log)
+    return "Candidate%d"%self.cid
 
   def clone(self):
     '''
@@ -156,7 +160,7 @@ class Candidate:
     so new results will be added to both algs
     use clearResults to remove the copies
     '''
-    t=Candidate(self.config, self.mutators, self.log)
+    t=Candidate(self.config, self.mutators)
     for i in xrange(len(self.metrics)):
       for n in self.metrics[i].keys():
         t.metrics[i][n] = self.metrics[i][n]
