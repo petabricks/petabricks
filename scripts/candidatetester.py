@@ -6,6 +6,8 @@ from scipy import stats
 warnings.simplefilter('ignore', DeprecationWarning)
 
 class config:
+  fmt_cutoff = "%s_%d_lvl%d_cutoff"
+  fmt_rule   = "%s_%d_lvl%d_rule"
   metrics               = ['timing', 'accuracy']
   offset                = 0
   tmpdir                = "/tmp"
@@ -17,6 +19,8 @@ class config:
   prior_stddev_pct      = 0.15
   '''percentage change to be viewed as insignificant when testing if two algs are equal'''
   same_threshold_pct    = 0.01
+
+nameof = lambda t: str(t.getAttribute("name"))
 
 def tmpcfgfile(n=0):
   fd, name = tempfile.mkstemp(prefix='pbtune_%d_'%n, suffix='.cfg', dir=config.tmpdir)
@@ -194,6 +198,14 @@ class Candidate:
 
   def mutate(self, n):
     random.choice(self.mutators).mutate(self, n)
+
+  def getChoicesiteAlgs(self, transform, site, lvl=1):
+    k = config.fmt_rule % (transform, site, lvl)
+    for tx in self.infoxml.getElementsByTagName("transform"):
+      if nameof(tx)==transform:
+        for t in tx.getElementsByTagName("tunable"):
+          if nameof(t)==k:
+            return range(int(t.getAttribute("min")),int(t.getAttribute("max"))+1)
 
 class CandidateTester:
   def __init__(self, app, n, args=[]):

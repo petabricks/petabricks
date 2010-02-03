@@ -13,7 +13,7 @@ class config:
   compare_max_trials = 25
   compare_min_trials = 3
   offspring_confidence_pct = 0.95
-  offspring_max_trials = 10
+  offspring_max_trials = 15
   offspring_min_trials = 3
   population_growth_attempts = 10
   population_high_size = 20
@@ -119,6 +119,7 @@ if __name__ == "__main__":
   tester = CandidateTester(benchmark, 1)
   try:
     candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml)
+    print candidate.getChoicesiteAlgs("SortSubArray", 0)
     for a in xrange(7):
       candidate.addMutator(mutators.AddAlgLevelMutator("SortSubArray", 0, a))
       candidate.addMutator(mutators.SetAlgMutator("SortSubArray",0, mutators.config.first_lvl, a))
