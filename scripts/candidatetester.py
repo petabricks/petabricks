@@ -40,11 +40,22 @@ class Results:
   def __str__(self):
     if len(self)==0:
       return '???'
+    return "%.4f(+-%.4f)" % self.interval(config.display_confidence)
+
+  def strdelta(a, b):
+    am, ad = a.interval(config.display_confidence)
+    bm, bd = b.interval(config.display_confidence)
+    return "%.2fx to %.2fx" % (
+        max(0.0, am+ad)/max(1e-32, bm-bd),
+        max(0.0, am-ad)/max(1e-32, bm+bd)
+        )
+
+  def interval(self, conf):
     md=self.meanDistribution()
-    a=md.ppf((1.0-config.display_confidence)/2.0)
-    b=md.ppf(0.5)
-    delta = b-a
-    return "%.4f (+- %.4f)" % (b, delta)
+    a=md.ppf((1.0-conf)/2.0)
+    mean=md.ppf(0.5)
+    delta = mean-a
+    return mean, delta
 
   def __len__(self):
     return len(self.interpolatedResults)

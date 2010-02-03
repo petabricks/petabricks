@@ -21,9 +21,10 @@ class config:
   multimutation = True
 
 class Population:
-  def __init__(self, initial, tester):
+  def __init__(self, initial, tester, baseline=None):
     self.members=[initial]
     self.testers=[tester]
+    self.baseline=baseline
   
   def test(self, count):
     '''test each member of the pop count times'''
@@ -49,7 +50,8 @@ class Population:
           c.mutate(self.testers[-1].n)
           break
         except MutateFailed:
-          logging.debug("mutate failed, try %d of %d" % (z, config.mutate_retries-1))
+          if z==config.mutate_retries-1:
+            logging.debug("mutate failed, try %d of %d" % (z, config.mutate_retries-1))
           continue
       if c.config in triedConfigs:
         continue
@@ -89,13 +91,22 @@ class Population:
     childCmp = self.testers[-1].comparer(0, config.offspring_confidence_pct, config.offspring_max_trials)
     return childCmp(parent, child) > 0
 
+  def printPopulation(self):
+    print "round n = %d"%self.testers[-1].n
+    for m in self.members:
+      if self.baseline is None:
+        print "  * ", m, "actual:", m.metrics[0][self.testers[-1].n]
+      else:
+        for x in xrange(config.compare_min_trials):
+          self.testers[-1].test(self.baseline)
+        print "  * ", m, "actual:", m.metrics[0][self.testers[-1].n], "baseline:", \
+            self.baseline.metrics[0][self.testers[-1].n].strdelta(m.metrics[0][self.testers[-1].n])
+
   def generation(self):
     self.test(config.compare_min_trials)
     self.grow(config.population_growth_attempts, config.population_high_size)
     self.prune(config.population_low_size)
-    logging.debug("begin round n = %d"%self.testers[-1].n)
-    for m in self.members:
-      print "  > ", m, "=", m.metrics[0][self.testers[-1].n]
+    self.printPopulation()
     self.testers.append(self.testers[-1].nextTester())
 
 if __name__ == "__main__":
@@ -111,7 +122,7 @@ if __name__ == "__main__":
     for a in xrange(7):
       candidate.addMutator(mutators.AddAlgLevelMutator("SortSubArray", 0, a))
       candidate.addMutator(mutators.SetAlgMutator("SortSubArray",0, mutators.config.first_lvl, a))
-    pop = Population(candidate, tester)
+    pop = Population(candidate, tester, candidate)
     for x in xrange(20):
       pop.generation()
   finally:
