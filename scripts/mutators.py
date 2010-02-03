@@ -55,7 +55,8 @@ class AddAlgLevelMutator(Mutator):
     candidate.clearResultsAbove(newco)
     candidate.config[kco] = newco
     candidate.config[krn] = self.alg
-    candidate.addMutator(LognormRandAlgCutoffMutator(self.transform, self.choicesite, lvl))
+    candidate.addMutator(RandAlgMutator(self.transform, self.choicesite, lvl, self.weight))
+    candidate.addMutator(LognormRandAlgCutoffMutator(self.transform, self.choicesite, lvl, self.weight))
 
 class SetTunableMutator(Mutator):
   def __init__(self, tunable, val=None, weight=1.0):
@@ -78,6 +79,9 @@ class SetTunableMutator(Mutator):
 
 class SetAlgMutator(SetTunableMutator):
   def __init__(self, transform, choicesite, lvl, alg, weight=1.0):
+    self.transform=transform
+    self.choicesite=choicesite
+    self.lvl=lvl
     krn     = config.fmt_rule   % (transform, choicesite, lvl)
     kco     = config.fmt_cutoff % (transform, choicesite, lvl)
     if lvl > config.first_lvl:
@@ -89,6 +93,12 @@ class SetAlgMutator(SetTunableMutator):
     if self.lowerCutoff is not None:
       return candidate.config[self.lowerCutoff]
     return 0
+
+class RandAlgMutator(SetAlgMutator):
+  def __init__(self, transform, choicesite, lvl, weight=1.0):
+    SetAlgMutator.__init__(self, transform, choicesite, lvl, None, weight)
+  def getVal(self, candidate, oldVal):
+    return random.choice(candidate.getChoicesiteAlgs(self.transform, self.choicesite, self.lvl))
 
 class LognormRandCutoffMutator(SetTunableMutator):
   '''randomize cutoff using lognorm distribution'''

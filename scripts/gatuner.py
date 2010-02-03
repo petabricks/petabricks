@@ -118,13 +118,13 @@ if __name__ == "__main__":
   infoxml = parse(pbutil.benchmarkToInfo(benchmark))
   tester = CandidateTester(benchmark, 1)
   try:
+    transform = "SortSubArray"
     candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml)
-    print candidate.getChoicesiteAlgs("SortSubArray", 0)
-    for a in xrange(7):
-      candidate.addMutator(mutators.AddAlgLevelMutator("SortSubArray", 0, a))
-      candidate.addMutator(mutators.SetAlgMutator("SortSubArray",0, mutators.config.first_lvl, a))
+    candidate.addMutator(mutators.RandAlgMutator(transform, 0, mutators.config.first_lvl))
+    for a in candidate.getChoicesiteAlgs(transform, 0):
+      candidate.addMutator(mutators.AddAlgLevelMutator(transform, 0, a))
     pop = Population(candidate, tester, candidate)
-    for x in xrange(20):
+    for x in xrange(25):
       pop.generation()
   finally:
     tester.cleanup()
