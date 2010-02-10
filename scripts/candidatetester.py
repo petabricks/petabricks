@@ -199,14 +199,6 @@ class Candidate:
   def mutate(self, n):
     random.choice(self.mutators).mutate(self, n)
 
-  def getChoicesiteAlgs(self, transform, site, lvl=1):
-    k = config.fmt_rule % (transform, site, lvl)
-    for tx in self.infoxml.getElementsByTagName("transform"):
-      if nameof(tx)==transform:
-        for t in tx.getElementsByTagName("tunable"):
-          if nameof(t)==k:
-            return range(int(t.getAttribute("min")),int(t.getAttribute("max"))+1)
-
 class CandidateTester:
   def __init__(self, app, n, args=[]):
     self.app = app

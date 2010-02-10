@@ -98,7 +98,7 @@ class RandAlgMutator(SetAlgMutator):
   def __init__(self, transform, choicesite, lvl, weight=1.0):
     SetAlgMutator.__init__(self, transform, choicesite, lvl, None, weight)
   def getVal(self, candidate, oldVal):
-    return random.choice(candidate.getChoicesiteAlgs(self.transform, self.choicesite, self.lvl))
+    return random.choice(candidate.infoxml.transform(self.transform).rulesInAlgchoice(self.choicesite))
 
 class LognormRandCutoffMutator(SetTunableMutator):
   '''randomize cutoff using lognorm distribution'''

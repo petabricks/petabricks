@@ -474,6 +474,13 @@ def getTunables(tx, type):
 getTunablesSequential=lambda tx: getTunables(tx, "system.cutoff.sequential")
 getTunablesSplitSize=lambda tx: getTunables(tx, "system.cutoff.splitsize") 
 
+def mainname(bin):
+  run_command = mkcmd("--name")
+  p = subprocess.Popen(run_command, stdout=subprocess.PIPE, stderr=substderr)
+  os.waitpid(p.pid, 0)
+  lines = p.stdout.readlines()
+  return lines[-1].strip()
+
 if __name__ == "__main__":
   chdirToPetabricksRoot()
   compilePetabricks()
