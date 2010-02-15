@@ -127,7 +127,8 @@ class Results:
 
   def sameChance(self, that):
     '''estimate probability self and that have means within config.same_threshold_pct'''
-    dd=stats.norm(self.mean()-that.mean(), math.sqrt(self.meanVariance()+that.meanVariance()))
+    denom = min(self.mean(), that.mean())
+    dd=stats.norm((self.mean()-that.mean())/demon, math.sqrt(self.meanVariance()+that.meanVariance())/denom)
     return dd.cdf(config.same_threshold_pct/2.0)-dd.cdf(-config.same_threshold_pct/2.0)
 
 class ResultsDB:
