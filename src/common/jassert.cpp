@@ -163,6 +163,7 @@ jalib::JAssert& jalib::JAssert::SetContext(
   if(errno!=0){
     Prefix() << "errno " << errno << ": " << JASSERT_ERRNO;
     EndLine();
+    errno=0;
   }
 
   Prefix() << type << ": " << reason;
