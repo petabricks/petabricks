@@ -9,6 +9,7 @@ class config:
   fmt_cutoff = "%s_%d_lvl%d_cutoff"
   fmt_rule   = "%s_%d_lvl%d_rule"
   metrics               = ['timing', 'accuracy']
+  timing_metric_idx     = 0
   offset                = 0
   tmpdir                = "/tmp"
   '''confidence intervals when displaying numbers'''
@@ -19,6 +20,9 @@ class config:
   prior_stddev_pct      = 0.15
   '''percentage change to be viewed as insignificant when testing if two algs are equal'''
   same_threshold_pct    = 0.01
+    
+  limit_conf_pct   = 0.95
+  limit_multiplier = 1.35
 
 nameof = lambda t: str(t.getAttribute("name"))
 
@@ -61,6 +65,10 @@ class Results:
     delta = mean-a
     return mean, delta
 
+  def reasonableLimit(self):
+    dd=self.dataDistribution()
+    return dd.ppf(config.limit_conf_pct)*config.limit_multiplier
+
   def __len__(self):
     return len(self.interpolatedResults)
 
@@ -88,7 +96,7 @@ class Results:
     for p in sorted(self.timeoutResults):
       '''now lets estimate values for the points that timed out'''
       '''new points are assigned the median value above their timeout'''
-      points.append(max(p, min(self.distribution.isf(dd.sf(p)/2.0), p*4)))
+      self.interpolatedResults.append(max(p, min(self.distribution.isf(self.distribution.sf(p)/2.0), p*4)))
       self.distribution = mkdistrib()
 
   def dataDistribution(self):
@@ -128,7 +136,7 @@ class Results:
   def sameChance(self, that):
     '''estimate probability self and that have means within config.same_threshold_pct'''
     denom = min(self.mean(), that.mean())
-    dd=stats.norm((self.mean()-that.mean())/demon, math.sqrt(self.meanVariance()+that.meanVariance())/denom)
+    dd=stats.norm((self.mean()-that.mean())/denom, math.sqrt(self.meanVariance()+that.meanVariance())/denom)
     return dd.cdf(config.same_threshold_pct/2.0)-dd.cdf(-config.same_threshold_pct/2.0)
 
 class ResultsDB:
@@ -155,18 +163,16 @@ class ResultsDB:
   def keys(self):
     return self.nToResults.keys()
 
-nextCandidateId=0
-
 class Candidate:
+  nextCandidateId=0
   '''A candidate algorithm in the population'''
   def __init__(self, cfg, infoxml, mutators=[]):
-    global nextCandidateId
     self.config  = ConfigFile(cfg)
     self.metrics = [ResultsDB(x) for x in config.metrics]
     self.mutators = list(mutators)
-    self.cid = nextCandidateId
+    self.cid = Candidate.nextCandidateId
     self.infoxml = infoxml
-    nextCandidateId+=1
+    Candidate.nextCandidateId+=1
 
   def __str__(self):
     return "Candidate%d"%self.cid
@@ -200,6 +206,9 @@ class Candidate:
   def mutate(self, n):
     random.choice(self.mutators).mutate(self, n)
 
+  def reasonableLimit(self, n):
+    return self.metrics[config.timing_metric_idx][n].reasonableLimit()
+
 class CandidateTester:
   def __init__(self, app, n, args=[]):
     self.app = app
@@ -215,17 +224,16 @@ class CandidateTester:
         "--offset=%d"%config.offset
       ]
     self.cmd.extend(args)
-    self.timeout = None
     self.args=args
 
   def nextTester(self):
     return CandidateTester(self.app, self.n*2, self.args)
 
-  def test(self, candidate):
+  def test(self, candidate, limit=None):
     candidate.config.save(self.cfgTmp)
     cmd = list(self.cmd)
-    if self.timeout is not None:
-      cmd.append("--max-sec=%f"%self.timeout)
+    if limit is not None:
+      cmd.append("--max-sec=%f"%limit)
     try:
       results = pbutil.executeRun(cmd, config.metrics)
       for i,result in enumerate(results):
@@ -233,8 +241,7 @@ class CandidateTester:
           candidate.metrics[i][self.n].add(result['average'])
       return True
     except pbutil.TimingRunTimeout:
-      timingIdx = filter(lambda x: x[1]=='timing', enumerate(config.metrics))[0][0]
-      candidate.metrics[timingIdx][self.n].addTimeout(self.timeout)
+      candidate.metrics[config.timing_metric_idx][self.n].addTimeout(limit)
       return False
   
   def comparer(self, metricIdx, confidence, maxTests):

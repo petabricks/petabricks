@@ -19,6 +19,9 @@ class config:
   population_high_size = 20
   population_low_size  = 1
   multimutation = True
+  lognorm_tunable_types = ['system.cutoff.splitsize', 'system.cutoff.sequential']
+  uniform_tunable_types = []
+  ignore_tunable_types  = ['algchoice.cutoff','algchoice.alg']
 
 def mainname(cmd):
   cmd.append("--name")
@@ -27,7 +30,6 @@ def mainname(cmd):
   os.waitpid(p.pid, 0)
   lines = p.stdout.readlines()
   return lines[-1].strip()
-
 
 class Population:
   def __init__(self, initial, tester, baseline=None):
@@ -66,7 +68,7 @@ class Population:
         continue
       triedConfigs.add(c.config)
       for z in xrange(config.offspring_min_trials):
-        self.testers[-1].test(c)
+        self.testers[-1].test(c, limit=p.reasonableLimit(self.testers[-1].n))
       if self.birthFilter(p,c):
         self.members.append(c)
     if len(originalPop)<len(self.members):
@@ -140,13 +142,28 @@ def testold():
 def addMutators(candidate, info, ignore=None, weight=1.0):
   if ignore is None:
     ignore=set()
-  if info.name() in ignore:
-    return
-  ignore.add(info.name())
-  print info.name()
-  print "  AlgChoices", info.algchoices()
-  ta=info.tunables()
-  print "  Tunables", set(map(lambda x: x['type'], ta))
+  try:
+    transform = info.name()
+    if transform in ignore:
+      return
+    ignore.add(transform)
+  except:
+    transform = ""
+  for ac in info.algchoices():
+    print transform, "/", ac['name'], " => algchoice"
+    candidate.addMutator(mutators.RandAlgMutator(transform, ac['number'], mutators.config.first_lvl, weight=weight))
+    for a in info.rulesInAlgchoice(ac['number']):
+      candidate.addMutator(mutators.AddAlgLevelMutator(transform, ac['number'], a, weight=weight))
+  for ta in info.tunables():
+    if ta['type']   in config.lognorm_tunable_types:
+      print transform, '/', ta['name']," => lognorm"
+      candidate.addMutator(mutators.LognormRandCutoffMutator(ta['name'], weight=weight))
+    elif ta['type'] in config.uniform_tunable_types:
+      assert False
+    elif ta['type'] in config.ignore_tunable_types:
+      pass
+    else:
+      logging.warn("unknown tunable %s (%s)"%(ta['name'], ta['type']))
   
   for sub in info.calls():
     addMutators(candidate, sub, ignore, weight/2.0)
@@ -159,21 +176,15 @@ def autotune(benchmark):
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
   main = mainname([pbutil.benchmarkToBin(benchmark)])
   tester = CandidateTester(benchmark, 1)
-  candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml)
-  addMutators(candidate, infoxml.transform(main))
-  tester.cleanup()
-
-# tester = CandidateTester(benchmark, 1)
-# candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml)
-# try:
-# candidate.addMutator(mutators.RandAlgMutator(transform, 0, mutators.config.first_lvl))
-#   for a in candidate.infoxml.transform(transform).rulesInAlgchoice(0):
-#     candidate.addMutator(mutators.AddAlgLevelMutator(transform, 0, a))
-#   pop = Population(candidate, tester, candidate)
-#   for x in xrange(25):
-#     pop.generation()
-# finally:
-#   tester.cleanup()
+  try:
+    candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml)
+    addMutators(candidate, infoxml.globalsec())
+    addMutators(candidate, infoxml.transform(main))
+    pop = Population(candidate, tester, candidate)
+    for x in xrange(25):
+      pop.generation()
+  finally:
+    tester.cleanup()
 
 if __name__ == "__main__":
   logging.basicConfig(level=logging.DEBUG)

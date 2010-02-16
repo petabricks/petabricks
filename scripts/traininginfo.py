@@ -38,7 +38,7 @@ class TrainingInfo:
     return self.transforms[name]
 
   def globalsec(self):
-    return self.infoxml.getElementsByTagName("global")[0]
+    return TrainingInfo(self.infoxml.getElementsByTagName("global")[0])
 
   def algchoices(self):
     rex = re.compile("_([0-9]+)$")
