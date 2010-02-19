@@ -1,0 +1,12 @@
+transform WhereTest3 //1 vars
+from IN[n] 
+to OUT[n] 
+{
+  secondary OUT.cell(i) from() {
+    return 3;
+  }
+  OUT.cell(i) from() where i<n-5 {
+    return 4;
+  }
+}
+

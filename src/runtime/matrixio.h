@@ -109,19 +109,14 @@ inline void petabricks::MatrixIO::write(MatrixRegion<D,T> m){
   MatrixStorage::IndexT coord[D];
   memset(coord, 0, sizeof coord);
   if(D>0){
-    while(coord[D-1] < m.size(D-1)){
+    for(;;){
       fprintf(_fd,"%4.8g ", (double) m.cell(coord));
-      //get next coord
-      coord[0]++;
-      for(int i=0; i<D-1; ++i){
-        if(coord[i] >= m.size(i)){
-          coord[i]=0;
-          coord[i+1]++;
-          fprintf(_fd,"\n");
-        }else
-          break;
-      }
+      int z=m.incCoord(coord);
+      if(z<0) break;
+      while(z-->0)
+        fprintf(_fd,"\n");
     }
+    fprintf(_fd,"\n");
   }else{ //0D case
     fprintf(_fd,"%4.8g", (double) m.cell(coord));
   }

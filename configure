@@ -4699,6 +4699,18 @@ fi
 
 done
 
+for ac_header in openssl/sha.h
+do :
+  ac_fn_cxx_check_header_mongrel "$LINENO" "openssl/sha.h" "ac_cv_header_openssl_sha_h" "$ac_includes_default"
+if test "x$ac_cv_header_openssl_sha_h" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_OPENSSL_SHA_H 1
+_ACEOF
+
+fi
+
+done
+
 for ac_header in cxxabi.h execinfo.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h sys/mman.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
@@ -5232,13 +5244,16 @@ $as_echo "#define FORENOUGH_MAX_ITERS 1000" >>confdefs.h
 $as_echo "#define FORENOUGH_MIN_ITERS 1" >>confdefs.h
 
 
-$as_echo "#define HASH_FN MD5" >>confdefs.h
-
-
-$as_echo "#define HASH_LEN MD5_DIGEST_LENGTH" >>confdefs.h
+$as_echo "#define HASH_USE_SHA1 0" >>confdefs.h
 
 
 $as_echo "#define INLINE_NULL_TASKS /**/" >>confdefs.h
+
+
+$as_echo "#define JASSERT_FAST /**/" >>confdefs.h
+
+
+$as_echo "#define JASSERT_USE_SRCPOS /**/" >>confdefs.h
 
 
 $as_echo "#define MATRIX_ELEMENT_T double" >>confdefs.h
@@ -5260,6 +5275,9 @@ $as_echo "#define MAX_REC_LEVELS 12" >>confdefs.h
 
 
 $as_echo "#define MIN_NUM_WORKERS 1" >>confdefs.h
+
+
+$as_echo "#define OPT_LOWLEVEL 1" >>confdefs.h
 
 
 $as_echo "#define RETURN_VAL_STR \"_pb_rv\"" >>confdefs.h
@@ -5286,7 +5304,7 @@ $as_echo "#define STEAL_ATTEMPTS_WAITING 3" >>confdefs.h
 $as_echo "#define TEMPLATE_BIN_STR \"_acc_bin\"" >>confdefs.h
 
 
-$as_echo "#define TIMEOUT_GRACESEC 0.2" >>confdefs.h
+$as_echo "#define TIMEOUT_GRACESEC 0.1" >>confdefs.h
 
 
 $as_echo "#define TIMEOUTKILLSIG SIGKILL" >>confdefs.h
@@ -5311,7 +5329,6 @@ $as_echo "#define UTIL_SEARCH_DIR_B \"scripts\"" >>confdefs.h
 
 
 $as_echo "#define WORKERTHREAD_ONDECK /**/" >>confdefs.h
-
 
 
 

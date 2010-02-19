@@ -17,6 +17,7 @@
 #include "common/jconvert.h"
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
+#include "common/srcpos.h"
 
 #include <map>
 #include <string>
@@ -33,13 +34,13 @@ class Transform;
 class MatrixDef;
 class FreeVars;
 typedef jalib::JRef<MatrixDef> MatrixDefPtr;
-class MatrixDefList : public std::vector<MatrixDefPtr> , public jalib::JRefCounted {};
+class MatrixDefList : public std::vector<MatrixDefPtr> , public jalib::JRefCounted, public jalib::SrcPosTaggable {};
 class MatrixDefMap : public std::map<std::string, MatrixDefPtr> , public jalib::JRefCounted {};
 
 /**
  * Symbolically defines the size of an input/output matrix
  */
-class MatrixDef : public jalib::JRefCounted, public jalib::JPrintable {
+class MatrixDef : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
 public:
   enum Type {
     T_UNKNOWN = 0,

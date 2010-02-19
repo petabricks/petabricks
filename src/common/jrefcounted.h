@@ -20,7 +20,6 @@
 #ifndef JALIBJREFCOUNTED_H
 #define JALIBJREFCOUNTED_H
 
-#include "jassert.h"
 #include "jprintable.h" //need to compile under ICC
 #include "jasm.h"
 
@@ -31,6 +30,8 @@
 #endif
 
 namespace jalib {
+
+void _JRefAbort(const char* msg);
 
 /**
  * Basic policy for JRef, normal ref counted objects
@@ -127,7 +128,7 @@ private: //helpers:
   void dec() const { Policy::dec(_obj); }
   void use() const { Policy::use(_obj); }
 #ifdef DEBUG
-  void check() const { JASSERT(_obj!=NULL).Text("Would have dereferenced null pointer."); }
+  void check() const { if(_obj==NULL) _JRefAbort("Would have dereferenced null pointer."); }
 #else
   void check() const {}
 #endif
@@ -145,15 +146,11 @@ protected:
   virtual ~JRefCounted(){}
 public:
   inline void incRefCount() const{
-#ifdef DEBUG
-    JASSERT(atomicIncrementReturn(&_refCount)>0)(_refCount);
-#else
     atomicIncrement(&_refCount);
-#endif
   }
   inline void decRefCount() const{
 #ifdef DEBUG
-    JASSERT(_refCount>0)(_refCount);
+    if(_refCount<=0) _JRefAbort("negative ref count");
 #endif
     if(atomicDecrementReturn(&_refCount)==0)
       delete this;

@@ -42,9 +42,15 @@ void petabricks::RuleChoice::generateCodeSimple( bool isStatic
                                             , const std::string& tpfx
                                             , int levelOffset)
 {
-  if(levelOffset==0)
+  if(levelOffset==0){
     levelOffset=level()+1;
-  // o.cg().addAlgchoice(tpfx.substr(0,tpfx.length()-1), isStatic, level());
+    std::string t = tpfx;
+    t.resize(t.length()-1);
+    if(_rules.size()>1){
+      o.cg().addAlgchoice(t, _rules.size());
+    }
+  }
+
 
   std::string choicename = tpfx + "lvl" + jalib::XToString(levelOffset-level()) + "_rule";
 

@@ -57,11 +57,13 @@ static bool ACCURACY=false;
 static bool FORCEOUTPUT=false;
 static bool ACCTRAIN=false;
 static bool ISOLATION=true;
+static bool HASH=false;
 static bool FIXEDRANDOM=false;
 static int OFFSET=0;
 static int ACCIMPROVETRIES=3;
 std::vector<std::string> txArgs;
 static std::string ATLOG;
+static jalib::Hash theLastHash;
 
 
 #ifdef HAVE_BOOST_RANDOM_HPP
@@ -202,8 +204,9 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   if(!FIXEDRANDOM)
     _seedRandom();
 
-  args.param("accuracy",  ACCURACY).help("print out accuracy of answer");
-  args.param("time",      DUMPTIMING).help("print timing results in xml format");
+  args.param("accuracy",     ACCURACY).help("print out accuracy of answer");
+  args.param("time",         DUMPTIMING).help("print timing results in xml format");
+  args.param("hash",         HASH).help("print hash of output");
   args.param("force-output", FORCEOUTPUT).help("also write copies of outputs to stdout");
   
   args.param("threads", worker_threads).help("number of threads to use");
@@ -374,7 +377,7 @@ int petabricks::PetabricksRuntime::runMain(){
 
   ACCURACY=!theAccuracies.empty();
   DUMPTIMING=!theTimings.empty();
-  if(ACCURACY || DUMPTIMING) std::cout << "<root>\n  <stats>\n";
+  if(ACCURACY || DUMPTIMING || HASH) std::cout << "<root>\n  <stats>\n";
   if(ACCURACY){
     std::cout << "    <accuracy";
     _dumpStats(std::cout, theAccuracies);
@@ -385,7 +388,12 @@ int petabricks::PetabricksRuntime::runMain(){
     _dumpStats(std::cout, theTimings);
     std::cout << " />\n";
   }
-  if(ACCURACY || DUMPTIMING) std::cout << "  </stats>\n</root>\n" << std::flush;
+  if(HASH){
+    std::cout << "    <outputhash value=\"0x";
+    theLastHash.print();
+    std::cout << "\" />\n";
+  }
+  if(ACCURACY || DUMPTIMING || HASH) std::cout << "  </stats>\n</root>\n" << std::flush;
 
   return _rv;
 }
@@ -604,10 +612,11 @@ double petabricks::PetabricksRuntime::trainAndComputeWrapper(TestIsolation& ti, 
 
 double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, int retries){
   double v, acc=jalib::maxval<double>();
+  jalib::Hash hash;
   try{
     if(ti.beginTest(worker_threads)){
       try {
-        computeWrapperSubproc(ti, n, v, acc);
+        computeWrapperSubproc(ti, n, v, acc, hash);
       } catch(petabricks::DynamicScheduler::AbortException) {
         v=jalib::maxval<double>();
         _isRunning = false;
@@ -615,9 +624,9 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
         UNIMPLEMENTED();
         throw;
       }
-      ti.endTest(v,acc);
+      ti.endTest(v, acc, hash);
     }else{
-      ti.recvResult(v,acc);
+      ti.recvResult(v, acc, hash);
     }
   }catch(TestIsolation::UnknownTestFailure e){
     if(retries<0) retries=RETRIES;//from cmd line
@@ -627,15 +636,17 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
       std::cerr << "ERROR: test aborted unexpectedly" << std::endl;
       return computeWrapper(ti, n, retries-1);
     }
-  }
-    
+  } 
   if(v<0)        throw ComputeRetryException();
   if(DUMPTIMING) theTimings.push_back(v);
   if(ACCURACY)   theAccuracies.push_back(acc);
+  if(HASH){
+    theLastHash = hash;
+  }
   return v;
 }
   
-void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti, int n, double&  time, double&  acc){
+void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti, int n, double&  time, double&  acc, jalib::Hash& hash){
   if(_isTrainingRun && _main->isVariableAccuracy()){
     variableAccuracyTrainingLoop(ti);
   }
@@ -663,6 +674,12 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti, int
   if(ACCURACY){
     ti.disableTimeout();
     acc=_main->accuracy();
+  }
+  if(HASH){
+    ti.disableTimeout();
+    jalib::HashGenerator hg;
+    _main->hash(hg);
+    hash = hg.final();
   }
 }
   
@@ -781,7 +798,7 @@ bool petabricks::PetabricksRuntime::isTrainingRun(){
 void petabricks::PetabricksRuntime::abort(){
   TestIsolation* master = SubprocessTestIsolation::masterProcess();
   if(master!=NULL){
-    master->endTest(jalib::maxval<double>(), jalib::minval<double>());//should abort us
+    master->endTest(jalib::maxval<double>(), jalib::minval<double>(), jalib::Hash());//should abort us
     UNIMPLEMENTED();
   }else{
     DynamicScheduler::cpuScheduler().abort();

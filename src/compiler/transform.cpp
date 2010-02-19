@@ -75,6 +75,7 @@ void petabricks::Transform::setRules(const RuleList& l){
 }
 
 void petabricks::Transform::print(std::ostream& o) const {
+  o << "lineno " << srcPos() << std::endl;
   if(!_templateargs.empty()){ 
     o << "template < ";   printStlList(o, _templateargs.begin(), _templateargs.end(), ", "); 
     o << " > \n";
@@ -387,7 +388,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   std::vector<std::string> returnStyleArgs = args;
   if(_to.size()==1) returnStyleArgs.erase(returnStyleArgs.begin());
 
-  o.cg().beginTransform(_originalName, _name, _templateChoice);
+  o.cg().beginTransform(_originalName, _name, _templateChoice, _accuracyBins);
   o.comment("Begin output for transform " + _name);
   o.newline();
   
@@ -818,6 +819,14 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     o.write("return jalib::minval<ElementT>();");
   }
   o.endFunc();
+  
+  o.beginFunc("void", "hash", std::vector<std::string>(1,"jalib::HashGenerator& _hashgen"));
+  {
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      o.write((*i)->name() + ".hash(_hashgen);");
+    }
+  }
+  o.endFunc();
 
   o.beginFunc("petabricks::PetabricksRuntime::Main*", "nextTemplateMain");
   o.write("return "+nextMain+";");
@@ -842,6 +851,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
       o.write("return targets["TEMPLATE_BIN_STR"];");
     o.endFunc();
   }
+
 }
 
 std::vector<std::string> petabricks::Transform::maximalArgList() const{

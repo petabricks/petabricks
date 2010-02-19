@@ -14,17 +14,7 @@
 
 #include "common/jassert.h"
 #include "common/jrefcounted.h"
-
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
-
-#ifdef HAVE_OPENSSL_MD5_H
-# include <openssl/md5.h>
-#endif
-#ifdef HAVE_OPENSSL_SHA_H
-# include <openssl/sha.h>
-#endif
+#include "common/hash.h"
 
 namespace petabricks {
 
@@ -38,6 +28,7 @@ class MatrixStorage : public jalib::JRefCounted {
 public:
   typedef MATRIX_INDEX_T IndexT;
   typedef MATRIX_ELEMENT_T ElementT;
+  typedef jalib::Hash HashT;
 private:
   //no copy constructor
   MatrixStorage(const MatrixStorage&);
@@ -67,17 +58,10 @@ public:
   /// generate a single random number
   static double rand();
 
-  struct HashT {
-    unsigned char buf[HASH_LEN];
-    friend bool operator==(const HashT& a, const HashT& b){
-      return memcmp(a.buf, b.buf, HASH_LEN)==0;
-    }
-    HashT(){memset(buf, 0, sizeof buf);}
-  };
   HashT hash() const { 
-    HashT h;
-    JASSERT(h.buf == HASH_FN((const unsigned char*)_data, _count*sizeof(ElementT), h.buf));
-    return h;
+    jalib::HashGenerator g;
+    g.update(_data, _count*sizeof(ElementT));
+    return g.final();
   }
 private:
   ElementT* _data;
@@ -91,7 +75,7 @@ private:
 class MatrixStorageInfo {
   typedef MatrixStorage::IndexT IndexT;
   typedef MatrixStorage::ElementT ElementT;
-  typedef MatrixStorage::HashT HashT;
+  typedef jalib::Hash HashT;
 public:
   const MatrixStoragePtr& storage() const { return _storage; }
   ElementT* base() const { return _storage->data()+_baseOffset; }

@@ -124,9 +124,11 @@ int main( int argc, const char ** argv){
   std::ofstream of(theOutputCode.c_str());
   std::ofstream infofile(theOutputInfo.c_str());
   CodeGenerator o;
+  o.cg().beginGlobal();
 #ifdef SINGLE_SEQ_CUTOFF
   o.createTunable(true, "system.cutoff.sequential", "sequentialcutoff", 64);
 #endif
+  o.cg().endGlobal();
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
     (*i)->generateCode(o);
   }
