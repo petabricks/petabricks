@@ -26,6 +26,8 @@ kclustering/kmeans
 kclustering/newclusterlocations
 kernel/KernelEstimate
 kernel/LinearSolvePosDef
+LUdense/LUdense
+LUdense/trilsolve
 matrixapproximation/Bisection
 matrixapproximation/matrixapprox
 multigrid/ComputeError2D

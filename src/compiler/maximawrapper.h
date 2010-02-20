@@ -106,6 +106,46 @@ public:
     t.push_back(eq);
     return solve(t, var);
   }
+  
+  FormulaListPtr retrySolve(const FormulaList& eqs, const std::string& var, const char* cmp){
+    FormulaListPtr rv = solve(eqs, var);
+    if(rv->size()==0){
+      // backup strategy:
+      // try solving each part independently and merging results
+      FormulaList tmp;
+      tmp.resize(1);
+      for(FormulaList::const_iterator i=eqs.begin(); i!=eqs.end(); ++i){
+        if((*i)->getFreeVariables()->contains(var)){
+          tmp[0]=*i;
+          rv->extend(solve(tmp, var));
+        }
+      }
+      JTRACE("used component based solve")(var)(rv);
+    }
+    if(rv->size()>1 && cmp!=NULL){
+      JTRACE("trimming multiple results")(rv);
+      while(rv->size()>1){
+        if(tryCompare((*rv)[1]->rhs(), cmp, (*rv)[0]->rhs()) == YES){
+          rv->erase(rv->begin());
+        }else if(tryCompare((*rv)[0]->rhs(), cmp, (*rv)[1]->rhs()) == YES){
+          rv->erase(rv->begin()+1);
+        }else{
+          break;
+        }
+      }
+    }
+    return rv;
+  }
+  
+  //try harder to solve, returning the min answer on conflict
+  FormulaListPtr minSolve(const FormulaList& eqs, const std::string& var){
+    return retrySolve(eqs,var,"<");
+  }
+
+  //try harder to solve, returning the max answer on conflict
+  FormulaListPtr maxSolve(const FormulaList& eqs, const std::string& var){
+    return retrySolve(eqs,var,">");
+  }
 
   enum tryCompareResult { NO, YES, UNKNOWN };
 

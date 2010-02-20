@@ -182,8 +182,8 @@ petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(Transform& t
   FormulaList minDefs /*= _defs*/;
   FormulaList maxDefs /*= _defs*/;
   for(size_t i=0; i<_minCoord.size(); ++i){
-      minDefs.push_back(new FormulaEQ(FormulaInteger::zero(), _minCoord[i]));
-      maxDefs.push_back(new FormulaEQ(_fromMatrix->getSizeOfDimension(i), _maxCoord[i]));
+    minDefs.push_back(new FormulaEQ(FormulaInteger::zero(), _minCoord[i]));
+    maxDefs.push_back(new FormulaEQ(_fromMatrix->getSizeOfDimension(i), _maxCoord[i]));
     if(MAXIMA.tryCompare(offsets[i],"<",FormulaInteger::zero())==MaximaWrapper::YES){
       //special case... coordinate grows inversely proportional to x
       std::swap(minDefs[i], maxDefs[i]);
@@ -198,7 +198,7 @@ petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(Transform& t
     for(size_t i=0; i<_minCoord.size(); ++i){
       std::string var = rule.getOffsetVar(i)->toString();
       if(fv->contains(var)){
-        FormulaPtr f =  rule.trimImpossible(MaximaWrapper::instance().solve(defs, var))->rhs();
+        FormulaPtr f =  rule.trimImpossible(MaximaWrapper::instance().maxSolve(defs, var))->rhs();
         f=MaximaWrapper::instance().staticCeiling(f);
         min.push_back(f);
       }else if(_minCoord[i]->getFreeVariables()->empty())
@@ -215,7 +215,7 @@ petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(Transform& t
     for(size_t i=0; i<_maxCoord.size(); ++i){
       std::string var = rule.getOffsetVar(i)->toString();
       if(fv->contains(var)){
-        FormulaPtr f = rule.trimImpossible(MaximaWrapper::instance().solve(defs, var))->rhs();
+        FormulaPtr f = rule.trimImpossible(MaximaWrapper::instance().minSolve(defs, var))->rhs();
         if(offsets[i]->toString()=="0"){
           JWARNING(offsets[i]->toString()!="0");
           f=new FormulaAdd(f, FormulaInteger::one());

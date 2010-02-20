@@ -90,6 +90,10 @@ public:
   void addToEach(const FormulaPtr& x);
 
   void subToEach(const FormulaPtr& x);
+
+  void extend(const FormulaList& fl){
+    insert(end(), fl.begin(), fl.end());
+  }
 };
 
 /**
