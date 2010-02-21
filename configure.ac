@@ -31,11 +31,6 @@ if test "x$ac_cv_prog_YACC" = "x"; then
   AC_MSG_ERROR([failed to find 'bison' in \$path, try running:`sudo apt-get install bison`.])
 fi
 
-AC_CHECK_PROG([has_maxima], [maxima], [yes], [no])
-if test "$has_maxima" = "no"; then
-  AC_MSG_ERROR([failed to find 'maxima' in \$path, try running:`sudo apt-get install maxima`.])
-fi
-
 AC_CHECK_PROG([has_dot], [dot], [yes], [no])
 if test "$has_dot" = "no"; then
   AC_MSG_WARN([failed to find 'dot' in \$path, some debug outputs will not be generated.])
@@ -49,6 +44,23 @@ fi
 AC_CHECK_PROG([has_git], [git], [yes], [no])
 if test "$has_git" = "no"; then
   AC_MSG_WARN([failed to find 'git' in \$path, will not be able to use revision control.])
+fi
+
+AC_PATH_PROGS([PYTHON], [python2.6 python2.5 python2.4 python2 python], [no])
+if test "$PYTHON" = "no"; then
+  AC_MSG_ERROR([failed to find 'python' in \$path])
+fi
+
+AC_PATH_PROGS([MAXIMA], [maxima], [no])
+if test "$MAXIMA" = "no"; then
+  AC_MSG_ERROR([failed to find 'maxima' in \$path, try running:`sudo apt-get install maxima`.])
+fi
+
+AC_MSG_CHECKING([maxima compatibility])
+if "$PYTHON" "$srcdir/scripts/checkmaxima.py" "$MAXIMA"; then
+  AC_MSG_RESULT([ok])
+else
+  AC_MSG_ERROR(["broken maxima version"])
 fi
 
 rev_short="unknown"
@@ -223,7 +235,8 @@ AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files i
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
 
-AC_DEFINE_UNQUOTED([REVISION_LONG], ["$rev_long"], [git revision for HEAD at the time ./configure was run])
+AC_DEFINE_UNQUOTED([MAXIMA_PATH],         ["$MAXIMA"], [path to maxima program])
+AC_DEFINE_UNQUOTED([REVISION_LONG],  ["$rev_long"], [git revision for HEAD at the time ./configure was run])
 AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at the time ./configure was run])
 
 

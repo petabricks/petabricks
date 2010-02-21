@@ -42,7 +42,7 @@ static int forkopen(void (*fn)()){
 }
 
 static void launchMaxima(){
-  const char* args[]= {"maxima","-q","--disable-readline", NULL};
+  const char* args[]= {MAXIMA_PATH,"-q","--disable-readline", NULL};
   execvp(args[0],(char**)args);
   JASSERT(false)(JASSERT_ERRNO).Text("exec(maxima) failed");
 }
