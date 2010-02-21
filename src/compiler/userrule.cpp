@@ -221,7 +221,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
           f=MAXIMA.min(f, criticalPoint);
       }
       
-      JTRACE("where clause handled")(*i)(criticalPoint)(_applicableRegion);
+      JTRACE("where clause handled")(*i)(criticalPoint)(_applicableRegion)(smaller)(eq)(larger);
     }else{
       //test if we can statically prove it
       int rslt = MAXIMA.is((*i)->printAsAssumption());
