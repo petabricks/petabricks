@@ -206,8 +206,12 @@ public:
     JASSERT(_stackDepth>0);
     runCommand("killcontext(_ctx_stack_" + jalib::XToString(_stackDepth--) + ")");
   }
-  
-  
+
+  void sanityCheck(){
+    std::string rslt=runCommand("666.667")->toString();
+    JASSERT(rslt=="666.667")(rslt)
+      .Text("problem with maxima");
+  }
 
 private:
   int _fd;

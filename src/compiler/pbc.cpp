@@ -11,6 +11,7 @@
  ***************************************************************************/
 
 #include "codegenerator.h"
+#include "maximawrapper.h"
 #include "transform.h"
 
 #include "common/jargs.h"
@@ -166,6 +167,11 @@ int main( int argc, const char ** argv){
   o.cg().dumpTo(infofile);
   infofile.flush();
   infofile.close();
+
+#ifdef DEBUG
+  MAXIMA.sanityCheck();
+#endif
+
   if(shouldCompile)
     callCxxCompiler();
 
