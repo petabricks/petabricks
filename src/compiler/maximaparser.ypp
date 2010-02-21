@@ -79,8 +79,9 @@ Start: InputPrompt
 InputPrompt: IPROMPT;
 OutputPrompt: OPROMPT;
 
-OutputContent: Formula                 { ($$=REFALLOC(FormulaList()))->push_back($1); }
-             | '[' OptFormulaList ']'  { ($$=$2); }
+OutputContent: Formula                          { ($$=REFALLOC(FormulaList()))->push_back($1); }
+             | '[' OptFormulaList ']'          { ($$=$2); }
+             | '[' '[' OptFormulaList ']' ']'  { ($$=$3); }
 ;
 
 
