@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import subprocess, sys, re
+import subprocess, sys, re, os, signal
 
 if len(sys.argv)!=2:
   print "USAGE: checkmaxima /usr/bin/maxima"
@@ -29,12 +29,18 @@ ver = p.communicate()[0]
 ver = re.search("([0-9]+.[.0-9]+)", ver).group(1)
 
 p=subprocess.Popen([sys.argv[1], "-q","--disable-readline"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+signal.signal(signal.SIGALRM, lambda signum, frame: os.kill(p.pid, signal.SIGKILL))
+signal.alarm(3)
 o=p.communicate('''
   load(ineq)$
+
   assume(x<=0)$
   test1rslt = is(equal(x,0));
-''')[0]
 
+  assume(equal(x,i))$
+  test2rslt = diff(x+1,x);
+''')[0]
+signal.alarm(0)
 
 def findResult(name):
   r=re.compile("[^a-zA-Z]"+re.escape(name)+" *= *([a-zA-Z0-9]+)")
@@ -44,12 +50,13 @@ def findResult(name):
   else:
     die("no output produced")
 
-if ver in ['5.17.1', '5.20.1']:
-  die("known incompatible version")
-
 if findResult("test1rslt") != "unknown":
   die("ineq assume()/is() broken")
 
+if p.returncode!=0 or findResult("test2rslt") != "1":
+  die("maxima crash bug (http://sourceforge.net/tracker/?func=detail&atid=104933&aid=2938078&group_id=4933)")
+
 if "Could not find `ineq'" in o:
   die("maxima-share is not installed (load(ineq) failed)")
+
 
