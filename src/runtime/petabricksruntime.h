@@ -172,6 +172,10 @@ public:
   void variableAccuracyTrainingLoop(TestIsolation& ti);
   int variableAccuracyTrainingLoopInner(TestIsolation& ti);
 
+
+  void iogenCreate(const std::string& pfx);
+  void iogenRun(const std::string& pfx);
+
   class ComputeRetryException {};
 
   static double rand01();

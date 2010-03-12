@@ -35,6 +35,8 @@
 #  include <boost/random.hpp>
 #endif
 
+#define DEVNULL "/dev/null"
+
 static bool _isRunning = false;
 static bool _isTrainingRun = false;
 static bool _needTraingingRun = false;
@@ -64,8 +66,7 @@ static int ACCIMPROVETRIES=3;
 std::vector<std::string> txArgs;
 static std::string ATLOG;
 static jalib::Hash theLastHash;
-static std::string GEN_PFX;
-
+static std::string IOGEN_PFX="tmp_";
 
 #ifdef HAVE_BOOST_RANDOM_HPP
 static boost::lagged_fibonacci607& myRandomGen(){
@@ -108,8 +109,8 @@ static int _incN(int n){
 static enum {
   MODE_RUN_IO,
   MODE_RUN_RANDOM,
-  MODE_RUN_RANDOM_STORE,
-  MODE_RUN_RANDOM_READ,
+  MODE_IOGEN_CREATE,
+  MODE_IOGEN_RUN,
   MODE_GRAPH_INPUTSIZE,
   MODE_GRAPH_PARAM,
   MODE_GRAPH_THREADS,
@@ -241,6 +242,12 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     MODE=MODE_GRAPH_THREADS;
   }else if(args.param("graph-template").help("graph run time for each template instance")){
     MODE=MODE_GRAPH_TEMPLATE;
+  }else if(args.param("iogen-create", IOGEN_PFX).help("generate a set of random inputs with the given prefix")){
+    JASSERT(_randSize>0).Text("-n=... required");
+    MODE=MODE_IOGEN_CREATE;
+  }else if(args.param("iogen-run", IOGEN_PFX).help("run a set of random inputs generated with --iogen-create")){
+    JASSERT(_randSize>0).Text("-n=... required");
+    MODE=MODE_IOGEN_RUN;
   }
   
   //flags that cause aborts
@@ -296,6 +303,8 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
       if(ISOLATION)
         break;
       //fall through
+    case MODE_IOGEN_CREATE:
+    case MODE_IOGEN_RUN:
     case MODE_RUN_IO:
       //startup requested number of threads
       if(MODE!=MODE_GRAPH_THREADS && MODE!=MODE_ABORT){
@@ -341,6 +350,12 @@ int petabricks::PetabricksRuntime::runMain(){
     case MODE_RUN_IO:
       runNormal();
       break;
+    case MODE_IOGEN_CREATE:
+      iogenCreate(IOGEN_PFX);
+      break;
+    case MODE_IOGEN_RUN:
+      iogenRun(IOGEN_PFX);
+      break;
     case MODE_RUN_RANDOM:
       runTrial(GRAPH_MAX_SEC, ACCTRAIN);
       break;
@@ -372,7 +387,7 @@ int petabricks::PetabricksRuntime::runMain(){
     JTIMER_SCOPE(forceoutput);
     std::vector<std::string> tmp;
     for(int i=_main->numInputs(); i-->0;)
-      tmp.push_back("/dev/null");
+      tmp.push_back(DEVNULL);
     for(int i=_main->numOutputs(); i-->0;)
       tmp.push_back("-");
     _main->writeOutputs(tmp);
@@ -423,6 +438,22 @@ void petabricks::PetabricksRuntime::runNormal(){
       _rv=66;
     }
   }
+}
+
+void petabricks::PetabricksRuntime::iogenCreate(const std::string& pfx){
+  std::vector<std::string> tmp;
+  for(int i=_main->numInputs(); i-->0;)
+    tmp.push_back(pfx + "_in" + jalib::XToString(i) + ".dat");
+  for(int i=_main->numOutputs(); i-->0;)
+    tmp.push_back(pfx + "_out" + jalib::XToString(i) + ".dat");
+  _main->reallocate(_randSize);
+  _main->randomize();
+  _main->writeInputs(tmp);
+  _main->writeOutputs(tmp);
+}
+
+void petabricks::PetabricksRuntime::iogenRun(const std::string& ){
+  UNIMPLEMENTED();
 }
 
 static const char* _uniquifyatlogname() {
