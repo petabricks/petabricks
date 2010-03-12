@@ -74,7 +74,7 @@ public:
 
     ///
     /// Read inputs from disk
-    virtual void read(ArgListT) = 0;
+    virtual void readInputs(ArgListT) = 0;
 
     ///
     /// Perform the computation
@@ -82,7 +82,8 @@ public:
 
     ///
     /// Write inputs to disk
-    virtual void write(ArgListT) = 0;
+    virtual void writeInputs(ArgListT) = 0;
+    virtual void writeOutputs(ArgListT) = 0;
 
     ///
     /// initialize with random inputs

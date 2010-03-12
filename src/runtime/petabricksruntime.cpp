@@ -64,6 +64,7 @@ static int ACCIMPROVETRIES=3;
 std::vector<std::string> txArgs;
 static std::string ATLOG;
 static jalib::Hash theLastHash;
+static std::string GEN_PFX;
 
 
 #ifdef HAVE_BOOST_RANDOM_HPP
@@ -107,6 +108,8 @@ static int _incN(int n){
 static enum {
   MODE_RUN_IO,
   MODE_RUN_RANDOM,
+  MODE_RUN_RANDOM_STORE,
+  MODE_RUN_RANDOM_READ,
   MODE_GRAPH_INPUTSIZE,
   MODE_GRAPH_PARAM,
   MODE_GRAPH_THREADS,
@@ -372,7 +375,7 @@ int petabricks::PetabricksRuntime::runMain(){
       tmp.push_back("/dev/null");
     for(int i=_main->numOutputs(); i-->0;)
       tmp.push_back("-");
-    _main->write(tmp);
+    _main->writeOutputs(tmp);
   }
 
   ACCURACY=!theAccuracies.empty();
@@ -407,7 +410,7 @@ void petabricks::PetabricksRuntime::runNormal(){
     _rv = 1;
   }else{
     double t = jalib::maxval<double>();
-    main.read(txArgs);
+    main.readInputs(txArgs);
     try{
       DummyTestIsolation ti;
       t = computeWrapper(ti);
@@ -415,7 +418,7 @@ void petabricks::PetabricksRuntime::runNormal(){
       UNIMPLEMENTED();
     }
     if(t>=0 && t<jalib::maxval<double>()/2.0){
-      main.write(txArgs);
+      main.writeOutputs(txArgs);
     }else{
       _rv=66;
     }

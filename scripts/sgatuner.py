@@ -1,13 +1,15 @@
 #!/usr/bin/python
-import itertools, random, subprocess, os
+import itertools, random, subprocess, os, sys
 import pbutil, mutators
 import logging
+import candidatetester
 from configtool import defaultConfigFile
 from candidatetester import Candidate, CandidateTester
 from mutators import MutateFailed
 from traininginfo import TrainingInfo
 
 class config:
+  debug = True
   mutate_retries = 10
   compare_confidence_pct = 0.95
   compare_max_trials = 25
@@ -18,6 +20,7 @@ class config:
   population_growth_attempts = 10
   population_high_size = 20
   population_low_size  = 1
+  rounds = 23
   multimutation = True
   lognorm_tunable_types = ['system.cutoff.splitsize', 'system.cutoff.sequential']
   uniform_tunable_types = []
@@ -75,16 +78,16 @@ class Population:
       logging.debug("added "+', '.join(map(str,set(self.members)-set(originalPop))))
     return tries
 
-  def prune(self, popsize):
+  def pruneSingleMetric(self, population, popsize, metric):
     '''shrink the population to popsize by removing low scoring candidates'''
-    if len(self.members)<=popsize:
+    if len(population)<=popsize:
       return
-    fastCmp = self.testers[-1].comparer(0, 0.00, 0)
-    fullCmp = self.testers[-1].comparer(0, config.compare_confidence_pct, config.compare_max_trials)
+    fastCmp = self.testers[-1].comparer(metric, 0.00, 0)
+    fullCmp = self.testers[-1].comparer(metric, config.compare_confidence_pct, config.compare_max_trials)
     # a rough partitioning based on fastCmp
-    self.members.sort(cmp=fastCmp)
-    membersfast=list(self.members[0:popsize])
-    membersslow=list(self.members[popsize:])
+    population.sort(cmp=fastCmp)
+    membersfast=list(population[0:popsize])
+    membersslow=list(population[popsize:])
     # fully order membersfast
     membersfast.sort(cmp=fullCmp)
     # check if any of membersslow should make the cut
@@ -92,10 +95,14 @@ class Population:
     membersfast.extend(filter(lambda x: fullCmp(cutoffAlg,x)>0, membersslow))
     # fully order membersfast again and store final population
     membersfast.sort(cmp=fullCmp)
-    pruned=set(self.members)-set(membersfast[0:popsize])
-    self.members = membersfast[0:popsize]
+    pruned=set(population)-set(membersfast[0:popsize])
+    del population[0:]
+    population.extend(membersfast[0:popsize])
     if len(pruned):
       logging.debug("removed "+', '.join(map(str,pruned)))
+
+  def prune(self, popsize):
+    self.pruneSingleMetric(self.members, popsize, candidatetester.config.timing_metric_idx)
 
   def birthFilter(self, parent, child):
     '''called when considering adding child to population'''
@@ -105,13 +112,9 @@ class Population:
   def printPopulation(self):
     print "round n = %d"%self.testers[-1].n
     for m in self.members:
-      if self.baseline is None:
-        print "  * ", m, "actual:", m.metrics[0][self.testers[-1].n]
-      else:
-        for x in xrange(config.compare_min_trials):
-          self.testers[-1].test(self.baseline)
-        print "  * ", m, "actual:", m.metrics[0][self.testers[-1].n], "baseline:", \
-            self.baseline.metrics[0][self.testers[-1].n].strdelta(m.metrics[0][self.testers[-1].n])
+      if self.baseline is not None:
+        self.testers[-1].testN(self.baseline, config.compare_min_trials)
+      print "  * ", m, "actual:", m.resultsStr(self.testers[-1].n, self.baseline)
 
   def generation(self):
     self.test(config.compare_min_trials)
@@ -119,25 +122,6 @@ class Population:
     self.prune(config.population_low_size)
     self.printPopulation()
     self.testers.append(self.testers[-1].nextTester())
-
-def testold():
-  pbutil.chdirToPetabricksRoot();
-  pbutil.compilePetabricks();
-  benchmark=pbutil.normalizeBenchmarkName('Sort')
-  pbutil.compileBenchmarks([benchmark])
-  infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
-  tester = CandidateTester(benchmark, 1)
-  try:
-    transform = "SortSubArray"
-    candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml)
-    candidate.addMutator(mutators.RandAlgMutator(transform, 0, mutators.config.first_lvl))
-    for a in candidate.infoxml.transform(transform).rulesInAlgchoice(0):
-      candidate.addMutator(mutators.AddAlgLevelMutator(transform, 0, a))
-    pop = Population(candidate, tester, candidate)
-    for x in xrange(25):
-      pop.generation()
-  finally:
-    tester.cleanup()
 
 def addMutators(candidate, info, ignore=None, weight=1.0):
   if ignore is None:
@@ -150,13 +134,13 @@ def addMutators(candidate, info, ignore=None, weight=1.0):
   except:
     transform = ""
   for ac in info.algchoices():
-    print transform, "/", ac['name'], " => algchoice"
+    logging.debug("added Mutator " + transform + "/" + ac['name'] + " => algchoice")
     candidate.addMutator(mutators.RandAlgMutator(transform, ac['number'], mutators.config.first_lvl, weight=weight))
     for a in info.rulesInAlgchoice(ac['number']):
       candidate.addMutator(mutators.AddAlgLevelMutator(transform, ac['number'], a, weight=weight))
   for ta in info.tunables():
-    if ta['type']   in config.lognorm_tunable_types:
-      print transform, '/', ta['name']," => lognorm"
+    if ta['type'] in config.lognorm_tunable_types:
+      logging.debug("added Mutator " + transform + "/" + ta['name'] + " => lognorm")
       candidate.addMutator(mutators.LognormRandCutoffMutator(ta['name'], weight=weight))
     elif ta['type'] in config.uniform_tunable_types:
       assert False
@@ -169,6 +153,8 @@ def addMutators(candidate, info, ignore=None, weight=1.0):
     addMutators(candidate, sub, ignore, weight/2.0)
 
 def autotune(benchmark):
+  if config.debug:
+    logging.basicConfig(level=logging.DEBUG)
   pbutil.chdirToPetabricksRoot();
   pbutil.compilePetabricks();
   benchmark=pbutil.normalizeBenchmarkName(benchmark)
@@ -178,16 +164,22 @@ def autotune(benchmark):
   tester = CandidateTester(benchmark, 1)
   try:
     candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml)
+    baseline = None
     addMutators(candidate, infoxml.globalsec())
     addMutators(candidate, infoxml.transform(main))
-    pop = Population(candidate, tester, candidate)
-    for x in xrange(25):
+    pop = Population(candidate, tester, baseline)
+    for x in xrange(config.rounds):
       pop.generation()
   finally:
     tester.cleanup()
 
 if __name__ == "__main__":
-  logging.basicConfig(level=logging.DEBUG)
-  autotune("Sort")
+  from optparse import OptionParser
+  parser = OptionParser(usage="usage: sgatuner.py [options] Benchmark")
+  (options, args) = parser.parse_args()
+  if len(args)!=1:
+    parser.print_usage()
+    sys.exit(1)
+  autotune(args[0])
 
 

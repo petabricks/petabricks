@@ -665,7 +665,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
 
   declTransformNFunc(o);
 
-  o.beginFunc("void", "read", std::vector<std::string>(1, "ArgListT argv"));
+  o.beginFunc("void", "readInputs", std::vector<std::string>(1, "ArgListT argv"));
   {
     for( OrderedFreeVars::const_iterator i=_parameters.begin()
        ; i!=_parameters.end()
@@ -745,7 +745,15 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   }
   o.endFunc();
 
-  o.beginFunc("void", "write", std::vector<std::string>(1, "ArgListT argv"));
+  o.beginFunc("void", "writeOutputs", std::vector<std::string>(1, "ArgListT argv"));
+  {
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
+    }
+  }
+  o.endFunc();
+  
+  o.beginFunc("void", "writeInputs", std::vector<std::string>(1, "ArgListT argv"));
   {
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
       (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");

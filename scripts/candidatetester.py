@@ -1,7 +1,7 @@
 #!/usr/bin/python
 from configtool import ConfigFile, defaultConfigFile
 import pbutil
-import tempfile, os, math, warnings, random
+import tempfile, os, math, warnings, random, sys
 from scipy import stats
 warnings.simplefilter('ignore', DeprecationWarning)
 
@@ -23,6 +23,9 @@ class config:
     
   limit_conf_pct   = 0.95
   limit_multiplier = 1.35
+
+  max_result = 2.0 ** 30
+  print_raw=False
 
 nameof = lambda t: str(t.getAttribute("name"))
 
@@ -73,6 +76,7 @@ class Results:
     return len(self.interpolatedResults)
 
   def add(self, p):
+    p=min(config.max_result, p)
     self.realResults.append(p)
     self.reinterpolate();
 
@@ -98,7 +102,9 @@ class Results:
       '''new points are assigned the median value above their timeout'''
       self.interpolatedResults.append(max(p, min(self.distribution.isf(self.distribution.sf(p)/2.0), p*4)))
       self.distribution = mkdistrib()
-
+    if min(self.interpolatedResults) == max(self.interpolatedResults):
+      return stats.norm(self.interpolatedResults[0], 0)
+ 
   def dataDistribution(self):
     '''estimated probability distribution of a single timing run'''
     return self.distribution
@@ -209,6 +215,16 @@ class Candidate:
   def reasonableLimit(self, n):
     return self.metrics[config.timing_metric_idx][n].reasonableLimit()
 
+  def resultsStr(self, n, baseline=None):
+    s=[]
+    t=str
+    if config.print_raw:
+      t=repr
+    for i, m in enumerate(self.metrics):
+      s.append("%s: %s" % (config.metrics[i], t(m[n])))
+    return ', '.join(s)
+
+
 class CandidateTester:
   def __init__(self, app, n, args=[]):
     self.app = app
@@ -221,13 +237,18 @@ class CandidateTester:
         "--n=%d"%self.n,
         "--time",
         "--trials=1",
-        "--offset=%d"%config.offset
+        "--offset=%d"%config.offset,
+        "--accuracy"
       ]
     self.cmd.extend(args)
     self.args=args
 
   def nextTester(self):
     return CandidateTester(self.app, self.n*2, self.args)
+  
+  def testN(self, candidate, trials, limit=None):
+    for x in xrange(trials - len(candidate.metrics[config.timing_metric_idx][self.n])):
+      self.test(candidate, limit)
 
   def test(self, candidate, limit=None):
     candidate.config.save(self.cfgTmp)
