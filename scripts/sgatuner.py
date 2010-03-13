@@ -114,7 +114,7 @@ class Population:
     for m in self.members:
       if self.baseline is not None:
         self.testers[-1].testN(self.baseline, config.compare_min_trials)
-      print "  * ", m, "actual:", m.resultsStr(self.testers[-1].n, self.baseline)
+      print "  * ", m, m.resultsStr(self.testers[-1].n, self.baseline)
 
   def generation(self):
     self.test(config.compare_min_trials)

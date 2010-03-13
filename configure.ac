@@ -203,7 +203,7 @@ AC_DEFINE([ACCTARGET_STR],       ["accuracyTarget"], [var name in output code fo
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
 AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for begin coord])
 AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
-AC_DEFINE([DEFAULT_ACCURACY],    ["1"], [accuracy stand-in for fixed-accuracy rules])
+AC_DEFINE([DEFAULT_ACCURACY],    [1], [accuracy stand-in for fixed-accuracy rules])
 AC_DEFINE([DEVNULL],             ["/dev/null"], [null sync device path])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])

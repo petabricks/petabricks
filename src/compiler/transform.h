@@ -133,7 +133,7 @@ public:
   bool isTemplate() const { return !_templateargs.empty(); }
   bool isVariableAccuracy() const { return !_accuracyBins.empty(); }
 
-  std::string tmplName(int n, CodeGenerator* o=NULL) const;
+  std::string tmplName(int n, CodeGenerator* o=NULL);
   
   void addConfigItem(int flags, const std::string& n, int initial=0, int min=0, int max=std::numeric_limits<int>::max()){
     ConfigItems::iterator i;
@@ -244,6 +244,7 @@ private:
   std::vector<double> _accuracyBins;
   std::string         _generator;
   int                 _templateChoice;
+  double              _curAccTarget;
 };
 
 }

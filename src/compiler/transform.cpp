@@ -34,6 +34,7 @@ petabricks::Transform::Transform()
   , _scope(RIRScope::global()->createChildLayer())
   , _usesSplitSize(false)
   , _templateChoice(-1)
+  , _curAccTarget(DEFAULT_ACCURACY)
 {}
 
 void petabricks::Transform::addFrom(const MatrixDefList& l){
@@ -246,15 +247,24 @@ int petabricks::Transform::tmplChoiceCount() const {
   return choiceCnt;
 }
   
-std::string petabricks::Transform::tmplName(int n, CodeGenerator* o) const {
+std::string petabricks::Transform::tmplName(int n, CodeGenerator* o) {
   std::string name = _name+TMPL_IMPL_PFX;
+  _curAccTarget = DEFAULT_ACCURACY;
   int choice=n;
   //add #defines
   for(size_t i=0; i<_templateargs.size(); ++i){
     int val=(choice%_templateargs[i]->range()) + _templateargs[i]->min();
     choice/=_templateargs[i]->range();
-    if(o!=NULL)
+    if(o!=NULL){
       o->write("#define " + _templateargs[i]->name() + " " + jalib::XToString(val));
+      if(_templateargs[i]->name() == TEMPLATE_BIN_STR){
+        if(isAccuracyInverted()){
+          _curAccTarget = -(*(_accuracyBins.rbegin()+val));
+        }else{
+          _curAccTarget = (*(_accuracyBins.begin()+val));
+        }
+      }
+    }
     name += "_" + jalib::XToString(val);
   }
   JASSERT(choice==0)(choice);
@@ -388,7 +398,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   std::vector<std::string> returnStyleArgs = args;
   if(_to.size()==1) returnStyleArgs.erase(returnStyleArgs.begin());
 
-  o.cg().beginTransform(_originalName, _name, _templateChoice, _accuracyBins);
+  o.cg().beginTransform(_originalName, _name, _templateChoice, !_accuracyBins.empty(), _curAccTarget);
   o.comment("Begin output for transform " + _name);
   o.newline();
   
@@ -832,7 +842,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     else
       o.write("return _acc.cell();");
   }else{
-    o.write("return " DEFAULT_ACCURACY ";");
+    o.write("return DEFAULT_ACCURACY;");
   }
   o.endFunc();
   
@@ -840,7 +850,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   if(!_accuracyBins.empty()){
     o.write("return ACCURACY_TARGET;");
   }else{
-    o.write("return " DEFAULT_ACCURACY ";");
+    o.write("return DEFAULT_ACCURACY;");
   }
   o.endFunc();
   
@@ -859,20 +869,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   
   if(!_accuracyBins.empty()){
     o.beginFunc("ElementT", _name+ "_"ACCTARGET_STR);
-    std::ostringstream t;
-    t << "double targets[] = {";
-    if(isAccuracyInverted()){
-      t << "-";
-      printStlList(t, _accuracyBins.rbegin(), _accuracyBins.rend(), ", -");
-    }else{
-      printStlList(t, _accuracyBins.begin(), _accuracyBins.end(), ", ");
-    }
-    t << "};";
-    o.write(t.str());
-    if(_accuracyBins.size()==1)
-      o.write("return targets[0];");
-    else
-      o.write("return targets["TEMPLATE_BIN_STR"];");
+    o.write("return "+jalib::XToString(_curAccTarget)+";");
     o.endFunc();
   }
 

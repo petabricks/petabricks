@@ -55,16 +55,16 @@ public:
   void beginTransform(const std::string& name,
                       const std::string& instanceName,
                       int templateChoice,
-                      const std::vector<double>& accuracyBins
+                      bool isVariableAccuracy,
+                      double accuracyTarget
                       ){
     _os << "  <transform ";
     _os << " name=\""         << instanceName << "\"";
     _os << " templateName=\"" << name << "\"";
     _os << " isTemplateInstance=\"" << (name==instanceName ? "no" : "yes") << "\"";
     _os << " templateChoice=\"" << jalib::XToString(templateChoice) << "\"";
-    _os << " accuracyBins=\"";
-    jalib::JPrintable::printStlList(_os, accuracyBins.begin(), accuracyBins.end(), ",");
-    _os << "\"";
+    _os << " isVariableAccuracy=\"" << isVariableAccuracy << "\"";
+    _os << " accuracyTarget=\"" << accuracyTarget << "\"";
     _os << ">\n";
   }
 
