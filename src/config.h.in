@@ -36,6 +36,9 @@
 /* verbose debug printouts and log files in /tmp */
 #undef DEBUG
 
+/* null sync device path */
+#undef DEVNULL
+
 /* dont generate continuation code after SPAWN/enqueue */
 #undef DISABLE_CONTINUATIONS
 

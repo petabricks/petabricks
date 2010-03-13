@@ -5306,6 +5306,9 @@ $as_echo "#define COORD_BEGIN_STR \"_iter_begin\"" >>confdefs.h
 $as_echo "#define COORD_END_STR \"_iter_end\"" >>confdefs.h
 
 
+$as_echo "#define DEVNULL \"/dev/null\"" >>confdefs.h
+
+
 $as_echo "#define FORENOUGH_MAX_ITERS 1000" >>confdefs.h
 
 
@@ -5397,6 +5400,7 @@ $as_echo "#define UTIL_SEARCH_DIR_B \"scripts\"" >>confdefs.h
 
 
 $as_echo "#define WORKERTHREAD_ONDECK /**/" >>confdefs.h
+
 
 
 

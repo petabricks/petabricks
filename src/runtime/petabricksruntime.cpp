@@ -35,8 +35,6 @@
 #  include <boost/random.hpp>
 #endif
 
-#define DEVNULL "/dev/null"
-
 static bool _isRunning = false;
 static bool _isTrainingRun = false;
 static bool _needTraingingRun = false;

@@ -11,6 +11,10 @@
  ***************************************************************************/
 #include "matrixio.h"
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 void matrixreaderset_in (FILE *  in_str );
 int matrixreaderlex(petabricks::MatrixReaderScratch&);
 
@@ -20,7 +24,7 @@ petabricks::MatrixIO::MatrixIO(const char* filename, const char* mode)
   JTRACE("MatrixIO")(filename)(mode);
   if(std::string("-")==filename) 
     _fd = stdin;
-  else if(std::string("/dev/null")==filename){
+  else if(std::string(DEVNULL)==filename){
     _fd = 0;
     return;
   }else 
