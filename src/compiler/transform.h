@@ -16,7 +16,6 @@
 #include "configitem.h"
 #include "learner.h"
 #include "matrixdef.h"
-#include "performancetester.h"
 #include "rirscope.h"
 #include "rule.h"
 #include "staticscheduler.h"
@@ -98,7 +97,6 @@ public:
   void markMemoized() { _memoized=true; }
 
   Learner& learner() { return _learner; }
-  //PerformanceTester& tester() { return _tester; }
 
   //void addTestCase(const TestCasePtr& p) {tester().addTestCase(p);}
 
@@ -237,7 +235,6 @@ private:
   bool            _memoized;
   Learner         _learner;
   StaticSchedulerPtr _scheduler;
-  //PerformanceTester  _tester;
   TemplateArgList     _templateargs;
   int                 _tuneId;
   ConfigItems         _config;

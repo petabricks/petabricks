@@ -20,7 +20,6 @@ noinst_HEADERS = \
   compiler/maximawrapper.h \
   compiler/pbc.h \
   compiler/pbparser.h \
-  compiler/performancetester.h \
   compiler/region.h \
   compiler/rircompilerpass.h \
   compiler/rirscope.h \
@@ -99,7 +98,6 @@ libpbcompiler_a_SOURCES = \
   compiler/maximawrapper.cpp \
   compiler/pblexer.lpp \
   compiler/pbparser.ypp \
-  compiler/performancetester.cpp \
   compiler/region.cpp \
   compiler/rircompilerpass.cpp \
   compiler/rirscope.cpp \

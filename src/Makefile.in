@@ -86,7 +86,6 @@ am_libpbcompiler_a_OBJECTS = libpbcompiler_a-choicegrid.$(OBJEXT) \
 	libpbcompiler_a-maximawrapper.$(OBJEXT) \
 	libpbcompiler_a-libpbcompiler_a-pblexer.$(OBJEXT) \
 	libpbcompiler_a-libpbcompiler_a-pbparser.$(OBJEXT) \
-	libpbcompiler_a-performancetester.$(OBJEXT) \
 	libpbcompiler_a-region.$(OBJEXT) \
 	libpbcompiler_a-rircompilerpass.$(OBJEXT) \
 	libpbcompiler_a-rirscope.$(OBJEXT) \
@@ -303,7 +302,6 @@ noinst_HEADERS = \
   compiler/maximawrapper.h \
   compiler/pbc.h \
   compiler/pbparser.h \
-  compiler/performancetester.h \
   compiler/region.h \
   compiler/rircompilerpass.h \
   compiler/rirscope.h \
@@ -382,7 +380,6 @@ libpbcompiler_a_SOURCES = \
   compiler/maximawrapper.cpp \
   compiler/pblexer.lpp \
   compiler/pbparser.ypp \
-  compiler/performancetester.cpp \
   compiler/region.cpp \
   compiler/rircompilerpass.cpp \
   compiler/rirscope.cpp \
@@ -550,7 +547,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-matrixdef.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-matrixdependency.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-maximawrapper.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-performancetester.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-region.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-rircompilerpass.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-rirscope.Po@am__quote@
@@ -927,20 +923,6 @@ libpbcompiler_a-libpbcompiler_a-pbparser.obj: libpbcompiler_a-pbparser.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='libpbcompiler_a-pbparser.cpp' object='libpbcompiler_a-libpbcompiler_a-pbparser.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-libpbcompiler_a-pbparser.obj `if test -f 'libpbcompiler_a-pbparser.cpp'; then $(CYGPATH_W) 'libpbcompiler_a-pbparser.cpp'; else $(CYGPATH_W) '$(srcdir)/libpbcompiler_a-pbparser.cpp'; fi`
-
-libpbcompiler_a-performancetester.o: compiler/performancetester.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-performancetester.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-performancetester.Tpo -c -o libpbcompiler_a-performancetester.o `test -f 'compiler/performancetester.cpp' || echo '$(srcdir)/'`compiler/performancetester.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbcompiler_a-performancetester.Tpo $(DEPDIR)/libpbcompiler_a-performancetester.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/performancetester.cpp' object='libpbcompiler_a-performancetester.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-performancetester.o `test -f 'compiler/performancetester.cpp' || echo '$(srcdir)/'`compiler/performancetester.cpp
-
-libpbcompiler_a-performancetester.obj: compiler/performancetester.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-performancetester.obj -MD -MP -MF $(DEPDIR)/libpbcompiler_a-performancetester.Tpo -c -o libpbcompiler_a-performancetester.obj `if test -f 'compiler/performancetester.cpp'; then $(CYGPATH_W) 'compiler/performancetester.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/performancetester.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbcompiler_a-performancetester.Tpo $(DEPDIR)/libpbcompiler_a-performancetester.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/performancetester.cpp' object='libpbcompiler_a-performancetester.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-performancetester.obj `if test -f 'compiler/performancetester.cpp'; then $(CYGPATH_W) 'compiler/performancetester.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/performancetester.cpp'; fi`
 
 libpbcompiler_a-region.o: compiler/region.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-region.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-region.Tpo -c -o libpbcompiler_a-region.o `test -f 'compiler/region.cpp' || echo '$(srcdir)/'`compiler/region.cpp

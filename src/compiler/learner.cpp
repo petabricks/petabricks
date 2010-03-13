@@ -11,16 +11,11 @@
  ***************************************************************************/
 #include "learner.h"
 
-#include "performancetester.h"
-
 #include <algorithm>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
-#define MULTIGRID_FLAG
-
 
 petabricks::RuleChoicePtr petabricks::Learner::makeRuleChoice( const RuleSet& choices
                                                      , const MatrixDefPtr& m
