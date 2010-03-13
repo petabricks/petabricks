@@ -664,6 +664,9 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
 
   declTransformNFunc(o);
 
+  int firstInput=(int)_parameters.size();
+  int firstOutput=firstInput+(int)_from.size();
+
   o.beginFunc("void", "readInputs", std::vector<std::string>(1, "ArgListT argv"));
   {
     int a=0;
@@ -688,7 +691,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   
   o.beginFunc("void", "readOutputs", std::vector<std::string>(1, "ArgListT argv"));
   {
-    int a=(int)_from.size();
+    int a=firstOutput;
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
       (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
     }
@@ -757,7 +760,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
 
   o.beginFunc("void", "writeInputs", std::vector<std::string>(1, "ArgListT argv"));
   {
-    int a=0;
+    int a=firstInput;
     for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
       (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
     }
@@ -766,7 +769,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
 
   o.beginFunc("void", "writeOutputs", std::vector<std::string>(1, "ArgListT argv"));
   {
-    int a=(int)_from.size();
+    int a=firstOutput;
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
       (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
     }
