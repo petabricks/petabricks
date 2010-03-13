@@ -166,16 +166,22 @@ public:
   static void saveConfig();
 
   double trainAndComputeWrapper(TestIsolation&, int n);
-  double computeWrapper(TestIsolation&, int n=-1, int retries=-1);
-  void computeWrapperSubproc(TestIsolation&, int n, double&  time, double&  acc, jalib::Hash& hash);
+  double computeWrapper(TestIsolation&, int n=-1, int retries=-1, const std::vector<std::string>* files = NULL);
+  void computeWrapperSubproc( TestIsolation&
+                            , int n
+                            , double& time
+                            , double& acc
+                            , jalib::Hash& hash
+                            , const std::vector<std::string>* files);
   
   
   void variableAccuracyTrainingLoop(TestIsolation& ti);
   int variableAccuracyTrainingLoopInner(TestIsolation& ti);
 
 
-  void iogenCreate(const std::string& pfx);
-  void iogenRun(const std::string& pfx);
+  void iogenCreate(const std::vector<std::string>& files);
+  void iogenRun(const std::vector<std::string>& files);
+  std::vector<std::string> iogenFiles(const std::string& pfx);
 
   class ComputeRetryException {};
 

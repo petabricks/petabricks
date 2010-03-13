@@ -298,11 +298,11 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     case MODE_GRAPH_TEMPLATE:
     case MODE_AUTOTUNE_GENETIC:
     case MODE_AUTOTUNE_PARAM:
+    case MODE_IOGEN_RUN:
       if(ISOLATION)
         break;
       //fall through
     case MODE_IOGEN_CREATE:
-    case MODE_IOGEN_RUN:
     case MODE_RUN_IO:
       //startup requested number of threads
       if(MODE!=MODE_GRAPH_THREADS && MODE!=MODE_ABORT){
@@ -344,15 +344,16 @@ void petabricks::PetabricksRuntime::saveConfig()
 
 int petabricks::PetabricksRuntime::runMain(){
   JTIMER_SCOPE(runMain);
+
   switch(MODE){
     case MODE_RUN_IO:
       runNormal();
       break;
     case MODE_IOGEN_CREATE:
-      iogenCreate(IOGEN_PFX);
+      iogenCreate(iogenFiles(IOGEN_PFX));
       break;
     case MODE_IOGEN_RUN:
-      iogenRun(IOGEN_PFX);
+      iogenRun(iogenFiles(IOGEN_PFX));
       break;
     case MODE_RUN_RANDOM:
       runTrial(GRAPH_MAX_SEC, ACCTRAIN);
@@ -438,34 +439,29 @@ void petabricks::PetabricksRuntime::runNormal(){
   }
 }
 
-void petabricks::PetabricksRuntime::iogenCreate(const std::string& pfx){
+std::vector<std::string>  petabricks::PetabricksRuntime::iogenFiles(const std::string& pfx){
   std::vector<std::string> tmp;
   for(int i=_main->numInputs(); i-->0;)
     tmp.push_back(pfx + "_in" + jalib::XToString(i) + ".dat");
   for(int i=_main->numOutputs(); i-->0;)
     tmp.push_back(pfx + "_out" + jalib::XToString(i) + ".dat");
-  _main->reallocate(_randSize);
-  _main->randomize();
-  _main->writeInputs(tmp);
-  _main->writeOutputs(tmp);
+  return tmp;
 }
 
-void petabricks::PetabricksRuntime::iogenRun(const std::string& pfx){
-  std::vector<std::string> files;
-  std::vector<std::string> nulls(_main->numArgs(), DEVNULL);
-  for(int i=_main->numInputs(); i-->0;)
-    files.push_back(pfx + "_in" + jalib::XToString(i) + ".dat");
-  for(int i=_main->numOutputs(); i-->0;)
-    files.push_back(pfx + "_out" + jalib::XToString(i) + ".dat");
-  double t = jalib::maxval<double>();
-  _main->readInputs(files);
-  _main->readOutputs(files);
-  try{
-    DummyTestIsolation ti;
-    t=computeWrapper(ti);
-  }catch(...){
-    UNIMPLEMENTED();
-  }
+void petabricks::PetabricksRuntime::iogenCreate(const std::vector<std::string>& files){
+  _main->reallocate(_randSize);
+  _main->randomize();
+  _main->writeInputs(files);
+  _main->writeOutputs(files);
+}
+
+void petabricks::PetabricksRuntime::iogenRun(const std::vector<std::string>& files){
+  SubprocessTestIsolation sti(GRAPH_MAX_SEC);
+  static DummyTestIsolation dti;
+  TestIsolation* ti;
+  if(ISOLATION) ti = &sti;
+  else          ti = &dti;
+  computeWrapper(*ti, -1, -1, &files);
 }
 
 static const char* _uniquifyatlogname() {
@@ -656,13 +652,13 @@ double petabricks::PetabricksRuntime::trainAndComputeWrapper(TestIsolation& ti, 
   }
 }
 
-double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, int retries){
+double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, int retries, const std::vector<std::string>* files){
   double v, acc=jalib::maxval<double>();
   jalib::Hash hash;
   try{
     if(ti.beginTest(worker_threads)){
       try {
-        computeWrapperSubproc(ti, n, v, acc, hash);
+        computeWrapperSubproc(ti, n, v, acc, hash, files);
       } catch(petabricks::DynamicScheduler::AbortException) {
         v=jalib::maxval<double>();
         _isRunning = false;
@@ -692,11 +688,18 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
   return v;
 }
   
-void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti, int n, double&  time, double&  acc, jalib::Hash& hash){
+void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
+                                                          int n,
+                                                          double& time,
+                                                          double& acc,
+                                                          jalib::Hash& hash,
+                                                          const std::vector<std::string>* files
+                                                          ){
   if(_isTrainingRun && _main->isVariableAccuracy()){
     variableAccuracyTrainingLoop(ti);
   }
   if(n>0){
+    JASSERT(files==NULL);
     JTIMER_SCOPE(randomize);
     JASSERT(n==_randSize);
     ti.disableTimeout();
@@ -704,6 +707,9 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti, int
     _main->reallocate(n);
     _main->randomize();
     ti.restartTimeout();
+  }else if(files!=NULL){
+    _main->readInputs(*files);
+    _main->readOutputs(*files);
   }
   _needTraingingRun = false;//reset flag set by isTrainingRun()
   _isRunning = true;
