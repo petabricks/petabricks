@@ -36,6 +36,9 @@
 /* verbose debug printouts and log files in /tmp */
 #undef DEBUG
 
+/* accuracy stand-in for fixed-accuracy rules */
+#undef DEFAULT_ACCURACY
+
 /* null sync device path */
 #undef DEVNULL
 

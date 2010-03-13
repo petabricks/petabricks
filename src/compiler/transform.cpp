@@ -832,7 +832,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     else
       o.write("return _acc.cell();");
   }else{
-    o.write("return jalib::maxval<ElementT>();");
+    o.write("return " DEFAULT_ACCURACY ";");
   }
   o.endFunc();
   
@@ -840,7 +840,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   if(!_accuracyBins.empty()){
     o.write("return ACCURACY_TARGET;");
   }else{
-    o.write("return jalib::minval<ElementT>();");
+    o.write("return " DEFAULT_ACCURACY ";");
   }
   o.endFunc();
   
