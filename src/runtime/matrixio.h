@@ -64,6 +64,7 @@ public:
   /// Read a D-dimensional matrix from _fd
   template<int D>
   MatrixRegion<D, MATRIX_ELEMENT_T> read(){
+    JASSERT(_fd != 0);
     MatrixReaderScratch o;
     _read(o);
     JASSERT(o.dimensions==D)(o.dimensions)(D)
@@ -101,6 +102,7 @@ private:
 /// Write a given matrix to _fd
 template<int D, typename T>
 inline void petabricks::MatrixIO::write(MatrixRegion<D,T> m){
+  if(_fd==0)     return;
   if(_fd==stdin) _fd=stdout;
   fprintf(_fd,"SIZE");
   for(int i=0; i<D; ++i)

@@ -75,6 +75,7 @@ public:
     ///
     /// Read inputs from disk
     virtual void readInputs(ArgListT) = 0;
+    virtual void readOutputs(ArgListT) = 0;
 
     ///
     /// Perform the computation

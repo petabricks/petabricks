@@ -20,7 +20,10 @@ petabricks::MatrixIO::MatrixIO(const char* filename, const char* mode)
   JTRACE("MatrixIO")(filename)(mode);
   if(std::string("-")==filename) 
     _fd = stdin;
-  else 
+  else if(std::string("/dev/null")==filename){
+    _fd = 0;
+    return;
+  }else 
     _fd = fopen(filename,mode);
   JASSERT(_fd!=NULL)(filename)(mode).Text("failed to open file");
 }

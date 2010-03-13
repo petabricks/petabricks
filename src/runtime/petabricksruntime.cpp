@@ -243,10 +243,10 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   }else if(args.param("graph-template").help("graph run time for each template instance")){
     MODE=MODE_GRAPH_TEMPLATE;
   }else if(args.param("iogen-create", IOGEN_PFX).help("generate a set of random inputs with the given prefix")){
-    JASSERT(_randSize>0).Text("-n=... required");
+    JASSERT(_randSize>=0).Text("-n=... required");
     MODE=MODE_IOGEN_CREATE;
   }else if(args.param("iogen-run", IOGEN_PFX).help("run a set of random inputs generated with --iogen-create")){
-    JASSERT(_randSize>0).Text("-n=... required");
+    JASSERT(_randSize<0).Text("-n=... conflicts with --iogen-run");
     MODE=MODE_IOGEN_RUN;
   }
   
@@ -452,8 +452,22 @@ void petabricks::PetabricksRuntime::iogenCreate(const std::string& pfx){
   _main->writeOutputs(tmp);
 }
 
-void petabricks::PetabricksRuntime::iogenRun(const std::string& ){
-  UNIMPLEMENTED();
+void petabricks::PetabricksRuntime::iogenRun(const std::string& pfx){
+  std::vector<std::string> files;
+  std::vector<std::string> nulls(_main->numArgs(), DEVNULL);
+  for(int i=_main->numInputs(); i-->0;)
+    files.push_back(pfx + "_in" + jalib::XToString(i) + ".dat");
+  for(int i=_main->numOutputs(); i-->0;)
+    files.push_back(pfx + "_out" + jalib::XToString(i) + ".dat");
+  double t = jalib::maxval<double>();
+  _main->readInputs(files);
+  _main->readOutputs(files);
+  try{
+    DummyTestIsolation ti;
+    t=computeWrapper(ti);
+  }catch(...){
+    UNIMPLEMENTED();
+  }
 }
 
 static const char* _uniquifyatlogname() {

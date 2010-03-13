@@ -620,7 +620,6 @@ void petabricks::Transform::registerMainInterface(CodeGenerator& o){
 void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::string& nextMain){ 
   std::vector<std::string> argNames = normalArgNames();
   
-  int a = 0;
   o.beginClass(_name+"_main", "petabricks::PetabricksRuntime::Main");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->varDeclCodeRO(o);
@@ -667,6 +666,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
 
   o.beginFunc("void", "readInputs", std::vector<std::string>(1, "ArgListT argv"));
   {
+    int a=0;
     for( OrderedFreeVars::const_iterator i=_parameters.begin()
        ; i!=_parameters.end()
        ; ++i )
@@ -682,6 +682,15 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     extractSizeDefines(o, t, TRANSFORM_N_STR"()");
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
       (*i)->allocateTemporary(o, true, false);
+    }
+  }
+  o.endFunc();
+  
+  o.beginFunc("void", "readOutputs", std::vector<std::string>(1, "ArgListT argv"));
+  {
+    int a=(int)_from.size();
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
     }
   }
   o.endFunc();
@@ -744,22 +753,26 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     }
   }
   o.endFunc();
+  
+
+  o.beginFunc("void", "writeInputs", std::vector<std::string>(1, "ArgListT argv"));
+  {
+    int a=0;
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
+    }
+  }
+  o.endFunc();
 
   o.beginFunc("void", "writeOutputs", std::vector<std::string>(1, "ArgListT argv"));
   {
+    int a=(int)_from.size();
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
       (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
     }
   }
   o.endFunc();
   
-  o.beginFunc("void", "writeInputs", std::vector<std::string>(1, "ArgListT argv"));
-  {
-    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
-    }
-  }
-  o.endFunc();
   
   std::vector<std::string> outputArgTypes;
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
