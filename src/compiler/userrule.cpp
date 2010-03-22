@@ -1,3 +1,5 @@
+//#define FORCE_OPENCL
+
 /***************************************************************************
  *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
@@ -16,6 +18,7 @@
 #include "staticscheduler.h"
 #include "transform.h"
 #include "syntheticrule.h"
+#include "gpurule.h"
 
 #include "common/jconvert.h"
 
@@ -273,6 +276,9 @@ void petabricks::UserRule::performExpansion(Transform& trans){
       trans.addRule(new DuplicateExpansionRule(this, i));
     }
   }
+ #ifdef HAVE_OPENCL
+  trans.addRule( new GpuRule( this ) );
+ #endif
 }
 
 void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& output, 
@@ -398,15 +404,18 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     o.varDecl("const IndexT "+_duplicateVars[i].name() + " = " + jalib::XToString(_duplicateVars[i].initial()));
   }
 
+  #ifdef FORCE_OPENCL
   // TEMPORARY -- hard-wire things so that the OpenCL rule is always called
   if( E_RF_STATIC == flavor )
     {
+      o.os() << "std::cout << \"Forcing OpenCL impl of rule...\\n\";\n";
       o.write("return ");
       o.call(trampcodename(trans)+TX_OPENCL_POSTFIX, packedargnames);
       o.write("}");
       return;
     }
   // END TEMPORARY
+  #endif
 
   // LOGGING
   if( E_RF_STATIC == flavor )
@@ -525,7 +534,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       // Bind rule dimension arguments to kernel.
       for( unsigned int i = 0; i < iterdef.dimensions( ); ++i )
 	{
-	  o.os( ) << "int ruledim_" << i << " = 16;\n";
+	  o.os( ) << "int ruledim_" << i << " = _iter_end[" << i << "] - _iter_begin[" << i << "];\n";
 	  o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
 	}
 
@@ -533,12 +542,12 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
 	{
 	  for( unsigned int i = 0; i < iterdef.dimensions( )-1; ++i )
-	    o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_0 );\n";
+	    o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
 	}
       for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
         {
           for( unsigned int i = 0; i < iterdef.dimensions( )-1; ++i )
-            o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_0 );\n";
+            o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
         }
 
       o.os( ) << "printf( \"- TRACE 45\\n\" );\n";
