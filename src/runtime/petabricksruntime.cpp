@@ -79,7 +79,7 @@ double petabricks::PetabricksRuntime::rand01(){
 #ifdef HAVE_BOOST_RANDOM_HPP
   return theRandomGen();
 #else
-  return drand48()
+  return drand48();
 #endif
 }
 
@@ -318,12 +318,29 @@ void petabricks::PetabricksRuntime::saveConfig()
 
 
 int petabricks::PetabricksRuntime::runMain(){
+  int err;
   JTIMER_SCOPE(runMain);
   switch(MODE){
     case MODE_RUN_IO:
+      std::cout << "- MODE_RUN_IO\n";
+#ifdef HAVE_OPENCL
+      if( 0 != ( err = OpenCLUtil::init( ) ) )
+	{
+	  std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
+	  exit( -1 );
+	}
+#endif
       runNormal();
       break;
     case MODE_RUN_RANDOM:
+      std::cout << "- MODE_RUN_RANDOM\n";
+#ifdef HAVE_OPENCL
+      if( 0 != ( err = OpenCLUtil::init( ) ) )
+	{
+	  std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
+          exit(-1 );
+        }
+#endif
       runTrial(GRAPH_MAX_SEC, ACCTRAIN);
       break;
     case MODE_GRAPH_INPUTSIZE:

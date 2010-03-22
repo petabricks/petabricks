@@ -12,6 +12,9 @@
 #ifndef PETABRICKSUSERRULE_H
 #define PETABRICKSUSERRULE_H
 
+#define STRINGIFY_INNER(x) #x
+#define STRINGIFY(x) STRINGIFY_INNER(x)
+
 #include "pbc.h"
 
 #include "clcodegenerator.h"
@@ -190,6 +193,20 @@ public:
   
   DependencyDirection getSelfDependency() const;
 
+  RegionList getFromRegions( ) const
+  {
+    return _from;
+  }
+
+  RegionList getToRegions( ) const
+  {
+    return _to;
+  }
+
+  RIRBlockCopyRef getBody( ) const
+  {
+    return _bodyirStatic;
+  }
 
   void buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional);
 private:

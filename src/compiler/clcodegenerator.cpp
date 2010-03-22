@@ -76,17 +76,17 @@ CLCodeGenerator::beginKernel( const std::vector<std::string>& outputs, const std
   JASSERT( outputs.size( ) > 0 );
   JASSERT( inputs.size( ) > 0 );
 
-  _os << "__kernel kernel_main( ";
+  _os << "__kernel void kernel_main( ";
 
   // The kernel will need a pointer to an appropriate chunk of each input and output matrix
   for( std::vector<std::string>::const_iterator it = outputs.begin( ); it != outputs.end( ); ++it )
     {
       if( it != outputs.begin( ) )
 	_os << ", ";
-      _os << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* " << *it;
+      _os << "__global " << /*STRINGIFY(MATRIX_ELEMENT_T)*/"float" << "* " << *it;
     }
   for( std::vector<std::string>::const_iterator it = inputs.begin( ); it != inputs.end( ); ++it )
-    _os << ", __global " << STRINGIFY(MATRIX_ELEMENT_T) << "* " << *it;
+    _os << ", __global " << /*STRINGIFY(MATRIX_ELEMENT_T)*/"float" << "* " << *it;
 
   // And we'll need to provide the size of the region that we want the kernel to operate on.  (This is where the 'center' of the rule will be.)
   for( unsigned int i = 0; i < dims; ++i )

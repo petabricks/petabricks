@@ -12,7 +12,7 @@
 
 #include "config.h"
 
-#if !defined(PETABRICKSOPENCLUTIL_H) && defined(HAVE_OPENCL)
+#if !defined(PETABRICKSOPENCLUTIL_H) && HAVE_OPENCL
 #define PETABRICKSOPENCLUTIL_H
 
 #include <vector>
@@ -61,6 +61,9 @@ namespace petabricks
     static void printDeviceDetails( unsigned int dev_idx,
 				    bool verbose = true );
     static cl_context getContext( );
+    static cl_command_queue getQueue( unsigned int dev_idx );
+    static cl_int buildProgram( cl_program &program );
+    static std::string errorString( cl_int error );
 
   private:
     /** Class is a singleton. */

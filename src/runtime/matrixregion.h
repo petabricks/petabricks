@@ -205,6 +205,18 @@ public:
   }
 
   ///
+  /// A region is considered normalized if it occupies the entire buffer and is organized so that
+  /// a N-dimensional buffer is laid out as sequential (N-1)-dimensional buffers.
+  MatrixRegion asNormalizedRegion( ) const
+  {
+    if( isEntireBuffer( ) )
+      return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
+
+    JASSERT( false ).Text( "MatrixRegion::asContiguousBuffer() needs impl" );
+    return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
+  }
+
+  ///
   /// Access a single cell of target matrix
   INLINE ElementT& cell(const IndexT c1[D]) const{ return *this->coordToPtr(c1); }
 
@@ -315,10 +327,11 @@ public:
 
   ///
   /// true if this region occupies the entire buffer _storage
-  bool isEntireBuffer(){
+  bool isEntireBuffer() const {
     if(D==0) return true;
     return this->storage() && this->storage()->count()==count();
   }
+
 protected:
   ///
   /// Compute the offset in _base for a given coordinate

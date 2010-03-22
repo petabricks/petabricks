@@ -1,4 +1,4 @@
-/***************************************************************************
+ /***************************************************************************
  *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
  *                                                                         *
  *  This source code is part of the PetaBricks project and currently only  *
@@ -11,9 +11,10 @@
  ***************************************************************************/
 
 #include "openclutil.h"
+#include "common/jassert.h"
 #include <iostream>
 
-#if defined(HAVE_OPENCL)
+#if HAVE_OPENCL
 
 namespace petabricks
 {
@@ -25,14 +26,21 @@ cl_context OpenCLUtil::context;
 int
 OpenCLUtil::init( )
 {
+  std::cout << "OpenCLUtil::init() begins...\n";
+
+  int err;
   char buf[1024];
 
   if( true == has_init )
     return 0;
 
   // Create context.
-  if( (cl_context)0 == ( context = clCreateContextFromType( 0, CL_DEVICE_TYPE_GPU, NULL, NULL, NULL ) ) )
+  if( (cl_context)0 == ( context = clCreateContextFromType( 0, CL_DEVICE_TYPE_GPU, NULL, NULL, &err ) ) )
     return -3;
+  if( CL_SUCCESS != err )
+    return -5;
+
+  std::cout << "Created context: " << context << "\n";
 
   // Get device count.
   cl_uint device_count;
@@ -48,6 +56,7 @@ OpenCLUtil::init( )
   for( cl_uint i = 0; i < device_count; ++i )
     {
       devices.push_back( OpenCLDevice( device_ids[i] ) );
+      std::cout << "Loading device ID: " << device_ids[i] << "\n";
       OpenCLDevice* dev_info = &devices.back( );
 
       // Name
@@ -83,14 +92,19 @@ OpenCLUtil::init( )
 
       // Create queue
       if( (cl_command_queue)0 == ( dev_info->queue =
-				   clCreateCommandQueue( context, device_ids[i], 0, NULL ) ) )
+				   clCreateCommandQueue( context, device_ids[i], 0, &err ) ) )
 	return -4;
+      if( CL_SUCCESS != err )
+	return -6;
+
+      std::cout << "Created command queue: " << dev_info->queue << "\n";
     }
 
   // Clean up.
   delete[] device_ids;
 
   has_init = true;
+  std::cout << "OpenCLUtil::init() finishes...\n";
   return 0;
 }
 
@@ -109,6 +123,12 @@ cl_context
 OpenCLUtil::getContext( )
 {
   return context;
+}
+
+cl_command_queue
+OpenCLUtil::getQueue( unsigned int dev_idx )
+{
+  return devices.at( dev_idx ).queue;
 }
 
 void
@@ -170,6 +190,97 @@ OpenCLUtil::printDeviceDetails( unsigned int dev_idx, bool verbose )
     }
 
   printDeviceDetails( devices.at( dev_idx ), verbose );
+}
+
+cl_int
+OpenCLUtil::buildProgram( cl_program &program )
+{
+  std::cout << "OpenCLUtil::buildProgram() begins...\n";
+
+  cl_int err, build_err;
+  build_err = clBuildProgram( program, 0, NULL, NULL, NULL, NULL );
+
+  // If everything went to plan, we're done.
+  if( CL_SUCCESS == build_err )
+    return CL_SUCCESS;
+
+  // Otherwise, report the error and try to get more detailed information.
+  std::cout << "Error while building program (" << build_err << "): " << OpenCLUtil::errorString( build_err ) << std::endl;
+
+  // If the program failed to build, get more detailed information about what went wrong.
+  //  cl_build_status status;
+  size_t log_size;
+  err = clGetProgramBuildInfo( program, NULL, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size );
+  JASSERT( CL_SUCCESS == err ).Text( "Failed to get build log size." );
+  char* build_log = new char[log_size+1];
+  err = clGetProgramBuildInfo( program, NULL, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size );
+  JASSERT( CL_SUCCESS == err ).Text( "Failed to get build log." );
+  build_log[log_size] = '\0'; // Add null terminator.  /** \todo is this necessary? */
+
+  std::cerr << "OpenCL kernel failed to build.  Build log:\n" << build_log << std::endl;
+
+  return build_err;
+}
+
+std::string
+OpenCLUtil::errorString( cl_int error )
+{
+  switch( error )
+    {
+    case CL_SUCCESS:
+      return "Success!";
+    case CL_DEVICE_NOT_FOUND:
+      return "Device not found.";
+    case CL_DEVICE_NOT_AVAILABLE:
+      return "Device not available.";
+    case CL_COMPILER_NOT_AVAILABLE:
+      return "Compiler not available.";
+    case CL_MEM_OBJECT_ALLOCATION_FAILURE:
+      return "Memory object allocation failure.";
+    case CL_OUT_OF_RESOURCES:
+      return "Out of resources.";
+    case CL_OUT_OF_HOST_MEMORY:
+      return "Out of host memory.";
+    case CL_PROFILING_INFO_NOT_AVAILABLE:
+      return "Profiling information not available.";
+    case CL_MEM_COPY_OVERLAP:
+      return "Memory copy overlap.";
+    case CL_IMAGE_FORMAT_MISMATCH:
+      return "Image format mismatch.";
+    case CL_IMAGE_FORMAT_NOT_SUPPORTED:
+      return "Image format not supported.";
+    case CL_BUILD_PROGRAM_FAILURE:
+      return "Build program failure.";
+    case CL_MAP_FAILURE:
+      return "Map failure.";
+    case CL_INVALID_VALUE:
+      return "Invalid value.";
+
+    case CL_INVALID_KERNEL_NAME:
+      return "Invalid kernel name.";
+    case CL_INVALID_KERNEL_DEFINITION:
+      return "Invalid kernel definition.";
+
+    case CL_INVALID_PROGRAM:
+      return "Invalid program.";
+    case CL_INVALID_DEVICE:
+      return "Invalid device.";
+    case CL_INVALID_BINARY:
+      return "Invalid binary.";
+    case CL_INVALID_BUILD_OPTIONS:
+      return "Invalid build options.";
+    case CL_INVALID_OPERATION:
+      return "Invalid operation.";
+
+    case CL_INVALID_EVENT_WAIT_LIST:
+      return "Invalid event wait list.";
+
+    case 1: // Nonstandard error sometimes returned by beta NVIDIA SDL
+      return "Nonstandard error; check that symbols are defined and that you're not using double datatype where unsupported.";
+
+    default:
+      return "[Unknown error.]";
+    }
 }
 
 OpenCLDevice::OpenCLDevice( cl_device_id _id )

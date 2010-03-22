@@ -65,7 +65,7 @@ public:
 
   ///
   /// generate a single random number
-  static double rand();
+  static MATRIX_ELEMENT_T rand();
 
   struct HashT {
     unsigned char buf[HASH_LEN];

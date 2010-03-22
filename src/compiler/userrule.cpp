@@ -398,6 +398,23 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     o.varDecl("const IndexT "+_duplicateVars[i].name() + " = " + jalib::XToString(_duplicateVars[i].initial()));
   }
 
+  // TEMPORARY -- hard-wire things so that the OpenCL rule is always called
+  if( E_RF_STATIC == flavor )
+    {
+      o.write("return ");
+      o.call(trampcodename(trans)+TX_OPENCL_POSTFIX, packedargnames);
+      o.write("}");
+      return;
+    }
+  // END TEMPORARY
+
+  // LOGGING
+  if( E_RF_STATIC == flavor )
+    {
+      o.write( "printf( \"ruleN_static applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
+    }
+  // END LOGGING
+
   if((E_RF_DYNAMIC == flavor) && !isRecursive() && !isSingleElement()){
     //shortcut
     o.comment("rule is a leaf, no sense in dynamically scheduling it");
@@ -409,60 +426,162 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     {
       // Generate CL program
       CLCodeGenerator clcodegen;
+
+      /*
+      clcodegen.os() << "__kernel void kernel_main(__global float *odata, __global float* idata, int width, int height)\n{\n"
+		     << "unsigned int xIndex = get_global_id(0);\nunsigned int yIndex = get_global_id(1);\nif (xIndex < width && yIndex < height)"
+		     << "{ unsigned int index_in  = xIndex + width * yIndex; unsigned int index_out = yIndex + height * xIndex;"
+		     << "odata[index_out] = idata[index_in];\n}\n}\n";
+      */
+      /*
+      clcodegen.os() << "__kernel void kernel_main(__global float *OUT, __global float* IN, int width, int height)\n{\n"
+                     << "unsigned int _r1_x = get_global_id(0);\nunsigned int _r1_y = get_global_id(1);\nif (_r1_x < width && _r1_y < height)"
+                     << "{ unsigned int idx_IN  = _r1_x + width * _r1_y; unsigned int idx_OUT = _r1_y + height * _r1_x;"
+                     << "OUT[idx_OUT] = IN[idx_IN];\n}\n}\n";
+      */
+      /*
+      clcodegen.os() << "__kernel void kernel_main(__global float *OUT, __global float* IN, int dim_d0, int dim_d1, int dim_IN_d0, int dim_OUT_d0 )\n{\n"
+                     << "unsigned int _r1_x = get_global_id(0);\nunsigned int _r1_y = get_global_id(1);\nif (_r1_x < dim_d0 && _r1_y < dim_d1)"
+                     << "{ unsigned int idx_IN  = _r1_x + dim_IN_d0 * _r1_y; unsigned int idx_OUT = _r1_y + dim_OUT_d0 * _r1_x;"
+                     << "OUT[idx_OUT] = IN[idx_IN];\n}\n}\n";
+      */
+      /*
+      clcodegen.os() << "__kernel void kernel_main(__global double *OUT, __global double* IN, int dim_d0, int dim_d1, int dim_IN_d0, int dim_OUT_d0 )\n{\n"
+                     << "unsigned int _r1_x = get_global_id(0);\nunsigned int _r1_y = get_global_id(1);\nif (_r1_x < dim_d0 && _r1_y < dim_d1)"
+                     << "{ unsigned int idx_IN  = _r1_x + dim_IN_d0 * _r1_y; unsigned int idx_OUT = _r1_y + dim_OUT_d0 * _r1_x;"
+                     << "OUT[idx_OUT] = IN[idx_IN];\n}\n}\n";
+      */
+      /*
+      clcodegen.os() << "__kernel void kernel_main(__global float *OUT, __global float* IN, int dim_d0, int dim_d1, int dim_IN_d0, int dim_OUT_d0 )\n{\n"
+                     << "unsigned int _r1_x = get_global_id(0);\nunsigned int _r1_y = get_global_id(1);\nif (_r1_x < dim_d0 && _r1_y < dim_d1)"
+                     << "{ unsigned int idx_IN  = _r1_x + dim_IN_d0 * _r1_y; unsigned int idx_OUT = _r1_y + dim_OUT_d0 * _r1_x;"
+                     << "OUT[idx_OUT] = 42;\n}\n}\n";
+      */
+
       generateOpenCLKernel( trans, clcodegen, iterdef );
 
       o.os( ) << "cl_int err;";
 
-      o.os( ) << "/* -- Testing purposes only, to make this easy to read --\n";
+      o.os( ) << "/* -- Testing purposes only, to make this easy to read --\n\n";
       clcodegen.outputStringTo( o.os( ) );
       o.os( ) << "\n*/\n";
 
       o.os( ) << "const char* clsrc = ";
       clcodegen.outputEscapedStringTo( o.os( ) );
-      o.os( ) << ";\nsize_t clsrclen = strlen( clsrc );\n";
+      o.os( ) << ";\n";
 
-      // Build program and create kernel
-      o.os( ) << "cl_program clprog = clCreateProgramWithSource( OpenCLUtil::getContext( ), 1, &clsrc, &clsrclen, &err );\n";
-      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create program.\" );\n";
-      o.os( ) << "err = clBuildProgram( clprog, 0, NULL, NULL, NULL, NULL );\n";
-      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to build program.\" );\n";
+      // Build program and create kernel. /** \todo Later on we will want to do this once at program load, since it can be expensive. */
+      o.comment( "Source for kernel." );
+      o.os( ) << "cl_context ctx = OpenCLUtil::getContext( );\n";
+
+      o.comment( "Build program and create kernel." );
+      o.os( ) << "size_t programlength = strlen( clsrc );\n";
+      o.os( ) << "cl_program clprog = clCreateProgramWithSource( ctx, 1, &clsrc, NULL, &err );\n";
+      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create program.\" );\n\n";
+      o.os( ) << "err = OpenCLUtil::buildProgram( clprog );\n";
+      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to build program.\" );\n\n";
+
+      o.os( ) << "printf( \"- TRACE 08\\n\" );\n";
+
       o.os( ) << "cl_kernel clkern = clCreateKernel( clprog, \"kernel_main\", &err );\n";
+      o.os( ) << "std::cout << \"clCreateKernel err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create kernel.\" );\n\n";
 
-      // Create memory objects for outputs.
-      /*
+      int arg_pos = 0;
+
+      o.os( ) << "printf( \"- TRACE 10\\n\" );\n";
+
+      // Create memory objects for outputs
+      o.comment( "Create memory objects for outputs." );
       for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
 	{
-	  o.os( ) << "cl_mem SOMEVARNAME = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " << "->bytes( ), NULL, &err );\n";
-	  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object for " << (*i)->matrix( )->name( ) << ".\" );\n";
+          o.os( ) << "MatrixRegion<2, " << STRINGIFY(MATRIX_ELEMENT_T) << "> normalized_" << (*i)->matrix( )->name( ) << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( );\n";
+          o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " <<
+            "normalized_" << (*i)->matrix( )->name( ) << ".bytes( ), (void*)" << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
+          o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object for " << (*i)->matrix( )->name( ) << ".\" );\n";
+
+	  // Bind to kernel.
+	  o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->matrix( )->name( ) << " );\n\n";
 	}
-      */
+
+      o.os( ) << "printf( \"- TRACE 20\\n\" );\n";
 
       // Create memory objects for inputs.
+      o.comment( "Create memory objects for inputs." );
       for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
 	{
-	  o.os( ) << "cl_mem SOMEVARNAME = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " << (*i)->name( ) << "->size( ), mem_buf, &err );\n";
+	  /** \todo Need to generalize this for arbitrary dimensionality */
+	  o.os( ) << "MatrixRegion<2, const " << STRINGIFY(MATRIX_ELEMENT_T) << "> normalized_" << (*i)->matrix( )->name( ) << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( );\n";
+	  o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " <<
+	    "normalized_" << (*i)->matrix( )->name( ) << ".bytes( ), (void*)" << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
 	  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for " << (*i)->matrix( )->name( ) << ".\" );\n";
+
+          // Bind to kernel.
+          o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->matrix( )->name( ) << " );\n\n";
 	}
 
-      // Bind arguments.
+      o.os( ) << "printf( \"- TRACE 40\\n\" );\n";
+
+      // Bind rule dimension arguments to kernel.
+      for( unsigned int i = 0; i < iterdef.dimensions( ); ++i )
+	{
+	  o.os( ) << "int ruledim_" << i << " = 16;\n";
+	  o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
+	}
+
+      // Bind matrix dimension arguments to kernel.
+      for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+	{
+	  for( unsigned int i = 0; i < iterdef.dimensions( )-1; ++i )
+	    o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_0 );\n";
+	}
+      for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
+        {
+          for( unsigned int i = 0; i < iterdef.dimensions( )-1; ++i )
+            o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_0 );\n";
+        }
+
+      o.os( ) << "printf( \"- TRACE 45\\n\" );\n";
 
       // Invoke kernel.
+      /** \todo Need to generalize for >1 GPUs and arbitrary dimensionality. */
+      o.comment( "Invoke kernel." );
+
+      //  need to get cnDim ( size in each dimension ) -- can probably get this from iterdef
+      // (along with dimensionality, actually, probably)
+      o.os( ) << "size_t workdim[] = { 0, 0 };\n";
+      o.os( ) << "err = clEnqueueNDRangeKernel( OpenCLUtil::getQueue( 0 ), clkern, 2, 0, workdim, 0, 0, NULL, NULL );\n";
+      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to execute kernel.\" );\n";
 
       // Copy results back to host memory.
+      o.comment( "Copy results back to host memory." );
+      for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+	{
+	  /** \todo need to generalize for >1 GPUs, should maybe think about making this nonblocking */
+	  o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_" << (*i)->matrix( )->name( ) <<
+	    ", CL_TRUE, 0, " << (*i)->matrix( )->name( ) <<  ".bytes(), " << (*i)->matrix( )->name( ) <<
+	    ".base(), 0, NULL, NULL );\n";
+	  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to read output buffer.\" );\n";
+	}
+      o.os( ) << "\n";
+/*
+clEnqueueReadBuffer(hContext, hDeviceMemC, CL_TRUE, 0,
+cnDimension * sizeof(cl_float),
+pC, 0, 0, 0);
+*/
 
-
-      // -----
+      // Free memory
+      o.comment( "Free memory." );
+      for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+	{
+	  o.os( ) << "clReleaseMemObject( devicebuf_" << (*i)->matrix( )->name( ) << " );\n";
+	}
+      for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
+	{
+	  o.os( ) << "clReleaseMemObject( devicebuf_" << (*i)->matrix( )->name( ) << " );\n";
+	}
 
       /*
-      // Trampoline will do copy-in/copy-out and invoke kernel
-      //      generateTrampCellCodeSimple( trans, o, E_RF_OPENCL );
-
-      {
-	int arg_count = 0;
-
-	// Memory allocation and copy-in.
-    
 
     // Bind arguments.
     // - out ptrs
@@ -475,19 +594,17 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     for( unsigned int i = 0; i < iterdef.dimensions( ); ++i )
       o.os( ) << "int _iter_dim[] = { };\n"
 	      << "err |= clSetKernelArg( clkern, );\n";
+      */
+
     // - matrix region dims (out, then in)
 
     // Set execution parameters.
 
     // Launch kernel.
 
-    // Copy-out.
 
-    o.write( "return NULL;" );
-    return;
-  }
-      */
-
+      o.write( "return NULL;\n}\n\n" );
+      return;
     }
   #endif
   else {
@@ -539,7 +656,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   clo.os( ) << "if( ";
   for( int i = 0; i < iterdef.dimensions( ); ++i )
     {
-      clo.os( ) << "pos_d" << i << " < dim_d" << i << " ";
+      clo.os( ) << _getOffsetVarStr( _id, i, NULL ) << " < dim_d" << i << " ";
       if( i != ( iterdef.dimensions( ) - 1 ) )
 	clo.os( ) << "&& ";
     }
@@ -584,7 +701,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   // Load inputs to rule.
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
     {
-      clo.os( ) << STRINGIFY( MATRIX_ELEMENT_T ) << " " << (*i)->name( ) << " = " << (*i)->matrix( )->name( ) << "[idx_" <<
+      clo.os( ) << /*STRINGIFY( MATRIX_ELEMENT_T )*/ "float" << " " << (*i)->name( ) << " = " << (*i)->matrix( )->name( ) << "[idx_" <<
 	(*i)->matrix( )->name( ) << "];\n";
     }
 
@@ -598,6 +715,8 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   // Generate OpenCL implementation of rule logic.
   clo.write( _bodyirOpenCL->toString( ) );
 
+  clo.os( ) << "OUT[idx_OUT] = IN[idx_IN];\n";
+
   // Close conditional and kernel.
   clo.os( ) << "}\n";
   clo.endKernel( );
@@ -607,7 +726,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
 
 void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
 
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
   JASSERT( E_RF_OPENCL != flavor );
 #endif
 

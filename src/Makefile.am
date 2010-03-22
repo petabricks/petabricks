@@ -31,6 +31,7 @@ noinst_HEADERS = \
   compiler/ruleirparser.h \
   compiler/staticscheduler.h \
   compiler/syntheticrule.h \
+  compiler/gpurule.h \
   compiler/trainingdeps.h \
   compiler/transform.h \
   compiler/userrule.h
@@ -110,6 +111,7 @@ libpbcompiler_a_SOURCES = \
   compiler/ruleirparser.ypp \
   compiler/staticscheduler.cpp \
   compiler/syntheticrule.cpp \
+  compiler/gpurule.cpp \
   compiler/trainingdeps.cpp \
   compiler/transform.cpp \
   compiler/userrule.cpp
