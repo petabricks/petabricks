@@ -33,6 +33,7 @@ petabricks::Transform::Transform()
   , _tuneId(0)
   , _scope(RIRScope::global()->createChildLayer())
   , _usesSplitSize(false)
+  , _templateChoice(-1)
 {}
 
 void petabricks::Transform::addFrom(const MatrixDefList& l){
@@ -266,12 +267,14 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
     std::string origName = _name;
     //count number of times we need to explode it
     size_t choiceCnt = tmplChoiceCount();
-    JWARNING(choiceCnt<15)(choiceCnt)(_name).Text("Explosion of choices for template... are you sure???");
+    JWARNING(choiceCnt<25)(choiceCnt)(_name).Text("Explosion of choices for template... are you sure???");
     //for each possible way
     for(size_t c=0; c<choiceCnt; ++c){
       std::string nextName = "NULL";
       if(c+1 < choiceCnt) nextName = tmplName(c+1)+"_main::instance()";
       _name = tmplName(c, &o);
+      _templateChoice = c;
+    
 
       JTRACE("generating template version")(c);
       generateCodeSimple(o, nextName);
@@ -283,6 +286,7 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
 
       _name = origName;
     }
+    _templateChoice = -1;
     genTmplJumpTable(o, true, normalArgs(), normalArgNames());
     genTmplJumpTable(o, false, normalArgs(), normalArgNames());
     o.write("typedef "+tmplName(0)+"_main "+_name+"_main;");
@@ -383,7 +387,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   std::vector<std::string> returnStyleArgs = args;
   if(_to.size()==1) returnStyleArgs.erase(returnStyleArgs.begin());
 
-  o.cg().beginTransform(_originalName, _name);
+  o.cg().beginTransform(_originalName, _name, _templateChoice);
   o.comment("Begin output for transform " + _name);
   o.newline();
   
@@ -711,14 +715,10 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   }
   o.endFunc();
 
-  o.beginFunc("void", "randomize");
+  o.beginFunc("void", "randomizeInputs");
   {
     if(_generator==""){
       for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-        o.write((*i)->name() + ".randomize();");
-      }
-      //also randomize outputs
-      for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
         o.write((*i)->name() + ".randomize();");
       }
     }else{
@@ -732,6 +732,14 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
       o.write("_gen.randomize();");
       o.call("_gen.setOutputs", args);
       o.write("_gen.compute();");
+    }
+  }
+  o.endFunc();
+  
+  o.beginFunc("void", "randomizeOutputs");
+  {
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      o.write((*i)->name() + ".randomize();");
     }
   }
   o.endFunc();
@@ -804,22 +812,8 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.endFunc();
   
   o.beginFunc("ElementT", "accuracyTarget");
-  if(!_accuracyBins.empty())
-  {
-    std::ostringstream t;
-    t << "double targets[] = {";
-    if(isAccuracyInverted())
-      printStlList(t, _accuracyBins.rbegin(), _accuracyBins.rend(), ", ");
-    else
-      printStlList(t, _accuracyBins.begin(), _accuracyBins.end(), ", ");
-    t << "};";
-    o.write(t.str());
-    if(_accuracyBins.size()==1)
-      o.write("return targets[0];");
-    else if(isAccuracyInverted())
-      o.write("return -1*targets["TEMPLATE_BIN_STR"];");
-    else
-      o.write("return targets["TEMPLATE_BIN_STR"];");
+  if(!_accuracyBins.empty()){
+    o.write("return ACCURACY_TARGET;");
   }else{
     o.write("return jalib::minval<ElementT>();");
   }
@@ -828,9 +822,26 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.beginFunc("petabricks::PetabricksRuntime::Main*", "nextTemplateMain");
   o.write("return "+nextMain+";");
   o.endFunc();
-
-  
   o.endClass();
+  
+  if(!_accuracyBins.empty()){
+    o.beginFunc("ElementT", _name+ "_"ACCTARGET_STR);
+    std::ostringstream t;
+    t << "double targets[] = {";
+    if(isAccuracyInverted()){
+      t << "-";
+      printStlList(t, _accuracyBins.rbegin(), _accuracyBins.rend(), ", -");
+    }else{
+      printStlList(t, _accuracyBins.begin(), _accuracyBins.end(), ", ");
+    }
+    t << "};";
+    o.write(t.str());
+    if(_accuracyBins.size()==1)
+      o.write("return targets[0];");
+    else
+      o.write("return targets["TEMPLATE_BIN_STR"];");
+    o.endFunc();
+  }
 }
 
 std::vector<std::string> petabricks::Transform::maximalArgList() const{

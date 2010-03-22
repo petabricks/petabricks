@@ -215,6 +215,10 @@ public:
   const ConfigItems& config() const { return _config; }
 
   void addRule(const RulePtr& rp) { _rules.push_back(rp); }
+  
+  
+  const std::string& accuracyMetric() const { return _accuracyMetric; }
+
 protected:
   static std::map<std::string, TransformPtr> theTransformMap();
 
@@ -241,6 +245,7 @@ private:
   std::string         _accuracyMetric;
   std::vector<double> _accuracyBins;
   std::string         _generator;
+  int                 _templateChoice;
 };
 
 }

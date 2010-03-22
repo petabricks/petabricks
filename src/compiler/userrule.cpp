@@ -1,4 +1,4 @@
-//#define FORCE_OPENCL
+#define FORCE_OPENCL
 
 /***************************************************************************
  *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
@@ -25,17 +25,19 @@
 #include <algorithm>
 
 
-petabricks::UserRule::UserRule(const RegionPtr& to, const RegionList& from, const FormulaList& cond)
+petabricks::UserRule::UserRule(const RegionPtr& to, const RegionList& from, const MatrixDefList& through, const FormulaList& cond)
   : _from(from)
+  , _through(through)
   , _conditions(cond)
 {
   _flags.isReturnStyle = true;
   _to.push_back(to);
 }
 
-petabricks::UserRule::UserRule(const RegionList& to, const RegionList& from, const FormulaList& cond)
+petabricks::UserRule::UserRule(const RegionList& to, const RegionList& from, const MatrixDefList& through, const FormulaList& cond)
   : _from(from)
   , _to(to)
+  , _through(through)
   , _conditions(cond)
 {
   _flags.isReturnStyle = false;
@@ -246,6 +248,11 @@ void petabricks::UserRule::initialize(Transform& trans) {
   }
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->collectDependencies(trans, *this,_provides);
+  }
+
+  //expand through() clause
+  for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
+    _bodysrc=(*i)->matrixTypeName()+" "+(*i)->name()+" = "+(*i)->allocateStr()+";\n"+_bodysrc;
   }
 
   MaximaWrapper::instance().popContext();

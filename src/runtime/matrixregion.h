@@ -159,7 +159,7 @@ public:
   ///
   /// Allocate a storage for a new MatrixRegion
   static MatrixRegion allocate(const IndexT sizes[D]) {
-    size_t s=1;
+    ssize_t s=1;
     for(int i=0; i<D; ++i)
       s*=sizes[i];
     MatrixStoragePtr tmp = new MatrixStorage(s);
@@ -292,8 +292,8 @@ public:
 
   ///
   /// Number of elements in this region
-  size_t count() const {
-    size_t s=1;
+  ssize_t count() const {
+    ssize_t s=1;
     for(int i=0; i<D; ++i)
       s*=this->sizes()[i];
     return s;
@@ -310,7 +310,7 @@ public:
 
   ///
   /// Number of elements in this region
-  size_t bytes() const {
+  ssize_t bytes() const {
     return count()*sizeof(ElementT);
   }
   

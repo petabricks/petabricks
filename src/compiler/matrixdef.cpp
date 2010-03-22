@@ -116,10 +116,14 @@ void petabricks::MatrixDef::allocateTemporary(CodeGenerator& o, bool setOnly, bo
   if(reallocAllowed)
     o.beginIf("!"+name()+".isSize("+_size.toString()+")");
 
-  o.write(name()+" = "+matrixTypeName()+"::allocate("+_size.toString()+");");
+  o.write(name()+" = "+allocateStr()+";");
 
   if(reallocAllowed)
     o.endIf();
+}
+
+std::string petabricks::MatrixDef::allocateStr() const{
+  return matrixTypeName()+"::allocate("+_size.toString()+")";
 }
 
 void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn){

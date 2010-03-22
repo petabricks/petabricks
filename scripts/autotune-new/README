@@ -1,0 +1,25 @@
+README
+
+
+I. Compiling
+
+To compile the autotuner on a Debian system, first install the necessary packages:
+
+# apt-get install ghc6 libghc6-mtl-dev libghc6-parsec-dev libghc6-haxml-dev
+
+then call make, which will produce an executable called "autotune"
+
+NOTE: the compiling instructions were tested on Ubuntu 9.10, but should 
+      work with any recent Debian-based system
+
+
+II. Running
+
+To run the autotuner, simply call the "autotune" executable. "autotuner -h" will 
+print a list of available options.
+
+When autotuning a given benchmark, make sure it has already been compiled by pbc.
+
+The autotuner periodically does a comparison against Jason's autotuner, for
+which it requires a config file named <benchmark>.cfg.jason to be present in
+the benchmark's directory.

@@ -66,9 +66,9 @@ generator POISSON2D_GENERATOR
 
         int level = (int) log2(n-1);
 
-        // for level greater than 8, just abort since
+        // for level greater than 6, just abort since
         // this will likely be slow and not the best choice
-        if (level > 8) {
+        if (level > 6) {
             PetabricksRuntime::abort();
         }
 
@@ -80,15 +80,33 @@ generator POISSON2D_GENERATOR
 
     }
 
-    //base case: solve iteratively with SOR
+    //base case: solve iteratively with SOR, no estimation
+    to(Y y) from(X x, B b) {
+
+        int level = (int) log2(n-1);
+
+        // for level greater than 6, just abort since
+        // this will likely be slow and not the best choice
+        if (level > 6) {
+            PetabricksRuntime::abort();
+        }
+
+#ifdef DEBUG
+        printf("SOR case called for n = %d, acc %d (%d iterations)\n", n, _acc_bin, numIterations);
+#endif
+
+        Poisson2DSOR(y, x, b, -1, numIterations);
+    }
+
+    //base case: solve iteratively with SOR, with estimation
     duplicate(estBin, 0, 4)
     to(Y y) from(X x, B b) {
 
         int level = (int) log2(n-1);
 
-        // for level greater than 8, just abort since
+        // for level greater than 6, just abort since
         // this will likely be slow and not the best choice
-        if (level > 8) {
+        if (level > 6) {
             PetabricksRuntime::abort();
         }
 
@@ -100,8 +118,18 @@ generator POISSON2D_GENERATOR
         Poisson2DSOR(y, y, b, -1, numIterations);
     }
 
-    //solve recursively on coarser grids
+    // solve recursively on coarser grids, no estimation
+    duplicate(recurseBin, 0, 4)
+    to (Y y) from(X x, B b) {
+#ifdef DEBUG
+        printf("(recursive %d) case called for n = %d, acc %d (%d iterations)\n",
+               recurseBin, n, _acc_bin, numIterations);
+#endif
 
+        Poisson2DMGRecurse(y, x, b, recurseBin, numIterations);
+    }
+
+    // solve recursively on coarser grids, with estimation
     duplicate(estBin, 0, 4)
     duplicate(recurseBin, 0, 4)
     to (Y y) from(X x, B b) {

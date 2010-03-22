@@ -64,7 +64,7 @@ static void clearParserCaches(){
 %type <stmt> Stmt IfStmt LoopStmt BlockStmt RawStmt ReturnStmt IntlzrStmt SwitchStmt CaseStmt
 %type <block> Block
 
-%left TOK_OP TOK_LIT TOK_IDENT TOK_IF TOK_THEN TOK_ELSE TOK_FOR TOK_WHILE TOK_DO TOK_RETURN TOK_BREAK TOK_CONTINUE TOK_RAW TOK_SWITCH TOK_CASE TOK_DEFAULT TOK_FORENOUGH
+%left TOK_OP TOK_LIT TOK_IDENT TOK_IF TOK_THEN TOK_ELSE TOK_FOR TOK_WHILE TOK_DO TOK_RETURN TOK_BREAK TOK_CONTINUE TOK_RAW TOK_SWITCH TOK_CASE TOK_DEFAULT TOK_FORENOUGH TOK_SPAWN
 
 %%
 
@@ -197,6 +197,12 @@ Call: Ident '(' OptArgs ')'  {
   $$=REFALLOC(RIRCallExpr()); 
   $$->addSubExpr($1);
   $$->addSubExpr($3);
+};
+Call: TOK_SPAWN Ident '(' OptArgs ')'  { 
+  $$=REFALLOC(RIRCallExpr()); 
+  $$->addSubExpr(REFALLOC(RIRKeywordExpr("spawn")));
+  $$->addSubExpr($2);
+  $$->addSubExpr($4);
 };
 
 Paren: '(' Expr ')' {

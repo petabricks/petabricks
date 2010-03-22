@@ -6685,7 +6685,7 @@ fi
 
 
 cat >>confdefs.h <<\_ACEOF
-#define ACCIMPROVETRIES 3
+#define ACCTARGET_STR "accuracyTarget"
 _ACEOF
 
 
@@ -6755,7 +6755,7 @@ _ACEOF
 
 
 cat >>confdefs.h <<\_ACEOF
-#define MAX_REC_LEVELS 6
+#define MAX_REC_LEVELS 12
 _ACEOF
 
 

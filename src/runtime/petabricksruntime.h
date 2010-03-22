@@ -85,7 +85,12 @@ public:
 
     ///
     /// initialize with random inputs
-    virtual void randomize() = 0;
+    virtual void randomizeInputs() = 0;
+    virtual void randomizeOutputs() = 0;
+    void randomize(){
+      randomizeInputs();
+      randomizeOutputs();
+    }
 
     virtual void deallocate() = 0;
     virtual void reallocate(int size) = 0;
@@ -122,6 +127,7 @@ public:
   void runNormal();
 
   void runGraphMode();
+  void runGraphTemplate();
 
   void runGraphParamMode(const std::string& param);
 
@@ -134,6 +140,7 @@ public:
   void runAutotuneLoop(const AutotunerList& tuners);
 
   double runTrial(TestIsolation&, bool train);
+  double runTrialNoSmoothing(TestIsolation&, bool train);
   double runTrial(double thresh, bool train);
 
   static bool isTrainingRun();

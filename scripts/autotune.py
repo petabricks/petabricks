@@ -274,6 +274,8 @@ def autotuneAlgchoice(tx, site, ctx, n, cutoffs):
     return False
 
 def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
+  mkAlgchoiceTask=lambda tx, site, ctx, n, cutoffs: TuneTask("algchoice" , lambda: autotuneAlgchoice(tx, site, ctx, n, cutoffs), getChoiceSiteWeight(tx, site, cutoffs))
+
   cutoffs = []
   ctx=tx
   if loops > 0 or passNumber>1:
@@ -283,7 +285,7 @@ def enqueueAutotuneCmds(tx, maintx, passNumber, depth, loops):
   cutoffs.extend(pbutil.getTunablesSplitSize(tx))
   choicesites = getChoiceSites(tx)
   for site in choicesites:
-    tasks.append(TuneTask("algchoice" , lambda: autotuneAlgchoice(tx, site, ctx, options.n, cutoffs), getChoiceSiteWeight(tx, site, cutoffs)))
+    tasks.append(mkAlgchoiceTask(tx,site,ctx,options.n, cutoffs))
   if len(choicesites)==0 and len(cutoffs)>0 and not options.fast:
     tasks.append(TuneTask("cutoff" , lambda: autotuneAlgchoice(tx, -1, ctx, options.n, cutoffs), len(cutoffs)))
   #for tunable in cutoffs:
@@ -310,7 +312,7 @@ def runTimingTest(tx):
   t=timingRun(tx, options.n)
   progress.remaining(0)
   if len(results)>0:
-    speedup=results[-1]/t-1.0
+    speedup=results[-1]/t
     print "* timing test... %.4f (%.2fx speedup)"%(t, speedup)
   else:
     print "* initial timing test... %.4lf s"%t
@@ -341,7 +343,13 @@ def main(argv):
   parser.add_option("-c", "--config", dest="config", default=None)
   parser.add_option("--noisolation", action="store_true", dest="noisolation", default=False)
   parser.add_option("--print", action="store_true", dest="justprint", default=False)
+  parser.add_option("--time", action="store_true", dest="time", default=False)
   parser.add_option("--acctrials", type="int", dest="acctrials", default=None)
+  parser.add_option("--accimprovetries", type="int", dest="accimprovetries", default=None)
+  parser.add_option("--trials", type="int", dest="trials", default=None)
+  parser.add_option("--trials-sec", type="float", dest="trialssec", default=None)
+  parser.add_option("--trials-max", type="int", dest="trialsmax", default=None)
+  parser.add_option("--transform", dest="transform", default=None)
   options,args = parser.parse_args()
 
   if len(args) != 1:
@@ -368,7 +376,14 @@ def main(argv):
 
   if options.acctrials is not None:
     defaultArgs.append("--acctrials=%d"%options.acctrials)
-
+  if options.trials is not None:
+    defaultArgs.append("--trials=%d"%options.trials)
+  if options.trialssec is not None:
+    defaultArgs.append("--trials-sec=%f"%options.trialssec)
+  if options.trialsmax is not None:
+    defaultArgs.append("--trials-max=%d"%options.trialsmax)
+  if options.accimprovetries is not None:
+    defaultArgs.append("--accimprovetries=%d"%options.accimprovetries)
 
   getIgnoreList()
 
@@ -384,11 +399,13 @@ def main(argv):
   #build index of transforms
   for t in infoxml.getElementsByTagName("transform"):
     transforms[nameof(t)]=t
-    if t.getAttribute("isTemplateInstance")=="yes":
-      if re.search("_0$", nameof(t)) is not None:
-        transforms[t.getAttribute("templateName")] = t
+    if t.getAttribute("templateChoice")=="0":
+      transforms[t.getAttribute("templateName")] = t
 
-  maintx = transforms[mainname()]
+  if options.transform is None:
+    maintx = transforms[mainname()]
+  else:
+    maintx = transforms[options.transform]
   
   print "Call tree:"
   walkCallTree(maintx, fnup=printTx)
@@ -400,16 +417,16 @@ def main(argv):
   if options.n <= 0:
     tasks.append(TuneTask("determineInputSizes", determineInputSizes))
     
- #if not options.justprint:
- #  tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
+  if options.time:
+    tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
 
   #build list of tasks
   if not options.fast:
     walkCallTree(maintx, lambda tx, depth, loops: enqueueAutotuneCmds(tx, maintx, 1, depth, loops))
   walkCallTree(maintx, lambda tx, depth, loops: enqueueAutotuneCmds(tx, maintx, 2, depth, loops))
   
- #if not options.justprint:
- #  tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
+  if options.time:
+    tasks.append(TuneTask("runTimingTest", lambda:runTimingTest(maintx)))
 
   progress.status("autotuning")
 

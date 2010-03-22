@@ -197,7 +197,7 @@ if test "$use_opencl" = "yes"; then
 fi
 
 
-AC_DEFINE([ACCIMPROVETRIES],     [3], [number of increments tried with no accuracy improvement])
+AC_DEFINE([ACCTARGET_STR],       ["accuracyTarget"], [var name in output code for target accuracy])
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
 AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for begin coord])
 AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
@@ -211,7 +211,7 @@ AC_DEFINE([MATRIX_INDEX_T],      [int], [type for indices into the matrix])
 AC_DEFINE([MAX_DIMENSIONS],      [64], [the maximum number of dimensions supported])
 AC_DEFINE([MAX_INPUT_BITS],      [32], [the maximum number of dimensions supported])
 AC_DEFINE([MAX_NUM_WORKERS],     [512], [max number of workers supported])
-AC_DEFINE([MAX_REC_LEVELS],      [6], [number of levels for recursive choices])
+AC_DEFINE([MAX_REC_LEVELS],      [12], [number of levels for recursive choices])
 AC_DEFINE([MIN_NUM_WORKERS],     [1], [min number of workers supported])
 AC_DEFINE([RETURN_VAL_STR],      ["_pb_rv"], [var name in output code for rule output variable])
 AC_DEFINE([RUN_CPP],             [1], [undefine to disable cpp])

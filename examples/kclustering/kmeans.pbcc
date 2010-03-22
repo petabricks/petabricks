@@ -9,7 +9,7 @@
 #include "assignclusters.pbcc"
 #include "distance.pbcc"
 #include "../simple/rollingsum.pbcc"
-
+//#include "clusterinputgen.pbcc"
 
 transform GetD
 from X[m,2], C[n,2]
@@ -48,11 +48,11 @@ generator kmeansinputgen
     int m;
 
     Copy2D(x,xin);
-    Copy1D(c.column(0), x.column(0));
+//    Copy1D(c.column(0), x.column(0));
 
-    for (m=1; m<k; m++) 
+    for (m=0; m<k; m++) 
     {
-      l = PetabricksRuntime::randInt(m,k);
+      l = PetabricksRuntime::randInt(m,n);
       Copy1D(c.column(m),x.column(l)); //new center picked
       if (l!=m) { 
         Copy1D(x.column(l), x.column(m)); 
@@ -88,8 +88,9 @@ generator kmeansinputgen
       RollingSum(dsq.region(m,n),dmin.region(m,n));
 
       //pick center with probability proportional to dmin (D(x)^2)
-      rvalue= ( (double)PetabricksRuntime::randInt() / ((double)(RAND_MAX)+(double)(1)) );
-      rvalue*=dsq.cell(n-1);
+      //rvalue= ( (double)PetabricksRuntime::randInt() / ((double)(RAND_MAX)+(double)(1)) );
+      //rvalue*=dsq.cell(n-1);
+      rvalue=PetabricksRuntime::randDouble(0,1)*dsq.cell(n-1);
       for (l=m; l<n; l++){
         if (rvalue<=dsq.cell(l)){
           Copy1D(c.column(m),x.column(l)); //new center picked
@@ -107,7 +108,7 @@ from X[n,2]    // X - x,y coordinates of n points
 through Ctemp[k,2]
 to C[k,2], A[n]   // C - centroids, A - cluster assignment, WCSS - within-cluster sum of squares  (error measures)
 accuracy_metric WCSS
-accuracy_bins 0, 0.3, 0.6, 0.9
+accuracy_bins 0.05, 0.1, 0.2, 0.5, 0.75, 0.95
 accuracy_variable k(1,1)//min=1, initial=1
 //param k
 generator kmeansinputgen
@@ -134,13 +135,53 @@ generator kmeansinputgen
 
     while (change > 0)  {//forenough?
       AssignClusters(a,change,x,c,a);
+      //printf ("change %f\n", change);
       if (change > 0) { 
+        NewClusterLocations(c, x, a);
+      }
+    }
+  }
+  
+  //iteratively find local optimum
+  to (C c, A a) from (X x, Ctemp ctemp)
+  {
+    ElementT change=1;
+    InlineCopy2D(c,ctemp);    
+
+    while (change > 0)  {//forenough?
+      AssignClusters(a,change,x,c,a);
+      //printf ("change %f\n", change);
+      if (change > n/4) { //stop when only 25% change
         NewClusterLocations(c, x, a);
       }
     }
 
   }
+ 
+  //iteratively find local optimum
+  to (C c, A a) from (X x, Ctemp ctemp)
+  {
+    ElementT change=1;
+    InlineCopy2D(c,ctemp);
 
+    while (change > 0)  {//forenough?
+      AssignClusters(a,change,x,c,a);
+      //printf ("change %f\n", change);
+      if (change > n/2) { //stop when only 50% change
+        NewClusterLocations(c, x, a);
+      }
+    }
+
+  }
+ 
+  
+  to (C c, A a) from (X x, Ctemp ctemp)
+  {
+    ElementT change=1;
+    InlineCopy2D(c,ctemp);    
+    //just once...
+    AssignClusters(a,change,x,c,a);
+  }
 }
 
 transform WCSS
@@ -156,14 +197,19 @@ to Accuracy
     int i;
     sum=0;
     for (i=0; i< n; i++) {
-      Distance(dis, x.column(i), c.column(a.cell(i)));
+      DistanceSQ(dis, x.column(i), c.column(a.cell(i)));
       sum+=dis;
     }
     
     //scale between 0 and 1:
     //assuming input is 2D-random matrix with entries from the range  0-100,
     //maximum possible distance is sqrt(20000); 
-    return 1-sum/n/sqrt(20000);
+    //sum=sum/n/sqrt(20000);
+    //sum=sum/n/100;
+    //if ( sum > 1 ) { return 0;} 
+    //else { return 1-sum;}
+
+    return sqrt(2*n/sum);
   }
 
 }
@@ -171,8 +217,7 @@ to Accuracy
 transform kmeansinputgen
 to X[n,2]
 {
-  //todo... we need something better than this
-  X.cell(i,j) from() { return PetabricksRuntime::randInt(1,100); }
+  X.cell(i,j) from() { return PetabricksRuntime::randDouble(-250,250); }
 }
 
 #endif // KMEANS_PBCC

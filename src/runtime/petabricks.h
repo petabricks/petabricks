@@ -64,6 +64,9 @@ petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& 
 
 #define IS_MISSING petabricks::is_the_missing_val
 
+#define ACCURACY_TARGET (TRANSFORM_LOCAL(accuracyTarget)())
+#define ACCURACY_BIN    (_acc_bin)
+
 namespace petabricks {
   template< typename T >
   inline DynamicTaskPtr tx_call_dynamic(T* tx){

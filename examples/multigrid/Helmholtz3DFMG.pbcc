@@ -65,7 +65,7 @@ through Z[n/2,n/2,n/2]
         // t2 gets interpolated update
         Interpolate3D(t2, r2);
         // t2 gets updated guess
-        Add3D(t2, t2, in);
+        Add3D(out, t2, in);
     }
 }
 
@@ -99,8 +99,7 @@ generator HELMHOLTZ3D_GENERATOR
 
     }
 
-    //base case: solve iteratively with SOR
-    duplicate(estBin, 0, 4)
+    //base case: solve iteratively with SOR, no estimation
     to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
                        RHS rhs, ALPHA alpha, BETA beta, DX dx)
     {
@@ -117,12 +116,47 @@ generator HELMHOLTZ3D_GENERATOR
         printf("SOR case called for n = %d, acc %d (%d iterations)\n", n, _acc_bin, numIterations);
 #endif
 
-        Helmholtz3DEstimate(out, in, a, b0, b1, b2, rhs, alpha, beta, dx, estBin);
         Helmholtz3DSOR(out, in, a, b0, b1, b2, rhs, alpha, beta, dx, -1, numIterations);
     }
 
-    //solve recursively on coarser grids
+    //base case: solve iteratively with SOR, with estimation
+    duplicate(estBin, 0, 4)
+    to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
+                       RHS rhs, ALPHA alpha, BETA beta, DX dx)
+    {
 
+        int level = (int) log2(n);
+
+        // for level greater than 5, just abort since
+        // this will likely be slow and not the best choice
+        if (level > 5) {
+            PetabricksRuntime::abort();
+        }
+
+#ifdef DEBUG
+        printf("(estimate %d, SOR) case called for n = %d, acc %d (%d iterations)\n", estBin, n, _acc_bin, numIterations);
+#endif
+
+        Helmholtz3DEstimate(out, in, a, b0, b1, b2, rhs, alpha, beta, dx, estBin);
+        Helmholtz3DSOR(out, out, a, b0, b1, b2, rhs, alpha, beta, dx, -1, numIterations);
+    }
+
+    // solve recursively on coarser grids, no estimation
+    duplicate(recurseBin, 0, 4)
+    to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
+                       RHS rhs, ALPHA alpha, BETA beta, DX dx)
+    {
+
+#ifdef DEBUG
+        printf("(recursive %d) case called for n = %d, acc %d (%d iterations)\n",
+               recurseBin, n, _acc_bin, numIterations);
+#endif
+
+        Helmholtz3DMGRecurse(out, in, a, b0, b1, b2, rhs, alpha, beta, dx,
+                             recurseBin, numIterations);
+    }
+
+    // solve recursively on coarser grids, with estimation
     duplicate(estBin, 0, 4)
     duplicate(recurseBin, 0, 4)
     to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
@@ -130,12 +164,12 @@ generator HELMHOLTZ3D_GENERATOR
     {
 
 #ifdef DEBUG
-        printf("recursive %d case called for n = %d, acc %d (%d iterations)\n",
-               recurseBin, n, _acc_bin, numIterations);
+        printf("(estimate %d, recursive %d) case called for n = %d, acc %d (%d iterations)\n",
+               estBin, recurseBin, n, _acc_bin, numIterations);
 #endif
 
         Helmholtz3DEstimate(out, in, a, b0, b1, b2, rhs, alpha, beta, dx, estBin);
-        Helmholtz3DMGRecurse(out, in, a, b0, b1, b2, rhs, alpha, beta, dx,
+        Helmholtz3DMGRecurse(out, out, a, b0, b1, b2, rhs, alpha, beta, dx,
                              recurseBin, numIterations);
     }
 }

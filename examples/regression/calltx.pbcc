@@ -15,19 +15,18 @@ to OUT[w,h]
     Add(o,i,i);
   }
   //new form
-//to(OUT o) from(IN i) {
-//  spawn Add(o,i,i);
-//}
-//to(OUT o) from(IN i) {
-//  call Add(o,i,i);
-//}
-////legacy forms:
+  to(OUT o) from(IN i) {
+    spawn Add(o,i,i);
+    sync;
+  }
+  //legacy forms:
   recursive
   to(OUT o) from(IN i) {
     SPAWN(Add, o, i, i);
+    SYNC();
   }
-//to(OUT o) from(IN i) {
-//  CALL(Add, o, i, i);
-//}
+  to(OUT o) from(IN i) {
+    CALL(Add, o, i, i);
+  }
 }
 

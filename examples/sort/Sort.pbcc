@@ -6,18 +6,7 @@
 #include "Insertionsort.pbcc"
 #include "Radixsort.pbcc"
 #include "Parallel_Mergesort.pbcc"
-
-#define WAY 4
 #include "Mergesort.pbcc"
-#undef WAY
-
-#define WAY 8
-#include "Mergesort.pbcc"
-#undef WAY
-
-#define WAY 16
-#include "Mergesort.pbcc"
-#undef WAY
 
 transform SortSubArray
 from IN[n], Pos
@@ -27,24 +16,37 @@ to OUT[n], TEMP[n]
   //{
   //  Parallel_MergesortSubArray( out, temp, in, p);
   //}
-
+  
+  rule MergeSort2
+  to (OUT out, TEMP temp) from (IN in, Pos p)
+  {
+    MergesortSubArray<1>(out, temp, in, p);
+  }
+  
   rule MergeSort4
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
-    MergesortSubArray4(out, temp, in, p);
+    MergesortSubArray<2>(out, temp, in, p);
   }
-
+  
   rule MergeSort8
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
-    MergesortSubArray8(out, temp, in, p);
+    MergesortSubArray<3>(out, temp, in, p);
   }
-
+  
   rule MergeSort16
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
-    MergesortSubArray16(out, temp, in, p);
+    MergesortSubArray<4>(out, temp, in, p);
   }
+  
+  rule MergeSort32
+  to (OUT out, TEMP temp) from (IN in, Pos p)
+  {
+    MergesortSubArray<5>(out, temp, in, p);
+  }
+
 
   rule QuickSort
   to (OUT out, TEMP temp) from (IN in, Pos p)
@@ -69,10 +71,9 @@ transform Sort
 from IN[n]
 to OUT[n]
 {
-  to (OUT out) from (IN in)
+  to (OUT out) from (IN in) using(temp[n])
   {
     Copy1D(out, in);
-    MatrixRegion1D temp = MatrixRegion1D::allocate(n);
     SortSubArray(out, temp, in, 60);
   }
 }

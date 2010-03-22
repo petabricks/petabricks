@@ -1,0 +1,590 @@
+#include "../simple/randomshuffle.pbcc"
+#include "../sort/Sort.pbcc"
+
+transform Zero to A[n] {
+  A.cell(i) from() { return 0; }
+}
+
+transform PackGen
+to Objects[n]
+{
+  // n/2 bins is always the optimal
+  // we generate objects by cutting n/2 fully packed bins in half
+  to(Objects out) from() {
+    for(int i=0; i<n; i+=2){
+      double b0 = PetabricksRuntime::randDouble(0, 1);
+      double b1 = PetabricksRuntime::randDouble(0, 1);
+      double b2 = PetabricksRuntime::randDouble(0, 1);
+      double sum=b0+b1+b2;
+      if(i+0<n) out.cell(i+0)=b0/sum;
+      if(i+1<n) out.cell(i+1)=b1/sum;
+      if(i+2<n) out.cell(i+2)=b2/sum;
+    }
+    RandomShuffle(out, out);
+  }
+}
+
+
+transform PackAcc
+from Bins[n], Assignents[n], Objects[n]
+to Accuracy
+{
+  Accuracy from(Bins b){
+    int c=0;
+    for(int i=0; i<n; ++i){
+      if(b.cell(i)!=0)
+        ++c;
+    }
+    //return (n-c)/(double)n*3;
+    return (3.0 * c)/n;
+  }
+}
+
+
+transform FirstFit
+to Bins[n], Assignments[n]
+from Objects[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins bin, Assignments asgn) from(Objects obj) {
+    Zero(bin);
+    for(int i=0; i<n; ++i){
+      bool placed=false;
+      for(int j=0; !placed && j<n; ++j){
+        if(bin.cell(j) + obj.cell(i) <= 1.0){
+          //place obj i in bin j
+          bin.cell(j) += obj.cell(i);
+          asgn.cell(i) = j;
+          placed=true;
+        }
+      }
+    }
+  }
+}
+
+
+transform FirstFitNoZero
+to Bins[n], Assignments[n]
+from Objects[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins bin, Assignments asgn) from(Objects obj) {
+    for(int i=0; i<n; ++i){
+      bool placed=false;
+      for(int j=0; !placed && j<n; ++j){
+        if (obj.cell(i) == 0) {
+          placed=true;
+        }
+        else if(bin.cell(j) + obj.cell(i) <= 1.0){
+          //place obj i in bin j
+          bin.cell(j) += obj.cell(i);
+          asgn.cell(i) = j;
+          placed=true;
+        }
+      }
+    }
+  }
+}
+
+
+
+transform LastFit
+to Bins[n], Assignments[n]
+from Objects[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins bin, Assignments asgn) from(Objects obj) {
+    Zero(bin);
+    int lastBin=0;
+    for(int i=0; i<n; ++i){
+      bool placed=false;
+      for(int j=lastBin; !placed && j>=0; --j){
+        if(bin.cell(j) + obj.cell(i) <= 1.0){
+          //place obj i in bin j
+          bin.cell(j) += obj.cell(i);
+          asgn.cell(i) = j;
+          placed=true;
+        }
+      }
+      if(!placed){
+        int j=++lastBin;
+        //place obj i in bin j
+        bin.cell(j) += obj.cell(i);
+        asgn.cell(i) = j;
+      }
+    }
+  }
+}
+
+
+transform NextFit 
+from Objects[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins bin, Assignments asgn) from(Objects obj) {
+    Zero(bin);
+    int j=0;
+    for(int i=0; i<n; ++i){
+      if(bin.cell(j) + obj.cell(i) > 1.0) j++;
+      //place obj i in bin j
+      bin.cell(j) += obj.cell(i);
+      asgn.cell(i) = j;
+    }
+  }
+}
+
+transform BestFit
+from Objects[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins bin, Assignments asgn) from(Objects obj) {
+    Zero(bin);
+    int maxBin=0;
+    for(int i=0; i<n; ++i){
+      double best=2;
+      int bestIdx=-1;
+      for(int j=0; j<=maxBin; ++j){
+        double extra = 1.0 - bin.cell(j) - obj.cell(i);
+        if(extra>=0 && extra<best){
+          bestIdx=j;
+          best=extra;
+        }
+      }
+      if(bestIdx==maxBin) ++maxBin;
+      //place obj i in bin bestIdx
+      bin.cell(bestIdx) += obj.cell(i);
+      asgn.cell(i) = bestIdx;
+    }
+  }
+}
+
+%{
+  void bubbleup(const MatrixRegion1D& heap, const MatrixRegion1D& bins, IndexT cur){
+    if(cur==0) return;
+    IndexT parent=cur/2;
+    if(bins.cell(heap.cell(cur)) < bins.cell(heap.cell(parent))){
+      std::swap(heap.cell(cur), heap.cell(parent));
+      bubbleup(heap, bins, parent);
+    }
+  }
+  
+  void bubbledown(const MatrixRegion1D& heap, const MatrixRegion1D& bins, IndexT cur){
+    IndexT left=cur*2;
+    IndexT right=cur*2+1;
+    ElementT val=bins.cell(heap.cell(cur));
+    ElementT leftVal= 1;
+    ElementT rightVal= 1;
+    if(left<heap.count()) leftVal=bins.cell(heap.cell(left));
+    if(right<heap.count()) rightVal=bins.cell(heap.cell(left));
+
+    if(left<heap.count() && leftVal<=rightVal){
+      //left side is smaller
+      if(leftVal < val){
+        std::swap(heap.cell(cur), heap.cell(left));
+        bubbledown(heap, bins, left);
+      }
+    }else if(right<heap.count()){
+      //right side is smaller
+      if(rightVal < val){
+        std::swap(heap.cell(cur), heap.cell(right));
+        bubbledown(heap, bins, right);
+      }
+    }
+  }
+
+%}
+
+transform WorstFit
+from Objects[n]
+through Heap[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins bin, Assignments asgn, Heap heap) from(Objects obj) {
+    Zero(bin);
+    Range(heap);
+    IndexT heapSize = 1;
+    for(int i=0; i<n; ++i){
+      int j=heap.cell(0);
+      if(bin.cell(j)+obj.cell(i) <= 1 ){
+        //place obj i in bin j 
+        bin.cell(j) += obj.cell(i);
+        asgn.cell(i) = j;
+        bubbledown(heap.region(0, heapSize), bin, 0);
+      }else{
+        j=heapSize++;//open new bin
+        bin.cell(j) += obj.cell(i);
+        asgn.cell(i) = j;
+        bubbleup(heap.region(0, heapSize), bin, j);
+      }
+    }
+  }
+}
+
+#define WINDOW 3
+transform AlmostWorstFit
+from Objects[n]
+through Heap[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins bin, Assignments asgn, Heap heap) from(Objects obj) {
+    Zero(bin);
+    Range(heap);
+    IndexT heapSize = 1;
+    for(int i=0; i<n; ++i){
+      int bestHeapZ = -1;
+      ElementT bestHeapVal = -1;
+
+      //check upper window of the heap
+      for(int z=std::min(heapSize-1,WINDOW); z>=0; --z){
+        int j = heap.cell(z);
+        ElementT v = bin.cell(j);
+        if(v+obj.cell(i) <= 1 && v>bestHeapVal ){
+          bestHeapZ=z;
+          bestHeapVal=v;
+        }
+      }
+          
+      if(bestHeapZ>=0){
+        int j=heap.cell(bestHeapZ);
+        //place obj i in bin j 
+        bin.cell(j) += obj.cell(i);
+        asgn.cell(i) = j;
+        bubbledown(heap.region(0, heapSize), bin, bestHeapZ);
+      }else{
+        int j=heapSize++;//open new bin
+        //JASSERT(heap.cell(j)==j);
+        bin.cell(j) += obj.cell(i);
+        asgn.cell(i) = j;
+        bubbleup(heap.region(0, heapSize), bin, j);
+      }
+    }
+  }
+}
+
+// Size classes
+#define A (1.0/2)
+#define B (1.0/3)
+#define C (1.0/4)
+#define D (1.0/5)
+#define E (1.0/6)
+#define F (11.0/71)
+#define G (0.0)
+
+#define is_A(x) (x > A)
+#define is_B(x) (x > B && x <= A)
+#define is_C(x) (x > C && x <= B)
+#define is_D(x) (x > D && x <= C)
+#define is_E(x) (x > E && x <= D)
+#define is_F(x) (x > F && x <= E)
+#define is_G(x) (x <= F)
+
+#define ASSIGN(x, bin) {bins.cell(bin) += os.cell(x); a.cell(x) = bin; os.cell(x) = 0.0; }
+#define FITS(x, bin) (os.cell(x) != 0.0 && (bins.cell(bin) + os.cell(x) <= 1.0))
+
+%{
+
+void MFFDInner(const MatrixRegion1D& bins, const MatrixRegion1D& a, const MatrixRegion1D& os){
+  const IndexT n = os.count();
+  int A_bins = 0;
+  int i;
+  int j;
+
+#ifdef MFFD_PRINT
+  printf("Step 1: ");
+  printf("%f", os.cell(0));
+  for (i = 1; i<n; i++) {
+    printf(", %f", os.cell(i));
+  }
+  printf("\n");
+#endif
+
+
+  // Step 1.
+  for (i=0; i<n; ++i) {
+    if (is_A(os.cell(i))) {
+      ASSIGN(i, A_bins);
+      A_bins++;
+    } else { 
+      break;
+    }
+  }
+
+#ifdef MFFD_PRINT
+  printf("Step 2: ");
+  printf("%f", os.cell(0));
+  for (i = 1; i<n; i++) {
+    printf(", %f", os.cell(i));
+  }
+  printf("\n");
+#endif
+
+  // Step 2.
+  bool *bin_has_B = new bool[A_bins];
+
+  int start_B = A_bins;
+  for (j=0; j<A_bins; ++j) {
+    for (i=start_B; is_B(os.cell(i)); i++) {
+      if (FITS(i, j)) {
+        ASSIGN(i, j);
+        bin_has_B[j] = true;
+      }
+    }
+  }
+
+  // Step 3.
+
+  // Find start and end of CDE classes
+  int start_CDE = -1;
+  int end_CDE = -1;
+  for (i = A_bins; i<n; ++i) {
+    if (start_CDE == -1 && os.cell(i) != 0.0 && os.cell(i) <= B) {
+      start_CDE = i;
+    }
+    if (start_CDE != -1 && os.cell(i) > E) {
+      end_CDE = i;
+    }
+  }
+
+#ifdef MFFD_PRINT
+  printf("Step 3: ");
+  printf("%f", os.cell(0));
+  for (i = 1; i<n; i++) {
+    printf(", %f", os.cell(i));
+  }
+  printf("\n");
+  printf("start_CDE: %d, end_CDE: %d\n", start_CDE, end_CDE);
+#endif
+
+  //JASSERT(start_CDE == -1 || end_CDE != -1);
+
+  if (start_CDE != -1 && end_CDE != -1) {
+    for (j=A_bins-1; j>=0; --j) {
+      if (bin_has_B[j]) 
+        continue;
+      if (start_CDE == end_CDE)
+        break;
+      if (bins.cell(j) + os.cell(end_CDE) + os.cell(end_CDE - 1) > 1.0) 
+        continue;
+
+      ASSIGN(end_CDE, j);
+      end_CDE--;
+
+      // TODO: move start_CDE up when possible
+      for (i = start_CDE; i <= end_CDE; i++) {
+        if (FITS(i, j)) {
+          ASSIGN(i, j);
+          break;
+        }
+      }
+
+      /*
+      bool found_non_assigned = false;
+      for (i = start_CDE; i <= end_CDE; i++) {
+        if (os.cell(i) == 0.0) {
+          if (!found_non_assigned)
+            start_CDE++;
+          continue;
+        }
+        found_non_assigned = true;
+        if (bins.cell(j) + os.cell(i) <= 1.0) {
+          ASSIGN(i, j);
+          break;
+        }
+      }
+      */
+    }
+  }
+
+  // Step 4.
+
+#ifdef MFFD_PRINT
+  printf("Step 4: ");
+  printf("%f", os.cell(0));
+  for (i = 1; i<n; i++) {
+    printf(", %f", os.cell(i));
+  }
+  printf("\n");
+#endif
+
+
+  // TODO: probably only need to look at things in F & G;
+  for (j=0; j<A_bins; ++j) {
+    for (i = start_B; i<n; ++i) {
+      if (FITS(i, j)) {
+        ASSIGN(i, j);
+      }
+    }
+  }
+  
+  delete[] bin_has_B;
+}
+
+%}
+
+transform ModifiedFirstFitDecreasing
+from Objects[n]
+through ObjectsSorted[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins bins, Assignments a, ObjectsSorted os) from(Objects o) {
+    ReverseSort(os, o);
+    Zero(bins);
+
+    MFFDInner(bins, a, os);
+
+    // Step 5.
+    FirstFitNoZero(bins,a,os);
+
+  }
+}
+
+
+transform ReverseSort
+from IN[n]
+through T[n]
+to OUT[n]
+{
+  to(T t) from(IN i) { Sort(t, i); }
+  OUT.cell(i) from(T.cell(n-1-i) x) { return x; }
+}
+
+transform FirstFitDecreasing
+from Objects[n]
+through ObjectsSorted[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins b, Assignments a, ObjectsSorted os) from(Objects o) {
+    ReverseSort(os, o);
+    FirstFit(b,a,os);
+  }
+}
+
+
+transform LastFitDecreasing
+from Objects[n]
+through ObjectsSorted[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins b, Assignments a, ObjectsSorted os) from(Objects o) {
+    ReverseSort(os, o);
+    LastFit(b,a,os);
+  }
+}
+
+transform NextFitDecreasing
+from Objects[n]
+through ObjectsSorted[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins b, Assignments a, ObjectsSorted os) from(Objects o) {
+    ReverseSort(os, o);
+    NextFit(b,a,os);
+  }
+}
+
+transform BestFitDecreasing
+from Objects[n]
+through ObjectsSorted[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins b, Assignments a, ObjectsSorted os) from(Objects o) {
+    ReverseSort(os, o);
+    BestFit(b,a,os);
+  }
+}
+
+transform WorstFitDecreasing
+from Objects[n]
+through ObjectsSorted[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins b, Assignments a, ObjectsSorted os) from(Objects o) {
+    ReverseSort(os, o);
+    WorstFit(b,a,os);
+  }
+}
+
+transform AlmostWorstFitDecreasing
+from Objects[n]
+through ObjectsSorted[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+{
+  to(Bins b, Assignments a, ObjectsSorted os) from(Objects o) {
+    ReverseSort(os, o);
+    AlmostWorstFit(b,a,os);
+  }
+}
+
+transform BinPacking
+from Objects[n]
+to Bins[n], Assignments[n]
+generator PackGen
+accuracy_metric PackAcc
+accuracy_bins 1.4, 1.3, 1.2, 1.1, 1.01
+{
+  to(Bins b, Assignments a) from(Objects o) {
+    FirstFit(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    LastFit(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    NextFit(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    BestFit(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    WorstFit(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    AlmostWorstFit(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    FirstFitDecreasing(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    LastFitDecreasing(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    NextFitDecreasing(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    BestFitDecreasing(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    WorstFitDecreasing(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    AlmostWorstFitDecreasing(b,a,o);
+  }
+  to(Bins b, Assignments a) from(Objects o) {
+    ModifiedFirstFitDecreasing(b,a,o);
+  }
+}
+

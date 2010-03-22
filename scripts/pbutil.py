@@ -332,9 +332,9 @@ def executeTimingRun(prog, n, args=[], limit=None):
     cmd.append(x);
   p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
 
-  if limit is not None:
-    signal.signal(signal.SIGALRM, lambda signum, frame: killSubprocess(p))
-    signal.alarm(limit)
+#  if limit is not None:
+#    signal.signal(signal.SIGALRM, lambda signum, frame: killSubprocess(p))
+#    signal.alarm(limit)
 
   # Python doesn't check if its system calls return EINTR, which is kind of
   # dumb, so we have to catch this here.
@@ -349,9 +349,9 @@ def executeTimingRun(prog, n, args=[], limit=None):
     else:
       break
 
-  if limit is not None:
-    signal.alarm(0)
-    signal.signal(signal.SIGALRM, signal.SIG_DFL)
+#  if limit is not None:
+#    signal.alarm(0)
+#    signal.signal(signal.SIGALRM, signal.SIG_DFL)
 
   if p.returncode == -15:
     raise TimingRunTimeout()
