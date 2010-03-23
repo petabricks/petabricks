@@ -122,12 +122,18 @@ OpenCLUtil::deinit( )
 cl_context
 OpenCLUtil::getContext( )
 {
+  if( false == has_init )
+    init( );
+
   return context;
 }
 
 cl_command_queue
 OpenCLUtil::getQueue( unsigned int dev_idx )
 {
+  if( false == has_init )
+    init( );
+
   return devices.at( dev_idx ).queue;
 }
 
@@ -135,10 +141,7 @@ void
 OpenCLUtil::printDeviceList( bool verbose )
 {
   if( false == has_init )
-    {
-      std::cout << "OpenCL has not been initialized.\n";
-      return;
-    }
+    init( );
 
   std::cout << "A total of " << devices.size( ) << " OpenCL device(s) have been enumerated.\n";
 

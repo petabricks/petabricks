@@ -67,7 +67,7 @@ public:
   void call(const std::string& func, const std::vector<std::string>& args);
   void setcall(const std::string& lv, const std::string& func, const std::vector<std::string>& args);
 
-  virtual void beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args = std::vector<std::string>());
+  virtual void beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args = std::vector<std::string>(), bool is_static = false);
   void endFunc();
 
   void varDecl(const std::string& var);
