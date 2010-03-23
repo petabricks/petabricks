@@ -329,7 +329,7 @@ public:
   /// true if this region occupies the entire buffer _storage
   bool isEntireBuffer() const {
     if(D==0) return true;
-    return this->storage() && this->storage()->count()==count();
+    return this->storage() && (ssize_t)this->storage()->count()==count();
   }
 
 protected:
