@@ -24,12 +24,24 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
 void
 GpuRule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region)
 {
+  o.callSpatial(codename(), region);
 }
 
 void
 GpuRule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region)
 {
+  o.mkSpatialTask(name, trans.instClassName(), codename(), region);
 }
+
+  /*
+void petabricks::UserRule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
+  o.callSpatial(trampcodename(trans)+TX_STATIC_POSTFIX, region);
+}
+
+void petabricks::UserRule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
+  o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+TX_DYNAMIC_POSTFIX, region);
+}
+  */
 
 bool
 GpuRule::canProvide(const MatrixDefPtr& m) const
