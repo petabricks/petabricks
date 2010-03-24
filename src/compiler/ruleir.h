@@ -150,6 +150,11 @@ public:
   RIRExpr* clone() const;
   std::string debugStr() const;
 
+  const std::string& str() const
+    {
+      return _str;
+    }
+
   bool isLeaf(const char* val) const{
     return _parts.empty() && _str==val;
   }

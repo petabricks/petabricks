@@ -36,10 +36,21 @@ void petabricks::GpuRenamePass::before(RIRExprCopyRef& e)
   else if( RIRNode::EXPR_OP == e->type() )
     {
       if( e->isLeaf( "." ) )
-	{
-	  std::cout << "grp: op!\n";
-	}
+	transformMemberFnCall( e );
     }
+}
+
+void petabricks::GpuRenamePass::transformMemberFnCall(RIRExprCopyRef& e)
+{
+  // Peek backwards to find out what we're operating on
+  RIRExprRef region_expr = peekExprBackward();
+  std::cout << "Member on: " << region_expr->debugStr() << std::endl;
+
+  // Peek forwards to get argument expressions
+  RIRExprRef memberfn_expr = peekExprForward();
+  std::cout << "Member fn name: " << memberfn_expr->debugStr() << std::endl;
+
+  std::cout << std::endl;
 }
 
 void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {

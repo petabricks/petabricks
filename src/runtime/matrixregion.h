@@ -331,7 +331,7 @@ public:
   }
 
   ///
-  /// Number of elements in this region
+  /// Number of bytes taken to store the elements in this region
   ssize_t bytes() const {
     return count()*sizeof(ElementT);
   }

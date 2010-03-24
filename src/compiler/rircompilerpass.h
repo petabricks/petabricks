@@ -170,7 +170,10 @@ protected:
 class GpuRenamePass : public RIRCompilerPass {
 public:
   GpuRenamePass() : RIRCompilerPass(RIRScope::global()->createChildLayer()) {}
-  void before(RIRExprCopyRef& n);
+  void before(RIRExprCopyRef& e);
+
+ protected:
+  void transformMemberFnCall(RIRExprCopyRef& e);
 };
 
 class DebugPrintPass : public RIRCompilerPass {
