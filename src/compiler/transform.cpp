@@ -34,6 +34,7 @@ petabricks::Transform::Transform()
   , _scope(RIRScope::global()->createChildLayer())
   , _usesSplitSize(false)
   , _templateChoice(-1)
+  , _curAccTarget(DEFAULT_ACCURACY)
 {}
 
 void petabricks::Transform::addFrom(const MatrixDefList& l){
@@ -75,6 +76,7 @@ void petabricks::Transform::setRules(const RuleList& l){
 }
 
 void petabricks::Transform::print(std::ostream& o) const {
+  o << "lineno " << srcPos() << std::endl;
   if(!_templateargs.empty()){ 
     o << "template < ";   printStlList(o, _templateargs.begin(), _templateargs.end(), ", "); 
     o << " > \n";
@@ -245,15 +247,24 @@ int petabricks::Transform::tmplChoiceCount() const {
   return choiceCnt;
 }
   
-std::string petabricks::Transform::tmplName(int n, CodeGenerator* o) const {
+std::string petabricks::Transform::tmplName(int n, CodeGenerator* o) {
   std::string name = _name+TMPL_IMPL_PFX;
+  _curAccTarget = DEFAULT_ACCURACY;
   int choice=n;
   //add #defines
   for(size_t i=0; i<_templateargs.size(); ++i){
     int val=(choice%_templateargs[i]->range()) + _templateargs[i]->min();
     choice/=_templateargs[i]->range();
-    if(o!=NULL)
+    if(o!=NULL){
       o->write("#define " + _templateargs[i]->name() + " " + jalib::XToString(val));
+      if(_templateargs[i]->name() == TEMPLATE_BIN_STR){
+        if(isAccuracyInverted()){
+          _curAccTarget = -(*(_accuracyBins.rbegin()+val));
+        }else{
+          _curAccTarget = (*(_accuracyBins.begin()+val));
+        }
+      }
+    }
     name += "_" + jalib::XToString(val);
   }
   JASSERT(choice==0)(choice);
@@ -387,7 +398,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   std::vector<std::string> returnStyleArgs = args;
   if(_to.size()==1) returnStyleArgs.erase(returnStyleArgs.begin());
 
-  o.cg().beginTransform(_originalName, _name, _templateChoice);
+  o.cg().beginTransform(_originalName, _name, _templateChoice, !_accuracyBins.empty(), _curAccTarget);
   o.comment("Begin output for transform " + _name);
   o.newline();
   
@@ -619,7 +630,6 @@ void petabricks::Transform::registerMainInterface(CodeGenerator& o){
 void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::string& nextMain){ 
   std::vector<std::string> argNames = normalArgNames();
   
-  int a = 0;
   o.beginClass(_name+"_main", "petabricks::PetabricksRuntime::Main");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->varDeclCodeRO(o);
@@ -664,8 +674,12 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
 
   declTransformNFunc(o);
 
-  o.beginFunc("void", "read", std::vector<std::string>(1, "ArgListT argv"));
+  int firstInput=(int)_parameters.size();
+  int firstOutput=firstInput+(int)_from.size();
+
+  o.beginFunc("void", "readInputs", std::vector<std::string>(1, "ArgListT argv"));
   {
+    int a=0;
     for( OrderedFreeVars::const_iterator i=_parameters.begin()
        ; i!=_parameters.end()
        ; ++i )
@@ -681,6 +695,15 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     extractSizeDefines(o, t, TRANSFORM_N_STR"()");
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
       (*i)->allocateTemporary(o, true, false);
+    }
+  }
+  o.endFunc();
+  
+  o.beginFunc("void", "readOutputs", std::vector<std::string>(1, "ArgListT argv"));
+  {
+    int a=firstOutput;
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
     }
   }
   o.endFunc();
@@ -743,14 +766,26 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     }
   }
   o.endFunc();
+  
 
-  o.beginFunc("void", "write", std::vector<std::string>(1, "ArgListT argv"));
+  o.beginFunc("void", "writeInputs", std::vector<std::string>(1, "ArgListT argv"));
   {
+    int a=firstInput;
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
+    }
+  }
+  o.endFunc();
+
+  o.beginFunc("void", "writeOutputs", std::vector<std::string>(1, "ArgListT argv"));
+  {
+    int a=firstOutput;
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
       (*i)->writeToFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
     }
   }
   o.endFunc();
+  
   
   std::vector<std::string> outputArgTypes;
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -807,7 +842,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     else
       o.write("return _acc.cell();");
   }else{
-    o.write("return jalib::maxval<ElementT>();");
+    o.write("return DEFAULT_ACCURACY;");
   }
   o.endFunc();
   
@@ -815,7 +850,15 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   if(!_accuracyBins.empty()){
     o.write("return ACCURACY_TARGET;");
   }else{
-    o.write("return jalib::minval<ElementT>();");
+    o.write("return DEFAULT_ACCURACY;");
+  }
+  o.endFunc();
+  
+  o.beginFunc("void", "hash", std::vector<std::string>(1,"jalib::HashGenerator& _hashgen"));
+  {
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      o.write((*i)->name() + ".hash(_hashgen);");
+    }
   }
   o.endFunc();
 
@@ -826,22 +869,10 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   
   if(!_accuracyBins.empty()){
     o.beginFunc("ElementT", _name+ "_"ACCTARGET_STR);
-    std::ostringstream t;
-    t << "double targets[] = {";
-    if(isAccuracyInverted()){
-      t << "-";
-      printStlList(t, _accuracyBins.rbegin(), _accuracyBins.rend(), ", -");
-    }else{
-      printStlList(t, _accuracyBins.begin(), _accuracyBins.end(), ", ");
-    }
-    t << "};";
-    o.write(t.str());
-    if(_accuracyBins.size()==1)
-      o.write("return targets[0];");
-    else
-      o.write("return targets["TEMPLATE_BIN_STR"];");
+    o.write("return "+jalib::XToString(_curAccTarget)+";");
     o.endFunc();
   }
+
 }
 
 std::vector<std::string> petabricks::Transform::maximalArgList() const{

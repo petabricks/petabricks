@@ -22,6 +22,9 @@
 #include "jconvert.h"
 #include "jasm.h"
 
+#undef JASSERT_CONT_A
+#undef JASSERT_CONT_B
+
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
@@ -34,19 +37,16 @@
 # undef HAVE_BACKTRACE_SYMBOLS_FD
 #endif
 
-#include <unistd.h>
 #include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fstream>
-
-#undef JASSERT_CONT_A
-#undef JASSERT_CONT_B
+#include <pthread.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 
 #if defined(HAVE_CXXABI_H) && defined(HAVE_BACKTRACE_SYMBOLS) && defined(DEBUG)
 #include <cxxabi.h>
-
 static const char* _cxxdemangle(const char* i){
   static char buf[1024];
   memset(buf, 0, sizeof(buf));
@@ -80,74 +80,131 @@ static const char* _cxxdemangle(const char* i){
   }
   return buf; 
 }
-
 #else
 #define _cxxdemangle(x) x
 #endif
 
-/* 
-   When updating value of DUP_STDERR_FD, the same value should be updated 
-   in mtcp_printf.c. The two consts must always in sync.
-*/
-static const int DUP_STDERR_FD = 826;
-static const int DUP_LOG_FD    = 827;
+static pthread_mutex_t theMutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+static jalib::JAssert::CallbackT theBeginCallback = 0;
 
-int jassert_internal::jassert_console_fd()
-{
-  //make sure stream is open
-  jassert_safe_print ( "" );
-  return DUP_STDERR_FD;
+int jalib::JAssert::onBegin(CallbackT fn){
+  theBeginCallback=fn;
+  return 0;
 }
 
-jassert_internal::JAssert& jassert_internal::JAssert::Text ( const char* msg )
+jalib::JAssert& jalib::JAssert::Text ( const char* msg )
 {
-  Print ( "Message: " );
-  Print ( msg );
-  Print ( "\n" );
+  Prefix() << "Message: " << msg;
+  EndLine();
   return *this;
 }
 
-jassert_internal::JAssert::JAssert ( bool exitWhenDone )
+jalib::JAssert::JAssert ( bool exitWhenDone )
     : JASSERT_CONT_A ( *this )
     , JASSERT_CONT_B ( *this )
     , _exitWhenDone ( exitWhenDone )
-{}
+{
+  pthread_mutex_lock(&theMutex);
+  static jalib::AtomicT next=-1;
+  _id=jalib::atomicIncrementReturn(&next);
+}
 
-jassert_internal::JAssert::~JAssert()
+jalib::JAssert& jalib::JAssert::SetContext( 
+    const char* type,
+    const char* reason,
+    const char* file,
+    const char* line,
+    const char* func,
+    const jalib::SrcPosTaggable* srcpos)
+{
+  
+#if defined(DEBUG) && defined(HAVE_BACKTRACE_SYMBOLS)
+#define MAX_BT_LEN 10
+  if ( _exitWhenDone )
+  {
+    void *addresses[MAX_BT_LEN+1];
+    int size = backtrace(addresses, MAX_BT_LEN+1);
+    char **strings = backtrace_symbols(addresses, size);
+    if(strings!=NULL){
+      Prefix() << "Stack trace:";
+      EndLine();
+
+      for(int i = 1; i < size; i++){
+        if(i<MAX_BT_LEN){
+          Prefix() << " " << i << ": " << _cxxdemangle(strings[i]);
+          EndLine();
+        }else{
+          Prefix() << "  ...";
+          EndLine();
+          break;
+        }
+      }
+      free(strings);
+      Prefix();
+      EndLine();
+    }
+  }
+#endif
+
+  if(theBeginCallback!=0){
+    (*theBeginCallback)(*this);
+  }
+
+  Prefix() << "In function " << func << " at " << jassert_basename(file) << ':' << line;
+  EndLine();
+
+#ifdef JASSERT_USE_SRCPOS
+  if(srcpos!=0){
+    Prefix() << "Source " << srcpos->srcPos();
+    EndLine();
+  }
+#endif
+
+  if(errno!=0){
+    Prefix() << "errno " << errno << ": " << JASSERT_ERRNO;
+    EndLine();
+    errno=0;
+  }
+
+  Prefix() << type << ": " << reason;
+  EndLine();
+  return *this;
+}
+
+jalib::JAssert& jalib::JAssert::Prefix(){
+  return *this << '[' << getpid() << '-' << _id << "] ";
+}
+
+jalib::JAssert& jalib::JAssert::VarName(const char* n){
+  return Prefix() << " " << n << " = ";
+}
+
+jalib::JAssert::~JAssert()
 {
   if ( _exitWhenDone )
   {
-#if defined(DEBUG) && defined(HAVE_BACKTRACE_SYMBOLS)
-    void *addresses[10];
-    int size = backtrace(addresses, 10);
-    char **strings = backtrace_symbols(addresses, size);
-    if(strings!=NULL){
-      Print( "Stack trace:\n" );
-      for(int i = 1; i < size; i++){
-        Print("  "); 
-        Print(i); 
-        Print(": ");
-        Print(_cxxdemangle(strings[i]));
-        Print("\n");
-      }
-      free(strings);
-    }
-#endif
-    Print ( "Terminating...\n" );
+    Prefix() << "Terminating...";
+    EndLine();
 #ifdef DEBUG
     jalib::Breakpoint();
 #endif
     _exit ( 1 );
   }
+  pthread_mutex_unlock(&theMutex);
 }
 
-const char* jassert_internal::jassert_basename ( const char* str )
+const char* jalib::jassert_basename ( const char* str )
 {
   for ( const char* c = str; c[0] != '\0' && c[1] !='\0' ; ++c )
     if ( c[0]=='/' )
       str=c+1;
   return str;
 }
+
+#ifndef JASSERT_FAST
+static const int DUP_STDERR_FD = 826;
+static const int DUP_LOG_FD    = 827;
+static FILE* theLogFile = NULL;
 
 static FILE* _fopen_log_safe ( const char* filename, int protectedFd )
 {
@@ -166,11 +223,9 @@ static FILE* _fopen_log_safe ( const std::string& s, int protectedFd )
   return _fopen_log_safe ( s.c_str(), protectedFd ); 
 }
 
-static FILE* theLogFile = NULL;
-
 static std::string& theLogFilePath() {static std::string s;return s;};
 
-void jassert_internal::set_log_file ( const std::string& path )
+void jalib::set_log_file ( const std::string& path )
 {
   theLogFilePath() = path;
   if ( theLogFile != NULL ) fclose ( theLogFile );
@@ -203,7 +258,14 @@ static FILE* _initJassertOutputDevices()
     return fdopen ( dup2 ( fileno ( stderr ),DUP_STDERR_FD ),"w" );;;
 }
 
-void jassert_internal::jassert_safe_print ( const char* str )
+int jalib::jassert_console_fd()
+{
+  //make sure stream is open
+  jassert_safe_print ( "" );
+  return DUP_STDERR_FD;
+}
+
+void jalib::jassert_safe_print ( const char* str )
 {
   static FILE* errconsole = _initJassertOutputDevices();
 
@@ -223,22 +285,22 @@ void jassert_internal::jassert_safe_print ( const char* str )
     fflush ( theLogFile );
   }
 
-// #ifdef DEBUG
-//     static pid_t logPd = -1;
-//     static FILE* log = NULL;
-//
-//     if(logPd != getpid())
-//     {
-//         if(log != NULL) fclose(log);
-//         logPd = getpid();
-//         log = _fopen_log_safe(("/tmp/jassertlog." + jalib::XToString(logPd)).c_str());
-//     }
-//
-//     if(log != NULL)
-//     {
-//         fprintf(log,"%s",str);
-//         fflush(log);
-//     }
-// #endif
 }
+#else
+# ifdef JASSERT_LOG
+//JASSERT_FAST conflicts with JASSERT_LOG
+JASSERT_STATIC(false);
+# endif
+
+std::ostream& jalib::jassert_output_stream(){
+  static const char* errpath = getenv ( "JALIB_STDERR_PATH" );
+  if(errpath !=0){
+    static std::ofstream output(errpath);
+    if(output.is_open())
+      return output;
+  }
+  return std::cerr;
+}
+#endif
+
 

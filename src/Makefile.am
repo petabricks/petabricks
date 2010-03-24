@@ -21,7 +21,6 @@ noinst_HEADERS = \
   compiler/maximawrapper.h \
   compiler/pbc.h \
   compiler/pbparser.h \
-  compiler/performancetester.h \
   compiler/region.h \
   compiler/rircompilerpass.h \
   compiler/rirscope.h \
@@ -37,6 +36,7 @@ noinst_HEADERS = \
   compiler/userrule.h
 
 pkglib_HEADERS=  \
+  common/hash.h \
   common/jalloc.h \
   common/jargs.h \
   common/jasm.h \
@@ -51,6 +51,7 @@ pkglib_HEADERS=  \
   common/jsocket.h \
   common/jtimer.h \
   common/jtunable.h \
+  common/srcpos.h \
   common/thedeque.h \
   runtime/autotuner.h \
   runtime/dynamicscheduler.h \
@@ -80,7 +81,8 @@ libpbcommon_a_SOURCES =  \
   common/jserialize.cpp \
   common/jsocket.cpp \
   common/jtimer.cpp \
-  common/jtunable.cpp
+  common/jtunable.cpp \
+  common/srcpos.cpp
 
 libpbcompiler_a_LFLAGS = 
 libpbcompiler_a_YFLAGS = -d
@@ -100,7 +102,6 @@ libpbcompiler_a_SOURCES = \
   compiler/maximawrapper.cpp \
   compiler/pblexer.lpp \
   compiler/pbparser.ypp \
-  compiler/performancetester.cpp \
   compiler/region.cpp \
   compiler/rircompilerpass.cpp \
   compiler/rirscope.cpp \

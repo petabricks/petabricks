@@ -227,7 +227,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
           f=MAXIMA.min(f, criticalPoint);
       }
       
-      JTRACE("where clause handled")(*i)(criticalPoint)(_applicableRegion);
+      JTRACE("where clause handled")(*i)(criticalPoint)(_applicableRegion)(smaller)(eq)(larger);
     }else{
       //test if we can statically prove it
       int rslt = MAXIMA.is((*i)->printAsAssumption());
@@ -429,10 +429,12 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     {
       o.write( "printf( \"ruleN_static applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
     }
+  #ifdef HAVE_OPENCL
   else if( E_RF_OPENCL == flavor )
     {
       o.write( "printf( \"ruleN_opencl applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
     }
+  #endif
   // END LOGGING
 
   if((E_RF_DYNAMIC == flavor) && !isRecursive() && !isSingleElement()){
@@ -461,33 +463,37 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       // Create memory objects for outputs
       o.comment( "Create memory objects for outputs." );
       for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-	{
-          o.os( ) << "MatrixRegion<2, " << STRINGIFY(MATRIX_ELEMENT_T) << "> normalized_" << (*i)->matrix( )->name( ) << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( );\n";
-          o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " <<
-            "normalized_" << (*i)->matrix( )->name( ) << ".bytes( ), (void*)" << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
-          o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object for " << (*i)->matrix( )->name( ) << ".\" );\n";
+      {
+          o.os( ) << "MatrixRegion2D normalized_" << (*i)->matrix( )->name( ) 
+                  << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( false );\n";
+          o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) 
+                  << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
+                  << "normalized_" << (*i)->matrix( )->name( ) << ".bytes( ),"
+                  << "(void*) normalized_" << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
+          o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object\");\n";
 
-	  // Bind to kernel.
-	  o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->matrix( )->name( ) << " );\n\n";
-	}
+          // Bind to kernel.
+          o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->matrix( )->name( ) << " );\n\n";
+      }
 
       //      o.os( ) << "printf( \"- TRACE 20\\n\" );\n";
 
       // Create memory objects for inputs.
       o.comment( "Create memory objects for inputs." );
       for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
-	{
-	  o.os( ) << "JASSERT( " << (*i)->matrix( )->name( ) << ".isEntireBuffer() ).Text( \"matrix is not entire buffer!\" );\n";
+      {
+        /** \todo Need to generalize this for arbitrary dimensionality */
+        o.os( ) << "ConstMatrixRegion2D normalized_" << (*i)->matrix( )->name( ) 
+                << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( true );\n";
+        o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) 
+                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " 
+                << "normalized_" << (*i)->matrix( )->name( ) << ".bytes( ),"
+                << "(void*) normalized_" << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->matrix( )->name( ) << ".\" );\n";
 
-	  /** \todo Need to generalize this for arbitrary dimensionality */
-	  o.os( ) << "MatrixRegion<2, const " << STRINGIFY(MATRIX_ELEMENT_T) << "> normalized_" << (*i)->matrix( )->name( ) << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( );\n";
-	  o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " <<
-	    "normalized_" << (*i)->matrix( )->name( ) << ".bytes( ), (void*)" << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
-	  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for " << (*i)->matrix( )->name( ) << ".\" );\n";
-
-          // Bind to kernel.
-          o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->matrix( )->name( ) << " );\n\n";
-	}
+        // Bind to kernel.
+        o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->matrix( )->name( ) << " );\n\n";
+      }
 
       //      o.os( ) << "printf( \"- TRACE 40\\n\" );\n";
 
@@ -574,7 +580,14 @@ pC, 0, 0, 0);
     // Set execution parameters.
 
     // Launch kernel.
-
+      
+      // Create memory objects for outputs
+      o.comment( "Copy back outputs (if they were already normalized, copyTo detects src==dst and does nothing)" );
+      for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+      {
+          o.os( ) << "normalized_" << (*i)->matrix( )->name( ) 
+                  << ".copyTo(" << (*i)->matrix( )->name( ) << ");\n";
+      }
 
       o.write( "return NULL;\n}\n\n" );
       return;

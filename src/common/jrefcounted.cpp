@@ -18,9 +18,9 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "jrefcounted.h"
-
-namespace jalib {
-
-
-
+#include "jassert.h"
+  
+void jalib::_JRefAbort(const char* msg){
+  JASSERT(false)(msg);
 }
+

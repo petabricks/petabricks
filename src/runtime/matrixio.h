@@ -64,6 +64,7 @@ public:
   /// Read a D-dimensional matrix from _fd
   template<int D>
   MatrixRegion<D, MATRIX_ELEMENT_T> read(){
+    JASSERT(_fd != 0);
     MatrixReaderScratch o;
     _read(o);
     JASSERT(o.dimensions==D)(o.dimensions)(D)
@@ -101,6 +102,7 @@ private:
 /// Write a given matrix to _fd
 template<int D, typename T>
 inline void petabricks::MatrixIO::write(MatrixRegion<D,T> m){
+  if(_fd==0)     return;
   if(_fd==stdin) _fd=stdout;
   fprintf(_fd,"SIZE");
   for(int i=0; i<D; ++i)
@@ -109,19 +111,14 @@ inline void petabricks::MatrixIO::write(MatrixRegion<D,T> m){
   MatrixStorage::IndexT coord[D];
   memset(coord, 0, sizeof coord);
   if(D>0){
-    while(coord[D-1] < m.size(D-1)){
+    for(;;){
       fprintf(_fd,"%4.8g ", (double) m.cell(coord));
-      //get next coord
-      coord[0]++;
-      for(int i=0; i<D-1; ++i){
-        if(coord[i] >= m.size(i)){
-          coord[i]=0;
-          coord[i+1]++;
-          fprintf(_fd,"\n");
-        }else
-          break;
-      }
+      int z=m.incCoord(coord);
+      if(z<0) break;
+      while(z-->0)
+        fprintf(_fd,"\n");
     }
+    fprintf(_fd,"\n");
   }else{ //0D case
     fprintf(_fd,"%4.8g", (double) m.cell(coord));
   }

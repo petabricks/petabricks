@@ -19,12 +19,15 @@ eigenproblem/QRtridiag
 eigenproblem/trial1
 eigenproblem/trial2
 kclustering/assignclusters
+kclustering/clusterinputgen
 kclustering/copy
 kclustering/distance
 kclustering/kmeans
 kclustering/newclusterlocations
 kernel/KernelEstimate
 kernel/LinearSolvePosDef
+LUdense/LUdense
+LUdense/trilsolve
 matrixapproximation/Bisection
 matrixapproximation/matrixapprox
 multigrid/ComputeError2D
@@ -77,6 +80,7 @@ preconditioner/jacobipreInterior
 preconditioner/jacobipre
 preconditioner/PCGInterior
 preconditioner/PCG
+preconditioner/poissongen
 preconditioner/poissonprecond
 preconditioner/polypre
 preconditioner/preconditioner
@@ -107,9 +111,11 @@ regression/scaleup
 regression/templatetest
 regression/testruleir
 regression/throughclause
+regression/transposequads
 regression/tunoutputn
 regression/txconstants
 regression/upleftdep
+regression/whereclause2
 regression/whereclause
 rootsolve/evalf
 rootsolve/rootsolve

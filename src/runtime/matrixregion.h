@@ -13,6 +13,7 @@
 #define PETABRICKSMATRIX_H
 
 #include "matrixstorage.h"
+#include "common/hash.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -207,13 +208,34 @@ public:
   ///
   /// A region is considered normalized if it occupies the entire buffer and is organized so that
   /// a N-dimensional buffer is laid out as sequential (N-1)-dimensional buffers.
-  MatrixRegion asNormalizedRegion( ) const
+  MatrixRegion asNormalizedRegion( bool copyData = true ) const
   {
     if( isEntireBuffer( ) )
       return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
 
-    JASSERT( false ).Text( "MatrixRegion::asContiguousBuffer() needs impl" );
-    return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
+    MutableMatrixRegion t = MutableMatrixRegion::allocate((IndexT*)this->sizes());
+    if( copyData ) {
+      IndexT coord[D];
+      memset(coord, 0, sizeof coord);
+      do {
+        t.cell(coord) = this->cell(coord);
+      } while(this->incCoord(coord)>0);
+    }
+    return t;
+  }
+  
+  ///
+  /// Copy that data of this to dst
+  void copyTo(const MutableMatrixRegion& dst)
+  {
+    if(this->base() == dst.base())
+      return;
+    JASSERT(this->count()==dst.count());
+    IndexT coord[D];
+    memset(coord, 0, sizeof coord);
+    do {
+      dst.cell(coord) = this->cell(coord);
+    } while(this->incCoord(coord)>0);
   }
 
   ///
@@ -332,6 +354,41 @@ public:
     return this->storage() && (ssize_t)this->storage()->count()==count();
   }
 
+  ///
+  /// increment a raw coord in ascending order
+  /// return largest dimension incremented or -1 for end
+  int incCoord(IndexT coord[D]) const{
+    if(D==0) 
+     return -1;
+    int i;
+    coord[0]++;
+    for(i=0; i<D-1; ++i){
+      if(coord[i] >= this->size(i)){
+        coord[i]=0;
+        coord[i+1]++;
+      }else{
+        return i;
+      }
+    }
+    if(coord[D-1] >= this->size(D-1)){
+      return -1;
+    }else{
+      return D-1;
+    }
+  }
+
+  ///
+  /// hash the content of this to gen
+  void hash(jalib::HashGenerator& gen) const{
+    if(this->count()>0){
+      IndexT coord[D];
+      memset(coord, 0, sizeof coord);
+      do {
+        gen.update(this->coordToPtr(coord), sizeof(ElementT));
+      } while(this->incCoord(coord)>0);
+    }
+  }
+  
 protected:
   ///
   /// Compute the offset in _base for a given coordinate

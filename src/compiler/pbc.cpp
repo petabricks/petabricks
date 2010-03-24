@@ -11,6 +11,7 @@
  ***************************************************************************/
 
 #include "codegenerator.h"
+#include "maximawrapper.h"
 #include "transform.h"
 
 #include "common/jargs.h"
@@ -124,9 +125,11 @@ int main( int argc, const char ** argv){
   std::ofstream of(theOutputCode.c_str());
   std::ofstream infofile(theOutputInfo.c_str());
   CodeGenerator o;
+  o.cg().beginGlobal();
 #ifdef SINGLE_SEQ_CUTOFF
   o.createTunable(true, "system.cutoff.sequential", "sequentialcutoff", 64);
 #endif
+  o.cg().endGlobal();
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
     (*i)->generateCode(o);
   }
@@ -164,6 +167,11 @@ int main( int argc, const char ** argv){
   o.cg().dumpTo(infofile);
   infofile.flush();
   infofile.close();
+
+#ifdef DEBUG
+  MAXIMA.sanityCheck();
+#endif
+
   if(shouldCompile)
     callCxxCompiler();
 

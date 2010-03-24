@@ -17,6 +17,10 @@
 #include "common/jrefcounted.h"
 #include "common/jtunable.h"
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -139,7 +143,7 @@ private:
 
 class Autotuner : public jalib::JRefCounted {
 public:
-  Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main* m, const std::string& prefix, const std::vector<std::string>& extraCutoffs, const char* logfile = "/dev/null");
+  Autotuner(PetabricksRuntime& rt, PetabricksRuntime::Main* m, const std::string& prefix, const std::vector<std::string>& extraCutoffs, const char* logfile = DEVNULL);
   jalib::JTunable* algTunable(int lvl);
   jalib::JTunable* cutoffTunable(int lvl);
 

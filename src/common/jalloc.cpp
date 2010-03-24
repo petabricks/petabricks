@@ -104,6 +104,7 @@ void* jalib::JAllocRaw::allocate(size_t n) {
 void jalib::JAllocRaw::deallocate(void* ptr, size_t n) {
 #if defined(JALIB_USE_MALLOC) || !defined(HAVE_MMAP) || !defined(JALIB_ALLOCATOR)
   free(ptr);
+  (void)n;//make n "used"
 #else
   if(ptr==0 || n==0) return;
   int rv = munmap(ptr, n);

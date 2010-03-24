@@ -42,7 +42,7 @@ static int forkopen(void (*fn)()){
 }
 
 static void launchMaxima(){
-  const char* args[]= {"maxima","-q","--disable-readline", NULL};
+  const char* args[]= {MAXIMA_PATH,"-q","--disable-readline", NULL};
   execvp(args[0],(char**)args);
   JASSERT(false)(JASSERT_ERRNO).Text("exec(maxima) failed");
 }
@@ -108,7 +108,14 @@ petabricks::MaximaWrapper::MaximaWrapper()
   _fd = forkopen(&launchMaxima);
 #endif
   maximain = fdopen(_fd, "rw");
+  readFormulaFromMaxima();//initial prompt
+#ifdef DEBUG
+  sanityCheck();
+#endif
   runCommand(theInitCode);
+#ifdef DEBUG
+  sanityCheck();
+#endif
 }
 
 petabricks::MaximaWrapper::~MaximaWrapper()
@@ -122,11 +129,7 @@ petabricks::FormulaListPtr petabricks::MaximaWrapper::runCommand(const char* cmd
   JASSERT(write(_fd, cmd, len)==len)(cmd)(JASSERT_ERRNO);
   JASSERT(write(_fd, endCommand, sizeof endCommand-1)==sizeof endCommand-1)(cmd)(JASSERT_ERRNO);
   fsync(_fd);
-//  JTRACE("Maxima query")(cmd);
   petabricks::FormulaListPtr result = readFormulaFromMaxima();
-//   #ifdef DEBUG
-//     JASSERT_STDERR << "     result = " << result << "\n";
-//   #endif
   return result;
 }
 

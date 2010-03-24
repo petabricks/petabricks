@@ -162,6 +162,7 @@ public:
 
 
   void debugPrint() const;
+  void debugPrint(jalib::JAssert&) const;
 private:
   WorkerThread* _pool[MAX_NUM_WORKERS];
   int _count;
