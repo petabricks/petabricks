@@ -74,39 +74,41 @@ void petabricks::UserRule::setBody(const char* str){
   _bodysrc[_bodysrc.length()-1] = ' ';
 }
 
-void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& scope){
-  RIRBlockCopyRef bodyir = RIRBlock::parse(_bodysrc);
-#ifdef DEBUG
-  std::cerr << "BEFORE compileRuleBody:\n" << bodyir << std::endl;
-  {
-    DebugPrintPass p1;
-    bodyir->accept(p1);
+void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope){
+  RIRScopePtr scope = parentScope.createChildLayer();
+  for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
+    (*i)->addArgToScope(scope);
   }
+  for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
+    (*i)->addArgToScope(scope);
+  }
+  DebugPrintPass    print;
+  ExpansionPass     expand(tx, *this, scope);
+  AnalysisPass      analysis(*this, tx.name(), scope);
+  OpenClCleanupPass opencl(*this, scope);
+  RIRBlockCopyRef   bodyir = RIRBlock::parse(_bodysrc);
+
+#ifdef DEBUG
+  std::cerr << "--------------------\nBEFORE compileRuleBody:\n" << bodyir << std::endl;
+  bodyir->accept(print);
   std::cerr << "--------------------\n";
 #endif
-  {
-    ExpansionPass p2(tx, *this, scope.createChildLayer());
-    bodyir->accept(p2);
-  }
-  {
-    AnalysisPass p3(*this, tx.name(), scope.createChildLayer());
-    bodyir->accept(p3);
-  }
+
+  bodyir->accept(expand);
+  bodyir->accept(analysis);
 
   _bodyirStatic = bodyir;
- #ifdef DEBUG
-  std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
-  {
-    DebugPrintPass p1;
-    bodyir->accept(p1);
-  }
-  std::cerr << "--------------------\n";
-#endif
-  
   _bodyirDynamic = bodyir;
-
+  
 #ifdef HAVE_OPENCL
+  bodyir->accept(opencl);
   _bodyirOpenCL = bodyir;
+#endif
+
+#ifdef DEBUG
+  std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
+  bodyir->accept(print);
+  std::cerr << "--------------------\n";
 #endif
 }
 

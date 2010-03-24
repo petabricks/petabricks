@@ -160,4 +160,5 @@ namespace petabricks {
   }
 }
 
+#define REGION_METHOD_CALL( region, method, args... )  region . method ( args )
 

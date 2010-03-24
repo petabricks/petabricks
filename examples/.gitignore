@@ -19,6 +19,7 @@ eigenproblem/QRtridiag
 eigenproblem/trial1
 eigenproblem/trial2
 kclustering/assignclusters
+kclustering/clusterinputgen
 kclustering/copy
 kclustering/distance
 kclustering/kmeans
@@ -77,6 +78,7 @@ preconditioner/jacobipreInterior
 preconditioner/jacobipre
 preconditioner/PCGInterior
 preconditioner/PCG
+preconditioner/poissongen
 preconditioner/poissonprecond
 preconditioner/polypre
 preconditioner/preconditioner
@@ -117,6 +119,7 @@ simple/add
 simple/bufferrotate
 simple/copy
 simple/matrixrotate
+simple/minimalmatmul
 simple/randomshuffle
 simple/rollingsum
 simple/transpose
