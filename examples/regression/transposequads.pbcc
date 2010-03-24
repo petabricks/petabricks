@@ -1,0 +1,34 @@
+#ifndef TRANSPOSE_PBCC
+#define TRANSPOSE_PBCC
+
+transform Transpose
+from IN[w,h]
+to  OUT[h,w]
+{
+  OUT.cell(y,x) from(IN.cell(x,y) i){
+    return i;
+  }
+}
+
+transform Transpose2
+from IN[n,n]
+to  OUT[n,n]
+{
+  to(OUT.region(0,   0,   n/2, n/2) o1,
+     OUT.region(n/2, 0,   n,   n/2) o2,
+     OUT.region(0,   n/2, n/2, n)   o3,
+     OUT.region(n/2, n/2, n,   n)   o4)
+  from(IN.region(0,   0,   n/2, n/2) i1,
+       IN.region(n/2, 0,   n,   n/2) i2,
+       IN.region(0,   n/2, n/2, n)   i3,
+       IN.region(n/2, n/2, n,   n)   i4) 
+  {
+    spawn Transpose(o1, i1);
+    spawn Transpose(o2, i2);
+    spawn Transpose(o3, i3);
+    spawn Transpose(o4, i4);
+  }
+}
+
+
+#endif // TRANSPOSE_PBCC

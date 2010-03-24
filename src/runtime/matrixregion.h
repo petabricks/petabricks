@@ -208,13 +208,34 @@ public:
   ///
   /// A region is considered normalized if it occupies the entire buffer and is organized so that
   /// a N-dimensional buffer is laid out as sequential (N-1)-dimensional buffers.
-  MatrixRegion asNormalizedRegion( ) const
+  MatrixRegion asNormalizedRegion( bool copyData = true ) const
   {
     if( isEntireBuffer( ) )
       return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
 
-    JASSERT( false ).Text( "MatrixRegion::asContiguousBuffer() needs impl" );
-    return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
+    MutableMatrixRegion t = MutableMatrixRegion::allocate((IndexT*)this->sizes());
+    if( copyData ) {
+      IndexT coord[D];
+      memset(coord, 0, sizeof coord);
+      do {
+        t.cell(coord) = this->cell(coord);
+      } while(this->incCoord(coord)>0);
+    }
+    return t;
+  }
+  
+  ///
+  /// Copy that data of this to dst
+  void copyTo(const MutableMatrixRegion& dst)
+  {
+    if(this->base() == dst.base())
+      return;
+    JASSERT(this->count()==dst.count());
+    IndexT coord[D];
+    memset(coord, 0, sizeof coord);
+    do {
+      dst.cell(coord) = this->cell(coord);
+    } while(this->incCoord(coord)>0);
   }
 
   ///
@@ -367,6 +388,7 @@ public:
       } while(this->incCoord(coord)>0);
     }
   }
+  
 protected:
   ///
   /// Compute the offset in _base for a given coordinate
