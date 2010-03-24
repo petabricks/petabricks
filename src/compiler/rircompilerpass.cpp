@@ -24,6 +24,24 @@ namespace {//file local
   }
 }
 
+void petabricks::GpuRenamePass::before(RIRExprCopyRef& e)
+{
+  if( RIRNode::EXPR_IDENT == e->type() )
+    {
+      if( e->isLeaf( "ElementT" ) )
+	e = new RIRIdentExpr( STRINGIFY( MATRIX_ELEMENT_T ) );
+      else if( e->isLeaf( "IndexT" ) )
+	e = new RIRIdentExpr( STRINGIFY( MATRIX_INDEX_T ) );
+    }
+  else if( RIRNode::EXPR_OP == e->type() )
+    {
+      if( e->isLeaf( "." ) )
+	{
+	  std::cout << "grp: op!\n";
+	}
+    }
+}
+
 void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
   switch(s->type()){
   case RIRNode::STMT_BASIC:

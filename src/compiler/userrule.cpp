@@ -130,6 +130,8 @@ void petabricks::UserRule::print(std::ostream& os) const {
   if(!_duplicateVars.empty()){
     os << "\nduplicateVars ";  printStlList(os,_duplicateVars.begin(),_duplicateVars.end(), ", "); 
   }
+  os << "\nisRecursive " << isRecursive();
+  os << "\nisOpenCLRule " << isOpenClRule();
   os << "\napplicableregion " << _applicableRegion;
   os << "\ndepends: \n";
   for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
@@ -229,7 +231,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
           f=MAXIMA.min(f, criticalPoint);
       }
       
-      JTRACE("where clause handled")(*i)(criticalPoint)(_applicableRegion);
+      JTRACE("where clause handled")(*i)(criticalPoint)(_applicableRegion)(smaller)(eq)(larger);
     }else{
       //test if we can statically prove it
       int rslt = MAXIMA.is((*i)->printAsAssumption());
@@ -286,7 +288,9 @@ void petabricks::UserRule::performExpansion(Transform& trans){
     }
   }
  #ifdef HAVE_OPENCL
-  trans.addRule( new GpuRule( this ) );
+  if(isOpenClRule()){
+    trans.addRule( new GpuRule( this ) );
+  }
  #endif
 }
 
@@ -431,6 +435,12 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     {
       o.write( "printf( \"ruleN_static applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
     }
+  #ifdef HAVE_OPENCL
+  else if( E_RF_OPENCL == flavor )
+    {
+      o.write( "printf( \"ruleN_opencl applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
+    }
+  #endif
   // END LOGGING
 
   if((E_RF_DYNAMIC == flavor) && !isRecursive() && !isSingleElement()){
@@ -442,33 +452,6 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   #ifdef HAVE_OPENCL
   else if( E_RF_OPENCL == flavor )
     {
-      // Generate CL program
-      CLCodeGenerator clcodegen;
-
-      /*
-      clcodegen.os() << "__kernel void kernel_main(__global float *odata, __global float* idata, int width, int height)\n{\n"
-		     << "unsigned int xIndex = get_global_id(0);\nunsigned int yIndex = get_global_id(1);\nif (xIndex < width && yIndex < height)"
-		     << "{ unsigned int index_in  = xIndex + width * yIndex; unsigned int index_out = yIndex + height * xIndex;"
-		     << "odata[index_out] = idata[index_in];\n}\n}\n";
-      */
-      /*
-      clcodegen.os() << "__kernel void kernel_main(__global float *OUT, __global float* IN, int width, int height)\n{\n"
-                     << "unsigned int _r1_x = get_global_id(0);\nunsigned int _r1_y = get_global_id(1);\nif (_r1_x < width && _r1_y < height)"
-                     << "{ unsigned int idx_IN  = _r1_x + width * _r1_y; unsigned int idx_OUT = _r1_y + height * _r1_x;"
-                     << "OUT[idx_OUT] = IN[idx_IN];\n}\n}\n";
-      */
-      /*
-      clcodegen.os() << "__kernel void kernel_main(__global float *OUT, __global float* IN, int dim_d0, int dim_d1, int dim_IN_d0, int dim_OUT_d0 )\n{\n"
-                     << "unsigned int _r1_x = get_global_id(0);\nunsigned int _r1_y = get_global_id(1);\nif (_r1_x < dim_d0 && _r1_y < dim_d1)"
-                     << "{ unsigned int idx_IN  = _r1_x + dim_IN_d0 * _r1_y; unsigned int idx_OUT = _r1_y + dim_OUT_d0 * _r1_x;"
-                     << "OUT[idx_OUT] = IN[idx_IN];\n}\n}\n";
-      */
-      /*
-      clcodegen.os() << "__kernel void kernel_main(__global double *OUT, __global double* IN, int dim_d0, int dim_d1, int dim_IN_d0, int dim_OUT_d0 )\n{\n"
-                     << "unsigned int _r1_x = get_global_id(0);\nunsigned int _r1_y = get_global_id(1);\nif (_r1_x < dim_d0 && _r1_y < dim_d1)"
-                     << "{ unsigned int idx_IN  = _r1_x + dim_IN_d0 * _r1_y; unsigned int idx_OUT = _r1_y + dim_OUT_d0 * _r1_x;"
-                     << "OUT[idx_OUT] = IN[idx_IN];\n}\n}\n";
-      */
       /*
       clcodegen.os() << "__kernel void kernel_main(__global float *OUT, __global float* IN, int dim_d0, int dim_d1, int dim_IN_d0, int dim_OUT_d0 )\n{\n"
                      << "unsigned int _r1_x = get_global_id(0);\nunsigned int _r1_y = get_global_id(1);\nif (_r1_x < dim_d0 && _r1_y < dim_d1)"
@@ -476,69 +459,49 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
                      << "OUT[idx_OUT] = 42;\n}\n}\n";
       */
 
-      generateOpenCLKernel( trans, clcodegen, iterdef );
-
-      o.os( ) << "cl_int err;";
-
-      o.os( ) << "/* -- Testing purposes only, to make this easy to read --\n\n";
-      clcodegen.outputStringTo( o.os( ) );
-      o.os( ) << "\n*/\n";
-
-      o.os( ) << "const char* clsrc = ";
-      clcodegen.outputEscapedStringTo( o.os( ) );
-      o.os( ) << ";\n";
-
-      // Build program and create kernel. /** \todo Later on we will want to do this once at program load, since it can be expensive. */
-      o.comment( "Source for kernel." );
-      o.os( ) << "cl_context ctx = OpenCLUtil::getContext( );\n";
-
-      o.comment( "Build program and create kernel." );
-      o.os( ) << "size_t programlength = strlen( clsrc );\n";
-      o.os( ) << "cl_program clprog = clCreateProgramWithSource( ctx, 1, &clsrc, NULL, &err );\n";
-      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create program.\" );\n\n";
-      o.os( ) << "err = OpenCLUtil::buildProgram( clprog );\n";
-      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to build program.\" );\n\n";
-
-      o.os( ) << "printf( \"- TRACE 08\\n\" );\n";
-
-      o.os( ) << "cl_kernel clkern = clCreateKernel( clprog, \"kernel_main\", &err );\n";
-      o.os( ) << "std::cout << \"clCreateKernel err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
-      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create kernel.\" );\n\n";
+      o.os() << "cl_int err;\n";
+      o.os() << "cl_kernel clkern = clkern_gpuRule2;\n";
 
       int arg_pos = 0;
 
-      o.os( ) << "printf( \"- TRACE 10\\n\" );\n";
+      //      o.os( ) << "printf( \"- TRACE 10\\n\" );\n";
 
       // Create memory objects for outputs
       o.comment( "Create memory objects for outputs." );
       for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-	{
-          o.os( ) << "MatrixRegion<2, " << STRINGIFY(MATRIX_ELEMENT_T) << "> normalized_" << (*i)->matrix( )->name( ) << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( );\n";
-          o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " <<
-            "normalized_" << (*i)->matrix( )->name( ) << ".bytes( ), (void*)" << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
-          o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object for " << (*i)->matrix( )->name( ) << ".\" );\n";
+      {
+        o.os( ) << "MatrixRegion2D normalized_" << (*i)->matrix( )->name( ) 
+                << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( false );\n";
+        o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) 
+                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
+                << "normalized_" << (*i)->matrix( )->name( ) << ".bytes( ),"
+                << "(void*) normalized_" << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object\");\n";
 
-	  // Bind to kernel.
-	  o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->matrix( )->name( ) << " );\n\n";
-	}
+        // Bind to kernel.
+        o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->matrix( )->name( ) << " );\n\n";
+      }
 
-      o.os( ) << "printf( \"- TRACE 20\\n\" );\n";
+      //      o.os( ) << "printf( \"- TRACE 20\\n\" );\n";
 
       // Create memory objects for inputs.
       o.comment( "Create memory objects for inputs." );
       for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
-	{
-	  /** \todo Need to generalize this for arbitrary dimensionality */
-	  o.os( ) << "MatrixRegion<2, const " << STRINGIFY(MATRIX_ELEMENT_T) << "> normalized_" << (*i)->matrix( )->name( ) << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( );\n";
-	  o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " <<
-	    "normalized_" << (*i)->matrix( )->name( ) << ".bytes( ), (void*)" << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
-	  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for " << (*i)->matrix( )->name( ) << ".\" );\n";
+      {
+        /** \todo Need to generalize this for arbitrary dimensionality */
+        o.os( ) << "ConstMatrixRegion2D normalized_" << (*i)->matrix( )->name( ) 
+                << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( true );\n";
+        o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) 
+                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " 
+                << "normalized_" << (*i)->matrix( )->name( ) << ".bytes( ),"
+                << "(void*) normalized_" << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->matrix( )->name( ) << ".\" );\n";
 
-          // Bind to kernel.
-          o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->matrix( )->name( ) << " );\n\n";
-	}
+        // Bind to kernel.
+        o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->matrix( )->name( ) << " );\n\n";
+      }
 
-      o.os( ) << "printf( \"- TRACE 40\\n\" );\n";
+      //      o.os( ) << "printf( \"- TRACE 40\\n\" );\n";
 
       // Bind rule dimension arguments to kernel.
       for( unsigned int i = 0; i < iterdef.dimensions( ); ++i )
@@ -559,7 +522,9 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
             o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
         }
 
-      o.os( ) << "printf( \"- TRACE 45\\n\" );\n";
+      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
+
+      //      o.os( ) << "printf( \"- TRACE 45\\n\" );\n";
 
       // Invoke kernel.
       /** \todo Need to generalize for >1 GPUs and arbitrary dimensionality. */
@@ -567,8 +532,10 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
       //  need to get cnDim ( size in each dimension ) -- can probably get this from iterdef
       // (along with dimensionality, actually, probably)
-      o.os( ) << "size_t workdim[] = { 0, 0 };\n";
-      o.os( ) << "err = clEnqueueNDRangeKernel( OpenCLUtil::getQueue( 0 ), clkern, 2, 0, workdim, 0, 0, NULL, NULL );\n";
+      o.os( ) << "size_t workdim[] = { _iter_end[0]-_iter_begin[0], _iter_end[1]-_iter_begin[1] };\n";
+      o.os( ) << "std::cout << \"Work dimensions: \" << workdim[0] << \" x \" << workdim[1] << \"\\n\";\n";
+      o.os( ) << "err = clEnqueueNDRangeKernel( OpenCLUtil::getQueue( 0 ), clkern, 2, 0, workdim, NULL, 0, NULL, NULL );\n";
+      o.os( ) << "std::cout << \"Kernel execution error #\" << err << \": \" << OpenCLUtil::errorString(err) << std::endl;\n";
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to execute kernel.\" );\n";
 
       // Copy results back to host memory.
@@ -619,7 +586,14 @@ pC, 0, 0, 0);
     // Set execution parameters.
 
     // Launch kernel.
-
+      
+      // Create memory objects for outputs
+      o.comment( "Copy back outputs (if they were already normalized, copyTo detects src==dst and does nothing)" );
+      for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+      {
+          o.os( ) << "normalized_" << (*i)->matrix( )->name( ) 
+                  << ".copyTo(" << (*i)->matrix( )->name( ) << ");\n";
+      }
 
       o.write( "return NULL;\n}\n\n" );
       return;
@@ -731,9 +705,19 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   }
 
   // Generate OpenCL implementation of rule logic.
+  GpuRenamePass p0;
+  _bodyirOpenCL->accept( p0 );
+ #ifdef DEBUG
+  std::cerr << "--------------------\nAFTER GPU PASSES:\n" << _bodyirOpenCL << std::endl;
+  {
+    DebugPrintPass pdebug;
+    _bodyirOpenCL->accept(pdebug);
+  }
+  std::cerr << "--------------------\n";
+ #endif
   clo.write( _bodyirOpenCL->toString( ) );
 
-  clo.os( ) << "OUT[idx_OUT] = IN[idx_IN];\n";
+  //clo.os( ) << "OUT[idx_OUT] = IN[idx_IN];\n";
 
   // Close conditional and kernel.
   clo.os( ) << "}\n";

@@ -62,7 +62,12 @@ static void clearParserCaches(){
 
 %%
 
-Start: InputPrompt Start
+Start: InputPrompt
+{
+  ret = REFALLOC(FormulaList()); 
+  clearParserCaches();
+  return 0;
+}
      | OutputPrompt OutputContent InputPrompt
 {
   ret = $2;

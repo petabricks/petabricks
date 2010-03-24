@@ -16,6 +16,7 @@
 #include "common/jassert.h"
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
+#include "common/srcpos.h"
 
 #include <string>
 #include <vector>
@@ -29,10 +30,10 @@ typedef std::vector<ConfigItem> ConfigItems;
 //TODO: finish renaming all the uses so we can get rid of the typedef
 typedef ConfigItem TemplateArg;
 typedef jalib::JRef<TemplateArg> TemplateArgPtr;
-class TemplateArgList: public std::vector<TemplateArgPtr>, public jalib::JRefCounted {};
+class TemplateArgList: public std::vector<TemplateArgPtr>, public jalib::JRefCounted, public jalib::SrcPosTaggable {};
 typedef jalib::JRef<TemplateArgList> TemplateArgListPtr;
 
-class ConfigItem : public jalib::JPrintable, public jalib::JRefCounted {
+class ConfigItem : public jalib::JPrintable, public jalib::JRefCounted, public jalib::SrcPosTaggable {
 public:
   enum FlagT {
     FLAG_TUNABLE       = 1<<0,

@@ -31,11 +31,6 @@ if test "x$ac_cv_prog_YACC" = "x"; then
   AC_MSG_ERROR([failed to find 'bison' in \$path, try running:`sudo apt-get install bison`.])
 fi
 
-AC_CHECK_PROG([has_maxima], [maxima], [yes], [no])
-if test "$has_maxima" = "no"; then
-  AC_MSG_ERROR([failed to find 'maxima' in \$path, try running:`sudo apt-get install maxima`.])
-fi
-
 AC_CHECK_PROG([has_dot], [dot], [yes], [no])
 if test "$has_dot" = "no"; then
   AC_MSG_WARN([failed to find 'dot' in \$path, some debug outputs will not be generated.])
@@ -49,6 +44,23 @@ fi
 AC_CHECK_PROG([has_git], [git], [yes], [no])
 if test "$has_git" = "no"; then
   AC_MSG_WARN([failed to find 'git' in \$path, will not be able to use revision control.])
+fi
+
+AC_PATH_PROGS([PYTHON], [python2.6 python2.5 python2.4 python2 python], [no])
+if test "$PYTHON" = "no"; then
+  AC_MSG_ERROR([failed to find 'python' in \$path])
+fi
+
+AC_PATH_PROGS([MAXIMA], [maxima], [no])
+if test "$MAXIMA" = "no"; then
+  AC_MSG_ERROR([failed to find 'maxima' in \$path, try running:`sudo apt-get install maxima`.])
+fi
+
+AC_MSG_CHECKING([maxima compatibility])
+if "$PYTHON" "$srcdir/scripts/checkmaxima.py" "$MAXIMA"; then
+  AC_MSG_RESULT([ok])
+else
+  AC_MSG_ERROR(["broken maxima version"])
 fi
 
 rev_short="unknown"
@@ -74,6 +86,7 @@ AC_TYPE_UINT64_T
 
 AC_CHECK_HEADERS([math.h fftw3.h], [], [AC_MSG_WARN([failed to find header file, some benchmarks may not work])])
 AC_CHECK_HEADERS([openssl/md5.h],  [], [AC_MSG_ERROR([missing package libssl-dev])])
+AC_CHECK_HEADERS([openssl/sha.h],  [], [])
 AC_CHECK_HEADERS([cxxabi.h execinfo.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h sys/mman.h])
 AC_CHECK_HEADERS([boost/random.hpp], [], [AC_MSG_WARN([missing boost/random, falling back to slower random number generation])])
 AC_CHECK_LIB([ssl],[MD5],                [], [AC_MSG_ERROR([missing package libssl-dev])])
@@ -201,11 +214,14 @@ AC_DEFINE([ACCTARGET_STR],       ["accuracyTarget"], [var name in output code fo
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
 AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for begin coord])
 AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
+AC_DEFINE([DEFAULT_ACCURACY],    [1], [accuracy stand-in for fixed-accuracy rules])
+AC_DEFINE([DEVNULL],             ["/dev/null"], [null sync device path])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])
-AC_DEFINE([HASH_FN],             [MD5], [hash function used for memoization (MD5 or SHA1)])
-AC_DEFINE([HASH_LEN],            [MD5_DIGEST_LENGTH], [length of hash used for memoization (must match HASH_FN)])
+AC_DEFINE([HASH_USE_SHA1],       [0], [set to 1 to use SHA1 instead of MD5])
 AC_DEFINE([INLINE_NULL_TASKS],   [], [run null tasks immediately when they are enqueued])
+AC_DEFINE([JASSERT_FAST],        [],[skip some copies in debug printing, conflicts with JASSERT_LOG])
+AC_DEFINE([JASSERT_USE_SRCPOS],  [],[include source line numbers in error messages])
 AC_DEFINE([MATRIX_ELEMENT_T],    [double], [type for elements in the matrix])
 AC_DEFINE([MATRIX_INDEX_T],      [int], [type for indices into the matrix])
 AC_DEFINE([MAX_DIMENSIONS],      [64], [the maximum number of dimensions supported])
@@ -213,6 +229,7 @@ AC_DEFINE([MAX_INPUT_BITS],      [32], [the maximum number of dimensions support
 AC_DEFINE([MAX_NUM_WORKERS],     [512], [max number of workers supported])
 AC_DEFINE([MAX_REC_LEVELS],      [12], [number of levels for recursive choices])
 AC_DEFINE([MIN_NUM_WORKERS],     [1], [min number of workers supported])
+AC_DEFINE([OPT_LOWLEVEL],        [1], [enable low level optimization such as specializations and prefetching])
 AC_DEFINE([RETURN_VAL_STR],      ["_pb_rv"], [var name in output code for rule output variable])
 AC_DEFINE([RUN_CPP],             [1], [undefine to disable cpp])
 AC_DEFINE([SHORT_TYPE_NAMES],    [1], [add using namespace petabricks to output])
@@ -221,7 +238,7 @@ AC_DEFINE([SPLIT_CHUNK_SIZE],    ["TRANSFORM_LOCAL(splitsize)"], [var name in ou
 AC_DEFINE([STEAL_ATTEMPTS_MAINLOOP], [32], [number of times to attempt to steal in mainLoop])
 AC_DEFINE([STEAL_ATTEMPTS_WAITING],  [3], [number of times to attempt to steal in waitUntilComplete])
 AC_DEFINE([TEMPLATE_BIN_STR],    ["_acc_bin"], [var name in output code for accuracy template parameter])
-AC_DEFINE([TIMEOUT_GRACESEC],    [0.2], [Grace period before slow tests are killed])
+AC_DEFINE([TIMEOUT_GRACESEC],    [0.1], [Grace period before slow tests are killed])
 AC_DEFINE([TIMEOUTKILLSIG],      [SIGKILL], [Signal used to kill processes that timeout])
 AC_DEFINE([TMPL_IMPL_PFX],       ["_tmpl"], [prefix for expanded template implementations])
 AC_DEFINE([TRANSFORM_N_STR],     ["transform_n"], [define to add a system var to transform scope])
@@ -233,7 +250,8 @@ AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for fil
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
 
 
-AC_DEFINE_UNQUOTED([REVISION_LONG], ["$rev_long"], [git revision for HEAD at the time ./configure was run])
+AC_DEFINE_UNQUOTED([MAXIMA_PATH],    ["$MAXIMA"], [path to maxima program])
+AC_DEFINE_UNQUOTED([REVISION_LONG],  ["$rev_long"], [git revision for HEAD at the time ./configure was run])
 AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at the time ./configure was run])
 
 
@@ -241,11 +259,11 @@ if false; then
   #disabled by default:
   AC_DEFINE([DISABLE_CONTINUATIONS], [], [dont generate continuation code after SPAWN/enqueue])
   AC_DEFINE([INPUT_PERIMETER_STR], ["input_perimeter"], [define to add a system var to transform scope])
-  AC_DEFINE([INPUT_SIZE_STR],     ["input_count"],      [define to add a system var to transform scope])
-  AC_DEFINE([JALIB_USE_MALLOC],      [1],[Cause the custom allocator to call malloc instead of mmap])
-  AC_DEFINE([JASSERT_LOG],           [], [log traces to /tmp/jassertlog.pid])
-  AC_DEFINE([OUTPUT_SIZE_STR],    ["output_count"],     [define to add a system var to transform scope])
-  AC_DEFINE([PBCC_SEQUENTIAL], [], [define to run tasks inline instead of enqueuing them])
+  AC_DEFINE([INPUT_SIZE_STR],      ["input_count"],      [define to add a system var to transform scope])
+  AC_DEFINE([JALIB_USE_MALLOC],    [1],[Cause the custom allocator to call malloc instead of mmap])
+  AC_DEFINE([JASSERT_LOG],         [], [log traces to /tmp/jassertlog.pid])
+  AC_DEFINE([OUTPUT_SIZE_STR],     ["output_count"],     [define to add a system var to transform scope])
+  AC_DEFINE([PBCC_SEQUENTIAL],     [], [define to run tasks inline instead of enqueuing them])
   AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
 fi
 

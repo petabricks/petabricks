@@ -70,6 +70,7 @@ regression/tunoutputn      Rand1D
 regression/txconstants     Rand2Da Rand0D
 regression/upleftdep       Rand2Da
 regression/whereclause     Rand2Da
+regression/whereclause2    Rand2Da
 
 #this one is broken right now:
 #kernel/KernelEstimate     trainX trainY testX One0D One0D

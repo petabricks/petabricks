@@ -14,6 +14,7 @@
 
 #include "common/jrefcounted.h"
 #include "common/jtunable.h"
+#include "common/hash.h"
 
 #include <float.h>
 #include <math.h>
@@ -73,7 +74,8 @@ public:
 
     ///
     /// Read inputs from disk
-    virtual void read(ArgListT) = 0;
+    virtual void readInputs(ArgListT) = 0;
+    virtual void readOutputs(ArgListT) = 0;
 
     ///
     /// Perform the computation
@@ -81,7 +83,8 @@ public:
 
     ///
     /// Write inputs to disk
-    virtual void write(ArgListT) = 0;
+    virtual void writeInputs(ArgListT) = 0;
+    virtual void writeOutputs(ArgListT) = 0;
 
     ///
     /// initialize with random inputs
@@ -108,6 +111,8 @@ public:
     bool isVariableAccuracy(){
       return accuracyTarget() != jalib::minval<MATRIX_ELEMENT_T>();
     }
+    
+    virtual void hash(jalib::HashGenerator&) = 0;
 
     virtual __usr_main_interface* nextTemplateMain() = 0;
   } Main;
@@ -161,12 +166,22 @@ public:
   static void saveConfig();
 
   double trainAndComputeWrapper(TestIsolation&, int n);
-  double computeWrapper(TestIsolation&, int n=-1, int retries=-1);
-  void computeWrapperSubproc(TestIsolation&, int n, double&  time, double&  acc);
+  double computeWrapper(TestIsolation&, int n=-1, int retries=-1, const std::vector<std::string>* files = NULL);
+  void computeWrapperSubproc( TestIsolation&
+                            , int n
+                            , double& time
+                            , double& acc
+                            , jalib::Hash& hash
+                            , const std::vector<std::string>* files);
   
   
   void variableAccuracyTrainingLoop(TestIsolation& ti);
   int variableAccuracyTrainingLoopInner(TestIsolation& ti);
+
+
+  void iogenCreate(const std::vector<std::string>& files);
+  void iogenRun(const std::vector<std::string>& files);
+  std::vector<std::string> iogenFiles(const std::string& pfx);
 
   class ComputeRetryException {};
 

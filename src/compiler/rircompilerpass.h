@@ -167,6 +167,12 @@ protected:
   RIRScopePtr      _scope;
 };
 
+class GpuRenamePass : public RIRCompilerPass {
+public:
+  GpuRenamePass() : RIRCompilerPass(RIRScope::global()->createChildLayer()) {}
+  void before(RIRExprCopyRef& n);
+};
+
 class DebugPrintPass : public RIRCompilerPass {
 public:
   DebugPrintPass() : RIRCompilerPass(RIRScope::global()->createChildLayer()) {}

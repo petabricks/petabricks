@@ -1,0 +1,17 @@
+transform WhereTest4 //1 vars
+from IN[n,m] 
+to OUT[n,m] 
+{
+  OUT.cell(x,y) from() where x<y {
+    return 5;
+  }
+  OUT.cell(x,y) from() where x==y && x < 5 {
+    return 6.1;
+  }
+  OUT.cell(x,y) from() where x==y && x >= 5 {
+    return 6.2;
+  }
+  secondary OUT.cell(x,y) from() {
+    return 7;
+  }
+}

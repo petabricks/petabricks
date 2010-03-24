@@ -25,11 +25,10 @@ namespace petabricks {
 class TrainingDeps {
 public:
 
-  void addAlgchoice(const std::string& name, bool isStatic, int levels){
+  void addAlgchoice(const std::string& name, int rules){
     _os << "    <algchoice "
         << " name=\""    << name << "\""
-        << " type=\""    << (isStatic ? "sequential" : "dynamic") << "\""
-        << " levels=\""    << levels << "\""
+        << " rules=\""    << rules << "\""
         << " />\n";
   }
 
@@ -53,13 +52,27 @@ public:
         << " />\n";
   }
 
-  void beginTransform(const std::string& name, const std::string& instanceName, int templateChoice){
+  void beginTransform(const std::string& name,
+                      const std::string& instanceName,
+                      int templateChoice,
+                      bool isVariableAccuracy,
+                      double accuracyTarget
+                      ){
     _os << "  <transform ";
     _os << " name=\""         << instanceName << "\"";
     _os << " templateName=\"" << name << "\"";
     _os << " isTemplateInstance=\"" << (name==instanceName ? "no" : "yes") << "\"";
     _os << " templateChoice=\"" << jalib::XToString(templateChoice) << "\"";
+    _os << " isVariableAccuracy=\"" << isVariableAccuracy << "\"";
+    _os << " accuracyTarget=\"" << accuracyTarget << "\"";
     _os << ">\n";
+  }
+
+  void beginGlobal(){
+    _os << "  <global>\n";
+  }
+  void endGlobal(){
+    _os << "  </global>\n";
   }
 
   void emitRules(std::string& choicename,

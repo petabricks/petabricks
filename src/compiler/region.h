@@ -17,6 +17,7 @@
 
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
+#include "common/srcpos.h"
 
 #include <vector>
 
@@ -31,12 +32,12 @@ class MatrixDependencyMap;
 class RIRScope;
 typedef jalib::JRef<Region> RegionPtr;
 typedef jalib::JRef<SimpleRegion> SimpleRegionPtr;
-class RegionList : public std::vector<RegionPtr> , public jalib::JRefCounted {
+class RegionList : public std::vector<RegionPtr> , public jalib::JRefCounted, public jalib::SrcPosTaggable {
 public:
   void makeRelativeTo(const FormulaList& defs);
 };
 
-class SimpleRegion : public jalib::JRefCounted, public jalib::JPrintable {
+class SimpleRegion : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
 public: 
   SimpleRegion(){}
   SimpleRegion(const CoordinateFormula& min, const CoordinateFormula& max)

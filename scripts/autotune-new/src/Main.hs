@@ -29,6 +29,7 @@ module Main ( main ) where
 
 
 import Autotune
+import GP.Genetic ( SelectionMethod (..) )
 import System
 import System.IO
 import System.Console.GetOpt
@@ -62,6 +63,7 @@ printConfiguration opts = do putStrLn "CONFIGURATION\n"
                              printOption "P(mutation)"               $ optMutationProbability opts
                              printOption "P(regenerate | mutation)"  $ optCompleteMutationProbability opts
                              printOption "P(random selection)"       $ optRandomSelectionProbability opts
+                             printOption "selection method"          $ optSelectionMethod opts
                              printOption "population size"           $ optPopulationSize opts
                              printOption "best fraction"             $ optFractionBest opts
                              printString "time limit"                $ show (optTimeLimit opts) ++ " sec"
@@ -123,6 +125,8 @@ options = [ Option ['v'] ["version"] (NoArg showVersion) "show version number"
 
           , Option [] ["time-cutoff"] (ReqArg readTimeCutoff "CUTOFF") "cutoff time for evaluation relative to best individual"
 
+          , Option [] ["tournament-selection"] (ReqArg readSelectionMethod "POOL-SIZE") "use tournament instead of roulette selection"
+
           , Option [] ["verbose"] (NoArg readVerbose) "turns on additional output"
 
           , Option [] ["show-progress"] (NoArg readProgress) "shows % progress"
@@ -163,14 +167,22 @@ readSizeMode arg opt = let mode = if all id $ map isDigit arg
                        in
                        return opt { optSizeMode = mode }
 
+
+readSelectionMethod arg opt =
+    let method = if all id $ map isDigit arg
+                 then (Tournament (read arg))
+                 else (error ("Expected a number but got: " ++ arg))
+    in
+      return opt { optSelectionMethod = method }
+
+
 readPopulationSize arg opt = return opt { optPopulationSize = let val = read arg
                                                            in
                                                              if val < 1 then error $ "Invalid population size: " ++ arg
                                                              else val
                                         }
 readFractionBest arg opt = return opt { optFractionBest = read arg }
-readTimeLimit arg opt = let val = read arg :: Double
-                        in
+readTimeLimit arg opt = let val = read arg :: Double                        in
                           if val < 0
                           then error $ "Invalid fraction: " ++ arg
                           else return opt { optTimeLimit = val }
@@ -216,4 +228,5 @@ defaultOptions = Options {
                  , optTimeCutoff = 5
                  , optDumpPopulation = False
                  , optPopulationOutput = writeFile "/dev/null"
+                 , optSelectionMethod = Roulette
                  }
