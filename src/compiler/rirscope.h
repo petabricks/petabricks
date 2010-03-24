@@ -29,16 +29,20 @@ class RIRSymbol: public jalib::JRefCounted, public jalib::JPrintable {
 public:
   enum SymbolType {
     INVALID,
-    SYM_TYPE               = 0x1000,
-    SYM_TYPE_BASIC,
-    SYM_TYPE_MATRIX,
-    SYM_TRANSFORM          = 0x2000,
-    SYM_TRANSFORM_TEMPLATE,
-    SYM_TRANSFORM_VARACCURACY,
-    SYM_CONFIG             = 0x4000,
-    SYM_CONFIG_TRANSFORM_LOCAL, 
-    SYM_CONFIG_PASSED, 
-    SYM_LOCAL_VAR          = 0x8000
+    SYM_TYPE               = 0x0100,
+    SYM_TYPE_BASIC,             
+    SYM_TYPE_MATRIX,            
+    SYM_TRANSFORM          = 0x0200,
+    SYM_TRANSFORM_TEMPLATE,     
+    SYM_TRANSFORM_VARACCURACY,  
+    SYM_CONFIG             = 0x0400,
+    SYM_CONFIG_TRANSFORM_LOCAL,  
+    SYM_CONFIG_PASSED,          
+    SYM_LOCAL_VAR          = 0x0800,
+    SYM_ARG                = 0x1000,
+    SYM_ARG_ELEMENT,
+    SYM_ARG_REGION,
+    _LAST
   };
   RIRSymbol(SymbolType t, const std::string& rp = "") 
     : _type(t), _replacement(rp)

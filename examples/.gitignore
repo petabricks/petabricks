@@ -123,6 +123,7 @@ simple/add
 simple/bufferrotate
 simple/copy
 simple/matrixrotate
+simple/minimalmatmul
 simple/randomshuffle
 simple/rollingsum
 simple/transpose

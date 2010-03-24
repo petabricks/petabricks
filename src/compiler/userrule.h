@@ -97,9 +97,10 @@ public:
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
     generateTrampCodeSimple(trans, o, E_RF_STATIC);
     generateTrampCodeSimple(trans, o, E_RF_DYNAMIC);
-    #ifdef HAVE_OPENCL
-    generateTrampCodeSimple(trans, o, E_RF_OPENCL);
-    #endif
+#ifdef HAVE_OPENCL
+    if( isOpenClRule() )
+      generateTrampCodeSimple(trans, o, E_RF_OPENCL);
+#endif
   }
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
@@ -138,6 +139,14 @@ public:
   }
 
   bool isRecursive() const { return _flags.isRecursive; }
+
+  bool isOpenClRule() const {
+#ifdef HAVE_OPENCL
+    return ! isRecursive();
+#else
+    return false;
+#endif
+  }
 
   RuleFlags::PriorityT priority() const { return _flags.priority; }
   const FormulaList& conditions() const { return _conditions; }

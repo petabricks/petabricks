@@ -240,7 +240,7 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
       }
     }
     if(sym && sym->isTransform()){
-      if(peekExprForward()->type() == RIRNode::EXPR_ARGS){
+      if(hasExprForward() && peekExprForward()->type() == RIRNode::EXPR_ARGS){
         //transform transform calls from:
         //   Foo(c,d)
         //to:
@@ -332,6 +332,44 @@ void petabricks::AnalysisPass::before(RIRExprCopyRef& e){
     if(sym && sym->isTransform()){
       TrainingDeps::addCallgraphEdge(_name, e->toString());
       _rule.markRecursive();
+    }
+  }
+}
+
+void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
+  if(e->type() == RIRNode::EXPR_IDENT){
+    RIRSymbolPtr sym = _scope->lookup(e->toString());
+    if(sym && sym->isTemplateTransform()){
+      throw NotValidSource();
+    }
+    if(sym && sym->isTransform()){
+      throw NotValidSource();
+    }
+    if(sym && sym->type() == RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL){
+      throw NotValidSource();
+    }
+    if(e->isLeaf("SPAWN")){
+      throw NotValidSource();
+    }
+    if(e->isLeaf("SYNC")){
+      throw NotValidSource();
+    }
+    if(sym && sym->type() == RIRSymbol::SYM_ARG_REGION){
+      if(hasExprForward() && peekExprForward()->isLeaf(".")){
+        RIRExprCopyRef regionName = e;
+        popExprForward();// burn "."
+        RIRExprRef call = popExprForward();
+        JASSERT(call->type()==RIRNode::EXPR_CALL && call->parts().size()==2);
+        RIRExprCopyRef methodname = call->part(0);
+        RIRExprCopyRef args = call->part(1);
+        JTRACE("expanding SYM_ARG_REGION")(regionName)(methodname)(args);
+
+        args->prependSubExpr(methodname);
+        args->prependSubExpr(regionName);
+        e = new RIRCallExpr();
+        e->addSubExpr(new RIRIdentExpr("REGION_METHOD_CALL"));
+        e->addSubExpr(args);
+      }
     }
   }
 }

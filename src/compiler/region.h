@@ -29,6 +29,7 @@ class Transform;
 class SimpleRegion;
 class Region;
 class MatrixDependencyMap;
+class RIRScope;
 typedef jalib::JRef<Region> RegionPtr;
 typedef jalib::JRef<SimpleRegion> SimpleRegionPtr;
 class RegionList : public std::vector<RegionPtr> , public jalib::JRefCounted, public jalib::SrcPosTaggable {
@@ -159,6 +160,8 @@ public:
   }
   bool isOptional() const { return _optionalDefault; }
   const FormulaPtr& optionalDefault() const { return _optionalDefault; }
+
+  void addArgToScope(RIRScope& scope) const;
 private:
   std::string _name;
   std::string _fromMatrixName;

@@ -261,6 +261,17 @@ private:
   std::vector<std::string> _continueTargets;
 };
 
+class OpenClCleanupPass: public RIRCompilerPass {
+public:
+  class NotValidSource {};
+  OpenClCleanupPass(UserRule& r, const RIRScopePtr& p) 
+    : RIRCompilerPass(p->createChildLayer()), _rule(r)
+  {}
+  void before(RIRExprCopyRef& e);
+private:
+  UserRule& _rule;
+};
+
 
 
 }
