@@ -108,6 +108,10 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& scope){
 #ifdef HAVE_OPENCL
   _bodyirOpenCL = bodyir;
 #endif
+
+  if(bodyir->containsLeaf("CALL") || bodyir->containsLeaf("SPAWN")){
+    markRecursive();
+  }
 }
 
 void petabricks::UserRule::print(std::ostream& os) const {
@@ -128,6 +132,8 @@ void petabricks::UserRule::print(std::ostream& os) const {
   if(!_duplicateVars.empty()){
     os << "\nduplicateVars ";  printStlList(os,_duplicateVars.begin(),_duplicateVars.end(), ", "); 
   }
+  os << "\nisRecursive " << isRecursive();
+  os << "\nisOpenCLRule " << isOpenClRule();
   os << "\napplicableregion " << _applicableRegion;
   os << "\ndepends: \n";
   for(MatrixDependencyMap::const_iterator i=_depends.begin(); i!=_depends.end(); ++i){
@@ -284,7 +290,9 @@ void petabricks::UserRule::performExpansion(Transform& trans){
     }
   }
  #ifdef HAVE_OPENCL
-  trans.addRule( new GpuRule( this ) );
+  if(isOpenClRule()){
+    trans.addRule( new GpuRule( this ) );
+  }
  #endif
 }
 
@@ -464,16 +472,16 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       o.comment( "Create memory objects for outputs." );
       for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
       {
-          o.os( ) << "MatrixRegion2D normalized_" << (*i)->matrix( )->name( ) 
-                  << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( false );\n";
-          o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) 
-                  << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
-                  << "normalized_" << (*i)->matrix( )->name( ) << ".bytes( ),"
-                  << "(void*) normalized_" << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
-          o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object\");\n";
+        o.os( ) << "MatrixRegion2D normalized_" << (*i)->matrix( )->name( ) 
+                << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( false );\n";
+        o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) 
+                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
+                << "normalized_" << (*i)->matrix( )->name( ) << ".bytes( ),"
+                << "(void*) normalized_" << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object\");\n";
 
-          // Bind to kernel.
-          o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->matrix( )->name( ) << " );\n\n";
+        // Bind to kernel.
+        o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->matrix( )->name( ) << " );\n\n";
       }
 
       //      o.os( ) << "printf( \"- TRACE 20\\n\" );\n";
