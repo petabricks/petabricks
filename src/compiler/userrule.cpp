@@ -477,6 +477,8 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       o.comment( "Create memory objects for inputs." );
       for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
 	{
+	  o.os( ) << "JASSERT( " << (*i)->matrix( )->name( ) << ".isEntireBuffer() ).Text( \"matrix is not entire buffer!\" );\n";
+
 	  /** \todo Need to generalize this for arbitrary dimensionality */
 	  o.os( ) << "MatrixRegion<2, const " << STRINGIFY(MATRIX_ELEMENT_T) << "> normalized_" << (*i)->matrix( )->name( ) << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( );\n";
 	  o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " <<
@@ -518,8 +520,10 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
       //  need to get cnDim ( size in each dimension ) -- can probably get this from iterdef
       // (along with dimensionality, actually, probably)
-      o.os( ) << "size_t workdim[] = { 0, 0 };\n";
-      o.os( ) << "err = clEnqueueNDRangeKernel( OpenCLUtil::getQueue( 0 ), clkern, 2, 0, workdim, 0, 0, NULL, NULL );\n";
+      o.os( ) << "size_t workdim[] = { _iter_end[0]-_iter_begin[0], _iter_end[1]-_iter_begin[1] };\n";
+      o.os( ) << "std::cout << \"Work dimensions: \" << workdim[0] << \" x \" << workdim[1] << \"\\n\";\n";
+      o.os( ) << "err = clEnqueueNDRangeKernel( OpenCLUtil::getQueue( 0 ), clkern, 2, 0, workdim, NULL, 0, NULL, NULL );\n";
+      o.os( ) << "std::cout << \"Kernel execution error #\" << err << \": \" << OpenCLUtil::errorString(err) << std::endl;\n";
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to execute kernel.\" );\n";
 
       // Copy results back to host memory.
