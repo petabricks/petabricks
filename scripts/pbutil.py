@@ -219,7 +219,7 @@ benchmarkToCfg=lambda name:"./examples/%s.cfg"%name
 
 
 def normalizeBenchmarkName(n, search=True):
-  n=re.sub("^[./]*examples[/]","",n);
+  n=re.sub("^[./]*examples[/]", "", n);
   n=re.sub("[.]pbcc$","",n);
   if os.path.isfile(benchmarkToSrc(n)) or not search:
     return n
@@ -324,23 +324,15 @@ class TimingRunFailed(Exception):
   def __str__(self):
     return repr(self.value)
 
-#parse timing results with a given time limit
-def executeTimingRun(prog, n, args=[], limit=None):
-  null=open("/dev/null", "w")
-  cmd = [ prog, "--n=%d"%n, "--time" ]
-  for x in args:
-    cmd.append(x);
-  p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
-
-#  if limit is not None:
-#    signal.signal(signal.SIGALRM, lambda signum, frame: killSubprocess(p))
-#    signal.alarm(limit)
-
-  # Python doesn't check if its system calls return EINTR, which is kind of
-  # dumb, so we have to catch this here.
+def goodwait(p):
+  '''
+  Python doesn't check if its system calls return EINTR, which is kind of
+  dumb, so we have to catch this here.
+  '''
+  rv=None
   while True:
     try:
-      p.wait()
+      rv=p.wait()
     except OSError, e:
       if e.errno == errno.EINTR:
         continue
@@ -348,22 +340,45 @@ def executeTimingRun(prog, n, args=[], limit=None):
         raise
     else:
       break
+  return rv
 
-#  if limit is not None:
-#    signal.alarm(0)
-#    signal.signal(signal.SIGALRM, signal.SIG_DFL)
+def xmlToDict(xml, tag, fn=tryIntFloat):
+  try:
+    rslt = xml.getElementsByTagName(tag)[0].attributes
+    attrs=dict()
+    for x in xrange(rslt.length):
+      attrs[str(rslt.item(x).name)]=fn(rslt.item(x).nodeValue)
+    return attrs
+  except:
+    return None
+
+
+#parse timing results with a given time limit
+def executeRun(cmd, returnTags=['timing', 'accuracy', 'outputhash']):
+  null=open("/dev/null", "w")
+  p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
+  goodwait(p)
 
   if p.returncode == -15:
     raise TimingRunTimeout()
   if p.returncode != 0:
     raise TimingRunFailed(p.returncode)
+  xml = parse(p.stdout)
+  timing = xmlToDict(xml, "timing")
+  if timing['average'] > 2**31:
+    raise TimingRunTimeout()
+  if type(returnTags) is type(""):
+    return xmlToDict(xml, returnTags)
+  else:
+    return map(lambda t: xmlToDict(xml, t), returnTags)
 
-  rslt = parse(p.stdout)
-  rslt = rslt.getElementsByTagName("timing")[0].attributes
-  attrs=dict()
-  for x in xrange(rslt.length):
-    attrs[str(rslt.item(x).name)]=tryIntFloat(rslt.item(x).nodeValue)
-  return attrs
+#parse timing results with a given time limit
+def executeTimingRun(prog, n, args=[], limit=None, returnTags='timing'):
+  cmd = [ prog, "--n=%d"%n, "--time" ]
+  cmd.extend(args);
+  if limit:
+    cmd.append("--max-sec=%f" % float(limit))
+  return executeRun(cmd, returnTags)
 
 def collectTimingSamples(prog, n=100, step=100, maxTime=10.0, x=[], y=[], args=[], scaler=lambda x: x):
   start=time.time()
@@ -458,6 +473,13 @@ def getTunables(tx, type):
 
 getTunablesSequential=lambda tx: getTunables(tx, "system.cutoff.sequential")
 getTunablesSplitSize=lambda tx: getTunables(tx, "system.cutoff.splitsize") 
+
+def mainname(bin):
+  run_command = mkcmd("--name")
+  p = subprocess.Popen(run_command, stdout=subprocess.PIPE, stderr=substderr)
+  os.waitpid(p.pid, 0)
+  lines = p.stdout.readlines()
+  return lines[-1].strip()
 
 if __name__ == "__main__":
   chdirToPetabricksRoot()

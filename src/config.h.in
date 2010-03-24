@@ -36,6 +36,12 @@
 /* verbose debug printouts and log files in /tmp */
 #undef DEBUG
 
+/* accuracy stand-in for fixed-accuracy rules */
+#undef DEFAULT_ACCURACY
+
+/* null sync device path */
+#undef DEVNULL
+
 /* dont generate continuation code after SPAWN/enqueue */
 #undef DISABLE_CONTINUATIONS
 
@@ -45,11 +51,8 @@
 /* the default minimum number of iterations for for_enough{} */
 #undef FORENOUGH_MIN_ITERS
 
-/* hash function used for memoization (MD5 or SHA1) */
-#undef HASH_FN
-
-/* length of hash used for memoization (must match HASH_FN) */
-#undef HASH_LEN
+/* set to 1 to use SHA1 instead of MD5 */
+#undef HASH_USE_SHA1
 
 /* Define to 1 if you have the `backtrace_symbols' function. */
 #undef HAVE_BACKTRACE_SYMBOLS
@@ -107,6 +110,9 @@
 
 /* Define to 1 if you have the <openssl/md5.h> header file. */
 #undef HAVE_OPENSSL_MD5_H
+
+/* Define to 1 if you have the <openssl/sha.h> header file. */
+#undef HAVE_OPENSSL_SHA_H
 
 /* Define to 1 if you have the <signal.h> header file. */
 #undef HAVE_SIGNAL_H
@@ -171,8 +177,14 @@
 /* Cause the custom allocator to call malloc instead of mmap */
 #undef JALIB_USE_MALLOC
 
+/* skip some copies in debug printing, conflicts with JASSERT_LOG */
+#undef JASSERT_FAST
+
 /* log traces to /tmp/jassertlog.pid */
 #undef JASSERT_LOG
+
+/* include source line numbers in error messages */
+#undef JASSERT_USE_SRCPOS
 
 /* type for elements in the matrix */
 #undef MATRIX_ELEMENT_T
@@ -182,6 +194,9 @@
 
 /* define in order to generate maxima.log, (a log of maxima commands) */
 #undef MAXIMA_LOG
+
+/* path to maxima program */
+#undef MAXIMA_PATH
 
 /* the maximum number of dimensions supported */
 #undef MAX_DIMENSIONS
@@ -197,6 +212,9 @@
 
 /* min number of workers supported */
 #undef MIN_NUM_WORKERS
+
+/* enable low level optimization such as specializations and prefetching */
+#undef OPT_LOWLEVEL
 
 /* define to add a system var to transform scope */
 #undef OUTPUT_SIZE_STR

@@ -19,6 +19,7 @@
 
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
+#include "common/srcpos.h"
 
 #include <string>
 #include <vector>
@@ -37,7 +38,7 @@ class StaticScheduler;
 class Transform;
 class UserRule;
 typedef jalib::JRef<RuleInterface> RulePtr;
-class RuleList : public std::vector<RulePtr> , public jalib::JRefCounted {};
+class RuleList : public std::vector<RulePtr>, public jalib::JRefCounted, public jalib::SrcPosTaggable {};
 typedef std::vector<RuleDescriptor>     RuleDescriptorList;
 typedef std::vector<RuleDescriptorList> RuleDescriptorListList;
 typedef jalib::JRef<MatrixDependencyMap> MatrixDependencyMapPtr;
@@ -84,7 +85,7 @@ public:
 /**
  * Base class for rules, both UserRule and SyntheticRule
  */
-class RuleInterface : public jalib::JRefCounted, public jalib::JPrintable {
+class RuleInterface : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
 public:
   RuleInterface();
 

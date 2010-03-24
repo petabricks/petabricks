@@ -19,6 +19,8 @@ liblapack (required for some benchmarks)
 dot
 doxygen
 numpy
+boost
+libssl
 
 
 REPOSITORY:

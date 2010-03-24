@@ -227,7 +227,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
           f=MAXIMA.min(f, criticalPoint);
       }
       
-      JTRACE("where clause handled")(*i)(criticalPoint)(_applicableRegion);
+      JTRACE("where clause handled")(*i)(criticalPoint)(_applicableRegion)(smaller)(eq)(larger);
     }else{
       //test if we can statically prove it
       int rslt = MAXIMA.is((*i)->printAsAssumption());
@@ -429,10 +429,12 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     {
       o.write( "printf( \"ruleN_static applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
     }
+  #ifdef HAVE_OPENCL
   else if( E_RF_OPENCL == flavor )
     {
       o.write( "printf( \"ruleN_opencl applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
     }
+  #endif
   // END LOGGING
 
   if((E_RF_DYNAMIC == flavor) && !isRecursive() && !isSingleElement()){

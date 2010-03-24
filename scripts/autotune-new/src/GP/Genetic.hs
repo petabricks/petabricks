@@ -40,6 +40,7 @@ module GP.Genetic
     , GenerationMerger
     , StopCondition
     , CrossoverHook (..)
+    , SelectionMethod (..)
     , bestMember
     , averageFitness
     ) where
@@ -53,6 +54,7 @@ import GP.Utils (indexFoldr)
 import System.Random (mkStdGen, randoms, randomRs)
 import Control.Monad.State
 import Data.Map (Map, fromList, (!), member, insert)
+import Data.List (sort)
 import Debug.Trace (trace)
 
 
@@ -81,6 +83,12 @@ callCrossoverHook hookName tree1 tree2 = do state <- get
                                             return offspring
 
 
+data SelectionMethod = Roulette | Tournament Int
+
+instance Show SelectionMethod where
+    show Roulette = "roulette"
+    show (Tournament poolSize) = "tournament (size= " ++ show poolSize ++ ")"
+
 
 data Evolver a b c = Evolver { choices                       :: [Int]
                              , probabilities                 :: [Double]
@@ -89,6 +97,7 @@ data Evolver a b c = Evolver { choices                       :: [Int]
                              , mutationProbability           :: Double
                              , completeMutationProbability   :: Double
                              , randomSelectionProbability    :: Double
+                             , selectionMethod               :: SelectionMethod
                              , evaluator                     :: Evaluator a
                              , populationSize                :: Int
                              , merger                        :: GenerationMerger a
@@ -348,10 +357,18 @@ normalizeFitnesses xs = if totalFitness == 0
       totalFitness = foldr ((+) . fitness) 0 xs
 
 
--- Normalizes fitness values of evaluated syntax trees and picks an element t from them
--- with probability (fitness t). All fitnesses have to be normalized.
-pickForReproduction :: (d -> Double) -> [d] -> EvolverState a b c d
-pickForReproduction func trees
+
+selectForReproduction :: Ord d => (d -> Double) -> [d] -> EvolverState a b c d
+selectForReproduction func trees = do state <- get
+                                      case selectionMethod state of
+                                        Roulette -> rouletteSelect func trees
+                                        Tournament _ -> tournamentSelect func trees
+                                               
+
+-- Picks an element t from a list of evaluated syntax trees with probability (fitness t).
+-- All fitnesses have to be normalized.
+rouletteSelect :: (d -> Double) -> [d] -> EvolverState a b c d
+rouletteSelect func trees
     = do pr <- randDouble
          let result = fst $ foldr picker ([], pr) trees
          if null result
@@ -369,6 +386,19 @@ pickForReproduction func trees
                           else ([], r - func t)
           | otherwise   = x
 
+
+tournamentSelect :: Ord d => (d -> Double) -> [d] -> EvolverState a b c d
+tournamentSelect func trees
+    = do state <- get
+         let Tournament poolSize = selectionMethod state
+         pool <- selectPool poolSize
+         return $ (head . reverse . sort) pool
+    where
+      selectPool size = do if size == 0
+                              then return []
+                              else do elt <- randElt trees
+                                      rest <- selectPool $ size-1
+                                      return $ elt:rest
 
 
 -- Gets population member with the highest fitness value
@@ -398,10 +428,10 @@ evolveTree trees = do state <- get
                       r1 <- randDouble
                       r2 <- randDouble
                       parent1          <- if r1 >= (randomSelectionProbability state)
-                                          then pickForReproduction fitness trees
+                                          then selectForReproduction fitness trees
                                           else randElt trees
                       parent2          <- if r2 >= (randomSelectionProbability state)
-                                          then pickForReproduction fitness trees
+                                          then selectForReproduction fitness trees
                                           else randElt trees
                       offspring        <- crossover parent1 parent2
                       mutatedOffspring <- mutate offspring                               

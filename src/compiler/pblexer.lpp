@@ -10,29 +10,34 @@
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 %option stack
-%option yylineno
 %option nostdinit
 %option noyywrap
 %option noyy_top_state
 %option nounput
 %option prefix="pb"
 %option outfile="lex.yy.c"
+%option bison-bridge
+%option bison-locations
+%option yylineno
 
 %{
-#include "transform.h"
-#include "userrule.h"
+
+#include "codegenerator.h"
 #include "formula.h"
 #include "matrixdef.h"
-#include "pbparser.h"
-#include "codegenerator.h"
+#include "transform.h"
+#include "userrule.h"
 
 #include "common/jassert.h"
 #include "common/jconvert.h"
+#include "common/srcpos.h"
 
 #include <stdio.h>
 #include <string>
 #include <string.h>
 #include <sstream>
+
+#include "pbparser.h"
 
 using namespace std;
 
@@ -57,6 +62,8 @@ static void recordLitCode(){
 
 int rulebodystart=0;
 std::string pbfilename;
+int pbcolno=0;
+int pblastlineno=-1;
 
 static void handleCppLine(const char* s){
   const char* n_begin = s+2;
@@ -69,8 +76,11 @@ static void handleCppLine(const char* s){
   pbfilename = filename;
 }
 
-#define YY_USER_ACTION pblval.str=allocPoolString(yytext); theParseLog<<yytext;
-#define YY_DECL int yylex()
+#define YY_USER_ACTION \
+  pblval.str=allocPoolString(yytext);                              \
+  theParseLog<<yytext;                                             \
+  SRCPOS_FILL(*yylloc, pbfilename, pblineno, pblastlineno, pbcolno)
+
 #define RETURN theParseLog.str(""); return
 
 static int theNestCount=0;
@@ -136,6 +146,10 @@ PASS_CHARS [=.<>,*/()[\]^+-]
   "<="              RETURN KW_LE;
   ">="              RETURN KW_GE;
   "=="              RETURN KW_EQ;
+  "&&"              RETURN KW_AND;
+  "and"             RETURN KW_AND;
+  "||"              RETURN KW_OR;
+  "or"              RETURN KW_OR;
   [0-9]+[.][0-9]+   RETURN TOK_FLOAT;
   [0-9]+            RETURN TOK_INTEGER;
   [a-zA-Z_][a-zA-Z0-9_]* RETURN IDENT;

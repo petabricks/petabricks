@@ -61,12 +61,14 @@ static bool ACCURACY=false;
 static bool FORCEOUTPUT=false;
 static bool ACCTRAIN=false;
 static bool ISOLATION=true;
+static bool HASH=false;
 static bool FIXEDRANDOM=false;
 static int OFFSET=0;
 static int ACCIMPROVETRIES=3;
 std::vector<std::string> txArgs;
 static std::string ATLOG;
-
+static jalib::Hash theLastHash;
+static std::string IOGEN_PFX="tmp_";
 
 #ifdef HAVE_BOOST_RANDOM_HPP
 static boost::lagged_fibonacci607& myRandomGen(){
@@ -109,6 +111,8 @@ static int _incN(int n){
 static enum {
   MODE_RUN_IO,
   MODE_RUN_RANDOM,
+  MODE_IOGEN_CREATE,
+  MODE_IOGEN_RUN,
   MODE_GRAPH_INPUTSIZE,
   MODE_GRAPH_PARAM,
   MODE_GRAPH_THREADS,
@@ -206,8 +210,9 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   if(!FIXEDRANDOM)
     _seedRandom();
 
-  args.param("accuracy",  ACCURACY).help("print out accuracy of answer");
-  args.param("time",      DUMPTIMING).help("print timing results in xml format");
+  args.param("accuracy",     ACCURACY).help("print out accuracy of answer");
+  args.param("time",         DUMPTIMING).help("print timing results in xml format");
+  args.param("hash",         HASH).help("print hash of output");
   args.param("force-output", FORCEOUTPUT).help("also write copies of outputs to stdout");
   
   args.param("threads", worker_threads).help("number of threads to use");
@@ -239,6 +244,12 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     MODE=MODE_GRAPH_THREADS;
   }else if(args.param("graph-template").help("graph run time for each template instance")){
     MODE=MODE_GRAPH_TEMPLATE;
+  }else if(args.param("iogen-create", IOGEN_PFX).help("generate a set of random inputs with the given prefix")){
+    JASSERT(_randSize>=0).Text("-n=... required");
+    MODE=MODE_IOGEN_CREATE;
+  }else if(args.param("iogen-run", IOGEN_PFX).help("run a set of random inputs generated with --iogen-create")){
+    JASSERT(_randSize<0).Text("-n=... conflicts with --iogen-run");
+    MODE=MODE_IOGEN_RUN;
   }
   
   //flags that cause aborts
@@ -301,9 +312,11 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     case MODE_GRAPH_TEMPLATE:
     case MODE_AUTOTUNE_GENETIC:
     case MODE_AUTOTUNE_PARAM:
+    case MODE_IOGEN_RUN:
       if(ISOLATION)
         break;
       //fall through
+    case MODE_IOGEN_CREATE:
     case MODE_RUN_IO:
       //startup requested number of threads
       if(MODE!=MODE_GRAPH_THREADS && MODE!=MODE_ABORT){
@@ -346,6 +359,7 @@ void petabricks::PetabricksRuntime::saveConfig()
 int petabricks::PetabricksRuntime::runMain(){
   int err;
   JTIMER_SCOPE(runMain);
+
   switch(MODE){
     case MODE_RUN_IO:
       std::cout << "- MODE_RUN_IO\n";
@@ -357,6 +371,12 @@ int petabricks::PetabricksRuntime::runMain(){
 	}
 #endif
       runNormal();
+      break;
+    case MODE_IOGEN_CREATE:
+      iogenCreate(iogenFiles(IOGEN_PFX));
+      break;
+    case MODE_IOGEN_RUN:
+      iogenRun(iogenFiles(IOGEN_PFX));
       break;
     case MODE_RUN_RANDOM:
       std::cout << "- MODE_RUN_RANDOM\n";
@@ -397,15 +417,15 @@ int petabricks::PetabricksRuntime::runMain(){
     JTIMER_SCOPE(forceoutput);
     std::vector<std::string> tmp;
     for(int i=_main->numInputs(); i-->0;)
-      tmp.push_back("/dev/null");
+      tmp.push_back(DEVNULL);
     for(int i=_main->numOutputs(); i-->0;)
       tmp.push_back("-");
-    _main->write(tmp);
+    _main->writeOutputs(tmp);
   }
 
   ACCURACY=!theAccuracies.empty();
   DUMPTIMING=!theTimings.empty();
-  if(ACCURACY || DUMPTIMING) std::cout << "<root>\n  <stats>\n";
+  if(ACCURACY || DUMPTIMING || HASH) std::cout << "<root>\n  <stats>\n";
   if(ACCURACY){
     std::cout << "    <accuracy";
     _dumpStats(std::cout, theAccuracies);
@@ -416,7 +436,12 @@ int petabricks::PetabricksRuntime::runMain(){
     _dumpStats(std::cout, theTimings);
     std::cout << " />\n";
   }
-  if(ACCURACY || DUMPTIMING) std::cout << "  </stats>\n</root>\n" << std::flush;
+  if(HASH){
+    std::cout << "    <outputhash value=\"0x";
+    theLastHash.print();
+    std::cout << "\" />\n";
+  }
+  if(ACCURACY || DUMPTIMING || HASH) std::cout << "  </stats>\n</root>\n" << std::flush;
 
   return _rv;
 }
@@ -430,7 +455,7 @@ void petabricks::PetabricksRuntime::runNormal(){
     _rv = 1;
   }else{
     double t = jalib::maxval<double>();
-    main.read(txArgs);
+    main.readInputs(txArgs);
     try{
       DummyTestIsolation ti;
       t = computeWrapper(ti);
@@ -438,11 +463,36 @@ void petabricks::PetabricksRuntime::runNormal(){
       UNIMPLEMENTED();
     }
     if(t>=0 && t<jalib::maxval<double>()/2.0){
-      main.write(txArgs);
+      main.writeOutputs(txArgs);
     }else{
       _rv=66;
     }
   }
+}
+
+std::vector<std::string>  petabricks::PetabricksRuntime::iogenFiles(const std::string& pfx){
+  std::vector<std::string> tmp;
+  for(int i=_main->numInputs(); i-->0;)
+    tmp.push_back(pfx + "_in" + jalib::XToString(i) + ".dat");
+  for(int i=_main->numOutputs(); i-->0;)
+    tmp.push_back(pfx + "_out" + jalib::XToString(i) + ".dat");
+  return tmp;
+}
+
+void petabricks::PetabricksRuntime::iogenCreate(const std::vector<std::string>& files){
+  _main->reallocate(_randSize);
+  _main->randomize();
+  _main->writeInputs(files);
+  _main->writeOutputs(files);
+}
+
+void petabricks::PetabricksRuntime::iogenRun(const std::vector<std::string>& files){
+  SubprocessTestIsolation sti(GRAPH_MAX_SEC);
+  static DummyTestIsolation dti;
+  TestIsolation* ti;
+  if(ISOLATION) ti = &sti;
+  else          ti = &dti;
+  computeWrapper(*ti, -1, -1, &files);
 }
 
 static const char* _uniquifyatlogname() {
@@ -633,12 +683,13 @@ double petabricks::PetabricksRuntime::trainAndComputeWrapper(TestIsolation& ti, 
   }
 }
 
-double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, int retries){
+double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, int retries, const std::vector<std::string>* files){
   double v, acc=jalib::maxval<double>();
+  jalib::Hash hash;
   try{
     if(ti.beginTest(worker_threads)){
       try {
-        computeWrapperSubproc(ti, n, v, acc);
+        computeWrapperSubproc(ti, n, v, acc, hash, files);
       } catch(petabricks::DynamicScheduler::AbortException) {
         v=jalib::maxval<double>();
         _isRunning = false;
@@ -646,9 +697,9 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
         UNIMPLEMENTED();
         throw;
       }
-      ti.endTest(v,acc);
+      ti.endTest(v, acc, hash);
     }else{
-      ti.recvResult(v,acc);
+      ti.recvResult(v, acc, hash);
     }
   }catch(TestIsolation::UnknownTestFailure e){
     if(retries<0) retries=RETRIES;//from cmd line
@@ -658,19 +709,28 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
       std::cerr << "ERROR: test aborted unexpectedly" << std::endl;
       return computeWrapper(ti, n, retries-1);
     }
-  }
-    
+  } 
   if(v<0)        throw ComputeRetryException();
   if(DUMPTIMING) theTimings.push_back(v);
   if(ACCURACY)   theAccuracies.push_back(acc);
+  if(HASH){
+    theLastHash = hash;
+  }
   return v;
 }
   
-void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti, int n, double&  time, double&  acc){
+void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
+                                                          int n,
+                                                          double& time,
+                                                          double& acc,
+                                                          jalib::Hash& hash,
+                                                          const std::vector<std::string>* files
+                                                          ){
   if(_isTrainingRun && _main->isVariableAccuracy()){
     variableAccuracyTrainingLoop(ti);
   }
   if(n>0){
+    JASSERT(files==NULL);
     JTIMER_SCOPE(randomize);
     JASSERT(n==_randSize);
     ti.disableTimeout();
@@ -678,6 +738,9 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti, int
     _main->reallocate(n);
     _main->randomize();
     ti.restartTimeout();
+  }else if(files!=NULL){
+    _main->readInputs(*files);
+    _main->readOutputs(*files);
   }
   _needTraingingRun = false;//reset flag set by isTrainingRun()
   _isRunning = true;
@@ -694,6 +757,12 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti, int
   if(ACCURACY){
     ti.disableTimeout();
     acc=_main->accuracy();
+  }
+  if(HASH){
+    ti.disableTimeout();
+    jalib::HashGenerator hg;
+    _main->hash(hg);
+    hash = hg.final();
   }
 }
   
@@ -812,7 +881,7 @@ bool petabricks::PetabricksRuntime::isTrainingRun(){
 void petabricks::PetabricksRuntime::abort(){
   TestIsolation* master = SubprocessTestIsolation::masterProcess();
   if(master!=NULL){
-    master->endTest(jalib::maxval<double>(), jalib::minval<double>());//should abort us
+    master->endTest(jalib::maxval<double>(), jalib::minval<double>(), jalib::Hash());//should abort us
     UNIMPLEMENTED();
   }else{
     DynamicScheduler::cpuScheduler().abort();

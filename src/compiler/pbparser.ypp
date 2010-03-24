@@ -10,46 +10,57 @@
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 %{
-#include "transform.h"
-#include "userrule.h"
+
 #include "formula.h"
 #include "matrixdef.h"
 #include "region.h"
+#include "transform.h"
+#include "userrule.h"
 
 #include "common/jconvert.h"
+#include "common/srcpos.h"
 
 #include <stdio.h>
 #include <map>
 
+#include "pbparser.h"
+
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
+
 using namespace petabricks;
 
-extern int pblineno;
-extern char* pbtext;
-extern int pblex (void);
-extern std::string pbfilename;
+extern char* pbtext;//in pblexer.cpp
 
 int yyerror(petabricks::TransformListPtr&, const char* msg){
-  JASSERT(false)(pbfilename)(pblineno)(pbtext)(msg).Text("parse error"); return 0;
+  JASSERT(false)(yylloc)(pbtext)(msg).Text("parse error"); 
+  return 0;
 }
 
+// keep a ref to all created objects so they aren't deleted during parsing
+// the ref pool is then cleared after each parse finishes
+// this is needed because bison parsing types doesn't support constructors/destructors
 static jalib::JRefPool theRefPool;
-#define REFALLOC(args...) (theRefPool.add(new args))
-
 static void clearParserCaches(){
   theRefPool.clear();
 }
-
 void pbparser_addRefPoolItem(jalib::JRefCounted* i){
   theRefPool.add(i);
 }
+#define REFALLOC(args...) TAGPOS(theRefPool.add(new args), yylloc)
 
+//helper to mark objects with locations
+#define P(A) TAGPOS(A, yylloc)
+
+
+#define YYLEX_PARAM &yylval, &yylloc
+extern int pblex(YYSTYPE * yylval_param,YYLTYPE * yylloc_param);
 %}
 
 %defines
 %locations
+%error-verbose
 %expect 0
 %name-prefix="pb"
 
@@ -81,7 +92,7 @@ void pbparser_addRefPoolItem(jalib::JRefCounted* i){
   theRefPool.clear();
 }
 
-%token KW_TRANSFORM KW_FROM KW_TO KW_THROUGH KW_LE KW_GE KW_EQ KW_WHERE
+%token KW_TRANSFORM KW_FROM KW_TO KW_THROUGH KW_LE KW_GE KW_EQ KW_WHERE KW_AND KW_OR
 %token KW_PRIMARY KW_SECONDARY KW_PRIORITY
 %token KW_ROTATABLE KW_MAIN KW_RECURSIVE KW_DUPLICATE KW_MEMOIZED
 %token /*KW_TESTCASE*/ KW_GENERATOR KW_TEMPLATE KW_TUNABLE KW_CONFIG KW_PARAM
@@ -96,7 +107,7 @@ void pbparser_addRefPoolItem(jalib::JRefCounted* i){
 %type <rule> Rule RuleHeader BaseRuleHeader
 %type <matrixdefs> MatrixDefList RuleHeaderThrough
 %type <matrixdef>  MatrixDef
-%type <formulas>   OptFormulaList FormulaList OptSize OptVersion OptWhere
+%type <formulas>   OptFormulaList FormulaList OptSize OptVersion OptWhere FormulaRelations
 %type <formula>    Formula FormulaExpr FormulaRelation
 %type <region>     Region NamedRegion
 %type <regions>    NamedRegionList RuleHeaderFrom RuleHeaderTo
@@ -119,34 +130,34 @@ Start: TransformList {
 };
 
 Transform: TransformHeader TransformBody {
-   ($$=$1)->setRules(*$2); 
+  ($$=$1)->setRules(*$2); 
 };
 
 TransformHeader: Nil {$$=REFALLOC(Transform());};
-TransformHeader: TransformHeader ';'                                  { ($$=$1); };
-TransformHeader: TransformHeader KW_MAIN                              { ($$=$1)->markMain(); };
-TransformHeader: TransformHeader KW_MEMOIZED                          { ($$=$1)->markMemoized(); };
-TransformHeader: TransformHeader KW_TRANSFORM IDENT                   { ($$=$1)->setName($3);     } ;
-TransformHeader: TransformHeader KW_PARAM FreeVars                    { ($$=$1)->addParams(*$3);    } ;
-TransformHeader: TransformHeader KW_FROM    MatrixDefList             { ($$=$1)->addFrom(*$3);   };
-TransformHeader: TransformHeader KW_THROUGH MatrixDefList             { ($$=$1)->addThrough(*$3);};
-TransformHeader: TransformHeader KW_TO      MatrixDefList             { ($$=$1)->addTo(*$3);     };
-TransformHeader: TransformHeader KW_TEMPLATE OptLT TemplateArgs OptGT { ($$=$1)->addTemplateArg(*$4); };
-//TransformHeader: TransformHeader KW_TESTCASE TestCase                 { ($$=$1)->addTestCase($3);};
-TransformHeader: TransformHeader KW_ACCURACYMETRIC IDENT              { ($$=$1)->setAccuracyMetric($3);};
-TransformHeader: TransformHeader KW_ACCURACYBINS FloatList            { ($$=$1)->setAccuracyBins(*$3);};
-TransformHeader: TransformHeader KW_GENERATOR IDENT                   { ($$=$1)->setGenerator($3);};
+TransformHeader: TransformHeader ';'                                  { P($$=$1); };
+TransformHeader: TransformHeader KW_MAIN                              { P($$=$1)->markMain(); };
+TransformHeader: TransformHeader KW_MEMOIZED                          { P($$=$1)->markMemoized();  };
+TransformHeader: TransformHeader KW_TRANSFORM IDENT                   { P($$=$1)->setName($3);     };
+TransformHeader: TransformHeader KW_PARAM FreeVars                    { P($$=$1)->addParams(*$3);  };
+TransformHeader: TransformHeader KW_FROM    MatrixDefList             { P($$=$1)->addFrom(*$3);    };
+TransformHeader: TransformHeader KW_THROUGH MatrixDefList             { P($$=$1)->addThrough(*$3); };
+TransformHeader: TransformHeader KW_TO      MatrixDefList             { P($$=$1)->addTo(*$3);      };
+TransformHeader: TransformHeader KW_TEMPLATE OptLT TemplateArgs OptGT { P($$=$1)->addTemplateArg(*$4); };
+//TransformHeader: TransformHeader KW_TESTCASE TestCase               { P($$=$1)->addTestCase($3);};
+TransformHeader: TransformHeader KW_ACCURACYMETRIC IDENT              { P($$=$1)->setAccuracyMetric($3);};
+TransformHeader: TransformHeader KW_ACCURACYBINS FloatList            { P($$=$1)->setAccuracyBins(*$3);};
+TransformHeader: TransformHeader KW_GENERATOR IDENT                   { P($$=$1)->setGenerator($3);};
 
 TransformHeader: TransformHeader ConfigItemType IDENT
-         { ($$=$1)->addConfigItem($2, $3); };
+         { P($$=$1)->addConfigItem($2, $3); };
 TransformHeader: TransformHeader ConfigItemType IDENT '(' ')'
-         { ($$=$1)->addConfigItem($2, $3); };
+         { P($$=$1)->addConfigItem($2, $3); };
 TransformHeader: TransformHeader ConfigItemType IDENT '(' Integer ')' 
-         { ($$=$1)->addConfigItem($2, $3, $5); };
+         { P($$=$1)->addConfigItem($2, $3, $5); };
 TransformHeader: TransformHeader ConfigItemType IDENT '(' Integer ',' Integer ')' 
-         { ($$=$1)->addConfigItem($2, $3, $5, $7); };
+         { P($$=$1)->addConfigItem($2, $3, $5, $7); };
 TransformHeader: TransformHeader ConfigItemType IDENT '(' Integer ',' Integer ',' Integer ')' 
-         { ($$=$1)->addConfigItem($2, $3, $5, $7, $9); };
+         { P($$=$1)->addConfigItem($2, $3, $5, $7, $9); };
 
 
 ConfigItemType: KW_CONFIG           { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER; }
@@ -158,24 +169,26 @@ TemplateArg: IDENT '(' Integer ',' Integer ')' {
   $$=REFALLOC(TemplateArg($1, $3, $5));
 }
 TemplateArgs: TemplateArg                  { ($$=REFALLOC(TemplateArgList()))->push_back($1); }
-            | TemplateArgs ',' TemplateArg { ($$=$1)->push_back($3); }
-
-/*TestCase: Nil            { $$=REFALLOC(TestCase()); }
-       | TestCase IDENT { ($$=$1)->addMatrix($2); }; */
-
-MatrixDef: IDENT OptVersion OptSize { $$=REFALLOC(MatrixDef($1,*$2,*$3)); };
-
+            | TemplateArgs ',' TemplateArg { P($$=$1)->push_back($3); }
+                                               
+/*TestCase: Nil            { $$=REFALLOC(TestC ase()); }
+       | TestCase IDENT { ($$=$1)->addMatrix($ 2); }; */
+                                               
+MatrixDef: IDENT OptVersion OptSize {          
+  $$=REFALLOC(MatrixDef($1,*$2,*$3));          
+};                                             
+                                               
 OptVersion: Nil                          { ($$=REFALLOC(FormulaList())); }
           | '<' Formula              '>' { ($$=REFALLOC(FormulaList()))->push_back($2); }
-          | '<' Formula Dots Formula '>' 
-{ 
+          | '<' Formula Dots Formula '>'       
+{                                              
   $$=REFALLOC(FormulaList()); 
   $$->push_back($2);
   $$->push_back($4);
 };
 
 OptSize: Nil                 { $$=REFALLOC(FormulaList()); }
-       | '[' FormulaList ']' { $$=$2; };
+       | '[' FormulaList ']' { P($$=$2); };
 
 Formula: IDENT   {$$=REFALLOC( FormulaVariable($1) ); }
        | Integer {$$=REFALLOC( FormulaInteger( $1) ); }
@@ -190,50 +203,54 @@ FormulaExpr: Formula '+' Formula { $$=REFALLOC(FormulaBinop<'+'>($1,$3)); }
            | Formula '^' Formula { $$=REFALLOC(FormulaBinop<'^'>($1,$3)); }
            | '-' Formula { $$=REFALLOC(FormulaBinop<'-'>(FormulaInteger::zero(),$2)); };
 
-FormulaRelation: Formula '=' Formula { $$=REFALLOC(FormulaBinop<'='>($1,$3)); }
-               | Formula KW_EQ  Formula { $$=REFALLOC(FormulaBinop<'='>($1,$3)); }
-               | Formula '<' Formula { $$=REFALLOC(FormulaBinop<'<'>($1,$3)); }
-               | Formula '>' Formula { $$=REFALLOC(FormulaBinop<'>'>($1,$3)); }
-               | Formula KW_LE  Formula { $$=REFALLOC(FormulaLE($1,$3)); }
-               | Formula KW_GE  Formula { $$=REFALLOC(FormulaGE($1,$3)); };
+FormulaRelation: Formula '='   Formula { $$=REFALLOC(FormulaBinop<'='>($1,$3)); }
+               | Formula KW_EQ Formula { $$=REFALLOC(FormulaBinop<'='>($1,$3)); }
+               | Formula '<'   Formula { $$=REFALLOC(FormulaBinop<'<'>($1,$3)); }
+               | Formula '>'   Formula { $$=REFALLOC(FormulaBinop<'>'>($1,$3)); }
+               | Formula KW_LE Formula { $$=REFALLOC(FormulaLE($1,$3)); }
+               | Formula KW_GE Formula { $$=REFALLOC(FormulaGE($1,$3)); }
+               | FormulaRelation KW_OR Formula { JASSERT(false).Text("|| in where clauses not yet supported"); };
 
+TransformBody: '{' RuleList '}' { P($$=$2); };
 
-TransformBody: '{' RuleList '}' { $$=$2; };
+Rule: RuleHeader RuleBody OptSemiCol { P($$=$1)->setBody($2); };
 
-Rule: RuleHeader RuleBody OptSemiCol { ($$=$1)->setBody($2); };
-
-RuleHeader: BaseRuleHeader          { $$=$1; }
-          | PriorityFlag RuleHeader { ($$=$2)->setPriority($1); }
-          | KW_ROTATABLE RuleHeader { ($$=$2)->addRotations(RuleFlags::ROTATE); }
-          | KW_RECURSIVE RuleHeader { ($$=$2)->markRecursive(); }
-          | KW_RECURSIVE '(' Formula ')' RuleHeader { ($$=$5)->markRecursive($3); }
-          | KW_DUPLICATE '(' IDENT ',' Integer ',' Integer ')' RuleHeader { ($$=$9)->addDuplicateVar($3, $5, $7); }
-          | KW_RULE IDENT RuleHeader { ($$=$3)->setLabel($2); };
+RuleHeader: BaseRuleHeader          { P($$=$1); }
+          | PriorityFlag RuleHeader { P($$=$2)->setPriority($1); }
+          | KW_ROTATABLE RuleHeader { P($$=$2)->addRotations(RuleFlags::ROTATE); }
+          | KW_RECURSIVE RuleHeader { P($$=$2)->markRecursive(); }
+          | KW_RECURSIVE '(' Formula ')' RuleHeader { P($$=$5)->markRecursive($3); }
+          | KW_DUPLICATE '(' IDENT ',' Integer ',' Integer ')' RuleHeader { P($$=$9)->addDuplicateVar($3, $5, $7); }
+          | KW_RULE IDENT RuleHeader { P($$=$3)->setLabel($2); };
 
 BaseRuleHeader: Region       RuleHeaderFrom RuleHeaderThrough OptWhere { $$=REFALLOC(UserRule($1,  *$2, *$3, *$4)); }
               | RuleHeaderTo RuleHeaderFrom RuleHeaderThrough OptWhere { $$=REFALLOC(UserRule(*$1, *$2, *$3, *$4)); };
 
-RuleHeaderFrom: KW_FROM '(' NamedRegionList ')' { $$=$3; };
-RuleHeaderTo:   KW_TO   '(' NamedRegionList ')' { $$=$3; };
-RuleHeaderThrough: KW_THROUGH '(' MatrixDefList ')' { $$=$3; }
+RuleHeaderFrom: KW_FROM '(' NamedRegionList ')'     { P($$=$3); };
+RuleHeaderTo:   KW_TO   '(' NamedRegionList ')'     { P($$=$3); };
+RuleHeaderThrough: KW_THROUGH '(' MatrixDefList ')' { P($$=$3); }
                | Nil { $$=REFALLOC(MatrixDefList()); };
 
 PriorityFlag: KW_PRIMARY                  {$$=RuleFlags::PRIORITY_PRIMARY;}
             | KW_SECONDARY                {$$=RuleFlags::PRIORITY_SECONDARY;}
             | KW_PRIORITY '(' Integer ')' {$$=$3;};
 
-RuleBody: '{' TOK_RULEBODY /*'}'*/ { $$=$2; }; // } is handled by lexer
+RuleBody: '{' TOK_RULEBODY /*'}'*/ { ($$=$2); }; // } is handled by lexer
 
-OptWhere: Nil                      { $$=REFALLOC(FormulaList()); }
-        | KW_WHERE FormulaRelation { ($$=REFALLOC(FormulaList()))->push_back($2); };
+OptWhere: Nil                       { ($$=REFALLOC(FormulaList())); }
+        | KW_WHERE FormulaRelations { ($$=$2); };
+
+
+FormulaRelations: FormulaRelation { ($$=REFALLOC(FormulaList()))->push_back($1); }
+                | FormulaRelations KW_AND FormulaRelation { ($$=$1)->push_back($3); };
 
 Region: IDENT OptVersion RegionAccessor { $$=REFALLOC(Region($1,*$2, $3.str,*$3.formulas)); };
 
-RegionAccessor: '.' IDENT '(' OptFormulaList ')' { $$.str=$2; $$.formulas=$4;}
+RegionAccessor: '.' IDENT '(' OptFormulaList ')' { $$.str=$2; P($$.formulas=$4);}
               | Nil { $$.str="all"; $$.formulas=REFALLOC(FormulaList());};
 
-NamedRegion: Region IDENT             { ($$=$1)->setName($2); }
-           | Region IDENT '=' Formula { ($$=$1)->setName($2); $$->setOptionalDefault($4); } ;
+NamedRegion: Region IDENT             { P($$=$1)->setName($2); }
+           | Region IDENT '=' Formula { P($$=$1)->setName($2); $$->setOptionalDefault($4); } ;
 
 OptLT: Nil | '<';
 OptGT: Nil | '>';
@@ -246,24 +263,24 @@ Float:   TOK_FLOAT   { $$=jalib::StringToX<double>($1); };
 FloatOrInt: Float { $$=$1; } | Integer { $$=$1; } | '-' FloatOrInt { $$=-1*$2; }; 
 
 RuleList: Rule          { ($$=REFALLOC(RuleList()))->push_back($1); }
-        | RuleList Rule { ($$=$1)->push_back($2); };
+        | RuleList Rule { P($$=$1)->push_back($2); };
 
 TransformList: Transform               { ($$=REFALLOC(TransformList()))->push_back($1); }
-             | TransformList Transform { ($$=$1)->push_back($2); };
+             | TransformList Transform { P($$=$1)->push_back($2); };
 
 MatrixDefList: MatrixDef                   { ($$=REFALLOC(MatrixDefList()))->push_back($1); }
-             | MatrixDefList ',' MatrixDef { ($$=$1)->push_back($3);                      };
+             | MatrixDefList ',' MatrixDef { P($$=$1)->push_back($3);                      };
 
 FormulaList: Formula                 { ($$=REFALLOC(FormulaList()))->push_back($1); }
-           | FormulaList ',' Formula { ($$=$1)->push_back($3); };
+           | FormulaList ',' Formula { P($$=$1)->push_back($3); };
 
 NamedRegionList: Nil                             { ($$=REFALLOC(RegionList())); }
                | NamedRegion                     { ($$=REFALLOC(RegionList()))->push_back($1); }
-               | NamedRegionList ',' NamedRegion { ($$=$1)->push_back($3); };
+               | NamedRegionList ',' NamedRegion { P($$=$1)->push_back($3); };
 
 
 OptFormulaList: Nil         { $$=REFALLOC(FormulaList()); }
-              | FormulaList { $$=$1; };
+              | FormulaList { P($$=$1); };
 
 
 FreeVars: IDENT             { ($$=REFALLOC(OrderedFreeVars()))->push_back($1); }

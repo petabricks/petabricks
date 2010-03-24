@@ -16,13 +16,13 @@
 #include "configitem.h"
 #include "learner.h"
 #include "matrixdef.h"
-#include "performancetester.h"
 #include "rirscope.h"
 #include "rule.h"
 #include "staticscheduler.h"
 
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
+#include "common/srcpos.h"
 
 #include <limits>
 #include <set>
@@ -32,16 +32,16 @@ namespace petabricks {
 
 class Transform;
 typedef jalib::JRef<Transform> TransformPtr;
-class TransformList: public std::vector<TransformPtr>, public jalib::JRefCounted {};
+class TransformList: public std::vector<TransformPtr>, public jalib::JRefCounted, public jalib::SrcPosTaggable {};
 typedef jalib::JRef<TransformList> TransformListPtr;
 typedef std::set<std::string> ConstantSet;
 
-class DoubleList: public std::vector<double>, public jalib::JRefCounted {};
+class DoubleList: public std::vector<double>, public jalib::JRefCounted, public jalib::SrcPosTaggable {};
 
 /**
  * a transformation algorithm
  */
-class Transform : public jalib::JRefCounted, public jalib::JPrintable {
+class Transform : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
 public:
 
   ///
@@ -97,7 +97,6 @@ public:
   void markMemoized() { _memoized=true; }
 
   Learner& learner() { return _learner; }
-  //PerformanceTester& tester() { return _tester; }
 
   //void addTestCase(const TestCasePtr& p) {tester().addTestCase(p);}
 
@@ -134,7 +133,7 @@ public:
   bool isTemplate() const { return !_templateargs.empty(); }
   bool isVariableAccuracy() const { return !_accuracyBins.empty(); }
 
-  std::string tmplName(int n, CodeGenerator* o=NULL) const;
+  std::string tmplName(int n, CodeGenerator* o=NULL);
   
   void addConfigItem(int flags, const std::string& n, int initial=0, int min=0, int max=std::numeric_limits<int>::max()){
     ConfigItems::iterator i;
@@ -236,7 +235,6 @@ private:
   bool            _memoized;
   Learner         _learner;
   StaticSchedulerPtr _scheduler;
-  //PerformanceTester  _tester;
   TemplateArgList     _templateargs;
   int                 _tuneId;
   ConfigItems         _config;
@@ -246,6 +244,7 @@ private:
   std::vector<double> _accuracyBins;
   std::string         _generator;
   int                 _templateChoice;
+  double              _curAccTarget;
 };
 
 }

@@ -1,0 +1,49 @@
+
+Uncertainty in empirical tests
+
+We use a statistical model to represent uncertainty in performance of
+candidate algorithms.  We assume candidate algorithm performance follows a
+normal distribution and estimate the parameters of this distribution using
+a least squares fit of test results.
+
+We run each candidate algorithm at least 3 times per tested input size.
+When comparing candidate algorithms, we require that the difference be
+statistically significant (as determined by t-tests) with at least a 95\% confidence.  If the confidence
+in the difference is lower than 95\%, we dynamically run additional tests in
+an attempt to improve this confidence.  Additional tests are performed in
+the order resulting in the highest expected reduction in standard error of
+the mean.  Each candidate algorithm is tested at most 25 times, after which
+point attempts at comparison are abandoned.  On average when tuning Sort,
+XXXX tests per candidate per input size are run.
+
+In order to improve training speed, we impose a time limit on test runs.
+When this time limit is exceeded, tests are terminated early.  This time
+limit is determined as a function of the performance of the current best
+known algorithms. When a test times out, we estimate the time it would have
+taken to run the test as the median value above the time limit in the current
+estimated performance distribution.  This imposes more penalty when timeouts
+were unlikely to occur.  In the case where all but one (or all) tests time
+out, least squares fit cannot be use and instead we use prior assumptions of
+tests taking twice the timeout and a standard deviation of 20\%.  In practice,
+algorithms that incur timeouts will likely be eliminated from the population
+so accurately predicting their performance is less important and these prior
+assumptions suffice.
+
+Configurations and Candidate Algorithms
+
+Candidate algorithms in the autotuner are represented as configuration files
+that fully define the behavior of the algorithm.  The configuration files
+can be read by the PetaBricks compiler and by testing binaries. Configuration
+files are implemented as a flat list of named integer values for efficiency.
+However, one could logically think of these configuration files as consisting
+of three distinct types of entities:
+
+\begin{enumerate}
+\item Decision trees for algorithmic choices ...
+\item Switches ....
+\item Cutoffs ....
+\end{enumerate}
+
+
+
+
