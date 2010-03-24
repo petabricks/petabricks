@@ -497,7 +497,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " 
                 << "normalized_" << (*i)->matrix( )->name( ) << ".bytes( ),"
                 << "(void*) normalized_" << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
-        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for\" );\n";
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->matrix( )->name( ) << ".\" );\n";
 
         // Bind to kernel.
         o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->matrix( )->name( ) << " );\n\n";
@@ -534,8 +534,10 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
       //  need to get cnDim ( size in each dimension ) -- can probably get this from iterdef
       // (along with dimensionality, actually, probably)
-      o.os( ) << "size_t workdim[] = { 0, 0 };\n";
-      o.os( ) << "err = clEnqueueNDRangeKernel( OpenCLUtil::getQueue( 0 ), clkern, 2, 0, workdim, 0, 0, NULL, NULL );\n";
+      o.os( ) << "size_t workdim[] = { _iter_end[0]-_iter_begin[0], _iter_end[1]-_iter_begin[1] };\n";
+      o.os( ) << "std::cout << \"Work dimensions: \" << workdim[0] << \" x \" << workdim[1] << \"\\n\";\n";
+      o.os( ) << "err = clEnqueueNDRangeKernel( OpenCLUtil::getQueue( 0 ), clkern, 2, 0, workdim, NULL, 0, NULL, NULL );\n";
+      o.os( ) << "std::cout << \"Kernel execution error #\" << err << \": \" << OpenCLUtil::errorString(err) << std::endl;\n";
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to execute kernel.\" );\n";
 
       // Copy results back to host memory.
