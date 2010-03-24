@@ -429,6 +429,10 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     {
       o.write( "printf( \"ruleN_static applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
     }
+  else if( E_RF_OPENCL == flavor )
+    {
+      o.write( "printf( \"ruleN_opencl applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
+    }
   // END LOGGING
 
   if((E_RF_DYNAMIC == flavor) && !isRecursive() && !isSingleElement()){
@@ -503,6 +507,8 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
           for( unsigned int i = 0; i < iterdef.dimensions( )-1; ++i )
             o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
         }
+
+      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
 
       //      o.os( ) << "printf( \"- TRACE 45\\n\" );\n";
 
@@ -676,9 +682,19 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   }
 
   // Generate OpenCL implementation of rule logic.
+  GpuRenamePass p0;
+  _bodyirOpenCL->accept( p0 );
+ #ifdef DEBUG
+  std::cerr << "--------------------\nAFTER GPU PASSES:\n" << _bodyirOpenCL << std::endl;
+  {
+    DebugPrintPass pdebug;
+    _bodyirOpenCL->accept(pdebug);
+  }
+  std::cerr << "--------------------\n";
+ #endif
   clo.write( _bodyirOpenCL->toString( ) );
 
-  clo.os( ) << "OUT[idx_OUT] = IN[idx_IN];\n";
+  //clo.os( ) << "OUT[idx_OUT] = IN[idx_IN];\n";
 
   // Close conditional and kernel.
   clo.os( ) << "}\n";
