@@ -1,4 +1,4 @@
-#define FORCE_OPENCL
+//#define FORCE_OPENCL
 
 /***************************************************************************
  *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
