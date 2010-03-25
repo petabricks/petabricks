@@ -1,4 +1,7 @@
 //#define FORCE_OPENCL
+//#define OPENCL_LOGGING
+
+#define TRACE(x) std::cout << "Trace " << x << "\n"
 
 /***************************************************************************
  *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
@@ -85,7 +88,10 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
   DebugPrintPass    print;
   ExpansionPass     expand(tx, *this, scope);
   AnalysisPass      analysis(*this, tx.name(), scope);
+#ifdef HAVE_OPENCL
   OpenClCleanupPass opencl(*this, scope);
+  GpuRenamePass gpurename;
+#endif
   RIRBlockCopyRef   bodyir = RIRBlock::parse(_bodysrc);
 
 #ifdef DEBUG
@@ -101,8 +107,17 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
   _bodyirDynamic = bodyir;
   
 #ifdef HAVE_OPENCL
-  bodyir->accept(opencl);
-  _bodyirOpenCL = bodyir;
+  try
+    {
+      _bodyirOpenCL = bodyir;
+      _bodyirOpenCL->accept(opencl);
+      _bodyirOpenCL->accept(gpurename);
+    }
+  catch( OpenClCleanupPass::NotValidSource e )
+    {
+      std::cout << "FAILED TO COMPILE OPENCL IMPL FOR RULE " << id() << "\n";
+      _bodyirOpenCL = NULL;
+    }
 #endif
 
 #ifdef DEBUG
@@ -431,6 +446,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   #endif
 
   // LOGGING
+  #ifdef OPENCL_LOGGING
   if( E_RF_STATIC == flavor )
     {
       o.write( "printf( \"ruleN_static applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
@@ -440,6 +456,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     {
       o.write( "printf( \"ruleN_opencl applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
     }
+  #endif
   #endif
   // END LOGGING
 
@@ -460,7 +477,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       */
 
       o.os() << "cl_int err;\n";
-      o.os() << "cl_kernel clkern = clkern_gpuRule2;\n";
+      o.os() << "cl_kernel clkern = clkern_" << id() << ";\n";
 
       int arg_pos = 0;
 
@@ -504,7 +521,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       //      o.os( ) << "printf( \"- TRACE 40\\n\" );\n";
 
       // Bind rule dimension arguments to kernel.
-      for( unsigned int i = 0; i < iterdef.dimensions( ); ++i )
+      for( int i = 0; i < iterdef.dimensions( ); ++i )
 	{
 	  o.os( ) << "int ruledim_" << i << " = _iter_end[" << i << "] - _iter_begin[" << i << "];\n";
 	  o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
@@ -513,12 +530,12 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       // Bind matrix dimension arguments to kernel.
       for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
 	{
-	  for( unsigned int i = 0; i < iterdef.dimensions( )-1; ++i )
+	  for( int i = 0; i < iterdef.dimensions( )-1; ++i )
 	    o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
 	}
       for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
         {
-          for( unsigned int i = 0; i < iterdef.dimensions( )-1; ++i )
+          for( int i = 0; i < iterdef.dimensions( )-1; ++i )
             o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
         }
 
@@ -533,8 +550,13 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       //  need to get cnDim ( size in each dimension ) -- can probably get this from iterdef
       // (along with dimensionality, actually, probably)
       o.os( ) << "size_t workdim[] = { _iter_end[0]-_iter_begin[0], _iter_end[1]-_iter_begin[1] };\n";
+      #ifdef OPENCL_LOGGING
       o.os( ) << "std::cout << \"Work dimensions: \" << workdim[0] << \" x \" << workdim[1] << \"\\n\";\n";
+      #endif
       o.os( ) << "err = clEnqueueNDRangeKernel( OpenCLUtil::getQueue( 0 ), clkern, 2, 0, workdim, NULL, 0, NULL, NULL );\n";
+      #ifndef OPENCL_LOGGING
+      o.os( ) << "if( CL_SUCCESS != err ) ";
+      #endif
       o.os( ) << "std::cout << \"Kernel execution error #\" << err << \": \" << OpenCLUtil::errorString(err) << std::endl;\n";
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to execute kernel.\" );\n";
 
@@ -632,6 +654,13 @@ pC, 0, 0, 0);
 
 void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef )
 {
+  // This is only null if code generation failed (that is, the rule is
+  // unsupported.)
+  if( !isOpenClRule() )
+    return;
+
+  TRACE( "10" );
+
   std::vector<std::string> from_matrices, to_matrices;
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     to_matrices.push_back( (*i)->matrix( )->name( ) );
@@ -639,6 +668,8 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
     from_matrices.push_back( (*i)->matrix( )->name( ) );
 
   clo.beginKernel( to_matrices, from_matrices, iterdef.dimensions( ) );
+
+  TRACE( "20" );
 
   // Get indices.
   for( int i = 0; i < iterdef.dimensions( ); ++i )
@@ -653,6 +684,8 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
 	clo.os( ) << "&& ";
     }
   clo.os( ) << ") {\n";
+
+  TRACE( "30" );
 
   // Generate indices into input and output arrays.
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
@@ -672,6 +705,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
       idx_formula->print( clo.os( ) );
       clo.os( ) << ";\n";
     }
+  TRACE( "40" );
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
     {
       // Build & normalize formula for index.
@@ -689,6 +723,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
       idx_formula->print( clo.os( ) );
       clo.os( ) << ";\n";
     }
+  TRACE( "50" );
 
   // Load inputs to rule.
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
@@ -696,6 +731,8 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
       clo.os( ) << /*STRINGIFY( MATRIX_ELEMENT_T )*/ "float" << " " << (*i)->name( ) << " = " << (*i)->matrix( )->name( ) << "[idx_" <<
 	(*i)->matrix( )->name( ) << "];\n";
     }
+
+  TRACE( "60" );
 
   // Quick hack -- generate a macro that will store the output from the rule.
   /** \todo this mechanism won't work with rules with multiple outputs */
@@ -705,8 +742,6 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   }
 
   // Generate OpenCL implementation of rule logic.
-  GpuRenamePass p0;
-  _bodyirOpenCL->accept( p0 );
  #ifdef DEBUG
   std::cerr << "--------------------\nAFTER GPU PASSES:\n" << _bodyirOpenCL << std::endl;
   {
@@ -716,6 +751,8 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   std::cerr << "--------------------\n";
  #endif
   clo.write( _bodyirOpenCL->toString( ) );
+
+  TRACE( "70" );
 
   //clo.os( ) << "OUT[idx_OUT] = IN[idx_IN];\n";
 

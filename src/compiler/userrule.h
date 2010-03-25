@@ -142,7 +142,8 @@ public:
 
   bool isOpenClRule() const {
 #ifdef HAVE_OPENCL
-    return ! isRecursive();
+    return (bool)_bodyirOpenCL;
+    //    return ! isRecursive();
 #else
     return false;
 #endif

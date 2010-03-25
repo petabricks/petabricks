@@ -8,6 +8,9 @@ namespace petabricks
 void
 GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
 {
+  if( !_rule->isOpenClRule() )
+    return;
+
   CLCodeGenerator clcodegen;
   IterationDefinition iterdef(*_rule, _rule->getSelfDependency(), _rule->isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();
@@ -16,8 +19,7 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
   o.os() << "// GPURULE TRAMPOLINE CODE\n";
 
   // Create variables to hold handles to program, kernel
-  o.hos() << "static cl_program clprog_" << codename() << ";\n";
-  o.hos() << "static cl_kernel clkern_" << codename() << ";\n\n";
+  o.hos() << "static cl_kernel clkern_" << _rule->id() << ";\n\n";
   o.os( ) << "cl_program " << trans.name() << "_instance::clprog_" << codename()
 	  << " = 0;\n";
   o.os( ) << "cl_kernel " << trans.name() << "_instance::clkern_" << codename()
