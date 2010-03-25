@@ -16,10 +16,11 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
   o.os() << "// GPURULE TRAMPOLINE CODE\n";
 
   // Create variables to hold handles to program, kernel
+  o.hos() << "static cl_program clprog_" << _rule->id() << ";\n";
   o.hos() << "static cl_kernel clkern_" << _rule->id() << ";\n\n";
-  o.os( ) << "cl_program " << trans.name() << "_instance::clprog_" << codename()
+  o.os( ) << "cl_program " << trans.name() << "_instance::clprog_" << _rule->id()
 	  << " = 0;\n";
-  o.os( ) << "cl_kernel " << trans.name() << "_instance::clkern_" << codename()
+  o.os( ) << "cl_kernel " << trans.name() << "_instance::clkern_" << _rule->id()
 	  << " = 0;\n";
 
   // Create init function call
@@ -42,13 +43,13 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
 
   o.comment( "Build program." );
   o.os( ) << "size_t programlength = strlen( clsrc );\n";
-  o.os( ) << "clprog_" << codename() << " = clCreateProgramWithSource( ctx, 1, &clsrc, NULL, &err );\n";
+  o.os( ) << "clprog_" << _rule->id() << " = clCreateProgramWithSource( ctx, 1, &clsrc, NULL, &err );\n";
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create program.\" );\n\n";
-  o.os( ) << "err = OpenCLUtil::buildProgram( clprog_" << codename() << " );\n";
+  o.os( ) << "err = OpenCLUtil::buildProgram( clprog_" << _rule->id() << " );\n";
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to build program.\" );\n\n";
 
   o.comment( "Create kernel." );
-  o.os( ) << "clkern_" << codename() << "= clCreateKernel( clprog_" << codename() << ", \"kernel_main\", &err );\n";
+  o.os( ) << "clkern_" << _rule->id() << "= clCreateKernel( clprog_" << _rule->id() << ", \"kernel_main\", &err );\n";
   o.os( ) << "std::cout << \"clCreateKernel err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create kernel.\" );\n\n";
 
