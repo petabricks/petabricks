@@ -1,0 +1,69 @@
+#ifndef BITONIC_PBCC
+#define BITONIC_PBCC
+
+//#include "BitonicCompare.pbcc"
+
+transform BitonicCompare
+from IN1[n], IN2[n],UP
+to OUT1[n],OUT2[n]
+{
+  to (OUT1.cell(i) y1, OUT2.cell(i) y2) 
+  from (IN1.cell(i) x1, IN2.cell(i) x2, UP up)  
+  { 
+	if (((up > 0) && (x1 > x2)) || ((up == 0) && (x1 < x2)))
+	{
+		y1=x2;
+		y2=x1;
+	}
+	else 
+	{
+		y1=x1;
+		y2=x2;
+	}
+  }
+}
+
+
+transform BitonicMerge
+from IN[n], UP
+through INTER[n]
+to OUT[n]
+{
+
+  to (OUT out, INTER inter) from (IN in, UP up)
+  {
+        if (n <= 1)
+        {
+                out.cell(0)=in.cell(0);
+        }
+        else
+        {
+                BitonicCompare(inter.region(0,n/2),inter.region(n/2,n), in.region(0,n/2), in.region(n/2,n), up);
+                BitonicMerge(out.region(0,n/2), inter.region(0,n/2), up);
+                BitonicMerge(out.region(n/2,n), inter.region(n/2,n), up);
+        }
+  }
+}
+
+transform bitonic
+from IN[n], UP 
+through INTER[n]
+to OUT[n]
+{
+
+  to (OUT out, INTER inter) from (IN in, UP up) 
+  {
+	if (n <= 1)
+	{
+		out.cell(0)=in.cell(0);
+	}
+	else
+	{
+		bitonic(inter.region(0,n/2), in.region(0,n/2), up);
+		bitonic(inter.region(n/2,n), in.region(n/2,n), 1-up);
+		BitonicMerge(out, inter, up);
+	}
+  }  
+}
+
+#endif // BITONIC_PBCC
