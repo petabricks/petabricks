@@ -8,9 +8,6 @@ namespace petabricks
 void
 GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
 {
-  if( !_rule->isOpenClRule() )
-    return;
-
   CLCodeGenerator clcodegen;
   IterationDefinition iterdef(*_rule, _rule->getSelfDependency(), _rule->isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();

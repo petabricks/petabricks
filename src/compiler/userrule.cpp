@@ -113,24 +113,18 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       _bodyirOpenCL = bodyir;
       _bodyirOpenCL->accept(opencl);
       _bodyirOpenCL->accept(gpurename);
+      std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
+      bodyir->accept(print);
+      std::cerr << "--------------------\n";
     }
     catch( OpenClCleanupPass::NotValidSource e )
     {
       std::cout << "FAILED TO COMPILE OPENCL IMPL FOR RULE " << id() << "\n";
       _gpuRule->disableRule();
+      _gpuRule = NULL;
       _bodyirOpenCL = NULL;
     }
-  }else if(_gpuRule){
-    _gpuRule->disableRule();
-    _gpuRule = NULL;
-    _bodyirOpenCL = NULL;
   }
-#endif
-
-#ifdef DEBUG
-  std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
-  bodyir->accept(print);
-  std::cerr << "--------------------\n";
 #endif
 }
 
@@ -310,10 +304,8 @@ void petabricks::UserRule::performExpansion(Transform& trans){
     }
   }
  #ifdef HAVE_OPENCL
-  if(isOpenClRule()){
-     _gpuRule = new GpuRule( this );
-    trans.addRule( _gpuRule );
-  }
+   _gpuRule = new GpuRule( this );
+  trans.addRule( _gpuRule );
  #endif
 }
 

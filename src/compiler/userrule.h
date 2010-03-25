@@ -142,8 +142,7 @@ public:
 
   bool isOpenClRule() const {
 #ifdef HAVE_OPENCL
-    return (bool)_bodyirOpenCL;
-    //    return ! isRecursive();
+    return _gpuRule;
 #else
     return false;
 #endif
