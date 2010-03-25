@@ -1,0 +1,86 @@
+#ifndef PREFIXSUM_PBCC
+#define PREFIXSUM_PBCC
+
+
+transform psserial
+from X[n] 
+to Y[n] 
+{
+  Y.cell(0) from(X.cell(0) x) { return x;}
+
+  // use the previous subsum on the left
+  to(Y.cell(i) y) from(X.cell(i) x, Y.cell(i-1) leftsum){
+    y=x+leftsum;
+  }
+  
+  // compute all sums from input
+  to(Y.cell(i) y) from(X.region(0, i+1) x){
+    y=0;
+    for(int j=0; j<=i; j++)
+      y += x.cell(j);
+  }
+}
+
+
+transform psrecur
+from X[n]
+through PS[n/2], RP[n/2]
+to Y[n]
+{
+
+  // pairwise sum
+  PS.cell(i) from (X.cell(2*i) x1, X.cell(2*i+1) x2) {return x1+x2;}
+
+  // Recursive Prefix on the subarray
+  to (RP rp) from (PS ps) {
+        prefixsum(rp, ps);
+  }
+
+   Y.cell(0) from (X.cell(0) x) { return x; }
+ 
+   Y.cell(1) from (RP.cell(0) rp) { return rp;}
+
+   Y.cell(i) 
+   from (RP.cell((i-1)/2) rpeven, RP.cell(i/2-1) rpodd, X.cell(i) x) 
+   {
+	if ( i % 2 == 0) { return x+rpodd;}
+	else { return rpeven; }
+   }
+
+  // Update "odds"
+//  to (Y y) from (X x, RP rp) {
+
+//        int i;
+
+//        y.cell(0) = x.cell(0);
+
+//	// even entries are same as results from recursion
+//        for (i=1;i<n;i+=2) {
+//                y.cell(i) = rp.cell((i-1)/2);
+//        }
+//
+//	// odd entries need to be updated 
+//        for (i=2;i<n;i+=2) {
+//                y.cell(i) = x.cell(i) +rp.cell(i/2-1);
+//        }
+//   }
+
+}
+
+
+transform prefixsum
+from X[n]
+to Y[n]
+{
+
+  to (Y y) from (X x) {
+	psserial(y,x);
+  }
+
+  to (Y y) from (X x) {
+	if (n==1) { y.cell(0) = x.cell(0); }
+        else {  psrecur(y,x);  }
+  }
+}
+
+#endif // PREFIXSUM_PBCC
