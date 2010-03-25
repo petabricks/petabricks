@@ -15,6 +15,7 @@
 #include "rirscope.h"
 #include "ruleir.h"
 #include "trainingdeps.h"
+#include "userrule.h"
 
 #include "common/jprintable.h"
 
@@ -171,9 +172,6 @@ class GpuRenamePass : public RIRCompilerPass {
 public:
   GpuRenamePass() : RIRCompilerPass(RIRScope::global()->createChildLayer()) {}
   void before(RIRExprCopyRef& e);
-
- protected:
-  void transformMemberFnCall(RIRExprCopyRef& e);
 };
 
 class DebugPrintPass : public RIRCompilerPass {
@@ -269,6 +267,8 @@ public:
   {}
   void before(RIRExprCopyRef& e);
 private:
+  RegionPtr findMatrix(std::string var);
+  void generateAccessor( const RegionPtr& region, const FormulaPtr& x, const FormulaPtr& y );
   UserRule& _rule;
 };
 

@@ -161,6 +161,16 @@ public:
   bool isOptional() const { return _optionalDefault; }
   const FormulaPtr& optionalDefault() const { return _optionalDefault; }
 
+  FormulaList getOriginalBounds() const
+  {
+    return _originalBounds;
+  }
+
+  RegionType getRegionType() const
+  {
+    return _originalType;
+  }
+
   void addArgToScope(RIRScope& scope) const;
 private:
   std::string _name;

@@ -33,24 +33,6 @@ void petabricks::GpuRenamePass::before(RIRExprCopyRef& e)
       else if( e->isLeaf( "IndexT" ) )
 	e = new RIRIdentExpr( STRINGIFY( MATRIX_INDEX_T ) );
     }
-  else if( RIRNode::EXPR_OP == e->type() )
-    {
-      if( e->isLeaf( "." ) )
-	transformMemberFnCall( e );
-    }
-}
-
-void petabricks::GpuRenamePass::transformMemberFnCall(RIRExprCopyRef& e)
-{
-  // Peek backwards to find out what we're operating on
-  RIRExprRef region_expr = peekExprBackward();
-  std::cout << "Member on: " << region_expr->debugStr() << std::endl;
-
-  // Peek forwards to get argument expressions
-  RIRExprRef memberfn_expr = peekExprForward();
-  std::cout << "Member fn name: " << memberfn_expr->debugStr() << std::endl;
-
-  std::cout << std::endl;
 }
 
 void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
@@ -336,6 +318,24 @@ void petabricks::AnalysisPass::before(RIRExprCopyRef& e){
   }
 }
 
+petabricks::RegionPtr petabricks::OpenClCleanupPass::findMatrix(std::string var)
+{
+  RegionList from = _rule.getFromRegions();
+  RegionList to = _rule.getToRegions();
+
+  for( RegionList::const_iterator i = to.begin(); i != to.end(); ++i )
+    if( var == (*i)->name() )
+      return (*i);
+  for( RegionList::const_iterator i = from.begin(); i != from.end(); ++i )
+    if( var == (*i)->name() )
+      return (*i);
+  return NULL;
+}
+
+void petabricks::OpenClCleanupPass::generateAccessor( const RegionPtr& region, const FormulaPtr& x, const FormulaPtr& y )
+{
+}
+
 void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
   if(e->type() == RIRNode::EXPR_IDENT){
     RIRSymbolPtr sym = _scope->lookup(e->toString());
@@ -364,11 +364,65 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
         RIRExprCopyRef args = call->part(1);
         JTRACE("expanding SYM_ARG_REGION")(regionName)(methodname)(args);
 
+	// Look up matrix region.
+	RegionPtr region = findMatrix(regionName->str());
+	JASSERT( !region.null() ).Text( "No such region exists." );
+
+	// Generate list of index expressions.
+	/*
+	std::cout << "formula bounds:\n";
+	for( int i = 0; i < region->dimensions(); ++i )
+	  {
+	    std::cout << i << ": ";
+	    region->minCoord().at( i )->print(std::cout);
+	    std::cout << " to ";
+	    region->maxCoord().at( i )->print(std::cout);
+	    std::cout << std::endl;
+	  }
+	*/
+
+	if( "cell" == methodname->str() )
+	  {
+	    std::string xcoord, ycoord;
+	    if( petabricks::Region::REGION_ROW == region->getRegionType() )
+	      {
+		xcoord = args->toString();
+		ycoord = region->minCoord().at(1)->toString();
+	      }
+	    else if( petabricks::Region::REGION_COL == region->getRegionType() )
+	      {
+		xcoord = region->minCoord().at(0)->toString();
+		ycoord = args->toString();
+	      }
+	    else
+	      {
+		std::cout << "Failed to generate OpenCL kernel: unsupported region type.";
+		throw NotValidSource();
+	      }
+
+	    std::string exprstr = region->matrix()->name() + "[(dim_" + region->matrix()->name() + "_d0*" + ycoord + ")+" + xcoord + "]";
+	    //std::cout << "expression string: " << exprstr << "\n";
+	    e = RIRExpr::parse( exprstr );
+	    //std::cout << "accessor index: " << e->debugStr() << "\n";
+	  }
+	else if( "width" == methodname->str() )
+	  {
+	    e = RIRExpr::parse( "dim_" + region->matrix()->name() + "_d0" );
+	  }
+	else
+	  {
+	    JASSERT( false ).Text( "Failed to generate OpenCL kernel: unsupported member function of region." );
+	  }
+
+	// Simplify expressions and produce final call.
+
+	/*
         args->prependSubExpr(methodname);
         args->prependSubExpr(regionName);
         e = new RIRCallExpr();
         e->addSubExpr(new RIRIdentExpr("REGION_METHOD_CALL"));
         e->addSubExpr(args);
+	*/
       }
     }
   }
