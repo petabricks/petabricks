@@ -14,7 +14,6 @@ transform Transpose2
 from IN[n,n]
 to  OUT[n,n]
 {
-  recursive
   to(OUT.region(0,   0,   n/2, n/2) o1,
      OUT.region(n/2, 0,   n,   n/2) o2,
      OUT.region(0,   n/2, n/2, n)   o3,

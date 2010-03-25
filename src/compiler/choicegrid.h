@@ -33,12 +33,17 @@ public:
     for(const_iterator i=begin(); i!=end(); ++i)
       os << "    [" << i->first << "] : " << i->second << "\n";
   }
+  void removeDisabledRules();
 };
 class ChoiceGridMap : public std::map<MatrixDefPtr, ChoiceGridIndex>, public jalib::JPrintable {
 public:
   void print(std::ostream& os) const {
     for(const_iterator i=begin(); i!=end(); ++i)
       os << "  " << i->first << ":\n" << i->second;
+  }
+  void removeDisabledRules(){
+    for(iterator i=begin(); i!=end(); ++i)
+      i->second.removeDisabledRules();
   }
 };
 
@@ -70,6 +75,8 @@ public:
   }
 
   void applyRulePriorities();
+
+  void removeDisabledRules();
 private:
   int           _dimension;
   FormulaPtr    _begin;

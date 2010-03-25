@@ -69,7 +69,7 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
 }
 
 void
-GpuRule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region)
+GpuRule::generateCallCodeSimple(Transform& /*trans*/, CodeGenerator& o, const SimpleRegionPtr& region)
 {
   o.callSpatial(codename(), region);
 }

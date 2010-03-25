@@ -238,6 +238,7 @@ private:
   FormulaPtr _recursiveHint;
   std::string _label;
   ConfigItems _duplicateVars;
+  RulePtr _gpuRule;
 };
 
 }

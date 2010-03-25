@@ -107,17 +107,24 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
   _bodyirDynamic = bodyir;
   
 #ifdef HAVE_OPENCL
-  try
+  if(isOpenClRule()){
+    try
     {
       _bodyirOpenCL = bodyir;
       _bodyirOpenCL->accept(opencl);
       _bodyirOpenCL->accept(gpurename);
     }
-  catch( OpenClCleanupPass::NotValidSource e )
+    catch( OpenClCleanupPass::NotValidSource e )
     {
       std::cout << "FAILED TO COMPILE OPENCL IMPL FOR RULE " << id() << "\n";
+      _gpuRule->disableRule();
       _bodyirOpenCL = NULL;
     }
+  }else if(_gpuRule){
+    _gpuRule->disableRule();
+    _gpuRule = NULL;
+    _bodyirOpenCL = NULL;
+  }
 #endif
 
 #ifdef DEBUG
@@ -304,7 +311,8 @@ void petabricks::UserRule::performExpansion(Transform& trans){
   }
  #ifdef HAVE_OPENCL
   if(isOpenClRule()){
-    trans.addRule( new GpuRule( this ) );
+     _gpuRule = new GpuRule( this );
+    trans.addRule( _gpuRule );
   }
  #endif
 }
@@ -652,7 +660,7 @@ pC, 0, 0, 0);
 
 #ifdef HAVE_OPENCL
 
-void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef )
+void petabricks::UserRule::generateOpenCLKernel( Transform& /*trans*/, CLCodeGenerator& clo, IterationDefinition& iterdef )
 {
   // This is only null if code generation failed (that is, the rule is
   // unsupported.)

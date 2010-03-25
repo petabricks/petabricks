@@ -224,6 +224,8 @@ void petabricks::Transform::compile(){
 
   JASSERT(!_scheduler);
 
+  _choiceGrid.removeDisabledRules();
+
   _scheduler=new StaticScheduler(_choiceGrid);
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     _scheduler->markInputMatrix(*i);

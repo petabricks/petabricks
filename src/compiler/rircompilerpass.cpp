@@ -332,7 +332,7 @@ petabricks::RegionPtr petabricks::OpenClCleanupPass::findMatrix(std::string var)
   return NULL;
 }
 
-void petabricks::OpenClCleanupPass::generateAccessor( const RegionPtr& region, const FormulaPtr& x, const FormulaPtr& y )
+void petabricks::OpenClCleanupPass::generateAccessor( const RegionPtr& , const FormulaPtr& , const FormulaPtr&  )
 {
 }
 
