@@ -45,6 +45,9 @@ void petabricks::MatrixDef::initialize(Transform& ){
   if(_version.size()>0){
     //TODO support for min region size
     JASSERT(_version.size()<=2);
+    if(_version.size()==1){ 
+      _version.insert(_version.begin(), FormulaInteger::zero());
+    }
     JASSERT(_version[0]->getFreeVariables()->size()==0)(_version)
       .Text("Non constant minimum version size not yet supported");
     _size.push_back(_version.back()->plusOne());
