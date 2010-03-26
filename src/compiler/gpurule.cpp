@@ -8,6 +8,9 @@ namespace petabricks
 void
 GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
 {
+  if( !_rule->isOpenClRule() )
+    return;
+
   CLCodeGenerator clcodegen;
   IterationDefinition iterdef(*_rule, _rule->getSelfDependency(), _rule->isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();
@@ -69,12 +72,14 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
 void
 GpuRule::generateCallCodeSimple(Transform& /*trans*/, CodeGenerator& o, const SimpleRegionPtr& region)
 {
+  o.comment( "GENERATECALLCODESIMPLE" );
   o.callSpatial(codename(), region);
 }
 
 void
 GpuRule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region)
 {
+  o.comment( "GENERATECALLTASKCODE" );
   o.mkSpatialTask(name, trans.instClassName(), codename(), region);
 }
 

@@ -644,9 +644,9 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& /*trans*/, CLCodeGen
 
   std::vector<std::string> from_matrices, to_matrices;
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-    to_matrices.push_back( (*i)->matrix( )->name( ) );
+    to_matrices.push_back( (*i)->name( ) );
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
-    from_matrices.push_back( (*i)->matrix( )->name( ) );
+    from_matrices.push_back( (*i)->name( ) );
 
   clo.beginKernel( to_matrices, from_matrices, iterdef.dimensions( ) );
 
@@ -676,13 +676,13 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& /*trans*/, CLCodeGen
       for( int j = (*i)->minCoord( ).size( ) - 1; j >= 0; --j )
 	{
 	  std::stringstream sizevar;
-	  sizevar << "dim_" << (*i)->matrix( )->name( ) << "_d" << j; 
+	  sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
 	  idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
 					new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
 	}
       idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );
 
-      clo.os( ) << "unsigned int idx_" << (*i)->matrix( )->name( ) << " = ";
+      clo.os( ) << "unsigned int idx_" << (*i)->name( ) << " = ";
       idx_formula->print( clo.os( ) );
       clo.os( ) << ";\n";
     }
@@ -694,13 +694,13 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& /*trans*/, CLCodeGen
       for( int j = (*i)->minCoord( ).size( ) - 1; j >= 0; --j )
 	{
 	  std::stringstream sizevar;
-	  sizevar << "dim_" << (*i)->matrix( )->name( ) << "_d" << j; 
+	  sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
 	  idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
 					new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
 	}
       idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );
 
-      clo.os( ) << "unsigned int idx_" << (*i)->matrix( )->name( ) << " = ";
+      clo.os( ) << "unsigned int idx_" << (*i)->name( ) << " = ";
       idx_formula->print( clo.os( ) );
       clo.os( ) << ";\n";
     }
@@ -709,8 +709,8 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& /*trans*/, CLCodeGen
   // Load inputs to rule.
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
     {
-      clo.os( ) << /*STRINGIFY( MATRIX_ELEMENT_T )*/ "float" << " " << (*i)->name( ) << " = " << (*i)->matrix( )->name( ) << "[idx_" <<
-	(*i)->matrix( )->name( ) << "];\n";
+      clo.os( ) << /*STRINGIFY( MATRIX_ELEMENT_T )*/ "float" << " " << (*i)->name( ) << " = _region_" << (*i)->name( ) << "[idx_" <<
+	(*i)->name( ) << "];\n";
     }
 
   TRACE( "60" );
@@ -719,7 +719,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& /*trans*/, CLCodeGen
   /** \todo this mechanism won't work with rules with multiple outputs */
   {
     RegionList::const_iterator i = _to.begin( );
-    clo.os( ) << "#define PB_RETURN(x) " << (*i)->matrix( )->name( ) << "[idx_" << (*i)->matrix( )->name( ) << "] = x\n";
+    clo.os( ) << "#define PB_RETURN(x) _region_" << (*i)->name( ) << "[idx_" << (*i)->name( ) << "] = x\n";
   }
 
   // Generate OpenCL implementation of rule logic.
