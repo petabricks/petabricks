@@ -487,7 +487,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       o.comment( "Create memory objects for outputs." );
       for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
       {
-        o.os( ) << "MatrixRegion2D normalized_" << (*i)->matrix( )->name( ) 
+        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->matrix( )->name( ) 
                 << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( false );\n";
         o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
@@ -506,7 +506,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
       {
         /** \todo Need to generalize this for arbitrary dimensionality */
-        o.os( ) << "ConstMatrixRegion2D normalized_" << (*i)->matrix( )->name( ) 
+        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->matrix( )->name( ) 
                 << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( true );\n";
         o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " 
