@@ -487,16 +487,16 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       o.comment( "Create memory objects for outputs." );
       for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
       {
-        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->matrix( )->name( ) 
+        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
                 << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( false );\n";
-        o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) 
+        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
-                << "normalized_" << (*i)->matrix( )->name( ) << ".bytes( ),"
-                << "(void*) normalized_" << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
+                << "normalized_" << (*i)->name( ) << ".bytes( ),"
+                << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object\");\n";
 
         // Bind to kernel.
-        o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->matrix( )->name( ) << " );\n\n";
+        o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
       }
 
       //      o.os( ) << "printf( \"- TRACE 20\\n\" );\n";
@@ -506,16 +506,16 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
       {
         /** \todo Need to generalize this for arbitrary dimensionality */
-        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->matrix( )->name( ) 
+        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
                 << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( true );\n";
-        o.os( ) << "cl_mem devicebuf_" << (*i)->matrix( )->name( ) 
+        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " 
-                << "normalized_" << (*i)->matrix( )->name( ) << ".bytes( ),"
-                << "(void*) normalized_" << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
-        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->matrix( )->name( ) << ".\" );\n";
+                << "normalized_" << (*i)->name( ) << ".bytes( ),"
+                << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
 
         // Bind to kernel.
-        o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->matrix( )->name( ) << " );\n\n";
+        o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
       }
 
       //      o.os( ) << "printf( \"- TRACE 40\\n\" );\n";
@@ -565,8 +565,8 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
 	{
 	  /** \todo need to generalize for >1 GPUs, should maybe think about making this nonblocking */
-	  o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_" << (*i)->matrix( )->name( ) <<
-	    ", CL_TRUE, 0, " << (*i)->matrix( )->name( ) <<  ".bytes(), " << (*i)->matrix( )->name( ) <<
+	  o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_" << (*i)->name( ) <<
+	    ", CL_TRUE, 0, normalized_" << (*i)->name( ) <<  ".bytes(), normalized_" << (*i)->name( ) <<
 	    ".base(), 0, NULL, NULL );\n";
 	  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to read output buffer.\" );\n";
 	}
@@ -581,31 +581,12 @@ pC, 0, 0, 0);
       o.comment( "Free memory." );
       for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
 	{
-	  o.os( ) << "clReleaseMemObject( devicebuf_" << (*i)->matrix( )->name( ) << " );\n";
+	  o.os( ) << "clReleaseMemObject( devicebuf_" << (*i)->name( ) << " );\n";
 	}
       for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
 	{
-	  o.os( ) << "clReleaseMemObject( devicebuf_" << (*i)->matrix( )->name( ) << " );\n";
+	  o.os( ) << "clReleaseMemObject( devicebuf_" << (*i)->name( ) << " );\n";
 	}
-
-      /*
-
-    // Bind arguments.
-    // - out ptrs
-    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_count++ << ", sizeof(cl_mem), (void*)&devbuf_" << (*i)->matrix( )->name( ) << " );\n";
-    // - in ptrs
-    for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
-      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_count++ << ", sizeof(cl_mem), (void*)&devbuf_" << (*i)->matrix( )->name( ) << " );\n";
-    // - iter dims
-    for( unsigned int i = 0; i < iterdef.dimensions( ); ++i )
-      o.os( ) << "int _iter_dim[] = { };\n"
-	      << "err |= clSetKernelArg( clkern, );\n";
-      */
-
-    // - matrix region dims (out, then in)
-
-    // Set execution parameters.
 
     // Launch kernel.
       
@@ -613,7 +594,7 @@ pC, 0, 0, 0);
       o.comment( "Copy back outputs (if they were already normalized, copyTo detects src==dst and does nothing)" );
       for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
       {
-          o.os( ) << "normalized_" << (*i)->matrix( )->name( ) 
+          o.os( ) << "normalized_" << (*i)->name( ) 
                   << ".copyTo(" << (*i)->matrix( )->name( ) << ");\n";
       }
 
