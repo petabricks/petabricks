@@ -1,0 +1,54 @@
+#ifndef DETTD_PBCC
+#define DETTD_PBCC
+
+#include "detmatmulprefix.pbcc"
+
+transform detsimple
+from A[n], B[n-1], C[n-1]
+through D1, D2
+to DET
+{
+  to (D1 d1) from(A.region(0,n-1) a1, B.region(0,n-2) b1, C.region(0,n-2) c1)
+  {
+	detTD(d1, a1, b1, c1);
+  }
+
+  to (D2 d2) from(A.region(0,n-2) a2, B.region(0,n-3) b2, C.region(0,n-3) c2)
+  {
+        detTD(d2, a2, b2, c2);
+  }
+
+  DET from(D1 d1, D2 d2, A.cell(n-1) a, B.cell(n-2) b, C.cell(n-2) c)
+  {
+	return d1*a - d2*b*c;
+  }
+
+}
+
+transform detTD
+from A[n], B[n-1], C[n-1]
+to DET
+{
+
+  to (DET det) from (A a, B b, C c) {
+	if (n == 2) 
+	{ 
+		det=a.cell(0)*a.cell(1)-b.cell(0)*c.cell(0); 
+	}
+	else if (n == 3) 
+	{
+		detTD(det,a.region(0,2),b.region(0,1),c.region(0,1)); 
+		det=det*a.cell(2)-a.cell(0)*b.cell(1)*c.cell(1);
+	}
+	else
+	{ 
+		detsimple(det,a,b,c); 
+	}
+  }
+
+  to (DET det) from (A a, B b, C c) {
+	detmatmulprefix(det,a,b,c);
+  }
+}
+
+#endif // DETTD_PBCC
