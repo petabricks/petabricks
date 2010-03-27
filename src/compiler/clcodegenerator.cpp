@@ -42,7 +42,8 @@ CLCodeGenerator::outputEscapedStringTo( std::ostream& o )
 	  o << "\\\"";
 	  break;
 	case '\n':
-	  o << "\\n";
+	  //o << "\\n";
+	  o << "\\n\"\n\"";
 	  break;
 	case '\t':
 	  o << "\\t";
@@ -72,9 +73,12 @@ CLCodeGenerator::localMemoryBarrier( )
 void
 CLCodeGenerator::beginKernel( const std::vector<std::string>& outputs, const std::vector<std::string>& inputs, unsigned int dims )
 {
+  /*
+    // \todo temporarily revised
   JASSERT( dims >= 1 );
   JASSERT( outputs.size( ) > 0 );
   JASSERT( inputs.size( ) > 0 );
+  */
 
   _os << "__kernel void kernel_main( ";
 

@@ -434,9 +434,9 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
   #ifdef FORCE_OPENCL
   // TEMPORARY -- hard-wire things so that the OpenCL rule is always called
-  if( E_RF_STATIC == flavor )
+  if( ( E_RF_STATIC == flavor ) && isOpenClRule( ) )
     {
-      o.os() << "std::cout << \"Forcing OpenCL impl of rule...\\n\";\n";
+      //      o.os() << "std::cout << \"Forcing OpenCL impl of rule...\\n\";\n";
       o.write("return ");
       o.call(trampcodename(trans)+TX_OPENCL_POSTFIX, packedargnames);
       o.write("}");
@@ -656,6 +656,10 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& /*trans*/, CLCodeGen
   for( int i = 0; i < iterdef.dimensions( ); ++i )
     clo.os( ) << "unsigned int " << _getOffsetVarStr( _id, i, NULL ) << " = get_global_id( " << i << " );\n";
 
+  // Define rule index variables (from _definitions).
+  for( FormulaList::iterator it = _definitions.begin( ); it != _definitions.end( ); ++it )
+    clo.os( ) << STRINGIFY(MATRIX_INDEX_T) " " << (*it)->lhs()->toString() << " = " << (*it)->rhs()->toString() << ";\n";
+
   // Conditional to ensure we are about to work on a valid part of the buffer.
   clo.os( ) << "if( ";
   for( int i = 0; i < iterdef.dimensions( ); ++i )
@@ -721,6 +725,12 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& /*trans*/, CLCodeGen
     RegionList::const_iterator i = _to.begin( );
     clo.os( ) << "#define PB_RETURN(x) _region_" << (*i)->name( ) << "[idx_" << (*i)->name( ) << "] = x\n";
   }
+
+  // Support for multiple-output rules
+  for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+    {
+      clo.os() << "#define " << (*i)->name( ) << " _region_" << (*i)->name( ) << "[idx_" << (*i)->name( ) << "]\n";
+    }
 
   // Generate OpenCL implementation of rule logic.
  #ifdef DEBUG
