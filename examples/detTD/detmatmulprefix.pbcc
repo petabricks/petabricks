@@ -1,0 +1,142 @@
+#ifndef DETMATMULPREFIX_PBCC
+#define DETMATMULPREFIX_PBCC
+
+
+transform Copy1D
+from IN[h]
+to OUT[h]
+{
+  OUT.cell(i) from (IN.cell(i) x)
+  {
+    return x;
+  }
+}
+
+transform Copy2D
+from IN[w,h]
+to OUT[w,h]
+{
+  OUT.cell(i,j) from (IN.cell(i,j) x)
+  {
+    return x;
+  }
+}
+
+transform matmuldirect
+from A[4], B[4]
+to C[4]
+{
+  C.cell(0) from (A.cell(0) a0, A.cell(1) a1, B.cell(0) b0, B.cell(2) b2) {
+	return a0*b0+a1*b2;
+  }
+
+  C.cell(1) from (A.cell(0) a0, A.cell(1) a1, B.cell(1) b1, B.cell(3) b3) {
+        return a0*b1+a1*b3;
+  }
+
+  C.cell(2) from (A.cell(2) a2, A.cell(3) a3, B.cell(0) b0, B.cell(2) b2) {
+        return a2*b0+a3*b2;
+  }
+
+  C.cell(3) from (A.cell(2) a2, A.cell(3) a3, B.cell(1) b1, B.cell(3) b3) {
+        return a2*b1+a3*b3;
+  }
+
+}
+
+transform mmpserial
+from X[4,n] 
+to Y[4,n] 
+{
+  to (Y.row(0) y) from(X.row(0) x) { Copy1D(y,x);}
+
+  // use the previous subsum on the left
+  to(Y.row(i) y) from(X.row(i) x, Y.row(i-1) leftsum){
+	matmuldirect(y,leftsum,x);
+  }
+ 
+  // compute all sums from input
+  to(Y.row(i) y) from(X.region(0,0,4, i+1) x){
+
+    MatrixRegion1D temp = MatrixRegion1D::allocate(4);
+    
+    y.cell(0)=1; y.cell(1)=0; y.cell(2)=0; y.cell(3)=1;
+
+    for(int j=0; j<=i; j++) {
+        matmuldirect(temp, y, x.row(j));
+        Copy1D(y,temp);
+    }
+  }
+ 
+}
+
+
+transform mmprecur
+from X[4,n]
+through PS[4,n/2], RP[4,n/2]
+to Y[4,n]
+{
+
+  // pairwise sum
+  to (PS.row(i) ps) from (X.row(2*i) x1, X.row(2*i+1) x2) 
+  {
+	matmuldirect(ps,x1,x2);
+  }
+
+  // Recursive Prefix on the subarray
+  to (RP rp) from (PS ps) {
+        mmprefix(rp, ps);
+  }
+
+   to (Y.row(0) y0) from (X.row(0) x0) { Copy1D(y0, x0); }
+ 
+   to (Y.row(1) y1) from (RP.row(0) rp) { Copy1D(y1, rp);}
+
+   to (Y.row(i) y) 
+   from (RP.row((i-1)/2) rpeven, RP.row(i/2-1) rpodd, X.row(i) x) 
+   {
+	if ( i % 2 == 0) { matmuldirect(y, rpodd, x);}
+	else { Copy1D(y, rpeven); }
+   }
+
+}
+
+
+transform mmprefix
+from X[4,n]
+to Y[4,n]
+{
+
+  to (Y y) from (X x) {
+	mmpserial(y,x);
+  }
+
+  to (Y y) from (X x) {
+	if (n==1) { Copy2D(y,x); }
+        else {  mmprecur(y,x);  }
+  }
+}
+
+transform detmatmulprefix
+from A[n], B[n-1], C[n-1]
+through X[4,n-1], Y[4,n-1]
+to DET
+{
+  X.cell(0,i) from (A.cell(n-i-1) a) { return a;}
+
+  X.cell(1,i) from (B.cell(n-i-2) b, C.cell(n-i-2) c)  {
+        return -b*c;
+  }
+
+  X.cell(2,i) from () {return 1;}
+
+  X.cell(3,i) from () {return 0;}
+
+  to (Y y) from (X x) {  mmprefix(y,x); }
+
+  DET from(Y.cell(0,n-2) D1, Y.cell(1,n-2) D2, A.cell(0) a1) {
+	return a1*D1 + D2;
+  }
+}
+
+#endif // DETMATMULPREFIX_PBCC
