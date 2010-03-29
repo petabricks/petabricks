@@ -7,24 +7,7 @@ from configtool import defaultConfigFile
 from candidatetester import Candidate, CandidateTester
 from mutators import MutateFailed
 from traininginfo import TrainingInfo
-
-class config:
-  debug = True
-  mutate_retries = 10
-  compare_confidence_pct = 0.95
-  compare_max_trials = 25
-  compare_min_trials = 3
-  offspring_confidence_pct = 0.95
-  offspring_max_trials = 15
-  offspring_min_trials = 3
-  population_growth_attempts = 10
-  population_high_size = 20
-  population_low_size  = 1
-  rounds = 23
-  multimutation = True
-  lognorm_tunable_types = ['system.cutoff.splitsize', 'system.cutoff.sequential']
-  uniform_tunable_types = []
-  ignore_tunable_types  = ['algchoice.cutoff','algchoice.alg']
+from tunerconfig import config
 
 def mainname(cmd):
   cmd.append("--name")
@@ -42,14 +25,19 @@ class Population:
   
   def test(self, count):
     '''test each member of the pop count times'''
+    tests = []
     for z in xrange(count):
-      for m in self.members:
-        self.testers[-1].test(m)
+      tests.extend(self.members)
+    random.shuffle(tests)
+    for m in tests:
+      self.testers[-1].test(m)
   
-  def grow(self, tries, maxpopsize=None):  
+  def randomMutation(self, maxpopsize=None):  
     '''grow the population using cloning and random mutation'''
     originalPop = list(self.members)
     triedConfigs = set(map(lambda x: x.config, self.members))
+    totalMutators = sum(map(lambda x: len(x.mutators), self.members))
+    tries = float(totalMutators)*config.mutations_per_mutator
     while tries>0:
       tries-=1
       if maxpopsize and len(self.members) >= maxpopsize:
@@ -74,6 +62,8 @@ class Population:
         self.testers[-1].test(c, limit=p.reasonableLimit(self.testers[-1].n))
       if self.birthFilter(p,c):
         self.members.append(c)
+      else:
+        c.rmcfgfile()
     if len(originalPop)<len(self.members):
       logging.debug("added "+', '.join(map(str,set(self.members)-set(originalPop))))
     return tries
@@ -118,9 +108,11 @@ class Population:
 
   def generation(self):
     self.test(config.compare_min_trials)
-    self.grow(config.population_growth_attempts, config.population_high_size)
-    self.prune(config.population_low_size)
-    self.printPopulation()
+    for z in xrange(config.rounds_per_level):
+      self.randomMutation(config.population_high_size)
+      self.prune(config.population_low_size)
+      self.printPopulation()
+    self.testers[-1].cleanup()
     self.testers.append(self.testers[-1].nextTester())
 
 def addMutators(candidate, info, ignore=None, weight=1.0):
@@ -180,6 +172,5 @@ if __name__ == "__main__":
   if len(args)!=1:
     parser.print_usage()
     sys.exit(1)
-  autotune(args[0])
-
+  candidatetester.callWithLogDir(lambda: autotune(args[0]), "/home/jansel/output", False)
 

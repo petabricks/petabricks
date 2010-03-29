@@ -1,13 +1,7 @@
 #!/usr/bin/python
 import itertools, random
 from scipy import stats
-
-class config:
-  fmt_cutoff = "%s_%d_lvl%d_cutoff"
-  fmt_rule   = "%s_%d_lvl%d_rule"
-  first_lvl = 1
-  cutoff_max_val = 2**30
-  rand_retries = 10
+from tunerconfig import config
 
 class MutateFailed(Exception):
   '''Exception thrown when a mutation can't be applied'''
@@ -51,6 +45,8 @@ class AddAlgLevelMutator(Mutator):
         raise MutateFailed("higher levels already exist")
   def mutate(self, candidate, n):
     newco = 2*n/3
+    if newco <= 1:
+      raise MutateFailed("n too small")
     lvl, kco, krn = self.findOpenSite(candidate, newco)
     candidate.clearResultsAbove(newco)
     candidate.config[kco] = newco
