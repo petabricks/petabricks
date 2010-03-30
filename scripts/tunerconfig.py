@@ -1,8 +1,6 @@
 
 class config:
   #candidatetester config:
-  fmt_cutoff = "%s_%d_lvl%d_cutoff"
-  fmt_rule   = "%s_%d_lvl%d_rule"
   metrics               = ['timing', 'accuracy']
   timing_metric_idx     = 0
   offset                = 0
@@ -19,11 +17,10 @@ class config:
   limit_conf_pct   = 0.95
   limit_multiplier = 1.35
 
-  max_result = 2.0 ** 30
   print_raw=False
-
   use_iogen = True
   cleanup_inputs = True
+  '''check output hash against peers, requires use_iogen'''
   check = True
 
   #sgatuner config

@@ -87,7 +87,6 @@ class Results:
     return len(self.interpolatedResults)
 
   def add(self, p):
-    p=min(config.max_result, p)
     self.realResults.append(p)
     self.reinterpolate();
 
