@@ -1,13 +1,16 @@
 #!/usr/bin/python
-import itertools, random, subprocess, os, sys
+import itertools, random, subprocess, os, sys, time
 import pbutil, mutators
 import logging
+import storagedirs 
 import candidatetester
 from configtool import defaultConfigFile
 from candidatetester import Candidate, CandidateTester
 from mutators import MutateFailed
 from traininginfo import TrainingInfo
 from tunerconfig import config
+
+mean = lambda x: sum(x)/float(len(x))
 
 def mainname(cmd):
   cmd.append("--name")
@@ -19,9 +22,11 @@ def mainname(cmd):
 
 class Population:
   def __init__(self, initial, tester, baseline=None):
-    self.members=[initial]
-    self.testers=[tester]
-    self.baseline=baseline
+    self.members  = [initial]
+    self.notadded = []
+    self.testers  = [tester]
+    self.baseline = baseline
+    self.trialsLog = storagedirs.openCsvStats("avgnumtests", ("inputsize", "avg_added", "avg_not_added", "avg_all"))
   
   def test(self, count):
     '''test each member of the pop count times'''
@@ -49,7 +54,7 @@ class Population:
       c=p.clone()
       for z in xrange(config.mutate_retries):
         try:
-          c.mutate(self.testers[-1].n)
+          c.mutate(self.inputSize())
           break
         except MutateFailed:
           if z==config.mutate_retries-1:
@@ -59,25 +64,27 @@ class Population:
         continue
       triedConfigs.add(c.config)
       for z in xrange(config.offspring_min_trials):
-        self.testers[-1].test(c, limit=p.reasonableLimit(self.testers[-1].n))
+        self.testers[-1].test(c, limit=p.reasonableLimit(self.inputSize()))
       if self.birthFilter(p,c):
         self.members.append(c)
       else:
         c.rmcfgfile()
+        self.notadded.append(c)
     if len(originalPop)<len(self.members):
       logging.debug("added "+', '.join(map(str,set(self.members)-set(originalPop))))
     return tries
 
-  def pruneSingleMetric(self, population, popsize, metric):
+  def inputSize(self, roundOffset=0):
+    return self.testers[-1 - roundOffset].n
+
+  def markBestN(self, population, n, metric = config.timing_metric_idx):
     '''shrink the population to popsize by removing low scoring candidates'''
-    if len(population)<=popsize:
-      return
     fastCmp = self.testers[-1].comparer(metric, 0.00, 0)
     fullCmp = self.testers[-1].comparer(metric, config.compare_confidence_pct, config.compare_max_trials)
     # a rough partitioning based on fastCmp
     population.sort(cmp=fastCmp)
-    membersfast=list(population[0:popsize])
-    membersslow=list(population[popsize:])
+    membersfast=list(population[0:n])
+    membersslow=list(population[n:])
     # fully order membersfast
     membersfast.sort(cmp=fullCmp)
     # check if any of membersslow should make the cut
@@ -85,14 +92,22 @@ class Population:
     membersfast.extend(filter(lambda x: fullCmp(cutoffAlg,x)>0, membersslow))
     # fully order membersfast again and store final population
     membersfast.sort(cmp=fullCmp)
-    pruned=set(population)-set(membersfast[0:popsize])
-    del population[0:]
-    population.extend(membersfast[0:popsize])
-    if len(pruned):
-      logging.debug("removed "+', '.join(map(str,pruned)))
+    for m in membersfast[0:n]:
+      m.keep=True
 
   def prune(self, popsize):
-    self.pruneSingleMetric(self.members, popsize, candidatetester.config.timing_metric_idx)
+    for m in self.members:
+      m.keep = False
+
+    self.markBestN(self.members, popsize)
+
+    testsIn = map(lambda m: m.numTests(self.inputSize()), self.members)
+    testsOut = map(lambda m: m.numTests(self.inputSize()), self.notadded)
+    self.trialsLog.writerow((self.inputSize(), mean(testsIn), mean(testsOut), mean(testsIn+testsOut)))
+
+    killed = filter(lambda m: m.keep, self.members)
+    self.members = filter(lambda m: m.keep, self.members)
+    self.notadded = []
 
   def birthFilter(self, parent, child):
     '''called when considering adding child to population'''
@@ -100,11 +115,11 @@ class Population:
     return childCmp(parent, child) > 0
 
   def printPopulation(self):
-    print "round n = %d"%self.testers[-1].n
+    print "round n = %d"%self.inputSize()
     for m in self.members:
       if self.baseline is not None:
         self.testers[-1].testN(self.baseline, config.compare_min_trials)
-      print "  * ", m, m.resultsStr(self.testers[-1].n, self.baseline)
+      print "  * ", m, m.resultsStr(self.inputSize(), self.baseline)
 
   def generation(self):
     self.test(config.compare_min_trials)
@@ -155,13 +170,19 @@ def autotune(benchmark):
   main = mainname([pbutil.benchmarkToBin(benchmark)])
   tester = CandidateTester(benchmark, 1)
   try:
+    roundtimes = storagedirs.openCsvStats("roundtimings", ("round", "input_size", "cumulative", "incremental"))
     candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml)
     baseline = None
     addMutators(candidate, infoxml.globalsec())
     addMutators(candidate, infoxml.transform(main))
     pop = Population(candidate, tester, baseline)
-    for x in xrange(config.rounds):
+    t1 = time.time()
+    t2 = t1
+    for roundNumber in xrange(config.rounds):
       pop.generation()
+      t3 = time.time()
+      roundtimes.writerow((roundNumber, pop.inputSize(1), t3-t1, t3-t2))
+      t2 = t3
   finally:
     tester.cleanup()
 
@@ -172,5 +193,5 @@ if __name__ == "__main__":
   if len(args)!=1:
     parser.print_usage()
     sys.exit(1)
-  candidatetester.callWithLogDir(lambda: autotune(args[0]), "/home/jansel/output", False)
+  storagedirs.callWithLogDir(lambda: autotune(args[0]), "/home/jansel/output", False)
 

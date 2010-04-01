@@ -3,44 +3,10 @@ from configtool import ConfigFile, defaultConfigFile
 import pbutil
 import tempfile, os, math, warnings, random, sys, subprocess
 import shutil
+import storagedirs
 from scipy import stats
 from tunerconfig import config
 warnings.simplefilter('ignore', DeprecationWarning)
-
-class StorageDirsTemplate:
-  def __init__(self, root):
-    self.root    = root
-    self.configd = os.path.join(root, 'config')
-    self.inputd  = os.path.join(root, 'inputs')
-    self.resultd = os.path.join(root, 'results')
-    self.statsd  = os.path.join(root, 'stats')
-    os.mkdir(self.configd)
-    os.mkdir(self.resultd)
-    os.mkdir(self.statsd)
-    os.mkdir(self.inputd)
-
-  def config(self, cid):
-    return os.path.join(self.configd, "candidate%05d.cfg" % cid)
-  
-  def inputpfx(self, size, number):
-    return os.path.join(self.inputd, "n%010d_i%02d_" % (size, number))
-      
-  def clearInputs(self):
-    for f in os.listdir(self.inputd):
-      os.unlink(os.path.join(self.inputd, f))
-
-storage_dirs = None
-
-def callWithLogDir(fn, root=config.tmpdir, delete=True):
-  d = tempfile.mkdtemp(prefix='pbtunerun_', dir=root)
-  print d
-  global storage_dirs
-  storage_dirs = StorageDirsTemplate(d)
-  try:
-    fn()
-  finally:
-    if delete:
-      shutil.rmtree(d)
 
 def debug_logcmd(cmd):
   pass
@@ -188,7 +154,7 @@ class Candidate:
     self.mutators = list(mutators)
     self.cid = Candidate.nextCandidateId
     self.infoxml = infoxml
-    self._cfgfile = storage_dirs.config(self.cid)
+    self._cfgfile = storagedirs.configfile(self.cid)
     Candidate.nextCandidateId+=1
 
   def __str__(self):
@@ -235,6 +201,9 @@ class Candidate:
       s.append("%s: %s" % (config.metrics[i], t(m[n])))
     return ', '.join(s)
 
+  def numTests(self, n):
+    return len(self.metrics[config.timing_metric_idx][n])
+
   def cfgfile(self):
     self.config.save(self._cfgfile)
     return self._cfgfile
@@ -278,7 +247,7 @@ class CandidateTester:
 
   def getInputArg(self, testNumber):
     if config.use_iogen:
-      pfx=storage_dirs.inputpfx(self.n, testNumber)
+      pfx=storagedirs.inputpfx(self.n, testNumber)
       if len(self.inputs) <= testNumber:
         assert len(self.inputs) == testNumber
         cmd = self.cmd + ['--iogen-create='+pfx, "--n=%d"%self.n]
@@ -349,7 +318,7 @@ class CandidateTester:
 
   def cleanup(self):
     if config.cleanup_inputs:
-      storage_dirs.clearInputs();
+      storagedirs.clearInputs();
       self.inputs=[]
 
 if __name__ == "__main__":
