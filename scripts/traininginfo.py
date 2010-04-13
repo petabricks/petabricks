@@ -17,6 +17,7 @@ class XmlDictApi:
 
 class TrainingInfo:
   def __init__(self, infoxml, transforms=None):
+    self.instances = [self]
     if type(infoxml) is type(""):
       self.infoxml = parse(infoxml)
     else:
@@ -30,6 +31,13 @@ class TrainingInfo:
       self.transforms[nameof(t)]=v
       if t.getAttribute("templateChoice")=="0":
         self.transforms[t.getAttribute("templateName")] = v
+    #fill in instances
+    for t in self.infoxml.getElementsByTagName("transform"):
+      if t.getAttribute("templateChoice") not in ("0","-1"):
+        self.transforms[t.getAttribute("templateName")].instances.append(self.transforms[nameof(t)])
+
+  def accuracyTarget(self):
+    return float(self.infoxml.getAttribute("accuracyTarget"))
 
   def name(self):
     return nameof(self.infoxml)

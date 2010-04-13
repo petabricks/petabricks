@@ -204,6 +204,9 @@ class Candidate:
   def numTests(self, n):
     return len(self.metrics[config.timing_metric_idx][n])
 
+  def hasAccuracy(self, n, target):
+    return self.metrics[config.accuracy_metric_idx][n].mean() >= target
+
   def cfgfile(self):
     self.config.save(self._cfgfile)
     return self._cfgfile
@@ -311,7 +314,7 @@ class CandidateTester:
         elif len(ra)<maxTests:
           self.test(a)
         else:
-          warnings.warn("comparison failed between two candidates")
+          warnings.warn("comparison failed between candidates: "+str(a)+" and "+str(b))
           return 0
       assert False
     return compare
@@ -322,6 +325,7 @@ class CandidateTester:
       self.inputs=[]
 
 if __name__ == "__main__":
+  print "TESTING CANDIDATETESTER"
   pbutil.chdirToPetabricksRoot();
   pbutil.compilePetabricks();
   benchmark=pbutil.normalizeBenchmarkName('multiply')

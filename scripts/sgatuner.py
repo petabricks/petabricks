@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import itertools, random, subprocess, os, sys, time
+import itertools, random, subprocess, os, sys, time, warnings
 import pbutil, mutators
 import logging
 import storagedirs 
@@ -10,7 +10,12 @@ from mutators import MutateFailed
 from traininginfo import TrainingInfo
 from tunerconfig import config
 
-mean = lambda x: sum(x)/float(len(x))
+class TrainingTimeout:
+  pass
+  
+def check_timeout():
+  if time.time() > config.end_time:
+    raise TrainingTimeout()
 
 def mainname(cmd):
   cmd.append("--name")
@@ -24,9 +29,9 @@ class Population:
   def __init__(self, initial, tester, baseline=None):
     self.members  = [initial]
     self.notadded = []
+    self.removed  = []
     self.testers  = [tester]
     self.baseline = baseline
-    self.trialsLog = storagedirs.openCsvStats("avgnumtests", ("inputsize", "avg_added", "avg_not_added", "avg_all"))
   
   def test(self, count):
     '''test each member of the pop count times'''
@@ -35,15 +40,18 @@ class Population:
       tests.extend(self.members)
     random.shuffle(tests)
     for m in tests:
+      check_timeout()
       self.testers[-1].test(m)
   
   def randomMutation(self, maxpopsize=None):  
     '''grow the population using cloning and random mutation'''
+    self.notadded=[]
     originalPop = list(self.members)
     triedConfigs = set(map(lambda x: x.config, self.members))
     totalMutators = sum(map(lambda x: len(x.mutators), self.members))
     tries = float(totalMutators)*config.mutations_per_mutator
     while tries>0:
+      check_timeout()
       tries-=1
       if maxpopsize and len(self.members) >= maxpopsize:
         break
@@ -101,18 +109,22 @@ class Population:
 
     self.markBestN(self.members, popsize)
 
-    testsIn = map(lambda m: m.numTests(self.inputSize()), self.members)
-    testsOut = map(lambda m: m.numTests(self.inputSize()), self.notadded)
-    self.trialsLog.writerow((self.inputSize(), mean(testsIn), mean(testsOut), mean(testsIn+testsOut)))
+    for accTarg in map(lambda x: x.accuracyTarget(), self.members[0].infoxml.instances):
+      t = filter(lambda x: x.hasAccuracy(self.inputSize(), accTarg), self.members)
+      if len(t):
+        self.markBestN(t, popsize)
+      else:
+        warnings.warn("no algorithm has accuracy "+str(accTarg)+" for input "+str(self.inputSize()))
 
-    killed = filter(lambda m: m.keep, self.members)
-    self.members = filter(lambda m: m.keep, self.members)
-    self.notadded = []
+    self.removed  = filter(lambda m: not m.keep, self.members)
+    self.members  = filter(lambda m: m.keep, self.members)
 
   def birthFilter(self, parent, child):
     '''called when considering adding child to population'''
-    childCmp = self.testers[-1].comparer(0, config.offspring_confidence_pct, config.offspring_max_trials)
-    return childCmp(parent, child) > 0
+    for m in xrange(len(config.metrics)):
+      childCmp = self.testers[-1].comparer(m, config.offspring_confidence_pct, config.offspring_max_trials)
+      if childCmp(parent, child) > 0:
+        return True
 
   def printPopulation(self):
     print "round n = %d"%self.inputSize()
@@ -123,14 +135,30 @@ class Population:
 
   def generation(self):
     self.test(config.compare_min_trials)
-    for z in xrange(config.rounds_per_level):
-      self.randomMutation(config.population_high_size)
-      self.prune(config.population_low_size)
-      self.printPopulation()
+    self.randomMutation(config.population_high_size)
+    self.prune(config.population_low_size)
+    self.printPopulation()
+
+  def nextInputSize(self):
     self.testers[-1].cleanup()
     self.testers.append(self.testers[-1].nextTester())
 
+  def statsHeader(self):
+    return '#pop','#removed','#notadded', 'pop_trials_avg','removed_trials_avg','notadded_trials_avg', 
+
+  def stats(self):
+    def mean(x):
+      if len(x):
+        return sum(x)/float(len(x))
+      else:
+        return 0
+    t1 = map(lambda m: m.numTests(self.inputSize()), self.members)
+    t2 = map(lambda m: m.numTests(self.inputSize()), self.removed)
+    t3 = map(lambda m: m.numTests(self.inputSize()), self.notadded)
+    return len(t1),len(t2),len(t3),mean(t1),mean(t2),mean(t3)
+
 def addMutators(candidate, info, ignore=None, weight=1.0):
+  '''seed the pool of mutators from the .info file'''
   if ignore is None:
     ignore=set()
   try:
@@ -170,19 +198,24 @@ def autotune(benchmark):
   main = mainname([pbutil.benchmarkToBin(benchmark)])
   tester = CandidateTester(benchmark, 1)
   try:
-    roundtimes = storagedirs.openCsvStats("roundtimings", ("round", "input_size", "cumulative", "incremental"))
-    candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml)
+    candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml.transform(main))
     baseline = None
     addMutators(candidate, infoxml.globalsec())
     addMutators(candidate, infoxml.transform(main))
     pop = Population(candidate, tester, baseline)
+    stats = storagedirs.openCsvStats("roundstats", ("round", "input_size", "cumulative_sec", "incremental_sec")+pop.statsHeader())
     t1 = time.time()
     t2 = t1
-    for roundNumber in xrange(config.rounds):
-      pop.generation()
-      t3 = time.time()
-      roundtimes.writerow((roundNumber, pop.inputSize(1), t3-t1, t3-t2))
-      t2 = t3
+    config.end_time = t1 + config.max_time
+    try:
+      for roundNumber in xrange(config.max_rounds):
+        pop.generation()
+        t3 = time.time()
+        stats.writerow((roundNumber, pop.inputSize(), t3-t1, t3-t2)+pop.stats())
+        t2 = t3
+        pop.nextInputSize()
+    except TrainingTimeout:
+      pass
   finally:
     tester.cleanup()
 
