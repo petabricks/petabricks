@@ -1,38 +1,34 @@
 #!/usr/bin/python
 from configtool import ConfigFile, defaultConfigFile
 import pbutil
-import tempfile, os, math, warnings, random, sys
+import tempfile, os, math, warnings, random, sys, subprocess
+import shutil
+import storagedirs
 from scipy import stats
+from tunerconfig import config
 warnings.simplefilter('ignore', DeprecationWarning)
 
-class config:
-  fmt_cutoff = "%s_%d_lvl%d_cutoff"
-  fmt_rule   = "%s_%d_lvl%d_rule"
-  metrics               = ['timing', 'accuracy']
-  timing_metric_idx     = 0
-  offset                = 0
-  tmpdir                = "/tmp"
-  '''confidence intervals when displaying numbers'''
-  display_confidence    = 0.95
-  '''confidence intervals when comparing results'''
-  compare_confidence    = 0.95
-  '''guessed stddev when only 1 test is taken'''
-  prior_stddev_pct      = 0.15
-  '''percentage change to be viewed as insignificant when testing if two algs are equal'''
-  same_threshold_pct    = 0.01
-    
-  limit_conf_pct   = 0.95
-  limit_multiplier = 1.35
+devnull = open("/dev/null", "w")
 
-  max_result = 2.0 ** 30
-  print_raw=False
+class OutputCheckFailedException(Exception):
+  def __init__(self, a, b, pfx):
+    self.a=a
+    self.b=b
+    self.pfx=pfx
 
-nameof = lambda t: str(t.getAttribute("name"))
+  def __str__(self):
+    return "%s!=%s" % (str(self.a), str(self.b))
 
-def tmpcfgfile(n=0):
-  fd, name = tempfile.mkstemp(prefix='pbtune_%d_'%n, suffix='.cfg', dir=config.tmpdir)
-  os.close(fd)
-  return name
+
+class ProgramCrashedException(Exception):
+  pass
+
+class InputGenerationException(ProgramCrashedException):
+  def __init__(self, testNumber):
+    self.testNumber=testNumber
+
+def debug_logcmd(cmd):
+  pass
 
 class Results:
   '''stores a list of (timing|accuracy) test results and collects statistics'''
@@ -76,11 +72,11 @@ class Results:
     return len(self.interpolatedResults)
 
   def add(self, p):
-    p=min(config.max_result, p)
     self.realResults.append(p)
     self.reinterpolate();
 
   def addTimeout(self, p):
+    assert p is not None
     self.timeoutResults.append(p)
     self.reinterpolate();
 
@@ -178,6 +174,7 @@ class Candidate:
     self.mutators = list(mutators)
     self.cid = Candidate.nextCandidateId
     self.infoxml = infoxml
+    self._cfgfile = storagedirs.configfile(self.cid)
     Candidate.nextCandidateId+=1
 
   def __str__(self):
@@ -224,24 +221,45 @@ class Candidate:
       s.append("%s: %s" % (config.metrics[i], t(m[n])))
     return ', '.join(s)
 
+  def numTests(self, n):
+    return len(self.metrics[config.timing_metric_idx][n])
+
+  def hasAccuracy(self, n, target):
+    return self.metrics[config.accuracy_metric_idx][n].mean() >= target
+
+  def cfgfile(self):
+    self.config.save(self._cfgfile)
+    return self._cfgfile
+
+  def rmcfgfile(self):
+    try:
+      os.unlink(self._cfgfile)
+    except:
+      pass
+
+class Input:
+  def __init__(self, pfx):
+    self.pfx=pfx
+    self.outputHash=None
+    self.firstCandidate=None
 
 class CandidateTester:
   def __init__(self, app, n, args=[]):
     self.app = app
     self.bin = pbutil.benchmarkToBin(app)
     self.n = n
-    self.cfgTmp = tmpcfgfile(n)
     self.cmd = [
         self.bin,
-        "--config=%s"%self.cfgTmp,
-        "--n=%d"%self.n,
         "--time",
-        "--trials=1",
-        "--offset=%d"%config.offset,
-        "--accuracy"
+        #"--trials=1",
+        "--accuracy",
+        "--offset=%d"%config.offset
       ]
+    #remove default options
+    self.cmd = filter(lambda x: x not in ["--offset=0", "--trials=1"], self.cmd)
     self.cmd.extend(args)
     self.args=args
+    self.inputs=[]
 
   def nextTester(self):
     return CandidateTester(self.app, self.n*2, self.args)
@@ -250,13 +268,43 @@ class CandidateTester:
     for x in xrange(trials - len(candidate.metrics[config.timing_metric_idx][self.n])):
       self.test(candidate, limit)
 
+  def getInputArg(self, testNumber):
+    if config.use_iogen:
+      pfx=storagedirs.inputpfx(self.n, testNumber)
+      if len(self.inputs) <= testNumber:
+        assert len(self.inputs) == testNumber
+        cmd = self.cmd + ['--iogen-create='+pfx, "--n=%d"%self.n]
+        debug_logcmd(cmd)
+        if subprocess.call(cmd, stderr=devnull) != 0:
+          raise InputGenerationException(testNumber)
+        self.inputs.append(Input(pfx))
+      return "--iogen-run="+pfx
+    else:
+      return "--n=%d"%self.n
+
+  def checkOutputHash(self, candidate, i, value):
+    if self.inputs[i].outputHash is None:
+      self.inputs[i].outputHash = value
+      self.inputs[i].firstCanidate = candidate
+    elif self.inputs[i].outputHash != value:
+      raise OutputCheckFailedException(self.inputs[i].firstCanidate, candidate, self.inputs[i].pfx)
+
   def test(self, candidate, limit=None):
-    candidate.config.save(self.cfgTmp)
+    cfgfile = candidate.cfgfile()
+    testNumber = len(candidate.metrics[config.timing_metric_idx][self.n])
     cmd = list(self.cmd)
+    cmd.append("--config="+cfgfile)
+    cmd.append(self.getInputArg(testNumber))
     if limit is not None:
       cmd.append("--max-sec=%f"%limit)
     try:
-      results = pbutil.executeRun(cmd, config.metrics)
+      debug_logcmd(cmd)
+      if config.check:
+        results = pbutil.executeRun(cmd+['--hash'], config.metrics+['outputhash'])
+        self.checkOutputHash(candidate, testNumber, results[-1]['value'])
+        del results[-1]
+      else:
+        results = pbutil.executeRun(cmd, config.metrics)
       for i,result in enumerate(results):
         if result is not None:
           candidate.metrics[i][self.n].add(result['average'])
@@ -283,15 +331,18 @@ class CandidateTester:
         elif len(ra)<maxTests:
           self.test(a)
         else:
-          warnings.warn("comparison failed between two candidates")
+          warnings.warn("comparison failed between candidates: "+str(a)+" and "+str(b))
           return 0
       assert False
     return compare
 
   def cleanup(self):
-    os.unlink(self.cfgTmp)
+    if config.cleanup_inputs:
+      storagedirs.clearInputs();
+      self.inputs=[]
 
 if __name__ == "__main__":
+  print "TESTING CANDIDATETESTER"
   pbutil.chdirToPetabricksRoot();
   pbutil.compilePetabricks();
   benchmark=pbutil.normalizeBenchmarkName('multiply')

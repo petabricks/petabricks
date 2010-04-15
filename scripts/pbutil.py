@@ -81,6 +81,8 @@ def parallelRunJobs(jobs):
         try:
           rv = self.fn()
         except Exception, e:
+          #import traceback
+          #traceback.print_exc()
           print "Exception:",e
           rv = False
         print exitval
@@ -119,7 +121,7 @@ def parallelRunJobs(jobs):
                      .strip()
     
   startline = progress.currentline()
-  NCPU=cpuCount()+2
+  NCPU=cpuCount()
   exitval="!EXIT!"
   maxprinted=[0]
 
@@ -264,24 +266,24 @@ def compileBenchmarks(benchmarks):
   mergejob = lambda oldfn, fn: lambda: oldfn() and fn()
 
   jobs=[]
-  #benchmarks.sort()
-  lastname=""
-  #build list of jobs
+  # build jobs list
+  jobsdata = dict()
   for b in benchmarks:
     if type(b) is type(()):
-      name, fn = b
+      name, fn, postfn = b
     else:
-      name, fn = b, lambda: True
+      name, fn, postfn = b, lambda: True, lambda: True
     benchmarkMaxLen=max(benchmarkMaxLen, len(name))
-    if lastname==name:
-      jobs.append(mergejob(jobs.pop(), fn))
+    if not jobsdata.has_key(name):
+      jobsdata[name] = [newjob(name,fn), postfn]
+      jobs.append(name)
     else:
-      jobs.append(newjob(name,fn))
-      lastname=name
+      jobsdata[name][0] = mergejob(jobsdata[name][0], fn)
+  jobs = map(lambda n: mergejob(*jobsdata[n]), jobs)
 
   return parallelRunJobs(jobs)
 
-def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True):
+def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postfn=lambda b: True):
   chdirToPetabricksRoot()
   compilePetabricks()
   benchmarks=open(file)
@@ -294,7 +296,7 @@ def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True):
   if len(searchterms)>0:
     benchmarks=filter(lambda b: any(s in b[0] for s in searchterms), benchmarks)
 
-  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x)), benchmarks))
+  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x), lambda: postfn(x[0])), benchmarks))
 
 def killSubprocess(p):
   if p.poll() is None:
@@ -333,14 +335,10 @@ def goodwait(p):
   while True:
     try:
       rv=p.wait()
+      return rv
     except OSError, e:
-      if e.errno == errno.EINTR:
-        continue
-      else:
+      if e.errno != errno.EINTR:
         raise
-    else:
-      break
-  return rv
 
 def xmlToDict(xml, tag, fn=tryIntFloat):
   try:

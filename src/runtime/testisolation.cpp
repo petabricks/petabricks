@@ -44,6 +44,8 @@
 // annoyingly lapack returns 0 when it aborts, so we use a "secret" rv here
 #define SUCCESS_RV 198
 
+#define CRASH_RV 666
+
 static void _settestprocflags(){
 #ifdef HAVE_SYS_PRCTL_H
 # ifdef PR_SET_PDEATHSIG //linux 2.1.57
@@ -252,7 +254,9 @@ bool petabricks::SubprocessTestIsolation::running(){
 }
 int  petabricks::SubprocessTestIsolation::rv(){
   JASSERT(!running());
-  return WEXITSTATUS(_rv);
+  if(WIFEXITED(_rv))
+    return WEXITSTATUS(_rv);
+  return CRASH_RV;
 }
 
 bool petabricks::DummyTestIsolation::beginTest(int workerThreads) {
