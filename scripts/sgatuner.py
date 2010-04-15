@@ -4,6 +4,7 @@ import pbutil, mutators
 import logging
 import storagedirs 
 import candidatetester
+import tunerconfig
 from configtool import defaultConfigFile
 from candidatetester import Candidate, CandidateTester
 from mutators import MutateFailed
@@ -134,10 +135,18 @@ class Population:
       print "  * ", m, m.resultsStr(self.inputSize(), self.baseline)
 
   def generation(self):
-    self.test(config.compare_min_trials)
-    self.randomMutation(config.population_high_size)
-    self.prune(config.population_low_size)
-    self.printPopulation()
+    try:
+      self.test(config.compare_min_trials)
+      self.randomMutation(config.population_high_size)
+      self.prune(config.population_low_size)
+      if config.print_log:
+        self.printPopulation()
+    except candidatetester.InputGenerationException, e:
+      if e.testNumber==0 and self.inputSize()<=8:
+        if config.print_log:
+          print "skip generation n = ",self.inputSize(),"(input generation failure)"
+      else:
+        raise
 
   def nextInputSize(self):
     self.testers[-1].cleanup()
@@ -178,7 +187,14 @@ def addMutators(candidate, info, ignore=None, weight=1.0):
       logging.debug("added Mutator " + transform + "/" + ta['name'] + " => lognorm")
       candidate.addMutator(mutators.LognormRandCutoffMutator(ta['name'], weight=weight))
     elif ta['type'] in config.uniform_tunable_types:
-      assert False
+      logging.debug("added Mutator " + transform + "/" + ta['name'] + " => randint")
+      candidate.addMutator(mutators.UniformRandMutator(ta['name'], int(ta['min']), int(ta['max']), weight=weight))
+    elif ta['type'] in config.autodetect_tunable_types:
+      logging.debug("added Mutator " + transform + "/" + ta['name'] + " => autodetect")
+      if int(ta['min']) <= 1 and int(ta['max']) > 2**16:
+        candidate.addMutator(mutators.LognormRandCutoffMutator(ta['name'], weight=weight))
+      else:
+        candidate.addMutator(mutators.UniformRandMutator(ta['name'], int(ta['min']), int(ta['max']), weight=weight))
     elif ta['type'] in config.ignore_tunable_types:
       pass
     else:
@@ -187,13 +203,9 @@ def addMutators(candidate, info, ignore=None, weight=1.0):
   for sub in info.calls():
     addMutators(candidate, sub, ignore, weight/2.0)
 
-def autotune(benchmark):
+def autotuneInner(benchmark):
   if config.debug:
     logging.basicConfig(level=logging.DEBUG)
-  pbutil.chdirToPetabricksRoot();
-  pbutil.compilePetabricks();
-  benchmark=pbutil.normalizeBenchmarkName(benchmark)
-  pbutil.compileBenchmarks([benchmark])
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
   main = mainname([pbutil.benchmarkToBin(benchmark)])
   tester = CandidateTester(benchmark, 1)
@@ -219,6 +231,17 @@ def autotune(benchmark):
   finally:
     tester.cleanup()
 
+def autotune(benchmark):
+  storagedirs.callWithLogDir(lambda: autotuneInner(benchmark),
+                             config.output_dir,
+                             config.delete_output_dir)
+
+def regression_check(benchmark):
+  tunerconfig.copycfg(tunerconfig.config_regression_check_fast, config)
+  storagedirs.callWithLogDir(lambda: autotuneInner(benchmark),
+                             config.output_dir,
+                             config.delete_output_dir)
+
 if __name__ == "__main__":
   from optparse import OptionParser
   parser = OptionParser(usage="usage: sgatuner.py [options] Benchmark")
@@ -226,5 +249,13 @@ if __name__ == "__main__":
   if len(args)!=1:
     parser.print_usage()
     sys.exit(1)
-  storagedirs.callWithLogDir(lambda: autotune(args[0]), "/home/jansel/output", False)
+  benchmark=args[0]
+  pbutil.chdirToPetabricksRoot();
+  pbutil.compilePetabricks();
+  benchmark=pbutil.normalizeBenchmarkName(benchmark)
+  pbutil.compileBenchmarks([benchmark])
+  autotune(benchmark)
+
+
+
 

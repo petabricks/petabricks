@@ -11,6 +11,20 @@ import time
 import shutil
 from xml.dom.minidom import parse
 
+check_exclude=[
+      "convolution/Convolution",
+      "kclustering/kmeans",
+      "matrixapproximation/matrixapprox",
+      "multiply/strassen",
+      "preconditioner/preconditioner",
+      "simple/matrixrotate",
+      "regression/accuracymetric",
+      "regression/coscheduled2",
+      "regression/params",
+      "regression/testruleir",
+      "regression/whereclause",
+      "regression/whereclause2"
+    ]
 
 def resolveInputPath(path):
   if os.path.isfile("./testdata/"+path):
@@ -23,6 +37,21 @@ def forkrun(cmd):
 
 def run(cmd):
   return forkrun(cmd).wait()
+
+def checkBenchmark(b):
+  import sgatuner
+  from candidatetester import OutputCheckFailedException
+
+  if b in check_exclude:
+    return True
+
+  try:
+    sgatuner.regression_check(b)
+    print "check PASSED"
+    return True
+  except OutputCheckFailedException, e:
+    print "check FAILED (%s)" % str(e)
+    return False
 
 def testBenchmark(b):
   name=b[0]
@@ -41,9 +70,13 @@ def testBenchmark(b):
   outfile="./testdata/.output/"+re.sub("[ /.]",'_',hash)
   iofiles.append(outfile)
 
-  cmd=[bin, '--fixedrandom', '--config=%s.cfg'%outfile, '--reset']
-  if run(cmd) != 0:
-    print "reset config failed"
+  try:
+    cmd=[bin, '--fixedrandom', '--config=%s.cfg'%outfile, '--reset']
+    if run(cmd) != 0:
+      print "ERROR: reset config failed"
+      return False
+  except OSError:
+    print "ERROR: program not runnable"
     return False
 
   if os.path.isfile("%s.cfg.default"%outfile):
@@ -55,13 +88,6 @@ def testBenchmark(b):
     print "invalid *.info file"
     return False
 
- #splitsto3  = map(lambda x: configtool.setfilter(x.getAttribute("name"), 3), pbutil.getTunablesSplitSize(infoxml))
- #cfgStatic  = map(lambda x: configtool.setfilter(x.getAttribute("name"), 2147483648), pbutil.getTunablesSequential(infoxml))
- #cfgDynamic = map(lambda x: configtool.setfilter(x.getAttribute("name"), 0), pbutil.getTunablesSequential(infoxml))
-
-  def setCfg(x):
-    configtool.processConfigFile(cfg,cfg,x)
-    return True
   def test():
     cmd=[bin, '--fixedrandom', '--config=%s.cfg'%outfile]
     cmd.extend(iofiles)
@@ -85,7 +111,7 @@ def testBenchmark(b):
   return test()
 
 t1=time.time()
-results=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:], testBenchmark)
+results=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:], testBenchmark, postfn=checkBenchmark)
 t2=time.time()
 
 

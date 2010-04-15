@@ -49,7 +49,7 @@ static int GRAPH_TRIALS=1;
 static int GRAPH_TRIALS_MAX=jalib::maxval<int>();
 static double GRAPH_TRIALS_SEC=0;
 static int GRAPH_SMOOTHING=0;
-static int RETRIES=3;
+static int RETRIES=0;
 static int SEARCH_BRANCH_FACTOR=8;
 static int ACCTRIALS=3;
 static bool DUMPTIMING=false;
@@ -674,9 +674,10 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
     if(retries<0) retries=RETRIES;//from cmd line
     if(retries>0){
       std::cerr << "WARNING: test aborted unexpectedly (" << retries << " retries left)" << std::endl;
+      return computeWrapper(ti, n, retries-1, files);
     }else{
-      std::cerr << "ERROR: test aborted unexpectedly" << std::endl;
-      return computeWrapper(ti, n, retries-1);
+      //std::cerr << "ERROR: test aborted unexpectedly" << std::endl;
+      exit(e.rv);
     }
   } 
   if(v<0)        throw ComputeRetryException();

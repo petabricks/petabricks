@@ -103,6 +103,15 @@ class LognormRandCutoffMutator(SetTunableMutator):
   def getVal(self, candidate, oldVal):
     return int(oldVal*stats.lognorm.rvs(1))
 
+class UniformRandMutator(SetTunableMutator):
+  '''randomize cutoff using uniform distribution'''
+  def __init__(self, tunable, minVal, maxVal, weight):
+    self.minVal = minVal
+    self.maxVal = maxVal
+    SetTunableMutator.__init__(self, tunable, None, weight)
+  def getVal(self, candidate, oldVal):
+    return stats.randint.rvs(self.minVal, self.maxVal+1)
+
 class LognormRandAlgCutoffMutator(LognormRandCutoffMutator):
   '''randomize alg cutoff using lognorm distribution'''
   def __init__(self, transform, choicesite, lvl, weight=1.0):

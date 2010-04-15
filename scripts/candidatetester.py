@@ -8,6 +8,25 @@ from scipy import stats
 from tunerconfig import config
 warnings.simplefilter('ignore', DeprecationWarning)
 
+devnull = open("/dev/null", "w")
+
+class OutputCheckFailedException(Exception):
+  def __init__(self, a, b, pfx):
+    self.a=a
+    self.b=b
+    self.pfx=pfx
+
+  def __str__(self):
+    return "%s!=%s" % (str(self.a), str(self.b))
+
+
+class ProgramCrashedException(Exception):
+  pass
+
+class InputGenerationException(ProgramCrashedException):
+  def __init__(self, testNumber):
+    self.testNumber=testNumber
+
 def debug_logcmd(cmd):
   pass
 
@@ -57,6 +76,7 @@ class Results:
     self.reinterpolate();
 
   def addTimeout(self, p):
+    assert p is not None
     self.timeoutResults.append(p)
     self.reinterpolate();
 
@@ -255,7 +275,8 @@ class CandidateTester:
         assert len(self.inputs) == testNumber
         cmd = self.cmd + ['--iogen-create='+pfx, "--n=%d"%self.n]
         debug_logcmd(cmd)
-        subprocess.check_call(cmd)
+        if subprocess.call(cmd, stderr=devnull) != 0:
+          raise InputGenerationException(testNumber)
         self.inputs.append(Input(pfx))
       return "--iogen-run="+pfx
     else:
@@ -266,11 +287,7 @@ class CandidateTester:
       self.inputs[i].outputHash = value
       self.inputs[i].firstCanidate = candidate
     elif self.inputs[i].outputHash != value:
-      warnings.warn("difference detected between %s and %s on input %s" % (
-           str(self.inputs[i].firstCanidate),
-           str(candidate),
-           str(self.inputs[i].pfx)
-        ))
+      raise OutputCheckFailedException(self.inputs[i].firstCanidate, candidate, self.inputs[i].pfx)
 
   def test(self, candidate, limit=None):
     cfgfile = candidate.cfgfile()

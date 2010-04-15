@@ -31,9 +31,10 @@ class StorageDirsTemplate:
 
 storage_dirs = None
 
-def callWithLogDir(fn, root=config.tmpdir, delete=True):
+def callWithLogDir(fn, root, delete):
   d = tempfile.mkdtemp(prefix='pbtunerun_', dir=root)
-  print d
+  if not delete:
+    print d
   global storage_dirs
   storage_dirs = StorageDirsTemplate(d)
   try:
