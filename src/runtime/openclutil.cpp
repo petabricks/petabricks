@@ -22,11 +22,14 @@ namespace petabricks
 bool OpenCLUtil::has_init = false;
 std::vector<OpenCLDevice> OpenCLUtil::devices;
 cl_context OpenCLUtil::context;
+  unsigned int OpenCLUtil::active_device = 0;
 
 int
 OpenCLUtil::init( )
 {
+  #if OPENCL_TRACE
   std::cout << "OpenCLUtil::init() begins...\n";
+  #endif
 
   int err;
   char buf[1024];
@@ -40,7 +43,9 @@ OpenCLUtil::init( )
   if( CL_SUCCESS != err )
     return -5;
 
+  #if OPENCL_TRACE
   std::cout << "Created context: " << context << "\n";
+  #endif
 
   // Get device count.
   cl_uint device_count;
@@ -56,7 +61,9 @@ OpenCLUtil::init( )
   for( cl_uint i = 0; i < device_count; ++i )
     {
       devices.push_back( OpenCLDevice( device_ids[i] ) );
+      #if OPENCL_TRACE
       std::cout << "Loading device ID: " << device_ids[i] << "\n";
+      #endif
       OpenCLDevice* dev_info = &devices.back( );
 
       // Name
@@ -97,14 +104,18 @@ OpenCLUtil::init( )
       if( CL_SUCCESS != err )
 	return -6;
 
+      #if OPENCL_TRACE
       std::cout << "Created command queue: " << dev_info->queue << "\n";
+      #endif
     }
 
   // Clean up.
   delete[] device_ids;
 
   has_init = true;
+  #if OPENCL_TRACE
   std::cout << "OpenCLUtil::init() finishes...\n";
+  #endif
   return 0;
 }
 
@@ -198,10 +209,13 @@ OpenCLUtil::printDeviceDetails( unsigned int dev_idx, bool verbose )
 cl_int
 OpenCLUtil::buildProgram( cl_program &program )
 {
+  #if OPENCL_TRACE
   std::cout << "OpenCLUtil::buildProgram() begins...\n";
+  #endif
 
   cl_int err, build_err;
-  build_err = clBuildProgram( program, 0, NULL, NULL, NULL, NULL );
+  cl_device_id device_id = getActiveDeviceID( );
+  build_err = clBuildProgram( program, 1, &device_id, NULL, NULL, NULL );
 
   // If everything went to plan, we're done.
   if( CL_SUCCESS == build_err )
@@ -213,10 +227,10 @@ OpenCLUtil::buildProgram( cl_program &program )
   // If the program failed to build, get more detailed information about what went wrong.
   //  cl_build_status status;
   size_t log_size;
-  err = clGetProgramBuildInfo( program, NULL, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size );
+  err = clGetProgramBuildInfo( program, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size );
   JASSERT( CL_SUCCESS == err ).Text( "Failed to get build log size." );
   char* build_log = new char[log_size+1];
-  err = clGetProgramBuildInfo( program, NULL, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size );
+  err = clGetProgramBuildInfo( program, device_id, CL_PROGRAM_BUILD_LOG, log_size, build_log, NULL );
   JASSERT( CL_SUCCESS == err ).Text( "Failed to get build log." );
   build_log[log_size] = '\0'; // Add null terminator.  /** \todo is this necessary? */
 
@@ -290,6 +304,24 @@ OpenCLDevice::OpenCLDevice( cl_device_id _id )
   : id( _id ), enabled( true )
 {
   // intentionally blank
+}
+
+void
+OpenCLUtil::setActiveDevice( unsigned int dev_idx )
+{
+  active_device = dev_idx;
+}
+
+unsigned int
+OpenCLUtil::getActiveDevice( )
+{
+  return active_device;
+}
+
+cl_device_id
+OpenCLUtil::getActiveDeviceID( )
+{
+  return devices.at( active_device ).id;
 }
 
 }

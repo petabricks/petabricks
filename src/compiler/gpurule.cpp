@@ -53,7 +53,7 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
 
   o.comment( "Create kernel." );
   o.os( ) << "clkern_" << _rule->id() << "= clCreateKernel( clprog_" << _rule->id() << ", \"kernel_main\", &err );\n";
-  o.os( ) << "std::cout << \"clCreateKernel err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
+  o.os( ) << "#if OPENCL_TRACE\nstd::cout << \"clCreateKernel err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n#endif\n";
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create kernel.\" );\n\n";
 
   o.os( ) << "return 0;";

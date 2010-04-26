@@ -1,4 +1,4 @@
-//#define FORCE_OPENCL
+#define FORCE_OPENCL
 //#define OPENCL_LOGGING
 
 #define TRACE(x) std::cout << "Trace " << x << "\n"

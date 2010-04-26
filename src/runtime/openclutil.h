@@ -65,12 +65,17 @@ namespace petabricks
     static cl_int buildProgram( cl_program &program );
     static std::string errorString( cl_int error );
 
+    static void setActiveDevice( unsigned int dev_idx );
+    static unsigned int getActiveDevice( );
+    static cl_device_id getActiveDeviceID( );
+
   private:
     /** Class is a singleton. */
     OpenCLUtil( ) { }
 
     static cl_context context;
     static bool has_init;
+    static unsigned int active_device;
     static std::vector<OpenCLDevice> devices;
   };
 };
