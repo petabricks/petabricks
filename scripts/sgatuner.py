@@ -31,19 +31,27 @@ class Population:
     self.members  = [initial]
     self.notadded = []
     self.removed  = []
+    self.failed   = set()
     self.testers  = [tester]
     self.baseline = baseline
+    self.firstRound = True
   
   def test(self, count):
     '''test each member of the pop count times'''
+    self.failed=set()
     tests = []
     for z in xrange(count):
       tests.extend(self.members)
     random.shuffle(tests)
     for m in tests:
       check_timeout()
-      self.testers[-1].test(m)
-  
+      if m not in self.failed:
+        try:
+          self.testers[-1].test(m)
+        except pbutil.TimingRunFailed:
+          self.failed.add(m)
+          self.members.remove(m)
+
   def randomMutation(self, maxpopsize=None):  
     '''grow the population using cloning and random mutation'''
     self.notadded=[]
@@ -137,12 +145,20 @@ class Population:
   def generation(self):
     try:
       self.test(config.compare_min_trials)
-      self.randomMutation(config.population_high_size)
-      self.prune(config.population_low_size)
-      if config.print_log:
-        self.printPopulation()
+      if len(self.members):
+        self.randomMutation(config.population_high_size)
+        self.prune(config.population_low_size)
+        if config.print_log:
+          self.printPopulation()
+        self.firstRound=False
+      elif self.firstRound and len(self.failed):
+        self.members = list(self.failed)
+        if config.print_log:
+          print "skip generation n = ",self.inputSize(),"(program run failed)"
+      else:
+        assert False
     except candidatetester.InputGenerationException, e:
-      if e.testNumber==0 and self.inputSize()<=8:
+      if e.testNumber==0 and self.inputSize()<=16:
         if config.print_log:
           print "skip generation n = ",self.inputSize(),"(input generation failure)"
       else:
@@ -245,10 +261,15 @@ def regression_check(benchmark):
 if __name__ == "__main__":
   from optparse import OptionParser
   parser = OptionParser(usage="usage: sgatuner.py [options] Benchmark")
+  parser.add_option("--check",
+                    action="store_true", dest="check_fast", default=False,
+                    help="check for correctness")
   (options, args) = parser.parse_args()
   if len(args)!=1:
     parser.print_usage()
     sys.exit(1)
+  if options.check_fast:
+    tunerconfig.copycfg(tunerconfig.config_regression_check_fast, config)
   benchmark=args[0]
   pbutil.chdirToPetabricksRoot();
   pbutil.compilePetabricks();

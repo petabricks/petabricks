@@ -12,18 +12,14 @@ import shutil
 from xml.dom.minidom import parse
 
 check_exclude=[
-      "convolution/Convolution",
-      "kclustering/kmeans",
-      "matrixapproximation/matrixapprox",
-      "multiply/strassen",
-      "preconditioner/preconditioner",
-      "simple/matrixrotate",
-      "regression/accuracymetric",
-      "regression/coscheduled2",
-      "regression/params",
-      "regression/testruleir",
-      "regression/whereclause",
-      "regression/whereclause2"
+         "convolution/Convolution",           # Difference
+         "kclustering/kmeans",                # Exception:
+         "matrixapproximation/matrixapprox",  # Exception:
+         "multiply/strassen",                 # Difference
+         "preconditioner/preconditioner",     # Exception:
+         "simple/matrixrotate",               # Exception: 154
+         "regression/accuracymetric",         # Exception:
+         "regression/testruleir"              # Difference
     ]
 
 def resolveInputPath(path):
