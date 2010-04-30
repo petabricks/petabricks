@@ -281,9 +281,9 @@ class OpenClFunctionRejectPass: public RIRCompilerPass {
   void before(RIRExprCopyRef& e);
  private:
   bool isFunctionAllowed( const std::string& fn );
+  bool isIdentBlacklisted( const std::string& ident );
   UserRule& _rule;
 };
-
 
 }
 

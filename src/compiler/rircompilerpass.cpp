@@ -452,6 +452,21 @@ bool petabricks::OpenClFunctionRejectPass::isFunctionAllowed( const std::string&
   return false;
 }
 
+bool petabricks::OpenClFunctionRejectPass::isIdentBlacklisted( const std::string& ident )
+{
+  const std::string blacklist[] =
+    { "double",
+      "fftw_complex",
+      "", };
+
+  const std::string* p = blacklist;
+  while( "" != *p )
+    if( *(p++) == ident )
+      return true;
+
+  return false;
+}
+
 void petabricks::OpenClFunctionRejectPass::before(RIRExprCopyRef& e)
 {
   if(e->type() == RIRNode::EXPR_CALL)
@@ -460,6 +475,13 @@ void petabricks::OpenClFunctionRejectPass::before(RIRExprCopyRef& e)
 	{
 	  JTRACE( "Function isn't whitelisted for OpenCL:")(e->part(0)->str());
 	  throw NotValidSource();
+	}
+    }
+  else if(e->type() == RIRNode::EXPR_IDENT)
+    {
+      if( isIdentBlacklisted( e->str() ) )
+	{
+	  JTRACE( "Identifier is blacklisted for OpeNCL:")(e->str());
 	}
     }
 }

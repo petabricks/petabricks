@@ -128,6 +128,7 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
     catch( OpenClFunctionRejectPass::NotValidSource e )
       {
 	std::cout << "(>) RULE REJECTED BY OpenClFunctionRejectPass: " << id() << "\n";
+	failgpu = true;
       }
   }
   else
@@ -754,8 +755,15 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& /*trans*/, CLCodeGen
  #ifdef DEBUG
   std::cerr << "--------------------\nAFTER GPU PASSES:\n" << _bodyirOpenCL << std::endl;
   {
-    DebugPrintPass pdebug;
-    _bodyirOpenCL->accept(pdebug);
+    if( _bodyirOpenCL )
+      {
+	DebugPrintPass pdebug;
+	_bodyirOpenCL->accept(pdebug);
+      }
+    else
+      {
+	std::cerr << " ( No OpenCL code was generated. )\n";
+      }
   }
   std::cerr << "--------------------\n";
  #endif
