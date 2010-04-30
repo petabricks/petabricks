@@ -428,5 +428,38 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
   }
 }
 
+bool petabricks::OpenClFunctionRejectPass::isFunctionAllowed( const std::string& fn )
+{
+  /* This is a quick list of functions which are common to the C or C++ and OpenCL C.  Thus, trying to compile rules using these functions
+     shouldn't cause a problem. */
+  const std::string whitelist[] =
+    { "PB_RETURN",
+      "abs", "fabs",
+      "max", "min",
+      "sign", "round",
+      "floor", "ceil",
+      "log", "exp", "pow",
+      "sin", "cos", "tan",
+      "acos", "asin", "atan",
+      "sqrt",
+      "", };
 
+  const std::string* p = whitelist;
+  while( "" != *p )
+    if( *(p++) == fn )
+      return true;
 
+  return false;
+}
+
+void petabricks::OpenClFunctionRejectPass::before(RIRExprCopyRef& e)
+{
+  if(e->type() == RIRNode::EXPR_CALL)
+    {
+      if( ( e->parts().size() < 1 ) || !isFunctionAllowed( e->part(0)->str() ) )
+	{
+	  JTRACE( "Function isn't whitelisted for OpenCL:")(e->part(0)->str());
+	  throw NotValidSource();
+	}
+    }
+}

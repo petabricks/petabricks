@@ -272,6 +272,17 @@ private:
   UserRule& _rule;
 };
 
+class OpenClFunctionRejectPass: public RIRCompilerPass {
+ public:
+  class NotValidSource {};
+  OpenClFunctionRejectPass(UserRule& r, const RIRScopePtr& p)
+    : RIRCompilerPass(p->createChildLayer()), _rule(r)
+  {}
+  void before(RIRExprCopyRef& e);
+ private:
+  bool isFunctionAllowed( const std::string& fn );
+  UserRule& _rule;
+};
 
 
 }

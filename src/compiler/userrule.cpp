@@ -90,7 +90,9 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
   AnalysisPass      analysis(*this, tx.name(), scope);
 #ifdef HAVE_OPENCL
   OpenClCleanupPass opencl(*this, scope);
+  OpenClFunctionRejectPass openclfnreject(*this, scope);
   GpuRenamePass gpurename;
+  bool failgpu = false;
 #endif
   RIRBlockCopyRef   bodyir = RIRBlock::parse(_bodysrc);
 
@@ -109,22 +111,38 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
 #ifdef HAVE_OPENCL
   if(isOpenClRule()){
     try
-    {
-      _bodyirOpenCL = bodyir;
-      _bodyirOpenCL->accept(opencl);
-      _bodyirOpenCL->accept(gpurename);
-      std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
-      bodyir->accept(print);
-      std::cerr << "--------------------\n";
-    }
+      {
+	_bodyirOpenCL = bodyir;
+	_bodyirOpenCL->accept(openclfnreject);
+	_bodyirOpenCL->accept(opencl);
+	_bodyirOpenCL->accept(gpurename);
+	std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
+	bodyir->accept(print);
+	std::cerr << "--------------------\n";
+      }
     catch( OpenClCleanupPass::NotValidSource e )
+      {
+	std::cout << "(>) RULE REJECTED BY OpenClCleanupPass: " << id() << "\n";
+	failgpu = true;
+      }
+    catch( OpenClFunctionRejectPass::NotValidSource e )
+      {
+	std::cout << "(>) RULE REJECTED BY OpenClFunctionRejectPass: " << id() << "\n";
+      }
+  }
+  else
     {
-      std::cout << "FAILED TO COMPILE OPENCL IMPL FOR RULE " << id() << "\n";
+      std::cout << "(>) NO OPENCL SUPPORT FOR RULE " << id() << "\n";
+      failgpu = true;
+    }
+  
+  if( true == failgpu )
+    {
       _gpuRule->disableRule();
       _gpuRule = NULL;
       _bodyirOpenCL = NULL;
     }
-  }
+
 #endif
 }
 
