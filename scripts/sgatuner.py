@@ -10,8 +10,10 @@ from candidatetester import Candidate, CandidateTester
 from mutators import MutateFailed
 from traininginfo import TrainingInfo
 from tunerconfig import config
+from tunerwarnings import InitialProgramCrash,ExistingProgramCrash,NewProgramCrash,TargetNotMet
+import tunerwarnings
 
-class TrainingTimeout:
+class TrainingTimeout(Exception):
   pass
   
 def check_timeout():
@@ -48,7 +50,11 @@ class Population:
       if m not in self.failed:
         try:
           self.testers[-1].test(m)
-        except pbutil.TimingRunFailed:
+        except candidatetester.CrashException, e:
+          if m.numTotalTests()==0:
+            warnings.warn(InitialProgramCrash(e))
+          else:
+            warnings.warn(ExistingProgramCrash(e))
           self.failed.add(m)
           self.members.remove(m)
 
@@ -80,13 +86,16 @@ class Population:
       if c.config in triedConfigs:
         continue
       triedConfigs.add(c.config)
-      for z in xrange(config.offspring_min_trials):
-        self.testers[-1].test(c, limit=p.reasonableLimit(self.inputSize()))
-      if self.birthFilter(p,c):
-        self.members.append(c)
-      else:
-        c.rmcfgfile()
-        self.notadded.append(c)
+      try:
+        for z in xrange(config.offspring_min_trials):
+          self.testers[-1].test(c, limit=p.reasonableLimit(self.inputSize()))
+        if self.birthFilter(p,c):
+          self.members.append(c)
+        else:
+          c.rmcfgfile()
+          self.notadded.append(c)
+      except candidatetester.CrashException, e:
+        warnings.warn(NewProgramCrash(e))
     if len(originalPop)<len(self.members):
       logging.debug("added "+', '.join(map(str,set(self.members)-set(originalPop))))
     return tries
@@ -123,7 +132,7 @@ class Population:
       if len(t):
         self.markBestN(t, popsize)
       else:
-        warnings.warn("no algorithm has accuracy "+str(accTarg)+" for input "+str(self.inputSize()))
+        warnings.warn(TargetNotMet(self.inputSize(), accTarg))
 
     self.removed  = filter(lambda m: not m.keep, self.members)
     self.members  = filter(lambda m: m.keep, self.members)
@@ -244,6 +253,9 @@ def autotuneInner(benchmark):
         pop.nextInputSize()
     except TrainingTimeout:
       pass
+    #check to make sure we did something:
+    if pop.firstRound:
+      warnings.warn(tunerwarnings.AlwaysCrashes())
   finally:
     tester.cleanup()
 
@@ -253,7 +265,7 @@ def autotune(benchmark):
                              config.delete_output_dir)
 
 def regression_check(benchmark):
-  tunerconfig.copycfg(tunerconfig.config_regression_check_fast, config)
+  tunerconfig.applypatch(tunerconfig.patch_regression)
   storagedirs.callWithLogDir(lambda: autotuneInner(benchmark),
                              config.output_dir,
                              config.delete_output_dir)
@@ -262,14 +274,14 @@ if __name__ == "__main__":
   from optparse import OptionParser
   parser = OptionParser(usage="usage: sgatuner.py [options] Benchmark")
   parser.add_option("--check",
-                    action="store_true", dest="check_fast", default=False,
+                    action="store_true", dest="check", default=False,
                     help="check for correctness")
   (options, args) = parser.parse_args()
   if len(args)!=1:
     parser.print_usage()
     sys.exit(1)
-  if options.check_fast:
-    tunerconfig.copycfg(tunerconfig.config_regression_check_fast, config)
+  if options.check:
+    tunerconfig.applypatch(tunerconfig.patch_check)
   benchmark=args[0]
   pbutil.chdirToPetabricksRoot();
   pbutil.compilePetabricks();

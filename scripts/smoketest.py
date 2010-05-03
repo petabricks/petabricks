@@ -13,13 +13,15 @@ from xml.dom.minidom import parse
 
 check_exclude=[
          "convolution/Convolution",           # Difference
-         "kclustering/kmeans",                # Exception:
-         "matrixapproximation/matrixapprox",  # Exception:
-         "multiply/strassen",                 # Difference
-         "preconditioner/preconditioner",     # Exception:
-         "simple/matrixrotate",               # Exception: 154
-         "regression/accuracymetric",         # Exception:
-         "regression/testruleir"              # Difference
+         "multiply/strassen",                 # Difference, why???
+         
+         "simple/matrixrotate",               # NewProgramCrash
+         "regression/params",                 # AlwaysCrashes
+
+         "kclustering/kmeans",                # (Variable accuracy)
+         "matrixapproximation/matrixapprox",  # (Variable accuracy)
+         "regression/accuracymetric",         # (Variable accuracy)
+         "preconditioner/preconditioner",     # (Variable accuracy)
     ]
 
 def resolveInputPath(path):
@@ -35,18 +37,27 @@ def run(cmd):
   return forkrun(cmd).wait()
 
 def checkBenchmark(b):
-  import sgatuner
-  from candidatetester import OutputCheckFailedException
-
   if b in check_exclude:
     return True
+
+  import sgatuner, warnings, tunerwarnings
+  
+  warnings.resetwarnings()
+  warnings.simplefilter('error',  tunerwarnings.TunerWarning)
+  warnings.simplefilter('ignore', DeprecationWarning)
+  warnings.simplefilter('ignore', tunerwarnings.ComparisonFailed)
+  warnings.simplefilter('ignore', tunerwarnings.InitialProgramCrash)
 
   try:
     sgatuner.regression_check(b)
     print "check PASSED"
     return True
-  except OutputCheckFailedException, e:
+  except tunerwarnings.TunerWarning, e:
     print "check FAILED (%s)" % str(e)
+    return False
+  except:
+    import traceback
+    traceback.print_exc(10)
     return False
 
 def testBenchmark(b):

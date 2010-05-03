@@ -851,8 +851,12 @@ bool petabricks::PetabricksRuntime::isTrainingRun(){
 void petabricks::PetabricksRuntime::abort(){
   TestIsolation* master = SubprocessTestIsolation::masterProcess();
   if(master!=NULL){
-    master->endTest(jalib::maxval<double>(), jalib::minval<double>(), jalib::Hash());//should abort us
-    UNIMPLEMENTED();
+    if(MODE==MODE_AUTOTUNE_GENETIC){
+      master->endTest(jalib::maxval<double>(), jalib::minval<double>(), jalib::Hash());//should abort us
+      UNIMPLEMENTED();
+    }else{
+      JASSERT(false).Text("abort");
+    }
   }else{
     DynamicScheduler::cpuScheduler().abort();
   }

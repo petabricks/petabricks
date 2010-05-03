@@ -55,25 +55,41 @@ class config_defaults:
   cutoff_max_val = 2**30
   rand_retries   = 10
 
-class config_regression_check_fast:
+class patch_check:
   '''settings for automated regression checks'''
-  limit_conf_pct           = 0.65
+  #required flags
   use_iogen                = True
-  cleanup_inputs           = True
   check                    = True
-  debug                    = False
-  compare_confidence_pct   = 0.0
-  compare_max_trials       = 1
-  compare_min_trials       = 1
-  offspring_confidence_pct = 0.0
-  offspring_max_trials     = 1
-  offspring_min_trials     = 1
-  mutations_per_mutator    = .85
-  population_low_size      = 3
+  
+  #run for 30 sec or 2**13 input size
   max_rounds               = 13
   max_time                 = 30
+
+  # pop size of 3... with extra mutation
+  mutations_per_mutator    = 1.0
+  population_low_size      = 3
+
+  # wait longer for results, higher time limits
+  limit_conf_pct           = 0.65
+  limit_multiplier         = 8 
+  
+  #run two trials per alg
+  compare_confidence_pct   = 0.0
+  compare_max_trials       = 2
+  compare_min_trials       = 2
+  offspring_confidence_pct = 0.0
+  offspring_max_trials     = 2
+  offspring_min_trials     = 2
+
+class patch_noninteractive:
+  '''settings for disabling outputs'''
+  cleanup_inputs           = True
+  debug                    = False
   delete_output_dir        = True
   print_log                = False
+
+class patch_regression(patch_noninteractive, patch_check):
+  pass
 
 class config(config_defaults):
   pass
@@ -83,6 +99,9 @@ def copycfg(src, dst):
     if (n[0:2],n[-2:]) != ("__","__"):
       assert hasattr(dst, n)
       setattr(dst, n, getattr(src,n))
+
+def applypatch(patch):
+  copycfg(patch, config)
 
 
 
