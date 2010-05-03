@@ -6,26 +6,19 @@ import shutil
 import storagedirs
 from scipy import stats
 from tunerconfig import config
+from tunerwarnings import ComparisonFailed, InconsistentOutput
 warnings.simplefilter('ignore', DeprecationWarning)
 
-devnull = open("/dev/null", "w")
 
-class OutputCheckFailedException(Exception):
-  def __init__(self, a, b, pfx):
-    self.a=a
-    self.b=b
-    self.pfx=pfx
-
-  def __str__(self):
-    return "%s!=%s" % (str(self.a), str(self.b))
-
-
-class ProgramCrashedException(Exception):
-  pass
-
-class InputGenerationException(ProgramCrashedException):
+class InputGenerationException(Exception):
   def __init__(self, testNumber):
     self.testNumber=testNumber
+
+class CrashException(Exception):
+  def __init__(self, testNumber, n, candidate):
+    self.testNumber=testNumber
+    self.n = n
+    self.candidate=candidate
 
 def debug_logcmd(cmd):
   pass
@@ -162,6 +155,9 @@ class ResultsDB:
            ', '.join(map(lambda x: "%d: %s"%(x[0], repr(x[1])), self.nToResults.iteritems()))+\
            "})"
 
+  def totalTests(self):
+    return sum(map(len, self.nToResults.values()))
+
   def keys(self):
     return self.nToResults.keys()
 
@@ -223,6 +219,9 @@ class Candidate:
 
   def numTests(self, n):
     return len(self.metrics[config.timing_metric_idx][n])
+  
+  def numTotalTests(self):
+    return self.metrics[config.timing_metric_idx].totalTests()
 
   def hasAccuracy(self, n, target):
     return self.metrics[config.accuracy_metric_idx][n].mean() >= target
@@ -275,9 +274,13 @@ class CandidateTester:
         assert len(self.inputs) == testNumber
         cmd = self.cmd + ['--iogen-create='+pfx, "--n=%d"%self.n]
         debug_logcmd(cmd)
-        if subprocess.call(cmd, stderr=devnull) != 0:
-          raise InputGenerationException(testNumber)
-        self.inputs.append(Input(pfx))
+        devnull = open("/dev/null", "w")
+        try:
+          if subprocess.call(cmd, stdout=devnull, stderr=devnull) != 0:
+            raise InputGenerationException(testNumber)
+          self.inputs.append(Input(pfx))
+        finally:
+          devnull.close()
       return "--iogen-run="+pfx
     else:
       return "--n=%d"%self.n
@@ -287,7 +290,7 @@ class CandidateTester:
       self.inputs[i].outputHash = value
       self.inputs[i].firstCanidate = candidate
     elif self.inputs[i].outputHash != value:
-      raise OutputCheckFailedException(self.inputs[i].firstCanidate, candidate, self.inputs[i].pfx)
+      warnings.warn(InconsistentOutput(self.inputs[i].firstCanidate, candidate, self.inputs[i].pfx))
 
   def test(self, candidate, limit=None):
     cfgfile = candidate.cfgfile()
@@ -312,6 +315,8 @@ class CandidateTester:
     except pbutil.TimingRunTimeout:
       candidate.metrics[config.timing_metric_idx][self.n].addTimeout(limit)
       return False
+    except pbutil.TimingRunFailed, e:
+      raise CrashException(testNumber, self.n, candidate)
   
   def comparer(self, metricIdx, confidence, maxTests):
     '''return a cmp like function that dynamically runs more tests to improve confidence'''
@@ -331,7 +336,7 @@ class CandidateTester:
         elif len(ra)<maxTests:
           self.test(a)
         else:
-          warnings.warn("comparison failed between candidates: "+str(a)+" and "+str(b))
+          warnings.warn(ComparisonFailed(self.n, a, b))
           return 0
       assert False
     return compare

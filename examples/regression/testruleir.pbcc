@@ -35,7 +35,7 @@ transform TestRuleIR from IN[w,h] to OUT[w,h]
       1;
 
     }
-    return 1;
+    return i;
   }
 }
 
