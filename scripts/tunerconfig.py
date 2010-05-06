@@ -37,20 +37,23 @@ class config_defaults:
   population_high_size     = 20
   population_low_size      = 1
   multimutation            = True
-  lognorm_tunable_types    = ['system.cutoff.splitsize', 'system.cutoff.sequential']
-  uniform_tunable_types    = ['system.flag.unrollschedule']
-  autodetect_tunable_types = ['user.tunable']
-  ignore_tunable_types     = ['algchoice.cutoff','algchoice.alg']
   max_rounds               = 64
   max_time                 = 60*10
   output_dir               = "/tmp"
   delete_output_dir        = True
   print_log                = True
-
+  min_input_size_nocrash   = 32
+  pause_on_crash           = True
+  lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']
+  uniform_tunable_types       = ['system.flag.unrollschedule']
+  autodetect_tunable_types    = ['user.tunable']
+  lognorm_array_tunable_types = ['user.tunable.accuracy.array']
+  ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg']
 
   #mutators config:
   fmt_cutoff     = "%s_%d_lvl%d_cutoff"
   fmt_rule       = "%s_%d_lvl%d_rule"
+  fmt_bin        = "%s__%d"
   first_lvl      = 1
   cutoff_max_val = 2**30
   rand_retries   = 10
@@ -87,6 +90,7 @@ class patch_noninteractive:
   debug                    = False
   delete_output_dir        = True
   print_log                = False
+  pause_on_crash           = False
 
 class patch_regression(patch_noninteractive, patch_check):
   pass

@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import itertools, random
+import itertools, random, math
 from scipy import stats
 from tunerconfig import config
 
@@ -101,7 +101,7 @@ class LognormRandCutoffMutator(SetTunableMutator):
   def invalidatesThreshold(self, candidate, oldVal, newVal):
     return min(oldVal, newVal)
   def getVal(self, candidate, oldVal):
-    return int(oldVal*stats.lognorm.rvs(1))
+    return int(oldVal*stats.lognorm.rvs(1)+.5)
 
 class UniformRandMutator(SetTunableMutator):
   '''randomize cutoff using uniform distribution'''
@@ -134,8 +134,49 @@ class LognormRandAlgCutoffMutator(LognormRandCutoffMutator):
     v=0
     for z in xrange(config.rand_retries):
       v=LognormRandCutoffMutator.getVal(self,candidate,oldVal)
-      if z>=down and z<=up:
+      if z>=down and z<=up and v!=oldVal:
         break
     return max(down,min(v, up))
 
+class TunableArrayMutator(Mutator):
+  def __init__(self, tunable, minVal, maxVal, weight=1.0):
+    self.tunable = tunable
+    self.minVal = minVal
+    self.maxVal = maxVal
+    Mutator.__init__(self, weight)
+  def getVal(self, candidate, oldVal):
+    raise Exception("implement in child class")
+  def mutate(self, candidate, n):
+    i = int(math.log(n, 2))
+    candidate.clearResultsAbove(min(n, 2**i-1))
+    old = candidate.config[config.fmt_bin % (self.tunable, i)]
+    new = self.getVal(candidate, old)
+    ks = set(candidate.config.keys())
+    assert config.fmt_bin%(self.tunable, i) in ks
+    while config.fmt_bin%(self.tunable, i) in ks:
+      candidate.config[config.fmt_bin % (self.tunable, i)] = new
+      i+=1
+  def reset(self, candidate):
+    candidate.clearResults()
+    i = 0
+    ks = set(candidate.config.keys())
+    assert config.fmt_bin%(self.tunable, i) in ks
+    while config.fmt_bin%(self.tunable, i) in ks:
+      if candidate.config[config.fmt_bin % (self.tunable, i)]<self.minVal:
+        candidate.config[config.fmt_bin % (self.tunable, i)] = self.minVal
+      i+=1
+
+class LognormTunableArrayMutator(TunableArrayMutator):
+  def getVal(self, candidate, oldVal):
+    v=0
+    for z in xrange(config.rand_retries):
+      v=int(oldVal*stats.lognorm.rvs(1)+.5)
+      if z>=self.minVal and z<=self.maxVal and v!=oldVal:
+        break
+    print "Mutate from",oldVal,'to',v
+    return max(self.minVal, min(v, self.maxVal))
+
+class UniformTunableArrayMutator(TunableArrayMutator):
+  def getVal(self, candidate, oldVal):
+    return stats.randint.rvs(self.minVal, self.maxVal+1)
 

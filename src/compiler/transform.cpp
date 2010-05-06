@@ -407,7 +407,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
       if(i->hasFlag(ConfigItem::FLAG_SIZESPECIFIC)){
         int tmp = i->initial();
         if(tmp==i->min()) tmp--;
-        o.createTunableArray(i->category()+".array", _name+"_"+i->name(), MAX_INPUT_BITS, tmp, i->min()-1, i->max());
+        o.createTunableArray(i->category(), _name+"_"+i->name(), MAX_INPUT_BITS, tmp, i->min()-1, i->max(), i->hasFlag(ConfigItem::FLAG_TUNABLE));
       }else{
         o.createTunable(i->hasFlag(ConfigItem::FLAG_TUNABLE), i->category(), _name+"_"+i->name(), i->initial(), i->min(), i->max());
       }

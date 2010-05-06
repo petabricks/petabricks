@@ -4,6 +4,7 @@ import pbutil
 import tempfile, os, math, warnings, random, sys, subprocess
 import shutil
 import storagedirs
+import tunerwarnings 
 from scipy import stats
 from tunerconfig import config
 from tunerwarnings import ComparisonFailed, InconsistentOutput
@@ -15,10 +16,22 @@ class InputGenerationException(Exception):
     self.testNumber=testNumber
 
 class CrashException(Exception):
-  def __init__(self, testNumber, n, candidate):
+  def __init__(self, testNumber, n, candidate, cmd):
     self.testNumber=testNumber
     self.n = n
     self.candidate=candidate
+    self.cmd=cmd
+  def debugpause(self):
+    if config.pause_on_crash:
+      print '-'*60
+      print 'ERROR: Candidate algorithm crashed!'
+      print '-'*60
+      print "%s crashed on test %d for input size %d" % (str(self.candidate),self.testNumber, self.n)
+      print 'cmd:', ' '.join(self.cmd)
+      print 'set config.pause_on_crash=False to disable this message'
+      print '-'*60
+      print
+      raw_input('press any key to continue')
 
 def debug_logcmd(cmd):
   pass
@@ -281,9 +294,9 @@ class CandidateTester:
           self.inputs.append(Input(pfx))
         finally:
           devnull.close()
-      return "--iogen-run="+pfx
+      return ["--iogen-run="+pfx, "--iogen-n=%d"%self.n]
     else:
-      return "--n=%d"%self.n
+      return ["--n=%d"%self.n]
 
   def checkOutputHash(self, candidate, i, value):
     if self.inputs[i].outputHash is None:
@@ -297,7 +310,7 @@ class CandidateTester:
     testNumber = len(candidate.metrics[config.timing_metric_idx][self.n])
     cmd = list(self.cmd)
     cmd.append("--config="+cfgfile)
-    cmd.append(self.getInputArg(testNumber))
+    cmd.extend(self.getInputArg(testNumber))
     if limit is not None:
       cmd.append("--max-sec=%f"%limit)
     try:
@@ -313,10 +326,12 @@ class CandidateTester:
           candidate.metrics[i][self.n].add(result['average'])
       return True
     except pbutil.TimingRunTimeout:
+      assert limit is not None
+      warnings.warn(tunerwarnings.ProgramTimeout(candidate, self.n, limit))
       candidate.metrics[config.timing_metric_idx][self.n].addTimeout(limit)
       return False
     except pbutil.TimingRunFailed, e:
-      raise CrashException(testNumber, self.n, candidate)
+      raise CrashException(testNumber, self.n, candidate, cmd)
   
   def comparer(self, metricIdx, confidence, maxTests):
     '''return a cmp like function that dynamically runs more tests to improve confidence'''

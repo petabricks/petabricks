@@ -65,6 +65,7 @@ std::vector<std::string> txArgs;
 static std::string ATLOG;
 static jalib::Hash theLastHash;
 static std::string IOGEN_PFX="tmp_";
+static int IOGEN_N=-1;
 
 #ifdef HAVE_BOOST_RANDOM_HPP
 static boost::lagged_fibonacci607& myRandomGen(){
@@ -247,6 +248,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     JASSERT(_randSize<0).Text("-n=... conflicts with --iogen-run");
     MODE=MODE_IOGEN_RUN;
   }
+  args.param("iogen-n", IOGEN_N);
   
   //flags that cause aborts
   if(args.param("reset").help("reset the config file to the default state and exit")){
@@ -709,8 +711,13 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
     _main->randomize();
     ti.restartTimeout();
   }else if(files!=NULL){
+    ti.disableTimeout();
     _main->readInputs(*files);
     _main->readOutputs(*files);
+    if(IOGEN_N>0){
+      _main->reallocate(IOGEN_N);
+    }
+    ti.restartTimeout();
   }
   _needTraingingRun = false;//reset flag set by isTrainingRun()
   _isRunning = true;

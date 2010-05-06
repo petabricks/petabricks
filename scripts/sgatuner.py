@@ -160,18 +160,18 @@ class Population:
         if config.print_log:
           self.printPopulation()
         self.firstRound=False
-      elif self.firstRound and len(self.failed):
+      elif self.firstRound and len(self.failed) and config.min_input_size_nocrash>=self.inputSize():
         self.members = list(self.failed)
         if config.print_log:
           print "skip generation n = ",self.inputSize(),"(program run failed)"
       else:
-        assert False
+        warnings.warn(tunerwarnings.AlwaysCrashes())
     except candidatetester.InputGenerationException, e:
-      if e.testNumber==0 and self.inputSize()<=16:
+      if e.testNumber==0 and self.inputSize()<=config.min_input_size_nocrash:
         if config.print_log:
           print "skip generation n = ",self.inputSize(),"(input generation failure)"
       else:
-        raise
+        warnings.warn(tunerwarnings.AlwaysCrashes())
 
   def nextInputSize(self):
     self.testers[-1].cleanup()
@@ -203,27 +203,42 @@ def addMutators(candidate, info, ignore=None, weight=1.0):
   except:
     transform = ""
   for ac in info.algchoices():
-    logging.debug("added Mutator " + transform + "/" + ac['name'] + " => algchoice")
+    logging.debug("added Mutator " + transform + "/" + ac['name'] + " => AlgChoice")
     candidate.addMutator(mutators.RandAlgMutator(transform, ac['number'], mutators.config.first_lvl, weight=weight))
     for a in info.rulesInAlgchoice(ac['number']):
       candidate.addMutator(mutators.AddAlgLevelMutator(transform, ac['number'], a, weight=weight))
   for ta in info.tunables():
+    name = ta['name']
+    l=int(ta['min'])
+    h=int(ta['max'])
+    m=None
+    if 'accuracy' in ta['type']:
+      #hack to support what the old autotuner did
+      l+=1
+
     if ta['type'] in config.lognorm_tunable_types:
-      logging.debug("added Mutator " + transform + "/" + ta['name'] + " => lognorm")
-      candidate.addMutator(mutators.LognormRandCutoffMutator(ta['name'], weight=weight))
+      m = mutators.LognormRandCutoffMutator(name, weight=weight)
     elif ta['type'] in config.uniform_tunable_types:
-      logging.debug("added Mutator " + transform + "/" + ta['name'] + " => randint")
-      candidate.addMutator(mutators.UniformRandMutator(ta['name'], int(ta['min']), int(ta['max']), weight=weight))
+      m = mutators.UniformRandMutator(name, l, h, weight=weight)
     elif ta['type'] in config.autodetect_tunable_types:
-      logging.debug("added Mutator " + transform + "/" + ta['name'] + " => autodetect")
-      if int(ta['min']) <= 1 and int(ta['max']) > 2**16:
-        candidate.addMutator(mutators.LognormRandCutoffMutator(ta['name'], weight=weight))
+      if l <= 1 and h > 2**16:
+        m = mutators.LognormRandCutoffMutator(name, weight=weight)
       else:
-        candidate.addMutator(mutators.UniformRandMutator(ta['name'], int(ta['min']), int(ta['max']), weight=weight))
+        m = mutators.UniformRandMutator(name, l, h, weight=weight)
+    elif ta['type'] in config.lognorm_array_tunable_types:
+      m = mutators.LognormTunableArrayMutator(name, l, h, weight=weight)
+      m.reset(candidate)
     elif ta['type'] in config.ignore_tunable_types:
       pass
     else:
-      logging.warn("unknown tunable %s (%s)"%(ta['name'], ta['type']))
+      warnings.warn(tunerwarnings.UnknownTunableType(name, ta['type']))
+    
+  
+    if m is not None:
+      if 'accuracy' in ta['type']:
+        m.accuracyHint = 1
+      logging.debug("added Mutator " + transform + "/" + name + " => " + m.__class__.__name__)
+      candidate.addMutator(m)
   
   for sub in info.calls():
     addMutators(candidate, sub, ignore, weight/2.0)

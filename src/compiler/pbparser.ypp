@@ -162,7 +162,7 @@ TransformHeader: TransformHeader ConfigItemType IDENT '(' Integer ',' Integer ',
 
 ConfigItemType: KW_CONFIG           { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER; }
               | KW_TUNABLE          { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER|ConfigItem::FLAG_TUNABLE; }
-              | KW_ACCURACYVARIABLE { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER|ConfigItem::FLAG_ACCURACY|ConfigItem::FLAG_SIZESPECIFIC; };
+              | KW_ACCURACYVARIABLE { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER|ConfigItem::FLAG_ACCURACY|ConfigItem::FLAG_SIZESPECIFIC|ConfigItem::FLAG_TUNABLE; };
 
 
 TemplateArg: IDENT '(' Integer ',' Integer ')' {
