@@ -48,13 +48,14 @@ def checkBenchmark(b):
   warnings.simplefilter('ignore', DeprecationWarning)
   warnings.simplefilter('ignore', tunerwarnings.ComparisonFailed)
   warnings.simplefilter('ignore', tunerwarnings.InitialProgramCrash)
+  warnings.simplefilter('ignore', tunerwarnings.ProgramTimeout)
 
   try:
     sgatuner.regression_check(b)
     print "check PASSED"
     return True
   except tunerwarnings.TunerWarning, e:
-    print "check FAILED (%s)" % str(e)
+    print "check FAILED (%s: %s)" % (e.__class__.__name__, str(e))
     return False
   except:
     import traceback
