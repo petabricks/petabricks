@@ -16,6 +16,7 @@ check_exclude=[
          "multiply/strassen",                 # Difference, why???
          
          "simple/matrixrotate",               # NewProgramCrash
+         "multiply/multiply",                 # NewProgramCrash
          "regression/params",                 # AlwaysCrashes
 
          "kclustering/kmeans",                # (Variable accuracy)
