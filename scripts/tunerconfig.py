@@ -2,6 +2,7 @@
 class config_defaults:
   #candidatetester config:
   metrics               = ['timing', 'accuracy']
+  metric_orders         = [1, -1]
   timing_metric_idx     = 0
   accuracy_metric_idx   = 1
   offset                = 0
@@ -14,7 +15,7 @@ class config_defaults:
   '''confidence for generating execution time limits'''
   limit_conf_pct        = 0.95
   '''multiply generated time limits by a factor'''
-  limit_multiplier      = 2.0
+  limit_multiplier      = 10.0
   '''print raw timing values instead of mean and confidence interval'''
   print_raw             = False
   '''store random inputs and share between runs'''
@@ -28,22 +29,22 @@ class config_defaults:
   debug                    = True
   mutate_retries           = 10
   compare_confidence_pct   = 0.95
-  compare_max_trials       = 15
-  compare_min_trials       = 3
   offspring_confidence_pct = 0.95
+  compare_max_trials       = 15
   offspring_max_trials     = 10
+  compare_min_trials       = 3
   offspring_min_trials     = 3
-  mutations_per_mutator    = .85
+  mutations_per_mutator    = 2
   population_high_size     = 20
   population_low_size      = 1
-  multimutation            = True
   max_rounds               = 64
   max_time                 = 60*10
   output_dir               = "/tmp"
+  min_input_size_nocrash   = 32
+  multimutation            = True
   delete_output_dir        = True
   print_log                = True
-  min_input_size_nocrash   = 32
-  pause_on_crash           = True
+  pause_on_crash           = False
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']
   uniform_tunable_types       = ['system.flag.unrollschedule']
   autodetect_tunable_types    = ['user.tunable']
@@ -69,7 +70,7 @@ class patch_check:
   max_time                 = 30
 
   # pop size of 3... with extra mutation
-  mutations_per_mutator    = 1.0
+  mutations_per_mutator    = 2.5
   population_low_size      = 3
 
   # wait longer for results, higher time limits
@@ -97,6 +98,7 @@ class patch_regression(patch_noninteractive, patch_check):
 
 class config(config_defaults):
   pass
+
 
 def copycfg(src, dst):
   for n in dir(src):

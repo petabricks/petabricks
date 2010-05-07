@@ -337,11 +337,11 @@ class CandidateTester:
     '''return a cmp like function that dynamically runs more tests to improve confidence'''
     def compare(a, b):
       for x in xrange(2*maxTests+1):
-        ra=a.metrics[0][self.n]
-        rb=b.metrics[0][self.n]
+        ra=a.metrics[metricIdx][self.n]
+        rb=b.metrics[metricIdx][self.n]
         if ra.diffChance(rb) >= confidence:
           # we can eliminate the null hypothesis, just compare
-          return cmp(ra.mean(), rb.mean())
+          return config.metric_orders[metricIdx]*cmp(ra.mean(), rb.mean())
         if ra.sameChance(rb) >= confidence:
           return 0
         if ra.estimatedBenifitNextTest() >= rb.estimatedBenifitNextTest() and len(ra)<maxTests:
@@ -351,9 +351,9 @@ class CandidateTester:
         elif len(ra)<maxTests:
           self.test(a)
         else:
-          warnings.warn(ComparisonFailed(self.n, a, b))
-          return 0
-      assert False
+          break
+      warnings.warn(ComparisonFailed(self.n, a, b))
+      return 0
     return compare
 
   def cleanup(self):

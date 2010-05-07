@@ -97,8 +97,20 @@ class Population:
       except candidatetester.CrashException, e:
         warnings.warn(NewProgramCrash(e))
     if len(originalPop)<len(self.members):
-      logging.debug("added "+', '.join(map(str,set(self.members)-set(originalPop))))
+      logging.info("added "+', '.join(map(str,set(self.members)-set(originalPop))))
     return tries
+  
+  def birthFilter(self, parent, child):
+    '''called when considering adding child to population'''
+    for m in xrange(len(config.metrics)):
+      childCmp = self.testers[-1].comparer(m, config.offspring_confidence_pct, config.offspring_max_trials)
+      if childCmp(parent, child) > 0:
+        logging.debug("adding %s through metric %d"%(str(child), m))
+        return True
+    return False
+  
+  def guidedMutation(self):  
+    pass
 
   def inputSize(self, roundOffset=0):
     return self.testers[-1 - roundOffset].n
@@ -125,7 +137,8 @@ class Population:
     for m in self.members:
       m.keep = False
 
-    self.markBestN(self.members, popsize)
+    self.markBestN(self.members, popsize, config.timing_metric_idx)
+    self.markBestN(self.members, popsize, config.accuracy_metric_idx)
 
     for accTarg in map(lambda x: x.accuracyTarget(), self.members[0].infoxml.instances):
       t = filter(lambda x: x.hasAccuracy(self.inputSize(), accTarg), self.members)
@@ -137,12 +150,10 @@ class Population:
     self.removed  = filter(lambda m: not m.keep, self.members)
     self.members  = filter(lambda m: m.keep, self.members)
 
-  def birthFilter(self, parent, child):
-    '''called when considering adding child to population'''
-    for m in xrange(len(config.metrics)):
-      childCmp = self.testers[-1].comparer(m, config.offspring_confidence_pct, config.offspring_max_trials)
-      if childCmp(parent, child) > 0:
-        return True
+  def accuracyTargetsMet(self):
+    accTarg=max(map(lambda x: x.accuracyTarget(), self.members[0].infoxml.instances))
+    t = filter(lambda x: x.hasAccuracy(self.inputSize(), accTarg), self.members)
+    return len(t)
 
   def printPopulation(self):
     print "round n = %d"%self.inputSize()
@@ -203,7 +214,7 @@ def addMutators(candidate, info, ignore=None, weight=1.0):
   except:
     transform = ""
   for ac in info.algchoices():
-    logging.debug("added Mutator " + transform + "/" + ac['name'] + " => AlgChoice")
+    logging.info("added Mutator " + transform + "/" + ac['name'] + " => AlgChoice")
     candidate.addMutator(mutators.RandAlgMutator(transform, ac['number'], mutators.config.first_lvl, weight=weight))
     for a in info.rulesInAlgchoice(ac['number']):
       candidate.addMutator(mutators.AddAlgLevelMutator(transform, ac['number'], a, weight=weight))
@@ -211,33 +222,32 @@ def addMutators(candidate, info, ignore=None, weight=1.0):
     name = ta['name']
     l=int(ta['min'])
     h=int(ta['max'])
-    m=None
+    ms=[]
     if 'accuracy' in ta['type']:
       #hack to support what the old autotuner did
       l+=1
 
     if ta['type'] in config.lognorm_tunable_types:
-      m = mutators.LognormRandCutoffMutator(name, weight=weight)
+      ms.append(mutators.LognormRandCutoffMutator(name, weight=weight))
     elif ta['type'] in config.uniform_tunable_types:
-      m = mutators.UniformRandMutator(name, l, h, weight=weight)
+      ms.append(mutators.UniformRandMutator(name, l, h, weight=weight))
     elif ta['type'] in config.autodetect_tunable_types:
       if l <= 1 and h > 2**16:
-        m = mutators.LognormRandCutoffMutator(name, weight=weight)
+        ms.append(mutators.LognormRandCutoffMutator(name, weight=weight))
       else:
-        m = mutators.UniformRandMutator(name, l, h, weight=weight)
+        ms.append(mutators.UniformRandMutator(name, l, h, weight=weight))
     elif ta['type'] in config.lognorm_array_tunable_types:
-      m = mutators.LognormTunableArrayMutator(name, l, h, weight=weight)
-      m.reset(candidate)
+      ms.append(mutators.LognormTunableArrayMutator(name, l, h, weight=weight))
+      ms[-1].reset(candidate)
     elif ta['type'] in config.ignore_tunable_types:
       pass
     else:
       warnings.warn(tunerwarnings.UnknownTunableType(name, ta['type']))
     
-  
-    if m is not None:
+    for m in ms:
       if 'accuracy' in ta['type']:
         m.accuracyHint = 1
-      logging.debug("added Mutator " + transform + "/" + name + " => " + m.__class__.__name__)
+      logging.info("added Mutator " + transform + "/" + name + " => " + m.__class__.__name__)
       candidate.addMutator(m)
   
   for sub in info.calls():
