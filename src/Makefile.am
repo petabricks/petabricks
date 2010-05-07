@@ -33,7 +33,8 @@ noinst_HEADERS = \
   compiler/gpurule.h \
   compiler/trainingdeps.h \
   compiler/transform.h \
-  compiler/userrule.h
+  compiler/userrule.h \
+  compiler/openclutil.h
 
 pkglib_HEADERS=  \
   common/hash.h \
@@ -115,7 +116,8 @@ libpbcompiler_a_SOURCES = \
   compiler/gpurule.cpp \
   compiler/trainingdeps.cpp \
   compiler/transform.cpp \
-  compiler/userrule.cpp
+  compiler/userrule.cpp \
+  compiler/openclutil.cpp
 
 libpbruntime_a_LFLAGS = 
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime

@@ -97,7 +97,8 @@ am_libpbcompiler_a_OBJECTS = libpbcompiler_a-choicegrid.$(OBJEXT) \
 	libpbcompiler_a-gpurule.$(OBJEXT) \
 	libpbcompiler_a-trainingdeps.$(OBJEXT) \
 	libpbcompiler_a-transform.$(OBJEXT) \
-	libpbcompiler_a-userrule.$(OBJEXT)
+	libpbcompiler_a-userrule.$(OBJEXT) \
+	libpbcompiler_a-openclutil.$(OBJEXT)
 libpbcompiler_a_OBJECTS = $(am_libpbcompiler_a_OBJECTS)
 libpbmain_a_AR = $(AR) $(ARFLAGS)
 libpbmain_a_LIBADD =
@@ -299,7 +300,8 @@ noinst_HEADERS = \
   compiler/gpurule.h \
   compiler/trainingdeps.h \
   compiler/transform.h \
-  compiler/userrule.h
+  compiler/userrule.h \
+  compiler/openclutil.h
 
 pkglib_HEADERS = \
   common/hash.h \
@@ -381,7 +383,8 @@ libpbcompiler_a_SOURCES = \
   compiler/gpurule.cpp \
   compiler/trainingdeps.cpp \
   compiler/transform.cpp \
-  compiler/userrule.cpp
+  compiler/userrule.cpp \
+  compiler/openclutil.cpp
 
 libpbruntime_a_LFLAGS = 
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime
@@ -538,6 +541,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-matrixdef.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-matrixdependency.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-maximawrapper.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-openclutil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-region.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-rircompilerpass.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-rirscope.Po@am__quote@
@@ -1125,6 +1129,20 @@ libpbcompiler_a-userrule.obj: compiler/userrule.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/userrule.cpp' object='libpbcompiler_a-userrule.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-userrule.obj `if test -f 'compiler/userrule.cpp'; then $(CYGPATH_W) 'compiler/userrule.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/userrule.cpp'; fi`
+
+libpbcompiler_a-openclutil.o: compiler/openclutil.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-openclutil.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-openclutil.Tpo -c -o libpbcompiler_a-openclutil.o `test -f 'compiler/openclutil.cpp' || echo '$(srcdir)/'`compiler/openclutil.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-openclutil.Tpo $(DEPDIR)/libpbcompiler_a-openclutil.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/openclutil.cpp' object='libpbcompiler_a-openclutil.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-openclutil.o `test -f 'compiler/openclutil.cpp' || echo '$(srcdir)/'`compiler/openclutil.cpp
+
+libpbcompiler_a-openclutil.obj: compiler/openclutil.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-openclutil.obj -MD -MP -MF $(DEPDIR)/libpbcompiler_a-openclutil.Tpo -c -o libpbcompiler_a-openclutil.obj `if test -f 'compiler/openclutil.cpp'; then $(CYGPATH_W) 'compiler/openclutil.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/openclutil.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-openclutil.Tpo $(DEPDIR)/libpbcompiler_a-openclutil.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/openclutil.cpp' object='libpbcompiler_a-openclutil.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-openclutil.obj `if test -f 'compiler/openclutil.cpp'; then $(CYGPATH_W) 'compiler/openclutil.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/openclutil.cpp'; fi`
 
 libpbmain_a-redirectmain.o: runtime/redirectmain.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbmain_a_CXXFLAGS) $(CXXFLAGS) -MT libpbmain_a-redirectmain.o -MD -MP -MF $(DEPDIR)/libpbmain_a-redirectmain.Tpo -c -o libpbmain_a-redirectmain.o `test -f 'runtime/redirectmain.cpp' || echo '$(srcdir)/'`runtime/redirectmain.cpp

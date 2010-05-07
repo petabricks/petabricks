@@ -72,6 +72,7 @@ def testBenchmark(b):
 
   try:
     cmd=[bin, '--fixedrandom', '--config=%s.cfg'%outfile, '--reset']
+    print "resetting config with command", cmd
     if run(cmd) != 0:
       print "ERROR: reset config failed"
       return False

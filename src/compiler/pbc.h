@@ -15,6 +15,10 @@
 #include "config.h"
 #pragma once
 
+#ifdef HAVE_OPENCL
+#include "openclutil.h"
+#endif
+
 namespace petabricks
 {
 

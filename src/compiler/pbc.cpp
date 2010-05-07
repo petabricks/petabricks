@@ -25,6 +25,10 @@
 #  include "config.h"
 #endif
 
+#ifdef HAVE_OPENCL
+#include "openclutil.h"
+#endif
+
 void callCxxCompiler();
 std::string cmdCxxCompiler();
 
@@ -48,6 +52,16 @@ static std::string theHardcodedConfig;
 TransformListPtr parsePbFile(const char* filename);
 
 int main( int argc, const char ** argv){
+
+  /*
+  #ifdef HAVE_OPENCL
+  OpenCLUtil::init();
+  OpenCLUtil::printDeviceList();
+  OpenCLUtil::deinit();
+  exit(-1);
+  #endif
+  */
+
   jalib::JArgs args(argc, argv);
   std::vector<std::string> inputs;
   if(args.needHelp())
