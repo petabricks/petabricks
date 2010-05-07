@@ -86,6 +86,9 @@ class Results:
     self.timeoutResults.append(p)
     self.reinterpolate();
 
+  def numTimeouts(self):
+    return len(self.timeoutResults)
+
   def reinterpolate(self):
     '''recreate interpolatedResults from realResults and timeoutResults'''
     self.interpolatedResults = list(self.realResults)
@@ -232,6 +235,9 @@ class Candidate:
 
   def numTests(self, n):
     return len(self.metrics[config.timing_metric_idx][n])
+
+  def numTimeouts(self, n):
+    return self.metrics[config.timing_metric_idx][n].numTimeouts()
   
   def numTotalTests(self):
     return self.metrics[config.timing_metric_idx].totalTests()
@@ -336,6 +342,16 @@ class CandidateTester:
   def comparer(self, metricIdx, confidence, maxTests):
     '''return a cmp like function that dynamically runs more tests to improve confidence'''
     def compare(a, b):
+      assert a.numTests(self.n)>0
+      assert b.numTests(self.n)>0
+      if metricIdx != config.timing_metric_idx:
+        if len(a.metrics[metricIdx][self.n])==0:
+          warnings.warn(tunerwarnings.ComparisonSkipped(self.n, a, b))
+          return 0
+        if len(b.metrics[metricIdx][self.n])==0:
+          warnings.warn(tunerwarnings.ComparisonSkipped(self.n, a, b))
+          return 0
+
       for x in xrange(2*maxTests+1):
         ra=a.metrics[metricIdx][self.n]
         rb=b.metrics[metricIdx][self.n]

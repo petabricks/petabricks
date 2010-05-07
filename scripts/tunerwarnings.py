@@ -5,6 +5,16 @@ class TunerWarning(UserWarning):
   def __str__(self):
     return self.__class__.__name__
 
+class IgnoredTunerWarning(UserWarning):
+  '''base for those ignored by default'''
+
+class FatalTunerWarning(UserWarning):
+  '''base for those that crash the program by default'''
+
+warnings.simplefilter('always',  TunerWarning)
+warnings.simplefilter('error',   FatalTunerWarning)
+warnings.simplefilter('ignore', IgnoredTunerWarning)
+
 class UnknownTunableType(TunerWarning):
   '''the program contains a tunable type with no corresponding mutator'''
   def __init__(self, name, category):
@@ -13,7 +23,7 @@ class UnknownTunableType(TunerWarning):
   def __str__(self):
     return "%s(%s)"%(self.name, self.category)
 
-class ComparisonFailed(TunerWarning):
+class ComparisonFailed(IgnoredTunerWarning):
   '''couldn't get enough statistical confidence to decide a comparison'''
   def __init__(self, n, a, b):
     self.n = n
@@ -21,6 +31,9 @@ class ComparisonFailed(TunerWarning):
     self.b = b
   def __str__(self):
     return "%s ?= %s" % (str(self.a), str(self.b))
+
+class ComparisonSkipped(ComparisonFailed):
+  pass
 
 class InconsistentOutput(TunerWarning):
   '''two candidates produced different answers'''
@@ -48,7 +61,15 @@ class ProgramTimeout(TunerWarning):
   def __str__(self):
     return "%s timed out in %.2f sec on input %d"%(self.candidate, self.timeout, self.n)
 
-class AlwaysCrashes(TunerWarning):
+class MutateFailed(IgnoredTunerWarning):
+  def __init__(self, candidate, n, tries):
+    self.candidate = candidate
+    self.n = n
+    self.tries = tries
+  def __str__(self):
+    return "%s failed to mutate in %d tries on input %d"%(self.candidate, self.tries, self.n)
+
+class AlwaysCrashes(FatalTunerWarning):
   '''never found an initial candidate that didn't crash'''
   pass
 
@@ -71,11 +92,4 @@ class NewProgramCrash(ProgramCrash):
   '''a mutated child algorithm crashed'''
   pass
 
-warnings.simplefilter('error',  TunerWarning)
-warnings.simplefilter('always', InitialProgramCrash)
-warnings.simplefilter('always', TargetNotMet)
-warnings.simplefilter('always', UnknownTunableType)
-warnings.simplefilter('always', NewProgramCrash)
-warnings.simplefilter('always', ProgramTimeout)
-warnings.simplefilter('ignore', ComparisonFailed)
 

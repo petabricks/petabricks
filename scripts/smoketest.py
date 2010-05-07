@@ -46,7 +46,7 @@ def checkBenchmark(b):
   warnings.resetwarnings()
   warnings.simplefilter('error',  tunerwarnings.TunerWarning)
   warnings.simplefilter('ignore', DeprecationWarning)
-  warnings.simplefilter('ignore', tunerwarnings.ComparisonFailed)
+  warnings.simplefilter('ignore', tunerwarnings.IgnoredTunerWarning)
   warnings.simplefilter('ignore', tunerwarnings.InitialProgramCrash)
   warnings.simplefilter('ignore', tunerwarnings.ProgramTimeout)
 

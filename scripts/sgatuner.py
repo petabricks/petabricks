@@ -81,7 +81,7 @@ class Population:
           break
         except MutateFailed:
           if z==config.mutate_retries-1:
-            logging.debug("mutate failed, try %d of %d" % (z, config.mutate_retries-1))
+            warnings.warn(tunerwarnings.MutateFailed(p, z, self.inputSize()))
           continue
       if c.config in triedConfigs:
         continue
@@ -103,6 +103,8 @@ class Population:
   def birthFilter(self, parent, child):
     '''called when considering adding child to population'''
     for m in xrange(len(config.metrics)):
+      if config.accuracy_metric_idx == m and not self.isVariableAccuracy():
+        continue
       childCmp = self.testers[-1].comparer(m, config.offspring_confidence_pct, config.offspring_max_trials)
       if childCmp(parent, child) > 0:
         logging.debug("adding %s through metric %d"%(str(child), m))
@@ -133,14 +135,22 @@ class Population:
     for m in membersfast[0:n]:
       m.keep=True
 
+  def isVariableAccuracy(self):
+    return self.members[0].infoxml.isVariableAccuracy()
+
+  def accuracyTargets(self):
+    if self.isVariableAccuracy():
+      return map(lambda x: x.accuracyTarget(), self.members[0].infoxml.instances)
+    else:
+      return []
+
   def prune(self, popsize):
     for m in self.members:
       m.keep = False
 
     self.markBestN(self.members, popsize, config.timing_metric_idx)
-    self.markBestN(self.members, popsize, config.accuracy_metric_idx)
 
-    for accTarg in map(lambda x: x.accuracyTarget(), self.members[0].infoxml.instances):
+    for accTarg in self.accuracyTargets():
       t = filter(lambda x: x.hasAccuracy(self.inputSize(), accTarg), self.members)
       if len(t):
         self.markBestN(t, popsize)
@@ -151,7 +161,9 @@ class Population:
     self.members  = filter(lambda m: m.keep, self.members)
 
   def accuracyTargetsMet(self):
-    accTarg=max(map(lambda x: x.accuracyTarget(), self.members[0].infoxml.instances))
+    if not self.isVariableAccuracy():
+      return True
+    accTarg=max(self.accuracyTargets())
     t = filter(lambda x: x.hasAccuracy(self.inputSize(), accTarg), self.members)
     return len(t)
 
