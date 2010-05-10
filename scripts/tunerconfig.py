@@ -24,10 +24,11 @@ class config_defaults:
 
   #how mutation to do
   mutations_per_mutator    = 2
-  multimutation            = True
-  mutate_retries           = 10
   population_high_size     = 20
   population_low_size      = 1
+  multimutation            = True
+  mutate_retries           = 10
+  rand_retries             = 10
 
   #storage and reporting
   debug                    = True
@@ -54,19 +55,18 @@ class config_defaults:
   lognorm_array_tunable_types = ['user.tunable.accuracy.array']
   ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg']
   
-  #metric information, dont change for now:
+  #metric information, dont change
   metrics               = ['timing', 'accuracy']
   metric_orders         = [1, -1] #1 = minimize, -1 = maximize
   timing_metric_idx     = 0
   accuracy_metric_idx   = 1
 
-  #mutators config:
+  #mutators config, dont change
   fmt_cutoff     = "%s_%d_lvl%d_cutoff"
   fmt_rule       = "%s_%d_lvl%d_rule"
   fmt_bin        = "%s__%d"
   first_lvl      = 1
   cutoff_max_val = 2**30
-  rand_retries   = 10
 
 class config(config_defaults):
   pass
@@ -75,13 +75,13 @@ class config(config_defaults):
 #################################################################
 #################################################################
 
-def copycfg(src, dst):
-  for n in dir(src):
-    if (n[0:2],n[-2:]) != ("__","__"):
-      assert hasattr(dst, n)
-      setattr(dst, n, getattr(src,n))
-
 def applypatch(patch):
+  '''copy a given set of config values from patch to config'''
+  def copycfg(src, dst):
+    for n in dir(src):
+      if (n[0:2],n[-2:]) != ("__","__"):
+        assert hasattr(dst, n)
+        setattr(dst, n, getattr(src,n))
   copycfg(patch, config)
 
 #################################################################
@@ -97,13 +97,11 @@ class patch_check:
   max_rounds               = 13
   max_time                 = 30
 
-  # pop size of 3... with extra mutation
-  mutations_per_mutator    = 2.5
+  #bigger pop size
   population_low_size      = 3
 
   # wait longer for results, higher time limits
-  limit_conf_pct           = 0.65
-  limit_multiplier         = 8 
+  limit_multiplier         = 25
   
   #run two trials per alg
   compare_confidence_pct   = 0.0
