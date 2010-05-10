@@ -17,7 +17,7 @@ to OUT[n,n]
   from (A<k>.cell(i,j) aPrev,
         A<k+1>.cell(i,k) left,
         A<k>.cell(k,j) up)
-  where k < i //&& k < j
+  where k < i && k < j
   {
         aNext = aPrev - left * up;
   }
@@ -26,7 +26,7 @@ to OUT[n,n]
   to (A<k+1>.cell(i,j) aNext)
   from (A<k>.cell(i,j) aPrev,
         A<k>.cell(k,j) up)
-  where i > j //&& k == j
+  where i > j && k == j
   {
         aNext = aPrev / up;
   }
