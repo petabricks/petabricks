@@ -134,6 +134,7 @@ class Population:
     membersfast.sort(cmp=fullCmp)
     for m in membersfast[0:n]:
       m.keep=True
+    return membersfast[0:n]
 
   def isVariableAccuracy(self):
     return self.members[0].infoxml.isVariableAccuracy()
@@ -148,12 +149,14 @@ class Population:
     for m in self.members:
       m.keep = False
 
-    self.markBestN(self.members, popsize, config.timing_metric_idx)
+    best=self.markBestN(self.members, popsize, config.timing_metric_idx)
+    storagedirs.storage_dirs.markBest(best[0].cid, self.inputSize(), None)
 
-    for accTarg in self.accuracyTargets():
+    for accLevel,accTarg in enumerate(self.accuracyTargets()):
       t = filter(lambda x: x.hasAccuracy(self.inputSize(), accTarg), self.members)
       if len(t):
-        self.markBestN(t, popsize)
+        best=self.markBestN(t, popsize)
+        storagedirs.storage_dirs.markBest(best[0].cid, self.inputSize(), accLevel)
       else:
         warnings.warn(TargetNotMet(self.inputSize(), accTarg))
 

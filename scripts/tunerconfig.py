@@ -32,9 +32,9 @@ class config_defaults:
 
   #storage and reporting
   debug                    = True
-  output_dir               = "/tmp"
+  output_dir               = "~/tunerout"
   min_input_size_nocrash   = 32
-  delete_output_dir        = True
+  delete_output_dir        = False
   print_log                = True
   pause_on_crash           = False
   '''confidence intervals when displaying numbers'''

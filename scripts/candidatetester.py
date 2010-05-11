@@ -120,11 +120,13 @@ class Results:
 
   def mean(self):
     assert len(self)>0
-    return self.distribution.stats('m')
+    m,v=self.distribution.stats()
+    return m
 
   def variance(self):
     assert len(self)>0
-    return self.distribution.stats('v')
+    m,v=self.distribution.stats()
+    return v
 
   def meanVariance(self, offset=0):
     '''square of stderror'''
