@@ -5,12 +5,12 @@ class config_defaults:
   max_time                 = 60*10
 
   #number of trials to run
-  compare_confidence_pct   = 0.95
-  offspring_confidence_pct = 0.95
+  compare_confidence_pct   = 0.90
+  offspring_confidence_pct = 0.85
   compare_min_trials       = 3
   offspring_min_trials     = 3
-  compare_max_trials       = 15
-  offspring_max_trials     = 10
+  compare_max_trials       = 25
+  offspring_max_trials     = 25
   '''guessed stddev when only 1 test is taken'''
   prior_stddev_pct      = 0.20
   '''percentage change to be viewed as insignificant when testing if two algs are equal'''
@@ -118,6 +118,8 @@ class patch_noninteractive:
   delete_output_dir        = True
   print_log                = False
   pause_on_crash           = False
+  output_dir               = "/tmp"
+
 
 class patch_regression(patch_noninteractive, patch_check):
   pass

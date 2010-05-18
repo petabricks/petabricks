@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import re, sys, os, tempfile, subprocess
+import re, sys, os, tempfile, subprocess, logging
 
 CONFIGLINERE=re.compile("[ \t]*([a-z0-9_-]+)[ \t]*[=][ \t]*([0-9-]+)(.*)", re.IGNORECASE)
 USAGE='''USAGE:
@@ -47,6 +47,7 @@ class ConfigFile:
     return self.values[k][0]
   
   def __setitem__(self, k, v):
+    #logging.debug("configtool: changing %s from %d to %d", k, self[k], v)
     self.values[k] = (int(v), self.values[k][1])
 
   def __hash__(self):

@@ -13,7 +13,7 @@ class FatalTunerWarning(UserWarning):
 
 warnings.simplefilter('always',  TunerWarning)
 warnings.simplefilter('error',   FatalTunerWarning)
-warnings.simplefilter('ignore', IgnoredTunerWarning)
+warnings.simplefilter('ignore',  IgnoredTunerWarning)
 
 class UnknownTunableType(TunerWarning):
   '''the program contains a tunable type with no corresponding mutator'''

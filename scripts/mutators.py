@@ -26,13 +26,16 @@ class LognormRandom:
   def random(self, start, minVal, maxVal):
     for z in xrange(config.rand_retries):
       v=int(start*stats.lognorm.rvs(1)+.5)
+      #logging.debug("lognorm: start=%d, v=%d", start, v)
       if v>=minVal and v<=maxVal and start!=v:
         return v
     raise MutateFailed("lognorm random gen failed")
 
 class UniformRandom:
   def random(self, start, minVal, maxVal):
-    return stats.randint.rvs(minVal, maxVal+1)
+    v=stats.randint.rvs(minVal, maxVal+1)
+    #logging.debug("uniform: start=%d, v=%d", start, v)
+    return v
 
 class AddAlgLevelMutator(Mutator):
   '''add a new alg level to the target choice site'''
@@ -110,7 +113,7 @@ class RandAlgMutator(SetAlgMutator):
   def getVal(self, candidate, oldVal):
     return random.choice(candidate.infoxml.transform(self.transform).rulesInAlgchoice(self.choicesite))
 
-class LognormRandCutoffMutator(SetTunableMutator, UniformRandom):
+class LognormRandCutoffMutator(SetTunableMutator, LognormRandom):
   '''randomize cutoff using lognorm distribution'''
   def invalidatesThreshold(self, candidate, oldVal, newVal):
     return min(oldVal, newVal)
