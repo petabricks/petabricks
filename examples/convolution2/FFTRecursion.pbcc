@@ -1,0 +1,60 @@
+#ifndef FFTRECURSION_PBCC
+#define FFTRECURSION_PBCC
+
+#include "../simple/copy.pbcc"
+
+#define TWO_PI 6.2831853071795864769252867665590057683943
+
+transform FFTRecursion
+
+from X[n], Y[n], TEMPX1[n], TEMPY1[n], SZ, OFFSET, DELTA
+through TEMPX2[n], TEMPY2[n]
+to OUTX[n], OUTY[n]
+{
+  recursive
+  to (OUTX outx, OUTY outy, TEMPX2 tempx2, TEMPY2 tempy2) from  (X x, Y y, TEMPX1 tempx1, TEMPY1 tempy1, SZ sz, OFFSET offset, DELTA delta)
+  {
+    int N2 = sz/2;          // half the number of points in FFT
+    int d2 = 2*delta;       // double delta
+    int k;                  // generic index
+    double cs, sn;          // cosine and sine
+    int k00, k01, k10, k11; // indices for butterflies
+    double tmp0, tmp1;      // temporary storage
+    
+    if (sz != 2)
+    {
+      //fftrec(N2,offset,2*delta,x,y,X,Y,XX,YY)
+      //[XX,YY] = fftrec(N2,offset,2*delta,x,y,XX,YY,X,Y)
+      //[XX,YY] = fftrec(N2,offset+delta,2*delta,x,y,XX,YY,X,Y)
+      FFTRecursion(outx, outy, x, y, tempx1, tempy1, N2, offset, d2);
+      Copy1D(tempx2,outx);
+      Copy1D(tempy2,outy);
+      FFTRecursion(outx, outy, x, y, tempx2, tempy2, N2, offset+delta, d2);
+      Copy1D(tempx2,outx);
+      Copy1D(tempy2,outy);
+      
+      for(k=0; k<N2; k++)
+      {
+        k00 = offset + k*delta;    k01 = k00 + N2*delta;
+        k10 = offset + 2*k*delta;  k11 = k10 + delta;
+        cs = cos(TWO_PI*k/sz); sn = sin(TWO_PI*k/sz);
+        tmp0 = cs * tempx2.cell(k11) + sn * tempy2.cell(k11);
+        tmp1 = cs * tempy2.cell(k11) - sn * tempx2.cell(k11);
+        outx.cell(k01) = tempx2.cell(k10) - tmp0;
+        outy.cell(k01) = tempy2.cell(k10) - tmp1;
+        outx.cell(k00) = tempx2.cell(k10) + tmp0;
+        outy.cell(k00) = tempy2.cell(k10) + tmp1;
+      }
+    }
+    else
+    {
+      k00 = offset; k01 = k00 + delta;
+      outx.cell(k01) = x.cell(k00) - x.cell(k01);
+      outy.cell(k01) = y.cell(k00) - y.cell(k01);
+      outx.cell(k00) = x.cell(k00) + x.cell(k01);
+      outy.cell(k00) = y.cell(k00) + y.cell(k01);
+    }
+  }
+}
+
+#endif // FFTRECURSION_PBCC

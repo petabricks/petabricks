@@ -1,0 +1,19 @@
+#ifndef CONVOLUTION_PBCC
+#define CONVOLUTION_PBCC
+
+#include "ConvLoops.pbcc"
+#include "ConvLinAlg.pbcc"
+#include "ConvFFTRecursion.pbcc"
+#include "ConvFFTW.pbcc"
+
+transform Convolution
+from A[n], B[n]
+to OUT[n]
+{
+      to ( OUT out ) from ( A a, B b ) { ConvLoops(out, a, b); }
+      to ( OUT out ) from ( A a, B b ) { ConvLinAlg(out, a, b); }
+      to ( OUT out ) from ( A a, B b ) { ConvFFTRecursion(out, a, b); }
+      to ( OUT out ) from ( A a, B b ) { ConvFFTW(out, a, b); }
+}
+
+#endif // CONVOLUTION_PBCC
