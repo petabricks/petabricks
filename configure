@@ -4808,13 +4808,12 @@ fi
 
 done
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for MD5 in -lssl" >&5
-$as_echo_n "checking for MD5 in -lssl... " >&6; }
-if test "${ac_cv_lib_ssl_MD5+set}" = set; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing MD5_Init" >&5
+$as_echo_n "checking for library containing MD5_Init... " >&6; }
+if test "${ac_cv_search_MD5_Init+set}" = set; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lssl  $LIBS"
+  ac_func_search_save_LIBS=$LIBS
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -4824,32 +4823,44 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 #ifdef __cplusplus
 extern "C"
 #endif
-char MD5 ();
+char MD5_Init ();
 int
 main ()
 {
-return MD5 ();
+return MD5_Init ();
   ;
   return 0;
 }
 _ACEOF
-if ac_fn_cxx_try_link "$LINENO"; then :
-  ac_cv_lib_ssl_MD5=yes
-else
-  ac_cv_lib_ssl_MD5=no
+for ac_lib in '' crypto ssl; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_search_MD5_Init=$ac_res
 fi
 rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
+    conftest$ac_exeext
+  if test "${ac_cv_search_MD5_Init+set}" = set; then :
+  break
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ssl_MD5" >&5
-$as_echo "$ac_cv_lib_ssl_MD5" >&6; }
-if test "x$ac_cv_lib_ssl_MD5" = x""yes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBSSL 1
-_ACEOF
+done
+if test "${ac_cv_search_MD5_Init+set}" = set; then :
 
-  LIBS="-lssl $LIBS"
+else
+  ac_cv_search_MD5_Init=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_MD5_Init" >&5
+$as_echo "$ac_cv_search_MD5_Init" >&6; }
+ac_res=$ac_cv_search_MD5_Init
+if test "$ac_res" != no; then :
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
 
 else
   as_fn_error "missing package libssl-dev" "$LINENO" 5
