@@ -1,0 +1,40 @@
+#ifndef CONVFFTRECURSION_PBCC
+#define CONVFFTRECURSION_PBCC
+
+#include "FFTRecursion.pbcc"
+
+transform ComplexMultiply
+from AR[n], AI[n], BR[n], BI[n]
+to OUTR[n], OUTI[n]
+{
+      to (OUTR.cell(i) outr, OUTI.cell(i) outi) from (AR.cell(i) a, AI.cell(i) b, BR.cell(i) c, BI.cell(i) d)
+      {
+        //3-mul complex multiply
+        double ac, bd, abcd;
+        ac = a*c;
+        bd = b*d;
+        abcd = (a+b)*(c+d);
+        outr = (ac-bd)/n;
+        outi = (abcd-ac-bd)/n;
+      }
+}
+
+
+transform ConvFFTRecursion
+from A1[n], A2[n]
+through Z[n], B1R[n], B1I[n], B2R[n], B2I[n], CR[n], CI[n], OUTI[n]
+to OUT[n]
+{
+      Z.cell(i) from () { return 0; }
+      
+      to (OUT out, B1R b1r, B1I b1i, B2R b2r, B2I b2i, CR cr, CI ci, OUTI outi) from (A1 a1, A2 a2, Z z)
+      {
+        //fftrec(N2,offset,2*delta,x,y,X,Y,XX,YY)
+        FFTRecursion(b1r, b1i, a1, z, a1, z, n, 0, 1);
+        FFTRecursion(b2r, b2i, a2, z, a2, z, n, 0, 1);
+        ComplexMultiply(cr, ci, b1r, b1i, b2r, b2i);
+        FFTRecursion(outi, out, ci, cr, ci, cr, n, 0, 1);
+      }
+}
+
+#endif // CONVFFTRECURSION_PBCC
