@@ -22,6 +22,7 @@ check_exclude=[
 
          "convolution2/ConvFFTRecursion",
          "convolution2/Convolution",
+         "convolution2/ConvLinAlg",
 
          "kclustering/kmeans",                # (Variable accuracy)
          "matrixapproximation/matrixapprox",  # (Variable accuracy)
