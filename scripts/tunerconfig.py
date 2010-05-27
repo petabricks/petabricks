@@ -2,7 +2,7 @@
 class config_defaults:
   #how long to train for
   max_rounds               = 64
-  max_time                 = 60*10
+  max_time                 = 60*15
 
   #number of trials to run
   compare_confidence_pct   = 0.95
