@@ -106,8 +106,9 @@ public:
                          , const std::string& name
                          , int count
                          , int initial
-                         , int min=0
-                         , int max=jalib::maxval<int>())
+                         , int min
+                         , int max
+                         , bool isTunable)
   {
     //JTRACE("new tunable")(name)(initial)(min)(max);
     theTunableDefs()[name] =
@@ -116,7 +117,7 @@ public:
               +","+jalib::XToString(initial)
               +","+jalib::XToString(min)
               +","+jalib::XToString(max)+");";
-    _cg.addTunable(false, category, name, initial, min, max);
+    _cg.addTunable(isTunable, category, name, initial, min, max);
   }
 
   void beginSwitch(const std::string& var){

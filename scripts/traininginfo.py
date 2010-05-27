@@ -38,6 +38,9 @@ class TrainingInfo:
 
   def accuracyTarget(self):
     return float(self.infoxml.getAttribute("accuracyTarget"))
+  
+  def isVariableAccuracy(self):
+    return int(self.infoxml.getAttribute("isVariableAccuracy"))>0
 
   def name(self):
     return nameof(self.infoxml)

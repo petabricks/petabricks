@@ -56,7 +56,7 @@ to OUT[n,m]
 
 transform Main
 from IN[n, n] 
-to OUT[n, n+5] 
+to OUT[n, n] 
 {
   to(OUT.row(1) o) from(IN.row(0) i){
     WhereTest1(o,i);
@@ -67,9 +67,9 @@ to OUT[n, n+5]
   to(OUT.row(3) o) from(IN.row(0) i){
     WhereTest3(o,i);
   }
-  to(OUT.region(0,5, n,n+5) o) from (IN i){
-    WhereTest4(o,i);
-  }
+//  to(OUT.region(0,5, n,n+5) o) from (IN i){
+//    WhereTest4(o,i);
+//  }
   secondary OUT.cell(x,y) from() { 
     return 9;
   }

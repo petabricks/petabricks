@@ -22,6 +22,12 @@
 #  include "config.h"
 #endif
   
+#ifdef DEBUG
+#  define DEBUGONLY(args...) args
+#else
+#  define DEBUGONLY(args...) (void)0
+#endif
+
 
 //singleton main thread
 static petabricks::WorkerThread theMainWorkerThread(petabricks::DynamicScheduler::cpuScheduler());
@@ -75,9 +81,7 @@ petabricks::WorkerThread::WorkerThread(DynamicScheduler& ds)
 #ifdef WORKERTHREAD_ONDECK
   _ondeck = NULL;
 #endif
-#ifdef DEBUG
-  _isWorking=false;
-#endif
+  DEBUGONLY(_isWorking=false);
 }
 petabricks::WorkerThread::~WorkerThread(){
   _pool.remove(this);
@@ -108,13 +112,11 @@ void petabricks::WorkerThread::popAndRunOneTask(int stealLimit)
 
   //if we got something, run it
   if (task != NULL) {
-#ifdef DEBUG
-    _isWorking=true;
-#endif 
+    DEBUGONLY(_isWorking=true);
     task->runWrapper();
-#ifdef DEBUG
-    _isWorking=false;
-#endif
+    DEBUGONLY(_isWorking=false);
+  } else {
+    pthread_yield();
   }
 }
 
@@ -242,9 +244,7 @@ void petabricks::WorkerThreadPool::debugPrint() const {
       std::cerr << "  * empty slot " << std::endl;
     }else{
       std::cerr << "  * thread " << t->id() << " workCount:" << t->workCount();
-#ifdef DEBUG
-      std::cerr << " isWorking:" << t->isWorking();
-#endif
+      DEBUGONLY(std::cerr << " isWorking:" << t->isWorking());
       if(t==WorkerThread::self())
         std::cerr << " (current)";
       std::cerr << std::endl;
@@ -266,9 +266,7 @@ void petabricks::WorkerThreadPool::debugPrint(jalib::JAssert& o) const {
       o << "  - empty slot";
     }else{
       o << "  - thread " << t->id() << " workCount:" << t->workCount();
-#ifdef DEBUG
-      o << " isWorking:" << t->isWorking();
-#endif
+      DEBUGONLY(o << " isWorking:" << t->isWorking());
       if(t==WorkerThread::self())
         o << " (current)";
     }

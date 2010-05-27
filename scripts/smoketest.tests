@@ -9,6 +9,11 @@
 
 
 
+convolution2/ConvFFTRecursion     Rand1D Rand1D
+convolution2/ConvFFTW      Rand1D Rand1D
+convolution2/ConvLinAlg    Rand1D Rand1D
+convolution2/ConvLoops     Rand1D Rand1D
+convolution2/Convolution   Rand1D Rand1D
 convolution/ConvolutionFFT Rand1D Rand1D
 convolution/Convolution    Rand1D Rand1D
 kclustering/kmeans         KmeansRandInput /dev/null

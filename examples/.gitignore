@@ -1,7 +1,16 @@
 testdiag
 binpacking/binpacking
+bitonic/bitonic
+convolution2/ConvFFTRecursion
+convolution2/ConvFFTW
+convolution2/ConvLinAlg
+convolution2/ConvLoops
+convolution2/Convolution
+convolution2/FFTRecursion
 convolution/ConvolutionFFT
 convolution/Convolution
+detTD/detmatmulprefix
+detTD/detTD
 eigenproblem/Bisection
 eigenproblem/BisectionTD
 eigenproblem/DC
@@ -85,6 +94,7 @@ preconditioner/poissonprecond
 preconditioner/polypre
 preconditioner/preconditioner
 preconditioner/vectoradd
+prefixsum/prefixsum
 regression/accuracymetric
 regression/assign0d
 regression/calltx

@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import itertools, random
+import itertools, random, math, logging
 from scipy import stats
 from tunerconfig import config
 
@@ -10,7 +10,8 @@ class MutateFailed(Exception):
 class Mutator:
   '''mutates a candidate to create a new candidate, base class'''
   def __init__(self, weight=1.0):
-    self.weight=weight
+    self.weight = weight
+    self.accuracyHint = 0
   def mutate(self, candidate, n):
     '''
     Must Perform the following actions:
@@ -19,6 +20,22 @@ class Mutator:
     3) [optional] add new mutators to modify the change made
     '''
     raise Exception('must be implemented in subclass')
+  
+  
+class LognormRandom:
+  def random(self, start, minVal, maxVal):
+    for z in xrange(config.rand_retries):
+      v=int(start*stats.lognorm.rvs(1)+.5)
+      #logging.debug("lognorm: start=%d, v=%d", start, v)
+      if v>=minVal and v<=maxVal and start!=v:
+        return v
+    raise MutateFailed("lognorm random gen failed")
+
+class UniformRandom:
+  def random(self, start, minVal, maxVal):
+    v=stats.randint.rvs(minVal, maxVal+1)
+    #logging.debug("uniform: start=%d, v=%d", start, v)
+    return v
 
 class AddAlgLevelMutator(Mutator):
   '''add a new alg level to the target choice site'''
@@ -96,23 +113,23 @@ class RandAlgMutator(SetAlgMutator):
   def getVal(self, candidate, oldVal):
     return random.choice(candidate.infoxml.transform(self.transform).rulesInAlgchoice(self.choicesite))
 
-class LognormRandCutoffMutator(SetTunableMutator):
+class LognormRandCutoffMutator(SetTunableMutator, LognormRandom):
   '''randomize cutoff using lognorm distribution'''
   def invalidatesThreshold(self, candidate, oldVal, newVal):
     return min(oldVal, newVal)
   def getVal(self, candidate, oldVal):
-    return int(oldVal*stats.lognorm.rvs(1))
+    return self.random(oldVal, 1, config.cutoff_max_val)
 
-class UniformRandMutator(SetTunableMutator):
+class UniformRandMutator(SetTunableMutator, UniformRandom):
   '''randomize cutoff using uniform distribution'''
   def __init__(self, tunable, minVal, maxVal, weight):
     self.minVal = minVal
     self.maxVal = maxVal
     SetTunableMutator.__init__(self, tunable, None, weight)
   def getVal(self, candidate, oldVal):
-    return stats.randint.rvs(self.minVal, self.maxVal+1)
+    return self.random(oldVal, self.minVal, self.maxVal+1)
 
-class LognormRandAlgCutoffMutator(LognormRandCutoffMutator):
+class LognormRandAlgCutoffMutator(LognormRandCutoffMutator, LognormRandom):
   '''randomize alg cutoff using lognorm distribution'''
   def __init__(self, transform, choicesite, lvl, weight=1.0):
     self.kcodown = config.fmt_cutoff % (transform, choicesite, lvl-1)
@@ -131,11 +148,41 @@ class LognormRandAlgCutoffMutator(LognormRandCutoffMutator):
       up=self.config[self.kcoup]-1
     except:
       pass
-    v=0
-    for z in xrange(config.rand_retries):
-      v=LognormRandCutoffMutator.getVal(self,candidate,oldVal)
-      if z>=down and z<=up:
-        break
-    return max(down,min(v, up))
+    return self.random(oldVal, down, up)
 
+
+class TunableArrayMutator(Mutator):
+  def __init__(self, tunable, minVal, maxVal, weight=1.0):
+    self.tunable = tunable
+    self.minVal = minVal
+    self.maxVal = maxVal
+    Mutator.__init__(self, weight)
+  def getVal(self, candidate, oldVal):
+    return self.random(oldVal, self.minVal, self.maxVal)
+  def mutate(self, candidate, n):
+    i = int(math.log(n, 2))
+    candidate.clearResultsAbove(min(n, 2**i-1))
+    old = candidate.config[config.fmt_bin % (self.tunable, i)]
+    new = self.getVal(candidate, old)
+    print str(candidate),self.tunable, old, new
+    ks = set(candidate.config.keys())
+    assert config.fmt_bin%(self.tunable, i) in ks
+    while config.fmt_bin%(self.tunable, i) in ks:
+      candidate.config[config.fmt_bin % (self.tunable, i)] = new
+      i+=1
+  def reset(self, candidate):
+    candidate.clearResults()
+    i = 0
+    ks = set(candidate.config.keys())
+    assert config.fmt_bin%(self.tunable, i) in ks
+    while config.fmt_bin%(self.tunable, i) in ks:
+      if candidate.config[config.fmt_bin % (self.tunable, i)]<self.minVal:
+        candidate.config[config.fmt_bin % (self.tunable, i)] = self.minVal
+      i+=1
+
+class LognormTunableArrayMutator(TunableArrayMutator, LognormRandom):
+  pass
+
+class UniformTunableArrayMutator(TunableArrayMutator, UniformRandom):
+  pass
 

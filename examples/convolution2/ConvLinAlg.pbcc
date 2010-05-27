@@ -1,0 +1,44 @@
+#ifndef CONVLINALG_PBCC
+#define CONVLINALG_PBCC
+
+#include "../preconditioner/dotproduct.pbcc"
+
+transform CircularShift
+from C0[n]
+to C1[n]
+{
+      primary C1.cell(n-1) from (C0.cell(0) c) { return c; }
+      
+      C1.cell(i) from (C0.cell(i+1) c) { return c; }
+}
+
+transform Reverse
+from A[n]
+to B[n]
+{
+      B.cell(i) from (A.cell(n-i-1) a) { return a; }
+}
+
+
+transform ConvLinAlg
+from A[n], B[n]
+through CN[n], C1[n], C[n,n]
+to OUT[n]
+{
+      primary to ( C.row(n-1) cn ) from (A a)
+      {
+        Reverse(cn, a);
+      }
+      
+      to ( C.row(i) c1 ) from ( C.row(i+1) c0 )
+      {
+        CircularShift(c1, c0);
+      }
+      
+      to (OUT.cell(i) out) from (C.row(i) c, B b)
+      {
+        DotProduct(out, c, b);
+      }
+}
+
+#endif // CONVLINALG_PBCC

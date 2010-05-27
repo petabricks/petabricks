@@ -43,6 +43,12 @@ std::string petabricks::ConfigItem::category() const {
     cat+="tunable";
   else
     cat+="config";
+  
+  if(hasFlag(ConfigItem::FLAG_ACCURACY))
+    cat+=".accuracy";
+  
+  if(hasFlag(ConfigItem::FLAG_SIZESPECIFIC))
+    cat+=".array";
 
   return cat;
 }

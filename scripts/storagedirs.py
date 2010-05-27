@@ -6,15 +6,25 @@ class StorageDirsTemplate:
     self.root    = root
     self.configd = os.path.join(root, 'config')
     self.inputd  = os.path.join(root, 'inputs')
+    self.bestd   = os.path.join(root, 'best')
     self.resultd = os.path.join(root, 'results')
     self.statsd  = os.path.join(root, 'stats')
     os.mkdir(self.configd)
     os.mkdir(self.resultd)
     os.mkdir(self.statsd)
+    os.mkdir(self.bestd)
     os.mkdir(self.inputd)
 
   def config(self, cid):
     return os.path.join(self.configd, "candidate%05d.cfg" % cid)
+
+  def markBest(self, cid, n, acc):
+    s="../config/candidate%05d.cfg" % cid
+    if acc is not None:
+      d=os.path.join(self.bestd, "n%d_acc%d.cfg"%(n,acc))
+    else:
+      d=os.path.join(self.bestd, "n%d.cfg"%n)
+    os.symlink(s,d)
   
   def inputpfx(self, size, number):
     return os.path.join(self.inputd, "n%010d_i%02d_" % (size, number))
@@ -32,7 +42,7 @@ class StorageDirsTemplate:
 storage_dirs = None
 
 def callWithLogDir(fn, root, delete):
-  d = tempfile.mkdtemp(prefix='pbtunerun_', dir=root)
+  d = tempfile.mkdtemp(prefix='pbtunerun_', dir=os.path.expanduser(root))
   if not delete:
     print d
   global storage_dirs

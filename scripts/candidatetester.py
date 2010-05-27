@@ -4,6 +4,7 @@ import pbutil
 import tempfile, os, math, warnings, random, sys, subprocess
 import shutil
 import storagedirs
+import tunerwarnings 
 from scipy import stats
 from tunerconfig import config
 from tunerwarnings import ComparisonFailed, InconsistentOutput
@@ -15,10 +16,22 @@ class InputGenerationException(Exception):
     self.testNumber=testNumber
 
 class CrashException(Exception):
-  def __init__(self, testNumber, n, candidate):
+  def __init__(self, testNumber, n, candidate, cmd):
     self.testNumber=testNumber
     self.n = n
     self.candidate=candidate
+    self.cmd=cmd
+  def debugpause(self):
+    if config.pause_on_crash:
+      print '-'*60
+      print 'ERROR: Candidate algorithm crashed!'
+      print '-'*60
+      print "%s crashed on test %d for input size %d" % (str(self.candidate),self.testNumber, self.n)
+      print 'cmd:', ' '.join(self.cmd)
+      print 'set config.pause_on_crash=False to disable this message'
+      print '-'*60
+      print
+      raw_input('press any key to continue')
 
 def debug_logcmd(cmd):
   pass
@@ -73,6 +86,9 @@ class Results:
     self.timeoutResults.append(p)
     self.reinterpolate();
 
+  def numTimeouts(self):
+    return len(self.timeoutResults)
+
   def reinterpolate(self):
     '''recreate interpolatedResults from realResults and timeoutResults'''
     self.interpolatedResults = list(self.realResults)
@@ -104,11 +120,13 @@ class Results:
 
   def mean(self):
     assert len(self)>0
-    return self.distribution.stats('m')
+    m,v=self.distribution.stats()
+    return m
 
   def variance(self):
     assert len(self)>0
-    return self.distribution.stats('v')
+    m,v=self.distribution.stats()
+    return v
 
   def meanVariance(self, offset=0):
     '''square of stderror'''
@@ -219,6 +237,9 @@ class Candidate:
 
   def numTests(self, n):
     return len(self.metrics[config.timing_metric_idx][n])
+
+  def numTimeouts(self, n):
+    return self.metrics[config.timing_metric_idx][n].numTimeouts()
   
   def numTotalTests(self):
     return self.metrics[config.timing_metric_idx].totalTests()
@@ -281,9 +302,9 @@ class CandidateTester:
           self.inputs.append(Input(pfx))
         finally:
           devnull.close()
-      return "--iogen-run="+pfx
+      return ["--iogen-run="+pfx, "--iogen-n=%d"%self.n]
     else:
-      return "--n=%d"%self.n
+      return ["--n=%d"%self.n]
 
   def checkOutputHash(self, candidate, i, value):
     if self.inputs[i].outputHash is None:
@@ -297,7 +318,7 @@ class CandidateTester:
     testNumber = len(candidate.metrics[config.timing_metric_idx][self.n])
     cmd = list(self.cmd)
     cmd.append("--config="+cfgfile)
-    cmd.append(self.getInputArg(testNumber))
+    cmd.extend(self.getInputArg(testNumber))
     if limit is not None:
       cmd.append("--max-sec=%f"%limit)
     try:
@@ -313,20 +334,32 @@ class CandidateTester:
           candidate.metrics[i][self.n].add(result['average'])
       return True
     except pbutil.TimingRunTimeout:
+      assert limit is not None
+      warnings.warn(tunerwarnings.ProgramTimeout(candidate, self.n, limit))
       candidate.metrics[config.timing_metric_idx][self.n].addTimeout(limit)
       return False
     except pbutil.TimingRunFailed, e:
-      raise CrashException(testNumber, self.n, candidate)
+      raise CrashException(testNumber, self.n, candidate, cmd)
   
   def comparer(self, metricIdx, confidence, maxTests):
     '''return a cmp like function that dynamically runs more tests to improve confidence'''
     def compare(a, b):
+      assert a.numTests(self.n)>0
+      assert b.numTests(self.n)>0
+      if metricIdx != config.timing_metric_idx:
+        if len(a.metrics[metricIdx][self.n])==0:
+          warnings.warn(tunerwarnings.ComparisonSkipped(self.n, a, b))
+          return 0
+        if len(b.metrics[metricIdx][self.n])==0:
+          warnings.warn(tunerwarnings.ComparisonSkipped(self.n, a, b))
+          return 0
+
       for x in xrange(2*maxTests+1):
-        ra=a.metrics[0][self.n]
-        rb=b.metrics[0][self.n]
+        ra=a.metrics[metricIdx][self.n]
+        rb=b.metrics[metricIdx][self.n]
         if ra.diffChance(rb) >= confidence:
           # we can eliminate the null hypothesis, just compare
-          return cmp(ra.mean(), rb.mean())
+          return config.metric_orders[metricIdx]*cmp(ra.mean(), rb.mean())
         if ra.sameChance(rb) >= confidence:
           return 0
         if ra.estimatedBenifitNextTest() >= rb.estimatedBenifitNextTest() and len(ra)<maxTests:
@@ -336,9 +369,9 @@ class CandidateTester:
         elif len(ra)<maxTests:
           self.test(a)
         else:
-          warnings.warn(ComparisonFailed(self.n, a, b))
-          return 0
-      assert False
+          break
+      warnings.warn(ComparisonFailed(self.n, a, b))
+      return 0
     return compare
 
   def cleanup(self):
