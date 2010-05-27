@@ -20,6 +20,9 @@ check_exclude=[
          "multiply/multiply",                 # NewProgramCrash
          "regression/params",                 # AlwaysCrashes
 
+         "convolution2/ConvFFTRecursion",
+         "convolution2/Convolution",
+
          "kclustering/kmeans",                # (Variable accuracy)
          "matrixapproximation/matrixapprox",  # (Variable accuracy)
          "regression/accuracymetric",         # (Variable accuracy)
