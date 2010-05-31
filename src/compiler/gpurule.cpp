@@ -66,7 +66,15 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
   o.endFunc();
 
   // Invoke init once before main.
-  o.os() << "static int ignored_" << codename() << " = " << trans.name() << "_instance::" << codename() << "_init();\n\n";  
+  o.os() << "static int ignored_" 
+         << trans.name() 
+         << '_' 
+         << codename() 
+         << " = " 
+         << trans.name() 
+         << "_instance::" 
+         << codename() 
+         << "_init();\n\n";  
 }
 
 void
