@@ -56,7 +56,14 @@ class GpuRule : public SyntheticRule {
 
   // Helper code copied from UserRule
   std::string trampcodename(Transform& trans) const;
-
+  
+  
+  
+  
+  RuleFlags::PriorityT priority() const;
+  bool isRecursive() const;
+  bool hasWhereClause() const;
+  FormulaPtr getWhereClause() const;
  private:
   UserRule* _rule;
   RIRBlockCopyRef _bodyirOpenCL;

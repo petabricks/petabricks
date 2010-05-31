@@ -157,6 +157,19 @@ GpuRule::getSelfDependency() const
   return _rule->getSelfDependency();
 }
 
-};
+petabricks::RuleFlags::PriorityT petabricks::GpuRule::priority() const { 
+  return _rule->priority();
+}
+bool petabricks::GpuRule::isRecursive() const { 
+  return _rule->isRecursive();
+}
+bool petabricks::GpuRule::hasWhereClause() const { 
+  return _rule->hasWhereClause();
+}
+petabricks::FormulaPtr petabricks::GpuRule::getWhereClause() const { 
+  return _rule->getWhereClause();
+}
+
+}//namespace
 
 #endif
