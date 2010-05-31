@@ -57,7 +57,7 @@ to OUT[n], RR[n], DD[n]
 	from (IN x, A a, R r, D d)
 	{
 		int i;
-		double RdotR;
+		ElementT RdotR;
 		DotProduct(RdotR, r, r);
 		CG_inner(out, rr, dd, x, a, r, d, RdotR);
 		

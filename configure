@@ -6915,6 +6915,16 @@ $as_echo "$as_me: error: Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconf
    { (exit 1); exit 1; }; }
 fi
 
+
+cat >>confdefs.h <<\_ACEOF
+#define MATRIX_ELEMENT_T float
+_ACEOF
+
+else
+   cat >>confdefs.h <<\_ACEOF
+#define MATRIX_ELEMENT_T double
+_ACEOF
+
 fi
 
 
@@ -6976,11 +6986,6 @@ _ACEOF
 
 cat >>confdefs.h <<\_ACEOF
 #define JASSERT_USE_SRCPOS /**/
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define MATRIX_ELEMENT_T double
 _ACEOF
 
 
