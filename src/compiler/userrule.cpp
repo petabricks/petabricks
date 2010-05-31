@@ -111,38 +111,38 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
 #ifdef HAVE_OPENCL
   if(isOpenClRule()){
     try
-      {
-	_bodyirOpenCL = bodyir;
-	_bodyirOpenCL->accept(openclfnreject);
-	_bodyirOpenCL->accept(opencl);
-	_bodyirOpenCL->accept(gpurename);
-	std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
-	bodyir->accept(print);
-	std::cerr << "--------------------\n";
-      }
-    catch( OpenClCleanupPass::NotValidSource e )
-      {
-	std::cout << "(>) RULE REJECTED BY OpenClCleanupPass: " << id() << "\n";
-	failgpu = true;
-      }
-    catch( OpenClFunctionRejectPass::NotValidSource e )
-      {
-	std::cout << "(>) RULE REJECTED BY OpenClFunctionRejectPass: " << id() << "\n";
-	failgpu = true;
-      }
-  }
-  else
     {
-      std::cout << "(>) NO OPENCL SUPPORT FOR RULE " << id() << "\n";
+      _bodyirOpenCL = bodyir;
+      _bodyirOpenCL->accept(openclfnreject);
+      _bodyirOpenCL->accept(opencl);
+      _bodyirOpenCL->accept(gpurename);
+      std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
+      bodyir->accept(print);
+      std::cerr << "--------------------\n";
+    }
+    catch( OpenClCleanupPass::NotValidSource e )
+    {
+      std::cout << "(>) RULE REJECTED BY OpenClCleanupPass: " << id() << "\n";
       failgpu = true;
     }
+    catch( OpenClFunctionRejectPass::NotValidSource e )
+    {
+      std::cout << "(>) RULE REJECTED BY OpenClFunctionRejectPass: " << id() << "\n";
+      failgpu = true;
+    }
+  }
+  else
+  {
+    std::cout << "(>) NO OPENCL SUPPORT FOR RULE " << id() << "\n";
+    failgpu = true;
+  }
   
   if( true == failgpu )
-    {
-      _gpuRule->disableRule();
-      _gpuRule = NULL;
-      _bodyirOpenCL = NULL;
-    }
+  {
+    if(_gpuRule) _gpuRule->disableRule();
+    _gpuRule = NULL;
+    _bodyirOpenCL = NULL;
+  }
 
 #endif
 }
@@ -323,8 +323,10 @@ void petabricks::UserRule::performExpansion(Transform& trans){
     }
   }
  #ifdef HAVE_OPENCL
-   _gpuRule = new GpuRule( this );
-  trans.addRule( _gpuRule );
+  if(!hasWhereClause()){
+    _gpuRule = new GpuRule( this );
+    trans.addRule( _gpuRule );
+  }
  #endif
 }
 
