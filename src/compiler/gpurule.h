@@ -58,7 +58,6 @@ class GpuRule : public SyntheticRule {
   std::string trampcodename(Transform& trans) const;
 
  private:
-  //RuleSet _rules;
   UserRule* _rule;
   RIRBlockCopyRef _bodyirOpenCL;
 };
