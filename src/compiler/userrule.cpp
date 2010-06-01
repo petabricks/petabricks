@@ -489,139 +489,132 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   }
   #ifdef HAVE_OPENCL
   else if( E_RF_OPENCL == flavor )
+  {
+    o.os() << "cl_int err;\n";
+    o.os() << "cl_kernel clkern = clkern_" << id() << ";\n";
+
+    int arg_pos = 0;
+
+    //      o.os( ) << "printf( \"- TRACE 10\\n\" );\n";
+
+    // Create memory objects for outputs
+    o.comment( "Create memory objects for outputs." );
+    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
-      /*
-      clcodegen.os() << "__kernel void kernel_main(__global float *OUT, __global float* IN, int dim_d0, int dim_d1, int dim_IN_d0, int dim_OUT_d0 )\n{\n"
-                     << "unsigned int _r1_x = get_global_id(0);\nunsigned int _r1_y = get_global_id(1);\nif (_r1_x < dim_d0 && _r1_y < dim_d1)"
-                     << "{ unsigned int idx_IN  = _r1_x + dim_IN_d0 * _r1_y; unsigned int idx_OUT = _r1_y + dim_OUT_d0 * _r1_x;"
-                     << "OUT[idx_OUT] = 42;\n}\n}\n";
-      */
+      o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
+              << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( false );\n";
+      o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
+              << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
+              << "normalized_" << (*i)->name( ) << ".bytes( ),"
+              << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
+      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object\");\n";
 
-      o.os() << "cl_int err;\n";
-      o.os() << "cl_kernel clkern = clkern_" << id() << ";\n";
+      // Bind to kernel.
+      o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
+    }
 
-      int arg_pos = 0;
+    //      o.os( ) << "printf( \"- TRACE 20\\n\" );\n";
 
-      //      o.os( ) << "printf( \"- TRACE 10\\n\" );\n";
+    // Create memory objects for inputs.
+    o.comment( "Create memory objects for inputs." );
+    for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
+    {
+      /** \todo Need to generalize this for arbitrary dimensionality */
+      o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
+              << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( true );\n";
+      o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
+              << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " 
+              << "normalized_" << (*i)->name( ) << ".bytes( ),"
+              << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
+      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
 
-      // Create memory objects for outputs
-      o.comment( "Create memory objects for outputs." );
-      for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-      {
-        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
-                << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( false );\n";
-        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
-                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
-                << "normalized_" << (*i)->name( ) << ".bytes( ),"
-                << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
-        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object\");\n";
+      // Bind to kernel.
+      o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
+    }
 
-        // Bind to kernel.
-        o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
-      }
+    //      o.os( ) << "printf( \"- TRACE 40\\n\" );\n";
 
-      //      o.os( ) << "printf( \"- TRACE 20\\n\" );\n";
+    // Bind rule dimension arguments to kernel.
+    for( int i = 0; i < iterdef.dimensions( ); ++i )
+    {
+      o.os( ) << "int ruledim_" << i << " = _iter_end[" << i << "] - _iter_begin[" << i << "];\n";
+      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
+    }
 
-      // Create memory objects for inputs.
-      o.comment( "Create memory objects for inputs." );
-      for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
-      {
-        /** \todo Need to generalize this for arbitrary dimensionality */
-        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
-                << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( true );\n";
-        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
-                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " 
-                << "normalized_" << (*i)->name( ) << ".bytes( ),"
-                << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
-        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
+    // Bind matrix dimension arguments to kernel.
+    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+    {
+      for( int i = 0; i < iterdef.dimensions( )-1; ++i )
+        o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
+    }
+    for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
+    {
+      for( int i = 0; i < iterdef.dimensions( )-1; ++i )
+        o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
+    }
 
-        // Bind to kernel.
-        o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
-      }
+    o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
 
-      //      o.os( ) << "printf( \"- TRACE 40\\n\" );\n";
+    //      o.os( ) << "printf( \"- TRACE 45\\n\" );\n";
 
-      // Bind rule dimension arguments to kernel.
-      for( int i = 0; i < iterdef.dimensions( ); ++i )
-	{
-	  o.os( ) << "int ruledim_" << i << " = _iter_end[" << i << "] - _iter_begin[" << i << "];\n";
-	  o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
-	}
+    // Invoke kernel.
+    /** \todo Need to generalize for >1 GPUs and arbitrary dimensionality. */
+    o.comment( "Invoke kernel." );
 
-      // Bind matrix dimension arguments to kernel.
-      for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-	{
-	  for( int i = 0; i < iterdef.dimensions( )-1; ++i )
-	    o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
-	}
-      for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
-        {
-          for( int i = 0; i < iterdef.dimensions( )-1; ++i )
-            o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
-        }
+    //  need to get cnDim ( size in each dimension ) -- can probably get this from iterdef
+    // (along with dimensionality, actually, probably)
+    o.os( ) << "size_t workdim[] = { _iter_end[0]-_iter_begin[0], _iter_end[1]-_iter_begin[1] };\n";
+    #ifdef OPENCL_LOGGING
+    o.os( ) << "std::cout << \"Work dimensions: \" << workdim[0] << \" x \" << workdim[1] << \"\\n\";\n";
+    #endif
+    o.os( ) << "err = clEnqueueNDRangeKernel( OpenCLUtil::getQueue( 0 ), clkern, 2, 0, workdim, NULL, 0, NULL, NULL );\n";
+    #ifndef OPENCL_LOGGING
+    o.os( ) << "if( CL_SUCCESS != err ) ";
+    #endif
+    o.os( ) << "std::cout << \"Kernel execution error #\" << err << \": \" << OpenCLUtil::errorString(err) << std::endl;\n";
+    o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to execute kernel.\" );\n";
 
-      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
+    // Copy results back to host memory.
+    o.comment( "Copy results back to host memory." );
+    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+    {
+      /** \todo need to generalize for >1 GPUs, should maybe think about making this nonblocking */
+      o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_" << (*i)->name( ) <<
+        ", CL_TRUE, 0, normalized_" << (*i)->name( ) <<  ".bytes(), normalized_" << (*i)->name( ) <<
+        ".base(), 0, NULL, NULL );\n";
+      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to read output buffer.\" );\n";
+    }
+    o.os( ) << "\n";
+    /*
+    clEnqueueReadBuffer(hContext, hDeviceMemC, CL_TRUE, 0,
+    cnDimension * sizeof(cl_float),
+    pC, 0, 0, 0);
+    */
 
-      //      o.os( ) << "printf( \"- TRACE 45\\n\" );\n";
-
-      // Invoke kernel.
-      /** \todo Need to generalize for >1 GPUs and arbitrary dimensionality. */
-      o.comment( "Invoke kernel." );
-
-      //  need to get cnDim ( size in each dimension ) -- can probably get this from iterdef
-      // (along with dimensionality, actually, probably)
-      o.os( ) << "size_t workdim[] = { _iter_end[0]-_iter_begin[0], _iter_end[1]-_iter_begin[1] };\n";
-      #ifdef OPENCL_LOGGING
-      o.os( ) << "std::cout << \"Work dimensions: \" << workdim[0] << \" x \" << workdim[1] << \"\\n\";\n";
-      #endif
-      o.os( ) << "err = clEnqueueNDRangeKernel( OpenCLUtil::getQueue( 0 ), clkern, 2, 0, workdim, NULL, 0, NULL, NULL );\n";
-      #ifndef OPENCL_LOGGING
-      o.os( ) << "if( CL_SUCCESS != err ) ";
-      #endif
-      o.os( ) << "std::cout << \"Kernel execution error #\" << err << \": \" << OpenCLUtil::errorString(err) << std::endl;\n";
-      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to execute kernel.\" );\n";
-
-      // Copy results back to host memory.
-      o.comment( "Copy results back to host memory." );
-      for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-	{
-	  /** \todo need to generalize for >1 GPUs, should maybe think about making this nonblocking */
-	  o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_" << (*i)->name( ) <<
-	    ", CL_TRUE, 0, normalized_" << (*i)->name( ) <<  ".bytes(), normalized_" << (*i)->name( ) <<
-	    ".base(), 0, NULL, NULL );\n";
-	  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to read output buffer.\" );\n";
-	}
-      o.os( ) << "\n";
-/*
-clEnqueueReadBuffer(hContext, hDeviceMemC, CL_TRUE, 0,
-cnDimension * sizeof(cl_float),
-pC, 0, 0, 0);
-*/
-
-      // Free memory
-      o.comment( "Free memory." );
-      for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-	{
-	  o.os( ) << "clReleaseMemObject( devicebuf_" << (*i)->name( ) << " );\n";
-	}
-      for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
-	{
-	  o.os( ) << "clReleaseMemObject( devicebuf_" << (*i)->name( ) << " );\n";
-	}
+    // Free memory
+    o.comment( "Free memory." );
+    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+    {
+      o.os( ) << "clReleaseMemObject( devicebuf_" << (*i)->name( ) << " );\n";
+    }
+    for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
+    {
+      o.os( ) << "clReleaseMemObject( devicebuf_" << (*i)->name( ) << " );\n";
+    }
 
     // Launch kernel.
-      
-      // Create memory objects for outputs
-      o.comment( "Copy back outputs (if they were already normalized, copyTo detects src==dst and does nothing)" );
-      for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-      {
-          o.os( ) << "normalized_" << (*i)->name( ) 
-                  << ".copyTo(" << (*i)->matrix( )->name( ) << ");\n";
-      }
-
-      o.write( "return NULL;\n}\n\n" );
-      return;
+    
+    // Create memory objects for outputs
+    o.comment( "Copy back outputs (if they were already normalized, copyTo detects src==dst and does nothing)" );
+    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+    {
+      o.os( ) << "normalized_" << (*i)->name( ) 
+              << ".copyTo(" << (*i)->matrix( )->name( ) << ");\n";
     }
+
+    o.write( "return NULL;\n}\n\n" );
+    return;
+  }
   #endif
   else {
     if(E_RF_STATIC != flavor) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
