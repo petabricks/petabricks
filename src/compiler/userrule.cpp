@@ -682,61 +682,62 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& /*trans*/, CLCodeGen
     clo.os( ) << STRINGIFY(MATRIX_INDEX_T) " " << (*it)->lhs()->toString() << " = " << (*it)->rhs()->toString() << ";\n";
 
   // Conditional to ensure we are about to work on a valid part of the buffer.
-  clo.os( ) << "if( ";
+  if(iterdef.dimensions()>0)
+    clo.os( ) << "if( ";
   for( int i = 0; i < iterdef.dimensions( ); ++i )
-    {
-      clo.os( ) << _getOffsetVarStr( _id, i, NULL ) << " < dim_d" << i << " ";
-      if( i != ( iterdef.dimensions( ) - 1 ) )
-	clo.os( ) << "&& ";
-    }
-  clo.os( ) << ") {\n";
+  {
+    clo.os( ) << _getOffsetVarStr( _id, i, NULL ) << " < dim_d" << i << " ";
+    if( i != ( iterdef.dimensions( ) - 1 ) )
+    clo.os( ) << "&& ";
+  }
+  if(iterdef.dimensions()>0)
+    clo.os( ) << ") {\n";
 
   TRACE( "30" );
 
   // Generate indices into input and output arrays.
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+  {
+    // Build & normalize formula for index.
+    FormulaPtr idx_formula = FormulaInteger::zero( );
+    for( int j = (*i)->minCoord( ).size( ) - 1; j >= 0; --j )
     {
-      // Build & normalize formula for index.
-      FormulaPtr idx_formula = FormulaInteger::zero( );
-      for( int j = (*i)->minCoord( ).size( ) - 1; j >= 0; --j )
-	{
-	  std::stringstream sizevar;
-	  sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
-	  idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
-					new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
-	}
-      idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );
-
-      clo.os( ) << "unsigned int idx_" << (*i)->name( ) << " = ";
-      idx_formula->print( clo.os( ) );
-      clo.os( ) << ";\n";
+      std::stringstream sizevar;
+      sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
+      idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ), new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
     }
+    idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );
+
+    clo.os( ) << "unsigned int idx_" << (*i)->name( ) << " = ";
+    idx_formula->print( clo.os( ) );
+    clo.os( ) << ";\n";
+  }
   TRACE( "40" );
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
+  {
+    // Build & normalize formula for index.
+    FormulaPtr idx_formula = FormulaInteger::zero( );
+    for( int j = (*i)->minCoord( ).size( ) - 1; j >= 0; --j )
     {
-      // Build & normalize formula for index.
-      FormulaPtr idx_formula = FormulaInteger::zero( );
-      for( int j = (*i)->minCoord( ).size( ) - 1; j >= 0; --j )
-	{
-	  std::stringstream sizevar;
-	  sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
-	  idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
-					new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
-	}
-      idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );
-
-      clo.os( ) << "unsigned int idx_" << (*i)->name( ) << " = ";
-      idx_formula->print( clo.os( ) );
-      clo.os( ) << ";\n";
+      std::stringstream sizevar;
+      sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
+      idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
+            new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
     }
+    idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );
+
+    clo.os( ) << "unsigned int idx_" << (*i)->name( ) << " = ";
+    idx_formula->print( clo.os( ) );
+    clo.os( ) << ";\n";
+  }
   TRACE( "50" );
 
   // Load inputs to rule.
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
-    {
-      clo.os( ) << /*STRINGIFY( MATRIX_ELEMENT_T )*/ "float" << " " << (*i)->name( ) << " = _region_" << (*i)->name( ) << "[idx_" <<
-	(*i)->name( ) << "];\n";
-    }
+  {
+    clo.os( ) << /*STRINGIFY( MATRIX_ELEMENT_T )*/ "float" << " " << (*i)->name( ) << " = _region_" << (*i)->name( ) << "[idx_" <<
+(*i)->name( ) << "];\n";
+  }
 
   TRACE( "60" );
 
@@ -749,23 +750,23 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& /*trans*/, CLCodeGen
 
   // Support for multiple-output rules
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-    {
-      clo.os() << "#define " << (*i)->name( ) << " _region_" << (*i)->name( ) << "[idx_" << (*i)->name( ) << "]\n";
-    }
+  {
+    clo.os() << "#define " << (*i)->name( ) << " _region_" << (*i)->name( ) << "[idx_" << (*i)->name( ) << "]\n";
+  }
 
   // Generate OpenCL implementation of rule logic.
  #ifdef DEBUG
   std::cerr << "--------------------\nAFTER GPU PASSES:\n" << _bodyirOpenCL << std::endl;
   {
     if( _bodyirOpenCL )
-      {
-	DebugPrintPass pdebug;
-	_bodyirOpenCL->accept(pdebug);
-      }
+    {
+      DebugPrintPass pdebug;
+      _bodyirOpenCL->accept(pdebug);
+    }
     else
-      {
-	std::cerr << " ( No OpenCL code was generated. )\n";
-      }
+    {
+      std::cerr << " ( No OpenCL code was generated. )\n";
+    }
   }
   std::cerr << "--------------------\n";
  #endif
@@ -776,7 +777,8 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& /*trans*/, CLCodeGen
   //clo.os( ) << "OUT[idx_OUT] = IN[idx_IN];\n";
 
   // Close conditional and kernel.
-  clo.os( ) << "}\n";
+  if(iterdef.dimensions()>0)
+    clo.os( ) << "}\n";
   clo.endKernel( );
 }
 
