@@ -1,0 +1,52 @@
+#ifndef BLOCKEDLUDENSE_PBCC
+#define BLOCKEDLUDENSE_PBCC
+
+#include "ltri.pbcc"
+#include "utri.pbcc"
+#include "LUDense.pbcc"
+
+transform blockedLUDense
+from IN[n, n]
+to OUT[n, n]
+{
+
+    // all blocks either on diagonal or entirely in upper or lower triangle
+
+    to   (OUT.region(i, i, k, k) new)
+    from ( IN.region(i, i, k, k) old,
+          OUT.region(0, i, i, k) up,
+          OUT.region(i, 0, k, i) left)
+    {
+        new = old - left * up;
+        LUDense(new);
+    }
+
+    to   (OUT.region(i, j, k, l) new)
+    from ( IN.region(i, j, k, l) old,
+          OUT.region(0, j, i, l) up,
+          OUT.region(i, 0, k, i) left,
+          OUT.region(i, i, k, k) diag)
+    where i < j // in upper triangle
+    {
+        new = old - left * up;
+        MatrixRegion2D temp = MatrixRegion2D::allocate(k - i, k - i);
+        ltri(temp, diag);
+        backSolve(new, temp);
+    }
+
+    to   (OUT.region(i, j, k, l) new)
+    from ( IN.region(i, j, k, l) old,
+          OUT.region(0, j, j, l) up,
+          OUT.region(i, 0, k, j) left,
+          OUT.region(j, j, l, l) diag)
+    where i > j // in lower triangle
+    {
+        new = old - left * up;
+        MatrixRegion2D temp = MatrixRegion2D::allocate(l - j, l - j);
+        utri(temp, diag);
+        backSolve(new, temp);
+    }
+
+}
+
+#endif // BLOCKEDLUDENSE_PBCC

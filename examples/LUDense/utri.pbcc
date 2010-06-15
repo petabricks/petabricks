@@ -1,0 +1,14 @@
+transform utri
+from IN[n, n]
+to OUT[n, n]
+{
+    to   (OUT.cell(i, j) out)
+    from ( IN.cell(i, j) in)
+    {
+        if (i <= j) {
+            out = in;
+        } else {
+            out = 0;
+        }
+    }
+}
