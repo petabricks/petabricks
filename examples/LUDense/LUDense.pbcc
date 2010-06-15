@@ -1,9 +1,66 @@
 #ifndef LUDENSE_PBCC
 #define LUDENSE_PBCC
 
+#define INDEX2D(i0, i1, s0) ((i1) * (s0) + (i0))
+
+%{
+    extern "C" void dgetrf_(const int *m, const int *n, double *A, const int *lda, int *ipiv, int *info);
+%}
+
+transform LUDense
+from IN[n,n]
+to OUT[n,n], P[n]
+{
+    to (OUT out, P p)
+    from (IN in)
+    {
+        // call LAPACK
+
+        const int m = n, lda = n;
+        int info = 0, *ipiv = NULL;
+        double *A = NULL;
+
+        A = new double[n * n];
+        ipiv = new int[n];
+        if (!A || !ipiv) {
+            printf("Error allocating memory!\n");
+            exit(-1);
+        }
+
+        // pack input
+        int i, j;
+        for (i = 0; i < n; ++i) {
+            for (j = 0; j < n; ++j) {
+                A[INDEX2D(i, j, n)] = in.cell(i, j);
+            }
+        }
+
+        dgetrf_(&m, &n, A, &lda, ipiv, &info);
+        if (info) {
+            printf("LAPACK error in call to dppsv: info = %d\n", info);
+            exit(-1);
+        }
+
+        // unpack output
+        for (i = 0; i < n; ++i) {
+            for (j = 0; j < n; ++j) {
+                out.cell(i, j) = A[INDEX2D(i, j, n)];
+            }
+        }
+        for (i = 0; i < n; ++i) {
+            p.cell(i) = ipiv[i];
+        }
+
+        delete [] ipiv;
+        delete [] A;
+    }
+}
+
+/* Complicated Version
+
 #include "../simple/copy.pbcc"
 
-transform LUdense
+transform LUDense
 from IN[n,n]
 through A<n>[n,n]
 to OUT[n,n]
@@ -41,6 +98,8 @@ to OUT[n,n]
 	Copy2D(out, an);
   }
 }
+
+*/
 
 #endif // LUDENSE_PBCC
 
