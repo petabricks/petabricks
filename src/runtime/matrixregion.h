@@ -194,7 +194,7 @@ public:
   }
 
   ///
-  ///Return an iterator that accesses elements in a tranposed fasion
+  ///Return an iterator that accesses elements in a transposed fashion
   MatrixRegion transposed() const {
     IndexT sizes[D];
     IndexT multipliers[D];
