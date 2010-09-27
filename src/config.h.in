@@ -84,6 +84,9 @@
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
 
+/* Define to 1 if you have the `OpenCL' library (-lOpenCL). */
+#undef HAVE_LIBOPENCL
+
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
 
@@ -98,6 +101,9 @@
 
 /* Define to 1 if you have a working `mmap' system call. */
 #undef HAVE_MMAP
+
+/* Enable OpenCL code generation */
+#undef HAVE_OPENCL
 
 /* Define to 1 if you have the <openssl/md5.h> header file. */
 #undef HAVE_OPENSSL_MD5_H
@@ -288,8 +294,11 @@
 /* define to add a system var to transform scope */
 #undef TRANSFORM_N_STR
 
-/* postfix for static versions of transforms */
+/* postfix for dynamic versions of transforms */
 #undef TX_DYNAMIC_POSTFIX
+
+/* postfix for opencl versions of transforms */
+#undef TX_OPENCL_POSTFIX
 
 /* postfix for static versions of transforms */
 #undef TX_STATIC_POSTFIX

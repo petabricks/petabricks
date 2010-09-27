@@ -9,6 +9,7 @@ noinst_PROGRAMS = pbc
 
 noinst_HEADERS = \
   compiler/choicegrid.h \
+  compiler/clcodegenerator.h \
   compiler/codegenerator.h \
   compiler/configitem.h \
   compiler/formula.h \
@@ -29,9 +30,11 @@ noinst_HEADERS = \
   compiler/ruleirparser.h \
   compiler/staticscheduler.h \
   compiler/syntheticrule.h \
+  compiler/gpurule.h \
   compiler/trainingdeps.h \
   compiler/transform.h \
-  compiler/userrule.h
+  compiler/userrule.h \
+  compiler/openclutil.h
 
 pkglib_HEADERS=  \
   common/hash.h \
@@ -65,7 +68,8 @@ pkglib_HEADERS=  \
   runtime/specializeddynamictasks.h \
   runtime/testisolation.h \
   runtime/transforminstance.h \
-  runtime/workerthread.h
+  runtime/workerthread.h \
+  runtime/openclutil.h
 
 libpbcommon_a_CXXFLAGS = -I$(srcdir)/common
 libpbcommon_a_SOURCES =  \
@@ -86,6 +90,7 @@ libpbcompiler_a_YFLAGS = -d
 libpbcompiler_a_CXXFLAGS = -I$(srcdir)/compiler
 libpbcompiler_a_SOURCES = \
   compiler/choicegrid.cpp \
+  compiler/clcodegenerator.cpp \
   compiler/codegenerator.cpp \
   compiler/configitem.cpp \
   compiler/formula.cpp \
@@ -108,9 +113,11 @@ libpbcompiler_a_SOURCES = \
   compiler/ruleirparser.ypp \
   compiler/staticscheduler.cpp \
   compiler/syntheticrule.cpp \
+  compiler/gpurule.cpp \
   compiler/trainingdeps.cpp \
   compiler/transform.cpp \
-  compiler/userrule.cpp
+  compiler/userrule.cpp \
+  compiler/openclutil.cpp
 
 libpbruntime_a_LFLAGS = 
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime
@@ -127,7 +134,8 @@ libpbruntime_a_SOURCES =  \
   runtime/specializeddynamictasks.cpp \
   runtime/testisolation.cpp \
   runtime/transforminstance.cpp \
-  runtime/workerthread.cpp
+  runtime/workerthread.cpp \
+  runtime/openclutil.cpp
 
 libpbmain_a_CXXFLAGS = -Iruntime
 libpbmain_a_SOURCES = runtime/redirectmain.cpp

@@ -56,7 +56,7 @@ public:
 
   ///
   /// generate a single random number
-  static double rand();
+  static MATRIX_ELEMENT_T rand();
 
   HashT hash() const { 
     jalib::HashGenerator g;

@@ -34,6 +34,7 @@ void petabricks::RuleFlags::print(std::ostream& os) const {
 static jalib::AtomicT theNextRuleId = 0;
 petabricks::RuleInterface::RuleInterface()
   : _id(jalib::atomicIncrementReturn(&theNextRuleId))
+  , _isDisabled(false)
 {}
 
 bool petabricks::RulePriCmp::operator()(const RulePtr& r1, const RulePtr& r2) const 
