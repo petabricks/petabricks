@@ -57,7 +57,7 @@ to OUT[n,n], P[n]
     }
 }
 
-/* Complicated Version
+/* Complicated Version (By-element version, no pivoting. Verified it works)
 
 #include "../simple/copy.pbcc"
 
@@ -67,36 +67,36 @@ through A<n>[n,n]
 to OUT[n,n]
 {
   to (A<0> a0) from (IN in) {
-	Copy2D(a0, in);
+        Copy2D(a0, in);
   }
 
 
-  primary to (A<k+1>.cell(i,j) aNext)
-  from (A<k>.cell(i,j) aPrev,
-        A<k+1>.cell(i,k) left,
-        A<k>.cell(k,j) up)
+  primary to (A<k+1>.cell(j,i) aNext)
+  from (A<k>.cell(j,i) aPrev,
+        A<k+1>.cell(k,i) left,
+        A<k>.cell(j,k) up)
   where k < i && k < j
   {
         aNext = aPrev - left * up;
   }
 
 
-  to (A<k+1>.cell(i,j) aNext)
-  from (A<k>.cell(i,j) aPrev,
-        A<k>.cell(k,j) up)
+  to (A<k+1>.cell(j,i) aNext)
+  from (A<k>.cell(j,i) aPrev,
+        A<k>.cell(j,k) up)
   where i > j && k == j
   {
         aNext = aPrev / up;
   }
 
-  to (A<k+1>.cell(i,j) aNext) 
+  to (A<k+1>.cell(i,j) aNext)
   from (A<k>.cell(i,j) aPrev)
   {
-	aNext = aPrev;
+        aNext = aPrev;
   }
 
   to (OUT out) from (A<n> an) {
-	Copy2D(out, an);
+        Copy2D(out, an);
   }
 }
 
