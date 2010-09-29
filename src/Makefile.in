@@ -37,7 +37,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-noinst_PROGRAMS = pbc$(EXEEXT)
+noinst_PROGRAMS = pbc$(EXEEXT) rttest$(EXEEXT)
 subdir = src
 DIST_COMMON = $(noinst_HEADERS) $(pkglib_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
@@ -117,6 +117,7 @@ am_libpbruntime_a_OBJECTS = libpbruntime_a-autotuner.$(OBJEXT) \
 	libpbruntime_a-matrixstorage.$(OBJEXT) \
 	libpbruntime_a-memoization.$(OBJEXT) \
 	libpbruntime_a-petabricksruntime.$(OBJEXT) \
+	libpbruntime_a-remotehost.$(OBJEXT) \
 	libpbruntime_a-ruleinstance.$(OBJEXT) \
 	libpbruntime_a-specializeddynamictasks.$(OBJEXT) \
 	libpbruntime_a-testisolation.$(OBJEXT) \
@@ -129,6 +130,11 @@ am_pbc_OBJECTS = pbc-pbc.$(OBJEXT)
 pbc_OBJECTS = $(am_pbc_OBJECTS)
 pbc_DEPENDENCIES = libpbcompiler.a libpbcommon.a
 pbc_LINK = $(CXXLD) $(pbc_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
+am_rttest_OBJECTS = rttest-rttest.$(OBJEXT)
+rttest_OBJECTS = $(am_rttest_OBJECTS)
+rttest_DEPENDENCIES = libpbruntime.a libpbcommon.a
+rttest_LINK = $(CXXLD) $(rttest_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -148,10 +154,10 @@ CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 SOURCES = $(libpbcommon_a_SOURCES) $(libpbcompiler_a_SOURCES) \
 	$(libpbmain_a_SOURCES) $(libpbruntime_a_SOURCES) \
-	$(pbc_SOURCES)
+	$(pbc_SOURCES) $(rttest_SOURCES)
 DIST_SOURCES = $(libpbcommon_a_SOURCES) $(libpbcompiler_a_SOURCES) \
 	$(libpbmain_a_SOURCES) $(libpbruntime_a_SOURCES) \
-	$(pbc_SOURCES)
+	$(pbc_SOURCES) $(rttest_SOURCES)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -350,6 +356,7 @@ pkglib_HEADERS = \
   runtime/memoization.h \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
+  runtime/remotehost.h \
   runtime/ruleinstance.h \
   runtime/specializeddynamictasks.h \
   runtime/testisolation.h \
@@ -416,6 +423,7 @@ libpbruntime_a_SOURCES = \
   runtime/matrixstorage.cpp \
   runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
+  runtime/remotehost.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \
   runtime/testisolation.cpp \
@@ -428,6 +436,9 @@ libpbmain_a_SOURCES = runtime/redirectmain.cpp
 pbc_CXXFLAGS = -Icompiler
 pbc_SOURCES = compiler/pbc.cpp
 pbc_LDADD = libpbcompiler.a libpbcommon.a 
+rttest_CXXFLAGS = -Iruntime
+rttest_SOURCES = runtime/rttest.cpp
+rttest_LDADD = libpbruntime.a libpbcommon.a 
 CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp libpbcompiler_a-maximaparser.h \
              libpbcompiler_a-pblexer.cpp libpbcompiler_a-pbparser.cpp libpbcompiler_a-pbparser.h \
              libpbcompiler_a-ruleirlexer.cpp libpbcompiler_a-ruleirparser.cpp libpbcompiler_a-ruleirparser.h \
@@ -526,6 +537,9 @@ clean-noinstPROGRAMS:
 pbc$(EXEEXT): $(pbc_OBJECTS) $(pbc_DEPENDENCIES) 
 	@rm -f pbc$(EXEEXT)
 	$(pbc_LINK) $(pbc_OBJECTS) $(pbc_LDADD) $(LIBS)
+rttest$(EXEEXT): $(rttest_OBJECTS) $(rttest_DEPENDENCIES) 
+	@rm -f rttest$(EXEEXT)
+	$(rttest_LINK) $(rttest_OBJECTS) $(rttest_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -583,12 +597,14 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-memoization.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-openclutil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-petabricksruntime.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-remotehost.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-ruleinstance.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-specializeddynamictasks.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-testisolation.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-transforminstance.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-workerthread.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbc-pbc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rttest-rttest.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -1290,6 +1306,20 @@ libpbruntime_a-petabricksruntime.obj: runtime/petabricksruntime.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-petabricksruntime.obj `if test -f 'runtime/petabricksruntime.cpp'; then $(CYGPATH_W) 'runtime/petabricksruntime.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/petabricksruntime.cpp'; fi`
 
+libpbruntime_a-remotehost.o: runtime/remotehost.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-remotehost.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-remotehost.Tpo -c -o libpbruntime_a-remotehost.o `test -f 'runtime/remotehost.cpp' || echo '$(srcdir)/'`runtime/remotehost.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-remotehost.Tpo $(DEPDIR)/libpbruntime_a-remotehost.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/remotehost.cpp' object='libpbruntime_a-remotehost.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-remotehost.o `test -f 'runtime/remotehost.cpp' || echo '$(srcdir)/'`runtime/remotehost.cpp
+
+libpbruntime_a-remotehost.obj: runtime/remotehost.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-remotehost.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-remotehost.Tpo -c -o libpbruntime_a-remotehost.obj `if test -f 'runtime/remotehost.cpp'; then $(CYGPATH_W) 'runtime/remotehost.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/remotehost.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-remotehost.Tpo $(DEPDIR)/libpbruntime_a-remotehost.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/remotehost.cpp' object='libpbruntime_a-remotehost.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-remotehost.obj `if test -f 'runtime/remotehost.cpp'; then $(CYGPATH_W) 'runtime/remotehost.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/remotehost.cpp'; fi`
+
 libpbruntime_a-ruleinstance.o: runtime/ruleinstance.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-ruleinstance.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-ruleinstance.Tpo -c -o libpbruntime_a-ruleinstance.o `test -f 'runtime/ruleinstance.cpp' || echo '$(srcdir)/'`runtime/ruleinstance.cpp
 @am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-ruleinstance.Tpo $(DEPDIR)/libpbruntime_a-ruleinstance.Po
@@ -1387,6 +1417,20 @@ pbc-pbc.obj: compiler/pbc.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/pbc.cpp' object='pbc-pbc.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pbc_CXXFLAGS) $(CXXFLAGS) -c -o pbc-pbc.obj `if test -f 'compiler/pbc.cpp'; then $(CYGPATH_W) 'compiler/pbc.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/pbc.cpp'; fi`
+
+rttest-rttest.o: runtime/rttest.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest_CXXFLAGS) $(CXXFLAGS) -MT rttest-rttest.o -MD -MP -MF $(DEPDIR)/rttest-rttest.Tpo -c -o rttest-rttest.o `test -f 'runtime/rttest.cpp' || echo '$(srcdir)/'`runtime/rttest.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/rttest-rttest.Tpo $(DEPDIR)/rttest-rttest.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/rttest.cpp' object='rttest-rttest.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest_CXXFLAGS) $(CXXFLAGS) -c -o rttest-rttest.o `test -f 'runtime/rttest.cpp' || echo '$(srcdir)/'`runtime/rttest.cpp
+
+rttest-rttest.obj: runtime/rttest.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest_CXXFLAGS) $(CXXFLAGS) -MT rttest-rttest.obj -MD -MP -MF $(DEPDIR)/rttest-rttest.Tpo -c -o rttest-rttest.obj `if test -f 'runtime/rttest.cpp'; then $(CYGPATH_W) 'runtime/rttest.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/rttest.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/rttest-rttest.Tpo $(DEPDIR)/rttest-rttest.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/rttest.cpp' object='rttest-rttest.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest_CXXFLAGS) $(CXXFLAGS) -c -o rttest-rttest.obj `if test -f 'runtime/rttest.cpp'; then $(CYGPATH_W) 'runtime/rttest.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/rttest.cpp'; fi`
 
 .lpp.cpp:
 	$(am__skiplex) $(SHELL) $(YLWRAP) $< $(LEX_OUTPUT_ROOT).c $@ -- $(LEXCOMPILE)

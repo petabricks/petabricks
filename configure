@@ -5405,9 +5405,7 @@ $as_echo "#define HASH_USE_SHA1 0" >>confdefs.h
 
 $as_echo "#define INLINE_NULL_TASKS /**/" >>confdefs.h
 
-
-$as_echo "#define JASSERT_FAST /**/" >>confdefs.h
-
+#AC_DEFINE([JASSERT_FAST],        [],[skip some copies in debug printing, conflicts with JASSERT_LOG])
 
 $as_echo "#define JASSERT_USE_SRCPOS /**/" >>confdefs.h
 
