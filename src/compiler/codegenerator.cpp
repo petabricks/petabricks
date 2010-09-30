@@ -71,7 +71,7 @@ void petabricks::CodeGenerator::setcall(const std::string& lv, const std::string
   os() << ");\n";
 }
 
-void petabricks::CodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args){
+void petabricks::CodeGenerator::beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args, bool is_static){
   indent();
   os() << rt << " ";
   if(inClass()) os() << _curClass << "::";
@@ -81,6 +81,7 @@ void petabricks::CodeGenerator::beginFunc(const std::string& rt, const std::stri
   _indent++;
 
   if(inClass()) hos() << "  ";
+  if(is_static) hos() << "static ";
   hos() << rt << " " << func << '(';
   jalib::JPrintable::printStlList(hos(), args.begin(), args.end(), ", ");
   hos() << ");\n";

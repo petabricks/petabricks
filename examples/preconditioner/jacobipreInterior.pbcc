@@ -63,7 +63,7 @@ to OUT[n], RR[n], DD[n], ZZ[n]
         from (IN x, A a, R r, D d, Z z, P p)
         {
                 int i;
-		double RdotZ;
+		ElementT RdotZ;
         	DotProduct(RdotZ, r, z);
                 JacobiPre_inner(out, rr, dd, zz, x, a, r, d, z, p, RdotZ);
 

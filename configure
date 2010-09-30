@@ -1321,6 +1321,8 @@ Optional Features:
                           jtimings.csv, in working directory of
                           dmtcp_coordinator, and to stderr.
   --disable-allocator     disable use of the custom memory block allocator
+  --enable-opencl         build compiler and runtime with support for
+                          OpenCL-enabled GPUs.
 
 Some influential environment variables:
   CXX         C++ compiler command
@@ -6624,6 +6626,108 @@ _ACEOF
 
 fi
 
+# Check whether --enable-opencl was given.
+if test "${enable_opencl+set}" = set; then
+  enableval=$enable_opencl; use_opencl=$enableval
+else
+  use_opencl=no
+fi
+
+
+if test "$use_opencl" = "yes"; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_OPENCL 1
+_ACEOF
+
+
+{ echo "$as_me:$LINENO: checking for clGetDeviceIDs in -lOpenCL" >&5
+echo $ECHO_N "checking for clGetDeviceIDs in -lOpenCL... $ECHO_C" >&6; }
+if test "${ac_cv_lib_OpenCL_clGetDeviceIDs+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lOpenCL  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char clGetDeviceIDs ();
+int
+main ()
+{
+return clGetDeviceIDs ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_cxx_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_lib_OpenCL_clGetDeviceIDs=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_OpenCL_clGetDeviceIDs=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_lib_OpenCL_clGetDeviceIDs" >&5
+echo "${ECHO_T}$ac_cv_lib_OpenCL_clGetDeviceIDs" >&6; }
+if test $ac_cv_lib_OpenCL_clGetDeviceIDs = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBOPENCL 1
+_ACEOF
+
+  LIBS="-lOpenCL $LIBS"
+
+else
+  { { echo "$as_me:$LINENO: error: Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL." >&5
+echo "$as_me: error: Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+
+cat >>confdefs.h <<\_ACEOF
+#define MATRIX_ELEMENT_T float
+_ACEOF
+
+else
+   cat >>confdefs.h <<\_ACEOF
+#define MATRIX_ELEMENT_T double
+_ACEOF
+
+fi
+
+
 
 cat >>confdefs.h <<\_ACEOF
 #define ACCTARGET_STR "accuracyTarget"
@@ -6674,19 +6778,10 @@ cat >>confdefs.h <<\_ACEOF
 #define INLINE_NULL_TASKS
 _ACEOF
 
-
-cat >>confdefs.h <<\_ACEOF
-#define JASSERT_FAST
-_ACEOF
-
+#AC_DEFINE([JASSERT_FAST],        [],[skip some copies in debug printing, conflicts with JASSERT_LOG])
 
 cat >>confdefs.h <<\_ACEOF
 #define JASSERT_USE_SRCPOS
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define MATRIX_ELEMENT_T double
 _ACEOF
 
 
@@ -6787,6 +6882,11 @@ _ACEOF
 
 cat >>confdefs.h <<\_ACEOF
 #define TX_DYNAMIC_POSTFIX "_dynamic"
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define TX_OPENCL_POSTFIX "_opencl"
 _ACEOF
 
 

@@ -67,7 +67,7 @@ public:
   void call(const std::string& func, const std::vector<std::string>& args);
   void setcall(const std::string& lv, const std::string& func, const std::vector<std::string>& args);
 
-  virtual void beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args = std::vector<std::string>());
+  virtual void beginFunc(const std::string& rt, const std::string& func, const std::vector<std::string>& args = std::vector<std::string>(), bool is_static = false);
   void endFunc();
 
   void varDecl(const std::string& var);
@@ -216,6 +216,7 @@ public:
   void mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region);
 protected:
   void indent();
+public:
   std::ostream& hos() { return _hos; }
   std::ostream& dos() { return _dos; }
   std::ostream& os()  { return _os; }

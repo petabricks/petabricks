@@ -145,10 +145,16 @@ public:
   static RIRExprCopyRef parse(const std::string& str);
   RIRExpr(Type t, const std::string& str="") : RIRNode(t), _str(str) {}
   void addSubExpr(const RIRExprCopyRef& p) { _parts.push_back(p); }
+  void prependSubExpr(const RIRExprCopyRef& p) { _parts.push_front(p); }
   void print(std::ostream& o, RIRVisitor* printVisitor);
   void accept(RIRVisitor&);
   RIRExpr* clone() const;
   std::string debugStr() const;
+
+  const std::string& str() const
+    {
+      return _str;
+    }
 
   bool isLeaf(const char* val) const{
     return _parts.empty() && _str==val;
@@ -166,6 +172,12 @@ public:
     return false;
   }
   RIRExprList& parts(){ return _parts; }
+  RIRExprCopyRef part(int n) const{ 
+    JASSERT(n<(int)_parts.size());
+    RIRExprList::const_iterator i=_parts.begin();
+    while(n-->0) ++i;
+    return *i;
+  }
 protected:
   std::string _str;
   RIRExprList _parts;

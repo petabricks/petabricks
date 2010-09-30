@@ -4,27 +4,39 @@ from tunerconfig import config
 class StorageDirsTemplate:
   def __init__(self, root):
     self.root    = root
-    self.configd = os.path.join(root, 'config')
-    self.inputd  = os.path.join(root, 'inputs')
+    self.candidated = os.path.join(root, 'candidate')
+    self.inputd  = os.path.join(root, 'data')
     self.bestd   = os.path.join(root, 'best')
-    self.resultd = os.path.join(root, 'results')
     self.statsd  = os.path.join(root, 'stats')
-    os.mkdir(self.configd)
-    os.mkdir(self.resultd)
+    os.mkdir(self.candidated)
     os.mkdir(self.statsd)
     os.mkdir(self.bestd)
     os.mkdir(self.inputd)
-
-  def config(self, cid):
-    return os.path.join(self.configd, "candidate%05d.cfg" % cid)
+  
+  def candidate(self, cid):
+    d = os.path.join(self.candidated, "%05d" % cid)
+    if not os.path.isdir(d):
+      os.mkdir(d)
+    return d
+  
+  def candidaterelative(self, cid, p='..'):
+    d =  p+"/candidate/%05d" % cid
+    return d
 
   def markBest(self, cid, n, acc):
-    s="../config/candidate%05d.cfg" % cid
+    s=self.candidaterelative(cid)
     if acc is not None:
-      d=os.path.join(self.bestd, "n%d_acc%d.cfg"%(n,acc))
+      d=os.path.join(self.bestd, "n%d_acc%d"%(n,acc))
     else:
-      d=os.path.join(self.bestd, "n%d.cfg"%n)
+      d=os.path.join(self.bestd, "n%d"%n)
     os.symlink(s,d)
+  
+  def results(self, acc=None):
+    if acc is not None:
+      return os.path.join(self.statsd, "timing_acc%d"%acc)
+    else:
+      return os.path.join(self.statsd, "timing")
+    
   
   def inputpfx(self, size, number):
     return os.path.join(self.inputd, "n%010d_i%02d_" % (size, number))
@@ -54,7 +66,8 @@ def callWithLogDir(fn, root, delete):
       shutil.rmtree(d)
 
 
-configfile   = lambda cid:          storage_dirs.config(cid)
+
+candidate    = lambda cid:          storage_dirs.candidate(cid)
 inputpfx     = lambda size, number: storage_dirs.inputpfx(size, number)
 clearInputs  = lambda :             storage_dirs.clearInputs()
 openCsvStats = lambda name, header: storage_dirs.openCsvStats(name, header)

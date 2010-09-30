@@ -52,11 +52,11 @@ namespace jalib
     public:
       ///
       /// Create new socket
-    protected: 
       JSocket(); 
-    public:
+
       //so we dont leak FDs
       inline static JSocket Create() { return JSocket(); }
+
       ///
       /// Use existing socket
       JSocket ( int fd ) : _sockfd ( fd ) {}
@@ -96,6 +96,7 @@ namespace jalib
         if ( !connect ( addr, port ) )
           close();
       }
+      operator JSocket () { return sockfd(); }
   };
 
   class JServerSocket : public JSocket
@@ -107,6 +108,7 @@ namespace jalib
         if ( !bind ( addr, port ) || !listen ( backlog ) )
           close();
       }
+      operator JSocket () { return sockfd(); }
   };
 
   class JReaderInterface

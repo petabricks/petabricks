@@ -56,7 +56,8 @@ petabricks::FormulaVariable::FormulaVariable(const std::string& name)
 }
 
 void petabricks::FormulaVariable::print(std::ostream& o) const { 
-  o << _name; 
+  //o << "/*[*/" << _name << "/*]*/"; 
+  o << _name;
 }
 
 template < typename T >

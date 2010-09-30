@@ -114,4 +114,26 @@ void petabricks::ChoiceGrid::applyRulePriorities(){
     l = r;
   }
 }
+  
+void petabricks::ChoiceGridIndex::removeDisabledRules(){
+    for(iterator i=begin(); i!=end(); ++i)
+      i->second->removeDisabledRules();
+  }
+
+void petabricks::ChoiceGrid::removeDisabledRules(){
+  RuleSet rs;
+  for(RuleSet::const_iterator i=_applicableRules.begin(); i!=_applicableRules.end(); ++i){
+    if( ! (*i)->isDisabled() )
+      rs.insert(*i);
+    else
+      JTRACE("REMOVED DISABLED RULE")(*i);
+  }
+  rs.swap(_applicableRules);
+
+  if(_nextDimension)
+    _nextDimension->removeDisabledRules();
+  if(_nextElement) 
+    _nextElement->removeDisabledRules();
+}
+
 

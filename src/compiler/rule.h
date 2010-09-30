@@ -149,9 +149,14 @@ public:
   /// returns old duplicate number
   virtual size_t setDuplicateNumber(size_t c){ JASSERT(c==0); return 0; }
   virtual size_t getDuplicateNumber() { return 0; }
+
+
+  bool isDisabled() const { return _isDisabled; }
+  void disableRule() { _isDisabled = true; }
 protected:
   int _id;
   SimpleRegionPtr _applicableRegion;
+  bool _isDisabled;
 };
 
 
