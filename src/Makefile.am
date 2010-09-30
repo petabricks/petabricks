@@ -64,6 +64,9 @@ pkglib_HEADERS=  \
   runtime/memoization.h \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
+  runtime/regioni.h \
+  runtime/regioncontiguous.h \
+  runtime/regionsplit.h \
   runtime/remotehost.h \
   runtime/remoteobject.h \
   runtime/ruleinstance.h \
@@ -132,6 +135,8 @@ libpbruntime_a_SOURCES =  \
   runtime/matrixstorage.cpp \
   runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
+  runtime/regioncontiguous.cpp \
+  runtime/regionsplit.cpp \
   runtime/remotehost.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \

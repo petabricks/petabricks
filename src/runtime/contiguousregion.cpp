@@ -1,17 +1,20 @@
-#import "contiguousregion.h"
+#include "contiguousregion.h"
+#include "splitregion.h"
 
 void petabricks::ContiguousRegion::allocate(){
   
 }
 
-ElementT* petabricks::ContiguousRegion::coordToPtr(IndexT coord[D]){
+ElementT* petabricks::ContiguousRegion::coordToPtr(IndexT* coord){
   return NULL;
 }
 
-IRegion petabricks::ContiguousRegion::region(IndexT start[D], IndexT end[D]){
-  return NULL;
+petabricks::IRegionPtr
+petabricks::ContiguousRegion::region(IndexT* start, IndexT* end){
+  return new SplitRegion(this, start, end);
 }
 
-IRegion petabricks::ContiguousRegion::slice(int d, IndexT pos){
+petabricks::IRegionPtr
+petabricks::ContiguousRegion::slice(int d, IndexT pos){
   return NULL;
 }

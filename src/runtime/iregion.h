@@ -1,23 +1,21 @@
 #ifndef PETABRICKSIREGION_H
 #define PETABRICKSIREGION_H
 
-#define MATRIX_INDEX_T int
+#include "common/jrefcounted.h"
 
 namespace petabricks {
-
-template<int D, typename ElementT> class IRegion;
-//template<int D, typename ElementT> class SplitRegion;
-
-template<int D, typename ElementT>
-class IRegion {
-public:
   typedef MATRIX_INDEX_T IndexT;
+  typedef MATRIX_ELEMENT_T ElementT;
 
-  virtual ElementT* coordToPtr(IndexT coord[D]) = 0;
+  class IRegion;
+  typedef jalib::JRef<IRegion> IRegionPtr;
 
-  IRegion<D, ElementT> region(IndexT start[D], IndexT end[D]);
-  // SpliceRegion<D, ElementT> slice(int d, IndexT pos) = 0;
-};
+  class IRegion : public jalib::JRefCounted {
+  public:
+    virtual ElementT* coordToPtr(IndexT* coord) = 0;
+    virtual IRegion region(IndexT* start, IndexT* end) = 0;
+    virtual IRegion slice(int d, IndexT pos) = 0;
+  };
 
 }
 

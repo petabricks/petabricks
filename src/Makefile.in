@@ -113,6 +113,9 @@ am_libpbruntime_a_OBJECTS = libpbruntime_a-autotuner.$(OBJEXT) \
 	libpbruntime_a-libpbruntime_a-matrixreader.$(OBJEXT) \
 	libpbruntime_a-matrixstorage.$(OBJEXT) \
 	libpbruntime_a-memoization.$(OBJEXT) \
+	libpbruntime_a-iregion.$(OBJEXT) \
+	libpbruntime_a-contiguousregion.$(OBJEXT) \
+	libpbruntime_a-splitregion.$(OBJEXT) \
 	libpbruntime_a-petabricksruntime.$(OBJEXT) \
 	libpbruntime_a-remotehost.$(OBJEXT) \
 	libpbruntime_a-ruleinstance.$(OBJEXT) \
@@ -408,6 +411,9 @@ libpbruntime_a_SOURCES = \
   runtime/matrixreader.lpp \
   runtime/matrixstorage.cpp \
   runtime/memoization.cpp \
+  runtime/iregion.cpp \
+  runtime/contiguousregion.cpp \
+  runtime/splitregion.cpp \
   runtime/petabricksruntime.cpp \
   runtime/remotehost.cpp \
   runtime/ruleinstance.cpp \
@@ -580,8 +586,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-userrule.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbmain_a-redirectmain.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-autotuner.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-contiguousregion.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-dynamicscheduler.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-dynamictask.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-iregion.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-libpbruntime_a-matrixreader.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-matrixio.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-matrixstorage.Po@am__quote@
@@ -591,6 +599,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-remotehost.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-ruleinstance.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-specializeddynamictasks.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-splitregion.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-testisolation.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-transforminstance.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-workerthread.Po@am__quote@
@@ -1283,6 +1292,48 @@ libpbruntime_a-memoization.obj: runtime/memoization.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/memoization.cpp' object='libpbruntime_a-memoization.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-memoization.obj `if test -f 'runtime/memoization.cpp'; then $(CYGPATH_W) 'runtime/memoization.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/memoization.cpp'; fi`
+
+libpbruntime_a-iregion.o: runtime/iregion.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-iregion.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-iregion.Tpo -c -o libpbruntime_a-iregion.o `test -f 'runtime/iregion.cpp' || echo '$(srcdir)/'`runtime/iregion.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-iregion.Tpo $(DEPDIR)/libpbruntime_a-iregion.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/iregion.cpp' object='libpbruntime_a-iregion.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-iregion.o `test -f 'runtime/iregion.cpp' || echo '$(srcdir)/'`runtime/iregion.cpp
+
+libpbruntime_a-iregion.obj: runtime/iregion.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-iregion.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-iregion.Tpo -c -o libpbruntime_a-iregion.obj `if test -f 'runtime/iregion.cpp'; then $(CYGPATH_W) 'runtime/iregion.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/iregion.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-iregion.Tpo $(DEPDIR)/libpbruntime_a-iregion.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/iregion.cpp' object='libpbruntime_a-iregion.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-iregion.obj `if test -f 'runtime/iregion.cpp'; then $(CYGPATH_W) 'runtime/iregion.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/iregion.cpp'; fi`
+
+libpbruntime_a-contiguousregion.o: runtime/contiguousregion.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-contiguousregion.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-contiguousregion.Tpo -c -o libpbruntime_a-contiguousregion.o `test -f 'runtime/contiguousregion.cpp' || echo '$(srcdir)/'`runtime/contiguousregion.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-contiguousregion.Tpo $(DEPDIR)/libpbruntime_a-contiguousregion.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/contiguousregion.cpp' object='libpbruntime_a-contiguousregion.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-contiguousregion.o `test -f 'runtime/contiguousregion.cpp' || echo '$(srcdir)/'`runtime/contiguousregion.cpp
+
+libpbruntime_a-contiguousregion.obj: runtime/contiguousregion.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-contiguousregion.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-contiguousregion.Tpo -c -o libpbruntime_a-contiguousregion.obj `if test -f 'runtime/contiguousregion.cpp'; then $(CYGPATH_W) 'runtime/contiguousregion.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/contiguousregion.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-contiguousregion.Tpo $(DEPDIR)/libpbruntime_a-contiguousregion.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/contiguousregion.cpp' object='libpbruntime_a-contiguousregion.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-contiguousregion.obj `if test -f 'runtime/contiguousregion.cpp'; then $(CYGPATH_W) 'runtime/contiguousregion.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/contiguousregion.cpp'; fi`
+
+libpbruntime_a-splitregion.o: runtime/splitregion.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-splitregion.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-splitregion.Tpo -c -o libpbruntime_a-splitregion.o `test -f 'runtime/splitregion.cpp' || echo '$(srcdir)/'`runtime/splitregion.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-splitregion.Tpo $(DEPDIR)/libpbruntime_a-splitregion.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/splitregion.cpp' object='libpbruntime_a-splitregion.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-splitregion.o `test -f 'runtime/splitregion.cpp' || echo '$(srcdir)/'`runtime/splitregion.cpp
+
+libpbruntime_a-splitregion.obj: runtime/splitregion.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-splitregion.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-splitregion.Tpo -c -o libpbruntime_a-splitregion.obj `if test -f 'runtime/splitregion.cpp'; then $(CYGPATH_W) 'runtime/splitregion.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/splitregion.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-splitregion.Tpo $(DEPDIR)/libpbruntime_a-splitregion.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/splitregion.cpp' object='libpbruntime_a-splitregion.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-splitregion.obj `if test -f 'runtime/splitregion.cpp'; then $(CYGPATH_W) 'runtime/splitregion.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/splitregion.cpp'; fi`
 
 libpbruntime_a-petabricksruntime.o: runtime/petabricksruntime.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-petabricksruntime.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-petabricksruntime.Tpo -c -o libpbruntime_a-petabricksruntime.o `test -f 'runtime/petabricksruntime.cpp' || echo '$(srcdir)/'`runtime/petabricksruntime.cpp
