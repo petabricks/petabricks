@@ -9,29 +9,20 @@
  *                                                                         *
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
-#include "petabricksruntime.h"
+#include "petabricks.h"
 
-#include "remotehost.h"
 
-petabricks::PetabricksRuntime::Main* petabricksMainTransform(){
+using namespace petabricks;
+
+PetabricksRuntime::Main* petabricksMainTransform(){
   return NULL;
 }
-petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name){
+PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
+
 
 int main(int argc, const char** argv){
-  const int port = 2227;
-
-  jalib::JServerSocket ss(jalib::JSockAddr::ANY, port);
-
-  if(fork()==0){
-    petabricks::RemoteHost a;
-    a.connect("localhost", port);
-  }else{
-    petabricks::RemoteHost a;
-    a.accept(ss);
-  }
 
   return 0;
 }

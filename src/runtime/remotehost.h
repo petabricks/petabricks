@@ -12,8 +12,11 @@
 #ifndef PETABRICKSREMOTEHOST_H
 #define PETABRICKSREMOTEHOST_H
 
-#include "common/jsocket.h"
+#include "remoteobject.h"
+
 #include "common/jmutex.h"
+#include "common/jrefcounted.h"
+#include "common/jsocket.h"
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -21,9 +24,16 @@
 #include <vector>
 
 
-#define REMOTEHOST_DATACHANS 2
+#define REMOTEHOST_DATACHANS 4
+
+namespace _RemoteHostMsgTypes {
+  struct GeneralMessage;  
+}
 
 namespace petabricks {
+
+class RemoteHost;
+typedef RemoteHost* RemoteHostPtr;
 
 struct HostPid {
   long hostid;
@@ -50,9 +60,18 @@ public:
 
   void unlockAndRecv(jalib::JMutex& selectmu);
 
+  void createRemoteObject(const RemoteObjectPtr& local, RemoteObjectGenerator remote, const void* data = 0, size_t len = 0);
+
 protected:
   void handshake();
 
+  void sendMsg(_RemoteHostMsgTypes::GeneralMessage* msg, const void* data, size_t len);
+
+
+  int pickChannel() { 
+    _lastchan = (_lastchan+2) % REMOTEHOST_DATACHANS;
+    return _lastchan;
+  }
 private:
   HostPid _id;
   jalib::JSocket _control;
@@ -60,6 +79,7 @@ private:
   jalib::JSocket _data[REMOTEHOST_DATACHANS];
   jalib::JMutex _datamu[REMOTEHOST_DATACHANS];
   int _lastchan;
+  RemoteObjectList _objects;
 };
 
 

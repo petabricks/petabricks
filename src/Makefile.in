@@ -37,7 +37,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-noinst_PROGRAMS = pbc$(EXEEXT) rttest$(EXEEXT)
+noinst_PROGRAMS = pbc$(EXEEXT) rttest1$(EXEEXT) rttest2$(EXEEXT)
 subdir = src
 DIST_COMMON = $(noinst_HEADERS) $(pkglib_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
@@ -131,10 +131,15 @@ pbc_OBJECTS = $(am_pbc_OBJECTS)
 pbc_DEPENDENCIES = libpbcompiler.a libpbcommon.a
 pbc_LINK = $(CXXLD) $(pbc_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-am_rttest_OBJECTS = rttest-rttest.$(OBJEXT)
-rttest_OBJECTS = $(am_rttest_OBJECTS)
-rttest_DEPENDENCIES = libpbruntime.a libpbcommon.a
-rttest_LINK = $(CXXLD) $(rttest_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
+am_rttest1_OBJECTS = rttest1-rttest1.$(OBJEXT)
+rttest1_OBJECTS = $(am_rttest1_OBJECTS)
+rttest1_DEPENDENCIES = libpbruntime.a libpbcommon.a
+rttest1_LINK = $(CXXLD) $(rttest1_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
+	$(LDFLAGS) -o $@
+am_rttest2_OBJECTS = rttest2-rttest2.$(OBJEXT)
+rttest2_OBJECTS = $(am_rttest2_OBJECTS)
+rttest2_DEPENDENCIES = libpbruntime.a libpbcommon.a
+rttest2_LINK = $(CXXLD) $(rttest2_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -154,10 +159,10 @@ CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 SOURCES = $(libpbcommon_a_SOURCES) $(libpbcompiler_a_SOURCES) \
 	$(libpbmain_a_SOURCES) $(libpbruntime_a_SOURCES) \
-	$(pbc_SOURCES) $(rttest_SOURCES)
+	$(pbc_SOURCES) $(rttest1_SOURCES) $(rttest2_SOURCES)
 DIST_SOURCES = $(libpbcommon_a_SOURCES) $(libpbcompiler_a_SOURCES) \
 	$(libpbmain_a_SOURCES) $(libpbruntime_a_SOURCES) \
-	$(pbc_SOURCES) $(rttest_SOURCES)
+	$(pbc_SOURCES) $(rttest1_SOURCES) $(rttest2_SOURCES)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -357,6 +362,7 @@ pkglib_HEADERS = \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
   runtime/remotehost.h \
+  runtime/remoteobject.h \
   runtime/ruleinstance.h \
   runtime/specializeddynamictasks.h \
   runtime/testisolation.h \
@@ -436,9 +442,12 @@ libpbmain_a_SOURCES = runtime/redirectmain.cpp
 pbc_CXXFLAGS = -Icompiler
 pbc_SOURCES = compiler/pbc.cpp
 pbc_LDADD = libpbcompiler.a libpbcommon.a 
-rttest_CXXFLAGS = -Iruntime
-rttest_SOURCES = runtime/rttest.cpp
-rttest_LDADD = libpbruntime.a libpbcommon.a 
+rttest1_CXXFLAGS = -Iruntime
+rttest1_SOURCES = runtime/rttest1.cpp
+rttest1_LDADD = libpbruntime.a libpbcommon.a 
+rttest2_CXXFLAGS = -Iruntime
+rttest2_SOURCES = runtime/rttest2.cpp
+rttest2_LDADD = libpbruntime.a libpbcommon.a 
 CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp libpbcompiler_a-maximaparser.h \
              libpbcompiler_a-pblexer.cpp libpbcompiler_a-pbparser.cpp libpbcompiler_a-pbparser.h \
              libpbcompiler_a-ruleirlexer.cpp libpbcompiler_a-ruleirparser.cpp libpbcompiler_a-ruleirparser.h \
@@ -537,9 +546,12 @@ clean-noinstPROGRAMS:
 pbc$(EXEEXT): $(pbc_OBJECTS) $(pbc_DEPENDENCIES) 
 	@rm -f pbc$(EXEEXT)
 	$(pbc_LINK) $(pbc_OBJECTS) $(pbc_LDADD) $(LIBS)
-rttest$(EXEEXT): $(rttest_OBJECTS) $(rttest_DEPENDENCIES) 
-	@rm -f rttest$(EXEEXT)
-	$(rttest_LINK) $(rttest_OBJECTS) $(rttest_LDADD) $(LIBS)
+rttest1$(EXEEXT): $(rttest1_OBJECTS) $(rttest1_DEPENDENCIES) 
+	@rm -f rttest1$(EXEEXT)
+	$(rttest1_LINK) $(rttest1_OBJECTS) $(rttest1_LDADD) $(LIBS)
+rttest2$(EXEEXT): $(rttest2_OBJECTS) $(rttest2_DEPENDENCIES) 
+	@rm -f rttest2$(EXEEXT)
+	$(rttest2_LINK) $(rttest2_OBJECTS) $(rttest2_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -604,7 +616,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-transforminstance.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-workerthread.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbc-pbc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rttest-rttest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rttest1-rttest1.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rttest2-rttest2.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -1418,19 +1431,33 @@ pbc-pbc.obj: compiler/pbc.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pbc_CXXFLAGS) $(CXXFLAGS) -c -o pbc-pbc.obj `if test -f 'compiler/pbc.cpp'; then $(CYGPATH_W) 'compiler/pbc.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/pbc.cpp'; fi`
 
-rttest-rttest.o: runtime/rttest.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest_CXXFLAGS) $(CXXFLAGS) -MT rttest-rttest.o -MD -MP -MF $(DEPDIR)/rttest-rttest.Tpo -c -o rttest-rttest.o `test -f 'runtime/rttest.cpp' || echo '$(srcdir)/'`runtime/rttest.cpp
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/rttest-rttest.Tpo $(DEPDIR)/rttest-rttest.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/rttest.cpp' object='rttest-rttest.o' libtool=no @AMDEPBACKSLASH@
+rttest1-rttest1.o: runtime/rttest1.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest1_CXXFLAGS) $(CXXFLAGS) -MT rttest1-rttest1.o -MD -MP -MF $(DEPDIR)/rttest1-rttest1.Tpo -c -o rttest1-rttest1.o `test -f 'runtime/rttest1.cpp' || echo '$(srcdir)/'`runtime/rttest1.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/rttest1-rttest1.Tpo $(DEPDIR)/rttest1-rttest1.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/rttest1.cpp' object='rttest1-rttest1.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest_CXXFLAGS) $(CXXFLAGS) -c -o rttest-rttest.o `test -f 'runtime/rttest.cpp' || echo '$(srcdir)/'`runtime/rttest.cpp
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest1_CXXFLAGS) $(CXXFLAGS) -c -o rttest1-rttest1.o `test -f 'runtime/rttest1.cpp' || echo '$(srcdir)/'`runtime/rttest1.cpp
 
-rttest-rttest.obj: runtime/rttest.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest_CXXFLAGS) $(CXXFLAGS) -MT rttest-rttest.obj -MD -MP -MF $(DEPDIR)/rttest-rttest.Tpo -c -o rttest-rttest.obj `if test -f 'runtime/rttest.cpp'; then $(CYGPATH_W) 'runtime/rttest.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/rttest.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/rttest-rttest.Tpo $(DEPDIR)/rttest-rttest.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/rttest.cpp' object='rttest-rttest.obj' libtool=no @AMDEPBACKSLASH@
+rttest1-rttest1.obj: runtime/rttest1.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest1_CXXFLAGS) $(CXXFLAGS) -MT rttest1-rttest1.obj -MD -MP -MF $(DEPDIR)/rttest1-rttest1.Tpo -c -o rttest1-rttest1.obj `if test -f 'runtime/rttest1.cpp'; then $(CYGPATH_W) 'runtime/rttest1.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/rttest1.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/rttest1-rttest1.Tpo $(DEPDIR)/rttest1-rttest1.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/rttest1.cpp' object='rttest1-rttest1.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest_CXXFLAGS) $(CXXFLAGS) -c -o rttest-rttest.obj `if test -f 'runtime/rttest.cpp'; then $(CYGPATH_W) 'runtime/rttest.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/rttest.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest1_CXXFLAGS) $(CXXFLAGS) -c -o rttest1-rttest1.obj `if test -f 'runtime/rttest1.cpp'; then $(CYGPATH_W) 'runtime/rttest1.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/rttest1.cpp'; fi`
+
+rttest2-rttest2.o: runtime/rttest2.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest2_CXXFLAGS) $(CXXFLAGS) -MT rttest2-rttest2.o -MD -MP -MF $(DEPDIR)/rttest2-rttest2.Tpo -c -o rttest2-rttest2.o `test -f 'runtime/rttest2.cpp' || echo '$(srcdir)/'`runtime/rttest2.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/rttest2-rttest2.Tpo $(DEPDIR)/rttest2-rttest2.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/rttest2.cpp' object='rttest2-rttest2.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest2_CXXFLAGS) $(CXXFLAGS) -c -o rttest2-rttest2.o `test -f 'runtime/rttest2.cpp' || echo '$(srcdir)/'`runtime/rttest2.cpp
+
+rttest2-rttest2.obj: runtime/rttest2.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest2_CXXFLAGS) $(CXXFLAGS) -MT rttest2-rttest2.obj -MD -MP -MF $(DEPDIR)/rttest2-rttest2.Tpo -c -o rttest2-rttest2.obj `if test -f 'runtime/rttest2.cpp'; then $(CYGPATH_W) 'runtime/rttest2.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/rttest2.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/rttest2-rttest2.Tpo $(DEPDIR)/rttest2-rttest2.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/rttest2.cpp' object='rttest2-rttest2.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest2_CXXFLAGS) $(CXXFLAGS) -c -o rttest2-rttest2.obj `if test -f 'runtime/rttest2.cpp'; then $(CYGPATH_W) 'runtime/rttest2.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/rttest2.cpp'; fi`
 
 .lpp.cpp:
 	$(am__skiplex) $(SHELL) $(YLWRAP) $< $(LEX_OUTPUT_ROOT).c $@ -- $(LEXCOMPILE)
