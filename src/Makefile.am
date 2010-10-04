@@ -133,6 +133,7 @@ libpbruntime_a_SOURCES =  \
   runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
   runtime/remotehost.cpp \
+  runtime/remoteobject.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \
   runtime/testisolation.cpp \

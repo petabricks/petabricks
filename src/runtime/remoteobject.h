@@ -32,10 +32,9 @@ typedef RemoteHost* RemoteHostPtr;
 typedef const RemoteHost* ConstRemoteHostPtr;
 
 
-class RemoteObject : public jalib::JRefCounted, public jalib::JMutex {
+class RemoteObject : public jalib::JRefCounted, public jalib::JCondMutex {
 public:
   RemoteObject() : _host(NULL), _isInitiator(false) {}
-
 
   ConstRemoteHostPtr host() const { return _host; }
   RemoteHostPtr host() { return _host; }
@@ -43,29 +42,15 @@ public:
   void markInitiator() { _isInitiator=true; }
   void setRemoteObj(EncodedPtr v) { _remoteObj = v; }
 
+  virtual void* allocRecv(size_t len);
+  virtual void recv(const void* , size_t s);
+  virtual void freeRecv(void* buf, size_t );
 
-  virtual void* allocRecv(size_t len) {
-    return malloc(len);
-  }
-  virtual void freeRecv(void* buf, size_t ) {
-    free(buf);
-  }
-  virtual void recv(const void* , size_t ) {
-    JTRACE("recv");
-  }
-  virtual void* allocRecvInitial(size_t len) {
-    return allocRecv(len);
-  }
-  virtual void recvInitial(const void* buf, size_t len) {
-    recv(buf,len);
-  }
-  virtual void freeRecvInitial(void* buf, size_t len) {
-    return freeRecv(buf, len);
-  }
+  virtual void* allocRecvInitial(size_t len);
+  virtual void recvInitial(const void* buf, size_t len);
+  virtual void freeRecvInitial(void* buf, size_t len);
 
-  virtual void created() {
-    JTRACE("created")(_isInitiator);
-  }
+  virtual void created();
 
 private:
   RemoteHostPtr _host;

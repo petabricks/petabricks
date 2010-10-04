@@ -118,6 +118,7 @@ am_libpbruntime_a_OBJECTS = libpbruntime_a-autotuner.$(OBJEXT) \
 	libpbruntime_a-memoization.$(OBJEXT) \
 	libpbruntime_a-petabricksruntime.$(OBJEXT) \
 	libpbruntime_a-remotehost.$(OBJEXT) \
+	libpbruntime_a-remoteobject.$(OBJEXT) \
 	libpbruntime_a-ruleinstance.$(OBJEXT) \
 	libpbruntime_a-specializeddynamictasks.$(OBJEXT) \
 	libpbruntime_a-testisolation.$(OBJEXT) \
@@ -430,6 +431,7 @@ libpbruntime_a_SOURCES = \
   runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
   runtime/remotehost.cpp \
+  runtime/remoteobject.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \
   runtime/testisolation.cpp \
@@ -610,6 +612,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-openclutil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-petabricksruntime.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-remotehost.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-remoteobject.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-ruleinstance.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-specializeddynamictasks.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-testisolation.Po@am__quote@
@@ -1332,6 +1335,20 @@ libpbruntime_a-remotehost.obj: runtime/remotehost.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/remotehost.cpp' object='libpbruntime_a-remotehost.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-remotehost.obj `if test -f 'runtime/remotehost.cpp'; then $(CYGPATH_W) 'runtime/remotehost.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/remotehost.cpp'; fi`
+
+libpbruntime_a-remoteobject.o: runtime/remoteobject.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-remoteobject.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-remoteobject.Tpo -c -o libpbruntime_a-remoteobject.o `test -f 'runtime/remoteobject.cpp' || echo '$(srcdir)/'`runtime/remoteobject.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-remoteobject.Tpo $(DEPDIR)/libpbruntime_a-remoteobject.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/remoteobject.cpp' object='libpbruntime_a-remoteobject.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-remoteobject.o `test -f 'runtime/remoteobject.cpp' || echo '$(srcdir)/'`runtime/remoteobject.cpp
+
+libpbruntime_a-remoteobject.obj: runtime/remoteobject.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-remoteobject.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-remoteobject.Tpo -c -o libpbruntime_a-remoteobject.obj `if test -f 'runtime/remoteobject.cpp'; then $(CYGPATH_W) 'runtime/remoteobject.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/remoteobject.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libpbruntime_a-remoteobject.Tpo $(DEPDIR)/libpbruntime_a-remoteobject.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/remoteobject.cpp' object='libpbruntime_a-remoteobject.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-remoteobject.obj `if test -f 'runtime/remoteobject.cpp'; then $(CYGPATH_W) 'runtime/remoteobject.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/remoteobject.cpp'; fi`
 
 libpbruntime_a-ruleinstance.o: runtime/ruleinstance.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-ruleinstance.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-ruleinstance.Tpo -c -o libpbruntime_a-ruleinstance.o `test -f 'runtime/ruleinstance.cpp' || echo '$(srcdir)/'`runtime/ruleinstance.cpp

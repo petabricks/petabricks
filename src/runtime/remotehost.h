@@ -65,7 +65,7 @@ public:
 protected:
   void handshake();
 
-  void sendMsg(_RemoteHostMsgTypes::GeneralMessage* msg, const void* data, size_t len);
+  void sendMsg(_RemoteHostMsgTypes::GeneralMessage* msg, const void* data = NULL, size_t len = 0);
 
 
   int pickChannel() { 
