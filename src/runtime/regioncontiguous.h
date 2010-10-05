@@ -1,26 +1,27 @@
-#ifndef PETABRICKSCONTUGUOUSREGION_H
-#define PETABRICKSCONTUGUOUSREGION_H
+#ifndef PETABRICKSREGIONCONTUGUOUS_H
+#define PETABRICKSREGIONCONTUGUOUS_H
 
-#include "iregion.h"
+#include "regioni.h"
 
 namespace petabricks {
 
-template<int D, typename ElementT>
-class ContiguousRegion : public IRegion <D, ElementT> {
-public:
-  typedef MATRIX_INDEX_T IndexT;
+  class RegionContiguous;
+  typedef jalib::JRef<RegionContiguous> RegionContiguousPtr;
 
-private:
-  ElementT* _data;
-  IndexT _size[D];
+  class RegionContiguous : public RegionI {
+  private:
+    ElementT* _data;
 
-public:
-  ContiguousRegion();
-  ~ContiguousRegion();
+  public:
+    RegionContiguous(int dimension, IndexT* size);
+    ~RegionContiguous();
 
-  void allocate();
-};
-
+    ElementT* coordToPtr(IndexT* coord);
+    RegionIPtr splitRegion(IndexT* offset, IndexT* size);
+    RegionIPtr sliceRegion(int d, IndexT pos);
+    
+    //void allocate();
+  };
 }
 
 #endif

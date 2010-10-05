@@ -1,12 +1,23 @@
-#import "splitregion.h"
+#import "regionsplit.h"
 
-petabricks::SplitRegion::SplitRegion(IRegion<D, ElementT> parent, IndexT start[D], IndexT end[D]) {  
-  _parent = parent;
-  _start = start;
-  _end = end;
+petabricks::RegionSplit::RegionSplit (RegionContiguousPtr regionContiguous, IndexT* offset, IndexT* size) {
+  _regionContiguous = regionContiguous;
+  _offset = offset;
+  _size = size;
 }
 
-ContiguousRegion<D, ElementT>
-petabricks::SplitRegion:toContiguousRegion() {
+petabricks::ElementT*
+petabricks::RegionSplit::coordToPtr(IndexT* coord){
   return NULL;
 }
+
+petabricks::RegionIPtr
+petabricks::RegionSplit::splitRegion(IndexT* offset, IndexT* size) {
+  return NULL;
+}
+
+petabricks::RegionIPtr
+petabricks::RegionSplit::sliceRegion(int d, IndexT pos){
+  return NULL;
+}
+

@@ -1,26 +1,25 @@
-#ifndef PETABRICKSPLITREGION_H
-#define PETABRICKSPLITREGION_H
+#ifndef PETABRICKSREGIONSPLIT_H
+#define PETABRICKSREGIONSPLIT_H
 
-#include "contiguousregion.h"
+#include "regioncontiguous.h"
 
 namespace petabricks {
+  class RegionSplit : public RegionI {
 
-template<int D, typename ElementT>
-class SplitRegion : public IRegion <D, ElementT> {
-public:
-  typedef MATRIX_INDEX_T IndexT;
+  private:
+    RegionContiguousPtr _regionContiguous;
+    IndexT* _offset;
 
-private:
-  IRegion<D, ElementT> _parent;
-  IndexT _start[D];
-  IndexT _end[D];
+  public:
+    RegionSplit(RegionContiguousPtr regionContiguous, IndexT* offset, IndexT* size);
+    ~RegionSplit();
 
-public:
-  SplitRegion(IRegion<D, ElementT> parent, IndexT start[D], IndexT end[D]);
-  ~SplitRegion();
 
-  ContiguousRegion<D, ElementT> toContiguousRegion();
-};
+    ElementT* coordToPtr(IndexT* coord);
+    RegionIPtr splitRegion(IndexT* offset, IndexT* size);
+    RegionIPtr sliceRegion(int d, IndexT pos);
+
+  };
 
 }
 
