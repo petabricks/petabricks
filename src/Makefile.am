@@ -138,6 +138,7 @@ libpbruntime_a_SOURCES =  \
   runtime/regioncontiguous.cpp \
   runtime/regionsplit.cpp \
   runtime/remotehost.cpp \
+  runtime/remoteobject.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \
   runtime/testisolation.cpp \

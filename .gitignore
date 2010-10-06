@@ -38,6 +38,9 @@ pbc
 maxima.log
 schedule.pdf
 
+Makefile.in
+configure
+
 test
 rttest1
 rttest2
@@ -57,3 +60,6 @@ doc/api
 
 .exrc
 .aliases
+
+\#*\#
+

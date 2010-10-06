@@ -13,36 +13,40 @@
 
 #include "remotehost.h"
 
-petabricks::PetabricksRuntime::Main* petabricksMainTransform(){
+using namespace petabricks;
+
+PetabricksRuntime::Main* petabricksMainTransform(){
   return NULL;
 }
-petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name){
+PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
 
-petabricks::RemoteObjectPtr gen() {
+RemoteObjectPtr gen() {
   return new petabricks::RemoteObject();
 }
 
 
-int main(int argc, const char** argv){
+int main(int , const char** ){
   const int port = 2227;
-
-  jalib::JServerSocket ss(jalib::JSockAddr::ANY, port);
-
-  petabricks::RemoteHost a;
+  RemoteHostPtr h;
+  RemoteObjectPtr local;
 
   if(fork()==0){
-    a.connect("localhost", port);
+    h = new RemoteHost();
+    h->connect("localhost", port);
   }else{
-    a.accept(ss);
+    h = new RemoteHost();
+    jalib::JServerSocket ss(jalib::JSockAddr::ANY, port);
+    h->accept(ss);
   }
-
   jalib::JMutex t;
   t.lock();
-  a.createRemoteObject(gen(), &gen, &port, sizeof port);
-  a.unlockAndRecv(t);
-
+  h->createRemoteObject(local=gen(), &gen, &port, sizeof port);
+  h->unlockAndRecv(t);
+  t.lock();
+  h->unlockAndRecv(t);
+  JTRACE("end")((intptr_t)local.asPtr());
   return 0;
 }
 

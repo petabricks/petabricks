@@ -130,7 +130,7 @@ void petabricks::RemoteHost::unlockAndRecv(jalib::JMutex& selectmu) {
   RemoteObjectPtr obj = 0;
   void* buf = 0;
 
-  JTRACE("incoming msg")(msg.type)(msg.len)(msg.chan);
+  JTRACE("incoming msg")(msg.type)(msg.len)(msg.chan)(msg.srcptr)(msg.dstptr);
 
   switch(msg.type) {
   case MessageTypes::CREATE_REMOTEOBJECT: 
@@ -147,8 +147,8 @@ void petabricks::RemoteHost::unlockAndRecv(jalib::JMutex& selectmu) {
         obj->recvInitial(buf, msg.len);
         obj->freeRecvInitial(buf, msg.len);
       }
-      { GeneralMessage msg = { MessageTypes::CREATE_REMOTEOBJECT_ACK, 0, 0, EncodeDataPtr(obj.asPtr()), msg.srcptr };
-        sendMsg(&msg, 0, 0);
+      { GeneralMessage ackmsg = { MessageTypes::CREATE_REMOTEOBJECT_ACK, 0, 0, EncodeDataPtr(obj.asPtr()), msg.srcptr };
+        sendMsg(&ackmsg);
       }
       obj->created();
       JLOCKSCOPE(_controlmu);
@@ -189,6 +189,7 @@ void petabricks::RemoteHost::sendMsg(GeneralMessage* msg, const void* data, size
     chan = msg->chan = 0;
   }
   msg->len = len;
+  JTRACE("outgoing msg")(msg->type)(msg->len)(msg->chan)(msg->srcptr)(msg->dstptr);
   _control.writeAll((const char*)msg, sizeof(GeneralMessage));
   if(len>0){
     _datamu[chan].lock();
