@@ -156,12 +156,22 @@ ssize_t jalib::JSocket::read ( char* buf, size_t len )
 
 ssize_t jalib::JSocket::tryReadAll ( char* buf, size_t len )
 {
+  // optimistically try a non-blocking read
   ssize_t rv = ::recv( _sockfd, buf, len, MSG_DONTWAIT);
-  if(rv<0 && (errno == EWOULDBLOCK || errno == EINTR)) {
-    JTRACE("wouldblock");
+  if(rv==0) {
+    JTRACE("fallback case, got ambiguous read result");
+    struct pollfd fd;
+    fd.fd = _sockfd;
+    fd.events = POLLIN;
+    fd.revents = 0;
+    if(poll(&fd, 1, 0) > 0) {
+      JASSERT(fd.revents == POLLIN);
+      rv += readAll(buf+rv, len-rv);
+    }
+  } else if(rv<0 && (errno == EWOULDBLOCK || errno == EINTR)) {
     rv = 0;
-  }
-  if(0<rv && rv<(ssize_t)len) {
+  } else if(0<rv && rv<(ssize_t)len) {
+    JTRACE("fallback case, got only part of requested data")(rv)(len);
     rv += readAll(buf+rv, len-rv);
   }
   return rv;

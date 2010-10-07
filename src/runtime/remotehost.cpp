@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <poll.h>
+#include <unistd.h>
 
 namespace _RemoteHostMsgTypes {
 
@@ -39,18 +40,18 @@ namespace _RemoteHostMsgTypes {
   
   template<typename T>
   EncodedPtr EncodeDataPtr(T* p) {
-    return -reinterpret_cast<EncodedPtr>(p);
+    return reinterpret_cast<EncodedPtr>(p);
   }
 
   template<typename T>
   T* DecodeDataPtr(EncodedPtr p) {
-    return reinterpret_cast<T*>(-p);
+    return reinterpret_cast<T*>(p);
   }
   
   using petabricks::HostPid;
   struct MessageTypes {
     enum {
-      HELLO_CONTROL= 0xf00d,
+      HELLO_CONTROL= 0xf0c0,
       HELLO_DATA,
       REMOTEOBJECT_CREATE,
       REMOTEOBJECT_CREATE_ACK,
@@ -60,14 +61,35 @@ namespace _RemoteHostMsgTypes {
       REMOTEOBJECT_NOTIFY,
       REMOTEOBJECT_MARKCOMPLETE,
     };
+    static const char* str(int t) {
+      switch(t) {
+#define  EXPSTR(s) case s: return #s
+        EXPSTR(HELLO_CONTROL);
+        EXPSTR(HELLO_DATA);
+        EXPSTR(REMOTEOBJECT_CREATE);
+        EXPSTR(REMOTEOBJECT_CREATE_ACK);
+        EXPSTR(REMOTEOBJECT_DATA);
+        EXPSTR(REMOTEOBJECT_SIGNAL);
+        EXPSTR(REMOTEOBJECT_BROADCAST);
+        EXPSTR(REMOTEOBJECT_NOTIFY);
+        EXPSTR(REMOTEOBJECT_MARKCOMPLETE);
+#undef EXPSTR
+        default: return "INVALID";
+    }
+  }
   };
 
   struct HelloMessage {
     MessageType type;
     HostPid     id;
     ChanNumber  chan;
+    
+    friend std::ostream& operator<<(std::ostream& o, const HelloMessage& m) {
+      return o << "HelloMessage("
+               << MessageTypes::str(m.type) << ", "
+               << m.id << ")";
+    }
   };
-
 
   struct GeneralMessage {
     MessageType type;
@@ -75,6 +97,13 @@ namespace _RemoteHostMsgTypes {
     DataLen     len;
     EncodedPtr  srcptr;
     EncodedPtr  dstptr;
+
+    friend std::ostream& operator<<(std::ostream& o, const GeneralMessage& m) {
+      return o << "GeneralMessage("
+               << MessageTypes::str(m.type) << ", "
+               << m.len << " bytes, "
+               << std::hex << m.srcptr << " => " << m.dstptr << std::dec << ")";
+    }
   };
 
   void* start_listenLoop(void* arg) {
@@ -125,7 +154,6 @@ void petabricks::RemoteHost::handshake() {
         && dmsg.id == _id 
         && dmsg.chan == i);
   }
-  JTRACE("connection established")(msg.id);
 }
 
 
@@ -139,7 +167,6 @@ bool petabricks::RemoteHost::recv() {
 
   ssize_t cnt = _control.tryReadAll((char*)&msg, sizeof msg);
   if(cnt==0) {
-    JTRACE("skipping recv, no pending data");
     _controlmu.unlock();
     return false;
   }
@@ -153,8 +180,6 @@ bool petabricks::RemoteHost::recv() {
   RemoteObjectGenerator gen = 0;
   RemoteObjectPtr obj = 0;
   void* buf = 0;
-
-  JTRACE("incoming msg")(msg.type)(msg.len)(msg.chan)(msg.srcptr)(msg.dstptr);
 
   switch(msg.type) {
   case MessageTypes::REMOTEOBJECT_CREATE: 
@@ -251,7 +276,6 @@ void petabricks::RemoteHost::sendMsg(GeneralMessage* msg, const void* data, size
     chan = msg->chan = 0;
   }
   msg->len = len;
-  JTRACE("outgoing msg")(msg->type)(msg->len)(msg->chan)(msg->srcptr)(msg->dstptr);
   _control.writeAll((const char*)msg, sizeof(GeneralMessage));
   if(len>0){
     _datamu[chan].lock();
@@ -325,15 +349,20 @@ void petabricks::RemoteHost::remoteNotify(const RemoteObject* local, int arg) {
 }
 
 petabricks::RemoteHostDB::RemoteHostDB()
-  : _host("localhost"),
-    _port(LISTEN_PORT_FIRST),
-    _listener(jalib::JSockAddr::ANY, LISTEN_PORT_FIRST)
+  : _port(LISTEN_PORT_FIRST),
+    _listener(jalib::JSockAddr::ANY, LISTEN_PORT_FIRST),
+    _nfds(0),
+    _ready(0),
+    _fds(NULL)
 {
   while(!_listener.isValid()) {
     JTRACE("trying next port")(_port);
-    JASSERT(_port<LISTEN_PORT_FIRST+512)(_port);
+    JASSERT(_port < LISTEN_PORT_FIRST+512)(_port);
     _listener = jalib::JServerSocket(jalib::JSockAddr::ANY, ++_port);
   }
+  char buf[1024];
+  JASSERT(gethostname(buf, sizeof buf) >= 0);
+  _host = buf;
 }
 
 void petabricks::RemoteHostDB::accept(){
@@ -341,6 +370,7 @@ void petabricks::RemoteHostDB::accept(){
   RemoteHostPtr h = new RemoteHost();
   h->accept(_listener);
   _hosts.push_back(h);
+  regenPollFds();
 }
 
 void petabricks::RemoteHostDB::connect(const char* host, int port){
@@ -348,6 +378,7 @@ void petabricks::RemoteHostDB::connect(const char* host, int port){
   RemoteHostPtr h = new RemoteHost();
   h->connect(host, port);
   _hosts.push_back(h);
+  regenPollFds();
 }
 
 void petabricks::RemoteHostDB::remotefork(const char* host, int oargc, const char** oargv) {
@@ -364,36 +395,41 @@ void petabricks::RemoteHostDB::remotefork(const char* host, int oargc, const cha
   argv[i++] = portstr.c_str();
   argv[i++] = NULL;
   if(fork()==0){
+    for(int i=3; i<1024; ++i) close(i);
     execv(argv[0], (char**)argv);
     JASSERT(false);
   }
 }
 
-void petabricks::RemoteHostDB::listenLoop() {
-  JLOCKSCOPE(_mu);
-  RemoteHostList hosts = _hosts;
-  RemoteHostList::iterator i;
-  std::random_shuffle(hosts.begin(), hosts.end());
-
-  nfds_t nfds = hosts.size();
+void petabricks::RemoteHostDB::regenPollFds() {
+  delete[] _fds;
+  _nfds = _hosts.size();
+  _fds = new struct pollfd[_nfds];
   struct pollfd *fd;
-  struct pollfd *fds = new struct pollfd[nfds];
-  for(i=hosts.begin(), fd=fds; i!=hosts.end(); ++i, ++fd) {
+  RemoteHostList::iterator i;
+  for(i=_hosts.begin(), fd=_fds; i!=_hosts.end(); ++i, ++fd) {
     fd->fd = (*i)->fd();
-    fd->events = POLLIN | POLLERR | POLLHUP | POLLNVAL;
+    fd->events = POLLIN;
     fd->revents = 0;
   }
+}
+void petabricks::RemoteHostDB::listenLoop() {
+  JLOCKSCOPE(_mu);
+  struct pollfd *fd;
+  RemoteHostList::iterator i;
+  for(bool workDone = true; true; workDone = false) {
 
-  for(;;) {
-    bool workDone = false; 
-
-    for(i=hosts.begin(), fd=fds; i!=hosts.end(); ++i, ++fd) {
-      if(0 != (fd->revents & (POLLERR|POLLHUP|POLLNVAL))) {
-        JASSERT(false)((*i)->id()).Text("connection closed");
-      }
+    for(i=_hosts.begin(), fd=_fds; i!=_hosts.end() && _ready>0; ++i, ++fd) {
+      JASSERT(0 == (fd->revents & ~POLLIN))
+        ((*i)->id()).Text("connection closed");
       if(0 != (fd->revents & POLLIN)) {
+        fd->revents = 0;
+        --_ready;
         _mu.unlock();
-        workDone |= (*i)->recv();
+        if((*i)->recv()){
+          workDone = true;
+          while((*i)->recv());
+        }
         _mu.lock();
       }
     }
@@ -404,10 +440,12 @@ void petabricks::RemoteHostDB::listenLoop() {
       _mu.lock();
     }
 
-    JASSERT(poll(fds, nfds, -1) >= 0);
+    if(_ready == 0) {
+      _ready=poll(_fds, _nfds, -1);
+    }
+    JASSERT(_ready>0);
   }
 
-  delete[] fds;
 }
 
 void petabricks::RemoteHostDB::spawnListenThread() {

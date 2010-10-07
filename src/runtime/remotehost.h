@@ -18,6 +18,7 @@
 #include "common/jrefcounted.h"
 #include "common/jsocket.h"
 
+#include <poll.h>
 #include <stdint.h>
 #include <sys/select.h>
 #include <sys/time.h>
@@ -111,12 +112,17 @@ public:
   RemoteHostPtr host(int i) const {
     return _hosts[i];
   }
+
+  void regenPollFds();
 private:
   jalib::JMutex _mu;
   std::string _host;
   int _port;
   jalib::JServerSocket _listener;
   RemoteHostList _hosts;
+  nfds_t _nfds;
+  int _ready;
+  struct pollfd *_fds;
 };
 
 

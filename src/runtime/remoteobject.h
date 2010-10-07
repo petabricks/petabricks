@@ -34,7 +34,9 @@ typedef const RemoteHost* ConstRemoteHostPtr;
 
 class RemoteObject : public jalib::JRefCounted, public jalib::JCondMutex {
   friend class RemoteHost;
-  enum { FLAG_INITIATOR = 1, FLAG_CREATED = 2, FLAG_COMPLETE = 4};
+  enum { FLAG_INITIATOR = 1,
+         FLAG_CREATED = 2,
+         FLAG_COMPLETE = 4 };
 public:
   RemoteObject() : _host(NULL), _flags(0) {}
 
@@ -48,7 +50,7 @@ public:
   void waitUntilComplete() const {
     if(0 == (_flags & FLAG_COMPLETE)) {
       JLOCKSCOPE(*this);
-      waitUntilCreatedMu();
+      waitUntilCompleteMu();
     }
   }
   
@@ -63,6 +65,8 @@ public:
   void remoteSignal();
   void remoteBroadcast();
   void remoteNotify(int arg = 0);
+
+  int flags() const { return _flags; }
 protected:
   void remoteMarkComplete();
 
