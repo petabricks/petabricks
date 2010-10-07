@@ -18,9 +18,11 @@
 #include "common/jrefcounted.h"
 #include "common/jsocket.h"
 
+#include <stdint.h>
+#include <sys/select.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <stdint.h>
 #include <vector>
 
 
@@ -34,6 +36,7 @@ namespace petabricks {
 
 class RemoteHost;
 typedef RemoteHost* RemoteHostPtr;
+typedef std::vector<RemoteHostPtr> RemoteHostList;
 
 struct HostPid {
   long hostid;
@@ -52,22 +55,30 @@ struct HostPid {
 
 
 class RemoteHost {
+  friend class RemoteHostDB;
 public:
-  RemoteHost() : _lastchan(0) {}
 
-  void accept(jalib::JServerSocket& s);
-  void connect(const jalib::JSockAddr& a, int port);
+  void createRemoteObject(const RemoteObjectPtr& local,
+                          RemoteObjectGenerator remote,
+                          const void* data = 0, size_t len = 0);
 
-  void unlockAndRecv(jalib::JMutex& selectmu);
+  void sendData(const RemoteObject* local, const void* data, size_t len);
+  void remoteSignal(const RemoteObject* local);
+  void remoteBroadcast(const RemoteObject* local);
+  void remoteMarkComplete(const RemoteObject* local);
+  void remoteNotify(const RemoteObject* local, int arg);
 
-  void createRemoteObject(const RemoteObjectPtr& local, RemoteObjectGenerator remote, const void* data = 0, size_t len = 0);
+  const HostPid& id() const { return _id; }
 
 protected:
+  RemoteHost() : _lastchan(0) {}
+  void accept(jalib::JServerSocket& s);
+  void connect(const jalib::JSockAddr& a, int port);
+  bool recv();
+  int fd() const { return _control.sockfd(); }
   void handshake();
 
   void sendMsg(_RemoteHostMsgTypes::GeneralMessage* msg, const void* data = NULL, size_t len = 0);
-
-
   int pickChannel() { 
     _lastchan = (_lastchan+2) % REMOTEHOST_DATACHANS;
     return _lastchan;
@@ -80,6 +91,32 @@ private:
   jalib::JMutex _datamu[REMOTEHOST_DATACHANS];
   int _lastchan;
   RemoteObjectList _objects;
+};
+
+
+class RemoteHostDB {
+public:
+  RemoteHostDB();
+
+  void connect(const char* host, int port);
+  void accept();
+  void remotefork(const char* host, int argc, const char** argv);
+
+  void listenLoop();
+  void spawnListenThread();
+
+  const char* host() const { return _host.c_str(); }
+  int port() const { return _port; }
+
+  RemoteHostPtr host(int i) const {
+    return _hosts[i];
+  }
+private:
+  jalib::JMutex _mu;
+  std::string _host;
+  int _port;
+  jalib::JServerSocket _listener;
+  RemoteHostList _hosts;
 };
 
 

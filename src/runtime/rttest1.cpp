@@ -27,26 +27,29 @@ RemoteObjectPtr gen() {
 }
 
 
-int main(int , const char** ){
-  const int port = 2227;
-  RemoteHostPtr h;
+int main(int argc, const char** argv){
+  RemoteHostDB hdb;
   RemoteObjectPtr local;
-
-  if(fork()==0){
-    h = new RemoteHost();
-    h->connect("localhost", port);
+  RemoteObjectPtr local2;
+  if(argc==1){
+    hdb.remotefork(NULL, argc, argv);
+    hdb.accept();
+    hdb.spawnListenThread();
+    hdb.spawnListenThread();
+    hdb.spawnListenThread();
+    hdb.spawnListenThread();
   }else{
-    h = new RemoteHost();
-    jalib::JServerSocket ss(jalib::JSockAddr::ANY, port);
-    h->accept(ss);
+    JASSERT(argc==3);
+    hdb.connect(argv[1], jalib::StringToInt(argv[2]));
+    hdb.spawnListenThread();
+    hdb.spawnListenThread();
+    hdb.spawnListenThread();
+    hdb.spawnListenThread();
   }
-  jalib::JMutex t;
-  t.lock();
-  h->createRemoteObject(local=gen(), &gen, &port, sizeof port);
-  h->unlockAndRecv(t);
-  t.lock();
-  h->unlockAndRecv(t);
-  JTRACE("end")((intptr_t)local.asPtr());
+  hdb.host(0)->createRemoteObject(local=gen(), &gen);
+  local->waitUntilCreated();
+  hdb.host(0)->createRemoteObject(local2=gen(), &gen);
+  local2->waitUntilCreated();
   return 0;
 }
 
