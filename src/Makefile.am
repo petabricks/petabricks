@@ -135,6 +135,7 @@ libpbruntime_a_SOURCES =  \
   runtime/matrixstorage.cpp \
   runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
+  runtime/regioni.cpp \
   runtime/regioncontiguous.cpp \
   runtime/regionsplit.cpp \
   runtime/remotehost.cpp \

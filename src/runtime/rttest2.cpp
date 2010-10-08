@@ -11,7 +11,6 @@
  ***************************************************************************/
 #include "petabricks.h"
 
-
 using namespace petabricks;
 
 PetabricksRuntime::Main* petabricksMainTransform(){
@@ -23,6 +22,10 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
 
 
 int main(int argc, const char** argv){
+  MatrixIO* matrixio = new MatrixIO(argv[1], "r");
+  RegionIPtr region = matrixio->readToRegionI();
+  region->print();
+
 
   return 0;
 }

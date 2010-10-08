@@ -11,17 +11,16 @@ namespace petabricks {
   class RegionContiguous : public RegionI {
   private:
     ElementT* _data;
+    IndexT* _multipliers;
 
   public:
-    RegionContiguous(int dimension, IndexT* size);
-    ~RegionContiguous();
+    RegionContiguous(int dimension, IndexT* size, ElementT* data);
 
     ElementT* coordToPtr(IndexT* coord);
     RegionIPtr splitRegion(IndexT* offset, IndexT* size);
     RegionIPtr sliceRegion(int d, IndexT pos);
-    
-    //void allocate();
   };
+
 }
 
 #endif

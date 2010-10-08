@@ -12,8 +12,6 @@ namespace petabricks {
 
   public:
     RegionSplit(RegionContiguousPtr regionContiguous, IndexT* offset, IndexT* size);
-    ~RegionSplit();
-
 
     ElementT* coordToPtr(IndexT* coord);
     RegionIPtr splitRegion(IndexT* offset, IndexT* size);

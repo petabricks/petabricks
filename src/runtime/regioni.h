@@ -16,9 +16,13 @@ namespace petabricks {
     IndexT* _size;
 
   public:
+    virtual ~RegionI(){}
     virtual ElementT* coordToPtr(IndexT* coord) = 0;
     virtual RegionIPtr splitRegion(IndexT* offset, IndexT* size) = 0;
     virtual RegionIPtr sliceRegion(int d, IndexT pos) = 0;
+
+    int incCoord(IndexT* coord);
+    void print();
   };
 }
 
