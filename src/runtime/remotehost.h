@@ -113,6 +113,8 @@ public:
     return _hosts[i];
   }
 
+protected:
+
   void regenPollFds();
 private:
   jalib::JMutex _mu;
