@@ -145,24 +145,26 @@ class Population:
     else:
       return []
 
-  def prune(self, popsize):
+  def prune(self, popsize, isLast):
     for m in self.members:
       m.keep = False
 
     best=self.markBestN(self.members, popsize, config.timing_metric_idx)
-    storagedirs.storage_dirs.markBest(best[0].cid, self.inputSize(), None)
-    best[0].writestats(self.inputSize(), storagedirs.storage_dirs.results())
+    if isLast:
+      storagedirs.storage_dirs.markBest(best[0].cid, self.inputSize(), None)
+      best[0].writestats(self.inputSize(), storagedirs.storage_dirs.results())
 
     for accLevel,accTarg in enumerate(self.accuracyTargets()):
       t = filter(lambda x: x.hasAccuracy(self.inputSize(), accTarg), self.members)
       if len(t):
         best=self.markBestN(t, popsize)
-        storagedirs.storage_dirs.markBest(best[0].cid, self.inputSize(), accLevel)
-        best[0].writestats(self.inputSize(), storagedirs.storage_dirs.results(accLevel))
+        if isLast:
+          storagedirs.storage_dirs.markBest(best[0].cid, self.inputSize(), accLevel)
+          best[0].writestats(self.inputSize(), storagedirs.storage_dirs.results(accLevel))
       else:
         warnings.warn(TargetNotMet(self.inputSize(), accTarg))
 
-    self.removed  = filter(lambda m: not m.keep, self.members)
+    self.removed  += filter(lambda m: not m.keep, self.members)
     self.members  = filter(lambda m: m.keep, self.members)
 
   def accuracyTargetsMet(self):
@@ -181,10 +183,12 @@ class Population:
 
   def generation(self):
     try:
+      self.removed=[]
       self.test(config.compare_min_trials)
       if len(self.members):
-        self.randomMutation(config.population_high_size)
-        self.prune(config.population_low_size)
+        for z in xrange(config.rounds_per_input_size):
+          self.randomMutation(config.population_high_size)
+          self.prune(config.population_low_size, z==config.rounds_per_input_size-1)
         self.firstRound=False
       elif self.firstRound and len(self.failed) and config.min_input_size_nocrash>=self.inputSize():
         self.members = list(self.failed)
@@ -292,12 +296,14 @@ def autotuneInner(benchmark):
     t2 = t1
     config.end_time = t1 + config.max_time
     try:
-      for roundNumber in xrange(config.max_rounds):
+      roundNumber=0
+      while pop.inputSize() <= config.max_input_size:
         pop.generation()
         t3 = time.time()
         stats.writerow((roundNumber, pop.inputSize(), t3-t1, t3-t2)+pop.stats())
         t2 = t3
         pop.nextInputSize()
+        roundNumber+=1
     except TrainingTimeout:
       pass
     #check to make sure we did something:
@@ -317,18 +323,35 @@ def regression_check(benchmark):
                              config.output_dir,
                              config.delete_output_dir)
 
+def option_callback(option, opt, value, parser):
+  opt=str(option).split('/')[0]
+  while opt[0]=='-':
+    opt=opt[1:]
+  assert hasattr(config, opt)
+  setattr(config, opt, value)
+
 if __name__ == "__main__":
   from optparse import OptionParser
   parser = OptionParser(usage="usage: sgatuner.py [options] Benchmark")
   parser.add_option("--check",
                     action="store_true", dest="check", default=False,
                     help="check for correctness")
+  parser.add_option("-n", type="int", help="input size to train for")
+  
+  parser.add_option("--max_time",  type="float", action="callback", callback=option_callback)
+  parser.add_option("--rounds_per_input_size", type="int", action="callback", callback=option_callback)
+  parser.add_option("--mutations_per_mutator", type="int", action="callback", callback=option_callback)
+  parser.add_option("--output_dir", type="string", action="callback", callback=option_callback)
+  parser.add_option("--population_high_size", type="int", action="callback", callback=option_callback)
+  parser.add_option("--population_low_size", type="int", action="callback", callback=option_callback)
   (options, args) = parser.parse_args()
   if len(args)!=1:
     parser.print_usage()
     sys.exit(1)
   if options.check:
     tunerconfig.applypatch(tunerconfig.patch_check)
+  if options.n:
+    tunerconfig.applypatch(tunerconfig.patch_n(options.n))
   benchmark=args[0]
   pbutil.chdirToPetabricksRoot();
   pbutil.compilePetabricks();

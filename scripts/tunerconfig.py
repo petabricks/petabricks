@@ -1,8 +1,9 @@
 
 class config_defaults:
   #how long to train for
-  max_rounds               = 64
+  max_input_size           = 2**30
   max_time                 = 60*15
+  rounds_per_input_size    = 4
 
   #number of trials to run
   compare_confidence_pct   = 0.90
@@ -124,4 +125,9 @@ class patch_noninteractive:
 class patch_regression(patch_noninteractive, patch_check):
   pass
 
+class patch_n:
+  def __init__(self, n):
+    from math import log
+    self.max_input_size = config.offset+2**int(round(log(n, 2)))
+    self.max_time = 2**30
 
