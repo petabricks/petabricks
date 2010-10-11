@@ -92,7 +92,7 @@ class Population:
         if self.birthFilter(p,c):
           self.members.append(c)
         else:
-          c.rmcfgfile()
+          c.rmfiles()
           self.notadded.append(c)
       except candidatetester.CrashException, e:
         warnings.warn(NewProgramCrash(e))
@@ -151,12 +151,14 @@ class Population:
 
     best=self.markBestN(self.members, popsize, config.timing_metric_idx)
     storagedirs.storage_dirs.markBest(best[0].cid, self.inputSize(), None)
+    best[0].writestats(self.inputSize(), storagedirs.storage_dirs.results())
 
     for accLevel,accTarg in enumerate(self.accuracyTargets()):
       t = filter(lambda x: x.hasAccuracy(self.inputSize(), accTarg), self.members)
       if len(t):
         best=self.markBestN(t, popsize)
         storagedirs.storage_dirs.markBest(best[0].cid, self.inputSize(), accLevel)
+        best[0].writestats(self.inputSize(), storagedirs.storage_dirs.results(accLevel))
       else:
         warnings.warn(TargetNotMet(self.inputSize(), accTarg))
 
@@ -183,8 +185,6 @@ class Population:
       if len(self.members):
         self.randomMutation(config.population_high_size)
         self.prune(config.population_low_size)
-        if config.print_log:
-          self.printPopulation()
         self.firstRound=False
       elif self.firstRound and len(self.failed) and config.min_input_size_nocrash>=self.inputSize():
         self.members = list(self.failed)
@@ -192,6 +192,13 @@ class Population:
           print "skip generation n = ",self.inputSize(),"(program run failed)"
       else:
         warnings.warn(tunerwarnings.AlwaysCrashes())
+        
+      if config.print_log:
+        self.printPopulation()
+      
+      if not config.delete_output_dir:
+        for m in self.members+self.removed:
+          m.writestats(self.inputSize())
     except candidatetester.InputGenerationException, e:
       if e.testNumber==0 and self.inputSize()<=config.min_input_size_nocrash:
         if config.print_log:

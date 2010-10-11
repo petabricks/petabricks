@@ -8,7 +8,7 @@ to Error
   Error from (A a, B b)
   {
     int i;
-    double temp, sum = 0;
+    ElementT temp, sum = 0;
     for (i = 0; i < n; i++) {
         temp = a.cell(i) - b.cell(i);
         sum += temp * temp;

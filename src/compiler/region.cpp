@@ -443,3 +443,23 @@ petabricks::FormulaPtr petabricks::Region::getSizeOfRuleIn(int d) const{
   return MaximaWrapper::instance().normalize(new FormulaSubtract(_maxCoord[d], _minCoord[d]));
 }
 
+void  petabricks::Region::addArgToScope(RIRScope& scope) const {
+  switch(_originalType){
+  case REGION_CELL:
+    scope.set(_name, RIRSymbol::SYM_ARG_ELEMENT);
+    break;
+  case REGION_COL:
+  case REGION_ROW:
+  case REGION_BOX:
+  case REGION_SLICE:
+  case REGION_ALL:
+    scope.set(_name, RIRSymbol::SYM_ARG_REGION);
+    break;
+  default:
+    JASSERT(false).Text("Unreachable");
+  }
+}
+
+
+
+

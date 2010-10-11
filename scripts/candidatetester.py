@@ -183,13 +183,13 @@ class Candidate:
   nextCandidateId=0
   '''A candidate algorithm in the population'''
   def __init__(self, cfg, infoxml, mutators=[]):
-    self.config  = ConfigFile(cfg)
-    self.metrics = [ResultsDB(x) for x in config.metrics]
-    self.mutators = list(mutators)
-    self.cid = Candidate.nextCandidateId
-    self.infoxml = infoxml
-    self._cfgfile = storagedirs.configfile(self.cid)
-    Candidate.nextCandidateId+=1
+    self.config    = ConfigFile(cfg)
+    self.metrics   = [ResultsDB(x) for x in config.metrics]
+    self.mutators  = list(mutators)
+    self.cid       = Candidate.nextCandidateId
+    self.infoxml   = infoxml
+    self.outputdir = storagedirs.candidate(self.cid)
+    Candidate.nextCandidateId += 1
 
   def __str__(self):
     return "Candidate%d"%self.cid
@@ -248,14 +248,35 @@ class Candidate:
     return self.metrics[config.accuracy_metric_idx][n].mean() >= target
 
   def cfgfile(self):
-    self.config.save(self._cfgfile)
-    return self._cfgfile
+    cf=os.path.join(self.outputdir,'config')
+    self.config.save(cf)
+    return cf
 
-  def rmcfgfile(self):
-    try:
-      os.unlink(self._cfgfile)
-    except:
-      pass
+  def rmfiles(self):
+    for f in ('config', 'stats', 'stats_raw'):
+      f=os.path.join(self.outputdir,f)
+      if os.path.isfile(f):
+        os.unlink(f)
+    os.rmdir(self.outputdir)
+
+  def writestats(self, n, filename=None):
+    if filename is None:
+      filename=os.path.join(self.outputdir,'stats')
+    first=not os.path.isfile(filename)
+    s=open(filename, 'a')
+    if first:
+      s.write("#input, ")
+      for m in config.metrics:
+        s.write("%s_mean, %s_stddev, %s_stderr, %s_ci, "%(m, m, m, m))
+      s.write("\n")
+    s.write("%6d, "%n)
+    for m in self.metrics:
+      avg,ci = m[n].interval(config.display_confidence)
+      sd = math.sqrt(m[n].variance())
+      se = math.sqrt(m[n].meanVariance())
+      s.write("%.8f, %.8f, %.8f, %.8f, "%(avg,sd,se,ci))
+    s.write("\n")
+    s.close()
 
 class Input:
   def __init__(self, pfx):

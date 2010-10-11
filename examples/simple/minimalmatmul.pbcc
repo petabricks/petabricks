@@ -1,0 +1,18 @@
+#ifndef MULTIPLY_PBCC
+#define MULTIPLY_PBCC
+
+transform MatrixMultiply
+from A[c,h], B[w,c] 
+to AB[w,h]
+{
+  //compute a cell the straightforward way
+  AB.cell(x,y) from(A.row(y) a, B.column(x) b){
+    ElementT sum=0;
+    for(IndexT i=0; i<a.width(); ++i)
+      sum+=a.cell(i)*b.cell(i);
+    return sum;
+  }
+}
+
+#endif // MULTIPLY_PBCC
+

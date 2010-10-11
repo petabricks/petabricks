@@ -1,0 +1,38 @@
+#include "../simple/copy.pbcc"
+#include "../simple/add.pbcc"
+#include "../multiply/multiply.pbcc"
+
+transform test
+from A[n,n], IN[m,n]
+through INTER<n>[m,n]
+to OUT[m,n]
+//to INTER<n>[m,n],OUT[m,n]
+{
+
+  primary OUT.cell(i,0) from (IN.cell(i,0) in, A.cell(0,0) a) {
+        return in/a;
+  }
+
+
+  primary INTER<0>.cell(i,j) from (IN.cell(i,j) in) {
+	return in;
+  }
+
+
+
+  to (INTER<j>.region(0,j,m,n) inter) 
+  from(OUT.region(0,j-1,m,j) out, INTER<j-1>.region(0,j,m,n) xold, A.region(j-1,j,j,n) a) 
+  { 
+	MatrixMultiply(inter,a,out);
+	MatrixSub(inter, xold, inter);
+  }
+	
+
+//  INTER<k>.cell(1,2) from() {return k;}
+
+
+  OUT.cell(i,j) from (INTER<j>.cell(i,j) inter, A.cell(j,j) a) { return inter/a;}
+
+  secondary INTER<k>.cell(i,j) from() { return 0; }
+
+}
