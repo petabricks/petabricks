@@ -8,10 +8,10 @@ class config_defaults:
   #number of trials to run
   compare_confidence_pct   = 0.90
   offspring_confidence_pct = 0.85
-  compare_min_trials       = 3
-  offspring_min_trials     = 3
-  compare_max_trials       = 25
-  offspring_max_trials     = 25
+  compare_min_trials       = 5
+  offspring_min_trials     = 5
+  compare_max_trials       = 30
+  offspring_max_trials     = 30
   '''guessed stddev when only 1 test is taken'''
   prior_stddev_pct      = 0.20
   '''percentage change to be viewed as insignificant when testing if two algs are equal'''
@@ -37,6 +37,7 @@ class config_defaults:
   min_input_size_nocrash   = 32
   delete_output_dir        = False
   print_log                = True
+  candidatelog             = True
   pause_on_crash           = False
   '''confidence intervals when displaying numbers'''
   display_confidence    = 0.90
@@ -81,8 +82,11 @@ def applypatch(patch):
   def copycfg(src, dst):
     for n in dir(src):
       if (n[0:2],n[-2:]) != ("__","__"):
-        assert hasattr(dst, n)
-        setattr(dst, n, getattr(src,n))
+        if hasattr(dst, n):
+          setattr(dst, n, getattr(src,n))
+        else:
+          print "MISSING CONFIG", n
+          assert False
   copycfg(patch, config)
 
 #################################################################
@@ -95,8 +99,9 @@ class patch_check:
   check                    = True
   
   #run for 30 sec or 2**13 input size
-  max_rounds               = 13
-  max_time                 = 30
+  max_input_size           = 8192
+  max_time                 = 60*15
+  rounds_per_input_size    = 1
 
   #bigger pop size
   population_low_size      = 3
@@ -119,8 +124,8 @@ class patch_noninteractive:
   delete_output_dir        = True
   print_log                = False
   pause_on_crash           = False
+  candidatelog             = False
   output_dir               = "/tmp"
-
 
 class patch_regression(patch_noninteractive, patch_check):
   pass

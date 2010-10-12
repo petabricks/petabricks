@@ -37,6 +37,11 @@ class Population:
     self.testers  = [tester]
     self.baseline = baseline
     self.firstRound = True
+    if config.candidatelog:
+      self.candidatelog     = storagedirs.openCsvStats("candidatelog", ['time', 'candidates', 'tests_complete', 'tests_timeout', 'tests_crashed', 'config_path'])
+      self.candidateloglast = None
+    self.starttime = time.time()
+    self.onMembersChanged()
   
   def test(self, count):
     '''test each member of the pop count times'''
@@ -91,6 +96,7 @@ class Population:
           self.testers[-1].test(c, limit=p.reasonableLimit(self.inputSize()))
         if self.birthFilter(p,c):
           self.members.append(c)
+          self.onMembersChanged()
         else:
           c.rmfiles()
           self.notadded.append(c)
@@ -116,6 +122,27 @@ class Population:
 
   def inputSize(self, roundOffset=0):
     return self.testers[-1 - roundOffset].n
+
+  def onMembersChanged(self):
+    if config.candidatelog:
+      fastCmp = self.testers[-1].comparer(config.timing_metric_idx, 0.00, 0)
+      if len(self.members) > 1:
+        m = list(self.members)
+        m.sort(cmp=fastCmp)
+        best = m[0]
+      else:
+        best = self.members[0]
+      if best != self.candidateloglast:
+        self.candidateloglast = best
+        testCount = sum(map(lambda x: x.testCount, self.testers))
+        timeoutCount = sum(map(lambda x: x.timeoutCount, self.testers))
+        crashCount = sum(map(lambda x: x.crashCount, self.testers))
+        self.candidatelog.writerow(("%.10f"%(time.time()-self.starttime),
+                                    Candidate.nextCandidateId,
+                                    testCount-timeoutCount-crashCount,
+                                    timeoutCount,
+                                    crashCount,
+                                    storagedirs.relpath(best.cfgfile())))
 
   def markBestN(self, population, n, metric = config.timing_metric_idx):
     '''shrink the population to popsize by removing low scoring candidates'''
@@ -166,6 +193,7 @@ class Population:
 
     self.removed  += filter(lambda m: not m.keep, self.members)
     self.members  = filter(lambda m: m.keep, self.members)
+    self.onMembersChanged()
 
   def accuracyTargetsMet(self):
     if not self.isVariableAccuracy():
@@ -215,7 +243,8 @@ class Population:
     self.testers.append(self.testers[-1].nextTester())
 
   def statsHeader(self):
-    return '#pop','#removed','#notadded', 'pop_trials_avg','removed_trials_avg','notadded_trials_avg', 
+    return '#pop','#removed','#notadded', 'pop_trials_avg','removed_trials_avg','notadded_trials_avg', \
+        "#total_trials", "#timeout_trials", "#crash_trials"
 
   def stats(self):
     def mean(x):
@@ -226,7 +255,9 @@ class Population:
     t1 = map(lambda m: m.numTests(self.inputSize()), self.members)
     t2 = map(lambda m: m.numTests(self.inputSize()), self.removed)
     t3 = map(lambda m: m.numTests(self.inputSize()), self.notadded)
-    return len(t1),len(t2),len(t3),mean(t1),mean(t2),mean(t3)
+    
+    return len(t1),len(t2),len(t3),mean(t1),mean(t2),mean(t3),\
+           self.testers[-1].testCount, self.testers[-1].timeoutCount, self.testers[-1].crashCount
 
 def addMutators(candidate, info, ignore=None, weight=1.0):
   '''seed the pool of mutators from the .info file'''

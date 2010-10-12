@@ -301,6 +301,9 @@ class CandidateTester:
     self.cmd.extend(args)
     self.args=args
     self.inputs=[]
+    self.testCount = 0
+    self.timeoutCount = 0
+    self.crashCount = 0
 
   def nextTester(self):
     return CandidateTester(self.app, self.n*2, self.args)
@@ -335,6 +338,7 @@ class CandidateTester:
       warnings.warn(InconsistentOutput(self.inputs[i].firstCanidate, candidate, self.inputs[i].pfx))
 
   def test(self, candidate, limit=None):
+    self.testCount += 1
     cfgfile = candidate.cfgfile()
     testNumber = len(candidate.metrics[config.timing_metric_idx][self.n])
     cmd = list(self.cmd)
@@ -358,8 +362,10 @@ class CandidateTester:
       assert limit is not None
       warnings.warn(tunerwarnings.ProgramTimeout(candidate, self.n, limit))
       candidate.metrics[config.timing_metric_idx][self.n].addTimeout(limit)
+      self.timeoutCount += 1
       return False
     except pbutil.TimingRunFailed, e:
+      self.crashCount += 1
       raise CrashException(testNumber, self.n, candidate, cmd)
   
   def comparer(self, metricIdx, confidence, maxTests):

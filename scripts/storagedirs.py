@@ -36,7 +36,6 @@ class StorageDirsTemplate:
       return os.path.join(self.statsd, "timing_acc%d"%acc)
     else:
       return os.path.join(self.statsd, "timing")
-    
   
   def inputpfx(self, size, number):
     return os.path.join(self.inputd, "n%010d_i%02d_" % (size, number))
@@ -71,4 +70,5 @@ candidate    = lambda cid:          storage_dirs.candidate(cid)
 inputpfx     = lambda size, number: storage_dirs.inputpfx(size, number)
 clearInputs  = lambda :             storage_dirs.clearInputs()
 openCsvStats = lambda name, header: storage_dirs.openCsvStats(name, header)
+relpath = lambda d: os.path.relpath(d, storage_dirs.root)
 
