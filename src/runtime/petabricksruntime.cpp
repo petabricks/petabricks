@@ -364,13 +364,12 @@ int petabricks::PetabricksRuntime::runMain(){
 
   switch(MODE){
     case MODE_RUN_IO:
-      std::cout << "- MODE_RUN_IO\n";
 #ifdef HAVE_OPENCL
       if( 0 != ( err = OpenCLUtil::init( ) ) )
-	{
-	  std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
-	  exit( -1 );
-	}
+      {
+        std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
+        exit( -1 );
+      }
 #endif
       runNormal();
       break;
@@ -381,13 +380,12 @@ int petabricks::PetabricksRuntime::runMain(){
       iogenRun(iogenFiles(IOGEN_PFX));
       break;
     case MODE_RUN_RANDOM:
-      std::cout << "- MODE_RUN_RANDOM\n";
 #ifdef HAVE_OPENCL
       if( 0 != ( err = OpenCLUtil::init( ) ) )
-	{
-	  std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
-          exit(-1 );
-        }
+      {
+        std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
+        exit(-1 );
+      }
 #endif
       runTrial(GRAPH_MAX_SEC, ACCTRAIN);
       break;
