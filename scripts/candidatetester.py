@@ -5,6 +5,7 @@ import tempfile, os, math, warnings, random, sys, subprocess, time
 import shutil
 import storagedirs
 import tunerwarnings 
+from storagedirs import timers
 from scipy import stats
 from tunerconfig import config
 from tunerwarnings import ComparisonFailed, InconsistentOutput
@@ -304,7 +305,6 @@ class CandidateTester:
     self.testCount = 0
     self.timeoutCount = 0
     self.crashCount = 0
-    self.testingTime = 0.0
 
   def nextTester(self):
     return CandidateTester(self.app, self.n*2, self.args)
@@ -344,25 +344,17 @@ class CandidateTester:
     testNumber = len(candidate.metrics[config.timing_metric_idx][self.n])
     cmd = list(self.cmd)
     cmd.append("--config="+cfgfile)
-    cmd.extend(self.getInputArg(testNumber))
+    cmd.extend(timers.inputgen.wrap(lambda:self.getInputArg(testNumber)))
     if limit is not None:
       cmd.append("--max-sec=%f"%limit)
     try:
       debug_logcmd(cmd)
       if config.check:
-        self.testingTime -= time.time()
-        try:
-          results = pbutil.executeRun(cmd+['--hash'], config.metrics+['outputhash'])
-        finally:
-          self.testingTime += time.time()
+        results = timers.testing.wrap(lambda: pbutil.executeRun(cmd+['--hash'], config.metrics+['outputhash']))
         self.checkOutputHash(candidate, testNumber, results[-1]['value'])
         del results[-1]
       else:
-        self.testingTime -= time.time()
-        try:
-          results = pbutil.executeRun(cmd, config.metrics)
-        finally:
-          self.testingTime += time.time()
+        results = timers.testing.wrap(lambda: pbutil.executeRun(cmd, config.metrics))
       for i,result in enumerate(results):
         if result is not None:
           candidate.metrics[i][self.n].add(result['average'])

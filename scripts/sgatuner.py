@@ -11,6 +11,7 @@ from mutators import MutateFailed
 from traininginfo import TrainingInfo
 from tunerconfig import config
 from tunerwarnings import InitialProgramCrash,ExistingProgramCrash,NewProgramCrash,TargetNotMet
+from storagedirs import timers
 import tunerwarnings
 
 class TrainingTimeout(Exception):
@@ -244,7 +245,7 @@ class Population:
 
   def statsHeader(self):
     return '#pop','#removed','#notadded', 'pop_trials_avg','removed_trials_avg','notadded_trials_avg', \
-        "#total_trials", "#timeout_trials", "#crash_trials", 'testingSec'
+        "#total_trials", "#timeout_trials", "#crash_trials"
 
   def stats(self):
     def mean(x):
@@ -257,8 +258,7 @@ class Population:
     t3 = map(lambda m: m.numTests(self.inputSize()), self.notadded)
     
     return len(t1),len(t2),len(t3),mean(t1),mean(t2),mean(t3),\
-           self.testers[-1].testCount, self.testers[-1].timeoutCount, self.testers[-1].crashCount,\
-           self.testers[-1].testingTime
+           self.testers[-1].testCount, self.testers[-1].timeoutCount, self.testers[-1].crashCount
 
 def addMutators(candidate, info, ignore=None, weight=1.0):
   '''seed the pool of mutators from the .info file'''
@@ -323,21 +323,35 @@ def autotuneInner(benchmark):
     addMutators(candidate, infoxml.globalsec())
     addMutators(candidate, infoxml.transform(main))
     pop = Population(candidate, tester, baseline)
-    stats = storagedirs.openCsvStats("roundstats", ("round", "input_size", "cumulative_sec", "incremental_sec")+pop.statsHeader())
-    t1 = time.time()
-    t2 = t1
-    config.end_time = t1 + config.max_time
+    stats = storagedirs.openCsvStats("roundstats", 
+        ("round",
+         "input_size",
+         "cumulative_sec",
+         "incremental_sec",
+         "testing_sec",
+         "inputgen_sec")+pop.statsHeader())
+    timers.total.start()
+    config.end_time = time.time() + config.max_time
     try:
       roundNumber=0
       while pop.inputSize() <= config.max_input_size:
         pop.generation()
-        t3 = time.time()
-        stats.writerow((roundNumber, pop.inputSize(), t3-t1, t3-t2)+pop.stats())
-        t2 = t3
+        stats.writerow((roundNumber,
+                        pop.inputSize(),
+                        timers.total.total(),
+                        timers.total.lap(),
+                        timers.testing.lap(),
+                        timers.inputgen.lap())+pop.stats())
         pop.nextInputSize()
         roundNumber+=1
     except TrainingTimeout:
       pass
+    timers.total.stop()
+
+    at = storagedirs.getactivetimers()
+    if len(at):
+      storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
+
     #check to make sure we did something:
     if pop.firstRound:
       warnings.warn(tunerwarnings.AlwaysCrashes())
