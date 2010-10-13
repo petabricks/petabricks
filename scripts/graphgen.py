@@ -35,16 +35,17 @@ def main(benchmark, n, filename):
     candidates = int(row['candidates'])
     candidate = Candidate(ConfigFile(config_path), infoxml)
     for i in xrange(options.trials):
-      tester.test(candidate)
+      tester.test(candidate, options.timeout)
     results=candidate.metrics[0][n].interval(options.confidence)
-    print row['time'], tests, candidates, results[0], results[1]
+    print row['time'], tests, candidates, "%.10f"%results[0], "%.10f"%results[1]
 
 
 if __name__ == "__main__":
   from optparse import OptionParser
   parser = OptionParser(usage="usage: graphgen.py [options] benchmark candidatelog.csv")
-  parser.add_option('--trials', type='int', default=10)
+  parser.add_option('--trials', type='int', default=3)
   parser.add_option('--confidence', type='float', default=.95)
+  parser.add_option('--timeout', type='float', default=10.0)
   parser.add_option('-n', type='int', default=4096)
 
   (options, args) = parser.parse_args()
