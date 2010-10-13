@@ -1,6 +1,14 @@
 import os, shutil, tempfile, csv, time
 from tunerconfig import config
 
+#try:
+#  from os.path import relpath
+#except:
+def _relpath(path, root = None):
+  if root is None:
+    root = os.getcwd()
+  return path[len(os.path.commonprefix((path,root))):]
+
 class Timer:
   def __init__(self):
     self.t=0.0
@@ -125,5 +133,6 @@ candidate    = lambda cid:          storage_dirs.candidate(cid)
 inputpfx     = lambda size, number: storage_dirs.inputpfx(size, number)
 clearInputs  = lambda :             storage_dirs.clearInputs()
 openCsvStats = lambda name, header: storage_dirs.openCsvStats(name, header)
-relpath = lambda d: os.path.relpath(d, storage_dirs.root)
+
+relpath      = lambda d: _relpath(d, storage_dirs.root)
 
