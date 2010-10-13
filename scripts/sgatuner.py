@@ -244,7 +244,7 @@ class Population:
 
   def statsHeader(self):
     return '#pop','#removed','#notadded', 'pop_trials_avg','removed_trials_avg','notadded_trials_avg', \
-        "#total_trials", "#timeout_trials", "#crash_trials"
+        "#total_trials", "#timeout_trials", "#crash_trials", 'testingSec'
 
   def stats(self):
     def mean(x):
@@ -257,7 +257,8 @@ class Population:
     t3 = map(lambda m: m.numTests(self.inputSize()), self.notadded)
     
     return len(t1),len(t2),len(t3),mean(t1),mean(t2),mean(t3),\
-           self.testers[-1].testCount, self.testers[-1].timeoutCount, self.testers[-1].crashCount
+           self.testers[-1].testCount, self.testers[-1].timeoutCount, self.testers[-1].crashCount,\
+           self.testers[-1].testingTime
 
 def addMutators(candidate, info, ignore=None, weight=1.0):
   '''seed the pool of mutators from the .info file'''

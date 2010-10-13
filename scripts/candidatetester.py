@@ -1,7 +1,7 @@
 #!/usr/bin/python
 from configtool import ConfigFile, defaultConfigFile
 import pbutil
-import tempfile, os, math, warnings, random, sys, subprocess
+import tempfile, os, math, warnings, random, sys, subprocess, time
 import shutil
 import storagedirs
 import tunerwarnings 
@@ -304,6 +304,7 @@ class CandidateTester:
     self.testCount = 0
     self.timeoutCount = 0
     self.crashCount = 0
+    self.testingTime = 0.0
 
   def nextTester(self):
     return CandidateTester(self.app, self.n*2, self.args)
@@ -349,11 +350,19 @@ class CandidateTester:
     try:
       debug_logcmd(cmd)
       if config.check:
-        results = pbutil.executeRun(cmd+['--hash'], config.metrics+['outputhash'])
+        self.testingTime -= time.time()
+        try:
+          results = pbutil.executeRun(cmd+['--hash'], config.metrics+['outputhash'])
+        finally:
+          self.testingTime += time.time()
         self.checkOutputHash(candidate, testNumber, results[-1]['value'])
         del results[-1]
       else:
-        results = pbutil.executeRun(cmd, config.metrics)
+        self.testingTime -= time.time()
+        try:
+          results = pbutil.executeRun(cmd, config.metrics)
+        finally:
+          self.testingTime += time.time()
       for i,result in enumerate(results):
         if result is not None:
           candidate.metrics[i][self.n].add(result['average'])
