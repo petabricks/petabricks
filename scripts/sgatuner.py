@@ -13,6 +13,7 @@ from tunerconfig import config
 from tunerwarnings import InitialProgramCrash,ExistingProgramCrash,NewProgramCrash,TargetNotMet
 from storagedirs import timers
 import tunerwarnings
+from pprint import pprint
 
 class TrainingTimeout(Exception):
   pass
@@ -64,12 +65,17 @@ class Population:
           self.failed.add(m)
           self.members.remove(m)
 
-  def randomMutation(self, maxpopsize=None):  
+  def countMutators(self, minscore):
+    if minscore is None:
+      return sum(map(lambda x: len(x.mutators), self.members))
+    else:
+      return sum(map(lambda x: len(filter(lambda m: m.score>minscore, x.mutators)), self.members))
+
+  def randomMutation(self, maxpopsize=None, minscore=None):
     '''grow the population using cloning and random mutation'''
     self.notadded=[]
     originalPop = list(self.members)
-    triedConfigs = set(map(lambda x: x.config, self.members))
-    totalMutators = sum(map(lambda x: len(x.mutators), self.members))
+    totalMutators = self.countMutators(minscore)
     tries = float(totalMutators)*config.mutations_per_mutator
     while tries>0:
       check_timeout()
@@ -83,15 +89,22 @@ class Population:
       c=p.clone()
       for z in xrange(config.mutate_retries):
         try:
-          c.mutate(self.inputSize())
+          c.mutate(self.inputSize(), minscore)
           break
         except MutateFailed:
           if z==config.mutate_retries-1:
             warnings.warn(tunerwarnings.MutateFailed(p, z, self.inputSize()))
           continue
-      if c.config in triedConfigs:
+        except candidatetester.NoMutators:
+          if self.countMutators(minscore)>0:
+            continue
+          else:
+            return tries
+
+      if c.config in self.triedConfigs:
+        c.lastMutator.result('fail')
         continue
-      triedConfigs.add(c.config)
+      self.triedConfigs.add(c.config)
       try:
         self.testers[-1].testN(c, config.min_trials, limit=p.reasonableLimit(self.inputSize()))
         if self.birthFilter(p,c):
@@ -101,6 +114,8 @@ class Population:
           c.rmfiles()
           self.notadded.append(c)
       except candidatetester.CrashException, e:
+        c.rmfiles()
+        c.lastMutator.result('fail')
         warnings.warn(NewProgramCrash(e))
     if len(originalPop)<len(self.members):
       logging.info("added "+', '.join(map(str,set(self.members)-set(originalPop))))
@@ -108,18 +123,23 @@ class Population:
   
   def birthFilter(self, parent, child):
     '''called when considering adding child to population'''
+    same=True
     for m in xrange(len(config.metrics)):
       if config.accuracy_metric_idx == m and not self.isVariableAccuracy():
         continue
       childCmp = self.testers[-1].comparer(m, config.confidence_pct, config.max_trials)
       if childCmp(parent, child) > 0:
         logging.debug("adding %s through metric %d"%(str(child), m))
+        child.lastMutator.result('better')
         return True
+      if childCmp(parent, child) < 0:
+        same=False
+    if same:
+      child.lastMutator.result('same')
+    else:
+      child.lastMutator.result('worse')
     return False
   
-  def guidedMutation(self):  
-    pass
-
   def inputSize(self, roundOffset=0):
     return self.testers[-1 - roundOffset].n
 
@@ -211,12 +231,19 @@ class Population:
 
   def generation(self):
     try:
+      self.triedConfigs = set(map(lambda x: x.config, self.members))
       self.removed=[]
       self.test(config.min_trials)
       if len(self.members):
         for z in xrange(config.rounds_per_input_size):
           self.randomMutation(config.population_high_size)
-          self.prune(config.population_low_size, z==config.rounds_per_input_size-1)
+          self.prune(config.population_low_size, False)
+        while self.countMutators(config.bonus_round_score)>0:
+          print 'Bonus round:'
+          self.randomMutation(config.population_high_size, config.bonus_round_score)
+          self.prune(config.population_low_size, False)
+        self.prune(config.population_low_size, True)
+
         self.firstRound=False
       elif self.firstRound and len(self.failed) and config.min_input_size_nocrash>=self.inputSize():
         self.members = list(self.failed)
@@ -321,6 +348,7 @@ def autotuneInner(benchmark):
     baseline = None
     addMutators(candidate, infoxml.globalsec())
     addMutators(candidate, infoxml.transform(main))
+    candidate.addMutator(mutators.MultiMutator(2))
     pop = Population(candidate, tester, baseline)
     stats = storagedirs.openCsvStats("roundstats", 
         ("round",

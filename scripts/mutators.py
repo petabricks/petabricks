@@ -12,6 +12,14 @@ class Mutator:
   def __init__(self, weight=1.0):
     self.weight = weight
     self.accuracyHint = 0
+    self.score=0.0
+    self.results = (
+         ('better', 0.0),
+         ('worse',  0.0),
+         ('same',   0.0),
+         ('fail',  0.0),
+         ('unk',      1.0/(1.0-config.score_decay)))
+
   def mutate(self, candidate, n):
     '''
     Must Perform the following actions:
@@ -20,7 +28,14 @@ class Mutator:
     3) [optional] add new mutators to modify the change made
     '''
     raise Exception('must be implemented in subclass')
-  
+
+  def result(self, r):
+    self.results=map(lambda x: (x[0], x[1]*config.score_decay + int(x[0]==r)), self.results)
+    self.score=self.results[0][1]
+
+  def __str__(self):
+    return str(map(lambda x: "%s:%5.2f"%x, self.results)) + ' ' + self.__class__.__name__
+
 class LognormRandom:
   def random(self, start, minVal, maxVal):
     for z in xrange(config.rand_retries):
@@ -69,6 +84,9 @@ class AddAlgLevelMutator(Mutator):
     candidate.config[krn] = self.alg
     candidate.addMutator(RandAlgMutator(self.transform, self.choicesite, lvl, self.weight))
     candidate.addMutator(LognormRandAlgCutoffMutator(self.transform, self.choicesite, lvl, self.weight))
+  
+  def __str__(self):
+    return Mutator.__str__(self)+" %s,alg%d"%(self.choicesite, self.alg)
 
 class SetTunableMutator(Mutator):
   def __init__(self, tunable, val=None, weight=1.0):
@@ -88,6 +106,9 @@ class SetTunableMutator(Mutator):
     new = self.getVal(candidate, old)
     candidate.config[self.tunable] = new
     candidate.clearResultsAbove(self.invalidatesThreshold(candidate, old, new))
+  
+  def __str__(self):
+    return Mutator.__str__(self)+' '+self.tunable
 
 class SetAlgMutator(SetTunableMutator):
   def __init__(self, transform, choicesite, lvl, alg, weight=1.0):
@@ -187,4 +208,19 @@ class LognormTunableArrayMutator(TunableArrayMutator, LognormRandom):
 
 class UniformTunableArrayMutator(TunableArrayMutator, UniformRandom):
   pass
+
+class MultiMutator(Mutator):
+  def __init__(self, count=3, weight=1.0):
+    self.count = count 
+    Mutator.__init__(self, weight)
+
+  def invalidatesThreshold(self, candidate, oldVal, newVal):
+    return 0
+
+  def mutate(self, candidate, n):
+    for x in xrange(self.count):
+      candidate.mutate(n)
+    candidate.lastMutator=self
+  def __str__(self):
+    return Mutator.__str__(self)+' '+str(self.count)
 

@@ -21,8 +21,8 @@ class config_defaults:
   offset                = 0
 
   #how mutation to do
-  mutations_per_mutator    = 2
-  population_high_size     = 20
+  mutations_per_mutator    = 3
+  population_high_size     = 10
   population_low_size      = 1
   multimutation            = True
   mutate_retries           = 10
@@ -46,6 +46,9 @@ class config_defaults:
   cleanup_inputs        = True
   '''check output hash against peers, requires use_iogen'''
   check                 = False
+
+  score_decay = 0.9
+  bonus_round_score = 0.5
 
   #types of mutatators to generate
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']

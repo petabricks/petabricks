@@ -12,6 +12,9 @@ from tunerconfig import config
 from tunerwarnings import ComparisonFailed, InconsistentOutput
 warnings.simplefilter('ignore', DeprecationWarning)
 
+class NoMutators(Exception):
+  '''Exception thrown when a mutation doesn't exist'''
+  pass
 
 class InputGenerationException(Exception):
   def __init__(self, testNumber):
@@ -222,8 +225,16 @@ class Candidate:
   def addMutator(self, m):
     self.mutators.append(m)
 
-  def mutate(self, n):
-    random.choice(self.mutators).mutate(self, n)
+  def mutate(self, n, minscore=None):
+    if minscore is not None:
+      opts=filter(lambda x: x.score>minscore, self.mutators)
+      if opts:
+        self.lastMutator=random.choice(opts)
+      else:
+        raise NoMutators()
+    else:
+      self.lastMutator=random.choice(self.mutators)
+    self.lastMutator.mutate(self, n)
 
   def reasonableLimit(self, n):
     return self.metrics[config.timing_metric_idx][n].reasonableLimit()
