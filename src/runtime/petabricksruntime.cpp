@@ -359,7 +359,9 @@ void petabricks::PetabricksRuntime::saveConfig()
 
 
 int petabricks::PetabricksRuntime::runMain(){
+#ifdef HAVE_OPENCL
   int err;
+#endif
   JTIMER_SCOPE(runMain);
 
   switch(MODE){

@@ -21,7 +21,6 @@ class Mutator:
     '''
     raise Exception('must be implemented in subclass')
   
-  
 class LognormRandom:
   def random(self, start, minVal, maxVal):
     for z in xrange(config.rand_retries):
@@ -135,21 +134,24 @@ class LognormRandAlgCutoffMutator(LognormRandCutoffMutator, LognormRandom):
     self.kcodown = config.fmt_cutoff % (transform, choicesite, lvl-1)
     self.kco     = config.fmt_cutoff % (transform, choicesite, lvl)
     self.kcoup   = config.fmt_cutoff % (transform, choicesite, lvl+1)
+    self.lvl = lvl
     LognormRandCutoffMutator.__init__(self, self.kco, None, weight)
   def getVal(self, candidate, oldVal):
     '''threshold the random value'''
     down = 1
     up = config.cutoff_max_val
     try:
-      down=self.config[self.kcodown]+1
-    except:
+      down=candidate.config[self.kcodown]+1
+    except KeyError:
       pass
     try:
-      up=self.config[self.kcoup]-1
-    except:
+      up=candidate.config[self.kcoup]-1
+    except KeyError:
       pass
-    return self.random(oldVal, down, up)
 
+    v=self.random(oldVal, down, up)
+    assert v>=down and v<=up
+    return v
 
 class TunableArrayMutator(Mutator):
   def __init__(self, tunable, minVal, maxVal, weight=1.0):

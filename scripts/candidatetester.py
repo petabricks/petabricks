@@ -5,6 +5,7 @@ import tempfile, os, math, warnings, random, sys, subprocess, time
 import shutil
 import storagedirs
 import tunerwarnings 
+import numpy
 from storagedirs import timers
 from scipy import stats
 from tunerconfig import config
@@ -47,14 +48,14 @@ class Results:
 
   def __repr__(self):
     v=[]
-    v.extend(map(lambda x: "%.4f"%x,  self.realResults))
-    v.extend(map(lambda x: ">%.4f"%x, self.timeoutResults))
+    v.extend(map(lambda x: "%.6f"%x,  self.realResults))
+    v.extend(map(lambda x: ">%.6f"%x, self.timeoutResults))
     return ', '.join(v)
 
   def __str__(self):
     if len(self)==0:
       return '???'
-    return "%.4f(+-%.4f)" % self.interval(config.display_confidence)
+    return "%.6f(+-%.6f)" % self.interval(config.display_confidence)
 
   def strdelta(a, b):
     am, ad = a.interval(config.display_confidence)
@@ -93,7 +94,7 @@ class Results:
   def reinterpolate(self):
     '''recreate interpolatedResults from realResults and timeoutResults'''
     self.interpolatedResults = list(self.realResults)
-    mkdistrib = lambda: stats.norm(*stats.norm.fit(self.interpolatedResults))
+    mkdistrib = lambda: stats.norm(numpy.mean(self.interpolatedResults), numpy.std(self.interpolatedResults))
     if len(self.interpolatedResults) == 0:
       '''all tests timed out, seed with double the average timeout'''
       self.interpolatedResults.append(sum(self.timeoutResults)/len(self.timeoutResults)*2.0)
