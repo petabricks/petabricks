@@ -94,7 +94,11 @@ class StorageDirsTemplate:
       d=os.path.join(self.bestd, "n%d_acc%d"%(n,acc))
     else:
       d=os.path.join(self.bestd, "n%d"%n)
-    os.symlink(s,d)
+    try:
+      os.symlink(s,d)
+    except:
+      os.unlink(d)
+      os.symlink(s,d)
   
   def results(self, acc=None):
     if acc is not None:

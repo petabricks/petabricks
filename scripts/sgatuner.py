@@ -361,7 +361,7 @@ def autotuneInner(benchmark):
     config.end_time = time.time() + config.max_time
     try:
       roundNumber=0
-      while pop.inputSize() <= config.max_input_size:
+      while pop.inputSize() < config.max_input_size:
         pop.generation()
         stats.writerow((roundNumber,
                         pop.inputSize(),
@@ -371,18 +371,26 @@ def autotuneInner(benchmark):
                         timers.inputgen.lap())+pop.stats())
         pop.nextInputSize()
         roundNumber+=1
+      for z in xrange(config.final_rounds):
+        pop.generation()
+        stats.writerow((roundNumber,
+                        pop.inputSize(),
+                        timers.total.total(),
+                        timers.total.lap(),
+                        timers.testing.lap(),
+                        timers.inputgen.lap())+pop.stats())
+        roundNumber+=1
     except TrainingTimeout:
       pass
     timers.total.stop()
-
-    at = storagedirs.getactivetimers()
-    if len(at):
-      storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
 
     #check to make sure we did something:
     if pop.firstRound:
       warnings.warn(tunerwarnings.AlwaysCrashes())
   finally:
+    at = storagedirs.getactivetimers()
+    if len(at):
+      storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
     tester.cleanup()
 
 def autotune(benchmark):

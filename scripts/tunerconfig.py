@@ -3,16 +3,17 @@ class config_defaults:
   #how long to train for
   max_input_size           = 2**30
   max_time                 = 60*15
-  rounds_per_input_size    = 2
+  rounds_per_input_size    = 3
+  final_rounds             = 2
 
   #number of trials to run
-  confidence_pct   = 0.70
+  confidence_pct   = 0.8
   min_trials       = 1
-  max_trials       = 5
+  max_trials       = 10
   '''guessed stddev when only 1 test is taken'''
-  prior_stddev_pct      = 0.10
+  prior_stddev_pct      = 0.20
   '''percentage change to be viewed as insignificant when testing if two algs are equal'''
-  same_threshold_pct    = 0.005
+  same_threshold_pct    = 0.02
   '''confidence for generating execution time limits'''
   limit_conf_pct        = 0.95
   '''multiply generated time limits by a factor'''
@@ -49,7 +50,7 @@ class config_defaults:
 
   name=''
   score_decay = 0.9
-  bonus_round_score = 0.85
+  bonus_round_score = 0.9
 
   #types of mutatators to generate
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']
