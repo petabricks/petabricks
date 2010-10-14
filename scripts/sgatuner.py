@@ -93,8 +93,7 @@ class Population:
         continue
       triedConfigs.add(c.config)
       try:
-        for z in xrange(config.offspring_min_trials):
-          self.testers[-1].test(c, limit=p.reasonableLimit(self.inputSize()))
+        self.testers[-1].testN(c, config.min_trials, limit=p.reasonableLimit(self.inputSize()))
         if self.birthFilter(p,c):
           self.members.append(c)
           self.onMembersChanged()
@@ -112,7 +111,7 @@ class Population:
     for m in xrange(len(config.metrics)):
       if config.accuracy_metric_idx == m and not self.isVariableAccuracy():
         continue
-      childCmp = self.testers[-1].comparer(m, config.offspring_confidence_pct, config.offspring_max_trials)
+      childCmp = self.testers[-1].comparer(m, config.confidence_pct, config.max_trials)
       if childCmp(parent, child) > 0:
         logging.debug("adding %s through metric %d"%(str(child), m))
         return True
@@ -148,7 +147,7 @@ class Population:
   def markBestN(self, population, n, metric = config.timing_metric_idx):
     '''shrink the population to popsize by removing low scoring candidates'''
     fastCmp = self.testers[-1].comparer(metric, 0.00, 0)
-    fullCmp = self.testers[-1].comparer(metric, config.compare_confidence_pct, config.compare_max_trials)
+    fullCmp = self.testers[-1].comparer(metric, config.confidence_pct, config.max_trials)
     # a rough partitioning based on fastCmp
     population.sort(cmp=fastCmp)
     membersfast=list(population[0:n])
@@ -207,13 +206,13 @@ class Population:
     print "round n = %d"%self.inputSize()
     for m in self.members:
       if self.baseline is not None:
-        self.testers[-1].testN(self.baseline, config.compare_min_trials)
+        self.testers[-1].testN(self.baseline, config.min_trials)
       print "  * ", m, m.resultsStr(self.inputSize(), self.baseline)
 
   def generation(self):
     try:
       self.removed=[]
-      self.test(config.compare_min_trials)
+      self.test(config.min_trials)
       if len(self.members):
         for z in xrange(config.rounds_per_input_size):
           self.randomMutation(config.population_high_size)

@@ -6,12 +6,9 @@ class config_defaults:
   rounds_per_input_size    = 4
 
   #number of trials to run
-  compare_confidence_pct   = 0.80
-  offspring_confidence_pct = 0.80
-  compare_min_trials       = 3
-  offspring_min_trials     = 3
-  compare_max_trials       = 30
-  offspring_max_trials     = 30
+  confidence_pct   = 0.80
+  min_trials       = 3
+  max_trials       = 30
   '''guessed stddev when only 1 test is taken'''
   prior_stddev_pct      = 0.20
   '''percentage change to be viewed as insignificant when testing if two algs are equal'''
