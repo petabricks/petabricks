@@ -22,6 +22,8 @@ def main(benchmark, n, filename):
   root = os.path.dirname(filename)
   print '#time', 'tests', 'candidates', 'time_on_%d'%n, 'conferror'+str(options.confidence)
   def findconfig(c):
+    if c[0]=='/':
+      c=c[1:]
     if os.path.isfile(os.path.join(root, c)):
       return os.path.join(root, c)
     if os.path.isfile(os.path.join(root, '..', c)):
