@@ -80,7 +80,7 @@ class Results:
     return dd.ppf(config.limit_conf_pct)*config.limit_multiplier
 
   def __len__(self):
-    return len(self.interpolatedResults)
+    return len(self.realResults)+len(self.timeoutResults)
 
   def add(self, p):
     self.realResults.append(p)
@@ -112,8 +112,6 @@ class Results:
       '''new points are assigned the median value above their timeout'''
       self.interpolatedResults.append(max(p, min(self.distribution.isf(self.distribution.sf(p)/2.0), p*4)))
       self.distribution = mkdistrib()
-    if min(self.interpolatedResults) == max(self.interpolatedResults):
-      return stats.norm(self.interpolatedResults[0], 0)
  
   def dataDistribution(self):
     '''estimated probability distribution of a single timing run'''
@@ -354,7 +352,7 @@ class CandidateTester:
     self.testCount += 1
     cfgfile = candidate.cfgfile()
     testNumber = len(candidate.metrics[config.timing_metric_idx][self.n])
-    assert testNumber<config.max_trials
+    #assert testNumber<config.max_trials
     cmd = list(self.cmd)
     cmd.append("--config="+cfgfile)
     cmd.extend(timers.inputgen.wrap(lambda:self.getInputArg(testNumber)))

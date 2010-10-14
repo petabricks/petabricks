@@ -7,7 +7,7 @@ from tunerconfig import config
 def _relpath(path, root = None):
   if root is None:
     root = os.getcwd()
-  return path[len(os.path.commonprefix((path,root))):]
+  return path[len(os.path.commonprefix((path,root+'/'))):]
 
 class Timer:
   def __init__(self):
@@ -115,14 +115,21 @@ class StorageDirsTemplate:
       w.writerow(headerRow)
     return w
 
+  def dumpConfig(self):
+    import pickle
+    w=open(os.path.join(self.root, 'tunerconfig.pickle'), "w")
+    pickle.dump(config, w)
+
 storage_dirs = None
 
 def callWithLogDir(fn, root, delete):
-  d = tempfile.mkdtemp(prefix='pbtunerun_', dir=os.path.expanduser(root))
+  d = tempfile.mkdtemp(prefix='pbtunerun_'+config.name+'_', dir=os.path.expanduser(root))
   if not delete:
     print d
   global storage_dirs
   storage_dirs = StorageDirsTemplate(d)
+  if not delete:
+    storage_dirs.dumpConfig()
   try:
     fn()
   finally:

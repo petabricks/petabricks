@@ -410,13 +410,13 @@ if __name__ == "__main__":
                     action="store_true", dest="check", default=False,
                     help="check for correctness")
   parser.add_option("-n", type="int", help="input size to train for")
-  
-  parser.add_option("--max_time",  type="float", action="callback", callback=option_callback)
-  parser.add_option("--rounds_per_input_size", type="int", action="callback", callback=option_callback)
-  parser.add_option("--mutations_per_mutator", type="int", action="callback", callback=option_callback)
-  parser.add_option("--output_dir", type="string", action="callback", callback=option_callback)
-  parser.add_option("--population_high_size", type="int", action="callback", callback=option_callback)
-  parser.add_option("--population_low_size", type="int", action="callback", callback=option_callback)
+  parser.add_option("--max_time",              type="float",  action="callback", callback=option_callback)
+  parser.add_option("--rounds_per_input_size", type="int",    action="callback", callback=option_callback)
+  parser.add_option("--mutations_per_mutator", type="int",    action="callback", callback=option_callback)
+  parser.add_option("--output_dir",            type="string", action="callback", callback=option_callback)
+  parser.add_option("--population_high_size",  type="int",    action="callback", callback=option_callback)
+  parser.add_option("--population_low_size",   type="int",    action="callback", callback=option_callback)
+  parser.add_option("--name",                  type="string", action="callback", callback=option_callback)
   (options, args) = parser.parse_args()
   if len(args)!=1:
     parser.print_usage()
