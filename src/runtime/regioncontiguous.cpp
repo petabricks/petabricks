@@ -6,11 +6,10 @@ petabricks::RegionContiguous::RegionContiguous(int dimension, IndexT* size, Elem
   _size = size;
   _data = data;
 
-
   _multipliers = new IndexT[_dimension];
   _multipliers[0] = 1;
   for (int i = 1; i < _dimension; i++) {
-    _multipliers[i] = _multipliers[i-1] * _size[i];
+    _multipliers[i] = _multipliers[i-1] * _size[i-1];
   }
 }
 

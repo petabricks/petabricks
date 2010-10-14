@@ -38,7 +38,9 @@ void petabricks::RegionI::print() {
 
   while (true) {
     printf("%4.8g ", *this->coordToPtr(coord));
+
     int z = this->incCoord(coord);
+
     if (z == -1) {
       break;
     }
