@@ -110,12 +110,9 @@ class patch_check:
   limit_multiplier         = 25
   
   #run two trials per alg
-  compare_confidence_pct   = 0.0
-  compare_max_trials       = 2
-  compare_min_trials       = 2
-  offspring_confidence_pct = 0.0
-  offspring_max_trials     = 2
-  offspring_min_trials     = 2
+  confidence_pct   = 0.0
+  max_trials       = 2
+  min_trials       = 2
 
 class patch_noninteractive:
   '''settings for disabling outputs'''

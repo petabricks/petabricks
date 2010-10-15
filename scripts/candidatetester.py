@@ -354,7 +354,8 @@ class CandidateTester:
     self.testCount += 1
     cfgfile = candidate.cfgfile()
     testNumber = len(candidate.metrics[config.timing_metric_idx][self.n])
-    assert testNumber<config.max_trials
+    if testNumber>=config.max_trials:
+      warnings.warn(tunerwarnings.TooManyTrials(testNumber+1))
     cmd = list(self.cmd)
     cmd.append("--config="+cfgfile)
     cmd.extend(timers.inputgen.wrap(lambda:self.getInputArg(testNumber)))

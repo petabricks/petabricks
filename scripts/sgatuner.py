@@ -239,7 +239,7 @@ class Population:
           self.randomMutation(config.population_high_size)
           self.prune(config.population_low_size, False)
         while self.countMutators(config.bonus_round_score)>0:
-          print 'Bonus round:'
+          logging.info("bonus round triggered")
           self.randomMutation(config.population_high_size, config.bonus_round_score)
           self.prune(config.population_low_size, False)
         self.prune(config.population_low_size, True)
