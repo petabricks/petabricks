@@ -1,0 +1,54 @@
+#ifndef SECANT_PBCC
+#define SECANT_PBCC
+
+#include "evalf.pbcc"
+
+
+transform Secant
+from F[n], A, B, C, FA, FB, FC
+to Aout, Bout, Cout, FAout, FBout, FCout
+{
+   to (Aout aout, Bout bout, Cout cout, FAout faout, FBout fbout, FCout fcout)
+   from (F f, A a, B b, C c, FA fa, FB fb, FC fc)
+   {
+        double temp;
+
+        //secant step
+        if (b-c == 0 || fb == 0)  {
+                bout = b;
+                fbout = fb;
+        }
+        else {
+                bout=b- (b-c)/(fb-fc) *fb;
+                evalf(fbout,f,bout);
+        }
+
+        //set c to the old b
+        cout = b;
+        fcout = fb;
+
+        //if sign of f(b) change, set a equal to the old b to maintain a bracketing interval
+        if (faout*fbout > 0 ) {
+                aout=b;
+                faout=fb;
+        }
+        else {
+                aout=a;
+                faout=fa;
+        }
+
+        //switch a and b if a is a better root
+        if ( fabs(fbout) > fabs(faout) ) {
+                temp=bout; bout=aout; aout=temp;
+                temp=fbout; fbout=faout; faout=temp;
+                cout=aout;fcout=faout;
+        }
+
+  }
+
+}
+
+
+
+
+#endif // SECANT_PBCC
