@@ -26,7 +26,11 @@ int petabricks::RegionI::incCoord(IndexT* coord) {
   }
 }
 
-void petabricks::RegionI::print() {
+const int petabricks::RegionI::dimension() {
+  return _dimension;
+}
+
+const void petabricks::RegionI::print() {
   printf("SIZE");
   for (int d = 0; d < _dimension; d++) {
     printf(" %d", _size[d]);
@@ -34,7 +38,7 @@ void petabricks::RegionI::print() {
   printf("\n");
 
   IndexT* coord = new IndexT[_dimension];
-  memset(coord, 0, sizeof coord);
+  memset(coord, 0, (sizeof coord) * _dimension);
 
   while (true) {
     printf("%4.8g ", *this->coordToPtr(coord));
@@ -52,4 +56,5 @@ void petabricks::RegionI::print() {
   }
 
   printf("\n\n");
+  delete(coord);
 }

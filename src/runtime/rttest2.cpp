@@ -24,7 +24,20 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
 int main(int argc, const char** argv){
   MatrixIO* matrixio = new MatrixIO(argv[1], "r");
   RegionIPtr region = matrixio->readToRegionI();
-  region->print();
+
+  IndexT m0[] = {0,0,0};
+  IndexT m1[] = {1,1,1};
+  IndexT m123[] = {1,2,3};
+  IndexT m2[] = {2,2,2};
+  IndexT m3[] = {3,3,3};
+
+  RegionIPtr split3 = region->splitRegion(m123, m3);
+  RegionIPtr split2 = split3->splitRegion(m1, m2);
+
+
+  split3->print();
+
+  split2->print();
 
 
   return 0;

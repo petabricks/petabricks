@@ -14,7 +14,7 @@ petabricks::RegionContiguous::RegionContiguous(int dimension, IndexT* size, Elem
 }
 
 petabricks::ElementT*
-petabricks::RegionContiguous::coordToPtr(IndexT* coord){
+petabricks::RegionContiguous::coordToPtr(const IndexT* coord){
   IndexT offset = 0;
   for(int i = 0; i < _dimension; i++){
     offset += _multipliers[i] * coord[i];

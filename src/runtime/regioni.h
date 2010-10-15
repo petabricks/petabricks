@@ -17,12 +17,14 @@ namespace petabricks {
 
   public:
     virtual ~RegionI(){}
-    virtual ElementT* coordToPtr(IndexT* coord) = 0;
+    virtual ElementT* coordToPtr(const IndexT* coord) = 0;
     virtual RegionIPtr splitRegion(IndexT* offset, IndexT* size) = 0;
     virtual RegionIPtr sliceRegion(int d, IndexT pos) = 0;
 
     int incCoord(IndexT* coord);
-    void print();
+    const int dimension();
+
+    const void print();
   };
 }
 
