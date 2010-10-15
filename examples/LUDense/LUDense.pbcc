@@ -3,6 +3,8 @@
 
 #define INDEX2D(i0, i1, s0) ((i1) * (s0) + (i0))
 
+#include "../simple/copy.pbcc"
+
 %{
     extern "C" void dgetrf_(const int *m, const int *n, double *A, const int *lda, int *ipiv, int *info);
 %}
@@ -57,13 +59,12 @@ to OUT[n,n], P[n]
     }
 }
 
-/* Complicated Version (By-element version, no pivoting. Verified it works)
+/* Complicated Version (By-element version, no pivoting. Verified it works) */
 
-#include "../simple/copy.pbcc"
 
-transform LUDense
+transform LUnopivot
 from IN[n,n]
-through A<n>[n,n]
+through A<n-1>[n,n]
 to OUT[n,n]
 {
   to (A<0> a0) from (IN in) {
@@ -95,12 +96,12 @@ to OUT[n,n]
         aNext = aPrev;
   }
 
-  to (OUT out) from (A<n> an) {
+  to (OUT out) from (A<n-1> an) {
         Copy2D(out, an);
   }
 }
 
-*/
+
 
 #endif // LUDENSE_PBCC
 

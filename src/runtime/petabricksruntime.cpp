@@ -27,6 +27,9 @@
 #include <iostream>
 #include <math.h>
 
+#include <sys/time.h>
+#include <sys/resource.h>
+
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
@@ -303,6 +306,16 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("max-sec",     GRAPH_MAX_SEC).help("stop graphs/autotuning after algorithm runs too slow");
   args.param("isolation",   ISOLATION).help("don't run timing tests in a forked subprocess");
   args.param("retries",     RETRIES).help("times to retry on test failure");
+  
+  long max_memory=-1;
+  if(args.param("max-memory", max_memory).help("kill the process when it tries to use this much memory")) {
+    if(max_memory>0) {
+      struct rlimit tmp;
+      tmp.rlim_cur = max_memory;
+      tmp.rlim_max = max_memory;
+      JASSERT(setrlimit(RLIMIT_AS, &tmp)==0);
+    }
+  }
 
   args.finishParsing(txArgs);
 

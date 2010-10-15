@@ -361,7 +361,7 @@ def autotuneInner(benchmark):
     config.end_time = time.time() + config.max_time
     try:
       roundNumber=0
-      while pop.inputSize() <= config.max_input_size:
+      while pop.inputSize() < config.max_input_size:
         pop.generation()
         stats.writerow((roundNumber,
                         pop.inputSize(),
@@ -371,18 +371,26 @@ def autotuneInner(benchmark):
                         timers.inputgen.lap())+pop.stats())
         pop.nextInputSize()
         roundNumber+=1
+      for z in xrange(config.final_rounds):
+        pop.generation()
+        stats.writerow((roundNumber,
+                        pop.inputSize(),
+                        timers.total.total(),
+                        timers.total.lap(),
+                        timers.testing.lap(),
+                        timers.inputgen.lap())+pop.stats())
+        roundNumber+=1
     except TrainingTimeout:
       pass
     timers.total.stop()
-
-    at = storagedirs.getactivetimers()
-    if len(at):
-      storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
 
     #check to make sure we did something:
     if pop.firstRound:
       warnings.warn(tunerwarnings.AlwaysCrashes())
   finally:
+    at = storagedirs.getactivetimers()
+    if len(at):
+      storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
     tester.cleanup()
 
 def autotune(benchmark):
@@ -410,13 +418,13 @@ if __name__ == "__main__":
                     action="store_true", dest="check", default=False,
                     help="check for correctness")
   parser.add_option("-n", type="int", help="input size to train for")
-  
-  parser.add_option("--max_time",  type="float", action="callback", callback=option_callback)
-  parser.add_option("--rounds_per_input_size", type="int", action="callback", callback=option_callback)
-  parser.add_option("--mutations_per_mutator", type="int", action="callback", callback=option_callback)
-  parser.add_option("--output_dir", type="string", action="callback", callback=option_callback)
-  parser.add_option("--population_high_size", type="int", action="callback", callback=option_callback)
-  parser.add_option("--population_low_size", type="int", action="callback", callback=option_callback)
+  parser.add_option("--max_time",              type="float",  action="callback", callback=option_callback)
+  parser.add_option("--rounds_per_input_size", type="int",    action="callback", callback=option_callback)
+  parser.add_option("--mutations_per_mutator", type="int",    action="callback", callback=option_callback)
+  parser.add_option("--output_dir",            type="string", action="callback", callback=option_callback)
+  parser.add_option("--population_high_size",  type="int",    action="callback", callback=option_callback)
+  parser.add_option("--population_low_size",   type="int",    action="callback", callback=option_callback)
+  parser.add_option("--name",                  type="string", action="callback", callback=option_callback)
   (options, args) = parser.parse_args()
   if len(args)!=1:
     parser.print_usage()

@@ -12,6 +12,8 @@ options=None
 
 
 def main(benchmark, n, filename):
+  if os.path.isdir(filename):
+    filename=os.path.join(filename, 'stats/candidatelog.csv')
   f = open(filename)
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
   main = mainname([pbutil.benchmarkToBin(benchmark)])
@@ -22,6 +24,8 @@ def main(benchmark, n, filename):
   root = os.path.dirname(filename)
   print '#time', 'tests', 'candidates', 'time_on_%d'%n, 'conferror'+str(options.confidence)
   def findconfig(c):
+    if c[0]=='/':
+      c=c[1:]
     if os.path.isfile(os.path.join(root, c)):
       return os.path.join(root, c)
     if os.path.isfile(os.path.join(root, '..', c)):
@@ -32,10 +36,10 @@ def main(benchmark, n, filename):
     tests = int(row['tests_complete'])+int(row['tests_timeout'])+int(row['tests_crashed'])
     candidates = int(row['candidates'])
     candidate = Candidate(ConfigFile(config_path), infoxml)
-    for i in xrange(options.trials):
-      tester.test(candidate, options.timeout)
+    tester.testN(candidate, options.trials, options.timeout)
     results=candidate.metrics[0][n].interval(options.confidence)
     print row['time'], tests, candidates, "%.10f"%results[0], "%.10f"%results[1]
+    sys.stdout.flush()
 
 
 if __name__ == "__main__":
