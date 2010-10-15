@@ -424,6 +424,7 @@ if __name__ == "__main__":
   parser.add_option("--output_dir",            type="string", action="callback", callback=option_callback)
   parser.add_option("--population_high_size",  type="int",    action="callback", callback=option_callback)
   parser.add_option("--population_low_size",   type="int",    action="callback", callback=option_callback)
+  parser.add_option("--offset",                type="int",    action="callback", callback=option_callback)
   parser.add_option("--name",                  type="string", action="callback", callback=option_callback)
   (options, args) = parser.parse_args()
   if len(args)!=1:
