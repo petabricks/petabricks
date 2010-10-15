@@ -5,12 +5,16 @@ import tempfile, os, math, warnings, random, sys, subprocess, time
 import shutil
 import storagedirs
 import tunerwarnings 
+import numpy
 from storagedirs import timers
 from scipy import stats
 from tunerconfig import config
 from tunerwarnings import ComparisonFailed, InconsistentOutput
 warnings.simplefilter('ignore', DeprecationWarning)
 
+class NoMutators(Exception):
+  '''Exception thrown when a mutation doesn't exist'''
+  pass
 
 class InputGenerationException(Exception):
   def __init__(self, testNumber):
@@ -47,14 +51,14 @@ class Results:
 
   def __repr__(self):
     v=[]
-    v.extend(map(lambda x: "%.4f"%x,  self.realResults))
-    v.extend(map(lambda x: ">%.4f"%x, self.timeoutResults))
+    v.extend(map(lambda x: "%.6f"%x,  self.realResults))
+    v.extend(map(lambda x: ">%.6f"%x, self.timeoutResults))
     return ', '.join(v)
 
   def __str__(self):
     if len(self)==0:
       return '???'
-    return "%.4f(+-%.4f)" % self.interval(config.display_confidence)
+    return "%.6f(+-%.6f)" % self.interval(config.display_confidence)
 
   def strdelta(a, b):
     am, ad = a.interval(config.display_confidence)
@@ -76,7 +80,7 @@ class Results:
     return dd.ppf(config.limit_conf_pct)*config.limit_multiplier
 
   def __len__(self):
-    return len(self.interpolatedResults)
+    return len(self.realResults)+len(self.timeoutResults)
 
   def add(self, p):
     self.realResults.append(p)
@@ -93,7 +97,7 @@ class Results:
   def reinterpolate(self):
     '''recreate interpolatedResults from realResults and timeoutResults'''
     self.interpolatedResults = list(self.realResults)
-    mkdistrib = lambda: stats.norm(*stats.norm.fit(self.interpolatedResults))
+    mkdistrib = lambda: stats.norm(numpy.mean(self.interpolatedResults), numpy.std(self.interpolatedResults))
     if len(self.interpolatedResults) == 0:
       '''all tests timed out, seed with double the average timeout'''
       self.interpolatedResults.append(sum(self.timeoutResults)/len(self.timeoutResults)*2.0)
@@ -108,8 +112,6 @@ class Results:
       '''new points are assigned the median value above their timeout'''
       self.interpolatedResults.append(max(p, min(self.distribution.isf(self.distribution.sf(p)/2.0), p*4)))
       self.distribution = mkdistrib()
-    if min(self.interpolatedResults) == max(self.interpolatedResults):
-      return stats.norm(self.interpolatedResults[0], 0)
  
   def dataDistribution(self):
     '''estimated probability distribution of a single timing run'''
@@ -221,8 +223,16 @@ class Candidate:
   def addMutator(self, m):
     self.mutators.append(m)
 
-  def mutate(self, n):
-    random.choice(self.mutators).mutate(self, n)
+  def mutate(self, n, minscore=None):
+    if minscore is not None:
+      opts=filter(lambda x: x.score>minscore, self.mutators)
+      if opts:
+        self.lastMutator=random.choice(opts)
+      else:
+        raise NoMutators()
+    else:
+      self.lastMutator=random.choice(self.mutators)
+    self.lastMutator.mutate(self, n)
 
   def reasonableLimit(self, n):
     return self.metrics[config.timing_metric_idx][n].reasonableLimit()
@@ -342,6 +352,7 @@ class CandidateTester:
     self.testCount += 1
     cfgfile = candidate.cfgfile()
     testNumber = len(candidate.metrics[config.timing_metric_idx][self.n])
+    #assert testNumber<config.max_trials
     cmd = list(self.cmd)
     cmd.append("--config="+cfgfile)
     cmd.extend(timers.inputgen.wrap(lambda:self.getInputArg(testNumber)))

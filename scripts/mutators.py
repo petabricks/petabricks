@@ -12,6 +12,14 @@ class Mutator:
   def __init__(self, weight=1.0):
     self.weight = weight
     self.accuracyHint = 0
+    self.score=0.0
+    self.results = (
+         ('better', 0.0),
+         ('worse',  0.0),
+         ('same',   0.0),
+         ('fail',  0.0),
+         ('unk',      1.0/(1.0-config.score_decay)))
+
   def mutate(self, candidate, n):
     '''
     Must Perform the following actions:
@@ -20,8 +28,14 @@ class Mutator:
     3) [optional] add new mutators to modify the change made
     '''
     raise Exception('must be implemented in subclass')
-  
-  
+
+  def result(self, r):
+    self.results=map(lambda x: (x[0], x[1]*config.score_decay + int(x[0]==r)), self.results)
+    self.score=self.results[0][1]
+
+  def __str__(self):
+    return str(map(lambda x: "%s:%5.2f"%x, self.results)) + ' ' + self.__class__.__name__
+
 class LognormRandom:
   def random(self, start, minVal, maxVal):
     for z in xrange(config.rand_retries):
@@ -70,6 +84,9 @@ class AddAlgLevelMutator(Mutator):
     candidate.config[krn] = self.alg
     candidate.addMutator(RandAlgMutator(self.transform, self.choicesite, lvl, self.weight))
     candidate.addMutator(LognormRandAlgCutoffMutator(self.transform, self.choicesite, lvl, self.weight))
+  
+  def __str__(self):
+    return Mutator.__str__(self)+" %s,alg%d"%(self.choicesite, self.alg)
 
 class SetTunableMutator(Mutator):
   def __init__(self, tunable, val=None, weight=1.0):
@@ -89,6 +106,9 @@ class SetTunableMutator(Mutator):
     new = self.getVal(candidate, old)
     candidate.config[self.tunable] = new
     candidate.clearResultsAbove(self.invalidatesThreshold(candidate, old, new))
+  
+  def __str__(self):
+    return Mutator.__str__(self)+' '+self.tunable
 
 class SetAlgMutator(SetTunableMutator):
   def __init__(self, transform, choicesite, lvl, alg, weight=1.0):
@@ -135,21 +155,24 @@ class LognormRandAlgCutoffMutator(LognormRandCutoffMutator, LognormRandom):
     self.kcodown = config.fmt_cutoff % (transform, choicesite, lvl-1)
     self.kco     = config.fmt_cutoff % (transform, choicesite, lvl)
     self.kcoup   = config.fmt_cutoff % (transform, choicesite, lvl+1)
+    self.lvl = lvl
     LognormRandCutoffMutator.__init__(self, self.kco, None, weight)
   def getVal(self, candidate, oldVal):
     '''threshold the random value'''
     down = 1
     up = config.cutoff_max_val
     try:
-      down=self.config[self.kcodown]+1
-    except:
+      down=candidate.config[self.kcodown]+1
+    except KeyError:
       pass
     try:
-      up=self.config[self.kcoup]-1
-    except:
+      up=candidate.config[self.kcoup]-1
+    except KeyError:
       pass
-    return self.random(oldVal, down, up)
 
+    v=self.random(oldVal, down, up)
+    assert v>=down and v<=up
+    return v
 
 class TunableArrayMutator(Mutator):
   def __init__(self, tunable, minVal, maxVal, weight=1.0):
@@ -185,4 +208,19 @@ class LognormTunableArrayMutator(TunableArrayMutator, LognormRandom):
 
 class UniformTunableArrayMutator(TunableArrayMutator, UniformRandom):
   pass
+
+class MultiMutator(Mutator):
+  def __init__(self, count=3, weight=1.0):
+    self.count = count 
+    Mutator.__init__(self, weight)
+
+  def invalidatesThreshold(self, candidate, oldVal, newVal):
+    return 0
+
+  def mutate(self, candidate, n):
+    for x in xrange(self.count):
+      candidate.mutate(n)
+    candidate.lastMutator=self
+  def __str__(self):
+    return Mutator.__str__(self)+' '+str(self.count)
 

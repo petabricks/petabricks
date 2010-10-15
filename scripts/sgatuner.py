@@ -13,6 +13,7 @@ from tunerconfig import config
 from tunerwarnings import InitialProgramCrash,ExistingProgramCrash,NewProgramCrash,TargetNotMet
 from storagedirs import timers
 import tunerwarnings
+from pprint import pprint
 
 class TrainingTimeout(Exception):
   pass
@@ -64,12 +65,17 @@ class Population:
           self.failed.add(m)
           self.members.remove(m)
 
-  def randomMutation(self, maxpopsize=None):  
+  def countMutators(self, minscore):
+    if minscore is None:
+      return sum(map(lambda x: len(x.mutators), self.members))
+    else:
+      return sum(map(lambda x: len(filter(lambda m: m.score>minscore, x.mutators)), self.members))
+
+  def randomMutation(self, maxpopsize=None, minscore=None):
     '''grow the population using cloning and random mutation'''
     self.notadded=[]
     originalPop = list(self.members)
-    triedConfigs = set(map(lambda x: x.config, self.members))
-    totalMutators = sum(map(lambda x: len(x.mutators), self.members))
+    totalMutators = self.countMutators(minscore)
     tries = float(totalMutators)*config.mutations_per_mutator
     while tries>0:
       check_timeout()
@@ -83,18 +89,24 @@ class Population:
       c=p.clone()
       for z in xrange(config.mutate_retries):
         try:
-          c.mutate(self.inputSize())
+          c.mutate(self.inputSize(), minscore)
           break
         except MutateFailed:
           if z==config.mutate_retries-1:
             warnings.warn(tunerwarnings.MutateFailed(p, z, self.inputSize()))
           continue
-      if c.config in triedConfigs:
+        except candidatetester.NoMutators:
+          if self.countMutators(minscore)>0:
+            continue
+          else:
+            return tries
+
+      if c.config in self.triedConfigs:
+        c.lastMutator.result('fail')
         continue
-      triedConfigs.add(c.config)
+      self.triedConfigs.add(c.config)
       try:
-        for z in xrange(config.offspring_min_trials):
-          self.testers[-1].test(c, limit=p.reasonableLimit(self.inputSize()))
+        self.testers[-1].testN(c, config.min_trials, limit=p.reasonableLimit(self.inputSize()))
         if self.birthFilter(p,c):
           self.members.append(c)
           self.onMembersChanged()
@@ -102,6 +114,8 @@ class Population:
           c.rmfiles()
           self.notadded.append(c)
       except candidatetester.CrashException, e:
+        c.rmfiles()
+        c.lastMutator.result('fail')
         warnings.warn(NewProgramCrash(e))
     if len(originalPop)<len(self.members):
       logging.info("added "+', '.join(map(str,set(self.members)-set(originalPop))))
@@ -109,18 +123,23 @@ class Population:
   
   def birthFilter(self, parent, child):
     '''called when considering adding child to population'''
+    same=True
     for m in xrange(len(config.metrics)):
       if config.accuracy_metric_idx == m and not self.isVariableAccuracy():
         continue
-      childCmp = self.testers[-1].comparer(m, config.offspring_confidence_pct, config.offspring_max_trials)
+      childCmp = self.testers[-1].comparer(m, config.confidence_pct, config.max_trials)
       if childCmp(parent, child) > 0:
         logging.debug("adding %s through metric %d"%(str(child), m))
+        child.lastMutator.result('better')
         return True
+      if childCmp(parent, child) < 0:
+        same=False
+    if same:
+      child.lastMutator.result('same')
+    else:
+      child.lastMutator.result('worse')
     return False
   
-  def guidedMutation(self):  
-    pass
-
   def inputSize(self, roundOffset=0):
     return self.testers[-1 - roundOffset].n
 
@@ -148,7 +167,7 @@ class Population:
   def markBestN(self, population, n, metric = config.timing_metric_idx):
     '''shrink the population to popsize by removing low scoring candidates'''
     fastCmp = self.testers[-1].comparer(metric, 0.00, 0)
-    fullCmp = self.testers[-1].comparer(metric, config.compare_confidence_pct, config.compare_max_trials)
+    fullCmp = self.testers[-1].comparer(metric, config.confidence_pct, config.max_trials)
     # a rough partitioning based on fastCmp
     population.sort(cmp=fastCmp)
     membersfast=list(population[0:n])
@@ -207,17 +226,24 @@ class Population:
     print "round n = %d"%self.inputSize()
     for m in self.members:
       if self.baseline is not None:
-        self.testers[-1].testN(self.baseline, config.compare_min_trials)
+        self.testers[-1].testN(self.baseline, config.min_trials)
       print "  * ", m, m.resultsStr(self.inputSize(), self.baseline)
 
   def generation(self):
     try:
+      self.triedConfigs = set(map(lambda x: x.config, self.members))
       self.removed=[]
-      self.test(config.compare_min_trials)
+      self.test(config.min_trials)
       if len(self.members):
         for z in xrange(config.rounds_per_input_size):
           self.randomMutation(config.population_high_size)
-          self.prune(config.population_low_size, z==config.rounds_per_input_size-1)
+          self.prune(config.population_low_size, False)
+        while self.countMutators(config.bonus_round_score)>0:
+          print 'Bonus round:'
+          self.randomMutation(config.population_high_size, config.bonus_round_score)
+          self.prune(config.population_low_size, False)
+        self.prune(config.population_low_size, True)
+
         self.firstRound=False
       elif self.firstRound and len(self.failed) and config.min_input_size_nocrash>=self.inputSize():
         self.members = list(self.failed)
@@ -322,6 +348,7 @@ def autotuneInner(benchmark):
     baseline = None
     addMutators(candidate, infoxml.globalsec())
     addMutators(candidate, infoxml.transform(main))
+    candidate.addMutator(mutators.MultiMutator(2))
     pop = Population(candidate, tester, baseline)
     stats = storagedirs.openCsvStats("roundstats", 
         ("round",
@@ -334,7 +361,7 @@ def autotuneInner(benchmark):
     config.end_time = time.time() + config.max_time
     try:
       roundNumber=0
-      while pop.inputSize() <= config.max_input_size:
+      while pop.inputSize() < config.max_input_size:
         pop.generation()
         stats.writerow((roundNumber,
                         pop.inputSize(),
@@ -344,18 +371,26 @@ def autotuneInner(benchmark):
                         timers.inputgen.lap())+pop.stats())
         pop.nextInputSize()
         roundNumber+=1
+      for z in xrange(config.final_rounds):
+        pop.generation()
+        stats.writerow((roundNumber,
+                        pop.inputSize(),
+                        timers.total.total(),
+                        timers.total.lap(),
+                        timers.testing.lap(),
+                        timers.inputgen.lap())+pop.stats())
+        roundNumber+=1
     except TrainingTimeout:
       pass
     timers.total.stop()
-
-    at = storagedirs.getactivetimers()
-    if len(at):
-      storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
 
     #check to make sure we did something:
     if pop.firstRound:
       warnings.warn(tunerwarnings.AlwaysCrashes())
   finally:
+    at = storagedirs.getactivetimers()
+    if len(at):
+      storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
     tester.cleanup()
 
 def autotune(benchmark):
@@ -383,13 +418,13 @@ if __name__ == "__main__":
                     action="store_true", dest="check", default=False,
                     help="check for correctness")
   parser.add_option("-n", type="int", help="input size to train for")
-  
-  parser.add_option("--max_time",  type="float", action="callback", callback=option_callback)
-  parser.add_option("--rounds_per_input_size", type="int", action="callback", callback=option_callback)
-  parser.add_option("--mutations_per_mutator", type="int", action="callback", callback=option_callback)
-  parser.add_option("--output_dir", type="string", action="callback", callback=option_callback)
-  parser.add_option("--population_high_size", type="int", action="callback", callback=option_callback)
-  parser.add_option("--population_low_size", type="int", action="callback", callback=option_callback)
+  parser.add_option("--max_time",              type="float",  action="callback", callback=option_callback)
+  parser.add_option("--rounds_per_input_size", type="int",    action="callback", callback=option_callback)
+  parser.add_option("--mutations_per_mutator", type="int",    action="callback", callback=option_callback)
+  parser.add_option("--output_dir",            type="string", action="callback", callback=option_callback)
+  parser.add_option("--population_high_size",  type="int",    action="callback", callback=option_callback)
+  parser.add_option("--population_low_size",   type="int",    action="callback", callback=option_callback)
+  parser.add_option("--name",                  type="string", action="callback", callback=option_callback)
   (options, args) = parser.parse_args()
   if len(args)!=1:
     parser.print_usage()

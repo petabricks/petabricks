@@ -3,29 +3,27 @@ class config_defaults:
   #how long to train for
   max_input_size           = 2**30
   max_time                 = 60*15
-  rounds_per_input_size    = 4
+  rounds_per_input_size    = 3
+  final_rounds             = 2
 
   #number of trials to run
-  compare_confidence_pct   = 0.90
-  offspring_confidence_pct = 0.85
-  compare_min_trials       = 5
-  offspring_min_trials     = 5
-  compare_max_trials       = 30
-  offspring_max_trials     = 30
+  confidence_pct   = 0.8
+  min_trials       = 1
+  max_trials       = 10
   '''guessed stddev when only 1 test is taken'''
   prior_stddev_pct      = 0.20
   '''percentage change to be viewed as insignificant when testing if two algs are equal'''
-  same_threshold_pct    = 0.01
+  same_threshold_pct    = 0.02
   '''confidence for generating execution time limits'''
   limit_conf_pct        = 0.95
   '''multiply generated time limits by a factor'''
-  limit_multiplier      = 4.0
+  limit_multiplier      = 1.5
   '''offset added to input sizes'''
   offset                = 0
 
   #how mutation to do
-  mutations_per_mutator    = 2
-  population_high_size     = 20
+  mutations_per_mutator    = 3
+  population_high_size     = 10
   population_low_size      = 1
   multimutation            = True
   mutate_retries           = 10
@@ -49,6 +47,10 @@ class config_defaults:
   cleanup_inputs        = True
   '''check output hash against peers, requires use_iogen'''
   check                 = False
+
+  name=''
+  score_decay = 0.9
+  bonus_round_score = 0.9
 
   #types of mutatators to generate
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']

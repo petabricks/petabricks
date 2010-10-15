@@ -92,4 +92,3 @@ class NewProgramCrash(ProgramCrash):
   '''a mutated child algorithm crashed'''
   pass
 
-
