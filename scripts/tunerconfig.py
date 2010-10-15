@@ -91,6 +91,14 @@ def applypatch(patch):
           assert False
   copycfg(patch, config)
 
+def dump(f):
+  names = filter(lambda x: x[0:2]!='__', dir(config))
+  values = map(lambda x: getattr(config, x), names)
+  print >>f, 'class config:'
+  for name, value in zip(names, values):
+    print >>f, "  %s = %s" % (name, repr(value))
+
+
 #################################################################
 #################################################################
 
@@ -128,6 +136,14 @@ class patch_noninteractive:
 
 class patch_regression(patch_noninteractive, patch_check):
   pass
+
+class patch_debug:
+  '''settings for debugging'''
+  cleanup_inputs           = False
+  debug                    = True
+  print_log                = True
+  pause_on_crash           = True
+  candidatelog             = True
 
 class patch_n:
   def __init__(self, n):

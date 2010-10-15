@@ -1,4 +1,5 @@
 import os, shutil, tempfile, csv, time
+import tunerconfig
 from tunerconfig import config
 
 #try:
@@ -120,9 +121,9 @@ class StorageDirsTemplate:
     return w
 
   def dumpConfig(self):
-    import pickle
-    w=open(os.path.join(self.root, 'tunerconfig.pickle'), "w")
-    pickle.dump(config, w)
+    w=open(os.path.join(self.root, 'config.py'), "w")
+    tunerconfig.dump(w)
+    w.close()
 
 storage_dirs = None
 

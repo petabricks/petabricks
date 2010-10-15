@@ -38,12 +38,13 @@ class Population:
     self.failed   = set()
     self.testers  = [tester]
     self.baseline = baseline
+    self.roundNumber = -1
     self.firstRound = True
     if config.candidatelog:
-      self.candidatelog     = storagedirs.openCsvStats("candidatelog", ['time', 'candidates', 'tests_complete', 'tests_timeout', 'tests_crashed', 'config_path'])
+      self.candidatelog     = storagedirs.openCsvStats("candidatelog", ['time', 'candidates', 'tests_complete', 'tests_timeout', 'tests_crashed', 'config_path', 'input_size', 'end_of_round','round_number'])
       self.candidateloglast = None
     self.starttime = time.time()
-    self.onMembersChanged()
+    self.onMembersChanged(True)
   
   def test(self, count):
     '''test each member of the pop count times'''
@@ -54,7 +55,7 @@ class Population:
     random.shuffle(tests)
     for m in tests:
       check_timeout()
-      if m not in self.failed:
+      if m not in self.failed and m.numTests(self.inputSize())<config.max_trials:
         try:
           self.testers[-1].test(m)
         except candidatetester.CrashException, e:
@@ -109,7 +110,7 @@ class Population:
         self.testers[-1].testN(c, config.min_trials, limit=p.reasonableLimit(self.inputSize()))
         if self.birthFilter(p,c):
           self.members.append(c)
-          self.onMembersChanged()
+          self.onMembersChanged(False)
         else:
           c.rmfiles()
           self.notadded.append(c)
@@ -143,7 +144,7 @@ class Population:
   def inputSize(self, roundOffset=0):
     return self.testers[-1 - roundOffset].n
 
-  def onMembersChanged(self):
+  def onMembersChanged(self, endOfRound):
     if config.candidatelog:
       fastCmp = self.testers[-1].comparer(config.timing_metric_idx, 0.00, 0)
       if len(self.members) > 1:
@@ -152,7 +153,7 @@ class Population:
         best = m[0]
       else:
         best = self.members[0]
-      if best != self.candidateloglast:
+      if best != self.candidateloglast or endOfRound:
         self.candidateloglast = best
         testCount = sum(map(lambda x: x.testCount, self.testers))
         timeoutCount = sum(map(lambda x: x.timeoutCount, self.testers))
@@ -162,7 +163,10 @@ class Population:
                                     testCount-timeoutCount-crashCount,
                                     timeoutCount,
                                     crashCount,
-                                    storagedirs.relpath(best.cfgfile())))
+                                    storagedirs.relpath(best.cfgfile()),
+                                    self.inputSize(),
+                                    endOfRound,
+                                    self.roundNumber))
 
   def markBestN(self, population, n, metric = config.timing_metric_idx):
     '''shrink the population to popsize by removing low scoring candidates'''
@@ -213,7 +217,7 @@ class Population:
 
     self.removed  += filter(lambda m: not m.keep, self.members)
     self.members  = filter(lambda m: m.keep, self.members)
-    self.onMembersChanged()
+    self.onMembersChanged(True)
 
   def accuracyTargetsMet(self):
     if not self.isVariableAccuracy():
@@ -231,6 +235,7 @@ class Population:
 
   def generation(self):
     try:
+      self.roundNumber += 1
       self.triedConfigs = set(map(lambda x: x.config, self.members))
       self.removed=[]
       self.test(config.min_trials)
@@ -360,26 +365,23 @@ def autotuneInner(benchmark):
     timers.total.start()
     config.end_time = time.time() + config.max_time
     try:
-      roundNumber=0
       while pop.inputSize() < config.max_input_size:
         pop.generation()
-        stats.writerow((roundNumber,
+        stats.writerow((pop.roundNumber,
                         pop.inputSize(),
                         timers.total.total(),
                         timers.total.lap(),
                         timers.testing.lap(),
                         timers.inputgen.lap())+pop.stats())
         pop.nextInputSize()
-        roundNumber+=1
       for z in xrange(config.final_rounds):
         pop.generation()
-        stats.writerow((roundNumber,
+        stats.writerow((pop.roundNumber,
                         pop.inputSize(),
                         timers.total.total(),
                         timers.total.lap(),
                         timers.testing.lap(),
                         timers.inputgen.lap())+pop.stats())
-        roundNumber+=1
     except TrainingTimeout:
       pass
     timers.total.stop()
@@ -417,6 +419,9 @@ if __name__ == "__main__":
   parser.add_option("--check",
                     action="store_true", dest="check", default=False,
                     help="check for correctness")
+  parser.add_option("--debug",
+                    action="store_true", dest="debug", default=False,
+                    help="enable debugging options")
   parser.add_option("-n", type="int", help="input size to train for")
   parser.add_option("--max_time",              type="float",  action="callback", callback=option_callback)
   parser.add_option("--rounds_per_input_size", type="int",    action="callback", callback=option_callback)
@@ -432,14 +437,16 @@ if __name__ == "__main__":
     sys.exit(1)
   if options.check:
     tunerconfig.applypatch(tunerconfig.patch_check)
+  if options.debug:
+    tunerconfig.applypatch(tunerconfig.patch_debug)
   if options.n:
     tunerconfig.applypatch(tunerconfig.patch_n(options.n))
-  benchmark=args[0]
+  config.benchmark=args[0]
   pbutil.chdirToPetabricksRoot();
   pbutil.compilePetabricks();
-  benchmark=pbutil.normalizeBenchmarkName(benchmark)
-  pbutil.compileBenchmarks([benchmark])
-  autotune(benchmark)
+  config.benchmark=pbutil.normalizeBenchmarkName(config.benchmark)
+  pbutil.compileBenchmarks([config.benchmark])
+  autotune(config.benchmark)
 
 
 

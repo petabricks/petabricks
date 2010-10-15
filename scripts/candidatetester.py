@@ -320,7 +320,7 @@ class CandidateTester:
     return CandidateTester(self.app, self.n*2, self.args)
   
   def testN(self, candidate, trials, limit=None):
-    for x in xrange(trials - len(candidate.metrics[config.timing_metric_idx][self.n])):
+    for x in xrange(trials - candidate.numTests(self.n)):
       self.test(candidate, limit)
 
   def getInputArg(self, testNumber):
@@ -351,7 +351,7 @@ class CandidateTester:
   def test(self, candidate, limit=None):
     self.testCount += 1
     cfgfile = candidate.cfgfile()
-    testNumber = len(candidate.metrics[config.timing_metric_idx][self.n])
+    testNumber = candidate.numTests(self.n)
     if testNumber>=config.max_trials:
       warnings.warn(tunerwarnings.TooManyTrials(testNumber+1))
     cmd = list(self.cmd)
