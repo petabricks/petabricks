@@ -10,7 +10,6 @@ from traininginfo import TrainingInfo
 
 options=None
 
-
 def main(benchmark, n, filename):
   if os.path.isdir(filename):
     filename=os.path.join(filename, 'stats/candidatelog.csv')
@@ -20,9 +19,7 @@ def main(benchmark, n, filename):
   infoxml = infoxml.transform(main)
   binpath=pbutil.benchmarkToBin(benchmark)
   tester = CandidateTester(benchmark, n)
-
   root = os.path.dirname(filename)
-  print '#time', 'tests', 'candidates', 'time_on_%d'%n, 'conferror'+str(options.confidence)
   def findconfig(c):
     if c[0]=='/':
       c=c[1:]
@@ -31,24 +28,35 @@ def main(benchmark, n, filename):
     if os.path.isfile(os.path.join(root, '..', c)):
       return os.path.join(root, '..', c)
     return None
-  for row in csv.DictReader(f):
-    config_path = findconfig(row['config_path'])
-    tests = int(row['tests_complete'])+int(row['tests_timeout'])+int(row['tests_crashed'])
-    candidates = int(row['candidates'])
-    candidate = Candidate(ConfigFile(config_path), infoxml)
+  rows = list(csv.DictReader(f))
+  for i, row in enumerate(rows):
+    if options.onlyrounds \
+        and i+1<len(rows) \
+        and row.has_key('round_number') \
+        and rows[i+1]['round_number']==row['round_number']:
+      continue
+    config = findconfig(row['config_path'])
+    row['tests'] = int(row['tests_complete'])+int(row['tests_timeout'])+int(row['tests_crashed'])
+    candidate = Candidate(ConfigFile(config), infoxml)
     tester.testN(candidate, options.trials, options.timeout)
-    results=candidate.metrics[0][n].interval(options.confidence)
-    print row['time'], tests, candidates, "%.10f"%results[0], "%.10f"%results[1]
-    sys.stdout.flush()
-
+    row['perf_on_%d'%n], row['perf_on_%d_ci'%n] = candidate.metrics[0][n].interval(options.confidence)
+    row['include']=True
+    print >>sys.stderr, row['time'], row['perf_on_%d'%n], ' (%d of %d)'%(i, len(rows))
+  rows = filter(lambda x: x.has_key('include'), rows)
+  headers = ['time', 'perf_on_%d'%n, 'perf_on_%d_ci'%n, 'tests', 'candidates', 'input_size']
+  print ','.join(headers)
+  t=csv.DictWriter(sys.stdout, headers, extrasaction='ignore')
+  t.writerows(rows)
+  
 
 if __name__ == "__main__":
   from optparse import OptionParser
   parser = OptionParser(usage="usage: graphgen.py [options] benchmark candidatelog.csv")
-  parser.add_option('--trials', type='int', default=3)
+  parser.add_option('--trials', type='int', default=10)
   parser.add_option('--confidence', type='float', default=.95)
-  parser.add_option('--timeout', type='float', default=10.0)
-  parser.add_option('-n', type='int', default=4096)
+  parser.add_option('--timeout', type='float', default=5.0)
+  parser.add_option('--onlyrounds', type='int', default=True)
+  parser.add_option('-n', type='int', default=1024)
 
   (options, args) = parser.parse_args()
   if len(args)!=2:
