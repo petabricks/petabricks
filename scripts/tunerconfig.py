@@ -17,7 +17,7 @@ class config_defaults:
   '''confidence for generating execution time limits'''
   limit_conf_pct        = 0.95
   '''multiply generated time limits by a factor'''
-  limit_multiplier      = 1.5
+  limit_multiplier      = 1.2
   '''offset added to input sizes'''
   offset                = 0
 
