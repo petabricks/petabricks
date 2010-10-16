@@ -202,16 +202,16 @@ class Population:
 
     best=self.markBestN(self.members, popsize, config.timing_metric_idx)
     if isLast:
-      storagedirs.storage_dirs.markBest(best[0].cid, self.inputSize(), None)
-      best[0].writestats(self.inputSize(), storagedirs.storage_dirs.results())
+      storagedirs.cur.markBest(best[0].cid, self.inputSize(), None)
+      best[0].writestats(self.inputSize(), storagedirs.cur.results())
 
     for accLevel,accTarg in enumerate(self.accuracyTargets()):
       t = filter(lambda x: x.hasAccuracy(self.inputSize(), accTarg), self.members)
       if len(t):
         best=self.markBestN(t, popsize)
         if isLast:
-          storagedirs.storage_dirs.markBest(best[0].cid, self.inputSize(), accLevel)
-          best[0].writestats(self.inputSize(), storagedirs.storage_dirs.results(accLevel))
+          storagedirs.cur.markBest(best[0].cid, self.inputSize(), accLevel)
+          best[0].writestats(self.inputSize(), storagedirs.cur.results(accLevel))
       else:
         warnings.warn(TargetNotMet(self.inputSize(), accTarg))
 
@@ -355,6 +355,13 @@ def autotuneInner(benchmark):
     addMutators(candidate, infoxml.transform(main))
     candidate.addMutator(mutators.MultiMutator(2))
     pop = Population(candidate, tester, baseline)
+
+    if not config.delete_output_dir:
+      storagedirs.cur.dumpConfig()
+      storagedirs.cur.dumpGitStatus()
+      storagedirs.cur.saveFile(pbutil.benchmarkToInfo(benchmark))
+      storagedirs.cur.saveFile(pbutil.benchmarkToBin(benchmark))
+
     stats = storagedirs.openCsvStats("roundstats", 
         ("round",
          "input_size",

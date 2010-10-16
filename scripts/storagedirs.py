@@ -1,14 +1,16 @@
 import os, shutil, tempfile, csv, time
+import subprocess
+import warnings
 import tunerconfig
 from tunerconfig import config
 
-#try:
-#  from os.path import relpath
-#except:
-def _relpath(path, root = None):
-  if root is None:
-    root = os.getcwd()
-  return path[len(os.path.commonprefix((path,root+'/'))):]
+try:
+  from os.path import relpath as _relpath
+except:
+  def _relpath(path, root = None):
+    if root is None:
+      root = os.getcwd()
+    return path[len(os.path.commonprefix((path,root+'/'))):]
 
 class Timer:
   def __init__(self):
@@ -63,6 +65,7 @@ def getactivetimers():
            filter(lambda y: type(y[1]) is Timer,
              map(lambda x: (x, getattr(timers,x)),
                dir(timers))))
+
 def disabletimers():
   for k in timers.getactive().keys():
     setattr(timers, k, NullTimer())
@@ -71,13 +74,15 @@ class StorageDirsTemplate:
   def __init__(self, root):
     self.root    = root
     self.candidated = os.path.join(root, 'candidate')
-    self.inputd  = os.path.join(root, 'data')
-    self.bestd   = os.path.join(root, 'best')
-    self.statsd  = os.path.join(root, 'stats')
+    self.inputd     = os.path.join(root, 'data')
+    self.bestd      = os.path.join(root, 'best')
+    self.statsd     = os.path.join(root, 'stats')
+    self.configd    = os.path.join(root, 'tunerconfig')
     os.mkdir(self.candidated)
     os.mkdir(self.statsd)
     os.mkdir(self.bestd)
     os.mkdir(self.inputd)
+    os.mkdir(self.configd)
   
   def candidate(self, cid):
     d = os.path.join(self.candidated, "%05d" % cid)
@@ -103,9 +108,9 @@ class StorageDirsTemplate:
   
   def results(self, acc=None):
     if acc is not None:
-      return os.path.join(self.statsd, "timing_acc%d"%acc)
+      return os.path.join(self.statsd, "timing_acc%d.csv"%acc)
     else:
-      return os.path.join(self.statsd, "timing")
+      return os.path.join(self.statsd, "timing.csv")
   
   def inputpfx(self, size, number):
     return os.path.join(self.inputd, "n%010d_i%02d_" % (size, number))
@@ -120,31 +125,44 @@ class StorageDirsTemplate:
       w.writerow(headerRow)
     return w
 
+  def saveFile(self, path):
+    shutil.copy(path, self.configd)
+  
   def dumpConfig(self):
-    w=open(os.path.join(self.root, 'config.py'), "w")
+    w=open(os.path.join(self.configd, 'config.py'), "w")
     tunerconfig.dump(w)
     w.close()
 
-storage_dirs = None
+  def dumpGitStatus(self):
+    try:
+      w=open(os.path.join(self.configd, 'git.status'), "w")
+      p=subprocess.Popen(['git', 'log', '-n1', '--pretty=format:%H: %s'], stdout=w)
+      p.communicate()
+      p=subprocess.Popen(['git', 'status'], stdout=w)
+      p.communicate()
+      w.close()
+    except Exception, e:
+      warnings.warn("Failed to record git status: "+e)
+
+  
+cur = None
 
 def callWithLogDir(fn, root, delete):
   d = tempfile.mkdtemp(prefix='pbtunerun_'+config.name+'_', dir=os.path.expanduser(root))
   if not delete:
     print d
-  global storage_dirs
-  storage_dirs = StorageDirsTemplate(d)
-  if not delete:
-    storage_dirs.dumpConfig()
+  global cur
+  cur = StorageDirsTemplate(d)
   try:
     fn()
   finally:
     if delete:
       shutil.rmtree(d)
 
-candidate    = lambda cid:          storage_dirs.candidate(cid)
-inputpfx     = lambda size, number: storage_dirs.inputpfx(size, number)
-clearInputs  = lambda :             storage_dirs.clearInputs()
-openCsvStats = lambda name, header: storage_dirs.openCsvStats(name, header)
-
-relpath      = lambda d: _relpath(d, storage_dirs.root)
+candidate    = lambda cid:          cur.candidate(cid)
+inputpfx     = lambda size, number: cur.inputpfx(size, number)
+clearInputs  = lambda :             cur.clearInputs()
+openCsvStats = lambda name, header: cur.openCsvStats(name, header)
+saveFile     = lambda path:         cur.saveFile(path)
+relpath      = lambda d: _relpath(d, cur.root)
 
