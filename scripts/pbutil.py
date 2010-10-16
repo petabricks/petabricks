@@ -13,6 +13,7 @@ import subprocess
 import sys
 import time
 from xml.dom.minidom import parse
+from xml.dom import DOMException
 from pprint import pprint
 from configtool import getConfigVal, setConfigVal
 
@@ -352,7 +353,7 @@ def xmlToDict(xml, tag, fn=tryIntFloat):
 
 
 #parse timing results with a given time limit
-def executeRun(cmd, returnTags=['timing', 'accuracy', 'outputhash']):
+def executeRun(cmd, returnTags=['timing', 'accuracy', 'outputhash'], retries=3):
   null=open("/dev/null", "w")
   p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
   goodwait(p)
@@ -361,7 +362,17 @@ def executeRun(cmd, returnTags=['timing', 'accuracy', 'outputhash']):
     raise TimingRunTimeout()
   if p.returncode != 0:
     raise TimingRunFailed(p.returncode)
-  xml = parse(p.stdout)
+  try:
+    xml = parse(p.stdout)
+  except Exception, e:
+    print 'program crash',e
+    if retries>1:
+      return executeRun(cmd, returnTags, retries-1)
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
+    goodwait(p)
+    print p.stdout.read()
+    sys.exit(99)
+
   timing = xmlToDict(xml, "timing")
   if timing['average'] > 2**31:
     raise TimingRunTimeout()
