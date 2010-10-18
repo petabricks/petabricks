@@ -307,7 +307,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("isolation",   ISOLATION).help("don't run timing tests in a forked subprocess");
   args.param("retries",     RETRIES).help("times to retry on test failure");
   
-  long max_memory=-1;
+  size_t max_memory=0;
   if(args.param("max-memory", max_memory).help("kill the process when it tries to use this much memory")) {
     if(max_memory>0) {
       struct rlimit tmp;

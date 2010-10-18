@@ -5,12 +5,26 @@ import tempfile, os, math, warnings, random, sys, subprocess, time
 import shutil
 import storagedirs
 import tunerwarnings 
+import platform
 import numpy
 from storagedirs import timers
 from scipy import stats
 from tunerconfig import config
 from tunerwarnings import ComparisonFailed, InconsistentOutput
 warnings.simplefilter('ignore', DeprecationWarning)
+
+def getMemoryLimitArgs():
+  limit = []
+  if platform.machine() == 'x86_64' and platform.system() == 'Linux':
+    mi = filter(lambda x: x[0:9]=="MemTotal:", open("/proc/meminfo"))
+    assert len(mi)==1
+    v,u = mi[0][9:].strip().split(' ')
+    v=int(v)
+    assert u=="kB"
+    limit=['--max-memory=%d'%int(v*1024*config.memory_limit_pct)]
+  global getMemoryLimitArgs
+  getMemoryLimitArgs = lambda: limit
+  return limit
 
 class NoMutators(Exception):
   '''Exception thrown when a mutation doesn't exist'''
@@ -363,6 +377,7 @@ class CandidateTester:
     cmd.extend(timers.inputgen.wrap(lambda:self.getInputArg(testNumber)))
     if limit is not None:
       cmd.append("--max-sec=%f"%limit)
+    cmd.extend(getMemoryLimitArgs())
     try:
       debug_logcmd(cmd)
       if config.check:
