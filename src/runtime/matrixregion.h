@@ -194,7 +194,7 @@ public:
   }
 
   ///
-  ///Return an iterator that accesses elements in a tranposed fasion
+  ///Return an iterator that accesses elements in a transposed fashion
   MatrixRegion transposed() const {
     IndexT sizes[D];
     IndexT multipliers[D];
@@ -203,6 +203,39 @@ public:
       multipliers[i] = this->multipliers()[D-i-1];
     }
     return MatrixRegion(this->storage(), this->base(), sizes, multipliers);
+  }
+
+  ///
+  /// A region is considered normalized if it occupies the entire buffer and is organized so that
+  /// a N-dimensional buffer is laid out as sequential (N-1)-dimensional buffers.
+  MatrixRegion asNormalizedRegion( bool copyData = true ) const
+  {
+    if( isEntireBuffer( ) )
+      return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
+
+    MutableMatrixRegion t = MutableMatrixRegion::allocate((IndexT*)this->sizes());
+    if( copyData ) {
+      IndexT coord[D];
+      memset(coord, 0, sizeof coord);
+      do {
+        t.cell(coord) = this->cell(coord);
+      } while(this->incCoord(coord)>0);
+    }
+    return t;
+  }
+  
+  ///
+  /// Copy that data of this to dst
+  void copyTo(const MutableMatrixRegion& dst)
+  {
+    if(this->base() == dst.base())
+      return;
+    JASSERT(this->count()==dst.count());
+    IndexT coord[D];
+    memset(coord, 0, sizeof coord);
+    do {
+      dst.cell(coord) = this->cell(coord);
+    } while(this->incCoord(coord)>0);
   }
 
   ///
@@ -298,7 +331,7 @@ public:
   }
 
   ///
-  /// Number of elements in this region
+  /// Number of bytes taken to store the elements in this region
   ssize_t bytes() const {
     return count()*sizeof(ElementT);
   }
@@ -316,9 +349,9 @@ public:
 
   ///
   /// true if this region occupies the entire buffer _storage
-  bool isEntireBuffer(){
+  bool isEntireBuffer() const {
     if(D==0) return true;
-    return this->storage() && this->storage()->count()==count();
+    return this->storage() && (ssize_t)this->storage()->count()==count();
   }
 
   ///
@@ -355,6 +388,7 @@ public:
       } while(this->incCoord(coord)>0);
     }
   }
+  
 protected:
   ///
   /// Compute the offset in _base for a given coordinate

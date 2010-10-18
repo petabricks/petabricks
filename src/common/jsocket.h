@@ -52,11 +52,11 @@ namespace jalib
     public:
       ///
       /// Create new socket
-    protected: 
       JSocket(); 
-    public:
+
       //so we dont leak FDs
       inline static JSocket Create() { return JSocket(); }
+
       ///
       /// Use existing socket
       JSocket ( int fd ) : _sockfd ( fd ) {}
@@ -70,8 +70,11 @@ namespace jalib
       bool close();
       ssize_t read ( char* buf, size_t len );
       ssize_t write ( const char* buf, size_t len );
-      ssize_t readAll ( char* buf, size_t len );
-      ssize_t writeAll ( const char* buf, size_t len );
+      ssize_t tryReadAll ( char* buf, size_t len );
+      ssize_t readAll( char* buf, size_t len );
+      ssize_t writeAll( const char* buf, size_t len );
+      ssize_t readAllFallback ( char* buf, size_t len );
+      ssize_t writeAllFallback ( const char* buf, size_t len );
       bool isValid() const;
 
       void enablePortReuse();
@@ -96,6 +99,7 @@ namespace jalib
         if ( !connect ( addr, port ) )
           close();
       }
+      operator JSocket () { return sockfd(); }
   };
 
   class JServerSocket : public JSocket
@@ -107,6 +111,7 @@ namespace jalib
         if ( !bind ( addr, port ) || !listen ( backlog ) )
           close();
       }
+      operator JSocket () { return sockfd(); }
   };
 
   class JReaderInterface

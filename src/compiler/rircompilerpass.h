@@ -15,6 +15,7 @@
 #include "rirscope.h"
 #include "ruleir.h"
 #include "trainingdeps.h"
+#include "userrule.h"
 
 #include "common/jprintable.h"
 
@@ -167,6 +168,12 @@ protected:
   RIRScopePtr      _scope;
 };
 
+class GpuRenamePass : public RIRCompilerPass {
+public:
+  GpuRenamePass() : RIRCompilerPass(RIRScope::global()->createChildLayer()) {}
+  void before(RIRExprCopyRef& e);
+};
+
 class DebugPrintPass : public RIRCompilerPass {
 public:
   DebugPrintPass() : RIRCompilerPass(RIRScope::global()->createChildLayer()) {}
@@ -252,7 +259,31 @@ private:
   std::vector<std::string> _continueTargets;
 };
 
+class OpenClCleanupPass: public RIRCompilerPass {
+public:
+  class NotValidSource {};
+  OpenClCleanupPass(UserRule& r, const RIRScopePtr& p) 
+    : RIRCompilerPass(p->createChildLayer()), _rule(r)
+  {}
+  void before(RIRExprCopyRef& e);
+private:
+  RegionPtr findMatrix(std::string var);
+  void generateAccessor( const RegionPtr& region, const FormulaPtr& x, const FormulaPtr& y );
+  UserRule& _rule;
+};
 
+class OpenClFunctionRejectPass: public RIRCompilerPass {
+ public:
+  class NotValidSource {};
+  OpenClFunctionRejectPass(UserRule& r, const RIRScopePtr& p)
+    : RIRCompilerPass(p->createChildLayer()), _rule(r)
+  {}
+  void before(RIRExprCopyRef& e);
+ private:
+  bool isFunctionAllowed( const std::string& fn );
+  bool isIdentBlacklisted( const std::string& ident );
+  UserRule& _rule;
+};
 
 }
 

@@ -84,6 +84,9 @@
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
 
+/* Define to 1 if you have the `OpenCL' library (-lOpenCL). */
+#undef HAVE_LIBOPENCL
+
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
 
@@ -98,6 +101,9 @@
 
 /* Define to 1 if you have a working `mmap' system call. */
 #undef HAVE_MMAP
+
+/* Enable OpenCL code generation */
+#undef HAVE_OPENCL
 
 /* Define to 1 if you have the <openssl/md5.h> header file. */
 #undef HAVE_OPENSSL_MD5_H
@@ -122,9 +128,6 @@
 
 /* Define to 1 if you have the <sys/mman.h> header file. */
 #undef HAVE_SYS_MMAN_H
-
-/* Define to 1 if you have the <sys/param.h> header file. */
-#undef HAVE_SYS_PARAM_H
 
 /* Define to 1 if you have the <sys/prctl.h> header file. */
 #undef HAVE_SYS_PRCTL_H
@@ -180,6 +183,9 @@
 /* include source line numbers in error messages */
 #undef JASSERT_USE_SRCPOS
 
+/* first port to try to use to listen */
+#undef LISTEN_PORT_FIRST
+
 /* type for elements in the matrix */
 #undef MATRIX_ELEMENT_T
 
@@ -227,9 +233,6 @@
 
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
-
-/* Define to the home page for this package. */
-#undef PACKAGE_URL
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
@@ -288,8 +291,11 @@
 /* define to add a system var to transform scope */
 #undef TRANSFORM_N_STR
 
-/* postfix for static versions of transforms */
+/* postfix for dynamic versions of transforms */
 #undef TX_DYNAMIC_POSTFIX
+
+/* postfix for opencl versions of transforms */
+#undef TX_OPENCL_POSTFIX
 
 /* postfix for static versions of transforms */
 #undef TX_STATIC_POSTFIX
@@ -321,12 +327,12 @@
 #undef YYTEXT_POINTER
 
 /* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
+   <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
    #define below would cause a syntax error. */
 #undef _UINT32_T
 
 /* Define for Solaris 2.5.1 so the uint64_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
+   <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
    #define below would cause a syntax error. */
 #undef _UINT64_T
 

@@ -27,12 +27,19 @@
 #include <iostream>
 #include <math.h>
 
+#include <sys/time.h>
+#include <sys/resource.h>
+
 #ifdef HAVE_CONFIG_H
-#  include "config.h"
+# include "config.h"
+#endif
+
+#ifdef HAVE_OPENCL
+# include "openclutil.h"
 #endif
 
 #ifdef HAVE_BOOST_RANDOM_HPP
-#  include <boost/random.hpp>
+# include <boost/random.hpp>
 #endif
 
 static bool _isRunning = false;
@@ -259,10 +266,20 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     std::cout << _mainName << std::endl;
     MODE=MODE_ABORT;
   }
-  if(args.param("resolution").help("print out the timer resolution an exit")){
+  if(args.param("resolution").help("print out the timer resolution and exit")){
     std::cout << jalib::JTime::resolution() << std::endl;
     MODE=MODE_ABORT;
   }
+#ifdef HAVE_OPENCL
+  if(args.param("opencl-info").help("display information about OpenCL devices and exit")){
+    if( 0 != OpenCLUtil::init( ) )
+      std::cout << "Failed to initialize OpenCL." << std::endl;
+    else
+      OpenCLUtil::printDeviceList( );
+
+    MODE=MODE_ABORT;
+  }
+#endif
   if(args.needHelp()){
     MODE=MODE_HELP;
   }
@@ -289,6 +306,16 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("max-sec",     GRAPH_MAX_SEC).help("stop graphs/autotuning after algorithm runs too slow");
   args.param("isolation",   ISOLATION).help("don't run timing tests in a forked subprocess");
   args.param("retries",     RETRIES).help("times to retry on test failure");
+  
+  long max_memory=-1;
+  if(args.param("max-memory", max_memory).help("kill the process when it tries to use this much memory")) {
+    if(max_memory>0) {
+      struct rlimit tmp;
+      tmp.rlim_cur = max_memory;
+      tmp.rlim_max = max_memory;
+      JASSERT(setrlimit(RLIMIT_AS, &tmp)==0);
+    }
+  }
 
   args.finishParsing(txArgs);
 
@@ -345,10 +372,20 @@ void petabricks::PetabricksRuntime::saveConfig()
 
 
 int petabricks::PetabricksRuntime::runMain(){
+#ifdef HAVE_OPENCL
+  int err;
+#endif
   JTIMER_SCOPE(runMain);
 
   switch(MODE){
     case MODE_RUN_IO:
+#ifdef HAVE_OPENCL
+      if( 0 != ( err = OpenCLUtil::init( ) ) )
+      {
+        std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
+        exit( -1 );
+      }
+#endif
       runNormal();
       break;
     case MODE_IOGEN_CREATE:
@@ -358,6 +395,13 @@ int petabricks::PetabricksRuntime::runMain(){
       iogenRun(iogenFiles(IOGEN_PFX));
       break;
     case MODE_RUN_RANDOM:
+#ifdef HAVE_OPENCL
+      if( 0 != ( err = OpenCLUtil::init( ) ) )
+      {
+        std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
+        exit(-1 );
+      }
+#endif
       runTrial(GRAPH_MAX_SEC, ACCTRAIN);
       break;
     case MODE_GRAPH_INPUTSIZE:

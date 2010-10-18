@@ -61,7 +61,9 @@ private:
   const JMutex& _mux;
 };
 
-#define JLOCKSCOPE(m) jalib::JLockScope __scopeLock ## __LINE__ ( m )
+#define _JLOCKSCOPE_CAT(a, b) a ## b
+#define JLOCKSCOPE_CAT(a, b) _JLOCKSCOPE_CAT(a, b)
+#define JLOCKSCOPE(m) jalib::JLockScope JLOCKSCOPE_CAT(__scopeLock , __LINE__ ) ( m )
 
 }
 

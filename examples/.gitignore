@@ -121,6 +121,7 @@ regression/scaleup
 regression/templatetest
 regression/testruleir
 regression/throughclause
+regression/transposequads
 regression/tunoutputn
 regression/txconstants
 regression/upleftdep
@@ -132,6 +133,7 @@ simple/add
 simple/bufferrotate
 simple/copy
 simple/matrixrotate
+simple/minimalmatmul
 simple/randomshuffle
 simple/rollingsum
 simple/transpose

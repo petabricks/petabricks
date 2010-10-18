@@ -24,6 +24,17 @@ namespace {//file local
   }
 }
 
+void petabricks::GpuRenamePass::before(RIRExprCopyRef& e)
+{
+  if( RIRNode::EXPR_IDENT == e->type() )
+    {
+      if( e->isLeaf( "ElementT" ) )
+	e = new RIRIdentExpr( STRINGIFY( MATRIX_ELEMENT_T ) );
+      else if( e->isLeaf( "IndexT" ) )
+	e = new RIRIdentExpr( STRINGIFY( MATRIX_INDEX_T ) );
+    }
+}
+
 void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
   switch(s->type()){
   case RIRNode::STMT_BASIC:
@@ -211,7 +222,7 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
       }
     }
     if(sym && sym->isTransform()){
-      if(peekExprForward()->type() == RIRNode::EXPR_ARGS){
+      if(hasExprForward() && peekExprForward()->type() == RIRNode::EXPR_ARGS){
         //transform transform calls from:
         //   Foo(c,d)
         //to:
@@ -307,5 +318,170 @@ void petabricks::AnalysisPass::before(RIRExprCopyRef& e){
   }
 }
 
+petabricks::RegionPtr petabricks::OpenClCleanupPass::findMatrix(std::string var)
+{
+  RegionList from = _rule.getFromRegions();
+  RegionList to = _rule.getToRegions();
 
+  for( RegionList::const_iterator i = to.begin(); i != to.end(); ++i )
+    if( var == (*i)->name() )
+      return (*i);
+  for( RegionList::const_iterator i = from.begin(); i != from.end(); ++i )
+    if( var == (*i)->name() )
+      return (*i);
+  return NULL;
+}
 
+void petabricks::OpenClCleanupPass::generateAccessor( const RegionPtr& , const FormulaPtr& , const FormulaPtr&  )
+{
+}
+
+void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
+  if(e->type() == RIRNode::EXPR_IDENT){
+    RIRSymbolPtr sym = _scope->lookup(e->toString());
+    if(sym && sym->isTemplateTransform()){
+      throw NotValidSource();
+    }
+    if(sym && sym->isTransform()){
+      throw NotValidSource();
+    }
+    if(sym && sym->type() == RIRSymbol::SYM_CONFIG_TRANSFORM_LOCAL){
+      throw NotValidSource();
+    }
+    if(e->isLeaf("SPAWN")){
+      throw NotValidSource();
+    }
+    if(e->isLeaf("SYNC")){
+      throw NotValidSource();
+    }
+    if(sym && sym->type() == RIRSymbol::SYM_ARG_REGION){
+      if(hasExprForward() && peekExprForward()->isLeaf(".")){
+        RIRExprCopyRef regionName = e;
+        popExprForward();// burn "."
+        RIRExprRef call = popExprForward();
+        JASSERT(call->type()==RIRNode::EXPR_CALL && call->parts().size()==2);
+        RIRExprCopyRef methodname = call->part(0);
+        RIRExprCopyRef args = call->part(1);
+        JTRACE("expanding SYM_ARG_REGION")(regionName)(methodname)(args);
+
+	// Look up matrix region.
+	RegionPtr region = findMatrix(regionName->str());
+	JASSERT( !region.null() ).Text( "No such region exists." );
+
+	// Generate list of index expressions.
+	/*
+	std::cout << "formula bounds:\n";
+	for( int i = 0; i < region->dimensions(); ++i )
+	  {
+	    std::cout << i << ": ";
+	    region->minCoord().at( i )->print(std::cout);
+	    std::cout << " to ";
+	    region->maxCoord().at( i )->print(std::cout);
+	    std::cout << std::endl;
+	  }
+	*/
+
+	if( "cell" == methodname->str() )
+	  {
+	    std::string xcoord, ycoord;
+	    if( petabricks::Region::REGION_ROW == region->getRegionType() )
+	      {
+		xcoord = args->toString();
+		ycoord = region->minCoord().at(1)->toString();
+	      }
+	    else if( petabricks::Region::REGION_COL == region->getRegionType() )
+	      {
+		xcoord = region->minCoord().at(0)->toString();
+		ycoord = args->toString();
+	      }
+	    else
+	      {
+		std::cout << "Failed to generate OpenCL kernel: unsupported region type.";
+		throw NotValidSource();
+	      }
+
+	    std::string exprstr = region->matrix()->name() + "[(dim_" + region->matrix()->name() + "_d0*" + ycoord + ")+" + xcoord + "]";
+	    //std::cout << "expression string: " << exprstr << "\n";
+	    e = RIRExpr::parse( exprstr );
+	    //std::cout << "accessor index: " << e->debugStr() << "\n";
+	  }
+	else if( "width" == methodname->str() )
+	  {
+	    e = RIRExpr::parse( "dim_" + region->matrix()->name() + "_d0" );
+	  }
+	else
+	  {
+	    JASSERT( false ).Text( "Failed to generate OpenCL kernel: unsupported member function of region." );
+	  }
+
+	// Simplify expressions and produce final call.
+
+	/*
+        args->prependSubExpr(methodname);
+        args->prependSubExpr(regionName);
+        e = new RIRCallExpr();
+        e->addSubExpr(new RIRIdentExpr("REGION_METHOD_CALL"));
+        e->addSubExpr(args);
+	*/
+      }
+    }
+  }
+}
+
+bool petabricks::OpenClFunctionRejectPass::isFunctionAllowed( const std::string& fn )
+{
+  /* This is a quick list of functions which are common to the C or C++ and OpenCL C.  Thus, trying to compile rules using these functions
+     shouldn't cause a problem. */
+  const std::string whitelist[] =
+    { "PB_RETURN",
+      "abs", "fabs",
+      "max", "min",
+      "sign", "round",
+      "floor", "ceil",
+      "log", "exp", "pow",
+      "sin", "cos", "tan",
+      "acos", "asin", "atan",
+      "sqrt",
+      "", };
+
+  const std::string* p = whitelist;
+  while( "" != *p )
+    if( *(p++) == fn )
+      return true;
+
+  return false;
+}
+
+bool petabricks::OpenClFunctionRejectPass::isIdentBlacklisted( const std::string& ident )
+{
+  const std::string blacklist[] =
+    { "double",
+      "fftw_complex",
+      "", };
+
+  const std::string* p = blacklist;
+  while( "" != *p )
+    if( *(p++) == ident )
+      return true;
+
+  return false;
+}
+
+void petabricks::OpenClFunctionRejectPass::before(RIRExprCopyRef& e)
+{
+  if(e->type() == RIRNode::EXPR_CALL)
+    {
+      if( ( e->parts().size() < 1 ) || !isFunctionAllowed( e->part(0)->str() ) )
+	{
+	  JTRACE( "Function isn't whitelisted for OpenCL:")(e->part(0)->str());
+	  throw NotValidSource();
+	}
+    }
+  else if(e->type() == RIRNode::EXPR_IDENT)
+    {
+      if( isIdentBlacklisted( e->str() ) )
+	{
+	  JTRACE( "Identifier is blacklisted for OpeNCL:")(e->str());
+	}
+    }
+}

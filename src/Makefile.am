@@ -5,10 +5,11 @@ AM_LFLAGS =
 OBJDIR=obj
 
 noinst_LIBRARIES = libpbcommon.a libpbcompiler.a libpbruntime.a libpbmain.a
-noinst_PROGRAMS = pbc 
+noinst_PROGRAMS = pbc rttest1 rttest2
 
 noinst_HEADERS = \
   compiler/choicegrid.h \
+  compiler/clcodegenerator.h \
   compiler/codegenerator.h \
   compiler/configitem.h \
   compiler/formula.h \
@@ -29,9 +30,11 @@ noinst_HEADERS = \
   compiler/ruleirparser.h \
   compiler/staticscheduler.h \
   compiler/syntheticrule.h \
+  compiler/gpurule.h \
   compiler/trainingdeps.h \
   compiler/transform.h \
-  compiler/userrule.h
+  compiler/userrule.h \
+  compiler/openclutil.h
 
 pkglib_HEADERS=  \
   common/hash.h \
@@ -61,11 +64,14 @@ pkglib_HEADERS=  \
   runtime/memoization.h \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
+  runtime/remotehost.h \
+  runtime/remoteobject.h \
   runtime/ruleinstance.h \
   runtime/specializeddynamictasks.h \
   runtime/testisolation.h \
   runtime/transforminstance.h \
-  runtime/workerthread.h
+  runtime/workerthread.h \
+  runtime/openclutil.h
 
 libpbcommon_a_CXXFLAGS = -I$(srcdir)/common
 libpbcommon_a_SOURCES =  \
@@ -86,6 +92,7 @@ libpbcompiler_a_YFLAGS = -d
 libpbcompiler_a_CXXFLAGS = -I$(srcdir)/compiler
 libpbcompiler_a_SOURCES = \
   compiler/choicegrid.cpp \
+  compiler/clcodegenerator.cpp \
   compiler/codegenerator.cpp \
   compiler/configitem.cpp \
   compiler/formula.cpp \
@@ -108,9 +115,11 @@ libpbcompiler_a_SOURCES = \
   compiler/ruleirparser.ypp \
   compiler/staticscheduler.cpp \
   compiler/syntheticrule.cpp \
+  compiler/gpurule.cpp \
   compiler/trainingdeps.cpp \
   compiler/transform.cpp \
-  compiler/userrule.cpp
+  compiler/userrule.cpp \
+  compiler/openclutil.cpp
 
 libpbruntime_a_LFLAGS = 
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime
@@ -123,11 +132,14 @@ libpbruntime_a_SOURCES =  \
   runtime/matrixstorage.cpp \
   runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
+  runtime/remotehost.cpp \
+  runtime/remoteobject.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \
   runtime/testisolation.cpp \
   runtime/transforminstance.cpp \
-  runtime/workerthread.cpp
+  runtime/workerthread.cpp \
+  runtime/openclutil.cpp
 
 libpbmain_a_CXXFLAGS = -Iruntime
 libpbmain_a_SOURCES = runtime/redirectmain.cpp
@@ -135,6 +147,14 @@ libpbmain_a_SOURCES = runtime/redirectmain.cpp
 pbc_CXXFLAGS = -Icompiler
 pbc_SOURCES = compiler/pbc.cpp
 pbc_LDADD = libpbcompiler.a libpbcommon.a 
+
+rttest1_CXXFLAGS = -Iruntime
+rttest1_SOURCES  = runtime/rttest1.cpp
+rttest1_LDADD    = libpbruntime.a libpbcommon.a 
+
+rttest2_CXXFLAGS = -Iruntime
+rttest2_SOURCES  = runtime/rttest2.cpp
+rttest2_LDADD    = libpbruntime.a libpbcommon.a 
 
 CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp libpbcompiler_a-maximaparser.h \
              libpbcompiler_a-pblexer.cpp libpbcompiler_a-pbparser.cpp libpbcompiler_a-pbparser.h \

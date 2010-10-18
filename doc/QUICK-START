@@ -41,6 +41,7 @@ the PetaBricks source code. Use `git pull` to grab new changes.
 BUILDING:
 
 To build the PetaBricks compiler (pbc) run the following commands:
+./Makefile.cvs
 ./configure
 make
 

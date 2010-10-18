@@ -52,7 +52,7 @@ class TargetNotMet(TunerWarning):
   def __str__(self):
     return "accuracy %.2f not met for input size %d"%(self.acc, self.n)
 
-class ProgramTimeout(TunerWarning):
+class ProgramTimeout(IgnoredTunerWarning):
   '''an accuracy target was not attainable through search'''
   def __init__(self, candidate, n, timeout):
     self.candidate = candidate
@@ -91,5 +91,13 @@ class ExistingProgramCrash(ProgramCrash):
 class NewProgramCrash(ProgramCrash):
   '''a mutated child algorithm crashed'''
   pass
+
+class TooManyTrials(TunerWarning):
+  '''base class for program crash warnings'''
+  def __init__(self, trial):
+    self.trials=trial
+  def __str__(self):
+    return TunerWarning.__str__(self)+\
+        ": trials=%d" % self.trials
 
 
