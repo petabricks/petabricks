@@ -125,6 +125,10 @@ class Results:
     assert len(self)>0
     m,v=self.distribution.stats()
     return m
+  
+  def min(self):
+    assert len(self)>0
+    return min(self.interpolatedResults)
 
   def variance(self):
     assert len(self)>0

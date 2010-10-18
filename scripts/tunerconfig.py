@@ -7,11 +7,11 @@ class config_defaults:
   final_rounds             = 2
 
   #number of trials to run
-  confidence_pct   = 0.8
+  confidence_pct   = 0.7
   min_trials       = 1
-  max_trials       = 10
+  max_trials       = 5
   '''guessed stddev when only 1 test is taken'''
-  prior_stddev_pct      = 0.20
+  prior_stddev_pct      = 0.10
   '''percentage change to be viewed as insignificant when testing if two algs are equal'''
   same_threshold_pct    = 0.02
   '''confidence for generating execution time limits'''
@@ -24,7 +24,7 @@ class config_defaults:
   #how mutation to do
   mutations_per_mutator    = 3
   population_high_size     = 10
-  population_low_size      = 1
+  population_low_size      = 2
   multimutation            = True
   mutate_retries           = 10
   rand_retries             = 10
