@@ -1,4 +1,5 @@
 #include "regioncontiguous.h"
+#include "regionslice.h"
 #include "regionsplit.h"
 
 petabricks::RegionContiguous::RegionContiguous(int dimension, IndexT* size, ElementT* data) {
@@ -29,6 +30,5 @@ petabricks::RegionContiguous::splitRegion(IndexT* offset, IndexT* size) {
 
 petabricks::RegionIPtr
 petabricks::RegionContiguous::sliceRegion(int d, IndexT pos){
-  return NULL;
+  return new RegionSlice(this, d, pos);
 }
-

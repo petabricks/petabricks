@@ -66,6 +66,7 @@ pkglib_HEADERS=  \
   runtime/petabricksruntime.h \
   runtime/regioni.h \
   runtime/regioncontiguous.h \
+  runtime/regionslice.h \
   runtime/regionsplit.h \
   runtime/remotehost.h \
   runtime/remoteobject.h \
@@ -137,6 +138,7 @@ libpbruntime_a_SOURCES =  \
   runtime/petabricksruntime.cpp \
   runtime/regioni.cpp \
   runtime/regioncontiguous.cpp \
+  runtime/regionslice.cpp \
   runtime/regionsplit.cpp \
   runtime/remotehost.cpp \
   runtime/remoteobject.cpp \

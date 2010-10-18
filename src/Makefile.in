@@ -116,6 +116,7 @@ am_libpbruntime_a_OBJECTS = libpbruntime_a-autotuner.$(OBJEXT) \
 	libpbruntime_a-petabricksruntime.$(OBJEXT) \
 	libpbruntime_a-regioni.$(OBJEXT) \
 	libpbruntime_a-regioncontiguous.$(OBJEXT) \
+	libpbruntime_a-regionslice.$(OBJEXT) \
 	libpbruntime_a-regionsplit.$(OBJEXT) \
 	libpbruntime_a-remotehost.$(OBJEXT) \
 	libpbruntime_a-remoteobject.$(OBJEXT) \
@@ -347,6 +348,7 @@ pkglib_HEADERS = \
   runtime/petabricksruntime.h \
   runtime/regioni.h \
   runtime/regioncontiguous.h \
+  runtime/regionslice.h \
   runtime/regionsplit.h \
   runtime/remotehost.h \
   runtime/remoteobject.h \
@@ -418,6 +420,7 @@ libpbruntime_a_SOURCES = \
   runtime/petabricksruntime.cpp \
   runtime/regioni.cpp \
   runtime/regioncontiguous.cpp \
+  runtime/regionslice.cpp \
   runtime/regionsplit.cpp \
   runtime/remotehost.cpp \
   runtime/remoteobject.cpp \
@@ -601,6 +604,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-petabricksruntime.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regioncontiguous.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regioni.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regionslice.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regionsplit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-remotehost.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-remoteobject.Po@am__quote@
@@ -1340,6 +1344,20 @@ libpbruntime_a-regioncontiguous.obj: runtime/regioncontiguous.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regioncontiguous.cpp' object='libpbruntime_a-regioncontiguous.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regioncontiguous.obj `if test -f 'runtime/regioncontiguous.cpp'; then $(CYGPATH_W) 'runtime/regioncontiguous.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regioncontiguous.cpp'; fi`
+
+libpbruntime_a-regionslice.o: runtime/regionslice.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regionslice.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regionslice.Tpo -c -o libpbruntime_a-regionslice.o `test -f 'runtime/regionslice.cpp' || echo '$(srcdir)/'`runtime/regionslice.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regionslice.Tpo $(DEPDIR)/libpbruntime_a-regionslice.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regionslice.cpp' object='libpbruntime_a-regionslice.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regionslice.o `test -f 'runtime/regionslice.cpp' || echo '$(srcdir)/'`runtime/regionslice.cpp
+
+libpbruntime_a-regionslice.obj: runtime/regionslice.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regionslice.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-regionslice.Tpo -c -o libpbruntime_a-regionslice.obj `if test -f 'runtime/regionslice.cpp'; then $(CYGPATH_W) 'runtime/regionslice.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regionslice.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regionslice.Tpo $(DEPDIR)/libpbruntime_a-regionslice.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regionslice.cpp' object='libpbruntime_a-regionslice.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regionslice.obj `if test -f 'runtime/regionslice.cpp'; then $(CYGPATH_W) 'runtime/regionslice.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regionslice.cpp'; fi`
 
 libpbruntime_a-regionsplit.o: runtime/regionsplit.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regionsplit.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regionsplit.Tpo -c -o libpbruntime_a-regionsplit.o `test -f 'runtime/regionsplit.cpp' || echo '$(srcdir)/'`runtime/regionsplit.cpp

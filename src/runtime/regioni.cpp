@@ -26,11 +26,17 @@ int petabricks::RegionI::incCoord(IndexT* coord) {
   }
 }
 
-const int petabricks::RegionI::dimension() {
+int petabricks::RegionI::dimension() const {
   return _dimension;
 }
 
-const void petabricks::RegionI::print() {
+petabricks::IndexT
+petabricks::RegionI::sizeOfDimension(int d) const {
+  return _size[d];
+}
+
+
+void petabricks::RegionI::print() {
   printf("SIZE");
   for (int d = 0; d < _dimension; d++) {
     printf(" %d", _size[d]);

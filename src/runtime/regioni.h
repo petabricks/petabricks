@@ -22,9 +22,10 @@ namespace petabricks {
     virtual RegionIPtr sliceRegion(int d, IndexT pos) = 0;
 
     int incCoord(IndexT* coord);
-    const int dimension();
+    int dimension() const;
+    IndexT sizeOfDimension(int d) const;
 
-    const void print();
+    void print();
   };
 }
 
