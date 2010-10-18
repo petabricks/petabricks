@@ -17,8 +17,8 @@ class Mutator:
          ('better', 0.0),
          ('worse',  0.0),
          ('same',   0.0),
-         ('fail',  0.0),
-         ('unk',      1.0/(1.0-config.score_decay)))
+         ('fail',   0.0),
+         ('unk',    1.0/(1.0-config.score_decay)))
 
   def mutate(self, candidate, n):
     '''
@@ -97,13 +97,13 @@ class SetTunableMutator(Mutator):
   def invalidatesThreshold(self, candidate, oldVal, newVal):
     return 0
 
-  def getVal(self, candidate, oldVal):
+  def getVal(self, candidate, oldVal, inputSize):
     assert self.val is not None
     return self.val
   
   def mutate(self, candidate, n):
     old = candidate.config[self.tunable]
-    new = self.getVal(candidate, old)
+    new = self.getVal(candidate, old, n)
     candidate.config[self.tunable] = new
     candidate.clearResultsAbove(self.invalidatesThreshold(candidate, old, new))
   
@@ -130,15 +130,15 @@ class SetAlgMutator(SetTunableMutator):
 class RandAlgMutator(SetAlgMutator):
   def __init__(self, transform, choicesite, lvl, weight=1.0):
     SetAlgMutator.__init__(self, transform, choicesite, lvl, None, weight)
-  def getVal(self, candidate, oldVal):
+  def getVal(self, candidate, oldVal, inputSize):
     return random.choice(candidate.infoxml.transform(self.transform).rulesInAlgchoice(self.choicesite))
 
 class LognormRandCutoffMutator(SetTunableMutator, LognormRandom):
   '''randomize cutoff using lognorm distribution'''
   def invalidatesThreshold(self, candidate, oldVal, newVal):
     return min(oldVal, newVal)
-  def getVal(self, candidate, oldVal):
-    return self.random(oldVal, 1, config.cutoff_max_val)
+  def getVal(self, candidate, oldVal, inputSize):
+    return self.random(oldVal, 1, min(inputSize*1.5, config.cutoff_max_val))
 
 class UniformRandMutator(SetTunableMutator, UniformRandom):
   '''randomize cutoff using uniform distribution'''
@@ -146,7 +146,7 @@ class UniformRandMutator(SetTunableMutator, UniformRandom):
     self.minVal = minVal
     self.maxVal = maxVal
     SetTunableMutator.__init__(self, tunable, None, weight)
-  def getVal(self, candidate, oldVal):
+  def getVal(self, candidate, oldVal, inputSize):
     return self.random(oldVal, self.minVal, self.maxVal+1)
 
 class LognormRandAlgCutoffMutator(LognormRandCutoffMutator, LognormRandom):
@@ -157,10 +157,11 @@ class LognormRandAlgCutoffMutator(LognormRandCutoffMutator, LognormRandom):
     self.kcoup   = config.fmt_cutoff % (transform, choicesite, lvl+1)
     self.lvl = lvl
     LognormRandCutoffMutator.__init__(self, self.kco, None, weight)
-  def getVal(self, candidate, oldVal):
+  def getVal(self, candidate, oldVal, inputSize):
     '''threshold the random value'''
     down = 1
-    up = config.cutoff_max_val
+    #up = config.cutoff_max_val
+    up = inputSize
     try:
       down=candidate.config[self.kcodown]+1
     except KeyError:
@@ -180,13 +181,13 @@ class TunableArrayMutator(Mutator):
     self.minVal = minVal
     self.maxVal = maxVal
     Mutator.__init__(self, weight)
-  def getVal(self, candidate, oldVal):
+  def getVal(self, candidate, oldVal, inputSize):
     return self.random(oldVal, self.minVal, self.maxVal)
   def mutate(self, candidate, n):
     i = int(math.log(n, 2))
     candidate.clearResultsAbove(min(n, 2**i-1))
     old = candidate.config[config.fmt_bin % (self.tunable, i)]
-    new = self.getVal(candidate, old)
+    new = self.getVal(candidate, old, n)
     print str(candidate),self.tunable, old, new
     ks = set(candidate.config.keys())
     assert config.fmt_bin%(self.tunable, i) in ks
