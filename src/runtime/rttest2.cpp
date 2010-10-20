@@ -31,13 +31,16 @@ int main(int argc, const char** argv){
   IndexT m2[] = {2,2,2};
   IndexT m3[] = {3,3,3};
 
-//   RegionIPtr split3 = region->splitRegion(m123, m3);
-//   RegionIPtr split2 = split3->splitRegion(m1, m2);
-//   split3->print();
-//   split2->print();
+  RegionIPtr split3 = region->splitRegion(m123, m3);
+  RegionIPtr split2 = split3->splitRegion(m1, m2);
+  split3->print();
+  split2->print();
 
-  RegionIPtr slice1 = region->sliceRegion(2, 0);
+  RegionIPtr slice1 = split2->sliceRegion(2, 0);
   slice1->print();
+
+  RegionIPtr slice2 = slice1->sliceRegion(1, 1);
+  slice2->print();
 
   return 0;
 }

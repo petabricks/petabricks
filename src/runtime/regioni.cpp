@@ -1,6 +1,10 @@
 #include "regioni.h"
 #include <string.h>
 
+petabricks::RegionIPtr petabricks::RegionI::regionContiguous() {
+  return this;
+}
+
 ///
 /// increment a raw coord in ascending order
 /// return largest dimension incremented or -1 for end
