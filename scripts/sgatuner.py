@@ -41,7 +41,16 @@ class Population:
     self.roundNumber = -1
     self.firstRound = True
     if config.candidatelog:
-      self.candidatelog     = storagedirs.openCsvStats("candidatelog", ['time', 'candidates', 'tests_complete', 'tests_timeout', 'tests_crashed', 'config_path', 'input_size', 'end_of_round','round_number'])
+      self.candidatelog     = storagedirs.openCsvStats("candidatelog",
+                                                       ['time',
+                                                        'candidates',
+                                                        'tests_complete',
+                                                        'tests_timeout',
+                                                        'tests_crashed',
+                                                        'config_path',
+                                                        'input_size',
+                                                        'end_of_round',
+                                                        'round_number'])
       self.candidateloglast = None
     self.starttime = time.time()
     self.onMembersChanged(True)
@@ -263,6 +272,11 @@ class Population:
       if not config.delete_output_dir:
         for m in self.members+self.removed:
           m.writestats(self.inputSize())
+        if config.mutatorlog:
+          mutators = set.union(*map(lambda x: set(x.mutators), self.members))
+          for m in mutators:
+            m.writelog(self.roundNumber, self.inputSize())
+
     except candidatetester.InputGenerationException, e:
       if e.testNumber==0 and self.inputSize()<=config.min_input_size_nocrash:
         if config.print_log:
@@ -276,7 +290,7 @@ class Population:
 
   def statsHeader(self):
     return '#pop','#removed','#notadded', 'pop_trials_avg','removed_trials_avg','notadded_trials_avg', \
-        "#total_trials", "#timeout_trials", "#crash_trials"
+           '#total_trials', '#timeout_trials', '#crash_trials'
 
   def stats(self):
     def mean(x):

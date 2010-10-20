@@ -1,5 +1,6 @@
 #!/usr/bin/python
-import itertools, random, math, logging
+import itertools, random, math, logging, csv
+import storagedirs
 from scipy import stats
 from tunerconfig import config
 
@@ -8,33 +9,55 @@ class MutateFailed(Exception):
   pass
 
 class Mutator:
+  nextId=0
+
   '''mutates a candidate to create a new candidate, base class'''
   def __init__(self, weight=1.0):
     self.weight = weight
     self.accuracyHint = 0
+    self.mid = Mutator.nextId
+    self.logfile = None
+    Mutator.nextId += 1
     self.score=0.0
-    self.results = (
-         ('better', 0.0),
-         ('worse',  0.0),
-         ('same',   0.0),
-         ('fail',   0.0),
-         ('unk',    1.0/(1.0-config.score_decay)))
+    self.results = {'better': 0.0,
+                    'worse':  0.0,
+                    'same':   0.0,
+                    'fail':   0.0}
+
+  def uniquename(self):
+    return self.__class__.__name__+'_'+str(self.mid)
 
   def mutate(self, candidate, n):
     '''
     Must Perform the following actions:
     1) Modify the config file
-    2) Clear results effected by the change
+    2) Clear results affected by the change
     3) [optional] add new mutators to modify the change made
     '''
     raise Exception('must be implemented in subclass')
 
   def result(self, r):
-    self.results=map(lambda x: (x[0], x[1]*config.score_decay + int(x[0]==r)), self.results)
-    self.score=self.results[0][1]
+    self.results[r] += 1
+    self.score=self.score*config.score_decay + int(r=='better')
 
   def __str__(self):
-    return str(map(lambda x: "%s:%5.2f"%x, self.results)) + ' ' + self.__class__.__name__
+    return self.__class__.__name__
+
+  def writelog(self, roundNumber, inputSize):
+    if self.logfile is None:
+      self.logfile = csv.writer(open(storagedirs.mutatorlog(self), 'w'))
+      self.logfile.writerow(['#description',
+                             'roundNumber',
+                             'inputSize',
+                             'score']
+                             +self.results.keys())
+    self.logfile.writerow([str(self),
+                           roundNumber,
+                           inputSize,
+                           "%.2f"%self.score]
+                           +self.results.values())
+
+
 
 class LognormRandom:
   def random(self, start, minVal, maxVal):
