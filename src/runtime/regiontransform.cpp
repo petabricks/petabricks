@@ -75,6 +75,11 @@ petabricks::RegionTransform::sliceRegion(int d, IndexT pos){
     new RegionTransform(_regionContiguous, dimension, size, offset,
 			 numSliceDimensions, sliceDimensions, slicePositions);
 
+  delete(size);
+  delete(offset);
+  delete(sliceDimensions);
+  delete(slicePositions);
+
   return ret;
 }
 

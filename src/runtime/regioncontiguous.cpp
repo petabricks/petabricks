@@ -46,6 +46,7 @@ petabricks::RegionContiguous::sliceRegion(int d, IndexT pos){
   memset(offset, 0, (sizeof offset) * dimension);
 
   RegionIPtr ret = new RegionTransform(this, dimension, _size, offset, 1, splitDim, splitPos); 
+  delete(size);
   delete(offset);
   return ret;
 }
