@@ -17,10 +17,10 @@ namespace petabricks {
 
   public:
     virtual ~RegionI(){}
-    RegionIPtr regionContiguous();
+    virtual RegionIPtr regionContiguous() = 0;
     virtual ElementT* coordToPtr(const IndexT* coord) = 0;
     virtual RegionIPtr splitRegion(IndexT* offset, IndexT* size) = 0;
-    virtual RegionIPtr sliceRegion(int d, IndexT pos) = 0;
+    virtual RegionIPtr sliceRegion(int d, IndexT preos) = 0;
 
 
     int incCoord(IndexT* coord);

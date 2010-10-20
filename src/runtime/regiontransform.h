@@ -7,18 +7,18 @@ namespace petabricks {
   class RegionTransform : public RegionI {
 
   protected:
-    RegionContiguousPtr _regionContiguous;
+    RegionIPtr _regionContiguous;
     IndexT* _splitOffset;
     int _numSliceDimensions;
     int* _sliceDimensions;
     IndexT* _slicePositions;
 
   public:
-    RegionTransform(RegionContiguousPtr parent, int dimension, IndexT* size,
+    RegionTransform(RegionIPtr parent, int dimension, IndexT* size,
 		    IndexT* splitOffset, int numSliceDimensions,
 		    int* sliceDimensions, IndexT* slicePositions);
 
-    RegionContiguousPtr regionContiguous() const;
+    RegionIPtr regionContiguous();
 
     ElementT* coordToPtr(const IndexT* coord);
     RegionIPtr splitRegion(IndexT* offset, IndexT* size);

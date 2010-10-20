@@ -2,7 +2,7 @@
 #import <string.h>
 
 petabricks::RegionTransform::
-RegionTransform(RegionContiguousPtr parent, int dimension, IndexT* size,
+RegionTransform(RegionIPtr parent, int dimension, IndexT* size,
 		IndexT* splitOffset, int numSliceDimensions,
 		int* sliceDimensions, IndexT* slicePositions) {
   _regionContiguous = parent;
@@ -124,7 +124,7 @@ petabricks::RegionTransform::coordToPtr(const IndexT* coord){
   return ret;
 }
 
-petabricks::RegionContiguousPtr
-petabricks::RegionTransform::regionContiguous() const {
+petabricks::RegionIPtr
+petabricks::RegionTransform::regionContiguous() {
   return _regionContiguous;
 }

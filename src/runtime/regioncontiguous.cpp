@@ -50,3 +50,8 @@ petabricks::RegionContiguous::sliceRegion(int d, IndexT pos){
   delete(offset);
   return ret;
 }
+
+petabricks::RegionIPtr
+petabricks::RegionContiguous::regionContiguous() {
+  return this;
+}
