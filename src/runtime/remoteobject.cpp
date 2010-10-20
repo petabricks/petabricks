@@ -10,6 +10,7 @@
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #include "remoteobject.h"
+#include "remotehost.h"
 
 
 void* petabricks::RemoteObject::allocRecv(size_t len) {
@@ -20,7 +21,7 @@ void petabricks::RemoteObject::freeRecv(void* buf, size_t ) {
   free(buf);
 }
 
-void petabricks::RemoteObject::recv(const void* , size_t s) {
+void petabricks::RemoteObject::onRecv(const void* , size_t s) {
   JTRACE("recv")(s);
 }
 
@@ -28,15 +29,39 @@ void* petabricks::RemoteObject::allocRecvInitial(size_t len) {
   return allocRecv(len);
 }
 
-void petabricks::RemoteObject::recvInitial(const void* buf, size_t len) {
-  recv(buf,len);
+void petabricks::RemoteObject::onRecvInitial(const void* buf, size_t len) {
+  JTRACE("recvInitial")(len);
+  onRecv(buf,len);
 }
 
 void petabricks::RemoteObject::freeRecvInitial(void* buf, size_t len) {
   return freeRecv(buf, len);
 }
 
-void petabricks::RemoteObject::created() {
-  JTRACE("remote object created")(_isInitiator);
+void petabricks::RemoteObject::onCreated() {
+  JTRACE("remote object created")(_flags);
 }
+void petabricks::RemoteObject::onComplete() {
+  JTRACE("complete")(_flags);
+}
+void petabricks::RemoteObject::onNotify(int arg) {
+  JTRACE("notify")(_flags)(arg);
+}
+void petabricks::RemoteObject::send(const void* p, size_t s) {
+  host()->sendData(this, p, s);
+}
+void petabricks::RemoteObject::remoteSignal() {
+  host()->remoteSignal(this);
+}
+void petabricks::RemoteObject::remoteBroadcast() {
+  host()->remoteBroadcast(this);
+}
+void petabricks::RemoteObject::remoteNotify(int arg){
+  host()->remoteNotify(this, arg);
+}
+void petabricks::RemoteObject::remoteMarkComplete() {
+  host()->remoteMarkComplete(this);
+}
+
+
 

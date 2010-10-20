@@ -1,0 +1,46 @@
+#ifndef BISECTION_PBCC
+#define BISECTION_PBCC
+
+#include "evalf.pbcc"
+
+transform Bisection
+from F[n], A, B, C, FA, FB, FC
+through FMID
+to Aout, Bout, Cout, FAout, FBout, FCout
+{
+   to (Aout aout, Bout bout, Cout cout, FAout faout, FBout fbout, FCout fcout, FMID fmid)
+   from (F f, A a, B b, C c, FA fa, FB fb, FC fc)
+   {
+        double temp;
+        ElementT mid=(a+b)/2;
+        evalf(fmid,f,mid);
+
+        //bisection step
+        if (fa * fmid < 0) {
+                bout = mid;
+                fbout=fmid;
+                aout=a;
+                faout=fa;
+        }
+        else  {
+                aout = mid;
+                faout =fmid;
+                bout=b;
+                fbout=fb;
+        }
+
+        //set c to the old b
+        cout = b;
+        fcout = fb;
+
+        //switch a and b if a is a better root
+        if ( fabs(fbout) > fabs(faout) ) {
+                temp=bout; bout=aout; aout=temp;
+                temp=fbout; fbout=faout; faout=temp;
+                cout=aout;fcout=faout;
+        }
+   }
+}
+
+
+#endif // BISECTION_PBCC

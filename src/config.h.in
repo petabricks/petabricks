@@ -174,11 +174,17 @@
 /* Cause the custom allocator to call malloc instead of mmap */
 #undef JALIB_USE_MALLOC
 
+/* skip some copies in debug printing, conflicts with JASSERT_LOG */
+#undef JASSERT_FAST
+
 /* log traces to /tmp/jassertlog.pid */
 #undef JASSERT_LOG
 
 /* include source line numbers in error messages */
 #undef JASSERT_USE_SRCPOS
+
+/* first port to try to use to listen */
+#undef LISTEN_PORT_FIRST
 
 /* type for elements in the matrix */
 #undef MATRIX_ELEMENT_T

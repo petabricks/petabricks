@@ -213,6 +213,7 @@ else
 fi
 
 
+
 AC_DEFINE([ACCTARGET_STR],       ["accuracyTarget"], [var name in output code for target accuracy])
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
 AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for begin coord])
@@ -223,8 +224,8 @@ AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iteratio
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])
 AC_DEFINE([HASH_USE_SHA1],       [0], [set to 1 to use SHA1 instead of MD5])
 AC_DEFINE([INLINE_NULL_TASKS],   [], [run null tasks immediately when they are enqueued])
-#AC_DEFINE([JASSERT_FAST],        [],[skip some copies in debug printing, conflicts with JASSERT_LOG])
 AC_DEFINE([JASSERT_USE_SRCPOS],  [],[include source line numbers in error messages])
+AC_DEFINE([LISTEN_PORT_FIRST],   [22550], [first port to try to use to listen])
 AC_DEFINE([MATRIX_INDEX_T],      [int], [type for indices into the matrix])
 AC_DEFINE([MAX_DIMENSIONS],      [64], [the maximum number of dimensions supported])
 AC_DEFINE([MAX_INPUT_BITS],      [32], [the maximum number of dimensions supported])
@@ -251,7 +252,6 @@ AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files i
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
 
-
 AC_DEFINE_UNQUOTED([MAXIMA_PATH],    ["$MAXIMA"], [path to maxima program])
 AC_DEFINE_UNQUOTED([REVISION_LONG],  ["$rev_long"], [git revision for HEAD at the time ./configure was run])
 AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at the time ./configure was run])
@@ -267,6 +267,7 @@ if false; then
   AC_DEFINE([OUTPUT_SIZE_STR],     ["output_count"],     [define to add a system var to transform scope])
   AC_DEFINE([PBCC_SEQUENTIAL],     [], [define to run tasks inline instead of enqueuing them])
   AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
+  AC_DEFINE([JASSERT_FAST],        [], [skip some copies in debug printing, conflicts with JASSERT_LOG])
 fi
 
 ################################################################################

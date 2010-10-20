@@ -27,6 +27,9 @@
 #include <iostream>
 #include <math.h>
 
+#include <sys/time.h>
+#include <sys/resource.h>
+
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
@@ -303,6 +306,16 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("max-sec",     GRAPH_MAX_SEC).help("stop graphs/autotuning after algorithm runs too slow");
   args.param("isolation",   ISOLATION).help("don't run timing tests in a forked subprocess");
   args.param("retries",     RETRIES).help("times to retry on test failure");
+  
+  size_t max_memory=0;
+  if(args.param("max-memory", max_memory).help("kill the process when it tries to use this much memory")) {
+    if(max_memory>0) {
+      struct rlimit tmp;
+      tmp.rlim_cur = max_memory;
+      tmp.rlim_max = max_memory;
+      JASSERT(setrlimit(RLIMIT_AS, &tmp)==0);
+    }
+  }
 
   args.finishParsing(txArgs);
 
@@ -359,18 +372,19 @@ void petabricks::PetabricksRuntime::saveConfig()
 
 
 int petabricks::PetabricksRuntime::runMain(){
+#ifdef HAVE_OPENCL
   int err;
+#endif
   JTIMER_SCOPE(runMain);
 
   switch(MODE){
     case MODE_RUN_IO:
-      std::cout << "- MODE_RUN_IO\n";
 #ifdef HAVE_OPENCL
       if( 0 != ( err = OpenCLUtil::init( ) ) )
-	{
-	  std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
-	  exit( -1 );
-	}
+      {
+        std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
+        exit( -1 );
+      }
 #endif
       runNormal();
       break;
@@ -381,13 +395,12 @@ int petabricks::PetabricksRuntime::runMain(){
       iogenRun(iogenFiles(IOGEN_PFX));
       break;
     case MODE_RUN_RANDOM:
-      std::cout << "- MODE_RUN_RANDOM\n";
 #ifdef HAVE_OPENCL
       if( 0 != ( err = OpenCLUtil::init( ) ) )
-	{
-	  std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
-          exit(-1 );
-        }
+      {
+        std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
+        exit(-1 );
+      }
 #endif
       runTrial(GRAPH_MAX_SEC, ACCTRAIN);
       break;

@@ -46,7 +46,10 @@ to OUT
  
   OUT from (A a)
   {
-    return ReduceAdd(a.region(0, n/2)) + ReduceAdd(a.region(n/2, n));
+    double sum1, sum2;
+    ReduceAdd(sum1, a.region(0, n/2));
+    ReduceAdd(sum2, a.region(n/2, n));
+    return sum1 + sum2;
   }
 }
 
@@ -63,17 +66,19 @@ to C
 
   C from (TEMP t)
   {
-    return ReduceAdd(t);
+    double result;
+    ReduceAdd(result, t);
+    return result;
   }
 }
 
 // evaluates kernel function between X0 and each of columns of X
 // using bandwidth H
 transform KernelEvaluate
-from X0[d], X[n,d], H
+from X0[d], X[d,n], H
 to OUT[n]
 {
-  OUT.cell(i) from (X0 x0, X.col(i) x, H h)
+  OUT.cell(i) from (X0 x0, X.row(i) x, H h)
   {
     return kernel(x0, x, h);
   }
@@ -84,12 +89,12 @@ to OUT[n]
 // A is the vector of regression coefficients
 // H is the bandwidth of the kernel
 transform KernelEstimate
-from TRAINX[n,d], TRAINY[n], TESTX[m,d], H, LAMBDA
+from TRAINX[d,n], TRAINY[1,n], TESTX[d,m], H, LAMBDA
 through A[n,1], K[n,n], K2[n,n], TRAINY2[n,1]
 to ESTIMATEY[m]
 {
-  K.cell(i,j) from (TRAINX.col(i) xi,
-                    TRAINX.col(j) xj,
+  K.cell(i,j) from (TRAINX.row(i) xi,
+                    TRAINX.row(j) xj,
                     H h)
   {
     return kernel(xi, xj, h);
@@ -104,7 +109,7 @@ to ESTIMATEY[m]
     }
   }
 
-  TRAINY2.cell(i,0) from (TRAINY.cell(i) trainY, LAMBDA lambda)
+  TRAINY2.cell(i,0) from (TRAINY.cell(0,i) trainY, LAMBDA lambda)
   {
     return lambda * trainY;
   }
@@ -114,9 +119,13 @@ to ESTIMATEY[m]
     LinearSolvePosDef(a, k2, trainY2);
   }
 
-  ESTIMATEY.cell(i) from (TRAINX trainX, TESTX.col(i) testX, A a, H h)
+  ESTIMATEY.cell(i) from (TRAINX trainX, TESTX.row(i) testX, A a, H h)
   {
-    return DotProduct(KernelEvaluate(testX, trainX, h), a.row(0));
+    double result;
+    MatrixRegion1D ke = MatrixRegion1D::allocate(n);
+    KernelEvaluate(ke, testX, trainX, h);
+    DotProduct(result, ke, a.row(0));
+    return result;
   }
 }
 
