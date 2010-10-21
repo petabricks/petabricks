@@ -7,11 +7,11 @@ class config_defaults:
   final_rounds             = 2
 
   #number of trials to run
-  confidence_pct   = 0.7
+  confidence_pct   = 0.80
   min_trials       = 1
-  max_trials       = 5
+  max_trials       = 7
   '''guessed stddev when only 1 test is taken'''
-  prior_stddev_pct      = 0.10
+  prior_stddev_pct      = 0.15
   '''percentage change to be viewed as insignificant when testing if two algs are equal'''
   same_threshold_pct    = 0.02
   '''confidence for generating execution time limits'''
@@ -30,13 +30,14 @@ class config_defaults:
   rand_retries             = 10
 
   #storage and reporting
-  debug                    = True
-  output_dir               = "~/tunerout"
-  min_input_size_nocrash   = 32
-  delete_output_dir        = False
-  print_log                = True
-  candidatelog             = True
-  pause_on_crash           = False
+  debug                  = True
+  output_dir             = "~/tunerout"
+  min_input_size_nocrash = 32
+  delete_output_dir      = False
+  print_log              = True
+  candidatelog           = True
+  mutatorlog             = True
+  pause_on_crash         = False
   '''confidence intervals when displaying numbers'''
   display_confidence    = 0.90
   '''print raw timing values instead of mean and confidence interval'''
@@ -51,6 +52,7 @@ class config_defaults:
   name=''
   score_decay = 0.9
   bonus_round_score = 0.9
+  memory_limit_pct = 0.8
 
   #types of mutatators to generate
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']
@@ -132,6 +134,7 @@ class patch_noninteractive:
   print_log                = False
   pause_on_crash           = False
   candidatelog             = False
+  mutatorlog               = False
   output_dir               = "/tmp"
 
 class patch_regression(patch_noninteractive, patch_check):

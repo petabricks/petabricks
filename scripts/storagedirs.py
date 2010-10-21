@@ -59,7 +59,6 @@ class timers:
   inputgen=Timer()
   testing=Timer()
 
-
 def getactivetimers():
   return dict(
            filter(lambda y: type(y[1]) is Timer,
@@ -74,6 +73,7 @@ class StorageDirsTemplate:
   def __init__(self, root):
     self.root    = root
     self.candidated = os.path.join(root, 'candidate')
+    self.mutatord   = os.path.join(root, 'mutator')
     self.inputd     = os.path.join(root, 'data')
     self.bestd      = os.path.join(root, 'best')
     self.statsd     = os.path.join(root, 'stats')
@@ -82,6 +82,8 @@ class StorageDirsTemplate:
     os.mkdir(self.statsd)
     os.mkdir(self.bestd)
     os.mkdir(self.inputd)
+    if config.mutatorlog:
+      os.mkdir(self.mutatord)
     os.mkdir(self.configd)
   
   def candidate(self, cid):
@@ -89,6 +91,9 @@ class StorageDirsTemplate:
     if not os.path.isdir(d):
       os.mkdir(d)
     return d
+  
+  def mutatorlog(self, m):
+    return os.path.join(self.mutatord, m.uniquename()+'.csv')
   
   def candidaterelative(self, cid, p='..'):
     d =  p+"/candidate/%05d" % cid
@@ -160,6 +165,7 @@ def callWithLogDir(fn, root, delete):
       shutil.rmtree(d)
 
 candidate    = lambda cid:          cur.candidate(cid)
+mutatorlog   = lambda m:            cur.mutatorlog(m)
 inputpfx     = lambda size, number: cur.inputpfx(size, number)
 clearInputs  = lambda :             cur.clearInputs()
 openCsvStats = lambda name, header: cur.openCsvStats(name, header)
