@@ -1,0 +1,59 @@
+#ifndef NWKDE_PBCC
+#define NWKDE_PBCC
+
+#include "utils.pbcc"
+
+/*  TRAINDATA - block of data: n time slices, m variables per time slice
+    WRAPFLAGS - TRAINDATA row corresponds to a wind direction \in [0, 360]
+    KERNELWIDTHS - width of the kernel function to use for a row
+    TRAININDICES - p time indices in TRAINDATA to use for training
+    TESTPOINT - k-dim data point to do the regression
+      for each component of POINT:
+        ROWS - which row in TRAINDATA
+        TIMEOFFSETS - time offset from the trainIndex in TRAINDATA
+
+    DIFFS - differences between test point and train data for each training
+            index and for each point dimension
+
+    TODO: handle wrapping for wind direction dimensions
+          fix the function to return the regression result
+*/
+
+transform NWKDE
+from TRAINDATA[n,m], WRAPFLAGS[m], KERNELWIDTHS[m],
+     TRAININDICES[p],
+     TESTPOINT[k], ROWS[k], TIMEOFFSETS[k]
+through DIFFS[p,k]
+to RESULT
+{
+    DIFFS.cell(i,j)
+    from (TRAINDATA trainData,
+          WRAPFLAGS wrapFlags,
+          KERNELWIDTHS kernelWidths,
+          TRAININDICES.cell(i) index,
+          TESTPOINT.cell(j) testPoint,
+          ROWS.cell(j) row,
+          TIMEOFFSETS.cell(j) timeOffset)
+    {
+        int wrapFlag = (int) wrapFlags.cell((int) row);
+        double kernelWidth = kernelWidths.cell((int) row);
+        int timeIndex = (int) index + (int) timeOffset;
+        double trainPoint = trainData.cell(timeIndex, (int) row);
+
+        double diff = trainPoint - testPoint;
+
+        // TODO: handle wrap
+
+        return diff / kernelWidth;
+    }
+
+    to (RESULT result)
+    from (DIFFS diffs)
+    {
+        // TODO: fix this to return regression result
+        ReduceAdd2D(result, diffs);
+    }
+}
+
+#endif // NWKDE_PBCC
+
