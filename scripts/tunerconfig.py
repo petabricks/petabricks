@@ -7,7 +7,7 @@ class config_defaults:
   final_rounds             = 2
 
   #number of trials to run
-  confidence_pct   = 0.80
+  confidence_pct   = 0.75
   min_trials       = 1
   max_trials       = 7
   '''guessed stddev when only 1 test is taken'''
