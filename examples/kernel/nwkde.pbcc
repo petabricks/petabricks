@@ -7,31 +7,37 @@
     WRAPFLAGS - indicates whether TRAINDATA column corresponds to a wind
                 direction \in [0, 360]
     KERNELWIDTHS - width of the kernel function to use for a data column
-    TRAININDICES - p time indices into TRAINDATA to use for training
-    TESTPOINT - k-dim data point to do the regression
+    TRAININDICES - l time indices into TRAINDATA to use for training
+    TESTPOINTS - q data points (each of p-dim) to do the regression
+    OUTPUTVARINDEX - which variable in TRAINDATA for output
+    OUTPUTTIMEOFFSET - time offset from trainIndex in TRAINDATA for output
 
-    For each component of POINT:
+    For each dimension of TESTPOINTS:
       VARINDEX - which variable in TRAINDATA
       TIMEOFFSET - time offset from the trainIndex in TRAINDATA
 
-    SQDIFFS - squared differences between test point and train data for each
-              training index and for each point dimension
+    SQDIFFS - squared differences between each test point and the train data
+              for each training index and for each point dimension
+    WEIGHTS - weights computed with Gaussian kernel function for each
+              train-test point pair
+    PARTIALS - weighted output partial sums
 */
 
 transform NWKDE
 from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
-     TRAININDICES[p],
-     TESTPOINT[k], VARINDEX[k], TIMEOFFSET[k],
+     TRAININDICES[l],
+     TESTPOINTS[p,q], VARINDEX[p], TIMEOFFSET[p],
      OUTPUTVARINDEX, OUTPUTTIMEOFFSET
-through SQDIFFS[k,p], WEIGHTS[p], PARTIALS[p]
-to RESULT
+to RESULT[q]
+through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
+//optimize KERNELWIDTHS[m]
 {
-    SQDIFFS.cell(i,j)
+    SQDIFFS.cell(i,j,k)
     from (TRAINDATA trainData,
           WRAPFLAGS wrapFlags,
           KERNELWIDTHS kernelWidths,
           TRAININDICES.cell(j) trainIndex,
-          TESTPOINT.cell(i) testPoint,
+          TESTPOINTS.cell(i,k) testPoint,
           VARINDEX.cell(i) varIndex,
           TIMEOFFSET.cell(i) timeOffset)
     {
@@ -65,28 +71,29 @@ to RESULT
         return diff * diff;
     }
 
-    to (WEIGHTS.cell(i) weight)
-    from (SQDIFFS.row(i) sqDiffs)
+    to (WEIGHTS.cell(j,k) weight)
+    from (SQDIFFS.slice(2,k).slice(1,j) sqDiffs)
+//    from (SQDIFFS.region(0,p,j,j+1,k,k+1) sqDiffs)
     {
         ReduceAdd(weight, sqDiffs);
         weight = exp(-((double) weight));
     }
 
-    to (PARTIALS.cell(i) partial)
+    to (PARTIALS.cell(j,k) partial)
     from (TRAINDATA trainData,
-          TRAININDICES.cell(i) trainIndex,
+          TRAININDICES.cell(j) trainIndex,
           OUTPUTVARINDEX outputVarIndex,
           OUTPUTTIMEOFFSET outputTimeOffset,
-          WEIGHTS.cell(i) weight)
+          WEIGHTS.cell(j,k) weight)
     {
         int timeIndex = (int) trainIndex + (int) outputTimeOffset;
         partial = trainData.cell((int) outputVarIndex, timeIndex);
         partial *= weight;
     }
 
-    to (RESULT result)
-    from (PARTIALS partials,
-          WEIGHTS weights)
+    to (RESULT.cell(k) result)
+    from (PARTIALS.row(k) partials,
+          WEIGHTS.row(k) weights)
     {
         double totalWeight;
         ReduceAdd(result, partials);
