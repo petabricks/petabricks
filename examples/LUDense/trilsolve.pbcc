@@ -50,6 +50,15 @@ to X[m,n]
       MatrixMultiply(inter, a, x);
   }
 
+  primary to (X.row(n-1) x) 
+  from (INTER.row(n-1) inter, B.row(n-1) b, A.cell(n-1,n-1) ajj) 
+  {   
+     for (int i=0; i<m; i++ ){
+                x.cell(i) = (b.cell(i)-inter.cell(i))/ajj;
+        }
+  }  
+
+
   to (X.row(j) x)
   from(INTER.row(j) inter, B.row(j) b, A.cell(j,j) ajj)
   {
@@ -65,7 +74,7 @@ from A[n,n], B[m,n]
 to X[m,n]
 {
   to (X out) from (A a, B in) {
-	LeftLookingTrilsolve(out, a, in);
+	LeftLookingTrilsolve(out,a, in);
   }
 
 //  to (X out) from (A a, B in) {
