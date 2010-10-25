@@ -33,7 +33,7 @@ to OUT[n, n]
           OUT.region(0, j, j, l) left,
           OUT.region(i, 0, k, j) up,
           OUT.region(j, j, l, l) diag)
-    where j < i // in upper triangle
+    where i > j // in upper triangle
     {
         //out = old - left * up;
         MatrixRegion2D temp = MatrixRegion2D::allocate(k - i, l - j);
@@ -49,7 +49,7 @@ to OUT[n, n]
           OUT.region(0, j, i, l) left,
           OUT.region(i, 0, k, i) up,
           OUT.region(i, i, k, k) diag)
-    where i > j // in lower triangle
+    where i < j // in lower triangle
     {
         //out = old - left * up;
         MatrixRegion2D temp = MatrixRegion2D::allocate(k - i, l - j);
