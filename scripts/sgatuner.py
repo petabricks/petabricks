@@ -110,7 +110,7 @@ class Population:
           else:
             return tries
 
-      if c.config in self.triedConfigs:
+      if c.config in self.triedConfigs and c.lastMutator:
         c.lastMutator.result('fail')
         continue
       self.triedConfigs.add(c.config)
@@ -124,7 +124,8 @@ class Population:
           self.notadded.append(c)
       except candidatetester.CrashException, e:
         c.rmfiles()
-        c.lastMutator.result('fail')
+        if c.lastMutator:
+          c.lastMutator.result('fail')
         warnings.warn(NewProgramCrash(e))
     if len(originalPop)<len(self.members):
       logging.info("added "+', '.join(map(str,set(self.members)-set(originalPop))))
@@ -143,10 +144,11 @@ class Population:
         return True
       if childCmp(parent, child) < 0:
         same=False
-    if same:
-      child.lastMutator.result('same')
-    else:
-      child.lastMutator.result('worse')
+    if child.lastMutator:
+      if same:
+        child.lastMutator.result('same')
+      else:
+        child.lastMutator.result('worse')
     return False
   
   def inputSize(self, roundOffset=0):
@@ -247,7 +249,7 @@ class Population:
       self.triedConfigs = set(map(lambda x: x.config, self.members))
       self.removed=[]
       self.notadded=[]
-      self.test(config.min_trials)
+      self.test(config.max_trials)
       if len(self.members):
         for z in xrange(config.rounds_per_input_size):
           self.randomMutation(config.population_high_size)
