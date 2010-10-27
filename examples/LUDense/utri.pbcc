@@ -2,8 +2,8 @@ transform utri
 from IN[n, n]
 to OUT[n, n]
 {
-    to   (OUT.cell(i, j) out)
-    from ( IN.cell(i, j) in)
+    to   (OUT.cell(j, i) out)
+    from ( IN.cell(j, i) in)
     {
         if (i <= j) {
             out = in;

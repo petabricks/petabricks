@@ -33,29 +33,77 @@ typedef const RemoteHost* ConstRemoteHostPtr;
 
 
 class RemoteObject : public jalib::JRefCounted, public jalib::JCondMutex {
+  friend class RemoteHost;
+  enum { FLAG_INITIATOR = 1,
+         FLAG_CREATED = 2,
+         FLAG_COMPLETE = 4 };
 public:
-  RemoteObject() : _host(NULL), _isInitiator(false) {}
+  RemoteObject() : _host(NULL), _flags(0) {}
+
+
+  void waitUntilCreated() const {
+    if(0 == (_flags & FLAG_CREATED)) {
+      JLOCKSCOPE(*this);
+      waitUntilCreatedMu();
+    }
+  }
+  void waitUntilComplete() const {
+    if(0 == (_flags & FLAG_COMPLETE)) {
+      JLOCKSCOPE(*this);
+      waitUntilCompleteMu();
+    }
+  }
+  
+  //transfer data to remote host and call remote recv
+  void send(const void* ptr , size_t len);
+  
+  void markComplete() { 
+    remoteMarkComplete();
+    JLOCKSCOPE(*this);
+    markCompleteMu();
+  }
+  void remoteSignal();
+  void remoteBroadcast();
+  void remoteNotify(int arg = 0);
+
+  int flags() const { return _flags; }
+protected:
+  void remoteMarkComplete();
 
   ConstRemoteHostPtr host() const { return _host; }
   RemoteHostPtr host() { return _host; }
-  void setHost(RemoteHostPtr v) { _host = v; }
-  void markInitiator() { _isInitiator=true; }
-  void setRemoteObj(EncodedPtr v) { _remoteObj = v; }
 
+  // these three callbacks get called to handle incoming data
   virtual void* allocRecv(size_t len);
-  virtual void recv(const void* , size_t s);
+  virtual void onRecv(const void* , size_t s);
   virtual void freeRecv(void* buf, size_t );
 
+  // these three callbacks get called to handle initial incoming data, default to above three
   virtual void* allocRecvInitial(size_t len);
-  virtual void recvInitial(const void* buf, size_t len);
+  virtual void onRecvInitial(const void* buf, size_t len);
   virtual void freeRecvInitial(void* buf, size_t len);
 
-  virtual void created();
+  // this method gets called after a connection is established and initial data is sent
+  virtual void onCreated();
+  virtual void onNotify(int arg);
+  virtual void onComplete();
 
+  void setHostMu(RemoteHostPtr v) { _host = v; }
+  void markInitiatorMu() { _flags |= FLAG_INITIATOR; }
+  void markCreatedMu() { _flags |= FLAG_CREATED;  broadcast(); }
+  void markCompleteMu() { _flags |= FLAG_COMPLETE;  broadcast(); }
+  void setRemoteObjMu(EncodedPtr v) { _remoteObj = v; }
+  void waitUntilCreatedMu() const {
+    while(0 == (_flags & FLAG_CREATED) ) wait();
+  }
+  void waitUntilCompleteMu() const {
+    while(0 == (_flags & FLAG_COMPLETE) ) wait();
+  }
+  EncodedPtr remoteObj() const { return _remoteObj; }
 private:
   RemoteHostPtr _host;
   EncodedPtr _remoteObj;
-  bool _isInitiator;
+  int _flags;
 };
 
 } //namespace petabricks

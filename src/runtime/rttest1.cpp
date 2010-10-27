@@ -23,30 +23,52 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
 }
 
 RemoteObjectPtr gen() {
-  return new petabricks::RemoteObject();
+  class TestRemoteObject : public petabricks::RemoteObject {
+  public:
+    void onNotify(int argc) {
+      JTRACE("notify")(argc);
+      if(argc==1) {
+        markComplete();
+      }
+    }
+    void onRecv(const void* data, size_t len) {
+      JTRACE("recv")((char*)data)(len);
+    }
+  };
+  return new TestRemoteObject();
 }
 
 
-int main(int , const char** ){
-  const int port = 2227;
-  RemoteHostPtr h;
+int main(int argc, const char** argv){
+  RemoteHostDB hdb;
   RemoteObjectPtr local;
+  RemoteObjectPtr local2;
+  char testdata[] = "this is a test string";
+  if(argc==1){
+    hdb.remotefork(NULL, argc, argv);
+    hdb.accept();
+    hdb.spawnListenThread();
+    hdb.spawnListenThread();
 
-  if(fork()==0){
-    h = new RemoteHost();
-    h->connect("localhost", port);
+    hdb.host(0)->createRemoteObject(local=gen(), &gen);
+    local->waitUntilCreated();
+    local->send(testdata, sizeof testdata);
+    local->send(testdata, sizeof testdata);
+    local->send(testdata, sizeof testdata);
+    local->remoteNotify(0);
+    local->remoteSignal();
+    local->remoteBroadcast();
+    local->remoteNotify(1);
+    local->waitUntilComplete();
+    JTRACE("complete");
+    return 0;
   }else{
-    h = new RemoteHost();
-    jalib::JServerSocket ss(jalib::JSockAddr::ANY, port);
-    h->accept(ss);
+    JASSERT(argc==3);
+    hdb.connect(argv[1], jalib::StringToInt(argv[2]));
+    hdb.spawnListenThread();
+    hdb.listenLoop();
+    return 0;
   }
-  jalib::JMutex t;
-  t.lock();
-  h->createRemoteObject(local=gen(), &gen, &port, sizeof port);
-  h->unlockAndRecv(t);
-  t.lock();
-  h->unlockAndRecv(t);
-  JTRACE("end")((intptr_t)local.asPtr());
-  return 0;
 }
+
 

@@ -1,0 +1,67 @@
+#ifndef EVALF2_PBCC
+#define EVALF2_PBCC
+
+transform evalf2
+from F[n], X
+through Xpower[n], TEMP[n], TEMP1[n-1], TEMP2[n-2]
+to FX, DFX, DF2X
+{
+        Xpower.cell(0) from() {
+                return 1;
+        }
+
+        Xpower.cell(i) from(Xpower.cell(i-1) xleft, X x) {
+                return xleft*x;
+        }
+
+        TEMP.cell(i) from (Xpower.cell(i) a, F.cell(i) b)
+        {
+                return a * b;
+        }
+
+        FX from (TEMP t)
+        {
+                double sum=0;
+                int i;
+                for (i=0; i<n; i++) {
+                        sum+=t.cell(i);
+                }
+                return sum;
+        }
+
+        TEMP1.cell(i) from (Xpower.cell(i) a, F.cell(i+1) b)
+        {
+                return a * b * (i+1);
+        }
+
+
+        DFX from (TEMP1 t)
+        {
+                double sum=0;
+                int i;
+                for (i=0; i<n-1; i++) {
+                        sum+=t.cell(i);
+                }
+                return sum;
+        }
+
+        TEMP2.cell(i) from (Xpower.cell(i) a, F.cell(i+2) b)
+        {
+                return a * b * (i+1) * (i+2);
+        }
+
+
+        DF2X from (TEMP2 t)
+        {
+                double sum=0;
+                int i;
+                for (i=0; i<n-2; i++) {
+                        sum+=t.cell(i);
+                }
+                return sum;
+        }
+
+}
+
+#endif // EVALF2_PBCC
+                                    

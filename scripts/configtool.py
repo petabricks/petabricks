@@ -21,7 +21,7 @@ class ConfigFile:
       self.values = dict()
       self.load(src)
     else:
-      raise Exception("invalid arg")
+      raise Exception("invalid arg:"+src)
 
   def load(self, filename):
     fd = open(filename)

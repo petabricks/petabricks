@@ -4,6 +4,8 @@
 #include "../simple/copy.pbcc"
 #include "../multiply/multiply.pbcc"
 
+// Solve LX=B for X, i.e. X = inv(L)*B, where L is the lower triangular part of A
+
 //transform RightLookingTrilsolve
 //from A[n,n], IN[m,n]
 //through X<n>[m,n]
@@ -12,45 +14,73 @@
 //}
 
 transform LeftLookingTrilsolve
-from A[n,n], IN[m,n]
+from A[n,n], B[m,n]
 through INTER[m,n]
-to OUT[m,n]
+to X[m,n]
 {
-  primary to (OUT.row(0) out ) from (IN.row(0) in, A.cell(0,0) a) {
-	for (int i=0; i<m; i++ ){
-		out.cell(i)=in.cell(i)/a;
-	}
+
+
+/*
+  primary X.cell(i,0) from (B.cell(i,0) b, A.cell(0,0) a) {
+        return b/a;
   }
 
-  to (INTER.region(0,j,m,j+1) inter) 
-  from (OUT.region(0,0, m, j) out, A.region(0, j, j, j+1) a) 
-  {
-	MatrixMultiply(inter, a, out);
+  primary INTER.cell(i,0) from (B.cell(i,0) b) {
+        return b;
   }
+  X.cell(i,j) from (INTER.cell(i,j) inter, B.cell(i,j) b, A.cell(j,j) ajj) {
+        return inter;
+  }
+*/
 
 
-  to (OUT.row(j) out)
-  from(INTER.row(j) inter, IN.row(j) in, A.row(j) a) 
-  { 
-	ElementT ajj=a.cell(j);
-	for (int i=0; i<m; i++ ){
-                out.cell(i) = (in.cell(i)-inter.cell(i))/ajj;
+  primary to (X.row(0) x ) from (B.row(0) b, A.cell(0,0) a) {
+        for (int i=0; i<m; i++ ){
+                x.cell(i)=b.cell(i)/a;
         }
   }
+
+  primary to (INTER.row(0) inter) from (B.row(0) b) {
+        Copy1D(inter, b);
+  }
+
+  to (INTER.region(0,j,m,j+1) inter)
+  from (X.region(0,0,m , j) x, A.region(0, j, j, j+1) a)
+  {
+      MatrixMultiply(inter, a, x);
+  }
+
+  primary to (X.row(n-1) x) 
+  from (INTER.row(n-1) inter, B.row(n-1) b, A.cell(n-1,n-1) ajj) 
+  {   
+     for (int i=0; i<m; i++ ){
+                x.cell(i) = (b.cell(i)-inter.cell(i))/ajj;
+        }
+  }  
+
+
+  to (X.row(j) x)
+  from(INTER.row(j) inter, B.row(j) b, A.cell(j,j) ajj)
+  {
+        for (int i=0; i<m; i++ ){
+                x.cell(i) = (b.cell(i)-inter.cell(i))/ajj;
+        }
+  }
+
 } 
 
 transform trilsolve
-from A[n,n], IN[m,n]
-to OUT[m,n]
+from A[n,n], B[m,n]
+to X[m,n]
 {
-  to (OUT out) from (A a, IN in) {
-	LeftLookingTrilsolve(out, a, in);
+  to (X out) from (A a, B in) {
+	LeftLookingTrilsolve(out,a, in);
   }
 
-//  to (OUT out) from (A a, IN in) {
+//  to (X out) from (A a, B in) {
 //	RightLookingTrilsolve(out, a, in);
 //  }
 }
 
-#endif // LUDENSE_PBCC
+#endif // TRILSOLVE_PBCC
 

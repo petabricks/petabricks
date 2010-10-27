@@ -1,0 +1,82 @@
+#ifndef UTILS_PBCC
+#define UTILS_PBCC
+
+%{
+
+void printMatrix(ConstMatrixRegion2D A)
+{
+  for (int j = 0; j < A.size(1); j++) {
+    for (int i = 0; i < A.size(0); i++) {
+      printf("%g ", (double) A.cell(i, j));
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
+%}
+
+// reduce a matrix by adding all elements
+transform ReduceAdd2D
+from IN[m,n]
+through ROWSUMS[n]
+to OUT
+{
+    to (ROWSUMS.cell(i) rowSum)
+    from (IN.row(i) in)
+    {
+        ReduceAdd(rowSum, in);
+    }
+
+    to (OUT out)
+    from (ROWSUMS rowSums)
+    {
+        ReduceAdd(out, rowSums);
+    }
+}
+
+// reduces a vector by adding all elements
+transform ReduceAdd
+from A[n]
+to OUT
+{
+  OUT from (A a)
+  {
+    int i;
+    double sum = 0;
+    for (i = 0; i < n; i++) {
+      sum += a.cell(i);
+    }
+    return sum;
+  }
+
+  OUT from (A a)
+  {
+    double sum1, sum2;
+    ReduceAdd(sum1, a.region(0, n/2));
+    ReduceAdd(sum2, a.region(n/2, n));
+    return sum1 + sum2;
+  }
+}
+
+// computes a dot product
+transform DotProduct
+from A[n], B[n]
+through TEMP[n]
+to C
+{
+  TEMP.cell(i) from (A.cell(i) a, B.cell(i) b)
+  {
+    return a * b;
+  }
+
+  C from (TEMP t)
+  {
+    double result;
+    ReduceAdd(result, t);
+    return result;
+  }
+}
+
+#endif // UTILS_PBCC
+
