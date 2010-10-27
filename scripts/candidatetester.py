@@ -204,12 +204,13 @@ class Candidate:
   nextCandidateId=0
   '''A candidate algorithm in the population'''
   def __init__(self, cfg, infoxml, mutators=[]):
-    self.config    = ConfigFile(cfg)
-    self.metrics   = [ResultsDB(x) for x in config.metrics]
-    self.mutators  = list(mutators)
-    self.cid       = Candidate.nextCandidateId
-    self.infoxml   = infoxml
-    self.outputdir = storagedirs.candidate(self.cid)
+    self.config      = ConfigFile(cfg)
+    self.metrics     = [ResultsDB(x) for x in config.metrics]
+    self.mutators    = list(mutators)
+    self.cid         = Candidate.nextCandidateId
+    self.infoxml     = infoxml
+    self.lastMutator = None
+    self.outputdir   = storagedirs.candidate(self.cid)
     Candidate.nextCandidateId += 1
 
   def __str__(self):
