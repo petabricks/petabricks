@@ -83,7 +83,6 @@ class Population:
 
   def randomMutation(self, maxpopsize=None, minscore=None):
     '''grow the population using cloning and random mutation'''
-    self.notadded=[]
     originalPop = list(self.members)
     totalMutators = self.countMutators(minscore)
     tries = float(totalMutators)*config.mutations_per_mutator
@@ -247,6 +246,7 @@ class Population:
       self.roundNumber += 1
       self.triedConfigs = set(map(lambda x: x.config, self.members))
       self.removed=[]
+      self.notadded=[]
       self.test(config.min_trials)
       if len(self.members):
         for z in xrange(config.rounds_per_input_size):
@@ -272,7 +272,7 @@ class Population:
       if not config.delete_output_dir:
         for m in self.members+self.removed:
           m.writestats(self.inputSize())
-        if config.mutatorlog:
+        if config.mutatorlog and len(self.members):
           mutators = set.union(*map(lambda x: set(x.mutators), self.members))
           for m in mutators:
             m.writelog(self.roundNumber, self.inputSize())
