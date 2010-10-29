@@ -72,10 +72,11 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
     }
 
     to (WEIGHTS.cell(j,k) weight)
-    from (SQDIFFS.slice(2,k).slice(1,j) sqDiffs)
-//    from (SQDIFFS.region(0,p,j,j+1,k,k+1) sqDiffs)
+//    from (SQDIFFS.slice(2,k).slice(1,j) sqDiffs)
+    from (SQDIFFS.region(0, j,   k, 
+                         p ,j+1, k+1) sqDiffs)
     {
-        ReduceAdd(weight, sqDiffs);
+        ReduceAdd(weight, sqDiffs.slice(2,0).slice(1,0));
         weight = exp(-((double) weight));
     }
 
