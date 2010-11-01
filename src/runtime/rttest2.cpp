@@ -11,6 +11,9 @@
  ***************************************************************************/
 #include "petabricks.h"
 
+#include "remotehost.h"
+#include "regionremote.h"
+
 using namespace petabricks;
 
 PetabricksRuntime::Main* petabricksMainTransform(){
@@ -22,14 +25,42 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
 
 
 int main(int argc, const char** argv){
-  MatrixIO* matrixio = new MatrixIO(argv[1], "r");
-  RegionIPtr region = matrixio->readToRegionI();
-
   IndexT m0[] = {0,0,0};
   IndexT m1[] = {1,1,1};
   IndexT m123[] = {1,2,3};
   IndexT m2[] = {2,2,2};
   IndexT m3[] = {3,3,3};
+
+
+  RemoteHostDB hdb;
+  RemoteObjectPtr local;
+
+  if(argc==1){
+    hdb.remotefork(NULL, argc, argv);
+    hdb.accept();
+    hdb.spawnListenThread();
+    hdb.spawnListenThread();
+
+    JTRACE("start");
+    hdb.host(0)->createRemoteObject
+      (local=RegionRemote::genLocal(), &RegionRemote::genRemote);
+    local->waitUntilCreated();
+    RegionRemote* region = new RegionRemote(local);
+    region->readCell(m123);
+
+    JTRACE("complete");
+    return 0;
+  } else {
+    JASSERT(argc==3);
+    hdb.connect(argv[1], jalib::StringToInt(argv[2]));
+    hdb.spawnListenThread();
+    hdb.listenLoop();
+    return 0;
+  }
+
+  /*
+  MatrixIO* matrixio = new MatrixIO(argv[1], "r");
+  RegionIPtr region = matrixio->readToRegionI();
 
   RegionIPtr split3 = region->splitRegion(m123, m3);
   RegionIPtr split2 = split3->splitRegion(m1, m2);
@@ -43,5 +74,6 @@ int main(int argc, const char** argv){
   slice2->print();
 
   return 0;
+  */
 }
 

@@ -7,8 +7,14 @@ petabricks::RegionContiguous::RegionContiguous(int dimension, IndexT* size, Elem
   _dimension = dimension;
   _size = new IndexT[_dimension];
   memcpy(_size, size, (sizeof _size)*_dimension);
- 
-  _data = data;
+
+  int numData = 1;
+  for (int i=0; i<_dimension; i++) {
+    numData *= _size[i];
+  }
+
+  _data = new ElementT[numData];
+  memcpy(_data, data, (sizeof _data)*numData); 
 
   _multipliers = new IndexT[_dimension];
   _multipliers[0] = 1;

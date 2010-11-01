@@ -6729,6 +6729,7 @@ fi
 
 
 
+
 cat >>confdefs.h <<\_ACEOF
 #define ACCTARGET_STR "accuracyTarget"
 _ACEOF
@@ -6778,10 +6779,14 @@ cat >>confdefs.h <<\_ACEOF
 #define INLINE_NULL_TASKS
 _ACEOF
 
-#AC_DEFINE([JASSERT_FAST],        [],[skip some copies in debug printing, conflicts with JASSERT_LOG])
 
 cat >>confdefs.h <<\_ACEOF
 #define JASSERT_USE_SRCPOS
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define LISTEN_PORT_FIRST 22550
 _ACEOF
 
 
@@ -6911,7 +6916,6 @@ _ACEOF
 
 
 
-
 cat >>confdefs.h <<_ACEOF
 #define MAXIMA_PATH "$MAXIMA"
 _ACEOF
@@ -6968,6 +6972,11 @@ _ACEOF
 
 cat >>confdefs.h <<\_ACEOF
 #define WORKERTHREAD_INJECT
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define JASSERT_FAST
 _ACEOF
 
 fi
