@@ -48,6 +48,8 @@ int main(int argc, const char** argv){
     RegionRemote* region = new RegionRemote(local);
     region->readCell(m123);
 
+
+    region->markComplete();
     JTRACE("complete");
     return 0;
   } else {

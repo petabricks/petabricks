@@ -16,9 +16,27 @@ void RegionRemoteProxy::onNotify(int argc) {
   }
 }
 
+using namespace _RegionRemoteMsgTypes;
+
 void RegionRemoteProxy::onRecv(const void* data, size_t len) {
-  //printf("xxx %d", (int*)data);
+  switch(*(MessageType*)data) {
+  case MessageTypes::REGIONREMOTE_READCELL:
+    readCell((ReadCellMessage<3>*)data);
+    break;
+  case MessageTypes::REGIONREMOTE_WRITECELL:
+    writeCell((WriteCellMessage<3>*)data);
+    break;
+  default:
+    throw("Unknown RegionRemoteMsgTypes.");
+  }
+}
 
-
-  JTRACE("recv")(*(int*)data)(len);
+void RegionRemoteProxy::readCell(struct ReadCellMessage<3>* msg) {
+  ElementT* cell = _referenceRegion->coordToPtr(msg->coord);
+  JTRACE("read")(*cell);
+  send(cell, sizeof cell);
+}
+ 
+void RegionRemoteProxy::writeCell(struct WriteCellMessage<3>* msg) {
+  JTRACE("write")(msg->type);
 }

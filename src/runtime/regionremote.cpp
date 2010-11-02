@@ -6,14 +6,24 @@
 petabricks::RegionRemote::RegionRemote(RemoteObjectPtr remoteObject) {
   _remoteObject = remoteObject;
   _dimension = 3;
+
+  pthread_mutex_init(&_seq_mux, NULL);
+  _seq = 0;
+  _recv_seq = 0;
+}
+
+petabricks::RegionRemote::~RegionRemote() {
+    pthread_mutex_destroy(&_seq_mux);
 }
 
 petabricks::RemoteObjectPtr
 petabricks::RegionRemote::genLocal() {
   class RegionRemoteObject : public petabricks::RemoteObject {
   public:
+
+
     void onRecv(const void* data, size_t len) {
-      JTRACE("recv")((char*)data)(len);
+      JTRACE("recv")(*(ElementT*)data)(len);
     }
   };
   return new RegionRemoteObject();
@@ -28,35 +38,28 @@ using namespace _RegionRemoteMsgTypes;
 
 petabricks::ElementT
 petabricks::RegionRemote::readCell(const IndexT* coord) {
-  // To be implemented
   ReadCellMessage<3> msg; 
   msg.type = MessageTypes::REGIONREMOTE_READCELL;
-  memmove(msg.coord, coord, (sizeof coord) * _dimension); 
-  void* x;
-  x = &msg.type;
+  memmove(msg.coord, coord, (sizeof coord) * _dimension);
 
-  char testdata[] = "this is a test string";
-  //_remoteObject->send(testdata, sizeof testdata);
+  pthread_mutex_lock(&_mux);
+  _remoteObject->send(&msg, sizeof msg);
+  uint16_t seq = ++_seq;
+  pthread_mutex_unlock(&_mux);
 
-  _remoteObject->remoteNotify(0);
+  while () {
+  }
 
-  _remoteObject->send(x, sizeof msg);
-  _remoteObject->send(x, sizeof msg);
-  _remoteObject->send(x, sizeof msg);
-
-  int i = 1234;
-  _remoteObject->send(&i, sizeof i);
-
-  _remoteObject->remoteSignal();
-  _remoteObject->remoteBroadcast();
-
-  _remoteObject->remoteNotify(1);
-  _remoteObject->waitUntilComplete();
   return 0;
 }
 
 void petabricks::RegionRemote::writeCell(const IndexT* coord, ElementT value) {
   // To be implemented
+}
+
+void petabricks::RegionRemote::markComplete() {
+  _remoteObject->remoteNotify(1);
+  _remoteObject->waitUntilComplete();
 }
 
 petabricks::RegionIPtr 
