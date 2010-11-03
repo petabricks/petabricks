@@ -3,7 +3,7 @@
 
 #include "../simple/copy.pbcc"
 #include "../multiply/multiply.pbcc"
-
+#include "msub.pbcc"
 
 // Solve XU=B for X, i.e. X = B*inv(U), where U is the upper triangular part of A
 
@@ -41,26 +41,13 @@ to X[n,m]
         Copy1D(inter, b);
   }
 
-  to (INTER.region(j,0,j+1,m) inter)
-  from (X.region(0,0,j , m) x, A.region(j, 0, j+1, j) a)
+  to (X.region(j,0,j+1,m) xout)
+  from (X.region(0,0,j , m) x, A.region(j, 0, j+1, j) a, B.region(j,0,j+1,m) b, A.cell(j,j) ajj)
   {
-      MatrixMultiply(inter, x, a);
+        MatrixRegion2D temp = MatrixRegion2D::allocate(1, m);
+        MatrixMultiply(temp,x,a);
+        Msubtract(xout,b,temp, ajj);
   }
-
-/*
-  X.cell(i,j) from (INTER.cell(i,j) inter, B.cell(i,j) b, A.cell(j,j) ajj) {
-	return inter;
-  }
-*/
-
-  to (X.col(j) x)
-  from(INTER.col(j) inter, B.col(j) b, A.cell(j,j) ajj)
-  {
-        for (int i=0; i<m; i++ ){
-                x.cell(i) = (b.cell(i)-inter.cell(i))/ajj;
-        }
-  }
-
 
 } 
 
