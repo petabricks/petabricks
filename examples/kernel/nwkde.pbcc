@@ -25,8 +25,9 @@
 
 transform NWKDE
 from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
-     TRAININDICES[l],
-     TESTPOINTS[p,q], VARINDEX[p], TIMEOFFSET[p],
+     TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
+     TESTDATA[m2,n2],
+     TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
      OUTPUTVARINDEX, OUTPUTTIMEOFFSET
 to RESULT[q]
 through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
@@ -37,14 +38,21 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
           WRAPFLAGS wrapFlags,
           KERNELWIDTHS kernelWidths,
           TRAININDICES.cell(j) trainIndex,
-          TESTPOINTS.cell(i,k) testPoint,
-          VARINDEX.cell(i) varIndex,
-          TIMEOFFSET.cell(i) timeOffset)
+          TRAINVARINDEX.cell(i) trainVarIndex,
+          TRAINTIMEOFFSET.cell(i) trainTimeOffset,
+          TESTDATA testData,
+          TESTINDICES.cell(k) testIndex,
+          TESTVARINDEX.cell(i) testVarIndex,
+          TESTTIMEOFFSET.cell(i) testTimeOffset)
     {
-        int wrapFlag = (int) wrapFlags.cell((int) varIndex);
-        double kernelWidth = kernelWidths.cell((int) varIndex);
-        int timeIndex = (int) trainIndex + (int) timeOffset;
-        double trainPoint = trainData.cell((int) varIndex, timeIndex);
+        int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex);
+        double kernelWidth = kernelWidths.cell((int) trainVarIndex);
+
+        int trainTimeIndex = (int) trainIndex + (int) trainTimeOffset;
+        int  testTimeIndex = (int)  testIndex + (int)  testTimeOffset;
+
+        double trainPoint = trainData.cell((int) trainVarIndex, trainTimeIndex);
+        double  testPoint =  testData.cell((int)  testVarIndex,  testTimeIndex);
 
         double diff = trainPoint - testPoint;
 
@@ -72,7 +80,6 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
     }
 
     to (WEIGHTS.cell(j,k) weight)
-//    from (SQDIFFS.slice(2,k).slice(1,j) sqDiffs)
     from (SQDIFFS.region(0, j,   k, 
                          p ,j+1, k+1) sqDiffs)
     {
