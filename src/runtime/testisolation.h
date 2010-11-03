@@ -12,21 +12,32 @@
 #ifndef PETABRICKSTESTISOLATION_H
 #define PETABRICKSTESTISOLATION_H
 
-#include "common/jtunable.h"
-#include "common/jserialize.h"
 #include "common/hash.h"
+#include "common/jconvert.h"
+#include "common/jserialize.h"
+#include "common/jtunable.h"
 
 #include <vector>
 #include <unistd.h>
 #include <stdio.h>
 
 namespace petabricks {
+
+  struct TestResult {
+    double time;
+    double accuracy;
+    jalib::Hash hash;
+    TestResult() 
+      : time(jalib::maxval<double>()), accuracy(jalib::minval<double>()) 
+    {}
+  };
+
   class TestIsolation {
   public:
     virtual ~TestIsolation(){}
     virtual bool beginTest(int workerThreads)=0;
-    virtual void endTest(double time, double accurac, const jalib::Hash& hash)=0;
-    virtual void recvResult(double& time, double& accuracy, jalib::Hash& hash)=0;
+    virtual void endTest(TestResult& result)=0;
+    virtual void recvResult(TestResult&)=0;
     virtual void disableTimeout(){}
     virtual void restartTimeout(){}
 
@@ -43,6 +54,8 @@ namespace petabricks {
   class SubprocessTestIsolation : public TestIsolation
                                 , public jalib::JTunableModificationMonitor
   {
+    //typedef struct timespec TimeoutT;
+    typedef int TimeoutT;
     struct TunableMod {
       jalib::JTunable* tunable;
       jalib::TunableValue value;
@@ -56,10 +69,13 @@ namespace petabricks {
     void onTunableModification(jalib::JTunable* t, jalib::TunableValue, jalib::TunableValue newVal);
 
     bool beginTest(int workerThreads);
-    void endTest(double time, double accuracy, const jalib::Hash& hash);
-    void recvResult(double& time, double& accuracy, jalib::Hash& hash);
+    void endTest(TestResult&);
+    void recvResult(TestResult&);
     void disableTimeout();
     void restartTimeout();
+    
+    static void recvFirstResult(SubprocessTestIsolation& a, TestResult& aresult,
+                                SubprocessTestIsolation& b, TestResult& bresult);
   protected:
     std::string recvControlCookie();
     void killChild();
@@ -67,6 +83,7 @@ namespace petabricks {
     void testExited();
     bool running();
     int rv();
+    bool handleEvent(TestResult& result, TimeoutT& timeout);
   private:
     pid_t _pid;
     int _fd;
@@ -82,8 +99,8 @@ namespace petabricks {
   {
   public:
     bool beginTest(int workerThreads);
-    void endTest(double time, double accuracy, const jalib::Hash& hash);
-    void recvResult(double& time, double& accuracy, jalib::Hash& hash);
+    void endTest(TestResult& result);
+    void recvResult(TestResult& result);
   };
 
 }

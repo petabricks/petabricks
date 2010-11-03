@@ -47,6 +47,7 @@ static bool _isTrainingRun = false;
 static bool _needTraingingRun = false;
 
 static std::string CONFIG_FILENAME;
+static std::string CONFIG_FILENAME_ALT;
 static int GRAPH_MIN=1;
 static int GRAPH_MAX=4096;
 static double GRAPH_MAX_SEC=jalib::maxval<double>();
@@ -121,6 +122,7 @@ static enum {
   MODE_GRAPH_PARAM,
   MODE_GRAPH_THREADS,
   MODE_GRAPH_TEMPLATE,
+  MODE_RACE_CONFIGS,
   MODE_AUTOTUNE_GENETIC,
   MODE_AUTOTUNE_PARAM,
   MODE_ABORT,
@@ -195,7 +197,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   
   //load config from disk
   CONFIG_FILENAME = jalib::Filesystem::GetProgramPath() + ".cfg";
-  args.param("config", CONFIG_FILENAME).help("filename of the program configuration");
+  args.param("config",  CONFIG_FILENAME).help("filename of the program configuration");
   TunableManager& tm = TunableManager::instance();
   if(tm.size()>0 && jalib::Filesystem::FileExists(CONFIG_FILENAME))
     tm.load(CONFIG_FILENAME);
@@ -254,7 +256,13 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   }else if(args.param("iogen-run", IOGEN_PFX).help("run a set of random inputs generated with --iogen-create")){
     JASSERT(_randSize<0).Text("-n=... conflicts with --iogen-run");
     MODE=MODE_IOGEN_RUN;
+  }else if(args.param("race-with", CONFIG_FILENAME_ALT).help("alternate program configuration")) {
+    JASSERT(_randSize>=0).Text("-n=... required");
+    JASSERT(jalib::Filesystem::FileExists(CONFIG_FILENAME));
+    JASSERT(jalib::Filesystem::FileExists(CONFIG_FILENAME_ALT));
+    MODE=MODE_RACE_CONFIGS;
   }
+  
   args.param("iogen-n", IOGEN_N);
   
   //flags that cause aborts
@@ -341,6 +349,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
       }
     case MODE_ABORT:
     case MODE_HELP:
+    case MODE_RACE_CONFIGS:
       break;
   }
 
@@ -393,6 +402,9 @@ int petabricks::PetabricksRuntime::runMain(){
       break;
     case MODE_IOGEN_RUN:
       iogenRun(iogenFiles(IOGEN_PFX));
+      break;
+    case MODE_RACE_CONFIGS:
+      raceConfigs(_randSize);
       break;
     case MODE_RUN_RANDOM:
 #ifdef HAVE_OPENCL
@@ -698,23 +710,42 @@ double petabricks::PetabricksRuntime::trainAndComputeWrapper(TestIsolation& ti, 
   }
 }
 
-double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, int retries, const std::vector<std::string>* files){
-  double v, acc=jalib::maxval<double>();
-  jalib::Hash hash;
+double petabricks::PetabricksRuntime::raceConfigs(int n, const std::vector<std::string>* files, int /*retries*/) {
+  TestResult aresult;
+  TestResult bresult;
+  SubprocessTestIsolation ati(GRAPH_MAX_SEC);
+  SubprocessTestIsolation bti(GRAPH_MAX_SEC);
+  TunableManager& tm = TunableManager::instance();
+  try {
+    loadTestInput(n, files);
+    if(ati.beginTest(worker_threads/2)) {
+      tm.load(CONFIG_FILENAME);
+      computeWrapperSubproc(ati, -1, aresult, NULL);
+      ati.endTest(aresult);
+    } else if(bti.beginTest(worker_threads/2)) {
+      tm.load(CONFIG_FILENAME_ALT);
+      computeWrapperSubproc(bti, -1, bresult, NULL);
+      bti.endTest(bresult);
+    }else{
+      SubprocessTestIsolation::recvFirstResult(ati, aresult, bti, bresult);
+    }
+  } catch(...) {
+    UNIMPLEMENTED();
+  }
+  std::cout << "A = " << aresult.time << std::endl;
+  std::cout << "B = " << bresult.time << std::endl;
+  return std::min(aresult.time, bresult.time);
+}
+
+double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, int retries,
+                                                     const std::vector<std::string>* files){
+  TestResult result;
   try{
     if(ti.beginTest(worker_threads)){
-      try {
-        computeWrapperSubproc(ti, n, v, acc, hash, files);
-      } catch(petabricks::DynamicScheduler::AbortException) {
-        v=jalib::maxval<double>();
-        _isRunning = false;
-      } catch(...) {
-        UNIMPLEMENTED();
-        throw;
-      }
-      ti.endTest(v, acc, hash);
+      computeWrapperSubproc(ti, n, result, files);
+      ti.endTest(result);
     }else{
-      ti.recvResult(v, acc, hash);
+      ti.recvResult(result);
     }
   }catch(TestIsolation::UnknownTestFailure e){
     if(retries<0) retries=RETRIES;//from cmd line
@@ -726,64 +757,69 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
       exit(e.rv);
     }
   } 
-  if(v<0)        throw ComputeRetryException();
-  if(DUMPTIMING) theTimings.push_back(v);
-  if(ACCURACY)   theAccuracies.push_back(acc);
-  if(HASH){
-    theLastHash = hash;
-  }
-  return v;
+  if(result.time<0)  throw ComputeRetryException();
+  if(DUMPTIMING)     theTimings.push_back(result.time);
+  if(ACCURACY)       theAccuracies.push_back(result.accuracy);
+  if(HASH)           theLastHash = result.hash;
+  return result.time;
 }
-  
-void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
-                                                          int n,
-                                                          double& time,
-                                                          double& acc,
-                                                          jalib::Hash& hash,
-                                                          const std::vector<std::string>* files
-                                                          ){
-  if(_isTrainingRun && _main->isVariableAccuracy()){
-    variableAccuracyTrainingLoop(ti);
-  }
+
+void petabricks::PetabricksRuntime::loadTestInput(int n, const std::vector<std::string>* files) {
   if(n>0){
     JASSERT(files==NULL);
     JTIMER_SCOPE(randomize);
     JASSERT(n==_randSize);
-    ti.disableTimeout();
     _main->deallocate();
     _main->reallocate(n);
     _main->randomize();
-    ti.restartTimeout();
   }else if(files!=NULL){
-    ti.disableTimeout();
     _main->readInputs(*files);
     _main->readOutputs(*files);
     if(IOGEN_N>0){
       _main->reallocate(IOGEN_N);
     }
-    ti.restartTimeout();
   }
-  _needTraingingRun = false;//reset flag set by isTrainingRun()
-  _isRunning = true;
-  jalib::JTime begin=jalib::JTime::now();
-  _main->compute();
-  jalib::JTime end=jalib::JTime::now();
-  _isRunning = false;
+}
   
-  if(_needTraingingRun && _isTrainingRun){
-    time=-1;
-  }else{
-    time=end-begin;
-  }
-  if(ACCURACY){
-    ti.disableTimeout();
-    acc=_main->accuracy();
-  }
-  if(HASH){
-    ti.disableTimeout();
-    jalib::HashGenerator hg;
-    _main->hash(hg);
-    hash = hg.final();
+void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
+                                                          int n,
+                                                          TestResult& result,
+                                                          const std::vector<std::string>* files){
+  try {
+    if(_isTrainingRun && _main->isVariableAccuracy()){
+      variableAccuracyTrainingLoop(ti);
+    }
+    if(n>0 || files!=NULL){
+      loadTestInput(n, files);
+    }
+    _needTraingingRun = false;//reset flag set by isTrainingRun()
+    _isRunning = true;
+    jalib::JTime begin=jalib::JTime::now();
+    _main->compute();
+    jalib::JTime end=jalib::JTime::now();
+    _isRunning = false;
+    
+    if(_needTraingingRun && _isTrainingRun){
+      result.time=-1;
+    }else{
+      result.time=end-begin;
+    }
+    if(ACCURACY){
+      ti.disableTimeout();
+      result.accuracy = _main->accuracy();
+    }
+    if(HASH){
+      ti.disableTimeout();
+      jalib::HashGenerator hg;
+      _main->hash(hg);
+      result.hash = hg.final();
+    }
+  } catch(petabricks::DynamicScheduler::AbortException) {
+    result.time=jalib::maxval<double>();
+    _isRunning = false;
+  } catch(...) {
+    UNIMPLEMENTED();
+    throw;
   }
 }
   
@@ -903,7 +939,8 @@ void petabricks::PetabricksRuntime::abort(){
   TestIsolation* master = SubprocessTestIsolation::masterProcess();
   if(master!=NULL){
     if(MODE==MODE_AUTOTUNE_GENETIC){
-      master->endTest(jalib::maxval<double>(), jalib::minval<double>(), jalib::Hash());//should abort us
+      TestResult dummy;
+      master->endTest(dummy);//should abort us
       UNIMPLEMENTED();
     }else{
       JASSERT(false).Text("abort");

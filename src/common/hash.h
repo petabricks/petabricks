@@ -12,6 +12,8 @@
 #ifndef PETABRICKSHASH_H
 #define PETABRICKSHASH_H
 
+#include "jassert.h"
+
 #include <stdio.h>
 
 #ifdef HAVE_CONFIG_H
