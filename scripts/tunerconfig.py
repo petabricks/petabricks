@@ -100,6 +100,12 @@ def dump(f):
   for name, value in zip(names, values):
     print >>f, "  %s = %s" % (name, repr(value))
 
+def option_callback(option, opt, value, parser):
+  opt=str(option).split('/')[0]
+  while opt[0]=='-':
+    opt=opt[1:]
+  assert hasattr(config, opt)
+  setattr(config, opt, value)
 
 #################################################################
 #################################################################
@@ -147,6 +153,9 @@ class patch_debug:
   print_log                = True
   pause_on_crash           = True
   candidatelog             = True
+
+class patch_onlinelearning:
+  use_iogen = False
 
 class patch_n:
   def __init__(self, n):

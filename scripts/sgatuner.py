@@ -9,7 +9,7 @@ from configtool import defaultConfigFile
 from candidatetester import Candidate, CandidateTester
 from mutators import MutateFailed
 from traininginfo import TrainingInfo
-from tunerconfig import config
+from tunerconfig import config, option_callback
 from tunerwarnings import InitialProgramCrash,ExistingProgramCrash,NewProgramCrash,TargetNotMet
 from storagedirs import timers
 import tunerwarnings
@@ -428,13 +428,6 @@ def regression_check(benchmark):
   storagedirs.callWithLogDir(lambda: autotuneInner(benchmark),
                              config.output_dir,
                              config.delete_output_dir)
-
-def option_callback(option, opt, value, parser):
-  opt=str(option).split('/')[0]
-  while opt[0]=='-':
-    opt=opt[1:]
-  assert hasattr(config, opt)
-  setattr(config, opt, value)
 
 if __name__ == "__main__":
   from optparse import OptionParser

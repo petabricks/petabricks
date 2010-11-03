@@ -30,6 +30,13 @@ namespace petabricks {
     TestResult() 
       : time(jalib::maxval<double>()), accuracy(jalib::minval<double>()) 
     {}
+    void writexml(std::ostream& o, const char* label) {
+      o << "<testresult"
+        << " label=\""    << label    << "\""
+        << " timing=\""   << time     << "\""
+        << " accuracy=\"" << accuracy << "\""
+        << " hash=\""     << hash     << "\" />";
+    }
   };
 
   class TestIsolation {

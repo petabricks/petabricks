@@ -405,6 +405,7 @@ int petabricks::PetabricksRuntime::runMain(){
       break;
     case MODE_RACE_CONFIGS:
       raceConfigs(_randSize);
+      return _rv;
       break;
     case MODE_RUN_RANDOM:
 #ifdef HAVE_OPENCL
@@ -464,9 +465,7 @@ int petabricks::PetabricksRuntime::runMain(){
     std::cout << " />\n";
   }
   if(HASH){
-    std::cout << "    <outputhash value=\"0x";
-    theLastHash.print();
-    std::cout << "\" />\n";
+    std::cout << "    <outputhash value=\"0x" << theLastHash << "\" />\n";
   }
   if(ACCURACY || DUMPTIMING || HASH) std::cout << "  </stats>\n</root>\n" << std::flush;
 
@@ -732,8 +731,13 @@ double petabricks::PetabricksRuntime::raceConfigs(int n, const std::vector<std::
   } catch(...) {
     UNIMPLEMENTED();
   }
-  std::cout << "A = " << aresult.time << std::endl;
-  std::cout << "B = " << bresult.time << std::endl;
+  std::cout.precision(15);
+  std::cout << "<raceresult>" << std::endl;
+  aresult.writexml(std::cout, "0");
+  std::cout << std::endl;
+  bresult.writexml(std::cout, "1");
+  std::cout << std::endl;
+  std::cout << "</raceresult>" << std::endl;
   return std::min(aresult.time, bresult.time);
 }
 

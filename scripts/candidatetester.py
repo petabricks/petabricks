@@ -53,6 +53,7 @@ class CrashException(Exception):
       raw_input('press any key to continue')
 
 def debug_logcmd(cmd):
+  #print ' '.join(cmd)
   pass
 
 class Results:
@@ -400,6 +401,37 @@ class CandidateTester:
     except pbutil.TimingRunFailed, e:
       self.crashCount += 1
       raise CrashException(testNumber, self.n, candidate, cmd)
+
+  def race(self, candidatea, candidateb, limit=None):
+    self.testCount += 1
+    cfgfilea = candidatea.cfgfile()
+    cfgfileb = candidateb.cfgfile()
+    cmd = list(self.cmd)
+    cmd.extend(timers.inputgen.wrap(lambda:self.getInputArg(0)))
+    if limit is not None:
+      cmd.append("--max-sec=%f"%limit)
+    cmd.extend(getMemoryLimitArgs())
+    try:
+      debug_logcmd(cmd)
+      resulta,resultb = timers.testing.wrap(lambda: pbutil.executeRaceRun(cmd, cfgfilea, cfgfileb))
+      if resulta['timing'] < 2**31:
+        print resulta
+        return False
+      if resultb['timing'] < 2**31:
+        print resultb
+        return True
+      assert False
+    except pbutil.TimingRunTimeout:
+      assert limit is not None
+      warnings.warn(tunerwarnings.ProgramTimeout(candidatea, self.n, limit))
+      warnings.warn(tunerwarnings.ProgramTimeout(candidateb, self.n, limit))
+      candidatea.metrics[config.timing_metric_idx][self.n].addTimeout(limit)
+      candidateb.metrics[config.timing_metric_idx][self.n].addTimeout(limit)
+      self.timeoutCount += 1
+      return False
+    except pbutil.TimingRunFailed, e:
+      self.crashCount += 1
+      raise CrashException(-1, self.n, candidateb, cmd)
   
   def comparer(self, metricIdx, confidence, maxTests):
     '''return a cmp like function that dynamically runs more tests to improve confidence'''
