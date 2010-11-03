@@ -41,16 +41,22 @@ int main(int argc, const char** argv){
     hdb.spawnListenThread();
     hdb.spawnListenThread();
 
-    JTRACE("start");
-    hdb.host(0)->createRemoteObject
-      (local=RegionRemote::genLocal(), &RegionRemote::genRemote);
-    local->waitUntilCreated();
     RegionRemote* region = new RegionRemote(local);
-    region->readCell(m123);
 
+    JTRACE("start");
+    printf("start\n");
+    hdb.host(0)->createRemoteObject
+      (local=RegionRemote::genLocal(region), &RegionRemote::genRemote);
+    local->waitUntilCreated();
+    
+    region->setRemoteObject(local);
+
+    printf("cell\n");
+    printf("cell %4.8g\n", region->readCell(m123));
 
     region->markComplete();
     JTRACE("complete");
+    printf("complete\n");
     return 0;
   } else {
     JASSERT(argc==3);
