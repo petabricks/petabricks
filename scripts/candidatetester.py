@@ -174,6 +174,10 @@ class Results:
     dd=stats.norm((self.mean()-that.mean())/denom, math.sqrt(self.meanVariance()+that.meanVariance())/denom)
     return dd.cdf(config.same_threshold_pct/2.0)-dd.cdf(-config.same_threshold_pct/2.0)
 
+  def last(self):
+    if self.realResults:
+      return self.realResults[-1]
+
 class ResultsDB:
   '''stores many Results for different input sizes'''
   def __init__(self, metric, vals=dict()):
@@ -414,24 +418,23 @@ class CandidateTester:
     try:
       debug_logcmd(cmd)
       resulta,resultb = timers.testing.wrap(lambda: pbutil.executeRaceRun(cmd, cfgfilea, cfgfileb))
-      if resulta['timing'] < 2**31:
-        print resulta
-        return False
-      if resultb['timing'] < 2**31:
-        print resultb
-        return True
-      assert False
+      best = min(resulta['timing'], resultb['timing'])
+      for candidate, result in [(candidatea,resulta), (candidateb, resultb)]:
+        if result['timing'] < 2**31:
+          for i,metric in enumerate(config.metrics):
+            candidate.metrics[i][self.n].add(result[metric])
+        else:
+          candidate.metrics[config.timing_metric_idx][self.n].addTimeout(best)
+      return True
     except pbutil.TimingRunTimeout:
       assert limit is not None
-      warnings.warn(tunerwarnings.ProgramTimeout(candidatea, self.n, limit))
-      warnings.warn(tunerwarnings.ProgramTimeout(candidateb, self.n, limit))
-      candidatea.metrics[config.timing_metric_idx][self.n].addTimeout(limit)
-      candidateb.metrics[config.timing_metric_idx][self.n].addTimeout(limit)
+      warnings.warn(tunerwarnings.ProgramTimeout(candidate, self.n, limit))
+      candidate.metrics[config.timing_metric_idx][self.n].addTimeout(limit)
       self.timeoutCount += 1
       return False
     except pbutil.TimingRunFailed, e:
       self.crashCount += 1
-      raise CrashException(-1, self.n, candidateb, cmd)
+      raise CrashException(testNumber, self.n, candidate, cmd)
   
   def comparer(self, metricIdx, confidence, maxTests):
     '''return a cmp like function that dynamically runs more tests to improve confidence'''

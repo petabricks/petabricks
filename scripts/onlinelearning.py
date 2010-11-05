@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import logging, time, sys
+import logging, time, sys, itertools
 import pbutil
 import sgatuner
 import tunerconfig
@@ -15,28 +15,36 @@ from storagedirs import timers
 from sgatuner import Population
 from mutators import MutateFailed
 
+
 def onlinelearnInner(benchmark):
   if config.debug:
     logging.basicConfig(level=logging.DEBUG)
+  n = config.max_input_size
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
   main = sgatuner.mainname([pbutil.benchmarkToBin(benchmark)])
-  tester = CandidateTester(benchmark, config.max_input_size)
+  tester = CandidateTester(benchmark, n)
   candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml.transform(main))
   sgatuner.addMutators(candidate, infoxml.globalsec())
   sgatuner.addMutators(candidate, infoxml.transform(main))
   candidate.addMutator(mutators.MultiMutator(2))
+
+  def fitness(candidate):
+    f=candidate.metrics[0][n].last()
+    if f is None:
+      return 10**10
+    return f
 
   if not config.delete_output_dir:
     storagedirs.cur.dumpConfig()
     storagedirs.cur.dumpGitStatus()
     storagedirs.cur.saveFile(pbutil.benchmarkToInfo(benchmark))
     storagedirs.cur.saveFile(pbutil.benchmarkToBin(benchmark))
-  
+    
   try:
     timers.total.start()
     config.end_time = time.time() + config.max_time
         
-    while True:
+    for gen in itertools.count():
       c = candidate.clone()
       for z in xrange(config.mutate_retries):
         try:
@@ -47,7 +55,15 @@ def onlinelearnInner(benchmark):
             warnings.warn(tunerwarnings.MutateFailed(candidate, z, tester.n))
           continue
       if tester.race(candidate, c):
-        candidate = c 
+        pf=fitness(candidate)
+        cf=fitness(c)
+        if cf > pf:
+          candidate = c 
+          print gen,'parent',pf,'child',cf,"(switched to child)"
+        else:
+          print gen,'parent',pf,'child',cf
+      else:
+        print 'error'
 
     timers.total.stop()
   finally:
