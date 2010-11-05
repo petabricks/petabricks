@@ -74,6 +74,9 @@ static std::string ATLOG;
 static jalib::Hash theLastHash;
 static std::string IOGEN_PFX="tmp_";
 static int IOGEN_N=-1;
+static double RACE_MULTIPLIER=1;
+static double RACE_MULTIPLIER_LOWACC=1;
+static double RACE_ACCURACY_TARGET=jalib::minval<double>();
 
 #ifdef HAVE_BOOST_RANDOM_HPP
 static boost::lagged_fibonacci607& myRandomGen(){
@@ -314,6 +317,9 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("max-sec",     GRAPH_MAX_SEC).help("stop graphs/autotuning after algorithm runs too slow");
   args.param("isolation",   ISOLATION).help("don't run timing tests in a forked subprocess");
   args.param("retries",     RETRIES).help("times to retry on test failure");
+  args.param("race-multiplier", RACE_MULTIPLIER).help("how much extra time (percentage) the slower racer gets to finish");
+  args.param("race-multiplier-lowacc", RACE_MULTIPLIER_LOWACC).help("how much extra time (percentage) the slower racer gets to finish");
+  args.param("race-accuracy", RACE_ACCURACY_TARGET).help("accuracy the second racer must achieve");
   
   size_t max_memory=0;
   if(args.param("max-memory", max_memory).help("kill the process when it tries to use this much memory")) {
@@ -932,6 +938,13 @@ double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable
     tunable.setValue(best);
     return bestVal;
   }
+}
+
+double petabricks::PetabricksRuntime::updateRaceTimeout(TestResult& result, int winnerid) {
+  if(result.accuracy >= RACE_ACCURACY_TARGET)
+    return result.time * RACE_MULTIPLIER;
+  else 
+    return result.time * RACE_MULTIPLIER_LOWACC;
 }
 
 bool petabricks::PetabricksRuntime::isTrainingRun(){

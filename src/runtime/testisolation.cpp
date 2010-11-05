@@ -15,6 +15,8 @@
 #include <limits>
 #include <string.h>
 
+#include "petabricksruntime.h"
+
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
@@ -74,7 +76,7 @@ JASSERT_STATIC(sizeof COOKIE_DONE == sizeof COOKIE_DISABLETIMEOUT);
 JASSERT_STATIC(sizeof COOKIE_DONE == sizeof COOKIE_RESTARTTIMEOUT);
 
 petabricks::SubprocessTestIsolation::SubprocessTestIsolation(double to) 
-  : _pid(-1), _fd(-1), _rv(RUNNING_RV), _timeout(to)
+  : _pid(-1), _fd(-1), _rv(RUNNING_RV), _timeout(to), _timeoutEnabled(true), _start(jalib::JTime::null())
 {
   if(_timeout < std::numeric_limits<double>::max()-TIMEOUT_GRACESEC)
     _timeout += TIMEOUT_GRACESEC;
@@ -102,6 +104,8 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads) {
     _fd=fds[0];
     close(fds[1]);
     _rv = RUNNING_RV;
+    _timeoutEnabled = true;
+    _start = jalib::JTime::now();
     return false;
   }else{
     //child
@@ -171,6 +175,7 @@ void petabricks::SubprocessTestIsolation::recvResult(TestResult& result) {
   fds[0].revents = 0;
 
   for(;;){
+    _settimeout(timeout, timeleft());
     ready = poll(fds, sizeof(fds)/sizeof(struct pollfd), timeout);
     JASSERT(ready>=0)(ready);
 
@@ -179,7 +184,7 @@ void petabricks::SubprocessTestIsolation::recvResult(TestResult& result) {
       break;
     }
 
-    if(handleEvent(result, timeout)){
+    if(handleEvent(result)){
       break;
     }
   }
@@ -187,13 +192,11 @@ void petabricks::SubprocessTestIsolation::recvResult(TestResult& result) {
     
 void petabricks::SubprocessTestIsolation::recvFirstResult(SubprocessTestIsolation& a, TestResult& aresult,
                                                           SubprocessTestIsolation& b, TestResult& bresult) {
-  TimeoutT atimeout;
-  TimeoutT btimeout;
-  _settimeout(atimeout, a._timeout);
-  _settimeout(btimeout, b._timeout);
-  int ready;
-
   struct pollfd fds[2];
+  struct pollfd* pfds = fds;
+  bool adone = false;
+  bool bdone = false;
+  int nfds = 2;
   fds[0].fd = a._fd;
   fds[0].events = POLLIN;
   fds[0].revents = 0;
@@ -202,7 +205,11 @@ void petabricks::SubprocessTestIsolation::recvFirstResult(SubprocessTestIsolatio
   fds[1].revents = 0;
 
   for(;;){
-    ready = poll(fds, sizeof(fds)/sizeof(struct pollfd), std::max(atimeout,btimeout));
+    int ready = 0;
+    double secleft = std::max(0.0, std::max(a.timeleft(), b.timeleft()));
+    TimeoutT timeout;
+    _settimeout(timeout, secleft);
+    ready = poll(pfds, nfds, timeout);
     JASSERT(ready>=0)(ready);
 
     if(ready==0){ //timeout
@@ -211,26 +218,43 @@ void petabricks::SubprocessTestIsolation::recvFirstResult(SubprocessTestIsolatio
       break;
     }
 
-    bool adone = (fds[0].revents&POLLIN)!=0 && a.handleEvent(aresult, atimeout);
-    bool bdone = (fds[1].revents&POLLIN)!=0 && b.handleEvent(bresult, btimeout);
-    if(adone && !bdone) b.killChild();
-    if(bdone && !adone) a.killChild();
-    if(adone || bdone)  break;
+    adone = adone || ((fds[0].revents&POLLIN)!=0 && a.handleEvent(aresult));
+    bdone = bdone || ((fds[1].revents&POLLIN)!=0 && b.handleEvent(bresult));
+    if(adone) {
+      fds[0].revents = 0;
+      pfds = fds+1;
+      nfds = 1;
+      b._timeout = PetabricksRuntime::updateRaceTimeout(aresult, 0);
+    }else if(bdone) {
+      fds[1].revents = 0;
+      pfds = fds;
+      nfds = 1;
+      a._timeout = PetabricksRuntime::updateRaceTimeout(bresult, 1);
+    }
+    if(adone && bdone) break;
   }
 }
 
-bool petabricks::SubprocessTestIsolation::handleEvent(TestResult& result,
-                                                      TimeoutT& timeout) {
+double petabricks::SubprocessTestIsolation::timeleft() const {
+  if(!running())
+      return 0;
+  if(_timeoutEnabled)
+    return _timeout - (jalib::JTime::now() - _start);
+  return std::numeric_limits<double>::max();
+}
+
+bool petabricks::SubprocessTestIsolation::handleEvent(TestResult& result) {
   //receive a control code
   std::string cnt = recvControlCookie();
 
   //check control code:
   if(cnt==COOKIE_DISABLETIMEOUT){
-    _settimeout(timeout, std::numeric_limits<double>::max());
+    _timeoutEnabled = false;
     return false;
   }
   if(cnt==COOKIE_RESTARTTIMEOUT){
-    _settimeout(timeout, _timeout);
+    _timeoutEnabled = true;
+    _start = jalib::JTime::now();
     return false;
   }
   if(cnt!=COOKIE_DONE || (!running() && rv()!=SUCCESS_RV )){ 
@@ -301,7 +325,7 @@ void  petabricks::SubprocessTestIsolation::testExited() {
       _rv=RUNNING_RV;//ensure running()
   }
 }
-bool petabricks::SubprocessTestIsolation::running(){ 
+bool petabricks::SubprocessTestIsolation::running() const{ 
   return _rv<-256; 
 }
 int  petabricks::SubprocessTestIsolation::rv(){

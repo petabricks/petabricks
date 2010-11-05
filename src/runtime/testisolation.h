@@ -16,6 +16,7 @@
 #include "common/jconvert.h"
 #include "common/jserialize.h"
 #include "common/jtunable.h"
+#include "common/jtimer.h"
 
 #include <vector>
 #include <unistd.h>
@@ -28,7 +29,8 @@ namespace petabricks {
     double accuracy;
     jalib::Hash hash;
     TestResult() 
-      : time(jalib::maxval<double>()), accuracy(jalib::minval<double>()) 
+      : time(jalib::maxval<double>())
+      , accuracy(jalib::minval<double>()) 
     {}
     void writexml(std::ostream& o, const char* label) {
       o << "<testresult"
@@ -80,7 +82,7 @@ namespace petabricks {
     void recvResult(TestResult&);
     void disableTimeout();
     void restartTimeout();
-    
+
     static void recvFirstResult(SubprocessTestIsolation& a, TestResult& aresult,
                                 SubprocessTestIsolation& b, TestResult& bresult);
   protected:
@@ -88,15 +90,19 @@ namespace petabricks {
     void killChild();
     void waitExited();
     void testExited();
-    bool running();
+    bool running() const;
     int rv();
-    bool handleEvent(TestResult& result, TimeoutT& timeout);
+    bool handleEvent(TestResult& result);
+    double timeleft() const;
+
   private:
     pid_t _pid;
     int _fd;
     int _rv;
-    std::vector<TunableMod>  _modifications;
+    std::vector<TunableMod> _modifications;
     double _timeout;
+    bool _timeoutEnabled;
+    jalib::JTime _start;
   };
   
   /**
