@@ -457,7 +457,7 @@ class CandidateTester:
       return False
     except pbutil.TimingRunFailed, e:
       self.crashCount += 1
-      raise CrashException(testNumber, self.n, candidate, cmd)
+      raise CrashException(0, self.n, candidatea, cmd)
   
   def comparer(self, metricIdx, confidence, maxTests):
     '''return a cmp like function that dynamically runs more tests to improve confidence'''

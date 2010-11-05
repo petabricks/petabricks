@@ -941,10 +941,14 @@ double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable
 }
 
 double petabricks::PetabricksRuntime::updateRaceTimeout(TestResult& result, int winnerid) {
-  if(result.accuracy >= RACE_ACCURACY_TARGET)
-    return result.time * RACE_MULTIPLIER;
-  else 
-    return result.time * RACE_MULTIPLIER_LOWACC;
+  if(result.time < jalib::maxval<double>()){
+    if(result.accuracy >= RACE_ACCURACY_TARGET)
+      return result.time * RACE_MULTIPLIER;
+    else 
+      return result.time * RACE_MULTIPLIER_LOWACC;
+  }else{
+    return GRAPH_MAX_SEC;
+  }
 }
 
 bool petabricks::PetabricksRuntime::isTrainingRun(){

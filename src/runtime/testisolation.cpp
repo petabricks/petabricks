@@ -218,8 +218,16 @@ void petabricks::SubprocessTestIsolation::recvFirstResult(SubprocessTestIsolatio
       break;
     }
 
-    adone = adone || ((fds[0].revents&POLLIN)!=0 && a.handleEvent(aresult));
-    bdone = bdone || ((fds[1].revents&POLLIN)!=0 && b.handleEvent(bresult));
+    try {
+      adone = adone || ((fds[0].revents&POLLIN)!=0 && a.handleEvent(aresult));
+    } catch(UnknownTestFailure e) {
+      adone = true;
+    }
+    try {
+      bdone = bdone || ((fds[1].revents&POLLIN)!=0 && b.handleEvent(bresult));
+    } catch(UnknownTestFailure e) {
+      bdone = true;
+    }
     if(adone) {
       fds[0].revents = 0;
       pfds = fds+1;

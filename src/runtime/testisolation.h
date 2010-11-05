@@ -28,15 +28,18 @@ namespace petabricks {
     double time;
     double accuracy;
     jalib::Hash hash;
+    bool crashed;
     TestResult() 
       : time(jalib::maxval<double>())
-      , accuracy(jalib::minval<double>()) 
+      , accuracy(jalib::minval<double>())
+      , crashed(false)
     {}
     void writexml(std::ostream& o, const char* label) {
       o << "<testresult"
         << " label=\""    << label    << "\""
         << " timing=\""   << time     << "\""
         << " accuracy=\"" << accuracy << "\""
+        << " crashed=\""  << crashed << "\""
         << " hash=\""     << hash     << "\" />";
     }
   };
