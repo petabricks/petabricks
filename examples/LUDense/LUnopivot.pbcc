@@ -1,0 +1,46 @@
+#ifndef LUNOPIVOT_PBCC 
+#define LUNOPIVOT_PBCC
+
+#include "../simple/copy.pbcc"
+
+transform LUnopivot
+from IN[n,n]
+through A<n-1>[n,n]
+to OUT[n,n]
+//to OUT[n,n], A<n-1>[n,n]
+{
+  to (A<0> a0) from (IN in) {
+        Copy2D(a0, in);
+  }
+
+
+  primary to (A<k+1>.cell(j,i) aNext)
+  from (A<k>.cell(j,i) aPrev,
+        A<k+1>.cell(k,i) left,
+        A<k>.cell(j,k) up)
+  where k < i && k < j
+  {
+        aNext = aPrev - left * up;
+  }
+
+
+  to (A<k+1>.cell(j,i) aNext)
+  from (A<k>.cell(j,i) aPrev,
+        A<k>.cell(j,k) up)
+  where i > j && k == j
+  {
+        aNext = aPrev / up;
+  }
+
+  to (A<k+1>.cell(i,j) aNext)
+  from (A<k>.cell(i,j) aPrev)
+  {
+        aNext = aPrev;
+  }
+
+  to (OUT out) from (A<n-1> an) {
+        Copy2D(out, an);
+  }
+}
+
+#endif // LUNOPIVOT_PBCC
