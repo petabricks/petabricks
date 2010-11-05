@@ -53,6 +53,7 @@ class config_defaults:
   score_decay = 0.9
   bonus_round_score = 0.9
   memory_limit_pct = 0.8
+  min_std_pct = 0.000001
 
   #types of mutatators to generate
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']

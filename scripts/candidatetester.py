@@ -112,7 +112,10 @@ class Results:
   def reinterpolate(self):
     '''recreate interpolatedResults from realResults and timeoutResults'''
     self.interpolatedResults = list(self.realResults)
-    mkdistrib = lambda: stats.norm(numpy.mean(self.interpolatedResults), numpy.std(self.interpolatedResults))
+    def mkdistrib():
+      m=numpy.mean(self.interpolatedResults) 
+      s=max(config.min_std_pct*m,numpy.std(self.interpolatedResults))
+      return stats.norm(m,s)
     if len(self.interpolatedResults) == 0:
       '''all tests timed out, seed with double the average timeout'''
       self.interpolatedResults.append(sum(self.timeoutResults)/len(self.timeoutResults)*2.0)

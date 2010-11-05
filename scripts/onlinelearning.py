@@ -32,7 +32,6 @@ def onlinelearnInner(benchmark):
     t=candidate.metrics[0][n].last()
     if t is None:
       return 10**10
-    a=candidate.metrics[1][n].last()
     return t
 
   if not config.delete_output_dir:
@@ -62,7 +61,7 @@ def onlinelearnInner(benchmark):
           candidate = c 
           print gen,'parent',pf,'child',cf,"(switched to child)"
         else:
-          print gen,'parent',pf,'child',cf
+          print gen,'parent',pf,'child',cf, candidate.resultsStr(n)
       else:
         print 'error'
 
