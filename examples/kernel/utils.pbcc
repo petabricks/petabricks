@@ -14,6 +14,21 @@ void printMatrix(ConstMatrixRegion2D A)
   printf("\n");
 }
 
+int findMinAndMax(double *min, double *max, ConstMatrixRegion1D array)
+{
+    *min = *max = array.cell(0);
+    for (int i = 1; i < array.count(); ++i) {
+        if (array.cell(i) < *min) {
+            *min = array.cell(i);
+        }
+        if (array.cell(i) > *max) {
+            *max = array.cell(i);
+        }
+    }
+
+    return 0;
+}
+
 %}
 
 // reduce a matrix by adding all elements
