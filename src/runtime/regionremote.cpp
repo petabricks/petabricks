@@ -77,7 +77,29 @@ petabricks::RegionRemote::readCell(const IndexT* coord) {
 }
 
 void petabricks::RegionRemote::writeCell(const IndexT* coord, ElementT value) {
-  // To be implemented
+  WriteCellMessage<3>* msg = (WriteCellMessage<3>*) malloc(sizeof(WriteCellMessage<3>)); 
+  msg->type = MessageTypes::REGIONREMOTE_WRITECELL;
+  msg->value = value;
+  memmove(msg->coord, coord, (sizeof coord) * _dimension);
+
+  pthread_mutex_lock(&_seq_mux);
+  _remoteObject->send(msg, sizeof(WriteCellMessage<3>));
+  uint16_t seq = ++_seq;
+  pthread_mutex_unlock(&_seq_mux);
+  
+  delete msg;
+
+  // wait for the data
+  pthread_mutex_lock(&_buffer_mux);
+  while (seq > _recv_seq) {
+    pthread_cond_wait(&_buffer_cond, &_buffer_mux);
+  }
+  JASSERT(*(ElementT*)_buffer[seq]==value);
+  _buffer.erase(seq);
+  pthread_mutex_unlock(&_buffer_mux);
+
+  // wake other threads
+  pthread_cond_broadcast(&_buffer_cond);
 }
 
 void petabricks::RegionRemote::markComplete() {

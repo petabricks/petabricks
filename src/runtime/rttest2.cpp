@@ -56,6 +56,7 @@ int main(int argc, const char** argv){
     printf("cell %4.8g\n", region->readCell(m2));
     printf("cell %4.8g\n", region->readCell(m3));
 
+    region->writeCell(m0, 123);
     printf("cell %4.8g\n", region->readCell(m0));
 
     region->markComplete();

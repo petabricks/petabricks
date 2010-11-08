@@ -38,5 +38,7 @@ void RegionRemoteProxy::readCell(ReadCellMessage<3>* msg) {
 }
  
 void RegionRemoteProxy::writeCell(WriteCellMessage<3>* msg) {
-  JTRACE("write")(msg->type);
+  ElementT* cell = _referenceRegion->coordToPtr(msg->coord);
+  *cell = msg->value;
+  send(cell, sizeof cell);
 }
