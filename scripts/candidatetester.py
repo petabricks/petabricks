@@ -53,6 +53,7 @@ class CrashException(Exception):
       raw_input('press any key to continue')
 
 def debug_logcmd(cmd):
+  #print ' '.join(cmd)
   pass
 
 class Results:
@@ -111,7 +112,10 @@ class Results:
   def reinterpolate(self):
     '''recreate interpolatedResults from realResults and timeoutResults'''
     self.interpolatedResults = list(self.realResults)
-    mkdistrib = lambda: stats.norm(numpy.mean(self.interpolatedResults), numpy.std(self.interpolatedResults))
+    def mkdistrib():
+      m=numpy.mean(self.interpolatedResults) 
+      s=max(config.min_std_pct*m,numpy.std(self.interpolatedResults))
+      return stats.norm(m,s)
     if len(self.interpolatedResults) == 0:
       '''all tests timed out, seed with double the average timeout'''
       self.interpolatedResults.append(sum(self.timeoutResults)/len(self.timeoutResults)*2.0)
@@ -173,6 +177,10 @@ class Results:
     dd=stats.norm((self.mean()-that.mean())/denom, math.sqrt(self.meanVariance()+that.meanVariance())/denom)
     return dd.cdf(config.same_threshold_pct/2.0)-dd.cdf(-config.same_threshold_pct/2.0)
 
+  def last(self):
+    if self.realResults:
+      return self.realResults[-1]
+
 class ResultsDB:
   '''stores many Results for different input sizes'''
   def __init__(self, metric, vals=dict()):
@@ -204,12 +212,14 @@ class Candidate:
   nextCandidateId=0
   '''A candidate algorithm in the population'''
   def __init__(self, cfg, infoxml, mutators=[]):
-    self.config    = ConfigFile(cfg)
-    self.metrics   = [ResultsDB(x) for x in config.metrics]
-    self.mutators  = list(mutators)
-    self.cid       = Candidate.nextCandidateId
-    self.infoxml   = infoxml
-    self.outputdir = storagedirs.candidate(self.cid)
+    self.config      = ConfigFile(cfg)
+    self.metrics     = [ResultsDB(x) for x in config.metrics]
+    self.mutators    = list(mutators)
+    self.cid         = Candidate.nextCandidateId
+    self.infoxml     = infoxml
+    self.lastMutator = None
+    self.outputdir   = storagedirs.candidate(self.cid)
+    self.C           = 0.05 # exploration/exploitation trade-off in the DMAB algorithm
     Candidate.nextCandidateId += 1
 
   def __str__(self):
@@ -240,6 +250,25 @@ class Candidate:
 
   def addMutator(self, m):
     self.mutators.append(m)
+
+    ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
+  def upperConfidenceBoundMutate():
+    # compute the total number of mutations
+    totalMutations = 0
+    for m in self.mutators:
+      totalMutations += m.timesSelected
+
+    bestScore = -1 # scores are guaranteed to be non-negative
+    bestMutator = None
+    for m in self.mutators:
+      score = mutator.rocScore + self.C*sqrt(2.0*log(totalMutations) / m.timesSelected)
+      if score > bestScore:
+        bestScore = score
+        bestMutator = m
+
+    self.lastMutator = bestMutator
+    self.lastMutator.mutate(self, n)
+
 
   def mutate(self, n, minscore=None):
     if minscore is not None:
@@ -399,6 +428,36 @@ class CandidateTester:
     except pbutil.TimingRunFailed, e:
       self.crashCount += 1
       raise CrashException(testNumber, self.n, candidate, cmd)
+
+  def race(self, candidatea, candidateb, limit=None):
+    self.testCount += 1
+    cfgfilea = candidatea.cfgfile()
+    cfgfileb = candidateb.cfgfile()
+    cmd = list(self.cmd)
+    cmd.extend(timers.inputgen.wrap(lambda:self.getInputArg(0)))
+    if limit is not None:
+      cmd.append("--max-sec=%f"%limit)
+    cmd.extend(getMemoryLimitArgs())
+    try:
+      debug_logcmd(cmd)
+      resulta,resultb = timers.testing.wrap(lambda: pbutil.executeRaceRun(cmd, cfgfilea, cfgfileb))
+      best = min(resulta['timing'], resultb['timing'])
+      for candidate, result in [(candidatea,resulta), (candidateb, resultb)]:
+        if result['timing'] < 2**31:
+          for i,metric in enumerate(config.metrics):
+            candidate.metrics[i][self.n].add(result[metric])
+        else:
+          candidate.metrics[config.timing_metric_idx][self.n].addTimeout(best)
+      return True
+    except pbutil.TimingRunTimeout:
+      assert limit is not None
+      warnings.warn(tunerwarnings.ProgramTimeout(candidate, self.n, limit))
+      candidate.metrics[config.timing_metric_idx][self.n].addTimeout(limit)
+      self.timeoutCount += 1
+      return False
+    except pbutil.TimingRunFailed, e:
+      self.crashCount += 1
+      raise CrashException(0, self.n, candidatea, cmd)
   
   def comparer(self, metricIdx, confidence, maxTests):
     '''return a cmp like function that dynamically runs more tests to improve confidence'''

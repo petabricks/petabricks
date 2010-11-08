@@ -9,7 +9,7 @@ from configtool import defaultConfigFile
 from candidatetester import Candidate, CandidateTester
 from mutators import MutateFailed
 from traininginfo import TrainingInfo
-from tunerconfig import config
+from tunerconfig import config, option_callback
 from tunerwarnings import InitialProgramCrash,ExistingProgramCrash,NewProgramCrash,TargetNotMet
 from storagedirs import timers
 import tunerwarnings
@@ -83,7 +83,6 @@ class Population:
 
   def randomMutation(self, maxpopsize=None, minscore=None):
     '''grow the population using cloning and random mutation'''
-    self.notadded=[]
     originalPop = list(self.members)
     totalMutators = self.countMutators(minscore)
     tries = float(totalMutators)*config.mutations_per_mutator
@@ -111,7 +110,7 @@ class Population:
           else:
             return tries
 
-      if c.config in self.triedConfigs:
+      if c.config in self.triedConfigs and c.lastMutator:
         c.lastMutator.result('fail')
         continue
       self.triedConfigs.add(c.config)
@@ -125,7 +124,8 @@ class Population:
           self.notadded.append(c)
       except candidatetester.CrashException, e:
         c.rmfiles()
-        c.lastMutator.result('fail')
+        if c.lastMutator:
+          c.lastMutator.result('fail')
         warnings.warn(NewProgramCrash(e))
     if len(originalPop)<len(self.members):
       logging.info("added "+', '.join(map(str,set(self.members)-set(originalPop))))
@@ -144,10 +144,11 @@ class Population:
         return True
       if childCmp(parent, child) < 0:
         same=False
-    if same:
-      child.lastMutator.result('same')
-    else:
-      child.lastMutator.result('worse')
+    if child.lastMutator:
+      if same:
+        child.lastMutator.result('same')
+      else:
+        child.lastMutator.result('worse')
     return False
   
   def inputSize(self, roundOffset=0):
@@ -247,7 +248,8 @@ class Population:
       self.roundNumber += 1
       self.triedConfigs = set(map(lambda x: x.config, self.members))
       self.removed=[]
-      self.test(config.min_trials)
+      self.notadded=[]
+      self.test(config.max_trials)
       if len(self.members):
         for z in xrange(config.rounds_per_input_size):
           self.randomMutation(config.population_high_size)
@@ -272,7 +274,7 @@ class Population:
       if not config.delete_output_dir:
         for m in self.members+self.removed:
           m.writestats(self.inputSize())
-        if config.mutatorlog:
+        if config.mutatorlog and len(self.members):
           mutators = set.union(*map(lambda x: set(x.mutators), self.members))
           for m in mutators:
             m.writelog(self.roundNumber, self.inputSize())
@@ -426,13 +428,6 @@ def regression_check(benchmark):
   storagedirs.callWithLogDir(lambda: autotuneInner(benchmark),
                              config.output_dir,
                              config.delete_output_dir)
-
-def option_callback(option, opt, value, parser):
-  opt=str(option).split('/')[0]
-  while opt[0]=='-':
-    opt=opt[1:]
-  assert hasattr(config, opt)
-  setattr(config, opt, value)
 
 if __name__ == "__main__":
   from optparse import OptionParser

@@ -7,7 +7,7 @@ class config_defaults:
   final_rounds             = 2
 
   #number of trials to run
-  confidence_pct   = 0.80
+  confidence_pct   = 0.75
   min_trials       = 1
   max_trials       = 7
   '''guessed stddev when only 1 test is taken'''
@@ -53,6 +53,7 @@ class config_defaults:
   score_decay = 0.9
   bonus_round_score = 0.9
   memory_limit_pct = 0.8
+  min_std_pct = 0.000001
 
   #types of mutatators to generate
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']
@@ -100,6 +101,12 @@ def dump(f):
   for name, value in zip(names, values):
     print >>f, "  %s = %s" % (name, repr(value))
 
+def option_callback(option, opt, value, parser):
+  opt=str(option).split('/')[0]
+  while opt[0]=='-':
+    opt=opt[1:]
+  assert hasattr(config, opt)
+  setattr(config, opt, value)
 
 #################################################################
 #################################################################
@@ -111,15 +118,15 @@ class patch_check:
   check                    = True
   
   #run for 30 sec or 2**13 input size
-  max_input_size           = 8192
-  max_time                 = 60*15
+  max_input_size           = 2048 
+  max_time                 = 60
   rounds_per_input_size    = 1
 
   #bigger pop size
   population_low_size      = 3
 
   # wait longer for results, higher time limits
-  limit_multiplier         = 25
+  limit_multiplier         = 15
   
   #run two trials per alg
   confidence_pct   = 0.0
@@ -147,6 +154,9 @@ class patch_debug:
   print_log                = True
   pause_on_crash           = True
   candidatelog             = True
+
+class patch_onlinelearning:
+  use_iogen = False
 
 class patch_n:
   def __init__(self, n):

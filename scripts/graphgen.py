@@ -57,7 +57,7 @@ def main(benchmark, n, filename):
     row['include']=True
     print >>sys.stderr, row['time'], row['minperf'], row['perf_on_%d'%n], ' (%d of %d)'%(i, len(rows))
   rows = filter(lambda x: x.has_key('include'), rows)
-  headers = ['time','minperf', 'perf_on_%d'%n, 'perf_on_%d_ci'%n, 'tests', 'candidates', 'input_size', 'invperf']
+  headers = ['time','minperf', 'perf_on_%d'%n, 'perf_on_%d_ci'%n, 'tests', 'candidates', 'input_size', 'invperf', 'tests_timeout']
   print '#',','.join(headers)
   t=csv.DictWriter(sys.stdout, headers, extrasaction='ignore')
   t.writerows(rows)
