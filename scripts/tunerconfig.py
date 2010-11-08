@@ -111,15 +111,15 @@ class patch_check:
   check                    = True
   
   #run for 30 sec or 2**13 input size
-  max_input_size           = 8192
-  max_time                 = 60*15
+  max_input_size           = 2048 
+  max_time                 = 60
   rounds_per_input_size    = 1
 
   #bigger pop size
   population_low_size      = 3
 
   # wait longer for results, higher time limits
-  limit_multiplier         = 25
+  limit_multiplier         = 15
   
   #run two trials per alg
   confidence_pct   = 0.0
