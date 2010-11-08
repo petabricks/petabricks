@@ -54,6 +54,9 @@ class config_defaults:
   bonus_round_score = 0.9
   memory_limit_pct = 0.8
   min_std_pct = 0.000001
+  accuracy_target = None
+  race_multiplier = 1.1
+  race_multiplier_lowacc = 1000.0
 
   #types of mutatators to generate
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']

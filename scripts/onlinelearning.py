@@ -29,9 +29,12 @@ def onlinelearnInner(benchmark):
   candidate.addMutator(mutators.MultiMutator(2))
 
   def fitness(candidate):
-    t=candidate.metrics[0][n].last()
+    t=candidate.metrics[config.timing_metric_idx][n].last()
+    a=candidate.metrics[config.accuracy_metric_idx][n].last()
     if t is None:
       return 10**10
+    if config.accuracy_target is not None and config.accuracy_target > a:
+      return t + 1000.0*(config.accuracy_target-a)
     return t
 
   if not config.delete_output_dir:
@@ -95,6 +98,7 @@ if __name__ == "__main__":
   parser.add_option("--population_low_size",   type="int",    action="callback", callback=option_callback)
   parser.add_option("--offset",                type="int",    action="callback", callback=option_callback)
   parser.add_option("--name",                  type="string", action="callback", callback=option_callback)
+  parser.add_option("--accuracy_target",       type="float",  action="callback", callback=option_callback)
   (options, args) = parser.parse_args()
   if len(args)!=1 or not options.n:
     parser.print_usage()

@@ -438,6 +438,10 @@ class CandidateTester:
     if limit is not None:
       cmd.append("--max-sec=%f"%limit)
     cmd.extend(getMemoryLimitArgs())
+    cmd.extend(["--race-multiplier=%f"%config.race_multiplier,
+                "--race-multiplier-lowacc=%f"%config.race_multiplier_lowacc])
+    if config.accuracy_target:
+      cmd.append("--race-accuracy=%f"%config.accuracy_target)
     try:
       debug_logcmd(cmd)
       resulta,resultb = timers.testing.wrap(lambda: pbutil.executeRaceRun(cmd, cfgfilea, cfgfileb))

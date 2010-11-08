@@ -343,6 +343,8 @@ def addMutators(candidate, info, ignore=None, weight=1.0):
         ms.append(mutators.UniformRandMutator(name, l, h, weight=weight))
     elif ta['type'] in config.lognorm_array_tunable_types:
       ms.append(mutators.LognormTunableArrayMutator(name, l, h, weight=weight))
+      ms.append(mutators.IncrementTunableArrayMutator(name, l, h, 4, weight=weight))
+      ms.append(mutators.IncrementTunableArrayMutator(name, l, h, 16, weight=weight))
       ms[-1].reset(candidate)
     elif ta['type'] in config.ignore_tunable_types:
       pass
