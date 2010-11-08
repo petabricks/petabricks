@@ -7,6 +7,7 @@ petabricks::RegionRemote::RegionRemote(RemoteObjectPtr remoteObject) {
   _dimension = 3;
 
   pthread_mutex_init(&_seq_mux, NULL);
+  pthread_mutex_init(&_buffer_mux, NULL);
   pthread_cond_init(&_buffer_cond, NULL);
   _seq = 0;
   _recv_seq = 0;
@@ -14,6 +15,7 @@ petabricks::RegionRemote::RegionRemote(RemoteObjectPtr remoteObject) {
 
 petabricks::RegionRemote::~RegionRemote() {
     pthread_mutex_destroy(&_seq_mux);
+    pthread_mutex_destroy(&_buffer_mux);
     pthread_cond_destroy(&_buffer_cond);
 }
 
@@ -48,24 +50,30 @@ using namespace _RegionRemoteMsgTypes;
 
 petabricks::ElementT
 petabricks::RegionRemote::readCell(const IndexT* coord) {
-  ReadCellMessage<3> msg; 
-  msg.type = MessageTypes::REGIONREMOTE_READCELL;
-  memmove(msg.coord, coord, (sizeof coord) * _dimension);
+  ReadCellMessage<3>* msg = (ReadCellMessage<3>*) malloc(sizeof(ReadCellMessage<3>)); 
+  msg->type = MessageTypes::REGIONREMOTE_READCELL;
+  memmove(msg->coord, coord, (sizeof coord) * _dimension);
 
   pthread_mutex_lock(&_seq_mux);
-  _remoteObject->send(&msg, sizeof msg);
+  _remoteObject->send(msg, sizeof(ReadCellMessage<3>));
   uint16_t seq = ++_seq;
-
-  while (seq > _recv_seq) {
-    pthread_cond_wait(&_buffer_cond, &_seq_mux);
-  }
-
   pthread_mutex_unlock(&_seq_mux);
+  
+  delete msg;
 
-  //  ElementT* cell = (ElementT*)_buffer[seq];
+  // wait for the data
+  pthread_mutex_lock(&_buffer_mux);
+  while (seq > _recv_seq) {
+    pthread_cond_wait(&_buffer_cond, &_buffer_mux);
+  }
+  ElementT elmt = *(ElementT*)_buffer[seq];
+  _buffer.erase(seq);
+  pthread_mutex_unlock(&_buffer_mux);
 
-  return 4;
-  //return *cell;
+  // wake other threads
+  pthread_cond_broadcast(&_buffer_cond);
+ 
+  return elmt;
 }
 
 void petabricks::RegionRemote::writeCell(const IndexT* coord, ElementT value) {

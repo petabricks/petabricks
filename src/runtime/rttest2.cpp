@@ -31,7 +31,6 @@ int main(int argc, const char** argv){
   IndexT m2[] = {2,2,2};
   IndexT m3[] = {3,3,3};
 
-
   RemoteHostDB hdb;
   RemoteObjectPtr local;
 
@@ -51,8 +50,13 @@ int main(int argc, const char** argv){
     
     region->setRemoteObject(local);
 
-    printf("cell\n");
     printf("cell %4.8g\n", region->readCell(m123));
+    printf("cell %4.8g\n", region->readCell(m0));
+    printf("cell %4.8g\n", region->readCell(m1));
+    printf("cell %4.8g\n", region->readCell(m2));
+    printf("cell %4.8g\n", region->readCell(m3));
+
+    printf("cell %4.8g\n", region->readCell(m0));
 
     region->markComplete();
     JTRACE("complete");
@@ -65,7 +69,7 @@ int main(int argc, const char** argv){
     hdb.listenLoop();
     return 0;
   }
-
+  
   /*
   MatrixIO* matrixio = new MatrixIO(argv[1], "r");
   RegionIPtr region = matrixio->readToRegionI();

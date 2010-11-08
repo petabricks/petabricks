@@ -40,8 +40,8 @@ namespace petabricks {
     void onNotify(int argc);
     void onRecv(const void* data, size_t len);
 
-    void readCell(struct ReadCellMessage<3>* msg);
-    void writeCell(struct WriteCellMessage<3>* msg);
+    void readCell(ReadCellMessage<3>* msg);
+    void writeCell(WriteCellMessage<3>* msg);
   };
 }
 

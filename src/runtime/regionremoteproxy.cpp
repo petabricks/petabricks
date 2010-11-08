@@ -31,12 +31,12 @@ void RegionRemoteProxy::onRecv(const void* data, size_t len) {
   }
 }
 
-void RegionRemoteProxy::readCell(struct ReadCellMessage<3>* msg) {
+void RegionRemoteProxy::readCell(ReadCellMessage<3>* msg) {
   ElementT* cell = _referenceRegion->coordToPtr(msg->coord);
   JTRACE("read")(*cell);
   send(cell, sizeof cell);
 }
  
-void RegionRemoteProxy::writeCell(struct WriteCellMessage<3>* msg) {
+void RegionRemoteProxy::writeCell(WriteCellMessage<3>* msg) {
   JTRACE("write")(msg->type);
 }

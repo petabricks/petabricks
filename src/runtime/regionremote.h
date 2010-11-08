@@ -15,6 +15,7 @@ namespace petabricks {
   protected:
     RemoteObjectPtr _remoteObject;
     pthread_mutex_t _seq_mux;
+    pthread_mutex_t _buffer_mux;
     pthread_cond_t _buffer_cond;
     uint16_t _seq;
     uint16_t _recv_seq;
