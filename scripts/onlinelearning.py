@@ -20,6 +20,7 @@ def onlinelearnInner(benchmark):
   if config.debug:
     logging.basicConfig(level=logging.DEBUG)
   n = config.max_input_size
+  W = config.window_size
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
   main = sgatuner.mainname([pbutil.benchmarkToBin(benchmark)])
   tester = CandidateTester(benchmark, n)
@@ -40,6 +41,14 @@ def onlinelearnInner(benchmark):
     storagedirs.cur.dumpGitStatus()
     storagedirs.cur.saveFile(pbutil.benchmarkToInfo(benchmark))
     storagedirs.cur.saveFile(pbutil.benchmarkToBin(benchmark))
+
+  ''' mutators in the last time window that produced improved candidates, 
+  ordered by descending fitness of the candidates'''
+  mutatorLog = []
+
+  ''' actual size of the candidate window, in case we have fewer candidates
+  than the maximum window size'''
+  actual_w = 0 
     
   try:
     timers.total.start()
@@ -50,6 +59,7 @@ def onlinelearnInner(benchmark):
       for z in xrange(config.mutate_retries):
         try:
           c.mutate(tester.n)
+          # c.upperConfidenceBoundMutate(tester.n, mutatorLog)
           break
         except MutateFailed:
           if z==config.mutate_retries-1:
@@ -61,6 +71,15 @@ def onlinelearnInner(benchmark):
         if cf < pf:
           candidate = c 
           print gen,'parent',pf,'child',cf,"(switched to child)"
+
+          # slide the candidate window
+          if actual_w >= W:
+            mutatorLog.pop(actual_w - 1);
+          else:
+            actual_w += 1
+            
+          mutatorLog = [candidate.lastMutator] + mutatorLog
+            
         else:
           print gen,'parent',pf,'child',cf
       else:

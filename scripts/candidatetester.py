@@ -216,7 +216,7 @@ class Candidate:
     self.infoxml     = infoxml
     self.lastMutator = None
     self.outputdir   = storagedirs.candidate(self.cid)
-    self.C           = 0.05 # exploration/exploitation trade-off in the DMAB algorithm
+    self.C           = 10    # exploration/exploitation trade-off in the DMAB algorithm
     Candidate.nextCandidateId += 1
 
   def __str__(self):
@@ -248,17 +248,21 @@ class Candidate:
   def addMutator(self, m):
     self.mutators.append(m)
 
-    ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
-  def upperConfidenceBoundMutate():
+  ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
+  def upperConfidenceBoundMutate(self, n, mutatorLog = []):
     # compute the total number of mutations
-    totalMutations = 0
-    for m in self.mutators:
-      totalMutations += m.timesSelected
+    totalMutations = len(mutatorLog) + len(self.mutators)
 
     bestScore = -1 # scores are guaranteed to be non-negative
     bestMutator = None
     for m in self.mutators:
-      score = mutator.rocScore + self.C*sqrt(2.0*log(totalMutations) / m.timesSelected)
+
+      m.timesSelected = 1
+      for m2 in mutatorLog:
+        if m == m2:
+          m.timesSelected += 1
+      
+      score = m.computeRocScore(mutatorLog) + self.C*math.sqrt(2.0*math.log(totalMutations) / m.timesSelected)
       if score > bestScore:
         bestScore = score
         bestMutator = m

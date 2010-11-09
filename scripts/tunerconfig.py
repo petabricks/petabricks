@@ -21,6 +21,8 @@ class config_defaults:
   '''offset added to input sizes'''
   offset                = 0
 
+  window_size           = 20
+
   #how mutation to do
   mutations_per_mutator    = 3
   population_high_size     = 10
