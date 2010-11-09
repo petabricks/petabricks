@@ -6,6 +6,7 @@ import tunerconfig
 import tunerwarnings
 import warnings 
 import mutators 
+import candidatetester 
 import math
 import storagedirs
 from tunerconfig import config, option_callback
@@ -21,6 +22,7 @@ pctrange  = lambda n: map(lambda x: x/float(n-1), xrange(n))
 gettime   = lambda c: c.metrics[config.timing_metric_idx][config.n].mean()
 getacc    = lambda c: c.metrics[config.accuracy_metric_idx][config.n].mean()
 gettrials = lambda c: math.log(c.numTests(config.n))
+lastacc   = lambda c: c.metrics[config.accuracy_metric_idx][config.n].last() 
 
 
 class OnlinePopulation:
@@ -81,9 +83,10 @@ def onlinelearnInner(benchmark):
   sgatuner.addMutators(candidate, infoxml.transform(main))
   candidate.addMutator(mutators.MultiMutator(2))
   pop = OnlinePopulation(candidate)
+  result = candidatetester.Results()
 
   def fitness(candidate):
-    if candidate.metrics[config.timing_metric_idx][config.n].last() is None:
+    if lastacc(candidate) is None:
       return None
     t=candidate.metrics[config.timing_metric_idx][config.n].mean()
     a=candidate.metrics[config.accuracy_metric_idx][config.n].mean()
@@ -110,10 +113,13 @@ def onlinelearnInner(benchmark):
       p = pop.select(fitness)
       c = p.cloneAndMutate(tester.n)
       if tester.race(p, c):
-        if fitness(c) is not None:
+        if lastacc(c) is not None:
           pop.add(c)
           pop.prune()
-        print "Generation",gen
+          result.add(max(lastacc(p), lastacc(c)))
+        else:
+          result.add(lastacc(p))
+        print "Generation",gen,result
         pop.output((p,c))
       else:
         print 'error'
