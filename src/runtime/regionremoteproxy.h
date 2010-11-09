@@ -35,43 +35,59 @@ namespace petabricks {
     RegionIPtr _referenceRegion;
  
   public:
-    RegionRemoteProxy() {
-      MatrixIO* matrixio = new MatrixIO("testdata/Helmholtz3DB1", "r");
-      _referenceRegion = matrixio->readToRegionI();
-    }
+    RegionRemoteProxy();
 
-    void onNotify(int argc){
-      JTRACE("notify")(argc);
-      if(argc==1) {
-	markComplete();
-      }
-    }
-    
-    void onRecv(const void* data, size_t len) {
-      switch(*(MessageType*)data) {
-      case MessageTypes::REGIONREMOTE_READCELL:
-	readCell((ReadCellMessage<D>*)data);
-	break;
-      case MessageTypes::REGIONREMOTE_WRITECELL:
-	writeCell((WriteCellMessage<D>*)data);
-	break;
-      default:
-	throw("Unknown RegionRemoteMsgTypes.");
-      }
-    }
+    void onNotify(int argc);
+    void onRecv(const void* data, size_t len);
 
-    void readCell(ReadCellMessage<D>* msg) {
-      ElementT* cell = _referenceRegion->coordToPtr(msg->coord);
-      JTRACE("read")(*cell);
-      send(cell, sizeof cell);
-    }
-
-    void writeCell(WriteCellMessage<D>* msg) {
-      ElementT* cell = _referenceRegion->coordToPtr(msg->coord);
-      *cell = msg->value;
-      send(cell, sizeof cell);
-    }
+    void readCell(ReadCellMessage<D>* msg);
+    void writeCell(WriteCellMessage<D>* msg);
   };
+}
+
+/* implementation */
+using namespace petabricks;
+
+template<int D> 
+RegionRemoteProxy<D>::RegionRemoteProxy() {
+  MatrixIO* matrixio = new MatrixIO("testdata/Helmholtz3DB1", "r");
+  _referenceRegion = matrixio->readToRegionI();
+}
+
+template<int D> 
+void RegionRemoteProxy<D>::onNotify(int argc){
+  JTRACE("notify")(argc);
+  if(argc==1) {
+    markComplete();
+  }
+}
+
+template<int D> 
+void RegionRemoteProxy<D>::onRecv(const void* data, size_t len) {
+  switch(*(MessageType*)data) {
+  case MessageTypes::REGIONREMOTE_READCELL:
+    readCell((ReadCellMessage<D>*)data);
+    break;
+  case MessageTypes::REGIONREMOTE_WRITECELL:
+    writeCell((WriteCellMessage<D>*)data);
+    break;
+  default:
+    throw("Unknown RegionRemoteMsgTypes.");
+  }
+}
+
+template<int D> 
+void RegionRemoteProxy<D>::readCell(ReadCellMessage<D>* msg) {
+  ElementT* cell = _referenceRegion->coordToPtr(msg->coord);
+  JTRACE("read")(*cell);
+  send(cell, sizeof cell);
+}
+
+template<int D> 
+void RegionRemoteProxy<D>::writeCell(WriteCellMessage<D>* msg) {
+  ElementT* cell = _referenceRegion->coordToPtr(msg->coord);
+  *cell = msg->value;
+  send(cell, sizeof cell);
 }
 
 #endif
