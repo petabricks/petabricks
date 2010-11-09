@@ -247,7 +247,7 @@ class Population:
         for z in xrange(config.rounds_per_input_size):
           self.randomMutation(config.population_high_size)
           self.prune(config.population_low_size, False)
-        while self.countMutators(config.bonus_round_score)>0:
+        if self.countMutators(config.bonus_round_score)>0:
           logging.info("bonus round triggered")
           self.randomMutation(config.population_high_size, config.bonus_round_score)
           self.prune(config.population_low_size, False)
@@ -316,6 +316,8 @@ def addMutators(candidate, info, ignore=None, weight=1.0):
     candidate.addMutator(mutators.RandAlgMutator(transform, ac['number'], mutators.config.first_lvl, weight=weight))
     for a in info.rulesInAlgchoice(ac['number']):
       candidate.addMutator(mutators.AddAlgLevelMutator(transform, ac['number'], a, weight=weight))
+    candidate.addMutator(mutators.ShuffleAlgsChoiceSiteMutator(transform, ac['number'], weight=weight))
+    candidate.addMutator(mutators.ShuffleCutoffsChoiceSiteMutator(transform, ac['number'], weight=weight))
   for ta in info.tunables():
     name = ta['name']
     l=int(ta['min'])
@@ -337,7 +339,6 @@ def addMutators(candidate, info, ignore=None, weight=1.0):
     elif ta['type'] in config.lognorm_array_tunable_types:
       ms.append(mutators.LognormTunableArrayMutator(name, l, h, weight=weight))
       ms.append(mutators.IncrementTunableArrayMutator(name, l, h, 4, weight=weight))
-      ms.append(mutators.IncrementTunableArrayMutator(name, l, h, 16, weight=weight))
       ms[-1].reset(candidate)
     elif ta['type'] in config.ignore_tunable_types:
       pass

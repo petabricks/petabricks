@@ -8,6 +8,7 @@ import warnings
 import mutators 
 import candidatetester 
 import math
+import numpy
 import storagedirs
 from tunerconfig import config, option_callback
 from candidatetester import Candidate, CandidateTester
@@ -17,13 +18,27 @@ from storagedirs import timers
 from sgatuner import Population
 from mutators import MutateFailed
 
+def weightedChoice(choices, wfn):
+  weights = map(wfn, choices)
+  low = min(weights)
+  if low<0:
+    warnings.warn("saw negative weights in weightedChoice")
+    weights = map(lambda x: x-low, weights)
+  total = sum(weights)
+  r = numpy.random.uniform(0.0, total)
+  for c,w in zip(choices, weights):
+    r -= w
+    if r<=0:
+      return c
+  assert False
 
 pctrange  = lambda n: map(lambda x: x/float(n-1), xrange(n))
 gettime   = lambda c: c.metrics[config.timing_metric_idx][config.n].mean()
 getacc    = lambda c: c.metrics[config.accuracy_metric_idx][config.n].mean()
 gettrials = lambda c: math.log(c.numTests(config.n))
 lastacc   = lambda c: c.metrics[config.accuracy_metric_idx][config.n].last() 
-
+lasttime   = lambda c: c.metrics[config.timing_metric_idx][config.n].last() 
+parentlimit = lambda c: c.metrics[config.timing_metric_idx][config.n].dataDistribution().ppf(0.70)
 
 class OnlinePopulation:
   def __init__(self, seed):
@@ -57,6 +72,9 @@ class OnlinePopulation:
   def select(self, fn):
     return min(self.members, key=fn)
 
+  def choice(self, timelimit, fn):
+    return weightedChoice(filter(lambda x: gettime(x)<=timelimit, self.members), fn)
+
   def output(self, active=[]):
     for m in self.members:
       if m in active:
@@ -69,6 +87,19 @@ class OnlinePopulation:
     t = sum(s)
     self.wt = map(lambda x: t/x, s)
     print "Weights = ", self.wt
+
+def resultingTimeAcc(p, c):
+  if not c.wasTimeout:
+    if not p.wasTimeout:
+      t = max(lasttime(p), lasttime(c))
+      a = max(lastacc(p), lastacc(c))
+    else:
+      t = lasttime(c)
+      a = lastacc(c)
+  else:
+    t = lasttime(p)
+    a = lastacc(p)
+  return t,a
 
 
 def onlinelearnInner(benchmark):
@@ -84,12 +115,13 @@ def onlinelearnInner(benchmark):
   candidate.addMutator(mutators.MultiMutator(2))
   pop = OnlinePopulation(candidate)
   result = candidatetester.Results()
-
+  elapsed = 0.0
+  
   def fitness(candidate):
     if lastacc(candidate) is None:
       return None
-    t=candidate.metrics[config.timing_metric_idx][config.n].mean()
-    a=candidate.metrics[config.accuracy_metric_idx][config.n].mean()
+    t=gettime(candidate)
+    a=getacc(candidate)
     if config.accuracy_target is not None and config.accuracy_target > a:
       return t + 100.0*(config.accuracy_target-a)
     return t
@@ -110,15 +142,21 @@ def onlinelearnInner(benchmark):
       if gen%config.reweight_interval==0 and gen>0:
         pop.reweight()
       p = pop.select(fitness)
-      c = p.cloneAndMutate(tester.n)
+      if p.numTests(n)>0:
+        c = pop.choice(parentlimit(p), getacc)
+      else:
+        c = p
+      c = c.cloneAndMutate(n)
       if tester.race(p, c):
-        if lastacc(c) is not None:
+        if gen==0 and p.wasTimeout:
+          pop.members=[c]
+        if not c.wasTimeout:
           pop.add(c)
           pop.prune()
-          result.add(max(lastacc(p), lastacc(c)))
-        else:
-          result.add(lastacc(p))
-        print "Generation",gen,result
+        t,a = resultingTimeAcc(p, c)
+        result.add(a)
+        elapsed += t
+        print "Generation",gen,"elapsed",elapsed,"throughput", 1.0/t,"accuracy",a, "limit", parentlimit(p)
         pop.output((p,c))
       else:
         print 'error'
