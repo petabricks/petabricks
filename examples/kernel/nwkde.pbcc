@@ -3,6 +3,58 @@
 
 #include "utils.pbcc"
 
+transform NWKDEGenerator
+from IN[n]
+to   TRAINDATA[4,n], WRAPFLAGS[4], KERNELWIDTHS[4],
+     TRAININDICES[n-2], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
+     TESTDATA[4,n],
+     TESTINDICES[n-2], TESTVARINDEX[8], TESTTIMEOFFSET[8],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+{
+    to (TRAINDATA trainData,
+        WRAPFLAGS wrapFlags,
+        KERNELWIDTHS kernelWidths,
+        TRAININDICES trainIndices,
+        TRAINVARINDEX trainVarIndex,
+        TRAINTIMEOFFSET trainTimeOffset,
+        TESTDATA testData,
+        TESTINDICES testIndices,
+        TESTVARINDEX testVarIndex,
+        TESTTIMEOFFSET testTimeOffset,
+        OUTPUTVARINDEX outputVarIndex,
+        OUTPUTTIMEOFFSET outputTimeOffset)
+    from (IN in)
+    {
+        MatrixRegion2D a;
+        MatrixRegion1D b;
+
+        a = MatrixIO("test1/trainData.pba", "r").read2D();
+        Copy2D(trainData, a);
+        b = MatrixIO("test1/wrapFlags.pba", "r").read1D();
+        Copy1D(wrapFlags, b);
+        b = MatrixIO("test1/kernelWidths.pba", "r").read1D();
+        Copy1D(kernelWidths, b);
+        b = MatrixIO("test1/trainIndices.pba", "r").read1D();
+        Copy1D(trainIndices, b);
+        b = MatrixIO("test1/trainVarIndex.pba", "r").read1D();
+        Copy1D(trainVarIndex, b);
+        b = MatrixIO("test1/trainTimeOffset.pba", "r").read1D();
+        Copy1D(trainTimeOffset, b);
+
+        a = MatrixIO("test1/testData.pba", "r").read2D();
+        Copy2D(testData, a);
+        b = MatrixIO("test1/testIndices.pba", "r").read1D();
+        Copy1D(testIndices, b);
+        b = MatrixIO("test1/testVarIndex.pba", "r").read1D();
+        Copy1D(testVarIndex, b);
+        b = MatrixIO("test1/testTimeOffset.pba", "r").read1D();
+        Copy1D(testTimeOffset, b);
+
+        outputVarIndex = MatrixIO("test1/outputVarIndex.pba", "r").read0D();
+        outputTimeOffset = MatrixIO("test1/outputTimeOffset.pba", "r").read0D();
+    }
+}
+
 /*  TRAINDATA - block of data: n time slices, m variables per time slice
     WRAPFLAGS - indicates whether TRAINDATA column corresponds to a wind
                 direction \in [0, 360]
@@ -31,6 +83,7 @@ from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
      OUTPUTVARINDEX, OUTPUTTIMEOFFSET
 to RESULT[q]
 through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q], INPUTSCHECKED
+generator NWKDEGenerator
 //optimize KERNELWIDTHS[m]
 {
     INPUTSCHECKED

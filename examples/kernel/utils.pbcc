@@ -31,6 +31,28 @@ int findMinAndMax(double *min, double *max, ConstMatrixRegion1D array)
 
 %}
 
+transform Copy1D
+from IN[n]
+to OUT[n]
+{
+    OUT.cell(i)
+    from (IN.cell(i) in)
+    {
+        return in;
+    }
+}
+
+transform Copy2D
+from IN[m,n]
+to OUT[m,n]
+{
+    OUT.cell(i,j)
+    from (IN.cell(i,j) in)
+    {
+        return in;
+    }
+}
+
 // reduce a matrix by adding all elements
 transform ReduceAdd2D
 from IN[m,n]
