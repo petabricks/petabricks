@@ -95,20 +95,13 @@ class Population:
         p=random.choice(self.members)
       else:
         p=random.choice(originalPop)
-      c=p.clone()
-      for z in xrange(config.mutate_retries):
-        try:
-          c.mutate(self.inputSize(), minscore)
-          break
-        except MutateFailed:
-          if z==config.mutate_retries-1:
-            warnings.warn(tunerwarnings.MutateFailed(p, z, self.inputSize()))
+      try:
+        c=p.cloneAndMutate(self.inputSize())
+      except candidatetester.NoMutators:
+        if self.countMutators(minscore)>0:
           continue
-        except candidatetester.NoMutators:
-          if self.countMutators(minscore)>0:
-            continue
-          else:
-            return tries
+        else:
+          return tries
 
       if c.config in self.triedConfigs and c.lastMutator:
         c.lastMutator.result('fail')

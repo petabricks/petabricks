@@ -6,6 +6,7 @@ import tunerconfig
 import tunerwarnings
 import warnings 
 import mutators 
+import math
 import storagedirs
 from tunerconfig import config, option_callback
 from candidatetester import Candidate, CandidateTester
@@ -16,10 +17,62 @@ from sgatuner import Population
 from mutators import MutateFailed
 
 
+pctrange  = lambda n: map(lambda x: x/float(n-1), xrange(n))
+gettime   = lambda c: c.metrics[config.timing_metric_idx][config.n].mean()
+getacc    = lambda c: c.metrics[config.accuracy_metric_idx][config.n].mean()
+gettrials = lambda c: math.log(c.numTests(config.n))
+
+
+class OnlinePopulation:
+  def __init__(self, seed):
+    self.members = [seed]
+    self.fns = []
+    self.n = config.n
+    self.wt = (1.0, 1.0, 1.0)
+    for c in pctrange(6):
+      for b in pctrange(25):
+        self.fns.append(self.linearFitness(1.0-b, b, c))
+
+  def linearFitness(self, a, b, cw):
+    if b==0 and cw==0:
+      return lambda c: self.wt[0]*a*gettime(c)
+    if cw==0:
+      return lambda c: self.wt[0]*a*gettime(c) - self.wt[1]*b*getacc(c)
+    return lambda c: self.wt[0]*a*gettime(c) - self.wt[1]*b*getacc(c) - self.wt[2]*cw*gettrials(c)
+
+  def add(self,m):
+    self.members.append(m)
+
+  def prune(self):
+    for m in self.members:
+      m.keep = False
+    for fn in self.fns:
+      m = min(self.members, key=fn)
+      m.keep = True
+    self.members = filter(lambda x: x.keep, self.members)
+    self.members.sort(key=self.linearFitness(1,0,0))
+
+  def select(self, fn):
+    return min(self.members, key=fn)
+
+  def output(self, active=[]):
+    for m in self.members:
+      if m in active:
+        print '  ***', m.resultsStr(self.n)
+      else:
+        print '   - ', m.resultsStr(self.n)
+
+  def reweight(self):
+    s = (sum(map(gettime, self.members)), sum(map(getacc, self.members)), sum(map(gettrials, self.members)))
+    t = sum(s)
+    self.wt = map(lambda x: t/x, s)
+    print "Weights = ", self.wt
+
+
 def onlinelearnInner(benchmark):
   if config.debug:
     logging.basicConfig(level=logging.DEBUG)
-  n = config.max_input_size
+  n = config.n
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
   main = sgatuner.mainname([pbutil.benchmarkToBin(benchmark)])
   tester = CandidateTester(benchmark, n)
@@ -27,15 +80,19 @@ def onlinelearnInner(benchmark):
   sgatuner.addMutators(candidate, infoxml.globalsec())
   sgatuner.addMutators(candidate, infoxml.transform(main))
   candidate.addMutator(mutators.MultiMutator(2))
+  pop = OnlinePopulation(candidate)
 
   def fitness(candidate):
-    t=candidate.metrics[config.timing_metric_idx][n].last()
-    a=candidate.metrics[config.accuracy_metric_idx][n].last()
-    if t is None:
-      return 10**10
+    if candidate.metrics[config.timing_metric_idx][config.n].last() is None:
+      return None
+    t=candidate.metrics[config.timing_metric_idx][config.n].mean()
+    a=candidate.metrics[config.accuracy_metric_idx][config.n].mean()
     if config.accuracy_target is not None and config.accuracy_target > a:
-      return t + 1000.0*(config.accuracy_target-a)
+      return t + 100.0*(config.accuracy_target-a)
     return t
+
+  pop.fns.append(fitness)
+
 
   if not config.delete_output_dir:
     storagedirs.cur.dumpConfig()
@@ -48,23 +105,16 @@ def onlinelearnInner(benchmark):
     config.end_time = time.time() + config.max_time
         
     for gen in itertools.count():
-      c = candidate.clone()
-      for z in xrange(config.mutate_retries):
-        try:
-          c.mutate(tester.n)
-          break
-        except MutateFailed:
-          if z==config.mutate_retries-1:
-            warnings.warn(tunerwarnings.MutateFailed(candidate, z, tester.n))
-          continue
-      if tester.race(candidate, c):
-        pf=fitness(candidate)
-        cf=fitness(c)
-        if cf < pf:
-          candidate = c 
-          print gen,'parent',pf,'child',cf,"(switched to child)"
-        else:
-          print gen,'parent',pf,'child',cf, candidate.resultsStr(n)
+      if gen%config.reweight_interval==0 and gen>0:
+        pop.reweight()
+      p = pop.select(fitness)
+      c = p.cloneAndMutate(tester.n)
+      if tester.race(p, c):
+        if fitness(c) is not None:
+          pop.add(c)
+          pop.prune()
+        print "Generation",gen
+        pop.output((p,c))
       else:
         print 'error'
 
