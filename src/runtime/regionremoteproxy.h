@@ -3,7 +3,7 @@
 
 #include "regioni.h"
 #include "remoteobject.h"
-
+#include "matrixio.h"
 
 namespace _RegionRemoteMsgTypes {
   typedef uint16_t MessageType;
@@ -15,12 +15,12 @@ namespace _RegionRemoteMsgTypes {
     };
   };
 
-  template <int D> struct ReadCellMessage {
+  template<int D> struct ReadCellMessage {
     MessageType type;
     petabricks::IndexT coord[D]; 
   };
 
-  template <int D> struct WriteCellMessage {
+  template<int D> struct WriteCellMessage {
     MessageType type;
     petabricks::ElementT value;
     petabricks::IndexT coord[D];
@@ -30,20 +30,49 @@ namespace _RegionRemoteMsgTypes {
 using namespace _RegionRemoteMsgTypes;
 
 namespace petabricks {
-  class RegionRemoteProxy : public RemoteObject {
+  template<int D> class RegionRemoteProxy : public RemoteObject {
   protected:
     RegionIPtr _referenceRegion;
  
   public:
-    RegionRemoteProxy();
+    RegionRemoteProxy() {
+      MatrixIO* matrixio = new MatrixIO("testdata/Helmholtz3DB1", "r");
+      _referenceRegion = matrixio->readToRegionI();
+    }
 
-    void onNotify(int argc);
-    void onRecv(const void* data, size_t len);
+    void onNotify(int argc){
+      JTRACE("notify")(argc);
+      if(argc==1) {
+	markComplete();
+      }
+    }
+    
+    void onRecv(const void* data, size_t len) {
+      switch(*(MessageType*)data) {
+      case MessageTypes::REGIONREMOTE_READCELL:
+	readCell((ReadCellMessage<D>*)data);
+	break;
+      case MessageTypes::REGIONREMOTE_WRITECELL:
+	writeCell((WriteCellMessage<D>*)data);
+	break;
+      default:
+	throw("Unknown RegionRemoteMsgTypes.");
+      }
+    }
 
-    void readCell(ReadCellMessage<3>* msg);
-    void writeCell(WriteCellMessage<3>* msg);
+    void readCell(ReadCellMessage<D>* msg) {
+      ElementT* cell = _referenceRegion->coordToPtr(msg->coord);
+      JTRACE("read")(*cell);
+      send(cell, sizeof cell);
+    }
+
+    void writeCell(WriteCellMessage<D>* msg) {
+      ElementT* cell = _referenceRegion->coordToPtr(msg->coord);
+      *cell = msg->value;
+      send(cell, sizeof cell);
+    }
   };
 }
 
-
 #endif
+

@@ -13,6 +13,8 @@ namespace petabricks {
 
   class RegionRemote : public RegionI {
   protected:
+    static const int D = 3;
+
     RemoteObjectPtr _remoteObject;
     pthread_mutex_t _seq_mux;
     pthread_mutex_t _buffer_mux;
@@ -22,7 +24,7 @@ namespace petabricks {
     std::map<uint16_t, void*> _buffer;
  
   public:
-    RegionRemote(RemoteObjectPtr remoteObject);
+    RegionRemote();
     ~RegionRemote();
 
     static RemoteObjectPtr genLocal(RegionRemotePtr region);

@@ -3,8 +3,8 @@
 #include "remotehost.h"
 #include "regionremoteproxy.h"
 
-petabricks::RegionRemote::RegionRemote(RemoteObjectPtr remoteObject) {
-  _dimension = 3;
+petabricks::RegionRemote::RegionRemote() {
+  _dimension = D;
 
   pthread_mutex_init(&_seq_mux, NULL);
   pthread_mutex_init(&_buffer_mux, NULL);
@@ -39,7 +39,7 @@ petabricks::RegionRemote::genLocal(RegionRemotePtr region) {
 
 petabricks::RemoteObjectPtr
 petabricks::RegionRemote::genRemote() {
-  return new RegionRemoteProxy();
+  return new RegionRemoteProxy<D>();
 }
 
 void petabricks::RegionRemote::setRemoteObject(RemoteObjectPtr remoteObject) {
@@ -50,12 +50,12 @@ using namespace _RegionRemoteMsgTypes;
 
 petabricks::ElementT
 petabricks::RegionRemote::readCell(const IndexT* coord) {
-  ReadCellMessage<3>* msg = (ReadCellMessage<3>*) malloc(sizeof(ReadCellMessage<3>)); 
+  ReadCellMessage<D>* msg = (ReadCellMessage<D>*) malloc(sizeof(ReadCellMessage<D>)); 
   msg->type = MessageTypes::REGIONREMOTE_READCELL;
   memmove(msg->coord, coord, (sizeof coord) * _dimension);
 
   pthread_mutex_lock(&_seq_mux);
-  _remoteObject->send(msg, sizeof(ReadCellMessage<3>));
+  _remoteObject->send(msg, sizeof(ReadCellMessage<D>));
   uint16_t seq = ++_seq;
   pthread_mutex_unlock(&_seq_mux);
   
@@ -77,13 +77,13 @@ petabricks::RegionRemote::readCell(const IndexT* coord) {
 }
 
 void petabricks::RegionRemote::writeCell(const IndexT* coord, ElementT value) {
-  WriteCellMessage<3>* msg = (WriteCellMessage<3>*) malloc(sizeof(WriteCellMessage<3>)); 
+  WriteCellMessage<D>* msg = (WriteCellMessage<D>*) malloc(sizeof(WriteCellMessage<D>)); 
   msg->type = MessageTypes::REGIONREMOTE_WRITECELL;
   msg->value = value;
   memmove(msg->coord, coord, (sizeof coord) * _dimension);
 
   pthread_mutex_lock(&_seq_mux);
-  _remoteObject->send(msg, sizeof(WriteCellMessage<3>));
+  _remoteObject->send(msg, sizeof(WriteCellMessage<D>));
   uint16_t seq = ++_seq;
   pthread_mutex_unlock(&_seq_mux);
   

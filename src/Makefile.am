@@ -140,7 +140,6 @@ libpbruntime_a_SOURCES =  \
   runtime/regioni.cpp \
   runtime/regioncontiguous.cpp \
   runtime/regionremote.cpp \
-  runtime/regionremoteproxy.cpp \
   runtime/regiontransform.cpp \
   runtime/remotehost.cpp \
   runtime/remoteobject.cpp \

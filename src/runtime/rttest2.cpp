@@ -40,7 +40,7 @@ int main(int argc, const char** argv){
     hdb.spawnListenThread();
     hdb.spawnListenThread();
 
-    RegionRemote* region = new RegionRemote(local);
+    RegionRemote* region = new RegionRemote();
 
     JTRACE("start");
     printf("start\n");
