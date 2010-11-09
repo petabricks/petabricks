@@ -96,7 +96,6 @@ def onlinelearnInner(benchmark):
 
   pop.fns.append(fitness)
 
-
   if not config.delete_output_dir:
     storagedirs.cur.dumpConfig()
     storagedirs.cur.dumpGitStatus()
@@ -137,6 +136,7 @@ def onlinelearn(benchmark):
                              config.delete_output_dir)
 
 if __name__ == "__main__":
+  tunerconfig.applypatch(tunerconfig.patch_onlinelearning)
   from optparse import OptionParser
   parser = OptionParser(usage="usage: onlinelearning.py [options] Benchmark -n N")
   parser.add_option("--check",
@@ -159,7 +159,6 @@ if __name__ == "__main__":
   if len(args)!=1 or not options.n:
     parser.print_usage()
     sys.exit(1)
-  tunerconfig.applypatch(tunerconfig.patch_onlinelearning)
   if options.debug:
     tunerconfig.applypatch(tunerconfig.patch_debug)
   if options.n:
