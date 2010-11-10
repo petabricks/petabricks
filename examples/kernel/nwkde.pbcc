@@ -76,6 +76,7 @@ to   TRAINDATA[4,n], WRAPFLAGS[4], KERNELWIDTHS[4],
 */
 
 transform NWKDE
+/*
 from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
      TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
      TESTDATA[m2,n2],
@@ -83,6 +84,14 @@ from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
      OUTPUTVARINDEX, OUTPUTTIMEOFFSET
 to RESULT[q]
 through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q], INPUTSCHECKED
+*/
+from TRAINDATA[4,n], WRAPFLAGS[4], KERNELWIDTHS[4],
+     TRAININDICES[n-2], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
+     TESTDATA[4,n],
+     TESTINDICES[n-2], TESTVARINDEX[8], TESTTIMEOFFSET[8],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+to RESULT[n-2]
+through SQDIFFS[8,n-2,n-2], WEIGHTS[n-2,n-2], PARTIALS[n-2,n-2], INPUTSCHECKED
 generator NWKDEGenerator
 //optimize KERNELWIDTHS[m]
 {
@@ -96,6 +105,7 @@ generator NWKDEGenerator
           OUTPUTVARINDEX outputVarIndex,
           OUTPUTTIMEOFFSET outputTimeOffset)
     {
+#ifdef DEBUG
         double min, max, min2, max2;
 
         findMinAndMax(&min, &max, trainVarIndex);
@@ -145,6 +155,7 @@ generator NWKDEGenerator
                    0, n2);
             PetabricksRuntime::abort();
         }
+#endif // DEBUG
 
         return 0;
     }
@@ -196,8 +207,12 @@ generator NWKDEGenerator
     }
 
     to (WEIGHTS.cell(j,k) weight)
+/*
     from (SQDIFFS.region(0, j,   k, 
                          p ,j+1, k+1) sqDiffs)
+*/
+    from (SQDIFFS.region(0, j,   k, 
+                         8 ,j+1, k+1) sqDiffs)
     {
         ReduceAdd(weight, sqDiffs.slice(2,0).slice(1,0));
         weight = exp(-((double) weight));
