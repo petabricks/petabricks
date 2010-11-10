@@ -2,6 +2,8 @@
 #define NWKDE_PBCC
 
 #include "utils.pbcc"
+#define DEBUG
+#define WORKAROUND // workaround for generator having specific sizes
 
 transform NWKDEGenerator
 from IN[n]
@@ -76,15 +78,7 @@ to   TRAINDATA[4,n], WRAPFLAGS[4], KERNELWIDTHS[4],
 */
 
 transform NWKDE
-/*
-from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
-     TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
-     TESTDATA[m2,n2],
-     TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
-     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
-to RESULT[q]
-through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q], INPUTSCHECKED
-*/
+#ifdef WORKAROUND
 from TRAINDATA[4,n], WRAPFLAGS[4], KERNELWIDTHS[4],
      TRAININDICES[n-2], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
      TESTDATA[4,n],
@@ -92,6 +86,15 @@ from TRAINDATA[4,n], WRAPFLAGS[4], KERNELWIDTHS[4],
      OUTPUTVARINDEX, OUTPUTTIMEOFFSET
 to RESULT[n-2]
 through SQDIFFS[8,n-2,n-2], WEIGHTS[n-2,n-2], PARTIALS[n-2,n-2], INPUTSCHECKED
+#else
+from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
+     TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
+     TESTDATA[m2,n2],
+     TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+to RESULT[q]
+through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q], INPUTSCHECKED
+#endif
 generator NWKDEGenerator
 //optimize KERNELWIDTHS[m]
 {
@@ -107,6 +110,10 @@ generator NWKDEGenerator
     {
 #ifdef DEBUG
         double min, max, min2, max2;
+
+#ifdef WORKAROUND
+        int m = 4, m2 = 4, n2 = 10;
+#endif
 
         findMinAndMax(&min, &max, trainVarIndex);
         printf("trainVarIndex range: (%g, %g)\n", min, max);
@@ -207,12 +214,13 @@ generator NWKDEGenerator
     }
 
     to (WEIGHTS.cell(j,k) weight)
-/*
-    from (SQDIFFS.region(0, j,   k, 
-                         p ,j+1, k+1) sqDiffs)
-*/
-    from (SQDIFFS.region(0, j,   k, 
+#ifdef WORKAROUND
+    from (SQDIFFS.region(0, j,   k,
                          8 ,j+1, k+1) sqDiffs)
+#else
+    from (SQDIFFS.region(0, j,   k,
+                         p ,j+1, k+1) sqDiffs)
+#endif
     {
         ReduceAdd(weight, sqDiffs.slice(2,0).slice(1,0));
         weight = exp(-((double) weight));
@@ -239,6 +247,7 @@ generator NWKDEGenerator
         ReduceAdd(result, partials);
         ReduceAdd(totalWeight, weights);
         result /= totalWeight;
+        printf("Output %d = %g\n", k, result);
     }
 }
 
