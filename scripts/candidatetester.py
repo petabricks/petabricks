@@ -11,6 +11,7 @@ from storagedirs import timers
 from scipy import stats
 from tunerconfig import config
 from tunerwarnings import ComparisonFailed, InconsistentOutput
+from mutators import MutateFailed
 warnings.simplefilter('ignore', DeprecationWarning)
 
 def getMemoryLimitArgs():
@@ -112,7 +113,10 @@ class Results:
   def reinterpolate(self):
     '''recreate interpolatedResults from realResults and timeoutResults'''
     self.interpolatedResults = list(self.realResults)
-    mkdistrib = lambda: stats.norm(numpy.mean(self.interpolatedResults), numpy.std(self.interpolatedResults))
+    def mkdistrib():
+      m=numpy.mean(self.interpolatedResults) 
+      s=max(config.min_std_pct*m,numpy.std(self.interpolatedResults))
+      return stats.norm(m,s)
     if len(self.interpolatedResults) == 0:
       '''all tests timed out, seed with double the average timeout'''
       self.interpolatedResults.append(sum(self.timeoutResults)/len(self.timeoutResults)*2.0)
@@ -234,6 +238,22 @@ class Candidate:
         t.metrics[i][n] = self.metrics[i][n]
     return t
 
+
+  def cloneAndMutate(self, n, adaptive = False, mutatorLog = []):
+    c = self.clone()
+    for z in xrange(config.mutate_retries):
+      try:
+        if adaptive:
+          c.upperConfidenceBoundMutate(n, mutatorLog);
+        else:
+          c.mutate(n)
+        break
+      except MutateFailed:
+        if z==config.mutate_retries-1:
+          warnings.warn(tunerwarnings.MutateFailed(c, z, n))
+        continue
+    return c
+
   def clearResultsAbove(self, val):
     for i in xrange(len(self.metrics)):
       for n in self.metrics[i].keys():
@@ -286,7 +306,7 @@ class Candidate:
     return self.metrics[config.timing_metric_idx][n].reasonableLimit()
 
   def resultsStr(self, n, baseline=None):
-    s=[]
+    s=['trials: %d'%self.numTests(n)]
     t=str
     if config.print_raw:
       t=repr
@@ -439,6 +459,10 @@ class CandidateTester:
     if limit is not None:
       cmd.append("--max-sec=%f"%limit)
     cmd.extend(getMemoryLimitArgs())
+    cmd.extend(["--race-multiplier=%f"%config.race_multiplier,
+                "--race-multiplier-lowacc=%f"%config.race_multiplier_lowacc])
+    if config.accuracy_target:
+      cmd.append("--race-accuracy=%f"%config.accuracy_target)
     try:
       debug_logcmd(cmd)
       resulta,resultb = timers.testing.wrap(lambda: pbutil.executeRaceRun(cmd, cfgfilea, cfgfileb))
@@ -458,7 +482,7 @@ class CandidateTester:
       return False
     except pbutil.TimingRunFailed, e:
       self.crashCount += 1
-      raise CrashException(testNumber, self.n, candidate, cmd)
+      raise CrashException(0, self.n, candidatea, cmd)
   
   def comparer(self, metricIdx, confidence, maxTests):
     '''return a cmp like function that dynamically runs more tests to improve confidence'''

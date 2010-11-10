@@ -252,7 +252,7 @@ class TunableArrayMutator(Mutator):
     assert config.fmt_bin%(self.tunable, i) in ks
     while config.fmt_bin%(self.tunable, i) in ks:
       if candidate.config[config.fmt_bin % (self.tunable, i)]<self.minVal:
-        candidate.config[config.fmt_bin % (self.tunable, i)] = self.minVal
+        candidate.config[config.fmt_bin % (self.tunable, i)] = self.minVal+2
       i+=1
 
 class LognormTunableArrayMutator(TunableArrayMutator, LognormRandom):
@@ -260,6 +260,13 @@ class LognormTunableArrayMutator(TunableArrayMutator, LognormRandom):
 
 class UniformTunableArrayMutator(TunableArrayMutator, UniformRandom):
   pass
+
+class IncrementTunableArrayMutator(TunableArrayMutator):
+  def __init__(self, tunable, minVal, maxVal, inc, weight=1.0):
+    self.inc = inc
+    TunableArrayMutator.__init__(self, tunable, minVal, maxVal, weight)
+  def random(self, oldVal, minVal, maxVal):
+    return min(maxVal, max(minVal, oldVal+self.inc))
 
 class MultiMutator(Mutator):
   def __init__(self, count=3, weight=1.0):

@@ -55,6 +55,12 @@ class config_defaults:
   score_decay = 0.9
   bonus_round_score = 0.9
   memory_limit_pct = 0.8
+  min_std_pct = 0.000001
+  accuracy_target = None
+  race_multiplier = 1.0
+  race_multiplier_lowacc = 10.0
+  n = None
+  reweight_interval = 20
 
   #types of mutatators to generate
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']
@@ -164,4 +170,5 @@ class patch_n:
     from math import log
     self.max_input_size = config.offset+2**int(round(log(n, 2)))
     self.max_time = 2**30
+    self.n=n
 
