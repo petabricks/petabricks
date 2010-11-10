@@ -116,7 +116,6 @@ am_libpbruntime_a_OBJECTS = libpbruntime_a-autotuner.$(OBJEXT) \
 	libpbruntime_a-petabricksruntime.$(OBJEXT) \
 	libpbruntime_a-regioni.$(OBJEXT) \
 	libpbruntime_a-regioncontiguous.$(OBJEXT) \
-	libpbruntime_a-regionremote.$(OBJEXT) \
 	libpbruntime_a-regiontransform.$(OBJEXT) \
 	libpbruntime_a-remotehost.$(OBJEXT) \
 	libpbruntime_a-remoteobject.$(OBJEXT) \
@@ -421,7 +420,6 @@ libpbruntime_a_SOURCES = \
   runtime/petabricksruntime.cpp \
   runtime/regioni.cpp \
   runtime/regioncontiguous.cpp \
-  runtime/regionremote.cpp \
   runtime/regiontransform.cpp \
   runtime/remotehost.cpp \
   runtime/remoteobject.cpp \
@@ -605,7 +603,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-petabricksruntime.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regioncontiguous.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regioni.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regionremote.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiontransform.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-remotehost.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-remoteobject.Po@am__quote@
@@ -1345,20 +1342,6 @@ libpbruntime_a-regioncontiguous.obj: runtime/regioncontiguous.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regioncontiguous.cpp' object='libpbruntime_a-regioncontiguous.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regioncontiguous.obj `if test -f 'runtime/regioncontiguous.cpp'; then $(CYGPATH_W) 'runtime/regioncontiguous.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regioncontiguous.cpp'; fi`
-
-libpbruntime_a-regionremote.o: runtime/regionremote.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regionremote.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regionremote.Tpo -c -o libpbruntime_a-regionremote.o `test -f 'runtime/regionremote.cpp' || echo '$(srcdir)/'`runtime/regionremote.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regionremote.Tpo $(DEPDIR)/libpbruntime_a-regionremote.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regionremote.cpp' object='libpbruntime_a-regionremote.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regionremote.o `test -f 'runtime/regionremote.cpp' || echo '$(srcdir)/'`runtime/regionremote.cpp
-
-libpbruntime_a-regionremote.obj: runtime/regionremote.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regionremote.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-regionremote.Tpo -c -o libpbruntime_a-regionremote.obj `if test -f 'runtime/regionremote.cpp'; then $(CYGPATH_W) 'runtime/regionremote.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regionremote.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regionremote.Tpo $(DEPDIR)/libpbruntime_a-regionremote.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regionremote.cpp' object='libpbruntime_a-regionremote.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regionremote.obj `if test -f 'runtime/regionremote.cpp'; then $(CYGPATH_W) 'runtime/regionremote.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regionremote.cpp'; fi`
 
 libpbruntime_a-regiontransform.o: runtime/regiontransform.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regiontransform.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regiontransform.Tpo -c -o libpbruntime_a-regiontransform.o `test -f 'runtime/regiontransform.cpp' || echo '$(srcdir)/'`runtime/regiontransform.cpp

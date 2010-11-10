@@ -40,12 +40,12 @@ int main(int argc, const char** argv){
     hdb.spawnListenThread();
     hdb.spawnListenThread();
 
-    RegionRemote* region = new RegionRemote();
+    RegionRemote<3>* region = new RegionRemote<3>();
 
     JTRACE("start");
     printf("start\n");
     hdb.host(0)->createRemoteObject
-      (local=RegionRemote::genLocal(region), &RegionRemote::genRemote);
+      (local=RegionRemote<3>::genLocal(region), &RegionRemote<3>::genRemote);
     local->waitUntilCreated();
     
     region->setRemoteObject(local);

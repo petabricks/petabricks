@@ -139,7 +139,6 @@ libpbruntime_a_SOURCES =  \
   runtime/petabricksruntime.cpp \
   runtime/regioni.cpp \
   runtime/regioncontiguous.cpp \
-  runtime/regionremote.cpp \
   runtime/regiontransform.cpp \
   runtime/remotehost.cpp \
   runtime/remoteobject.cpp \
