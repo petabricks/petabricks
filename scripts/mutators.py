@@ -24,8 +24,33 @@ class Mutator:
                     'worse':  0.0,
                     'same':   0.0,
                     'fail':   0.0}
-    self.timesSelected = 0  # total number of times this operator has been selected
-    self.rocScore = 0       # area unded the Receiving Operator Curve
+    self.timesSelected = 1  # total number of times this operator has been selected
+
+  def computeRocScore(self, mutatorLog):
+    # mutator log is best-first
+
+    integral = 0
+    x = 0 # x position in the ROC curve
+    y = 0 # y position in the ROC curve
+    for m in mutatorLog:
+      new_x = 0
+      new_y = 0
+
+      if m == self:
+        new_x = x
+        new_y = y + 1
+      else:
+        new_x = x + 1
+        new_y = y;
+
+      integral += (new_x-x)*y + (new_x-x)*(new_y - y) / 2
+      x = new_x
+      y = new_y
+
+    return integral
+              
+        
+      
 
   def uniquename(self):
     return self.__class__.__name__+'_'+str(self.mid)

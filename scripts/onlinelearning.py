@@ -105,7 +105,10 @@ def resultingTimeAcc(p, c):
 def onlinelearnInner(benchmark):
   if config.debug:
     logging.basicConfig(level=logging.DEBUG)
+
   n = config.n
+  W = config.window_size
+
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
   main = sgatuner.mainname([pbutil.benchmarkToBin(benchmark)])
   tester = CandidateTester(benchmark, n)
@@ -133,12 +136,21 @@ def onlinelearnInner(benchmark):
     storagedirs.cur.dumpGitStatus()
     storagedirs.cur.saveFile(pbutil.benchmarkToInfo(benchmark))
     storagedirs.cur.saveFile(pbutil.benchmarkToBin(benchmark))
+
+  ''' mutators in the last time window that produced improved candidates, 
+  ordered by descending fitness of the candidates'''
+  mutatorLog = []
+
+  ''' actual size of the candidate window, in case we have fewer candidates
+  than the maximum window size'''
+  actual_w = 0 
     
   try:
     timers.total.start()
     config.end_time = time.time() + config.max_time
         
     for gen in itertools.count():
+
       if gen%config.reweight_interval==0 and gen>0:
         pop.reweight()
       p = pop.select(fitness)
@@ -148,6 +160,15 @@ def onlinelearnInner(benchmark):
         c = p
       c = c.cloneAndMutate(n)
       if tester.race(p, c):
+        # slide the candidate window
+        if actual_w >= W:
+          mutatorLog.pop(actual_w - 1);
+        else:
+          actual_w += 1
+
+        # log the mutation
+        mutatorLog = [c.lastMutator] + mutatorLog
+
         if gen==0 and p.wasTimeout:
           pop.members=[c]
         if not c.wasTimeout:
