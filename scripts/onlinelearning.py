@@ -154,9 +154,10 @@ def onlinelearnInner(benchmark):
           pop.add(c)
           pop.prune()
         t,a = resultingTimeAcc(p, c)
-        result.add(a)
-        elapsed += t
-        print "Generation",gen,"elapsed",elapsed,"throughput", 1.0/t,"accuracy",a, "limit", parentlimit(p)
+        if a is not None and t is not None:
+          result.add(a)
+          elapsed += t
+        print "Generation",gen,"elapsed",elapsed,"time", t,"accuracy",a, "limit", parentlimit(p)
         pop.output((p,c))
       else:
         print 'error'
