@@ -37,6 +37,7 @@ kernel/KernelEstimate
 kernel/LinearSolvePosDef
 kernel/nwkde
 kernel/nwkdelm
+kernel/nwkdelm2
 LUdense/LUdense
 LUdense/trilsolve
 matrixapproximation/Bisection
