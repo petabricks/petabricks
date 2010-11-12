@@ -220,7 +220,7 @@ class Candidate:
     self.infoxml     = infoxml
     self.lastMutator = None
     self.outputdir   = storagedirs.candidate(self.cid)
-    self.C           = 10    # exploration/exploitation trade-off in the DMAB algorithm
+    self.C           = config.bandit_c    # exploration/exploitation trade-off in the DMAB algorithm
     Candidate.nextCandidateId += 1
 
   def __str__(self):
@@ -273,15 +273,17 @@ class Candidate:
     # compute the total number of mutations
     totalMutations = len(mutatorLog) + len(self.mutators)
 
-    print "\n\nAvailable mutators + scores:\n"
+    if config.bandit_verbose:
+      print "\n\nCurrent mutator log: %s" % map(str, mutatorLog)
+      print "\nAvailable mutators (scores):\n"
 
     bestScore = -1 # scores are guaranteed to be non-negative
     bestMutator = None
     for m in self.mutators:
 
       m.timesSelected = 1
-      for m2 in mutatorLog:
-        if m == m2:
+      for logEntry in mutatorLog:
+        if logEntry.mutator == m:
           m.timesSelected += 1
 
       
@@ -290,9 +292,12 @@ class Candidate:
         bestScore = score
         bestMutator = m
 
-      print "%s (%f)" % (m, score)
+      if config.bandit_verbose:
+        print "%s (%f)" % (m, score)
 
-    print "Best mutator: %s (%f)\n\n" % (bestMutator, score)
+    if config.bandit_verbose:
+      print "\nUsing best mutator: %s (%f)\n\n" % (bestMutator, score)
+
     self.lastMutator = bestMutator
     self.lastMutator.mutate(self, n)
 

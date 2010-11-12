@@ -22,6 +22,9 @@ class config_defaults:
   offset                = 0
 
   window_size           = 20
+  bandit_c              = 0.25
+  bandit_verbose        = False
+  use_bandit            = False
 
   #how mutation to do
   mutations_per_mutator    = 3

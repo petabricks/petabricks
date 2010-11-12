@@ -40,6 +40,27 @@ lastacc   = lambda c: c.metrics[config.accuracy_metric_idx][config.n].last()
 lasttime   = lambda c: c.metrics[config.timing_metric_idx][config.n].last() 
 parentlimit = lambda c: c.metrics[config.timing_metric_idx][config.n].dataDistribution().ppf(0.70)
 
+
+lastMutatorId = 0
+class MutatorLogEntry:
+  def __init__(self, mutator, candidate, time):
+    global lastMutatorId
+
+    self.mutator = mutator
+    self.candidate = candidate
+    self.time = time
+    self.id = lastMutatorId + 1
+    lastMutatorId = self.id
+    
+
+
+  def __repr__(self):
+    return "%s (%f s) [id = %i]" % (str(self.mutator), self.time, self.id)
+
+def sortedMutatorLog(log):
+  return sorted(log, key = lambda m: m.time)
+
+
 class OnlinePopulation:
   def __init__(self, seed):
     self.members = [seed]
@@ -159,17 +180,23 @@ def onlinelearnInner(benchmark):
         c = pop.choice(parentlimit(p), getacc)
       else:
         c = p
-      c = p.cloneAndMutate(n, True, mutatorLog)
+      c = p.cloneAndMutate(n, config.use_bandit, mutatorLog)
       if tester.race(p, c):
+
         # slide the candidate window
         if actual_w >= W:
-          mutatorLog.pop(actual_w - 1);
+          mutatorLog = sorted(mutatorLog, key=lambda x: x.id)
+          mutatorLog.pop(0);
         else:
           actual_w += 1
 
-
-        # log the mutation
-        mutatorLog = [c.lastMutator] + mutatorLog
+        mutatorLog = sortedMutatorLog([MutatorLogEntry(c.lastMutator, c, gettime(c))] + mutatorLog)
+        
+        if config.bandit_verbose:
+          if gettime(c) < gettime(p): # candidate better than parent
+            print "Child better than parent: %f vs. %f" % (gettime(c), gettime(p))
+          else:
+            print "Child equal/worse than parent: %f vs. %f" % (gettime(c), gettime(p))
 
         if gen==0 and p.wasTimeout:
           pop.members=[c]
