@@ -11,6 +11,7 @@ from storagedirs import timers
 from scipy import stats
 from tunerconfig import config
 from tunerwarnings import ComparisonFailed, InconsistentOutput
+from mutators import MutateFailed
 warnings.simplefilter('ignore', DeprecationWarning)
 
 def getMemoryLimitArgs():
@@ -237,6 +238,19 @@ class Candidate:
         t.metrics[i][n] = self.metrics[i][n]
     return t
 
+
+  def cloneAndMutate(self, n):
+    c = self.clone()
+    for z in xrange(config.mutate_retries):
+      try:
+        c.mutate(n)
+        break
+      except MutateFailed:
+        if z==config.mutate_retries-1:
+          warnings.warn(tunerwarnings.MutateFailed(c, z, n))
+        continue
+    return c
+
   def clearResultsAbove(self, val):
     for i in xrange(len(self.metrics)):
       for n in self.metrics[i].keys():
@@ -285,7 +299,7 @@ class Candidate:
     return self.metrics[config.timing_metric_idx][n].reasonableLimit()
 
   def resultsStr(self, n, baseline=None):
-    s=[]
+    s=['trials: %2d'%self.numTests(n)]
     t=str
     if config.print_raw:
       t=repr
@@ -438,16 +452,22 @@ class CandidateTester:
     if limit is not None:
       cmd.append("--max-sec=%f"%limit)
     cmd.extend(getMemoryLimitArgs())
+    cmd.extend(["--race-multiplier=%f"%config.race_multiplier,
+                "--race-multiplier-lowacc=%f"%config.race_multiplier_lowacc])
+    if config.accuracy_target:
+      cmd.append("--race-accuracy=%f"%config.accuracy_target)
     try:
       debug_logcmd(cmd)
       resulta,resultb = timers.testing.wrap(lambda: pbutil.executeRaceRun(cmd, cfgfilea, cfgfileb))
       best = min(resulta['timing'], resultb['timing'])
-      for candidate, result in [(candidatea,resulta), (candidateb, resultb)]:
+      for candidate, result in [(candidatea,resulta), (candidateb,resultb)]:
         if result['timing'] < 2**31:
+          candidate.wasTimeout = False
           for i,metric in enumerate(config.metrics):
             candidate.metrics[i][self.n].add(result[metric])
         else:
           candidate.metrics[config.timing_metric_idx][self.n].addTimeout(best)
+          candidate.wasTimeout = True
       return True
     except pbutil.TimingRunTimeout:
       assert limit is not None

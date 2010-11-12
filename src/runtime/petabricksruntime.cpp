@@ -725,10 +725,12 @@ double petabricks::PetabricksRuntime::raceConfigs(int n, const std::vector<std::
     loadTestInput(n, files);
     if(ati.beginTest(worker_threads/2)) {
       tm.load(CONFIG_FILENAME);
+      _main->reallocate(std::max(IOGEN_N, n));
       computeWrapperSubproc(ati, -1, aresult, NULL);
       ati.endTest(aresult);
     } else if(bti.beginTest(worker_threads/2)) {
       tm.load(CONFIG_FILENAME_ALT);
+      _main->reallocate(std::max(IOGEN_N, n));
       computeWrapperSubproc(bti, -1, bresult, NULL);
       bti.endTest(bresult);
     }else{
@@ -941,7 +943,7 @@ double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable
 }
 
 double petabricks::PetabricksRuntime::updateRaceTimeout(TestResult& result, int winnerid) {
-  if(result.time < jalib::maxval<double>()){
+  if(result.time < jalib::maxval<double>() && result.time >= 0){
     if(result.accuracy >= RACE_ACCURACY_TARGET)
       return result.time * RACE_MULTIPLIER;
     else 
