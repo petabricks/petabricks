@@ -24,7 +24,7 @@ class config_defaults:
   window_size           = 20
   bandit_c              = 0.25
   bandit_verbose        = False
-  use_bandit            = False
+  use_bandit            = True
 
   #how mutation to do
   mutations_per_mutator    = 3
@@ -166,7 +166,9 @@ class patch_debug:
   candidatelog             = True
 
 class patch_onlinelearning:
-  use_iogen = False
+  use_iogen  = False
+  min_trials = 5
+  max_trials = 30
 
 class patch_n:
   def __init__(self, n):

@@ -65,6 +65,13 @@ class Results:
     self.interpolatedResults=[] #listof(float)
     self.distribution = None
 
+
+  def discard(self, n):
+    if len(self.realResults)>n:
+      self.realResults = self.realResults[-n:]
+      self.timeoutResults = []
+      self.reinterpolate()
+
   def __repr__(self):
     v=[]
     v.extend(map(lambda x: "%.6f"%x,  self.realResults))
@@ -222,6 +229,12 @@ class Candidate:
     self.outputdir   = storagedirs.candidate(self.cid)
     self.C           = config.bandit_c    # exploration/exploitation trade-off in the DMAB algorithm
     Candidate.nextCandidateId += 1
+
+
+  def discardResults(self, n):
+    for m in self.metrics:
+      for k in m.keys():
+        m[k].discard(n)
 
   def __str__(self):
     return "Candidate%d"%self.cid

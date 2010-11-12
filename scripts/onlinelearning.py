@@ -35,7 +35,7 @@ def weightedChoice(choices, wfn):
 pctrange  = lambda n: map(lambda x: x/float(n-1), xrange(n))
 gettime   = lambda c: c.metrics[config.timing_metric_idx][config.n].mean()
 getacc    = lambda c: c.metrics[config.accuracy_metric_idx][config.n].mean()
-gettrials = lambda c: math.log(c.numTests(config.n))
+gettrials = lambda c: math.sqrt(c.numTests(config.n))
 lastacc   = lambda c: c.metrics[config.accuracy_metric_idx][config.n].last() 
 lasttime   = lambda c: c.metrics[config.timing_metric_idx][config.n].last() 
 parentlimit = lambda c: c.metrics[config.timing_metric_idx][config.n].dataDistribution().ppf(0.70)
@@ -182,6 +182,9 @@ def onlinelearnInner(benchmark):
         c = p
       c = p.cloneAndMutate(n, config.use_bandit, mutatorLog)
       if tester.race(p, c):
+        
+        if not p.wasTimeout:
+          p.discardResults(config.max_trials)
 
         # slide the candidate window
         if actual_w >= W:
@@ -200,7 +203,7 @@ def onlinelearnInner(benchmark):
 
         if gen==0 and p.wasTimeout:
           pop.members=[c]
-        if not c.wasTimeout:
+        elif not c.wasTimeout:
           pop.add(c)
           pop.prune()
         t,a = resultingTimeAcc(p, c)
