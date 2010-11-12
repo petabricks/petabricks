@@ -36,6 +36,7 @@ kclustering/newclusterlocations
 kernel/KernelEstimate
 kernel/LinearSolvePosDef
 kernel/nwkde
+kernel/nwkdelm
 LUdense/LUdense
 LUdense/trilsolve
 matrixapproximation/Bisection

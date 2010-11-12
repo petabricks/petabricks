@@ -256,7 +256,9 @@ generator NWKDEGenerator
         ReduceAdd(result, partials);
         ReduceAdd(totalWeight, weights);
         result /= totalWeight;
+#ifdef DEBUG
         printf("Output %d = %g\n", k, result);
+#endif // DEBUG
     }
 }
 
