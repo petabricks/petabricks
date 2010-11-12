@@ -312,7 +312,7 @@ class Candidate:
     return self.metrics[config.timing_metric_idx][n].reasonableLimit()
 
   def resultsStr(self, n, baseline=None):
-    s=['trials: %d'%self.numTests(n)]
+    s=['trials: %2d'%self.numTests(n)]
     t=str
     if config.print_raw:
       t=repr
@@ -473,12 +473,14 @@ class CandidateTester:
       debug_logcmd(cmd)
       resulta,resultb = timers.testing.wrap(lambda: pbutil.executeRaceRun(cmd, cfgfilea, cfgfileb))
       best = min(resulta['timing'], resultb['timing'])
-      for candidate, result in [(candidatea,resulta), (candidateb, resultb)]:
+      for candidate, result in [(candidatea,resulta), (candidateb,resultb)]:
         if result['timing'] < 2**31:
+          candidate.wasTimeout = False
           for i,metric in enumerate(config.metrics):
             candidate.metrics[i][self.n].add(result[metric])
         else:
           candidate.metrics[config.timing_metric_idx][self.n].addTimeout(best)
+          candidate.wasTimeout = True
       return True
     except pbutil.TimingRunTimeout:
       assert limit is not None

@@ -53,12 +53,12 @@ class config_defaults:
 
   name=''
   score_decay = 0.9
-  bonus_round_score = 0.9
+  bonus_round_score = 1.0
   memory_limit_pct = 0.8
   min_std_pct = 0.000001
   accuracy_target = None
   race_multiplier = 1.0
-  race_multiplier_lowacc = 10.0
+  race_multiplier_lowacc = 8.0
   n = None
   reweight_interval = 20
 
