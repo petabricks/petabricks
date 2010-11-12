@@ -273,6 +273,8 @@ class Candidate:
     # compute the total number of mutations
     totalMutations = len(mutatorLog) + len(self.mutators)
 
+    print "\n\nAvailable mutators + scores:\n"
+
     bestScore = -1 # scores are guaranteed to be non-negative
     bestMutator = None
     for m in self.mutators:
@@ -281,12 +283,16 @@ class Candidate:
       for m2 in mutatorLog:
         if m == m2:
           m.timesSelected += 1
+
       
       score = m.computeRocScore(mutatorLog) + self.C*math.sqrt(2.0*math.log(totalMutations) / m.timesSelected)
       if score > bestScore:
         bestScore = score
         bestMutator = m
 
+      print "%s (%f)" % (m, score)
+
+    print "Best mutator: %s (%f)\n\n" % (bestMutator, score)
     self.lastMutator = bestMutator
     self.lastMutator.mutate(self, n)
 

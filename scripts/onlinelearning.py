@@ -122,14 +122,9 @@ def onlinelearnInner(benchmark):
       if gen%config.reweight_interval==0 and gen>0:
         pop.reweight()
       p = pop.select(fitness)
-      c = p.cloneAndMutate(tester.n)
-      if tester.race(p, c):
+      c = p.cloneAndMutate(tester.n, True, mutatorLog)
 
-        # slide the candidate window
-        if actual_w >= W:
-          mutatorLog.pop(actual_w - 1);
-        else:
-          actual_w += 1
+      if tester.race(p, c):
 
         # log the mutation
         mutatorLog = [c.lastMutator] + mutatorLog
