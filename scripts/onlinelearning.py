@@ -35,11 +35,15 @@ def weightedChoice(choices, wfn):
 pctrange    = lambda n: map(lambda x: x/float(n-1), xrange(n))
 gettime     = lambda c: c.metrics[config.timing_metric_idx][config.n].mean()
 getacc      = lambda c: c.metrics[config.accuracy_metric_idx][config.n].mean()
-getconf     = lambda c: c.metrics[config.timing_metric_idx][config.n].invstderr()+\
-                        c.metrics[config.accuracy_metric_idx][config.n].invstderr()
 lastacc     = lambda c: c.metrics[config.accuracy_metric_idx][config.n].last() 
 lasttime    = lambda c: c.metrics[config.timing_metric_idx][config.n].last() 
 parentlimit = lambda c: c.metrics[config.timing_metric_idx][config.n].dataDistribution().ppf(0.70)
+def getconf(c):
+  if c.numTests(config.n) > 1:
+    return 1+c.metrics[config.timing_metric_idx][config.n].invstderr()+\
+             c.metrics[config.accuracy_metric_idx][config.n].invstderr()
+  else:
+    return 1
 
 
 lastMutatorId = 0
@@ -296,7 +300,7 @@ def onlinelearnInner(benchmark):
             print "Child equal/worse than parent: %f vs. %f" % (gettime(c), gettime(p))
 
         t,a = resultingTimeAcc(p, c)
-        print "Generation", gen, "elapsed",objectives.elapsed,"time", t,"accuracy",a
+        print "Generation", gen, "elapsed",objectives.elapsed,"time", t,"accuracy",a, getconf(p)
         print "Objectives", objectives
         ostats.writerow([gen, objectives.elapsed, t, a, objectives.score()])
         if a is not None and t is not None:
