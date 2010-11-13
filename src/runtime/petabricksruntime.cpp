@@ -945,9 +945,9 @@ double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable
 double petabricks::PetabricksRuntime::updateRaceTimeout(TestResult& result, int winnerid) {
   if(result.time < jalib::maxval<double>() && result.time >= 0){
     if(result.accuracy >= RACE_ACCURACY_TARGET)
-      return result.time * RACE_MULTIPLIER;
+      return std::min(GRAPH_MAX_SEC, result.time*RACE_MULTIPLIER);
     else 
-      return result.time * RACE_MULTIPLIER_LOWACC;
+      return std::min(GRAPH_MAX_SEC, result.time*RACE_MULTIPLIER_LOWACC);
   }else{
     return GRAPH_MAX_SEC;
   }

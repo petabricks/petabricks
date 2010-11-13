@@ -65,6 +65,13 @@ class Results:
     self.interpolatedResults=[] #listof(float)
     self.distribution = None
 
+
+  def discard(self, n):
+    if len(self.realResults)>n:
+      self.realResults = self.realResults[-n:]
+      self.timeoutResults = []
+      self.reinterpolate()
+
   def __repr__(self):
     v=[]
     v.extend(map(lambda x: "%.6f"%x,  self.realResults))
@@ -158,6 +165,12 @@ class Results:
     '''square of stderror'''
     assert len(self)>0
     return self.variance()/float(len(self)+offset)
+  
+  def stderr(self, offset=0):
+    return math.sqrt(self.meanVariance())
+  
+  def invstderr(self, offset=0):
+    return 1.0/math.sqrt(self.meanVariance())
 
   def estimatedBenifitNextTest(self, offset=1):
     return self.meanVariance()-self.meanVariance(offset)
@@ -220,8 +233,14 @@ class Candidate:
     self.infoxml     = infoxml
     self.lastMutator = None
     self.outputdir   = storagedirs.candidate(self.cid)
-    self.C           = 0.05 # exploration/exploitation trade-off in the DMAB algorithm
+    self.C           = config.bandit_c    # exploration/exploitation trade-off in the DMAB algorithm
     Candidate.nextCandidateId += 1
+
+
+  def discardResults(self, n):
+    for m in self.metrics:
+      for k in m.keys():
+        m[k].discard(n)
 
   def __str__(self):
     return "Candidate%d"%self.cid
@@ -239,11 +258,14 @@ class Candidate:
     return t
 
 
-  def cloneAndMutate(self, n):
+  def cloneAndMutate(self, n, adaptive = False, mutatorLog = None):
     c = self.clone()
     for z in xrange(config.mutate_retries):
       try:
-        c.mutate(n)
+        if adaptive:
+          c.upperConfidenceBoundMutate(n, mutatorLog);
+        else:
+          c.mutate(n)
         break
       except MutateFailed:
         if z==config.mutate_retries-1:
@@ -265,20 +287,35 @@ class Candidate:
   def addMutator(self, m):
     self.mutators.append(m)
 
-    ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
-  def upperConfidenceBoundMutate():
+  ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
+  def upperConfidenceBoundMutate(self, n, mutatorLog):
     # compute the total number of mutations
-    totalMutations = 0
-    for m in self.mutators:
-      totalMutations += m.timesSelected
+    totalMutations = len(mutatorLog.log) + len(self.mutators)
+
+    if config.bandit_verbose:
+      print "\n\nCurrent mutator log (%s): %s" % (mutatorLog.name, map(str, mutatorLog.log))
+      print "\nAvailable mutators (scores):\n"
 
     bestScore = -1 # scores are guaranteed to be non-negative
     bestMutator = None
     for m in self.mutators:
-      score = mutator.rocScore + self.C*sqrt(2.0*log(totalMutations) / m.timesSelected)
+
+      m.timesSelected = 1
+      for logEntry in mutatorLog.log:
+        if logEntry.mutator == m:
+          m.timesSelected += 1
+
+      
+      score = m.computeRocScore(mutatorLog.log) + self.C*math.sqrt(2.0*math.log(totalMutations) / m.timesSelected)
       if score > bestScore:
         bestScore = score
         bestMutator = m
+
+      if config.bandit_verbose:
+        print "%s (%f)" % (m, score)
+
+    if config.bandit_verbose:
+      print "\nUsing best mutator: %s (%f)\n\n" % (bestMutator, score)
 
     self.lastMutator = bestMutator
     self.lastMutator.mutate(self, n)
@@ -376,6 +413,7 @@ class CandidateTester:
     self.testCount = 0
     self.timeoutCount = 0
     self.crashCount = 0
+    self.wasTimeout = True
 
   def nextTester(self):
     return CandidateTester(self.app, self.n*2, self.args)
@@ -443,7 +481,7 @@ class CandidateTester:
       self.crashCount += 1
       raise CrashException(testNumber, self.n, candidate, cmd)
 
-  def race(self, candidatea, candidateb, limit=None):
+  def race(self, candidatea, candidateb, limit=None, accuracy_target=None):
     self.testCount += 1
     cfgfilea = candidatea.cfgfile()
     cfgfileb = candidateb.cfgfile()
@@ -454,8 +492,8 @@ class CandidateTester:
     cmd.extend(getMemoryLimitArgs())
     cmd.extend(["--race-multiplier=%f"%config.race_multiplier,
                 "--race-multiplier-lowacc=%f"%config.race_multiplier_lowacc])
-    if config.accuracy_target:
-      cmd.append("--race-accuracy=%f"%config.accuracy_target)
+    if accuracy_target:
+      cmd.append("--race-accuracy=%f"%accuracy_target)
     try:
       debug_logcmd(cmd)
       resulta,resultb = timers.testing.wrap(lambda: pbutil.executeRaceRun(cmd, cfgfilea, cfgfileb))

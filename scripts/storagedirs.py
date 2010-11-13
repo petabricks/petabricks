@@ -163,6 +163,8 @@ def callWithLogDir(fn, root, delete):
   finally:
     if delete:
       shutil.rmtree(d)
+    else:
+      print d
 
 candidate    = lambda cid:          cur.candidate(cid)
 mutatorlog   = lambda m:            cur.mutatorlog(m)
