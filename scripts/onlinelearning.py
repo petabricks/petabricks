@@ -173,7 +173,7 @@ class OnlinePopulation:
     s = (sum(map(gettime, self.members)), sum(map(getacc, self.members)), sum(map(getconf, self.members)))
     t = sum(s)
     self.wt = map(lambda x: t/x, s)
-    print "Weights = ", self.wt
+    logging.debug("weights = "+str(self.wt))
 
 def resultingTimeAcc(p, c):
   if not c.wasTimeout:
@@ -192,7 +192,6 @@ def resultingTimeAcc(p, c):
 class ObjectiveTuner:
   def __init__(self, pop):
     self.pop            = pop
-    self.wiggleroom     = 0.20
     self.window         = config.max_trials
     self.timing         = candidatetester.Results()
     self.timingRecent   = candidatetester.Results()
@@ -241,6 +240,19 @@ class ObjectiveTuner:
   def getlimits(self, safe, seed, experiment):
     return None, config.accuracy_target
 
+
+
+  statsHeader = ['gen', 'elapsed', 'score',
+                 'timing_last',    'accuracy_last',
+                 'timing_rolling', 'accuracy_rolling',
+                 'timing_total',   'accuracy_total']
+  def stats(self, gen):
+    return [gen, self.elapsed, self.score(),
+            self.timingRecent.last(), self.accuracyRecent.last(),
+            self.timingRecent.mean(), self.accuracyRecent.mean(),
+            self.timing.mean(),       self.accuracy.mean()]
+            
+
   def __str__(self):
     return str(self.score())
 
@@ -272,11 +284,7 @@ def onlinelearnInner(benchmark):
   mutatorLog_times = MutatorLog(name = "time", perfMetric = lambda m: m.time)
   mutatorLog_accuracy = MutatorLog(name = "accuracy", perfMetric = lambda m: 1.0 / m.accuracy)
 
-  ostats = storagedirs.openCsvStats("onlinestats", ['gen',
-                                                    'elapsed',
-                                                    'timing',
-                                                    'accuracy',
-                                                    'objective_score'])
+  ostats = storagedirs.openCsvStats("onlinestats", ObjectiveTuner.statsHeader)
     
   try:
     timers.total.start()
@@ -330,10 +338,10 @@ def onlinelearnInner(benchmark):
         t,a = resultingTimeAcc(p, c)
         print "Generation", gen, "elapsed",objectives.elapsed,"time", t,"accuracy",a, getconf(p)
         print "Objectives", objectives
-        ostats.writerow([gen, objectives.elapsed, t, a, objectives.score()])
         if a is not None and t is not None:
           objectives.result(t,a)
         pop.output((p,c))
+        ostats.writerow(objectives.stats(gen))
       else:
         print 'error'
 

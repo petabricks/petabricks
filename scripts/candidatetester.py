@@ -367,6 +367,16 @@ class Candidate:
       if os.path.isfile(f):
         os.unlink(f)
     os.rmdir(self.outputdir)
+  
+  def timingResults(self, n=None):
+    if n is None:
+      n=max(self.metrics[config.timing_metric_idx].keys())
+    return self.metrics[config.timing_metric_idx][n]
+
+  def accuracyResults(self, n=None):
+    if n is None:
+      n=max(self.metrics[config.accuracy_metric_idx].keys())
+    return self.metrics[config.accuracy_metric_idx][n]
 
   def writestats(self, n, filename=None):
     if filename is None:
@@ -397,16 +407,12 @@ class CandidateTester:
   def __init__(self, app, n, args=[]):
     self.app = app
     self.bin = pbutil.benchmarkToBin(app)
-    self.n = n
+    self.n = n + config.offset
     self.cmd = [
         self.bin,
         "--time",
-        #"--trials=1",
         "--accuracy",
-        "--offset=%d"%config.offset
       ]
-    #remove default options
-    self.cmd = filter(lambda x: x not in ["--offset=0", "--trials=1"], self.cmd)
     self.cmd.extend(args)
     self.args=args
     self.inputs=[]
@@ -416,7 +422,7 @@ class CandidateTester:
     self.wasTimeout = True
 
   def nextTester(self):
-    return CandidateTester(self.app, self.n*2, self.args)
+    return CandidateTester(self.app, (self.n-config.offset)*2, self.args)
   
   def testN(self, candidate, trials, limit=None):
     for x in xrange(trials - candidate.numTests(self.n)):
