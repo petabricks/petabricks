@@ -65,6 +65,13 @@ class Results:
     self.interpolatedResults=[] #listof(float)
     self.distribution = None
 
+
+  def discard(self, n):
+    if len(self.realResults)>n:
+      self.realResults = self.realResults[-n:]
+      self.timeoutResults = []
+      self.reinterpolate()
+
   def __repr__(self):
     v=[]
     v.extend(map(lambda x: "%.6f"%x,  self.realResults))
@@ -222,6 +229,12 @@ class Candidate:
     self.outputdir   = storagedirs.candidate(self.cid)
     self.C           = config.bandit_c    # exploration/exploitation trade-off in the DMAB algorithm
     Candidate.nextCandidateId += 1
+
+
+  def discardResults(self, n):
+    for m in self.metrics:
+      for k in m.keys():
+        m[k].discard(n)
 
   def __str__(self):
     return "Candidate%d"%self.cid
@@ -394,6 +407,7 @@ class CandidateTester:
     self.testCount = 0
     self.timeoutCount = 0
     self.crashCount = 0
+    self.wasTimeout = True
 
   def nextTester(self):
     return CandidateTester(self.app, self.n*2, self.args)
@@ -461,7 +475,7 @@ class CandidateTester:
       self.crashCount += 1
       raise CrashException(testNumber, self.n, candidate, cmd)
 
-  def race(self, candidatea, candidateb, limit=None):
+  def race(self, candidatea, candidateb, limit=None, accuracy_target=None):
     self.testCount += 1
     cfgfilea = candidatea.cfgfile()
     cfgfileb = candidateb.cfgfile()
@@ -472,8 +486,8 @@ class CandidateTester:
     cmd.extend(getMemoryLimitArgs())
     cmd.extend(["--race-multiplier=%f"%config.race_multiplier,
                 "--race-multiplier-lowacc=%f"%config.race_multiplier_lowacc])
-    if config.accuracy_target:
-      cmd.append("--race-accuracy=%f"%config.accuracy_target)
+    if accuracy_target:
+      cmd.append("--race-accuracy=%f"%accuracy_target)
     try:
       debug_logcmd(cmd)
       resulta,resultb = timers.testing.wrap(lambda: pbutil.executeRaceRun(cmd, cfgfilea, cfgfileb))

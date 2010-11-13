@@ -60,10 +60,15 @@ class config_defaults:
   memory_limit_pct = 0.8
   min_std_pct = 0.000001
   accuracy_target = None
+  timing_target = None
   race_multiplier = 1.0
   race_multiplier_lowacc = 8.0
   n = None
   reweight_interval = 20
+  
+  threshold_multiplier_min = 1.0
+  threshold_multiplier_max = 100.0
+  threshold_multiplier_default=10.0
 
   #types of mutatators to generate
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']
@@ -166,7 +171,9 @@ class patch_debug:
   candidatelog             = True
 
 class patch_onlinelearning:
-  use_iogen = False
+  use_iogen  = False
+  min_trials = 5
+  max_trials = 30
 
 class patch_n:
   def __init__(self, n):
