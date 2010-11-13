@@ -59,6 +59,7 @@ class config_defaults:
   bonus_round_score = 1.0
   memory_limit_pct = 0.8
   min_std_pct = 0.000001
+  online_nolearn = True
   accuracy_target = None
   timing_target = None
   race_multiplier = 1.0
