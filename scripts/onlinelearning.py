@@ -10,6 +10,7 @@ import candidatetester
 import math
 import numpy
 import storagedirs
+import random
 from tunerconfig import config, option_callback
 from candidatetester import Candidate, CandidateTester
 from traininginfo import TrainingInfo
@@ -53,11 +54,32 @@ class MutatorLogEntry:
     self.accuracy = accuracy
     self.id = lastMutatorId + 1
     lastMutatorId = self.id
-    
-
 
   def __repr__(self):
-    return "%s (%f s) [id = %i]" % (str(self.mutator), self.time, self.id)
+    return "%s (%f s, %f acc) [id = %i]" % (str(self.mutator), self.time, self.accuracy, self.id)
+
+
+class MutatorLog:
+  def __init__(self, name, perfMetric):
+    self.log = []
+    self.name = name
+    self.perfMetric = perfMetric
+
+  def add(self, c):
+    # slide the candidate window
+    if len(self.log) >= config.window_size:
+      self.log.sort(key=lambda x: x.id)
+      self.log.pop(0);
+
+    if(not c.wasTimeout):
+      acc = getacc(c)
+    else:
+      acc = "n/a"
+
+    self.log = sorted([MutatorLogEntry(c.lastMutator, c, gettime(c), acc)] + self.log, key=self.perfMetric)
+
+    def __rept__(self):
+      return str(self.log)
 
 def sortedMutatorLog(log):
   return sorted(log, key = lambda m: m.time)
@@ -243,7 +265,8 @@ def onlinelearnInner(benchmark):
 
   ''' mutators in the last time window that produced improved candidates, 
   ordered by descending fitness of the candidates'''
-  mutatorLog = []
+  mutatorLog_times = MutatorLog(name = "time", perfMetric = lambda m: m.time)
+  mutatorLog_accuracy = MutatorLog(name = "accuracy", perfMetric = lambda m: 1.0 / m.accuracy)
 
   ostats = storagedirs.openCsvStats("onlinestats", ['gen',
                                                     'elapsed',
@@ -257,7 +280,7 @@ def onlinelearnInner(benchmark):
 
     '''seed first round'''
     p = candidate
-    c = p.cloneAndMutate(n, config.use_bandit, mutatorLog)
+    c = p.cloneAndMutate(n, config.use_bandit, mutatorLog_times)
     if not tester.race(p, c):
       raise Exception()
     if not p.wasTimeout:
@@ -275,20 +298,24 @@ def onlinelearnInner(benchmark):
       p = pop.select(objectives.fitness)
       #s = pop.choice(parentlimit(p), getacc)
       s = p
-      c = s.cloneAndMutate(n, config.use_bandit, mutatorLog)
+
+      if(objectives.score() > 0.95):
+        logOfChoice = mutatorLog_times
+      else:
+        logOfChoice = mutatorLog_accuracy
+
+      c = s.cloneAndMutate(n, config.use_bandit, logOfChoice)
       tlim, atarg = objectives.getlimits(p, s, c)
       if tester.race(p, c, tlim, atarg):
         p.discardResults(config.max_trials)
         if not c.wasTimeout:
           pop.add(c)
           pop.prune()
+          
+        mutatorLog_times.add(c);
 
-        # slide the candidate window
-        if len(mutatorLog) >= W:
-          mutatorLog.sort(key=lambda x: x.id)
-          mutatorLog.pop(0);
-
-        mutatorLog = sortedMutatorLog([MutatorLogEntry(c.lastMutator, c, gettime(c), getacc(c))] + mutatorLog)
+        if not c.wasTimeout:
+          mutatorLog_accuracy.add(c);
         
         if config.bandit_verbose:
           if gettime(c) < gettime(p): # candidate better than parent

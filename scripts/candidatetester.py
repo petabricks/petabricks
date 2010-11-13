@@ -258,7 +258,7 @@ class Candidate:
     return t
 
 
-  def cloneAndMutate(self, n, adaptive = False, mutatorLog = []):
+  def cloneAndMutate(self, n, adaptive = False, mutatorLog = None):
     c = self.clone()
     for z in xrange(config.mutate_retries):
       try:
@@ -288,12 +288,12 @@ class Candidate:
     self.mutators.append(m)
 
   ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
-  def upperConfidenceBoundMutate(self, n, mutatorLog = []):
+  def upperConfidenceBoundMutate(self, n, mutatorLog):
     # compute the total number of mutations
-    totalMutations = len(mutatorLog) + len(self.mutators)
+    totalMutations = len(mutatorLog.log) + len(self.mutators)
 
     if config.bandit_verbose:
-      print "\n\nCurrent mutator log: %s" % map(str, mutatorLog)
+      print "\n\nCurrent mutator log (%s): %s" % (mutatorLog.name, map(str, mutatorLog.log))
       print "\nAvailable mutators (scores):\n"
 
     bestScore = -1 # scores are guaranteed to be non-negative
@@ -301,12 +301,12 @@ class Candidate:
     for m in self.mutators:
 
       m.timesSelected = 1
-      for logEntry in mutatorLog:
+      for logEntry in mutatorLog.log:
         if logEntry.mutator == m:
           m.timesSelected += 1
 
       
-      score = m.computeRocScore(mutatorLog) + self.C*math.sqrt(2.0*math.log(totalMutations) / m.timesSelected)
+      score = m.computeRocScore(mutatorLog.log) + self.C*math.sqrt(2.0*math.log(totalMutations) / m.timesSelected)
       if score > bestScore:
         bestScore = score
         bestMutator = m
