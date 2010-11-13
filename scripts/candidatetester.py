@@ -165,6 +165,12 @@ class Results:
     '''square of stderror'''
     assert len(self)>0
     return self.variance()/float(len(self)+offset)
+  
+  def stderr(self, offset=0):
+    return math.sqrt(self.meanVariance())
+  
+  def invstderr(self, offset=0):
+    return 1.0/math.sqrt(self.meanVariance())
 
   def estimatedBenifitNextTest(self, offset=1):
     return self.meanVariance()-self.meanVariance(offset)
