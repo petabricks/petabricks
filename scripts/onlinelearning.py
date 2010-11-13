@@ -32,12 +32,13 @@ def weightedChoice(choices, wfn):
       return c
   assert False
 
-pctrange  = lambda n: map(lambda x: x/float(n-1), xrange(n))
-gettime   = lambda c: c.metrics[config.timing_metric_idx][config.n].mean()
-getacc    = lambda c: c.metrics[config.accuracy_metric_idx][config.n].mean()
-gettrials = lambda c: math.sqrt(c.numTests(config.n))
-lastacc   = lambda c: c.metrics[config.accuracy_metric_idx][config.n].last() 
-lasttime   = lambda c: c.metrics[config.timing_metric_idx][config.n].last() 
+pctrange    = lambda n: map(lambda x: x/float(n-1), xrange(n))
+gettime     = lambda c: c.metrics[config.timing_metric_idx][config.n].mean()
+getacc      = lambda c: c.metrics[config.accuracy_metric_idx][config.n].mean()
+getconf     = lambda c: c.metrics[config.timing_metric_idx][config.n].invstderr()+\
+                        c.metrics[config.accuracy_metric_idx][config.n].invstderr()
+lastacc     = lambda c: c.metrics[config.accuracy_metric_idx][config.n].last() 
+lasttime    = lambda c: c.metrics[config.timing_metric_idx][config.n].last() 
 parentlimit = lambda c: c.metrics[config.timing_metric_idx][config.n].dataDistribution().ppf(0.70)
 
 
@@ -91,7 +92,7 @@ class OnlinePopulation:
       return lambda c: self.wt[0]*a*gettime(c)
     if cw==0:
       return lambda c: self.wt[0]*a*gettime(c) - self.wt[1]*b*getacc(c)
-    return lambda c: self.wt[0]*a*gettime(c) - self.wt[1]*b*getacc(c) - self.wt[2]*cw*gettrials(c)
+    return lambda c: self.wt[0]*a*gettime(c) - self.wt[1]*b*getacc(c) - self.wt[2]*cw*getconf(c)
   
   def thresholdAccuracyFitness(self, target, mult=config.threshold_multiplier_default):
     def fitness(c):
@@ -143,7 +144,7 @@ class OnlinePopulation:
         print '   - ', m.resultsStr(self.n)
 
   def reweight(self):
-    s = (sum(map(gettime, self.members)), sum(map(getacc, self.members)), sum(map(gettrials, self.members)))
+    s = (sum(map(gettime, self.members)), sum(map(getacc, self.members)), sum(map(getconf, self.members)))
     t = sum(s)
     self.wt = map(lambda x: t/x, s)
     print "Weights = ", self.wt
@@ -321,19 +322,12 @@ if __name__ == "__main__":
   tunerconfig.applypatch(tunerconfig.patch_onlinelearning)
   from optparse import OptionParser
   parser = OptionParser(usage="usage: onlinelearning.py [options] Benchmark -n N")
-  parser.add_option("--check",
-                    action="store_true", dest="check", default=False,
-                    help="check for correctness")
   parser.add_option("--debug",
                     action="store_true", dest="debug", default=False,
                     help="enable debugging options")
   parser.add_option("-n", type="int", help="input size to train for")
   parser.add_option("--max_time",              type="float",  action="callback", callback=option_callback)
-  parser.add_option("--rounds_per_input_size", type="int",    action="callback", callback=option_callback)
-  parser.add_option("--mutations_per_mutator", type="int",    action="callback", callback=option_callback)
   parser.add_option("--output_dir",            type="string", action="callback", callback=option_callback)
-  parser.add_option("--population_high_size",  type="int",    action="callback", callback=option_callback)
-  parser.add_option("--population_low_size",   type="int",    action="callback", callback=option_callback)
   parser.add_option("--offset",                type="int",    action="callback", callback=option_callback)
   parser.add_option("--name",                  type="string", action="callback", callback=option_callback)
   parser.add_option("--accuracy_target",       type="float",  action="callback", callback=option_callback)

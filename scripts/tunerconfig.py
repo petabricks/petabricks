@@ -64,7 +64,7 @@ class config_defaults:
   race_multiplier = 1.0
   race_multiplier_lowacc = 8.0
   n = None
-  reweight_interval = 20
+  reweight_interval = 4
   
   threshold_multiplier_min = 1.0
   threshold_multiplier_max = 100.0
