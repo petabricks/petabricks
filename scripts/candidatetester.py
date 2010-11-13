@@ -145,7 +145,10 @@ class Results:
 
   def meanDistribution(self):
     '''estimated probability distribution of the real mean value'''
-    return stats.norm(self.mean(), math.sqrt(self.meanVariance()))
+    try:
+      return stats.norm(self.mean(), math.sqrt(self.meanVariance()))
+    except OverflowError:
+      return self.distribution
 
   def mean(self):
     assert len(self)>0
