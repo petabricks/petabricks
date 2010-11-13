@@ -244,8 +244,11 @@ def onlinelearnInner(benchmark):
   ordered by descending fitness of the candidates'''
   mutatorLog = []
 
-  atarg = config.accuracy_target
-
+  ostats = storagedirs.openCsvStats("onlinestats", ['gen',
+                                                    'elapsed',
+                                                    'timing',
+                                                    'accuracy',
+                                                    'objective_score'])
     
   try:
     timers.total.start()
@@ -295,6 +298,7 @@ def onlinelearnInner(benchmark):
         t,a = resultingTimeAcc(p, c)
         print "Generation", gen, "elapsed",objectives.elapsed,"time", t,"accuracy",a
         print "Objectives", objectives
+        ostats.writerow([gen, objectives.elapsed, t, a, objectives.score()])
         if a is not None and t is not None:
           objectives.result(t,a)
         pop.output((p,c))
