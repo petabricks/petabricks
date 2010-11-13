@@ -359,7 +359,7 @@ def autotuneInner(benchmark):
     logging.basicConfig(level=logging.DEBUG)
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
   main = mainname([pbutil.benchmarkToBin(benchmark)])
-  tester = CandidateTester(benchmark, 1)
+  tester = CandidateTester(benchmark, config.min_input_size)
   try:
     candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml.transform(main))
     baseline = None
@@ -441,6 +441,7 @@ if __name__ == "__main__":
   parser.add_option("--output_dir",            type="string", action="callback", callback=option_callback)
   parser.add_option("--population_high_size",  type="int",    action="callback", callback=option_callback)
   parser.add_option("--population_low_size",   type="int",    action="callback", callback=option_callback)
+  parser.add_option("--min_input_size",        type="int",    action="callback", callback=option_callback)
   parser.add_option("--offset",                type="int",    action="callback", callback=option_callback)
   parser.add_option("--name",                  type="string", action="callback", callback=option_callback)
   (options, args) = parser.parse_args()

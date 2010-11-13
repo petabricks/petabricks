@@ -490,7 +490,10 @@ class CandidateTester:
   def race(self, candidatea, candidateb, limit=None, accuracy_target=None):
     self.testCount += 1
     cfgfilea = candidatea.cfgfile()
-    cfgfileb = candidateb.cfgfile()
+    if candidateb is None:
+      cfgfileb = 'None'
+    else:
+      cfgfileb = candidateb.cfgfile()
     cmd = list(self.cmd)
     cmd.extend(timers.inputgen.wrap(lambda:self.getInputArg(0)))
     if limit is not None:
@@ -509,7 +512,7 @@ class CandidateTester:
           candidate.wasTimeout = False
           for i,metric in enumerate(config.metrics):
             candidate.metrics[i][self.n].add(result[metric])
-        else:
+        elif candidate is not None:
           candidate.metrics[config.timing_metric_idx][self.n].addTimeout(best)
           candidate.wasTimeout = True
       return True

@@ -264,11 +264,12 @@ def onlinelearnInner(benchmark):
   W = config.window_size
 
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
-  main = sgatuner.mainname([pbutil.benchmarkToBin(benchmark)])
+  if not config.main:
+    config.main = sgatuner.mainname([pbutil.benchmarkToBin(benchmark)])
   tester = CandidateTester(benchmark, n)
-  candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml.transform(main))
+  candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml.transform(config.main))
   sgatuner.addMutators(candidate, infoxml.globalsec())
-  sgatuner.addMutators(candidate, infoxml.transform(main))
+  sgatuner.addMutators(candidate, infoxml.transform(config.main))
   candidate.addMutator(mutators.MultiMutator(2))
   pop = OnlinePopulation()
   objectives = ObjectiveTuner(pop)
@@ -292,12 +293,15 @@ def onlinelearnInner(benchmark):
 
     '''seed first round'''
     p = candidate
-    c = p.cloneAndMutate(n, config.use_bandit, mutatorLog_times)
+    if config.online_baseline:
+      c = None
+    else:
+      c = p.cloneAndMutate(n)
     if not tester.race(p, c):
       raise Exception()
     if not p.wasTimeout:
       pop.add(p)
-    if not c.wasTimeout:
+    if c is not None and not c.wasTimeout:
       pop.add(c)
 
     '''now normal rounds'''  
@@ -316,18 +320,23 @@ def onlinelearnInner(benchmark):
       else:
         logOfChoice = mutatorLog_accuracy
 
-      c = s.cloneAndMutate(n, config.use_bandit, logOfChoice)
+      if config.online_baseline:
+        c = None
+      else:
+        c = s.cloneAndMutate(n, config.use_bandit, logOfChoice)
       tlim, atarg = objectives.getlimits(p, s, c)
       if tester.race(p, c, tlim, atarg):
         p.discardResults(config.max_trials)
-        if not c.wasTimeout:
+        if c and not c.wasTimeout:
           pop.add(c)
           pop.prune()
-          
-        mutatorLog_times.add(c);
 
-        if not c.wasTimeout:
-          mutatorLog_accuracy.add(c);
+        if c is None:
+          c=p
+        else:
+          mutatorLog_times.add(c);
+          if not c.wasTimeout:
+            mutatorLog_accuracy.add(c);
         
         if config.bandit_verbose:
           if gettime(c) < gettime(p): # candidate better than parent
@@ -365,11 +374,13 @@ if __name__ == "__main__":
                     action="store_true", dest="debug", default=False,
                     help="enable debugging options")
   parser.add_option("-n", type="int", help="input size to train for")
-  parser.add_option("--max_time",              type="float",  action="callback", callback=option_callback)
-  parser.add_option("--output_dir",            type="string", action="callback", callback=option_callback)
-  parser.add_option("--offset",                type="int",    action="callback", callback=option_callback)
-  parser.add_option("--name",                  type="string", action="callback", callback=option_callback)
-  parser.add_option("--accuracy_target",       type="float",  action="callback", callback=option_callback)
+  parser.add_option("--max_time",        type="float",  action="callback", callback=option_callback)
+  parser.add_option("--output_dir",      type="string", action="callback", callback=option_callback)
+  parser.add_option("--seed",            type="string", action="callback", callback=option_callback)
+  parser.add_option("--offset",          type="int",    action="callback", callback=option_callback)
+  parser.add_option("--online_baseline", type="int",    action="callback", callback=option_callback)
+  parser.add_option("--name",            type="string", action="callback", callback=option_callback)
+  parser.add_option("--accuracy_target", type="float",  action="callback", callback=option_callback)
   (options, args) = parser.parse_args()
   if len(args)!=1 or not options.n:
     parser.print_usage()
