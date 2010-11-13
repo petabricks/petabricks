@@ -4,6 +4,9 @@ import warnings
 import tunerconfig
 from tunerconfig import config
 
+class dialect(csv.excel_tab):
+  lineterminator="\n"
+
 try:
   from os.path import relpath as _relpath
 except:
@@ -125,8 +128,9 @@ class StorageDirsTemplate:
       os.unlink(os.path.join(self.inputd, f))
 
   def openCsvStats(self, name, headerRow):
-    w=csv.writer(open(os.path.join(self.statsd, name + ".csv"), "w"))
+    w=csv.writer(open(os.path.join(self.statsd, name + ".csv"), "w"), dialect=dialect)
     if headerRow is not None:
+      headerRow[0]='#'+headerRow[0]
       w.writerow(headerRow)
     return w
 
