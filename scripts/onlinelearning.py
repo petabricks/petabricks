@@ -10,6 +10,7 @@ import candidatetester
 import math
 import numpy
 import storagedirs
+import configtool
 import random
 from tunerconfig import config, option_callback
 from candidatetester import Candidate, CandidateTester
@@ -261,13 +262,19 @@ def onlinelearnInner(benchmark):
     logging.basicConfig(level=logging.DEBUG)
 
   n = config.n
-  W = config.window_size
+  config.min_input_size = n
+  config.max_input_size = n
 
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
   if not config.main:
     config.main = sgatuner.mainname([pbutil.benchmarkToBin(benchmark)])
-  tester = CandidateTester(benchmark, n)
-  candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml.transform(config.main))
+  tester = CandidateTester(benchmark, config.min_input_size)
+  if config.seed is None:
+    cfg = defaultConfigFile(pbutil.benchmarkToBin(tester.app))
+  else:
+    cfg = configtool.ConfigFile(config.seed)
+
+  candidate = Candidate(cfg, infoxml.transform(config.main))
   sgatuner.addMutators(candidate, infoxml.globalsec())
   sgatuner.addMutators(candidate, infoxml.transform(config.main))
   candidate.addMutator(mutators.MultiMutator(2))
@@ -296,7 +303,7 @@ def onlinelearnInner(benchmark):
     if config.online_baseline:
       c = None
     else:
-      c = p.cloneAndMutate(n)
+      c = p.cloneAndMutate(tester.n)
     if not tester.race(p, c):
       raise Exception()
     if not p.wasTimeout:
