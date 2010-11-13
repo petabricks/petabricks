@@ -130,7 +130,7 @@ class StorageDirsTemplate:
   def openCsvStats(self, name, headerRow):
     w=csv.writer(open(os.path.join(self.statsd, name + ".csv"), "w"), dialect=dialect)
     if headerRow is not None:
-      w.writerow(['#'+headerRow[0]]+headerRow[1:])
+      w.writerow(['#'+headerRow[0]]+list(headerRow[1:]))
     return w
 
   def saveFile(self, path):
