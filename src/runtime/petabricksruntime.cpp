@@ -262,7 +262,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   }else if(args.param("race-with", CONFIG_FILENAME_ALT).help("alternate program configuration")) {
     JASSERT(_randSize>=0).Text("-n=... required");
     JASSERT(jalib::Filesystem::FileExists(CONFIG_FILENAME));
-    JASSERT(jalib::Filesystem::FileExists(CONFIG_FILENAME_ALT));
+    JASSERT(jalib::Filesystem::FileExists(CONFIG_FILENAME_ALT) || CONFIG_FILENAME_ALT=="None");
     MODE=MODE_RACE_CONFIGS;
   }
   
@@ -723,18 +723,29 @@ double petabricks::PetabricksRuntime::raceConfigs(int n, const std::vector<std::
   TunableManager& tm = TunableManager::instance();
   try {
     loadTestInput(n, files);
-    if(ati.beginTest(worker_threads/2)) {
-      tm.load(CONFIG_FILENAME);
-      _main->reallocate(std::max(IOGEN_N, n));
-      computeWrapperSubproc(ati, -1, aresult, NULL);
-      ati.endTest(aresult);
-    } else if(bti.beginTest(worker_threads/2)) {
-      tm.load(CONFIG_FILENAME_ALT);
-      _main->reallocate(std::max(IOGEN_N, n));
-      computeWrapperSubproc(bti, -1, bresult, NULL);
-      bti.endTest(bresult);
-    }else{
-      SubprocessTestIsolation::recvFirstResult(ati, aresult, bti, bresult);
+    if(CONFIG_FILENAME_ALT != "None") {
+      if(ati.beginTest(worker_threads/2)) {
+        tm.load(CONFIG_FILENAME);
+        _main->reallocate(std::max(IOGEN_N, n));
+        computeWrapperSubproc(ati, -1, aresult, NULL);
+        ati.endTest(aresult);
+      } else if(bti.beginTest(worker_threads/2)) {
+        tm.load(CONFIG_FILENAME_ALT);
+        _main->reallocate(std::max(IOGEN_N, n));
+        computeWrapperSubproc(bti, -1, bresult, NULL);
+        bti.endTest(bresult);
+      }else{
+        SubprocessTestIsolation::recvFirstResult(ati, aresult, bti, bresult);
+      }
+    } else {
+      if(ati.beginTest(worker_threads)) {
+        tm.load(CONFIG_FILENAME);
+        _main->reallocate(std::max(IOGEN_N, n));
+        computeWrapperSubproc(ati, -1, aresult, NULL);
+        ati.endTest(aresult);
+      }else{
+        ati.recvResult(aresult);
+      }
     }
   } catch(...) {
     UNIMPLEMENTED();
@@ -942,7 +953,7 @@ double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable
   }
 }
 
-double petabricks::PetabricksRuntime::updateRaceTimeout(TestResult& result, int winnerid) {
+double petabricks::PetabricksRuntime::updateRaceTimeout(TestResult& result, int /*winnerid*/) {
   if(result.time < jalib::maxval<double>() && result.time >= 0){
     if(result.accuracy >= RACE_ACCURACY_TARGET)
       return std::min(GRAPH_MAX_SEC, result.time*RACE_MULTIPLIER);
