@@ -19,7 +19,7 @@
 // #define DEBUG
 
 transform Poisson2DMGRecurse
-from X[n,n], B[n,n], Bin, NumIters
+from X[n,n], B[n,n], NumIters
 to Y[n,n]
 through Z[(n+1)/2,(n+1)/2]
 {
@@ -27,7 +27,7 @@ through Z[(n+1)/2,(n+1)/2]
         z = 0;
     }
 
-    to (Y y) from (X x, B b, Z z, Bin bin, NumIters numIters)
+    to (Y y) from (X x, B b, Z z, NumIters numIters)
     {
         int level = (int) log2(n - 1);
 
@@ -55,7 +55,7 @@ through Z[(n+1)/2,(n+1)/2]
                 Poisson2DSOR(t1, y, b, -2, 1);     // t1 gets relaxed guess
                 Poisson2DResidual(t2, t1, b);      // t2 gets new residual
                 Restrict2Dnew(r1, t2);             // r1 gets restricted residual
-                Poisson2DMG<(int) bin>(r2, z, r1); // r2 gets coarse update
+                Poisson2DMG(r2, z, r1);            // r2 gets coarse update
                 Interpolate2Dnew(t2, r2);          // t2 gets interpolated update
                 MatrixAdd(t2, t2, t1);             // t2 gets updated guess
                 Poisson2DSOR(y, t2, b, -2, 1);     //  y gets relaxed guess
@@ -67,8 +67,7 @@ through Z[(n+1)/2,(n+1)/2]
 transform Poisson2DMG
 from X[n,n], B[n,n]
 to  Y[n,n]
-accuracy_bins POISSON2D_BINS
-accuracy_variable numIterations
+tunable numIterations
 accuracy_metric Poisson2DAccuracyMetric
 generator POISSON2D_GENERATOR
 {
@@ -84,7 +83,7 @@ generator POISSON2D_GENERATOR
         }
 
 #ifdef DEBUG
-        printf("Direct case called for n = %d, acc %d\n", n, _acc_bin);
+        printf("Direct case called for n = %d\n", n);
 #endif
 
         Poisson2DDirect(y, x, b);
@@ -103,10 +102,10 @@ generator POISSON2D_GENERATOR
         }
 
 #ifdef DEBUG
-        printf("SOR case called for n = %d, acc %d (%d iterations)\n", n, _acc_bin, numIterations);
+        printf("SOR case called for n = %d (%d iterations)\n", n, (int) numIterations);
 #endif
 
-        Poisson2DSOR(y, x, b, -1, numIterations);
+        Poisson2DSOR(y, x, b, -1, (int) numIterations);
     }
 
 #if 0
@@ -114,27 +113,26 @@ generator POISSON2D_GENERATOR
     to(Y y) from(X x, B b) {
 
 #ifdef DEBUG
-        printf("RefMG case called for n = %d, acc %d (%d iterations)\n", n, _acc_bin, numIterations);
+        printf("RefMG case called for n = %d (%d iterations)\n", n, (int) numIterations);
 #endif
 
-        Poisson2DRefMG(y, x, b, numIterations);
+        Poisson2DRefMG(y, x, b, (int) numIterations);
     }
 #endif
 
     //solve recursively on coarser grids
 
     recursive(n)
-    duplicate(recurseBin, 0, 4)
     to (Y y) from(X x, B b) {
 #ifdef DEBUG
-        printf("recursive %d case called for n = %d, acc %d (%d iterations)\n",
-               recurseBin, n, _acc_bin, numIterations);
+        printf("recursive case called for n = %d (%d iterations)\n",
+               n, (int) numIterations);
 #endif
         JASSERT(n >= 3)(n).Text("input must be >= 3");
         JASSERT(floor(log2(n-1)) == log2(n-1))(n).Text("input must be 2^k+1");
-        JASSERT(numIterations >= 0)(numIterations).Text("num iterations must be non-negative");
+        JASSERT((int) numIterations >= 0)((int) numIterations).Text("num iterations must be non-negative");
 
-        Poisson2DMGRecurse(y, x, b, recurseBin, numIterations);
+        Poisson2DMGRecurse(y, x, b, (int) numIterations);
     }
 }
 
