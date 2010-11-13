@@ -24,7 +24,7 @@ class config_defaults:
   window_size           = 20
   bandit_c              = 0.25
   bandit_verbose        = False
-  use_bandit            = False
+  use_bandit            = True
 
   #how mutation to do
   mutations_per_mutator    = 3

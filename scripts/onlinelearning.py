@@ -43,12 +43,13 @@ parentlimit = lambda c: c.metrics[config.timing_metric_idx][config.n].dataDistri
 
 lastMutatorId = 0
 class MutatorLogEntry:
-  def __init__(self, mutator, candidate, time):
+  def __init__(self, mutator, candidate, time, accuracy):
     global lastMutatorId
 
     self.mutator = mutator
     self.candidate = candidate
     self.time = time
+    self.accuracy = accuracy
     self.id = lastMutatorId + 1
     lastMutatorId = self.id
     
@@ -190,7 +191,7 @@ def onlinelearnInner(benchmark):
         else:
           actual_w += 1
 
-        mutatorLog = sortedMutatorLog([MutatorLogEntry(c.lastMutator, c, gettime(c))] + mutatorLog)
+        mutatorLog = sortedMutatorLog([MutatorLogEntry(c.lastMutator, c, gettime(c), getacc(c))] + mutatorLog)
         
         if config.bandit_verbose:
           if gettime(c) < gettime(p): # candidate better than parent
