@@ -153,7 +153,6 @@ class StorageDirsTemplate:
     except Exception, e:
       warnings.warn("Failed to record git status: "+e)
 
-  
 cur = None
 
 def callWithLogDir(fn, root, delete):
