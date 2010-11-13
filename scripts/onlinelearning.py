@@ -60,16 +60,30 @@ class MutatorLogEntry:
 def sortedMutatorLog(log):
   return sorted(log, key = lambda m: m.time)
 
-
 class OnlinePopulation:
-  def __init__(self, seed):
-    self.members = [seed]
+  def __init__(self):
+    self.members = []
     self.fns = []
     self.n = config.n
     self.wt = (1.0, 1.0, 1.0)
-    for c in pctrange(6):
+    for c in (0.0, 0.3, 0.6):
       for b in pctrange(25):
         self.fns.append(self.linearFitness(1.0-b, b, c))
+    if config.accuracy_target is not None:
+      for t in (config.accuracy_target*0.90,
+                config.accuracy_target*0.95,
+                config.accuracy_target*1.00,
+                config.accuracy_target*1.05,
+                config.accuracy_target*1.10):
+        self.fns.append(self.thresholdAccuracyFitness(t))
+    if config.timing_target is not None:
+      for t in (config.timing_target*0.90,
+                config.timing_target*0.95,
+                config.timing_target*1.00,
+                config.timing_target*1.05,
+                config.timing_target*1.10):
+        self.fns.append(self.thresholdTimingFitness(t))
+
 
   def linearFitness(self, a, b, cw):
     if b==0 and cw==0:
@@ -77,6 +91,28 @@ class OnlinePopulation:
     if cw==0:
       return lambda c: self.wt[0]*a*gettime(c) - self.wt[1]*b*getacc(c)
     return lambda c: self.wt[0]*a*gettime(c) - self.wt[1]*b*getacc(c) - self.wt[2]*cw*gettrials(c)
+  
+  def thresholdAccuracyFitness(self, target, mult=config.threshold_multiplier_default):
+    def fitness(c):
+      t=gettime(c)
+      a=getacc(c)
+      if a<target:
+        a = (target-a)*mult
+      else:
+        a = 0
+      return self.wt[0]*t + self.wt[1]*a
+    return fitness
+  
+  def thresholdTimeFitness(self, target, mult=config.threshold_multiplier_default):
+    def fitness(c):
+      t=gettime(c)
+      a=getacc(c)
+      if t>target:
+        t = (t-target)*mult
+      else:
+        t = 0
+      return self.wt[0]*t - self.wt[1]*a
+    return fitness
 
   def add(self,m):
     self.members.append(m)
@@ -91,6 +127,8 @@ class OnlinePopulation:
     self.members.sort(key=self.linearFitness(1,0,0))
 
   def select(self, fn):
+    if len(self.members)<=1:
+      return self.members[0]
     return min(self.members, key=fn)
 
   def choice(self, timelimit, fn):
@@ -123,6 +161,61 @@ def resultingTimeAcc(p, c):
   return t,a
 
 
+class ObjectiveTuner:
+  def __init__(self, pop):
+    self.pop            = pop
+    self.wiggleroom     = 0.20
+    self.window         = config.max_trials
+    self.timing         = candidatetester.Results()
+    self.timingRecent   = candidatetester.Results()
+    self.accuracy       = candidatetester.Results()
+    self.accuracyRecent = candidatetester.Results()
+    self.elapsed        = 0
+    self.computeFitnessFunction()
+
+  def result(self, t, a):
+    self.elapsed += t
+    self.timing.add(t)
+    self.timingRecent.add(t)
+    self.timingRecent.discard(self.window)
+    self.accuracy.add(a)
+    self.accuracyRecent.add(a)
+    self.accuracyRecent.discard(self.window)
+    self.computeFitnessFunction()
+
+  def score(self):
+    if len(self.timing):
+      if config.accuracy_target is not None:
+        return self.accuracyRecent.dataDistribution().ppf(0.20)/config.accuracy_target
+      elif config.timing_target is not None:
+        return 1.0 - self.timingRecent.dataDistribution().ppf(0.20)/config.timing_target
+    return 1.0
+
+  def computeFitnessFunction(self):
+    score = self.score()
+    mult = config.threshold_multiplier_default
+    while score<.9:
+      mult*=2
+      score+=.1
+    while score>1.1:
+      mult/=2
+      score-=.1
+    mult = min(config.threshold_multiplier_max, 
+           max(config.threshold_multiplier_min, mult))
+
+    if config.accuracy_target is not None:
+      self.fitness = self.pop.thresholdAccuracyFitness(config.accuracy_target, mult)
+    elif config.timing_target is not None:
+      self.fitness = self.pop.thresholdTimingFitness(config.timing_target, mult)
+    else:
+      self.fitness = self.pop.linearFitness(1,0,0)
+
+  def getlimits(self, safe, seed, experiment):
+    return None, config.accuracy_target
+
+  def __str__(self):
+    return str(self.score())
+
 def onlinelearnInner(benchmark):
   if config.debug:
     logging.basicConfig(level=logging.DEBUG)
@@ -137,21 +230,9 @@ def onlinelearnInner(benchmark):
   sgatuner.addMutators(candidate, infoxml.globalsec())
   sgatuner.addMutators(candidate, infoxml.transform(main))
   candidate.addMutator(mutators.MultiMutator(2))
-  pop = OnlinePopulation(candidate)
-  result = candidatetester.Results()
-  elapsed = 0.0
+  pop = OnlinePopulation()
+  objectives = ObjectiveTuner(pop)
   
-  def fitness(candidate):
-    if lastacc(candidate) is None:
-      return None
-    t=gettime(candidate)
-    a=getacc(candidate)
-    if config.accuracy_target is not None and config.accuracy_target > a:
-      return t + 100.0*(config.accuracy_target-a)
-    return t
-
-  pop.fns.append(fitness)
-
   if not config.delete_output_dir:
     storagedirs.cur.dumpConfig()
     storagedirs.cur.dumpGitStatus()
@@ -162,36 +243,45 @@ def onlinelearnInner(benchmark):
   ordered by descending fitness of the candidates'''
   mutatorLog = []
 
-  ''' actual size of the candidate window, in case we have fewer candidates
-  than the maximum window size'''
-  actual_w = 0 
+  atarg = config.accuracy_target
+
     
   try:
     timers.total.start()
     config.end_time = time.time() + config.max_time
-        
-    for gen in itertools.count():
 
-      if gen%config.reweight_interval==0 and gen>0:
+    '''seed first round'''
+    p = candidate
+    c = p.cloneAndMutate(n, config.use_bandit, mutatorLog)
+    if not tester.race(p, c):
+      raise Exception()
+    if not p.wasTimeout:
+      pop.add(p)
+    if not c.wasTimeout:
+      pop.add(c)
+
+    '''now normal rounds'''  
+    for gen in itertools.count(1):
+      if time.time() > config.end_time:
+        break
+      if gen%config.reweight_interval==0:
         pop.reweight()
-      p = pop.select(fitness)
 
-      if p.numTests(n)>0:
-        c = pop.choice(parentlimit(p), getacc)
-      else:
-        c = p
-      c = p.cloneAndMutate(n, config.use_bandit, mutatorLog)
-      if tester.race(p, c):
-        
-        if not p.wasTimeout:
-          p.discardResults(config.max_trials)
+      p = pop.select(objectives.fitness)
+      #s = pop.choice(parentlimit(p), getacc)
+      s = p
+      c = s.cloneAndMutate(n, config.use_bandit, mutatorLog)
+      tlim, atarg = objectives.getlimits(p, s, c)
+      if tester.race(p, c, tlim, atarg):
+        p.discardResults(config.max_trials)
+        if not c.wasTimeout:
+          pop.add(c)
+          pop.prune()
 
         # slide the candidate window
-        if actual_w >= W:
-          mutatorLog = sorted(mutatorLog, key=lambda x: x.id)
+        if len(mutatorLog) >= W:
+          mutatorLog.sort(key=lambda x: x.id)
           mutatorLog.pop(0);
-        else:
-          actual_w += 1
 
         mutatorLog = sortedMutatorLog([MutatorLogEntry(c.lastMutator, c, gettime(c))] + mutatorLog)
         
@@ -201,16 +291,11 @@ def onlinelearnInner(benchmark):
           else:
             print "Child equal/worse than parent: %f vs. %f" % (gettime(c), gettime(p))
 
-        if gen==0 and p.wasTimeout:
-          pop.members=[c]
-        elif not c.wasTimeout:
-          pop.add(c)
-          pop.prune()
         t,a = resultingTimeAcc(p, c)
+        print "Generation", gen, "elapsed",objectives.elapsed,"time", t,"accuracy",a
+        print "Objectives", objectives
         if a is not None and t is not None:
-          result.add(a)
-          elapsed += t
-        print "Generation",gen,"elapsed",elapsed,"time", t,"accuracy",a, "limit", parentlimit(p)
+          objectives.result(t,a)
         pop.output((p,c))
       else:
         print 'error'
