@@ -129,7 +129,7 @@ class Results:
       self.interpolatedResults.append(sum(self.timeoutResults)/len(self.timeoutResults)*2.0)
     if len(self.interpolatedResults) == 1:
       '''only 1 test, use prior stddev'''
-      self.distribution = stats.norm(self.interpolatedResults[0], self.interpolatedResults[0]*config.prior_stddev_pct)
+      self.distribution = stats.norm(self.interpolatedResults[0], abs(self.interpolatedResults[0]*config.prior_stddev_pct))
     else:
       '''estimate stddev with least squares'''
       self.distribution = mkdistrib()
@@ -145,7 +145,10 @@ class Results:
 
   def meanDistribution(self):
     '''estimated probability distribution of the real mean value'''
-    return stats.norm(self.mean(), math.sqrt(self.meanVariance()))
+    try:
+      return stats.norm(self.mean(), math.sqrt(self.meanVariance()))
+    except OverflowError:
+      return self.distribution
 
   def mean(self):
     assert len(self)>0
@@ -490,7 +493,10 @@ class CandidateTester:
   def race(self, candidatea, candidateb, limit=None, accuracy_target=None):
     self.testCount += 1
     cfgfilea = candidatea.cfgfile()
-    cfgfileb = candidateb.cfgfile()
+    if candidateb is None:
+      cfgfileb = 'None'
+    else:
+      cfgfileb = candidateb.cfgfile()
     cmd = list(self.cmd)
     cmd.extend(timers.inputgen.wrap(lambda:self.getInputArg(0)))
     if limit is not None:
@@ -509,7 +515,7 @@ class CandidateTester:
           candidate.wasTimeout = False
           for i,metric in enumerate(config.metrics):
             candidate.metrics[i][self.n].add(result[metric])
-        else:
+        elif candidate is not None:
           candidate.metrics[config.timing_metric_idx][self.n].addTimeout(best)
           candidate.wasTimeout = True
       return True

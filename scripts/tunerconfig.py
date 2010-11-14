@@ -2,6 +2,7 @@
 class config_defaults:
   #how long to train for
   max_input_size           = 2**30
+  min_input_size           = 1
   max_time                 = 60*15
   rounds_per_input_size    = 3
   final_rounds             = 2
@@ -59,16 +60,21 @@ class config_defaults:
   bonus_round_score = 1.0
   memory_limit_pct = 0.8
   min_std_pct = 0.000001
+  online_baseline = False
   accuracy_target = None
   timing_target = None
   race_multiplier = 1.0
   race_multiplier_lowacc = 8.0
   n = None
   reweight_interval = 4
+  seed = None
+  main = None
   
   threshold_multiplier_min = 1.0
   threshold_multiplier_max = 100.0
   threshold_multiplier_default=10.0
+
+  recompile = True
 
   #types of mutatators to generate
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']

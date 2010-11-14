@@ -10,6 +10,7 @@ import candidatetester
 import math
 import numpy
 import storagedirs
+import configtool
 import random
 from tunerconfig import config, option_callback
 from candidatetester import Candidate, CandidateTester
@@ -256,28 +257,20 @@ class ObjectiveTuner:
   def __str__(self):
     return str(self.score())
 
+def createChoiceSiteMutatorsOnline(candidate, info, ac, weight):
+  transform = info.name()
+  number = ac['number']
+  return [mutators.ShuffleAlgsChoiceSiteMutator(transform, number, weight=weight),
+          mutators.ShuffleCutoffsChoiceSiteMutator(transform, number, weight=weight),
+          mutators.ShuffleTopChoiceSiteMutator(transform, number, weight=weight),
+          mutators.ShuffleBotChoiceSiteMutator(transform, number, weight=weight),
+          mutators.AddLevelChoiceSiteMutator(transform, number, weight=weight),
+          mutators.RemoveLevelChoiceSiteMutator(transform, number, weight=weight)]
+
 def onlinelearnInner(benchmark):
-  if config.debug:
-    logging.basicConfig(level=logging.DEBUG)
-
-  n = config.n
-  W = config.window_size
-
-  infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
-  main = sgatuner.mainname([pbutil.benchmarkToBin(benchmark)])
-  tester = CandidateTester(benchmark, n)
-  candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml.transform(main))
-  sgatuner.addMutators(candidate, infoxml.globalsec())
-  sgatuner.addMutators(candidate, infoxml.transform(main))
-  candidate.addMutator(mutators.MultiMutator(2))
+  candidate, tester = sgatuner.init(benchmark, createChoiceSiteMutatorsOnline)
   pop = OnlinePopulation()
   objectives = ObjectiveTuner(pop)
-  
-  if not config.delete_output_dir:
-    storagedirs.cur.dumpConfig()
-    storagedirs.cur.dumpGitStatus()
-    storagedirs.cur.saveFile(pbutil.benchmarkToInfo(benchmark))
-    storagedirs.cur.saveFile(pbutil.benchmarkToBin(benchmark))
 
   ''' mutators in the last time window that produced improved candidates, 
   ordered by descending fitness of the candidates'''
@@ -292,12 +285,15 @@ def onlinelearnInner(benchmark):
 
     '''seed first round'''
     p = candidate
-    c = p.cloneAndMutate(n, config.use_bandit, mutatorLog_times)
+    if config.online_baseline:
+      c = None
+    else:
+      c = p.cloneAndMutate(tester.n)
     if not tester.race(p, c):
       raise Exception()
     if not p.wasTimeout:
       pop.add(p)
-    if not c.wasTimeout:
+    if c is not None and not c.wasTimeout:
       pop.add(c)
 
     '''now normal rounds'''  
@@ -316,31 +312,32 @@ def onlinelearnInner(benchmark):
       else:
         logOfChoice = mutatorLog_accuracy
 
-      c = s.cloneAndMutate(n, config.use_bandit, logOfChoice)
+      if config.online_baseline:
+        c = None
+      else:
+        c = s.cloneAndMutate(tester.n, config.use_bandit, logOfChoice)
       tlim, atarg = objectives.getlimits(p, s, c)
       if tester.race(p, c, tlim, atarg):
         p.discardResults(config.max_trials)
-        if not c.wasTimeout:
+        if c and not c.wasTimeout:
           pop.add(c)
           pop.prune()
-          
-        mutatorLog_times.add(c);
 
-        if not c.wasTimeout:
-          mutatorLog_accuracy.add(c);
+        if c is None:
+          c=p
+        else:
+          mutatorLog_times.add(c);
+          if not c.wasTimeout:
+            mutatorLog_accuracy.add(c);
         
-        if config.bandit_verbose:
-          if gettime(c) < gettime(p): # candidate better than parent
-            print "Child better than parent: %f vs. %f" % (gettime(c), gettime(p))
-          else:
-            print "Child equal/worse than parent: %f vs. %f" % (gettime(c), gettime(p))
+        logging.debug("Child vs parent, better=%d, %f vs. %f" % (int(gettime(c) < gettime(p)), gettime(c), gettime(p)))
 
         t,a = resultingTimeAcc(p, c)
         print "Generation", gen, "elapsed",objectives.elapsed,"time", t,"accuracy",a, getconf(p)
         print "Objectives", objectives
         if a is not None and t is not None:
           objectives.result(t,a)
-        pop.output((p,c))
+        pop.output((p,c,s))
         ostats.writerow(objectives.stats(gen))
       else:
         print 'error'
@@ -365,14 +362,18 @@ if __name__ == "__main__":
                     action="store_true", dest="debug", default=False,
                     help="enable debugging options")
   parser.add_option("-n", type="int", help="input size to train for")
-  parser.add_option("--max_time",              type="float",   action="callback", callback=option_callback)
-  parser.add_option("--output_dir",            type="string",  action="callback", callback=option_callback)
-  parser.add_option("--offset",                type="int",     action="callback", callback=option_callback)
-  parser.add_option("--name",                  type="string",  action="callback", callback=option_callback)
-  parser.add_option("--accuracy_target",       type="float",   action="callback", callback=option_callback)
+  parser.add_option("--max_time",        type="float",  action="callback", callback=option_callback)
+  parser.add_option("--output_dir",      type="string", action="callback", callback=option_callback)
+  parser.add_option("--seed",            type="string", action="callback", callback=option_callback)
+  parser.add_option("--offset",          type="int",    action="callback", callback=option_callback)
+  parser.add_option("--recompile",       type="int",    action="callback", callback=option_callback)
+  parser.add_option("--online_baseline", type="int",    action="callback", callback=option_callback)
+  parser.add_option("--name",            type="string", action="callback", callback=option_callback)
+  parser.add_option("--accuracy_target", type="float",  action="callback", callback=option_callback)
   parser.add_option("--use_bandit",            type="int",     action="callback", callback=option_callback)
   parser.add_option("--window_size",           type="int",     action="callback", callback=option_callback)
   parser.add_option("--bandit_c",              type="float",   action="callback", callback=option_callback)
+
   (options, args) = parser.parse_args()
   if len(args)!=1 or not options.n:
     parser.print_usage()
@@ -381,10 +382,10 @@ if __name__ == "__main__":
     tunerconfig.applypatch(tunerconfig.patch_debug)
   if options.n:
     tunerconfig.applypatch(tunerconfig.patch_n(options.n))
+  config.min_input_size = config.n
+  config.max_input_size = config.n
+
   config.benchmark=args[0]
-  pbutil.chdirToPetabricksRoot();
-  pbutil.compilePetabricks();
-  config.benchmark=pbutil.normalizeBenchmarkName(config.benchmark)
-  pbutil.compileBenchmarks([config.benchmark])
+  sgatuner.recompile()
   onlinelearn(config.benchmark)
 
