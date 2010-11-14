@@ -18,7 +18,7 @@ class config_defaults:
   '''confidence for generating execution time limits'''
   limit_conf_pct        = 0.95
   '''multiply generated time limits by a factor'''
-  limit_multiplier      = 1.2
+  limit_multiplier      = 12.0
   '''offset added to input sizes'''
   offset                = 0
 
@@ -28,7 +28,7 @@ class config_defaults:
   use_bandit            = True
 
   #how mutation to do
-  mutations_per_mutator    = 3
+  mutations_per_mutator    = 5
   population_high_size     = 10
   population_low_size      = 2
   multimutation            = True
@@ -36,7 +36,7 @@ class config_defaults:
   rand_retries             = 10
 
   #storage and reporting
-  debug                  = True
+  debug                  = False
   output_dir             = "~/tunerout"
   min_input_size_nocrash = 32
   delete_output_dir      = False

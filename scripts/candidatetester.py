@@ -274,14 +274,14 @@ class Candidate:
     return t
 
 
-  def cloneAndMutate(self, n, adaptive = False, mutatorLog = None):
+  def cloneAndMutate(self, n, adaptive = False, mutatorLog = None, mutatorFilter=lambda m: True):
     c = self.clone()
     for z in xrange(config.mutate_retries):
       try:
         if adaptive:
           c.upperConfidenceBoundMutate(n, mutatorLog);
         else:
-          c.mutate(n)
+          c.mutate(n, mutatorFilter)
         break
       except MutateFailed:
         if z==config.mutate_retries-1:
@@ -337,15 +337,12 @@ class Candidate:
     self.lastMutator.mutate(self, n)
 
 
-  def mutate(self, n, minscore=None):
-    if minscore is not None:
-      opts=filter(lambda x: x.score>minscore, self.mutators)
-      if opts:
-        self.lastMutator=random.choice(opts)
-      else:
-        raise NoMutators()
+  def mutate(self, n, mutatorFilter=lambda m: True):
+    opts=filter(mutatorFilter, self.mutators)
+    if opts:
+      self.lastMutator=random.choice(opts)
     else:
-      self.lastMutator=random.choice(self.mutators)
+      raise NoMutators()
     self.lastMutator.mutate(self, n)
 
   def reasonableLimit(self, n):

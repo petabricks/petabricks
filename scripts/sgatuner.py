@@ -76,16 +76,13 @@ class Population:
           self.failed.add(m)
           self.members.remove(m)
 
-  def countMutators(self, minscore):
-    if minscore is None:
-      return sum(map(lambda x: len(x.mutators), self.members))
-    else:
-      return sum(map(lambda x: len(filter(lambda m: m.score>minscore, x.mutators)), self.members))
+  def countMutators(self, mutatorFilter=lambda m: True):
+    return sum(map(lambda x: len(filter(mutatorFilter, x.mutators)), self.members))
 
-  def randomMutation(self, maxpopsize=None, minscore=None):
+  def randomMutation(self, maxpopsize=None, mutatorFilter=lambda m: True):
     '''grow the population using cloning and random mutation'''
     originalPop = list(self.members)
-    totalMutators = self.countMutators(minscore)
+    totalMutators = self.countMutators(mutatorFilter)
     tries = float(totalMutators)*config.mutations_per_mutator
     while tries>0:
       check_timeout()
@@ -97,9 +94,9 @@ class Population:
       else:
         p=random.choice(originalPop)
       try:
-        c=p.cloneAndMutate(self.inputSize())
+        c=p.cloneAndMutate(self.inputSize(), mutatorFilter=mutatorFilter)
       except candidatetester.NoMutators:
-        if self.countMutators(minscore)>0:
+        if self.countMutators(mutatorFilter)>0:
           continue
         else:
           return tries
@@ -124,6 +121,11 @@ class Population:
     if len(originalPop)<len(self.members):
       logging.info("added "+', '.join(map(str,set(self.members)-set(originalPop))))
     return tries
+
+  def guidedMutation(self):
+    print "GUIDED MUTATION"
+    self.randomMutation(None, lambda m: m.accuracyHint)
+    
   
   def birthFilter(self, parent, child):
     '''called when considering adding child to population'''
@@ -247,10 +249,8 @@ class Population:
       if len(self.members):
         for z in xrange(config.rounds_per_input_size):
           self.randomMutation(config.population_high_size)
-          self.prune(config.population_low_size, False)
-        if self.countMutators(config.bonus_round_score)>0:
-          logging.info("bonus round triggered")
-          self.randomMutation(config.population_high_size, config.bonus_round_score)
+          if not self.accuracyTargetsMet():
+            self.guidedMutation()
           self.prune(config.population_low_size, False)
         self.prune(config.population_low_size, True)
 
@@ -321,7 +321,9 @@ def createTunableMutators(candidate, ta, weight):
       return [mutators.UniformRandMutator(name, l, h, weight=weight)]
   elif ta['type'] in config.lognorm_array_tunable_types:
     ms = [mutators.LognormTunableArrayMutator(name, l, h, weight=weight),
-          mutators.IncrementTunableArrayMutator(name, l, h, 4, weight=weight)]
+          mutators.IncrementTunableArrayMutator(name, l, h, 8, weight=weight),
+          mutators.ScaleTunableArrayMutator(name, l, h, 2, weight=weight),
+          ]
     ms[-1].reset(candidate)
     return ms
   elif ta['type'] in config.ignore_tunable_types:
