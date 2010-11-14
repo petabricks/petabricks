@@ -257,8 +257,18 @@ class ObjectiveTuner:
   def __str__(self):
     return str(self.score())
 
+def createChoiceSiteMutatorsOnline(candidate, info, ac, weight):
+  transform = info.name()
+  number = ac['number']
+  return [mutators.ShuffleAlgsChoiceSiteMutator(transform, number, weight=weight),
+          mutators.ShuffleCutoffsChoiceSiteMutator(transform, number, weight=weight),
+          mutators.ShuffleTopChoiceSiteMutator(transform, number, weight=weight),
+          mutators.ShuffleBotChoiceSiteMutator(transform, number, weight=weight),
+          mutators.AddLevelChoiceSiteMutator(transform, number, weight=weight),
+          mutators.RemoveLevelChoiceSiteMutator(transform, number, weight=weight)]
+
 def onlinelearnInner(benchmark):
-  candidate, tester = sgatuner.init(benchmark)
+  candidate, tester = sgatuner.init(benchmark, createChoiceSiteMutatorsOnline)
   pop = OnlinePopulation()
   objectives = ObjectiveTuner(pop)
 

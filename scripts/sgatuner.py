@@ -340,7 +340,7 @@ def createChoiceSiteMutators(candidate, info, ac, weight):
   #ms.append(mutators.ShuffleCutoffsChoiceSiteMutator(transform, ac['number'], weight=weight))
   return ms
 
-def addMutators(candidate, info, acf=createChoiceSiteMutators, taf=createTunableMutators, ignore=None, weight=1.0):
+def addMutators(candidate, info, acf, taf, ignore=None, weight=1.0):
   '''seed the pool of mutators from the .info file'''
   if ignore is None:
     ignore=set()
@@ -368,7 +368,7 @@ def addMutators(candidate, info, acf=createChoiceSiteMutators, taf=createTunable
   for sub in info.calls():
     addMutators(candidate, sub, acf, taf, ignore, weight/2.0)
 
-def init(benchmark):
+def init(benchmark, acf=createChoiceSiteMutators, taf=createTunableMutators):
   if config.debug:
     logging.basicConfig(level=logging.DEBUG)
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
@@ -380,8 +380,8 @@ def init(benchmark):
   else:
     cfg = configtool.ConfigFile(config.seed)
   candidate = Candidate(cfg, infoxml.transform(config.main))
-  addMutators(candidate, infoxml.globalsec())
-  addMutators(candidate, infoxml.transform(config.main))
+  addMutators(candidate, infoxml.globalsec(), acf, taf)
+  addMutators(candidate, infoxml.transform(config.main), acf, taf)
   candidate.addMutator(mutators.MultiMutator(2))
   if not config.delete_output_dir:
     storagedirs.cur.dumpConfig()
