@@ -269,7 +269,7 @@ class Population:
         for m in self.members+self.removed:
           m.writestats(self.inputSize())
         if config.mutatorlog and len(self.members):
-          mutators = set.union(*map(lambda x: set(x.mutators), self.members))
+          mutators = reduce(set.union, map(lambda x: set(x.mutators), self.members))
           for m in mutators:
             m.writelog(self.roundNumber, self.inputSize())
 
