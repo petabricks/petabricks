@@ -369,9 +369,10 @@ if __name__ == "__main__":
   parser.add_option("--online_baseline", type="int",    action="callback", callback=option_callback)
   parser.add_option("--name",            type="string", action="callback", callback=option_callback)
   parser.add_option("--accuracy_target", type="float",  action="callback", callback=option_callback)
-  parser.add_option("--use_bandit",            type="int",     action="callback", callback=option_callback)
-  parser.add_option("--window_size",           type="int",     action="callback", callback=option_callback)
-  parser.add_option("--bandit_c",              type="float",   action="callback", callback=option_callback)
+  parser.add_option("--timing_target",   type="float",  action="callback", callback=option_callback)
+  parser.add_option("--use_bandit",      type="int",    action="callback", callback=option_callback)
+  parser.add_option("--window_size",     type="int",    action="callback", callback=option_callback)
+  parser.add_option("--bandit_c",        type="float",  action="callback", callback=option_callback)
 
   (options, args) = parser.parse_args()
   if len(args)!=1 or not options.n:
@@ -379,6 +380,7 @@ if __name__ == "__main__":
     sys.exit(1)
   if options.debug:
     tunerconfig.applypatch(tunerconfig.patch_debug)
+  assert not (config.accuracy_target and config.timing_target)
   
   config.min_input_size = options.n
   config.max_input_size = options.n
