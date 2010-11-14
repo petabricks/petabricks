@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import itertools, random, math, logging, csv
 import storagedirs
+import numpy
 from scipy import stats
 from tunerconfig import config
 
@@ -23,6 +24,33 @@ class Mutator:
                     'worse':  0.0,
                     'same':   0.0,
                     'fail':   0.0}
+    self.timesSelected = 1  # total number of times this operator has been selected
+
+  def computeRocScore(self, mutatorLog):
+    # mutator log is best-first
+
+    integral = 0
+    x = 0 # x position in the ROC curve
+    y = 0 # y position in the ROC curve
+    for m in mutatorLog:
+      new_x = 0
+      new_y = 0
+
+      if m == self:
+        new_x = x
+        new_y = y + 1
+      else:
+        new_x = x + 1
+        new_y = y;
+
+      integral += (new_x-x)*y + (new_x-x)*(new_y - y) / 2
+      x = new_x
+      y = new_y
+
+    return integral
+              
+        
+      
 
   def uniquename(self):
     return self.__class__.__name__+'_'+str(self.mid)
@@ -37,6 +65,7 @@ class Mutator:
     raise Exception('must be implemented in subclass')
 
   def result(self, r):
+    self.timesSelected += 1
     self.results[r] += 1
     self.score=self.score*config.score_decay + int(r=='better')
 
@@ -85,14 +114,14 @@ class AddAlgLevelMutator(Mutator):
     for lvl in itertools.count(config.first_lvl+1):
       kco     = config.fmt_cutoff % (self.transform, self.choicesite, lvl)
       krn     = config.fmt_rule   % (self.transform, self.choicesite, lvl)
-      krnLast = config.fmt_rule   % (self.transform, self.choicesite, lvl-1)
+      krnlast = config.fmt_rule   % (self.transform, self.choicesite, lvl-1)
       try:
         co = candidate.config[kco] 
       except:
         raise MutateFailed("no tunables for level "+str(lvl))
       if co >= config.cutoff_max_val:
         # found the top level
-        if candidate.config[krnLast] == self.alg:
+        if candidate.config[krnlast] == self.alg:
           raise MutateFailed("last level has same alg")
         return lvl, kco, krn
       if co >= newco:
@@ -224,7 +253,7 @@ class TunableArrayMutator(Mutator):
     assert config.fmt_bin%(self.tunable, i) in ks
     while config.fmt_bin%(self.tunable, i) in ks:
       if candidate.config[config.fmt_bin % (self.tunable, i)]<self.minVal:
-        candidate.config[config.fmt_bin % (self.tunable, i)] = self.minVal
+        candidate.config[config.fmt_bin % (self.tunable, i)] = self.minVal+2
       i+=1
 
 class LognormTunableArrayMutator(TunableArrayMutator, LognormRandom):
@@ -232,6 +261,13 @@ class LognormTunableArrayMutator(TunableArrayMutator, LognormRandom):
 
 class UniformTunableArrayMutator(TunableArrayMutator, UniformRandom):
   pass
+
+class IncrementTunableArrayMutator(TunableArrayMutator):
+  def __init__(self, tunable, minVal, maxVal, inc, weight=1.0):
+    self.inc = inc
+    TunableArrayMutator.__init__(self, tunable, minVal, maxVal, weight)
+  def random(self, oldVal, minVal, maxVal):
+    return min(maxVal, max(minVal, oldVal+self.inc))
 
 class MultiMutator(Mutator):
   def __init__(self, count=3, weight=1.0):
@@ -247,4 +283,143 @@ class MultiMutator(Mutator):
     candidate.lastMutator=self
   def __str__(self):
     return Mutator.__str__(self)+' '+str(self.count)
+
+class ChoiceSiteMutator(Mutator):
+  '''add a new alg level to the target choice site'''
+  def __init__(self, transform, choicesite, weight=1.0):
+    self.transform = transform
+    self.choicesite = choicesite
+    Mutator.__init__(self, weight)
+
+  def getCutoffs(self, candidate):
+    rv = []
+    last = 0
+    for lvl in itertools.count(config.first_lvl+1):
+      kco = config.fmt_cutoff % (self.transform, self.choicesite, lvl)
+      try:
+        co = candidate.config[kco] 
+      except:
+        break
+      if co >= config.cutoff_max_val:
+        break
+      rv.append(co-last)
+      last=co
+    return rv
+
+  def setCutoffs(self, candidate, cutoffs):
+    last = 0
+    for i, lvl in enumerate(itertools.count(config.first_lvl+1)):
+      kco = config.fmt_cutoff % (self.transform, self.choicesite, lvl)
+      if len(cutoffs)>i:
+        last += cutoffs[i]
+      else:
+        last = config.cutoff_max_val
+      if last > config.cutoff_max_val:
+        last = config.cutoff_max_val
+      try:
+        candidate.config[kco] = last
+      except:
+        break
+
+  def rescaleCutoffs(self, cutoffs, n):
+    if sum(cutoffs)>n:
+      scale = sum(cutoffs)/float(3*n/4.0)
+      cutoffs = map(lambda x: int(x*scale), cutoffs)
+    return cutoffs
+
+  def randomAlg(self, candidate):
+    return random.choice(candidate.infoxml.transform(self.transform).rulesInAlgchoice(self.choicesite))
+
+  def getAlgs(self, candidate, n=None):
+    rv = []
+    for lvl in itertools.count(config.first_lvl):
+      krn = config.fmt_rule % (self.transform, self.choicesite, lvl)
+      try:
+        rn = candidate.config[krn] 
+      except KeyError:
+        break
+      rv.append(rn)
+      if n is not None and len(rv)>n:
+        break
+    return rv
+  
+  def setAlgs(self, candidate, algs):
+    for alg, lvl in zip(algs, itertools.count(config.first_lvl)):
+      krn = config.fmt_rule % (self.transform, self.choicesite, lvl)
+      try:
+        candidate.config[krn] = alg
+      except KeyError:
+        break
+
+  def mutate(self, candidate, n):
+    coOld   = self.getCutoffs(candidate)
+    algsOld = self.getAlgs(candidate, len(coOld))
+    co, algs = self.mutateInner(candidate, n, list(coOld), list(algsOld))
+    co = self.rescaleCutoffs(co, n)
+    if co==coOld and algs==algsOld:
+      raise MutateFailed()
+    self.setCutoffs(candidate, co)
+    self.setAlgs(candidate, algs)
+    candidate.clearResults()
+  
+  def __str__(self):
+    return Mutator.__str__(self)+" %s"%(self.choicesite)
+
+class ShuffleAlgsChoiceSiteMutator(ChoiceSiteMutator):
+  def mutateInner(self, candidate, n, co, algs):
+    legalalgs = candidate.infoxml.transform(self.transform).rulesInAlgchoice(self.choicesite)
+    algs = map(lambda x: random.choice(legalalgs), algs)
+    return co, algs
+
+
+class ShuffleCutoffsChoiceSiteMutator(ChoiceSiteMutator, LognormRandom):
+  def mutateInner(self, candidate, n, co, algs):
+    if len(co)==0:
+      algs = [self.randomAlg(candidate), self.randomAlg(candidate), self.randomAlg(candidate), self.randomAlg(candidate)]
+      co   = [64, 256, 1024]
+    co = map(lambda x: self.random(x, 0, n), co)
+    return co, algs
+
+class ShuffleBotChoiceSiteMutator(ChoiceSiteMutator, LognormRandom):
+  def mutateInner(self, candidate, n, co, algs):
+    p = 1.0
+    for i in xrange(len(co)):
+      if random.random()<p:
+        co[i] = self.random(co[i], 0, n)
+      p /= 2.0
+    p = 0.5
+    for i in xrange(len(algs)):
+      if random.random()<p:
+        algs[i] = self.randomAlg(candidate)
+      p /= 2.0
+    return co, algs
+
+class ShuffleTopChoiceSiteMutator(ChoiceSiteMutator, LognormRandom):
+  def mutateInner(self, candidate, n, co, algs):
+    p = 1.0
+    for i in reversed(range(len(co))):
+      if random.random()<p:
+        co[i] = self.random(co[i], 0, n)
+      p /= 2.0
+    p = 0.5
+    for i in reversed(range(len(algs))):
+      if random.random()<p:
+        algs[i] = self.randomAlg(candidate)
+      p /= 2.0
+    return co, algs
+ 
+class AddLevelChoiceSiteMutator(ChoiceSiteMutator, LognormRandom):
+  def mutateInner(self, candidate, n, co, algs):
+    if len(co)>0:
+      newco = co[-1]*2
+    else:
+      newco = 128
+    return co+[newco], algs+[self.randomAlg(candidate)]
+ 
+class RemoveLevelChoiceSiteMutator(ChoiceSiteMutator, LognormRandom):
+  def mutateInner(self, candidate, n, co, algs):
+    return co[0:-1], algs[0:-1]
+  
+
+
 

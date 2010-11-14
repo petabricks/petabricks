@@ -5,11 +5,12 @@ import logging
 import storagedirs 
 import candidatetester
 import tunerconfig
+import configtool 
 from configtool import defaultConfigFile
 from candidatetester import Candidate, CandidateTester
 from mutators import MutateFailed
 from traininginfo import TrainingInfo
-from tunerconfig import config
+from tunerconfig import config, option_callback
 from tunerwarnings import InitialProgramCrash,ExistingProgramCrash,NewProgramCrash,TargetNotMet
 from storagedirs import timers
 import tunerwarnings
@@ -95,22 +96,15 @@ class Population:
         p=random.choice(self.members)
       else:
         p=random.choice(originalPop)
-      c=p.clone()
-      for z in xrange(config.mutate_retries):
-        try:
-          c.mutate(self.inputSize(), minscore)
-          break
-        except MutateFailed:
-          if z==config.mutate_retries-1:
-            warnings.warn(tunerwarnings.MutateFailed(p, z, self.inputSize()))
+      try:
+        c=p.cloneAndMutate(self.inputSize())
+      except candidatetester.NoMutators:
+        if self.countMutators(minscore)>0:
           continue
-        except candidatetester.NoMutators:
-          if self.countMutators(minscore)>0:
-            continue
-          else:
-            return tries
+        else:
+          return tries
 
-      if c.config in self.triedConfigs:
+      if c.config in self.triedConfigs and c.lastMutator:
         c.lastMutator.result('fail')
         continue
       self.triedConfigs.add(c.config)
@@ -124,7 +118,8 @@ class Population:
           self.notadded.append(c)
       except candidatetester.CrashException, e:
         c.rmfiles()
-        c.lastMutator.result('fail')
+        if c.lastMutator:
+          c.lastMutator.result('fail')
         warnings.warn(NewProgramCrash(e))
     if len(originalPop)<len(self.members):
       logging.info("added "+', '.join(map(str,set(self.members)-set(originalPop))))
@@ -143,10 +138,11 @@ class Population:
         return True
       if childCmp(parent, child) < 0:
         same=False
-    if same:
-      child.lastMutator.result('same')
-    else:
-      child.lastMutator.result('worse')
+    if child.lastMutator:
+      if same:
+        child.lastMutator.result('same')
+      else:
+        child.lastMutator.result('worse')
     return False
   
   def inputSize(self, roundOffset=0):
@@ -247,12 +243,12 @@ class Population:
       self.triedConfigs = set(map(lambda x: x.config, self.members))
       self.removed=[]
       self.notadded=[]
-      self.test(config.min_trials)
+      self.test(config.max_trials)
       if len(self.members):
         for z in xrange(config.rounds_per_input_size):
           self.randomMutation(config.population_high_size)
           self.prune(config.population_low_size, False)
-        while self.countMutators(config.bonus_round_score)>0:
+        if self.countMutators(config.bonus_round_score)>0:
           logging.info("bonus round triggered")
           self.randomMutation(config.population_high_size, config.bonus_round_score)
           self.prune(config.population_low_size, False)
@@ -307,7 +303,46 @@ class Population:
     return len(t1),len(t2),len(t3),mean(t1),mean(t2),mean(t3),\
            self.testers[-1].testCount, self.testers[-1].timeoutCount, self.testers[-1].crashCount
 
-def addMutators(candidate, info, ignore=None, weight=1.0):
+
+def createTunableMutators(candidate, ta, weight):
+  name = ta['name']
+  l=int(ta['min'])
+  h=int(ta['max'])
+  if 'accuracy' in ta['type']:
+    #hack to support what the old autotuner did
+    l+=1
+
+  if ta['type'] in config.lognorm_tunable_types:
+    return [mutators.LognormRandCutoffMutator(name, weight=weight)]
+  elif ta['type'] in config.uniform_tunable_types:
+    return [mutators.UniformRandMutator(name, l, h, weight=weight)]
+  elif ta['type'] in config.autodetect_tunable_types:
+    if l <= 1 and h > 2**16:
+      return [mutators.LognormRandCutoffMutator(name, weight=weight)]
+    else:
+      return [mutators.UniformRandMutator(name, l, h, weight=weight)]
+  elif ta['type'] in config.lognorm_array_tunable_types:
+    ms = [mutators.LognormTunableArrayMutator(name, l, h, weight=weight),
+          mutators.IncrementTunableArrayMutator(name, l, h, 4, weight=weight)]
+    ms[-1].reset(candidate)
+    return ms
+  elif ta['type'] in config.ignore_tunable_types:
+    pass
+  else:
+    warnings.warn(tunerwarnings.UnknownTunableType(name, ta['type']))
+  return []
+
+def createChoiceSiteMutators(candidate, info, ac, weight):
+  transform = info.name()
+  ms = []
+  ms.append(mutators.RandAlgMutator(transform, ac['number'], mutators.config.first_lvl, weight=weight))
+  for a in info.rulesInAlgchoice(ac['number']):
+    ms.append(mutators.AddAlgLevelMutator(transform, ac['number'], a, weight=weight))
+  #ms.append(mutators.ShuffleAlgsChoiceSiteMutator(transform, ac['number'], weight=weight))
+  #ms.append(mutators.ShuffleCutoffsChoiceSiteMutator(transform, ac['number'], weight=weight))
+  return ms
+
+def addMutators(candidate, info, acf, taf, ignore=None, weight=1.0):
   '''seed the pool of mutators from the .info file'''
   if ignore is None:
     ignore=set()
@@ -319,64 +354,48 @@ def addMutators(candidate, info, ignore=None, weight=1.0):
   except:
     transform = ""
   for ac in info.algchoices():
-    logging.info("added Mutator " + transform + "/" + ac['name'] + " => AlgChoice")
-    candidate.addMutator(mutators.RandAlgMutator(transform, ac['number'], mutators.config.first_lvl, weight=weight))
-    for a in info.rulesInAlgchoice(ac['number']):
-      candidate.addMutator(mutators.AddAlgLevelMutator(transform, ac['number'], a, weight=weight))
-  for ta in info.tunables():
-    name = ta['name']
-    l=int(ta['min'])
-    h=int(ta['max'])
-    ms=[]
-    if 'accuracy' in ta['type']:
-      #hack to support what the old autotuner did
-      l+=1
+    ms = acf(candidate, info, ac, weight)
+    for m in ms:
+      logging.info("added Mutator " + transform + "/AlgChoice" + str(ac['number']) + " => " + str(m))
+      candidate.addMutator(m)
 
-    if ta['type'] in config.lognorm_tunable_types:
-      ms.append(mutators.LognormRandCutoffMutator(name, weight=weight))
-    elif ta['type'] in config.uniform_tunable_types:
-      ms.append(mutators.UniformRandMutator(name, l, h, weight=weight))
-    elif ta['type'] in config.autodetect_tunable_types:
-      if l <= 1 and h > 2**16:
-        ms.append(mutators.LognormRandCutoffMutator(name, weight=weight))
-      else:
-        ms.append(mutators.UniformRandMutator(name, l, h, weight=weight))
-    elif ta['type'] in config.lognorm_array_tunable_types:
-      ms.append(mutators.LognormTunableArrayMutator(name, l, h, weight=weight))
-      ms[-1].reset(candidate)
-    elif ta['type'] in config.ignore_tunable_types:
-      pass
-    else:
-      warnings.warn(tunerwarnings.UnknownTunableType(name, ta['type']))
-    
+  for ta in info.tunables():
+    ms = taf(candidate, ta, weight)
     for m in ms:
       if 'accuracy' in ta['type']:
         m.accuracyHint = 1
-      logging.info("added Mutator " + transform + "/" + name + " => " + m.__class__.__name__)
+      logging.info("added Mutator " + transform + "/" + ta['name'] + " => " + str(m))
       candidate.addMutator(m)
   
   for sub in info.calls():
-    addMutators(candidate, sub, ignore, weight/2.0)
+    addMutators(candidate, sub, acf, taf, ignore, weight/2.0)
 
-def autotuneInner(benchmark):
+def init(benchmark, acf=createChoiceSiteMutators, taf=createTunableMutators):
   if config.debug:
     logging.basicConfig(level=logging.DEBUG)
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
-  main = mainname([pbutil.benchmarkToBin(benchmark)])
-  tester = CandidateTester(benchmark, 1)
-  try:
-    candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml.transform(main))
-    baseline = None
-    addMutators(candidate, infoxml.globalsec())
-    addMutators(candidate, infoxml.transform(main))
-    candidate.addMutator(mutators.MultiMutator(2))
-    pop = Population(candidate, tester, baseline)
+  if not config.main:
+    config.main = mainname([pbutil.benchmarkToBin(benchmark)])
+  tester = CandidateTester(benchmark, config.min_input_size)
+  if config.seed is None:
+    cfg = defaultConfigFile(pbutil.benchmarkToBin(tester.app))
+  else:
+    cfg = configtool.ConfigFile(config.seed)
+  candidate = Candidate(cfg, infoxml.transform(config.main))
+  addMutators(candidate, infoxml.globalsec(), acf, taf)
+  addMutators(candidate, infoxml.transform(config.main), acf, taf)
+  candidate.addMutator(mutators.MultiMutator(2))
+  if not config.delete_output_dir:
+    storagedirs.cur.dumpConfig()
+    storagedirs.cur.dumpGitStatus()
+    storagedirs.cur.saveFile(pbutil.benchmarkToInfo(benchmark))
+    storagedirs.cur.saveFile(pbutil.benchmarkToBin(benchmark))
+  return candidate, tester
 
-    if not config.delete_output_dir:
-      storagedirs.cur.dumpConfig()
-      storagedirs.cur.dumpGitStatus()
-      storagedirs.cur.saveFile(pbutil.benchmarkToInfo(benchmark))
-      storagedirs.cur.saveFile(pbutil.benchmarkToBin(benchmark))
+def autotuneInner(benchmark):
+  candidate, tester = init(benchmark)
+  try:
+    pop = Population(candidate, tester, None)
 
     stats = storagedirs.openCsvStats("roundstats", 
         ("round",
@@ -416,7 +435,8 @@ def autotuneInner(benchmark):
     at = storagedirs.getactivetimers()
     if len(at):
       storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
-    tester.cleanup()
+    if tester:
+      tester.cleanup()
 
 def autotune(benchmark):
   storagedirs.callWithLogDir(lambda: autotuneInner(benchmark),
@@ -429,12 +449,12 @@ def regression_check(benchmark):
                              config.output_dir,
                              config.delete_output_dir)
 
-def option_callback(option, opt, value, parser):
-  opt=str(option).split('/')[0]
-  while opt[0]=='-':
-    opt=opt[1:]
-  assert hasattr(config, opt)
-  setattr(config, opt, value)
+def recompile():
+  pbutil.chdirToPetabricksRoot();
+  config.benchmark=pbutil.normalizeBenchmarkName(config.benchmark)
+  if config.recompile:
+    pbutil.compilePetabricks();
+    pbutil.compileBenchmarks([config.benchmark])
 
 if __name__ == "__main__":
   from optparse import OptionParser
@@ -452,6 +472,7 @@ if __name__ == "__main__":
   parser.add_option("--output_dir",            type="string", action="callback", callback=option_callback)
   parser.add_option("--population_high_size",  type="int",    action="callback", callback=option_callback)
   parser.add_option("--population_low_size",   type="int",    action="callback", callback=option_callback)
+  parser.add_option("--min_input_size",        type="int",    action="callback", callback=option_callback)
   parser.add_option("--offset",                type="int",    action="callback", callback=option_callback)
   parser.add_option("--name",                  type="string", action="callback", callback=option_callback)
   (options, args) = parser.parse_args()
@@ -465,10 +486,7 @@ if __name__ == "__main__":
   if options.n:
     tunerconfig.applypatch(tunerconfig.patch_n(options.n))
   config.benchmark=args[0]
-  pbutil.chdirToPetabricksRoot();
-  pbutil.compilePetabricks();
-  config.benchmark=pbutil.normalizeBenchmarkName(config.benchmark)
-  pbutil.compileBenchmarks([config.benchmark])
+  recompile()
   autotune(config.benchmark)
 
 

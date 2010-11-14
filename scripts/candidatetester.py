@@ -11,6 +11,7 @@ from storagedirs import timers
 from scipy import stats
 from tunerconfig import config
 from tunerwarnings import ComparisonFailed, InconsistentOutput
+from mutators import MutateFailed
 warnings.simplefilter('ignore', DeprecationWarning)
 
 def getMemoryLimitArgs():
@@ -53,6 +54,7 @@ class CrashException(Exception):
       raw_input('press any key to continue')
 
 def debug_logcmd(cmd):
+  #print ' '.join(cmd)
   pass
 
 class Results:
@@ -62,6 +64,13 @@ class Results:
     self.timeoutResults=[]      #listof(float)
     self.interpolatedResults=[] #listof(float)
     self.distribution = None
+
+
+  def discard(self, n):
+    if len(self.realResults)>n:
+      self.realResults = self.realResults[-n:]
+      self.timeoutResults = []
+      self.reinterpolate()
 
   def __repr__(self):
     v=[]
@@ -111,13 +120,16 @@ class Results:
   def reinterpolate(self):
     '''recreate interpolatedResults from realResults and timeoutResults'''
     self.interpolatedResults = list(self.realResults)
-    mkdistrib = lambda: stats.norm(numpy.mean(self.interpolatedResults), numpy.std(self.interpolatedResults))
+    def mkdistrib():
+      m=numpy.mean(self.interpolatedResults) 
+      s=max(config.min_std_pct*m,numpy.std(self.interpolatedResults))
+      return stats.norm(m,s)
     if len(self.interpolatedResults) == 0:
       '''all tests timed out, seed with double the average timeout'''
       self.interpolatedResults.append(sum(self.timeoutResults)/len(self.timeoutResults)*2.0)
     if len(self.interpolatedResults) == 1:
       '''only 1 test, use prior stddev'''
-      self.distribution = stats.norm(self.interpolatedResults[0], self.interpolatedResults[0]*config.prior_stddev_pct)
+      self.distribution = stats.norm(self.interpolatedResults[0], abs(self.interpolatedResults[0]*config.prior_stddev_pct))
     else:
       '''estimate stddev with least squares'''
       self.distribution = mkdistrib()
@@ -133,7 +145,10 @@ class Results:
 
   def meanDistribution(self):
     '''estimated probability distribution of the real mean value'''
-    return stats.norm(self.mean(), math.sqrt(self.meanVariance()))
+    try:
+      return stats.norm(self.mean(), math.sqrt(self.meanVariance()))
+    except OverflowError:
+      return self.distribution
 
   def mean(self):
     assert len(self)>0
@@ -153,6 +168,12 @@ class Results:
     '''square of stderror'''
     assert len(self)>0
     return self.variance()/float(len(self)+offset)
+  
+  def stderr(self, offset=0):
+    return math.sqrt(self.meanVariance())
+  
+  def invstderr(self, offset=0):
+    return 1.0/math.sqrt(self.meanVariance())
 
   def estimatedBenifitNextTest(self, offset=1):
     return self.meanVariance()-self.meanVariance(offset)
@@ -172,6 +193,10 @@ class Results:
     denom = min(self.mean(), that.mean())
     dd=stats.norm((self.mean()-that.mean())/denom, math.sqrt(self.meanVariance()+that.meanVariance())/denom)
     return dd.cdf(config.same_threshold_pct/2.0)-dd.cdf(-config.same_threshold_pct/2.0)
+
+  def last(self):
+    if self.realResults:
+      return self.realResults[-1]
 
 class ResultsDB:
   '''stores many Results for different input sizes'''
@@ -204,13 +229,21 @@ class Candidate:
   nextCandidateId=0
   '''A candidate algorithm in the population'''
   def __init__(self, cfg, infoxml, mutators=[]):
-    self.config    = ConfigFile(cfg)
-    self.metrics   = [ResultsDB(x) for x in config.metrics]
-    self.mutators  = list(mutators)
-    self.cid       = Candidate.nextCandidateId
-    self.infoxml   = infoxml
-    self.outputdir = storagedirs.candidate(self.cid)
+    self.config      = ConfigFile(cfg)
+    self.metrics     = [ResultsDB(x) for x in config.metrics]
+    self.mutators    = list(mutators)
+    self.cid         = Candidate.nextCandidateId
+    self.infoxml     = infoxml
+    self.lastMutator = None
+    self.outputdir   = storagedirs.candidate(self.cid)
+    self.C           = config.bandit_c    # exploration/exploitation trade-off in the DMAB algorithm
     Candidate.nextCandidateId += 1
+
+
+  def discardResults(self, n):
+    for m in self.metrics:
+      for k in m.keys():
+        m[k].discard(n)
 
   def __str__(self):
     return "Candidate%d"%self.cid
@@ -227,6 +260,22 @@ class Candidate:
         t.metrics[i][n] = self.metrics[i][n]
     return t
 
+
+  def cloneAndMutate(self, n, adaptive = False, mutatorLog = None):
+    c = self.clone()
+    for z in xrange(config.mutate_retries):
+      try:
+        if adaptive:
+          c.upperConfidenceBoundMutate(n, mutatorLog);
+        else:
+          c.mutate(n)
+        break
+      except MutateFailed:
+        if z==config.mutate_retries-1:
+          warnings.warn(tunerwarnings.MutateFailed(c, z, n))
+        continue
+    return c
+
   def clearResultsAbove(self, val):
     for i in xrange(len(self.metrics)):
       for n in self.metrics[i].keys():
@@ -240,6 +289,40 @@ class Candidate:
 
   def addMutator(self, m):
     self.mutators.append(m)
+
+  ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
+  def upperConfidenceBoundMutate(self, n, mutatorLog):
+    # compute the total number of mutations
+    totalMutations = len(mutatorLog.log) + len(self.mutators)
+
+    if config.bandit_verbose:
+      print "\n\nCurrent mutator log (%s): %s" % (mutatorLog.name, map(str, mutatorLog.log))
+      print "\nAvailable mutators (scores):\n"
+
+    bestScore = -1 # scores are guaranteed to be non-negative
+    bestMutator = None
+    for m in self.mutators:
+
+      m.timesSelected = 1
+      for logEntry in mutatorLog.log:
+        if logEntry.mutator == m:
+          m.timesSelected += 1
+
+      
+      score = m.computeRocScore(mutatorLog.log) + self.C*math.sqrt(2.0*math.log(totalMutations) / m.timesSelected)
+      if score > bestScore:
+        bestScore = score
+        bestMutator = m
+
+      if config.bandit_verbose:
+        print "%s (%f)" % (m, score)
+
+    if config.bandit_verbose:
+      print "\nUsing best mutator: %s (%f)\n\n" % (bestMutator, score)
+
+    self.lastMutator = bestMutator
+    self.lastMutator.mutate(self, n)
+
 
   def mutate(self, n, minscore=None):
     if minscore is not None:
@@ -256,7 +339,7 @@ class Candidate:
     return self.metrics[config.timing_metric_idx][n].reasonableLimit()
 
   def resultsStr(self, n, baseline=None):
-    s=[]
+    s=['trials: %2d'%self.numTests(n)]
     t=str
     if config.print_raw:
       t=repr
@@ -287,6 +370,16 @@ class Candidate:
       if os.path.isfile(f):
         os.unlink(f)
     os.rmdir(self.outputdir)
+  
+  def timingResults(self, n=None):
+    if n is None:
+      n=max(self.metrics[config.timing_metric_idx].keys())
+    return self.metrics[config.timing_metric_idx][n]
+
+  def accuracyResults(self, n=None):
+    if n is None:
+      n=max(self.metrics[config.accuracy_metric_idx].keys())
+    return self.metrics[config.accuracy_metric_idx][n]
 
   def writestats(self, n, filename=None):
     if filename is None:
@@ -317,25 +410,22 @@ class CandidateTester:
   def __init__(self, app, n, args=[]):
     self.app = app
     self.bin = pbutil.benchmarkToBin(app)
-    self.n = n
+    self.n = n + config.offset
     self.cmd = [
         self.bin,
         "--time",
-        #"--trials=1",
         "--accuracy",
-        "--offset=%d"%config.offset
       ]
-    #remove default options
-    self.cmd = filter(lambda x: x not in ["--offset=0", "--trials=1"], self.cmd)
     self.cmd.extend(args)
     self.args=args
     self.inputs=[]
     self.testCount = 0
     self.timeoutCount = 0
     self.crashCount = 0
+    self.wasTimeout = True
 
   def nextTester(self):
-    return CandidateTester(self.app, self.n*2, self.args)
+    return CandidateTester(self.app, (self.n-config.offset)*2, self.args)
   
   def testN(self, candidate, trials, limit=None):
     for x in xrange(trials - candidate.numTests(self.n)):
@@ -399,6 +489,45 @@ class CandidateTester:
     except pbutil.TimingRunFailed, e:
       self.crashCount += 1
       raise CrashException(testNumber, self.n, candidate, cmd)
+
+  def race(self, candidatea, candidateb, limit=None, accuracy_target=None):
+    self.testCount += 1
+    cfgfilea = candidatea.cfgfile()
+    if candidateb is None:
+      cfgfileb = 'None'
+    else:
+      cfgfileb = candidateb.cfgfile()
+    cmd = list(self.cmd)
+    cmd.extend(timers.inputgen.wrap(lambda:self.getInputArg(0)))
+    if limit is not None:
+      cmd.append("--max-sec=%f"%limit)
+    cmd.extend(getMemoryLimitArgs())
+    cmd.extend(["--race-multiplier=%f"%config.race_multiplier,
+                "--race-multiplier-lowacc=%f"%config.race_multiplier_lowacc])
+    if accuracy_target:
+      cmd.append("--race-accuracy=%f"%accuracy_target)
+    try:
+      debug_logcmd(cmd)
+      resulta,resultb = timers.testing.wrap(lambda: pbutil.executeRaceRun(cmd, cfgfilea, cfgfileb))
+      best = min(resulta['timing'], resultb['timing'])
+      for candidate, result in [(candidatea,resulta), (candidateb,resultb)]:
+        if result['timing'] < 2**31:
+          candidate.wasTimeout = False
+          for i,metric in enumerate(config.metrics):
+            candidate.metrics[i][self.n].add(result[metric])
+        elif candidate is not None:
+          candidate.metrics[config.timing_metric_idx][self.n].addTimeout(best)
+          candidate.wasTimeout = True
+      return True
+    except pbutil.TimingRunTimeout:
+      assert limit is not None
+      warnings.warn(tunerwarnings.ProgramTimeout(candidate, self.n, limit))
+      candidate.metrics[config.timing_metric_idx][self.n].addTimeout(limit)
+      self.timeoutCount += 1
+      return False
+    except pbutil.TimingRunFailed, e:
+      self.crashCount += 1
+      raise CrashException(0, self.n, candidatea, cmd)
   
   def comparer(self, metricIdx, confidence, maxTests):
     '''return a cmp like function that dynamically runs more tests to improve confidence'''

@@ -7,7 +7,7 @@
 #include "LUDense.pbcc"
 #include "../simple/copy.pbcc"
 #include "../multiply/multiply.pbcc"
-#include "../add/add.pbcc"
+#include "../simple/add.pbcc"
 
 transform blockedLUDense
 from IN[n, n]

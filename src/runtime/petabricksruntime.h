@@ -30,6 +30,7 @@
 namespace petabricks {
 class TestIsolation;
 class Autotuner;
+class TestResult;
 typedef jalib::JRef<Autotuner> AutotunerPtr;
 typedef std::vector<AutotunerPtr> AutotunerList;
 
@@ -166,13 +167,13 @@ public:
   static void saveConfig();
 
   double trainAndComputeWrapper(TestIsolation&, int n);
+  double raceConfigs(int n, const std::vector<std::string>* files = NULL, int retries=-1);
   double computeWrapper(TestIsolation&, int n=-1, int retries=-1, const std::vector<std::string>* files = NULL);
   void computeWrapperSubproc( TestIsolation&
                             , int n
-                            , double& time
-                            , double& acc
-                            , jalib::Hash& hash
+                            , TestResult& result
                             , const std::vector<std::string>* files);
+  void loadTestInput(int n, const std::vector<std::string>* files);
   
   
   void variableAccuracyTrainingLoop(TestIsolation& ti);
@@ -202,6 +203,9 @@ public:
     double pi =  3.14159265358979323846;
     return sqrt(-2.0 * log(1.0-r2)) * cos(2.0*pi*r1) * sigma + mean;
   }
+
+
+  static double updateRaceTimeout(TestResult& result, int winnerid);
 protected:
   void reallocate() { _main->reallocate(_randSize); }
 

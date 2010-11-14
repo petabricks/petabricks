@@ -3,6 +3,7 @@
 
 #include "../simple/copy.pbcc"
 #include "../multiply/multiply.pbcc"
+#include "msub.pbcc"
 
 // Solve LX=B for X, i.e. X = inv(L)*B, where L is the lower triangular part of A
 
@@ -44,28 +45,15 @@ to X[m,n]
         Copy1D(inter, b);
   }
 
-  to (INTER.region(0,j,m,j+1) inter)
-  from (X.region(0,0,m , j) x, A.region(0, j, j, j+1) a)
+  to (X.region(0,j,m,j+1) xout)
+  from (X.region(0,0,m , j) x, A.region(0, j, j, j+1) a, B.region(0,j,m,j+1) b, A.cell(j,j) ajj)
   {
-      MatrixMultiply(inter, a, x);
+        MatrixRegion2D temp = MatrixRegion2D::allocate(m, 1);
+        MatrixMultiply(temp,a,x);
+        Msubtract(xout,b,temp, ajj);
   }
 
-  primary to (X.row(n-1) x) 
-  from (INTER.row(n-1) inter, B.row(n-1) b, A.cell(n-1,n-1) ajj) 
-  {   
-     for (int i=0; i<m; i++ ){
-                x.cell(i) = (b.cell(i)-inter.cell(i))/ajj;
-        }
-  }  
 
-
-  to (X.row(j) x)
-  from(INTER.row(j) inter, B.row(j) b, A.cell(j,j) ajj)
-  {
-        for (int i=0; i<m; i++ ){
-                x.cell(i) = (b.cell(i)-inter.cell(i))/ajj;
-        }
-  }
 
 } 
 

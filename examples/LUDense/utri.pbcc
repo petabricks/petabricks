@@ -1,3 +1,6 @@
+#ifndef UTRI_PBCC
+#define UTRI_PBCC
+
 transform utri
 from IN[n, n]
 to OUT[n, n]
@@ -12,3 +15,5 @@ to OUT[n, n]
         }
     }
 }
+
+#endif // UTRI_PBCC
