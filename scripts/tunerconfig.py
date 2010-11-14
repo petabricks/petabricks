@@ -74,6 +74,8 @@ class config_defaults:
   threshold_multiplier_max = 100.0
   threshold_multiplier_default=10.0
 
+  recompile = True
+
   #types of mutatators to generate
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']
   uniform_tunable_types       = ['system.flag.unrollschedule']
