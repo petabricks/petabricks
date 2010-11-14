@@ -108,7 +108,7 @@ from X[n,2]    // X - x,y coordinates of n points
 through Ctemp[k,2]
 to C[k,2], A[n]   // C - centroids, A - cluster assignment, WCSS - within-cluster sum of squares  (error measures)
 accuracy_metric WCSS
-accuracy_bins 0.05, 0.1, 0.2, 0.5, 0.75, 0.95
+accuracy_bins 0.025, 0.05, 0.1, 0.2, 0.5, 0.75, 0.95
 accuracy_variable k(1,1)//min=1, initial=1
 //param k
 generator kmeansinputgen
@@ -118,12 +118,16 @@ generator kmeansinputgen
   to (Ctemp ctemp) from (X x)
   {
     //Copy2D(ctemp,x.region(0,0,k,2));
+    if(k>n)
+      PetabricksRuntime::abort();
     randomcenter(ctemp, x);
   }
 
   //or Assign initial cluster centers using k-means++ algorithm
   to (Ctemp ctemp) from (X x)
   {
+    if(k>n)
+      PetabricksRuntime::abort();
     centerplus(ctemp, x);
   }
 
@@ -208,6 +212,8 @@ to Accuracy
     //sum=sum/n/100;
     //if ( sum > 1 ) { return 0;} 
     //else { return 1-sum;}
+    if(sum<=0)
+      return 0;
 
     return sqrt(2*n/sum);
   }

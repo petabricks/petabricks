@@ -253,7 +253,7 @@ class TunableArrayMutator(Mutator):
     assert config.fmt_bin%(self.tunable, i) in ks
     while config.fmt_bin%(self.tunable, i) in ks:
       if candidate.config[config.fmt_bin % (self.tunable, i)]<self.minVal:
-        candidate.config[config.fmt_bin % (self.tunable, i)] = self.minVal+2
+        candidate.config[config.fmt_bin % (self.tunable, i)] = self.minVal+0
       i+=1
 
 class LognormTunableArrayMutator(TunableArrayMutator, LognormRandom):

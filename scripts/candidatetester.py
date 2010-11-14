@@ -123,13 +123,18 @@ class Results:
     def mkdistrib():
       m=numpy.mean(self.interpolatedResults) 
       s=max(config.min_std_pct*m,numpy.std(self.interpolatedResults))
+      if s==0.0:
+        s = 1e-10
       return stats.norm(m,s)
     if len(self.interpolatedResults) == 0:
       '''all tests timed out, seed with double the average timeout'''
       self.interpolatedResults.append(sum(self.timeoutResults)/len(self.timeoutResults)*2.0)
     if len(self.interpolatedResults) == 1:
       '''only 1 test, use prior stddev'''
-      self.distribution = stats.norm(self.interpolatedResults[0], abs(self.interpolatedResults[0]*config.prior_stddev_pct))
+      s = abs(self.interpolatedResults[0]*config.prior_stddev_pct)
+      if s==0.0:
+        s = 1e-10
+      self.distribution = stats.norm(self.interpolatedResults[0], s)
     else:
       '''estimate stddev with least squares'''
       self.distribution = mkdistrib()
@@ -138,9 +143,9 @@ class Results:
       '''new points are assigned the median value above their timeout'''
       self.interpolatedResults.append(max(p, min(self.distribution.isf(self.distribution.sf(p)/2.0), p*4)))
       self.distribution = mkdistrib()
-    if   math.isnan(self.mean()) or math.isinf(self.mean()) \
-        or math.isnan(self.variance()) or math.isinf(self.variance()):
-      print "PROBLEM!!!"
+    if numpy.isnan(self.mean()) or numpy.isinf(self.mean()) \
+        or numpy.isnan(self.variance()) or numpy.isinf(self.variance()):
+      print "PROBLEM!!! EMAIL BELOW TO jansel"
       print self.mean(), self.variance()
       print self.realResults
       print self.timeoutResults
