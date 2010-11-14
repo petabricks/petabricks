@@ -257,8 +257,18 @@ class ObjectiveTuner:
   def __str__(self):
     return str(self.score())
 
+def createChoiceSiteMutatorsOnline(candidate, info, ac, weight):
+  transform = info.name()
+  number = ac['number']
+  return [mutators.ShuffleAlgsChoiceSiteMutator(transform, number, weight=weight),
+          mutators.ShuffleCutoffsChoiceSiteMutator(transform, number, weight=weight),
+          mutators.ShuffleTopChoiceSiteMutator(transform, number, weight=weight),
+          mutators.ShuffleBotChoiceSiteMutator(transform, number, weight=weight),
+          mutators.AddLevelChoiceSiteMutator(transform, number, weight=weight),
+          mutators.RemoveLevelChoiceSiteMutator(transform, number, weight=weight)]
+
 def onlinelearnInner(benchmark):
-  candidate, tester = sgatuner.init(benchmark)
+  candidate, tester = sgatuner.init(benchmark, createChoiceSiteMutatorsOnline)
   pop = OnlinePopulation()
   objectives = ObjectiveTuner(pop)
 
@@ -271,7 +281,6 @@ def onlinelearnInner(benchmark):
     
   try:
     timers.total.start()
-    config.end_time = time.time() + config.max_time
 
     '''seed first round'''
     p = candidate
@@ -288,7 +297,7 @@ def onlinelearnInner(benchmark):
 
     '''now normal rounds'''  
     for gen in itertools.count(1):
-      if time.time() > config.end_time:
+      if config.max_time and objectives.elapsed>config.max_time:
         break
       if gen%config.reweight_interval==0:
         pop.reweight()
@@ -360,22 +369,22 @@ if __name__ == "__main__":
   parser.add_option("--online_baseline", type="int",    action="callback", callback=option_callback)
   parser.add_option("--name",            type="string", action="callback", callback=option_callback)
   parser.add_option("--accuracy_target", type="float",  action="callback", callback=option_callback)
+  parser.add_option("--use_bandit",            type="int",     action="callback", callback=option_callback)
+  parser.add_option("--window_size",           type="int",     action="callback", callback=option_callback)
+  parser.add_option("--bandit_c",              type="float",   action="callback", callback=option_callback)
+
   (options, args) = parser.parse_args()
   if len(args)!=1 or not options.n:
     parser.print_usage()
     sys.exit(1)
   if options.debug:
     tunerconfig.applypatch(tunerconfig.patch_debug)
-  if options.n:
-    tunerconfig.applypatch(tunerconfig.patch_n(options.n))
-  config.min_input_size = config.n
-  config.max_input_size = config.n
+  
+  config.min_input_size = options.n
+  config.max_input_size = options.n
+  config.n              = options.n
 
   config.benchmark=args[0]
-  pbutil.chdirToPetabricksRoot();
-  config.benchmark=pbutil.normalizeBenchmarkName(config.benchmark)
-  if config.recompile:
-    pbutil.compilePetabricks();
-    pbutil.compileBenchmarks([config.benchmark])
+  sgatuner.recompile()
   onlinelearn(config.benchmark)
 

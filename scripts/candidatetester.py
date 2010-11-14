@@ -129,7 +129,7 @@ class Results:
       self.interpolatedResults.append(sum(self.timeoutResults)/len(self.timeoutResults)*2.0)
     if len(self.interpolatedResults) == 1:
       '''only 1 test, use prior stddev'''
-      self.distribution = stats.norm(self.interpolatedResults[0], self.interpolatedResults[0]*config.prior_stddev_pct)
+      self.distribution = stats.norm(self.interpolatedResults[0], abs(self.interpolatedResults[0]*config.prior_stddev_pct))
     else:
       '''estimate stddev with least squares'''
       self.distribution = mkdistrib()
