@@ -240,7 +240,7 @@ class TunableArrayMutator(Mutator):
     candidate.clearResultsAbove(min(n, 2**i-1))
     old = candidate.config[config.fmt_bin % (self.tunable, i)]
     new = self.getVal(candidate, old, n)
-    print str(candidate),self.tunable, old, new
+    #print str(candidate),self.tunable, old, new
     ks = set(candidate.config.keys())
     assert config.fmt_bin%(self.tunable, i) in ks
     while config.fmt_bin%(self.tunable, i) in ks:

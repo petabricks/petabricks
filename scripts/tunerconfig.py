@@ -9,7 +9,7 @@ class config_defaults:
 
   #number of trials to run
   confidence_pct   = 0.75
-  min_trials       = 1
+  min_trials       = 3
   max_trials       = 7
   '''guessed stddev when only 1 test is taken'''
   prior_stddev_pct      = 0.15
@@ -30,7 +30,7 @@ class config_defaults:
   #how mutation to do
   mutations_per_mutator    = 5
   population_high_size     = 10
-  population_low_size      = 2
+  population_low_size      = 1
   multimutation            = True
   mutate_retries           = 10
   rand_retries             = 10
