@@ -322,10 +322,13 @@ class ChoiceSiteMutator(Mutator):
         break
 
   def rescaleCutoffs(self, cutoffs, n):
-    if sum(cutoffs)>0:
-      scale = sum(cutoffs)/float(n)
+    if sum(cutoffs)>n:
+      scale = sum(cutoffs)/float(3*n/4.0)
       cutoffs = map(lambda x: int(x*scale), cutoffs)
     return cutoffs
+
+  def randomAlg(self, candidate):
+    return random.choice(candidate.infoxml.transform(self.transform).rulesInAlgchoice(self.choicesite))
 
   def getAlgs(self, candidate, n=None):
     rv = []
@@ -336,7 +339,7 @@ class ChoiceSiteMutator(Mutator):
       except KeyError:
         break
       rv.append(rn)
-      if n and len(rv)>n:
+      if n is not None and len(rv)>n:
         break
     return rv
   
@@ -347,32 +350,75 @@ class ChoiceSiteMutator(Mutator):
         candidate.config[krn] = alg
       except KeyError:
         break
+
+  def mutate(self, candidate, n):
+    coOld   = self.getCutoffs(candidate)
+    algsOld = self.getAlgs(candidate, len(coOld))
+    co, algs = self.mutateInner(candidate, n, list(coOld), list(algsOld))
+    co = self.rescaleCutoffs(co, n)
+    if co==coOld and algs==algsOld:
+      raise MutateFailed()
+    self.setCutoffs(candidate, co)
+    self.setAlgs(candidate, algs)
+    candidate.clearResults()
   
   def __str__(self):
     return Mutator.__str__(self)+" %s"%(self.choicesite)
 
 class ShuffleAlgsChoiceSiteMutator(ChoiceSiteMutator):
-  def mutate(self, candidate, n):
+  def mutateInner(self, candidate, n, co, algs):
     legalalgs = candidate.infoxml.transform(self.transform).rulesInAlgchoice(self.choicesite)
-    algs = self.getAlgs(candidate)
     algs = map(lambda x: random.choice(legalalgs), algs)
-    self.setAlgs(candidate, algs)
-    candidate.clearResults()
+    return co, algs
 
 
 class ShuffleCutoffsChoiceSiteMutator(ChoiceSiteMutator, LognormRandom):
-  def mutate(self, candidate, n):
-    co = self.getCutoffs(candidate)
+  def mutateInner(self, candidate, n, co, algs):
     if len(co)==0:
-      ShuffleAlgsChoiceSiteMutator(self.transform, self.choicesite).mutate(candidate, n)
-      co = (64, 256, 1024, 4096)
+      algs = [self.randomAlg(candidate), self.randomAlg(candidate), self.randomAlg(candidate), self.randomAlg(candidate)]
+      co   = [64, 256, 1024]
     co = map(lambda x: self.random(x, 0, n), co)
-    print self.getCutoffs(candidate)
-    self.setCutoffs(candidate, self.rescaleCutoffs(co, n))
-    print self.getCutoffs(candidate)
-    candidate.clearResults()
-  
+    return co, algs
 
+class ShuffleBotChoiceSiteMutator(ChoiceSiteMutator, LognormRandom):
+  def mutateInner(self, candidate, n, co, algs):
+    p = 1.0
+    for i in xrange(len(co)):
+      if random.random()<p:
+        co[i] = self.random(co[i], 0, n)
+      p /= 2.0
+    p = 0.5
+    for i in xrange(len(algs)):
+      if random.random()<p:
+        algs[i] = self.randomAlg(candidate)
+      p /= 2.0
+    return co, algs
+
+class ShuffleTopChoiceSiteMutator(ChoiceSiteMutator, LognormRandom):
+  def mutateInner(self, candidate, n, co, algs):
+    p = 1.0
+    for i in reversed(range(len(co))):
+      if random.random()<p:
+        co[i] = self.random(co[i], 0, n)
+      p /= 2.0
+    p = 0.5
+    for i in reversed(range(len(algs))):
+      if random.random()<p:
+        algs[i] = self.randomAlg(candidate)
+      p /= 2.0
+    return co, algs
+ 
+class AddLevelChoiceSiteMutator(ChoiceSiteMutator, LognormRandom):
+  def mutateInner(self, candidate, n, co, algs):
+    if len(co)>0:
+      newco = co[-1]*2
+    else:
+      newco = 128
+    return co+[newco], algs+[self.randomAlg(candidate)]
+ 
+class RemoveLevelChoiceSiteMutator(ChoiceSiteMutator, LognormRandom):
+  def mutateInner(self, candidate, n, co, algs):
+    return co[0:-1], algs[0:-1]
   
 
 

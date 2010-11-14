@@ -129,7 +129,7 @@ class Results:
       self.interpolatedResults.append(sum(self.timeoutResults)/len(self.timeoutResults)*2.0)
     if len(self.interpolatedResults) == 1:
       '''only 1 test, use prior stddev'''
-      self.distribution = stats.norm(self.interpolatedResults[0], self.interpolatedResults[0]*config.prior_stddev_pct)
+      self.distribution = stats.norm(self.interpolatedResults[0], abs(self.interpolatedResults[0]*config.prior_stddev_pct))
     else:
       '''estimate stddev with least squares'''
       self.distribution = mkdistrib()
@@ -145,7 +145,10 @@ class Results:
 
   def meanDistribution(self):
     '''estimated probability distribution of the real mean value'''
-    return stats.norm(self.mean(), math.sqrt(self.meanVariance()))
+    try:
+      return stats.norm(self.mean(), math.sqrt(self.meanVariance()))
+    except OverflowError:
+      return self.distribution
 
   def mean(self):
     assert len(self)>0
