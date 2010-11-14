@@ -394,8 +394,15 @@ class Candidate:
     s.write("%6d, "%n)
     for m in self.metrics:
       avg,ci = m[n].interval(config.display_confidence)
-      sd = math.sqrt(m[n].variance())
-      se = math.sqrt(m[n].meanVariance())
+      try:
+        sd = math.sqrt(m[n].variance())
+        se = math.sqrt(m[n].meanVariance())
+      except OverflowError:
+        if numpy.isinf(m[n].variance()):
+          sd = numpy.inf
+          se = numpy.inf
+        else:
+          raise
       s.write("%.8f, %.8f, %.8f, %.8f, "%(avg,sd,se,ci))
     s.write("\n")
     s.close()
