@@ -138,6 +138,14 @@ class Results:
       '''new points are assigned the median value above their timeout'''
       self.interpolatedResults.append(max(p, min(self.distribution.isf(self.distribution.sf(p)/2.0), p*4)))
       self.distribution = mkdistrib()
+    if   math.isnan(self.mean()) or math.isinf(self.mean()) \
+        or math.isnan(self.variance()) or math.isinf(self.variance()):
+      print "PROBLEM!!!"
+      print self.mean(), self.variance()
+      print self.realResults
+      print self.timeoutResults
+      print self.interpolatedResults
+      assert False
  
   def dataDistribution(self):
     '''estimated probability distribution of a single timing run'''
@@ -517,6 +525,8 @@ class CandidateTester:
       debug_logcmd(cmd)
       resulta,resultb = timers.testing.wrap(lambda: pbutil.executeRaceRun(cmd, cfgfilea, cfgfileb))
       best = min(resulta['timing'], resultb['timing'])
+      if limit is not None and best>limit*2:
+        best=limit
       for candidate, result in [(candidatea,resulta), (candidateb,resultb)]:
         if result['timing'] < 2**31:
           candidate.wasTimeout = False

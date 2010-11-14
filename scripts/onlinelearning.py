@@ -132,7 +132,7 @@ class OnlinePopulation:
       return self.wt[0]*t + self.wt[1]*a
     return fitness
   
-  def thresholdTimeFitness(self, target, mult=config.threshold_multiplier_default):
+  def thresholdTimingFitness(self, target, mult=config.threshold_multiplier_default):
     def fitness(c):
       t=gettime(c)
       a=getacc(c)
@@ -216,7 +216,7 @@ class ObjectiveTuner:
       if config.accuracy_target is not None:
         return self.accuracyRecent.dataDistribution().ppf(0.20)/config.accuracy_target
       elif config.timing_target is not None:
-        return 1.0 - self.timingRecent.dataDistribution().ppf(0.20)/config.timing_target
+        return config.timing_target/self.timingRecent.dataDistribution().ppf(0.50)
     return 1.0
 
   def computeFitnessFunction(self):
@@ -239,9 +239,18 @@ class ObjectiveTuner:
       self.fitness = self.pop.linearFitness(1,0,0)
 
   def getlimits(self, safe, seed, experiment):
-    return None, config.accuracy_target
+    if config.timing_target is not None:
+      return max(config.timing_target, 1.1*gettime(safe)), getacc(safe)*1.1
+    else:
+      return None, config.accuracy_target
 
 
+  def needAccuracy(self):
+    if config.accuracy_target is not None:
+      return self.score()<.95
+    if config.timing_target is not None:
+      return self.score()>.95
+    return False
 
   statsHeader = ['gen', 'elapsed', 'score',
                  'timing_last',    'accuracy_last',
@@ -306,17 +315,17 @@ def onlinelearnInner(benchmark):
       #s = pop.choice(parentlimit(p), getacc)
       s = p
 
-      if(objectives.score() > 0.95):
-        logOfChoice = mutatorLog_times
-      else:
+      if(objectives.needAccuracy()):
         logOfChoice = mutatorLog_accuracy
+      else:
+        logOfChoice = mutatorLog_times
 
       if config.online_baseline:
         c = None
       else:
         c = s.cloneAndMutate(tester.n, config.use_bandit, logOfChoice)
       tlim, atarg = objectives.getlimits(p, s, c)
-      if tester.race(p, c, tlim, atarg):
+      if tester.race(p, c, tlim, atarg) and not (p.wasTimeout and c.wasTimeout):
         p.discardResults(config.max_trials)
         if c and not c.wasTimeout:
           pop.add(c)
