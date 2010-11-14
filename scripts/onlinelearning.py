@@ -258,34 +258,9 @@ class ObjectiveTuner:
     return str(self.score())
 
 def onlinelearnInner(benchmark):
-  if config.debug:
-    logging.basicConfig(level=logging.DEBUG)
-
-  n = config.n
-  config.min_input_size = n
-  config.max_input_size = n
-
-  infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
-  if not config.main:
-    config.main = sgatuner.mainname([pbutil.benchmarkToBin(benchmark)])
-  tester = CandidateTester(benchmark, config.min_input_size)
-  if config.seed is None:
-    cfg = defaultConfigFile(pbutil.benchmarkToBin(tester.app))
-  else:
-    cfg = configtool.ConfigFile(config.seed)
-
-  candidate = Candidate(cfg, infoxml.transform(config.main))
-  sgatuner.addMutators(candidate, infoxml.globalsec())
-  sgatuner.addMutators(candidate, infoxml.transform(config.main))
-  candidate.addMutator(mutators.MultiMutator(2))
+  candidate, tester = sgatuner.init(benchmark)
   pop = OnlinePopulation()
   objectives = ObjectiveTuner(pop)
-  
-  if not config.delete_output_dir:
-    storagedirs.cur.dumpConfig()
-    storagedirs.cur.dumpGitStatus()
-    storagedirs.cur.saveFile(pbutil.benchmarkToInfo(benchmark))
-    storagedirs.cur.saveFile(pbutil.benchmarkToBin(benchmark))
 
   ''' mutators in the last time window that produced improved candidates, 
   ordered by descending fitness of the candidates'''
@@ -330,7 +305,7 @@ def onlinelearnInner(benchmark):
       if config.online_baseline:
         c = None
       else:
-        c = s.cloneAndMutate(n, config.use_bandit, logOfChoice)
+        c = s.cloneAndMutate(tester.n, config.use_bandit, logOfChoice)
       tlim, atarg = objectives.getlimits(p, s, c)
       if tester.race(p, c, tlim, atarg):
         p.discardResults(config.max_trials)
@@ -345,18 +320,14 @@ def onlinelearnInner(benchmark):
           if not c.wasTimeout:
             mutatorLog_accuracy.add(c);
         
-        if config.bandit_verbose:
-          if gettime(c) < gettime(p): # candidate better than parent
-            print "Child better than parent: %f vs. %f" % (gettime(c), gettime(p))
-          else:
-            print "Child equal/worse than parent: %f vs. %f" % (gettime(c), gettime(p))
+        logging.debug("Child vs parent, better=%d, %f vs. %f" % (int(gettime(c) < gettime(p)), gettime(c), gettime(p)))
 
         t,a = resultingTimeAcc(p, c)
         print "Generation", gen, "elapsed",objectives.elapsed,"time", t,"accuracy",a, getconf(p)
         print "Objectives", objectives
         if a is not None and t is not None:
           objectives.result(t,a)
-        pop.output((p,c))
+        pop.output((p,c,s))
         ostats.writerow(objectives.stats(gen))
       else:
         print 'error'
@@ -385,6 +356,7 @@ if __name__ == "__main__":
   parser.add_option("--output_dir",      type="string", action="callback", callback=option_callback)
   parser.add_option("--seed",            type="string", action="callback", callback=option_callback)
   parser.add_option("--offset",          type="int",    action="callback", callback=option_callback)
+  parser.add_option("--recompile",       type="int",    action="callback", callback=option_callback)
   parser.add_option("--online_baseline", type="int",    action="callback", callback=option_callback)
   parser.add_option("--name",            type="string", action="callback", callback=option_callback)
   parser.add_option("--accuracy_target", type="float",  action="callback", callback=option_callback)
@@ -396,10 +368,14 @@ if __name__ == "__main__":
     tunerconfig.applypatch(tunerconfig.patch_debug)
   if options.n:
     tunerconfig.applypatch(tunerconfig.patch_n(options.n))
+  config.min_input_size = config.n
+  config.max_input_size = config.n
+
   config.benchmark=args[0]
   pbutil.chdirToPetabricksRoot();
-  pbutil.compilePetabricks();
   config.benchmark=pbutil.normalizeBenchmarkName(config.benchmark)
-  pbutil.compileBenchmarks([config.benchmark])
+  if config.recompile:
+    pbutil.compilePetabricks();
+    pbutil.compileBenchmarks([config.benchmark])
   onlinelearn(config.benchmark)
 

@@ -5,6 +5,7 @@ import logging
 import storagedirs 
 import candidatetester
 import tunerconfig
+import configtool 
 from configtool import defaultConfigFile
 from candidatetester import Candidate, CandidateTester
 from mutators import MutateFailed
@@ -354,25 +355,32 @@ def addMutators(candidate, info, ignore=None, weight=1.0):
   for sub in info.calls():
     addMutators(candidate, sub, ignore, weight/2.0)
 
-def autotuneInner(benchmark):
+def init(benchmark):
   if config.debug:
     logging.basicConfig(level=logging.DEBUG)
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
-  main = mainname([pbutil.benchmarkToBin(benchmark)])
+  if not config.main:
+    config.main = mainname([pbutil.benchmarkToBin(benchmark)])
   tester = CandidateTester(benchmark, config.min_input_size)
-  try:
-    candidate = Candidate(defaultConfigFile(pbutil.benchmarkToBin(tester.app)), infoxml.transform(main))
-    baseline = None
-    addMutators(candidate, infoxml.globalsec())
-    addMutators(candidate, infoxml.transform(main))
-    candidate.addMutator(mutators.MultiMutator(2))
-    pop = Population(candidate, tester, baseline)
+  if config.seed is None:
+    cfg = defaultConfigFile(pbutil.benchmarkToBin(tester.app))
+  else:
+    cfg = configtool.ConfigFile(config.seed)
+  candidate = Candidate(cfg, infoxml.transform(config.main))
+  addMutators(candidate, infoxml.globalsec())
+  addMutators(candidate, infoxml.transform(config.main))
+  candidate.addMutator(mutators.MultiMutator(2))
+  if not config.delete_output_dir:
+    storagedirs.cur.dumpConfig()
+    storagedirs.cur.dumpGitStatus()
+    storagedirs.cur.saveFile(pbutil.benchmarkToInfo(benchmark))
+    storagedirs.cur.saveFile(pbutil.benchmarkToBin(benchmark))
+  return candidate, tester
 
-    if not config.delete_output_dir:
-      storagedirs.cur.dumpConfig()
-      storagedirs.cur.dumpGitStatus()
-      storagedirs.cur.saveFile(pbutil.benchmarkToInfo(benchmark))
-      storagedirs.cur.saveFile(pbutil.benchmarkToBin(benchmark))
+def autotuneInner(benchmark):
+  candidate, tester = init(benchmark)
+  try:
+    pop = Population(candidate, tester, None)
 
     stats = storagedirs.openCsvStats("roundstats", 
         ("round",
@@ -412,7 +420,8 @@ def autotuneInner(benchmark):
     at = storagedirs.getactivetimers()
     if len(at):
       storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
-    tester.cleanup()
+    if tester:
+      tester.cleanup()
 
 def autotune(benchmark):
   storagedirs.callWithLogDir(lambda: autotuneInner(benchmark),
