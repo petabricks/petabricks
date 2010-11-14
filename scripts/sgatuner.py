@@ -301,7 +301,46 @@ class Population:
     return len(t1),len(t2),len(t3),mean(t1),mean(t2),mean(t3),\
            self.testers[-1].testCount, self.testers[-1].timeoutCount, self.testers[-1].crashCount
 
-def addMutators(candidate, info, ignore=None, weight=1.0):
+
+def createTunableMutators(candidate, ta, weight):
+  name = ta['name']
+  l=int(ta['min'])
+  h=int(ta['max'])
+  if 'accuracy' in ta['type']:
+    #hack to support what the old autotuner did
+    l+=1
+
+  if ta['type'] in config.lognorm_tunable_types:
+    return [mutators.LognormRandCutoffMutator(name, weight=weight)]
+  elif ta['type'] in config.uniform_tunable_types:
+    return [mutators.UniformRandMutator(name, l, h, weight=weight)]
+  elif ta['type'] in config.autodetect_tunable_types:
+    if l <= 1 and h > 2**16:
+      return [mutators.LognormRandCutoffMutator(name, weight=weight)]
+    else:
+      return [mutators.UniformRandMutator(name, l, h, weight=weight)]
+  elif ta['type'] in config.lognorm_array_tunable_types:
+    ms = [mutators.LognormTunableArrayMutator(name, l, h, weight=weight),
+          mutators.IncrementTunableArrayMutator(name, l, h, 4, weight=weight)]
+    ms[-1].reset(candidate)
+    return ms
+  elif ta['type'] in config.ignore_tunable_types:
+    pass
+  else:
+    warnings.warn(tunerwarnings.UnknownTunableType(name, ta['type']))
+  return []
+
+def createChoiceSiteMutators(candidate, info, ac, weight):
+  transform = info.name()
+  ms = []
+  ms.append(mutators.RandAlgMutator(transform, ac['number'], mutators.config.first_lvl, weight=weight))
+  for a in info.rulesInAlgchoice(ac['number']):
+    ms.append(mutators.AddAlgLevelMutator(transform, ac['number'], a, weight=weight))
+  #ms.append(mutators.ShuffleAlgsChoiceSiteMutator(transform, ac['number'], weight=weight))
+  #ms.append(mutators.ShuffleCutoffsChoiceSiteMutator(transform, ac['number'], weight=weight))
+  return ms
+
+def addMutators(candidate, info, acf=createChoiceSiteMutators, taf=createTunableMutators, ignore=None, weight=1.0):
   '''seed the pool of mutators from the .info file'''
   if ignore is None:
     ignore=set()
@@ -313,47 +352,21 @@ def addMutators(candidate, info, ignore=None, weight=1.0):
   except:
     transform = ""
   for ac in info.algchoices():
-    logging.info("added Mutator " + transform + "/" + ac['name'] + " => AlgChoice")
-    candidate.addMutator(mutators.RandAlgMutator(transform, ac['number'], mutators.config.first_lvl, weight=weight))
-    for a in info.rulesInAlgchoice(ac['number']):
-      candidate.addMutator(mutators.AddAlgLevelMutator(transform, ac['number'], a, weight=weight))
-    candidate.addMutator(mutators.ShuffleAlgsChoiceSiteMutator(transform, ac['number'], weight=weight))
-    candidate.addMutator(mutators.ShuffleCutoffsChoiceSiteMutator(transform, ac['number'], weight=weight))
-  for ta in info.tunables():
-    name = ta['name']
-    l=int(ta['min'])
-    h=int(ta['max'])
-    ms=[]
-    if 'accuracy' in ta['type']:
-      #hack to support what the old autotuner did
-      l+=1
+    ms = acf(candidate, info, ac, weight)
+    for m in ms:
+      logging.info("added Mutator " + transform + "/AlgChoice" + str(ac['number']) + " => " + str(m))
+      candidate.addMutator(m)
 
-    if ta['type'] in config.lognorm_tunable_types:
-      ms.append(mutators.LognormRandCutoffMutator(name, weight=weight))
-    elif ta['type'] in config.uniform_tunable_types:
-      ms.append(mutators.UniformRandMutator(name, l, h, weight=weight))
-    elif ta['type'] in config.autodetect_tunable_types:
-      if l <= 1 and h > 2**16:
-        ms.append(mutators.LognormRandCutoffMutator(name, weight=weight))
-      else:
-        ms.append(mutators.UniformRandMutator(name, l, h, weight=weight))
-    elif ta['type'] in config.lognorm_array_tunable_types:
-      ms.append(mutators.LognormTunableArrayMutator(name, l, h, weight=weight))
-      ms.append(mutators.IncrementTunableArrayMutator(name, l, h, 4, weight=weight))
-      ms[-1].reset(candidate)
-    elif ta['type'] in config.ignore_tunable_types:
-      pass
-    else:
-      warnings.warn(tunerwarnings.UnknownTunableType(name, ta['type']))
-    
+  for ta in info.tunables():
+    ms = taf(candidate, ta, weight)
     for m in ms:
       if 'accuracy' in ta['type']:
         m.accuracyHint = 1
-      logging.info("added Mutator " + transform + "/" + name + " => " + m.__class__.__name__)
+      logging.info("added Mutator " + transform + "/" + ta['name'] + " => " + str(m))
       candidate.addMutator(m)
   
   for sub in info.calls():
-    addMutators(candidate, sub, ignore, weight/2.0)
+    addMutators(candidate, sub, acf, taf, ignore, weight/2.0)
 
 def init(benchmark):
   if config.debug:
@@ -434,6 +447,13 @@ def regression_check(benchmark):
                              config.output_dir,
                              config.delete_output_dir)
 
+def recompile():
+  pbutil.chdirToPetabricksRoot();
+  config.benchmark=pbutil.normalizeBenchmarkName(config.benchmark)
+  if config.recompile:
+    pbutil.compilePetabricks();
+    pbutil.compileBenchmarks([config.benchmark])
+
 if __name__ == "__main__":
   from optparse import OptionParser
   parser = OptionParser(usage="usage: sgatuner.py [options] Benchmark")
@@ -464,10 +484,7 @@ if __name__ == "__main__":
   if options.n:
     tunerconfig.applypatch(tunerconfig.patch_n(options.n))
   config.benchmark=args[0]
-  pbutil.chdirToPetabricksRoot();
-  pbutil.compilePetabricks();
-  config.benchmark=pbutil.normalizeBenchmarkName(config.benchmark)
-  pbutil.compileBenchmarks([config.benchmark])
+  recompile()
   autotune(config.benchmark)
 
 

@@ -372,10 +372,6 @@ if __name__ == "__main__":
   config.max_input_size = config.n
 
   config.benchmark=args[0]
-  pbutil.chdirToPetabricksRoot();
-  config.benchmark=pbutil.normalizeBenchmarkName(config.benchmark)
-  if config.recompile:
-    pbutil.compilePetabricks();
-    pbutil.compileBenchmarks([config.benchmark])
+  sgatuner.recompile()
   onlinelearn(config.benchmark)
 
