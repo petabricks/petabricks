@@ -281,7 +281,6 @@ def onlinelearnInner(benchmark):
     
   try:
     timers.total.start()
-    config.end_time = time.time() + config.max_time
 
     '''seed first round'''
     p = candidate
@@ -298,7 +297,7 @@ def onlinelearnInner(benchmark):
 
     '''now normal rounds'''  
     for gen in itertools.count(1):
-      if time.time() > config.end_time:
+      if config.max_time and objectives.elapsed>config.max_time:
         break
       if gen%config.reweight_interval==0:
         pop.reweight()
@@ -380,10 +379,10 @@ if __name__ == "__main__":
     sys.exit(1)
   if options.debug:
     tunerconfig.applypatch(tunerconfig.patch_debug)
-  if options.n:
-    tunerconfig.applypatch(tunerconfig.patch_n(options.n))
-  config.min_input_size = config.n
-  config.max_input_size = config.n
+  
+  config.min_input_size = options.n
+  config.max_input_size = options.n
+  config.n              = options.n
 
   config.benchmark=args[0]
   sgatuner.recompile()
