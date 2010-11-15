@@ -372,7 +372,7 @@ def executeRun(cmd, returnTags=['timing', 'accuracy', 'outputhash'], retries=3):
     if retries>1:
       return executeRun(cmd, returnTags, retries-1)
     else:
-      p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
+      p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=NULL)
       goodwait(p)
       print p.stdout.read()
       sys.exit(99)
