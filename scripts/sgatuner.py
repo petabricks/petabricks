@@ -375,6 +375,8 @@ def init(benchmark, acf=createChoiceSiteMutators, taf=createTunableMutators):
     logging.basicConfig(level=logging.DEBUG)
   if not config.threads:
     config.threads = pbutil.cpuCount()
+  for k in filter(len, config.abort_on.split(',')):
+    warnings.simplefilter('error', getattr(tunerwarnings,k))
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
   if not config.main:
     config.main = mainname([pbutil.benchmarkToBin(benchmark)])
@@ -478,6 +480,7 @@ if __name__ == "__main__":
   parser.add_option("--offset",                type="int",    action="callback", callback=option_callback)
   parser.add_option("--threads",               type="int",    action="callback", callback=option_callback)
   parser.add_option("--name",                  type="string", action="callback", callback=option_callback)
+  parser.add_option("--abort_on",              type="string", action="callback", callback=option_callback)
   (options, args) = parser.parse_args()
   if len(args)!=1:
     parser.print_usage()

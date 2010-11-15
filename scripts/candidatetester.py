@@ -496,7 +496,11 @@ class CandidateTester:
         results = timers.testing.wrap(lambda: pbutil.executeRun(cmd, config.metrics))
       for i,result in enumerate(results):
         if result is not None:
-          candidate.metrics[i][self.n].add(result['average'])
+          v=result['average']
+          if numpy.isnan(v) or numpy.isinf(v):
+            warnings.warn(tunerwarnings.NanAccuracy())
+            raise pbutil.TimingRunFailed(None)
+          candidate.metrics[i][self.n].add(v)
       return True
     except pbutil.TimingRunTimeout:
       assert limit is not None
@@ -570,11 +574,11 @@ class CandidateTester:
           return config.metric_orders[metricIdx]*cmp(ra.mean(), rb.mean())
         if ra.sameChance(rb) >= confidence:
           return 0
-        if ra.estimatedBenifitNextTest() >= rb.estimatedBenifitNextTest() and len(ra)<maxTests:
+        if ra.estimatedBenifitNextTest() >= rb.estimatedBenifitNextTest() and a.numTests(self.n)<maxTests:
           self.test(a)
-        elif len(rb)<maxTests:
+        elif b.numTests(self.n)<maxTests:
           self.test(b)
-        elif len(ra)<maxTests:
+        elif a.numTests(self.n)<maxTests:
           self.test(a)
         else:
           break

@@ -70,6 +70,7 @@ class config_defaults:
   seed = None
   main = None
   threads = None
+  abort_on = ""
   
   threshold_multiplier_min = 1.0
   threshold_multiplier_max = 100.0
