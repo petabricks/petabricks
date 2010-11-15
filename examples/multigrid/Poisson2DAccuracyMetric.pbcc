@@ -59,11 +59,9 @@ to Accuracy
 
         // accuracy is ratio of errors
         if (e2 == 0) {
-            printf("set accuracy to 1e100\n");
             a = pow(10, 100); // set a large accuracy value
         } else {
             a = log10(e1 / e2);
-            printf("set accuracy to %g\n", (double) a);
         }
     }
 }
