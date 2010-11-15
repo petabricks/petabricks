@@ -59,6 +59,7 @@ main transform LUrecur
 from IN[n,n]
 to OUT[n,n]
 {
+
   to (OUT out) from (IN in)
   {
 	if (n == 1) {
@@ -69,10 +70,12 @@ to OUT[n,n]
 	}
   }
 
+
   to (OUT out) from (IN in)
   {
 	LUnopivot(out,in);
   }
+
 
 }
 
