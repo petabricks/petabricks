@@ -35,8 +35,8 @@ to Accuracy
       if(b.cell(i)!=0)
         ++c;
     }
-    //return (n-c)/(double)n*3;
-    return (3.0 * c)/n;
+    int _n = (n+2)/3;
+    return c/(double)_n;
   }
 }
 
