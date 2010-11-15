@@ -27,11 +27,11 @@ def cpuCount():
   try:
     return os.sysconf("SC_NPROCESSORS_ONLN")
   except:
-    None
+    pass
   try:
     return int(os.environ["NUMBER_OF_PROCESSORS"])
   except:
-    None
+    pass
   try:
     return int(os.environ["NUM_PROCESSORS"])
   except:

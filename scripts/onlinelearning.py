@@ -83,7 +83,7 @@ class MutatorLog:
 
     self.log = sorted([MutatorLogEntry(c.lastMutator, c, gettime(c), acc)] + self.log, key=self.perfMetric)
 
-    def __rept__(self):
+    def __repr__(self):
       return str(self.log)
 
 def sortedMutatorLog(log):
@@ -214,9 +214,9 @@ class ObjectiveTuner:
   def score(self):
     if len(self.timing):
       if config.accuracy_target is not None:
-        return self.accuracyRecent.dataDistribution().ppf(0.20)/config.accuracy_target
+        return self.accuracyRecent.dataDistribution().ppf(0.5)/config.accuracy_target
       elif config.timing_target is not None:
-        return config.timing_target/self.timingRecent.dataDistribution().ppf(0.50)
+        return config.timing_target/self.timingRecent.dataDistribution().ppf(0.5)
     return 1.0
 
   def computeFitnessFunction(self):
@@ -284,7 +284,7 @@ def onlinelearnInner(benchmark):
   ''' mutators in the last time window that produced improved candidates, 
   ordered by descending fitness of the candidates'''
   mutatorLog_times = MutatorLog(name = "time", perfMetric = lambda m: m.time)
-  mutatorLog_accuracy = MutatorLog(name = "accuracy", perfMetric = lambda m: 1.0 / m.accuracy)
+  mutatorLog_accuracy = MutatorLog(name = "accuracy", perfMetric = lambda m: -m.accuracy)
 
   ostats = storagedirs.openCsvStats("onlinestats", ObjectiveTuner.statsHeader)
     
@@ -317,13 +317,20 @@ def onlinelearnInner(benchmark):
 
       if(objectives.needAccuracy()):
         logOfChoice = mutatorLog_accuracy
+        #TO mpacula:
+        # This speeds up convergence a LOT... basically picks mutators flagged to effect accuracy
+        # It would be nice if the mutator log did this automatically and this wasn't needed
+        # Disable with: mfilter=lambda x: True
+        mfilter=lambda x: x.accuracyHint
       else:
         logOfChoice = mutatorLog_times
+        mfilter=lambda x: True
+
 
       if config.online_baseline:
         c = None
       else:
-        c = s.cloneAndMutate(tester.n, config.use_bandit, logOfChoice)
+        c = s.cloneAndMutate(tester.n, config.use_bandit, logOfChoice, mutatorFilter=mfilter)
       tlim, atarg = objectives.getlimits(p, s, c)
       if tester.race(p, c, tlim, atarg) and not (p.wasTimeout and c.wasTimeout):
         p.discardResults(config.max_trials)
@@ -382,6 +389,7 @@ if __name__ == "__main__":
   parser.add_option("--use_bandit",      type="int",    action="callback", callback=option_callback)
   parser.add_option("--window_size",     type="int",    action="callback", callback=option_callback)
   parser.add_option("--bandit_c",        type="float",  action="callback", callback=option_callback)
+  parser.add_option("--threads",         type="int",    action="callback", callback=option_callback)
 
   (options, args) = parser.parse_args()
   if len(args)!=1 or not options.n:

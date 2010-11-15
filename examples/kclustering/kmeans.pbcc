@@ -135,56 +135,16 @@ generator kmeansinputgen
   to (C c, A a) from (X x, Ctemp ctemp)
   {
     ElementT change=1;
-    InlineCopy2D(c,ctemp);    
-
-    while (change > 0)  {//forenough?
-      AssignClusters(a,change,x,c,a);
-      //printf ("change %f\n", change);
+    Copy2D(c,ctemp);    
+    AssignClusters(a,change,x,c,a);
+    for_enough {
       if (change > 0) { 
         NewClusterLocations(c, x, a);
+      }else{
+        break;
       }
-    }
-  }
-  
-  //iteratively find local optimum
-  to (C c, A a) from (X x, Ctemp ctemp)
-  {
-    ElementT change=1;
-    InlineCopy2D(c,ctemp);    
-
-    while (change > 0)  {//forenough?
       AssignClusters(a,change,x,c,a);
-      //printf ("change %f\n", change);
-      if (change > n/4) { //stop when only 25% change
-        NewClusterLocations(c, x, a);
-      }
     }
-
-  }
- 
-  //iteratively find local optimum
-  to (C c, A a) from (X x, Ctemp ctemp)
-  {
-    ElementT change=1;
-    InlineCopy2D(c,ctemp);
-
-    while (change > 0)  {//forenough?
-      AssignClusters(a,change,x,c,a);
-      //printf ("change %f\n", change);
-      if (change > n/2) { //stop when only 50% change
-        NewClusterLocations(c, x, a);
-      }
-    }
-
-  }
- 
-  
-  to (C c, A a) from (X x, Ctemp ctemp)
-  {
-    ElementT change=1;
-    InlineCopy2D(c,ctemp);    
-    //just once...
-    AssignClusters(a,change,x,c,a);
   }
 }
 

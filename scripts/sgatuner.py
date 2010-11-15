@@ -373,6 +373,8 @@ def addMutators(candidate, info, acf, taf, ignore=None, weight=1.0):
 def init(benchmark, acf=createChoiceSiteMutators, taf=createTunableMutators):
   if config.debug:
     logging.basicConfig(level=logging.DEBUG)
+  if not config.threads:
+    config.threads = pbutil.cpuCount()
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
   if not config.main:
     config.main = mainname([pbutil.benchmarkToBin(benchmark)])
@@ -474,6 +476,7 @@ if __name__ == "__main__":
   parser.add_option("--population_low_size",   type="int",    action="callback", callback=option_callback)
   parser.add_option("--min_input_size",        type="int",    action="callback", callback=option_callback)
   parser.add_option("--offset",                type="int",    action="callback", callback=option_callback)
+  parser.add_option("--threads",               type="int",    action="callback", callback=option_callback)
   parser.add_option("--name",                  type="string", action="callback", callback=option_callback)
   (options, args) = parser.parse_args()
   if len(args)!=1:

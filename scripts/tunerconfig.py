@@ -4,8 +4,8 @@ class config_defaults:
   max_input_size           = 2**30
   min_input_size           = 1
   max_time                 = 60*15
-  rounds_per_input_size    = 3
-  final_rounds             = 2
+  rounds_per_input_size    = 1
+  final_rounds             = 1
 
   #number of trials to run
   confidence_pct   = 0.75
@@ -18,7 +18,7 @@ class config_defaults:
   '''confidence for generating execution time limits'''
   limit_conf_pct        = 0.95
   '''multiply generated time limits by a factor'''
-  limit_multiplier      = 12.0
+  limit_multiplier      = 6.0
   '''offset added to input sizes'''
   offset                = 0
 
@@ -69,6 +69,7 @@ class config_defaults:
   reweight_interval = 4
   seed = None
   main = None
+  threads = None
   
   threshold_multiplier_min = 1.0
   threshold_multiplier_max = 100.0
@@ -80,7 +81,7 @@ class config_defaults:
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']
   uniform_tunable_types       = ['system.flag.unrollschedule']
   autodetect_tunable_types    = ['user.tunable']
-  lognorm_array_tunable_types = ['user.tunable.accuracy.array']
+  lognorm_array_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
   ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg']
   
   #metric information, dont change

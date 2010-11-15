@@ -432,6 +432,7 @@ class CandidateTester:
         self.bin,
         "--time",
         "--accuracy",
+        "--threads=%d"%config.threads,
       ]
     self.cmd.extend(args)
     self.args=args
