@@ -68,7 +68,7 @@ transform Poisson2DMG
 from X[n,n], B[n,n]
 to  Y[n,n]
 accuracy_bins POISSON2D_BINS
-tunable numIterations
+accuracy_variable numIterations
 accuracy_metric Poisson2DAccuracyMetric
 generator POISSON2D_GENERATOR
 {
