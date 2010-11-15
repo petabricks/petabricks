@@ -69,10 +69,10 @@ to OUT[n,n]
 	}
   }
 
-//  to (OUT out) from (IN in)
-//  {
-//	LUnopivot(out,in);
-//  }
+  to (OUT out) from (IN in)
+  {
+	LUnopivot(out,in);
+  }
 
 }
 
