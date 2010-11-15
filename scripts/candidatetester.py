@@ -41,6 +41,7 @@ class CrashException(Exception):
     self.n = n
     self.candidate=candidate
     self.cmd=cmd
+    self.debugpause()
   def debugpause(self):
     if config.pause_on_crash:
       print '-'*60

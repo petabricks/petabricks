@@ -77,7 +77,6 @@ class ProgramCrash(TunerWarning):
   '''base class for program crash warnings'''
   def __init__(self, crash):
     self.crash=crash
-    crash.debugpause()
   def __str__(self):
     return TunerWarning.__str__(self)+\
         ": %s crashed n=%d trial=%d" % (str(self.crash.candidate), self.crash.n, self.crash.testNumber)
