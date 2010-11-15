@@ -5,10 +5,10 @@ class TunerWarning(UserWarning):
   def __str__(self):
     return self.__class__.__name__
 
-class IgnoredTunerWarning(UserWarning):
+class IgnoredTunerWarning(TunerWarning):
   '''base for those ignored by default'''
 
-class FatalTunerWarning(UserWarning):
+class FatalTunerWarning(TunerWarning):
   '''base for those that crash the program by default'''
 
 warnings.simplefilter('always',  TunerWarning)
@@ -85,11 +85,16 @@ class ProgramCrash(TunerWarning):
 class InitialProgramCrash(ProgramCrash):
   '''the seed algorithm (default config) for the population crashed'''
   pass
+
 class ExistingProgramCrash(ProgramCrash):
   '''a program already in the population crashed'''
   pass
+
 class NewProgramCrash(ProgramCrash):
   '''a mutated child algorithm crashed'''
+  pass
+
+class NanAccuracy(TunerWarning):
   pass
 
 class TooManyTrials(TunerWarning):
