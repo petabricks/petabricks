@@ -55,7 +55,7 @@ through Z[(n+1)/2,(n+1)/2]
                 Poisson2DSOR(t1, y, b, -2, 1);     // t1 gets relaxed guess
                 Poisson2DResidual(t2, t1, b);      // t2 gets new residual
                 Restrict2Dnew(r1, t2);             // r1 gets restricted residual
-                Poisson2DMG(r2, z, r1);            // r2 gets coarse update
+                Poisson2DMG<0>(r2, z, r1);         // r2 gets coarse update
                 Interpolate2Dnew(t2, r2);          // t2 gets interpolated update
                 MatrixAdd(t2, t2, t1);             // t2 gets updated guess
                 Poisson2DSOR(y, t2, b, -2, 1);     //  y gets relaxed guess
@@ -67,6 +67,7 @@ through Z[(n+1)/2,(n+1)/2]
 transform Poisson2DMG
 from X[n,n], B[n,n]
 to  Y[n,n]
+accuracy_bins POISSON2D_BINS
 tunable numIterations
 accuracy_metric Poisson2DAccuracyMetric
 generator POISSON2D_GENERATOR
