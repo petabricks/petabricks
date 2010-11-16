@@ -28,7 +28,7 @@ def getMemoryLimitArgs():
   return limit
 
 class NoMutators(Exception):
-  '''Exception thrown when a mutation doesn't exist'''
+  '''Exception thrown when a mutation doesn`t exist'''
   pass
 
 class InputGenerationException(Exception):
@@ -279,7 +279,7 @@ class Candidate:
     c = self.clone()
     for z in xrange(config.mutate_retries):
       try:
-        if adaptive:
+        if adaptive and len(mutatorLog.log) > len(self.mutators):
           c.upperConfidenceBoundMutate(n, mutatorLog);
         else:
           c.mutate(n, mutatorFilter)
@@ -307,7 +307,7 @@ class Candidate:
   ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
   def upperConfidenceBoundMutate(self, n, mutatorLog):
     # compute the total number of mutations
-    totalMutations = len(mutatorLog.log) + len(self.mutators)
+    totalMutations = len(mutatorLog.log)
 
     if config.bandit_verbose:
       print "\n\nCurrent mutator log (%s): %s" % (mutatorLog.name, map(str, mutatorLog.log))
@@ -317,7 +317,7 @@ class Candidate:
     bestMutator = None
     for m in self.mutators:
 
-      m.timesSelected = 1
+      m.timesSelected = 0.00001 # to avoid div by 0
       for logEntry in mutatorLog.log:
         if logEntry.mutator == m:
           m.timesSelected += 1
