@@ -19,7 +19,7 @@ to   Y[n,n]
     to (Y y) from (X x, B b)
     {
         int level = (int) log2(n - 1);
-        if (level < 4) {
+        if (level < 8) {
             // if small enough, compute solution using direct solver
             Poisson2DDirect(y, x, b);
         } else {

@@ -18,6 +18,9 @@
 // Uncomment the following define to enable debug execution
 // #define DEBUG
 
+// Uncomment the following define to remove the direct option
+// #define NODIRECT
+
 transform Poisson2DMGRecurse
 from X[n,n], B[n,n], NumIters
 to Y[n,n]
@@ -72,51 +75,30 @@ accuracy_variable numIterations
 accuracy_metric Poisson2DAccuracyMetric
 generator POISSON2D_GENERATOR
 {
+#ifndef NODIRECT
     //base case: directly solve
     to(Y y) from(X x, B b) {
-
-        int level = (int) log2(n-1);
-
-        // for level greater than 6, just abort since
-        // this will likely be slow and not the best choice
-        if (level > 6) {
-            PetabricksRuntime::abort();
-        }
-
 #ifdef DEBUG
         printf("Direct case called for n = %d\n", n);
-#endif
-
+#endif // DEBUG
         Poisson2DDirect(y, x, b);
-
     }
+#endif // NODIRECT
 
     //base case: solve iteratively with SOR
     to(Y y) from(X x, B b) {
-
-        int level = (int) log2(n-1);
-
-        // for level greater than 6, just abort since
-        // this will likely be slow and not the best choice
-        if (level > 6) {
-            PetabricksRuntime::abort();
-        }
-
 #ifdef DEBUG
         printf("SOR case called for n = %d (%d iterations)\n", n, (int) numIterations);
 #endif
-
         Poisson2DSOR(y, x, b, -1, (int) numIterations);
     }
 
 #if 0
     //base case: solve iteratively with RefMG
     to(Y y) from(X x, B b) {
-
 #ifdef DEBUG
         printf("RefMG case called for n = %d (%d iterations)\n", n, (int) numIterations);
 #endif
-
         Poisson2DRefMG(y, x, b, (int) numIterations);
     }
 #endif

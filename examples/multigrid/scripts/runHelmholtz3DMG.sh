@@ -1,9 +1,15 @@
 #!/bin/bash
 
-for ((i = 0; i <= 4; i += 1)); do
+for ((j = 2; j <= 32; j *= 2)); do
 
-  echo "Testing accuracy bin $i"
+  n=$(($j+1))
 
-  ./Helmholtz3DMG --graph --exp --step 2 --min 1 --max 64 --trials-sec 1 --trials-max 100000 --transform="Helmholtz3DMG<$i>" --noisolation
+  for ((i = 0; i <= 4; i += 1)); do
+
+    echo "Testing input size ${n}, accuracy bin ${i} ..."
+
+    ./Helmholtz3DMG --n ${n} --config configs/Helmholtz3DMG/nodirect/best/n${n}_acc${i}/config
+
+  done
 
 done
