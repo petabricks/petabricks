@@ -22,8 +22,8 @@ class config_defaults:
   '''offset added to input sizes'''
   offset                = 0
 
-  window_size           = 20
-  bandit_c              = 0.25
+  window_size           = 50
+  bandit_c              = .5
   bandit_verbose        = False
   use_bandit            = True
 
