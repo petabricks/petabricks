@@ -288,6 +288,11 @@ class Candidate:
         if z==config.mutate_retries-1:
           warnings.warn(tunerwarnings.MutateFailed(c, z, n))
         continue
+      except NoMutators,e:
+        if len(self.mutators):
+          # discard filter
+          return self.cloneAndMutate(n, adaptive, mutatorLog)
+        raise e
     return c
 
   def clearResultsAbove(self, val):

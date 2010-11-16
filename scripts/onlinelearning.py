@@ -171,7 +171,9 @@ class OnlinePopulation:
         print '   - ', m.resultsStr(self.n)
 
   def reweight(self):
-    s = (sum(map(gettime, self.members)), sum(map(getacc, self.members)), sum(map(getconf, self.members)))
+    s = (abs(sum(map(gettime, self.members))),
+         abs(sum(map(getacc, self.members))),
+         abs(sum(map(getconf, self.members))))
     t = sum(s)
     self.wt = map(lambda x: t/x, s)
     logging.debug("weights = "+str(self.wt))
@@ -214,7 +216,10 @@ class ObjectiveTuner:
   def score(self):
     if len(self.timing):
       if config.accuracy_target is not None:
-        return self.accuracyRecent.dataDistribution().ppf(0.5)/config.accuracy_target
+        v=self.accuracyRecent.dataDistribution().ppf(0.5)/config.accuracy_target
+        if config.accuracy_target<0:
+          v = 1.0/v
+        return v
       elif config.timing_target is not None:
         return config.timing_target/self.timingRecent.dataDistribution().ppf(0.5)
     return 1.0
