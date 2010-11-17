@@ -395,7 +395,7 @@ def executeRaceRun(_cmd, configa, configb, retries=3):
     if retries>1:
       return executeRaceRun(_cmd, configa, configb, retries-1)
     else:
-      p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
+      p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=NULL)
       goodwait(p)
       print p.stdout.read()
       sys.exit(99)

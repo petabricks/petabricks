@@ -1,9 +1,15 @@
 #!/bin/bash
 
-for ((i = 0; i <= 4; i += 1)); do
+for ((j = 4; j <= 512; j *= 2)); do
 
-  echo "Testing accuracy bin $i"
+  n=$(($j+1))
 
-  ./Poisson2DMG --graph --exp --step 2 --min 4 --max 1024 --offset 1 --trials-sec 1 --trials-max 100000 --transform="Poisson2DMG<$i>" --noisolation
+  for ((i = 0; i <= 4; i += 1)); do
+
+    echo "Testing input size ${n}, accuracy bin ${i} ..."
+
+    ./Poisson2DMG --n ${n} --config configs/Poisson2DMG/nodirect/best/n${n}_acc${i}/config
+
+  done
 
 done
