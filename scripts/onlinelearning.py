@@ -227,12 +227,18 @@ class ObjectiveTuner:
   def computeFitnessFunction(self):
     score = self.score()
     mult = config.threshold_multiplier_default
-    while score<.9:
-      mult*=2
-      score+=.1
-    while score>1.1:
-      mult/=2
-      score-=.1
+    if score<=0:
+      mult=config.threshold_multiplier_max
+    else:
+      while score<.9:
+        mult*=2
+        score+=.1
+    if score>2:
+      mult=config.threshold_multiplier_min
+    else:
+      while score>1.1:
+        mult/=2
+        score-=.1
     mult = min(config.threshold_multiplier_max, 
            max(config.threshold_multiplier_min, mult))
 
