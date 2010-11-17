@@ -392,7 +392,7 @@ def executeRaceRun(cmd, configa, configb):
     xml = parse(p.stdout)
   except Exception, e:
     print 'program crash',e
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=NULL)
     goodwait(p)
     print p.stdout.read()
     sys.exit(99)
