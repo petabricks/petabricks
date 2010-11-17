@@ -335,6 +335,8 @@ def onlinelearnInner(benchmark):
         logOfChoice = mutatorLog_times
         mfilter=lambda x: True
 
+      if config.fixed_safe_alg:
+        p = candidate
 
       if config.online_baseline:
         c = None
@@ -394,6 +396,8 @@ if __name__ == "__main__":
   parser.add_option("--offset",          type="int",    action="callback", callback=option_callback)
   parser.add_option("--recompile",       type="int",    action="callback", callback=option_callback)
   parser.add_option("--online_baseline", type="int",    action="callback", callback=option_callback)
+  parser.add_option("--fixed_safe_alg",  type="int",    action="callback", callback=option_callback)
+  parser.add_option("--race_split_ratio",type="float",  action="callback", callback=option_callback)
   parser.add_option("--name",            type="string", action="callback", callback=option_callback)
   parser.add_option("--accuracy_target", type="float",  action="callback", callback=option_callback)
   parser.add_option("--timing_target",   type="float",  action="callback", callback=option_callback)

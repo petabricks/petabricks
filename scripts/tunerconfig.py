@@ -61,6 +61,7 @@ class config_defaults:
   memory_limit_pct = 0.8
   min_std_pct = 0.000001
   online_baseline = False
+  fixed_safe_alg = False
   accuracy_target = None
   timing_target = None
   race_multiplier = 1.0
@@ -71,6 +72,7 @@ class config_defaults:
   main = None
   threads = None
   abort_on = ""
+  race_split_ratio = 0.5
   
   threshold_multiplier_min = 1.0
   threshold_multiplier_max = 100.0

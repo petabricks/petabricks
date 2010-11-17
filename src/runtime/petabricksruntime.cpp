@@ -51,6 +51,7 @@ static std::string CONFIG_FILENAME_ALT;
 static int GRAPH_MIN=1;
 static int GRAPH_MAX=4096;
 static double GRAPH_MAX_SEC=jalib::maxval<double>();
+static double RACE_SPLIT_RATIO=0.5;
 static int  GRAPH_STEP=1;
 static bool GRAPH_EXP=false;
 static int GRAPH_TRIALS=1;
@@ -319,7 +320,8 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("retries",     RETRIES).help("times to retry on test failure");
   args.param("race-multiplier", RACE_MULTIPLIER).help("how much extra time (percentage) the slower racer gets to finish");
   args.param("race-multiplier-lowacc", RACE_MULTIPLIER_LOWACC).help("how much extra time (percentage) the slower racer gets to finish");
-  args.param("race-accuracy", RACE_ACCURACY_TARGET).help("accuracy the second racer must achieve");
+  args.param("race-accuracy",    RACE_ACCURACY_TARGET).help("accuracy the second racer must achieve");
+  args.param("race-split-ratio", RACE_SPLIT_RATIO).help("how to divide the chip for racing");
   
   size_t max_memory=0;
   if(args.param("max-memory", max_memory).help("kill the process when it tries to use this much memory")) {
@@ -721,6 +723,10 @@ double petabricks::PetabricksRuntime::raceConfigs(int n, const std::vector<std::
   SubprocessTestIsolation ati(GRAPH_MAX_SEC);
   SubprocessTestIsolation bti(GRAPH_MAX_SEC);
   TunableManager& tm = TunableManager::instance();
+
+  int ta = (int)( worker_threads * RACE_SPLIT_RATIO );
+  int tb = worker_threads - ta;
+  JTRACE("race split")(ta)(tb);
   try {
     loadTestInput(n, files);
     if(CONFIG_FILENAME_ALT != "None") {
