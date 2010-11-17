@@ -292,6 +292,10 @@ def onlinelearnInner(benchmark):
   mutatorLog_accuracy = MutatorLog(name = "accuracy", perfMetric = lambda m: -m.accuracy)
 
   ostats = storagedirs.openCsvStats("onlinestats", ObjectiveTuner.statsHeader)
+  clog = storagedirs.openCsvStats("onlinecandidates", ['gen',
+                                                       'timesafe','accsafe','timeexp','accexp',
+                                                       'safe','seed','experimental',
+                                                       ])
     
   try:
     timers.total.start()
@@ -351,6 +355,8 @@ def onlinelearnInner(benchmark):
             mutatorLog_accuracy.add(c);
         
         logging.debug("Child vs parent, better=%d, %f vs. %f" % (int(gettime(c) < gettime(p)), gettime(c), gettime(p)))
+        clog.writerow([gen, lasttime(p), lastacc(p), lasttime(c), lastacc(c)]
+                      +map(storagedirs.relpath,[p.cfgfile(), s.cfgfile(), c.cfgfile()]))
 
         t,a = resultingTimeAcc(p, c)
         print "Generation", gen, "elapsed",objectives.elapsed,"time", t,"accuracy",a, getconf(p)
