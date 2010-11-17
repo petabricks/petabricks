@@ -63,7 +63,7 @@ to Accuracy
 
         // accuracy is ratio of errors
         if (e2 == 0) {
-            return pow(10, 100);
+            return 30; // set a large accuracy value
         } else {
             return log10(e1 / e2);
         }
