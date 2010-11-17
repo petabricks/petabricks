@@ -311,7 +311,7 @@ def onlinelearnInner(benchmark):
     if config.online_baseline:
       c = None
     else:
-      c = p.cloneAndMutate(tester.n)
+      c = p
     if not tester.race(p, c):
       raise Exception()
     if not p.wasTimeout:
