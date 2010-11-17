@@ -72,6 +72,7 @@ class config_defaults:
   main = None
   threads = None
   abort_on = ""
+  race_split_ratio = 0.5
   
   threshold_multiplier_min = 1.0
   threshold_multiplier_max = 100.0

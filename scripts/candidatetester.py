@@ -536,8 +536,9 @@ class CandidateTester:
     if limit is not None:
       cmd.append("--max-sec=%f"%limit)
     cmd.extend(getMemoryLimitArgs())
-    cmd.extend(["--race-multiplier=%f"%config.race_multiplier,
-                "--race-multiplier-lowacc=%f"%config.race_multiplier_lowacc])
+    cmd.extend(["--race-multiplier=%f" % config.race_multiplier,
+                "--race-multiplier-lowacc=%f" % config.race_multiplier_lowacc,
+                "--race-split-ratio=%f" % config.race_split_ratio])
     if accuracy_target:
       cmd.append("--race-accuracy=%f"%accuracy_target)
     try:
