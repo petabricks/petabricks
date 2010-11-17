@@ -61,6 +61,7 @@ class config_defaults:
   memory_limit_pct = 0.8
   min_std_pct = 0.000001
   online_baseline = False
+  fixed_safe_alg = False
   accuracy_target = None
   timing_target = None
   race_multiplier = 1.0
