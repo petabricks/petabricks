@@ -37,6 +37,8 @@ namespace petabricks {
   public:
     RegionRemoteProxy();
 
+    void onRecvInitial(const void* buf, size_t len);
+ 
     void onNotify(int argc);
     void onRecv(const void* data, size_t len);
 
@@ -50,8 +52,15 @@ using namespace petabricks;
 
 template<int D> 
 RegionRemoteProxy<D>::RegionRemoteProxy() {
-  MatrixIO* matrixio = new MatrixIO("testdata/Helmholtz3DB1", "r");
-  _referenceRegion = matrixio->readToRegionI();
+}
+
+template<int D> 
+void RegionRemoteProxy<D>::onRecvInitial(const void* buf, size_t len) {
+  // read from file
+  if (len > 0) {
+    MatrixIO* matrixio = new MatrixIO((char*)buf, "r");
+    _referenceRegion = matrixio->readToRegionI();
+  }
 }
 
 template<int D> 

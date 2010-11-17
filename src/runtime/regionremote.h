@@ -43,6 +43,7 @@ namespace petabricks {
   };
 }
 
+/* implementation */
 using namespace petabricks;
 
 template <int D>
@@ -95,10 +96,10 @@ using namespace _RegionRemoteMsgTypes;
 
 template <int D>
 ElementT RegionRemote<D>::readCell(const IndexT* coord) {
-  ReadCellMessage<D>* msg = (ReadCellMessage<D>*) malloc(sizeof(ReadCellMessage<D>)); 
+  ReadCellMessage<D>* msg = (ReadCellMessage<D>*) malloc(sizeof(ReadCellMessage<D>) + (sizeof coord)*D); 
   msg->type = MessageTypes::REGIONREMOTE_READCELL;
-  memmove(msg->coord, coord, (sizeof coord) * _dimension);
-
+  memcpy(msg->coord, coord, (sizeof coord) * D);
+  
   pthread_mutex_lock(&_seq_mux);
   _remoteObject->send(msg, sizeof(ReadCellMessage<D>));
   uint16_t seq = ++_seq;
@@ -117,16 +118,15 @@ ElementT RegionRemote<D>::readCell(const IndexT* coord) {
 
   // wake other threads
   pthread_cond_broadcast(&_buffer_cond);
- 
   return elmt;
 }
 
 template <int D>
 void RegionRemote<D>::writeCell(const IndexT* coord, ElementT value) {
-  WriteCellMessage<D>* msg = (WriteCellMessage<D>*) malloc(sizeof(WriteCellMessage<D>)); 
+  WriteCellMessage<D>* msg = (WriteCellMessage<D>*) malloc(sizeof(WriteCellMessage<D>) + (sizeof coord)*D); 
   msg->type = MessageTypes::REGIONREMOTE_WRITECELL;
   msg->value = value;
-  memmove(msg->coord, coord, (sizeof coord) * _dimension);
+  memcpy(msg->coord, coord, (sizeof coord) * _dimension);
 
   pthread_mutex_lock(&_seq_mux);
   _remoteObject->send(msg, sizeof(WriteCellMessage<D>));

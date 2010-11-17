@@ -27,6 +27,8 @@ namespace petabricks {
     int dimension() const;
     IndexT sizeOfDimension(int d) const;
 
+    ElementT readCell(const IndexT* coord);
+
     void print();
   };
 }

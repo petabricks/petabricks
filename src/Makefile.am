@@ -5,7 +5,7 @@ AM_LFLAGS =
 OBJDIR=obj
 
 noinst_LIBRARIES = libpbcommon.a libpbcompiler.a libpbruntime.a libpbmain.a
-noinst_PROGRAMS = pbc rttest1 rttest2
+noinst_PROGRAMS = pbc rttest1 rttest2 regionremotetest
 
 noinst_HEADERS = \
   compiler/choicegrid.h \
@@ -163,6 +163,10 @@ rttest1_LDADD    = libpbruntime.a libpbcommon.a
 rttest2_CXXFLAGS = -Iruntime
 rttest2_SOURCES  = runtime/rttest2.cpp
 rttest2_LDADD    = libpbruntime.a libpbcommon.a 
+
+regionremotetest_CXXFLAGS = -Iruntime
+regionremotetest_SOURCES  = runtime/tests/regionremotetest.cpp
+regionremotetest_LDADD    = libpbruntime.a libpbcommon.a 
 
 CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp libpbcompiler_a-maximaparser.h \
              libpbcompiler_a-pblexer.cpp libpbcompiler_a-pbparser.cpp libpbcompiler_a-pbparser.h \
