@@ -544,7 +544,7 @@ class CandidateTester:
     try:
       debug_logcmd(cmd)
       resulta,resultb = timers.testing.wrap(lambda: pbutil.executeRaceRun(cmd, cfgfilea, cfgfileb))
-      best = min(resulta['timing'], resultb['timing'])
+      best = min(min(resulta['timing'], resultb['timing']), 2**31)
       if limit is not None and best>limit*2:
         best=limit
       for candidate, result in [(candidatea,resulta), (candidateb,resultb)]:
