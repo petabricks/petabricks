@@ -29,18 +29,23 @@ generator NWKDEGenerator
 //optimize KERNELWIDTHS[m]
 {
     INPUTSCHECKED
-    from (TRAININDICES trainIndices,
-          TRAINVARINDEX trainVarIndex,
-          TRAINTIMEOFFSET trainTimeOffset,
-          TESTINDICES testIndices,
-          TESTVARINDEX testVarIndex,
-          TESTTIMEOFFSET testTimeOffset,
-          OUTPUTVARINDEX outputVarIndex,
+    from (TRAINDATA        trainData,
+          TRAININDICES     trainIndices,
+          TRAINVARINDEX    trainVarIndex,
+          TRAINTIMEOFFSET  trainTimeOffset,
+          TESTDATA         testData,
+          TESTINDICES      testIndices,
+          TESTVARINDEX     testVarIndex,
+          TESTTIMEOFFSET   testTimeOffset,
+          OUTPUTVARINDEX   outputVarIndex,
           OUTPUTTIMEOFFSET outputTimeOffset)
     {
+        double ret;
 #ifdef DEBUG
-        NWKDECheckInputs(trainIndices, trainVarIndex, trainTimeOffset,
-                          testIndices,  testVarIndex,  testTimeOffset,
+        NWKDECheckInputs(ret, trainData, trainIndices,
+                         trainVarIndex, trainTimeOffset,
+                         testData, testIndices,
+                         testVarIndex, testTimeOffset,
                          outputVarIndex, outputTimeOffset);
 #endif
         return 0;
@@ -70,15 +75,6 @@ generator NWKDEGenerator
 
             double trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
             double  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
-
-#ifdef DEBUG
-            if (trainPoint == -1) {
-                trainPoint = NAN;
-            }
-            if (testPoint == -1) {
-                testPoint == NAN;
-            }
-#endif // DEBUG
 
             double diff = trainPoint - testPoint;
 
