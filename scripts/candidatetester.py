@@ -288,6 +288,11 @@ class Candidate:
         if z==config.mutate_retries-1:
           warnings.warn(tunerwarnings.MutateFailed(c, z, n))
         continue
+      except NoMutators,e:
+        if len(self.mutators):
+          # discard filter
+          return self.cloneAndMutate(n, adaptive, mutatorLog)
+        raise e
     return c
 
   def clearResultsAbove(self, val):
@@ -531,14 +536,15 @@ class CandidateTester:
     if limit is not None:
       cmd.append("--max-sec=%f"%limit)
     cmd.extend(getMemoryLimitArgs())
-    cmd.extend(["--race-multiplier=%f"%config.race_multiplier,
-                "--race-multiplier-lowacc=%f"%config.race_multiplier_lowacc])
+    cmd.extend(["--race-multiplier=%f" % config.race_multiplier,
+                "--race-multiplier-lowacc=%f" % config.race_multiplier_lowacc,
+                "--race-split-ratio=%f" % config.race_split_ratio])
     if accuracy_target:
       cmd.append("--race-accuracy=%f"%accuracy_target)
     try:
       debug_logcmd(cmd)
       resulta,resultb = timers.testing.wrap(lambda: pbutil.executeRaceRun(cmd, cfgfilea, cfgfileb))
-      best = min(resulta['timing'], resultb['timing'])
+      best = min(min(resulta['timing'], resultb['timing']), 2**31)
       if limit is not None and best>limit*2:
         best=limit
       for candidate, result in [(candidatea,resulta), (candidateb,resultb)]:

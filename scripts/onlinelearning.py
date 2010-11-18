@@ -171,7 +171,9 @@ class OnlinePopulation:
         print '   - ', m.resultsStr(self.n)
 
   def reweight(self):
-    s = (sum(map(gettime, self.members)), sum(map(getacc, self.members)), sum(map(getconf, self.members)))
+    s = (abs(sum(map(gettime, self.members))),
+         abs(sum(map(getacc, self.members))),
+         abs(sum(map(getconf, self.members))))
     t = sum(s)
     self.wt = map(lambda x: t/x, s)
     logging.debug("weights = "+str(self.wt))
@@ -214,7 +216,10 @@ class ObjectiveTuner:
   def score(self):
     if len(self.timing):
       if config.accuracy_target is not None:
-        return self.accuracyRecent.dataDistribution().ppf(0.5)/config.accuracy_target
+        v=self.accuracyRecent.dataDistribution().ppf(0.5)/config.accuracy_target
+        if config.accuracy_target<0:
+          v = 1.0/v
+        return v
       elif config.timing_target is not None:
         return config.timing_target/self.timingRecent.dataDistribution().ppf(0.5)
     return 1.0
@@ -222,12 +227,18 @@ class ObjectiveTuner:
   def computeFitnessFunction(self):
     score = self.score()
     mult = config.threshold_multiplier_default
-    while score<.9:
-      mult*=2
-      score+=.1
-    while score>1.1:
-      mult/=2
-      score-=.1
+    if score<=0:
+      mult=config.threshold_multiplier_max
+    else:
+      while score<.9:
+        mult*=2
+        score+=.1
+    if score>2:
+      mult=config.threshold_multiplier_min
+    else:
+      while score>1.1:
+        mult/=2
+        score-=.1
     mult = min(config.threshold_multiplier_max, 
            max(config.threshold_multiplier_min, mult))
 
@@ -287,6 +298,10 @@ def onlinelearnInner(benchmark):
   mutatorLog_accuracy = MutatorLog(name = "accuracy", perfMetric = lambda m: -m.accuracy)
 
   ostats = storagedirs.openCsvStats("onlinestats", ObjectiveTuner.statsHeader)
+  clog = storagedirs.openCsvStats("onlinecandidates", ['gen',
+                                                       'timesafe','accsafe','timeexp','accexp',
+                                                       'safe','seed','experimental',
+                                                       ])
     
   try:
     timers.total.start()
@@ -326,6 +341,8 @@ def onlinelearnInner(benchmark):
         logOfChoice = mutatorLog_times
         mfilter=lambda x: True
 
+      if config.fixed_safe_alg:
+        p = candidate
 
       if config.online_baseline:
         c = None
@@ -346,6 +363,8 @@ def onlinelearnInner(benchmark):
             mutatorLog_accuracy.add(c);
         
         logging.debug("Child vs parent, better=%d, %f vs. %f" % (int(gettime(c) < gettime(p)), gettime(c), gettime(p)))
+        clog.writerow([gen, lasttime(p), lastacc(p), lasttime(c), lastacc(c)]
+                      +map(storagedirs.relpath,[p.cfgfile(), s.cfgfile(), c.cfgfile()]))
 
         t,a = resultingTimeAcc(p, c)
         print "Generation", gen, "elapsed",objectives.elapsed,"time", t,"accuracy",a, getconf(p)
@@ -383,6 +402,8 @@ if __name__ == "__main__":
   parser.add_option("--offset",          type="int",    action="callback", callback=option_callback)
   parser.add_option("--recompile",       type="int",    action="callback", callback=option_callback)
   parser.add_option("--online_baseline", type="int",    action="callback", callback=option_callback)
+  parser.add_option("--fixed_safe_alg",  type="int",    action="callback", callback=option_callback)
+  parser.add_option("--race_split_ratio",type="float",  action="callback", callback=option_callback)
   parser.add_option("--name",            type="string", action="callback", callback=option_callback)
   parser.add_option("--accuracy_target", type="float",  action="callback", callback=option_callback)
   parser.add_option("--timing_target",   type="float",  action="callback", callback=option_callback)

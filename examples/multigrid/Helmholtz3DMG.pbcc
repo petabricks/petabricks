@@ -19,6 +19,9 @@
 // Uncomment the following define to enable debug execution
 // #define DEBUG
 
+// Uncomment the following define to remove the direct option
+// #define NODIRECT
+
 transform Helmholtz3DMGRecurse
 from IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
      RHS[n,n,n], ALPHA, BETA, DX, NUMITERS
@@ -95,44 +98,25 @@ accuracy_variable numIterations
 accuracy_metric Helmholtz3DAccuracyMetric
 generator HELMHOLTZ3D_GENERATOR
 {
+#ifndef NODIRECT
     //base case: directly solve
     to (OUT out) from (A a, B0 b0, B1 b1, B2 b2, RHS rhs,
                        ALPHA alpha, BETA beta, DX dx)
     {
-
-        int level = (int) log2(n);
-
-        // for level greater than 5, just abort since
-        // this will likely be slow and not the best choice
-        if (level > 5) {
-            PetabricksRuntime::abort();
-        }
-
 #ifdef DEBUG
         printf("Direct case called for n = %d\n", n);
-#endif
-
+#endif // DEBUG
         Helmholtz3DDirect(out, a, b0, b1, b2, rhs, alpha, beta, dx);
-
     }
+#endif // NODIRECT
 
     //base case: solve iteratively with SOR
     to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
                        RHS rhs, ALPHA alpha, BETA beta, DX dx)
     {
-
-        int level = (int) log2(n);
-
-        // for level greater than 5, just abort since
-        // this will likely be slow and not the best choice
-        if (level > 5) {
-            PetabricksRuntime::abort();
-        }
-
 #ifdef DEBUG
         printf("SOR case called for n = %d, (%d iterations)\n", n, numIterations);
 #endif
-
         Helmholtz3DSOR(out, in, a, b0, b1, b2, rhs, alpha, beta, dx, -1, numIterations);
     }
 
@@ -142,12 +126,10 @@ generator HELMHOLTZ3D_GENERATOR
     to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
                        RHS rhs, ALPHA alpha, BETA beta, DX dx)
     {
-
 #ifdef DEBUG
         printf("recursive case called for n = %d, (%d iterations)\n",
                n, numIterations);
 #endif
-
         Helmholtz3DMGRecurse(out, in, a, b0, b1, b2, rhs, alpha, beta, dx,
                              numIterations);
     }

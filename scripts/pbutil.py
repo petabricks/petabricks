@@ -385,17 +385,20 @@ def executeRun(cmd, returnTags=['timing', 'accuracy', 'outputhash'], retries=3):
   else:
     return map(lambda t: xmlToDict(xml, t), returnTags)
 
-def executeRaceRun(cmd, configa, configb):
-  cmd = cmd + ['--config='+configa, '--race-with='+configb]
+def executeRaceRun(_cmd, configa, configb, retries=3):
+  cmd = _cmd + ['--config='+configa, '--race-with='+configb]
   p = callAndWait(cmd)
   try:
     xml = parse(p.stdout)
   except Exception, e:
     print 'program crash',e
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
-    goodwait(p)
-    print p.stdout.read()
-    sys.exit(99)
+    if retries>1:
+      return executeRaceRun(_cmd, configa, configb, retries-1)
+    else:
+      p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=NULL)
+      goodwait(p)
+      print p.stdout.read()
+      sys.exit(99)
   aresult = xmlToDict(xml, "testresult", tryIntFloat, 0)
   bresult = xmlToDict(xml, "testresult", tryIntFloat, 1)
   assert aresult['label']==0
