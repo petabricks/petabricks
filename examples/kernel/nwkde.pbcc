@@ -3,14 +3,14 @@
 
 #include "utils.pbcc"
 #define DEBUG
-//#define WORKAROUND // workaround for generator having specific sizes
+#define WORKAROUND // workaround for generator having specific sizes
 
 transform NWKDEGenerator
 from IN[n]
-to   TRAINDATA[4,n], WRAPFLAGS[4], KERNELWIDTHS[4],
-     TRAININDICES[n-2], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
-     TESTDATA[4,n],
-     TESTINDICES[n-2], TESTVARINDEX[8], TESTTIMEOFFSET[8],
+to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
+     TRAININDICES[n], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
+     TESTDATA[4,8750],
+     TESTINDICES[n], TESTVARINDEX[8], TESTTIMEOFFSET[8],
      OUTPUTVARINDEX, OUTPUTTIMEOFFSET
 {
     to (TRAINDATA trainData,
@@ -30,73 +30,38 @@ to   TRAINDATA[4,n], WRAPFLAGS[4], KERNELWIDTHS[4],
         MatrixRegion2D a;
         MatrixRegion1D b;
 
-        a = MatrixIO("test1/trainData.pba", "r").read2D();
-        Copy2D(trainData, a.region(0,0,4,n));
-        b = MatrixIO("test1/wrapFlags.pba", "r").read1D();
+        a = MatrixIO("test/trainData.pba", "r").read2D();
+        Copy2D(trainData, a);
+        b = MatrixIO("test/wrapFlags.pba", "r").read1D();
         Copy1D(wrapFlags, b.region(0,4));
-        b = MatrixIO("test1/kernelWidths.pba", "r").read1D();
+        b = MatrixIO("test/kernelWidths.pba", "r").read1D();
         Copy1D(kernelWidths, b.region(0,4));
-        b = MatrixIO("test1/trainIndices.pba", "r").read1D();
-        Copy1D(trainIndices, b.region(0,n-2));
-        b = MatrixIO("test1/trainVarIndex.pba", "r").read1D();
+        b = MatrixIO("test/trainIndices.pba", "r").read1D();
+        Copy1D(trainIndices, b.region(0,n));
+        b = MatrixIO("test/trainVarIndex.pba", "r").read1D();
         Copy1D(trainVarIndex, b.region(0,8));
-        b = MatrixIO("test1/trainTimeOffset.pba", "r").read1D();
+        b = MatrixIO("test/trainTimeOffset.pba", "r").read1D();
         Copy1D(trainTimeOffset, b.region(0,8));
 
-        a = MatrixIO("test1/testData.pba", "r").read2D();
-        Copy2D(testData, a.region(0,0,4,n));
-        b = MatrixIO("test1/testIndices.pba", "r").read1D();
-        Copy1D(testIndices, b.region(0,n-2));
-        b = MatrixIO("test1/testVarIndex.pba", "r").read1D();
+        a = MatrixIO("test/testData.pba", "r").read2D();
+        Copy2D(testData, a);
+        b = MatrixIO("test/testIndices.pba", "r").read1D();
+        Copy1D(testIndices, b.region(0,n));
+        b = MatrixIO("test/testVarIndex.pba", "r").read1D();
         Copy1D(testVarIndex, b.region(0,8));
-        b = MatrixIO("test1/testTimeOffset.pba", "r").read1D();
+        b = MatrixIO("test/testTimeOffset.pba", "r").read1D();
         Copy1D(testTimeOffset, b.region(0,8));
 
-        outputVarIndex = MatrixIO("test1/outputVarIndex.pba", "r").read0D();
-        outputTimeOffset = MatrixIO("test1/outputTimeOffset.pba", "r").read0D();
+        outputVarIndex = MatrixIO("test/outputVarIndex.pba", "r").read0D();
+        outputTimeOffset = MatrixIO("test/outputTimeOffset.pba", "r").read0D();
     }
 }
 
-/*  TRAINDATA - block of data: n time slices, m variables per time slice
-    WRAPFLAGS - indicates whether TRAINDATA column corresponds to a wind
-                direction \in [0, 360]
-    KERNELWIDTHS - width of the kernel function to use for a data column
-    TRAININDICES - l time indices into TRAINDATA to use for training
-    TESTPOINTS - q data points (each of p-dim) to do the regression
-    OUTPUTVARINDEX - which variable in TRAINDATA for output
-    OUTPUTTIMEOFFSET - time offset from trainIndex in TRAINDATA for output
-
-    For each dimension of TESTPOINTS:
-      VARINDEX - which variable in TRAINDATA
-      TIMEOFFSET - time offset from the trainIndex in TRAINDATA
-
-    SQDIFFS - squared differences between each test point and the train data
-              for each training index and for each point dimension
-    WEIGHTS - weights computed with Gaussian kernel function for each
-              train-test point pair
-    PARTIALS - weighted output partial sums
-*/
-
-transform NWKDE
-#ifdef WORKAROUND
-from TRAINDATA[4,n], WRAPFLAGS[4], KERNELWIDTHS[4],
-     TRAININDICES[n-2], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
-     TESTDATA[4,n],
-     TESTINDICES[n-2], TESTVARINDEX[8], TESTTIMEOFFSET[8],
+transform NWKDECheckInputs
+from TRAINDATA[m,n], TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
+     TESTDATA[m2,n2], TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
      OUTPUTVARINDEX, OUTPUTTIMEOFFSET
-to RESULT[n-2]
-through SQDIFFS[8,n-2,n-2], WEIGHTS[n-2,n-2], PARTIALS[n-2,n-2], INPUTSCHECKED
-#else
-from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
-     TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
-     TESTDATA[m2,n2],
-     TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
-     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
-to RESULT[q]
-through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q], INPUTSCHECKED
-#endif
-generator NWKDEGenerator
-//optimize KERNELWIDTHS[m]
+to INPUTSCHECKED
 {
     INPUTSCHECKED
     from (TRAININDICES trainIndices,
@@ -108,12 +73,7 @@ generator NWKDEGenerator
           OUTPUTVARINDEX outputVarIndex,
           OUTPUTTIMEOFFSET outputTimeOffset)
     {
-#ifdef DEBUG
         double min, max, min2, max2;
-
-#ifdef WORKAROUND
-        int m = 4, m2 = 4, n2 = 10;
-#endif
 
         findMinAndMax(&min, &max, trainVarIndex);
         printf("trainVarIndex range: (%g, %g)\n", min, max);
@@ -162,8 +122,65 @@ generator NWKDEGenerator
                    0, n2);
             PetabricksRuntime::abort();
         }
-#endif // DEBUG
+    }
+}
 
+/*  TRAINDATA - block of data: n time slices, m variables per time slice
+    WRAPFLAGS - indicates whether TRAINDATA column corresponds to a wind
+                direction \in [0, 360]
+    KERNELWIDTHS - width of the kernel function to use for a data column
+    TRAININDICES - l time indices into TRAINDATA to use for training
+    TESTPOINTS - q data points (each of p-dim) to do the regression
+    OUTPUTVARINDEX - which variable in TRAINDATA for output
+    OUTPUTTIMEOFFSET - time offset from trainIndex in TRAINDATA for output
+
+    For each dimension of TESTPOINTS:
+      VARINDEX - which variable in TRAINDATA
+      TIMEOFFSET - time offset from the trainIndex in TRAINDATA
+
+    SQDIFFS - squared differences between each test point and the train data
+              for each training index and for each point dimension
+    WEIGHTS - weights computed with Gaussian kernel function for each
+              train-test point pair
+    PARTIALS - weighted output partial sums
+*/
+
+transform NWKDE
+#ifdef WORKAROUND
+from TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
+     TRAININDICES[l], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
+     TESTDATA[4,8750],
+     TESTINDICES[q], TESTVARINDEX[8], TESTTIMEOFFSET[8],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+to RESULT[q]
+through SQDIFFS[8,l,q], WEIGHTS[l,q], PARTIALS[l,q], INPUTSCHECKED
+#else
+from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
+     TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
+     TESTDATA[m2,n2],
+     TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+to RESULT[q]
+through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q], INPUTSCHECKED
+#endif
+generator NWKDEGenerator
+//optimize KERNELWIDTHS[m]
+{
+    INPUTSCHECKED
+    from (TRAININDICES     trainIndices,
+          TRAINVARINDEX    trainVarIndex,
+          TRAINTIMEOFFSET  trainTimeOffset,
+          TESTINDICES      testIndices,
+          TESTVARINDEX     testVarIndex,
+          TESTTIMEOFFSET   testTimeOffset,
+          OUTPUTVARINDEX   outputVarIndex,
+          OUTPUTTIMEOFFSET outputTimeOffset)
+    {
+#ifdef DEBUG
+        NWKDECheckInputs(trainIndices, trainVarIndex, trainTimeOffset,
+                          testIndices,  testVarIndex,  testTimeOffset,
+                         outputVarIndex, outputTimeOffset);
+#endif
         return 0;
     }
 
