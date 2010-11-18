@@ -178,6 +178,10 @@ class OnlinePopulation:
     self.wt = map(lambda x: t/x, s)
     logging.debug("weights = "+str(self.wt))
 
+  statsHeader = ['gen', 'pop_size', 'weight_time', 'weight_acc', 'weight_conf']
+  def stats(self, gen):
+    return [gen,len(self.members)]+list(self.wt)
+
 def resultingTimeAcc(p, c):
   if not c.wasTimeout:
     if not p.wasTimeout:
@@ -298,6 +302,7 @@ def onlinelearnInner(benchmark):
   mutatorLog_accuracy = MutatorLog(name = "accuracy", perfMetric = lambda m: -m.accuracy)
 
   ostats = storagedirs.openCsvStats("onlinestats", ObjectiveTuner.statsHeader)
+  pstats = storagedirs.openCsvStats("population", OnlinePopulation.statsHeader)
   clog = storagedirs.openCsvStats("onlinecandidates", ['gen',
                                                        'timesafe','accsafe','timeexp','accexp',
                                                        'safe','seed','experimental',
@@ -311,12 +316,12 @@ def onlinelearnInner(benchmark):
     if config.online_baseline:
       c = None
     else:
-      c = p
+      c = p.clone()
     if not tester.race(p, c):
       raise Exception()
     if not p.wasTimeout:
       pop.add(p)
-    if c is not None and not c.wasTimeout:
+    if c and not c.wasTimeout:
       pop.add(c)
 
     '''now normal rounds'''  
@@ -373,6 +378,7 @@ def onlinelearnInner(benchmark):
           objectives.result(t,a)
         pop.output((p,c,s))
         ostats.writerow(objectives.stats(gen))
+        pstats.writerow(pop.stats(gen))
       else:
         print 'error'
 
