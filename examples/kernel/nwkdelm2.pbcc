@@ -119,7 +119,7 @@ generator NWKDEGenerator
 
         result /= totalWeight;
 #ifdef DEBUG
-        printf("Output %d = %g\n", k, result);
+        fprintf(stderr, "Output %d = %g\n", k, result);
 #endif // DEBUG
         return result;
     }
