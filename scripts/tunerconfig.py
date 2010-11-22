@@ -74,9 +74,9 @@ class config_defaults:
   abort_on = ""
   race_split_ratio = 0.5
   
-  threshold_multiplier_min = 1.0
-  threshold_multiplier_max = 100.0
-  threshold_multiplier_default=10.0
+  threshold_multiplier_min = 100.0
+  threshold_multiplier_max = 1000.0
+  threshold_multiplier_default=400.0
 
   recompile = True
 
