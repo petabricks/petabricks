@@ -4,8 +4,8 @@
 #include "utils.pbcc"
 #define DEBUG
 #define WORKAROUND // workaround for generator having specific sizes
-//#define CWD "/afs/csail.mit.edu/u/c/cychan/projects/petabricks/examples/kernel/
-#define CWD "/home/cychan/projects/petabricks/examples/kernel/"
+#define CWD "/afs/csail.mit.edu/u/c/cychan/projects/petabricks/examples/kernel/"
+//#define CWD "/home/cychan/projects/petabricks/examples/kernel/"
 
 transform NWKDEGenerator
 from IN[n]
