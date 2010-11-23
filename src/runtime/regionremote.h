@@ -31,6 +31,7 @@ namespace petabricks {
 
     void setRemoteObject(RemoteObjectPtr remoteObject);
 
+    void* fetchData(const void* msg, size_t len);
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
     void onRecv(const void* data, size_t len);
@@ -59,9 +60,9 @@ RegionRemote<D>::RegionRemote() {
 
 template <int D>
 RegionRemote<D>::~RegionRemote() {
-    pthread_mutex_destroy(&_seq_mux);
-    pthread_mutex_destroy(&_buffer_mux);
-    pthread_cond_destroy(&_buffer_cond);
+  pthread_mutex_destroy(&_seq_mux);
+  pthread_mutex_destroy(&_buffer_mux);
+  pthread_cond_destroy(&_buffer_cond);
 }
 
 template <int D>
@@ -75,7 +76,6 @@ RemoteObjectPtr RegionRemote<D>::genLocal(RegionRemotePtr region) {
     }
 
     void onRecv(const void* data, size_t len) {
-      JTRACE("recv")(*(ElementT*)data)(len);
       _region->onRecv(data, len);
     }
   };
@@ -95,29 +95,38 @@ void RegionRemote<D>::setRemoteObject(RemoteObjectPtr remoteObject) {
 using namespace _RegionRemoteMsgTypes;
 
 template <int D>
-ElementT RegionRemote<D>::readCell(const IndexT* coord) {
-  ReadCellMessage<D>* msg = (ReadCellMessage<D>*) malloc(sizeof(ReadCellMessage<D>) + (sizeof coord)*D); 
-  msg->type = MessageTypes::REGIONREMOTE_READCELL;
-  memcpy(msg->coord, coord, (sizeof coord) * D);
-  
+void* RegionRemote<D>::fetchData(const void* msg, size_t len) {
   pthread_mutex_lock(&_seq_mux);
-  _remoteObject->send(msg, sizeof(ReadCellMessage<D>));
+  _remoteObject->send(msg, len);
   uint16_t seq = ++_seq;
   pthread_mutex_unlock(&_seq_mux);
-  
-  delete msg;
 
   // wait for the data
   pthread_mutex_lock(&_buffer_mux);
   while (seq > _recv_seq) {
     pthread_cond_wait(&_buffer_cond, &_buffer_mux);
   }
-  ElementT elmt = *(ElementT*)_buffer[seq];
+
+  void* ret = _buffer[seq];
   _buffer.erase(seq);
+
   pthread_mutex_unlock(&_buffer_mux);
 
   // wake other threads
   pthread_cond_broadcast(&_buffer_cond);
+
+  return ret;
+}
+
+template <int D>
+ElementT RegionRemote<D>::readCell(const IndexT* coord) {
+  ReadCellMessage<D>* msg = (ReadCellMessage<D>*) malloc(sizeof(ReadCellMessage<D>) + (sizeof coord)*D); 
+  msg->type = MessageTypes::REGIONREMOTE_READCELL;
+  memcpy(msg->coord, coord, (sizeof coord) * D);
+  
+  ElementT elmt = *(ElementT*)this->fetchData(msg, sizeof(ReadCellMessage<D>));
+
+  delete msg;
   return elmt;
 }
 
@@ -128,24 +137,10 @@ void RegionRemote<D>::writeCell(const IndexT* coord, ElementT value) {
   msg->value = value;
   memcpy(msg->coord, coord, (sizeof coord) * _dimension);
 
-  pthread_mutex_lock(&_seq_mux);
-  _remoteObject->send(msg, sizeof(WriteCellMessage<D>));
-  uint16_t seq = ++_seq;
-  pthread_mutex_unlock(&_seq_mux);
-  
+  ElementT elmt = *(ElementT*)this->fetchData(msg, sizeof(WriteCellMessage<D>));
+
   delete msg;
-
-  // wait for the data
-  pthread_mutex_lock(&_buffer_mux);
-  while (seq > _recv_seq) {
-    pthread_cond_wait(&_buffer_cond, &_buffer_mux);
-  }
-  JASSERT(*(ElementT*)_buffer[seq]==value);
-  _buffer.erase(seq);
-  pthread_mutex_unlock(&_buffer_mux);
-
-  // wake other threads
-  pthread_cond_broadcast(&_buffer_cond);
+  JASSERT(elmt==value);
 }
 
 template <int D>

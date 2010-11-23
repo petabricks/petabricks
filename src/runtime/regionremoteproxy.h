@@ -12,6 +12,7 @@ namespace _RegionRemoteMsgTypes {
     enum {
       REGIONREMOTE_READCELL = 11,
       REGIONREMOTE_WRITECELL,
+      REGIONREMOTE_GETSIZE,
     };
   };
 
