@@ -4,6 +4,8 @@
 #include "utils.pbcc"
 #define DEBUG
 #define WORKAROUND // workaround for generator having specific sizes
+//#define CWD "/afs/csail.mit.edu/u/c/cychan/projects/petabricks/examples/kernel/
+#define CWD "/home/cychan/projects/petabricks/examples/kernel/"
 
 transform NWKDEGenerator
 from IN[n]
@@ -30,30 +32,66 @@ to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
         MatrixRegion2D a;
         MatrixRegion1D b;
 
-        a = MatrixIO("test/trainData.pba", "r").read2D();
+        char filename[1024];
+        int cwdLen = strlen(CWD);
+        strcpy(filename, CWD);
+
+        strcat(filename, "test/trainData.pba");
+        a = MatrixIO(filename, "r").read2D();
         Copy2D(trainData, a);
-        b = MatrixIO("test/wrapFlags.pba", "r").read1D();
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/wrapFlags.pba");
+        b = MatrixIO(filename, "r").read1D();
         Copy1D(wrapFlags, b.region(0,4));
-        b = MatrixIO("test/kernelWidths.pba", "r").read1D();
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/kernelWidths.pba");
+        b = MatrixIO(filename, "r").read1D();
         Copy1D(kernelWidths, b.region(0,4));
-        b = MatrixIO("test/trainIndices.pba", "r").read1D();
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/trainIndices.pba");
+        b = MatrixIO(filename, "r").read1D();
         Copy1D(trainIndices, b.region(0,n));
-        b = MatrixIO("test/trainVarIndex.pba", "r").read1D();
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/trainVarIndex.pba");
+        b = MatrixIO(filename, "r").read1D();
         Copy1D(trainVarIndex, b.region(0,8));
-        b = MatrixIO("test/trainTimeOffset.pba", "r").read1D();
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/trainTimeOffset.pba");
+        b = MatrixIO(filename, "r").read1D();
         Copy1D(trainTimeOffset, b.region(0,8));
 
-        a = MatrixIO("test/testData.pba", "r").read2D();
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/testData.pba");
+        a = MatrixIO(filename, "r").read2D();
         Copy2D(testData, a);
-        b = MatrixIO("test/testIndices.pba", "r").read1D();
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/testIndices.pba");
+        b = MatrixIO(filename, "r").read1D();
         Copy1D(testIndices, b.region(0,n));
-        b = MatrixIO("test/testVarIndex.pba", "r").read1D();
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/testVarIndex.pba");
+        b = MatrixIO(filename, "r").read1D();
         Copy1D(testVarIndex, b.region(0,8));
-        b = MatrixIO("test/testTimeOffset.pba", "r").read1D();
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/testTimeOffset.pba");
+        b = MatrixIO(filename, "r").read1D();
         Copy1D(testTimeOffset, b.region(0,8));
 
-        outputVarIndex = MatrixIO("test/outputVarIndex.pba", "r").read0D();
-        outputTimeOffset = MatrixIO("test/outputTimeOffset.pba", "r").read0D();
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/outputVarIndex.pba");
+        outputVarIndex = MatrixIO(filename, "r").read0D();
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/outputTimeOffset.pba");
+        outputTimeOffset = MatrixIO(filename, "r").read0D();
     }
 }
 
@@ -277,7 +315,7 @@ to RESULT[q]
           OUTPUTVARINDEX   outputVarIndex,
           OUTPUTTIMEOFFSET outputTimeOffset)
     {
-        int mid = n2 / 2;
+        int mid = q / 2;
 
         if (mid > 0) {
             NWKDERecursive(result.region(0, mid),
@@ -288,11 +326,11 @@ to RESULT[q]
                            outputVarIndex, outputTimeOffset);
         }
 
-        if (mid < testIndices.count()) {
-            NWKDERecursive(result.region(mid, n2),
+        if (mid < q) {
+            NWKDERecursive(result.region(mid, q),
                            trainData, wrapFlags, kernelWidths,
                            trainIndices, trainVarIndex, trainTimeOffset,
-                           testData, testIndices.region(mid, n2),
+                           testData, testIndices.region(mid, q),
                            testVarIndex, testTimeOffset,
                            outputVarIndex, outputTimeOffset);
         }
