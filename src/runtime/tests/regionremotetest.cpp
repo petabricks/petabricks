@@ -23,8 +23,33 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
 
+bool compareRegion(RegionIPtr r1, RegionRemote<3>* r2) {
+  int dim = r1->dimension();
+  
+  IndexT* coord = new IndexT[dim];
+  memset(coord, 0, (sizeof coord) * dim);
+  
+  while (true) {
+    ElementT v1 = r1->readCell(coord);
+    ElementT v2 = r2->readCell(coord);
+      
+    if (v1 != v2) {
+      printf("Error: %4.8g %4.8g\n", v1, v2);
+      return false;
+    }
+    
+    if (r1->incCoord(coord) == -1) {
+      break;
+    }
+  }
+  
+  delete(coord);
+  return true;
+}
+
 int main(int argc, const char** argv){
-  char* filename = "testdata/Helmholtz3DB1";
+  char* filename1 = "testdata/Helmholtz3DZeros";
+  char* filename2 = "testdata/Helmholtz3DA";
 
   RemoteHostDB hdb;
   RemoteObjectPtr local;
@@ -34,41 +59,45 @@ int main(int argc, const char** argv){
     hdb.accept();
     hdb.spawnListenThread();
 
-    RegionRemote<3>* region = new RegionRemote<3>();
+    RegionRemote<3>* remoteRegion = new RegionRemote<3>();
 
     hdb.host(0)->createRemoteObject
-      (local=RegionRemote<3>::genLocal(region),
-       &RegionRemote<3>::genRemote, filename, strlen(filename));
+      (local=RegionRemote<3>::genLocal(remoteRegion),
+       &RegionRemote<3>::genRemote, filename1, strlen(filename1));
     local->waitUntilCreated();
     
-    region->setRemoteObject(local);
+    remoteRegion->setRemoteObject(local);
 
-    MatrixIO* matrixio = new MatrixIO(filename, "r");
-    RegionIPtr contiguousRegion = matrixio->readToRegionI();
-
-    int dim = contiguousRegion->dimension();
+    MatrixIO* matrixio = new MatrixIO(filename2, "r");
+    RegionIPtr local = matrixio->readToRegionI();
+    delete matrixio;
+    
+    int dim = local->dimension();
     
     IndexT* coord = new IndexT[dim];
     memset(coord, 0, (sizeof coord) * dim);
-         
+    
     while (true) {
-      ElementT v1 = contiguousRegion->readCell(coord);
-      ElementT v2 = region->readCell(coord);
-      
-      if (v1 != v2) {
-	printf("%4.8g %4.8g\n", v1, v2);
-      }
-  
-      if (contiguousRegion->incCoord(coord) == -1) {
+      ElementT v = local->readCell(coord);
+      remoteRegion->writeCell(coord, v);
+    
+      if (local->incCoord(coord) == -1) {
 	break;
       }
     }
-
+    
     delete(coord);
 
-    region->markComplete();
-    printf("complete\n");
+    if (!compareRegion(local, remoteRegion)) {
+      remoteRegion->markComplete();
+      printf("write failed\n");
+      return -1;
+    }
+    
+    remoteRegion->markComplete();
+    printf("completed\n");
     return 0;
+
   } else {
     JASSERT(argc==3);
     hdb.connect(argv[1], jalib::StringToInt(argv[2]));
