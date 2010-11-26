@@ -150,6 +150,7 @@ rootsolve/laguerre
 rootsolve/rootsolve
 rootsolve/secant
 simple/add
+simple/bufferrotate2
 simple/bufferrotate
 simple/copy
 simple/matrixrotate
@@ -158,6 +159,7 @@ simple/randomshuffle
 simple/rollingsum
 simple/transpose
 sort/Insertionsort
+sort/Mergesort2
 sort/Mergesort
 sort/Parallel_Mergesort
 sort/Quicksort
