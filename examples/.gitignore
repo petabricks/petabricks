@@ -118,6 +118,8 @@ regression/coscheduled2
 regression/duplicate
 regression/fileprefix
 regression/forenough
+regression/forwarddecl
+regression/function
 regression/generators
 regression/matrixversions2
 regression/matrixversions

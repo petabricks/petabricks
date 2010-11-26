@@ -60,6 +60,7 @@ regression/coscheduled1    Rand2Da /dev/null
 regression/coscheduled2    Rand2Da
 regression/duplicate       Rand1D
 regression/fileprefix      Rand2Da
+regression/function        One0D One0D
 regression/generators      Rand1D Rand1D
 regression/matrixversions  Rand2Da
 regression/memoize         Rand1D
