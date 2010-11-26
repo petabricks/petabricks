@@ -1,8 +1,5 @@
 #include "../simple/copy.pbcc"
 
-#define CAT(a,b) _CAT(a,b)
-#define _CAT(a,b) a ## b
-
 #ifndef SORTSUBARRAY
 #define SORTSUBARRAY Parallel_MergesortSubArray
 #endif
