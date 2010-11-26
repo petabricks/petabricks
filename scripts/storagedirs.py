@@ -4,6 +4,9 @@ import warnings
 import tunerconfig
 from tunerconfig import config
 
+class dialect(csv.excel_tab):
+  lineterminator="\n"
+
 try:
   from os.path import relpath as _relpath
 except:
@@ -125,9 +128,9 @@ class StorageDirsTemplate:
       os.unlink(os.path.join(self.inputd, f))
 
   def openCsvStats(self, name, headerRow):
-    w=csv.writer(open(os.path.join(self.statsd, name + ".csv"), "w"))
+    w=csv.writer(open(os.path.join(self.statsd, name + ".csv"), "w"), dialect=dialect)
     if headerRow is not None:
-      w.writerow(headerRow)
+      w.writerow(['#'+headerRow[0]]+list(headerRow[1:]))
     return w
 
   def saveFile(self, path):
@@ -149,7 +152,6 @@ class StorageDirsTemplate:
     except Exception, e:
       warnings.warn("Failed to record git status: "+e)
 
-  
 cur = None
 
 def callWithLogDir(fn, root, delete):
@@ -163,6 +165,8 @@ def callWithLogDir(fn, root, delete):
   finally:
     if delete:
       shutil.rmtree(d)
+    else:
+      print d
 
 candidate    = lambda cid:          cur.candidate(cid)
 mutatorlog   = lambda m:            cur.mutatorlog(m)

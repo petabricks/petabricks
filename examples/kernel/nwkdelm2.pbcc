@@ -1,0 +1,129 @@
+#ifndef NWKDELM2_PBCC
+#define NWKDELM2_PBCC
+
+#include "utils.pbcc"
+#include "nwkde.pbcc"
+
+#define DEBUG
+#define WORKAROUND // workaround for generator having specific sizes
+
+transform NWKDELM2
+#ifdef WORKAROUND
+from TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
+     TRAININDICES[l], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
+     TESTDATA[4,8750],
+     TESTINDICES[q], TESTVARINDEX[8], TESTTIMEOFFSET[8],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+to RESULT[q]
+through INPUTSCHECKED
+#else
+from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
+     TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
+     TESTDATA[m2,n2],
+     TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+to RESULT[q]
+through INPUTSCHECKED
+#endif
+generator NWKDEGenerator
+//optimize KERNELWIDTHS[m]
+{
+    INPUTSCHECKED
+    from (TRAINDATA        trainData,
+          TRAININDICES     trainIndices,
+          TRAINVARINDEX    trainVarIndex,
+          TRAINTIMEOFFSET  trainTimeOffset,
+          TESTDATA         testData,
+          TESTINDICES      testIndices,
+          TESTVARINDEX     testVarIndex,
+          TESTTIMEOFFSET   testTimeOffset,
+          OUTPUTVARINDEX   outputVarIndex,
+          OUTPUTTIMEOFFSET outputTimeOffset)
+    {
+        double ret;
+#ifdef DEBUG
+        NWKDECheckInputs(ret, trainData, trainIndices,
+                         trainVarIndex, trainTimeOffset,
+                         testData, testIndices,
+                         testVarIndex, testTimeOffset,
+                         outputVarIndex, outputTimeOffset);
+#endif
+        return 0;
+    }
+
+    RESULT.cell(k)
+    from (TRAINDATA trainData,
+          WRAPFLAGS wrapFlags,
+          KERNELWIDTHS kernelWidths,
+          TRAININDICES trainIndices,
+          TRAINVARINDEX trainVarIndex,
+          TRAINTIMEOFFSET trainTimeOffset,
+          TESTDATA testData,
+          TESTINDICES.cell(k) testIndex,
+          TESTVARINDEX testVarIndex,
+          TESTTIMEOFFSET testTimeOffset,
+          OUTPUTVARINDEX outputVarIndex,
+          OUTPUTTIMEOFFSET outputTimeOffset,
+          INPUTSCHECKED inputsChecked)
+    {
+        double result = 0, totalWeight = 0;
+
+        for (int j = 0; j < trainIndices.count(); ++j) {
+
+            int trainIndex = (int) trainIndices.cell(j);
+
+            double sum = 0, weight;
+
+            for (int i = 0; i < trainVarIndex.count(); ++i) {
+
+                int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
+                double kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
+
+                int trainTimeIndex = (int) trainIndex + (int) trainTimeOffset.cell(i);
+                int  testTimeIndex = (int)  testIndex + (int)  testTimeOffset.cell(i);
+
+                double trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
+                double  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
+
+                double diff = trainPoint - testPoint;
+
+                if (wrapFlag) {
+
+                    // wrap relative difference into [-180,180]
+                    // do most of the arithmetic in integers for speed
+                    // P360 and M360 indicate "plus 360" and "minus 360"
+
+                    // add 360 *before* cast to round towards -INF instead of towards 0
+                    int diffIntP360 = (int) (diff + 360);
+
+                    // add 180 to ensure modulo result is positive
+                    int diffIntWrapP360 = ((diffIntP360 + 180) % 360) + 180;
+
+                    double diffFracM360 = diff - diffIntP360;
+                    diff = diffIntWrapP360 + diffFracM360;
+                }
+
+                // normalize according to kernel width
+                diff /= kernelWidth;
+
+                // return squared difference
+                sum += diff * diff;
+            }
+
+            weight = exp(-((double) sum));
+            totalWeight += weight;
+
+            int outputTimeIndex = (int) trainIndex + (int) outputTimeOffset;
+            result += trainData.cell((int) outputVarIndex, outputTimeIndex) * weight;
+        }
+
+        result /= totalWeight;
+#ifdef DEBUG
+        fprintf(stderr, "Output %d = %g\n", k, result);
+#endif // DEBUG
+        return result;
+    }
+}
+
+#endif // NWKDELM_PBCC
+
