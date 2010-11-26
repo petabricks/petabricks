@@ -133,8 +133,12 @@ Transform: TransformHeader TransformBody {
   ($$=$1)->setRules(*$2); 
 };
 
+Transform: TransformHeader ';' {
+  //forward decl syntax 
+};
+
 TransformHeader: Nil {$$=REFALLOC(Transform());};
-TransformHeader: TransformHeader ';'                                  { P($$=$1); };
+//TransformHeader: TransformHeader ';'                                { P($$=$1); };
 TransformHeader: TransformHeader KW_MAIN                              { P($$=$1)->markMain(); };
 TransformHeader: TransformHeader KW_MEMOIZED                          { P($$=$1)->markMemoized();  };
 TransformHeader: TransformHeader KW_TRANSFORM IDENT                   { P($$=$1)->setName($3);     };
