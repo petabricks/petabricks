@@ -141,6 +141,7 @@ void petabricks::RemoteHost::handshake() {
   HelloMessage msg = { MessageTypes::HELLO_CONTROL,
                        self,
                        REMOTEHOST_DATACHANS};
+  _control.disableNagle();
   _control.writeAll((char*)&msg, sizeof msg);
   _control.readAll((char*)&msg, sizeof msg);
   JASSERT(msg.type == MessageTypes::HELLO_CONTROL && msg.id != self && msg.chan == REMOTEHOST_DATACHANS);
@@ -148,8 +149,9 @@ void petabricks::RemoteHost::handshake() {
   
   for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
     HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i};
-    JASSERT(_control.writeAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
-    JASSERT(_control.readAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
+    _data[i].disableNagle();
+    JASSERT(_data[i].writeAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
+    JASSERT(_data[i].readAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
     JASSERT(dmsg.type == MessageTypes::HELLO_DATA
         && dmsg.id == _id 
         && dmsg.chan == i);
@@ -170,7 +172,12 @@ bool petabricks::RemoteHost::recv() {
     _controlmu.unlock();
     return false;
   }
-  JASSERT(cnt==sizeof msg);
+  if(cnt<0) {
+    _controlmu.unlock();
+    JASSERT(false)(_id).Text("disconnected");
+    return false;
+  }
+  JASSERT(cnt==sizeof msg)(cnt);
 
   if(msg.len>0){
     JASSERT(msg.chan>=0 && msg.chan<REMOTEHOST_DATACHANS);
@@ -360,6 +367,7 @@ petabricks::RemoteHostDB::RemoteHostDB()
     JASSERT(_port < LISTEN_PORT_FIRST+512)(_port);
     _listener = jalib::JServerSocket(jalib::JSockAddr::ANY, ++_port);
   }
+  _listener.enablePortReuse();
   char buf[1024];
   JASSERT(gethostname(buf, sizeof buf) >= 0);
   _host = buf;
