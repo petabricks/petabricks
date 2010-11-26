@@ -111,6 +111,9 @@
 /* Define to 1 if you have the <openssl/sha.h> header file. */
 #undef HAVE_OPENSSL_SHA_H
 
+/* Define to 1 if you have the <poll.h> header file. */
+#undef HAVE_POLL_H
+
 /* Define to 1 if you have the <signal.h> header file. */
 #undef HAVE_SIGNAL_H
 
@@ -174,11 +177,17 @@
 /* Cause the custom allocator to call malloc instead of mmap */
 #undef JALIB_USE_MALLOC
 
+/* skip some copies in debug printing, conflicts with JASSERT_LOG */
+#undef JASSERT_FAST
+
 /* log traces to /tmp/jassertlog.pid */
 #undef JASSERT_LOG
 
 /* include source line numbers in error messages */
 #undef JASSERT_USE_SRCPOS
+
+/* first port to try to use to listen */
+#undef LISTEN_PORT_FIRST
 
 /* type for elements in the matrix */
 #undef MATRIX_ELEMENT_T

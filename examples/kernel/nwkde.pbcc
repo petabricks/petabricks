@@ -1,0 +1,99 @@
+#ifndef NWKDE_PBCC
+#define NWKDE_PBCC
+
+#include "utils.pbcc"
+
+/*  TRAINDATA - block of data: n time slices, m variables per time slice
+    WRAPFLAGS - indicates whether TRAINDATA column corresponds to a wind
+                direction \in [0, 360]
+    KERNELWIDTHS - width of the kernel function to use for a data column
+    TRAININDICES - p time indices into TRAINDATA to use for training
+    TESTPOINT - k-dim data point to do the regression
+
+    For each component of POINT:
+      VARINDEX - which variable in TRAINDATA
+      TIMEOFFSET - time offset from the trainIndex in TRAINDATA
+
+    SQDIFFS - squared differences between test point and train data for each
+              training index and for each point dimension
+*/
+
+transform NWKDE
+from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
+     TRAININDICES[p],
+     TESTPOINT[k], VARINDEX[k], TIMEOFFSET[k],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+through SQDIFFS[k,p], WEIGHTS[p], PARTIALS[p]
+to RESULT
+{
+    SQDIFFS.cell(i,j)
+    from (TRAINDATA trainData,
+          WRAPFLAGS wrapFlags,
+          KERNELWIDTHS kernelWidths,
+          TRAININDICES.cell(j) trainIndex,
+          TESTPOINT.cell(i) testPoint,
+          VARINDEX.cell(i) varIndex,
+          TIMEOFFSET.cell(i) timeOffset)
+    {
+        int wrapFlag = (int) wrapFlags.cell((int) varIndex);
+        double kernelWidth = kernelWidths.cell((int) varIndex);
+        int timeIndex = (int) trainIndex + (int) timeOffset;
+        double trainPoint = trainData.cell((int) varIndex, timeIndex);
+
+        double diff = trainPoint - testPoint;
+
+        if (wrapFlag) {
+            
+            // wrap relative difference into [-180,180]
+            // do most of the arithmetic in integers for speed
+            // P360 and M360 indicate "plus 360" and "minus 360"
+
+            // add 360 *before* cast to round towards -INF instead of towards 0
+            int diffIntP360 = (int) (diff + 360);
+
+            // add 180 to ensure modulo result is positive
+            int diffIntWrapP360 = ((diffIntP360 + 180) % 360) + 180;
+
+            double diffFracM360 = diff - diffIntP360;
+            diff = diffIntWrapP360 + diffFracM360;
+        }
+
+        // normalize according to kernel width
+        diff /= kernelWidth;
+
+        // return squared difference
+        return diff * diff;
+    }
+
+    to (WEIGHTS.cell(i) weight)
+    from (SQDIFFS.row(i) sqDiffs)
+    {
+        ReduceAdd(weight, sqDiffs);
+        weight = exp(-((double) weight));
+    }
+
+    to (PARTIALS.cell(i) partial)
+    from (TRAINDATA trainData,
+          TRAININDICES.cell(i) trainIndex,
+          OUTPUTVARINDEX outputVarIndex,
+          OUTPUTTIMEOFFSET outputTimeOffset,
+          WEIGHTS.cell(i) weight)
+    {
+        int timeIndex = (int) trainIndex + (int) outputTimeOffset;
+        partial = trainData.cell((int) outputVarIndex, timeIndex);
+        partial *= weight;
+    }
+
+    to (RESULT result)
+    from (PARTIALS partials,
+          WEIGHTS weights)
+    {
+        double totalWeight;
+        ReduceAdd(result, partials);
+        ReduceAdd(totalWeight, weights);
+        result /= totalWeight;
+    }
+}
+
+#endif // NWKDE_PBCC
+

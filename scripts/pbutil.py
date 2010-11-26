@@ -12,7 +12,8 @@ import socket
 import subprocess
 import sys
 import time
-from xml.dom.minidom import parse
+from xml.dom.minidom import parse,parseString
+from xml.dom import DOMException
 from pprint import pprint
 from configtool import getConfigVal, setConfigVal
 
@@ -340,28 +341,42 @@ def goodwait(p):
       if e.errno != errno.EINTR:
         raise
 
-def xmlToDict(xml, tag, fn=tryIntFloat):
+def xmlToDict(xml, tag, fn=tryIntFloat, idx=0):
   try:
-    rslt = xml.getElementsByTagName(tag)[0].attributes
+    rslt = xml.getElementsByTagName(tag)[idx].attributes
     attrs=dict()
     for x in xrange(rslt.length):
       attrs[str(rslt.item(x).name)]=fn(rslt.item(x).nodeValue)
     return attrs
-  except:
+  except Exception,e:
     return None
 
+NULL=open("/dev/null", "w")
 
-#parse timing results with a given time limit
-def executeRun(cmd, returnTags=['timing', 'accuracy', 'outputhash']):
-  null=open("/dev/null", "w")
-  p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
+def callAndWait(cmd):
+  p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=NULL)
   goodwait(p)
-
   if p.returncode == -15:
     raise TimingRunTimeout()
   if p.returncode != 0:
     raise TimingRunFailed(p.returncode)
-  xml = parse(p.stdout)
+  return p
+
+#parse timing results with a given time limit
+def executeRun(cmd, returnTags=['timing', 'accuracy', 'outputhash'], retries=3):
+  p = callAndWait(cmd)
+  try:
+    xml = parse(p.stdout)
+  except Exception, e:
+    print 'program crash',e
+    if retries>1:
+      return executeRun(cmd, returnTags, retries-1)
+    else:
+      p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
+      goodwait(p)
+      print p.stdout.read()
+      sys.exit(99)
+
   timing = xmlToDict(xml, "timing")
   if timing['average'] > 2**31:
     raise TimingRunTimeout()
@@ -369,6 +384,23 @@ def executeRun(cmd, returnTags=['timing', 'accuracy', 'outputhash']):
     return xmlToDict(xml, returnTags)
   else:
     return map(lambda t: xmlToDict(xml, t), returnTags)
+
+def executeRaceRun(cmd, configa, configb):
+  cmd = cmd + ['--config='+configa, '--race-with='+configb]
+  p = callAndWait(cmd)
+  try:
+    xml = parse(p.stdout)
+  except Exception, e:
+    print 'program crash',e
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
+    goodwait(p)
+    print p.stdout.read()
+    sys.exit(99)
+  aresult = xmlToDict(xml, "testresult", tryIntFloat, 0)
+  bresult = xmlToDict(xml, "testresult", tryIntFloat, 1)
+  assert aresult['label']==0
+  assert bresult['label']==1
+  return aresult, bresult
 
 #parse timing results with a given time limit
 def executeTimingRun(prog, n, args=[], limit=None, returnTags='timing'):

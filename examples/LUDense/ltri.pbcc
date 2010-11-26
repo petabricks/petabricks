@@ -1,0 +1,17 @@
+transform ltri
+from IN[n, n]
+to OUT[n, n]
+{
+    to   (OUT.cell(j, i) out)
+    from ( IN.cell(j, i) in)
+    {
+        if (i > j) {
+            out = in;
+        } else if (i == j) {
+            out = 1;
+        } else {
+            out = 0;
+        }
+    }
+}
+

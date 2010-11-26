@@ -92,4 +92,12 @@ class NewProgramCrash(ProgramCrash):
   '''a mutated child algorithm crashed'''
   pass
 
+class TooManyTrials(TunerWarning):
+  '''base class for program crash warnings'''
+  def __init__(self, trial):
+    self.trials=trial
+  def __str__(self):
+    return TunerWarning.__str__(self)+\
+        ": trials=%d" % self.trials
+
 

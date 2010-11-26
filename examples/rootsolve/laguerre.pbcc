@@ -1,0 +1,73 @@
+#ifndef LAGUERRE_PBCC
+#define LAGUERRE_PBCC
+
+#include "evalf.pbcc"
+#include "evalf2.pbcc"
+
+
+transform Laguerre
+from F[n], A, B, C, FA, FB, FC
+through DFX, DF2X
+to Aout, Bout, Cout, FAout, FBout, FCout
+{
+   to (Aout aout, Bout bout, Cout cout, FAout faout, FBout fbout, FCout fcout, DFX dfx, DF2X df2x)
+   from (F f, A a, B b, C c, FA fa, FB fb, FC fc)
+   {
+        double temp;
+        double G;
+        double H;
+        double D1;
+        double D2;
+
+        //Laguerre step
+        if (b-c == 0 || fb == 0)  {
+                bout = b;
+                fbout = fb;
+        }
+        else {
+                evalf2(fbout,dfx,df2x,f,b);
+                G = dfx/fb;
+                H = G*G - df2x/fb;
+                H = sqrt((n-2) * ((n-1)*H - G*G));
+                D1 = G+H;
+                D2 = G-H;
+                if ( fabs(D1) > fabs(D2) ) {
+                        bout = b - (n-1)/D1;
+                }
+                else
+                {
+                        bout = b - (n-1)/D2;
+                }
+                evalf(fbout,f,bout);
+        }
+
+
+        //set c to the old b
+        cout = b;
+        fcout = fb;
+
+        //if sign of f(b) change, set a equal to the old b to maintain a bracketing interval
+        if (faout*fbout > 0 ) {
+                aout=b;
+                faout=fb;
+        }
+        else {
+                aout=a;
+                faout=fa;
+        }
+
+        //switch a and b if a is a better root
+        if ( fabs(fbout) > fabs(faout) ) {
+                temp=bout; bout=aout; aout=temp;
+                temp=fbout; fbout=faout; faout=temp;
+                cout=aout;fcout=faout;
+        }
+
+  }
+
+}
+
+
+
+
+#endif // LAGUERRE_PBCC

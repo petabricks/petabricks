@@ -19,6 +19,9 @@
 # include "config.h"
 #endif
 
+#ifdef HAVE_POLL_H
+#include <poll.h>
+#endif 
 #ifdef HAVE_SIGNAL_H
 #include <signal.h>
 #endif 
@@ -43,7 +46,7 @@
 
 // annoyingly lapack returns 0 when it aborts, so we use a "secret" rv here
 #define SUCCESS_RV 198
-
+#define RUNNING_RV -257
 #define CRASH_RV 666
 
 static void _settestprocflags(){
@@ -71,7 +74,7 @@ JASSERT_STATIC(sizeof COOKIE_DONE == sizeof COOKIE_DISABLETIMEOUT);
 JASSERT_STATIC(sizeof COOKIE_DONE == sizeof COOKIE_RESTARTTIMEOUT);
 
 petabricks::SubprocessTestIsolation::SubprocessTestIsolation(double to) 
-  : _pid(-1), _fd(-1), _rv(-257), _timeout(to)
+  : _pid(-1), _fd(-1), _rv(RUNNING_RV), _timeout(to)
 {
   if(_timeout < std::numeric_limits<double>::max()-TIMEOUT_GRACESEC)
     _timeout += TIMEOUT_GRACESEC;
@@ -98,6 +101,7 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads) {
     //parent
     _fd=fds[0];
     close(fds[1]);
+    _rv = RUNNING_RV;
     return false;
   }else{
     //child
@@ -121,14 +125,13 @@ void petabricks::SubprocessTestIsolation::restartTimeout() {
   fsync(_fd);
 }
 
-void petabricks::SubprocessTestIsolation::endTest(double time, double accuracy, const jalib::Hash& _hash) {
-  jalib::Hash hash = _hash;
+void petabricks::SubprocessTestIsolation::endTest(TestResult& result) {
   JASSERT(_pid==0);
   JASSERT(write(_fd, COOKIE_DONE, strlen(COOKIE_DONE))>0)(JASSERT_ERRNO);
   jalib::JBinarySerializeWriterRaw o("pipe", _fd);
-  o.serialize(time);
-  o.serialize(accuracy);
-  o & hash;
+  o.serialize(result.time);
+  o.serialize(result.accuracy);
+  o & result.hash;
   o.serializeVector(_modifications);
   fflush(NULL);
   fsync(_fd);
@@ -138,8 +141,8 @@ void petabricks::SubprocessTestIsolation::endTest(double time, double accuracy, 
   _exit(SUCCESS_RV);
 }
 
-inline static void _settimespec(struct timespec& timeout, double sec){
-  if(sec>=std::numeric_limits<long>::max()){
+inline static void _settimeout(struct timespec& timeout, double sec){
+  if(sec >= std::numeric_limits<long>::max()){
     timeout.tv_sec=std::numeric_limits<long>::max();
     timeout.tv_nsec=0;
   }else{
@@ -148,63 +151,112 @@ inline static void _settimespec(struct timespec& timeout, double sec){
   }
 }
 
-void petabricks::SubprocessTestIsolation::recvResult(double& time, double& accuracy, jalib::Hash& hash) {
-  time = jalib::maxval<double>();
-  accuracy = jalib::minval<double>();
-  _rv=-257;//special value means still running
-  struct timespec timeout;
-  fd_set rfds;
-  FD_ZERO(&rfds);
-  _settimespec(timeout, _timeout);
+inline static void _settimeout(int& timeout, double sec){
+  if(sec >= std::numeric_limits<int>::max()/1000-1){
+    timeout = -1;
+  }else{
+    timeout = (int)(sec*1000.0 + 0.5);
+  }
+}
+
+
+void petabricks::SubprocessTestIsolation::recvResult(TestResult& result) {
+  TimeoutT timeout;
+  int ready;
+  _settimeout(timeout, _timeout);
+
+  struct pollfd fds[1];
+  fds[0].fd = _fd;
+  fds[0].events = POLLIN;
+  fds[0].revents = 0;
 
   for(;;){
-    FD_SET(_fd, &rfds);
-    int s=pselect(_fd+1, &rfds, NULL, NULL, &timeout, NULL);
-    JASSERT(s>=0)(s);
+    ready = poll(fds, sizeof(fds)/sizeof(struct pollfd), timeout);
+    JASSERT(ready>=0)(ready);
 
-    if(s==0){
-      //timeout... kill the subprocess
+    if(ready==0){ //timeout
       killChild();
       break;
     }
 
-    //receive a control code
-    std::string cnt = recvControlCookie();
-
-    //check control code:
-    if(cnt==COOKIE_DISABLETIMEOUT){
-      _settimespec(timeout, std::numeric_limits<double>::max());
-      continue;
+    if(handleEvent(result, timeout)){
+      break;
     }
-    if(cnt==COOKIE_RESTARTTIMEOUT){
-      _settimespec(timeout, _timeout);
-      continue;
-    }
-    if(cnt!=COOKIE_DONE || (!running() && rv()!=SUCCESS_RV )){ 
-      //unknown control code, most likely assertion failure in child
-      killChild();
-      throw UnknownTestFailure(rv());
-    }
-
-    //read the result
-    jalib::JBinarySerializeReaderRaw o("pipe", _fd);
-    o.serialize(time);
-    o.serialize(accuracy);
-    o & hash;
-    o.serializeVector(_modifications);
-
-    //reapply tunable modifications to this process
-    for(size_t i=0; i<_modifications.size(); ++i)
-      _modifications[i].tunable->setValue(_modifications[i].value);
-    _modifications.clear();
-
-    //wait for subprocess to exit cleanly
-    waitExited();
-    if(rv()!=SUCCESS_RV){
-      throw UnknownTestFailure(rv());
-    }
-    break;
   }
+}
+    
+void petabricks::SubprocessTestIsolation::recvFirstResult(SubprocessTestIsolation& a, TestResult& aresult,
+                                                          SubprocessTestIsolation& b, TestResult& bresult) {
+  TimeoutT atimeout;
+  TimeoutT btimeout;
+  _settimeout(atimeout, a._timeout);
+  _settimeout(btimeout, b._timeout);
+  int ready;
+
+  struct pollfd fds[2];
+  fds[0].fd = a._fd;
+  fds[0].events = POLLIN;
+  fds[0].revents = 0;
+  fds[1].fd = b._fd;
+  fds[1].events = POLLIN;
+  fds[1].revents = 0;
+
+  for(;;){
+    ready = poll(fds, sizeof(fds)/sizeof(struct pollfd), std::max(atimeout,btimeout));
+    JASSERT(ready>=0)(ready);
+
+    if(ready==0){ //timeout
+      a.killChild();
+      b.killChild();
+      break;
+    }
+
+    bool adone = (fds[0].revents&POLLIN)!=0 && a.handleEvent(aresult, atimeout);
+    bool bdone = (fds[1].revents&POLLIN)!=0 && b.handleEvent(bresult, btimeout);
+    if(adone && !bdone) b.killChild();
+    if(bdone && !adone) a.killChild();
+    if(adone || bdone)  break;
+  }
+}
+
+bool petabricks::SubprocessTestIsolation::handleEvent(TestResult& result,
+                                                      TimeoutT& timeout) {
+  //receive a control code
+  std::string cnt = recvControlCookie();
+
+  //check control code:
+  if(cnt==COOKIE_DISABLETIMEOUT){
+    _settimeout(timeout, std::numeric_limits<double>::max());
+    return false;
+  }
+  if(cnt==COOKIE_RESTARTTIMEOUT){
+    _settimeout(timeout, _timeout);
+    return false;
+  }
+  if(cnt!=COOKIE_DONE || (!running() && rv()!=SUCCESS_RV )){ 
+    //unknown control code, most likely assertion failure in child
+    killChild();
+    throw UnknownTestFailure(rv());
+  }
+
+  //read the result
+  jalib::JBinarySerializeReaderRaw o("pipe", _fd);
+  o.serialize(result.time);
+  o.serialize(result.accuracy);
+  o & result.hash;
+  o.serializeVector(_modifications);
+
+  //reapply tunable modifications to this process
+  for(size_t i=0; i<_modifications.size(); ++i)
+    _modifications[i].tunable->setValue(_modifications[i].value);
+  _modifications.clear();
+
+  //wait for subprocess to exit cleanly
+  waitExited();
+  if(rv()!=SUCCESS_RV){
+    throw UnknownTestFailure(rv());
+  }
+  return true;
 }
 
 std::string petabricks::SubprocessTestIsolation::recvControlCookie() {
@@ -246,7 +298,7 @@ void  petabricks::SubprocessTestIsolation::testExited() {
     if(waitpid(_pid, &_rv, WNOHANG)==_pid)
       JASSERT(!running())(_rv);
     else
-      _rv=-257;//ensure running()
+      _rv=RUNNING_RV;//ensure running()
   }
 }
 bool petabricks::SubprocessTestIsolation::running(){ 
@@ -264,9 +316,9 @@ bool petabricks::DummyTestIsolation::beginTest(int workerThreads) {
   return true;
 }
 
-void petabricks::DummyTestIsolation::endTest(double /*time*/, double /*accuracy*/, const jalib::Hash&) {}
+void petabricks::DummyTestIsolation::endTest(TestResult&) {}
 
-void petabricks::DummyTestIsolation::recvResult(double& /*time*/, double& /*accuracy*/, jalib::Hash&) {
+void petabricks::DummyTestIsolation::recvResult(TestResult&) {
   JASSERT(false);
 }
 

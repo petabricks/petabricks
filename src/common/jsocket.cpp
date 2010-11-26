@@ -34,6 +34,7 @@
 #include <errno.h>
 #include <algorithm>
 #include <set>
+#include <poll.h>
 
 #ifdef HAVA_CONFIG_H
 #  include "config.h"
@@ -45,7 +46,6 @@
 #  include "syscallwrappers.h"
 #  define DECORATE_FN(fn) ::_real_ ## fn
 #endif
-
 
 const jalib::JSockAddr jalib::JSockAddr::ANY ( NULL );
 
@@ -151,15 +151,51 @@ bool jalib::JSocket::close()
 
 ssize_t jalib::JSocket::read ( char* buf, size_t len )
 {
-  return ::read ( _sockfd,buf,len );
+  return ::read ( _sockfd, buf,len );
+}
+
+ssize_t jalib::JSocket::tryReadAll ( char* buf, size_t len )
+{
+  // optimistically try a non-blocking read
+  ssize_t rv = ::recv( _sockfd, buf, len, MSG_DONTWAIT);
+  if(rv==0) {
+    JTRACE("fallback case, got ambiguous read result");
+    struct pollfd fd;
+    fd.fd = _sockfd;
+    fd.events = POLLIN;
+    fd.revents = 0;
+    if(poll(&fd, 1, 0) > 0) {
+      JASSERT(fd.revents == POLLIN);
+      rv += readAll(buf+rv, len-rv);
+    }
+  } else if(rv<0 && (errno == EWOULDBLOCK || errno == EINTR)) {
+    rv = 0;
+  } else if(0<rv && rv<(ssize_t)len) {
+    JTRACE("fallback case, got only part of requested data")(rv)(len);
+    rv += readAll(buf+rv, len-rv);
+  }
+  return rv;
 }
 
 ssize_t jalib::JSocket::write ( const char* buf, size_t len )
 {
-  return ::write ( _sockfd,buf,len );
+  return ::write ( _sockfd, buf,len );
 }
 
-ssize_t jalib::JSocket::readAll ( char* buf, size_t len )
+ssize_t jalib::JSocket::readAll( char* buf, size_t len )
+{
+  ssize_t rv = ::recv( _sockfd, buf,len, MSG_WAITALL);
+  if(rv<0 && (errno == EWOULDBLOCK || errno == EINTR)) {
+    rv = 0;
+  }
+  if(0<=rv && rv<(ssize_t)len) {
+    JTRACE("fallback");
+    rv += readAllFallback(buf+rv, len-rv);
+  }
+  return rv;
+}
+
+ssize_t jalib::JSocket::readAllFallback ( char* buf, size_t len )
 {
   int origLen = len;
   while ( len > 0 )
@@ -206,7 +242,20 @@ ssize_t jalib::JSocket::readAll ( char* buf, size_t len )
   return origLen;
 }
 
-ssize_t jalib::JSocket::writeAll ( const char* buf, size_t len )
+ssize_t jalib::JSocket::writeAll( const char* buf, size_t len )
+{
+  ssize_t rv = ::write( _sockfd, buf,len);
+  if(rv<0 && (errno == EWOULDBLOCK || errno == EINTR)) {
+    rv = 0;
+  }
+  if(0<=rv && rv<(ssize_t)len) {
+    JTRACE("fallback");
+    rv += writeAllFallback(buf+rv, len-rv);
+  }
+  return rv;
+}
+
+ssize_t jalib::JSocket::writeAllFallback ( const char* buf, size_t len )
 {
   int origLen = len;
   while ( len > 0 )

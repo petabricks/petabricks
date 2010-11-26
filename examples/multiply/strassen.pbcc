@@ -95,31 +95,24 @@ to C[n,n]
   }
 }
 
-// transform MatrixMultiplyTransposed
-// from A[n,n], B[n,n] 
-// to C[n,n]
-// {
-//   // transpose b
-//   to(C c) from(A a, B b) {
-//     int power2 = (1<<(int)(log(n)/log(2))) ;
-//     JASSERT(n==power2)(n)(power2).Text("n must be a power of 2");
-//     MatrixMultiplySqr(c, a, Transpose(b).transposed());
-//   }
-//   // no transpose
-//   to(C c) from(A a, B b) {
-//     int power2 = (1<<(int)(log(n)/log(2))) ;
-//     JASSERT(n==power2)(n)(power2).Text("n must be a power of 2");
-//     MatrixMultiplySqr(c, a, b);
-//   }
-//   // transpose a
-//   to(C c) from(A a, B b) {
-//     int power2 = (1<<(int)(log(n)/log(2))) ;
-//     JASSERT(n==power2)(n)(power2).Text("n must be a power of 2");
-//     MatrixMultiplySqr(c, Transpose(a).transposed(), b);
-//   }
-// }
-
-
-
-
+transform MatrixMultiplySqrTransposed
+from A[n,n], B[n,n] 
+through T[n,n]
+to C[n,n]
+{
+  // no transpose
+  to(C c, T t) from(A a, B b) {
+    MatrixMultiplySqr(c, a, b);
+  }
+  // transpose b
+  to(C c, T t) from(A a, B b) {
+    Transpose(t,b);
+    MatrixMultiplySqr(c, a, t.transposed());
+  }
+  // transpose a
+  to(C c, T t) from(A a, B b) {
+    Transpose(t,a);
+    MatrixMultiplySqr(c, t.transposed(), b);
+  }
+}
 

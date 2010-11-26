@@ -1,15 +1,34 @@
 #!/usr/bin/python
 from configtool import ConfigFile, defaultConfigFile
 import pbutil
-import tempfile, os, math, warnings, random, sys, subprocess
+import tempfile, os, math, warnings, random, sys, subprocess, time
 import shutil
 import storagedirs
 import tunerwarnings 
+import platform
+import numpy
+from storagedirs import timers
 from scipy import stats
 from tunerconfig import config
 from tunerwarnings import ComparisonFailed, InconsistentOutput
 warnings.simplefilter('ignore', DeprecationWarning)
 
+def getMemoryLimitArgs():
+  limit = []
+  if platform.machine() == 'x86_64' and platform.system() == 'Linux':
+    mi = filter(lambda x: x[0:9]=="MemTotal:", open("/proc/meminfo"))
+    assert len(mi)==1
+    v,u = mi[0][9:].strip().split(' ')
+    v=int(v)
+    assert u=="kB"
+    limit=['--max-memory=%d'%int(v*1024*config.memory_limit_pct)]
+  global getMemoryLimitArgs
+  getMemoryLimitArgs = lambda: limit
+  return limit
+
+class NoMutators(Exception):
+  '''Exception thrown when a mutation doesn't exist'''
+  pass
 
 class InputGenerationException(Exception):
   def __init__(self, testNumber):
@@ -34,6 +53,7 @@ class CrashException(Exception):
       raw_input('press any key to continue')
 
 def debug_logcmd(cmd):
+  #print ' '.join(cmd)
   pass
 
 class Results:
@@ -46,14 +66,14 @@ class Results:
 
   def __repr__(self):
     v=[]
-    v.extend(map(lambda x: "%.4f"%x,  self.realResults))
-    v.extend(map(lambda x: ">%.4f"%x, self.timeoutResults))
+    v.extend(map(lambda x: "%.6f"%x,  self.realResults))
+    v.extend(map(lambda x: ">%.6f"%x, self.timeoutResults))
     return ', '.join(v)
 
   def __str__(self):
     if len(self)==0:
       return '???'
-    return "%.4f(+-%.4f)" % self.interval(config.display_confidence)
+    return "%.6f(+-%.6f)" % self.interval(config.display_confidence)
 
   def strdelta(a, b):
     am, ad = a.interval(config.display_confidence)
@@ -75,7 +95,7 @@ class Results:
     return dd.ppf(config.limit_conf_pct)*config.limit_multiplier
 
   def __len__(self):
-    return len(self.interpolatedResults)
+    return len(self.realResults)+len(self.timeoutResults)
 
   def add(self, p):
     self.realResults.append(p)
@@ -92,7 +112,7 @@ class Results:
   def reinterpolate(self):
     '''recreate interpolatedResults from realResults and timeoutResults'''
     self.interpolatedResults = list(self.realResults)
-    mkdistrib = lambda: stats.norm(*stats.norm.fit(self.interpolatedResults))
+    mkdistrib = lambda: stats.norm(numpy.mean(self.interpolatedResults), numpy.std(self.interpolatedResults))
     if len(self.interpolatedResults) == 0:
       '''all tests timed out, seed with double the average timeout'''
       self.interpolatedResults.append(sum(self.timeoutResults)/len(self.timeoutResults)*2.0)
@@ -107,8 +127,6 @@ class Results:
       '''new points are assigned the median value above their timeout'''
       self.interpolatedResults.append(max(p, min(self.distribution.isf(self.distribution.sf(p)/2.0), p*4)))
       self.distribution = mkdistrib()
-    if min(self.interpolatedResults) == max(self.interpolatedResults):
-      return stats.norm(self.interpolatedResults[0], 0)
  
   def dataDistribution(self):
     '''estimated probability distribution of a single timing run'''
@@ -122,6 +140,10 @@ class Results:
     assert len(self)>0
     m,v=self.distribution.stats()
     return m
+  
+  def min(self):
+    assert len(self)>0
+    return min(self.interpolatedResults)
 
   def variance(self):
     assert len(self)>0
@@ -183,12 +205,13 @@ class Candidate:
   nextCandidateId=0
   '''A candidate algorithm in the population'''
   def __init__(self, cfg, infoxml, mutators=[]):
-    self.config    = ConfigFile(cfg)
-    self.metrics   = [ResultsDB(x) for x in config.metrics]
-    self.mutators  = list(mutators)
-    self.cid       = Candidate.nextCandidateId
-    self.infoxml   = infoxml
-    self.outputdir = storagedirs.candidate(self.cid)
+    self.config      = ConfigFile(cfg)
+    self.metrics     = [ResultsDB(x) for x in config.metrics]
+    self.mutators    = list(mutators)
+    self.cid         = Candidate.nextCandidateId
+    self.infoxml     = infoxml
+    self.lastMutator = None
+    self.outputdir   = storagedirs.candidate(self.cid)
     Candidate.nextCandidateId += 1
 
   def __str__(self):
@@ -220,8 +243,16 @@ class Candidate:
   def addMutator(self, m):
     self.mutators.append(m)
 
-  def mutate(self, n):
-    random.choice(self.mutators).mutate(self, n)
+  def mutate(self, n, minscore=None):
+    if minscore is not None:
+      opts=filter(lambda x: x.score>minscore, self.mutators)
+      if opts:
+        self.lastMutator=random.choice(opts)
+      else:
+        raise NoMutators()
+    else:
+      self.lastMutator=random.choice(self.mutators)
+    self.lastMutator.mutate(self, n)
 
   def reasonableLimit(self, n):
     return self.metrics[config.timing_metric_idx][n].reasonableLimit()
@@ -301,12 +332,15 @@ class CandidateTester:
     self.cmd.extend(args)
     self.args=args
     self.inputs=[]
+    self.testCount = 0
+    self.timeoutCount = 0
+    self.crashCount = 0
 
   def nextTester(self):
     return CandidateTester(self.app, self.n*2, self.args)
   
   def testN(self, candidate, trials, limit=None):
-    for x in xrange(trials - len(candidate.metrics[config.timing_metric_idx][self.n])):
+    for x in xrange(trials - candidate.numTests(self.n)):
       self.test(candidate, limit)
 
   def getInputArg(self, testNumber):
@@ -335,21 +369,25 @@ class CandidateTester:
       warnings.warn(InconsistentOutput(self.inputs[i].firstCanidate, candidate, self.inputs[i].pfx))
 
   def test(self, candidate, limit=None):
+    self.testCount += 1
     cfgfile = candidate.cfgfile()
-    testNumber = len(candidate.metrics[config.timing_metric_idx][self.n])
+    testNumber = candidate.numTests(self.n)
+    if testNumber>=config.max_trials:
+      warnings.warn(tunerwarnings.TooManyTrials(testNumber+1))
     cmd = list(self.cmd)
     cmd.append("--config="+cfgfile)
-    cmd.extend(self.getInputArg(testNumber))
+    cmd.extend(timers.inputgen.wrap(lambda:self.getInputArg(testNumber)))
     if limit is not None:
       cmd.append("--max-sec=%f"%limit)
+    cmd.extend(getMemoryLimitArgs())
     try:
       debug_logcmd(cmd)
       if config.check:
-        results = pbutil.executeRun(cmd+['--hash'], config.metrics+['outputhash'])
+        results = timers.testing.wrap(lambda: pbutil.executeRun(cmd+['--hash'], config.metrics+['outputhash']))
         self.checkOutputHash(candidate, testNumber, results[-1]['value'])
         del results[-1]
       else:
-        results = pbutil.executeRun(cmd, config.metrics)
+        results = timers.testing.wrap(lambda: pbutil.executeRun(cmd, config.metrics))
       for i,result in enumerate(results):
         if result is not None:
           candidate.metrics[i][self.n].add(result['average'])
@@ -358,9 +396,42 @@ class CandidateTester:
       assert limit is not None
       warnings.warn(tunerwarnings.ProgramTimeout(candidate, self.n, limit))
       candidate.metrics[config.timing_metric_idx][self.n].addTimeout(limit)
+      self.timeoutCount += 1
       return False
     except pbutil.TimingRunFailed, e:
+      self.crashCount += 1
       raise CrashException(testNumber, self.n, candidate, cmd)
+
+  def race(self, candidatea, candidateb, limit=None):
+    self.testCount += 1
+    cfgfilea = candidatea.cfgfile()
+    cfgfileb = candidateb.cfgfile()
+    cmd = list(self.cmd)
+    cmd.extend(timers.inputgen.wrap(lambda:self.getInputArg(0)))
+    if limit is not None:
+      cmd.append("--max-sec=%f"%limit)
+    cmd.extend(getMemoryLimitArgs())
+    try:
+      debug_logcmd(cmd)
+      resulta,resultb = timers.testing.wrap(lambda: pbutil.executeRaceRun(cmd, cfgfilea, cfgfileb))
+      if resulta['timing'] < 2**31:
+        print resulta
+        return False
+      if resultb['timing'] < 2**31:
+        print resultb
+        return True
+      assert False
+    except pbutil.TimingRunTimeout:
+      assert limit is not None
+      warnings.warn(tunerwarnings.ProgramTimeout(candidatea, self.n, limit))
+      warnings.warn(tunerwarnings.ProgramTimeout(candidateb, self.n, limit))
+      candidatea.metrics[config.timing_metric_idx][self.n].addTimeout(limit)
+      candidateb.metrics[config.timing_metric_idx][self.n].addTimeout(limit)
+      self.timeoutCount += 1
+      return False
+    except pbutil.TimingRunFailed, e:
+      self.crashCount += 1
+      raise CrashException(-1, self.n, candidateb, cmd)
   
   def comparer(self, metricIdx, confidence, maxTests):
     '''return a cmp like function that dynamically runs more tests to improve confidence'''
