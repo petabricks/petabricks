@@ -53,6 +53,10 @@ class config_defaults:
   score_decay = 0.9
   bonus_round_score = 0.9
   memory_limit_pct = 0.8
+  min_std_pct = 0.000001
+  accuracy_target = None
+  race_multiplier = 1.1
+  race_multiplier_lowacc = 1000.0
 
   #types of mutatators to generate
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']
@@ -100,6 +104,12 @@ def dump(f):
   for name, value in zip(names, values):
     print >>f, "  %s = %s" % (name, repr(value))
 
+def option_callback(option, opt, value, parser):
+  opt=str(option).split('/')[0]
+  while opt[0]=='-':
+    opt=opt[1:]
+  assert hasattr(config, opt)
+  setattr(config, opt, value)
 
 #################################################################
 #################################################################
@@ -147,6 +157,9 @@ class patch_debug:
   print_log                = True
   pause_on_crash           = True
   candidatelog             = True
+
+class patch_onlinelearning:
+  use_iogen = False
 
 class patch_n:
   def __init__(self, n):

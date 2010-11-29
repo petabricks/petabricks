@@ -12,6 +12,8 @@
 #ifndef PETABRICKSHASH_H
 #define PETABRICKSHASH_H
 
+#include "jassert.h"
+
 #include <stdio.h>
 
 #ifdef HAVE_CONFIG_H
@@ -56,6 +58,12 @@ namespace jalib {
     void print() const {
       for(int i=0; i<HASH_LEN; ++i)
         printf("%02x", _buf[i]);
+    }
+    friend std::ostream& operator<<(std::ostream& o, const Hash& h) {
+      char str[HASH_LEN*2+1] = {0};
+      for(int i=0; i<HASH_LEN; ++i)
+        sprintf(str+2*i, "%02x", h._buf[i]);
+      return o<<"0x"<<str;
     }
   private:
     unsigned char _buf[HASH_LEN];
