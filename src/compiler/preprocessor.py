@@ -19,30 +19,22 @@ reserved = {
   'function' : 'FUNCTION',
   'template' : 'TEMPLATE',
   'generator' : 'GENERATOR',
-  'gen' : 'GENERATOR',
+  'gen' : 'GEN',
   'config' : 'CONFIG',
   'param' : 'PARAM',
-  'parameter' : 'PARAM',
+  'parameter' : 'PARAMETER',
   'tunable' : 'TUNABLE',
   'accuracy_metric' : 'ACCURACYMETRIC',
   'accuracy_bins' : 'ACCURACYBINS',
   'accuracy_variable' : 'ACCURACYVARIABLE',
 
-  'where' : 'WHERE',
-  'priority' : 'PRIORITY',
-  'primary' : 'PRIMARY',
-  'secondary' : 'SECONDARY',
-  'rotatable' : 'ROTATABLE',
-  'recursive' : 'RECURSIVE',
-  'duplicate' : 'DUPLICATE',
-  'rule' : 'RULE',
-
   'to' : 'TO',
   'from' : 'FROM',
-  'using' : 'THROUGH',
+  'using' : 'USING',
   'through' : 'THROUGH',
 
   '#include' : 'INCLUDE',
+  '#library' : 'LIBRARY',
   '#ifdef' : 'IFDEF',
   '#ifndef' : 'IFNDEF',
   '#else' : 'ELSE',
@@ -54,7 +46,7 @@ reserved = {
 }
 
 # Tokens
-tokens = ['ID', 'LBRACE', 'RBRACE', 'CLBRACE', 'CRBRACE', 'LSQBRACE', 'RSQBRACE', 'LPAREN', 'RPAREN', 'LCHEV', 'RCHEV', 'COMMA', 'LINECOMMENT', 'BLOCKCOMMENT', 'LCOMMENT', 'RCOMMENT', 'REMARK', 'FILE',  'OTHER', 'LINE'] + list(reserved.values())
+tokens = ['ID', 'LBRACE', 'RBRACE', 'CLBRACE', 'CRBRACE', 'LSQBRACE', 'RSQBRACE', 'LPAREN', 'RPAREN', 'LCHEV', 'RCHEV', 'COMMA', 'SEMICOLON', 'LINECOMMENT', 'BLOCKCOMMENT', 'LCOMMENT', 'RCOMMENT', 'REMARK', 'FILE',  'OTHER', 'LINE'] + list(reserved.values())
 
 
 # Both States
@@ -130,7 +122,8 @@ t_RSQBRACE = r'\]'
 t_LCHEV = r'(<)+'
 t_RCHEV = r'(>)+'
 t_COMMA = r'\,'
-t_OTHER = r'([=.*/^+-] | [0-9] | [:?] | [!] | [&] | [|])+'
+t_SEMICOLON = r'\;'
+t_OTHER = r'([=.*/^+-] | [0-9] | [:?!&|])+'
 
 def t_FILE(t):
   r'\"[^\"]*\"'
@@ -158,15 +151,29 @@ def t_CLBRACE(t):
 #####################################################
 
 def p_petabricks(p):
-  'petabricks : include define ifdefs transform ccode petabricks'          
-  p[5].extend(p[6])    
-  p[4].extend(p[5])
-  p[3].extend(p[4])
-  p[1].extend(p[3]) #don't have to extend defines (define ifdef etc.)
-  p[0] = p[1]
+  'petabricks : include define ifdefs transform ccode petabricks'    
+  if not signature:      
+    p[5].extend(p[6])    
+    p[4].extend(p[5])
+    p[3].extend(p[4])
+    p[1].extend(p[3]) #don't have to extend defines (define ifdef etc.)
+    p[0] = p[1]
+  else:
+    p[4].extend(p[6])
+    p[3].extend(p[4])
+    p[0] = p[3]
+    
 
 def p_petabricks_base(p):
   'petabricks : empty'
+  p[0] = []
+
+def p_suppress_warnings(p):
+  '''petabricks : LCOMMENT 
+		| RCOMMENT 
+		| REMARK 
+		| LINECOMMENT 
+		| BLOCKCOMMENT'''
   p[0] = []
 
 #----------------------------------------------------
@@ -177,9 +184,20 @@ def p_include_base(p):
   p[0] = []
 
 def p_include(p):
-  'include : INCLUDE FILE'	#TODO: signature
+  'include : INCLUDE FILE'
   filename = p[2]
-  p[0] = parse_file_to_ast(filename[1:len(filename)-1])
+  filename = filename[1:len(filename)-1]
+
+  if not seperate: 
+    p[0] = parse_file_to_ast(filename)	# include everything
+  elif not signature:
+    p[0] = get_signatures(filename)	# include signatures
+  else:
+    p[0] = []				# if signature: include nothing
+
+def p_include_library(p):
+  'include : LIBRARY FILE'
+  p[0] = [('library', (queue[-1],p.lineno(2),"#library " + p[2]))]
 
 #----------------------------------------------------
 # define undef				   
@@ -193,7 +211,7 @@ def p_define(p):
   if p[2] not in current_dict or current_dict[p[2]] == "":
     current_dict[p[2]] = ""
   else:
-    print_error(p.lineno(1), "illegal to redefine " + p[2] + " to a differnt value.")
+    print_error("illegal to redefine " + p[2], p.lineno(1))
 
 def p_define_macro(p):
   'define : DEFINE ID LPAREN id_list RPAREN expression'
@@ -203,7 +221,7 @@ def p_define_macro(p):
   if p[2] not in current_dict or current_dict[p[2]] != template:
     current_dict[p[2]] = template
   else:
-    print_error(p.lineno(1), "illegal to redefine " + p[2] + " to a differnt value.")
+    print_error("illegal to redefine " + p[2], p.lineno(1))
 
 def p_define_macro_block(p):
   'define : DEFINE ID LPAREN id_list RPAREN LBRACE LINE RBRACE'
@@ -213,7 +231,7 @@ def p_define_macro_block(p):
   if p[2] not in current_dict or current_dict[p[2]] != template:
     current_dict[p[2]] = template
   else:
-    print_error(p.lineno(1), "illegal to redefine " + p[2] + " to a differnt value.")
+    print_error("illegal to redefine " + p[2], p.lineno(1))
 
 def p_define_const(p):
   'define : DEFINE ID expression'
@@ -221,7 +239,7 @@ def p_define_const(p):
   if p[2] not in current_dict or current_dict[p[2]] == p[3]:
     current_dict[p[2]] = p[3]
   else:
-    print_error(p.lineno(1), "illegal to redefine " + p[2] + " to a differnt value.")
+    print_error("illegal to redefine " + p[2], p.lineno(1))
 
 def p_define_un(p):
   '''define : UNDEF ID
@@ -316,33 +334,32 @@ def p_cond_number_line(p):
 #----------------------------------------------------
 # transform				   
 #----------------------------------------------------
+function = None
+
 def p_transform_base(p):
   'transform : empty'
   p[0] = []
 
 def p_transform(p):
-  'transform : transform_headers LBRACE body RBRACE' 
-  # Add { } abround body
-  combine_list_element(p[3], (queue[-1],p.lineno(4),p[4]))
-  combine_element_list((queue[-1],p.lineno(2),p[2]), p[3])
-
-  # Check if it is function
-  headers = p[1]
-  for i in range(len(headers)):
-    (filename, lineno, header_type), args = headers[i] # header = ((filename, lineno, type), args)
-
-    if header_type == 'function':
-      headers[i] = ((filename, lineno, 'transform'), args)
-      ident = args[0][2]
-      parsed_dict[queue[-1]].append(ident); #TODO: signature
+  'transform : transform_headers LBRACE body RBRACE'
+  
+  if not signature:
+    # Add { } abround body
+    combine_list_element(p[3], (queue[-1],p.lineno(4),p[4]))
+    combine_element_list((queue[-1],p.lineno(2),p[2]), p[3])
+    if function:
       modify_function_ast(p)
-      break
-    elif header_type == 'transform':
-      ident = args[0][2]
-      parsed_dict[queue[-1]].append(ident); #TODO: signature
-      break
+    p[0] = [('transform', (p[1], p[3]))]
+  else:
+    p[0] = [('signature', p[1])]
 
-  p[0] = [('transform', (p[1], p[3]))]
+def p_transform_signature(p):
+  'transform : transform_headers SEMICOLON' 
+
+  if not signature:
+    p[0] = [('signature', p[1])]
+  else:
+    p[0] = []
 
 def p_transform_headers(p):
   'transform_headers : transform_header transform_headers'
@@ -360,19 +377,29 @@ def p_transform_header_list(p):
   '''transform_header : FROM matrix_list
 		      | TO matrix_list
 		      | THROUGH matrix_list
+		      | USING matrix_list
 		      | ACCURACYBINS float_list'''
   p[0] = ((queue[-1],p.lineno(1),p[1]), p[2])
 
 def p_transform_header_element(p):
   '''transform_header : TRANSFORM ID
 		      | FUNCTION ID
+		      | GEN ID
 		      | GENERATOR ID
 		      | ACCURACYMETRIC ID
 		      | PARAM ID
+		      | PARAMETER ID
 		      | TEMPLATE chevron_arg
 		      | ACCURACYVARIABLE config_arg
 		      | CONFIG config_arg
 		      | TUNABLE config_arg'''
+  global function
+  if p[1] == "transform":
+    function = False
+  elif p[1] == "function":
+    function = True
+    p[1] = "transform"
+
   p[0] = ((queue[-1],p.lineno(1),p[1]), [(queue[-1],p.lineno(1),p[2])])
 
 def p_transform_header_main(p):
@@ -489,6 +516,10 @@ def p_body_ifdef(p):
   p[1].extend(p[2])
   p[0] = p[1]
 
+def p_body_include(p):
+  'body : INCLUDE body'
+  p[0] = combine_element_list((queue[-1],p.lineno(1),p[1]), p[2])
+
 def p_body_block(p):
   'body : LBRACE body RBRACE body'
   p[0] = combine_block_list((queue[-1],p.lineno(1),p[1]), p[2] , (queue[-1],p.lineno(3),p[3]), p[4])
@@ -514,7 +545,7 @@ def p_error(p):
   if (p != None):
     print_error("Syntax error at '%s'" % p.value, p.lineno)
   else:
-    print "Syntax error"
+    print_error("Syntax error", 0)
 
 def p_empty(p):
   'empty :'
@@ -526,7 +557,9 @@ def p_empty(p):
 #####################################################
 
 def print_error(message, lineno):
-  print "Line", lineno, ":", message
+  #print >> sys.stderr, "Line", lineno, ":", message
+  #sys.exit(1)
+  sys.exit("Line " + str(lineno) + ": " + message)
 
 """ Insert ele at the end of l
     Return l """
@@ -558,7 +591,7 @@ def modify_function_ast(p):
   for header in p[1]:
     header_type, args = header # header = ((filename, lineno, type), args)
 
-    if header_type[2] == 'to' or header_type[2] == 'through':
+    if header_type[2] == 'to' or header_type[2] == 'through' or header_type[2] == 'using':
       to_list.extend(format_function_args(args))
 
     if header_type[2] == 'from':
@@ -688,7 +721,7 @@ def replace_macro(macro, (no_args, expanded, t), s, head_index, lineno):
     while index < len(s):
       # End of the agrument
       if paren_count == 0 and (s[index] == ',' or s[index] == ')'):
-        break;
+        break
 
       if s[index] == '(':
         paren_count += 1
@@ -720,13 +753,15 @@ def replace_macro(macro, (no_args, expanded, t), s, head_index, lineno):
 #####################################################
 
 # Global variable
-parsed_dict = {}
+parsed_set = set()
 queue = []
 define_dict_list = []
 macro_dict_list = []
 
 current_file = ""
 current_line = 0
+seperate = False
+signature = False
 
 """ Return a formatted string of a line.
     Args: tuple of (full path filename, line number, content) """
@@ -778,6 +813,10 @@ def convert_transform(tokens):
   body = tokens[1]
   return convert_headers(headers) + convert_block(body)
 
+""" Convert AST of a signature into a string """
+def convert_signature(headers):
+  return convert_headers(headers) + ';'
+
 """ Convert the entire AST into a string. """
 def convert_ast_to_string(ast):
   output = ""
@@ -786,6 +825,10 @@ def convert_ast_to_string(ast):
       output += convert_block(main_node[1])
     elif main_node[0] == "transform":
       output += convert_transform(main_node[1])
+    elif main_node[0] == "signature":
+      output += convert_signature(main_node[1])
+    elif main_node[0] == "library":
+      output += line_format(main_node[1])
   return output
 
 """ Parse a content in a given file into ast. """
@@ -798,10 +841,10 @@ def parse_file_to_ast(file_path):
 
   full_path_string = os.path.abspath(os.path.join(current_dir, file_path))
 
-  if full_path_string in parsed_dict:
+  if full_path_string in parsed_set:
     return []
 
-  parsed_dict[full_path_string] = [] #TODO: use for transform_signature
+  parsed_set.add(full_path_string)
   queue.append(full_path_string)
   define_dict_list.append({})
   macro_dict_list.append({})
@@ -809,8 +852,8 @@ def parse_file_to_ast(file_path):
   import ply.lex as lex
   import ply.yacc as yacc
 
-  lex.lex()
-  yacc.yacc()
+  lex.lex(nowarn=1)
+  yacc.yacc(debug=False)
 
   reader = open(full_path_string, 'r')
   input_string = reader.read()
@@ -822,12 +865,47 @@ def parse_file_to_ast(file_path):
   macro_dict_list.pop()
   return ast
 
+def get_signatures(file_path):
+  current_dir = os.path.dirname(queue[-1])
+  full_path_string = os.path.abspath(os.path.join(current_dir, file_path))
+  queue.append(full_path_string)
+  define_dict_list.append({})
+  macro_dict_list.append({})
+
+  import ply.lex as lex
+  import ply.yacc as yacc
+
+  lex.lex(nowarn=1)
+  yacc.yacc(debug=False)
+
+  reader = open(full_path_string, 'r')
+  input_string = reader.read()
+  reader.close()
+
+  global signature
+  signature = True
+  ast = yacc.parse(input_string)
+  signature = False
+
+  queue.pop()
+  define_dict_list.pop()
+  macro_dict_list.pop()
+  return ast
+
+
 def main(argv=sys.argv):
   
-  if len(argv) != 2:
-    print "type: python test.py <input_file>"
+  if len(argv) < 2 or len(argv) > 3:
+    print "Usage: ./preprocessor.py <input_file>.pbcc [-s]"
     return
 
+  if argv[1] == "--help" or (len(argv) == 3 and argv[2] != "-s"):
+    print "Usage: ./preprocessor.py <input_file>.pbcc [-s]"
+    print "\t-s\tSeperate compilation"
+    return
+    
+  global seperate
+  seperate = (len(argv) == 3)
   ast = parse_file_to_ast(os.path.abspath(argv[1]))
   print convert_ast_to_string(ast)
 
