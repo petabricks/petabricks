@@ -192,7 +192,11 @@ from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
 to RESULT[q]
 through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
 {
-    SQDIFFS.cell(i,j,k)
+
+    /* METHOD 1: compute PARTIALS by exposing the most fine-grained
+       parallelism.  this method may be less cache-efficient. */
+
+    to   (SQDIFFS.cell(i,j,k) sqDiff)
     from (TRAINDATA trainData,
           WRAPFLAGS wrapFlags,
           KERNELWIDTHS kernelWidths,
@@ -235,7 +239,10 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
         diff /= kernelWidth;
 
         // return squared difference
-        return diff * diff;
+        sqDiff = diff * diff;
+#ifdef DEBUG
+        fprintf(stderr, "method 1:  sqdiff(%d, %d, %d) = %g\n", i, j, k, sqDiff);
+#endif
     }
 
     to (WEIGHTS.cell(j,k) weight)
@@ -244,6 +251,9 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
     {
         ReduceAdd(weight, sqDiffs.slice(2,0).slice(1,0));
         weight = exp(-((double) weight));
+#ifdef DEBUG
+        fprintf(stderr, "method 1:  weight(%d, %d) = %g\n", j, k, weight);
+#endif
     }
 
     to (PARTIALS.cell(j,k) partial)
@@ -256,7 +266,76 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
         int timeIndex = (int) trainIndex + (int) outputTimeOffset;
         partial = trainData.cell((int) outputVarIndex, timeIndex);
         partial *= weight;
+#ifdef DEBUG
+        fprintf(stderr, "method 1: partial(%d, %d) = %g\n", j, k, partial);
+#endif
     }
+
+    /* METHOD 2: Compute weights and partials directly with one pass through the data */
+
+    to   (PARTIALS.cell(j,k) partial,
+          WEIGHTS.cell(j,k) weight)
+    from (TRAINDATA trainData,
+          WRAPFLAGS wrapFlags,
+          KERNELWIDTHS kernelWidths,
+          TRAININDICES.cell(j) trainIndex,
+          TRAINVARINDEX trainVarIndex,
+          TRAINTIMEOFFSET trainTimeOffset,
+          TESTDATA testData,
+          TESTINDICES.cell(k) testIndex,
+          TESTVARINDEX testVarIndex,
+          TESTTIMEOFFSET testTimeOffset,
+          OUTPUTVARINDEX outputVarIndex,
+          OUTPUTTIMEOFFSET outputTimeOffset)
+    {
+        double sum = 0;
+
+        for (int i = 0; i < trainVarIndex.count(); ++i) {
+
+            int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
+            double kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
+
+            int trainTimeIndex = (int) trainIndex + (int) trainTimeOffset.cell(i);
+            int  testTimeIndex = (int)  testIndex + (int)  testTimeOffset.cell(i);
+
+            double trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
+            double  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
+
+            double diff = trainPoint - testPoint;
+
+            if (wrapFlag) {
+
+                // wrap relative difference into [-180,180]
+                // do most of the arithmetic in integers for speed
+                // P360 and M360 indicate "plus 360" and "minus 360"
+
+                // add 360 *before* cast to round towards -INF instead of towards 0
+                int diffIntP360 = (int) (diff + 360);
+
+                // add 180 to ensure modulo result is positive
+                int diffIntWrapP360 = ((diffIntP360 + 180) % 360) + 180;
+
+                double diffFracM360 = diff - diffIntP360;
+                diff = diffIntWrapP360 + diffFracM360;
+            }
+
+            // normalize according to kernel width
+            diff /= kernelWidth;
+
+            // return squared difference
+            sum += diff * diff;
+        }
+
+        int outputTimeIndex = (int) trainIndex + (int) outputTimeOffset;
+        weight = exp(-((double) sum));
+        partial = weight * trainData.cell((int) outputVarIndex, outputTimeIndex);
+#ifdef DEBUG
+        fprintf(stderr, "method 2:  weight(%d, %d) = %g\n", j, k, weight);
+        fprintf(stderr, "method 2: partial(%d, %d) = %g\n", j, k, partial);
+#endif
+    }
+
+    /* Once we have the PARTIALS and WEIGHTS, we can compute RESULT */
 
     to (RESULT.cell(k) result)
     from (PARTIALS.row(k) partials,
