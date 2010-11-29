@@ -1,14 +1,11 @@
 #ifndef LURECUR_PBCC
 #define LURECUR_PBCC
 
-#include "trilsolve.pbcc"
-#include "triusolve.pbcc"
-#include "ltri.pbcc"
+#include "LUupper.pbcc"
+#include "LUlower.pbcc"
 #include "LUnopivot.pbcc"
-#include "../simple/copy.pbcc"
 #include "../multiply/multiply.pbcc"
 #include "../simple/add.pbcc"
-
 
 transform LUblock
 from IN[n, n]
@@ -25,12 +22,10 @@ to OUT[n, n]
   to (OUT.region(n/2,0,n,n/2) out)
   from (IN.region(n/2,0,n,n/2) in,
 	OUT.region(0,0,n/2,n/2) leftdiag)
-
   {
-	MatrixRegion2D L = MatrixRegion2D::allocate(n/2,n/2);
-        ltri(L, leftdiag);
-        trilsolve(out, L, in);
+	SPAWN(LUuppertrirecur,out,in,leftdiag);
   }
+  
 
   //lower left block
   to (OUT.region(0,n/2,n/2,n) out)
@@ -38,7 +33,7 @@ to OUT[n, n]
         OUT.region(0,0,n/2,n/2) updiag)
 
   {
-        triusolve(out, updiag, in);
+        SPAWN(LUlowertrirecur,out,in,updiag);
   }
 
   //lower right block
@@ -64,6 +59,7 @@ main transform LUrecur
 from IN[n,n]
 to OUT[n,n]
 {
+
   to (OUT out) from (IN in)
   {
 	if (n == 1) {
@@ -74,10 +70,12 @@ to OUT[n,n]
 	}
   }
 
+
   to (OUT out) from (IN in)
   {
 	LUnopivot(out,in);
   }
+
 
 }
 

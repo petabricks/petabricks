@@ -1,3 +1,6 @@
+#ifndef LTRI_PBCC
+#define LTRI_PBCC
+
 transform ltri
 from IN[n, n]
 to OUT[n, n]
@@ -15,3 +18,4 @@ to OUT[n, n]
     }
 }
 
+#endif // LTRI_PBCC

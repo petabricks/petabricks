@@ -2,13 +2,14 @@
 class config_defaults:
   #how long to train for
   max_input_size           = 2**30
+  min_input_size           = 1
   max_time                 = 60*15
-  rounds_per_input_size    = 3
-  final_rounds             = 2
+  rounds_per_input_size    = 1
+  final_rounds             = 1
 
   #number of trials to run
   confidence_pct   = 0.75
-  min_trials       = 1
+  min_trials       = 3
   max_trials       = 7
   '''guessed stddev when only 1 test is taken'''
   prior_stddev_pct      = 0.15
@@ -17,20 +18,25 @@ class config_defaults:
   '''confidence for generating execution time limits'''
   limit_conf_pct        = 0.95
   '''multiply generated time limits by a factor'''
-  limit_multiplier      = 1.2
+  limit_multiplier      = 6.0
   '''offset added to input sizes'''
   offset                = 0
 
+  window_size           = 50
+  bandit_c              = .5
+  bandit_verbose        = False
+  use_bandit            = True
+
   #how mutation to do
-  mutations_per_mutator    = 3
+  mutations_per_mutator    = 5
   population_high_size     = 10
-  population_low_size      = 2
+  population_low_size      = 1
   multimutation            = True
   mutate_retries           = 10
   rand_retries             = 10
 
   #storage and reporting
-  debug                  = True
+  debug                  = False
   output_dir             = "~/tunerout"
   min_input_size_nocrash = 32
   delete_output_dir      = False
@@ -51,18 +57,34 @@ class config_defaults:
 
   name=''
   score_decay = 0.9
-  bonus_round_score = 0.9
+  bonus_round_score = 1.0
   memory_limit_pct = 0.8
   min_std_pct = 0.000001
+  online_baseline = False
+  fixed_safe_alg = False
   accuracy_target = None
-  race_multiplier = 1.1
-  race_multiplier_lowacc = 1000.0
+  timing_target = None
+  race_multiplier = 1.0
+  race_multiplier_lowacc = 8.0
+  n = None
+  reweight_interval = 4
+  seed = None
+  main = None
+  threads = None
+  abort_on = ""
+  race_split_ratio = 0.5
+  
+  threshold_multiplier_min = 100.0
+  threshold_multiplier_max = 1000.0
+  threshold_multiplier_default=400.0
+
+  recompile = True
 
   #types of mutatators to generate
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']
   uniform_tunable_types       = ['system.flag.unrollschedule']
   autodetect_tunable_types    = ['user.tunable']
-  lognorm_array_tunable_types = ['user.tunable.accuracy.array']
+  lognorm_array_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
   ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg']
   
   #metric information, dont change
@@ -159,11 +181,14 @@ class patch_debug:
   candidatelog             = True
 
 class patch_onlinelearning:
-  use_iogen = False
+  use_iogen  = False
+  min_trials = 5
+  max_trials = 30
 
 class patch_n:
   def __init__(self, n):
     from math import log
     self.max_input_size = config.offset+2**int(round(log(n, 2)))
     self.max_time = 2**30
+    self.n=n
 

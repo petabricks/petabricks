@@ -51,6 +51,7 @@ static std::string CONFIG_FILENAME_ALT;
 static int GRAPH_MIN=1;
 static int GRAPH_MAX=4096;
 static double GRAPH_MAX_SEC=jalib::maxval<double>();
+static double RACE_SPLIT_RATIO=0.5;
 static int  GRAPH_STEP=1;
 static bool GRAPH_EXP=false;
 static int GRAPH_TRIALS=1;
@@ -262,7 +263,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   }else if(args.param("race-with", CONFIG_FILENAME_ALT).help("alternate program configuration")) {
     JASSERT(_randSize>=0).Text("-n=... required");
     JASSERT(jalib::Filesystem::FileExists(CONFIG_FILENAME));
-    JASSERT(jalib::Filesystem::FileExists(CONFIG_FILENAME_ALT));
+    JASSERT(jalib::Filesystem::FileExists(CONFIG_FILENAME_ALT) || CONFIG_FILENAME_ALT=="None");
     MODE=MODE_RACE_CONFIGS;
   }
   
@@ -319,7 +320,8 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("retries",     RETRIES).help("times to retry on test failure");
   args.param("race-multiplier", RACE_MULTIPLIER).help("how much extra time (percentage) the slower racer gets to finish");
   args.param("race-multiplier-lowacc", RACE_MULTIPLIER_LOWACC).help("how much extra time (percentage) the slower racer gets to finish");
-  args.param("race-accuracy", RACE_ACCURACY_TARGET).help("accuracy the second racer must achieve");
+  args.param("race-accuracy",    RACE_ACCURACY_TARGET).help("accuracy the second racer must achieve");
+  args.param("race-split-ratio", RACE_SPLIT_RATIO).help("how to divide the chip for racing");
   
   size_t max_memory=0;
   if(args.param("max-memory", max_memory).help("kill the process when it tries to use this much memory")) {
@@ -721,20 +723,35 @@ double petabricks::PetabricksRuntime::raceConfigs(int n, const std::vector<std::
   SubprocessTestIsolation ati(GRAPH_MAX_SEC);
   SubprocessTestIsolation bti(GRAPH_MAX_SEC);
   TunableManager& tm = TunableManager::instance();
+
+  int ta = (int)( worker_threads * RACE_SPLIT_RATIO );
+  int tb = worker_threads - ta;
+  JTRACE("race split")(ta)(tb);
   try {
     loadTestInput(n, files);
-    if(ati.beginTest(worker_threads/2)) {
-      tm.load(CONFIG_FILENAME);
-      _main->reallocate(std::max(IOGEN_N, n));
-      computeWrapperSubproc(ati, -1, aresult, NULL);
-      ati.endTest(aresult);
-    } else if(bti.beginTest(worker_threads/2)) {
-      tm.load(CONFIG_FILENAME_ALT);
-      _main->reallocate(std::max(IOGEN_N, n));
-      computeWrapperSubproc(bti, -1, bresult, NULL);
-      bti.endTest(bresult);
-    }else{
-      SubprocessTestIsolation::recvFirstResult(ati, aresult, bti, bresult);
+    if(CONFIG_FILENAME_ALT != "None") {
+      if(ati.beginTest(worker_threads/2)) {
+        tm.load(CONFIG_FILENAME);
+        _main->reallocate(std::max(IOGEN_N, n));
+        computeWrapperSubproc(ati, -1, aresult, NULL);
+        ati.endTest(aresult);
+      } else if(bti.beginTest(worker_threads/2)) {
+        tm.load(CONFIG_FILENAME_ALT);
+        _main->reallocate(std::max(IOGEN_N, n));
+        computeWrapperSubproc(bti, -1, bresult, NULL);
+        bti.endTest(bresult);
+      }else{
+        SubprocessTestIsolation::recvFirstResult(ati, aresult, bti, bresult);
+      }
+    } else {
+      if(ati.beginTest(worker_threads)) {
+        tm.load(CONFIG_FILENAME);
+        _main->reallocate(std::max(IOGEN_N, n));
+        computeWrapperSubproc(ati, -1, aresult, NULL);
+        ati.endTest(aresult);
+      }else{
+        ati.recvResult(aresult);
+      }
     }
   } catch(...) {
     UNIMPLEMENTED();
@@ -942,12 +959,12 @@ double petabricks::PetabricksRuntime::optimizeParameter(jalib::JTunable& tunable
   }
 }
 
-double petabricks::PetabricksRuntime::updateRaceTimeout(TestResult& result, int winnerid) {
+double petabricks::PetabricksRuntime::updateRaceTimeout(TestResult& result, int /*winnerid*/) {
   if(result.time < jalib::maxval<double>() && result.time >= 0){
     if(result.accuracy >= RACE_ACCURACY_TARGET)
-      return result.time * RACE_MULTIPLIER;
+      return std::min(GRAPH_MAX_SEC, result.time*RACE_MULTIPLIER);
     else 
-      return result.time * RACE_MULTIPLIER_LOWACC;
+      return std::min(GRAPH_MAX_SEC, result.time*RACE_MULTIPLIER_LOWACC);
   }else{
     return GRAPH_MAX_SEC;
   }
