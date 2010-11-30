@@ -32,7 +32,25 @@ jalib::TunableValueMap& petabricks::CodeGenerator::theHardcodedTunables() {
   return t;
 }
 
-petabricks::CodeGenerator::CodeGenerator() : _contCounter(0), _indent(0) {}
+petabricks::CodeGenerator::CodeGenerator(const StreamTreePtr& root) : _contCounter(0), _indent(0) {
+  _oheaders = root->add(new StreamTree("headers"));
+  _odefines = root->add(new StreamTree("defines"));
+  _bcur     = root->add(new StreamTree("top", root.asPtr()));
+  _ocur = _bcur->add(new StreamTree("main"));
+}
+
+
+petabricks::CodeGenerator::CodeGenerator(CodeGenerator& that)
+  : jalib::JRefCounted(), _contCounter(0), _indent(0)
+{
+  _oheaders = that._oheaders;
+  _odefines = that._odefines;
+  _bcur     = that._bcur;
+  _ocur     = new StreamTree("childsection", _bcur.asPtr());
+  _bcur->add(_ocur.asPtr());
+  _curClass = that._curClass;
+}
+
 
 void petabricks::CodeGenerator::beginFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end,  const FormulaPtr& step){
   indent();
@@ -104,7 +122,7 @@ void petabricks::CodeGenerator::addAssert(const std::string& l, const std::strin
 
 void petabricks::CodeGenerator::endFunc(){
   _indent--;
-    indent();
+  indent();
   os() << "}\n";
 }
 
@@ -263,8 +281,7 @@ void petabricks::CodeGenerator::continuationRequired(const std::string& hookname
 
 petabricks::CodeGenerator& petabricks::CodeGenerator::forkhelper(){
   CodeGenerator* cg;
-  _helpers.push_back(cg=new CodeGenerator());
-  cg->_curClass = _curClass;
+  _helpers.push_back(cg=new CodeGenerator(*this));
   return *cg;
 }
 
@@ -272,9 +289,9 @@ void petabricks::CodeGenerator::mergehelpers(){
   for(; !_helpers.empty(); _helpers.pop_back()){
     JASSERT(_helpers.front()->_defines.empty())
       .Text("helper CodeGenerator leaked defines");
-    os() << _helpers.front()->_os.str();
-    hos() << _helpers.front()->_hos.str();
-    dos() << _helpers.front()->_dos.str();
+   //_helpers.front()->os().writeTo(os());
+   //_helpers.front()->hos().writeTo(hos());
+   //_helpers.front()->dos().writeTo(dos());
   }
 }
 void petabricks::CodeGenerator::callSpatial(const std::string& methodname, const SimpleRegion& region) {
