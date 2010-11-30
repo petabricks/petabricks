@@ -29,14 +29,68 @@
 #include <vector>
 
 namespace petabricks {
-typedef std::map<std::string, std::string> TunableDefs;
 
+class StreamTree;
+class StreamTreeBranch;
+class StreamTreeLeaf;
+typedef jalib::JRef<StreamTree>       StreamTreePtr;
+typedef jalib::JRef<StreamTreeBranch> StreamTreeBranchPtr;
+typedef jalib::JRef<StreamTreeLeaf>   StreamTreeLeafPtr;
+typedef std::vector<StreamTreePtr>    StreamTrees;
+
+class StreamTree : public jalib::JRefCounted {
+public:
+  StreamTree(const std::string& n): _name(n) {}
+
+  virtual void writeTo(std::ostream& o) = 0;
+protected:
+  std::string _name;
+};
+
+class StreamTreeBranch : public StreamTree {
+public:
+  StreamTreeBranch(const std::string& n): StreamTree(n) {}
+
+  void add(const StreamTreePtr& t){
+    _nodes.push_back(t);
+  }
+
+  void writeTo(std::ostream& o) {
+    o << "// BRANCH: " << _name << std::endl;
+    StreamTrees::iterator i;
+    for(i=_nodes.begin(); i!=_nodes.end(); ++i)
+      (*i)->writeTo(o);
+  }
+private:
+  StreamTrees _nodes;
+};
+
+class StreamTreeLeaf : public StreamTree {
+public:
+  StreamTreeLeaf(const std::string& n): StreamTree(n) {}
+
+  template<typename T>
+  StreamTreeLeaf& operator<<(const T& t) {
+    _os << t;
+    return *this;
+  }
+
+
+  void writeTo(std::ostream& o) {
+    o << "// LEAF: " << _name << std::endl;
+    o << _os.str();
+  }
+private:
+  std::ostringstream _os;
+};
+
+
+typedef std::map<std::string, std::string> TunableDefs;
 class SimpleRegion;
 class CodeGenerator;
-typedef jalib::JRef<CodeGenerator> CodeGeneratorPtr;
+typedef jalib::JRef<CodeGenerator>    CodeGeneratorPtr;
 typedef std::vector<CodeGeneratorPtr> CodeGenerators;
 
-class TaskCodeGenerator;
 
 class CodeGenerator : public jalib::JRefCounted {
 public:
@@ -139,7 +193,6 @@ public:
   }
 
   TrainingDeps& cg() { return _cg; }
-
 
   void beginClass(const std::string& name, const std::string& base);
   void endClass();
