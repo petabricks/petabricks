@@ -66,7 +66,7 @@ AC_MSG_CHECKING([python packages])
 if "$PYTHON" "$srcdir/scripts/checkpython.py"; then
   AC_MSG_RESULT([ok])
 else
-  AC_MSG_ERROR(["missing python packages"])
+  AC_MSG_ERROR(["missing python modules"])
 fi
 
 AC_MSG_CHECKING([maxima compatibility])
