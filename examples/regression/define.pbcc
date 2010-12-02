@@ -1,0 +1,10 @@
+
+#define X 10
+#include "define.h"
+
+function test
+to OUT
+{
+  OUT = X+Y;
+}
+

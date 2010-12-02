@@ -113,6 +113,7 @@ regression/commadecl
 regression/coordflip
 regression/coscheduled1
 regression/coscheduled2
+regression/define
 regression/duplicate
 regression/fileprefix
 regression/forenough
