@@ -48,12 +48,25 @@ fi
 
 AC_PATH_PROGS([PYTHON], [python2.6 python2.5 python2.4 python2 python], [no])
 if test "$PYTHON" = "no"; then
-  AC_MSG_ERROR([failed to find 'python' in \$path])
+  AC_MSG_ERROR([failed to find 'python' in \$path, try running:`sudo apt-get install python`.])
+fi
+
+AC_PATH_PROGS([NM], [nm], [no])
+if test "$NM" = "no"; then
+  AC_MSG_ERROR([failed to find 'nm' in \$path, try running:`sudo apt-get install binutils`.])
 fi
 
 AC_PATH_PROGS([MAXIMA], [maxima], [no])
 if test "$MAXIMA" = "no"; then
   AC_MSG_ERROR([failed to find 'maxima' in \$path, try running:`sudo apt-get install maxima`.])
+fi
+
+
+AC_MSG_CHECKING([python packages])
+if "$PYTHON" "$srcdir/scripts/checkpython.py"; then
+  AC_MSG_RESULT([ok])
+else
+  AC_MSG_ERROR(["missing python packages"])
 fi
 
 AC_MSG_CHECKING([maxima compatibility])
@@ -66,7 +79,7 @@ fi
 rev_short="unknown"
 rev_long="unknown"
 AC_MSG_CHECKING([git revision])
-if test "$has_git" = "yes" -a -d .git ; then
+if test "$has_git" = "yes"; then
   rev_short=`git log -n 1 --pretty=format:%h`
   rev_long=`git log -n 1 --pretty=format:%H`
 fi
@@ -328,6 +341,7 @@ AC_DEFINE_UNQUOTED([CXXDEFS],    ["$DEFS -DHAVE_CONFIG_H"], [C++ compiler define
 AC_DEFINE_UNQUOTED([CXXFLAGS],   ["$CXXFLAGS"],             [C++ compiler flags used by pbc])
 AC_DEFINE_UNQUOTED([CXXLDFLAGS], ["$LDFLAGS"],              [C++ compiler link flags used by pbc])
 AC_DEFINE_UNQUOTED([CXXLIBS],    ["$LIBS"],                 [C++ compiler libraries used by pbc])
+AC_DEFINE_UNQUOTED([NM],         ["$NM"],                   [binutils tool used by pbc])
 
 ################################################################################
 ################################################################################

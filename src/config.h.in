@@ -225,6 +225,9 @@
 /* min number of workers supported */
 #undef MIN_NUM_WORKERS
 
+/* binutils tool used by pbc */
+#undef NM
+
 /* enable low level optimization such as specializations and prefetching */
 #undef OPT_LOWLEVEL
 
