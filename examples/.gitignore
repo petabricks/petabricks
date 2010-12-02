@@ -36,7 +36,6 @@ kclustering/newclusterlocations
 kernel/KernelEstimate
 kernel/LinearSolvePosDef
 kernel/nwkdelm2
-kernel/nwkdelm
 kernel/nwkde
 kernel/utils
 LUDense/blockedLUDense
@@ -115,6 +114,7 @@ regression/commadecl
 regression/coordflip
 regression/coscheduled1
 regression/coscheduled2
+regression/coscheduled3
 regression/duplicate
 regression/fileprefix
 regression/forenough

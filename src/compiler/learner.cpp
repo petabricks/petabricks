@@ -11,6 +11,8 @@
  ***************************************************************************/
 #include "learner.h"
 
+#include "syntheticrule.h"
+
 #include <algorithm>
 
 #ifdef HAVE_CONFIG_H
@@ -18,8 +20,8 @@
 #endif
 
 petabricks::RuleChoicePtr petabricks::Learner::makeRuleChoice( const RuleSet& choices
-                                                     , const MatrixDefPtr& m
-                                                     , const SimpleRegionPtr& r)
+                                                             , const MatrixDefPtr& m
+                                                             , const SimpleRegionPtr& r)
 {
   /*
    * This function must build a stack of RuleChoicePtr's from choices.
@@ -56,5 +58,52 @@ petabricks::RuleChoicePtr petabricks::Learner::makeRuleChoice( const RuleSet& ch
     rv=new RuleChoice(recursive, condition, rv);
   }
   return rv;
+}
+
+
+petabricks::RuleChoicePtr petabricks::Learner::makeCoscheduledRuleChoice( const RuleSet& choices
+                                                             , const MatrixDefList& matrices
+                                                             , const SimpleRegionPtr& r)
+{
+  RuleSet::const_iterator i;
+  MatrixDefList::const_iterator m;
+  RuleSet complete;
+  RuleSet partial;
+
+  for(i=choices.begin(); i!=choices.end(); ++i) {
+    bool hasall = true;
+    for(m=matrices.begin(); m!=matrices.end(); ++m)
+      hasall &= (*i)->canProvide(*m);
+    if(hasall)
+      complete.insert(*i);
+    else
+      partial.insert(*i);
+  }
+
+  while(! partial.empty() ) {
+    RuleList partiala;
+    RuleSet partialb;
+    std::vector<bool> satisfied(false, matrices.size());
+    for(i=partial.begin(); i!=partial.end(); ++i) {
+      bool hasall = true;
+      for(size_t n=0; n<matrices.size(); ++n) {
+        if(!satisfied[n]) {
+          satisfied[n] = (*i)->canProvide(matrices[n]);
+          hasall &= satisfied[n];
+        }
+      }
+      if(hasall){
+        ++i;
+        partiala.insert(partiala.end(), partial.begin(), i);
+        partialb.insert(i, partial.end());
+        break;
+      }
+    }
+    partial.swap(partialb);
+    JASSERT(partiala.size()>0).Text("coscheduling failed");
+    complete.insert(new CallInSequenceRule(partiala));
+  }
+
+  return makeRuleChoice(complete, matrices[0], r);
 }
 

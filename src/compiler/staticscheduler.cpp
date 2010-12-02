@@ -299,20 +299,25 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
   if(selfDep.direction.isNone()){
     if(!isStatic) o.addMember("DynamicTaskPtr", nodename(), "");
     o.comment("Dual outputs compacted "+nodename());
+    RuleSet rules;
+    MatrixDefList matrices;
     std::string region;
     ScheduleNode* first = NULL;
     //test matching region extents in d
     for(ScheduleNodeSet::const_iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
-      if(first==NULL){
+      if(first==NULL) {
         region=(*i)->region()->toString();
         first=*i;
-      }
-      else if(first->region()->dimensions()<(*i)->region()->dimensions())
+      } else if(first->region()->dimensions()<(*i)->region()->dimensions()) {
         first=*i;
+      }
       JWARNING(region==(*i)->region()->toString())(region)((*i)->region()->toString())
         .Text("to(...) regions of differing size not yet supported");
+      RuleSet tmp = (*i)->choices()->rules();
+      rules.insert(tmp.begin(), tmp.end());
+      matrices.push_back((*i)->matrix());
     }
-    RuleChoicePtr rule = trans.learner().makeRuleChoice(first->choices()->rules(), first->matrix(), first->region());
+    RuleChoicePtr rule = trans.learner().makeCoscheduledRuleChoice(rules, matrices, first->region());
     rule->generateCodeSimple(isStatic, nodename(), trans, *this, first->region(), o, getChoicePrefix(trans));
   }else{
     std::vector<std::string> args;

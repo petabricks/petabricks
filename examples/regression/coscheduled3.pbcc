@@ -1,0 +1,34 @@
+
+transform coscheduled3
+from INPUT[n]
+to RESULT[n]
+through WEIGHTS[n], PARTIALS[n]
+{
+    to (WEIGHTS.cell(i) weight)
+    from (INPUT.cell(i) input)
+    {
+        weight = 1;
+    }
+
+    to (PARTIALS.cell(i) partial)
+    from (WEIGHTS.cell(i) weight)
+    {
+        partial = weight + 1;
+    }
+
+    to   (PARTIALS.cell(i) partial,
+          WEIGHTS.cell(i) weight)
+    from (INPUT.cell(i) input)
+    {
+        weight = 1;
+        partial = 2;
+    }
+
+    to (RESULT.cell(i) result)
+    from (PARTIALS.cell(i) partial,
+          WEIGHTS.cell(i) weight)
+    {
+        result = partial + weight;
+    }
+}
+

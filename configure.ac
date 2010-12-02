@@ -56,6 +56,13 @@ if test "$MAXIMA" = "no"; then
   AC_MSG_ERROR([failed to find 'maxima' in \$path, try running:`sudo apt-get install maxima`.])
 fi
 
+#AC_MSG_CHECKING([python modules])
+#if "$PYTHON" "$srcdir/scripts/checkpython.py"; then
+#  AC_MSG_RESULT([ok])
+#else
+#  AC_MSG_ERROR(["missing python modules"])
+#fi
+
 AC_MSG_CHECKING([maxima compatibility])
 if "$PYTHON" "$srcdir/scripts/checkmaxima.py" "$MAXIMA"; then
   AC_MSG_RESULT([ok])
