@@ -323,9 +323,9 @@ int main( int argc, const char ** argv){
   *prefix << CodeGenerator::theFilePrefix().str();
   *prefix << "} \n";
   o.outputTunableHeaders(*prefix);
-
   ccfiles.writeHeader(header);
 
+  // dump .info file:
   std::ofstream infofile(theOutputInfo.c_str());
   o.cg().dumpTo(infofile);
   infofile.flush();
