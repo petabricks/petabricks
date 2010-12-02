@@ -28,6 +28,8 @@ public:
   ///
   /// Pick which rules to use for a given region
   RuleChoicePtr makeRuleChoice(const RuleSet& choices, const MatrixDefPtr&, const SimpleRegionPtr&);
+  
+  RuleChoicePtr makeCoscheduledRuleChoice(const RuleSet& choices, const MatrixDefList&, const SimpleRegionPtr&);
 };
 
 }

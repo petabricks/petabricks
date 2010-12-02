@@ -62,7 +62,7 @@ if test "$MAXIMA" = "no"; then
 fi
 
 
-AC_MSG_CHECKING([python packages])
+AC_MSG_CHECKING([python modules])
 if "$PYTHON" "$srcdir/scripts/checkpython.py"; then
   AC_MSG_RESULT([ok])
 else

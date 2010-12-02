@@ -147,6 +147,36 @@ private:
 };
 
 
+///
+///combines multiple rules that must be called together
+class CallInSequenceRule : public SyntheticRule {
+public:
+  CallInSequenceRule(const RuleList& rules) 
+    : _rules(rules) 
+  {}
+
+  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+
+  void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
+  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
+  
+  bool isSingleElement() const;
+  
+  int dimensions() const;
+  FormulaPtr getSizeOfRuleIn(int d);
+
+  std::string codename() const;
+
+  void collectDependencies(StaticScheduler& scheduler);
+
+  void genWhereSwitch(Transform& trans, CodeGenerator& o);
+
+  DependencyDirection getSelfDependency() const;
+private:
+  RuleList _rules;
+};
+
+
 }
 
 #endif
