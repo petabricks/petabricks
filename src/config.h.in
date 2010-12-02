@@ -51,6 +51,12 @@
 /* the default minimum number of iterations for for_enough{} */
 #undef FORENOUGH_MIN_ITERS
 
+/* generated file name */
+#undef GENHEADER
+
+/* generated file name */
+#undef GENMISC
+
 /* set to 1 to use SHA1 instead of MD5 */
 #undef HASH_USE_SHA1
 

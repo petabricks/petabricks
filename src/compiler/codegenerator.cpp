@@ -33,9 +33,9 @@ jalib::TunableValueMap& petabricks::CodeGenerator::theHardcodedTunables() {
 }
 
 petabricks::CodeGenerator::CodeGenerator(const StreamTreePtr& root) : _contCounter(0), _indent(0) {
-  _oheaders = root->add(new StreamTree("headers"));
   _odefines = root->add(new StreamTree("defines"));
-  _bcur     = root->add(new StreamTree("top", root.asPtr()));
+  _oheaders = root->add(new StreamTree("headers"));
+  _bcur     = root->add(new StreamTree("top"));
   _ocur = _bcur->add(new StreamTree("main"));
 }
 
@@ -43,10 +43,10 @@ petabricks::CodeGenerator::CodeGenerator(const StreamTreePtr& root) : _contCount
 petabricks::CodeGenerator::CodeGenerator(CodeGenerator& that)
   : jalib::JRefCounted(), _contCounter(0), _indent(0)
 {
-  _oheaders = that._oheaders;
   _odefines = that._odefines;
+  _oheaders = that._oheaders;
   _bcur     = that._bcur;
-  _ocur     = new StreamTree("childsection", _bcur.asPtr());
+  _ocur     = new StreamTree("childsection");
   _bcur->add(_ocur.asPtr());
   _curClass = that._curClass;
 }
@@ -286,13 +286,7 @@ petabricks::CodeGenerator& petabricks::CodeGenerator::forkhelper(){
 }
 
 void petabricks::CodeGenerator::mergehelpers(){
-  for(; !_helpers.empty(); _helpers.pop_back()){
-    JASSERT(_helpers.front()->_defines.empty())
-      .Text("helper CodeGenerator leaked defines");
-   //_helpers.front()->os().writeTo(os());
-   //_helpers.front()->hos().writeTo(hos());
-   //_helpers.front()->dos().writeTo(dos());
-  }
+  _ocur = _bcur->add(new StreamTree("main"));
 }
 void petabricks::CodeGenerator::callSpatial(const std::string& methodname, const SimpleRegion& region) {
   write("{");

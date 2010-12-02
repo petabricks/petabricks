@@ -302,7 +302,7 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
     _templateChoice = -1;
     genTmplJumpTable(o, true, normalArgs(), normalArgNames());
     genTmplJumpTable(o, false, normalArgs(), normalArgNames());
-    o.write("typedef "+tmplName(0)+"_main "+_name+"_main;");
+    o.hos() << "typedef "+tmplName(0)+"_main "+_name+"_main;\n";
   }
 }
   

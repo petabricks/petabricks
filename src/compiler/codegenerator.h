@@ -36,21 +36,14 @@ typedef std::vector<StreamTreePtr>    StreamTrees;
 
 class StreamTree : public jalib::JRefCounted {
 public:
-  StreamTree(const std::string& n, StreamTree* parent = NULL): _name(n), _parent(parent) {}
+  StreamTree(const std::string& n): _name(n) {}
 
   StreamTreePtr add(const StreamTreePtr& t){
     _nodes.push_back(t);
     //t->_parent = this;
     return t;
   }
-  
-  StreamTreePtr addPrefix(const StreamTreePtr& t){
-    _nodes.insert(_nodes.begin(), t);
-    //t->_parent = this;
-    return t;
-  }
-
-
+ 
   void writeTo(std::ostream& o) {
     o << "// :::: " << _name << "\n";
     StreamTrees::iterator i;
@@ -67,11 +60,9 @@ public:
 
   operator std::ostream& () { return _os; }
 
-  StreamTreePtr parent() { return _parent; }
 private:
   std::string  _name;
   StreamTrees  _nodes;
-  StreamTree*  _parent;
   std::ostringstream _os;
 };
 
@@ -261,6 +252,12 @@ public:
       o << i->second << "\n";
   }
 
+  void outputTunableHeaders(std::ostream& o){
+    TunableDefs::const_iterator i;
+    for(i=theTunableDefs().begin(); i!=theTunableDefs().end(); ++i)
+      o << "EXTERN" << i->second << "\n";
+  }
+
   //void outputFileTo(std::ostream& o){
   //  o << theFilePrefix().str();
   //  o << "\n\n// Defines: //////////////////////////////////////////////////////\n\n";
@@ -277,6 +274,13 @@ public:
 
   void callSpatial(const std::string& methodname, const SimpleRegion& region);
   void mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region);
+
+
+  StreamTreePtr startSubfile(const std::string& name) {
+    _bcur = new StreamTree(name+" subfile top");
+    _ocur = _bcur->add(new StreamTree(name+" subfile main"));
+    return _bcur;
+  }
 protected:
   void indent();
 public:

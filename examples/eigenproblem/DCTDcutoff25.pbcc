@@ -75,7 +75,7 @@ to Eigenvalue[n], Eigenvector[n,n]
 	}
 	else {
 		//recursive
-		InlineCopy1D(eig, Din);
+		Copy1D(eig, Din);
 		DCTDcutoff25recursive(eig, vec, Din, Ein);
 	}
     }

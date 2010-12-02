@@ -29,14 +29,12 @@ eigenproblem/trial1
 eigenproblem/trial2
 kclustering/assignclusters
 kclustering/clusterinputgen
-kclustering/copy
 kclustering/distance
 kclustering/kmeans
 kclustering/newclusterlocations
 kernel/KernelEstimate
 kernel/LinearSolvePosDef
 kernel/nwkdelm2
-kernel/nwkdelm
 kernel/nwkde
 kernel/utils
 LUDense/blockedLUDense
@@ -169,3 +167,4 @@ sort/Sort
 *.cpp
 *.cfg
 *.info
+*.obj
