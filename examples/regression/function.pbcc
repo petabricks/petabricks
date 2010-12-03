@@ -5,5 +5,9 @@ to out
 {
   out = a+b;
 }
-
+or
+{
+  out = a;
+  out += b;
+}
 
