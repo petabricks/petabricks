@@ -17,6 +17,7 @@
 #include "common/jasm.h"
 
 #include <cstdio>
+#include <algorithm>
 
 namespace { //file local
 void _remapSet(petabricks::ScheduleNodeSet& set, const petabricks::ScheduleNodeRemapping& map){
@@ -29,6 +30,16 @@ void _remapSet(petabricks::ScheduleNodeSet& set, const petabricks::ScheduleNodeR
     }
   }
 }
+
+int cmpNode(const jalib::JRef<petabricks::ScheduleNode>& a,
+            const jalib::JRef<petabricks::ScheduleNode>& b) {
+  using namespace petabricks;
+  const ScheduleDependencies& da = a->indirectDepends();
+  const ScheduleDependencies& db = b->indirectDepends();
+  return -(int)(db.find(a.asPtr())!=db.end())
+         +(int)(da.find(b.asPtr())!=da.end());
+}
+
 }
 
 
@@ -81,7 +92,7 @@ petabricks::ScheduleNodeSet petabricks::StaticScheduler::lookupNode(const Matrix
 
 void petabricks::StaticScheduler::generateSchedule(){
   #ifdef DEBUG 
-//   writeGraphAsPDF("schedule_initial.pdf");
+  writeGraphAsPDF("schedule_initial.pdf");
   #endif
 
   computeIndirectDependencies();
@@ -121,8 +132,10 @@ void petabricks::StaticScheduler::mergeCoscheduledNodes(){
         JTRACE("coscheduling nodes")((*i)->nodename())(set.size());
         ScheduleNode* coscheduled = new CoscheduledNode(set);
         _allNodes.push_back(coscheduled);
-        for(ScheduleNodeSet::iterator e=set.begin();e!=set.end(); ++e)
+        for(ScheduleNodeSet::iterator e=set.begin();e!=set.end(); ++e) {
           mapping[*e] = coscheduled;
+
+        }
       }
     }
   }
@@ -131,7 +144,9 @@ void petabricks::StaticScheduler::mergeCoscheduledNodes(){
 
 void petabricks::StaticScheduler::applyRemapping(const ScheduleNodeRemapping& m){
   for(ScheduleNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i){
+    if(m.find(i->asPtr())==m.end()){
       (*i)->applyRemapping(m);
+    }
   }
   _remapSet(_goals, m);
   _remapSet(_generated, m);
@@ -246,7 +261,7 @@ void petabricks::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGe
 
 void petabricks::StaticScheduler::writeGraphAsPDF(const char* filename) const{
   std::string schedulerGraph = toString();
-  FILE* fd = popen(("dot -Grankdir=LR -Tpdf -o "+std::string(filename)).c_str(), "w");
+  FILE* fd = popen(("dot -Grankdir=TD -Tpdf -o "+std::string(filename)).c_str(), "w");
   fwrite(schedulerGraph.c_str(),1,schedulerGraph.length(),fd);
   pclose(fd);
 }
@@ -357,8 +372,15 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
         passed=false;
         continue;
       }
-
-      for(ScheduleNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+      
+      ScheduleNodeList sortedNodes;
+      sortedNodes.reserve(_originalNodes.size());
+      for(ScheduleNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i)
+        sortedNodes.push_back(*i);
+      std::sort(sortedNodes.begin(), sortedNodes.end(), cmpNode);
+      std::reverse(sortedNodes.begin(), sortedNodes.end());
+      
+      for(ScheduleNodeList::iterator i=sortedNodes.begin(); i!=sortedNodes.end(); ++i){
         (*i)->generateCodeForSlice(trans, ot, d, new FormulaVariable(varname), isStatic);
       }
       ot.endFor();

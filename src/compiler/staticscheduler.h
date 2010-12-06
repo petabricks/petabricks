@@ -231,6 +231,12 @@ public:
     for(ScheduleNodeList::const_iterator r=_allNodes.begin(); r!=_allNodes.end(); ++r){
       (*r)->printEdges(o);
     }
+    for(ScheduleNodeList::const_iterator r=_remappedNodes.begin(); r!=_remappedNodes.end(); ++r){
+      (*r)->printNode(o);
+    }
+    for(ScheduleNodeList::const_iterator r=_remappedNodes.begin(); r!=_remappedNodes.end(); ++r){
+      (*r)->printEdges(o);
+    }
     o << "}\n";
   }
 
