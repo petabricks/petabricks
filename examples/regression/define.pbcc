@@ -7,6 +7,6 @@
 function test
 to OUT
 {
-  OUT = X+Y;
+  SUM(OUT,X,Y);
 }
 

@@ -2,6 +2,43 @@
 
 import sys, os
 
+
+#####################################################
+# Class
+#####################################################
+
+""" Arg class """
+class Arg:
+  def __init__(self, filename, lineno, name, dimensions):
+    self.filename = filename
+    self.lineno = lineno
+    self.name = name
+    if dimensions == None or len(dimensions) == 0:
+      self.dimensions = None
+    else:
+      self.dimensions = dimensions
+
+  def get_string(self):
+    if self.dimensions == None:
+      return self.name
+    else:
+      return self.name + '[' + ",".join(self.dimensions) + ']'
+
+  def get_string_with(self, extra):
+    if self.dimensions == None:
+      return self.name + extra
+    else:
+      return self.name + extra + '[' + ",".join(get_dimensions_with(extra)) + ']'
+
+  def get_dimensions_with(self, extra):
+    if self.dimensions == None:
+      return []
+    else:
+      return [x + extra for x in self.dimensions]
+
+  def clone_for_lineno(self,new_lineno):
+    return Arg(self.filename, new_lineno, self.name, self.dimensions)
+
 #####################################################
 # Lexer
 #####################################################
@@ -17,6 +54,7 @@ reserved = {
   'memoized' : 'MEMORIZED',
   'transform' : 'TRANSFORM',
   'function' : 'FUNCTION',
+  'or' : 'OR',
   'template' : 'TEMPLATE',
   'generator' : 'GENERATOR',
   'gen' : 'GEN',
@@ -27,6 +65,7 @@ reserved = {
   'accuracy_metric' : 'ACCURACYMETRIC',
   'accuracy_bins' : 'ACCURACYBINS',
   'accuracy_variable' : 'ACCURACYVARIABLE',
+  'scaled_by' : 'SCALE',
 
   'to' : 'TO',
   'from' : 'FROM',
@@ -46,7 +85,7 @@ reserved = {
 }
 
 # Tokens
-tokens = ['ID', 'LBRACE', 'RBRACE', 'CLBRACE', 'CRBRACE', 'LSQBRACE', 'RSQBRACE', 'LPAREN', 'RPAREN', 'LCHEV', 'RCHEV', 'COMMA', 'SEMICOLON', 'LINECOMMENT', 'BLOCKCOMMENT', 'LCOMMENT', 'RCOMMENT', 'REMARK', 'FILE',  'OTHER', 'LINE'] + list(reserved.values())
+tokens = ['ID', 'LBRACE', 'RBRACE', 'CLBRACE', 'CRBRACE', 'LSQBRACE', 'RSQBRACE', 'LPAREN', 'RPAREN', 'LCHEV', 'RCHEV', 'COMMA', 'SEMICOLON', 'LINECOMMENT', 'BLOCKCOMMENT', 'LCOMMENT', 'RCOMMENT', 'REMARK', 'STRING',  'OTHER', 'LINE'] + list(reserved.values())
 
 
 # Both States
@@ -76,7 +115,7 @@ def t_ANY_newline(t):
 
 def t_ANY_REMARK(t):
   r'(\#[^ \n]*)'
-  t.type = reserved.get(t.value,'REMARK')    # Check for reserved words
+  t.type = reserved.get(t.value,'REMARK')    # Check for reserved wordsself.
   return t
 
 def t_ANY_error(t):
@@ -125,7 +164,7 @@ t_COMMA = r'\,'
 t_SEMICOLON = r'\;'
 t_OTHER = r'([=.*/^+-] | [0-9] | [:?!&|])+'
 
-def t_FILE(t):
+def t_STRING(t):
   r'\"[^\"]*\"'
   return t
 
@@ -152,16 +191,18 @@ def t_CLBRACE(t):
 
 def p_petabricks(p):
   'petabricks : include define ifdefs transform ccode petabricks'    
-  if not signature:      
+  if not include:      
     p[5].extend(p[6])    
     p[4].extend(p[5])
     p[3].extend(p[4])
     p[1].extend(p[3]) #don't have to extend defines (define ifdef etc.)
     p[0] = p[1]
   else:
+    p[0] = []
+    ''' for signature
     p[4].extend(p[6])
     p[3].extend(p[4])
-    p[0] = p[3]
+    p[0] = p[3]'''
     
 
 def p_petabricks_base(p):
@@ -184,19 +225,17 @@ def p_include_base(p):
   p[0] = []
 
 def p_include(p):
-  'include : INCLUDE FILE'
+  'include : INCLUDE STRING'
   filename = p[2]
   filename = filename[1:len(filename)-1]
 
   if not seperate: 
     p[0] = parse_file_to_ast(filename)	# include everything
-  elif not signature:
-    p[0] = get_signatures(filename)	# include signatures
   else:
-    p[0] = []				# if signature: include nothing
+    p[0] = get_define(filename)		# include define
 
 def p_include_library(p):
-  'include : LIBRARY FILE'
+  'include : LIBRARY STRING'
   p[0] = [('library', (queue[-1],p.lineno(2),"#library " + p[2]))]
 
 #----------------------------------------------------
@@ -208,10 +247,10 @@ def p_define_base(p):
 def p_define(p):
   'define : DEFINE ID'
   current_dict = define_dict_list[-1]
-  if p[2] not in current_dict or current_dict[p[2]] == "":
-    current_dict[p[2]] = ""
-  else:
-    print_error("illegal to redefine " + p[2], p.lineno(1))
+  #if p[2] not in current_dict or current_dict[p[2]] == "":
+  current_dict[p[2]] = ""
+  #else:
+  #  print_error("illegal to redefine " + p[2], p.lineno(1))
 
 def p_define_macro(p):
   'define : DEFINE ID LPAREN id_list RPAREN expression'
@@ -228,18 +267,18 @@ def p_define_macro_block(p):
   current_dict = macro_dict_list[-1]
   template = generate_template(p[4], p[7])
   template = (template[0], template[1], 'block')
-  if p[2] not in current_dict or current_dict[p[2]] != template:
-    current_dict[p[2]] = template
-  else:
-    print_error("illegal to redefine " + p[2], p.lineno(1))
+  #if p[2] not in current_dict or current_dict[p[2]] != template:
+  current_dict[p[2]] = template
+  #else:
+  #  print_error("illegal to redefine " + p[2], p.lineno(1))
 
 def p_define_const(p):
   'define : DEFINE ID expression'
   current_dict = define_dict_list[-1]
-  if p[2] not in current_dict or current_dict[p[2]] == p[3]:
-    current_dict[p[2]] = p[3]
-  else:
-    print_error("illegal to redefine " + p[2], p.lineno(1))
+  #if p[2] not in current_dict or current_dict[p[2]] == p[3]:
+  current_dict[p[2]] = p[3]
+  #else:
+  #print_error("illegal to redefine " + p[2], p.lineno(1))
 
 def p_define_un(p):
   '''define : UNDEF ID
@@ -335,31 +374,130 @@ def p_cond_number_line(p):
 # transform				   
 #----------------------------------------------------
 function = None
+transform_name = None
 
 def p_transform_base(p):
   'transform : empty'
   p[0] = []
 
 def p_transform(p):
-  'transform : transform_headers LBRACE body RBRACE'
+  'transform : transform_headers LBRACE body RBRACE options'
   
-  if not signature:
+  if not include:
     # Add { } abround body
     combine_list_element(p[3], (queue[-1],p.lineno(4),p[4]))
     combine_element_list((queue[-1],p.lineno(2),p[2]), p[3])
+
     if function:
+      combine_element_list(p[3],p[5])
       modify_function_ast(p)
+
+    for i in range(len(p[1])):
+      ((filename, lineno, t),args) = p[1][i]	# header = ((filename, lineno, t),args)
+      if t == 'scaled_by':
+        if len(args) != 1:
+          print_error("can only scaled_by one transform",lineno)
+
+        p[1].pop(i)
+        modify_scale_by_ast(p, args[0].name)
+        return
+
     p[0] = [('transform', (p[1], p[3]))]
   else:
-    p[0] = [('signature', p[1])]
+    p[0] = []
+    ''' for signature
+    p[0] = [('signature', p[1])]'''
+
+def print_headers(headers):
+  for header in headers:
+    (filename, lineno, t),args = header
+    print t
+    print [arg.name for arg in args]
+    print [arg.get_string() for arg in args]
+
+def modify_scale_by_ast(p, scale_function):
+  #'transform : transform_headers LBRACE body RBRACE options'
+  #		p[1]			 p[3]
+
+  header = p[1][-1]		# header = ((filename, lineno, t),args)
+  lineno = header[0][1]
+  inner_headers = p[1][:]
+
+  # Create to & from list
+  to_strings = []
+  from_strings = []
+  through_strings = []
+  from_args = []
+  for header in p[1]:
+    header_type, args = header 	# header = ((filename, lineno, type), args)
+
+    if header_type[2] == 'to' or header_type[2] == 'through' or header_type[2] == 'using':
+      to_strings.extend([arg.name for arg in args])
+
+    if header_type[2] == 'from':
+      from_strings.extend([arg.name for arg in args])
+      through_strings.extend([arg.name + '_' for arg in args])
+      from_args.extend(args)
+
+  # add through to headers
+  through_args = [Arg(queue[-1], lineno, arg.name + '_', arg.get_dimensions_with('_')) for arg in from_args]
+  p[1].append(((queue[-1], lineno, 'through'),through_args))
+
+  # add accuracy_variable to headers
+  acc_vars = [n for n in arg.get_dimensions_with('_') for arg in from_strings]
+  if len(acc_vars) > 0:
+    acc_vars = list(set(acc_vars))
+    acc_vars = [Arg(queue[-1], lineno, n, None) for n in acc_vars]
+    p[1].append(((queue[-1], lineno, 'accuracy_variable'),acc_vars))
+  
+  # creat rule's to_list and from_list
+  rule_from_list = [name + ' ' + name for name in from_strings]
+  rule_to_list = [name + ' ' + name for name in to_strings] + [name + ' ' + name for name in through_strings]
+
+  # create new body for the main transform
+  first_line = "to (" + ",".join(rule_to_list)  + ") from (" + ",".join(rule_from_list) + ")"
+  line = '{ ' + first_line + '{ '
+  new_body = [(queue[-1],lineno,line)]
+
+  # scale_by(in_, in);
+  for name in from_strings:
+    line = scale_function + '(' + name + '_, ' + name + '); '
+    new_body.append( (queue[-1],lineno,line) )
+
+  # transform_name_(out, in_);
+  line = transform_name + '_(' + ",".join(to_strings + through_strings) + '); } }' 	# end rule & end transform
+  new_body.append( (queue[-1],lineno,line) )
+
+  #TODO: inner transform
+  lineno = p.lineno(2)
+  for i in range(len(inner_headers)):
+    ((old_filename, old_lineno, t), args) = inner_headers[i] 	# header = ((filename, lineno, type), args)
+    inner_headers[i] = ((queue[-1], lineno, t), [arg.clone_for_lineno(lineno) for arg in args])
+    if t == 'transform':
+      args = inner_headers[i][1]
+      arg = args[0]
+      arg.name = arg.name + '_'
+
+  p[0] = [('transform', (p[1], new_body)), ('transform', (inner_headers, p[3]))]
 
 def p_transform_signature(p):
   'transform : transform_headers SEMICOLON' 
 
-  if not signature:
-    p[0] = [('signature', p[1])]
-  else:
-    p[0] = []
+  p[0] = [('signature', p[1])]
+
+def p_options(p):
+  'options : OR LBRACE body RBRACE options'
+  if not function:
+    print_error("\'or\' is not allowed after \'transform\'", p.lineno(1))
+
+  # Add { } abround body
+  combine_list_element(p[3], (queue[-1],p.lineno(4),p[4]))
+  combine_element_list((queue[-1],p.lineno(2),p[2]), p[3])
+  p[0] = combine_element_list(p[3],p[5])
+
+def p_options_base(p):
+  'options : empty'
+  p[0] = []
 
 def p_transform_headers(p):
   'transform_headers : transform_header transform_headers'
@@ -392,19 +530,22 @@ def p_transform_header_element(p):
 		      | TEMPLATE chevron_arg
 		      | ACCURACYVARIABLE config_arg
 		      | CONFIG config_arg
-		      | TUNABLE config_arg'''
-  global function
+		      | TUNABLE config_arg
+		      | SCALE ID'''
+  global function, transform_name
   if p[1] == "transform":
     function = False
+    transform_name = p[2]
   elif p[1] == "function":
     function = True
     p[1] = "transform"
+    transform_name = p[2]
 
-  p[0] = ((queue[-1],p.lineno(1),p[1]), [(queue[-1],p.lineno(1),p[2])])
+  p[0] = ((queue[-1],p.lineno(1),p[1]), [Arg(queue[-1], p.lineno(2), p[2], None)])
 
 def p_transform_header_main(p):
   'transform_header : MAIN TRANSFORM ID'
-  p[0] = ((queue[-1],p.lineno(1), "main transform"), [(queue[-1],p.lineno(3),p[3])])
+  p[0] = ((queue[-1],p.lineno(1), "main transform"), [Arg(queue[-1], p.lineno(3), p[3], None)])
 
 def p_chevron_arg(p):
   'chevron_arg : LCHEV configs RCHEV'
@@ -452,11 +593,12 @@ def p_matrix_list_base(p):
 def p_matrix_with_dimensions(p):
   '''matrix : ident LSQBRACE dimensions RSQBRACE'''
   (filename, lineno, ident) = p[1]
-  p[0] = (filename, lineno, ident + '[' + p[3] + ']')
+  p[0] = Arg(filename, lineno, ident, p[3])
 
 def p_matrix_without_dimension(p):
   'matrix : ident'
-  p[0] = p[1]
+  (filename, lineno, ident) = p[1]
+  p[0] = Arg(queue[-1], lineno, ident, None)
 
 def p_ident_common(p):
   'ident : ID'
@@ -469,12 +611,12 @@ def p_ident_withchevs(p):
 def p_dimensions(p):
   'dimensions : expression COMMA dimensions'
   p[1] = replace_all_define(p[1], p.lineno(1))	# Replace defines
-  p[0] = p[1] + ',' + p[3]
+  p[0] = combine_element_list(p[1], p[3])
 
 def p_dimensions_base(p):
   'dimensions : expression'
   p[1] = replace_all_define(p[1], p.lineno(1))	# Replace defines
-  p[0] = p[1]
+  p[0] = [p[1]]
 
 def p_expression_unary(p):
   '''expression : ID expression
@@ -495,16 +637,17 @@ def p_expression_more(p):
 
 def p_expression_base(p):
   '''expression : ID
-                | OTHER'''
+                | OTHER
+		| STRING'''
   p[0] = p[1]
 
 def p_float_list(p):
   'float_list : OTHER COMMA float_list'
-  p[0] = combine_element_list((queue[-1],p.lineno(1), p[1]), p[3])
+  p[0] = combine_element_list(Arg(queue[-1], p.lineno(1), p[1], None), p[3])
 
 def p_float_list_base(p):
   'float_list : OTHER'
-  p[0] = [(queue[-1],p.lineno(1), p[1])]
+  p[0] = [Arg(queue[-1], p.lineno(1), p[1], None)]
 
 def p_body_standard(p):
   'body : LINE body'
@@ -580,10 +723,10 @@ def combine_block_list(lbrace,l1,rbrace,l2):
   l1.extend(l2)
   return l1
 
-""" Modify 'function' ast to 'transform' ast, and add 'from' and 'to' for body """
+""" Modify 'function' ast to 'transform' ast, and add 'from' and 'to' for each rule """
 def modify_function_ast(p):
-  #'transform : transform_headers LBRACE body RBRACE'
-  #             p[1]                     [3]
+  #'transform : transform_headers LBRACE body RBRACE rule_list'
+  #             p[1]                        	     p[5]
   
   # Create to & from for body
   to_list = []
@@ -592,41 +735,46 @@ def modify_function_ast(p):
     header_type, args = header # header = ((filename, lineno, type), args)
 
     if header_type[2] == 'to' or header_type[2] == 'through' or header_type[2] == 'using':
+      #TODO: use the commented line instead, once fix the parser
+      #to_list.extend([arg.name + ' ' + arg.name for arg in args])
       to_list.extend(format_function_args(args))
 
     if header_type[2] == 'from':
+      #TODO: use the commented line instead, once fix the parser
+      #from_list.extend([arg.name + ' ' + arg.name for arg in args])
       from_list.extend(format_function_args(args))
 
   first_line = "to (" + ",".join(to_list)  + ") from (" + ",".join(from_list) + ")"
+  combine = []
 
-  # Combind to & from to the beginning of the body
-  combine_element_list((queue[-1],p.lineno(3),first_line), p[3])
+  for rule in p[5]:
+    lineno = rule[0][1]
+
+    # Add to & from to the beginning of every rule
+    combine.append( (queue[-1],lineno,first_line[:]) )
+    combine.extend(rule)
+    #combine_element_list((queue[-1],lineno,first_line[:]), body)
 
   # Add { } abround body again after adding from & to
-  combine_list_element(p[3], (queue[-1],p.lineno(4),p[4]))
-  combine_element_list((queue[-1],p.lineno(2),p[2]), p[3])
+  combine_list_element(combine, (queue[-1],p.lineno(4),p[4]))
+  combine_element_list((queue[-1],p.lineno(2),p[2]), combine)
+  p[3] = combine
 
 """ Generate list of 'for' and 'to' arguments inside the body, and change 'transform' arguments
     Return  list of 'for' and 'to' arguments inside the body """
 def format_function_args(args):
   body_args = []
 
-  # Since arg = (filename, lineno, arg_name), we only need name which is the element at index 2,
-  # we want only name without dimension.
+  # Get name from args
   for i in range(len(args)):
-    # Get name only
-    (filename, lineno, arg) = args[i]
-
-    # Remove dimension
-    end = arg.find('[')
-    if end != -1:
+    arg = args[i]
+    if arg.dimensions != None:
       # matrix
-      arg = arg[:end]
-      body_args.append(arg + " " + arg) # to(OUT OUT)
+      body_args.append(arg.name + " " + arg.name)
     else:
       # not matrix
-      body_args.append("_" + arg + " " + arg) # need to(_OUT OUT)
-      args[i] = (filename, lineno, "_" + arg)
+      body_args.append("_" + arg.name + " " + arg.name) # need to(_OUT OUT)
+      args[i].name = "_" + args[i].name
 
   return body_args
 
@@ -761,7 +909,19 @@ macro_dict_list = []
 current_file = ""
 current_line = 0
 seperate = False
-signature = False
+include = False
+
+def relpath(filename):
+  current = os.path.abspath("") + '/'
+  common = os.path.commonprefix([current, filename])
+  current = current[len(common):]
+  filename = filename[len(common):]
+
+  count = current.count('/')
+  out = ""
+  for i in range(count):
+    out += '../'
+  return out + filename
 
 """ Return a formatted string of a line.
     Args: tuple of (full path filename, line number, content) """
@@ -769,7 +929,7 @@ def line_format((filename, lineno, content)):
   global current_file, current_line
 
   if current_file != filename or current_line + 10 < lineno:
-    info = "\n# " + str(lineno) + " \"" + filename + "\"\n"
+    info = "\n# " + str(lineno) + " \"" + relpath(filename) + "\"\n"
     current_file = filename
     current_line = lineno
   else:
@@ -793,18 +953,19 @@ def convert_block(block):
 def convert_headers(headers):
   output = ""
   for header in headers:
-    header_type = header[0]
-    args = header[1]
+    header_type, args = header
     output += line_format(header_type)
     
     if args != None:
       i = 0
       while i < len(args) - 1:
         arg = args[i]
-        output += line_format((arg[0], arg[1], arg[2] + ','))
+        output += line_format((arg.filename, arg.lineno, arg.get_string() + ','))
         i += 1
+      if len(args) == 0:
+        print "zero", header
       arg = args[i]
-      output += line_format(arg)
+      output += line_format((arg.filename, arg.lineno, arg.get_string()))
   return output
 
 """ Convert AST of a transform into a string """
@@ -830,6 +991,19 @@ def convert_ast_to_string(ast):
     elif main_node[0] == "library":
       output += line_format(main_node[1])
   return output
+
+def update_cleanup():
+  queue.pop()
+  current_dict = define_dict_list.pop()
+  if len(define_dict_list) > 0:
+    parent_dict = define_dict_list[-1]
+    for key in current_dict.keys():
+      parent_dict[key] = current_dict[key]
+
+    current_dict = macro_dict_list.pop()
+    parent_dict = macro_dict_list[-1]
+    for key in current_dict.keys():
+      parent_dict[key] = current_dict[key]
 
 """ Parse a content in a given file into ast. """
 def parse_file_to_ast(file_path):
@@ -860,12 +1034,35 @@ def parse_file_to_ast(file_path):
   reader.close()
   ast = yacc.parse(input_string)
 
-  queue.pop()
-  define_dict_list.pop()
-  macro_dict_list.pop()
+  update_cleanup()
   return ast
 
-def get_signatures(file_path):
+def get_define(file_path):
+  current_dir = os.path.dirname(queue[-1])
+  full_path_string = os.path.abspath(os.path.join(current_dir, file_path))
+  queue.append(full_path_string)
+  define_dict_list.append({})
+  macro_dict_list.append({})
+
+  import ply.lex as lex
+  import ply.yacc as yacc
+
+  lex.lex(nowarn=1)
+  yacc.yacc(debug=False)
+
+  reader = open(full_path_string, 'r')
+  input_string = reader.read()
+  reader.close()
+
+  global include
+  include = True
+  ast = yacc.parse(input_string)
+  include = False
+
+  update_cleanup()
+  return ast
+
+'''def get_signatures(file_path):
   current_dir = os.path.dirname(queue[-1])
   full_path_string = os.path.abspath(os.path.join(current_dir, file_path))
   queue.append(full_path_string)
@@ -887,10 +1084,8 @@ def get_signatures(file_path):
   ast = yacc.parse(input_string)
   signature = False
 
-  queue.pop()
-  define_dict_list.pop()
-  macro_dict_list.pop()
-  return ast
+  update_cleanup()
+  return ast'''
 
 
 def main(argv=sys.argv):
