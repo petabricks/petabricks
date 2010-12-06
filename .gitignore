@@ -39,6 +39,7 @@ pbc
 
 maxima.log
 schedule.pdf
+schedule_initial.pdf
 
 Makefile.in
 configure

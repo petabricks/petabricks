@@ -31,10 +31,11 @@ if test "x$ac_cv_prog_YACC" = "x"; then
   AC_MSG_ERROR([failed to find 'bison' in \$path, try running:`sudo apt-get install bison`.])
 fi
 
-AC_CHECK_PROG([has_dot], [dot], [yes], [no])
-if test "$has_dot" = "no"; then
-  AC_MSG_WARN([failed to find 'dot' in \$path, some debug outputs will not be generated.])
+AC_PATH_PROGS([DOTPATH], [dot], [no])
+if test "$DOTPATH" = "no"; then
+  AC_MSG_WARN([failed to find 'nm' in \$path, try running:`sudo apt-get install binutils`.])
 fi
+
 
 AC_CHECK_PROG([has_doxygen], [doxygen], [yes], [no])
 if test "$has_doxygen" = "no"; then
