@@ -242,7 +242,7 @@ class ResultsDB:
 class Candidate:
   nextCandidateId=0
   '''A candidate algorithm in the population'''
-  def __init__(self, cfg, infoxml, mutators=[]):
+  def __init__(self, cfg, infoxml, mutators=[], pop=None):
     self.config      = ConfigFile(cfg)
     self.metrics     = [ResultsDB(x) for x in config.metrics]
     self.mutators    = list(mutators)
@@ -252,6 +252,7 @@ class Candidate:
     self.outputdir   = storagedirs.candidate(self.cid)
     self.C           = config.bandit_c    # exploration/exploitation trade-off in the DMAB algorithm
     Candidate.nextCandidateId += 1
+    self.pop         = pop # population this candidate is a member of
 
 
   def discardResults(self, n):
@@ -268,7 +269,7 @@ class Candidate:
     so new results will be added to both algs
     use clearResults to remove the copies
     '''
-    t=Candidate(self.config, self.infoxml, self.mutators)
+    t=Candidate(self.config, self.infoxml, self.mutators, self.pop)
     for i in xrange(len(self.metrics)):
       for n in self.metrics[i].keys():
         t.metrics[i][n] = self.metrics[i][n]

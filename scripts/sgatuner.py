@@ -400,6 +400,7 @@ def autotuneInner(benchmark):
   candidate, tester = init(benchmark)
   try:
     pop = Population(candidate, tester, None)
+    candidate.pop = pop
 
     stats = storagedirs.openCsvStats("roundstats", 
         ("round",
