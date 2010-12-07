@@ -5,7 +5,11 @@ to METRIC
     to   (METRIC metric)
     from (IN in, OUT out)
     {
-        metric = -log10(out);
+        double x = out;
+        if (x == 0) {
+            x = std::numeric_limits<double>::epsilon();
+        }
+        metric = -log10(x);
         fprintf(stderr, "out: %g, metric: %g\n", out, metric);
     }
 }
@@ -23,6 +27,18 @@ to OUT
 }
 
 transform Bowl
+from X
+to OUT
+{
+    OUT from (X x)
+    {
+        double f = x * (x - 2) + 1;
+        fprintf(stderr, "f(%g) = %g\n", x, f);
+        return f;
+    }
+}
+
+transform Bowl2D
 from X, Y
 to OUT
 {
@@ -37,18 +53,19 @@ to OUT
 transform Optimize
 from IN
 to OUT
-tunable x10000
-tunable y10000
+accuracy_variable x10
+//accuracy_variable y10
 accuracy_metric MinimizeOut
-accuracy_bins -10, -1, 0, 1, 10
+accuracy_bins 0
 {
     to (OUT out)
     from (IN in)
     {
-        double x = (double) x10000 / 10000 - 10000;
-        double y = (double) y10000 / 10000 - 10000;
-        //Rosenbrock(out, x, y);
-        Bowl(out, x, y);
+        double x = (double) x10 / 10 - 10;
+//        double y = (double) y10 / 10 - 10;
+//        Rosenbrock(out, x, y);
+//        Bowl2D(out, x, y);
+        Bowl(out, x);
     }
 }
 
