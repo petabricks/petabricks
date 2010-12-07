@@ -92,6 +92,7 @@ multigrid/Restrict2Dnew
 multigrid/Restrict3D
 multiply/multiply
 multiply/strassen
+optimize/optimize
 preconditioner/CGInterior
 preconditioner/CG
 preconditioner/ComputeError

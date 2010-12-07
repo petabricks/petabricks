@@ -1,0 +1,54 @@
+transform MinimizeOut
+from OUT, IN
+to METRIC
+{
+    to   (METRIC metric)
+    from (IN in, OUT out)
+    {
+        metric = -log10(out);
+        fprintf(stderr, "out: %g, metric: %g\n", out, metric);
+    }
+}
+
+transform Rosenbrock
+from X, Y
+to OUT
+{
+    OUT from (X x, Y y)
+    {
+        double f = (1 - x) * (1 - x) + 100 * (y - x * x) * (y - x * x);
+        fprintf(stderr, "f(%g, %g) = %g\n", x, y, f);
+        return f;
+    }
+}
+
+transform Bowl
+from X, Y
+to OUT
+{
+    OUT from (X x, Y y)
+    {
+        double f = (x * (x - 2) + y * (y - 2)) + 2;
+        fprintf(stderr, "f(%g, %g) = %g\n", x, y, f);
+        return f;
+    }
+}
+
+transform Optimize
+from IN
+to OUT
+tunable x10000
+tunable y10000
+accuracy_metric MinimizeOut
+accuracy_bins -10, -1, 0, 1, 10
+{
+    to (OUT out)
+    from (IN in)
+    {
+        double x = (double) x10000 / 10000 - 10000;
+        double y = (double) y10000 / 10000 - 10000;
+        //Rosenbrock(out, x, y);
+        Bowl(out, x, y);
+    }
+}
+
