@@ -89,7 +89,7 @@ class Mutator:
 
 
 class LognormRandom:
-  def random(self, start, minVal, maxVal):
+  def random(self, start, minVal, maxVal, candidate = None):
     for z in xrange(config.rand_retries):
       v=int(start*stats.lognorm.rvs(1)+.5)
       #logging.debug("lognorm: start=%d, v=%d", start, v)
@@ -98,7 +98,7 @@ class LognormRandom:
     raise MutateFailed("lognorm random gen failed")
 
 class UniformRandom:
-  def random(self, start, minVal, maxVal):
+  def random(self, start, minVal, maxVal, candidate = None):
     v=stats.randint.rvs(minVal, maxVal+1)
     #logging.debug("uniform: start=%d, v=%d", start, v)
     return v
@@ -234,18 +234,21 @@ class TunableArrayMutator(Mutator):
     self.maxVal = maxVal
     Mutator.__init__(self, weight)
   def getVal(self, candidate, oldVal, inputSize):
-    return self.random(oldVal, self.minVal, self.maxVal)
-  def mutate(self, candidate, n):
+    return self.random(oldVal, self.minVal, self.maxVal, candidate = candidate)
+  def setVal(self, candidate, newVal, n):
     i = int(math.log(n, 2))
     candidate.clearResultsAbove(min(n, 2**i-1))
-    old = candidate.config[config.fmt_bin % (self.tunable, i)]
-    new = self.getVal(candidate, old, n)
-    #print str(candidate),self.tunable, old, new
     ks = set(candidate.config.keys())
     assert config.fmt_bin%(self.tunable, i) in ks
     while config.fmt_bin%(self.tunable, i) in ks:
-      candidate.config[config.fmt_bin % (self.tunable, i)] = new
+      candidate.config[config.fmt_bin % (self.tunable, i)] = newVal
       i+=1
+  def mutate(self, candidate, n):
+    i = int(math.log(n, 2))
+    old = candidate.config[config.fmt_bin % (self.tunable, i)]
+    new = self.getVal(candidate, old, n)
+    #print str(candidate),self.tunable, old, new
+    self.setVal(candidate, new, n)
   def reset(self, candidate):
     candidate.clearResults()
     i = 0
@@ -266,15 +269,40 @@ class IncrementTunableArrayMutator(TunableArrayMutator):
   def __init__(self, tunable, minVal, maxVal, inc, weight=1.0):
     self.inc = inc
     TunableArrayMutator.__init__(self, tunable, minVal, maxVal, weight)
-  def random(self, oldVal, minVal, maxVal):
+  def random(self, oldVal, minVal, maxVal, candidate = None):
     return min(maxVal, max(minVal, oldVal+self.inc))
 
 class ScaleTunableArrayMutator(TunableArrayMutator):
   def __init__(self, tunable, minVal, maxVal, inc, weight=1.0):
     self.inc = inc
     TunableArrayMutator.__init__(self, tunable, minVal, maxVal, weight)
-  def random(self, oldVal, minVal, maxVal):
+  def random(self, oldVal, minVal, maxVal, candidate = None):
     return min(maxVal, max(minVal, oldVal*self.inc))
+
+class OptimizeTunableArrayMutator(TunableArrayMutator):
+  def random(self, oldVal, minVal, maxVal, candidate = None):
+
+    n = candidate.pop.testers[-1].n
+
+    newVal = oldVal * 2
+
+    results = candidate.metrics[config.accuracy_metric_idx][n]
+    beforeLen = len(results)
+    before = numpy.nan
+    if beforeLen != 0:
+      before = results.mean()
+
+    self.setVal(candidate, newVal, n)
+    candidate.pop.testers[-1].testN(candidate, 1)
+
+    results = candidate.metrics[config.accuracy_metric_idx][n]
+    after = results.mean()
+    afterLen = len(results)
+
+    print "accuracy = %g (%d) => %g (%d)" % (before, beforeLen, after, afterLen)
+
+    newVal = min(maxVal, max(minVal, newVal))
+    return newVal
 
 class MultiMutator(Mutator):
   def __init__(self, count=3, weight=1.0):
