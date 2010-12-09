@@ -15,7 +15,7 @@
 typedef          long long int64;
 typedef unsigned long long uint64;
 
-int getBits(double in, int position)
+inline int getBits(double in, int position)
 {
   union {
     double d;
@@ -30,7 +30,7 @@ int getBits(double in, int position)
   return (inInt & ((uint64) (NUM_BUCKETS - 1) << position)) >> position;
 }
 
-void Radix(MatrixRegion1D &out, MatrixRegion1D &in, int *buckets, int pos)
+inline void Radix(MatrixRegion1D &out, MatrixRegion1D &in, int *buckets, int pos)
 {
   int i;
   for (i = 0; i < in.size(0); i++) {
@@ -79,7 +79,7 @@ to OUT[n], TEMP[n]
       p = 64 - NUM_BITS_PER_RADIX;
     }
 
-    InlineCopy1D(temp, out);
+    Copy1D(temp, out);
     Radix(out, temp, buckets, p);
     
     if (p > 0) {
@@ -109,7 +109,7 @@ to OUT[n]
   to (OUT out) from (IN in)
   {
     MatrixRegion1D temp = MatrixRegion1D::allocate(n);
-    InlineCopy1D(out, in);
+    Copy1D(out, in);
     RadixsortSubArray(out, temp, in, 64 - NUM_BITS_PER_RADIX);
   }
 }

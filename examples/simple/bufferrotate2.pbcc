@@ -1,0 +1,15 @@
+#ifndef BUFFERROTATE_PBCC
+#define BUFFERROTATE_PBCC
+
+#define R 100
+
+function BufferRotate
+from in[n]
+to out[n]
+{
+   for (int i = 0; i < n; ++i) {
+     out.cell(i) = in.cell((i + R) % n);
+   }
+}
+
+#endif // BUFFERROTATE_PBCC

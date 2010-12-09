@@ -22,6 +22,8 @@ config.status
 *.kdevelop.pcs
 *.kdevses
 
+parsetab.py
+
 
 #project specific
 Makefile

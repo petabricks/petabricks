@@ -1,0 +1,12 @@
+
+#define X 10
+#include "define.h"
+
+#define STRINGY "i am a string"
+
+function test
+to OUT
+{
+  SUM(OUT,X,Y);
+}
+

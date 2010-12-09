@@ -29,14 +29,49 @@
 #include <vector>
 
 namespace petabricks {
-typedef std::map<std::string, std::string> TunableDefs;
 
+class StreamTree;
+typedef jalib::JRef<StreamTree>       StreamTreePtr;
+typedef std::vector<StreamTreePtr>    StreamTrees;
+
+class StreamTree : public jalib::JRefCounted {
+public:
+  StreamTree(const std::string& n): _name(n) {}
+
+  StreamTreePtr add(const StreamTreePtr& t){
+    _nodes.push_back(t);
+    //t->_parent = this;
+    return t;
+  }
+ 
+  void writeTo(std::ostream& o) {
+    o << "// :::: " << _name << "\n";
+    StreamTrees::iterator i;
+    for(i=_nodes.begin(); i!=_nodes.end(); ++i)
+      (*i)->writeTo(o);
+    o << _os.str();
+  }
+  
+  template<typename T>
+  StreamTree& operator<<(const T& t) {
+    _os << t;
+    return *this;
+  }
+
+  operator std::ostream& () { return _os; }
+
+private:
+  std::string  _name;
+  StreamTrees  _nodes;
+  std::ostringstream _os;
+};
+
+typedef std::map<std::string, std::string> TunableDefs;
 class SimpleRegion;
 class CodeGenerator;
-typedef jalib::JRef<CodeGenerator> CodeGeneratorPtr;
+typedef jalib::JRef<CodeGenerator>    CodeGeneratorPtr;
 typedef std::vector<CodeGeneratorPtr> CodeGenerators;
 
-class TaskCodeGenerator;
 
 class CodeGenerator : public jalib::JRefCounted {
 public:
@@ -48,7 +83,6 @@ public:
   };
   typedef std::vector<ClassMember> ClassMembers;
 
-  
   static std::stringstream& theFilePrefix();
   static TunableDefs& theTunableDefs();
   static jalib::TunableValueMap& theHardcodedTunables();
@@ -56,7 +90,8 @@ public:
   void incIndent(){++_indent;}
   void decIndent(){--_indent;}
   
-  CodeGenerator();
+  CodeGenerator(const StreamTreePtr& root);
+  CodeGenerator(CodeGenerator& that);
   virtual ~CodeGenerator(){}
 
   void beginFor(const std::string& var, const FormulaPtr& begin, const FormulaPtr& end,  const FormulaPtr& step);
@@ -140,7 +175,6 @@ public:
 
   TrainingDeps& cg() { return _cg; }
 
-
   void beginClass(const std::string& name, const std::string& base);
   void endClass();
   void addMember(const std::string& type, const std::string& name, const std::string& initializer = ClassMember::PASSED());
@@ -199,29 +233,66 @@ public:
   /// Write the bodies from any calles to forkhelp
   void mergehelpers();
   
-  void outputFileTo(std::ostream& o){
-    o << theFilePrefix().str();
-    o << "\n\n// Defines: //////////////////////////////////////////////////////\n\n";
-    o << _dos.str();
-    o << "\n\n// Tunables: /////////////////////////////////////////////////////\n\n";
-    for(TunableDefs::const_iterator i=theTunableDefs().begin(); i!=theTunableDefs().end(); ++i)
+  //void outputFileTo(std::ostream& o){
+  //  o << theFilePrefix().str();
+  //  o << "\n\n// Defines: //////////////////////////////////////////////////////\n\n";
+  //  _odefines->writeTo(o);
+  //  o << "\n\n// Tunables: /////////////////////////////////////////////////////\n\n";
+  //  for(TunableDefs::const_iterator i=theTunableDefs().begin(); i!=theTunableDefs().end(); ++i)
+  //    o << i->second << "\n";
+  //  o << "\n\n// Header Decls: /////////////////////////////////////////////////\n\n";
+  //  _oheaders->writeTo(o);
+  //  o << "\n\n// Body Decls: ///////////////////////////////////////////////////\n\n";
+  //  _omain->writeTo(o);
+  //}
+
+  void outputTunables(std::ostream& o){
+    TunableDefs::const_iterator i;
+    for(i=theTunableDefs().begin(); i!=theTunableDefs().end(); ++i)
       o << i->second << "\n";
-    o << "\n\n// Header Decls: /////////////////////////////////////////////////\n\n";
-    o << _hos.str();
-    o << "\n\n// Body Decls: ///////////////////////////////////////////////////\n\n";
-    o << _os.str();
   }
+
+  void outputTunableHeaders(std::ostream& o){
+    TunableDefs::const_iterator i;
+    for(i=theTunableDefs().begin(); i!=theTunableDefs().end(); ++i)
+      o << "EXTERN" << i->second << "\n";
+  }
+
+  //void outputFileTo(std::ostream& o){
+  //  o << theFilePrefix().str();
+  //  o << "\n\n// Defines: //////////////////////////////////////////////////////\n\n";
+  //  _odefines->writeTo(o);
+  //  o << "\n\n// Tunables: /////////////////////////////////////////////////////\n\n";
+  //  for(TunableDefs::const_iterator i=theTunableDefs().begin(); i!=theTunableDefs().end(); ++i)
+  //    o << i->second << "\n";
+  //  o << "\n\n// Header Decls: /////////////////////////////////////////////////\n\n";
+  //  _oheaders->writeTo(o);
+  //  o << "\n\n// Body Decls: ///////////////////////////////////////////////////\n\n";
+  //  _omain->writeTo(o);
+  //}
+
 
   void callSpatial(const std::string& methodname, const SimpleRegion& region);
   void mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region);
+
+
+  StreamTreePtr startSubfile(const std::string& name) {
+    _bcur = new StreamTree(name+" subfile top");
+    _ocur = _bcur->add(new StreamTree(name+" subfile main"));
+    return _bcur;
+  }
 protected:
   void indent();
 public:
-  std::ostream& hos() { return _hos; }
-  std::ostream& dos() { return _dos; }
-  std::ostream& os()  { return _os; }
+  StreamTree& hos() { return _oheaders; }
+  StreamTree& dos() { return _odefines; }
+  StreamTree& os()  { return _ocur; }
 protected:
   std::vector<std::string> _defines;
+  StreamTreePtr  _oheaders;
+  StreamTreePtr  _odefines;
+  StreamTreePtr  _bcur;
+  StreamTreePtr  _ocur;
   ClassMembers   _curMembers;
   std::string    _curClass;
   std::string    _curConstructorBody;
@@ -229,9 +300,6 @@ protected:
   int            _indent;
   TrainingDeps   _cg;
   CodeGenerators _helpers;
-  std::ostringstream _os;
-  std::ostringstream _hos;
-  std::ostringstream _dos;
 };
 
 }

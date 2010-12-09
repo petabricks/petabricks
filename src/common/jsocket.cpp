@@ -25,6 +25,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <netdb.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -139,6 +140,14 @@ void jalib::JSocket::enablePortReuse()
     JWARNING(false)(JASSERT_ERRNO).Text("setsockopt(SO_REUSEPORT) failed");
   }
 #endif
+}
+
+void jalib::JSocket::disableNagle()
+{
+  int one = 1;
+  if (setsockopt(_sockfd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one)) < 0){
+    JWARNING(false)(JASSERT_ERRNO).Text("setsockopt(TCP_NODELAY) failed");
+  }
 }
 
 bool jalib::JSocket::close()

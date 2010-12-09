@@ -38,6 +38,15 @@
 #define JTUNABLEARRAY(name, n, args...) \
   jalib::JTunableArray name(#name, n, args)
 
+#define EXTERNJTUNABLE(name, args...) \
+  extern jalib::JTunable name
+
+#define EXTERNJTUNABLESTATIC(name, value) \
+  extern jalib::JTunableStatic<value> name
+
+#define EXTERNJTUNABLEARRAY(name, n, args...) \
+  extern jalib::JTunableArray name
+
 namespace jalib {
 
 typedef int TunableValue;

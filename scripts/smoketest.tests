@@ -9,9 +9,9 @@
 
 
 
-convolution2/ConvFFTRecursion     Rand1D Rand1D
-convolution2/ConvFFTW      Rand1D Rand1D
-convolution2/ConvLinAlg    Rand1D Rand1D
+convolution2/ConvFFTRecursion	Rand1D Rand1D
+convolution2/ConvFFTW		Rand1D Rand1D
+convolution2/ConvLinAlg		Rand1D Rand1D
 convolution2/ConvLoops     Rand1D Rand1D
 convolution2/Convolution   Rand1D Rand1D
 convolution/ConvolutionFFT Rand1D Rand1D
@@ -40,12 +40,14 @@ multigrid/Helmholtz3DRefFMG        Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 H
 preconditioner/preconditioner	   PrecondX PrecondA PrecondB
 simple/add                 Rand2Da Rand2Db
 simple/bufferrotate        Rand1D
+simple/bufferrotate2       Rand1D
 simple/copy                Rand2Da
 simple/matrixrotate        Rand2Da
 simple/rollingsum          Rand1D
 simple/transpose           Rand2Da
 sort/Insertionsort         Rand1Dodd
 sort/Mergesort             Rand1Dodd
+sort/Mergesort2            Rand1Dodd
 sort/Quicksort             Rand1Dodd
 sort/Radixsort             Rand1Dodd
 sort/Sort                  Rand1D
@@ -59,6 +61,7 @@ regression/coscheduled2    Rand2Da
 regression/coscheduled3    Rand1D
 regression/duplicate       Rand1D
 regression/fileprefix      Rand2Da
+regression/function        One0D One0D
 regression/generators      Rand1D Rand1D
 regression/matrixversions  Rand2Da
 regression/memoize         Rand1D
