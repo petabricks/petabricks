@@ -58,16 +58,18 @@ using namespace petabricks;
 static bool shouldCompile = true;
 static bool shouldLink = true;
 static std::string theCommonDir;
+static std::string theHardcodedConfig;
 static std::string theInput;
 static std::string theLibDir;
 static std::string theMainName;
+static std::string theObjDir;
 static std::string theObjectFile;
 static std::string theOutputBin;
-static std::string theObjDir;
 static std::string theOutputCode;
 static std::string theOutputInfo;
 static std::string theRuntimeDir;
-static std::string theHardcodedConfig;
+
+std::string thePbPreprocessor;
 
 //defined in pbparser.ypp
 TransformListPtr parsePbFile(const char* filename);
@@ -217,6 +219,10 @@ int main( int argc, const char ** argv){
   std::vector<std::string> inputs;
   if(args.needHelp())
     std::cerr << "OPTIONS:" << std::endl;
+  
+  thePbPreprocessor="\""PYTHON"\" \"" +
+                    jalib::Filesystem::FindHelperUtility("preprocessor.py")
+                    +"\"";
 
   args.param("input",      inputs).help("input file to compile (*.pbcc)");
   args.param("output",     theOutputBin).help("output binary to be produced");
@@ -225,6 +231,7 @@ int main( int argc, const char ** argv){
   args.param("outputobj",  theObjectFile).help("output *.o file to be produced");
   args.param("runtimedir", theRuntimeDir).help("directory where petabricks.h may be found");
   args.param("libdir",     theLibDir).help("directory where libpbruntime.a may be found");
+  args.param("preproc",    thePbPreprocessor).help("program to use as preprocessor");
   args.param("compile",    shouldCompile).help("disable the compilation step");
   args.param("link",       shouldLink).help("disable the linking step");
   args.param("main",       theMainName).help("transform name to use as program entry point");

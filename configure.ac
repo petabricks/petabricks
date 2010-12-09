@@ -33,7 +33,7 @@ fi
 
 AC_PATH_PROGS([DOTPATH], [dot], [no])
 if test "$DOTPATH" = "no"; then
-  AC_MSG_WARN([failed to find 'nm' in \$path, try running:`sudo apt-get install binutils`.])
+  AC_MSG_WARN([failed to find 'nm' in \$path, try running:`sudo apt-get install graphviz`.])
 fi
 
 
@@ -250,8 +250,6 @@ AC_DEFINE([MAX_REC_LEVELS],      [12], [number of levels for recursive choices])
 AC_DEFINE([MIN_NUM_WORKERS],     [1], [min number of workers supported])
 AC_DEFINE([OPT_LOWLEVEL],        [1], [enable low level optimization such as specializations and prefetching])
 AC_DEFINE([RETURN_VAL_STR],      ["_pb_rv"], [var name in output code for rule output variable])
-AC_DEFINE([RUN_CPP],             [1], [undefine to disable cpp])
-AC_DEFINE([SHORT_TYPE_NAMES],    [1], [add using namespace petabricks to output])
 AC_DEFINE([SINGLE_SEQ_CUTOFF],   [1], [define to use a global sequential cutoff instead of a per-transform one])
 AC_DEFINE([SPLIT_CHUNK_SIZE],    ["TRANSFORM_LOCAL(splitsize)"], [var name in output code])
 AC_DEFINE([STEAL_ATTEMPTS_MAINLOOP], [16], [number of times to attempt to steal in mainLoop])
@@ -342,6 +340,7 @@ AC_DEFINE_UNQUOTED([CXXFLAGS],   ["$CXXFLAGS"],             [C++ compiler flags 
 AC_DEFINE_UNQUOTED([CXXLDFLAGS], ["$LDFLAGS"],              [C++ compiler link flags used by pbc])
 AC_DEFINE_UNQUOTED([CXXLIBS],    ["$LIBS"],                 [C++ compiler libraries used by pbc])
 AC_DEFINE_UNQUOTED([NM],         ["$NM"],                   [binutils tool used by pbc])
+AC_DEFINE_UNQUOTED([PYTHON],     ["$PYTHON"],               [path to python interpreter])
 
 ################################################################################
 ################################################################################

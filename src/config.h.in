@@ -138,6 +138,9 @@
 /* Define to 1 if you have the <sys/mman.h> header file. */
 #undef HAVE_SYS_MMAN_H
 
+/* Define to 1 if you have the <sys/param.h> header file. */
+#undef HAVE_SYS_PARAM_H
+
 /* Define to 1 if you have the <sys/prctl.h> header file. */
 #undef HAVE_SYS_PRCTL_H
 
@@ -246,11 +249,17 @@
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
 
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
 /* define to run tasks inline instead of enqueuing them */
 #undef PBCC_SEQUENTIAL
+
+/* path to python interpreter */
+#undef PYTHON
 
 /* keyword to indicate non-aliased pointers/refs */
 #undef RESTRICT
@@ -263,12 +272,6 @@
 
 /* git revision for HEAD at the time ./configure was run */
 #undef REVISION_SHORT
-
-/* undefine to disable cpp */
-#undef RUN_CPP
-
-/* add using namespace petabricks to output */
-#undef SHORT_TYPE_NAMES
 
 /* define to use a global sequential cutoff instead of a per-transform one */
 #undef SINGLE_SEQ_CUTOFF
@@ -339,12 +342,12 @@
 #undef YYTEXT_POINTER
 
 /* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
+   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
    #define below would cause a syntax error. */
 #undef _UINT32_T
 
 /* Define for Solaris 2.5.1 so the uint64_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
+   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
    #define below would cause a syntax error. */
 #undef _UINT64_T
 
