@@ -22,7 +22,7 @@ numpy
 boost
 libssl
 
-apt-get install flex bison autoconf automake liblapack-dev libfftw3-dev libssl-dev python-numpy python-scipy maxima maxima-share libboost-all-dev
+apt-get install flex bison autoconf automake liblapack-dev libfftw3-dev libssl-dev python-numpy python-scipy maxima maxima-share libboost-all-dev python-ply
 
 REPOSITORY:
 

@@ -92,7 +92,7 @@ to Eigenvalue[n], Eigenvector[n,n]
 	else {
 		//recursive
 		//printf("call recursive: n = %d\n", n);
-		InlineCopy1D(eig, Din);
+		Copy1D(eig, Din);
 		DCTDrecursive(eig, vec, Ein);
 	}
     }

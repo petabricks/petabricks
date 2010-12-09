@@ -1,0 +1,15 @@
+
+transform SoFake
+from A[w,h], B[w,h]
+through Z[w,h]
+to OUT[w,h];
+
+transform Add 
+from A[w,h], B[w,h]
+to OUT[w,h] 
+{
+  OUT.cell(x,y) from(A.cell(x,y) a, B.cell(x,y) b){
+    return a+b;
+  }
+}
+

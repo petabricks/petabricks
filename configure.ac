@@ -33,7 +33,7 @@ fi
 
 AC_PATH_PROGS([DOTPATH], [dot], [no])
 if test "$DOTPATH" = "no"; then
-  AC_MSG_WARN([failed to find 'nm' in \$path, try running:`sudo apt-get install binutils`.])
+  AC_MSG_WARN([failed to find 'dot' in \$path, try running:`sudo apt-get install graphviz`.])
 fi
 
 
@@ -49,7 +49,12 @@ fi
 
 AC_PATH_PROGS([PYTHON], [python2.6 python2.5 python2.4 python2 python], [no])
 if test "$PYTHON" = "no"; then
-  AC_MSG_ERROR([failed to find 'python' in \$path])
+  AC_MSG_ERROR([failed to find 'python' in \$path, try running:`sudo apt-get install python`.])
+fi
+
+AC_PATH_PROGS([NM], [nm], [no])
+if test "$NM" = "no"; then
+  AC_MSG_ERROR([failed to find 'nm' in \$path, try running:`sudo apt-get install binutils`.])
 fi
 
 AC_PATH_PROGS([MAXIMA], [maxima], [no])
@@ -57,12 +62,12 @@ if test "$MAXIMA" = "no"; then
   AC_MSG_ERROR([failed to find 'maxima' in \$path, try running:`sudo apt-get install maxima`.])
 fi
 
-#AC_MSG_CHECKING([python modules])
-#if "$PYTHON" "$srcdir/scripts/checkpython.py"; then
-#  AC_MSG_RESULT([ok])
-#else
-#  AC_MSG_ERROR(["missing python modules"])
-#fi
+AC_MSG_CHECKING([python modules])
+if "$PYTHON" "$srcdir/scripts/checkpython.py"; then
+  AC_MSG_RESULT([ok])
+else
+  AC_MSG_ERROR(["missing python modules"])
+fi
 
 AC_MSG_CHECKING([maxima compatibility])
 if "$PYTHON" "$srcdir/scripts/checkmaxima.py" "$MAXIMA"; then
@@ -74,7 +79,7 @@ fi
 rev_short="unknown"
 rev_long="unknown"
 AC_MSG_CHECKING([git revision])
-if test "$has_git" = "yes" -a -d .git ; then
+if test "$has_git" = "yes"; then
   rev_short=`git log -n 1 --pretty=format:%h`
   rev_long=`git log -n 1 --pretty=format:%H`
 fi
@@ -222,6 +227,7 @@ fi
 
 
 
+
 AC_DEFINE([ACCTARGET_STR],       ["accuracyTarget"], [var name in output code for target accuracy])
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
 AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for begin coord])
@@ -230,6 +236,8 @@ AC_DEFINE([DEFAULT_ACCURACY],    [1], [accuracy stand-in for fixed-accuracy rule
 AC_DEFINE([DEVNULL],             ["/dev/null"], [null sync device path])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])
+AC_DEFINE([GENHEADER],           ["_pbhdr.h"], [generated file name])
+AC_DEFINE([GENMISC],             ["_pbmisc"], [generated file name])
 AC_DEFINE([HASH_USE_SHA1],       [0], [set to 1 to use SHA1 instead of MD5])
 AC_DEFINE([INLINE_NULL_TASKS],   [], [run null tasks immediately when they are enqueued])
 AC_DEFINE([JASSERT_USE_SRCPOS],  [],[include source line numbers in error messages])
@@ -242,8 +250,6 @@ AC_DEFINE([MAX_REC_LEVELS],      [12], [number of levels for recursive choices])
 AC_DEFINE([MIN_NUM_WORKERS],     [1], [min number of workers supported])
 AC_DEFINE([OPT_LOWLEVEL],        [1], [enable low level optimization such as specializations and prefetching])
 AC_DEFINE([RETURN_VAL_STR],      ["_pb_rv"], [var name in output code for rule output variable])
-AC_DEFINE([RUN_CPP],             [1], [undefine to disable cpp])
-AC_DEFINE([SHORT_TYPE_NAMES],    [1], [add using namespace petabricks to output])
 AC_DEFINE([SINGLE_SEQ_CUTOFF],   [1], [define to use a global sequential cutoff instead of a per-transform one])
 AC_DEFINE([SPLIT_CHUNK_SIZE],    ["TRANSFORM_LOCAL(splitsize)"], [var name in output code])
 AC_DEFINE([STEAL_ATTEMPTS_MAINLOOP], [16], [number of times to attempt to steal in mainLoop])
@@ -259,7 +265,6 @@ AC_DEFINE([TX_STATIC_POSTFIX],   ["_static"], [postfix for static versions of tr
 AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files in])
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
-
 AC_DEFINE_UNQUOTED([MAXIMA_PATH],    ["$MAXIMA"], [path to maxima program])
 AC_DEFINE_UNQUOTED([REVISION_LONG],  ["$rev_long"], [git revision for HEAD at the time ./configure was run])
 AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at the time ./configure was run])
@@ -334,6 +339,8 @@ AC_DEFINE_UNQUOTED([CXXDEFS],    ["$DEFS -DHAVE_CONFIG_H"], [C++ compiler define
 AC_DEFINE_UNQUOTED([CXXFLAGS],   ["$CXXFLAGS"],             [C++ compiler flags used by pbc])
 AC_DEFINE_UNQUOTED([CXXLDFLAGS], ["$LDFLAGS"],              [C++ compiler link flags used by pbc])
 AC_DEFINE_UNQUOTED([CXXLIBS],    ["$LIBS"],                 [C++ compiler libraries used by pbc])
+AC_DEFINE_UNQUOTED([NM],         ["$NM"],                   [binutils tool used by pbc])
+AC_DEFINE_UNQUOTED([PYTHON],     ["$PYTHON"],               [path to python interpreter])
 
 ################################################################################
 ################################################################################

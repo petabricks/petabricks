@@ -104,8 +104,7 @@ public:
     return *_obj;
   }
 
-   T* asPtr()             { use(); return _obj; }
-   const T* asPtr() const { use(); return _obj; }
+  T* asPtr() const { use(); return _obj; }
 
   //is valid?
   operator bool() const {

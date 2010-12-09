@@ -8,10 +8,15 @@ flex
 g++
 git-core
 graphviz
+install
+libboost-all-dev
 libboost-dev
+libfftw3-dev
 liblapack-dev
 libssl-dev
 maxima
+maxima-share
 python-numpy
-python-scipy
+python-ply
 python-scientific
+python-scipy

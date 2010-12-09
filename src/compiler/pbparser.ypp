@@ -13,6 +13,7 @@
 
 #include "formula.h"
 #include "matrixdef.h"
+#include "pbc.h"
 #include "region.h"
 #include "transform.h"
 #include "userrule.h"
@@ -133,8 +134,12 @@ Transform: TransformHeader TransformBody {
   ($$=$1)->setRules(*$2); 
 };
 
+Transform: TransformHeader ';' {
+  //forward decl syntax 
+};
+
 TransformHeader: Nil {$$=REFALLOC(Transform());};
-TransformHeader: TransformHeader ';'                                  { P($$=$1); };
+//TransformHeader: TransformHeader ';'                                { P($$=$1); };
 TransformHeader: TransformHeader KW_MAIN                              { P($$=$1)->markMain(); };
 TransformHeader: TransformHeader KW_MEMOIZED                          { P($$=$1)->markMemoized();  };
 TransformHeader: TransformHeader KW_TRANSFORM IDENT                   { P($$=$1)->setName($3);     };
@@ -295,11 +300,11 @@ extern FILE* pbin;
 
 TransformListPtr parsePbFile(const char* filename){
   TransformListPtr ret;
-#ifdef RUN_CPP
-  pbin = popen((std::string(CXXCPP " ")+filename).c_str(),"r");
-#else
-  pbin = fopen(filename,"r");
-#endif
+  if(thePbPreprocessor != "") {
+    pbin = popen((thePbPreprocessor+" \""+filename+"\"").c_str(), "r");
+  } else {
+    pbin = fopen(filename,"r");
+  }
   JASSERT(pbin!=NULL)(filename)(JASSERT_ERRNO).Text("failed to open file");
   pbparse(ret);
   return ret;

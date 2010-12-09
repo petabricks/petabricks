@@ -78,6 +78,7 @@ namespace jalib
       bool isValid() const;
 
       void enablePortReuse();
+      void disableNagle();
 
       template <typename T>
       JSocket& operator << ( const T& t ) { writeAll ( ( const char* ) &t, sizeof ( T ) ); return *this; }

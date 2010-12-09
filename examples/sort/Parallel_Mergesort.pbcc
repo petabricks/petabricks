@@ -1,14 +1,10 @@
 #include "../simple/copy.pbcc"
 
-#define CAT(a,b) _CAT(a,b)
-#define _CAT(a,b) a ## b
-
 #ifndef SORTSUBARRAY
 #define SORTSUBARRAY Parallel_MergesortSubArray
 #endif
 
 %{
-
 
 inline int BinarySearch(double value, ConstMatrixRegion1D &A)
 {
@@ -121,7 +117,7 @@ to OUT[n]
 {
   to(OUT out) from (IN in)
   {
-    InlineCopy1D(out, in);
+    Copy1D(out, in);
     MatrixRegion1D temp = MatrixRegion1D::allocate(n);
     Parallel_MergesortSubArray(out, temp, in, 64);
 
