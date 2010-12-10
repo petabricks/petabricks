@@ -4,6 +4,7 @@ import storagedirs
 import numpy
 from scipy import stats
 from tunerconfig import config
+import candidatetester
 
 class MutateFailed(Exception):
   '''Exception thrown when a mutation can't be applied'''
@@ -293,10 +294,15 @@ class OptimizeTunableArrayMutator(TunableArrayMutator):
       before = results.mean()
 
     self.setVal(candidate, newVal, n)
-    candidate.pop.testers[-1].testN(candidate, 1)
+    try:
+      candidate.pop.testers[-1].testN(candidate, 1)
+    except candidatetester.CrashException:
+      pass
 
     results = candidate.metrics[config.accuracy_metric_idx][n]
-    after = results.mean()
+    after = numpy.nan
+    if len(results) > 0:
+      after = results.mean()
     afterLen = len(results)
 
     print "accuracy = %g (%d) => %g (%d)" % (before, beforeLen, after, afterLen)
