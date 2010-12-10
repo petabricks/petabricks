@@ -157,7 +157,7 @@ std::vector<int> jalib::Filesystem::ListOpenFds()
   std::vector<int> rv;
   struct dirent **namelist;
   char* p;
-  int nents = scandir ( dir.c_str(), &namelist, NULL, versionsort );
+  int nents = scandir ( dir.c_str(), &namelist, NULL, alphasort );
   JASSERT ( nents >= 0 ) ( dir ) ( JASSERT_ERRNO ).Text ( "failed to open directory" );
 
   for ( int i = 0; i < nents; i ++ )

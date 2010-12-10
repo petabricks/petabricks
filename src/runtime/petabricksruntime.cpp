@@ -46,6 +46,10 @@
 # include <boost/random.hpp>
 #endif
 
+#ifdef __APPLE__ //Darwin has no __thread support. Lazy for now, just disabling...
+#undef HAVE_BOOST_RANDOM_HPP
+#endif //__APPLE__
+
 static bool _isRunning = false;
 static bool _isTrainingRun = false;
 static bool _needTraingingRun = false;
@@ -96,7 +100,7 @@ static boost::lagged_fibonacci607& myRandomGen(){
   }
   return *lf;
 }
-#endif
+#endif //HAVE_BOOST_RANDOM_HPP
 
 static void _seedRandom(){
   srand48(jalib::JTime::now().usec());

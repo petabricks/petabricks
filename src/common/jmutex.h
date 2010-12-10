@@ -24,6 +24,12 @@
 
 #include <pthread.h>
 
+#ifdef __APPLE__
+#include <sched.h>
+#define pthread_yield sched_yield
+#endif //__APPLE__
+
+
 namespace jalib {
 
 class JMutex{

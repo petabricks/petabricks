@@ -42,7 +42,7 @@ def getmemorysize():
   try:
     return int(re.match("MemTotal: *([0-9]+) *kB", open("/proc/meminfo").read()).group(1))*1024
   except:
-    sys.stderr.write("failed to get total memory\n"%n)
+    sys.stderr.write("failed to get total memory\n")
     return 8 * (1024**3) # guess 8gb
 
 def setmemlimit(n = getmemorysize()):
