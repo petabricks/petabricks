@@ -17,6 +17,8 @@
 #include "common/jconvert.h"
 
 #include <stdio.h>
+#include <map>
+#include <string>
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -42,6 +44,17 @@ public:
   /// Pass a command to maxima, parse result
   FormulaListPtr runCommand(const char* cmd, int len);
   FormulaListPtr runCommand(const std::string& cmd){ return runCommand(cmd.c_str(), cmd.length()); }
+  
+//FormulaListPtr runCommand(const std::string& cmd){
+//  CacheT::const_iterator i = _cache.find(cmd);
+// //if(i != _cache.end())
+// //  return i->second;
+//  FormulaListPtr rv = runCommand(cmd.c_str(), cmd.length());
+//  if(i != _cache.end())
+//    JASSERT(i->second->toString() == rv->toString())(i->second)(rv);
+// // _cache[cmd]=rv;
+//  return rv;
+//}
 
   ///
   /// Run a command and assert a single output
@@ -161,7 +174,10 @@ public:
     if(strcmp(op,"=")==0){
       //optimize equal
       if(aStr == bStr) return YES;
-      return is( "equal("+ aStr + "," + bStr + ")" );
+      //maxima seems to like this form of equals better in older versions:
+      return is( aStr + "<=" + bStr + " and "
+               + aStr + ">=" + bStr );
+      //return is( "equal("+ aStr + "," + bStr + ")" );
     }
     else
     {
@@ -170,6 +186,12 @@ public:
   }
 
   tryCompareResult is(const std::string& formula){
+    //some simple optimizations:
+    if(formula=="1<0") return NO;
+    if(formula=="0>1") return NO;
+    if(formula=="1>0") return YES;
+    if(formula=="0<1") return YES;
+
     std::string rslt = runCommandSingleOutput( "is("+ formula + ")" )->toString();
     if(rslt=="1") return YES;
     if(rslt=="0") return NO;
@@ -188,34 +210,46 @@ public:
   }
 
   void assume(const FormulaPtr& fact){
-    runCommand("assume(" + fact->printAsAssumption() + ")");
+    std::string s = "assume(" + fact->printAsAssumption() + ")";
+    if(_context.find(s) == _context.end()) {
+      _context.insert(s);
+      runCommand(s);
+    }
   }
 
   void declareInteger(const FormulaPtr& var){
     declareInteger(var->toString());
   }
   void declareInteger(const std::string& var){
+    _cache.clear();
     runCommand("declare(" + var + ", integer)");
   }
   
   void pushContext(){
+    _cache.clear();
+    _context.clear();
     runCommand("supcontext(_ctx_stack_" + jalib::XToString(++_stackDepth) + ")");
   }
   
   void popContext(){
+    _cache.clear();
+    _context.clear();
     JASSERT(_stackDepth>0);
     runCommand("killcontext(_ctx_stack_" + jalib::XToString(_stackDepth--) + ")");
   }
 
   void sanityCheck(){
     std::string rslt=runCommand("666.667")->toString();
-    JASSERT(rslt=="666.667")(rslt)
-      .Text("problem with maxima");
+    JASSERT(rslt=="666.667")(rslt).Text("problem with maxima");
   }
 
 private:
   int _fd;
   int _stackDepth;
+  typedef std::map<std::string, FormulaListPtr> CacheT;
+  typedef std::set<std::string> ContextT;
+  ContextT _context;
+  CacheT   _cache;
 };
 
 }
