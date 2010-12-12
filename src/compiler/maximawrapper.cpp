@@ -124,7 +124,7 @@ petabricks::MaximaWrapper::~MaximaWrapper()
   close(_fd);
 }
 
-petabricks::FormulaListPtr petabricks::MaximaWrapper::runCommand(const char* cmd, int len){
+petabricks::FormulaListPtr petabricks::MaximaWrapper::runCommandRaw(const char* cmd, int len){
   static const char endCommand[] = ";\n";
   JASSERT(write(_fd, cmd, len)==len)(cmd)(JASSERT_ERRNO);
   JASSERT(write(_fd, endCommand, sizeof endCommand-1)==sizeof endCommand-1)(cmd)(JASSERT_ERRNO);
@@ -132,4 +132,28 @@ petabricks::FormulaListPtr petabricks::MaximaWrapper::runCommand(const char* cmd
   petabricks::FormulaListPtr result = readFormulaFromMaxima();
   return result;
 }
+
+//run command and perform simple caching
+petabricks::FormulaListPtr petabricks::MaximaWrapper::runCommand(const std::string& cmd){
+  if(!_pendingAssume.empty()) {
+    //we delay assume() commands since they often aren't followed by anything
+    ContextT ctx;
+    ctx.swap(_pendingAssume);
+    for(ContextT::const_iterator i=ctx.begin(); i!=ctx.end(); ++i) {
+      runCommandRaw(i->c_str(), i->length());
+    }
+    clearCache();
+  }
+
+  CacheT::const_iterator i = _cache.find(cmd);
+  if(i != _cache.end()) {
+    return i->second;
+  }
+  FormulaListPtr rv = runCommandRaw(cmd.c_str(), cmd.length());
+#ifdef MAXIMA_CACHING
+  _cache[cmd]=rv;
+#endif
+  return rv;
+}
+
 
