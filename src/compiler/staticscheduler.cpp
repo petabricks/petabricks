@@ -13,6 +13,7 @@
 
 #include "codegenerator.h"
 #include "transform.h"
+#include "rulechoice.h"
 
 #include "common/jasm.h"
 
