@@ -13,6 +13,7 @@
 
 #include "codegenerator.h"
 #include "transform.h"
+#include "rulechoice.h"
 
 #include "common/jasm.h"
 
@@ -202,7 +203,7 @@ void petabricks::StaticScheduler::generateCodeStatic(Transform& trans, CodeGener
   
 
 void petabricks::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
-  RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
+  RuleChoicePtr rule = RuleChoice::makeRuleChoice(_choices->rules(), _matrix, _region);
   if(!isStatic){
     o.addMember("DynamicTaskPtr", nodename(), "");
     rule->generateCodeSimple(false, nodename(), trans, *this, _region, o, getChoicePrefix(trans));
@@ -244,7 +245,7 @@ void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, Transform&,
 }
 
 void petabricks::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos, bool isStatic){
-  RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
+  RuleChoicePtr rule = RuleChoice::makeRuleChoice(_choices->rules(), _matrix, _region);
   
   CoordinateFormula min = _region->minCoord();
   CoordinateFormula max = _region->maxCoord();
@@ -332,7 +333,7 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
       rules.insert(tmp.begin(), tmp.end());
       matrices.push_back((*i)->matrix());
     }
-    RuleChoicePtr rule = trans.learner().makeCoscheduledRuleChoice(rules, matrices, first->region());
+    RuleChoicePtr rule = RuleChoice::makeCoscheduledRuleChoice(rules, matrices, first->region());
     rule->generateCodeSimple(isStatic, nodename(), trans, *this, first->region(), o, getChoicePrefix(trans));
   }else{
     std::vector<std::string> args;
