@@ -280,29 +280,37 @@ class ScaleTunableArrayMutator(TunableArrayMutator):
     return min(maxVal, max(minVal, oldVal*self.inc))
 
 class OptimizeTunableArrayMutator(TunableArrayMutator):
+
+  def __init__(self, tunable, minVal, maxVal, weight=1.0):
+    self.cache = {}
+    TunableArrayMutator.__init__(self, tunable, minVal, maxVal, weight)
+
+  def measureAccuracy(self, value, candidate, n):
+    value = int(value) # TODO: make this work for higher dimensions
+    if value in self.cache:
+      result = self.cache[value]
+    else:
+      self.setVal(candidate, value, n)
+      candidate.pop.testers[-1].testN(candidate, 1)
+      result = candidate.metrics[config.accuracy_metric_idx][n].mean()
+      self.cache[value] = result
+      print "eval: f(%g) = %g" % (value, result)
+    return -result
+
   def random(self, oldVal, minVal, maxVal, candidate = None):
 
-    n = candidate.pop.testers[-1].n
+    import scipy.optimize
 
-    newVal = oldVal * 2
+    # initialize BFGS parameters
+    f = self.measureAccuracy
+    x0 = oldVal
+    args = (candidate, candidate.pop.testers[-1].n)
+    epsilon = 1
 
-    results = candidate.metrics[config.accuracy_metric_idx][n]
-    beforeLen = len(results)
-    before = numpy.nan
-    if beforeLen != 0:
-      before = results.mean()
+    # optimize
+    result = scipy.optimize.fmin_bfgs(f, x0, args = args, epsilon = epsilon)
 
-    self.setVal(candidate, newVal, n)
-    candidate.pop.testers[-1].testN(candidate, 1)
-
-    results = candidate.metrics[config.accuracy_metric_idx][n]
-    after = results.mean()
-    afterLen = len(results)
-
-    print "accuracy = %g (%d) => %g (%d)" % (before, beforeLen, after, afterLen)
-
-    newVal = min(maxVal, max(minVal, newVal))
-    return newVal
+    return min(maxVal, max(minVal, result))
 
 class MultiMutator(Mutator):
   def __init__(self, count=3, weight=1.0):
