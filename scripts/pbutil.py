@@ -263,6 +263,7 @@ def compileBenchmarks(benchmarks):
   libdepends=[pbc, "./src/libpbmain.a", "./src/libpbruntime.a", "./src/libpbcommon.a"]
   assert os.path.isfile(pbc)
   benchmarkMaxLen=0
+  jobs_per_pbc=max(1, 2*cpuCount() / len(benchmarks))
 
   def compileBenchmark(name):
     print name.ljust(benchmarkMaxLen)
@@ -278,7 +279,7 @@ def compileBenchmarks(benchmarks):
     else:
       if os.path.isfile(bin):
         os.unlink(bin)
-      p = subprocess.Popen([pbc, src], stdout=NULL, stderr=NULL)
+      p = subprocess.Popen([pbc, '--jobs='+str(jobs_per_pbc), src], stdout=NULL, stderr=NULL)
       status = p.wait()
       if status == 0:
         print "compile PASSED"
