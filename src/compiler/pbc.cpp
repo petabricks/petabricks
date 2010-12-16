@@ -65,9 +65,10 @@ static std::string theMainName;
 static std::string theObjDir;
 static std::string theObjectFile;
 static std::string theOutputBin;
-static std::string theOutputCode;
 static std::string theOutputInfo;
 static std::string theRuntimeDir;
+static int theNJobs = 2;
+
 
 std::string thePbPreprocessor;
 
@@ -87,7 +88,7 @@ void closesubproc(FILE* p, const std::string& name) {
   while(!feof(p)) {
     char buf[1024];
     memset(buf, 0, sizeof buf);
-    fread(buf, 1, sizeof buf -1,  p);
+    (void)fread(buf, 1, sizeof buf -1,  p);
     std::cerr << buf;
   }
   JASSERT(pclose(p)==0);
@@ -162,12 +163,27 @@ public:
   }
 
   void compile() {
-    for(iterator i=begin(); i!=end(); ++i){
-      i->write();
-      i->forkCompile();
+    iterator iwrite=begin(), ifork=begin(), iwait=begin();
+
+    JASSERT(theNJobs>=1)(theNJobs);
+    for(int i=0; i<theNJobs && iwait!=end(); ++i){
+      if(iwrite!=end())
+        (iwrite++)->write();
+      if(ifork!=end())
+        (ifork++)->forkCompile();
     }
-    for(iterator i=begin(); i!=end(); ++i)
-      i->waitCompile();
+
+    while(iwait!=end()) {
+      //invariant: iwrite == ifork > iwait
+      if(iwrite!=end())
+        (iwrite++)->write();
+      if(iwait!=end())
+        (iwait++)->waitCompile();
+      if(ifork!=end())
+        (ifork++)->forkCompile();
+    }
+    JASSERT(iwrite==end());
+    JASSERT(ifork==end());
   }
 
   std::string mklinkcmd() {
@@ -226,7 +242,6 @@ int main( int argc, const char ** argv){
 
   args.param("input",      inputs).help("input file to compile (*.pbcc)");
   args.param("output",     theOutputBin).help("output binary to be produced");
-  args.param("outputcpp",  theOutputCode).help("output *.cpp file to be produced");
   args.param("outputinfo", theOutputInfo).help("output *.info file to be produced");
   args.param("outputobj",  theObjectFile).help("output *.o file to be produced");
   args.param("runtimedir", theRuntimeDir).help("directory where petabricks.h may be found");
@@ -236,6 +251,7 @@ int main( int argc, const char ** argv){
   args.param("link",       shouldLink).help("disable the linking step");
   args.param("main",       theMainName).help("transform name to use as program entry point");
   args.param("hardcode",   theHardcodedConfig).help("a config file containing tunables to set to hardcoded values");
+  args.param("jobs",       theNJobs).help("number of gcc processes to call at once");
 
   if(args.param("version").help("print out version number and exit") ){
     std::cerr << PACKAGE " compiler (pbc) v" VERSION " " REVISION_LONG << std::endl;
@@ -256,7 +272,6 @@ int main( int argc, const char ** argv){
   if(theRuntimeDir.empty()) theRuntimeDir = jalib::Filesystem::Dirname(jalib::Filesystem::FindHelperUtility("runtime/petabricks.h"));
   if(theLibDir    .empty()) theLibDir     = jalib::Filesystem::Dirname(jalib::Filesystem::FindHelperUtility("libpbruntime.a"));
   if(theOutputBin .empty()) theOutputBin  = jalib::Filesystem::Basename(theInput);
-  if(theOutputCode.empty()) theOutputCode = theOutputBin + ".cpp";
   if(theObjDir.empty())     theObjDir     = theOutputBin + ".obj";
   if(theOutputInfo.empty()) theOutputInfo = theOutputBin + ".info";
   if(theObjectFile.empty()) theObjectFile = theOutputBin + ".o";
