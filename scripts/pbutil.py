@@ -29,6 +29,10 @@ def cpuCount():
   except:
     pass
   try:
+    return os.sysconf("_SC_NPROCESSORS_ONLN")
+  except:
+    pass
+  try:
     return int(os.environ["NUMBER_OF_PROCESSORS"])
   except:
     pass
@@ -50,7 +54,7 @@ def setmemlimit(n = getmemorysize()):
     import resource
     resource.setrlimit(resource.RLIMIT_AS, (n,n))
   except:
-    sys.stderr.write("failed to set memory limit\n"%n)
+    sys.stderr.write("failed to set memory limit\n")
 
 
 
