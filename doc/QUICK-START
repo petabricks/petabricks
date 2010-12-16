@@ -66,8 +66,8 @@ This creates the binary ./example/add and the output source file
 
 There are some sample inputs in ./testdata
 
-The usage for autotuning is ./scripts/autotune.py BENCHMARKNAME.  For example:
-./scripts/autotune.py ./examples/sort/Sort
+The usage for autotuning is ./scripts/sgatuner.py BENCHMARKNAME.  For example:
+./scripts/sgatuner.py ./examples/sort/Sort
 
 ./examples contains a lot of sample code in petabricks.  Some of this code
 is a bit outdated and uses workarounds that are no longer needed.

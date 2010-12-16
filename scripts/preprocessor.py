@@ -315,7 +315,8 @@ def p_ifdefs_base(p):
 
 def p_ifdef(p):
   '''ifdef : IFDEF cond_id petabricks elif_block
-	   | IFDEF cond_id body elif_block'''
+	   | IFDEF cond_id body elif_block
+	   | IFDEF cond_id transform_headers elif_block'''
   if p[2]: # true when define or != 0
     p[0] = p[3]
   else:
@@ -323,7 +324,8 @@ def p_ifdef(p):
 
 def p_ifndef(p):
   '''ifdef : IFNDEF cond_id petabricks elif_block
-	   | IFNDEF cond_id body elif_block'''
+	   | IFNDEF cond_id body elif_block
+	   | IFNDEF cond_id transform_headers elif_block'''
   if p[2]: # true when define
     p[0] = p[4]
   else:
@@ -331,7 +333,8 @@ def p_ifndef(p):
 
 def p_if(p):
   '''ifdef : IF cond_number petabricks elif_block
-	   | IF cond_number body elif_block'''
+	   | IF cond_number body elif_block
+	   | IF cond_number transform_headers elif_block'''
   if p[2]: # true when != 0
     p[0] = p[3]
   else:
@@ -339,7 +342,8 @@ def p_if(p):
 
 def p_elif_block(p):
   '''elif_block : ELIF cond_number petabricks elif_block
-	        | ELIF cond_number body elif_block'''
+	        | ELIF cond_number body elif_block
+		| ELIF cond_number transform_headers elif_block'''
   if p[2]: # true when != 0
     p[0] = p[3]
   else:
@@ -347,7 +351,8 @@ def p_elif_block(p):
 
 def p_elif_block_else(p):
   '''elif_block : ELSE petabricks ENDIF
-		| ELSE body ENDIF'''
+		| ELSE body ENDIF
+		| ELSE transform_headers ENDIF'''
   p[0] = p[2]
 
 def p_elif_block_endif(p):
@@ -502,6 +507,11 @@ def p_options_base(p):
 def p_transform_headers(p):
   'transform_headers : transform_header transform_headers'
   p[0] = combine_element_list(p[1], p[2])
+
+def p_transform_headers_ifdef(p):
+  'transform_headers : ifdef transform_headers'
+  p[1].extend(p[2])
+  p[0] = p[1]
 
 def p_transform_headers_base(p):
   'transform_headers : empty'
