@@ -116,7 +116,7 @@ void petabricks::WorkerThread::popAndRunOneTask(int stealLimit)
     task->runWrapper();
     DEBUGONLY(_isWorking=false);
   } else {
-    pthread_yield();
+    sched_yield();
   }
 }
 
@@ -220,16 +220,22 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
   }
 
   //wait until all threads reach this point
-  _lock.lock();
-  if(--_numAborting==0)
-    _lock.broadcast();
-  else
-    _lock.wait();
-  _lock.unlock();
+  jalib::atomicDecrement(&_numAborting);
+  while(_numAborting>0) {
+    jalib::staticMemFence();
+    sched_yield();
+  }
+ //_lock.lock();
+ //if(--_numAborting==0)
+ //  _lock.broadcast();
+ //else
+ //  _lock.wait();
+ //_lock.unlock();
   
   //either exit or throw
   if(_shutdown && self!=&theMainWorkerThread){
-    pthread_exit(0);
+    //pthread_exit(0);
+    throw DynamicScheduler::CleanExitException();
   }else{
     throw DynamicScheduler::AbortException();
   }

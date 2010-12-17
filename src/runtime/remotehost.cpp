@@ -436,7 +436,7 @@ void petabricks::RemoteHostDB::listenLoop() {
         _mu.unlock();
         if((*i)->recv()){
           workDone = true;
-          while((*i)->recv());
+          while((*i)->recv()){}
         }
         _mu.lock();
       }

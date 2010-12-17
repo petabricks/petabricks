@@ -43,6 +43,7 @@ public:
   ///
   /// Exception thrown by aborting threads 
   class AbortException {};
+  class CleanExitException {};
 
   WorkerThreadPool& pool() { return _pool; }  
 

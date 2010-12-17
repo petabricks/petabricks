@@ -95,7 +95,7 @@ public:
 
   ///
   /// a mutex lock for manipulating task status and dependents list
-  jalib::JCondMutex  _lock;
+  jalib::JMutex  _lock;
 
   ///
   /// Pointer to the continuation task
