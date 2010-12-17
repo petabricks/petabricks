@@ -177,9 +177,9 @@ public:
   AbortTask(int totalThreads, bool shouldExit = false);
   DynamicTaskPtr run();
 private:
+  jalib::JMutex _lock;
   jalib::AtomicT _numLive;
   jalib::AtomicT _numAborting;
-  jalib::JMutex _lock;
   bool _shutdown;
 };
 
