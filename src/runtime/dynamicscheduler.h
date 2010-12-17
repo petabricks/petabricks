@@ -47,9 +47,12 @@ public:
 
   WorkerThreadPool& pool() { return _pool; }  
 
-  int numThreads() const { return (int)_rawThreads.size(); }
+  int numThreads() const { return _rawThreadsLen; }
+
+  DynamicScheduler() : _rawThreadsLen(0) {}
 protected:
-  std::list<pthread_t> _rawThreads;
+  pthread_t _rawThreads[MAX_NUM_WORKERS];
+  int _rawThreadsLen;
   WorkerThreadPool _pool;
 };
 
