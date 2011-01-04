@@ -77,7 +77,6 @@ petabricks::WorkerThread::WorkerThread(DynamicScheduler& ds)
   _randomNumState.w = _id + 1;
   setSelf(this);
   _pool.insert(this);
-  _thread = pthread_self();
 #ifdef WORKERTHREAD_ONDECK
   _ondeck = NULL;
 #endif

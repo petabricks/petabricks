@@ -88,14 +88,14 @@ public:
   ///
   /// mark that a task that we dependOn has completed
   void decrementPredecessors(bool isAborting = false);
+  
+  ///
+  /// a mutex lock for manipulating task status and dependents list
+  jalib::JMutex  _lock;
 
   ///
   /// a list of tasks that depends on me
   std::vector<DynamicTask*> _dependents;
-
-  ///
-  /// a mutex lock for manipulating task status and dependents list
-  jalib::JMutex  _lock;
 
   ///
   /// Pointer to the continuation task

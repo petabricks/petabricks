@@ -30,6 +30,8 @@
 #define pthread_yield sched_yield
 #endif //__APPLE__
 
+#define JMUTEX_ALIGNMENT 128
+
 namespace jalib {
 
 class JMutexPthread;
@@ -43,15 +45,13 @@ public:
   
   bool trylock() const {
     memFence();
-    if(_v || fetchAndStore(&_v, 1))
-      return false;
-    return true;
+    return _v==0 && fetchAndStore(&_v, 1)==0;
   }
 
   void unlock() const {
     memFence();
     _v = 0;
-    memFence();
+    memFence();//not needed?
   }
   
   void lock() const {
@@ -61,8 +61,11 @@ public:
   }
 
 protected:
+  ///
+  /// 0 for unlocked, 1 for locked
   mutable long _v;
-};
+  PADDING(CACHE_LINE_SIZE - sizeof(long));
+} __attribute__((aligned(CACHE_LINE_SIZE)));
 
 
 class JMutexPthread{
@@ -106,6 +109,7 @@ protected:
 class JLockScope{
   JLockScope(const JLockScope&); //banned
 public:
+  //support both spin and pthread versions
   JLockScope(const JMutexSpin& mux)    : _s(&mux), _p(0)     { mux.lock(); }
   JLockScope(const JMutexPthread& mux) : _s(0),    _p(&mux)  { mux.lock(); }
   ~JLockScope() {

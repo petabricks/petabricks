@@ -128,11 +128,10 @@ private:
 #endif
   mutable struct { int z; int w; } _randomNumState;
   WorkerThreadPool& _pool;
-  pthread_t _thread;
 #ifdef DEBUG
   bool _isWorking;
 #endif
-} __attribute__ ((aligned (64)));
+} __attribute__ ((aligned (CACHE_LINE_SIZE)));
 
 /**
  * A pool of worker threads
@@ -177,9 +176,9 @@ public:
   AbortTask(int totalThreads, bool shouldExit = false);
   DynamicTaskPtr run();
 private:
+  jalib::JMutex _lock;
   jalib::AtomicT _numLive;
   jalib::AtomicT _numAborting;
-  jalib::JMutex _lock;
   bool _shutdown;
 };
 
