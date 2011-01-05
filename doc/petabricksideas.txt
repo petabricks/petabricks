@@ -1,4 +1,4 @@
-1) VARIABLE ACCURACY 
+1) VARIABLE ACCURACY  (DONE)
 *** Current main focus ***
 *** Target ASPLOS'10 Aug 10 deadline ***
 
@@ -16,7 +16,7 @@ with accuracy X." or "give me the most accurate algorithm that is Y fast."
 
 -------------------------------------------------------------------------------
 
-2) GRAPHICS CARDS BACKEND
+2) GRAPHICS CARDS BACKEND (ON HOLD)
 
 Add a graphics cards backend for the subset of the language that is not
 recursive and has dependency patterns that can be represented as shaders.
@@ -35,7 +35,7 @@ aspect ratio or entropy of the input.
 
 -------------------------------------------------------------------------------
 
-4) RUNTIME ADAPTATION 
+4) RUNTIME ADAPTATION  (DONE)
 
 Currently autotuning is done entirely in a training phase beforehand.
 It would be interesting to explore making changes to the algorithm at runtime
@@ -62,7 +62,7 @@ for enhancing this.
 
 -------------------------------------------------------------------------------
 
-7) MODULAR AUTOTUNER / TUNER HINTS
+7) MODULAR AUTOTUNER / TUNER HINTS (DONE)
 
 Explore different ways of enhancing our autotuner.  Look into different
 autotuning algorithms.  Look into using multiple algorithms in a modular
@@ -94,7 +94,7 @@ Utilizing this more heterogeneous architecture will be much more challenging
 
 -------------------------------------------------------------------------------
 
-10) DISTRIBUTED BACKEND
+10) DISTRIBUTED BACKEND (IN PROGRESS)
 
 Similar to the ZettaBricks grant proposal, we would add a distributed memory
 backend to petabricks and explore a lot of the choices surrounding data
@@ -109,7 +109,7 @@ to autotune in the presence of less regular data structures.
 
 -------------------------------------------------------------------------------
 
-12) APPLIED MATH SIDE IDEAS
+12) APPLIED MATH SIDE IDEAS (IN PROGRESS)
 
 This is a placeholder for ideas whose novelty rest on the math side of this
 project, such as our MultiGrid paper in SC'09. This part of the document

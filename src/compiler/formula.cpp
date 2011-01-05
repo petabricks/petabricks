@@ -199,9 +199,13 @@ std::string petabricks::Formula::explodePrint() const { JASSERT(false); return "
 
 template < char OP >
 std::string petabricks::FormulaBinop<OP>::printAsAssumption() const {
-  if(OP=='=')
-    return "equal(" + _left->toString()
-              + "," + _right->toString() + ")";
+  if(OP=='='){
+    //maxima seems to like this form of equals better in older versions:
+    return _left->toString() + "<=" + _right->toString() + " and "
+         + _left->toString() + ">=" + _right->toString();
+    //return "equal(" + _left->toString()
+    //          + "," + _right->toString() + ")";
+  }
   return toString();
 }
 

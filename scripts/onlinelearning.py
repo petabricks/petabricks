@@ -83,7 +83,7 @@ class MutatorLog:
 
     self.log = sorted([MutatorLogEntry(c.lastMutator, c, gettime(c), acc)] + self.log, key=self.perfMetric)
 
-    def __rept__(self):
+    def __repr__(self):
       return str(self.log)
 
 def sortedMutatorLog(log):
@@ -132,7 +132,7 @@ class OnlinePopulation:
       return self.wt[0]*t + self.wt[1]*a
     return fitness
   
-  def thresholdTimeFitness(self, target, mult=config.threshold_multiplier_default):
+  def thresholdTimingFitness(self, target, mult=config.threshold_multiplier_default):
     def fitness(c):
       t=gettime(c)
       a=getacc(c)
@@ -171,10 +171,16 @@ class OnlinePopulation:
         print '   - ', m.resultsStr(self.n)
 
   def reweight(self):
-    s = (sum(map(gettime, self.members)), sum(map(getacc, self.members)), sum(map(getconf, self.members)))
+    s = (abs(sum(map(gettime, self.members))),
+         abs(sum(map(getacc, self.members))),
+         abs(sum(map(getconf, self.members))))
     t = sum(s)
     self.wt = map(lambda x: t/x, s)
     logging.debug("weights = "+str(self.wt))
+
+  statsHeader = ['gen', 'pop_size', 'weight_time', 'weight_acc', 'weight_conf']
+  def stats(self, gen):
+    return [gen,len(self.members)]+list(self.wt)
 
 def resultingTimeAcc(p, c):
   if not c.wasTimeout:
@@ -214,20 +220,29 @@ class ObjectiveTuner:
   def score(self):
     if len(self.timing):
       if config.accuracy_target is not None:
-        return self.accuracyRecent.dataDistribution().ppf(0.20)/config.accuracy_target
+        v=self.accuracyRecent.dataDistribution().ppf(0.5)/config.accuracy_target
+        if config.accuracy_target<0:
+          v = 1.0/v
+        return v
       elif config.timing_target is not None:
-        return 1.0 - self.timingRecent.dataDistribution().ppf(0.20)/config.timing_target
+        return config.timing_target/self.timingRecent.dataDistribution().ppf(0.5)
     return 1.0
 
   def computeFitnessFunction(self):
     score = self.score()
     mult = config.threshold_multiplier_default
-    while score<.9:
-      mult*=2
-      score+=.1
-    while score>1.1:
-      mult/=2
-      score-=.1
+    if score<=0:
+      mult=config.threshold_multiplier_max
+    else:
+      while score<.9:
+        mult*=2
+        score+=.1
+    if score>2:
+      mult=config.threshold_multiplier_min
+    else:
+      while score>1.1:
+        mult/=2
+        score-=.1
     mult = min(config.threshold_multiplier_max, 
            max(config.threshold_multiplier_min, mult))
 
@@ -239,9 +254,18 @@ class ObjectiveTuner:
       self.fitness = self.pop.linearFitness(1,0,0)
 
   def getlimits(self, safe, seed, experiment):
-    return None, config.accuracy_target
+    if config.timing_target is not None:
+      return max(config.timing_target, 1.1*gettime(safe)), getacc(safe)*1.1
+    else:
+      return None, config.accuracy_target
 
 
+  def needAccuracy(self):
+    if config.accuracy_target is not None:
+      return self.score()<.95
+    if config.timing_target is not None:
+      return self.score()>.95
+    return False
 
   statsHeader = ['gen', 'elapsed', 'score',
                  'timing_last',    'accuracy_last',
@@ -275,9 +299,14 @@ def onlinelearnInner(benchmark):
   ''' mutators in the last time window that produced improved candidates, 
   ordered by descending fitness of the candidates'''
   mutatorLog_times = MutatorLog(name = "time", perfMetric = lambda m: m.time)
-  mutatorLog_accuracy = MutatorLog(name = "accuracy", perfMetric = lambda m: 1.0 / m.accuracy)
+  mutatorLog_accuracy = MutatorLog(name = "accuracy", perfMetric = lambda m: -m.accuracy)
 
   ostats = storagedirs.openCsvStats("onlinestats", ObjectiveTuner.statsHeader)
+  pstats = storagedirs.openCsvStats("population", OnlinePopulation.statsHeader)
+  clog = storagedirs.openCsvStats("onlinecandidates", ['gen',
+                                                       'timesafe','accsafe','timeexp','accexp',
+                                                       'safe','seed','experimental',
+                                                       ])
     
   try:
     timers.total.start()
@@ -287,12 +316,12 @@ def onlinelearnInner(benchmark):
     if config.online_baseline:
       c = None
     else:
-      c = p.cloneAndMutate(tester.n)
+      c = p.clone()
     if not tester.race(p, c):
       raise Exception()
     if not p.wasTimeout:
       pop.add(p)
-    if c is not None and not c.wasTimeout:
+    if c and not c.wasTimeout:
       pop.add(c)
 
     '''now normal rounds'''  
@@ -306,17 +335,26 @@ def onlinelearnInner(benchmark):
       #s = pop.choice(parentlimit(p), getacc)
       s = p
 
-      if(objectives.score() > 0.95):
-        logOfChoice = mutatorLog_times
-      else:
+      if(objectives.needAccuracy()):
         logOfChoice = mutatorLog_accuracy
+        #TO mpacula:
+        # This speeds up convergence a LOT... basically picks mutators flagged to effect accuracy
+        # It would be nice if the mutator log did this automatically and this wasn't needed
+        # Disable with: mfilter=lambda x: True
+        mfilter=lambda x: x.accuracyHint
+      else:
+        logOfChoice = mutatorLog_times
+        mfilter=lambda x: True
+
+      if config.fixed_safe_alg:
+        p = candidate
 
       if config.online_baseline:
         c = None
       else:
-        c = s.cloneAndMutate(tester.n, config.use_bandit, logOfChoice)
+        c = s.cloneAndMutate(tester.n, config.use_bandit, logOfChoice, mutatorFilter=mfilter)
       tlim, atarg = objectives.getlimits(p, s, c)
-      if tester.race(p, c, tlim, atarg):
+      if tester.race(p, c, tlim, atarg) and not (p.wasTimeout and c.wasTimeout):
         p.discardResults(config.max_trials)
         if c and not c.wasTimeout:
           pop.add(c)
@@ -330,6 +368,8 @@ def onlinelearnInner(benchmark):
             mutatorLog_accuracy.add(c);
         
         logging.debug("Child vs parent, better=%d, %f vs. %f" % (int(gettime(c) < gettime(p)), gettime(c), gettime(p)))
+        clog.writerow([gen, lasttime(p), lastacc(p), lasttime(c), lastacc(c)]
+                      +map(storagedirs.relpath,[p.cfgfile(), s.cfgfile(), c.cfgfile()]))
 
         t,a = resultingTimeAcc(p, c)
         print "Generation", gen, "elapsed",objectives.elapsed,"time", t,"accuracy",a, getconf(p)
@@ -338,6 +378,7 @@ def onlinelearnInner(benchmark):
           objectives.result(t,a)
         pop.output((p,c,s))
         ostats.writerow(objectives.stats(gen))
+        pstats.writerow(pop.stats(gen))
       else:
         print 'error'
 
@@ -367,11 +408,15 @@ if __name__ == "__main__":
   parser.add_option("--offset",          type="int",    action="callback", callback=option_callback)
   parser.add_option("--recompile",       type="int",    action="callback", callback=option_callback)
   parser.add_option("--online_baseline", type="int",    action="callback", callback=option_callback)
+  parser.add_option("--fixed_safe_alg",  type="int",    action="callback", callback=option_callback)
+  parser.add_option("--race_split_ratio",type="float",  action="callback", callback=option_callback)
   parser.add_option("--name",            type="string", action="callback", callback=option_callback)
   parser.add_option("--accuracy_target", type="float",  action="callback", callback=option_callback)
-  parser.add_option("--use_bandit",            type="int",     action="callback", callback=option_callback)
-  parser.add_option("--window_size",           type="int",     action="callback", callback=option_callback)
-  parser.add_option("--bandit_c",              type="float",   action="callback", callback=option_callback)
+  parser.add_option("--timing_target",   type="float",  action="callback", callback=option_callback)
+  parser.add_option("--use_bandit",      type="int",    action="callback", callback=option_callback)
+  parser.add_option("--window_size",     type="int",    action="callback", callback=option_callback)
+  parser.add_option("--bandit_c",        type="float",  action="callback", callback=option_callback)
+  parser.add_option("--threads",         type="int",    action="callback", callback=option_callback)
 
   (options, args) = parser.parse_args()
   if len(args)!=1 or not options.n:
@@ -379,6 +424,7 @@ if __name__ == "__main__":
     sys.exit(1)
   if options.debug:
     tunerconfig.applypatch(tunerconfig.patch_debug)
+  assert not (config.accuracy_target and config.timing_target)
   
   config.min_input_size = options.n
   config.max_input_size = options.n

@@ -23,7 +23,7 @@ to OUT[n, n]
   from (IN.region(n/2,0,n,n/2) in,
 	OUT.region(0,0,n/2,n/2) leftdiag)
   {
-	LUuppertrirecur(out,in,leftdiag);
+	SPAWN(LUuppertrirecur,out,in,leftdiag);
   }
   
 
@@ -33,7 +33,7 @@ to OUT[n, n]
         OUT.region(0,0,n/2,n/2) updiag)
 
   {
-        LUlowertrirecur(out,in,updiag);
+        SPAWN(LUlowertrirecur,out,in,updiag);
   }
 
   //lower right block
@@ -59,6 +59,7 @@ main transform LUrecur
 from IN[n,n]
 to OUT[n,n]
 {
+
   to (OUT out) from (IN in)
   {
 	if (n == 1) {
@@ -69,10 +70,12 @@ to OUT[n,n]
 	}
   }
 
-//  to (OUT out) from (IN in)
-//  {
-//	LUnopivot(out,in);
-//  }
+
+  to (OUT out) from (IN in)
+  {
+	LUnopivot(out,in);
+  }
+
 
 }
 

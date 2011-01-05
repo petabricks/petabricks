@@ -19,7 +19,7 @@ to   Y[n,n]
     to (Y y) from (X x, B b)
     {
         int level = (int) log2(n - 1);
-        if (level < 4) {
+        if (level < 8) {
             // if small enough, compute solution using direct solver
             Poisson2DDirect(y, x, b);
         } else {
@@ -33,7 +33,7 @@ transform Poisson2DAccuracyMetric
 from Y[n,n], X[n,n], B[n,n]
 to Accuracy
 {
-    to (Accuracy a) from (Y y, X x, B b)
+    Accuracy from (Y y, X x, B b)
     {
         // these store the errors of the input and output
         double e1;
@@ -59,9 +59,9 @@ to Accuracy
 
         // accuracy is ratio of errors
         if (e2 == 0) {
-            a = std::numeric_limits<double>::max();
+            return 30; // set a large accuracy value
         } else {
-            a = e1 / e2;
+            return log10(e1 / e2);
         }
     }
 }

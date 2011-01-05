@@ -86,36 +86,20 @@ public:
   void exportConstants(Transform&);
 
   std::string matrixTypeName() const{
-    #ifdef SHORT_TYPE_NAMES
     return "MatrixRegion"+jalib::XToString(numDimensions())+"D";
-    #else
-    return "petabricks::MatrixRegion<"+jalib::XToString(numDimensions())+">";
-    #endif
   }
 
   std::string constMatrixTypeName() const{
-    #ifdef SHORT_TYPE_NAMES
     return "ConstMatrixRegion"+jalib::XToString(numDimensions())+"D";
-    #else
-    return "petabricks::MatrixRegion<"+jalib::XToString(numDimensions())+", const MATRIX_ELEMENT_T>";
-    #endif
   }
 
   
   std::string sliceTypeName() const{
-    #ifdef SHORT_TYPE_NAMES
     return "MatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
-    #else
-    return "petabricks::MatrixRegion<"+jalib::XToString(numDimensions()-1)+">";
-    #endif
   }
 
   std::string constSliceTypeName() const{
-    #ifdef SHORT_TYPE_NAMES
     return "ConstMatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
-    #else
-    return "petabricks::MatrixRegion<"+jalib::XToString(numDimensions()-1)+", const MATRIX_ELEMENT_T>";
-    #endif
   }
 
   

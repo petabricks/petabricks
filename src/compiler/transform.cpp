@@ -230,11 +230,11 @@ void petabricks::Transform::compile(){
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     _scheduler->markInputMatrix(*i);
   }
-  for(RuleList::const_iterator i=_rules.begin(); i!=_rules.end(); ++i){
-    (*i)->collectDependencies(_scheduler);
-  }
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     _scheduler->markOutputMatrix(*i);
+  }
+  for(RuleList::const_iterator i=_rules.begin(); i!=_rules.end(); ++i){
+    (*i)->collectDependencies(_scheduler);
   }
   _scheduler->generateSchedule();
   
@@ -302,7 +302,7 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
     _templateChoice = -1;
     genTmplJumpTable(o, true, normalArgs(), normalArgNames());
     genTmplJumpTable(o, false, normalArgs(), normalArgNames());
-    o.write("typedef "+tmplName(0)+"_main "+_name+"_main;");
+    o.hos() << "typedef "+tmplName(0)+"_main "+_name+"_main;\n";
   }
 }
   

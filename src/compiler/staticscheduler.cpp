@@ -13,10 +13,12 @@
 
 #include "codegenerator.h"
 #include "transform.h"
+#include "rulechoice.h"
 
 #include "common/jasm.h"
 
 #include <cstdio>
+#include <algorithm>
 
 namespace { //file local
 void _remapSet(petabricks::ScheduleNodeSet& set, const petabricks::ScheduleNodeRemapping& map){
@@ -29,6 +31,16 @@ void _remapSet(petabricks::ScheduleNodeSet& set, const petabricks::ScheduleNodeR
     }
   }
 }
+
+int cmpNode(const jalib::JRef<petabricks::ScheduleNode>& a,
+            const jalib::JRef<petabricks::ScheduleNode>& b) {
+  using namespace petabricks;
+  const ScheduleDependencies& da = a->indirectDepends();
+  const ScheduleDependencies& db = b->indirectDepends();
+  return -(int)(db.find(a.asPtr())!=db.end())
+         +(int)(da.find(b.asPtr())!=da.end());
+}
+
 }
 
 
@@ -81,7 +93,7 @@ petabricks::ScheduleNodeSet petabricks::StaticScheduler::lookupNode(const Matrix
 
 void petabricks::StaticScheduler::generateSchedule(){
   #ifdef DEBUG 
-//   writeGraphAsPDF("schedule_initial.pdf");
+  writeGraphAsPDF("schedule_initial.pdf");
   #endif
 
   computeIndirectDependencies();
@@ -121,8 +133,10 @@ void petabricks::StaticScheduler::mergeCoscheduledNodes(){
         JTRACE("coscheduling nodes")((*i)->nodename())(set.size());
         ScheduleNode* coscheduled = new CoscheduledNode(set);
         _allNodes.push_back(coscheduled);
-        for(ScheduleNodeSet::iterator e=set.begin();e!=set.end(); ++e)
+        for(ScheduleNodeSet::iterator e=set.begin();e!=set.end(); ++e) {
           mapping[*e] = coscheduled;
+
+        }
       }
     }
   }
@@ -131,7 +145,9 @@ void petabricks::StaticScheduler::mergeCoscheduledNodes(){
 
 void petabricks::StaticScheduler::applyRemapping(const ScheduleNodeRemapping& m){
   for(ScheduleNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i){
+    if(m.find(i->asPtr())==m.end()){
       (*i)->applyRemapping(m);
+    }
   }
   _remapSet(_goals, m);
   _remapSet(_generated, m);
@@ -187,7 +203,7 @@ void petabricks::StaticScheduler::generateCodeStatic(Transform& trans, CodeGener
   
 
 void petabricks::UnischeduledNode::generateCodeSimple(Transform& trans, CodeGenerator& o, bool isStatic){
-  RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
+  RuleChoicePtr rule = RuleChoice::makeRuleChoice(_choices->rules(), _matrix, _region);
   if(!isStatic){
     o.addMember("DynamicTaskPtr", nodename(), "");
     rule->generateCodeSimple(false, nodename(), trans, *this, _region, o, getChoicePrefix(trans));
@@ -229,7 +245,7 @@ void petabricks::ScheduleNode::printDepsAndEnqueue(CodeGenerator& o, Transform&,
 }
 
 void petabricks::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos, bool isStatic){
-  RuleChoicePtr rule = trans.learner().makeRuleChoice(_choices->rules(), _matrix, _region);
+  RuleChoicePtr rule = RuleChoice::makeRuleChoice(_choices->rules(), _matrix, _region);
   
   CoordinateFormula min = _region->minCoord();
   CoordinateFormula max = _region->maxCoord();
@@ -246,7 +262,7 @@ void petabricks::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGe
 
 void petabricks::StaticScheduler::writeGraphAsPDF(const char* filename) const{
   std::string schedulerGraph = toString();
-  FILE* fd = popen(("dot -Grankdir=LR -Tpdf -o "+std::string(filename)).c_str(), "w");
+  FILE* fd = popen(("dot -Grankdir=TD -Tpdf -o "+std::string(filename)).c_str(), "w");
   fwrite(schedulerGraph.c_str(),1,schedulerGraph.length(),fd);
   pclose(fd);
 }
@@ -299,20 +315,25 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
   if(selfDep.direction.isNone()){
     if(!isStatic) o.addMember("DynamicTaskPtr", nodename(), "");
     o.comment("Dual outputs compacted "+nodename());
+    RuleSet rules;
+    MatrixDefList matrices;
     std::string region;
     ScheduleNode* first = NULL;
     //test matching region extents in d
     for(ScheduleNodeSet::const_iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
-      if(first==NULL){
+      if(first==NULL) {
         region=(*i)->region()->toString();
         first=*i;
-      }
-      else if(first->region()->dimensions()<(*i)->region()->dimensions())
+      } else if(first->region()->dimensions()<(*i)->region()->dimensions()) {
         first=*i;
+      }
       JWARNING(region==(*i)->region()->toString())(region)((*i)->region()->toString())
         .Text("to(...) regions of differing size not yet supported");
+      RuleSet tmp = (*i)->choices()->rules();
+      rules.insert(tmp.begin(), tmp.end());
+      matrices.push_back((*i)->matrix());
     }
-    RuleChoicePtr rule = trans.learner().makeRuleChoice(first->choices()->rules(), first->matrix(), first->region());
+    RuleChoicePtr rule = RuleChoice::makeCoscheduledRuleChoice(rules, matrices, first->region());
     rule->generateCodeSimple(isStatic, nodename(), trans, *this, first->region(), o, getChoicePrefix(trans));
   }else{
     std::vector<std::string> args;
@@ -352,8 +373,15 @@ void petabricks::CoscheduledNode::generateCodeSimple(Transform& trans, CodeGener
         passed=false;
         continue;
       }
-
-      for(ScheduleNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+      
+      ScheduleNodeList sortedNodes;
+      sortedNodes.reserve(_originalNodes.size());
+      for(ScheduleNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i)
+        sortedNodes.push_back(*i);
+      std::sort(sortedNodes.begin(), sortedNodes.end(), cmpNode);
+      std::reverse(sortedNodes.begin(), sortedNodes.end());
+      
+      for(ScheduleNodeList::iterator i=sortedNodes.begin(); i!=sortedNodes.end(); ++i){
         (*i)->generateCodeForSlice(trans, ot, d, new FormulaVariable(varname), isStatic);
       }
       ot.endFor();

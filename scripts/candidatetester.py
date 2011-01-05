@@ -28,7 +28,7 @@ def getMemoryLimitArgs():
   return limit
 
 class NoMutators(Exception):
-  '''Exception thrown when a mutation doesn't exist'''
+  '''Exception thrown when a mutation doesn`t exist'''
   pass
 
 class InputGenerationException(Exception):
@@ -41,6 +41,7 @@ class CrashException(Exception):
     self.n = n
     self.candidate=candidate
     self.cmd=cmd
+    self.debugpause()
   def debugpause(self):
     if config.pause_on_crash:
       print '-'*60
@@ -123,13 +124,18 @@ class Results:
     def mkdistrib():
       m=numpy.mean(self.interpolatedResults) 
       s=max(config.min_std_pct*m,numpy.std(self.interpolatedResults))
+      if s==0.0:
+        s = 1e-10
       return stats.norm(m,s)
     if len(self.interpolatedResults) == 0:
       '''all tests timed out, seed with double the average timeout'''
       self.interpolatedResults.append(sum(self.timeoutResults)/len(self.timeoutResults)*2.0)
     if len(self.interpolatedResults) == 1:
       '''only 1 test, use prior stddev'''
-      self.distribution = stats.norm(self.interpolatedResults[0], abs(self.interpolatedResults[0]*config.prior_stddev_pct))
+      s = abs(self.interpolatedResults[0]*config.prior_stddev_pct)
+      if s==0.0:
+        s = 1e-10
+      self.distribution = stats.norm(self.interpolatedResults[0], s)
     else:
       '''estimate stddev with least squares'''
       self.distribution = mkdistrib()
@@ -138,6 +144,14 @@ class Results:
       '''new points are assigned the median value above their timeout'''
       self.interpolatedResults.append(max(p, min(self.distribution.isf(self.distribution.sf(p)/2.0), p*4)))
       self.distribution = mkdistrib()
+    if numpy.isnan(self.mean()) or numpy.isinf(self.mean()) \
+        or numpy.isnan(self.variance()) or numpy.isinf(self.variance()):
+      print "PROBLEM!!! EMAIL BELOW TO jansel"
+      print self.mean(), self.variance()
+      print self.realResults
+      print self.timeoutResults
+      print self.interpolatedResults
+      assert False
  
   def dataDistribution(self):
     '''estimated probability distribution of a single timing run'''
@@ -261,19 +275,24 @@ class Candidate:
     return t
 
 
-  def cloneAndMutate(self, n, adaptive = False, mutatorLog = None):
+  def cloneAndMutate(self, n, adaptive = False, mutatorLog = None, mutatorFilter=lambda m: True):
     c = self.clone()
     for z in xrange(config.mutate_retries):
       try:
-        if adaptive:
+        if adaptive and len(mutatorLog.log) > len(self.mutators):
           c.upperConfidenceBoundMutate(n, mutatorLog);
         else:
-          c.mutate(n)
+          c.mutate(n, mutatorFilter)
         break
       except MutateFailed:
         if z==config.mutate_retries-1:
           warnings.warn(tunerwarnings.MutateFailed(c, z, n))
         continue
+      except NoMutators,e:
+        if len(self.mutators):
+          # discard filter
+          return self.cloneAndMutate(n, adaptive, mutatorLog)
+        raise e
     return c
 
   def clearResultsAbove(self, val):
@@ -293,7 +312,7 @@ class Candidate:
   ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
   def upperConfidenceBoundMutate(self, n, mutatorLog):
     # compute the total number of mutations
-    totalMutations = len(mutatorLog.log) + len(self.mutators)
+    totalMutations = len(mutatorLog.log)
 
     if config.bandit_verbose:
       print "\n\nCurrent mutator log (%s): %s" % (mutatorLog.name, map(str, mutatorLog.log))
@@ -303,7 +322,7 @@ class Candidate:
     bestMutator = None
     for m in self.mutators:
 
-      m.timesSelected = 1
+      m.timesSelected = 0.00001 # to avoid div by 0
       for logEntry in mutatorLog.log:
         if logEntry.mutator == m:
           m.timesSelected += 1
@@ -324,15 +343,12 @@ class Candidate:
     self.lastMutator.mutate(self, n)
 
 
-  def mutate(self, n, minscore=None):
-    if minscore is not None:
-      opts=filter(lambda x: x.score>minscore, self.mutators)
-      if opts:
-        self.lastMutator=random.choice(opts)
-      else:
-        raise NoMutators()
+  def mutate(self, n, mutatorFilter=lambda m: True):
+    opts=filter(mutatorFilter, self.mutators)
+    if opts:
+      self.lastMutator=random.choice(opts)
     else:
-      self.lastMutator=random.choice(self.mutators)
+      raise NoMutators()
     self.lastMutator.mutate(self, n)
 
   def reasonableLimit(self, n):
@@ -393,9 +409,22 @@ class Candidate:
       s.write("\n")
     s.write("%6d, "%n)
     for m in self.metrics:
-      avg,ci = m[n].interval(config.display_confidence)
-      sd = math.sqrt(m[n].variance())
-      se = math.sqrt(m[n].meanVariance())
+      try:
+        avg,ci = m[n].interval(config.display_confidence)
+        sd = math.sqrt(m[n].variance())
+        se = math.sqrt(m[n].meanVariance())
+      except OverflowError:
+        if numpy.isinf(m[n].variance()):
+          sd = numpy.inf
+          se = numpy.inf
+        else:
+          raise
+      except AssertionError:
+        avg = -1
+        ci = -1
+        se = -1
+        sd = -1
+
       s.write("%.8f, %.8f, %.8f, %.8f, "%(avg,sd,se,ci))
     s.write("\n")
     s.close()
@@ -415,6 +444,7 @@ class CandidateTester:
         self.bin,
         "--time",
         "--accuracy",
+        "--threads=%d"%config.threads,
       ]
     self.cmd.extend(args)
     self.args=args
@@ -478,7 +508,11 @@ class CandidateTester:
         results = timers.testing.wrap(lambda: pbutil.executeRun(cmd, config.metrics))
       for i,result in enumerate(results):
         if result is not None:
-          candidate.metrics[i][self.n].add(result['average'])
+          v=result['average']
+          if numpy.isnan(v) or numpy.isinf(v):
+            warnings.warn(tunerwarnings.NanAccuracy())
+            raise pbutil.TimingRunFailed(None)
+          candidate.metrics[i][self.n].add(v)
       return True
     except pbutil.TimingRunTimeout:
       assert limit is not None
@@ -502,14 +536,17 @@ class CandidateTester:
     if limit is not None:
       cmd.append("--max-sec=%f"%limit)
     cmd.extend(getMemoryLimitArgs())
-    cmd.extend(["--race-multiplier=%f"%config.race_multiplier,
-                "--race-multiplier-lowacc=%f"%config.race_multiplier_lowacc])
+    cmd.extend(["--race-multiplier=%f" % config.race_multiplier,
+                "--race-multiplier-lowacc=%f" % config.race_multiplier_lowacc,
+                "--race-split-ratio=%f" % config.race_split_ratio])
     if accuracy_target:
       cmd.append("--race-accuracy=%f"%accuracy_target)
     try:
       debug_logcmd(cmd)
       resulta,resultb = timers.testing.wrap(lambda: pbutil.executeRaceRun(cmd, cfgfilea, cfgfileb))
-      best = min(resulta['timing'], resultb['timing'])
+      best = min(min(resulta['timing'], resultb['timing']), 2**31)
+      if limit is not None and best>limit*2:
+        best=limit
       for candidate, result in [(candidatea,resulta), (candidateb,resultb)]:
         if result['timing'] < 2**31:
           candidate.wasTimeout = False
@@ -550,11 +587,11 @@ class CandidateTester:
           return config.metric_orders[metricIdx]*cmp(ra.mean(), rb.mean())
         if ra.sameChance(rb) >= confidence:
           return 0
-        if ra.estimatedBenifitNextTest() >= rb.estimatedBenifitNextTest() and len(ra)<maxTests:
+        if ra.estimatedBenifitNextTest() >= rb.estimatedBenifitNextTest() and a.numTests(self.n)<maxTests:
           self.test(a)
-        elif len(rb)<maxTests:
+        elif b.numTests(self.n)<maxTests:
           self.test(b)
-        elif len(ra)<maxTests:
+        elif a.numTests(self.n)<maxTests:
           self.test(a)
         else:
           break

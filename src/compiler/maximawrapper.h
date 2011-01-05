@@ -17,6 +17,8 @@
 #include "common/jconvert.h"
 
 #include <stdio.h>
+#include <map>
+#include <string>
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
@@ -40,9 +42,12 @@ public:
 
   ///
   /// Pass a command to maxima, parse result
-  FormulaListPtr runCommand(const char* cmd, int len);
-  FormulaListPtr runCommand(const std::string& cmd){ return runCommand(cmd.c_str(), cmd.length()); }
+  FormulaListPtr runCommandRaw(const char* cmd, int len);
 
+  ///
+  /// Perform simple caching and call runCommandRaw
+  FormulaListPtr runCommand(const std::string& cmd);
+  
   ///
   /// Run a command and assert a single output
   FormulaPtr runCommandSingleOutput(const std::string& cmd){
@@ -158,18 +163,31 @@ public:
   tryCompareResult tryCompare(const FormulaPtr& a, const char* op, const FormulaPtr& b){
     std::string aStr = a->toString();
     std::string bStr = b->toString();
-    if(strcmp(op,"=")==0){
-      //optimize equal
-      if(aStr == bStr) return YES;
-      return is( "equal("+ aStr + "," + bStr + ")" );
+    std::string test = aStr + op + bStr;
+    if( strcmp(op,"=") == 0 ){ 
+      // maxima doesn't like '=' or equal()
+      test = aStr + "<=" + bStr + " and " + aStr + ">=" + bStr;
     }
-    else
-    {
-      return is( aStr + op + bStr );
+    
+    if(aStr == bStr) {
+      //optimize when identical
+      if(strcmp(op,"=")==0 || strcmp(op,"<=")==0 || strcmp(op,">=")==0){ 
+        return YES;
+      }
+      if(strcmp(op,"<")==0 || strcmp(op,">")==0){ 
+        return NO;
+      }
     }
+    return is(test);
   }
 
   tryCompareResult is(const std::string& formula){
+    //some simple optimizations:
+    if(formula=="1<0") return NO;
+    if(formula=="0>1") return NO;
+    if(formula=="1>0") return YES;
+    if(formula=="0<1") return YES;
+
     std::string rslt = runCommandSingleOutput( "is("+ formula + ")" )->toString();
     if(rslt=="1") return YES;
     if(rslt=="0") return NO;
@@ -188,14 +206,14 @@ public:
   }
 
   void assume(const FormulaPtr& fact){
-    runCommand("assume(" + fact->printAsAssumption() + ")");
+    _pendingAssume.insert("assume(" + fact->printAsAssumption() + ")");
   }
 
   void declareInteger(const FormulaPtr& var){
     declareInteger(var->toString());
   }
   void declareInteger(const std::string& var){
-    runCommand("declare(" + var + ", integer)");
+    _pendingAssume.insert("declare(" + var + ", integer)");
   }
   
   void pushContext(){
@@ -204,18 +222,25 @@ public:
   
   void popContext(){
     JASSERT(_stackDepth>0);
+    _pendingAssume.clear();
     runCommand("killcontext(_ctx_stack_" + jalib::XToString(_stackDepth--) + ")");
+    clearCache();
   }
 
   void sanityCheck(){
+    clearCache();
     std::string rslt=runCommand("666.667")->toString();
-    JASSERT(rslt=="666.667")(rslt)
-      .Text("problem with maxima");
+    JASSERT(rslt=="666.667")(rslt).Text("problem with maxima");
   }
 
+  void clearCache(){ _cache.clear(); }
 private:
   int _fd;
   int _stackDepth;
+  typedef std::map<std::string, FormulaListPtr> CacheT;
+  typedef std::set<std::string> ContextT;
+  ContextT _pendingAssume;
+  CacheT   _cache;
 };
 
 }

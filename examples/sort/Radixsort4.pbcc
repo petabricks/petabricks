@@ -73,7 +73,7 @@ to OUT[n], TEMP[n]
 //    printf("RadixsortSubArray called\n");
     int buckets[NUM_BUCKETS + 2];
     memset(buckets, 0, sizeof(buckets));
-    InlineCopy1D(temp, out);
+    Copy1D(temp, out);
     Radix(out, temp, buckets, (int) pos);
     if ((int) pos > 0) {
       for (int i = 0; i < NUM_BUCKETS; i++) {

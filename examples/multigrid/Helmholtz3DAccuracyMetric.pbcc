@@ -63,9 +63,9 @@ to Accuracy
 
         // accuracy is ratio of errors
         if (e2 == 0) {
-            return std::numeric_limits<double>::max();
+            return 30; // set a large accuracy value
         } else {
-            return e1 / e2;
+            return log10(e1 / e2);
         }
     }
 }
