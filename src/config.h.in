@@ -204,6 +204,9 @@
 /* type for indices into the matrix */
 #undef MATRIX_INDEX_T
 
+/* cache results from maxima */
+#undef MAXIMA_CACHING
+
 /* define in order to generate maxima.log, (a log of maxima commands) */
 #undef MAXIMA_LOG
 

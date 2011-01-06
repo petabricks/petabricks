@@ -240,6 +240,7 @@ AC_DEFINE([GENHEADER],           ["_pbhdr.h"], [generated file name])
 AC_DEFINE([GENMISC],             ["_pbmisc"], [generated file name])
 AC_DEFINE([HASH_USE_SHA1],       [0], [set to 1 to use SHA1 instead of MD5])
 AC_DEFINE([INLINE_NULL_TASKS],   [], [run null tasks immediately when they are enqueued])
+AC_DEFINE([JASSERT_FAST],        [], [skip some copies in debug printing, conflicts with JASSERT_LOG])
 AC_DEFINE([JASSERT_USE_SRCPOS],  [],[include source line numbers in error messages])
 AC_DEFINE([LISTEN_PORT_FIRST],   [22550], [first port to try to use to listen])
 AC_DEFINE([MATRIX_INDEX_T],      [int], [type for indices into the matrix])
@@ -277,10 +278,10 @@ if false; then
   AC_DEFINE([INPUT_SIZE_STR],      ["input_count"],      [define to add a system var to transform scope])
   AC_DEFINE([JALIB_USE_MALLOC],    [1],[Cause the custom allocator to call malloc instead of mmap])
   AC_DEFINE([JASSERT_LOG],         [], [log traces to /tmp/jassertlog.pid])
+  AC_DEFINE([MAXIMA_CACHING],      [], [cache results from maxima])
   AC_DEFINE([OUTPUT_SIZE_STR],     ["output_count"],     [define to add a system var to transform scope])
   AC_DEFINE([PBCC_SEQUENTIAL],     [], [define to run tasks inline instead of enqueuing them])
   AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
-  AC_DEFINE([JASSERT_FAST],        [], [skip some copies in debug printing, conflicts with JASSERT_LOG])
 fi
 
 ################################################################################

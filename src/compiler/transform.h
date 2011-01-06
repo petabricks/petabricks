@@ -14,7 +14,6 @@
 
 #include "choicegrid.h"
 #include "configitem.h"
-#include "learner.h"
 #include "matrixdef.h"
 #include "rirscope.h"
 #include "rule.h"
@@ -95,8 +94,6 @@ public:
 
   void markMain() { _isMain=true; }
   void markMemoized() { _memoized=true; }
-
-  Learner& learner() { return _learner; }
 
   //void addTestCase(const TestCasePtr& p) {tester().addTestCase(p);}
 
@@ -233,7 +230,6 @@ private:
   OrderedFreeVars _parameters;
   bool            _isMain;
   bool            _memoized;
-  Learner         _learner;
   StaticSchedulerPtr _scheduler;
   TemplateArgList     _templateargs;
   int                 _tuneId;

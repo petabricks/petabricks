@@ -33,6 +33,9 @@ typedef jalib::JRef<RuleChoice> RuleChoicePtr;
  */
 class RuleChoice : public jalib::JRefCounted, public jalib::JPrintable {
 public:
+  static RuleChoicePtr makeRuleChoice(const RuleSet& choices, const MatrixDefPtr&, const SimpleRegionPtr&);
+  static RuleChoicePtr makeCoscheduledRuleChoice(const RuleSet& choices, const MatrixDefList&, const SimpleRegionPtr&);
+
   ///
   /// Constructor
   RuleChoice(const RuleSet& rule, const FormulaPtr& cond=FormulaPtr(), const RuleChoicePtr& next=RuleChoicePtr());
