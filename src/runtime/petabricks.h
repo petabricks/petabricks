@@ -114,7 +114,7 @@ namespace petabricks {
     return (int)log2(size);
   }
 
-  inline IndexT interpolate_sizespecific(jalib::JTunableArray& cnts, int input_size, int min){
+  inline IndexT interpolate_sizespecific(jalib::JTunableIntArray& cnts, int input_size, int min){
     int bin = size_to_bin(input_size);
     if(!(bin>=0)) bin = 0;
 #ifdef DEBUG
@@ -130,7 +130,7 @@ namespace petabricks {
  
 
   template < int D >
-  inline bool split_condition(jalib::TunableValue thresh, IndexT begin[D], IndexT end[D]){
+  inline bool split_condition(IndexT thresh, IndexT begin[D], IndexT end[D]){
     //too small to split?
     for(int i=0; i<D; ++i)
       if(end[i]-begin[i] < 2)

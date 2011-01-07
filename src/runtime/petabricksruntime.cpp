@@ -11,7 +11,6 @@
  ***************************************************************************/
 #include "petabricksruntime.h"
 
-#include "autotuner.h"
 #include "dynamicscheduler.h"
 #include "dynamictask.h"
 #include "petabricks.h"
@@ -131,7 +130,6 @@ static enum {
   MODE_GRAPH_THREADS,
   MODE_GRAPH_TEMPLATE,
   MODE_RACE_CONFIGS,
-  MODE_AUTOTUNE_GENETIC,
   MODE_AUTOTUNE_PARAM,
   MODE_ABORT,
   MODE_HELP
@@ -241,11 +239,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   }
 
   //figure out what mode we are in
-  if(args.param("autotune").help("run the genetic autotuner at a given choice site")){
-    MODE=MODE_AUTOTUNE_GENETIC;
-    GRAPH_EXP=true;
-    GRAPH_STEP=2;
-  } else if(args.param("optimize", graphParam).help("autotune a single given config parameter")){
+  if(args.param("optimize", graphParam).help("autotune a single given config parameter")){
     MODE=MODE_AUTOTUNE_PARAM;
   } else if(args.param("graph-input").help("graph run time with changing input size")){
     MODE=MODE_GRAPH_INPUTSIZE;
@@ -345,7 +339,6 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     case MODE_GRAPH_PARAM:
     case MODE_GRAPH_THREADS:
     case MODE_GRAPH_TEMPLATE:
-    case MODE_AUTOTUNE_GENETIC:
     case MODE_AUTOTUNE_PARAM:
     case MODE_IOGEN_RUN:
       if(ISOLATION)
@@ -441,9 +434,6 @@ int petabricks::PetabricksRuntime::runMain(){
     case MODE_GRAPH_THREADS:
       runGraphParallelMode();
       break;
-    case MODE_AUTOTUNE_GENETIC:
-      runAutotuneMode();
-      break;
     case MODE_AUTOTUNE_PARAM:
       optimizeParameter(graphParam);
       break;
@@ -533,63 +523,6 @@ void petabricks::PetabricksRuntime::iogenRun(const std::vector<std::string>& fil
   computeWrapper(*ti, -1, -1, &files);
 }
 
-static const char* _uniquifyatlogname() {
-  static int i = 0;
-  static std::string buf;
-  buf = ATLOG+"."+jalib::XToString(i++)+".log";
-  return buf.c_str();
-}
-  
-void petabricks::PetabricksRuntime::runAutotuneMode(){
-  AutotunerList tuners;
-  Main* tx = _main;
-  bool inContext = true;
-  if(!autotunetx.empty()){
-    tx = petabricksFindTransform(autotunetx);
-    JASSERT(tx!=NULL)(autotunetx).Text("unknown transform name");
-    if(tx != _main) inContext=false;
-  }
-  if(autotunesites.empty()){
-    autotunesites.push_back("0");
-  }
-  for(; tx!=NULL; tx=tx->nextTemplateMain()){
-    for( std::vector<std::string>::const_iterator site=autotunesites.begin()
-       ; site!=autotunesites.end()
-       ; ++site)
-    {
-      Main* ctx=_main;
-      if(inContext || tx->isVariableAccuracy())
-        ctx = tx;
-
-      std::string pfx = std::string(tx->name())+"_"+(*site);
-
-      if(*site == "-1") pfx = "";
-
-      if(ATLOG.empty())
-        tuners.push_back(new Autotuner(*this, ctx, pfx, autotunecutoffs));
-      else
-        tuners.push_back(new Autotuner(*this, ctx, pfx, autotunecutoffs, _uniquifyatlogname()));
-    }
-  }
-
-  runAutotuneLoop(tuners);
-}
-void petabricks::PetabricksRuntime::runAutotuneLoop(const AutotunerList& tuners){
-  Main* old = _main;
-  for(int n=GRAPH_MIN; n<=GRAPH_MAX; n=_incN(n)){
-    setSize(n);
-    bool overtime=false;
-    for(size_t i=0; i<tuners.size(); ++i){
-      _main = tuners[i]->main();
-      overtime |= ! tuners[i]->trainOnce(GRAPH_MAX_SEC);
-    }
-    saveConfig();
-    if(overtime) 
-      break;
-  }
-  _main=old;
-}
-
 void petabricks::PetabricksRuntime::runGraphMode(){
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n=_incN(n)){
     setSize(n);
@@ -623,8 +556,8 @@ void petabricks::PetabricksRuntime::runGraphTemplate(){
 void petabricks::PetabricksRuntime::runGraphParamMode(const std::string& param){
   jalib::JTunable* tunable = jalib::JTunableManager::instance().getReverseMap()[param];
   JASSERT(tunable!=0)(param).Text("parameter not found");
-  GRAPH_MIN = std::max(GRAPH_MIN, tunable->min());
-  GRAPH_MAX = std::min(GRAPH_MAX, tunable->max());
+  GRAPH_MIN = std::max(GRAPH_MIN, tunable->min().i());
+  GRAPH_MAX = std::min(GRAPH_MAX, tunable->max().i());
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n=_incN(n)){
     tunable->setValue(n);
     double avg = runTrial(GRAPH_MAX_SEC, ACCTRAIN);
@@ -642,8 +575,8 @@ void petabricks::PetabricksRuntime::runGraphParamMode(const std::string& param){
 }
 
 void petabricks::PetabricksRuntime::runGraphParallelMode() {
-  GRAPH_MIN = std::max(GRAPH_MIN, worker_threads.min());
-  GRAPH_MAX = std::min(GRAPH_MAX, worker_threads.max());
+  GRAPH_MIN = std::max(GRAPH_MIN, worker_threads.min().i());
+  GRAPH_MAX = std::min(GRAPH_MAX, worker_threads.max().i());
   for(int n=GRAPH_MIN; n<=GRAPH_MAX; n=_incN(n)){
     worker_threads.setValue(n);
     if(!ISOLATION)
@@ -856,7 +789,9 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
   }
 }
   
-void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& ti){
+void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& /*ti*/){
+  UNIMPLEMENTED();
+  /*
   ti.disableTimeout();
   TunableListT tunables = _main->accuracyVariables(_randSize);
   std::vector<int> itersNeeded;
@@ -879,8 +814,12 @@ void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& 
   tunables.resetMinAll(i);
   reallocate();
   ti.restartTimeout();
+  */
 }
-int petabricks::PetabricksRuntime::variableAccuracyTrainingLoopInner(TestIsolation& ti){
+int petabricks::PetabricksRuntime::variableAccuracyTrainingLoopInner(TestIsolation& /*ti*/){
+  UNIMPLEMENTED();
+  return 0;
+  /*
   typedef MATRIX_ELEMENT_T ElementT;
   ElementT best   = jalib::minval<ElementT>();
   ElementT target = _main->accuracyTarget();
@@ -921,6 +860,7 @@ int petabricks::PetabricksRuntime::variableAccuracyTrainingLoopInner(TestIsolati
   tunables.resetMinAll(0);
   reallocate();
   return 0;
+  */
 }
 
 
@@ -982,13 +922,7 @@ bool petabricks::PetabricksRuntime::isTrainingRun(){
 void petabricks::PetabricksRuntime::abort(){
   TestIsolation* master = SubprocessTestIsolation::masterProcess();
   if(master!=NULL){
-    if(MODE==MODE_AUTOTUNE_GENETIC){
-      TestResult dummy;
-      master->endTest(dummy);//should abort us
-      UNIMPLEMENTED();
-    }else{
-      JASSERT(false).Text("abort");
-    }
+    JASSERT(false).Text("abort");
   }else{
     DynamicScheduler::cpuScheduler().abort();
   }

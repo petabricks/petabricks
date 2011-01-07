@@ -214,6 +214,14 @@ namespace jalib
     return Contains(str.c_str(), c);
   }
 
+  inline bool StartsWith(const char* str, const char* v) {
+    while(*str!=0 && *v!=0 && str++ == v++){}
+    return *v==0;
+  }
+  inline bool StartsWith(const std::string& str, const char* v) {
+    return StartsWith(str.c_str(), v);
+  }
+
   template < typename T >
   inline T minval(){ 
     return std::min<T>(-1.0*std::numeric_limits<T>::max(),//min for floats 
