@@ -123,31 +123,33 @@ public:
   void createTunable( bool isTunable
                     , const std::string& category
                     , const std::string& name
-                    , int initial
-                    , int min=0
-                    , int max=jalib::maxval<int>())
+                    , jalib::TunableValue initial
+                    , jalib::TunableValue min=0
+                    , jalib::TunableValue max=jalib::maxval<int>()
+                    , const char* type = "")
   {
     std::ostringstream o;
     jalib::TunableValueMap::const_iterator i = theHardcodedTunables().find(name);
     if(i==theHardcodedTunables().end()){
-      o << "JTUNABLE(" << name<< ","  << initial << ","  << min << ","  << max << ");\n";
+      o << "JTUNABLE" << type << " (" << name<< ","  << initial << ","  << min << ","  << max << ");\n";
     }else{
-      o << "JTUNABLESTATIC(" << name<< ","<< i->second << ");\n";
+      o << "JTUNABLE" << type << "STATIC(" << name<< ","<< i->second << ");\n";
     }
     theTunableDefs()[name] = o.str();
     _cg.addTunable(isTunable, category, name, initial, min, max);
   }
   void createTunableArray( const std::string& category
                          , const std::string& name
-                         , int count
-                         , int initial
-                         , int min
-                         , int max
-                         , bool isTunable)
+                         , jalib::TunableValue count
+                         , jalib::TunableValue initial
+                         , jalib::TunableValue min
+                         , jalib::TunableValue max
+                         , bool isTunable
+                         , const std::string& type = "")
   {
     //JTRACE("new tunable")(name)(initial)(min)(max);
     theTunableDefs()[name] =
-       "JTUNABLEARRAY("+name
+       "JTUNABLE"+ type +"ARRAY("+name
               +","+jalib::XToString(count)
               +","+jalib::XToString(initial)
               +","+jalib::XToString(min)

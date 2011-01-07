@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import re, sys, os, tempfile, subprocess, logging
 
-CONFIGLINERE=re.compile("[ \t]*([a-z0-9_-]+)[ \t]*[=][ \t]*([0-9-]+)(.*)", re.IGNORECASE)
+CONFIGLINERE=re.compile("[ \t]*([a-z0-9_-]+)[ \t]*[=][ \t]*([.0-9-]+)(.*)", re.IGNORECASE)
 USAGE='''USAGE:
   configtool <FILE> set <key> <val>
   configtool <FILE> get <key>
@@ -37,7 +37,10 @@ class ConfigFile:
     fd = open(filename, "w")
     for k,valcom in self.values.iteritems():
       val, com = valcom
-      fd.write("%s = %d %s\n" % (k, val, com))
+      if type(val) is type(0.1):
+        fd.write("%s = %f %s\n" % (k, val, com))
+      else:
+        fd.write("%s = %d %s\n" % (k, val, com))
     fd.close()
         
   def __str__(self):
@@ -48,7 +51,11 @@ class ConfigFile:
   
   def __setitem__(self, k, v):
     #logging.debug("configtool: changing %s from %d to %d", k, self[k], v)
-    self.values[k] = (int(v), self.values[k][1])
+    com=self.values[k][1]
+    if type(v) is type(0.1) or "double" in com or "float" in com:
+      self.values[k] = (float(v), com)
+    else:
+      self.values[k] = (int(v), com)
 
   def __hash__(self):
     return hash(str(self))
@@ -57,7 +64,10 @@ class ConfigFile:
     return cmp(a.values, b.values)
 
   def add(self, k, v, com="# added in script"):
-    self.values[k] = (int(v), com)
+    if type(v) is type(0.1) or "double" in com or "float" in com:
+      self.values[k] = (float(v), com)
+    else:
+      self.values[k] = (int(v), com)
 
   def keys(self):
     return self.values.keys()

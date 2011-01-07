@@ -11,7 +11,7 @@
  ***************************************************************************/
 #include "configitem.h"
   
-petabricks::ConfigItem::ConfigItem(int flags, std::string name, int initial, int min, int max)
+petabricks::ConfigItem::ConfigItem(int flags, std::string name, jalib::TunableValue initial, jalib::TunableValue min, jalib::TunableValue max)
     :_flags(flags),
      _name(name),
      _initial(initial),
@@ -21,7 +21,7 @@ petabricks::ConfigItem::ConfigItem(int flags, std::string name, int initial, int
   JASSERT(max>=min)(min)(max);
 }
   
-petabricks::ConfigItem::ConfigItem(std::string name, int min, int max)
+petabricks::ConfigItem::ConfigItem(std::string name, jalib::TunableValue min, jalib::TunableValue max)
   :_flags(0),
   _name(name),
   _initial(min),
@@ -43,6 +43,9 @@ std::string petabricks::ConfigItem::category() const {
     cat+="tunable";
   else
     cat+="config";
+
+  if(hasFlag(ConfigItem::FLAG_DOUBLE))
+    cat+=".double";
   
   if(hasFlag(ConfigItem::FLAG_ACCURACY))
     cat+=".accuracy";
@@ -53,7 +56,7 @@ std::string petabricks::ConfigItem::category() const {
   return cat;
 }
 
-void petabricks::ConfigItem::merge(int flags, std::string name, int initial, int min, int max){
+void petabricks::ConfigItem::merge(int flags, std::string name, jalib::TunableValue initial, jalib::TunableValue min, jalib::TunableValue max){
   _flags|=flags;
   JASSERT(name==_name);
   _initial=std::max(_initial, initial);

@@ -71,7 +71,7 @@ void petabricks::RuleChoice::generateCodeSimple( bool isStatic
     // Create a tunables configuration for the rule choice.  Initialize it to
     // the first rule.
     o.createTunable(true, "algchoice.alg", choicename, 0, 0,
-                    sortedRules.size()-1);
+                    (int)sortedRules.size()-1);
     o.cg().emitRules(choicename, sortedRules);
     o.beginSwitch(choicename);
   }

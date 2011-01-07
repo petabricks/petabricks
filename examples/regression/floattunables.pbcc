@@ -1,0 +1,13 @@
+
+
+transform Add 
+from A[w,h]
+to OUT[w,h] 
+tunable float FOO (0.66666)
+tunable float sizespecific BAR (0.7, 0.3, 2.2)
+{
+  OUT.cell(x,y) from(A.cell(x,y) a){
+    return FOO + BAR;
+  }
+}
+

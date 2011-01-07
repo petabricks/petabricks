@@ -574,15 +574,23 @@ def p_configs_base(p):
   p[0] = p[1]
 
 def p_config_arg_with_paren(p):
-  'config_arg : ID LPAREN num_list_string RPAREN'
-  p[0] = p[1] + '(' + p[3] + ')'
+  'config_arg : config_flags ID LPAREN num_list_string RPAREN'
+  p[0] = p[1] + ' ' + p[2] + '(' + p[4] + ')'
 
 def p_config_arg_without_paren(p):
-  '''config_arg : ID LPAREN RPAREN
-                | ID
-		| OTHER'''
-  p[1] = replace_all_define(p[1], p.lineno(1))	# Replace defines
-  p[0] = p[1]
+  '''config_arg : config_flags ID LPAREN RPAREN
+                | config_flags ID
+                | config_flags OTHER'''
+  p[2] = replace_all_define(p[2], p.lineno(2))	# Replace defines
+  p[0] = p[1] + ' ' + p[2]
+
+def p_config_flags(p):
+  'config_flags : config_flags ID'
+  p[0] = p[1] + ' ' + replace_all_define(p[2], p.lineno(2))
+
+def p_config_flags_end(p):
+  'config_flags : '
+  p[0] = ''
 
 def p_num_list_string(p):
   'num_list_string : OTHER COMMA num_list_string'

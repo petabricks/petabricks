@@ -97,7 +97,7 @@ extern int pblex(YYSTYPE * yylval_param,YYLTYPE * yylloc_param);
 %token KW_PRIMARY KW_SECONDARY KW_PRIORITY
 %token KW_ROTATABLE KW_MAIN KW_RECURSIVE KW_DUPLICATE KW_MEMOIZED
 %token /*KW_TESTCASE*/ KW_GENERATOR KW_TEMPLATE KW_TUNABLE KW_CONFIG KW_PARAM
-%token KW_ACCURACYMETRIC KW_ACCURACYBINS KW_ACCURACYVARIABLE KW_RULE
+%token KW_ACCURACYMETRIC KW_ACCURACYBINS KW_ACCURACYVARIABLE KW_RULE KW_SIZESPECIFIC KW_FLOAT
 %token <str> TOK_INTEGER TOK_FLOAT TOK_RULEBODY IDENT 
 %type <str> RuleBody
 %type <i> Integer PriorityFlag ConfigItemType
@@ -163,12 +163,22 @@ TransformHeader: TransformHeader ConfigItemType IDENT '(' Integer ',' Integer ')
          { P($$=$1)->addConfigItem($2, $3, $5, $7); };
 TransformHeader: TransformHeader ConfigItemType IDENT '(' Integer ',' Integer ',' Integer ')' 
          { P($$=$1)->addConfigItem($2, $3, $5, $7, $9); };
+TransformHeader: TransformHeader ConfigItemType IDENT '(' Float ')' 
+         { P($$=$1)->addConfigItem($2, $3, $5); };
+TransformHeader: TransformHeader ConfigItemType IDENT '(' Float ',' Float ')' 
+         { P($$=$1)->addConfigItem($2, $3, $5, $7); };
+TransformHeader: TransformHeader ConfigItemType IDENT '(' Float ',' Float ',' Float ')' 
+         { P($$=$1)->addConfigItem($2, $3, $5, $7, $9); };
 
 
 ConfigItemType: KW_CONFIG           { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER; }
               | KW_TUNABLE          { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER|ConfigItem::FLAG_TUNABLE; }
-              | KW_ACCURACYVARIABLE { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER|ConfigItem::FLAG_ACCURACY|ConfigItem::FLAG_SIZESPECIFIC|ConfigItem::FLAG_TUNABLE; };
+              | KW_ACCURACYVARIABLE { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER
+                                        |ConfigItem::FLAG_ACCURACY|ConfigItem::FLAG_SIZESPECIFIC
+                                        |ConfigItem::FLAG_TUNABLE; };
 
+ConfigItemType: ConfigItemType KW_FLOAT { $$ = $1 | ConfigItem::FLAG_DOUBLE; }
+ConfigItemType: ConfigItemType KW_SIZESPECIFIC { $$ = $1 | ConfigItem::FLAG_SIZESPECIFIC; }
 
 TemplateArg: IDENT '(' Integer ',' Integer ')' {
   $$=REFALLOC(TemplateArg($1, $3, $5));
