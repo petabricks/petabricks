@@ -132,7 +132,10 @@ public:
 
   std::string tmplName(int n, CodeGenerator* o=NULL);
   
-  void addConfigItem(int flags, const std::string& n, int initial=0, int min=0, int max=std::numeric_limits<int>::max()){
+  void addConfigItem(int flags, const std::string& n,
+                                jalib::TunableValue initial=0,
+                                jalib::TunableValue min=0,
+                                jalib::TunableValue max=std::numeric_limits<int>::max()){
     ConfigItems::iterator i;
     //check if its already there?
     for(i=_config.begin(); i!=_config.end(); ++i)

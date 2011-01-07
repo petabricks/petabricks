@@ -127,6 +127,22 @@ namespace petabricks {
     }
     return rv;
   }
+
+  inline double interpolate_sizespecific(jalib::JTunableDoubleArray& cnts, int input_size, double min){
+    int bin = size_to_bin(input_size);
+    if(!(bin>=0)) bin = 0;
+#ifdef DEBUG
+    JASSERT(bin<(int)cnts.size())(bin)(cnts.size());
+#endif
+    double rv = cnts[bin];
+    if(rv<min){
+      PetabricksRuntime::untrained();//usually aborts us
+      return min;
+    }
+    return rv;
+  }
+ 
+
  
 
   template < int D >

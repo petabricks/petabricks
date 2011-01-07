@@ -48,6 +48,25 @@
 #define EXTERNJTUNABLEARRAY(name, n, args...) \
   extern jalib::JTunableIntArray name
 
+#define JTUNABLEDOUBLE(name, args...) \
+  jalib::JTunableDouble name(#name, args)
+
+#define JTUNABLEDOUBLESTATIC(name, value) \
+  jalib::JTunableDoubleStatic<value> name(#name)
+
+#define JTUNABLEDOUBLEARRAY(name, n, args...) \
+  jalib::JTunableDoubleArray name(#name, n, args)
+
+#define EXTERNJTUNABLEDOUBLE(name, args...) \
+  extern jalib::JTunableDouble name
+
+#define EXTERNJTUNABLEDOUBLESTATIC(name, value) \
+  extern jalib::JTunableDoubleStatic<value> name
+
+#define EXTERNJTUNABLEDOUBLEARRAY(name, n, args...) \
+  extern jalib::JTunableDoubleArray name
+
+
 namespace jalib {
 class TunableValue {
 public:

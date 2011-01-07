@@ -115,7 +115,7 @@ void petabricks::Transform::initialize() {
 
   if(_accuracyBins.size()>1){
     JWARNING(_templateargs.empty())(_name).Text("variable accuracy templates not yet supported");
-    _templateargs.push_back(new TemplateArg(TEMPLATE_BIN_STR, 0, _accuracyBins.size()-1));
+    _templateargs.push_back(new TemplateArg(TEMPLATE_BIN_STR, 0, (int)_accuracyBins.size()-1));
   }
 
   jalib::Map(&MatrixDef::initialize, *this, _from);
@@ -255,7 +255,7 @@ std::string petabricks::Transform::tmplName(int n, CodeGenerator* o) {
   int choice=n;
   //add #defines
   for(size_t i=0; i<_templateargs.size(); ++i){
-    int val=(choice%_templateargs[i]->range()) + _templateargs[i]->min();
+    int val=(choice%_templateargs[i]->range()) + _templateargs[i]->min().i();
     choice/=_templateargs[i]->range();
     if(o!=NULL){
       o->write("#define " + _templateargs[i]->name() + " " + jalib::XToString(val));
@@ -405,13 +405,15 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.newline();
   
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
+    const char* type = "";
+    if(i->hasFlag(ConfigItem::FLAG_DOUBLE)){
+      type="DOUBLE";
+    }
     if(i->hasFlag(ConfigItem::FLAG_FROMCFG)){
       if(i->hasFlag(ConfigItem::FLAG_SIZESPECIFIC)){
-        int tmp = i->initial();
-        if(tmp==i->min()) tmp--;
-        o.createTunableArray(i->category(), _name+"_"+i->name(), MAX_INPUT_BITS, tmp, i->min()-1, i->max(), i->hasFlag(ConfigItem::FLAG_TUNABLE));
+        o.createTunableArray(i->category(), _name+"_"+i->name(), MAX_INPUT_BITS, i->initial(), i->min(), i->max(), i->hasFlag(ConfigItem::FLAG_TUNABLE), type);
       }else{
-        o.createTunable(i->hasFlag(ConfigItem::FLAG_TUNABLE), i->category(), _name+"_"+i->name(), i->initial(), i->min(), i->max());
+        o.createTunable(i->hasFlag(ConfigItem::FLAG_TUNABLE), i->category(), _name+"_"+i->name(), i->initial(), i->min(), i->max(), type);
       }
     }
   }
@@ -592,7 +594,11 @@ void petabricks::Transform::extractConstants(CodeGenerator& o){
   
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     if(i->hasFlag(ConfigItem::FLAG_FROMCFG) && i->shouldPass()){
-      o.addMember("IndexT", i->name(), "1");
+      if(i->hasFlag(ConfigItem::FLAG_DOUBLE)){
+        o.addMember("double", i->name(), "1");
+      }else{
+        o.addMember("IndexT", i->name(), "1");
+      }
     }
   }
 
