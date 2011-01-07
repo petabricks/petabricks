@@ -4,6 +4,7 @@ import storagedirs
 import numpy
 from scipy import stats
 from tunerconfig import config
+import candidatetester
 
 class MutateFailed(Exception):
   '''Exception thrown when a mutation can't be applied'''

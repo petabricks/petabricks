@@ -11,7 +11,7 @@ from storagedirs import timers
 from scipy import stats
 from tunerconfig import config
 from tunerwarnings import ComparisonFailed, InconsistentOutput
-from mutators import MutateFailed
+import mutators
 warnings.simplefilter('ignore', DeprecationWarning)
 
 def getMemoryLimitArgs():
@@ -285,7 +285,7 @@ class Candidate:
         else:
           c.mutate(n, mutatorFilter)
         break
-      except MutateFailed:
+      except mutators.MutateFailed:
         if z==config.mutate_retries-1:
           warnings.warn(tunerwarnings.MutateFailed(c, z, n))
         continue
