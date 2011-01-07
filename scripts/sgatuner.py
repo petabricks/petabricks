@@ -268,8 +268,10 @@ class Population:
       if not config.delete_output_dir:
         for m in self.members+self.removed:
           m.writestats(self.inputSize())
-        if config.mutatorlog and len(self.members):
-          mutators = reduce(set.union, map(lambda x: set(x.mutators), self.members))
+        if config.mutatorlog:
+          mutators = set()
+          for c in self.members:
+            mutators |= set(c.mutators)
           for m in mutators:
             m.writelog(self.roundNumber, self.inputSize())
 
