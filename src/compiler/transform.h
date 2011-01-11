@@ -133,9 +133,9 @@ public:
   std::string tmplName(int n, CodeGenerator* o=NULL);
   
   void addConfigItem(int flags, const std::string& n,
-                                jalib::TunableValue initial=0,
-                                jalib::TunableValue min=0,
-                                jalib::TunableValue max=std::numeric_limits<int>::max()){
+                                jalib::TunableValue initial,
+                                jalib::TunableValue min,
+                                jalib::TunableValue max){
     ConfigItems::iterator i;
     //check if its already there?
     for(i=_config.begin(); i!=_config.end(); ++i)
@@ -147,6 +147,30 @@ public:
     }else{
       i->merge(flags,n,initial,min,max);
     }
+  }
+  
+  void addConfigItem(int flags, const std::string& n,
+                                jalib::TunableValue initial,
+                                jalib::TunableValue min){
+    if( (flags & ConfigItem::FLAG_DOUBLE) == 0 )
+      addConfigItem(flags, n, initial, min, jalib::maxval<int>());
+    else
+      addConfigItem(flags, n, initial, min, jalib::maxval<double>());
+  }
+
+  void addConfigItem(int flags, const std::string& n,
+                                jalib::TunableValue initial){
+    if( (flags & ConfigItem::FLAG_DOUBLE) == 0 )
+      addConfigItem(flags, n, initial, 0); 
+    else
+      addConfigItem(flags, n, initial, jalib::minval<double>());
+  }
+  
+  void addConfigItem(int flags, const std::string& n){
+    if( (flags & ConfigItem::FLAG_DOUBLE) == 0 )
+      addConfigItem(flags, n, 0); 
+    else
+      addConfigItem(flags, n, 0.0);
   }
 
   void addSizeVar(const std::string& name){

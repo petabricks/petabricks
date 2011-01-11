@@ -1,0 +1,12 @@
+transform Optimize
+from IN
+to OUT
+tunable float sizespecific x (-1e-1, -10.5, +1.5e100)
+{
+    to (OUT out)
+    from (IN in)
+    {
+      out=in;
+    }
+}
+

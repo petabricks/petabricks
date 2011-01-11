@@ -162,7 +162,7 @@ t_LCHEV = r'(<)+'
 t_RCHEV = r'(>)+'
 t_COMMA = r'\,'
 t_SEMICOLON = r'\;'
-t_OTHER = r'([=.*/^+-] | [0-9] | [:?!&|])+'
+t_OTHER = r'[0-9:?!&|=.*/^+-]+(e[0-9+-]+)?'
 
 def t_STRING(t):
   r'\"[^\"]*\"'
