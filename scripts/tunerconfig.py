@@ -85,7 +85,8 @@ class config_defaults:
   uniform_tunable_types       = ['system.flag.unrollschedule']
   autodetect_tunable_types    = ['user.tunable']
   lognorm_array_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
-  ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg', 'user.tunable.double', 'user.tunable.double.array']
+  optimize_tunable_types      = ['user.tunable.double', 'user.tunable.double.array']
+  ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg']
   
   #metric information, dont change
   metrics               = ['timing', 'accuracy']

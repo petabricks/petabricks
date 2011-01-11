@@ -53,19 +53,18 @@ to OUT
 transform Optimize
 from IN
 to OUT
-accuracy_variable x10
-//accuracy_variable y10
+tunable float sizespecific x (0)
+//tunable float y
 accuracy_metric MinimizeOut
 accuracy_bins 0
 {
     to (OUT out)
     from (IN in)
     {
-        double x = (double) x10 / 10 - 10;
 //        double y = (double) y10 / 10 - 10;
 //        Rosenbrock(out, x, y);
 //        Bowl2D(out, x, y);
-        Bowl(out, x);
+        Bowl(out, (double) x);
     }
 }
 
