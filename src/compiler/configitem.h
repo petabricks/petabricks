@@ -16,6 +16,7 @@
 #include "common/jassert.h"
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
+#include "common/jtunable.h"
 #include "common/srcpos.h"
 
 #include <string>
@@ -42,17 +43,18 @@ public:
     FLAG_ACCURACY      = 1<<3,
     FLAG_SIZEVAR       = 1<<4,//value used in to/from/through
     FLAG_FROMCFG       = 1<<5,
-    FLAG_TEMPLATEVAR   = 1<<6
+    FLAG_TEMPLATEVAR   = 1<<6,
+    FLAG_DOUBLE        = 1<<7 //store as floating point
   };
 
-  ConfigItem(int flags, std::string name, int initial, int min, int max);
-  ConfigItem(std::string name, int min, int max);
+  ConfigItem(int flags, std::string name, jalib::TunableValue initial, jalib::TunableValue min, jalib::TunableValue max);
+  ConfigItem(std::string name, jalib::TunableValue min, jalib::TunableValue max);
   
   std::string name() const { return _name; }
-  int initial() const { return _initial; }
-  int min() const { return _min; }
-  int max() const { return _max; }
-  int range() const { return _max-_min+1; }
+  jalib::TunableValue initial() const { return _initial; }
+  jalib::TunableValue min() const { return _min; }
+  jalib::TunableValue max() const { return _max; }
+  int range() const { return _max.i()-_min.i()+1; }
 
   ///
   /// the category string is based on _flags and put in the .info file
@@ -64,7 +66,7 @@ public:
 
   bool shouldPass() const { return hasFlag(FLAG_SIZEVAR) || hasFlag(FLAG_SIZESPECIFIC); }
 
-  void merge(int flags, std::string name, int initial, int min, int max);
+  void merge(int flags, std::string name, jalib::TunableValue initial, jalib::TunableValue min, jalib::TunableValue max);
   
   void addFlag(int flag){ _flags|=flag; }
 
@@ -75,9 +77,9 @@ public:
 private:
   int         _flags;
   std::string _name;
-  int         _initial;
-  int         _min;
-  int         _max;
+  jalib::TunableValue _initial;
+  jalib::TunableValue _min;
+  jalib::TunableValue _max;
 };
 
 }

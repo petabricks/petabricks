@@ -144,10 +144,20 @@ jalib::JArgs::ParamGlue jalib::JArgs::param<std::vector<std::string> >(const cha
 }
 
 template <>
-jalib::JArgs::ParamGlue jalib::JArgs::param<jalib::JTunable>(const char* name, JTunable& val) {
-  TunableValue t = val;
+jalib::JArgs::ParamGlue jalib::JArgs::param<jalib::JTunableInt>(const char* name, JTunableInt& val) {
+  int t = val.value().i();
   ParamGlue rv = param(name, t);
-  if(t != val)
+  if(t != val.value())
+    val.setValue(t);
+  return rv;
+}
+
+
+template <>
+jalib::JArgs::ParamGlue jalib::JArgs::param<jalib::JTunableDouble>(const char* name, JTunableDouble& val) {
+  double t = val.value().d();
+  ParamGlue rv = param(name, t);
+  if(t != val.value())
     val.setValue(t);
   return rv;
 }

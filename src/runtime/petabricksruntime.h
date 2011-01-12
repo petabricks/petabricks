@@ -36,6 +36,7 @@ typedef std::vector<AutotunerPtr> AutotunerList;
 
 class TunableListT : public std::vector<jalib::JTunable*> {
 public:
+  /*
   void resetMinAll(int offset){
     for(iterator i=begin(); i!=end(); ++i)
       (*i)->setValue((*i)->min()+offset); 
@@ -50,6 +51,7 @@ public:
     }
     return true;
   }
+  */
 };
 
 int petabricksMain(int argc, const char** argv);
