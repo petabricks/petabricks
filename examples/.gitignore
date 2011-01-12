@@ -118,6 +118,7 @@ regression/coscheduled3
 regression/define
 regression/duplicate
 regression/fileprefix
+regression/floattunables2
 regression/floattunables
 regression/forenough
 regression/forwarddecl
