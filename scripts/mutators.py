@@ -287,7 +287,7 @@ class OptimizeTunableArrayMutator(TunableArrayMutator):
     TunableArrayMutator.__init__(self, tunable, minVal, maxVal, weight)
 
   def measureAccuracy(self, value, candidate, n):
-    value = int(value) # TODO: make this work for higher dimensions
+    value = float(value) # TODO: make this work for higher dimensions
     if value in self.cache:
       result = self.cache[value]
     else:
@@ -306,12 +306,14 @@ class OptimizeTunableArrayMutator(TunableArrayMutator):
     f = self.measureAccuracy
     x0 = oldVal
     args = (candidate, candidate.pop.testers[-1].n)
-    epsilon = 1
+    epsilon = 0.000001
 
     # optimize
-    result = scipy.optimize.fmin_bfgs(f, x0, args = args, epsilon = epsilon)
+    result = scipy.optimize.fmin_bfgs(f, x0, args = args, epsilon = epsilon, full_output = 1)
+    newVal = float(result[0])
+#    print "new val: f(%g) = %g" % (newVal, result[1])
 
-    return min(maxVal, max(minVal, result))
+    return min(maxVal, max(minVal, newVal))
 
 class MultiMutator(Mutator):
   def __init__(self, count=3, weight=1.0):

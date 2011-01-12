@@ -32,7 +32,7 @@ to OUT
 {
     OUT from (X x)
     {
-        double f = x * (x - 2) + 1;
+        double f = x * (x - 3) + 2.25;
         fprintf(stderr, "f(%g) = %g\n", x, f);
         return f;
     }
