@@ -108,7 +108,10 @@ public:
       return o << "?";
     if(v._type==INT)
       return o << v._i;
-    return o << v._d;
+    ssize_t oprec = o.precision(35);
+    o << v._d;
+    o.precision(oprec);
+    return o;
   }
   friend bool operator< (const TunableValue& a, const TunableValue& b) { return a.asD() <  b.asD(); } 
   friend bool operator<=(const TunableValue& a, const TunableValue& b) { return a.asD() <= b.asD(); } 
