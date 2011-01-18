@@ -35,11 +35,6 @@ petabricks::RegionI::sizeOfDimension(int d) const {
   return _size[d];
 }
 
-petabricks::ElementT
-petabricks::RegionI::readCell(const IndexT* coord) {
-  return *this->coordToPtr(coord);
-}
-
 void petabricks::RegionI::print() {
   printf("SIZE");
   for (int d = 0; d < _dimension; d++) {

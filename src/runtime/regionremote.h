@@ -6,6 +6,7 @@
 #include "regioni.h"
 #include "remotehost.h"
 #include "regionremoteproxy.h"
+#include "regiontransform.h"
 #include "remoteobject.h"
 
 namespace petabricks {
@@ -37,7 +38,7 @@ namespace petabricks {
     void onRecv(const void* data, size_t len);
     void markComplete();
 
-    RegionIPtr regionContiguous();
+    RegionIPtr baseRegion();
     ElementT* coordToPtr(const IndexT* coord);
     RegionIPtr splitRegion(IndexT* offset, IndexT* size);
     RegionIPtr sliceRegion(int d, IndexT pos);
@@ -159,9 +160,8 @@ void RegionRemote<D>::onRecv(const void* data, size_t len) {
 }
 
 template <int D>
-RegionIPtr RegionRemote<D>::regionContiguous() {
-  // To be implemented
-  return NULL;
+RegionIPtr RegionRemote<D>::baseRegion() {
+  return this;
 }
 
 template <int D> petabricks::ElementT*
@@ -172,14 +172,27 @@ RegionRemote<D>::coordToPtr(const IndexT* coord) {
     
 template <int D> petabricks::RegionIPtr
 RegionRemote<D>::splitRegion(IndexT* offset, IndexT* size) {
-  // To be implemented
-  return NULL;
+  return new RegionTransform(this, D, size, offset, 0, 0, 0);
 }
 
 template <int D> petabricks::RegionIPtr
 RegionRemote<D>::sliceRegion(int d, IndexT pos) {
-  // To be implemented
-  return NULL;
+  int splitDim[] = {d};
+  IndexT splitPos[] = {pos};
+
+  int dimension = D - 1;
+
+  IndexT* size = new IndexT[D];
+  memcpy(size, _size, (sizeof size) * d);
+  memcpy(size + d, _size + d + 1, (sizeof size) * (D - d));
+
+  IndexT* offset = new IndexT[D];
+  memset(offset, 0, (sizeof offset) * D);
+
+  RegionIPtr ret = new RegionTransform(this, D, _size, offset, 1, splitDim, splitPos); 
+  delete(size);
+  delete(offset);
+  return ret;
 }
 
 #endif

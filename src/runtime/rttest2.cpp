@@ -30,7 +30,7 @@ int main(int argc, const char** argv){
   IndexT m123[] = {1,2,3};
   IndexT m2[] = {2,2,2};
   IndexT m3[] = {3,3,3};
-
+  
   RemoteHostDB hdb;
   RemoteObjectPtr local;
 
@@ -52,6 +52,18 @@ int main(int argc, const char** argv){
     
     region->setRemoteObject(local);
 
+    RegionIPtr split3 = region->splitRegion(m123, m3);
+    RegionIPtr split2 = split3->splitRegion(m1, m2);
+    split3->print();
+    split2->print();
+
+    RegionIPtr slice1 = split2->sliceRegion(2, 0);
+    slice1->print();
+
+    RegionIPtr slice2 = slice1->sliceRegion(1, 1);
+    slice2->print();
+
+    /*
     printf("cell %4.8g\n", region->readCell(m123));
     printf("cell %4.8g\n", region->readCell(m0));
     printf("cell %4.8g\n", region->readCell(m1));
@@ -60,6 +72,7 @@ int main(int argc, const char** argv){
 
     region->writeCell(m0, 123);
     printf("cell %4.8g\n", region->readCell(m0));
+    */
 
     region->markComplete();
     JTRACE("complete");
@@ -73,7 +86,8 @@ int main(int argc, const char** argv){
     return 0;
   }
   
-  /*
+
+  /*  
   MatrixIO* matrixio = new MatrixIO(argv[1], "r");
   RegionIPtr region = matrixio->readToRegionI();
 
@@ -87,8 +101,9 @@ int main(int argc, const char** argv){
 
   RegionIPtr slice2 = slice1->sliceRegion(1, 1);
   slice2->print();
+  */
 
   return 0;
-  */
+  
 }
 

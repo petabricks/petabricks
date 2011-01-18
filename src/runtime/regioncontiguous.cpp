@@ -58,6 +58,17 @@ petabricks::RegionContiguous::sliceRegion(int d, IndexT pos){
 }
 
 petabricks::RegionIPtr
-petabricks::RegionContiguous::regionContiguous() {
+petabricks::RegionContiguous::baseRegion() {
   return this;
+}
+
+petabricks::ElementT
+petabricks::RegionContiguous::readCell(const IndexT* coord) {
+  return *this->coordToPtr(coord);
+}
+
+void
+petabricks::RegionContiguous::writeCell(const IndexT* coord, ElementT value) {
+  ElementT* cell = this->coordToPtr(coord);
+  *cell = value;
 }

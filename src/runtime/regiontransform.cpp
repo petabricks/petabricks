@@ -5,7 +5,7 @@ petabricks::RegionTransform::
 RegionTransform(RegionIPtr parent, int dimension, IndexT* size,
 		IndexT* splitOffset, int numSliceDimensions,
 		int* sliceDimensions, IndexT* slicePositions) {
-  _regionContiguous = parent;
+  _baseRegion = parent;
   _dimension = dimension;
   _size = new IndexT[_dimension];
   memcpy(_size, size, (sizeof _size)*_dimension);
@@ -26,9 +26,9 @@ RegionTransform(RegionIPtr parent, int dimension, IndexT* size,
 
 petabricks::RegionIPtr
 petabricks::RegionTransform::splitRegion(IndexT* offset, IndexT* size) {
-  IndexT* offset_new = this->getContiguousOffset(offset);
+  IndexT* offset_new = this->getBaseRegionOffset(offset);
   petabricks::RegionIPtr ret =
-    new RegionTransform(_regionContiguous, _dimension, size, offset_new,
+    new RegionTransform(_baseRegion, _dimension, size, offset_new,
 			_numSliceDimensions, _sliceDimensions, _slicePositions);
   delete(offset_new);
   return ret;
@@ -72,7 +72,7 @@ petabricks::RegionTransform::sliceRegion(int d, IndexT pos){
   }
 
   petabricks::RegionIPtr ret =
-    new RegionTransform(_regionContiguous, dimension, size, offset,
+    new RegionTransform(_baseRegion, dimension, size, offset,
 			 numSliceDimensions, sliceDimensions, slicePositions);
 
   delete(size);
@@ -87,12 +87,12 @@ petabricks::RegionTransform::sliceRegion(int d, IndexT pos){
 // Convert an offset to the one in _regionContiguous
 //
 petabricks::IndexT*
-petabricks::RegionTransform::getContiguousOffset(const IndexT* offset_orig){
+petabricks::RegionTransform::getBaseRegionOffset(const IndexT* offset_orig){
   IndexT slice_index = 0;
   IndexT split_index = 0;
 
-  IndexT* offset_new = new IndexT[_regionContiguous->dimension()];
-  for (int d; d < _regionContiguous->dimension(); d++) {
+  IndexT* offset_new = new IndexT[_baseRegion->dimension()];
+  for (int d = 0; d < _baseRegion->dimension(); d++) {
     if (slice_index < _numSliceDimensions &&
 	d == _sliceDimensions[slice_index]) {
       // slice
@@ -109,22 +109,32 @@ petabricks::RegionTransform::getContiguousOffset(const IndexT* offset_orig){
 
 petabricks::ElementT*
 petabricks::RegionTransform::coordToPtr(const IndexT* coord){
-  IndexT* coord_new = this->getContiguousOffset(coord);
+  IndexT* coord_new = this->getBaseRegionOffset(coord);
 
   #ifdef DEBUG
   printf("<");
-  for (int i = 0; i < _regionContiguous->dimension(); i++) {
+  for (int i = 0; i < _baseRegion->dimension(); i++) {
     printf("%d", coord_new[i]);
   }
   printf(">");
   #endif
 
-  petabricks::ElementT* ret = _regionContiguous->coordToPtr(coord_new);
+  petabricks::ElementT* ret = _baseRegion->coordToPtr(coord_new);
   delete(coord_new);
   return ret;
 }
 
 petabricks::RegionIPtr
-petabricks::RegionTransform::regionContiguous() {
-  return _regionContiguous;
+petabricks::RegionTransform::baseRegion() {
+  return _baseRegion;
+}
+
+petabricks::ElementT
+petabricks::RegionTransform::readCell(const IndexT* coord) {
+  return _baseRegion->readCell(this->getBaseRegionOffset(coord));
+}
+
+void
+petabricks::RegionTransform::writeCell(const IndexT* coord, ElementT value) {
+  _baseRegion->writeCell(this->getBaseRegionOffset(coord), value);
 }

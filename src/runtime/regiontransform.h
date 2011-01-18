@@ -1,13 +1,13 @@
 #ifndef PETABRICKSREGIONTRANSFORM_H
 #define PETABRICKSREGIONTRANSFORM_H
 
-#include "regioncontiguous.h"
+#include "regioni.h"
 
 namespace petabricks {
   class RegionTransform : public RegionI {
 
   protected:
-    RegionIPtr _regionContiguous;
+    RegionIPtr _baseRegion;
     IndexT* _splitOffset;
     int _numSliceDimensions;
     int* _sliceDimensions;
@@ -18,14 +18,17 @@ namespace petabricks {
 		    IndexT* splitOffset, int numSliceDimensions,
 		    int* sliceDimensions, IndexT* slicePositions);
 
-    RegionIPtr regionContiguous();
+    RegionIPtr baseRegion();
 
-    ElementT* coordToPtr(const IndexT* coord);
     RegionIPtr splitRegion(IndexT* offset, IndexT* size);
     RegionIPtr sliceRegion(int d, IndexT pos);
 
+    ElementT* coordToPtr(const IndexT* coord);
+    ElementT readCell(const IndexT* coord);
+    void writeCell(const IndexT* coord, ElementT value);
+
   private:
-    IndexT* getContiguousOffset(const IndexT* offset_orig);
+    IndexT* getBaseRegionOffset(const IndexT* offset_orig);
 
   };
 

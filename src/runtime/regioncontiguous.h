@@ -16,10 +16,14 @@ namespace petabricks {
   public:
     RegionContiguous(int dimension, IndexT* size, ElementT* data);
   
-    RegionIPtr regionContiguous();
-    ElementT* coordToPtr(const IndexT* coord);
+    RegionIPtr baseRegion();
+
     RegionIPtr splitRegion(IndexT* offset, IndexT* size);
     RegionIPtr sliceRegion(int d, IndexT pos);
+
+    ElementT* coordToPtr(const IndexT* coord);
+    ElementT readCell(const IndexT* coord);
+    void writeCell(const IndexT* coord, ElementT value);
   };
 
 }
