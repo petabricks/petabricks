@@ -5557,7 +5557,8 @@ done
 
 
 
-for ac_header in cxxabi.h execinfo.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h sys/mman.h
+
+for ac_header in cxxabi.h execinfo.h poll.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h sys/mman.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
@@ -6866,7 +6867,7 @@ _ACEOF
 
 
 cat >>confdefs.h <<\_ACEOF
-#define TIMEOUT_GRACESEC 0.1
+#define TIMEOUT_GRACESEC 0.03
 _ACEOF
 
 
