@@ -13,7 +13,7 @@ import storagedirs
 import configtool
 import random
 from tunerconfig import config, option_callback
-from candidatetester import Candidate, CandidateTester
+from candidatetester import Candidate, CandidateTester, MutatorLogFile
 from traininginfo import TrainingInfo
 from configtool import defaultConfigFile
 from storagedirs import timers
@@ -307,6 +307,7 @@ def onlinelearnInner(benchmark):
                                                        'timesafe','accsafe','timeexp','accexp',
                                                        'safe','seed','experimental',
                                                        ])
+
     
   try:
     timers.total.start()
@@ -323,6 +324,8 @@ def onlinelearnInner(benchmark):
       pop.add(p)
     if c and not c.wasTimeout:
       pop.add(c)
+
+    mlog = MutatorLogFile(c.mutators)
 
     '''now normal rounds'''  
     for gen in itertools.count(1):
@@ -370,6 +373,11 @@ def onlinelearnInner(benchmark):
         logging.debug("Child vs parent, better=%d, %f vs. %f" % (int(gettime(c) < gettime(p)), gettime(c), gettime(p)))
         clog.writerow([gen, lasttime(p), lastacc(p), lasttime(c), lastacc(c)]
                       +map(storagedirs.relpath,[p.cfgfile(), s.cfgfile(), c.cfgfile()]))
+
+        dtime = gettime(c) - gettime(p)
+        dacc = "None" if c.wasTimeout else (getacc(c) - getacc(p))
+        mlog.logPerformance(gen, gettime(c), "None" if c.wasTimeout else getacc(c), dtime, dacc, str(c.lastMutator));
+        mlog.logScores(gen, c.mutatorScores)
 
         t,a = resultingTimeAcc(p, c)
         print "Generation", gen, "elapsed",objectives.elapsed,"time", t,"accuracy",a, getconf(p)

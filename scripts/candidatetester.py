@@ -251,6 +251,11 @@ class Candidate:
     self.lastMutator = None
     self.outputdir   = storagedirs.candidate(self.cid)
     self.C           = config.bandit_c    # exploration/exploitation trade-off in the DMAB algorithm
+    
+    self.mutatorScores = dict()
+    for m in self.mutators:
+      self.mutatorScores[m] = 0
+    
     Candidate.nextCandidateId += 1
 
 
@@ -318,17 +323,20 @@ class Candidate:
       print "\n\nCurrent mutator log (%s): %s" % (mutatorLog.name, map(str, mutatorLog.log))
       print "\nAvailable mutators (scores):\n"
 
+    self.mutatorScores = dict()
     bestScore = -1 # scores are guaranteed to be non-negative
     bestMutator = None
     for m in self.mutators:
 
-      m.timesSelected = 0.00001 # to avoid div by 0
+      m.timesSelected = 1.0/len(self.mutators) # to avoid div by 0
       for logEntry in mutatorLog.log:
         if logEntry.mutator == m:
           m.timesSelected += 1
 
       
       score = m.computeRocScore(mutatorLog.log) + self.C*math.sqrt(2.0*math.log(totalMutations) / m.timesSelected)
+      self.mutatorScores[m] = score
+      
       if score > bestScore:
         bestScore = score
         bestMutator = m
@@ -435,6 +443,21 @@ class Input:
     self.outputHash=None
     self.firstCandidate=None
 
+class MutatorLogFile:
+  def __init__(self, mutators):
+    self.mutators = sorted(mutators, key=str)
+    self.mutatorPerf = storagedirs.openCsvStats("mutatorperf", ["gen", "time", "accuracy", "dtime", "daccuracy," "selected_mutator"])
+    self.mutatorScores = storagedirs.openCsvStats("mutatorscores", ["gen"] + map(str, mutators))
+
+  def logPerformance(self, gen, time, accuracy, dtime, daccuracy, selectedMutator):
+    self.mutatorPerf.writerow([gen, time, accuracy, dtime, daccuracy, selectedMutator]);
+
+  # scoreMap: a dictionary mutator -> score. All available mutators must be present.
+  def logScores(self, gen, scoreMap):
+    scores = map(lambda (m,score): score, sorted(scoreMap.items(), key=lambda (m,score): str(m)))
+    self.mutatorScores.writerow([gen] + scores)
+      
+
 class CandidateTester:
   def __init__(self, app, n, args=[]):
     self.app = app
@@ -452,7 +475,7 @@ class CandidateTester:
     self.testCount = 0
     self.timeoutCount = 0
     self.crashCount = 0
-    self.wasTimeout = True
+    self.wasTimeout = True 
 
   def nextTester(self):
     return CandidateTester(self.app, (self.n-config.offset)*2, self.args)
