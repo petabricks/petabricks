@@ -91,6 +91,18 @@ RemoteObjectPtr RegionRemote<D>::genRemote() {
 template <int D>
 void RegionRemote<D>::setRemoteObject(RemoteObjectPtr remoteObject) {
   _remoteObject = remoteObject;
+
+  // get size, if needed
+  if (!_size) {
+    GetSizeMessage<D>* msg = (GetSizeMessage<D>*) malloc(sizeof(GetSizeMessage<D>)); 
+    msg->type = MessageTypes::REGIONREMOTE_GETSIZE;
+  
+    _size = (IndexT*) malloc(D * sizeof(IndexT));
+    memcpy(_size, this->fetchData(msg, sizeof(GetSizeMessage<D>)), D * sizeof(IndexT));
+
+    delete msg;
+  }
+
 }
 
 using namespace _RegionRemoteMsgTypes;
@@ -182,14 +194,14 @@ RegionRemote<D>::sliceRegion(int d, IndexT pos) {
 
   int dimension = D - 1;
 
-  IndexT* size = new IndexT[D];
-  memcpy(size, _size, (sizeof size) * d);
-  memcpy(size + d, _size + d + 1, (sizeof size) * (D - d));
+  IndexT* size = new IndexT[dimension];
+  memcpy(size, _size, sizeof(IndexT) * d);
+  memcpy(size + d, _size + d + 1, sizeof(IndexT) * (dimension - d));
 
-  IndexT* offset = new IndexT[D];
-  memset(offset, 0, (sizeof offset) * D);
+  IndexT* offset = new IndexT[dimension];
+  memset(offset, 0, (sizeof offset) * dimension);
 
-  RegionIPtr ret = new RegionTransform(this, D, _size, offset, 1, splitDim, splitPos); 
+  RegionIPtr ret = new RegionTransform(this, dimension, size, offset, 1, splitDim, splitPos); 
   delete(size);
   delete(offset);
   return ret;

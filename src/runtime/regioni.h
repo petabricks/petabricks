@@ -28,6 +28,7 @@ namespace petabricks {
 
     int incCoord(IndexT* coord);
     int dimension() const;
+    IndexT* size() const;
     IndexT sizeOfDimension(int d) const;
 
     void print();

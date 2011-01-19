@@ -35,6 +35,11 @@ petabricks::RegionI::sizeOfDimension(int d) const {
   return _size[d];
 }
 
+petabricks::IndexT*
+petabricks::RegionI::size() const {
+  return _size;
+}
+
 void petabricks::RegionI::print() {
   printf("SIZE");
   for (int d = 0; d < _dimension; d++) {

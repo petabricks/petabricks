@@ -14,7 +14,10 @@ petabricks::RegionContiguous::RegionContiguous(int dimension, IndexT* size, Elem
   }
 
   _data = new ElementT[numData];
-  memcpy(_data, data, (sizeof _data)*numData); 
+  
+  if (data) {
+    memcpy(_data, data, (sizeof _data)*numData); 
+  }
 
   _multipliers = new IndexT[_dimension];
   _multipliers[0] = 1;
@@ -45,13 +48,13 @@ petabricks::RegionContiguous::sliceRegion(int d, IndexT pos){
   int dimension = _dimension - 1;
 
   IndexT* size = new IndexT[dimension];
-  memcpy(size, _size, (sizeof size) * d);
-  memcpy(size + d, _size + d + 1, (sizeof size) * (dimension - d));
+  memcpy(size, _size, sizeof(IndexT) * d);
+  memcpy(size + d, _size + d + 1, sizeof(IndexT) * (dimension - d));
 
   IndexT* offset = new IndexT[dimension];
   memset(offset, 0, (sizeof offset) * dimension);
 
-  RegionIPtr ret = new RegionTransform(this, dimension, _size, offset, 1, splitDim, splitPos); 
+  RegionIPtr ret = new RegionTransform(this, dimension, size, offset, 1, splitDim, splitPos); 
   delete(size);
   delete(offset);
   return ret;
