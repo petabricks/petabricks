@@ -236,7 +236,13 @@ void petabricks::Transform::compile(){
   for(RuleList::const_iterator i=_rules.begin(); i!=_rules.end(); ++i){
     (*i)->collectDependencies(_scheduler);
   }
+  #ifdef DEBUG
+  _scheduler->writeGraph((name()+".schedule_initial.dot").c_str());
+  #endif
   _scheduler->generateSchedule();
+  #ifdef DEBUG
+  _scheduler->writeGraph((name()+".schedule.dot").c_str());
+  #endif
   
   MaximaWrapper::instance().popContext();
 }
