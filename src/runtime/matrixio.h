@@ -87,6 +87,15 @@ public:
   }
 
   ///
+  /// Read a D-dimensional matrix from _fd to MatrixReaderScratch
+  MatrixReaderScratch readToMatrixReaderScratch(){
+    JASSERT(_fd != 0);
+    MatrixReaderScratch o;
+    _read(o);
+    return o;
+  }
+
+  ///
   /// Write a given matrix to _fd
   template<int D, typename T>
   void write(MatrixRegion<D,T> m);
