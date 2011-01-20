@@ -36,7 +36,7 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 noinst_PROGRAMS = pbc$(EXEEXT) rttest1$(EXEEXT) rttest2$(EXEEXT) \
-	regionremotetest$(EXEEXT)
+	regiondatatest$(EXEEXT)
 subdir = src
 DIST_COMMON = $(noinst_HEADERS) $(pkglib_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
@@ -133,12 +133,11 @@ pbc_OBJECTS = $(am_pbc_OBJECTS)
 pbc_DEPENDENCIES = libpbcompiler.a libpbcommon.a
 pbc_LINK = $(CXXLD) $(pbc_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-am_regionremotetest_OBJECTS =  \
-	regionremotetest-regionremotetest.$(OBJEXT)
-regionremotetest_OBJECTS = $(am_regionremotetest_OBJECTS)
-regionremotetest_DEPENDENCIES = libpbruntime.a libpbcommon.a
-regionremotetest_LINK = $(CXXLD) $(regionremotetest_CXXFLAGS) \
-	$(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+am_regiondatatest_OBJECTS = regiondatatest-regiondatatest.$(OBJEXT)
+regiondatatest_OBJECTS = $(am_regiondatatest_OBJECTS)
+regiondatatest_DEPENDENCIES = libpbruntime.a libpbcommon.a
+regiondatatest_LINK = $(CXXLD) $(regiondatatest_CXXFLAGS) $(CXXFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_rttest1_OBJECTS = rttest1-rttest1.$(OBJEXT)
 rttest1_OBJECTS = $(am_rttest1_OBJECTS)
 rttest1_DEPENDENCIES = libpbruntime.a libpbcommon.a
@@ -166,11 +165,11 @@ CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 SOURCES = $(libpbcommon_a_SOURCES) $(libpbcompiler_a_SOURCES) \
 	$(libpbmain_a_SOURCES) $(libpbruntime_a_SOURCES) \
-	$(pbc_SOURCES) $(regionremotetest_SOURCES) $(rttest1_SOURCES) \
+	$(pbc_SOURCES) $(regiondatatest_SOURCES) $(rttest1_SOURCES) \
 	$(rttest2_SOURCES)
 DIST_SOURCES = $(libpbcommon_a_SOURCES) $(libpbcompiler_a_SOURCES) \
 	$(libpbmain_a_SOURCES) $(libpbruntime_a_SOURCES) \
-	$(pbc_SOURCES) $(regionremotetest_SOURCES) $(rttest1_SOURCES) \
+	$(pbc_SOURCES) $(regiondatatest_SOURCES) $(rttest1_SOURCES) \
 	$(rttest2_SOURCES)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
@@ -354,6 +353,8 @@ pkglib_HEADERS = \
   runtime/memoization.h \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
+  runtime/regiondatai.h \
+  runtime/regiondataraw.h \
   runtime/regioni.h \
   runtime/regioncontiguous.h \
   runtime/regionremote.h \
@@ -450,9 +451,9 @@ rttest1_LDADD = libpbruntime.a libpbcommon.a
 rttest2_CXXFLAGS = -Iruntime
 rttest2_SOURCES = runtime/rttest2.cpp
 rttest2_LDADD = libpbruntime.a libpbcommon.a 
-regionremotetest_CXXFLAGS = -Iruntime
-regionremotetest_SOURCES = runtime/tests/regionremotetest.cpp
-regionremotetest_LDADD = libpbruntime.a libpbcommon.a 
+regiondatatest_CXXFLAGS = -Iruntime
+regiondatatest_SOURCES = runtime/tests/regiondatatest.cpp
+regiondatatest_LDADD = libpbruntime.a libpbcommon.a 
 CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp libpbcompiler_a-maximaparser.h \
              libpbcompiler_a-pblexer.cpp libpbcompiler_a-pbparser.cpp libpbcompiler_a-pbparser.h \
              libpbcompiler_a-ruleirlexer.cpp libpbcompiler_a-ruleirparser.cpp libpbcompiler_a-ruleirparser.h \
@@ -550,9 +551,9 @@ clean-noinstPROGRAMS:
 pbc$(EXEEXT): $(pbc_OBJECTS) $(pbc_DEPENDENCIES) 
 	@rm -f pbc$(EXEEXT)
 	$(pbc_LINK) $(pbc_OBJECTS) $(pbc_LDADD) $(LIBS)
-regionremotetest$(EXEEXT): $(regionremotetest_OBJECTS) $(regionremotetest_DEPENDENCIES) 
-	@rm -f regionremotetest$(EXEEXT)
-	$(regionremotetest_LINK) $(regionremotetest_OBJECTS) $(regionremotetest_LDADD) $(LIBS)
+regiondatatest$(EXEEXT): $(regiondatatest_OBJECTS) $(regiondatatest_DEPENDENCIES) 
+	@rm -f regiondatatest$(EXEEXT)
+	$(regiondatatest_LINK) $(regiondatatest_OBJECTS) $(regiondatatest_LDADD) $(LIBS)
 rttest1$(EXEEXT): $(rttest1_OBJECTS) $(rttest1_DEPENDENCIES) 
 	@rm -f rttest1$(EXEEXT)
 	$(rttest1_LINK) $(rttest1_OBJECTS) $(rttest1_LDADD) $(LIBS)
@@ -627,7 +628,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-transforminstance.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-workerthread.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbc-pbc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/regionremotetest-regionremotetest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/regiondatatest-regiondatatest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rttest1-rttest1.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rttest2-rttest2.Po@am__quote@
 
@@ -1499,19 +1500,19 @@ pbc-pbc.obj: compiler/pbc.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(pbc_CXXFLAGS) $(CXXFLAGS) -c -o pbc-pbc.obj `if test -f 'compiler/pbc.cpp'; then $(CYGPATH_W) 'compiler/pbc.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/pbc.cpp'; fi`
 
-regionremotetest-regionremotetest.o: runtime/tests/regionremotetest.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(regionremotetest_CXXFLAGS) $(CXXFLAGS) -MT regionremotetest-regionremotetest.o -MD -MP -MF $(DEPDIR)/regionremotetest-regionremotetest.Tpo -c -o regionremotetest-regionremotetest.o `test -f 'runtime/tests/regionremotetest.cpp' || echo '$(srcdir)/'`runtime/tests/regionremotetest.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/regionremotetest-regionremotetest.Tpo $(DEPDIR)/regionremotetest-regionremotetest.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/tests/regionremotetest.cpp' object='regionremotetest-regionremotetest.o' libtool=no @AMDEPBACKSLASH@
+regiondatatest-regiondatatest.o: runtime/tests/regiondatatest.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(regiondatatest_CXXFLAGS) $(CXXFLAGS) -MT regiondatatest-regiondatatest.o -MD -MP -MF $(DEPDIR)/regiondatatest-regiondatatest.Tpo -c -o regiondatatest-regiondatatest.o `test -f 'runtime/tests/regiondatatest.cpp' || echo '$(srcdir)/'`runtime/tests/regiondatatest.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/regiondatatest-regiondatatest.Tpo $(DEPDIR)/regiondatatest-regiondatatest.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/tests/regiondatatest.cpp' object='regiondatatest-regiondatatest.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(regionremotetest_CXXFLAGS) $(CXXFLAGS) -c -o regionremotetest-regionremotetest.o `test -f 'runtime/tests/regionremotetest.cpp' || echo '$(srcdir)/'`runtime/tests/regionremotetest.cpp
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(regiondatatest_CXXFLAGS) $(CXXFLAGS) -c -o regiondatatest-regiondatatest.o `test -f 'runtime/tests/regiondatatest.cpp' || echo '$(srcdir)/'`runtime/tests/regiondatatest.cpp
 
-regionremotetest-regionremotetest.obj: runtime/tests/regionremotetest.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(regionremotetest_CXXFLAGS) $(CXXFLAGS) -MT regionremotetest-regionremotetest.obj -MD -MP -MF $(DEPDIR)/regionremotetest-regionremotetest.Tpo -c -o regionremotetest-regionremotetest.obj `if test -f 'runtime/tests/regionremotetest.cpp'; then $(CYGPATH_W) 'runtime/tests/regionremotetest.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/tests/regionremotetest.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/regionremotetest-regionremotetest.Tpo $(DEPDIR)/regionremotetest-regionremotetest.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/tests/regionremotetest.cpp' object='regionremotetest-regionremotetest.obj' libtool=no @AMDEPBACKSLASH@
+regiondatatest-regiondatatest.obj: runtime/tests/regiondatatest.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(regiondatatest_CXXFLAGS) $(CXXFLAGS) -MT regiondatatest-regiondatatest.obj -MD -MP -MF $(DEPDIR)/regiondatatest-regiondatatest.Tpo -c -o regiondatatest-regiondatatest.obj `if test -f 'runtime/tests/regiondatatest.cpp'; then $(CYGPATH_W) 'runtime/tests/regiondatatest.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/tests/regiondatatest.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/regiondatatest-regiondatatest.Tpo $(DEPDIR)/regiondatatest-regiondatatest.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/tests/regiondatatest.cpp' object='regiondatatest-regiondatatest.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(regionremotetest_CXXFLAGS) $(CXXFLAGS) -c -o regionremotetest-regionremotetest.obj `if test -f 'runtime/tests/regionremotetest.cpp'; then $(CYGPATH_W) 'runtime/tests/regionremotetest.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/tests/regionremotetest.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(regiondatatest_CXXFLAGS) $(CXXFLAGS) -c -o regiondatatest-regiondatatest.obj `if test -f 'runtime/tests/regiondatatest.cpp'; then $(CYGPATH_W) 'runtime/tests/regiondatatest.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/tests/regiondatatest.cpp'; fi`
 
 rttest1-rttest1.o: runtime/rttest1.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest1_CXXFLAGS) $(CXXFLAGS) -MT rttest1-rttest1.o -MD -MP -MF $(DEPDIR)/rttest1-rttest1.Tpo -c -o rttest1-rttest1.o `test -f 'runtime/rttest1.cpp' || echo '$(srcdir)/'`runtime/rttest1.cpp

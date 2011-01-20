@@ -33,10 +33,7 @@ int main(int argc, const char** argv){
   IndexT m2[] = {2,2,2};
   IndexT m3[] = {3,3,3};
 
-  MatrixIO* matrixio = new MatrixIO(filename2, "r");
-  MatrixReaderScratch o = matrixio->readToMatrixReaderScratch();
-
-  RegionDataI<3>::RegionDataIPtr regiondata = new RegionDataRaw<3>(o.sizes, o.storage->data());
+  RegionDataI<3>::RegionDataIPtr regiondata = new RegionDataRaw<3>(filename2);
 
   regiondata->print();
 

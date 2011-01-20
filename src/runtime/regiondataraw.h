@@ -13,6 +13,7 @@ namespace petabricks {
     IndexT* _multipliers;
 
   public:
+    RegionDataRaw(char* filename);
     RegionDataRaw(IndexT* size, ElementT* data);
     ~RegionDataRaw();
 
@@ -20,6 +21,7 @@ namespace petabricks {
     void writeCell(const IndexT* coord, ElementT value);
 
   private:
+    void init(IndexT* size, ElementT* data);
     ElementT* coordToPtr(const IndexT* coord);
   };
 }
@@ -29,6 +31,24 @@ using namespace petabricks;
 
 template <int D>
 RegionDataRaw<D>::RegionDataRaw(IndexT* size, ElementT* data) {
+  init(size, data);
+}
+
+template <int D>
+RegionDataRaw<D>::RegionDataRaw(char* filename) {
+  MatrixIO* matrixio = new MatrixIO(filename, "r");
+  MatrixReaderScratch o = matrixio->readToMatrixReaderScratch();
+  init(o.sizes, o.storage->data());
+}
+
+template <int D>
+RegionDataRaw<D>::~RegionDataRaw() {
+  delete _data;
+  delete _multipliers;
+}
+
+template <int D>
+void RegionDataRaw<D>::init(IndexT* size, ElementT* data) {
   this->_size = new IndexT[D];
   memcpy(this->_size, size, sizeof(IndexT) * D);
 
@@ -48,12 +68,6 @@ RegionDataRaw<D>::RegionDataRaw(IndexT* size, ElementT* data) {
   for (int i = 1; i < D; i++) {
     _multipliers[i] = _multipliers[i - 1] * this->_size[i - 1];
   }
-}
-
-template <int D>
-RegionDataRaw<D>::~RegionDataRaw() {
-  delete _data;
-  delete _multipliers;
 }
 
 template <int D>
