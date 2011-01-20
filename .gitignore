@@ -44,6 +44,7 @@ configure
 test
 rttest1
 rttest2
+regiondatatest
 regionremotetest
 tmp
 

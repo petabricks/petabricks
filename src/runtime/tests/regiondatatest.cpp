@@ -11,7 +11,6 @@
  ***************************************************************************/
 #include "petabricks.h"
 
-#include "matrixio.h"
 #include "regiondataraw.h"
 
 using namespace petabricks;

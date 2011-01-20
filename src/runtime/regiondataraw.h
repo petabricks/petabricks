@@ -1,6 +1,7 @@
 #ifndef PETABRICKSREGIONDATARAW_H
 #define PETABRICKSREGIONDATARAW_H
 
+#include "matrixio.h"
 #include "regiondatai.h"
 
 namespace petabricks {
