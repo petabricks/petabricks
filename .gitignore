@@ -45,6 +45,7 @@ test
 rttest1
 rttest2
 regiondatatest
+regionmatrixtest
 regionremotetest
 tmp
 

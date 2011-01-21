@@ -32,7 +32,7 @@ int main(int argc, const char** argv){
   IndexT m2[] = {2,2,2};
   IndexT m3[] = {3,3,3};
 
-  RegionDataI<3>::RegionDataIPtr regiondata = new RegionDataRaw<3>(filename2);
+  RegionDataIPtr regiondata = new RegionDataRaw(filename2);
 
   regiondata->print();
 

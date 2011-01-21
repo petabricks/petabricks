@@ -36,7 +36,7 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 noinst_PROGRAMS = pbc$(EXEEXT) rttest1$(EXEEXT) rttest2$(EXEEXT) \
-	regiondatatest$(EXEEXT)
+	regiondatatest$(EXEEXT) regionmatrixtest$(EXEEXT)
 subdir = src
 DIST_COMMON = $(noinst_HEADERS) $(pkglib_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
@@ -115,6 +115,10 @@ am_libpbruntime_a_OBJECTS = libpbruntime_a-autotuner.$(OBJEXT) \
 	libpbruntime_a-matrixstorage.$(OBJEXT) \
 	libpbruntime_a-memoization.$(OBJEXT) \
 	libpbruntime_a-petabricksruntime.$(OBJEXT) \
+	libpbruntime_a-regiondatai.$(OBJEXT) \
+	libpbruntime_a-regiondataraw.$(OBJEXT) \
+	libpbruntime_a-regionhandler.$(OBJEXT) \
+	libpbruntime_a-regionmatrix.$(OBJEXT) \
 	libpbruntime_a-regioni.$(OBJEXT) \
 	libpbruntime_a-regioncontiguous.$(OBJEXT) \
 	libpbruntime_a-regiontransform.$(OBJEXT) \
@@ -138,6 +142,12 @@ regiondatatest_OBJECTS = $(am_regiondatatest_OBJECTS)
 regiondatatest_DEPENDENCIES = libpbruntime.a libpbcommon.a
 regiondatatest_LINK = $(CXXLD) $(regiondatatest_CXXFLAGS) $(CXXFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+am_regionmatrixtest_OBJECTS =  \
+	regionmatrixtest-regionmatrixtest.$(OBJEXT)
+regionmatrixtest_OBJECTS = $(am_regionmatrixtest_OBJECTS)
+regionmatrixtest_DEPENDENCIES = libpbruntime.a libpbcommon.a
+regionmatrixtest_LINK = $(CXXLD) $(regionmatrixtest_CXXFLAGS) \
+	$(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_rttest1_OBJECTS = rttest1-rttest1.$(OBJEXT)
 rttest1_OBJECTS = $(am_rttest1_OBJECTS)
 rttest1_DEPENDENCIES = libpbruntime.a libpbcommon.a
@@ -165,11 +175,13 @@ CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 SOURCES = $(libpbcommon_a_SOURCES) $(libpbcompiler_a_SOURCES) \
 	$(libpbmain_a_SOURCES) $(libpbruntime_a_SOURCES) \
-	$(pbc_SOURCES) $(regiondatatest_SOURCES) $(rttest1_SOURCES) \
+	$(pbc_SOURCES) $(regiondatatest_SOURCES) \
+	$(regionmatrixtest_SOURCES) $(rttest1_SOURCES) \
 	$(rttest2_SOURCES)
 DIST_SOURCES = $(libpbcommon_a_SOURCES) $(libpbcompiler_a_SOURCES) \
 	$(libpbmain_a_SOURCES) $(libpbruntime_a_SOURCES) \
-	$(pbc_SOURCES) $(regiondatatest_SOURCES) $(rttest1_SOURCES) \
+	$(pbc_SOURCES) $(regiondatatest_SOURCES) \
+	$(regionmatrixtest_SOURCES) $(rttest1_SOURCES) \
 	$(rttest2_SOURCES)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
@@ -355,6 +367,8 @@ pkglib_HEADERS = \
   runtime/petabricksruntime.h \
   runtime/regiondatai.h \
   runtime/regiondataraw.h \
+  runtime/regionhandler.h \
+  runtime/regionmatrix.h \
   runtime/regioni.h \
   runtime/regioncontiguous.h \
   runtime/regionremote.h \
@@ -428,6 +442,10 @@ libpbruntime_a_SOURCES = \
   runtime/matrixstorage.cpp \
   runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
+  runtime/regiondatai.cpp \
+  runtime/regiondataraw.cpp \
+  runtime/regionhandler.cpp \
+  runtime/regionmatrix.cpp \
   runtime/regioni.cpp \
   runtime/regioncontiguous.cpp \
   runtime/regiontransform.cpp \
@@ -454,6 +472,9 @@ rttest2_LDADD = libpbruntime.a libpbcommon.a
 regiondatatest_CXXFLAGS = -Iruntime
 regiondatatest_SOURCES = runtime/tests/regiondatatest.cpp
 regiondatatest_LDADD = libpbruntime.a libpbcommon.a 
+regionmatrixtest_CXXFLAGS = -Iruntime
+regionmatrixtest_SOURCES = runtime/tests/regionmatrixtest.cpp
+regionmatrixtest_LDADD = libpbruntime.a libpbcommon.a 
 CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp libpbcompiler_a-maximaparser.h \
              libpbcompiler_a-pblexer.cpp libpbcompiler_a-pbparser.cpp libpbcompiler_a-pbparser.h \
              libpbcompiler_a-ruleirlexer.cpp libpbcompiler_a-ruleirparser.cpp libpbcompiler_a-ruleirparser.h \
@@ -554,6 +575,9 @@ pbc$(EXEEXT): $(pbc_OBJECTS) $(pbc_DEPENDENCIES)
 regiondatatest$(EXEEXT): $(regiondatatest_OBJECTS) $(regiondatatest_DEPENDENCIES) 
 	@rm -f regiondatatest$(EXEEXT)
 	$(regiondatatest_LINK) $(regiondatatest_OBJECTS) $(regiondatatest_LDADD) $(LIBS)
+regionmatrixtest$(EXEEXT): $(regionmatrixtest_OBJECTS) $(regionmatrixtest_DEPENDENCIES) 
+	@rm -f regionmatrixtest$(EXEEXT)
+	$(regionmatrixtest_LINK) $(regionmatrixtest_OBJECTS) $(regionmatrixtest_LDADD) $(LIBS)
 rttest1$(EXEEXT): $(rttest1_OBJECTS) $(rttest1_DEPENDENCIES) 
 	@rm -f rttest1$(EXEEXT)
 	$(rttest1_LINK) $(rttest1_OBJECTS) $(rttest1_LDADD) $(LIBS)
@@ -618,7 +642,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-openclutil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-petabricksruntime.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regioncontiguous.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiondatai.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiondataraw.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regionhandler.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regioni.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regionmatrix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiontransform.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-remotehost.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-remoteobject.Po@am__quote@
@@ -629,6 +657,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-workerthread.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pbc-pbc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/regiondatatest-regiondatatest.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/regionmatrixtest-regionmatrixtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rttest1-rttest1.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rttest2-rttest2.Po@am__quote@
 
@@ -1332,6 +1361,62 @@ libpbruntime_a-petabricksruntime.obj: runtime/petabricksruntime.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-petabricksruntime.obj `if test -f 'runtime/petabricksruntime.cpp'; then $(CYGPATH_W) 'runtime/petabricksruntime.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/petabricksruntime.cpp'; fi`
 
+libpbruntime_a-regiondatai.o: runtime/regiondatai.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regiondatai.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regiondatai.Tpo -c -o libpbruntime_a-regiondatai.o `test -f 'runtime/regiondatai.cpp' || echo '$(srcdir)/'`runtime/regiondatai.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regiondatai.Tpo $(DEPDIR)/libpbruntime_a-regiondatai.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regiondatai.cpp' object='libpbruntime_a-regiondatai.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regiondatai.o `test -f 'runtime/regiondatai.cpp' || echo '$(srcdir)/'`runtime/regiondatai.cpp
+
+libpbruntime_a-regiondatai.obj: runtime/regiondatai.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regiondatai.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-regiondatai.Tpo -c -o libpbruntime_a-regiondatai.obj `if test -f 'runtime/regiondatai.cpp'; then $(CYGPATH_W) 'runtime/regiondatai.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regiondatai.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regiondatai.Tpo $(DEPDIR)/libpbruntime_a-regiondatai.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regiondatai.cpp' object='libpbruntime_a-regiondatai.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regiondatai.obj `if test -f 'runtime/regiondatai.cpp'; then $(CYGPATH_W) 'runtime/regiondatai.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regiondatai.cpp'; fi`
+
+libpbruntime_a-regiondataraw.o: runtime/regiondataraw.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regiondataraw.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regiondataraw.Tpo -c -o libpbruntime_a-regiondataraw.o `test -f 'runtime/regiondataraw.cpp' || echo '$(srcdir)/'`runtime/regiondataraw.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regiondataraw.Tpo $(DEPDIR)/libpbruntime_a-regiondataraw.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regiondataraw.cpp' object='libpbruntime_a-regiondataraw.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regiondataraw.o `test -f 'runtime/regiondataraw.cpp' || echo '$(srcdir)/'`runtime/regiondataraw.cpp
+
+libpbruntime_a-regiondataraw.obj: runtime/regiondataraw.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regiondataraw.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-regiondataraw.Tpo -c -o libpbruntime_a-regiondataraw.obj `if test -f 'runtime/regiondataraw.cpp'; then $(CYGPATH_W) 'runtime/regiondataraw.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regiondataraw.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regiondataraw.Tpo $(DEPDIR)/libpbruntime_a-regiondataraw.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regiondataraw.cpp' object='libpbruntime_a-regiondataraw.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regiondataraw.obj `if test -f 'runtime/regiondataraw.cpp'; then $(CYGPATH_W) 'runtime/regiondataraw.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regiondataraw.cpp'; fi`
+
+libpbruntime_a-regionhandler.o: runtime/regionhandler.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regionhandler.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regionhandler.Tpo -c -o libpbruntime_a-regionhandler.o `test -f 'runtime/regionhandler.cpp' || echo '$(srcdir)/'`runtime/regionhandler.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regionhandler.Tpo $(DEPDIR)/libpbruntime_a-regionhandler.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regionhandler.cpp' object='libpbruntime_a-regionhandler.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regionhandler.o `test -f 'runtime/regionhandler.cpp' || echo '$(srcdir)/'`runtime/regionhandler.cpp
+
+libpbruntime_a-regionhandler.obj: runtime/regionhandler.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regionhandler.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-regionhandler.Tpo -c -o libpbruntime_a-regionhandler.obj `if test -f 'runtime/regionhandler.cpp'; then $(CYGPATH_W) 'runtime/regionhandler.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regionhandler.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regionhandler.Tpo $(DEPDIR)/libpbruntime_a-regionhandler.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regionhandler.cpp' object='libpbruntime_a-regionhandler.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regionhandler.obj `if test -f 'runtime/regionhandler.cpp'; then $(CYGPATH_W) 'runtime/regionhandler.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regionhandler.cpp'; fi`
+
+libpbruntime_a-regionmatrix.o: runtime/regionmatrix.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regionmatrix.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regionmatrix.Tpo -c -o libpbruntime_a-regionmatrix.o `test -f 'runtime/regionmatrix.cpp' || echo '$(srcdir)/'`runtime/regionmatrix.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regionmatrix.Tpo $(DEPDIR)/libpbruntime_a-regionmatrix.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regionmatrix.cpp' object='libpbruntime_a-regionmatrix.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regionmatrix.o `test -f 'runtime/regionmatrix.cpp' || echo '$(srcdir)/'`runtime/regionmatrix.cpp
+
+libpbruntime_a-regionmatrix.obj: runtime/regionmatrix.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regionmatrix.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-regionmatrix.Tpo -c -o libpbruntime_a-regionmatrix.obj `if test -f 'runtime/regionmatrix.cpp'; then $(CYGPATH_W) 'runtime/regionmatrix.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regionmatrix.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regionmatrix.Tpo $(DEPDIR)/libpbruntime_a-regionmatrix.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regionmatrix.cpp' object='libpbruntime_a-regionmatrix.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regionmatrix.obj `if test -f 'runtime/regionmatrix.cpp'; then $(CYGPATH_W) 'runtime/regionmatrix.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regionmatrix.cpp'; fi`
+
 libpbruntime_a-regioni.o: runtime/regioni.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regioni.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regioni.Tpo -c -o libpbruntime_a-regioni.o `test -f 'runtime/regioni.cpp' || echo '$(srcdir)/'`runtime/regioni.cpp
 @am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regioni.Tpo $(DEPDIR)/libpbruntime_a-regioni.Po
@@ -1513,6 +1598,20 @@ regiondatatest-regiondatatest.obj: runtime/tests/regiondatatest.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/tests/regiondatatest.cpp' object='regiondatatest-regiondatatest.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(regiondatatest_CXXFLAGS) $(CXXFLAGS) -c -o regiondatatest-regiondatatest.obj `if test -f 'runtime/tests/regiondatatest.cpp'; then $(CYGPATH_W) 'runtime/tests/regiondatatest.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/tests/regiondatatest.cpp'; fi`
+
+regionmatrixtest-regionmatrixtest.o: runtime/tests/regionmatrixtest.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(regionmatrixtest_CXXFLAGS) $(CXXFLAGS) -MT regionmatrixtest-regionmatrixtest.o -MD -MP -MF $(DEPDIR)/regionmatrixtest-regionmatrixtest.Tpo -c -o regionmatrixtest-regionmatrixtest.o `test -f 'runtime/tests/regionmatrixtest.cpp' || echo '$(srcdir)/'`runtime/tests/regionmatrixtest.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/regionmatrixtest-regionmatrixtest.Tpo $(DEPDIR)/regionmatrixtest-regionmatrixtest.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/tests/regionmatrixtest.cpp' object='regionmatrixtest-regionmatrixtest.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(regionmatrixtest_CXXFLAGS) $(CXXFLAGS) -c -o regionmatrixtest-regionmatrixtest.o `test -f 'runtime/tests/regionmatrixtest.cpp' || echo '$(srcdir)/'`runtime/tests/regionmatrixtest.cpp
+
+regionmatrixtest-regionmatrixtest.obj: runtime/tests/regionmatrixtest.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(regionmatrixtest_CXXFLAGS) $(CXXFLAGS) -MT regionmatrixtest-regionmatrixtest.obj -MD -MP -MF $(DEPDIR)/regionmatrixtest-regionmatrixtest.Tpo -c -o regionmatrixtest-regionmatrixtest.obj `if test -f 'runtime/tests/regionmatrixtest.cpp'; then $(CYGPATH_W) 'runtime/tests/regionmatrixtest.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/tests/regionmatrixtest.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/regionmatrixtest-regionmatrixtest.Tpo $(DEPDIR)/regionmatrixtest-regionmatrixtest.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/tests/regionmatrixtest.cpp' object='regionmatrixtest-regionmatrixtest.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(regionmatrixtest_CXXFLAGS) $(CXXFLAGS) -c -o regionmatrixtest-regionmatrixtest.obj `if test -f 'runtime/tests/regionmatrixtest.cpp'; then $(CYGPATH_W) 'runtime/tests/regionmatrixtest.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/tests/regionmatrixtest.cpp'; fi`
 
 rttest1-rttest1.o: runtime/rttest1.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(rttest1_CXXFLAGS) $(CXXFLAGS) -MT rttest1-rttest1.o -MD -MP -MF $(DEPDIR)/rttest1-rttest1.Tpo -c -o rttest1-rttest1.o `test -f 'runtime/rttest1.cpp' || echo '$(srcdir)/'`runtime/rttest1.cpp
