@@ -16,14 +16,6 @@ IndexT* RegionDataI::size() {
   return _size;
 }
 
-ElementT RegionDataI::readCell(const IndexT* coord) {
-  throw std::exception();
-}
-
-void RegionDataI::writeCell(const IndexT* coord, ElementT value) {
-  throw std::exception();
-}
-
 int RegionDataI::incCoord(IndexT* coord) {
   if (_D == 0) { 
     return -1;
