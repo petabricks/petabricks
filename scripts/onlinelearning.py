@@ -59,16 +59,18 @@ class MutatorLogEntry:
     self.accuracy = accuracy
     self.id = lastMutatorId + 1
     lastMutatorId = self.id
-
+ 
   def __repr__(self):
-    return "%s (%f s, %f acc) [id = %i]" % (str(self.mutator), self.time, self.accuracy, self.id)
+    return "%s (%f s, %s acc) [id = %i]" % (str(self.mutator),
+                                            self.time,
+                                            "n/a" if self.accuracy == None else str(self.accuracy),
+                                            self.id)
 
 
 class MutatorLog:
-  def __init__(self, name, perfMetric):
+  def __init__(self, name):
     self.log = []
     self.name = name
-    self.perfMetric = perfMetric
 
   def add(self, c):
     # slide the candidate window
@@ -79,15 +81,27 @@ class MutatorLog:
     if(not c.wasTimeout):
       acc = getacc(c)
     else:
-      acc = "n/a"
+      acc = None
 
-    self.log = sorted([MutatorLogEntry(c.lastMutator, c, gettime(c), acc)] + self.log, key=self.perfMetric)
+    self.log =[MutatorLogEntry(c.lastMutator, c, gettime(c), acc)] + self.log
 
-    def __repr__(self):
-      return str(self.log)
 
-def sortedMutatorLog(log):
-  return sorted(log, key = lambda m: m.time)
+  '''fastest first'''
+  def getSortedByTime(self):
+    sortedLog = MutatorLog(self.name)
+    sortedLog.log = sorted(self.log, key=lambda entry: entry.time)
+    return sortedLog
+
+  '''most accurate first'''
+  def getSortedByAcc(self):
+    sortedLog = MutatorLog(self.name)
+    # if acc == None (not available), treat it as -1 so that it's worse than the accuracy of any
+    # candidate with an available accuracy value
+    sortedLog.log = sorted(self.log, key=lambda entry: 1 if entry.accuracy == None else -entry.accuracy)
+    return sortedLog
+
+  def __repr__(self):
+    return str(self.log)
 
 class OnlinePopulation:
   def __init__(self):
@@ -298,8 +312,7 @@ def onlinelearnInner(benchmark):
 
   ''' mutators in the last time window that produced improved candidates, 
   ordered by descending fitness of the candidates'''
-  mutatorLog_times = MutatorLog(name = "time", perfMetric = lambda m: m.time)
-  mutatorLog_accuracy = MutatorLog(name = "accuracy", perfMetric = lambda m: -m.accuracy)
+  mutatorLog = MutatorLog(name = "acc and time log")
 
   ostats = storagedirs.openCsvStats("onlinestats", ObjectiveTuner.statsHeader)
   pstats = storagedirs.openCsvStats("population", OnlinePopulation.statsHeader)
@@ -338,24 +351,13 @@ def onlinelearnInner(benchmark):
       #s = pop.choice(parentlimit(p), getacc)
       s = p
 
-      if(objectives.needAccuracy()):
-        logOfChoice = mutatorLog_accuracy
-        #TO mpacula:
-        # This speeds up convergence a LOT... basically picks mutators flagged to effect accuracy
-        # It would be nice if the mutator log did this automatically and this wasn't needed
-        # Disable with: mfilter=lambda x: True
-        mfilter=lambda x: x.accuracyHint
-      else:
-        logOfChoice = mutatorLog_times
-        mfilter=lambda x: True
-
       if config.fixed_safe_alg:
         p = candidate
 
       if config.online_baseline:
         c = None
       else:
-        c = s.cloneAndMutate(tester.n, config.use_bandit, logOfChoice, mutatorFilter=mfilter)
+        c = s.cloneAndMutate(tester.n, mutatorLog, objectives)
       tlim, atarg = objectives.getlimits(p, s, c)
       if tester.race(p, c, tlim, atarg) and not (p.wasTimeout and c.wasTimeout):
         p.discardResults(config.max_trials)
@@ -366,9 +368,7 @@ def onlinelearnInner(benchmark):
         if c is None:
           c=p
         else:
-          mutatorLog_times.add(c);
-          if not c.wasTimeout:
-            mutatorLog_accuracy.add(c);
+          mutatorLog.add(c);
         
         logging.debug("Child vs parent, better=%d, %f vs. %f" % (int(gettime(c) < gettime(p)), gettime(c), gettime(p)))
         clog.writerow([gen, lasttime(p), lastacc(p), lasttime(c), lastacc(c)]
@@ -424,6 +424,7 @@ if __name__ == "__main__":
   parser.add_option("--use_bandit",      type="int",    action="callback", callback=option_callback)
   parser.add_option("--window_size",     type="int",    action="callback", callback=option_callback)
   parser.add_option("--bandit_c",        type="float",  action="callback", callback=option_callback)
+  parser.add_option("--os_method",       type="int",    action="callback", callback=option_callback)
   parser.add_option("--threads",         type="int",    action="callback", callback=option_callback)
 
   (options, args) = parser.parse_args()

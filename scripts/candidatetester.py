@@ -9,7 +9,7 @@ import platform
 import numpy
 from storagedirs import timers
 from scipy import stats
-from tunerconfig import config
+from tunerconfig import config, OperatorSelectionMethod
 from tunerwarnings import ComparisonFailed, InconsistentOutput
 from mutators import MutateFailed
 warnings.simplefilter('ignore', DeprecationWarning)
@@ -239,6 +239,7 @@ class ResultsDB:
   def keys(self):
     return self.nToResults.keys()
 
+
 class Candidate:
   nextCandidateId=0
   '''A candidate algorithm in the population'''
@@ -279,27 +280,6 @@ class Candidate:
         t.metrics[i][n] = self.metrics[i][n]
     return t
 
-
-  def cloneAndMutate(self, n, adaptive = False, mutatorLog = None, mutatorFilter=lambda m: True):
-    c = self.clone()
-    for z in xrange(config.mutate_retries):
-      try:
-        if adaptive and len(mutatorLog.log) > len(self.mutators):
-          c.upperConfidenceBoundMutate(n, mutatorLog);
-        else:
-          c.mutate(n, mutatorFilter)
-        break
-      except MutateFailed:
-        if z==config.mutate_retries-1:
-          warnings.warn(tunerwarnings.MutateFailed(c, z, n))
-        continue
-      except NoMutators,e:
-        if len(self.mutators):
-          # discard filter
-          return self.cloneAndMutate(n, adaptive, mutatorLog)
-        raise e
-    return c
-
   def clearResultsAbove(self, val):
     for i in xrange(len(self.metrics)):
       for n in self.metrics[i].keys():
@@ -314,29 +294,67 @@ class Candidate:
   def addMutator(self, m):
     self.mutators.append(m)
 
-  ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
-  def upperConfidenceBoundMutate(self, n, mutatorLog):
-    # compute the total number of mutations
-    totalMutations = len(mutatorLog.log)
+  ## Adaptive operator selection techniques
 
+  def cloneAndMutate(self, n, mutatorLog, objectives):
+    c = self.clone()
+    if config.os_method == OperatorSelectionMethod.UNIFORM_RANDOM:
+      method = c.uniformRandomMutate
+    elif config.os_method == OperatorSelectionMethod.ROC_AREA:
+      method = c.upperConfidenceBoundMutate
+    elif config.os_method == OperatorSelectionMethod.WEIGHTED_SUM:
+      method = c.weightedSumMutate
+ 
+    for z in xrange(config.mutate_retries):
+      try:
+        method(n, mutatorLog, objectives)
+        assert c.lastMutator != None
+        break
+      except MutateFailed:
+        if z==config.mutate_retries-1:
+          warnings.warn(tunerwarnings.MutateFailed(c, z, n))
+        continue
+      except NoMutators,e:
+        if len(self.mutators):
+          # discard filter
+          return self.cloneAndMutate(n, adaptive, mutatorLog)
+        raise e
+    return c
+
+  '''Uses the bandit algorithm to select a mutator, and applies the mutator to self.
+    Credit assignment technique can be controlled by the scoring function, of the type
+    mutator -> score'''
+  def banditMutate(self, n, mutatorLog, objectives, scoringFunction):
+    # default to uniform random mutate if the log is too short
+    if len(mutatorLog.log) < len(self.mutators):
+      self.uniformRandomMutate(n, mutatorLog, objectives)
+      return
+    
     if config.bandit_verbose:
       print "\n\nCurrent mutator log (%s): %s" % (mutatorLog.name, map(str, mutatorLog.log))
       print "\nAvailable mutators (scores):\n"
 
-    self.mutatorScores = dict()
-    bestScore = -1 # scores are guaranteed to be non-negative
+    # Compute the total number of mutations. Since each candidate
+    # is produced through a mutation, that's simply the length of
+    # the log.
+    totalMutations = len(mutatorLog.log)
+
+    self.mutatorScores = dict() # We'll be updating these, so clear old values
+
+
+    ### Loop through mutators, compute bandit scores, and select the best mutator
+    
+    bestScore = -1 # scores are guaranteed to be non-negative    
     bestMutator = None
     for m in self.mutators:
+      # Set m.timesSelected to a small value so that we avoid div by 0 in the bandit formula below
+      m.timesSelected = 1.0/len(self.mutators)
+      m.timesSelected += len(filter(lambda entry: entry.mutator == m, mutatorLog.log))
 
-      m.timesSelected = 1.0/len(self.mutators) # to avoid div by 0
-      for logEntry in mutatorLog.log:
-        if logEntry.mutator == m:
-          m.timesSelected += 1
+      # We can now comnpute the bandit score
+      score = scoringFunction(m) + config.bandit_c*math.sqrt(2.0*math.log(totalMutations) / m.timesSelected)      
+      self.mutatorScores[m] = score # for logging purposes
 
-      
-      score = m.computeRocScore(mutatorLog.log) + self.C*math.sqrt(2.0*math.log(totalMutations) / m.timesSelected)
-      self.mutatorScores[m] = score
-      
       if score > bestScore:
         bestScore = score
         bestMutator = m
@@ -349,6 +367,46 @@ class Candidate:
 
     self.lastMutator = bestMutator
     self.lastMutator.mutate(self, n)
+    
+
+  ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
+  def upperConfidenceBoundMutate(self, n, mutatorLog, objectives):
+    if(objectives.needAccuracy()):
+      mutatorLog = mutatorLog.getSortedByAcc()
+    else:
+      mutatorLog = mutatorLog.getSortedByTime()
+      
+    self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog))
+
+
+  ''' Selects a mutator which maximizes objectives*(1/time) + (1-objectives)*accuracy, summed over times
+  and accuracies of logged offspring produced by the mutator '''
+  def weightedSumMutate(self, n, mutatorLog, objectives):    
+
+    def avg(lst):
+      return sum(lst) / len(lst)
+
+    def computeOneScore(m, entry):
+      assert entry.mutator == m
+      acc = 0 if entry.accuracy == None else entry.accuracy
+      w = max(objectives.score(), 1.0)
+      return w/entry.time + (1.0-w)*acc
+        
+
+    def computeScore(m):
+      children = filter(lambda entry: entry.mutator == m, mutatorLog.log)
+      if len(children) == 0:
+        return 0
+      else:
+        return avg(map(lambda entry: computeOneScore(m, entry), children))
+          
+    self.banditMutate(n, mutatorLog, objectives, computeScore)
+      
+
+
+  def uniformRandomMutate(self, n, mutatorLog, objectives):
+    self.mutate(n)
+    
 
 
   def mutate(self, n, mutatorFilter=lambda m: True):

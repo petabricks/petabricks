@@ -26,17 +26,18 @@ class Mutator:
                     'fail':   0.0}
     self.timesSelected = 1  # total number of times this operator has been selected
 
+
+  ''' mutatorLog is assumed to be sorted best-first according to the current evaluation metric'''
   def computeRocScore(self, mutatorLog):
-    # mutator log is best-first
 
     integral = 0
     x = 0 # x position in the ROC curve
     y = 0 # y position in the ROC curve
-    for m in mutatorLog:
+    for entry in mutatorLog.log:
       new_x = 0
       new_y = 0
 
-      if m == self:
+      if entry.mutator == self:
         new_x = x
         new_y = y + 1
       else:

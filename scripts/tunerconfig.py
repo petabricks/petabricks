@@ -1,4 +1,9 @@
 
+class OperatorSelectionMethod:
+  UNIFORM_RANDOM = 1
+  WEIGHTED_SUM   = 2
+  ROC_AREA       = 3
+
 class config_defaults:
   #how long to train for
   max_input_size           = 2**30
@@ -25,7 +30,8 @@ class config_defaults:
   window_size           = 50
   bandit_c              = .5
   bandit_verbose        = False
-  use_bandit            = True
+  os_method             = OperatorSelectionMethod.WEIGHTED_SUM
+
 
   #how mutation to do
   mutations_per_mutator    = 5
