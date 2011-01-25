@@ -295,7 +295,7 @@ class OptimizeTunableArrayMutator(TunableArrayMutator):
       candidate.pop.testers[-1].testN(candidate, 1)
       result = candidate.metrics[config.accuracy_metric_idx][n].mean()
       self.cache[value] = result
-      print "eval: f(%g) = %g" % (value, result)
+      print "eval: f(%.25g) = %.25g" % (value, result)
     return -result
 
   def random(self, oldVal, minVal, maxVal, candidate = None):
@@ -306,12 +306,11 @@ class OptimizeTunableArrayMutator(TunableArrayMutator):
     f = self.measureAccuracy
     x0 = oldVal
     args = (candidate, candidate.pop.testers[-1].n)
-    epsilon = 0.000001
 
     # optimize
-    result = scipy.optimize.fmin_bfgs(f, x0, args = args, epsilon = epsilon, full_output = 1)
+    result = scipy.optimize.fmin_bfgs(f, x0, args = args, full_output = 1)
     newVal = float(result[0])
-#    print "new val: f(%g) = %g" % (newVal, result[1])
+#    print "new val: f(%.25g) = %.25g" % (newVal, result[1])
 
     return min(maxVal, max(minVal, newVal))
 

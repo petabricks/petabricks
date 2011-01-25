@@ -10,7 +10,7 @@ to METRIC
             x = std::numeric_limits<double>::epsilon();
         }
         metric = -log10(x);
-        fprintf(stderr, "out: %g, metric: %g\n", out, metric);
+        fprintf(stderr, "out: %.25g, metric: %.25g\n", out, metric);
     }
 }
 
@@ -21,7 +21,7 @@ to OUT
     OUT from (X x, Y y)
     {
         double f = (1 - x) * (1 - x) + 100 * (y - x * x) * (y - x * x);
-        fprintf(stderr, "f(%g, %g) = %g\n", x, y, f);
+        fprintf(stderr, "f(%.25g, %.25g) = %.25g\n", x, y, f);
         return f;
     }
 }
@@ -33,7 +33,7 @@ to OUT
     OUT from (X x)
     {
         double f = x * (x - 3) + 2.25;
-        fprintf(stderr, "f(%g) = %g\n", x, f);
+        fprintf(stderr, "f(%.25g) = %.25g\n", x, f);
         return f;
     }
 }
@@ -45,7 +45,7 @@ to OUT
     OUT from (X x, Y y)
     {
         double f = (x * (x - 2) + y * (y - 2)) + 2;
-        fprintf(stderr, "f(%g, %g) = %g\n", x, y, f);
+        fprintf(stderr, "f(%.25g, %.25g) = %.25g\n", x, y, f);
         return f;
     }
 }
