@@ -38,7 +38,7 @@ class ConfigFile:
     for k,valcom in self.values.iteritems():
       val, com = valcom
       if type(val) is type(0.1):
-        fd.write("%s = %g %s\n" % (k, val, com))
+        fd.write("%s = %.25e %s\n" % (k, val, com))
       else:
         fd.write("%s = %d %s\n" % (k, val, com))
     fd.close()
