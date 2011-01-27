@@ -348,7 +348,7 @@ class Candidate:
     bestMutator = None
     for m in self.mutators:
       # Set m.timesSelected to a small value so that we avoid div by 0 in the bandit formula below
-      m.timesSelected = 1.0/len(self.mutators)
+      m.timesSelected = 0.02
       m.timesSelected += len(filter(lambda entry: entry.mutator == m, mutatorLog.log))
 
       # We can now comnpute the bandit score
