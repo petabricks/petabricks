@@ -235,14 +235,16 @@ class InvalidBenchmarkNameException(Exception):
 
 def searchBenchmarkName(n):
   for root, dirs, files in os.walk("./examples"):
-    if n in files:
+    if n in files or n + ".pbcc" in files:
       return normalizeBenchmarkName("%s/%s"%(root,n), False)
   raise InvalidBenchmarkNameException()
 
 def normalizeBenchmarkName(orig, search=True):
   n=re.sub("^[./]*examples[/]", "", orig);
   n=re.sub("[.]pbcc$","", n)
-  if os.path.isfile(orig):
+  if os.path.isfile(orig+".pbcc"):
+    orig = os.path.abspath(orig+".pbcc")
+  elif os.path.isfile(orig):
     orig = os.path.abspath(orig)
   else:
     orig = None
