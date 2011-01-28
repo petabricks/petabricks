@@ -191,13 +191,18 @@ def parallelRunJobs(jobs):
   progress.pop()
   return jobs_done
 
+def getscriptpath():
+  import configtool
+  m=re.search('''from ['"](.*)['"]''', str(configtool))
+  return os.path.dirname(m.group(1))
+    
 def chdirToPetabricksRoot():
-  isCurDirOk = lambda: os.path.isdir("examples") and os.path.isdir("src")
-  if isCurDirOk():
-    return
-  old=os.getcwd()
+  old = os.getcwd()
+  new = getscriptpath()
+  print new
+  isCurDirOk = lambda: os.path.isfile("src/compiler/pbc.cpp")
   if not isCurDirOk():
-    os.chdir(os.pardir)
+    os.chdir(new)
   if not isCurDirOk():
     os.chdir(os.pardir)
   if not isCurDirOk():
