@@ -192,9 +192,12 @@ def parallelRunJobs(jobs):
   return jobs_done
 
 def getscriptpath():
-  import configtool
-  m=re.search('''from ['"](.*)['"]''', str(configtool))
-  return os.path.dirname(m.group(1))
+  try:
+    import configtool
+    m=re.search('''from ['"](.*)['"]''', str(configtool))
+    return os.path.dirname(m.group(1))
+  except:
+    return os.path.abspath(os.path.dirname(sys.argv[0]))
     
 def chdirToPetabricksRoot():
   old = os.getcwd()
