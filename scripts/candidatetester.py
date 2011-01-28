@@ -326,7 +326,7 @@ class Candidate:
     mutator -> score'''
   def banditMutate(self, n, mutatorLog, objectives, scoringFunction):
     # default to uniform random mutate if the log is too short
-    if len(mutatorLog.log) < len(self.mutators) or len(mutatorLog.log) == config.window_size:
+    if len(mutatorLog.log) < len(self.mutators) and len(mutatorLog.log) < config.window_size:
       self.uniformRandomMutate(n, mutatorLog, objectives)
       return
     
