@@ -202,7 +202,6 @@ def getscriptpath():
 def chdirToPetabricksRoot():
   old = os.getcwd()
   new = getscriptpath()
-  print new
   isCurDirOk = lambda: os.path.isfile("src/compiler/pbc.cpp")
   if not isCurDirOk():
     os.chdir(new)
