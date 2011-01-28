@@ -389,7 +389,7 @@ class Candidate:
     def computeOneScore(m, entry):
       assert entry.mutator == m
       acc = 0 if entry.accuracy == None else entry.accuracy
-      w = max(objectives.score(), 1.0)
+      w = min(objectives.score(), 1.0)
       return w/entry.time + (1.0-w)*acc
         
 
