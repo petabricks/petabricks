@@ -117,8 +117,11 @@ am_libpbruntime_a_OBJECTS = libpbruntime_a-autotuner.$(OBJEXT) \
 	libpbruntime_a-petabricksruntime.$(OBJEXT) \
 	libpbruntime_a-regiondatai.$(OBJEXT) \
 	libpbruntime_a-regiondataraw.$(OBJEXT) \
+	libpbruntime_a-regiondataremote.$(OBJEXT) \
 	libpbruntime_a-regionhandler.$(OBJEXT) \
 	libpbruntime_a-regionmatrix.$(OBJEXT) \
+	libpbruntime_a-regionmatrixi.$(OBJEXT) \
+	libpbruntime_a-regionmatrixproxy.$(OBJEXT) \
 	libpbruntime_a-regioni.$(OBJEXT) \
 	libpbruntime_a-regioncontiguous.$(OBJEXT) \
 	libpbruntime_a-regiontransform.$(OBJEXT) \
@@ -367,8 +370,11 @@ pkglib_HEADERS = \
   runtime/petabricksruntime.h \
   runtime/regiondatai.h \
   runtime/regiondataraw.h \
+  runtime/regiondataremote.h \
   runtime/regionhandler.h \
   runtime/regionmatrix.h \
+  runtime/regionmatrixi.h \
+  runtime/regionmatrixproxy.h \
   runtime/regioni.h \
   runtime/regioncontiguous.h \
   runtime/regionremote.h \
@@ -444,8 +450,11 @@ libpbruntime_a_SOURCES = \
   runtime/petabricksruntime.cpp \
   runtime/regiondatai.cpp \
   runtime/regiondataraw.cpp \
+  runtime/regiondataremote.cpp \
   runtime/regionhandler.cpp \
   runtime/regionmatrix.cpp \
+  runtime/regionmatrixi.cpp \
+  runtime/regionmatrixproxy.cpp \
   runtime/regioni.cpp \
   runtime/regioncontiguous.cpp \
   runtime/regiontransform.cpp \
@@ -644,9 +653,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regioncontiguous.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiondatai.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiondataraw.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiondataremote.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regionhandler.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regioni.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regionmatrix.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regionmatrixi.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regionmatrixproxy.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiontransform.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-remotehost.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-remoteobject.Po@am__quote@
@@ -1389,6 +1401,20 @@ libpbruntime_a-regiondataraw.obj: runtime/regiondataraw.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regiondataraw.obj `if test -f 'runtime/regiondataraw.cpp'; then $(CYGPATH_W) 'runtime/regiondataraw.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regiondataraw.cpp'; fi`
 
+libpbruntime_a-regiondataremote.o: runtime/regiondataremote.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regiondataremote.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regiondataremote.Tpo -c -o libpbruntime_a-regiondataremote.o `test -f 'runtime/regiondataremote.cpp' || echo '$(srcdir)/'`runtime/regiondataremote.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regiondataremote.Tpo $(DEPDIR)/libpbruntime_a-regiondataremote.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regiondataremote.cpp' object='libpbruntime_a-regiondataremote.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regiondataremote.o `test -f 'runtime/regiondataremote.cpp' || echo '$(srcdir)/'`runtime/regiondataremote.cpp
+
+libpbruntime_a-regiondataremote.obj: runtime/regiondataremote.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regiondataremote.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-regiondataremote.Tpo -c -o libpbruntime_a-regiondataremote.obj `if test -f 'runtime/regiondataremote.cpp'; then $(CYGPATH_W) 'runtime/regiondataremote.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regiondataremote.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regiondataremote.Tpo $(DEPDIR)/libpbruntime_a-regiondataremote.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regiondataremote.cpp' object='libpbruntime_a-regiondataremote.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regiondataremote.obj `if test -f 'runtime/regiondataremote.cpp'; then $(CYGPATH_W) 'runtime/regiondataremote.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regiondataremote.cpp'; fi`
+
 libpbruntime_a-regionhandler.o: runtime/regionhandler.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regionhandler.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regionhandler.Tpo -c -o libpbruntime_a-regionhandler.o `test -f 'runtime/regionhandler.cpp' || echo '$(srcdir)/'`runtime/regionhandler.cpp
 @am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regionhandler.Tpo $(DEPDIR)/libpbruntime_a-regionhandler.Po
@@ -1416,6 +1442,34 @@ libpbruntime_a-regionmatrix.obj: runtime/regionmatrix.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regionmatrix.cpp' object='libpbruntime_a-regionmatrix.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regionmatrix.obj `if test -f 'runtime/regionmatrix.cpp'; then $(CYGPATH_W) 'runtime/regionmatrix.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regionmatrix.cpp'; fi`
+
+libpbruntime_a-regionmatrixi.o: runtime/regionmatrixi.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regionmatrixi.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regionmatrixi.Tpo -c -o libpbruntime_a-regionmatrixi.o `test -f 'runtime/regionmatrixi.cpp' || echo '$(srcdir)/'`runtime/regionmatrixi.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regionmatrixi.Tpo $(DEPDIR)/libpbruntime_a-regionmatrixi.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regionmatrixi.cpp' object='libpbruntime_a-regionmatrixi.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regionmatrixi.o `test -f 'runtime/regionmatrixi.cpp' || echo '$(srcdir)/'`runtime/regionmatrixi.cpp
+
+libpbruntime_a-regionmatrixi.obj: runtime/regionmatrixi.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regionmatrixi.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-regionmatrixi.Tpo -c -o libpbruntime_a-regionmatrixi.obj `if test -f 'runtime/regionmatrixi.cpp'; then $(CYGPATH_W) 'runtime/regionmatrixi.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regionmatrixi.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regionmatrixi.Tpo $(DEPDIR)/libpbruntime_a-regionmatrixi.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regionmatrixi.cpp' object='libpbruntime_a-regionmatrixi.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regionmatrixi.obj `if test -f 'runtime/regionmatrixi.cpp'; then $(CYGPATH_W) 'runtime/regionmatrixi.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regionmatrixi.cpp'; fi`
+
+libpbruntime_a-regionmatrixproxy.o: runtime/regionmatrixproxy.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regionmatrixproxy.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regionmatrixproxy.Tpo -c -o libpbruntime_a-regionmatrixproxy.o `test -f 'runtime/regionmatrixproxy.cpp' || echo '$(srcdir)/'`runtime/regionmatrixproxy.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regionmatrixproxy.Tpo $(DEPDIR)/libpbruntime_a-regionmatrixproxy.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regionmatrixproxy.cpp' object='libpbruntime_a-regionmatrixproxy.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regionmatrixproxy.o `test -f 'runtime/regionmatrixproxy.cpp' || echo '$(srcdir)/'`runtime/regionmatrixproxy.cpp
+
+libpbruntime_a-regionmatrixproxy.obj: runtime/regionmatrixproxy.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regionmatrixproxy.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-regionmatrixproxy.Tpo -c -o libpbruntime_a-regionmatrixproxy.obj `if test -f 'runtime/regionmatrixproxy.cpp'; then $(CYGPATH_W) 'runtime/regionmatrixproxy.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regionmatrixproxy.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regionmatrixproxy.Tpo $(DEPDIR)/libpbruntime_a-regionmatrixproxy.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regionmatrixproxy.cpp' object='libpbruntime_a-regionmatrixproxy.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regionmatrixproxy.obj `if test -f 'runtime/regionmatrixproxy.cpp'; then $(CYGPATH_W) 'runtime/regionmatrixproxy.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regionmatrixproxy.cpp'; fi`
 
 libpbruntime_a-regioni.o: runtime/regioni.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regioni.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regioni.Tpo -c -o libpbruntime_a-regioni.o `test -f 'runtime/regioni.cpp' || echo '$(srcdir)/'`runtime/regioni.cpp

@@ -58,7 +58,10 @@ completed
 #include "petabricks.h"
 
 #include "regiondataraw.h"
+#include "regiondataremote.h"
 #include "regionmatrix.h"
+#include "regionmatrixproxy.h"
+#include "remotehost.h"
 
 using namespace petabricks;
 
@@ -69,41 +72,100 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
 
+//RemoteObjectPtr petabricks::incomingObj = 0;
+RegionDataIPtr petabricks::remoteRegionData = 0;
+
 int main(int argc, const char** argv){
   char* filename = "testdata/Helmholtz3DB1";
-  RegionDataIPtr regionData = new RegionDataRaw(filename);
-  RegionMatrixPtr regionMatrix = new RegionMatrix(regionData);
 
-  IndexT m0[] = {0,0,0};
-  IndexT m1[] = {1,1,1};
-  IndexT m123[] = {1,2,3};
-  IndexT m2[] = {2,2,2};
-  IndexT m3[] = {3,3,3};
+  RemoteHostDB hdb;
 
-  //  regionMatrix->print();
+  if(argc==1){
+    hdb.remotefork(NULL, argc, argv);
+    hdb.accept();
+    hdb.spawnListenThread();
 
-  regionMatrix->acquireRegionData();
+    RegionDataIPtr regionData = new RegionDataRaw(filename);
+    RegionMatrixPtr regionMatrix = new RegionMatrix(regionData);
 
-  printf("before %4.8g\n", regionMatrix->readCell(m0));
-  regionMatrix->writeCell(m0, 5);
-  printf("after %4.8g\n", regionMatrix->readCell(m0));
+    IndexT m0[] = {0,0,0};
+    IndexT m1[] = {1,1,1};
+    IndexT m123[] = {1,2,3};
+    IndexT m2[] = {2,2,2};
+    IndexT m3[] = {3,3,3};
+
+    /*
+    //  regionMatrix->print();
+    
+    regionMatrix->acquireRegionData();
   
-  regionMatrix->releaseRegionData();
+    printf("before %4.8g\n", regionMatrix->readCell(m0));
+    regionMatrix->writeCell(m0, 5);
+    printf("after %4.8g\n", regionMatrix->readCell(m0));
+  
+    regionMatrix->releaseRegionData();
 
-  // Test remote split
-  RegionMatrixPtr split3 = regionMatrix->splitRegion(m123, m3);
-  RegionMatrixPtr split2 = split3->splitRegion(m1, m2);
-  RegionMatrixPtr slice1 = split2->sliceRegion(2, 0);
-  RegionMatrixPtr slice2 = slice1->sliceRegion(1, 1);
+    // Test split
+    RegionMatrixPtr split3 = regionMatrix->splitRegion(m123, m3);
+    RegionMatrixPtr split2 = split3->splitRegion(m1, m2);
+    RegionMatrixPtr slice1 = split2->sliceRegion(2, 0);
+    RegionMatrixPtr slice2 = slice1->sliceRegion(1, 1);
 
-  slice1->print();
-  split3->print();
-  split2->print();
-  slice2->print();
+    slice1->print();
+    split3->print();
+    split2->print();
+    slice2->print();
 
-  // Test remote slice
-  RegionMatrixPtr slice3 = regionMatrix->sliceRegion(1, 0);
-  slice3->print();
+    // Test slice
+    RegionMatrixPtr slice3 = regionMatrix->sliceRegion(1, 0);
+    slice3->print();
+    */
 
-  printf("completed\n");
+    ///////////////////////////////////
+    // Create remote RegionMetrix
+
+    printf("main %d\n", getpid());
+
+    RegionMatrixProxyPtr proxy = 
+      new RegionMatrixProxy(regionMatrix->getRegionHandler());
+    RemoteObjectPtr local = proxy->genLocal();
+  
+    hdb.host(0)->createRemoteObject(local, &RegionDataRemote::genRemote, filename, strlen(filename));
+    local->waitUntilCreated();
+
+    /*
+    proxy->acquireRegionData();
+  
+    printf("before %4.8g\n", proxy->readCell(m1));
+    proxy->writeCell(m1, 9);
+    printf("after %4.8g\n", proxy->readCell(m1));
+  
+    proxy->releaseRegionData();
+    */
+
+    printf("completed\n");
+    return 0;
+  } else {
+    printf("main2 %d\n", getpid());
+
+    JASSERT(argc==3);
+    hdb.connect(argv[1], jalib::StringToInt(argv[2]));
+    hdb.spawnListenThread();
+    //hdb.listenLoop();
+
+    while (!remoteRegionData) {
+      jalib::memFence();
+      sched_yield();
+    }
+
+    RegionMatrixPtr region = new RegionMatrix(remoteRegionData);
+
+    region->print();
+
+
+    printf("completed2\n");
+
+    hdb.listenLoop();
+    return 0;
+  }
 }

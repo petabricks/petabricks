@@ -1,21 +1,14 @@
 #ifndef PETABRICKSREGIONMATRIX_H
 #define PETABRICKSREGIONMATRIX_H
 
-#include "common/jrefcounted.h"
-
-#include "regiondatai.h"
-#include "regionhandler.h"
+#include "regionmatrixi.h"
 
 namespace petabricks {
   class RegionMatrix;
   typedef jalib::JRef<RegionMatrix> RegionMatrixPtr;
   
-  class RegionMatrix : public jalib::JRefCounted {  
+  class RegionMatrix : public RegionMatrixI {  
   protected:
-    RegionHandlerPtr _regionHandler;
-    
-    RegionDataIPtr _regionData;
-    
     int _D;
     IndexT* _size;
     IndexT* _splitOffset;
@@ -35,9 +28,6 @@ namespace petabricks {
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
-
-    void acquireRegionData();
-    void releaseRegionData();
 
     // for tests
     int incCoord(IndexT* coord);

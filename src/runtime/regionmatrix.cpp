@@ -57,17 +57,6 @@ void RegionMatrix::writeCell(const IndexT* coord, ElementT value) {
   delete rd_coord;
 }
 
-void RegionMatrix::acquireRegionData() {
-  // TODO: implement R/W lock
-  _regionData = _regionHandler->acquireRegionData(this);
-}
-
-void RegionMatrix::releaseRegionData() {
-  // TODO: implement R/W lock
-  _regionData = NULL;
-  _regionHandler->releaseRegionData(this);
-}
-
 RegionMatrixPtr RegionMatrix::splitRegion(IndexT* offset, IndexT* size) {
   IndexT* offset_new = this->getRegionDataCoord(offset);
 

@@ -66,8 +66,11 @@ pkglib_HEADERS=  \
   runtime/petabricksruntime.h \
   runtime/regiondatai.h \
   runtime/regiondataraw.h \
+  runtime/regiondataremote.h \
   runtime/regionhandler.h \
   runtime/regionmatrix.h \
+  runtime/regionmatrixi.h \
+  runtime/regionmatrixproxy.h \
   runtime/regioni.h \
   runtime/regioncontiguous.h \
   runtime/regionremote.h \
@@ -143,8 +146,11 @@ libpbruntime_a_SOURCES =  \
   runtime/petabricksruntime.cpp \
   runtime/regiondatai.cpp \
   runtime/regiondataraw.cpp \
+  runtime/regiondataremote.cpp \
   runtime/regionhandler.cpp \
   runtime/regionmatrix.cpp \
+  runtime/regionmatrixi.cpp \
+  runtime/regionmatrixproxy.cpp \
   runtime/regioni.cpp \
   runtime/regioncontiguous.cpp \
   runtime/regiontransform.cpp \
