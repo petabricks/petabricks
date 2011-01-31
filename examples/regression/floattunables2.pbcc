@@ -2,6 +2,8 @@ transform Optimize
 from IN
 to OUT
 tunable float sizespecific x (-1e-1, -10.5, +1.5e100)
+tunable float array(3) y(1.1)
+tunable float sizespecific array(3) z
 {
     to (OUT out)
     from (IN in)

@@ -930,7 +930,7 @@ size_t petabricks::UserRule::setDuplicateNumber(size_t c) {
 #endif
   for(size_t i=0; i<_duplicateVars.size(); ++i){
     ConfigItem& dv = _duplicateVars[i];
-    dv.setInitial( dv.min().i() + (c % dv.range()));
+    dv.setInitial( int( dv.min().i() + (c % dv.range())));
     c /= dv.range();
   }
 #ifdef DEBUG

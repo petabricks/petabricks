@@ -44,7 +44,8 @@ public:
     FLAG_SIZEVAR       = 1<<4,//value used in to/from/through
     FLAG_FROMCFG       = 1<<5,
     FLAG_TEMPLATEVAR   = 1<<6,
-    FLAG_DOUBLE        = 1<<7 //store as floating point
+    FLAG_DOUBLE        = 1<<7,//store as floating point
+    FLAG_ARRAY         = 1<<8
   };
 
   ConfigItem(int flags, std::string name, jalib::TunableValue initial, jalib::TunableValue min, jalib::TunableValue max);
@@ -56,6 +57,9 @@ public:
   jalib::TunableValue max() const { return _max; }
   int range() const { return _max.i()-_min.i()+1; }
 
+
+  void initDefaults();
+
   ///
   /// the category string is based on _flags and put in the .info file
   std::string category() const;
@@ -66,20 +70,27 @@ public:
 
   bool shouldPass() const { return hasFlag(FLAG_SIZEVAR) || hasFlag(FLAG_SIZESPECIFIC); }
 
-  void merge(int flags, std::string name, jalib::TunableValue initial, jalib::TunableValue min, jalib::TunableValue max);
+  void merge(int flags, std::string name, jalib::TunableValue initial, jalib::TunableValue min, jalib::TunableValue max){
+    merge(ConfigItem(flags, name, initial, min, max));
+  }
+  void merge(const ConfigItem& that);
   
   void addFlag(int flag){ _flags|=flag; }
 
   void print(std::ostream& o) const;
 
-
-  void setInitial(int i) { _initial=i; }
+  void setInitial(const jalib::TunableValue& i) { _initial=i; }
+  void setMin(const jalib::TunableValue& i)     { _min=i; }
+  void setMax(const jalib::TunableValue& i)     { _max=i; }
+  
+  void setArraySize(size_t i) { _arraySize=i; }
 private:
-  int         _flags;
-  std::string _name;
+  int                 _flags;
+  std::string         _name;
   jalib::TunableValue _initial;
   jalib::TunableValue _min;
   jalib::TunableValue _max;
+  size_t              _arraySize;
 };
 
 }

@@ -117,8 +117,26 @@ public:
   friend bool operator<=(const TunableValue& a, const TunableValue& b) { return a.asD() <= b.asD(); } 
   friend bool operator> (const TunableValue& a, const TunableValue& b) { return a.asD() >  b.asD(); } 
   friend bool operator>=(const TunableValue& a, const TunableValue& b) { return a.asD() >= b.asD(); } 
-  friend bool operator==(const TunableValue& a, const TunableValue& b) { return a.asD() == b.asD(); } 
-  friend bool operator!=(const TunableValue& a, const TunableValue& b) { return a.asD() != b.asD(); } 
+  friend bool operator!=(const TunableValue& a, const TunableValue& b) { return ! operator==(a,b); } 
+  friend bool operator==(const TunableValue& a, const TunableValue& b) {
+    if(a._type==NONE && b._type==NONE)
+      return true;
+    if(a._type==NONE || b._type==NONE)
+      return false;
+    return a.asD() == b.asD();
+  } 
+
+  static TunableValue min(const TunableValue& a, const TunableValue& b) {
+    if(a._type==NONE) return b;
+    if(b._type==NONE) return a;
+    return std::min(a,b);
+  }
+  static TunableValue max(const TunableValue& a, const TunableValue& b) {
+    if(a._type==NONE) return b;
+    if(b._type==NONE) return a;
+    return std::max(a,b);
+  }
+
 private:
   enum TypeT { NONE, INT, DOUBLE };
   TypeT _type;

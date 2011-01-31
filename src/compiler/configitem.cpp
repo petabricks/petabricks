@@ -10,6 +10,8 @@
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #include "configitem.h"
+
+#include "common/jconvert.h"
   
 petabricks::ConfigItem::ConfigItem(int flags, std::string name, jalib::TunableValue initial, jalib::TunableValue min, jalib::TunableValue max)
     :_flags(flags),
@@ -18,7 +20,6 @@ petabricks::ConfigItem::ConfigItem(int flags, std::string name, jalib::TunableVa
      _min(min),
      _max(max)
 {
-  JASSERT(max>=min)(min)(max);
 }
   
 petabricks::ConfigItem::ConfigItem(std::string name, jalib::TunableValue min, jalib::TunableValue max)
@@ -26,9 +27,9 @@ petabricks::ConfigItem::ConfigItem(std::string name, jalib::TunableValue min, ja
   _name(name),
   _initial(min),
   _min(min),
-  _max(max) 
+  _max(max),
+  _arraySize(0)
 {
-  JASSERT(max>=min)(min)(max);
 }
 
 std::string petabricks::ConfigItem::category() const {
@@ -56,13 +57,13 @@ std::string petabricks::ConfigItem::category() const {
   return cat;
 }
 
-void petabricks::ConfigItem::merge(int flags, std::string name, jalib::TunableValue initial, jalib::TunableValue min, jalib::TunableValue max){
-  _flags|=flags;
-  JASSERT(name==_name);
-  _initial=std::max(_initial, initial);
-  _min=std::max(_min, min);
-  _max=std::min(_max, max);
-  JTRACE("merged cfg")(_flags)(_name);
+void petabricks::ConfigItem::merge(const ConfigItem& that){
+  JTRACE("merged cfg")(*this)(that);
+  _flags|=that._flags;
+  JASSERT(that._name==_name);
+  _initial=jalib::TunableValue::max(_initial, that._initial);
+  _min    =jalib::TunableValue::max(_min,     that._min);
+  _max    =jalib::TunableValue::min(_max,     that._max);
 }
 
 void petabricks::ConfigItem::print(std::ostream& o) const{
@@ -75,6 +76,19 @@ void petabricks::ConfigItem::print(std::ostream& o) const{
   if(hasFlag(FLAG_FROMCFG))       o << " FLAG_FROMCFG";
   if(hasFlag(FLAG_TEMPLATEVAR))   o << " FLAG_TEMPLATEVAR";
   if(hasFlag(FLAG_DOUBLE))        o << " FLAG_DOUBLE";
+  if(hasFlag(FLAG_ARRAY))         o << " FLAG_ARRAY";
   o << ")";
 }
+
+
+void petabricks::ConfigItem::initDefaults() {
+  if(_initial == jalib::TunableValue())
+    _initial = hasFlag(FLAG_DOUBLE) ? 0.0 : 0;
+  if(_min == jalib::TunableValue())
+    _min = hasFlag(FLAG_DOUBLE) ? jalib::minval<double>() : 0;
+  if(_max == jalib::TunableValue())
+    _max = hasFlag(FLAG_DOUBLE) ? jalib::maxval<double>() : jalib::maxval<int>();
+
+}
+
 
