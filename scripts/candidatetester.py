@@ -327,7 +327,7 @@ class Candidate:
     mutator -> score'''
   def banditMutate(self, n, mutatorLog, objectives, scoringFunction):
     # default to uniform random mutate if the log is too short
-    if len(mutatorLog.log) < len(self.mutators):
+    if len(mutatorLog.log) < len(self.mutators) and len(mutatorLog.log) < config.window_size:
       self.uniformRandomMutate(n, mutatorLog, objectives)
       return
     
@@ -372,6 +372,7 @@ class Candidate:
 
   ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
   def upperConfidenceBoundMutate(self, n, mutatorLog, objectives):
+        
     if(objectives.needAccuracy()):
       mutatorLog = mutatorLog.getSortedByAcc()
     else:
@@ -400,7 +401,7 @@ class Candidate:
         return 0
       else:
         return avg(map(lambda entry: computeOneScore(m, entry), children))
-          
+
     self.banditMutate(n, mutatorLog, objectives, computeScore)
       
 
