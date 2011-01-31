@@ -158,12 +158,13 @@ int main(int argc, const char** argv){
       sched_yield();
     }
 
-    RegionMatrixPtr region = new RegionMatrix(remoteRegionData);
 
-    region->print();
+    //    RegionMatrixPtr region = new RegionMatrix(remoteRegionData);
 
+    //    region->print();
 
     printf("completed2\n");
+    
 
     hdb.listenLoop();
     return 0;
