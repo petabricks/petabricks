@@ -31,7 +31,7 @@ check_exclude=[
          "regression/accuracymetric",         # (Variable accuracy)
          "preconditioner/preconditioner",     # (Variable accuracy)
 
-         "regression/floattunabled2",
+         "regression/floattunables2",
     ]
 
 def resolveInputPath(path):
