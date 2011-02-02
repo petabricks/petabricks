@@ -66,13 +66,19 @@ jalib::TunableValueMap jalib::JTunableManager::loadRaw(const std::string& filena
   JASSERT(fp.is_open())(filename).Text("failed to open file");
   std::string line;
   while(getline(fp, line)){
-    std::string t,l,r;
-    jalib::SplitFirst(t, r, line, '#');
+    std::string t,l,r,c; 
+    //PARSE PATTERN: <l> = <r> # <c>
+    jalib::SplitFirst(t, c, line, '#');
     jalib::SplitFirst(l, r, t,    '=');
     l=jalib::StringTrim(l);
     r=jalib::StringTrim(r);
+    c=jalib::StringTrim(c);
     if(!r.empty() && !l.empty()){
-      rv[l] = StringToX<TunableValue>(r);
+      if(StartsWith(c, "double") || StartsWith(c, "float") || Contains(r, '.')) {
+        rv[l] = StringToX<double>(r);
+      } else {
+        rv[l] = StringToX<int>(r);
+      }
     }
   }
   return rv;
@@ -97,13 +103,16 @@ void jalib::JTunableManager::save(const std::string& filename) const{
   JASSERT(of.is_open())(filename).Text("failed to open file");
   for(const_iterator i=begin(); i!=end(); ++i){
     of << (*i)->name() << " = " << (*i)->value()
-    << "     # valid range: "<< (*i)->min() << " to " << (*i)->max()
+    << "     # " << (*i)->value().typestr() << ", valid range: "<< (*i)->min() << " to " << (*i)->max()
     << "\n";
   }
   of << std::flush;
 }
 
-double jalib::JTunableConfiguration::distanceTo(const JTunableConfiguration& that) const {
+double jalib::JTunableConfiguration::distanceTo(const JTunableConfiguration& /*that*/) const {
+  UNIMPLEMENTED();
+  return 0;
+  /*
   double d=0;
   JASSERT(that.size()==this->size())(*this)(that);
   for(const_iterator a=begin(); a!=end(); ++a){
@@ -112,6 +121,7 @@ double jalib::JTunableConfiguration::distanceTo(const JTunableConfiguration& tha
     d+=(a->second-b->second)*(a->second-b->second);
   }
   return sqrt(d);
+  */
 }
 
 

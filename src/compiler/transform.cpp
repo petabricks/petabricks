@@ -115,7 +115,7 @@ void petabricks::Transform::initialize() {
 
   if(_accuracyBins.size()>1){
     JWARNING(_templateargs.empty())(_name).Text("variable accuracy templates not yet supported");
-    _templateargs.push_back(new TemplateArg(TEMPLATE_BIN_STR, 0, _accuracyBins.size()-1));
+    _templateargs.push_back(new TemplateArg(TEMPLATE_BIN_STR, 0, (int)_accuracyBins.size()-1));
   }
 
   jalib::Map(&MatrixDef::initialize, *this, _from);
@@ -261,7 +261,7 @@ std::string petabricks::Transform::tmplName(int n, CodeGenerator* o) {
   int choice=n;
   //add #defines
   for(size_t i=0; i<_templateargs.size(); ++i){
-    int val=(choice%_templateargs[i]->range()) + _templateargs[i]->min();
+    int val=(choice%_templateargs[i]->range()) + _templateargs[i]->min().i();
     choice/=_templateargs[i]->range();
     if(o!=NULL){
       o->write("#define " + _templateargs[i]->name() + " " + jalib::XToString(val));
@@ -412,13 +412,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     if(i->hasFlag(ConfigItem::FLAG_FROMCFG)){
-      if(i->hasFlag(ConfigItem::FLAG_SIZESPECIFIC)){
-        int tmp = i->initial();
-        if(tmp==i->min()) tmp--;
-        o.createTunableArray(i->category(), _name+"_"+i->name(), MAX_INPUT_BITS, tmp, i->min()-1, i->max(), i->hasFlag(ConfigItem::FLAG_TUNABLE));
-      }else{
-        o.createTunable(i->hasFlag(ConfigItem::FLAG_TUNABLE), i->category(), _name+"_"+i->name(), i->initial(), i->min(), i->max());
-      }
+      i->createTunableDecls(_name+"_", o);
     }
   }
 
@@ -563,16 +557,7 @@ void petabricks::Transform::extractSizeDefines(CodeGenerator& o, FreeVars fv, co
   
   //construct size specific config items
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
-    if(i->hasFlag(ConfigItem::FLAG_SIZESPECIFIC)){
-      o.write(i->name()+" = petabricks::interpolate_sizespecific("
-                                       "TRANSFORM_LOCAL("+i->name()+"),"
-                                       +inputsizestr +" ,"+
-                                       jalib::XToString(i->min())+");");
-    }else{
-      if(i->shouldPass() && i->hasFlag(ConfigItem::FLAG_FROMCFG)){
-       o.write(i->name()+" = TRANSFORM_LOCAL("+i->name()+");");
-      }
-    }
+    i->assignTunableDecls(_name+"_", o, inputsizestr);
   }
 }
 
@@ -598,7 +583,7 @@ void petabricks::Transform::extractConstants(CodeGenerator& o){
   
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     if(i->hasFlag(ConfigItem::FLAG_FROMCFG) && i->shouldPass()){
-      o.addMember("IndexT", i->name(), "1");
+      o.addMember(i->memberType(), i->name(), "1");
     }
   }
 
@@ -651,7 +636,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
 
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     if(i->hasFlag(ConfigItem::FLAG_FROMCFG) && i->shouldPass()){
-      o.addMember("IndexT", i->name(), "1");
+      o.addMember(i->memberType(), i->name(), "1");
     }
   }
 

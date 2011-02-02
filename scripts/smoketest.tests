@@ -61,6 +61,8 @@ regression/coscheduled2    Rand2Da
 regression/coscheduled3    Rand1D
 regression/duplicate       Rand1D
 regression/fileprefix      Rand2Da
+regression/floattunables   Rand2Da
+regression/floattunables2  One0D 
 regression/function        One0D One0D
 regression/generators      Rand1D Rand1D
 regression/matrixversions  Rand2Da
@@ -78,8 +80,8 @@ regression/throughclause   Rand2Da
 regression/tunoutputn      Rand1D
 regression/txconstants     Rand2Da Rand0D
 regression/upleftdep       Rand2Da
-regression/whereclause     Rand2Da
 regression/whereclause2    Rand2Da
+regression/whereclause     Rand2Da
 
 
 #this one is broken right now:

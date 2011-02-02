@@ -357,8 +357,9 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
       o.addMember((*i)->genTypeStr(true), (*i)->name());
     }
     for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
-      if(i->shouldPass())
-        o.addMember("const IndexT", i->name());
+      if(i->shouldPass()){
+        o.addMember("const "+i->passType(), i->name());
+      }
     }
     for(ConfigItems::const_iterator i=_duplicateVars.begin(); i!=_duplicateVars.end(); ++i){
         o.addMember("const IndexT", i->name());
@@ -400,8 +401,9 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
     args.push_back((*i)->generateSignatureCode(true));
   }
   for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
-    if(i->shouldPass())
-      args.push_back("const IndexT "+i->name());
+    if(i->shouldPass()){
+      args.push_back("const "+i->passType()+" "+i->name());
+    }
   }
   for(ConfigItems::const_iterator i=_duplicateVars.begin(); i!=_duplicateVars.end(); ++i){
     args.push_back("const IndexT "+i->name());
@@ -899,9 +901,9 @@ std::string petabricks::UserRule::implcodename(Transform& trans) const {
 std::string petabricks::UserRule::trampcodename(Transform& trans) const {
   std::string s = trans.name()+"_apply_rule" + jalib::XToString(_id-trans.ruleIdOffset());
   for(size_t i=0; i<_duplicateVars.size(); ++i){
-    long t = _duplicateVars[i].initial();
+    long t = _duplicateVars[i].initial().i();
     if(_duplicateVars[i].min()<0)
-      t-=_duplicateVars[i].min(); //handle negative case
+      t-=_duplicateVars[i].min().i(); //handle negative case
     s += "_" + _duplicateVars[i].name() + jalib::XToString(t);
   }
   return s;
@@ -920,7 +922,7 @@ size_t petabricks::UserRule::setDuplicateNumber(size_t c) {
 #endif
   for(size_t i=0; i<_duplicateVars.size(); ++i){
     ConfigItem& dv = _duplicateVars[i];
-    dv.setInitial( dv.min() + (c % dv.range()));
+    dv.setInitial( int( dv.min().i() + (c % dv.range())));
     c /= dv.range();
   }
 #ifdef DEBUG
@@ -935,7 +937,7 @@ size_t petabricks::UserRule::getDuplicateNumber() {
   for(ssize_t i=_duplicateVars.size()-1; i>=0; --i){
     ConfigItem& dv = _duplicateVars[i];
     c*=lastRange;
-    c+=dv.initial()-dv.min();
+    c+=dv.initial().i()-dv.min().i();
     lastRange = dv.range();
   }
   return c;

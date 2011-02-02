@@ -268,8 +268,10 @@ class Population:
       if not config.delete_output_dir:
         for m in self.members+self.removed:
           m.writestats(self.inputSize())
-        if config.mutatorlog and len(self.members):
-          mutators = reduce(set.union, map(lambda x: set(x.mutators), self.members))
+        if config.mutatorlog:
+          mutators = set()
+          for c in self.members:
+            mutators |= set(c.mutators)
           for m in mutators:
             m.writelog(self.roundNumber, self.inputSize())
 
@@ -301,14 +303,19 @@ class Population:
     return len(t1),len(t2),len(t3),mean(t1),mean(t2),mean(t3),\
            self.testers[-1].testCount, self.testers[-1].timeoutCount, self.testers[-1].crashCount
 
+def intorfloat(v):
+  try:
+    return int(v)
+  except:
+    return float(v)
 
 def createTunableMutators(candidate, ta, weight):
   name = ta['name']
-  l=int(ta['min'])
-  h=int(ta['max'])
-  if 'accuracy' in ta['type']:
-    #hack to support what the old autotuner did
-    l+=1
+  l=intorfloat(ta['min'])
+  h=intorfloat(ta['max'])
+ # if 'accuracy' in ta['type']:
+ #   #hack to support what the old autotuner did
+ #   l+=1
 
   if ta['type'] in config.lognorm_tunable_types:
     return [mutators.LognormRandCutoffMutator(name, weight=weight)]

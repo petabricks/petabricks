@@ -53,7 +53,6 @@ pkglib_HEADERS=  \
   common/jtunable.h \
   common/srcpos.h \
   common/thedeque.h \
-  runtime/autotuner.h \
   runtime/dynamicscheduler.h \
   runtime/dynamictask.h \
   runtime/matrixio.h \
@@ -122,7 +121,6 @@ libpbcompiler_a_SOURCES = \
 libpbruntime_a_LFLAGS = 
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime
 libpbruntime_a_SOURCES =  \
-  runtime/autotuner.cpp \
   runtime/dynamicscheduler.cpp \
   runtime/dynamictask.cpp \
   runtime/matrixio.cpp \

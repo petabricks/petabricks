@@ -10,25 +10,33 @@
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 #include "configitem.h"
+
+#include "codegenerator.h"
+
+#include "common/jconvert.h"
+
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
   
-petabricks::ConfigItem::ConfigItem(int flags, std::string name, int initial, int min, int max)
+petabricks::ConfigItem::ConfigItem(int flags, std::string name, jalib::TunableValue initial, jalib::TunableValue min, jalib::TunableValue max)
     :_flags(flags),
      _name(name),
      _initial(initial),
      _min(min),
-     _max(max)
+     _max(max),
+     _arraySize(0)
 {
-  JASSERT(max>=min)(min)(max);
 }
   
-petabricks::ConfigItem::ConfigItem(std::string name, int min, int max)
+petabricks::ConfigItem::ConfigItem(std::string name, jalib::TunableValue min, jalib::TunableValue max)
   :_flags(0),
   _name(name),
   _initial(min),
   _min(min),
-  _max(max) 
+  _max(max),
+  _arraySize(0)
 {
-  JASSERT(max>=min)(min)(max);
 }
 
 std::string petabricks::ConfigItem::category() const {
@@ -43,6 +51,9 @@ std::string petabricks::ConfigItem::category() const {
     cat+="tunable";
   else
     cat+="config";
+
+  if(hasFlag(ConfigItem::FLAG_DOUBLE))
+    cat+=".double";
   
   if(hasFlag(ConfigItem::FLAG_ACCURACY))
     cat+=".accuracy";
@@ -53,13 +64,13 @@ std::string petabricks::ConfigItem::category() const {
   return cat;
 }
 
-void petabricks::ConfigItem::merge(int flags, std::string name, int initial, int min, int max){
-  _flags|=flags;
-  JASSERT(name==_name);
-  _initial=std::max(_initial, initial);
-  _min=std::max(_min, min);
-  _max=std::min(_max, max);
-  JTRACE("merged cfg")(_flags)(_name);
+void petabricks::ConfigItem::merge(const ConfigItem& that){
+  JTRACE("merged cfg")(*this)(that);
+  _flags|=that._flags;
+  JASSERT(that._name==_name);
+  _initial=jalib::TunableValue::max(_initial, that._initial);
+  _min    =jalib::TunableValue::max(_min,     that._min);
+  _max    =jalib::TunableValue::min(_max,     that._max);
 }
 
 void petabricks::ConfigItem::print(std::ostream& o) const{
@@ -71,6 +82,72 @@ void petabricks::ConfigItem::print(std::ostream& o) const{
   if(hasFlag(FLAG_SIZEVAR))       o << " FLAG_SIZEVAR";
   if(hasFlag(FLAG_FROMCFG))       o << " FLAG_FROMCFG";
   if(hasFlag(FLAG_TEMPLATEVAR))   o << " FLAG_TEMPLATEVAR";
+  if(hasFlag(FLAG_DOUBLE))        o << " FLAG_DOUBLE";
+  if(hasFlag(FLAG_ARRAY))         o << " FLAG_ARRAY(" << _arraySize << ")" ;
+  if(hasFlag(FLAG_FORCEPASS))     o << " FLAG_FORCEPASS";
   o << ")";
 }
+
+
+void petabricks::ConfigItem::initDefaults() {
+  if(hasFlag(FLAG_DOUBLE)){
+    if(_initial == jalib::TunableValue()) _initial = 0.0 ;
+    if(_min == jalib::TunableValue())     _min = jalib::minval<double>();
+    if(_max == jalib::TunableValue())     _max = jalib::maxval<double>();
+  }else{
+    if(_initial == jalib::TunableValue()) _initial = 0 ;
+    if(_min == jalib::TunableValue())     _min = 0;
+    if(_max == jalib::TunableValue())     _max = jalib::maxval<int>();
+  }
+  JASSERT(_min <= _max)(_name)(_min)(_max)
+    .Text("invalid tunable setting");
+  JASSERT(_min <= _initial && _initial <=_max )
+    (_name)(_initial)(_min)(_max)
+    .Text("invalid tunable setting");
+}
+
+void petabricks::ConfigItem::createTunableDecls(const std::string& prefix, CodeGenerator& o) const {
+  JASSERT(hasFlag(FLAG_FROMCFG));
+  if(hasFlag(FLAG_ARRAY)){
+    ConfigItem tmp = *this;
+    tmp.removeFlag(FLAG_ARRAY);
+    for(size_t i=0; i<_arraySize; ++i) {
+      tmp.createTunableDecls(prefix+"i"+jalib::XToString(i)+"_", o);
+    }
+  }else{
+    const char* type = hasFlag(FLAG_DOUBLE) ? "DOUBLE" : "";
+    if(hasFlag(FLAG_SIZESPECIFIC)){
+      o.createTunableArray(category(), prefix+name(), MAX_INPUT_BITS, initial(), min(), max(), hasFlag(FLAG_TUNABLE), type);
+    }else{
+      o.createTunable(hasFlag(FLAG_TUNABLE), category(), prefix+name(), initial(), min(), max(), type);
+    }
+  }
+}
+
+void petabricks::ConfigItem::assignTunableDecls(const std::string& prefix,
+                                                CodeGenerator& o,
+                                                const std::string& sizestr,
+                                                const std::string& arraystr) const {
+  if(hasFlag(FLAG_ARRAY)){
+    ConfigItem tmp = *this;
+    tmp.removeFlag(FLAG_ARRAY);
+    tmp.addFlag(FLAG_FORCEPASS);
+    o.write(name()+".resize("+jalib::XToString(_arraySize)+");");
+    for(size_t i=0; i<_arraySize; ++i) {
+      tmp.assignTunableDecls(prefix+"i"+jalib::XToString(i)+"_", o, sizestr, "["+jalib::XToString(i)+"]");
+    }
+  }else{
+    if(hasFlag(ConfigItem::FLAG_SIZESPECIFIC)){
+      o.write(name()+arraystr+" = petabricks::interpolate_sizespecific("+
+                                       prefix+name()+","
+                                       +sizestr +" ,"+
+                                       jalib::XToString(min())+");");
+    }else{
+      if(shouldPass() && hasFlag(ConfigItem::FLAG_FROMCFG)){
+       o.write(name()+arraystr+" = "+prefix+name()+";");
+      }
+    }
+  }
+}
+
 
