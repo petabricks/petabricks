@@ -70,8 +70,8 @@
 namespace jalib {
 class TunableValue {
 public:
-  TunableValue()         : _type(NONE) {}
-  TunableValue(int v)    : _type(INT), _i(v) {}
+  TunableValue()         : _type(NONE),   _d(0) {}
+  TunableValue(int v)    : _type(INT),    _i(v) {}
   TunableValue(double v) : _type(DOUBLE), _d(v) {}
 
   int i() const {
@@ -140,9 +140,10 @@ public:
 private:
   enum TypeT { NONE, INT, DOUBLE };
   TypeT _type;
-  //union break some gcc optimizations...
-  int _i;
-  double _d;
+  union {
+    int    _i;
+    double _d;
+  };
 };
 
 class JTunable;

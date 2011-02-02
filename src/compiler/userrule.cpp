@@ -358,11 +358,7 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
     }
     for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
       if(i->shouldPass()){
-        if(i->hasFlag(ConfigItem::FLAG_DOUBLE)){
-          o.addMember("const double", i->name());
-        }else{
-          o.addMember("const IndexT", i->name());
-        }
+        o.addMember("const "+i->passType(), i->name());
       }
     }
     for(ConfigItems::const_iterator i=_duplicateVars.begin(); i!=_duplicateVars.end(); ++i){
@@ -406,11 +402,7 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
   }
   for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
     if(i->shouldPass()){
-      if(i->hasFlag(ConfigItem::FLAG_DOUBLE)){
-        args.push_back("const double "+i->name());
-      }else{
-        args.push_back("const IndexT "+i->name());
-      }
+      args.push_back("const "+i->passType()+" "+i->name());
     }
   }
   for(ConfigItems::const_iterator i=_duplicateVars.begin(); i!=_duplicateVars.end(); ++i){

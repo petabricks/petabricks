@@ -62,6 +62,7 @@ regression/coscheduled3    Rand1D
 regression/duplicate       Rand1D
 regression/fileprefix      Rand2Da
 regression/floattunables   Rand2Da
+regression/floattunables2  One0D 
 regression/function        One0D One0D
 regression/generators      Rand1D Rand1D
 regression/matrixversions  Rand2Da
