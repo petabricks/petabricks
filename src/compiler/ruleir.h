@@ -15,6 +15,7 @@
 #include "common/jconvert.h"
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
+#include "common/srcpos.h"
 
 #include <list>
 #include <map>
@@ -74,7 +75,9 @@ public:
 /**
  * Base class for all Rule IR types
  */
-class RIRNode : public jalib::JRefCounted, public jalib::JPrintable {
+class RIRNode : public jalib::JRefCounted,
+                public jalib::JPrintable,
+                public jalib::SrcPosTaggable {
   typedef std::map<std::string, std::string> AnnotationT;
 public:
 

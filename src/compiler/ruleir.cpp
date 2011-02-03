@@ -22,11 +22,13 @@ petabricks::RIRBlockCopyRef petabricks::RIRBlock::parse(const std::string& str){
 }
 petabricks::RIRStmtCopyRef petabricks::RIRStmt::parse(const std::string& str){
   RIRBlockCopyRef t = RIRBlock::parse(str);
+  DISABLESRCPOS();
   JASSERT(t->stmts().size()==1)(t->stmts().size());
   return t->stmts().front();
 }
 petabricks::RIRExprCopyRef petabricks::RIRExpr::parse(const std::string& str){
   RIRStmtCopyRef t = RIRStmt::parse(str+";");
+  DISABLESRCPOS();
   JASSERT(t->numExprs()==1)(t->numExprs());
   return t->part(0);
 }

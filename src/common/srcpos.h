@@ -24,6 +24,8 @@
 namespace jalib { class SrcPosTaggable; }
 //in global scope, so one can run _lexicalSrcPos() anywhere and not get an error
 const jalib::SrcPosTaggable* _lexicalSrcPos();
+typedef const jalib::SrcPosTaggable* (*_lexicalSrcPosT)();
+#define DISABLESRCPOS() _lexicalSrcPosT _lexicalSrcPos = ::_lexicalSrcPos
 
 namespace jalib {
 
