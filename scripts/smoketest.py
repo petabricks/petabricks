@@ -30,6 +30,8 @@ check_exclude=[
          "matrixapproximation/matrixapprox",  # (Variable accuracy)
          "regression/accuracymetric",         # (Variable accuracy)
          "preconditioner/preconditioner",     # (Variable accuracy)
+
+         "regression/floattunables2",
     ]
 
 def resolveInputPath(path):

@@ -405,16 +405,8 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.newline();
   
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
-    const char* type = "";
-    if(i->hasFlag(ConfigItem::FLAG_DOUBLE)){
-      type="DOUBLE";
-    }
     if(i->hasFlag(ConfigItem::FLAG_FROMCFG)){
-      if(i->hasFlag(ConfigItem::FLAG_SIZESPECIFIC)){
-        o.createTunableArray(i->category(), _name+"_"+i->name(), MAX_INPUT_BITS, i->initial(), i->min(), i->max(), i->hasFlag(ConfigItem::FLAG_TUNABLE), type);
-      }else{
-        o.createTunable(i->hasFlag(ConfigItem::FLAG_TUNABLE), i->category(), _name+"_"+i->name(), i->initial(), i->min(), i->max(), type);
-      }
+      i->createTunableDecls(_name+"_", o);
     }
   }
 
@@ -559,16 +551,7 @@ void petabricks::Transform::extractSizeDefines(CodeGenerator& o, FreeVars fv, co
   
   //construct size specific config items
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
-    if(i->hasFlag(ConfigItem::FLAG_SIZESPECIFIC)){
-      o.write(i->name()+" = petabricks::interpolate_sizespecific("
-                                       "TRANSFORM_LOCAL("+i->name()+"),"
-                                       +inputsizestr +" ,"+
-                                       jalib::XToString(i->min())+");");
-    }else{
-      if(i->shouldPass() && i->hasFlag(ConfigItem::FLAG_FROMCFG)){
-       o.write(i->name()+" = TRANSFORM_LOCAL("+i->name()+");");
-      }
-    }
+    i->assignTunableDecls(_name+"_", o, inputsizestr);
   }
 }
 
@@ -594,11 +577,7 @@ void petabricks::Transform::extractConstants(CodeGenerator& o){
   
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     if(i->hasFlag(ConfigItem::FLAG_FROMCFG) && i->shouldPass()){
-      if(i->hasFlag(ConfigItem::FLAG_DOUBLE)){
-        o.addMember("double", i->name(), "1");
-      }else{
-        o.addMember("IndexT", i->name(), "1");
-      }
+      o.addMember(i->memberType(), i->name(), "1");
     }
   }
 
@@ -651,7 +630,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
 
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     if(i->hasFlag(ConfigItem::FLAG_FROMCFG) && i->shouldPass()){
-      o.addMember("IndexT", i->name(), "1");
+      o.addMember(i->memberType(), i->name(), "1");
     }
   }
 

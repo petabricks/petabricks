@@ -588,6 +588,10 @@ def p_config_flags(p):
   'config_flags : config_flags ID'
   p[0] = p[1] + ' ' + replace_all_define(p[2], p.lineno(2))
 
+def p_config_flags_param(p):
+  'config_flags : config_flags ID LPAREN num_list_string RPAREN'
+  p[0] = p[1] + ' ' + replace_all_define(p[2], p.lineno(2)) + '(' + p[4] + ')'
+
 def p_config_flags_end(p):
   'config_flags : '
   p[0] = ''

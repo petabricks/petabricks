@@ -131,22 +131,28 @@ public:
   bool isVariableAccuracy() const { return !_accuracyBins.empty(); }
 
   std::string tmplName(int n, CodeGenerator* o=NULL);
-  
+
+
+  void addConfigItem(const ConfigItem& value){
+    ConfigItems::iterator i;
+    //check if its already there?
+    for(i=_config.begin(); i!=_config.end(); ++i){
+      if(i->name()==value.name())
+        break;
+    }
+    if(i==_config.end()){
+      _config.push_back(value);
+    }else{
+      i->merge(value);
+    }
+  }
+
+
   void addConfigItem(int flags, const std::string& n,
                                 jalib::TunableValue initial,
                                 jalib::TunableValue min,
                                 jalib::TunableValue max){
-    ConfigItems::iterator i;
-    //check if its already there?
-    for(i=_config.begin(); i!=_config.end(); ++i)
-      if(i->name()==n)
-        break;
-    if(i==_config.end()){
-      _config.push_back(ConfigItem(flags,n,initial,min,max));
-      i=_config.end()-1;
-    }else{
-      i->merge(flags,n,initial,min,max);
-    }
+    addConfigItem(ConfigItem(flags,n,initial,min,max));
   }
   
   void addConfigItem(int flags, const std::string& n,
