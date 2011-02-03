@@ -29,6 +29,9 @@ namespace petabricks {
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
 
+    int dimensions();
+    IndexT* size();
+
     // for tests
     int incCoord(IndexT* coord);
     void print();

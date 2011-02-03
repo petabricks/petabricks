@@ -1,27 +1,38 @@
 #ifndef PETABRICKSREGIONDATAREMOTE_H
 #define PETABRICKSREGIONDATAREMOTE_H
 
+#include <map>
+#include <pthread.h>
 #include "regiondatai.h"
 #include "remoteobject.h"
+
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 
 namespace petabricks {
   class RegionDataRemote;
   typedef jalib::JRef<RegionDataRemote> RegionDataRemotePtr;
 
-  extern RegionDataIPtr remoteRegionData;
-
   class RegionDataRemote : public RegionDataI {
   private:
     RemoteObjectPtr _remoteObject;
+    pthread_mutex_t _seq_mux;
+    pthread_mutex_t _buffer_mux;
+    pthread_cond_t _buffer_cond;
+    uint16_t _seq;
+    uint16_t _recv_seq;
+    std::map<uint16_t, void*> _buffer;
 
   public:
-    RegionDataRemote(int dimensions, RemoteObjectPtr remoteObject);
-    ~RegionDataRemote() {};
+    RegionDataRemote(int dimensions, IndexT* size, RemoteObjectPtr remoteObject);
+    ~RegionDataRemote();
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
 
     void onRecv(const void* data, size_t len);
+    void* fetchData(const void* msg, size_t len);
 
     static RemoteObjectPtr genRemote();
   };
@@ -31,24 +42,13 @@ namespace petabricks {
   protected:
     RegionDataRemotePtr _regionData;
   public:
-    RegionDataRemoteObject() {
-      printf("RegionDataRemoteObject %d\n", getpid());
-    }
+    RegionDataRemoteObject() {}
 
     void onRecv(const void* data, size_t len) {
       _regionData->onRecv(data, len);
     }
 
-    void onRecvInitial(const void* buf, size_t len) {
-      printf("initial\n");
-
-      // TODO: dimensions
-      _regionData = new RegionDataRemote(3, this);
-      
-
-      extern RegionDataIPtr remoteRegionData;
-      remoteRegionData = (RegionDataIPtr) _regionData.asPtr();
-    }
+    void onRecvInitial(const void* buf, size_t len);
   };
 
 
@@ -62,15 +62,20 @@ namespace petabricks {
       };
     };
 
+    struct InitialMessage {
+      int dimensions;
+      IndexT size[MAX_DIMENSIONS]; 
+    };
+
     struct ReadCellMessage {
-      static const MessageType type = MessageTypes::READCELL;
-      std::vector<IndexT> coord; 
+      MessageType type;
+      IndexT coord[MAX_DIMENSIONS];
     };
     
     struct WriteCellMessage {
-      static const MessageType type = MessageTypes::WRITECELL;
+      MessageType type;
       ElementT value;
-      std::vector<IndexT> coord;
+      IndexT coord[MAX_DIMENSIONS]; 
     };
   }
 }

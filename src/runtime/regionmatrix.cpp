@@ -8,7 +8,6 @@ RegionMatrix::RegionMatrix(RegionDataIPtr regionData) {
   _regionHandler = new RegionHandler(regionData);
 
   _D = _regionHandler->dimensions();
-
   _size = new IndexT[_D];
   memcpy(_size, regionData->size(), sizeof(IndexT) * _D);
 
@@ -55,6 +54,14 @@ void RegionMatrix::writeCell(const IndexT* coord, ElementT value) {
   IndexT* rd_coord = this->getRegionDataCoord(coord);
   _regionData->writeCell(rd_coord, value);
   delete rd_coord;
+}
+
+int RegionMatrix::dimensions() {
+  return _D;
+}
+
+IndexT* RegionMatrix::size() {
+  return _size;
 }
 
 RegionMatrixPtr RegionMatrix::splitRegion(IndexT* offset, IndexT* size) {

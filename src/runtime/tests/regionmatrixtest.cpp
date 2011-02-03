@@ -63,6 +63,9 @@ completed
 #include "regionmatrixproxy.h"
 #include "remotehost.h"
 
+//RemoteObjectPtr petabricks::incomingObj = 0;
+petabricks::RegionDataIPtr remoteRegionData = 0;
+
 using namespace petabricks;
 
 PetabricksRuntime::Main* petabricksMainTransform(){
@@ -72,11 +75,14 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
 
-//RemoteObjectPtr petabricks::incomingObj = 0;
-RegionDataIPtr petabricks::remoteRegionData = 0;
-
 int main(int argc, const char** argv){
   char* filename = "testdata/Helmholtz3DB1";
+
+  IndexT m0[] = {0,0,0};
+  IndexT m1[] = {1,1,1};
+  IndexT m123[] = {1,2,3};
+  IndexT m2[] = {2,2,2};
+  IndexT m3[] = {3,3,3};
 
   RemoteHostDB hdb;
 
@@ -87,12 +93,6 @@ int main(int argc, const char** argv){
 
     RegionDataIPtr regionData = new RegionDataRaw(filename);
     RegionMatrixPtr regionMatrix = new RegionMatrix(regionData);
-
-    IndexT m0[] = {0,0,0};
-    IndexT m1[] = {1,1,1};
-    IndexT m123[] = {1,2,3};
-    IndexT m2[] = {2,2,2};
-    IndexT m3[] = {3,3,3};
 
     /*
     //  regionMatrix->print();
@@ -130,7 +130,13 @@ int main(int argc, const char** argv){
       new RegionMatrixProxy(regionMatrix->getRegionHandler());
     RemoteObjectPtr local = proxy->genLocal();
   
-    hdb.host(0)->createRemoteObject(local, &RegionDataRemote::genRemote, filename, strlen(filename));
+    // InitialMsg
+    RegionDataRemoteMessage::InitialMessage* msg = new RegionDataRemoteMessage::InitialMessage();
+    msg->dimensions = regionMatrix->dimensions();
+    memcpy(msg->size, regionMatrix->size(), sizeof(msg->size));
+    int len = (sizeof msg) + sizeof(msg->size);
+
+    hdb.host(0)->createRemoteObject(local, &RegionDataRemote::genRemote, msg, len);
     local->waitUntilCreated();
 
     /*
@@ -144,6 +150,7 @@ int main(int argc, const char** argv){
     */
 
     printf("completed\n");
+    hdb.listenLoop();
     return 0;
   } else {
     printf("main2 %d\n", getpid());
@@ -151,21 +158,31 @@ int main(int argc, const char** argv){
     JASSERT(argc==3);
     hdb.connect(argv[1], jalib::StringToInt(argv[2]));
     hdb.spawnListenThread();
-    //hdb.listenLoop();
 
     while (!remoteRegionData) {
       jalib::memFence();
       sched_yield();
     }
 
+    RegionMatrixPtr region = new RegionMatrix(remoteRegionData);
 
-    //    RegionMatrixPtr region = new RegionMatrix(remoteRegionData);
+    region->acquireRegionData();    
 
-    //    region->print();
+    printf("cell %4.8g\n", region->readCell(m123));
+    printf("cell %4.8g\n", region->readCell(m0));
+    printf("cell %4.8g\n", region->readCell(m1));
+    printf("cell %4.8g\n", region->readCell(m2));
+    printf("cell %4.8g\n", region->readCell(m3));
+
+    region->writeCell(m0, 123);
+    printf("cell %4.8g\n", region->readCell(m0));
+
+    region->releaseRegionData();
+
+    //region->print();
 
     printf("completed2\n");
     
-
     hdb.listenLoop();
     return 0;
   }

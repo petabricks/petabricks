@@ -1,6 +1,7 @@
 #ifndef PETABRICKSREGIONMATRIXPROXY_H
 #define PETABRICKSREGIONMATRIXPROXY_H
 
+#include "regiondataremote.h"
 #include "regionmatrixi.h"
 #include "remoteobject.h"
 
@@ -21,6 +22,10 @@ namespace petabricks {
     void onRecv(const void* data, size_t len);
 
     RemoteObjectPtr genLocal();
+
+  private:
+    void processReadCellMsg(RegionDataRemoteMessage::ReadCellMessage* msg);
+    void processWriteCellMsg(RegionDataRemoteMessage::WriteCellMessage* msg);
   };
 
   class RegionMatrixProxyRemoteObject : public RemoteObject {
