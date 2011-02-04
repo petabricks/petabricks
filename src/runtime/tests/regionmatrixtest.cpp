@@ -139,16 +139,6 @@ int main(int argc, const char** argv){
     hdb.host(0)->createRemoteObject(local, &RegionDataRemote::genRemote, msg, len);
     local->waitUntilCreated();
 
-    /*
-    proxy->acquireRegionData();
-  
-    printf("before %4.8g\n", proxy->readCell(m1));
-    proxy->writeCell(m1, 9);
-    printf("after %4.8g\n", proxy->readCell(m1));
-  
-    proxy->releaseRegionData();
-    */
-
     printf("completed\n");
     hdb.listenLoop();
     return 0;
@@ -179,9 +169,20 @@ int main(int argc, const char** argv){
 
     region->releaseRegionData();
 
-    //    printf("size %d %d %d\n", region->size()[0], region->size()[1], region->size()[2]);
+    // Test split
+    RegionMatrixPtr rsplit3 = region->splitRegion(m123, m3);
+    RegionMatrixPtr rsplit2 = rsplit3->splitRegion(m1, m2);
+    RegionMatrixPtr rslice1 = rsplit2->sliceRegion(2, 0);
+    RegionMatrixPtr rslice2 = rslice1->sliceRegion(1, 1);
 
-    region->print();
+    rslice1->print();
+    rsplit3->print();
+    rsplit2->print();
+    rslice2->print();
+
+    // Test slice
+    RegionMatrixPtr rslice3 = region->sliceRegion(1, 0);
+    rslice3->print();
 
     printf("completed2\n");
     
