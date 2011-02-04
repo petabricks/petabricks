@@ -53,9 +53,9 @@ to OUT
 transform Optimize
 from IN
 to OUT
-tunable float x1 (-1e-1)
-tunable float array(2) x2 (-1e-1)
-tunable float sizespecific array(2) initial(-1e-1) x3
+tunable float sizespecific x1 (-1e-1)
+//tunable float array(2) x2 (-1e-1)
+//tunable float sizespecific array(2) initial(-1e-1) x3
 //tunable float y
 accuracy_metric MinimizeOut
 accuracy_bins 0
