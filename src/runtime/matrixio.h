@@ -13,7 +13,6 @@
 #define PETABRICKSMATRIXIO_H
 
 #include "matrixregion.h"
-#include "regioncontiguous.h"
 
 #include "common/jassert.h"
 
@@ -73,17 +72,6 @@ public:
     MatrixStorage::IndexT sizes[D];
     for(int i=0; i<D; ++i) sizes[i]=o.sizes[i];
     return MatrixRegion<D, MATRIX_ELEMENT_T>(o.storage, o.storage->data(), sizes);
-  }
-
-  ///
-  /// Read a D-dimensional matrix from _fd to RegionI
-  RegionIPtr readToRegionI(){
-    JASSERT(_fd != 0);
-    MatrixReaderScratch o;
-    _read(o);
-    MatrixStorage::IndexT sizes[o.dimensions];
-    for(int i=0; i<o.dimensions; ++i) sizes[i]=o.sizes[i];
-    return new RegionContiguous(o.dimensions, o.sizes, o.storage->data());
   }
 
   ///

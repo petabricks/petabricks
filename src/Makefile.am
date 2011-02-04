@@ -71,11 +71,6 @@ pkglib_HEADERS=  \
   runtime/regionmatrix.h \
   runtime/regionmatrixi.h \
   runtime/regionmatrixproxy.h \
-  runtime/regioni.h \
-  runtime/regioncontiguous.h \
-  runtime/regionremote.h \
-  runtime/regionremoteproxy.h \
-  runtime/regiontransform.h \
   runtime/remotehost.h \
   runtime/remoteobject.h \
   runtime/ruleinstance.h \
@@ -151,9 +146,6 @@ libpbruntime_a_SOURCES =  \
   runtime/regionmatrix.cpp \
   runtime/regionmatrixi.cpp \
   runtime/regionmatrixproxy.cpp \
-  runtime/regioni.cpp \
-  runtime/regioncontiguous.cpp \
-  runtime/regiontransform.cpp \
   runtime/remotehost.cpp \
   runtime/remoteobject.cpp \
   runtime/ruleinstance.cpp \
