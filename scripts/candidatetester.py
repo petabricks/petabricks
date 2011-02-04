@@ -307,6 +307,8 @@ class Candidate:
         method = c.upperConfidenceBoundMutate
       elif config.os_method == OperatorSelectionMethod.WEIGHTED_SUM:
         method = c.weightedSumMutate
+      elif config.os_method == OperatorSelectionMethod.ROULETTE:
+        method = c.rouletteWheelMutate
  
     for z in xrange(config.mutate_retries):
       try:
@@ -397,7 +399,7 @@ class Candidate:
       assert entry.mutator == m
       acc = 0 if entry.accuracy == None else entry.accuracy
       w = min(objectives.score(), 1.0)
-      return w/entry.time + (1.0-w)*acc
+      return w/entry.time + (1.0-w)*abs(acc)
         
 
     def computeScore(m):
@@ -408,6 +410,46 @@ class Candidate:
         return avg(map(lambda entry: computeOneScore(m, entry), children))
 
     self.banditMutate(n, mutatorLog, objectives, computeScore)
+
+
+  ''' like weightedSumMutate, but uses roulette whell instead of bandit selection'''
+  def rouletteWheelMutate(self, n, mutatorLog, objectives):
+    
+    def avg(lst):
+      return sum(lst) / len(lst)
+    
+    def computeOneScore(m, entry):
+      assert entry.mutator == m
+      acc = 0 if entry.accuracy == None else entry.accuracy
+      w = min(objectives.score(), 1.0)
+      return w/entry.time + (1.0-w)*abs(acc)
+        
+
+    def computeScore(m):
+      children = filter(lambda entry: entry.mutator == m, mutatorLog.log)
+      if len(children) == 0:
+        return 0
+      else:
+        return avg(map(lambda entry: computeOneScore(m, entry), children))
+
+    # compute unnormalized mutator scores    
+    Z = 0 # normalization constant
+    for m in self.mutators:
+      score = max(0.02, computeScore(m))
+      self.mutatorScores[m] = score
+      Z += score
+
+    # roulette wheel selection
+    r = random.random()
+    
+    for m in self.mutators:
+      if r <= self.mutatorScores[m] / Z:
+        self.lastMutator = m
+        m.mutate(self, n)
+        break
+      else:
+        r -= self.mutatorScores[m] / Z
+      
       
 
 
