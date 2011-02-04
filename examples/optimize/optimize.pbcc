@@ -1,5 +1,5 @@
 transform MinimizeOut
-from OUT, IN
+from OUT, IN[n]
 to METRIC
 {
     to   (METRIC metric)
@@ -51,12 +51,11 @@ to OUT
 }
 
 transform Optimize
-from IN
+from IN[n]
 to OUT
 tunable float sizespecific x1 (-1e-1)
-//tunable float array(2) x2 (-1e-1)
-//tunable float sizespecific array(2) initial(-1e-1) x3
-//tunable float y
+tunable float sizespecific array(2) initial(-1e-1) x2
+tunable float sizespecific array(3) initial(-1e-1) x3
 accuracy_metric MinimizeOut
 accuracy_bins 0
 {
@@ -64,8 +63,8 @@ accuracy_bins 0
     from (IN in)
     {
 //        Rosenbrock(out, x, y);
-//        Bowl2D(out, (double) x2[0], (double) x2[1]);
-        Bowl(out, (double) x1);
+        Bowl2D(out, (double) x2[0], (double) x2[1]);
+//        Bowl(out, (double) x1);
     }
 }
 

@@ -371,7 +371,7 @@ def addMutators(candidate, info, acf, taf, ignore=None, weight=1.0):
   for ta in info.tunables():
     ms = taf(candidate, ta, weight)
     for m in ms:
-      if 'accuracy' in ta['type']:
+      if 'accuracy' in ta['type'] or 'double' in ta['type']:
         m.accuracyHint = 1
       logging.info("added Mutator " + transform + "/" + ta['name'] + " => " + str(m))
       candidate.addMutator(m)
