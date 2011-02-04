@@ -297,18 +297,24 @@ class Candidate:
 
   ## Adaptive operator selection techniques
 
-  def cloneAndMutate(self, n, mutatorLog, objectives):
+  def cloneAndMutate(self, n, adaptive = False, mutatorLog = None, 
+                     objectives = None, mutatorFilter=lambda m: True):
     c = self.clone()
-    if config.os_method == OperatorSelectionMethod.UNIFORM_RANDOM:
-      method = c.uniformRandomMutate
-    elif config.os_method == OperatorSelectionMethod.ROC_AREA:
-      method = c.upperConfidenceBoundMutate
-    elif config.os_method == OperatorSelectionMethod.WEIGHTED_SUM:
-      method = c.weightedSumMutate
+
+    if adaptive:
+      if config.os_method == OperatorSelectionMethod.UNIFORM_RANDOM:
+        method = c.uniformRandomMutate
+      elif config.os_method == OperatorSelectionMethod.ROC_AREA:
+        method = c.upperConfidenceBoundMutate
+      elif config.os_method == OperatorSelectionMethod.WEIGHTED_SUM:
+        method = c.weightedSumMutate
  
     for z in xrange(config.mutate_retries):
       try:
-        method(n, mutatorLog, objectives)
+        if adaptive:
+          method(n, mutatorLog, objectives)
+        else:
+          c.mutate(n, mutatorFilter)
         assert c.lastMutator != None
         break
       except mutators.MutateFailed:
@@ -318,7 +324,7 @@ class Candidate:
       except NoMutators,e:
         if len(self.mutators):
           # discard filter
-          return self.cloneAndMutate(n, adaptive, mutatorLog)
+          return self.cloneAndMutate(n, adaptive, mutatorLog, objectives, mutatorFilter)
         raise e
     return c
 

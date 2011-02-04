@@ -357,7 +357,10 @@ def onlinelearnInner(benchmark):
       if config.online_baseline:
         c = None
       else:
-        c = s.cloneAndMutate(tester.n, mutatorLog, objectives)
+        c = s.cloneAndMutate(tester.n,
+                             adaptive = True,
+                             mutatorLog = mutatorLog,
+                             objectives = objectives)
       tlim, atarg = objectives.getlimits(p, s, c)
       if tester.race(p, c, tlim, atarg) and not (p.wasTimeout and c.wasTimeout):
         p.discardResults(config.max_trials)
