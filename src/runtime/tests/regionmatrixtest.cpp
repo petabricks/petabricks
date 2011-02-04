@@ -179,7 +179,9 @@ int main(int argc, const char** argv){
 
     region->releaseRegionData();
 
-    //region->print();
+    //    printf("size %d %d %d\n", region->size()[0], region->size()[1], region->size()[2]);
+
+    region->print();
 
     printf("completed2\n");
     

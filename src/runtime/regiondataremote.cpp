@@ -86,8 +86,11 @@ RemoteObjectPtr RegionDataRemote::genRemote() {
 void RegionDataRemoteObject::onRecvInitial(const void* buf, size_t len) {
   InitialMessage* msg = (InitialMessage*) buf;
 
-  _regionData = new RegionDataRemote(msg->dimensions, msg->size, this);
-  
+  IndexT* size = (IndexT*)malloc(sizeof(IndexT) * msg->dimensions);
+  memcpy(size, msg->size, sizeof(IndexT) * msg->dimensions);
+
+  _regionData = new RegionDataRemote(msg->dimensions, size, this);
+
   extern RegionDataIPtr remoteRegionData;
   remoteRegionData = (RegionDataIPtr) _regionData.asPtr();
 }
