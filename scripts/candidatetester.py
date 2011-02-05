@@ -296,18 +296,26 @@ class Candidate:
 
   ## Adaptive operator selection techniques
 
-  def cloneAndMutate(self, n, mutatorLog, objectives):
+  def cloneAndMutate(self, n, adaptive = False, mutatorLog = None, 
+                     objectives = None, mutatorFilter=lambda m: True):
     c = self.clone()
-    if config.os_method == OperatorSelectionMethod.UNIFORM_RANDOM:
-      method = c.uniformRandomMutate
-    elif config.os_method == OperatorSelectionMethod.ROC_AREA:
-      method = c.upperConfidenceBoundMutate
-    elif config.os_method == OperatorSelectionMethod.WEIGHTED_SUM:
-      method = c.weightedSumMutate
+
+    if adaptive:
+      if config.os_method == OperatorSelectionMethod.UNIFORM_RANDOM:
+        method = c.uniformRandomMutate
+      elif config.os_method == OperatorSelectionMethod.ROC_AREA:
+        method = c.upperConfidenceBoundMutate
+      elif config.os_method == OperatorSelectionMethod.WEIGHTED_SUM:
+        method = c.weightedSumMutate
+      elif config.os_method == OperatorSelectionMethod.ROULETTE:
+        method = c.rouletteWheelMutate
  
     for z in xrange(config.mutate_retries):
       try:
-        method(n, mutatorLog, objectives)
+        if adaptive:
+          method(n, mutatorLog, objectives)
+        else:
+          c.mutate(n, mutatorFilter)
         assert c.lastMutator != None
         break
       except MutateFailed:
@@ -317,7 +325,7 @@ class Candidate:
       except NoMutators,e:
         if len(self.mutators):
           # discard filter
-          return self.cloneAndMutate(n, adaptive, mutatorLog)
+          return self.cloneAndMutate(n, adaptive, mutatorLog, objectives, mutatorFilter)
         raise e
     return c
 
@@ -326,7 +334,7 @@ class Candidate:
     mutator -> score'''
   def banditMutate(self, n, mutatorLog, objectives, scoringFunction):
     # default to uniform random mutate if the log is too short
-    if len(mutatorLog.log) < len(self.mutators):
+    if len(mutatorLog.log) < len(self.mutators) and len(mutatorLog.log) < config.window_size:
       self.uniformRandomMutate(n, mutatorLog, objectives)
       return
     
@@ -348,7 +356,7 @@ class Candidate:
     bestMutator = None
     for m in self.mutators:
       # Set m.timesSelected to a small value so that we avoid div by 0 in the bandit formula below
-      m.timesSelected = 1.0/len(self.mutators)
+      m.timesSelected = 0.02
       m.timesSelected += len(filter(lambda entry: entry.mutator == m, mutatorLog.log))
 
       # We can now comnpute the bandit score
@@ -371,6 +379,7 @@ class Candidate:
 
   ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
   def upperConfidenceBoundMutate(self, n, mutatorLog, objectives):
+        
     if(objectives.needAccuracy()):
       mutatorLog = mutatorLog.getSortedByAcc()
     else:
@@ -389,8 +398,8 @@ class Candidate:
     def computeOneScore(m, entry):
       assert entry.mutator == m
       acc = 0 if entry.accuracy == None else entry.accuracy
-      w = max(objectives.score(), 1.0)
-      return w/entry.time + (1.0-w)*acc
+      w = min(objectives.score(), 1.0)
+      return w/entry.time + (1.0-w)*abs(acc)
         
 
     def computeScore(m):
@@ -399,8 +408,48 @@ class Candidate:
         return 0
       else:
         return avg(map(lambda entry: computeOneScore(m, entry), children))
-          
+
     self.banditMutate(n, mutatorLog, objectives, computeScore)
+
+
+  ''' like weightedSumMutate, but uses roulette whell instead of bandit selection'''
+  def rouletteWheelMutate(self, n, mutatorLog, objectives):
+    
+    def avg(lst):
+      return sum(lst) / len(lst)
+    
+    def computeOneScore(m, entry):
+      assert entry.mutator == m
+      acc = 0 if entry.accuracy == None else entry.accuracy
+      w = min(objectives.score(), 1.0)
+      return w/entry.time + (1.0-w)*abs(acc)
+        
+
+    def computeScore(m):
+      children = filter(lambda entry: entry.mutator == m, mutatorLog.log)
+      if len(children) == 0:
+        return 0
+      else:
+        return avg(map(lambda entry: computeOneScore(m, entry), children))
+
+    # compute unnormalized mutator scores    
+    Z = 0 # normalization constant
+    for m in self.mutators:
+      score = max(0.02, computeScore(m))
+      self.mutatorScores[m] = score
+      Z += score
+
+    # roulette wheel selection
+    r = random.random()
+    
+    for m in self.mutators:
+      if r <= self.mutatorScores[m] / Z:
+        self.lastMutator = m
+        m.mutate(self, n)
+        break
+      else:
+        r -= self.mutatorScores[m] / Z
+      
       
 
 
