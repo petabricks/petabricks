@@ -284,19 +284,13 @@ class ScaleTunableArrayMutator(TunableArrayMutator):
 class OptimizeTunableArrayMutator(TunableArrayMutator):
 
   def __init__(self, tunable, minVal, maxVal, weight=1.0):
-    self.cache = {}
     TunableArrayMutator.__init__(self, tunable, minVal, maxVal, weight)
 
   def measureAccuracy(self, value, candidate, n):
-    value = float(value) # TODO: make this work for higher dimensions
-    if value in self.cache:
-      result = self.cache[value]
-    else:
-      self.setVal(candidate, value, n)
-      candidate.pop.testers[-1].testN(candidate, 1)
-      result = candidate.metrics[config.accuracy_metric_idx][n].mean()
-      self.cache[value] = result
-      print "eval: f(%.25g) = %.25g" % (value, result)
+    self.setVal(candidate, value, n)
+    candidate.pop.testers[-1].testN(candidate, 1)
+    result = candidate.metrics[config.accuracy_metric_idx][n].mean()
+    print "eval: f(%.25g) = %.25g" % (value, result)
     return -result
 
   def random(self, oldVal, minVal, maxVal, candidate = None):
@@ -311,7 +305,6 @@ class OptimizeTunableArrayMutator(TunableArrayMutator):
     # optimize
     result = scipy.optimize.fmin_bfgs(f, x0, args = args, full_output = 1)
     newVal = float(result[0])
-#    print "new val: f(%.25g) = %.25g" % (newVal, result[1])
 
     return min(maxVal, max(minVal, newVal))
 
