@@ -333,37 +333,36 @@ class Candidate:
     Credit assignment technique can be controlled by the scoring function, of the type
     mutator -> score'''
   def banditMutate(self, n, mutatorLog, objectives, scoringFunction):
-    # default to uniform random mutate if the log is too short
-    if len(mutatorLog.log) < len(self.mutators) and len(mutatorLog.log) < config.window_size:
-      self.uniformRandomMutate(n, mutatorLog, objectives)
+    totalMutations = 0
+    for m in self.mutators:
+      totalMutations += m.timesSelected
+    
+    # default to round robin if not enough data
+    if totalMutations < len(self.mutators):
+      self.lastMutator = self.mutators[totalMutations]
+      self.lastMutator.timesSelected += 1
+      self.lastMutator.mutate(self, n)
       return
     
     if config.bandit_verbose:
       print "\n\nCurrent mutator log (%s): %s" % (mutatorLog.name, map(str, mutatorLog.log))
       print "\nAvailable mutators (scores):\n"
 
-    # Compute the total number of mutations. Since each candidate
-    # is produced through a mutation, that's simply the length of
-    # the log.
-    totalMutations = len(mutatorLog.log)
-
     self.mutatorScores = dict() # We'll be updating these, so clear old values
 
 
     ### Loop through mutators, compute bandit scores, and select the best mutator
-    
-    bestScore = -1 # scores are guaranteed to be non-negative    
+
+    bestScore = None # scores *can* be negative, e.g. if the scoring function negates the time
     bestMutator = None
     for m in self.mutators:
-      # Set m.timesSelected to a small value so that we avoid div by 0 in the bandit formula below
-      m.timesSelected = 0.02
-      m.timesSelected += len(filter(lambda entry: entry.mutator == m, mutatorLog.log))
+      # Comnpute the bandit score
+      exploitTerm = scoringFunction(m)
+      exploreTerm = config.bandit_c*math.sqrt(2.0*math.log(totalMutations) / m.timesSelected)
+      score = exploitTerm + exploreTerm
+      self.mutatorScores[m] = (exploitTerm, exploreTerm, score) # for logging purposes
 
-      # We can now comnpute the bandit score
-      score = scoringFunction(m) + config.bandit_c*math.sqrt(2.0*math.log(totalMutations) / m.timesSelected)      
-      self.mutatorScores[m] = score # for logging purposes
-
-      if score > bestScore:
+      if bestScore == None or score > bestScore:
         bestScore = score
         bestMutator = m
 
@@ -374,6 +373,7 @@ class Candidate:
       print "\nUsing best mutator: %s (%f)\n\n" % (bestMutator, score)
 
     self.lastMutator = bestMutator
+    self.lastMutator.timesSelected += 1
     self.lastMutator.mutate(self, n)
     
 
@@ -397,9 +397,9 @@ class Candidate:
 
     def computeOneScore(m, entry):
       assert entry.mutator == m
-      acc = 0 if entry.accuracy == None else entry.accuracy
+      dacc = 0 if entry.daccuracy == None else entry.daccuracy
       w = min(objectives.score(), 1.0)
-      return w/entry.time + (1.0-w)*abs(acc)
+      return w*(-entry.dtime) + (1.0-w)*dacc
         
 
     def computeScore(m):
@@ -420,9 +420,9 @@ class Candidate:
     
     def computeOneScore(m, entry):
       assert entry.mutator == m
-      acc = 0 if entry.accuracy == None else entry.accuracy
+      dacc = 0 if entry.daccuracy == None else entry.daccuracy
       w = min(objectives.score(), 1.0)
-      return w/entry.time + (1.0-w)*abs(acc)
+      return w*(-entry.dtime) + (1.0-w)*dacc
         
 
     def computeScore(m):
@@ -559,7 +559,7 @@ class MutatorLogFile:
   def logPerformance(self, gen, time, accuracy, dtime, daccuracy, selectedMutator):
     self.mutatorPerf.writerow([gen, time, accuracy, dtime, daccuracy, selectedMutator]);
 
-  # scoreMap: a dictionary mutator -> score. All available mutators must be present.
+  # scoreMap: a dictionary mutator -> (expl. term, exploit. term, score). All available mutators must be present.
   def logScores(self, gen, scoreMap):
     scores = map(lambda (m,score): score, sorted(scoreMap.items(), key=lambda (m,score): str(m)))
     self.mutatorScores.writerow([gen] + scores)
