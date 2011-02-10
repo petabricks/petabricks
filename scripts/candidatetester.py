@@ -355,9 +355,13 @@ class Candidate:
 
     bestScore = None # scores *can* be negative, e.g. if the scoring function negates the time
     bestMutator = None
+
+    # compute average exploitation score
+    avgExploitationScore = numpy.mean(map(scoringFunction, self.mutators))
+    
     for m in self.mutators:
-      # Comnpute the bandit score
-      exploitTerm = scoringFunction(m)
+      # Compute the bandit score
+      exploitTerm = scoringFunction(m) / avgExploitationScore
       exploreTerm = config.bandit_c*math.sqrt(2.0*math.log(totalMutations) / m.timesSelected)
       score = exploitTerm + exploreTerm
       self.mutatorScores[m] = (exploitTerm, exploreTerm, score) # for logging purposes
