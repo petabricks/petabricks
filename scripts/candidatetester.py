@@ -357,11 +357,12 @@ class Candidate:
     bestMutator = None
 
     # compute average exploitation score
-    avgExploitationScore = numpy.mean(map(scoringFunction, self.mutators))
-    
+    minExploitationScore = min(map(scoringFunction, self.mutators))
+    avgExploitationScore = numpy.mean(map(lambda m: -minExploitationScore + scoringFunction(m), self.mutators))
+        
     for m in self.mutators:
       # Compute the bandit score
-      exploitTerm = scoringFunction(m) / avgExploitationScore
+      exploitTerm = (-minExploitationScore + scoringFunction(m)) / avgExploitationScore
       exploreTerm = config.bandit_c*math.sqrt(2.0*math.log(totalMutations) / m.timesSelected)
       score = exploitTerm + exploreTerm
       self.mutatorScores[m] = (exploitTerm, exploreTerm, score) # for logging purposes
