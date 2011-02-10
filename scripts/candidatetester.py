@@ -389,9 +389,9 @@ class Candidate:
   def upperConfidenceBoundMutate(self, n, mutatorLog, objectives):
         
     if(objectives.needAccuracy()):
-      mutatorLog = mutatorLog.getSortedByAcc()
+      mutatorLog = mutatorLog.getSortedByDeltaAcc()
     else:
-      mutatorLog = mutatorLog.getSortedByTime()
+      mutatorLog = mutatorLog.getSortedByDeltaTime()
       
     self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog))
 
