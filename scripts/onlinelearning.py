@@ -90,7 +90,7 @@ class MutatorLog:
   '''biggest jumps in accuracy first'''
   def getSortedByDeltaAcc(self):
     sortedLog = MutatorLog(self.name)
-    sortedLog.log = sorted(self.log, key=lambda entry: -entry.daccuracy)
+    sortedLog.log = sorted(self.log, key=lambda entry: -entry.daccuracy if entry.daccuracy != None else 100000)
     return sortedLog
 
   def __repr__(self):
