@@ -337,6 +337,8 @@ def onlinelearnInner(benchmark):
     for gen in itertools.count(1):
       if config.max_time and objectives.elapsed>config.max_time:
         break
+      if config.max_gen and gen>config.max_gen:
+        break
       if gen%config.reweight_interval==0:
         pop.reweight()
 
@@ -410,6 +412,7 @@ if __name__ == "__main__":
                     help="enable debugging options")
   parser.add_option("-n", type="int", help="input size to train for")
   parser.add_option("--max_time",        type="float",  action="callback", callback=option_callback)
+  parser.add_option("--max_gen",         type="int",  action="callback", callback=option_callback)
   parser.add_option("--output_dir",      type="string", action="callback", callback=option_callback)
   parser.add_option("--seed",            type="string", action="callback", callback=option_callback)
   parser.add_option("--offset",          type="int",    action="callback", callback=option_callback)
