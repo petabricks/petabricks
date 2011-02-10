@@ -357,7 +357,7 @@ class Candidate:
     bestMutator = None
 
     # compute average exploitation score
-    minExploitationScore = min(map(scoringFunction, self.mutators))
+    minExploitationScore = min(0.0, min(map(scoringFunction, self.mutators)))
     avgExploitationScore = numpy.mean(map(lambda m: -minExploitationScore + scoringFunction(m), self.mutators))
         
     for m in self.mutators:
@@ -377,6 +377,9 @@ class Candidate:
     if config.bandit_verbose:
       print "\nUsing best mutator: %s (%f)\n\n" % (bestMutator, score)
 
+
+    (exploit, explore, total) = self.mutatorScores[bestMutator]
+    print "exploitation" if exploit > explore else "exploration"
     self.lastMutator = bestMutator
     self.lastMutator.timesSelected += 1
     self.lastMutator.mutate(self, n)
