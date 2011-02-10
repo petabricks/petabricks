@@ -247,10 +247,7 @@ def p_define_base(p):
 def p_define(p):
   'define : DEFINE ID'
   current_dict = define_dict_list[-1]
-  #if p[2] not in current_dict or current_dict[p[2]] == "":
   current_dict[p[2]] = ""
-  #else:
-  #  print_error("illegal to redefine " + p[2], p.lineno(1))
 
 def p_define_macro(p):
   'define : DEFINE ID LPAREN id_list RPAREN expression'
@@ -267,18 +264,12 @@ def p_define_macro_block(p):
   current_dict = macro_dict_list[-1]
   template = generate_template(p[4], p[7])
   template = (template[0], template[1], 'block')
-  #if p[2] not in current_dict or current_dict[p[2]] != template:
   current_dict[p[2]] = template
-  #else:
-  #  print_error("illegal to redefine " + p[2], p.lineno(1))
 
 def p_define_const(p):
   'define : DEFINE ID expression'
   current_dict = define_dict_list[-1]
-  #if p[2] not in current_dict or current_dict[p[2]] == p[3]:
   current_dict[p[2]] = p[3]
-  #else:
-  #print_error("illegal to redefine " + p[2], p.lineno(1))
 
 def p_define_un(p):
   '''define : UNDEF ID
@@ -529,6 +520,11 @@ def p_transform_header_list(p):
 		      | ACCURACYBINS float_list'''
   p[0] = ((queue[-1],p.lineno(1),p[1]), p[2])
 
+def p_transform_header_list_macro(p):
+  'transform_header : ACCURACYBINS ID'
+  p[2] = replace_all_define(p[2], p.lineno(2))	# Replace defines
+  p[0] = ((queue[-1],p.lineno(1),p[1]), [Arg(queue[-1], p.lineno(2), p[2], None)])
+
 def p_transform_header_element(p):
   '''transform_header : TRANSFORM ID
 		      | FUNCTION ID
@@ -537,7 +533,7 @@ def p_transform_header_element(p):
 		      | ACCURACYMETRIC ID
 		      | PARAM ID
 		      | PARAMETER ID
-		      | TEMPLATE chevron_arg
+		      | TEMPLATE template_arg
 		      | ACCURACYVARIABLE config_arg
 		      | CONFIG config_arg
 		      | TUNABLE config_arg
@@ -551,46 +547,47 @@ def p_transform_header_element(p):
     p[1] = "transform"
     transform_name = p[2]
 
+  p[2] = replace_all_define(p[2], p.lineno(2))	# Replace defines
   p[0] = ((queue[-1],p.lineno(1),p[1]), [Arg(queue[-1], p.lineno(2), p[2], None)])
 
 def p_transform_header_main(p):
   'transform_header : MAIN TRANSFORM ID'
   p[0] = ((queue[-1],p.lineno(1), "main transform"), [Arg(queue[-1], p.lineno(3), p[3], None)])
 
-def p_chevron_arg(p):
-  'chevron_arg : LCHEV configs RCHEV'
-  p[0] = p[1] + p[2] + p[3]
 
 def p_configs_multiple(p):
   'configs : config_arg COMMA configs'
   p[0] = p[1] + ',' + p[3]
 
-def p_configs_to(p):
+'''def p_configs_to(p):
   'configs : config_arg OTHER config_arg'
-  p[0] = p[1] + p[2] + p[3]
+  p[0] = p[1] + p[2] + p[3]'''
 
 def p_configs_base(p):
   'configs : config_arg'
   p[0] = p[1]
 
 def p_config_arg_with_paren(p):
+  #TODO: sure?
   'config_arg : config_flags ID LPAREN num_list_string RPAREN'
   p[0] = p[1] + ' ' + p[2] + '(' + p[4] + ')'
 
 def p_config_arg_without_paren(p):
+  #TODO: sure?
   '''config_arg : config_flags ID LPAREN RPAREN
                 | config_flags ID
                 | config_flags OTHER'''
-  p[2] = replace_all_define(p[2], p.lineno(2))	# Replace defines
   p[0] = p[1] + ' ' + p[2]
 
 def p_config_flags(p):
+  #TODO: sure?
   'config_flags : config_flags ID'
-  p[0] = p[1] + ' ' + replace_all_define(p[2], p.lineno(2))
+  p[0] = p[1] + ' ' + p[2]
 
 def p_config_flags_param(p):
+  #TODO: sure?
   'config_flags : config_flags ID LPAREN num_list_string RPAREN'
-  p[0] = p[1] + ' ' + replace_all_define(p[2], p.lineno(2)) + '(' + p[4] + ')'
+  p[0] = p[1] + ' ' + p[2] + '(' + p[4] + ')'
 
 def p_config_flags_end(p):
   'config_flags : '
@@ -624,11 +621,41 @@ def p_matrix_without_dimension(p):
 
 def p_ident_common(p):
   'ident : ID'
+  p[1] = replace_all_define(p[1], p.lineno(1))	# Replace defines
   p[0] = (queue[-1], p.lineno(1), p[1])
 
 def p_ident_withchevs(p):
   'ident : ID chevron_arg'
+  p[1] = replace_all_define(p[1], p.lineno(1))	# Replace defines
+  p[2] = replace_all_define(p[2], p.lineno(2))	# Replace defines
   p[0] = (queue[-1], p.lineno(1), p[1] + p[2])
+
+def p_chevron_arg(p):
+  '''chevron_arg : LCHEV chevron_exp RCHEV'''
+  p[0] = p[1] + p[2] + p[3]
+
+def p_chevron_exp(p):
+  '''chevron_exp : chevron_exp OTHER chevron_exp
+		 | LPAREN chevron_exp RPAREN'''
+  p[0] = p[1] + p[2] + p[3]
+
+def p_chevron_exp_base(p):
+  '''chevron_exp : base'''
+  p[0] = p[1]
+
+def p_chevron_exp_base_empty(p):
+  '''chevron_exp : '''
+  p[0] = ''
+
+def p_base(p):
+  '''base : ID
+	  | OTHER
+	  | STRING'''
+  p[0] = p[1]
+
+def p_template_arg(p):
+  'template_arg : LCHEV configs RCHEV'
+  p[0] = p[1] + p[2] + p[3]
 
 def p_dimensions(p):
   'dimensions : expression COMMA dimensions'
@@ -658,9 +685,7 @@ def p_expression_more(p):
   p[0] = p[1] + p[2]
 
 def p_expression_base(p):
-  '''expression : ID
-                | OTHER
-		| STRING'''
+  '''expression : base'''
   p[0] = p[1]
 
 def p_float_list(p):
@@ -724,7 +749,7 @@ def p_empty(p):
 def print_error(message, lineno):
   #print >> sys.stderr, "Line", lineno, ":", message
   #sys.exit(1)
-  sys.exit("Line " + str(lineno) + ": " + message)
+  sys.exit(relpath(queue[-1]) + ", Line " + str(lineno) + ": " + message)
 
 """ Insert ele at the end of l
     Return l """
@@ -927,6 +952,8 @@ parsed_set = set()
 queue = []
 define_dict_list = []
 macro_dict_list = []
+define_dict_map = {}
+macro_dict_map = {}
 
 current_file = ""
 current_line = 0
@@ -1038,12 +1065,23 @@ def parse_file_to_ast(file_path):
   full_path_string = os.path.abspath(os.path.join(current_dir, file_path))
 
   if full_path_string in parsed_set:
+    current_dict = define_dict_list[-1]
+    include_dict = define_dict_map[full_path_string]
+    for key in include_dict.keys():
+      current_dict[key] = include_dict[key]
+
+    current_dict = macro_dict_list[-1]
+    include_dict = macro_dict_map[full_path_string]
+    for key in include_dict.keys():
+      current_dict[key] = include_dict[key]
     return []
 
   parsed_set.add(full_path_string)
   queue.append(full_path_string)
   define_dict_list.append({})
   macro_dict_list.append({})
+  define_dict_map[full_path_string] = {}
+  macro_dict_map[full_path_string] = {}
 
   import ply.lex as lex
   import ply.yacc as yacc
@@ -1056,7 +1094,10 @@ def parse_file_to_ast(file_path):
   reader.close()
   ast = yacc.parse(input_string)
 
-  update_cleanup()
+  define_dict_map[full_path_string] = define_dict_list.pop()
+  macro_dict_map[full_path_string] = macro_dict_list.pop()
+  queue.pop()
+  #update_cleanup()
   return ast
 
 def get_define(file_path):
@@ -1131,7 +1172,12 @@ def test_lex():
 
   lex.lex()
   lex.input('''
-#define ASSIGN(x, bin) {bins.cell(bin) += os.cell(x); a.cell(x) = bin; os.cell(x) = 0.0; }
+template<W(1,5)>
+transform Merge
+from IN[n]
+to OUT[n]
+{
+}
 ''')
   while 1:
     tok = lex.token()
