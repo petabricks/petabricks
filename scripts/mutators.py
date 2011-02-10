@@ -25,7 +25,7 @@ class Mutator:
                     'worse':  0.0,
                     'same':   0.0,
                     'fail':   0.0}
-    self.timesSelected = 1  # total number of times this operator has been selected
+    self.timesSelected = 0  # total number of times this operator has been selected
 
 
   ''' mutatorLog is assumed to be sorted best-first according to the current evaluation metric'''

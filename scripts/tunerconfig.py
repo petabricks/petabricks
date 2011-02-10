@@ -80,6 +80,7 @@ class config_defaults:
   threads = None
   abort_on = ""
   race_split_ratio = 0.5
+  max_gen = None
   
   threshold_multiplier_min = 100.0
   threshold_multiplier_max = 1000.0

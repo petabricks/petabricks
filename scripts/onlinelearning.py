@@ -50,20 +50,20 @@ def getconf(c):
 
 lastMutatorId = 0
 class MutatorLogEntry:
-  def __init__(self, mutator, candidate, time, accuracy):
+  def __init__(self, mutator, candidate, dtime, daccuracy):
     global lastMutatorId
 
     self.mutator = mutator
     self.candidate = candidate
-    self.time = time
-    self.accuracy = accuracy
+    self.dtime = dtime
+    self.daccuracy = daccuracy
     self.id = lastMutatorId + 1
     lastMutatorId = self.id
  
   def __repr__(self):
     return "%s (%f s, %s acc) [id = %i]" % (str(self.mutator),
-                                            self.time,
-                                            "n/a" if self.accuracy == None else str(self.accuracy),
+                                            self.dtime,
+                                            "n/a" if self.daccuracy == None else str(self.daccuracy),
                                             self.id)
 
 
@@ -72,32 +72,25 @@ class MutatorLog:
     self.log = []
     self.name = name
 
-  def add(self, c):
+  def add(self, c, dtime, dacc):
     # slide the candidate window
     if len(self.log) >= config.window_size:
       self.log.sort(key=lambda x: x.id)
       self.log.pop(0);
 
-    if(not c.wasTimeout):
-      acc = getacc(c)
-    else:
-      acc = None
-
-    self.log =[MutatorLogEntry(c.lastMutator, c, gettime(c), acc)] + self.log
+    self.log = [MutatorLogEntry(c.lastMutator, c, dtime, dacc)] + self.log
 
 
-  '''fastest first'''
-  def getSortedByTime(self):
+  '''biggest speedups first'''
+  def getSortedByDeltaTime(self):
     sortedLog = MutatorLog(self.name)
-    sortedLog.log = sorted(self.log, key=lambda entry: entry.time)
+    sortedLog.log = sorted(self.log, key=lambda entry: entry.dtime)
     return sortedLog
 
-  '''most accurate first'''
-  def getSortedByAcc(self):
+  '''biggest jumps in accuracy first'''
+  def getSortedByDeltaAcc(self):
     sortedLog = MutatorLog(self.name)
-    # if acc == None (not available), treat it as -1 so that it's worse than the accuracy of any
-    # candidate with an available accuracy value
-    sortedLog.log = sorted(self.log, key=lambda entry: 1 if entry.accuracy == None else -entry.accuracy)
+    sortedLog.log = sorted(self.log, key=lambda entry: -entry.daccuracy if entry.daccuracy != None else 100000)
     return sortedLog
 
   def __repr__(self):
@@ -344,6 +337,8 @@ def onlinelearnInner(benchmark):
     for gen in itertools.count(1):
       if config.max_time and objectives.elapsed>config.max_time:
         break
+      if config.max_gen and gen>config.max_gen:
+        break
       if gen%config.reweight_interval==0:
         pop.reweight()
 
@@ -370,15 +365,18 @@ def onlinelearnInner(benchmark):
 
         if c is None:
           c=p
-        else:
-          mutatorLog.add(c);
         
         logging.debug("Child vs parent, better=%d, %f vs. %f" % (int(gettime(c) < gettime(p)), gettime(c), gettime(p)))
         clog.writerow([gen, lasttime(p), lastacc(p), lasttime(c), lastacc(c)]
                       +map(storagedirs.relpath,[p.cfgfile(), s.cfgfile(), c.cfgfile()]))
 
         dtime = gettime(c) - gettime(p)
-        dacc = "None" if c.wasTimeout else (getacc(c) - getacc(p))
+        dacc = None if c.wasTimeout else (getacc(c) - getacc(p))
+
+        if c is not None:          
+          mutatorLog.add(c, dtime, dacc);
+
+        
         mlog.logPerformance(gen, gettime(c), "None" if c.wasTimeout else getacc(c), dtime, dacc, str(c.lastMutator));
         mlog.logScores(gen, c.mutatorScores)
 
@@ -414,6 +412,7 @@ if __name__ == "__main__":
                     help="enable debugging options")
   parser.add_option("-n", type="int", help="input size to train for")
   parser.add_option("--max_time",        type="float",  action="callback", callback=option_callback)
+  parser.add_option("--max_gen",         type="int",  action="callback", callback=option_callback)
   parser.add_option("--output_dir",      type="string", action="callback", callback=option_callback)
   parser.add_option("--seed",            type="string", action="callback", callback=option_callback)
   parser.add_option("--offset",          type="int",    action="callback", callback=option_callback)
