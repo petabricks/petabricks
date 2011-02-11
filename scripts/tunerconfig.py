@@ -9,7 +9,7 @@ class config_defaults:
   #how long to train for
   max_input_size           = 2**30
   min_input_size           = 1
-  max_time                 = 60*15
+  max_time                 = 60*150
   rounds_per_input_size    = 1
   final_rounds             = 1
 
