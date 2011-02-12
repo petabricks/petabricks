@@ -10,7 +10,6 @@ to METRIC
             x = std::numeric_limits<double>::epsilon();
         }
         metric = -log10(x);
-        fprintf(stderr, "out: %.25g, metric: %.25g\n", out, metric);
     }
 }
 
