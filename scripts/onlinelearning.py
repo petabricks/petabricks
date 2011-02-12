@@ -50,13 +50,15 @@ def getconf(c):
 
 lastMutatorId = 0
 class MutatorLogEntry:
-  def __init__(self, mutator, candidate, dtime, daccuracy):
+  def __init__(self, mutator, candidate, dtime, daccuracy, time, acc):
     global lastMutatorId
 
     self.mutator = mutator
     self.candidate = candidate
     self.dtime = dtime
     self.daccuracy = daccuracy
+    self.time = time
+    self.acc = acc
     self.id = lastMutatorId + 1
     lastMutatorId = self.id
  
@@ -72,13 +74,25 @@ class MutatorLog:
     self.log = []
     self.name = name
 
-  def add(self, c, dtime, dacc):
+  def add(self, c, dtime, dacc, time, acc):
     # slide the candidate window
     if len(self.log) >= config.window_size:
       self.log.sort(key=lambda x: x.id)
       self.log.pop(0);
 
-    self.log = [MutatorLogEntry(c.lastMutator, c, dtime, dacc)] + self.log
+    self.log = [MutatorLogEntry(c.lastMutator, c, dtime, dacc, time, acc)] + self.log
+
+
+  '''biggest speedups first'''
+  def getSortedByTime(self):
+    sortedLog = MutatorLog(self.name)
+    sortedLog.log = sorted(self.log, key=lambda entry: entry.time)
+    return sortedLog
+
+  '''biggest jumps in accuracy first'''
+  def getSortedByAcc(self):
+    sortedLog = MutatorLog(self.name)
+    sortedLog.log = sorted(self.log, key=lambda entry: -entry.accuracy if entry.accuracy != None else 100000)
 
 
   '''biggest speedups first'''
@@ -374,7 +388,7 @@ def onlinelearnInner(benchmark):
         dacc = None if c.wasTimeout else (getacc(c) - getacc(p))
 
         if c is not None:          
-          mutatorLog.add(c, dtime, dacc);
+          mutatorLog.add(c, dtime, dacc, gettime(c), None if c.wasTimeout else getacc(c));
 
         
         mlog.logPerformance(gen, gettime(c), "None" if c.wasTimeout else getacc(c), dtime, dacc, str(c.lastMutator));

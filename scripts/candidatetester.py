@@ -309,6 +309,8 @@ class Candidate:
         method = c.weightedSumMutate
       elif config.os_method == OperatorSelectionMethod.ROULETTE:
         method = c.rouletteWheelMutate
+      elif config.os_method == OperatorSelectionMethod.ABS_ROC:
+        method = c.absUpperConfidenceBoundMutate
  
     for z in xrange(config.mutate_retries):
       try:
@@ -394,6 +396,16 @@ class Candidate:
       mutatorLog = mutatorLog.getSortedByDeltaTime()
       
     self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog))
+
+
+  def absUpperConfidenceBoundMutate(self, n, mutatorLog, objectives):
+      
+    if(objectives.needAccuracy()):
+      mutatorLog = mutatorLog.getSortedByAcc()
+    else:
+      mutatorLog = mutatorLog.getSortedByTime()
+      
+    self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog))   
 
 
   ''' Selects a mutator which maximizes objectives*(1/time) + (1-objectives)*accuracy, summed over times

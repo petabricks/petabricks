@@ -4,6 +4,7 @@ class OperatorSelectionMethod:
   WEIGHTED_SUM   = 2
   ROC_AREA       = 3
   ROULETTE       = 4
+  ABS_ROC        = 5
 
 class config_defaults:
   #how long to train for
