@@ -261,6 +261,45 @@ class TunableArrayMutator(Mutator):
         candidate.config[config.fmt_bin % (self.tunable, i)] = self.minVal+0
       i+=1
 
+class Tunable2DArrayMutator(TunableArrayMutator):
+  def __init__(self, tunable, size, minVal, maxVal, weight=1.0):
+    self.size = size
+    TunableArrayMutator.__init__(self, tunable, minVal, maxVal, weight)
+  def setVal(self, candidate, newVal, n):
+    i = int(math.log(n, 2))
+    candidate.clearResultsAbove(min(n, 2**i-1))
+    ks = set(candidate.config.keys())
+    assert config.fmt_bin2D%(self.tunable, 0, i) in ks
+    while config.fmt_bin2D%(self.tunable, 0, i) in ks:
+      for j in range(0, self.size):
+        candidate.config[config.fmt_bin2D % (self.tunable, j, i)] = newVal[j]
+      i+=1
+  def mutate(self, candidate, n):
+    i = int(math.log(n, 2))
+    old = []
+    for j in range(0, self.size):
+      old.append candidate.config[config.fmt_bin2D % (self.tunable, j, i)]
+    new = self.getVal(candidate, old, n)
+    #print str(candidate),self.tunable, old, new
+    self.setVal(candidate, new, n)
+  def reset(self, candidate):
+    candidate.clearResults()
+    i = 0
+    ks = set(candidate.config.keys())
+    assert config.fmt_bin2D%(self.tunable, 0, i) in ks
+    while config.fmt_bin2D%(self.tunable, 0, i) in ks:
+      for j in range(0, self.size):
+        candidate.config[config.fmt_bin2D % (self.tunable, j, i)] = newVal[j]
+      i+=1
+
+    ks = set(candidate.config.keys())
+    assert config.fmt_bin%(self.tunable, i) in ks
+    while config.fmt_bin%(self.tunable, i) in ks:
+      for j in range(0, self.size):
+        if candidate.config[config.fmt_bin2D % (self.tunable, j, i)] < self.minVal[j]:
+          candidate.config[config.fmt_bin2D % (self.tunable, j, i)] = self.minVal[j] + 0
+      i+=1
+
 class LognormTunableArrayMutator(TunableArrayMutator, LognormRandom):
   pass
 
@@ -281,10 +320,10 @@ class ScaleTunableArrayMutator(TunableArrayMutator):
   def random(self, oldVal, minVal, maxVal, candidate = None):
     return min(maxVal, max(minVal, oldVal*self.inc))
 
-class OptimizeTunableArrayMutator(TunableArrayMutator):
+class OptimizeTunable2DArrayMutator(Tunable2DArrayMutator):
 
-  def __init__(self, tunable, minVal, maxVal, weight=1.0):
-    TunableArrayMutator.__init__(self, tunable, minVal, maxVal, weight)
+  def __init__(self, tunable, size, minVal, maxVal, weight=1.0):
+    Tunable2DArrayMutator.__init__(self, tunable, size, minVal, maxVal, weight)
 
   def measureAccuracy(self, value, candidate, n):
     self.setVal(candidate, value, n)

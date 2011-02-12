@@ -106,6 +106,7 @@ class config_defaults:
   fmt_cutoff     = "%s_%d_lvl%d_cutoff"
   fmt_rule       = "%s_%d_lvl%d_rule"
   fmt_bin        = "%s__%d"
+  fmt_bin2D      = "%s_%d__%d"
   first_lvl      = 1
   cutoff_max_val = 2**30
 
