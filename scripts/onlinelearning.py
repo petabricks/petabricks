@@ -58,7 +58,7 @@ class MutatorLogEntry:
     self.dtime = dtime
     self.daccuracy = daccuracy
     self.time = time
-    self.acc = acc
+    self.accuracy = acc
     self.id = lastMutatorId + 1
     lastMutatorId = self.id
  
@@ -93,6 +93,7 @@ class MutatorLog:
   def getSortedByAcc(self):
     sortedLog = MutatorLog(self.name)
     sortedLog.log = sorted(self.log, key=lambda entry: -entry.accuracy if entry.accuracy != None else 100000)
+    return sortedLog
 
 
   '''biggest speedups first'''
