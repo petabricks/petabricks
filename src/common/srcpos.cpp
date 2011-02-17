@@ -51,6 +51,7 @@ bool jalib::SrcPosTaggable::srcPos(std::ostream& os) const {
     return false;
   }
 }
+
 std::string jalib::SrcPosTaggable::srcPos() const {
   std::ostringstream os;
   if(srcPos(os))
@@ -58,6 +59,15 @@ std::string jalib::SrcPosTaggable::srcPos() const {
   else
     return "<unknown>";
 }
+
+jalib::FileLineCol jalib::SrcPosTaggable::srcPosFirst() const {
+  _compactSrcPosList(_positions);
+  if(!_positions.empty())
+    return _positions.front()->first();
+  else
+    return FileLineCol();
+}
+
 const jalib::SrcPosTaggable* _lexicalSrcPos() {
   return NULL;
 }

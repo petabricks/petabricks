@@ -26,6 +26,7 @@ namespace jalib { class SrcPosTaggable; }
 const jalib::SrcPosTaggable* _lexicalSrcPos();
 typedef const jalib::SrcPosTaggable* (*_lexicalSrcPosT)();
 #define DISABLESRCPOS() _lexicalSrcPosT _lexicalSrcPos = ::_lexicalSrcPos
+#define SRCPOS() _lexicalSrcPos()
 
 namespace jalib {
 
@@ -105,7 +106,9 @@ public:
   void tagPosition(const SrcPosPtr& p) { if(p) _positions.push_back(p); }
   bool srcPos(std::ostream& os) const;
   std::string srcPos() const;
+  FileLineCol srcPosFirst() const;
   const SrcPosTaggable* _lexicalSrcPos() const { return this; }
+
 private:
   mutable std::vector<SrcPosPtr> _positions;
 };

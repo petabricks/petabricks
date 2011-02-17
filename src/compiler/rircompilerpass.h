@@ -179,7 +179,9 @@ public:
   DebugPrintPass() : RIRCompilerPass(RIRScope::global()->createChildLayer()) {}
   void beforeAny(const RIRNodeRef& n){
     std::cout << std::string(depth()*2, ' ')
-              << n->debugStr() << std::endl; 
+              << n->debugStr()
+              << "   -- " << n->srcPos()
+              << std::endl; 
   }
 };
 

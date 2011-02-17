@@ -71,10 +71,11 @@ int petabricks::RuleInterface::offsetVarToDimension(const std::string& var, cons
 }
 
 
-void petabricks::UserRule::setBody(const char* str){
-  JWARNING(_bodysrc=="")(_bodysrc);
+void petabricks::UserRule::setBody(const char* str, const jalib::SrcPos& p){
+  JWARNING(_bodysrc=="")(_bodysrc)(p);
   _bodysrc=str;
   _bodysrc[_bodysrc.length()-1] = ' ';
+  _bodysrcPos.tagPosition(p.clone());
 }
 
 void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope){
@@ -94,7 +95,7 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
   GpuRenamePass gpurename;
   bool failgpu = false;
 #endif
-  RIRBlockCopyRef   bodyir = RIRBlock::parse(_bodysrc);
+  RIRBlockCopyRef bodyir = RIRBlock::parse(_bodysrc, &_bodysrcPos);
 
 #ifdef DEBUG
   std::cerr << "--------------------\nBEFORE compileRuleBody:\n" << bodyir << std::endl;
