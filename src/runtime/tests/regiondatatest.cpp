@@ -12,6 +12,7 @@
 #include "petabricks.h"
 
 #include "regiondataraw.h"
+#include "regiondatasplit.h"
 
 using namespace petabricks;
 
@@ -32,13 +33,16 @@ int main(int argc, const char** argv){
   IndexT m2[] = {2,2,2};
   IndexT m3[] = {3,3,3};
 
-  RegionDataIPtr regiondata = new RegionDataRaw(filename2);
+  RegionDataRawPtr regiondata = new RegionDataRaw(filename2);
 
   regiondata->print();
 
   printf("before %4.8g\n", regiondata->readCell(m0));
   regiondata->writeCell(m0, 5);
   printf("after %4.8g\n", regiondata->readCell(m0));
+
+  RegionDataSplitPtr regionDataSplit = new RegionDataSplit(regiondata, m3);
+  regionDataSplit->print();
 
   printf("completed\n");
 }

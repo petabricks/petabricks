@@ -12,6 +12,7 @@ int RegionDataI::dimensions() {
   return _D;
 }
 
+// size() is the size of this part, not the entire region
 IndexT* RegionDataI::size() {
   return _size;
 }

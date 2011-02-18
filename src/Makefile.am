@@ -67,6 +67,7 @@ pkglib_HEADERS=  \
   runtime/regiondatai.h \
   runtime/regiondataraw.h \
   runtime/regiondataremote.h \
+  runtime/regiondatasplit.h \
   runtime/regionhandler.h \
   runtime/regionmatrix.h \
   runtime/regionmatrixi.h \
@@ -142,6 +143,7 @@ libpbruntime_a_SOURCES =  \
   runtime/regiondatai.cpp \
   runtime/regiondataraw.cpp \
   runtime/regiondataremote.cpp \
+  runtime/regiondatasplit.cpp \
   runtime/regionhandler.cpp \
   runtime/regionmatrix.cpp \
   runtime/regionmatrixi.cpp \

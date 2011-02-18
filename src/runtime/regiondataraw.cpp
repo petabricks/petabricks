@@ -3,21 +3,26 @@
 using namespace petabricks;
 
 RegionDataRaw::RegionDataRaw(int dimensions, IndexT* size, ElementT* data) {
-  init(dimensions, size, data);
+  init(dimensions, size, data, NULL);
+}
+
+RegionDataRaw::RegionDataRaw(int dimensions, IndexT* size, IndexT* partOffset) {
+  init(dimensions, size, NULL, partOffset);
 }
 
 RegionDataRaw::RegionDataRaw(char* filename) {
   MatrixIO* matrixio = new MatrixIO(filename, "r");
   MatrixReaderScratch o = matrixio->readToMatrixReaderScratch();
-  init(o.dimensions, o.sizes, o.storage->data());
+  init(o.dimensions, o.sizes, o.storage->data(), NULL);
 }
 
 RegionDataRaw::~RegionDataRaw() {
   delete _data;
   delete _multipliers;
+  delete _partOffset;
 }
 
-void RegionDataRaw::init(int dimensions, IndexT* size, ElementT* data) {
+void RegionDataRaw::init(int dimensions, IndexT* size, ElementT* data, IndexT* partOffset) {
   _D = dimensions;
   
   _size = new IndexT[_D];
@@ -29,7 +34,6 @@ void RegionDataRaw::init(int dimensions, IndexT* size, ElementT* data) {
   }
 
   _data = new ElementT[numData];
-  
   if (data) {
     memcpy(_data, data, sizeof(ElementT) * numData); 
   }
@@ -39,13 +43,29 @@ void RegionDataRaw::init(int dimensions, IndexT* size, ElementT* data) {
   for (int i = 1; i < _D; i++) {
     _multipliers[i] = _multipliers[i - 1] * _size[i - 1];
   }
+
+  if (partOffset) {
+    _partOffset = new IndexT[_D];
+    memcpy(_partOffset, partOffset, sizeof(IndexT) * _D);
+  }
 }
 
 ElementT* RegionDataRaw::coordToPtr(const IndexT* coord){
   IndexT offset = 0;
-  for(int i = 0; i < _D; i++){
-    offset += _multipliers[i] * coord[i];
+  
+  if (_partOffset) {
+    // this is a part of a region
+    // convert original coord to this part coord before calculating offset
+
+    for(int i = 0; i < _D; i++){
+      offset += _multipliers[i] * (coord[i] - _partOffset[i]);
+    }
+  } else {
+    for(int i = 0; i < _D; i++){
+      offset += _multipliers[i] * coord[i];
+    }
   }
+  
   return _data + offset;
 }
 

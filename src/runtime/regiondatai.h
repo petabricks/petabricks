@@ -13,6 +13,8 @@ namespace petabricks {
   class RegionDataI : public jalib::JRefCounted {
   protected:
     int _D;
+
+    // _size is the size of this part, not the entire region
     IndexT* _size;
 
   public:
@@ -26,7 +28,7 @@ namespace petabricks {
 
     // for tests
     int incCoord(IndexT* coord);
-    void print();
+    virtual void print();
   };
 }
 

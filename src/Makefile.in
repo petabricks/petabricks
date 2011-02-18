@@ -118,6 +118,7 @@ am_libpbruntime_a_OBJECTS = libpbruntime_a-autotuner.$(OBJEXT) \
 	libpbruntime_a-regiondatai.$(OBJEXT) \
 	libpbruntime_a-regiondataraw.$(OBJEXT) \
 	libpbruntime_a-regiondataremote.$(OBJEXT) \
+	libpbruntime_a-regiondatasplit.$(OBJEXT) \
 	libpbruntime_a-regionhandler.$(OBJEXT) \
 	libpbruntime_a-regionmatrix.$(OBJEXT) \
 	libpbruntime_a-regionmatrixi.$(OBJEXT) \
@@ -368,6 +369,7 @@ pkglib_HEADERS = \
   runtime/regiondatai.h \
   runtime/regiondataraw.h \
   runtime/regiondataremote.h \
+  runtime/regiondatasplit.h \
   runtime/regionhandler.h \
   runtime/regionmatrix.h \
   runtime/regionmatrixi.h \
@@ -443,6 +445,7 @@ libpbruntime_a_SOURCES = \
   runtime/regiondatai.cpp \
   runtime/regiondataraw.cpp \
   runtime/regiondataremote.cpp \
+  runtime/regiondatasplit.cpp \
   runtime/regionhandler.cpp \
   runtime/regionmatrix.cpp \
   runtime/regionmatrixi.cpp \
@@ -642,6 +645,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiondatai.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiondataraw.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiondataremote.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiondatasplit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regionhandler.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regionmatrix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regionmatrixi.Po@am__quote@
@@ -1400,6 +1404,20 @@ libpbruntime_a-regiondataremote.obj: runtime/regiondataremote.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regiondataremote.cpp' object='libpbruntime_a-regiondataremote.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regiondataremote.obj `if test -f 'runtime/regiondataremote.cpp'; then $(CYGPATH_W) 'runtime/regiondataremote.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regiondataremote.cpp'; fi`
+
+libpbruntime_a-regiondatasplit.o: runtime/regiondatasplit.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regiondatasplit.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regiondatasplit.Tpo -c -o libpbruntime_a-regiondatasplit.o `test -f 'runtime/regiondatasplit.cpp' || echo '$(srcdir)/'`runtime/regiondatasplit.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regiondatasplit.Tpo $(DEPDIR)/libpbruntime_a-regiondatasplit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regiondatasplit.cpp' object='libpbruntime_a-regiondatasplit.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regiondatasplit.o `test -f 'runtime/regiondatasplit.cpp' || echo '$(srcdir)/'`runtime/regiondatasplit.cpp
+
+libpbruntime_a-regiondatasplit.obj: runtime/regiondatasplit.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regiondatasplit.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-regiondatasplit.Tpo -c -o libpbruntime_a-regiondatasplit.obj `if test -f 'runtime/regiondatasplit.cpp'; then $(CYGPATH_W) 'runtime/regiondatasplit.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regiondatasplit.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regiondatasplit.Tpo $(DEPDIR)/libpbruntime_a-regiondatasplit.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regiondatasplit.cpp' object='libpbruntime_a-regiondatasplit.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regiondatasplit.obj `if test -f 'runtime/regiondatasplit.cpp'; then $(CYGPATH_W) 'runtime/regiondatasplit.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regiondatasplit.cpp'; fi`
 
 libpbruntime_a-regionhandler.o: runtime/regionhandler.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regionhandler.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regionhandler.Tpo -c -o libpbruntime_a-regionhandler.o `test -f 'runtime/regionhandler.cpp' || echo '$(srcdir)/'`runtime/regionhandler.cpp

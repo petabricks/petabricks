@@ -13,17 +13,19 @@ namespace petabricks {
   private:
     ElementT* _data;
     IndexT* _multipliers;
+    IndexT* _partOffset;
 
   public:
     RegionDataRaw(char* filename);
     RegionDataRaw(int dimensions, IndexT* size, ElementT* data);
+    RegionDataRaw(int dimensions, IndexT* size, IndexT* partOffset);
     ~RegionDataRaw();
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
 
   private:
-    void init(int dimensions, IndexT* size, ElementT* data);
+    void init(int dimensions, IndexT* size, ElementT* data, IndexT* partOffset);
     ElementT* coordToPtr(const IndexT* coord);
   };
 }
