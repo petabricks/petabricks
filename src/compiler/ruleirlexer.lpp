@@ -127,8 +127,8 @@ CHAR ['][\\]?.[']
 %%
 
 void _ruleirlexer_scan_string( const std::string& str, const jalib::SrcPosTaggable* pos) {
-  if(pos!=0) {
-    jalib::FileLineCol t = pos->srcPosFirst();
+  if(pos!=0 && pos->srcPosFirst()) {
+    jalib::FileLineCol t = pos->srcPosFirst()->first();
     ruleirfilename = t.filename;
     ruleirlineno   = t.line;
     ruleircolno    = t.column;

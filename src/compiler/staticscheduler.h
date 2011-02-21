@@ -18,6 +18,7 @@
 #include "region.h"
 
 #include "common/jrefcounted.h"
+#include "common/srcpos.h"
 
 #include <list>
 #include <map>
@@ -56,7 +57,7 @@ public:
   }
 };
 
-class ScheduleNode : public jalib::JRefCounted, public jalib::JPrintable {
+class ScheduleNode : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
 public:
   ///
   /// Constructor
@@ -215,7 +216,7 @@ private:
   ScheduleNodeList _schedule;
 };
 
-class StaticScheduler : public jalib::JRefCounted, public jalib::JPrintable {
+class StaticScheduler : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
 public:
   ScheduleNodeSet lookupNode(const MatrixDefPtr& matrix, const SimpleRegionPtr& region);
 

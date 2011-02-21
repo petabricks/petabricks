@@ -76,6 +76,7 @@ void petabricks::Transform::setRules(const RuleList& l){
 }
 
 void petabricks::Transform::print(std::ostream& o) const {
+  SRCPOSSCOPE();
   o << "lineno " << srcPos() << std::endl;
   if(!_templateargs.empty()){ 
     o << "template < ";   printStlList(o, _templateargs.begin(), _templateargs.end(), ", "); 
@@ -111,6 +112,7 @@ void petabricks::Transform::print(std::ostream& o) const {
 }
 
 void petabricks::Transform::initialize() {
+  SRCPOSSCOPE();
   MaximaWrapper::instance().pushContext();
 
   if(_accuracyBins.size()>1){
@@ -214,6 +216,7 @@ void petabricks::Transform::expandWhereClauses( RuleSet& rules
 }
 
 void petabricks::Transform::compile(){ 
+  SRCPOSSCOPE();
   MaximaWrapper::instance().pushContext();
   jalib::Map(&MatrixDef::exportAssumptions, _from);
   jalib::Map(&MatrixDef::exportAssumptions, _through);
@@ -274,6 +277,7 @@ std::string petabricks::Transform::tmplName(int n, CodeGenerator* o) {
 }
 
 void petabricks::Transform::generateCode(CodeGenerator& o){ 
+  SRCPOSSCOPE();
   if(_templateargs.empty())
     generateCodeSimple(o); //normal case
   else {
@@ -592,6 +596,7 @@ void petabricks::Transform::extractConstants(CodeGenerator& o){
 }
 
 void petabricks::Transform::registerMainInterface(CodeGenerator& o){
+  SRCPOSSCOPE();
   //TODO: generate as a binary search
   if(_templateargs.empty()){
     std::string n = name()+"_main::instance()";

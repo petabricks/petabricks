@@ -22,18 +22,33 @@
 
 
 namespace jalib { class SrcPosTaggable; }
+
 //in global scope, so one can run _lexicalSrcPos() anywhere and not get an error
 const jalib::SrcPosTaggable* _lexicalSrcPos();
+
 typedef const jalib::SrcPosTaggable* (*_lexicalSrcPosT)();
+
+// Disable lexical source position guessing in a scope
 #define DISABLESRCPOS() _lexicalSrcPosT _lexicalSrcPos = ::_lexicalSrcPos
+
+// Query lexical source position
 #define SRCPOS() _lexicalSrcPos()
+
+// Register the current source position on the source position stack
+#define SRCPOSSCOPE() jalib::SrcPosScopeHelper _srcPosScope(jalib::SrcPosStack::global(), _lexicalSrcPos())
 
 namespace jalib {
 
 class SrcPos;
 typedef JRef<const SrcPos> SrcPosPtr;
 
+class SrcPosStack : public std::vector<SrcPosPtr> {
+public:
+  /** Global stack to represent the source position of the current callframe */
+  static SrcPosStack& global();
+};
 
+/** A single source position */
 struct FileLineCol {
   std::string filename;
   int line;
@@ -47,53 +62,47 @@ struct FileLineCol {
   FileLineCol operator+(int i) const { return FileLineCol(filename,line+i); }
   FileLineCol operator-(int i) const { return FileLineCol(filename,line-i); }
   friend bool operator< (const FileLineCol& a, const FileLineCol& b) {
-    if(a.filename==b.filename){
-      if(a.line==b.line)
-        return a.column<b.column;
-      else
-        return a.line<b.line;
-    }
-    return a.filename<b.filename;
+    if(a.filename!=b.filename)
+      return a.filename<b.filename;
+    if(a.line!=b.line)
+      return a.line<b.line;
+    return a.column<b.column;
   }
   bool sameFile(const FileLineCol& b) const { return filename==b.filename; }
 };
 
+/** A range of source positions */
 class SrcPos : public JRefCounted, public JPrintable {
 public:
+  SrcPos(const std::string& file, int line, int col1, int col2, bool isAuto=false)
+    : _first(FileLineCol(file,line,col1))
+    , _last(FileLineCol(file,line,col2))
+    , _isAutotagged(isAuto)
+  {}
   SrcPos(const FileLineCol& first, const FileLineCol& last, bool isAuto=false)
     : _first(first), _last(last), _isAutotagged(isAuto)
   {}
   SrcPos(const FileLineCol& first, bool isAuto=false)
     : _first(first), _last(first), _isAutotagged(isAuto)
   {}
+  SrcPos(const SrcPos& that, bool isAuto)
+    : _first(that.first()), _last(that.last()), _isAutotagged(isAuto)
+  {}
   SrcPos(bool isAuto=false)
     : _isAutotagged(isAuto)
   {}
-  SrcPos(const std::string& file, int line, int col1, int col2, bool isAuto=false)
-    : _first(FileLineCol(file,line,col1))
-    , _last(FileLineCol(file,line,col2))
-    , _isAutotagged(isAuto)
-  {}
-  void print(std::ostream& o) const {
-    o << _first.filename;
-    if(_first.filename != _last.filename)
-      o << "/" << _last.filename;
-    if(_first.line>=0)
-      o << ":" << _first.line;
-    if(_last.line>=0 && _last.line!=_first.line){
-      o << "-" << _last.line;
-    } else {
-      if(_first.column >= 0)
-        o << " (col " << _first.column << "-" << _last.column << ")";
-    }
-  }
+
+  void print(std::ostream& o) const;
 
   FileLineCol& first() { return _first; }
   FileLineCol& last() { return _last; }
   const FileLineCol& first() const { return _first; }
   const FileLineCol& last() const { return _last; }
 
-  SrcPosPtr clone() const { return new SrcPos(*this); }
+  bool isAutoTagged() const { return _isAutotagged; }
+
+  SrcPosPtr clone() const            { return new SrcPos(*this); }
+  SrcPosPtr clone(bool isAuto) const { return new SrcPos(*this, isAuto); }
 private:
   FileLineCol _first;
   FileLineCol _last;
@@ -101,20 +110,46 @@ private:
 };
 
 
+/** Base class for objects that can be tagged with source positions */
 class SrcPosTaggable {
 public:
+  SrcPosTaggable();
   void tagPosition(const SrcPosPtr& p) { if(p) _positions.push_back(p); }
+  void clearPosition() { _positions.clear(); }
   bool srcPos(std::ostream& os) const;
   std::string srcPos() const;
-  FileLineCol srcPosFirst() const;
+  SrcPosPtr srcPosFirst() const;
   const SrcPosTaggable* _lexicalSrcPos() const { return this; }
-
 private:
   mutable std::vector<SrcPosPtr> _positions;
 };
 
-}//namespace jalib
 
+/**
+ * When constructed push pos onto stack
+ * When destructed remove it from the stack
+ */
+class SrcPosScopeHelper {
+public:
+  SrcPosScopeHelper(SrcPosStack& stack, const SrcPosTaggable* pos)
+    : _stack(stack), _pos(pos ? pos->srcPosFirst() : SrcPosPtr())
+  {
+    if(_pos){
+      _stack.push_back(_pos);  
+    }
+  }
+  ~SrcPosScopeHelper() {
+    if(_pos){
+      _stack.pop_back();
+    }
+  }
+private:
+  SrcPosStack& _stack;
+  SrcPosPtr _pos;
+};
+
+
+}//namespace jalib
 
 
 //these defines are for bison/flex integration
@@ -148,6 +183,5 @@ inline T* _tagposhelper(T* t, const jalib::SrcPos& pos){
   return t;
 }
 #endif
-
 #endif
 
