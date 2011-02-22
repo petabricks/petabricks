@@ -23,10 +23,23 @@ namespace {
   bool cmpAutoTagged(const jalib::SrcPosPtr& a, const jalib::SrcPosPtr& b){
     return a->isAutoTagged() < b->isAutoTagged();
   }
+  
+  bool cmpNull(const jalib::SrcPosPtr& a, const jalib::SrcPosPtr& b){
+    return a->isNull() < b->isNull();
+  }
 
   void _compactSrcPosList(std::vector<jalib::SrcPosPtr>& v){
     if(v.size() <= 1)
       return;
+
+    // drop null 
+    std::sort(v.begin(), v.end(), cmpNull);
+    while(!v.empty() && v.back()->isNull()){
+      v.pop_back();
+    }
+    if(v.size() <= 1)
+      return;
+    JASSERT(!v.front()->isNull());
 
     // drop autotagged if real tags exist
     std::sort(v.begin(), v.end(), cmpAutoTagged);

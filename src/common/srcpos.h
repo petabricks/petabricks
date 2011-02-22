@@ -69,6 +69,10 @@ struct FileLineCol {
     return a.column<b.column;
   }
   bool sameFile(const FileLineCol& b) const { return filename==b.filename; }
+
+  bool isNull() const {
+    return filename.empty() && line<=0;
+  }
 };
 
 /** A range of source positions */
@@ -100,9 +104,12 @@ public:
   const FileLineCol& last() const { return _last; }
 
   bool isAutoTagged() const { return _isAutotagged; }
+  bool isNull() const { return _first.isNull() && _last.isNull(); }
 
   SrcPosPtr clone() const            { return new SrcPos(*this); }
   SrcPosPtr clone(bool isAuto) const { return new SrcPos(*this, isAuto); }
+
+
 private:
   FileLineCol _first;
   FileLineCol _last;
