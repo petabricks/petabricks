@@ -13,6 +13,7 @@
 
 #include "codegenerator.h"
 #include "maximawrapper.h"
+#include "pbc.h"
 #include "staticscheduler.h"
 #include "syntheticrule.h"
 
@@ -242,11 +243,11 @@ void petabricks::Transform::compile(){
     (*i)->collectDependencies(_scheduler);
   }
   #ifdef DEBUG
-  _scheduler->writeGraph((name()+".schedule_initial.dot").c_str());
+  _scheduler->writeGraph((pbcConfig::theObjDir+"/"+name()+".schedule_initial.dot").c_str());
   #endif
   _scheduler->generateSchedule();
   #ifdef DEBUG
-  _scheduler->writeGraph((name()+".schedule.dot").c_str());
+  _scheduler->writeGraph((pbcConfig::theObjDir+"/"+name()+".schedule.dot").c_str());
   #endif
   
   MaximaWrapper::instance().popContext();

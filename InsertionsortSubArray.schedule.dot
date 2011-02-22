@@ -1,5 +1,0 @@
-digraph {
-  n14[label="n14: OUT.region(0, n)"];
-  n15[label="n15: IN.region(0, n)"];
-  n15 -> n14[ label="(<=)"];
-}

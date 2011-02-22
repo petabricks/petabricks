@@ -1,8 +1,0 @@
-digraph {
-  n39[label="n39: IN.region(0, n)"];
-  n40[label="n40: Pos.region(, )"];
-  n41[label="n41: Coscheduled:\n TEMP.region(0, n)\n OUT.region(0, n)"];
-  n41 -> n41[ label="(NONE)"];
-  n40 -> n41[ label="()"];
-  n39 -> n41[ label="(<=)"];
-}

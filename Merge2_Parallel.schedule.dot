@@ -1,7 +1,0 @@
-digraph {
-  n25[label="n25: OUT.region(0, (n2+n1))"];
-  n26[label="n26: IN1.region(0, n1)"];
-  n27[label="n27: IN2.region(0, n2)"];
-  n27 -> n25[ label="(<=)"];
-  n26 -> n25[ label="(<=)"];
-}
