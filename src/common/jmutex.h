@@ -72,15 +72,15 @@ class JMutexPthread{
   JMutexPthread(const JMutexPthread&); //banned
 public:
   JMutexPthread(){
+    #ifdef DEBUG
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
-    #ifdef DEBUG
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
-    #else
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
-    #endif
     JASSERT(pthread_mutex_init(&_mux, &attr)==0);
     pthread_mutexattr_destroy(&attr);
+    #else
+    JASSERT(pthread_mutex_init(&_mux, 0)==0);
+    #endif
   }
   ~JMutexPthread(){
     JASSERT(pthread_mutex_destroy(&_mux)==0);
