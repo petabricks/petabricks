@@ -29,6 +29,10 @@ def cpuCount():
   except:
     pass
   try:
+    return os.sysconf("_SC_NPROCESSORS_ONLN")
+  except:
+    pass
+  try:
     return int(os.environ["NUMBER_OF_PROCESSORS"])
   except:
     pass
@@ -42,7 +46,7 @@ def getmemorysize():
   try:
     return int(re.match("MemTotal: *([0-9]+) *kB", open("/proc/meminfo").read()).group(1))*1024
   except:
-    sys.stderr.write("failed to get total memory\n"%n)
+    sys.stderr.write("failed to get total memory\n")
     return 8 * (1024**3) # guess 8gb
 
 def setmemlimit(n = getmemorysize()):
@@ -50,7 +54,7 @@ def setmemlimit(n = getmemorysize()):
     import resource
     resource.setrlimit(resource.RLIMIT_AS, (n,n))
   except:
-    sys.stderr.write("failed to set memory limit\n"%n)
+    sys.stderr.write("failed to set memory limit\n")
 
 
 

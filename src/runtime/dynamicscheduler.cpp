@@ -21,9 +21,10 @@
 
 petabricks::DynamicScheduler& petabricks::DynamicScheduler::cpuScheduler(){
   static DynamicScheduler t;
-  if(t._rawThreads.empty()){
+  if(t._rawThreadsLen==0) {
     // add the main thread
-    t._rawThreads.push_back(pthread_self());
+    t._rawThreads[0] = pthread_self();
+    t._rawThreadsLen=1;
   }
   return t;
 }
@@ -42,19 +43,26 @@ petabricks::DynamicScheduler& petabricks::DynamicScheduler::lookupScheduler(Dyna
 }
 
 extern "C" void *workerStartup(void *arg) {
-  JASSERT(arg!=0);
-  petabricks::WorkerThread worker(*(petabricks::DynamicScheduler*)arg);
-  worker.mainLoop();
+  try {
+    JASSERT(arg!=0);
+    petabricks::WorkerThread worker(*(petabricks::DynamicScheduler*)arg);
+    worker.mainLoop();
+  }catch(petabricks::DynamicScheduler::CleanExitException e){}
   return NULL;
 }
 
 void petabricks::DynamicScheduler::startWorkerThreads(int total)
 {
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, 0);
   JASSERT(numThreads() <= total)(numThreads())(total);
   while(numThreads() < total){
-    _rawThreads.push_back(pthread_t());
-    JASSERT(pthread_create(&_rawThreads.back(), NULL, workerStartup, this) == 0);
+    JASSERT(pthread_create(_rawThreads+_rawThreadsLen, &attr, workerStartup, this) == 0);
+    _rawThreadsLen++;
+    JASSERT(_rawThreadsLen < MAX_NUM_WORKERS);
   }
+  pthread_attr_destroy(&attr);
 }
 
 void petabricks::DynamicScheduler::abort(){
@@ -88,17 +96,18 @@ void petabricks::DynamicScheduler::shutdown(){
     DynamicTaskPtr t = new AbortTask(numThreads(), true);
     t->run();
   }catch(AbortException e){}
-  pthread_t self = pthread_self();
-  bool hadSelf = false;
-  while(!_rawThreads.empty()){
-    if(_rawThreads.front()!=self)
-      JASSERT(pthread_join(_rawThreads.front(), 0)==0);
-    else
-      hadSelf = true;
-    _rawThreads.pop_front();
+
+  for(int i=1; i<_rawThreadsLen; ++i) {
+    int rv = pthread_join(_rawThreads[i], NULL);
+    JWARNING(rv==0)(rv).Text("pthread_join failed");
   }
-  if(hadSelf)
-    _rawThreads.push_back(self);
+  if(pthread_equal(_rawThreads[0], pthread_self())){
+    _rawThreadsLen=1;
+  }else{
+    int rv = pthread_join(_rawThreads[0], NULL);
+    JWARNING(rv==0)(rv).Text("pthread_join failed");
+    _rawThreadsLen=0;
+  }
 }
   
 

@@ -303,7 +303,11 @@ petabricks::SimpleRegionPtr petabricks::SimpleRegion::regionUnion(const SimpleRe
 bool petabricks::SimpleRegion::hasIntersect(const SimpleRegion& that) const {
   if(toString() == that.toString()) //optimization
     return true;
-  JASSERT(dimensions()==that.dimensions());
+  if(dimensions()!=that.dimensions()){
+    JWARNING(dimensions()==that.dimensions())
+      .Text("assuming no intersect");
+    return false;
+  }
   if(dimensions()==0) return true;
   for(size_t i=0; i<dimensions(); ++i){
     if( MaximaWrapper::instance().compare(maxCoord()[i], "<=", that.minCoord()[i]) )

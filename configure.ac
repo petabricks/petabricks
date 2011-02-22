@@ -128,9 +128,9 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__thread int x;]])],
                   ])
 
 AC_MSG_CHECKING([if compiler supports forced inlining])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((always_inline)) __attribute__((flatten)) void foo(){}]])],
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((flatten)) void foo(){}]])],
                   [  
-                    AC_DEFINE([INLINE],[inline __attribute__((always_inline)) __attribute__((flatten))], [keyword to force inlining])
+                    AC_DEFINE([INLINE],[inline __attribute__((flatten))], [keyword to force inlining])
                     AC_MSG_RESULT([yes]);
                   ],
                   [  

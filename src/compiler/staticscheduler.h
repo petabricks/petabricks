@@ -238,7 +238,9 @@ public:
       _outputs.insert(i->asPtr());
   }
 
-  void writeGraphAsPDF(const char* filename) const;
+  void renderGraph(const char* filename, const char* type="png") const;
+  void writeGraph(const char* filename) const;
+  void writeGraph(FILE* fd) const;
 
   void generateSchedule();
 

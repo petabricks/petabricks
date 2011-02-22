@@ -92,17 +92,17 @@ petabricks::ScheduleNodeSet petabricks::StaticScheduler::lookupNode(const Matrix
 }
 
 void petabricks::StaticScheduler::generateSchedule(){
-  #ifdef DEBUG 
-  //writeGraphAsPDF("schedule_initial.pdf");
-  #endif
+  // #ifdef DEBUG 
+  // renderGraph("schedule_initial.png");
+  // #endif
 
   computeIndirectDependencies();
 
   mergeCoscheduledNodes();
 
-  #ifdef DEBUG 
-  writeGraphAsPDF("schedule.pdf");
-  #endif
+  // #ifdef DEBUG 
+  // renderGraph("schedule.png");
+  // #endif
 
   _schedule.markInputs(_inputs);
 
@@ -259,11 +259,21 @@ void petabricks::UnischeduledNode::generateCodeForSlice(Transform& trans, CodeGe
 }
 
 
-void petabricks::StaticScheduler::writeGraphAsPDF(const char* filename) const{
-  std::string schedulerGraph = toString();
-  FILE* fd = popen(("dot -Grankdir=TD -Tpdf -o "+std::string(filename)).c_str(), "w");
-  fwrite(schedulerGraph.c_str(),1,schedulerGraph.length(),fd);
+void petabricks::StaticScheduler::renderGraph(const char* filename, const char* type) const{
+  FILE* fd = popen(("dot -Grankdir=TD -T"+std::string(type)+" -o "+std::string(filename)).c_str(), "w");
+  writeGraph(fd);
   pclose(fd);
+}
+
+void petabricks::StaticScheduler::writeGraph(const char* filename) const{
+  FILE* fd = fopen(std::string(filename).c_str(), "w");
+  writeGraph(fd);
+  fclose(fd);
+}
+
+void petabricks::StaticScheduler::writeGraph(FILE* fd) const{
+  std::string schedulerGraph = toString();
+  fwrite(schedulerGraph.c_str(),1,schedulerGraph.length(),fd);
 }
 
 int petabricks::ScheduleNode::updateIndirectDepends(){

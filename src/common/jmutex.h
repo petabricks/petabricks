@@ -21,16 +21,70 @@
 #define JALIBJMUTEX_H
 
 #include "jassert.h"
+#include "jasm.h"
 
 #include <pthread.h>
 
+#ifdef __APPLE__
+#include <sched.h>
+#define pthread_yield sched_yield
+#endif //__APPLE__
+
+#define JMUTEX_ALIGNMENT 128
+
 namespace jalib {
 
-class JMutex{
-  JMutex(const JMutex&); //banned
+class JMutexPthread;
+class JMutexSpin;
+typedef JMutexSpin JMutex;
+
+class JMutexSpin{
+  JMutexSpin(const JMutexSpin&); //banned
 public:
-  JMutex(){ pthread_mutex_init(&_mux, NULL); }
-  ~JMutex(){ pthread_mutex_destroy(&_mux); }
+  JMutexSpin() : _v(0) {}
+  
+  bool trylock() const {
+    memFence();
+    return _v==0 && fetchAndStore(&_v, 1)==0;
+  }
+
+  void unlock() const {
+    memFence();
+    _v = 0;
+    memFence();//not needed?
+  }
+  
+  void lock() const {
+    while(!trylock()) {
+      staticMemFence();
+    }
+  }
+
+protected:
+  ///
+  /// 0 for unlocked, 1 for locked
+  mutable long _v;
+  PADDING(CACHE_LINE_SIZE - sizeof(long));
+} __attribute__((aligned(CACHE_LINE_SIZE)));
+
+
+class JMutexPthread{
+  JMutexPthread(const JMutexPthread&); //banned
+public:
+  JMutexPthread(){
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    #ifdef DEBUG
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
+    #else
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+    #endif
+    JASSERT(pthread_mutex_init(&_mux, &attr)==0);
+    pthread_mutexattr_destroy(&attr);
+  }
+  ~JMutexPthread(){
+    JASSERT(pthread_mutex_destroy(&_mux)==0);
+  }
 
   void lock() const {JASSERT(pthread_mutex_lock(&_mux)   == 0);}
   bool trylock() const {return pthread_mutex_trylock(&_mux) == 0;}
@@ -40,10 +94,10 @@ protected:
 };
 
 //a mutex and a condition variable
-class JCondMutex : public JMutex {
+class JCondMutex : public JMutexPthread {
 public:
-  JCondMutex(){  pthread_cond_init(&_cond, NULL); }
-  ~JCondMutex(){ pthread_cond_destroy(&_cond); }
+  JCondMutex(){ JASSERT( pthread_cond_init(&_cond, NULL) == 0); }
+  ~JCondMutex(){JASSERT( pthread_cond_destroy(&_cond) == 0); }
 
   void wait() const      {JASSERT(pthread_cond_wait(&_cond, &_mux) == 0);}
   void signal() const    {JASSERT(pthread_cond_signal(&_cond)      == 0);}
@@ -55,10 +109,16 @@ protected:
 class JLockScope{
   JLockScope(const JLockScope&); //banned
 public:
-  JLockScope(const JMutex& mux) : _mux(mux) { _mux.lock(); }
-  ~JLockScope() { _mux.unlock(); }
+  //support both spin and pthread versions
+  JLockScope(const JMutexSpin& mux)    : _s(&mux), _p(0)     { mux.lock(); }
+  JLockScope(const JMutexPthread& mux) : _s(0),    _p(&mux)  { mux.lock(); }
+  ~JLockScope() {
+    if(_s!=0)      _s->unlock();
+    else if(_p!=0) _p->unlock();
+  }
 private:
-  const JMutex& _mux;
+  const JMutexSpin*    _s;
+  const JMutexPthread* _p;
 };
 
 #define _JLOCKSCOPE_CAT(a, b) a ## b
