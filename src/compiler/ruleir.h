@@ -15,6 +15,7 @@
 #include "common/jconvert.h"
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
+#include "common/srcpos.h"
 
 #include <list>
 #include <map>
@@ -74,7 +75,9 @@ public:
 /**
  * Base class for all Rule IR types
  */
-class RIRNode : public jalib::JRefCounted, public jalib::JPrintable {
+class RIRNode : public jalib::JRefCounted,
+                public jalib::JPrintable,
+                public jalib::SrcPosTaggable {
   typedef std::map<std::string, std::string> AnnotationT;
 public:
 
@@ -142,7 +145,7 @@ protected:
  */
 class RIRExpr  : public RIRNode {
 public:
-  static RIRExprCopyRef parse(const std::string& str);
+  static RIRExprCopyRef parse(const std::string& str, const jalib::SrcPosTaggable*);
   RIRExpr(Type t, const std::string& str="") : RIRNode(t), _str(str) {}
   void addSubExpr(const RIRExprCopyRef& p) { _parts.push_back(p); }
   void prependSubExpr(const RIRExprCopyRef& p) { _parts.push_front(p); }
@@ -209,7 +212,7 @@ public:
  */
 class RIRStmt  : public RIRNode {
 public:
-  static RIRStmtCopyRef parse(const std::string& str);
+  static RIRStmtCopyRef parse(const std::string& str, const jalib::SrcPosTaggable*);
 
   RIRStmt(Type t) : RIRNode(t) {}
   void addExpr(const RIRExprCopyRef& p){ _exprs.push_back(p); }
@@ -357,7 +360,7 @@ private:
  */
 class RIRBlock : public RIRNode {
 public:
-  static RIRBlockCopyRef parse(const std::string& str);
+  static RIRBlockCopyRef parse(const std::string& str, const jalib::SrcPosTaggable*);
 
   RIRBlock() : RIRNode(BLOCK) {}
   void addStmt(const RIRStmtCopyRef& p) { _stmts.push_back(p); }

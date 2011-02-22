@@ -7,12 +7,12 @@ if len(sys.argv)!=2:
   sys.exit(1)
 
 errorMsg = '''
-ERROR: Problem with 'maxima' on this system:
+Problem with 'maxima' on this system:
          %s
 
-       Try downgrading to maxima 5.13, which can be found here:
-         - http://packages.debian.org/lenny/maxima
-         - http://packages.debian.org/lenny/maxima-share
+       Try upgrading to maxima 5.22, which can be found here:
+         - http://packages.debian.org/sid/maxima
+         - http://packages.debian.org/sid/maxima-share
        for debian based systems.
 
        There is a bug in maxima 5.15 to 5.20.1 that prevent it from working
@@ -20,8 +20,11 @@ ERROR: Problem with 'maxima' on this system:
 '''
 
 def die(msg):
-  sys.stderr.write(errorMsg % msg)
+  sys.stderr.write("ERROR: "+ errorMsg % msg)
   sys.exit(1)
+
+def warn(msg):
+  sys.stderr.write("WARNING: "+ errorMsg % msg)
 
 
 p=subprocess.Popen([sys.argv[1], "--version"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -39,6 +42,9 @@ o=p.communicate('''
 
   assume(equal(x,i))$
   test2rslt = diff(x+1,x);
+
+  assume(y<5)$
+  test3rslt = is(equal(y,5));
 ''')[0]
 signal.alarm(0)
 
@@ -50,13 +56,15 @@ def findResult(name):
   else:
     die("no output produced")
 
-if findResult("test1rslt") != "unknown":
-  die("ineq assume()/is() broken")
-
 if p.returncode!=0 or findResult("test2rslt") != "1":
   die("maxima crash bug (http://sourceforge.net/tracker/?func=detail&atid=104933&aid=2938078&group_id=4933)")
 
 if "Could not find `ineq'" in o:
   die("maxima-share is not installed (load(ineq) failed)")
 
+if findResult("test1rslt") != "unknown":
+  warn("ineq assume()/is() broken")
+
+if findResult("test3rslt") != "false":
+  warn("equal() is broken")
 

@@ -18,6 +18,7 @@
 #include "region.h"
 
 #include "common/jrefcounted.h"
+#include "common/srcpos.h"
 
 #include <list>
 #include <map>
@@ -56,7 +57,7 @@ public:
   }
 };
 
-class ScheduleNode : public jalib::JRefCounted, public jalib::JPrintable {
+class ScheduleNode : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
 public:
   ///
   /// Constructor
@@ -134,8 +135,8 @@ public:
   }
 
   bool isInput() const { return _isInput; }
-  void markInput(){ _isInput=true; }
-  void markLast(){ _isLast=true; }
+  void markInput() { _isInput = true; }
+  void markLast()  { _isLast = true;  }
 
   std::string getChoicePrefix(Transform& t);
 protected:
@@ -173,9 +174,9 @@ class CoscheduledNode : public ScheduleNode {
 public:
   CoscheduledNode(const ScheduleNodeSet& set);
 
-  const MatrixDefPtr&    matrix() const { JASSERT(false); return MatrixDefPtr::null(); }
-  const SimpleRegionPtr& region() const { JASSERT(false); return SimpleRegionPtr::null(); }
-  const ChoiceGridPtr& choices() const  { JASSERT(false); return ChoiceGridPtr::null(); }
+  const MatrixDefPtr&    matrix()  const { JASSERT(false); return MatrixDefPtr::null(); }
+  const SimpleRegionPtr& region()  const { JASSERT(false); return SimpleRegionPtr::null(); }
+  const ChoiceGridPtr&   choices() const { JASSERT(false); return ChoiceGridPtr::null(); }
 
   void print(std::ostream& o) const {
     o << "Coscheduled:";
@@ -189,7 +190,33 @@ private:
   int             _dimension;
 };
 
-class StaticScheduler : public jalib::JRefCounted, public jalib::JPrintable {
+
+/**
+ * Contains an order to execute nodes in
+ */
+class Schedule {
+public:
+  void markInputs(const ScheduleNodeSet& inputs) {
+    JASSERT(_generated.empty());
+    _generated = inputs;
+  }
+  void depthFirstSchedule(ScheduleNode* n);  
+
+
+  void generateCodeStatic(Transform& trans, CodeGenerator& o);
+  void generateCodeDynamic(Transform& trans, CodeGenerator& o);
+
+  size_t size() const { return _schedule.size(); }
+private:
+  //intermediate state
+  ScheduleNodeSet _generated;
+  ScheduleNodeSet _pending;
+  
+  //the ordering
+  ScheduleNodeList _schedule;
+};
+
+class StaticScheduler : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
 public:
   ScheduleNodeSet lookupNode(const MatrixDefPtr& matrix, const SimpleRegionPtr& region);
 
@@ -201,27 +228,26 @@ public:
     JASSERT(regions.size()==0)(matrix).Text("Rules given for input matrix");
     regions.push_back(new UnischeduledNode(matrix, r, NULL));
     _allNodes.push_back(regions.back());
-    _generated.insert(regions.back().asPtr());
+    _inputs.insert(regions.back().asPtr());
     regions.back()->markInput();
   }
   void markOutputMatrix(const MatrixDefPtr& matrix){
     ScheduleNodeList& lst = _matrixToNodes[matrix];
     JASSERT(lst.size()>0);
     for(ScheduleNodeList::iterator i=lst.begin(); i!=lst.end(); ++i)
-      _goals.insert(i->asPtr());
-    //TODO make sure no missing spots
+      _outputs.insert(i->asPtr());
   }
 
-  void writeGraphAsPDF(const char* filename) const;
+  void renderGraph(const char* filename, const char* type="png") const;
+  void writeGraph(const char* filename) const;
+  void writeGraph(FILE* fd) const;
 
   void generateSchedule();
-
-  void depthFirstSchedule(ScheduleNode* n);
 
   void computeIndirectDependencies();
   void mergeCoscheduledNodes();
   
-  const ScheduleNodeList& schedule() const { return _schedule; }
+  //const ScheduleNodeList& schedule() const { return _schedule; }
 
   void print(std::ostream& o) const {
     o << "digraph {\n";
@@ -245,13 +271,11 @@ private:
   ScheduleNodeList _allNodes;
   ScheduleNodeList _remappedNodes;
 
-  //intermediate state of depthFirstSchedule
-  ScheduleNodeSet _goals;
-  ScheduleNodeSet _generated;
-  ScheduleNodeSet _pending;
+  ScheduleNodeSet _inputs;
+  ScheduleNodeSet _outputs;
 
   //output schedule
-  ScheduleNodeList _schedule;
+  Schedule _schedule;
 };
 
 }

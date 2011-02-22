@@ -84,7 +84,7 @@ static const char* _cxxdemangle(const char* i){
 #define _cxxdemangle(x) x
 #endif
 
-static pthread_mutex_t theMutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+static pthread_mutex_t theMutex = PTHREAD_MUTEX_INITIALIZER;
 static jalib::JAssert::CallbackT theBeginCallback = 0;
 
 int jalib::JAssert::onBegin(CallbackT fn){

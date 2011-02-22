@@ -41,7 +41,7 @@ bool petabricks::RulePriCmp::operator()(const RulePtr& r1, const RulePtr& r2) co
 {
   int p1 = r1->priority()*2 - r1->hasWhereClause();
   int p2 = r2->priority()*2 - r2->hasWhereClause();
-  if(p1==p2) return r1<r2;
+  if(p1==p2) return r1->id()<r2->id();
   return p1<p2;
 }
 

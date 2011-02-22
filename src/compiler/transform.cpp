@@ -76,6 +76,7 @@ void petabricks::Transform::setRules(const RuleList& l){
 }
 
 void petabricks::Transform::print(std::ostream& o) const {
+  SRCPOSSCOPE();
   o << "lineno " << srcPos() << std::endl;
   if(!_templateargs.empty()){ 
     o << "template < ";   printStlList(o, _templateargs.begin(), _templateargs.end(), ", "); 
@@ -111,11 +112,12 @@ void petabricks::Transform::print(std::ostream& o) const {
 }
 
 void petabricks::Transform::initialize() {
+  SRCPOSSCOPE();
   MaximaWrapper::instance().pushContext();
 
   if(_accuracyBins.size()>1){
     JWARNING(_templateargs.empty())(_name).Text("variable accuracy templates not yet supported");
-    _templateargs.push_back(new TemplateArg(TEMPLATE_BIN_STR, 0, _accuracyBins.size()-1));
+    _templateargs.push_back(new TemplateArg(TEMPLATE_BIN_STR, 0, (int)_accuracyBins.size()-1));
   }
 
   jalib::Map(&MatrixDef::initialize, *this, _from);
@@ -166,6 +168,7 @@ void petabricks::Transform::initialize() {
 }
 
 void petabricks::Transform::fillBaseCases(const MatrixDefPtr& matrix) {
+  SRCPOSSCOPE();
   RuleDescriptorListList boundaries;
   boundaries.resize( matrix->numDimensions() );
   RuleSet allowed;
@@ -203,6 +206,7 @@ void petabricks::Transform::fillBaseCases(const MatrixDefPtr& matrix) {
 void petabricks::Transform::expandWhereClauses( RuleSet& rules
                                               , const MatrixDefPtr&
                                               , const SimpleRegionPtr&){
+  SRCPOSSCOPE();
   //TODO: it is possible that some subset of the rules could make a complete choice
   //      at some point we may want to detect such subsets and create multiple
   //      WhereExpansionRules for each of those subsets
@@ -214,6 +218,7 @@ void petabricks::Transform::expandWhereClauses( RuleSet& rules
 }
 
 void petabricks::Transform::compile(){ 
+  SRCPOSSCOPE();
   MaximaWrapper::instance().pushContext();
   jalib::Map(&MatrixDef::exportAssumptions, _from);
   jalib::Map(&MatrixDef::exportAssumptions, _through);
@@ -230,13 +235,19 @@ void petabricks::Transform::compile(){
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     _scheduler->markInputMatrix(*i);
   }
-  for(RuleList::const_iterator i=_rules.begin(); i!=_rules.end(); ++i){
-    (*i)->collectDependencies(_scheduler);
-  }
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     _scheduler->markOutputMatrix(*i);
   }
+  for(RuleList::const_iterator i=_rules.begin(); i!=_rules.end(); ++i){
+    (*i)->collectDependencies(_scheduler);
+  }
+  #ifdef DEBUG
+  _scheduler->writeGraph((name()+".schedule_initial.dot").c_str());
+  #endif
   _scheduler->generateSchedule();
+  #ifdef DEBUG
+  _scheduler->writeGraph((name()+".schedule.dot").c_str());
+  #endif
   
   MaximaWrapper::instance().popContext();
 }
@@ -255,7 +266,7 @@ std::string petabricks::Transform::tmplName(int n, CodeGenerator* o) {
   int choice=n;
   //add #defines
   for(size_t i=0; i<_templateargs.size(); ++i){
-    int val=(choice%_templateargs[i]->range()) + _templateargs[i]->min();
+    int val=(choice%_templateargs[i]->range()) + _templateargs[i]->min().i();
     choice/=_templateargs[i]->range();
     if(o!=NULL){
       o->write("#define " + _templateargs[i]->name() + " " + jalib::XToString(val));
@@ -274,6 +285,7 @@ std::string petabricks::Transform::tmplName(int n, CodeGenerator* o) {
 }
 
 void petabricks::Transform::generateCode(CodeGenerator& o){ 
+  SRCPOSSCOPE();
   if(_templateargs.empty())
     generateCodeSimple(o); //normal case
   else {
@@ -302,7 +314,7 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
     _templateChoice = -1;
     genTmplJumpTable(o, true, normalArgs(), normalArgNames());
     genTmplJumpTable(o, false, normalArgs(), normalArgNames());
-    o.write("typedef "+tmplName(0)+"_main "+_name+"_main;");
+    o.hos() << "typedef "+tmplName(0)+"_main "+_name+"_main;\n";
   }
 }
   
@@ -311,6 +323,7 @@ void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
                     const std::vector<std::string>& args,
                     const std::vector<std::string>& argNames)
 {
+  SRCPOSSCOPE();
   std::ostringstream formula;
   std::stringstream ss;
   std::vector<std::string> targs;
@@ -393,6 +406,7 @@ std::vector<std::string> petabricks::Transform::spawnArgNames() const{
 
 
 void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::string& nextMain){ 
+  SRCPOSSCOPE();
   _usesSplitSize=false;
   _tuneId = 0;
   std::vector<std::string> args = normalArgs();
@@ -406,13 +420,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     if(i->hasFlag(ConfigItem::FLAG_FROMCFG)){
-      if(i->hasFlag(ConfigItem::FLAG_SIZESPECIFIC)){
-        int tmp = i->initial();
-        if(tmp==i->min()) tmp--;
-        o.createTunableArray(i->category(), _name+"_"+i->name(), MAX_INPUT_BITS, tmp, i->min()-1, i->max(), i->hasFlag(ConfigItem::FLAG_TUNABLE));
-      }else{
-        o.createTunable(i->hasFlag(ConfigItem::FLAG_TUNABLE), i->category(), _name+"_"+i->name(), i->initial(), i->min(), i->max());
-      }
+      i->createTunableDecls(_name+"_", o);
     }
   }
 
@@ -499,6 +507,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
 }
 
 void petabricks::Transform::declTransformNFunc(CodeGenerator& o){
+  SRCPOSSCOPE();
   o.beginFunc("IndexT", TRANSFORM_N_STR);
   o.write("IndexT _rv_n=1;");
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
@@ -510,6 +519,7 @@ void petabricks::Transform::declTransformNFunc(CodeGenerator& o){
 }
 
 void petabricks::Transform::declTryMemoizeFunc(CodeGenerator& o){
+  SRCPOSSCOPE();
   o.beginFunc("bool", "tryMemoize");
   std::string abortCond = "false";
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i)
@@ -536,6 +546,7 @@ void petabricks::Transform::declTryMemoizeFunc(CodeGenerator& o){
 }
 
 void petabricks::Transform::markSplitSizeUse(CodeGenerator& o){
+  SRCPOSSCOPE();
   if(!_usesSplitSize){
     _usesSplitSize=true;
     o.createTunable(true, "system.cutoff.splitsize", _name + "_splitsize", 64, 1);
@@ -543,6 +554,7 @@ void petabricks::Transform::markSplitSizeUse(CodeGenerator& o){
 }
 
 void petabricks::Transform::extractSizeDefines(CodeGenerator& o, FreeVars fv, const char* inputsizestr){
+  SRCPOSSCOPE();
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     if(i->hasFlag(ConfigItem::FLAG_FROMCFG))
       fv.insert(i->name());
@@ -557,20 +569,12 @@ void petabricks::Transform::extractSizeDefines(CodeGenerator& o, FreeVars fv, co
   
   //construct size specific config items
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
-    if(i->hasFlag(ConfigItem::FLAG_SIZESPECIFIC)){
-      o.write(i->name()+" = petabricks::interpolate_sizespecific("
-                                       "TRANSFORM_LOCAL("+i->name()+"),"
-                                       +inputsizestr +" ,"+
-                                       jalib::XToString(i->min())+");");
-    }else{
-      if(i->shouldPass() && i->hasFlag(ConfigItem::FLAG_FROMCFG)){
-       o.write(i->name()+" = TRANSFORM_LOCAL("+i->name()+");");
-      }
-    }
+    i->assignTunableDecls(_name+"_", o, inputsizestr);
   }
 }
 
 void petabricks::Transform::extractConstants(CodeGenerator& o){
+  SRCPOSSCOPE();
 #ifdef INPUT_SIZE_STR
   o.addMember("IndexT", INPUT_SIZE_STR,       "0");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
@@ -592,7 +596,7 @@ void petabricks::Transform::extractConstants(CodeGenerator& o){
   
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     if(i->hasFlag(ConfigItem::FLAG_FROMCFG) && i->shouldPass()){
-      o.addMember("IndexT", i->name(), "1");
+      o.addMember(i->memberType(), i->name(), "1");
     }
   }
 
@@ -607,6 +611,7 @@ void petabricks::Transform::extractConstants(CodeGenerator& o){
 }
 
 void petabricks::Transform::registerMainInterface(CodeGenerator& o){
+  SRCPOSSCOPE();
   //TODO: generate as a binary search
   if(_templateargs.empty()){
     std::string n = name()+"_main::instance()";
@@ -630,6 +635,7 @@ void petabricks::Transform::registerMainInterface(CodeGenerator& o){
   
 
 void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::string& nextMain){ 
+  SRCPOSSCOPE();
   std::vector<std::string> argNames = normalArgNames();
   
   o.beginClass(_name+"_main", "petabricks::PetabricksRuntime::Main");
@@ -645,7 +651,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
 
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     if(i->hasFlag(ConfigItem::FLAG_FROMCFG) && i->shouldPass()){
-      o.addMember("IndexT", i->name(), "1");
+      o.addMember(i->memberType(), i->name(), "1");
     }
   }
 
@@ -878,6 +884,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
 }
 
 std::vector<std::string> petabricks::Transform::maximalArgList() const{
+  SRCPOSSCOPE();
   std::vector<std::string> tmp; 
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->argDeclRO(tmp);

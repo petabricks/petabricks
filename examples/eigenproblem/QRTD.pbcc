@@ -48,7 +48,7 @@ to Eigenvalue[n], Eigenvector[n,n]
   to (Eigenvalue Eig, Eigenvector Vec) from (Diag Din, Subdiag Ein)
   {
 
-	InlineCopy1D(Eig, Din);
+	Copy1D(Eig, Din);
 	QRTDsub(Eig, Vec, Ein);
 	//Transpose(Vec,Vtemp);
   }

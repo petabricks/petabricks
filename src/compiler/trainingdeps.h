@@ -13,6 +13,7 @@
 #define PETABRICKSTRAININGDEPS_H
 
 #include "common/jassert.h"
+#include "common/jtunable.h"
 
 #include "rule.h"
 
@@ -35,9 +36,9 @@ public:
   void addTunable( bool isTunable
                  , const std::string& category
                  , const std::string& name
-                 , int initial
-                 , int min
-                 , int max)
+                 , jalib::TunableValue initial
+                 , jalib::TunableValue min
+                 , jalib::TunableValue max)
   {
     if(isTunable)
       _os<< "    <tunable";

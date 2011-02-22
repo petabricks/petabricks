@@ -1,0 +1,13 @@
+
+function Add 
+from a, b
+to out
+{
+  out = a+b;
+}
+or
+{
+  out = a;
+  out += b;
+}
+

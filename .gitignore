@@ -22,6 +22,8 @@ config.status
 *.kdevelop.pcs
 *.kdevses
 
+parsetab.py
+
 
 #project specific
 Makefile
@@ -37,6 +39,7 @@ pbc
 
 maxima.log
 schedule.pdf
+schedule_initial.pdf
 
 Makefile.in
 configure

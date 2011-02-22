@@ -84,8 +84,16 @@
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
+<<<<<<< HEAD
 #line 42 "ruleirparser.ypp"
 {
+=======
+{
+
+/* Line 1676 of yacc.c  */
+#line 59 "ruleirparser.ypp"
+
+>>>>>>> dev
   const char* str;
   petabricks::RIRExpr*  expr;
   petabricks::RIRStmt*  stmt;

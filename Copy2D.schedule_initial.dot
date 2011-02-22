@@ -1,0 +1,5 @@
+digraph {
+  n5[label="n5: OUT.region(0,0, w,h)"];
+  n6[label="n6: IN.region(0,0, w,h)"];
+  n6 -> n5[ label="(=, =)"];
+}

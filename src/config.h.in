@@ -51,6 +51,12 @@
 /* the default minimum number of iterations for for_enough{} */
 #undef FORENOUGH_MIN_ITERS
 
+/* generated file name */
+#undef GENHEADER
+
+/* generated file name */
+#undef GENMISC
+
 /* set to 1 to use SHA1 instead of MD5 */
 #undef HASH_USE_SHA1
 
@@ -132,6 +138,9 @@
 /* Define to 1 if you have the <sys/mman.h> header file. */
 #undef HAVE_SYS_MMAN_H
 
+/* Define to 1 if you have the <sys/param.h> header file. */
+#undef HAVE_SYS_PARAM_H
+
 /* Define to 1 if you have the <sys/prctl.h> header file. */
 #undef HAVE_SYS_PRCTL_H
 
@@ -195,6 +204,9 @@
 /* type for indices into the matrix */
 #undef MATRIX_INDEX_T
 
+/* cache results from maxima */
+#undef MAXIMA_CACHING
+
 /* define in order to generate maxima.log, (a log of maxima commands) */
 #undef MAXIMA_LOG
 
@@ -215,6 +227,9 @@
 
 /* min number of workers supported */
 #undef MIN_NUM_WORKERS
+
+/* binutils tool used by pbc */
+#undef NM
 
 /* enable low level optimization such as specializations and prefetching */
 #undef OPT_LOWLEVEL
@@ -237,11 +252,17 @@
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
 
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
 /* define to run tasks inline instead of enqueuing them */
 #undef PBCC_SEQUENTIAL
+
+/* path to python interpreter */
+#undef PYTHON
 
 /* keyword to indicate non-aliased pointers/refs */
 #undef RESTRICT
@@ -254,12 +275,6 @@
 
 /* git revision for HEAD at the time ./configure was run */
 #undef REVISION_SHORT
-
-/* undefine to disable cpp */
-#undef RUN_CPP
-
-/* add using namespace petabricks to output */
-#undef SHORT_TYPE_NAMES
 
 /* define to use a global sequential cutoff instead of a per-transform one */
 #undef SINGLE_SEQ_CUTOFF
@@ -330,12 +345,12 @@
 #undef YYTEXT_POINTER
 
 /* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
+   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
    #define below would cause a syntax error. */
 #undef _UINT32_T
 
 /* Define for Solaris 2.5.1 so the uint64_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
+   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
    #define below would cause a syntax error. */
 #undef _UINT64_T
 

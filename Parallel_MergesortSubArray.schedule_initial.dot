@@ -1,0 +1,12 @@
+digraph {
+  n28[label="n28: OUT.region(0, n)"];
+  n29[label="n29: TEMP.region(0, n)"];
+  n30[label="n30: IN.region(0, n)"];
+  n31[label="n31: Pos.region(, )"];
+  n29 -> n28[ label="(NONE)"];
+  n31 -> n28[ label="()"];
+  n30 -> n28[ label="(<=)"];
+  n28 -> n29[ label="(NONE)"];
+  n31 -> n29[ label="()"];
+  n30 -> n29[ label="(<=)"];
+}
