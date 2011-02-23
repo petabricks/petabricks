@@ -75,7 +75,34 @@ void RegionMatrix::allocData() {
 }
 
 void RegionMatrix::importDataFromFile(char* filename) {
-  // TODO
+  // TODO: perf: move the import to regionDataRaw
+
+  this->acquireRegionData();
+  _regionData->allocData();
+
+  MatrixIO* matrixio = new MatrixIO(filename, "r");
+  MatrixReaderScratch o = matrixio->readToMatrixReaderScratch();
+  ElementT* data = o.storage->data();
+
+  IndexT* coord = new IndexT[_D];
+  memset(coord, 0, (sizeof coord) * _D);
+
+  int i = 0;
+
+  while (true) {
+    this->writeCell(coord, data[i]);
+    i++;
+
+    int z = this->incCoord(coord);
+    if (z == -1) {
+      break;
+    }
+  }  
+
+  this->releaseRegionData();
+
+  delete coord;
+  delete matrixio;
 }
 
 ElementT RegionMatrix::readCell(const IndexT* coord) {

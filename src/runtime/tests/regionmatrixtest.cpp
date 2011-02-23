@@ -97,10 +97,10 @@ int main(int argc, const char** argv){
     IndexT size[] = {8,9,8};
     RegionMatrixPtr regionMatrix = new RegionMatrix(3, size);
     regionMatrix->splitData(m2);
-    regionMatrix->allocData();
+    // regionMatrix->allocData();
+    regionMatrix->importDataFromFile(filename);
 
-    
-    //  regionMatrix->print();
+    regionMatrix->print();
     
     regionMatrix->acquireRegionData();
   
