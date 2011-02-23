@@ -187,9 +187,9 @@ void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
         config, minI, minI, maxI);
 
     // set the iteration bounds
-    loop.declPart() = RIRExpr::parse("int "+vI+" = 0");
-    loop.testPart() = RIRExpr::parse(vI+" < "+config);
-    loop.incPart()  = RIRExpr::parse("++"+vI);
+    loop.declPart() = RIRExpr::parse("int "+vI+" = 0", SRCPOS());
+    loop.testPart() = RIRExpr::parse(vI+" < "+config, SRCPOS());
+    loop.incPart()  = RIRExpr::parse("++"+vI, SRCPOS());
   }
 }
   
@@ -275,7 +275,7 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
     if(e->isLeaf("verify_accuracy")){
       std::string var = _uniquify("tmpacc");
 
-      RIRStmtCopyRef s1 = RIRStmt::parse("ElementT "+var+";");
+      RIRStmtCopyRef s1 = RIRStmt::parse("ElementT "+var+";", SRCPOS());
       s1->accept(*this);
       pushStmtBackward(s1);
 
@@ -284,17 +284,17 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
       os << _transform.accuracyMetric() << "(" <<  var << ", transform->";
       jalib::JPrintable::printStlList(os, argnames.begin(), argnames.end(), ", transform->");
       os << ");";
-      RIRStmtCopyRef s2 = RIRStmt::parse(os.str());
+      RIRStmtCopyRef s2 = RIRStmt::parse(os.str(), SRCPOS());
       s2->accept(*this);
       pushStmtBackward(s2);
 
       if(_transform.isAccuracyInverted())
-        e = RIRExpr::parse(var + "*-1 >= ACCURACY_TARGET");
+        e = RIRExpr::parse(var + "*-1 >= ACCURACY_TARGET", SRCPOS());
       else
-        e = RIRExpr::parse(var + " >= ACCURACY_TARGET");
+        e = RIRExpr::parse(var + " >= ACCURACY_TARGET", SRCPOS());
     }
     if(e->isLeaf("sync")){
-      e = RIRExpr::parse("SYNC()");
+      e = RIRExpr::parse("SYNC()", SRCPOS());
     }
   }
   if(e->type() == RIRNode::EXPR_KEYWORD){
@@ -404,12 +404,12 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
 
 	    std::string exprstr = region->matrix()->name() + "[(dim_" + region->matrix()->name() + "_d0*" + ycoord + ")+" + xcoord + "]";
 	    //std::cout << "expression string: " << exprstr << "\n";
-	    e = RIRExpr::parse( exprstr );
+	    e = RIRExpr::parse( exprstr, SRCPOS() );
 	    //std::cout << "accessor index: " << e->debugStr() << "\n";
 	  }
 	else if( "width" == methodname->str() )
 	  {
-	    e = RIRExpr::parse( "dim_" + region->matrix()->name() + "_d0" );
+	    e = RIRExpr::parse( "dim_" + region->matrix()->name() + "_d0", SRCPOS() );
 	  }
 	else
 	  {

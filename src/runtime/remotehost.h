@@ -85,11 +85,11 @@ protected:
     return _lastchan;
   }
 private:
-  HostPid _id;
-  jalib::JSocket _control;
   jalib::JMutex _controlmu;
-  jalib::JSocket _data[REMOTEHOST_DATACHANS];
   jalib::JMutex _datamu[REMOTEHOST_DATACHANS];
+  jalib::JSocket _control;
+  jalib::JSocket _data[REMOTEHOST_DATACHANS];
+  HostPid _id;
   int _lastchan;
   RemoteObjectList _objects;
 };

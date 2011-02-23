@@ -12,12 +12,17 @@
 #ifndef PETABRICKSPBC_H
 #define PETABRICKSPBC_H
 
-#include "config.h"
-#pragma once
+#include <string>
+
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 
 #ifdef HAVE_OPENCL
-#include "openclutil.h"
+# include "openclutil.h"
 #endif
+
+extern std::string thePbPreprocessor;
 
 namespace petabricks
 {

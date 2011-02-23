@@ -60,8 +60,8 @@ static void recordLitCode(){
   petabricks::CodeGenerator::theFilePrefix() << std::string(str.begin(), str.end()-2);
 }
 
-int rulebodystart=0;
 std::string pbfilename;
+int rulebodystart=0;
 int pbcolno=0;
 int pblastlineno=-1;
 
@@ -150,9 +150,10 @@ PASS_CHARS [=.<>,*/()[\]^+-]
   "and"             RETURN KW_AND;
   "||"              RETURN KW_OR;
   "or"              RETURN KW_OR;
-  [0-9]+[.][0-9]+   RETURN TOK_FLOAT;
-  [0-9]+            RETURN TOK_INTEGER;
-  [a-zA-Z_][a-zA-Z0-9_]* RETURN IDENT;
+  [0-9]+                      RETURN TOK_INTEGER;
+  [+-]?[0-9]+[.][0-9]+        RETURN TOK_FLOAT;
+  [+-]?[0-9.]+[eE][+-]?[0-9]+ RETURN TOK_FLOAT;
+  [a-zA-Z_][a-zA-Z0-9_]*      RETURN IDENT;
   {PASS_CHARS}      RETURN yytext[0];
   [/][*]            yy_push_state(comment);
   [/][/]            yy_push_state(linecomment);

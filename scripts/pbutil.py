@@ -29,20 +29,24 @@ def cpuCount():
   except:
     pass
   try:
+    return os.sysconf("_SC_NPROCESSORS_ONLN")
+  except:
+    pass
+  try:
     return int(os.environ["NUMBER_OF_PROCESSORS"])
   except:
     pass
   try:
     return int(os.environ["NUM_PROCESSORS"])
   except:
-    sys.write("failed to get the number of processors\n")
+    sys.stderr.write("failed to get the number of processors\n")
   return 1 # guess 1
 
 def getmemorysize():
   try:
     return int(re.match("MemTotal: *([0-9]+) *kB", open("/proc/meminfo").read()).group(1))*1024
   except:
-    sys.write("failed to get total memory\n"%n)
+    sys.stderr.write("failed to get total memory\n")
     return 8 * (1024**3) # guess 8gb
 
 def setmemlimit(n = getmemorysize()):
@@ -50,7 +54,7 @@ def setmemlimit(n = getmemorysize()):
     import resource
     resource.setrlimit(resource.RLIMIT_AS, (n,n))
   except:
-    sys.write("failed to set memory limit\n"%n)
+    sys.stderr.write("failed to set memory limit\n")
 
 
 
@@ -191,13 +195,20 @@ def parallelRunJobs(jobs):
   progress.pop()
   return jobs_done
 
+def getscriptpath():
+  try:
+    import configtool
+    m=re.search('''from ['"](.*)['"]''', str(configtool))
+    return os.path.dirname(m.group(1))
+  except:
+    return os.path.abspath(os.path.dirname(sys.argv[0]))
+    
 def chdirToPetabricksRoot():
-  isCurDirOk = lambda: os.path.isdir("examples") and os.path.isdir("src")
-  if isCurDirOk():
-    return
-  old=os.getcwd()
+  old = os.getcwd()
+  new = getscriptpath()
+  isCurDirOk = lambda: os.path.isfile("src/compiler/pbc.cpp")
   if not isCurDirOk():
-    os.chdir(os.pardir)
+    os.chdir(new)
   if not isCurDirOk():
     os.chdir(os.pardir)
   if not isCurDirOk():
@@ -214,24 +225,50 @@ def compilePetabricks():
       raise Exception("pbc compile failed")
     return rv
   return 0
-    
-benchmarkToBin=lambda name:"./examples/%s"%name
-benchmarkToSrc=lambda name:"./examples/%s.pbcc"%name
-benchmarkToInfo=lambda name:"./examples/%s.info"%name
-benchmarkToCfg=lambda name:"./examples/%s.cfg"%name
 
 
-def normalizeBenchmarkName(n, search=True):
-  n=re.sub("^[./]*examples[/]", "", n);
-  n=re.sub("[.]pbcc$","",n);
+def expandBenchmarkName(name, ext):
+  base=re.sub("[.]pbcc$","", name)
+  if ext:
+    name=base+ext
+  if name[0] != '/':
+    return "./examples/%s" % (name)
+  else:
+    return name
+
+benchmarkToBin  = lambda name: expandBenchmarkName(name, "")
+benchmarkToSrc  = lambda name: expandBenchmarkName(name, ".pbcc")
+benchmarkToInfo = lambda name: expandBenchmarkName(name, ".info")
+benchmarkToCfg  = lambda name: expandBenchmarkName(name, ".cfg")
+
+class InvalidBenchmarkNameException(Exception):
+  pass
+
+def searchBenchmarkName(n):
+  for root, dirs, files in os.walk("./examples"):
+    if n in files or n + ".pbcc" in files:
+      return normalizeBenchmarkName("%s/%s"%(root,n), False)
+  raise InvalidBenchmarkNameException()
+
+def normalizeBenchmarkName(orig, search=True):
+  n=re.sub("^[./]*examples[/]", "", orig);
+  n=re.sub("[.]pbcc$","", n)
+  if os.path.isfile(orig+".pbcc"):
+    orig = os.path.abspath(orig+".pbcc")
+  elif os.path.isfile(orig):
+    orig = os.path.abspath(orig)
+  else:
+    orig = None
   if os.path.isfile(benchmarkToSrc(n)) or not search:
     return n
-  #search for the file
-  n+=".pbcc"
-  for root, dirs, files in os.walk("./examples"):
-    if n in files:
-      return normalizeBenchmarkName("%s/%s"%(root,n), False)
-  raise Exception("invalid benchmark name: "+n)
+  else:
+    try:
+      return searchBenchmarkName(n)
+    except InvalidBenchmarkNameException:
+      if orig is not None:
+        return orig
+      raise
+
 
 def compileBenchmarks(benchmarks):
   NULL=open("/dev/null","w")
@@ -239,6 +276,7 @@ def compileBenchmarks(benchmarks):
   libdepends=[pbc, "./src/libpbmain.a", "./src/libpbruntime.a", "./src/libpbcommon.a"]
   assert os.path.isfile(pbc)
   benchmarkMaxLen=0
+  jobs_per_pbc=max(1, 2*cpuCount() / len(benchmarks))
 
   def compileBenchmark(name):
     print name.ljust(benchmarkMaxLen)
@@ -254,7 +292,7 @@ def compileBenchmarks(benchmarks):
     else:
       if os.path.isfile(bin):
         os.unlink(bin)
-      p = subprocess.Popen([pbc, src], stdout=NULL, stderr=NULL)
+      p = subprocess.Popen([pbc, '--jobs='+str(jobs_per_pbc), src], stdout=NULL, stderr=NULL)
       status = p.wait()
       if status == 0:
         print "compile PASSED"
@@ -296,6 +334,9 @@ def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postf
 
   if len(searchterms)>0:
     benchmarks=filter(lambda b: any(s in b[0] for s in searchterms), benchmarks)
+    
+  for b in benchmarks:
+    b[0]=normalizeBenchmarkName(b[0])
 
   return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x), lambda: postfn(x[0])), benchmarks))
 

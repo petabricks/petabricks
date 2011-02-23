@@ -14,7 +14,6 @@
 
 #include "choicegrid.h"
 #include "configitem.h"
-#include "learner.h"
 #include "matrixdef.h"
 #include "rirscope.h"
 #include "rule.h"
@@ -96,8 +95,6 @@ public:
   void markMain() { _isMain=true; }
   void markMemoized() { _memoized=true; }
 
-  Learner& learner() { return _learner; }
-
   //void addTestCase(const TestCasePtr& p) {tester().addTestCase(p);}
 
   std::vector<std::string> maximalArgList() const;
@@ -134,19 +131,52 @@ public:
   bool isVariableAccuracy() const { return !_accuracyBins.empty(); }
 
   std::string tmplName(int n, CodeGenerator* o=NULL);
-  
-  void addConfigItem(int flags, const std::string& n, int initial=0, int min=0, int max=std::numeric_limits<int>::max()){
+
+
+  void addConfigItem(const ConfigItem& value){
     ConfigItems::iterator i;
     //check if its already there?
-    for(i=_config.begin(); i!=_config.end(); ++i)
-      if(i->name()==n)
+    for(i=_config.begin(); i!=_config.end(); ++i){
+      if(i->name()==value.name())
         break;
-    if(i==_config.end()){
-      _config.push_back(ConfigItem(flags,n,initial,min,max));
-      i=_config.end()-1;
-    }else{
-      i->merge(flags,n,initial,min,max);
     }
+    if(i==_config.end()){
+      _config.push_back(value);
+    }else{
+      i->merge(value);
+    }
+  }
+
+
+  void addConfigItem(int flags, const std::string& n,
+                                jalib::TunableValue initial,
+                                jalib::TunableValue min,
+                                jalib::TunableValue max){
+    addConfigItem(ConfigItem(flags,n,initial,min,max));
+  }
+  
+  void addConfigItem(int flags, const std::string& n,
+                                jalib::TunableValue initial,
+                                jalib::TunableValue min){
+    if( (flags & ConfigItem::FLAG_DOUBLE) == 0 )
+      addConfigItem(flags, n, initial, min, jalib::maxval<int>());
+    else
+      addConfigItem(flags, n, initial, min, jalib::maxval<double>());
+  }
+
+  void addConfigItem(int flags, const std::string& n,
+                                jalib::TunableValue initial){
+    if( (flags & ConfigItem::FLAG_DOUBLE) == 0 )
+      addConfigItem(flags, n, initial, 0); 
+    else
+      addConfigItem(flags, n, initial, jalib::minval<double>());
+  }
+  
+  void addConfigItem(int flags, const std::string& n){
+    if( (flags & ConfigItem::FLAG_DOUBLE) == 0 )
+      addConfigItem(flags, n, 0); 
+    else
+      addConfigItem(flags, n, 0.0);
   }
 
   void addSizeVar(const std::string& name){
@@ -233,7 +263,6 @@ private:
   OrderedFreeVars _parameters;
   bool            _isMain;
   bool            _memoized;
-  Learner         _learner;
   StaticSchedulerPtr _scheduler;
   TemplateArgList     _templateargs;
   int                 _tuneId;

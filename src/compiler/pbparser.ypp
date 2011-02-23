@@ -13,6 +13,7 @@
 
 #include "formula.h"
 #include "matrixdef.h"
+#include "pbc.h"
 #include "region.h"
 #include "transform.h"
 #include "userrule.h"
@@ -82,6 +83,7 @@ extern int pblex(YYSTYPE * yylval_param,YYLTYPE * yylloc_param);
   petabricks::TemplateArg*     templatearg;
   petabricks::TemplateArgList* templateargs;
   petabricks::DoubleList*      doublelist;
+  petabricks::ConfigItem*      configitem;
   struct { const char* str; petabricks::FormulaList* formulas; } str_formulas; 
 }
 
@@ -114,8 +116,9 @@ extern int pblex(YYSTYPE * yylval_param,YYLTYPE * yylloc_param);
 %type <templatearg> TemplateArg
 %type <templateargs> TemplateArgs
 %type <str_formulas> RegionAccessor
-%type <freevars> FreeVars
-%type <doublelist> FloatList 
+%type <freevars>     FreeVars
+%type <doublelist>   FloatList 
+%type <configitem>   ConfigItem ConfigItemLine
 
 %nonassoc '=' '<' '>' KW_LE KW_GE KW_EQ
 %left '-' '+'
@@ -133,8 +136,12 @@ Transform: TransformHeader TransformBody {
   ($$=$1)->setRules(*$2); 
 };
 
+Transform: TransformHeader ';' {
+  //forward decl syntax 
+};
+
 TransformHeader: Nil {$$=REFALLOC(Transform());};
-TransformHeader: TransformHeader ';'                                  { P($$=$1); };
+//TransformHeader: TransformHeader ';'                                { P($$=$1); };
 TransformHeader: TransformHeader KW_MAIN                              { P($$=$1)->markMain(); };
 TransformHeader: TransformHeader KW_MEMOIZED                          { P($$=$1)->markMemoized();  };
 TransformHeader: TransformHeader KW_TRANSFORM IDENT                   { P($$=$1)->setName($3);     };
@@ -147,23 +154,80 @@ TransformHeader: TransformHeader KW_TEMPLATE OptLT TemplateArgs OptGT { P($$=$1)
 TransformHeader: TransformHeader KW_ACCURACYMETRIC IDENT              { P($$=$1)->setAccuracyMetric($3);};
 TransformHeader: TransformHeader KW_ACCURACYBINS FloatList            { P($$=$1)->setAccuracyBins(*$3);};
 TransformHeader: TransformHeader KW_GENERATOR IDENT                   { P($$=$1)->setGenerator($3);};
+TransformHeader: TransformHeader ConfigItemLine                       { P($$=$1)->addConfigItem(*$2); };
 
-TransformHeader: TransformHeader ConfigItemType IDENT
-         { P($$=$1)->addConfigItem($2, $3); };
-TransformHeader: TransformHeader ConfigItemType IDENT '(' ')'
-         { P($$=$1)->addConfigItem($2, $3); };
-TransformHeader: TransformHeader ConfigItemType IDENT '(' Integer ')' 
-         { P($$=$1)->addConfigItem($2, $3, $5); };
-TransformHeader: TransformHeader ConfigItemType IDENT '(' Integer ',' Integer ')' 
-         { P($$=$1)->addConfigItem($2, $3, $5, $7); };
-TransformHeader: TransformHeader ConfigItemType IDENT '(' Integer ',' Integer ',' Integer ')' 
-         { P($$=$1)->addConfigItem($2, $3, $5, $7, $9); };
+ConfigItemLine: ConfigItemType ConfigItem {
+  P($$=$2);
+  $$->addFlag($1);
+  $$->initDefaults();
+};
+
+ConfigItem: IDENT
+  { $$=REFALLOC(ConfigItem(0, $1, jalib::TunableValue(), jalib::TunableValue(), jalib::TunableValue())); };
+ConfigItem: IDENT '(' ')'
+  { $$=REFALLOC(ConfigItem(0, $1, jalib::TunableValue(), jalib::TunableValue(), jalib::TunableValue())); };
+ConfigItem: IDENT '(' Integer ')' 
+  { $$=REFALLOC(ConfigItem(0, $1, $3, jalib::TunableValue(), jalib::TunableValue())); };
+ConfigItem: IDENT '(' Integer ',' Integer ')' 
+  { $$=REFALLOC(ConfigItem(0, $1, $3, $5, jalib::TunableValue())); };
+ConfigItem: IDENT '(' Integer ',' Integer ',' Integer ')' 
+  { $$=REFALLOC(ConfigItem(0, $1, $3, $5, $7)); };
+ConfigItem: IDENT '(' Float ')' 
+  { $$=REFALLOC(ConfigItem(0, $1, $3, jalib::TunableValue(), jalib::TunableValue())); };
+ConfigItem: IDENT '(' Float ',' Float ')' 
+  { $$=REFALLOC(ConfigItem(0, $1, $3, $5, jalib::TunableValue())); };
+ConfigItem: IDENT '(' Float ',' Float ',' Float ')' 
+  { $$=REFALLOC(ConfigItem(0, $1, $3, $5, $7)); };
+
+
+ConfigItem: IDENT ConfigItem {
+  P($$=$2);
+  if(strcmp($1, "double")==0)
+    $$->addFlag(ConfigItem::FLAG_DOUBLE);
+  else if(strcmp($1, "float")==0)
+    $$->addFlag(ConfigItem::FLAG_DOUBLE);
+  else if(strcmp($1, "sizespecific")==0)
+    $$->addFlag(ConfigItem::FLAG_SIZESPECIFIC);
+  else {
+    JASSERT(false)($1).Text("unknown keyword");
+  }
+}
+
+ConfigItem: IDENT '(' Integer ')' ConfigItem {
+  P($$=$5);
+  if(strcmp($1, "array")==0){
+    $$->addFlag(ConfigItem::FLAG_ARRAY);
+    $$->setArraySize($3);
+  }else if(strcmp($1, "initial")==0)
+    $$->setInitial($3);
+  else if(strcmp($1, "min")==0)
+    $$->setMin($3);
+  else if(strcmp($1, "max")==0)
+    $$->setMax($3);
+  else {
+    JASSERT(false)($1).Text("unknown keyword");
+  }
+}
+
+ConfigItem: IDENT '(' Float ')' ConfigItem {
+  P($$=$5);
+  if(strcmp($1, "initial")==0)
+    $$->setInitial($3);
+  else if(strcmp($1, "min")==0)
+    $$->setMin($3);
+  else if(strcmp($1, "max")==0)
+    $$->setMax($3);
+  else {
+    JASSERT(false)($1).Text("unknown keyword");
+  }
+}
 
 
 ConfigItemType: KW_CONFIG           { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER; }
               | KW_TUNABLE          { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER|ConfigItem::FLAG_TUNABLE; }
-              | KW_ACCURACYVARIABLE { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER|ConfigItem::FLAG_ACCURACY|ConfigItem::FLAG_SIZESPECIFIC|ConfigItem::FLAG_TUNABLE; };
-
+              | KW_ACCURACYVARIABLE { $$=ConfigItem::FLAG_FROMCFG|ConfigItem::FLAG_USER
+                                        |ConfigItem::FLAG_ACCURACY|ConfigItem::FLAG_SIZESPECIFIC
+                                        |ConfigItem::FLAG_TUNABLE; };
 
 TemplateArg: IDENT '(' Integer ',' Integer ')' {
   $$=REFALLOC(TemplateArg($1, $3, $5));
@@ -213,7 +277,7 @@ FormulaRelation: Formula '='   Formula { $$=REFALLOC(FormulaBinop<'='>($1,$3)); 
 
 TransformBody: '{' RuleList '}' { P($$=$2); };
 
-Rule: RuleHeader RuleBody OptSemiCol { P($$=$1)->setBody($2); };
+Rule: RuleHeader RuleBody OptSemiCol { P($$=$1)->setBody($2, yyloc); };
 
 RuleHeader: BaseRuleHeader          { P($$=$1); }
           | PriorityFlag RuleHeader { P($$=$2)->setPriority($1); }
@@ -295,11 +359,11 @@ extern FILE* pbin;
 
 TransformListPtr parsePbFile(const char* filename){
   TransformListPtr ret;
-#ifdef RUN_CPP
-  pbin = popen((std::string(CXXCPP " ")+filename).c_str(),"r");
-#else
-  pbin = fopen(filename,"r");
-#endif
+  if(thePbPreprocessor != "") {
+    pbin = popen((thePbPreprocessor+" \""+filename+"\"").c_str(), "r");
+  } else {
+    pbin = fopen(filename,"r");
+  }
   JASSERT(pbin!=NULL)(filename)(JASSERT_ERRNO).Text("failed to open file");
   pbparse(ret);
   return ret;

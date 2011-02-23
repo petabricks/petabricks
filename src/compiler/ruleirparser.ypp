@@ -13,8 +13,12 @@
 #include "ruleir.h"
 #include "formula.h"
 #include "common/jconvert.h"
+#include "common/srcpos.h"
 #include <stdio.h>
 #include <map>
+
+
+#include "ruleirparser.h"
 
 using namespace petabricks;
 
@@ -30,13 +34,26 @@ static int yyerror(const RIRBlockCopyRef&, const char* msg){
   return 0;
 }
 
+//   template<typename T>
+//   T* debugtagpos(T* t) {
+//     JTRACE("TAGPOS")(t->srcPos())(ruleirlineno)(ruleirfilename);
+//     return t;
+//   }
+
 static jalib::JRefPool theRefPool;
-#define REFALLOC(args...) (theRefPool.add(new args))
+#define P(A) (TAGPOS(A, yylloc))
+#define REFALLOC(args...) P(theRefPool.add(new args))
+
 
 static void clearParserCaches(){
   theRefPool.clear();
 }
+void ruleirparser_addRefPoolItem(jalib::JRefCounted* i){
+  theRefPool.add(i);
+}
 
+#define YYLEX_PARAM &yylval, &yylloc
+extern int ruleirlex(YYSTYPE * yylval_param,YYLTYPE * yylloc_param);
 %}
 
 %union {
@@ -225,11 +242,11 @@ Nil:;
 
 %%
 
-void _ruleirlexer_scan_string( const std::string& str);
+void _ruleirlexer_scan_string( const std::string& str, const jalib::SrcPosTaggable* pos);
 
-RIRBlockCopyRef parseRuleBody(const std::string& str){
+RIRBlockCopyRef parseRuleBody(const std::string& str, const jalib::SrcPosTaggable* pos){
   //JTRACE("Parsing rule body")(str);
-  _ruleirlexer_scan_string(str);
+  _ruleirlexer_scan_string(str, pos);
   RIRBlockCopyRef ret;
   ruleirparse(ret);
   clearParserCaches();

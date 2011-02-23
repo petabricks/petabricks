@@ -78,15 +78,20 @@ public:
   MatrixRegionMembers(const StorageT& s, ElementT* b, const IndexT RESTRICT* sizes, const IndexT RESTRICT * multipliers)
     : _storage(s), _base(b)
   {
-    if(multipliers != NULL)
-      memcpy(this->_multipliers, multipliers, sizeof this->_multipliers );
-    else
-      memset(this->_multipliers, 0, sizeof _multipliers);
+    if(D>0) {
+      const size_t sizeof_sizes = sizeof this->_sizes;
+      const size_t sizeof_multipliers = sizeof this->_sizes;
 
-    if(sizes != NULL)
-      memcpy(this->_sizes, sizes, sizeof this->_sizes);
-    else
-      memset(this->_sizes, -1, sizeof _sizes);
+      if(multipliers != NULL)
+        memcpy(this->_multipliers, multipliers, sizeof_multipliers );
+      else
+        memset(this->_multipliers, 0, sizeof_multipliers);
+
+      if(sizes != NULL)
+        memcpy(this->_sizes, sizes, sizeof_sizes);
+      else
+        memset(this->_sizes, -1, sizeof_sizes);
+    }
   }
   
   ElementT* base() const { return _base; }

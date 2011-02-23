@@ -11,6 +11,8 @@ import time
 import shutil
 from xml.dom.minidom import parse
 
+CHECK=True
+
 check_exclude=[
          "convolution/Convolution",           # Difference
          "multiply/strassen",                 # Difference, why???
@@ -28,6 +30,8 @@ check_exclude=[
          "matrixapproximation/matrixapprox",  # (Variable accuracy)
          "regression/accuracymetric",         # (Variable accuracy)
          "preconditioner/preconditioner",     # (Variable accuracy)
+
+         "regression/floattunables2",
     ]
 
 def resolveInputPath(path):
@@ -42,8 +46,9 @@ def forkrun(cmd):
 def run(cmd):
   return forkrun(cmd).wait()
 
+
 def checkBenchmark(b):
-  if b in check_exclude:
+  if b in check_exclude or not CHECK:
     return True
 
   import sgatuner, warnings, tunerwarnings
@@ -123,6 +128,11 @@ def testBenchmark(b):
     return True
 
   return test()
+
+
+if 'nocheck' in sys.argv[1:]:
+  sys.argv[1:] = filter(lambda x: x!='nocheck', sys.argv[1:])
+  CHECK = False
 
 t1=time.time()
 results=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:], testBenchmark, postfn=checkBenchmark)

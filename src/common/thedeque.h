@@ -123,14 +123,13 @@ public:
 private:
   long _size;
   T* _array;
-  PADDING(CACHE_LINE_SIZE);
+  PADDING(CACHE_LINE_SIZE - sizeof(long) - sizeof(T*));
   long _h; // head index
-  PADDING(CACHE_LINE_SIZE);
+  PADDING(CACHE_LINE_SIZE - sizeof(long));
   long _t; // tail index
-  PADDING(CACHE_LINE_SIZE);
-  jalib::JMutex _lock;
-  PADDING(CACHE_LINE_SIZE);
-};
+  PADDING(CACHE_LINE_SIZE - sizeof(long));
+  jalib::JMutexSpin _lock;
+} __attribute__((aligned(CACHE_LINE_SIZE)));
 
 /**
  * A deque protected by a lock
@@ -167,8 +166,8 @@ public:
   int size() const { return (int)_deque.size(); }
   bool empty() const { return _deque.empty(); }
 private:
-  std::deque<T> _deque;
   jalib::JMutex _lock;
+  std::deque<T> _deque;
 };
 }
 

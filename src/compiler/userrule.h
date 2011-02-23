@@ -56,7 +56,7 @@ public:
 
   ///
   /// Set this->_body
-  void setBody(const char*);
+  void setBody(const char* str, const jalib::SrcPos& p);
 
   ///
   /// Set priority flag
@@ -227,6 +227,7 @@ private:
   FormulaList _conditions;
   FormulaList _definitions;
   std::string _bodysrc;
+  jalib::SrcPosTaggable _bodysrcPos;
   RIRBlockCopyRef _bodyirStatic;
   RIRBlockCopyRef _bodyirDynamic;
 #ifdef HAVE_OPENCL

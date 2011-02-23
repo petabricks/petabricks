@@ -109,7 +109,7 @@ to Eigenvalue[n], Eigenvector[n,n], TMP[n,n], WORK[n*n+4*n]
     MatrixRegion1D w1 = work.region(0, wSize);
     MatrixRegion1D w2 = work.region(work.count()/2, work.count()/2 + wSize);
 
-    InlineCopy1D(eig, Din);
+    Copy1D(eig, Din);
 
     eig.cell(cutpnt-1) -= rho;
     eig.cell(cutpnt)   -= rho;

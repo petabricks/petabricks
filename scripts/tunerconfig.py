@@ -85,7 +85,7 @@ class config_defaults:
   uniform_tunable_types       = ['system.flag.unrollschedule']
   autodetect_tunable_types    = ['user.tunable']
   lognorm_array_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
-  ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg']
+  ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg', 'user.tunable.double', 'user.tunable.double.array']
   
   #metric information, dont change
   metrics               = ['timing', 'accuracy']
@@ -143,8 +143,8 @@ class patch_check:
   check                    = True
   
   #run for 30 sec or 2**13 input size
-  max_input_size           = 2048 
-  max_time                 = 60
+  max_input_size           = 1024
+  max_time                 = 20
   rounds_per_input_size    = 1
 
   #bigger pop size

@@ -56,7 +56,7 @@ transform QuickSort
 from IN[n]
 to OUT[n]
 {
-  to (OUT out) from (IN in)
+  to (OUT out) from (IN in) 
   {
     Copy1D(out, in);
     MatrixRegion1D temp = MatrixRegion1D::allocate(n);
