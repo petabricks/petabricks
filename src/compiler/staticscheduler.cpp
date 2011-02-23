@@ -92,25 +92,58 @@ petabricks::ScheduleNodeSet petabricks::StaticScheduler::lookupNode(const Matrix
 }
 
 void petabricks::StaticScheduler::generateSchedule(){
-  // #ifdef DEBUG 
-  // renderGraph("schedule_initial.png");
-  // #endif
-
   computeIndirectDependencies();
 
   mergeCoscheduledNodes();
 
-  // #ifdef DEBUG 
-  // renderGraph("schedule.png");
-  // #endif
+  _schedule.initialize(_inputs, _outputs);
+}
 
-  _schedule.markInputs(_inputs);
+void petabricks::Schedule::initialize(const ScheduleNodeSet& inputs, const ScheduleNodeSet& outputs){
+  JASSERT(_schedule.empty());
 
-  for( std::set<ScheduleNode*>::const_iterator i=_outputs.begin()
-      ; i!=_outputs.end()
-      ; ++i )
+  SchedulingState state;
+  state.generated = inputs;
+
+  for( std::set<ScheduleNode*>::const_iterator i=outputs.begin()
+    ; i!=outputs.end()
+    ; ++i )
   {
-    _schedule.depthFirstSchedule(*i);
+    depthFirstScheduleNode(state, *i);
+  }
+}
+
+
+void petabricks::Schedule::depthFirstScheduleNode(SchedulingState& state, ScheduleNode* n){
+  if(state.generated.find(n)!=state.generated.end())
+    return;
+
+  JASSERT(state.pending.find(n)==state.pending.end()).Text("dependency cycle");
+  state.pending.insert(n);
+
+  for( ScheduleDependencies::const_iterator i=n->directDepends().begin()
+      ; i!=n->directDepends().end()
+      ; ++i)
+  {
+    if(i->first != n)
+      depthFirstScheduleNode(state, i->first);
+  }
+//   JTRACE("scheduling")(n->matrix()); 
+  _schedule.push_back(n);
+  state.generated.insert(n);
+}
+
+void petabricks::Schedule::generateCodeDynamic(Transform& trans, CodeGenerator& o){
+  JASSERT(_schedule.size()>0);
+  for(ScheduleNodeList::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
+    if(i!=_schedule.begin()) o.continuationPoint();
+    (*i)->generateCodeSimple(trans, o, false);
+  }
+}
+void petabricks::Schedule::generateCodeStatic(Transform& trans, CodeGenerator& o){
+  JASSERT(_schedule.size()>0);
+  for(ScheduleNodeList::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
+    (*i)->generateCodeSimple(trans, o, true);
   }
 }
 
@@ -137,7 +170,6 @@ void petabricks::StaticScheduler::mergeCoscheduledNodes(){
         _allNodes.push_back(coscheduled);
         for(ScheduleNodeSet::iterator e=set.begin();e!=set.end(); ++e) {
           mapping[*e] = coscheduled;
-
         }
       }
     }
@@ -161,39 +193,6 @@ void petabricks::StaticScheduler::applyRemapping(const ScheduleNodeRemapping& m)
       _allNodes.push_back(*i);
     else
       _remappedNodes.push_back(*i);
-  }
-}
-
-void petabricks::Schedule::depthFirstSchedule(ScheduleNode* n){
-  if(_generated.find(n)!=_generated.end())
-    return;
-
-  JASSERT(_pending.find(n)==_pending.end()).Text("dependency cycle");
-  _pending.insert(n);
-
-  for( ScheduleDependencies::const_iterator i=n->directDepends().begin()
-      ; i!=n->directDepends().end()
-      ; ++i)
-  {
-    if(i->first != n)
-      depthFirstSchedule(i->first);
-  }
-//   JTRACE("scheduling")(n->matrix()); 
-  _schedule.push_back(n);
-  _generated.insert(n);
-}
-
-void petabricks::Schedule::generateCodeDynamic(Transform& trans, CodeGenerator& o){
-  JASSERT(_schedule.size()>0);
-  for(ScheduleNodeList::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
-    if(i!=_schedule.begin()) o.continuationPoint();
-    (*i)->generateCodeSimple(trans, o, false);
-  }
-}
-void petabricks::Schedule::generateCodeStatic(Transform& trans, CodeGenerator& o){
-  JASSERT(_schedule.size()>0);
-  for(ScheduleNodeList::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
-    (*i)->generateCodeSimple(trans, o, true);
   }
 }
   
