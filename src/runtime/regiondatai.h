@@ -20,6 +20,8 @@ namespace petabricks {
   public:
     ~RegionDataI();
 
+    virtual int allocData() = 0;
+
     virtual ElementT readCell(const IndexT* coord) = 0;
     virtual void writeCell(const IndexT* coord, ElementT value) = 0;
 

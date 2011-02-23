@@ -17,11 +17,17 @@ namespace petabricks {
     IndexT* _slicePositions;
 
   public:
+    RegionMatrix(int dimensions, IndexT* size);
+
     RegionMatrix(RegionDataIPtr regionData);
     RegionMatrix(RegionHandlerPtr handler, int dimensions, IndexT* size,
 		 IndexT* splitOffset, int numSliceDimensions,
 		 int* sliceDimensions, IndexT* slicePositions);
     ~RegionMatrix();
+
+    void splitData(IndexT* splitSize);
+    void allocData();
+    void importDataFromFile(char* filename);
 
     RegionMatrixPtr splitRegion(IndexT* offset, IndexT* size);
     RegionMatrixPtr sliceRegion(int d, IndexT pos);

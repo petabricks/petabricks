@@ -2,6 +2,10 @@
 
 using namespace petabricks;
 
+RegionDataRaw::RegionDataRaw(int dimensions, IndexT* size) {
+  init(dimensions, size, NULL, NULL);
+}
+
 RegionDataRaw::RegionDataRaw(int dimensions, IndexT* size, ElementT* data) {
   init(dimensions, size, data, NULL);
 }
@@ -28,13 +32,9 @@ void RegionDataRaw::init(int dimensions, IndexT* size, ElementT* data, IndexT* p
   _size = new IndexT[_D];
   memcpy(_size, size, sizeof(IndexT) * _D);
 
-  int numData = 1;
-  for (int i = 0; i < _D; i++) {
-    numData *= _size[i];
-  }
 
-  _data = new ElementT[numData];
   if (data) {
+    int numData = allocData();
     memcpy(_data, data, sizeof(ElementT) * numData); 
   }
 
@@ -48,6 +48,16 @@ void RegionDataRaw::init(int dimensions, IndexT* size, ElementT* data, IndexT* p
     _partOffset = new IndexT[_D];
     memcpy(_partOffset, partOffset, sizeof(IndexT) * _D);
   }
+}
+
+int RegionDataRaw::allocData() {
+  int numData = 1;
+  for (int i = 0; i < _D; i++) {
+    numData *= _size[i];
+  }
+
+  _data = new ElementT[numData];
+  return numData;
 }
 
 ElementT* RegionDataRaw::coordToPtr(const IndexT* coord){

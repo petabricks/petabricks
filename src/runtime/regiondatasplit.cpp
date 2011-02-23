@@ -4,6 +4,9 @@
 
 using namespace petabricks;
 
+//
+// Assume that the original regiondata is empty.
+//
 RegionDataSplit::RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* splitSize) {
   _D = originalRegionData->dimensions();
   _size = new IndexT[_D];
@@ -12,11 +15,16 @@ RegionDataSplit::RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* sp
   _splitSize = splitSize;
 
   // create parts
-  IndexT partsSize[_D];
+  IndexT* partsSize = new IndexT[_D];
   _numParts = 1;
 
   for (int i = 0; i < _D; i++) {
-    partsSize[i] = (_size[i] / _splitSize[i]) + 1;
+    partsSize[i] = _size[i] / _splitSize[i];
+
+    if (_size[i] % _splitSize[i]) {
+      partsSize[i]++;
+    }
+
     _numParts *= partsSize[i];
   }
 
@@ -58,8 +66,6 @@ RegionDataSplit::RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* sp
     _parts[j] = new RegionDataRaw(_D, size, partOffset);
   }
 
-  // move data to parts + remove old data + update handle
-
   delete partsSize;
   delete partsCoord;
 }
@@ -67,6 +73,13 @@ RegionDataSplit::RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* sp
 RegionDataSplit::~RegionDataSplit() {
   delete _parts;
   delete _splitSize;
+}
+
+int RegionDataSplit::allocData() {
+  for (int i = 0; i < _numParts; i++) {
+    _parts[i]->allocData();
+  }
+  return 0;
 }
 
 ElementT RegionDataSplit::readCell(const IndexT* coord) {

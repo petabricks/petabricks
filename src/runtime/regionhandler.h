@@ -19,6 +19,8 @@ namespace petabricks {
     RegionDataIPtr acquireRegionData(void* caller);
     void releaseRegionData(void* caller);
 
+    void updateRegionData(RegionDataIPtr regionData);
+
     int dimensions();
   };
 }

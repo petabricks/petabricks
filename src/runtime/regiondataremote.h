@@ -28,6 +28,8 @@ namespace petabricks {
     RegionDataRemote(int dimensions, IndexT* size, RemoteObjectPtr remoteObject);
     ~RegionDataRemote();
 
+    int allocData();
+
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
 

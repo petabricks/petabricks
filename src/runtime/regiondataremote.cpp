@@ -21,6 +21,11 @@ RegionDataRemote::~RegionDataRemote() {
   pthread_cond_destroy(&_buffer_cond);
 }
 
+int RegionDataRemote::allocData() {
+  // TODO: this should not be called
+  return -1;
+}
+
 void* RegionDataRemote::fetchData(const void* msg, size_t len) {
   pthread_mutex_lock(&_seq_mux);
   _remoteObject->send(msg, len);

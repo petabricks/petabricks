@@ -20,6 +20,8 @@ namespace petabricks {
     RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* splitSize);
     ~RegionDataSplit();
 
+    int allocData();
+
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
 

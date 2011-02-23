@@ -91,10 +91,15 @@ int main(int argc, const char** argv){
     hdb.accept();
     hdb.spawnListenThread();
 
-    RegionDataIPtr regionData = new RegionDataRaw(filename);
-    RegionMatrixPtr regionMatrix = new RegionMatrix(regionData);
+    //    RegionDataIPtr regionData = new RegionDataRaw(filename);
+    //    RegionMatrixPtr regionMatrix = new RegionMatrix(regionData);
 
-    /*
+    IndexT size[] = {8,9,8};
+    RegionMatrixPtr regionMatrix = new RegionMatrix(3, size);
+    regionMatrix->splitData(m2);
+    regionMatrix->allocData();
+
+    
     //  regionMatrix->print();
     
     regionMatrix->acquireRegionData();
@@ -119,7 +124,7 @@ int main(int argc, const char** argv){
     // Test slice
     RegionMatrixPtr slice3 = regionMatrix->sliceRegion(1, 0);
     slice3->print();
-    */
+    
 
     ///////////////////////////////////
     // Create remote RegionMetrix

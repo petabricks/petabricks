@@ -1,8 +1,26 @@
 #include "regionmatrix.h"
 
 #include <string.h>
+#include "regiondataraw.h"
+#include "regiondatasplit.h"
 
 using namespace petabricks;
+
+RegionMatrix::RegionMatrix(int dimensions, IndexT* size) {
+  RegionDataIPtr regionData = new RegionDataRaw(dimensions, size);
+  _regionHandler = new RegionHandler(regionData);
+
+  _D = dimensions;
+  _size = new IndexT[_D];
+  memcpy(_size, size, sizeof(IndexT) * _D);
+
+  _splitOffset = new IndexT[_D];
+  memset(_splitOffset, 0, sizeof(IndexT) * _D);
+
+  _numSliceDimensions = 0;
+  _sliceDimensions = 0;
+  _slicePositions = 0;
+}
 
 RegionMatrix::RegionMatrix(RegionDataIPtr regionData) {
   _regionHandler = new RegionHandler(regionData);
@@ -41,6 +59,23 @@ RegionMatrix::~RegionMatrix() {
   delete _splitOffset;
   delete _sliceDimensions;
   delete _slicePositions;
+}
+
+void RegionMatrix::splitData(IndexT* splitSize) {
+  acquireRegionData();
+  RegionDataIPtr newRegionData = new RegionDataSplit((RegionDataRaw*)_regionData.asPtr(), splitSize);
+  releaseRegionData();
+  _regionHandler->updateRegionData(newRegionData);
+}
+
+void RegionMatrix::allocData() {
+  acquireRegionData();
+  _regionData->allocData();
+  releaseRegionData();  
+}
+
+void RegionMatrix::importDataFromFile(char* filename) {
+  // TODO
 }
 
 ElementT RegionMatrix::readCell(const IndexT* coord) {

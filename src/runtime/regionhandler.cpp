@@ -19,3 +19,7 @@ RegionDataIPtr RegionHandler::acquireRegionData(void* caller) {
 void RegionHandler::releaseRegionData(void* caller) {
   // TODO: implement list
 }
+
+void RegionHandler::updateRegionData(RegionDataIPtr regionData) {
+  _regionData = regionData;
+}
