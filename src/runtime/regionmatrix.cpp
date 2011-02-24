@@ -55,10 +55,10 @@ RegionMatrix::RegionMatrix(RegionHandlerPtr handler, int dimensions, IndexT* siz
 }
 
 RegionMatrix::~RegionMatrix() {
-  delete _size;
-  delete _splitOffset;
-  delete _sliceDimensions;
-  delete _slicePositions;
+  delete [] _size;
+  delete [] _splitOffset;
+  delete [] _sliceDimensions;
+  delete [] _slicePositions;
 }
 
 void RegionMatrix::splitData(IndexT* splitSize) {
@@ -81,11 +81,11 @@ void RegionMatrix::importDataFromFile(char* filename) {
   _regionData->allocData();
 
   MatrixIO* matrixio = new MatrixIO(filename, "r");
-  MatrixReaderScratch o = matrixio->readToMatrixReaderScratch();
-  ElementT* data = o.storage->data();
+  MatrixReaderScratch* o = &matrixio->readToMatrixReaderScratch();
+  ElementT* data = o->storage->data();
 
   IndexT* coord = new IndexT[_D];
-  memset(coord, 0, (sizeof coord) * _D);
+  memset(coord, 0, sizeof(IndexT) * _D);
 
   int i = 0;
 
@@ -101,21 +101,21 @@ void RegionMatrix::importDataFromFile(char* filename) {
 
   this->releaseRegionData();
 
-  delete coord;
+  //?? delete [] coord;
   delete matrixio;
 }
 
 ElementT RegionMatrix::readCell(const IndexT* coord) {
   IndexT* rd_coord = this->getRegionDataCoord(coord);
   ElementT elmt = _regionData->readCell(rd_coord);
-  delete rd_coord;
+  delete [] rd_coord;
   return elmt;
 }
 
 void RegionMatrix::writeCell(const IndexT* coord, ElementT value) {
   IndexT* rd_coord = this->getRegionDataCoord(coord);
   _regionData->writeCell(rd_coord, value);
-  delete rd_coord;
+  delete [] rd_coord;
 }
 
 int RegionMatrix::dimensions() {
@@ -181,6 +181,10 @@ RegionMatrixPtr RegionMatrix::sliceRegion(int d, IndexT pos){
   
   return new RegionMatrix(_regionHandler, dimensions, size, offset,
 			  numSliceDimensions, sliceDimensions, slicePositions);
+}
+
+void RegionMatrix::moveToHost(int host_id) {
+  // TODO: Implement this
 }
 
 //
@@ -259,5 +263,5 @@ void RegionMatrix::print() {
   this->releaseRegionData();
 
   printf("\n\n");
-  delete(coord);
+  delete [] coord;
 }

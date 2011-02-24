@@ -11,8 +11,7 @@
  ***************************************************************************/
 
 /* Expected Output
-
-before 0.51854216
+before 0.61989714
 after    5
 RegionMatrix: SIZE 3 3 3
 0.57373451 0.78742994 0.83810736
@@ -42,7 +41,7 @@ RegionMatrix: SIZE 2
 0.70897682 0.76634859
 
 RegionMatrix: SIZE 8 8
-   5 0.88132748 0.87581202 0.66178823 0.90139657 0.87427579 0.5830398 0.80057525
+0.51854216 0.88132748 0.87581202 0.66178823 0.90139657 0.87427579 0.5830398 0.80057525
 0.57769847 0.72969966 0.60477567 0.78044858 0.72820768 0.83076063 0.66295958 0.87960024
 0.66378681 0.84961301 0.75242225 0.65033857 0.84922928 0.9473998 0.58257957 0.61900267
 0.51322678 0.67779715 0.87807468 0.74676728 0.64339147 0.71112322 0.7486735 0.80284584
@@ -52,6 +51,13 @@ RegionMatrix: SIZE 8 8
 0.88821071 0.95012511 0.59838045 0.94296641 0.54733715 0.78508079 0.77526635 0.5405974
 
 completed
+
+cell    5
+cell 0.51854216
+cell 0.92932013
+cell 0.63057305
+cell 0.57473156
+cell  123
 
  */
 
@@ -83,6 +89,7 @@ int main(int argc, const char** argv){
   IndexT m123[] = {1,2,3};
   IndexT m2[] = {2,2,2};
   IndexT m3[] = {3,3,3};
+  IndexT m257[] = {2,5,7};
 
   RemoteHostDB hdb;
 
@@ -100,13 +107,13 @@ int main(int argc, const char** argv){
     // regionMatrix->allocData();
     regionMatrix->importDataFromFile(filename);
 
-    regionMatrix->print();
+    // regionMatrix->print();
     
     regionMatrix->acquireRegionData();
   
-    printf("before %4.8g\n", regionMatrix->readCell(m0));
-    regionMatrix->writeCell(m0, 5);
-    printf("after %4.8g\n", regionMatrix->readCell(m0));
+    printf("before %4.8g\n", regionMatrix->readCell(m257));
+    regionMatrix->writeCell(m257, 5);
+    printf("after %4.8g\n", regionMatrix->readCell(m257));
   
     regionMatrix->releaseRegionData();
 
@@ -116,15 +123,15 @@ int main(int argc, const char** argv){
     RegionMatrixPtr slice1 = split2->sliceRegion(2, 0);
     RegionMatrixPtr slice2 = slice1->sliceRegion(1, 1);
 
-    slice1->print();
     split3->print();
     split2->print();
+    slice1->print();
     slice2->print();
 
     // Test slice
     RegionMatrixPtr slice3 = regionMatrix->sliceRegion(1, 0);
     slice3->print();
-    
+
 
     ///////////////////////////////////
     // Create remote RegionMetrix
@@ -161,34 +168,34 @@ int main(int argc, const char** argv){
 
     RegionMatrixPtr region = new RegionMatrix(remoteRegionData);
 
-    region->acquireRegionData();    
+    region->acquireRegionData();
 
-    printf("cell %4.8g\n", region->readCell(m123));
+    printf("cell %4.8g\n", region->readCell(m257));
     printf("cell %4.8g\n", region->readCell(m0));
     printf("cell %4.8g\n", region->readCell(m1));
     printf("cell %4.8g\n", region->readCell(m2));
     printf("cell %4.8g\n", region->readCell(m3));
 
-    region->writeCell(m0, 123);
-    printf("cell %4.8g\n", region->readCell(m0));
+    region->writeCell(m257, 123);
+    printf("cell %4.8g\n", region->readCell(m257));
 
     region->releaseRegionData();
-
+    
     // Test split
     RegionMatrixPtr rsplit3 = region->splitRegion(m123, m3);
     RegionMatrixPtr rsplit2 = rsplit3->splitRegion(m1, m2);
     RegionMatrixPtr rslice1 = rsplit2->sliceRegion(2, 0);
     RegionMatrixPtr rslice2 = rslice1->sliceRegion(1, 1);
 
-    rslice1->print();
     rsplit3->print();
     rsplit2->print();
+    rslice1->print();
     rslice2->print();
 
     // Test slice
     RegionMatrixPtr rslice3 = region->sliceRegion(1, 0);
     rslice3->print();
-
+    
     printf("completed2\n");
     
     hdb.listenLoop();

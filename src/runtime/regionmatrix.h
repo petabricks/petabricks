@@ -38,6 +38,8 @@ namespace petabricks {
     int dimensions();
     IndexT* size();
 
+    void moveToHost(int host_id);
+
     // for tests
     int incCoord(IndexT* coord);
     void print();

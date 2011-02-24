@@ -12,7 +12,8 @@ RegionDataSplit::RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* sp
   _size = new IndexT[_D];
   memcpy(_size, originalRegionData->size(), sizeof(IndexT) * _D);
 
-  _splitSize = splitSize;
+  _splitSize = new IndexT[_D];
+  memcpy(_splitSize, splitSize, sizeof(IndexT) * _D);
 
   // create parts
   IndexT* partsSize = new IndexT[_D];
@@ -40,17 +41,6 @@ RegionDataSplit::RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* sp
   memset(partsCoord, 0, (sizeof partsCoord) * _D);
 
   for (int j = 0; j < _numParts; j++) {
-    // increment partCoord
-    partsCoord[0]++;
-    for (int i = 0; i < _D - 1; i++){
-      if (partsCoord[i] >= partsSize[i]){
-	partsCoord[i]=0;
-	partsCoord[i+1]++;
-      } else{
-	break;
-      }
-    }
-
     // calculate size + offset
     IndexT size[_D];
     IndexT partOffset[_D];
@@ -62,17 +52,28 @@ RegionDataSplit::RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* sp
 	size[i] = _splitSize[i];
       }
     }
-    
+
     _parts[j] = new RegionDataRaw(_D, size, partOffset);
+
+    // increment partCoord
+    partsCoord[0]++;
+    for (int i = 0; i < _D - 1; i++){
+      if (partsCoord[i] >= partsSize[i]){
+	partsCoord[i]=0;
+	partsCoord[i+1]++;
+      } else{
+	break;
+      }
+    }
   }
 
-  delete partsSize;
-  delete partsCoord;
+  delete [] partsSize;
+  delete [] partsCoord;
 }
 
 RegionDataSplit::~RegionDataSplit() {
-  delete _parts;
-  delete _splitSize;
+  delete [] _parts;
+  delete [] _splitSize;
 }
 
 int RegionDataSplit::allocData() {
@@ -94,7 +95,7 @@ RegionDataIPtr RegionDataSplit::coordToPart(const IndexT* coord) {
   IndexT index = 0;
 
   for (int i = 0; i < _D; i++){
-    index += (coord[i] % _splitSize[i]) * _partsMultipliers[i];
+    index += (coord[i] / _splitSize[i]) * _partsMultipliers[i];
   }
 
   return _parts[index];

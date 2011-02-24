@@ -110,16 +110,8 @@
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-<<<<<<< HEAD
-#line 67 "pbparser.ypp"
-{
-=======
-{
-
-/* Line 1676 of yacc.c  */
 #line 68 "pbparser.ypp"
-
->>>>>>> dev
+{
   int i;
   double d;
   const char* str;
@@ -139,20 +131,10 @@ typedef union YYSTYPE
   petabricks::DoubleList*      doublelist;
   petabricks::ConfigItem*      configitem;
   struct { const char* str; petabricks::FormulaList* formulas; } str_formulas; 
-<<<<<<< HEAD
 }
 /* Line 1489 of yacc.c.  */
-#line 136 "libpbcompiler_a-pbparser.h"
+#line 137 "libpbcompiler_a-pbparser.h"
 	YYSTYPE;
-=======
-
-
-
-/* Line 1676 of yacc.c  */
-#line 142 "libpbcompiler_a-pbparser.h"
-} YYSTYPE;
-# define YYSTYPE_IS_TRIVIAL 1
->>>>>>> dev
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
 # define YYSTYPE_IS_TRIVIAL 1
