@@ -114,6 +114,7 @@ regression/coordflip
 regression/coscheduled1
 regression/coscheduled2
 regression/coscheduled3
+regression/cycledep
 regression/define
 regression/duplicate
 regression/fileprefix
@@ -168,6 +169,7 @@ sort/Quicksort
 sort/Radixsort4
 sort/Radixsort
 sort/Sort
+regression/errors/rulebodylinenos
 *.cpp
 *.cfg
 *.info

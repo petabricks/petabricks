@@ -1,0 +1,337 @@
+/***************************************************************************
+ *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
+ *                                                                         *
+ *  This source code is part of the PetaBricks project and currently only  *
+ *  available internally within MIT.  This code may not be distributed     *
+ *  outside of MIT. At some point in the future we plan to release this    *
+ *  code (most likely GPL) to the public.  For more information, contact:  *
+ *  Jason Ansel <jansel@csail.mit.edu>                                     *
+ *                                                                         *
+ *  A full list of authors may be found in the file AUTHORS.               *
+ ***************************************************************************/
+#include "choicedepgraph.h"
+
+#include "codegenerator.h"
+#include "transform.h"
+
+
+void petabricks::ChoiceDepGraphNodeSet::applyRemapping(const petabricks::ChoiceDepGraphNodeRemapping& map){
+  if(map.empty())
+    return;
+  for(ChoiceDepGraphNodeRemapping::const_iterator i=map.begin(); i!=map.end(); ++i){
+    ChoiceDepGraphNodeSet::iterator rslt = find(i->first);
+    if(rslt!=end()){
+      erase(rslt);
+      insert(i->second);
+    }
+  }
+}
+
+void petabricks::ScheduleDependencies::applyRemapping(const petabricks::ChoiceDepGraphNodeRemapping& map){
+  if(map.empty())
+    return;
+  ScheduleDependencies orig;
+  ScheduleDependencies::iterator i;
+  orig.swap(*this);
+  for(i=orig.begin();i!=orig.end();++i){
+    if(map.find(i->first)==map.end()){
+      (*this)[i->first]=i->second;
+    }else{
+      (*this)[map.find(i->first)->second]=i->second;
+    }
+  }
+}
+
+
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+
+
+petabricks::ChoiceDepGraphNode::ChoiceDepGraphNode()
+  : _isInput(false)
+  , _isOutput(false)
+  , _isLast(false)
+  , _choiceId(-1)
+{
+  static jalib::AtomicT i=0;
+  _id=jalib::atomicIncrementReturn(&i);
+}
+
+std::string petabricks::ChoiceDepGraphNode::getChoicePrefix(Transform& t){
+  if(_choiceId<0) _choiceId = t.nextTunerId();
+  return t.name() + "_" + jalib::XToString(_choiceId) + "_";
+}
+
+int petabricks::ChoiceDepGraphNode::updateIndirectDepends(){
+  int c = 0;
+  if(_indirectDepends.empty()){  // seed first iteration
+    _indirectDepends = directDepends();
+    c+=_indirectDepends.size();
+  }
+  ScheduleDependencies tmp = _indirectDepends;
+  for(ScheduleDependencies::iterator i=tmp.begin(); i!=tmp.end(); ++i){
+    const ScheduleDependencies& remote = i->first->_indirectDepends;
+    for( ScheduleDependencies::const_iterator dep=remote.begin(); dep!=remote.end(); ++dep)
+    { //for each dependency
+      if(_indirectDepends[dep->first].merge(dep->second))
+        ++c;
+    }
+  }
+  return c;
+}
+
+void petabricks::ChoiceDepGraphNode::applyRemapping(const ChoiceDepGraphNodeRemapping& map){
+  if(_directDependsRemapped.empty()){
+    _directDependsRemapped  = _directDependsOriginal;
+  }
+  _directDependsRemapped.applyRemapping(map);
+  _indirectDepends.applyRemapping(map);
+}
+
+void petabricks::ChoiceDepGraphNode::resetRemapping(){
+  _directDependsRemapped.clear();
+  _indirectDepends.clear();
+}
+
+void petabricks::ChoiceDepGraphNode::printNode(std::ostream& os) const{
+  os << "  " << nodename() << "[label=\"" << nodename() << ": " 
+     << *this
+     << "\"];\n";
+}
+
+void petabricks::ChoiceDepGraphNode::printEdges(std::ostream& os) const{
+  const ScheduleDependencies& deps = directDepends();
+  for(ScheduleDependencies::const_iterator i=deps.begin(); i!=deps.end(); ++i){
+    os << "  " << i->first->nodename() << " -> " << nodename() << "[ label=\"" << i->second.direction << "\"";
+    if(directDepends().find(i->first)==directDepends().end()) os << ", style=dashed";
+    os << "];\n";
+  }
+}
+
+petabricks::ChoiceDepGraphNodeSet petabricks::ChoiceDepGraphNode::getStronglyConnectedComponent(){
+  /// compute strongly connected component
+  ChoiceDepGraphNodeSet s;
+  s.insert(this);
+  if(indirectDepends().find(this)==indirectDepends().end())
+    return s;
+
+  for(ScheduleDependencies::iterator i=indirectDepends().begin(); i!=indirectDepends().end(); ++i){
+    if(i->first->indirectDepends().find(this)!=i->first->indirectDepends().end()) //if in a cycle with this
+      s.insert(i->first);
+  }
+  return s;
+}
+
+void petabricks::ChoiceDepGraphNode::applyChoiceRemapping(const RuleChoiceAssignment& map) {
+  JASSERT(_indirectDepends.empty());
+  JASSERT(_directDependsRemapped.empty());
+  ScheduleDependencies::iterator i;
+  RulePtr choice = map.find(this)->second;
+  for(i=_directDependsOriginal.begin();i!=_directDependsOriginal.end();++i){
+    if(i->second.contains(choice)){
+      _directDependsRemapped[i->first] = i->second;
+    }
+  }
+  
+}
+
+
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+  
+petabricks::BasicChoiceDepGraphNode::BasicChoiceDepGraphNode(const MatrixDefPtr& m, const SimpleRegionPtr& r, const ChoiceGridPtr& choices)
+  : _matrix(m), _region(r), _choices(choices ? choices->rules() : RuleSet())
+{}
+
+void petabricks::BasicChoiceDepGraphNode::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
+                            const RuleChoiceAssignment& choice){
+  JASSERT(choice.find(this)!=choice.end());
+  RulePtr rule = choice.find(this)->second;
+  if(flavor==E_RF_STATIC){
+    rule->generateCallCodeSimple(trans, o, _region);
+  }else{
+    rule->generateCallTaskCode(nodename(), trans, o, _region);
+  }
+}
+
+
+void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos, RuleFlavor , const RuleChoiceAssignment& choice){
+  JASSERT(choice.find(this)!=choice.end());
+  RulePtr rule = choice.find(this)->second;
+  
+  CoordinateFormula min = _region->minCoord();
+  CoordinateFormula max = _region->maxCoord();
+
+  min[d] = pos;
+  max[d] = pos->plusOne();
+
+  SimpleRegionPtr t = new SimpleRegion(min,max);
+
+  rule->generateCallCodeSimple(trans, o, t);
+  //TODO deps for slice // dynamic version
+}
+
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+
+
+petabricks::MetaChoiceDepGraphNode::MetaChoiceDepGraphNode(const ChoiceDepGraphNodeSet& set)
+  : _originalNodes(set)
+{
+  for(ChoiceDepGraphNodeSet::const_iterator i=set.begin(); i!=set.end(); ++i){
+    _directDependsOriginal.merge((*i)->directDependsOriginal());
+    _directDependsRemapped.merge((*i)->directDependsRemapped());
+    _indirectDepends.merge((*i)->indirectDepends());
+    if((*i)->isInput()) markInput();
+    if((*i)->isOutput()) markOutput();
+  }
+}
+
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+
+
+bool petabricks::MultiOutputChoiceDepGraphNode::findValidSchedule(const RuleChoiceAssignment& choice){
+  //just check to make sure the schedule is valid
+  RulePtr rule = 0;
+  for(ChoiceDepGraphNodeSet::const_iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+    JASSERT(choice.find(*i)!=choice.end());
+    if(!rule) {
+      rule = choice.find(*i)->second;
+    }
+    if(rule != choice.find(*i)->second) {
+      JTRACE("rejecting schedule")(rule)(choice.find(*i)->second);
+      return false;
+    }
+  }
+  return true;
+}
+
+void petabricks::MultiOutputChoiceDepGraphNode::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, const RuleChoiceAssignment& choice){
+//  const DependencyInformation& selfDep = indirectDepends()[this];
+//  if(selfDep.direction.isNone()){
+
+  o.comment("Dual outputs compacted "+nodename());
+  RuleSet rules;
+  MatrixDefList matrices;
+  std::string region;
+  RulePtr rule = 0;
+  ChoiceDepGraphNode* first = 0;
+  //test matching region extents in d
+  for(ChoiceDepGraphNodeSet::const_iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+    JASSERT(choice.find(*i)!=choice.end());
+    if(first==0) {
+      region=(*i)->region()->toString();
+      first=*i;
+      rule = choice.find(*i)->second;
+    } else if(first->region()->dimensions()<(*i)->region()->dimensions()) {
+      first=*i;
+      JASSERT(rule == choice.find(*i)->second)(rule)(choice.find(*i)->second)
+        .Text("expected all output regions to be generated from same rule");
+    }
+    JWARNING(region==(*i)->region()->toString())(region)((*i)->region()->toString())
+      .Text("to(...) regions of differing size not yet supported");
+    RuleSet tmp = (*i)->choices();
+    rules.insert(tmp.begin(), tmp.end());
+    matrices.push_back((*i)->matrix());
+  }
+  JASSERT(choice.find(first)!=choice.end());
+  if(flavor==E_RF_STATIC){
+    rule->generateCallCodeSimple(trans, o, first->region());
+  }else{
+    rule->generateCallTaskCode(nodename(), trans, o, first->region());
+  }
+}
+
+
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
+
+  
+petabricks::SlicedChoiceDepGraphNode::SlicedChoiceDepGraphNode(const ChoiceDepGraphNodeSet& set)
+  : MetaChoiceDepGraphNode(set), _dimension(-1), _forward(true)
+{
+}
+
+bool petabricks::SlicedChoiceDepGraphNode::findValidSchedule(const RuleChoiceAssignment&){
+  const DependencyInformation& selfDep = indirectDepends()[this];
+  JTRACE("finding valid schedule")(selfDep.direction.size());
+  for(int d=(int)selfDep.direction.size()-1; d>=0; --d){
+    bool passed=true;
+    _begin=0;
+    _end=0;
+
+    //test matching region extents in d
+    for(ChoiceDepGraphNodeSet::const_iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+      if(!_begin) _begin = (*i)->region()->minCoord()[d];
+      if(!_end)   _end   = (*i)->region()->maxCoord()[d];
+      if(  _begin->toString() != (*i)->region()->minCoord()[d]->toString()
+        || _end->toString()   != (*i)->region()->maxCoord()[d]->toString())
+      {
+        JTRACE("Can't sliceschedule due to mismatched extents")(d);
+        passed=false;
+        break;
+      }
+    }
+    if(!passed) continue;
+    
+    //test direction
+    if((selfDep.direction[d]& ~DependencyDirection::D_LE) == 0){
+      JTRACE("slicescheduling forward")(d)(*this);
+      _forward = true;
+    }else if((selfDep.direction[d]& ~DependencyDirection::D_GE) == 0){
+      JTRACE("Coscheduling backward")(d)(*this);
+      _forward = false;
+    }else{
+      JTRACE("Can't sliceschedule due to mismatched direction")(d);
+      continue;
+    }
+
+    _dimension=d;
+
+    return true;
+  }
+  return false;
+}
+
+void petabricks::SlicedChoiceDepGraphNode::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, const RuleChoiceAssignment& choice){
+  bool isStatic = (flavor==E_RF_STATIC);
+  std::vector<std::string> args;
+  args.push_back("const jalib::JRef<"+trans.instClassName()+"> transform");
+  std::string taskname= "coscheduled_"+nodename()+"_task";
+  CodeGenerator& ot = isStatic ? o : o.forkhelper();
+  if(!isStatic) ot.beginFunc("DynamicTaskPtr", taskname);
+  std::string varname="coscheduled_"+nodename();
+
+  if(_forward){
+    ot.beginFor(varname, _begin, _end, FormulaInteger::one());
+  }else{
+    ot.beginReverseFor(varname, _begin, _end, FormulaInteger::one());
+  }    
+  
+  for(ChoiceDepGraphNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+    (*i)->generateCodeForSlice(trans, ot, _dimension, new FormulaVariable(varname), flavor, choice);
+  }
+
+  ot.endFor();
+  if(!isStatic){
+    ot.write("return NULL;");
+    ot.endFunc();
+    std::vector<std::string> args(1, "this");
+    o.setcall(nodename(), "new petabricks::MethodCallTask<" + trans.instClassName()
+                        + ", &" + trans.instClassName() + "::" + taskname + ">"
+        , args);
+  }
+}
+
+

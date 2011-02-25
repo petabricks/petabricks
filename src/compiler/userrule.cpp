@@ -18,7 +18,7 @@
 
 #include "maximawrapper.h"
 #include "rircompilerpass.h"
-#include "staticscheduler.h"
+#include "scheduler.h"
 #include "transform.h"
 #include "syntheticrule.h"
 #include "gpurule.h"
@@ -868,14 +868,14 @@ void petabricks::UserRule::collectDependencies(StaticScheduler& scheduler){
      ; p!=_provides.end()
      ; ++p)
   {
-    ScheduleNodeSet pNode = scheduler.lookupNode(p->first, p->second->region());
+    ChoiceDepGraphNodeSet pNode = scheduler.lookupNode(p->first, p->second->region());
     for( MatrixDependencyMap::const_iterator d=_depends.begin()
        ; d!=_depends.end()
        ; ++d)
     {
-      ScheduleNodeSet dNode = scheduler.lookupNode(d->first, d->second->region());
-      for(ScheduleNodeSet::iterator a=pNode.begin(); a!=pNode.end(); ++a)
-        for(ScheduleNodeSet::iterator b=dNode.begin(); b!=dNode.end(); ++b)
+      ChoiceDepGraphNodeSet dNode = scheduler.lookupNode(d->first, d->second->region());
+      for(ChoiceDepGraphNodeSet::iterator a=pNode.begin(); a!=pNode.end(); ++a)
+        for(ChoiceDepGraphNodeSet::iterator b=dNode.begin(); b!=dNode.end(); ++b)
           (*a)->addDependency(*b, this, d->second->direction());
     }
 
@@ -885,9 +885,9 @@ void petabricks::UserRule::collectDependencies(StaticScheduler& scheduler){
       ; ++pp)
     {
       if(p!=pp){
-        ScheduleNodeSet dNode = scheduler.lookupNode(pp->first, pp->second->region());
-        for(ScheduleNodeSet::iterator a=pNode.begin(); a!=pNode.end(); ++a)
-          for(ScheduleNodeSet::iterator b=dNode.begin(); b!=dNode.end(); ++b)
+        ChoiceDepGraphNodeSet dNode = scheduler.lookupNode(pp->first, pp->second->region());
+        for(ChoiceDepGraphNodeSet::iterator a=pNode.begin(); a!=pNode.end(); ++a)
+          for(ChoiceDepGraphNodeSet::iterator b=dNode.begin(); b!=dNode.end(); ++b)
             (*a)->addDependency(*b, this, DependencyDirection(dimensions()));
       }
     }

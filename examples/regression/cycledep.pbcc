@@ -1,0 +1,13 @@
+transform CycleDep
+from A[n]
+through B[n],C[n]
+to D[n]
+{
+  B.cell(i) from(A.cell(i) v) { return v+1; }
+  B.cell(i) from(C.cell(i) v) { return v;   }
+  C.cell(i) from(A.cell(i) v) { return v+1; }
+  C.cell(i) from(B.cell(i) v) { return v;   }
+  D.cell(i) from(C.cell(i) v) { return v+2; }
+  D.cell(i) from(B.cell(i) v) { return v+2; }
+}
+
