@@ -15,19 +15,19 @@
 
 
 //defined in ruleirparser.{ypp,cpp}
-petabricks::RIRBlockCopyRef parseRuleBody(const std::string& str);
+petabricks::RIRBlockCopyRef parseRuleBody(const std::string& str, const jalib::SrcPosTaggable* pos);
 
-petabricks::RIRBlockCopyRef petabricks::RIRBlock::parse(const std::string& str){
-  return parseRuleBody(str);
+petabricks::RIRBlockCopyRef petabricks::RIRBlock::parse(const std::string& str, const jalib::SrcPosTaggable* pos){
+  return parseRuleBody(str, pos);
 }
-petabricks::RIRStmtCopyRef petabricks::RIRStmt::parse(const std::string& str){
-  RIRBlockCopyRef t = RIRBlock::parse(str);
+petabricks::RIRStmtCopyRef petabricks::RIRStmt::parse(const std::string& str, const jalib::SrcPosTaggable* pos){
+  RIRBlockCopyRef t = RIRBlock::parse(str, pos);
   DISABLESRCPOS();
   JASSERT(t->stmts().size()==1)(t->stmts().size());
   return t->stmts().front();
 }
-petabricks::RIRExprCopyRef petabricks::RIRExpr::parse(const std::string& str){
-  RIRStmtCopyRef t = RIRStmt::parse(str+";");
+petabricks::RIRExprCopyRef petabricks::RIRExpr::parse(const std::string& str, const jalib::SrcPosTaggable* pos){
+  RIRStmtCopyRef t = RIRStmt::parse(str+";", pos);
   DISABLESRCPOS();
   JASSERT(t->numExprs()==1)(t->numExprs());
   return t->part(0);

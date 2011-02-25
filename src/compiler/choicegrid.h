@@ -17,6 +17,7 @@
 #include "rule.h"
 
 #include "common/jprintable.h"
+#include "common/srcpos.h"
 #include "common/jrefcounted.h"
 
 #include <map>
@@ -27,7 +28,9 @@ class CodeGenerator;
 class ChoiceGrid;
 typedef jalib::JRef<ChoiceGrid>                    ChoiceGridPtr;
 typedef std::vector<ChoiceGridPtr>                 ChoiceGridList;
-class ChoiceGridIndex : public std::map<SimpleRegionPtr, ChoiceGridPtr>, public jalib::JPrintable {
+class ChoiceGridIndex : public std::map<SimpleRegionPtr, ChoiceGridPtr>,
+                        public jalib::JPrintable,
+                        public jalib::SrcPosTaggable {
 public:
   void print(std::ostream& os) const {
     for(const_iterator i=begin(); i!=end(); ++i)
@@ -35,7 +38,7 @@ public:
   }
   void removeDisabledRules();
 };
-class ChoiceGridMap : public std::map<MatrixDefPtr, ChoiceGridIndex>, public jalib::JPrintable {
+class ChoiceGridMap : public std::map<MatrixDefPtr, ChoiceGridIndex>, public jalib::JPrintable, public jalib::SrcPosTaggable {
 public:
   void print(std::ostream& os) const {
     for(const_iterator i=begin(); i!=end(); ++i)
@@ -50,7 +53,7 @@ public:
 /**
  * Divides a target matrix into regions with uniform sets of applicable rules
  */
-class ChoiceGrid : public jalib::JRefCounted, public jalib::JPrintable {
+class ChoiceGrid : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
 protected:
   ChoiceGrid(int d, const FormulaPtr& begin) : _dimension(d), _begin(begin) {}
 

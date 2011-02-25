@@ -31,15 +31,28 @@
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
+ 
+#ifdef __APPLE__
+# include <mach-o/dyld.h>
+#endif
 
 namespace
 {
   std::string _GetProgramExe()
   {
+#ifdef __APPLE__
+    char exe[1024];
+    uint32_t len = sizeof exe;
+    memset(exe, 0, len);
+    JWARNING(_NSGetExecutablePath(exe, &len)==0);
+    std::string t = jalib::Filesystem::ResolveSymlink ( exe );
+    return t.length() ? t : exe;
+#else
     std::string exe = "/proc/" + jalib::XToString ( getpid() ) + "/exe";
     std::string exeRes = jalib::Filesystem::ResolveSymlink ( exe );
     JASSERT ( exe != exeRes ) ( exe ).Text ( "problem with /proc/self/exe" );
     return exeRes;
+#endif
   }
 
   std::string _FileBaseName ( const std::string& str )
@@ -157,7 +170,7 @@ std::vector<int> jalib::Filesystem::ListOpenFds()
   std::vector<int> rv;
   struct dirent **namelist;
   char* p;
-  int nents = scandir ( dir.c_str(), &namelist, NULL, versionsort );
+  int nents = scandir ( dir.c_str(), &namelist, NULL, alphasort );
   JASSERT ( nents >= 0 ) ( dir ) ( JASSERT_ERRNO ).Text ( "failed to open directory" );
 
   for ( int i = 0; i < nents; i ++ )

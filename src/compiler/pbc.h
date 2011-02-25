@@ -22,7 +22,10 @@
 # include "openclutil.h"
 #endif
 
+namespace pbcConfig {
 extern std::string thePbPreprocessor;
+extern std::string theObjDir;
+}
 
 namespace petabricks
 {

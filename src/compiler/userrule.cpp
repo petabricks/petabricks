@@ -62,6 +62,7 @@ petabricks::FormulaPtr petabricks::RuleInterface::getOffsetVar(int dim, const ch
   
 int petabricks::RuleInterface::offsetVarToDimension(const std::string& var, const char* extra /*=NULL*/) const
 {
+  SRCPOSSCOPE();
   for(size_t dim=0; dim<(sizeof(theOffsetVarStrs)/sizeof(char*)); ++dim){
     if(_getOffsetVarStr(_id, dim, extra)==var)
       return dim;
@@ -71,13 +72,15 @@ int petabricks::RuleInterface::offsetVarToDimension(const std::string& var, cons
 }
 
 
-void petabricks::UserRule::setBody(const char* str){
-  JWARNING(_bodysrc=="")(_bodysrc);
+void petabricks::UserRule::setBody(const char* str, const jalib::SrcPos& p){
+  JWARNING(_bodysrc=="")(_bodysrc)(p);
   _bodysrc=str;
   _bodysrc[_bodysrc.length()-1] = ' ';
+  _bodysrcPos.tagPosition(p.clone());
 }
 
 void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope){
+  SRCPOSSCOPE();
   RIRScopePtr scope = parentScope.createChildLayer();
   for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->addArgToScope(scope);
@@ -94,7 +97,7 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
   GpuRenamePass gpurename;
   bool failgpu = false;
 #endif
-  RIRBlockCopyRef   bodyir = RIRBlock::parse(_bodysrc);
+  RIRBlockCopyRef bodyir = RIRBlock::parse(_bodysrc, &_bodysrcPos);
 
 #ifdef DEBUG
   std::cerr << "--------------------\nBEFORE compileRuleBody:\n" << bodyir << std::endl;
@@ -148,6 +151,7 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
 }
 
 void petabricks::UserRule::print(std::ostream& os) const {
+  SRCPOSSCOPE();
   _flags.print(os);
   os << "UserRule " << _id << " " << _label;
   if(!_from.empty()){
@@ -189,6 +193,7 @@ namespace {// file local
 }
 
 void petabricks::UserRule::initialize(Transform& trans) {
+  SRCPOSSCOPE();
   MaximaWrapper::instance().pushContext();
 
   MatrixDefList extraFrom = trans.defaultVisibleInputs();
@@ -298,6 +303,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
 }
   
 void petabricks::UserRule::buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional){
+  SRCPOSSCOPE();
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
     JASSERT(!(*i)->isOptional())((*i)->name())
       .Text("optional regions are not allowed in outputs");
@@ -314,6 +320,7 @@ void petabricks::UserRule::buildApplicableRegion(Transform& trans, SimpleRegionP
 }
   
 void petabricks::UserRule::performExpansion(Transform& trans){
+  SRCPOSSCOPE();
   if(isDuplicated()){
     JTRACE("expanding duplicates")(duplicateCount());
     JASSERT(getDuplicateNumber()==0)(getDuplicateNumber());
@@ -335,6 +342,7 @@ void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& ou
                                                           int dimension,
                                                           const RulePtr& rule 
                                                           ) {
+  SRCPOSSCOPE();
   MatrixDependencyMap::const_iterator i = _provides.find(matrix);
   if(i!=_provides.end()){
     FormulaPtr beginPos = i->second->region()->minCoord()[dimension];
@@ -346,6 +354,7 @@ void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& ou
 }
 
 void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
+  SRCPOSSCOPE();
 
   if(isRecursive()){
     o.beginClass(implcodename(trans)+TX_DYNAMIC_POSTFIX, "petabricks::RuleInstance");
@@ -427,6 +436,7 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
 }
 
 void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
+  SRCPOSSCOPE();
   IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
   std::vector<std::string> taskargs = iterdef.packedargs();
   std::vector<std::string> packedargs = iterdef.packedargs();
@@ -651,6 +661,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
 void petabricks::UserRule::generateOpenCLKernel( Transform& /*trans*/, CLCodeGenerator& clo, IterationDefinition& iterdef )
 {
+  SRCPOSSCOPE();
   // This is only null if code generation failed (that is, the rule is
   // unsupported.)
   if( !isOpenClRule() )
@@ -780,7 +791,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& /*trans*/, CLCodeGen
 #endif
 
 void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
-
+  SRCPOSSCOPE();
 #if HAVE_OPENCL
   JASSERT( E_RF_OPENCL != flavor );
 #endif
@@ -816,10 +827,12 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
 }
 
 void petabricks::UserRule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
+  SRCPOSSCOPE();
   o.callSpatial(trampcodename(trans)+TX_STATIC_POSTFIX, region);
 }
 
 void petabricks::UserRule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
+  SRCPOSSCOPE();
   o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+TX_DYNAMIC_POSTFIX, region);
 }
 
@@ -834,6 +847,7 @@ int petabricks::UserRule::dimensions() const {
 }
 
 void petabricks::UserRule::addAssumptions() const {
+  SRCPOSSCOPE();
   for(int i=0; i<dimensions(); ++i){
     MaximaWrapper::instance().assume(new FormulaGE(getOffsetVar(i), _applicableRegion->minCoord()[i]));
     MaximaWrapper::instance().assume(new FormulaLE(getOffsetVar(i), _applicableRegion->maxCoord()[i]));
@@ -849,6 +863,7 @@ void petabricks::UserRule::addAssumptions() const {
 }
 
 void petabricks::UserRule::collectDependencies(StaticScheduler& scheduler){
+  SRCPOSSCOPE();
   for( MatrixDependencyMap::const_iterator p=_provides.begin()
      ; p!=_provides.end()
      ; ++p)
@@ -881,6 +896,7 @@ void petabricks::UserRule::collectDependencies(StaticScheduler& scheduler){
 }
 
 petabricks::DependencyDirection petabricks::UserRule::getSelfDependency() const {
+  SRCPOSSCOPE();
   DependencyDirection rv(dimensions());
   for( MatrixDependencyMap::const_iterator p=_provides.begin()
      ; p!=_provides.end()
@@ -916,6 +932,7 @@ size_t petabricks::UserRule::duplicateCount() const {
   return c;
 }
 size_t petabricks::UserRule::setDuplicateNumber(size_t c) {
+  SRCPOSSCOPE();
   size_t prev = getDuplicateNumber();
 #ifdef DEBUG
   size_t origC=c;
@@ -932,6 +949,7 @@ size_t petabricks::UserRule::setDuplicateNumber(size_t c) {
   return prev;
 }
 size_t petabricks::UserRule::getDuplicateNumber() {
+  SRCPOSSCOPE();
   int lastRange = 1;
   int c = 0;
   for(ssize_t i=_duplicateVars.size()-1; i>=0; --i){

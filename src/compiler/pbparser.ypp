@@ -277,7 +277,7 @@ FormulaRelation: Formula '='   Formula { $$=REFALLOC(FormulaBinop<'='>($1,$3)); 
 
 TransformBody: '{' RuleList '}' { P($$=$2); };
 
-Rule: RuleHeader RuleBody OptSemiCol { P($$=$1)->setBody($2); };
+Rule: RuleHeader RuleBody OptSemiCol { P($$=$1)->setBody($2, yyloc); };
 
 RuleHeader: BaseRuleHeader          { P($$=$1); }
           | PriorityFlag RuleHeader { P($$=$2)->setPriority($1); }
@@ -359,8 +359,8 @@ extern FILE* pbin;
 
 TransformListPtr parsePbFile(const char* filename){
   TransformListPtr ret;
-  if(thePbPreprocessor != "") {
-    pbin = popen((thePbPreprocessor+" \""+filename+"\"").c_str(), "r");
+  if(pbcConfig::thePbPreprocessor != "") {
+    pbin = popen((pbcConfig::thePbPreprocessor+" \""+filename+"\"").c_str(), "r");
   } else {
     pbin = fopen(filename,"r");
   }

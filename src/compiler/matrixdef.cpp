@@ -40,6 +40,7 @@ void petabricks::MatrixDef::print(std::ostream& o) const {
 }
 
 void petabricks::MatrixDef::initialize(Transform& ){
+  SRCPOSSCOPE();
 //   _version.normalize();
 //   _size.normalize();
   if(_version.size()>0){
@@ -55,6 +56,7 @@ void petabricks::MatrixDef::initialize(Transform& ){
 }
 
 void petabricks::MatrixDef::exportConstants(Transform& trans){
+  SRCPOSSCOPE();
   FreeVarsPtr tmp = _size.getFreeVariables();
   FreeVars::const_iterator i;
   for(i=tmp->begin(); i!=tmp->end(); ++i)
@@ -62,6 +64,7 @@ void petabricks::MatrixDef::exportConstants(Transform& trans){
 }
 
 void petabricks::MatrixDef::exportAssumptions(){
+  SRCPOSSCOPE();
   for(FormulaList::const_iterator i=_size.begin(); i!=_size.end(); ++i){
     MaximaWrapper::instance().assume(new FormulaGT(*i, LARGE()));
   }

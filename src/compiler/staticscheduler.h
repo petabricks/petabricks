@@ -18,6 +18,7 @@
 #include "region.h"
 
 #include "common/jrefcounted.h"
+#include "common/srcpos.h"
 
 #include <list>
 #include <map>
@@ -56,7 +57,7 @@ public:
   }
 };
 
-class ScheduleNode : public jalib::JRefCounted, public jalib::JPrintable {
+class ScheduleNode : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
 public:
   ///
   /// Constructor
@@ -173,9 +174,9 @@ class CoscheduledNode : public ScheduleNode {
 public:
   CoscheduledNode(const ScheduleNodeSet& set);
 
-  const MatrixDefPtr&    matrix()  const { JASSERT(false); return MatrixDefPtr::null(); }
+  const MatrixDefPtr&    matrix()  const { JASSERT(false); return MatrixDefPtr::null();    }
   const SimpleRegionPtr& region()  const { JASSERT(false); return SimpleRegionPtr::null(); }
-  const ChoiceGridPtr&   choices() const { JASSERT(false); return ChoiceGridPtr::null(); }
+  const ChoiceGridPtr&   choices() const { JASSERT(false); return ChoiceGridPtr::null();   }
 
   void print(std::ostream& o) const {
     o << "Coscheduled:";
@@ -194,28 +195,27 @@ private:
  * Contains an order to execute nodes in
  */
 class Schedule {
+  /** Intermediate state used while scheduling */
+  struct SchedulingState {
+    ScheduleNodeSet generated;
+    ScheduleNodeSet pending;
+  };
 public:
-  void markInputs(const ScheduleNodeSet& inputs) {
-    JASSERT(_generated.empty());
-    _generated = inputs;
-  }
-  void depthFirstSchedule(ScheduleNode* n);  
-
-
+  /** generate _schedule from a given set of inputs and outputs*/
+  void initialize(const ScheduleNodeSet& inputs, const ScheduleNodeSet& outputs);
+  
   void generateCodeStatic(Transform& trans, CodeGenerator& o);
   void generateCodeDynamic(Transform& trans, CodeGenerator& o);
 
   size_t size() const { return _schedule.size(); }
+protected:
+  void depthFirstScheduleNode(SchedulingState& state, ScheduleNode* n);  
 private:
-  //intermediate state
-  ScheduleNodeSet _generated;
-  ScheduleNodeSet _pending;
-  
   //the ordering
   ScheduleNodeList _schedule;
 };
 
-class StaticScheduler : public jalib::JRefCounted, public jalib::JPrintable {
+class StaticScheduler : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
 public:
   ScheduleNodeSet lookupNode(const MatrixDefPtr& matrix, const SimpleRegionPtr& region);
 
@@ -237,7 +237,9 @@ public:
       _outputs.insert(i->asPtr());
   }
 
-  void writeGraphAsPDF(const char* filename) const;
+  void renderGraph(const char* filename, const char* type="png") const;
+  void writeGraph(const char* filename) const;
+  void writeGraph(FILE* fd) const;
 
   void generateSchedule();
 

@@ -93,8 +93,8 @@ public:
     return false;
   }
 private:
-  MemoizationInstance<IN, OUT> _last;
   jalib::JMutex _lock;
+  MemoizationInstance<IN, OUT> _last;
 };
 
 }

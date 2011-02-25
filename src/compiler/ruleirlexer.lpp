@@ -9,7 +9,6 @@
  *                                                                         *
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
-%option yylineno
 %option nostdinit
 %option noyywrap
 %option noyy_push_state
@@ -18,6 +17,9 @@
 %option nounput
 %option prefix="ruleir"
 %option outfile="lex.yy.c"
+%option bison-bridge
+%option bison-locations
+%option yylineno
 
 %{
 
@@ -27,19 +29,29 @@
 
 #include "common/jassert.h"
 #include "common/jconvert.h"
+#include "common/srcpos.h"
 
 #include <stdio.h>
 
 #define yylval ruleirlval
-#define NUM_STR_BUFFERS 64
 
-static const char* circularStringCache(const char* str){
-  static std::string strbuffers[NUM_STR_BUFFERS];
-  static int n = 0;
-  return (strbuffers[n++ % NUM_STR_BUFFERS]=str).c_str();
+#include "ruleirparser.h"
+
+void ruleirparser_addRefPoolItem(jalib::JRefCounted* i);//ruleirparser.ypp
+
+
+static const char* allocPoolString(const char* str){
+  struct StrStorage : public std::string, public jalib::JRefCounted {
+    StrStorage(const char* s) : std::string(s) {}
+  };
+  StrStorage* s = new StrStorage(str);
+  ruleirparser_addRefPoolItem(s);
+  return s->c_str();
 }
 
 std::string ruleirfilename;
+int ruleircolno=0;
+int ruleirlastlineno=-1;
 
 inline bool isNum(char c) { return c>='0' && c<='9'; }
 
@@ -54,8 +66,12 @@ static void handleCppLine(const char* s){
   ruleirfilename = filename;
 }
 
-#define YY_USER_ACTION yylval.str=circularStringCache(yytext);
-#define YY_DECL int yylex()
+#define YY_USER_ACTION \
+  yylval->str=allocPoolString(yytext);                              \
+  SRCPOS_FILL(*yylloc, ruleirfilename, ruleirlineno, ruleirlastlineno, ruleircolno)
+
+
+//#define YY_DECL int yylex()
 
 %}
 
@@ -110,8 +126,18 @@ CHAR ['][\\]?.[']
 
 %%
 
-void _ruleirlexer_scan_string( const std::string& str) {
-  ruleirfilename="";
+void _ruleirlexer_scan_string( const std::string& str, const jalib::SrcPosTaggable* pos) {
+  if(pos!=0 && pos->srcPosFirst()) {
+    jalib::FileLineCol t = pos->srcPosFirst()->first();
+    ruleirfilename = t.filename;
+    ruleirlineno   = t.line;
+    ruleircolno    = t.column;
+  }else{
+    ruleirfilename = "";
+    ruleirlineno   = 0 ;
+    ruleircolno    = 0;
+  }
+  ruleirlastlineno=-1;
   ruleir_scan_bytes(str.c_str(), str.length());
 }
 
