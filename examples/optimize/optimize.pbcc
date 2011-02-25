@@ -52,7 +52,8 @@ to OUT
 transform Optimize
 from IN[n]
 to OUT
-tunable float sizespecific x1 (-1e-1)
+// TODO: add support for non-array tunable floats
+// tunable float sizespecific x1 (-1e-1)
 tunable float sizespecific array(2) initial(-1e-1) x2
 tunable float sizespecific array(3) initial(-1e-1) x3
 accuracy_metric MinimizeOut

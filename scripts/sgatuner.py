@@ -340,7 +340,9 @@ def createTunableMutators(candidate, ta, weight):
     ms[-1].reset(candidate)
     return ms
   elif ta['type'] in config.optimize_tunable_types:
-    return [mutators.Optimize2DTunableArrayMutator(name, size, l, h, weight=weight)]
+    tname = ta['tname'] # transform name
+    vname = ta['vname'] # variable name
+    return [mutators.OptimizeTunable2DArrayMutator(tname, vname, size, l, h, weight=weight)]
   elif ta['type'] in config.ignore_tunable_types:
     pass
   else:
@@ -360,19 +362,19 @@ def createChoiceSiteMutators(candidate, info, ac, weight):
 def groupTunables(transformName, tunables):
   names = map(lambda x: x['name'], tunables)
   tunableSets = [] # return value
-  uniqueNames = {} # index to unique tunables by variable name
+  tunableIndex = {} # index to unique tunables by variable name
   for name, tunable in zip(names, tunables):
     m = re.match('^%s_i(\d+)_(\w+)$' % transformName, name)
     if m:
       (index, varName) = m.group(1, 2)
       index = int(index)
 #      print "Matched array tunable: %s[%d]" % (varName, index)
-      if not varName in uniqueNames:
+      if not varName in tunableIndex:
         assert(index == 0)
-        uniqueNames[varName] = tunable
-        newTunableName = "%s_%s" % (transformName, varName)
+        tunableIndex[varName] = tunable
 #        print "Changing tunable 'name' attribute from %s to %s" % (tunable['name'], newTunableName)
-        tunable['name'] = newTunableName
+        tunable['tname'] = transformName
+        tunable['vname'] = varName
         tunable['size'] = 1
         # convert min and max to arrays
         tunable['min'] = [tunable['min']]
@@ -380,7 +382,7 @@ def groupTunables(transformName, tunables):
         tunableSets.append(tunable)
       else:
         # arrayTunable gets the tunable to be returned
-        arrayTunable = uniqueNames[varName]
+        arrayTunable = tunableIndex[varName]
         assert(arrayTunable['size'] == index)
 #        print "Updating tunable 'size' from %d to %d" % (arrayTunable['size'], arrayTunable['size'] + 1)
         arrayTunable['size'] += 1

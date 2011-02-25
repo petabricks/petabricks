@@ -261,43 +261,50 @@ class TunableArrayMutator(Mutator):
         candidate.config[config.fmt_bin % (self.tunable, i)] = self.minVal+0
       i+=1
 
-class Tunable2DArrayMutator(TunableArrayMutator):
-  def __init__(self, tunable, size, minVal, maxVal, weight=1.0):
+class Tunable2DArrayMutator(Mutator):
+  def __init__(self, tname, vname, size, minVal, maxVal, weight=1.0):
     self.size = size
-    TunableArrayMutator.__init__(self, tunable, minVal, maxVal, weight)
+    self.tname = tname
+    self.vname = vname
+    self.minVal = minVal
+    self.maxVal = maxVal
+    Mutator.__init__(self, weight)
+
+  # returns tunable name for given variable index and transform input size
+  def tunableName(self, index, n):
+    return config.fmt_bin2D % (self.tname, index, self.vname, n)
+
+  def getVal(self, candidate, oldVal, inputSize):
+    return self.random(oldVal, self.minVal, self.maxVal, candidate = candidate)
+
   def setVal(self, candidate, newVal, n):
     i = int(math.log(n, 2))
     candidate.clearResultsAbove(min(n, 2**i-1))
     ks = set(candidate.config.keys())
-    assert config.fmt_bin2D%(self.tunable, 0, i) in ks
-    while config.fmt_bin2D%(self.tunable, 0, i) in ks:
+    assert self.tunableName(0, i) in ks
+    while self.tunableName(0, i) in ks:
       for j in range(0, self.size):
-        candidate.config[config.fmt_bin2D % (self.tunable, j, i)] = newVal[j]
+        candidate.config[self.tunableName(j, i)] = newVal[j]
       i+=1
+
   def mutate(self, candidate, n):
     i = int(math.log(n, 2))
     old = []
     for j in range(0, self.size):
-      old.append candidate.config[config.fmt_bin2D % (self.tunable, j, i)]
+      old.append(candidate.config[self.tunableName(j, i)])
     new = self.getVal(candidate, old, n)
     #print str(candidate),self.tunable, old, new
     self.setVal(candidate, new, n)
+
   def reset(self, candidate):
     candidate.clearResults()
     i = 0
     ks = set(candidate.config.keys())
-    assert config.fmt_bin2D%(self.tunable, 0, i) in ks
-    while config.fmt_bin2D%(self.tunable, 0, i) in ks:
+    assert self.tunableName(0, i) in ks
+    while self.tunableName(0, i) in ks:
       for j in range(0, self.size):
-        candidate.config[config.fmt_bin2D % (self.tunable, j, i)] = newVal[j]
-      i+=1
-
-    ks = set(candidate.config.keys())
-    assert config.fmt_bin%(self.tunable, i) in ks
-    while config.fmt_bin%(self.tunable, i) in ks:
-      for j in range(0, self.size):
-        if candidate.config[config.fmt_bin2D % (self.tunable, j, i)] < self.minVal[j]:
-          candidate.config[config.fmt_bin2D % (self.tunable, j, i)] = self.minVal[j] + 0
+        if candidate.config[self.tunableName(j, i)] < self.minVal[j]:
+          candidate.config[self.tunableName(j, i)] = self.minVal[j] + 0
       i+=1
 
 class LognormTunableArrayMutator(TunableArrayMutator, LognormRandom):
@@ -322,17 +329,22 @@ class ScaleTunableArrayMutator(TunableArrayMutator):
 
 class OptimizeTunable2DArrayMutator(Tunable2DArrayMutator):
 
-  def __init__(self, tunable, size, minVal, maxVal, weight=1.0):
-    Tunable2DArrayMutator.__init__(self, tunable, size, minVal, maxVal, weight)
+  def __init__(self, tname, vname, size, minVal, maxVal, weight=1.0):
+    Tunable2DArrayMutator.__init__(self, tname, vname, size, minVal, maxVal, weight)
 
   def measureAccuracy(self, value, candidate, n):
     self.setVal(candidate, value, n)
     candidate.pop.testers[-1].testN(candidate, 1)
     result = candidate.metrics[config.accuracy_metric_idx][n].mean()
-    print "eval: f(%.25g) = %.25g" % (value, result)
+    if self.size == 1:
+      print "eval: f(%.25g) = %.25g" % (value, result)
+    else:
+      print "eval: f",
+      print value,
+      print " = %.25g" % result
     return -result
 
-  def random(self, oldVal, minVal, maxVal, candidate = None):
+  def random(self, oldVal, minVal, maxVal, candidate):
 
     import scipy.optimize
 
@@ -343,9 +355,15 @@ class OptimizeTunable2DArrayMutator(Tunable2DArrayMutator):
 
     # optimize
     result = scipy.optimize.fmin_bfgs(f, x0, args = args, full_output = 1)
-    newVal = float(result[0])
+    newVal = list(result[0])
+    for j in xrange(0, self.size):
+      newVal[j] = float(newVal[j])
 
-    return min(maxVal, max(minVal, newVal))
+    # enforce min and max
+    for j in xrange(0, self.size):
+      newVal[j] = min(maxVal[j], max(minVal[j], newVal[j]))
+
+    return newVal
 
 class MultiMutator(Mutator):
   def __init__(self, count=3, weight=1.0):
