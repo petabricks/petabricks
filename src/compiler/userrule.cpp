@@ -826,16 +826,23 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   }
 }
 
-void petabricks::UserRule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
+void petabricks::UserRule::generateCallCode(const std::string& name,
+                                            Transform& trans,
+                                            CodeGenerator& o,
+                                            const SimpleRegionPtr& region,
+                                            RuleFlavor flavor){
   SRCPOSSCOPE();
-  o.callSpatial(trampcodename(trans)+TX_STATIC_POSTFIX, region);
+  switch(flavor) {
+  case E_RF_STATIC:
+    o.callSpatial(trampcodename(trans)+TX_STATIC_POSTFIX, region);
+    break;
+  case E_RF_DYNAMIC:
+    o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+TX_DYNAMIC_POSTFIX, region);
+    break;
+  default:
+    UNIMPLEMENTED();
+  }
 }
-
-void petabricks::UserRule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
-  SRCPOSSCOPE();
-  o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+TX_DYNAMIC_POSTFIX, region);
-}
-
 
 int petabricks::UserRule::dimensions() const {
 //   return (int)_applicableRegion->dimensions();

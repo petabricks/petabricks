@@ -151,11 +151,7 @@ void petabricks::BasicChoiceDepGraphNode::generateCode(Transform& trans, CodeGen
                             const RuleChoiceAssignment& choice){
   JASSERT(choice.find(this)!=choice.end());
   RulePtr rule = choice.find(this)->second;
-  if(flavor==E_RF_STATIC){
-    rule->generateCallCodeSimple(trans, o, _region);
-  }else{
-    rule->generateCallTaskCode(nodename(), trans, o, _region);
-  }
+  rule->generateCallCode(nodename(), trans, o, _region, flavor);
 }
 
 
@@ -171,7 +167,7 @@ void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans,
 
   SimpleRegionPtr t = new SimpleRegion(min,max);
 
-  rule->generateCallCodeSimple(trans, o, t);
+  rule->generateCallCode(nodename(), trans, o, t, E_RF_STATIC);
   //TODO deps for slice // dynamic version
 }
 
@@ -244,11 +240,7 @@ void petabricks::MultiOutputChoiceDepGraphNode::generateCode(Transform& trans, C
     matrices.push_back((*i)->matrix());
   }
   JASSERT(choice.find(first)!=choice.end());
-  if(flavor==E_RF_STATIC){
-    rule->generateCallCodeSimple(trans, o, first->region());
-  }else{
-    rule->generateCallTaskCode(nodename(), trans, o, first->region());
-  }
+  rule->generateCallCode(nodename(), trans, o, first->region(), flavor);
 }
 
 

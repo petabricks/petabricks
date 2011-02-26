@@ -69,7 +69,7 @@ public:
   const ScheduleDependencies& deps() const { return _deps; }
   ScheduleDependencies& deps() { return _deps; }
 private:
-  ChoiceDepGraphNodePtr      _node;
+  ChoiceDepGraphNodePtr _node;
   ScheduleDependencies _deps;
 };
 
@@ -117,7 +117,13 @@ private:
   RuleChoiceAssignment _choiceAssignment;
 };
 
-class StaticScheduler : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
+/**
+ * Create a manage a set of legal schedules
+ */
+class StaticScheduler : public jalib::JRefCounted,
+                        public jalib::JPrintable,
+                        public jalib::SrcPosTaggable
+{
 public:
   class CantScheduleException {};
 
@@ -185,7 +191,6 @@ private:
   SchedulesT _schedules;
 
   RuleChoiceCollection _choices;
-
 
   std::string _dbgpath;
 };
