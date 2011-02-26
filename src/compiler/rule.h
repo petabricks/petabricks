@@ -103,8 +103,11 @@ public:
   virtual void collectDependencies(StaticScheduler& scheduler) = 0;
   virtual void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension, const RulePtr&) = 0;
   
-  virtual void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region) = 0; 
-  virtual void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region) = 0;
+  virtual void generateCallCode(const std::string& nodename,
+                                Transform& trans,
+                                CodeGenerator& o,
+                                const SimpleRegionPtr& region,
+                                RuleFlavor flavor) = 0; 
   virtual void generateDeclCodeSimple(Transform& trans, CodeGenerator& o) = 0;
   virtual void generateTrampCodeSimple(Transform& trans, CodeGenerator& o) = 0;
   

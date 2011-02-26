@@ -37,10 +37,11 @@ public:
   void getApplicableRegionDescriptors(RuleDescriptorList& output,
                                       const MatrixDefPtr& matrix, int dimension, const RulePtr&);
 
-  void generateCallCodeSimple(Transform& trans, CodeGenerator& o,
-                              const SimpleRegionPtr& region);
-  void generateCallTaskCode(const std::string& name, Transform& trans,
-                            CodeGenerator& o, const SimpleRegionPtr& region);
+  void generateCallCode(const std::string& nodename,
+                        Transform& trans,
+                        CodeGenerator& o,
+                        const SimpleRegionPtr& region,
+                        RuleFlavor flavor); 
   void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
 
@@ -72,8 +73,11 @@ public:
   
   //these just forward to _rule
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
-  void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
-  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
+  void generateCallCode(const std::string& nodename,
+                        Transform& trans,
+                        CodeGenerator& o,
+                        const SimpleRegionPtr& region,
+                        RuleFlavor flavor); 
   bool isSingleElement() const;
   int dimensions() const;
   FormulaPtr getSizeOfRuleIn(int d);
@@ -101,8 +105,11 @@ public:
 
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
 
-  void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
-  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
+  void generateCallCode(const std::string& nodename,
+                        Transform& trans,
+                        CodeGenerator& o,
+                        const SimpleRegionPtr& region,
+                        RuleFlavor flavor); 
   
   bool isSingleElement() const;
   
@@ -135,13 +142,11 @@ public:
   /// calls setDuplicateNumber() then forwards the call to _rule
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
 
-  ///
-  /// calls setDuplicateNumber() then forwards the call to _rule
-  void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
-
-  ///
-  /// calls setDuplicateNumber() then forwards the call to _rule
-  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
+  void generateCallCode(const std::string& nodename,
+                        Transform& trans,
+                        CodeGenerator& o,
+                        const SimpleRegionPtr& region,
+                        RuleFlavor flavor); 
 private:
   size_t _dup;
 };
@@ -157,8 +162,11 @@ public:
 
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
 
-  void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
-  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
+  void generateCallCode(const std::string& nodename,
+                        Transform& trans,
+                        CodeGenerator& o,
+                        const SimpleRegionPtr& region,
+                        RuleFlavor flavor); 
   
   bool isSingleElement() const;
   

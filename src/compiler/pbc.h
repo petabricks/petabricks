@@ -12,7 +12,11 @@
 #ifndef PETABRICKSPBC_H
 #define PETABRICKSPBC_H
 
+
+#include "common/jassert.h"
+
 #include <string>
+#include <iostream>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -58,15 +62,40 @@ enum CodeGenerationMode
 }
 */
 
-  enum RuleFlavor
-  {
-    //dynamic first for backward compatibility with isStatic (if we missed any more places)
-    E_RF_DYNAMIC,
-    E_RF_STATIC,
-  #if defined(HAVE_OPENCL)
-    E_RF_OPENCL,
-  #endif
-  };
+enum RuleFlavorEnum
+{
+  //dynamic first for backward compatibility with isStatic (if we missed any more places)
+  E_RF_DYNAMIC,
+  E_RF_STATIC,
+#if defined(HAVE_OPENCL)
+  E_RF_OPENCL,
+#endif
+};
+
+class RuleFlavor {
+public:
+  RuleFlavor(RuleFlavorEnum v) : _val(v) {}
+  operator RuleFlavorEnum() const { return _val; }
+
+
+  const char* str() const {
+    switch(*this) {
+      case E_RF_DYNAMIC: return "workstealing";
+      case E_RF_STATIC:  return "sequential";
+#if defined(HAVE_OPENCL)
+      case E_RF_OPENCL:  return "opencl";
+#endif
+      default:
+        UNIMPLEMENTED();
+        return "";
+    }
+  }
+  friend std::ostream& operator<<(std::ostream& o, const RuleFlavor& fv) {
+    return o<<fv.str();
+  }
+private:
+  RuleFlavorEnum _val;
+};
 
 }
 

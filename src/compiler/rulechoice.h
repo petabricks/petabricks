@@ -16,66 +16,45 @@
 #include "rule.h"
 
 namespace petabricks {
-
-struct RuleIdComparer {
-  bool operator()(const petabricks::RulePtr& x, const petabricks::RulePtr& y){
-    return x->id() < y->id();
-  }
-};
-
 class CodeGenerator;
 class RuleChoice;
 class ScheduleNode;
 typedef jalib::JRef<RuleChoice> RuleChoicePtr;
 
-/**
- * Stores the choice made by the Learner for a given region
- */
-class RuleChoice : public jalib::JRefCounted, public jalib::JPrintable {
+class RuleChoiceConsumer {
 public:
-  static RuleChoicePtr makeRuleChoice(const RuleSet& choices, const MatrixDefPtr&, const SimpleRegionPtr&);
-  static RuleChoicePtr makeCoscheduledRuleChoice(const RuleSet& choices, const MatrixDefList&, const SimpleRegionPtr&);
+  virtual ~RuleChoiceConsumer() {}
+  virtual const RuleSet& choices() const = 0;
+};
 
-  ///
-  /// Constructor
-  RuleChoice(const RuleSet& rule, const FormulaPtr& cond=FormulaPtr(), const RuleChoicePtr& next=RuleChoicePtr());
+class RuleChoiceAssignment : public std::map<const RuleChoiceConsumer*, RulePtr>{
+};
 
-  ///
-  /// Needed for JPrintable
-  void print(std::ostream& o) const;
+class RuleChoiceCollection {
+public:
+  typedef int const_iterator;
+  typedef const_iterator iterator;
+  iterator begin() { return 0; }
+  const_iterator begin() const { return 0; }
+  iterator end() { return size(); }
+  const_iterator end() const { return size(); }
 
-  ///
-  /// Output c++ code
-  void generateCodeSimple ( bool isStatic
-                          , const std::string& taskname
-                          , Transform& trans
-                          , ScheduleNode& node
-                          , const SimpleRegionPtr& region
-                          , CodeGenerator& o
-                          , const std::string& tpfx
-                          , int levelOffset = 0);
-  
-  const RuleSet& rules() const { return _rules; }
+  void addConsumer(const RuleChoiceConsumer* c) {
+    _ordering.push_back(c);
+  }
 
-  static const FormulaPtr& autotuned();
+  size_t size() const;
 
-  std::string processCondition(const std::string& name, const FormulaPtr& f, const std::string& choicename, CodeGenerator& o);
+  RuleChoiceAssignment getAssignment(size_t choice) const;
 
-  int level() const { return 1+(_next?_next->level():0); }
 
-  bool hasCondition() const { return _condition; }
-private: 
-  ///
-  /// Rule to invoke
-  RuleSet _rules;
-  ///
-  /// This choice may only be applied if this evaluates to true (may be null)
-  FormulaPtr _condition;
-  ///
-  /// If _condition evaluates to false, use this choice instead (may be null)
-  RuleChoicePtr _next;
+  void markInvalid(const iterator& i) { _invalidOrderings.push_back(i); }
 
-  std::string _tunablePrefix;
+  void generateDecisionTree(std::string& prefix, size_t choiceCount, CodeGenerator& o);
+
+private:
+  std::vector<const RuleChoiceConsumer*> _ordering;
+  std::vector<iterator> _invalidOrderings;
 };
 
 }
