@@ -1,5 +1,7 @@
 #include "regiondataremote.h"
 
+#include "regionmatrix.h"
+
 using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
 
@@ -96,7 +98,6 @@ void RegionDataRemoteObject::onRecvInitial(const void* buf, size_t len) {
 
   _regionData = new RegionDataRemote(msg->dimensions, size, this);
 
-  extern RegionDataIPtr remoteRegionData;
-  remoteRegionData = (RegionDataIPtr) _regionData.asPtr();
+  RegionMatrix::addMovingBuffer((RegionDataIPtr) _regionData.asPtr(), msg->movingBufferIndex);
 }
 

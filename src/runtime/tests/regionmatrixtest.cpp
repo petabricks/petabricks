@@ -69,9 +69,6 @@ cell  123
 #include "regionmatrixproxy.h"
 #include "remotehost.h"
 
-//RemoteObjectPtr petabricks::incomingObj = 0;
-petabricks::RegionDataIPtr remoteRegionData = 0;
-
 using namespace petabricks;
 
 PetabricksRuntime::Main* petabricksMainTransform(){
@@ -92,17 +89,18 @@ int main(int argc, const char** argv){
   IndexT m257[] = {2,5,7};
 
   RemoteHostDB hdb;
+  RegionMatrixPtr regionMatrix;
+
+  IndexT size[] = {8,9,8};
+  regionMatrix = new RegionMatrix(3, size);
 
   if(argc==1){
+    printf("main %d\n", getpid());
+
     hdb.remotefork(NULL, argc, argv);
     hdb.accept();
     hdb.spawnListenThread();
 
-    //    RegionDataIPtr regionData = new RegionDataRaw(filename);
-    //    RegionMatrixPtr regionMatrix = new RegionMatrix(regionData);
-
-    IndexT size[] = {8,9,8};
-    RegionMatrixPtr regionMatrix = new RegionMatrix(3, size);
     regionMatrix->splitData(m2);
     // regionMatrix->allocData();
     regionMatrix->importDataFromFile(filename);
@@ -136,20 +134,7 @@ int main(int argc, const char** argv){
     ///////////////////////////////////
     // Create remote RegionMetrix
 
-    printf("main %d\n", getpid());
-
-    RegionMatrixProxyPtr proxy = 
-      new RegionMatrixProxy(regionMatrix->getRegionHandler());
-    RemoteObjectPtr local = proxy->genLocal();
-  
-    // InitialMsg
-    RegionDataRemoteMessage::InitialMessage* msg = new RegionDataRemoteMessage::InitialMessage();
-    msg->dimensions = regionMatrix->dimensions();
-    memcpy(msg->size, regionMatrix->size(), sizeof(msg->size));
-    int len = (sizeof msg) + sizeof(msg->size);
-
-    hdb.host(0)->createRemoteObject(local, &RegionDataRemote::genRemote, msg, len);
-    local->waitUntilCreated();
+    regionMatrix->moveToRemoteHost(hdb.host(0), 1);
 
     printf("completed\n");
     hdb.listenLoop();
@@ -161,28 +146,23 @@ int main(int argc, const char** argv){
     hdb.connect(argv[1], jalib::StringToInt(argv[2]));
     hdb.spawnListenThread();
 
-    while (!remoteRegionData) {
-      jalib::memFence();
-      sched_yield();
-    }
+    regionMatrix->updateHandler(1);
 
-    RegionMatrixPtr region = new RegionMatrix(remoteRegionData);
+    regionMatrix->acquireRegionData();
 
-    region->acquireRegionData();
+    printf("cell %4.8g\n", regionMatrix->readCell(m257));
+    printf("cell %4.8g\n", regionMatrix->readCell(m0));
+    printf("cell %4.8g\n", regionMatrix->readCell(m1));
+    printf("cell %4.8g\n", regionMatrix->readCell(m2));
+    printf("cell %4.8g\n", regionMatrix->readCell(m3));
 
-    printf("cell %4.8g\n", region->readCell(m257));
-    printf("cell %4.8g\n", region->readCell(m0));
-    printf("cell %4.8g\n", region->readCell(m1));
-    printf("cell %4.8g\n", region->readCell(m2));
-    printf("cell %4.8g\n", region->readCell(m3));
+    regionMatrix->writeCell(m257, 123);
+    printf("cell %4.8g\n", regionMatrix->readCell(m257));
 
-    region->writeCell(m257, 123);
-    printf("cell %4.8g\n", region->readCell(m257));
-
-    region->releaseRegionData();
+    regionMatrix->releaseRegionData();
     
     // Test split
-    RegionMatrixPtr rsplit3 = region->splitRegion(m123, m3);
+    RegionMatrixPtr rsplit3 = regionMatrix->splitRegion(m123, m3);
     RegionMatrixPtr rsplit2 = rsplit3->splitRegion(m1, m2);
     RegionMatrixPtr rslice1 = rsplit2->sliceRegion(2, 0);
     RegionMatrixPtr rslice2 = rslice1->sliceRegion(1, 1);
@@ -193,7 +173,7 @@ int main(int argc, const char** argv){
     rslice2->print();
 
     // Test slice
-    RegionMatrixPtr rslice3 = region->sliceRegion(1, 0);
+    RegionMatrixPtr rslice3 = regionMatrix->sliceRegion(1, 0);
     rslice3->print();
     
     printf("completed2\n");

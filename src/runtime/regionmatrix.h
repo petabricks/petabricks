@@ -1,13 +1,19 @@
 #ifndef PETABRICKSREGIONMATRIX_H
 #define PETABRICKSREGIONMATRIX_H
 
+#include <map>
+#include "regiondatai.h"
 #include "regionmatrixi.h"
+#include "remotehost.h"
 
 namespace petabricks {
   class RegionMatrix;
   typedef jalib::JRef<RegionMatrix> RegionMatrixPtr;
   
-  class RegionMatrix : public RegionMatrixI {  
+  class RegionMatrix : public RegionMatrixI {
+  private:
+    static std::map<uint16_t, RegionDataIPtr> movingBuffer;
+
   protected:
     int _D;
     IndexT* _size;
@@ -38,7 +44,10 @@ namespace petabricks {
     int dimensions();
     IndexT* size();
 
-    void moveToHost(int host_id);
+    void moveToRemoteHost(RemoteHostPtr host, uint16_t movingBufferIndex);
+    void updateHandler(uint16_t movingBufferIndex);
+    static void addMovingBuffer(RegionDataIPtr remoteData, uint16_t index);
+    void removeMovingBuffer(uint16_t index);
 
     // for tests
     int incCoord(IndexT* coord);

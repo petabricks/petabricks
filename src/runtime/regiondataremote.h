@@ -66,7 +66,8 @@ namespace petabricks {
 
     struct InitialMessage {
       int dimensions;
-      IndexT size[MAX_DIMENSIONS]; 
+      uint16_t movingBufferIndex;
+      IndexT size[MAX_DIMENSIONS];
     };
 
     struct ReadCellMessage {

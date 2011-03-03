@@ -3,8 +3,11 @@
 #include <string.h>
 #include "regiondataraw.h"
 #include "regiondatasplit.h"
+#include "regionmatrixproxy.h"
 
 using namespace petabricks;
+
+std::map<uint16_t, RegionDataIPtr> RegionMatrix::movingBuffer;
 
 RegionMatrix::RegionMatrix(int dimensions, IndexT* size) {
   RegionDataIPtr regionData = new RegionDataRaw(dimensions, size);
@@ -81,8 +84,8 @@ void RegionMatrix::importDataFromFile(char* filename) {
   _regionData->allocData();
 
   MatrixIO* matrixio = new MatrixIO(filename, "r");
-  MatrixReaderScratch* o = &matrixio->readToMatrixReaderScratch();
-  ElementT* data = o->storage->data();
+  MatrixReaderScratch o = matrixio->readToMatrixReaderScratch();
+  ElementT* data = o.storage->data();
 
   IndexT* coord = new IndexT[_D];
   memset(coord, 0, sizeof(IndexT) * _D);
@@ -101,7 +104,7 @@ void RegionMatrix::importDataFromFile(char* filename) {
 
   this->releaseRegionData();
 
-  //?? delete [] coord;
+  delete [] coord;
   delete matrixio;
 }
 
@@ -183,8 +186,40 @@ RegionMatrixPtr RegionMatrix::sliceRegion(int d, IndexT pos){
 			  numSliceDimensions, sliceDimensions, slicePositions);
 }
 
-void RegionMatrix::moveToHost(int host_id) {
-  // TODO: Implement this
+void RegionMatrix::moveToRemoteHost(RemoteHostPtr host, uint16_t movingBufferIndex) {
+  RegionMatrixProxyPtr proxy = 
+    new RegionMatrixProxy(this->getRegionHandler());
+  RemoteObjectPtr local = proxy->genLocal();
+  
+  // InitialMsg
+  RegionDataRemoteMessage::InitialMessage* msg = new RegionDataRemoteMessage::InitialMessage();
+  msg->dimensions = _D;
+  msg->movingBufferIndex = movingBufferIndex;
+  memcpy(msg->size, _size, sizeof(msg->size));
+  int len = (sizeof msg) + sizeof(msg->size);
+  
+  host->createRemoteObject(local, &RegionDataRemote::genRemote, msg, len);
+  local->waitUntilCreated();
+}
+
+void RegionMatrix::updateHandler(uint16_t movingBufferIndex) {
+  while (!RegionMatrix::movingBuffer[movingBufferIndex]) {
+    jalib::memFence();
+    sched_yield();
+  }
+
+  this->releaseRegionData();
+  _regionHandler->updateRegionData(RegionMatrix::movingBuffer[movingBufferIndex]);
+}
+
+void RegionMatrix::addMovingBuffer(RegionDataIPtr remoteData, uint16_t index) {
+  // TODO: lock
+  RegionMatrix::movingBuffer[index] = remoteData;
+}
+
+void RegionMatrix::removeMovingBuffer(uint16_t index) {
+  // TODO
+  RegionMatrix::movingBuffer.erase(index);
 }
 
 //

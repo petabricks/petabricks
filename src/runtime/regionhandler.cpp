@@ -21,5 +21,6 @@ void RegionHandler::releaseRegionData(void* caller) {
 }
 
 void RegionHandler::updateRegionData(RegionDataIPtr regionData) {
+  // TODO: update all regions using this handle
   _regionData = regionData;
 }
