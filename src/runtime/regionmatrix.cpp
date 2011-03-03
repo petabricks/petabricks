@@ -8,7 +8,7 @@
 using namespace petabricks;
 
 std::map<uint16_t, RegionDataIPtr> RegionMatrix::movingBuffer;
-pthread_mutex_t RegionMatrix::movingBuffer_mux;
+pthread_mutex_t RegionMatrix::movingBuffer_mux = PTHREAD_MUTEX_INITIALIZER;
 
 RegionMatrix::RegionMatrix(int dimensions, IndexT* size) {
   RegionDataIPtr regionData = new RegionDataRaw(dimensions, size);
@@ -24,8 +24,6 @@ RegionMatrix::RegionMatrix(int dimensions, IndexT* size) {
   _numSliceDimensions = 0;
   _sliceDimensions = 0;
   _slicePositions = 0;
-
-  pthread_mutex_init(&RegionMatrix::movingBuffer_mux, NULL);
 }
 
 /*
