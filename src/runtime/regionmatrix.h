@@ -2,6 +2,7 @@
 #define PETABRICKSREGIONMATRIX_H
 
 #include <map>
+#include <pthread.h>
 #include "regiondatai.h"
 #include "regionmatrixi.h"
 #include "remotehost.h"
@@ -13,6 +14,7 @@ namespace petabricks {
   class RegionMatrix : public RegionMatrixI {
   private:
     static std::map<uint16_t, RegionDataIPtr> movingBuffer;
+    static pthread_mutex_t movingBuffer_mux;
 
   protected:
     int _D;
@@ -25,7 +27,7 @@ namespace petabricks {
   public:
     RegionMatrix(int dimensions, IndexT* size);
 
-    RegionMatrix(RegionDataIPtr regionData);
+    //   RegionMatrix(RegionDataIPtr regionData);
     RegionMatrix(RegionHandlerPtr handler, int dimensions, IndexT* size,
 		 IndexT* splitOffset, int numSliceDimensions,
 		 int* sliceDimensions, IndexT* slicePositions);

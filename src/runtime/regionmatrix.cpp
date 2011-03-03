@@ -8,6 +8,7 @@
 using namespace petabricks;
 
 std::map<uint16_t, RegionDataIPtr> RegionMatrix::movingBuffer;
+pthread_mutex_t RegionMatrix::movingBuffer_mux;
 
 RegionMatrix::RegionMatrix(int dimensions, IndexT* size) {
   RegionDataIPtr regionData = new RegionDataRaw(dimensions, size);
@@ -23,8 +24,11 @@ RegionMatrix::RegionMatrix(int dimensions, IndexT* size) {
   _numSliceDimensions = 0;
   _sliceDimensions = 0;
   _slicePositions = 0;
+
+  pthread_mutex_init(&RegionMatrix::movingBuffer_mux, NULL);
 }
 
+/*
 RegionMatrix::RegionMatrix(RegionDataIPtr regionData) {
   _regionHandler = new RegionHandler(regionData);
 
@@ -39,6 +43,7 @@ RegionMatrix::RegionMatrix(RegionDataIPtr regionData) {
   _sliceDimensions = 0;
   _slicePositions = 0;
 }
+*/
 
 //
 // Called by split & slice
@@ -208,18 +213,21 @@ void RegionMatrix::updateHandler(uint16_t movingBufferIndex) {
     sched_yield();
   }
 
+  // TODO: lock region handler
   this->releaseRegionData();
   _regionHandler->updateRegionData(RegionMatrix::movingBuffer[movingBufferIndex]);
 }
 
 void RegionMatrix::addMovingBuffer(RegionDataIPtr remoteData, uint16_t index) {
-  // TODO: lock
+  pthread_mutex_lock(&RegionMatrix::movingBuffer_mux);
   RegionMatrix::movingBuffer[index] = remoteData;
+  pthread_mutex_unlock(&RegionMatrix::movingBuffer_mux);
 }
 
 void RegionMatrix::removeMovingBuffer(uint16_t index) {
-  // TODO
+  pthread_mutex_lock(&RegionMatrix::movingBuffer_mux);
   RegionMatrix::movingBuffer.erase(index);
+  pthread_mutex_unlock(&RegionMatrix::movingBuffer_mux);
 }
 
 //
