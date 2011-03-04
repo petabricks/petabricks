@@ -32,7 +32,10 @@ jalib::TunableValueMap& petabricks::CodeGenerator::theHardcodedTunables() {
   return t;
 }
 
-petabricks::CodeGenerator::CodeGenerator(const StreamTreePtr& root) : _contCounter(0), _indent(0) {
+petabricks::CodeGenerator::CodeGenerator(const StreamTreePtr& root, const TrainingDepsPtr& cg) 
+  : _contCounter(0), _indent(0), _cg(cg)
+{
+  if(!_cg) _cg = new TrainingDeps();
   _odefines = root->add(new StreamTree("defines"));
   _oheaders = root->add(new StreamTree("headers"));
   _bcur     = root->add(new StreamTree("top"));
@@ -41,7 +44,7 @@ petabricks::CodeGenerator::CodeGenerator(const StreamTreePtr& root) : _contCount
 
 
 petabricks::CodeGenerator::CodeGenerator(CodeGenerator& that)
-  : jalib::JRefCounted(), _contCounter(0), _indent(0)
+  : jalib::JRefCounted(), _contCounter(0), _indent(0), _cg(that._cg)
 {
   _odefines = that._odefines;
   _oheaders = that._oheaders;
