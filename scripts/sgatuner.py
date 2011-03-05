@@ -380,6 +380,7 @@ def addMutators(candidate, info, acf, taf, ignore=None, weight=1.0):
 def init(benchmark, acf=createChoiceSiteMutators, taf=createTunableMutators):
   if config.debug:
     logging.basicConfig(level=logging.DEBUG)
+    config.pause_on_crash = True
   if not config.threads:
     config.threads = pbutil.cpuCount()
   for k in filter(len, config.abort_on.split(',')):

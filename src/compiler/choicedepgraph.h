@@ -39,6 +39,14 @@ typedef std::map<ChoiceDepGraphNode*,ChoiceDepGraphNode*> ChoiceDepGraphNodeRema
 class ChoiceDepGraphNodeSet : public std::set<ChoiceDepGraphNode*> {
 public:
   void applyRemapping(const petabricks::ChoiceDepGraphNodeRemapping& map);
+  bool overlaps(const ChoiceDepGraphNodeSet& that){
+    const_iterator i;
+    for(i=begin(); i!=end(); ++i){
+      if(that.find(*i)!=that.end())
+        return true;
+    }
+    return false;
+  }
 };
 
 struct DependencyInformation {
@@ -135,6 +143,8 @@ public:
   int updateIndirectDepends();
 
   ChoiceDepGraphNodeSet getStronglyConnectedComponent();
+  
+  ChoiceDepGraphNodeSet getMultioutputComponent();
 
   void applyRemapping(const ChoiceDepGraphNodeRemapping& map);
   void applyChoiceRemapping(const RuleChoiceAssignment& map);

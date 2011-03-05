@@ -895,7 +895,7 @@ void petabricks::UserRule::collectDependencies(StaticScheduler& scheduler){
         ChoiceDepGraphNodeSet dNode = scheduler.lookupNode(pp->first, pp->second->region());
         for(ChoiceDepGraphNodeSet::iterator a=pNode.begin(); a!=pNode.end(); ++a)
           for(ChoiceDepGraphNodeSet::iterator b=dNode.begin(); b!=dNode.end(); ++b)
-            (*a)->addDependency(*b, this, DependencyDirection(dimensions()));
+            (*a)->addDependency(*b, this, DependencyDirection(std::max(1,dimensions()), DependencyDirection::D_MULTIOUTPUT));
       }
     }
   }

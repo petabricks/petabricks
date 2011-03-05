@@ -12,7 +12,7 @@
 #include "matrixdependency.h"
 
 
-petabricks::DependencyDirection::DependencyDirection(size_t dimensions) : _directionMask(dimensions, D_NONE) {}
+petabricks::DependencyDirection::DependencyDirection(size_t dimensions, DirectionT dir) : _directionMask(dimensions, dir) {}
 
 ///
 /// Merge two DependencyDirections
@@ -36,23 +36,26 @@ void petabricks::DependencyDirection::addDirection(size_t dim, DirectionT dir){
 }
 
 void petabricks::DependencyDirection::print(std::ostream& o) const {
-  static const char* maskToStr[DirectionT_count] = 
+  static const char* maskToStr[] = 
     {"NONE", "<", "=", "<=", ">", "<>", ">=", "*"};
   o << '(';
   for(size_t i=0; i< _directionMask.size(); ++i){
-    JASSERT(_directionMask[i] < DirectionT_count);
     if(i!=0) o << ", ";
-    o << maskToStr[_directionMask[i]];
+    int t = _directionMask[i];
+    for(;t>=D_MULTIOUTPUT; t-=D_MULTIOUTPUT)
+      o << "MULTIOUTPUT";
+    o << maskToStr[t];
   }
   o << ')';
 }
 
 std::string petabricks::DependencyDirection::toCodeStr() const{
   std::string str;
-  static const char* maskToStr[DirectionT_count] = 
-    {"D_NONE", "D_LT", "D_EQ", "D_LE", "D_GT", "D_NEQ", "D_GE", "D_ALL"};
+  static const char* maskToStr[] = 
+    {"D_NONE", "D_LT", "D_EQ", "D_LE", "D_GT", "D_NEQ", "D_GE", "D_ALL",
+     "D_MULTIOUTPUT"};
   for(size_t i=0; i< _directionMask.size(); ++i){
-    JASSERT(_directionMask[i] < DirectionT_count);
+    JASSERT(_directionMask[i] < (int)(sizeof(maskToStr)/sizeof(char*)));
     if(i!=0) str += ", ";
     str += "DependencyDirection::";
     str += maskToStr[_directionMask[i]];

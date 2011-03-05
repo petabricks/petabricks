@@ -124,6 +124,18 @@ petabricks::ChoiceDepGraphNodeSet petabricks::ChoiceDepGraphNode::getStronglyCon
   return s;
 }
 
+petabricks::ChoiceDepGraphNodeSet petabricks::ChoiceDepGraphNode::getMultioutputComponent(){
+  /// compute strongly connected component
+  ChoiceDepGraphNodeSet s;
+  s.insert(this);
+  for(ScheduleDependencies::iterator i=directDepends().begin(); i!=directDepends().end(); ++i){
+    if(i->second.direction.isMultioutput()) {
+      s.insert(i->first);
+    }
+  }
+  return s;
+}
+
 void petabricks::ChoiceDepGraphNode::applyChoiceRemapping(const RuleChoiceAssignment& map) {
   JASSERT(_indirectDepends.empty());
   JASSERT(_directDependsRemapped.empty());
@@ -278,11 +290,11 @@ bool petabricks::SlicedChoiceDepGraphNode::findValidSchedule(const RuleChoiceAss
     if(!passed) continue;
     
     //test direction
-    if((selfDep.direction[d]& ~DependencyDirection::D_LE) == 0){
-      JTRACE("slicescheduling forward")(d)(*this);
+    if((selfDep.direction[d] & ~DependencyDirection::D_LT) == 0){
+      JTRACE("slicescheduling forward")(d)(*this)(selfDep.direction[d]);
       _forward = true;
-    }else if((selfDep.direction[d]& ~DependencyDirection::D_GE) == 0){
-      JTRACE("Coscheduling backward")(d)(*this);
+    }else if((selfDep.direction[d] & ~DependencyDirection::D_GT) == 0){
+      JTRACE("Coscheduling backward")(d)(*this)(selfDep.direction[d]);
       _forward = false;
     }else{
       JTRACE("Can't sliceschedule due to mismatched direction")(d);

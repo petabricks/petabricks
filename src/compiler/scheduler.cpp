@@ -207,28 +207,26 @@ void petabricks::StaticScheduler::mergeCoscheduledNodes(const RuleChoiceAssignme
   for(ChoiceDepGraphNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i){
     if(done.find(i->asPtr()) == done.end()){
       //process nodes one connected component at a time
-      ChoiceDepGraphNodeSet set=(*i)->getStronglyConnectedComponent();
-      done.insert(set.begin(),set.end());
+      ChoiceDepGraphNodePtr meta;
+      ChoiceDepGraphNodeSet set=(*i)->getMultioutputComponent();
       if(set.size()>1){
-
-        // merge the nodes and update the dependencies 
-        ChoiceDepGraphNodePtr meta = new MetaChoiceDepGraphNode(set);
-        _setEachTo(mapping, set, meta.asPtr());
-        meta->applyRemapping(mapping);
-        
-        JTRACE("coscheduling nodes")(meta);
-       // meta->printNode(std::cerr);
-       // meta->printEdges(std::cerr);
-
-        // decide which scheduling policy to use
-        const DependencyInformation& selfDep = meta->indirectDepends()[meta.asPtr()];
-        if(selfDep.direction.isNone()){
-          meta = new MultiOutputChoiceDepGraphNode(set);
-        }else{
+        if(set.overlaps(done) || set!=(*i)->getStronglyConnectedComponent()){
+          JTRACE("invalid multioutput schedule");
+          throw CantScheduleException();
+        }
+        done.insert(set.begin(),set.end());
+        meta = new MultiOutputChoiceDepGraphNode(set);
+      }else{
+        set=(*i)->getStronglyConnectedComponent();
+        done.insert(set.begin(),set.end());
+        if(set.size()>1){
           meta = new SlicedChoiceDepGraphNode(set);
         }
+      }
+      if(meta){
         _setEachTo(mapping, set, meta.asPtr());
         newMetaNodes.push_back(meta);
+        JTRACE("coscheduling nodes")(meta);
       }
     }
   }
