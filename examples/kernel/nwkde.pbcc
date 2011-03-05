@@ -3,14 +3,16 @@
 
 #include "utils.pbcc"
 #define DEBUG
-//#define WORKAROUND // workaround for generator having specific sizes
+#define WORKAROUND // workaround for generator having specific sizes
+#define CWD "/afs/csail.mit.edu/u/c/cychan/projects/petabricks/examples/kernel/"
+//#define CWD "/home/cychan/projects/petabricks/examples/kernel/"
 
 transform NWKDEGenerator
 from IN[n]
-to   TRAINDATA[4,n], WRAPFLAGS[4], KERNELWIDTHS[4],
-     TRAININDICES[n-2], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
-     TESTDATA[4,n],
-     TESTINDICES[n-2], TESTVARINDEX[8], TESTTIMEOFFSET[8],
+to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
+     TRAININDICES[n], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
+     TESTDATA[4,8750],
+     TESTINDICES[n], TESTVARINDEX[8], TESTTIMEOFFSET[8],
      OUTPUTVARINDEX, OUTPUTTIMEOFFSET
 {
     to (TRAINDATA trainData,
@@ -30,30 +32,134 @@ to   TRAINDATA[4,n], WRAPFLAGS[4], KERNELWIDTHS[4],
         MatrixRegion2D a;
         MatrixRegion1D b;
 
-        a = MatrixIO("test1/trainData.pba", "r").read2D();
-        Copy2D(trainData, a.region(0,0,4,n));
-        b = MatrixIO("test1/wrapFlags.pba", "r").read1D();
+        char filename[1024];
+        int cwdLen = strlen(CWD);
+        strcpy(filename, CWD);
+
+        strcat(filename, "test/trainData.pba");
+        a = MatrixIO(filename, "r").read2D();
+        Copy2D(trainData, a);
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/wrapFlags.pba");
+        b = MatrixIO(filename, "r").read1D();
         Copy1D(wrapFlags, b.region(0,4));
-        b = MatrixIO("test1/kernelWidths.pba", "r").read1D();
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/kernelWidths.pba");
+        b = MatrixIO(filename, "r").read1D();
         Copy1D(kernelWidths, b.region(0,4));
-        b = MatrixIO("test1/trainIndices.pba", "r").read1D();
-        Copy1D(trainIndices, b.region(0,n-2));
-        b = MatrixIO("test1/trainVarIndex.pba", "r").read1D();
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/trainIndices.pba");
+        b = MatrixIO(filename, "r").read1D();
+        Copy1D(trainIndices, b.region(0,n));
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/trainVarIndex.pba");
+        b = MatrixIO(filename, "r").read1D();
         Copy1D(trainVarIndex, b.region(0,8));
-        b = MatrixIO("test1/trainTimeOffset.pba", "r").read1D();
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/trainTimeOffset.pba");
+        b = MatrixIO(filename, "r").read1D();
         Copy1D(trainTimeOffset, b.region(0,8));
 
-        a = MatrixIO("test1/testData.pba", "r").read2D();
-        Copy2D(testData, a.region(0,0,4,n));
-        b = MatrixIO("test1/testIndices.pba", "r").read1D();
-        Copy1D(testIndices, b.region(0,n-2));
-        b = MatrixIO("test1/testVarIndex.pba", "r").read1D();
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/testData.pba");
+        a = MatrixIO(filename, "r").read2D();
+        Copy2D(testData, a);
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/testIndices.pba");
+        b = MatrixIO(filename, "r").read1D();
+        Copy1D(testIndices, b.region(0,n));
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/testVarIndex.pba");
+        b = MatrixIO(filename, "r").read1D();
         Copy1D(testVarIndex, b.region(0,8));
-        b = MatrixIO("test1/testTimeOffset.pba", "r").read1D();
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/testTimeOffset.pba");
+        b = MatrixIO(filename, "r").read1D();
         Copy1D(testTimeOffset, b.region(0,8));
 
-        outputVarIndex = MatrixIO("test1/outputVarIndex.pba", "r").read0D();
-        outputTimeOffset = MatrixIO("test1/outputTimeOffset.pba", "r").read0D();
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/outputVarIndex.pba");
+        outputVarIndex = MatrixIO(filename, "r").read0D();
+
+        filename[cwdLen] = NULL;
+        strcat(filename, "test/outputTimeOffset.pba");
+        outputTimeOffset = MatrixIO(filename, "r").read0D();
+    }
+}
+
+transform NWKDECheckInputs
+from TRAINDATA[m,n], TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
+     TESTDATA[m2,n2], TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+to INPUTSCHECKED
+{
+    INPUTSCHECKED
+    from (TRAININDICES trainIndices,
+          TRAINVARINDEX trainVarIndex,
+          TRAINTIMEOFFSET trainTimeOffset,
+          TESTINDICES testIndices,
+          TESTVARINDEX testVarIndex,
+          TESTTIMEOFFSET testTimeOffset,
+          OUTPUTVARINDEX outputVarIndex,
+          OUTPUTTIMEOFFSET outputTimeOffset)
+    {
+        double min, max, min2, max2;
+
+        findMinAndMax(&min, &max, trainVarIndex);
+        fprintf(stderr, "trainVarIndex range: (%g, %g)\n", min, max);
+        if (min < 0 || max > m) {
+            fprintf(stderr, "trainVarIndex out of bounds: (%d, %d)\n", 0, m);
+            PetabricksRuntime::abort();
+        }
+
+        fprintf(stderr, "outputVarIndex: %g\n", outputVarIndex);
+        if (outputVarIndex < 0 || outputVarIndex > m) {
+            fprintf(stderr, "outputVarIndex out of bounds: (%d, %d)\n", 0, m);
+            PetabricksRuntime::abort();
+        }
+
+        findMinAndMax(&min, &max, testVarIndex);
+        fprintf(stderr, "testVarIndex range: (%g, %g)\n", min, max);
+        if (min < 0 || max > m2) {
+            fprintf(stderr, "testVarIndex out of bounds: (%d, %d)\n", 0, m2);
+            PetabricksRuntime::abort();
+        }
+
+        findMinAndMax(&min, &max, trainIndices);
+        findMinAndMax(&min2, &max2, trainTimeOffset);
+        fprintf(stderr, "trainIndices + trainTimeOffset range: (%g, %g)\n",
+               min + min2, max + max2);
+        if (min + min2 < 0 || max + max2 > n) {
+            fprintf(stderr, "trainIndices + trainTimeOffset out of bounds: (%d, %d)\n",
+                   0, n);
+            PetabricksRuntime::abort();
+        }
+
+        fprintf(stderr, "trainIndices + outputTimeOffset range: (%g, %g)\n",
+               min + outputTimeOffset, max + outputTimeOffset);
+        if (min + outputTimeOffset < 0 || max + outputTimeOffset > n) {
+            fprintf(stderr, "trainIndices + outputTimeOffset out of bounds: (%d, %d)\n",
+                   0, n);
+            PetabricksRuntime::abort();
+        }
+
+        findMinAndMax(&min, &max, testIndices);
+        findMinAndMax(&min2, &max2, testTimeOffset);
+        fprintf(stderr, "testIndices + testTimeOffset range: (%g, %g)\n",
+               min + min2, max + max2);
+        if (min + min2 < 0 || max + max2 > n2) {
+            fprintf(stderr, "testIndices + testTimeOffset out of bounds: (%d, %d)\n",
+                   0, n2);
+            PetabricksRuntime::abort();
+        }
     }
 }
 
@@ -77,97 +183,20 @@ to   TRAINDATA[4,n], WRAPFLAGS[4], KERNELWIDTHS[4],
     PARTIALS - weighted output partial sums
 */
 
-transform NWKDE
-#ifdef WORKAROUND
-from TRAINDATA[4,n], WRAPFLAGS[4], KERNELWIDTHS[4],
-     TRAININDICES[n-2], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
-     TESTDATA[4,n],
-     TESTINDICES[n-2], TESTVARINDEX[8], TESTTIMEOFFSET[8],
-     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
-to RESULT[n-2]
-through SQDIFFS[8,n-2,n-2], WEIGHTS[n-2,n-2], PARTIALS[n-2,n-2], INPUTSCHECKED
-#else
+transform NWKDEBase
 from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
      TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
      TESTDATA[m2,n2],
      TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
      OUTPUTVARINDEX, OUTPUTTIMEOFFSET
 to RESULT[q]
-through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q], INPUTSCHECKED
-#endif
-generator NWKDEGenerator
-//optimize KERNELWIDTHS[m]
+through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
 {
-    INPUTSCHECKED
-    from (TRAININDICES trainIndices,
-          TRAINVARINDEX trainVarIndex,
-          TRAINTIMEOFFSET trainTimeOffset,
-          TESTINDICES testIndices,
-          TESTVARINDEX testVarIndex,
-          TESTTIMEOFFSET testTimeOffset,
-          OUTPUTVARINDEX outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset)
-    {
-#ifdef DEBUG
-        double min, max, min2, max2;
 
-#ifdef WORKAROUND
-        int m = 4, m2 = 4, n2 = 10;
-#endif
+    /* METHOD 1: compute PARTIALS by exposing the most fine-grained
+       parallelism.  this method may be less cache-efficient. */
 
-        findMinAndMax(&min, &max, trainVarIndex);
-        printf("trainVarIndex range: (%g, %g)\n", min, max);
-        if (min < 0 || max > m) {
-            printf("trainVarIndex out of bounds: (%d, %d)\n", 0, m);
-            PetabricksRuntime::abort();
-        }
-
-        printf("outputVarIndex: %g\n", outputVarIndex);
-        if (outputVarIndex < 0 || outputVarIndex > m) {
-            printf("outputVarIndex out of bounds: (%d, %d)\n", 0, m);
-            PetabricksRuntime::abort();
-        }
-
-        findMinAndMax(&min, &max, testVarIndex);
-        printf("testVarIndex range: (%g, %g)\n", min, max);
-        if (min < 0 || max > m2) {
-            printf("testVarIndex out of bounds: (%d, %d)\n", 0, m2);
-            PetabricksRuntime::abort();
-        }
-
-        findMinAndMax(&min, &max, trainIndices);
-        findMinAndMax(&min2, &max2, trainTimeOffset);
-        printf("trainIndices + trainTimeOffset range: (%g, %g)\n",
-               min + min2, max + max2);
-        if (min + min2 < 0 || max + max2 > n) {
-            printf("trainIndices + trainTimeOffset out of bounds: (%d, %d)\n",
-                   0, n);
-            PetabricksRuntime::abort();
-        }
-
-        printf("trainIndices + outputTimeOffset range: (%g, %g)\n",
-               min + outputTimeOffset, max + outputTimeOffset);
-        if (min + outputTimeOffset < 0 || max + outputTimeOffset > n) {
-            printf("trainIndices + outputTimeOffset out of bounds: (%d, %d)\n",
-                   0, n);
-            PetabricksRuntime::abort();
-        }
-
-        findMinAndMax(&min, &max, testIndices);
-        findMinAndMax(&min2, &max2, testTimeOffset);
-        printf("testIndices + testTimeOffset range: (%g, %g)\n",
-               min + min2, max + max2);
-        if (min + min2 < 0 || max + max2 > n2) {
-            printf("testIndices + testTimeOffset out of bounds: (%d, %d)\n",
-                   0, n2);
-            PetabricksRuntime::abort();
-        }
-#endif // DEBUG
-
-        return 0;
-    }
-
-    SQDIFFS.cell(i,j,k)
+    to   (SQDIFFS.cell(i,j,k) sqDiff)
     from (TRAINDATA trainData,
           WRAPFLAGS wrapFlags,
           KERNELWIDTHS kernelWidths,
@@ -187,15 +216,6 @@ generator NWKDEGenerator
 
         double trainPoint = trainData.cell((int) trainVarIndex, trainTimeIndex);
         double  testPoint =  testData.cell((int)  testVarIndex,  testTimeIndex);
-
-#ifdef DEBUG
-        if (trainPoint == -1) {
-            trainPoint = NAN;
-        }
-        if (testPoint == -1) {
-            testPoint == NAN;
-        }
-#endif // DEBUG
 
         double diff = trainPoint - testPoint;
 
@@ -219,20 +239,21 @@ generator NWKDEGenerator
         diff /= kernelWidth;
 
         // return squared difference
-        return diff * diff;
+        sqDiff = diff * diff;
+#ifdef DEBUG
+        fprintf(stderr, "method 1:  sqdiff(%d, %d, %d) = %g\n", i, j, k, sqDiff);
+#endif
     }
 
     to (WEIGHTS.cell(j,k) weight)
-#ifdef WORKAROUND
-    from (SQDIFFS.region(0, j,   k,
-                         8 ,j+1, k+1) sqDiffs)
-#else
     from (SQDIFFS.region(0, j,   k,
                          p ,j+1, k+1) sqDiffs)
-#endif
     {
         ReduceAdd(weight, sqDiffs.slice(2,0).slice(1,0));
         weight = exp(-((double) weight));
+#ifdef DEBUG
+        fprintf(stderr, "method 1:  weight(%d, %d) = %g\n", j, k, weight);
+#endif
     }
 
     to (PARTIALS.cell(j,k) partial)
@@ -245,21 +266,206 @@ generator NWKDEGenerator
         int timeIndex = (int) trainIndex + (int) outputTimeOffset;
         partial = trainData.cell((int) outputVarIndex, timeIndex);
         partial *= weight;
+#ifdef DEBUG
+        fprintf(stderr, "method 1: partial(%d, %d) = %g\n", j, k, partial);
+#endif
     }
+
+    /* METHOD 2: Compute weights and partials directly with one pass through the data */
+
+    to   (PARTIALS.cell(j,k) partial,
+          WEIGHTS.cell(j,k) weight)
+    from (TRAINDATA trainData,
+          WRAPFLAGS wrapFlags,
+          KERNELWIDTHS kernelWidths,
+          TRAININDICES.cell(j) trainIndex,
+          TRAINVARINDEX trainVarIndex,
+          TRAINTIMEOFFSET trainTimeOffset,
+          TESTDATA testData,
+          TESTINDICES.cell(k) testIndex,
+          TESTVARINDEX testVarIndex,
+          TESTTIMEOFFSET testTimeOffset,
+          OUTPUTVARINDEX outputVarIndex,
+          OUTPUTTIMEOFFSET outputTimeOffset)
+    {
+        double sum = 0;
+
+        for (int i = 0; i < trainVarIndex.count(); ++i) {
+
+            int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
+            double kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
+
+            int trainTimeIndex = (int) trainIndex + (int) trainTimeOffset.cell(i);
+            int  testTimeIndex = (int)  testIndex + (int)  testTimeOffset.cell(i);
+
+            double trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
+            double  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
+
+            double diff = trainPoint - testPoint;
+
+            if (wrapFlag) {
+
+                // wrap relative difference into [-180,180]
+                // do most of the arithmetic in integers for speed
+                // P360 and M360 indicate "plus 360" and "minus 360"
+
+                // add 360 *before* cast to round towards -INF instead of towards 0
+                int diffIntP360 = (int) (diff + 360);
+
+                // add 180 to ensure modulo result is positive
+                int diffIntWrapP360 = ((diffIntP360 + 180) % 360) + 180;
+
+                double diffFracM360 = diff - diffIntP360;
+                diff = diffIntWrapP360 + diffFracM360;
+            }
+
+            // normalize according to kernel width
+            diff /= kernelWidth;
+
+            // return squared difference
+            sum += diff * diff;
+        }
+
+        int outputTimeIndex = (int) trainIndex + (int) outputTimeOffset;
+        weight = exp(-((double) sum));
+        partial = weight * trainData.cell((int) outputVarIndex, outputTimeIndex);
+#ifdef DEBUG
+        fprintf(stderr, "method 2:  weight(%d, %d) = %g\n", j, k, weight);
+        fprintf(stderr, "method 2: partial(%d, %d) = %g\n", j, k, partial);
+#endif
+    }
+
+    /* Once we have the PARTIALS and WEIGHTS, we can compute RESULT */
 
     to (RESULT.cell(k) result)
     from (PARTIALS.row(k) partials,
-          WEIGHTS.row(k) weights,
-          INPUTSCHECKED checkDummy)
+          WEIGHTS.row(k) weights)
     {
         double totalWeight;
         ReduceAdd(result, partials);
         ReduceAdd(totalWeight, weights);
         result /= totalWeight;
 #ifdef DEBUG
-        printf("Output %d = %g\n", k, result);
+        fprintf(stderr, "Output %d = %g\n", k, result);
 #endif // DEBUG
     }
+}
+
+transform NWKDERecursive
+from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
+     TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
+     TESTDATA[m2,n2],
+     TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+to RESULT[q]
+{
+    to   (RESULT           result)
+    from (TRAINDATA        trainData,
+          WRAPFLAGS        wrapFlags,
+          KERNELWIDTHS     kernelWidths,
+          TRAININDICES     trainIndices,
+          TRAINVARINDEX    trainVarIndex,
+          TRAINTIMEOFFSET  trainTimeOffset,
+          TESTDATA         testData,
+          TESTINDICES      testIndices,
+          TESTVARINDEX     testVarIndex,
+          TESTTIMEOFFSET   testTimeOffset,
+          OUTPUTVARINDEX   outputVarIndex,
+          OUTPUTTIMEOFFSET outputTimeOffset)
+    {
+        NWKDEBase(result, trainData, wrapFlags, kernelWidths,
+                  trainIndices, trainVarIndex, trainTimeOffset,
+                  testData, testIndices,
+                  testVarIndex, testTimeOffset,
+                  outputVarIndex, outputTimeOffset);
+    }
+
+    to   (RESULT           result)
+    from (TRAINDATA        trainData,
+          WRAPFLAGS        wrapFlags,
+          KERNELWIDTHS     kernelWidths,
+          TRAININDICES     trainIndices,
+          TRAINVARINDEX    trainVarIndex,
+          TRAINTIMEOFFSET  trainTimeOffset,
+          TESTDATA         testData,
+          TESTINDICES      testIndices,
+          TESTVARINDEX     testVarIndex,
+          TESTTIMEOFFSET   testTimeOffset,
+          OUTPUTVARINDEX   outputVarIndex,
+          OUTPUTTIMEOFFSET outputTimeOffset)
+    {
+        int mid = q / 2;
+
+        if (mid > 0) {
+            NWKDERecursive(result.region(0, mid),
+                           trainData, wrapFlags, kernelWidths,
+                           trainIndices, trainVarIndex, trainTimeOffset,
+                           testData, testIndices.region(0, mid),
+                           testVarIndex, testTimeOffset,
+                           outputVarIndex, outputTimeOffset);
+        }
+
+        if (mid < q) {
+            NWKDERecursive(result.region(mid, q),
+                           trainData, wrapFlags, kernelWidths,
+                           trainIndices, trainVarIndex, trainTimeOffset,
+                           testData, testIndices.region(mid, q),
+                           testVarIndex, testTimeOffset,
+                           outputVarIndex, outputTimeOffset);
+        }
+
+    }
+}
+
+transform NWKDE
+#ifdef WORKAROUND
+from TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
+     TRAININDICES[l], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
+     TESTDATA[4,8750],
+     TESTINDICES[q], TESTVARINDEX[8], TESTTIMEOFFSET[8],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+to RESULT[q]
+through INPUTSCHECKED
+#else
+from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
+     TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
+     TESTDATA[m2,n2],
+     TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+to RESULT[q]
+#endif
+generator NWKDEGenerator
+//optimize KERNELWIDTHS[m]
+{
+    to (RESULT result)
+    from (TRAINDATA        trainData,
+          WRAPFLAGS        wrapFlags,
+          KERNELWIDTHS     kernelWidths,
+          TRAININDICES     trainIndices,
+          TRAINVARINDEX    trainVarIndex,
+          TRAINTIMEOFFSET  trainTimeOffset,
+          TESTDATA         testData,
+          TESTINDICES      testIndices,
+          TESTVARINDEX     testVarIndex,
+          TESTTIMEOFFSET   testTimeOffset,
+          OUTPUTVARINDEX   outputVarIndex,
+          OUTPUTTIMEOFFSET outputTimeOffset)
+    {
+#ifdef DEBUG
+        double ret;
+        NWKDECheckInputs(ret, trainData, trainIndices,
+                         trainVarIndex, trainTimeOffset,
+                         testData, testIndices,
+                         testVarIndex, testTimeOffset,
+                         outputVarIndex, outputTimeOffset);
+#endif
+        NWKDERecursive(result, trainData, wrapFlags, kernelWidths,
+                       trainIndices, trainVarIndex, trainTimeOffset,
+                       testData, testIndices,
+                       testVarIndex, testTimeOffset,
+                       outputVarIndex, outputTimeOffset);
+    }
+
 }
 
 #endif // NWKDE_PBCC

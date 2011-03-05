@@ -29,14 +29,12 @@ eigenproblem/trial1
 eigenproblem/trial2
 kclustering/assignclusters
 kclustering/clusterinputgen
-kclustering/copy
 kclustering/distance
 kclustering/kmeans
 kclustering/newclusterlocations
 kernel/KernelEstimate
 kernel/LinearSolvePosDef
 kernel/nwkdelm2
-kernel/nwkdelm
 kernel/nwkde
 kernel/utils
 LUDense/blockedLUDense
@@ -115,9 +113,13 @@ regression/commadecl
 regression/coordflip
 regression/coscheduled1
 regression/coscheduled2
+regression/coscheduled3
+regression/define
 regression/duplicate
 regression/fileprefix
 regression/forenough
+regression/forwarddecl
+regression/function
 regression/generators
 regression/matrixversions2
 regression/matrixversions
@@ -148,6 +150,7 @@ rootsolve/laguerre
 rootsolve/rootsolve
 rootsolve/secant
 simple/add
+simple/bufferrotate2
 simple/bufferrotate
 simple/copy
 simple/matrixrotate
@@ -156,6 +159,7 @@ simple/randomshuffle
 simple/rollingsum
 simple/transpose
 sort/Insertionsort
+sort/Mergesort2
 sort/Mergesort
 sort/Parallel_Mergesort
 sort/Quicksort
@@ -165,3 +169,4 @@ sort/Sort
 *.cpp
 *.cfg
 *.info
+*.obj

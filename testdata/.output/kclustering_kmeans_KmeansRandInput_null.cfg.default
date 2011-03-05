@@ -1,1 +1,2 @@
 kmeans_tmpl_0_k__3 = 5     # valid range: 0 to 2147483647
+kmeans_tmpl_0_forenough_iterations_0__3 = 10     # valid range: 0 to 1000

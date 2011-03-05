@@ -53,7 +53,7 @@ to Eigenvalue[n], Eigenvector[n,n]
   to (Eigenvalue eig, Eigenvector vec) from (Diag Din, Subdiag Ein)
   {
 
-	InlineCopy1D(eig, Din);
+	Copy1D(eig, Din);
 	DCTDLAPACKsub(eig, vec, Ein);
   }
 

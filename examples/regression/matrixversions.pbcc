@@ -9,7 +9,7 @@ to OUT[w,h]
     return v+1;
   }
   to(X<0> o) from(IN i){
-    InlineCopy2D(o, i);
+    Copy2D(o, i);
   }
   OUT.cell(x,y) from(X<7>.cell(x,y) i){
     return i;

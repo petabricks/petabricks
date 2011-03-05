@@ -34,6 +34,10 @@
 # include "config.h"
 #endif
 
+#if !defined(HAVE_THREADLOCAL)
+# undef HAVE_BOOST_RANDOM_HPP
+#endif
+
 #ifdef HAVE_OPENCL
 # include "openclutil.h"
 #endif

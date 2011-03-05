@@ -1,0 +1,68 @@
+#include "../simple/copy.pbcc"
+
+#define WAY (1<<W)
+
+template<W(1,5)>
+function Merge
+from in[n]
+to out[n]
+{
+    int i, j, ptr[WAY], minLoc;
+    double min;
+    for (i = 0; i < WAY; i++) {
+      ptr[i] = n * i / WAY;
+    }
+    for (i = 0; i < n; i++) {
+      min = HUGE_VAL;
+      minLoc = -1;
+      for (j = 0; j < WAY; j++) {
+        if (ptr[j] < n * (j + 1) / WAY && in.cell(ptr[j]) < min) {
+          min = in.cell(ptr[j]);
+          minLoc = j;
+        }
+      }
+      if (minLoc == -1) {
+        printf("error\n");
+        exit(-1);
+      }
+      out.cell(i) = min;
+      ptr[minLoc]++;
+    }
+}
+
+template<W(1,5)>
+function MergesortSubArray
+from in[n], p
+to out[n], temp[n]
+{
+    int i;
+
+    for (i = 0; i < WAY; i++) {
+      if (n * (i + 1) / WAY - n * i / WAY > 1) {
+#ifndef SORTSUBARRAY
+        spawn MergesortSubArray(W, out .region(n * i / WAY, n * (i + 1) / WAY),
+                                   temp.region(n * i / WAY, n * (i + 1) / WAY),
+                                   in  .region(n * i / WAY, n * (i + 1) / WAY), p);
+#else
+        spawn SORTSUBARRAY(out .region(n * i / WAY, n * (i + 1) / WAY),
+                           temp.region(n * i / WAY, n * (i + 1) / WAY),
+                           in  .region(n * i / WAY, n * (i + 1) / WAY), p);
+#endif
+      }
+    }
+    sync;
+    Copy1D(temp, out);
+    Merge<W>(out, temp);
+}
+
+template<W(1,5)>
+function Mergesort
+from in[n]
+to out[n]
+through temp[n]
+{
+    Copy1D(out, in);
+    MergesortSubArray<W>(out, temp, in, 64);
+}
+
+

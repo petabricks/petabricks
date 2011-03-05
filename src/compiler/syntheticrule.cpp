@@ -265,3 +265,48 @@ void petabricks::DuplicateExpansionRule::generateTrampCodeSimple(Transform& tran
   _rule->setDuplicateNumber(old);
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//TODO: consider new file for CallInSequenceRule
+
+void petabricks::CallInSequenceRule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
+  RuleList::iterator i;
+  for(i=_rules.begin(); i!=_rules.end(); ++i){
+    (*i)->generateCallCodeSimple(trans, o, region);
+  }
+}
+
+void petabricks::CallInSequenceRule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
+  o.write("{ DynamicTaskPtr __last;");
+  RuleList::iterator i;
+  for(i=_rules.begin(); i!=_rules.end(); ++i){
+    (*i)->generateCallTaskCode(name, trans, o, region);
+    if(i!=_rules.begin()) {
+      o.write(name+"->dependsOn(__last);");
+      o.write("__last->enqueue();");
+    }
+    o.write("__last = "+name+";");
+  }
+  o.write("}");
+}
+
+void petabricks::CallInSequenceRule::generateTrampCodeSimple(Transform& /*trans*/, CodeGenerator& /*o*/) { UNIMPLEMENTED(); }
+  
+bool petabricks::CallInSequenceRule::isSingleElement() const { UNIMPLEMENTED(); return false; }
+  
+int petabricks::CallInSequenceRule::dimensions() const { UNIMPLEMENTED(); return -1; }
+petabricks::FormulaPtr petabricks::CallInSequenceRule::getSizeOfRuleIn(int /*d*/) { UNIMPLEMENTED(); return 0; }
+
+std::string petabricks::CallInSequenceRule::codename() const { UNIMPLEMENTED(); return ""; }
+
+void petabricks::CallInSequenceRule::collectDependencies(StaticScheduler& /*scheduler*/) { UNIMPLEMENTED(); }
+
+void petabricks::CallInSequenceRule::genWhereSwitch(Transform& /*trans*/, CodeGenerator& /*o*/) { UNIMPLEMENTED(); }
+
+petabricks::DependencyDirection petabricks::CallInSequenceRule::getSelfDependency() const { UNIMPLEMENTED(); return 0; }
+
+

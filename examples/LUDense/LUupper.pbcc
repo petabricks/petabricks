@@ -16,14 +16,14 @@ to OUT[m,n]
   to (OUT.region(0,0,m/2,n/2) out)
   from (IN.region(0,0,m/2,n/2) in, LEFTDIAG.region(0,0,n/2,n/2) leftdiag)
   {
-        LUuppertrirecur(out,in,leftdiag);
+        SPAWN(LUuppertrirecur,out,in,leftdiag);
   }
 
   //upper right
   to (OUT.region(m/2,0,m,n/2) out) 
   from (IN.region(m/2,0,m,n/2) in, LEFTDIAG.region(0,0,n/2,n/2) leftdiag)
   {
-        LUuppertrirecur(out,in,leftdiag);
+        SPAWN(LUuppertrirecur,out,in,leftdiag);
   }
 
   //lower left
@@ -37,7 +37,7 @@ to OUT[m,n]
         MatrixMultiply(temp, left, up);
         MatrixSub(temp, in, temp);
 
-        LUuppertrirecur(out,temp,diag);
+        SPAWN(LUuppertrirecur,out,temp,diag);
   }
 
 
@@ -53,7 +53,7 @@ to OUT[m,n]
         MatrixMultiply(temp, left, up);
         MatrixSub(temp, in, temp);
 
-	LUuppertrirecur(out,temp,diag);    
+	SPAWN(LUuppertrirecur,out,temp,diag);    
   }
 
 

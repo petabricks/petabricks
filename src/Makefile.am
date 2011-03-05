@@ -14,7 +14,6 @@ noinst_HEADERS = \
   compiler/configitem.h \
   compiler/formula.h \
   compiler/iterationorders.h \
-  compiler/learner.h \
   compiler/matrixdef.h \
   compiler/matrixdependency.h \
   compiler/maximaparser.h \
@@ -97,7 +96,6 @@ libpbcompiler_a_SOURCES = \
   compiler/configitem.cpp \
   compiler/formula.cpp \
   compiler/iterationorders.cpp \
-  compiler/learner.cpp \
   compiler/matrixdef.cpp \
   compiler/matrixdependency.cpp \
   compiler/maximalexer.lpp \
