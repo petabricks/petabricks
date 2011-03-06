@@ -63,6 +63,7 @@ class config_defaults:
   online_baseline = False
   fixed_safe_alg = False
   accuracy_target = None
+  output_cfg = None
   timing_target = None
   race_multiplier = 1.0
   race_multiplier_lowacc = 8.0

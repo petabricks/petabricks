@@ -4,6 +4,7 @@ import pbutil, mutators
 import logging
 import storagedirs 
 import candidatetester
+import shutil 
 import tunerconfig
 import configtool 
 from configtool import defaultConfigFile
@@ -34,6 +35,7 @@ def mainname(cmd):
 class Population:
   def __init__(self, initial, tester, baseline=None):
     self.members  = [initial]
+    self.best     = None
     self.notadded = []
     self.removed  = []
     self.failed   = set()
@@ -209,6 +211,7 @@ class Population:
     best=self.markBestN(self.members, popsize, config.timing_metric_idx)
     if isLast:
       storagedirs.cur.markBest(best[0].cid, self.inputSize(), None)
+      self.best = best[0]
       best[0].writestats(self.inputSize(), storagedirs.cur.results())
 
     for accLevel,accTarg in enumerate(self.accuracyTargets()):
@@ -218,6 +221,8 @@ class Population:
         if isLast:
           storagedirs.cur.markBest(best[0].cid, self.inputSize(), accLevel)
           best[0].writestats(self.inputSize(), storagedirs.cur.results(accLevel))
+          if accLevel == config.accuracy_target:
+            self.best = best[0]
       else:
         warnings.warn(TargetNotMet(self.inputSize(), accTarg))
 
@@ -444,6 +449,9 @@ def autotuneInner(benchmark):
     if pop.firstRound:
       warnings.warn(tunerwarnings.AlwaysCrashes())
   finally:
+    if pop.best and config.output_cfg:
+      print pop.best.cfgfile(),"=>" , config.output_cfg
+      shutil.copyfile(pop.best.cfgfile(), config.output_cfg)
     at = storagedirs.getactivetimers()
     if len(at):
       storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
@@ -463,7 +471,8 @@ def regression_check(benchmark):
 
 def recompile():
   pbutil.chdirToPetabricksRoot();
-  config.benchmark=pbutil.normalizeBenchmarkName(config.benchmark)
+  config.benchmark = pbutil.normalizeBenchmarkName(config.benchmark)
+  config.output_cfg = pbutil.benchmarkToCfg(config.benchmark) 
   if config.recompile:
     pbutil.compilePetabricks();
     pbutil.compileBenchmarks([config.benchmark])
