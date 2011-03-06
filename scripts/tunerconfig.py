@@ -164,6 +164,7 @@ class patch_noninteractive:
   cleanup_inputs           = True
   debug                    = False
   delete_output_dir        = True
+  output_cfg               = None
   print_log                = False
   pause_on_crash           = False
   candidatelog             = False
