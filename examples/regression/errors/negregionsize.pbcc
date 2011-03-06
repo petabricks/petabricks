@@ -1,0 +1,12 @@
+
+transform TestRuleIR from IN[h] to OUT[h] 
+{
+  to(OUT.region(x, 2) a)
+  from(IN.region(x,2) b)
+  {
+    //this should not compile 
+  }
+}
+
+
+

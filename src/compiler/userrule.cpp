@@ -81,6 +81,10 @@ void petabricks::UserRule::setBody(const char* str, const jalib::SrcPos& p){
 
 void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope){
   SRCPOSSCOPE();
+
+  jalib::Map(&Region::validate, _from);
+  jalib::Map(&Region::validate, _to);
+
   RIRScopePtr scope = parentScope.createChildLayer();
   for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->addArgToScope(scope);
