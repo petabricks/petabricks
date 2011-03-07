@@ -2,6 +2,7 @@
 import itertools, random, math, logging, csv
 import storagedirs
 import numpy
+import optimize
 from scipy import stats
 from tunerconfig import config
 import candidatetester
@@ -331,6 +332,8 @@ class OptimizeTunable2DArrayMutator(Tunable2DArrayMutator):
 
   def __init__(self, tname, vname, size, minVal, maxVal, weight=1.0):
     Tunable2DArrayMutator.__init__(self, tname, vname, size, minVal, maxVal, weight)
+    f = self.measureAccuracy
+    self.o = optimize.BFGSOptimizer(f, size, minVal, maxVal)
 
   def measureAccuracy(self, value, candidate, n):
     self.setVal(candidate, value, n)
@@ -345,25 +348,7 @@ class OptimizeTunable2DArrayMutator(Tunable2DArrayMutator):
     return -result
 
   def random(self, oldVal, minVal, maxVal, candidate):
-
-    import scipy.optimize
-
-    # initialize BFGS parameters
-    f = self.measureAccuracy
-    x0 = oldVal
-    args = (candidate, candidate.pop.testers[-1].n)
-
-    # optimize
-    result = scipy.optimize.fmin_bfgs(f, x0, args = args, full_output = 1)
-    newVal = list(result[0])
-    for j in xrange(0, self.size):
-      newVal[j] = float(newVal[j])
-
-    # enforce min and max
-    for j in xrange(0, self.size):
-      newVal[j] = min(maxVal[j], max(minVal[j], newVal[j]))
-
-    return newVal
+    return self.o.optimize(oldVal, candidate)
 
 class MultiMutator(Mutator):
   def __init__(self, count=3, weight=1.0):

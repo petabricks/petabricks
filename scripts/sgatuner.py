@@ -377,7 +377,6 @@ def groupTunables(transformName, tunables):
       if not varName in tunableIndex:
         assert(index == 0)
         tunableIndex[varName] = tunable
-#        print "Changing tunable 'name' attribute from %s to %s" % (tunable['name'], newTunableName)
         tunable['tname'] = transformName
         tunable['vname'] = varName
         tunable['size'] = 1
