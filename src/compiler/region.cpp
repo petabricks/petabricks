@@ -153,6 +153,15 @@ void petabricks::Region::initialize(Transform& trans) {
   }
 }
 
+void petabricks::Region::validate() {
+  addAssumptions();
+  for(size_t i=0; i<dimensions(); ++i){
+    int isBeginLeqEnd = MAXIMA.tryCompare(_minCoord[i], "<=", _maxCoord[i]); 
+    JASSERT(isBeginLeqEnd==MaximaWrapper::YES)(_minCoord[i])(_maxCoord[i])
+      .Text("Invalid .region().  Syntax is .region(beginCoord, endCoord), for example region(x, y, x+4, y+4).  Begin is inclusive end is exclusive.");
+  }
+}
+
 petabricks::CoordinateFormula petabricks::Region::calculateCenter() const {
 //   CoordinateFormula tmp;
 //   JASSERT(_minCoord.size()==_maxCoord.size())(_minCoord.size())(_maxCoord.size());
@@ -434,7 +443,13 @@ void petabricks::Region::collectDependencies(const Transform& tx, const RuleInte
 }
 
 void petabricks::Region::addAssumptions() const{
-
+  for(size_t i=0; i<dimensions(); ++i){
+    FormulaPtr end = _fromMatrix->getSizeOfDimension(i);
+    MAXIMA.assume(new FormulaLE(FormulaInteger::zero(), _minCoord[i]));
+    MAXIMA.assume(new FormulaLE(FormulaInteger::zero(), _maxCoord[i]));
+    MAXIMA.assume(new FormulaLE(_minCoord[i], end));
+    MAXIMA.assume(new FormulaLE(_maxCoord[i], end));
+  } 
 }
 
 void petabricks::Region::assertNotInput(){

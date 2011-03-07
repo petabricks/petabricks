@@ -48,6 +48,7 @@ petabricks::RuleChoiceAssignment petabricks::RuleChoiceCollection::getAssignment
 
 void petabricks::RuleChoiceCollection::generateDecisionTree(std::string& pfx, size_t choiceCount, CodeGenerator& o) {
   o.write("IndexT _txn = transform_n();");
+  o.cg().addAlgchoice(pfx.substr(0, pfx.length()-1), (int)choiceCount);
   for(int lvl = 1; lvl<=MAX_REC_LEVELS; ++lvl) {
     std::string rule   = pfx + "lvl" + jalib::XToString(lvl) + "_rule";
     o.createTunable(true, "algchoice.alg", rule, 0, 0, (int)choiceCount);

@@ -338,7 +338,7 @@ def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postf
   for b in benchmarks:
     b[0]=normalizeBenchmarkName(b[0])
 
-  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x), lambda: postfn(x[0])), benchmarks))
+  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x), lambda: postfn(x[0])), benchmarks)), benchmarks
 
 def killSubprocess(p):
   if p.poll() is None:

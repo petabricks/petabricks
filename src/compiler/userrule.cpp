@@ -81,6 +81,10 @@ void petabricks::UserRule::setBody(const char* str, const jalib::SrcPos& p){
 
 void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope){
   SRCPOSSCOPE();
+
+  jalib::Map(&Region::validate, _from);
+  jalib::Map(&Region::validate, _to);
+
   RIRScopePtr scope = parentScope.createChildLayer();
   for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->addArgToScope(scope);
@@ -895,7 +899,7 @@ void petabricks::UserRule::collectDependencies(StaticScheduler& scheduler){
         ChoiceDepGraphNodeSet dNode = scheduler.lookupNode(pp->first, pp->second->region());
         for(ChoiceDepGraphNodeSet::iterator a=pNode.begin(); a!=pNode.end(); ++a)
           for(ChoiceDepGraphNodeSet::iterator b=dNode.begin(); b!=dNode.end(); ++b)
-            (*a)->addDependency(*b, this, DependencyDirection(dimensions()));
+            (*a)->addDependency(*b, this, DependencyDirection(std::max(1,dimensions()), DependencyDirection::D_MULTIOUTPUT));
       }
     }
   }

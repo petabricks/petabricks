@@ -71,6 +71,7 @@ class config_defaults:
   online_baseline = False
   fixed_safe_alg = False
   accuracy_target = None
+  output_cfg = None
   timing_target = None
   race_multiplier = 1.0
   race_multiplier_lowacc = 8.0
@@ -174,6 +175,7 @@ class patch_noninteractive:
   cleanup_inputs           = True
   debug                    = False
   delete_output_dir        = True
+  output_cfg               = None
   print_log                = False
   pause_on_crash           = False
   candidatelog             = False

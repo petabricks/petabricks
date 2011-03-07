@@ -1,4 +1,5 @@
 import warnings
+from tunerconfig import config
 
 class TunerWarning(UserWarning):
   '''base class for warning types'''
@@ -41,8 +42,21 @@ class InconsistentOutput(TunerWarning):
     self.a=a
     self.b=b
     self.pfx=pfx
+    self.debugpause()
   def __str__(self):
     return "%s != %s" % (str(self.a), str(self.b))
+  def debugpause(self):
+    if config.pause_on_crash:
+      print '-'*60
+      print 'WARNING: Inconsistent output'
+      print '-'*60
+      print "config 1:", self.a.cfgfile()
+      print "config 2:", self.b.cfgfile()
+      print "input:",self.pfx
+      print 'set config.pause_on_crash=False to disable this message'
+      print '-'*60
+      print
+      raw_input('press any key to continue')
 
 class TargetNotMet(TunerWarning):
   '''an accuracy target was not attainable through search'''
