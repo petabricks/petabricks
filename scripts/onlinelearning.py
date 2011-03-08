@@ -346,7 +346,8 @@ def onlinelearnInner(benchmark):
     if c and not c.wasTimeout:
       pop.add(c)
 
-    mlog = MutatorLogFile(c.mutators)
+      if not config.online_baseline:
+        mlog = MutatorLogFile(c.mutators)
 
     '''now normal rounds'''  
     for gen in itertools.count(1):
@@ -397,9 +398,10 @@ def onlinelearnInner(benchmark):
         if c is not None:          
           mutatorLog.add(c, dtime, dacc, gettime(c), None if c.wasTimeout else getacc(c));
 
-        
-        mlog.logPerformance(gen, gettime(c), "None" if c.wasTimeout else getacc(c), dtime, dacc, str(c.lastMutator));
-        mlog.logScores(gen, c.mutatorScores)
+
+        if not config.online_baseline:
+          mlog.logPerformance(gen, gettime(c), "None" if c.wasTimeout else getacc(c), dtime, dacc, str(c.lastMutator));
+          mlog.logScores(gen, c.mutatorScores)
 
         t,a = resultingTimeAcc(p, c)
         print "Generation", gen, "elapsed",objectives.elapsed,"time", t,"accuracy",a, getconf(p)
