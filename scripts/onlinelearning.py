@@ -346,8 +346,8 @@ def onlinelearnInner(benchmark):
     if c and not c.wasTimeout:
       pop.add(c)
 
-      if not config.online_baseline:
-        mlog = MutatorLogFile(c.mutators)
+    if not config.online_baseline:
+      mlog = MutatorLogFile(c.mutators)
 
     '''now normal rounds'''  
     for gen in itertools.count(1):
