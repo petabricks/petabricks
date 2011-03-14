@@ -3,6 +3,7 @@
 
 #include "regiondatai.h"
 #include "regiondataraw.h"
+#include "remotehost.h"
 
 namespace petabricks {
   class RegionDataSplit;
@@ -13,6 +14,7 @@ namespace petabricks {
   private:
     IndexT* _splitSize;
     RegionDataIPtr* _parts;
+    IndexT* _partsSize;
     IndexT _numParts;
     IndexT* _partsMultipliers;
 
@@ -21,6 +23,7 @@ namespace petabricks {
     ~RegionDataSplit();
 
     int allocData();
+    void createPart(int partIndex, RemoteHostPtr host);
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
