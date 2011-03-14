@@ -13,7 +13,7 @@ import storagedirs
 import configtool
 import random
 from tunerconfig import config, option_callback
-from candidatetester import Candidate, CandidateTester
+from candidatetester import Candidate, CandidateTester, MutatorLogFile
 from traininginfo import TrainingInfo
 from configtool import defaultConfigFile
 from storagedirs import timers
@@ -50,44 +50,66 @@ def getconf(c):
 
 lastMutatorId = 0
 class MutatorLogEntry:
-  def __init__(self, mutator, candidate, time, accuracy):
+  def __init__(self, mutator, candidate, dtime, daccuracy, time, acc):
     global lastMutatorId
 
     self.mutator = mutator
     self.candidate = candidate
+    self.dtime = dtime
+    self.daccuracy = daccuracy
     self.time = time
-    self.accuracy = accuracy
+    self.accuracy = acc
     self.id = lastMutatorId + 1
     lastMutatorId = self.id
-
+ 
   def __repr__(self):
-    return "%s (%f s, %f acc) [id = %i]" % (str(self.mutator), self.time, self.accuracy, self.id)
+    return "%s (%f s, %s acc) [id = %i]" % (str(self.mutator),
+                                            self.dtime,
+                                            "n/a" if self.daccuracy == None else str(self.daccuracy),
+                                            self.id)
 
 
 class MutatorLog:
-  def __init__(self, name, perfMetric):
+  def __init__(self, name):
     self.log = []
     self.name = name
-    self.perfMetric = perfMetric
 
-  def add(self, c):
+  def add(self, c, dtime, dacc, time, acc):
     # slide the candidate window
     if len(self.log) >= config.window_size:
       self.log.sort(key=lambda x: x.id)
       self.log.pop(0);
 
-    if(not c.wasTimeout):
-      acc = getacc(c)
-    else:
-      acc = "n/a"
+    self.log = [MutatorLogEntry(c.lastMutator, c, dtime, dacc, time, acc)] + self.log
 
-    self.log = sorted([MutatorLogEntry(c.lastMutator, c, gettime(c), acc)] + self.log, key=self.perfMetric)
 
-    def __repr__(self):
-      return str(self.log)
+  '''biggest speedups first'''
+  def getSortedByTime(self):
+    sortedLog = MutatorLog(self.name)
+    sortedLog.log = sorted(self.log, key=lambda entry: entry.time)
+    return sortedLog
 
-def sortedMutatorLog(log):
-  return sorted(log, key = lambda m: m.time)
+  '''biggest jumps in accuracy first'''
+  def getSortedByAcc(self):
+    sortedLog = MutatorLog(self.name)
+    sortedLog.log = sorted(self.log, key=lambda entry: -entry.accuracy if entry.accuracy != None else 100000)
+    return sortedLog
+
+
+  '''biggest speedups first'''
+  def getSortedByDeltaTime(self):
+    sortedLog = MutatorLog(self.name)
+    sortedLog.log = sorted(self.log, key=lambda entry: entry.dtime)
+    return sortedLog
+
+  '''biggest jumps in accuracy first'''
+  def getSortedByDeltaAcc(self):
+    sortedLog = MutatorLog(self.name)
+    sortedLog.log = sorted(self.log, key=lambda entry: -entry.daccuracy if entry.daccuracy != None else 100000)
+    return sortedLog
+
+  def __repr__(self):
+    return str(self.log)
 
 class OnlinePopulation:
   def __init__(self):
@@ -298,8 +320,7 @@ def onlinelearnInner(benchmark):
 
   ''' mutators in the last time window that produced improved candidates, 
   ordered by descending fitness of the candidates'''
-  mutatorLog_times = MutatorLog(name = "time", perfMetric = lambda m: m.time)
-  mutatorLog_accuracy = MutatorLog(name = "accuracy", perfMetric = lambda m: -m.accuracy)
+  mutatorLog = MutatorLog(name = "acc and time log")
 
   ostats = storagedirs.openCsvStats("onlinestats", ObjectiveTuner.statsHeader)
   pstats = storagedirs.openCsvStats("population", OnlinePopulation.statsHeader)
@@ -307,6 +328,7 @@ def onlinelearnInner(benchmark):
                                                        'timesafe','accsafe','timeexp','accexp',
                                                        'safe','seed','experimental',
                                                        ])
+
     
   try:
     timers.total.start()
@@ -324,9 +346,13 @@ def onlinelearnInner(benchmark):
     if c and not c.wasTimeout:
       pop.add(c)
 
+    mlog = MutatorLogFile(c.mutators)
+
     '''now normal rounds'''  
     for gen in itertools.count(1):
       if config.max_time and objectives.elapsed>config.max_time:
+        break
+      if config.max_gen and gen>config.max_gen:
         break
       if gen%config.reweight_interval==0:
         pop.reweight()
@@ -335,24 +361,16 @@ def onlinelearnInner(benchmark):
       #s = pop.choice(parentlimit(p), getacc)
       s = p
 
-      if(objectives.needAccuracy()):
-        logOfChoice = mutatorLog_accuracy
-        #TO mpacula:
-        # This speeds up convergence a LOT... basically picks mutators flagged to effect accuracy
-        # It would be nice if the mutator log did this automatically and this wasn't needed
-        # Disable with: mfilter=lambda x: True
-        mfilter=lambda x: x.accuracyHint
-      else:
-        logOfChoice = mutatorLog_times
-        mfilter=lambda x: True
-
       if config.fixed_safe_alg:
         p = candidate
 
       if config.online_baseline:
         c = None
       else:
-        c = s.cloneAndMutate(tester.n, config.use_bandit, logOfChoice, mutatorFilter=mfilter)
+        c = s.cloneAndMutate(tester.n,
+                             adaptive = True,
+                             mutatorLog = mutatorLog,
+                             objectives = objectives)
       tlim, atarg = objectives.getlimits(p, s, c)
       if tester.race(p, c, tlim, atarg) and not (p.wasTimeout and c.wasTimeout):
         p.discardResults(config.max_trials)
@@ -362,14 +380,20 @@ def onlinelearnInner(benchmark):
 
         if c is None:
           c=p
-        else:
-          mutatorLog_times.add(c);
-          if not c.wasTimeout:
-            mutatorLog_accuracy.add(c);
         
         logging.debug("Child vs parent, better=%d, %f vs. %f" % (int(gettime(c) < gettime(p)), gettime(c), gettime(p)))
         clog.writerow([gen, lasttime(p), lastacc(p), lasttime(c), lastacc(c)]
                       +map(storagedirs.relpath,[p.cfgfile(), s.cfgfile(), c.cfgfile()]))
+
+        dtime = gettime(c) - gettime(p)
+        dacc = None if c.wasTimeout else (getacc(c) - getacc(p))
+
+        if c is not None:          
+          mutatorLog.add(c, dtime, dacc, gettime(c), None if c.wasTimeout else getacc(c));
+
+        
+        mlog.logPerformance(gen, gettime(c), "None" if c.wasTimeout else getacc(c), dtime, dacc, str(c.lastMutator));
+        mlog.logScores(gen, c.mutatorScores)
 
         t,a = resultingTimeAcc(p, c)
         print "Generation", gen, "elapsed",objectives.elapsed,"time", t,"accuracy",a, getconf(p)
@@ -403,6 +427,7 @@ if __name__ == "__main__":
                     help="enable debugging options")
   parser.add_option("-n", type="int", help="input size to train for")
   parser.add_option("--max_time",        type="float",  action="callback", callback=option_callback)
+  parser.add_option("--max_gen",         type="int",  action="callback", callback=option_callback)
   parser.add_option("--output_dir",      type="string", action="callback", callback=option_callback)
   parser.add_option("--seed",            type="string", action="callback", callback=option_callback)
   parser.add_option("--offset",          type="int",    action="callback", callback=option_callback)
@@ -416,6 +441,7 @@ if __name__ == "__main__":
   parser.add_option("--use_bandit",      type="int",    action="callback", callback=option_callback)
   parser.add_option("--window_size",     type="int",    action="callback", callback=option_callback)
   parser.add_option("--bandit_c",        type="float",  action="callback", callback=option_callback)
+  parser.add_option("--os_method",       type="int",    action="callback", callback=option_callback)
   parser.add_option("--threads",         type="int",    action="callback", callback=option_callback)
 
   (options, args) = parser.parse_args()
