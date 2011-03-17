@@ -65,6 +65,7 @@ cell  123
 
 #include "regiondataraw.h"
 #include "regiondataremote.h"
+#include "regiondatasplit.h"
 #include "regionmatrix.h"
 #include "regionmatrixproxy.h"
 #include "remotehost.h"
@@ -102,6 +103,12 @@ int main(int argc, const char** argv){
     hdb.spawnListenThread();
 
     regionMatrix->splitData(m2);
+
+    RegionHandlerPtr handler = regionMatrix->getRegionHandler();
+    RegionDataSplitPtr regionData = (RegionDataSplit*) handler->acquireRegionData(NULL).asPtr();
+    regionData->createPart(0, hdb.host(0));
+    handler->releaseRegionData(NULL);
+    
     // regionMatrix->allocData();
     regionMatrix->importDataFromFile(filename);
 

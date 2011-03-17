@@ -1,6 +1,7 @@
 #include "regiondatasplit.h"
 
 #include <string.h>
+#include "regiondataproxy.h"
 
 using namespace petabricks;
 
@@ -66,12 +67,19 @@ void RegionDataSplit::createPart(int partIndex, RemoteHostPtr host) {
     }
   }
 
-  _parts[partIndex] = new RegionDataRaw(_D, size, partOffset);
+  if (host == NULL) {
+    _parts[partIndex] = new RegionDataRaw(_D, size, partOffset);
+  } else {
+    _parts[partIndex] = new RegionDataProxy(_D, size, partOffset, host);
+  }
 }
 
 int RegionDataSplit::allocData() {
   for (int i = 0; i < _numParts; i++) {
-    this->createPart(i, NULL);
+    if (!_parts[i]) {
+      this->createPart(i, NULL);
+    }
+
     _parts[i]->allocData();
   }
   return 0;

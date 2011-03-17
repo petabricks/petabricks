@@ -4,6 +4,7 @@
 #include <map>
 #include <pthread.h>
 #include "regiondataraw.h"
+#include "remotehost.h"
 #include "remoteobject.h"
 
 namespace petabricks {
@@ -14,6 +15,7 @@ namespace petabricks {
       enum {
 	READCELL = 11,
 	WRITECELL,
+	ALLOCDATA,
       };
     };
 
@@ -21,6 +23,10 @@ namespace petabricks {
       int dimensions;
       IndexT size[MAX_DIMENSIONS];
       IndexT partOffset[MAX_DIMENSIONS];
+    };
+
+    struct AllocDataMessage {
+      MessageType type;
     };
 
     struct ReadCellMessage {
@@ -51,8 +57,10 @@ namespace petabricks {
     std::map<uint16_t, void*> _buffer;
 
   public:
-    RegionDataProxy(int dimensions, IndexT* size, IndexT* partOffset);
+    RegionDataProxy(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host);
     ~RegionDataProxy();
+
+    int allocData();
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
@@ -76,6 +84,7 @@ namespace petabricks {
   private:
     void processReadCellMsg(RegionDataProxyMessage::ReadCellMessage* msg);
     void processWriteCellMsg(RegionDataProxyMessage::WriteCellMessage* msg);
+    void processAllocDataMsg(RegionDataProxyMessage::AllocDataMessage* msg);
   };
 
 

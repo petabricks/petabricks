@@ -275,7 +275,7 @@ int RegionMatrix::incCoord(IndexT* coord) {
 }
 
 void RegionMatrix::print() {
-  printf("RegionMatrix: SIZE");
+  printf("(%d) RegionMatrix: SIZE", getpid());
   for (int d = 0; d < _D; d++) {
     printf(" %d", _size[d]);
   }

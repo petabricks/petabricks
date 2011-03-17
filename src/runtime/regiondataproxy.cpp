@@ -3,7 +3,7 @@
 using namespace petabricks;
 using namespace petabricks::RegionDataProxyMessage;
 
-RegionDataProxy::RegionDataProxy(int dimensions, IndexT* size, IndexT* partOffset) {
+RegionDataProxy::RegionDataProxy(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host) {
   _D = dimensions;
   
   _size = new IndexT[_D];
@@ -17,6 +17,19 @@ RegionDataProxy::RegionDataProxy(int dimensions, IndexT* size, IndexT* partOffse
   pthread_cond_init(&_buffer_cond, NULL);
   _seq = 0;
   _recv_seq = 0;
+  
+  // Create Remote Object
+  RemoteObjectPtr local = this->genLocal();
+  
+  InitialMessage* msg = new InitialMessage();
+  msg->dimensions = _D;
+  memcpy(msg->size, _size, sizeof(msg->size));  
+  memcpy(msg->partOffset, _partOffset, sizeof(msg->partOffset));  
+  
+  int len = (sizeof msg) + sizeof(msg->size) + sizeof(msg->partOffset);
+  
+  host->createRemoteObject(local, &RegionDataProxy::genRemote, msg, len);
+  local->waitUntilCreated();
 }
 
 RegionDataProxy::~RegionDataProxy() {
@@ -56,6 +69,16 @@ void RegionDataProxy::onRecv(const void* data, size_t len) {
   memmove(x, data, len);
   _buffer[++_recv_seq] = x;
   pthread_cond_broadcast(&_buffer_cond);
+}
+
+int RegionDataProxy::allocData() {
+  AllocDataMessage* msg = new AllocDataMessage();
+  msg->type = MessageTypes::ALLOCDATA;
+
+  int r = *(int*)this->fetchData(msg, sizeof *msg);
+
+  delete msg;
+  return r;
 }
 
 ElementT RegionDataProxy::readCell(const IndexT* coord) {
@@ -120,6 +143,11 @@ void RegionDataProxyRemoteObject::processWriteCellMsg(WriteCellMessage* msg) {
   this->send(&msg->value, sizeof(ElementT));
 }
 
+void RegionDataProxyRemoteObject::processAllocDataMsg(AllocDataMessage* msg) {
+  int r = _regionData->allocData();
+  this->send(&r, sizeof(int));  
+}
+
 void RegionDataProxyRemoteObject::onRecv(const void* data, size_t len) {
   switch(*(MessageType*)data) {
   case MessageTypes::READCELL:
@@ -127,6 +155,9 @@ void RegionDataProxyRemoteObject::onRecv(const void* data, size_t len) {
     break;
   case MessageTypes::WRITECELL:
     this->processWriteCellMsg((WriteCellMessage*)data);
+    break;
+  case MessageTypes::ALLOCDATA:
+    this->processAllocDataMsg((AllocDataMessage*)data);
     break;
   default:
     throw("Unknown RegionRemoteMsgTypes.");

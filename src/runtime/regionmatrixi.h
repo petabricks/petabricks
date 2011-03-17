@@ -21,7 +21,7 @@ namespace petabricks {
     virtual void acquireRegionData();
     virtual void releaseRegionData();
 
-    RegionHandlerPtr getRegionHandler();
+    RegionHandlerPtr getRegionHandler(); 
   };
 }
 
