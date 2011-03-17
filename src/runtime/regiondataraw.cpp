@@ -21,9 +21,9 @@ RegionDataRaw::RegionDataRaw(char* filename) {
 }
 
 RegionDataRaw::~RegionDataRaw() {
-  delete _data;
-  delete _multipliers;
-  delete _partOffset;
+  delete [] _data;
+  delete [] _multipliers;
+  delete [] _partOffset;
 }
 
 void RegionDataRaw::init(int dimensions, IndexT* size, ElementT* data, IndexT* partOffset) {

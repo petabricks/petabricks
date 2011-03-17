@@ -63,6 +63,7 @@ pkglib_HEADERS=  \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
   runtime/regiondatai.h \
+  runtime/regiondataproxy.h \
   runtime/regiondataraw.h \
   runtime/regiondataremote.h \
   runtime/regiondatasplit.h \
@@ -137,6 +138,7 @@ libpbruntime_a_SOURCES =  \
   runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
   runtime/regiondatai.cpp \
+  runtime/regiondataproxy.cpp \
   runtime/regiondataraw.cpp \
   runtime/regiondataremote.cpp \
   runtime/regiondatasplit.cpp \

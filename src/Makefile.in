@@ -114,6 +114,7 @@ am_libpbruntime_a_OBJECTS = libpbruntime_a-dynamicscheduler.$(OBJEXT) \
 	libpbruntime_a-memoization.$(OBJEXT) \
 	libpbruntime_a-petabricksruntime.$(OBJEXT) \
 	libpbruntime_a-regiondatai.$(OBJEXT) \
+	libpbruntime_a-regiondataproxy.$(OBJEXT) \
 	libpbruntime_a-regiondataraw.$(OBJEXT) \
 	libpbruntime_a-regiondataremote.$(OBJEXT) \
 	libpbruntime_a-regiondatasplit.$(OBJEXT) \
@@ -364,6 +365,7 @@ pkglib_HEADERS = \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
   runtime/regiondatai.h \
+  runtime/regiondataproxy.h \
   runtime/regiondataraw.h \
   runtime/regiondataremote.h \
   runtime/regiondatasplit.h \
@@ -438,6 +440,7 @@ libpbruntime_a_SOURCES = \
   runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
   runtime/regiondatai.cpp \
+  runtime/regiondataproxy.cpp \
   runtime/regiondataraw.cpp \
   runtime/regiondataremote.cpp \
   runtime/regiondatasplit.cpp \
@@ -636,6 +639,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-openclutil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-petabricksruntime.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiondatai.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiondataproxy.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiondataraw.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiondataremote.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbruntime_a-regiondatasplit.Po@am__quote@
@@ -1341,6 +1345,20 @@ libpbruntime_a-regiondatai.obj: runtime/regiondatai.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regiondatai.cpp' object='libpbruntime_a-regiondatai.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regiondatai.obj `if test -f 'runtime/regiondatai.cpp'; then $(CYGPATH_W) 'runtime/regiondatai.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regiondatai.cpp'; fi`
+
+libpbruntime_a-regiondataproxy.o: runtime/regiondataproxy.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regiondataproxy.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regiondataproxy.Tpo -c -o libpbruntime_a-regiondataproxy.o `test -f 'runtime/regiondataproxy.cpp' || echo '$(srcdir)/'`runtime/regiondataproxy.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regiondataproxy.Tpo $(DEPDIR)/libpbruntime_a-regiondataproxy.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regiondataproxy.cpp' object='libpbruntime_a-regiondataproxy.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regiondataproxy.o `test -f 'runtime/regiondataproxy.cpp' || echo '$(srcdir)/'`runtime/regiondataproxy.cpp
+
+libpbruntime_a-regiondataproxy.obj: runtime/regiondataproxy.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regiondataproxy.obj -MD -MP -MF $(DEPDIR)/libpbruntime_a-regiondataproxy.Tpo -c -o libpbruntime_a-regiondataproxy.obj `if test -f 'runtime/regiondataproxy.cpp'; then $(CYGPATH_W) 'runtime/regiondataproxy.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regiondataproxy.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbruntime_a-regiondataproxy.Tpo $(DEPDIR)/libpbruntime_a-regiondataproxy.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='runtime/regiondataproxy.cpp' object='libpbruntime_a-regiondataproxy.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbruntime_a-regiondataproxy.obj `if test -f 'runtime/regiondataproxy.cpp'; then $(CYGPATH_W) 'runtime/regiondataproxy.cpp'; else $(CYGPATH_W) '$(srcdir)/runtime/regiondataproxy.cpp'; fi`
 
 libpbruntime_a-regiondataraw.o: runtime/regiondataraw.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbruntime_a_CXXFLAGS) $(CXXFLAGS) -MT libpbruntime_a-regiondataraw.o -MD -MP -MF $(DEPDIR)/libpbruntime_a-regiondataraw.Tpo -c -o libpbruntime_a-regiondataraw.o `test -f 'runtime/regiondataraw.cpp' || echo '$(srcdir)/'`runtime/regiondataraw.cpp
