@@ -102,13 +102,16 @@ int main(int argc, const char** argv){
     hdb.accept();
     hdb.spawnListenThread();
 
+    // split data
     regionMatrix->splitData(m2);
 
+    // assign a chunk of data to remote host
     RegionHandlerPtr handler = regionMatrix->getRegionHandler();
     RegionDataSplitPtr regionData = (RegionDataSplit*) handler->acquireRegionData(NULL).asPtr();
     regionData->createPart(0, hdb.host(0));
     handler->releaseRegionData(NULL);
     
+    // import data
     // regionMatrix->allocData();
     regionMatrix->importDataFromFile(filename);
 
