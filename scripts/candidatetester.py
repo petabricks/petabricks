@@ -316,7 +316,7 @@ class Candidate:
     for z in xrange(config.mutate_retries):
       try:
         if adaptive:
-          method(n, mutatorLog, objectives)
+          method(n, mutatorLog, objectives, mutatorFilter)
         else:
           c.mutate(n, mutatorFilter)
         assert c.lastMutator != None
@@ -335,8 +335,11 @@ class Candidate:
   '''Uses the bandit algorithm to select a mutator, and applies the mutator to self.
     Credit assignment technique can be controlled by the scoring function, of the type
     mutator -> score'''
-  def banditMutate(self, n, mutatorLog, objectives, scoringFunction):
+  def banditMutate(self, n, mutatorLog, objectives, scoringFunction, mutatorFilter):
     totalMutations = 0
+    filteredMutators = filter(mutatorFilter, self.mutators)
+
+    
     for m in self.mutators:
       totalMutations += m.timesSelected
     
@@ -370,7 +373,7 @@ class Candidate:
       score = exploitTerm + exploreTerm
       self.mutatorScores[m] = (exploitTerm, exploreTerm, score) # for logging purposes
 
-      if bestScore == None or score > bestScore:
+      if m in filteredMutators and (bestScore == None or score > bestScore):
         bestScore = score
         bestMutator = m
 
@@ -389,29 +392,29 @@ class Candidate:
     
 
   ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
-  def upperConfidenceBoundMutate(self, n, mutatorLog, objectives):
+  def upperConfidenceBoundMutate(self, n, mutatorLog, objectives, mutatorFilter):
         
     if(objectives.needAccuracy()):
       mutatorLog = mutatorLog.getSortedByDeltaAcc()
     else:
       mutatorLog = mutatorLog.getSortedByDeltaTime()
       
-    self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog))
+    self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog), mutatorFilter)
 
 
-  def absUpperConfidenceBoundMutate(self, n, mutatorLog, objectives):
+  def absUpperConfidenceBoundMutate(self, n, mutatorLog, objectives, mutatorFilter):
       
     if(objectives.needAccuracy()):
       mutatorLog = mutatorLog.getSortedByAcc()
     else:
       mutatorLog = mutatorLog.getSortedByTime()
       
-    self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog))   
+    self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog), mutatorFilter)   
 
 
   ''' Selects a mutator which maximizes objectives*(1/time) + (1-objectives)*accuracy, summed over times
   and accuracies of logged offspring produced by the mutator '''
-  def weightedSumMutate(self, n, mutatorLog, objectives):    
+  def weightedSumMutate(self, n, mutatorLog, objectives, mutatorFilter):    
 
     def avg(lst):
       return sum(lst) / len(lst)
@@ -430,7 +433,7 @@ class Candidate:
       else:
         return avg(map(lambda entry: computeOneScore(m, entry), children))
 
-    self.banditMutate(n, mutatorLog, objectives, computeScore)
+    self.banditMutate(n, mutatorLog, objectives, computeScore, mutatorFilter)
 
 
   ''' like weightedSumMutate, but uses roulette whell instead of bandit selection'''
