@@ -11,12 +11,13 @@ to OUT[n,n], Pout[n]
 
   to (OUT out, Pout pout) from (IN in, Pin pin)
   {
-	if (n < 4) {
-		PLUnoblock(out, pout, in, pin);
-	}
-	else {
-		PLUblock4(out, pout, in, pin);
-	}
+        if (n == 1) {
+                out.cell(0,0)=in.cell(0,0);
+                pout.cell(0)=pin.cell(0);
+        }
+        else {
+                PLUblock2(out, pout, in, pin);
+        }
   }
 
 
@@ -32,15 +33,13 @@ to OUT[n,n], Pout[n]
 
   to (OUT out, Pout pout) from (IN in, Pin pin)
   {
-        if (n == 1) {
-                out.cell(0,0)=in.cell(0,0);
-                pout.cell(0)=pin.cell(0);
+        if (n < 4) {
+                PLUnoblock(out, pout, in, pin);
         }
         else {
-                PLUblock2(out, pout, in, pin);
+                PLUblock4(out, pout, in, pin);
         }
   }
-
 
   to (OUT out, Pout pout) from (IN in, Pin pin)
   {
