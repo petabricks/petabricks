@@ -312,7 +312,7 @@ int main( int argc, const char ** argv){
   // CODEGEN:
   StreamTreePtr header = new StreamTree("header");
   StreamTreePtr prefix = header->add(new StreamTree("prefix"));
-  CodeGenerator o(header);
+  CodeGenerator o(header, NULL);
   
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
     ccfiles.push_back(OutputCode(theObjDir+"/"+(*i)->name(), o));

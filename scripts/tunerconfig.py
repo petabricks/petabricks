@@ -1,9 +1,16 @@
 
+class OperatorSelectionMethod:
+  UNIFORM_RANDOM = 1
+  WEIGHTED_SUM   = 2
+  ROC_AREA       = 3
+  ROULETTE       = 4
+  ABS_ROC        = 5
+
 class config_defaults:
   #how long to train for
   max_input_size           = 2**30
   min_input_size           = 1
-  max_time                 = 60*15
+  max_time                 = 60*150
   rounds_per_input_size    = 1
   final_rounds             = 1
 
@@ -25,7 +32,8 @@ class config_defaults:
   window_size           = 50
   bandit_c              = .5
   bandit_verbose        = False
-  use_bandit            = True
+  os_method             = OperatorSelectionMethod.WEIGHTED_SUM
+
 
   #how mutation to do
   mutations_per_mutator    = 5
@@ -63,6 +71,7 @@ class config_defaults:
   online_baseline = False
   fixed_safe_alg = False
   accuracy_target = None
+  output_cfg = None
   timing_target = None
   race_multiplier = 1.0
   race_multiplier_lowacc = 8.0
@@ -73,6 +82,7 @@ class config_defaults:
   threads = None
   abort_on = ""
   race_split_ratio = 0.5
+  max_gen = None
   
   threshold_multiplier_min = 100.0
   threshold_multiplier_max = 1000.0
@@ -163,6 +173,7 @@ class patch_noninteractive:
   cleanup_inputs           = True
   debug                    = False
   delete_output_dir        = True
+  output_cfg               = None
   print_log                = False
   pause_on_crash           = False
   candidatelog             = False

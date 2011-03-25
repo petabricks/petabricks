@@ -160,11 +160,11 @@ jalib::JAssert& jalib::JAssert::SetContext(
   }
 #endif
 
-  if(errno!=0){
-    Prefix() << "errno " << errno << ": " << JASSERT_ERRNO;
-    EndLine();
-    errno=0;
-  }
+ //if(errno!=0){
+ //  Prefix() << "errno " << errno << ": " << JASSERT_ERRNO;
+ //  EndLine();
+ //  errno=0;
+ //}
 
   Prefix() << type << ": " << reason;
   EndLine();

@@ -138,9 +138,6 @@
 /* Define to 1 if you have the <sys/mman.h> header file. */
 #undef HAVE_SYS_MMAN_H
 
-/* Define to 1 if you have the <sys/param.h> header file. */
-#undef HAVE_SYS_PARAM_H
-
 /* Define to 1 if you have the <sys/prctl.h> header file. */
 #undef HAVE_SYS_PRCTL_H
 
@@ -252,9 +249,6 @@
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
 
-/* Define to the home page for this package. */
-#undef PACKAGE_URL
-
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
@@ -345,12 +339,12 @@
 #undef YYTEXT_POINTER
 
 /* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
+   <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
    #define below would cause a syntax error. */
 #undef _UINT32_T
 
 /* Define for Solaris 2.5.1 so the uint64_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
+   <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
    #define below would cause a syntax error. */
 #undef _UINT64_T
 
