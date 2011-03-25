@@ -33,9 +33,9 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
 
   o.os( ) << "cl_int err;";
 
-  o.os( ) << "/* -- Testing purposes only, to make this easy to read --\n\n";
-  clcodegen.outputStringTo( o.os( ) );
-  o.os( ) << "\n*/\n";
+  //o.os( ) << "/* -- Testing purposes only, to make this easy to read --\n\n";
+  //clcodegen.outputStringTo( o.os( ) );
+  //o.os( ) << "\n*/\n";
 
   o.os( ) << "const char* clsrc = ";
   clcodegen.outputEscapedStringTo( o.os( ) );
@@ -46,9 +46,13 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
 
   o.comment( "Build program." );
   o.os( ) << "size_t programlength = strlen( clsrc );\n";
-  o.os( ) << "clprog_" << _rule->id() << " = clCreateProgramWithSource( ctx, 1, &clsrc, NULL, &err );\n";
+  //TODO: fail to create program
+  o.os( ) << "clprog_" << _rule->id() << " = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );\n";
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create program.\" );\n\n";
-  o.os( ) << "err = OpenCLUtil::buildProgram( clprog_" << _rule->id() << " );\n";
+  //o.os( ) << "err = OpenCLUtil::buildProgram( clprog_" << _rule->id() << " );\n";
+  //ciErrNum = clBuildProgram(cpProgram, 0, NULL, "-cl-fast-relaxed-math", NULL, NULL);
+  o.os( ) << "err = clBuildProgram( clprog_" << _rule->id() << ", 0, NULL, NULL, NULL, NULL);\n";
+  o.os( ) << "std::cout << \"clBuildProgram err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to build program.\" );\n\n";
 
   o.comment( "Create kernel." );

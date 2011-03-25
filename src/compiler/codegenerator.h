@@ -60,6 +60,12 @@ public:
 
   operator std::ostream& () { return _os; }
 
+  std::string str() {
+    std::ostringstream tmp;
+    writeTo(tmp);
+    return tmp.str();
+  }
+
 private:
   std::string  _name;
   StreamTrees  _nodes;

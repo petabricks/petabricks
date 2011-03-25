@@ -220,6 +220,9 @@ AC_ARG_ENABLE([opencl],
 if test "$use_opencl" = "yes"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
    AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
+   AC_CHECK_LIB([oclUtil_x86_64], [oclGetPlatformID], [], [AC_MSG_ERROR([Failed to find -loclUtil_x86_64.  Check LIBRARY_PATH, or reconfigure without oclUtil_x86_64.])])
+   AC_CHECK_LIB([shrutil_x86_64], [shrLogEx], [], [AC_MSG_ERROR([Failed to find -lshrutil_x86_64.  Check LIBRARY_PATH, or reconfigure without shrutil_x86_64.])])
+
    AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
 else
    AC_DEFINE([MATRIX_ELEMENT_T],[double])
