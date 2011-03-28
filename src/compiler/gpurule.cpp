@@ -11,7 +11,7 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
   if( !_rule->isOpenClRule() )
     return;
 
-  CLCodeGenerator clcodegen;
+  CLCodeGenerator clcodegen(o.cgPtr());
   IterationDefinition iterdef(*_rule, _rule->getSelfDependency(), _rule->isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();
   std::vector<std::string> packedargnames = iterdef.packedargnames();

@@ -31,7 +31,7 @@ class CLCodeGenerator : public CodeGenerator
 {
  public:
 
-  CLCodeGenerator() : CodeGenerator(new StreamTree("OpenCL tmp buf")) {}
+  CLCodeGenerator(const TrainingDepsPtr& cg) : CodeGenerator(new StreamTree("OpenCL tmp buf"), cg) {}
   
   /** Writes a properly-escaped C/C++ string literal to the specified output
    stream. */

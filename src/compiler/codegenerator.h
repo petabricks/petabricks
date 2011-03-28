@@ -182,6 +182,7 @@ public:
   }
 
   TrainingDeps& cg() { return *_cg; }
+  TrainingDepsPtr cgPtr() { return _cg; }
 
   void beginClass(const std::string& name, const std::string& base);
   void endClass();
