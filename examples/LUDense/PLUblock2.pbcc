@@ -1,10 +1,9 @@
 #ifndef PLUBLOCK2_PBCC
 #define PLUBLOCK2_PBCC
 
-#include "LUupper.pbcc"
+#include "LUtrisolve.pbcc"
 #include "PLU.pbcc"
-#include "../multiply/multiply.pbcc"
-#include "../simple/add.pbcc"
+#include "LAPACKmatmul.pbcc"
 
 transform SwapElements
 from IN[n], P[n]
@@ -14,7 +13,12 @@ to OUT[n]
   {
         for (int j=0; j<n; j++)
         {
-                out.cell(j)=in.cell(p.cell(j));
+                if (p.cell(j) >= 0 && p.cell(j) < n) {
+                        out.cell(j)=in.cell(p.cell(j));
+                }
+                else {
+                        out.cell(j)=in.cell(j);
+                }
         }
   }
 }
@@ -25,12 +29,18 @@ to OUT[n,m]
 {
   to (OUT out) from (IN in, P p)
   {
-	for (int j=0; j<m; j++)
-	{
-		Copy1D(out.row(j), in.row(p.cell(j)));
-	}
+        for (int j=0; j<m; j++)
+        {
+                if (p.cell(j) >= 0 && p.cell(j) < m) {
+                        Copy1D(out.row(j), in.row(p.cell(j)));
+                }
+                else {
+                        Copy1D(out.row(j),in.row(j));
+                }
+        }
   }
 }
+
 
 transform PLUblock2
 from IN[n, n], Pin[n]
@@ -68,7 +78,7 @@ to OUT[n, n], Pout[n]
   from (TEMP.region(n/2,0,n,n/2) swappedin,
 	TEMP.region(0,0,n/2,n/2) leftdiag)
   {
-	LUuppertrirecur(out,swappedin,leftdiag);
+	LUtrisolve(out,leftdiag, swappedin);
   }
   
 
@@ -80,8 +90,10 @@ to OUT[n, n], Pout[n]
   {
 	//Atemp = in - left*up (this updates the lower right block)
         MatrixRegion2D Atemp = MatrixRegion2D::allocate(n-n/2, n-n/2);
-        MatrixMultiply(out,left,up);
-        MatrixSub(Atemp,in,out);
+        //MatrixMultiply(out,left,up);
+        //MatrixSub(Atemp,in,out);
+
+	LAPACKmatmul(Atemp,left,up,in);
 
 	//recursion to get LU of the remaining updated block
         PLUrecur(out,phalf,Atemp);
