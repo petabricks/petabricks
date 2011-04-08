@@ -30,6 +30,9 @@ typedef jalib::JRef<CLCodeGenerator> CLCodeGeneratorPtr;
 class CLCodeGenerator : public CodeGenerator
 {
  public:
+
+  CLCodeGenerator(const TrainingDepsPtr& cg) : CodeGenerator(new StreamTree("OpenCL tmp buf"), cg) {}
+  
   /** Writes a properly-escaped C/C++ string literal to the specified output
    stream. */
   void outputEscapedStringTo( std::ostream& o );

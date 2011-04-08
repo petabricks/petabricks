@@ -17,8 +17,9 @@
 
 #include <vector>
 #include <string>
-#include <CL/cl_platform.h>
-#include <CL/cl.h>
+#include <oclUtils.h>
+//#include <CL/cl_platform.h>
+//#include <CL/cl.h>
 
 namespace petabricks
 {

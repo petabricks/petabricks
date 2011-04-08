@@ -79,6 +79,7 @@ TransformListPtr parsePbFile(const char* filename);
 /* wrapper around popen */
 FILE* opensubproc(const std::string& cmd) {
   FILE* p = popen(cmd.c_str(), "r");
+  JTRACE("debug ")(cmd);
   JASSERT(p!= 0)(cmd);
   return p;
 }

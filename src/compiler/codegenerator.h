@@ -60,6 +60,12 @@ public:
 
   operator std::ostream& () { return _os; }
 
+  std::string str() {
+    std::ostringstream tmp;
+    writeTo(tmp);
+    return tmp.str();
+  }
+
 private:
   std::string  _name;
   StreamTrees  _nodes;
@@ -176,6 +182,7 @@ public:
   }
 
   TrainingDeps& cg() { return *_cg; }
+  TrainingDepsPtr cgPtr() { return _cg; }
 
   void beginClass(const std::string& name, const std::string& base);
   void endClass();
