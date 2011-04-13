@@ -27,7 +27,9 @@ namespace petabricks {
 
     static RegionMatrix2D allocate(IndexT w, IndexT h) {
       IndexT size[] = {w,h};
-      return RegionMatrix2D(size);
+      RegionMatrix2D region = RegionMatrix2D(size);
+      region.allocData();
+      return region;
     }
 
     bool isSize(IndexT size1, IndexT size2) {
