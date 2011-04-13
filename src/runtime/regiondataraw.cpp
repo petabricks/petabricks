@@ -23,7 +23,7 @@ RegionDataRaw::RegionDataRaw(char* filename) {
 RegionDataRaw::~RegionDataRaw() {
   delete [] _data;
   delete [] _multipliers;
-  delete [] _partOffset;
+  if (_isPart) delete [] _partOffset;
 }
 
 void RegionDataRaw::init(int dimensions, IndexT* size, ElementT* data, IndexT* partOffset) {
@@ -45,8 +45,11 @@ void RegionDataRaw::init(int dimensions, IndexT* size, ElementT* data, IndexT* p
   }
 
   if (partOffset) {
+    _isPart = true;
     _partOffset = new IndexT[_D];
     memcpy(_partOffset, partOffset, sizeof(IndexT) * _D);
+  } else {
+    _isPart = false;
   }
 }
 
@@ -63,7 +66,7 @@ int RegionDataRaw::allocData() {
 ElementT* RegionDataRaw::coordToPtr(const IndexT* coord){
   IndexT offset = 0;
   
-  if (_partOffset) {
+  if (_isPart) {
     // this is a part of a region
     // convert original coord to this part coord before calculating offset
 

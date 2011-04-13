@@ -14,6 +14,8 @@
 
 #include "matrixregion.h"
 
+#include "regionmatrix2d.h"
+
 #include "common/jassert.h"
 
 #ifdef HAVE_CONFIG_H
@@ -75,6 +77,20 @@ public:
   }
 
   ///
+  /// Read a D-dimensional matrix from _fd
+  template<int D>
+  RegionMatrix2D readToRegionMatrix(){
+    JASSERT(_fd != 0);
+    MatrixReaderScratch o;
+    _read(o);
+    JASSERT(o.dimensions==D)(o.dimensions)(D)
+      .Text("Unexpected number of dimensions in input matrix");
+    MatrixStorage::IndexT sizes[D];
+    for(int i=0; i<D; ++i) sizes[i]=o.sizes[i];
+    return RegionMatrix2D(o.storage->data(), sizes);
+  }
+
+  ///
   /// Read a D-dimensional matrix from _fd to MatrixReaderScratch
   MatrixReaderScratch readToMatrixReaderScratch(){
     JASSERT(_fd != 0);
@@ -87,6 +103,8 @@ public:
   /// Write a given matrix to _fd
   template<int D, typename T>
   void write(MatrixRegion<D,T> m);
+
+  void write(RegionMatrix2D m);
 
   MatrixRegion0D read0D(){ return read<0>(); }
   MatrixRegion1D read1D(){ return read<1>(); }
@@ -111,6 +129,35 @@ private:
 /// Write a given matrix to _fd
 template<int D, typename T>
 inline void petabricks::MatrixIO::write(MatrixRegion<D,T> m){
+  if(_fd==0)     return;
+  if(_fd==stdin) _fd=stdout;
+  fprintf(_fd,"SIZE");
+  for(int i=0; i<D; ++i)
+    fprintf(_fd," %d",m.size(i));
+  fprintf(_fd,"\n");
+  MatrixStorage::IndexT coord[D];
+  memset(coord, 0, sizeof coord);
+  if(D>0){
+    for(;;){
+      fprintf(_fd,"%4.8g ", (double) m.cell(coord));
+      int z=m.incCoord(coord);
+      if(z<0) break;
+      while(z-->0)
+        fprintf(_fd,"\n");
+    }
+    fprintf(_fd,"\n");
+  }else{ //0D case
+    fprintf(_fd,"%4.8g", (double) m.cell(coord));
+  }
+  fprintf(_fd,"\n");
+  fflush(_fd);
+}
+
+///
+/// Write a given regionmatrix to _fd
+inline void petabricks::MatrixIO::write(RegionMatrix2D m){
+  int D = 2;
+
   if(_fd==0)     return;
   if(_fd==stdin) _fd=stdout;
   fprintf(_fd,"SIZE");

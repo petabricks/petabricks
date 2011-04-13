@@ -13,6 +13,7 @@ namespace petabricks {
   private:
     ElementT* _data;
     IndexT* _multipliers;
+    bool _isPart;
     IndexT* _partOffset;
 
   public:

@@ -10,7 +10,16 @@ using namespace petabricks;
 std::map<uint16_t, RegionDataIPtr> RegionMatrix::movingBuffer;
 pthread_mutex_t RegionMatrix::movingBuffer_mux = PTHREAD_MUTEX_INITIALIZER;
 
+RegionMatrix::RegionMatrix(int dimensions) {
+  // TODO: fix this --> MatrixRegion()
+  _D = dimensions;
+}
+
 RegionMatrix::RegionMatrix(int dimensions, IndexT* size) {
+  init(dimensions, size);
+}
+
+void RegionMatrix::init(int dimensions, IndexT* size) {
   RegionDataIPtr regionData = new RegionDataRaw(dimensions, size);
   _regionHandler = new RegionHandler(regionData);
 
@@ -26,7 +35,38 @@ RegionMatrix::RegionMatrix(int dimensions, IndexT* size) {
   _slicePositions = 0;
 }
 
+RegionMatrix::RegionMatrix(const RegionMatrix& that) {
+  _D = that.dimensions();
+  _size = new IndexT[_D];
+  memcpy(_size, that.size(), sizeof(IndexT) * _D);
+
+  _splitOffset = new IndexT[_D];
+  memset(_splitOffset, 0, sizeof(IndexT) * _D);
+
+  _numSliceDimensions = 0;
+  _sliceDimensions = 0;
+  _slicePositions = 0;
+
+  _regionHandler = that.getRegionHandler();
+}
+
+void RegionMatrix::operator=(const RegionMatrix& that) {
+  _D = that.dimensions();
+  _size = new IndexT[_D];
+  memcpy(_size, that.size(), sizeof(IndexT) * _D);
+
+  _splitOffset = new IndexT[_D];
+  memset(_splitOffset, 0, sizeof(IndexT) * _D);
+
+  _numSliceDimensions = 0;
+  _sliceDimensions = 0;
+  _slicePositions = 0;
+
+  _regionHandler = that.getRegionHandler();
+}
+
 /*
+// We might want to create a regionMatrix from movingBuffer
 RegionMatrix::RegionMatrix(RegionDataIPtr regionData) {
   _regionHandler = new RegionHandler(regionData);
 
@@ -113,6 +153,12 @@ void RegionMatrix::importDataFromFile(char* filename) {
 
 ElementT RegionMatrix::readCell(const IndexT* coord) {
   IndexT* rd_coord = this->getRegionDataCoord(coord);
+
+  if (!_regionData) {
+    JTRACE("should acquire regiondata before readCell");
+    this->acquireRegionData();
+  }
+
   ElementT elmt = _regionData->readCell(rd_coord);
   delete [] rd_coord;
   return elmt;
@@ -120,16 +166,26 @@ ElementT RegionMatrix::readCell(const IndexT* coord) {
 
 void RegionMatrix::writeCell(const IndexT* coord, ElementT value) {
   IndexT* rd_coord = this->getRegionDataCoord(coord);
+
+  if (!_regionData) {
+    JTRACE("should acquire regiondata before writeCell");
+    this->acquireRegionData();
+  }
+
   _regionData->writeCell(rd_coord, value);
   delete [] rd_coord;
 }
 
-int RegionMatrix::dimensions() {
+int RegionMatrix::dimensions() const {
   return _D;
 }
 
-IndexT* RegionMatrix::size() {
+IndexT* RegionMatrix::size() const {
   return _size;
+}
+
+IndexT RegionMatrix::size(int i) const {
+  return _size[i];
 }
 
 RegionMatrixPtr RegionMatrix::splitRegion(IndexT* offset, IndexT* size) {
@@ -236,6 +292,7 @@ IndexT* RegionMatrix::getRegionDataCoord(const IndexT* coord_orig) {
   IndexT split_index = 0;
 
   IndexT* coord_new = new IndexT[_regionHandler->dimensions()];
+  
   for (int d = 0; d < _regionHandler->dimensions(); d++) {
     if (slice_index < _numSliceDimensions &&
 	d == _sliceDimensions[slice_index]) {
@@ -243,8 +300,12 @@ IndexT* RegionMatrix::getRegionDataCoord(const IndexT* coord_orig) {
       coord_new[d] = _slicePositions[slice_index];
       slice_index++;
     } else {
+      // TODO: special case for split
       // split
+      //printf("3size ====> %d %d %x %x\n", _size[0], _size[1], _size, coord_new);
+
       coord_new[d] = coord_orig[split_index] + _splitOffset[split_index];
+
       split_index++;
     }
   }

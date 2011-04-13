@@ -25,13 +25,20 @@ namespace petabricks {
     IndexT* _slicePositions;
 
   public:
+    RegionMatrix(int dimensions);
     RegionMatrix(int dimensions, IndexT* size);
 
     //   RegionMatrix(RegionDataIPtr regionData);
     RegionMatrix(RegionHandlerPtr handler, int dimensions, IndexT* size,
 		 IndexT* splitOffset, int numSliceDimensions,
 		 int* sliceDimensions, IndexT* slicePositions);
+   
+    RegionMatrix(const RegionMatrix& that); 
+    void operator=(const RegionMatrix& that);
+
     ~RegionMatrix();
+
+    void init(int dimensions, IndexT* size);
 
     void splitData(IndexT* splitSize);
     void allocData();
@@ -43,8 +50,9 @@ namespace petabricks {
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
 
-    int dimensions();
-    IndexT* size();
+    int dimensions() const;
+    IndexT* size() const;
+    IndexT size(int i) const;
 
     void moveToRemoteHost(RemoteHostPtr host, uint16_t movingBufferIndex);
     void updateHandler(uint16_t movingBufferIndex);
