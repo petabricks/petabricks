@@ -1,5 +1,7 @@
 #include "regionmatrixi.h"
 
+#include <stdarg.h>
+
 using namespace petabricks;
 
 void RegionMatrixI::acquireRegionData() {
@@ -17,12 +19,18 @@ RegionHandlerPtr RegionMatrixI::getRegionHandler() const {
   return _regionHandler;
 }
 
-CellProxy& RegionMatrixI::cell(IndexT x, IndexT y){
-  return *(new CellProxy(this, x, y));
+CellProxy& RegionMatrixI::cell(IndexT x, ...) {
+  IndexT c1[_D];
+  va_list ap;
+  va_start(ap, x);
+  c1[0]=x;
+  for(int i=1; i<_D; ++i) c1[i]=va_arg(ap, IndexT);
+  va_end(ap);
+  return cell(c1);
 }
 
-CellProxy& RegionMatrixI::cell(IndexT* coord){
-  return *(new CellProxy(this, coord[0], coord[1]));
+CellProxy& RegionMatrixI::cell(IndexT* coord) {
+  return *(new CellProxy(this, coord));
 }
 
 

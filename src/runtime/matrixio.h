@@ -13,8 +13,7 @@
 #define PETABRICKSMATRIXIO_H
 
 #include "matrixregion.h"
-
-#include "regionmatrix2d.h"
+#include "regionmatrixwrapper.h"
 
 #include "common/jassert.h"
 
@@ -79,7 +78,7 @@ public:
   ///
   /// Read a D-dimensional matrix from _fd
   template<int D>
-  RegionMatrix2D readToRegionMatrix(){
+  RegionMatrixWrapper<D, MATRIX_ELEMENT_T> readToRegionMatrix(){
     JASSERT(_fd != 0);
     MatrixReaderScratch o;
     _read(o);
@@ -87,7 +86,7 @@ public:
       .Text("Unexpected number of dimensions in input matrix");
     MatrixStorage::IndexT sizes[D];
     for(int i=0; i<D; ++i) sizes[i]=o.sizes[i];
-    return RegionMatrix2D(o.storage->data(), sizes);
+    return RegionMatrixWrapper<D, MATRIX_ELEMENT_T>(o.storage->data(), sizes);
   }
 
   ///
@@ -104,7 +103,8 @@ public:
   template<int D, typename T>
   void write(MatrixRegion<D,T> m);
 
-  void write(RegionMatrix2D m);
+  template<int D, typename T>
+  void write(RegionMatrixWrapper<D,T> m);
 
   MatrixRegion0D read0D(){ return read<0>(); }
   MatrixRegion1D read1D(){ return read<1>(); }
@@ -155,9 +155,8 @@ inline void petabricks::MatrixIO::write(MatrixRegion<D,T> m){
 
 ///
 /// Write a given regionmatrix to _fd
-inline void petabricks::MatrixIO::write(RegionMatrix2D m){
-  int D = 2;
-
+template<int D, typename T>
+inline void petabricks::MatrixIO::write(RegionMatrixWrapper<D,T> m){
   if(_fd==0)     return;
   if(_fd==stdin) _fd=stdout;
   fprintf(_fd,"SIZE");

@@ -5,6 +5,8 @@
 #include "regiondatai.h"
 #include "regionhandler.h"
 
+#include <string.h>
+
 namespace petabricks {
   class RegionMatrixI;
   typedef jalib::JRef<RegionMatrixI> RegionMatrixIPtr;
@@ -13,6 +15,7 @@ namespace petabricks {
 
   class RegionMatrixI : public jalib::JRefCounted {
   protected:
+    int _D;
     RegionHandlerPtr _regionHandler;
     RegionDataIPtr _regionData;
   
@@ -24,22 +27,25 @@ namespace petabricks {
     virtual void releaseRegionData();
 
     RegionHandlerPtr getRegionHandler() const; 
+ 
+    int dimensions() const {return _D;}
 
-    CellProxy& cell(IndexT x, IndexT y);
+    CellProxy& cell(IndexT x, ...);
     CellProxy& cell(IndexT* coord);
   };
 
   class CellProxy {
   private:
     RegionMatrixIPtr _region;
-    int* _index;
+    IndexT* _index;
     
   public:
-    CellProxy(RegionMatrixIPtr region, int x, int y) {
+    CellProxy(RegionMatrixIPtr region, IndexT* coord) {
       _region = region;
-      _index = new IndexT[2];
-      _index[0] = x;
-      _index[1] = y;
+
+      int D = _region->dimensions();
+      _index = new IndexT[D];
+      memcpy(_index, coord, sizeof(IndexT) * D);
     }
     
     operator double () const {

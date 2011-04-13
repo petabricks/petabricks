@@ -17,7 +17,6 @@ namespace petabricks {
     static pthread_mutex_t movingBuffer_mux;
 
   protected:
-    int _D;
     IndexT* _size;
     IndexT* _splitOffset;
     int _numSliceDimensions;
@@ -50,7 +49,6 @@ namespace petabricks {
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
 
-    int dimensions() const;
     IndexT* size() const;
     IndexT size(int i) const;
 

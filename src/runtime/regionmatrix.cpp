@@ -176,10 +176,6 @@ void RegionMatrix::writeCell(const IndexT* coord, ElementT value) {
   delete [] rd_coord;
 }
 
-int RegionMatrix::dimensions() const {
-  return _D;
-}
-
 IndexT* RegionMatrix::size() const {
   return _size;
 }

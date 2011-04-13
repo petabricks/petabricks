@@ -69,7 +69,7 @@ pkglib_HEADERS=  \
   runtime/regiondatasplit.h \
   runtime/regionhandler.h \
   runtime/regionmatrix.h \
-  runtime/regionmatrix2d.h \
+  runtime/regionmatrixwrapper.h \
   runtime/regionmatrixi.h \
   runtime/regionmatrixproxy.h \
   runtime/remotehost.h \
