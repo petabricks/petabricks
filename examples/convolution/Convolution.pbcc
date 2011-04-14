@@ -33,7 +33,6 @@ from A[n], B[m]
 through T[n + m - 1, WAYS]
 to C[n+m-1]
 {
-  recursive
   to (T t) from (A a, B b)
   {
     int waySize = (n + WAYS - 1) / WAYS;
@@ -82,14 +81,12 @@ transform Convolution
 from A[n], B[m]
 to C[n+m-1]
 {
-  recursive(n+m-1)
   to (C c) from (A a, B b)
   {
     //printf("Calling (%d + %d) regular ...\n", (int) n, (int) m);
     ConvolutionRegular(c, a, b);
   }
 
-  recursive(n+m-1)
   to (C c) from (A a, B b)
   {
     //printf("Calling (%d + %d) FFT ...\n", (int) n, (int) m);
@@ -97,7 +94,6 @@ to C[n+m-1]
     //printf("Finished (%d + %d) FFT ...\n", (int) n, (int) m);
   }
 
-  recursive(n+m-1)
   to (C c) from (A a, B b)
   {
     // TODO: This is a bad idea.  Could potentially be inited by

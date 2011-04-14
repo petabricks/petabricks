@@ -15,8 +15,8 @@ to OUT[n]
       trash = sum;
       return;
     }
-    SPAWN(ScaleTest, o.region(0, n/2), i.region(0, n/2));
-    SPAWN(ScaleTest, o.region(n/2, n), i.region(n/2, n));
+    spawn ScaleTest(o.region(0, n/2), i.region(0, n/2));
+    spawn ScaleTest(o.region(n/2, n), i.region(n/2, n));
   }
 }
 
