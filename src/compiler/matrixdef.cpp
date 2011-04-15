@@ -134,7 +134,7 @@ std::string petabricks::MatrixDef::allocateStr() const{
 
 void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn){
   o.varDecl(name()
-      +" = petabricks::MatrixIO("+fn+",\"r\").read<"+jalib::XToString(numDimensions())+">()");
+      +" = petabricks::MatrixIO("+fn+",\"r\").readToRegionMatrix<"+jalib::XToString(numDimensions())+">()");
 }
 void petabricks::MatrixDef::writeToFileCode(CodeGenerator& o, const std::string& fn){
   o.write("petabricks::MatrixIO("+fn+",\"w\").write("+name()+");");

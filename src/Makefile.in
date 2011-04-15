@@ -71,17 +71,20 @@ am_libpbcommon_a_OBJECTS = libpbcommon_a-jalloc.$(OBJEXT) \
 libpbcommon_a_OBJECTS = $(am_libpbcommon_a_OBJECTS)
 libpbcompiler_a_AR = $(AR) $(ARFLAGS)
 libpbcompiler_a_LIBADD =
-am_libpbcompiler_a_OBJECTS = libpbcompiler_a-choicegrid.$(OBJEXT) \
+am_libpbcompiler_a_OBJECTS = libpbcompiler_a-choicedepgraph.$(OBJEXT) \
+	libpbcompiler_a-choicegrid.$(OBJEXT) \
 	libpbcompiler_a-clcodegenerator.$(OBJEXT) \
 	libpbcompiler_a-codegenerator.$(OBJEXT) \
 	libpbcompiler_a-configitem.$(OBJEXT) \
 	libpbcompiler_a-formula.$(OBJEXT) \
+	libpbcompiler_a-gpurule.$(OBJEXT) \
 	libpbcompiler_a-iterationorders.$(OBJEXT) \
 	libpbcompiler_a-matrixdef.$(OBJEXT) \
 	libpbcompiler_a-matrixdependency.$(OBJEXT) \
 	libpbcompiler_a-libpbcompiler_a-maximalexer.$(OBJEXT) \
 	libpbcompiler_a-libpbcompiler_a-maximaparser.$(OBJEXT) \
 	libpbcompiler_a-maximawrapper.$(OBJEXT) \
+	libpbcompiler_a-openclutil.$(OBJEXT) \
 	libpbcompiler_a-libpbcompiler_a-pblexer.$(OBJEXT) \
 	libpbcompiler_a-libpbcompiler_a-pbparser.$(OBJEXT) \
 	libpbcompiler_a-region.$(OBJEXT) \
@@ -92,13 +95,11 @@ am_libpbcompiler_a_OBJECTS = libpbcompiler_a-choicegrid.$(OBJEXT) \
 	libpbcompiler_a-ruleir.$(OBJEXT) \
 	libpbcompiler_a-libpbcompiler_a-ruleirlexer.$(OBJEXT) \
 	libpbcompiler_a-libpbcompiler_a-ruleirparser.$(OBJEXT) \
-	libpbcompiler_a-staticscheduler.$(OBJEXT) \
+	libpbcompiler_a-scheduler.$(OBJEXT) \
 	libpbcompiler_a-syntheticrule.$(OBJEXT) \
-	libpbcompiler_a-gpurule.$(OBJEXT) \
 	libpbcompiler_a-trainingdeps.$(OBJEXT) \
 	libpbcompiler_a-transform.$(OBJEXT) \
-	libpbcompiler_a-userrule.$(OBJEXT) \
-	libpbcompiler_a-openclutil.$(OBJEXT)
+	libpbcompiler_a-userrule.$(OBJEXT)
 libpbcompiler_a_OBJECTS = $(am_libpbcompiler_a_OBJECTS)
 libpbmain_a_AR = $(AR) $(ARFLAGS)
 libpbmain_a_LIBADD =
@@ -310,16 +311,19 @@ AM_LFLAGS =
 OBJDIR = obj
 noinst_LIBRARIES = libpbcommon.a libpbcompiler.a libpbruntime.a libpbmain.a
 noinst_HEADERS = \
+  compiler/choicedepgraph.h \
   compiler/choicegrid.h \
   compiler/clcodegenerator.h \
   compiler/codegenerator.h \
   compiler/configitem.h \
   compiler/formula.h \
+  compiler/gpurule.h \
   compiler/iterationorders.h \
   compiler/matrixdef.h \
   compiler/matrixdependency.h \
   compiler/maximaparser.h \
   compiler/maximawrapper.h \
+  compiler/openclutil.h \
   compiler/pbc.h \
   compiler/pbparser.h \
   compiler/region.h \
@@ -329,13 +333,11 @@ noinst_HEADERS = \
   compiler/rule.h \
   compiler/ruleir.h \
   compiler/ruleirparser.h \
-  compiler/staticscheduler.h \
+  compiler/scheduler.h \
   compiler/syntheticrule.h \
-  compiler/gpurule.h \
   compiler/trainingdeps.h \
   compiler/transform.h \
-  compiler/userrule.h \
-  compiler/openclutil.h
+  compiler/userrule.h
 
 pkglib_HEADERS = \
   common/hash.h \
@@ -401,17 +403,20 @@ libpbcompiler_a_LFLAGS =
 libpbcompiler_a_YFLAGS = -d
 libpbcompiler_a_CXXFLAGS = -I$(srcdir)/compiler
 libpbcompiler_a_SOURCES = \
+  compiler/choicedepgraph.cpp \
   compiler/choicegrid.cpp \
   compiler/clcodegenerator.cpp \
   compiler/codegenerator.cpp \
   compiler/configitem.cpp \
   compiler/formula.cpp \
+  compiler/gpurule.cpp \
   compiler/iterationorders.cpp \
   compiler/matrixdef.cpp \
   compiler/matrixdependency.cpp \
   compiler/maximalexer.lpp \
   compiler/maximaparser.ypp \
   compiler/maximawrapper.cpp \
+  compiler/openclutil.cpp \
   compiler/pblexer.lpp \
   compiler/pbparser.ypp \
   compiler/region.cpp \
@@ -422,13 +427,11 @@ libpbcompiler_a_SOURCES = \
   compiler/ruleir.cpp \
   compiler/ruleirlexer.lpp \
   compiler/ruleirparser.ypp \
-  compiler/staticscheduler.cpp \
+  compiler/scheduler.cpp \
   compiler/syntheticrule.cpp \
-  compiler/gpurule.cpp \
   compiler/trainingdeps.cpp \
   compiler/transform.cpp \
-  compiler/userrule.cpp \
-  compiler/openclutil.cpp
+  compiler/userrule.cpp
 
 libpbruntime_a_LFLAGS = 
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime
@@ -602,6 +605,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcommon_a-jtimer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcommon_a-jtunable.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcommon_a-srcpos.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-choicedepgraph.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-choicegrid.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-clcodegenerator.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-codegenerator.Po@am__quote@
@@ -625,7 +629,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-rule.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-rulechoice.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-ruleir.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-staticscheduler.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-scheduler.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-syntheticrule.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-trainingdeps.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpbcompiler_a-transform.Po@am__quote@
@@ -829,6 +833,20 @@ libpbcommon_a-srcpos.obj: common/srcpos.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcommon_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcommon_a-srcpos.obj `if test -f 'common/srcpos.cpp'; then $(CYGPATH_W) 'common/srcpos.cpp'; else $(CYGPATH_W) '$(srcdir)/common/srcpos.cpp'; fi`
 
+libpbcompiler_a-choicedepgraph.o: compiler/choicedepgraph.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-choicedepgraph.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-choicedepgraph.Tpo -c -o libpbcompiler_a-choicedepgraph.o `test -f 'compiler/choicedepgraph.cpp' || echo '$(srcdir)/'`compiler/choicedepgraph.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-choicedepgraph.Tpo $(DEPDIR)/libpbcompiler_a-choicedepgraph.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/choicedepgraph.cpp' object='libpbcompiler_a-choicedepgraph.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-choicedepgraph.o `test -f 'compiler/choicedepgraph.cpp' || echo '$(srcdir)/'`compiler/choicedepgraph.cpp
+
+libpbcompiler_a-choicedepgraph.obj: compiler/choicedepgraph.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-choicedepgraph.obj -MD -MP -MF $(DEPDIR)/libpbcompiler_a-choicedepgraph.Tpo -c -o libpbcompiler_a-choicedepgraph.obj `if test -f 'compiler/choicedepgraph.cpp'; then $(CYGPATH_W) 'compiler/choicedepgraph.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/choicedepgraph.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-choicedepgraph.Tpo $(DEPDIR)/libpbcompiler_a-choicedepgraph.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/choicedepgraph.cpp' object='libpbcompiler_a-choicedepgraph.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-choicedepgraph.obj `if test -f 'compiler/choicedepgraph.cpp'; then $(CYGPATH_W) 'compiler/choicedepgraph.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/choicedepgraph.cpp'; fi`
+
 libpbcompiler_a-choicegrid.o: compiler/choicegrid.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-choicegrid.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-choicegrid.Tpo -c -o libpbcompiler_a-choicegrid.o `test -f 'compiler/choicegrid.cpp' || echo '$(srcdir)/'`compiler/choicegrid.cpp
 @am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-choicegrid.Tpo $(DEPDIR)/libpbcompiler_a-choicegrid.Po
@@ -898,6 +916,20 @@ libpbcompiler_a-formula.obj: compiler/formula.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/formula.cpp' object='libpbcompiler_a-formula.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-formula.obj `if test -f 'compiler/formula.cpp'; then $(CYGPATH_W) 'compiler/formula.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/formula.cpp'; fi`
+
+libpbcompiler_a-gpurule.o: compiler/gpurule.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-gpurule.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-gpurule.Tpo -c -o libpbcompiler_a-gpurule.o `test -f 'compiler/gpurule.cpp' || echo '$(srcdir)/'`compiler/gpurule.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-gpurule.Tpo $(DEPDIR)/libpbcompiler_a-gpurule.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/gpurule.cpp' object='libpbcompiler_a-gpurule.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-gpurule.o `test -f 'compiler/gpurule.cpp' || echo '$(srcdir)/'`compiler/gpurule.cpp
+
+libpbcompiler_a-gpurule.obj: compiler/gpurule.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-gpurule.obj -MD -MP -MF $(DEPDIR)/libpbcompiler_a-gpurule.Tpo -c -o libpbcompiler_a-gpurule.obj `if test -f 'compiler/gpurule.cpp'; then $(CYGPATH_W) 'compiler/gpurule.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/gpurule.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-gpurule.Tpo $(DEPDIR)/libpbcompiler_a-gpurule.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/gpurule.cpp' object='libpbcompiler_a-gpurule.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-gpurule.obj `if test -f 'compiler/gpurule.cpp'; then $(CYGPATH_W) 'compiler/gpurule.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/gpurule.cpp'; fi`
 
 libpbcompiler_a-iterationorders.o: compiler/iterationorders.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-iterationorders.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-iterationorders.Tpo -c -o libpbcompiler_a-iterationorders.o `test -f 'compiler/iterationorders.cpp' || echo '$(srcdir)/'`compiler/iterationorders.cpp
@@ -982,6 +1014,20 @@ libpbcompiler_a-maximawrapper.obj: compiler/maximawrapper.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/maximawrapper.cpp' object='libpbcompiler_a-maximawrapper.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-maximawrapper.obj `if test -f 'compiler/maximawrapper.cpp'; then $(CYGPATH_W) 'compiler/maximawrapper.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/maximawrapper.cpp'; fi`
+
+libpbcompiler_a-openclutil.o: compiler/openclutil.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-openclutil.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-openclutil.Tpo -c -o libpbcompiler_a-openclutil.o `test -f 'compiler/openclutil.cpp' || echo '$(srcdir)/'`compiler/openclutil.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-openclutil.Tpo $(DEPDIR)/libpbcompiler_a-openclutil.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/openclutil.cpp' object='libpbcompiler_a-openclutil.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-openclutil.o `test -f 'compiler/openclutil.cpp' || echo '$(srcdir)/'`compiler/openclutil.cpp
+
+libpbcompiler_a-openclutil.obj: compiler/openclutil.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-openclutil.obj -MD -MP -MF $(DEPDIR)/libpbcompiler_a-openclutil.Tpo -c -o libpbcompiler_a-openclutil.obj `if test -f 'compiler/openclutil.cpp'; then $(CYGPATH_W) 'compiler/openclutil.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/openclutil.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-openclutil.Tpo $(DEPDIR)/libpbcompiler_a-openclutil.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/openclutil.cpp' object='libpbcompiler_a-openclutil.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-openclutil.obj `if test -f 'compiler/openclutil.cpp'; then $(CYGPATH_W) 'compiler/openclutil.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/openclutil.cpp'; fi`
 
 libpbcompiler_a-libpbcompiler_a-pblexer.o: libpbcompiler_a-pblexer.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-libpbcompiler_a-pblexer.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-libpbcompiler_a-pblexer.Tpo -c -o libpbcompiler_a-libpbcompiler_a-pblexer.o `test -f 'libpbcompiler_a-pblexer.cpp' || echo '$(srcdir)/'`libpbcompiler_a-pblexer.cpp
@@ -1123,19 +1169,19 @@ libpbcompiler_a-libpbcompiler_a-ruleirparser.obj: libpbcompiler_a-ruleirparser.c
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-libpbcompiler_a-ruleirparser.obj `if test -f 'libpbcompiler_a-ruleirparser.cpp'; then $(CYGPATH_W) 'libpbcompiler_a-ruleirparser.cpp'; else $(CYGPATH_W) '$(srcdir)/libpbcompiler_a-ruleirparser.cpp'; fi`
 
-libpbcompiler_a-staticscheduler.o: compiler/staticscheduler.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-staticscheduler.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-staticscheduler.Tpo -c -o libpbcompiler_a-staticscheduler.o `test -f 'compiler/staticscheduler.cpp' || echo '$(srcdir)/'`compiler/staticscheduler.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-staticscheduler.Tpo $(DEPDIR)/libpbcompiler_a-staticscheduler.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/staticscheduler.cpp' object='libpbcompiler_a-staticscheduler.o' libtool=no @AMDEPBACKSLASH@
+libpbcompiler_a-scheduler.o: compiler/scheduler.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-scheduler.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-scheduler.Tpo -c -o libpbcompiler_a-scheduler.o `test -f 'compiler/scheduler.cpp' || echo '$(srcdir)/'`compiler/scheduler.cpp
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-scheduler.Tpo $(DEPDIR)/libpbcompiler_a-scheduler.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/scheduler.cpp' object='libpbcompiler_a-scheduler.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-staticscheduler.o `test -f 'compiler/staticscheduler.cpp' || echo '$(srcdir)/'`compiler/staticscheduler.cpp
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-scheduler.o `test -f 'compiler/scheduler.cpp' || echo '$(srcdir)/'`compiler/scheduler.cpp
 
-libpbcompiler_a-staticscheduler.obj: compiler/staticscheduler.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-staticscheduler.obj -MD -MP -MF $(DEPDIR)/libpbcompiler_a-staticscheduler.Tpo -c -o libpbcompiler_a-staticscheduler.obj `if test -f 'compiler/staticscheduler.cpp'; then $(CYGPATH_W) 'compiler/staticscheduler.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/staticscheduler.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-staticscheduler.Tpo $(DEPDIR)/libpbcompiler_a-staticscheduler.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/staticscheduler.cpp' object='libpbcompiler_a-staticscheduler.obj' libtool=no @AMDEPBACKSLASH@
+libpbcompiler_a-scheduler.obj: compiler/scheduler.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-scheduler.obj -MD -MP -MF $(DEPDIR)/libpbcompiler_a-scheduler.Tpo -c -o libpbcompiler_a-scheduler.obj `if test -f 'compiler/scheduler.cpp'; then $(CYGPATH_W) 'compiler/scheduler.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/scheduler.cpp'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-scheduler.Tpo $(DEPDIR)/libpbcompiler_a-scheduler.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/scheduler.cpp' object='libpbcompiler_a-scheduler.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-staticscheduler.obj `if test -f 'compiler/staticscheduler.cpp'; then $(CYGPATH_W) 'compiler/staticscheduler.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/staticscheduler.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-scheduler.obj `if test -f 'compiler/scheduler.cpp'; then $(CYGPATH_W) 'compiler/scheduler.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/scheduler.cpp'; fi`
 
 libpbcompiler_a-syntheticrule.o: compiler/syntheticrule.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-syntheticrule.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-syntheticrule.Tpo -c -o libpbcompiler_a-syntheticrule.o `test -f 'compiler/syntheticrule.cpp' || echo '$(srcdir)/'`compiler/syntheticrule.cpp
@@ -1150,20 +1196,6 @@ libpbcompiler_a-syntheticrule.obj: compiler/syntheticrule.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/syntheticrule.cpp' object='libpbcompiler_a-syntheticrule.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-syntheticrule.obj `if test -f 'compiler/syntheticrule.cpp'; then $(CYGPATH_W) 'compiler/syntheticrule.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/syntheticrule.cpp'; fi`
-
-libpbcompiler_a-gpurule.o: compiler/gpurule.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-gpurule.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-gpurule.Tpo -c -o libpbcompiler_a-gpurule.o `test -f 'compiler/gpurule.cpp' || echo '$(srcdir)/'`compiler/gpurule.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-gpurule.Tpo $(DEPDIR)/libpbcompiler_a-gpurule.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/gpurule.cpp' object='libpbcompiler_a-gpurule.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-gpurule.o `test -f 'compiler/gpurule.cpp' || echo '$(srcdir)/'`compiler/gpurule.cpp
-
-libpbcompiler_a-gpurule.obj: compiler/gpurule.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-gpurule.obj -MD -MP -MF $(DEPDIR)/libpbcompiler_a-gpurule.Tpo -c -o libpbcompiler_a-gpurule.obj `if test -f 'compiler/gpurule.cpp'; then $(CYGPATH_W) 'compiler/gpurule.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/gpurule.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-gpurule.Tpo $(DEPDIR)/libpbcompiler_a-gpurule.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/gpurule.cpp' object='libpbcompiler_a-gpurule.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-gpurule.obj `if test -f 'compiler/gpurule.cpp'; then $(CYGPATH_W) 'compiler/gpurule.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/gpurule.cpp'; fi`
 
 libpbcompiler_a-trainingdeps.o: compiler/trainingdeps.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-trainingdeps.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-trainingdeps.Tpo -c -o libpbcompiler_a-trainingdeps.o `test -f 'compiler/trainingdeps.cpp' || echo '$(srcdir)/'`compiler/trainingdeps.cpp
@@ -1206,20 +1238,6 @@ libpbcompiler_a-userrule.obj: compiler/userrule.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/userrule.cpp' object='libpbcompiler_a-userrule.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-userrule.obj `if test -f 'compiler/userrule.cpp'; then $(CYGPATH_W) 'compiler/userrule.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/userrule.cpp'; fi`
-
-libpbcompiler_a-openclutil.o: compiler/openclutil.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-openclutil.o -MD -MP -MF $(DEPDIR)/libpbcompiler_a-openclutil.Tpo -c -o libpbcompiler_a-openclutil.o `test -f 'compiler/openclutil.cpp' || echo '$(srcdir)/'`compiler/openclutil.cpp
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-openclutil.Tpo $(DEPDIR)/libpbcompiler_a-openclutil.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/openclutil.cpp' object='libpbcompiler_a-openclutil.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-openclutil.o `test -f 'compiler/openclutil.cpp' || echo '$(srcdir)/'`compiler/openclutil.cpp
-
-libpbcompiler_a-openclutil.obj: compiler/openclutil.cpp
-@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -MT libpbcompiler_a-openclutil.obj -MD -MP -MF $(DEPDIR)/libpbcompiler_a-openclutil.Tpo -c -o libpbcompiler_a-openclutil.obj `if test -f 'compiler/openclutil.cpp'; then $(CYGPATH_W) 'compiler/openclutil.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/openclutil.cpp'; fi`
-@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/libpbcompiler_a-openclutil.Tpo $(DEPDIR)/libpbcompiler_a-openclutil.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='compiler/openclutil.cpp' object='libpbcompiler_a-openclutil.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbcompiler_a_CXXFLAGS) $(CXXFLAGS) -c -o libpbcompiler_a-openclutil.obj `if test -f 'compiler/openclutil.cpp'; then $(CYGPATH_W) 'compiler/openclutil.cpp'; else $(CYGPATH_W) '$(srcdir)/compiler/openclutil.cpp'; fi`
 
 libpbmain_a-redirectmain.o: runtime/redirectmain.cpp
 @am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libpbmain_a_CXXFLAGS) $(CXXFLAGS) -MT libpbmain_a-redirectmain.o -MD -MP -MF $(DEPDIR)/libpbmain_a-redirectmain.Tpo -c -o libpbmain_a-redirectmain.o `test -f 'runtime/redirectmain.cpp' || echo '$(srcdir)/'`runtime/redirectmain.cpp
