@@ -133,6 +133,7 @@ public:
   }
   
   void forkCompile() {
+    JTRACE(_gcccmd.c_str());
     _gccfd = opensubproc(_gcccmd);
   }
 
@@ -197,6 +198,7 @@ public:
   }
 
   void link() {
+    JTRACE(mklinkcmd().c_str());
     closesubproc(opensubproc(mklinkcmd()), "Link "+theOutputBin);
   }
 };
