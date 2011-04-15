@@ -17,7 +17,7 @@
 #include "matrixdef.h"
 #include "rirscope.h"
 #include "rule.h"
-#include "staticscheduler.h"
+#include "scheduler.h"
 
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"

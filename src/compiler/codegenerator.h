@@ -60,6 +60,12 @@ public:
 
   operator std::ostream& () { return _os; }
 
+  std::string str() {
+    std::ostringstream tmp;
+    writeTo(tmp);
+    return tmp.str();
+  }
+
 private:
   std::string  _name;
   StreamTrees  _nodes;
@@ -90,7 +96,7 @@ public:
   void incIndent(){++_indent;}
   void decIndent(){--_indent;}
   
-  CodeGenerator(const StreamTreePtr& root);
+  CodeGenerator(const StreamTreePtr& root, const TrainingDepsPtr& cg);
   CodeGenerator(CodeGenerator& that);
   virtual ~CodeGenerator(){}
 
@@ -136,7 +142,7 @@ public:
       o << "JTUNABLE" << type << "STATIC(" << name<< ","<< i->second << ");\n";
     }
     theTunableDefs()[name] = o.str();
-    _cg.addTunable(isTunable, category, name, initial, min, max);
+    _cg->addTunable(isTunable, category, name, initial, min, max);
   }
   void createTunableArray( const std::string& category
                          , const std::string& name
@@ -154,7 +160,7 @@ public:
               +","+jalib::XToString(initial)
               +","+jalib::XToString(min)
               +","+jalib::XToString(max)+");";
-    _cg.addTunable(isTunable, category, name, initial, min, max);
+    _cg->addTunable(isTunable, category, name, initial, min, max);
   }
 
   void beginSwitch(const std::string& var){
@@ -175,7 +181,8 @@ public:
     _indent--;
   }
 
-  TrainingDeps& cg() { return _cg; }
+  TrainingDeps& cg() { return *_cg; }
+  TrainingDepsPtr cgPtr() { return _cg; }
 
   void beginClass(const std::string& name, const std::string& base);
   void endClass();
@@ -300,7 +307,7 @@ protected:
   std::string    _curConstructorBody;
   int            _contCounter;
   int            _indent;
-  TrainingDeps   _cg;
+  TrainingDepsPtr _cg;
   CodeGenerators _helpers;
 };
 

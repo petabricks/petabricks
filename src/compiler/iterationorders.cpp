@@ -178,14 +178,14 @@ void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& 
   for(size_t a=0; a<regions.size(); ++a){
     SimpleRegionPtr r= new SimpleRegion(regions[a]);
     if(!isStatic){
-      rule.generateCallTaskCode("(*_split_task)["+jalib::XToString(a)+"]", trans, o, r);
+      rule.generateCallCode("(*_split_task)["+jalib::XToString(a)+"]", trans, o, r, E_RF_DYNAMIC);
       for(size_t b=0; b<a; ++b){
         if(canDependOn(regions[a], regions[b])){
           o.write("(*_split_task)["+jalib::XToString(a)+"]->dependsOn((*_split_task)["+jalib::XToString(b)+"]);");
         }
       }
     }else{
-      rule.generateCallCodeSimple(trans, o, r);
+      rule.generateCallCode("", trans, o, r, E_RF_STATIC);
     }
   }
   if(!isStatic) o.write("return petabricks::run_task(_split_task);");

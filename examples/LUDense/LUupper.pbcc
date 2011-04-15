@@ -16,14 +16,14 @@ to OUT[m,n]
   to (OUT.region(0,0,m/2,n/2) out)
   from (IN.region(0,0,m/2,n/2) in, LEFTDIAG.region(0,0,n/2,n/2) leftdiag)
   {
-        SPAWN(LUuppertrirecur,out,in,leftdiag);
+        LUuppertrirecur(out,in,leftdiag);
   }
 
   //upper right
   to (OUT.region(m/2,0,m,n/2) out) 
   from (IN.region(m/2,0,m,n/2) in, LEFTDIAG.region(0,0,n/2,n/2) leftdiag)
   {
-        SPAWN(LUuppertrirecur,out,in,leftdiag);
+        LUuppertrirecur(out,in,leftdiag);
   }
 
   //lower left
@@ -33,11 +33,11 @@ to OUT[m,n]
 	OUT.region(0,0,m/2,n/2) up,
 	LEFTDIAG.region(n/2,n/2,n,n) diag)
   {
-	MatrixRegion2D temp = MatrixRegion2D::allocate(m/2, n-n/2);
-        MatrixMultiply(temp, left, up);
-        MatrixSub(temp, in, temp);
+      MatrixRegion2D temp = MatrixRegion2D::allocate(m/2, n-n/2);
+      MatrixMultiply(temp, left, up);
+      MatrixSub(temp, in, temp);
 
-        SPAWN(LUuppertrirecur,out,temp,diag);
+      LUuppertrirecur(out,temp,diag);
   }
 
 
@@ -49,11 +49,11 @@ to OUT[m,n]
         OUT.region(m/2,0,m,n/2) up,
         LEFTDIAG.region(n/2,n/2,n,n) diag)
   {
-        MatrixRegion2D temp = MatrixRegion2D::allocate(m-m/2, n-n/2);
-        MatrixMultiply(temp, left, up);
-        MatrixSub(temp, in, temp);
+      MatrixRegion2D temp = MatrixRegion2D::allocate(m-m/2, n-n/2);
+      MatrixMultiply(temp, left, up);
+      MatrixSub(temp, in, temp);
 
-	SPAWN(LUuppertrirecur,out,temp,diag);    
+      LUuppertrirecur(out,temp,diag);    
   }
 
 
@@ -65,14 +65,14 @@ to OUT[m,n]
 {
   to (OUT out) from (IN in, LEFTDIAG leftdiag)
   {
-	if (m==1 || n==1){
-		MatrixRegion2D L = MatrixRegion2D::allocate(n,n);
-        	ltri(L, leftdiag);
-        	trilsolve(out, L, in);
-	}
-	else {
-		LUuppertri(out, in, leftdiag);
-	}
+    if (m==1 || n==1){
+      MatrixRegion2D L = MatrixRegion2D::allocate(n,n);
+            ltri(L, leftdiag);
+            trilsolve(out, L, in);
+    }
+    else {
+      LUuppertri(out, in, leftdiag);
+    }
   }
 
 

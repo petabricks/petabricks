@@ -54,23 +54,24 @@ std::string cmdCxxCompiler();
 
 using namespace petabricks;
 
-//do dynamic searches for the correct paths to needed libraries/headers
-static bool shouldCompile = true;
-static bool shouldLink = true;
-static std::string theCommonDir;
-static std::string theHardcodedConfig;
-static std::string theInput;
-static std::string theLibDir;
-static std::string theMainName;
-static std::string theObjDir;
-static std::string theObjectFile;
-static std::string theOutputBin;
-static std::string theOutputInfo;
-static std::string theRuntimeDir;
-static int theNJobs = 2;
 
-
-std::string thePbPreprocessor;
+namespace pbcConfig {
+  bool shouldCompile = true;
+  bool shouldLink = true;
+  std::string theCommonDir;
+  std::string theHardcodedConfig;
+  std::string theInput;
+  std::string theLibDir;
+  std::string theMainName;
+  std::string theObjDir;
+  std::string theObjectFile;
+  std::string theOutputBin;
+  std::string theOutputInfo;
+  std::string theRuntimeDir;
+  std::string thePbPreprocessor;
+  int theNJobs = 2;
+}
+using namespace pbcConfig;
 
 //defined in pbparser.ypp
 TransformListPtr parsePbFile(const char* filename);
@@ -78,6 +79,7 @@ TransformListPtr parsePbFile(const char* filename);
 /* wrapper around popen */
 FILE* opensubproc(const std::string& cmd) {
   FILE* p = popen(cmd.c_str(), "r");
+  JTRACE("debug ")(cmd);
   JASSERT(p!= 0)(cmd);
   return p;
 }
@@ -312,7 +314,7 @@ int main( int argc, const char ** argv){
   // CODEGEN:
   StreamTreePtr header = new StreamTree("header");
   StreamTreePtr prefix = header->add(new StreamTree("prefix"));
-  CodeGenerator o(header);
+  CodeGenerator o(header, NULL);
   
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
     ccfiles.push_back(OutputCode(theObjDir+"/"+(*i)->name(), o));

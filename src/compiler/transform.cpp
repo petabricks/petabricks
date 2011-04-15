@@ -13,7 +13,8 @@
 
 #include "codegenerator.h"
 #include "maximawrapper.h"
-#include "staticscheduler.h"
+#include "pbc.h"
+#include "scheduler.h"
 #include "syntheticrule.h"
 
 #include "common/jconvert.h"
@@ -231,7 +232,7 @@ void petabricks::Transform::compile(){
 
   _choiceGrid.removeDisabledRules();
 
-  _scheduler=new StaticScheduler(_choiceGrid);
+  _scheduler=new StaticScheduler(_choiceGrid, *this);
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     _scheduler->markInputMatrix(*i);
   }
@@ -241,13 +242,7 @@ void petabricks::Transform::compile(){
   for(RuleList::const_iterator i=_rules.begin(); i!=_rules.end(); ++i){
     (*i)->collectDependencies(_scheduler);
   }
-  #ifdef DEBUG
-  _scheduler->writeGraph((name()+".schedule_initial.dot").c_str());
-  #endif
   _scheduler->generateSchedule();
-  #ifdef DEBUG
-  _scheduler->writeGraph((name()+".schedule.dot").c_str());
-  #endif
   
   MaximaWrapper::instance().popContext();
 }
@@ -472,7 +467,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.write("runStatic();");
   o.write("return NULL;");
   o.endIf();
-  _scheduler->generateCodeDynamic(*this, o);
+  _scheduler->generateCode(*this, o, E_RF_DYNAMIC);
   o.endFunc();
 
   o.beginFunc("void", "runStatic");
@@ -481,7 +476,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
     o.write("return;");
     o.endIf();
   }
-  _scheduler->generateCodeStatic(*this, o);
+  _scheduler->generateCode(*this, o, E_RF_STATIC);
   o.endFunc();
   
   o.comment("Rule trampolines");

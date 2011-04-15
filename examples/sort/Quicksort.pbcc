@@ -38,15 +38,15 @@ transform QuicksortSubArray
 from IN[n], Pos
 to OUT[n], TEMP[n]
 {
-  recursive to (OUT out, TEMP temp) from (IN in, Pos pos)
+  to (OUT out, TEMP temp) from (IN in, Pos pos)
   {
     int p = partition(out);
     if(p>1)
-      SPAWN(SORTSUBARRAY,out .region(0,p),
-                       temp.region(0,p), 
-                       in  .region(0,p), pos);
+      spawn SORTSUBARRAY(out .region(0,p),
+                         temp.region(0,p), 
+                         in  .region(0,p), pos);
     if(p<out.count()-2)
-      SPAWN(SORTSUBARRAY,out .region(p+1,n),
+      spawn SORTSUBARRAY(out .region(p+1,n),
                          temp.region(p+1,n), 
                          in  .region(p+1,n), pos);
   }

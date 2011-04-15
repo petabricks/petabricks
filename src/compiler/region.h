@@ -117,6 +117,7 @@ public:
 
   void setName(const char*);
   void initialize(Transform&);
+  void validate();
   CoordinateFormula calculateCenter() const;
   
   static RegionType strToRegionType(const std::string& str);

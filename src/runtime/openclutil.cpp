@@ -37,25 +37,32 @@ OpenCLUtil::init( )
   if( true == has_init )
     return 0;
 
+  // Get platform.
+  cl_platform_id platform = NULL;
+  if( CL_SUCCESS != oclGetPlatformID(&platform) )
+    return -1;
+
+  // Get device count.
+  cl_uint device_count;
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, 0, NULL, &device_count ) )
+    return -1;
+
+  // Get device IDs.
+  cl_device_id* device_ids = new cl_device_id[ device_count ];
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, device_count, device_ids, &device_count ) )
+    return -2;
+
   // Create context.
-  if( (cl_context)0 == ( context = clCreateContextFromType( 0, CL_DEVICE_TYPE_GPU, NULL, NULL, &err ) ) )
+  if( (cl_context)0 == ( context = clCreateContext(0, device_count, device_ids, NULL, NULL, &err) ) )
     return -3;
   if( CL_SUCCESS != err )
     return -5;
 
   #if OPENCL_TRACE
-  std::cout << "Created context: " << context << "\n";
+  //std::cout << "Created context: " << context << "\n";
   #endif
 
-  // Get device count.
-  cl_uint device_count;
-  if( CL_SUCCESS != clGetDeviceIDs( NULL, CL_DEVICE_TYPE_GPU, 0, NULL, &device_count ) )
-    return -1;
-
-  // Get device IDs.
-  cl_device_id* device_ids = new cl_device_id[ device_count ];
-  if( CL_SUCCESS != clGetDeviceIDs( NULL, CL_DEVICE_TYPE_GPU, device_count, device_ids, &device_count ) )
-    return -2;
+  std::cout << "GPU!!!!! device = " << device_count << std::endl;
 
   // Get device-specific information.
   for( cl_uint i = 0; i < device_count; ++i )
@@ -78,11 +85,14 @@ OpenCLUtil::init( )
       clGetDeviceInfo( device_ids[i], CL_DEVICE_MAX_CLOCK_FREQUENCY,
 		       sizeof(dev_info->max_clock_freq), &dev_info->max_clock_freq, NULL );
 
+      // TODO(mangpo): do we need this?
       // Work-item and work-group properties
+      /*std::cout << "work-item" << std::endl;
       clGetDeviceInfo( device_ids[1], CL_DEVICE_MAX_WORK_ITEM_SIZES,
 		       sizeof(dev_info->max_workitem_size), &dev_info->max_workitem_size, NULL );
+      std::cout << "work-group" << std::endl;
       clGetDeviceInfo( device_ids[i], CL_DEVICE_MAX_WORK_GROUP_SIZE,
-		       sizeof(dev_info->max_workgroup_size), &dev_info->max_workgroup_size, NULL );
+		       sizeof(dev_info->max_workgroup_size), &dev_info->max_workgroup_size, NULL );*/
 
       // Memory properties
       clGetDeviceInfo( device_ids[i], CL_DEVICE_GLOBAL_MEM_SIZE,
@@ -99,10 +109,10 @@ OpenCLUtil::init( )
 
       // Create queue
       if( (cl_command_queue)0 == ( dev_info->queue =
-				   clCreateCommandQueue( context, device_ids[i], 0, &err ) ) )
-	return -4;
+				clCreateCommandQueue( context, device_ids[i], 0, &err ) ) )
+	      return -4;
       if( CL_SUCCESS != err )
-	return -6;
+	      return -6;
 
       #if OPENCL_TRACE
       std::cout << "Created command queue: " << dev_info->queue << "\n";

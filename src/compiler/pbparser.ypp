@@ -359,8 +359,8 @@ extern FILE* pbin;
 
 TransformListPtr parsePbFile(const char* filename){
   TransformListPtr ret;
-  if(thePbPreprocessor != "") {
-    pbin = popen((thePbPreprocessor+" \""+filename+"\"").c_str(), "r");
+  if(pbcConfig::thePbPreprocessor != "") {
+    pbin = popen((pbcConfig::thePbPreprocessor+" \""+filename+"\"").c_str(), "r");
   } else {
     pbin = fopen(filename,"r");
   }

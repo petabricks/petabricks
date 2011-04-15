@@ -10,7 +10,6 @@ transform Poisson2DJacobiGraph
 from IN[n,n], B[n,n]
 to OUT[n,n]
 {
-  recursive
   to (OUT o) from (IN in, B b)
   {
 

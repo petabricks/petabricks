@@ -90,6 +90,9 @@
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
 
+/* Define to 1 if you have the `oclUtil_x86_64' library (-loclUtil_x86_64). */
+#undef HAVE_LIBOCLUTIL_X86_64
+
 /* Define to 1 if you have the `OpenCL' library (-lOpenCL). */
 #undef HAVE_LIBOPENCL
 
@@ -98,6 +101,9 @@
 
 /* Define to 1 if you have the `rt' library (-lrt). */
 #undef HAVE_LIBRT
+
+/* Define to 1 if you have the `shrutil_x86_64' library (-lshrutil_x86_64). */
+#undef HAVE_LIBSHRUTIL_X86_64
 
 /* Define to 1 if you have the <math.h> header file. */
 #undef HAVE_MATH_H
