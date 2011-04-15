@@ -88,6 +88,9 @@ public:
   }
 
   void extractSizeDefines(CodeGenerator& o, FreeVars fv, const char* inputsizestr);
+#if HAVE_OPENCL
+  void extractOpenClSizeDefines(CLCodeGenerator& o, unsigned int dims);
+#endif
   
   void declTransformNFunc(CodeGenerator& o);
   void declTryMemoizeFunc(CodeGenerator& o);
