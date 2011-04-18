@@ -79,7 +79,7 @@ TransformListPtr parsePbFile(const char* filename);
 
 /* wrapper around popen */
 FILE* opensubproc(const std::string& cmd) {
-  FILE* p = popen(cmd.c_str(), "r");
+  FILE* p = popen((cmd+" 2>&1").c_str(), "r");
   JTRACE("calling gcc")(cmd);
   JASSERT(p!= 0)(cmd);
   return p;
@@ -120,8 +120,7 @@ public:
        << " -o "  << _obj 
        << " "     << _cpp
        << " -I\"" << theLibDir << "\""
-       << " -I\"" << theRuntimeDir << "\""
-       << " 2>&1";
+       << " -I\"" << theRuntimeDir << "\"";
     _gcccmd = os.str();
   }
 
@@ -135,7 +134,7 @@ public:
     of.flush();
     of.close();
   }
-  
+
   void forkCompile() {
     _gccfd = opensubproc(_gcccmd);
   }
@@ -202,7 +201,6 @@ public:
     for(const_iterator i=begin(); i!=end(); ++i)
       os << " " << i->objpath();
     os << " " CXXLDFLAGS " -L\"" << theLibDir <<"\" -lpbmain -lpbruntime -lpbcommon " CXXLIBS;
-    os << " 2>&1";
     return os.str();
   }
 
