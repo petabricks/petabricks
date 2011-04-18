@@ -212,21 +212,16 @@ if test "$use_jalloc" = "yes"; then
   AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
 fi
 
-AC_ARG_WITH([opencl],
-	[AS_HELP_STRING([--with-opencl=PATH],[build compiler and runtime with support for OpenCL-enabled GPUs.])],
-	[],
-	[with_opencl=no])
+AC_ARG_ENABLE([opencl],
+	[AS_HELP_STRING([--enable-opencl],[build compiler and runtime with support for OpenCL-enabled GPUs.])],
+	[use_opencl=$enableval],
+	[use_opencl=no])
 
-if ! test "$with_opencl" = "no"; then
+if test "$use_opencl" = "yes"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
-   AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
-
-   CPPFLAGS="$CPPFLAGS -I$with_opencl/OpenCL/common/inc -I$with_opencl/shared/inc"
-   LIBS="$LIBS -L$with_opencl/OpenCL/common/lib/ -L$with_opencl/shared/lib -L$with_opencl/shared/lib/linux"
-
    AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
-   AC_CHECK_LIB([shrutil_x86_64], [shrLogEx], [], [AC_MSG_ERROR([Failed to find -lshrutil_x86_64.  Check LIBRARY_PATH, or reconfigure without shrutil_x86_64.])])
-   AC_CHECK_LIB([oclUtil_x86_64], [oclGetPlatformID], [], [AC_MSG_ERROR([Failed to find -loclUtil_x86_64.  Check LIBRARY_PATH, or reconfigure without oclUtil_x86_64.])])   
+
+   AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
 else
    AC_DEFINE([MATRIX_ELEMENT_T],[double])
 fi
@@ -343,7 +338,7 @@ done
 AC_DEFINE_UNQUOTED([CXX],        ["$CXX"],                  [C++ compiler used by pbc])
 AC_DEFINE_UNQUOTED([CXXCPP],     ["$CXXCPP -x c++"],        [C++ preprocessor used by pbc])
 AC_DEFINE_UNQUOTED([CXXDEFS],    ["$DEFS -DHAVE_CONFIG_H"], [C++ compiler defines used by pbc])
-AC_DEFINE_UNQUOTED([CXXFLAGS],   ["$CXXFLAGS $CPPFLAGS"],   [C++ compiler flags used by pbc])
+AC_DEFINE_UNQUOTED([CXXFLAGS],   ["$CXXFLAGS"],             [C++ compiler flags used by pbc])
 AC_DEFINE_UNQUOTED([CXXLDFLAGS], ["$LDFLAGS"],              [C++ compiler link flags used by pbc])
 AC_DEFINE_UNQUOTED([CXXLIBS],    ["$LIBS"],                 [C++ compiler libraries used by pbc])
 AC_DEFINE_UNQUOTED([NM],         ["$NM"],                   [binutils tool used by pbc])

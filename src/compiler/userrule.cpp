@@ -128,10 +128,6 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
       bodyir->accept(print);
       std::cerr << "--------------------\n";
-
-      if(!passBuildGpuProgram(tx)) {
-        failgpu = true;
-      }
     }
     catch( OpenClCleanupPass::NotValidSource e )
     {
@@ -150,7 +146,7 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
     failgpu = true;
   }
   
-  if( failgpu )
+  if( true == failgpu )
   {
     if(_gpuRule) _gpuRule->disableRule();
     _gpuRule = NULL;
@@ -158,26 +154,6 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
   }
 
 #endif
-}
-
-bool petabricks::UserRule::passBuildGpuProgram(Transform& trans) {
-  TrainingDeps* tmp = new TrainingDeps();
-  CLCodeGenerator clcodegen(tmp);
-
-  IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
-  generateOpenCLKernel( trans, clcodegen, iterdef );
-
-  cl_int err;
-  std::string s = clcodegen.os().str();
-  const char *clsrc = s.c_str();
-
-  std::cout << clsrc << std::endl;
-  cl_context ctx = OpenCLUtil::getContext( );
-  cl_program clprog  = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );
-  if(err != CL_SUCCESS)
-    return false;
-  err = clBuildProgram( clprog, 0, NULL, NULL, NULL, NULL);
-  return (err == CL_SUCCESS);
 }
 
 void petabricks::UserRule::print(std::ostream& os) const {
