@@ -224,7 +224,7 @@ public:
       memset(coord, 0, sizeof coord);
       do {
         t.cell(coord) = this->cell(coord);
-      } while(this->incCoord(coord)>=0);
+      } while(this->incCoord(coord)>0);
     }
     return t;
   }
@@ -240,7 +240,7 @@ public:
     memset(coord, 0, sizeof coord);
     do {
       dst.cell(coord) = this->cell(coord);
-    } while(this->incCoord(coord)>=0);
+    } while(this->incCoord(coord)>0);
   }
 
   ///
@@ -390,7 +390,7 @@ public:
       memset(coord, 0, sizeof coord);
       do {
         gen.update(this->coordToPtr(coord), sizeof(ElementT));
-      } while(this->incCoord(coord)>=0);
+      } while(this->incCoord(coord)>0);
     }
   }
   
