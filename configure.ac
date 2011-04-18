@@ -233,8 +233,8 @@ fi
 
 
 
-
 AC_DEFINE([ACCTARGET_STR],       ["accuracyTarget"], [var name in output code for target accuracy])
+AC_DEFINE([BIN_TMPFILE],         ["bin"],     [generated file name])
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
 AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for begin coord])
 AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
@@ -272,6 +272,7 @@ AC_DEFINE([TX_STATIC_POSTFIX],   ["_static"], [postfix for static versions of tr
 AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files in])
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
+
 AC_DEFINE_UNQUOTED([MAXIMA_PATH],    ["$MAXIMA"], [path to maxima program])
 AC_DEFINE_UNQUOTED([REVISION_LONG],  ["$rev_long"], [git revision for HEAD at the time ./configure was run])
 AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at the time ./configure was run])

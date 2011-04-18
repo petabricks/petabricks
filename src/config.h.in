@@ -6,6 +6,9 @@
 /* macro for gcc function __attribute__s */
 #undef ATTRIBUTE
 
+/* generated file name */
+#undef BIN_TMPFILE
+
 /* larges cache line size in system */
 #undef CACHE_LINE_SIZE
 
