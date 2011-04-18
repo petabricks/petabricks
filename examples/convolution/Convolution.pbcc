@@ -5,7 +5,6 @@
 #define WAYS 4
 #define MAX(x, y) ((x) >= (y) ? (x) : (y))
 #define MIN(x, y) ((x) <= (y) ? (x) : (y))
-#define ENABLE_SPAWN
 
 transform ConvolutionRegular
 from A[n], B[m]
@@ -34,7 +33,6 @@ from A[n], B[m]
 through T[n + m - 1, WAYS]
 to C[n+m-1]
 {
-  recursive
   to (T t) from (A a, B b)
   {
     int waySize = (n + WAYS - 1) / WAYS;
@@ -43,15 +41,9 @@ to C[n+m-1]
       int aEnd = MIN((i + 1) * waySize, n);
       int aSegLen = aEnd - aStart;
       if (aSegLen > 0) {
-#ifdef ENABLE_SPAWN
-        SPAWN(Convolution, t.region(0, i, aSegLen + m - 1, i + 1).row(0),
+        spawn Convolution(t.region(0, i, aSegLen + m - 1, i + 1).row(0),
                            a.region(aStart, aEnd),
                            b);
-#else
-        Convolution(t.region(0, i, aSegLen + m - 1, i + 1).row(0),
-                    a.region(aStart, aEnd),
-                    b);
-#endif
       }
       // zero out rest of row
       int tZeroStart = (aSegLen == 0 ? 0 : aSegLen + m - 1);
@@ -59,9 +51,7 @@ to C[n+m-1]
         t.cell(j, i) = 0;
       }
     }
-#ifdef ENABLE_SPAWN
-    SYNC();
-#endif
+    sync;
 
 //  for (int i = 0; i < WAYS; i++) {
 //    int aStart = i * waySize;
@@ -91,24 +81,19 @@ transform Convolution
 from A[n], B[m]
 to C[n+m-1]
 {
-  recursive(n+m-1)
   to (C c) from (A a, B b)
   {
     //printf("Calling (%d + %d) regular ...\n", (int) n, (int) m);
-    SPAWN(ConvolutionRegular, c, a, b);
-    SYNC();
+    ConvolutionRegular(c, a, b);
   }
 
-  recursive(n+m-1)
   to (C c) from (A a, B b)
   {
     //printf("Calling (%d + %d) FFT ...\n", (int) n, (int) m);
-    SPAWN(ConvolutionFFT, c, a, b);
-    SYNC();
+    ConvolutionFFT(c, a, b);
     //printf("Finished (%d + %d) FFT ...\n", (int) n, (int) m);
   }
 
-  recursive(n+m-1)
   to (C c) from (A a, B b)
   {
     // TODO: This is a bad idea.  Could potentially be inited by
@@ -126,16 +111,15 @@ to C[n+m-1]
 
     //printf("Calling (%d + %d) recursive ...\n", (int) n, (int) m);
     if (a.count() <= WAYS && b.count() <= WAYS) {
-      SPAWN(ConvolutionRegular, c, a, b);
+      ConvolutionRegular(c, a, b);
     } else {
       if (a.count() >= b.count())
       {
-        SPAWN(ConvolutionRecursive, c, a, b);
+        ConvolutionRecursive(c, a, b);
       } else {
-        SPAWN(ConvolutionRecursive, c, b, a);
+        ConvolutionRecursive(c, b, a);
       }
     }
-    SYNC();
   }
 }
 

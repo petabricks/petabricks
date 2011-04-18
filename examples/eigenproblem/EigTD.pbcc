@@ -59,67 +59,64 @@ to Eigenvalue[n], Eigenvector[n,n], TMP[n,n], WORK[n*n+4*n]
 
 //
 //  //Bisection
-//  recursive
 //  to (Eigenvalue eig, Eigenvector vec, TMP tmp, WORK work) from  (Diag Din, Subdiag Ein) {
 //    if (n == 1) {
 //	eig.cell(0) = Din.cell(0);
 //	vec.cell(0,0) = 1;
 //    }
 //    else {	 
-//    	SPAWN(BisectionTD, eig, vec, Din, Ein);
+//    	BisectionTD(eig, vec, Din, Ein);
 //    }
 //  }
 //
 
   //QR Iterations
-  recursive
   to (Eigenvalue eig, Eigenvector vec, TMP tmp, WORK work) from  (Diag Din, Subdiag Ein){
     if (n == 1) {
         eig.cell(0) = Din.cell(0);
         vec.cell(0,0) = 1;
     }
     else {
-        SPAWN(QRTD, eig, vec, Din, Ein);
+        QRTD(eig, vec, Din, Ein);
     }  
   }
 
 
   //Recursive: Divide and Conquer
-  recursive
   to (Eigenvalue eig, Eigenvector vec, TMP tmp, WORK work) from  (Diag Din, Subdiag Ein){
     if (n == 1) {
-	eig.cell(0) = Din.cell(0);
-	vec.cell(0,0) = 1;
+      eig.cell(0) = Din.cell(0);
+      vec.cell(0,0) = 1;
     }
     else if (n<=3)  {
-	//BisectionTD(eig, vec, Din, Ein);
-	QRTD(eig,vec,Din,Ein);
+      //BisectionTD(eig, vec, Din, Ein);
+      QRTD(eig,vec,Din,Ein);
     }
     else {
-    int cutpnt=n/2;	
-    double rho=Ein.cell(cutpnt-1);
-    //MatrixRegion2D q1 = MatrixRegion2D::allocate(cutpnt,cutpnt);
-    //MatrixRegion2D q2 = MatrixRegion2D::allocate(n-cutpnt,n-cutpnt);
-    MatrixRegion2D q1 = tmp.region(0,   0,   n/2, n/2);
-    MatrixRegion2D q2 = tmp.region(n/2, n/2, n,   n);
-    MatrixRegion2D t1 = tmp.region(n/2, 0,   n,   n/2);
-    MatrixRegion2D t2 = tmp.region(0,   n/2, n/2, n);
-    int wSize =  (n/2)*(n/2) + 4*(n/2);
-    JASSERT(wSize < work.count()/2);
-    MatrixRegion1D w1 = work.region(0, wSize);
-    MatrixRegion1D w2 = work.region(work.count()/2, work.count()/2 + wSize);
+      int cutpnt=n/2;	
+      double rho=Ein.cell(cutpnt-1);
+      //MatrixRegion2D q1 = MatrixRegion2D::allocate(cutpnt,cutpnt);
+      //MatrixRegion2D q2 = MatrixRegion2D::allocate(n-cutpnt,n-cutpnt);
+      MatrixRegion2D q1 = tmp.region(0,   0,   n/2, n/2);
+      MatrixRegion2D q2 = tmp.region(n/2, n/2, n,   n);
+      MatrixRegion2D t1 = tmp.region(n/2, 0,   n,   n/2);
+      MatrixRegion2D t2 = tmp.region(0,   n/2, n/2, n);
+      int wSize =  (n/2)*(n/2) + 4*(n/2);
+      JASSERT(wSize < work.count()/2);
+      MatrixRegion1D w1 = work.region(0, wSize);
+      MatrixRegion1D w2 = work.region(work.count()/2, work.count()/2 + wSize);
 
-    Copy1D(eig, Din);
+      Copy1D(eig, Din);
 
-    eig.cell(cutpnt-1) -= rho;
-    eig.cell(cutpnt)   -= rho;
+      eig.cell(cutpnt-1) -= rho;
+      eig.cell(cutpnt)   -= rho;
 
-    //printf("Recursion: n = %d\n", n);
+      //printf("Recursion: n = %d\n", n);
 
-    SPAWN(EigTD, eig.region(0,cutpnt),q1, t1, w1, eig.region(0,cutpnt),Ein.region(0,cutpnt-1));
-    SPAWN(EigTD, eig.region(cutpnt,n),q2, t2, w2, eig.region(cutpnt,n),Ein.region(cutpnt,n-1));
-    SYNC();
-    SPAWN(ComputeEig, eig, vec, work, q1, q2, Ein.cell(cutpnt-1));
+      spawn EigTD(eig.region(0,cutpnt),q1, t1, w1, eig.region(0,cutpnt),Ein.region(0,cutpnt-1));
+      spawn EigTD(eig.region(cutpnt,n),q2, t2, w2, eig.region(cutpnt,n),Ein.region(cutpnt,n-1));
+      sync;
+      ComputeEig(eig, vec, work, q1, q2, Ein.cell(cutpnt-1));
     }
   }
 }

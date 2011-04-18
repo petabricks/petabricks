@@ -32,7 +32,7 @@ from IN1[n1], IN2[n2]
 to OUT[n1 + n2]
 tunable Cutoff(5000, 100, 100000)
 {
-  recursive to (OUT out) from (IN1 in1, IN2 in2)
+  to (OUT out) from (IN1 in1, IN2 in2)
   {
     if (n1 + n2 < Cutoff) {
       int ptr1 = 0;
@@ -60,8 +60,8 @@ tunable Cutoff(5000, 100, 100000)
 
       out.cell(m1 + m2) = in2.cell(m1);
 
-      SPAWN(Merge2_Parallel, out.region(0, m1 + m2), in2.region(0, m1), in1.region(0, m2));
-      SPAWN(Merge2_Parallel, out.region(m1 + m2 + 1, n2 + n1), in2.region(m1 + 1, n2), in1.region(m2, n1));
+      spawn Merge2_Parallel(out.region(0, m1 + m2), in2.region(0, m1), in1.region(0, m2));
+      spawn Merge2_Parallel(out.region(m1 + m2 + 1, n2 + n1), in2.region(m1 + 1, n2), in1.region(m2, n1));
     } else {
       int m1 = n1 / 2;
 
@@ -69,8 +69,8 @@ tunable Cutoff(5000, 100, 100000)
 
       out.cell(m1 + m2) = in1.cell(m1);
 
-      SPAWN(Merge2_Parallel, out.region(0, m1 + m2), in1.region(0, m1), in2.region(0, m2));
-      SPAWN(Merge2_Parallel, out.region(m1 + m2 + 1, n1 + n2), in1.region(m1 + 1, n1), in2.region(m2, n2));
+      spawn Merge2_Parallel(out.region(0, m1 + m2), in1.region(0, m1), in2.region(0, m2));
+      spawn Merge2_Parallel(out.region(m1 + m2 + 1, n1 + n2), in1.region(m1 + 1, n1), in2.region(m2, n2));
     }
   }
 }
@@ -80,34 +80,21 @@ transform Parallel_MergesortSubArray
 from IN[n], Pos
 to OUT[n], TEMP[n]
 {
-  recursive to(OUT out, TEMP temp) from (IN in, Pos p)
+  to(OUT out, TEMP temp) from (IN in, Pos p)
   {
     int i;
 
     for (i = 0; i < 2; i++) {
       if (n * (i + 1) / 2 - n * i / 2 > 1) {
-        SPAWN(SORTSUBARRAY, out.region(n * i / 2, n * (i + 1) / 2),
-                            temp.region(n * i / 2, n * (i + 1) / 2),
-                            in  .region(n * i / 2, n * (i + 1) / 2), p);
+        spawn SORTSUBARRAY(out.region(n * i / 2, n * (i + 1) / 2),
+                           temp.region(n * i / 2, n * (i + 1) / 2),
+                           in  .region(n * i / 2, n * (i + 1) / 2), p);
       }
     }
 
-    /*
-    SPAWN(SORTSUBARRAY, out.region(0, n/2),
-                        temp.region(0, n/2),
-                        in.region(0, n/2), 
-                        p);
-
-    SPAWN(SORTSUBARRAY, out.region(n/2, n),
-                        temp.region(n/2, n),
-                        in.region(n/2, n), 
-                        p);
-                        */
-
-    SYNC();
-    SPAWN(Copy1D, temp, out);
-    SYNC();
-    SPAWN(Merge2_Parallel, out, temp.region(0, n/2), temp.region(n/2, n));
+    sync;
+    Copy1D(temp, out);
+    Merge2_Parallel(out, temp.region(0, n/2), temp.region(n/2, n));
   }
 }
 

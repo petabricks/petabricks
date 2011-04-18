@@ -172,7 +172,6 @@ sort/Radixsort
 sort/Sort
 regression/errors/negregionsize
 regression/errors/rulebodylinenos
-*.cpp
 *.cfg
 *.info
 *.obj
