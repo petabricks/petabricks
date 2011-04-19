@@ -208,8 +208,16 @@ class Population:
     for m in self.members:
       m.keep = False
 
-    best=self.markBestN(self.members, popsize, config.timing_metric_idx)
-    if isLast:
+    if config.accuracy_target is not None:
+      t = filter(lambda x: x.hasAccuracy(self.inputSize(), config.accuracy_target), self.members)
+      if len(t):
+        best=self.markBestN(t, popsize)
+        if isLast:
+          storagedirs.cur.markBest(best[0].cid, self.inputSize(), None)
+          self.best = best[0]
+          best[0].writestats(self.inputSize(), storagedirs.cur.results())
+    elif isLast:
+      best=self.markBestN(self.members, popsize, config.timing_metric_idx)
       storagedirs.cur.markBest(best[0].cid, self.inputSize(), None)
       self.best = best[0]
       best[0].writestats(self.inputSize(), storagedirs.cur.results())
@@ -498,6 +506,7 @@ if __name__ == "__main__":
   parser.add_option("--threads",               type="int",    action="callback", callback=option_callback)
   parser.add_option("--name",                  type="string", action="callback", callback=option_callback)
   parser.add_option("--abort_on",              type="string", action="callback", callback=option_callback)
+  parser.add_option("--accuracy_target",       type="float",  action="callback", callback=option_callback)
   (options, args) = parser.parse_args()
   if len(args)!=1:
     parser.print_usage()
