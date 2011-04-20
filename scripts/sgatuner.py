@@ -89,6 +89,7 @@ class Population:
     totalMutators = self.countMutators(mutatorFilter)
     tries = float(totalMutators)*config.mutations_per_mutator
     while tries>0:
+      progress.remaining(tries)
       check_timeout()
       tries-=1
       if maxpopsize and len(self.members) >= maxpopsize:
@@ -258,6 +259,7 @@ class Population:
       print "  * ", m, m.resultsStr(self.inputSize(), self.baseline)
 
   def generation(self):
+    progress.push()
     try:
       self.roundNumber += 1
       self.triedConfigs = set(map(lambda x: x.config, self.members))
@@ -266,7 +268,8 @@ class Population:
       self.test(config.max_trials)
       if len(self.members):
         for z in xrange(config.rounds_per_input_size):
-          self.randomMutation(config.population_high_size)
+          progress.subtask(config.rounds_per_input_size-z,
+                           lambda: self.randomMutation(config.population_high_size))
           if not self.accuracyTargetsMet():
             self.guidedMutation()
           self.prune(config.population_low_size, False)
@@ -299,6 +302,8 @@ class Population:
           print "skip generation n = ",self.inputSize(),"(input generation failure)"
       else:
         warnings.warn(tunerwarnings.AlwaysCrashes())
+    finally:
+      progress.pop()
 
   def nextInputSize(self):
     self.testers[-1].cleanup()

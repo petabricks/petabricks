@@ -1,6 +1,6 @@
 #!/usr/bin/python
-import pbutil, progress, tunerconfig, sgatuner
-
+import pbutil, progress, tunerconfig, sgatuner, tunerwarnings
+import warnings
 import os
 import math 
 import sys
@@ -81,8 +81,9 @@ class Benchmark:
     tunerconfig.applypatch(tunerconfig.patch_reset)
 
 def main():
+  warnings.simplefilter('ignore', tunerwarnings.NewProgramCrash)
+
   progress.push()
-  progress.remaining(4)
   progress.status("compiling benchmarks")
 
   pbutil.chdirToPetabricksRoot()
@@ -107,32 +108,29 @@ def main():
   for benchmark, cfg, n, accTarg, baseline in lines:
     benchmarks.append(Benchmark(benchmark, cfg, n, accTarg, baseline))
 
-  progress.remaining(3)
-  progress.status("running fixed tests")
-  progress.push()
-  n = len(benchmarks)
+  progress.remainingTicks(len(benchmarks)+3)
+  progress.tick()
   for b in benchmarks:
-    progress.remaining(n)
     progress.status("running "+fmtCfg(b.cfg))
-    n-=1
     b.runFixed()
     b.printFixed()
-  progress.pop()
+  progress.tick()
 
   print SHORTBAR
   print "Fixed Score (pbbenchmark v1.0): %.2f" % geomean(map(Benchmark.scoreFixed, benchmarks))
   print LONGBAR
   print
 
-  progress.remaining(2)
   progress.status("autotuning")
   for b in benchmarks:
     b.autotune()
+    progress.tick()
 
 
-  progress.remaining(1)
-  progress.status("running tuned")
-
+  for b in benchmarks:
+    progress.status("running "+fmtCfg(b.cfg))
+  
+  progress.tick()
   progress.status("done")
   progress.pop()
 

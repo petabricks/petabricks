@@ -227,6 +227,14 @@ def test():
     status("foo foo foo foo "+str(i))
     time.sleep(0.1)
 
+def disable():
+  while type(sys.stdout) is StatusWrapper:
+    sys.stdout = sys.stdout.fd
+  while type(sys.stderr) is StatusWrapper:
+    sys.stderr= sys.stderr.fd
+  global setstatusline
+  setstatusline = lambda s: None
+
 if __name__ == "__main__":
   test()
   curseswrapper(test)

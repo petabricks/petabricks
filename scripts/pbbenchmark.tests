@@ -2,10 +2,9 @@
 # TESTNAME CONFIG INPUTSIZE ACCTARGET BASEPERF
 #
 
-#sort/Sort             Sort.cfg       1000000  1   0.12
-sort/Sort             SortStl.cfg    100000   1   0.12
-multiply/strassen     strassen.cfg   1024     1   0.2
-binpacking/binpacking binpacking.cfg 8192    -1.1 0.011
+sort/Sort             Sort.cfg       10000   1   0.12
+multiply/strassen     strassen.cfg   256     1   0.2
+binpacking/binpacking binpacking.cfg 2048   -1.1 0.011
 
 
 
