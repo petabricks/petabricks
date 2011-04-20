@@ -1,15 +1,17 @@
 #!/usr/bin/python
 import pbutil, progress, tunerconfig, sgatuner, tunerwarnings
-import warnings
-import os
 import math 
-import sys
+import os
 import scipy
+import sys
+import tempfile 
 import time
+import warnings
 
-TRAILS=5
-SHORTBAR='-'*40
-LONGBAR='='*50
+TRAILS   = 5
+SHORTBAR = '-'*40
+LONGBAR  = '='*50
+VERSION  = "1.9"
 
 def geomean(nums):
   return (reduce(lambda x, y: x*y, nums))**(1.0/len(nums))
@@ -54,34 +56,66 @@ class Benchmark:
     self.fixed_acc  = None
     self.tuned_perf = None
     self.tuned_acc  = None
+    self.tuned_candidate = None
+    self.tuning_time = 0.0
     assert os.path.isfile(expandCfg(cfg))
 
   def scoreFixed(self):
     return perfScore(self.fixed_perf, self.baseline)
+  
+  def scoreTuned(self):
+    return perfScore(self.tuned_perf, self.baseline)
 
+  def run(self, cfg):
+    return pbutil.executeTimingRun(pbutil.benchmarkToBin(self.benchmark),
+                                   int(self.n),
+                                   ['--trials=%d'%TRAILS,
+                                    '--config='+cfg,
+                                    '--accuracy'],
+                                   None,
+                                   ['timing', 'accuracy'])
+  
   def runFixed(self):
-    self.fixed_perf, self.fixed_acc = \
-        pbutil.executeTimingRun(pbutil.benchmarkToBin(self.benchmark),
-                                int(self.n),
-                                ['--trials=%d'%TRAILS,
-                                 '--config='+expandCfg(self.cfg),
-                                 '--accuracy'],
-                                None,
-                                ['timing', 'accuracy'])
+    self.fixed_perf, self.fixed_acc = self.run(expandCfg(self.cfg))
+
+  def runTuned(self):
+    fd, cfg = tempfile.mkstemp('.cfg')
+    try:
+      os.close(fd)
+      self.tuned_candidate.config.save(cfg)
+      self.tuned_perf, self.tuned_acc = self.run(cfg)
+    finally:
+      os.unlink(cfg)
 
   def printFixed(self):
     print fmtCfg(self.cfg), \
           fmtPerf(self.fixed_perf, self.baseline), \
           fmtAcc(self.fixed_acc, self.acc_target)
+  
+  def printTuned(self):
+    print fmtCfg(self.cfg), \
+          fmtPerf(self.tuned_perf, self.baseline), \
+          fmtAcc(self.tuned_acc, self.acc_target)
+
+  def printDebug(self):
+    print "%s fixed:%.4f tuned:%.4f tuning_time:%6.2f" % (
+          fmtCfg(self.cfg),
+          self.fixed_perf['average'],
+          self.tuned_perf['average'],
+          self.tuning_time)
+
 
   def autotune(self):
+    self.tuning_time -= time.time()
     tunerconfig.applypatch(tunerconfig.patch_n(self.n))
     tunerconfig.applypatch(tunerconfig.patch_pbbenchmark)
-    print sgatuner.autotune(self.benchmark)
+    self.tuned_candidate=sgatuner.autotune(self.benchmark)
     tunerconfig.applypatch(tunerconfig.patch_reset)
+    self.tuning_time += time.time()
 
 def main():
   warnings.simplefilter('ignore', tunerwarnings.NewProgramCrash)
+  warnings.simplefilter('ignore', tunerwarnings.TargetNotMet)
 
   progress.push()
   progress.status("compiling benchmarks")
@@ -99,36 +133,55 @@ def main():
   print "All scores are relative performance to a baseline system."
   print "Higher is better."
   print
-  print LONGBAR
-  print "Fixed (no autotuning) scores:"
-  print SHORTBAR
+
 
   benchmarks=[]
 
   for benchmark, cfg, n, accTarg, baseline in lines:
     benchmarks.append(Benchmark(benchmark, cfg, n, accTarg, baseline))
 
+
+  print LONGBAR
+  print "Fixed (no autotuning) scores:"
+  print SHORTBAR
   progress.remainingTicks(len(benchmarks)+3)
   progress.tick()
   for b in benchmarks:
-    progress.status("running "+fmtCfg(b.cfg))
+    progress.status("running fixed "+fmtCfg(b.cfg))
     b.runFixed()
     b.printFixed()
   progress.tick()
-
   print SHORTBAR
-  print "Fixed Score (pbbenchmark v1.0): %.2f" % geomean(map(Benchmark.scoreFixed, benchmarks))
+  print "Fixed Score (pbbenchmark v%s): %.2f" % (VERSION, geomean(map(Benchmark.scoreFixed, benchmarks)))
   print LONGBAR
   print
 
-  progress.status("autotuning")
+
+
+  print LONGBAR
+  print "Tuned scores:"
+  print SHORTBAR
   for b in benchmarks:
+    progress.status("running tuned "+fmtCfg(b.cfg))
+    progress.status("autotuning")
     b.autotune()
+    b.runTuned()
+    b.printTuned()
     progress.tick()
+  print SHORTBAR
+  print "Tuned Score (pbbenchmark v%s): %.2f" % (VERSION, geomean(map(Benchmark.scoreTuned, benchmarks)))
+  print LONGBAR
+  print
 
 
-  for b in benchmarks:
-    progress.status("running "+fmtCfg(b.cfg))
+  if True:
+    print LONGBAR
+    print "Debug:"
+    print SHORTBAR
+    for b in benchmarks:
+      b.printDebug()
+    print LONGBAR
+    print
   
   progress.tick()
   progress.status("done")

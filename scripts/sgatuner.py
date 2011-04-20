@@ -9,6 +9,7 @@ import shutil
 import tunerconfig
 import configtool 
 import math
+import time
 from configtool import defaultConfigFile
 from candidatetester import Candidate, CandidateTester
 from mutators import MutateFailed
@@ -128,7 +129,8 @@ class Population:
     return tries
 
   def guidedMutation(self):
-    print "GUIDED MUTATION"
+    if config.print_log:
+      print "GUIDED MUTATION"
     self.randomMutation(None, lambda m: m.accuracyHint)
     
   
