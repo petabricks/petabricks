@@ -161,7 +161,7 @@ def callWithLogDir(fn, root, delete):
   global cur
   cur = StorageDirsTemplate(d)
   try:
-    fn()
+    return fn()
   finally:
     if delete:
       shutil.rmtree(d)

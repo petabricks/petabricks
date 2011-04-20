@@ -134,8 +134,10 @@ def subtask(n, fn):
   if n>0:
     remaining(n)
   push()
-  fn()
-  pop()
+  try:
+    return fn()
+  finally:
+    pop()
 
 def remainingTicks(n):
   current.ticks=n

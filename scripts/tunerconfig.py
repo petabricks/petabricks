@@ -73,16 +73,16 @@ class config_defaults:
   accuracy_target = None
   output_cfg = None
   timing_target = None
-  race_multiplier = 1.0
-  race_multiplier_lowacc = 8.0
   n = None
-  reweight_interval = 4
   seed = None
   main = None
+  max_gen = None
+  race_multiplier = 1.0
+  race_multiplier_lowacc = 8.0
+  reweight_interval = 4
   threads = None
   abort_on = ""
   race_split_ratio = 0.5
-  max_gen = None
   
   threshold_multiplier_min = 100.0
   threshold_multiplier_max = 1000.0
@@ -182,6 +182,19 @@ class patch_noninteractive:
 
 class patch_regression(patch_noninteractive, patch_check):
   pass
+
+
+class patch_pbbenchmark(patch_noninteractive):
+  pass
+
+class patch_reset:
+  accuracy_target = None
+  timing_target = None
+  output_cfg = None
+  n = None
+  seed = None
+  main = None
+  max_gen = None
 
 class patch_debug:
   '''settings for debugging'''

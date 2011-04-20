@@ -1,12 +1,14 @@
 #!/usr/bin/python
 import itertools, random, subprocess, os, sys, time, warnings
 import pbutil, mutators
+import progress 
 import logging
 import storagedirs 
 import candidatetester
 import shutil 
 import tunerconfig
 import configtool 
+import math
 from configtool import defaultConfigFile
 from candidatetester import Candidate, CandidateTester
 from mutators import MutateFailed
@@ -153,7 +155,7 @@ class Population:
     return self.testers[-1 - roundOffset].n
 
   def onMembersChanged(self, endOfRound):
-    if config.candidatelog:
+    if config.candidatelog and len(self.members):
       fastCmp = self.testers[-1].comparer(config.timing_metric_idx, 0.00, 0)
       if len(self.members) > 1:
         m = list(self.members)
@@ -216,7 +218,7 @@ class Population:
           storagedirs.cur.markBest(best[0].cid, self.inputSize(), None)
           self.best = best[0]
           best[0].writestats(self.inputSize(), storagedirs.cur.results())
-    elif isLast:
+    elif isLast and len(self.members):
       best=self.markBestN(self.members, popsize, config.timing_metric_idx)
       storagedirs.cur.markBest(best[0].cid, self.inputSize(), None)
       self.best = best[0]
@@ -229,10 +231,13 @@ class Population:
         if isLast:
           storagedirs.cur.markBest(best[0].cid, self.inputSize(), accLevel)
           best[0].writestats(self.inputSize(), storagedirs.cur.results(accLevel))
-          if accLevel == config.accuracy_target:
-            self.best = best[0]
       else:
         warnings.warn(TargetNotMet(self.inputSize(), accTarg))
+
+
+    if len(filter(lambda m: m.keep, self.members)) == 0:
+      self.markBestN(self.members, popsize, config.timing_metric_idx)
+      self.markBestN(self.members, popsize, config.accuracy_metric_idx)
 
     self.removed  += filter(lambda m: not m.keep, self.members)
     self.members  = filter(lambda m: m.keep, self.members)
@@ -418,9 +423,14 @@ def init(benchmark, acf=createChoiceSiteMutators, taf=createTunableMutators):
   return candidate, tester
 
 def autotuneInner(benchmark):
+  progress.push()
+  config.benchmark = benchmark
   candidate, tester = init(benchmark)
   try:
     pop = Population(candidate, tester, None)
+    
+    if not pop.isVariableAccuracy():
+      config.accuracy_target = None
 
     stats = storagedirs.openCsvStats("roundstats", 
         ("round",
@@ -432,7 +442,9 @@ def autotuneInner(benchmark):
     timers.total.start()
     config.end_time = time.time() + config.max_time
     try:
+      progress.remaining(config.max_input_size*(1+config.final_rounds))
       while pop.inputSize() < config.max_input_size:
+        progress.status("autotuning %s: input %d of %d" % (config.benchmark, pop.inputSize(), config.max_input_size))
         pop.generation()
         stats.writerow((pop.roundNumber,
                         pop.inputSize(),
@@ -441,6 +453,7 @@ def autotuneInner(benchmark):
                         timers.testing.lap(),
                         timers.inputgen.lap())+pop.stats())
         pop.nextInputSize()
+        progress.remaining(config.max_input_size - pop.inputSize() + config.max_input_size*config.final_rounds)
       for z in xrange(config.final_rounds):
         pop.generation()
         stats.writerow((pop.roundNumber,
@@ -449,6 +462,7 @@ def autotuneInner(benchmark):
                         timers.total.lap(),
                         timers.testing.lap(),
                         timers.inputgen.lap())+pop.stats())
+        progress.remaining((config.final_rounds - z)*config.max_input_size)
     except TrainingTimeout:
       pass
     timers.total.stop()
@@ -456,6 +470,8 @@ def autotuneInner(benchmark):
     #check to make sure we did something:
     if pop.firstRound:
       warnings.warn(tunerwarnings.AlwaysCrashes())
+      
+    return pop.best
   finally:
     if pop.best and config.output_cfg:
       print pop.best.cfgfile(),"=>" , config.output_cfg
@@ -465,11 +481,12 @@ def autotuneInner(benchmark):
       storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
     if tester:
       tester.cleanup()
+    progress.pop()
 
 def autotune(benchmark):
-  storagedirs.callWithLogDir(lambda: autotuneInner(benchmark),
-                             config.output_dir,
-                             config.delete_output_dir)
+  return storagedirs.callWithLogDir(lambda: autotuneInner(benchmark),
+                                    config.output_dir,
+                                    config.delete_output_dir)
 
 def regression_check(benchmark):
   tunerconfig.applypatch(tunerconfig.patch_regression)

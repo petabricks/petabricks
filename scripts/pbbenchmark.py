@@ -1,7 +1,7 @@
 #!/usr/bin/python
+import pbutil, progress, tunerconfig, sgatuner
+
 import os
-import pbutil
-import progress
 import math 
 import sys
 import scipy
@@ -9,7 +9,7 @@ import time
 
 TRAILS=5
 SHORTBAR='-'*40
-LONGBAR='='*60
+LONGBAR='='*50
 
 def geomean(nums):
   return (reduce(lambda x, y: x*y, nums))**(1.0/len(nums))
@@ -47,7 +47,7 @@ class Benchmark:
   def __init__(self, benchmark, cfg, n, acc_target, baseline):
     self.benchmark  = benchmark
     self.cfg        = cfg
-    self.n          = n
+    self.n          = int(n)
     self.acc_target = float(acc_target)
     self.baseline   = float(baseline)
     self.fixed_perf = None
@@ -74,9 +74,19 @@ class Benchmark:
           fmtPerf(self.fixed_perf, self.baseline), \
           fmtAcc(self.fixed_acc, self.acc_target)
 
+  def autotune(self):
+    tunerconfig.applypatch(tunerconfig.patch_n(self.n))
+    tunerconfig.applypatch(tunerconfig.patch_pbbenchmark)
+    print sgatuner.autotune(self.benchmark)
+    tunerconfig.applypatch(tunerconfig.patch_reset)
 
 def main():
+  progress.push()
+  progress.remaining(4)
+  progress.status("compiling benchmarks")
+
   pbutil.chdirToPetabricksRoot()
+  pbutil.compilePetabricks();
 
   r, lines = pbutil.loadAndCompileBenchmarks("./scripts/pbbenchmark.tests")
 
@@ -86,7 +96,7 @@ def main():
 
   print 
   print "All scores are relative performance to a baseline system."
-  print "Higher is better"
+  print "Higher is better."
   print
   print LONGBAR
   print "Fixed (no autotuning) scores:"
@@ -97,14 +107,35 @@ def main():
   for benchmark, cfg, n, accTarg, baseline in lines:
     benchmarks.append(Benchmark(benchmark, cfg, n, accTarg, baseline))
 
+  progress.remaining(3)
+  progress.status("running fixed tests")
+  progress.push()
+  n = len(benchmarks)
   for b in benchmarks:
+    progress.remaining(n)
+    progress.status("running "+fmtCfg(b.cfg))
+    n-=1
     b.runFixed()
     b.printFixed()
+  progress.pop()
 
   print SHORTBAR
   print "Fixed Score (pbbenchmark v1.0): %.2f" % geomean(map(Benchmark.scoreFixed, benchmarks))
   print LONGBAR
   print
+
+  progress.remaining(2)
+  progress.status("autotuning")
+  for b in benchmarks:
+    b.autotune()
+
+
+  progress.remaining(1)
+  progress.status("running tuned")
+
+  progress.status("done")
+  progress.pop()
+
 
 if __name__ == "__main__":
   main()
