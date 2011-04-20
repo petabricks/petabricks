@@ -1,7 +1,7 @@
 #!/usr/bin/python
+import progress 
 import itertools, random, subprocess, os, sys, time, warnings
 import pbutil, mutators
-import progress 
 import logging
 import storagedirs 
 import candidatetester

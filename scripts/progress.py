@@ -26,9 +26,8 @@ class StatusWrapper:
   def flush(self):
     self.fd.flush()
 
-sys.stdout = StatusWrapper(sys.stdout)
 sys.stderr = StatusWrapper(sys.stderr)
-setstatusline = lambda s: sys.stdout.status(s)
+setstatusline = lambda s: sys.stderr.status(s)
 currentline = lambda: 0
 replaceline = None
 
@@ -117,6 +116,17 @@ remaining=lambda n, nx=None: current.remaining(n,nx)
 status=lambda m: current.status(m)
 clear=lambda : setstatusline("")
 update=lambda : current.update()
+
+class OutputWrapper:
+  def __init__(self, fd):
+    self.fd = fd
+  def write(self, s):
+    clear()
+    self.fd.write(s)
+    update()
+  def flush(self):
+    self.fd.flush()
+sys.stdout = OutputWrapper(sys.stdout)
 
 def push():
   global current
@@ -218,6 +228,12 @@ def curseswrapper(fn):
     cleanup()
     raise
   cleanup()
+
+def pause(m):
+  clear()
+  raw_input(m)
+  update()
+
     
 def test():
   import time
