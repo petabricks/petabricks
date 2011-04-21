@@ -122,7 +122,7 @@ class Progress:
 
   def update(self):
     p = self.percent()
-    if p>=0:
+    if p>0:
       m = prettybar(p)
     else:
       m = ""
