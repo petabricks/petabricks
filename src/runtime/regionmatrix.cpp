@@ -44,8 +44,17 @@ RegionMatrix::RegionMatrix(const RegionMatrix& that) {
   memcpy(_splitOffset, that._splitOffset, sizeof(IndexT) * _D);
 
   _numSliceDimensions = that._numSliceDimensions;
-  _sliceDimensions = that._sliceDimensions;
-  _slicePositions = that._slicePositions;
+
+  if (_numSliceDimensions > 0) {
+    _sliceDimensions = new IndexT[_numSliceDimensions];
+    memcpy(_sliceDimensions, that._sliceDimensions, sizeof(int) * _numSliceDimensions);
+
+    _slicePositions = new IndexT[_numSliceDimensions];
+    memcpy(_slicePositions, that._slicePositions, sizeof(int) * _numSliceDimensions);
+  } else {
+    _sliceDimensions = 0;
+    _slicePositions = 0;
+  }
 
   _regionHandler = that.getRegionHandler();
 }
@@ -58,9 +67,19 @@ void RegionMatrix::operator=(const RegionMatrix& that) {
   _splitOffset = new IndexT[_D];
   memcpy(_splitOffset, that._splitOffset, sizeof(IndexT) * _D);
 
+
   _numSliceDimensions = that._numSliceDimensions;
-  _sliceDimensions = that._sliceDimensions;
-  _slicePositions = that._slicePositions;
+
+  if (_numSliceDimensions > 0) {
+    _sliceDimensions = new IndexT[_numSliceDimensions];
+    memcpy(_sliceDimensions, that._sliceDimensions, sizeof(int) * _numSliceDimensions);
+
+    _slicePositions = new IndexT[_numSliceDimensions];
+    memcpy(_slicePositions, that._slicePositions, sizeof(int) * _numSliceDimensions);
+  } else {
+    _sliceDimensions = 0;
+    _slicePositions = 0;
+  }
 
   _regionHandler = that.getRegionHandler();
 }
@@ -103,8 +122,10 @@ RegionMatrix::RegionMatrix(RegionHandlerPtr handler, int dimensions, IndexT* siz
 RegionMatrix::~RegionMatrix() {
   delete [] _size;
   delete [] _splitOffset;
-  delete [] _sliceDimensions;
-  delete [] _slicePositions;
+  if (_numSliceDimensions > 0) {
+    delete [] _sliceDimensions;
+    delete [] _slicePositions;
+  }
 }
 
 void RegionMatrix::splitData(IndexT* splitSize) {
