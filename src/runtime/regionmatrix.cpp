@@ -184,7 +184,7 @@ IndexT RegionMatrix::size(int i) const {
   return _size[i];
 }
 
-RegionMatrixPtr RegionMatrix::splitRegion(IndexT* offset, IndexT* size) {
+RegionMatrixPtr RegionMatrix::splitRegion(const IndexT* offset, const IndexT* size) const {
   IndexT* offset_new = this->getRegionDataCoord(offset);
 
   IndexT* size_copy = new IndexT[_D];
@@ -283,7 +283,7 @@ void RegionMatrix::removeMovingBuffer(uint16_t index) {
 //
 // Convert a coord to the one in _regionData
 //
-IndexT* RegionMatrix::getRegionDataCoord(const IndexT* coord_orig) {
+IndexT* RegionMatrix::getRegionDataCoord(const IndexT* coord_orig) const {
   IndexT slice_index = 0;
   IndexT split_index = 0;
 

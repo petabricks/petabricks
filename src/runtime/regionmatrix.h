@@ -43,7 +43,7 @@ namespace petabricks {
     void allocData();
     void importDataFromFile(char* filename);
 
-    RegionMatrixPtr splitRegion(IndexT* offset, IndexT* size);
+    RegionMatrixPtr splitRegion(const IndexT* offset, const IndexT* size) const;
     RegionMatrixPtr sliceRegion(int d, IndexT pos);
 
     ElementT readCell(const IndexT* coord);
@@ -62,7 +62,7 @@ namespace petabricks {
     void print();
 
   private:
-    IndexT* getRegionDataCoord(const IndexT* coord_orig);
+    IndexT* getRegionDataCoord(const IndexT* coord_orig) const;
 
   };
 }

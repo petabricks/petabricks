@@ -332,7 +332,7 @@ std::string petabricks::Region::genTypeStr(bool isConst) const{
   switch(_originalType){
   case REGION_CELL:
     if(isConst)
-      return "const ElementT";
+      return "const CellProxy";
     else
       return "CellProxy&";
   case REGION_COL:

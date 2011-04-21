@@ -26,6 +26,8 @@ namespace petabricks {
       this->releaseRegionData();
     }
 
+    RegionMatrixWrapper(const RegionMatrix& that) : RegionMatrix(that) {} 
+    
     static RegionMatrixWrapper allocate(IndexT* size) {
       RegionMatrixWrapper region = RegionMatrixWrapper<D, ElementT>(size);
       region.allocData();
@@ -81,7 +83,7 @@ namespace petabricks {
         #endif
 	newSizes[i]=c2[i]-c1[i];
       }
-      return this->splitRegion(c1, newSizes);
+      return RegionMatrixWrapper(this->splitRegion(c1, newSizes));
     }
 
     RegionMatrixWrapper region(IndexT x, ...) const{
