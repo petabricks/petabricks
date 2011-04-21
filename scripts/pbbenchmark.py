@@ -84,6 +84,7 @@ class Benchmark:
       os.close(fd)
       self.tuned_candidate.config.save(cfg)
       self.tuned_perf, self.tuned_acc = self.run(cfg)
+      self.tuned_candidate.config.save(expandCfg(self.cfg)+".latest")
     finally:
       os.unlink(cfg)
 
