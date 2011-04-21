@@ -13,3 +13,6 @@ libpbcompiler_a-ruleirparser.output
 libpbruntime_a-matrixreader.cpp
 config.h
 cxxconfig.h
+maximaparser.h
+pbparser.h
+ruleirparser.h

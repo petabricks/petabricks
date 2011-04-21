@@ -168,6 +168,7 @@ $(srcdir)/compiler/pbparser.h:		 libpbcompiler_a-pbparser.h
 $(srcdir)/compiler/ruleirparser.h: libpbcompiler_a-ruleirparser.h
 	cp $< $@ 
 
-
-
+$(srcdir)/compiler/maximalexer.lpp: $(srcdir)/compiler/maximaparser.h
+$(srcdir)/compiler/pblexer.lpp: $(srcdir)/compiler/pbparser.h
+$(srcdir)/compiler/ruleirlexer.lpp: $(srcdir)/compiler/ruleirparser.h
 
