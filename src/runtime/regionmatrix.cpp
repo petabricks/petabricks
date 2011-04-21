@@ -38,14 +38,14 @@ void RegionMatrix::init(int dimensions, IndexT* size) {
 RegionMatrix::RegionMatrix(const RegionMatrix& that) {
   _D = that.dimensions();
   _size = new IndexT[_D];
-  memcpy(_size, that.size(), sizeof(IndexT) * _D);
+  memcpy(_size, that._size, sizeof(IndexT) * _D);
 
   _splitOffset = new IndexT[_D];
-  memset(_splitOffset, 0, sizeof(IndexT) * _D);
+  memcpy(_splitOffset, that._splitOffset, sizeof(IndexT) * _D);
 
-  _numSliceDimensions = 0;
-  _sliceDimensions = 0;
-  _slicePositions = 0;
+  _numSliceDimensions = that._numSliceDimensions;
+  _sliceDimensions = that._sliceDimensions;
+  _slicePositions = that._slicePositions;
 
   _regionHandler = that.getRegionHandler();
 }
@@ -53,14 +53,14 @@ RegionMatrix::RegionMatrix(const RegionMatrix& that) {
 void RegionMatrix::operator=(const RegionMatrix& that) {
   _D = that.dimensions();
   _size = new IndexT[_D];
-  memcpy(_size, that.size(), sizeof(IndexT) * _D);
+  memcpy(_size, that._size, sizeof(IndexT) * _D);
 
   _splitOffset = new IndexT[_D];
-  memset(_splitOffset, 0, sizeof(IndexT) * _D);
+  memcpy(_splitOffset, that._splitOffset, sizeof(IndexT) * _D);
 
-  _numSliceDimensions = 0;
-  _sliceDimensions = 0;
-  _slicePositions = 0;
+  _numSliceDimensions = that._numSliceDimensions;
+  _sliceDimensions = that._sliceDimensions;
+  _slicePositions = that._slicePositions;
 
   _regionHandler = that.getRegionHandler();
 }
