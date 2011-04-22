@@ -5,6 +5,7 @@ import os
 import scipy
 import sys
 import tempfile 
+import csv 
 import time
 import warnings
 
@@ -27,7 +28,6 @@ def fmtPerf(perf, baseline):
   std  = mean-meanprime
   return "%7.1f +- %4.1f" % (mean, std)
 
-
 def fmtAcc(acc, target):
   diff = acc['average'] - target
   if diff == 0:
@@ -46,12 +46,13 @@ expandCfg = lambda x: './testdata/configs/'+x
 fmtCfg = lambda x: x.replace('.cfg','').ljust(10)
 
 class Benchmark:
-  def __init__(self, benchmark, cfg, n, acc_target, baseline):
+  def __init__(self, benchmark, cfg, n, acc_target, baseline_perf, baseline_training):
     self.benchmark  = benchmark
     self.cfg        = cfg
     self.n          = int(n)
     self.acc_target = float(acc_target)
-    self.baseline   = float(baseline)
+    self.baseline        = float(baseline_perf)
+    self.tuning_baseline = float(baseline_training)
     self.fixed_perf = None
     self.fixed_acc  = None
     self.tuned_perf = None
@@ -135,11 +136,18 @@ def main():
   print "Higher is better."
   print
 
+  baselines = dict()
+  for line in csv.reader(open("./testdata/configs/baselines.csv")):
+    if len(line)>=3:
+      baselines[line[0]] = line[1:]
 
   benchmarks=[]
-
-  for benchmark, cfg, n, accTarg, baseline in lines:
-    benchmarks.append(Benchmark(benchmark, cfg, n, accTarg, baseline))
+  for benchmark, cfg, n, accTarg in lines:
+    try:
+      baseline = baselines[benchmark]
+    except KeyError:
+      baseline = (1.0, 1.0)
+    benchmarks.append(Benchmark(benchmark, cfg, n, accTarg, baseline[0], baseline[1]))
 
 
   print LONGBAR
@@ -183,6 +191,12 @@ def main():
       b.printDebug()
     print LONGBAR
     print
+
+
+  fd = open("./testdata/configs/baselines.csv.latest", "w")
+  for b in benchmarks:
+    print >>fd, "%s, %f, %f" % (b.benchmark, b.tuned_perf['average'], b.tuning_time)
+  fd.close()
   
   progress.tick()
   progress.status("done")
