@@ -44,6 +44,11 @@ namespace petabricks {
       return allocate(c1);
     }
 
+    inline static RegionMatrixWrapper allocate() {
+      IndexT c1[D];
+      return allocate(c1);
+    }
+
     bool isSize(const IndexT size[D]) const{
       for(int i=0; i<D; ++i){
 	if(this->size()[i] != size[i]){
@@ -124,7 +129,57 @@ namespace petabricks {
   };
 
 
-  typedef RegionMatrixWrapper<0, double> RegionMatrix0D;
+  template<typename ElementT>
+  class RegionMatrixWrapper0D : public RegionMatrixWrapper<0, ElementT> {
+  private:
+    ElementT _value;
+
+  public:
+    enum { D = 0 };
+
+    RegionMatrixWrapper0D() : RegionMatrixWrapper<0, ElementT>() {}
+    RegionMatrixWrapper0D(IndexT* size) : RegionMatrixWrapper<0, ElementT>(size) {}
+    RegionMatrixWrapper0D(ElementT* data, IndexT* size) : RegionMatrixWrapper<0, ElementT>(data, size) {}
+    RegionMatrixWrapper0D(const RegionMatrix& that) : RegionMatrixWrapper<0, ElementT>(that) {} 
+
+    ///
+    /// Implicit conversion from ElementT/CellProxy
+    RegionMatrixWrapper0D(ElementT value) : RegionMatrixWrapper<0, ElementT>() {
+      init0D(value);
+    }
+    RegionMatrixWrapper0D(CellProxy& value) : RegionMatrixWrapper<0, ElementT>() {
+      init0D(value);
+    }
+    RegionMatrixWrapper0D(const CellProxy& value) : RegionMatrixWrapper<0, ElementT>() {
+      init0D(value);
+    }
+    
+    ///
+    /// Allow implicit conversion to CellProxy
+    operator CellProxy& () const { return this->cell(); }
+
+
+    bool isSize() const{
+      // TODO: what's this method suppossed to do??
+      return true;
+    }
+
+    ElementT readCell(const IndexT* coord) {
+      return _value;
+    }
+
+    void writeCell(const IndexT* coord, ElementT value) {
+      _value = value;
+    }
+
+  private:
+    void init0D(ElementT value) {
+      _value = value;
+    }
+  };
+
+
+  typedef RegionMatrixWrapper0D<double> RegionMatrix0D;
   typedef RegionMatrixWrapper<1, double> RegionMatrix1D;
   typedef RegionMatrixWrapper<2, double> RegionMatrix2D;
   typedef RegionMatrixWrapper<3, double> RegionMatrix3D;

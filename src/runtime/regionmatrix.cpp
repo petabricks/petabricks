@@ -13,6 +13,12 @@ pthread_mutex_t RegionMatrix::movingBuffer_mux = PTHREAD_MUTEX_INITIALIZER;
 RegionMatrix::RegionMatrix(int dimensions) {
   // TODO: fix this --> MatrixRegion()
   _D = dimensions;
+
+  _size = 0;
+  _splitOffset = 0;
+  _numSliceDimensions = 0;
+  _sliceDimensions = 0;
+  _slicePositions = 0;
 }
 
 RegionMatrix::RegionMatrix(int dimensions, IndexT* size) {

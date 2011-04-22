@@ -32,6 +32,11 @@ namespace petabricks {
 
     CellProxy& cell(IndexT x, ...);
     CellProxy& cell(IndexT* coord);
+ 
+    INLINE CellProxy& cell(){
+      IndexT c1[0];
+      return this->cell(c1);
+    }
   };
 
   class CellProxy {
