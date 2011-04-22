@@ -43,7 +43,7 @@ def fmtAcc(acc, target):
   return "acc: "+diffStr+s
 
 expandCfg = lambda x: './testdata/configs/'+x
-fmtCfg = lambda x: x.replace('.cfg','').ljust(10)
+fmtCfg = lambda x: x.replace('.cfg','').ljust(20)
 
 class Benchmark:
   def __init__(self, benchmark, cfg, n, acc_target, baseline_perf, baseline_training):
@@ -110,8 +110,9 @@ class Benchmark:
   def autotune(self):
     self.tuning_time -= time.time()
     tunerconfig.applypatch(tunerconfig.patch_n(self.n))
-    tunerconfig.applypatch(tunerconfig.patch_pbbenchmark)
+    #tunerconfig.applypatch(tunerconfig.patch_pbbenchmark)
     self.tuned_candidate=sgatuner.autotune(self.benchmark)
+    print self.tuned_candidate
     tunerconfig.applypatch(tunerconfig.patch_reset)
     self.tuning_time += time.time()
 
