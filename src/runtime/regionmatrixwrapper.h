@@ -50,6 +50,9 @@ namespace petabricks {
     }
 
     bool isSize(const IndexT size[D]) const{
+      if (!_size) {
+	return false;
+      }
       for(int i=0; i<D; ++i){
 	if(this->size()[i] != size[i]){
 	  return false;

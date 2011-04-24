@@ -66,6 +66,11 @@ namespace petabricks {
       *this = (double)val;
       return *this;
     }
+
+    CellProxy operator+=(const CellProxy& val) { 
+      *this = (double)*this + (double)val;
+      return *this;
+    }
     
     friend double operator+(const CellProxy& a,  const CellProxy& b) {
       return (double)a + (double)b;
