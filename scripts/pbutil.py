@@ -76,6 +76,7 @@ def parallelRunJobs(jobs):
       self.pid = os.fork()
       if self.pid == 0:
         #child
+        progress.disable()
         self.fd.close()
         class Redir():
           def __init__(self, fd):

@@ -170,6 +170,16 @@ public:
     return 0;
   }
 
+  size_t getMaxOutputDimension(){
+    size_t max = 0;
+    for(size_t i = 0; i < _to.size(); ++i) {
+      size_t d = _to[i]->dimensions();
+      if(d > max)
+        max = d;
+    }
+    return max;
+  }
+
   bool isSingleElement() const {
     if(_to.size()!=1) return false;
     return _to[0]->isSingleElement();
@@ -242,6 +252,8 @@ private:
   std::string _label;
   ConfigItems _duplicateVars;
   RulePtr _gpuRule;
+
+  bool passBuildGpuProgram(Transform& trans);
 };
 
 }

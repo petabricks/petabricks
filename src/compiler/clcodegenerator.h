@@ -43,7 +43,8 @@ class CLCodeGenerator : public CodeGenerator
 
   void localMemoryBarrier( );
 
-  void beginKernel( const std::vector<std::string>& outputs, const std::vector<std::string>& inputs, unsigned int dims );
+  //void beginKernel( const std::vector<std::string>& outputs, const std::vector<std::string>& inputs, unsigned int dims );
+  void beginKernel(RegionList& _to, RegionList& _from, unsigned int dims);
 
   void endKernel( );
 

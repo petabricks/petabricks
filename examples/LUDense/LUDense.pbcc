@@ -61,7 +61,7 @@ to OUT[n,n], P[n]
 
 /* Complicated Version (By-element version, no pivoting. Verified it works) */
 
-
+/*
 transform LUnopivot
 from IN[n,n]
 through A<n-1>[n,n]
@@ -100,7 +100,7 @@ to OUT[n,n]
         Copy2D(out, an);
   }
 }
-
+*/
 
 
 #endif // LUDENSE_PBCC

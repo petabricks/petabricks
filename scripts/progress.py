@@ -26,9 +26,8 @@ class StatusWrapper:
   def flush(self):
     self.fd.flush()
 
-sys.stdout = StatusWrapper(sys.stdout)
 sys.stderr = StatusWrapper(sys.stderr)
-setstatusline = lambda s: sys.stdout.status(s)
+setstatusline = lambda s: sys.stderr.status(s)
 currentline = lambda: 0
 replaceline = None
 
@@ -118,6 +117,17 @@ status=lambda m: current.status(m)
 clear=lambda : setstatusline("")
 update=lambda : current.update()
 
+class OutputWrapper:
+  def __init__(self, fd):
+    self.fd = fd
+  def write(self, s):
+    clear()
+    self.fd.write(s)
+    update()
+  def flush(self):
+    self.fd.flush()
+sys.stdout = OutputWrapper(sys.stdout)
+
 def push():
   global current
   clear()
@@ -134,8 +144,10 @@ def subtask(n, fn):
   if n>0:
     remaining(n)
   push()
-  fn()
-  pop()
+  try:
+    return fn()
+  finally:
+    pop()
 
 def remainingTicks(n):
   current.ticks=n
@@ -216,6 +228,12 @@ def curseswrapper(fn):
     cleanup()
     raise
   cleanup()
+
+def pause(m):
+  clear()
+  raw_input(m)
+  update()
+
     
 def test():
   import time
@@ -224,6 +242,14 @@ def test():
     remaining(100-i)
     status("foo foo foo foo "+str(i))
     time.sleep(0.1)
+
+def disable():
+  while type(sys.stdout) is StatusWrapper:
+    sys.stdout = sys.stdout.fd
+  while type(sys.stderr) is StatusWrapper:
+    sys.stderr= sys.stderr.fd
+  global setstatusline
+  setstatusline = lambda s: None
 
 if __name__ == "__main__":
   test()

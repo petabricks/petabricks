@@ -12,6 +12,7 @@
 #include "matrixdef.h"
 
 #include "codegenerator.h"
+#include "clcodegenerator.h"
 #include "formula.h"
 #include "maximawrapper.h"
 #include "transform.h"
@@ -109,6 +110,29 @@ void petabricks::MatrixDef::extractDefines(FreeVars& defined, CodeGenerator& o){
     }
   }
 }
+
+#ifdef HAVE_OPENCL
+void petabricks::MatrixDef::extractCLDefines(FreeVars& defined, CLCodeGenerator& clo, unsigned int dims){
+  unsigned int d=0;
+  for(FormulaList::const_iterator i=_size.begin(); i!=_size.end(); ++i,++d){
+    FreeVarsPtr fv = (*i)->getFreeVariables();
+    if(fv->size()==1 && d < dims){
+      std::string var = *fv->begin();
+      FormulaPtr tmp = FormulaVariable::mktmp();
+      if(!defined.contains(var)){
+        defined.insert(var);
+        FormulaList l;
+        l.push_back(new FormulaEQ(tmp, *i));
+        l = *MaximaWrapper::instance().solve(l, var);
+        JASSERT(l.size()==1)(*i)(var).Text("Failed to solve");
+        clo.os() << "unsigned int " << var << " = " 
+               << (*l.begin())->rhs()->replace(tmp, new FormulaVariable("dim_d"+jalib::XToString(d)))->toString() << ";\n";
+      }
+    }
+  }
+}
+#endif
+
 void petabricks::MatrixDef::verifyDefines(CodeGenerator& o){
   int d=0;
   for(FormulaList::const_iterator i=_size.begin(); i!=_size.end(); ++i,++d){
