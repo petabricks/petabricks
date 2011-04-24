@@ -1322,7 +1322,11 @@ Optional Features:
                           jtimings.csv, in working directory of
                           dmtcp_coordinator, and to stderr.
   --disable-allocator     disable use of the custom memory block allocator
-  --enable-opencl         build compiler and runtime with support for
+
+Optional Packages:
+  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
+  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-opencl=PATH      build compiler and runtime with support for
                           OpenCL-enabled GPUs.
 
 Some influential environment variables:
@@ -6700,19 +6704,29 @@ _ACEOF
 
 fi
 
-# Check whether --enable-opencl was given.
-if test "${enable_opencl+set}" = set; then
-  enableval=$enable_opencl; use_opencl=$enableval
+
+# Check whether --with-opencl was given.
+if test "${with_opencl+set}" = set; then
+  withval=$with_opencl;
 else
-  use_opencl=no
+  with_opencl=no
 fi
 
 
-if test "$use_opencl" = "yes"; then
+if ! test "$with_opencl" = "no"; then
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_OPENCL 1
 _ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define MATRIX_ELEMENT_T float
+_ACEOF
+
+
+   CPPFLAGS="$CPPFLAGS -I$with_opencl/OpenCL/common/inc -I$with_opencl/shared/inc"
+   LIBS="$LIBS -L$with_opencl/OpenCL/common/lib/ -L$with_opencl/shared/lib -L$with_opencl/shared/lib/linux"
 
 
 { echo "$as_me:$LINENO: checking for clGetDeviceIDs in -lOpenCL" >&5
@@ -6786,81 +6800,6 @@ _ACEOF
 else
   { { echo "$as_me:$LINENO: error: Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL." >&5
 echo "$as_me: error: Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL." >&2;}
-   { (exit 1); exit 1; }; }
-fi
-
-
-{ echo "$as_me:$LINENO: checking for oclGetPlatformID in -loclUtil_x86_64" >&5
-echo $ECHO_N "checking for oclGetPlatformID in -loclUtil_x86_64... $ECHO_C" >&6; }
-if test "${ac_cv_lib_oclUtil_x86_64_oclGetPlatformID+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-loclUtil_x86_64  $LIBS"
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char oclGetPlatformID ();
-int
-main ()
-{
-return oclGetPlatformID ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
-  (eval "$ac_link") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_cxx_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext &&
-       $as_test_x conftest$ac_exeext; then
-  ac_cv_lib_oclUtil_x86_64_oclGetPlatformID=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	ac_cv_lib_oclUtil_x86_64_oclGetPlatformID=no
-fi
-
-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-      conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ echo "$as_me:$LINENO: result: $ac_cv_lib_oclUtil_x86_64_oclGetPlatformID" >&5
-echo "${ECHO_T}$ac_cv_lib_oclUtil_x86_64_oclGetPlatformID" >&6; }
-if test $ac_cv_lib_oclUtil_x86_64_oclGetPlatformID = yes; then
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBOCLUTIL_X86_64 1
-_ACEOF
-
-  LIBS="-loclUtil_x86_64 $LIBS"
-
-else
-  { { echo "$as_me:$LINENO: error: Failed to find -loclUtil_x86_64.  Check LIBRARY_PATH, or reconfigure without oclUtil_x86_64." >&5
-echo "$as_me: error: Failed to find -loclUtil_x86_64.  Check LIBRARY_PATH, or reconfigure without oclUtil_x86_64." >&2;}
    { (exit 1); exit 1; }; }
 fi
 
@@ -6940,10 +6879,79 @@ echo "$as_me: error: Failed to find -lshrutil_x86_64.  Check LIBRARY_PATH, or re
 fi
 
 
-
-cat >>confdefs.h <<\_ACEOF
-#define MATRIX_ELEMENT_T float
+{ echo "$as_me:$LINENO: checking for oclGetPlatformID in -loclUtil_x86_64" >&5
+echo $ECHO_N "checking for oclGetPlatformID in -loclUtil_x86_64... $ECHO_C" >&6; }
+if test "${ac_cv_lib_oclUtil_x86_64_oclGetPlatformID+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-loclUtil_x86_64  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
 _ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char oclGetPlatformID ();
+int
+main ()
+{
+return oclGetPlatformID ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_cxx_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_lib_oclUtil_x86_64_oclGetPlatformID=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_oclUtil_x86_64_oclGetPlatformID=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_lib_oclUtil_x86_64_oclGetPlatformID" >&5
+echo "${ECHO_T}$ac_cv_lib_oclUtil_x86_64_oclGetPlatformID" >&6; }
+if test $ac_cv_lib_oclUtil_x86_64_oclGetPlatformID = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBOCLUTIL_X86_64 1
+_ACEOF
+
+  LIBS="-loclUtil_x86_64 $LIBS"
+
+else
+  { { echo "$as_me:$LINENO: error: Failed to find -loclUtil_x86_64.  Check LIBRARY_PATH, or reconfigure without oclUtil_x86_64." >&5
+echo "$as_me: error: Failed to find -loclUtil_x86_64.  Check LIBRARY_PATH, or reconfigure without oclUtil_x86_64." >&2;}
+   { (exit 1); exit 1; }; }
+fi
 
 else
    cat >>confdefs.h <<\_ACEOF
@@ -6955,9 +6963,13 @@ fi
 
 
 
-
 cat >>confdefs.h <<\_ACEOF
 #define ACCTARGET_STR "accuracyTarget"
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define BIN_TMPFILE "bin"
 _ACEOF
 
 
@@ -7144,6 +7156,7 @@ _ACEOF
 cat >>confdefs.h <<\_ACEOF
 #define WORKERTHREAD_ONDECK
 _ACEOF
+
 
 
 cat >>confdefs.h <<_ACEOF
@@ -7362,7 +7375,7 @@ _ACEOF
 
 
 cat >>confdefs.h <<_ACEOF
-#define CXXFLAGS "$CXXFLAGS"
+#define CXXFLAGS "$CXXFLAGS $CPPFLAGS"
 _ACEOF
 
 
