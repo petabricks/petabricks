@@ -22,6 +22,7 @@ namespace petabricks {
     int _numSliceDimensions;
     int* _sliceDimensions;
     IndexT* _slicePositions;
+    bool _isTransposed;
 
   public:
     RegionMatrix(int dimensions);
@@ -30,7 +31,8 @@ namespace petabricks {
     //   RegionMatrix(RegionDataIPtr regionData);
     RegionMatrix(RegionHandlerPtr handler, int dimensions, IndexT* size,
 		 IndexT* splitOffset, int numSliceDimensions,
-		 int* sliceDimensions, IndexT* slicePositions);
+		 int* sliceDimensions, IndexT* slicePositions,
+		 bool isTransposed);
    
     RegionMatrix(const RegionMatrix& that); 
     void operator=(const RegionMatrix& that);
@@ -38,13 +40,17 @@ namespace petabricks {
     ~RegionMatrix();
 
     void init(int dimensions, IndexT* size);
+    void copy(const RegionMatrix& that); 
 
     void splitData(IndexT* splitSize);
     void allocData();
     void importDataFromFile(char* filename);
 
     RegionMatrixPtr splitRegion(const IndexT* offset, const IndexT* size) const;
-    RegionMatrixPtr sliceRegion(int d, IndexT pos);
+    RegionMatrixPtr sliceRegion(int d, IndexT pos) const;
+    void transpose();
+    RegionMatrixPtr transposedRegion() const;
+
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);

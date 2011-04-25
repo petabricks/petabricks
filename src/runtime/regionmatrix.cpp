@@ -19,6 +19,7 @@ RegionMatrix::RegionMatrix(int dimensions) {
   _numSliceDimensions = 0;
   _sliceDimensions = 0;
   _slicePositions = 0;
+  _isTransposed = false;
 }
 
 RegionMatrix::RegionMatrix(int dimensions, IndexT* size) {
@@ -39,33 +40,19 @@ void RegionMatrix::init(int dimensions, IndexT* size) {
   _numSliceDimensions = 0;
   _sliceDimensions = 0;
   _slicePositions = 0;
+
+  _isTransposed = false;
 }
 
 RegionMatrix::RegionMatrix(const RegionMatrix& that) {
-  _D = that.dimensions();
-  _size = new IndexT[_D];
-  memcpy(_size, that._size, sizeof(IndexT) * _D);
-
-  _splitOffset = new IndexT[_D];
-  memcpy(_splitOffset, that._splitOffset, sizeof(IndexT) * _D);
-
-  _numSliceDimensions = that._numSliceDimensions;
-
-  if (_numSliceDimensions > 0) {
-    _sliceDimensions = new IndexT[_numSliceDimensions];
-    memcpy(_sliceDimensions, that._sliceDimensions, sizeof(int) * _numSliceDimensions);
-
-    _slicePositions = new IndexT[_numSliceDimensions];
-    memcpy(_slicePositions, that._slicePositions, sizeof(int) * _numSliceDimensions);
-  } else {
-    _sliceDimensions = 0;
-    _slicePositions = 0;
-  }
-
-  _regionHandler = that.getRegionHandler();
+  copy(that);
 }
 
 void RegionMatrix::operator=(const RegionMatrix& that) {
+  copy(that);
+}
+
+void RegionMatrix::copy(const RegionMatrix& that) {
   _D = that.dimensions();
   _size = new IndexT[_D];
   memcpy(_size, that._size, sizeof(IndexT) * _D);
@@ -86,6 +73,8 @@ void RegionMatrix::operator=(const RegionMatrix& that) {
     _sliceDimensions = 0;
     _slicePositions = 0;
   }
+
+  _isTransposed = that._isTransposed;
 
   _regionHandler = that.getRegionHandler();
 }
@@ -113,7 +102,8 @@ RegionMatrix::RegionMatrix(RegionDataIPtr regionData) {
 //
 RegionMatrix::RegionMatrix(RegionHandlerPtr handler, int dimensions, IndexT* size,
 			   IndexT* splitOffset, int numSliceDimensions,
-			   int* sliceDimensions, IndexT* slicePositions) {
+			   int* sliceDimensions, IndexT* slicePositions,
+			   bool isTransposed) {
   _regionHandler = handler;
   _D = dimensions;
   _size = size;
@@ -123,6 +113,7 @@ RegionMatrix::RegionMatrix(RegionHandlerPtr handler, int dimensions, IndexT* siz
     _sliceDimensions = sliceDimensions; 
     _slicePositions = slicePositions;
   }
+  _isTransposed = isTransposed;
 }
 
 RegionMatrix::~RegionMatrix() {
@@ -225,10 +216,11 @@ RegionMatrixPtr RegionMatrix::splitRegion(const IndexT* offset, const IndexT* si
 	 sizeof(IndexT) * _numSliceDimensions);
 
   return new RegionMatrix(_regionHandler, _D, size_copy, offset_new, 
-			  _numSliceDimensions, sliceDimensions, slicePositions);
+			  _numSliceDimensions, sliceDimensions, slicePositions,
+			  _isTransposed);
 }
 
-RegionMatrixPtr RegionMatrix::sliceRegion(int d, IndexT pos){
+RegionMatrixPtr RegionMatrix::sliceRegion(int d, IndexT pos) const {
   int dimensions = _D - 1;
   IndexT* size = new IndexT[dimensions];
   memcpy(size, _size, sizeof(IndexT) * d);
@@ -265,7 +257,18 @@ RegionMatrixPtr RegionMatrix::sliceRegion(int d, IndexT pos){
   }
   
   return new RegionMatrix(_regionHandler, dimensions, size, offset,
-			  numSliceDimensions, sliceDimensions, slicePositions);
+			  numSliceDimensions, sliceDimensions, slicePositions,
+			  _isTransposed);
+}
+
+void RegionMatrix::transpose() {
+  _isTransposed = !_isTransposed;
+}
+
+RegionMatrixPtr RegionMatrix::transposedRegion() const {
+  RegionMatrixPtr transposed = new RegionMatrix(*this);
+  transposed->transpose();
+  return transposed;
 }
 
 void RegionMatrix::moveToRemoteHost(RemoteHostPtr host, uint16_t movingBufferIndex) {
@@ -320,18 +323,26 @@ IndexT* RegionMatrix::getRegionDataCoord(const IndexT* coord_orig) const {
     if (slice_index < _numSliceDimensions &&
 	d == _sliceDimensions[slice_index]) {
       // slice
-      coord_new[d] = _slicePositions[slice_index];
+      if (_isTransposed) {
+	coord_new[_D-d] = _slicePositions[slice_index];
+      } else {
+	coord_new[d] = _slicePositions[slice_index];
+      }
       slice_index++;
     } else {
       // TODO: special case for split
       // split
       //printf("3size ====> %d %d %x %x\n", _size[0], _size[1], _size, coord_new);
 
-      coord_new[d] = coord_orig[split_index] + _splitOffset[split_index];
-
+      if (_isTransposed) {
+	coord_new[_D-d] = coord_orig[split_index] + _splitOffset[split_index];
+      } else {
+	coord_new[d] = coord_orig[split_index] + _splitOffset[split_index];
+      }
       split_index++;
     }
   }
+
   return coord_new;
 }
 

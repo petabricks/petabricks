@@ -105,6 +105,22 @@ namespace petabricks {
       return region(c1,c2);
     }
 
+    RegionMatrixWrapper slice(int d, IndexT pos) const{
+      return RegionMatrixWrapper(this->sliceRegion(d, pos));
+    }
+
+    RegionMatrixWrapper transposed() const {
+      return RegionMatrixWrapper(this->transposedRegion());
+    }
+
+    RegionMatrixWrapper col(IndexT x) const{ return slice(0, x); }
+    RegionMatrixWrapper column(IndexT x) const{ return slice(0, x); }
+    RegionMatrixWrapper row(IndexT y) const{  return slice(1, y); }
+
+    IndexT width() const { return size(0); }
+    IndexT height() const { return size(1); }
+    IndexT depth() const { return size(2); }
+
     ElementT rand(){
       return PetabricksRuntime::randDouble(-2147483648, 2147483648);
     }
