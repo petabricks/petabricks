@@ -12,6 +12,8 @@ clean:
 	@rm -f $(BINS)
 	@echo removing *.o 
 	@rm -f $(addsuffix .cpp, $(BINS))
+	@echo removing *.obj
+	@rm -rf $(addsuffix .obj, $(BINS))
 	@echo removing *.cpp
 	@rm -f $(addsuffix .o, $(BINS))
 	@echo removing *.info 
