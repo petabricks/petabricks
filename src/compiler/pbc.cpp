@@ -394,14 +394,13 @@ int main( int argc, const char ** argv){
   JASSERT(olddir==getcwd(olddir, sizeof olddir - 1));
   JASSERT(chdir(theObjDir.c_str())==0)(theObjDir);
   
+  ccfiles.writeMakefile();
+  
   // COMPILE AND LINK:
   if(shouldCompile)
     ccfiles.compile();
   else
     ccfiles.write();
-
-  ccfiles.writeMakefile();
-
 
   if(shouldLink) {
     ccfiles.link();
