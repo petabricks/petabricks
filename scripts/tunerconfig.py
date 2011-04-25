@@ -11,8 +11,8 @@ class config_defaults:
   max_input_size           = 2**30
   min_input_size           = 1
   max_time                 = 60*150
-  rounds_per_input_size    = 1
-  final_rounds             = 1
+  rounds_per_input_size    = 3
+  final_rounds             = 3
 
   #number of trials to run
   confidence_pct   = 0.75
@@ -36,7 +36,7 @@ class config_defaults:
 
 
   #how mutation to do
-  mutations_per_mutator    = 5
+  mutations_per_mutator    = 3
   population_high_size     = 10
   population_low_size      = 1
   multimutation            = True
