@@ -1,46 +1,48 @@
 #ifndef LUNOPIVOT_PBCC 
 #define LUNOPIVOT_PBCC
 
-#include "../simple/copy.pbcc"
 
 transform LUnopivot
 from IN[n,n]
-through A<n-1>[n,n]
+through A[n,n]
 to OUT[n,n]
-//to OUT[n,n], A<n-1>[n,n]
 {
-  to (A<0> a0) from (IN in) {
-        Copy2D(a0, in);
-  }
 
-
-  primary to (A<k+1>.cell(j,i) aNext)
-  from (A<k>.cell(j,i) aPrev,
-        A<k+1>.cell(k,i) left,
-        A<k>.cell(j,k) up)
-  where k < i && k < j
+  primary A.cell(j,0) from (IN.cell(j,0) in)
   {
-        aNext = aPrev - left * up;
+	return in;
   }
 
-
-  to (A<k+1>.cell(j,i) aNext)
-  from (A<k>.cell(j,i) aPrev,
-        A<k>.cell(j,k) up)
-  where i > j && k == j
+  A.cell(0,j) from (IN.cell(0,j) in, IN.cell(0,0) diag)
   {
-        aNext = aPrev / up;
+	return in/diag;
   }
 
-  to (A<k+1>.cell(i,j) aNext)
-  from (A<k>.cell(i,j) aPrev)
+
+  secondary A.cell(j,i)
+  from (IN.cell(j,i) aPrev,
+        A.cell(0,i) left,
+        IN.cell(j,0) up)
   {
-        aNext = aPrev;
+        return aPrev - left * up;
   }
 
-  to (OUT out) from (A<n-1> an) {
-        Copy2D(out, an);
+  primary OUT.cell(j,0) from (IN.cell(j,0) in)
+  {
+	return in;
   }
+
+  OUT.cell(0,j) from (A.cell(0,j) a)
+  {
+	return a;
+  }
+
+  to (OUT.region(1,1,n,n) out)
+  from (A.region(1,1,n,n) a ) 
+  {
+	LUnopivot(out,a);
+  } 
+
 }
 
 #endif // LUNOPIVOT_PBCC

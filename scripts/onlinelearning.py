@@ -346,7 +346,8 @@ def onlinelearnInner(benchmark):
     if c and not c.wasTimeout:
       pop.add(c)
 
-    mlog = MutatorLogFile(c.mutators)
+    if not config.online_baseline:
+      mlog = MutatorLogFile(c.mutators)
 
     '''now normal rounds'''  
     for gen in itertools.count(1):
@@ -367,10 +368,16 @@ def onlinelearnInner(benchmark):
       if config.online_baseline:
         c = None
       else:
+        if(objectives.needAccuracy()):
+          mfilter = lambda x: x.accuracyHint
+        else:
+          mfilter = lambda x: True
+        
         c = s.cloneAndMutate(tester.n,
                              adaptive = True,
                              mutatorLog = mutatorLog,
-                             objectives = objectives)
+                             objectives = objectives,
+                             mutatorFilter = mfilter)
       tlim, atarg = objectives.getlimits(p, s, c)
       if tester.race(p, c, tlim, atarg) and not (p.wasTimeout and c.wasTimeout):
         p.discardResults(config.max_trials)
@@ -391,9 +398,10 @@ def onlinelearnInner(benchmark):
         if c is not None:          
           mutatorLog.add(c, dtime, dacc, gettime(c), None if c.wasTimeout else getacc(c));
 
-        
-        mlog.logPerformance(gen, gettime(c), "None" if c.wasTimeout else getacc(c), dtime, dacc, str(c.lastMutator));
-        mlog.logScores(gen, c.mutatorScores)
+
+        if not config.online_baseline:
+          mlog.logPerformance(gen, gettime(c), "None" if c.wasTimeout else getacc(c), dtime, dacc, str(c.lastMutator));
+          mlog.logScores(gen, c.mutatorScores)
 
         t,a = resultingTimeAcc(p, c)
         print "Generation", gen, "elapsed",objectives.elapsed,"time", t,"accuracy",a, getconf(p)

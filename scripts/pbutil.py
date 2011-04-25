@@ -76,6 +76,7 @@ def parallelRunJobs(jobs):
       self.pid = os.fork()
       if self.pid == 0:
         #child
+        progress.disable()
         self.fd.close()
         class Redir():
           def __init__(self, fd):
@@ -242,13 +243,16 @@ benchmarkToInfo = lambda name: expandBenchmarkName(name, ".info")
 benchmarkToCfg  = lambda name: expandBenchmarkName(name, ".cfg")
 
 class InvalidBenchmarkNameException(Exception):
-  pass
+  def __init__(self, name):
+    self.name=name
+  def __str__(self):
+    return "InvalidBenchmarkNameException(%s)" % self.name
 
 def searchBenchmarkName(n):
   for root, dirs, files in os.walk("./examples"):
     if n in files or n + ".pbcc" in files:
       return normalizeBenchmarkName("%s/%s"%(root,n), False)
-  raise InvalidBenchmarkNameException()
+  raise InvalidBenchmarkNameException(n)
 
 def normalizeBenchmarkName(orig, search=True):
   n=re.sub("^[./]*examples[/]", "", orig);

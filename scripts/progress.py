@@ -26,9 +26,8 @@ class StatusWrapper:
   def flush(self):
     self.fd.flush()
 
-sys.stdout = StatusWrapper(sys.stdout)
 sys.stderr = StatusWrapper(sys.stderr)
-setstatusline = lambda s: sys.stdout.status(s)
+setstatusline = lambda s: sys.stderr.status(s)
 currentline = lambda: 0
 replaceline = None
 
@@ -70,13 +69,13 @@ class Progress:
     self.update()
 
   def startPercent(self):
-    if not self.hasParent() or self.maxRemaining < 0:
+    if not self.hasParent():
       return 0.0
     else:
       return self.parent.percent()
 
   def endPercent(self):
-    if not self.hasParent() or self.maxRemaining < 0:
+    if not self.hasParent():
       return 100.0
     else:
       return self.parent.nextPercent()
@@ -85,13 +84,32 @@ class Progress:
     return self.endPercent()-self.startPercent()
   
   def localPercent(self):
-    return 100.0*(1-self.curRemaining/self.maxRemaining)
+    if self.maxRemaining>0:
+      return 100.0*(1-self.curRemaining/self.maxRemaining)
+    else:
+      return 0.0
+
+  def debug(self):
+    if self.hasParent():
+      rv=self.parent.debug()
+    else:
+      rv=tuple()
+    if self.maxRemaining>0:
+      return rv+("%.4f:%.4f"%(self.percent(),self.nextPercent()),)
+    else:
+      return rv+('-',)
 
   def percent(self):
-    return self.startPercent()+(self.scale()*(1-self.curRemaining/self.maxRemaining))
+    if self.maxRemaining>0:
+      return self.startPercent()+(self.scale()*(1-self.curRemaining/self.maxRemaining))
+    else:
+      return self.startPercent()
   
   def nextPercent(self):
-    return self.startPercent()+(self.scale()*(1-self.nextRemaining/self.maxRemaining))
+    if self.maxRemaining>0:
+      return self.startPercent()+(self.scale()*(1-self.nextRemaining/self.maxRemaining))
+    else:
+      return self.endPercent()
 
   def getStatus(self):
     if type(self.curMsg) is type(lambda:""):
@@ -103,11 +121,13 @@ class Progress:
     return ""
 
   def update(self):
-    m=""
-    if self.maxRemaining >= 0:
-      m=prettybar(self.percent())
+    p = self.percent()
+    if p>0:
+      m = prettybar(p)
+    else:
+      m = ""
     m += self.getStatus()
-    if self.hasParent():
+    if self.hasParent() and self.maxRemaining>=0:
       m+=" (%.0f%%)"%self.localPercent()
     setstatusline(m)
 
@@ -117,6 +137,17 @@ remaining=lambda n, nx=None: current.remaining(n,nx)
 status=lambda m: current.status(m)
 clear=lambda : setstatusline("")
 update=lambda : current.update()
+
+class OutputWrapper:
+  def __init__(self, fd):
+    self.fd = fd
+  def write(self, s):
+    clear()
+    self.fd.write(s)
+    update()
+  def flush(self):
+    self.fd.flush()
+sys.stdout = OutputWrapper(sys.stdout)
 
 def push():
   global current
@@ -134,8 +165,10 @@ def subtask(n, fn):
   if n>0:
     remaining(n)
   push()
-  fn()
-  pop()
+  try:
+    return fn()
+  finally:
+    pop()
 
 def remainingTicks(n):
   current.ticks=n
@@ -216,6 +249,11 @@ def curseswrapper(fn):
     cleanup()
     raise
   cleanup()
+
+def pause(m):
+  clear()
+  raw_input(m)
+  update()
     
 def test():
   import time
@@ -224,6 +262,14 @@ def test():
     remaining(100-i)
     status("foo foo foo foo "+str(i))
     time.sleep(0.1)
+
+def disable():
+  while type(sys.stdout) is StatusWrapper:
+    sys.stdout = sys.stdout.fd
+  while type(sys.stderr) is StatusWrapper:
+    sys.stderr= sys.stderr.fd
+  global setstatusline
+  setstatusline = lambda s: None
 
 if __name__ == "__main__":
   test()

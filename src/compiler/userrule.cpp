@@ -164,7 +164,6 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
 
 #ifdef HAVE_OPENCL
 bool petabricks::UserRule::passBuildGpuProgram(Transform& trans) {
-	//return false;
   TrainingDeps* tmp = new TrainingDeps();
   CLCodeGenerator clcodegen(tmp);
 
