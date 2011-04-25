@@ -131,7 +131,8 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   // And we'll need to provide the size of the region that we want the kernel to operate on.  (This is where the 'center' of the rule will be.)
   for( int i = 0; i < (int)dims; ++i )
   {
-    os() << ", int dim_d" << i;
+    os() << ", int dim_d" << i << "_begin";
+    os() << ", int dim_d" << i << "_end";
   }
 
   // Finally, we need to provide some of the dimensions of each of the matrices we've passed in, so that we can calculate indices.

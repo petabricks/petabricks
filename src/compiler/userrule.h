@@ -245,6 +245,7 @@ private:
   RIRBlockCopyRef _bodyirDynamic;
 #ifdef HAVE_OPENCL
   RIRBlockCopyRef _bodyirOpenCL;
+  bool passBuildGpuProgram(Transform& trans);
 #endif
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
@@ -253,9 +254,7 @@ private:
   ConfigItems _duplicateVars;
   RulePtr _gpuRule;
 
-  bool passBuildGpuProgram(Transform& trans);
 };
 
 }
-
 #endif

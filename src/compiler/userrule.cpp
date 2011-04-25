@@ -127,11 +127,13 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       _bodyirOpenCL->accept(gpurename);
       std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
       bodyir->accept(print);
-      std::cerr << "--------------------\n";
 
-      if(!passBuildGpuProgram(tx)) {
+      /*if(!passBuildGpuProgram(tx)) {
+				//std::cerr << "FAIL GPU\n" << bodyir << std::endl;
         failgpu = true;
-      }
+      }*/
+
+      std::cerr << "--------------------\n";
     }
     catch( OpenClCleanupPass::NotValidSource e )
     {
@@ -160,8 +162,8 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
 #endif
 }
 
-bool petabricks::UserRule::passBuildGpuProgram(Transform& trans) {
 #ifdef HAVE_OPENCL
+bool petabricks::UserRule::passBuildGpuProgram(Transform& trans) {
   TrainingDeps* tmp = new TrainingDeps();
   CLCodeGenerator clcodegen(tmp);
 
@@ -179,12 +181,8 @@ bool petabricks::UserRule::passBuildGpuProgram(Transform& trans) {
     return false;
   err = clBuildProgram( clprog, 0, NULL, NULL, NULL, NULL);
   return (err == CL_SUCCESS);
-#else
-  (void)trans;
-  UNIMPLEMENTED();
-  return false;
-#endif
 }
+#endif
 
 void petabricks::UserRule::print(std::ostream& os) const {
   SRCPOSSCOPE();
@@ -549,7 +547,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     o.comment( "Create memory objects for outputs." );
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
-      /*o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
+			/*o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
               << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( false );\n";
       o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
               << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
@@ -578,10 +576,6 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
               << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " 
               << "normalized_" << (*i)->name( ) << ".bytes( ),"
               << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
-      /*o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
-              << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " 
-              << (*i)->matrix( )->name( ) << ".bytes( ),"
-              << "(void*) " << (*i)->matrix( )->name( ) << ".base( ), &err );\n";*/
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
 
       // Bind to kernel.
@@ -591,12 +585,19 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     //      o.os( ) << "printf( \"- TRACE 40\\n\" );\n";
 
     // Bind rule dimension arguments to kernel.
+    RegionList::const_iterator it = _to.begin( );
     for( int i = 0; i < iterdef.dimensions( ); ++i )
     {
-      o.os( ) << "int ruledim_" << i << " = _iter_end[" << i << "] - _iter_begin[" << i << "];\n";
-      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
+      o.os( ) << "int ruledim_" << i << " = " << (*it)->matrix( )->name( ) << ".size(" << i << ");\n";
+      o.os( ) << "int ruledim_" << i << "_begin" << " = _iter_begin[" << i << "];\n";
+      o.os( ) << "int ruledim_" << i << "_end" << " = _iter_end[" << i << "];\n";
+      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << "_begin );\n";
+      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << "_end );\n";
     }
 
+    //TODO
+
+    RegionList::const_iterator out = _to.begin( );
     // Bind matrix dimension arguments to kernel.
     for( RegionList::const_iterator it = _to.begin( ); it != _to.end( ); ++it )
     {
@@ -617,16 +618,14 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     /** \todo Need to generalize for >1 GPUs and arbitrary dimensionality. */
     o.comment( "Invoke kernel." );
 
-    //  need to get cnDim ( size in each dimension ) -- can probably get this from iterdef
-    // (along with dimensionality, actually, probably)
-    //o.os( ) << "size_t workdim[] = { _iter_end[0]-_iter_begin[0], _iter_end[1]-_iter_begin[1] };\n";
     o.os( ) << "size_t workdim[] = { ";
     for( int i = 0; i < iterdef.dimensions( ); ++i )
     {
       if(i > 0) {
         o.os() << ", ";
       }
-      o.os( ) << "_iter_end[" << i << "]-_iter_begin[" << i << "]";
+      //o.os( ) << "_iter_end[" << i << "]-_iter_begin[" << i << "]";
+      o.os( ) << (*it)->matrix( )->name( ) << ".size(" << i << ")";
     }
     o.os( ) << "};\n";
 
@@ -652,6 +651,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_" 
               << (*i)->name( ) << ", CL_TRUE, 0, " 
               << (*i)->matrix( )->name( ) <<  ".bytes(), " 
+              //<< (*i)->matrix( )->name( ) << ".base(), 0, NULL, NULL );\n";
               << (*i)->matrix( )->name( ) << ".base() + _iter_begin[0], 0, NULL, NULL );\n";
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to read output buffer.\" );\n";
     }
@@ -755,7 +755,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
     clo.os( ) << "if( ";
   for( int i = 0; i < iterdef.dimensions( ); ++i )
   {
-    clo.os( ) << _getOffsetVarStr( _id, i, NULL ) << " < dim_d" << i << " ";
+    clo.os( ) << _getOffsetVarStr( _id, i, NULL ) << " >= dim_d" << i << "_begin && " << _getOffsetVarStr( _id, i, NULL ) << " < dim_d" << i << "_end ";
     if( i != ( iterdef.dimensions( ) - 1 ) )
     clo.os( ) << "&& ";
   }
