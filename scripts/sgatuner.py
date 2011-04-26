@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import progress 
 import itertools, random, subprocess, os, sys, time, warnings
 import pbutil, mutators
 import logging
@@ -8,6 +9,8 @@ import shutil
 import tunerconfig
 import configtool 
 import re
+import math
+import time
 from configtool import defaultConfigFile
 from candidatetester import Candidate, CandidateTester
 from mutators import MutateFailed
@@ -88,6 +91,7 @@ class Population:
     totalMutators = self.countMutators(mutatorFilter)
     tries = float(totalMutators)*config.mutations_per_mutator
     while tries>0:
+      progress.remaining(tries)
       check_timeout()
       tries-=1
       if maxpopsize and len(self.members) >= maxpopsize:
@@ -126,7 +130,8 @@ class Population:
     return tries
 
   def guidedMutation(self):
-    print "GUIDED MUTATION"
+    if config.print_log:
+      print "GUIDED MUTATION"
     self.randomMutation(None, lambda m: m.accuracyHint)
     
   
@@ -154,7 +159,7 @@ class Population:
     return self.testers[-1 - roundOffset].n
 
   def onMembersChanged(self, endOfRound):
-    if config.candidatelog:
+    if config.candidatelog and len(self.members):
       fastCmp = self.testers[-1].comparer(config.timing_metric_idx, 0.00, 0)
       if len(self.members) > 1:
         m = list(self.members)
@@ -209,8 +214,16 @@ class Population:
     for m in self.members:
       m.keep = False
 
-    best=self.markBestN(self.members, popsize, config.timing_metric_idx)
-    if isLast:
+    if config.accuracy_target is not None:
+      t = filter(lambda x: x.hasAccuracy(self.inputSize(), config.accuracy_target), self.members)
+      if len(t):
+        best=self.markBestN(t, popsize)
+        if isLast:
+          storagedirs.cur.markBest(best[0].cid, self.inputSize(), None)
+          self.best = best[0]
+          best[0].writestats(self.inputSize(), storagedirs.cur.results())
+    elif isLast and len(self.members):
+      best=self.markBestN(self.members, popsize, config.timing_metric_idx)
       storagedirs.cur.markBest(best[0].cid, self.inputSize(), None)
       self.best = best[0]
       best[0].writestats(self.inputSize(), storagedirs.cur.results())
@@ -222,10 +235,13 @@ class Population:
         if isLast:
           storagedirs.cur.markBest(best[0].cid, self.inputSize(), accLevel)
           best[0].writestats(self.inputSize(), storagedirs.cur.results(accLevel))
-          if accLevel == config.accuracy_target:
-            self.best = best[0]
       else:
         warnings.warn(TargetNotMet(self.inputSize(), accTarg))
+
+
+    if len(filter(lambda m: m.keep, self.members)) == 0:
+      self.markBestN(self.members, popsize, config.timing_metric_idx)
+      self.markBestN(self.members, popsize, config.accuracy_metric_idx)
 
     self.removed  += filter(lambda m: not m.keep, self.members)
     self.members  = filter(lambda m: m.keep, self.members)
@@ -246,6 +262,7 @@ class Population:
       print "  * ", m, m.resultsStr(self.inputSize(), self.baseline)
 
   def generation(self):
+    progress.push()
     try:
       self.roundNumber += 1
       self.triedConfigs = set(map(lambda x: x.config, self.members))
@@ -254,7 +271,8 @@ class Population:
       self.test(config.max_trials)
       if len(self.members):
         for z in xrange(config.rounds_per_input_size):
-          self.randomMutation(config.population_high_size)
+          progress.subtask(config.rounds_per_input_size-z,
+                           lambda: self.randomMutation(config.population_high_size))
           if not self.accuracyTargetsMet():
             self.guidedMutation()
           self.prune(config.population_low_size, False)
@@ -287,6 +305,8 @@ class Population:
           print "skip generation n = ",self.inputSize(),"(input generation failure)"
       else:
         warnings.warn(tunerwarnings.AlwaysCrashes())
+    finally:
+      progress.pop()
 
   def nextInputSize(self):
     self.testers[-1].cleanup()
@@ -455,10 +475,15 @@ def init(benchmark, acf=createChoiceSiteMutators, taf=createTunableMutators):
   return candidate, tester
 
 def autotuneInner(benchmark):
+  progress.push()
+  config.benchmark = benchmark
   candidate, tester = init(benchmark)
   try:
     pop = Population(candidate, tester, None)
     candidate.pop = pop
+    
+    if not pop.isVariableAccuracy():
+      config.accuracy_target = None
 
     stats = storagedirs.openCsvStats("roundstats", 
         ("round",
@@ -470,7 +495,9 @@ def autotuneInner(benchmark):
     timers.total.start()
     config.end_time = time.time() + config.max_time
     try:
+      progress.remaining(config.max_input_size*(1+config.final_rounds))
       while pop.inputSize() < config.max_input_size:
+        progress.status("autotuning %s: input %d of %d" % (config.benchmark, pop.inputSize(), config.max_input_size))
         pop.generation()
         stats.writerow((pop.roundNumber,
                         pop.inputSize(),
@@ -479,6 +506,7 @@ def autotuneInner(benchmark):
                         timers.testing.lap(),
                         timers.inputgen.lap())+pop.stats())
         pop.nextInputSize()
+        progress.remaining(config.max_input_size - pop.inputSize() + config.max_input_size*config.final_rounds)
       for z in xrange(config.final_rounds):
         pop.generation()
         stats.writerow((pop.roundNumber,
@@ -487,6 +515,7 @@ def autotuneInner(benchmark):
                         timers.total.lap(),
                         timers.testing.lap(),
                         timers.inputgen.lap())+pop.stats())
+        progress.remaining((config.final_rounds - z)*config.max_input_size)
     except TrainingTimeout:
       pass
     timers.total.stop()
@@ -494,6 +523,8 @@ def autotuneInner(benchmark):
     #check to make sure we did something:
     if pop.firstRound:
       warnings.warn(tunerwarnings.AlwaysCrashes())
+      
+    return pop.best
   finally:
     if pop.best and config.output_cfg:
       print pop.best.cfgfile(),"=>" , config.output_cfg
@@ -503,11 +534,12 @@ def autotuneInner(benchmark):
       storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
     if tester:
       tester.cleanup()
+    progress.pop()
 
 def autotune(benchmark):
-  storagedirs.callWithLogDir(lambda: autotuneInner(benchmark),
-                             config.output_dir,
-                             config.delete_output_dir)
+  return storagedirs.callWithLogDir(lambda: autotuneInner(benchmark),
+                                    config.output_dir,
+                                    config.delete_output_dir)
 
 def regression_check(benchmark):
   tunerconfig.applypatch(tunerconfig.patch_regression)
@@ -544,6 +576,7 @@ if __name__ == "__main__":
   parser.add_option("--threads",               type="int",    action="callback", callback=option_callback)
   parser.add_option("--name",                  type="string", action="callback", callback=option_callback)
   parser.add_option("--abort_on",              type="string", action="callback", callback=option_callback)
+  parser.add_option("--accuracy_target",       type="float",  action="callback", callback=option_callback)
   (options, args) = parser.parse_args()
   if len(args)!=1:
     parser.print_usage()

@@ -52,7 +52,8 @@ class CrashException(Exception):
       print 'set config.pause_on_crash=False to disable this message'
       print '-'*60
       print
-      raw_input('press any key to continue')
+      import progress
+      progress.pause('press any key to continue')
 
 def debug_logcmd(cmd):
   #print ' '.join(cmd)

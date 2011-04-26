@@ -234,6 +234,10 @@ def p_include(p):
   else:
     p[0] = get_define(filename)		# include define
 
+  '''print "after #include"
+  print define_dict_list[-1]
+  print macro_dict_list[-1]'''
+
 def p_include_library(p):
   'include : LIBRARY STRING'
   p[0] = [('library', (queue[-1],p.lineno(2),"#library " + p[2]))]
@@ -267,7 +271,8 @@ def p_define_macro_block(p):
   current_dict[p[2]] = template
 
 def p_define_const(p):
-  'define : DEFINE ID expression'
+  '''define : DEFINE ID expression
+            | DEFINE ID num_list_string''' #TODO: this is just a quick fix
   current_dict = define_dict_list[-1]
   current_dict[p[2]] = p[3]
 
@@ -1043,16 +1048,16 @@ def convert_ast_to_string(ast):
 
 def update_cleanup():
   queue.pop()
-  current_dict = define_dict_list.pop()
+  current_define_dict = define_dict_list.pop()
+  current_macro_dict = macro_dict_list.pop()
   if len(define_dict_list) > 0:
-    parent_dict = define_dict_list[-1]
-    for key in current_dict.keys():
-      parent_dict[key] = current_dict[key]
+    parent_define_dict = define_dict_list[-1]
+    for key in current_define_dict.keys():
+      parent_define_dict[key] = current_define_dict[key]
 
-    current_dict = macro_dict_list.pop()
-    parent_dict = macro_dict_list[-1]
-    for key in current_dict.keys():
-      parent_dict[key] = current_dict[key]
+    parent_macro_dict = macro_dict_list[-1]
+    for key in current_macro_dict.keys():
+      parent_macro_dict[key] = current_macro_dict[key]
 
 """ Parse a content in a given file into ast. """
 def parse_file_to_ast(file_path):
@@ -1064,6 +1069,7 @@ def parse_file_to_ast(file_path):
 
   full_path_string = os.path.abspath(os.path.join(current_dir, file_path))
 
+  #TODO: 1) why do I need define_dict_map 2) should add after parse
   if full_path_string in parsed_set:
     current_dict = define_dict_list[-1]
     include_dict = define_dict_map[full_path_string]
@@ -1093,11 +1099,17 @@ def parse_file_to_ast(file_path):
   input_string = reader.read()
   reader.close()
   ast = yacc.parse(input_string)
+  
+  '''print full_path_string
+  print define_dict_list[-1]
+  print macro_dict_list[-1]'''
+  #define_dict_map[full_path_string] = define_dict_list.pop()
+  #macro_dict_map[full_path_string] = macro_dict_list.pop()
+  #queue.pop()
 
-  define_dict_map[full_path_string] = define_dict_list.pop()
-  macro_dict_map[full_path_string] = macro_dict_list.pop()
-  queue.pop()
-  #update_cleanup()
+  define_dict_map[full_path_string] = define_dict_list[-1]
+  macro_dict_map[full_path_string] = macro_dict_list[-1]
+  update_cleanup()
   return ast
 
 def get_define(file_path):
