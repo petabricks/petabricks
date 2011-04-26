@@ -9,6 +9,8 @@
  *                                                                         *
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
+//#define DEBUG
+
 #include "iterationorders.h"
 
 #include "codegenerator.h"
@@ -173,7 +175,10 @@ void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& 
   std::sort(regions.begin(), regions.end(), SplitRegionCmp(_order));
  
   //generate code
-  if(!isStatic) o.write("GroupedDynamicTask<"+jalib::XToString(1<<dimensions())+">* _split_task = new GroupedDynamicTask<"+jalib::XToString(1<<dimensions())+">();");
+  if(!isStatic){ 
+    o.write("GroupedDynamicTask<"+jalib::XToString(1<<dimensions())+">* _split_task "
+                   "= new GroupedDynamicTask<"+jalib::XToString(1<<dimensions())+">();");
+  }
 
   for(size_t a=0; a<regions.size(); ++a){
     SimpleRegionPtr r= new SimpleRegion(regions[a]);
@@ -181,6 +186,7 @@ void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& 
       rule.generateCallCode("(*_split_task)["+jalib::XToString(a)+"]", trans, o, r, E_RF_DYNAMIC);
       for(size_t b=0; b<a; ++b){
         if(canDependOn(regions[a], regions[b])){
+          JTRACE("adding dep")(regions[a])(regions[b]);
           o.write("(*_split_task)["+jalib::XToString(a)+"]->dependsOn((*_split_task)["+jalib::XToString(b)+"]);");
         }
       }
@@ -214,14 +220,18 @@ bool petabricks::IterationDefinition::canDependOn(const SplitRegion& a, const Sp
   JASSERT(a.size()==_order.size());
   for(size_t d=0; d<_order.size(); ++d){
     int mask = 0;
-    if(a.isFirst(d) && b.isFirst(d))
-      mask = DependencyDirection::D_LE;
-    else if(!a.isFirst(d) && !b.isFirst(d))
-      mask = DependencyDirection::D_GE;
-    else if(a.isFirst(d) && !b.isFirst(d))
+    if(a.isFirst(d) && b.isFirst(d)){
+      //mask = DependencyDirection::D_LE;
+      continue;
+    }else if(!a.isFirst(d) && !b.isFirst(d)){
+      //mask = DependencyDirection::D_GE;
+      continue;
+    }else if(a.isFirst(d) && !b.isFirst(d)){
       mask = DependencyDirection::D_GT;
-    else if(!a.isFirst(d) && b.isFirst(d))
+    }else if(!a.isFirst(d) && b.isFirst(d)){
       mask = DependencyDirection::D_LT;
+    }
+
     if( (_order[d] & mask) == 0)
       return false;
   }

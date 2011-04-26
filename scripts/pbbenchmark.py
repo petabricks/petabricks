@@ -37,7 +37,7 @@ def fmtAcc(acc, target):
   else:
     s = ""
   if target != 0:
-    diffStr = "%.2f%%"%(1.0+diff/abs(target))
+    diffStr = "%.1f%%"%100.0*(1.0+diff/abs(target))
   else:
     diffStr = "%.2f"%diff
   return "acc: "+diffStr+s
