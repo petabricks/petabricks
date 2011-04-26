@@ -164,20 +164,29 @@ to INPUTSCHECKED
 }
 
 /*  TRAINDATA - block of data: n time slices, m variables per time slice
+    TRAININDICES - l time indices into TRAINDATA to use for training
+
+    TESTDATA - block of data: n2 time slices, m2 variables per time slice
+    TESTINDICES - q indices into TESTDATA to evaluate the regression
+
     WRAPFLAGS - indicates whether TRAINDATA column corresponds to a wind
                 direction \in [0, 360]
     KERNELWIDTHS - width of the kernel function to use for a data column
-    TRAININDICES - l time indices into TRAINDATA to use for training
-    TESTPOINTS - q data points (each of p-dim) to do the regression
+
+    For each time index in TRAININDICES or TESTINDICES, we associate
+    a p-dim vector of predictors for use during regression.  The
+    TRAINVARINDEX array contains the column index (into TRAINDATA) of
+    the variable to use for each predictor.  The TRAINTIMEOFFSET array
+    contains the time offset relative to the current time index.  In this way,
+    we can build predictor vectors that contain overlapping data for
+    different time indices.  Similarly, TESTVARINDEX and TESTTIMEOFFSET
+    specify the predictor vector to use when computing the regression output.
+
     OUTPUTVARINDEX - which variable in TRAINDATA for output
     OUTPUTTIMEOFFSET - time offset from trainIndex in TRAINDATA for output
 
-    For each dimension of TESTPOINTS:
-      VARINDEX - which variable in TRAINDATA
-      TIMEOFFSET - time offset from the trainIndex in TRAINDATA
-
-    SQDIFFS - squared differences between each test point and the train data
-              for each training index and for each point dimension
+    SQDIFFS - squared differences for each predictor for each train-test
+              point pair
     WEIGHTS - weights computed with Gaussian kernel function for each
               train-test point pair
     PARTIALS - weighted output partial sums
