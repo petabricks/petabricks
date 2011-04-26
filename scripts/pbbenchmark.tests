@@ -6,8 +6,8 @@ binpacking/binpacking             binpacking.cfg       8192     -1.1
 kclustering/kmeans                kmeans.cfg           128      0.2
 LUDense/PLUrecur                  PLUrecur.cfg         512      1
 matrixapproximation/matrixapprox  matrixapprox.cfg     128      0.8
-multigrid/Helmholtz3DMG           Helmholtz3DMG.cfg    64       8
-multigrid/Poisson2DMG             Poisson2DMG.cfg      128      8
+#multigrid/Helmholtz3DMG           Helmholtz3DMG.cfg    65       8
+#multigrid/Poisson2DMG             Poisson2DMG.cfg      129      8
 multiply/strassen                 strassen.cfg         1024     1
 sort/Sort                         Sort.cfg             524288   1
 
