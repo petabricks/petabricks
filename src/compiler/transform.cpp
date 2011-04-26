@@ -12,6 +12,7 @@
 #include "transform.h"
 
 #include "codegenerator.h"
+#include "clcodegenerator.h"
 #include "maximawrapper.h"
 #include "pbc.h"
 #include "scheduler.h"
@@ -567,6 +568,19 @@ void petabricks::Transform::extractSizeDefines(CodeGenerator& o, FreeVars fv, co
     i->assignTunableDecls(_name+"_", o, inputsizestr);
   }
 }
+
+#ifdef HAVE_OPENCL
+void petabricks::Transform::extractOpenClSizeDefines(CLCodeGenerator& o, unsigned int dims){
+  FreeVars fv;
+  SRCPOSSCOPE(); 
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    (*i)->extractCLDefines(fv, o, dims);
+  }
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    (*i)->extractCLDefines(fv, o, dims);
+  }
+}
+#endif
 
 void petabricks::Transform::extractConstants(CodeGenerator& o){
   SRCPOSSCOPE();
