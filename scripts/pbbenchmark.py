@@ -37,9 +37,9 @@ def fmtAcc(acc, target):
   else:
     s = ""
   if target != 0:
-    diffStr = "%.1f%%"%100.0*(1.0+diff/abs(target))
+    diffStr = "%5.1f%%"%(100.0*(1.0+diff/abs(target)))
   else:
-    diffStr = "%.2f"%diff
+    diffStr = "%5.2f "%diff
   return "acc: "+diffStr+s
 
 expandCfg = lambda x: './testdata/configs/'+x
@@ -66,6 +66,9 @@ class Benchmark:
   
   def scoreTuned(self):
     return perfScore(self.tuned_perf, self.baseline)
+  
+  def scoreTrainingTime(self):
+    return 100.0*self.tuning_baseline/self.tuning_time
 
   def run(self, cfg):
     return pbutil.executeTimingRun(pbutil.benchmarkToBin(self.benchmark),
@@ -97,7 +100,8 @@ class Benchmark:
   def printTuned(self):
     print fmtCfg(self.cfg), \
           fmtPerf(self.tuned_perf, self.baseline), \
-          fmtAcc(self.tuned_acc, self.acc_target)
+          fmtAcc(self.tuned_acc, self.acc_target), \
+          "training: %.1f" % self.scoreTrainingTime()
 
   def printDebug(self):
     print "%s fixed:%.4f tuned:%.4f tuning_time:%6.2f" % (
@@ -180,6 +184,7 @@ def main():
     progress.tick()
   print SHORTBAR
   print "Tuned Score (pbbenchmark v%s): %.2f" % (VERSION, geomean(map(Benchmark.scoreTuned, benchmarks)))
+  print "Training Time Score (pbbenchmark v%s): %.2f" % (VERSION, geomean(map(Benchmark.scoreTrainingTime, benchmarks)))
   print LONGBAR
   print
 
