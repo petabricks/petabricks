@@ -22,7 +22,7 @@
 
 transform Helmholtz3DEstimate
 from IN[n,n,n], A[n,n,n], B0[n+1,n,n], B1[n,n+1,n], B2[n,n,n+1],
-     RHS[n,n,n], ALPHA, BETA, DX, BIN
+     RHS[n,n,n], ALPHA, BETA, DX
 to OUT[n,n,n]
 through Z[n/2,n/2,n/2]
 {
@@ -31,7 +31,7 @@ through Z[n/2,n/2,n/2]
     }
 
     to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2, RHS rhs, ALPHA alpha,
-                       BETA beta, DX dx, BIN bin, Z z)
+                       BETA beta, DX dx, Z z)
     {
         JASSERT(floor(log2(n)) == log2(n))(n).Text("input must be 2^k");
 
@@ -61,7 +61,7 @@ through Z[n/2,n/2,n/2]
         // r1 gets restricted residual
         Restrict3D(r1, t2);
         // r2 gets coarse update
-        Helmholtz3DFMG<(int) bin>(r2, z, aR, b0R, b1R, b2R, r1, alpha, beta, 2 * dx);
+        Helmholtz3DFMG<0>(r2, z, aR, b0R, b1R, b2R, r1, alpha, beta, 2 * dx);
         // t2 gets interpolated update
         Interpolate3D(t2, r2);
         // t2 gets updated guess
@@ -78,6 +78,7 @@ accuracy_variable numIterations
 accuracy_metric Helmholtz3DAccuracyMetric
 generator HELMHOLTZ3D_GENERATOR
 {
+#ifndef NODIRECT
     //base case: directly solve
     to (OUT out) from (A a, B0 b0, B1 b1, B2 b2, RHS rhs,
                        ALPHA alpha, BETA beta, DX dx)
@@ -92,12 +93,13 @@ generator HELMHOLTZ3D_GENERATOR
         }
 
 #ifdef DEBUG
-        printf("Direct case called for n = %d, acc %d\n", n, _acc_bin);
+        printf("Direct case called for n = %d\n", n);
 #endif
 
         Helmholtz3DDirect(out, a, b0, b1, b2, rhs, alpha, beta, dx);
 
     }
+#endif // NODIRECT
 
     //base case: solve iteratively with SOR, no estimation
     to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
@@ -113,14 +115,13 @@ generator HELMHOLTZ3D_GENERATOR
         }
 
 #ifdef DEBUG
-        printf("SOR case called for n = %d, acc %d (%d iterations)\n", n, _acc_bin, numIterations);
+        printf("SOR case called for n = %d, (%d iterations)\n", n, (int) numIterations);
 #endif
 
-        Helmholtz3DSOR(out, in, a, b0, b1, b2, rhs, alpha, beta, dx, -1, numIterations);
+        Helmholtz3DSOR(out, in, a, b0, b1, b2, rhs, alpha, beta, dx, -1, (int) numIterations);
     }
 
     //base case: solve iteratively with SOR, with estimation
-    duplicate(estBin, 0, 4)
     to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
                        RHS rhs, ALPHA alpha, BETA beta, DX dx)
     {
@@ -134,43 +135,40 @@ generator HELMHOLTZ3D_GENERATOR
         }
 
 #ifdef DEBUG
-        printf("(estimate %d, SOR) case called for n = %d, acc %d (%d iterations)\n", estBin, n, _acc_bin, numIterations);
+        printf("estimate SOR case called for n = %d, (%d iterations)\n", n, (int) numIterations);
 #endif
 
-        Helmholtz3DEstimate(out, in, a, b0, b1, b2, rhs, alpha, beta, dx, estBin);
-        Helmholtz3DSOR(out, out, a, b0, b1, b2, rhs, alpha, beta, dx, -1, numIterations);
+        Helmholtz3DEstimate(out, in, a, b0, b1, b2, rhs, alpha, beta, dx);
+        Helmholtz3DSOR(out, out, a, b0, b1, b2, rhs, alpha, beta, dx, -1, (int) numIterations);
     }
 
     // solve recursively on coarser grids, no estimation
-    duplicate(recurseBin, 0, 4)
     to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
                        RHS rhs, ALPHA alpha, BETA beta, DX dx)
     {
 
 #ifdef DEBUG
-        printf("(recursive %d) case called for n = %d, acc %d (%d iterations)\n",
-               recurseBin, n, _acc_bin, numIterations);
+        printf("recursive case called for n = %d, (%d iterations)\n",
+               n, (int) numIterations);
 #endif
 
         Helmholtz3DMGRecurse(out, in, a, b0, b1, b2, rhs, alpha, beta, dx,
-                             recurseBin, numIterations);
+                             (int) numIterations);
     }
 
     // solve recursively on coarser grids, with estimation
-    duplicate(estBin, 0, 4)
-    duplicate(recurseBin, 0, 4)
     to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2,
                        RHS rhs, ALPHA alpha, BETA beta, DX dx)
     {
 
 #ifdef DEBUG
-        printf("(estimate %d, recursive %d) case called for n = %d, acc %d (%d iterations)\n",
-               estBin, recurseBin, n, _acc_bin, numIterations);
+        printf("estimate recursive case called for n = %d, (%d iterations)\n",
+               n, (int) numIterations);
 #endif
 
-        Helmholtz3DEstimate(out, in, a, b0, b1, b2, rhs, alpha, beta, dx, estBin);
+        Helmholtz3DEstimate(out, in, a, b0, b1, b2, rhs, alpha, beta, dx);
         Helmholtz3DMGRecurse(out, out, a, b0, b1, b2, rhs, alpha, beta, dx,
-                             recurseBin, numIterations);
+                             (int) numIterations);
     }
 }
 
