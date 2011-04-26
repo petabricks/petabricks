@@ -1,6 +1,6 @@
-binpacking/binpacking, 0.000334, 1283.405496
-kclustering/kmeans, 0.002931, 834.043032
-LUDense/PLUrecur, 0.160633, 1143.366203
-matrixapproximation/matrixapprox, 0.022547, 508.247546
-multiply/strassen, 0.206849, 1473.261152
-sort/Sort, 0.105224, 1144.739237
+binpacking/binpacking, 0.001792, 1490.862394
+kclustering/kmeans, 0.031732, 989.642039
+LUDense/PLUrecur, 0.170367, 1215.199485
+matrixapproximation/matrixapprox, 0.117179, 1004.912290
+multiply/strassen, 0.205573, 1730.962451
+sort/Sort, 0.101804, 1319.522315
