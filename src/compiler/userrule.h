@@ -252,6 +252,8 @@ private:
   std::string _label;
   ConfigItems _duplicateVars;
   RulePtr _gpuRule;
+
+  bool passBuildGpuProgram(Transform& trans);
 };
 
 }
