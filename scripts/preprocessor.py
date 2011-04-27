@@ -46,6 +46,11 @@ class Arg:
 states = (
    ('oblivious','exclusive'),
    ('comment','exclusive'),
+
+   ('define','exclusive'),
+   ('defmacro','inclusive'),
+   ('defws','exclusive'),
+   ('defobl','exclusive'),
 )
 
 # Reserved Words
@@ -87,9 +92,12 @@ reserved = {
 # Tokens
 tokens = ['ID', 'LBRACE', 'RBRACE', 'CLBRACE', 'CRBRACE', 'LSQBRACE', 'RSQBRACE', 'LPAREN', 'RPAREN', 'LCHEV', 'RCHEV', 'COMMA', 'SEMICOLON', 'LINECOMMENT', 'BLOCKCOMMENT', 'LCOMMENT', 'RCOMMENT', 'REMARK', 'STRING',  'OTHER', 'LINE'] + list(reserved.values())
 
+# All States
+t_INITIAL_oblivious_comment_define_defobl_ignore = ' \t\r'
 
-# Both States
-t_ANY_ignore = ' \t\r'
+def t_INITIAL_oblivious_comment_newline(t): 
+  r'\n+'
+  t.lexer.lineno += t.value.count("\n")
 
 def t_ANY_LINECOMMENT(t):
   r'//.*'
@@ -100,6 +108,18 @@ def t_ANY_LCOMMENT(t):
   t.lexer.push_state('comment')
   pass
 
+def t_ANY_REMARK(t):
+  r'(\#[^ \n]*)'
+  t.type = reserved.get(t.value,'REMARK')    # Check for reserved wordsself.
+  if t.type == 'DEFINE' or t.type == 'UNDEF' :
+    t.lexer.push_state('define')
+  return t
+
+def t_ANY_error(t):
+  print_error("Illegal character '%s'" % t.value[0], t.lexer.lineno)
+  t.lexer.skip(1)
+
+# comment State
 def t_comment_RCOMMENT(t):
   r'\*/'
   t.lexer.pop_state()
@@ -109,19 +129,36 @@ def t_comment_BLOCKCOMMENT(t):
   r'[^\n]'
   pass
 
-def t_ANY_newline(t): 
-  r'\n+'
-  t.lexer.lineno += t.value.count("\n")
+# define State
 
-def t_ANY_REMARK(t):
-  r'(\#[^ \n]*)'
-  t.type = reserved.get(t.value,'REMARK')    # Check for reserved wordsself.
+def t_define_ID(t):
+  r'[a-zA-Z_][a-zA-Z_0-9]*'
+  t.type = reserved.get(t.value,'ID')    # Check for reserved words
+  t.lexer.pop_state()
+  t.lexer.push_state('defws')
   return t
 
-def t_ANY_error(t):
-  print_error("Illegal character '%s'" % t.value[0], t.lexer.lineno)
-  t.lexer.skip(1)
+def t_defws_LINE(t):
+  r'[ \t\r]+'
+  t.lexer.pop_state()
+  t.lexer.push_state('defobl')
 
+def t_defws_LPAREN(t):
+  r'\('
+  t.lexer.push_state('defmacro')
+  return t
+
+def t_defmacro_RPAREN(t):
+  r'\)'
+  t.lexer.pop_state()
+  return t
+
+def t_defws_defobl_newline(t): 
+  r'\n+'
+  t.lexer.lineno += t.value.count("\n")
+  t.lexer.pop_state()
+
+t_defobl_LINE = r'([^/\n] | [/][^/])+'
 
 # oblivious State
 t_oblivious_LINE = r'([^\{\}/\n] | [/][^/])+'
@@ -234,10 +271,6 @@ def p_include(p):
   else:
     p[0] = get_define(filename)		# include define
 
-  '''print "after #include"
-  print define_dict_list[-1]
-  print macro_dict_list[-1]'''
-
 def p_include_library(p):
   'include : LIBRARY STRING'
   p[0] = [('library', (queue[-1],p.lineno(2),"#library " + p[2]))]
@@ -254,7 +287,7 @@ def p_define(p):
   current_dict[p[2]] = ""
 
 def p_define_macro(p):
-  'define : DEFINE ID LPAREN id_list RPAREN expression'
+  'define : DEFINE ID LPAREN id_list RPAREN LINE'
   current_dict = macro_dict_list[-1]
   template = generate_template(p[4], p[6])
   template = (template[0], template[1], 'expression')
@@ -263,24 +296,16 @@ def p_define_macro(p):
   else:
     print_error("illegal to redefine " + p[2], p.lineno(1))
 
-def p_define_macro_block(p):
-  'define : DEFINE ID LPAREN id_list RPAREN LBRACE LINE RBRACE'
-  current_dict = macro_dict_list[-1]
-  template = generate_template(p[4], p[7])
-  template = (template[0], template[1], 'block')
-  current_dict[p[2]] = template
-
 def p_define_const(p):
-  '''define : DEFINE ID expression
-            | DEFINE ID num_list_string''' #TODO: this is just a quick fix
+  'define : DEFINE ID LINE'
   current_dict = define_dict_list[-1]
   current_dict[p[2]] = p[3]
 
 def p_define_un(p):
   '''define : UNDEF ID
 	    | UNDEF ID LPAREN id_list RPAREN
-	    | UNDEF ID LPAREN id_list RPAREN expression
-	    | UNDEF ID expression'''
+	    | UNDEF ID LPAREN id_list RPAREN LINE
+	    | UNDEF ID LINE'''
   current_dict = define_dict_list[-1]
   if p[2] in current_dict:
     del current_dict[p[2]]
@@ -1069,7 +1094,6 @@ def parse_file_to_ast(file_path):
 
   full_path_string = os.path.abspath(os.path.join(current_dir, file_path))
 
-  #TODO: 1) why do I need define_dict_map 2) should add after parse
   if full_path_string in parsed_set:
     current_dict = define_dict_list[-1]
     include_dict = define_dict_map[full_path_string]
@@ -1099,13 +1123,6 @@ def parse_file_to_ast(file_path):
   input_string = reader.read()
   reader.close()
   ast = yacc.parse(input_string)
-  
-  '''print full_path_string
-  print define_dict_list[-1]
-  print macro_dict_list[-1]'''
-  #define_dict_map[full_path_string] = define_dict_list.pop()
-  #macro_dict_map[full_path_string] = macro_dict_list.pop()
-  #queue.pop()
 
   define_dict_map[full_path_string] = define_dict_list[-1]
   macro_dict_map[full_path_string] = macro_dict_list[-1]
@@ -1184,12 +1201,10 @@ def test_lex():
 
   lex.lex()
   lex.input('''
-template<W(1,5)>
-transform Merge
-from IN[n]
-to OUT[n]
-{
-}
+#define A
+#define POISSON2D_BINS 1,3,5,7,9
+#define SUM(out, x, y) { out = x + y; }
+#define Y 10
 ''')
   while 1:
     tok = lex.token()
