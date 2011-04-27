@@ -114,7 +114,7 @@ class Benchmark:
   def autotune(self):
     self.tuning_time -= time.time()
     tunerconfig.applypatch(tunerconfig.patch_pbbenchmark)
-    tunerconfig.applypatch(tunerconfig.patch_n(self.n))
+    tunerconfig.applypatch(tunerconfig.patch_n_offset(self.n))
     tunerconfig.applypatch(tunerconfig.patch_accuracy_target(self.acc_target))
     self.tuned_candidate=sgatuner.autotune(self.benchmark)
     tunerconfig.applypatch(tunerconfig.patch_reset)
