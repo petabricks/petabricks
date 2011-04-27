@@ -30,7 +30,7 @@ CellProxy& RegionMatrixI::cell(IndexT x, ...) {
 }
 
 CellProxy& RegionMatrixI::cell(IndexT* coord) {
-  return *(new CellProxy(this, coord));
+  return *(new CellProxy(_regionHandler, coord));
 }
 
 

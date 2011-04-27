@@ -1,6 +1,7 @@
 #ifndef PETABRICKSREGIONMATRIXI_H
 #define PETABRICKSREGIONMATRIXI_H
 
+#include "common/jassert.h"
 #include "common/jrefcounted.h"
 #include "regiondatai.h"
 #include "regionhandler.h"
@@ -30,8 +31,8 @@ namespace petabricks {
  
     int dimensions() const {return _D;}
 
-    CellProxy& cell(IndexT x, ...);
-    CellProxy& cell(IndexT* coord);
+    virtual CellProxy& cell(IndexT x, ...);
+    virtual CellProxy& cell(IndexT* coord);
  
     INLINE CellProxy& cell(){
       IndexT c1[0];
@@ -41,28 +42,43 @@ namespace petabricks {
 
   class CellProxy {
   private:
-    RegionMatrixIPtr _region;
+    RegionHandlerPtr _handler;
     IndexT* _index;
-    
-  public:
-    CellProxy(RegionMatrixIPtr region, IndexT* coord) {
-      _region = region;
 
-      int D = _region->dimensions();
+  public:
+    CellProxy(RegionHandlerPtr handler, IndexT* coord) {
+      _handler = handler;
+
+      int D = _handler->dimensions();
       _index = new IndexT[D];
       memcpy(_index, coord, sizeof(IndexT) * D);
     }
     
+    CellProxy(const CellProxy& that) {
+      _handler = that._handler;
+
+      int D = _handler->dimensions();
+      _index = new IndexT[D];
+      memcpy(_index, that._index, sizeof(IndexT) * D);
+    }
+
+    ~CellProxy() {
+      delete [] _index;
+    }
+    
     operator double () const {
-      return _region->readCell(_index);
+      double val = _handler->acquireRegionData(this)->readCell(_index);
+      _handler->releaseRegionData(this);
+      return val;
     }
     
     CellProxy operator=(double val) {
-      _region->writeCell(_index, val);
+      _handler->acquireRegionData(this)->writeCell(_index, val);      
+      _handler->releaseRegionData(this);
       return *this;
     }
     
-    CellProxy operator=(const CellProxy& val) { 
+    CellProxy operator=(const CellProxy& val) {
       *this = (double)val;
       return *this;
     }

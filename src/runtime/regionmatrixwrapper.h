@@ -26,7 +26,10 @@ namespace petabricks {
       this->releaseRegionData();
     }
 
-    RegionMatrixWrapper(const RegionMatrix& that) : RegionMatrix(that) {} 
+    RegionMatrixWrapper(const RegionMatrix& that) : RegionMatrix(that) {}
+
+    // For 0D
+    RegionMatrixWrapper(ElementT value) : RegionMatrix(D, value) {}
     
     static RegionMatrixWrapper allocate(IndexT* size) {
       RegionMatrixWrapper region = RegionMatrixWrapper<D, ElementT>(size);
@@ -91,7 +94,7 @@ namespace petabricks {
         #endif
 	newSizes[i]=c2[i]-c1[i];
       }
-      return RegionMatrixWrapper(this->splitRegion(c1, newSizes));
+      return RegionMatrixWrapper((const RegionMatrix&)this->splitRegion(c1, newSizes));
     }
 
     RegionMatrixWrapper region(IndexT x, ...) const{
@@ -106,11 +109,11 @@ namespace petabricks {
     }
 
     RegionMatrixWrapper slice(int d, IndexT pos) const{
-      return RegionMatrixWrapper(this->sliceRegion(d, pos));
+      return RegionMatrixWrapper((const RegionMatrix&)this->sliceRegion(d, pos));
     }
 
     RegionMatrixWrapper transposed() const {
-      return RegionMatrixWrapper(this->transposedRegion());
+      return RegionMatrixWrapper((const RegionMatrix&)this->transposedRegion());
     }
 
     RegionMatrixWrapper col(IndexT x) const{ return slice(0, x); }
@@ -150,9 +153,6 @@ namespace petabricks {
 
   template<typename ElementT>
   class RegionMatrixWrapper0D : public RegionMatrixWrapper<0, ElementT> {
-  private:
-    ElementT _value;
-
   public:
     enum { D = 0 };
 
@@ -163,15 +163,9 @@ namespace petabricks {
 
     ///
     /// Implicit conversion from ElementT/CellProxy
-    RegionMatrixWrapper0D(ElementT value) : RegionMatrixWrapper<0, ElementT>() {
-      init0D(value);
-    }
-    RegionMatrixWrapper0D(CellProxy& value) : RegionMatrixWrapper<0, ElementT>() {
-      init0D(value);
-    }
-    RegionMatrixWrapper0D(const CellProxy& value) : RegionMatrixWrapper<0, ElementT>() {
-      init0D(value);
-    }
+    RegionMatrixWrapper0D(ElementT value) : RegionMatrixWrapper<0, ElementT>(value) {}
+    RegionMatrixWrapper0D(CellProxy& value) : RegionMatrixWrapper<0, ElementT>(value) {}
+    RegionMatrixWrapper0D(const CellProxy& value) : RegionMatrixWrapper<0, ElementT>(value) {}
     
     ///
     /// Allow implicit conversion to CellProxy
@@ -181,19 +175,6 @@ namespace petabricks {
     bool isSize() const{
       // TODO: what's this method suppossed to do??
       return true;
-    }
-
-    ElementT readCell(const IndexT* coord) {
-      return _value;
-    }
-
-    void writeCell(const IndexT* coord, ElementT value) {
-      _value = value;
-    }
-
-  private:
-    void init0D(ElementT value) {
-      _value = value;
     }
   };
 

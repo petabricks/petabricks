@@ -63,6 +63,7 @@ pkglib_HEADERS=  \
   runtime/memoization.h \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
+  runtime/regiondata0D.h \
   runtime/regiondatai.h \
   runtime/regiondataproxy.h \
   runtime/regiondataraw.h \

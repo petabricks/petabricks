@@ -1,6 +1,8 @@
 #include "regionmatrix.h"
 
+#include <stdarg.h>
 #include <string.h>
+#include "regiondata0D.h"
 #include "regiondataraw.h"
 #include "regiondatasplit.h"
 #include "regionmatrixproxy.h"
@@ -13,6 +15,22 @@ pthread_mutex_t RegionMatrix::movingBuffer_mux = PTHREAD_MUTEX_INITIALIZER;
 RegionMatrix::RegionMatrix(int dimensions) {
   // TODO: fix this --> MatrixRegion()
   _D = dimensions;
+
+  _size = 0;
+  _splitOffset = 0;
+  _numSliceDimensions = 0;
+  _sliceDimensions = 0;
+  _slicePositions = 0;
+  _isTransposed = false;
+}
+
+RegionMatrix::RegionMatrix(int dimensions, ElementT value) {
+  JASSERT(dimensions == 0)("This constructor is for 0D only");
+
+  _D = dimensions;
+
+  RegionDataIPtr regionData = new RegionData0D(value);
+  _regionHandler = new RegionHandler(regionData);
 
   _size = 0;
   _splitOffset = 0;
@@ -344,6 +362,16 @@ IndexT* RegionMatrix::getRegionDataCoord(const IndexT* coord_orig) const {
   }
 
   return coord_new;
+}
+
+CellProxy& RegionMatrix::cell(IndexT x, ...) {
+  IndexT c1[_D];
+  va_list ap;
+  va_start(ap, x);
+  c1[0]=x;
+  for(int i=1; i<_D; ++i) c1[i]=va_arg(ap, IndexT);
+  va_end(ap);
+  return cell(c1);
 }
 
 ///////////////////////////
