@@ -168,6 +168,10 @@ class patch_check:
   max_trials       = 2
   min_trials       = 2
 
+class patch_accuracy_target:
+  def __init__(self, v):
+    self.accuracy_target = v
+
 class patch_noninteractive:
   '''settings for disabling outputs'''
   cleanup_inputs           = True
