@@ -157,8 +157,8 @@ class Benchmark:
 
   def logEntry(self):
     return {
-        'name'                : benchmark,
-        'hash'                : hash( (cfg, self.acc_target, self.n, self.baseline, self.tuning_baseline) ),
+        'name'                : self.benchmark,
+        'hash'                : hash( (self.cfg, self.acc_target, self.n, self.baseline, self.tuning_baseline) ),
         'n'                   : self.n,
         'acc_target'          : self.acc_target,
         'baseline'            : self.baseline,
