@@ -191,12 +191,11 @@ fi
 
 
 AC_ARG_ENABLE([timing],
-            [AS_HELP_STRING([--enable-timing],
-                            [record checkpoint/restart timing information
-                            to jtimings.csv, in working directory of
-                            dmtcp_coordinator, and to stderr.])],
-            [use_jtiming=$enableval],
-            [use_jtiming=no])
+              [AS_HELP_STRING([--enable-timing],
+                              [record timing information to jtimings.csv,
+                               and to stderr.])],
+              [use_jtiming=$enableval],
+              [use_jtiming=no])
 
 if test "$use_jtiming" = "yes"; then
   AC_DEFINE([TIMING],[],[record timing information to stderr and jtimings.csv])
