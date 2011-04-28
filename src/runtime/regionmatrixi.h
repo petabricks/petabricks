@@ -31,17 +31,17 @@ namespace petabricks {
  
     int dimensions() const {return _D;}
 
-    virtual CellProxy& cell(IndexT x, ...);
-    virtual CellProxy& cell(IndexT* coord);
+    virtual CellProxy& cell(IndexT x, ...) const;
+    virtual CellProxy& cell(IndexT* coord) const;
  
-    INLINE CellProxy& cell(){
+    INLINE CellProxy& cell() const {
       IndexT c1[0];
       return this->cell(c1);
     }
   };
 
   class CellProxy {
-  private:
+  public:
     RegionHandlerPtr _handler;
     IndexT* _index;
 
@@ -87,9 +87,18 @@ namespace petabricks {
       *this = (double)*this + (double)val;
       return *this;
     }
+
+    CellProxy operator+=(const double val) { 
+      *this = (double)*this + val;
+      return *this;
+    }
     
     friend double operator+(const CellProxy& a,  const CellProxy& b) {
       return (double)a + (double)b;
+    }
+
+    friend double operator*(const CellProxy& a,  const CellProxy& b) {
+      return (double)a * (double)b;
     }
   };
 }

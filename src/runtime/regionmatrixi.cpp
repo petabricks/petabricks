@@ -19,7 +19,7 @@ RegionHandlerPtr RegionMatrixI::getRegionHandler() const {
   return _regionHandler;
 }
 
-CellProxy& RegionMatrixI::cell(IndexT x, ...) {
+CellProxy& RegionMatrixI::cell(IndexT x, ...) const {
   IndexT c1[_D];
   va_list ap;
   va_start(ap, x);
@@ -29,7 +29,7 @@ CellProxy& RegionMatrixI::cell(IndexT x, ...) {
   return cell(c1);
 }
 
-CellProxy& RegionMatrixI::cell(IndexT* coord) {
+CellProxy& RegionMatrixI::cell(IndexT* coord) const {
   return *(new CellProxy(_regionHandler, coord));
 }
 

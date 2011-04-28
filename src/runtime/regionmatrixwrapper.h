@@ -29,7 +29,9 @@ namespace petabricks {
     RegionMatrixWrapper(const RegionMatrix& that) : RegionMatrix(that) {}
 
     // For 0D
-    RegionMatrixWrapper(ElementT value) : RegionMatrix(D, value) {}
+    RegionMatrixWrapper(ElementT value) : RegionMatrix(D, value) {
+      JASSERT(D==0)("This constrictor is for 0D.");
+    }
     
     static RegionMatrixWrapper allocate(IndexT* size) {
       RegionMatrixWrapper region = RegionMatrixWrapper<D, ElementT>(size);
@@ -124,6 +126,10 @@ namespace petabricks {
     IndexT height() const { return size(1); }
     IndexT depth() const { return size(2); }
 
+    RegionMatrixWrapper forceMutable() {
+      return RegionMatrixWrapper((const RegionMatrix&) *this);
+    }
+
     ElementT rand(){
       return PetabricksRuntime::randDouble(-2147483648, 2147483648);
     }
@@ -153,28 +159,66 @@ namespace petabricks {
 
   template<typename ElementT>
   class RegionMatrixWrapper0D : public RegionMatrixWrapper<0, ElementT> {
+  private:
+    int _sourceDimension;
+    IndexT* _sourceIndex;
+
   public:
     enum { D = 0 };
+    typedef RegionMatrixWrapper<0, ElementT> Base;
 
-    RegionMatrixWrapper0D() : RegionMatrixWrapper<0, ElementT>() {}
-    RegionMatrixWrapper0D(IndexT* size) : RegionMatrixWrapper<0, ElementT>(size) {}
-    RegionMatrixWrapper0D(ElementT* data, IndexT* size) : RegionMatrixWrapper<0, ElementT>(data, size) {}
-    RegionMatrixWrapper0D(const RegionMatrix& that) : RegionMatrixWrapper<0, ElementT>(that) {} 
+    RegionMatrixWrapper0D() : Base((ElementT)0) {
+      _sourceDimension = 0;
+    }
+
+    RegionMatrixWrapper0D(Base val) : Base(val.readCell(NULL)) {
+      _sourceDimension = 0;
+    }
+
+    RegionMatrixWrapper0D(const RegionMatrixWrapper0D& that) : Base() {
+      Base::_regionHandler = that.getRegionHandler();
+
+      _sourceDimension = that._sourceDimension;
+      _sourceIndex = new IndexT[_sourceDimension];
+      memcpy(_sourceIndex, that._sourceIndex, sizeof(IndexT) * _sourceDimension);
+    }
 
     ///
     /// Implicit conversion from ElementT/CellProxy
-    RegionMatrixWrapper0D(ElementT value) : RegionMatrixWrapper<0, ElementT>(value) {}
-    RegionMatrixWrapper0D(CellProxy& value) : RegionMatrixWrapper<0, ElementT>(value) {}
-    RegionMatrixWrapper0D(const CellProxy& value) : RegionMatrixWrapper<0, ElementT>(value) {}
+    RegionMatrixWrapper0D(ElementT value) : Base(value) {
+      _sourceDimension = 0;
+    }
+    RegionMatrixWrapper0D(CellProxy& value) : Base() {
+      Base::_regionHandler = value._handler;
+
+      _sourceDimension = value._handler->dimensions();
+      _sourceIndex = new IndexT[_sourceDimension];
+      memcpy(_sourceIndex, value._index, sizeof(IndexT) * _sourceDimension);
+    }
+    RegionMatrixWrapper0D(const CellProxy& value) : Base() {
+      Base::_regionHandler = value._handler;
+
+      _sourceDimension = value._handler->dimensions();
+      _sourceIndex = new IndexT[_sourceDimension];
+      memcpy(_sourceIndex, value._index, sizeof(IndexT) * _sourceDimension);
+    }
     
     ///
     /// Allow implicit conversion to CellProxy
     operator CellProxy& () const { return this->cell(); }
-
+    
+    RegionMatrixWrapper0D operator=(Base val) {
+      this->writeCell(NULL, val.readCell(NULL));
+      return *this;
+    }
 
     bool isSize() const{
       // TODO: what's this method suppossed to do??
       return true;
+    }
+
+    INLINE CellProxy& cell() const {
+      return Base::cell(_sourceIndex);
     }
   };
 

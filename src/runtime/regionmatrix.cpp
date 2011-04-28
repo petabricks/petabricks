@@ -350,12 +350,16 @@ IndexT* RegionMatrix::getRegionDataCoord(const IndexT* coord_orig) const {
     } else {
       // TODO: special case for split
       // split
-      //printf("3size ====> %d %d %x %x\n", _size[0], _size[1], _size, coord_new);
+
+      int offset = 0;
+      if (_splitOffset) {
+	offset = _splitOffset[split_index];
+      }
 
       if (_isTransposed) {
-	coord_new[_D-d] = coord_orig[split_index] + _splitOffset[split_index];
+	coord_new[_D-d] = coord_orig[split_index] + offset;
       } else {
-	coord_new[d] = coord_orig[split_index] + _splitOffset[split_index];
+	coord_new[d] = coord_orig[split_index] + offset;
       }
       split_index++;
     }
@@ -364,7 +368,7 @@ IndexT* RegionMatrix::getRegionDataCoord(const IndexT* coord_orig) const {
   return coord_new;
 }
 
-CellProxy& RegionMatrix::cell(IndexT x, ...) {
+CellProxy& RegionMatrix::cell(IndexT x, ...) const {
   IndexT c1[_D];
   va_list ap;
   va_start(ap, x);

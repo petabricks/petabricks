@@ -1,6 +1,7 @@
 #ifndef PETABRICKSREGIONDATA0D_H
 #define PETABRICKSREGIONDATA0D_H
 
+#include "common/jassert.h"
 #include "regiondatai.h"
 
 namespace petabricks {

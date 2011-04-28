@@ -65,12 +65,12 @@ namespace petabricks {
     static void addMovingBuffer(RegionDataIPtr remoteData, uint16_t index);
     void removeMovingBuffer(uint16_t index);
    
-    CellProxy& cell(IndexT x, ...);
-    CellProxy& cell(IndexT* coord) {
+    CellProxy& cell(IndexT x, ...) const;
+    CellProxy& cell(IndexT* coord) const {
       JASSERT("cell")(_regionHandler.asPtr());
       return *(new CellProxy(_regionHandler, getRegionDataCoord(coord)));
     }
-    INLINE CellProxy& cell(){
+    INLINE CellProxy& cell() const {
       IndexT c1[0];
       return this->cell(c1);
     }
