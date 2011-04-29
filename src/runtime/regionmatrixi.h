@@ -3,6 +3,7 @@
 
 #include "common/jassert.h"
 #include "common/jrefcounted.h"
+#include "regiondata0D.h"
 #include "regiondatai.h"
 #include "regionhandler.h"
 
@@ -61,7 +62,12 @@ namespace petabricks {
       _index = new IndexT[D];
       memcpy(_index, that._index, sizeof(IndexT) * D);
     }
-
+    
+    CellProxy(ElementT val) {
+      _handler = new RegionHandler(new RegionData0D(val));
+      _index = new IndexT[0];
+    }
+    
     ~CellProxy() {
       delete [] _index;
     }
@@ -92,13 +98,42 @@ namespace petabricks {
       *this = (double)*this + val;
       return *this;
     }
+
+    CellProxy operator-() const {
+      return (-1) * (double)*this;
+    }
     
-    friend double operator+(const CellProxy& a,  const CellProxy& b) {
+    friend double operator+(const CellProxy& a, const CellProxy& b) {
+      return (double)a + (double)b;
+    }
+    friend double operator+(const CellProxy& a,  const double b) {
+      return (double)a + b;
+    }
+    friend double operator+(const double a,  const CellProxy& b) {
+      return a + (double)b;
+    }
+    friend double operator+(const CellProxy& a,  const long int b) {
+      return (double)a + (double)b;
+    }
+    friend double operator+(const long int a,  const CellProxy& b) {
+      return (double)a + (double)b;
+    }
+    friend double operator+(const CellProxy& a,  const int b) {
+      return (double)a + (double)b;
+    }
+    friend double operator+(const int a,  const CellProxy& b) {
       return (double)a + (double)b;
     }
 
+
     friend double operator*(const CellProxy& a,  const CellProxy& b) {
       return (double)a * (double)b;
+    }
+    friend double operator*(const CellProxy& a,  const double b) {
+      return (double)a * b;
+    }
+    friend double operator*(const double a,  const CellProxy& b) {
+      return a * (double)b;
     }
   };
 }

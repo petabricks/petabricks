@@ -13,10 +13,12 @@ namespace petabricks {
   public:
     RegionData0D() {
       _D = 0;
+      _size = new IndexT[0];
     }
 
     RegionData0D(ElementT value) {
       _D = 0;
+      _size = new IndexT[0];
       _value = value;
     }
 

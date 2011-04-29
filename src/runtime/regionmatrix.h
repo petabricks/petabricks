@@ -59,6 +59,8 @@ namespace petabricks {
 
     IndexT* size() const;
     IndexT size(int i) const;
+    bool contains(const IndexT* coord) const;
+    bool contains(IndexT x, ...) const;
 
     void moveToRemoteHost(RemoteHostPtr host, uint16_t movingBufferIndex);
     void updateHandler(uint16_t movingBufferIndex);

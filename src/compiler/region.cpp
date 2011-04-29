@@ -360,7 +360,7 @@ std::string petabricks::Region::generateAccessorCode(bool allowOptional) const{
       std::string s = _fromMatrix->name() + ".cell("+_minCoord.toString()+")";
       if(allowOptional && isOptional())
         return "(" + _fromMatrix->name() + ".contains("+_minCoord.toString()+")"
-                   + " ? " + s + " : " + optionalDefault()->toString() + ")";
+                   + " ? " + s + " : (CellProxy)" + optionalDefault()->toString() + ")";
       else
         return s;
     }

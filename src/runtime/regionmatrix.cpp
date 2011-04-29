@@ -220,6 +220,25 @@ IndexT RegionMatrix::size(int i) const {
   return _size[i];
 }
 
+///
+/// true if coord is in bounds
+bool RegionMatrix::contains(const IndexT* coord) const { 
+  for(int i=0; i<_D; ++i)
+    if(coord[i]<0 || coord[i]>=size(i))
+      return false;
+  return true;
+}
+
+bool RegionMatrix::contains(IndexT x, ...) const { 
+  IndexT c1[_D];
+  va_list ap;
+  va_start(ap, x);
+  c1[0]=x;
+  for(int i=1; i<_D; ++i) c1[i]=va_arg(ap, IndexT);
+  va_end(ap);
+  return contains(c1);
+}
+
 RegionMatrixPtr RegionMatrix::splitRegion(const IndexT* offset, const IndexT* size) const {
   IndexT* offset_new = this->getRegionDataCoord(offset);
 
