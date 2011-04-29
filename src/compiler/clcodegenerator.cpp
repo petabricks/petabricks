@@ -70,47 +70,6 @@ CLCodeGenerator::localMemoryBarrier( )
   os() << "barrier( CLK_LOCAL_MEM_FENCE );\n";
 }
 
-/*void
-CLCodeGenerator::beginKernel( const std::vector<std::string>& outputs, const std::vector<std::string>& inputs, unsigned int dims )
-{
-  
-    // \todo temporarily revised
-  //JASSERT( dims >= 1 );
-  //JASSERT( outputs.size( ) > 0 );
-  //JASSERT( inputs.size( ) > 0 );
-  
-
-  os() << "__kernel void kernel_main( ";
-
-  // The kernel will need a pointer to an appropriate chunk of each input and output matrix
-  for( std::vector<std::string>::const_iterator it = outputs.begin( ); it != outputs.end( ); ++it )
-  {
-    if( it != outputs.begin( ) )
-	  os() << ", ";
-    os() << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << *it;
-  }
-  for( std::vector<std::string>::const_iterator it = inputs.begin( ); it != inputs.end( ); ++it )
-    os() << ", __global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << *it;
-
-  // And we'll need to provide the size of the region that we want the kernel to operate on.  (This is where the 'center' of the rule will be.)
-  for( int i = 0; i < (int)dims; ++i )
-    os() << ", int dim_d" << i;
-
-  // Finally, we need to provide some of the dimensions of each of the matrices we've passed in, so that we can calculate indices.
-  for( std::vector<std::string>::const_iterator it = outputs.begin( ); it != outputs.end( ); ++it )
-  {
-    for( int i = 0; i < (int)dims-1; ++i )
-	    os() << ", int dim_" << *it << "_d" << i;
-  }
-  for( std::vector<std::string>::const_iterator it = inputs.begin( ); it != inputs.end( ); ++it )
-  {
-    for( int i = 0; i < (int)dims-1; ++i )
-	    os() << ", int dim_" << *it << "_d" << i;
-  }
-
-  os() << " ) {\n";
-}*/
-
 void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned int dims)
 {
 
@@ -131,10 +90,12 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   // And we'll need to provide the size of the region that we want the kernel to operate on.  (This is where the 'center' of the rule will be.)
   for( int i = 0; i < (int)dims; ++i )
   {
-    os() << ", int dim_d" << i << "_begin";
-    os() << ", int dim_d" << i << "_end";
+    os() << ", int dim_d" << i;
+    //os() << ", int dim_d" << i << "_begin";
+    //os() << ", int dim_d" << i << "_end";
   }
 
+  //TODO: using _to and_from is the correct approach
   // Finally, we need to provide some of the dimensions of each of the matrices we've passed in, so that we can calculate indices.
   for(RegionList::const_iterator it = _to.begin(); it != _to.end(); ++it)
   {
