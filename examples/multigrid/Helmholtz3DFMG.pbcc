@@ -88,9 +88,9 @@ generator HELMHOLTZ3D_GENERATOR
 
         // for level greater than 5, just abort since
         // this will likely be slow and not the best choice
-        if (level > 5) {
-            PetabricksRuntime::abort();
-        }
+       //if (level > 5) {
+       //    PetabricksRuntime::abort();
+       //}
 
 #ifdef DEBUG
         printf("Direct case called for n = %d\n", n);
@@ -110,9 +110,9 @@ generator HELMHOLTZ3D_GENERATOR
 
         // for level greater than 5, just abort since
         // this will likely be slow and not the best choice
-        if (level > 5) {
-            PetabricksRuntime::abort();
-        }
+       //if (level > 5) {
+       //    PetabricksRuntime::abort();
+       //}
 
 #ifdef DEBUG
         printf("SOR case called for n = %d, (%d iterations)\n", n, (int) numIterations);
@@ -130,9 +130,9 @@ generator HELMHOLTZ3D_GENERATOR
 
         // for level greater than 5, just abort since
         // this will likely be slow and not the best choice
-        if (level > 5) {
-            PetabricksRuntime::abort();
-        }
+       //if (level > 5) {
+       //    PetabricksRuntime::abort();
+       //}
 
 #ifdef DEBUG
         printf("estimate SOR case called for n = %d, (%d iterations)\n", n, (int) numIterations);

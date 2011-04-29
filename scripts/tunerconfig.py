@@ -218,5 +218,13 @@ class patch_n:
     from math import log
     self.max_input_size = config.offset+2**int(round(log(n, 2)))
     self.max_time = 2**30
-    self.n=n
+    self.n = n
+
+class patch_n_offset:
+  def __init__(self, n):
+    from math import log
+    self.offset = n - 2**int(round(log(n, 2)))
+    self.max_input_size = n
+    self.max_time = 2**30
+    self.n = n
 
