@@ -142,9 +142,11 @@ class OutputWrapper:
   def __init__(self, fd):
     self.fd = fd
   def write(self, s):
-    clear()
-    self.fd.write(s)
-    update()
+    if len(s):
+      clear()
+      self.fd.write(s)
+      if s[-1] == '\n':
+        update()
   def flush(self):
     self.fd.flush()
 sys.stdout = OutputWrapper(sys.stdout)

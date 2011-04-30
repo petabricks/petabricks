@@ -155,7 +155,11 @@ class StorageDirsTemplate:
 cur = None
 
 def callWithLogDir(fn, root, delete):
-  d = tempfile.mkdtemp(prefix='pbtunerun_'+config.name+'_', dir=os.path.expanduser(root))
+  root_expanded = os.path.expanduser(root)
+  if not os.path.isdir(root_expanded) and tunerconfig.config_defaults.output_dir == root:
+    os.mkdir(root_expanded)
+  
+  d = tempfile.mkdtemp(prefix='pbtunerun_'+config.name+'_', dir=root_expanded)
   if not delete:
     print d
   global cur

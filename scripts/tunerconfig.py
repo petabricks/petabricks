@@ -170,6 +170,10 @@ class patch_check:
   max_trials       = 2
   min_trials       = 2
 
+class patch_accuracy_target:
+  def __init__(self, v):
+    self.accuracy_target = v
+
 class patch_noninteractive:
   '''settings for disabling outputs'''
   cleanup_inputs           = True
@@ -216,5 +220,13 @@ class patch_n:
     from math import log
     self.max_input_size = config.offset+2**int(round(log(n, 2)))
     self.max_time = 2**30
-    self.n=n
+    self.n = n
+
+class patch_n_offset:
+  def __init__(self, n):
+    from math import log
+    self.offset = n - 2**int(round(log(n, 2)))
+    self.max_input_size = n
+    self.max_time = 2**30
+    self.n = n
 

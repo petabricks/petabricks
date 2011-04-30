@@ -482,7 +482,8 @@ def autotuneInner(benchmark):
     pop = Population(candidate, tester, None)
     candidate.pop = pop
     
-    if not pop.isVariableAccuracy():
+    if not pop.isVariableAccuracy() and config.accuracy_target:
+      logging.info("clearing accuracy_target")
       config.accuracy_target = None
 
     stats = storagedirs.openCsvStats("roundstats", 
@@ -524,6 +525,7 @@ def autotuneInner(benchmark):
     if pop.firstRound:
       warnings.warn(tunerwarnings.AlwaysCrashes())
       
+    logging.info("TODO: using acc target: "+str(config.accuracy_target))
     return pop.best
   finally:
     if pop.best and config.output_cfg:
