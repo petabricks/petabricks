@@ -4,12 +4,13 @@ class OperatorSelectionMethod:
   WEIGHTED_SUM   = 2
   ROC_AREA       = 3
   ROULETTE       = 4
+  ABS_ROC        = 5
 
 class config_defaults:
   #how long to train for
   max_input_size           = 2**30
   min_input_size           = 1
-  max_time                 = 60*15
+  max_time                 = 60*150
   rounds_per_input_size    = 1
   final_rounds             = 1
 
@@ -80,6 +81,7 @@ class config_defaults:
   threads = None
   abort_on = ""
   race_split_ratio = 0.5
+  max_gen = None
   
   threshold_multiplier_min = 100.0
   threshold_multiplier_max = 1000.0

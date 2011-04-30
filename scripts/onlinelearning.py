@@ -50,13 +50,15 @@ def getconf(c):
 
 lastMutatorId = 0
 class MutatorLogEntry:
-  def __init__(self, mutator, candidate, dtime, daccuracy):
+  def __init__(self, mutator, candidate, dtime, daccuracy, time, acc):
     global lastMutatorId
 
     self.mutator = mutator
     self.candidate = candidate
     self.dtime = dtime
     self.daccuracy = daccuracy
+    self.time = time
+    self.accuracy = acc
     self.id = lastMutatorId + 1
     lastMutatorId = self.id
  
@@ -72,13 +74,26 @@ class MutatorLog:
     self.log = []
     self.name = name
 
-  def add(self, c, dtime, dacc):
+  def add(self, c, dtime, dacc, time, acc):
     # slide the candidate window
     if len(self.log) >= config.window_size:
       self.log.sort(key=lambda x: x.id)
       self.log.pop(0);
 
-    self.log = [MutatorLogEntry(c.lastMutator, c, dtime, dacc)] + self.log
+    self.log = [MutatorLogEntry(c.lastMutator, c, dtime, dacc, time, acc)] + self.log
+
+
+  '''biggest speedups first'''
+  def getSortedByTime(self):
+    sortedLog = MutatorLog(self.name)
+    sortedLog.log = sorted(self.log, key=lambda entry: entry.time)
+    return sortedLog
+
+  '''biggest jumps in accuracy first'''
+  def getSortedByAcc(self):
+    sortedLog = MutatorLog(self.name)
+    sortedLog.log = sorted(self.log, key=lambda entry: -entry.accuracy if entry.accuracy != None else 100000)
+    return sortedLog
 
 
   '''biggest speedups first'''
@@ -90,7 +105,7 @@ class MutatorLog:
   '''biggest jumps in accuracy first'''
   def getSortedByDeltaAcc(self):
     sortedLog = MutatorLog(self.name)
-    sortedLog.log = sorted(self.log, key=lambda entry: -entry.daccuracy)
+    sortedLog.log = sorted(self.log, key=lambda entry: -entry.daccuracy if entry.daccuracy != None else 100000)
     return sortedLog
 
   def __repr__(self):
@@ -331,11 +346,14 @@ def onlinelearnInner(benchmark):
     if c and not c.wasTimeout:
       pop.add(c)
 
-    mlog = MutatorLogFile(c.mutators)
+    if not config.online_baseline:
+      mlog = MutatorLogFile(c.mutators)
 
     '''now normal rounds'''  
     for gen in itertools.count(1):
       if config.max_time and objectives.elapsed>config.max_time:
+        break
+      if config.max_gen and gen>config.max_gen:
         break
       if gen%config.reweight_interval==0:
         pop.reweight()
@@ -350,10 +368,16 @@ def onlinelearnInner(benchmark):
       if config.online_baseline:
         c = None
       else:
+        if(objectives.needAccuracy()):
+          mfilter = lambda x: x.accuracyHint
+        else:
+          mfilter = lambda x: True
+        
         c = s.cloneAndMutate(tester.n,
                              adaptive = True,
                              mutatorLog = mutatorLog,
-                             objectives = objectives)
+                             objectives = objectives,
+                             mutatorFilter = mfilter)
       tlim, atarg = objectives.getlimits(p, s, c)
       if tester.race(p, c, tlim, atarg) and not (p.wasTimeout and c.wasTimeout):
         p.discardResults(config.max_trials)
@@ -372,11 +396,12 @@ def onlinelearnInner(benchmark):
         dacc = None if c.wasTimeout else (getacc(c) - getacc(p))
 
         if c is not None:          
-          mutatorLog.add(c, dtime, dacc);
+          mutatorLog.add(c, dtime, dacc, gettime(c), None if c.wasTimeout else getacc(c));
 
-        
-        mlog.logPerformance(gen, gettime(c), "None" if c.wasTimeout else getacc(c), dtime, dacc, str(c.lastMutator));
-        mlog.logScores(gen, c.mutatorScores)
+
+        if not config.online_baseline:
+          mlog.logPerformance(gen, gettime(c), "None" if c.wasTimeout else getacc(c), dtime, dacc, str(c.lastMutator));
+          mlog.logScores(gen, c.mutatorScores)
 
         t,a = resultingTimeAcc(p, c)
         print "Generation", gen, "elapsed",objectives.elapsed,"time", t,"accuracy",a, getconf(p)
@@ -410,6 +435,7 @@ if __name__ == "__main__":
                     help="enable debugging options")
   parser.add_option("-n", type="int", help="input size to train for")
   parser.add_option("--max_time",        type="float",  action="callback", callback=option_callback)
+  parser.add_option("--max_gen",         type="int",  action="callback", callback=option_callback)
   parser.add_option("--output_dir",      type="string", action="callback", callback=option_callback)
   parser.add_option("--seed",            type="string", action="callback", callback=option_callback)
   parser.add_option("--offset",          type="int",    action="callback", callback=option_callback)

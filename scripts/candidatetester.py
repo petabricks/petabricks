@@ -309,11 +309,13 @@ class Candidate:
         method = c.weightedSumMutate
       elif config.os_method == OperatorSelectionMethod.ROULETTE:
         method = c.rouletteWheelMutate
+      elif config.os_method == OperatorSelectionMethod.ABS_ROC:
+        method = c.absUpperConfidenceBoundMutate
  
     for z in xrange(config.mutate_retries):
       try:
         if adaptive:
-          method(n, mutatorLog, objectives)
+          method(n, mutatorLog, objectives, mutatorFilter)
         else:
           c.mutate(n, mutatorFilter)
         assert c.lastMutator != None
@@ -332,8 +334,11 @@ class Candidate:
   '''Uses the bandit algorithm to select a mutator, and applies the mutator to self.
     Credit assignment technique can be controlled by the scoring function, of the type
     mutator -> score'''
-  def banditMutate(self, n, mutatorLog, objectives, scoringFunction):
+  def banditMutate(self, n, mutatorLog, objectives, scoringFunction, mutatorFilter):
     totalMutations = 0
+    filteredMutators = filter(mutatorFilter, self.mutators)
+
+    
     for m in self.mutators:
       totalMutations += m.timesSelected
     
@@ -355,14 +360,19 @@ class Candidate:
 
     bestScore = None # scores *can* be negative, e.g. if the scoring function negates the time
     bestMutator = None
+
+    # compute average exploitation score
+    minExploitationScore = min(0.0, min(map(scoringFunction, self.mutators)))
+    avgExploitationScore = numpy.mean(map(lambda m: -minExploitationScore + scoringFunction(m), self.mutators))
+        
     for m in self.mutators:
-      # Comnpute the bandit score
-      exploitTerm = scoringFunction(m)
+      # Compute the bandit score
+      exploitTerm = (-minExploitationScore + scoringFunction(m)) / avgExploitationScore
       exploreTerm = config.bandit_c*math.sqrt(2.0*math.log(totalMutations) / m.timesSelected)
       score = exploitTerm + exploreTerm
       self.mutatorScores[m] = (exploitTerm, exploreTerm, score) # for logging purposes
 
-      if bestScore == None or score > bestScore:
+      if m in filteredMutators and (bestScore == None or score > bestScore):
         bestScore = score
         bestMutator = m
 
@@ -372,25 +382,38 @@ class Candidate:
     if config.bandit_verbose:
       print "\nUsing best mutator: %s (%f)\n\n" % (bestMutator, score)
 
+
+    (exploit, explore, total) = self.mutatorScores[bestMutator]
+    print "exploitation" if exploit > explore else "exploration"
     self.lastMutator = bestMutator
     self.lastMutator.timesSelected += 1
     self.lastMutator.mutate(self, n)
     
 
   ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
-  def upperConfidenceBoundMutate(self, n, mutatorLog, objectives):
+  def upperConfidenceBoundMutate(self, n, mutatorLog, objectives, mutatorFilter):
         
+    if(objectives.needAccuracy()):
+      mutatorLog = mutatorLog.getSortedByDeltaAcc()
+    else:
+      mutatorLog = mutatorLog.getSortedByDeltaTime()
+      
+    self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog), mutatorFilter)
+
+
+  def absUpperConfidenceBoundMutate(self, n, mutatorLog, objectives, mutatorFilter):
+      
     if(objectives.needAccuracy()):
       mutatorLog = mutatorLog.getSortedByAcc()
     else:
       mutatorLog = mutatorLog.getSortedByTime()
       
-    self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog))
+    self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog), mutatorFilter)   
 
 
   ''' Selects a mutator which maximizes objectives*(1/time) + (1-objectives)*accuracy, summed over times
   and accuracies of logged offspring produced by the mutator '''
-  def weightedSumMutate(self, n, mutatorLog, objectives):    
+  def weightedSumMutate(self, n, mutatorLog, objectives, mutatorFilter):    
 
     def avg(lst):
       return sum(lst) / len(lst)
@@ -409,7 +432,7 @@ class Candidate:
       else:
         return avg(map(lambda entry: computeOneScore(m, entry), children))
 
-    self.banditMutate(n, mutatorLog, objectives, computeScore)
+    self.banditMutate(n, mutatorLog, objectives, computeScore, mutatorFilter)
 
 
   ''' like weightedSumMutate, but uses roulette whell instead of bandit selection'''

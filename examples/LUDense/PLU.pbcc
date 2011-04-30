@@ -1,0 +1,302 @@
+#ifndef PLU_PBCC 
+#define PLU_PBCC
+
+#include "../simple/copy.pbcc"
+
+transform PLUleftwork
+from IN[n,m]
+to OUT[n,m]
+{
+
+  primary to (OUT.column(n-1) out)  from (IN in)
+  {
+        ElementT sum;
+        int minjn;
+
+        out.cell(0)=in.cell(n-1,0);
+
+        for (int j=1; j<m; j++)
+        {
+                sum = 0;
+                if (j<n)
+                {
+                        minjn=j;
+                }
+                else
+                {
+                        minjn=n-1;
+                }
+
+                for (int k=0; k<minjn; k++)
+                {
+                        sum+=in.cell(k,j)*out.cell(k);
+                }
+                out.cell(j)=in.cell(n-1,j)-sum;
+        }
+  }
+
+
+  OUT.cell(j,i)
+  from (IN.cell(j,i) in)
+  {
+        return in;
+  }
+
+
+}
+
+transform PLUscalecolumn
+from IN[n,m]
+to OUT[n,m]
+{
+  primary OUT.cell(0,0) from (IN.cell(0,0) in)
+  {
+        return in;
+  }
+
+  OUT.cell(0,j) from (IN.cell(0,0) diag, IN.cell(0,j) in)
+  {
+        return in/diag;
+  }
+
+
+  secondary OUT.cell(i,j) from (IN.cell(i,j) in)
+  {
+        return in;
+  }
+}
+
+
+transform PLUleft
+from IN[n,m], Pin[m]
+through TEMP[n,m], Ptemp[m]
+to OUT[n,m], Pout[m]
+{
+
+   to (OUT out, Pout pout, TEMP temp, Ptemp ptemp) from (IN in, Pin pin)
+   {
+        ElementT MaxElement;
+        int MaxIndex;
+        int minmn;
+        int j;
+        int k;
+
+        Copy2D(temp, in);
+        Copy1D(ptemp, pin);
+
+        if ( m >= n ) {
+                minmn=n;
+        }
+        else {
+                minmn=m;
+        }
+
+        for (j=0; j<minmn; j++)
+        {
+
+                if (j>0)
+                {
+                        PLUleftwork(temp.region(0,0,j+1,m),out.region(0,0,j+1,m));
+                }
+
+                Copy1D(out.column(j),temp.column(j));
+
+                //find pivot
+                MaxElement=temp.cell(j,j);
+                MaxIndex=j;
+                for (k=j+1; k<m; k++)
+                {
+                        if (abs(temp.cell(j,k)) > abs(MaxElement)){
+                        MaxElement=temp.cell(j,k);
+                        MaxIndex=k;
+                        }
+                }
+
+                //swap rows
+                pout.cell(j)=ptemp.cell(MaxIndex);
+                Copy1D(out.row(j), temp.row(MaxIndex));
+                for (k=j+1; k<m; k++)
+                {
+                        if (k==MaxIndex)
+                        {
+                                pout.cell(k)=ptemp.cell(j);
+                                Copy1D(out.row(k),temp.row(j));
+                        }
+                        else
+                        {
+                                pout.cell(k)=ptemp.cell(k);
+                                Copy1D(out.row(k), temp.row(k));
+                        }
+                }
+
+                Copy1D(ptemp.region(j,m),pout.region(j,m));
+                Copy2D(temp.region(0,j,n,m),out.region(0,j,n,m));
+
+                PLUscalecolumn(out.region(j,j,j+1,m),temp.region(j,j,j+1,m));
+
+
+        }
+
+        for (j=minmn; j<n; j++)
+        {
+                PLUleftwork(temp.region(0,0,j+1,m),out.region(0,0,j+1,m));
+                Copy1D(out.column(j),temp.column(j));
+        }
+
+   }
+}
+
+
+
+
+
+transform PLUrightwork
+from IN[n,m]
+to OUT[n,m]
+{
+
+  primary OUT.cell(j,0) from (IN.cell(j,0) in)
+  {
+        return in;
+  }
+
+  OUT.cell(0,j) from (IN.cell(0,j) in, IN.cell(0,0) diag)
+  {
+        return in/diag;
+  }
+
+
+  secondary OUT.cell(j,i)
+  from (IN.cell(j,i) aPrev,
+        OUT.cell(0,i) left,
+        IN.cell(j,0) up)
+  {
+        return aPrev - left * up;
+  }
+
+}
+
+
+
+transform PLUright
+from IN[n,m], Pin[m]
+through TEMP[n,m], Ptemp[m]
+to OUT[n,m], Pout[m]
+{
+
+   to (OUT out, Pout pout, TEMP temp, Ptemp ptemp) from (IN in, Pin pin)
+   {
+	ElementT MaxElement;
+	int MaxIndex;
+	int minmn;
+        int j;
+	int k;
+	
+	Copy2D(temp, in);
+	Copy1D(ptemp, pin);
+
+	if ( m >= n ) {
+		minmn=n;
+	}
+	else {
+		minmn=m;
+	}
+
+	for (j=0; j<minmn; j++)
+	{
+		MaxElement=temp.cell(j,j);
+        	MaxIndex=j;
+        	for (k=j+1; k<m; k++)
+        	{
+	  		if ( (temp.cell(j,k) != 0 ) && (abs(temp.cell(j,k)) > abs(MaxElement))){
+			MaxElement=temp.cell(j,k);
+			MaxIndex=k;
+	  		}
+        	}
+
+        	pout.cell(j)=ptemp.cell(MaxIndex);
+        	Copy1D(out.row(j), temp.row(MaxIndex));
+        	for (k=j+1; k<m; k++)
+        	{
+	    		if (k==MaxIndex) 
+	    		{
+				pout.cell(k)=ptemp.cell(j);
+				Copy1D(out.row(k),temp.row(j));
+	    		}
+	    		else
+	    		{
+				pout.cell(k)=ptemp.cell(k);
+				Copy1D(out.row(k), temp.row(k));
+	    		}
+        	}
+	
+
+                Copy1D(ptemp.region(j,m),pout.region(j,m));
+                Copy2D(temp.region(0,j,n,m),out.region(0,j,n,m));	
+		
+		PLUrightwork(temp.region(j,j,n,m),out.region(j,j,n,m));
+		
+		if (j == minmn-1) {  Copy2D(out.region(j,j,n,m),temp.region(j,j,n,m)); }
+    	}
+   }
+}
+
+transform PLUnoblock
+from IN[n,m], Pin[m]
+to OUT[n,m], Pout[m]
+{
+ 
+
+/*
+   to (OUT out, Pout pout) from (IN in, Pin pin)
+   {
+      if (m==1 || n==1 )
+      {
+	PLUwork(out, in);
+        //out.cell(0,0)=in.cell(0,0);
+        Copy1D(pout, pin);
+      }
+      else
+      {
+        PLUinner(out, pout, in, pin);
+      }
+   }
+*/
+
+   to (OUT out, Pout pout) from (IN in, Pin pin)
+   {
+        PLUright(out, pout, in, pin);
+   }
+
+
+   to (OUT out, Pout pout) from (IN in, Pin pin)
+   {
+        PLUleft(out, pout, in, pin);
+   }
+
+}
+
+transform PLU
+from IN[n,m]
+through Pinitial[m]
+to OUT[n,m], P[m]
+{
+   Pinitial.cell(j) from() { return j;}
+
+   to (OUT out, P pout) from (IN in, Pinitial pin)
+   {
+       //PLUright(out, pout, in, pin);
+       PLUnoblock(out,pout,in,pin);
+   }
+
+/*
+   to (OUT out, P pout) from (IN in, Pinitial pin)
+   {
+       PLUleft(out, pout, in, pin);
+   }
+*/
+
+}
+
+
+#endif // PLU_PBCC
