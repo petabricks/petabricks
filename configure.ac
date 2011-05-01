@@ -307,7 +307,7 @@ if test "$default_cxxflags" = "yes"; then
     compileflags="-O0 -g $compileflags -fdiagnostics-show-option"
   else
     CXXFLAGS=""
-    compileflags="-O3 $compileflags"
+    compileflags="-O2 $compileflags"
   fi
   case "$target_cpu" in
     *sparc*) compileflags="$compileflags -mcpu=niagara -mtune=native";;
