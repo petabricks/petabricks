@@ -162,6 +162,7 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
 #endif
 }
 
+#ifdef HAVE_OPENCL
 bool petabricks::UserRule::passBuildGpuProgram(Transform& trans) {
 	//return false;
   TrainingDeps* tmp = new TrainingDeps();
@@ -182,6 +183,7 @@ bool petabricks::UserRule::passBuildGpuProgram(Transform& trans) {
   err = clBuildProgram( clprog, 0, NULL, NULL, NULL, NULL);
   return (err == CL_SUCCESS);
 }
+#endif
 
 void petabricks::UserRule::print(std::ostream& os) const {
   SRCPOSSCOPE();

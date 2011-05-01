@@ -102,6 +102,8 @@ class UniformRandom:
   def random(self, start, minVal, maxVal):
     v=stats.randint.rvs(minVal, maxVal+1)
     #logging.debug("uniform: start=%d, v=%d", start, v)
+    assert v>=minVal
+    assert v<=maxVal
     return v
 
 class AddAlgLevelMutator(Mutator):
@@ -241,6 +243,8 @@ class TunableArrayMutator(Mutator):
     candidate.clearResultsAbove(min(n, 2**i-1))
     old = candidate.config[config.fmt_bin % (self.tunable, i)]
     new = self.getVal(candidate, old, n)
+    assert new >= self.minVal
+    assert new <= self.maxVal
     #print str(candidate),self.tunable, old, new
     ks = set(candidate.config.keys())
     assert config.fmt_bin%(self.tunable, i) in ks
