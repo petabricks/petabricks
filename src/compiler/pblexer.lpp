@@ -60,8 +60,8 @@ static void recordLitCode(){
   petabricks::CodeGenerator::theFilePrefix() << std::string(str.begin(), str.end()-2);
 }
 
-int rulebodystart=0;
 std::string pbfilename;
+int rulebodystart=0;
 int pbcolno=0;
 int pblastlineno=-1;
 
@@ -103,8 +103,6 @@ PASS_CHARS [=.<>,*/()[\]^+-]
   "param"           RETURN KW_PARAM;
   "parameter"       RETURN KW_PARAM;
   "tunable"         RETURN KW_TUNABLE;
-  "float"           RETURN KW_FLOAT;
-  "sizespecific"    RETURN KW_SIZESPECIFIC;
   "accuracy_metric" RETURN KW_ACCURACYMETRIC;
   "accuracy_bins"   RETURN KW_ACCURACYBINS;
   "accuracy_variable" RETURN KW_ACCURACYVARIABLE;

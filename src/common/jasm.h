@@ -137,6 +137,13 @@ inline bool compareAndSwap(volatile T* ptr, T oldVal, T newVal){
   return (long)oldVal==_casBytes<sizeof(T)>((volatile long*)ptr,(long)oldVal,(long)newVal);
 }
 
+inline long fetchAndStore(long *p, long val)
+{
+  long ret;
+  asm volatile("lock; xchg %0, %1" : "=r"(ret), "=m"(*p) : "0"(val), "m"(*p) : "memory");
+  return ret;
+}
+
 #elif defined(__sparc__)
 
 inline bool

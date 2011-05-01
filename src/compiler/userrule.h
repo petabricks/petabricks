@@ -56,7 +56,7 @@ public:
 
   ///
   /// Set this->_body
-  void setBody(const char*);
+  void setBody(const char* str, const jalib::SrcPos& p);
 
   ///
   /// Set priority flag
@@ -112,8 +112,11 @@ public:
 
   ///
   /// Generate seqential code to invoke this rule
-  void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region); 
-  void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
+  void generateCallCode(const std::string& nodename,
+                        Transform& trans,
+                        CodeGenerator& o,
+                        const SimpleRegionPtr& region,
+                        RuleFlavor flavor); 
 
   ///
   /// Return function the name of this rule in the code
@@ -165,6 +168,16 @@ public:
     }
     JASSERT(false)(d)(_id);
     return 0;
+  }
+
+  size_t getMaxOutputDimension(){
+    size_t max = 0;
+    for(size_t i = 0; i < _to.size(); ++i) {
+      size_t d = _to[i]->dimensions();
+      if(d > max)
+        max = d;
+    }
+    return max;
   }
 
   bool isSingleElement() const {
@@ -227,10 +240,12 @@ private:
   FormulaList _conditions;
   FormulaList _definitions;
   std::string _bodysrc;
+  jalib::SrcPosTaggable _bodysrcPos;
   RIRBlockCopyRef _bodyirStatic;
   RIRBlockCopyRef _bodyirDynamic;
 #ifdef HAVE_OPENCL
   RIRBlockCopyRef _bodyirOpenCL;
+  bool passBuildGpuProgram(Transform& trans);
 #endif
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
@@ -238,8 +253,8 @@ private:
   std::string _label;
   ConfigItems _duplicateVars;
   RulePtr _gpuRule;
+
 };
 
 }
-
 #endif

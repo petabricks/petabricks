@@ -128,9 +128,9 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__thread int x;]])],
                   ])
 
 AC_MSG_CHECKING([if compiler supports forced inlining])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((always_inline)) __attribute__((flatten)) void foo(){}]])],
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((flatten)) void foo(){}]])],
                   [  
-                    AC_DEFINE([INLINE],[inline __attribute__((always_inline)) __attribute__((flatten))], [keyword to force inlining])
+                    AC_DEFINE([INLINE],[inline __attribute__((flatten))], [keyword to force inlining])
                     AC_MSG_RESULT([yes]);
                   ],
                   [  
@@ -191,12 +191,11 @@ fi
 
 
 AC_ARG_ENABLE([timing],
-            [AS_HELP_STRING([--enable-timing],
-                            [record checkpoint/restart timing information
-                            to jtimings.csv, in working directory of
-                            dmtcp_coordinator, and to stderr.])],
-            [use_jtiming=$enableval],
-            [use_jtiming=no])
+              [AS_HELP_STRING([--enable-timing],
+                              [record timing information to jtimings.csv,
+                               and to stderr.])],
+              [use_jtiming=$enableval],
+              [use_jtiming=no])
 
 if test "$use_jtiming" = "yes"; then
   AC_DEFINE([TIMING],[],[record timing information to stderr and jtimings.csv])
@@ -212,23 +211,29 @@ if test "$use_jalloc" = "yes"; then
   AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
 fi
 
-AC_ARG_ENABLE([opencl],
-	[AS_HELP_STRING([--enable-opencl],[build compiler and runtime with support for OpenCL-enabled GPUs.])],
-	[use_opencl=$enableval],
-	[use_opencl=no])
+AC_ARG_WITH([opencl],
+	[AS_HELP_STRING([--with-opencl=PATH],[build compiler and runtime with support for OpenCL-enabled GPUs.])],
+	[],
+	[with_opencl=no])
 
-if test "$use_opencl" = "yes"; then
+if ! test "$with_opencl" = "no"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
-   AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
    AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
+
+   CPPFLAGS="$CPPFLAGS -I$with_opencl/OpenCL/common/inc -I$with_opencl/shared/inc"
+   LIBS="$LIBS -L$with_opencl/OpenCL/common/lib/ -L$with_opencl/shared/lib -L$with_opencl/shared/lib/linux"
+
+   AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
+   AC_CHECK_LIB([shrutil_x86_64], [shrLogEx], [], [AC_MSG_ERROR([Failed to find -lshrutil_x86_64.  Check LIBRARY_PATH, or reconfigure without shrutil_x86_64.])])
+   AC_CHECK_LIB([oclUtil_x86_64], [oclGetPlatformID], [], [AC_MSG_ERROR([Failed to find -loclUtil_x86_64.  Check LIBRARY_PATH, or reconfigure without oclUtil_x86_64.])])   
 else
    AC_DEFINE([MATRIX_ELEMENT_T],[double])
 fi
 
 
 
-
 AC_DEFINE([ACCTARGET_STR],       ["accuracyTarget"], [var name in output code for target accuracy])
+AC_DEFINE([BIN_TMPFILE],         ["bin"],     [generated file name])
 AC_DEFINE([CACHE_LINE_SIZE],     [64], [larges cache line size in system])
 AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for begin coord])
 AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
@@ -266,6 +271,7 @@ AC_DEFINE([TX_STATIC_POSTFIX],   ["_static"], [postfix for static versions of tr
 AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files in])
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
+
 AC_DEFINE_UNQUOTED([MAXIMA_PATH],    ["$MAXIMA"], [path to maxima program])
 AC_DEFINE_UNQUOTED([REVISION_LONG],  ["$rev_long"], [git revision for HEAD at the time ./configure was run])
 AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at the time ./configure was run])
@@ -337,7 +343,7 @@ done
 AC_DEFINE_UNQUOTED([CXX],        ["$CXX"],                  [C++ compiler used by pbc])
 AC_DEFINE_UNQUOTED([CXXCPP],     ["$CXXCPP -x c++"],        [C++ preprocessor used by pbc])
 AC_DEFINE_UNQUOTED([CXXDEFS],    ["$DEFS -DHAVE_CONFIG_H"], [C++ compiler defines used by pbc])
-AC_DEFINE_UNQUOTED([CXXFLAGS],   ["$CXXFLAGS"],             [C++ compiler flags used by pbc])
+AC_DEFINE_UNQUOTED([CXXFLAGS],   ["$CXXFLAGS $CPPFLAGS"],   [C++ compiler flags used by pbc])
 AC_DEFINE_UNQUOTED([CXXLDFLAGS], ["$LDFLAGS"],              [C++ compiler link flags used by pbc])
 AC_DEFINE_UNQUOTED([CXXLIBS],    ["$LIBS"],                 [C++ compiler libraries used by pbc])
 AC_DEFINE_UNQUOTED([NM],         ["$NM"],                   [binutils tool used by pbc])

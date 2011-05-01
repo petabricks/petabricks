@@ -30,6 +30,8 @@ check_exclude=[
          "matrixapproximation/matrixapprox",  # (Variable accuracy)
          "regression/accuracymetric",         # (Variable accuracy)
          "preconditioner/preconditioner",     # (Variable accuracy)
+
+         "regression/floattunables2",
     ]
 
 def resolveInputPath(path):
@@ -133,7 +135,7 @@ if 'nocheck' in sys.argv[1:]:
   CHECK = False
 
 t1=time.time()
-results=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:], testBenchmark, postfn=checkBenchmark)
+results,b=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:], testBenchmark, postfn=checkBenchmark)
 t2=time.time()
 
 

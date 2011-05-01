@@ -30,6 +30,9 @@ typedef jalib::JRef<CLCodeGenerator> CLCodeGeneratorPtr;
 class CLCodeGenerator : public CodeGenerator
 {
  public:
+
+  CLCodeGenerator(const TrainingDepsPtr& cg) : CodeGenerator(new StreamTree("OpenCL tmp buf"), cg) {}
+  
   /** Writes a properly-escaped C/C++ string literal to the specified output
    stream. */
   void outputEscapedStringTo( std::ostream& o );
@@ -40,7 +43,7 @@ class CLCodeGenerator : public CodeGenerator
 
   void localMemoryBarrier( );
 
-  void beginKernel( const std::vector<std::string>& outputs, const std::vector<std::string>& inputs, unsigned int dims );
+  void beginKernel(RegionList& _to, RegionList& _from, unsigned int dims);
 
   void endKernel( );
 

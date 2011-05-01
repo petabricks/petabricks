@@ -25,13 +25,12 @@ generator Poisson2DSORGenerator
     return result;
   }
 
-  recursive
   primary to (OUT.region(1,1,n-1,n-1) o) from (IN.region(1,1,n-1,n-1) in,
                                                BTEMP b,
                                                weight w,
                                                numIterations num)
   {
-    SPAWN(Poisson2DSORInterior, o, in, b, w, num);
+    Poisson2DSORInterior(o, in, b, w, num);
   }
 
   secondary OUT.cell(i,j) from (IN.cell(i,j) x)

@@ -13,7 +13,7 @@ transform TestRuleIR from IN[w,h] to OUT[w,h]
     else 
     { 
       ElementT t;
-      SPAWN(Nil, t, t);
+      spawn Nil(t, t);
       int x=1;
       return 0; 
     }

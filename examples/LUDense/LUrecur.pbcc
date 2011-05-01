@@ -15,7 +15,7 @@ to OUT[n, n]
   to (OUT.region(0,0,n/2,n/2) out)
   from (IN.region(0,0,n/2,n/2) in)
   {
-	LUrecur(out,in);
+    LUrecur(out,in);
   }
 
   //upper right block
@@ -23,7 +23,7 @@ to OUT[n, n]
   from (IN.region(n/2,0,n,n/2) in,
 	OUT.region(0,0,n/2,n/2) leftdiag)
   {
-	SPAWN(LUuppertrirecur,out,in,leftdiag);
+    LUuppertrirecur(out,in,leftdiag);
   }
   
 
@@ -33,7 +33,7 @@ to OUT[n, n]
         OUT.region(0,0,n/2,n/2) updiag)
 
   {
-        SPAWN(LUlowertrirecur,out,in,updiag);
+    LUlowertrirecur(out,in,updiag);
   }
 
   //lower right block

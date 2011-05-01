@@ -11,8 +11,8 @@ class config_defaults:
   max_input_size           = 2**30
   min_input_size           = 1
   max_time                 = 60*150
-  rounds_per_input_size    = 1
-  final_rounds             = 1
+  rounds_per_input_size    = 3
+  final_rounds             = 3
 
   #number of trials to run
   confidence_pct   = 0.75
@@ -36,7 +36,7 @@ class config_defaults:
 
 
   #how mutation to do
-  mutations_per_mutator    = 5
+  mutations_per_mutator    = 3
   population_high_size     = 10
   population_low_size      = 1
   multimutation            = True
@@ -71,17 +71,18 @@ class config_defaults:
   online_baseline = False
   fixed_safe_alg = False
   accuracy_target = None
+  output_cfg = None
   timing_target = None
-  race_multiplier = 1.0
-  race_multiplier_lowacc = 8.0
   n = None
-  reweight_interval = 4
   seed = None
   main = None
+  max_gen = None
+  race_multiplier = 1.0
+  race_multiplier_lowacc = 8.0
+  reweight_interval = 4
   threads = None
   abort_on = ""
   race_split_ratio = 0.5
-  max_gen = None
   
   threshold_multiplier_min = 100.0
   threshold_multiplier_max = 1000.0
@@ -167,11 +168,16 @@ class patch_check:
   max_trials       = 2
   min_trials       = 2
 
+class patch_accuracy_target:
+  def __init__(self, v):
+    self.accuracy_target = v
+
 class patch_noninteractive:
   '''settings for disabling outputs'''
   cleanup_inputs           = True
   debug                    = False
   delete_output_dir        = True
+  output_cfg               = None
   print_log                = False
   pause_on_crash           = False
   candidatelog             = False
@@ -180,6 +186,19 @@ class patch_noninteractive:
 
 class patch_regression(patch_noninteractive, patch_check):
   pass
+
+
+class patch_pbbenchmark(patch_noninteractive):
+  pass
+
+class patch_reset:
+  accuracy_target = None
+  timing_target = None
+  output_cfg = None
+  n = None
+  seed = None
+  main = None
+  max_gen = None
 
 class patch_debug:
   '''settings for debugging'''
@@ -199,5 +218,13 @@ class patch_n:
     from math import log
     self.max_input_size = config.offset+2**int(round(log(n, 2)))
     self.max_time = 2**30
-    self.n=n
+    self.n = n
+
+class patch_n_offset:
+  def __init__(self, n):
+    from math import log
+    self.offset = n - 2**int(round(log(n, 2)))
+    self.max_input_size = n
+    self.max_time = 2**30
+    self.n = n
 

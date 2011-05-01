@@ -8,16 +8,19 @@ noinst_LIBRARIES = libpbcommon.a libpbcompiler.a libpbruntime.a libpbmain.a
 noinst_PROGRAMS = pbc rttest1 rttest2
 
 noinst_HEADERS = \
+  compiler/choicedepgraph.h \
   compiler/choicegrid.h \
   compiler/clcodegenerator.h \
   compiler/codegenerator.h \
   compiler/configitem.h \
   compiler/formula.h \
+  compiler/gpurule.h \
   compiler/iterationorders.h \
   compiler/matrixdef.h \
   compiler/matrixdependency.h \
   compiler/maximaparser.h \
   compiler/maximawrapper.h \
+  compiler/openclutil.h \
   compiler/pbc.h \
   compiler/pbparser.h \
   compiler/region.h \
@@ -27,13 +30,11 @@ noinst_HEADERS = \
   compiler/rule.h \
   compiler/ruleir.h \
   compiler/ruleirparser.h \
-  compiler/staticscheduler.h \
+  compiler/scheduler.h \
   compiler/syntheticrule.h \
-  compiler/gpurule.h \
   compiler/trainingdeps.h \
   compiler/transform.h \
-  compiler/userrule.h \
-  compiler/openclutil.h
+  compiler/userrule.h
 
 pkglib_HEADERS=  \
   common/hash.h \
@@ -89,17 +90,20 @@ libpbcompiler_a_LFLAGS =
 libpbcompiler_a_YFLAGS = -d
 libpbcompiler_a_CXXFLAGS = -I$(srcdir)/compiler
 libpbcompiler_a_SOURCES = \
+  compiler/choicedepgraph.cpp \
   compiler/choicegrid.cpp \
   compiler/clcodegenerator.cpp \
   compiler/codegenerator.cpp \
   compiler/configitem.cpp \
   compiler/formula.cpp \
+  compiler/gpurule.cpp \
   compiler/iterationorders.cpp \
   compiler/matrixdef.cpp \
   compiler/matrixdependency.cpp \
   compiler/maximalexer.lpp \
   compiler/maximaparser.ypp \
   compiler/maximawrapper.cpp \
+  compiler/openclutil.cpp \
   compiler/pblexer.lpp \
   compiler/pbparser.ypp \
   compiler/region.cpp \
@@ -110,13 +114,11 @@ libpbcompiler_a_SOURCES = \
   compiler/ruleir.cpp \
   compiler/ruleirlexer.lpp \
   compiler/ruleirparser.ypp \
-  compiler/staticscheduler.cpp \
+  compiler/scheduler.cpp \
   compiler/syntheticrule.cpp \
-  compiler/gpurule.cpp \
   compiler/trainingdeps.cpp \
   compiler/transform.cpp \
-  compiler/userrule.cpp \
-  compiler/openclutil.cpp
+  compiler/userrule.cpp
 
 libpbruntime_a_LFLAGS = 
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime
@@ -166,6 +168,7 @@ $(srcdir)/compiler/pbparser.h:		 libpbcompiler_a-pbparser.h
 $(srcdir)/compiler/ruleirparser.h: libpbcompiler_a-ruleirparser.h
 	cp $< $@ 
 
-
-
+$(srcdir)/compiler/maximalexer.lpp: $(srcdir)/compiler/maximaparser.h
+$(srcdir)/compiler/pblexer.lpp: $(srcdir)/compiler/pbparser.h
+$(srcdir)/compiler/ruleirlexer.lpp: $(srcdir)/compiler/ruleirparser.h
 

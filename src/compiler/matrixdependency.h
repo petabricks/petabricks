@@ -35,15 +35,15 @@ public:
   enum DirectionT {
     D_NONE = 0,
     D_LT=1, D_EQ=2, D_GT=4,
+    D_MULTIOUTPUT=8,
     D_LE = D_LT | D_EQ,
     D_GE = D_GT | D_EQ,
     D_NEQ = D_LT | D_GT,
-    D_ALL = D_LT | D_EQ | D_GT,
-    DirectionT_count = D_ALL+1
+    D_ALL = D_LT | D_EQ | D_GT
   };
   ///
   /// Constructor
-  DependencyDirection(size_t dimensions = 0);
+  DependencyDirection(size_t dimensions = 0, DirectionT dir=D_NONE);
 
   ///
   /// Merge two DependencyDirections
@@ -67,11 +67,11 @@ public:
      return _directionMask!=that._directionMask;
   }
 
-  bool isNone() const {
+  bool isMultioutput() const {
     for(size_t i=0; i<_directionMask.size(); ++i)
-      if(_directionMask[i]!=D_NONE)
-        return false;
-    return true;
+      if( (_directionMask[i]&D_MULTIOUTPUT) != 0 )
+        return true;
+    return false;
   }
 
   std::string toCodeStr() const;

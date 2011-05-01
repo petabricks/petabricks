@@ -68,6 +68,12 @@ class TrainingInfo:
   def tunables(self):
     return map(XmlDictApi, self.infoxml.getElementsByTagName("tunable"))
 
+  def tunablesDict(self):
+    tunables = dict()
+    for t in self.tunables():
+      tunables[t['name']] = t
+    return tunables
+
   def rulesInAlgchoice(self, number):
     matches = filter(lambda x: x['number']==number, self.algchoices())
     assert len(matches)==1

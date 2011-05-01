@@ -22,6 +22,7 @@ petabricks::ChoiceGridPtr petabricks::ChoiceGrid::constructFrom(
   const RuleDescriptorListList& dimensions,
   size_t                        dimension /*= 0*/)
 {
+  DISABLESRCPOS();
   JTRACE("Constructing choice grid")(allowedRules.size())(dimension);
   FormulaPtr    currentPos = FormulaInteger::zero();
   ChoiceGridPtr rootNode = new ChoiceGrid(dimension, currentPos);

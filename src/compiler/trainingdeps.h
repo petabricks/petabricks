@@ -13,6 +13,7 @@
 #define PETABRICKSTRAININGDEPS_H
 
 #include "common/jassert.h"
+#include "common/jrefcounted.h"
 #include "common/jtunable.h"
 
 #include "rule.h"
@@ -23,7 +24,10 @@
 
 namespace petabricks {
 
-class TrainingDeps {
+class TrainingDeps;
+typedef jalib::JRef<TrainingDeps> TrainingDepsPtr;
+
+class TrainingDeps : public jalib::JRefCounted {
 public:
 
   void addAlgchoice(const std::string& name, int rules){

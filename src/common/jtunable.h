@@ -70,8 +70,8 @@
 namespace jalib {
 class TunableValue {
 public:
-  TunableValue()         : _type(NONE) {}
-  TunableValue(int v)    : _type(INT), _i(v) {}
+  TunableValue()         : _type(NONE),   _d(0) {}
+  TunableValue(int v)    : _type(INT),    _i(v) {}
   TunableValue(double v) : _type(DOUBLE), _d(v) {}
 
   int i() const {
@@ -117,14 +117,33 @@ public:
   friend bool operator<=(const TunableValue& a, const TunableValue& b) { return a.asD() <= b.asD(); } 
   friend bool operator> (const TunableValue& a, const TunableValue& b) { return a.asD() >  b.asD(); } 
   friend bool operator>=(const TunableValue& a, const TunableValue& b) { return a.asD() >= b.asD(); } 
-  friend bool operator==(const TunableValue& a, const TunableValue& b) { return a.asD() == b.asD(); } 
-  friend bool operator!=(const TunableValue& a, const TunableValue& b) { return a.asD() != b.asD(); } 
+  friend bool operator!=(const TunableValue& a, const TunableValue& b) { return ! operator==(a,b); } 
+  friend bool operator==(const TunableValue& a, const TunableValue& b) {
+    if(a._type==NONE && b._type==NONE)
+      return true;
+    if(a._type==NONE || b._type==NONE)
+      return false;
+    return a.asD() == b.asD();
+  } 
+
+  static TunableValue min(const TunableValue& a, const TunableValue& b) {
+    if(a._type==NONE) return b;
+    if(b._type==NONE) return a;
+    return std::min(a,b);
+  }
+  static TunableValue max(const TunableValue& a, const TunableValue& b) {
+    if(a._type==NONE) return b;
+    if(b._type==NONE) return a;
+    return std::max(a,b);
+  }
+
 private:
   enum TypeT { NONE, INT, DOUBLE };
   TypeT _type;
-  //union break some gcc optimizations...
-  int _i;
-  double _d;
+  union {
+    int    _i;
+    double _d;
+  };
 };
 
 class JTunable;

@@ -29,6 +29,10 @@ def cpuCount():
   except:
     pass
   try:
+    return os.sysconf("_SC_NPROCESSORS_ONLN")
+  except:
+    pass
+  try:
     return int(os.environ["NUMBER_OF_PROCESSORS"])
   except:
     pass
@@ -42,7 +46,7 @@ def getmemorysize():
   try:
     return int(re.match("MemTotal: *([0-9]+) *kB", open("/proc/meminfo").read()).group(1))*1024
   except:
-    sys.stderr.write("failed to get total memory\n"%n)
+    sys.stderr.write("failed to get total memory\n")
     return 8 * (1024**3) # guess 8gb
 
 def setmemlimit(n = getmemorysize()):
@@ -50,7 +54,7 @@ def setmemlimit(n = getmemorysize()):
     import resource
     resource.setrlimit(resource.RLIMIT_AS, (n,n))
   except:
-    sys.stderr.write("failed to set memory limit\n"%n)
+    sys.stderr.write("failed to set memory limit\n")
 
 
 
@@ -72,6 +76,7 @@ def parallelRunJobs(jobs):
       self.pid = os.fork()
       if self.pid == 0:
         #child
+        progress.disable()
         self.fd.close()
         class Redir():
           def __init__(self, fd):
@@ -191,13 +196,20 @@ def parallelRunJobs(jobs):
   progress.pop()
   return jobs_done
 
+def getscriptpath():
+  try:
+    import configtool
+    m=re.search('''from ['"](.*)['"]''', str(configtool))
+    return os.path.dirname(m.group(1))
+  except:
+    return os.path.abspath(os.path.dirname(sys.argv[0]))
+    
 def chdirToPetabricksRoot():
-  isCurDirOk = lambda: os.path.isdir("examples") and os.path.isdir("src")
-  if isCurDirOk():
-    return
-  old=os.getcwd()
+  old = os.getcwd()
+  new = getscriptpath()
+  isCurDirOk = lambda: os.path.isfile("src/compiler/pbc.cpp")
   if not isCurDirOk():
-    os.chdir(os.pardir)
+    os.chdir(new)
   if not isCurDirOk():
     os.chdir(os.pardir)
   if not isCurDirOk():
@@ -231,18 +243,23 @@ benchmarkToInfo = lambda name: expandBenchmarkName(name, ".info")
 benchmarkToCfg  = lambda name: expandBenchmarkName(name, ".cfg")
 
 class InvalidBenchmarkNameException(Exception):
-  pass
+  def __init__(self, name):
+    self.name=name
+  def __str__(self):
+    return "InvalidBenchmarkNameException(%s)" % self.name
 
 def searchBenchmarkName(n):
   for root, dirs, files in os.walk("./examples"):
-    if n in files:
+    if n in files or n + ".pbcc" in files:
       return normalizeBenchmarkName("%s/%s"%(root,n), False)
-  raise InvalidBenchmarkNameException()
+  raise InvalidBenchmarkNameException(n)
 
 def normalizeBenchmarkName(orig, search=True):
   n=re.sub("^[./]*examples[/]", "", orig);
   n=re.sub("[.]pbcc$","", n)
-  if os.path.isfile(orig):
+  if os.path.isfile(orig+".pbcc"):
+    orig = os.path.abspath(orig+".pbcc")
+  elif os.path.isfile(orig):
     orig = os.path.abspath(orig)
   else:
     orig = None
@@ -325,7 +342,7 @@ def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postf
   for b in benchmarks:
     b[0]=normalizeBenchmarkName(b[0])
 
-  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x), lambda: postfn(x[0])), benchmarks))
+  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x), lambda: postfn(x[0])), benchmarks)), benchmarks
 
 def killSubprocess(p):
   if p.poll() is None:

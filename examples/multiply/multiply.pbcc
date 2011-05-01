@@ -4,6 +4,57 @@
 #include "../simple/add.pbcc"
 #include "../simple/transpose.pbcc"
 
+%{
+#include "cblas.h"
+
+#ifdef PRINT
+inline void printArray(int height, int width, ElementT *array){
+  int i, j;
+
+  for(i=0; i<height; ++i) {
+    for(j=0; j<width; ++j) {
+      printf("%2.1lf ", array[i*width+ j]);
+    }
+    printf("\n");
+  }
+}
+#endif
+
+inline ElementT *toArray(petabricks::ConstMatrixRegion2D &matrix) {
+  ElementT *array;
+  
+  IndexT rows = matrix.height();
+  IndexT columns = matrix.width();
+
+#ifdef PRINT
+  printf("Matrix size: %d rows, %d columns\n", rows, columns);
+#endif
+
+  array = new ElementT[rows * columns];
+  
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      array[i*columns+ j] = matrix.cell(j,i);
+    }
+  }
+  
+  return array;
+}
+
+inline void toMatrix(ElementT* array, petabricks::MatrixRegion2D &matrix) {
+  IndexT rows = matrix.height();
+  IndexT columns = matrix.width();
+
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      matrix.cell(j,i) = array[i*columns + j];
+    }
+  }
+  
+  return;
+}
+%}
+
 transform MatrixMultiply
 from A[c,h], B[w,c] 
 to AB[w,h]
@@ -11,7 +62,7 @@ to AB[w,h]
   //compute a cell the straightforward way
   AB.cell(x,y) from(A.row(y) a, B.column(x) b){
     ElementT sum=0;
-    for(IndexT i=0; i<a.width(); ++i)
+    for(IndexT i=0, w=a.width(); i<w; ++i)
       sum+=a.cell(i)*b.cell(i);
     return sum;
   }
@@ -51,6 +102,63 @@ to AB[w,h]
   {
     spawn MatrixMultiply(ab1, a1, b);
     spawn MatrixMultiply(ab2, a2, b);
+  }
+  
+  
+  //Usual O(n^3) matrix multiply
+  to(AB ab) from (A a, B b) {
+    for(IndexT i=0, maxI=a.height(); i<maxI; ++i) {
+      for(IndexT j=0, maxJ=b.width(); j<maxJ; ++j) {
+        ab.cell(i,j) = 0;
+        for(IndexT k=0, maxK=a.width(); k<maxK; ++k) {
+	  ab.cell(i,j) += a.cell(i,k) * b.cell(k,j);
+	}
+      }
+    }
+  }
+  
+  to(AB ab) from (A a, B b) {
+    int rowA=a.height();
+    int colA=a.width();
+
+    int rowB=b.height();
+    int colB=b.width();
+
+    int rowAB=ab.height();
+    int colAB=ab.width();
+
+    double alpha=1;
+    double beta=0;
+    
+    if(colA != rowB) {
+      fprintf(stderr, "Unable to perform a matrix multiplication. Wrong input size.\n"
+	      "#columns of matrix A = %d\n"
+	      "#rows of matrix B = %d\n"
+	      "They should be equal!\n", colA, rowB);
+      exit(4);
+    }
+    
+    ElementT* arrayA = toArray(a);
+    ElementT* arrayB = toArray(b);
+    
+    #ifdef PRINT
+    printArray(rowA, colA, arrayA);
+    printArray(rowB, colB, arrayB);
+    #endif
+    
+    ElementT* arrayAB = new ElementT[rowAB*colAB];
+    
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, rowA, colB, rowB, alpha, arrayA, colA, arrayB, colB, beta, arrayAB, colAB);
+    
+    #ifdef PRINT
+    printArray(rowAB, colAB, arrayAB);
+    #endif
+    
+    toMatrix(arrayAB, ab);
+    
+    delete arrayA;
+    delete arrayB;
+    delete arrayAB;
   }
 }
 
