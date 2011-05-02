@@ -2,7 +2,7 @@
 # TESTNAME CONFIG INPUTSIZE ACCTARGET BASEPERF
 #
 
-binpacking/binpacking             binpacking.cfg      8192     -1.1
+binpacking/binpacking             binpacking.cfg      8192     -1.15
 kclustering/kmeans                kmeans.cfg          128      0.2
 LUDense/PLUrecur                  PLUrecur.cfg        512      1
 matrixapproximation/matrixapprox  matrixapprox.cfg    256      0.8
