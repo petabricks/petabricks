@@ -34,7 +34,7 @@ def writelog(filename, entry):
   fd=open(filename, "a")
   log = csv.writer(fd, dialect=logdialect)
   if header:
-    log.writerow(['#'+keys[0]] + [keys[1:]])
+    log.writerow(['#'+keys[0]] + keys[1:])
   log.writerow(map(lambda x: entry[x], keys))
   fd.close()
 
