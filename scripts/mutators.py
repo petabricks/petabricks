@@ -240,25 +240,22 @@ class TunableArrayMutator(Mutator):
     Mutator.__init__(self, weight)
   def getVal(self, candidate, oldVal, inputSize):
     return self.random(oldVal, self.minVal, self.maxVal, candidate = candidate)
-  def setVal(self, candidate, newVal, n):
+  def mutate(self, candidate, n):
     i = int(math.log(n, 2))
-    candidate.clearResultsAbove(min(n, 2**i-1))
     old = candidate.config[config.fmt_bin % (self.tunable, i)]
     new = self.getVal(candidate, old, n)
     assert new >= self.minVal
     assert new <= self.maxVal
     #print str(candidate),self.tunable, old, new
+    self.setVal(candidate, new, n)
+  def setVal(self, candidate, newVal, n):
+    i = int(math.log(n, 2))
+    candidate.clearResultsAbove(min(n, 2**i-1))
     ks = set(candidate.config.keys())
     assert config.fmt_bin%(self.tunable, i) in ks
     while config.fmt_bin%(self.tunable, i) in ks:
       candidate.config[config.fmt_bin % (self.tunable, i)] = newVal
       i+=1
-  def mutate(self, candidate, n):
-    i = int(math.log(n, 2))
-    old = candidate.config[config.fmt_bin % (self.tunable, i)]
-    new = self.getVal(candidate, old, n)
-    #print str(candidate),self.tunable, old, new
-    self.setVal(candidate, new, n)
   def reset(self, candidate):
     candidate.clearResults()
     i = 0
