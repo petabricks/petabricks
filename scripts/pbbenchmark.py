@@ -21,13 +21,14 @@ def writelog(filename, entry):
   if os.path.isfile(filename):
     fd=open(filename)
     old_keys = list(csv.reader(fd, dialect=logdialect).next())
-    old_keys[0]=old_keys[0][1:] #remove hash at start
+    old_keys[0]=old_keys[0].replace('#','',1) #remove hash at start
     fd.close()
     if old_keys == keys:
       header=False
     else:
-      print >>sys.stderr, "WARNING: logfile has outdated format", filename
-      print >>sys.stderr, "         renamed to", filename+".old"
+      print "WARNING: logfile has outdated format", filename
+      print "         renamed to", filename+".old"
+      print old_keys, keys
       os.rename(filename, filename+".old")
   
   fd=open(filename, "a")
@@ -36,7 +37,6 @@ def writelog(filename, entry):
     log.writerow(['#'+keys[0]] + [keys[1:]])
   log.writerow(map(lambda x: entry[x], keys))
   fd.close()
-
 
 TRAILS   = 5
 SHORTBAR = '-'*40
@@ -180,6 +180,7 @@ class Benchmark:
 def main():
   warnings.simplefilter('ignore', tunerwarnings.NewProgramCrash)
   warnings.simplefilter('ignore', tunerwarnings.TargetNotMet)
+  warnings.simplefilter('ignore', tunerwarnings.NanAccuracy)
 
   progress.push()
   progress.status("compiling benchmarks")

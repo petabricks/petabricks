@@ -13,6 +13,7 @@ from tunerconfig import config, OperatorSelectionMethod
 from tunerwarnings import ComparisonFailed, InconsistentOutput
 import mutators
 warnings.simplefilter('ignore', DeprecationWarning)
+numpy.seterr(all="ignore")
 
 def getMemoryLimitArgs():
   limit = []
