@@ -57,7 +57,7 @@ def fmtPerf(perf, baseline):
   #meanprime = baseline/(perf['average']+perf['stddev']/math.sqrt(TRAILS))
   meanprime = baseline/(perf['average']+perf['stddev'])
   std  = mean-meanprime
-  return "%7.1f +- %4.1f" % (mean, std)
+  return "perf: %7.1f +- %2.0f" % (mean, std)
 
 def fmtAcc(acc, target):
   diff = acc['average'] - target
