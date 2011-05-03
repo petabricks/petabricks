@@ -8,7 +8,7 @@ LUDense/PLUrecur                  PLUrecur.cfg        512      1
 matrixapprox/matrixapprox         matrixapprox.cfg    128      0.8
 multigrid/Helmholtz3DFMG          Helmholtz3DFMG.cfg  32       8
 multigrid/Poisson2DFMG            Poisson2DFMG.cfg    129      8
-multiply/strassen                 strassen.cfg        1024     1
+multiply/strassen                 strassen.cfg        512      1
 sort/Sort                         Sort.cfg            524288   1
 
 # Benchmarks need to be fixed:

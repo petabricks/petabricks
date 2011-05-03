@@ -1,8 +1,8 @@
-binpacking/binpacking, 0.002337, 1119.917242
-kclustering/kmeans, 0.007983, 775.960824
-LUDense/PLUrecur, 0.178171, 1357.001577
-matrixapproximation/matrixapprox, 0.377474, 1100.278654
-multigrid/Helmholtz3DFMG, 0.191649, 522.450951
-multigrid/Poisson2DFMG, 0.185589, 1486.944241
-multiply/strassen, 0.416698, 1754.146160
-sort/Sort, 0.103846, 1770.282376
+binpacking/binpacking, 0.001910, 1259.036083
+kclustering/kmeans, 0.048524, 826.137787
+LUDense/PLUrecur, 0.159336, 1112.242736
+matrixapprox/matrixapprox, 0.074496, 494.024847
+multigrid/Helmholtz3DFMG, 0.338356, 830.665359
+multigrid/Poisson2DFMG, 0.089749, 876.407373
+multiply/strassen, 0.059788, 668.042021
+sort/Sort, 0.123460, 1911.500875
