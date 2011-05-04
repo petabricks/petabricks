@@ -94,6 +94,7 @@ tokens = ['ID', 'LBRACE', 'RBRACE', 'CLBRACE', 'CRBRACE', 'LSQBRACE', 'RSQBRACE'
 
 # All States
 t_INITIAL_oblivious_comment_define_defobl_ignore = ' \t\r'
+t_defws_ignore = ''
 
 def t_INITIAL_oblivious_comment_newline(t): 
   r'\n+'
