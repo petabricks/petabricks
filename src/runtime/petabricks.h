@@ -31,12 +31,9 @@
 #  include <math.h>
 #endif
 
-#ifdef HAVE_FFTW3_H
-#  include <fftw3.h>
+#ifdef HAVE_OPENCL
+#  include "openclutil.h"
 #endif
-
-// Has to be after config.h
-#include "openclutil.h"
 
 //these must be declared in the user code
 petabricks::PetabricksRuntime::Main* petabricksMainTransform();

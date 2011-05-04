@@ -91,8 +91,9 @@ void closesubproc(FILE* p, const std::string& name) {
   while(!feof(p)) {
     char buf[1024];
     memset(buf, 0, sizeof buf);
-    (void)fread(buf, 1, sizeof buf -1,  p);
-    std::cerr << buf;
+    if(fread(buf, 1, sizeof buf -1,  p) > 0) {
+      std::cerr << buf;
+    }
   }
   JASSERT(pclose(p)==0);
 }

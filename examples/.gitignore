@@ -1,4 +1,3 @@
-testdiag
 binpacking/binpacking
 bitonic/bitonic
 convolution2/ConvFFTRecursion
@@ -55,8 +54,8 @@ LUDense/PLUrecur
 LUDense/trilsolve
 LUDense/triusolve
 LUDense/utri
-matrixapproximation/Bisection
-matrixapproximation/matrixapprox
+matrixapprox/Bisection
+matrixapprox/matrixapprox
 multigrid/ComputeError2D
 multigrid/ComputeError3D
 multigrid/Generators
@@ -139,12 +138,14 @@ regression/optional
 regression/outputsizeacc
 regression/padding
 regression/params
+regression/recursive
 regression/ruleconstants
 regression/scaledown
 regression/scaleoffset
 regression/scaletest
 regression/scaleup
 regression/templatetest
+regression/testdiag
 regression/testruleir
 regression/throughclause
 regression/transposequads

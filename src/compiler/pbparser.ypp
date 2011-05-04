@@ -188,6 +188,8 @@ ConfigItem: IDENT ConfigItem {
     $$->addFlag(ConfigItem::FLAG_DOUBLE);
   else if(strcmp($1, "sizespecific")==0)
     $$->addFlag(ConfigItem::FLAG_SIZESPECIFIC);
+  else if(strcmp($1, "accuracyhint")==0)
+    $$->addFlag(ConfigItem::FLAG_ACCURACY);
   else {
     JASSERT(false)($1).Text("unknown keyword");
   }
