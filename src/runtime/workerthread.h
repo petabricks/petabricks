@@ -41,9 +41,12 @@ public:
 #ifdef WORKERTHREAD_INJECT
     if(!_injectQueue.empty())
       t=_injectQueue.pop_bottom();
+    if(t==NULL) {
 #endif
-    if(t==NULL)
-      t = _deque.pop_bottom();
+    t = _deque.pop_bottom();
+#ifdef WORKERTHREAD_INJECT
+    }
+#endif
     return t;
   }
   
