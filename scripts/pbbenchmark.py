@@ -13,7 +13,7 @@ import warnings
 TRAILS   = 5
 SHORTBAR = '-'*40
 LONGBAR  = '='*50
-VERSION  = "1.9"
+VERSION  = "2.0"
 LOGDIR    = './testdata/perflogs'
 TIMESTAMP = time.time()
 DEBUG = False
@@ -252,7 +252,7 @@ def main():
   print LONGBAR
   print
 
-  if True:
+  if DEBUG:
     print LONGBAR
     print "Debug:"
     print SHORTBAR
