@@ -1,4 +1,4 @@
-AC_INIT([petabricks], [1.99], [jansel@csail.mit.edu])
+AC_INIT([petabricks], [2.0], [jansel@csail.mit.edu])
 
 AC_CONFIG_SRCDIR([src/compiler/pbc.cpp])
 AC_CANONICAL_TARGET
