@@ -228,8 +228,29 @@ void petabricks::Transform::expandWhereClauses( RuleSet& rules
   //      at some point we may want to detect such subsets and create multiple
   //      WhereExpansionRules for each of those subsets
   // for now, just find first allowed rule dynamically
-  RulePtr t = new WhereExpansionRule(rules);
-  rules.clear();
+  
+  RuleSet whereRules;
+  
+  //Separate rules with where clauses
+  for(RuleSet::iterator i=rules.begin(), e=rules.end(); i != e; ++i) {
+    const RulePtr thisRule= *i;
+    if(thisRule->hasWhereClause()) {
+      whereRules.insert(thisRule);
+      rules.erase(i);
+    }
+  }
+  
+  //Add fallback rule inside whereExpansion
+  for(RuleSet::iterator i=rules.begin(), e=rules.end(); i != e; ++i) {
+    const RulePtr thisRule= *i;
+    if( ! thisRule->hasWhereClause()) {
+      whereRules.insert(thisRule);
+      break;
+    }
+  }
+  
+  //Add the where expansion rule to the set of rules
+  RulePtr t = new WhereExpansionRule(whereRules);
   rules.insert(t);
   _rules.push_back(t);
 }
