@@ -87,7 +87,7 @@ def testBenchmark(b):
     iofiles.append(resolveInputPath(x))
     hash+=" "+os.path.basename(x)
   outfile="./testdata/.output/"+re.sub("[ /.]",'_',hash)
-  iofiles.append(outfile)
+  iofiles.append(outfile+".latest")
 
   try:
     cmd=[bin, '--fixedrandom', '--config=%s.cfg'%outfile, '--reset']
@@ -115,7 +115,8 @@ def testBenchmark(b):
       print "run FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd))
       return False
 
-    checkcmd=["git","diff","--exit-code", outfile]
+    #checkcmd=["git","diff","--exit-code", outfile]
+    checkcmd=["diff","-q", outfile, outfile+".latest"]
     rv = run(checkcmd)
     if rv != 0:
       time.sleep(0.1) #try letting the filesystem settle down
