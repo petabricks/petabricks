@@ -47,6 +47,20 @@ def run(cmd):
   return forkrun(cmd).wait()
 
 
+def diffFiles(a, b):
+  '''true if files differ'''
+  try:
+    af=open(a)
+    bf=open(b)
+    rv = (af.read() != bf.read())
+    af.close()
+    bf.close()
+    return rv
+  except Exception, e:
+    print "ERROR: ",e
+    return True
+
+
 def checkBenchmark(b):
   if b in check_exclude or not CHECK:
     return True
@@ -115,13 +129,9 @@ def testBenchmark(b):
       print "run FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd))
       return False
 
-    #checkcmd=["git","diff","--exit-code", outfile]
-    checkcmd=["diff","-q", outfile, outfile+".latest"]
-    rv = run(checkcmd)
-    if rv != 0:
+    if diffFiles(outfile, outfile+".latest"):
       time.sleep(0.1) #try letting the filesystem settle down
-      rv = run(checkcmd)
-      if rv != 0:
+      if diffFiles(outfile, outfile+".latest"):
         print "run FAILED (wrong output)"
         return False
     
