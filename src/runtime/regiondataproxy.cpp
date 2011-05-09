@@ -128,7 +128,7 @@ RemoteObjectPtr RegionDataProxy::genRemote() {
 
 // RegionDataProxyRemoteObject
 
-void RegionDataProxyRemoteObject::onRecvInitial(const void* buf, size_t len) {
+void RegionDataProxyRemoteObject::onRecvInitial(const void* buf, size_t /*len*/) {
   InitialMessage* msg = (InitialMessage*) buf;
   _regionData = new RegionDataRaw(msg->dimensions, msg->size, msg->partOffset);
 }
@@ -143,12 +143,12 @@ void RegionDataProxyRemoteObject::processWriteCellMsg(WriteCellMessage* msg) {
   this->send(&msg->value, sizeof(ElementT));
 }
 
-void RegionDataProxyRemoteObject::processAllocDataMsg(AllocDataMessage* msg) {
+void RegionDataProxyRemoteObject::processAllocDataMsg(AllocDataMessage* /*msg*/) {
   int r = _regionData->allocData();
   this->send(&r, sizeof(int));  
 }
 
-void RegionDataProxyRemoteObject::onRecv(const void* data, size_t len) {
+void RegionDataProxyRemoteObject::onRecv(const void* data, size_t /*len*/) {
   switch(*(MessageType*)data) {
   case MessageTypes::READCELL:
     this->processReadCellMsg((ReadCellMessage*)data);
@@ -160,6 +160,6 @@ void RegionDataProxyRemoteObject::onRecv(const void* data, size_t len) {
     this->processAllocDataMsg((AllocDataMessage*)data);
     break;
   default:
-    throw("Unknown RegionRemoteMsgTypes.");
+    JASSERT(false)("Unknown RegionRemoteMsgTypes.");
   }
 }

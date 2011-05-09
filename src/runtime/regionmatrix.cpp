@@ -29,8 +29,7 @@ RegionMatrix::RegionMatrix(int dimensions, ElementT value) {
 
   _D = dimensions;
 
-  RegionDataIPtr regionData = new RegionData0D(value);
-  _regionHandler = new RegionHandler(regionData);
+  _regionHandler = new RegionHandler(new RegionData0D(value));
 
   _size = 0;
   _splitOffset = 0;
@@ -128,7 +127,7 @@ RegionMatrix::RegionMatrix(RegionHandlerPtr handler, int dimensions, IndexT* siz
   _splitOffset = splitOffset;
   _numSliceDimensions = numSliceDimensions;
   if (_numSliceDimensions > 0) {
-    _sliceDimensions = sliceDimensions; 
+    _sliceDimensions = sliceDimensions;
     _slicePositions = slicePositions;
   }
   _isTransposed = isTransposed;
@@ -153,7 +152,7 @@ void RegionMatrix::splitData(IndexT* splitSize) {
 void RegionMatrix::allocData() {
   acquireRegionData();
   _regionData->allocData();
-  releaseRegionData();  
+  releaseRegionData();
 }
 
 void RegionMatrix::importDataFromFile(char* filename) {
@@ -179,7 +178,7 @@ void RegionMatrix::importDataFromFile(char* filename) {
     if (z == -1) {
       break;
     }
-  }  
+  }
 
   this->releaseRegionData();
 
@@ -222,14 +221,14 @@ IndexT RegionMatrix::size(int i) const {
 
 ///
 /// true if coord is in bounds
-bool RegionMatrix::contains(const IndexT* coord) const { 
+bool RegionMatrix::contains(const IndexT* coord) const {
   for(int i=0; i<_D; ++i)
     if(coord[i]<0 || coord[i]>=size(i))
       return false;
   return true;
 }
 
-bool RegionMatrix::contains(IndexT x, ...) const { 
+bool RegionMatrix::contains(IndexT x, ...) const {
   IndexT c1[_D];
   va_list ap;
   va_start(ap, x);
@@ -244,7 +243,7 @@ RegionMatrixPtr RegionMatrix::splitRegion(const IndexT* offset, const IndexT* si
 
   IndexT* size_copy = new IndexT[_D];
   memcpy(size_copy, size, sizeof(IndexT) * _D);
-  
+
   int* sliceDimensions = new int[_numSliceDimensions];
   memcpy(sliceDimensions, _sliceDimensions,
 	 sizeof(int) * _numSliceDimensions);
@@ -252,7 +251,7 @@ RegionMatrixPtr RegionMatrix::splitRegion(const IndexT* offset, const IndexT* si
   memcpy(slicePositions, _slicePositions,
 	 sizeof(IndexT) * _numSliceDimensions);
 
-  return new RegionMatrix(_regionHandler, _D, size_copy, offset_new, 
+  return new RegionMatrix(_regionHandler, _D, size_copy, offset_new,
 			  _numSliceDimensions, sliceDimensions, slicePositions,
 			  _isTransposed);
 }
@@ -267,7 +266,7 @@ RegionMatrixPtr RegionMatrix::sliceRegion(int d, IndexT pos) const {
   memcpy(offset, _splitOffset, sizeof(IndexT) * d);
   memcpy(offset + d, _splitOffset + d + 1, sizeof(IndexT) * (dimensions - d));
 
-  // maintain ordered array of _sliceDimensions + update d as necessary  
+  // maintain ordered array of _sliceDimensions + update d as necessary
   int numSliceDimensions = _numSliceDimensions + 1;
   int* sliceDimensions = new int[numSliceDimensions];
   IndexT* slicePositions = new IndexT[numSliceDimensions];
@@ -292,7 +291,7 @@ RegionMatrixPtr RegionMatrix::sliceRegion(int d, IndexT pos) const {
       }
     }
   }
-  
+
   return new RegionMatrix(_regionHandler, dimensions, size, offset,
 			  numSliceDimensions, sliceDimensions, slicePositions,
 			  _isTransposed);
@@ -309,17 +308,17 @@ RegionMatrixPtr RegionMatrix::transposedRegion() const {
 }
 
 void RegionMatrix::moveToRemoteHost(RemoteHostPtr host, uint16_t movingBufferIndex) {
-  RegionMatrixProxyPtr proxy = 
+  RegionMatrixProxyPtr proxy =
     new RegionMatrixProxy(this->getRegionHandler());
   RemoteObjectPtr local = proxy->genLocal();
-  
+
   // InitialMsg
   RegionDataRemoteMessage::InitialMessage* msg = new RegionDataRemoteMessage::InitialMessage();
   msg->dimensions = _D;
   msg->movingBufferIndex = movingBufferIndex;
   memcpy(msg->size, _size, sizeof(msg->size));
   int len = (sizeof msg) + sizeof(msg->size);
-  
+
   host->createRemoteObject(local, &RegionDataRemote::genRemote, msg, len);
   local->waitUntilCreated();
 }
@@ -355,7 +354,7 @@ IndexT* RegionMatrix::getRegionDataCoord(const IndexT* coord_orig) const {
   IndexT split_index = 0;
 
   IndexT* coord_new = new IndexT[_regionHandler->dimensions()];
-  
+
   for (int d = 0; d < _regionHandler->dimensions(); d++) {
     if (slice_index < _numSliceDimensions &&
 	d == _sliceDimensions[slice_index]) {
@@ -400,7 +399,7 @@ CellProxy& RegionMatrix::cell(IndexT x, ...) const {
 ///////////////////////////
 
 int RegionMatrix::incCoord(IndexT* coord) {
-  if (_D == 0) { 
+  if (_D == 0) {
     return -1;
   }
 

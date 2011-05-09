@@ -11,7 +11,7 @@ namespace petabricks {
   public:
     RegionMatrixWrapper() : RegionMatrix(D) {}
     RegionMatrixWrapper(IndexT* size) : RegionMatrix(D, size) {}
- 
+
     RegionMatrixWrapper(ElementT* data, IndexT* size) : RegionMatrix(D, size) {
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
@@ -32,7 +32,7 @@ namespace petabricks {
     RegionMatrixWrapper(ElementT value) : RegionMatrix(D, value) {
       JASSERT(D==0)("This constrictor is for 0D.");
     }
-    
+
     static RegionMatrixWrapper allocate(IndexT* size) {
       RegionMatrixWrapper region = RegionMatrixWrapper<D, ElementT>(size);
       region.allocData();
@@ -137,7 +137,7 @@ namespace petabricks {
     void randomize() {
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
-      this->acquireRegionData();      
+      this->acquireRegionData();
       do {
 	this->writeCell(coord, this->rand());
       } while (this->incCoord(coord) >= 0);
@@ -147,7 +147,7 @@ namespace petabricks {
     void hash(jalib::HashGenerator& gen) {
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
-      this->acquireRegionData();      
+      this->acquireRegionData();
       do {
 	ElementT v = this->readCell(coord);
 	gen.update(&v, sizeof(ElementT));
@@ -202,11 +202,11 @@ namespace petabricks {
       _sourceIndex = new IndexT[_sourceDimension];
       memcpy(_sourceIndex, value._index, sizeof(IndexT) * _sourceDimension);
     }
-    
+
     ///
     /// Allow implicit conversion to CellProxy
     operator CellProxy& () const { return this->cell(); }
-    
+
     RegionMatrixWrapper0D operator=(Base val) {
       this->writeCell(NULL, val.readCell(NULL));
       return *this;
@@ -227,7 +227,7 @@ namespace petabricks {
   typedef RegionMatrixWrapper<1, double> RegionMatrix1D;
   typedef RegionMatrixWrapper<2, double> RegionMatrix2D;
   typedef RegionMatrixWrapper<3, double> RegionMatrix3D;
-  
+
   typedef RegionMatrix0D ConstRegionMatrix0D;
   typedef RegionMatrix1D ConstRegionMatrix1D;
   typedef RegionMatrix2D ConstRegionMatrix2D;

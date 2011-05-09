@@ -22,18 +22,20 @@ namespace petabricks {
       _value = value;
     }
 
-    int allocData() {}
+    int allocData() {
+      return 0;
+    }
 
-    ElementT readCell(const IndexT* coord) {
+    ElementT readCell(const IndexT* /*coord*/) {
       return _value;
     }
 
-    void writeCell(const IndexT* coord, ElementT value) {
+    void writeCell(const IndexT* /*coord*/, ElementT value) {
       _value = value;
     }
 
     void print() {
-      printf("%d\n", _value);
+      printf("%e\n", _value);
     }
   };
 }

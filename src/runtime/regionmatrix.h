@@ -11,7 +11,7 @@
 namespace petabricks {
   class RegionMatrix;
   typedef jalib::JRef<RegionMatrix> RegionMatrixPtr;
-  
+
   class RegionMatrix : public RegionMatrixI {
   private:
     static std::map<uint16_t, RegionDataIPtr> movingBuffer;
@@ -35,14 +35,14 @@ namespace petabricks {
 		 IndexT* splitOffset, int numSliceDimensions,
 		 int* sliceDimensions, IndexT* slicePositions,
 		 bool isTransposed);
-   
-    RegionMatrix(const RegionMatrix& that); 
+
+    RegionMatrix(const RegionMatrix& that);
     void operator=(const RegionMatrix& that);
 
     ~RegionMatrix();
 
     void init(int dimensions, IndexT* size);
-    void copy(const RegionMatrix& that); 
+    void copy(const RegionMatrix& that);
 
     void splitData(IndexT* splitSize);
     void allocData();
@@ -66,7 +66,7 @@ namespace petabricks {
     void updateHandler(uint16_t movingBufferIndex);
     static void addMovingBuffer(RegionDataIPtr remoteData, uint16_t index);
     void removeMovingBuffer(uint16_t index);
-   
+
     CellProxy& cell(IndexT x, ...) const;
     CellProxy& cell(IndexT* coord) const {
       JASSERT("cell")(_regionHandler.asPtr());
