@@ -182,3 +182,4 @@ regression/errors/rulebodylinenos
 *.cfg
 *.info
 *.obj
+-Makefile
