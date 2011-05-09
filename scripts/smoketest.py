@@ -14,22 +14,22 @@ from xml.dom.minidom import parse
 CHECK=True
 
 check_exclude=[
-         "convolution/Convolution",           # Difference
-         "multiply/strassen",                 # Difference, why???
-         "regression/whereclause",            # Difference, why???
+         "convolution/Convolution",       # Difference
+         "multiply/strassen",             # Difference, why???
+         "regression/whereclause",        # Difference, why???
          
-         "simple/matrixrotate",               # NewProgramCrash
-         "multiply/multiply",                 # NewProgramCrash
-         "regression/params",                 # AlwaysCrashes
+         "simple/matrixrotate",           # NewProgramCrash
+         "multiply/multiply",             # NewProgramCrash
+         "regression/params",             # AlwaysCrashes
 
          "convolution2/ConvFFTRecursion",
          "convolution2/Convolution",
          "convolution2/ConvLinAlg",
 
-         "kclustering/kmeans",                # (Variable accuracy)
-         "matrixapproximation/matrixapprox",  # (Variable accuracy)
-         "regression/accuracymetric",         # (Variable accuracy)
-         "preconditioner/preconditioner",     # (Variable accuracy)
+         "kclustering/kmeans",            # (Variable accuracy)
+         "matrixapprox/matrixapprox",     # (Variable accuracy)
+         "regression/accuracymetric",     # (Variable accuracy)
+         "preconditioner/preconditioner", # (Variable accuracy)
 
          "regression/floattunables2",
     ]
