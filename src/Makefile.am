@@ -168,8 +168,11 @@ $(srcdir)/compiler/pbparser.h:		 libpbcompiler_a-pbparser.h
 $(srcdir)/compiler/ruleirparser.h: libpbcompiler_a-ruleirparser.h
 	cp $< $@ 
 
-#force bison before lex
-$(srcdir)/compiler/maximalexer.lpp: $(srcdir)/compiler/maximaparser.h libpbcompiler_a-maximaparser.cpp
-$(srcdir)/compiler/pblexer.lpp: $(srcdir)/compiler/pbparser.h libpbcompiler_a-pbparser.cpp
-$(srcdir)/compiler/ruleirlexer.lpp: $(srcdir)/compiler/ruleirparser.h libpbcompiler_a-ruleirparser.cpp
+#make sure the output of flex/bison has the latest version of the header
+libpbcompiler_a-maximalexer.cpp:  $(srcdir)/compiler/maximaparser.h
+libpbcompiler_a-maximaparser.cpp: $(srcdir)/compiler/maximaparser.h
+libpbcompiler_a-pblexer.cpp:      $(srcdir)/compiler/pbparser.h
+libpbcompiler_a-pbparser.cpp:     $(srcdir)/compiler/pbparser.h
+libpbcompiler_a-ruleirlexer.cpp:  $(srcdir)/compiler/ruleirparser.h
+libpbcompiler_a-ruleirparser.cpp: $(srcdir)/compiler/ruleirparser.h
 
