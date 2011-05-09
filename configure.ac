@@ -20,6 +20,7 @@ AC_PROG_CXX
 AC_PROG_CXXCPP
 AC_PROG_EGREP
 AC_PROG_RANLIB
+AC_PROG_LN_S
 
 AM_PROG_LEX
 if test "x$ac_cv_prog_LEX" = "x"; then

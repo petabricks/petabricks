@@ -32,8 +32,7 @@
 #include <stdio.h>
 #include <map>
 
-
-#include "ruleirparser.h"
+#include "libpbcompiler_a-ruleirparser.h"
 
 using namespace petabricks;
 
