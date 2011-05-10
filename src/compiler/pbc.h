@@ -70,19 +70,28 @@ public:
   {
     SEQUENTIAL,
     WORKSTEALING,
+    DISTRIBUTED,
+#ifdef HAVE_OPENCL
     OPENCL,
-    DISTRIBUTED
+#endif
+    _COUNT
   };
 
+  typedef unsigned int iterator;
+  static iterator begin() { return 0; }
+  static iterator end() { return _COUNT; }
 
   RuleFlavor(RuleFlavorEnum v) : _val(v) {}
+  RuleFlavor(iterator v) : _val(static_cast<RuleFlavorEnum>(v)) {}
   operator RuleFlavorEnum() const { return _val; }
 
   const char* str() const {
     switch(*this) {
       case RuleFlavor::SEQUENTIAL:   return "sequential";
       case RuleFlavor::WORKSTEALING: return "workstealing";
+#ifdef HAVE_OPENCL
       case RuleFlavor::OPENCL:       return "opencl";
+#endif
       case RuleFlavor::DISTRIBUTED:  return "distributed";
       default:
         UNIMPLEMENTED();

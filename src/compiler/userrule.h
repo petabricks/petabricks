@@ -104,19 +104,12 @@ public:
 
   ///
   /// Generate seqential code to declare this rule
-  void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 
   ///
   /// Generate seqential code to declare this rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
-    generateTrampCodeSimple(trans, o, RuleFlavor::SEQUENTIAL);
-    generateTrampCodeSimple(trans, o, RuleFlavor::WORKSTEALING);
-#ifdef HAVE_OPENCL
-    if( isOpenClRule() )
-      generateTrampCodeSimple(trans, o, RuleFlavor::OPENCL);
-#endif
-  }
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
+  
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
 #ifdef HAVE_OPENCL

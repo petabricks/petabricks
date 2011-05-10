@@ -57,8 +57,8 @@ public:
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor); 
-  void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor);
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
 
   void markRecursive();
   const FormulaPtr& recursiveHint() const;
@@ -87,7 +87,7 @@ public:
   }
   
   //these just forward to _rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
                         CodeGenerator& o,
@@ -118,7 +118,7 @@ public:
     : _rules(rules) 
   {}
 
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
@@ -155,7 +155,7 @@ public:
 
   ///
   /// calls setDuplicateNumber() then forwards the call to _rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
 
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
@@ -175,7 +175,7 @@ public:
     : _rules(rules) 
   {}
 
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 
   void generateCallCode(const std::string& nodename,
                         Transform& trans,

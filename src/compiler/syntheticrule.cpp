@@ -67,8 +67,8 @@ void petabricks::SyntheticRule::generateCallCode(const std::string&,
                                                  RuleFlavor){
 }
 
-void petabricks::SyntheticRule::generateDeclCodeSimple(Transform&, CodeGenerator&) {}
-void petabricks::SyntheticRule::generateTrampCodeSimple(Transform&, CodeGenerator&) {}
+void petabricks::SyntheticRule::generateDeclCode(Transform&, CodeGenerator&, RuleFlavor) {}
+void petabricks::SyntheticRule::generateTrampCode(Transform&, CodeGenerator&, RuleFlavor) {}
 
 void petabricks::SyntheticRule::markRecursive() { 
   UNIMPLEMENTED();
@@ -95,8 +95,8 @@ void petabricks::WrapperSyntheticRule::generateCallCode(const std::string& name,
   _rule->generateCallCode(name, trans, o, region, flavor);
 }
 
-void petabricks::WrapperSyntheticRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
-  _rule->generateTrampCodeSimple(trans, o);
+void petabricks::WrapperSyntheticRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
+  _rule->generateTrampCode(trans, o, rf);
 }
 
 
@@ -167,17 +167,19 @@ void petabricks::WhereExpansionRule::generateCallCode(const std::string& name,
   }
 }
 
-void petabricks::WhereExpansionRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
-  //for now static only:
-  IterationDefinition iterdef(*this, getSelfDependency() , false);
-  std::vector<std::string> packedargs = iterdef.packedargs();
-  o.beginFunc("petabricks::DynamicTaskPtr", codename()+TX_STATIC_POSTFIX, packedargs);
-  iterdef.unpackargs(o);
-  iterdef.genLoopBegin(o);
-  genWhereSwitch(trans,o);
-  iterdef.genLoopEnd(o);
-  o.write("return NULL;");
-  o.endFunc();
+void petabricks::WhereExpansionRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
+  if(rf==RuleFlavor::SEQUENTIAL) {
+    //for now static only:
+    IterationDefinition iterdef(*this, getSelfDependency() , false);
+    std::vector<std::string> packedargs = iterdef.packedargs();
+    o.beginFunc("petabricks::DynamicTaskPtr", codename()+TX_STATIC_POSTFIX, packedargs);
+    iterdef.unpackargs(o);
+    iterdef.genLoopBegin(o);
+    genWhereSwitch(trans,o);
+    iterdef.genLoopEnd(o);
+    o.write("return NULL;");
+    o.endFunc();
+  }
 }
 
 
@@ -270,9 +272,9 @@ void petabricks::DuplicateExpansionRule::generateCallCode(const std::string& nam
   _rule->setDuplicateNumber(old);
 }
 
-void petabricks::DuplicateExpansionRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::DuplicateExpansionRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
   size_t old = _rule->setDuplicateNumber(_dup);
-  WrapperSyntheticRule::generateTrampCodeSimple(trans, o);
+  WrapperSyntheticRule::generateTrampCode(trans, o, rf);
   _rule->setDuplicateNumber(old);
 }
 
@@ -308,7 +310,9 @@ void petabricks::CallInSequenceRule::generateCallCode(const std::string& name,
     o.write("}");
 }
 
-void petabricks::CallInSequenceRule::generateTrampCodeSimple(Transform& /*trans*/, CodeGenerator& /*o*/) { UNIMPLEMENTED(); }
+void petabricks::CallInSequenceRule::generateTrampCode(Transform& /*trans*/, CodeGenerator& /*o*/, RuleFlavor){
+  UNIMPLEMENTED();
+}
   
 bool petabricks::CallInSequenceRule::isSingleElement() const { UNIMPLEMENTED(); return false; }
   

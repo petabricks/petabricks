@@ -88,6 +88,8 @@ public:
   void generateCode(CodeGenerator& o);
 
   void generateCodeSimple(CodeGenerator& o, const std::string& nextMain = "NULL");
+
+  void generateTransformInstanceClass(CodeGenerator& o, RuleFlavor rf);
   
   void registerMainInterface(CodeGenerator& o);
 

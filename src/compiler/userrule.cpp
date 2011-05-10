@@ -406,7 +406,11 @@ void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& ou
   }
 }
 
-void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
+  if(rf != RuleFlavor::SEQUENTIAL) {
+    return;
+  }
+
   SRCPOSSCOPE();
 
   if(isRecursive()){
@@ -488,7 +492,7 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
   o.endFunc();
 }
 
-void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
+void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   SRCPOSSCOPE();
   IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
   std::vector<std::string> taskargs = iterdef.packedargs();

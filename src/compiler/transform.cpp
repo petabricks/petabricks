@@ -459,16 +459,30 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.write("#define TRANSFORM_LOCAL(x) PB_CAT("+_name+"_, x)");
   o.newline();
 
-  o.comment("User rules");
-  Map(&RuleInterface::generateDeclCodeSimple, *this, o, _rules);
+  //o.globalDefine(_name+TX_DYNAMIC_POSTFIX+"(args...)",
+  //    "petabricks::tx_call_dynamic(new "+instClassName()+"(args))");
+  //o.globalDefine(_name+TX_STATIC_POSTFIX+"(args...)",
+  //    instClassName()+"(args).runStatic()");
+  
+  for(RuleFlavor::iterator rf=RuleFlavor::begin(); rf!=RuleFlavor::end(); ++rf) {
+    generateTransformInstanceClass(o, rf);
+  }
+  
+  generateMainInterface(o, nextMain);
+  o.write("#undef TRANSFORM_LOCAL");
+  o.comment("End of output for "+_name);
+  o.cg().endTransform(_originalName, _name);
   o.newline();
+  o.newline();
+}
 
-  o.beginClass(instClassName(), "petabricks::TransformInstance");
 
-  o.globalDefine(_name+TX_DYNAMIC_POSTFIX+"(args...)",
-      "petabricks::tx_call_dynamic(new "+instClassName()+"(args))");
-  o.globalDefine(_name+TX_STATIC_POSTFIX+"(args...)",
-      instClassName()+"(args).runStatic()");
+void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, RuleFlavor rf){ 
+
+  //allow rules to put code outside of class
+  Map(&RuleInterface::generateDeclCode, *this, o, rf, _rules);
+
+  o.beginClass(instClassName() + "_" + rf.str(), "petabricks::TransformInstance");
 
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     o.addMember((*i)->matrixTypeName(), (*i)->name());
@@ -477,7 +491,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
     o.addMember((*i)->constMatrixTypeName(), (*i)->name());
   }
   
-  if(_scheduler->size()>1){
+  if(_scheduler->size()>1 && rf == RuleFlavor::WORKSTEALING){
     o.beginFunc("bool", "useContinuation");
     o.createTunable(true, "system.flag.unrollschedule", _name + "_unrollschedule", 1, 0, 1);
     o.write("return "+_name + "_unrollschedule == 0;");
@@ -489,36 +503,39 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   extractConstants(o);
   o.endFunc();
   
-  o.beginFunc("DynamicTaskPtr", "runDynamic");
-  if(_memoized){
-    o.beginIf("tryMemoize()");
+
+
+  if(rf == RuleFlavor::SEQUENTIAL) {
+    o.beginFunc("void", "runStatic");
+    if(_memoized){
+      o.beginIf("tryMemoize()");
+      o.write("return;");
+      o.endIf();
+    }
+    _scheduler->generateCode(*this, o, RuleFlavor::SEQUENTIAL);
+    o.endFunc();
+  }
+  else if(rf == RuleFlavor::WORKSTEALING) {
+    o.beginFunc("DynamicTaskPtr", "runDynamic");
+    if(_memoized){
+      o.beginIf("tryMemoize()");
+      o.write("return NULL;");
+      o.endIf();
+    }
+#ifndef SINGLE_SEQ_CUTOFF
+    o.createTunable(true, "system.cutoff.sequential", _name + "_sequentialcutoff", 0);
+    o.beginIf(TRANSFORM_N_STR "() < TRANSFORM_LOCAL(sequentialcutoff)");
+#else
+    o.beginIf(TRANSFORM_N_STR "() < sequentialcutoff");
+#endif
+    o.write("runStatic();");
     o.write("return NULL;");
     o.endIf();
+    _scheduler->generateCode(*this, o, RuleFlavor::WORKSTEALING);
+    o.endFunc();
   }
-#ifndef SINGLE_SEQ_CUTOFF
-  o.createTunable(true, "system.cutoff.sequential", _name + "_sequentialcutoff", 0);
-  o.beginIf(TRANSFORM_N_STR "() < TRANSFORM_LOCAL(sequentialcutoff)");
-#else
-  o.beginIf(TRANSFORM_N_STR "() < sequentialcutoff");
-#endif
-  o.write("runStatic();");
-  o.write("return NULL;");
-  o.endIf();
-  _scheduler->generateCode(*this, o, RuleFlavor::WORKSTEALING);
-  o.endFunc();
 
-  o.beginFunc("void", "runStatic");
-  if(_memoized){
-    o.beginIf("tryMemoize()");
-    o.write("return;");
-    o.endIf();
-  }
-  _scheduler->generateCode(*this, o, RuleFlavor::SEQUENTIAL);
-  o.endFunc();
-  
-  o.comment("Rule trampolines");
-  Map(&RuleInterface::generateTrampCodeSimple, *this, o, _rules);
-  o.newline();
+  Map(&RuleInterface::generateTrampCode, *this, o, rf, _rules);
 
   declTransformNFunc(o);
   
@@ -529,13 +546,6 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.mergehelpers();
 
   o.endClass();
-  
-  generateMainInterface(o, nextMain);
-  o.write("#undef TRANSFORM_LOCAL");
-  o.comment("End of output for "+_name);
-  o.cg().endTransform(_originalName, _name);
-  o.newline();
-  o.newline();
 }
 
 void petabricks::Transform::declTransformNFunc(CodeGenerator& o){

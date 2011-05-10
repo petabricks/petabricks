@@ -123,8 +123,8 @@ public:
                                 CodeGenerator& o,
                                 const SimpleRegionPtr& region,
                                 RuleFlavor flavor) = 0; 
-  virtual void generateDeclCodeSimple(Transform& trans, CodeGenerator& o) = 0;
-  virtual void generateTrampCodeSimple(Transform& trans, CodeGenerator& o) = 0;
+  virtual void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
+  virtual void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
   
   virtual void markRecursive() = 0;
   virtual const FormulaPtr& recursiveHint() const = 0;
