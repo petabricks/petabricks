@@ -186,11 +186,11 @@ CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp li
 
 #copy bison headers
 maximaparser.h: libpbcompiler_a-maximaparser.h
-	$(LN_S) $< $@ 
+	test -h $@ || $(LN_S) $< $@
 pbparser.h:		 libpbcompiler_a-pbparser.h
-	$(LN_S) $< $@ 
+	test -h $@ || $(LN_S) $< $@ 
 ruleirparser.h: libpbcompiler_a-ruleirparser.h
-	$(LN_S) $< $@ 
+	test -h $@ || $(LN_S) $< $@ 
 
 #make sure the output of flex/bison has the latest version of the header
 $(srcdir)/compiler/maximalexer.lpp: maximaparser.h
