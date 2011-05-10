@@ -55,10 +55,10 @@ petabricks::PetabricksRuntime::Main* petabricksMainTransform();
 petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);
 
 #define PB_SPAWN(taskname, args...) \
-  petabricks::spawn_hook( taskname ## _dynamic (args), _completion)
+  petabricks::spawn_hook( taskname ## _worksteal (args), _completion)
 
 #define PB_STATIC_CALL(taskname, args...) \
-  taskname ## _static (args)
+  taskname ## _seq (args)
 
 #define PB_NOP() (void)0
 
