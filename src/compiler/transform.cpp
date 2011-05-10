@@ -885,7 +885,11 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.beginFunc("ElementT", "accuracy");
   if(_accuracyMetric != "")
   {
+#ifndef REGIONMATRIX_TEST
     o.write("MatrixRegion0D _acc = MatrixRegion0D::allocate();");
+#else
+    o.write("RegionMatrix0D _acc = RegionMatrix0D::allocate();");
+#endif
     std::vector<std::string> args = argnames();
     args.insert(args.begin(), "_acc");
     o.setcall("DynamicTaskPtr p", _accuracyMetric+TX_DYNAMIC_POSTFIX, args);

@@ -590,7 +590,11 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
     {
       /** \todo Need to generalize this for arbitrary dimensionality */
+#ifndef REGIONMATRIX_TEST
       o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
+#else
+      o.os( ) << "RegionMatrix<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
+#endif
               << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( true );\n";
       o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
               << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " 
