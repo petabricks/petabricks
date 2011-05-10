@@ -20,6 +20,7 @@ AC_PROG_CXX
 AC_PROG_CXXCPP
 AC_PROG_EGREP
 AC_PROG_RANLIB
+AC_PROG_LN_S
 
 AM_PROG_LEX
 if test "x$ac_cv_prog_LEX" = "x"; then
@@ -102,14 +103,16 @@ AC_CHECK_HEADERS([openssl/md5.h],  [], [AC_MSG_ERROR([missing package libssl-dev
 AC_CHECK_HEADERS([openssl/sha.h],  [], [])
 AC_CHECK_HEADERS([cxxabi.h execinfo.h poll.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h sys/mman.h])
 AC_CHECK_HEADERS([boost/random.hpp], [], [AC_MSG_WARN([missing boost/random, falling back to slower random number generation])])
+
 AC_SEARCH_LIBS([MD5_Init], [crypto ssl], [], [AC_MSG_ERROR([missing package libssl-dev])])
-AC_CHECK_LIB([m],[cos],                  [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
-AC_CHECK_LIB([fftw3], [fftw_malloc],     [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
-AC_CHECK_LIB([pthread],[pthread_create], [], [AC_MSG_WARN([failed to find -lpthread, some benchmarks may not work])])
-AC_CHECK_LIB([lapack], [dposv_],         [], [AC_MSG_WARN([failed to find -llapack, some benchmarks may not work])])
-AC_CHECK_LIB([rt], [clock_gettime],      [], [AC_DEFINE([USE_GETTIMEOFDAY],[],[define if clock_gettime() doesnt work])])
-#AC_CHECK_LIB([gslcblas],[cblas_dgemm],   [], [AC_MSG_WARN([failed to find -lgslcblas, some benchmarks may not work])]) 
-#AC_CHECK_LIB([gsl],[gsl_blas_dgemm],     [], [AC_MSG_WARN([failed to find -lgsl, some benchmarks may not work])])
+
+AC_CHECK_LIB([blas],       [cblas_dgemm],    [], [AC_MSG_WARN([failed to find -lblas, some benchmarks may not work])])
+AC_CHECK_LIB([fftw3],      [fftw_malloc],    [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
+AC_CHECK_LIB([lapack],     [dposv_],         [], [AC_MSG_WARN([failed to find -llapack, some benchmarks may not work])])
+AC_CHECK_LIB([m],          [cos],            [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
+AC_CHECK_LIB([pthread],    [pthread_create], [], [AC_MSG_WARN([failed to find -lpthread, some benchmarks may not work])])
+AC_CHECK_LIB([rt],         [clock_gettime],  [],
+                        [AC_DEFINE([USE_GETTIMEOFDAY],[],[define if clock_gettime() doesnt work])])
 
 ################################################################################
 # COMPILER PROPERTIES ##########################################################
