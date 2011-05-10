@@ -275,6 +275,9 @@ AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files i
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
 
+
+AC_DEFINE([REGIONMATRIX_TEST],   [1], [always use RegionMatrix code])
+
 AC_DEFINE_UNQUOTED([MAXIMA_PATH],    ["$MAXIMA"], [path to maxima program])
 AC_DEFINE_UNQUOTED([REVISION_LONG],  ["$rev_long"], [git revision for HEAD at the time ./configure was run])
 AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at the time ./configure was run])
