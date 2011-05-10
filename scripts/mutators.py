@@ -100,9 +100,12 @@ class LognormRandom:
 
 class UniformRandom:
   def random(self, start, minVal, maxVal):
-    v=stats.randint.rvs(minVal, maxVal+1)
-    #logging.debug("uniform: start=%d, v=%d", start, v)
-    return v
+    for z in xrange(config.rand_retries):
+      v=int(stats.randint.rvs(minVal, maxVal+1))
+      #logging.debug("uniform: start=%d, v=%d", start, v)
+      if v>=minVal and v<=maxVal and start!=v:
+        return v
+    raise MutateFailed("lognorm random gen failed")
 
 class AddAlgLevelMutator(Mutator):
   '''add a new alg level to the target choice site'''
@@ -241,6 +244,8 @@ class TunableArrayMutator(Mutator):
     candidate.clearResultsAbove(min(n, 2**i-1))
     old = candidate.config[config.fmt_bin % (self.tunable, i)]
     new = self.getVal(candidate, old, n)
+    assert new >= self.minVal
+    assert new <= self.maxVal
     #print str(candidate),self.tunable, old, new
     ks = set(candidate.config.keys())
     assert config.fmt_bin%(self.tunable, i) in ks

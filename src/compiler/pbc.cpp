@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 
 #include "codegenerator.h"
 #include "maximawrapper.h"
@@ -91,8 +106,9 @@ void closesubproc(FILE* p, const std::string& name) {
   while(!feof(p)) {
     char buf[1024];
     memset(buf, 0, sizeof buf);
-    (void)fread(buf, 1, sizeof buf -1,  p);
-    std::cerr << buf;
+    if(fread(buf, 1, sizeof buf -1,  p) > 0) {
+      std::cerr << buf;
+    }
   }
   JASSERT(pclose(p)==0);
 }
@@ -396,14 +412,13 @@ int main( int argc, const char ** argv){
   JASSERT(olddir==getcwd(olddir, sizeof olddir - 1));
   JASSERT(chdir(theObjDir.c_str())==0)(theObjDir);
   
+  ccfiles.writeMakefile();
+  
   // COMPILE AND LINK:
   if(shouldCompile)
     ccfiles.compile();
   else
     ccfiles.write();
-
-  ccfiles.writeMakefile();
-
 
   if(shouldLink) {
     ccfiles.link();

@@ -15,8 +15,8 @@ Problem with 'maxima' on this system:
          - http://packages.debian.org/sid/maxima-share
        for debian based systems.
 
-       There is a bug in maxima 5.15 to 5.20.1 that prevent it from working
-       with petabricks. These bugs have been fixed in maxima svn.
+       There is a bug in maxima 5.15 to 5.20.1 that prevents it from working
+       with petabricks.
 '''
 
 def die(msg):

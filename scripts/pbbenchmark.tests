@@ -2,9 +2,20 @@
 # TESTNAME CONFIG INPUTSIZE ACCTARGET BASEPERF
 #
 
-sort/Sort             Sort.cfg       10000   1   0.12
-multiply/strassen     strassen.cfg   256     1   0.2
-binpacking/binpacking binpacking.cfg 2048   -1.1 0.011
+binpacking/binpacking             binpacking.cfg      8192     -1.15
+kclustering/kmeans                kmeans.cfg          128      0.2
+LUDense/PLUrecur                  PLUrecur.cfg        512      1
+matrixapprox/matrixapprox         matrixapprox.cfg    128      0.8
+multigrid/Helmholtz3DFMG          Helmholtz3DFMG.cfg  32       7
+multigrid/Poisson2DFMG            Poisson2DFMG.cfg    129      7
+multiply/strassen                 strassen.cfg        512      1
+sort/Sort                         Sort.cfg            524288   1
 
+# Benchmarks need to be fixed:
+#eigenproblem/EigSym.pbcc           EigSym.cfg             1024     1
+#preconditioner/preconditioner.pbcc preconditioner.cfg
 
+# Benchmarks need more choices:
+# Prefixsum
+# bitonic
 

@@ -1,19 +1,37 @@
-#define FORCE_OPENCL
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
+
+//#define FORCE_OPENCL
 //#define OPENCL_LOGGING
 
-#define TRACE(x) std::cout << "Trace " << x << "\n"
+//#define TRACE(x) std::cout << "Trace " << x << "\n"
 
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+#define TRACE JTRACE
+
 #include "userrule.h"
 
 #include "maximawrapper.h"
@@ -127,11 +145,13 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       _bodyirOpenCL->accept(gpurename);
       std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
       bodyir->accept(print);
-      std::cerr << "--------------------\n";
 
       if(!passBuildGpuProgram(tx)) {
+				//std::cerr << "FAIL GPU\n" << bodyir << std::endl;
         failgpu = true;
       }
+
+      std::cerr << "--------------------\n";
     }
     catch( OpenClCleanupPass::NotValidSource e )
     {
@@ -160,8 +180,9 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
 #endif
 }
 
-bool petabricks::UserRule::passBuildGpuProgram(Transform& trans) {
 #ifdef HAVE_OPENCL
+bool petabricks::UserRule::passBuildGpuProgram(Transform& trans) {
+	//return false;
   TrainingDeps* tmp = new TrainingDeps();
   CLCodeGenerator clcodegen(tmp);
 
@@ -179,12 +200,8 @@ bool petabricks::UserRule::passBuildGpuProgram(Transform& trans) {
     return false;
   err = clBuildProgram( clprog, 0, NULL, NULL, NULL, NULL);
   return (err == CL_SUCCESS);
-#else
-  (void)trans;
-  UNIMPLEMENTED();
-  return false;
-#endif
 }
+#endif
 
 void petabricks::UserRule::print(std::ostream& os) const {
   SRCPOSSCOPE();
@@ -549,6 +566,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     o.comment( "Create memory objects for outputs." );
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
+			//TODO: no need to use asnormalize for output
       /*o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
               << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( false );\n";
       o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
@@ -578,10 +596,6 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
               << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " 
               << "normalized_" << (*i)->name( ) << ".bytes( ),"
               << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
-      /*o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
-              << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " 
-              << (*i)->matrix( )->name( ) << ".bytes( ),"
-              << "(void*) " << (*i)->matrix( )->name( ) << ".base( ), &err );\n";*/
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
 
       // Bind to kernel.
@@ -590,11 +604,18 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
     //      o.os( ) << "printf( \"- TRACE 40\\n\" );\n";
 
+
+    RegionList::const_iterator output = _to.begin( );
     // Bind rule dimension arguments to kernel.
     for( int i = 0; i < iterdef.dimensions( ); ++i )
     {
-      o.os( ) << "int ruledim_" << i << " = _iter_end[" << i << "] - _iter_begin[" << i << "];\n";
+      o.os( ) << "int ruledim_" << i << " = " << (*output)->matrix( )->name( ) << ".size(" << i << ");\n";
+      //o.os( ) << "int ruledim_" << i << " = _iter_end[" << i << "] - _iter_begin[" << i << "];\n";
       o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
+      o.os( ) << "int ruledim_" << i << "_begin" << " = _iter_begin[" << i << "];\n";
+      o.os( ) << "int ruledim_" << i << "_end" << " = _iter_end[" << i << "];\n";
+      //o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << "_begin );\n";
+      //o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << "_end );\n";
     }
 
     // Bind matrix dimension arguments to kernel.
@@ -617,16 +638,14 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     /** \todo Need to generalize for >1 GPUs and arbitrary dimensionality. */
     o.comment( "Invoke kernel." );
 
-    //  need to get cnDim ( size in each dimension ) -- can probably get this from iterdef
-    // (along with dimensionality, actually, probably)
-    //o.os( ) << "size_t workdim[] = { _iter_end[0]-_iter_begin[0], _iter_end[1]-_iter_begin[1] };\n";
     o.os( ) << "size_t workdim[] = { ";
     for( int i = 0; i < iterdef.dimensions( ); ++i )
     {
       if(i > 0) {
         o.os() << ", ";
       }
-      o.os( ) << "_iter_end[" << i << "]-_iter_begin[" << i << "]";
+      //o.os( ) << "_iter_end[" << i << "]-_iter_begin[" << i << "]";
+      o.os( ) << (*output)->matrix( )->name( ) << ".size(" << i << ")";
     }
     o.os( ) << "};\n";
 
@@ -652,7 +671,8 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_" 
               << (*i)->name( ) << ", CL_TRUE, 0, " 
               << (*i)->matrix( )->name( ) <<  ".bytes(), " 
-              << (*i)->matrix( )->name( ) << ".base() + _iter_begin[0], 0, NULL, NULL );\n";
+              << (*i)->matrix( )->name( ) << ".base(), 0, NULL, NULL );\n";
+              //<< (*i)->matrix( )->name( ) << ".base() + _iter_begin[0], 0, NULL, NULL );\n";
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to read output buffer.\" );\n";
     }
     o.os( ) << "\n";
@@ -756,6 +776,8 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   for( int i = 0; i < iterdef.dimensions( ); ++i )
   {
     clo.os( ) << _getOffsetVarStr( _id, i, NULL ) << " < dim_d" << i << " ";
+    //clo.os( ) << _getOffsetVarStr( _id, i, NULL ) << " >= dim_d" << i << "_begin && ";
+    //clo.os( ) << _getOffsetVarStr( _id, i, NULL ) << " < dim_d" << i << "_end ";
     if( i != ( iterdef.dimensions( ) - 1 ) )
     clo.os( ) << "&& ";
   }
@@ -814,7 +836,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   /** \todo this mechanism won't work with rules with multiple outputs */
   {
     RegionList::const_iterator i = _to.begin( );
-    clo.os( ) << "#define PB_RETURN(x) _region_" << (*i)->name( ) << "[idx_" << (*i)->name( ) << "] = x\n";
+    clo.os( ) << "#define PB_RETURN(x) _region_" << (*i)->name( ) << "[idx_" << (*i)->name( ) << "] = x; return\n";
   }
 
   // Support for multiple-output rules

@@ -69,13 +69,13 @@ class Progress:
     self.update()
 
   def startPercent(self):
-    if not self.hasParent() or self.maxRemaining < 0:
+    if not self.hasParent():
       return 0.0
     else:
       return self.parent.percent()
 
   def endPercent(self):
-    if not self.hasParent() or self.maxRemaining < 0:
+    if not self.hasParent():
       return 100.0
     else:
       return self.parent.nextPercent()
@@ -84,13 +84,32 @@ class Progress:
     return self.endPercent()-self.startPercent()
   
   def localPercent(self):
-    return 100.0*(1-self.curRemaining/self.maxRemaining)
+    if self.maxRemaining>0:
+      return 100.0*(1-self.curRemaining/self.maxRemaining)
+    else:
+      return 0.0
+
+  def debug(self):
+    if self.hasParent():
+      rv=self.parent.debug()
+    else:
+      rv=tuple()
+    if self.maxRemaining>0:
+      return rv+("%.4f:%.4f"%(self.percent(),self.nextPercent()),)
+    else:
+      return rv+('-',)
 
   def percent(self):
-    return self.startPercent()+(self.scale()*(1-self.curRemaining/self.maxRemaining))
+    if self.maxRemaining>0:
+      return self.startPercent()+(self.scale()*(1-self.curRemaining/self.maxRemaining))
+    else:
+      return self.startPercent()
   
   def nextPercent(self):
-    return self.startPercent()+(self.scale()*(1-self.nextRemaining/self.maxRemaining))
+    if self.maxRemaining>0:
+      return self.startPercent()+(self.scale()*(1-self.nextRemaining/self.maxRemaining))
+    else:
+      return self.endPercent()
 
   def getStatus(self):
     if type(self.curMsg) is type(lambda:""):
@@ -102,11 +121,13 @@ class Progress:
     return ""
 
   def update(self):
-    m=""
-    if self.maxRemaining >= 0:
-      m=prettybar(self.percent())
+    p = self.percent()
+    if p>0:
+      m = prettybar(p)
+    else:
+      m = ""
     m += self.getStatus()
-    if self.hasParent():
+    if self.hasParent() and self.maxRemaining>=0:
       m+=" (%.0f%%)"%self.localPercent()
     setstatusline(m)
 
@@ -121,9 +142,11 @@ class OutputWrapper:
   def __init__(self, fd):
     self.fd = fd
   def write(self, s):
-    clear()
-    self.fd.write(s)
-    update()
+    if len(s):
+      clear()
+      self.fd.write(s)
+      if s[-1] == '\n':
+        update()
   def flush(self):
     self.fd.flush()
 sys.stdout = OutputWrapper(sys.stdout)
@@ -233,7 +256,6 @@ def pause(m):
   clear()
   raw_input(m)
   update()
-
     
 def test():
   import time

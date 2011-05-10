@@ -1,10 +1,10 @@
-AC_INIT([petabricks], [1.99], [jansel@csail.mit.edu])
+AC_INIT([petabricks], [2.0], [jansel@csail.mit.edu])
 
 AC_CONFIG_SRCDIR([src/compiler/pbc.cpp])
 AC_CANONICAL_TARGET
 
 AM_CONFIG_HEADER([src/config.h])
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([foreign])
 
 default_cxxflags=no
 if test "x$CXXFLAGS" = "x"; then
@@ -191,12 +191,11 @@ fi
 
 
 AC_ARG_ENABLE([timing],
-            [AS_HELP_STRING([--enable-timing],
-                            [record checkpoint/restart timing information
-                            to jtimings.csv, in working directory of
-                            dmtcp_coordinator, and to stderr.])],
-            [use_jtiming=$enableval],
-            [use_jtiming=no])
+              [AS_HELP_STRING([--enable-timing],
+                              [record timing information to jtimings.csv,
+                               and to stderr.])],
+              [use_jtiming=$enableval],
+              [use_jtiming=no])
 
 if test "$use_jtiming" = "yes"; then
   AC_DEFINE([TIMING],[],[record timing information to stderr and jtimings.csv])
@@ -308,7 +307,7 @@ if test "$default_cxxflags" = "yes"; then
     compileflags="-O0 -g $compileflags -fdiagnostics-show-option"
   else
     CXXFLAGS=""
-    compileflags="-O3 $compileflags"
+    compileflags="-O2 $compileflags"
   fi
   case "$target_cpu" in
     *sparc*) compileflags="$compileflags -mcpu=niagara -mtune=native";;
