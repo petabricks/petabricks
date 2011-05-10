@@ -129,6 +129,7 @@ RemoteObjectPtr RegionDataProxy::genRemote() {
 // RegionDataProxyRemoteObject
 
 void RegionDataProxyRemoteObject::onRecvInitial(const void* buf, size_t len) {
+  JASSERT(len==sizeof(InitialMessage));
   InitialMessage* msg = (InitialMessage*) buf;
   _regionData = new RegionDataRaw(msg->dimensions, msg->size, msg->partOffset);
 }
@@ -143,7 +144,7 @@ void RegionDataProxyRemoteObject::processWriteCellMsg(WriteCellMessage* msg) {
   this->send(&msg->value, sizeof(ElementT));
 }
 
-void RegionDataProxyRemoteObject::processAllocDataMsg(AllocDataMessage* msg) {
+void RegionDataProxyRemoteObject::processAllocDataMsg(AllocDataMessage* /*msg*/) {
   int r = _regionData->allocData();
   this->send(&r, sizeof(int));  
 }
@@ -151,12 +152,15 @@ void RegionDataProxyRemoteObject::processAllocDataMsg(AllocDataMessage* msg) {
 void RegionDataProxyRemoteObject::onRecv(const void* data, size_t len) {
   switch(*(MessageType*)data) {
   case MessageTypes::READCELL:
+    JASSERT(len==sizeof(ReadCellMessage));
     this->processReadCellMsg((ReadCellMessage*)data);
     break;
   case MessageTypes::WRITECELL:
+    JASSERT(len==sizeof(WriteCellMessage));
     this->processWriteCellMsg((WriteCellMessage*)data);
     break;
   case MessageTypes::ALLOCDATA:
+    JASSERT(len==sizeof(AllocDataMessage));
     this->processAllocDataMsg((AllocDataMessage*)data);
     break;
   default:

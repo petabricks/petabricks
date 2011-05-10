@@ -14,7 +14,7 @@ RegionDataRaw::RegionDataRaw(int dimensions, IndexT* size, IndexT* partOffset) {
   init(dimensions, size, NULL, partOffset);
 }
 
-RegionDataRaw::RegionDataRaw(char* filename) {
+RegionDataRaw::RegionDataRaw(const char* filename) {
   MatrixIO* matrixio = new MatrixIO(filename, "r");
   MatrixReaderScratch o = matrixio->readToMatrixReaderScratch();
   init(o.dimensions, o.sizes, o.storage->data(), NULL);

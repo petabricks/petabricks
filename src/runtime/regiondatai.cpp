@@ -1,5 +1,6 @@
 #include "regiondatai.h"
 
+#include <stdio.h>
 #include <string.h>
 
 using namespace petabricks;

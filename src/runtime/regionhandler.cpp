@@ -11,12 +11,12 @@ int RegionHandler::dimensions() {
   return _D;
 }
 
-RegionDataIPtr RegionHandler::acquireRegionData(void* caller) {
+RegionDataIPtr RegionHandler::acquireRegionData(void* /*caller*/) {
   // TODO: implement list - used when move RegionData
   return _regionData;
 }
 
-void RegionHandler::releaseRegionData(void* caller) {
+void RegionHandler::releaseRegionData(void* /*caller*/) {
   // TODO: implement list
 }
 

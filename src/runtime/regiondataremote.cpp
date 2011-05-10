@@ -91,6 +91,7 @@ RemoteObjectPtr RegionDataRemote::genRemote() {
 //
 
 void RegionDataRemoteObject::onRecvInitial(const void* buf, size_t len) {
+  JASSERT(len == sizeof(InitialMessage));
   InitialMessage* msg = (InitialMessage*) buf;
 
   IndexT* size = (IndexT*)malloc(sizeof(IndexT) * msg->dimensions);

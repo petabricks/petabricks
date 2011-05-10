@@ -1,5 +1,7 @@
 #include "regionmatrixproxy.h"
 
+#include "common/jassert.h"
+
 using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
 
@@ -36,13 +38,15 @@ void RegionMatrixProxy::processWriteCellMsg(WriteCellMessage* msg) {
 void RegionMatrixProxy::onRecv(const void* data, size_t len) {
   switch(*(MessageType*)data) {
   case MessageTypes::READCELL:
+    JASSERT(len == sizeof(ReadCellMessage));
     this->processReadCellMsg((ReadCellMessage*)data);
     break;
   case MessageTypes::WRITECELL:
+    JASSERT(len == sizeof(WriteCellMessage));
     this->processWriteCellMsg((WriteCellMessage*)data);
     break;
   default:
-    throw("Unknown RegionRemoteMsgTypes.");
+    JASSERT(false)("Unknown RegionRemoteMsgTypes.");
   }
 }
  
