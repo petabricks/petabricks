@@ -64,50 +64,36 @@ extern OpenCLMode theOpenCLMode;
 
 #endif
 
-/*
-enum CodeGenerationMode
-  {
-    E_CGM_STATIC,
-    E_CGM_DYNAMIC,
-  #if defined(HAVE_OPENCL)
-    E_CGM_OPENCL,
-  #endif
-  };
-
-}
-*/
-
-enum RuleFlavorEnum
-{
-  //dynamic first for backward compatibility with isStatic (if we missed any more places)
-  E_RF_DYNAMIC,
-  E_RF_STATIC,
-#if defined(HAVE_OPENCL)
-  E_RF_OPENCL,
-#endif
-};
-
 class RuleFlavor {
 public:
+  enum RuleFlavorEnum
+  {
+    SEQUENTIAL,
+    WORKSTEALING,
+    OPENCL,
+    DISTRIBUTED
+  };
+
+
   RuleFlavor(RuleFlavorEnum v) : _val(v) {}
   operator RuleFlavorEnum() const { return _val; }
 
-
   const char* str() const {
     switch(*this) {
-      case E_RF_DYNAMIC: return "workstealing";
-      case E_RF_STATIC:  return "sequential";
-#if defined(HAVE_OPENCL)
-      case E_RF_OPENCL:  return "opencl";
-#endif
+      case RuleFlavor::SEQUENTIAL:   return "sequential";
+      case RuleFlavor::WORKSTEALING: return "workstealing";
+      case RuleFlavor::OPENCL:       return "opencl";
+      case RuleFlavor::DISTRIBUTED:  return "distributed";
       default:
         UNIMPLEMENTED();
         return "";
     }
   }
+
   friend std::ostream& operator<<(std::ostream& o, const RuleFlavor& fv) {
     return o<<fv.str();
   }
+
 private:
   RuleFlavorEnum _val;
 };

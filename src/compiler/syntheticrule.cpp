@@ -156,10 +156,10 @@ void petabricks::WhereExpansionRule::generateCallCode(const std::string& name,
                                             RuleFlavor flavor){
   SRCPOSSCOPE();
   switch(flavor) {
-  case E_RF_STATIC:
+  case RuleFlavor::SEQUENTIAL:
     o.callSpatial(codename()+TX_STATIC_POSTFIX, region);
     break;
-  case E_RF_DYNAMIC:
+  case RuleFlavor::WORKSTEALING:
     o.mkSpatialTask(name, trans.instClassName(), codename()+TX_STATIC_POSTFIX, region);
     break;
   default:
@@ -196,7 +196,7 @@ void petabricks::WhereExpansionRule::genWhereSwitch(Transform& trans, CodeGenera
     else
       o.elseIf(wc->toCppString());
 
-    (*i)->generateTrampCellCodeSimple(trans, o, E_RF_STATIC);
+    (*i)->generateTrampCellCodeSimple(trans, o, RuleFlavor::SEQUENTIAL);
     
     for(int d=0; d<(*i)->dimensions(); ++d){
       o._undefine((*i)->getOffsetVar(d)->toString());
@@ -291,12 +291,12 @@ void petabricks::CallInSequenceRule::generateCallCode(const std::string& name,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor){
   SRCPOSSCOPE();
-  if(flavor != E_RF_STATIC)
+  if(flavor != RuleFlavor::SEQUENTIAL)
     o.write("{ DynamicTaskPtr __last;");
   RuleList::iterator i;
   for(i=_rules.begin(); i!=_rules.end(); ++i){
     (*i)->generateCallCode(name, trans, o, region, flavor);
-    if(flavor != E_RF_STATIC) {
+    if(flavor != RuleFlavor::SEQUENTIAL) {
       if(i!=_rules.begin()) {
         o.write(name+"->dependsOn(__last);");
         o.write("__last->enqueue();");
@@ -304,7 +304,7 @@ void petabricks::CallInSequenceRule::generateCallCode(const std::string& name,
       o.write("__last = "+name+";");
     }
   }
-  if(flavor != E_RF_STATIC)
+  if(flavor != RuleFlavor::SEQUENTIAL)
     o.write("}");
 }
 

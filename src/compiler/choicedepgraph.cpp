@@ -194,7 +194,7 @@ void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans,
 
   SimpleRegionPtr t = new SimpleRegion(min,max);
 
-  rule->generateCallCode(nodename(), trans, o, t, E_RF_STATIC);
+  rule->generateCallCode(nodename(), trans, o, t, RuleFlavor::SEQUENTIAL);
   //TODO deps for slice // dynamic version
 }
 
@@ -324,7 +324,7 @@ bool petabricks::SlicedChoiceDepGraphNode::findValidSchedule(const RuleChoiceAss
 }
 
 void petabricks::SlicedChoiceDepGraphNode::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, const RuleChoiceAssignment& choice){
-  bool isStatic = (flavor==E_RF_STATIC);
+  bool isStatic = (flavor==RuleFlavor::SEQUENTIAL);
   std::vector<std::string> args;
   args.push_back("const jalib::JRef<"+trans.instClassName()+"> transform");
   std::string taskname= "coscheduled_"+nodename()+"_task";

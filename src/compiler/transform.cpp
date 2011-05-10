@@ -504,7 +504,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.write("runStatic();");
   o.write("return NULL;");
   o.endIf();
-  _scheduler->generateCode(*this, o, E_RF_DYNAMIC);
+  _scheduler->generateCode(*this, o, RuleFlavor::WORKSTEALING);
   o.endFunc();
 
   o.beginFunc("void", "runStatic");
@@ -513,7 +513,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
     o.write("return;");
     o.endIf();
   }
-  _scheduler->generateCode(*this, o, E_RF_STATIC);
+  _scheduler->generateCode(*this, o, RuleFlavor::SEQUENTIAL);
   o.endFunc();
   
   o.comment("Rule trampolines");

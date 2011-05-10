@@ -198,7 +198,7 @@ void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& 
   for(size_t a=0; a<regions.size(); ++a){
     SimpleRegionPtr r= new SimpleRegion(regions[a]);
     if(!isStatic){
-      rule.generateCallCode("(*_split_task)["+jalib::XToString(a)+"]", trans, o, r, E_RF_DYNAMIC);
+      rule.generateCallCode("(*_split_task)["+jalib::XToString(a)+"]", trans, o, r, RuleFlavor::WORKSTEALING);
       for(size_t b=0; b<a; ++b){
         if(canDependOn(regions[a], regions[b])){
           JTRACE("adding dep")(regions[a])(regions[b]);
@@ -206,7 +206,7 @@ void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& 
         }
       }
     }else{
-      rule.generateCallCode("", trans, o, r, E_RF_STATIC);
+      rule.generateCallCode("", trans, o, r, RuleFlavor::SEQUENTIAL);
     }
   }
   if(!isStatic) o.write("return petabricks::run_task(_split_task);");

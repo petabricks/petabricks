@@ -499,14 +499,14 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
   switch( flavor )
     {
-    case E_RF_STATIC:
+    case RuleFlavor::SEQUENTIAL:
       o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_STATIC_POSTFIX, packedargs);
       break;
-    case E_RF_DYNAMIC:
+    case RuleFlavor::WORKSTEALING:
       o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_DYNAMIC_POSTFIX, packedargs);
       break;
     #ifdef HAVE_OPENCL
-    case E_RF_OPENCL:
+    case RuleFlavor::OPENCL:
       o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_OPENCL_POSTFIX, packedargs);
       break;
     #endif
@@ -520,7 +520,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
   #ifdef FORCE_OPENCL
   // TEMPORARY -- hard-wire things so that the OpenCL rule is always called
-  if( ( E_RF_STATIC == flavor ) && isOpenClRule( ) )
+  if( ( RuleFlavor::SEQUENTIAL == flavor ) && isOpenClRule( ) )
     {
       //      o.os() << "std::cout << \"Forcing OpenCL impl of rule...\\n\";\n";
       o.write("return ");
@@ -533,12 +533,12 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
   // LOGGING
   #ifdef OPENCL_LOGGING
-  if( E_RF_STATIC == flavor )
+  if( RuleFlavor::SEQUENTIAL == flavor )
     {
       o.write( "printf( \"ruleN_static applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
     }
   #ifdef HAVE_OPENCL
-  else if( E_RF_OPENCL == flavor )
+  else if( RuleFlavor::OPENCL == flavor )
     {
       o.write( "printf( \"ruleN_opencl applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
     }
@@ -546,14 +546,14 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   #endif
   // END LOGGING
 
-  if((E_RF_DYNAMIC == flavor) && !isRecursive() && !isSingleElement()){
+  if((RuleFlavor::WORKSTEALING == flavor) && !isRecursive() && !isSingleElement()){
     //shortcut
     o.comment("rule is a leaf, no sense in dynamically scheduling it");
     o.write("return");
     o.call(trampcodename(trans)+TX_STATIC_POSTFIX, packedargnames);
   }
   #ifdef HAVE_OPENCL
-  else if( E_RF_OPENCL == flavor )
+  else if( RuleFlavor::OPENCL == flavor )
   {
     o.os() << "cl_int err;\n";
     o.os() << "cl_kernel clkern = clkern_" << id() << ";\n";
@@ -712,26 +712,26 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   }
   #endif
   else {
-    if(E_RF_STATIC != flavor) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
+    if(RuleFlavor::SEQUENTIAL != flavor) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
 
     iterdef.unpackargs(o);
     
     if(isSingleElement()){
       trans.markSplitSizeUse(o);
       o.beginIf("petabricks::split_condition<"+jalib::XToString(dimensions())+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")");
-      iterdef.genSplitCode(o, trans, *this, flavor==E_RF_STATIC);
+      iterdef.genSplitCode(o, trans, *this, flavor==RuleFlavor::SEQUENTIAL);
       // return written in get split code
       o.elseIf();
     }
 
     iterdef.genLoopBegin(o);
-    if( ( E_RF_DYNAMIC == flavor ) && !isRecursive( ) )
-      generateTrampCellCodeSimple( trans, o, E_RF_STATIC );
+    if( ( RuleFlavor::WORKSTEALING == flavor ) && !isRecursive( ) )
+      generateTrampCellCodeSimple( trans, o, RuleFlavor::SEQUENTIAL );
     else
       generateTrampCellCodeSimple( trans, o, flavor );
     iterdef.genLoopEnd(o);
     
-    if(E_RF_STATIC != flavor) o.write("return _spawner;");
+    if(RuleFlavor::SEQUENTIAL != flavor) o.write("return _spawner;");
     else o.write("return NULL;");
     
     if(isSingleElement())
@@ -882,7 +882,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
 void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   SRCPOSSCOPE();
 #if HAVE_OPENCL
-  JASSERT( E_RF_OPENCL != flavor );
+  JASSERT( RuleFlavor::OPENCL != flavor );
 #endif
 
   std::vector<std::string> args;
@@ -903,7 +903,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   for(int i=0; i<dimensions(); ++i)
     args.push_back(getOffsetVar(i)->toString());
 
-  if(E_RF_STATIC != flavor){
+  if(RuleFlavor::SEQUENTIAL != flavor){
     o.setcall("jalib::JRef<"+implcodename(trans)+TX_DYNAMIC_POSTFIX+"> _rule", "new "+implcodename(trans)+TX_DYNAMIC_POSTFIX, args);
     o.write("DynamicTaskPtr _task = _rule->runDynamic();");
     o.beginIf("_task");
@@ -922,10 +922,10 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
                                             RuleFlavor flavor){
   SRCPOSSCOPE();
   switch(flavor) {
-  case E_RF_STATIC:
+  case RuleFlavor::SEQUENTIAL:
     o.callSpatial(trampcodename(trans)+TX_STATIC_POSTFIX, region);
     break;
-  case E_RF_DYNAMIC:
+  case RuleFlavor::WORKSTEALING:
     o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+TX_DYNAMIC_POSTFIX, region);
     break;
   default:

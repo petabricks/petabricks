@@ -25,6 +25,12 @@
  *                                                                           *
  *****************************************************************************/
 %{
+
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 #include "ruleir.h"
 #include "formula.h"
 #include "common/jconvert.h"
