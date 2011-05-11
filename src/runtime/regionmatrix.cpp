@@ -13,7 +13,7 @@ std::map<uint16_t, RegionDataIPtr> RegionMatrix::movingBuffer;
 pthread_mutex_t RegionMatrix::movingBuffer_mux = PTHREAD_MUTEX_INITIALIZER;
 
 RegionMatrix::RegionMatrix(int dimensions) {
-  // TODO: fix this --> MatrixRegion()
+  // (yod) fix this --> MatrixRegion()
   _D = dimensions;
 
   _size = 0;
@@ -156,7 +156,7 @@ void RegionMatrix::allocData() {
 }
 
 void RegionMatrix::importDataFromFile(const char* filename) {
-  // TODO: perf: move the import to regionDataRaw
+  // (yod) perf: move the import to regionDataRaw
 
   this->acquireRegionData();
   _regionData->allocData();
@@ -345,6 +345,20 @@ void RegionMatrix::removeMovingBuffer(uint16_t index) {
   RegionMatrix::movingBuffer.erase(index);
   pthread_mutex_unlock(&RegionMatrix::movingBuffer_mux);
 }
+
+//
+// Cast to MatrixRegion
+//
+/*
+bool RegionMatrix::canCastToMatrixRegion() const {
+  JASSERT(_regionData != NULL)("acquireRegionData before calling this method");
+  return false;
+}
+operator RegionMatrix::MatrixRegion<D,ElementT>& () const{
+  JASSERT(this->canCastToMatrixRegion());
+  return NULL;
+}
+*/
 
 //
 // Convert a coord to the one in _regionData

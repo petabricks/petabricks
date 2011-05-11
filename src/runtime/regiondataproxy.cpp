@@ -26,7 +26,7 @@ RegionDataProxy::RegionDataProxy(int dimensions, IndexT* size, IndexT* partOffse
   memcpy(msg->size, _size, sizeof(msg->size));
   memcpy(msg->partOffset, _partOffset, sizeof(msg->partOffset));
 
-  int len = (sizeof msg) + sizeof(msg->size) + sizeof(msg->partOffset);
+  int len = sizeof *msg;
 
   host->createRemoteObject(local, &RegionDataProxy::genRemote, msg, len);
   local->waitUntilCreated();

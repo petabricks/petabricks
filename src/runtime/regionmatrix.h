@@ -4,6 +4,7 @@
 #include <map>
 #include <pthread.h>
 #include "common/jassert.h"
+#include "matrixregion.h"
 #include "regiondatai.h"
 #include "regionmatrixi.h"
 #include "remotehost.h"
@@ -30,7 +31,6 @@ namespace petabricks {
     RegionMatrix(int dimensions, ElementT value);
     RegionMatrix(int dimensions, IndexT* size);
 
-    //   RegionMatrix(RegionDataIPtr regionData);
     RegionMatrix(RegionHandlerPtr handler, int dimensions, IndexT* size,
 		 IndexT* splitOffset, int numSliceDimensions,
 		 int* sliceDimensions, IndexT* slicePositions,
@@ -67,9 +67,12 @@ namespace petabricks {
     static void addMovingBuffer(RegionDataIPtr remoteData, uint16_t index);
     void removeMovingBuffer(uint16_t index);
 
+    /* Cast to MatrixRegion */
+    //bool canCastToMatrixRegion() const;
+    //operator MatrixRegion<D,ElementT>& () const;
+
     CellProxy& cell(IndexT x, ...) const;
     CellProxy& cell(IndexT* coord) const {
-      JASSERT("cell")(_regionHandler.asPtr());
       return *(new CellProxy(_regionHandler, getRegionDataCoord(coord)));
     }
     INLINE CellProxy& cell() const {
