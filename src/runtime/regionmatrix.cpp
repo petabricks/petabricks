@@ -155,7 +155,7 @@ void RegionMatrix::allocData() {
   releaseRegionData();
 }
 
-void RegionMatrix::importDataFromFile(char* filename) {
+void RegionMatrix::importDataFromFile(const char* filename) {
   // TODO: perf: move the import to regionDataRaw
 
   this->acquireRegionData();

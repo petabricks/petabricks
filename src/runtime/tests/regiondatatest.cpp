@@ -23,14 +23,14 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
 
-int main(int argc, const char** argv){
-  char* filename1 = "testdata/Helmholtz3DZeros";
-  char* filename2 = "testdata/Helmholtz3DB1";
+int main(int /*argc*/, const char** /*argv*/){
+  //const char* filename1 = "testdata/Helmholtz3DZeros";
+  const char* filename2 = "testdata/Helmholtz3DB1";
 
   IndexT m0[] = {0,0,0};
-  IndexT m1[] = {1,1,1};
-  IndexT m123[] = {1,2,3};
-  IndexT m2[] = {2,2,2};
+  //IndexT m1[] = {1,1,1};
+  //IndexT m123[] = {1,2,3};
+  //IndexT m2[] = {2,2,2};
   IndexT m3[] = {3,3,3};
 
   RegionDataRawPtr regiondata = new RegionDataRaw(filename2);

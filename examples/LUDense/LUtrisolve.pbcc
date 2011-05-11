@@ -1,0 +1,68 @@
+#ifndef LUTRISOLVE_PBCC
+#define LUTRISOLVE_PBCC
+
+#define INDEX2D(i0, i1, s0) ((i1) * (s0) + (i0))
+
+#include "../simple/copy.pbcc"
+
+%{
+    extern "C" void dtrsm_(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, double *alpha, double *A, const int *lda, double *B, const int *ldb);
+%}
+
+transform LUtrisolve
+from INA[m,m], INB[n,m]
+to OUT[n,m]
+{
+    to (OUT out)
+    from (INA ina, INB inb)
+    {
+        // call LAPACK
+
+	char side = 'L', uplo = 'L', transa = 'N', diag = 'U';  
+	const int lda = m;
+	const int ldb = m;
+	double alpha = 1;
+        double *A = NULL;
+	double *B = NULL;
+
+        A = new double[m * m];
+	B = new double[m * n];
+        if (!A || !B) {
+            printf("Error allocating memory!\n");
+            exit(-1);
+        }
+
+        // pack input
+        int i, j;
+        for (i = 0; i < m; ++i) {
+            for (j = 0; j < m; ++j) {
+		// PetaBricks - first index is column, second is row
+                A[INDEX2D(i, j, m)] = ina.cell(j, i);
+            }
+        }
+        for (i = 0; i < m; ++i) {
+            for (j = 0; j < n; ++j) {
+                // PetaBricks - first index is column, second is row
+                B[INDEX2D(i, j, m)] = inb.cell(j, i);
+            }
+        }
+
+
+        dtrsm_(&side, &uplo, &transa, &diag, &m, &n, &alpha, A, &lda, B, &ldb);
+
+        // unpack output
+        for (i = 0; i < n; ++i) {
+            for (j = 0; j < m; ++j) {
+                out.cell(i, j) = B[INDEX2D(j, i, m)];
+            }
+        }
+
+        delete [] A;
+	delete [] B;
+    }
+}
+
+
+
+#endif // LUTRISOLVE_PBCC
+

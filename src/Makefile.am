@@ -18,18 +18,15 @@ noinst_HEADERS = \
   compiler/iterationorders.h \
   compiler/matrixdef.h \
   compiler/matrixdependency.h \
-  compiler/maximaparser.h \
   compiler/maximawrapper.h \
   compiler/openclutil.h \
   compiler/pbc.h \
-  compiler/pbparser.h \
   compiler/region.h \
   compiler/rircompilerpass.h \
   compiler/rirscope.h \
   compiler/rulechoice.h \
   compiler/rule.h \
   compiler/ruleir.h \
-  compiler/ruleirparser.h \
   compiler/scheduler.h \
   compiler/syntheticrule.h \
   compiler/trainingdeps.h \
@@ -99,7 +96,7 @@ libpbcommon_a_SOURCES =  \
 
 libpbcompiler_a_LFLAGS = 
 libpbcompiler_a_YFLAGS = -d
-libpbcompiler_a_CXXFLAGS = -I$(srcdir)/compiler
+libpbcompiler_a_CXXFLAGS = -I. -I$(srcdir)/compiler
 libpbcompiler_a_SOURCES = \
   compiler/choicedepgraph.cpp \
   compiler/choicegrid.cpp \
@@ -188,14 +185,16 @@ CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp li
              libpbcompiler_a-maximaparser.output libpbcompiler_a-pbparser.output libpbcompiler_a-ruleirparser.output \
              libpbruntime_a-matrixreader.cpp
 
-#copy bison headers to compiler dir
-$(srcdir)/compiler/maximaparser.h: libpbcompiler_a-maximaparser.h
-	cp $< $@ 
-$(srcdir)/compiler/pbparser.h:		 libpbcompiler_a-pbparser.h
-	cp $< $@ 
-$(srcdir)/compiler/ruleirparser.h: libpbcompiler_a-ruleirparser.h
-	cp $< $@ 
+#copy bison headers
+maximaparser.h: libpbcompiler_a-maximaparser.h
+	test -h $@ || $(LN_S) $< $@
+pbparser.h:		 libpbcompiler_a-pbparser.h
+	test -h $@ || $(LN_S) $< $@ 
+ruleirparser.h: libpbcompiler_a-ruleirparser.h
+	test -h $@ || $(LN_S) $< $@ 
 
-
-
+#make sure the output of flex/bison has the latest version of the header
+$(srcdir)/compiler/maximalexer.lpp: maximaparser.h
+$(srcdir)/compiler/pblexer.lpp:     pbparser.h
+$(srcdir)/compiler/ruleirlexer.lpp: ruleirparser.h
 

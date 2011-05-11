@@ -80,7 +80,7 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
 }
 
 int main(int argc, const char** argv){
-  char* filename = "testdata/Helmholtz3DB1";
+  const char* filename = "testdata/Helmholtz3DB1";
 
   IndexT m0[] = {0,0,0};
   IndexT m1[] = {1,1,1};

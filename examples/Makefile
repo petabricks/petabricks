@@ -12,6 +12,8 @@ clean:
 	@rm -f $(BINS)
 	@echo removing *.o 
 	@rm -f $(addsuffix .cpp, $(BINS))
+	@echo removing *.obj
+	@rm -rf $(addsuffix .obj, $(BINS))
 	@echo removing *.cpp
 	@rm -f $(addsuffix .o, $(BINS))
 	@echo removing *.info 
@@ -22,6 +24,6 @@ distclean: clean
 	@rm -f $(addsuffix .cfg, $(BINS))
 
 ignore:
-	echo $(BINS) '*.cpp *.cfg *.info *.obj' | xargs -n 1 echo > .gitignore
+	echo $(BINS) '*.cfg *.info *.obj' '-Makefile' | xargs -n 1 echo > .gitignore
 
 pbc:; (cd .. && make)

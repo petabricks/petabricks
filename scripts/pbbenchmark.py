@@ -3,15 +3,48 @@ import pbutil, progress, tunerconfig, sgatuner, tunerwarnings
 import math 
 import os
 import scipy
+import socket 
 import sys
 import tempfile 
+import csv 
 import time
 import warnings
 
 TRAILS   = 5
 SHORTBAR = '-'*40
 LONGBAR  = '='*50
-VERSION  = "1.9"
+VERSION  = "2.0"
+LOGDIR    = './testdata/perflogs'
+TIMESTAMP = time.time()
+DEBUG = False
+
+class logdialect(csv.excel_tab):
+  lineterminator="\n"
+
+def writelog(filename, entry):
+  '''appends map(entry) to filename'''
+  keys = list(sorted(entry.keys()))
+  header=True
+
+  if os.path.isfile(filename):
+    fd=open(filename)
+    old_keys = list(csv.reader(fd, dialect=logdialect).next())
+    old_keys[0]=old_keys[0].replace('#','',1) #remove hash at start
+    fd.close()
+    if old_keys == keys:
+      header=False
+    else:
+      print "WARNING: logfile has outdated format", filename
+      print "         renamed to", filename+".old"
+      print old_keys, keys
+      os.rename(filename, filename+".old")
+  
+  fd=open(filename, "a")
+  log = csv.writer(fd, dialect=logdialect)
+  if header:
+    log.writerow(['#'+keys[0]] + keys[1:])
+  log.writerow(map(lambda x: entry[x], keys))
+  fd.close()
 
 def geomean(nums):
   return (reduce(lambda x, y: x*y, nums))**(1.0/len(nums))
@@ -25,8 +58,7 @@ def fmtPerf(perf, baseline):
   #meanprime = baseline/(perf['average']+perf['stddev']/math.sqrt(TRAILS))
   meanprime = baseline/(perf['average']+perf['stddev'])
   std  = mean-meanprime
-  return "%7.1f +- %4.1f" % (mean, std)
-
+  return "perf:%6.1f +- %2.0f" % (mean, std)
 
 def fmtAcc(acc, target):
   diff = acc['average'] - target
@@ -37,21 +69,24 @@ def fmtAcc(acc, target):
   else:
     s = ""
   if target != 0:
-    diffStr = "%.2f%%"%(1.0+diff/abs(target))
+    diffStr = "%6.1f%%"%(100.0*(1.0+diff/abs(target)))
   else:
-    diffStr = "%.2f"%diff
-  return "acc: "+diffStr+s
+    diffStr = "%6.2f "%diff
+  return "acc:"+diffStr+s
 
 expandCfg = lambda x: './testdata/configs/'+x
-fmtCfg = lambda x: x.replace('.cfg','').ljust(10)
+expandLog = lambda x: LOGDIR+'/'+x.replace('.cfg','.log')
+fmtCfg = lambda x: x.replace('.cfg','').ljust(20)
+
 
 class Benchmark:
-  def __init__(self, benchmark, cfg, n, acc_target, baseline):
+  def __init__(self, benchmark, cfg, n, acc_target, baseline_perf, baseline_training):
     self.benchmark  = benchmark
     self.cfg        = cfg
     self.n          = int(n)
     self.acc_target = float(acc_target)
-    self.baseline   = float(baseline)
+    self.baseline        = float(baseline_perf)
+    self.tuning_baseline = float(baseline_training)
     self.fixed_perf = None
     self.fixed_acc  = None
     self.tuned_perf = None
@@ -65,6 +100,9 @@ class Benchmark:
   
   def scoreTuned(self):
     return perfScore(self.tuned_perf, self.baseline)
+  
+  def scoreTrainingTime(self):
+    return 100.0*self.tuning_baseline/self.tuning_time
 
   def run(self, cfg):
     return pbutil.executeTimingRun(pbutil.benchmarkToBin(self.benchmark),
@@ -84,6 +122,7 @@ class Benchmark:
       os.close(fd)
       self.tuned_candidate.config.save(cfg)
       self.tuned_perf, self.tuned_acc = self.run(cfg)
+      self.tuned_candidate.config.save(expandCfg(self.cfg)+".latest")
     finally:
       os.unlink(cfg)
 
@@ -95,6 +134,7 @@ class Benchmark:
   def printTuned(self):
     print fmtCfg(self.cfg), \
           fmtPerf(self.tuned_perf, self.baseline), \
+          "training:%6.1f" % self.scoreTrainingTime(), \
           fmtAcc(self.tuned_acc, self.acc_target)
 
   def printDebug(self):
@@ -107,15 +147,40 @@ class Benchmark:
 
   def autotune(self):
     self.tuning_time -= time.time()
-    tunerconfig.applypatch(tunerconfig.patch_n(self.n))
     tunerconfig.applypatch(tunerconfig.patch_pbbenchmark)
+    tunerconfig.applypatch(tunerconfig.patch_n_offset(self.n))
+    tunerconfig.applypatch(tunerconfig.patch_accuracy_target(self.acc_target))
     self.tuned_candidate=sgatuner.autotune(self.benchmark)
     tunerconfig.applypatch(tunerconfig.patch_reset)
     self.tuning_time += time.time()
 
+
+  def logEntry(self):
+    return {
+        'name'                : self.benchmark,
+        'hash'                : hash( (self.cfg, self.acc_target, self.n, self.baseline, self.tuning_baseline) ),
+        'n'                   : self.n,
+        'acc_target'          : self.acc_target,
+        'baseline'            : self.baseline,
+        'fixed_perf'          : self.fixed_perf['average'],
+        'fixed_acc'           : self.fixed_acc['average'],
+        'tuned_perf'          : self.tuned_perf['average'],
+        'tuned_acc'           : self.tuned_acc['average'],
+        'tuning_time'         : self.tuning_time,
+        'tuning_baseline'     : self.tuning_baseline,
+        'score_fixed'         : self.scoreFixed(),
+        'score_tuned'         : self.scoreTuned(),
+        'score_training_time' : self.scoreTrainingTime(),
+        'hostname'            : socket.gethostname(),
+        'timestamp'           : TIMESTAMP,
+      }
+
+
+
 def main():
   warnings.simplefilter('ignore', tunerwarnings.NewProgramCrash)
   warnings.simplefilter('ignore', tunerwarnings.TargetNotMet)
+  warnings.simplefilter('ignore', tunerwarnings.NanAccuracy)
 
   progress.push()
   progress.status("compiling benchmarks")
@@ -134,11 +199,18 @@ def main():
   print "Higher is better."
   print
 
+  baselines = dict()
+  for line in csv.reader(open("./testdata/configs/baselines.csv")):
+    if len(line)>=3:
+      baselines[line[0]] = line[1:]
 
   benchmarks=[]
-
-  for benchmark, cfg, n, accTarg, baseline in lines:
-    benchmarks.append(Benchmark(benchmark, cfg, n, accTarg, baseline))
+  for benchmark, cfg, n, accTarg in lines:
+    try:
+      baseline = baselines[benchmark]
+    except KeyError:
+      baseline = (1.0, 1.0)
+    benchmarks.append(Benchmark(benchmark, cfg, n, accTarg, baseline[0], baseline[1]))
 
 
   print LONGBAR
@@ -151,6 +223,8 @@ def main():
     b.runFixed()
     b.printFixed()
   progress.tick()
+  score_fixed = geomean(map(Benchmark.scoreFixed, benchmarks))
+
   print SHORTBAR
   print "Fixed Score (pbbenchmark v%s): %.2f" % (VERSION, geomean(map(Benchmark.scoreFixed, benchmarks)))
   print LONGBAR
@@ -168,13 +242,17 @@ def main():
     b.runTuned()
     b.printTuned()
     progress.tick()
+  
+  score_tuned = geomean(map(Benchmark.scoreTuned, benchmarks))
+  score_training_time = geomean(map(Benchmark.scoreTrainingTime, benchmarks))
+
   print SHORTBAR
-  print "Tuned Score (pbbenchmark v%s): %.2f" % (VERSION, geomean(map(Benchmark.scoreTuned, benchmarks)))
+  print "Tuned Score (pbbenchmark v%s): %.2f" % (VERSION, score_tuned)
+  print "Training Time Score (pbbenchmark v%s): %.2f" % (VERSION, score_training_time)
   print LONGBAR
   print
 
-
-  if True:
+  if DEBUG:
     print LONGBAR
     print "Debug:"
     print SHORTBAR
@@ -182,6 +260,26 @@ def main():
       b.printDebug()
     print LONGBAR
     print
+
+  fd = open("./testdata/configs/baselines.csv.latest", "w")
+  for b in benchmarks:
+    print >>fd, "%s, %f, %f" % (b.benchmark, b.tuned_perf['average'], b.tuning_time)
+  fd.close()
+
+  if not os.path.isdir(LOGDIR):
+    os.mkdir(LOGDIR)
+  
+  for b in benchmarks:
+    writelog(expandLog(b.cfg), b.logEntry())
+    
+  writelog(expandLog('scores.log'), {
+      'version'             : VERSION,
+      'score_fixed'         : score_fixed,
+      'score_tuned'         : score_tuned,
+      'score_training_time' : score_training_time,
+      'hostname'            : socket.gethostname(),
+      'timestamp'           : TIMESTAMP,
+    })
   
   progress.tick()
   progress.status("done")

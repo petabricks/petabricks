@@ -5,7 +5,7 @@ using namespace petabricks::RegionDataProxyMessage;
 
 RegionDataProxy::RegionDataProxy(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host) {
   _D = dimensions;
-  
+
   _size = new IndexT[_D];
   memcpy(_size, size, sizeof(IndexT) * _D);
 
@@ -17,17 +17,17 @@ RegionDataProxy::RegionDataProxy(int dimensions, IndexT* size, IndexT* partOffse
   pthread_cond_init(&_buffer_cond, NULL);
   _seq = 0;
   _recv_seq = 0;
-  
+
   // Create Remote Object
   RemoteObjectPtr local = this->genLocal();
-  
+
   InitialMessage* msg = new InitialMessage();
   msg->dimensions = _D;
-  memcpy(msg->size, _size, sizeof(msg->size));  
-  memcpy(msg->partOffset, _partOffset, sizeof(msg->partOffset));  
-  
+  memcpy(msg->size, _size, sizeof(msg->size));
+  memcpy(msg->partOffset, _partOffset, sizeof(msg->partOffset));
+
   int len = (sizeof msg) + sizeof(msg->size) + sizeof(msg->partOffset);
-  
+
   host->createRemoteObject(local, &RegionDataProxy::genRemote, msg, len);
   local->waitUntilCreated();
 }
@@ -103,7 +103,7 @@ void RegionDataProxy::writeCell(const IndexT* coord, ElementT value) {
   delete msg;
   JASSERT(elmt == value);
 }
- 
+
 RemoteObjectPtr RegionDataProxy::genLocal() {
   class RegionDataProxyLocalRemoteObject : public RemoteObject {
    private:
@@ -128,7 +128,8 @@ RemoteObjectPtr RegionDataProxy::genRemote() {
 
 // RegionDataProxyRemoteObject
 
-void RegionDataProxyRemoteObject::onRecvInitial(const void* buf, size_t /*len*/) {
+void RegionDataProxyRemoteObject::onRecvInitial(const void* buf, size_t len) {
+  JASSERT(len==sizeof(InitialMessage));
   InitialMessage* msg = (InitialMessage*) buf;
   _regionData = new RegionDataRaw(msg->dimensions, msg->size, msg->partOffset);
 }
@@ -145,18 +146,21 @@ void RegionDataProxyRemoteObject::processWriteCellMsg(WriteCellMessage* msg) {
 
 void RegionDataProxyRemoteObject::processAllocDataMsg(AllocDataMessage* /*msg*/) {
   int r = _regionData->allocData();
-  this->send(&r, sizeof(int));  
+  this->send(&r, sizeof(int));
 }
 
-void RegionDataProxyRemoteObject::onRecv(const void* data, size_t /*len*/) {
+void RegionDataProxyRemoteObject::onRecv(const void* data, size_t len) {
   switch(*(MessageType*)data) {
   case MessageTypes::READCELL:
+    JASSERT(len==sizeof(ReadCellMessage));
     this->processReadCellMsg((ReadCellMessage*)data);
     break;
   case MessageTypes::WRITECELL:
+    JASSERT(len==sizeof(WriteCellMessage));
     this->processWriteCellMsg((WriteCellMessage*)data);
     break;
   case MessageTypes::ALLOCDATA:
+    JASSERT(len==sizeof(AllocDataMessage));
     this->processAllocDataMsg((AllocDataMessage*)data);
     break;
   default:

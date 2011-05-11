@@ -11,8 +11,8 @@ class config_defaults:
   max_input_size           = 2**30
   min_input_size           = 1
   max_time                 = 60*150
-  rounds_per_input_size    = 1
-  final_rounds             = 1
+  rounds_per_input_size    = 3
+  final_rounds             = 3
 
   #number of trials to run
   confidence_pct   = 0.75
@@ -36,7 +36,7 @@ class config_defaults:
 
 
   #how mutation to do
-  mutations_per_mutator    = 5
+  mutations_per_mutator    = 3
   population_high_size     = 10
   population_low_size      = 1
   multimutation            = True
@@ -168,6 +168,10 @@ class patch_check:
   max_trials       = 2
   min_trials       = 2
 
+class patch_accuracy_target:
+  def __init__(self, v):
+    self.accuracy_target = v
+
 class patch_noninteractive:
   '''settings for disabling outputs'''
   cleanup_inputs           = True
@@ -214,5 +218,13 @@ class patch_n:
     from math import log
     self.max_input_size = config.offset+2**int(round(log(n, 2)))
     self.max_time = 2**30
-    self.n=n
+    self.n = n
+
+class patch_n_offset:
+  def __init__(self, n):
+    from math import log
+    self.offset = n - 2**int(round(log(n, 2)))
+    self.max_input_size = n
+    self.max_time = 2**30
+    self.n = n
 

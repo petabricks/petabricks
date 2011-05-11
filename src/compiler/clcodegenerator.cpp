@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
@@ -70,47 +85,6 @@ CLCodeGenerator::localMemoryBarrier( )
   os() << "barrier( CLK_LOCAL_MEM_FENCE );\n";
 }
 
-/*void
-CLCodeGenerator::beginKernel( const std::vector<std::string>& outputs, const std::vector<std::string>& inputs, unsigned int dims )
-{
-  
-    // \todo temporarily revised
-  //JASSERT( dims >= 1 );
-  //JASSERT( outputs.size( ) > 0 );
-  //JASSERT( inputs.size( ) > 0 );
-  
-
-  os() << "__kernel void kernel_main( ";
-
-  // The kernel will need a pointer to an appropriate chunk of each input and output matrix
-  for( std::vector<std::string>::const_iterator it = outputs.begin( ); it != outputs.end( ); ++it )
-  {
-    if( it != outputs.begin( ) )
-	  os() << ", ";
-    os() << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << *it;
-  }
-  for( std::vector<std::string>::const_iterator it = inputs.begin( ); it != inputs.end( ); ++it )
-    os() << ", __global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << *it;
-
-  // And we'll need to provide the size of the region that we want the kernel to operate on.  (This is where the 'center' of the rule will be.)
-  for( int i = 0; i < (int)dims; ++i )
-    os() << ", int dim_d" << i;
-
-  // Finally, we need to provide some of the dimensions of each of the matrices we've passed in, so that we can calculate indices.
-  for( std::vector<std::string>::const_iterator it = outputs.begin( ); it != outputs.end( ); ++it )
-  {
-    for( int i = 0; i < (int)dims-1; ++i )
-	    os() << ", int dim_" << *it << "_d" << i;
-  }
-  for( std::vector<std::string>::const_iterator it = inputs.begin( ); it != inputs.end( ); ++it )
-  {
-    for( int i = 0; i < (int)dims-1; ++i )
-	    os() << ", int dim_" << *it << "_d" << i;
-  }
-
-  os() << " ) {\n";
-}*/
-
 void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned int dims)
 {
 
@@ -132,8 +106,11 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   for( int i = 0; i < (int)dims; ++i )
   {
     os() << ", int dim_d" << i;
+    //os() << ", int dim_d" << i << "_begin";
+    //os() << ", int dim_d" << i << "_end";
   }
 
+  //TODO: using _to and_from is the correct approach
   // Finally, we need to provide some of the dimensions of each of the matrices we've passed in, so that we can calculate indices.
   for(RegionList::const_iterator it = _to.begin(); it != _to.end(); ++it)
   {

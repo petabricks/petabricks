@@ -8,5 +8,6 @@ function test
 to OUT
 {
   SUM(OUT,X,Y);
+  OUT = RESULT;
 }
 

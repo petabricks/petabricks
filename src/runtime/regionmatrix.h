@@ -46,7 +46,7 @@ namespace petabricks {
 
     void splitData(IndexT* splitSize);
     void allocData();
-    void importDataFromFile(char* filename);
+    void importDataFromFile(const char* filename);
 
     RegionMatrixPtr splitRegion(const IndexT* offset, const IndexT* size) const;
     RegionMatrixPtr sliceRegion(int d, IndexT pos) const;

@@ -69,3 +69,7 @@ doc/api
 
 \#*\#
 
+perflogs
+confdefs
+*.latest
+

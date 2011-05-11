@@ -8,7 +8,7 @@
 namespace petabricks {
   class RegionHandler;
   typedef jalib::JRef<RegionHandler> RegionHandlerPtr;
-  
+
   class RegionHandler : public jalib::JRefCounted {
   private:
     int _D;
@@ -16,7 +16,7 @@ namespace petabricks {
 
   public:
     RegionHandler(RegionDataIPtr regionData);
-    
+
     RegionDataIPtr acquireRegionData(const void* caller);
     void releaseRegionData(const void* caller);
 

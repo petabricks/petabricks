@@ -1,0 +1,66 @@
+#ifndef RECURSIVE_PBCC
+#define RECURSIVE_PBCC
+
+/****************
+	BUG:
+	If rule3 is disabled, everything is correct.
+	If rule3 is enabled, rule2 is generated in the .cpp file
+	but it is never called, and it disappears from the selectSchedule function
+	and from the runDynamic and runStatic function.
+	Also rule3 is not in those functions, but that is correct,
+	because it has a "where" clause
+*****************/
+	
+main transform Transpose
+from A[n,n]
+to T[n,n]
+{
+  /* Rule1 */
+  recursive(n)
+  to (T t)
+  from (A a)
+  {
+    //transpose the lower right row and column
+    int i;
+    IndexT lastIndex=n-1;
+    
+    for(i=0; i<n; ++i) {
+      t.cell(i,lastIndex) = a.cell(lastIndex,i);
+      t.cell(lastIndex,i) = a.cell(i,lastIndex);
+    }
+
+    //recursively transpose the rest
+    if(n>0) {
+      Transpose(t.region(0, 0, n-1, n-1), a.region(0, 0, n-1, n-1));
+    }
+  }
+
+  /* Rule2 */
+  to (T t)
+  from (A a)
+  {
+    int i,j;
+    for(i=0; i<n; ++i) {
+      for(j=0; j<n; ++j) {
+        t.cell(i,j) = a.cell(j,i);
+      }
+    }
+  }
+
+  
+ /* Rule3 */
+ /*
+  to (T t)
+  from (A a)
+  where n=2
+  {
+    t.cell(0,0) = a.cell(0,0);
+    t.cell(1,1) = a.cell(1,1);
+    t.cell(1,0) = a.cell(0,1);
+    t.cell(0,1) = a.cell(1,0);
+  }
+  */
+
+}
+
+#endif // RECURSIVE_PBCC

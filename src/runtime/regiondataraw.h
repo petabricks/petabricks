@@ -17,7 +17,7 @@ namespace petabricks {
     IndexT* _partOffset;
 
   public:
-    RegionDataRaw(char* filename);
+    RegionDataRaw(const char* filename);
     RegionDataRaw(int dimensions, IndexT* size);
     RegionDataRaw(int dimensions, IndexT* size, ElementT* data);
     RegionDataRaw(int dimensions, IndexT* size, IndexT* partOffset);
