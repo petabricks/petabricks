@@ -62,13 +62,7 @@ namespace petabricks {
       _index = new IndexT[D];
       memcpy(_index, that._index, sizeof(IndexT) * D);
     }
-    /*
-    CellProxy(ElementT& val) {
-      JTRACE("reference")(val);
-      _handler = new RegionHandler(new RegionData0D(val));
-      _index = new IndexT[0];
-    }
-    */
+
     CellProxy(ElementT val) {
       _handler = new RegionHandler(new RegionData0D(val));
       _index = new IndexT[0];

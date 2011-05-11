@@ -50,7 +50,7 @@ petabricks::Region::RegionType petabricks::Region::strToRegionType(const std::st
   return _strToRegionType(str);
 }
 
-petabricks::Region::Region(const char* fromMatrix, const FormulaList& version, const char* type, const FormulaList& bounds) 
+petabricks::Region::Region(const char* fromMatrix, const FormulaList& version, const char* type, const FormulaList& bounds)
   : _name(RETURN_VAL_STR)
   , _fromMatrixName(fromMatrix)
   , _originalType(strToRegionType(type))
@@ -70,8 +70,8 @@ void petabricks::Region::print(std::ostream& o) const {
   o << ") " << _name;
 }
 
-void petabricks::Region::setName(const char* name){ 
-  _name=name; 
+void petabricks::Region::setName(const char* name){
+  _name=name;
   if(_name=="") _name=RETURN_VAL_STR;
 }
 
@@ -82,7 +82,7 @@ void petabricks::Region::initialize(Transform& trans) {
 
   JASSERT(!isOptional() || _originalType == REGION_CELL)(_name)(_fromMatrix)
     .Text("optional rule inputs currently only supported for .cell() inputs");
-  
+
   //convert given coordinates to a region
   switch(_originalType){
   case REGION_CELL: {
@@ -171,7 +171,7 @@ void petabricks::Region::initialize(Transform& trans) {
 void petabricks::Region::validate() {
   addAssumptions();
   for(size_t i=0; i<dimensions(); ++i){
-    int isBeginLeqEnd = MAXIMA.tryCompare(_minCoord[i], "<=", _maxCoord[i]); 
+    int isBeginLeqEnd = MAXIMA.tryCompare(_minCoord[i], "<=", _maxCoord[i]);
     JASSERT(isBeginLeqEnd==MaximaWrapper::YES)(_minCoord[i])(_maxCoord[i])
       .Text("Invalid .region().  Syntax is .region(beginCoord, endCoord), for example region(x, y, x+4, y+4).  Begin is inclusive end is exclusive.");
   }
@@ -201,7 +201,7 @@ void petabricks::SimpleRegion::print(std::ostream& o) const {
 petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(Transform& tx, RuleInterface& rule, const FormulaList&, bool isOutput){
   CoordinateFormula min;
   CoordinateFormula max;
-    
+
   FormulaList offsets = diff(tx,rule);
   FormulaList minDefs /*= _defs*/;
   FormulaList maxDefs /*= _defs*/;
@@ -382,8 +382,13 @@ std::string petabricks::Region::generateAccessorCode(bool allowOptional) const{
     {
       std::string s = _fromMatrix->name() + ".cell("+_minCoord.toString()+")";
       if(allowOptional && isOptional())
+#ifndef REGIONMATRIX_TEST
+        return "(" + _fromMatrix->name() + ".contains("+_minCoord.toString()+")"
+                   + " ? " + s + " : " + optionalDefault()->toString() + ")";
+#else
         return "(" + _fromMatrix->name() + ".contains("+_minCoord.toString()+")"
                    + " ? " + s + " : (CellProxy)" + optionalDefault()->toString() + ")";
+#endif
       else
         return s;
     }
@@ -409,7 +414,7 @@ void petabricks::Region::collectDependencies(const Transform& tx, const RuleInte
   for(size_t i=0; i<dimensions(); ++i){
     MaximaWrapper::tryCompareResult isLeft =MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i),  "<", _maxCoord[i]);
     MaximaWrapper::tryCompareResult isRight=MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">=", _minCoord[i]);
-    
+
     if(isLeft!=MaximaWrapper::YES)
       direction.addDirection(i, DependencyDirection::D_LT);
 
@@ -457,7 +462,7 @@ void petabricks::Region::collectDependencies(const Transform& tx, const RuleInte
     }
   }
   SimpleRegionPtr region = new SimpleRegion(minAbsolute, maxAbsolute);
-      
+
   //Merge with existing entry
   MatrixDependencyPtr dep = new MatrixDependency(direction, region);
   MatrixDependencyPtr& element = map[_fromMatrix];
@@ -472,7 +477,7 @@ void petabricks::Region::addAssumptions() const{
     MAXIMA.assume(new FormulaLE(FormulaInteger::zero(), _maxCoord[i]));
     MAXIMA.assume(new FormulaLE(_minCoord[i], end));
     MAXIMA.assume(new FormulaLE(_maxCoord[i], end));
-  } 
+  }
 }
 
 void petabricks::Region::assertNotInput(){
