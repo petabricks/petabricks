@@ -96,11 +96,21 @@ public:
 
   ///
   /// run directly in a context that doesn't support continuations
+  /// this method is a bit of a hack, intended for places where we have
+  /// stack state and cant support workstealing
   void runNoContinuation() {
-    JASSERT(_dependents.empty());
-    JASSERT(_numPredecessors==0);
+    { JLOCKSCOPE(_lock); 
+      JASSERT(_dependents.empty())(_dependents.size());
+      JASSERT(_numPredecessors==0)(_numPredecessors);
+      JASSERT(_state == S_NEW)(_state);
+    }
     DynamicTaskPtr cont = run();
-    JASSERT(!cont);
+    if(cont) {
+      cont->runNoContinuation();
+    }
+    jalib::staticMemFence();
+    _state = S_COMPLETE;//outside lock -- single word write is atomic
+    jalib::staticMemFence();
   }
  protected:
   ///
