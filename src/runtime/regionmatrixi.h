@@ -23,6 +23,8 @@ namespace petabricks {
 
     virtual void acquireRegionData();
     virtual void releaseRegionData();
+    virtual RegionDataIPtr acquireRegionDataConst() const;
+    virtual void releaseRegionDataConst() const;
 
     RegionHandlerPtr getRegionHandler() const;
 

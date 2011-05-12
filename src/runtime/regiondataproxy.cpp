@@ -5,6 +5,7 @@ using namespace petabricks::RegionDataProxyMessage;
 
 RegionDataProxy::RegionDataProxy(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host) {
   _D = dimensions;
+  _type = RegionDataTypes::REGIONDATAPROXY;
 
   _size = new IndexT[_D];
   memcpy(_size, size, sizeof(IndexT) * _D);

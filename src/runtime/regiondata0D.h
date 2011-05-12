@@ -13,6 +13,7 @@ namespace petabricks {
   public:
     RegionData0D() {
       _D = 0;
+      _type = RegionDataTypes::REGIONDATA0D;
       _size = new IndexT[0];
     }
 

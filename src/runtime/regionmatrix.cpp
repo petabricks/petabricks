@@ -347,20 +347,6 @@ void RegionMatrix::removeMovingBuffer(uint16_t index) {
 }
 
 //
-// Cast to MatrixRegion
-//
-/*
-bool RegionMatrix::canCastToMatrixRegion() const {
-  JASSERT(_regionData != NULL)("acquireRegionData before calling this method");
-  return false;
-}
-operator RegionMatrix::MatrixRegion<D,ElementT>& () const{
-  JASSERT(this->canCastToMatrixRegion());
-  return NULL;
-}
-*/
-
-//
 // Convert a coord to the one in _regionData
 //
 IndexT* RegionMatrix::getRegionDataCoord(const IndexT* coord_orig) const {

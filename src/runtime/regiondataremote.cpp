@@ -7,6 +7,7 @@ using namespace petabricks::RegionDataRemoteMessage;
 
 RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, RemoteObjectPtr remoteObject) {
   _D = dimensions;
+  _type = RegionDataTypes::REGIONDATAREMOTE;
   _size = size;
   _remoteObject = remoteObject;
 

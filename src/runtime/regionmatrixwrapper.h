@@ -2,6 +2,7 @@
 #define PETABRICKSREGIONMATRIXWRAPPER_H
 
 #include "petabricksruntime.h"
+#include "matrixstorage.h"
 #include "regionmatrix.h"
 
 namespace petabricks {
@@ -154,6 +155,31 @@ namespace petabricks {
       } while (this->incCoord(coord) >= 0);
       this->releaseRegionData();
     }
+
+    //
+    // Cast to MatrixRegion
+    operator MatrixRegion<D, ElementT> () const{
+      // (yod) suppost split/slice/transpose
+      JASSERT(_numSliceDimensions == 0).Text("not supported");
+      JASSERT(!_isTransposed).Text("not supported");
+
+      RegionDataIPtr regionData = this->acquireRegionDataConst();
+      JASSERT(regionData->type() == RegionDataTypes::REGIONDATARAW).Text("Cannot cast to MatrixRegion.");
+
+      MatrixRegion<D, ElementT> matrixRegion = MatrixRegion<D, ElementT>(regionData->storage(), regionData->storage()->data(), regionData->size());
+      this->releaseRegionDataConst();
+
+      if (_splitOffset) {
+	IndexT end[D];
+	for (int i = 0; i < D; i++) {
+	  end[i] = _splitOffset[i] + _size[i];
+	}
+	matrixRegion = matrixRegion.region(_splitOffset, end);
+      }
+
+      return matrixRegion;
+    }
+
   };
 
 
