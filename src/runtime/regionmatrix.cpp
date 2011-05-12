@@ -257,6 +257,10 @@ RegionMatrixPtr RegionMatrix::splitRegion(const IndexT* offset, const IndexT* si
 }
 
 RegionMatrixPtr RegionMatrix::sliceRegion(int d, IndexT pos) const {
+  if (_isTransposed) {
+    d = _D - d - 1;
+  }
+
   int dimensions = _D - 1;
   IndexT* size = new IndexT[dimensions];
   memcpy(size, _size, sizeof(IndexT) * d);
