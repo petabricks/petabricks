@@ -163,7 +163,7 @@ public:
   const std::string& objpath() const { return _obj; }
 
   void writeMakefile(std::ostream& o) {
-    o << _obj << ":\n\t"
+    o << _obj << ": " << _cpp << "\n\t"
       << _gcccmd
       << "\n\n";
   }
@@ -373,9 +373,10 @@ int main( int argc, const char ** argv){
   // generate misc files:
   o.cg().beginGlobal();
 #ifdef SINGLE_SEQ_CUTOFF
-  o.createTunable(true, "system.cutoff.sequential", "sequentialcutoff", 64);
+  o.createTunable(true, "system.cutoff.sequential",  "sequentialcutoff", 64);
+  o.createTunable(true, "system.cutoff.distributed", "distributedcutoff", 512);
 #endif
-  o.createTunable(true, "system.runtime.threads", "worker_threads", 8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
+  o.cg().addTunable(true, "system.runtime.threads", "worker_threads", 8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
   o.cg().endGlobal();
   ccfiles.push_back(OutputCode(GENMISC, o));
   o.outputTunables(o.os());

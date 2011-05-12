@@ -36,32 +36,11 @@ namespace petabricks {
 class TransformInstance;
 typedef jalib::JRef<TransformInstance> TransformInstancePtr;
 
-/**
- * base clase for instances of user transforms
- */
-class TransformInstance : public jalib::JRefCounted {
-public:
-  virtual ~TransformInstance(){}
-//  virtual DynamicTaskPtr runDynamic() = 0;
+class TransformInstance : public jalib::JRefCounted {};
 
-//DynamicTaskPtr runAfter(const DynamicTaskPtr& before){
-//  if(before){
-//    DynamicTaskPtr t = new MethodCallTask<TransformInstance, &TransformInstance::runDynamic>(this);
-//    t->dependsOn(before);
-//    return t;
-//  }else{
-//    return runDynamic();
-//  }
-//}
-  
-//void runToCompletion(){
-//  DynamicTaskPtr p = runDynamic();
-//  if(p){
-//    p->enqueue();
-//    p->waitUntilComplete();
-//  }
-//}
-};
+class TransformInstance_sequential {};
+typedef DynamicTask TransformInstance_workstealing;
+typedef DynamicTask TransformInstance_distributed;
 
 }
 

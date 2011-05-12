@@ -157,33 +157,33 @@ void petabricks::WhereExpansionRule::generateCallCode(const std::string& name,
   SRCPOSSCOPE();
   switch(flavor) {
   case RuleFlavor::SEQUENTIAL:
-    o.callSpatial(codename()+TX_STATIC_POSTFIX, region);
+    o.callSpatial(codename()+"_"+flavor.str(), region);
     break;
   case RuleFlavor::WORKSTEALING:
-    o.mkSpatialTask(name, trans.instClassName(), codename()+TX_STATIC_POSTFIX, region);
+  case RuleFlavor::DISTRIBUTED:
+    o.mkSpatialTask(name, trans.instClassName(), codename()+"_"+flavor.str(), region);
     break;
   default:
     UNIMPLEMENTED();
   }
 }
 
-void petabricks::WhereExpansionRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
-  if(rf==RuleFlavor::SEQUENTIAL) {
-    //for now static only:
-    IterationDefinition iterdef(*this, getSelfDependency() , false);
-    std::vector<std::string> packedargs = iterdef.packedargs();
-    o.beginFunc("petabricks::DynamicTaskPtr", codename()+TX_STATIC_POSTFIX, packedargs);
-    iterdef.unpackargs(o);
-    iterdef.genLoopBegin(o);
-    genWhereSwitch(trans,o);
-    iterdef.genLoopEnd(o);
-    o.write("return NULL;");
-    o.endFunc();
-  }
+void petabricks::WhereExpansionRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
+  IterationDefinition iterdef(*this, getSelfDependency() , false);
+  std::vector<std::string> packedargs = iterdef.packedargs();
+  o.beginFunc("petabricks::DynamicTaskPtr", codename()+"_"+flavor.str(), packedargs);
+  if(RuleFlavor::SEQUENTIAL != flavor) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
+  iterdef.unpackargs(o);
+  iterdef.genLoopBegin(o);
+  genWhereSwitch(trans, o, flavor);
+  iterdef.genLoopEnd(o);
+  if(RuleFlavor::SEQUENTIAL != flavor) o.write("return _spawner;");
+  else o.write("return NULL;");
+  o.endFunc();
 }
 
 
-void petabricks::WhereExpansionRule::genWhereSwitch(Transform& trans, CodeGenerator& o){
+void petabricks::WhereExpansionRule::genWhereSwitch(Transform& trans, CodeGenerator& o, RuleFlavor rf){
   RuleSet::iterator i;
   for(i=_rules.begin(); i!=_rules.end(); ++i){
     for(int d=0; d<(*i)->dimensions(); ++d){
@@ -198,7 +198,12 @@ void petabricks::WhereExpansionRule::genWhereSwitch(Transform& trans, CodeGenera
     else
       o.elseIf(wc->toCppString());
 
-    (*i)->generateTrampCellCodeSimple(trans, o, RuleFlavor::SEQUENTIAL);
+    //TODO: dont always call seq
+    //if(rf == RuleFlavor::SEQUENTIAL && !(*i)->isRecursive()) {
+      (*i)->generateTrampCellCodeSimple(trans, o, RuleFlavor::SEQUENTIAL);
+   //} else {
+   //  (*i)->generateTrampCellCodeSimple(trans, o, rf);
+   //}
     
     for(int d=0; d<(*i)->dimensions(); ++d){
       o._undefine((*i)->getOffsetVar(d)->toString());

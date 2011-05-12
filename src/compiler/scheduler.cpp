@@ -277,7 +277,11 @@ void petabricks::StaticScheduler::generateCode(Transform& trans, CodeGenerator& 
   SchedulesT::iterator i;
   CodeGenerator& schedOutput = o.forkhelper();
   int n=0;
-  o.beginSwitch("selectSchedule()");
+  if(_schedules.size()==1) {
+    o.beginSwitch("0");
+  }else{
+    o.beginSwitch(trans.name()+"_selectSchedule("TRANSFORM_N_STR"())");
+  }
   for(i=_schedules.begin(); i!=_schedules.end(); ++i,++n) {
     o.beginCase(n);
 
@@ -301,19 +305,16 @@ void petabricks::StaticScheduler::generateCode(Transform& trans, CodeGenerator& 
   }
 
     
-  if(flavor==RuleFlavor::SEQUENTIAL){
-    std::string prefix = trans.name() + "_" + jalib::XToString(trans.nextTunerId()) + "_";
-    CodeGenerator& decTreeOutput = o.forkhelper();
-    decTreeOutput.beginFunc("int", "selectSchedule");
-    if(_schedules.size()==1) {
-      decTreeOutput.write("return 0;");
-    }else{
-      _choices.generateDecisionTree(prefix, _schedules.size(), decTreeOutput);
-    }
-    decTreeOutput.endFunc();
+}
+
+void petabricks::StaticScheduler::generateGlobalCode(Transform& trans, CodeGenerator& o) {
+  std::string prefix = trans.name() + "_" + jalib::XToString(trans.nextTunerId()) + "_";
+  if(_schedules.size()>1) {
+    o.beginFunc("int", trans.name()+"_selectSchedule", std::vector<std::string>(1,"int _transform_n"));
+    _choices.generateDecisionTree(prefix, _schedules.size(), o);
+    o.endFunc();
   }
 }
-  
 
 
 void petabricks::StaticScheduler::renderGraph(const char* filename, const char* type) const{

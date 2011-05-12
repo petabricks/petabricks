@@ -29,6 +29,7 @@
 
 #include <string>
 #include <iostream>
+#include <sstream>
 
 namespace jalib {
 
@@ -58,6 +59,14 @@ public:
   template < typename T >
   static void printStlList(std::ostream& o, const T& begin, const T& end, const char* sep = ""){
     for(T i=begin; i!=end; ++i) o << (i!=begin?sep:"") << *i;
+  }
+
+
+  template < typename T >
+  static std::string stringStlList(const T& begin, const T& end, const char* sep = ""){
+    std::ostringstream o;
+    printStlList(o, begin, end, sep);
+    return o.str();
   }
 };
 

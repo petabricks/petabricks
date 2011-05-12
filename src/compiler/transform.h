@@ -91,6 +91,8 @@ public:
 
   void generateTransformInstanceClass(CodeGenerator& o, RuleFlavor rf);
   
+  void generateTransformSelector(CodeGenerator& o, RuleFlavor rf, bool spawn);
+  
   void registerMainInterface(CodeGenerator& o);
 
   void generateMainInterface(CodeGenerator& o, const std::string& nextMain);
@@ -110,6 +112,8 @@ public:
 #endif
   
   void declTransformNFunc(CodeGenerator& o);
+  void declTransformN(CodeGenerator& o, const std::string& name);
+  void declTransformNDirect(CodeGenerator& o, const std::string& name);
   void declTryMemoizeFunc(CodeGenerator& o);
 
   void markMain() { _isMain=true; }
@@ -139,7 +143,7 @@ public:
   std::vector<std::string> normalArgNames() const;
 
   void genTmplJumpTable(CodeGenerator& o,
-                        bool isStatic,
+                        RuleFlavor rf,
                         const std::vector<std::string>& args,
                         const std::vector<std::string>& argNames);
   

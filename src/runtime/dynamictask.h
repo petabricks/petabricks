@@ -93,6 +93,15 @@ public:
   ///
   /// test if this can run on a given processor type
   bool hasType(TaskType t) const { return (_type&t)!=0; }
+
+  ///
+  /// run directly in a context that doesn't support continuations
+  void runNoContinuation() {
+    JASSERT(_dependents.empty());
+    JASSERT(_numPredecessors==0);
+    DynamicTaskPtr cont = run();
+    JASSERT(!cont);
+  }
  protected:
   ///
   /// either enqueue or inline the task

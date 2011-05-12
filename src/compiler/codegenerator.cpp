@@ -145,6 +145,7 @@ void petabricks::CodeGenerator::endFunc(){
 }
 
 void petabricks::CodeGenerator::indent(){ 
+  if(_indent<0) _indent = 0;
   if(_indent>0)
     os() << std::string(_indent*2,' '); 
 }
@@ -216,7 +217,9 @@ static std::string _typeToConstRef(std::string s){
 
 void petabricks::CodeGenerator::beginClass(const std::string& name, const std::string& base){
   hos() << "class " << name << " : public " << base << " {\n";
-  hos() << ("  typedef "+base+" BASE;\npublic:\n");
+  hos() << ("  typedef "+base+" BASE;\n")
+        << ("  typedef "+name+" CLASS;\n")
+        <<  "public:\n";
   _curClass=name;
   _contCounter=0;
   JASSERT(_curMembers.empty())(_curMembers.size());
@@ -315,10 +318,10 @@ void petabricks::CodeGenerator::callSpatial(const std::string& methodname, const
   decIndent();
   write("}");
 }
-void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region) {
-  std::string taskclass = "petabricks::SpatialMethodCallTask<"+objname
-                        + ", " + jalib::XToString(region.dimensions())
-                        + ", &" + objname + "::" + methodname
+void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& /*objname*/, const std::string& methodname, const SimpleRegion& region) {
+  std::string taskclass = "petabricks::SpatialMethodCallTask<CLASS"
+                          ", " + jalib::XToString(region.dimensions())
+                        + ", &CLASS::" + methodname
                         + ">";
   write("{");
   incIndent();

@@ -344,14 +344,15 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
       _name = origName;
     }
     _templateChoice = -1;
-    genTmplJumpTable(o, true, normalArgs(), normalArgNames());
-    genTmplJumpTable(o, false, normalArgs(), normalArgNames());
+    genTmplJumpTable(o, RuleFlavor::SEQUENTIAL, normalArgs(), normalArgNames());
+    genTmplJumpTable(o, RuleFlavor::WORKSTEALING, normalArgs(), normalArgNames());
+    //genTmplJumpTable(o, RuleFlavor::DISTRIBUTED, normalArgs(), normalArgNames());
     o.hos() << "typedef "+tmplName(0)+"_main "+_name+"_main;\n";
   }
 }
   
 void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
-                    bool isStatic,
+                    RuleFlavor rf,
                     const std::vector<std::string>& args,
                     const std::vector<std::string>& argNames)
 {
@@ -359,6 +360,9 @@ void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
   std::ostringstream formula;
   std::stringstream ss;
   std::vector<std::string> targs;
+  std::vector<std::string> targnames;
+  targs.push_back("petabricks::DynamicTaskPtr _completion");
+  targnames.push_back("_completion");
   for(size_t i=0, mult=1; i<_templateargs.size(); ++i){
     targs.push_back("int "+_templateargs[i]->name());
     if(mult>1) formula << " + " << mult << "*";
@@ -366,11 +370,8 @@ void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
     mult *= _templateargs[i]->range();
   }
   targs.insert(targs.end(), args.begin(), args.end());
-  if(isStatic)
-    o.beginFunc( "void" , _name+TX_STATIC_POSTFIX, targs);
-  else
-    o.beginFunc( "petabricks::DynamicTaskPtr" , _name+TX_DYNAMIC_POSTFIX, targs);
-  
+  targnames.insert(targnames.end(), argNames.begin(), argNames.end());
+  o.beginFunc( "void" , _name+"_"+rf.str(), targs);
   for(size_t i=0; i<_templateargs.size(); ++i){
     ss << "JASSERT(" << _templateargs[i]->name() << ">=" << _templateargs[i]->min() << " && "
                      << _templateargs[i]->name() << "<=" << _templateargs[i]->max() << ")"
@@ -386,18 +387,10 @@ void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
   for(size_t c=0; c<choiceCnt; ++c){
     std::string fn = tmplName(c);
     o.beginCase(c);
-    if(isStatic){
-      o.call(fn+TX_STATIC_POSTFIX, argNames);
-    }else{
-      o.write("return ");
-      o.call(fn+TX_DYNAMIC_POSTFIX, argNames);
-    }
+    o.call(fn+"_"+rf.str(), targnames);
     o.endCase();
   }
-  if(isStatic)
-    o.write("default: JASSERT(false); return;");
-  else
-    o.write("default: JASSERT(false); return 0;");
+  o.write("default: JASSERT(false);");
   o.endSwitch();
   o.endFunc();
 }
@@ -406,10 +399,10 @@ void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
 std::vector<std::string> petabricks::Transform::normalArgs() const{
   std::vector<std::string> args;
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->argDeclRW(args);
+    (*i)->argDeclRW(args, true);
   }
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    (*i)->argDeclRO(args);
+    (*i)->argDeclRO(args, true);
   }
   return args;
 }
@@ -441,10 +434,6 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   SRCPOSSCOPE();
   _usesSplitSize=false;
   _tuneId = 0;
-  std::vector<std::string> args = normalArgs();
-  std::vector<std::string> argNames = normalArgNames();
-  std::vector<std::string> returnStyleArgs = args;
-  if(_to.size()==1) returnStyleArgs.erase(returnStyleArgs.begin());
 
   o.cg().beginTransform(_originalName, _name, _templateChoice, !_accuracyBins.empty(), _curAccTarget);
   o.comment("Begin output for transform " + _name);
@@ -459,12 +448,15 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.write("#define TRANSFORM_LOCAL(x) PB_CAT("+_name+"_, x)");
   o.newline();
 
-  //o.globalDefine(_name+TX_DYNAMIC_POSTFIX+"(args...)",
-  //    "petabricks::tx_call_dynamic(new "+instClassName()+"(args))");
-  //o.globalDefine(_name+TX_STATIC_POSTFIX+"(args...)",
-  //    instClassName()+"(args).runStatic()");
+#ifndef SINGLE_SEQ_CUTOFF
+  o.createTunable(true, "system.cutoff.sequential", _name + "_sequentialcutoff", 64);
+  o.createTunable(true, "system.cutoff.distributed", _name + "_distributedcutoff", 512);
+#endif
+
+  _scheduler->generateGlobalCode(*this, o);
   
   for(RuleFlavor::iterator rf=RuleFlavor::begin(); rf!=RuleFlavor::end(); ++rf) {
+    if(rf == RuleFlavor::DISTRIBUTED) continue;
     generateTransformInstanceClass(o, rf);
   }
   
@@ -477,12 +469,81 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
 }
 
 
+void petabricks::Transform::generateTransformSelector(CodeGenerator& o, RuleFlavor rf, bool spawn){ 
+#ifndef SINGLE_SEQ_CUTOFF
+  static const std::string seqco  = "TRANSFORM_LOCAL(sequentialcutoff)";
+  static const std::string distco = "TRANSFORM_LOCAL(distributedcutoff)";
+#else
+  static const std::string seqco  = "sequentialcutoff";
+  static const std::string distco = "distributedcutoff";
+#endif
+
+  std::vector<std::string> args = normalArgs();
+  if(spawn){
+    args.insert(args.begin(), "const DynamicTaskPtr& _completion");
+  }
+
+  std::vector<std::string> argNames = normalArgNames();
+  std::string argNamesStr = jalib::JPrintable::stringStlList(argNames.begin(), argNames.end(), ", ");
+
+  o.beginFunc("void", _name+"_"+rf.str(), args);
+
+  if(rf > RuleFlavor::SEQUENTIAL) {
+    declTransformNDirect(o, "_transform_n");
+
+    o.beginIf("_transform_n < " + seqco);
+    o.comment("switch to sequential version");
+  }
+  o.write(instClassName()+"_"+RuleFlavor(RuleFlavor::SEQUENTIAL).str()+"("+argNamesStr+").run();");
+  if(rf > RuleFlavor::SEQUENTIAL) {
+    o.write("return;");
+    o.endIf();
+  }
+
+  if(rf > RuleFlavor::WORKSTEALING) {
+    o.beginIf("_transform_n < " + distco);
+    o.comment("switch to shared memory version");
+  }
+  if(rf >= RuleFlavor::WORKSTEALING) {
+    std::string wstaskstr = "new "+instClassName()+"_"+RuleFlavor(RuleFlavor::WORKSTEALING).str()+"("+argNamesStr+")";
+    if(spawn){
+      o.write("petabricks::spawn_hook("+wstaskstr+", _completion);");
+    }else{
+      o.write("petabricks::tx_call_workstealing("+wstaskstr+");");
+    }
+  }
+  if(rf > RuleFlavor::WORKSTEALING) {
+    o.write("return;");
+    o.endIf();
+  }
+
+  if(rf == RuleFlavor::DISTRIBUTED) {
+    std::string disttaskstr = "new "+instClassName()+"_"+RuleFlavor(RuleFlavor::WORKSTEALING).str()+"("+argNamesStr+")";
+    if(spawn){
+      o.write("petabricks::spawn_hook("+disttaskstr+", _completion);");
+    }else{
+      o.write("petabricks::tx_call_distributed("+disttaskstr+");");
+    }
+  }
+
+  o.endFunc();
+}
+
+
 void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, RuleFlavor rf){ 
+
+
+  //TODO: readd this optimization
+  //o.comment("Entry point that does the work inline");
+  //generateTransformSelector(o, rf, false);
+
+  o.comment("Entry point that *may* spawn a task");
+  generateTransformSelector(o, rf, true);
 
   //allow rules to put code outside of class
   Map(&RuleInterface::generateDeclCode, *this, o, rf, _rules);
 
-  o.beginClass(instClassName() + "_" + rf.str(), "petabricks::TransformInstance");
+  o.beginClass(instClassName() + "_" + rf.str(), std::string() + "petabricks::TransformInstance_" + rf.str());
 
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     o.addMember((*i)->matrixTypeName(), (*i)->name());
@@ -506,7 +567,7 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
 
 
   if(rf == RuleFlavor::SEQUENTIAL) {
-    o.beginFunc("void", "runStatic");
+    o.beginFunc("void", "run");
     if(_memoized){
       o.beginIf("tryMemoize()");
       o.write("return;");
@@ -514,26 +575,22 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
     }
     _scheduler->generateCode(*this, o, RuleFlavor::SEQUENTIAL);
     o.endFunc();
-  }
-  else if(rf == RuleFlavor::WORKSTEALING) {
-    o.beginFunc("DynamicTaskPtr", "runDynamic");
+  }else if(rf == RuleFlavor::WORKSTEALING) {
+    o.beginFunc("DynamicTaskPtr", "run");
     if(_memoized){
       o.beginIf("tryMemoize()");
       o.write("return NULL;");
       o.endIf();
     }
-#ifndef SINGLE_SEQ_CUTOFF
-    o.createTunable(true, "system.cutoff.sequential", _name + "_sequentialcutoff", 0);
-    o.beginIf(TRANSFORM_N_STR "() < TRANSFORM_LOCAL(sequentialcutoff)");
-#else
-    o.beginIf(TRANSFORM_N_STR "() < sequentialcutoff");
-#endif
-    o.write("runStatic();");
-    o.write("return NULL;");
-    o.endIf();
     _scheduler->generateCode(*this, o, RuleFlavor::WORKSTEALING);
     o.endFunc();
+  }else if(rf == RuleFlavor::DISTRIBUTED) {
+    o.beginFunc("DynamicTaskPtr", "run");
+    o.write("UNIMPLEMENTED();");
+    o.write("return NULL;");
+    o.endFunc();
   }
+  
 
   Map(&RuleInterface::generateTrampCode, *this, o, rf, _rules);
 
@@ -551,13 +608,29 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
 void petabricks::Transform::declTransformNFunc(CodeGenerator& o){
   SRCPOSSCOPE();
   o.beginFunc("IndexT", TRANSFORM_N_STR);
-  o.write("IndexT _rv_n=1;");
-  for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
-    if(i->hasFlag(ConfigItem::FLAG_SIZEVAR))
-      o.write("_rv_n = std::max<IndexT>(_rv_n, "+i->name()+");");
-  }
+  declTransformN(o, "_rv_n");
   o.write("return _rv_n;");
   o.endFunc();
+}
+void petabricks::Transform::declTransformN(CodeGenerator& o, const std::string& name){
+  o.write("IndexT "+name+"=1;");
+  for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
+    if(i->hasFlag(ConfigItem::FLAG_SIZEVAR))
+      o.write(name+" = std::max<IndexT>("+name+", "+i->name()+");");
+  }
+}
+void petabricks::Transform::declTransformNDirect(CodeGenerator& o, const std::string& name){
+  o.write("IndexT "+name+"=1;");
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    for(size_t d=0; d<(*i)->numDimensions(); ++d) {
+      o.write(name+" = std::max<IndexT>("+name+", "+(*i)->name()+".size("+jalib::XToString(d)+"));");
+    }
+  }
+  for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    for(size_t d=0; d<(*i)->numDimensions(); ++d) {
+      o.write(name+" = std::max<IndexT>("+name+", "+(*i)->name()+".size("+jalib::XToString(d)+"));");
+    }
+  }
 }
 
 void petabricks::Transform::declTryMemoizeFunc(CodeGenerator& o){
@@ -863,7 +936,10 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   
 
   o.beginFunc("void", "compute");
-  o.setcall("DynamicTaskPtr p",name()+TX_DYNAMIC_POSTFIX, argNames);
+  o.write("DynamicTaskPtr p = new NullDynamicTask();");
+  argNames.insert(argNames.begin(), "p");
+  o.call(name()+TX_DYNAMIC_POSTFIX, argNames);
+  argNames.erase(argNames.begin());
   o.write("petabricks::enqueue_and_wait(p);");
   o.endFunc();
   
@@ -902,7 +978,9 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
 #endif
     std::vector<std::string> args = argnames();
     args.insert(args.begin(), "_acc");
-    o.setcall("DynamicTaskPtr p", _accuracyMetric+TX_DYNAMIC_POSTFIX, args);
+    args.insert(args.begin(), "p");
+    o.write("DynamicTaskPtr p = new NullDynamicTask();");
+    o.call(_accuracyMetric+TX_DYNAMIC_POSTFIX, args);
     o.write("petabricks::enqueue_and_wait(p);");
     if(isAccuracyInverted())
       o.write("return -1*_acc.cell();");

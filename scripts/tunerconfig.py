@@ -91,11 +91,12 @@ class config_defaults:
   recompile = True
 
   #types of mutatators to generate
-  lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']
+  lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential', 'system.cutoff.distributed']
   uniform_tunable_types       = ['system.flag.unrollschedule']
   autodetect_tunable_types    = ['user.tunable']
   lognorm_array_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
-  ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg', 'user.tunable.double', 'user.tunable.double.array']
+  ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg', 'user.tunable.double',
+                                 'user.tunable.double.array', "system.runtime.threads"]
   
   #metric information, dont change
   metrics               = ['timing', 'accuracy']

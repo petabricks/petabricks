@@ -126,6 +126,7 @@ public:
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor); 
   
+  
   bool isSingleElement() const;
   
   int dimensions() const;
@@ -135,7 +136,7 @@ public:
 
   void collectDependencies(StaticScheduler& scheduler);
 
-  void genWhereSwitch(Transform& trans, CodeGenerator& o);
+  void genWhereSwitch(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 
   DependencyDirection getSelfDependency() const;
 private:

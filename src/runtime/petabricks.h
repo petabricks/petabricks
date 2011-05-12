@@ -55,10 +55,10 @@ petabricks::PetabricksRuntime::Main* petabricksMainTransform();
 petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);
 
 #define PB_SPAWN(taskname, args...) \
-  petabricks::spawn_hook( taskname ## _worksteal (args), _completion)
+  taskname ## _workstealing (_completion, args)
 
 #define PB_STATIC_CALL(taskname, args...) \
-  taskname ## _seq (args)
+  taskname ## _sequential (NULL, args)
 
 #define PB_NOP() (void)0
 
@@ -81,9 +81,16 @@ petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& 
 
 namespace petabricks {
   template< typename T >
-  inline DynamicTaskPtr tx_call_dynamic(T* tx){
+  inline DynamicTaskPtr tx_call_workstealing(T* tx){
     TransformInstancePtr txPtr(tx); //make sure tx gets deleted
-    return tx->T::runDynamic(); //run without vtable use
+    return tx->T::run(); //run without vtable use
+  }
+
+
+  template< typename T >
+  inline DynamicTaskPtr tx_call_distributed(T* tx){
+    TransformInstancePtr txPtr(tx); //make sure tx gets deleted
+    return tx->T::run(); //run without vtable use
   }
   
   template< typename T >

@@ -182,7 +182,7 @@ void petabricks::BasicChoiceDepGraphNode::generateCode(Transform& trans, CodeGen
 }
 
 
-void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos, RuleFlavor , const RuleChoiceAssignment& choice){
+void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos, RuleFlavor rf, const RuleChoiceAssignment& choice){
   JASSERT(choice.find(this)!=choice.end());
   RulePtr rule = choice.find(this)->second;
   
@@ -194,7 +194,16 @@ void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans,
 
   SimpleRegionPtr t = new SimpleRegion(min,max);
 
-  rule->generateCallCode(nodename(), trans, o, t, RuleFlavor::SEQUENTIAL);
+  if(rf!=RuleFlavor::SEQUENTIAL) {
+    o.write("{ DynamicTaskPtr _tmptask;");
+  }
+  rule->generateCallCode("_tmptask", trans, o, t, rf);
+  if(rf!=RuleFlavor::SEQUENTIAL) {
+    o.comment("need to add support for continuations here, this is a hack:");
+    o.write("_tmptask->runNoContinuation();");
+    o.write("}");
+  }
+
   //TODO deps for slice // dynamic version
 }
 
@@ -332,12 +341,14 @@ void petabricks::SlicedChoiceDepGraphNode::generateCode(Transform& trans, CodeGe
   if(!isStatic) ot.beginFunc("DynamicTaskPtr", taskname);
   std::string varname="coscheduled_"+nodename();
 
+  ot.comment("SlicedChoiceDepGraphNode code");
+
   if(_forward){
     ot.beginFor(varname, _begin, _end, FormulaInteger::one());
   }else{
     ot.beginReverseFor(varname, _begin, _end, FormulaInteger::one());
   }    
-  
+
   for(ChoiceDepGraphNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
     (*i)->generateCodeForSlice(trans, ot, _dimension, new FormulaVariable(varname), flavor, choice);
   }
@@ -347,9 +358,9 @@ void petabricks::SlicedChoiceDepGraphNode::generateCode(Transform& trans, CodeGe
     ot.write("return NULL;");
     ot.endFunc();
     std::vector<std::string> args(1, "this");
-    o.setcall(nodename(), "new petabricks::MethodCallTask<" + trans.instClassName()
-                        + ", &" + trans.instClassName() + "::" + taskname + ">"
-        , args);
+    o.setcall(nodename(),
+              "new petabricks::MethodCallTask<CLASS, &CLASS::" + taskname + ">",
+              args);
   }
 }
 
