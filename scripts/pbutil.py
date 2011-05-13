@@ -559,10 +559,19 @@ def mainname(bin):
   lines = p.stdout.readlines()
   return lines[-1].strip()
 
+def gitRevision(n=40):
+  try:
+    cmd=["git","log","-n","1","--pretty=format:%H"]
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=NULL)
+    return p.communicate()[0][0:n]
+  except:
+    return "0"*n
+
 if __name__ == "__main__":
   chdirToPetabricksRoot()
+  print gitRevision()
   compilePetabricks()
   compileBenchmarks(map(normalizeBenchmarkName, ["add", "multiply", "transpose"]))
   print "Estimating input sizes"
-  inferGoodInputSizes("./examples/simple/add", [0.1,0.5,1.0], 2)
+  print inferGoodInputSizes("./examples/simple/add", [0.1,0.5,1.0], 2)
 
