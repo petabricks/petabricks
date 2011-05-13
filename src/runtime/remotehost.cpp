@@ -128,6 +128,12 @@ namespace _RemoteHostMsgTypes {
 }
 using namespace _RemoteHostMsgTypes;
 
+const HostPid& petabricks::HostPid::self() {
+  static HostPid selfObj = { gethostid(), 0 };
+  selfObj.pid = getpid();//pid may change with fork()
+  return selfObj;
+}
+
 void petabricks::RemoteHost::accept(jalib::JServerSocket& s) {
   _control.close();
   _control = s.accept();
@@ -151,7 +157,7 @@ void petabricks::RemoteHost::connect(const jalib::JSockAddr& a, int p) {
 }
 
 void petabricks::RemoteHost::handshake() {
-  HostPid self = { gethostid(), getpid() };
+  HostPid self = HostPid::self();
 
   HelloMessage msg = { MessageTypes::HELLO_CONTROL,
                        self,
