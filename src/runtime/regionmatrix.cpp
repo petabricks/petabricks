@@ -149,6 +149,10 @@ void RegionMatrix::splitData(IndexT* splitSize) {
   _regionHandler->updateRegionData(newRegionData);
 }
 
+void RegionMatrix::createDataPart(int partIndex, RemoteHostPtr host) {
+  ((RegionDataSplit*)_regionData.asPtr())->createPart(partIndex, host);
+}
+
 void RegionMatrix::allocData() {
   acquireRegionData();
   _regionData->allocData();

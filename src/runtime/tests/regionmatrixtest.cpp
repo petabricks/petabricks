@@ -90,10 +90,11 @@ int main(int argc, const char** argv){
   IndexT m257[] = {2,5,7};
 
   RemoteHostDB hdb;
-  RegionMatrixPtr regionMatrix;
 
   IndexT size[] = {8,9,8};
-  regionMatrix = new RegionMatrix(3, size);
+  //
+  // Create a RegionMatrix
+  RegionMatrix3D regionMatrix(size);
 
   if(argc==1){
     printf("main %d\n", getpid());
@@ -102,31 +103,33 @@ int main(int argc, const char** argv){
     hdb.accept();
     hdb.spawnListenThread();
 
-    // split data
-    regionMatrix->splitData(m2);
+    // Split the matrix in to multiple parts of size m2
+    regionMatrix.splitData(m2);
 
-    // assign a chunk of data to remote host
-    RegionHandlerPtr handler = regionMatrix->getRegionHandler();
-    RegionDataSplitPtr regionData = (RegionDataSplit*) handler->acquireRegionData(NULL).asPtr();
-    regionData->createPart(0, hdb.host(0));
-    handler->releaseRegionData(NULL);
+    // Assign a chunk of data to remote host
+    //   - put part 0 in hdb.host(0)
+    //   - the other parts are created locally
+    regionMatrix.acquireRegionData();
+    regionMatrix.createDataPart(0, hdb.host(0));
+    regionMatrix.releaseRegionData();
 
     // import data
+    regionMatrix.importDataFromFile(filename);
+
+    // or, allocate empty matrix
     // regionMatrix->allocData();
-    regionMatrix->importDataFromFile(filename);
 
-    // regionMatrix->print();
+    regionMatrix.acquireRegionData();
 
-    regionMatrix->acquireRegionData();
+    CellProxy& cell = regionMatrix.cell(m257);
+    printf("before %4.8g\n", (double) cell);
+    cell = 5;
+    printf("after %4.8g\n", (double) cell);
 
-    printf("before %4.8g\n", regionMatrix->readCell(m257));
-    regionMatrix->writeCell(m257, 5);
-    printf("after %4.8g\n", regionMatrix->readCell(m257));
-
-    regionMatrix->releaseRegionData();
+    regionMatrix.releaseRegionData();
 
     // Test split
-    RegionMatrixPtr split3 = regionMatrix->splitRegion(m123, m3);
+    RegionMatrixPtr split3 = regionMatrix.splitRegion(m123, m3);
     RegionMatrixPtr split2 = split3->splitRegion(m1, m2);
     RegionMatrixPtr slice1 = split2->sliceRegion(2, 0);
     RegionMatrixPtr slice2 = slice1->sliceRegion(1, 1);
@@ -137,14 +140,15 @@ int main(int argc, const char** argv){
     slice2->print();
 
     // Test slice
-    RegionMatrixPtr slice3 = regionMatrix->sliceRegion(1, 0);
+    RegionMatrixPtr slice3 = regionMatrix.sliceRegion(1, 0);
     slice3->print();
 
 
     ///////////////////////////////////
     // Create remote RegionMetrix
 
-    regionMatrix->moveToRemoteHost(hdb.host(0), 1);
+    // move to hdb.host(0) with UID=1 --> the receiver will wait for this UID
+    regionMatrix.moveToRemoteHost(hdb.host(0), 1);
 
     printf("completed\n");
     hdb.listenLoop();
@@ -156,23 +160,24 @@ int main(int argc, const char** argv){
     hdb.connect(argv[1], jalib::StringToInt(argv[2]));
     hdb.spawnListenThread();
 
-    regionMatrix->updateHandler(1);
+    // Wait until receive a matrix with UID=1
+    regionMatrix.updateHandler(1);
 
-    regionMatrix->acquireRegionData();
+    regionMatrix.acquireRegionData();
 
-    printf("cell %4.8g\n", regionMatrix->readCell(m257));
-    printf("cell %4.8g\n", regionMatrix->readCell(m0));
-    printf("cell %4.8g\n", regionMatrix->readCell(m1));
-    printf("cell %4.8g\n", regionMatrix->readCell(m2));
-    printf("cell %4.8g\n", regionMatrix->readCell(m3));
+    printf("cell %4.8g\n", regionMatrix.readCell(m257));
+    printf("cell %4.8g\n", regionMatrix.readCell(m0));
+    printf("cell %4.8g\n", regionMatrix.readCell(m1));
+    printf("cell %4.8g\n", regionMatrix.readCell(m2));
+    printf("cell %4.8g\n", regionMatrix.readCell(m3));
 
-    regionMatrix->writeCell(m257, 123);
-    printf("cell %4.8g\n", regionMatrix->readCell(m257));
+    regionMatrix.writeCell(m257, 123);
+    printf("cell %4.8g\n", regionMatrix.readCell(m257));
 
-    regionMatrix->releaseRegionData();
+    regionMatrix.releaseRegionData();
 
     // Test split
-    RegionMatrixPtr rsplit3 = regionMatrix->splitRegion(m123, m3);
+    RegionMatrixPtr rsplit3 = regionMatrix.splitRegion(m123, m3);
     RegionMatrixPtr rsplit2 = rsplit3->splitRegion(m1, m2);
     RegionMatrixPtr rslice1 = rsplit2->sliceRegion(2, 0);
     RegionMatrixPtr rslice2 = rslice1->sliceRegion(1, 1);
@@ -183,7 +188,7 @@ int main(int argc, const char** argv){
     rslice2->print();
 
     // Test slice
-    RegionMatrixPtr rslice3 = regionMatrix->sliceRegion(1, 0);
+    RegionMatrixPtr rslice3 = regionMatrix.sliceRegion(1, 0);
     rslice3->print();
 
     printf("completed2\n");
