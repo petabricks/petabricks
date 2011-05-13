@@ -63,11 +63,7 @@ cell  123
 
 #include "petabricks.h"
 
-#include "regiondataraw.h"
-#include "regiondataremote.h"
-#include "regiondatasplit.h"
 #include "regionmatrix.h"
-#include "regionmatrixproxy.h"
 #include "remotehost.h"
 
 using namespace petabricks;
@@ -85,6 +81,7 @@ int main(int argc, const char** argv){
   IndexT m0[] = {0,0,0};
   IndexT m1[] = {1,1,1};
   IndexT m123[] = {1,2,3};
+  IndexT m456[] = {4,5,6};
   IndexT m2[] = {2,2,2};
   IndexT m3[] = {3,3,3};
   IndexT m257[] = {2,5,7};
@@ -129,19 +126,19 @@ int main(int argc, const char** argv){
     regionMatrix.releaseRegionData();
 
     // Test split
-    RegionMatrixPtr split3 = regionMatrix.splitRegion(m123, m3);
-    RegionMatrixPtr split2 = split3->splitRegion(m1, m2);
-    RegionMatrixPtr slice1 = split2->sliceRegion(2, 0);
-    RegionMatrixPtr slice2 = slice1->sliceRegion(1, 1);
+    RegionMatrix3D split3 = regionMatrix.region(m123, m456);
+    RegionMatrix3D split2 = split3.region(m1, m3);
+    RegionMatrix2D slice1 = split2.slice(2, 0);
+    RegionMatrix1D slice2 = slice1.slice(1, 1);
 
-    split3->print();
-    split2->print();
-    slice1->print();
-    slice2->print();
+    split3.print();
+    split2.print();
+    slice1.print();
+    slice2.print();
 
     // Test slice
-    RegionMatrixPtr slice3 = regionMatrix.sliceRegion(1, 0);
-    slice3->print();
+    RegionMatrix2D slice3 = regionMatrix.slice(1, 0);
+    slice3.print();
 
 
     ///////////////////////////////////
@@ -165,31 +162,31 @@ int main(int argc, const char** argv){
 
     regionMatrix.acquireRegionData();
 
-    printf("cell %4.8g\n", regionMatrix.readCell(m257));
-    printf("cell %4.8g\n", regionMatrix.readCell(m0));
-    printf("cell %4.8g\n", regionMatrix.readCell(m1));
-    printf("cell %4.8g\n", regionMatrix.readCell(m2));
-    printf("cell %4.8g\n", regionMatrix.readCell(m3));
+    printf("cell %4.8g\n", (double) regionMatrix.cell(m257));
+    printf("cell %4.8g\n", (double) regionMatrix.cell(m0));
+    printf("cell %4.8g\n", (double) regionMatrix.cell(m1));
+    printf("cell %4.8g\n", (double) regionMatrix.cell(m2));
+    printf("cell %4.8g\n", (double) regionMatrix.cell(m3));
 
-    regionMatrix.writeCell(m257, 123);
-    printf("cell %4.8g\n", regionMatrix.readCell(m257));
+    regionMatrix.cell(m257) = 123;
+    printf("cell %4.8g\n", (double) regionMatrix.cell(m257));
 
     regionMatrix.releaseRegionData();
 
     // Test split
-    RegionMatrixPtr rsplit3 = regionMatrix.splitRegion(m123, m3);
-    RegionMatrixPtr rsplit2 = rsplit3->splitRegion(m1, m2);
-    RegionMatrixPtr rslice1 = rsplit2->sliceRegion(2, 0);
-    RegionMatrixPtr rslice2 = rslice1->sliceRegion(1, 1);
+    RegionMatrix3D rsplit3 = regionMatrix.region(m123, m456);
+    RegionMatrix3D rsplit2 = rsplit3.region(m1, m3);
+    RegionMatrix2D rslice1 = rsplit2.slice(2, 0);
+    RegionMatrix1D rslice2 = rslice1.slice(1, 1);
 
-    rsplit3->print();
-    rsplit2->print();
-    rslice1->print();
-    rslice2->print();
+    rsplit3.print();
+    rsplit2.print();
+    rslice1.print();
+    rslice2.print();
 
     // Test slice
-    RegionMatrixPtr rslice3 = regionMatrix.sliceRegion(1, 0);
-    rslice3->print();
+    RegionMatrix2D rslice3 = regionMatrix.slice(1, 0);
+    rslice3.print();
 
     printf("completed2\n");
 
