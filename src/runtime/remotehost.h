@@ -67,6 +67,8 @@ struct HostPid {
   friend std::ostream& operator << (std::ostream& o, const HostPid& a) {
     return o << std::hex << a.hostid << '/' << std::dec <<  a.pid;
   }
+
+  static const HostPid& self();
 };
 
 
