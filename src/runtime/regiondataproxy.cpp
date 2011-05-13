@@ -65,7 +65,6 @@ void* RegionDataProxy::fetchData(const void* msg, size_t len) {
 }
 
 void RegionDataProxy::onRecv(const void* data, size_t len) {
-  JTRACE("recv")(*(ElementT*)data)(len);
   void* x = malloc(len);
   memmove(x, data, len);
   _buffer[++_recv_seq] = x;

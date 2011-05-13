@@ -45,6 +45,7 @@ namespace petabricks {
     void copy(const RegionMatrix& that);
 
     void splitData(IndexT* splitSize);
+    void createDataPart(int partIndex, RemoteHostPtr host);
     void allocData();
     void importDataFromFile(const char* filename);
 

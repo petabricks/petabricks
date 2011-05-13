@@ -76,7 +76,6 @@ void RegionDataRemote::writeCell(const IndexT* coord, ElementT value) {
 }
 
 void RegionDataRemote::onRecv(const void* data, size_t len) {
-  JTRACE("recv")(*(ElementT*)data)(len);
   void* x = malloc(len);
   memmove(x, data, len);
   _buffer[++_recv_seq] = x;
