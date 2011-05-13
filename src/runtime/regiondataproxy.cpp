@@ -5,7 +5,8 @@ using namespace petabricks::RegionDataProxyMessage;
 
 RegionDataProxy::RegionDataProxy(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host) {
   _D = dimensions;
-  
+  _type = RegionDataTypes::REGIONDATAPROXY;
+
   _size = new IndexT[_D];
   memcpy(_size, size, sizeof(IndexT) * _D);
 
@@ -17,17 +18,17 @@ RegionDataProxy::RegionDataProxy(int dimensions, IndexT* size, IndexT* partOffse
   pthread_cond_init(&_buffer_cond, NULL);
   _seq = 0;
   _recv_seq = 0;
-  
+
   // Create Remote Object
   RemoteObjectPtr local = this->genLocal();
-  
+
   InitialMessage* msg = new InitialMessage();
   msg->dimensions = _D;
-  memcpy(msg->size, _size, sizeof(msg->size));  
-  memcpy(msg->partOffset, _partOffset, sizeof(msg->partOffset));  
-  
-  int len = (sizeof msg) + sizeof(msg->size) + sizeof(msg->partOffset);
-  
+  memcpy(msg->size, _size, sizeof(msg->size));
+  memcpy(msg->partOffset, _partOffset, sizeof(msg->partOffset));
+
+  int len = sizeof *msg;
+
   host->createRemoteObject(local, &RegionDataProxy::genRemote, msg, len);
   local->waitUntilCreated();
 }
@@ -103,7 +104,7 @@ void RegionDataProxy::writeCell(const IndexT* coord, ElementT value) {
   delete msg;
   JASSERT(elmt == value);
 }
- 
+
 RemoteObjectPtr RegionDataProxy::genLocal() {
   class RegionDataProxyLocalRemoteObject : public RemoteObject {
    private:
@@ -146,7 +147,7 @@ void RegionDataProxyRemoteObject::processWriteCellMsg(WriteCellMessage* msg) {
 
 void RegionDataProxyRemoteObject::processAllocDataMsg(AllocDataMessage* /*msg*/) {
   int r = _regionData->allocData();
-  this->send(&r, sizeof(int));  
+  this->send(&r, sizeof(int));
 }
 
 void RegionDataProxyRemoteObject::onRecv(const void* data, size_t len) {
@@ -164,6 +165,6 @@ void RegionDataProxyRemoteObject::onRecv(const void* data, size_t len) {
     this->processAllocDataMsg((AllocDataMessage*)data);
     break;
   default:
-    throw("Unknown RegionRemoteMsgTypes.");
+    JASSERT(false)("Unknown RegionRemoteMsgTypes.");
   }
 }

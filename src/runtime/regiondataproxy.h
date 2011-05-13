@@ -33,17 +33,17 @@ namespace petabricks {
       MessageType type;
       IndexT coord[MAX_DIMENSIONS];
     };
-    
+
     struct WriteCellMessage {
       MessageType type;
       ElementT value;
-      IndexT coord[MAX_DIMENSIONS]; 
+      IndexT coord[MAX_DIMENSIONS];
     };
   }
 
   class RegionDataProxy;
   typedef jalib::JRef<RegionDataProxy> RegionDataProxyPtr;
-  
+
   class RegionDataProxy : public RegionDataI {
     RemoteObjectPtr _remoteObject;
 

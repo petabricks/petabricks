@@ -10,6 +10,7 @@ using namespace petabricks;
 //
 RegionDataSplit::RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* splitSize) {
   _D = originalRegionData->dimensions();
+  _type = RegionDataTypes::REGIONDATASPLIT;
   _size = new IndexT[_D];
   memcpy(_size, originalRegionData->size(), sizeof(IndexT) * _D);
 

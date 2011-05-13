@@ -1,7 +1,7 @@
 INCLUDES =
 METASOURCES = AUTO
-AM_YFLAGS = 
-AM_LFLAGS = 
+AM_YFLAGS =
+AM_LFLAGS =
 OBJDIR=obj
 
 noinst_LIBRARIES = libpbcommon.a libpbcompiler.a libpbruntime.a libpbmain.a
@@ -51,6 +51,7 @@ pkglib_HEADERS=  \
   common/jtunable.h \
   common/srcpos.h \
   common/thedeque.h \
+  runtime/cellproxy.h \
   runtime/dynamicscheduler.h \
   runtime/dynamictask.h \
   runtime/matrixio.h \
@@ -60,6 +61,7 @@ pkglib_HEADERS=  \
   runtime/memoization.h \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
+  runtime/regiondata0D.h \
   runtime/regiondatai.h \
   runtime/regiondataproxy.h \
   runtime/regiondataraw.h \
@@ -93,7 +95,7 @@ libpbcommon_a_SOURCES =  \
   common/jtunable.cpp \
   common/srcpos.cpp
 
-libpbcompiler_a_LFLAGS = 
+libpbcompiler_a_LFLAGS =
 libpbcompiler_a_YFLAGS = -d
 libpbcompiler_a_CXXFLAGS = -I. -I$(srcdir)/compiler
 libpbcompiler_a_SOURCES = \
@@ -127,7 +129,7 @@ libpbcompiler_a_SOURCES = \
   compiler/transform.cpp \
   compiler/userrule.cpp
 
-libpbruntime_a_LFLAGS = 
+libpbruntime_a_LFLAGS =
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime
 libpbruntime_a_SOURCES =  \
   runtime/dynamicscheduler.cpp \
@@ -160,23 +162,23 @@ libpbmain_a_SOURCES = runtime/redirectmain.cpp
 
 pbc_CXXFLAGS = -Icompiler
 pbc_SOURCES = compiler/pbc.cpp
-pbc_LDADD = libpbcompiler.a libpbcommon.a 
+pbc_LDADD = libpbcompiler.a libpbcommon.a
 
 rttest1_CXXFLAGS = -Iruntime
 rttest1_SOURCES  = runtime/rttest1.cpp
-rttest1_LDADD    = libpbruntime.a libpbcommon.a 
+rttest1_LDADD    = libpbruntime.a libpbcommon.a
 
 rttest2_CXXFLAGS = -Iruntime
 rttest2_SOURCES  = runtime/rttest2.cpp
-rttest2_LDADD    = libpbruntime.a libpbcommon.a 
+rttest2_LDADD    = libpbruntime.a libpbcommon.a
 
 regiondatatest_CXXFLAGS = -Iruntime
 regiondatatest_SOURCES  = runtime/tests/regiondatatest.cpp
-regiondatatest_LDADD    = libpbruntime.a libpbcommon.a 
+regiondatatest_LDADD    = libpbruntime.a libpbcommon.a
 
 regionmatrixtest_CXXFLAGS = -Iruntime
 regionmatrixtest_SOURCES  = runtime/tests/regionmatrixtest.cpp
-regionmatrixtest_LDADD    = libpbruntime.a libpbcommon.a 
+regionmatrixtest_LDADD    = libpbruntime.a libpbcommon.a
 
 CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp libpbcompiler_a-maximaparser.h \
              libpbcompiler_a-pblexer.cpp libpbcompiler_a-pbparser.cpp libpbcompiler_a-pbparser.h \
@@ -188,9 +190,9 @@ CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp li
 maximaparser.h: libpbcompiler_a-maximaparser.h
 	test -h $@ || $(LN_S) $< $@
 pbparser.h:		 libpbcompiler_a-pbparser.h
-	test -h $@ || $(LN_S) $< $@ 
+	test -h $@ || $(LN_S) $< $@
 ruleirparser.h: libpbcompiler_a-ruleirparser.h
-	test -h $@ || $(LN_S) $< $@ 
+	test -h $@ || $(LN_S) $< $@
 
 #make sure the output of flex/bison has the latest version of the header
 $(srcdir)/compiler/maximalexer.lpp: maximaparser.h

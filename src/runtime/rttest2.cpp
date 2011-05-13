@@ -37,9 +37,28 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
 
 
 int main(int /*argc*/, const char** /*argv*/){
-  RegionMatrix2D A = petabricks::MatrixIO("testdata/Ones2D","r").readToRegionMatrix<2>();
+  RegionMatrix2D A = petabricks::MatrixIO("testdata/Rand2Da","r").readToRegionMatrix<2>();
   A.print();
+
+  MatrixRegion2D B = (MatrixRegion2D) A;
+  MatrixIO().write(B);
+
+  IndexT s1[] = {0,0};
+  IndexT e1[] = {16,16};
+  RegionMatrix2D C = A.region(s1, e1);
+  MatrixIO().write((MatrixRegion2D) C);
+
+
+  IndexT s2[] = {1,1};
+  IndexT e2[] = {5,5};
+  RegionMatrix2D D = A.region(s2, e2);
+  MatrixIO().write((MatrixRegion2D) D);
+
+  RegionMatrix1D E = D.row(2);
+  MatrixIO().write((MatrixRegion1D) E);
+
+
   return 0;
-  
+
 }
 

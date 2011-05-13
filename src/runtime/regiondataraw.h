@@ -2,6 +2,7 @@
 #define PETABRICKSREGIONDATARAW_H
 
 #include "matrixio.h"
+#include "matrixstorage.h"
 #include "regiondatai.h"
 
 namespace petabricks {
@@ -11,7 +12,7 @@ namespace petabricks {
   class RegionDataRaw : public RegionDataI {
 
   private:
-    ElementT* _data;
+    MatrixStoragePtr _storage;
     IndexT* _multipliers;
     bool _isPart;
     IndexT* _partOffset;
@@ -26,6 +27,8 @@ namespace petabricks {
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
     int allocData();
+
+    MatrixStoragePtr storage() const {return _storage;}
 
   private:
     void init(int dimensions, IndexT* size, ElementT* data, IndexT* partOffset);
