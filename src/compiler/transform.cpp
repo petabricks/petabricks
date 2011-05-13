@@ -344,9 +344,12 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
       _name = origName;
     }
     _templateChoice = -1;
-    genTmplJumpTable(o, RuleFlavor::SEQUENTIAL, normalArgs(), normalArgNames());
-    genTmplJumpTable(o, RuleFlavor::WORKSTEALING, normalArgs(), normalArgNames());
-    //genTmplJumpTable(o, RuleFlavor::DISTRIBUTED, normalArgs(), normalArgNames());
+    for(RuleFlavor::iterator rf=RuleFlavor::begin(); rf!=RuleFlavor::end(); ++rf) {
+#ifdef DISABLE_DISTRIBUTED
+      if(rf==RuleFlavor::DISTRIBUTED) continue;
+#endif
+      genTmplJumpTable(o, rf, normalArgs(), normalArgNames());
+    }
     o.hos() << "typedef "+tmplName(0)+"_main "+_name+"_main;\n";
   }
 }
@@ -456,7 +459,9 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   _scheduler->generateGlobalCode(*this, o);
   
   for(RuleFlavor::iterator rf=RuleFlavor::begin(); rf!=RuleFlavor::end(); ++rf) {
-    if(rf == RuleFlavor::DISTRIBUTED) continue;
+#ifdef DISABLE_DISTRIBUTED
+      if(rf==RuleFlavor::DISTRIBUTED) continue;
+#endif
     generateTransformInstanceClass(o, rf);
   }
   

@@ -198,12 +198,7 @@ void petabricks::WhereExpansionRule::genWhereSwitch(Transform& trans, CodeGenera
     else
       o.elseIf(wc->toCppString());
 
-    //TODO: dont always call seq
-    //if(rf == RuleFlavor::SEQUENTIAL && !(*i)->isRecursive()) {
-      (*i)->generateTrampCellCodeSimple(trans, o, RuleFlavor::SEQUENTIAL);
-   //} else {
-   //  (*i)->generateTrampCellCodeSimple(trans, o, rf);
-   //}
+    (*i)->generateTrampCellCodeSimple(trans, o, rf);
     
     for(int d=0; d<(*i)->dimensions(); ++d){
       o._undefine((*i)->getOffsetVar(d)->toString());

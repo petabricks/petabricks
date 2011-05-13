@@ -79,6 +79,7 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
   case RIRNode::STMT_LOOP:
   case RIRNode::STMT_COND:
   case RIRNode::STMT_BLOCK:
+  case RIRNode::STMT_SWITCH:
     if(s->containsLeaf("SYNC") || s->containsLeaf("CALL") || s->containsLeaf("SPAWN") 
         || s->containsLeaf("break")  || s->containsLeaf("continue") ){
       if(s->type() == RIRNode::STMT_COND){
@@ -121,15 +122,14 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
         o.comment("expanded block statement");
         o.write(s->extractBlock()->toString()); 
       }else{
-        UNIMPLEMENTED();
+        UNIMPLEMENTED()(s->toString());
       }
     }else{
       o.write(s->toString()); 
     }
     break;
-  case RIRNode::STMT_SWITCH:
   default:
-    UNIMPLEMENTED()(s->typeStr());
+    JASSERT(false)(s->typeStr())(s->toString());
   }
 }
 
