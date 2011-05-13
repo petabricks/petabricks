@@ -370,9 +370,7 @@ IndexT* RegionMatrix::getRegionDataCoord(const IndexT* coord_orig) const {
       }
       slice_index++;
     } else {
-      // TODO: special case for split
       // split
-
       int offset = 0;
       if (_splitOffset) {
 	offset = _splitOffset[split_index];

@@ -110,19 +110,19 @@ int main(int argc, const char** argv){
     RegionDataSplitPtr regionData = (RegionDataSplit*) handler->acquireRegionData(NULL).asPtr();
     regionData->createPart(0, hdb.host(0));
     handler->releaseRegionData(NULL);
-    
+
     // import data
     // regionMatrix->allocData();
     regionMatrix->importDataFromFile(filename);
 
     // regionMatrix->print();
-    
+
     regionMatrix->acquireRegionData();
-  
+
     printf("before %4.8g\n", regionMatrix->readCell(m257));
     regionMatrix->writeCell(m257, 5);
     printf("after %4.8g\n", regionMatrix->readCell(m257));
-  
+
     regionMatrix->releaseRegionData();
 
     // Test split
@@ -170,7 +170,7 @@ int main(int argc, const char** argv){
     printf("cell %4.8g\n", regionMatrix->readCell(m257));
 
     regionMatrix->releaseRegionData();
-    
+
     // Test split
     RegionMatrixPtr rsplit3 = regionMatrix->splitRegion(m123, m3);
     RegionMatrixPtr rsplit2 = rsplit3->splitRegion(m1, m2);
@@ -185,9 +185,9 @@ int main(int argc, const char** argv){
     // Test slice
     RegionMatrixPtr rslice3 = regionMatrix->sliceRegion(1, 0);
     rslice3->print();
-    
+
     printf("completed2\n");
-    
+
     hdb.listenLoop();
     return 0;
   }

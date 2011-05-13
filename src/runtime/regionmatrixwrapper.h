@@ -112,7 +112,7 @@ namespace petabricks {
     }
 
     RegionMatrixWrapper slice(int d, IndexT pos) const{
-      return RegionMatrixWrapper((const RegionMatrix&)this->sliceRegion(d, pos));
+      return RegionMatrixWrapper<D-1, ElementT>((const RegionMatrix&)this->sliceRegion(d, pos));
     }
 
     RegionMatrixWrapper transposed() const {
@@ -159,22 +159,38 @@ namespace petabricks {
     //
     // Cast to MatrixRegion
     operator MatrixRegion<D, ElementT> () const{
-      // (yod) suppost split/slice/transpose
-      JASSERT(_numSliceDimensions == 0).Text("not supported");
-      JASSERT(!_isTransposed).Text("not supported");
-
       RegionDataIPtr regionData = this->acquireRegionDataConst();
       JASSERT(regionData->type() == RegionDataTypes::REGIONDATARAW).Text("Cannot cast to MatrixRegion.");
 
-      MatrixRegion<D, ElementT> matrixRegion = MatrixRegion<D, ElementT>(regionData->storage(), regionData->storage()->data(), regionData->size());
+      IndexT startOffset = 0;
+      IndexT multipliers[D];
+
+      IndexT mult = 1;
+      int last_slice_index = 0;
+      for(int i = 0; i < regionData->dimensions(); i++){
+	if ((last_slice_index < _numSliceDimensions) &&
+	    (i == _sliceDimensions[last_slice_index])) {
+	  startOffset += mult * _slicePositions[last_slice_index];
+	  last_slice_index++;
+	} else {
+	  multipliers[i - last_slice_index] = mult;
+
+	  if (_splitOffset) {
+	    startOffset += mult * _splitOffset[i - last_slice_index];
+	  }
+	}
+
+	mult *= regionData->size()[i];
+      }
+
+      MatrixRegion<D, ElementT> matrixRegion =
+	MatrixRegion<D, ElementT>(regionData->storage(), regionData->storage()->data() + startOffset, _size, multipliers);
+
+
       this->releaseRegionDataConst();
 
-      if (_splitOffset) {
-	IndexT end[D];
-	for (int i = 0; i < D; i++) {
-	  end[i] = _splitOffset[i] + _size[i];
-	}
-	matrixRegion = matrixRegion.region(_splitOffset, end);
+      if (_isTransposed) {
+	matrixRegion = matrixRegion.transposed();
       }
 
       return matrixRegion;

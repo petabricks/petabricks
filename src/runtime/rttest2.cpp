@@ -43,17 +43,20 @@ int main(int /*argc*/, const char** /*argv*/){
   MatrixRegion2D B = (MatrixRegion2D) A;
   MatrixIO().write(B);
 
-  IndexT offset1[] = {0,0};
-  IndexT size1[] = {16,16};
-
-  RegionMatrix2D C = *(A.splitRegion(offset1, size1));
+  IndexT s1[] = {0,0};
+  IndexT e1[] = {16,16};
+  RegionMatrix2D C = A.region(s1, e1);
   MatrixIO().write((MatrixRegion2D) C);
 
 
-  IndexT offset2[] = {1,1};
-  IndexT size2[] = {5,5};
-  RegionMatrix2D D = *(A.splitRegion(offset2, size2));
+  IndexT s2[] = {1,1};
+  IndexT e2[] = {5,5};
+  RegionMatrix2D D = A.region(s2, e2);
   MatrixIO().write((MatrixRegion2D) D);
+
+  RegionMatrix1D E = D.row(2);
+  MatrixIO().write((MatrixRegion1D) E);
+
 
   return 0;
 

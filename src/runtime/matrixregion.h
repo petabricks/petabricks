@@ -37,7 +37,7 @@
 // Class structure looks like this:
 //
 //  MatrixRegion  (specialized for MatrixRegion0D and  ConstMatrixRegion0D)
-//    extends 
+//    extends
 //  MatrixRegionVaArgsMethods (specialized a lot, for performance only; GCC optimizes VA_ARGS poorly)
 //    extends
 //  MatrixRegionBasicMethods
@@ -87,7 +87,7 @@ public:
   typedef typename TypeSpec::StorageT StorageT;
   typedef typename TypeSpec::IndexT   IndexT;
   typedef typename TypeSpec::ElementT ElementT;
-  
+
   ///
   /// Constructor
   MatrixRegionMembers(const StorageT& s, ElementT* b, const IndexT RESTRICT* sizes, const IndexT RESTRICT * multipliers)
@@ -108,7 +108,7 @@ public:
         memset(this->_sizes, -1, sizeof_sizes);
     }
   }
-  
+
   ElementT* base() const { return _base; }
   const IndexT* sizes() const { return _sizes; }
   const IndexT* multipliers() const { return _multipliers; };
@@ -131,7 +131,7 @@ public:
     ms.setSizeMultipliers(D, _multipliers, _sizes);
     ms.setExtraVal();
   }
-  
+
   ///
   /// copy from a more generic container (used in memoization)
   void copyFrom(const MatrixStorageInfo& ms){
@@ -141,7 +141,7 @@ public:
       memcpy(storage()->data(), ms.storage()->data(), storage()->count()*sizeof(ElementT));
     }
   }
-protected: 
+protected:
   IndexT* sizes() { return _sizes; }
   IndexT* multipliers() { return _multipliers; };
 private:
@@ -176,7 +176,7 @@ public:
   typedef typename TypeSpec::MatrixRegion        MatrixRegion;
   typedef typename TypeSpec::SliceMatrixRegion   SliceMatrixRegion;
   typedef typename TypeSpec::MutableMatrixRegion MutableMatrixRegion;
-  
+
   ///
   /// Allocate a storage for a new MatrixRegion
   static MatrixRegion allocate(const IndexT sizes[D]) {
@@ -191,7 +191,7 @@ public:
     #endif
     return MatrixRegion(tmp, tmp->data(), sizes);
   }
-  
+
   ///
   ///same as allocate unless this->sizes()==sizes
   bool isSize(const IndexT sizes[D]) const{
@@ -243,7 +243,7 @@ public:
     }
     return t;
   }
-  
+
   ///
   /// Copy that data of this to dst
   void copyTo(const MutableMatrixRegion& dst)
@@ -280,7 +280,7 @@ public:
 
   ///
   /// Return a slice through this dimension
-  /// The iterator is one dimension smaller and equivilent to always 
+  /// The iterator is one dimension smaller and equivilent to always
   /// giving pos for dimension d
   SliceMatrixRegion slice(int d, IndexT pos) const{
     #ifdef DEBUG
@@ -302,21 +302,21 @@ public:
     coord[d] = pos;
     return SliceMatrixRegion(this->storage(), this->coordToPtr(coord), sizes, mult);
   }
-  
-  
+
+
   SliceMatrixRegion col(IndexT x) const{ return slice(0, x); }
   SliceMatrixRegion column(IndexT x) const{ return slice(0, x); }
   SliceMatrixRegion row(IndexT y) const{  return slice(1, y); }
-  
+
   ///
   /// true if c1 is in bounds
-  bool contains(const IndexT coord[D]) const { 
+  bool contains(const IndexT coord[D]) const {
     for(int i=0; i<D; ++i)
       if(coord[i]<0 || coord[i]>=size(i))
         return false;
     return true;
   }
-  
+
   ///
   /// Return the size of a given dimension
   IndexT size(int d) const {
@@ -355,7 +355,7 @@ public:
   ssize_t bytes() const {
     return count()*sizeof(ElementT);
   }
-  
+
   ///
   /// force this region to be a mutable type (removes constness)
   /// this is evil
@@ -378,7 +378,7 @@ public:
   /// increment a raw coord in ascending order
   /// return largest dimension incremented or -1 for end
   int incCoord(IndexT coord[D]) const{
-    if(D==0) 
+    if(D==0)
      return -1;
     int i;
     coord[0]++;
@@ -408,7 +408,7 @@ public:
       } while(this->incCoord(coord)>=0);
     }
   }
-  
+
 protected:
   ///
   /// Compute the offset in _base for a given coordinate
@@ -423,7 +423,7 @@ protected:
     }
     return this->base()+rv;
   }
-  
+
   ///
   /// Fill _multipliers with a stock layout
   void setStockLayout(StockLayouts layout){
@@ -463,12 +463,12 @@ public:
                           , const typename TypeSpec::IndexT* multipliers)
     : Base(s,b,sizes,multipliers)
   {}
-  
+
   //these passthroughs must be declared here for overloading to work
   INLINE ElementT& cell(IndexT c[D]) const{ return this->Base::cell(c); }
   INLINE MatrixRegion region(const IndexT c1[D], const IndexT c2[D]) const{ return this->Base::region(c1,c2); }
   INLINE static MatrixRegion allocate(IndexT s[D]){ return Base::allocate(s); }
-  
+
   ///
   /// Allocate a storage for a new MatrixRegion (va_args version)
   static MatrixRegion allocate(IndexT x, ...){
@@ -492,11 +492,11 @@ public:
     va_end(ap);
     return cell(c1);
   }
-  
+
 
   ///
   /// true if coord is in bounds
-  bool contains(IndexT x, ...) const { 
+  bool contains(IndexT x, ...) const {
     IndexT c1[D];
     va_list ap;
     va_start(ap, x);
@@ -518,7 +518,7 @@ public:
     va_end(ap);
     return region(c1,c2);
   }
-  
+
 };
 
 
@@ -551,11 +551,11 @@ public:
               , ElementT* b
               , const IndexT sizes[D]
               , typename Base::StockLayouts layout = Base::LAYOUT_ASCENDING)
-    : Base(s, b, sizes, NULL) 
+    : Base(s, b, sizes, NULL)
   {
     this->setStockLayout(layout);
   }
-  
+
   ///
   /// Copy constructor
   MatrixRegion( const MutableMatrixRegion& that )
@@ -641,8 +641,8 @@ typedef MatrixRegion<29, const MATRIX_ELEMENT_T> ConstMatrixRegion29D;
 typedef MatrixRegion<30, const MATRIX_ELEMENT_T> ConstMatrixRegion30D;
 typedef MatrixRegion<31, const MATRIX_ELEMENT_T> ConstMatrixRegion31D;
 
-typedef MATRIX_INDEX_T IndexT; 
-typedef MATRIX_ELEMENT_T ElementT; 
+typedef MATRIX_INDEX_T IndexT;
+typedef MATRIX_ELEMENT_T ElementT;
 
 } /* namespace petabricks*/
 
