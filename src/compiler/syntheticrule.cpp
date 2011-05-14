@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #include "syntheticrule.h"
 
 #include "codegenerator.h"
@@ -141,10 +156,10 @@ void petabricks::WhereExpansionRule::generateCallCode(const std::string& name,
                                             RuleFlavor flavor){
   SRCPOSSCOPE();
   switch(flavor) {
-  case E_RF_STATIC:
+  case RuleFlavor::SEQUENTIAL:
     o.callSpatial(codename()+TX_STATIC_POSTFIX, region);
     break;
-  case E_RF_DYNAMIC:
+  case RuleFlavor::WORKSTEALING:
     o.mkSpatialTask(name, trans.instClassName(), codename()+TX_STATIC_POSTFIX, region);
     break;
   default:
@@ -181,7 +196,7 @@ void petabricks::WhereExpansionRule::genWhereSwitch(Transform& trans, CodeGenera
     else
       o.elseIf(wc->toCppString());
 
-    (*i)->generateTrampCellCodeSimple(trans, o, E_RF_STATIC);
+    (*i)->generateTrampCellCodeSimple(trans, o, RuleFlavor::SEQUENTIAL);
     
     for(int d=0; d<(*i)->dimensions(); ++d){
       o._undefine((*i)->getOffsetVar(d)->toString());
@@ -276,12 +291,12 @@ void petabricks::CallInSequenceRule::generateCallCode(const std::string& name,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor){
   SRCPOSSCOPE();
-  if(flavor != E_RF_STATIC)
+  if(flavor != RuleFlavor::SEQUENTIAL)
     o.write("{ DynamicTaskPtr __last;");
   RuleList::iterator i;
   for(i=_rules.begin(); i!=_rules.end(); ++i){
     (*i)->generateCallCode(name, trans, o, region, flavor);
-    if(flavor != E_RF_STATIC) {
+    if(flavor != RuleFlavor::SEQUENTIAL) {
       if(i!=_rules.begin()) {
         o.write(name+"->dependsOn(__last);");
         o.write("__last->enqueue();");
@@ -289,7 +304,7 @@ void petabricks::CallInSequenceRule::generateCallCode(const std::string& name,
       o.write("__last = "+name+";");
     }
   }
-  if(flavor != E_RF_STATIC)
+  if(flavor != RuleFlavor::SEQUENTIAL)
     o.write("}");
 }
 

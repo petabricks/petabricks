@@ -14,22 +14,22 @@ from xml.dom.minidom import parse
 CHECK=True
 
 check_exclude=[
-         "convolution/Convolution",           # Difference
-         "multiply/strassen",                 # Difference, why???
-         "regression/whereclause",            # Difference, why???
+         "convolution/Convolution",       # Difference
+         "multiply/strassen",             # Difference, why???
+         "regression/whereclause",        # Difference, why???
          
-         "simple/matrixrotate",               # NewProgramCrash
-         "multiply/multiply",                 # NewProgramCrash
-         "regression/params",                 # AlwaysCrashes
+         "simple/matrixrotate",           # NewProgramCrash
+         "multiply/multiply",             # NewProgramCrash
+         "regression/params",             # AlwaysCrashes
 
          "convolution2/ConvFFTRecursion",
          "convolution2/Convolution",
          "convolution2/ConvLinAlg",
 
-         "kclustering/kmeans",                # (Variable accuracy)
-         "matrixapproximation/matrixapprox",  # (Variable accuracy)
-         "regression/accuracymetric",         # (Variable accuracy)
-         "preconditioner/preconditioner",     # (Variable accuracy)
+         "kclustering/kmeans",            # (Variable accuracy)
+         "matrixapprox/matrixapprox",     # (Variable accuracy)
+         "regression/accuracymetric",     # (Variable accuracy)
+         "preconditioner/preconditioner", # (Variable accuracy)
 
          "regression/floattunables2",
     ]
@@ -45,6 +45,20 @@ def forkrun(cmd):
 
 def run(cmd):
   return forkrun(cmd).wait()
+
+
+def diffFiles(a, b):
+  '''true if files differ'''
+  try:
+    af=open(a)
+    bf=open(b)
+    rv = (af.read() != bf.read())
+    af.close()
+    bf.close()
+    return rv
+  except Exception, e:
+    print "ERROR: ",e
+    return True
 
 
 def checkBenchmark(b):
@@ -87,7 +101,7 @@ def testBenchmark(b):
     iofiles.append(resolveInputPath(x))
     hash+=" "+os.path.basename(x)
   outfile="./testdata/.output/"+re.sub("[ /.]",'_',hash)
-  iofiles.append(outfile)
+  iofiles.append(outfile+".latest")
 
   try:
     cmd=[bin, '--fixedrandom', '--config=%s.cfg'%outfile, '--reset']
@@ -115,12 +129,9 @@ def testBenchmark(b):
       print "run FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd))
       return False
 
-    checkcmd=["git","diff","--exit-code", outfile]
-    rv = run(checkcmd)
-    if rv != 0:
+    if diffFiles(outfile, outfile+".latest"):
       time.sleep(0.1) #try letting the filesystem settle down
-      rv = run(checkcmd)
-      if rv != 0:
+      if diffFiles(outfile, outfile+".latest"):
         print "run FAILED (wrong output)"
         return False
     

@@ -1,14 +1,29 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #include "scheduler.h"
 
 #include "codegenerator.h"
@@ -73,12 +88,12 @@ void petabricks::Schedule::depthFirstChoiceDepGraphNode(SchedulingState& state, 
 void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   JASSERT(_schedule.size()>0);
   for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
-    if(i!=_schedule.begin() && flavor!=E_RF_STATIC)
+    if(i!=_schedule.begin() && flavor!=RuleFlavor::SEQUENTIAL)
       o.continuationPoint();
 
     i->node().generateCode(trans, o, flavor, _choiceAssignment);
 
-    if(flavor!=E_RF_STATIC) {
+    if(flavor!=RuleFlavor::SEQUENTIAL) {
       for(ScheduleDependencies::const_iterator d=i->deps().begin();
           d!=i->deps().end();
           ++d){
@@ -87,7 +102,7 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
       o.write(i->node().nodename()+"->enqueue();");
     }
   }
-  if(flavor == E_RF_DYNAMIC) {
+  if(flavor == RuleFlavor::WORKSTEALING) {
     o.write("DynamicTaskPtr  _fini = new NullDynamicTask();");
     for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
       if(i->node().isOutput()) {
@@ -250,7 +265,7 @@ void petabricks::StaticScheduler::mergeCoscheduledNodes(const RuleChoiceAssignme
 
 void petabricks::StaticScheduler::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor) {
 
-  if(flavor==E_RF_DYNAMIC) {
+  if(flavor==RuleFlavor::WORKSTEALING) {
     for(ChoiceDepGraphNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i){
       o.addMember("DynamicTaskPtr", (*i)->nodename(), "");
     }
@@ -266,7 +281,7 @@ void petabricks::StaticScheduler::generateCode(Transform& trans, CodeGenerator& 
   for(i=_schedules.begin(); i!=_schedules.end(); ++i,++n) {
     o.beginCase(n);
 
-    if(flavor==E_RF_STATIC){
+    if(flavor==RuleFlavor::SEQUENTIAL){
       schedOutput.beginFunc("void", "schedule"+jalib::XToString(n)+"seq");
       o.write("schedule"+jalib::XToString(n)+"seq();");
       o.write("return;");
@@ -281,12 +296,12 @@ void petabricks::StaticScheduler::generateCode(Transform& trans, CodeGenerator& 
   }
   o.endSwitch();
   o.write("JASSERT(false).Text(\"invalid schedule\");");
-  if(flavor==E_RF_DYNAMIC) {
+  if(flavor==RuleFlavor::WORKSTEALING) {
     o.write("return 0;");
   }
 
     
-  if(flavor==E_RF_STATIC){
+  if(flavor==RuleFlavor::SEQUENTIAL){
     std::string prefix = trans.name() + "_" + jalib::XToString(trans.nextTunerId()) + "_";
     CodeGenerator& decTreeOutput = o.forkhelper();
     decTreeOutput.beginFunc("int", "selectSchedule");

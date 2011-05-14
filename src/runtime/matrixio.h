@@ -1,18 +1,34 @@
-/***************************************************************************
- *  Copyright (C) 2008-2009 Massachusetts Institute of Technology          *
- *                                                                         *
- *  This source code is part of the PetaBricks project and currently only  *
- *  available internally within MIT.  This code may not be distributed     *
- *  outside of MIT. At some point in the future we plan to release this    *
- *  code (most likely GPL) to the public.  For more information, contact:  *
- *  Jason Ansel <jansel@csail.mit.edu>                                     *
- *                                                                         *
- *  A full list of authors may be found in the file AUTHORS.               *
- ***************************************************************************/
+/*****************************************************************************
+ *  Copyright (C) 2008-2011 Massachusetts Institute of Technology            *
+ *                                                                           *
+ *  Permission is hereby granted, free of charge, to any person obtaining    *
+ *  a copy of this software and associated documentation files (the          *
+ *  "Software"), to deal in the Software without restriction, including      *
+ *  without limitation the rights to use, copy, modify, merge, publish,      *
+ *  distribute, sublicense, and/or sell copies of the Software, and to       *
+ *  permit persons to whom the Software is furnished to do so, subject       *
+ *  to the following conditions:                                             *
+ *                                                                           *
+ *  The above copyright notice and this permission notice shall be included  *
+ *  in all copies or substantial portions of the Software.                   *
+ *                                                                           *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY                *
+ *  KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE               *
+ *  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND      *
+ *  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE   *
+ *  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION   *
+ *  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION    *
+ *  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE           *
+ *                                                                           *
+ *  This source code is part of the PetaBricks project:                      *
+ *    http://projects.csail.mit.edu/petabricks/                              *
+ *                                                                           *
+ *****************************************************************************/
 #ifndef PETABRICKSMATRIXIO_H
 #define PETABRICKSMATRIXIO_H
 
 #include "matrixregion.h"
+#include "regionmatrixwrapper.h"
 
 #include "common/jassert.h"
 
@@ -75,9 +91,35 @@ public:
   }
 
   ///
+  /// Read a D-dimensional matrix from _fd
+  template<int D>
+  RegionMatrixWrapper<D, MATRIX_ELEMENT_T> readToRegionMatrix(){
+    JASSERT(_fd != 0);
+    MatrixReaderScratch o;
+    _read(o);
+    JASSERT(o.dimensions==D)(o.dimensions)(D)
+      .Text("Unexpected number of dimensions in input matrix");
+    MatrixStorage::IndexT sizes[D];
+    for(int i=0; i<D; ++i) sizes[i]=o.sizes[i];
+    return RegionMatrixWrapper<D, MATRIX_ELEMENT_T>(o.storage->data(), sizes);
+  }
+
+  ///
+  /// Read a D-dimensional matrix from _fd to MatrixReaderScratch
+  MatrixReaderScratch readToMatrixReaderScratch(){
+    JASSERT(_fd != 0);
+    MatrixReaderScratch o;
+    _read(o);
+    return o;
+  }
+
+  ///
   /// Write a given matrix to _fd
   template<int D, typename T>
   void write(MatrixRegion<D,T> m);
+
+  template<int D, typename T>
+  void write(RegionMatrixWrapper<D,T> m);
 
   MatrixRegion0D read0D(){ return read<0>(); }
   MatrixRegion1D read1D(){ return read<1>(); }
@@ -102,6 +144,34 @@ private:
 /// Write a given matrix to _fd
 template<int D, typename T>
 inline void petabricks::MatrixIO::write(MatrixRegion<D,T> m){
+  if(_fd==0)     return;
+  if(_fd==stdin) _fd=stdout;
+  fprintf(_fd,"SIZE");
+  for(int i=0; i<D; ++i)
+    fprintf(_fd," %d",m.size(i));
+  fprintf(_fd,"\n");
+  MatrixStorage::IndexT coord[D];
+  memset(coord, 0, sizeof coord);
+  if(D>0){
+    for(;;){
+      fprintf(_fd,"%4.8g ", (double) m.cell(coord));
+      int z=m.incCoord(coord);
+      if(z<0) break;
+      while(z-->0)
+        fprintf(_fd,"\n");
+    }
+    fprintf(_fd,"\n");
+  }else{ //0D case
+    fprintf(_fd,"%4.8g", (double) m.cell(coord));
+  }
+  fprintf(_fd,"\n");
+  fflush(_fd);
+}
+
+///
+/// Write a given regionmatrix to _fd
+template<int D, typename T>
+inline void petabricks::MatrixIO::write(RegionMatrixWrapper<D,T> m){
   if(_fd==0)     return;
   if(_fd==stdin) _fd=stdout;
   fprintf(_fd,"SIZE");

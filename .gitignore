@@ -47,6 +47,9 @@ configure
 test
 rttest1
 rttest2
+regiondatatest
+regionmatrixtest
+regionremotetest
 tmp
 
 A
@@ -67,4 +70,6 @@ doc/api
 \#*\#
 
 perflogs
+confdefs
+*.latest
 
