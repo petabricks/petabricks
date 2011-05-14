@@ -213,9 +213,10 @@ public:
   ///
   /// A region is considered normalized if it occupies the entire buffer and is organized so that
   /// a N-dimensional buffer is laid out as sequential (N-1)-dimensional buffers.
-  MatrixRegion asNormalizedRegion( bool copyData = true ) const
+  MatrixRegion asNormalizedRegion(const IndexT c1[D], const IndexT c2[D]) const
   {
-    if( isEntireBuffer( ) )
+    bool copyData = true;
+    if(isEntireBuffer() &&  intervalSize(c1, c2) == count())
       return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
 
     MutableMatrixRegion t = MutableMatrixRegion::allocate((IndexT*)this->sizes());
@@ -228,19 +229,31 @@ public:
     }
     return t;
   }
+
+  INLINE ssize_t intervalSize(const IndexT c1[D], const IndexT c2[D]) const 
+  { ssize_t s=1;
+    for(int i=0; i<D; ++i) {
+      s*=c2[i] - c1[i];
+    }
+    return s;
+  }
   
   ///
   /// Copy that data of this to dst
-  void copyTo(const MutableMatrixRegion& dst)
+  void copyTo(const MutableMatrixRegion& dst,const IndexT c1[D], const IndexT c2[D])
   {
     if(this->base() == dst.base())
       return;
     JASSERT(this->count()==dst.count());
     IndexT coord[D];
-    memset(coord, 0, sizeof coord);
+    memcpy(coord, c1, sizeof coord);
     do {
       dst.cell(coord) = this->cell(coord);
-    } while(this->incCoord(coord)>=0);
+      //printf("coord = ");
+      //for(int i=0;i<D;i++)
+      //  printf("%d ", coord[i]);
+      //printf("\n");
+    } while(this->incCoordWithBound(coord, c1, c2)>=0);
   }
 
   ///
@@ -376,6 +389,29 @@ public:
       }
     }
     if(coord[D-1] >= this->size(D-1)){
+      return -1;
+    }else{
+      return D-1;
+    }
+  }
+
+  ///
+  /// increment a raw coord in ascending order with in the given boundary
+  /// return largest dimension incremented or -1 for end
+  int incCoordWithBound(IndexT coord[D], const IndexT c1[D], const IndexT c2[D]) const{
+    if(D==0) 
+     return -1;
+    int i;
+    coord[0]++;
+    for(i=0; i<D-1; ++i){
+      if(coord[i] >= c2[i]){
+        coord[i]=c1[i];
+        coord[i+1]++;
+      }else{
+        return i;
+      }
+    }
+    if(coord[D-1] >= c2[D-1]){
       return -1;
     }else{
       return D-1;

@@ -26,6 +26,8 @@
 #include "common/jconvert.h"
 
 #include <algorithm>
+#include <map>
+#include <stdlib.h>
 
 //TODO: get rid of outdated comments
 
@@ -542,79 +544,119 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
     int arg_pos = 0;
 
-    //      o.os( ) << "printf( \"- TRACE 10\\n\" );\n";
+    //o.os( ) << "printf( \"- TRACE 10\\n\" );\n";
+
+    /*
+    // check workspace continuity
+    RegionList::const_iterator output = _to.begin( );
+    o.os( ) << "if( ";
+    for( int i = 0; i < iterdef.dimensions( ) - 1; ++i ) // note that iterdef.dimensions( ) - 1
+    {
+      if(i > 0) {
+        o.os() << "&& ";
+      }
+      o.os( ) << "_iter_end[" << i << "]-_iter_begin[" << i << "] == ";
+      o.os( ) << (*output)->matrix( )->name( ) << ".size(" << i << ")";
+    }
+    o.os( ) << ") {";
+    // continuous
+    genBufferForContinuous(o);
+    o.os( ) << "} else {";
+    // discontinuous
+    genBufferForDiscontinuous(o);
+    o.os( ) << "}";*/
 
     // Create memory objects for outputs
+
+
+    // Help implementing
+
+    /*RegionList::const_iterator bug = _to.begin( );
+    for( int i = 0; i < iterdef.dimensions( ); ++i )
+    {
+      o.os( ) << "std::cout << \"ITER_DEF =\" << std::endl;\n";
+      o.os( ) << "printf( \"" << i << ": %d - %d\\n\",";
+      o.os( ) << "_iter_begin[" << i << "],_iter_end[" << i << "] ";
+      o.os( ) << ");\n";
+    }*/
+
     o.comment( "Create memory objects for outputs." );
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
-			//TODO: no need to use asnormalize for output
-      /*o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
-              << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( false );\n";
+
+      //o.os( ) << "std::cout << \"BEFORE EVERYTHING\" << std::endl;\n";
+      //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
+
+      //TODO: check that asnormalize do the right thing
+      o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
+              << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion(_iter_begin, _iter_end);\n";
       o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
               << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
               << "normalized_" << (*i)->name( ) << ".bytes( ),"
-              << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";*/
-      o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
-              << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
-              << (*i)->matrix( )->name( ) << ".bytes( ),"
-              << "(void*) " << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
+              << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object\");\n";
 
       // Bind to kernel.
       o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
     }
 
-    //      o.os( ) << "printf( \"- TRACE 20\\n\" );\n";
-
     // Create memory objects for inputs.
     o.comment( "Create memory objects for inputs." );
     for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
     {
-      /** \todo Need to generalize this for arbitrary dimensionality */
-      o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
-              << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion( true );\n";
       o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
               << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " 
-              << "normalized_" << (*i)->name( ) << ".bytes( ),"
-              << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
+              << (*i)->matrix( )->name( ) << ".bytes( ),"
+              << "(void*) " << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
 
       // Bind to kernel.
       o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
     }
 
-    //      o.os( ) << "printf( \"- TRACE 40\\n\" );\n";
-
 
     RegionList::const_iterator output = _to.begin( );
     // Bind rule dimension arguments to kernel.
     for( int i = 0; i < iterdef.dimensions( ); ++i )
     {
-      o.os( ) << "int ruledim_" << i << " = " << (*output)->matrix( )->name( ) << ".size(" << i << ");\n";
+      //TODO: do we need this at all?
       //o.os( ) << "int ruledim_" << i << " = _iter_end[" << i << "] - _iter_begin[" << i << "];\n";
+      o.os( ) << "int ruledim_" << i << " = " << (*output)->matrix( )->name( ) << ".size(" << i << ");\n";
       o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
-      o.os( ) << "int ruledim_" << i << "_begin" << " = _iter_begin[" << i << "];\n";
-      o.os( ) << "int ruledim_" << i << "_end" << " = _iter_end[" << i << "];\n";
-      //o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << "_begin );\n";
-      //o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << "_end );\n";
     }
+
+    int count = 0;
 
     // Bind matrix dimension arguments to kernel.
     for( RegionList::const_iterator it = _to.begin( ); it != _to.end( ); ++it )
     {
-      for( int i = 0; i < (int) (*it)->size() - 1 ; ++i )
-        o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
+      for( int i = 0; i < (int) (*it)->size() - 1 ; ++i ) {
+        o.os( ) << "int ruledim_out" << count << "_" << i << " = " << (*it)->matrix( )->name() << ".size(" << i << ");\n";
+        o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_out" << count << "_" << i << " );\n";
+      }
+      count++;
     }
+
+    /*std::set<string> dim_names;
+    std::set<string>::iterator dim_it;
+    std::stringstream stream;*/
+    count = 0;
+
     for( RegionList::const_iterator it = _from.begin( ); it != _from.end( ); ++it )
     {
-      for( int i = 0; i < (int) (*it)->size() - 1 ; ++i )
-        o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
+      //TODO: sometime they are exactly the same variable, use hash table here
+      for( int i = 0; i < (int) (*it)->size() - 1 ; ++i ) {
+        /*string string_i;
+        itoa(i, string_i, 10);
+        string dim_name = (*it)->matrix( )->name() + string_i;
+        dim_it = dim_names.find(dim_name);*/
+        o.os( ) << "int ruledim_in" << count << "_" << i << " = " << (*it)->matrix( )->name() << ".size(" << i << ");\n";
+        o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_in" << count << "_" << i << " );\n";
+      }
+      count++;
     }
 
     o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
-
-    //      o.os( ) << "printf( \"- TRACE 45\\n\" );\n";
 
     // Invoke kernel.
     /** \todo Need to generalize for >1 GPUs and arbitrary dimensionality. */
@@ -645,24 +687,14 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     o.comment( "Copy results back to host memory." );
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
-      /** \todo need to generalize for >1 GPUs, should maybe think about making this nonblocking */
-      /*o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_" << (*i)->name( ) <<
-        ", CL_TRUE, 0, normalized_" << (*i)->name( ) <<  ".bytes(), normalized_" << (*i)->name( ) <<
-        ".base(), 0, NULL, NULL );\n";*/
-      //TODO: base () + _iter_begin[0] not every case
       o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_" 
               << (*i)->name( ) << ", CL_TRUE, 0, " 
-              << (*i)->matrix( )->name( ) <<  ".bytes(), " 
-              << (*i)->matrix( )->name( ) << ".base(), 0, NULL, NULL );\n";
-              //<< (*i)->matrix( )->name( ) << ".base() + _iter_begin[0], 0, NULL, NULL );\n";
+              << "normalized_" << (*i)->name( ) <<  ".bytes(), " 
+              << "normalized_" << (*i)->name( ) << ".base(), "
+              << "0, NULL, NULL );\n";
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to read output buffer.\" );\n";
     }
     o.os( ) << "\n";
-    /*
-    clEnqueueReadBuffer(hContext, hDeviceMemC, CL_TRUE, 0,
-    cnDimension * sizeof(cl_float),
-    pC, 0, 0, 0);
-    */
 
     // Free memory
     o.comment( "Free memory." );
@@ -675,15 +707,16 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       o.os( ) << "clReleaseMemObject( devicebuf_" << (*i)->name( ) << " );\n";
     }
 
-    // Launch kernel.
-    
     // Create memory objects for outputs
-    /*o.comment( "Copy back outputs (if they were already normalized, copyTo detects src==dst and does nothing)" );
+    o.comment( "Copy back outputs (if they were already normalized, copyTo detects src==dst and does nothing)" );
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
       o.os( ) << "normalized_" << (*i)->name( ) 
-              << ".copyTo(" << (*i)->matrix( )->name( ) << ");\n";
-    }*/
+              << ".copyTo(" << (*i)->matrix( )->name( ) << ", _iter_begin, _iter_end);\n";
+
+      //o.os( ) << "std::cout << \"AFTER copy\" << std::endl;\n";
+      //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
+    }
 
     o.write( "return NULL;\n}\n\n" );
     return;
@@ -772,14 +805,25 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
   {
     // Build & normalize formula for index.
-    FormulaPtr idx_formula = FormulaInteger::zero( );
+    /*FormulaPtr idx_formula = FormulaInteger::zero( );
     for( int j = (*i)->minCoord( ).size( ) - 1; j >= 0; --j )
     {
       std::stringstream sizevar;
       sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
-      idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ), new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
+      idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ), 
+              new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
     }
-    idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );
+    idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );*/
+
+    int minCoordSize = (*i)->minCoord().size();
+    FormulaPtr idx_formula = new FormulaAdd((*i)->minCoord().at(minCoordSize - 1), FormulaInteger::zero());
+    for( int j = minCoordSize - 2; j >= 0; --j )
+    {
+      std::stringstream sizevar;
+      sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
+      idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
+            new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
+    }
 
     clo.os( ) << "unsigned int idx_" << (*i)->name( ) << " = ";
     idx_formula->print( clo.os( ) );
@@ -789,15 +833,27 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
   {
     // Build & normalize formula for index.
-    FormulaPtr idx_formula = FormulaInteger::zero( );
+    /*FormulaPtr idx_formula = FormulaInteger::zero( );
     for( int j = (*i)->minCoord( ).size( ) - 1; j >= 0; --j )
     {
       std::stringstream sizevar;
       sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
       idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
             new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
+
+      std::cout << (*i)->minCoord( ).at( j ) << std::endl;
     }
-    idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );
+    idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );*/
+
+    int minCoordSize = (*i)->minCoord().size();
+    FormulaPtr idx_formula = new FormulaAdd((*i)->minCoord().at(minCoordSize - 1), FormulaInteger::zero());
+    for( int j = minCoordSize - 2; j >= 0; --j )
+    {
+      std::stringstream sizevar;
+      sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
+      idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
+            new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
+    }
 
     clo.os( ) << "unsigned int idx_" << (*i)->name( ) << " = ";
     idx_formula->print( clo.os( ) );
