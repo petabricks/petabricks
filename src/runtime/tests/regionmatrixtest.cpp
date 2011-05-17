@@ -213,6 +213,14 @@ int main(int argc, const char** argv){
     rslice3.print();
     print(rslice3.dataHosts());
 
+    // localCopy: copy the entire matrix and store it locally
+    RegionMatrix2D copy = rslice3.localCopy();
+    copy.print();
+    print(copy.dataHosts());
+
+    // Cast to MatrixRegion
+    MatrixIO().write((MatrixRegion2D) copy);
+
     printf("completed2\n");
 
     hdb.listenLoop();

@@ -79,8 +79,7 @@ namespace petabricks {
 
     DataHostList dataHosts() const;
 
-    // for tests
-    int incCoord(IndexT* coord);
+    int incCoord(IndexT* coord) const;
     void print();
 
   private:

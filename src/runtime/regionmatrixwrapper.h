@@ -158,7 +158,7 @@ namespace petabricks {
 
     //
     // Cast to MatrixRegion
-    operator MatrixRegion<D, ElementT> () const{
+    operator MatrixRegion<D, ElementT> () const {
       RegionDataIPtr regionData = this->acquireRegionDataConst();
       JASSERT(regionData->type() == RegionDataTypes::REGIONDATARAW).Text("Cannot cast to MatrixRegion.");
 
@@ -196,6 +196,22 @@ namespace petabricks {
       return matrixRegion;
     }
 
+    ///
+    /// Copy the entire matrix and store it locally
+    RegionMatrixWrapper localCopy() {
+      RegionMatrixWrapper copy = RegionMatrixWrapper(this->size());
+      copy.allocData();
+
+      IndexT* coord = new IndexT[D];
+      memset(coord, 0, (sizeof coord) * D);
+
+      do {
+	copy.writeCell(coord, this->readCell(coord));
+      } while (this->incCoord(coord) >= 0);
+
+      delete [] coord;
+      return copy;
+    }
   };
 
 

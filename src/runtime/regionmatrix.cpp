@@ -418,9 +418,7 @@ DataHostList RegionMatrix::dataHosts() const {
   return list;
 }
 
-///////////////////////////
-
-int RegionMatrix::incCoord(IndexT* coord) {
+int RegionMatrix::incCoord(IndexT* coord) const {
   if (_D == 0) {
     return -1;
   }
