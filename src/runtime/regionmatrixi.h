@@ -37,6 +37,8 @@ namespace petabricks {
       IndexT c1[0];
       return this->cell(c1);
     }
+
+    virtual DataHostList dataHosts() const;
   };
 }
 

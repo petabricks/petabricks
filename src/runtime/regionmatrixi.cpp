@@ -48,4 +48,9 @@ CellProxy& RegionMatrixI::cell(IndexT* coord) const {
   return *(new CellProxy(_regionHandler, coord));
 }
 
+DataHostList RegionMatrixI::dataHosts() const {
+  DataHostList hosts = this->acquireRegionDataConst()->hosts();
+  this->releaseRegionDataConst();
+  return hosts;
+}
 

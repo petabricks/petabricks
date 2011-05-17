@@ -8,7 +8,7 @@
 namespace petabricks {
   class RegionMatrixProxy;
   typedef jalib::JRef<RegionMatrixProxy> RegionMatrixProxyPtr;
-  
+
   class RegionMatrixProxy : public RegionMatrixI {
     RemoteObjectPtr _remoteObject;
 
@@ -26,6 +26,7 @@ namespace petabricks {
   private:
     void processReadCellMsg(RegionDataRemoteMessage::ReadCellMessage* msg);
     void processWriteCellMsg(RegionDataRemoteMessage::WriteCellMessage* msg);
+    void processGetHostListMsg();
   };
 
   class RegionMatrixProxyRemoteObject : public RemoteObject {

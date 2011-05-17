@@ -1,5 +1,6 @@
 #include "regiondatasplit.h"
 
+#include <map>
 #include <string.h>
 #include "regiondataproxy.h"
 
@@ -92,6 +93,26 @@ ElementT RegionDataSplit::readCell(const IndexT* coord) {
 
 void RegionDataSplit::writeCell(const IndexT* coord, ElementT value) {
   this->coordToPart(coord)->writeCell(coord, value);
+}
+
+DataHostList RegionDataSplit::hosts() {
+  std::map<HostPid, int> hosts;
+
+  for (int i = 0; i < _numParts; i++) {
+    DataHostList tmp = _parts[i]->hosts();
+    hosts[tmp[0].hostPid] += 1;
+  }
+
+  DataHostList list;
+  std::map<HostPid, int>::iterator it;
+  for (it = hosts.begin(); it != hosts.end(); it++) {
+    DataHostListItem item;
+    item.hostPid = (*it).first;
+    item.weight = ((double)((*it).second))/_numParts;
+    list.push_back(item);
+  }
+
+  return list;
 }
 
 RegionDataIPtr RegionDataSplit::coordToPart(const IndexT* coord) {

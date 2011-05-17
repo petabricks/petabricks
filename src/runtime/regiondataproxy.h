@@ -39,6 +39,11 @@ namespace petabricks {
       ElementT value;
       IndexT coord[MAX_DIMENSIONS];
     };
+
+    struct GetHostListReplyMessage {
+      int numHosts;
+      DataHostListItem hosts[];
+    };
   }
 
   class RegionDataProxy;
@@ -56,6 +61,8 @@ namespace petabricks {
     uint16_t _recv_seq;
     std::map<uint16_t, void*> _buffer;
 
+    RemoteHostPtr _host;
+
   public:
     RegionDataProxy(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host);
     ~RegionDataProxy();
@@ -64,6 +71,7 @@ namespace petabricks {
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
+    DataHostList hosts();
 
     void onRecv(const void* data, size_t len);
     void* fetchData(const void* msg, size_t len);
@@ -86,8 +94,6 @@ namespace petabricks {
     void processWriteCellMsg(RegionDataProxyMessage::WriteCellMessage* msg);
     void processAllocDataMsg(RegionDataProxyMessage::AllocDataMessage* msg);
   };
-
-
 }
 
 #endif

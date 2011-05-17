@@ -13,6 +13,8 @@ RegionDataProxy::RegionDataProxy(int dimensions, IndexT* size, IndexT* partOffse
   _partOffset = new IndexT[_D];
   memcpy(_partOffset, partOffset, sizeof(IndexT) * _D);
 
+  _host = host;
+
   pthread_mutex_init(&_seq_mux, NULL);
   pthread_mutex_init(&_buffer_mux, NULL);
   pthread_cond_init(&_buffer_cond, NULL);
@@ -102,6 +104,11 @@ void RegionDataProxy::writeCell(const IndexT* coord, ElementT value) {
 
   delete msg;
   JASSERT(elmt == value);
+}
+
+DataHostList RegionDataProxy::hosts() {
+  DataHostListItem item = {_host->id(), 1};
+  return DataHostList(1, item);
 }
 
 RemoteObjectPtr RegionDataProxy::genLocal() {

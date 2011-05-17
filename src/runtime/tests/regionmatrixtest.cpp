@@ -75,6 +75,12 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
 
+void print(DataHostList list) {
+  for (int i = 0; i < list.size(); i++) {
+    printf("%x/%d ==> %e\n", list[i].hostPid.hostid, list[i].hostPid.pid, list[i].weight);
+  }
+}
+
 int main(int argc, const char** argv){
   const char* filename = "testdata/Helmholtz3DB1";
 
@@ -115,6 +121,8 @@ int main(int argc, const char** argv){
 
     // or, allocate empty matrix
     // regionMatrix->allocData();
+
+    print(regionMatrix.dataHosts());
 
     regionMatrix.acquireRegionData();
 
@@ -159,6 +167,8 @@ int main(int argc, const char** argv){
 
     // Wait until receive a matrix with UID=1
     regionMatrix.updateHandler(1);
+
+    print(regionMatrix.dataHosts());
 
     regionMatrix.acquireRegionData();
 
