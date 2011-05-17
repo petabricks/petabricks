@@ -29,7 +29,7 @@ namespace petabricks {
     int allocData();
 
     MatrixStoragePtr storage() const {return _storage;}
-    DataHostList hosts();
+    DataHostList hosts(IndexT* begin, IndexT* end);
 
   private:
     void init(int dimensions, IndexT* size, ElementT* data, IndexT* partOffset);

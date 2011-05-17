@@ -90,7 +90,7 @@ void RegionDataRaw::writeCell(const IndexT* coord, ElementT value) {
   *cell = value;
 }
 
-DataHostList RegionDataRaw::hosts() {
+DataHostList RegionDataRaw::hosts(IndexT* /*begin*/, IndexT* /*end*/) {
   DataHostListItem item = {HostPid::self(), 1};
   return DataHostList(1, item);
 }

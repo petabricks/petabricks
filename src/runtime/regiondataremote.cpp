@@ -75,9 +75,15 @@ void RegionDataRemote::writeCell(const IndexT* coord, ElementT value) {
   JASSERT(elmt == value);
 }
 
-DataHostList RegionDataRemote::hosts() {
-  MessageType msg = MessageTypes::GETHOSTLIST;
-  GetHostListReplyMessage* reply = (GetHostListReplyMessage*)this->fetchData(&msg, sizeof msg);
+DataHostList RegionDataRemote::hosts(IndexT* begin, IndexT* end) {
+  GetHostListMessage* msg = new GetHostListMessage();
+  msg->type = MessageTypes::GETHOSTLIST;
+  memcpy(msg->begin, begin, _D * sizeof(IndexT));
+  memcpy(msg->end, end, _D * sizeof(IndexT));
+
+  GetHostListReplyMessage* reply = (GetHostListReplyMessage*)this->fetchData(msg, sizeof *msg);
+  delete msg;
+
   DataHostList list;
   for (int i = 0; i < reply->numHosts; i++) {
     list.push_back(reply->hosts[i]);

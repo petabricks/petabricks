@@ -77,6 +77,8 @@ namespace petabricks {
       return this->cell(c1);
     }
 
+    DataHostList dataHosts() const;
+
     // for tests
     int incCoord(IndexT* coord);
     void print();

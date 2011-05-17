@@ -71,7 +71,7 @@ namespace petabricks {
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
-    DataHostList hosts();
+    DataHostList hosts(IndexT* begin, IndexT* end);
 
     void onRecv(const void* data, size_t len);
     void* fetchData(const void* msg, size_t len);

@@ -402,6 +402,22 @@ CellProxy& RegionMatrix::cell(IndexT x, ...) const {
   return cell(c1);
 }
 
+
+DataHostList RegionMatrix::dataHosts() const {
+  IndexT begin[_D];
+  IndexT end[_D];
+
+  memset(begin, 0, sizeof(IndexT) * _D);
+  for (int i = 0; i < _D; i++) {
+    end[i] = this->size(i) - 1;
+  }
+
+  DataHostList list = this->acquireRegionDataConst()
+    ->hosts(this->getRegionDataCoord(begin), this->getRegionDataCoord(end));
+  this->releaseRegionDataConst();
+  return list;
+}
+
 ///////////////////////////
 
 int RegionMatrix::incCoord(IndexT* coord) {

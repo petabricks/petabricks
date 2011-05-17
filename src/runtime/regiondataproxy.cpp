@@ -106,7 +106,7 @@ void RegionDataProxy::writeCell(const IndexT* coord, ElementT value) {
   JASSERT(elmt == value);
 }
 
-DataHostList RegionDataProxy::hosts() {
+DataHostList RegionDataProxy::hosts(IndexT* /*begin*/, IndexT* /*end*/) {
   DataHostListItem item = {_host->id(), 1};
   return DataHostList(1, item);
 }

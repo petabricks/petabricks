@@ -76,8 +76,8 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
 }
 
 void print(DataHostList list) {
-  for (int i = 0; i < list.size(); i++) {
-    printf("%x/%d ==> %e\n", list[i].hostPid.hostid, list[i].hostPid.pid, list[i].weight);
+  for (unsigned int i = 0; i < list.size(); i++) {
+    printf("%lx/%d ==> %.5g\n", list[i].hostPid.hostid, list[i].hostPid.pid, list[i].weight);
   }
 }
 
@@ -140,14 +140,21 @@ int main(int argc, const char** argv){
     RegionMatrix1D slice2 = slice1.slice(1, 1);
 
     split3.print();
+    print(split3.dataHosts());
+
     split2.print();
+    print(split2.dataHosts());
+
     slice1.print();
+    print(slice1.dataHosts());
+
     slice2.print();
+    print(slice2.dataHosts());
 
     // Test slice
     RegionMatrix2D slice3 = regionMatrix.slice(1, 0);
     slice3.print();
-
+    print(slice3.dataHosts());
 
     ///////////////////////////////////
     // Create remote RegionMetrix
@@ -190,13 +197,21 @@ int main(int argc, const char** argv){
     RegionMatrix1D rslice2 = rslice1.slice(1, 1);
 
     rsplit3.print();
+    print(rsplit3.dataHosts());
+
     rsplit2.print();
+    print(rsplit2.dataHosts());
+
     rslice1.print();
+    print(rslice1.dataHosts());
+
     rslice2.print();
+    print(rslice2.dataHosts());
 
     // Test slice
     RegionMatrix2D rslice3 = regionMatrix.slice(1, 0);
     rslice3.print();
+    print(rslice3.dataHosts());
 
     printf("completed2\n");
 

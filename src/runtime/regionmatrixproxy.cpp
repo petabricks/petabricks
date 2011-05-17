@@ -35,14 +35,14 @@ void RegionMatrixProxy::processWriteCellMsg(WriteCellMessage* msg) {
   _remoteObject->send(&msg->value, sizeof(ElementT));
 }
 
-void RegionMatrixProxy::processGetHostListMsg() {
-  DataHostList list = this->acquireRegionDataConst()->hosts();
+void RegionMatrixProxy::processGetHostListMsg(GetHostListMessage* msg) {
+  DataHostList list = this->acquireRegionDataConst()->hosts(msg->begin, msg->end);
   this->releaseRegionDataConst();
   int hosts_array_size = list.size() * sizeof(DataHostListItem);
-  GetHostListReplyMessage* msg = (GetHostListReplyMessage*)malloc(sizeof(GetHostListReplyMessage) + hosts_array_size);
-  msg->numHosts = list.size();
-  memcpy(msg->hosts, &list[0], hosts_array_size);
-  _remoteObject->send(msg, sizeof(GetHostListReplyMessage) + hosts_array_size);
+  GetHostListReplyMessage* reply = (GetHostListReplyMessage*)malloc(sizeof(GetHostListReplyMessage) + hosts_array_size);
+  reply->numHosts = list.size();
+  memcpy(reply->hosts, &list[0], hosts_array_size);
+  _remoteObject->send(reply, sizeof(GetHostListReplyMessage) + hosts_array_size);
 }
 
 void RegionMatrixProxy::onRecv(const void* data, size_t len) {
@@ -56,8 +56,8 @@ void RegionMatrixProxy::onRecv(const void* data, size_t len) {
     this->processWriteCellMsg((WriteCellMessage*)data);
     break;
   case MessageTypes::GETHOSTLIST:
-    JASSERT(len==sizeof(MessageType));
-    this->processGetHostListMsg();
+    JASSERT(len==sizeof(GetHostListMessage));
+    this->processGetHostListMsg((GetHostListMessage*)data);
     break;
   default:
     JASSERT(false)("Unknown RegionRemoteMsgTypes.");
