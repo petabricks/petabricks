@@ -863,14 +863,17 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
     }
     idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );*/
 
+    FormulaPtr idx_formula = FormulaInteger::zero( );
     int minCoordSize = (*i)->minCoord().size();
-    FormulaPtr idx_formula = new FormulaAdd((*i)->minCoord().at(minCoordSize - 1), FormulaInteger::zero());
-    for( int j = minCoordSize - 2; j >= 0; --j )
-    {
-      std::stringstream sizevar;
-      sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
-      idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
-            new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
+    if(minCoordSize > 0) {
+      idx_formula = new FormulaAdd((*i)->minCoord().at(minCoordSize - 1), idx_formula);
+      for( int j = minCoordSize - 2; j >= 0; --j )
+      {
+        std::stringstream sizevar;
+        sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
+        idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
+              new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
+      }
     }
 
     clo.os( ) << "unsigned int idx_" << (*i)->name( ) << " = ";
