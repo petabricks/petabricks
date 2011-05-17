@@ -10,6 +10,14 @@ import csv
 import time
 import warnings
 
+TRAILS   = 5
+SHORTBAR = '-'*40
+LONGBAR  = '='*50
+VERSION  = "2.0"
+LOGDIR    = './testdata/perflogs'
+TIMESTAMP = time.time()
+DEBUG = False
+
 class logdialect(csv.excel_tab):
   lineterminator="\n"
 
@@ -34,16 +42,9 @@ def writelog(filename, entry):
   fd=open(filename, "a")
   log = csv.writer(fd, dialect=logdialect)
   if header:
-    log.writerow(['#'+keys[0]] + [keys[1:]])
+    log.writerow(['#'+keys[0]] + keys[1:])
   log.writerow(map(lambda x: entry[x], keys))
   fd.close()
-
-TRAILS   = 5
-SHORTBAR = '-'*40
-LONGBAR  = '='*50
-VERSION  = "1.9"
-LOGDIR    = './testdata/perflogs'
-TIMESTAMP = time.time()
 
 def geomean(nums):
   return (reduce(lambda x, y: x*y, nums))**(1.0/len(nums))
@@ -57,7 +58,7 @@ def fmtPerf(perf, baseline):
   #meanprime = baseline/(perf['average']+perf['stddev']/math.sqrt(TRAILS))
   meanprime = baseline/(perf['average']+perf['stddev'])
   std  = mean-meanprime
-  return "%7.1f +- %4.1f" % (mean, std)
+  return "perf:%6.1f +- %2.0f" % (mean, std)
 
 def fmtAcc(acc, target):
   diff = acc['average'] - target
@@ -68,15 +69,14 @@ def fmtAcc(acc, target):
   else:
     s = ""
   if target != 0:
-    diffStr = "%5.1f%%"%(100.0*(1.0+diff/abs(target)))
+    diffStr = "%6.1f%%"%(100.0*(1.0+diff/abs(target)))
   else:
-    diffStr = "%5.2f "%diff
-  return "acc: "+diffStr+s
+    diffStr = "%6.2f "%diff
+  return "acc:"+diffStr+s
 
 expandCfg = lambda x: './testdata/configs/'+x
 expandLog = lambda x: LOGDIR+'/'+x.replace('.cfg','.log')
 fmtCfg = lambda x: x.replace('.cfg','').ljust(20)
-
 
 
 class Benchmark:
@@ -134,8 +134,8 @@ class Benchmark:
   def printTuned(self):
     print fmtCfg(self.cfg), \
           fmtPerf(self.tuned_perf, self.baseline), \
-          fmtAcc(self.tuned_acc, self.acc_target), \
-          "training: %.1f" % self.scoreTrainingTime()
+          "training:%6.1f" % self.scoreTrainingTime(), \
+          fmtAcc(self.tuned_acc, self.acc_target)
 
   def printDebug(self):
     print "%s fixed:%.4f tuned:%.4f tuning_time:%6.2f" % (
@@ -252,7 +252,7 @@ def main():
   print LONGBAR
   print
 
-  if True:
+  if DEBUG:
     print LONGBAR
     print "Debug:"
     print SHORTBAR

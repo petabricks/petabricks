@@ -3,6 +3,8 @@
 
 %{
 
+#include <fftw3.h>
+
 pthread_mutex_t fftw_plan_mutex;
 
 void displayArray(double *a, int length)

@@ -24,6 +24,6 @@ distclean: clean
 	@rm -f $(addsuffix .cfg, $(BINS))
 
 ignore:
-	echo $(BINS) '*.cfg *.info *.obj' | xargs -n 1 echo > .gitignore
+	echo $(BINS) '*.cfg *.info *.obj' '-Makefile' | xargs -n 1 echo > .gitignore
 
 pbc:; (cd .. && make)
