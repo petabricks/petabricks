@@ -80,7 +80,6 @@ multigrid/Poisson2DDirect
 multigrid/Poisson2DFMG
 multigrid/Poisson2DForwardFunc
 multigrid/Poisson2DJacobiGraph
-multigrid/Poisson2DJacobiInterior
 multigrid/Poisson2DJacobi
 multigrid/Poisson2DJacobiVA
 multigrid/Poisson2DMG
@@ -90,7 +89,6 @@ multigrid/Poisson2DRefMG
 multigrid/Poisson2DRefMGVA
 multigrid/Poisson2DResidual
 multigrid/Poisson2DSORGraph
-multigrid/Poisson2DSORInterior
 multigrid/Poisson2DSOR
 multigrid/Poisson2DSORVA
 multigrid/Restrict2Dnew
