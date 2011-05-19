@@ -145,9 +145,16 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
     }else if(sym && sym->isType()){
       if(!hasExprBackward() && hasExprForward() 
           && (peekExprForward()->type()==RIRNode::EXPR_IDENT || peekExprForward()->isLeaf("*")) ){
+        //it smells like a variable declaration...
         std::string type = e->toString();
-        while(peekExprForward()->isLeaf("*"))
+        for(int nstar=0; peekExprForward()->isLeaf("*"); nstar++){
           type+=popExprForward()->toString();
+          if(!hasExprForward()) {
+            //whoops, we were supposed to find an IDENT not EOF -- backtrack
+            for(; nstar>=0; nstar--) pushExprForward(RIRExpr::parse("*", SRCPOS()));
+            return;
+          }
+        }
         std::string name = peekExprForward()->toString();
         std::string nameExtra = "";
         std::string nameMangled = prefix() + name;
@@ -180,6 +187,13 @@ void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
     // add {}'s to sloppy ifs() and loops
     RIRBlockCopyRef tmp = new RIRBlock();
     tmp->addStmt(s);
+    s=new RIRBlockStmt(tmp);
+  }
+  if(s->type() == RIRNode::STMT_LOOP && (depth()==1 || !parentNode()->hasAnnotation("outer_for_scope"))){
+    // add {}'s around for statements to give them a sub-scope
+    RIRBlockCopyRef tmp = new RIRBlock();
+    tmp->addStmt(s);
+    tmp->addAnnotation("outer_for_scope");
     s=new RIRBlockStmt(tmp);
   }
   if(s->type() == RIRNode::STMT_LOOP && s->hasAnnotation("for_enough")){

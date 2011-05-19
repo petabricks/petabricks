@@ -132,6 +132,12 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
   bodyir->accept(expand);
   bodyir->accept(analysis);
 
+#ifdef DEBUG
+  std::cerr << "--------------------\nEXPANDED compileRuleBody:\n" << bodyir << std::endl;
+  bodyir->accept(print);
+  std::cerr << "--------------------\n";
+#endif
+
   for(RuleFlavor::iterator i=RuleFlavor::begin(); i!=RuleFlavor::end(); ++i) {
     _bodyir[i] = bodyir;
   }

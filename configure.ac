@@ -276,7 +276,6 @@ AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files i
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
 
-AC_DEFINE([DISABLE_DISTRIBUTED], [1], [dont generate distributed code])
 
 AC_DEFINE_UNQUOTED([MAXIMA_PATH],    ["$MAXIMA"], [path to maxima program])
 AC_DEFINE_UNQUOTED([REVISION_LONG],  ["$rev_long"], [git revision for HEAD at the time ./configure was run])
@@ -285,6 +284,7 @@ AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at t
 if false; then
   #disabled by default:
   AC_DEFINE([DISABLE_CONTINUATIONS], [], [dont generate continuation code after SPAWN/enqueue])
+  AC_DEFINE([DISABLE_DISTRIBUTED], [1], [dont generate distributed code])
   AC_DEFINE([INPUT_PERIMETER_STR], ["input_perimeter"], [define to add a system var to transform scope])
   AC_DEFINE([INPUT_SIZE_STR],      ["input_count"],      [define to add a system var to transform scope])
   AC_DEFINE([JALIB_USE_MALLOC],    [1],[Cause the custom allocator to call malloc instead of mmap])

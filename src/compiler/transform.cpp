@@ -302,6 +302,7 @@ std::string petabricks::Transform::tmplName(int n, CodeGenerator* o) {
     choice/=_templateargs[i]->range();
     if(o!=NULL){
       o->write("#define " + _templateargs[i]->name() + " " + jalib::XToString(val));
+      o->hos() << ("#define " + _templateargs[i]->name() + " " + jalib::XToString(val) + "\n");
       if(_templateargs[i]->name() == TEMPLATE_BIN_STR){
         if(isAccuracyInverted()){
           _curAccTarget = -(*(_accuracyBins.rbegin()+val));
@@ -339,6 +340,7 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
       //remove defines
       for(size_t i=0; i<_templateargs.size(); ++i){
         o.write("#undef " + _templateargs[i]->name());
+        o.hos() << ("#undef " + _templateargs[i]->name() + "\n");
       }
 
       _name = origName;
