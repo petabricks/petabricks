@@ -257,8 +257,6 @@ public:
   /// Copy that data of this to dst
   void copyTo(const MutableMatrixRegion& dst,const IndexT c1[D], const IndexT c2[D])
   {
-    if(this->base() == dst.base())
-      return;
     JASSERT(this->count()==dst.count());
     IndexT coord[D];
     memcpy(coord, c1, sizeof coord);

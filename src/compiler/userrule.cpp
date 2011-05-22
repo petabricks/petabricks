@@ -25,7 +25,7 @@
  *                                                                           *
  *****************************************************************************/
 
-//#define FORCE_OPENCL
+#define FORCE_OPENCL
 //#define OPENCL_LOGGING
 
 //#define TRACE(x) std::cout << "Trace " << x << "\n"
@@ -589,10 +589,10 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
     // Help implementing
 
-    /*RegionList::const_iterator bug = _to.begin( );
+    /*o.os( ) << "std::cout << \"ITER_DEF =\" << std::endl;\n";
+    RegionList::const_iterator bug = _to.begin( );
     for( int i = 0; i < iterdef.dimensions( ); ++i )
     {
-      o.os( ) << "std::cout << \"ITER_DEF =\" << std::endl;\n";
       o.os( ) << "printf( \"" << i << ": %d - %d\\n\",";
       o.os( ) << "_iter_begin[" << i << "],_iter_end[" << i << "] ";
       o.os( ) << ");\n";
@@ -641,6 +641,10 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       //o.os( ) << "int ruledim_" << i << " = _iter_end[" << i << "] - _iter_begin[" << i << "];\n";
       o.os( ) << "int ruledim_" << i << " = " << (*output)->matrix( )->name( ) << ".size(" << i << ");\n";
       o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
+      o.os( ) << "int ruledim_" << i << "_begin" << " = _iter_begin[" << i << "];\n";
+      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << "_begin" << " );\n";
+      o.os( ) << "int ruledim_" << i << "_end" << " = _iter_end[" << i << "];\n";
+      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << "_end" << " );\n";
     }
 
     int count = 0;
@@ -729,6 +733,9 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     o.comment( "Copy back outputs (if they were already normalized, copyTo detects src==dst and does nothing)" );
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
+      //o.os( ) << "std::cout << \"BEFORE copy\" << std::endl;\n";
+      //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
+
       o.os( ) << "normalized_" << (*i)->name( ) 
               << ".copyTo(" << (*i)->matrix( )->name( ) << ", _iter_begin, _iter_end);\n";
 
@@ -808,9 +815,9 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
     clo.os( ) << "if( ";
   for( int i = 0; i < iterdef.dimensions( ); ++i )
   {
-    clo.os( ) << _getOffsetVarStr( _id, i, NULL ) << " < dim_d" << i << " ";
-    //clo.os( ) << _getOffsetVarStr( _id, i, NULL ) << " >= dim_d" << i << "_begin && ";
-    //clo.os( ) << _getOffsetVarStr( _id, i, NULL ) << " < dim_d" << i << "_end ";
+    //clo.os( ) << _getOffsetVarStr( _id, i, NULL ) << " < dim_d" << i << " ";
+    clo.os( ) << _getOffsetVarStr( _id, i, NULL ) << " >= dim_d" << i << "_begin && ";
+    clo.os( ) << _getOffsetVarStr( _id, i, NULL ) << " < dim_d" << i << "_end ";
     if( i != ( iterdef.dimensions( ) - 1 ) )
     clo.os( ) << "&& ";
   }
