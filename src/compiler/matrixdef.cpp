@@ -173,7 +173,11 @@ std::string petabricks::MatrixDef::allocateStr() const{
 
 void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn){
   o.varDecl(name()
+#ifndef REGIONMATRIX_TEST
       +" = petabricks::MatrixIO("+fn+",\"r\").read<"+jalib::XToString(numDimensions())+">()");
+#else
+      +" = petabricks::MatrixIO("+fn+",\"r\").readToRegionMatrix<"+jalib::XToString(numDimensions())+">()");
+#endif
 }
 void petabricks::MatrixDef::writeToFileCode(CodeGenerator& o, const std::string& fn){
   o.write("petabricks::MatrixIO("+fn+",\"w\").write("+name()+");");

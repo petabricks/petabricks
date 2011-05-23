@@ -88,12 +88,12 @@ void petabricks::Schedule::depthFirstChoiceDepGraphNode(SchedulingState& state, 
 void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   JASSERT(_schedule.size()>0);
   for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
-    if(i!=_schedule.begin() && flavor!=E_RF_STATIC)
+    if(i!=_schedule.begin() && flavor!=RuleFlavor::SEQUENTIAL)
       o.continuationPoint();
 
     i->node().generateCode(trans, o, flavor, _choiceAssignment);
 
-    if(flavor!=E_RF_STATIC) {
+    if(flavor!=RuleFlavor::SEQUENTIAL) {
       for(ScheduleDependencies::const_iterator d=i->deps().begin();
           d!=i->deps().end();
           ++d){
@@ -102,7 +102,7 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
       o.write(i->node().nodename()+"->enqueue();");
     }
   }
-  if(flavor == E_RF_DYNAMIC) {
+  if(flavor == RuleFlavor::WORKSTEALING) {
     o.write("DynamicTaskPtr  _fini = new NullDynamicTask();");
     for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
       if(i->node().isOutput()) {
@@ -265,7 +265,7 @@ void petabricks::StaticScheduler::mergeCoscheduledNodes(const RuleChoiceAssignme
 
 void petabricks::StaticScheduler::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor) {
 
-  if(flavor==E_RF_DYNAMIC) {
+  if(flavor==RuleFlavor::WORKSTEALING) {
     for(ChoiceDepGraphNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i){
       o.addMember("DynamicTaskPtr", (*i)->nodename(), "");
     }
@@ -281,7 +281,7 @@ void petabricks::StaticScheduler::generateCode(Transform& trans, CodeGenerator& 
   for(i=_schedules.begin(); i!=_schedules.end(); ++i,++n) {
     o.beginCase(n);
 
-    if(flavor==E_RF_STATIC){
+    if(flavor==RuleFlavor::SEQUENTIAL){
       schedOutput.beginFunc("void", "schedule"+jalib::XToString(n)+"seq");
       o.write("schedule"+jalib::XToString(n)+"seq();");
       o.write("return;");
@@ -296,12 +296,12 @@ void petabricks::StaticScheduler::generateCode(Transform& trans, CodeGenerator& 
   }
   o.endSwitch();
   o.write("JASSERT(false).Text(\"invalid schedule\");");
-  if(flavor==E_RF_DYNAMIC) {
+  if(flavor==RuleFlavor::WORKSTEALING) {
     o.write("return 0;");
   }
 
     
-  if(flavor==E_RF_STATIC){
+  if(flavor==RuleFlavor::SEQUENTIAL){
     std::string prefix = trans.name() + "_" + jalib::XToString(trans.nextTunerId()) + "_";
     CodeGenerator& decTreeOutput = o.forkhelper();
     decTreeOutput.beginFunc("int", "selectSchedule");
@@ -324,8 +324,13 @@ void petabricks::StaticScheduler::renderGraph(const char* filename, const char* 
 
 void petabricks::StaticScheduler::writeGraph(const char* filename) const{
   FILE* fd = fopen(std::string(filename).c_str(), "w");
-  writeGraph(fd);
-  fclose(fd);
+  //writeGraph(fd);
+  //fclose(fd);
+  JWARNING(fd != NULL)(JASSERT_ERRNO)(filename).Text("failed to open file");
+  if(fd != NULL) {
+    writeGraph(fd);
+    fclose(fd);
+  }
 }
 
 void petabricks::StaticScheduler::writeGraph(FILE* fd) const{

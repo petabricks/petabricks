@@ -108,7 +108,7 @@ public:
   size_t size() const { return _schedule.size(); }
 
   void print(std::ostream& o) const {
-    o << "digraph {\n";
+    o << "digraph schedule {\n";
     for(ScheduleT::const_iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
       i->printNode(o);
     }
@@ -177,7 +177,7 @@ public:
   //const ChoiceDepGraphNodeList& schedule() const { return _schedule; }
 
   void print(std::ostream& o) const {
-    o << "digraph {\n";
+    o << "digraph staticScheduler {\n";
     for(ChoiceDepGraphNodeList::const_iterator r=_allNodes.begin(); r!=_allNodes.end(); ++r){
       (*r)->printNode(o);
     }

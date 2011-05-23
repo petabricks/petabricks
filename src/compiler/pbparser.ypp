@@ -26,6 +26,11 @@
  *****************************************************************************/
 %{
 
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
 #include "formula.h"
 #include "matrixdef.h"
 #include "pbc.h"

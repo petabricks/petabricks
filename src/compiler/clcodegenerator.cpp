@@ -106,8 +106,8 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   for( int i = 0; i < (int)dims; ++i )
   {
     os() << ", int dim_d" << i;
-    //os() << ", int dim_d" << i << "_begin";
-    //os() << ", int dim_d" << i << "_end";
+    os() << ", int dim_d" << i << "_begin";
+    os() << ", int dim_d" << i << "_end";
   }
 
   //TODO: using _to and_from is the correct approach

@@ -104,20 +104,36 @@ public:
   void exportConstants(Transform&);
 
   std::string matrixTypeName() const{
+#ifndef REGIONMATRIX_TEST
     return "MatrixRegion"+jalib::XToString(numDimensions())+"D";
+#else
+    return "RegionMatrix"+jalib::XToString(numDimensions())+"D";
+#endif
   }
 
   std::string constMatrixTypeName() const{
+#ifndef REGIONMATRIX_TEST
     return "ConstMatrixRegion"+jalib::XToString(numDimensions())+"D";
+#else
+    return "ConstRegionMatrix"+jalib::XToString(numDimensions())+"D";
+#endif
   }
 
   
   std::string sliceTypeName() const{
+#ifndef REGIONMATRIX_TEST
     return "MatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
+#else
+    return "RegionMatrix"+jalib::XToString(numDimensions()-1)+"D";
+#endif
   }
 
   std::string constSliceTypeName() const{
+#ifndef REGIONMATRIX_TEST
     return "ConstMatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
+#else
+    return "ConstRegionMatrix"+jalib::XToString(numDimensions()-1)+"D";
+#endif
   }
 
   

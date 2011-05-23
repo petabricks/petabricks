@@ -26,7 +26,6 @@
  *****************************************************************************/
 #include "petabricks.h"
 
-
 using namespace petabricks;
 
 PetabricksRuntime::Main* petabricksMainTransform(){
@@ -38,7 +37,9 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
 
 
 int main(int /*argc*/, const char** /*argv*/){
-
+  RegionMatrix2D A = petabricks::MatrixIO("testdata/Ones2D","r").readToRegionMatrix<2>();
+  A.print();
   return 0;
+  
 }
 

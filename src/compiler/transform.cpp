@@ -504,7 +504,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.write("runStatic();");
   o.write("return NULL;");
   o.endIf();
-  _scheduler->generateCode(*this, o, E_RF_DYNAMIC);
+  _scheduler->generateCode(*this, o, RuleFlavor::WORKSTEALING);
   o.endFunc();
 
   o.beginFunc("void", "runStatic");
@@ -513,7 +513,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
     o.write("return;");
     o.endIf();
   }
-  _scheduler->generateCode(*this, o, E_RF_STATIC);
+  _scheduler->generateCode(*this, o, RuleFlavor::SEQUENTIAL);
   o.endFunc();
   
   o.comment("Rule trampolines");
@@ -885,7 +885,11 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.beginFunc("ElementT", "accuracy");
   if(_accuracyMetric != "")
   {
+#ifndef REGIONMATRIX_TEST
     o.write("MatrixRegion0D _acc = MatrixRegion0D::allocate();");
+#else
+    o.write("RegionMatrix0D _acc = RegionMatrix0D::allocate();");
+#endif
     std::vector<std::string> args = argnames();
     args.insert(args.begin(), "_acc");
     o.setcall("DynamicTaskPtr p", _accuracyMetric+TX_DYNAMIC_POSTFIX, args);

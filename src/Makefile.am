@@ -5,7 +5,7 @@ AM_LFLAGS =
 OBJDIR=obj
 
 noinst_LIBRARIES = libpbcommon.a libpbcompiler.a libpbruntime.a libpbmain.a
-noinst_PROGRAMS = pbc rttest1 rttest2
+noinst_PROGRAMS = pbc rttest1 rttest2 regiondatatest regionmatrixtest
 
 noinst_HEADERS = \
   compiler/choicedepgraph.h \
@@ -60,6 +60,16 @@ pkglib_HEADERS=  \
   runtime/memoization.h \
   runtime/petabricks.h \
   runtime/petabricksruntime.h \
+  runtime/regiondatai.h \
+  runtime/regiondataproxy.h \
+  runtime/regiondataraw.h \
+  runtime/regiondataremote.h \
+  runtime/regiondatasplit.h \
+  runtime/regionhandler.h \
+  runtime/regionmatrix.h \
+  runtime/regionmatrixwrapper.h \
+  runtime/regionmatrixi.h \
+  runtime/regionmatrixproxy.h \
   runtime/remotehost.h \
   runtime/remoteobject.h \
   runtime/ruleinstance.h \
@@ -127,6 +137,15 @@ libpbruntime_a_SOURCES =  \
   runtime/matrixstorage.cpp \
   runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
+  runtime/regiondatai.cpp \
+  runtime/regiondataproxy.cpp \
+  runtime/regiondataraw.cpp \
+  runtime/regiondataremote.cpp \
+  runtime/regiondatasplit.cpp \
+  runtime/regionhandler.cpp \
+  runtime/regionmatrix.cpp \
+  runtime/regionmatrixi.cpp \
+  runtime/regionmatrixproxy.cpp \
   runtime/remotehost.cpp \
   runtime/remoteobject.cpp \
   runtime/ruleinstance.cpp \
@@ -151,6 +170,14 @@ rttest2_CXXFLAGS = -Iruntime
 rttest2_SOURCES  = runtime/rttest2.cpp
 rttest2_LDADD    = libpbruntime.a libpbcommon.a 
 
+regiondatatest_CXXFLAGS = -Iruntime
+regiondatatest_SOURCES  = runtime/tests/regiondatatest.cpp
+regiondatatest_LDADD    = libpbruntime.a libpbcommon.a 
+
+regionmatrixtest_CXXFLAGS = -Iruntime
+regionmatrixtest_SOURCES  = runtime/tests/regionmatrixtest.cpp
+regionmatrixtest_LDADD    = libpbruntime.a libpbcommon.a 
+
 CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp libpbcompiler_a-maximaparser.h \
              libpbcompiler_a-pblexer.cpp libpbcompiler_a-pbparser.cpp libpbcompiler_a-pbparser.h \
              libpbcompiler_a-ruleirlexer.cpp libpbcompiler_a-ruleirparser.cpp libpbcompiler_a-ruleirparser.h \
@@ -159,11 +186,11 @@ CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp li
 
 #copy bison headers
 maximaparser.h: libpbcompiler_a-maximaparser.h
-	$(LN_S) $< $@ 
+	test -h $@ || $(LN_S) $< $@
 pbparser.h:		 libpbcompiler_a-pbparser.h
-	$(LN_S) $< $@ 
+	test -h $@ || $(LN_S) $< $@ 
 ruleirparser.h: libpbcompiler_a-ruleirparser.h
-	$(LN_S) $< $@ 
+	test -h $@ || $(LN_S) $< $@ 
 
 #make sure the output of flex/bison has the latest version of the header
 $(srcdir)/compiler/maximalexer.lpp: maximaparser.h

@@ -347,9 +347,17 @@ std::string petabricks::Region::genTypeStr(bool isConst) const{
   switch(_originalType){
   case REGION_CELL:
     if(isConst)
+#ifndef REGIONMATRIX_TEST
       return "const ElementT";
+#else
+      return "const CellProxy";
+#endif
     else
+#ifndef REGIONMATRIX_TEST
       return "ElementT&";
+#else
+      return "CellProxy&";
+#endif
   case REGION_COL:
   case REGION_ROW:
     return (isConst?MatrixDef::oneD().constMatrixTypeName():MatrixDef::oneD().matrixTypeName());

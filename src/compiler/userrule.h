@@ -110,11 +110,11 @@ public:
   /// Generate seqential code to declare this rule
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
-    generateTrampCodeSimple(trans, o, E_RF_STATIC);
-    generateTrampCodeSimple(trans, o, E_RF_DYNAMIC);
+    generateTrampCodeSimple(trans, o, RuleFlavor::SEQUENTIAL);
+    generateTrampCodeSimple(trans, o, RuleFlavor::WORKSTEALING);
 #ifdef HAVE_OPENCL
     if( isOpenClRule() )
-      generateTrampCodeSimple(trans, o, E_RF_OPENCL);
+      generateTrampCodeSimple(trans, o, RuleFlavor::OPENCL);
 #endif
   }
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
