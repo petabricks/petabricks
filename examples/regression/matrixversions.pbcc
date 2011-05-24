@@ -1,6 +1,6 @@
 #include "../simple/copy.pbcc"
 
-transform MatrixVersionsTest 
+main transform MatrixVersionsTest 
 from IN[w,h] 
 through X<0..8>[w,h]
 to OUT[w,h] 
@@ -12,6 +12,23 @@ to OUT[w,h]
     Copy2D(o, i);
   }
   OUT.cell(x,y) from(X<7>.cell(x,y) i){
+    return i;
+  }
+
+}
+
+transform MatrixVersionsTestUnsugared
+from IN[w,h] 
+through X[w,h,8]
+to OUT[w,h] 
+{
+  X.cell(x,y,i) from(X.cell(x,y,i-1) v){
+    return v+1;
+  }
+  X.cell(x,y,0) from(IN.cell(x,y) i){
+    return i;
+  }
+  OUT.cell(x,y) from(X.cell(x,y,7) i){
     return i;
   }
 

@@ -325,8 +325,13 @@ void petabricks::StaticScheduler::renderGraph(const char* filename, const char* 
 
 void petabricks::StaticScheduler::writeGraph(const char* filename) const{
   FILE* fd = fopen(std::string(filename).c_str(), "w");
-  writeGraph(fd);
-  fclose(fd);
+  //writeGraph(fd);
+  //fclose(fd);
+  JWARNING(fd != NULL)(JASSERT_ERRNO)(filename).Text("failed to open file");
+  if(fd != NULL) {
+    writeGraph(fd);
+    fclose(fd);
+  }
 }
 
 void petabricks::StaticScheduler::writeGraph(FILE* fd) const{
