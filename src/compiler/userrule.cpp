@@ -598,6 +598,19 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       o.os( ) << ");\n";
     }*/
 
+		//if size == 0, return early
+		o.os( ) << "if( ";
+    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+    {
+      if(i != _to.begin( )) {
+        o.os() << "|| ";
+      }
+      o.os( ) << (*i)->matrix( )->name( ) << ".bytes() == 0";
+    }
+    o.os( ) << ") {\n";
+    o.os( ) << "return NULL;\n";
+    o.os( ) << "}\n";
+
     o.comment( "Create memory objects for outputs." );
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
