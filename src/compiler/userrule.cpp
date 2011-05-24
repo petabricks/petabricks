@@ -138,7 +138,7 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
   _bodyirDynamic = bodyir;
   
 #ifdef HAVE_OPENCL
-  if(isOpenClRule()){
+  if(isOpenClRule() && getSelfDependency().isNone()){
     try
     {
       _bodyirOpenCL = bodyir;
@@ -147,13 +147,12 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       _bodyirOpenCL->accept(gpurename);
       std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
       bodyir->accept(print);
+      std::cerr << "--------------------\n";
 
       if(!passBuildGpuProgram(tx)) {
-				//std::cerr << "FAIL GPU\n" << bodyir << std::endl;
+				std::cout << "(>) RULE REJECTED BY TryBuildGpuProgram: " << id() << "\n";
         failgpu = true;
       }
-
-      std::cerr << "--------------------\n";
     }
     catch( OpenClCleanupPass::NotValidSource e )
     {
@@ -165,7 +164,12 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       std::cout << "(>) RULE REJECTED BY OpenClFunctionRejectPass: " << id() << "\n";
       failgpu = true;
     }
+		
   }
+	else if(isOpenClRule()) {
+		std::cout << "(>) RULE REJECTED BY Self Dependency \n";
+		failgpu = true;
+	}
   else
   {
     std::cout << "(>) NO OPENCL SUPPORT FOR RULE " << id() << "\n";
