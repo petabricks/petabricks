@@ -612,16 +612,14 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
               << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
               << "normalized_" << (*i)->name( ) << ".bytes( ),"
               << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
-      /*o.os( ) << "std::cout << \"error = \";\n";
-      o.os( ) << "std::cout << err << std::endl;\n";
-      o.os( ) << "std::cout << \"size = \";\n";
-      o.os( ) << "std::cout << normalized_" << (*i)->name( ) << ".bytes( ) << std::endl;\n";
-      o.os( ) << "std::cout << " << (*i)->matrix( )->name( ) << ".bytes( ) << std::endl;\n";*/
+      //o.os( ) << "std::cout << \"" << (*i)->matrix( )->name( ) << "\" << std::endl;\n";
+      //o.os( ) << "std::cout << normalized_" << (*i)->name( ) << ".bytes( ) << std::endl;\n";
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object\");\n";
 
       // Bind to kernel.
       o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
     }
+    //o.os( ) << "std::cout << std::endl;\n";
 
     // Create memory objects for inputs.
     o.comment( "Create memory objects for inputs." );

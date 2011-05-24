@@ -137,7 +137,7 @@ def testBenchmark(b):
 
     if diffFiles(outfile+ext, outfile+".latest"):
       time.sleep(0.1) #try letting the filesystem settle down
-      if diffFiles(outfile, outfile+".latest"):
+      if diffFiles(outfile+ext, outfile+".latest"):
         print "run FAILED (wrong output)"
         return False
     
