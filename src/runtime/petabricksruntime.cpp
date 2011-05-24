@@ -219,7 +219,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.alias("tx", "transform");
   args.alias("graph", "graph-input");
   args.alias("graph-accuracy", "graph-template");
-  
+
   //load config from disk
   CONFIG_FILENAME = jalib::Filesystem::GetProgramPath() + ".cfg";
   args.param("config",  CONFIG_FILENAME).help("filename of the program configuration");
@@ -234,8 +234,8 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   }else{
     JASSERT(m!=NULL);
   }
-  
-  //seed the random number generator 
+
+  //seed the random number generator
   args.param("fixedrandom", FIXEDRANDOM).help("don't seed the random number generator");
 
   if(!FIXEDRANDOM)
@@ -245,7 +245,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("time",         DUMPTIMING).help("print timing results in xml format");
   args.param("hash",         HASH).help("print hash of output");
   args.param("force-output", FORCEOUTPUT).help("also write copies of outputs to stdout");
-  
+
   args.param("threads", worker_threads).help("number of threads to use");
 
   if(args.needHelp())
@@ -283,9 +283,9 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     JASSERT(jalib::Filesystem::FileExists(CONFIG_FILENAME_ALT) || CONFIG_FILENAME_ALT=="None");
     MODE=MODE_RACE_CONFIGS;
   }
-  
+
   args.param("iogen-n", IOGEN_N);
-  
+
   //flags that cause aborts
   if(args.param("reset").help("reset the config file to the default state and exit")){
     jalib::JTunableManager::instance().reset();
@@ -312,10 +312,10 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   if(args.needHelp()){
     MODE=MODE_HELP;
   }
-  
+
   if(args.needHelp())
     std::cerr << std::endl << "OPTIONS FOR ALTERNATE EXECUTION MODES:" << std::endl;
-  
+
   args.param("autotune-transform", autotunetx).help("transform name to tune in --autotune mode");
   args.param("autotune-site",      autotunesites).help("choice sites to tune in --autotune mode");
   args.param("autotune-tunable",   autotunecutoffs).help("additional cutoff tunables to tune in --autotune mode");
@@ -339,7 +339,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("race-multiplier-lowacc", RACE_MULTIPLIER_LOWACC).help("how much extra time (percentage) the slower racer gets to finish");
   args.param("race-accuracy",    RACE_ACCURACY_TARGET).help("accuracy the second racer must achieve");
   args.param("race-split-ratio", RACE_SPLIT_RATIO).help("how to divide the chip for racing");
-  
+
   size_t max_memory=0;
   if(args.param("max-memory", max_memory).help("kill the process when it tries to use this much memory")) {
     if(max_memory>0) {
@@ -460,7 +460,7 @@ int petabricks::PetabricksRuntime::runMain(){
     case MODE_HELP:
       break;
   }
-  
+
 
   if(FORCEOUTPUT && _rv==0){
     JTIMER_SCOPE(forceoutput);
@@ -741,7 +741,7 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
       //std::cerr << "ERROR: test aborted unexpectedly" << std::endl;
       exit(e.rv);
     }
-  } 
+  }
   if(result.time<0)  throw ComputeRetryException();
   if(DUMPTIMING)     theTimings.push_back(result.time);
   if(ACCURACY)       theAccuracies.push_back(result.accuracy);
@@ -765,7 +765,7 @@ void petabricks::PetabricksRuntime::loadTestInput(int n, const std::vector<std::
     }
   }
 }
-  
+
 void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
                                                           int n,
                                                           TestResult& result,
@@ -783,7 +783,7 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
     _main->compute();
     jalib::JTime end=jalib::JTime::now();
     _isRunning = false;
-    
+
     if(_needTraingingRun && _isTrainingRun){
       result.time=-1;
     }else{
@@ -807,7 +807,7 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
     throw;
   }
 }
-  
+
 void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& /*ti*/){
   UNIMPLEMENTED();
   /*
@@ -826,7 +826,7 @@ void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& 
     abort();
 
   std::sort(itersNeeded.begin(), itersNeeded.end());
-  
+
   //median
   int i= itersNeeded[ (itersNeeded.size()+1)/2 ];
 
@@ -872,7 +872,7 @@ int petabricks::PetabricksRuntime::variableAccuracyTrainingLoopInner(TestIsolati
     //increment tuning var
     if(!tunables.incrementAll()){
       JTRACE("training goal failed, max iterations")(cur)(target);
-      break; 
+      break;
     }
   }
   //failure if we reach here, reset tunables and abort
@@ -926,7 +926,7 @@ double petabricks::PetabricksRuntime::updateRaceTimeout(TestResult& result, int 
   if(result.time < jalib::maxval<double>() && result.time >= 0){
     if(result.accuracy >= RACE_ACCURACY_TARGET)
       return std::min(GRAPH_MAX_SEC, result.time*RACE_MULTIPLIER);
-    else 
+    else
       return std::min(GRAPH_MAX_SEC, result.time*RACE_MULTIPLIER_LOWACC);
   }else{
     return GRAPH_MAX_SEC;

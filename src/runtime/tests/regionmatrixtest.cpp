@@ -63,11 +63,7 @@ cell  123
 
 #include "petabricks.h"
 
-#include "regiondataraw.h"
-#include "regiondataremote.h"
-#include "regiondatasplit.h"
 #include "regionmatrix.h"
-#include "regionmatrixproxy.h"
 #include "remotehost.h"
 
 using namespace petabricks;
@@ -79,21 +75,29 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
 
+void print(DataHostList list) {
+  for (unsigned int i = 0; i < list.size(); i++) {
+    printf("%lx/%d ==> %.5g\n", list[i].hostPid.hostid, list[i].hostPid.pid, list[i].weight);
+  }
+}
+
 int main(int argc, const char** argv){
   const char* filename = "testdata/Helmholtz3DB1";
 
   IndexT m0[] = {0,0,0};
   IndexT m1[] = {1,1,1};
   IndexT m123[] = {1,2,3};
+  IndexT m456[] = {4,5,6};
   IndexT m2[] = {2,2,2};
   IndexT m3[] = {3,3,3};
   IndexT m257[] = {2,5,7};
 
   RemoteHostDB hdb;
-  RegionMatrixPtr regionMatrix;
 
   IndexT size[] = {8,9,8};
-  regionMatrix = new RegionMatrix(3, size);
+  //
+  // Create a RegionMatrix
+  RegionMatrix3D regionMatrix(size);
 
   if(argc==1){
     printf("main %d\n", getpid());
@@ -102,49 +106,61 @@ int main(int argc, const char** argv){
     hdb.accept();
     hdb.spawnListenThread();
 
-    // split data
-    regionMatrix->splitData(m2);
+    // Split the matrix in to multiple parts of size m2
+    regionMatrix.splitData(m2);
 
-    // assign a chunk of data to remote host
-    RegionHandlerPtr handler = regionMatrix->getRegionHandler();
-    RegionDataSplitPtr regionData = (RegionDataSplit*) handler->acquireRegionData(NULL).asPtr();
-    regionData->createPart(0, hdb.host(0));
-    handler->releaseRegionData(NULL);
+    // Assign a chunk of data to remote host
+    //   - put part 0 in hdb.host(0)
+    //   - the other parts are created locally
+    regionMatrix.acquireRegionData();
+    regionMatrix.createDataPart(0, hdb.host(0));
+    regionMatrix.releaseRegionData();
 
     // import data
+    regionMatrix.importDataFromFile(filename);
+
+    // or, allocate empty matrix
     // regionMatrix->allocData();
-    regionMatrix->importDataFromFile(filename);
 
-    // regionMatrix->print();
+    print(regionMatrix.dataHosts());
 
-    regionMatrix->acquireRegionData();
+    regionMatrix.acquireRegionData();
 
-    printf("before %4.8g\n", regionMatrix->readCell(m257));
-    regionMatrix->writeCell(m257, 5);
-    printf("after %4.8g\n", regionMatrix->readCell(m257));
+    CellProxy& cell = regionMatrix.cell(m257);
+    printf("before %4.8g\n", (double) cell);
+    cell = 5;
+    printf("after %4.8g\n", (double) cell);
 
-    regionMatrix->releaseRegionData();
+    regionMatrix.releaseRegionData();
 
     // Test split
-    RegionMatrixPtr split3 = regionMatrix->splitRegion(m123, m3);
-    RegionMatrixPtr split2 = split3->splitRegion(m1, m2);
-    RegionMatrixPtr slice1 = split2->sliceRegion(2, 0);
-    RegionMatrixPtr slice2 = slice1->sliceRegion(1, 1);
+    RegionMatrix3D split3 = regionMatrix.region(m123, m456);
+    RegionMatrix3D split2 = split3.region(m1, m3);
+    RegionMatrix2D slice1 = split2.slice(2, 0);
+    RegionMatrix1D slice2 = slice1.slice(1, 1);
 
-    split3->print();
-    split2->print();
-    slice1->print();
-    slice2->print();
+    split3.print();
+    print(split3.dataHosts());
+
+    split2.print();
+    print(split2.dataHosts());
+
+    slice1.print();
+    print(slice1.dataHosts());
+
+    slice2.print();
+    print(slice2.dataHosts());
 
     // Test slice
-    RegionMatrixPtr slice3 = regionMatrix->sliceRegion(1, 0);
-    slice3->print();
-
+    RegionMatrix2D slice3 = regionMatrix.slice(1, 0);
+    slice3.print();
+    print(slice3.dataHosts());
 
     ///////////////////////////////////
     // Create remote RegionMetrix
 
-    regionMatrix->moveToRemoteHost(hdb.host(0), 1);
+    // move to hdb.host(0) with UID=1 --> the receiver will wait for this UID
+    regionMatrix.moveToRemoteHost(hdb.host(0), 1);
 
     printf("completed\n");
     hdb.listenLoop();
@@ -156,35 +172,54 @@ int main(int argc, const char** argv){
     hdb.connect(argv[1], jalib::StringToInt(argv[2]));
     hdb.spawnListenThread();
 
-    regionMatrix->updateHandler(1);
+    // Wait until receive a matrix with UID=1
+    regionMatrix.updateHandler(1);
 
-    regionMatrix->acquireRegionData();
+    print(regionMatrix.dataHosts());
 
-    printf("cell %4.8g\n", regionMatrix->readCell(m257));
-    printf("cell %4.8g\n", regionMatrix->readCell(m0));
-    printf("cell %4.8g\n", regionMatrix->readCell(m1));
-    printf("cell %4.8g\n", regionMatrix->readCell(m2));
-    printf("cell %4.8g\n", regionMatrix->readCell(m3));
+    regionMatrix.acquireRegionData();
 
-    regionMatrix->writeCell(m257, 123);
-    printf("cell %4.8g\n", regionMatrix->readCell(m257));
+    printf("cell %4.8g\n", (double) regionMatrix.cell(m257));
+    printf("cell %4.8g\n", (double) regionMatrix.cell(m0));
+    printf("cell %4.8g\n", (double) regionMatrix.cell(m1));
+    printf("cell %4.8g\n", (double) regionMatrix.cell(m2));
+    printf("cell %4.8g\n", (double) regionMatrix.cell(m3));
 
-    regionMatrix->releaseRegionData();
+    regionMatrix.cell(m257) = 123;
+    printf("cell %4.8g\n", (double) regionMatrix.cell(m257));
+
+    regionMatrix.releaseRegionData();
 
     // Test split
-    RegionMatrixPtr rsplit3 = regionMatrix->splitRegion(m123, m3);
-    RegionMatrixPtr rsplit2 = rsplit3->splitRegion(m1, m2);
-    RegionMatrixPtr rslice1 = rsplit2->sliceRegion(2, 0);
-    RegionMatrixPtr rslice2 = rslice1->sliceRegion(1, 1);
+    RegionMatrix3D rsplit3 = regionMatrix.region(m123, m456);
+    RegionMatrix3D rsplit2 = rsplit3.region(m1, m3);
+    RegionMatrix2D rslice1 = rsplit2.slice(2, 0);
+    RegionMatrix1D rslice2 = rslice1.slice(1, 1);
 
-    rsplit3->print();
-    rsplit2->print();
-    rslice1->print();
-    rslice2->print();
+    rsplit3.print();
+    print(rsplit3.dataHosts());
+
+    rsplit2.print();
+    print(rsplit2.dataHosts());
+
+    rslice1.print();
+    print(rslice1.dataHosts());
+
+    rslice2.print();
+    print(rslice2.dataHosts());
 
     // Test slice
-    RegionMatrixPtr rslice3 = regionMatrix->sliceRegion(1, 0);
-    rslice3->print();
+    RegionMatrix2D rslice3 = regionMatrix.slice(1, 0);
+    rslice3.print();
+    print(rslice3.dataHosts());
+
+    // localCopy: copy the entire matrix and store it locally
+    RegionMatrix2D copy = rslice3.localCopy();
+    copy.print();
+    print(copy.dataHosts());
+
+    // Cast to MatrixRegion
+    MatrixIO().write((MatrixRegion2D) copy);
 
     printf("completed2\n");
 

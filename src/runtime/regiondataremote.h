@@ -32,6 +32,7 @@ namespace petabricks {
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
+    DataHostList hosts(IndexT* begin, IndexT* end);
 
     void onRecv(const void* data, size_t len);
     void* fetchData(const void* msg, size_t len);
@@ -61,6 +62,7 @@ namespace petabricks {
       enum {
 	READCELL = 11,
 	WRITECELL,
+	GETHOSTLIST,
       };
     };
 
@@ -74,11 +76,22 @@ namespace petabricks {
       MessageType type;
       IndexT coord[MAX_DIMENSIONS];
     };
-    
+
     struct WriteCellMessage {
       MessageType type;
       ElementT value;
-      IndexT coord[MAX_DIMENSIONS]; 
+      IndexT coord[MAX_DIMENSIONS];
+    };
+
+    struct GetHostListMessage {
+      MessageType type;
+      IndexT begin[MAX_DIMENSIONS];
+      IndexT end[MAX_DIMENSIONS];
+    };
+
+    struct GetHostListReplyMessage {
+      int numHosts;
+      DataHostListItem hosts[];
     };
   }
 }

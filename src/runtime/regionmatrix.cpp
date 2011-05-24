@@ -149,6 +149,10 @@ void RegionMatrix::splitData(IndexT* splitSize) {
   _regionHandler->updateRegionData(newRegionData);
 }
 
+void RegionMatrix::createDataPart(int partIndex, RemoteHostPtr host) {
+  ((RegionDataSplit*)_regionData.asPtr())->createPart(partIndex, host);
+}
+
 void RegionMatrix::allocData() {
   acquireRegionData();
   _regionData->allocData();
@@ -398,9 +402,23 @@ CellProxy& RegionMatrix::cell(IndexT x, ...) const {
   return cell(c1);
 }
 
-///////////////////////////
 
-int RegionMatrix::incCoord(IndexT* coord) {
+DataHostList RegionMatrix::dataHosts() const {
+  IndexT begin[_D];
+  IndexT end[_D];
+
+  memset(begin, 0, sizeof(IndexT) * _D);
+  for (int i = 0; i < _D; i++) {
+    end[i] = this->size(i) - 1;
+  }
+
+  DataHostList list = this->acquireRegionDataConst()
+    ->hosts(this->getRegionDataCoord(begin), this->getRegionDataCoord(end));
+  this->releaseRegionDataConst();
+  return list;
+}
+
+int RegionMatrix::incCoord(IndexT* coord) const {
   if (_D == 0) {
     return -1;
   }

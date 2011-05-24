@@ -52,7 +52,7 @@ namespace _RemoteHostMsgTypes {
   T DecodeTextPtr(EncodedPtr p) {
     return reinterpret_cast<T>(p+reinterpret_cast<intptr_t>(&token_func));
   }
-  
+
   template<typename T>
   EncodedPtr EncodeDataPtr(T* p) {
     return reinterpret_cast<EncodedPtr>(p);
@@ -62,7 +62,7 @@ namespace _RemoteHostMsgTypes {
   T* DecodeDataPtr(EncodedPtr p) {
     return reinterpret_cast<T*>(p);
   }
-  
+
   using petabricks::HostPid;
   struct MessageTypes {
     enum {
@@ -98,7 +98,7 @@ namespace _RemoteHostMsgTypes {
     MessageType type;
     HostPid     id;
     ChanNumber  chan;
-    
+
     friend std::ostream& operator<<(std::ostream& o, const HelloMessage& m) {
       return o << "HelloMessage("
                << MessageTypes::str(m.type) << ", "
@@ -167,14 +167,14 @@ void petabricks::RemoteHost::handshake() {
   _control.readAll((char*)&msg, sizeof msg);
   JASSERT(msg.type == MessageTypes::HELLO_CONTROL && msg.id != self && msg.chan == REMOTEHOST_DATACHANS);
   _id = msg.id;
-  
+
   for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
     HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i};
     _data[i].disableNagle();
     JASSERT(_data[i].writeAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
     JASSERT(_data[i].readAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
     JASSERT(dmsg.type == MessageTypes::HELLO_DATA
-        && dmsg.id == _id 
+        && dmsg.id == _id
         && dmsg.chan == i);
   }
 }
@@ -184,7 +184,7 @@ bool petabricks::RemoteHost::recv() {
   GeneralMessage msg;
 
   if(!_controlmu.trylock()) {
-    JTRACE("skipping recv, locked");
+    //JTRACE("skipping recv, locked");
     return false;
   }
 
@@ -210,7 +210,7 @@ bool petabricks::RemoteHost::recv() {
   void* buf = 0;
 
   switch(msg.type) {
-  case MessageTypes::REMOTEOBJECT_CREATE: 
+  case MessageTypes::REMOTEOBJECT_CREATE:
     {
       gen = DecodeTextPtr<RemoteObjectGenerator>(msg.dstptr);
       obj = (*gen)();
@@ -329,7 +329,7 @@ void petabricks::RemoteHost::createRemoteObject(const RemoteObjectPtr& local,
   JLOCKSCOPE(_controlmu);
   _objects.push_back(local);
 }
-  
+
 void petabricks::RemoteHost::sendData(const RemoteObject* local, const void* data, size_t len) {
   local->waitUntilCreated();
   GeneralMessage msg = { MessageTypes::REMOTEOBJECT_DATA,
@@ -415,7 +415,7 @@ void petabricks::RemoteHostDB::remotefork(const char* host, int oargc, const cha
   std::string portstr = jalib::XToString(this->port());
   const char** argv = new const char*[oargc+32];
   int i=0;
-  if(host!=NULL) { 
+  if(host!=NULL) {
     argv[i++] = "ssh";
     argv[i++] = host;
   }

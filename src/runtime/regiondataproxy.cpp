@@ -13,6 +13,8 @@ RegionDataProxy::RegionDataProxy(int dimensions, IndexT* size, IndexT* partOffse
   _partOffset = new IndexT[_D];
   memcpy(_partOffset, partOffset, sizeof(IndexT) * _D);
 
+  _host = host;
+
   pthread_mutex_init(&_seq_mux, NULL);
   pthread_mutex_init(&_buffer_mux, NULL);
   pthread_cond_init(&_buffer_cond, NULL);
@@ -65,7 +67,6 @@ void* RegionDataProxy::fetchData(const void* msg, size_t len) {
 }
 
 void RegionDataProxy::onRecv(const void* data, size_t len) {
-  JTRACE("recv")(*(ElementT*)data)(len);
   void* x = malloc(len);
   memmove(x, data, len);
   _buffer[++_recv_seq] = x;
@@ -103,6 +104,11 @@ void RegionDataProxy::writeCell(const IndexT* coord, ElementT value) {
 
   delete msg;
   JASSERT(elmt == value);
+}
+
+DataHostList RegionDataProxy::hosts(IndexT* /*begin*/, IndexT* /*end*/) {
+  DataHostListItem item = {_host->id(), 1};
+  return DataHostList(1, item);
 }
 
 RemoteObjectPtr RegionDataProxy::genLocal() {

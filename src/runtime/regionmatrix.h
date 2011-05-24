@@ -45,6 +45,7 @@ namespace petabricks {
     void copy(const RegionMatrix& that);
 
     void splitData(IndexT* splitSize);
+    void createDataPart(int partIndex, RemoteHostPtr host);
     void allocData();
     void importDataFromFile(const char* filename);
 
@@ -76,8 +77,9 @@ namespace petabricks {
       return this->cell(c1);
     }
 
-    // for tests
-    int incCoord(IndexT* coord);
+    DataHostList dataHosts() const;
+
+    int incCoord(IndexT* coord) const;
     void print();
 
   private:

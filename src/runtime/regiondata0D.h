@@ -35,6 +35,11 @@ namespace petabricks {
       _value = value;
     }
 
+    DataHostList hosts(IndexT* /*begin*/, IndexT* /*end*/) {
+      DataHostListItem item = {HostPid::self(), 1};
+      return DataHostList(1, item);
+    }
+
     void print() {
       printf("%e\n", _value);
     }

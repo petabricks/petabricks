@@ -3,6 +3,9 @@
 
 #include "common/jrefcounted.h"
 #include "matrixstorage.h"
+#include "remotehost.h"
+
+#include <vector>
 
 namespace petabricks {
   typedef MATRIX_INDEX_T IndexT;
@@ -18,6 +21,12 @@ namespace petabricks {
       REGIONDATASPLIT
     };
   };
+
+  struct DataHostListItem {
+    HostPid hostPid;
+    double weight;
+  };
+  typedef std::vector<DataHostListItem> DataHostList;
 
   class RegionDataI;
   typedef jalib::JRef<RegionDataI> RegionDataIPtr;
@@ -49,6 +58,8 @@ namespace petabricks {
     RegionDataType type() const {
       return _type;
     }
+
+    virtual DataHostList hosts(IndexT* begin, IndexT* end) = 0;
 
     // for tests
     int incCoord(IndexT* coord);

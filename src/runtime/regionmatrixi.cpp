@@ -48,4 +48,3 @@ CellProxy& RegionMatrixI::cell(IndexT* coord) const {
   return *(new CellProxy(_regionHandler, coord));
 }
 
-

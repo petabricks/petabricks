@@ -57,8 +57,8 @@ int main(int /*argc*/, const char** /*argv*/){
   RegionMatrix1D E = D.row(2);
   MatrixIO().write((MatrixRegion1D) E);
 
+  E.dataHosts();
 
   return 0;
-
 }
 

@@ -45,7 +45,7 @@
 #define REMOTEHOST_DATACHANS 4
 
 namespace _RemoteHostMsgTypes {
-  struct GeneralMessage;  
+  struct GeneralMessage;
 }
 
 namespace petabricks {
@@ -63,6 +63,10 @@ struct HostPid {
   }
   friend bool operator != (const HostPid& a, const HostPid& b) {
     return !operator==(a,b);
+  }
+  friend bool operator < (const HostPid& a, const HostPid& b) {
+    if (a.hostid == b.hostid) return a.pid < b.pid;
+    return a.hostid < b.hostid;
   }
   friend std::ostream& operator << (std::ostream& o, const HostPid& a) {
     return o << std::hex << a.hostid << '/' << std::dec <<  a.pid;
@@ -97,7 +101,7 @@ protected:
   void handshake();
 
   void sendMsg(_RemoteHostMsgTypes::GeneralMessage* msg, const void* data = NULL, size_t len = 0);
-  int pickChannel() { 
+  int pickChannel() {
     _lastchan = (_lastchan+2) % REMOTEHOST_DATACHANS;
     return _lastchan;
   }

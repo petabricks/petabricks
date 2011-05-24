@@ -27,6 +27,7 @@ namespace petabricks {
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
+    DataHostList hosts(IndexT* begin, IndexT* end);
 
     RegionDataIPtr coordToPart(const IndexT* coord);
 

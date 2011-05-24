@@ -1,5 +1,6 @@
 #include "regiondatasplit.h"
 
+#include <map>
 #include <string.h>
 #include "regiondataproxy.h"
 
@@ -92,6 +93,51 @@ ElementT RegionDataSplit::readCell(const IndexT* coord) {
 
 void RegionDataSplit::writeCell(const IndexT* coord, ElementT value) {
   this->coordToPart(coord)->writeCell(coord, value);
+}
+
+DataHostList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {
+  std::map<HostPid, int> hosts;
+
+  IndexT coord[_D];
+  for (int i = 0; i < _D; i++) {
+    begin[i] = begin[i] - (begin[i] % _splitSize[i]);
+    coord[i] = begin[i];
+  }
+
+  int count = 0;
+  bool hasNextPart;
+  do {
+    DataHostList tmp = this->coordToPart(coord)->hosts(NULL, NULL);
+    hosts[tmp[0].hostPid] += 1;
+    count++;
+
+    // move to the next part
+    hasNextPart = false;
+    coord[0] += _splitSize[0];
+    for (int i = 0; i < _D - 1; i++) {
+      if (coord[i] > end[i]){
+	coord[i] = begin[i];
+	coord[i+1] += _splitSize[i];
+      } else {
+	hasNextPart = true;
+	break;
+      }
+    }
+    if (coord[_D-1] <= end[_D-1]){
+      hasNextPart = true;
+    }
+  } while (hasNextPart);
+
+  DataHostList list;
+  std::map<HostPid, int>::iterator it;
+  for (it = hosts.begin(); it != hosts.end(); it++) {
+    DataHostListItem item;
+    item.hostPid = (*it).first;
+    item.weight = ((double)((*it).second))/count;
+    list.push_back(item);
+  }
+
+  return list;
 }
 
 RegionDataIPtr RegionDataSplit::coordToPart(const IndexT* coord) {
