@@ -4,8 +4,15 @@
 %{
 
 extern "C" void dsteqr_(char *compz, int *n, double *D, double *E, double *Z, int *ldz, double *work, int *info);
+extern "C" void ssteqr_(char *compz, int *n, float *D, float *E, float *Z, int *ldz, float *work, int *info);
 
+void steqr_wrap(char *compz, int *n, float *D, float *E, float *Z, int *ldz, float *work, int *info) {
+  ssteqr_(compz, n, D, E, Z, ldz, work, info);
+}
 
+void steqr_wrap(char *compz, int *n, double *D, double *E, double *Z, int *ldz, double *work, int *info) {
+  dsteqr_(compz, n, D, E, Z, ldz, work, info);
+}
 %}
 
 #include "../simple/copy.pbcc"
@@ -26,13 +33,13 @@ to Eigenvalue[n], Eigenvector[n,n]
     int size=n, lwork=2*n-2, info=0, nsquared=n*n;
 
     // allocate and initialize matrices
-    double *Z = Vec.base();
-    double *D = Eig.base();
-    double *E = Ein.storage()->data();
-    double *work = new double[1];
+    ElementT *Z = Vec.base();
+    ElementT *D = Eig.base();
+    ElementT *E = Ein.storage()->data();
+    ElementT *work = new ElementT[1];
 
-    if (lwork > 1) { work = new double[lwork];}
-    dsteqr_(&compz, &size, D, E, Z, &size, work, &info);
+    if (lwork > 1) { work = new ElementT[lwork];}
+    steqr_wrap(&compz, &size, D, E, Z, &size, work, &info);
 
     delete [] work;
   }

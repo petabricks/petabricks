@@ -138,7 +138,7 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
   _bodyirDynamic = bodyir;
   
 #ifdef HAVE_OPENCL
-  if(isOpenClRule()){
+  if(isOpenClRule() && getSelfDependency().isNone()){
     try
     {
       _bodyirOpenCL = bodyir;
@@ -147,13 +147,12 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       _bodyirOpenCL->accept(gpurename);
       std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
       bodyir->accept(print);
+      std::cerr << "--------------------\n";
 
       if(!passBuildGpuProgram(tx)) {
-				//std::cerr << "FAIL GPU\n" << bodyir << std::endl;
+				std::cout << "(>) RULE REJECTED BY TryBuildGpuProgram: " << id() << "\n";
         failgpu = true;
       }
-
-      std::cerr << "--------------------\n";
     }
     catch( OpenClCleanupPass::NotValidSource e )
     {
@@ -165,7 +164,12 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       std::cout << "(>) RULE REJECTED BY OpenClFunctionRejectPass: " << id() << "\n";
       failgpu = true;
     }
+		
   }
+	else if(isOpenClRule()) {
+		std::cout << "(>) RULE REJECTED BY Self Dependency \n";
+		failgpu = true;
+	}
   else
   {
     std::cout << "(>) NO OPENCL SUPPORT FOR RULE " << id() << "\n";
@@ -598,6 +602,19 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       o.os( ) << ");\n";
     }*/
 
+		//if size == 0, return early
+		o.os( ) << "if( ";
+    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
+    {
+      if(i != _to.begin( )) {
+        o.os() << "|| ";
+      }
+      o.os( ) << (*i)->matrix( )->name( ) << ".bytes() == 0";
+    }
+    o.os( ) << ") {\n";
+    o.os( ) << "return NULL;\n";
+    o.os( ) << "}\n";
+
     o.comment( "Create memory objects for outputs." );
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
@@ -612,16 +629,14 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
               << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
               << "normalized_" << (*i)->name( ) << ".bytes( ),"
               << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
-      /*o.os( ) << "std::cout << \"error = \";\n";
-      o.os( ) << "std::cout << err << std::endl;\n";
-      o.os( ) << "std::cout << \"size = \";\n";
-      o.os( ) << "std::cout << normalized_" << (*i)->name( ) << ".bytes( ) << std::endl;\n";
-      o.os( ) << "std::cout << " << (*i)->matrix( )->name( ) << ".bytes( ) << std::endl;\n";*/
+      //o.os( ) << "std::cout << \"" << (*i)->matrix( )->name( ) << "\" << std::endl;\n";
+      //o.os( ) << "std::cout << normalized_" << (*i)->name( ) << ".bytes( ) << std::endl;\n";
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object\");\n";
 
       // Bind to kernel.
       o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
     }
+    //o.os( ) << "std::cout << std::endl;\n";
 
     // Create memory objects for inputs.
     o.comment( "Create memory objects for inputs." );

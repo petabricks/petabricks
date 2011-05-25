@@ -4,6 +4,14 @@
 %{
 
 extern "C" void dlaed1_(int *n, double *D, double *Q, int *ldq, int *indxq, double *rho, int *cutpnt, double *work, int *iwork, int *info);
+extern "C" void slaed1_(int *n, float *D, float *Q, int *ldq, int *indxq, float *rho, int *cutpnt, float *work, int *iwork, int *info);
+
+void laed1_wrap(int *n, double *D, double *Q, int *ldq, int *indxq, double *rho, int *cutpnt, double *work, int *iwork, int *info) {
+  dlaed1_(n, D, Q, ldq, indxq, rho, cutpnt, work, iwork, info);
+}
+void laed1_wrap(int *n, float *D, float *Q, int *ldq, int *indxq, float *rho, int *cutpnt, float *work, int *iwork, int *info) {
+  slaed1_(n, D, Q, ldq, indxq, rho, cutpnt, work, iwork, info);
+}
 
 %}
 
@@ -26,9 +34,9 @@ to Eigenvalue[n1+n2], Eigenvector[n1+n2,n1+n2], WORK[(n1+n2)*(n1+n2)+4*(n1+n2)]
     int size=n1+n2;
     int cutpnt=n1;
     int nsquared=size*size;
-    double rho=b;
-    double *D = eig.base();
-    double *Q = vec.base();
+    ElementT rho=b;
+    ElementT *D = eig.base();
+    ElementT *Q = vec.base();
     int *indxq = new int[size];
     int *iwork = new int[4*size];
 
@@ -41,9 +49,9 @@ to Eigenvalue[n1+n2], Eigenvector[n1+n2,n1+n2], WORK[(n1+n2)*(n1+n2)+4*(n1+n2)]
       indxq[i]=i-cutpnt+1;
     }
     
-    //double *work = new double[4*size+nsquared];
+    //ElementT *work = new ElementT[4*size+nsquared];
 
-    dlaed1_(&size, D, Q, &size, indxq, &rho, &cutpnt, work.base(), iwork, &info);
+    laed1_wrap(&size, D, Q, &size, indxq, &rho, &cutpnt, work.base(), iwork, &info);
 
     //delete [] work;
     delete [] iwork;
