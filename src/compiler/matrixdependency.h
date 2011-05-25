@@ -43,7 +43,9 @@ namespace petabricks {
 
 class MatrixDependency;
 typedef jalib::JRef<MatrixDependency> MatrixDependencyPtr;
-class MatrixDependencyMap : public jalib::JRefCounted, public std::map<MatrixDefPtr, MatrixDependencyPtr> {};
+class MatrixDependencyMap : public jalib::JRefCounted, public jalib::JPrintable, public std::map<MatrixDefPtr, MatrixDependencyPtr> {
+  void print(std::ostream& o) const;
+};
 
 class DependencyDirection :  public jalib::JPrintable {
 public:

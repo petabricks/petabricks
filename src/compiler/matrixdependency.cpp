@@ -105,4 +105,14 @@ void petabricks::MatrixDependency::mergeWith( MatrixDependency& that ){
     _region = that._region;
 }
 
-
+void petabricks::MatrixDependencyMap::print(std::ostream& o) const {
+  o << "MatrixDependencyMap: " << "\n";
+  for(petabricks::MatrixDependencyMap::const_iterator i=this->begin(), e=this->end(); 
+      i!=e; 
+      ++i) {
+    MatrixDefPtr matrixDef = i->first;
+    MatrixDependencyPtr matrixDependency = i->second;
+    o << "  MatrixDef: " << matrixDef << "\n";
+    o << "  MatrixDependency: " << matrixDependency;
+  }
+}
