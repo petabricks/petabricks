@@ -18,6 +18,8 @@ clean:
 	@rm -f $(addsuffix .o, $(BINS))
 	@echo removing *.info 
 	@rm -f $(addsuffix .info, $(BINS))
+	@echo "removing backup (*.pbcc~) files"
+	@rm -f $(addsuffix .pbcc~, $(BINS))
 
 distclean: clean
 	@echo removing *.cfg
