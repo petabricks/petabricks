@@ -47,8 +47,9 @@ class MatrixDependencyMap;
 class RIRScope;
 typedef jalib::JRef<Region> RegionPtr;
 typedef jalib::JRef<SimpleRegion> SimpleRegionPtr;
-class RegionList : public std::vector<RegionPtr> , public jalib::JRefCounted, public jalib::SrcPosTaggable {
+class RegionList : public std::vector<RegionPtr> , public jalib::JRefCounted, public jalib::SrcPosTaggable, public jalib::JPrintable {
 public:
+  void print(std::ostream& o) const;
   void makeRelativeTo(const FormulaList& defs);
 };
 
@@ -113,6 +114,8 @@ protected:
   CoordinateFormula _minCoord;
   CoordinateFormula _maxCoord;
 };
+
+class DependencyDirection;
 
 class Region : public SimpleRegion {
 public:
@@ -188,6 +191,12 @@ public:
   }
 
   void addArgToScope(RIRScope& scope) const;
+
+private:
+  void determineDependencyDirection(const size_t dimension, 
+                                    const RuleInterface& rule, 
+                                    DependencyDirection& direction) const;
+  
 private:
   std::string _name;
   std::string _fromMatrixName;

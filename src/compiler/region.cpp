@@ -89,7 +89,8 @@ void petabricks::Region::initialize(Transform& trans) {
       //min = max = given
       for(size_t i=0; i<_originalBounds.size(); ++i){
         _minCoord.push_back(_originalBounds[i]);
-//         _maxCoord.push_back(_originalBounds[i]);
+        /* NB: _maxCoord[i]=_originalBounds[i]+1 because the lower bound is 
+         * included while the upper bound is excluded */
         _maxCoord.push_back(MaximaWrapper::instance().normalize(
           new FormulaAdd(_originalBounds[i], FormulaInteger::one())));
       }
@@ -191,6 +192,14 @@ petabricks::CoordinateFormula petabricks::Region::calculateCenter() const {
 void petabricks::RegionList::makeRelativeTo(const FormulaList& defs){
   for(iterator i=begin(); i!=end(); ++i){
     (*i)->makeRelativeTo(defs);
+  }
+}
+
+void petabricks::RegionList::print(std::ostream& o) const {
+  o << "RegionList:";
+  for(RegionList::const_iterator i=this->begin(), e=this->end(); i!=e; ++i) {
+    RegionPtr region= *i;
+    o << "\n* " << region;
   }
 }
 
@@ -403,32 +412,34 @@ std::string petabricks::Region::generateAccessorCode(bool allowOptional) const{
   }
 }
 
-void petabricks::Region::collectDependencies(const Transform& tx, const RuleInterface& rule, MatrixDependencyMap& map) const {
-  //Determine dependency direction
-  DependencyDirection direction(dimensions());
-  for(size_t i=0; i<dimensions(); ++i){
-    MaximaWrapper::tryCompareResult isLeft =MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i),  "<", _maxCoord[i]);
-    MaximaWrapper::tryCompareResult isRight=MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">=", _minCoord[i]);
-    
-    if(isLeft!=MaximaWrapper::YES)
-      direction.addDirection(i, DependencyDirection::D_LT);
+void petabricks::Region::determineDependencyDirection(const size_t dimension, const RuleInterface& rule, DependencyDirection& direction) const {
+  MaximaWrapper::tryCompareResult isLeft =MaximaWrapper::instance().tryCompare(rule.getOffsetVar(dimension),  "<", _maxCoord[dimension]);
+  MaximaWrapper::tryCompareResult isRight=MaximaWrapper::instance().tryCompare(rule.getOffsetVar(dimension), ">=", _minCoord[dimension]);
+  
+  if(isLeft!=MaximaWrapper::YES)
+    direction.addDirection(dimension, DependencyDirection::D_LT);
 
-    if(isRight!=MaximaWrapper::YES)
-      direction.addDirection(i, DependencyDirection::D_GT);
+  if(isRight!=MaximaWrapper::YES)
+    direction.addDirection(dimension, DependencyDirection::D_GT);
 
-    if(isLeft==MaximaWrapper::UNKNOWN || isRight==MaximaWrapper::UNKNOWN || isLeft==isRight){
-      direction.addDirection(i, DependencyDirection::D_EQ);
-    }else{
-      if(isLeft){
-        if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), "<",  _minCoord[i])!=MaximaWrapper::YES)
-          direction.addDirection(i, DependencyDirection::D_EQ);
-      }else{//isRight
-        if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(i), ">=", _maxCoord[i])!=MaximaWrapper::YES)
-          direction.addDirection(i, DependencyDirection::D_EQ);
-      }
+  if(isLeft==MaximaWrapper::UNKNOWN || isRight==MaximaWrapper::UNKNOWN || isLeft==isRight){
+    direction.addDirection(dimension, DependencyDirection::D_EQ);
+  }else{
+    if(isLeft){
+      if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(dimension), "<",  _minCoord[dimension])!=MaximaWrapper::YES)
+        direction.addDirection(dimension, DependencyDirection::D_EQ);
+    }else{//isRight
+      if(MaximaWrapper::instance().tryCompare(rule.getOffsetVar(dimension), ">=", _maxCoord[dimension])!=MaximaWrapper::YES)
+        direction.addDirection(dimension, DependencyDirection::D_EQ);
     }
   }
-  //JTRACE("compute direction")(_minCoord)(_maxCoord)(direction);
+}
+
+void petabricks::Region::collectDependencies(const Transform& tx, const RuleInterface& rule, MatrixDependencyMap& map) const {
+  DependencyDirection direction(dimensions());
+  for(size_t dimension=0; dimension<dimensions(); ++dimension){
+    determineDependencyDirection(dimension, rule, direction);
+  }
   FormulaList offsets = diff(tx,rule);
   SimpleRegion applicable = rule.applicableRegion();
   applicable.maxCoord().subToEach(FormulaInteger::one());
