@@ -622,7 +622,6 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       //o.os( ) << "std::cout << \"BEFORE EVERYTHING\" << std::endl;\n";
       //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
 
-      //TODO: check that asnormalize do the right thing
       o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
               << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion(_iter_begin, _iter_end);\n";
       o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
@@ -642,10 +641,15 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     o.comment( "Create memory objects for inputs." );
     for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
     {
+      //o.os( ) << "std::cout << \"INPUT\" << std::endl;\n";
+      //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
+
+      o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
+              << " = " << (*i)->matrix( )->name( ) << ".asNormalizedRegion(_iter_begin, _iter_end);\n";
       o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
-              << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, " 
-              << (*i)->matrix( )->name( ) << ".bytes( ),"
-              << "(void*) " << (*i)->matrix( )->name( ) << ".base( ), &err );\n";
+              << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, "
+              << "normalized_" << (*i)->name( ) << ".bytes( ),"
+              << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
 
       // Bind to kernel.
