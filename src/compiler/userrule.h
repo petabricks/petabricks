@@ -47,6 +47,12 @@
 
 namespace petabricks {
 
+class DataDependencyVectorMap : public jalib::JPrintable, 
+                                public std::multimap<MatrixDefPtr, 
+                                                CoordinateFormula> {
+  void print(std::ostream& o) const;
+};
+
 /**
  * Represent a transform rule defined by the user
  */
@@ -247,6 +253,14 @@ public:
   }
 
   void buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional);
+
+private:
+  void computeDataDependencyVector();
+  CoordinateFormula computeDDVAsDifference(const RegionPtr inputRegion,
+                                           const RegionPtr outputRegion
+                                          ) const;
+  void computeDDVForGivenOutput(const RegionPtr outputRegion);
+                                
 private:
   RuleFlags _flags;
   RegionList _from;
@@ -268,7 +282,12 @@ private:
   std::string _label;
   ConfigItems _duplicateVars;
   RulePtr _gpuRule;
-
+  DataDependencyVectorMap _dataDependencyVectorMap; /**< Data dependency vector.
+                                                     * It contains only the deps
+                                                     * for regions that are used
+                                                     * both as input and output
+                                                     * of the rule. */
+                                                    
 };
 
 }

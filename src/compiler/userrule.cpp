@@ -352,7 +352,9 @@ void petabricks::UserRule::initialize(Transform& trans) {
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->collectDependencies(trans, *this,_provides);
   }
-
+  
+  computeDataDependencyVector();
+  
   //expand through() clause
   for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
     _bodysrc=(*i)->matrixTypeName()+" "+(*i)->name()+" = "+(*i)->allocateStr()+";\n"+_bodysrc;
@@ -360,7 +362,68 @@ void petabricks::UserRule::initialize(Transform& trans) {
 
   MaximaWrapper::instance().popContext();
 }
+
+/**
+ * Compute the data dependency vector for two region as the difference of the
+ * dimensions of the two regions
+ */
+petabricks::CoordinateFormula petabricks::UserRule::computeDDVAsDifference(const RegionPtr inputRegion,
+                                                                           const RegionPtr outputRegion
+                                                                          ) const {
+  JASSERT(inputRegion->dimensions()==outputRegion->dimensions());
   
+  CoordinateFormula& inputMinCoord = inputRegion->minCoord();
+  CoordinateFormula& outputMinCoord = outputRegion->minCoord();
+  size_t dimensions=inputRegion->dimensions();
+  
+  CoordinateFormulaPtr newDataDependencyVector = new CoordinateFormula();
+  
+  for(size_t i=0; i<dimensions; ++i) {
+    FormulaPtr difference = new FormulaSubtract(inputMinCoord[i], 
+                                             outputMinCoord[i]);
+    difference = MaximaWrapper::instance().normalize(difference);
+    newDataDependencyVector->push_back(difference);
+  }
+  return newDataDependencyVector;
+}
+
+/**
+ * Computes the distance between the given output region and all the input
+ * regions coming from the same original matrix
+ */
+void petabricks::UserRule::computeDDVForGivenOutput(const RegionPtr outputRegion
+                                                   ) {
+  for(RegionList::const_iterator i=_from.begin(), e=_from.end(); i!=e; ++i ) {
+    const RegionPtr inputRegion = *i;
+    
+    if(outputRegion->matrix()->name() != inputRegion->matrix()->name()) {
+      continue;
+    }
+    
+    CoordinateFormula ddv = computeDDVAsDifference(inputRegion,
+                                                    outputRegion);
+    
+    MatrixDefPtr inputMatrixDef=inputRegion->matrix();
+    DataDependencyVectorMap::value_type newElement(inputMatrixDef,ddv);
+    _dataDependencyVectorMap.insert(newElement);
+  }
+  
+}
+
+/**
+ * Computes the distance between input and output for each dimension 
+ * of each region that is used both as input and output
+ */
+void petabricks::UserRule::computeDataDependencyVector() {
+  //Loop on outputs (_to) first, because they usually are less then inputs
+  for(RegionList::const_iterator i=_to.begin(), e=_to.end(); i != e; ++i) {
+    const RegionPtr outputRegion = *i;
+    
+    computeDDVForGivenOutput(outputRegion);
+    
+  }
+}
+
 void petabricks::UserRule::buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional){
   SRCPOSSCOPE();
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -1139,3 +1202,14 @@ size_t petabricks::UserRule::getDuplicateNumber() {
   return c;
 }
 
+void petabricks::DataDependencyVectorMap::print(std::ostream& o) const {
+  o << "DataDependencyVectorMap: ";
+  for(DataDependencyVectorMap::const_iterator i=this->begin(), e=this->end(); 
+      i!=e; 
+      ++i) {
+    MatrixDefPtr matrixDef = i->first;
+    const CoordinateFormula& dependencyVector = i->second;
+    o << "\n  MatrixDef: " << matrixDef;
+    o << "\t\tDependency vector: " << dependencyVector;
+  }
+}
