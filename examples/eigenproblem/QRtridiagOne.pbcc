@@ -1,14 +1,7 @@
 #ifndef QRTRIDIAGONE_PBCC
 #define QRTRIDIAGONE_PBCC
 
-%{
-
-extern "C" void dsteqr_(char *compz, int *n, double *D, double *E, double *Z, int *ldz, double *work, int *info);
-
-
-
-%}
-
+#include "extern.h"
 
 // Find eigenvalues and eigenvectors of tridiagonal matrix by LAPACK QR iteration routines
 transform QRtridiagOne
@@ -24,10 +17,10 @@ to Eigenvalue[n]
     int size=n, lwork=2*n-2, info=0, nsquared=n*n;
 
     // allocate and initialize matrices
-    double *Z = new double[nsquared];
-    double *D = new double[n];
-    double *E = new double[n-1];
-    double *work = new double[1];
+    ElementT *Z = new ElementT[nsquared];
+    ElementT *D = new ElementT[n];
+    ElementT *E = new ElementT[n-1];
+    ElementT *work = new ElementT[1];
 
     // get input matrix in column major format
     for (int i = 0; i < n; i++) {
@@ -37,7 +30,7 @@ to Eigenvalue[n]
         E[i] = ee.cell(i);
     }
 
-    if (lwork > 1) { work = new double[lwork];}
+    if (lwork > 1) { work = new ElementT[lwork];}
     dsteqr_(&compz, &size, D, E, Z, &size, work, &info);
 
 

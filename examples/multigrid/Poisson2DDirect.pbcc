@@ -3,9 +3,9 @@
 
 %{
 
-extern "C" void dpbsv_(char *uplo, int *n, int *kd, int *nrhs, double *A, int *lda, double *B, int *ldb, int *info);
+extern "C" void dpbsv_(char *uplo, int *n, int *kd, int *nrhs, ElementT *A, int *lda, ElementT *B, int *ldb, int *info);
 
-void displayMatrix(double *A, int h, int w)
+void displayMatrix(ElementT *A, int h, int w)
 {
   for (int i = 0; i < h; i++) {
     for (int j = 0; j < w; j++) {
@@ -29,8 +29,8 @@ to OUT[n,n]
     int kd = n, kdp1 = n + 1, nrhs = 1, nSquared = n * n, info = 0;
 
     // allocate solver matrix and RHS/solution vector
-    double *A = new double[nSquared * (n + 1)];
-    double *bFlat = new double[nSquared];
+    ElementT *A = new ElementT[nSquared * (n + 1)];
+    ElementT *bFlat = new ElementT[nSquared];
     if (!A || !bFlat) {
       // TODO: fix this error handler
       printf("Error allocating memory!\n");
@@ -94,7 +94,7 @@ to OUT[n+2,n+2]
                        IN.cell(i + 1, j) we,
                        IN.cell(i + 1, j + 2) ea)
   {
-    double result = b;
+    ElementT result = b;
     if (i == 0) result += no;
     if (i == n - 1) result += so;
     if (j == 0) result += we;

@@ -88,6 +88,7 @@ CLCodeGenerator::localMemoryBarrier( )
 void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned int dims)
 {
 
+  os() << "#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n";
   os() << "__kernel void kernel_main( ";
 
   // The kernel will need a pointer to an appropriate chunk of each input and output matrix
