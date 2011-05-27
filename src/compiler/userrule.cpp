@@ -219,6 +219,9 @@ void petabricks::UserRule::print(std::ostream& os) const {
   if(!_to.empty()){
     os << "\nto(";    printStlList(os,_to.begin(),_to.end(), ", "); os << ")";
   } 
+  if(!_dataDependencyVectorMap.empty()) {
+    os << "\ndata dependency vector map: " << _dataDependencyVectorMap;
+  }
   if(!_conditions.empty()){
     os << "\nwhere ";  printStlList(os,_conditions.begin(),_conditions.end(), ", "); 
   } 
