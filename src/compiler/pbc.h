@@ -75,6 +75,7 @@ public:
     OPENCL,
 #endif
     _COUNT
+
   };
 
   typedef unsigned int iterator;
@@ -98,6 +99,8 @@ public:
         return "";
     }
   }
+  
+  std::string string() const { return str(); }
 
   friend std::ostream& operator<<(std::ostream& o, const RuleFlavor& fv) {
     return o<<fv.str();

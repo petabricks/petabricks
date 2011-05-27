@@ -76,10 +76,16 @@ public:
   /// Constructor (opens the given filename)
   MatrixIO(const char* filename, const char* mode);
 
+
+  template<int D>
+  MatrixRegion<D, MATRIX_ELEMENT_T> readSequential(){
+    return readWorkStealing<D>();
+  }
+
   ///
   /// Read a D-dimensional matrix from _fd
   template<int D>
-  MatrixRegion<D, MATRIX_ELEMENT_T> read(){
+  MatrixRegion<D, MATRIX_ELEMENT_T> readWorkStealing(){
     JASSERT(_fd != 0);
     MatrixReaderScratch o;
     _read(o);
@@ -93,7 +99,7 @@ public:
   ///
   /// Read a D-dimensional matrix from _fd
   template<int D>
-  RegionMatrixWrapper<D, MATRIX_ELEMENT_T> readToRegionMatrix(){
+  RegionMatrixWrapper<D, MATRIX_ELEMENT_T> readDistributed(){
     JASSERT(_fd != 0);
     MatrixReaderScratch o;
     _read(o);
@@ -125,22 +131,23 @@ public:
   template<int D, typename T>
   void write(RegionMatrixWrapper<D,T> m);
 
-  MatrixRegion0D read0D(){ return read<0>(); }
-  MatrixRegion1D read1D(){ return read<1>(); }
-  MatrixRegion2D read2D(){ return read<2>(); }
-  MatrixRegion3D read3D(){ return read<3>(); }
-  MatrixRegion4D read4D(){ return read<4>(); }
-  MatrixRegion5D read5D(){ return read<5>(); }
-  MatrixRegion6D read6D(){ return read<6>(); }
-  MatrixRegion7D read7D(){ return read<7>(); }
-  MatrixRegion8D read8D(){ return read<8>(); }
-  MatrixRegion9D read9D(){ return read<9>(); }
+  workstealing::MatrixRegion0D read0D(){ return readWorkStealing<0>(); }
+  workstealing::MatrixRegion1D read1D(){ return readWorkStealing<1>(); }
+  workstealing::MatrixRegion2D read2D(){ return readWorkStealing<2>(); }
+  workstealing::MatrixRegion3D read3D(){ return readWorkStealing<3>(); }
+  workstealing::MatrixRegion4D read4D(){ return readWorkStealing<4>(); }
+  workstealing::MatrixRegion5D read5D(){ return readWorkStealing<5>(); }
+  workstealing::MatrixRegion6D read6D(){ return readWorkStealing<6>(); }
+  workstealing::MatrixRegion7D read7D(){ return readWorkStealing<7>(); }
+  workstealing::MatrixRegion8D read8D(){ return readWorkStealing<8>(); }
+  workstealing::MatrixRegion9D read9D(){ return readWorkStealing<9>(); }
 protected:
   void _read(MatrixReaderScratch&);
 
 private:
   FILE* _fd;
 };
+
 
 }
 
@@ -199,5 +206,6 @@ inline void petabricks::MatrixIO::write(RegionMatrixWrapper<D,T> m){
   fprintf(_fd,"\n");
   fflush(_fd);
 }
+
 
 #endif

@@ -605,78 +605,59 @@ public:
 // specializations are a bit verbose, so we push them to their own file:
 #include "matrixspecializations.h"
 
-//some typedefs:
+
 namespace petabricks {
+  typedef MATRIX_INDEX_T IndexT;
+  typedef MATRIX_ELEMENT_T ElementT;
 
-typedef MatrixRegion<0,  MATRIX_ELEMENT_T> MatrixRegion0D;
-typedef MatrixRegion<1,  MATRIX_ELEMENT_T> MatrixRegion1D;
-typedef MatrixRegion<2,  MATRIX_ELEMENT_T> MatrixRegion2D;
-typedef MatrixRegion<3,  MATRIX_ELEMENT_T> MatrixRegion3D;
-typedef MatrixRegion<4,  MATRIX_ELEMENT_T> MatrixRegion4D;
-typedef MatrixRegion<5,  MATRIX_ELEMENT_T> MatrixRegion5D;
-typedef MatrixRegion<6,  MATRIX_ELEMENT_T> MatrixRegion6D;
-typedef MatrixRegion<7,  MATRIX_ELEMENT_T> MatrixRegion7D;
-typedef MatrixRegion<8,  MATRIX_ELEMENT_T> MatrixRegion8D;
-typedef MatrixRegion<9,  MATRIX_ELEMENT_T> MatrixRegion9D;
-typedef MatrixRegion<10, MATRIX_ELEMENT_T> MatrixRegion10D;
-typedef MatrixRegion<11, MATRIX_ELEMENT_T> MatrixRegion11D;
-typedef MatrixRegion<12, MATRIX_ELEMENT_T> MatrixRegion12D;
-typedef MatrixRegion<13, MATRIX_ELEMENT_T> MatrixRegion13D;
-typedef MatrixRegion<14, MATRIX_ELEMENT_T> MatrixRegion14D;
-typedef MatrixRegion<15, MATRIX_ELEMENT_T> MatrixRegion15D;
-typedef MatrixRegion<16, MATRIX_ELEMENT_T> MatrixRegion16D;
-typedef MatrixRegion<17, MATRIX_ELEMENT_T> MatrixRegion17D;
-typedef MatrixRegion<18, MATRIX_ELEMENT_T> MatrixRegion18D;
-typedef MatrixRegion<19, MATRIX_ELEMENT_T> MatrixRegion19D;
-typedef MatrixRegion<20, MATRIX_ELEMENT_T> MatrixRegion20D;
-typedef MatrixRegion<21, MATRIX_ELEMENT_T> MatrixRegion21D;
-typedef MatrixRegion<22, MATRIX_ELEMENT_T> MatrixRegion22D;
-typedef MatrixRegion<23, MATRIX_ELEMENT_T> MatrixRegion23D;
-typedef MatrixRegion<24, MATRIX_ELEMENT_T> MatrixRegion24D;
-typedef MatrixRegion<25, MATRIX_ELEMENT_T> MatrixRegion25D;
-typedef MatrixRegion<26, MATRIX_ELEMENT_T> MatrixRegion26D;
-typedef MatrixRegion<27, MATRIX_ELEMENT_T> MatrixRegion27D;
-typedef MatrixRegion<28, MATRIX_ELEMENT_T> MatrixRegion28D;
-typedef MatrixRegion<29, MATRIX_ELEMENT_T> MatrixRegion29D;
-typedef MatrixRegion<30, MATRIX_ELEMENT_T> MatrixRegion30D;
-typedef MatrixRegion<31, MATRIX_ELEMENT_T> MatrixRegion31D;
+  //some typedefs:
+  namespace sequential {
+    typedef MatrixRegion<0,  MATRIX_ELEMENT_T> MatrixRegion0D;
+    typedef MatrixRegion<1,  MATRIX_ELEMENT_T> MatrixRegion1D;
+    typedef MatrixRegion<2,  MATRIX_ELEMENT_T> MatrixRegion2D;
+    typedef MatrixRegion<3,  MATRIX_ELEMENT_T> MatrixRegion3D;
+    typedef MatrixRegion<4,  MATRIX_ELEMENT_T> MatrixRegion4D;
+    typedef MatrixRegion<5,  MATRIX_ELEMENT_T> MatrixRegion5D;
+    typedef MatrixRegion<6,  MATRIX_ELEMENT_T> MatrixRegion6D;
+    typedef MatrixRegion<7,  MATRIX_ELEMENT_T> MatrixRegion7D;
+    typedef MatrixRegion<8,  MATRIX_ELEMENT_T> MatrixRegion8D;
+    typedef MatrixRegion<9,  MATRIX_ELEMENT_T> MatrixRegion9D;
 
-typedef MatrixRegion<0,  const MATRIX_ELEMENT_T> ConstMatrixRegion0D;
-typedef MatrixRegion<1,  const MATRIX_ELEMENT_T> ConstMatrixRegion1D;
-typedef MatrixRegion<2,  const MATRIX_ELEMENT_T> ConstMatrixRegion2D;
-typedef MatrixRegion<3,  const MATRIX_ELEMENT_T> ConstMatrixRegion3D;
-typedef MatrixRegion<4,  const MATRIX_ELEMENT_T> ConstMatrixRegion4D;
-typedef MatrixRegion<5,  const MATRIX_ELEMENT_T> ConstMatrixRegion5D;
-typedef MatrixRegion<6,  const MATRIX_ELEMENT_T> ConstMatrixRegion6D;
-typedef MatrixRegion<7,  const MATRIX_ELEMENT_T> ConstMatrixRegion7D;
-typedef MatrixRegion<8,  const MATRIX_ELEMENT_T> ConstMatrixRegion8D;
-typedef MatrixRegion<9,  const MATRIX_ELEMENT_T> ConstMatrixRegion9D;
-typedef MatrixRegion<10, const MATRIX_ELEMENT_T> ConstMatrixRegion10D;
-typedef MatrixRegion<11, const MATRIX_ELEMENT_T> ConstMatrixRegion11D;
-typedef MatrixRegion<12, const MATRIX_ELEMENT_T> ConstMatrixRegion12D;
-typedef MatrixRegion<13, const MATRIX_ELEMENT_T> ConstMatrixRegion13D;
-typedef MatrixRegion<14, const MATRIX_ELEMENT_T> ConstMatrixRegion14D;
-typedef MatrixRegion<15, const MATRIX_ELEMENT_T> ConstMatrixRegion15D;
-typedef MatrixRegion<16, const MATRIX_ELEMENT_T> ConstMatrixRegion16D;
-typedef MatrixRegion<17, const MATRIX_ELEMENT_T> ConstMatrixRegion17D;
-typedef MatrixRegion<18, const MATRIX_ELEMENT_T> ConstMatrixRegion18D;
-typedef MatrixRegion<19, const MATRIX_ELEMENT_T> ConstMatrixRegion19D;
-typedef MatrixRegion<20, const MATRIX_ELEMENT_T> ConstMatrixRegion20D;
-typedef MatrixRegion<21, const MATRIX_ELEMENT_T> ConstMatrixRegion21D;
-typedef MatrixRegion<22, const MATRIX_ELEMENT_T> ConstMatrixRegion22D;
-typedef MatrixRegion<23, const MATRIX_ELEMENT_T> ConstMatrixRegion23D;
-typedef MatrixRegion<24, const MATRIX_ELEMENT_T> ConstMatrixRegion24D;
-typedef MatrixRegion<25, const MATRIX_ELEMENT_T> ConstMatrixRegion25D;
-typedef MatrixRegion<26, const MATRIX_ELEMENT_T> ConstMatrixRegion26D;
-typedef MatrixRegion<27, const MATRIX_ELEMENT_T> ConstMatrixRegion27D;
-typedef MatrixRegion<28, const MATRIX_ELEMENT_T> ConstMatrixRegion28D;
-typedef MatrixRegion<29, const MATRIX_ELEMENT_T> ConstMatrixRegion29D;
-typedef MatrixRegion<30, const MATRIX_ELEMENT_T> ConstMatrixRegion30D;
-typedef MatrixRegion<31, const MATRIX_ELEMENT_T> ConstMatrixRegion31D;
+    typedef MatrixRegion<0,  const MATRIX_ELEMENT_T> ConstMatrixRegion0D;
+    typedef MatrixRegion<1,  const MATRIX_ELEMENT_T> ConstMatrixRegion1D;
+    typedef MatrixRegion<2,  const MATRIX_ELEMENT_T> ConstMatrixRegion2D;
+    typedef MatrixRegion<3,  const MATRIX_ELEMENT_T> ConstMatrixRegion3D;
+    typedef MatrixRegion<4,  const MATRIX_ELEMENT_T> ConstMatrixRegion4D;
+    typedef MatrixRegion<5,  const MATRIX_ELEMENT_T> ConstMatrixRegion5D;
+    typedef MatrixRegion<6,  const MATRIX_ELEMENT_T> ConstMatrixRegion6D;
+    typedef MatrixRegion<7,  const MATRIX_ELEMENT_T> ConstMatrixRegion7D;
+    typedef MatrixRegion<8,  const MATRIX_ELEMENT_T> ConstMatrixRegion8D;
+    typedef MatrixRegion<9,  const MATRIX_ELEMENT_T> ConstMatrixRegion9D;
+  }
 
-typedef MATRIX_INDEX_T IndexT;
-typedef MATRIX_ELEMENT_T ElementT;
+  namespace workstealing {
+    typedef sequential::MatrixRegion0D MatrixRegion0D;
+    typedef sequential::MatrixRegion1D MatrixRegion1D;
+    typedef sequential::MatrixRegion2D MatrixRegion2D;
+    typedef sequential::MatrixRegion3D MatrixRegion3D;
+    typedef sequential::MatrixRegion4D MatrixRegion4D;
+    typedef sequential::MatrixRegion5D MatrixRegion5D;
+    typedef sequential::MatrixRegion6D MatrixRegion6D;
+    typedef sequential::MatrixRegion7D MatrixRegion7D;
+    typedef sequential::MatrixRegion8D MatrixRegion8D;
+    typedef sequential::MatrixRegion9D MatrixRegion9D;
 
+    typedef sequential::ConstMatrixRegion0D ConstMatrixRegion0D;
+    typedef sequential::ConstMatrixRegion1D ConstMatrixRegion1D;
+    typedef sequential::ConstMatrixRegion2D ConstMatrixRegion2D;
+    typedef sequential::ConstMatrixRegion3D ConstMatrixRegion3D;
+    typedef sequential::ConstMatrixRegion4D ConstMatrixRegion4D;
+    typedef sequential::ConstMatrixRegion5D ConstMatrixRegion5D;
+    typedef sequential::ConstMatrixRegion6D ConstMatrixRegion6D;
+    typedef sequential::ConstMatrixRegion7D ConstMatrixRegion7D;
+    typedef sequential::ConstMatrixRegion8D ConstMatrixRegion8D;
+    typedef sequential::ConstMatrixRegion9D ConstMatrixRegion9D;
+  }
 } /* namespace petabricks*/
 
 #endif

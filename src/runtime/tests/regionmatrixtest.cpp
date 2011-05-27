@@ -82,6 +82,8 @@ void print(DataHostList list) {
 }
 
 int main(int argc, const char** argv){
+  using namespace petabricks::distributed;
+
   const char* filename = "testdata/Helmholtz3DB1";
 
   IndexT m0[] = {0,0,0};
@@ -97,7 +99,7 @@ int main(int argc, const char** argv){
   IndexT size[] = {8,9,8};
   //
   // Create a RegionMatrix
-  RegionMatrix3D regionMatrix(size);
+  MatrixRegion3D regionMatrix(size);
 
   if(argc==1){
     printf("main %d\n", getpid());
@@ -134,10 +136,10 @@ int main(int argc, const char** argv){
     regionMatrix.releaseRegionData();
 
     // Test split
-    RegionMatrix3D split3 = regionMatrix.region(m123, m456);
-    RegionMatrix3D split2 = split3.region(m1, m3);
-    RegionMatrix2D slice1 = split2.slice(2, 0);
-    RegionMatrix1D slice2 = slice1.slice(1, 1);
+    MatrixRegion3D split3 = regionMatrix.region(m123, m456);
+    MatrixRegion3D split2 = split3.region(m1, m3);
+    MatrixRegion2D slice1 = split2.slice(2, 0);
+    MatrixRegion1D slice2 = slice1.slice(1, 1);
 
     split3.print();
     print(split3.dataHosts());
@@ -152,7 +154,7 @@ int main(int argc, const char** argv){
     print(slice2.dataHosts());
 
     // Test slice
-    RegionMatrix2D slice3 = regionMatrix.slice(1, 0);
+    MatrixRegion2D slice3 = regionMatrix.slice(1, 0);
     slice3.print();
     print(slice3.dataHosts());
 
@@ -191,10 +193,10 @@ int main(int argc, const char** argv){
     regionMatrix.releaseRegionData();
 
     // Test split
-    RegionMatrix3D rsplit3 = regionMatrix.region(m123, m456);
-    RegionMatrix3D rsplit2 = rsplit3.region(m1, m3);
-    RegionMatrix2D rslice1 = rsplit2.slice(2, 0);
-    RegionMatrix1D rslice2 = rslice1.slice(1, 1);
+    MatrixRegion3D rsplit3 = regionMatrix.region(m123, m456);
+    MatrixRegion3D rsplit2 = rsplit3.region(m1, m3);
+    MatrixRegion2D rslice1 = rsplit2.slice(2, 0);
+    MatrixRegion1D rslice2 = rslice1.slice(1, 1);
 
     rsplit3.print();
     print(rsplit3.dataHosts());
@@ -209,12 +211,12 @@ int main(int argc, const char** argv){
     print(rslice2.dataHosts());
 
     // Test slice
-    RegionMatrix2D rslice3 = regionMatrix.slice(1, 0);
+    MatrixRegion2D rslice3 = regionMatrix.slice(1, 0);
     rslice3.print();
     print(rslice3.dataHosts());
 
     // localCopy: copy the entire matrix and store it locally
-    RegionMatrix2D copy = rslice3.localCopy();
+    MatrixRegion2D copy = rslice3.localCopy();
     copy.print();
     print(copy.dataHosts());
 

@@ -362,7 +362,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
 
   //expand through() clause
   for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
-    _bodysrc=(*i)->matrixTypeName()+" "+(*i)->name()+" = "+(*i)->allocateStr()+";\n"+_bodysrc;
+    _bodysrc=(*i)->genericTypeName()+" "+(*i)->name()+" = "+(*i)->genericAllocateStr()+";\n"+_bodysrc;
   }
 
   MaximaWrapper::instance().popContext();
@@ -440,10 +440,10 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
   o.beginClass(implcodename(trans)+"_"+rf.str(), "petabricks::RuleInstance");
 
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    o.addMember((*i)->genTypeStr(false), (*i)->name());
+    o.addMember((*i)->genTypeStr(rf, false), (*i)->name());
   }
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    o.addMember((*i)->genTypeStr(true), (*i)->name());
+    o.addMember((*i)->genTypeStr(rf, true), (*i)->name());
   }
   for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
     if(i->shouldPass()){
@@ -483,13 +483,15 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
 }
   
 void petabricks::UserRule::generateDeclCodeSequential(Transform& trans, CodeGenerator& o) {
+  RuleFlavor rf = RuleFlavor::SEQUENTIAL;
+
   /* code generated here goes at the top level of the file before the instance class */
   std::vector<std::string> args;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    args.push_back((*i)->generateSignatureCode(false));
+    args.push_back((*i)->generateSignatureCode(rf, false));
   }
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    args.push_back((*i)->generateSignatureCode(true));
+    args.push_back((*i)->generateSignatureCode(rf, true));
   }
   for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
     if(i->shouldPass()){

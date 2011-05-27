@@ -31,16 +31,24 @@
 
 #include "common/jrefcounted.h"
 
+#include "matrixregion.h"
+#include "regionmatrixwrapper.h"
+
+
 namespace petabricks {
 
-class TransformInstance;
-typedef jalib::JRef<TransformInstance> TransformInstancePtr;
+//class TransformInstance;
+typedef DynamicTaskPtr TransformInstancePtr;
 
-class TransformInstance : public jalib::JRefCounted {};
+class TransformInstance_sequential {
+};
 
-class TransformInstance_sequential {};
-typedef DynamicTask TransformInstance_workstealing;
-typedef DynamicTask TransformInstance_distributed;
+class TransformInstance_workstealing : public DynamicTask {
+};
+
+class TransformInstance_distributed : public DynamicTask {
+};
+
 
 }
 

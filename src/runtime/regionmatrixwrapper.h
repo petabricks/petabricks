@@ -21,8 +21,8 @@ namespace petabricks {
 
       IndexT i = 0;
       do {
-	this->writeCell(coord, data[i]);
-	i++;
+        this->writeCell(coord, data[i]);
+        i++;
       } while (this->incCoord(coord) >= 0);
       this->releaseRegionData();
     }
@@ -281,15 +281,17 @@ namespace petabricks {
   };
 
 
-  typedef RegionMatrixWrapper0D<double> RegionMatrix0D;
-  typedef RegionMatrixWrapper<1, double> RegionMatrix1D;
-  typedef RegionMatrixWrapper<2, double> RegionMatrix2D;
-  typedef RegionMatrixWrapper<3, double> RegionMatrix3D;
+  namespace distributed {
+    typedef RegionMatrixWrapper0D<double>  MatrixRegion0D;
+    typedef RegionMatrixWrapper<1, double> MatrixRegion1D;
+    typedef RegionMatrixWrapper<2, double> MatrixRegion2D;
+    typedef RegionMatrixWrapper<3, double> MatrixRegion3D;
 
-  typedef RegionMatrix0D ConstRegionMatrix0D;
-  typedef RegionMatrix1D ConstRegionMatrix1D;
-  typedef RegionMatrix2D ConstRegionMatrix2D;
-  typedef RegionMatrix3D ConstRegionMatrix3D;
+    typedef MatrixRegion0D ConstMatrixRegion0D;
+    typedef MatrixRegion1D ConstMatrixRegion1D;
+    typedef MatrixRegion2D ConstMatrixRegion2D;
+    typedef MatrixRegion3D ConstMatrixRegion3D;
+  }
 
 }
 

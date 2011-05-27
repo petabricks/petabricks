@@ -25,6 +25,7 @@
  *                                                                           *
  *****************************************************************************/
 
+
 #include "dynamictask.h"
 #include "matrixio.h"
 #include "matrixregion.h"
@@ -78,6 +79,8 @@ petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& 
 
 #define ACCURACY_TARGET (TRANSFORM_LOCAL(accuracyTarget)())
 #define ACCURACY_BIN    (_acc_bin)
+
+#define REGION_METHOD_CALL( region, method, args... )  region . method ( args )
 
 namespace petabricks {
   template< typename T >
@@ -161,9 +164,6 @@ namespace petabricks {
     return rv;
   }
  
-
- 
-
   template < int D >
   inline bool split_condition(IndexT thresh, IndexT begin[D], IndexT end[D]){
     //too small to split?
@@ -178,7 +178,6 @@ namespace petabricks {
     return false;
   }
 
-
   //special val for optional values that dont exist 
   inline ElementT the_missing_val() {
     union {
@@ -189,11 +188,13 @@ namespace petabricks {
     u ^= 0x1234;
     return d;
   }
+
   inline bool is_the_missing_val(ElementT a) {
     ElementT b=the_missing_val();
     return memcmp(&a, &b, sizeof(ElementT))==0;
   }
+
+
 }
 
-#define REGION_METHOD_CALL( region, method, args... )  region . method ( args )
 
