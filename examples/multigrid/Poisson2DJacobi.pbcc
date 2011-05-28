@@ -27,8 +27,9 @@ to OUT[n,n]
   }
 }
 
-// Wrapper around Poisson2DJacobi to handle arbitrary number of iterations.
-// Note: IN and OUT may point to the same memory location, so a temporary
+// Wrapper around Poisson2DJacobiIterate to handle arbitrary number of
+// iterations.
+// Note: Since IN and OUT may point to the same memory location, a temporary
 // array is utilized.
 transform Poisson2DJacobi
 from IN[n,n], B[n,n], numIterations
@@ -38,25 +39,53 @@ to OUT[n,n]
   {
     int numIters = (int) _numIters;
 
-    JASSERT(numIters >= 1)(numIters).Text("number of iterations must be positive");
+    JASSERT(numIters >= 0)(numIters).Text("number of iterations must be non-negative");
+
+    // 0 iters, just copy
+    if (numIters == 0) {
+      Copy2D(out, in);
+      return;
+    }
+
+    // just solve for small input
+    if (n == 3) {
+      Copy2D(out, in);
+      out.cell(1, 1) = (b.cell(1, 1) +
+                        out.cell(0, 1) + out.cell(1, 0) +
+                        out.cell(0, 2) + out.cell(2, 0)) / 4.0;
+      return;
+    }
 
     MatrixRegion2D temp = MatrixRegion2D::allocate(n, n);
 
-    // compute first iteration
-    Poisson2DJacobiIterate(temp, in, b);
-    numIters--;
-
-    // compute iterations until 0 or 1 remain
-    while (numIters >= 2) {
-      Poisson2DJacobiIterate(out, temp, b);
-      Poisson2DJacobiIterate(temp, out, b);
+    // avoid copy unless numIters == 1
+    // we'd rather allocate more memory than do a copy in most cases
+    if (numIters == 1) {
+      // need copy since 'out' may point to 'in'
+      Poisson2DJacobiIterate(temp, in, b);
+      Copy2D(out, temp);
+      numIters--;
+    } else if ((numIters & 1) == 0) {
+      // numIters is even
+      Poisson2DJacobiIterate(temp, in  , b);
+      Poisson2DJacobiIterate(out , temp, b);
       numIters -= 2;
+    } else {
+      // numIters is odd and >= 3
+      MatrixRegion2D temp2 = MatrixRegion2D::allocate(n, n);
+      Poisson2DJacobiIterate(temp , in   , b);
+      Poisson2DJacobiIterate(temp2, temp , b);
+      Poisson2DJacobiIterate(out  , temp2, b);
+      numIters -= 3;
     }
 
-    if (numIters == 1) {
-      Poisson2DJacobiIterate(out, temp, b);
-    } else {
-      Copy2D(out, temp);
+    JASSERT(numIters % 2 == 0)(numIters).Text("remaining iterations must be even");
+
+    // finish up the rest of the iterations
+    while (numIters >= 2) {
+      Poisson2DJacobiIterate(temp, out , b);
+      Poisson2DJacobiIterate(out , temp, b);
+      numIters -= 2;
     }
   }
 }

@@ -38,6 +38,7 @@ to OUT[n,n,n]
   }
 
   // boundary point
+  // simulate zero boundary by setting ghost cells to negative value of cell
   secondary
   OUT.cell(i,j,k) from ( IN.cell(i  ,j  ,k  ) me,
                          IN.cell(i-1,j  ,k  ) r_we = OPTIONAL,
@@ -83,12 +84,12 @@ generator Helmholtz3DSORGenerator
 {
   to (OUT out) from (IN in, A a, B0 b0, B1 b1, B2 b2, RHS rhs,
                      ALPHA alpha, BETA beta,
-                     DX dx, WEIGHT w, NUMITERS numIters)
+                     DX dx, WEIGHT w, NUMITERS _numIters)
   {
-    int i = 0;
+    int numIters = (int) _numIters;
 
     // if iterations is 0, just copy to output
-    if ((int) numIters == 0) {
+    if (numIters == 0) {
       Copy3D(out, in);
       return;
     }
@@ -101,34 +102,34 @@ generator Helmholtz3DSORGenerator
 
     MatrixRegion3D temp = MatrixRegion3D::allocate(n,n,n);
 
-    if ((int) numIters == 1) {
-
-      // we need this copy since 'out' may point to 'in'
+    // avoid copy unless numIters == 1
+    // we'd rather allocate more memory than do a copy in most cases
+    if (numIters == 1) {
+      // need copy since 'out' may point to 'in'
       Helmholtz3DJacobiIterate(temp, in, a, b0, b1, b2, rhs, alpha, beta, dx, w);
       Copy3D(out, temp);
-      i = 1; // set number of iterations done to 1
-
-    } else if ((((int) numIters) & 1) == 0) { // numIters is even
-
+      numIters--;
+    } else if ((numIters & 1) == 0) {
+      // numIters is even
       Helmholtz3DJacobiIterate(temp, in  , a, b0, b1, b2, rhs, alpha, beta, dx, w);
       Helmholtz3DJacobiIterate(out , temp, a, b0, b1, b2, rhs, alpha, beta, dx, w);
-      i = 2; // set number of iterations done to 2
-
-    } else { // numIters is odd and >= 3
-
+      numIters -= 2;
+    } else {
+      // numIters is odd and >= 3
       MatrixRegion3D temp2 = MatrixRegion3D::allocate(n,n,n);
       Helmholtz3DJacobiIterate(temp , in   , a, b0, b1, b2, rhs, alpha, beta, dx, w);
       Helmholtz3DJacobiIterate(temp2, temp , a, b0, b1, b2, rhs, alpha, beta, dx, w);
       Helmholtz3DJacobiIterate(out  , temp2, a, b0, b1, b2, rhs, alpha, beta, dx, w);
-      i = 3; // set number of iterations done to 3
-
+      numIters -= 3;
     }
 
+    JASSERT(numIters % 2 == 0)(numIters).Text("remaining iterations must be even");
+
     // finish up the rest of the iterations
-    // j is a dummy var just to get it to compile
-    for (int j = 0; i < (int) numIters; i += 2) {
+    while (numIters >= 2) {
       Helmholtz3DJacobiIterate(temp, out, a, b0, b1, b2, rhs, alpha, beta, dx, w);
       Helmholtz3DJacobiIterate(out, temp, a, b0, b1, b2, rhs, alpha, beta, dx, w);
+      numIters -= 2;
     }
   }
 }
