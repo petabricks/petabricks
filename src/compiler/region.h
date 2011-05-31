@@ -188,6 +188,13 @@ public:
   }
 
   void addArgToScope(RIRScope& scope) const;
+ 
+  void setBuffer(bool b) { buffer = b; }
+  bool isBuffer() const { return buffer; }
+
+  void setArgName(std::string& name) { argName = name; }
+  const std::string& getArgName() const { return argName; }
+
 private:
   std::string _name;
   std::string _fromMatrixName;
@@ -196,6 +203,8 @@ private:
   FormulaList _originalBounds;
   MatrixDefPtr _fromMatrix;
   FormulaPtr  _optionalDefault;
+  bool        buffer;
+  std::string argName;
 };
 
 }

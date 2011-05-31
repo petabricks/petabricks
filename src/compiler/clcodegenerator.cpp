@@ -31,6 +31,7 @@
 #ifdef HAVE_OPENCL
 
 #include "clcodegenerator.h"
+#include <map>
 
 namespace petabricks
 {
@@ -92,15 +93,36 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   os() << "__kernel void kernel_main( ";
 
   // The kernel will need a pointer to an appropriate chunk of each input and output matrix
+  std::map<std::string, std::string> map;
   for(RegionList::const_iterator it = _to.begin(); it != _to.end(); ++it)
   {
     if( it != _to.begin() )
 	    os() << ", ";
-    os() << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << (*it)->name();
+    std::string matrix_name = (*it)->matrix( )->name( );
+    if(map[matrix_name] == "") {
+      (*it)->setBuffer(true);
+      map[matrix_name] = (*it)->name();
+      os() << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << (*it)->name();
+    }
+    else {
+      (*it)->setBuffer(false);
+      (*it)->setArgName(map[matrix_name]);
+    }
   }
+
+  map.clear();
   for(RegionList::const_iterator it = _from.begin(); it != _from.end(); ++it)
   { 
-    os() << ", __global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << (*it)->name();
+    std::string matrix_name = (*it)->matrix( )->name( );
+    if(map[matrix_name] == "") {
+      (*it)->setBuffer(true);
+      map[matrix_name] = (*it)->name();
+      os() << ", __global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << (*it)->name();
+    }
+    else {
+      (*it)->setBuffer(false);
+      (*it)->setArgName(map[matrix_name]);
+    }
   }
 
   // And we'll need to provide the size of the region that we want the kernel to operate on.  (This is where the 'center' of the rule will be.)
@@ -115,16 +137,37 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   // Finally, we need to provide some of the dimensions of each of the matrices we've passed in, so that we can calculate indices.
   for(RegionList::const_iterator it = _to.begin(); it != _to.end(); ++it)
   {
-    for( int i = 0; i < (int) (*it)->size() - 1 ; ++i )
-	    os() << ", int dim_" << (*it)->name() << "_d" << i;
+    if((*it)->isBuffer()) {
+      for( int i = 0; i < (int) (*it)->size() - 1 ; ++i )
+	      os() << ", int dim_" << (*it)->name() << "_d" << i;
+    }
   }
   for(RegionList::const_iterator it = _from.begin(); it != _from.end(); ++it)
   {
-    for( int i = 0; i < (int) (*it)->size() - 1 ; ++i )
-	    os() << ", int dim_" << (*it)->name() << "_d" << i;
+    if((*it)->isBuffer()) {
+      for( int i = 0; i < (int) (*it)->size() - 1 ; ++i )
+	      os() << ", int dim_" << (*it)->name() << "_d" << i;
+    }
   }
 
   os() << " ) {\n";
+
+  for(RegionList::const_iterator it = _to.begin(); it != _to.end(); ++it)
+  {
+    if(!(*it)->isBuffer()) {
+      os() << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << (*it)->name() << " = _region_" << map[(*it)->matrix( )->name( ).c_str()] << ";\n";
+      for( int i = 0; i < (int) (*it)->size() - 1 ; ++i )
+	      os() << "int dim_" << (*it)->name() << "_d" << i << " = dim_" << map[(*it)->matrix( )->name( ).c_str()] << "_d" << i << ";\n";
+    }
+  }
+  for(RegionList::const_iterator it = _from.begin(); it != _from.end(); ++it)
+  {
+    if(!(*it)->isBuffer()) {
+      os() << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << (*it)->name() << " = _region_" << map[(*it)->matrix( )->name( ).c_str()] << ";\n";
+      for( int i = 0; i < (int) (*it)->size() - 1 ; ++i )
+	      os() << "int dim_" << (*it)->name() << "_d" << i << " = dim_" << map[(*it)->matrix( )->name( ).c_str()] << "_d" << i << ";\n";
+    }
+  }
 }
 
 void
