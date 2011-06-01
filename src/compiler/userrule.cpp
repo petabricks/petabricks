@@ -25,7 +25,7 @@
  *                                                                           *
  *****************************************************************************/
 
-#define FORCE_OPENCL
+//#define FORCE_OPENCL
 //#define OPENCL_LOGGING
 
 //#define TRACE(x) std::cout << "Trace " << x << "\n"
@@ -528,10 +528,11 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   // TEMPORARY -- hard-wire things so that the OpenCL rule is always called
   if( ( RuleFlavor::SEQUENTIAL == flavor ) && isOpenClRule( ) )
     {
-      //      o.os() << "std::cout << \"Forcing OpenCL impl of rule...\\n\";\n";
+      o.comment("Forcing OpenCL impl of rule...");
       o.write("return ");
       o.call(trampcodename(trans)+TX_OPENCL_POSTFIX, packedargnames);
       o.write("}");
+      o.comment("END Forcing OpenCL impl of rule...");
       return;
     }
   // END TEMPORARY
@@ -1030,6 +1031,9 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
     break;
   case RuleFlavor::WORKSTEALING:
     o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+TX_DYNAMIC_POSTFIX, region);
+    break;
+  case RuleFlavor::OPENCL:
+    o.callSpatial(trampcodename(trans)+TX_OPENCL_POSTFIX, region);
     break;
   default:
     UNIMPLEMENTED();
