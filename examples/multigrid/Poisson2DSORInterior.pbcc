@@ -128,9 +128,9 @@ to OUT[n,n]
   // COMPUTE
   to (ROut rOut, KOut kOut) from (RIn rIn, KIn kIn, RB rB, KB kB, weight _w, numIterations num)
   {
-    double w;
+    ElementT w;
     if (_w == -1) {
-      w = 2 / (1 + sin((double) M_PI / (n + 1))); // use optimal SOR weight for Poisson
+      w = 2 / (1 + sin((ElementT) M_PI / (n + 1))); // use optimal SOR weight for Poisson
     } else if (_w == -2) {
       w = 1.15; // this constant was chosen by use of experiments and eyeballing
     } else {

@@ -41,7 +41,6 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
   IterationDefinition iterdef(*_rule, _rule->getSelfDependency(), _rule->isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();
   std::vector<std::string> packedargnames = iterdef.packedargnames();
-
   o.os() << "// GPURULE TRAMPOLINE CODE\n";
 
   // Create variables to hold handles to program, kernel
@@ -105,6 +104,26 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
          << "_instance::" 
          << codename() 
          << "_init();\n\n";  
+}
+
+/*void
+GpuRule::generateCallCode(const std::string& name,
+                          Transform& trans,
+                          CodeGenerator& o,
+                          const SimpleRegionPtr& region,
+                          RuleFlavor flavor){
+  o.comment("gpu generateCallCode");
+  o.callSpatial(trampcodename(trans)+TX_OPENCL_POSTFIX, region);
+}*/
+
+void GpuRule::generateCallCode(const std::string& nodename,
+                        Transform& trans,
+                        CodeGenerator& o,
+                        const SimpleRegionPtr& region,
+                        RuleFlavor flavor)
+{
+  o.comment("gpu generateCallCode");
+  _rule->generateCallCode(nodename, trans, o, region, RuleFlavor::OPENCL);
 }
 
 void

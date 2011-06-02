@@ -52,10 +52,10 @@ to OUT[w,h]
     for (int k = 0; k < numSins; k++) {
       int wFreq = (int) floor(drand48() * w);
       int hFreq = (int) floor(drand48() * h);
-      double amp = drand48() * maxAmp;
+      ElementT amp = drand48() * maxAmp;
 //      printf("(wFreq, hFreq, amp) = (%d, %d, %g)\n", wFreq, hFreq, amp);
-      double c1 = 2 * M_PI * wFreq / w;
-      double c2 = 2 * M_PI * hFreq / h;
+      ElementT c1 = 2 * M_PI * wFreq / w;
+      ElementT c2 = 2 * M_PI * hFreq / h;
       for (int j = 0; j < h; j++) {
         for (int i = 0; i < w; i++) {
           out.cell(i, j) += amp * sin(c1 * i) * sin(c2 * j);
@@ -94,7 +94,7 @@ to OUT[n,n]
     // add sinusoids in frequency band [5, 10)
     for (int hFreq = 5; hFreq < 10; hFreq++) {
       for (int wFreq = 5; wFreq < 10; wFreq++) {
-        double amp = drand48() * maxAmp,
+        ElementT amp = drand48() * maxAmp,
                off1 = drand48() * maxSize,
                off2 = drand48() * maxSize,
                c1 = 2 * M_PI * wFreq / maxSize,
@@ -135,7 +135,7 @@ to OUT[w,h]
     for (int k = 0; k < numPoints; k++) {
       int i = MAX(0, (int) floor(drand48() * (w - 2)) + 1);
       int j = MAX(0, (int) floor(drand48() * (h - 2)) + 1);
-      double amp = drand48() * maxAmp * 2 - maxAmp;
+      ElementT amp = drand48() * maxAmp * 2 - maxAmp;
 //      printf("out.cell(%d, %d) = %g\n", i, j, amp);
       out.cell(i, j) = amp;
     }

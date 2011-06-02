@@ -16,7 +16,7 @@ generator Poisson2DJacobiGenerator
                        IN.cell(i + 1, j) we,
                        IN.cell(i + 1, j + 2) ea)
   {
-    double result = b;
+    ElementT result = b;
     if (i == 0) result += no;
     if (i == n - 3) result += so;
     if (j == 0) result += we;

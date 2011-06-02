@@ -23,8 +23,8 @@ to OUT[n,n,n]
                          B2.cell(i  ,j  ,k+1) bba,
                          ALPHA alpha, BETA beta, DX dx)
   {
-    double dxSq = dx * dx;
-    double K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
+    ElementT dxSq = dx * dx;
+    ElementT K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
     return K * me - (beta / dxSq * (bwe * we + bea * ea + bno * no +
                                     bso * so + bfr * fr + bba * ba));
   }
@@ -47,7 +47,7 @@ to OUT[n,n,n]
                          B2.cell(i  ,j  ,k+1) bba,
                          ALPHA alpha, BETA beta, DX dx)
   {
-    double we, ea, no, so, fr, ba;
+    ElementT we, ea, no, so, fr, ba;
 
     we = (IS_MISSING(r_we) ? -me : r_we);
     ea = (IS_MISSING(r_ea) ? -me : r_ea);
@@ -56,8 +56,8 @@ to OUT[n,n,n]
     fr = (IS_MISSING(r_fr) ? -me : r_fr);
     ba = (IS_MISSING(r_ba) ? -me : r_ba);
 
-    double dxSq = dx * dx;
-    double K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
+    ElementT dxSq = dx * dx;
+    ElementT K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
     return K * me - (beta / dxSq * (bwe * we + bea * ea + bno * no +
                                     bso * so + bfr * fr + bba * ba));
   }
