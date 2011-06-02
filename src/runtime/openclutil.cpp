@@ -42,7 +42,7 @@ int
 OpenCLUtil::init( )
 {
   #if OPENCL_TRACE
-  std::cout << "OpenCLUtil::init() begins...\n";
+  std::cerr << "OpenCLUtil::init() begins...\n";
   #endif
 
   int err;
@@ -73,17 +73,15 @@ OpenCLUtil::init( )
     return -5;
 
   #if OPENCL_TRACE
-  //std::cout << "Created context: " << context << "\n";
+  std::cerr << "Created context: " << context << "\n";
   #endif
-
-  std::cout << "GPU!!!!! device = " << device_count << std::endl;
 
   // Get device-specific information.
   for( cl_uint i = 0; i < device_count; ++i )
     {
       devices.push_back( OpenCLDevice( device_ids[i] ) );
       #if OPENCL_TRACE
-      std::cout << "Loading device ID: " << device_ids[i] << "\n";
+      std::cerr << "Loading device ID: " << device_ids[i] << "\n";
       #endif
       OpenCLDevice* dev_info = &devices.back( );
 
@@ -99,12 +97,12 @@ OpenCLUtil::init( )
       clGetDeviceInfo( device_ids[i], CL_DEVICE_MAX_CLOCK_FREQUENCY,
 		       sizeof(dev_info->max_clock_freq), &dev_info->max_clock_freq, NULL );
 
-      // TODO(mangpo): do we need this?
+      // TODO(mangpo):
       // Work-item and work-group properties
-      /*std::cout << "work-item" << std::endl;
+      /*std::cerr << "work-item" << std::endl;
       clGetDeviceInfo( device_ids[1], CL_DEVICE_MAX_WORK_ITEM_SIZES,
 		       sizeof(dev_info->max_workitem_size), &dev_info->max_workitem_size, NULL );
-      std::cout << "work-group" << std::endl;
+      std::cerr << "work-group" << std::endl;
       clGetDeviceInfo( device_ids[i], CL_DEVICE_MAX_WORK_GROUP_SIZE,
 		       sizeof(dev_info->max_workgroup_size), &dev_info->max_workgroup_size, NULL );*/
 
@@ -129,7 +127,7 @@ OpenCLUtil::init( )
 	      return -6;
 
       #if OPENCL_TRACE
-      std::cout << "Created command queue: " << dev_info->queue << "\n";
+      std::cerr << "Created command queue: " << dev_info->queue << "\n";
       #endif
     }
 
@@ -138,7 +136,7 @@ OpenCLUtil::init( )
 
   has_init = true;
   #if OPENCL_TRACE
-  std::cout << "OpenCLUtil::init() finishes...\n";
+  std::cerr << "OpenCLUtil::init() finishes...\n";
   #endif
   return 0;
 }
