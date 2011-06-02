@@ -29,7 +29,7 @@
 #include "codegenerator.h"
 #include "pbc.h"
 #include "transform.h"
-
+#include "maximawrapper.h"
 #include "common/jasm.h"
 
 #include <cstdio>
@@ -156,6 +156,87 @@ petabricks::ChoiceDepGraphNodeSet petabricks::StaticScheduler::lookupNode(const 
   return rv;
 }
 
+void petabricks::StaticScheduler::importDataDepsFromRule(RulePtr& rule) {
+  DataDependencyVectorMap& dataDepsMap=rule->getDataDependencyVectorMap();
+  
+  for(DataDependencyVectorMap::iterator i=dataDepsMap.begin(), e=dataDepsMap.end();
+      i!=e; ++i) {
+    MatrixDefPtr matrix = i->first;
+    CoordinateFormula& dataDepVector = i->second;
+    DataDependencySet& dataDepSet = _globalDataDependencyMap[matrix];
+    dataDepSet.insert(&dataDepVector);
+  }
+}
+
+std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(DataDependencySet matrixDependencies) {
+  
+  size_t dimensions = (*(matrixDependencies.begin()))->size();
+  
+  std::vector<DimensionStatus> matrixStatus;
+  
+  //Verify whether this dimension is always 0 or -1 for this matrix
+  for(size_t dim=0; dim<dimensions; ++dim) {
+    if (matrixDependencies.isDimensionDependencyAlwaysEqualTo(dim, -1)) {
+      matrixStatus.push_back(ALWAYS_MINUS1);
+      continue;
+    }
+    
+    if (matrixDependencies.isDimensionDependencyAlwaysEqualTo(dim, 0)) {
+      matrixStatus.push_back(ALWAYS_ZERO);
+      continue;
+    }
+    
+    matrixStatus.push_back(OTHER);
+  }
+  
+  /* A dimension is useless if it is always involved in a -1 data dependency
+   * and every other dimension is 0 or -1 data dependend */
+  std::vector<size_t> uselessDimensions;
+  for(size_t dim=0; dim<dimensions; ++dim) {
+    if(matrixStatus[dim]==OTHER) {
+      //Something is not 0 or -1. No dimension can be removed
+      uselessDimensions.clear();
+      return uselessDimensions;
+    }
+    else if(matrixStatus[dim]==ALWAYS_MINUS1) {
+      //This dimension can be removed if no dimension is "other" dependent.
+      uselessDimensions.push_back(dim);
+    }
+  }
+  
+  return uselessDimensions;
+}
+
+
+void petabricks::StaticScheduler::removeUselessDimensions() {
+  
+  for(rule_iterator i=rule_begin(), e=rule_end(); i != e; ++i) {
+    RulePtr rule = *i;
+    importDataDepsFromRule(rule);
+  }
+  
+  for(GlobalDataDependencyMap::iterator i=_globalDataDependencyMap.begin(),
+                                        e=_globalDataDependencyMap.end();
+                                        i != e;
+                                        ++i) {
+    MatrixDefPtr matrix = i->first;
+    DataDependencySet matrixDependencies = i->second;
+    
+    std::vector<size_t> uselessDimensions = findUselessDimensions(
+                                                          matrixDependencies);
+    
+    JTRACE("Useless dimension:");
+    for(std::vector<size_t>::iterator i=uselessDimensions.begin(),
+                                      e=uselessDimensions.end();
+                                      i != e;
+                                      ++i) {
+      //TODO:Actually remove useless dimensions                                  
+      size_t dim=*i;
+      JTRACE("")(dim);
+    }
+  }
+}
+
 void petabricks::StaticScheduler::generateSchedule(){
   std::string dbgpathorig = _dbgpath;
   for(ChoiceDepGraphNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i){
@@ -181,6 +262,12 @@ void petabricks::StaticScheduler::generateSchedule(){
       
       #ifdef DEBUG
       writeGraph((_dbgpath+".remapped.dot").c_str());
+      #endif
+
+      removeUselessDimensions();
+      
+      #ifdef DEBUG
+      writeGraph((_dbgpath+".noUselessDimensions.dot").c_str());
       #endif
 
       mergeCoscheduledNodes(choiceassign);
@@ -338,6 +425,42 @@ void petabricks::StaticScheduler::writeGraph(FILE* fd) const{
   fwrite(schedulerGraph.c_str(),1,schedulerGraph.length(),fd);
 }
 
+bool petabricks::StaticScheduler::DataDepSetCompare::operator() (
+                                  const CoordinateFormula* a, 
+                                  const CoordinateFormula* b) const {
+  size_t sizeA = a->size();
+  size_t sizeB = b->size();
 
+  if (sizeA != sizeB) {
+    return sizeA < sizeB;
+  }
 
+  CoordinateFormula::const_iterator iterA = a->begin();
+  CoordinateFormula::const_iterator iterB = b->begin();
 
+  while(MaximaWrapper::instance().compare(*iterA, "=", *iterB)) {
+    iterA++;
+    iterB++;
+    
+    if(iterA == a->end()) 
+      return false;
+  }
+
+  return MaximaWrapper::instance().compare(*iterA, "<", *iterB);
+
+}
+
+bool petabricks::StaticScheduler::DataDependencySet::isDimensionDependencyAlwaysEqualTo(size_t dimension, int value) const {
+  FormulaPtr valueFormula = new FormulaLiteral<int>(value);
+  for(DataDependencySet::const_iterator i=this->begin(), e=this->end();
+      i != e; ++i) {
+    CoordinateFormula& dependencyVector = **i;
+    FormulaPtr dependency = dependencyVector[dimension];
+    
+    if(! MaximaWrapper::instance().compare(dependency, "=", valueFormula)) {
+      return false;
+    }
+  }
+  
+  return true;
+}

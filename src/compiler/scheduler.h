@@ -140,6 +140,87 @@ class StaticScheduler : public jalib::JRefCounted,
                         public jalib::SrcPosTaggable
 {
 public:
+  class rule_iterator;
+  friend class rule_iterator;
+  class rule_iterator {
+  public:
+    rule_iterator(StaticScheduler& scheduler) {
+      _nodesEnd = scheduler._allNodes.end();
+      _nodesIt = scheduler._allNodes.begin();
+      if (_nodesIt == _nodesEnd) {
+        //There are no node and therefore no rules
+        return;
+      } 
+      else {
+        _rulesIt = (*_nodesIt)->choices().begin();
+      }
+    }
+    
+    rule_iterator(ChoiceDepGraphNodeList::iterator nodesIt) 
+                 : _nodesIt(nodesIt) {}
+  
+    void operator++ () {
+      if (_nodesIt == _nodesEnd) {
+        //The iterator is already at the end. Nothing to do
+        return;
+      }
+      
+      _rulesIt++;
+      
+      if (_rulesIt != (*_nodesIt)->choices().end()) {
+        //New rule found
+        return;
+      }
+      
+      //This set of rules is finished! Let's go to the next one
+      bool found;
+      do {
+        found=true;
+        _nodesIt++;
+        
+        if (_nodesIt == _nodesEnd) {
+          std::cout << "End of rules";
+          //No more rules!!
+          break;
+        }
+        
+        _rulesIt=(*_nodesIt)->choices().begin();
+        
+        if (_rulesIt == (*_nodesIt)->choices().end()) {
+          found=false;
+        }
+      } while(!found);
+    }
+    
+    bool operator== (rule_iterator& that) {
+      return _nodesIt==that._nodesIt && (_nodesIt==_nodesEnd
+                                         || _rulesIt==that._rulesIt);
+    }
+    
+    bool operator !=(rule_iterator& that) {
+      return ! (*this==that);
+    }
+    
+    RulePtr operator*() {
+      return *_rulesIt;
+    }
+    
+  private:
+    ChoiceDepGraphNodeList::iterator _nodesIt;
+    ChoiceDepGraphNodeList::iterator _nodesEnd;
+    RuleSet::iterator _rulesIt;
+  };
+
+public:
+  rule_iterator rule_begin() {
+    return rule_iterator(*this);
+  }
+    
+  rule_iterator rule_end() {
+    return rule_iterator(_allNodes.end());
+  }
+    
+public:
   class CantScheduleException {};
 
   ChoiceDepGraphNodeSet lookupNode(const MatrixDefPtr& matrix, const SimpleRegionPtr& region);
@@ -190,6 +271,35 @@ public:
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor type);
 
   int size() const { return _allNodes.size() - _inputsOriginal.size(); }
+
+private:
+  
+  struct DataDepSetCompare {
+    bool operator() (const CoordinateFormula* a, const CoordinateFormula* b) const;
+  };
+  
+  class DataDependencySet : public std::set<CoordinateFormula*,DataDepSetCompare> {
+  public:
+    /**
+     * Return true if the given dimension is equal to value in al the data 
+     * dependency vectors in the set
+     */
+    bool isDimensionDependencyAlwaysEqualTo(size_t dimension, int value) const;
+  };
+  
+  enum DimensionStatus {
+    ALWAYS_MINUS1,
+    ALWAYS_ZERO,
+    OTHER
+  };
+  
+  typedef std::map<MatrixDefPtr, DataDependencySet> GlobalDataDependencyMap;
+
+private:
+  void removeUselessDimensions();
+  void importDataDepsFromRule(RulePtr& rule);
+  std::vector<size_t> findUselessDimensions(DataDependencySet matrixDependencies);
+  
 private:
   //storage of nodes
   std::map<MatrixDefPtr, ChoiceDepGraphNodeList> _matrixToNodes;
@@ -208,6 +318,8 @@ private:
   RuleChoiceCollection _choices;
 
   std::string _dbgpath;
+  
+  GlobalDataDependencyMap _globalDataDependencyMap;
 };
 
 }

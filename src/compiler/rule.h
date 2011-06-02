@@ -98,6 +98,16 @@ public:
 };
 
 /**
+ * Class for describing the data dependencies of various instances of the same
+ * matrix inside a rule
+ */
+class DataDependencyVectorMap : public jalib::JPrintable, 
+                                public std::multimap<MatrixDefPtr, 
+                                                CoordinateFormula> {
+  void print(std::ostream& o) const;
+};
+
+/**
  * Base class for rules, both UserRule and SyntheticRule
  */
 class RuleInterface : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
@@ -171,10 +181,18 @@ public:
 
   bool isDisabled() const { return _isDisabled; }
   void disableRule() { _isDisabled = true; }
+  
+  DataDependencyVectorMap& getDataDependencyVectorMap() {return _dataDependencyVectorMap; }
+  
 protected:
   int _id;
   SimpleRegionPtr _applicableRegion;
   bool _isDisabled;
+  DataDependencyVectorMap _dataDependencyVectorMap; /**< Data dependency vector.
+                                                     * It contains only the deps
+                                                     * for regions that are used
+                                                     * both as input and output
+                                                     * of the rule. */
 };
 
 
