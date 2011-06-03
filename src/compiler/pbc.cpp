@@ -163,7 +163,7 @@ public:
   const std::string& objpath() const { return _obj; }
 
   void writeMakefile(std::ostream& o) {
-    o << _obj << ":\n\t"
+    o << _obj << ": " << _cpp << "\n\t"
       << _gcccmd
       << "\n\n";
   }
