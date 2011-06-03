@@ -670,6 +670,8 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     }*/
 
 		//if size == 0, return early
+
+    o.os( ) << "std::cerr << \"RUN GPU\" << std::endl;\n";
 		o.os( ) << "if( ";
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {

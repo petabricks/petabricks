@@ -3,6 +3,16 @@
 
 %{
 extern "C" void dppsv_(char *uplo, int *n, int *nrhs, double *A, double *B, int *ldb, int *info);
+extern "C" void sppsv_(char *uplo, int *n, int *nrhs, float *A, float *B, int *ldb, int *info);
+
+void ppsv_wrap(char *uplo, int *n, int *nrhs, double *A, double *B, int *ldb, int *info) {
+  dppsv_(uplo, n, nrhs, A, B, ldb, info);
+}
+void ppsv_wrap(char *uplo, int *n, int *nrhs, float *A, float *B, int *ldb, int *info) {
+  sppsv_(uplo, n, nrhs, A, B, ldb, info);
+}
+
+
 %}
 
 transform LinearSolvePosDef
@@ -15,8 +25,8 @@ to X[n,nrhs]
     int index, info = 0, nInt = n, nrhsInt = nrhs;
 
     // allocate flat matrix and RHS/solution vectors
-    double *aPacked = new double[n * (n + 1) / 2];
-    double *bFlat = new double[n * nrhs];
+    ElementT *aPacked = new ElementT[n * (n + 1) / 2];
+    ElementT *bFlat = new ElementT[n * nrhs];
     if (!aPacked || !bFlat) {
       printf("Error allocating memory!\n");
       exit(-1);
@@ -37,10 +47,10 @@ to X[n,nrhs]
     }
 
     // call LAPACK to do linear solve
-    dppsv_(&uplo, &nInt, &nrhsInt, aPacked, bFlat, &nInt, &info);
+    ppsv_wrap(&uplo, &nInt, &nrhsInt, aPacked, bFlat, &nInt, &info);
 
     if (info) {
-      printf("LAPACK error in call to dppsv: info = %d\n", info);
+      printf("LAPACK error in call to ppsv: info = %d\n", info);
       exit(-1);
     }
 
