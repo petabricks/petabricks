@@ -150,7 +150,7 @@ public:
 
   void extractDefines(FreeVars& defined, CodeGenerator& o);
 #if HAVE_OPENCL
-  void extractCLDefines(FreeVars& defined, CLCodeGenerator& clo, unsigned int dims);
+  void extractCLDefines(FreeVars& defined, CLCodeGenerator& clo, unsigned int dims, std::map<std::string, std::string> &map);
 #endif
   void verifyDefines(CodeGenerator& o);
   void allocateTemporary(CodeGenerator& o, bool setOnly, bool reallocAllowed);

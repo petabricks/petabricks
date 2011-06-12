@@ -127,7 +127,8 @@ void petabricks::MatrixDef::extractDefines(FreeVars& defined, CodeGenerator& o){
 }
 
 #ifdef HAVE_OPENCL
-void petabricks::MatrixDef::extractCLDefines(FreeVars& defined, CLCodeGenerator& clo, unsigned int dims){
+//TODO: don't need this
+void petabricks::MatrixDef::extractCLDefines(FreeVars& defined, CLCodeGenerator& clo, unsigned int dims, std::map<std::string, std::string> &map){
   unsigned int d=0;
   for(FormulaList::const_iterator i=_size.begin(); i!=_size.end(); ++i,++d){
     FreeVarsPtr fv = (*i)->getFreeVariables();
@@ -141,7 +142,7 @@ void petabricks::MatrixDef::extractCLDefines(FreeVars& defined, CLCodeGenerator&
         l = *MaximaWrapper::instance().solve(l, var);
         JASSERT(l.size()==1)(*i)(var).Text("Failed to solve");
         clo.os() << "unsigned int " << var << " = " 
-               << (*l.begin())->rhs()->replace(tmp, new FormulaVariable("dim_d"+jalib::XToString(d)))->toString() << ";\n";
+               << (*l.begin())->rhs()->replace(tmp, new FormulaVariable("dim_"+map[_name]+"_d"+jalib::XToString(d)))->toString() << ";\n";
       }
     }
   }
