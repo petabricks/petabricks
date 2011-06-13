@@ -999,9 +999,6 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
   case RuleFlavor::WORKSTEALING:
     o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+TX_DYNAMIC_POSTFIX, region);
     break;
-  case RuleFlavor::OPENCL:
-    o.callSpatial(trampcodename(trans)+TX_OPENCL_POSTFIX, region);
-    break;
   default:
     UNIMPLEMENTED();
   }

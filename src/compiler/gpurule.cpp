@@ -116,14 +116,23 @@ GpuRule::generateCallCode(const std::string& name,
   o.callSpatial(trampcodename(trans)+TX_OPENCL_POSTFIX, region);
 }*/
 
-void GpuRule::generateCallCode(const std::string& nodename,
+void GpuRule::generateCallCode(const std::string& name,
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor)
 {
   o.comment("gpu generateCallCode");
-  _rule->generateCallCode(nodename, trans, o, region, RuleFlavor::OPENCL);
+  switch(flavor) {
+  case RuleFlavor::SEQUENTIAL:
+    o.callSpatial(_rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region);
+    break;
+  case RuleFlavor::WORKSTEALING:
+    o.mkSpatialTask(name, trans.instClassName(), _rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region);
+    break;
+  default:
+    UNIMPLEMENTED();
+  }
 }
 
 void
