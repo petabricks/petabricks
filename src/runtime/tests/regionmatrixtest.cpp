@@ -162,7 +162,8 @@ int main(int argc, const char** argv){
     // move to hdb.host(0) with UID=1 --> the receiver will wait for this UID
     regionMatrix.moveToRemoteHost(hdb.host(0), 1);
 
-    printf("completed\n");
+    JTRACE("completed");
+
     hdb.listenLoop();
     return 0;
   } else {
@@ -176,6 +177,8 @@ int main(int argc, const char** argv){
     regionMatrix.updateHandler(1);
 
     print(regionMatrix.dataHosts());
+
+    regionMatrix.updateHandlerChain();
 
     regionMatrix.acquireRegionData();
 
@@ -218,8 +221,8 @@ int main(int argc, const char** argv){
     copy.print();
     print(copy.dataHosts());
 
-    // Cast to MatrixRegion
-    MatrixIO().write((MatrixRegion2D) copy);
+    // Convert to MatrixRegion
+    MatrixIO().write(copy._toLocalRegion());
 
     printf("completed2\n");
 
