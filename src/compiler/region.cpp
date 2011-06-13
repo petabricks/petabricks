@@ -380,13 +380,8 @@ std::string petabricks::Region::generateAccessorCode(bool allowOptional) const{
     {
       std::string s = _fromMatrix->name() + ".cell("+_minCoord.toString()+")";
       if(allowOptional && isOptional())
-#ifndef REGIONMATRIX_TEST
         return "(" + _fromMatrix->name() + ".contains("+_minCoord.toString()+")"
-                   + " ? " + s + " : " + optionalDefault()->toString() + ")";
-#else
-        return "(" + _fromMatrix->name() + ".contains("+_minCoord.toString()+")"
-                   + " ? " + s + " : (CellProxy)" + optionalDefault()->toString() + ")";
-#endif
+                   + " ? (ElementT)(" + s + ") : (ElementT)(" + optionalDefault()->toString() + "))";
       else
         return s;
     }
