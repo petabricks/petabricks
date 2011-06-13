@@ -460,6 +460,7 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
   }
   o.addMember("DynamicTaskPtr", "_completion", "new NullDynamicTask()");
 
+  o.define("PB_FLAVOR", rf.str());
   o.define("SPAWN", "PB_SPAWN");
   o.define("CALL",  "PB_SPAWN");
   o.define("SYNC",  "PB_SYNC");

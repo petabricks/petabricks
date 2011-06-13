@@ -56,7 +56,7 @@ petabricks::PetabricksRuntime::Main* petabricksMainTransform();
 petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);
 
 #define PB_SPAWN(taskname, args...) \
-  taskname ## _workstealing (_completion, args)
+  PB_CAT(PB_CAT(taskname,_),PB_FLAVOR) (_completion, args)
 
 #define PB_STATIC_CALL(taskname, args...) \
   taskname ## _sequential (NULL, args)
