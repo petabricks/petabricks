@@ -82,6 +82,8 @@ petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& 
 
 #define REGION_METHOD_CALL( region, method, args... )  region . method ( args )
 
+#define CONVERT_TO_LOCAL(x) x._toLocalRegion()
+
 namespace petabricks {
   template< typename T >
   inline DynamicTaskPtr tx_call_workstealing(T* tx){
@@ -107,6 +109,11 @@ namespace petabricks {
       completion->dependsOn(task);
       task->enqueue();
     }
+  }
+  
+  template< typename T >
+  inline bool is_data_local(const T& x){
+    return x._isLocal();
   }
 
   inline DynamicTaskPtr sync_hook(DynamicTaskPtr& completion, const DynamicTaskPtr& cont){

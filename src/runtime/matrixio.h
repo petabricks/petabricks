@@ -78,14 +78,14 @@ public:
 
 
   template<int D>
-  MatrixRegion<D, MATRIX_ELEMENT_T> readSequential(){
-    return readWorkStealing<D>();
+  MatrixRegion<D, MATRIX_ELEMENT_T> read_sequential(){
+    return read_workstealing<D>();
   }
 
   ///
   /// Read a D-dimensional matrix from _fd
   template<int D>
-  MatrixRegion<D, MATRIX_ELEMENT_T> readWorkStealing(){
+  MatrixRegion<D, MATRIX_ELEMENT_T> read_workstealing(){
     JASSERT(_fd != 0);
     MatrixReaderScratch o;
     _read(o);
@@ -99,7 +99,7 @@ public:
   ///
   /// Read a D-dimensional matrix from _fd
   template<int D>
-  RegionMatrixWrapper<D, MATRIX_ELEMENT_T> readDistributed(){
+  RegionMatrixWrapper<D, MATRIX_ELEMENT_T> read_distributed(){
     JASSERT(_fd != 0);
     MatrixReaderScratch o;
     _read(o);
@@ -131,16 +131,16 @@ public:
   template<int D, typename T>
   void write(RegionMatrixWrapper<D,T> m);
 
-  workstealing::MatrixRegion0D read0D(){ return readWorkStealing<0>(); }
-  workstealing::MatrixRegion1D read1D(){ return readWorkStealing<1>(); }
-  workstealing::MatrixRegion2D read2D(){ return readWorkStealing<2>(); }
-  workstealing::MatrixRegion3D read3D(){ return readWorkStealing<3>(); }
-  workstealing::MatrixRegion4D read4D(){ return readWorkStealing<4>(); }
-  workstealing::MatrixRegion5D read5D(){ return readWorkStealing<5>(); }
-  workstealing::MatrixRegion6D read6D(){ return readWorkStealing<6>(); }
-  workstealing::MatrixRegion7D read7D(){ return readWorkStealing<7>(); }
-  workstealing::MatrixRegion8D read8D(){ return readWorkStealing<8>(); }
-  workstealing::MatrixRegion9D read9D(){ return readWorkStealing<9>(); }
+  workstealing::MatrixRegion0D read0D(){ return read_workstealing<0>(); }
+  workstealing::MatrixRegion1D read1D(){ return read_workstealing<1>(); }
+  workstealing::MatrixRegion2D read2D(){ return read_workstealing<2>(); }
+  workstealing::MatrixRegion3D read3D(){ return read_workstealing<3>(); }
+  workstealing::MatrixRegion4D read4D(){ return read_workstealing<4>(); }
+  workstealing::MatrixRegion5D read5D(){ return read_workstealing<5>(); }
+  workstealing::MatrixRegion6D read6D(){ return read_workstealing<6>(); }
+  workstealing::MatrixRegion7D read7D(){ return read_workstealing<7>(); }
+  workstealing::MatrixRegion8D read8D(){ return read_workstealing<8>(); }
+  workstealing::MatrixRegion9D read9D(){ return read_workstealing<9>(); }
 protected:
   void _read(MatrixReaderScratch&);
 

@@ -137,7 +137,7 @@ public:
   void argDecl(std::vector<std::string>& args, RuleFlavor rf, bool isConst, bool byRef=false) const;
   void genAllocTmpCode(CodeGenerator& o, RuleFlavor rf);
   void generateCodeSimple(CodeGenerator& o);
-  void readFromFileCode(CodeGenerator& o, const std::string& fn);
+  void readFromFileCode(CodeGenerator& o, const std::string& fn, RuleFlavor rf);
   void writeToFileCode(CodeGenerator& o, const std::string& fn);
   void varDeclCode(CodeGenerator& o, RuleFlavor rf, bool isConst);
 

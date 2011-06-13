@@ -346,12 +346,16 @@ bool petabricks::SimpleRegion::hasIntersect(const SimpleRegion& that) const {
 std::string petabricks::Region::genTypeStr(RuleFlavor rf, bool isConst) const{
   switch(_originalType){
   case REGION_CELL:
-    if(isConst)
+    if(isConst){
       return "const ElementT";
       //return "const CellProxy";
-    else
-      return "ElementT&";
-      //return "CellProxy&";
+    }else{
+      if(rf != RuleFlavor::DISTRIBUTED) {
+        return "ElementT&";
+      }else{
+        return "CellProxy";
+      }
+    }
   case REGION_COL:
   case REGION_ROW:
     return MatrixDef::oneD().typeName(rf, isConst);

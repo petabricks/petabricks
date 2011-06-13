@@ -39,7 +39,7 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
 int main(int /*argc*/, const char** /*argv*/){
   using namespace petabricks::distributed;
 
-  MatrixRegion2D A = MatrixIO("testdata/Rand2Da","r").readDistributed<2>();
+  MatrixRegion2D A = MatrixIO("testdata/Rand2Da","r").read_distributed<2>();
   A.print();
 
   MatrixRegion2D B = (MatrixRegion2D) A;

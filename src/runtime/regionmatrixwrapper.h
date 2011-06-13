@@ -156,6 +156,9 @@ namespace petabricks {
       this->releaseRegionData();
     }
 
+
+    typedef MatrixRegion<D, ElementT> LocalT;
+    typedef MatrixRegion<D, const ElementT> ConstLocalT;
     bool _isLocal() const {
       RegionDataIPtr regionData = this->acquireRegionDataConst();
       return regionData->type() == RegionDataTypes::REGIONDATARAW;

@@ -169,13 +169,8 @@ std::string petabricks::MatrixDef::genericAllocateStr() const{
   return genericTypeName()+"::allocate("+_size.toString()+")";
 }
 
-void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn){
-  o.varDecl(name()
-#ifndef REGIONMATRIX_TEST
-      +" = petabricks::MatrixIO("+fn+",\"r\").read<"+jalib::XToString(numDimensions())+">()");
-#else
-      +" = petabricks::MatrixIO("+fn+",\"r\").readToRegionMatrix<"+jalib::XToString(numDimensions())+">()");
-#endif
+void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn, RuleFlavor rf){
+  o.varDecl(name()+" = petabricks::MatrixIO("+fn+",\"r\").read_"+rf.str()+"<"+jalib::XToString(numDimensions())+">()");
 }
 void petabricks::MatrixDef::writeToFileCode(CodeGenerator& o, const std::string& fn){
   o.write("petabricks::MatrixIO("+fn+",\"w\").write("+name()+");");

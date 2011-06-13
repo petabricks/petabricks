@@ -491,7 +491,7 @@ void petabricks::Transform::generateCrossCall(CodeGenerator& o, RuleFlavor fromf
     }
     ss << "true";
     for(size_t i=0; i!=argNames.size(); ++i){
-      argNames[i] = "petabricks::convert_to_local("+argNames[i]+")";
+      argNames[i] = "CONVERT_TO_LOCAL("+argNames[i]+")";
     }
     o.beginIf(ss.str());
   }
@@ -878,7 +878,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
       o.write(*i + " = jalib::StringToInt(argv["+jalib::XToString(a++)+"]);");
     }
     for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-      (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
+      (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()", rf);
     }
     FreeVars t;
     t.insertAll(_parameters);
@@ -893,7 +893,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   {
     int a=firstOutput;
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
+      (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()", rf);
     }
   }
   o.endFunc();
@@ -992,7 +992,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.beginFunc("void", "compute");
   o.write("DynamicTaskPtr p = new NullDynamicTask();");
   argNames.insert(argNames.begin(), "p");
-  o.call(name()+TX_DYNAMIC_POSTFIX, argNames);
+  o.call(name()+"_"+rf.str(), argNames);
   argNames.erase(argNames.begin());
   o.write("petabricks::enqueue_and_wait(p);");
   o.endFunc();

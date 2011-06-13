@@ -1011,9 +1011,11 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
   case RuleFlavor::DISTRIBUTED:
     o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+"_"+flavor.str(), region);
     break;
+#ifdef HAVE_OPENCL
   case RuleFlavor::OPENCL:
     o.callSpatial(trampcodename(trans)+TX_OPENCL_POSTFIX, region);
     break;
+#endif
   default:
     UNIMPLEMENTED();
   }
