@@ -1025,16 +1025,12 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.beginFunc("ElementT", "accuracy");
   if(_accuracyMetric != "")
   {
-#ifndef REGIONMATRIX_TEST
-    o.write("MatrixRegion0D _acc = MatrixRegion0D::allocate();");
-#else
-    o.write("RegionMatrix0D _acc = RegionMatrix0D::allocate();");
-#endif
+    o.write(rf.string()+"::MatrixRegion0D _acc = "+rf.string()+"::MatrixRegion0D::allocate();");
     std::vector<std::string> args = argnames();
     args.insert(args.begin(), "_acc");
     args.insert(args.begin(), "p");
     o.write("DynamicTaskPtr p = new NullDynamicTask();");
-    o.call(_accuracyMetric+TX_DYNAMIC_POSTFIX, args);
+    o.call(_accuracyMetric+"_"+rf.string(), args);
     o.write("petabricks::enqueue_and_wait(p);");
     if(isAccuracyInverted())
       o.write("return -1*_acc.cell();");
