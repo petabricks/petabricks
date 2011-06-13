@@ -159,6 +159,27 @@ namespace petabricks {
 
     typedef MatrixRegion<D, ElementT> LocalT;
     typedef MatrixRegion<D, const ElementT> ConstLocalT;
+
+    bool isEntireBuffer() {
+      return _isLocal() && _toLocalConstRegion().isEntireBuffer();
+    }
+
+    void exportTo(MatrixStorageInfo& ms) const {
+      if(_isLocal()){
+        _toLocalRegion().exportTo(ms);
+      }else{
+        UNIMPLEMENTED();
+      }
+    }
+    
+    void copyFrom(const MatrixStorageInfo& ms){
+      if(_isLocal()){
+        _toLocalRegion().copyFrom(ms);
+      }else{
+        UNIMPLEMENTED();
+      }
+    }
+
     bool _isLocal() const {
       RegionDataIPtr regionData = this->acquireRegionDataConst();
       return regionData->type() == RegionDataTypes::REGIONDATARAW;

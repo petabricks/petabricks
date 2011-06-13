@@ -28,6 +28,7 @@
 #define PETABRICKSCODEGENERATOR_H
 
 #include "formula.h"
+#include "pbc.h"
 #include "trainingdeps.h"
 
 #include "common/jconvert.h"
@@ -234,6 +235,14 @@ public:
   }
   bool inClass() const { return _curClass.size()>0; }
 
+  void beginUserCode(RuleFlavor rf) {
+    _rf = rf;
+    write("using namespace petabricks::"+rf.string()+";");
+  }
+  void endUserCode(){
+    _rf = RuleFlavor::INVALID;
+  }
+
   void constructorBody(const std::string& s){_curConstructorBody=s;}
 
   void staticMember() { hos() << "static "; }
@@ -324,6 +333,7 @@ protected:
   int            _indent;
   TrainingDepsPtr _cg;
   CodeGenerators _helpers;
+  RuleFlavor     _rf;
 };
 
 }

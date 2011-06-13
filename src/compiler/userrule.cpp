@@ -141,6 +141,8 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
 
   for(RuleFlavor::iterator i=RuleFlavor::begin(); i!=RuleFlavor::end(); ++i) {
     _bodyir[i] = bodyir;
+    RuleFlavorSpecializePass pass(i);
+    _bodyir[i]->accept(pass);
   }
   
 #ifdef HAVE_OPENCL
@@ -467,6 +469,7 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
   o.define("DEFAULT_RV",  "_completion");
   o.beginFunc("petabricks::DynamicTaskPtr", "runDynamic");
   RIRBlockCopyRef bodytmp = _bodyir[rf];
+  o.beginUserCode(rf);
   {
     LiftVardeclPass p3(trans,*this, o);
     bodytmp->accept(p3);
@@ -476,6 +479,7 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
     bodytmp->accept(dbpp);
   }
   o.write("return DEFAULT_RV;");
+  o.endUserCode();
   o.endFunc();
   o.undefineAll();
 
@@ -514,7 +518,9 @@ void petabricks::UserRule::generateDeclCodeSequential(Transform& trans, CodeGene
   o.define("CALL",  "PB_STATIC_CALL");
   o.define("SYNC",  "PB_NOP");
   o.define("DEFAULT_RV",  "");
+  o.beginUserCode(rf);
   o.write(_bodyir[RuleFlavor::SEQUENTIAL]->toString());
+  o.endUserCode();
   o.undefineAll();
   o.endFunc();
 }

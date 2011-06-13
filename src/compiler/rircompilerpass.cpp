@@ -133,7 +133,6 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
   }
 }
 
-
 void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
   if(e->type() == RIRNode::EXPR_IDENT){
     RIRSymbolPtr sym = _scope->lookup(e->toString());
@@ -181,6 +180,20 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
     }
   }
 }
+
+
+
+void petabricks::RuleFlavorSpecializePass::before(RIRExprCopyRef& e) {
+  if(e->type() == RIRNode::EXPR_IDENT){
+    RIRSymbolPtr sym = _scope->lookup(e->toString());
+    if(sym && sym->type() ==  RIRSymbol::SYM_TYPE_MATRIX_GENERIC){
+      e = new RIRIdentExpr(_rf.string()+"::"+e->toString());
+      JTRACE("specialized type")(e)(e->type() == RIRNode::EXPR_IDENT);
+    }
+  }
+}
+
+
 
 void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
   if(s->type() != RIRNode::STMT_BLOCK && depth()>=2 && parentNode()->isControl()){

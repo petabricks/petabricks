@@ -288,6 +288,8 @@ void petabricks::CodeGenerator::continuationPoint(){
   endIf();
   endFunc();
   beginFunc("DynamicTaskPtr", n);
+  if(_rf != RuleFlavor::INVALID)
+    beginUserCode(_rf);
 #endif
 }
 
@@ -297,6 +299,8 @@ void petabricks::CodeGenerator::continuationRequired(const std::string& hookname
   write("return "+hookname+" new petabricks::MethodCallTask<"+_curClass+", &"+_curClass+"::"+n+">(this));"); 
   endFunc();
   beginFunc("DynamicTaskPtr", n);
+  if(_rf != RuleFlavor::INVALID)
+    beginUserCode(_rf);
 }
 
 
