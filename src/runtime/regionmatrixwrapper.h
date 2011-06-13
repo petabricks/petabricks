@@ -57,12 +57,12 @@ namespace petabricks {
 
     bool isSize(const IndexT size[D]) const{
       if (!_size) {
-	return false;
+        return false;
       }
       for(int i=0; i<D; ++i){
-	if(this->size()[i] != size[i]){
-	  return false;
-	}
+        if(this->size()[i] != size[i]){
+          return false;
+        }
       }
       return true;
     }
@@ -82,7 +82,7 @@ namespace petabricks {
     ssize_t count() const {
       ssize_t s=1;
       for(int i=0; i<D; ++i)
-	s*=this->size()[i];
+    s*=this->size()[i];
       return s;
     }
 
@@ -90,12 +90,12 @@ namespace petabricks {
       IndexT newSizes[D];
       for(int i=0; i<D; ++i){
         #ifdef DEBUG
-	JASSERT(c1[i]<=c2[i])(c1[i])(c2[i])
-	  .Text("region has negative size");
-	JASSERT(c2[i]<=size(i))(c2[i])(size(i))
-	  .Text("region goes out of bounds");
+        JASSERT(c1[i]<=c2[i])(c1[i])(c2[i])
+          .Text("region has negative size");
+        JASSERT(c2[i]<=size(i))(c2[i])(size(i))
+          .Text("region goes out of bounds");
         #endif
-	newSizes[i]=c2[i]-c1[i];
+        newSizes[i]=c2[i]-c1[i];
       }
       return RegionMatrixWrapper((const RegionMatrix&)this->splitRegion(c1, newSizes));
     }
@@ -140,7 +140,7 @@ namespace petabricks {
       memset(coord, 0, sizeof coord);
       this->acquireRegionData();
       do {
-	this->writeCell(coord, this->rand());
+        this->writeCell(coord, this->rand());
       } while (this->incCoord(coord) >= 0);
       this->releaseRegionData();
     }
@@ -150,15 +150,20 @@ namespace petabricks {
       memset(coord, 0, sizeof coord);
       this->acquireRegionData();
       do {
-	ElementT v = this->readCell(coord);
-	gen.update(&v, sizeof(ElementT));
+        ElementT v = this->readCell(coord);
+        gen.update(&v, sizeof(ElementT));
       } while (this->incCoord(coord) >= 0);
       this->releaseRegionData();
     }
 
-    //
-    // Cast to MatrixRegion
-    operator MatrixRegion<D, ElementT> () const {
+    bool _isLocal() const {
+      RegionDataIPtr regionData = this->acquireRegionDataConst();
+      return regionData->type() == RegionDataTypes::REGIONDATARAW;
+    }
+    MatrixRegion<D, const ElementT> _toLocalConstRegion() const {
+      return _toLocalRegion();
+    }
+    MatrixRegion<D, ElementT> _toLocalRegion() const {
       RegionDataIPtr regionData = this->acquireRegionDataConst();
       JASSERT(regionData->type() == RegionDataTypes::REGIONDATARAW).Text("Cannot cast to MatrixRegion.");
 
@@ -168,29 +173,29 @@ namespace petabricks {
       IndexT mult = 1;
       int last_slice_index = 0;
       for(int i = 0; i < regionData->dimensions(); i++){
-	if ((last_slice_index < _numSliceDimensions) &&
-	    (i == _sliceDimensions[last_slice_index])) {
-	  startOffset += mult * _slicePositions[last_slice_index];
-	  last_slice_index++;
-	} else {
-	  multipliers[i - last_slice_index] = mult;
+        if ((last_slice_index < _numSliceDimensions) &&
+            (i == _sliceDimensions[last_slice_index])) {
+          startOffset += mult * _slicePositions[last_slice_index];
+          last_slice_index++;
+        } else {
+          multipliers[i - last_slice_index] = mult;
 
-	  if (_splitOffset) {
-	    startOffset += mult * _splitOffset[i - last_slice_index];
-	  }
-	}
+          if (_splitOffset) {
+            startOffset += mult * _splitOffset[i - last_slice_index];
+          }
+        }
 
-	mult *= regionData->size()[i];
+        mult *= regionData->size()[i];
       }
 
       MatrixRegion<D, ElementT> matrixRegion =
-	MatrixRegion<D, ElementT>(regionData->storage(), regionData->storage()->data() + startOffset, _size, multipliers);
+        MatrixRegion<D, ElementT>(regionData->storage(), regionData->storage()->data() + startOffset, _size, multipliers);
 
 
       this->releaseRegionDataConst();
 
       if (_isTransposed) {
-	matrixRegion = matrixRegion.transposed();
+        matrixRegion = matrixRegion.transposed();
       }
 
       return matrixRegion;
@@ -202,14 +207,13 @@ namespace petabricks {
       RegionMatrixWrapper copy = RegionMatrixWrapper(this->size());
       copy.allocData();
 
-      IndexT* coord = new IndexT[D];
-      memset(coord, 0, (sizeof coord) * D);
+      IndexT coord[D];
+      memset(coord, 0, sizeof coord);
 
       do {
-	copy.writeCell(coord, this->readCell(coord));
+        copy.writeCell(coord, this->readCell(coord));
       } while (this->incCoord(coord) >= 0);
 
-      delete [] coord;
       return copy;
     }
   };
