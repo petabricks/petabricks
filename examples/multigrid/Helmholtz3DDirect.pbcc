@@ -14,9 +14,24 @@
 %{
 
 extern "C" void dgbtrf_(int *m, int *n, int *kl, int *ku, double *ab, int *ldab, int *ipiv, int *info);
-extern "C" void dgbtrs_(const char *trans, int *n, int *kl, int *ku, int *nrhs, double *ab, int *ldab, int *ipiv, double *b, int *ldb, int *info);
+extern "C" void sgbtrf_(int *m, int *n, int *kl, int *ku, float *ab, int *ldab, int *ipiv, int *info);
+void gbtrf_wrap(int *m, int *n, int *kl, int *ku, double *ab, int *ldab, int *ipiv, int *info) {
+  dgbtrf_(m, n, kl, ku, ab, ldab, ipiv, info);
+}
+void gbtrf_wrap(int *m, int *n, int *kl, int *ku, float *ab, int *ldab, int *ipiv, int *info) {
+  sgbtrf_(m, n, kl, ku, ab, ldab, ipiv, info);
+}
 
-void displayMatrix2D(double *A, int h, int w)
+extern "C" void dgbtrs_(const char *trans, int *n, int *kl, int *ku, int *nrhs, double *ab, int *ldab, int *ipiv, double *b, int *ldb, int *info);
+extern "C" void sgbtrs_(const char *trans, int *n, int *kl, int *ku, int *nrhs, float *ab, int *ldab, int *ipiv, float *b, int *ldb, int *info);
+void gbtrs_wrap(const char *trans, int *n, int *kl, int *ku, int *nrhs, double *ab, int *ldab, int *ipiv, double *b, int *ldb, int *info) {
+  dgbtrs_(trans, n, kl, ku, nrhs, ab, ldab, ipiv, b, ldb, info);
+}
+void gbtrs_wrap(const char *trans, int *n, int *kl, int *ku, int *nrhs, float *ab, int *ldab, int *ipiv, float *b, int *ldb, int *info) {
+  sgbtrs_(trans, n, kl, ku, nrhs, ab, ldab, ipiv, b, ldb, info);
+}
+
+void displayMatrix2D(ElementT *A, int h, int w)
 {
   for (int i = 0; i < h; i++) {
     for (int j = 0; j < w; j++) {
@@ -39,8 +54,8 @@ to OUT[n,n,n]
                      DX dx)
   {
     int nSquared = n * n, nCubed = n * nSquared;
-    double dxSqInv = 1 / (dx * dx);
-    double *S = NULL, *rhsFlat = NULL;
+    ElementT dxSqInv = 1 / (dx * dx);
+    ElementT *S = NULL, *rhsFlat = NULL;
 
     // variables needed for LAPACK routines
     int kl = nSquared, ku = nSquared, ldab = 2 * kl + ku + 1,
@@ -50,14 +65,14 @@ to OUT[n,n,n]
     int klu = kl + ku; 
 
     // check to see if memory needs are too great
-    if (ldab * nCubed * sizeof(double) > MAX_MEMORY)
+    if (ldab * nCubed * sizeof(ElementT) > MAX_MEMORY)
     {
       fprintf(stderr, "Problem too large to solve directly\n");
       PetabricksRuntime::abort();
     }
 
     // allocate memory for solver matrix and pivots
-    S = (double *) calloc(ldab * nCubed, sizeof(double));
+    S = (ElementT *) calloc(ldab * nCubed, sizeof(ElementT));
     ipiv = (int *) calloc(nCubed, sizeof(int));
     if (!S || !ipiv) {
       if (S) free(S);
@@ -121,7 +136,7 @@ to OUT[n,n,n]
 #endif
 
     // factor solver matrix
-    dgbtrf_(&nCubed, &nCubed, &kl, &ku, S, &ldab, ipiv, &info);
+    gbtrf_wrap(&nCubed, &nCubed, &kl, &ku, S, &ldab, ipiv, &info);
     if (info != 0)
     {
       if (info < 0) {
@@ -138,7 +153,7 @@ to OUT[n,n,n]
     }
 
     // allocate RHS/solution vector
-    rhsFlat = (double *) malloc(nCubed * sizeof(double));
+    rhsFlat = (ElementT *) malloc(nCubed * sizeof(ElementT));
     if (!rhsFlat) {
       free(S);
       free(ipiv);
@@ -163,7 +178,7 @@ to OUT[n,n,n]
 #endif
 
     // call LAPACK to do linear solve
-    dgbtrs_("N", &nCubed, &kl, &ku, &nrhs, S, &ldab, ipiv, rhsFlat, &ldb, &info);
+    gbtrs_wrap("N", &nCubed, &kl, &ku, &nrhs, S, &ldab, ipiv, rhsFlat, &ldb, &info);
     if (info < 0) {
       free(S);
       free(ipiv);

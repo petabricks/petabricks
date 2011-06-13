@@ -741,14 +741,15 @@ void petabricks::Transform::extractSizeDefines(CodeGenerator& o, FreeVars fv, co
 }
 
 #ifdef HAVE_OPENCL
-void petabricks::Transform::extractOpenClSizeDefines(CLCodeGenerator& o, unsigned int dims){
+//TODO: don't need this
+void petabricks::Transform::extractOpenClSizeDefines(CLCodeGenerator& o, unsigned int dims, std::map<std::string, std::string> &map){
   FreeVars fv;
   SRCPOSSCOPE(); 
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    (*i)->extractCLDefines(fv, o, dims);
+    (*i)->extractCLDefines(fv, o, dims, map);
   }
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->extractCLDefines(fv, o, dims);
+    (*i)->extractCLDefines(fv, o, dims, map);
   }
 }
 #endif

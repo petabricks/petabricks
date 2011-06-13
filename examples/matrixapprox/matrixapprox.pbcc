@@ -52,12 +52,12 @@ generator matrixapproinputgen
 
 	//combine sigma(k) * U(k)
 	U.cell(i,j) from (X.cell(i,j+n) x, Lambda.cell(i) lam){
-		return lam*sqrt(2)*x;
+		return lam*sqrt(2.0)*x;
 	}
 
 	//V tranposed
 	VT.cell(j,i) from (X.cell(i,j) x){
-		return sqrt(2)*x;	
+		return sqrt(2.0)*x;	
 	}
 		
 

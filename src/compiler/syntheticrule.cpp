@@ -62,9 +62,10 @@ void petabricks::SyntheticRule::getApplicableRegionDescriptors(RuleDescriptorLis
 
 void petabricks::SyntheticRule::generateCallCode(const std::string&,
                                                  Transform&,
-                                                 CodeGenerator&,
+                                                 CodeGenerator& o,
                                                  const SimpleRegionPtr&,
                                                  RuleFlavor){
+  o.comment("synthetic generateCallCode");
 }
 
 void petabricks::SyntheticRule::generateDeclCode(Transform&, CodeGenerator&, RuleFlavor) {}

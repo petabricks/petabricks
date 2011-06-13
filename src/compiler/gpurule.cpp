@@ -41,7 +41,6 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
   IterationDefinition iterdef(*_rule, _rule->getSelfDependency(), _rule->isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();
   std::vector<std::string> packedargnames = iterdef.packedargnames();
-
   o.os() << "// GPURULE TRAMPOLINE CODE\n";
 
   // Create variables to hold handles to program, kernel
@@ -78,12 +77,12 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
   //o.os( ) << "err = OpenCLUtil::buildProgram( clprog_" << _rule->id() << " );\n";
   //ciErrNum = clBuildProgram(cpProgram, 0, NULL, "-cl-fast-relaxed-math", NULL, NULL);
   o.os( ) << "err = clBuildProgram( clprog_" << _rule->id() << ", 0, NULL, NULL, NULL, NULL);\n";
-  o.os( ) << "std::cout << \"clBuildProgram err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
+  o.os( ) << "#if OPENCL_TRACE\nstd::cerr << \"clBuildProgram err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n#endif\n";
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to build program.\" );\n\n";
 
   o.comment( "Create kernel." );
   o.os( ) << "clkern_" << _rule->id() << "= clCreateKernel( clprog_" << _rule->id() << ", \"kernel_main\", &err );\n";
-  o.os( ) << "#if OPENCL_TRACE\nstd::cout << \"clCreateKernel err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n#endif\n";
+  o.os( ) << "#if OPENCL_TRACE\nstd::cerr << \"clCreateKernel err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n#endif\n";
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create kernel.\" );\n\n";
 
   o.os( ) << "return 0;";
@@ -105,6 +104,26 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
          << "_instance::" 
          << codename() 
          << "_init();\n\n";  
+}
+
+/*void
+GpuRule::generateCallCode(const std::string& name,
+                          Transform& trans,
+                          CodeGenerator& o,
+                          const SimpleRegionPtr& region,
+                          RuleFlavor flavor){
+  o.comment("gpu generateCallCode");
+  o.callSpatial(trampcodename(trans)+TX_OPENCL_POSTFIX, region);
+}*/
+
+void GpuRule::generateCallCode(const std::string& nodename,
+                        Transform& trans,
+                        CodeGenerator& o,
+                        const SimpleRegionPtr& region,
+                        RuleFlavor flavor)
+{
+  o.comment("gpu generateCallCode");
+  _rule->generateCallCode(nodename, trans, o, region, RuleFlavor::OPENCL);
 }
 
 void
