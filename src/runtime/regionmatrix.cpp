@@ -360,23 +360,24 @@ void RegionMatrix::removeMovingBuffer(uint16_t index) {
 }
 
 void RegionMatrix::updateHandlerChain() {
-  /*
   RegionDataIPtr regionData = this->acquireRegionDataConst();
   if (regionData->type() == RegionDataTypes::REGIONDATAREMOTE) {
     RegionDataRemoteMessage::UpdateHandlerChainReplyMessage* reply =
       ((RegionDataRemote*)regionData.asPtr())->updateHandlerChain();
-    JTRACE("updatehandler")(reply->dataHost)(reply->numHops);
+    JTRACE("updatehandler")(reply->dataHost)(reply->numHops)(reply->regionData.asPtr());
 
     if (reply->dataHost == HostPid::self()) {
       // data is in the same process
+      this->releaseRegionData();
 
+      // (yod) TODO: similar to updateHandler
+      _regionHandler = new RegionHandler(reply->regionData);
     } else if (reply->numHops > 1) {
       // create a direct connection to data
 
     }
   }
   this->releaseRegionDataConst();
-  */
 }
 
 //

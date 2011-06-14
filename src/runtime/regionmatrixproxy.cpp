@@ -43,6 +43,28 @@ void RegionMatrixProxy::processGetHostListMsg(GetHostListMessage* msg) {
   reply->numHosts = list.size();
   memcpy(reply->hosts, &list[0], hosts_array_size);
   _remoteObject->send(reply, sizeof(GetHostListReplyMessage) + hosts_array_size);
+  // ???(yod) delete reply;
+}
+
+void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::UpdateHandlerChainMessage* msg) {
+  RegionDataIPtr regionData = this->acquireRegionDataConst();
+  UpdateHandlerChainReplyMessage* reply;
+
+  if (regionData->type() == RegionDataTypes::REGIONDATAREMOTE) {
+    reply = ((RegionDataRemote*)regionData.asPtr())->updateHandlerChain(msg);
+  } else {
+    reply = new UpdateHandlerChainReplyMessage();
+    reply->dataHost = HostPid::self();
+    reply->numHops = 0;
+    reply->regionData = regionData;
+  }
+
+  _remoteObject->send(reply, sizeof(UpdateHandlerChainReplyMessage));
+
+  if (regionData->type() != RegionDataTypes::REGIONDATAREMOTE) {
+    delete reply;
+  }
+  this->releaseRegionDataConst();
 }
 
 void RegionMatrixProxy::onRecv(const void* data, size_t len) {
@@ -59,8 +81,12 @@ void RegionMatrixProxy::onRecv(const void* data, size_t len) {
     JASSERT(len==sizeof(GetHostListMessage));
     this->processGetHostListMsg((GetHostListMessage*)data);
     break;
+  case MessageTypes::UPDATEHANDLERCHAIN:
+    JASSERT(len==sizeof(UpdateHandlerChainMessage));
+    this->processUpdateHandlerChainMsg((UpdateHandlerChainMessage*)data);
+    break;
   default:
-    JASSERT(false)("Unknown RegionRemoteMsgTypes.");
+    JASSERT(false).Text("Unknown RegionRemoteMsgTypes.");
   }
 }
 

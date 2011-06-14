@@ -68,6 +68,8 @@ namespace petabricks {
     static void addMovingBuffer(RegionDataIPtr remoteData, uint16_t index);
     void removeMovingBuffer(uint16_t index);
 
+    void updateHandlerChain();
+
     CellProxy& cell(IndexT x, ...) const;
     CellProxy& cell(IndexT* coord) const {
       return *(new CellProxy(_regionHandler, getRegionDataCoord(coord)));

@@ -91,10 +91,28 @@ DataHostList RegionDataRemote::hosts(IndexT* begin, IndexT* end) {
   return list;
 }
 
+UpdateHandlerChainReplyMessage* RegionDataRemote::updateHandlerChain(UpdateHandlerChainMessage* msg) {
+  UpdateHandlerChainReplyMessage* reply =
+    (UpdateHandlerChainReplyMessage*)this->fetchData(msg, sizeof *msg);
+  reply->numHops += 1;
+  return reply;
+}
+
+UpdateHandlerChainReplyMessage* RegionDataRemote::updateHandlerChain() {
+  UpdateHandlerChainMessage* msg = new UpdateHandlerChainMessage();
+  msg->type = MessageTypes::UPDATEHANDLERCHAIN;
+  msg->requester = HostPid::self();
+  UpdateHandlerChainReplyMessage* reply = this->updateHandlerChain(msg);
+  delete msg;
+  return reply;
+}
+
 void RegionDataRemote::onRecv(const void* data, size_t len) {
   void* x = malloc(len);
   memmove(x, data, len);
+  pthread_mutex_lock(&_buffer_mux);
   _buffer[++_recv_seq] = x;
+  pthread_mutex_unlock(&_buffer_mux);
   pthread_cond_broadcast(&_buffer_cond);
 }
 
