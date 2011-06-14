@@ -24,7 +24,7 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-//#define FORCE_OPENCL
+#define FORCE_OPENCL
 //#define OPENCL_LOGGING
 
 //#define TRACE(x) std::cout << "Trace " << x << "\n"
@@ -45,8 +45,6 @@
 #include <algorithm>
 #include <stdlib.h>
 #include <set>
-
-//TODO: get rid of outdated comments
 
 
 petabricks::UserRule::UserRule(const RegionPtr& to, const RegionList& from, const MatrixDefList& through, const FormulaList& cond)
@@ -148,10 +146,10 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       bodyir->accept(print);
       std::cerr << "--------------------\n";
 
-      /*if(!passBuildGpuProgram(tx)) {
+      if(!passBuildGpuProgram(tx)) {
 				std::cout << "(>) RULE REJECTED BY TryBuildGpuProgram: " << id() << "\n";
         failgpu = true;
-      }*/
+      }
     }
     catch( OpenClCleanupPass::NotValidSource e )
     {
@@ -562,13 +560,13 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   else if( RuleFlavor::OPENCL == flavor )
   {
     o.os() << "cl_int err;\n";
-    o.os() << "cl_kernel clkern = clkern_" << id() << ";\n";
+    o.os() << "cl_kernel clkern = " << trans.name() << "_instance::get_kernel_" << id() << "();\n";
 
     int arg_pos = 0;
 
     //o.os( ) << "printf( \"- TRACE 10\\n\" );\n";
 
-    o.os( ) << "std::cerr << \"RUN GPU\" << std::endl;\n";
+    o.os( ) << "std::cerr << \"Prepare GPU\" << std::endl;\n";
 		o.os( ) << "if( ";
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
@@ -606,7 +604,8 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object\");\n";
 
         // Bind to kernel.
-        o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
+        o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
       }
       else {
         (*i)->setBuffer(false);
@@ -703,10 +702,14 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     }
     o.os( ) << "};\n";
 
+    o.os( ) << "std::cerr << \"RUN GPU\" << std::endl;\n";
+
     #ifdef OPENCL_LOGGING
     o.os( ) << "std::cout << \"Work dimensions: \" << workdim[0] << \" x \" << workdim[1] << \"\\n\";\n";
     #endif
     o.os( ) << "err = clEnqueueNDRangeKernel( OpenCLUtil::getQueue( 0 ), clkern, " << iterdef.dimensions( ) << ", 0, workdim, NULL, 0, NULL, NULL );\n";
+    //o.os( ) << "clFinish(OpenCLUtil::getQueue( 0 ));\n";
+    //o.os( ) << "std::cerr << \"After RUN\" << std::endl;\n";
     #ifndef OPENCL_LOGGING
     o.os( ) << "if( CL_SUCCESS != err ) ";
     #endif

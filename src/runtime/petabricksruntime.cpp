@@ -299,7 +299,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     std::cout << jalib::JTime::resolution() << std::endl;
     MODE=MODE_ABORT;
   }
-#ifdef HAVE_OPENCL
+/*#ifdef HAVE_OPENCL
   if(args.param("opencl-info").help("display information about OpenCL devices and exit")){
     if( 0 != OpenCLUtil::init( ) )
       std::cout << "Failed to initialize OpenCL." << std::endl;
@@ -308,7 +308,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
 
     MODE=MODE_ABORT;
   }
-#endif
+#endif*/
   if(args.needHelp()){
     MODE=MODE_HELP;
   }
@@ -405,20 +405,20 @@ void petabricks::PetabricksRuntime::saveConfig()
 
 
 int petabricks::PetabricksRuntime::runMain(){
-#ifdef HAVE_OPENCL
+/*#ifdef HAVE_OPENCL
   int err;
-#endif
+#endif*/
   JTIMER_SCOPE(runMain);
 
   switch(MODE){
     case MODE_RUN_IO:
-#ifdef HAVE_OPENCL
+/*#ifdef HAVE_OPENCL
       if( 0 != ( err = OpenCLUtil::init( ) ) )
       {
         std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
         exit( -1 );
       }
-#endif
+#endif*/
       runNormal();
       break;
     case MODE_IOGEN_CREATE:
@@ -432,13 +432,13 @@ int petabricks::PetabricksRuntime::runMain(){
       return _rv;
       break;
     case MODE_RUN_RANDOM:
-#ifdef HAVE_OPENCL
+/*#ifdef HAVE_OPENCL
       if( 0 != ( err = OpenCLUtil::init( ) ) )
       {
         std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
         exit(-1 );
       }
-#endif
+#endif*/
       runTrial(GRAPH_MAX_SEC, ACCTRAIN);
       break;
     case MODE_GRAPH_INPUTSIZE:
