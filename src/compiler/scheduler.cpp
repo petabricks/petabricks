@@ -208,13 +208,29 @@ std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(DataDepen
 }
 
 
+void petabricks::StaticScheduler::removeUselessDimensions(std::vector<size_t> uselessDimensions, 
+                                                          MatrixDefPtr matrix) {
+  for(std::vector<size_t>::iterator i=uselessDimensions.begin(),
+                                    e=uselessDimensions.end();
+                                    i != e;
+                                    ++i) {
+    size_t dim=*i;
+    matrix->removeDimension(dim); 
+    //_matrixToNodes[matrix].removeDimensionFromRegions(matrix, dim);
+    _allNodes.removeDimensionFromRegions(matrix, dim);
+  }
+} 
+
+   
 void petabricks::StaticScheduler::removeUselessDimensions() {
   
+  //Populate the data structure used for finding useless dimensions
   for(rule_iterator i=rule_begin(), e=rule_end(); i != e; ++i) {
     RulePtr rule = *i;
     importDataDepsFromRule(rule);
   }
   
+  //For every matrix in the program:
   for(GlobalDataDependencyMap::iterator i=_globalDataDependencyMap.begin(),
                                         e=_globalDataDependencyMap.end();
                                         i != e;
@@ -225,15 +241,7 @@ void petabricks::StaticScheduler::removeUselessDimensions() {
     std::vector<size_t> uselessDimensions = findUselessDimensions(
                                                           matrixDependencies);
     
-    JTRACE("Useless dimension:");
-    for(std::vector<size_t>::iterator i=uselessDimensions.begin(),
-                                      e=uselessDimensions.end();
-                                      i != e;
-                                      ++i) {
-      //TODO:Actually remove useless dimensions                                  
-      size_t dim=*i;
-      JTRACE("")(dim);
-    }
+    removeUselessDimensions(uselessDimensions, matrix);
   }
 }
 

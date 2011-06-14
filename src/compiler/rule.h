@@ -62,7 +62,10 @@ struct RulePriCmp
 {
   bool operator()(const RulePtr& r1, const RulePtr& r2) const;
 };
-typedef std::set<RulePtr, RulePriCmp> RuleSet;
+
+class RuleSet : public std::set<RulePtr, RulePriCmp> {
+  void removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension);
+};
 
 /**
  * Priority/rotation flags for a Rule
@@ -184,6 +187,10 @@ public:
   
   DataDependencyVectorMap& getDataDependencyVectorMap() {return _dataDependencyVectorMap; }
   
+  ///Remove the specified dimension from every reference to the given matrix 
+  ///that appears inside this rule
+  virtual void removeDimensionFromMatrix(const MatrixDefPtr, const size_t) {};
+
 protected:
   int _id;
   SimpleRegionPtr _applicableRegion;

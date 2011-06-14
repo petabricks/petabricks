@@ -297,6 +297,8 @@ private:
 
 private:
   void removeUselessDimensions();
+  void removeUselessDimensions(std::vector<size_t> uselessDimensions, 
+                               MatrixDefPtr matrix);
   void importDataDepsFromRule(RulePtr& rule);
   std::vector<size_t> findUselessDimensions(DataDependencySet matrixDependencies);
   
@@ -319,7 +321,9 @@ private:
 
   std::string _dbgpath;
   
-  GlobalDataDependencyMap _globalDataDependencyMap;
+  GlobalDataDependencyMap _globalDataDependencyMap; /**< Populated by
+                                                     * importDataDepsFromRule
+                                                     */
 };
 
 }

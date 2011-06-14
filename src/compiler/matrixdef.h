@@ -157,6 +157,14 @@ public:
 
   void addType(Type t){  _type |= t; }
   bool isAllInput() const { return _type == T_FROM; }
+  
+  void removeDimension(size_t dim) {
+    _size.erase(_size.begin() + dim);
+  }
+  
+  FormulaList& getSize() { return _size; } //TODO: for debug only. REMOVE before commit
+  
+  
 private:
   std::string _name;
   FormulaList _version;

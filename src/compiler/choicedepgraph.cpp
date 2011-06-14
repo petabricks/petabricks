@@ -198,6 +198,22 @@ void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans,
   //TODO deps for slice // dynamic version
 }
 
+void petabricks::BasicChoiceDepGraphNode::removeDimensionFromRegions(
+                                                          MatrixDefPtr matrix, 
+                                                          size_t dimension) {
+  
+  if(this->matrix() == matrix) {
+    //Remove dimension from the region directly associated with the node 
+    this->region()->removeDimension(dimension);
+  }
+  
+  //Remove dimension from the regions manipulated by the rules of the node
+  for(RuleSet::iterator i=_choices.begin(), e=_choices.end(); i!=e; ++i) {
+    RulePtr rule = *i;
+    rule->removeDimensionFromMatrix(matrix, dimension);
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
@@ -353,4 +369,19 @@ void petabricks::SlicedChoiceDepGraphNode::generateCode(Transform& trans, CodeGe
   }
 }
 
+void petabricks::ChoiceDepGraphNodeList::removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension) {
+  for(ChoiceDepGraphNodeList::iterator i=begin(), e=end(); i!=e; ++i) {
+    BasicChoiceDepGraphNode& basicChoiceDepGraphNode = dynamic_cast<BasicChoiceDepGraphNode&> (**i);
+    
+    JTRACE("Sonno")(basicChoiceDepGraphNode.region());
+    /*if(basicChoiceDepGraphNode.matrix() != matrix) {
+      continue;
+    }*/
+    
+    basicChoiceDepGraphNode.removeDimensionFromRegions(matrix, dimension);
+
+    JTRACE("Sonno2")(basicChoiceDepGraphNode.region());
+    //TODO: Need to remove the dimension from somewhere else (inside the rules?)
+  }
+}
 

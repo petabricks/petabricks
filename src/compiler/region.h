@@ -85,7 +85,17 @@ public:
     _minCoord.push_back(min);
     _maxCoord.push_back(max);
   }
-
+  
+  ///Remove the given dimension from the region
+  void removeDimension(const size_t dimension) {
+    JTRACE("LaRegione")(minCoord().toString())(maxCoord().toString());
+    CoordinateFormula& minCoordVector = minCoord();
+    minCoordVector.erase(minCoordVector.begin()+dimension);
+    
+    CoordinateFormula& maxCoordVector = maxCoord();
+    maxCoordVector.erase(maxCoordVector.begin()+dimension);    
+  }
+  
   void offsetMaxBy(const FormulaPtr& val){
     for(CoordinateFormula::iterator i=_maxCoord.begin(); i!=_maxCoord.end(); ++i)
       *i = new FormulaAdd(*i, val);

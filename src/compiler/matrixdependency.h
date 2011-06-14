@@ -70,16 +70,21 @@ public:
   /// Add a dependency in a given direction on a given dimension
   void addDirection(size_t dim, DirectionT dir);
 
+  void addDirection(const DependencyDirection& that){
+    *this=DependencyDirection(*this,that);
+  }
+
+  ///
+  /// Remove a dependency on the given dimension
+  void removeDimension(const size_t dimension);
+  
   void print(std::ostream& o) const;
 
   size_t size() const;
 
   DirectionT operator[](size_t dim) const ;
 
-  void addDirection(const DependencyDirection& that){
-    *this=DependencyDirection(*this,that);
-  }
-
+  
   bool operator!= ( const DependencyDirection& that ) const {
      return _directionMask!=that._directionMask;
   }
@@ -119,6 +124,9 @@ public:
   const SimpleRegionPtr& region() const { return _region; }
 
   const DependencyDirection& direction() const { return _direction; }
+  
+  void removeDimension(const size_t dimension);
+  
 private:
   DependencyDirection _direction;
   SimpleRegionPtr     _region;

@@ -246,7 +246,12 @@ public:
     return _bodyirStatic;
   }
 
-  void buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional);
+  void buildApplicableRegion(Transform& trans,
+                             SimpleRegionPtr& ar, 
+                             bool allowOptional);
+                                     
+  virtual void removeDimensionFromMatrix(const MatrixDefPtr matrix, 
+                                          const size_t dimension);
   
 private:
   void computeDataDependencyVector();
@@ -254,7 +259,16 @@ private:
                                            const RegionPtr outputRegion
                                           ) const;
   void computeDDVForGivenOutput(const RegionPtr outputRegion);
-                                
+  
+  void removeDimensionFromRegionList(RegionList& list,
+                                     const MatrixDefPtr matrix, 
+                                     const size_t dimension);
+  
+  void removeDimensionFromMatrixDependencyMap(MatrixDependencyMap& map,
+                                              const MatrixDefPtr matrix,
+                                              const size_t dimension);                                
+                                              
+  void removeDimensionFromDefinitions(const size_t dimension);
 private:
   RuleFlags _flags;
   RegionList _from;

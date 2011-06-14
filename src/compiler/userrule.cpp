@@ -285,6 +285,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
   {
     FormulaListPtr v = MaximaWrapper::instance().solve(centerEqs, *i);
     JASSERT(v->size()>0)(v)(*i).Text("failed to solve for i in v");
+    JTRACE("Mah")(v);
     _definitions.push_back( trimImpossible(v) );
   }
 
@@ -480,8 +481,9 @@ void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& ou
 
 void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
   SRCPOSSCOPE();
-
+  JTRACE("Pluto");
   if(isRecursive()){
+    JTRACE("Paperino");
     o.beginClass(implcodename(trans)+TX_DYNAMIC_POSTFIX, "petabricks::RuleInstance");
 
     for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -526,7 +528,7 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
 
     o.endClass();
   }
-  
+  JTRACE("Topolino")(*this);
   std::vector<std::string> args;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     args.push_back((*i)->generateSignatureCode(false));
@@ -1052,6 +1054,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
 #endif
 
 void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
+  o.comment("Pippo");
   SRCPOSSCOPE();
 #if HAVE_OPENCL
   JASSERT( RuleFlavor::OPENCL != flavor );
@@ -1110,8 +1113,10 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
 
 int petabricks::UserRule::dimensions() const {
 //   return (int)_applicableRegion->dimensions();
+  JTRACE("Chiavi")(*this);
   int m=0;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    JTRACE("Regione:")(*i)((*i)->dimensions());
     m=std::max(m, (int)(*i)->dimensions());
   }
   return m;
@@ -1173,12 +1178,16 @@ petabricks::DependencyDirection petabricks::UserRule::getSelfDependency() const 
      ; p!=_provides.end()
      ; ++p)
   {
+    JTRACE("booo1")(rv);    
     MatrixDependencyMap::const_iterator d = _depends.find(p->first);
     if(d!=_depends.end()){
       const DependencyDirection& dir = d->second->direction();
+      JTRACE("dir")(dir);
       rv.addDirection(dir);
     }
+    JTRACE("booo2")(rv);
   }
+  JTRACE("buuuu")(rv);
   return rv;
 }
 
@@ -1230,6 +1239,72 @@ size_t petabricks::UserRule::getDuplicateNumber() {
     lastRange = dv.range();
   }
   return c;
+}
+
+
+void petabricks::UserRule::removeDimensionFromRegionList(RegionList& list, 
+                                                     const MatrixDefPtr matrix, 
+                                                     const size_t dimension) {
+  for(RegionList::iterator i=list.begin(), e=list.end(); i!=e; ++i) {
+    RegionPtr region = *i;
+    
+    JTRACE("Considering")(region);
+    const MatrixDefPtr& fromMatrix = region->matrix();
+    
+    if(fromMatrix != matrix) {
+      continue;
+    }
+    
+    region->removeDimension(dimension);
+    JTRACE("That becomes")(region);
+  }
+}
+
+
+void petabricks::UserRule::removeDimensionFromMatrixDependencyMap(MatrixDependencyMap& map,
+                                                      const MatrixDefPtr matrix,
+                                                      const size_t dimension) {
+  MatrixDependencyMap::iterator dependencyIterator = map.find(matrix);
+  if(dependencyIterator == map.end()) {
+    //No dependencies to remove
+    return;
+  }
+
+  MatrixDependencyPtr dependency = dependencyIterator->second;
+  
+  dependency->removeDimension(dimension);
+}
+
+
+void petabricks::UserRule::removeDimensionFromDefinitions(const size_t dimension) {
+  FormulaPtr offsetVar = getOffsetVar(dimension);
+  
+  for(FormulaList::iterator i=_definitions.begin(), e=_definitions.end();
+      i != e;
+      ++i) {
+    FormulaPtr definition = *i;
+    FormulaPtr definingVar = definition->rhs();
+    if(definingVar->toString() != offsetVar->toString()) {
+      //It's not the variable we are looking for
+      continue;
+    }
+    
+    //It's the variable we are looking for
+    //Let's erase it!
+    _definitions.erase(i);
+    return;
+  }
+}
+
+
+void petabricks::UserRule::removeDimensionFromMatrix(const MatrixDefPtr matrix,
+                                                      const size_t dimension) {
+  removeDimensionFromRegionList(_to, matrix, dimension);
+  removeDimensionFromRegionList(_from, matrix, dimension);
+  //TODO: matrixdeflist _through???
+  
+  removeDimensionFromMatrixDependencyMap(_depends, matrix, dimension);
+  removeDimensionFromDefinitions(dimension);
 }
 
 void petabricks::DataDependencyVectorMap::print(std::ostream& o) const {
