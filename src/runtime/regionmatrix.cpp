@@ -358,6 +358,7 @@ void RegionMatrix::removeMovingBuffer(uint16_t index) {
   RegionMatrix::movingBuffer.erase(index);
   pthread_mutex_unlock(&RegionMatrix::movingBuffer_mux);
 }
+
 /*
 void RegionMatrix::updateHandlerChain() {
   RegionDataIPtr regionData = this->acquireRegionDataConst();
@@ -372,33 +373,12 @@ void RegionMatrix::updateHandlerChain() {
     } else if (reply->numHops > 1) {
       // create a direct connection to data
 
-
-<<<<<<< HEAD
-=======
-void RegionMatrix::updateHandlerChain() {
-  RegionDataIPtr regionData = this->acquireRegionDataConst();
-  if (regionData->type() == RegionDataTypes::REGIONDATAREMOTE) {
-    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage* reply =
-      ((RegionDataRemote*)regionData.asPtr())->updateHandlerChain();
-    JTRACE("updatehandler")(reply->dataHost)(reply->numHops);
-
-    if (reply->dataHost == HostPid::self()) {
-      // data is in the same process
-
-    } else if (reply->numHops > 1) {
-      // create a direct connection to data
-
-
->>>>>>> 413c563116a0accd509f5e462c82c55278e392af
     }
   }
   this->releaseRegionDataConst();
 }
-<<<<<<< HEAD
 */
-=======
 
->>>>>>> 413c563116a0accd509f5e462c82c55278e392af
 //
 // Convert a coord to the one in _regionData
 //
