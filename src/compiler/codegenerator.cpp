@@ -309,8 +309,9 @@ void petabricks::CodeGenerator::mergehelpers(){
 void petabricks::CodeGenerator::callSpatial(const std::string& methodname, const SimpleRegion& region) {
   write("{");
   incIndent();
-  write("IndexT _tmp_begin[] = {" + region.minCoord().toString() + "};");
-  write("IndexT _tmp_end[] = {"   + region.maxCoord().toString() + "};");
+  comment("MARKER 3");
+  write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
+  write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
   write(methodname+"(_tmp_begin, _tmp_end);");
   decIndent();
   write("}");

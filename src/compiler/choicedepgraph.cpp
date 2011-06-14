@@ -373,15 +373,8 @@ void petabricks::ChoiceDepGraphNodeList::removeDimensionFromRegions(MatrixDefPtr
   for(ChoiceDepGraphNodeList::iterator i=begin(), e=end(); i!=e; ++i) {
     BasicChoiceDepGraphNode& basicChoiceDepGraphNode = dynamic_cast<BasicChoiceDepGraphNode&> (**i);
     
-    JTRACE("Sonno")(basicChoiceDepGraphNode.region());
-    /*if(basicChoiceDepGraphNode.matrix() != matrix) {
-      continue;
-    }*/
-    
     basicChoiceDepGraphNode.removeDimensionFromRegions(matrix, dimension);
 
-    JTRACE("Sonno2")(basicChoiceDepGraphNode.region());
-    //TODO: Need to remove the dimension from somewhere else (inside the rules?)
   }
 }
 

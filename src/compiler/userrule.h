@@ -177,8 +177,13 @@ public:
 
   FormulaPtr getSizeOfRuleIn(int d){
     for(size_t i=0; i<_to.size(); ++i){
-      if(d < (int)_to[i]->dimensions()){
+      if(_to[i]->isExistingDimension(d)){
         return _to[i]->getSizeOfRuleIn(d);
+      }
+    }
+    for(size_t i=0; i<_to.size(); ++i){
+      if(_to[i]->isRemovedDimension(d)){
+        return _to[i]->getSizeOfRuleInRemovedDimension(d);
       }
     }
     JASSERT(false)(d)(_id);

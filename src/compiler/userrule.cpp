@@ -1054,7 +1054,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
 #endif
 
 void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
-  o.comment("Pippo");
+  o.comment("MARKER 4");
   SRCPOSSCOPE();
 #if HAVE_OPENCL
   JASSERT( RuleFlavor::OPENCL != flavor );
@@ -1096,6 +1096,7 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor){
   SRCPOSSCOPE();
+  o.comment("MARKER 2");
   switch(flavor) {
   case RuleFlavor::SEQUENTIAL:
     o.callSpatial(trampcodename(trans)+TX_STATIC_POSTFIX, region);
@@ -1269,7 +1270,7 @@ void petabricks::UserRule::removeDimensionFromMatrixDependencyMap(MatrixDependen
     //No dependencies to remove
     return;
   }
-
+  
   MatrixDependencyPtr dependency = dependencyIterator->second;
   
   dependency->removeDimension(dimension);
@@ -1301,9 +1302,8 @@ void petabricks::UserRule::removeDimensionFromMatrix(const MatrixDefPtr matrix,
                                                       const size_t dimension) {
   removeDimensionFromRegionList(_to, matrix, dimension);
   removeDimensionFromRegionList(_from, matrix, dimension);
-  //TODO: matrixdeflist _through???
   
-  removeDimensionFromMatrixDependencyMap(_depends, matrix, dimension);
+  //removeDimensionFromMatrixDependencyMap(_depends, matrix, dimension); //TODO: remove call & function?
   removeDimensionFromDefinitions(dimension);
 }
 

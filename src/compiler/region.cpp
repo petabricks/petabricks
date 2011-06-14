@@ -207,6 +207,27 @@ void petabricks::SimpleRegion::print(std::ostream& o) const {
   o << _minCoord << ", " << _maxCoord;
 }
 
+std::string petabricks::SimpleRegion::getIterationLowerBounds() const {
+  std::string s = minCoord().toString();
+  
+  if(removedDimensions() == 0) {
+    return s;
+  }
+  
+  return s + ", " + _removedDimensions.minCoord.toString();
+}
+
+std::string petabricks::SimpleRegion::getIterationUpperBounds() const {
+  std::string s = maxCoord().toString();
+  
+  if(removedDimensions() == 0) {
+    return s;
+  }
+  
+  return s + ", " + _removedDimensions.maxCoord.toString();
+}
+
+  
 petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(Transform& tx, RuleInterface& rule, const FormulaList&, bool isOutput){
   CoordinateFormula min;
   CoordinateFormula max;
@@ -494,6 +515,17 @@ void petabricks::Region::assertNotInput(){
 petabricks::FormulaPtr petabricks::Region::getSizeOfRuleIn(int d) const{
   JASSERT((int)dimensions()>d)(dimensions())(d);
   return MaximaWrapper::instance().normalize(new FormulaSubtract(_maxCoord[d], _minCoord[d]));
+}
+
+petabricks::FormulaPtr petabricks::Region::getSizeOfRuleInRemovedDimension(int d) const {
+  JASSERT(isRemovedDimension(d))(d)(dimensions())(removedDimensions());
+  
+  size_t removedDimensionIndex= d-dimensions();
+  FormulaPtr maxCoord = _removedDimensions.maxCoord[removedDimensionIndex];
+  FormulaPtr minCoord = _removedDimensions.minCoord[removedDimensionIndex];
+  
+  return MaximaWrapper::instance().normalize(new FormulaSubtract(maxCoord, 
+                                                                 minCoord));
 }
 
 void  petabricks::Region::addArgToScope(RIRScope& scope) const {

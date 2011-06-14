@@ -300,7 +300,7 @@ private:
   void removeUselessDimensions(std::vector<size_t> uselessDimensions, 
                                MatrixDefPtr matrix);
   void importDataDepsFromRule(RulePtr& rule);
-  std::vector<size_t> findUselessDimensions(DataDependencySet matrixDependencies);
+  std::vector<size_t> findUselessDimensions(const DataDependencySet matrixDependencies) const;
   
 private:
   //storage of nodes

@@ -87,6 +87,7 @@ void petabricks::Schedule::depthFirstChoiceDepGraphNode(SchedulingState& state, 
 
 void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   JASSERT(_schedule.size()>0);
+  o.comment("MARKER 1");
   for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
     if(i!=_schedule.begin() && flavor!=RuleFlavor::SEQUENTIAL)
       o.continuationPoint();
@@ -168,7 +169,7 @@ void petabricks::StaticScheduler::importDataDepsFromRule(RulePtr& rule) {
   }
 }
 
-std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(DataDependencySet matrixDependencies) {
+std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(const DataDependencySet matrixDependencies) const {
   
   size_t dimensions = (*(matrixDependencies.begin()))->size();
   
@@ -240,7 +241,6 @@ void petabricks::StaticScheduler::removeUselessDimensions() {
     
     std::vector<size_t> uselessDimensions = findUselessDimensions(
                                                           matrixDependencies);
-    
     removeUselessDimensions(uselessDimensions, matrix);
   }
 }
