@@ -4,6 +4,7 @@
 #include <string.h>
 #include "regiondata0D.h"
 #include "regiondataraw.h"
+#include "regiondataremote.h"
 #include "regiondatasplit.h"
 #include "regionmatrixproxy.h"
 
@@ -337,9 +338,13 @@ void RegionMatrix::updateHandler(uint16_t movingBufferIndex) {
     sched_yield();
   }
 
-  // TODO: lock region handler
   this->releaseRegionData();
-  _regionHandler->updateRegionData(RegionMatrix::movingBuffer[movingBufferIndex]);
+
+  // Create a new regionHandler. We cannot update the old one because it
+  // might be used by another regionmatrixproxy. e.g. 1 -> 2 -> 1
+  // (yod) TODO: Can update the handler if we don't reuse regionmatrix after moving it away.
+  //  _regionHandler->updateRegionData(RegionMatrix::movingBuffer[movingBufferIndex]);
+  _regionHandler = new RegionHandler(RegionMatrix::movingBuffer[movingBufferIndex]);
 }
 
 void RegionMatrix::addMovingBuffer(RegionDataIPtr remoteData, uint16_t index) {
@@ -352,6 +357,25 @@ void RegionMatrix::removeMovingBuffer(uint16_t index) {
   pthread_mutex_lock(&RegionMatrix::movingBuffer_mux);
   RegionMatrix::movingBuffer.erase(index);
   pthread_mutex_unlock(&RegionMatrix::movingBuffer_mux);
+}
+
+void RegionMatrix::updateHandlerChain() {
+  RegionDataIPtr regionData = this->acquireRegionDataConst();
+  if (regionData->type() == RegionDataTypes::REGIONDATAREMOTE) {
+    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage* reply =
+      ((RegionDataRemote*)regionData.asPtr())->updateHandlerChain();
+    JTRACE("updatehandler")(reply->dataHost)(reply->numHops);
+
+    if (reply->dataHost == HostPid::self()) {
+      // data is in the same process
+
+    } else if (reply->numHops > 1) {
+      // create a direct connection to data
+
+
+    }
+  }
+  this->releaseRegionDataConst();
 }
 
 //
