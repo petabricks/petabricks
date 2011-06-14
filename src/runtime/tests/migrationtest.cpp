@@ -46,12 +46,19 @@ int main(int argc, const char** argv){
     hdb.remotefork(NULL, argc, argv);
     hdb.accept();
     hdb.spawnListenThread();
+    hdb.spawnListenThread();
+    hdb.spawnListenThread();
+    hdb.spawnListenThread();
 
     // import data
     regionMatrix.importDataFromFile(filename);
     print(regionMatrix.dataHosts());
-
     JASSERT(regionMatrix._isLocal()).Text("Must be local.");
+
+
+    //
+    // Test 1 -> 2 -> 1
+    //
 
     regionMatrix.moveToRemoteHost(hdb.host(0), 1);
     printf("completed sending 1\n");
@@ -64,7 +71,15 @@ int main(int argc, const char** argv){
     regionMatrix.updateHandlerChain();
     JASSERT(regionMatrix._isLocal()).Text("Must be local.");
 
-    printf("Done!\n");
+    printf("==== 1 -> 2 -> 1 Done ====\n");
+
+    //
+    // Test 1 -> 2 -> 1 -> 2
+    //
+
+    regionMatrix.moveToRemoteHost(hdb.host(0), 3);
+    regionMatrix.updateHandler(4);
+    regionMatrix.moveToRemoteHost(hdb.host(0), 5);
 
     hdb.listenLoop();
     return 0;
@@ -74,6 +89,13 @@ int main(int argc, const char** argv){
     JASSERT(argc==3);
     hdb.connect(argv[1], jalib::StringToInt(argv[2]));
     hdb.spawnListenThread();
+    hdb.spawnListenThread();
+    hdb.spawnListenThread();
+    hdb.spawnListenThread();
+
+    //
+    // Test 1 -> 2 -> 1
+    //
 
     // Wait until process1 send matrix here
     regionMatrix.updateHandler(1);
@@ -86,6 +108,20 @@ int main(int argc, const char** argv){
     // Move it back to process1
     regionMatrix.moveToRemoteHost(hdb.host(0), 2);
     printf("completed sending 2\n");
+
+    //
+    // Test 1 -> 2 -> 1 -> 2
+    //
+
+    regionMatrix.updateHandler(3);
+    regionMatrix.moveToRemoteHost(hdb.host(0), 4);
+    regionMatrix.updateHandler(5);
+
+    regionMatrix.updateHandlerChain();
+
+
+    printf("==== 1 -> 2 -> 1 -> 2 Done ====\n");
+
 
     hdb.listenLoop();
     return 0;

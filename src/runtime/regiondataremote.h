@@ -54,6 +54,7 @@ namespace petabricks {
     struct UpdateHandlerChainMessage {
       MessageType type;
       HostPid requester;
+      int numHops;
     };
 
     struct UpdateHandlerChainReplyMessage {

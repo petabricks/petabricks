@@ -41,12 +41,16 @@ RegionMatrix::RegionMatrix(int dimensions, ElementT value) {
 }
 
 RegionMatrix::RegionMatrix(int dimensions, IndexT* size) {
-  init(dimensions, size);
+  RegionDataIPtr regionData = new RegionDataRaw(dimensions, size);
+  init(dimensions, size, new RegionHandler(regionData));
 }
 
-void RegionMatrix::init(int dimensions, IndexT* size) {
-  RegionDataIPtr regionData = new RegionDataRaw(dimensions, size);
-  _regionHandler = new RegionHandler(regionData);
+RegionMatrix::RegionMatrix(int dimensions, IndexT* size, RegionHandlerPtr handler) {
+  init(dimensions, size, handler);
+}
+
+void RegionMatrix::init(int dimensions, IndexT* size, RegionHandlerPtr handler) {
+  _regionHandler = handler;
 
   _D = dimensions;
   _size = new IndexT[_D];
@@ -366,15 +370,16 @@ void RegionMatrix::updateHandlerChain() {
       ((RegionDataRemote*)regionData.asPtr())->updateHandlerChain();
     JTRACE("updatehandler")(reply->dataHost)(reply->numHops)(reply->regionData.asPtr());
 
+    // (yod) TODO: similar to updateHandler. we may be able to just update handler
     if (reply->dataHost == HostPid::self()) {
-      // data is in the same process
+      // Data is in the same process. Update handler to point directly to the data.
       this->releaseRegionData();
-
-      // (yod) TODO: similar to updateHandler
       _regionHandler = new RegionHandler(reply->regionData);
     } else if (reply->numHops > 1) {
-      // create a direct connection to data
+      // Multiple network hops to data. Create a direct connection to data.
 
+      // (yod) TODO:
+      //this->updateHandler(999);
     }
   }
   this->releaseRegionDataConst();

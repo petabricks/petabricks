@@ -30,6 +30,7 @@ namespace petabricks {
     RegionMatrix(int dimensions);
     RegionMatrix(int dimensions, ElementT value);
     RegionMatrix(int dimensions, IndexT* size);
+    RegionMatrix(int dimensions, IndexT* size, RegionHandlerPtr handler);
 
     RegionMatrix(RegionHandlerPtr handler, int dimensions, IndexT* size,
 		 IndexT* splitOffset, int numSliceDimensions,
@@ -41,7 +42,7 @@ namespace petabricks {
 
     ~RegionMatrix();
 
-    void init(int dimensions, IndexT* size);
+    void init(int dimensions, IndexT* size, RegionHandlerPtr handler);
     void copy(const RegionMatrix& that);
 
     void splitData(IndexT* splitSize);

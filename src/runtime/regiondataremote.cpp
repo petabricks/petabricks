@@ -92,9 +92,9 @@ DataHostList RegionDataRemote::hosts(IndexT* begin, IndexT* end) {
 }
 
 UpdateHandlerChainReplyMessage* RegionDataRemote::updateHandlerChain(UpdateHandlerChainMessage* msg) {
+  msg->numHops += 1;
   UpdateHandlerChainReplyMessage* reply =
     (UpdateHandlerChainReplyMessage*)this->fetchData(msg, sizeof *msg);
-  reply->numHops += 1;
   return reply;
 }
 
@@ -102,6 +102,7 @@ UpdateHandlerChainReplyMessage* RegionDataRemote::updateHandlerChain() {
   UpdateHandlerChainMessage* msg = new UpdateHandlerChainMessage();
   msg->type = MessageTypes::UPDATEHANDLERCHAIN;
   msg->requester = HostPid::self();
+  msg->numHops = 0;
   UpdateHandlerChainReplyMessage* reply = this->updateHandlerChain(msg);
   delete msg;
   return reply;

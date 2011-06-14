@@ -1,6 +1,8 @@
 #include "regionmatrixproxy.h"
 
 #include "common/jassert.h"
+#include "common/jconvert.h"
+#include "regionmatrix.h"
 
 using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
@@ -55,7 +57,7 @@ void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::Up
   } else {
     reply = new UpdateHandlerChainReplyMessage();
     reply->dataHost = HostPid::self();
-    reply->numHops = 0;
+    reply->numHops = msg->numHops;
     reply->regionData = regionData;
   }
 
@@ -64,6 +66,17 @@ void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::Up
   if (regionData->type() != RegionDataTypes::REGIONDATAREMOTE) {
     delete reply;
   }
+
+  if ((msg->requester != HostPid::self()) && (msg->numHops > 1)) {
+    // (yod) TODO:
+    RegionMatrix regionMatrix = RegionMatrix(_D, regionData->size(), new RegionHandler(regionData));
+    /*
+    RemoteHostDB hdb;
+    hdb.connect(jalib::XToString(msg->requester.hostid).c_str(), msg->requester.pid);
+    regionMatrix.moveToRemoteHost(hdb.host(0), 999);
+    */
+  }
+
   this->releaseRegionDataConst();
 }
 
