@@ -358,7 +358,7 @@ void RegionMatrix::removeMovingBuffer(uint16_t index) {
   RegionMatrix::movingBuffer.erase(index);
   pthread_mutex_unlock(&RegionMatrix::movingBuffer_mux);
 }
-
+/*
 void RegionMatrix::updateHandlerChain() {
   RegionDataIPtr regionData = this->acquireRegionDataConst();
   if (regionData->type() == RegionDataTypes::REGIONDATAREMOTE) {
@@ -377,7 +377,7 @@ void RegionMatrix::updateHandlerChain() {
   }
   this->releaseRegionDataConst();
 }
-
+*/
 //
 // Convert a coord to the one in _regionData
 //
