@@ -12,34 +12,25 @@ RegionMatrixProxy::RegionMatrixProxy(RegionHandlerPtr regionHandler) {
 }
 
 ElementT RegionMatrixProxy::readCell(const IndexT* coord) {
-  return _regionData->readCell(coord);
+  return _regionHandler->readCell(coord);
 }
 
 void RegionMatrixProxy::writeCell(const IndexT* coord, ElementT value) {
-  _regionData->writeCell(coord, value);
+  _regionHandler->writeCell(coord, value);
 }
 
 void RegionMatrixProxy::processReadCellMsg(ReadCellMessage* msg) {
-  // TODO: add acquire/release regiondata methods
-  this->acquireRegionData();
   ElementT cell = this->readCell(msg->coord);
-  this->releaseRegionData();
-
   _remoteObject->send(&cell, sizeof(ElementT));
 }
 
 void RegionMatrixProxy::processWriteCellMsg(WriteCellMessage* msg) {
-  // TODO: add acquire/release regiondata methods
-  this->acquireRegionData();
   this->writeCell(msg->coord, msg->value);
-  this->releaseRegionData();
-
   _remoteObject->send(&msg->value, sizeof(ElementT));
 }
 
 void RegionMatrixProxy::processGetHostListMsg(GetHostListMessage* msg) {
-  DataHostList list = this->acquireRegionDataConst()->hosts(msg->begin, msg->end);
-  this->releaseRegionDataConst();
+  DataHostList list = _regionHandler->hosts(msg->begin, msg->end);
   int hosts_array_size = list.size() * sizeof(DataHostListItem);
   GetHostListReplyMessage* reply = (GetHostListReplyMessage*)malloc(sizeof(GetHostListReplyMessage) + hosts_array_size);
   reply->numHosts = list.size();
@@ -49,7 +40,7 @@ void RegionMatrixProxy::processGetHostListMsg(GetHostListMessage* msg) {
 }
 
 void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::UpdateHandlerChainMessage* msg) {
-  RegionDataIPtr regionData = this->acquireRegionDataConst();
+  RegionDataIPtr regionData = _regionHandler->getRegionData();
   UpdateHandlerChainReplyMessage* reply;
 
   if (regionData->type() == RegionDataTypes::REGIONDATAREMOTE) {
@@ -76,8 +67,6 @@ void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::Up
     regionMatrix.moveToRemoteHost(hdb.host(0), 999);
     */
   }
-
-  this->releaseRegionDataConst();
 }
 
 void RegionMatrixProxy::onRecv(const void* data, size_t len) {

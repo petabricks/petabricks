@@ -37,14 +37,11 @@ namespace petabricks {
     }
 
     operator double () const {
-      double val = _handler->acquireRegionData(this)->readCell(_index);
-      _handler->releaseRegionData(this);
-      return val;
+      return _handler->readCell(_index);
     }
 
     CellProxy operator=(double val) {
-      _handler->acquireRegionData(this)->writeCell(_index, val);
-      _handler->releaseRegionData(this);
+      _handler->writeCell(_index, val);
       return *this;
     }
 

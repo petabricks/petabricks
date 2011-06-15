@@ -112,9 +112,7 @@ int main(int argc, const char** argv){
     // Assign a chunk of data to remote host
     //   - put part 0 in hdb.host(0)
     //   - the other parts are created locally
-    regionMatrix.acquireRegionData();
     regionMatrix.createDataPart(0, hdb.host(0));
-    regionMatrix.releaseRegionData();
 
     // import data
     regionMatrix.importDataFromFile(filename);
@@ -124,14 +122,10 @@ int main(int argc, const char** argv){
 
     print(regionMatrix.dataHosts());
 
-    regionMatrix.acquireRegionData();
-
     CellProxy& cell = regionMatrix.cell(m257);
     printf("before %4.8g\n", (double) cell);
     cell = 5;
     printf("after %4.8g\n", (double) cell);
-
-    regionMatrix.releaseRegionData();
 
     // Test split
     RegionMatrix3D split3 = regionMatrix.region(m123, m456);
@@ -180,8 +174,6 @@ int main(int argc, const char** argv){
 
     regionMatrix.updateHandlerChain();
 
-    regionMatrix.acquireRegionData();
-
     printf("cell %4.8g\n", (double) regionMatrix.cell(m257));
     printf("cell %4.8g\n", (double) regionMatrix.cell(m0));
     printf("cell %4.8g\n", (double) regionMatrix.cell(m1));
@@ -190,8 +182,6 @@ int main(int argc, const char** argv){
 
     regionMatrix.cell(m257) = 123;
     printf("cell %4.8g\n", (double) regionMatrix.cell(m257));
-
-    regionMatrix.releaseRegionData();
 
     // Test split
     RegionMatrix3D rsplit3 = regionMatrix.region(m123, m456);

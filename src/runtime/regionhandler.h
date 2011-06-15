@@ -17,12 +17,18 @@ namespace petabricks {
   public:
     RegionHandler(RegionDataIPtr regionData);
 
-    RegionDataIPtr acquireRegionData(const void* caller);
-    void releaseRegionData(const void* caller);
+    ElementT readCell(const IndexT* coord);
+    void writeCell(const IndexT* coord, ElementT value);
 
+    int allocData();
+
+    RegionDataIPtr getRegionData();
     void updateRegionData(RegionDataIPtr regionData);
 
+    DataHostList hosts(IndexT* begin, IndexT* end);
+
     int dimensions();
+    RegionDataType type() const;
   };
 }
 

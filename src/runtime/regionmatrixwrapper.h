@@ -16,15 +16,13 @@ namespace petabricks {
     RegionMatrixWrapper(ElementT* data, IndexT* size) : RegionMatrix(D, size) {
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
-      this->acquireRegionData();
-      _regionData->allocData();
+      _regionHandler->allocData();
 
       IndexT i = 0;
       do {
 	this->writeCell(coord, data[i]);
 	i++;
       } while (this->incCoord(coord) >= 0);
-      this->releaseRegionData();
     }
 
     RegionMatrixWrapper(const RegionMatrix& that) : RegionMatrix(that) {}
@@ -138,33 +136,28 @@ namespace petabricks {
     void randomize() {
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
-      this->acquireRegionData();
       do {
         this->writeCell(coord, this->rand());
       } while (this->incCoord(coord) >= 0);
-      this->releaseRegionData();
     }
 
     void hash(jalib::HashGenerator& gen) {
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
-      this->acquireRegionData();
       do {
         ElementT v = this->readCell(coord);
         gen.update(&v, sizeof(ElementT));
       } while (this->incCoord(coord) >= 0);
-      this->releaseRegionData();
     }
 
     bool _isLocal() const {
-      RegionDataIPtr regionData = this->acquireRegionDataConst();
-      return regionData->type() == RegionDataTypes::REGIONDATARAW;
+      return _regionHandler->type() == RegionDataTypes::REGIONDATARAW;
     }
     MatrixRegion<D, const ElementT> _toLocalConstRegion() const {
       return _toLocalRegion();
     }
     MatrixRegion<D, ElementT> _toLocalRegion() const {
-      RegionDataIPtr regionData = this->acquireRegionDataConst();
+      RegionDataIPtr regionData = _regionHandler->getRegionData();
       JASSERT(regionData->type() == RegionDataTypes::REGIONDATARAW).Text("Cannot cast to MatrixRegion.");
 
       IndexT startOffset = 0;
@@ -190,9 +183,6 @@ namespace petabricks {
 
       MatrixRegion<D, ElementT> matrixRegion =
         MatrixRegion<D, ElementT>(regionData->storage(), regionData->storage()->data() + startOffset, _size, multipliers);
-
-
-      this->releaseRegionDataConst();
 
       if (_isTransposed) {
         matrixRegion = matrixRegion.transposed();
