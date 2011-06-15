@@ -175,7 +175,12 @@ namespace petabricks {
       }
     }
 
-    MatrixStoragePtr storage() const { UNIMPLEMENTED(); return NULL; }
+    MatrixStoragePtr storage() const { 
+      if(isLocal())
+        return _toLocalRegion().storage();
+      UNIMPLEMENTED();
+      return NULL;
+    }
 
     bool isLocal() const {
       return _regionHandler->type() == RegionDataTypes::REGIONDATARAW;
