@@ -29,35 +29,52 @@ namespace petabricks {
       IndexT size[MAX_DIMENSIONS];
     };
 
-    struct ReadCellMessage {
+    struct MessageHeader {
       MessageType type;
+      void* response;
+    };
+
+    struct ReadCellMessage {
+      struct MessageHeader header;
       IndexT coord[MAX_DIMENSIONS];
     };
 
     struct WriteCellMessage {
-      MessageType type;
+      struct MessageHeader header;
       ElementT value;
       IndexT coord[MAX_DIMENSIONS];
     };
 
     struct GetHostListMessage {
-      MessageType type;
+      struct MessageHeader header;
       IndexT begin[MAX_DIMENSIONS];
       IndexT end[MAX_DIMENSIONS];
     };
 
-    struct GetHostListReplyMessage {
-      int numHosts;
-      DataHostListItem hosts[];
-    };
-
     struct UpdateHandlerChainMessage {
-      MessageType type;
+      struct MessageHeader header;
       HostPid requester;
       int numHops;
     };
 
+    struct ReadCellReplyMessage {
+      void* response;
+      ElementT value;
+    };
+
+    struct WriteCellReplyMessage {
+      void* response;
+      ElementT value;
+    };
+
+    struct GetHostListReplyMessage {
+      void* response;
+      int numHosts;
+      DataHostListItem hosts[];
+    };
+
     struct UpdateHandlerChainReplyMessage {
+      void* response;
       HostPid dataHost;
       int numHops;
       RegionDataIPtr regionData;
@@ -70,12 +87,6 @@ namespace petabricks {
   class RegionDataRemote : public RegionDataI {
   private:
     RemoteObjectPtr _remoteObject;
-    pthread_mutex_t _seq_mux;
-    pthread_mutex_t _buffer_mux;
-    pthread_cond_t _buffer_cond;
-    uint16_t _seq;
-    uint16_t _recv_seq;
-    std::map<uint16_t, void*> _buffer;
 
   public:
     RegionDataRemote(int dimensions, IndexT* size, RemoteObjectPtr remoteObject);

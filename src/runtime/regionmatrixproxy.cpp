@@ -20,26 +20,37 @@ void RegionMatrixProxy::writeCell(const IndexT* coord, ElementT value) {
 }
 
 void RegionMatrixProxy::processReadCellMsg(ReadCellMessage* msg) {
-  ElementT cell = this->readCell(msg->coord);
-  _remoteObject->send(&cell, sizeof(ElementT));
+  ReadCellReplyMessage* reply = new ReadCellReplyMessage();
+  reply->response = msg->header.response;
+  reply->value = this->readCell(msg->coord);
+  _remoteObject->send(reply, sizeof(ReadCellReplyMessage));
+  delete reply;
 }
 
 void RegionMatrixProxy::processWriteCellMsg(WriteCellMessage* msg) {
   this->writeCell(msg->coord, msg->value);
-  _remoteObject->send(&msg->value, sizeof(ElementT));
+
+  WriteCellReplyMessage* reply = new WriteCellReplyMessage();
+  reply->response = msg->header.response;
+  reply->value = msg->value;
+  _remoteObject->send(reply, sizeof(WriteCellReplyMessage));
+  delete reply;
 }
 
 void RegionMatrixProxy::processGetHostListMsg(GetHostListMessage* msg) {
   DataHostList list = _regionHandler->hosts(msg->begin, msg->end);
   int hosts_array_size = list.size() * sizeof(DataHostListItem);
   GetHostListReplyMessage* reply = (GetHostListReplyMessage*)malloc(sizeof(GetHostListReplyMessage) + hosts_array_size);
+  reply->response = msg->header.response;
   reply->numHosts = list.size();
   memcpy(reply->hosts, &list[0], hosts_array_size);
   _remoteObject->send(reply, sizeof(GetHostListReplyMessage) + hosts_array_size);
-  // ???(yod) delete reply;
+  // (yod)?? delete reply;
 }
 
 void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::UpdateHandlerChainMessage* msg) {
+  void* response = msg->header.response;
+
   RegionDataIPtr regionData = _regionHandler->getRegionData();
   UpdateHandlerChainReplyMessage* reply;
 
@@ -52,6 +63,7 @@ void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::Up
     reply->regionData = regionData;
   }
 
+  reply->response = response;
   _remoteObject->send(reply, sizeof(UpdateHandlerChainReplyMessage));
 
   if (regionData->type() != RegionDataTypes::REGIONDATAREMOTE) {
@@ -70,7 +82,7 @@ void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::Up
 }
 
 void RegionMatrixProxy::onRecv(const void* data, size_t len) {
-  switch(*(MessageType*)data) {
+  switch(((struct MessageHeader*)data)->type) {
   case MessageTypes::READCELL:
     JASSERT(len == sizeof(ReadCellMessage));
     this->processReadCellMsg((ReadCellMessage*)data);
@@ -88,7 +100,7 @@ void RegionMatrixProxy::onRecv(const void* data, size_t len) {
     this->processUpdateHandlerChainMsg((UpdateHandlerChainMessage*)data);
     break;
   default:
-    JASSERT(false).Text("Unknown RegionRemoteMsgTypes.");
+    JASSERT(false)(((struct MessageHeader*)data)->type).Text("Unknown RegionRemoteMsgTypes.");
   }
 }
 
