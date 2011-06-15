@@ -24,8 +24,7 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-
-//#define FORCE_OPENCL
+#define FORCE_OPENCL
 //#define OPENCL_LOGGING
 
 //#define TRACE(x) std::cout << "Trace " << x << "\n"
@@ -46,8 +45,6 @@
 #include <algorithm>
 #include <stdlib.h>
 #include <set>
-
-//TODO: get rid of outdated comments
 
 
 petabricks::UserRule::UserRule(const RegionPtr& to, const RegionList& from, const MatrixDefList& through, const FormulaList& cond)
@@ -149,10 +146,10 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       bodyir->accept(print);
       std::cerr << "--------------------\n";
 
-      /*if(!passBuildGpuProgram(tx)) {
+      if(!passBuildGpuProgram(tx)) {
 				std::cout << "(>) RULE REJECTED BY TryBuildGpuProgram: " << id() << "\n";
         failgpu = true;
-      }*/
+      }
     }
     catch( OpenClCleanupPass::NotValidSource e )
     {
@@ -631,49 +628,13 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   else if( RuleFlavor::OPENCL == flavor )
   {
     o.os() << "cl_int err;\n";
-    o.os() << "cl_kernel clkern = clkern_" << id() << ";\n";
+    o.os() << "cl_kernel clkern = " << trans.name() << "_instance::get_kernel_" << id() << "();\n";
 
     int arg_pos = 0;
 
     //o.os( ) << "printf( \"- TRACE 10\\n\" );\n";
 
-    /*
-    // check workspace continuity
-    RegionList::const_iterator output = _to.begin( );
-    o.os( ) << "if( ";
-    for( int i = 0; i < iterdef.dimensions( ) - 1; ++i ) // note that iterdef.dimensions( ) - 1
-    {
-      if(i > 0) {
-        o.os() << "&& ";
-      }
-      o.os( ) << "_iter_end[" << i << "]-_iter_begin[" << i << "] == ";
-      o.os( ) << (*output)->matrix( )->name( ) << ".size(" << i << ")";
-    }
-    o.os( ) << ") {";
-    // continuous
-    genBufferForContinuous(o);
-    o.os( ) << "} else {";
-    // discontinuous
-    genBufferForDiscontinuous(o);
-    o.os( ) << "}";*/
-
-    // Create memory objects for outputs
-
-
-    // Help implementing
-
-    /*o.os( ) << "std::cout << \"ITER_DEF =\" << std::endl;\n";
-    RegionList::const_iterator bug = _to.begin( );
-    for( int i = 0; i < iterdef.dimensions( ); ++i )
-    {
-      o.os( ) << "printf( \"" << i << ": %d - %d\\n\",";
-      o.os( ) << "_iter_begin[" << i << "],_iter_end[" << i << "] ";
-      o.os( ) << ");\n";
-    }*/
-
-		//if size == 0, return early
-
-    o.os( ) << "std::cerr << \"RUN GPU\" << std::endl;\n";
+    o.os( ) << "std::cerr << \"Prepare GPU\" << std::endl;\n";
 		o.os( ) << "if( ";
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
@@ -697,7 +658,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       if(matrix_it == set.end()) {
         set.insert(matrix_name);
         (*i)->setBuffer(true);
-        //o.os( ) << "std::cout << \"BEFORE EVERYTHING\" << std::endl;\n";
+        //o.os( ) << "std::cerr << \"BEFORE EVERYTHING\" << std::endl;\n";
         //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
 
         o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
@@ -706,12 +667,13 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
                 << "normalized_" << (*i)->name( ) << ".bytes( ),"
                 << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
-        //o.os( ) << "std::cout << \"" << (*i)->matrix( )->name( ) << "\" << std::endl;\n";
-        //o.os( ) << "std::cout << normalized_" << (*i)->name( ) << ".bytes( ) << std::endl;\n";
+        //o.os( ) << "std::cerr << \"" << (*i)->matrix( )->name( ) << "\" << std::endl;\n";
+        //o.os( ) << "std::cerr << normalized_" << (*i)->name( ) << ".bytes( ) << std::endl;\n";
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object\");\n";
 
         // Bind to kernel.
-        o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
+        o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
       }
       else {
         (*i)->setBuffer(false);
@@ -729,7 +691,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       if(matrix_it == set.end()) {
         set.insert(matrix_name);
         (*i)->setBuffer(true);
-        //o.os( ) << "std::cout << \"INPUT\" << std::endl;\n";
+        //o.os( ) << "std::cerr << \"INPUT\" << std::endl;\n";
         //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
 
         o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
@@ -748,18 +710,21 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       }
     }
 
+    // Pass config parameters
+    for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
+      if(i->shouldPass()) {
+        o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &" << i->name() << " );\n";
+      }
+    }
+
     RegionList::const_iterator output = _to.begin( );
     // Bind rule dimension arguments to kernel.
     for( int i = 0; i < iterdef.dimensions( ); ++i )
     {
-      //TODO: do we need this at all?
-      //o.os( ) << "int ruledim_" << i << " = _iter_end[" << i << "] - _iter_begin[" << i << "];\n";
       o.os( ) << "int ruledim_" << i << " = " << (*output)->matrix( )->name( ) << ".size(" << i << ");\n";
       o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
-      o.os( ) << "int ruledim_" << i << "_begin" << " = _iter_begin[" << i << "];\n";
-      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << "_begin" << " );\n";
-      o.os( ) << "int ruledim_" << i << "_end" << " = _iter_end[" << i << "];\n";
-      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << "_end" << " );\n";
+      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &_iter_begin[" << i << "]);\n";
+      o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &_iter_end[" << i << "]);\n";
     }
 
     // Bind matrix dimension arguments to kernel.
@@ -767,7 +732,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     for( RegionList::const_iterator it = _to.begin( ); it != _to.end( ); ++it )
     {
       if((*it)->isBuffer()) {
-        for( int i = 0; i < (int) (*it)->size() - 1 ; ++i ) {
+        for( int i = 0; i < (int) (*it)->size() - 1; ++i ) {
           o.os( ) << "int ruledim_out" << count << "_" << i << " = " << (*it)->matrix( )->name() << ".size(" << i << ");\n";
           o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_out" << count << "_" << i << " );\n";
         }
@@ -780,7 +745,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     for( RegionList::const_iterator it = _from.begin( ); it != _from.end( ); ++it )
     {
       if((*it)->isBuffer()) {
-        for( int i = 0; i < (int) (*it)->size() - 1 ; ++i ) {
+        for( int i = 0; i < (int) (*it)->size() - 1; ++i ) {
           o.os( ) << "int ruledim_in" << count << "_" << i << " = " << (*it)->matrix( )->name() << ".size(" << i << ");\n";
           o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_in" << count << "_" << i << " );\n";
         }
@@ -805,10 +770,14 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     }
     o.os( ) << "};\n";
 
+    o.os( ) << "std::cerr << \"RUN GPU\" << std::endl;\n";
+
     #ifdef OPENCL_LOGGING
     o.os( ) << "std::cout << \"Work dimensions: \" << workdim[0] << \" x \" << workdim[1] << \"\\n\";\n";
     #endif
     o.os( ) << "err = clEnqueueNDRangeKernel( OpenCLUtil::getQueue( 0 ), clkern, " << iterdef.dimensions( ) << ", 0, workdim, NULL, 0, NULL, NULL );\n";
+    //o.os( ) << "clFinish(OpenCLUtil::getQueue( 0 ));\n";
+    //o.os( ) << "std::cerr << \"After RUN\" << std::endl;\n";
     #ifndef OPENCL_LOGGING
     o.os( ) << "if( CL_SUCCESS != err ) ";
     #endif
@@ -845,13 +814,13 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     o.comment( "Copy back outputs (if they were already normalized, copyTo detects src==dst and does nothing)" );
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
-      //o.os( ) << "std::cout << \"BEFORE copy\" << std::endl;\n";
+      //o.os( ) << "std::cerr << \"BEFORE copy\" << std::endl;\n";
       //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
 
       o.os( ) << "normalized_" << (*i)->name( ) 
               << ".copyTo(" << (*i)->matrix( )->name( ) << ", _iter_begin, _iter_end);\n";
 
-      //o.os( ) << "std::cout << \"AFTER copy\" << std::endl;\n";
+      //o.os( ) << "std::cerr << \"AFTER copy\" << std::endl;\n";
       //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
     }
 
@@ -906,8 +875,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
     from_matrices.push_back( (*i)->name( ) );
 
-  //clo.beginKernel( to_matrices, from_matrices, iterdef.dimensions( ) );
-  clo.beginKernel(_to, _from, iterdef.dimensions());
+  clo.beginKernel(_to, _from, iterdef.dimensions(), trans);
 
   TRACE( "20" );
 
@@ -920,7 +888,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
     clo.os( ) << STRINGIFY(MATRIX_INDEX_T) " " << (*it)->lhs()->toString() << " = " << (*it)->rhs()->toString() << ";\n";
 
   // Define Sizes
-  trans.extractOpenClSizeDefines(clo, iterdef.dimensions());
+  //trans.extractOpenClSizeDefines(clo, iterdef.dimensions());
 
   // Conditional to ensure we are about to work on a valid part of the buffer.
   if(iterdef.dimensions()>0)
@@ -1103,9 +1071,6 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
     break;
   case RuleFlavor::WORKSTEALING:
     o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+TX_DYNAMIC_POSTFIX, region);
-    break;
-  case RuleFlavor::OPENCL:
-    o.callSpatial(trampcodename(trans)+TX_OPENCL_POSTFIX, region);
     break;
   default:
     UNIMPLEMENTED();

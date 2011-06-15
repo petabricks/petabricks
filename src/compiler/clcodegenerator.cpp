@@ -86,7 +86,7 @@ CLCodeGenerator::localMemoryBarrier( )
   os() << "barrier( CLK_LOCAL_MEM_FENCE );\n";
 }
 
-void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned int dims)
+void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned int dims, Transform& trans)
 {
 
   os() << "#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n";
@@ -125,6 +125,13 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
     }
   }
 
+  // Config parameters
+  for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
+    if(i->shouldPass()) {
+      os() << ", int " << i->name();
+    }
+  }
+
   // And we'll need to provide the size of the region that we want the kernel to operate on.  (This is where the 'center' of the rule will be.)
   for( int i = 0; i < (int)dims; ++i )
   {
@@ -133,19 +140,18 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
     os() << ", int dim_d" << i << "_end";
   }
 
-  //TODO: using _to and_from is the correct approach
   // Finally, we need to provide some of the dimensions of each of the matrices we've passed in, so that we can calculate indices.
   for(RegionList::const_iterator it = _to.begin(); it != _to.end(); ++it)
   {
     if((*it)->isBuffer()) {
-      for( int i = 0; i < (int) (*it)->size() - 1 ; ++i )
+      for( int i = 0; i < (int) (*it)->size() - 1; ++i )
 	      os() << ", int dim_" << (*it)->name() << "_d" << i;
     }
   }
   for(RegionList::const_iterator it = _from.begin(); it != _from.end(); ++it)
   {
     if((*it)->isBuffer()) {
-      for( int i = 0; i < (int) (*it)->size() - 1 ; ++i )
+      for( int i = 0; i < (int) (*it)->size() - 1; ++i )
 	      os() << ", int dim_" << (*it)->name() << "_d" << i;
     }
   }
@@ -156,7 +162,7 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   {
     if(!(*it)->isBuffer()) {
       os() << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << (*it)->name() << " = _region_" << map[(*it)->matrix( )->name( ).c_str()] << ";\n";
-      for( int i = 0; i < (int) (*it)->size() - 1 ; ++i )
+      for( int i = 0; i < (int) (*it)->size() - 1; ++i )
 	      os() << "int dim_" << (*it)->name() << "_d" << i << " = dim_" << map[(*it)->matrix( )->name( ).c_str()] << "_d" << i << ";\n";
     }
   }
@@ -164,7 +170,7 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   {
     if(!(*it)->isBuffer()) {
       os() << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << (*it)->name() << " = _region_" << map[(*it)->matrix( )->name( ).c_str()] << ";\n";
-      for( int i = 0; i < (int) (*it)->size() - 1 ; ++i )
+      for( int i = 0; i < (int) (*it)->size() - 1; ++i )
 	      os() << "int dim_" << (*it)->name() << "_d" << i << " = dim_" << map[(*it)->matrix( )->name( ).c_str()] << "_d" << i << ";\n";
     }
   }
