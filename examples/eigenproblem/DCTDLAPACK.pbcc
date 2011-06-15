@@ -15,10 +15,20 @@ to Eigenvalue[n], Eigenvector[n,n]
     char jobz = 'V';
     int size=n,nsquared=n*n,lwork=-1,liwork=-1,info = 0;
 
+
     // allocate and initialize matrices
     ElementT *Z = vec.base();
     ElementT *D = eig.base();
     ElementT *E = Ein.storage()->data();
+    CArrayStore Zstore;
+    CArrayStore Dstore;
+    CArrayStore Estore;
+    
+    to_c_array(vec, Z, Zstore);
+    to_c_array(eig, D, Dstore);
+    to_c_array(Ein, E, Estore);
+
+
     ElementT *work = new ElementT[1];
     int *iwork = new int[1];
 
@@ -34,6 +44,9 @@ to Eigenvalue[n], Eigenvector[n,n]
     // call LAPACK routine dsyev for QR iteration
     dstevd_(&jobz, &size, D, E, Z, &size, work, &lwork, iwork, &liwork, &info);
 
+    from_c_array(vec, Z, Zstore);
+    from_c_array(eig, D, Dstore);
+    free_c_array(E, Estore);
 
     delete [] work;
     delete [] iwork;

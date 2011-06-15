@@ -542,6 +542,12 @@ void petabricks::Transform::generateTransformSelector(CodeGenerator& o, RuleFlav
   static const std::string distco = "distributedcutoff";
 #endif
 
+#ifdef REGIONMATRIX_TEST
+  const bool force_distrib = (rf==RuleFlavor::DISTRIBUTED);
+#else
+  const bool force_distrib = false;
+#endif
+
   std::vector<std::string> args = normalArgs(rf);
   if(spawn){
     args.insert(args.begin(), "const DynamicTaskPtr& _completion");
@@ -552,28 +558,31 @@ void petabricks::Transform::generateTransformSelector(CodeGenerator& o, RuleFlav
 
   o.beginFunc("void", _name+"_"+rf.str(), args);
 
-  if(rf > RuleFlavor::SEQUENTIAL) {
-    declTransformNDirect(o, "_transform_n");
+  if(!force_distrib) {
+    if(rf > RuleFlavor::SEQUENTIAL) {
+      declTransformNDirect(o, "_transform_n");
 
-    o.beginIf("_transform_n < " + seqco);
-    o.comment("switch to sequential version");
-  }
-  generateCrossCall(o, rf, RuleFlavor::SEQUENTIAL, spawn);
-  if(rf > RuleFlavor::SEQUENTIAL) {
-    o.endIf();
+      o.beginIf("_transform_n < " + seqco);
+      o.comment("switch to sequential version");
+    }
+    generateCrossCall(o, rf, RuleFlavor::SEQUENTIAL, spawn);
+    if(rf > RuleFlavor::SEQUENTIAL) {
+      o.endIf();
+    }
+
+    if(rf > RuleFlavor::WORKSTEALING) {
+      o.beginIf("_transform_n < " + distco);
+      o.comment("switch to shared memory version");
+    }
+
+    if(rf >= RuleFlavor::WORKSTEALING) {
+      generateCrossCall(o, rf, RuleFlavor::WORKSTEALING, spawn);
+    }
+    if(rf > RuleFlavor::WORKSTEALING) {
+      o.endIf();
+    }
   }
 
-  if(rf > RuleFlavor::WORKSTEALING) {
-    o.beginIf("_transform_n < " + distco);
-    o.comment("switch to shared memory version");
-  }
-
-  if(rf >= RuleFlavor::WORKSTEALING) {
-    generateCrossCall(o, rf, RuleFlavor::WORKSTEALING, spawn);
-  }
-  if(rf > RuleFlavor::WORKSTEALING) {
-    o.endIf();
-  }
   if(rf == RuleFlavor::DISTRIBUTED) {
     generateCrossCall(o, rf, RuleFlavor::DISTRIBUTED, spawn);
   }
@@ -604,7 +613,7 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
     o.addMember((*i)->typeName(rf, true), (*i)->name());
   }
   
-  if(_scheduler->size()>1 && rf == RuleFlavor::WORKSTEALING){
+  if(_scheduler->size()>1 && rf != RuleFlavor::SEQUENTIAL){
     o.beginFunc("bool", "useContinuation");
     o.createTunable(true, "system.flag.unrollschedule", _name + "_unrollschedule", 1, 0, 1);
     o.write("return "+_name + "_unrollschedule == 0;");
@@ -625,24 +634,18 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
       o.write("return;");
       o.endIf();
     }
-    _scheduler->generateCode(*this, o, RuleFlavor::SEQUENTIAL);
+    _scheduler->generateCode(*this, o, rf);
     o.endFunc();
-  }else if(rf == RuleFlavor::WORKSTEALING) {
+  }else{
     o.beginFunc("DynamicTaskPtr", "run");
     if(_memoized){
       o.beginIf("tryMemoize()");
       o.write("return NULL;");
       o.endIf();
     }
-    _scheduler->generateCode(*this, o, RuleFlavor::WORKSTEALING);
+    _scheduler->generateCode(*this, o, rf);
     o.endFunc();
-  }else if(rf == RuleFlavor::DISTRIBUTED) {
-    o.beginFunc("DynamicTaskPtr", "run");
-    o.write("UNIMPLEMENTED();");
-    o.write("return NULL;");
-    o.endFunc();
-  }
-  
+  }  
 
   Map(&RuleInterface::generateTrampCode, *this, o, rf, _rules);
 
