@@ -478,9 +478,8 @@ void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& ou
 
 void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
   SRCPOSSCOPE();
-  JTRACE("Pluto");
+  o.comment("MARKER 5");
   if(isRecursive()){
-    JTRACE("Paperino");
     o.beginClass(implcodename(trans)+TX_DYNAMIC_POSTFIX, "petabricks::RuleInstance");
 
     for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -525,7 +524,6 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
 
     o.endClass();
   }
-  JTRACE("Topolino")(*this);
   std::vector<std::string> args;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     args.push_back((*i)->generateSignatureCode(false));

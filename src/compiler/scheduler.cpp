@@ -190,9 +190,9 @@ std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(const Dat
     matrixStatus.push_back(OTHER);
   }
   
-  /* A dimension is useless if it is always involved in a -1 data dependency
-   * and every other dimension is 0 or -1 data dependend */
   std::vector<size_t> uselessDimensions;
+  /* A dimension is useless if it is always involved in a -1 data dependency
+   * and every other dimension is 0 or -1 data dependend 
   for(size_t dim=0; dim<dimensions; ++dim) {
     if(matrixStatus[dim]==OTHER) {
       //Something is not 0 or -1. No dimension can be removed
@@ -203,6 +203,40 @@ std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(const Dat
       //This dimension can be removed if no dimension is "other" dependent.
       uselessDimensions.push_back(dim);
     }
+  }
+   */
+   
+   
+   
+  /* A dimension is useless if it is always involved in a -1 data dependency and 
+   * every other dimension is 0 data dependent
+  for(size_t dim=0; dim<dimensions; ++dim) {
+    if(matrixStatus[dim]==ALWAYS_MINUS1) {
+      //This dimension can be removed if all the other dimensions 
+      //are 0 data dependent
+      if (uselessDimensions.size()==0) {
+        uselessDimensions.push_back(dim);
+      }
+      else {
+        //More than 1 -1dd dimension. Abort dimension removal.
+        uselessDimensions.clear();
+        return uselessDimensions;
+      }
+    }
+    else if(matrixStatus[dim]==OTHER) {
+      uselessDimensions.clear();
+      return uselessDimensions;
+    }
+  } */
+  
+  /* The last dimension is useless if it is -1 data dependent and all the others
+   * are 0 data dependent */
+  for(size_t dim=0; dim<dimensions-1; ++dim) {
+    if(matrixStatus[dim]!=ALWAYS_ZERO)
+      return uselessDimensions;
+  }
+  if (matrixStatus[dimensions-1]==ALWAYS_MINUS1) {
+    uselessDimensions.push_back(dimensions-1);
   }
   
   return uselessDimensions;
@@ -217,7 +251,7 @@ void petabricks::StaticScheduler::removeUselessDimensions(std::vector<size_t> us
                                     ++i) {
     size_t dim=*i;
     matrix->removeDimension(dim); 
-    //_matrixToNodes[matrix].removeDimensionFromRegions(matrix, dim);
+    
     _allNodes.removeDimensionFromRegions(matrix, dim);
   }
 } 
