@@ -4,6 +4,7 @@
 #include <string.h>
 #include "regiondata0D.h"
 #include "regiondataraw.h"
+#include "regiondataremote.h"
 #include "regiondatasplit.h"
 #include "regionmatrixproxy.h"
 
@@ -40,12 +41,16 @@ RegionMatrix::RegionMatrix(int dimensions, ElementT value) {
 }
 
 RegionMatrix::RegionMatrix(int dimensions, IndexT* size) {
-  init(dimensions, size);
+  RegionDataIPtr regionData = new RegionDataRaw(dimensions, size);
+  init(dimensions, size, new RegionHandler(regionData));
 }
 
-void RegionMatrix::init(int dimensions, IndexT* size) {
-  RegionDataIPtr regionData = new RegionDataRaw(dimensions, size);
-  _regionHandler = new RegionHandler(regionData);
+RegionMatrix::RegionMatrix(int dimensions, IndexT* size, RegionHandlerPtr handler) {
+  init(dimensions, size, handler);
+}
+
+void RegionMatrix::init(int dimensions, IndexT* size, RegionHandlerPtr handler) {
+  _regionHandler = handler;
 
   _D = dimensions;
   _size = new IndexT[_D];
@@ -143,27 +148,25 @@ RegionMatrix::~RegionMatrix() {
 }
 
 void RegionMatrix::splitData(IndexT* splitSize) {
-  acquireRegionData();
-  RegionDataIPtr newRegionData = new RegionDataSplit((RegionDataRaw*)_regionData.asPtr(), splitSize);
-  releaseRegionData();
+  JASSERT(_regionHandler->type() == RegionDataTypes::REGIONDATARAW);
+  RegionDataIPtr newRegionData =
+    new RegionDataSplit((RegionDataRaw*)_regionHandler->getRegionData().asPtr(), splitSize);
   _regionHandler->updateRegionData(newRegionData);
 }
 
 void RegionMatrix::createDataPart(int partIndex, RemoteHostPtr host) {
-  ((RegionDataSplit*)_regionData.asPtr())->createPart(partIndex, host);
+  JASSERT(_regionHandler->type() == RegionDataTypes::REGIONDATASPLIT);
+  ((RegionDataSplit*)_regionHandler->getRegionData().asPtr())->createPart(partIndex, host);
 }
 
 void RegionMatrix::allocData() {
-  acquireRegionData();
-  _regionData->allocData();
-  releaseRegionData();
+  _regionHandler->allocData();
 }
 
 void RegionMatrix::importDataFromFile(const char* filename) {
   // (yod) perf: move the import to regionDataRaw
 
-  this->acquireRegionData();
-  _regionData->allocData();
+  this->allocData();
 
   MatrixIO* matrixio = new MatrixIO(filename, "r");
   MatrixReaderScratch o = matrixio->readToMatrixReaderScratch();
@@ -184,34 +187,20 @@ void RegionMatrix::importDataFromFile(const char* filename) {
     }
   }
 
-  this->releaseRegionData();
-
   delete [] coord;
   delete matrixio;
 }
 
 ElementT RegionMatrix::readCell(const IndexT* coord) {
   IndexT* rd_coord = this->getRegionDataCoord(coord);
-
-  if (!_regionData) {
-    JTRACE("should acquire regiondata before readCell");
-    this->acquireRegionData();
-  }
-
-  ElementT elmt = _regionData->readCell(rd_coord);
+  ElementT elmt = _regionHandler->readCell(rd_coord);
   delete [] rd_coord;
   return elmt;
 }
 
 void RegionMatrix::writeCell(const IndexT* coord, ElementT value) {
   IndexT* rd_coord = this->getRegionDataCoord(coord);
-
-  if (!_regionData) {
-    JTRACE("should acquire regiondata before writeCell");
-    this->acquireRegionData();
-  }
-
-  _regionData->writeCell(rd_coord, value);
+  _regionHandler->writeCell(rd_coord, value);
   delete [] rd_coord;
 }
 
@@ -337,8 +326,8 @@ void RegionMatrix::updateHandler(uint16_t movingBufferIndex) {
     sched_yield();
   }
 
-  // TODO: lock region handler
-  this->releaseRegionData();
+  // Create a new regionHandler. We cannot update the old one because it
+  // might be used by another regionmatrixproxy. e.g. 1 -> 2 -> 1
   _regionHandler->updateRegionData(RegionMatrix::movingBuffer[movingBufferIndex]);
 }
 
@@ -352,6 +341,25 @@ void RegionMatrix::removeMovingBuffer(uint16_t index) {
   pthread_mutex_lock(&RegionMatrix::movingBuffer_mux);
   RegionMatrix::movingBuffer.erase(index);
   pthread_mutex_unlock(&RegionMatrix::movingBuffer_mux);
+}
+
+void RegionMatrix::updateHandlerChain() {
+  RegionDataIPtr regionData = _regionHandler->getRegionData();
+  if (regionData->type() == RegionDataTypes::REGIONDATAREMOTE) {
+    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage* reply =
+      ((RegionDataRemote*)regionData.asPtr())->updateHandlerChain();
+    JTRACE("updatehandler")(reply->dataHost)(reply->numHops)(reply->regionData.asPtr());
+
+    if (reply->dataHost == HostPid::self()) {
+      // Data is in the same process. Update handler to point directly to the data.
+      _regionHandler->updateRegionData(reply->regionData);
+    } else if (reply->numHops > 1) {
+      // Multiple network hops to data. Create a direct connection to data.
+
+      // (yod) TODO:
+      //this->updateHandler(999);
+    }
+  }
 }
 
 //
@@ -412,10 +420,7 @@ DataHostList RegionMatrix::dataHosts() const {
     end[i] = this->size(i) - 1;
   }
 
-  DataHostList list = this->acquireRegionDataConst()
-    ->hosts(this->getRegionDataCoord(begin), this->getRegionDataCoord(end));
-  this->releaseRegionDataConst();
-  return list;
+  return _regionHandler->hosts(this->getRegionDataCoord(begin), this->getRegionDataCoord(end));
 }
 
 int RegionMatrix::incCoord(IndexT* coord) const {
@@ -449,8 +454,6 @@ void RegionMatrix::print() {
   IndexT* coord = new IndexT[_D];
   memset(coord, 0, (sizeof coord) * _D);
 
-  this->acquireRegionData();
-
   while (true) {
     printf("%4.8g ", this->readCell(coord));
 
@@ -465,8 +468,6 @@ void RegionMatrix::print() {
       z--;
     }
   }
-
-  this->releaseRegionData();
 
   printf("\n\n");
   delete [] coord;

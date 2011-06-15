@@ -15,16 +15,10 @@ namespace petabricks {
   protected:
     int _D;
     RegionHandlerPtr _regionHandler;
-    RegionDataIPtr _regionData;
 
   public:
     virtual ElementT readCell(const IndexT* coord) = 0;
     virtual void writeCell(const IndexT* coord, ElementT value) = 0;
-
-    virtual void acquireRegionData();
-    virtual void releaseRegionData();
-    virtual RegionDataIPtr acquireRegionDataConst() const;
-    virtual void releaseRegionDataConst() const;
 
     RegionHandlerPtr getRegionHandler() const;
 
