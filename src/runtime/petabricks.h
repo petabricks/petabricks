@@ -113,7 +113,7 @@ namespace petabricks {
   
   template< typename T >
   inline bool is_data_local(const T& x){
-    return x._isLocal();
+    return x.isLocal();
   }
 
   inline DynamicTaskPtr sync_hook(DynamicTaskPtr& completion, const DynamicTaskPtr& cont){
@@ -201,6 +201,38 @@ namespace petabricks {
     return memcmp(&a, &b, sizeof(ElementT))==0;
   }
 
+  typedef MatrixStoragePtr CArrayStorage;
+
+  template<typename T>
+  inline void to_c_array(const T& mr, ElementT*& ar, CArrayStorage& storage) {
+    if(T::D>0 && mr.isLocal() && mr.isEntireBuffer()) {
+      //TODO: check that layout is normal
+      storage = mr.storage();
+      ar      = storage->data();
+      return;
+    }
+
+    storage = new MatrixStorage(mr.count());
+    ar      = storage->data();
+
+    _regioncopy(ar, mr);
+  }
+
+  inline void free_c_array(ElementT*& ar, CArrayStorage& storage) {
+    if(storage) {
+      ar = NULL;
+      storage = NULL;
+    }
+  }
+  
+  template<typename T>
+  inline void from_c_array(const T& mr, ElementT*& ar, CArrayStorage& storage) {
+    if(T::D==0 || !mr.isLocal() || mr.storage() != storage) {
+      _regioncopy(mr, ar);
+    }
+    free_c_array(ar, storage);
+  }
+  
 
 }
 

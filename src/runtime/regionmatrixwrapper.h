@@ -7,9 +7,10 @@
 
 namespace petabricks {
 
-  template< int D, typename ElementT>
+  template< int D_, typename ElementT>
   class RegionMatrixWrapper : public RegionMatrix {
   public:
+    enum { D = D_ };
     RegionMatrixWrapper() : RegionMatrix(D) {}
     RegionMatrixWrapper(IndexT* size) : RegionMatrix(D, size) {}
 
@@ -160,12 +161,12 @@ namespace petabricks {
     typedef MatrixRegion<D, ElementT> LocalT;
     typedef MatrixRegion<D, const ElementT> ConstLocalT;
 
-    bool isEntireBuffer() {
-      return _isLocal() && _toLocalConstRegion().isEntireBuffer();
+    bool isEntireBuffer() const {
+      return isLocal() && _toLocalConstRegion().isEntireBuffer();
     }
 
     void exportTo(MatrixStorageInfo& ms) const {
-      if(_isLocal()){
+      if(isLocal()){
         _toLocalRegion().exportTo(ms);
       }else{
         UNIMPLEMENTED();
@@ -173,14 +174,16 @@ namespace petabricks {
     }
     
     void copyFrom(const MatrixStorageInfo& ms){
-      if(_isLocal()){
+      if(isLocal()){
         _toLocalRegion().copyFrom(ms);
       }else{
         UNIMPLEMENTED();
       }
     }
 
-    bool _isLocal() const {
+    MatrixStoragePtr storage() const { UNIMPLEMENTED(); return NULL; }
+
+    bool isLocal() const {
       RegionDataIPtr regionData = this->acquireRegionDataConst();
       return regionData->type() == RegionDataTypes::REGIONDATARAW;
     }

@@ -51,6 +51,29 @@
 
 namespace petabricks {
 
+
+template<typename T> 
+inline void _regioncopy(MATRIX_ELEMENT_T* out, const T& in) {
+    MATRIX_INDEX_T n = 0;
+    MATRIX_INDEX_T coord[T::D];
+    memset(coord, 0, sizeof coord);
+    do {
+      out[n++] = in.cell(coord);
+    } while(in.incCoord(coord)>=0);
+}
+
+template<typename T> 
+inline void _regioncopy(const T& out, const MATRIX_ELEMENT_T* in) {
+    MATRIX_INDEX_T n = 0;
+    MATRIX_INDEX_T coord[T::D];
+    memset(coord, 0, sizeof coord);
+    do {
+      out.cell(coord) = in[n++];
+    } while(out.incCoord(coord)>=0);
+}
+
+
+
 template< int D, typename ElementT> class MatrixRegion;
 
 //trick to break the cycle for SliceMatrixRegion going to MatrixRegion<-1>
@@ -406,6 +429,8 @@ public:
       return D-1;
     }
   }
+
+  bool isLocal() const { return true; }
 
   ///
   /// increment a raw coord in ascending order with in the given boundary
