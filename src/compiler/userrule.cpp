@@ -24,7 +24,7 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#define FORCE_OPENCL
+//#define FORCE_OPENCL
 //#define OPENCL_LOGGING
 
 //#define TRACE(x) std::cout << "Trace " << x << "\n"
@@ -594,7 +594,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
         //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
 
         o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
-                << " = " << matrix_name << ".asNormalizedRegion(_iter_begin, _iter_end);\n";
+                << " = " << matrix_name << ".asGpuBuffer(_iter_begin, _iter_end);\n";
         o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
                 << "normalized_" << (*i)->name( ) << ".bytes( ),"
@@ -627,7 +627,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
         //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
 
         o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
-                << " = " << matrix_name << ".asNormalizedRegion(_iter_begin, _iter_end);\n";
+                << " = " << matrix_name << ".asGpuBuffer(_iter_begin, _iter_end);\n";
         o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, "
                 << "normalized_" << (*i)->name( ) << ".bytes( ),"
