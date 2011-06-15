@@ -328,9 +328,7 @@ void RegionMatrix::updateHandler(uint16_t movingBufferIndex) {
 
   // Create a new regionHandler. We cannot update the old one because it
   // might be used by another regionmatrixproxy. e.g. 1 -> 2 -> 1
-  // (yod) TODO: Can update the handler if we don't reuse regionmatrix after moving it away.
-  //  _regionHandler->updateRegionData(RegionMatrix::movingBuffer[movingBufferIndex]);
-  _regionHandler = new RegionHandler(RegionMatrix::movingBuffer[movingBufferIndex]);
+  _regionHandler->updateRegionData(RegionMatrix::movingBuffer[movingBufferIndex]);
 }
 
 void RegionMatrix::addMovingBuffer(RegionDataIPtr remoteData, uint16_t index) {
@@ -352,10 +350,9 @@ void RegionMatrix::updateHandlerChain() {
       ((RegionDataRemote*)regionData.asPtr())->updateHandlerChain();
     JTRACE("updatehandler")(reply->dataHost)(reply->numHops)(reply->regionData.asPtr());
 
-    // (yod) TODO: similar to updateHandler. we may be able to just update handler
     if (reply->dataHost == HostPid::self()) {
       // Data is in the same process. Update handler to point directly to the data.
-      _regionHandler = new RegionHandler(reply->regionData);
+      _regionHandler->updateRegionData(reply->regionData);
     } else if (reply->numHops > 1) {
       // Multiple network hops to data. Create a direct connection to data.
 

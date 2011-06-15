@@ -15,6 +15,7 @@ namespace petabricks {
     RegionDataIPtr _regionData;
 
   public:
+    RegionHandler(int dimensions);
     RegionHandler(RegionDataIPtr regionData);
 
     ElementT readCell(const IndexT* coord);

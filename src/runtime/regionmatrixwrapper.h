@@ -20,8 +20,8 @@ namespace petabricks {
 
       IndexT i = 0;
       do {
-	this->writeCell(coord, data[i]);
-	i++;
+        this->writeCell(coord, data[i]);
+        i++;
       } while (this->incCoord(coord) >= 0);
     }
 
@@ -80,7 +80,7 @@ namespace petabricks {
     ssize_t count() const {
       ssize_t s=1;
       for(int i=0; i<D; ++i)
-    s*=this->size()[i];
+        s*=this->size()[i];
       return s;
     }
 

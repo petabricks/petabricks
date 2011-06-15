@@ -2,6 +2,10 @@
 
 using namespace petabricks;
 
+RegionHandler::RegionHandler(int dimensions) {
+  _D = dimensions;
+}
+
 RegionHandler::RegionHandler(RegionDataIPtr regionData) {
   _regionData = regionData;
   _D = _regionData->dimensions();
