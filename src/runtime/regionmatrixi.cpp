@@ -4,32 +4,6 @@
 
 using namespace petabricks;
 
-void RegionMatrixI::acquireRegionData() {
-  // TODO: implement R/W lock
-  _regionData = _regionHandler->acquireRegionData(this);
-}
-
-void RegionMatrixI::releaseRegionData() {
-  // TODO: implement R/W lock
-  _regionData = NULL;
-  _regionHandler->releaseRegionData(this);
-}
-
-RegionDataIPtr RegionMatrixI::acquireRegionDataConst() const {
-  if (_regionData) {
-    return _regionData;
-  } else {
-    return _regionHandler->acquireRegionData(this);
-  }
-}
-void RegionMatrixI::releaseRegionDataConst() const {
-  // only release when _regionData is not set
-  if (!_regionData) {
-    _regionHandler->releaseRegionData(this);
-  }
-}
-
-
 RegionHandlerPtr RegionMatrixI::getRegionHandler() const {
   return _regionHandler;
 }

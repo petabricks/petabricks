@@ -69,11 +69,11 @@ public:
       waitUntilCompleteMu();
     }
   }
-  
+
   //transfer data to remote host and call remote recv
   void send(const void* ptr , size_t len);
-  
-  void markComplete() { 
+
+  void markComplete() {
     remoteMarkComplete();
     JLOCKSCOPE(*this);
     markCompleteMu();
