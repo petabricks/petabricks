@@ -16,6 +16,7 @@
 #include "remotehost.h"
 
 using namespace petabricks;
+using namespace petabricks::distributed;
 
 PetabricksRuntime::Main* petabricksMainTransform(){
   return NULL;
@@ -55,7 +56,7 @@ int main(int argc, const char** argv){
     // import data
     regionMatrix.importDataFromFile(filename);
     print(regionMatrix.dataHosts());
-    JASSERT(regionMatrix._isLocal()).Text("Must be local.");
+    JASSERT(regionMatrix.isLocal()).Text("Must be local.");
 
     /*
     //
@@ -66,14 +67,14 @@ int main(int argc, const char** argv){
     printf("completed sending 1\n");
 
     // Wait until process2 move matrix back
-    regionMatrix = RegionMatrix3D(RegionMatrix(3, size, new RegionHandler(3)));
+    regionMatrix = MatrixRegion3D(RegionMatrix(3, size, new RegionHandler(3)));
     regionMatrix.updateHandler(2);
     printf("received 2\n");
     print(regionMatrix.dataHosts());
 
     regionMatrix.updateHandlerChain();
-    JASSERT(regionMatrix._isLocal()).Text("Must be local.");
-    MatrixIO().write(regionMatrix._toLocalRegion());
+
+    JASSERT(regionMatrix.isLocal()).Text("Must be local.");
 
     printf("==== 1 -> 2 -> 1 Done ====\n");
 */
@@ -108,7 +109,7 @@ int main(int argc, const char** argv){
     print(regionMatrix.dataHosts());
 
     regionMatrix.updateHandlerChain();
-    JASSERT(!regionMatrix._isLocal()).Text("updateHandlerChain should not be able to do anything.");
+    JASSERT(!regionMatrix.isLocal()).Text("updateHandlerChain should not be able to do anything.");
 
     // Move it back to process1
     regionMatrix.moveToRemoteHost(hdb.host(0), 2);

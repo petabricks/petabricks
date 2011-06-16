@@ -51,6 +51,29 @@
 
 namespace petabricks {
 
+
+template<typename T> 
+inline void _regioncopy(MATRIX_ELEMENT_T* out, const T& in) {
+    MATRIX_INDEX_T n = 0;
+    MATRIX_INDEX_T coord[T::D];
+    memset(coord, 0, sizeof coord);
+    do {
+      out[n++] = in.cell(coord);
+    } while(in.incCoord(coord)>=0);
+}
+
+template<typename T> 
+inline void _regioncopy(const T& out, const MATRIX_ELEMENT_T* in) {
+    MATRIX_INDEX_T n = 0;
+    MATRIX_INDEX_T coord[T::D];
+    memset(coord, 0, sizeof coord);
+    do {
+      out.cell(coord) = in[n++];
+    } while(out.incCoord(coord)>=0);
+}
+
+
+
 template< int D, typename ElementT> class MatrixRegion;
 
 //trick to break the cycle for SliceMatrixRegion going to MatrixRegion<-1>
@@ -228,14 +251,12 @@ public:
   ///
   /// A region is considered normalized if it occupies the entire buffer and is organized so that
   /// a N-dimensional buffer is laid out as sequential (N-1)-dimensional buffers.
-  MatrixRegion asNormalizedRegion(const IndexT c1[D], const IndexT c2[D]) const
+  MatrixRegion asNormalizedRegion() const
   {
     bool copyData = true;
-    if(isEntireBuffer() &&  intervalSize(c1, c2) == count()) {
-      //printf("isEntireBuffer\n");
+    if(isEntireBuffer()) {
       return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
     }
-    //printf("NOT isEntireBuffer\n");
 
     MutableMatrixRegion t = MutableMatrixRegion::allocate((IndexT*)this->sizes());
     if( copyData ) {
@@ -245,6 +266,23 @@ public:
         t.cell(coord) = this->cell(coord);
       } while(this->incCoord(coord)>=0);
     }
+    return t;
+  }
+
+  ///
+  /// Decide to make a copy or return the orginal for making GPU buffer.
+  MatrixRegion asGpuBuffer(const IndexT c1[D], const IndexT c2[D]) const
+  {
+    if(isEntireBuffer() &&  intervalSize(c1, c2) == count()) {
+      return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
+    }
+
+    MutableMatrixRegion t = MutableMatrixRegion::allocate((IndexT*)this->sizes());
+    IndexT coord[D];
+    memset(coord, 0, sizeof coord);
+    do {
+      t.cell(coord) = this->cell(coord);
+    } while(this->incCoord(coord)>=0);
     return t;
   }
 
@@ -406,6 +444,8 @@ public:
       return D-1;
     }
   }
+
+  bool isLocal() const { return true; }
 
   ///
   /// increment a raw coord in ascending order with in the given boundary

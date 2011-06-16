@@ -50,6 +50,7 @@ rttest2
 regiondatatest
 regionmatrixtest
 regionremotetest
+migrationtest
 tmp
 
 A

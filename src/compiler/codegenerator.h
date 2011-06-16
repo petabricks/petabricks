@@ -211,6 +211,8 @@ public:
     continueJump(fn);
     endFunc();
     beginFunc("petabricks::DynamicTaskPtr", fn);
+    if(_rf != RuleFlavor::INVALID)
+      beginUserCode(_rf);
   }
   void continueJump(const std::string& fn){
     write("return "+fn+"();");

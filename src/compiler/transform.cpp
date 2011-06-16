@@ -542,6 +542,12 @@ void petabricks::Transform::generateTransformSelector(CodeGenerator& o, RuleFlav
   static const std::string distco = "distributedcutoff";
 #endif
 
+#ifdef REGIONMATRIX_TEST
+  const bool force_distrib = (rf==RuleFlavor::DISTRIBUTED);
+#else
+  const bool force_distrib = false;
+#endif
+
   std::vector<std::string> args = normalArgs(rf);
   if(spawn){
     args.insert(args.begin(), "const DynamicTaskPtr& _completion");
@@ -552,28 +558,31 @@ void petabricks::Transform::generateTransformSelector(CodeGenerator& o, RuleFlav
 
   o.beginFunc("void", _name+"_"+rf.str(), args);
 
-  if(rf > RuleFlavor::SEQUENTIAL) {
-    declTransformNDirect(o, "_transform_n");
+  if(!force_distrib) {
+    if(rf > RuleFlavor::SEQUENTIAL) {
+      declTransformNDirect(o, "_transform_n");
 
-    o.beginIf("_transform_n < " + seqco);
-    o.comment("switch to sequential version");
-  }
-  generateCrossCall(o, rf, RuleFlavor::SEQUENTIAL, spawn);
-  if(rf > RuleFlavor::SEQUENTIAL) {
-    o.endIf();
+      o.beginIf("_transform_n < " + seqco);
+      o.comment("switch to sequential version");
+    }
+    generateCrossCall(o, rf, RuleFlavor::SEQUENTIAL, spawn);
+    if(rf > RuleFlavor::SEQUENTIAL) {
+      o.endIf();
+    }
+
+    if(rf > RuleFlavor::WORKSTEALING) {
+      o.beginIf("_transform_n < " + distco);
+      o.comment("switch to shared memory version");
+    }
+
+    if(rf >= RuleFlavor::WORKSTEALING) {
+      generateCrossCall(o, rf, RuleFlavor::WORKSTEALING, spawn);
+    }
+    if(rf > RuleFlavor::WORKSTEALING) {
+      o.endIf();
+    }
   }
 
-  if(rf > RuleFlavor::WORKSTEALING) {
-    o.beginIf("_transform_n < " + distco);
-    o.comment("switch to shared memory version");
-  }
-
-  if(rf >= RuleFlavor::WORKSTEALING) {
-    generateCrossCall(o, rf, RuleFlavor::WORKSTEALING, spawn);
-  }
-  if(rf > RuleFlavor::WORKSTEALING) {
-    o.endIf();
-  }
   if(rf == RuleFlavor::DISTRIBUTED) {
     generateCrossCall(o, rf, RuleFlavor::DISTRIBUTED, spawn);
   }
@@ -604,7 +613,7 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
     o.addMember((*i)->typeName(rf, true), (*i)->name());
   }
   
-  if(_scheduler->size()>1 && rf == RuleFlavor::WORKSTEALING){
+  if(_scheduler->size()>1 && rf != RuleFlavor::SEQUENTIAL){
     o.beginFunc("bool", "useContinuation");
     o.createTunable(true, "system.flag.unrollschedule", _name + "_unrollschedule", 1, 0, 1);
     o.write("return "+_name + "_unrollschedule == 0;");
@@ -625,24 +634,18 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
       o.write("return;");
       o.endIf();
     }
-    _scheduler->generateCode(*this, o, RuleFlavor::SEQUENTIAL);
+    _scheduler->generateCode(*this, o, rf);
     o.endFunc();
-  }else if(rf == RuleFlavor::WORKSTEALING) {
+  }else{
     o.beginFunc("DynamicTaskPtr", "run");
     if(_memoized){
       o.beginIf("tryMemoize()");
       o.write("return NULL;");
       o.endIf();
     }
-    _scheduler->generateCode(*this, o, RuleFlavor::WORKSTEALING);
+    _scheduler->generateCode(*this, o, rf);
     o.endFunc();
-  }else if(rf == RuleFlavor::DISTRIBUTED) {
-    o.beginFunc("DynamicTaskPtr", "run");
-    o.write("UNIMPLEMENTED();");
-    o.write("return NULL;");
-    o.endFunc();
-  }
-  
+  }  
 
   Map(&RuleInterface::generateTrampCode, *this, o, rf, _rules);
 
@@ -1025,16 +1028,12 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.beginFunc("ElementT", "accuracy");
   if(_accuracyMetric != "")
   {
-#ifndef REGIONMATRIX_TEST
-    o.write("MatrixRegion0D _acc = MatrixRegion0D::allocate();");
-#else
-    o.write("RegionMatrix0D _acc = RegionMatrix0D::allocate();");
-#endif
+    o.write(rf.string()+"::MatrixRegion0D _acc = "+rf.string()+"::MatrixRegion0D::allocate();");
     std::vector<std::string> args = argnames();
     args.insert(args.begin(), "_acc");
     args.insert(args.begin(), "p");
     o.write("DynamicTaskPtr p = new NullDynamicTask();");
-    o.call(_accuracyMetric+TX_DYNAMIC_POSTFIX, args);
+    o.call(_accuracyMetric+"_"+rf.string(), args);
     o.write("petabricks::enqueue_and_wait(p);");
     if(isAccuracyInverted())
       o.write("return -1*_acc.cell();");
