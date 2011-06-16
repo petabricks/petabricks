@@ -157,18 +157,6 @@ petabricks::ChoiceDepGraphNodeSet petabricks::StaticScheduler::lookupNode(const 
   return rv;
 }
 
-void petabricks::StaticScheduler::importDataDepsFromRule(RulePtr& rule) {
-  DataDependencyVectorMap& dataDepsMap=rule->getDataDependencyVectorMap();
-  
-  for(DataDependencyVectorMap::iterator i=dataDepsMap.begin(), e=dataDepsMap.end();
-      i!=e; ++i) {
-    MatrixDefPtr matrix = i->first;
-    CoordinateFormula& dataDepVector = i->second;
-    DataDependencySet& dataDepSet = _globalDataDependencyMap[matrix];
-    dataDepSet.insert(&dataDepVector);
-  }
-}
-
 std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(const DataDependencySet matrixDependencies) const {
   
   size_t dimensions = (*(matrixDependencies.begin()))->size();
@@ -256,18 +244,50 @@ void petabricks::StaticScheduler::removeUselessDimensions(std::vector<size_t> us
   }
 } 
 
+
+void petabricks::StaticScheduler::importDataDepsFromRule(
+                                          RulePtr& rule, 
+                                          MatrixDataDependencyMap dataDepsMap) {
+  DataDependencyVectorMap& dataDepsVectorMap=rule->getDataDependencyVectorMap();
+  
+  for(DataDependencyVectorMap::iterator i=dataDepsVectorMap.begin(), e=dataDepsVectorMap.end();
+      i!=e; ++i) {
+    MatrixDefPtr matrix = i->first;
+    if(matrix->type() != MatrixDef::T_THROUGH) {
+      //We cannot modify this matrix, so we don't care
+      continue;
+    }
+    CoordinateFormula& dataDepVector = i->second;
+    DataDependencySet& dataDepSet = dataDepsMap[matrix];
+    dataDepSet.insert(&dataDepVector);
+  }
+}
+
+
+/**
+ * Get the data dependency information about all the matrix that are used
+ * as temporary storage ("through" matrixes) to compute the outcome of a
+ * transformation 
+ */
+petabricks::StaticScheduler::MatrixDataDependencyMap 
+               petabricks::StaticScheduler::getDataDepsForTemporaryMatrixes () {
+  MatrixDataDependencyMap dataDepsMap;
+  
+  for(rule_iterator i=rule_begin(), e=rule_end(); i != e; ++i) {
+    RulePtr rule = *i;
+    importDataDepsFromRule(rule, dataDepsMap);
+  }
+  
+  return dataDepsMap;
+}
    
 void petabricks::StaticScheduler::removeUselessDimensions() {
   
-  //Populate the data structure used for finding useless dimensions
-  for(rule_iterator i=rule_begin(), e=rule_end(); i != e; ++i) {
-    RulePtr rule = *i;
-    importDataDepsFromRule(rule);
-  }
+  const MatrixDataDependencyMap& tempMatrixesDataDeps = getDataDepsForTemporaryMatrixes();
   
   //For every matrix in the program:
-  for(GlobalDataDependencyMap::iterator i=_globalDataDependencyMap.begin(),
-                                        e=_globalDataDependencyMap.end();
+  for(MatrixDataDependencyMap::const_iterator i=tempMatrixesDataDeps.begin(),
+                                        e=tempMatrixesDataDeps.end();
                                         i != e;
                                         ++i) {
     MatrixDefPtr matrix = i->first;

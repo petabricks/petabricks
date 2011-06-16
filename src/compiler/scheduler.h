@@ -293,14 +293,17 @@ private:
     OTHER
   };
   
-  typedef std::map<MatrixDefPtr, DataDependencySet> GlobalDataDependencyMap;
+  typedef std::map<MatrixDefPtr, DataDependencySet> MatrixDataDependencyMap;
 
 private:
   void removeUselessDimensions();
   void removeUselessDimensions(std::vector<size_t> uselessDimensions, 
                                MatrixDefPtr matrix);
-  void importDataDepsFromRule(RulePtr& rule);
-  std::vector<size_t> findUselessDimensions(const DataDependencySet matrixDependencies) const;
+  void importDataDepsFromRule(RulePtr& rule, 
+                              MatrixDataDependencyMap dataDepsMap);
+  std::vector<size_t> findUselessDimensions(
+                              const DataDependencySet matrixDependencies) const;
+  MatrixDataDependencyMap getDataDepsForTemporaryMatrixes ();
   
 private:
   //storage of nodes
@@ -320,10 +323,6 @@ private:
   RuleChoiceCollection _choices;
 
   std::string _dbgpath;
-  
-  GlobalDataDependencyMap _globalDataDependencyMap; /**< Populated by
-                                                     * importDataDepsFromRule
-                                                     */
 };
 
 }
