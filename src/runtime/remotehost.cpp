@@ -410,7 +410,7 @@ void petabricks::RemoteHostDB::connect(const char* host, int port){
   regenPollFds();
 }
 
-void petabricks::RemoteHostDB::remotefork(const char* host, int oargc, const char** oargv) {
+void petabricks::RemoteHostDB::remotefork(const char* host, int oargc, const char** oargv, const char* slavehost, const char* slaveport) {
   std::string hoststr = this->host();
   std::string portstr = jalib::XToString(this->port());
   const char** argv = new const char*[oargc+32];
@@ -420,11 +420,16 @@ void petabricks::RemoteHostDB::remotefork(const char* host, int oargc, const cha
     argv[i++] = host;
   }
   for(; i<oargc; ++i) argv[i] = oargv[i];
+  if(slavehost!=NULL) 
+    argv[i++] = slavehost;
   argv[i++] = hoststr.c_str();
+  if(slaveport!=NULL) 
+    argv[i++] = slaveport;
   argv[i++] = portstr.c_str();
   argv[i++] = NULL;
   if(fork()==0){
-    for(int i=3; i<1024; ++i) close(i);
+    for(int i=3; i<1024; ++i)
+      close(i);
     execv(argv[0], (char**)argv);
     JASSERT(false);
   }
@@ -482,4 +487,11 @@ void petabricks::RemoteHostDB::spawnListenThread() {
   JASSERT(0==pthread_create(&t, 0, start_listenLoop, this));
   JASSERT(0==pthread_detach(t));
 }
+
+petabricks::RemoteHostDB& petabricks::RemoteHostDB::instance() {
+  static RemoteHostDB db;
+  return db;
+}
+
+
 

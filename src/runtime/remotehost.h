@@ -43,6 +43,7 @@
 
 
 #define REMOTEHOST_DATACHANS 4
+#define REMOTEHOST_THREADS 2
 
 namespace _RemoteHostMsgTypes {
   struct GeneralMessage;
@@ -118,11 +119,13 @@ private:
 
 class RemoteHostDB {
 public:
+  static RemoteHostDB& instance(); 
+
   RemoteHostDB();
 
   void connect(const char* host, int port);
   void accept();
-  void remotefork(const char* host, int argc, const char** argv);
+  void remotefork(const char* host, int argc, const char** argv, const char* slavehost=NULL, const char* slaveport=NULL);
 
   void listenLoop();
   void spawnListenThread();
