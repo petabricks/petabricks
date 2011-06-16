@@ -318,6 +318,7 @@ void RegionMatrix::moveToRemoteHost(RemoteHostPtr host, uint16_t movingBufferInd
 
   host->createRemoteObject(local, &RegionDataRemote::genRemote, msg, len);
   local->waitUntilCreated();
+  JTRACE("done");
 }
 
 void RegionMatrix::updateHandler(uint16_t movingBufferIndex) {
@@ -329,6 +330,7 @@ void RegionMatrix::updateHandler(uint16_t movingBufferIndex) {
   // Create a new regionHandler. We cannot update the old one because it
   // might be used by another regionmatrixproxy. e.g. 1 -> 2 -> 1
   _regionHandler->updateRegionData(RegionMatrix::movingBuffer[movingBufferIndex]);
+  RegionMatrix::movingBuffer[movingBufferIndex] = NULL;
 }
 
 void RegionMatrix::addMovingBuffer(RegionDataIPtr remoteData, uint16_t index) {

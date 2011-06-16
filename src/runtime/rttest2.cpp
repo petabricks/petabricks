@@ -45,12 +45,13 @@ int main(int /*argc*/, const char** /*argv*/){
 
   IndexT s1[] = {0,0};
   IndexT e1[] = {16,16};
+
   distributed::MatrixRegion2D C = A.region(s1, e1);
   MatrixIO().write(C._toLocalRegion());
 
-
   IndexT s2[] = {1,1};
   IndexT e2[] = {5,5};
+
   distributed::MatrixRegion2D D = A.region(s2, e2);
   MatrixIO().write(D._toLocalRegion());
 

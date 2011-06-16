@@ -13,6 +13,7 @@ RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, RemoteObjectPtr
 }
 
 RegionDataRemote::~RegionDataRemote() {
+  JTRACE("Destruct RegionDataRemote");
 }
 
 int RegionDataRemote::allocData() {
@@ -114,6 +115,6 @@ void RegionDataRemoteObject::onRecvInitial(const void* buf, size_t len) {
 
   _regionData = new RegionDataRemote(msg->dimensions, size, this);
 
-  RegionMatrix::addMovingBuffer((RegionDataIPtr) _regionData.asPtr(), msg->movingBufferIndex);
+  RegionMatrix::addMovingBuffer((RegionDataIPtr) _regionData, msg->movingBufferIndex);
 }
 

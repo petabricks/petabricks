@@ -10,11 +10,11 @@ namespace petabricks {
   typedef jalib::JRef<RegionMatrixProxy> RegionMatrixProxyPtr;
 
   class RegionMatrixProxy : public RegionMatrixI {
-    RemoteObjectPtr _remoteObject;
+    RemoteObject* _remoteObject;
 
   public:
     RegionMatrixProxy(RegionHandlerPtr regionHandler);
-    ~RegionMatrixProxy() {};
+    ~RegionMatrixProxy();
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
@@ -36,6 +36,10 @@ namespace petabricks {
   public:
     RegionMatrixProxyRemoteObject(RegionMatrixProxyPtr regionMatrix) {
       _regionMatrix = regionMatrix;
+    }
+
+    ~RegionMatrixProxyRemoteObject() {
+      JTRACE("Destruct RegionMatrixProxyRemoteObject");
     }
 
     void onRecv(const void* data, size_t len) {

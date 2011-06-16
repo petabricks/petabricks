@@ -112,9 +112,12 @@ namespace petabricks {
 
   class RegionDataRemoteObject : public RemoteObject {
   protected:
-    RegionDataRemotePtr _regionData;
+    RegionDataRemote* _regionData;
   public:
     RegionDataRemoteObject() {}
+    ~RegionDataRemoteObject() {
+      JTRACE("Destruct RegionDataRemoteObject");
+    }
 
     void onRecv(const void* data, size_t len) {
       _regionData->onRecv(data, len);

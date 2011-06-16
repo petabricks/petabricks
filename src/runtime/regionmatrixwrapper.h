@@ -151,7 +151,6 @@ namespace petabricks {
       } while (this->incCoord(coord) >= 0);
     }
 
-
     typedef MatrixRegion<D, ElementT> LocalT;
     typedef MatrixRegion<D, const ElementT> ConstLocalT;
 
@@ -166,7 +165,7 @@ namespace petabricks {
         UNIMPLEMENTED();
       }
     }
-    
+
     void copyFrom(const MatrixStorageInfo& ms){
       if(isLocal()){
         _toLocalRegion().copyFrom(ms);
@@ -175,7 +174,7 @@ namespace petabricks {
       }
     }
 
-    MatrixStoragePtr storage() const { 
+    MatrixStoragePtr storage() const {
       if(isLocal())
         return _toLocalRegion().storage();
       UNIMPLEMENTED();
