@@ -46,8 +46,6 @@
 #include <stdlib.h>
 #include <set>
 
-//TODO: get rid of outdated comments
-
 
 petabricks::UserRule::UserRule(const RegionPtr& to, const RegionList& from, const MatrixDefList& through, const FormulaList& cond)
   : _from(from)
@@ -157,10 +155,10 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       bodyir->accept(print);
       std::cerr << "--------------------\n";
 
-      /*if(!passBuildGpuProgram(tx)) {
+      if(!passBuildGpuProgram(tx)) {
 				std::cout << "(>) RULE REJECTED BY TryBuildGpuProgram: " << id() << "\n";
         failgpu = true;
-      }*/
+      }
     }
     catch( OpenClCleanupPass::NotValidSource e )
     {
@@ -577,13 +575,13 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
   if( RuleFlavor::OPENCL == flavor )
   {
     o.os() << "cl_int err;\n";
-    o.os() << "cl_kernel clkern = clkern_" << id() << ";\n";
+    o.os() << "cl_kernel clkern = " << trans.name() << "_instance::get_kernel_" << id() << "();\n";
 
     int arg_pos = 0;
 
     //o.os( ) << "printf( \"- TRACE 10\\n\" );\n";
 
-    o.os( ) << "std::cerr << \"RUN GPU\" << std::endl;\n";
+    o.os( ) << "std::cerr << \"Prepare GPU\" << std::endl;\n";
 		o.os( ) << "if( ";
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
@@ -611,7 +609,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
 
         o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
-                << " = " << matrix_name << ".asNormalizedRegion(_iter_begin, _iter_end);\n";
+                << " = " << matrix_name << ".asGpuBuffer(_iter_begin, _iter_end);\n";
         o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
                 << "normalized_" << (*i)->name( ) << ".bytes( ),"
@@ -621,7 +619,8 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object\");\n";
 
         // Bind to kernel.
-        o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
+        o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
       }
       else {
         (*i)->setBuffer(false);
@@ -643,7 +642,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
 
         o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
-                << " = " << matrix_name << ".asNormalizedRegion(_iter_begin, _iter_end);\n";
+                << " = " << matrix_name << ".asGpuBuffer(_iter_begin, _iter_end);\n";
         o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, "
                 << "normalized_" << (*i)->name( ) << ".bytes( ),"
@@ -718,10 +717,14 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     }
     o.os( ) << "};\n";
 
+    o.os( ) << "std::cerr << \"RUN GPU\" << std::endl;\n";
+
     #ifdef OPENCL_LOGGING
     o.os( ) << "std::cout << \"Work dimensions: \" << workdim[0] << \" x \" << workdim[1] << \"\\n\";\n";
     #endif
     o.os( ) << "err = clEnqueueNDRangeKernel( OpenCLUtil::getQueue( 0 ), clkern, " << iterdef.dimensions( ) << ", 0, workdim, NULL, 0, NULL, NULL );\n";
+    //o.os( ) << "clFinish(OpenCLUtil::getQueue( 0 ));\n";
+    //o.os( ) << "std::cerr << \"After RUN\" << std::endl;\n";
     #ifndef OPENCL_LOGGING
     o.os( ) << "if( CL_SUCCESS != err ) ";
     #endif
@@ -1018,11 +1021,6 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
   case RuleFlavor::DISTRIBUTED:
     o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+"_"+flavor.str(), region);
     break;
-#ifdef HAVE_OPENCL
-  case RuleFlavor::OPENCL:
-    o.callSpatial(trampcodename(trans)+TX_OPENCL_POSTFIX, region);
-    break;
-#endif
   default:
     UNIMPLEMENTED();
   }
