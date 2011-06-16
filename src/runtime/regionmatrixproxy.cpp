@@ -66,18 +66,19 @@ void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::Up
   reply->response = response;
   _remoteObject->send(reply, sizeof(UpdateHandlerChainReplyMessage));
 
-  if (regionData->type() != RegionDataTypes::REGIONDATAREMOTE) {
-    delete reply;
-  }
-
-  if ((msg->requester != HostPid::self()) && (msg->numHops > 1)) {
-    // (yod) TODO:
-    RegionMatrix regionMatrix = RegionMatrix(_D, regionData->size(), new RegionHandler(regionData));
+  if ((msg->requester != HostPid::self()) && (reply->numHops > 1) && (msg->numHops == reply->numHops)) {
+    // (yod) TODO: Update chain
     /*
+    RegionMatrix regionMatrix = RegionMatrix(_D, regionData->size(), new RegionHandler(regionData));
+
     RemoteHostDB hdb;
     hdb.connect(jalib::XToString(msg->requester.hostid).c_str(), msg->requester.pid);
     regionMatrix.moveToRemoteHost(hdb.host(0), 999);
     */
+  }
+
+  if (regionData->type() != RegionDataTypes::REGIONDATAREMOTE) {
+    delete reply;
   }
 }
 
