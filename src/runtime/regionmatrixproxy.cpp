@@ -11,6 +11,10 @@ RegionMatrixProxy::RegionMatrixProxy(RegionHandlerPtr regionHandler) {
   _regionHandler = regionHandler;
 }
 
+RegionMatrixProxy::~RegionMatrixProxy() {
+  JTRACE("Destruct RegionMatrixProxy");
+}
+
 ElementT RegionMatrixProxy::readCell(const IndexT* coord) {
   return _regionHandler->readCell(coord);
 }
@@ -50,6 +54,7 @@ void RegionMatrixProxy::processGetHostListMsg(GetHostListMessage* msg) {
 
 void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::UpdateHandlerChainMessage* msg) {
   void* response = msg->header.response;
+  bool needToUpdateChain = false;
 
   RegionDataIPtr regionData = _regionHandler->getRegionData();
   UpdateHandlerChainReplyMessage* reply;
@@ -61,24 +66,30 @@ void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::Up
     reply->dataHost = HostPid::self();
     reply->numHops = msg->numHops;
     reply->regionData = regionData;
+
+    if ((msg->requester != HostPid::self()) && (reply->numHops > 1)) {
+      needToUpdateChain = true;
+    }
   }
 
   reply->response = response;
   _remoteObject->send(reply, sizeof(UpdateHandlerChainReplyMessage));
 
-  if ((msg->requester != HostPid::self()) && (reply->numHops > 1) && (msg->numHops == reply->numHops)) {
-    // (yod) TODO: Update chain
-    /*
-    RegionMatrix regionMatrix = RegionMatrix(_D, regionData->size(), new RegionHandler(regionData));
-
-    RemoteHostDB hdb;
-    hdb.connect(jalib::XToString(msg->requester.hostid).c_str(), msg->requester.pid);
-    regionMatrix.moveToRemoteHost(hdb.host(0), 999);
-    */
-  }
 
   if (regionData->type() != RegionDataTypes::REGIONDATAREMOTE) {
     delete reply;
+  }
+
+  if (needToUpdateChain) {
+    JTRACE("1->2->3 ==> 1->3");
+    // (yod) TODO: Update chain
+    /*
+      RegionMatrix regionMatrix = RegionMatrix(_D, regionData->size(), new RegionHandler(regionData));
+
+      RemoteHostDB hdb;
+      hdb.connect(jalib::XToString(msg->requester.hostid).c_str(), msg->requester.pid);
+      regionMatrix.moveToRemoteHost(hdb.host(0), 999);
+    */
   }
 }
 

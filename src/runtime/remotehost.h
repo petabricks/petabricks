@@ -112,7 +112,7 @@ private:
   jalib::JSocket _data[REMOTEHOST_DATACHANS];
   HostPid _id;
   int _lastchan;
-  //RemoteObjectList _objects;
+  RemoteObjectList _objects;
 };
 
 

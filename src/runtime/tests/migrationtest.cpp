@@ -55,7 +55,7 @@ int main(int argc, const char** argv){
     print(regionMatrix.dataHosts());
     JASSERT(regionMatrix._isLocal()).Text("Must be local.");
 
-
+    /*
     //
     // Test 1 -> 2 -> 1
     //
@@ -71,9 +71,10 @@ int main(int argc, const char** argv){
 
     regionMatrix.updateHandlerChain();
     JASSERT(regionMatrix._isLocal()).Text("Must be local.");
+    MatrixIO().write(regionMatrix._toLocalRegion());
 
     printf("==== 1 -> 2 -> 1 Done ====\n");
-
+*/
     //
     // Test 1 -> 2 -> 1 -> 2
     //
@@ -94,7 +95,7 @@ int main(int argc, const char** argv){
     hdb.spawnListenThread();
     hdb.spawnListenThread();
     hdb.spawnListenThread();
-
+    /*
     //
     // Test 1 -> 2 -> 1
     //
@@ -110,7 +111,7 @@ int main(int argc, const char** argv){
     // Move it back to process1
     regionMatrix.moveToRemoteHost(hdb.host(0), 2);
     printf("completed sending 2\n");
-
+*/
     //
     // Test 1 -> 2 -> 1 -> 2
     //
@@ -125,7 +126,6 @@ int main(int argc, const char** argv){
 
 
     printf("==== 1 -> 2 -> 1 -> 2 Done ====\n");
-
 
     hdb.listenLoop();
     return 0;

@@ -230,7 +230,7 @@ bool petabricks::RemoteHost::recv() {
         sendMsg(&ackmsg);
       }
       JLOCKSCOPE(_controlmu);
-      //_objects.push_back(obj);
+      _objects.push_back(obj);
       break;
     }
   case MessageTypes::REMOTEOBJECT_CREATE_ACK:
@@ -327,7 +327,7 @@ void petabricks::RemoteHost::createRemoteObject(const RemoteObjectPtr& local,
                          EncodeTextPtr(remote) };
   sendMsg(&msg, data, len);
   JLOCKSCOPE(_controlmu);
-  //_objects.push_back(local);
+  _objects.push_back(local);
 }
 
 void petabricks::RemoteHost::sendData(const RemoteObject* local, const void* data, size_t len) {
