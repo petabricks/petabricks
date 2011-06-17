@@ -154,7 +154,7 @@ FILE_PATTERNS          = *.c \
                          *.moc \
                          *.xpm \
                          *.dox
-RECURSIVE              = NO
+RECURSIVE              = YES
 EXCLUDE                = maximaparser.cpp \
                          matrixreader.cpp \
                          maximalexer.cpp \
