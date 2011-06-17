@@ -103,7 +103,18 @@ namespace petabricks {
       return a * (double)b;
     }
 
+    void print(std::ostream& o) const {
+      o << "{" << _index[0];
+      for (int i = 1; i < _handler->dimensions(); i++) {
+        o << " , " << _index[i];
+      }
+      o << "}";
+    }
+    void print() const { print(std::cout); }
+    std::string toString() const;
   };
 }
+
+std::ostream& operator<< (std::ostream& o, const petabricks::CellProxy& cell);
 
 #endif

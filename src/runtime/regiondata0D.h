@@ -41,7 +41,7 @@ namespace petabricks {
     }
 
     void print() {
-      printf("%e\n", _value);
+      printf("%e\n", this->readCell(NULL));
     }
   };
 }

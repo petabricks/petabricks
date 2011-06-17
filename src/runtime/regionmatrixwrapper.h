@@ -291,7 +291,7 @@ namespace petabricks {
     operator CellProxy& () const { return this->cell(); }
 
     RegionMatrixWrapper0D operator=(Base val) {
-      this->writeCell(NULL, val.readCell(NULL));
+      this->cell() = val.readCell(NULL);
       return *this;
     }
 

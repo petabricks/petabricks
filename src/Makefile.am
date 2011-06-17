@@ -132,6 +132,7 @@ libpbcompiler_a_SOURCES = \
 libpbruntime_a_LFLAGS =
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime
 libpbruntime_a_SOURCES =  \
+  runtime/cellproxy.cpp \
   runtime/dynamicscheduler.cpp \
   runtime/dynamictask.cpp \
   runtime/matrixio.cpp \
