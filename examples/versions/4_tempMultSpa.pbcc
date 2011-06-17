@@ -1,0 +1,26 @@
+/* IN = {0, 1, 2, 3, 4}
+ * OUT= {0, 1, 7, 23, 49}
+ */
+transform MatrixVersionsTest 
+from IN[n] 
+through X<0..5>[n]
+to OUT[n] 
+{
+  X<i>.cell(x) from(X<i-1>.cell(x-1) v, X<i-1>.cell(x) w){
+    return v+w;
+  }
+  
+  secondary X<i>.cell(x) from() {
+    return 0;
+  }
+
+  //Init
+  X<0>.cell(x) from(IN.cell(x) v){
+    return v;
+  }
+  
+  //Finish
+  OUT.cell(x) from(X<5>.cell(x) v){
+    return v;
+  }
+}
