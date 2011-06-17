@@ -132,6 +132,36 @@ private:
   RuleChoiceAssignment _choiceAssignment;
 };
 
+namespace {
+  void reachFirstValidRuleFromHere(ChoiceDepGraphNodeList::iterator& _nodesIt,
+                                   ChoiceDepGraphNodeList::iterator& _nodesEnd,
+                                   RuleSet::iterator& _rulesIt) {
+    if (_rulesIt != (*_nodesIt)->choices().end()) {
+        //The rule is already valid
+        return;
+      }
+      
+    //This set of rules is finished! Let's go to the next one
+    bool found;
+    do {
+      found=true;
+      _nodesIt++;
+      
+      if (_nodesIt == _nodesEnd) {
+        std::cout << "End of rules";
+        //No more rules!!
+        break;
+      }
+      
+      _rulesIt=(*_nodesIt)->choices().begin();
+      
+      if (_rulesIt == (*_nodesIt)->choices().end()) {
+        found=false;
+      }
+    } while(!found);
+  }
+}
+
 /**
  * Create a manage a set of legal schedules
  */
@@ -153,6 +183,7 @@ public:
       } 
       else {
         _rulesIt = (*_nodesIt)->choices().begin();
+        reachFirstValidRuleFromHere(_nodesIt, _nodesEnd, _rulesIt);
       }
     }
     
@@ -166,30 +197,7 @@ public:
       }
       
       _rulesIt++;
-      
-      if (_rulesIt != (*_nodesIt)->choices().end()) {
-        //New rule found
-        return;
-      }
-      
-      //This set of rules is finished! Let's go to the next one
-      bool found;
-      do {
-        found=true;
-        _nodesIt++;
-        
-        if (_nodesIt == _nodesEnd) {
-          std::cout << "End of rules";
-          //No more rules!!
-          break;
-        }
-        
-        _rulesIt=(*_nodesIt)->choices().begin();
-        
-        if (_rulesIt == (*_nodesIt)->choices().end()) {
-          found=false;
-        }
-      } while(!found);
+      reachFirstValidRuleFromHere(_nodesIt, _nodesEnd, _rulesIt);
     }
     
     bool operator== (rule_iterator& that) {
@@ -300,11 +308,12 @@ private:
   void removeUselessDimensions(std::vector<size_t> uselessDimensions, 
                                MatrixDefPtr matrix);
   void importDataDepsFromRule(RulePtr& rule, 
-                              MatrixDataDependencyMap dataDepsMap);
+                              MatrixDataDependencyMap& dataDepsMap);
   std::vector<size_t> findUselessDimensions(
                               const DataDependencySet matrixDependencies) const;
   MatrixDataDependencyMap getDataDepsForTemporaryMatrixes ();
   
+  void fixVersionedRegionsType();
 private:
   //storage of nodes
   std::map<MatrixDefPtr, ChoiceDepGraphNodeList> _matrixToNodes;

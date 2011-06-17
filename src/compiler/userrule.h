@@ -258,6 +258,8 @@ public:
   virtual void removeDimensionFromMatrix(const MatrixDefPtr matrix, 
                                           const size_t dimension);
   
+  virtual void fixVersionedRegionsType();
+  
 private:
   void computeDataDependencyVector();
   CoordinateFormula computeDDVAsDifference(const RegionPtr inputRegion,

@@ -190,16 +190,18 @@ public:
   ///Remove the specified dimension from every reference to the given matrix 
   ///that appears inside this rule
   virtual void removeDimensionFromMatrix(const MatrixDefPtr, const size_t) {};
-
+  
+  ///Fix the type of all the versioned regions associated with this rule
+  virtual void fixVersionedRegionsType() {};
+  
 protected:
   int _id;
   SimpleRegionPtr _applicableRegion;
   bool _isDisabled;
   DataDependencyVectorMap _dataDependencyVectorMap; /**< Data dependency vector.
                                                      * It contains only the deps
-                                                     * for regions that are used
-                                                     * both as input and output
-                                                     * of the rule. */
+                                                     * for regions that come 
+                                                     * from "through" matrixes*/
 };
 
 

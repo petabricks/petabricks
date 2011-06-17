@@ -156,7 +156,7 @@ void petabricks::Region::initialize(Transform& trans) {
         }
       }
     }
-    if(_version) _originalType = REGION_SLICE;
+    //if(_version) _originalType = REGION_SLICE;
     break;
   default:
     JASSERT(false).Text("Unreachable");
@@ -545,6 +545,15 @@ void  petabricks::Region::addArgToScope(RIRScope& scope) const {
   }
 }
 
-
-
-
+void petabricks::Region::fixTypeIfVersioned() {
+  if(! _version) {
+    //Not versioned. Nothing to do
+    return;
+  }
+  
+  if (_originalType == REGION_ALL && removedDimensions() == 0) {
+    //The versioning is done by adding a dimension to the matrix
+    //Access to a version is done by slicing
+    _originalType = REGION_SLICE;
+  }
+}

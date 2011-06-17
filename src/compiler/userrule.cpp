@@ -1212,7 +1212,6 @@ void petabricks::UserRule::removeDimensionFromRegionList(RegionList& list,
   for(RegionList::iterator i=list.begin(), e=list.end(); i!=e; ++i) {
     RegionPtr region = *i;
     
-    JTRACE("Considering")(region);
     const MatrixDefPtr& fromMatrix = region->matrix();
     
     if(fromMatrix != matrix) {
@@ -1220,7 +1219,6 @@ void petabricks::UserRule::removeDimensionFromRegionList(RegionList& list,
     }
     
     region->removeDimension(dimension);
-    JTRACE("That becomes")(region);
   }
 }
 
@@ -1280,4 +1278,19 @@ void petabricks::DataDependencyVectorMap::print(std::ostream& o) const {
     o << "\n  MatrixDef: " << matrixDef;
     o << "\t\tDependency vector: " << dependencyVector;
   }
+}
+
+namespace {
+  void fixVersionedRegionsTypeInList(petabricks::RegionList list) {
+    for(petabricks::RegionList::iterator i=list.begin(), e=list.end(); i!=e; ++i) {
+      petabricks::RegionPtr region = *i;
+    
+      region->fixTypeIfVersioned();
+    }
+  }
+}
+
+void petabricks::UserRule::fixVersionedRegionsType() {
+  fixVersionedRegionsTypeInList(_to);
+  fixVersionedRegionsTypeInList(_from);
 }

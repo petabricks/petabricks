@@ -214,6 +214,17 @@ void petabricks::BasicChoiceDepGraphNode::removeDimensionFromRegions(
   }
 }
 
+void petabricks::BasicChoiceDepGraphNode::fixVersionedRegionsType() {
+  //Fix the type of the region directly associated with the node
+  //region()->fixTypeIfVersioned();
+  
+  //Fix the type for the regions manipulated by the rules of the node
+  for(RuleSet::iterator i=_choices.begin(), e=_choices.end(); i!=e; ++i) {
+    RulePtr rule = *i;
+    rule->fixVersionedRegionsType();
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
@@ -374,7 +385,13 @@ void petabricks::ChoiceDepGraphNodeList::removeDimensionFromRegions(MatrixDefPtr
     BasicChoiceDepGraphNode& basicChoiceDepGraphNode = dynamic_cast<BasicChoiceDepGraphNode&> (**i);
     
     basicChoiceDepGraphNode.removeDimensionFromRegions(matrix, dimension);
-
   }
 }
 
+void petabricks::ChoiceDepGraphNodeList::fixVersionedRegionsType() {
+  for(ChoiceDepGraphNodeList::iterator i=begin(), e=end(); i!=e; ++i) {
+    BasicChoiceDepGraphNode& basicChoiceDepGraphNode = dynamic_cast<BasicChoiceDepGraphNode&> (**i);
+    
+    basicChoiceDepGraphNode.fixVersionedRegionsType();
+  }
+}

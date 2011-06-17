@@ -247,7 +247,7 @@ void petabricks::StaticScheduler::removeUselessDimensions(std::vector<size_t> us
 
 void petabricks::StaticScheduler::importDataDepsFromRule(
                                           RulePtr& rule, 
-                                          MatrixDataDependencyMap dataDepsMap) {
+                                          MatrixDataDependencyMap& dataDepsMap) {
   DataDependencyVectorMap& dataDepsVectorMap=rule->getDataDependencyVectorMap();
   
   for(DataDependencyVectorMap::iterator i=dataDepsVectorMap.begin(), e=dataDepsVectorMap.end();
@@ -277,14 +277,12 @@ petabricks::StaticScheduler::MatrixDataDependencyMap
     RulePtr rule = *i;
     importDataDepsFromRule(rule, dataDepsMap);
   }
-  
   return dataDepsMap;
 }
    
 void petabricks::StaticScheduler::removeUselessDimensions() {
   
   const MatrixDataDependencyMap& tempMatrixesDataDeps = getDataDepsForTemporaryMatrixes();
-  
   //For every matrix in the program:
   for(MatrixDataDependencyMap::const_iterator i=tempMatrixesDataDeps.begin(),
                                         e=tempMatrixesDataDeps.end();
@@ -298,6 +296,11 @@ void petabricks::StaticScheduler::removeUselessDimensions() {
     removeUselessDimensions(uselessDimensions, matrix);
   }
 }
+
+void petabricks::StaticScheduler::fixVersionedRegionsType() {
+  _allNodes.fixVersionedRegionsType();
+}
+ 
 
 void petabricks::StaticScheduler::generateSchedule(){
   std::string dbgpathorig = _dbgpath;

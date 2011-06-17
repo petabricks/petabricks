@@ -202,6 +202,8 @@ public:
   
   const std::string& name() const { return _name; }
 
+  bool isVersioned() const { return _version; }
+  
   bool isAll() const { return _originalType == REGION_ALL; }
 
   void assertNotInput();
@@ -233,6 +235,8 @@ public:
   void setArgName(std::string& name) { argName = name; }
   const std::string& getArgName() const { return argName; }
 
+  void fixTypeIfVersioned();
+  
 private:
   void determineDependencyDirection(const size_t dimension, 
                                     const RuleInterface& rule, 

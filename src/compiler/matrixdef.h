@@ -87,6 +87,8 @@ public:
 
   size_t numDimensions() const { return _size.size(); }
   
+  Type type() const { return (Type)_type; }
+  
   FormulaPtr getSizeOfDimension( size_t n ) const { 
     JASSERT(n < numDimensions())(n)(numDimensions());
     return _size[n]; 
@@ -159,7 +161,9 @@ public:
   bool isAllInput() const { return _type == T_FROM; }
   
   void removeDimension(size_t dim) {
+    JTRACE("MatrixDef::removeDimension")(_size.toString());
     _size.erase(_size.begin() + dim);
+    JTRACE("new size")(_size.toString());
   }
   
   FormulaList& getSize() { return _size; } //TODO: for debug only. REMOVE before commit
