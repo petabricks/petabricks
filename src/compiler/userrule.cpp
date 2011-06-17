@@ -74,11 +74,11 @@ namespace{
     return extra+name;
   }
 }
-  
+
 petabricks::FormulaPtr petabricks::RuleInterface::getOffsetVar(int dim, const char* extra /*= NULL*/) const{
   return new FormulaVariable(_getOffsetVarStr(_id, dim, extra).c_str()); //cache me!
 }
-  
+
 int petabricks::RuleInterface::offsetVarToDimension(const std::string& var, const char* extra /*=NULL*/) const
 {
   SRCPOSSCOPE();
@@ -142,7 +142,7 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
     RuleFlavorSpecializePass pass(i);
     _bodyir[i]->accept(pass);
   }
-  
+
 #ifdef HAVE_OPENCL
   if(isOpenClRule() && getSelfDependency().isNone()){
     try
@@ -170,7 +170,7 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       std::cout << "(>) RULE REJECTED BY OpenClFunctionRejectPass: " << id() << "\n";
       failgpu = true;
     }
-		
+
   }
 	else if(isOpenClRule()) {
 		std::cout << "(>) RULE REJECTED BY Self Dependency \n";
@@ -181,7 +181,7 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
     std::cout << "(>) NO OPENCL SUPPORT FOR RULE " << id() << "\n";
     failgpu = true;
   }
-  
+
   if( failgpu )
   {
     if(_gpuRule) _gpuRule->disableRule();
@@ -220,19 +220,19 @@ void petabricks::UserRule::print(std::ostream& os) const {
   _flags.print(os);
   os << "UserRule " << _id << " " << _label;
   if(!_from.empty()){
-    os << "\nfrom(";  printStlList(os,_from.begin(),_from.end(), ", "); os << ")"; 
-  } 
+    os << "\nfrom(";  printStlList(os,_from.begin(),_from.end(), ", "); os << ")";
+  }
   if(!_to.empty()){
     os << "\nto(";    printStlList(os,_to.begin(),_to.end(), ", "); os << ")";
-  } 
+  }
   if(!_conditions.empty()){
-    os << "\nwhere ";  printStlList(os,_conditions.begin(),_conditions.end(), ", "); 
-  } 
+    os << "\nwhere ";  printStlList(os,_conditions.begin(),_conditions.end(), ", ");
+  }
   if(!_definitions.empty()){
-    os << "\ndefinitions ";  printStlList(os,_definitions.begin(),_definitions.end(), ", "); 
+    os << "\ndefinitions ";  printStlList(os,_definitions.begin(),_definitions.end(), ", ");
   }
   if(!_duplicateVars.empty()){
-    os << "\nduplicateVars ";  printStlList(os,_duplicateVars.begin(),_duplicateVars.end(), ", "); 
+    os << "\nduplicateVars ";  printStlList(os,_duplicateVars.begin(),_duplicateVars.end(), ", ");
   }
   os << "\nisRecursive " << isRecursive();
   os << "\nisOpenCLRule " << isOpenClRule();
@@ -296,10 +296,10 @@ void petabricks::UserRule::initialize(Transform& trans) {
   _conditions.makeRelativeTo(_definitions);
 
   buildApplicableRegion(trans, _applicableRegion, true);
-  
+
   FormulaList condtmp;
   condtmp.swap(_conditions);
-  //simplify simple where clauses 
+  //simplify simple where clauses
   for(FormulaList::iterator i=condtmp.begin(); i!=condtmp.end(); ++i){
     FreeVars fv;
     (*i)->getFreeVariables(fv);
@@ -335,7 +335,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
         else
           f=MAXIMA.min(f, criticalPoint);
       }
-      
+
       JTRACE("where clause handled")(*i)(criticalPoint)(_applicableRegion)(smaller)(eq)(larger);
     }else{
       //test if we can statically prove it
@@ -366,7 +366,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
 
   MaximaWrapper::instance().popContext();
 }
-  
+
 void petabricks::UserRule::buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional){
   SRCPOSSCOPE();
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -383,7 +383,7 @@ void petabricks::UserRule::buildApplicableRegion(Transform& trans, SimpleRegionP
   }
   JASSERT(ar);
 }
-  
+
 void petabricks::UserRule::performExpansion(Transform& trans){
   SRCPOSSCOPE();
   if(isDuplicated()){
@@ -402,10 +402,10 @@ void petabricks::UserRule::performExpansion(Transform& trans){
  #endif
 }
 
-void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& output, 
-                                                          const MatrixDefPtr& matrix, 
+void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& output,
+                                                          const MatrixDefPtr& matrix,
                                                           int dimension,
-                                                          const RulePtr& rule 
+                                                          const RulePtr& rule
                                                           ) {
   SRCPOSSCOPE();
   MatrixDependencyMap::const_iterator i = _provides.find(matrix);
@@ -472,7 +472,7 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
     LiftVardeclPass p3(trans,*this, o);
     bodytmp->accept(p3);
   }
-  { 
+  {
     DynamicBodyPrintPass dbpp(o);
     bodytmp->accept(dbpp);
   }
@@ -483,7 +483,7 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
 
   o.endClass();
 }
-  
+
 void petabricks::UserRule::generateDeclCodeSequential(Transform& trans, CodeGenerator& o) {
   RuleFlavor rf = RuleFlavor::SEQUENTIAL;
 
@@ -608,10 +608,10 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         //o.os( ) << "std::cerr << \"BEFORE EVERYTHING\" << std::endl;\n";
         //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
 
-        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
+        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( )
                 << " = " << matrix_name << ".asGpuBuffer(_iter_begin, _iter_end);\n";
-        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
-                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
+        o.os( ) << "cl_mem devicebuf_" << (*i)->name( )
+                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, "
                 << "normalized_" << (*i)->name( ) << ".bytes( ),"
                 << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
         //o.os( ) << "std::cerr << \"" << (*i)->matrix( )->name( ) << "\" << std::endl;\n";
@@ -641,9 +641,9 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         //o.os( ) << "std::cerr << \"INPUT\" << std::endl;\n";
         //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
 
-        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
+        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( )
                 << " = " << matrix_name << ".asGpuBuffer(_iter_begin, _iter_end);\n";
-        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
+        o.os( ) << "cl_mem devicebuf_" << (*i)->name( )
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, "
                 << "normalized_" << (*i)->name( ) << ".bytes( ),"
                 << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
@@ -735,9 +735,9 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     o.comment( "Copy results back to host memory." );
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
-      o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_" 
-              << (*i)->name( ) << ", CL_TRUE, 0, " 
-              << "normalized_" << (*i)->name( ) <<  ".bytes(), " 
+      o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_"
+              << (*i)->name( ) << ", CL_TRUE, 0, "
+              << "normalized_" << (*i)->name( ) <<  ".bytes(), "
               << "normalized_" << (*i)->name( ) << ".base(), "
               << "0, NULL, NULL );\n";
       o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to read output buffer.\" );\n";
@@ -764,7 +764,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       //o.os( ) << "std::cerr << \"BEFORE copy\" << std::endl;\n";
       //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
 
-      o.os( ) << "normalized_" << (*i)->name( ) 
+      o.os( ) << "normalized_" << (*i)->name( )
               << ".copyTo(" << (*i)->matrix( )->name( ) << ", _iter_begin, _iter_end);\n";
 
       //o.os( ) << "std::cerr << \"AFTER copy\" << std::endl;\n";
@@ -777,10 +777,13 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 #else
   if(true) {
 #endif
-    if(RuleFlavor::SEQUENTIAL != flavor) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
+    if(RuleFlavor::SEQUENTIAL != flavor) {
+      o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
+      o.write("DynamicTaskPtr _last = NULL;");
+    }
 
     iterdef.unpackargs(o);
-    
+
     if(isSingleElement()){
       trans.markSplitSizeUse(o);
       o.beginIf("petabricks::split_condition<"+jalib::XToString(dimensions())+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")");
@@ -792,10 +795,13 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     iterdef.genLoopBegin(o);
     generateTrampCellCodeSimple( trans, o, flavor );
     iterdef.genLoopEnd(o);
-    
-    if(RuleFlavor::SEQUENTIAL != flavor) o.write("return _spawner;");
+
+    if(RuleFlavor::SEQUENTIAL != flavor){
+      o.write("_spawner->dependsOn(_last);");
+      o.write("return _spawner;");
+    }
     else o.write("return NULL;");
-    
+
     if(isSingleElement())
       o.endIf();
   }
@@ -859,8 +865,8 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
     for( int j = (*i)->minCoord( ).size( ) - 1; j >= 0; --j )
     {
       std::stringstream sizevar;
-      sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
-      idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ), 
+      sizevar << "dim_" << (*i)->name( ) << "_d" << j;
+      idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
               new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
     }
     idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );*/
@@ -870,7 +876,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
     for( int j = minCoordSize - 2; j >= 0; --j )
     {
       std::stringstream sizevar;
-      sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
+      sizevar << "dim_" << (*i)->name( ) << "_d" << j;
       idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
             new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
     }
@@ -887,7 +893,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
     for( int j = (*i)->minCoord( ).size( ) - 1; j >= 0; --j )
     {
       std::stringstream sizevar;
-      sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
+      sizevar << "dim_" << (*i)->name( ) << "_d" << j;
       idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
             new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
 
@@ -902,7 +908,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
       for( int j = minCoordSize - 2; j >= 0; --j )
       {
         std::stringstream sizevar;
-        sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
+        sizevar << "dim_" << (*i)->name( ) << "_d" << j;
         idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
               new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
       }
@@ -996,10 +1002,16 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
     args.push_back(getOffsetVar(i)->toString());
 
   if(RuleFlavor::SEQUENTIAL != flavor){
-    o.setcall("jalib::JRef<"+implcodename(trans)+"_"+flavor.str()+"> _rule", "new "+implcodename(trans)+"_"+flavor.str(), args);
-    o.write("DynamicTaskPtr _task = _rule->runDynamic();");
+    std::string classname = implcodename(trans)+"_"+flavor.str();
+    o.setcall("jalib::JRef<"+classname+"> _rule", "new "+classname, args);
+    //o.write("DynamicTaskPtr _task = _rule->runDynamic();");
+    o.write("DynamicTaskPtr _task = new MethodCallTask<"+classname+", &"+classname+"::runDynamic>(_rule);");
     o.beginIf("_task");
-    o.write("_spawner->dependsOn(_task);");
+    o.beginIf("_last");
+    o.write("_task->dependsOn(_last);");
+    o.endIf();
+    o.write("_last = _task;");
+    //o.write("_spawner->dependsOn(_task);");
     o.write("_task->enqueue();");
     o.endIf();
   }else{
@@ -1113,8 +1125,8 @@ std::string petabricks::UserRule::trampcodename(Transform& trans) const {
   }
   return s;
 }
-  
-size_t petabricks::UserRule::duplicateCount() const { 
+
+size_t petabricks::UserRule::duplicateCount() const {
   int c = 1;
   for(size_t i=0; i<_duplicateVars.size(); ++i)
     c*=_duplicateVars[i].range();
