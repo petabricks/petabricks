@@ -1294,3 +1294,58 @@ void petabricks::UserRule::fixVersionedRegionsType() {
   fixVersionedRegionsTypeInList(_to);
   fixVersionedRegionsTypeInList(_from);
 }
+
+petabricks::RegionList petabricks::UserRule::getSelfDependentRegions() {
+  RegionList list = RegionList();
+    
+  for(RegionList::iterator in=_from.begin(), in_end=_from.end(); 
+      in!=in_end;
+      ++in) {
+    
+    for (RegionList::iterator out=_to.begin(), out_end=_to.end();
+         out != out_end;
+         ++out)
+         {
+      if((*in)->matrix()->name() == (*out)->matrix()->name()) {
+        list.push_back(*in);
+      }
+    }
+  }
+  return list;
+}
+
+petabricks::RegionList petabricks::UserRule::getNonSelfDependentRegions() {
+  RegionList list = RegionList();
+    
+  //Add regions from _from, not in _to
+  for(RegionList::iterator in=_from.begin(), in_end=_from.end(); 
+      in!=in_end;
+      ++in) {
+    
+    for (RegionList::iterator out=_to.begin(), out_end=_to.end();
+         out != out_end;
+         ++out)
+         {
+      if((*in)->matrix()->name() != (*out)->matrix()->name()) {
+        list.push_back(*in);
+      }
+    }
+  }
+    
+  //Add regions from _to, not in _from
+  for(RegionList::iterator out=_to.begin(), out_end=_to.end(); 
+      out!=out_end;
+      ++out) {
+    
+    for (RegionList::iterator in=_from.begin(), in_end=_from.end();
+         in != in_end;
+         ++in)
+         {
+      if((*in)->matrix()->name() != (*out)->matrix()->name()) {
+        list.push_back(*in);
+      }
+    }
+  }
+  
+  return list;
+}

@@ -189,10 +189,16 @@ public:
   
   ///Remove the specified dimension from every reference to the given matrix 
   ///that appears inside this rule
-  virtual void removeDimensionFromMatrix(const MatrixDefPtr, const size_t) {};
+  virtual void removeDimensionFromMatrix(const MatrixDefPtr, const size_t) {}
   
   ///Fix the type of all the versioned regions associated with this rule
-  virtual void fixVersionedRegionsType() {};
+  virtual void fixVersionedRegionsType() {}
+  
+  ///Get the list of regions that the rule reads and modifies
+  virtual RegionList getSelfDependentRegions() { return RegionList(); }
+  
+  ///Get the list of regions that the rule reads only read or writes
+  virtual RegionList getNonSelfDependentRegions() { return RegionList(); }
   
 protected:
   int _id;

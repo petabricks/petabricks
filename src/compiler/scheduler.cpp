@@ -157,20 +157,94 @@ petabricks::ChoiceDepGraphNodeSet petabricks::StaticScheduler::lookupNode(const 
   return rv;
 }
 
-std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(const DataDependencySet matrixDependencies) const {
+namespace {
+  petabricks::RegionList getSameMatrixRegions(
+                                  petabricks::RegionList& selfDepRegions, 
+                                  const petabricks::MatrixDefPtr& matrix) {
+    petabricks::RegionList sameMatrixRegions;
+    std::string matrixName = matrix->name();
+    
+    for(petabricks::RegionList::iterator i=selfDepRegions.begin(), 
+                                         e=selfDepRegions.end();
+        i != e;
+        ++i) {
+      petabricks::RegionPtr region = *i;
+      
+      if(region->matrix()->name() == matrixName) {
+        sameMatrixRegions.push_back(region);
+      }
+    }
+    
+    return sameMatrixRegions;
+  }
   
-  size_t dimensions = (*(matrixDependencies.begin()))->size();
+  bool accessInTheMiddle(const petabricks::RegionPtr& region, 
+                         const size_t dimension) {
+    JTRACE("VediamoUnPo")((region->maxCoord())[dimension])(region->minCoord()[dimension])(region->matrix()->getSizeOfDimension(dimension));
+    /* If the maxCoord of the region for this dimension is not equal to the size
+     * of the dimension, we are accessing some place in the middle of the matrix
+     */
+    petabricks::FormulaPtr maxCoordDim = region->maxCoord()[dimension];
+    petabricks::FormulaPtr dimSize = region->matrix()->getSizeOfDimension(dimension);
+    return ! petabricks::MaximaWrapper::instance().compare(maxCoordDim, "=", dimSize);
+  }
   
+  void filterAccess(std::vector<size_t>& uselessDimensions,
+                                    petabricks::RegionList& regionList) {
+    for (petabricks::RegionList::iterator i=regionList.begin(), 
+                                          e=regionList.end();
+         i != e;
+         ++i) {
+      petabricks::RegionPtr region = *i;
+      
+      for(std::vector<size_t>::iterator dimIt=uselessDimensions.begin(),
+                                        dimIt_end=uselessDimensions.end();
+          dimIt != dimIt_end;
+          ++dimIt) {
+        const size_t dimension = *dimIt;
+        if(accessInTheMiddle(region, dimension)) {
+          JTRACE("List")(uselessDimensions.size());
+          uselessDimensions.erase(dimIt);
+          JTRACE("List")(uselessDimensions.size());
+        }
+      }
+    }
+  }
+}
+
+void petabricks::StaticScheduler::filterNonSelfDependentAccesses(
+                                          std::vector<size_t>& uselessDimensions,
+                                          const MatrixDefPtr matrix) {
+  for(rule_iterator i=rule_begin(), e=rule_end(); i!=e; ++i) {
+    RulePtr rule = *i;
+    
+    RegionList selfDepRegions = rule->getNonSelfDependentRegions();
+    
+    if (selfDepRegions.size()==0) {
+      continue;
+    }
+    
+    RegionList sameMatrixRegions = getSameMatrixRegions(selfDepRegions, matrix);
+    filterAccess(uselessDimensions, sameMatrixRegions);
+    
+  }
+}
+
+std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(
+                                const DataDependencySet matrixSelfDependencies,
+                                const MatrixDefPtr matrix) {
+  
+  size_t dimensions = (*(matrixSelfDependencies.begin()))->size();
+  
+  //Verify if this dimension is always 0 or -1 selfdependent for this matrix
   std::vector<DimensionStatus> matrixStatus;
-  
-  //Verify whether this dimension is always 0 or -1 for this matrix
   for(size_t dim=0; dim<dimensions; ++dim) {
-    if (matrixDependencies.isDimensionDependencyAlwaysEqualTo(dim, -1)) {
+    if (matrixSelfDependencies.isDimensionDependencyAlwaysEqualTo(dim, -1)) {
       matrixStatus.push_back(ALWAYS_MINUS1);
       continue;
     }
     
-    if (matrixDependencies.isDimensionDependencyAlwaysEqualTo(dim, 0)) {
+    if (matrixSelfDependencies.isDimensionDependencyAlwaysEqualTo(dim, 0)) {
       matrixStatus.push_back(ALWAYS_ZERO);
       continue;
     }
@@ -178,9 +252,10 @@ std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(const Dat
     matrixStatus.push_back(OTHER);
   }
   
+  //Detect candidate useless dimensions
   std::vector<size_t> uselessDimensions;
-  /* A dimension is useless if it is always involved in a -1 data dependency
-   * and every other dimension is 0 or -1 data dependend  */
+  /* A dimension is useless if it is always involved in a -1 data dependency 
+   * on itself, and every other dimension is 0 or -1 data dependend  */
   for(size_t dim=0; dim<dimensions; ++dim) {
     if(matrixStatus[dim]==OTHER) {
       //Something is not 0 or -1. No dimension can be removed
@@ -194,8 +269,8 @@ std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(const Dat
   }
    
    
-   
-   
+  filterNonSelfDependentAccesses(uselessDimensions, matrix);
+   JTRACE("List")(uselessDimensions.size());
   /* A dimension is useless if it is always involved in a -1 data dependency and 
    * every other dimension is 0 data dependent
   for(size_t dim=0; dim<dimensions; ++dim) {
@@ -292,7 +367,8 @@ void petabricks::StaticScheduler::removeUselessDimensions() {
     DataDependencySet matrixDependencies = i->second;
     
     std::vector<size_t> uselessDimensions = findUselessDimensions(
-                                                          matrixDependencies);
+                                                          matrixDependencies,
+                                                          matrix);
     removeUselessDimensions(uselessDimensions, matrix);
   }
 }

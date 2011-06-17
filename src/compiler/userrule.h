@@ -260,6 +260,10 @@ public:
   
   virtual void fixVersionedRegionsType();
   
+  virtual RegionList getSelfDependentRegions();
+  
+  virtual RegionList getNonSelfDependentRegions();
+  
 private:
   void computeDataDependencyVector();
   CoordinateFormula computeDDVAsDifference(const RegionPtr inputRegion,

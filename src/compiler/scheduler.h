@@ -310,7 +310,11 @@ private:
   void importDataDepsFromRule(RulePtr& rule, 
                               MatrixDataDependencyMap& dataDepsMap);
   std::vector<size_t> findUselessDimensions(
-                              const DataDependencySet matrixDependencies) const;
+                                    const DataDependencySet matrixDependencies,
+                                    const MatrixDefPtr matrix);
+                                    
+  void filterNonSelfDependentAccesses(std::vector<size_t>& uselessDimensions,
+                                      const MatrixDefPtr matrix);
   MatrixDataDependencyMap getDataDepsForTemporaryMatrixes ();
   
   void fixVersionedRegionsType();
