@@ -82,16 +82,21 @@ public:
   bool hasIntersect(const SimpleRegion& that) const;
 
   size_t dimensions() const { return _minCoord.size(); }
+  
   size_t isExistingDimension(size_t dimension) const { 
     return dimension < dimensions();
   }
+  
   size_t removedDimensions() const { return _removedDimensions.minCoord.size(); }
+  
+  size_t totalDimensions() const {return dimensions() + removedDimensions(); }
+  
   size_t isRemovedDimension(size_t dim) const {
     size_t existingDimensions = dimensions();
-    size_t totalDimensions = existingDimensions + removedDimensions();
     
-    return (existingDimensions <= dim) && (dim < totalDimensions);
+    return (existingDimensions <= dim) && (dim < totalDimensions());
   }
+  
   const CoordinateFormula& minCoord() const { return _minCoord; }
   const CoordinateFormula& maxCoord() const { return _maxCoord; }
   CoordinateFormula& minCoord() { return _minCoord; }

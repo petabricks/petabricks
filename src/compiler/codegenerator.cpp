@@ -318,7 +318,7 @@ void petabricks::CodeGenerator::callSpatial(const std::string& methodname, const
 }
 void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region) {
   std::string taskclass = "petabricks::SpatialMethodCallTask<"+objname
-                        + ", " + jalib::XToString(region.dimensions())
+                        + ", " + jalib::XToString(region.totalDimensions())
                         + ", &" + objname + "::" + methodname
                         + ">";
   write("{");
