@@ -111,6 +111,7 @@ void petabricks::IterationDefinition::genLoopBegin(CodeGenerator& o){
       o.varDecl("const IndexT "+_var[i]->toString()+" = "+_begin[i]->toString());
     }
   }else{
+    o.comment("Iterate along all the directions");
     for(size_t i=0; i<_var.size(); ++i){
       FormulaPtr b=_begin[i];
       FormulaPtr e=_end[i];

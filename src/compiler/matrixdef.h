@@ -161,9 +161,7 @@ public:
   bool isAllInput() const { return _type == T_FROM; }
   
   void removeDimension(size_t dim) {
-    JTRACE("MatrixDef::removeDimension")(_size.toString());
     _size.erase(_size.begin() + dim);
-    JTRACE("new size")(_size.toString());
   }
   
   FormulaList& getSize() { return _size; } //TODO: for debug only. REMOVE before commit

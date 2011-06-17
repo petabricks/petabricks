@@ -180,7 +180,7 @@ std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(const Dat
   
   std::vector<size_t> uselessDimensions;
   /* A dimension is useless if it is always involved in a -1 data dependency
-   * and every other dimension is 0 or -1 data dependend 
+   * and every other dimension is 0 or -1 data dependend  */
   for(size_t dim=0; dim<dimensions; ++dim) {
     if(matrixStatus[dim]==OTHER) {
       //Something is not 0 or -1. No dimension can be removed
@@ -192,7 +192,7 @@ std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(const Dat
       uselessDimensions.push_back(dim);
     }
   }
-   */
+   
    
    
    
@@ -218,7 +218,7 @@ std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(const Dat
   } */
   
   /* The last dimension is useless if it is -1 data dependent and all the others
-   * are 0 data dependent */
+   * are 0 data dependent 
   for(size_t dim=0; dim<dimensions-1; ++dim) {
     if(matrixStatus[dim]!=ALWAYS_ZERO)
       return uselessDimensions;
@@ -226,7 +226,7 @@ std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(const Dat
   if (matrixStatus[dimensions-1]==ALWAYS_MINUS1) {
     uselessDimensions.push_back(dimensions-1);
   }
-  
+  */
   return uselessDimensions;
 }
 
@@ -330,6 +330,7 @@ void petabricks::StaticScheduler::generateSchedule(){
       #endif
 
       removeUselessDimensions();
+      fixVersionedRegionsType();
       
       #ifdef DEBUG
       writeGraph((_dbgpath+".noUselessDimensions.dot").c_str());
