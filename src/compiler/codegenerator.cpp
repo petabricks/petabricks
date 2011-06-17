@@ -323,8 +323,9 @@ void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const
                         + ">";
   write("{");
   incIndent();
-  write("IndexT _tmp_begin[] = {" + region.minCoord().toString() + "};");
-  write("IndexT _tmp_end[] = {"   + region.maxCoord().toString() + "};");
+  comment("MARKER 6");
+  write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
+  write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
   write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end);");
   decIndent();
   write("}");
