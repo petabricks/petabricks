@@ -186,7 +186,8 @@ namespace {
      */
     petabricks::FormulaPtr maxCoordDim = region->maxCoord()[dimension];
     petabricks::FormulaPtr dimSize = region->matrix()->getSizeOfDimension(dimension);
-    return ! petabricks::MaximaWrapper::instance().compare(maxCoordDim, "=", dimSize);
+    
+    return ! petabricks::MaximaWrapper::instance().comparePessimistically(maxCoordDim, "=", dimSize);
   }
   
   void filterAccess(std::vector<size_t>& uselessDimensions,
@@ -255,7 +256,7 @@ std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(
   //Detect candidate useless dimensions
   std::vector<size_t> uselessDimensions;
   /* A dimension is useless if it is always involved in a -1 data dependency 
-   * on itself, and every other dimension is 0 or -1 data dependend  */
+   * on itself, and every other dimension is 0 or -1 data dependend 
   for(size_t dim=0; dim<dimensions; ++dim) {
     if(matrixStatus[dim]==OTHER) {
       //Something is not 0 or -1. No dimension can be removed
@@ -267,10 +268,10 @@ std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(
       uselessDimensions.push_back(dim);
     }
   }
+  */
    
-   
-  filterNonSelfDependentAccesses(uselessDimensions, matrix);
-   JTRACE("List")(uselessDimensions.size());
+  
+
   /* A dimension is useless if it is always involved in a -1 data dependency and 
    * every other dimension is 0 data dependent
   for(size_t dim=0; dim<dimensions; ++dim) {
@@ -293,7 +294,7 @@ std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(
   } */
   
   /* The last dimension is useless if it is -1 data dependent and all the others
-   * are 0 data dependent 
+   * are 0 data dependent  */
   for(size_t dim=0; dim<dimensions-1; ++dim) {
     if(matrixStatus[dim]!=ALWAYS_ZERO)
       return uselessDimensions;
@@ -301,7 +302,8 @@ std::vector<size_t> petabricks::StaticScheduler::findUselessDimensions(
   if (matrixStatus[dimensions-1]==ALWAYS_MINUS1) {
     uselessDimensions.push_back(dimensions-1);
   }
-  */
+  
+  filterNonSelfDependentAccesses(uselessDimensions, matrix);
   return uselessDimensions;
 }
 
