@@ -309,21 +309,23 @@ void petabricks::CodeGenerator::mergehelpers(){
 void petabricks::CodeGenerator::callSpatial(const std::string& methodname, const SimpleRegion& region) {
   write("{");
   incIndent();
-  write("IndexT _tmp_begin[] = {" + region.minCoord().toString() + "};");
-  write("IndexT _tmp_end[] = {"   + region.maxCoord().toString() + "};");
+  comment("MARKER 3");
+  write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
+  write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
   write(methodname+"(_tmp_begin, _tmp_end);");
   decIndent();
   write("}");
 }
 void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region) {
   std::string taskclass = "petabricks::SpatialMethodCallTask<"+objname
-                        + ", " + jalib::XToString(region.dimensions())
+                        + ", " + jalib::XToString(region.totalDimensions())
                         + ", &" + objname + "::" + methodname
                         + ">";
   write("{");
   incIndent();
-  write("IndexT _tmp_begin[] = {" + region.minCoord().toString() + "};");
-  write("IndexT _tmp_end[] = {"   + region.maxCoord().toString() + "};");
+  comment("MARKER 6");
+  write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
+  write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
   write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end);");
   decIndent();
   write("}");

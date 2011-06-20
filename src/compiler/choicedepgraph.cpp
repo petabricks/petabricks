@@ -198,6 +198,33 @@ void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans,
   //TODO deps for slice // dynamic version
 }
 
+void petabricks::BasicChoiceDepGraphNode::removeDimensionFromRegions(
+                                                          MatrixDefPtr matrix, 
+                                                          size_t dimension) {
+  
+  if(this->matrix() == matrix) {
+    //Remove dimension from the region directly associated with the node 
+    this->region()->removeDimension(dimension);
+  }
+  
+  //Remove dimension from the regions manipulated by the rules of the node
+  for(RuleSet::iterator i=_choices.begin(), e=_choices.end(); i!=e; ++i) {
+    RulePtr rule = *i;
+    rule->removeDimensionFromMatrix(matrix, dimension);
+  }
+}
+
+void petabricks::BasicChoiceDepGraphNode::fixVersionedRegionsType() {
+  //Fix the type of the region directly associated with the node
+  //region()->fixTypeIfVersioned();
+  
+  //Fix the type for the regions manipulated by the rules of the node
+  for(RuleSet::iterator i=_choices.begin(), e=_choices.end(); i!=e; ++i) {
+    RulePtr rule = *i;
+    rule->fixVersionedRegionsType();
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
@@ -353,4 +380,18 @@ void petabricks::SlicedChoiceDepGraphNode::generateCode(Transform& trans, CodeGe
   }
 }
 
+void petabricks::ChoiceDepGraphNodeList::removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension) {
+  for(ChoiceDepGraphNodeList::iterator i=begin(), e=end(); i!=e; ++i) {
+    BasicChoiceDepGraphNode& basicChoiceDepGraphNode = dynamic_cast<BasicChoiceDepGraphNode&> (**i);
+    
+    basicChoiceDepGraphNode.removeDimensionFromRegions(matrix, dimension);
+  }
+}
 
+void petabricks::ChoiceDepGraphNodeList::fixVersionedRegionsType() {
+  for(ChoiceDepGraphNodeList::iterator i=begin(), e=end(); i!=e; ++i) {
+    BasicChoiceDepGraphNode& basicChoiceDepGraphNode = dynamic_cast<BasicChoiceDepGraphNode&> (**i);
+    
+    basicChoiceDepGraphNode.fixVersionedRegionsType();
+  }
+}

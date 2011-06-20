@@ -177,8 +177,13 @@ public:
 
   FormulaPtr getSizeOfRuleIn(int d){
     for(size_t i=0; i<_to.size(); ++i){
-      if(d < (int)_to[i]->dimensions()){
+      if(_to[i]->isExistingDimension(d)){
         return _to[i]->getSizeOfRuleIn(d);
+      }
+    }
+    for(size_t i=0; i<_to.size(); ++i){
+      if(_to[i]->isRemovedDimension(d)){
+        return _to[i]->getSizeOfRuleInRemovedDimension(d);
       }
     }
     JASSERT(false)(d)(_id);
@@ -246,7 +251,35 @@ public:
     return _bodyirStatic;
   }
 
-  void buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional);
+  void buildApplicableRegion(Transform& trans,
+                             SimpleRegionPtr& ar, 
+                             bool allowOptional);
+                                     
+  virtual void removeDimensionFromMatrix(const MatrixDefPtr matrix, 
+                                          const size_t dimension);
+  
+  virtual void fixVersionedRegionsType();
+  
+  virtual RegionList getSelfDependentRegions();
+  
+  virtual RegionList getNonSelfDependentRegions();
+  
+private:
+  void computeDataDependencyVector();
+  CoordinateFormula computeDDVAsDifference(const RegionPtr inputRegion,
+                                           const RegionPtr outputRegion
+                                          ) const;
+  void computeDDVForGivenOutput(const RegionPtr outputRegion);
+  
+  void removeDimensionFromRegionList(RegionList& list,
+                                     const MatrixDefPtr matrix, 
+                                     const size_t dimension);
+  
+  void removeDimensionFromMatrixDependencyMap(MatrixDependencyMap& map,
+                                              const MatrixDefPtr matrix,
+                                              const size_t dimension);                                
+                                              
+  void removeDimensionFromDefinitions(const size_t dimension);
 private:
   RuleFlags _flags;
   RegionList _from;
@@ -268,7 +301,6 @@ private:
   std::string _label;
   ConfigItems _duplicateVars;
   RulePtr _gpuRule;
-
 };
 
 }

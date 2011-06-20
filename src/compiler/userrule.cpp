@@ -216,6 +216,9 @@ void petabricks::UserRule::print(std::ostream& os) const {
   if(!_to.empty()){
     os << "\nto(";    printStlList(os,_to.begin(),_to.end(), ", "); os << ")";
   } 
+  if(!_dataDependencyVectorMap.empty()) {
+    os << "\ndata dependency vector map: " << _dataDependencyVectorMap;
+  }
   if(!_conditions.empty()){
     os << "\nwhere ";  printStlList(os,_conditions.begin(),_conditions.end(), ", "); 
   } 
@@ -349,7 +352,9 @@ void petabricks::UserRule::initialize(Transform& trans) {
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->collectDependencies(trans, *this,_provides);
   }
-
+  
+  computeDataDependencyVector();
+  
   //expand through() clause
   for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
     _bodysrc=(*i)->matrixTypeName()+" "+(*i)->name()+" = "+(*i)->allocateStr()+";\n"+_bodysrc;
@@ -357,7 +362,68 @@ void petabricks::UserRule::initialize(Transform& trans) {
 
   MaximaWrapper::instance().popContext();
 }
+
+/**
+ * Compute the data dependency vector for two region as the difference of the
+ * dimensions of the two regions
+ */
+petabricks::CoordinateFormula petabricks::UserRule::computeDDVAsDifference(const RegionPtr inputRegion,
+                                                                           const RegionPtr outputRegion
+                                                                          ) const {
+  JASSERT(inputRegion->dimensions()==outputRegion->dimensions());
   
+  CoordinateFormula& inputMinCoord = inputRegion->minCoord();
+  CoordinateFormula& outputMinCoord = outputRegion->minCoord();
+  size_t dimensions=inputRegion->dimensions();
+  
+  CoordinateFormulaPtr newDataDependencyVector = new CoordinateFormula();
+  
+  for(size_t i=0; i<dimensions; ++i) {
+    FormulaPtr difference = new FormulaSubtract(inputMinCoord[i], 
+                                             outputMinCoord[i]);
+    difference = MaximaWrapper::instance().normalize(difference);
+    newDataDependencyVector->push_back(difference);
+  }
+  return newDataDependencyVector;
+}
+
+/**
+ * Computes the distance between the given output region and all the input
+ * regions coming from the same original matrix
+ */
+void petabricks::UserRule::computeDDVForGivenOutput(const RegionPtr outputRegion
+                                                   ) {
+  for(RegionList::const_iterator i=_from.begin(), e=_from.end(); i!=e; ++i ) {
+    const RegionPtr inputRegion = *i;
+    
+    if(outputRegion->matrix()->name() != inputRegion->matrix()->name()) {
+      continue;
+    }
+    
+    CoordinateFormula ddv = computeDDVAsDifference(inputRegion,
+                                                    outputRegion);
+    
+    MatrixDefPtr inputMatrixDef=inputRegion->matrix();
+    DataDependencyVectorMap::value_type newElement(inputMatrixDef,ddv);
+    _dataDependencyVectorMap.insert(newElement);
+  }
+  
+}
+
+/**
+ * Computes the distance between input and output for each dimension 
+ * of each region that is used both as input and output
+ */
+void petabricks::UserRule::computeDataDependencyVector() {
+  //Loop on outputs (_to) first, because they usually are less then inputs
+  for(RegionList::const_iterator i=_to.begin(), e=_to.end(); i != e; ++i) {
+    const RegionPtr outputRegion = *i;
+    
+    computeDDVForGivenOutput(outputRegion);
+    
+  }
+}
+
 void petabricks::UserRule::buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional){
   SRCPOSSCOPE();
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -411,7 +477,7 @@ void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& ou
 
 void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
   SRCPOSSCOPE();
-
+  o.comment("MARKER 5");
   if(isRecursive()){
     o.beginClass(implcodename(trans)+TX_DYNAMIC_POSTFIX, "petabricks::RuleInstance");
 
@@ -457,7 +523,6 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
 
     o.endClass();
   }
-  
   std::vector<std::string> args;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     args.push_back((*i)->generateSignatureCode(false));
@@ -954,6 +1019,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
 #endif
 
 void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
+  o.comment("MARKER 4");
   SRCPOSSCOPE();
 #if HAVE_OPENCL
   JASSERT( RuleFlavor::OPENCL != flavor );
@@ -995,6 +1061,7 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor){
   SRCPOSSCOPE();
+  o.comment("MARKER 2");
   switch(flavor) {
   case RuleFlavor::SEQUENTIAL:
     o.callSpatial(trampcodename(trans)+TX_STATIC_POSTFIX, region);
@@ -1131,3 +1198,146 @@ size_t petabricks::UserRule::getDuplicateNumber() {
   return c;
 }
 
+
+void petabricks::UserRule::removeDimensionFromRegionList(RegionList& list, 
+                                                     const MatrixDefPtr matrix, 
+                                                     const size_t dimension) {
+  for(RegionList::iterator i=list.begin(), e=list.end(); i!=e; ++i) {
+    RegionPtr region = *i;
+    
+    const MatrixDefPtr& fromMatrix = region->matrix();
+    
+    if(fromMatrix != matrix) {
+      continue;
+    }
+    
+    region->removeDimension(dimension);
+  }
+}
+
+
+void petabricks::UserRule::removeDimensionFromMatrixDependencyMap(MatrixDependencyMap& map,
+                                                      const MatrixDefPtr matrix,
+                                                      const size_t dimension) {
+  MatrixDependencyMap::iterator dependencyIterator = map.find(matrix);
+  if(dependencyIterator == map.end()) {
+    //No dependencies to remove
+    return;
+  }
+  
+  MatrixDependencyPtr dependency = dependencyIterator->second;
+  
+  dependency->removeDimension(dimension);
+}
+
+
+void petabricks::UserRule::removeDimensionFromDefinitions(const size_t dimension) {
+  FormulaPtr offsetVar = getOffsetVar(dimension);
+  
+  for(FormulaList::iterator i=_definitions.begin(), e=_definitions.end();
+      i != e;
+      ++i) {
+    FormulaPtr definition = *i;
+    FormulaPtr definingVar = definition->rhs();
+    if(definingVar->toString() != offsetVar->toString()) {
+      //It's not the variable we are looking for
+      continue;
+    }
+    
+    //It's the variable we are looking for
+    //Let's erase it!
+    _definitions.erase(i);
+    return;
+  }
+}
+
+
+void petabricks::UserRule::removeDimensionFromMatrix(const MatrixDefPtr matrix,
+                                                      const size_t dimension) {
+  removeDimensionFromRegionList(_to, matrix, dimension);
+  removeDimensionFromRegionList(_from, matrix, dimension);
+  
+  removeDimensionFromDefinitions(dimension);
+}
+
+void petabricks::DataDependencyVectorMap::print(std::ostream& o) const {
+  o << "DataDependencyVectorMap: ";
+  for(DataDependencyVectorMap::const_iterator i=this->begin(), e=this->end(); 
+      i!=e; 
+      ++i) {
+    MatrixDefPtr matrixDef = i->first;
+    const CoordinateFormula& dependencyVector = i->second;
+    o << "\n  MatrixDef: " << matrixDef;
+    o << "\t\tDependency vector: " << dependencyVector;
+  }
+}
+
+namespace {
+  void fixVersionedRegionsTypeInList(petabricks::RegionList list) {
+    for(petabricks::RegionList::iterator i=list.begin(), e=list.end(); i!=e; ++i) {
+      petabricks::RegionPtr region = *i;
+    
+      region->fixTypeIfVersioned();
+    }
+  }
+}
+
+void petabricks::UserRule::fixVersionedRegionsType() {
+  fixVersionedRegionsTypeInList(_to);
+  fixVersionedRegionsTypeInList(_from);
+}
+
+petabricks::RegionList petabricks::UserRule::getSelfDependentRegions() {
+  RegionList list = RegionList();
+    
+  for(RegionList::iterator in=_from.begin(), in_end=_from.end(); 
+      in!=in_end;
+      ++in) {
+    
+    for (RegionList::iterator out=_to.begin(), out_end=_to.end();
+         out != out_end;
+         ++out)
+         {
+      if((*in)->matrix()->name() == (*out)->matrix()->name()) {
+        list.push_back(*in);
+      }
+    }
+  }
+  return list;
+}
+
+petabricks::RegionList petabricks::UserRule::getNonSelfDependentRegions() {
+  RegionList list = RegionList();
+    
+  //Add regions from _from, not in _to
+  for(RegionList::iterator in=_from.begin(), in_end=_from.end(); 
+      in!=in_end;
+      ++in) {
+    
+    for (RegionList::iterator out=_to.begin(), out_end=_to.end();
+         out != out_end;
+         ++out)
+         {
+      if((*in)->matrix()->name() != (*out)->matrix()->name()) {
+        list.push_back(*in);
+      }
+    }
+  }
+    
+  //Add regions from _to, not in _from
+  for(RegionList::iterator out=_to.begin(), out_end=_to.end(); 
+      out!=out_end;
+      ++out) {
+    
+    for (RegionList::iterator in=_from.begin(), in_end=_from.end();
+         in != in_end;
+         ++in)
+         {
+      if((*in)->matrix()->name() != (*out)->matrix()->name()) {
+        list.push_back(*in);
+      }
+    }
+  }
+  
+  return list;
+}

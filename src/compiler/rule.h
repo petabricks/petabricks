@@ -62,7 +62,10 @@ struct RulePriCmp
 {
   bool operator()(const RulePtr& r1, const RulePtr& r2) const;
 };
-typedef std::set<RulePtr, RulePriCmp> RuleSet;
+
+class RuleSet : public std::set<RulePtr, RulePriCmp> {
+  void removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension);
+};
 
 /**
  * Priority/rotation flags for a Rule
@@ -95,6 +98,16 @@ public:
   RotationT  rotations;
   bool       isRecursive;
   bool       isReturnStyle;
+};
+
+/**
+ * Class for describing the data dependencies of various instances of the same
+ * matrix inside a rule
+ */
+class DataDependencyVectorMap : public jalib::JPrintable, 
+                                public std::multimap<MatrixDefPtr, 
+                                                CoordinateFormula> {
+  void print(std::ostream& o) const;
 };
 
 /**
@@ -171,10 +184,30 @@ public:
 
   bool isDisabled() const { return _isDisabled; }
   void disableRule() { _isDisabled = true; }
+  
+  DataDependencyVectorMap& getDataDependencyVectorMap() {return _dataDependencyVectorMap; }
+  
+  ///Remove the specified dimension from every reference to the given matrix 
+  ///that appears inside this rule
+  virtual void removeDimensionFromMatrix(const MatrixDefPtr, const size_t) {}
+  
+  ///Fix the type of all the versioned regions associated with this rule
+  virtual void fixVersionedRegionsType() {}
+  
+  ///Get the list of regions that the rule reads and modifies
+  virtual RegionList getSelfDependentRegions() { return RegionList(); }
+  
+  ///Get the list of regions that the rule only reads or writes
+  virtual RegionList getNonSelfDependentRegions() { return RegionList(); }
+  
 protected:
   int _id;
   SimpleRegionPtr _applicableRegion;
   bool _isDisabled;
+  DataDependencyVectorMap _dataDependencyVectorMap; /**< Data dependency vector.
+                                                     * It contains only the deps
+                                                     * for regions that come 
+                                                     * from "through" matrixes*/
 };
 
 

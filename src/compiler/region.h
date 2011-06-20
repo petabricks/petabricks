@@ -47,12 +47,20 @@ class MatrixDependencyMap;
 class RIRScope;
 typedef jalib::JRef<Region> RegionPtr;
 typedef jalib::JRef<SimpleRegion> SimpleRegionPtr;
-class RegionList : public std::vector<RegionPtr> , public jalib::JRefCounted, public jalib::SrcPosTaggable {
+
+class RegionList : public std::vector<RegionPtr> , public jalib::JRefCounted, public jalib::SrcPosTaggable, public jalib::JPrintable {
 public:
+  void print(std::ostream& o) const;
   void makeRelativeTo(const FormulaList& defs);
 };
 
 class SimpleRegion : public jalib::JRefCounted, public jalib::JPrintable, public jalib::SrcPosTaggable {
+private:
+  struct RemovedDimensionsInfo {
+    CoordinateFormula minCoord;
+    CoordinateFormula maxCoord;
+  };
+  
 public: 
   SimpleRegion(){}
   SimpleRegion(const CoordinateFormula& min, const CoordinateFormula& max)
@@ -74,7 +82,21 @@ public:
   bool hasIntersect(const SimpleRegion& that) const;
 
   size_t dimensions() const { return _minCoord.size(); }
-
+  
+  size_t isExistingDimension(size_t dimension) const { 
+    return dimension < dimensions();
+  }
+  
+  size_t removedDimensions() const { return _removedDimensions.minCoord.size(); }
+  
+  size_t totalDimensions() const {return dimensions() + removedDimensions(); }
+  
+  size_t isRemovedDimension(size_t dim) const {
+    size_t existingDimensions = dimensions();
+    
+    return (existingDimensions <= dim) && (dim < totalDimensions());
+  }
+  
   const CoordinateFormula& minCoord() const { return _minCoord; }
   const CoordinateFormula& maxCoord() const { return _maxCoord; }
   CoordinateFormula& minCoord() { return _minCoord; }
@@ -84,7 +106,21 @@ public:
     _minCoord.push_back(min);
     _maxCoord.push_back(max);
   }
-
+  
+  ///Remove the given dimension from the region
+  void removeDimension(const size_t dimension) {
+    CoordinateFormula& minCoordVector = minCoord();
+    CoordinateFormula& maxCoordVector = maxCoord();
+    
+    //Store the dimension in the removed dimensions data structure
+    _removedDimensions.minCoord.push_back(minCoordVector[dimension]);
+    _removedDimensions.maxCoord.push_back(maxCoordVector[dimension]);
+    
+    //Erase the dimension
+    minCoordVector.erase(minCoordVector.begin()+dimension);
+    maxCoordVector.erase(maxCoordVector.begin()+dimension);    
+  }
+  
   void offsetMaxBy(const FormulaPtr& val){
     for(CoordinateFormula::iterator i=_maxCoord.begin(); i!=_maxCoord.end(); ++i)
       *i = new FormulaAdd(*i, val);
@@ -108,11 +144,17 @@ public:
     return args;
   }
 
+  std::string getIterationLowerBounds() const;
+  std::string getIterationUpperBounds() const;
+  
   size_t size() const { return dimensions(); }
 protected:
   CoordinateFormula _minCoord;
   CoordinateFormula _maxCoord;
+  RemovedDimensionsInfo _removedDimensions;
 };
+
+class DependencyDirection;
 
 class Region : public SimpleRegion {
 public:
@@ -153,6 +195,7 @@ public:
   void addAssumptions() const;
 
   FormulaPtr getSizeOfRuleIn(int d) const;
+  FormulaPtr getSizeOfRuleInRemovedDimension(int d) const;
 
   MatrixDefPtr matrix() const { return _fromMatrix; }
   
@@ -164,6 +207,8 @@ public:
   
   const std::string& name() const { return _name; }
 
+  bool isVersioned() const { return _version; }
+  
   bool isAll() const { return _originalType == REGION_ALL; }
 
   void assertNotInput();
@@ -188,13 +233,19 @@ public:
   }
 
   void addArgToScope(RIRScope& scope) const;
- 
+
   void setBuffer(bool b) { buffer = b; }
   bool isBuffer() const { return buffer; }
 
   void setArgName(std::string& name) { argName = name; }
   const std::string& getArgName() const { return argName; }
 
+  void fixTypeIfVersioned();
+  
+private:
+  void determineDependencyDirection(const size_t dimension, 
+                                    const RuleInterface& rule, 
+                                    DependencyDirection& direction) const;
 private:
   std::string _name;
   std::string _fromMatrixName;

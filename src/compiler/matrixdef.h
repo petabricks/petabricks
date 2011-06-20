@@ -87,6 +87,8 @@ public:
 
   size_t numDimensions() const { return _size.size(); }
   
+  Type type() const { return (Type)_type; }
+  
   FormulaPtr getSizeOfDimension( size_t n ) const { 
     JASSERT(n < numDimensions())(n)(numDimensions());
     return _size[n]; 
@@ -157,6 +159,14 @@ public:
 
   void addType(Type t){  _type |= t; }
   bool isAllInput() const { return _type == T_FROM; }
+  
+  void removeDimension(size_t dim) {
+    _size.erase(_size.begin() + dim);
+  }
+  
+  FormulaList& getSize() { return _size; }
+  
+  
 private:
   std::string _name;
   FormulaList _version;
