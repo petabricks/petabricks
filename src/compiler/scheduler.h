@@ -148,7 +148,6 @@ namespace {
       _nodesIt++;
       
       if (_nodesIt == _nodesEnd) {
-        std::cout << "End of rules";
         //No more rules!!
         break;
       }

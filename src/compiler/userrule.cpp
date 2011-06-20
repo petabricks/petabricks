@@ -282,7 +282,6 @@ void petabricks::UserRule::initialize(Transform& trans) {
   {
     FormulaListPtr v = MaximaWrapper::instance().solve(centerEqs, *i);
     JASSERT(v->size()>0)(v)(*i).Text("failed to solve for i in v");
-    JTRACE("Mah")(v);
     _definitions.push_back( trimImpossible(v) );
   }
 
@@ -1077,10 +1076,8 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
 
 int petabricks::UserRule::dimensions() const {
 //   return (int)_applicableRegion->dimensions();
-  JTRACE("Chiavi")(*this);
   int m=0;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    JTRACE("Regione:")(*i)((*i)->dimensions());
     m=std::max(m, (int)(*i)->dimensions());
   }
   return m;
@@ -1142,16 +1139,12 @@ petabricks::DependencyDirection petabricks::UserRule::getSelfDependency() const 
      ; p!=_provides.end()
      ; ++p)
   {
-    JTRACE("booo1")(rv);    
     MatrixDependencyMap::const_iterator d = _depends.find(p->first);
     if(d!=_depends.end()){
       const DependencyDirection& dir = d->second->direction();
-      JTRACE("dir")(dir);
       rv.addDirection(dir);
     }
-    JTRACE("booo2")(rv);
   }
-  JTRACE("buuuu")(rv);
   return rv;
 }
 
@@ -1264,7 +1257,6 @@ void petabricks::UserRule::removeDimensionFromMatrix(const MatrixDefPtr matrix,
   removeDimensionFromRegionList(_to, matrix, dimension);
   removeDimensionFromRegionList(_from, matrix, dimension);
   
-  //removeDimensionFromMatrixDependencyMap(_depends, matrix, dimension); //TODO: remove call & function?
   removeDimensionFromDefinitions(dimension);
 }
 

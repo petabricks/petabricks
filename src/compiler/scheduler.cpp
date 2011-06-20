@@ -178,9 +178,11 @@ namespace {
     return sameMatrixRegions;
   }
   
+  /**
+   * Does this region access its matrix in the middle? Or just at the end?
+   */
   bool accessInTheMiddle(const petabricks::RegionPtr& region, 
                          const size_t dimension) {
-    JTRACE("VediamoUnPo")((region->maxCoord())[dimension])(region->minCoord()[dimension])(region->matrix()->getSizeOfDimension(dimension));
     /* If the maxCoord of the region for this dimension is not equal to the size
      * of the dimension, we are accessing some place in the middle of the matrix
      */
@@ -204,9 +206,7 @@ namespace {
           ++dimIt) {
         const size_t dimension = *dimIt;
         if(accessInTheMiddle(region, dimension)) {
-          JTRACE("List")(uselessDimensions.size());
           uselessDimensions.erase(dimIt);
-          JTRACE("List")(uselessDimensions.size());
         }
       }
     }

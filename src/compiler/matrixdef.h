@@ -164,7 +164,7 @@ public:
     _size.erase(_size.begin() + dim);
   }
   
-  FormulaList& getSize() { return _size; } //TODO: for debug only. REMOVE before commit
+  FormulaList& getSize() { return _size; }
   
   
 private:

@@ -197,7 +197,7 @@ public:
   ///Get the list of regions that the rule reads and modifies
   virtual RegionList getSelfDependentRegions() { return RegionList(); }
   
-  ///Get the list of regions that the rule reads only read or writes
+  ///Get the list of regions that the rule only reads or writes
   virtual RegionList getNonSelfDependentRegions() { return RegionList(); }
   
 protected:

@@ -156,7 +156,6 @@ void petabricks::Region::initialize(Transform& trans) {
         }
       }
     }
-    //if(_version) _originalType = REGION_SLICE;
     break;
   default:
     JASSERT(false).Text("Unreachable");
