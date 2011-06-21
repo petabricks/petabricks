@@ -1,5 +1,7 @@
 #include "regiondataraw.h"
 
+#include "matrixio.h"
+
 using namespace petabricks;
 
 RegionDataRaw::RegionDataRaw(int dimensions, IndexT* size) {

@@ -117,7 +117,8 @@ int main(int argc, const char** argv){
     regionMatrix.createDataPart(0, hdb.host(0));
 
     // import data
-    regionMatrix.importDataFromFile(filename);
+    MatrixRegion3D in = MatrixIO(filename,"r").read_distributed<3>();
+    regionMatrix.copyDataFromRegion(in);
 
     // or, allocate empty matrix
     // regionMatrix->allocData();
@@ -164,7 +165,6 @@ int main(int argc, const char** argv){
     return 0;
   } else {
     printf("main2 %d\n", getpid());
-
     JASSERT(argc==3);
     hdb.connect(argv[1], jalib::StringToInt(argv[2]));
     hdb.spawnListenThread();

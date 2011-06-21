@@ -17,7 +17,7 @@ namespace petabricks {
     RegionHandlerPtr _regionHandler;
 
   public:
-    virtual ElementT readCell(const IndexT* coord) = 0;
+    //    virtual ElementT readCell(const IndexT* coord) = 0;
     virtual void writeCell(const IndexT* coord, ElementT value) = 0;
 
     RegionHandlerPtr getRegionHandler() const;

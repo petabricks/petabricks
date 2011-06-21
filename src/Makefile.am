@@ -146,7 +146,6 @@ libpbruntime_a_SOURCES =  \
   runtime/regiondataremote.cpp \
   runtime/regiondatasplit.cpp \
   runtime/regionhandler.cpp \
-  runtime/regionmatrix.cpp \
   runtime/regionmatrixi.cpp \
   runtime/regionmatrixproxy.cpp \
   runtime/remotehost.cpp \

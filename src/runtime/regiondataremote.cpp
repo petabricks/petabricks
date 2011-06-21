@@ -115,6 +115,6 @@ void RegionDataRemoteObject::onRecvInitial(const void* buf, size_t len) {
 
   _regionData = new RegionDataRemote(msg->dimensions, size, this);
 
-  RegionMatrix::addMovingBuffer((RegionDataIPtr) _regionData, msg->movingBufferIndex);
+  RegionMatrixMovingBuffer::instance().addMovingBuffer((RegionDataIPtr) _regionData, msg->movingBufferIndex);
 }
 

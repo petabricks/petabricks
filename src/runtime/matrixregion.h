@@ -52,7 +52,7 @@
 namespace petabricks {
 
 
-template<typename T> 
+template<typename T>
 inline void _regioncopy(MATRIX_ELEMENT_T* out, const T& in) {
     MATRIX_INDEX_T n = 0;
     MATRIX_INDEX_T coord[T::D];
@@ -62,7 +62,7 @@ inline void _regioncopy(MATRIX_ELEMENT_T* out, const T& in) {
     } while(in.incCoord(coord)>=0);
 }
 
-template<typename T> 
+template<typename T>
 inline void _regioncopy(const T& out, const MATRIX_ELEMENT_T* in) {
     MATRIX_INDEX_T n = 0;
     MATRIX_INDEX_T coord[T::D];
@@ -286,7 +286,7 @@ public:
     return t;
   }
 
-  INLINE ssize_t intervalSize(const IndexT c1[D], const IndexT c2[D]) const 
+  INLINE ssize_t intervalSize(const IndexT c1[D], const IndexT c2[D]) const
   { ssize_t s=1;
     for(int i=0; i<D; ++i) {
       s*=c2[i] - c1[i];
@@ -451,7 +451,7 @@ public:
   /// increment a raw coord in ascending order with in the given boundary
   /// return largest dimension incremented or -1 for end
   int incCoordWithBound(IndexT coord[D], const IndexT c1[D], const IndexT c2[D]) const{
-    if(D==0) 
+    if(D==0)
      return -1;
     int i;
     coord[0]++;

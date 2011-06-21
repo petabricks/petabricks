@@ -1,7 +1,6 @@
 #ifndef PETABRICKSREGIONDATARAW_H
 #define PETABRICKSREGIONDATARAW_H
 
-#include "matrixio.h"
 #include "matrixstorage.h"
 #include "regiondatai.h"
 

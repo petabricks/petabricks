@@ -106,12 +106,8 @@ public:
     JASSERT(o.dimensions==D)(o.dimensions)(D)
       .Text("Unexpected number of dimensions in input matrix");
     MatrixStorage::IndexT sizes[D];
-    if (D > 0) {
-      for(int i=0; i<D; ++i) sizes[i]=o.sizes[i];
-      return RegionMatrixWrapper<D, MATRIX_ELEMENT_T>(o.storage->data(), sizes);
-    } else {
-      return RegionMatrixWrapper0D<MATRIX_ELEMENT_T>(*(o.storage->data()));
-    }
+    for(int i=0; i<D; ++i) sizes[i]=o.sizes[i];
+    return RegionMatrixWrapper<D, MATRIX_ELEMENT_T>(o.storage->data(), sizes);
   }
 
   ///
