@@ -1,7 +1,0 @@
-#ifndef PETABRICKSREGIONMATRIXWRAPPER_H
-#define PETABRICKSREGIONMATRIXWRAPPER_H
-
-#include "regionmatrix.h"
-
-
-#endif

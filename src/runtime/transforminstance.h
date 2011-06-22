@@ -32,7 +32,7 @@
 #include "common/jrefcounted.h"
 
 #include "matrixregion.h"
-#include "regionmatrixwrapper.h"
+#include "regionmatrix.h"
 
 
 namespace petabricks {

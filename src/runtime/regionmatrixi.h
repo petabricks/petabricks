@@ -22,7 +22,7 @@ namespace petabricks {
 
     RegionHandlerPtr getRegionHandler() const;
 
-    int dimensions() const {return _D;}
+    int dimensions() const { return _D; }
 
     virtual CellProxy& cell(IndexT x, ...) const;
     virtual CellProxy& cell(IndexT* coord) const;

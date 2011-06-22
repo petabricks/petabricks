@@ -7,6 +7,8 @@
 #include <string.h>
 
 #include "common/jassert.h"
+
+#include "cellproxy.h"
 #include "matrixregion.h"
 #include "matrixstorage.h"
 #include "petabricksruntime.h"
@@ -16,7 +18,7 @@
 #include "regiondataraw.h"
 #include "regiondataremote.h"
 #include "regiondatasplit.h"
-#include "regionmatrixi.h"
+#include "regionhandler.h"
 #include "regionmatrixproxy.h"
 
 namespace petabricks {
@@ -53,7 +55,10 @@ namespace petabricks {
   template< int D, typename ElementT> class RegionMatrixWrapper;
 
   template< int D, typename ElementT>
-  class RegionMatrix : public RegionMatrixI {
+  class RegionMatrix {
+  protected:
+    RegionHandlerPtr _regionHandler;
+
   public:
     IndexT* _size;
     IndexT* _splitOffset;
@@ -63,10 +68,8 @@ namespace petabricks {
     bool _isTransposed;
 
   public:
-    RegionMatrix(int dimensions) {
+    RegionMatrix() {
       // (yod) fix this --> MatrixRegion()
-      _D = dimensions;
-
       _size = 0;
       _splitOffset = 0;
       _numSliceDimensions = 0;
@@ -75,30 +78,14 @@ namespace petabricks {
       _isTransposed = false;
     }
 
-    RegionMatrix(int dimensions, ElementT value) {
-      JASSERT(dimensions == 0)("This constructor is for 0D only");
-
-      _D = dimensions;
-
-      _regionHandler = new RegionHandler(new RegionData0D(value));
-
-      _size = 0;
-      _splitOffset = 0;
-      _numSliceDimensions = 0;
-      _sliceDimensions = 0;
-      _slicePositions = 0;
-      _isTransposed = false;
-    }
-
-    void init(int dimensions, IndexT* size, RegionHandlerPtr handler) {
+    void init(IndexT* size, RegionHandlerPtr handler) {
       _regionHandler = handler;
 
-      _D = dimensions;
-      _size = new IndexT[_D];
-      memcpy(_size, size, sizeof(IndexT) * _D);
+      _size = new IndexT[D];
+      memcpy(_size, size, sizeof(IndexT) * D);
 
-      _splitOffset = new IndexT[_D];
-      memset(_splitOffset, 0, sizeof(IndexT) * _D);
+      _splitOffset = new IndexT[D];
+      memset(_splitOffset, 0, sizeof(IndexT) * D);
 
       _numSliceDimensions = 0;
       _sliceDimensions = 0;
@@ -107,88 +94,89 @@ namespace petabricks {
       _isTransposed = false;
     }
 
-    RegionMatrix(int dimensions, IndexT* size) {
-      RegionDataIPtr regionData = new RegionDataRaw(dimensions, size);
-      init(dimensions, size, new RegionHandler(regionData));
+    RegionMatrix(IndexT* size) {
+      RegionDataIPtr regionData = new RegionDataRaw(D, size);
+      init(size, new RegionHandler(regionData));
     }
 
-    RegionMatrix(int dimensions, IndexT* size, RegionHandlerPtr handler) {
-      init(dimensions, size, handler);
+    RegionMatrix(IndexT* size, RegionHandlerPtr handler) {
+      init(size, handler);
     }
 
-    void copy(const RegionMatrix<D, double>& that) {
-     _D = that.dimensions();
-     _size = new IndexT[_D];
-     memcpy(_size, that._size, sizeof(IndexT) * _D);
+    void copy(const RegionMatrix<D, MATRIX_ELEMENT_T>& that) {
+      JASSERT(D == that.dimensions());
 
-     _splitOffset = new IndexT[_D];
-     memcpy(_splitOffset, that._splitOffset, sizeof(IndexT) * _D);
+      _size = new IndexT[D];
+      memcpy(_size, that._size, sizeof(IndexT) * D);
 
-     _numSliceDimensions = that._numSliceDimensions;
+      _splitOffset = new IndexT[D];
+      memcpy(_splitOffset, that._splitOffset, sizeof(IndexT) * D);
 
-     if (_numSliceDimensions > 0) {
-       _sliceDimensions = new IndexT[_numSliceDimensions];
-       memcpy(_sliceDimensions, that._sliceDimensions, sizeof(int) * _numSliceDimensions);
+      _numSliceDimensions = that._numSliceDimensions;
 
-       _slicePositions = new IndexT[_numSliceDimensions];
-       memcpy(_slicePositions, that._slicePositions, sizeof(int) * _numSliceDimensions);
-     } else {
-       _sliceDimensions = 0;
-       _slicePositions = 0;
-     }
+      if (_numSliceDimensions > 0) {
+        _sliceDimensions = new IndexT[_numSliceDimensions];
+        memcpy(_sliceDimensions, that._sliceDimensions, sizeof(int) * _numSliceDimensions);
 
-     _isTransposed = that._isTransposed;
+        _slicePositions = new IndexT[_numSliceDimensions];
+        memcpy(_slicePositions, that._slicePositions, sizeof(int) * _numSliceDimensions);
+      } else {
+        _sliceDimensions = 0;
+        _slicePositions = 0;
+      }
 
-     _regionHandler = that.getRegionHandler();
+      _isTransposed = that._isTransposed;
+
+      _regionHandler = that.getRegionHandler();
     }
-    RegionMatrix(const RegionMatrix<D, double>& that) {
+    RegionMatrix(const RegionMatrix<D, MATRIX_ELEMENT_T>& that) {
       copy(that);
     }
-    RegionMatrix operator=(const RegionMatrix<D, double>& that) {
+    RegionMatrix operator=(const RegionMatrix<D, MATRIX_ELEMENT_T>& that) {
       copy(that);
       return *this;
     }
 
-    void copy(const RegionMatrix<D, const double>& that) {
-     _D = that.dimensions();
-     _size = new IndexT[_D];
-     memcpy(_size, that._size, sizeof(IndexT) * _D);
+    void copy(const RegionMatrix<D, const MATRIX_ELEMENT_T>& that) {
+      JASSERT(D == that.dimensions());
 
-     _splitOffset = new IndexT[_D];
-     memcpy(_splitOffset, that._splitOffset, sizeof(IndexT) * _D);
+      _size = new IndexT[D];
+      memcpy(_size, that._size, sizeof(IndexT) * D);
 
-     _numSliceDimensions = that._numSliceDimensions;
+      _splitOffset = new IndexT[D];
+      memcpy(_splitOffset, that._splitOffset, sizeof(IndexT) * D);
 
-     if (_numSliceDimensions > 0) {
-       _sliceDimensions = new IndexT[_numSliceDimensions];
-       memcpy(_sliceDimensions, that._sliceDimensions, sizeof(int) * _numSliceDimensions);
+      _numSliceDimensions = that._numSliceDimensions;
 
-       _slicePositions = new IndexT[_numSliceDimensions];
-       memcpy(_slicePositions, that._slicePositions, sizeof(int) * _numSliceDimensions);
-     } else {
-       _sliceDimensions = 0;
-       _slicePositions = 0;
-     }
+      if (_numSliceDimensions > 0) {
+        _sliceDimensions = new IndexT[_numSliceDimensions];
+        memcpy(_sliceDimensions, that._sliceDimensions, sizeof(int) * _numSliceDimensions);
 
-     _isTransposed = that._isTransposed;
+        _slicePositions = new IndexT[_numSliceDimensions];
+        memcpy(_slicePositions, that._slicePositions, sizeof(int) * _numSliceDimensions);
+      } else {
+        _sliceDimensions = 0;
+        _slicePositions = 0;
+      }
 
-     _regionHandler = that.getRegionHandler();
+      _isTransposed = that._isTransposed;
+
+      _regionHandler = that.getRegionHandler();
     }
-    RegionMatrix(const RegionMatrix<D, const double>& that) {
+    RegionMatrix(const RegionMatrix<D, const MATRIX_ELEMENT_T>& that) {
       copy(that);
     }
-    RegionMatrix operator=(const RegionMatrix<D, const double>& that) {
+    RegionMatrix operator=(const RegionMatrix<D, const MATRIX_ELEMENT_T>& that) {
       copy(that);
       return *this;
     }
 
     // Called by split & splice
-    RegionMatrix(RegionHandlerPtr handler, int dimensions, IndexT* size,
+    RegionMatrix(RegionHandlerPtr handler, IndexT* size,
 		 IndexT* splitOffset, int numSliceDimensions,
 		 int* sliceDimensions, IndexT* slicePositions,
 		 bool isTransposed) {
       _regionHandler = handler;
-      _D = dimensions;
       _size = size;
       _splitOffset = splitOffset;
       _numSliceDimensions = numSliceDimensions;
@@ -207,6 +195,12 @@ namespace petabricks {
         delete [] _slicePositions;
       }
     }
+
+    //
+    // Getter
+    //
+    int dimensions() const { return D; }
+    RegionHandlerPtr getRegionHandler() const { return _regionHandler; };
 
     //
     // Initialization
@@ -228,7 +222,7 @@ namespace petabricks {
     }
 
     static RegionMatrix allocate(IndexT* size) {
-      RegionMatrix region = RegionMatrix(D, size);
+      RegionMatrix region = RegionMatrix(size);
       region.allocData();
       return region;
     }
@@ -292,17 +286,17 @@ namespace petabricks {
     IndexT depth() const { return size(2); }
 
     bool contains(const IndexT* coord) const {
-      for(int i=0; i<_D; ++i)
+      for(int i=0; i<D; ++i)
         if(coord[i]<0 || coord[i]>=size(i))
           return false;
       return true;
     }
     bool contains(IndexT x, ...) const {
-      IndexT c1[_D];
+      IndexT c1[D];
       va_list ap;
       va_start(ap, x);
       c1[0]=x;
-      for(int i=1; i<_D; ++i) c1[i]=va_arg(ap, IndexT);
+      for(int i=1; i<D; ++i) c1[i]=va_arg(ap, IndexT);
       va_end(ap);
       return contains(c1);
     }
@@ -316,11 +310,11 @@ namespace petabricks {
     }
 
     CellProxy& cell(IndexT x, ...) const {
-      IndexT c1[_D];
+      IndexT c1[D];
       va_list ap;
       va_start(ap, x);
       c1[0]=x;
-      for(int i=1; i<_D; ++i) c1[i]=va_arg(ap, IndexT);
+      for(int i=1; i<D; ++i) c1[i]=va_arg(ap, IndexT);
       va_end(ap);
       return cell(c1);
     }
@@ -338,8 +332,8 @@ namespace petabricks {
     RegionMatrix<D, ElementT> splitRegion(const IndexT* offset, const IndexT* size) const {
       IndexT* offset_new = this->getRegionDataCoord(offset);
 
-      IndexT* size_copy = new IndexT[_D];
-      memcpy(size_copy, size, sizeof(IndexT) * _D);
+      IndexT* size_copy = new IndexT[D];
+      memcpy(size_copy, size, sizeof(IndexT) * D);
 
       int* sliceDimensions = new int[_numSliceDimensions];
       memcpy(sliceDimensions, _sliceDimensions,
@@ -349,16 +343,16 @@ namespace petabricks {
              sizeof(IndexT) * _numSliceDimensions);
 
       return RegionMatrix<D, ElementT>
-        (_regionHandler, _D, size_copy, offset_new, _numSliceDimensions,
+        (_regionHandler, size_copy, offset_new, _numSliceDimensions,
          sliceDimensions, slicePositions, _isTransposed);
     }
 
     RegionMatrix<D-1, ElementT> sliceRegion(int d, IndexT pos) const {
       if (_isTransposed) {
-        d = _D - d - 1;
+        d = D - d - 1;
       }
 
-      int dimensions = _D - 1;
+      int dimensions = D - 1;
       IndexT* size = new IndexT[dimensions];
       memcpy(size, _size, sizeof(IndexT) * d);
       memcpy(size + d, _size + d + 1, sizeof(IndexT) * (dimensions - d));
@@ -394,7 +388,7 @@ namespace petabricks {
       }
 
       return RegionMatrix<D-1, ElementT>
-        (_regionHandler, dimensions, size, offset, numSliceDimensions,
+        (_regionHandler, size, offset, numSliceDimensions,
          sliceDimensions, slicePositions, _isTransposed);
     }
 
@@ -441,8 +435,8 @@ namespace petabricks {
       return RegionMatrixWrapper<D, ElementT>(transposed);
     }
 
-    RegionMatrixWrapper<D, double> forceMutable() {
-      return RegionMatrixWrapper<D, double>(*this);
+    RegionMatrixWrapper<D, MATRIX_ELEMENT_T> forceMutable() {
+      return RegionMatrixWrapper<D, MATRIX_ELEMENT_T>(*this);
     }
 
     //
@@ -455,7 +449,7 @@ namespace petabricks {
 
       // InitialMsg
       RegionDataRemoteMessage::InitialMessage* msg = new RegionDataRemoteMessage::InitialMessage();
-      msg->dimensions = _D;
+      msg->dimensions = D;
       msg->movingBufferIndex = movingBufferIndex;
       memcpy(msg->size, _size, sizeof(msg->size));
       int len = (sizeof msg) + sizeof(msg->size);
@@ -497,12 +491,12 @@ namespace petabricks {
     }
 
     DataHostList dataHosts() const {
-      IndexT begin[_D];
-      IndexT end[_D];
+      IndexT begin[D];
+      IndexT end[D];
 
-      memset(begin, 0, sizeof(IndexT) * _D);
-      for (int i = 0; i < _D; i++) {
-        end[i] = this->size(i) - 1;
+      memset(begin, 0, sizeof(IndexT) * D);
+      for (int i = 0; i < D; i++) {
+        end[i] = size(i) - 1;
       }
 
       return _regionHandler->hosts(this->getRegionDataCoord(begin), this->getRegionDataCoord(end));
@@ -585,7 +579,7 @@ namespace petabricks {
     ///
     /// Copy the entire matrix and store it locally
     RegionMatrix localCopy() {
-      RegionMatrix copy = RegionMatrix(0, this->size());
+      RegionMatrix copy = RegionMatrix(this->size());
       copy.allocData();
 
       IndexT coord[D];
@@ -627,12 +621,12 @@ namespace petabricks {
 
 
     int incCoord(IndexT* coord) const {
-      if (_D == 0) {
+      if (D == 0) {
         return -1;
       }
 
       coord[0]++;
-      for (int i = 0; i < _D - 1; ++i){
+      for (int i = 0; i < D - 1; ++i){
         if (coord[i] >= _size[i]){
           coord[i]=0;
           coord[i+1]++;
@@ -640,22 +634,22 @@ namespace petabricks {
           return i;
         }
       }
-      if (coord[_D - 1] >= _size[_D - 1]){
+      if (coord[D - 1] >= _size[D - 1]){
         return -1;
       }else{
-        return _D - 1;
+        return D - 1;
       }
     }
 
     void print() {
       printf("(%d) RegionMatrix: SIZE", getpid());
-      for (int d = 0; d < _D; d++) {
+      for (int d = 0; d < D; d++) {
         printf(" %d", _size[d]);
       }
       printf("\n");
 
-      IndexT* coord = new IndexT[_D];
-      memset(coord, 0, (sizeof coord) * _D);
+      IndexT* coord = new IndexT[D];
+      memset(coord, 0, (sizeof coord) * D);
 
       while (true) {
         printf("%4.8g ", this->readCell(coord));
@@ -688,7 +682,7 @@ namespace petabricks {
             d == _sliceDimensions[slice_index]) {
           // slice
           if (_isTransposed) {
-            coord_new[_D-d] = _slicePositions[slice_index];
+            coord_new[D-d] = _slicePositions[slice_index];
           } else {
             coord_new[d] = _slicePositions[slice_index];
           }
@@ -701,7 +695,7 @@ namespace petabricks {
           }
 
           if (_isTransposed) {
-            coord_new[_D-d] = coord_orig[split_index] + offset;
+            coord_new[D-d] = coord_orig[split_index] + offset;
           } else {
             coord_new[d] = coord_orig[split_index] + offset;
           }
@@ -724,10 +718,10 @@ namespace petabricks {
     typedef RegionMatrix<D, ElementT> Base;
     typedef const RegionMatrix<D, ElementT> ConstBase;
 
-    RegionMatrixWrapper() : Base(D) {}
-    RegionMatrixWrapper(IndexT* size) : Base(D, size) {}
+    RegionMatrixWrapper() : Base() {}
+    RegionMatrixWrapper(IndexT* size) : Base(size) {}
 
-    RegionMatrixWrapper(ElementT* data, IndexT* size) : Base(D, size) {
+    RegionMatrixWrapper(ElementT* data, IndexT* size) : Base(size) {
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
       Base::_regionHandler->allocData();
@@ -739,8 +733,8 @@ namespace petabricks {
       } while (this->incCoord(coord) >= 0);
     }
 
-    RegionMatrixWrapper(const RegionMatrix<D, double>& that) : Base(that) {}
-    RegionMatrixWrapper(const RegionMatrix<D, const double>& that) : Base(that) {}
+    RegionMatrixWrapper(const RegionMatrix<D, MATRIX_ELEMENT_T>& that) : Base(that) {}
+    RegionMatrixWrapper(const RegionMatrix<D, const MATRIX_ELEMENT_T>& that) : Base(that) {}
 
     // for testing
     void copyDataFromRegion(RegionMatrixWrapper in) {
@@ -771,19 +765,22 @@ namespace petabricks {
     enum { D = 0 };
     typedef RegionMatrix<D, ElementT> Base;
 
-    RegionMatrixWrapper() : Base(0, (ElementT)0) {
+    RegionMatrixWrapper() : Base() {
       _sourceDimension = 0;
+      Base::_regionHandler = new RegionHandler(new RegionData0D(0));
     }
 
-    RegionMatrixWrapper(Base val) : Base(0, val.readCell(NULL)) {
+    RegionMatrixWrapper(Base val) : Base() {
       _sourceDimension = 0;
+      Base::_regionHandler = new RegionHandler(new RegionData0D(val.readCell(NULL)));
     }
 
-    RegionMatrixWrapper(ElementT* data, IndexT* size) : Base(D, *data) {
+    RegionMatrixWrapper(ElementT* data, IndexT* size) : Base() {
      _sourceDimension = 0;
+     Base::_regionHandler = new RegionHandler(new RegionData0D(*data));
     }
 
-    RegionMatrixWrapper(const RegionMatrixWrapper& that) : Base(0) {
+    RegionMatrixWrapper(const RegionMatrixWrapper& that) : Base() {
       Base::_regionHandler = that.getRegionHandler();
 
       _sourceDimension = that._sourceDimension;
@@ -793,18 +790,18 @@ namespace petabricks {
 
     ///
     /// Implicit conversion from ElementT/CellProxy
-    RegionMatrixWrapper(ElementT value) : Base(0, value) {
+    RegionMatrixWrapper(ElementT value) : Base() {
       _sourceDimension = 0;
-
+      Base::_regionHandler = new RegionHandler(new RegionData0D(value));
     }
-    RegionMatrixWrapper(CellProxy& value) : Base(0) {
+    RegionMatrixWrapper(CellProxy& value) : Base() {
       Base::_regionHandler = value._handler;
 
       _sourceDimension = value._handler->dimensions();
       _sourceIndex = new IndexT[_sourceDimension];
       memcpy(_sourceIndex, value._index, sizeof(IndexT) * _sourceDimension);
     }
-    RegionMatrixWrapper(const CellProxy& value) : Base(0) {
+    RegionMatrixWrapper(const CellProxy& value) : Base() {
       Base::_regionHandler = value._handler;
 
       _sourceDimension = value._handler->dimensions();
@@ -839,15 +836,15 @@ namespace petabricks {
 
 
   namespace distributed {
-    typedef RegionMatrixWrapper<0, double> MatrixRegion0D;
-    typedef RegionMatrixWrapper<1, double> MatrixRegion1D;
-    typedef RegionMatrixWrapper<2, double> MatrixRegion2D;
-    typedef RegionMatrixWrapper<3, double> MatrixRegion3D;
+    typedef RegionMatrixWrapper<0, MATRIX_ELEMENT_T> MatrixRegion0D;
+    typedef RegionMatrixWrapper<1, MATRIX_ELEMENT_T> MatrixRegion1D;
+    typedef RegionMatrixWrapper<2, MATRIX_ELEMENT_T> MatrixRegion2D;
+    typedef RegionMatrixWrapper<3, MATRIX_ELEMENT_T> MatrixRegion3D;
 
-    typedef RegionMatrixWrapper<0, const double> ConstMatrixRegion0D;
-    typedef RegionMatrixWrapper<1, const double> ConstMatrixRegion1D;
-    typedef RegionMatrixWrapper<2, const double> ConstMatrixRegion2D;
-    typedef RegionMatrixWrapper<3, const double> ConstMatrixRegion3D;
+    typedef RegionMatrixWrapper<0, const MATRIX_ELEMENT_T> ConstMatrixRegion0D;
+    typedef RegionMatrixWrapper<1, const MATRIX_ELEMENT_T> ConstMatrixRegion1D;
+    typedef RegionMatrixWrapper<2, const MATRIX_ELEMENT_T> ConstMatrixRegion2D;
+    typedef RegionMatrixWrapper<3, const MATRIX_ELEMENT_T> ConstMatrixRegion3D;
   }
 }
 

@@ -28,7 +28,7 @@
 #define PETABRICKSMATRIXIO_H
 
 #include "matrixregion.h"
-#include "regionmatrixwrapper.h"
+#include "regionmatrix.h"
 
 #include "common/jassert.h"
 

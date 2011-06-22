@@ -68,7 +68,7 @@ int main(int argc, const char** argv){
     printf("completed sending 1\n");
 
     // Wait until process2 move matrix back
-    regionMatrix = MatrixRegion3D(RegionMatrix<3, ElementT>(3, size, new RegionHandler(3)));
+    regionMatrix = MatrixRegion3D(RegionMatrix<3, ElementT>(size, new RegionHandler(3)));
     regionMatrix.updateHandler(2);
     printf("received 2\n");
     print(regionMatrix.dataHosts());
@@ -84,7 +84,7 @@ int main(int argc, const char** argv){
     //
 
     regionMatrix.moveToRemoteHost(hdb.host(0), 3);
-    regionMatrix = MatrixRegion3D(RegionMatrix<3, ElementT>(3, size, new RegionHandler(3)));
+    regionMatrix = MatrixRegion3D(RegionMatrix<3, ElementT>(size, new RegionHandler(3)));
     regionMatrix.updateHandler(4);
     regionMatrix.moveToRemoteHost(hdb.host(0), 5);
 
@@ -120,10 +120,10 @@ int main(int argc, const char** argv){
     // Test 1 -> 2 -> 1 -> 2
     //
 
-    regionMatrix = MatrixRegion3D(RegionMatrix<3, ElementT>(3, size, new RegionHandler(3)));
+    regionMatrix = MatrixRegion3D(RegionMatrix<3, ElementT>(size, new RegionHandler(3)));
     regionMatrix.updateHandler(3);
     regionMatrix.moveToRemoteHost(hdb.host(0), 4);
-    regionMatrix = MatrixRegion3D(RegionMatrix<3, ElementT>(3, size, new RegionHandler(3)));
+    regionMatrix = MatrixRegion3D(RegionMatrix<3, ElementT>(size, new RegionHandler(3)));
     regionMatrix.updateHandler(5);
 
     regionMatrix.updateHandlerChain();
