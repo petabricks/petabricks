@@ -15,6 +15,7 @@ namespace petabricks {
   struct RegionDataTypes {
     enum {
       REGIONDATA0D = 37,
+      CONSTREGIONDATA0D,
       REGIONDATAPROXY,
       REGIONDATARAW,
       REGIONDATAREMOTE,

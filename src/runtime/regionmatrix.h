@@ -280,6 +280,7 @@ namespace petabricks {
       va_end(ap);
       return isSize(c1);
     }
+    bool isSize() const { return true; }
 
     IndexT width() const { return size(0); }
     IndexT height() const { return size(1); }
@@ -767,12 +768,12 @@ namespace petabricks {
 
     RegionMatrixWrapper() : Base() {
       _sourceDimension = 0;
-      Base::_regionHandler = new RegionHandler(new RegionData0D(0));
+      Base::_regionHandler = new RegionHandler(new RegionData0D());
     }
 
     RegionMatrixWrapper(Base val) : Base() {
       _sourceDimension = 0;
-      Base::_regionHandler = new RegionHandler(new RegionData0D(val.readCell(NULL)));
+      Base::_regionHandler = val.getRegionHandler();
     }
 
     RegionMatrixWrapper(ElementT* data, IndexT* size) : Base() {
@@ -790,7 +791,7 @@ namespace petabricks {
 
     ///
     /// Implicit conversion from ElementT/CellProxy
-    RegionMatrixWrapper(ElementT value) : Base() {
+    RegionMatrixWrapper(ElementT& value) : Base() {
       _sourceDimension = 0;
       Base::_regionHandler = new RegionHandler(new RegionData0D(value));
     }
@@ -818,11 +819,6 @@ namespace petabricks {
       return *this;
     }
 
-    bool isSize() const{
-      // TODO: what's this method suppossed to do??
-      return true;
-    }
-
     CellProxy& cell(IndexT x, ...) const {
       return cell();
     }
@@ -834,6 +830,60 @@ namespace petabricks {
     }
   };
 
+  // Specialized for ConstMatrixRegion0D.
+  template<>
+  class RegionMatrixWrapper<0, const MATRIX_ELEMENT_T> : public RegionMatrix<0, MATRIX_ELEMENT_T> {
+  private:
+    int _sourceDimension;
+    IndexT* _sourceIndex;
+
+  public:
+    enum { D = 0 };
+    typedef RegionMatrix<D, ElementT> Base;
+
+    INLINE void initWithValue(ElementT value) {
+      Base::_regionHandler = new RegionHandler(new ConstRegionData0D(value));
+    }
+
+    RegionMatrixWrapper() : Base() {
+      initWithValue(0);
+    }
+
+    RegionMatrixWrapper(Base val) : Base() {
+      initWithValue(val.readCell(NULL));
+    }
+
+    RegionMatrixWrapper(ElementT* data, IndexT* /*size*/) : Base() {
+      initWithValue(*data);
+    }
+
+    RegionMatrixWrapper(const RegionMatrixWrapper& that) : Base() {
+      initWithValue(that.cell());
+    }
+
+    ///
+    /// Implicit conversion from ElementT/CellProxy
+    RegionMatrixWrapper(ElementT value) : Base() {
+      initWithValue(value);
+    }
+
+    RegionMatrixWrapper(CellProxy& value) : Base() {
+      initWithValue(value);
+    }
+
+    RegionMatrixWrapper(const CellProxy& value) : Base() {
+      initWithValue(value);
+    }
+
+    ///
+    /// Allow implicit conversion to CellProxy
+    operator CellProxy& () const { return this->cell(); }
+
+    RegionMatrixWrapper operator=(Base val) {
+      initWithValue(val.readCell(NULL));
+      return *this;
+    }
+  };
 
   namespace distributed {
     typedef RegionMatrixWrapper<0, MATRIX_ELEMENT_T> MatrixRegion0D;
