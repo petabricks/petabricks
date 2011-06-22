@@ -29,6 +29,7 @@
 #include "dynamicscheduler.h"
 #include "dynamictask.h"
 #include "petabricks.h"
+#include "remotehost.h"
 #include "testisolation.h"
 
 #include "common/jargs.h"
@@ -37,8 +38,9 @@
 #include "common/jtunable.h"
 
 #include <algorithm>
-#include <limits>
+#include <fstream>
 #include <iostream>
+#include <limits>
 #include <math.h>
 
 #include <sys/time.h>
@@ -101,6 +103,10 @@ static double RACE_MULTIPLIER=1;
 static double RACE_MULTIPLIER_LOWACC=1;
 static double RACE_ACCURACY_TARGET=jalib::minval<double>();
 
+static std::string HOSTS_FILE="";
+static std::string SLAVE_HOST="";
+static int SLAVE_PORT = -1;
+
 #ifdef HAVE_BOOST_RANDOM_HPP
 static boost::lagged_fibonacci607& myRandomGen(){
   //ouch... lagged_fibonacci is NOT THREAD SAFE
@@ -150,6 +156,7 @@ static enum {
   MODE_GRAPH_TEMPLATE,
   MODE_RACE_CONFIGS,
   MODE_AUTOTUNE_PARAM,
+  MODE_DISTRIBUTED_SLAVE,
   MODE_ABORT,
   MODE_HELP
 } MODE = MODE_RUN_IO;
@@ -350,7 +357,20 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     }
   }
 
+
+  args.param("hosts",      HOSTS_FILE).help("list of hostnames in distributed computation");
+  args.param("slave-host", SLAVE_HOST);
+  args.param("slave-port", SLAVE_PORT);
+
   args.finishParsing(txArgs);
+
+  if(SLAVE_HOST != "" && SLAVE_PORT>0) {
+    ISOLATION=false;
+    MODE=MODE_DISTRIBUTED_SLAVE;
+  }else if(HOSTS_FILE!=""){
+    ISOLATION=false;
+    spawnDistributedNodes(argc, argv);
+  }
 
   switch(MODE){
     case MODE_RUN_RANDOM:
@@ -365,6 +385,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
       //fall through
     case MODE_IOGEN_CREATE:
     case MODE_RUN_IO:
+    case MODE_DISTRIBUTED_SLAVE:
       //startup requested number of threads
       if(MODE!=MODE_GRAPH_THREADS && MODE!=MODE_ABORT){
         JTIMER_SCOPE(startworkers);
@@ -386,6 +407,44 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
 
   JASSERT(MODE==MODE_RUN_IO||txArgs.size()==0)(txArgs.size())
     .Text("too many arguments");
+}
+  
+void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char** argv) {
+  std::ifstream fp(HOSTS_FILE.c_str());
+  JASSERT(fp.is_open())(HOSTS_FILE).Text("failed to open file");
+  std::string line;
+  bool hadlocal = false;
+  while(getline(fp, line)){
+    std::string dat,com; 
+    jalib::SplitFirst(dat, com, line, '#');
+    dat=jalib::StringTrim(dat);
+
+    if(dat!="" && dat!="localhost") {
+      RemoteHostDB::instance().remotefork(dat.c_str(), argc, argv, "--slave-host", "--slave-port");
+      RemoteHostDB::instance().accept();
+    }
+
+    if(dat == "localhost") {
+      if(hadlocal) {
+        RemoteHostDB::instance().remotefork(NULL, argc, argv, "--slave-host", "--slave-port");
+        RemoteHostDB::instance().accept();
+      }
+      hadlocal=true;
+    }
+
+    JASSERT(hadlocal);
+  }
+
+  for(int i=REMOTEHOST_THREADS; i>0; --i) {
+    RemoteHostDB::instance().spawnListenThread();
+  }
+}
+void petabricks::PetabricksRuntime::distributedSlaveLoop() {
+  RemoteHostDB::instance().connect(SLAVE_HOST.c_str(), SLAVE_PORT);
+  for(int i=REMOTEHOST_THREADS; i>1; --i) {
+    RemoteHostDB::instance().spawnListenThread();
+  }
+  RemoteHostDB::instance().listenLoop();
 }
 
 petabricks::PetabricksRuntime::~PetabricksRuntime()
@@ -456,6 +515,9 @@ int petabricks::PetabricksRuntime::runMain(){
     case MODE_AUTOTUNE_PARAM:
       optimizeParameter(graphParam);
       break;
+    case MODE_DISTRIBUTED_SLAVE:
+      distributedSlaveLoop();
+      return 0;
     case MODE_ABORT:
     case MODE_HELP:
       break;
