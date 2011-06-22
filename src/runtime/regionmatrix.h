@@ -50,11 +50,11 @@ namespace petabricks {
     }
   };
 
-  template< int D_, typename ElementT>
+  template< int D, typename ElementT> class RegionMatrixWrapper;
+
+  template< int D, typename ElementT>
   class RegionMatrix : public RegionMatrixI {
   public:
-    enum { D = D_ };
-
     IndexT* _size;
     IndexT* _splitOffset;
     int _numSliceDimensions;
@@ -141,13 +141,45 @@ namespace petabricks {
 
      _regionHandler = that.getRegionHandler();
     }
-
     RegionMatrix(const RegionMatrix<D, double>& that) {
       copy(that);
     }
-
-    void operator=(const RegionMatrix<D, double>& that) {
+    RegionMatrix operator=(const RegionMatrix<D, double>& that) {
       copy(that);
+      return *this;
+    }
+
+    void copy(const RegionMatrix<D, const double>& that) {
+     _D = that.dimensions();
+     _size = new IndexT[_D];
+     memcpy(_size, that._size, sizeof(IndexT) * _D);
+
+     _splitOffset = new IndexT[_D];
+     memcpy(_splitOffset, that._splitOffset, sizeof(IndexT) * _D);
+
+     _numSliceDimensions = that._numSliceDimensions;
+
+     if (_numSliceDimensions > 0) {
+       _sliceDimensions = new IndexT[_numSliceDimensions];
+       memcpy(_sliceDimensions, that._sliceDimensions, sizeof(int) * _numSliceDimensions);
+
+       _slicePositions = new IndexT[_numSliceDimensions];
+       memcpy(_slicePositions, that._slicePositions, sizeof(int) * _numSliceDimensions);
+     } else {
+       _sliceDimensions = 0;
+       _slicePositions = 0;
+     }
+
+     _isTransposed = that._isTransposed;
+
+     _regionHandler = that.getRegionHandler();
+    }
+    RegionMatrix(const RegionMatrix<D, const double>& that) {
+      copy(that);
+    }
+    RegionMatrix operator=(const RegionMatrix<D, const double>& that) {
+      copy(that);
+      return *this;
     }
 
     // Called by split & splice
@@ -219,7 +251,7 @@ namespace petabricks {
     //
     // Read & Write
     //
-    ElementT readCell(const IndexT* coord) {
+    MATRIX_ELEMENT_T readCell(const IndexT* coord) {
       IndexT* rd_coord = this->getRegionDataCoord(coord);
       ElementT elmt = _regionHandler->readCell(rd_coord);
       delete [] rd_coord;
@@ -366,7 +398,7 @@ namespace petabricks {
          sliceDimensions, slicePositions, _isTransposed);
     }
 
-    RegionMatrix region(const IndexT c1[D], const IndexT c2[D]) const{
+    RegionMatrixWrapper<D, ElementT> region(const IndexT c1[D], const IndexT c2[D]) const{
       IndexT newSizes[D];
       for(int i=0; i<D; ++i){
         #ifdef DEBUG
@@ -377,10 +409,10 @@ namespace petabricks {
         #endif
         newSizes[i]=c2[i]-c1[i];
       }
-      return this->splitRegion(c1, newSizes);
+      return RegionMatrixWrapper<D, ElementT>(this->splitRegion(c1, newSizes));
     }
 
-    RegionMatrix region(IndexT x, ...) const{
+    RegionMatrixWrapper<D, ElementT> region(IndexT x, ...) const{
       IndexT c1[D], c2[D];
       va_list ap;
       va_start(ap, x);
@@ -391,26 +423,26 @@ namespace petabricks {
       return region(c1,c2);
     }
 
-    RegionMatrix<D-1, ElementT> slice(int d, IndexT pos) const{
-      return this->sliceRegion(d, pos);
+    RegionMatrixWrapper<D-1, ElementT> slice(int d, IndexT pos) const{
+      return RegionMatrixWrapper<D-1, ElementT>(this->sliceRegion(d, pos));
     }
-    RegionMatrix<D-1, ElementT> col(IndexT x) const{ return slice(0, x); }
-    RegionMatrix<D-1, ElementT> column(IndexT x) const{ return slice(0, x); }
-    RegionMatrix<D-1, ElementT> row(IndexT y) const{  return slice(1, y); }
+    RegionMatrixWrapper<D-1, ElementT> col(IndexT x) const{ return slice(0, x); }
+    RegionMatrixWrapper<D-1, ElementT> column(IndexT x) const{ return slice(0, x); }
+    RegionMatrixWrapper<D-1, ElementT> row(IndexT y) const{  return slice(1, y); }
 
 
     void transpose() {
       _isTransposed = !_isTransposed;
     }
 
-    RegionMatrix transposed() const {
+    RegionMatrixWrapper<D, ElementT> transposed() const {
       RegionMatrix transposed = RegionMatrix(*this);
       transposed.transpose();
-      return transposed;
+      return RegionMatrixWrapper<D, ElementT>(transposed);
     }
 
-    RegionMatrix forceMutable() {
-      return RegionMatrix((const RegionMatrix<D, double>&) *this);
+    RegionMatrixWrapper<D, double> forceMutable() {
+      return RegionMatrixWrapper<D, double>(*this);
     }
 
     //
@@ -570,15 +602,17 @@ namespace petabricks {
     //
     // Rand
     //
+    /*
     ElementT rand(){
       return PetabricksRuntime::randDouble(-2147483648, 2147483648);
     }
+    */
 
     void randomize() {
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
       do {
-        this->writeCell(coord, this->rand());
+        this->writeCell(coord, MatrixStorage::rand());
       } while (this->incCoord(coord) >= 0);
     }
 
@@ -678,6 +712,143 @@ namespace petabricks {
       return coord_new;
     }
   };
+
+  //
+  // RegionMatrixWrapper
+  //
+  template< int _D, typename ElementT>
+  class RegionMatrixWrapper : public RegionMatrix<_D, ElementT> {
+  public:
+    enum {D = _D};
+
+    typedef RegionMatrix<D, ElementT> Base;
+    typedef const RegionMatrix<D, ElementT> ConstBase;
+
+    RegionMatrixWrapper() : Base(D) {}
+    RegionMatrixWrapper(IndexT* size) : Base(D, size) {}
+
+    RegionMatrixWrapper(ElementT* data, IndexT* size) : Base(D, size) {
+      IndexT coord[D];
+      memset(coord, 0, sizeof coord);
+      Base::_regionHandler->allocData();
+
+      IndexT i = 0;
+      do {
+        this->writeCell(coord, data[i]);
+        i++;
+      } while (this->incCoord(coord) >= 0);
+    }
+
+    RegionMatrixWrapper(const RegionMatrix<D, double>& that) : Base(that) {}
+    RegionMatrixWrapper(const RegionMatrix<D, const double>& that) : Base(that) {}
+
+    // for testing
+    void copyDataFromRegion(RegionMatrixWrapper in) {
+      this->allocData();
+      IndexT* coord = new IndexT[D];
+      memset(coord, 0, sizeof(IndexT) * D);
+
+      while (true) {
+        this->writeCell(coord, in.readCell(coord));
+
+        int z = this->incCoord(coord);
+        if (z == -1) {
+          break;
+        }
+      }
+      delete [] coord;
+    }
+  };
+
+
+  template<typename ElementT>
+    class RegionMatrixWrapper<0, ElementT> : public RegionMatrix<0, ElementT> {
+  private:
+    int _sourceDimension;
+    IndexT* _sourceIndex;
+
+  public:
+    enum { D = 0 };
+    typedef RegionMatrix<D, ElementT> Base;
+
+    RegionMatrixWrapper() : Base(0, (ElementT)0) {
+      _sourceDimension = 0;
+    }
+
+    RegionMatrixWrapper(Base val) : Base(0, val.readCell(NULL)) {
+      _sourceDimension = 0;
+    }
+
+    RegionMatrixWrapper(ElementT* data, IndexT* size) : Base(D, *data) {
+     _sourceDimension = 0;
+    }
+
+    RegionMatrixWrapper(const RegionMatrixWrapper& that) : Base(0) {
+      Base::_regionHandler = that.getRegionHandler();
+
+      _sourceDimension = that._sourceDimension;
+      _sourceIndex = new IndexT[_sourceDimension];
+      memcpy(_sourceIndex, that._sourceIndex, sizeof(IndexT) * _sourceDimension);
+    }
+
+    ///
+    /// Implicit conversion from ElementT/CellProxy
+    RegionMatrixWrapper(ElementT value) : Base(0, value) {
+      _sourceDimension = 0;
+
+    }
+    RegionMatrixWrapper(CellProxy& value) : Base(0) {
+      Base::_regionHandler = value._handler;
+
+      _sourceDimension = value._handler->dimensions();
+      _sourceIndex = new IndexT[_sourceDimension];
+      memcpy(_sourceIndex, value._index, sizeof(IndexT) * _sourceDimension);
+    }
+    RegionMatrixWrapper(const CellProxy& value) : Base(0) {
+      Base::_regionHandler = value._handler;
+
+      _sourceDimension = value._handler->dimensions();
+      _sourceIndex = new IndexT[_sourceDimension];
+      memcpy(_sourceIndex, value._index, sizeof(IndexT) * _sourceDimension);
+    }
+
+    ///
+    /// Allow implicit conversion to CellProxy
+    operator CellProxy& () const { return this->cell(); }
+
+    RegionMatrixWrapper operator=(Base val) {
+      this->cell() = val.readCell(NULL);
+      return *this;
+    }
+
+    bool isSize() const{
+      // TODO: what's this method suppossed to do??
+      return true;
+    }
+
+    CellProxy& cell(IndexT x, ...) const {
+      return cell();
+    }
+    CellProxy& cell(IndexT* coord) const {
+      return cell();
+    }
+    INLINE CellProxy& cell() const {
+      return Base::cell(_sourceIndex);
+    }
+  };
+
+
+  namespace distributed {
+    typedef RegionMatrixWrapper<0, double> MatrixRegion0D;
+    typedef RegionMatrixWrapper<1, double> MatrixRegion1D;
+    typedef RegionMatrixWrapper<2, double> MatrixRegion2D;
+    typedef RegionMatrixWrapper<3, double> MatrixRegion3D;
+
+    typedef RegionMatrixWrapper<0, const double> ConstMatrixRegion0D;
+    typedef RegionMatrixWrapper<1, const double> ConstMatrixRegion1D;
+    typedef RegionMatrixWrapper<2, const double> ConstMatrixRegion2D;
+    typedef RegionMatrixWrapper<3, const double> ConstMatrixRegion3D;
+  }
 }
 
 #endif
