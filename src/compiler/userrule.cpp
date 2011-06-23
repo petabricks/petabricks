@@ -442,7 +442,14 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
     o.addMember((*i)->genTypeStr(rf, false), (*i)->name());
   }
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    o.addMember((*i)->genTypeStr(rf, true), (*i)->name());
+    if ((rf == RuleFlavor::DISTRIBUTED) &&
+        ((*i)->getRegionType() == Region::REGION_CELL)) {
+      // will read CellProxy to const ElementT in before running the task
+      o.addMember((*i)->genTypeStr(rf, true), "_cellproxy_" + (*i)->name());
+      o.addMember("const ElementT", (*i)->name(), "0");
+    } else {
+      o.addMember((*i)->genTypeStr(rf, true), (*i)->name());
+    }
   }
   for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
     if(i->shouldPass()){
@@ -466,6 +473,17 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
   o.define("SYNC",  "PB_SYNC");
   o.define("DEFAULT_RV",  "_completion");
   o.beginFunc("petabricks::DynamicTaskPtr", "runDynamic");
+
+  if (rf == RuleFlavor::DISTRIBUTED) {
+    o.write("// read all references to cellproxy");
+    for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      if ((rf == RuleFlavor::DISTRIBUTED) &&
+          ((*i)->getRegionType() == Region::REGION_CELL)) {
+        o.write("const_cast<ElementT&> (" + (*i)->name() + ") = _cellproxy_" + (*i)->name() + ";");
+      }
+    }
+  }
+
   RIRBlockCopyRef bodytmp = _bodyir[rf];
   o.beginUserCode(rf);
   {

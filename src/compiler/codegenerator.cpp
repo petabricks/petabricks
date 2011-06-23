@@ -32,9 +32,9 @@
 # include "config.h"
 #endif
 
-std::stringstream& petabricks::CodeGenerator::theFilePrefix() { 
-  static std::stringstream t; 
-  return t; 
+std::stringstream& petabricks::CodeGenerator::theFilePrefix() {
+  static std::stringstream t;
+  return t;
 }
 
 petabricks::TunableDefs& petabricks::CodeGenerator::theTunableDefs() {
@@ -47,7 +47,7 @@ jalib::TunableValueMap& petabricks::CodeGenerator::theHardcodedTunables() {
   return t;
 }
 
-petabricks::CodeGenerator::CodeGenerator(const StreamTreePtr& root, const TrainingDepsPtr& cg) 
+petabricks::CodeGenerator::CodeGenerator(const StreamTreePtr& root, const TrainingDepsPtr& cg)
   : _contCounter(0), _indent(0), _cg(cg)
 {
   if(!_cg) _cg = new TrainingDeps();
@@ -121,14 +121,14 @@ void petabricks::CodeGenerator::beginFunc(const std::string& rt, const std::stri
   hos() << rt << " " << func << '(';
   jalib::JPrintable::printStlList(hos(), args.begin(), args.end(), ", ");
   hos() << ");\n";
-  
+
   if(!inClass()) hos() << "\n";
 }
 
 void petabricks::CodeGenerator::varDecl(const std::string& var){
   indent();
   os() << var << ";\n";
-} 
+}
 
 void petabricks::CodeGenerator::addAssert(const std::string& l, const std::string& r){
   indent();
@@ -136,7 +136,7 @@ void petabricks::CodeGenerator::addAssert(const std::string& l, const std::strin
     << "(" << l << ")"
     << "(" << r << ")"
     << ";\n";
-} 
+}
 
 void petabricks::CodeGenerator::endFunc(){
   _indent--;
@@ -144,10 +144,10 @@ void petabricks::CodeGenerator::endFunc(){
   os() << "}\n";
 }
 
-void petabricks::CodeGenerator::indent(){ 
+void petabricks::CodeGenerator::indent(){
   if(_indent<0) _indent = 0;
   if(_indent>0)
-    os() << std::string(_indent*2,' '); 
+    os() << std::string(_indent*2,' ');
 }
 
 void petabricks::CodeGenerator::write(const std::string& str){
@@ -282,9 +282,9 @@ void petabricks::CodeGenerator::continuationPoint(){
 #ifndef DISABLE_CONTINUATIONS
   std::string n = "cont_" + jalib::XToString(_contCounter++);
   beginIf("useContinuation()");
-  write("return new petabricks::MethodCallTask<"+_curClass+", &"+_curClass+"::"+n+">( this );"); 
+  write("return new petabricks::MethodCallTask<"+_curClass+", &"+_curClass+"::"+n+">( this );");
   elseIf();
-  write("return "+n+"();"); 
+  write("return "+n+"();");
   endIf();
   endFunc();
   beginFunc("DynamicTaskPtr", n);
@@ -296,7 +296,7 @@ void petabricks::CodeGenerator::continuationPoint(){
 void petabricks::CodeGenerator::continuationRequired(const std::string& hookname){
   std::string n = "cont_" + jalib::XToString(_contCounter++);
   newline();
-  write("return "+hookname+" new petabricks::MethodCallTask<"+_curClass+", &"+_curClass+"::"+n+">(this));"); 
+  write("return "+hookname+" new petabricks::MethodCallTask<"+_curClass+", &"+_curClass+"::"+n+">(this));");
   endFunc();
   beginFunc("DynamicTaskPtr", n);
   if(_rf != RuleFlavor::INVALID)
