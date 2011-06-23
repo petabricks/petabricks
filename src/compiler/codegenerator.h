@@ -59,7 +59,7 @@ public:
     //t->_parent = this;
     return t;
   }
- 
+
   void writeTo(std::ostream& o) {
     o << "// :::: " << _name << "\n";
     StreamTrees::iterator i;
@@ -67,7 +67,7 @@ public:
       (*i)->writeTo(o);
     o << _os.str();
   }
-  
+
   template<typename T>
   StreamTree& operator<<(const T& t) {
     _os << t;
@@ -111,7 +111,7 @@ public:
 
   void incIndent(){++_indent;}
   void decIndent(){--_indent;}
-  
+
   CodeGenerator(const StreamTreePtr& root, const TrainingDepsPtr& cg);
   CodeGenerator(CodeGenerator& that);
   virtual ~CodeGenerator(){}
@@ -206,7 +206,7 @@ public:
   void continuationPoint();
   void continuationRequired(const std::string& prereq);
   std::string nextContName(const std::string& base);
-  
+
   void continueLabel(const std::string& fn){
     continueJump(fn);
     endFunc();
@@ -260,14 +260,14 @@ public:
   }
 
   ///
-  /// Create a parallel code generator 
+  /// Create a parallel code generator
   /// (for writing other function bodies before current function is finished)
   CodeGenerator& forkhelper();
 
   ///
   /// Write the bodies from any calles to forkhelp
   void mergehelpers();
-  
+
   //void outputFileTo(std::ostream& o){
   //  o << theFilePrefix().str();
   //  o << "\n\n// Defines: //////////////////////////////////////////////////////\n\n";
