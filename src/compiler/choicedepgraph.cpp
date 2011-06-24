@@ -111,7 +111,7 @@ void petabricks::ChoiceDepGraphNode::resetRemapping(){
 }
 
 void petabricks::ChoiceDepGraphNode::printNode(std::ostream& os) const{
-  os << "  " << nodename() << "[label=\"" << nodename() << ": " 
+  os << "  " << nodename() << "[label=\"" << nodename() << ": "
      << *this
      << "\"];\n";
 }
@@ -161,7 +161,7 @@ void petabricks::ChoiceDepGraphNode::applyChoiceRemapping(const RuleChoiceAssign
       _directDependsRemapped[i->first] = i->second;
     }
   }
-  
+
 }
 
 
@@ -169,7 +169,7 @@ void petabricks::ChoiceDepGraphNode::applyChoiceRemapping(const RuleChoiceAssign
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
-  
+
 petabricks::BasicChoiceDepGraphNode::BasicChoiceDepGraphNode(const MatrixDefPtr& m, const SimpleRegionPtr& r, const ChoiceGridPtr& choices)
   : _matrix(m), _region(r), _choices(choices ? choices->rules() : RuleSet())
 {}
@@ -182,10 +182,10 @@ void petabricks::BasicChoiceDepGraphNode::generateCode(Transform& trans, CodeGen
 }
 
 
-void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos, RuleFlavor rf, const RuleChoiceAssignment& choice){
+void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos, RuleFlavor rf, const RuleChoiceAssignment& choice, std::string lastTask){
   JASSERT(choice.find(this)!=choice.end());
   RulePtr rule = choice.find(this)->second;
-  
+
   CoordinateFormula min = _region->minCoord();
   CoordinateFormula max = _region->maxCoord();
 
@@ -199,12 +199,11 @@ void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans,
   }
   rule->generateCallCode("_tmptask", trans, o, t, rf);
   if(rf!=RuleFlavor::SEQUENTIAL) {
-    o.comment("need to add support for continuations here, this is a hack:");
-    o.write("_tmptask->runNoContinuation();");
+    o.write(lastTask + "->enqueue();");
+    o.write("_tmptask->dependsOn(" + lastTask + ");");
+    o.write(lastTask + " = _tmptask;");
     o.write("}");
   }
-
-  //TODO deps for slice // dynamic version
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -285,7 +284,7 @@ void petabricks::MultiOutputChoiceDepGraphNode::generateCode(Transform& trans, C
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
-  
+
 petabricks::SlicedChoiceDepGraphNode::SlicedChoiceDepGraphNode(const ChoiceDepGraphNodeSet& set)
   : MetaChoiceDepGraphNode(set), _dimension(-1), _forward(true)
 {
@@ -312,7 +311,7 @@ bool petabricks::SlicedChoiceDepGraphNode::findValidSchedule(const RuleChoiceAss
       }
     }
     if(!passed) continue;
-    
+
     //test direction
     if((selfDep.direction[d] & ~DependencyDirection::D_LT) == 0){
       JTRACE("slicescheduling forward")(d)(*this)(selfDep.direction[d]);
@@ -343,19 +342,23 @@ void petabricks::SlicedChoiceDepGraphNode::generateCode(Transform& trans, CodeGe
 
   ot.comment("SlicedChoiceDepGraphNode code");
 
+  if (!isStatic) {
+    ot.write("DynamicTaskPtr _last = new NullDynamicTask();");
+  }
+
   if(_forward){
     ot.beginFor(varname, _begin, _end, FormulaInteger::one());
   }else{
     ot.beginReverseFor(varname, _begin, _end, FormulaInteger::one());
-  }    
+  }
 
   for(ChoiceDepGraphNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
-    (*i)->generateCodeForSlice(trans, ot, _dimension, new FormulaVariable(varname), flavor, choice);
+    (*i)->generateCodeForSlice(trans, ot, _dimension, new FormulaVariable(varname), flavor, choice, "_last");
   }
 
   ot.endFor();
   if(!isStatic){
-    ot.write("return NULL;");
+    ot.write("return _last;");
     ot.endFunc();
     std::vector<std::string> args(1, "this");
     o.setcall(nodename(),

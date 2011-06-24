@@ -36,7 +36,7 @@
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
-  
+
 #ifdef DEBUG
 #  define DEBUGONLY(args...) args
 #else
@@ -110,14 +110,14 @@ int petabricks::WorkerThread::threadRandInt() const {
   }
   return retVal;
 }
-  
+
 void petabricks::WorkerThread::popAndRunOneTask(int stealLimit)
 {
   DynamicTask *task;
 
   //try from the local deque
   task = popLocal();
-  
+
   //try stealing a bunch of times
   while(task == NULL && stealLimit-->0){
     WorkerThread* victim = _pool.getRandom(this);
@@ -201,7 +201,7 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
   JASSERT(self!=NULL);
   WorkerThreadPool& pool = self->pool();
   DynamicTask* t=NULL;
-  
+
   jalib::atomicDecrement(&_numLive);
 
   //cancel all our pending tasks
@@ -227,7 +227,7 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
       }
     }
   }
-  
+
   //drain off all our abort tasks
   while((t=self->popLocal())!=NULL){
     JASSERT(t==this);
@@ -245,7 +245,7 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
  //else
  //  _lock.wait();
  //_lock.unlock();
-  
+
   //either exit or throw
   if(_shutdown && self!=&theMainWorkerThread){
     //pthread_exit(0);
@@ -257,7 +257,7 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
 
 void petabricks::WorkerThreadPool::debugPrint() const {
   std::cerr << "thread status: " << std::endl;
-  
+
   for(int i=0; i<_count; ++i){
     const WorkerThread* t = _pool[i];
     if(t == 0){
@@ -278,7 +278,7 @@ void petabricks::WorkerThreadPool::debugPrint(jalib::JAssert& o) const {
   o.Prefix();
   o << "WorkerThread status:";
   o.EndLine();
-  
+
   for(int i=0; i<_count; ++i){
     const WorkerThread* t = _pool[i];
     o.Prefix();
