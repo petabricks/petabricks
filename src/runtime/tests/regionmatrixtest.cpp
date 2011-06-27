@@ -105,7 +105,7 @@ int main(int argc, const char** argv){
     printf("main %d\n", getpid());
 
     hdb.remotefork(NULL, argc, argv);
-    hdb.accept();
+    hdb.accept("");
     hdb.spawnListenThread();
 
     // Split the matrix in to multiple parts of size m2

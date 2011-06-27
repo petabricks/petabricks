@@ -93,19 +93,30 @@ public:
 
   const HostPid& id() const { return _id; }
 
+  void shutdownBegin();
+  void shutdownEnd();
 protected:
-  RemoteHost() : _lastchan(0) {}
-  void accept(jalib::JServerSocket& s);
-  void connect(const jalib::JSockAddr& a, int port);
+  RemoteHost(const std::string& connectName)
+    : _lastchan(0),
+      _isShuttingDown(false),
+      _remotePort(-1),
+      _connectName(connectName)
+  {}
+  void accept(jalib::JServerSocket& s, int listenPort);
+  void connect(const jalib::JSockAddr& a, int port, int listenPort);
   bool recv();
   int fd() const { return _control.sockfd(); }
-  void handshake();
+  void handshake(int port);
 
   void sendMsg(_RemoteHostMsgTypes::GeneralMessage* msg, const void* data = NULL, size_t len = 0);
   int pickChannel() {
     _lastchan = (_lastchan+2) % REMOTEHOST_DATACHANS;
     return _lastchan;
   }
+
+
+  bool isShuttingDown() const { return _isShuttingDown; }
+  int remotePort() const { return _remotePort; }
 private:
   jalib::JMutex _controlmu;
   jalib::JMutex _datamu[REMOTEHOST_DATACHANS];
@@ -114,6 +125,9 @@ private:
   HostPid _id;
   int _lastchan;
   RemoteObjectList _objects;
+  bool _isShuttingDown;
+  int _remotePort;
+  std::string _connectName;
 };
 
 
@@ -124,7 +138,7 @@ public:
   RemoteHostDB();
 
   void connect(const char* host, int port);
-  void accept();
+  void accept(const char* fromhost);
   void remotefork(const char* host, int argc, const char** argv, const char* slavehost=NULL, const char* slaveport=NULL);
 
   void listenLoop();
@@ -137,6 +151,8 @@ public:
     return _hosts[i];
   }
 
+  void shutdown();
+  static void onShutdownEvent();
 protected:
 
   void regenPollFds();

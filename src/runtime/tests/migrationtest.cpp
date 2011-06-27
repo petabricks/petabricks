@@ -47,7 +47,7 @@ int main(int argc, const char** argv){
     printf("process1 %d\n", getpid());
 
     hdb.remotefork(NULL, argc, argv);
-    hdb.accept();
+    hdb.accept("");
     hdb.spawnListenThread();
     hdb.spawnListenThread();
     hdb.spawnListenThread();

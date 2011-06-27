@@ -367,8 +367,10 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   if(SLAVE_HOST != "" && SLAVE_PORT>0) {
     ISOLATION=false;
     MODE=MODE_DISTRIBUTED_SLAVE;
+    JTRACE("slave");
   }else if(HOSTS_FILE!=""){
     ISOLATION=false;
+    JTRACE("parent");
     spawnDistributedNodes(argc, argv);
   }
 
@@ -405,7 +407,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     std::cerr << std::endl;
   }
 
-  JASSERT(MODE==MODE_RUN_IO||txArgs.size()==0)(txArgs.size())
+  JASSERT(MODE==MODE_RUN_IO||MODE==MODE_DISTRIBUTED_SLAVE||txArgs.size()==0)(txArgs.size())
     .Text("too many arguments");
 }
   
@@ -421,13 +423,13 @@ void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char**
 
     if(dat!="" && dat!="localhost") {
       RemoteHostDB::instance().remotefork(dat.c_str(), argc, argv, "--slave-host", "--slave-port");
-      RemoteHostDB::instance().accept();
+      RemoteHostDB::instance().accept(dat.c_str());
     }
 
     if(dat == "localhost") {
       if(hadlocal) {
         RemoteHostDB::instance().remotefork(NULL, argc, argv, "--slave-host", "--slave-port");
-        RemoteHostDB::instance().accept();
+        RemoteHostDB::instance().accept(dat.c_str());
       }
       hadlocal=true;
     }
@@ -444,6 +446,7 @@ void petabricks::PetabricksRuntime::distributedSlaveLoop() {
   for(int i=REMOTEHOST_THREADS; i>1; --i) {
     RemoteHostDB::instance().spawnListenThread();
   }
+  JTRACE("slave loop starting");
   RemoteHostDB::instance().listenLoop();
 }
 
@@ -451,6 +454,7 @@ petabricks::PetabricksRuntime::~PetabricksRuntime()
 {
   saveConfig();
   DynamicScheduler::cpuScheduler().shutdown();
+  RemoteHostDB().instance().shutdown();
 }
 
 void petabricks::PetabricksRuntime::saveConfig()
