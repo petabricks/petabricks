@@ -69,6 +69,12 @@ petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& 
 #define PB_RETURN_VOID\
   return DEFAULT_RV
 
+#define PB_RETURN_DISTRIBUTED(rv)\
+  { _cleanUpTask->dependsOn(_completion); _completion->enqueue(); PB_RETURN(rv); }
+
+#define PB_RETURN_VOID_DISTRIBUTED\
+  { _cleanUpTask->dependsOn(_completion); _completion->enqueue(); PB_RETURN_VOID; }
+
 #define PB_CAT(a,b) _PB_CAT(a,b)
 #define _PB_CAT(a,b) __PB_CAT(a,b)
 #define __PB_CAT(a,b) a ## b
@@ -97,7 +103,7 @@ namespace petabricks {
     TransformInstancePtr txPtr(tx); //make sure tx gets deleted
     return tx->T::run(); //run without vtable use
   }
-  
+
   template< typename T >
   inline DynamicTaskPtr run_task(T* task){
     DynamicTaskPtr ptr(task); //make sure task gets deleted
@@ -110,7 +116,7 @@ namespace petabricks {
       task->enqueue();
     }
   }
-  
+
   template< typename T >
   inline bool is_data_local(const T& x){
     return x.isLocal();
@@ -170,7 +176,7 @@ namespace petabricks {
     }
     return rv;
   }
- 
+
   template < int D >
   inline bool split_condition(IndexT thresh, IndexT begin[D], IndexT end[D]){
     //too small to split?
@@ -185,7 +191,7 @@ namespace petabricks {
     return false;
   }
 
-  //special val for optional values that dont exist 
+  //special val for optional values that dont exist
   inline ElementT the_missing_val() {
     union {
       ElementT d;
@@ -224,7 +230,7 @@ namespace petabricks {
       storage = NULL;
     }
   }
-  
+
   template<typename T>
   inline void from_c_array(const T& mr, ElementT*& ar, CArrayStorage& storage) {
     if(T::D==0 || !mr.isLocal() || mr.storage() != storage) {
@@ -232,7 +238,7 @@ namespace petabricks {
     }
     free_c_array(ar, storage);
   }
-  
+
 
 }
 

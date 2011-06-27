@@ -437,7 +437,7 @@ petabricks::RemoteHostDB::RemoteHostDB()
     _fds(NULL)
 {
   while(!_listener.isValid()) {
-    JTRACE("trying next port")(_port);
+    //    JTRACE("trying next port")(_port);
     JASSERT(_port < LISTEN_PORT_FIRST+512)(_port);
     _listener = jalib::JServerSocket(jalib::JSockAddr::ANY, ++_port);
   }
@@ -473,10 +473,10 @@ void petabricks::RemoteHostDB::remotefork(const char* host, int oargc, const cha
     argv[i++] = host;
   }
   for(; i<oargc; ++i) argv[i] = oargv[i];
-  if(slavehost!=NULL) 
+  if(slavehost!=NULL)
     argv[i++] = slavehost;
   argv[i++] = hoststr.c_str();
-  if(slaveport!=NULL) 
+  if(slaveport!=NULL)
     argv[i++] = slaveport;
   argv[i++] = portstr.c_str();
   argv[i++] = NULL;

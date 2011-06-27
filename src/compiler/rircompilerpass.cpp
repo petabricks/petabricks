@@ -344,9 +344,9 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
       if(hasExprForward() && !peekExprForward()->parts().empty()){
         peekExprForward()->parts().push_front(new RIROpExpr("("));
         peekExprForward()->parts().push_back(new RIROpExpr(")"));
-        e = new RIRIdentExpr("PB_RETURN");
+        e = new RIRIdentExpr("RETURN");
       }else{
-        e = new RIRIdentExpr("PB_RETURN_VOID");
+        e = new RIRIdentExpr("RETURN_VOID");
       }
     }
   }
@@ -477,7 +477,7 @@ bool petabricks::OpenClFunctionRejectPass::isFunctionAllowed( const std::string&
   /* This is a quick list of functions which are common to the C or C++ and OpenCL C.  Thus, trying to compile rules using these functions
      shouldn't cause a problem. */
   const std::string whitelist[] =
-    { "PB_RETURN",
+    { "RETURN",
       "abs", "fabs",
       "max", "min",
       "sign", "round",

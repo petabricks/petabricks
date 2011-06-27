@@ -436,10 +436,22 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
     return;
   }
 
-  o.beginClass(implcodename(trans)+"_"+rf.str(), "petabricks::RuleInstance");
+  std::string classname = implcodename(trans)+"_"+ rf.str();
+  o.beginClass(classname, "petabricks::RuleInstance");
+
+  std::vector<std::string> to_cells;
+  std::vector<std::string> from_cells;
 
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    o.addMember((*i)->genTypeStr(rf, false), (*i)->name());
+    if ((rf == RuleFlavor::DISTRIBUTED) &&
+        ((*i)->getRegionType() == Region::REGION_CELL)) {
+      // will read CellProxy to ElementT in before running the task
+      o.addMember((*i)->genTypeStr(rf, false), "_cellproxy_" + (*i)->name());
+      o.addMember("ElementT", (*i)->name(), "0");
+      to_cells.push_back((*i)->name());
+    } else {
+      o.addMember((*i)->genTypeStr(rf, false), (*i)->name());
+    }
   }
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     if ((rf == RuleFlavor::DISTRIBUTED) &&
@@ -447,6 +459,7 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
       // will read CellProxy to const ElementT in before running the task
       o.addMember((*i)->genTypeStr(rf, true), "_cellproxy_" + (*i)->name());
       o.addMember("const ElementT", (*i)->name(), "0");
+      from_cells.push_back((*i)->name());
     } else {
       o.addMember((*i)->genTypeStr(rf, true), (*i)->name());
     }
@@ -465,22 +478,36 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
   for(FormulaList::const_iterator i=_definitions.begin(); i!=_definitions.end(); ++i){
     o.addMember("const IndexT",(*i)->lhs()->toString(), (*i)->rhs()->toString());
   }
+
   o.addMember("DynamicTaskPtr", "_completion", "new NullDynamicTask()");
+
+  if (rf == RuleFlavor::DISTRIBUTED) {
+    o.addMember("DynamicTaskPtr", "_cleanUpTask", "new MethodCallTask<"+classname+", &"+classname+"::cleanUp>(this)");
+  }
 
   o.define("PB_FLAVOR", rf.str());
   o.define("SPAWN", "PB_SPAWN");
   o.define("CALL",  "PB_SPAWN");
   o.define("SYNC",  "PB_SYNC");
-  o.define("DEFAULT_RV",  "_completion");
+
+  if (rf == RuleFlavor::DISTRIBUTED) {
+    o.define("DEFAULT_RV", "_cleanUpTask");
+    o.define("RETURN", "PB_RETURN_DISTRIBUTED");
+    o.define("RETURN_VOID", "PB_RETURN_VOID_DISTRIBUTED");
+  } else {
+    o.define("DEFAULT_RV", "_completion");
+    o.define("RETURN", "PB_RETURN");
+    o.define("RETURN_VOID", "PB_RETURN_VOID");
+  }
   o.beginFunc("petabricks::DynamicTaskPtr", "runDynamic");
 
   if (rf == RuleFlavor::DISTRIBUTED) {
-    o.write("// read all _from cellproxy to ElementT");
-    for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-      if ((rf == RuleFlavor::DISTRIBUTED) &&
-          ((*i)->getRegionType() == Region::REGION_CELL)) {
-        o.write("const_cast<ElementT&> (" + (*i)->name() + ") = _cellproxy_" + (*i)->name() + ";");
-      }
+    o.comment("read all cellproxy to ElementT");
+    for (unsigned int i = 0; i < to_cells.size(); i++) {
+      o.write(to_cells[i] + " = _cellproxy_" + to_cells[i] + ";");
+    }
+    for (unsigned int i = 0; i < from_cells.size(); i++) {
+      o.write("const_cast<ElementT&> (" + from_cells[i] + ") = _cellproxy_" + from_cells[i] + ";");
     }
   }
 
@@ -494,9 +521,25 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
     DynamicBodyPrintPass dbpp(o);
     bodytmp->accept(dbpp);
   }
+
+  if (rf == RuleFlavor::DISTRIBUTED) {
+    o.write("_cleanUpTask->dependsOn(_completion);");
+    o.write("_completion->enqueue();");
+  }
   o.write("return DEFAULT_RV;");
   o.endUserCode();
   o.endFunc();
+
+  if (rf == RuleFlavor::DISTRIBUTED) {
+    o.beginFunc("petabricks::DynamicTaskPtr", "cleanUp");
+    o.comment("write _to back to cellproxy");
+    for (unsigned int i = 0; i < to_cells.size(); i++) {
+      o.write("_cellproxy_" + to_cells[i] + " = " + to_cells[i] + ";");
+    }
+    o.write("return NULL;");
+    o.endFunc();
+  }
+
   o.undefineAll();
 
   o.endClass();
@@ -534,6 +577,8 @@ void petabricks::UserRule::generateDeclCodeSequential(Transform& trans, CodeGene
   o.define("CALL",  "PB_STATIC_CALL");
   o.define("SYNC",  "PB_NOP");
   o.define("DEFAULT_RV",  "");
+  o.define("RETURN", "PB_RETURN");
+  o.define("RETURN_VOID", "PB_RETURN_VOID");
   o.beginUserCode(rf);
   o.write(_bodyir[RuleFlavor::SEQUENTIAL]->toString());
   o.endUserCode();
@@ -951,7 +996,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   /** \todo this mechanism won't work with rules with multiple outputs */
   {
     RegionList::const_iterator i = _to.begin( );
-    clo.os( ) << "#define PB_RETURN(x) _region_" << (*i)->name( ) << "[idx_" << (*i)->name( ) << "] = x; return\n";
+    clo.os( ) << "#define RETURN(x) _region_" << (*i)->name( ) << "[idx_" << (*i)->name( ) << "] = x; return\n";
   }
 
   // Support for multiple-output rules
