@@ -106,11 +106,19 @@ namespace petabricks {
     void copy(const RegionMatrix<D, MATRIX_ELEMENT_T>& that) {
       JASSERT(D == that.dimensions());
 
-      _size = new IndexT[D];
-      memcpy(_size, that._size, sizeof(IndexT) * D);
+      if (that._size) {
+        _size = new IndexT[D];
+        memcpy(_size, that._size, sizeof(IndexT) * D);
+      } else {
+        _size = 0;
+      }
 
-      _splitOffset = new IndexT[D];
-      memcpy(_splitOffset, that._splitOffset, sizeof(IndexT) * D);
+      if (that._splitOffset) {
+        _splitOffset = new IndexT[D];
+        memcpy(_splitOffset, that._splitOffset, sizeof(IndexT) * D);
+      } else {
+        _splitOffset = 0;
+      }
 
       _numSliceDimensions = that._numSliceDimensions;
 
@@ -133,6 +141,12 @@ namespace petabricks {
       copy(that);
     }
     RegionMatrix operator=(const RegionMatrix<D, MATRIX_ELEMENT_T>& that) {
+      if (_size) delete [] _size;
+      if (_splitOffset) delete [] _splitOffset;
+      if (_numSliceDimensions > 0) {
+        delete [] _sliceDimensions;
+        delete [] _slicePositions;
+      }
       copy(that);
       return *this;
     }
@@ -140,11 +154,19 @@ namespace petabricks {
     void copy(const RegionMatrix<D, const MATRIX_ELEMENT_T>& that) {
       JASSERT(D == that.dimensions());
 
-      _size = new IndexT[D];
-      memcpy(_size, that._size, sizeof(IndexT) * D);
+      if (that._size) {
+        _size = new IndexT[D];
+        memcpy(_size, that._size, sizeof(IndexT) * D);
+      } else {
+        _size = 0;
+      }
 
-      _splitOffset = new IndexT[D];
-      memcpy(_splitOffset, that._splitOffset, sizeof(IndexT) * D);
+      if (that._splitOffset) {
+        _splitOffset = new IndexT[D];
+        memcpy(_splitOffset, that._splitOffset, sizeof(IndexT) * D);
+      } else {
+        _splitOffset = 0;
+      }
 
       _numSliceDimensions = that._numSliceDimensions;
 
@@ -167,6 +189,12 @@ namespace petabricks {
       copy(that);
     }
     RegionMatrix operator=(const RegionMatrix<D, const MATRIX_ELEMENT_T>& that) {
+      if (_size) delete [] _size;
+      if (_splitOffset) delete [] _splitOffset;
+      if (_numSliceDimensions > 0) {
+        delete [] _sliceDimensions;
+        delete [] _slicePositions;
+      }
       copy(that);
       return *this;
     }
@@ -188,8 +216,8 @@ namespace petabricks {
     }
 
     ~RegionMatrix() {
-      delete [] _size;
-      delete [] _splitOffset;
+      if (_size) delete [] _size;
+      if (_splitOffset) delete [] _splitOffset;
       if (_numSliceDimensions > 0) {
         delete [] _sliceDimensions;
         delete [] _slicePositions;
