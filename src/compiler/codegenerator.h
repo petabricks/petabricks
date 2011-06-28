@@ -316,6 +316,8 @@ public:
     _ocur = _bcur->add(new StreamTree(name+" subfile main"));
     return _bcur;
   }
+
+  void generateMigrationFunctions();
 protected:
   void indent();
 public:

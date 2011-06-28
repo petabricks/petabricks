@@ -31,6 +31,7 @@
 #include "matrixregion.h"
 #include "memoization.h"
 #include "petabricksruntime.h"
+#include "remotetask.h"
 #include "ruleinstance.h"
 #include "specializeddynamictasks.h"
 #include "transforminstance.h"

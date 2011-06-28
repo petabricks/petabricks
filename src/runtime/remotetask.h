@@ -24,30 +24,34 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifndef PETABRICKSTRANSFORMINSTANCE_H
-#define PETABRICKSTRANSFORMINSTANCE_H
+#ifndef PETABRICKSREMOTETASK_H
+#define PETABRICKSREMOTETASK_H
 
 #include "dynamictask.h"
-#include "matrixregion.h"
-#include "regionmatrix.h"
-#include "remotetask.h"
-
-#include "common/jrefcounted.h"
+#include "remotehost.h"
 
 namespace petabricks {
+  
+  class RemoteTask : public petabricks::DynamicTask {
+  public:
+    RemoteTask() { _state = S_REMOTE_NEW; }
 
-//class TransformInstance;
-typedef DynamicTaskPtr TransformInstancePtr;
+    virtual size_t serialSize() = 0;
+    virtual void serialize(char* buf) = 0;
+    virtual void unserialize(const char* buf) = 0;
+  protected:
+    void remoteScheduleTask() {
+      enqueueLocal();
+    }
 
-class TransformInstance_sequential {
-};
+    void enqueueLocal() {
+      { JLOCKSCOPE(_lock);
+        _state = S_READY;
+      }
+      inlineOrEnqueueTask();
+    }
 
-class TransformInstance_workstealing : public DynamicTask {
-};
-
-class TransformInstance_distributed : public RemoteTask {
-};
-
+  };
 
 }
 

@@ -657,6 +657,10 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
 
   o.mergehelpers();
 
+
+  if(rf==RuleFlavor::DISTRIBUTED){
+    o.generateMigrationFunctions();
+  }
   o.endClass();
 }
 

@@ -78,6 +78,12 @@ public:
   /// Wrapper around run that changes state and handles dependencies
   void runWrapper(bool isAborting = false);
 
+
+  ///
+  /// called by runWrapper, updated deps after a task completes
+  void completeTaskDeps(bool isAborting);
+
+
   ///
   /// Pretend this task was run successfully, recursively cancel tasks that depend on this
   void cancel(){ runWrapper(true); }
@@ -112,6 +118,8 @@ public:
     _state = S_COMPLETE;//outside lock -- single word write is atomic
     jalib::staticMemFence();
   }
+
+  virtual void remoteScheduleTask() { UNIMPLEMENTED(); }
  protected:
   ///
   /// either enqueue or inline the task
@@ -140,7 +148,10 @@ public:
     S_PENDING,   //after enqueue()
     S_READY,     //after all dependencies met
     S_COMPLETE,  //after run()==NULL
-    S_CONTINUED  //after run()!=NULL
+    S_CONTINUED, //after run()!=NULL
+    S_REMOTE_NEW,     //after creation - for a RemoteTask
+    S_REMOTE_PENDING, //after enqueue() - for a RemoteTask
+    S_REMOTE_READY    //after all dependencies met - for a RemoteTask
   };
 
   ///

@@ -259,6 +259,57 @@ void petabricks::CodeGenerator::endClass(){
   newline();
   newline();
 }
+
+void petabricks::CodeGenerator::generateMigrationFunctions(){
+  CodeGenerator& in = forkhelper();
+  CodeGenerator& out = forkhelper();
+  CodeGenerator& size = forkhelper();
+
+  size.beginFunc("size_t", "serialSize");
+  out.beginFunc("void", "serialize", std::vector<std::string>(1,"char* _buf"));
+  in.beginFunc("void", "unserialize", std::vector<std::string>(1,"const char* _buf"));
+  size.write("size_t _sz = 0;");
+
+  for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
+    if(jalib::StartsWith(i->type, "distributed::")) {
+      //TODO: Yod generate code to copy reference over
+    }else if(i->type == "IndexT") {
+      out.write("*reinterpret_cast<"+i->type+"*>(_buf) = "+i->name+";");
+      in.write(i->name+" = *reinterpret_cast<const "+i->type+"*>(_buf);");
+      size.write("_sz  += sizeof("+i->type+");");
+      in  .write("_buf += sizeof("+i->type+");");
+      out .write("_buf += sizeof("+i->type+");");
+    }else if(i->type == "DynamicTaskPtr") {
+      if(i->initializer != "") {
+        in.write(i->name+" = "+i->initializer+";");
+      }
+    }else{
+      JASSERT(false)(i->type).Text("cant yet serialize type");
+    }
+  }
+
+  size.write("return _sz;");
+  in.endFunc();
+  out.endFunc();
+  size.endFunc();
+
+  hos() << _curClass << "(const char*);\n";
+  os() << _curClass << "::" << _curClass << "(const char* _buf){\n";
+  write("unserialize(_buf);");
+  write(_curConstructorBody);
+  os() << "\n}\n";
+  
+  beginFunc(_curClass+"*", "_new_constructor", std::vector<std::string>(1,"const char* _buf"), true);
+  write("return new "+_curClass+"(_buf);");
+  endFunc();
+
+  beginFunc("RemoteObjectPtr", "_remote_gen", std::vector<std::string>(), true);
+  write("return 0;");
+  //write("return new "+_curClass+"(_buf);");
+  endFunc();
+}
+
+
 void petabricks::CodeGenerator::addMember(const std::string& type, const std::string& name, const std::string& initializer){
   if(_curClass.size()>0){
     ClassMember tmp;
