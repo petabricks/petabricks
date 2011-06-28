@@ -31,14 +31,14 @@
 #include "remotehost.h"
 
 namespace petabricks {
-  
+
   class RemoteTask : public petabricks::DynamicTask {
   public:
     RemoteTask() { _state = S_REMOTE_NEW; }
 
     virtual size_t serialSize() = 0;
-    virtual void serialize(char* buf) = 0;
-    virtual void unserialize(const char* buf) = 0;
+    virtual void serialize(char* buf, RemoteHost& host) = 0;
+    virtual void unserialize(const char* buf, RemoteHost& host) = 0;
   protected:
     void remoteScheduleTask() {
       enqueueLocal();

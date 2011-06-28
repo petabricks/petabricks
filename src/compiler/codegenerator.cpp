@@ -265,9 +265,15 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   CodeGenerator& out = forkhelper();
   CodeGenerator& size = forkhelper();
 
+  std::vector<std::string> args;
+  args.push_back("char* _buf");
+  args.push_back("RemoteHost& _host");
+
   size.beginFunc("size_t", "serialSize");
-  out.beginFunc("void", "serialize", std::vector<std::string>(1,"char* _buf"));
-  in.beginFunc("void", "unserialize", std::vector<std::string>(1,"const char* _buf"));
+  out.beginFunc("void", "serialize", args);
+
+  args[0] = "const char* _buf";
+  in.beginFunc("void", "unserialize", args);
   size.write("size_t _sz = 0;");
 
   for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
@@ -298,7 +304,7 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   write("unserialize(_buf);");
   write(_curConstructorBody);
   os() << "\n}\n";
-  
+
   beginFunc(_curClass+"*", "_new_constructor", std::vector<std::string>(1,"const char* _buf"), true);
   write("return new "+_curClass+"(_buf);");
   endFunc();
