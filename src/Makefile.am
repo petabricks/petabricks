@@ -73,6 +73,7 @@ pkglib_HEADERS=  \
   runtime/regionmatrixproxy.h \
   runtime/remotehost.h \
   runtime/remoteobject.h \
+  runtime/remotetask.h \
   runtime/ruleinstance.h \
   runtime/specializeddynamictasks.h \
   runtime/testisolation.h \
@@ -149,6 +150,7 @@ libpbruntime_a_SOURCES =  \
   runtime/regionmatrixproxy.cpp \
   runtime/remotehost.cpp \
   runtime/remoteobject.cpp \
+  runtime/remotetask.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \
   runtime/testisolation.cpp \

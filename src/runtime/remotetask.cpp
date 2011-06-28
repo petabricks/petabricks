@@ -24,31 +24,6 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifndef PETABRICKSTRANSFORMINSTANCE_H
-#define PETABRICKSTRANSFORMINSTANCE_H
-
-#include "dynamictask.h"
-#include "matrixregion.h"
-#include "regionmatrix.h"
 #include "remotetask.h"
 
-#include "common/jrefcounted.h"
 
-namespace petabricks {
-
-//class TransformInstance;
-typedef DynamicTaskPtr TransformInstancePtr;
-
-class TransformInstance_sequential {
-};
-
-class TransformInstance_workstealing : public DynamicTask {
-};
-
-class TransformInstance_distributed : public RemoteTask {
-};
-
-
-}
-
-#endif
