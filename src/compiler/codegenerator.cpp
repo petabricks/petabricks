@@ -273,7 +273,7 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
     if(jalib::StartsWith(i->type, "distributed::")) {
       //TODO: Yod generate code to copy reference over
-    }else if(i->type == "IndexT") {
+    }else if(i->type == "IndexT" || i->type == "int") {
       out.write("*reinterpret_cast<"+i->type+"*>(_buf) = "+i->name+";");
       in.write(i->name+" = *reinterpret_cast<const "+i->type+"*>(_buf);");
       size.write("_sz  += sizeof("+i->type+");");
