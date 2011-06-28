@@ -22,6 +22,7 @@ namespace petabricks {
 
     RegionData0D(ElementT& value) {
       _D = 0;
+      _type = RegionDataTypes::REGIONDATA0D;
       _size = new IndexT[0];
       _value = &value;
       _shouldDeleteValue = false;
@@ -67,6 +68,7 @@ namespace petabricks {
 
     ConstRegionData0D(ElementT value) {
       _D = 0;
+      _type = RegionDataTypes::CONSTREGIONDATA0D;
       _size = new IndexT[0];
       _value = value;
     }

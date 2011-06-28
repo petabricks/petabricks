@@ -49,7 +49,7 @@ namespace petabricks {
     virtual void writeCell(const IndexT* coord, ElementT value) = 0;
 
     virtual MatrixStoragePtr storage() const {
-      JASSERT(false)("This should not be called.");
+      JASSERT(false)(_type).Text("This should not be called.");
       return NULL;
     }
 
