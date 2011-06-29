@@ -118,7 +118,7 @@ public:
   {
     if(D>0) {
       const size_t sizeof_sizes = sizeof this->_sizes;
-      const size_t sizeof_multipliers = sizeof this->_sizes;
+      const size_t sizeof_multipliers = sizeof this->_multipliers;
 
       if(multipliers != NULL)
         memcpy(this->_multipliers, multipliers, sizeof_multipliers );

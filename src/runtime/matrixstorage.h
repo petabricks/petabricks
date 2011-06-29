@@ -73,7 +73,7 @@ public:
   /// generate a single random number
   static MATRIX_ELEMENT_T rand();
 
-  HashT hash() const { 
+  HashT hash() const {
     jalib::HashGenerator g;
     g.update(_data, _count*sizeof(ElementT));
     return g.final();

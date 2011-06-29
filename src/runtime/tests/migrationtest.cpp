@@ -40,6 +40,11 @@ RemoteObjectPtr gen() {
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
       MatrixIO().write(regionMatrix);
+
+      IndexT m11[] = {1,1};
+      regionMatrix.cell(m11) = 1331;
+      MatrixIO().write(regionMatrix);
+
       printf("== done ==\n");
     }
   };

@@ -4,15 +4,15 @@
 
 using namespace petabricks;
 
-RegionDataRaw::RegionDataRaw(int dimensions, IndexT* size) {
+RegionDataRaw::RegionDataRaw(const int dimensions, const IndexT* size) {
   init(dimensions, size, NULL, NULL);
 }
 
-RegionDataRaw::RegionDataRaw(int dimensions, IndexT* size, ElementT* data) {
+RegionDataRaw::RegionDataRaw(const int dimensions, const IndexT* size, const ElementT* data) {
   init(dimensions, size, data, NULL);
 }
 
-RegionDataRaw::RegionDataRaw(int dimensions, IndexT* size, IndexT* partOffset) {
+RegionDataRaw::RegionDataRaw(const int dimensions, const IndexT* size, const IndexT* partOffset) {
   init(dimensions, size, NULL, partOffset);
 }
 
@@ -27,7 +27,7 @@ RegionDataRaw::~RegionDataRaw() {
   if (_isPart) delete [] _partOffset;
 }
 
-void RegionDataRaw::init(int dimensions, IndexT* size, ElementT* data, IndexT* partOffset) {
+void RegionDataRaw::init(const int dimensions, const IndexT* size, const ElementT* data, const IndexT* partOffset) {
   _D = dimensions;
   _type = RegionDataTypes::REGIONDATARAW;
 
