@@ -67,9 +67,7 @@ int main(int argc, const char** argv){
     regionMatrix = regionMatrix.region(m123, m456);
 
     MatrixRegion2D slice = regionMatrix.slice(2, 0);
-
-    // (yod) fix transposed -> doesn't work correctly with split/slice
-    // slice = slice.transposed();
+    slice = slice.transposed();
 
     MatrixIO().write(slice);
 

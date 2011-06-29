@@ -705,35 +705,6 @@ namespace petabricks {
       }
     }
 
-    void print() {
-      printf("(%d) RegionMatrix: SIZE", getpid());
-      for (int d = 0; d < D; d++) {
-        printf(" %d", _size[d]);
-      }
-      printf("\n");
-
-      IndexT* coord = new IndexT[D];
-      memset(coord, 0, (sizeof coord) * D);
-
-      while (true) {
-        printf("%4.8g ", this->readCell(coord));
-
-        int z = this->incCoord(coord);
-
-        if (z == -1) {
-          break;
-        }
-
-        while (z > 0) {
-          printf("\n");
-          z--;
-        }
-      }
-
-      printf("\n\n");
-      delete [] coord;
-    }
-
   private:
     IndexT* getRegionDataCoord(const IndexT* coord_orig) const {
       IndexT slice_index = 0;
@@ -745,11 +716,7 @@ namespace petabricks {
         if (slice_index < _numSliceDimensions &&
             d == _sliceDimensions[slice_index]) {
           // slice
-          if (_isTransposed) {
-            coord_new[D-d] = _slicePositions[slice_index];
-          } else {
-            coord_new[d] = _slicePositions[slice_index];
-          }
+          coord_new[d] = _slicePositions[slice_index];
           slice_index++;
         } else {
           // split
@@ -759,10 +726,11 @@ namespace petabricks {
           }
 
           if (_isTransposed) {
-            coord_new[D-d] = coord_orig[split_index] + offset;
+            coord_new[d] = coord_orig[D - 1 - split_index] + offset;
           } else {
             coord_new[d] = coord_orig[split_index] + offset;
           }
+
           split_index++;
         }
       }
