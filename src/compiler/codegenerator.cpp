@@ -301,7 +301,7 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
 
   hos() << _curClass << "(const char*);\n";
   os() << _curClass << "::" << _curClass << "(const char* _buf){\n";
-  write("unserialize(_buf);");
+  //write("unserialize(_buf);");
   write(_curConstructorBody);
   os() << "\n}\n";
 

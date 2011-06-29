@@ -39,6 +39,10 @@ int RegionHandler::dimensions() {
   return _D;
 }
 
+IndexT* RegionHandler::size() {
+  return _regionData->size();
+}
+
 RegionDataType RegionHandler::type() const {
   return _regionData->type();
 }

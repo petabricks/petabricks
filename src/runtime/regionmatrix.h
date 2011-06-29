@@ -123,11 +123,11 @@ namespace petabricks {
       _numSliceDimensions = that._numSliceDimensions;
 
       if (_numSliceDimensions > 0) {
-        _sliceDimensions = new IndexT[_numSliceDimensions];
+        _sliceDimensions = new int[_numSliceDimensions];
         memcpy(_sliceDimensions, that._sliceDimensions, sizeof(int) * _numSliceDimensions);
 
         _slicePositions = new IndexT[_numSliceDimensions];
-        memcpy(_slicePositions, that._slicePositions, sizeof(int) * _numSliceDimensions);
+        memcpy(_slicePositions, that._slicePositions, sizeof(IndexT) * _numSliceDimensions);
       } else {
         _sliceDimensions = 0;
         _slicePositions = 0;
@@ -171,11 +171,11 @@ namespace petabricks {
       _numSliceDimensions = that._numSliceDimensions;
 
       if (_numSliceDimensions > 0) {
-        _sliceDimensions = new IndexT[_numSliceDimensions];
+        _sliceDimensions = new int[_numSliceDimensions];
         memcpy(_sliceDimensions, that._sliceDimensions, sizeof(int) * _numSliceDimensions);
 
         _slicePositions = new IndexT[_numSliceDimensions];
-        memcpy(_slicePositions, that._slicePositions, sizeof(int) * _numSliceDimensions);
+        memcpy(_slicePositions, that._slicePositions, sizeof(IndexT) * _numSliceDimensions);
       } else {
         _sliceDimensions = 0;
         _slicePositions = 0;
@@ -478,9 +478,9 @@ namespace petabricks {
 
       // InitialMsg
       RegionDataRemoteMessage::InitialMessage* msg = new RegionDataRemoteMessage::InitialMessage();
-      msg->dimensions = D;
+      msg->dimensions = _regionHandler->dimensions();
       msg->movingBufferIndex = movingBufferIndex;
-      memcpy(msg->size, _size, sizeof(msg->size));
+      memcpy(msg->size, _regionHandler->size(), sizeof(msg->size));
       int len = (sizeof msg) + sizeof(msg->size);
 
       host->createRemoteObject(local, &RegionDataRemote::genRemote, msg, len);
@@ -496,8 +496,90 @@ namespace petabricks {
 
       // Create a new regionHandler. We cannot update the old one because it
       // might be used by another regionmatrixproxy. e.g. 1 -> 2 -> 1
-      _regionHandler->updateRegionData(RegionMatrixMovingBuffer::instance().movingBuffer(movingBufferIndex));
+      _regionHandler = new RegionHandler(RegionMatrixMovingBuffer::instance().movingBuffer(movingBufferIndex));
       RegionMatrixMovingBuffer::instance().removeMovingBuffer(movingBufferIndex);
+    }
+
+    size_t serialSize() {
+      size_t sz = sizeof(int);                    // D
+      sz += sizeof(IndexT) * D;                   // _size
+      sz += sizeof(IndexT) * D;                   // _splitOffset
+      sz += sizeof(int);                          // _numSliceDimensions
+      sz += sizeof(int) * _numSliceDimensions;    // _sliceDimensions
+      sz += sizeof(IndexT) * _numSliceDimensions; // _slicePositions
+      sz += sizeof(bool);                         // _isTransposed
+      return sz;
+    }
+
+    void serialize(char* buf, RemoteHost& host) {
+      size_t sz = sizeof(int);
+      *reinterpret_cast<int*>(buf) = D;
+      buf += sz;
+
+      sz = sizeof(IndexT) * D;
+      memcpy(buf, _size, sz);
+      buf += sz;
+
+      sz = sizeof(IndexT) * D;
+      memcpy(buf, _splitOffset, sz);
+      buf += sz;
+
+      sz = sizeof(int);
+      *reinterpret_cast<int*>(buf) = _numSliceDimensions;
+      buf += sz;
+
+      sz = sizeof(int) * _numSliceDimensions;
+      memcpy(buf, _sliceDimensions, sz);
+      buf += sz;
+
+      sz = sizeof(IndexT) * _numSliceDimensions;
+      memcpy(buf, _slicePositions, sz);
+      buf += sz;
+
+      JTRACE("slice")(_numSliceDimensions)(_sliceDimensions[0])(_slicePositions[0]);
+
+      sz = sizeof(bool);
+      *reinterpret_cast<bool*>(buf) = _isTransposed;
+
+      moveToRemoteHost(&host, 1331);
+    }
+
+    void unserialize(const char* buf, RemoteHost& host) {
+      // (yod) destruct old data
+      updateHandler(1331);
+
+      size_t sz = sizeof(int);
+      JASSERT(*reinterpret_cast<const int*>(buf) == D)(*reinterpret_cast<const int*>(buf))(D).Text("RegionMatrix dimension mismatch.");
+      buf += sz;
+
+      sz = sizeof(IndexT) * D;
+      _size = new IndexT[D];
+      memcpy(_size, buf, sz);
+      buf += sz;
+
+      sz = sizeof(IndexT) * D;
+      _splitOffset = new IndexT[D];
+      memcpy(_splitOffset, buf, sz);
+      buf += sz;
+
+      sz = sizeof(int);
+      _numSliceDimensions = *reinterpret_cast<const int*>(buf);
+      buf += sz;
+
+      sz = sizeof(int) * _numSliceDimensions;
+      _sliceDimensions = new int(_numSliceDimensions);
+      memcpy(_sliceDimensions, buf, sz);
+      buf += sz;
+
+      sz = sizeof(IndexT) * _numSliceDimensions;
+      _slicePositions = new IndexT(_numSliceDimensions);
+      memcpy(_slicePositions, buf, sz);
+      buf += sz;
+
+      JTRACE("slice")(_numSliceDimensions)(_sliceDimensions[0])(_slicePositions[0]);
+
+      sz = sizeof(bool);
+      _isTransposed = *reinterpret_cast<const bool*>(buf);
     }
 
     void updateHandlerChain() {
@@ -620,16 +702,6 @@ namespace petabricks {
 
       return copy;
     }
-
-
-    //
-    // Rand
-    //
-    /*
-    ElementT rand(){
-      return PetabricksRuntime::randDouble(-2147483648, 2147483648);
-    }
-    */
 
     void randomize() {
       IndexT coord[D];

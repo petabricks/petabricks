@@ -32,16 +32,25 @@ void print(DataHostList list) {
   }
 }
 
+RemoteObjectPtr gen() {
+  class TestRemoteObject : public petabricks::RemoteObject {
+  public:
+    void onRecv(const void* data, size_t len) {
+      JTRACE("recv")((char*)data)(len);
+      MatrixRegion2D regionMatrix = MatrixRegion2D();
+      regionMatrix.unserialize((char*)data, *host());
+      MatrixIO().write(regionMatrix);
+      printf("== done ==\n");
+    }
+  };
+  return new TestRemoteObject();
+}
+
 int main(int argc, const char** argv){
   using namespace petabricks::distributed;
 
   const char* filename = "testdata/Helmholtz3DB1";
   RemoteHostDB hdb;
-
-  IndexT size[] = {8,9,8};
-  //
-  // Create a RegionMatrix
-  MatrixRegion3D regionMatrix(size);
 
   if(argc==1){
     printf("process1 %d\n", getpid());
@@ -50,43 +59,29 @@ int main(int argc, const char** argv){
     hdb.accept("");
     hdb.spawnListenThread();
     hdb.spawnListenThread();
-    hdb.spawnListenThread();
-    hdb.spawnListenThread();
 
-    // import data
-    regionMatrix = MatrixIO(filename,"r").read_distributed<3>();
+    MatrixRegion3D regionMatrix = MatrixIO(filename,"r").read_distributed<3>();
 
-    print(regionMatrix.dataHosts());
-    JASSERT(regionMatrix.isLocal()).Text("Must be local.");
+    IndexT m123[] = {1,2,3};
+    IndexT m456[] = {4,5,6};
+    regionMatrix = regionMatrix.region(m123, m456);
 
-    /*
-    //
-    // Test 1 -> 2 -> 1
-    //
+    MatrixRegion2D slice = regionMatrix.slice(2, 0);
 
-    regionMatrix.moveToRemoteHost(hdb.host(0), 1);
-    printf("completed sending 1\n");
+    // (yod) fix transposed -> doesn't work correctly with split/slice
+    // slice = slice.transposed();
 
-    // Wait until process2 move matrix back
-    regionMatrix = MatrixRegion3D(RegionMatrix<3, ElementT>(size, new RegionHandler(3)));
-    regionMatrix.updateHandler(2);
-    printf("received 2\n");
-    print(regionMatrix.dataHosts());
+    MatrixIO().write(slice);
 
-    regionMatrix.updateHandlerChain();
+    char* buf = new char[slice.serialSize()];
+    slice.serialize(buf, *hdb.host(0));
 
-    JASSERT(regionMatrix.isLocal()).Text("Must be local.");
+    RemoteObjectPtr local;
+    hdb.host(0)->createRemoteObject(local=gen(), &gen);
+    local->waitUntilCreated();
+    local->send(buf, regionMatrix.serialSize());
 
-    printf("==== 1 -> 2 -> 1 Done ====\n");
-*/
-    //
-    // Test 1 -> 2 -> 1 -> 2
-    //
-
-    regionMatrix.moveToRemoteHost(hdb.host(0), 3);
-    regionMatrix = MatrixRegion3D(RegionMatrix<3, ElementT>(size, new RegionHandler(3)));
-    regionMatrix.updateHandler(4);
-    regionMatrix.moveToRemoteHost(hdb.host(0), 5);
+    printf("proc 1 done\n");
 
     hdb.listenLoop();
     return 0;
@@ -96,41 +91,6 @@ int main(int argc, const char** argv){
     JASSERT(argc==3);
     hdb.connect(argv[1], jalib::StringToInt(argv[2]));
     hdb.spawnListenThread();
-    hdb.spawnListenThread();
-    hdb.spawnListenThread();
-    hdb.spawnListenThread();
-    /*
-    //
-    // Test 1 -> 2 -> 1
-    //
-
-    // Wait until process1 send matrix here
-    regionMatrix.updateHandler(1);
-    printf("received 1\n");
-    print(regionMatrix.dataHosts());
-
-    regionMatrix.updateHandlerChain();
-    JASSERT(!regionMatrix.isLocal()).Text("updateHandlerChain should not be able to do anything.");
-
-    // Move it back to process1
-    regionMatrix.moveToRemoteHost(hdb.host(0), 2);
-    printf("completed sending 2\n");
-*/
-    //
-    // Test 1 -> 2 -> 1 -> 2
-    //
-
-    regionMatrix = MatrixRegion3D(RegionMatrix<3, ElementT>(size, new RegionHandler(3)));
-    regionMatrix.updateHandler(3);
-    regionMatrix.moveToRemoteHost(hdb.host(0), 4);
-    regionMatrix = MatrixRegion3D(RegionMatrix<3, ElementT>(size, new RegionHandler(3)));
-    regionMatrix.updateHandler(5);
-
-    regionMatrix.updateHandlerChain();
-
-
-    printf("==== 1 -> 2 -> 1 -> 2 Done ====\n");
-
     hdb.listenLoop();
     return 0;
   }

@@ -29,6 +29,7 @@ namespace petabricks {
     DataHostList hosts(IndexT* begin, IndexT* end);
 
     int dimensions();
+    IndexT* size();
     RegionDataType type() const;
   };
 }
