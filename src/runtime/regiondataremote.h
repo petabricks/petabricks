@@ -25,7 +25,6 @@ namespace petabricks {
 
     struct InitialMessage {
       int dimensions;
-      uint16_t movingBufferIndex;
       IndexT size[MAX_DIMENSIONS];
     };
 
@@ -84,12 +83,15 @@ namespace petabricks {
   class RegionDataRemote;
   typedef jalib::JRef<RegionDataRemote> RegionDataRemotePtr;
 
+  class RegionDataRemoteObject;
+  typedef jalib::JRef<RegionDataRemoteObject> RegionDataRemoteObjectPtr;
+
   class RegionDataRemote : public RegionDataI {
   private:
-    RemoteObjectPtr _remoteObject;
+    RegionDataRemoteObjectPtr _remoteObject;
 
   public:
-    RegionDataRemote(int dimensions, IndexT* size, RemoteObjectPtr remoteObject);
+    RegionDataRemote(int dimensions, IndexT* size, RegionDataRemoteObjectPtr remoteObject);
     ~RegionDataRemote();
 
     int allocData();
@@ -124,6 +126,10 @@ namespace petabricks {
     }
 
     void onRecvInitial(const void* buf, size_t len);
+
+    RegionDataIPtr regionData() {
+      return _regionData;
+    }
   };
 }
 

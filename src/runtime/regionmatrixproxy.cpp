@@ -116,7 +116,7 @@ void RegionMatrixProxy::onRecv(const void* data, size_t len) {
   }
 }
 
-RemoteObjectPtr RegionMatrixProxy::genLocal() {
+RegionMatrixProxyRemoteObjectPtr RegionMatrixProxy::genLocal() {
   _remoteObject = new RegionMatrixProxyRemoteObject(this);
   return _remoteObject;
 }

@@ -279,6 +279,9 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
     if(jalib::StartsWith(i->type, "distributed::")) {
       //TODO: Yod generate code to copy reference over
+      out.write(i->name + ".serialize(_buf, _host);");
+      in.write(i->name + ".unserialize(_buf, _host);");
+      size.write("_sz += " + i->name + ".serialSize();");
     }else if(i->type == "IndexT" || i->type == "int" || i->type == "double") {
       out.write("*reinterpret_cast<"+i->type+"*>(_buf) = "+i->name+";");
       in.write(i->name+" = *reinterpret_cast<const "+i->type+"*>(_buf);");
@@ -299,14 +302,14 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   out.endFunc();
   size.endFunc();
 
-  hos() << _curClass << "(const char*);\n";
-  os() << _curClass << "::" << _curClass << "(const char* _buf){\n";
-  //write("unserialize(_buf);");
+  hos() << _curClass << "(const char*, RemoteHost&);\n";
+  os() << _curClass << "::" << _curClass << "(const char* _buf, RemoteHost& _host){\n";
+  write("unserialize(_buf, _host);");
   write(_curConstructorBody);
   os() << "\n}\n";
 
-  beginFunc(_curClass+"*", "_new_constructor", std::vector<std::string>(1,"const char* _buf"), true);
-  write("return new "+_curClass+"(_buf);");
+  beginFunc(_curClass+"*", "_new_constructor", std::vector<std::string>(1,"const char* _buf, RemoteHost& _host"), true);
+  write("return new "+_curClass+"(_buf, _host);");
   endFunc();
 
   beginFunc("RemoteObjectPtr", "_remote_gen", std::vector<std::string>(), true);

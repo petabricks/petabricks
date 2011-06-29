@@ -22,36 +22,6 @@
 #include "regionmatrixproxy.h"
 
 namespace petabricks {
-  class RegionMatrixMovingBuffer {
-  private:
-    std::map<uint16_t, RegionDataIPtr> _buffer;
-    pthread_mutex_t _mux;
-
-    RegionMatrixMovingBuffer() {
-      pthread_mutex_init(&_mux, NULL);
-    }
-
-  public:
-    static RegionMatrixMovingBuffer& instance() {
-      static RegionMatrixMovingBuffer instanceObj = RegionMatrixMovingBuffer();
-      return instanceObj;
-    }
-
-    void addMovingBuffer(RegionDataIPtr remoteData, uint16_t index) {
-      pthread_mutex_lock(&_mux);
-      _buffer[index] = remoteData;
-      pthread_mutex_unlock(&_mux);
-    }
-    void removeMovingBuffer(uint16_t index) {
-      pthread_mutex_lock(&_mux);
-      _buffer.erase(index);
-      pthread_mutex_unlock(&_mux);
-    }
-    RegionDataIPtr movingBuffer(uint16_t index) {
-      return _buffer[index];
-    }
-  };
-
   template< int D, typename ElementT> class RegionMatrixWrapper;
 
   template< int D, typename ElementT>
@@ -471,33 +441,20 @@ namespace petabricks {
     //
     // Migration
     //
-    void moveToRemoteHost(RemoteHostPtr host, uint16_t movingBufferIndex) {
+    EncodedPtr moveToRemoteHost(RemoteHostPtr host) {
       RegionMatrixProxyPtr proxy =
         new RegionMatrixProxy(this->getRegionHandler());
-      RemoteObjectPtr local = proxy->genLocal();
+      RegionMatrixProxyRemoteObjectPtr local = proxy->genLocal();
 
       // InitialMsg
       RegionDataRemoteMessage::InitialMessage* msg = new RegionDataRemoteMessage::InitialMessage();
       msg->dimensions = _regionHandler->dimensions();
-      msg->movingBufferIndex = movingBufferIndex;
       memcpy(msg->size, _regionHandler->size(), sizeof(msg->size));
-      int len = (sizeof msg) + sizeof(msg->size);
+      int len = sizeof(RegionDataRemoteMessage::InitialMessage);
 
-      host->createRemoteObject(local, &RegionDataRemote::genRemote, msg, len);
+      host->createRemoteObject(local.asPtr(), &RegionDataRemote::genRemote, msg, len);
       local->waitUntilCreated();
-      JTRACE("done");
-    }
-
-    void updateHandler(uint16_t movingBufferIndex) {
-      while (!RegionMatrixMovingBuffer::instance().movingBuffer(movingBufferIndex)) {
-        jalib::memFence();
-        sched_yield();
-      }
-
-      // Create a new regionHandler. We cannot update the old one because it
-      // might be used by another regionmatrixproxy. e.g. 1 -> 2 -> 1
-      _regionHandler = new RegionHandler(RegionMatrixMovingBuffer::instance().movingBuffer(movingBufferIndex));
-      RegionMatrixMovingBuffer::instance().removeMovingBuffer(movingBufferIndex);
+      return local->remoteObjPtr();
     }
 
     size_t serialSize() {
@@ -508,6 +465,7 @@ namespace petabricks {
       sz += sizeof(int) * _numSliceDimensions;    // _sliceDimensions
       sz += sizeof(IndexT) * _numSliceDimensions; // _slicePositions
       sz += sizeof(bool);                         // _isTransposed
+      sz += sizeof(EncodedPtr);                   // remoteObj
       return sz;
     }
 
@@ -536,18 +494,18 @@ namespace petabricks {
       memcpy(buf, _slicePositions, sz);
       buf += sz;
 
-      JTRACE("slice")(_numSliceDimensions)(_sliceDimensions[0])(_slicePositions[0]);
-
       sz = sizeof(bool);
       *reinterpret_cast<bool*>(buf) = _isTransposed;
+      buf += sz;
 
-      moveToRemoteHost(&host, 1331);
+      EncodedPtr remoteObj = moveToRemoteHost(&host);
+      sz = sizeof(EncodedPtr);
+      *reinterpret_cast<EncodedPtr*>(buf) = remoteObj;
+      buf += sz;
     }
 
-    void unserialize(const char* buf, RemoteHost& host) {
+    void unserialize(const char* buf, RemoteHost& /*host*/) {
       // (yod) destruct old data
-      updateHandler(1331);
-
       size_t sz = sizeof(int);
       JASSERT(*reinterpret_cast<const int*>(buf) == D)(*reinterpret_cast<const int*>(buf))(D).Text("RegionMatrix dimension mismatch.");
       buf += sz;
@@ -576,10 +534,15 @@ namespace petabricks {
       memcpy(_slicePositions, buf, sz);
       buf += sz;
 
-      JTRACE("slice")(_numSliceDimensions)(_sliceDimensions[0])(_slicePositions[0]);
-
       sz = sizeof(bool);
       _isTransposed = *reinterpret_cast<const bool*>(buf);
+      buf += sz;
+
+      sz = sizeof(EncodedPtr);
+      EncodedPtr remoteObjPtr = *reinterpret_cast<const EncodedPtr*>(buf);
+      RegionDataRemoteObject* remoteObj = reinterpret_cast<RegionDataRemoteObject*>(remoteObjPtr);
+      _regionHandler = new RegionHandler(remoteObj->regionData());
+      buf += sz;
     }
 
     void updateHandlerChain() {

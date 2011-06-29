@@ -81,9 +81,11 @@ void print(DataHostList list) {
   }
 }
 
-int main(int argc, const char** argv){
+int main(int /*argc*/, const char** /*argv*/){
   using namespace petabricks::distributed;
 
+  // (yod) change migration code
+  /*
   const char* filename = "testdata/Helmholtz3DB1";
 
   IndexT m0[] = {0,0,0};
@@ -221,4 +223,5 @@ int main(int argc, const char** argv){
     hdb.listenLoop();
     return 0;
   }
+  */
 }

@@ -76,6 +76,7 @@ int main(int argc, const char** argv){
     char* buf = new char[slice.serialSize()];
     slice.serialize(buf, *hdb.host(0));
 
+    // send buf to process 2
     RemoteObjectPtr local;
     hdb.host(0)->createRemoteObject(local=gen(), &gen);
     local->waitUntilCreated();

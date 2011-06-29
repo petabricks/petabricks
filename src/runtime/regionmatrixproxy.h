@@ -9,8 +9,11 @@ namespace petabricks {
   class RegionMatrixProxy;
   typedef jalib::JRef<RegionMatrixProxy> RegionMatrixProxyPtr;
 
+  class RegionMatrixProxyRemoteObject;
+  typedef jalib::JRef<RegionMatrixProxyRemoteObject> RegionMatrixProxyRemoteObjectPtr;
+
   class RegionMatrixProxy : public RegionMatrixI {
-    RemoteObject* _remoteObject;
+    RegionMatrixProxyRemoteObject* _remoteObject;
 
   public:
     RegionMatrixProxy(RegionHandlerPtr regionHandler);
@@ -21,7 +24,7 @@ namespace petabricks {
 
     void onRecv(const void* data, size_t len);
 
-    RemoteObjectPtr genLocal();
+    RegionMatrixProxyRemoteObjectPtr genLocal();
 
   private:
     void processReadCellMsg(RegionDataRemoteMessage::ReadCellMessage* msg);
@@ -44,6 +47,10 @@ namespace petabricks {
 
     void onRecv(const void* data, size_t len) {
       _regionMatrix->onRecv(data, len);
+    }
+
+    EncodedPtr remoteObjPtr() {
+      return remoteObj();
     }
   };
 

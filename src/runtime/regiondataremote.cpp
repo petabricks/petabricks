@@ -5,7 +5,7 @@
 using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
 
-RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, RemoteObjectPtr remoteObject) {
+RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, RegionDataRemoteObjectPtr remoteObject) {
   _D = dimensions;
   _type = RegionDataTypes::REGIONDATAREMOTE;
   _size = size;
@@ -107,14 +107,12 @@ RemoteObjectPtr RegionDataRemote::genRemote() {
 //
 
 void RegionDataRemoteObject::onRecvInitial(const void* buf, size_t len) {
-  JASSERT(len == sizeof(InitialMessage));
+  JASSERT(len == sizeof(InitialMessage))(len)(sizeof(InitialMessage));
   InitialMessage* msg = (InitialMessage*) buf;
 
   IndexT* size = (IndexT*)malloc(sizeof(IndexT) * msg->dimensions);
   memcpy(size, msg->size, sizeof(IndexT) * msg->dimensions);
 
   _regionData = new RegionDataRemote(msg->dimensions, size, this);
-
-  RegionMatrixMovingBuffer::instance().addMovingBuffer((RegionDataIPtr) _regionData, msg->movingBufferIndex);
 }
 
