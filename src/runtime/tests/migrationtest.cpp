@@ -32,39 +32,21 @@ void print(DataHostList list) {
   }
 }
 
-RemoteObjectPtr gen() {
-  class TestRemoteObject : public petabricks::RemoteObject {
-  public:
-    void onRecv(const void* data, size_t len) {
-      JTRACE("recv")((char*)data)(len);
-      MatrixRegion2D regionMatrix = MatrixRegion2D();
-      regionMatrix.unserialize((char*)data, *host());
-      MatrixIO().write(regionMatrix);
-
-      IndexT m11[] = {1,1};
-      regionMatrix.cell(m11) = 1331;
-      MatrixIO().write(regionMatrix);
-
-      printf("== done ==\n");
-    }
-  };
-  return new TestRemoteObject();
-}
+RemoteObjectPtr step2();
+RemoteObjectPtr step3();
 
 int main(int argc, const char** argv){
   using namespace petabricks::distributed;
 
-  const char* filename = "testdata/Helmholtz3DB1";
-  RemoteHostDB hdb;
-
   if(argc==1){
     printf("process1 %d\n", getpid());
 
-    hdb.remotefork(NULL, argc, argv);
-    hdb.accept("");
-    hdb.spawnListenThread();
-    hdb.spawnListenThread();
+    RemoteHostDB::instance().remotefork(NULL, argc, argv);
+    RemoteHostDB::instance().accept("");
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().spawnListenThread();
 
+    const char* filename = "testdata/Helmholtz3DB1";
     MatrixRegion3D regionMatrix = MatrixIO(filename,"r").read_distributed<3>();
 
     IndexT m123[] = {1,2,3};
@@ -77,26 +59,73 @@ int main(int argc, const char** argv){
     MatrixIO().write(slice);
 
     char* buf = new char[slice.serialSize()];
-    slice.serialize(buf, *hdb.host(0));
+    slice.serialize(buf, *RemoteHostDB::instance().host(0));
 
     // send buf to process 2
     RemoteObjectPtr local;
-    hdb.host(0)->createRemoteObject(local=gen(), &gen);
+    RemoteHostDB::instance().host(0)->createRemoteObject(local=step2(), &step2);
     local->waitUntilCreated();
-    local->send(buf, regionMatrix.serialSize());
+    local->send(buf, slice.serialSize());
 
-    printf("proc 1 done\n");
+    printf("== step 1 done ==\n");
 
-    hdb.listenLoop();
+    RemoteHostDB::instance().listenLoop();
     return 0;
   } else {
     printf("process2 %d\n", getpid());
 
     JASSERT(argc==3);
-    hdb.connect(argv[1], jalib::StringToInt(argv[2]));
-    hdb.spawnListenThread();
-    hdb.listenLoop();
+    RemoteHostDB::instance().connect(argv[1], jalib::StringToInt(argv[2]));
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().listenLoop();
     return 0;
   }
 }
 
+RemoteObjectPtr step2() {
+  class TestRemoteObject : public petabricks::RemoteObject {
+  public:
+    void onRecv(const void* data, size_t /*len*/) {
+      printf("== step2 ==\n");
+      MatrixRegion2D regionMatrix = MatrixRegion2D();
+      regionMatrix.unserialize((char*)data, *host());
+      MatrixIO().write(regionMatrix);
+
+      IndexT m11[] = {1,1};
+      regionMatrix.cell(m11) = 1331;
+      MatrixIO().write(regionMatrix);
+
+      printf("== step2 done ==\n");
+
+      char* buf = new char[regionMatrix.serialSize()];
+      regionMatrix.serialize(buf, *RemoteHostDB::instance().host(0));
+      RemoteObjectPtr local;
+      RemoteHostDB::instance().host(0)->createRemoteObject(local=step3(), &step3);
+      local->waitUntilCreated();
+      local->send(buf, regionMatrix.serialSize());
+
+      printf("== sent matrix to step3 ==\n");
+    }
+  };
+  return new TestRemoteObject();
+}
+
+RemoteObjectPtr step3() {
+  class TestRemoteObject : public petabricks::RemoteObject {
+  public:
+    void onRecv(const void* data, size_t /*len*/) {
+      printf("== step3 ==\n");
+      MatrixRegion2D regionMatrix = MatrixRegion2D();
+      regionMatrix.unserialize((char*)data, *host());
+      MatrixIO().write(regionMatrix);
+
+      // Test updateHandlerChain for ( 1-> 2 -> 1 ==> local )
+      regionMatrix.updateHandlerChain();
+      JASSERT(regionMatrix.isLocal());
+      MatrixIO().write(regionMatrix._toLocalRegion());
+
+      printf("== done ==\n");
+    }
+  };
+  return new TestRemoteObject();
+}
