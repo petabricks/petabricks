@@ -76,7 +76,7 @@ namespace petabricks {
       void* response;
       HostPid dataHost;
       int numHops;
-      RegionDataIPtr regionData;
+      EncodedPtr encodedPtr; // regiondata or remoteobject
     };
   }
 
@@ -92,7 +92,6 @@ namespace petabricks {
 
   public:
     RegionDataRemote(int dimensions, IndexT* size, RegionDataRemoteObjectPtr remoteObject);
-    ~RegionDataRemote();
 
     int allocData();
 
@@ -101,9 +100,9 @@ namespace petabricks {
     DataHostList hosts(IndexT* begin, IndexT* end);
 
     // Update long chain of RegionHandlers
-    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage* updateHandlerChain();
-    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage*
-      updateHandlerChain(RegionDataRemoteMessage::UpdateHandlerChainMessage* msg);
+    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage updateHandlerChain();
+    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage
+      updateHandlerChain(RegionDataRemoteMessage::UpdateHandlerChainMessage msg);
 
     void onRecv(const void* data, size_t len);
     void* fetchData(const void* msg, size_t len);

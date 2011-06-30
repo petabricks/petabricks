@@ -12,10 +12,6 @@ RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, RegionDataRemot
   _remoteObject = remoteObject;
 }
 
-RegionDataRemote::~RegionDataRemote() {
-  JTRACE("Destruct RegionDataRemote");
-}
-
 int RegionDataRemote::allocData() {
   JASSERT(false).Text("This should not be called.");
   return -1;
@@ -75,21 +71,17 @@ DataHostList RegionDataRemote::hosts(IndexT* begin, IndexT* end) {
   return list;
 }
 
-UpdateHandlerChainReplyMessage* RegionDataRemote::updateHandlerChain(UpdateHandlerChainMessage* msg) {
-  msg->numHops += 1;
-  UpdateHandlerChainReplyMessage* reply =
-    (UpdateHandlerChainReplyMessage*)this->fetchData(msg, sizeof *msg);
-  return reply;
+UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain(UpdateHandlerChainMessage msg) {
+  msg.numHops += 1;
+  return *(UpdateHandlerChainReplyMessage*)this->fetchData(&msg, sizeof msg);
 }
 
-UpdateHandlerChainReplyMessage* RegionDataRemote::updateHandlerChain() {
-  UpdateHandlerChainMessage* msg = new UpdateHandlerChainMessage();
-  msg->header.type = MessageTypes::UPDATEHANDLERCHAIN;
-  msg->requester = HostPid::self();
-  msg->numHops = 0;
-  UpdateHandlerChainReplyMessage* reply = this->updateHandlerChain(msg);
-  delete msg;
-  return reply;
+UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain() {
+  UpdateHandlerChainMessage msg;
+  msg.header.type = MessageTypes::UPDATEHANDLERCHAIN;
+  msg.requester = HostPid::self();
+  msg.numHops = 0;
+  return this->updateHandlerChain(msg);
 }
 
 void RegionDataRemote::onRecv(const void* data, size_t len) {

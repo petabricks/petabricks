@@ -77,20 +77,36 @@ EncodedPtr RegionHandler::moveToRemoteHost(RemoteHostPtr host) {
 
 void RegionHandler::updateHandlerChain() {
   if (type() == RegionDataTypes::REGIONDATAREMOTE) {
-    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage* reply =
+    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage reply =
       ((RegionDataRemote*)_regionData.asPtr())->updateHandlerChain();
-    JTRACE("updatehandler")(reply->dataHost)(reply->numHops)(reply->regionData.asPtr());
+    JTRACE("updatehandler")(reply.dataHost)(reply.numHops);
 
-    if (reply->dataHost == HostPid::self()) {
+    if (reply.dataHost == HostPid::self()) {
       // Data is in the same process. Update handler to point directly to the data.
-      updateRegionData(reply->regionData);
-    } else if (reply->numHops > 1) {
+      RegionDataI* regionData = reinterpret_cast<RegionDataI*>(reply.encodedPtr);
+      updateRegionData(regionData);
+    } else if (reply.numHops > 1) {
       // Multiple network hops to data. Create a direct connection to data.
-
-      // (yod) TODO:
-      //this->updateHandler(999);
+      RegionDataRemoteObject* remoteObj = reinterpret_cast<RegionDataRemoteObject*>(reply.encodedPtr);
+      updateRegionData(remoteObj->regionData());
     }
   }
+}
+
+// For testing.
+bool RegionHandler::isHandlerChainUpdated() {
+  if (type() == RegionDataTypes::REGIONDATAREMOTE) {
+    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage reply =
+      ((RegionDataRemote*)_regionData.asPtr())->updateHandlerChain();
+
+    JTRACE("isHandlerChainUpdated")(reply.dataHost)(reply.numHops);
+    if (reply.dataHost == HostPid::self()) {
+      return false;
+    } else if (reply.numHops > 1) {
+      return false;
+    }
+  }
+  return true;
 }
 
 //

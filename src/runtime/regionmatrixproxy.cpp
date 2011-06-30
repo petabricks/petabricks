@@ -52,45 +52,30 @@ void RegionMatrixProxy::processGetHostListMsg(GetHostListMessage* msg) {
   // (yod)?? delete reply;
 }
 
-void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::UpdateHandlerChainMessage* msg) {
-  void* response = msg->header.response;
-  bool needToUpdateChain = false;
+void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::UpdateHandlerChainMessage msg) {
+  void* response = msg.header.response;
 
   RegionDataIPtr regionData = _regionHandler->getRegionData();
-  UpdateHandlerChainReplyMessage* reply;
+  UpdateHandlerChainReplyMessage reply;
 
   if (regionData->type() == RegionDataTypes::REGIONDATAREMOTE) {
     reply = ((RegionDataRemote*)regionData.asPtr())->updateHandlerChain(msg);
   } else {
-    reply = new UpdateHandlerChainReplyMessage();
-    reply->dataHost = HostPid::self();
-    reply->numHops = msg->numHops;
-    reply->regionData = regionData;
+    reply.dataHost = HostPid::self();
+    reply.numHops = msg.numHops;
+    reply.encodedPtr = reinterpret_cast<EncodedPtr>(regionData.asPtr());
 
-    if ((msg->requester != HostPid::self()) && (reply->numHops > 1)) {
-      needToUpdateChain = true;
+    if ((msg.requester != HostPid::self()) && (reply.numHops > 1)) {
+      // 1->2->3 ==> 1->3
+      // This create a new RegionMatrixProxy containing RemoteObject connection with requester's host.
+
+      // TODO: (yod) use real host
+      reply.encodedPtr = _regionHandler->moveToRemoteHost(RemoteHostDB::instance().host(0));
     }
   }
 
-  reply->response = response;
-  _remoteObject->send(reply, sizeof(UpdateHandlerChainReplyMessage));
-
-
-  if (regionData->type() != RegionDataTypes::REGIONDATAREMOTE) {
-    delete reply;
-  }
-
-  if (needToUpdateChain) {
-    JTRACE("1->2->3 ==> 1->3");
-    // (yod) TODO: Update chain
-    /*
-      RegionMatrix regionMatrix = RegionMatrix(_D, regionData->size(), new RegionHandler(regionData));
-
-      RemoteHostDB hdb;
-      hdb.connect(jalib::XToString(msg->requester.hostid).c_str(), msg->requester.pid);
-      regionMatrix.moveToRemoteHost(hdb.host(0), 999);
-    */
-  }
+  reply.response = response;
+  _remoteObject->send(&reply, sizeof(UpdateHandlerChainReplyMessage));
 }
 
 void RegionMatrixProxy::onRecv(const void* data, size_t len) {
@@ -109,7 +94,7 @@ void RegionMatrixProxy::onRecv(const void* data, size_t len) {
     break;
   case MessageTypes::UPDATEHANDLERCHAIN:
     JASSERT(len==sizeof(UpdateHandlerChainMessage));
-    this->processUpdateHandlerChainMsg((UpdateHandlerChainMessage*)data);
+    this->processUpdateHandlerChainMsg(*(UpdateHandlerChainMessage*)data);
     break;
   default:
     JASSERT(false)(((struct MessageHeader*)data)->type).Text("Unknown RegionRemoteMsgTypes.");

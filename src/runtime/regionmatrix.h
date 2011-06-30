@@ -420,7 +420,6 @@ namespace petabricks {
     }
 
     void unserialize(const char* buf, RemoteHost& /*host*/) {
-      // (yod) destruct old data
       size_t sz = sizeof(int);
       JASSERT(*reinterpret_cast<const int*>(buf) == D)(*reinterpret_cast<const int*>(buf))(D).Text("RegionMatrix dimension mismatch.");
       buf += sz;

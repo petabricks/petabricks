@@ -36,6 +36,7 @@ namespace petabricks {
     // Migration
     EncodedPtr moveToRemoteHost(RemoteHostPtr host);
     void updateHandlerChain();
+    bool isHandlerChainUpdated(); // for testing
 
     // RegionDataSplit
     void splitData(IndexT* splitSize);

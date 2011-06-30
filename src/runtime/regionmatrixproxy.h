@@ -30,7 +30,7 @@ namespace petabricks {
     void processReadCellMsg(RegionDataRemoteMessage::ReadCellMessage* msg);
     void processWriteCellMsg(RegionDataRemoteMessage::WriteCellMessage* msg);
     void processGetHostListMsg(RegionDataRemoteMessage::GetHostListMessage* msg);
-    void processUpdateHandlerChainMsg(RegionDataRemoteMessage::UpdateHandlerChainMessage* msg);
+    void processUpdateHandlerChainMsg(RegionDataRemoteMessage::UpdateHandlerChainMessage msg);
   };
 
   class RegionMatrixProxyRemoteObject : public RemoteObject {
