@@ -1,14 +1,23 @@
 #include "regionhandler.h"
 
+#include "regiondataraw.h"
+#include "regiondataremote.h"
+#include "regiondatasplit.h"
+#include "regionmatrixproxy.h"
+
 using namespace petabricks;
 
-RegionHandler::RegionHandler(int dimensions) {
-  _D = dimensions;
+RegionHandler::RegionHandler(const int dimensions, const IndexT* size) {
+  _regionData = new RegionDataRaw(dimensions, size);
 }
 
-RegionHandler::RegionHandler(RegionDataIPtr regionData) {
+RegionHandler::RegionHandler(const RegionDataIPtr regionData) {
   _regionData = regionData;
-  _D = _regionData->dimensions();
+}
+
+RegionHandler::RegionHandler(const EncodedPtr remoteObjPtr) {
+  RegionDataRemoteObject* remoteObj = reinterpret_cast<RegionDataRemoteObject*>(remoteObjPtr);
+  _regionData = remoteObj->regionData();
 }
 
 ElementT RegionHandler::readCell(const IndexT* coord) {
@@ -36,7 +45,7 @@ DataHostList RegionHandler::hosts(IndexT* begin, IndexT* end) {
 }
 
 int RegionHandler::dimensions() {
-  return _D;
+  return _regionData->dimensions();
 }
 
 IndexT* RegionHandler::size() {
@@ -46,3 +55,57 @@ IndexT* RegionHandler::size() {
 RegionDataType RegionHandler::type() const {
   return _regionData->type();
 }
+
+//
+// Migration
+//
+
+EncodedPtr RegionHandler::moveToRemoteHost(RemoteHostPtr host) {
+  RegionMatrixProxyPtr proxy = new RegionMatrixProxy(this);
+  RegionMatrixProxyRemoteObjectPtr local = proxy->genLocal();
+
+  // InitialMsg
+  RegionDataRemoteMessage::InitialMessage msg = RegionDataRemoteMessage::InitialMessage();
+  msg.dimensions = dimensions();
+  memcpy(msg.size, size(), sizeof(msg.size));
+  int len = sizeof(RegionDataRemoteMessage::InitialMessage);
+
+  host->createRemoteObject(local.asPtr(), &RegionDataRemote::genRemote, &msg, len);
+  local->waitUntilCreated();
+  return local->remoteObjPtr();
+}
+
+void RegionHandler::updateHandlerChain() {
+  if (type() == RegionDataTypes::REGIONDATAREMOTE) {
+    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage* reply =
+      ((RegionDataRemote*)_regionData.asPtr())->updateHandlerChain();
+    JTRACE("updatehandler")(reply->dataHost)(reply->numHops)(reply->regionData.asPtr());
+
+    if (reply->dataHost == HostPid::self()) {
+      // Data is in the same process. Update handler to point directly to the data.
+      updateRegionData(reply->regionData);
+    } else if (reply->numHops > 1) {
+      // Multiple network hops to data. Create a direct connection to data.
+
+      // (yod) TODO:
+      //this->updateHandler(999);
+    }
+  }
+}
+
+//
+// RegionDataSplit
+//
+
+void RegionHandler::splitData(IndexT* splitSize) {
+  JASSERT(type() == RegionDataTypes::REGIONDATARAW);
+  RegionDataIPtr newRegionData =
+    new RegionDataSplit((RegionDataRaw*)_regionData.asPtr(), splitSize);
+  updateRegionData(newRegionData);
+}
+
+void RegionHandler::createDataPart(int partIndex, RemoteHostPtr host) {
+  JASSERT(type() == RegionDataTypes::REGIONDATASPLIT);
+  ((RegionDataSplit*)_regionData.asPtr())->createPart(partIndex, host);
+}
+

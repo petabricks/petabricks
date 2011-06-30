@@ -19,7 +19,7 @@ IndexT* RegionDataI::size() {
 }
 
 int RegionDataI::incCoord(IndexT* coord) {
-  if (_D == 0) { 
+  if (_D == 0) {
     return -1;
   }
 
@@ -46,7 +46,7 @@ void RegionDataI::print() {
   }
   printf("\n");
 
-  IndexT* coord = new IndexT[_D];
+  IndexT coord[_D];
   memset(coord, 0, (sizeof coord) * _D);
 
   while (true) {
@@ -65,5 +65,4 @@ void RegionDataI::print() {
   }
 
   printf("\n\n");
-  delete(coord);
 }

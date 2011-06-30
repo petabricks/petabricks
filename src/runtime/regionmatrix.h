@@ -15,11 +15,7 @@
 #include "remotehost.h"
 #include "regiondata0D.h"
 #include "regiondatai.h"
-#include "regiondataraw.h"
-#include "regiondataremote.h"
-#include "regiondatasplit.h"
 #include "regionhandler.h"
-#include "regionmatrixproxy.h"
 
 namespace petabricks {
   template< int D, typename ElementT> class RegionMatrixWrapper;
@@ -112,10 +108,8 @@ namespace petabricks {
     RegionMatrix() {
       init(NULL, NULL);
     }
-
     RegionMatrix(const IndexT* size) {
-      RegionDataIPtr regionData = new RegionDataRaw(D, size);
-      init(size, new RegionHandler(regionData));
+      init(size, new RegionHandler(D, size));
     }
     RegionMatrix(const IndexT* size, const RegionHandlerPtr handler) {
       init(size, handler);
@@ -153,15 +147,11 @@ namespace petabricks {
     // Initialization
     //
     void splitData(IndexT* splitSize) {
-      JASSERT(_regionHandler->type() == RegionDataTypes::REGIONDATARAW);
-      RegionDataIPtr newRegionData =
-        new RegionDataSplit((RegionDataRaw*)_regionHandler->getRegionData().asPtr(), splitSize);
-      _regionHandler->updateRegionData(newRegionData);
+      _regionHandler->splitData(splitSize);
     }
 
     void createDataPart(int partIndex, RemoteHostPtr host) {
-      JASSERT(_regionHandler->type() == RegionDataTypes::REGIONDATASPLIT);
-      ((RegionDataSplit*)_regionHandler->getRegionData().asPtr())->createPart(partIndex, host);
+      _regionHandler->createDataPart(partIndex, host);
     }
 
     void allocData() {
@@ -379,21 +369,6 @@ namespace petabricks {
     //
     // Migration
     //
-    EncodedPtr moveToRemoteHost(RemoteHostPtr host) {
-      RegionMatrixProxyPtr proxy =
-        new RegionMatrixProxy(this->getRegionHandler());
-      RegionMatrixProxyRemoteObjectPtr local = proxy->genLocal();
-
-      // InitialMsg
-      RegionDataRemoteMessage::InitialMessage msg = RegionDataRemoteMessage::InitialMessage();
-      msg.dimensions = _regionHandler->dimensions();
-      memcpy(msg.size, _regionHandler->size(), sizeof(msg.size));
-      int len = sizeof(RegionDataRemoteMessage::InitialMessage);
-
-      host->createRemoteObject(local.asPtr(), &RegionDataRemote::genRemote, &msg, len);
-      local->waitUntilCreated();
-      return local->remoteObjPtr();
-    }
 
     size_t serialSize() {
       size_t sz = sizeof(int);                    // D
@@ -438,7 +413,7 @@ namespace petabricks {
       *reinterpret_cast<bool*>(buf) = _isTransposed;
       buf += sz;
 
-      EncodedPtr remoteObj = moveToRemoteHost(&host);
+      EncodedPtr remoteObj = _regionHandler->moveToRemoteHost(&host);
       sz = sizeof(EncodedPtr);
       *reinterpret_cast<EncodedPtr*>(buf) = remoteObj;
       buf += sz;
@@ -477,28 +452,12 @@ namespace petabricks {
 
       sz = sizeof(EncodedPtr);
       EncodedPtr remoteObjPtr = *reinterpret_cast<const EncodedPtr*>(buf);
-      RegionDataRemoteObject* remoteObj = reinterpret_cast<RegionDataRemoteObject*>(remoteObjPtr);
-      _regionHandler = new RegionHandler(remoteObj->regionData());
+      _regionHandler = new RegionHandler(remoteObjPtr);
       buf += sz;
     }
 
     void updateHandlerChain() {
-      RegionDataIPtr regionData = _regionHandler->getRegionData();
-      if (regionData->type() == RegionDataTypes::REGIONDATAREMOTE) {
-        RegionDataRemoteMessage::UpdateHandlerChainReplyMessage* reply =
-          ((RegionDataRemote*)regionData.asPtr())->updateHandlerChain();
-        JTRACE("updatehandler")(reply->dataHost)(reply->numHops)(reply->regionData.asPtr());
-
-        if (reply->dataHost == HostPid::self()) {
-          // Data is in the same process. Update handler to point directly to the data.
-          _regionHandler->updateRegionData(reply->regionData);
-        } else if (reply->numHops > 1) {
-          // Multiple network hops to data. Create a direct connection to data.
-
-          // (yod) TODO:
-          //this->updateHandler(999);
-        }
-      }
+      _regionHandler->updateHandlerChain();
     }
 
     DataHostList dataHosts() const {
@@ -558,8 +517,6 @@ namespace petabricks {
       return _toLocalRegion();
     }
     MatrixRegion<D, ElementT> _toLocalRegion() const {
-      JASSERT(!_isTransposed).Text("(yod) to be implemented");
-
       RegionDataIPtr regionData = _regionHandler->getRegionData();
       JASSERT(regionData->type() == RegionDataTypes::REGIONDATARAW).Text("Cannot cast to MatrixRegion.");
 
@@ -847,15 +804,12 @@ namespace petabricks {
     RegionMatrixWrapper() : Base() {
       initWithValue(0);
     }
-
     RegionMatrixWrapper(Base val) : Base() {
       initWithValue(val.readCell(NULL));
     }
-
     RegionMatrixWrapper(ElementT* data, IndexT* /*size*/) : Base() {
       initWithValue(*data);
     }
-
     RegionMatrixWrapper(const RegionMatrixWrapper& that) : Base() {
       initWithValue(that.cell());
     }
@@ -865,11 +819,9 @@ namespace petabricks {
     RegionMatrixWrapper(ElementT value) : Base() {
       initWithValue(value);
     }
-
     RegionMatrixWrapper(CellProxy& value) : Base() {
       initWithValue(value);
     }
-
     RegionMatrixWrapper(const CellProxy& value) : Base() {
       initWithValue(value);
     }

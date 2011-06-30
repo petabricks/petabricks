@@ -63,7 +63,9 @@ namespace petabricks {
     virtual DataHostList hosts(IndexT* begin, IndexT* end) = 0;
 
     // for tests
+  private:
     int incCoord(IndexT* coord);
+  public:
     virtual void print();
   };
 }

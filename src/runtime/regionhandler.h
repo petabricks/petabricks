@@ -4,6 +4,7 @@
 #include "common/jassert.h"
 #include "common/jrefcounted.h"
 #include "regiondatai.h"
+#include "remotehost.h"
 
 namespace petabricks {
   class RegionHandler;
@@ -11,12 +12,12 @@ namespace petabricks {
 
   class RegionHandler : public jalib::JRefCounted {
   private:
-    int _D;
     RegionDataIPtr _regionData;
 
   public:
-    RegionHandler(int dimensions);
-    RegionHandler(RegionDataIPtr regionData);
+    RegionHandler(const int dimensions, const IndexT* size);
+    RegionHandler(const RegionDataIPtr regionData);
+    RegionHandler(const EncodedPtr remoteObjPtr);
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
@@ -31,6 +32,14 @@ namespace petabricks {
     int dimensions();
     IndexT* size();
     RegionDataType type() const;
+
+    // Migration
+    EncodedPtr moveToRemoteHost(RemoteHostPtr host);
+    void updateHandlerChain();
+
+    // RegionDataSplit
+    void splitData(IndexT* splitSize);
+    void createDataPart(int partIndex, RemoteHostPtr host);
   };
 }
 
