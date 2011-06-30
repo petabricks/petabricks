@@ -726,58 +726,83 @@ namespace petabricks {
   };
 
 
+  //
+  // RegionMatrix0DInfo
+  //
+  class RegionMatrix0DInfo;
+  typedef jalib::JRef<RegionMatrix0DInfo> RegionMatrix0DInfoPtr;
+
+  class RegionMatrix0DInfo : public jalib::JRefCounted {
+  private:
+    int _sourceDimensions;
+    IndexT* _sourceIndex;
+  private:
+    // no copy constructor
+    RegionMatrix0DInfo(const RegionMatrix0DInfo&);
+  public:
+    RegionMatrix0DInfo(int n) : _sourceDimensions(n) {
+      _sourceIndex = new IndexT[n];
+    }
+
+    ~RegionMatrix0DInfo(){
+      delete [] _sourceIndex;
+    }
+
+    int sourceDimensions() const { return _sourceDimensions; }
+
+    IndexT* sourceIndex() { return _sourceIndex; }
+    const IndexT* sourceIndex() const { return _sourceIndex; }
+  };
+
   template<typename ElementT>
     class RegionMatrixWrapper<0, ElementT> : public RegionMatrix<0, ElementT> {
   private:
-    int _sourceDimension;
-    IndexT* _sourceIndex;
+    RegionMatrix0DInfoPtr _sourceInfo;
 
   public:
     enum { D = 0 };
     typedef RegionMatrix<D, ElementT> Base;
 
+    void init(RegionMatrix0DInfoPtr sourceInfo, RegionHandlerPtr regionHandler) {
+      Base::_regionHandler = regionHandler;
+      if (sourceInfo) {
+        _sourceInfo = sourceInfo;
+      } else {
+        _sourceInfo = new RegionMatrix0DInfo(0);
+      }
+    }
+
     RegionMatrixWrapper() : Base() {
-      _sourceDimension = 0;
-      Base::_regionHandler = new RegionHandler(new RegionData0D());
+      init(NULL, new RegionHandler(new RegionData0D()));
     }
-
     RegionMatrixWrapper(Base val) : Base() {
-      _sourceDimension = 0;
-      Base::_regionHandler = val.getRegionHandler();
+      init(NULL, val.regionHandler());
     }
-
     RegionMatrixWrapper(ElementT* data, IndexT* size) : Base() {
-     _sourceDimension = 0;
-     Base::_regionHandler = new RegionHandler(new RegionData0D(*data));
+      init(NULL, new RegionHandler(new RegionData0D(*data)));
     }
-
     RegionMatrixWrapper(const RegionMatrixWrapper& that) : Base() {
-      Base::_regionHandler = that.getRegionHandler();
-
-      _sourceDimension = that._sourceDimension;
-      _sourceIndex = new IndexT[_sourceDimension];
-      memcpy(_sourceIndex, that._sourceIndex, sizeof(IndexT) * _sourceDimension);
+      init(that.sourceInfo(), that.regionHandler());
     }
 
     ///
     /// Implicit conversion from ElementT/CellProxy
     RegionMatrixWrapper(ElementT& value) : Base() {
-      _sourceDimension = 0;
-      Base::_regionHandler = new RegionHandler(new RegionData0D(value));
+      init(NULL, new RegionHandler(new RegionData0D(value)));
     }
     RegionMatrixWrapper(CellProxy& value) : Base() {
-      Base::_regionHandler = value._handler;
-
-      _sourceDimension = value._handler->dimensions();
-      _sourceIndex = new IndexT[_sourceDimension];
-      memcpy(_sourceIndex, value._index, sizeof(IndexT) * _sourceDimension);
+      RegionMatrix0DInfoPtr sourceInfo = new RegionMatrix0DInfo(value._handler->dimensions());
+      if (value._index != NULL) {
+        memcpy(sourceInfo->sourceIndex(), value._index, sizeof(IndexT) * sourceInfo->sourceDimensions());
+      }
+      init(sourceInfo, value._handler);
     }
     RegionMatrixWrapper(const CellProxy& value) : Base() {
-      Base::_regionHandler = value._handler;
-
-      _sourceDimension = value._handler->dimensions();
-      _sourceIndex = new IndexT[_sourceDimension];
-      memcpy(_sourceIndex, value._index, sizeof(IndexT) * _sourceDimension);
+      RegionMatrix0DInfoPtr sourceInfo = new RegionMatrix0DInfo(value._handler->dimensions());
+      if (value._index != NULL) {
+        memcpy(sourceInfo->sourceIndex(), value._index, sizeof(IndexT) * sourceInfo->sourceDimensions());
+      }
+      init(sourceInfo, value._handler);
     }
 
     ///
@@ -788,6 +813,10 @@ namespace petabricks {
       this->cell() = val.readCell(NULL);
       return *this;
     }
+    RegionMatrixWrapper operator=(const RegionMatrixWrapper& val) {
+      this->cell() = val.cell();
+      return *this;
+    }
 
     CellProxy& cell(IndexT x, ...) const {
       return cell();
@@ -796,7 +825,11 @@ namespace petabricks {
       return cell();
     }
     INLINE CellProxy& cell() const {
-      return Base::cell(_sourceIndex);
+      return Base::cell(_sourceInfo->sourceIndex());
+    }
+
+    RegionMatrix0DInfoPtr sourceInfo() const {
+      return _sourceInfo;
     }
   };
 
@@ -849,6 +882,11 @@ namespace petabricks {
       initWithValue(val.readCell(NULL));
       return *this;
     }
+    RegionMatrixWrapper operator=(const RegionMatrixWrapper& val) {
+      initWithValue(val.cell());
+      return *this;
+    }
+
   };
 
   namespace distributed {
