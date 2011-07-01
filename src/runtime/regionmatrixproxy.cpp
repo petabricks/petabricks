@@ -69,8 +69,12 @@ void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::Up
       // 1->2->3 ==> 1->3
       // This create a new RegionMatrixProxy containing RemoteObject connection with requester's host.
 
-      // TODO: (yod) use real host
-      reply.encodedPtr = _regionHandler->moveToRemoteHost(RemoteHostDB::instance().host(0));
+      RemoteHostPtr dest = RemoteHostDB::instance().host(msg.requester);
+      if (!dest) {
+        // Create a new RemoteHost
+        UNIMPLEMENTED();
+      }
+      reply.encodedPtr = _regionHandler->moveToRemoteHost(dest);
     }
   }
 

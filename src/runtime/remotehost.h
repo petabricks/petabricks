@@ -133,7 +133,7 @@ private:
 
 class RemoteHostDB {
 public:
-  static RemoteHostDB& instance(); 
+  static RemoteHostDB& instance();
 
   RemoteHostDB();
 
@@ -149,6 +149,16 @@ public:
 
   RemoteHostPtr host(int i) const {
     return _hosts[i];
+  }
+
+  RemoteHostPtr host(HostPid& id) const {
+    for (unsigned int i = 0; i < _hosts.size(); i++) {
+      RemoteHostPtr host = _hosts[i];
+      if (host->id() == id) {
+        return host;
+      }
+    }
+    return NULL;
   }
 
   void shutdown();
