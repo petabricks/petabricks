@@ -20,12 +20,19 @@ namespace petabricks {
 	WRITECELL,
 	GETHOSTLIST,
 	UPDATEHANDLERCHAIN,
+        ALLOCDATA,
       };
     };
 
-    struct InitialMessage {
+    struct InitialMessageToRegionDataRemote {
       int dimensions;
       IndexT size[MAX_DIMENSIONS];
+    };
+
+    struct InitialMessageToRegionMatrixProxy {
+      int dimensions;
+      IndexT size[MAX_DIMENSIONS];
+      IndexT partOffset[MAX_DIMENSIONS];
     };
 
     struct MessageHeader {
@@ -55,6 +62,10 @@ namespace petabricks {
       struct MessageHeader header;
       HostPid requester;
       int numHops;
+    };
+
+    struct AllocDataMessage {
+      struct MessageHeader header;
     };
 
     struct MessageReplyHeader {
@@ -90,6 +101,11 @@ namespace petabricks {
       int numHops;
       EncodedPtr encodedPtr; // regiondata or remoteobject
     };
+
+    struct AllocDataReplyMessage {
+      struct MessageReplyHeader header;
+      int result;
+    };
   }
 
   class RegionDataRemote;
@@ -104,6 +120,7 @@ namespace petabricks {
 
   public:
     RegionDataRemote(int dimensions, IndexT* size, RegionDataRemoteObjectPtr remoteObject);
+    RegionDataRemote(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host);
     ~RegionDataRemote() {
       JTRACE("Destruct RegionDataRemote");
     }

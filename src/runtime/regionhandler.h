@@ -16,6 +16,7 @@ namespace petabricks {
 
   public:
     RegionHandler(const int dimensions, const IndexT* size);
+    RegionHandler(const int dimensions, const IndexT* size, const IndexT* partOffset);
     RegionHandler(const RegionDataIPtr regionData);
     RegionHandler(const EncodedPtr remoteObjPtr);
 

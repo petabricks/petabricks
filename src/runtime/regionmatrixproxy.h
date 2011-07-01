@@ -17,6 +17,7 @@ namespace petabricks {
 
   public:
     RegionMatrixProxy(RegionHandlerPtr regionHandler);
+    RegionMatrixProxy(RegionHandlerPtr regionHandler, RegionMatrixProxyRemoteObjectPtr remoteObject);
     ~RegionMatrixProxy() {
       JTRACE("Destruct RegionMatrixProxy");
     };
@@ -27,18 +28,21 @@ namespace petabricks {
     void onRecv(const void* data, size_t len);
 
     RegionMatrixProxyRemoteObjectPtr genLocal();
+    static RemoteObjectPtr genRemote();
 
   private:
     void processReadCellMsg(RegionDataRemoteMessage::ReadCellMessage& msg);
     void processWriteCellMsg(RegionDataRemoteMessage::WriteCellMessage& msg);
     void processGetHostListMsg(RegionDataRemoteMessage::GetHostListMessage& msg);
     void processUpdateHandlerChainMsg(RegionDataRemoteMessage::UpdateHandlerChainMessage& msg);
+    void processAllocDataMsg(RegionDataRemoteMessage::AllocDataMessage& msg);
   };
 
   class RegionMatrixProxyRemoteObject : public RemoteObject {
   protected:
     RegionMatrixProxyPtr _regionMatrix;
   public:
+    RegionMatrixProxyRemoteObject() {};
     RegionMatrixProxyRemoteObject(RegionMatrixProxyPtr regionMatrix) {
       _regionMatrix = regionMatrix;
     }
@@ -50,6 +54,8 @@ namespace petabricks {
     void onRecv(const void* data, size_t len) {
       _regionMatrix->onRecv(data, len);
     }
+
+    void onRecvInitial(const void* buf, size_t len);
 
     EncodedPtr remoteObjPtr() {
       return remoteObj();

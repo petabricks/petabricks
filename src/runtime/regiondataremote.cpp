@@ -1,5 +1,7 @@
 #include "regiondataremote.h"
 
+#include "regionmatrixproxy.h"
+
 using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
 
@@ -11,9 +13,33 @@ RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, RegionDataRemot
   memcpy(_size, size, sizeof(IndexT) * _D);
 }
 
+RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host) {
+  _D = dimensions;
+  _type = RegionDataTypes::REGIONDATAREMOTE;
+  memcpy(_size, size, sizeof(IndexT) * _D);
+
+  _remoteObject = new RegionDataRemoteObject();
+
+  // InitialMsg
+  RegionDataRemoteMessage::InitialMessageToRegionMatrixProxy msg;
+  msg.dimensions = _D;
+  memcpy(msg.size, size, sizeof(msg.size));
+  memcpy(msg.partOffset, partOffset, sizeof(msg.partOffset));
+  int len = sizeof(RegionDataRemoteMessage::InitialMessageToRegionMatrixProxy);
+
+  host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
+}
+
 int RegionDataRemote::allocData() {
-  JASSERT(false).Text("This should not be called.");
-  return -1;
+  AllocDataMessage msg;
+  msg.header.type = MessageTypes::ALLOCDATA;
+
+  void* data;
+  size_t len;
+  this->fetchData(&msg, sizeof(AllocDataMessage), &data, &len);
+  AllocDataReplyMessage* reply = (AllocDataReplyMessage*)data;
+
+  return reply->result;
 }
 
 ElementT RegionDataRemote::readCell(const IndexT* coord) {
@@ -114,8 +140,8 @@ RemoteObjectPtr RegionDataRemote::genRemote() {
 //
 
 void RegionDataRemoteObject::onRecvInitial(const void* buf, size_t len) {
-  JASSERT(len == sizeof(InitialMessage))(len)(sizeof(InitialMessage));
-  InitialMessage* msg = (InitialMessage*) buf;
+  JASSERT(len == sizeof(InitialMessageToRegionDataRemote))(len)(sizeof(InitialMessageToRegionDataRemote));
+  InitialMessageToRegionDataRemote* msg = (InitialMessageToRegionDataRemote*) buf;
 
   _regionData = new RegionDataRemote(msg->dimensions, msg->size, this);
 }

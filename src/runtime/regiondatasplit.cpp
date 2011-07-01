@@ -2,7 +2,7 @@
 
 #include <map>
 #include <string.h>
-#include "regiondataproxy.h"
+#include "regiondataremote.h"
 
 using namespace petabricks;
 
@@ -61,7 +61,7 @@ void RegionDataSplit::createPart(int partIndex, RemoteHostPtr host) {
   if (host == NULL) {
     _parts[partIndex] = new RegionDataRaw(_D, size, partOffset);
   } else {
-    _parts[partIndex] = new RegionDataProxy(_D, size, partOffset, host);
+    _parts[partIndex] = new RegionDataRemote(_D, size, partOffset, host);
   }
 }
 
@@ -95,8 +95,13 @@ DataHostList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {
 
   int count = 0;
   bool hasNextPart;
+
+  // (yod) TODO: compute real begin/end
+  IndexT newBegin[] = {0,0,0};
+  IndexT* newEnd = _splitSize;
+
   do {
-    DataHostList tmp = this->coordToPart(coord)->hosts(NULL, NULL);
+    DataHostList tmp = this->coordToPart(coord)->hosts(newBegin, newEnd);
     hosts[tmp[0].hostPid] += 1;
     count++;
 

@@ -11,6 +11,11 @@ RegionMatrixProxy::RegionMatrixProxy(RegionHandlerPtr regionHandler) {
   _regionHandler = regionHandler;
 }
 
+RegionMatrixProxy::RegionMatrixProxy(RegionHandlerPtr regionHandler, RegionMatrixProxyRemoteObjectPtr remoteObject) {
+  _regionHandler = regionHandler;
+  _remoteObject = remoteObject.asPtr();
+}
+
 ElementT RegionMatrixProxy::readCell(const IndexT* coord) {
   return _regionHandler->readCell(coord);
 }
@@ -80,6 +85,13 @@ void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::Up
   _remoteObject->send(&reply, sizeof(UpdateHandlerChainReplyMessage));
 }
 
+void RegionMatrixProxy::processAllocDataMsg(AllocDataMessage& msg) {
+  AllocDataReplyMessage reply;
+  reply.header = msg.header;
+  reply.result = _regionHandler->allocData();
+  _remoteObject->send(&reply, sizeof(AllocDataReplyMessage));
+}
+
 void RegionMatrixProxy::onRecv(const void* data, size_t len) {
   switch(((struct MessageHeader*)data)->type) {
   case MessageTypes::READCELL:
@@ -98,6 +110,10 @@ void RegionMatrixProxy::onRecv(const void* data, size_t len) {
     JASSERT(len==sizeof(UpdateHandlerChainMessage));
     this->processUpdateHandlerChainMsg(*(UpdateHandlerChainMessage*)data);
     break;
+  case MessageTypes::ALLOCDATA:
+    JASSERT(len==sizeof(AllocDataMessage));
+    this->processAllocDataMsg(*(AllocDataMessage*)data);
+    break;
   default:
     JASSERT(false)(((struct MessageHeader*)data)->type).Text("Unknown RegionRemoteMsgTypes.");
   }
@@ -107,3 +123,19 @@ RegionMatrixProxyRemoteObjectPtr RegionMatrixProxy::genLocal() {
   _remoteObject = new RegionMatrixProxyRemoteObject(this);
   return _remoteObject;
 }
+
+RemoteObjectPtr RegionMatrixProxy::genRemote() {
+  return new RegionMatrixProxyRemoteObject();
+}
+
+//
+// RegionMatrixProxyRemoteObject
+//
+
+void RegionMatrixProxyRemoteObject::onRecvInitial(const void* buf, size_t len) {
+  JASSERT(len == sizeof(InitialMessageToRegionMatrixProxy))(len)(sizeof(InitialMessageToRegionMatrixProxy));
+  InitialMessageToRegionMatrixProxy* msg = (InitialMessageToRegionMatrixProxy*) buf;
+
+  _regionMatrix = new RegionMatrixProxy(new RegionHandler(msg->dimensions, msg->size, msg->partOffset), this);
+}
+

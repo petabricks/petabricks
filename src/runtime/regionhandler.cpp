@@ -11,6 +11,10 @@ RegionHandler::RegionHandler(const int dimensions, const IndexT* size) {
   _regionData = new RegionDataRaw(dimensions, size);
 }
 
+RegionHandler::RegionHandler(const int dimensions, const IndexT* size, const IndexT* partOffset) {
+  _regionData = new RegionDataRaw(dimensions, size, partOffset);
+}
+
 RegionHandler::RegionHandler(const RegionDataIPtr regionData) {
   _regionData = regionData;
 }
@@ -65,10 +69,10 @@ EncodedPtr RegionHandler::moveToRemoteHost(RemoteHostPtr host) {
   RegionMatrixProxyRemoteObjectPtr local = proxy->genLocal();
 
   // InitialMsg
-  RegionDataRemoteMessage::InitialMessage msg = RegionDataRemoteMessage::InitialMessage();
+  RegionDataRemoteMessage::InitialMessageToRegionDataRemote msg;
   msg.dimensions = dimensions();
   memcpy(msg.size, size(), sizeof(msg.size));
-  int len = sizeof(RegionDataRemoteMessage::InitialMessage);
+  int len = sizeof(RegionDataRemoteMessage::InitialMessageToRegionDataRemote);
 
   host->createRemoteObject(local.asPtr(), &RegionDataRemote::genRemote, &msg, len);
   local->waitUntilCreated();
