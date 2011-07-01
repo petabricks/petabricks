@@ -12,14 +12,11 @@ using namespace petabricks;
 RegionDataSplit::RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* splitSize) {
   _D = originalRegionData->dimensions();
   _type = RegionDataTypes::REGIONDATASPLIT;
-  _size = new IndexT[_D];
-  memcpy(_size, originalRegionData->size(), sizeof(IndexT) * _D);
 
-  _splitSize = new IndexT[_D];
+  memcpy(_size, originalRegionData->size(), sizeof(IndexT) * _D);
   memcpy(_splitSize, splitSize, sizeof(IndexT) * _D);
 
   // create parts
-  _partsSize = new IndexT[_D];
   _numParts = 1;
 
   for (int i = 0; i < _D; i++) {
@@ -32,26 +29,18 @@ RegionDataSplit::RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* sp
     _numParts *= _partsSize[i];
   }
 
-  _partsMultipliers = new IndexT[_D];
   _partsMultipliers[0] = 1;
   for (int i = 1; i < _D; i++) {
     _partsMultipliers[i] = _partsMultipliers[i - 1] * _partsSize[i - 1];
   }
 
-  _parts = new RegionDataIPtr[_numParts];
-  memset(_parts, 0, (sizeof _parts) * _numParts);
-}
-
-RegionDataSplit::~RegionDataSplit() {
-  delete [] _parts;
-  delete [] _partsSize;
-  delete [] _splitSize;
+  _parts.resize(_numParts, NULL);
 }
 
 void RegionDataSplit::createPart(int partIndex, RemoteHostPtr host) {
   JASSERT(!_parts[partIndex]);
 
-  IndexT* partsCoord = new IndexT[_D];
+  IndexT partsCoord[_D];
   int tmp = partIndex;
   for (int i = 0; i < _D; i++) {
     partsCoord[i] = tmp % _partsSize[i];

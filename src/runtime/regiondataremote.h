@@ -104,6 +104,9 @@ namespace petabricks {
 
   public:
     RegionDataRemote(int dimensions, IndexT* size, RegionDataRemoteObjectPtr remoteObject);
+    ~RegionDataRemote() {
+      JTRACE("Destruct RegionDataRemote");
+    }
 
     int allocData();
 

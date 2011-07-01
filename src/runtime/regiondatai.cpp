@@ -5,10 +5,6 @@
 
 using namespace petabricks;
 
-RegionDataI::~RegionDataI() {
-  delete [] _size;
-}
-
 int RegionDataI::dimensions() {
   return _D;
 }

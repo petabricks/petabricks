@@ -7,7 +7,6 @@ RegionDataProxy::RegionDataProxy(int dimensions, IndexT* size, IndexT* partOffse
   _D = dimensions;
   _type = RegionDataTypes::REGIONDATAPROXY;
 
-  _size = new IndexT[_D];
   memcpy(_size, size, sizeof(IndexT) * _D);
 
   _partOffset = new IndexT[_D];

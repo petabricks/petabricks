@@ -38,11 +38,9 @@ namespace petabricks {
     RegionDataType _type;
 
     // _size is the size of this part, not the entire region
-    IndexT* _size;
+    IndexT _size[MAX_DIMENSIONS];
 
   public:
-    ~RegionDataI();
-
     virtual int allocData() = 0;
 
     virtual ElementT readCell(const IndexT* coord) = 0;

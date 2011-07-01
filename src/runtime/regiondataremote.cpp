@@ -1,7 +1,5 @@
 #include "regiondataremote.h"
 
-#include "regionmatrix.h"
-
 using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
 
@@ -10,7 +8,6 @@ RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, RegionDataRemot
   _type = RegionDataTypes::REGIONDATAREMOTE;
   _remoteObject = remoteObject;
 
-  _size = new IndexT[_D];
   memcpy(_size, size, sizeof(IndexT) * _D);
 }
 

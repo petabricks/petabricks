@@ -17,21 +17,15 @@ RegionDataRaw::RegionDataRaw(const int dimensions, const IndexT* size, const Ind
 }
 
 RegionDataRaw::RegionDataRaw(const char* filename) {
-  MatrixIO* matrixio = new MatrixIO(filename, "r");
-  MatrixReaderScratch o = matrixio->readToMatrixReaderScratch();
+  MatrixIO matrixio(filename, "r");
+  MatrixReaderScratch o = matrixio.readToMatrixReaderScratch();
   init(o.dimensions, o.sizes, o.storage->data(), NULL);
-}
-
-RegionDataRaw::~RegionDataRaw() {
-  delete [] _multipliers;
-  if (_isPart) delete [] _partOffset;
 }
 
 void RegionDataRaw::init(const int dimensions, const IndexT* size, const ElementT* data, const IndexT* partOffset) {
   _D = dimensions;
   _type = RegionDataTypes::REGIONDATARAW;
 
-  _size = new IndexT[_D];
   memcpy(_size, size, sizeof(IndexT) * _D);
 
   if (data) {
@@ -39,7 +33,6 @@ void RegionDataRaw::init(const int dimensions, const IndexT* size, const Element
     memcpy(_storage->data(), data, sizeof(ElementT) * numData);
   }
 
-  _multipliers = new IndexT[_D];
   _multipliers[0] = 1;
   for (int i = 1; i < _D; i++) {
     _multipliers[i] = _multipliers[i - 1] * _size[i - 1];
@@ -47,7 +40,6 @@ void RegionDataRaw::init(const int dimensions, const IndexT* size, const Element
 
   if (partOffset) {
     _isPart = true;
-    _partOffset = new IndexT[_D];
     memcpy(_partOffset, partOffset, sizeof(IndexT) * _D);
   } else {
     _isPart = false;

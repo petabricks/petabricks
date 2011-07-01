@@ -5,22 +5,25 @@
 #include "regiondataraw.h"
 #include "remotehost.h"
 
+#include <vector>
+
 namespace petabricks {
+  typedef std::vector<RegionDataIPtr> PartsList;
+
   class RegionDataSplit;
   typedef jalib::JRef<RegionDataSplit> RegionDataSplitPtr;
 
   class RegionDataSplit : public RegionDataI {
 
   private:
-    IndexT* _splitSize;
-    RegionDataIPtr* _parts;
-    IndexT* _partsSize;
+    IndexT _splitSize[MAX_DIMENSIONS];
+    PartsList _parts;
+    IndexT _partsSize[MAX_DIMENSIONS];
     IndexT _numParts;
-    IndexT* _partsMultipliers;
+    IndexT _partsMultipliers[MAX_DIMENSIONS];
 
   public:
     RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* splitSize);
-    ~RegionDataSplit();
 
     int allocData();
     void createPart(int partIndex, RemoteHostPtr host);

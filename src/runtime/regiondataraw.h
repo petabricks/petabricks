@@ -12,16 +12,15 @@ namespace petabricks {
 
   private:
     MatrixStoragePtr _storage;
-    IndexT* _multipliers;
+    IndexT _multipliers[MAX_DIMENSIONS];
     bool _isPart;
-    IndexT* _partOffset;
+    IndexT _partOffset[MAX_DIMENSIONS];
 
   public:
     RegionDataRaw(const char* filename);
     RegionDataRaw(const int dimensions, const IndexT* size);
     RegionDataRaw(const int dimensions, const IndexT* size, const ElementT* data);
     RegionDataRaw(const int dimensions, const IndexT* size, const IndexT* partOffset);
-    ~RegionDataRaw();
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
