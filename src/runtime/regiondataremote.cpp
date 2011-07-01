@@ -8,8 +8,10 @@ using namespace petabricks::RegionDataRemoteMessage;
 RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, RegionDataRemoteObjectPtr remoteObject) {
   _D = dimensions;
   _type = RegionDataTypes::REGIONDATAREMOTE;
-  _size = size;
   _remoteObject = remoteObject;
+
+  _size = new IndexT[_D];
+  memcpy(_size, size, sizeof(IndexT) * _D);
 }
 
 int RegionDataRemote::allocData() {
@@ -17,52 +19,43 @@ int RegionDataRemote::allocData() {
   return -1;
 }
 
-void* RegionDataRemote::fetchData(const void* msg, size_t len) {
-  void* response = 0;
-  ((struct MessageHeader*)msg)->response = &response;
-  _remoteObject->send(msg, len);
-
-  // wait for the data
-  while (response == 0) {
-    jalib::memFence();
-    sched_yield();
-  }
-
-  return response;
-
-}
-
 ElementT RegionDataRemote::readCell(const IndexT* coord) {
-  ReadCellMessage* msg = new ReadCellMessage();
-  msg->header.type = MessageTypes::READCELL;
-  memcpy(msg->coord, coord, _D * sizeof(IndexT));
+  ReadCellMessage msg;
+  msg.header.type = MessageTypes::READCELL;
+  memcpy(msg.coord, coord, _D * sizeof(IndexT));
 
-  ReadCellReplyMessage reply = *(ReadCellReplyMessage*)this->fetchData(msg, sizeof *msg);
-  delete msg;
+  void* data;
+  size_t len;
+  this->fetchData(&msg, sizeof(ReadCellMessage), &data, &len);
+  ReadCellReplyMessage* reply = (ReadCellReplyMessage*)data;
 
-  return reply.value;
+  return reply->value;
 }
 
 void RegionDataRemote::writeCell(const IndexT* coord, ElementT value) {
-  WriteCellMessage* msg = new WriteCellMessage();
-  msg->header.type = MessageTypes::WRITECELL;
-  msg->value = value;
-  memcpy(msg->coord, coord, _D * sizeof(IndexT));
+  WriteCellMessage msg;
+  msg.header.type = MessageTypes::WRITECELL;
+  msg.value = value;
+  memcpy(msg.coord, coord, _D * sizeof(IndexT));
 
-  WriteCellReplyMessage reply = *(WriteCellReplyMessage*)this->fetchData(msg, sizeof *msg);
-  delete msg;
+  void* data;
+  size_t len;
+  this->fetchData(&msg, sizeof(WriteCellMessage), &data, &len);
+  WriteCellReplyMessage* reply = (WriteCellReplyMessage*)data;
 
-  JASSERT(reply.value == value);
+  JASSERT(reply->value == value);
 }
 
 DataHostList RegionDataRemote::hosts(IndexT* begin, IndexT* end) {
-  GetHostListMessage* msg = new GetHostListMessage();
-  msg->header.type = MessageTypes::GETHOSTLIST;
-  memcpy(msg->begin, begin, _D * sizeof(IndexT));
-  memcpy(msg->end, end, _D * sizeof(IndexT));
+  GetHostListMessage msg;
+  msg.header.type = MessageTypes::GETHOSTLIST;
+  memcpy(msg.begin, begin, _D * sizeof(IndexT));
+  memcpy(msg.end, end, _D * sizeof(IndexT));
 
-  GetHostListReplyMessage* reply = (GetHostListReplyMessage*)this->fetchData(msg, sizeof *msg);
-  delete msg;
+  void* data;
+  size_t len;
+  this->fetchData(&msg, sizeof(GetHostListMessage), &data, &len);
+  GetHostListReplyMessage* reply = (GetHostListReplyMessage*)data;
 
   DataHostList list;
   for (int i = 0; i < reply->numHosts; i++) {
@@ -71,12 +64,18 @@ DataHostList RegionDataRemote::hosts(IndexT* begin, IndexT* end) {
   return list;
 }
 
-UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain(UpdateHandlerChainMessage msg) {
+UpdateHandlerChainReplyMessage& RegionDataRemote::updateHandlerChain(UpdateHandlerChainMessage& msg) {
   msg.numHops += 1;
-  return *(UpdateHandlerChainReplyMessage*)this->fetchData(&msg, sizeof msg);
+
+  void* data;
+  size_t len;
+  this->fetchData(&msg, sizeof(UpdateHandlerChainMessage), &data, &len);
+  UpdateHandlerChainReplyMessage* reply = (UpdateHandlerChainReplyMessage*)data;
+
+  return *reply;
 }
 
-UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain() {
+UpdateHandlerChainReplyMessage& RegionDataRemote::updateHandlerChain() {
   UpdateHandlerChainMessage msg;
   msg.header.type = MessageTypes::UPDATEHANDLERCHAIN;
   msg.requester = HostPid::self();
@@ -84,10 +83,29 @@ UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain() {
   return this->updateHandlerChain(msg);
 }
 
+void RegionDataRemote::fetchData(const void* msg, size_t len, void** responseData, size_t* responseLen) {
+  *responseData = 0;
+  *responseLen = 0;
+
+  ((MessageHeader*)msg)->responseData = reinterpret_cast<EncodedPtr>(responseData);
+  ((MessageHeader*)msg)->responseLen = reinterpret_cast<EncodedPtr>(responseLen);
+
+  _remoteObject->send(msg, len);
+
+  // wait for the data
+  while (*responseData == 0 || *responseLen == 0) {
+    jalib::memFence();
+    sched_yield();
+  }
+}
+
 void RegionDataRemote::onRecv(const void* data, size_t len) {
-  void* x = malloc(len);
-  memmove(x, data, len);
-  **((void***)data) = x;
+  const MessageReplyHeader* header = (const MessageReplyHeader*)data;
+  const void** responseData = reinterpret_cast<const void**>(header->responseData);
+  size_t* responseLen = reinterpret_cast<size_t*>(header->responseLen);
+
+  *responseData = data;
+  *responseLen = len;
 }
 
 RemoteObjectPtr RegionDataRemote::genRemote() {
@@ -102,9 +120,6 @@ void RegionDataRemoteObject::onRecvInitial(const void* buf, size_t len) {
   JASSERT(len == sizeof(InitialMessage))(len)(sizeof(InitialMessage));
   InitialMessage* msg = (InitialMessage*) buf;
 
-  IndexT* size = (IndexT*)malloc(sizeof(IndexT) * msg->dimensions);
-  memcpy(size, msg->size, sizeof(IndexT) * msg->dimensions);
-
-  _regionData = new RegionDataRemote(msg->dimensions, size, this);
+  _regionData = new RegionDataRemote(msg->dimensions, msg->size, this);
 }
 

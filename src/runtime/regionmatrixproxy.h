@@ -17,7 +17,9 @@ namespace petabricks {
 
   public:
     RegionMatrixProxy(RegionHandlerPtr regionHandler);
-    ~RegionMatrixProxy();
+    ~RegionMatrixProxy() {
+      JTRACE("Destruct RegionMatrixProxy");
+    };
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
@@ -27,10 +29,10 @@ namespace petabricks {
     RegionMatrixProxyRemoteObjectPtr genLocal();
 
   private:
-    void processReadCellMsg(RegionDataRemoteMessage::ReadCellMessage* msg);
-    void processWriteCellMsg(RegionDataRemoteMessage::WriteCellMessage* msg);
-    void processGetHostListMsg(RegionDataRemoteMessage::GetHostListMessage* msg);
-    void processUpdateHandlerChainMsg(RegionDataRemoteMessage::UpdateHandlerChainMessage msg);
+    void processReadCellMsg(RegionDataRemoteMessage::ReadCellMessage& msg);
+    void processWriteCellMsg(RegionDataRemoteMessage::WriteCellMessage& msg);
+    void processGetHostListMsg(RegionDataRemoteMessage::GetHostListMessage& msg);
+    void processUpdateHandlerChainMsg(RegionDataRemoteMessage::UpdateHandlerChainMessage& msg);
   };
 
   class RegionMatrixProxyRemoteObject : public RemoteObject {

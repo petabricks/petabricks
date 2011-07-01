@@ -30,7 +30,8 @@ namespace petabricks {
 
     struct MessageHeader {
       MessageType type;
-      void* response;
+      EncodedPtr responseData;
+      EncodedPtr responseLen;
     };
 
     struct ReadCellMessage {
@@ -56,24 +57,35 @@ namespace petabricks {
       int numHops;
     };
 
+    struct MessageReplyHeader {
+      EncodedPtr responseData;
+      EncodedPtr responseLen;
+
+      MessageReplyHeader operator=(const MessageHeader& val) {
+        responseData = val.responseData;
+        responseLen = val.responseLen;
+        return *this;
+      }
+    };
+
     struct ReadCellReplyMessage {
-      void* response;
+      struct MessageReplyHeader header;
       ElementT value;
     };
 
     struct WriteCellReplyMessage {
-      void* response;
+      struct MessageReplyHeader header;
       ElementT value;
     };
 
     struct GetHostListReplyMessage {
-      void* response;
+      struct MessageReplyHeader header;
       int numHosts;
       DataHostListItem hosts[];
     };
 
     struct UpdateHandlerChainReplyMessage {
-      void* response;
+      struct MessageReplyHeader header;
       HostPid dataHost;
       int numHops;
       EncodedPtr encodedPtr; // regiondata or remoteobject
@@ -100,12 +112,12 @@ namespace petabricks {
     DataHostList hosts(IndexT* begin, IndexT* end);
 
     // Update long chain of RegionHandlers
-    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage updateHandlerChain();
-    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage
-      updateHandlerChain(RegionDataRemoteMessage::UpdateHandlerChainMessage msg);
+    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage& updateHandlerChain();
+    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage&
+      updateHandlerChain(RegionDataRemoteMessage::UpdateHandlerChainMessage& msg);
 
     void onRecv(const void* data, size_t len);
-    void* fetchData(const void* msg, size_t len);
+    void fetchData(const void* msg, size_t len, void** responseData, size_t* responseLen);
 
     static RemoteObjectPtr genRemote();
   };

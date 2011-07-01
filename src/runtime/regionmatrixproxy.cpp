@@ -11,10 +11,6 @@ RegionMatrixProxy::RegionMatrixProxy(RegionHandlerPtr regionHandler) {
   _regionHandler = regionHandler;
 }
 
-RegionMatrixProxy::~RegionMatrixProxy() {
-  JTRACE("Destruct RegionMatrixProxy");
-}
-
 ElementT RegionMatrixProxy::readCell(const IndexT* coord) {
   return _regionHandler->readCell(coord);
 }
@@ -23,37 +19,37 @@ void RegionMatrixProxy::writeCell(const IndexT* coord, ElementT value) {
   _regionHandler->writeCell(coord, value);
 }
 
-void RegionMatrixProxy::processReadCellMsg(ReadCellMessage* msg) {
-  ReadCellReplyMessage* reply = new ReadCellReplyMessage();
-  reply->response = msg->header.response;
-  reply->value = this->readCell(msg->coord);
-  _remoteObject->send(reply, sizeof(ReadCellReplyMessage));
-  delete reply;
+void RegionMatrixProxy::processReadCellMsg(ReadCellMessage& msg) {
+  ReadCellReplyMessage reply;
+  reply.header = msg.header;
+  reply.value = this->readCell(msg.coord);
+  _remoteObject->send(&reply, sizeof(ReadCellReplyMessage));
 }
 
-void RegionMatrixProxy::processWriteCellMsg(WriteCellMessage* msg) {
-  this->writeCell(msg->coord, msg->value);
-
-  WriteCellReplyMessage* reply = new WriteCellReplyMessage();
-  reply->response = msg->header.response;
-  reply->value = msg->value;
-  _remoteObject->send(reply, sizeof(WriteCellReplyMessage));
-  delete reply;
+void RegionMatrixProxy::processWriteCellMsg(WriteCellMessage& msg) {
+  this->writeCell(msg.coord, msg.value);
+  WriteCellReplyMessage reply;
+  reply.header = msg.header;
+  reply.value = msg.value;
+  _remoteObject->send(&reply, sizeof(WriteCellReplyMessage));
 }
 
-void RegionMatrixProxy::processGetHostListMsg(GetHostListMessage* msg) {
-  DataHostList list = _regionHandler->hosts(msg->begin, msg->end);
-  int hosts_array_size = list.size() * sizeof(DataHostListItem);
-  GetHostListReplyMessage* reply = (GetHostListReplyMessage*)malloc(sizeof(GetHostListReplyMessage) + hosts_array_size);
-  reply->response = msg->header.response;
+void RegionMatrixProxy::processGetHostListMsg(GetHostListMessage& msg) {
+  DataHostList list = _regionHandler->hosts(msg.begin, msg.end);
+  size_t hosts_array_size = list.size() * sizeof(DataHostListItem);
+  size_t sz = sizeof(GetHostListReplyMessage) + hosts_array_size;
+
+  char buf[sz];
+  GetHostListReplyMessage* reply = (GetHostListReplyMessage*)buf;
+  reply->header = msg.header;
   reply->numHosts = list.size();
   memcpy(reply->hosts, &list[0], hosts_array_size);
-  _remoteObject->send(reply, sizeof(GetHostListReplyMessage) + hosts_array_size);
-  // (yod)?? delete reply;
+  _remoteObject->send(buf, sz);
 }
 
-void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::UpdateHandlerChainMessage msg) {
-  void* response = msg.header.response;
+void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::UpdateHandlerChainMessage& msg) {
+  MessageReplyHeader header;
+  header = msg.header;
 
   RegionDataIPtr regionData = _regionHandler->getRegionData();
   UpdateHandlerChainReplyMessage reply;
@@ -63,22 +59,24 @@ void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::Up
   } else {
     reply.dataHost = HostPid::self();
     reply.numHops = msg.numHops;
-    reply.encodedPtr = reinterpret_cast<EncodedPtr>(regionData.asPtr());
+    reply.encodedPtr = 0;
 
     if ((msg.requester != HostPid::self()) && (reply.numHops > 1)) {
       // 1->2->3 ==> 1->3
       // This create a new RegionMatrixProxy containing RemoteObject connection with requester's host.
-
       RemoteHostPtr dest = RemoteHostDB::instance().host(msg.requester);
       if (!dest) {
-        // Create a new RemoteHost
-        UNIMPLEMENTED();
+        JASSERT(false).Text("unknown host");
       }
       reply.encodedPtr = _regionHandler->moveToRemoteHost(dest);
+
+    } else if (msg.requester == HostPid::self()) {
+      // 1->...->1 ==> use a direct pointer to regiondata
+      reply.encodedPtr = reinterpret_cast<EncodedPtr>(regionData.asPtr());
     }
   }
 
-  reply.response = response;
+  reply.header = header;
   _remoteObject->send(&reply, sizeof(UpdateHandlerChainReplyMessage));
 }
 
@@ -86,15 +84,15 @@ void RegionMatrixProxy::onRecv(const void* data, size_t len) {
   switch(((struct MessageHeader*)data)->type) {
   case MessageTypes::READCELL:
     JASSERT(len == sizeof(ReadCellMessage));
-    this->processReadCellMsg((ReadCellMessage*)data);
+    this->processReadCellMsg(*(ReadCellMessage*)data);
     break;
   case MessageTypes::WRITECELL:
     JASSERT(len == sizeof(WriteCellMessage));
-    this->processWriteCellMsg((WriteCellMessage*)data);
+    this->processWriteCellMsg(*(WriteCellMessage*)data);
     break;
   case MessageTypes::GETHOSTLIST:
     JASSERT(len==sizeof(GetHostListMessage));
-    this->processGetHostListMsg((GetHostListMessage*)data);
+    this->processGetHostListMsg(*(GetHostListMessage*)data);
     break;
   case MessageTypes::UPDATEHANDLERCHAIN:
     JASSERT(len==sizeof(UpdateHandlerChainMessage));
