@@ -52,8 +52,11 @@ void petabricks::RemoteTask::enqueueLocal() {
 
 void petabricks::RemoteTask::remoteScheduleTask() {
   JTRACE("remote schedule");
+#ifdef REGIONMATRIX_TEST
   enqueueRemote(*RemoteHostDB::instance().host(0));
-  //enqueueLocal();
+#else
+  enqueueLocal();
+#endif
 }
 
 

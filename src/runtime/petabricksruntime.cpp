@@ -103,7 +103,7 @@ static double RACE_MULTIPLIER=1;
 static double RACE_MULTIPLIER_LOWACC=1;
 static double RACE_ACCURACY_TARGET=jalib::minval<double>();
 
-#ifdef TEST_DISTRIBUTED
+#ifdef REGIONMATRIX_TEST
 static std::string HOSTS_FILE="hosts.example";
 #else
 static std::string HOSTS_FILE="";
