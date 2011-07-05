@@ -43,7 +43,7 @@ void petabricks::RemoteTask::onCompletedRemotely() {
 }
 
 void petabricks::RemoteTask::enqueueLocal() {
-  JTRACE("local schedule");
+  JTRACE("local scheduled");
   { JLOCKSCOPE(_lock);
     _state = S_READY;
   }

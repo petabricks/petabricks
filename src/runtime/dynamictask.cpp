@@ -221,10 +221,11 @@ void DynamicTask::inlineOrEnqueueTask()
 #endif
   {
     WorkerThread* self = WorkerThread::self();
-#ifdef DEBUG
-    JASSERT(self!=NULL);
-#endif
-    self->pushLocal(this);
+    if(self!=NULL) {
+      self->pushLocal(this);
+    }else{
+      DynamicScheduler::cpuScheduler().injectWork(this);
+    }
   }
 }
 

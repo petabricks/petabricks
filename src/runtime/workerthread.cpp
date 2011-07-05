@@ -298,13 +298,19 @@ void petabricks::WorkerThreadPool::debugPrint(jalib::JAssert& o) const {
 
 
 extern "C" int threadstatus() {
-  petabricks::WorkerThread::self()->pool().debugPrint();
-  return petabricks::DynamicScheduler::cpuScheduler().numThreads();
+  if(petabricks::WorkerThread::self()!=0) {
+    petabricks::WorkerThread::self()->pool().debugPrint();
+    return petabricks::DynamicScheduler::cpuScheduler().numThreads();
+  }else{
+    return 0;
+  }
 }
 
 namespace{
   void onJassert(jalib::JAssert& o) {
-    petabricks::WorkerThread::self()->pool().debugPrint(o);
+    if(petabricks::WorkerThread::self()!=0) {
+      petabricks::WorkerThread::self()->pool().debugPrint(o);
+    }
   }
 }
 int _ignored = jalib::JAssert::onBegin(&onJassert);
