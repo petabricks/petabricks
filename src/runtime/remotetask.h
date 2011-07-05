@@ -29,29 +29,82 @@
 
 #include "dynamictask.h"
 #include "remotehost.h"
+#include "remoteobject.h"
+
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
 
 namespace petabricks {
 
+  class RemoteTask;
+  typedef jalib::JRef<RemoteTask> RemoteTaskPtr;
+
   class RemoteTask : public petabricks::DynamicTask {
   public:
-    RemoteTask() { _state = S_REMOTE_NEW; }
+    RemoteTask();
 
     virtual size_t serialSize() = 0;
     virtual void serialize(char* buf, RemoteHost& host) = 0;
     virtual void unserialize(const char* buf, RemoteHost& host) = 0;
-  protected:
-    void remoteScheduleTask() {
-      enqueueLocal();
-    }
+    virtual RemoteObjectGenerator generator() = 0;
 
-    void enqueueLocal() {
-      { JLOCKSCOPE(_lock);
-        _state = S_READY;
-      }
-      inlineOrEnqueueTask();
-    }
+    void onCompletedRemotely();
+    void enqueueLocal();    
+    void enqueueRemote(RemoteHost& host);
+
+  protected:
+    void remoteScheduleTask();
 
   };
+
+
+
+  template<typename T>
+  class CallMarkComplete : public DynamicTask {
+  public:
+    CallMarkComplete(const jalib::JRef<T>& t) : _rtp(t) {}
+    DynamicTaskPtr run(){
+      _rtp->markComplete();
+      return 0; 
+    }
+
+    bool isNullTask() const { return true; }
+  private:
+    jalib::JRef<T> _rtp;
+  };
+
+  class RemoteTaskSender : public petabricks::RemoteObject {
+  public:
+    RemoteTaskSender(const RemoteTaskPtr& t) : _task(t) {}
+
+    void onComplete() {
+      JTRACE("remote complete");
+      _task->onCompletedRemotely();
+    }
+  private:
+    RemoteTaskPtr _task;
+  };
+
+
+  template<typename T>
+  class RemoteTaskReciever : public petabricks::RemoteObject {
+  public:
+    static RemoteObjectPtr gen() { return new RemoteTaskReciever(); }
+
+    void onRecvInitial(const void* buf, size_t ) {
+      JTRACE("remote create");
+      JASSERT(!_task);
+      _task = new T(reinterpret_cast<const char*>(buf), *host());
+      _task->enqueueLocal();
+      DynamicTaskPtr t = new CallMarkComplete<RemoteTaskReciever>(this);
+      t->dependsOn(_task.asPtr());
+      t->enqueue();
+    }
+  private:
+    RemoteTaskPtr _task;
+  };
+
 
 }
 

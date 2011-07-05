@@ -103,7 +103,11 @@ static double RACE_MULTIPLIER=1;
 static double RACE_MULTIPLIER_LOWACC=1;
 static double RACE_ACCURACY_TARGET=jalib::minval<double>();
 
+#ifdef TEST_DISTRIBUTED
+static std::string HOSTS_FILE="hosts.example";
+#else
 static std::string HOSTS_FILE="";
+#endif
 static std::string SLAVE_HOST="";
 static int SLAVE_PORT = -1;
 

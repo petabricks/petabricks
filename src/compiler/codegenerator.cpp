@@ -311,10 +311,9 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   beginFunc(_curClass+"*", "_new_constructor", std::vector<std::string>(1,"const char* _buf, RemoteHost& _host"), true);
   write("return new "+_curClass+"(_buf, _host);");
   endFunc();
-
-  beginFunc("RemoteObjectPtr", "_remote_gen", std::vector<std::string>(), true);
-  write("return 0;");
-  //write("return new "+_curClass+"(_buf);");
+  
+  beginFunc("RemoteObjectGenerator", "generator");
+  write("return &RemoteTaskReciever<"+_curClass+">::gen;");
   endFunc();
 }
 

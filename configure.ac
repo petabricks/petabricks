@@ -293,6 +293,7 @@ if false; then
   AC_DEFINE([OUTPUT_SIZE_STR],     ["output_count"],     [define to add a system var to transform scope])
   AC_DEFINE([PBCC_SEQUENTIAL],     [], [define to run tasks inline instead of enqueuing them])
   AC_DEFINE([REGIONMATRIX_TEST],   [1], [always use RegionMatrix code])
+  AC_DEFINE([TEST_DISTRIBUTED],    [], [force tasks to be run on a random host])
   AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
 fi
 
