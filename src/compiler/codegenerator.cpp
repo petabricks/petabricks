@@ -280,7 +280,9 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
     if(jalib::StartsWith(i->type, "distributed::")) {
       //TODO: Yod generate code to copy reference over
       out.write(i->name + ".serialize(_buf, _host);");
+      out.write("_buf += " + i->name + ".serialSize();");
       in.write(i->name + ".unserialize(_buf, _host);");
+      in.write("_buf += " + i->name + ".serialSize();");
       size.write("_sz += " + i->name + ".serialSize();");
     }else if(i->type == "IndexT" || i->type == "int" || i->type == "double") {
       out.write("*reinterpret_cast<"+i->type+"*>(_buf) = "+i->name+";");
@@ -311,7 +313,7 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   beginFunc(_curClass+"*", "_new_constructor", std::vector<std::string>(1,"const char* _buf, RemoteHost& _host"), true);
   write("return new "+_curClass+"(_buf, _host);");
   endFunc();
-  
+
   beginFunc("RemoteObjectGenerator", "generator");
   write("return &RemoteTaskReciever<"+_curClass+">::gen;");
   endFunc();
