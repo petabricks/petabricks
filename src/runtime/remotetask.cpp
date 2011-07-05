@@ -26,4 +26,37 @@
  *****************************************************************************/
 #include "remotetask.h"
 
+void petabricks::RemoteTask::enqueueRemote(RemoteHost& host) {
+  size_t len = serialSize();
+  char* buf = new char[len];
+  serialize(buf, host);
+  host.createRemoteObject(new RemoteTaskSender(this), generator(), buf, len);
+  delete [] buf;
+}
+
+petabricks::RemoteTask::RemoteTask() {
+  _state = S_REMOTE_NEW;
+}
+
+void petabricks::RemoteTask::onCompletedRemotely() {
+  completeTaskDeps(false);
+}
+
+void petabricks::RemoteTask::enqueueLocal() {
+  JTRACE("local schedule");
+  { JLOCKSCOPE(_lock);
+    _state = S_READY;
+  }
+  inlineOrEnqueueTask();
+}
+
+void petabricks::RemoteTask::remoteScheduleTask() {
+  JTRACE("remote schedule");
+#ifdef REGIONMATRIX_TEST
+  enqueueRemote(*RemoteHostDB::instance().host(0));
+#else
+  enqueueLocal();
+#endif
+}
+
 
