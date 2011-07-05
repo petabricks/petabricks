@@ -510,7 +510,7 @@ namespace petabricks {
     }
 
     bool isLocal() const {
-      return _regionHandler->type() == RegionDataTypes::REGIONDATARAW;
+      return (_regionHandler->type() == RegionDataTypes::REGIONDATARAW);
     }
     MatrixRegion<D, const ElementT> _toLocalConstRegion() const {
       return _toLocalRegion();
@@ -787,13 +787,27 @@ namespace petabricks {
     RegionMatrix0DInfoPtr sourceInfo() const {
       return _sourceInfo;
     }
+
+    // toLocalRegion
+    bool isLocal() const {
+      return (Base::_regionHandler->type() == RegionDataTypes::REGIONDATARAW)
+        || (Base::_regionHandler->type() == RegionDataTypes::REGIONDATA0D);
+    }
+    MatrixRegion<D, ElementT> _toLocalRegion() const {
+      RegionDataIPtr regionData = Base::_regionHandler->getRegionData();
+      JASSERT(regionData->type() == RegionDataTypes::REGIONDATARAW
+              || regionData->type() == RegionDataTypes::REGIONDATA0D).Text("Cannot cast to MatrixRegion.");
+      return MatrixRegion<D, ElementT>(regionData->value0D(_sourceInfo->sourceIndex()));
+    }
+
   };
 
   // Specialized for ConstMatrixRegion0D.
   template<>
-  class RegionMatrixWrapper<0, const MATRIX_ELEMENT_T> : public RegionMatrix<0, MATRIX_ELEMENT_T> {
+  class RegionMatrixWrapper<0, const MATRIX_ELEMENT_T> : public RegionMatrix<0, const MATRIX_ELEMENT_T> {
   public:
     enum { D = 0 };
+    typedef const MATRIX_ELEMENT_T ElementT;
     typedef RegionMatrix<D, ElementT> Base;
 
     INLINE void initWithValue(ElementT value) {
@@ -836,6 +850,14 @@ namespace petabricks {
     RegionMatrixWrapper operator=(const RegionMatrixWrapper& val) {
       initWithValue(val.cell());
       return *this;
+    }
+
+    // toLocalRegion
+    bool isLocal() const {
+      return true;
+    }
+    MatrixRegion<D, ElementT> _toLocalRegion() const {
+      return MatrixRegion<D, ElementT>((ElementT)cell());
     }
 
   };

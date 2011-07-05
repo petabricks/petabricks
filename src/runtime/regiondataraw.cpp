@@ -56,7 +56,7 @@ int RegionDataRaw::allocData() {
   return numData;
 }
 
-ElementT* RegionDataRaw::coordToPtr(const IndexT* coord){
+ElementT* RegionDataRaw::coordToPtr(const IndexT* coord) const {
   IndexT offset = 0;
 
   if (_isPart) {
@@ -73,6 +73,10 @@ ElementT* RegionDataRaw::coordToPtr(const IndexT* coord){
   }
 
   return _storage->data() + offset;
+}
+
+ElementT& RegionDataRaw::value0D(const IndexT* coord) const {
+  return *this->coordToPtr(coord);
 }
 
 ElementT RegionDataRaw::readCell(const IndexT* coord) {

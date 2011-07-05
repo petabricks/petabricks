@@ -51,6 +51,12 @@ namespace petabricks {
       return NULL;
     }
 
+    // for toLocalRegion
+    virtual ElementT& value0D(const IndexT* /*coord*/) const {
+      JASSERT(false)(_type).Text("This should not be called.");
+      throw;
+    }
+
     int dimensions();
     IndexT* size();
 

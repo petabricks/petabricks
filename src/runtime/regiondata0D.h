@@ -47,6 +47,11 @@ namespace petabricks {
       return DataHostList(1, item);
     }
 
+    // Used in RegionMatrix::_toLocalRegion()
+    ElementT& value0D(const IndexT* /*coord*/) const {
+      return *_value;
+    }
+
     void print() {
       printf("%e\n", this->readCell(NULL));
     }

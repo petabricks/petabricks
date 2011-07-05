@@ -27,11 +27,13 @@ namespace petabricks {
     int allocData();
 
     MatrixStoragePtr storage() const {return _storage;}
+    ElementT& value0D(const IndexT* coord) const;
+
     DataHostList hosts(IndexT* begin, IndexT* end);
 
   private:
     void init(const int dimensions, const IndexT* size, const ElementT* data, const IndexT* partOffset);
-    ElementT* coordToPtr(const IndexT* coord);
+    ElementT* coordToPtr(const IndexT* coord) const;
   };
 }
 
