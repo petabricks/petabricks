@@ -121,7 +121,9 @@ void petabricks::WorkerThread::popAndRunOneTask(int stealLimit)
   //try stealing a bunch of times
   while(task == NULL && stealLimit-->0){
     WorkerThread* victim = _pool.getRandom(this);
-    task = victim->steal();
+    if (victim != NULL) {
+      task = victim->steal();
+    }
   }
 
   //if we got something, run it
