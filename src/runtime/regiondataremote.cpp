@@ -39,7 +39,9 @@ int RegionDataRemote::allocData() {
   this->fetchData(&msg, sizeof(AllocDataMessage), &data, &len);
   AllocDataReplyMessage* reply = (AllocDataReplyMessage*)data;
 
-  return reply->result;
+  ElementT result = reply->result;
+  free(reply);
+  return result;
 }
 
 ElementT RegionDataRemote::readCell(const IndexT* coord) {
@@ -52,7 +54,9 @@ ElementT RegionDataRemote::readCell(const IndexT* coord) {
   this->fetchData(&msg, sizeof(ReadCellMessage), &data, &len);
   ReadCellReplyMessage* reply = (ReadCellReplyMessage*)data;
 
-  return reply->value;
+  ElementT value = reply->value;
+  free(reply);
+  return value;
 }
 
 void RegionDataRemote::writeCell(const IndexT* coord, ElementT value) {
@@ -66,7 +70,8 @@ void RegionDataRemote::writeCell(const IndexT* coord, ElementT value) {
   this->fetchData(&msg, sizeof(WriteCellMessage), &data, &len);
   WriteCellReplyMessage* reply = (WriteCellReplyMessage*)data;
 
-  JASSERT(reply->value == value);
+  JASSERT(reply->value == value)(reply->value)(value);
+  free(reply);
 }
 
 DataHostList RegionDataRemote::hosts(IndexT* begin, IndexT* end) {
@@ -84,21 +89,25 @@ DataHostList RegionDataRemote::hosts(IndexT* begin, IndexT* end) {
   for (int i = 0; i < reply->numHosts; i++) {
     list.push_back(reply->hosts[i]);
   }
+
+  free(reply);
   return list;
 }
 
-UpdateHandlerChainReplyMessage& RegionDataRemote::updateHandlerChain(UpdateHandlerChainMessage& msg) {
+UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain(UpdateHandlerChainMessage& msg) {
   msg.numHops += 1;
 
   void* data;
   size_t len;
   this->fetchData(&msg, sizeof(UpdateHandlerChainMessage), &data, &len);
-  UpdateHandlerChainReplyMessage* reply = (UpdateHandlerChainReplyMessage*)data;
+  UpdateHandlerChainReplyMessage* _reply = (UpdateHandlerChainReplyMessage*)data;
 
-  return *reply;
+  UpdateHandlerChainReplyMessage reply = *_reply;
+  free(_reply);
+  return reply;
 }
 
-UpdateHandlerChainReplyMessage& RegionDataRemote::updateHandlerChain() {
+UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain() {
   UpdateHandlerChainMessage msg;
   msg.header.type = MessageTypes::UPDATEHANDLERCHAIN;
   msg.requester = HostPid::self();

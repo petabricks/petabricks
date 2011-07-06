@@ -43,7 +43,7 @@
 
 
 #define REMOTEHOST_DATACHANS 4
-#define REMOTEHOST_THREADS 2
+#define REMOTEHOST_THREADS 4
 
 namespace _RemoteHostMsgTypes {
   struct GeneralMessage;

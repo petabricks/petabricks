@@ -132,8 +132,8 @@ namespace petabricks {
     DataHostList hosts(IndexT* begin, IndexT* end);
 
     // Update long chain of RegionHandlers
-    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage& updateHandlerChain();
-    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage&
+    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage updateHandlerChain();
+    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage
       updateHandlerChain(RegionDataRemoteMessage::UpdateHandlerChainMessage& msg);
 
     void onRecv(const void* data, size_t len);
@@ -155,6 +155,8 @@ namespace petabricks {
     void onRecv(const void* data, size_t len) {
       _regionData->onRecv(data, len);
     }
+
+    void freeRecv(void*, size_t ) { /* do not free */ };
 
     void onRecvInitial(const void* buf, size_t len);
 

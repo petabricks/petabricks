@@ -453,6 +453,8 @@ namespace petabricks {
       EncodedPtr remoteObjPtr = *reinterpret_cast<const EncodedPtr*>(buf);
       _regionHandler = new RegionHandler(remoteObjPtr);
       buf += sz;
+
+      updateHandlerChain();
     }
 
     void updateHandlerChain() {
