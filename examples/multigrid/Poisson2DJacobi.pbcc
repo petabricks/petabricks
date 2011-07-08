@@ -34,6 +34,7 @@ to OUT[n,n]
 transform Poisson2DJacobi
 from IN[n,n], B[n,n], numIterations
 to OUT[n,n]
+generator Poisson2DJacobiGenerator
 {
   to (OUT out) from (IN in, B b, numIterations _numIters)
   {
