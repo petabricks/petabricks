@@ -4,8 +4,9 @@
 #include "../simple/copy.pbcc"
 #include "Generators.pbcc"
 
-// Note: this transform assumes IN and OUT point to different memory locations.
-// In place (in memory) update is not supported.
+// Note: this helper transform assumes IN and OUT point to different memory
+// locations.  Though in-place (in memory) update is not supported by this
+// helper transform, it is supported in the main transform below.
 transform Poisson2DJacobiIterate
 from IN[n,n], B[n,n]
 to OUT[n,n]
