@@ -6,6 +6,7 @@
 #include "regionmatrixproxy.h"
 
 using namespace petabricks;
+using namespace petabricks::RegionDataRemoteMessage;
 
 RegionHandler::RegionHandler(const int dimensions, const IndexT* size) {
   _regionData = new RegionDataRaw(dimensions, size);
@@ -127,5 +128,22 @@ void RegionHandler::splitData(IndexT* splitSize) {
 void RegionHandler::createDataPart(int partIndex, RemoteHostPtr host) {
   JASSERT(type() == RegionDataTypes::REGIONDATASPLIT);
   ((RegionDataSplit*)_regionData.asPtr())->createPart(partIndex, host);
+}
+
+// Process Remote Messages
+void RegionHandler::processReadCellMsg(ReadCellMessage* msg, ReadCellReplyMessage* reply, int* len) {
+  _regionData->processReadCellMsg(msg, reply, len);
+}
+
+void RegionHandler::processWriteCellMsg(WriteCellMessage* msg, WriteCellReplyMessage* reply, int* len) {
+  _regionData->processWriteCellMsg(msg, reply, len);
+}
+
+void RegionHandler::processGetHostListMsg(GetHostListMessage* msg, GetHostListReplyMessage* reply, int* len) {
+  _regionData->processGetHostListMsg(msg, reply, len);
+}
+
+void RegionHandler::processAllocDataMsg(AllocDataMessage* msg, AllocDataReplyMessage* reply, int* len) {
+  _regionData->processAllocDataMsg(msg, reply, len);
 }
 

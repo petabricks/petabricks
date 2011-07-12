@@ -6,6 +6,8 @@
 #include "remoteobject.h"
 
 namespace petabricks {
+  using namespace petabricks::RegionDataRemoteMessage;
+
   class RegionMatrixProxy;
   typedef jalib::JRef<RegionMatrixProxy> RegionMatrixProxyPtr;
 
@@ -31,11 +33,13 @@ namespace petabricks {
     static RemoteObjectPtr genRemote();
 
   private:
-    void processReadCellMsg(RegionDataRemoteMessage::ReadCellMessage& msg);
-    void processWriteCellMsg(RegionDataRemoteMessage::WriteCellMessage& msg);
-    void processGetHostListMsg(RegionDataRemoteMessage::GetHostListMessage& msg);
-    void processUpdateHandlerChainMsg(RegionDataRemoteMessage::UpdateHandlerChainMessage& msg);
-    void processAllocDataMsg(RegionDataRemoteMessage::AllocDataMessage& msg);
+    void processReadCellMsg(const BaseMessageHeader* header);
+    void processWriteCellMsg(const BaseMessageHeader* header);
+    void processGetHostListMsg(const BaseMessageHeader* header);
+    void processUpdateHandlerChainMsg(const BaseMessageHeader* header);
+    void processAllocDataMsg(const BaseMessageHeader* header);
+
+    void sendReply(const void* data, size_t len, const BaseMessageHeader* base);
   };
 
   class RegionMatrixProxyRemoteObject : public RemoteObject {

@@ -4,6 +4,7 @@
 #include <string.h>
 
 using namespace petabricks;
+using namespace petabricks::RegionDataRemoteMessage;
 
 int RegionDataI::dimensions() {
   return _D;
@@ -13,6 +14,29 @@ int RegionDataI::dimensions() {
 IndexT* RegionDataI::size() {
   return _size;
 }
+
+// Process Remote Messages
+void RegionDataI::processReadCellMsg(ReadCellMessage* msg, ReadCellReplyMessage* reply, int* len) {
+  reply->value = this->readCell(msg->coord);
+  *len = sizeof(ReadCellReplyMessage);
+}
+
+void RegionDataI::processWriteCellMsg(WriteCellMessage* msg, WriteCellReplyMessage* reply, int* len) {
+  this->writeCell(msg->coord, msg->value);
+  reply->value = msg->value;
+  *len = sizeof(WriteCellReplyMessage);
+}
+
+void RegionDataI::processGetHostListMsg(GetHostListMessage* msg, GetHostListReplyMessage* reply, int* len) {
+  UNIMPLEMENTED();
+}
+
+void RegionDataI::processAllocDataMsg(AllocDataMessage* /*msg*/, AllocDataReplyMessage* reply, int* len) {
+  reply->result = this->allocData();
+  *len = sizeof(AllocDataReplyMessage);
+}
+
+// Printing
 
 int RegionDataI::incCoord(IndexT* coord) {
   if (_D == 0) {

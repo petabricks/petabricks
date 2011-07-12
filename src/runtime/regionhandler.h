@@ -7,6 +7,8 @@
 #include "remotehost.h"
 
 namespace petabricks {
+  using namespace petabricks::RegionDataRemoteMessage;
+
   class RegionHandler;
   typedef jalib::JRef<RegionHandler> RegionHandlerPtr;
 
@@ -42,6 +44,12 @@ namespace petabricks {
     // RegionDataSplit
     void splitData(IndexT* splitSize);
     void createDataPart(int partIndex, RemoteHostPtr host);
+
+    // Process Remote Messages
+    void processReadCellMsg(ReadCellMessage* msg, ReadCellReplyMessage* reply, int* len);
+    void processWriteCellMsg(WriteCellMessage* msg, WriteCellReplyMessage* reply, int* len);
+    void processGetHostListMsg(GetHostListMessage* msg, GetHostListReplyMessage* reply, int* len);
+    void processAllocDataMsg(AllocDataMessage* msg, AllocDataReplyMessage* reply, int* len);
   };
 }
 

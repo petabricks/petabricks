@@ -29,6 +29,113 @@ namespace petabricks {
   };
   typedef std::vector<DataHostListItem> DataHostList;
 
+  //
+  // RegionDataRemoteMessage
+  //
+
+  namespace RegionDataRemoteMessage {
+    typedef uint16_t MessageType;
+
+    struct MessageTypes {
+      enum {
+	READCELL = 11,
+	WRITECELL,
+	GETHOSTLIST,
+	UPDATEHANDLERCHAIN,
+        ALLOCDATA,
+      };
+    };
+
+    struct InitialMessageToRegionDataRemote {
+      int dimensions;
+      IndexT size[MAX_DIMENSIONS];
+    };
+
+    struct InitialMessageToRegionMatrixProxy {
+      int dimensions;
+      IndexT size[MAX_DIMENSIONS];
+      IndexT partOffset[MAX_DIMENSIONS];
+    };
+
+    struct BaseMessageHeader {
+      bool isForwardMessage;
+      MessageType type;
+      size_t contentOffset;
+
+      char* content() const { return (char*)this + contentOffset; }
+    };
+
+    struct GeneralMessageHeader {
+      bool isForwardMessage;
+      MessageType type;
+      size_t contentOffset;
+      EncodedPtr responseData;
+      EncodedPtr responseLen;
+
+      char* content() const { return (char*)this + contentOffset; }
+    };
+
+    struct ForwardMessageHeader {
+      bool isForwardMessage;
+      MessageType type;
+      size_t contentOffset;
+      EncodedPtr callback; // RegionMatrixProxy*
+
+      char* content() const { return (char*)this + contentOffset; }
+    };
+
+    struct ReadCellMessage {
+      IndexT coord[MAX_DIMENSIONS];
+    };
+
+    struct WriteCellMessage {
+      ElementT value;
+      IndexT coord[MAX_DIMENSIONS];
+    };
+
+    struct GetHostListMessage {
+      IndexT begin[MAX_DIMENSIONS];
+      IndexT end[MAX_DIMENSIONS];
+    };
+
+    struct UpdateHandlerChainMessage {
+      HostPid requester;
+      int numHops;
+    };
+
+    struct AllocDataMessage {
+    };
+
+    struct ReadCellReplyMessage {
+      ElementT value;
+    };
+
+    struct WriteCellReplyMessage {
+      ElementT value;
+    };
+
+    struct GetHostListReplyMessage {
+      int numHosts;
+      DataHostListItem hosts[];
+    };
+
+    struct UpdateHandlerChainReplyMessage {
+      HostPid dataHost;
+      int numHops;
+      EncodedPtr encodedPtr; // regiondata or remoteobject
+    };
+
+    struct AllocDataReplyMessage {
+      int result;
+    };
+  }
+
+  using namespace petabricks::RegionDataRemoteMessage;
+
+  //
+  // RegiondataI
+  //
+
   class RegionDataI;
   typedef jalib::JRef<RegionDataI> RegionDataIPtr;
 
@@ -65,6 +172,13 @@ namespace petabricks {
     }
 
     virtual DataHostList hosts(IndexT* begin, IndexT* end) = 0;
+
+
+    // Process Remote Messages
+    virtual void processReadCellMsg(ReadCellMessage* msg, ReadCellReplyMessage* reply, int* len);
+    virtual void processWriteCellMsg(WriteCellMessage* msg, WriteCellReplyMessage* reply, int* len);
+    virtual void processGetHostListMsg(GetHostListMessage* msg, GetHostListReplyMessage* reply, int* len);
+    virtual void processAllocDataMsg(AllocDataMessage* msg, AllocDataReplyMessage* reply, int* len);
 
     // for tests
   private:

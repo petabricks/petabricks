@@ -24,99 +24,114 @@ void RegionMatrixProxy::writeCell(const IndexT* coord, ElementT value) {
   _regionHandler->writeCell(coord, value);
 }
 
-void RegionMatrixProxy::processReadCellMsg(ReadCellMessage& msg) {
+void RegionMatrixProxy::processReadCellMsg(const BaseMessageHeader* base) {
+  ReadCellMessage* msg = (ReadCellMessage*)base->content();
+
   ReadCellReplyMessage reply;
-  reply.header = msg.header;
-  reply.value = this->readCell(msg.coord);
-  _remoteObject->send(&reply, sizeof(ReadCellReplyMessage));
+  reply.value = this->readCell(msg->coord);
+  this->sendReply(&reply, sizeof(ReadCellReplyMessage), base);
 }
 
-void RegionMatrixProxy::processWriteCellMsg(WriteCellMessage& msg) {
-  this->writeCell(msg.coord, msg.value);
+void RegionMatrixProxy::processWriteCellMsg(const BaseMessageHeader* base) {
+  WriteCellMessage* msg = (WriteCellMessage*)base->content();
+
+  this->writeCell(msg->coord, msg->value);
   WriteCellReplyMessage reply;
-  reply.header = msg.header;
-  reply.value = msg.value;
-  _remoteObject->send(&reply, sizeof(WriteCellReplyMessage));
+  reply.value = msg->value;
+  this->sendReply(&reply, sizeof(WriteCellReplyMessage), base);
 }
 
-void RegionMatrixProxy::processGetHostListMsg(GetHostListMessage& msg) {
-  DataHostList list = _regionHandler->hosts(msg.begin, msg.end);
+void RegionMatrixProxy::processGetHostListMsg(const BaseMessageHeader* base) {
+  GetHostListMessage* msg = (GetHostListMessage*)base->content();
+
+  DataHostList list = _regionHandler->hosts(msg->begin, msg->end);
   size_t hosts_array_size = list.size() * sizeof(DataHostListItem);
   size_t sz = sizeof(GetHostListReplyMessage) + hosts_array_size;
 
   char buf[sz];
   GetHostListReplyMessage* reply = (GetHostListReplyMessage*)buf;
-  reply->header = msg.header;
   reply->numHosts = list.size();
   memcpy(reply->hosts, &list[0], hosts_array_size);
-  _remoteObject->send(buf, sz);
+  this->sendReply(buf, sz, base);
 }
 
-void RegionMatrixProxy::processUpdateHandlerChainMsg(RegionDataRemoteMessage::UpdateHandlerChainMessage& msg) {
-  MessageReplyHeader header;
-  header = msg.header;
+void RegionMatrixProxy::processUpdateHandlerChainMsg(const BaseMessageHeader* base) {
+  UpdateHandlerChainMessage* msg = (UpdateHandlerChainMessage*)base->content();
 
   RegionDataIPtr regionData = _regionHandler->getRegionData();
   UpdateHandlerChainReplyMessage reply;
 
   if (regionData->type() == RegionDataTypes::REGIONDATAREMOTE) {
-    reply = ((RegionDataRemote*)regionData.asPtr())->updateHandlerChain(msg);
+    reply = ((RegionDataRemote*)regionData.asPtr())->updateHandlerChain(*msg);
   } else {
     reply.dataHost = HostPid::self();
-    reply.numHops = msg.numHops;
+    reply.numHops = msg->numHops;
     reply.encodedPtr = 0;
 
-    if ((msg.requester != HostPid::self()) && (reply.numHops > 1)) {
+    if ((msg->requester != HostPid::self()) && (reply.numHops > 1)) {
       // 1->2->3 ==> 1->3
       // This create a new RegionMatrixProxy containing RemoteObject connection with requester's host.
-      RemoteHostPtr dest = RemoteHostDB::instance().host(msg.requester);
+      RemoteHostPtr dest = RemoteHostDB::instance().host(msg->requester);
       if (!dest) {
         JASSERT(false).Text("unknown host");
       }
       reply.encodedPtr = _regionHandler->moveToRemoteHost(dest);
 
-    } else if (msg.requester == HostPid::self()) {
+    } else if (msg->requester == HostPid::self()) {
       // 1->...->1 ==> use a direct pointer to regiondata
       reply.encodedPtr = reinterpret_cast<EncodedPtr>(regionData.asPtr());
     }
   }
 
-  reply.header = header;
-  _remoteObject->send(&reply, sizeof(UpdateHandlerChainReplyMessage));
+  this->sendReply(&reply, sizeof(UpdateHandlerChainReplyMessage), base);
+
 }
 
-void RegionMatrixProxy::processAllocDataMsg(AllocDataMessage& msg) {
+void RegionMatrixProxy::processAllocDataMsg(const BaseMessageHeader* base) {
   AllocDataReplyMessage reply;
-  reply.header = msg.header;
   reply.result = _regionHandler->allocData();
-  _remoteObject->send(&reply, sizeof(AllocDataReplyMessage));
+  this->sendReply(&reply, sizeof(AllocDataReplyMessage), base);
 }
 
 void RegionMatrixProxy::onRecv(const void* data, size_t len) {
-  switch(((struct MessageHeader*)data)->type) {
+  const BaseMessageHeader* base = (const BaseMessageHeader*)data;
+  size_t msg_len = len - base->contentOffset;
+
+  switch(base->type) {
   case MessageTypes::READCELL:
-    JASSERT(len == sizeof(ReadCellMessage));
-    this->processReadCellMsg(*(ReadCellMessage*)data);
+    JASSERT(msg_len == sizeof(ReadCellMessage));
+    this->processReadCellMsg(base);
     break;
   case MessageTypes::WRITECELL:
-    JASSERT(len == sizeof(WriteCellMessage));
-    this->processWriteCellMsg(*(WriteCellMessage*)data);
+    JASSERT(msg_len == sizeof(WriteCellMessage));
+    this->processWriteCellMsg(base);
     break;
   case MessageTypes::GETHOSTLIST:
-    JASSERT(len==sizeof(GetHostListMessage));
-    this->processGetHostListMsg(*(GetHostListMessage*)data);
+    JASSERT(msg_len == sizeof(GetHostListMessage));
+    this->processGetHostListMsg(base);
     break;
   case MessageTypes::UPDATEHANDLERCHAIN:
-    JASSERT(len==sizeof(UpdateHandlerChainMessage));
-    this->processUpdateHandlerChainMsg(*(UpdateHandlerChainMessage*)data);
+    JASSERT(msg_len == sizeof(UpdateHandlerChainMessage));
+    this->processUpdateHandlerChainMsg(base);
     break;
   case MessageTypes::ALLOCDATA:
-    JASSERT(len==sizeof(AllocDataMessage));
-    this->processAllocDataMsg(*(AllocDataMessage*)data);
+    JASSERT(msg_len == sizeof(AllocDataMessage));
+    this->processAllocDataMsg(base);
     break;
   default:
-    JASSERT(false)(((struct MessageHeader*)data)->type).Text("Unknown RegionRemoteMsgTypes.");
+    JASSERT(false)(base->type).Text("Unknown RegionRemoteMsgTypes.");
   }
+}
+
+void RegionMatrixProxy::sendReply(const void* msg, size_t len, const BaseMessageHeader* base) {
+  size_t dataLen = base->contentOffset + len;
+  void* data = malloc(dataLen);
+
+  memcpy(data, base, base->contentOffset);
+  memcpy(((BaseMessageHeader*)data)->content(), msg, len);
+
+  _remoteObject->send(data, dataLen);
+  free(data);
 }
 
 RegionMatrixProxyRemoteObjectPtr RegionMatrixProxy::genLocal() {

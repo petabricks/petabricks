@@ -11,102 +11,8 @@
 #endif
 
 namespace petabricks {
-  namespace RegionDataRemoteMessage {
-    typedef uint16_t MessageType;
+  using namespace petabricks::RegionDataRemoteMessage;
 
-    struct MessageTypes {
-      enum {
-	READCELL = 11,
-	WRITECELL,
-	GETHOSTLIST,
-	UPDATEHANDLERCHAIN,
-        ALLOCDATA,
-      };
-    };
-
-    struct InitialMessageToRegionDataRemote {
-      int dimensions;
-      IndexT size[MAX_DIMENSIONS];
-    };
-
-    struct InitialMessageToRegionMatrixProxy {
-      int dimensions;
-      IndexT size[MAX_DIMENSIONS];
-      IndexT partOffset[MAX_DIMENSIONS];
-    };
-
-    struct MessageHeader {
-      MessageType type;
-      EncodedPtr responseData;
-      EncodedPtr responseLen;
-    };
-
-    struct ReadCellMessage {
-      struct MessageHeader header;
-      IndexT coord[MAX_DIMENSIONS];
-    };
-
-    struct WriteCellMessage {
-      struct MessageHeader header;
-      ElementT value;
-      IndexT coord[MAX_DIMENSIONS];
-    };
-
-    struct GetHostListMessage {
-      struct MessageHeader header;
-      IndexT begin[MAX_DIMENSIONS];
-      IndexT end[MAX_DIMENSIONS];
-    };
-
-    struct UpdateHandlerChainMessage {
-      struct MessageHeader header;
-      HostPid requester;
-      int numHops;
-    };
-
-    struct AllocDataMessage {
-      struct MessageHeader header;
-    };
-
-    struct MessageReplyHeader {
-      EncodedPtr responseData;
-      EncodedPtr responseLen;
-
-      MessageReplyHeader operator=(const MessageHeader& val) {
-        responseData = val.responseData;
-        responseLen = val.responseLen;
-        return *this;
-      }
-    };
-
-    struct ReadCellReplyMessage {
-      struct MessageReplyHeader header;
-      ElementT value;
-    };
-
-    struct WriteCellReplyMessage {
-      struct MessageReplyHeader header;
-      ElementT value;
-    };
-
-    struct GetHostListReplyMessage {
-      struct MessageReplyHeader header;
-      int numHosts;
-      DataHostListItem hosts[];
-    };
-
-    struct UpdateHandlerChainReplyMessage {
-      struct MessageReplyHeader header;
-      HostPid dataHost;
-      int numHops;
-      EncodedPtr encodedPtr; // regiondata or remoteobject
-    };
-
-    struct AllocDataReplyMessage {
-      struct MessageReplyHeader header;
-      int result;
-    };
-  }
 
   class RegionDataRemote;
   typedef jalib::JRef<RegionDataRemote> RegionDataRemotePtr;
@@ -132,12 +38,11 @@ namespace petabricks {
     DataHostList hosts(IndexT* begin, IndexT* end);
 
     // Update long chain of RegionHandlers
-    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage updateHandlerChain();
-    RegionDataRemoteMessage::UpdateHandlerChainReplyMessage
-      updateHandlerChain(RegionDataRemoteMessage::UpdateHandlerChainMessage& msg);
+    UpdateHandlerChainReplyMessage updateHandlerChain();
+    UpdateHandlerChainReplyMessage updateHandlerChain(UpdateHandlerChainMessage& msg);
 
     void onRecv(const void* data, size_t len);
-    void fetchData(const void* msg, size_t len, void** responseData, size_t* responseLen);
+    void fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen);
 
     static RemoteObjectPtr genRemote();
   };
@@ -155,8 +60,6 @@ namespace petabricks {
     void onRecv(const void* data, size_t len) {
       _regionData->onRecv(data, len);
     }
-
-    void freeRecv(void*, size_t ) { /* do not free */ };
 
     void onRecvInitial(const void* buf, size_t len);
 
