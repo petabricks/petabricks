@@ -46,10 +46,10 @@ namespace petabricks {
     void createDataPart(int partIndex, RemoteHostPtr host);
 
     // Process Remote Messages
-    void processReadCellMsg(ReadCellMessage* msg, ReadCellReplyMessage* reply, int* len);
-    void processWriteCellMsg(WriteCellMessage* msg, WriteCellReplyMessage* reply, int* len);
-    void processGetHostListMsg(GetHostListMessage* msg, GetHostListReplyMessage* reply, int* len);
-    void processAllocDataMsg(AllocDataMessage* msg, AllocDataReplyMessage* reply, int* len);
+    void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, ReadCellReplyMessage& reply, size_t& len, EncodedPtr caller);
+    void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, WriteCellReplyMessage& reply, size_t& len, EncodedPtr caller);
+    void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen,GetHostListReplyMessage& reply, size_t& len, EncodedPtr caller);
+    void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, AllocDataReplyMessage& reply, size_t& len, EncodedPtr caller);
   };
 }
 

@@ -32,12 +32,18 @@ namespace petabricks {
     RegionMatrixProxyRemoteObjectPtr genLocal();
     static RemoteObjectPtr genRemote();
 
+    void processReplyMsg(const BaseMessageHeader* base, size_t baseLen);
+
   private:
-    void processReadCellMsg(const BaseMessageHeader* header);
-    void processWriteCellMsg(const BaseMessageHeader* header);
-    void processGetHostListMsg(const BaseMessageHeader* header);
-    void processUpdateHandlerChainMsg(const BaseMessageHeader* header);
-    void processAllocDataMsg(const BaseMessageHeader* header);
+    EncodedPtr encodedPtr() { return reinterpret_cast<EncodedPtr>(this); }
+
+    void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen);
+    void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen);
+    void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen);
+    void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen);
+    void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen);
+
+    void forwardReplyMsg(const BaseMessageHeader* base, size_t baseLen);
 
     void sendReply(const void* data, size_t len, const BaseMessageHeader* base);
   };

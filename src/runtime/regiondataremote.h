@@ -44,6 +44,13 @@ namespace petabricks {
     void onRecv(const void* data, size_t len);
     void fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen);
 
+    // Process remote messages
+    void forwardMessage(const BaseMessageHeader* base, size_t baseLen, EncodedPtr caller);
+    void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, ReadCellReplyMessage& reply, size_t& len, EncodedPtr caller);
+    void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, WriteCellReplyMessage& reply, size_t& len, EncodedPtr caller);
+    void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, AllocDataReplyMessage& reply, size_t& len, EncodedPtr caller);
+
+
     static RemoteObjectPtr genRemote();
   };
 

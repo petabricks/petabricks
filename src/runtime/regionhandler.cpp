@@ -26,7 +26,10 @@ RegionHandler::RegionHandler(const EncodedPtr remoteObjPtr) {
 }
 
 ElementT RegionHandler::readCell(const IndexT* coord) {
-  return _regionData->readCell(coord);
+  JTRACE("read")(this);
+  ElementT x = _regionData->readCell(coord);
+  JTRACE("done read")(this);
+  return x;
 }
 
 void RegionHandler::writeCell(const IndexT* coord, ElementT value) {
@@ -131,19 +134,19 @@ void RegionHandler::createDataPart(int partIndex, RemoteHostPtr host) {
 }
 
 // Process Remote Messages
-void RegionHandler::processReadCellMsg(ReadCellMessage* msg, ReadCellReplyMessage* reply, int* len) {
-  _regionData->processReadCellMsg(msg, reply, len);
+void RegionHandler::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, ReadCellReplyMessage& reply, size_t& len, EncodedPtr caller) {
+  _regionData->processReadCellMsg(base, baseLen, reply, len, caller);
 }
 
-void RegionHandler::processWriteCellMsg(WriteCellMessage* msg, WriteCellReplyMessage* reply, int* len) {
-  _regionData->processWriteCellMsg(msg, reply, len);
+void RegionHandler::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, WriteCellReplyMessage& reply, size_t& len, EncodedPtr caller) {
+  _regionData->processWriteCellMsg(base, baseLen, reply, len, caller);
 }
 
-void RegionHandler::processGetHostListMsg(GetHostListMessage* msg, GetHostListReplyMessage* reply, int* len) {
-  _regionData->processGetHostListMsg(msg, reply, len);
+void RegionHandler::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, GetHostListReplyMessage& reply, size_t& len, EncodedPtr caller) {
+  _regionData->processGetHostListMsg(base, baseLen, reply, len, caller);
 }
 
-void RegionHandler::processAllocDataMsg(AllocDataMessage* msg, AllocDataReplyMessage* reply, int* len) {
-  _regionData->processAllocDataMsg(msg, reply, len);
+void RegionHandler::processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, AllocDataReplyMessage& reply, size_t& len, EncodedPtr caller) {
+  _regionData->processAllocDataMsg(base, baseLen, reply, len, caller);
 }
 

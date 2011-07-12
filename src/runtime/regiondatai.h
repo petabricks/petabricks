@@ -57,14 +57,6 @@ namespace petabricks {
       IndexT partOffset[MAX_DIMENSIONS];
     };
 
-    struct BaseMessageHeader {
-      bool isForwardMessage;
-      MessageType type;
-      size_t contentOffset;
-
-      char* content() const { return (char*)this + contentOffset; }
-    };
-
     struct GeneralMessageHeader {
       bool isForwardMessage;
       MessageType type;
@@ -82,6 +74,23 @@ namespace petabricks {
       EncodedPtr callback; // RegionMatrixProxy*
 
       char* content() const { return (char*)this + contentOffset; }
+      char* next() const { return (char*)this + sizeof(ForwardMessageHeader); }
+    };
+
+    struct BaseMessageHeader {
+      bool isForwardMessage;
+      MessageType type;
+      size_t contentOffset;
+
+      char* content() const { return (char*)this + contentOffset; }
+
+      char* next() const {
+        if (isForwardMessage) {
+          return (char*)this + sizeof(ForwardMessageHeader);
+        } else {
+          return (char*)this + sizeof(GeneralMessageHeader);
+        }
+      }
     };
 
     struct ReadCellMessage {
@@ -175,10 +184,10 @@ namespace petabricks {
 
 
     // Process Remote Messages
-    virtual void processReadCellMsg(ReadCellMessage* msg, ReadCellReplyMessage* reply, int* len);
-    virtual void processWriteCellMsg(WriteCellMessage* msg, WriteCellReplyMessage* reply, int* len);
-    virtual void processGetHostListMsg(GetHostListMessage* msg, GetHostListReplyMessage* reply, int* len);
-    virtual void processAllocDataMsg(AllocDataMessage* msg, AllocDataReplyMessage* reply, int* len);
+    virtual void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, ReadCellReplyMessage& reply, size_t& len, EncodedPtr caller);
+    virtual void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, WriteCellReplyMessage& reply, size_t& len, EncodedPtr caller);
+    virtual void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, GetHostListReplyMessage& reply, size_t& len, EncodedPtr caller);
+    virtual void processAllocDataMsg(const BaseMessageHeader*, size_t, AllocDataReplyMessage& reply, size_t& len, EncodedPtr caller);
 
     // for tests
   private:

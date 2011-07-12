@@ -138,7 +138,10 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
 void RegionDataRemote::onRecv(const void* data, size_t len) {
   const BaseMessageHeader* base = (const BaseMessageHeader*)data;
   if (base->isForwardMessage) {
-    UNIMPLEMENTED();
+    const ForwardMessageHeader* header = (const ForwardMessageHeader*)data;
+    RegionMatrixProxy* proxy = reinterpret_cast<RegionMatrixProxy*>(header->callback);
+    proxy->processReplyMsg(base, len);
+
   } else {
     const GeneralMessageHeader* header = (const GeneralMessageHeader*)data;
 
@@ -152,6 +155,37 @@ void RegionDataRemote::onRecv(const void* data, size_t len) {
     *responseData = msg;
     *responseLen = sz;
   }
+}
+
+// Process remote messages
+void RegionDataRemote::forwardMessage(const BaseMessageHeader* base, size_t baseLen, EncodedPtr caller) {
+  size_t len = sizeof(ForwardMessageHeader) + baseLen;
+
+  ForwardMessageHeader* data = (ForwardMessageHeader*)malloc(len);
+  data->isForwardMessage = true;
+  data->type = base->type;
+  data->contentOffset = sizeof(ForwardMessageHeader) + base->contentOffset;
+  data->callback = caller;
+
+  memcpy(data->next(), base, baseLen);
+
+  _remoteObject->send(data, len);
+  free(data);
+}
+
+void RegionDataRemote::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, ReadCellReplyMessage&, size_t&, EncodedPtr caller) {
+  //JTRACE("read");
+  this->forwardMessage(base, baseLen, caller);
+}
+
+void RegionDataRemote::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, WriteCellReplyMessage&, size_t&, EncodedPtr caller) {
+  JTRACE("write");
+  this->forwardMessage(base, baseLen, caller);
+}
+
+void RegionDataRemote::processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, AllocDataReplyMessage&, size_t&, EncodedPtr caller) {
+  JTRACE("alloc");
+  this->forwardMessage(base, baseLen, caller);
 }
 
 RemoteObjectPtr RegionDataRemote::genRemote() {

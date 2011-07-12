@@ -16,24 +16,28 @@ IndexT* RegionDataI::size() {
 }
 
 // Process Remote Messages
-void RegionDataI::processReadCellMsg(ReadCellMessage* msg, ReadCellReplyMessage* reply, int* len) {
-  reply->value = this->readCell(msg->coord);
-  *len = sizeof(ReadCellReplyMessage);
+void RegionDataI::processReadCellMsg(const BaseMessageHeader* base, size_t, ReadCellReplyMessage& reply, size_t& len, EncodedPtr) {
+  ReadCellMessage* msg = (ReadCellMessage*)base->content();
+  reply.value = this->readCell(msg->coord);
+  len = sizeof(ReadCellReplyMessage);
 }
 
-void RegionDataI::processWriteCellMsg(WriteCellMessage* msg, WriteCellReplyMessage* reply, int* len) {
+void RegionDataI::processWriteCellMsg(const BaseMessageHeader* base, size_t, WriteCellReplyMessage& reply, size_t& len, EncodedPtr) {
+  WriteCellMessage* msg = (WriteCellMessage*)base->content();
   this->writeCell(msg->coord, msg->value);
-  reply->value = msg->value;
-  *len = sizeof(WriteCellReplyMessage);
+  reply.value = msg->value;
+  len = sizeof(WriteCellReplyMessage);
 }
 
-void RegionDataI::processGetHostListMsg(GetHostListMessage* msg, GetHostListReplyMessage* reply, int* len) {
+void RegionDataI::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, GetHostListReplyMessage& reply, size_t& len, EncodedPtr) {
+  GetHostListMessage* msg = (GetHostListMessage*)base->content();
+
   UNIMPLEMENTED();
 }
 
-void RegionDataI::processAllocDataMsg(AllocDataMessage* /*msg*/, AllocDataReplyMessage* reply, int* len) {
-  reply->result = this->allocData();
-  *len = sizeof(AllocDataReplyMessage);
+void RegionDataI::processAllocDataMsg(const BaseMessageHeader*, size_t, AllocDataReplyMessage& reply, size_t& len, EncodedPtr) {
+  reply.result = this->allocData();
+  len = sizeof(AllocDataReplyMessage);
 }
 
 // Printing

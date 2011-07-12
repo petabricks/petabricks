@@ -17,31 +17,33 @@ RegionMatrixProxy::RegionMatrixProxy(RegionHandlerPtr regionHandler, RegionMatri
 }
 
 ElementT RegionMatrixProxy::readCell(const IndexT* coord) {
-  return _regionHandler->readCell(coord);
+  JASSERT(false).Text("Should not be called.");
+  return 0;
 }
 
 void RegionMatrixProxy::writeCell(const IndexT* coord, ElementT value) {
   _regionHandler->writeCell(coord, value);
 }
 
-void RegionMatrixProxy::processReadCellMsg(const BaseMessageHeader* base) {
-  ReadCellMessage* msg = (ReadCellMessage*)base->content();
-
+void RegionMatrixProxy::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen) {
   ReadCellReplyMessage reply;
-  reply.value = this->readCell(msg->coord);
-  this->sendReply(&reply, sizeof(ReadCellReplyMessage), base);
+  size_t len = 0;
+  _regionHandler->processReadCellMsg(base, baseLen, reply, len, encodedPtr());
+  if (len > 0) {
+    this->sendReply(&reply, len, base);
+  }
 }
 
-void RegionMatrixProxy::processWriteCellMsg(const BaseMessageHeader* base) {
-  WriteCellMessage* msg = (WriteCellMessage*)base->content();
-
-  this->writeCell(msg->coord, msg->value);
+void RegionMatrixProxy::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen) {
   WriteCellReplyMessage reply;
-  reply.value = msg->value;
-  this->sendReply(&reply, sizeof(WriteCellReplyMessage), base);
+  size_t len = 0;
+  _regionHandler->processWriteCellMsg(base, baseLen, reply, len, encodedPtr());
+  if (len > 0) {
+    this->sendReply(&reply, len, base);
+  }
 }
 
-void RegionMatrixProxy::processGetHostListMsg(const BaseMessageHeader* base) {
+void RegionMatrixProxy::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen) {
   GetHostListMessage* msg = (GetHostListMessage*)base->content();
 
   DataHostList list = _regionHandler->hosts(msg->begin, msg->end);
@@ -55,7 +57,7 @@ void RegionMatrixProxy::processGetHostListMsg(const BaseMessageHeader* base) {
   this->sendReply(buf, sz, base);
 }
 
-void RegionMatrixProxy::processUpdateHandlerChainMsg(const BaseMessageHeader* base) {
+void RegionMatrixProxy::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen) {
   UpdateHandlerChainMessage* msg = (UpdateHandlerChainMessage*)base->content();
 
   RegionDataIPtr regionData = _regionHandler->getRegionData();
@@ -87,10 +89,13 @@ void RegionMatrixProxy::processUpdateHandlerChainMsg(const BaseMessageHeader* ba
 
 }
 
-void RegionMatrixProxy::processAllocDataMsg(const BaseMessageHeader* base) {
+void RegionMatrixProxy::processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen) {
   AllocDataReplyMessage reply;
-  reply.result = _regionHandler->allocData();
-  this->sendReply(&reply, sizeof(AllocDataReplyMessage), base);
+  size_t len = 0;
+  _regionHandler->processAllocDataMsg(base, baseLen, reply, len, encodedPtr());
+  if (len > 0) {
+    this->sendReply(&reply, len, base);
+  }
 }
 
 void RegionMatrixProxy::onRecv(const void* data, size_t len) {
@@ -100,23 +105,23 @@ void RegionMatrixProxy::onRecv(const void* data, size_t len) {
   switch(base->type) {
   case MessageTypes::READCELL:
     JASSERT(msg_len == sizeof(ReadCellMessage));
-    this->processReadCellMsg(base);
+    this->processReadCellMsg(base, len);
     break;
   case MessageTypes::WRITECELL:
     JASSERT(msg_len == sizeof(WriteCellMessage));
-    this->processWriteCellMsg(base);
+    this->processWriteCellMsg(base, len);
     break;
   case MessageTypes::GETHOSTLIST:
     JASSERT(msg_len == sizeof(GetHostListMessage));
-    this->processGetHostListMsg(base);
+    this->processGetHostListMsg(base, len);
     break;
   case MessageTypes::UPDATEHANDLERCHAIN:
     JASSERT(msg_len == sizeof(UpdateHandlerChainMessage));
-    this->processUpdateHandlerChainMsg(base);
+    this->processUpdateHandlerChainMsg(base, len);
     break;
   case MessageTypes::ALLOCDATA:
     JASSERT(msg_len == sizeof(AllocDataMessage));
-    this->processAllocDataMsg(base);
+    this->processAllocDataMsg(base, len);
     break;
   default:
     JASSERT(false)(base->type).Text("Unknown RegionRemoteMsgTypes.");
@@ -132,6 +137,25 @@ void RegionMatrixProxy::sendReply(const void* msg, size_t len, const BaseMessage
 
   _remoteObject->send(data, dataLen);
   free(data);
+}
+
+//
+// Process reply messages
+
+void RegionMatrixProxy::processReplyMsg(const BaseMessageHeader* base, size_t baseLen) {
+  switch(base->type) {
+  case MessageTypes::READCELL:
+  case MessageTypes::WRITECELL:
+  case MessageTypes::ALLOCDATA:
+    this->forwardReplyMsg(base, baseLen);
+    break;
+  default:
+    JASSERT(false)(base->type).Text("Unknown RegionRemoteMsgTypes.");
+  }
+}
+
+void RegionMatrixProxy::forwardReplyMsg(const BaseMessageHeader* base, size_t baseLen) {
+  _remoteObject->send(base->next(), baseLen - sizeof(ForwardMessageHeader));
 }
 
 RegionMatrixProxyRemoteObjectPtr RegionMatrixProxy::genLocal() {
