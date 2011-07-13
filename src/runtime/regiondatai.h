@@ -53,6 +53,7 @@ namespace petabricks {
 
     struct InitialMessageToRegionMatrixProxy {
       int dimensions;
+      EncodedPtr remoteRegionData;
       IndexT size[MAX_DIMENSIONS];
       IndexT partOffset[MAX_DIMENSIONS];
     };
@@ -187,7 +188,8 @@ namespace petabricks {
     virtual void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, ReadCellReplyMessage& reply, size_t& len, EncodedPtr caller);
     virtual void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, WriteCellReplyMessage& reply, size_t& len, EncodedPtr caller);
     virtual void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, GetHostListReplyMessage& reply, size_t& len, EncodedPtr caller);
-    virtual void processAllocDataMsg(const BaseMessageHeader*, size_t, AllocDataReplyMessage& reply, size_t& len, EncodedPtr caller);
+    virtual void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, AllocDataReplyMessage& reply, size_t& len, EncodedPtr caller);
+    virtual void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, UpdateHandlerChainReplyMessage& reply, size_t& len, EncodedPtr caller);
 
     // for tests
   private:

@@ -61,7 +61,7 @@ void RegionDataSplit::createPart(int partIndex, RemoteHostPtr host) {
   if (host == NULL) {
     _parts[partIndex] = new RegionDataRaw(_D, size, partOffset);
   } else {
-    _parts[partIndex] = new RegionDataRemote(_D, size, partOffset, host);
+    _parts[partIndex] = new RegionDataRemote(_D, size, partOffset, host, 0);
   }
 }
 

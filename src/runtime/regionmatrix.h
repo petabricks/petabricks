@@ -454,7 +454,7 @@ namespace petabricks {
       _regionHandler = new RegionHandler(remoteObjPtr);
       buf += sz;
 
-      //updateHandlerChain();
+      updateHandlerChain();
     }
 
     void updateHandlerChain() {

@@ -58,35 +58,12 @@ void RegionMatrixProxy::processGetHostListMsg(const BaseMessageHeader* base, siz
 }
 
 void RegionMatrixProxy::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen) {
-  UpdateHandlerChainMessage* msg = (UpdateHandlerChainMessage*)base->content();
-
-  RegionDataIPtr regionData = _regionHandler->getRegionData();
   UpdateHandlerChainReplyMessage reply;
-
-  if (regionData->type() == RegionDataTypes::REGIONDATAREMOTE) {
-    reply = ((RegionDataRemote*)regionData.asPtr())->updateHandlerChain(*msg);
-  } else {
-    reply.dataHost = HostPid::self();
-    reply.numHops = msg->numHops;
-    reply.encodedPtr = 0;
-
-    if ((msg->requester != HostPid::self()) && (reply.numHops > 1)) {
-      // 1->2->3 ==> 1->3
-      // This create a new RegionMatrixProxy containing RemoteObject connection with requester's host.
-      RemoteHostPtr dest = RemoteHostDB::instance().host(msg->requester);
-      if (!dest) {
-        JASSERT(false).Text("unknown host");
-      }
-      reply.encodedPtr = _regionHandler->moveToRemoteHost(dest);
-
-    } else if (msg->requester == HostPid::self()) {
-      // 1->...->1 ==> use a direct pointer to regiondata
-      reply.encodedPtr = reinterpret_cast<EncodedPtr>(regionData.asPtr());
-    }
+  size_t len = 0;
+  _regionHandler->processUpdateHandlerChainMsg(base, baseLen, reply, len, encodedPtr());
+  if (len > 0) {
+    this->sendReply(&reply, len, base);
   }
-
-  this->sendReply(&reply, sizeof(UpdateHandlerChainReplyMessage), base);
-
 }
 
 void RegionMatrixProxy::processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen) {
@@ -147,6 +124,7 @@ void RegionMatrixProxy::processReplyMsg(const BaseMessageHeader* base, size_t ba
   case MessageTypes::READCELL:
   case MessageTypes::WRITECELL:
   case MessageTypes::ALLOCDATA:
+  case MessageTypes::UPDATEHANDLERCHAIN:
     this->forwardReplyMsg(base, baseLen);
     break;
   default:
@@ -175,6 +153,11 @@ void RegionMatrixProxyRemoteObject::onRecvInitial(const void* buf, size_t len) {
   JASSERT(len == sizeof(InitialMessageToRegionMatrixProxy))(len)(sizeof(InitialMessageToRegionMatrixProxy));
   InitialMessageToRegionMatrixProxy* msg = (InitialMessageToRegionMatrixProxy*) buf;
 
-  _regionMatrix = new RegionMatrixProxy(new RegionHandler(msg->dimensions, msg->size, msg->partOffset), this);
+  if (msg->remoteRegionData == 0) {
+    _regionMatrix = new RegionMatrixProxy(new RegionHandler(msg->dimensions, msg->size, msg->partOffset), this);
+  } else {
+    RegionDataIPtr regionData = reinterpret_cast<RegionDataI*>(msg->remoteRegionData);
+    _regionMatrix = new RegionMatrixProxy(new RegionHandler(regionData), this);
+  }
 }
 

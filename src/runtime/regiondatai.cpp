@@ -40,6 +40,16 @@ void RegionDataI::processAllocDataMsg(const BaseMessageHeader*, size_t, AllocDat
   len = sizeof(AllocDataReplyMessage);
 }
 
+void RegionDataI::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t, UpdateHandlerChainReplyMessage& reply, size_t& len, EncodedPtr) {
+  UpdateHandlerChainMessage* msg = (UpdateHandlerChainMessage*)base->content();
+
+  reply.dataHost = HostPid::self();
+  reply.numHops = msg->numHops;
+  reply.encodedPtr = reinterpret_cast<EncodedPtr>(this);
+
+  len = sizeof(UpdateHandlerChainReplyMessage);
+}
+
 // Printing
 
 int RegionDataI::incCoord(IndexT* coord) {

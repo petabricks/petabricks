@@ -13,7 +13,7 @@ RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, RegionDataRemot
   memcpy(_size, size, sizeof(IndexT) * _D);
 }
 
-RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host) {
+RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host, EncodedPtr remoteRegionData) {
   _D = dimensions;
   _type = RegionDataTypes::REGIONDATAREMOTE;
   memcpy(_size, size, sizeof(IndexT) * _D);
@@ -23,8 +23,11 @@ RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, IndexT* partOff
   // InitialMsg
   RegionDataRemoteMessage::InitialMessageToRegionMatrixProxy msg;
   msg.dimensions = _D;
+  msg.remoteRegionData = remoteRegionData;
   memcpy(msg.size, size, sizeof(msg.size));
-  memcpy(msg.partOffset, partOffset, sizeof(msg.partOffset));
+  if (partOffset) {
+    memcpy(msg.partOffset, partOffset, sizeof(msg.partOffset));
+  }
   int len = sizeof(RegionDataRemoteMessage::InitialMessageToRegionMatrixProxy);
 
   host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
@@ -174,17 +177,20 @@ void RegionDataRemote::forwardMessage(const BaseMessageHeader* base, size_t base
 }
 
 void RegionDataRemote::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, ReadCellReplyMessage&, size_t&, EncodedPtr caller) {
-  //JTRACE("read");
   this->forwardMessage(base, baseLen, caller);
 }
 
 void RegionDataRemote::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, WriteCellReplyMessage&, size_t&, EncodedPtr caller) {
-  JTRACE("write");
   this->forwardMessage(base, baseLen, caller);
 }
 
 void RegionDataRemote::processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, AllocDataReplyMessage&, size_t&, EncodedPtr caller) {
-  JTRACE("alloc");
+  this->forwardMessage(base, baseLen, caller);
+}
+
+void RegionDataRemote::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, UpdateHandlerChainReplyMessage&, size_t&, EncodedPtr caller) {
+  UpdateHandlerChainMessage* msg = (UpdateHandlerChainMessage*)base->content();
+  msg->numHops++;
   this->forwardMessage(base, baseLen, caller);
 }
 

@@ -26,14 +26,16 @@ RegionHandler::RegionHandler(const EncodedPtr remoteObjPtr) {
 }
 
 ElementT RegionHandler::readCell(const IndexT* coord) {
-  JTRACE("read")(this);
+  //  JTRACE("read")(this);
   ElementT x = _regionData->readCell(coord);
-  JTRACE("done read")(this);
+  //  JTRACE("done read")(this);
   return x;
 }
 
 void RegionHandler::writeCell(const IndexT* coord, ElementT value) {
+  //  JTRACE("write")(this);
   _regionData->writeCell(coord, value);
+  //  JTRACE("done write")(this);
 }
 
 int RegionHandler::allocData() {
@@ -87,7 +89,7 @@ void RegionHandler::updateHandlerChain() {
   if (type() == RegionDataTypes::REGIONDATAREMOTE) {
     RegionDataRemoteMessage::UpdateHandlerChainReplyMessage reply =
       ((RegionDataRemote*)_regionData.asPtr())->updateHandlerChain();
-    JTRACE("updatehandler")(reply.dataHost)(reply.numHops);
+    JTRACE("done updatehandler")(reply.dataHost)(reply.numHops);
 
     if (reply.dataHost == HostPid::self()) {
       // Data is in the same process. Update handler to point directly to the data.
@@ -95,8 +97,14 @@ void RegionHandler::updateHandlerChain() {
       updateRegionData(regionData);
     } else if (reply.numHops > 1) {
       // Multiple network hops to data. Create a direct connection to data.
-      RegionDataRemoteObject* remoteObj = reinterpret_cast<RegionDataRemoteObject*>(reply.encodedPtr);
-      updateRegionData(remoteObj->regionData());
+
+      RemoteHostPtr dest = RemoteHostDB::instance().host(reply.dataHost);
+      if (!dest) {
+        JASSERT(false).Text("unknown host");
+      }
+
+      RegionDataIPtr newRegionData = new RegionDataRemote(_regionData->dimensions(), _regionData->size(), 0, dest, reply.encodedPtr);
+      updateRegionData(newRegionData);
     }
   }
 }
@@ -150,3 +158,6 @@ void RegionHandler::processAllocDataMsg(const BaseMessageHeader* base, size_t ba
   _regionData->processAllocDataMsg(base, baseLen, reply, len, caller);
 }
 
+void RegionHandler::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, UpdateHandlerChainReplyMessage& reply, size_t& len, EncodedPtr caller) {
+  _regionData->processUpdateHandlerChainMsg(base, baseLen, reply, len, caller);
+}

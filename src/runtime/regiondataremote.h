@@ -26,7 +26,7 @@ namespace petabricks {
 
   public:
     RegionDataRemote(int dimensions, IndexT* size, RegionDataRemoteObjectPtr remoteObject);
-    RegionDataRemote(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host);
+    RegionDataRemote(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host, EncodedPtr remoteRegionData);
     ~RegionDataRemote() {
       JTRACE("Destruct RegionDataRemote");
     }
@@ -49,7 +49,7 @@ namespace petabricks {
     void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, ReadCellReplyMessage& reply, size_t& len, EncodedPtr caller);
     void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, WriteCellReplyMessage& reply, size_t& len, EncodedPtr caller);
     void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, AllocDataReplyMessage& reply, size_t& len, EncodedPtr caller);
-
+    void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, UpdateHandlerChainReplyMessage& reply, size_t& len, EncodedPtr caller);
 
     static RemoteObjectPtr genRemote();
   };
