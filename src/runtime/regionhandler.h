@@ -46,11 +46,11 @@ namespace petabricks {
     void createDataPart(int partIndex, RemoteHostPtr host);
 
     // Process Remote Messages
-    void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, ReadCellReplyMessage& reply, size_t& len, EncodedPtr caller);
-    void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, WriteCellReplyMessage& reply, size_t& len, EncodedPtr caller);
-    void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen,GetHostListReplyMessage& reply, size_t& len, EncodedPtr caller);
-    void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, AllocDataReplyMessage& reply, size_t& len, EncodedPtr caller);
-    void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, UpdateHandlerChainReplyMessage& reply, size_t& len, EncodedPtr caller);
+    void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
   };
 }
 

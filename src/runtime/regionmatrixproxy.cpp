@@ -25,72 +25,29 @@ void RegionMatrixProxy::writeCell(const IndexT*, ElementT) {
   JASSERT(false).Text("Should not be called.");
 }
 
-void RegionMatrixProxy::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen) {
-  ReadCellReplyMessage reply;
-  size_t len = 0;
-  _regionHandler->processReadCellMsg(base, baseLen, reply, len, encodedPtr());
-  if (len > 0) {
-    this->sendReply(&reply, len, base);
-  }
-}
-
-void RegionMatrixProxy::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen) {
-  WriteCellReplyMessage reply;
-  size_t len = 0;
-  _regionHandler->processWriteCellMsg(base, baseLen, reply, len, encodedPtr());
-  if (len > 0) {
-    this->sendReply(&reply, len, base);
-  }
-}
-
-void RegionMatrixProxy::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen) {
-  GetHostListReplyMessage reply;
-  size_t len = 0;
-  _regionHandler->processGetHostListMsg(base, baseLen, reply, len, encodedPtr());
-}
-
-void RegionMatrixProxy::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen) {
-  UpdateHandlerChainReplyMessage reply;
-  size_t len = 0;
-  _regionHandler->processUpdateHandlerChainMsg(base, baseLen, reply, len, encodedPtr());
-  if (len > 0) {
-    this->sendReply(&reply, len, base);
-  }
-}
-
-void RegionMatrixProxy::processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen) {
-  AllocDataReplyMessage reply;
-  size_t len = 0;
-  _regionHandler->processAllocDataMsg(base, baseLen, reply, len, encodedPtr());
-  if (len > 0) {
-    this->sendReply(&reply, len, base);
-  }
-}
-
 void RegionMatrixProxy::onRecv(const void* data, size_t len) {
   const BaseMessageHeader* base = (const BaseMessageHeader*)data;
   size_t msg_len = len - base->contentOffset;
-
   switch(base->type) {
   case MessageTypes::READCELL:
     JASSERT(msg_len == sizeof(ReadCellMessage));
-    this->processReadCellMsg(base, len);
+    _regionHandler->processReadCellMsg(base, len, this);
     break;
   case MessageTypes::WRITECELL:
     JASSERT(msg_len == sizeof(WriteCellMessage));
-    this->processWriteCellMsg(base, len);
+    _regionHandler->processWriteCellMsg(base, len, this);
     break;
   case MessageTypes::GETHOSTLIST:
     JASSERT(msg_len == sizeof(GetHostListMessage));
-    this->processGetHostListMsg(base, len);
+    _regionHandler->processGetHostListMsg(base, len, this);
     break;
   case MessageTypes::UPDATEHANDLERCHAIN:
     JASSERT(msg_len == sizeof(UpdateHandlerChainMessage));
-    this->processUpdateHandlerChainMsg(base, len);
+    _regionHandler->processUpdateHandlerChainMsg(base, len, this);
     break;
   case MessageTypes::ALLOCDATA:
     JASSERT(msg_len == sizeof(AllocDataMessage));
-    this->processAllocDataMsg(base, len);
+    _regionHandler->processAllocDataMsg(base, len, this);
     break;
   default:
     JASSERT(false)(base->type).Text("Unknown RegionRemoteMsgTypes.");

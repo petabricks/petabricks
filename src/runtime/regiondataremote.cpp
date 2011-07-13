@@ -142,7 +142,7 @@ void RegionDataRemote::onRecv(const void* data, size_t len) {
   const BaseMessageHeader* base = (const BaseMessageHeader*)data;
   if (base->isForwardMessage) {
     const ForwardMessageHeader* header = (const ForwardMessageHeader*)data;
-    RegionMatrixProxy* proxy = reinterpret_cast<RegionMatrixProxy*>(header->callback);
+    IRegionReplyProxy* proxy = reinterpret_cast<IRegionReplyProxy*>(header->callback);
     proxy->processReplyMsg(base, len);
 
   } else {
@@ -161,14 +161,14 @@ void RegionDataRemote::onRecv(const void* data, size_t len) {
 }
 
 // Process remote messages
-void RegionDataRemote::forwardMessage(const BaseMessageHeader* base, size_t baseLen, EncodedPtr caller) {
+void RegionDataRemote::forwardMessage(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   size_t len = sizeof(ForwardMessageHeader) + baseLen;
 
   ForwardMessageHeader* data = (ForwardMessageHeader*)malloc(len);
   data->isForwardMessage = true;
   data->type = base->type;
   data->contentOffset = sizeof(ForwardMessageHeader) + base->contentOffset;
-  data->callback = caller;
+  data->callback = reinterpret_cast<EncodedPtr>(caller);
 
   memcpy(data->next(), base, baseLen);
 
@@ -176,25 +176,25 @@ void RegionDataRemote::forwardMessage(const BaseMessageHeader* base, size_t base
   free(data);
 }
 
-void RegionDataRemote::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, ReadCellReplyMessage&, size_t&, EncodedPtr caller) {
+void RegionDataRemote::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   this->forwardMessage(base, baseLen, caller);
 }
 
-void RegionDataRemote::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, WriteCellReplyMessage&, size_t&, EncodedPtr caller) {
+void RegionDataRemote::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   this->forwardMessage(base, baseLen, caller);
 }
 
-void RegionDataRemote::processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, AllocDataReplyMessage&, size_t&, EncodedPtr caller) {
+void RegionDataRemote::processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   this->forwardMessage(base, baseLen, caller);
 }
 
-void RegionDataRemote::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, UpdateHandlerChainReplyMessage&, size_t&, EncodedPtr caller) {
+void RegionDataRemote::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   UpdateHandlerChainMessage* msg = (UpdateHandlerChainMessage*)base->content();
   msg->numHops++;
   this->forwardMessage(base, baseLen, caller);
 }
 
-void RegionDataRemote::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, GetHostListReplyMessage&, size_t&, EncodedPtr caller) {
+void RegionDataRemote::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   this->forwardMessage(base, baseLen, caller);
 }
 

@@ -45,12 +45,13 @@ namespace petabricks {
     void fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen);
 
     // Process remote messages
-    void forwardMessage(const BaseMessageHeader* base, size_t baseLen, EncodedPtr caller);
-    void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, ReadCellReplyMessage& reply, size_t& len, EncodedPtr caller);
-    void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, WriteCellReplyMessage& reply, size_t& len, EncodedPtr caller);
-    void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, AllocDataReplyMessage& reply, size_t& len, EncodedPtr caller);
-    void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, UpdateHandlerChainReplyMessage& reply, size_t& len, EncodedPtr caller);
-    void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, GetHostListReplyMessage& reply, size_t& len, EncodedPtr caller);
+    void forwardMessage(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+
+    void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
 
     static RemoteObjectPtr genRemote();
   };

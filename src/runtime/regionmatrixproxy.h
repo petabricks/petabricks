@@ -1,6 +1,7 @@
 #ifndef PETABRICKSREGIONMATRIXPROXY_H
 #define PETABRICKSREGIONMATRIXPROXY_H
 
+#include "iregionreplyproxy.h"
 #include "regiondataremote.h"
 #include "regionmatrixi.h"
 #include "remoteobject.h"
@@ -14,7 +15,7 @@ namespace petabricks {
   class RegionMatrixProxyRemoteObject;
   typedef jalib::JRef<RegionMatrixProxyRemoteObject> RegionMatrixProxyRemoteObjectPtr;
 
-  class RegionMatrixProxy : public RegionMatrixI {
+  class RegionMatrixProxy : public RegionMatrixI, public IRegionReplyProxy {
     RegionMatrixProxyRemoteObject* _remoteObject;
 
   public:
@@ -32,18 +33,11 @@ namespace petabricks {
     RegionMatrixProxyRemoteObjectPtr genLocal();
     static RemoteObjectPtr genRemote();
 
+    // IRegionReplyProxy
     void processReplyMsg(const BaseMessageHeader* base, size_t baseLen);
     void sendReply(const void* data, size_t len, const BaseMessageHeader* base);
 
   private:
-    EncodedPtr encodedPtr() { return reinterpret_cast<EncodedPtr>(this); }
-
-    void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen);
-    void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen);
-    void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen);
-    void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen);
-    void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen);
-
     void forwardReplyMsg(const BaseMessageHeader* base, size_t baseLen);
   };
 

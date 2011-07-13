@@ -142,22 +142,22 @@ void RegionHandler::createDataPart(int partIndex, RemoteHostPtr host) {
 }
 
 // Process Remote Messages
-void RegionHandler::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, ReadCellReplyMessage& reply, size_t& len, EncodedPtr caller) {
-  _regionData->processReadCellMsg(base, baseLen, reply, len, caller);
+void RegionHandler::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  _regionData->processReadCellMsg(base, baseLen, caller);
 }
 
-void RegionHandler::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, WriteCellReplyMessage& reply, size_t& len, EncodedPtr caller) {
-  _regionData->processWriteCellMsg(base, baseLen, reply, len, caller);
+void RegionHandler::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  _regionData->processWriteCellMsg(base, baseLen, caller);
 }
 
-void RegionHandler::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, GetHostListReplyMessage& reply, size_t& len, EncodedPtr caller) {
-  _regionData->processGetHostListMsg(base, baseLen, reply, len, caller);
+void RegionHandler::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  _regionData->processGetHostListMsg(base, baseLen, caller);
 }
 
-void RegionHandler::processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, AllocDataReplyMessage& reply, size_t& len, EncodedPtr caller) {
-  _regionData->processAllocDataMsg(base, baseLen, reply, len, caller);
+void RegionHandler::processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  _regionData->processAllocDataMsg(base, baseLen, caller);
 }
 
-void RegionHandler::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, UpdateHandlerChainReplyMessage& reply, size_t& len, EncodedPtr caller) {
-  _regionData->processUpdateHandlerChainMsg(base, baseLen, reply, len, caller);
+void RegionHandler::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  _regionData->processUpdateHandlerChainMsg(base, baseLen, caller);
 }

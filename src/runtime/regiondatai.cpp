@@ -18,20 +18,24 @@ IndexT* RegionDataI::size() {
 }
 
 // Process Remote Messages
-void RegionDataI::processReadCellMsg(const BaseMessageHeader* base, size_t, ReadCellReplyMessage& reply, size_t& len, EncodedPtr) {
+void RegionDataI::processReadCellMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
   ReadCellMessage* msg = (ReadCellMessage*)base->content();
+  ReadCellReplyMessage reply;
   reply.value = this->readCell(msg->coord);
-  len = sizeof(ReadCellReplyMessage);
+  size_t len = sizeof(ReadCellReplyMessage);
+  caller->sendReply(&reply, len, base);
 }
 
-void RegionDataI::processWriteCellMsg(const BaseMessageHeader* base, size_t, WriteCellReplyMessage& reply, size_t& len, EncodedPtr) {
+void RegionDataI::processWriteCellMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
   WriteCellMessage* msg = (WriteCellMessage*)base->content();
+  WriteCellReplyMessage reply;
   this->writeCell(msg->coord, msg->value);
   reply.value = msg->value;
-  len = sizeof(WriteCellReplyMessage);
+  size_t len = sizeof(WriteCellReplyMessage);
+  caller->sendReply(&reply, len, base);
 }
 
-void RegionDataI::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, GetHostListReplyMessage&, size_t&, EncodedPtr encodedPtr) {
+void RegionDataI::processGetHostListMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
   GetHostListMessage* msg = (GetHostListMessage*)base->content();
 
   DataHostList list = this->hosts(msg->begin, msg->end);
@@ -43,23 +47,26 @@ void RegionDataI::processGetHostListMsg(const BaseMessageHeader* base, size_t ba
   reply->numHosts = list.size();
   memcpy(reply->hosts, &list[0], hosts_array_size);
 
-  RegionMatrixProxy* region = reinterpret_cast<RegionMatrixProxy*>(encodedPtr);
-  region->sendReply(buf, sz, base);
+  caller->sendReply(buf, sz, base);
 }
 
-void RegionDataI::processAllocDataMsg(const BaseMessageHeader*, size_t, AllocDataReplyMessage& reply, size_t& len, EncodedPtr) {
+void RegionDataI::processAllocDataMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+  AllocDataReplyMessage reply;
   reply.result = this->allocData();
-  len = sizeof(AllocDataReplyMessage);
+  size_t len = sizeof(AllocDataReplyMessage);
+  caller->sendReply(&reply, len, base);
 }
 
-void RegionDataI::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t, UpdateHandlerChainReplyMessage& reply, size_t& len, EncodedPtr) {
+void RegionDataI::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
   UpdateHandlerChainMessage* msg = (UpdateHandlerChainMessage*)base->content();
 
+  UpdateHandlerChainReplyMessage reply;
   reply.dataHost = HostPid::self();
   reply.numHops = msg->numHops;
   reply.encodedPtr = reinterpret_cast<EncodedPtr>(this);
 
-  len = sizeof(UpdateHandlerChainReplyMessage);
+  size_t len = sizeof(UpdateHandlerChainReplyMessage);
+  caller->sendReply(&reply, len, base);
 }
 
 // Printing

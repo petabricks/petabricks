@@ -54,6 +54,7 @@ pkglib_HEADERS=  \
   runtime/cellproxy.h \
   runtime/dynamicscheduler.h \
   runtime/dynamictask.h \
+  runtime/iregionreplyproxy.h \
   runtime/matrixio.h \
   runtime/matrixregion.h \
   runtime/matrixspecializations.h \
@@ -65,6 +66,7 @@ pkglib_HEADERS=  \
   runtime/regiondatai.h \
   runtime/regiondataraw.h \
   runtime/regiondataremote.h \
+  runtime/regiondataremotemessages.h \
   runtime/regiondatasplit.h \
   runtime/regionhandler.h \
   runtime/regionmatrix.h \
