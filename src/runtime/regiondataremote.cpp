@@ -194,6 +194,10 @@ void RegionDataRemote::processUpdateHandlerChainMsg(const BaseMessageHeader* bas
   this->forwardMessage(base, baseLen, caller);
 }
 
+void RegionDataRemote::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, GetHostListReplyMessage&, size_t&, EncodedPtr caller) {
+  this->forwardMessage(base, baseLen, caller);
+}
+
 RemoteObjectPtr RegionDataRemote::genRemote() {
   return new RegionDataRemoteObject();
 }

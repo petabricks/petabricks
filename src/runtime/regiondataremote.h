@@ -50,6 +50,7 @@ namespace petabricks {
     void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, WriteCellReplyMessage& reply, size_t& len, EncodedPtr caller);
     void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, AllocDataReplyMessage& reply, size_t& len, EncodedPtr caller);
     void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, UpdateHandlerChainReplyMessage& reply, size_t& len, EncodedPtr caller);
+    void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, GetHostListReplyMessage& reply, size_t& len, EncodedPtr caller);
 
     static RemoteObjectPtr genRemote();
   };

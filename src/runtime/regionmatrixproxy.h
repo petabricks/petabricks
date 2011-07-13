@@ -33,6 +33,7 @@ namespace petabricks {
     static RemoteObjectPtr genRemote();
 
     void processReplyMsg(const BaseMessageHeader* base, size_t baseLen);
+    void sendReply(const void* data, size_t len, const BaseMessageHeader* base);
 
   private:
     EncodedPtr encodedPtr() { return reinterpret_cast<EncodedPtr>(this); }
@@ -44,8 +45,6 @@ namespace petabricks {
     void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen);
 
     void forwardReplyMsg(const BaseMessageHeader* base, size_t baseLen);
-
-    void sendReply(const void* data, size_t len, const BaseMessageHeader* base);
   };
 
   class RegionMatrixProxyRemoteObject : public RemoteObject {

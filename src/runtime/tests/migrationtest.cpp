@@ -197,6 +197,9 @@ RemoteObjectPtr step6() {
       regionMatrix.unserialize((char*)data, *host());
       MatrixIO().write(regionMatrix);
 
+      print(regionMatrix.dataHosts());
+      JASSERT(!regionMatrix.regionHandler()->isHandlerChainUpdated());
+
       regionMatrix.updateHandlerChain();
       JASSERT(regionMatrix.regionHandler()->isHandlerChainUpdated());
       MatrixIO().write(regionMatrix);

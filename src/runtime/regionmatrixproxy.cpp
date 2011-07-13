@@ -16,13 +16,13 @@ RegionMatrixProxy::RegionMatrixProxy(RegionHandlerPtr regionHandler, RegionMatri
   _remoteObject = remoteObject.asPtr();
 }
 
-ElementT RegionMatrixProxy::readCell(const IndexT* coord) {
+ElementT RegionMatrixProxy::readCell(const IndexT*) {
   JASSERT(false).Text("Should not be called.");
   return 0;
 }
 
-void RegionMatrixProxy::writeCell(const IndexT* coord, ElementT value) {
-  _regionHandler->writeCell(coord, value);
+void RegionMatrixProxy::writeCell(const IndexT*, ElementT) {
+  JASSERT(false).Text("Should not be called.");
 }
 
 void RegionMatrixProxy::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen) {
@@ -44,17 +44,9 @@ void RegionMatrixProxy::processWriteCellMsg(const BaseMessageHeader* base, size_
 }
 
 void RegionMatrixProxy::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen) {
-  GetHostListMessage* msg = (GetHostListMessage*)base->content();
-
-  DataHostList list = _regionHandler->hosts(msg->begin, msg->end);
-  size_t hosts_array_size = list.size() * sizeof(DataHostListItem);
-  size_t sz = sizeof(GetHostListReplyMessage) + hosts_array_size;
-
-  char buf[sz];
-  GetHostListReplyMessage* reply = (GetHostListReplyMessage*)buf;
-  reply->numHosts = list.size();
-  memcpy(reply->hosts, &list[0], hosts_array_size);
-  this->sendReply(buf, sz, base);
+  GetHostListReplyMessage reply;
+  size_t len = 0;
+  _regionHandler->processGetHostListMsg(base, baseLen, reply, len, encodedPtr());
 }
 
 void RegionMatrixProxy::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen) {
@@ -125,6 +117,7 @@ void RegionMatrixProxy::processReplyMsg(const BaseMessageHeader* base, size_t ba
   case MessageTypes::WRITECELL:
   case MessageTypes::ALLOCDATA:
   case MessageTypes::UPDATEHANDLERCHAIN:
+  case MessageTypes::GETHOSTLIST:
     this->forwardReplyMsg(base, baseLen);
     break;
   default:

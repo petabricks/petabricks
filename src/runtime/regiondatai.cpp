@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "regionmatrixproxy.h"
+
 using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
 
@@ -29,10 +31,20 @@ void RegionDataI::processWriteCellMsg(const BaseMessageHeader* base, size_t, Wri
   len = sizeof(WriteCellReplyMessage);
 }
 
-void RegionDataI::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, GetHostListReplyMessage& reply, size_t& len, EncodedPtr) {
+void RegionDataI::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, GetHostListReplyMessage&, size_t&, EncodedPtr encodedPtr) {
   GetHostListMessage* msg = (GetHostListMessage*)base->content();
 
-  UNIMPLEMENTED();
+  DataHostList list = this->hosts(msg->begin, msg->end);
+  size_t hosts_array_size = list.size() * sizeof(DataHostListItem);
+  size_t sz = sizeof(GetHostListReplyMessage) + hosts_array_size;
+
+  char buf[sz];
+  GetHostListReplyMessage* reply = (GetHostListReplyMessage*)buf;
+  reply->numHosts = list.size();
+  memcpy(reply->hosts, &list[0], hosts_array_size);
+
+  RegionMatrixProxy* region = reinterpret_cast<RegionMatrixProxy*>(encodedPtr);
+  region->sendReply(buf, sz, base);
 }
 
 void RegionDataI::processAllocDataMsg(const BaseMessageHeader*, size_t, AllocDataReplyMessage& reply, size_t& len, EncodedPtr) {
