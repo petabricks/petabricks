@@ -50,7 +50,7 @@ namespace petabricks {
     virtual RemoteObjectGenerator generator() = 0;
 
     void onCompletedRemotely();
-    void enqueueLocal();    
+    void enqueueLocal();
     void enqueueRemote(RemoteHost& host);
 
   protected:
@@ -66,7 +66,7 @@ namespace petabricks {
     CallMarkComplete(const jalib::JRef<T>& t) : _rtp(t) {}
     DynamicTaskPtr run(){
       _rtp->markComplete();
-      return 0; 
+      return 0;
     }
 
     bool isNullTask() const { return true; }
