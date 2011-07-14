@@ -331,5 +331,15 @@ void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const
   write("}");
 }
 
+/*#ifdef HAVE_OPENCL
+void petabricks::CodeGenerator::mkGpuSpatialTask(const std::string& objname, const std::string& methodname) {
+  std::string taskclass = "petabricks::SpatialMethodCallTask<"+objname
+                        + ", " + jalib::XToString(region.totalDimensions())
+                        + ", &" + objname + "::" + methodname
+                        + ">";
+  //TODO: is "this" right?
+  write("new "+taskclass+"(this, _iter_begin, _iter_end);");
+}
+#endif*/
 
 
