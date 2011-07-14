@@ -70,7 +70,7 @@ void RegionDataRemote::writeCell(const IndexT* coord, ElementT value) {
   this->fetchData(&msg, MessageTypes::WRITECELL, sizeof(WriteCellMessage), &data, &len);
   WriteCellReplyMessage* reply = (WriteCellReplyMessage*)data;
 
-  JASSERT(reply->value == value)(reply->value)(value);
+  //JASSERT(reply->value == value)(reply->value)(value);
   free(reply);
 }
 
