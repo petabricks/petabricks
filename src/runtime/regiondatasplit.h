@@ -34,6 +34,9 @@ namespace petabricks {
 
     RegionDataIPtr coordToPart(const IndexT* coord);
 
+    void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+
     // test
     void print();
   };

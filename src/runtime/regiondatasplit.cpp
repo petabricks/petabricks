@@ -84,6 +84,16 @@ void RegionDataSplit::writeCell(const IndexT* coord, ElementT value) {
   this->coordToPart(coord)->writeCell(coord, value);
 }
 
+void RegionDataSplit::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  ReadCellMessage* msg = (ReadCellMessage*)base->content();
+  this->coordToPart(msg->coord)->processReadCellMsg(base, baseLen, caller);
+}
+
+void RegionDataSplit::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  WriteCellMessage* msg = (WriteCellMessage*)base->content();
+  this->coordToPart(msg->coord)->processWriteCellMsg(base, baseLen, caller);
+}
+
 DataHostList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {
   std::map<HostPid, int> hosts;
 
