@@ -205,7 +205,7 @@ namespace {
           dimIt != dimIt_end;
           ++dimIt) {
         const size_t dimension = *dimIt;
-        if(accessInTheMiddle(region, dimension)) {
+        if(dimension >= region->matrix()->numDimensions() || accessInTheMiddle(region, dimension)) {
           uselessDimensions.erase(dimIt);
         }
       }

@@ -315,7 +315,7 @@ if test "$default_cxxflags" = "yes"; then
   fi
   case "$target_cpu" in
     *sparc*) compileflags="$compileflags -mcpu=niagara -mtune=native";;
-    *)       compileflags="$compileflags -march=native -fno-rtti";;
+    *)       compileflags="$compileflags -march=native";;
   esac
 fi
 
