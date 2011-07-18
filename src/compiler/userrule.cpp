@@ -650,6 +650,10 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     o.comment( "Create memory objects for outputs." );
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
+      
+      /*o.mkGpuSpatialTask(trans.instClassName(), buffercodename(trans,(*i)->name()));
+      fork.beginFunc("petabricks::DynamicTaskPtr", buffercodename(trans,(*i)->name()), packedargs);*/
+
       std::string matrix_name = (*i)->matrix( )->name( );
       std::set<std::string>::iterator matrix_it = set.find(matrix_name);
       if(matrix_it == set.end()) {
