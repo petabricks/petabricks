@@ -27,7 +27,9 @@ namespace petabricks {
   public:
     RegionDataRemote(int dimensions, IndexT* size, RegionDataRemoteObjectPtr remoteObject);
     RegionDataRemote(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host, EncodedPtr remoteRegionData);
-    ~RegionDataRemote();
+    ~RegionDataRemote() {
+      JTRACE("Destruct RegionDataRemote");
+    }
 
     int allocData();
 
@@ -60,6 +62,9 @@ namespace petabricks {
     RegionDataRemote* _regionData;
   public:
     RegionDataRemoteObject() {}
+    ~RegionDataRemoteObject() {
+      JTRACE("Destruct RegionDataRemoteObject");
+    }
 
     void onRecv(const void* data, size_t len) {
       _regionData->onRecv(data, len);

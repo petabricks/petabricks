@@ -246,7 +246,7 @@ namespace petabricks {
       return s;
     }
 
-    CellProxy cell(IndexT x, ...) const {
+    CellProxy& cell(IndexT x, ...) const {
       IndexT c1[D];
       va_list ap;
       va_start(ap, x);
@@ -255,12 +255,12 @@ namespace petabricks {
       va_end(ap);
       return cell(c1);
     }
-    CellProxy cell(IndexT* coord) const {
+    CellProxy& cell(IndexT* coord) const {
       IndexT rd_coord[_regionHandler->dimensions()];
       getRegionDataCoord(coord, rd_coord);
-      return CellProxy(_regionHandler, rd_coord);
+      return *(new CellProxy(_regionHandler, rd_coord));
     }
-    INLINE CellProxy cell() const {
+    INLINE CellProxy& cell() const {
       IndexT c1[0];
       return this->cell(c1);
     }

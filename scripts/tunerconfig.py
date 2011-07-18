@@ -83,7 +83,7 @@ class config_defaults:
   threads = None
   abort_on = ""
   race_split_ratio = 0.5
-
+  
   threshold_multiplier_min = 100.0
   threshold_multiplier_max = 1000.0
   threshold_multiplier_default=400.0
@@ -97,7 +97,7 @@ class config_defaults:
   lognorm_array_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
   ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg', 'user.tunable.double',
                                  'user.tunable.double.array', "system.runtime.threads"]
-
+  
   #metric information, dont change
   metrics               = ['timing', 'accuracy']
   metric_orders         = [1, -1] #1 = minimize, -1 = maximize
@@ -152,10 +152,10 @@ class patch_check:
   #required flags
   use_iogen                = True
   check                    = True
-
+  
   #run for 30 sec or 2**13 input size
   max_input_size           = 1024
-  max_time                 = 40
+  max_time                 = 20
   rounds_per_input_size    = 1
 
   #bigger pop size
@@ -163,7 +163,7 @@ class patch_check:
 
   # wait longer for results, higher time limits
   limit_multiplier         = 15
-
+  
   #run two trials per alg
   confidence_pct   = 0.0
   max_trials       = 2
