@@ -71,25 +71,41 @@ RegionDataType RegionHandler::type() const {
 //
 
 EncodedPtr RegionHandler::moveToRemoteHost(RemoteHostPtr host) {
-  RegionMatrixProxyPtr proxy = new RegionMatrixProxy(this);
-  RegionMatrixProxyRemoteObjectPtr local = proxy->genLocal();
+  //if (_remoteObjects.count(host->id()) == 0) {
+  //  if(1) {
+    // Create remoteobjects
 
-  // InitialMsg
-  RegionDataRemoteMessage::InitialMessageToRegionDataRemote msg;
-  msg.dimensions = dimensions();
-  memcpy(msg.size, size(), sizeof(msg.size));
-  int len = sizeof(RegionDataRemoteMessage::InitialMessageToRegionDataRemote);
+    RegionMatrixProxyPtr proxy = new RegionMatrixProxy(this);
+    RegionMatrixProxyRemoteObjectPtr local = proxy->genLocal();
 
-  host->createRemoteObject(local.asPtr(), &RegionDataRemote::genRemote, &msg, len);
-  local->waitUntilCreated();
-  return local->remoteObjPtr();
+    // InitialMsg
+    RegionDataRemoteMessage::InitialMessageToRegionDataRemote msg;
+    msg.dimensions = dimensions();
+    memcpy(msg.size, size(), sizeof(msg.size));
+    int len = sizeof(RegionDataRemoteMessage::InitialMessageToRegionDataRemote);
+
+    host->createRemoteObject(local.asPtr(), &RegionDataRemote::genRemote, &msg, len);
+    local->waitUntilCreated();
+
+    //    _remoteObjects[host->id()] = local->remoteObjPtr();
+    //  } else {
+    //    JTRACE("remoteobjects exist");
+    //  }
+
+    return local->remoteObjPtr();
+
+  //return _remoteObjects[host->id()];
+}
+
+void RegionHandler::removeRemoteObject(const HostPid& hostPid) {
+  // _remoteObjects.erase(hostPid);
 }
 
 void RegionHandler::updateHandlerChain() {
   if (type() == RegionDataTypes::REGIONDATAREMOTE) {
     RegionDataRemoteMessage::UpdateHandlerChainReplyMessage reply =
       ((RegionDataRemote*)_regionData.asPtr())->updateHandlerChain();
-    JTRACE("done updatehandler")(reply.dataHost)(reply.numHops);
+    //JTRACE("done updatehandler")(reply.dataHost)(reply.numHops);
 
     if (reply.dataHost == HostPid::self()) {
       // Data is in the same process. Update handler to point directly to the data.

@@ -6,6 +6,8 @@
 #include "regiondatai.h"
 #include "remotehost.h"
 
+#include <map>
+
 namespace petabricks {
   using namespace petabricks::RegionDataRemoteMessage;
 
@@ -15,6 +17,9 @@ namespace petabricks {
   class RegionHandler : public jalib::JRefCounted {
   private:
     RegionDataIPtr _regionData;
+
+    // map from HostPid to pointer to remoteobject in respective host.
+    std::map<HostPid, EncodedPtr> _remoteObjects;
 
   public:
     RegionHandler(const int dimensions, const IndexT* size);
@@ -40,6 +45,7 @@ namespace petabricks {
     EncodedPtr moveToRemoteHost(RemoteHostPtr host);
     void updateHandlerChain();
     bool isHandlerChainUpdated(); // for testing
+    void removeRemoteObject(const HostPid& hostPid);
 
     // RegionDataSplit
     void splitData(IndexT* splitSize);

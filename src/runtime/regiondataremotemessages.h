@@ -41,6 +41,7 @@ namespace petabricks {
 	GETHOSTLIST,
 	UPDATEHANDLERCHAIN,
         ALLOCDATA,
+        DESTRUCTREGIONDATA,
       };
     };
 

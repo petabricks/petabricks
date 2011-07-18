@@ -33,6 +33,10 @@ RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, IndexT* partOff
   host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
 }
 
+RegionDataRemote::~RegionDataRemote() {
+  _remoteObject->remoteNotify(MessageTypes::DESTRUCTREGIONDATA);
+}
+
 int RegionDataRemote::allocData() {
   AllocDataMessage msg;
 
