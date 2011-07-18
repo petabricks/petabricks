@@ -123,9 +123,9 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
   RIRBlockCopyRef bodyir = RIRBlock::parse(_bodysrc, &_bodysrcPos);
 
 #ifdef DEBUG
-  std::cerr << "--------------------\nBEFORE compileRuleBody:\n" << bodyir << std::endl;
+  /*std::cerr << "--------------------\nBEFORE compileRuleBody:\n" << bodyir << std::endl;
   bodyir->accept(print);
-  std::cerr << "--------------------\n";
+  std::cerr << "--------------------\n";*/
 #endif
 
   bodyir->accept(expand);
@@ -135,6 +135,15 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
   _bodyirDynamic = bodyir;
   
 #ifdef HAVE_OPENCL
+#ifdef DEBUG
+      /*std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
+      bodyir->accept(print);
+      std::cerr << "--------------------\n";*/
+      TRACE("ENABLE/DISABLE GPU RULE");
+      std::cerr << "----------------------------------" << std::endl;
+      this->print(std::cout);
+      std::cerr << "----------------------------------" << std::endl;
+#endif
   if(isOpenClRule() && getSelfDependency().isNone()){
     try
     {
@@ -142,23 +151,20 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       _bodyirOpenCL->accept(openclfnreject);
       _bodyirOpenCL->accept(opencl);
       _bodyirOpenCL->accept(gpurename);
-      std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
-      bodyir->accept(print);
-      std::cerr << "--------------------\n";
 
       if(!passBuildGpuProgram(tx)) {
-				std::cout << "(>) RULE REJECTED BY TryBuildGpuProgram: " << id() << "\n";
+				std::cout << "(>) RULE REJECTED BY TryBuildGpuProgram: RULE " << id() << "\n";
         failgpu = true;
       }
     }
     catch( OpenClCleanupPass::NotValidSource e )
     {
-      std::cout << "(>) RULE REJECTED BY OpenClCleanupPass: " << id() << "\n";
+      std::cout << "(>) RULE REJECTED BY OpenClCleanupPass: RULE " << id() << "\n";
       failgpu = true;
     }
     catch( OpenClFunctionRejectPass::NotValidSource e )
     {
-      std::cout << "(>) RULE REJECTED BY OpenClFunctionRejectPass: " << id() << "\n";
+      std::cout << "(>) RULE REJECTED BY OpenClFunctionRejectPass: RULE " << id() << "\n";
       failgpu = true;
     }
 		
@@ -868,7 +874,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   if( !isOpenClRule() )
     return;
 
-  TRACE( "10" );
+  //TRACE( "10" );
 
   std::vector<std::string> from_matrices, to_matrices;
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
@@ -878,7 +884,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
 
   clo.beginKernel(_to, _from, iterdef.dimensions(), trans);
 
-  TRACE( "20" );
+  //TRACE( "20" );
 
   // Get indices.
   for( int i = 0; i < iterdef.dimensions( ); ++i )
@@ -905,7 +911,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   if(iterdef.dimensions()>0)
     clo.os( ) << ") {\n";
 
-  TRACE( "30" );
+  //TRACE( "30" );
 
   // Generate indices into input and output arrays.
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
@@ -935,7 +941,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
     idx_formula->print( clo.os( ) );
     clo.os( ) << ";\n";
   }
-  TRACE( "40" );
+  //TRACE( "40" );
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
   {
     // Build & normalize formula for index.
@@ -968,7 +974,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
     idx_formula->print( clo.os( ) );
     clo.os( ) << ";\n";
   }
-  TRACE( "50" );
+  //TRACE( "50" );
 
   // Load inputs to rule.
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
@@ -977,7 +983,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
 (*i)->name( ) << "];\n";
   }
 
-  TRACE( "60" );
+  //TRACE( "60" );
 
   // Quick hack -- generate a macro that will store the output from the rule.
   /** \todo this mechanism won't work with rules with multiple outputs */
@@ -1010,7 +1016,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
  #endif
   clo.write( _bodyirOpenCL->toString( ) );
 
-  TRACE( "70" );
+  //TRACE( "70" );
 
   //clo.os( ) << "OUT[idx_OUT] = IN[idx_IN];\n";
 

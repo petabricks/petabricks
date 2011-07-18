@@ -113,9 +113,13 @@ void GpuRule::generateCallCode(const std::string& name,
   switch(flavor) {
   case RuleFlavor::SEQUENTIAL:
     o.callSpatial(_rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region);
+    //o.mkGpuSpatialTask(trans.instClassName(), _rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region);
+    //o.write("std::cerr << \">>>>>>>>>>>> NEW GPU TASK\" << std::endl;");
     break;
   case RuleFlavor::WORKSTEALING:
-    o.mkSpatialTask(name, trans.instClassName(), _rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region);
+    //o.mkSpatialTask(name, trans.instClassName(), _rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region);
+    o.mkGpuSpatialTask(name, trans.instClassName(), _rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region);
+    o.write("std::cerr << \">>>>>>>>>>>> NEW GPU TASK\" << std::endl;");
     break;
   default:
     UNIMPLEMENTED();

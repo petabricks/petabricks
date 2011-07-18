@@ -24,46 +24,40 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifndef PETABRICKSTRANSFORMINSTANCE_H
-#define PETABRICKSTRANSFORMINSTANCE_H
+#ifdef HAVE_OPENCL
+#ifndef PETABRICKSGPUMANAGER_H
+#define PETABRICKSGPUMANAGER_H
 
-#include "dynamictask.h"
+#include "common/jmutex.h"
+
+#include "openclutil.h"
 #include "gpudynamictask.h"
+#include "deviceinfo.h"
 
-#include "common/jrefcounted.h"
+#include <oclUtils.h>
+#include <pthread.h>
+#include <list>
+#include <queue>
 
 namespace petabricks {
 
-class TransformInstance;
-typedef jalib::JRef<TransformInstance> TransformInstancePtr;
-
-/**
- * base clase for instances of user transforms
- */
-class TransformInstance : public jalib::JRefCounted {
+class GpuManager {
 public:
-  virtual ~TransformInstance(){}
-//  virtual DynamicTaskPtr runDynamic() = 0;
 
-//DynamicTaskPtr runAfter(const DynamicTaskPtr& before){
-//  if(before){
-//    DynamicTaskPtr t = new MethodCallTask<TransformInstance, &TransformInstance::runDynamic>(this);
-//    t->dependsOn(before);
-//    return t;
-//  }else{
-//    return runDynamic();
-//  }
-//}
-  
-//void runToCompletion(){
-//  DynamicTaskPtr p = runDynamic();
-//  if(p){
-//    p->enqueue();
-//    p->waitUntilComplete();
-//  }
-//}
+  static void mainLoop();
+  static void addTask(GpuDynamicTaskPtr task);
+  static bool _shutdown;
+
+private:
+  static std::list<GpuDynamicTaskPtr> _pendingtasks;
+  static std::queue<GpuDynamicTaskPtr> _readytasks;
+  static jalib::JMutex  _lock;
+
 };
+
+//GpuDynamicTaskList GpuManager::_queue;
 
 }
 
+#endif
 #endif

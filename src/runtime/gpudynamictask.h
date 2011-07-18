@@ -24,46 +24,79 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifndef PETABRICKSTRANSFORMINSTANCE_H
-#define PETABRICKSTRANSFORMINSTANCE_H
+#ifdef HAVE_OPENCL
 
-#include "dynamictask.h"
-#include "gpudynamictask.h"
+#ifndef PETABRICKSGPUDYNAMICTASK_H
+#define PETABRICKSGPUDYNAMICTASK_H
 
-#include "common/jrefcounted.h"
+#include "gputaskinfo.h"
 
 namespace petabricks {
 
-class TransformInstance;
-typedef jalib::JRef<TransformInstance> TransformInstancePtr;
+class GpuDynamicTask;
+typedef jalib::JRef<GpuDynamicTask> GpuDynamicTaskPtr;
+typedef std::vector<GpuDynamicTaskPtr> GpuDynamicTaskList;
 
-/**
- * base clase for instances of user transforms
- */
-class TransformInstance : public jalib::JRefCounted {
+class GpuDynamicTask : public DynamicTask {
 public:
-  virtual ~TransformInstance(){}
-//  virtual DynamicTaskPtr runDynamic() = 0;
 
-//DynamicTaskPtr runAfter(const DynamicTaskPtr& before){
-//  if(before){
-//    DynamicTaskPtr t = new MethodCallTask<TransformInstance, &TransformInstance::runDynamic>(this);
-//    t->dependsOn(before);
-//    return t;
-//  }else{
-//    return runDynamic();
-//  }
-//}
-  
-//void runToCompletion(){
-//  DynamicTaskPtr p = runDynamic();
-//  if(p){
-//    p->enqueue();
-//    p->waitUntilComplete();
-//  }
-//}
+  /// constructor
+  GpuDynamicTask() : DynamicTask(TYPE_OPENCL) {
+  }
+
+  virtual DynamicTaskPtr run() = 0;
+
+  void runWrapper(bool isAborting){
+    JASSERT(_state==S_READY && _numPredecessors==0)(_state)(_numPredecessors);
+
+    if (!isAborting) {
+      _continuation = run();
+    } else {
+      _continuation = NULL;
+    }
+
+    std::vector<DynamicTask*> tmp;
+
+    {
+      JLOCKSCOPE(_lock);
+      _dependents.swap(tmp);
+      if(_continuation) _state = S_CONTINUED;
+      else             _state = S_COMPLETE;
+    }
+
+    if(_continuation){
+      // Unimplemented yet
+    }else{
+      #ifdef VERBOSE
+      if(!isNullTask()) JTRACE("task complete")(tmp.size());
+      #endif
+      std::vector<DynamicTask*>::iterator it;
+      for(it = tmp.begin(); it != tmp.end(); ++it) {
+        #ifdef DEBUG
+        JASSERT(*it != 0)(tmp.size());
+        #endif
+        (*it)->decrementPredecessors(isAborting);
+      }
+    }
+    decRefCount(); //matches with enqueue();
+  }
+
+  int id(){ 
+    return _id; 
+  }
+
+  enum GpuTaskType {
+    PRERUN,
+    RUN,
+    POSTRUN,
+  };
+
+protected:
+  GpuTaskInfoPtr _task;
+  int _id;
 };
 
 }
 
+#endif
 #endif

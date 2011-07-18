@@ -24,46 +24,27 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifndef PETABRICKSTRANSFORMINSTANCE_H
-#define PETABRICKSTRANSFORMINSTANCE_H
+#ifdef HAVE_OPENCL
 
-#include "dynamictask.h"
-#include "gpudynamictask.h"
+#ifndef PETABRICKSDEVICEINFO_H
+#define PETABRICKSDEVICEINFO_H
 
-#include "common/jrefcounted.h"
+#include "openclutil.h"
+#include "matrixstorage.h"
+
+#include <oclUtils.h>
 
 namespace petabricks {
 
-class TransformInstance;
-typedef jalib::JRef<TransformInstance> TransformInstancePtr;
-
-/**
- * base clase for instances of user transforms
- */
-class TransformInstance : public jalib::JRefCounted {
+class DeviceInfo {
 public:
-  virtual ~TransformInstance(){}
-//  virtual DynamicTaskPtr runDynamic() = 0;
 
-//DynamicTaskPtr runAfter(const DynamicTaskPtr& before){
-//  if(before){
-//    DynamicTaskPtr t = new MethodCallTask<TransformInstance, &TransformInstance::runDynamic>(this);
-//    t->dependsOn(before);
-//    return t;
-//  }else{
-//    return runDynamic();
-//  }
-//}
-  
-//void runToCompletion(){
-//  DynamicTaskPtr p = runDynamic();
-//  if(p){
-//    p->enqueue();
-//    p->waitUntilComplete();
-//  }
-//}
+private:
+  MatrixStorageList _all;
+  MatrixStorageList _inused;
 };
 
 }
 
+#endif
 #endif

@@ -119,6 +119,9 @@ void petabricks::DynamicTask::decrementPredecessors(bool isAborting){
 
 
 void petabricks::DynamicTask::runWrapper(bool isAborting){
+  // Do nothing in workerthread
+  if(_type == TYPE_OPENCL) return;
+
   JASSERT(_state==S_READY && _numPredecessors==0)(_state)(_numPredecessors);
 
   if (!isAborting) {
@@ -187,6 +190,9 @@ void DynamicTask::waitUntilComplete()
 
 void DynamicTask::inlineOrEnqueueTask()
 {
+  // Do nothing in workerthread
+  if(_type == TYPE_OPENCL) return;
+
 #ifdef INLINE_NULL_TASKS
   if(isNullTask())
     runWrapper(); //dont bother enqueuing just run it

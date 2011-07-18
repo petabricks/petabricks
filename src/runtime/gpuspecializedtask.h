@@ -24,46 +24,61 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifndef PETABRICKSTRANSFORMINSTANCE_H
-#define PETABRICKSTRANSFORMINSTANCE_H
+#ifndef PETABRICKSGPUSPECIALIZEDTASK_H
+#define PETABRICKSGPUSPECIALIZEDTASK_H
 
 #include "dynamictask.h"
 #include "gpudynamictask.h"
+#include "matrixregion.h"
+#include "string.h"
 
-#include "common/jrefcounted.h"
+#include <vector>
+
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+#ifdef HAVE_INTTYPES_H
+# include <inttypes.h>
+#endif
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#endif
 
 namespace petabricks {
 
-class TransformInstance;
-typedef jalib::JRef<TransformInstance> TransformInstancePtr;
-
 /**
- * base clase for instances of user transforms
+ * A task that calls a method on a given object, with a given region
  */
-class TransformInstance : public jalib::JRefCounted {
+template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D])>
+class GpuSpecializedTask : public GpuDynamicTask {
 public:
-  virtual ~TransformInstance(){}
-//  virtual DynamicTaskPtr runDynamic() = 0;
-
-//DynamicTaskPtr runAfter(const DynamicTaskPtr& before){
-//  if(before){
-//    DynamicTaskPtr t = new MethodCallTask<TransformInstance, &TransformInstance::runDynamic>(this);
-//    t->dependsOn(before);
-//    return t;
-//  }else{
-//    return runDynamic();
-//  }
-//}
-  
-//void runToCompletion(){
-//  DynamicTaskPtr p = runDynamic();
-//  if(p){
-//    p->enqueue();
-//    p->waitUntilComplete();
-//  }
-//}
+  GpuSpecializedTask(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D])
+    : _obj(obj)
+  {
+    memcpy(_begin, begin, sizeof _begin);
+    memcpy(_end,   end,   sizeof _end);
+  }
+  DynamicTaskPtr run(){    
+    std::cerr << "Specialllllll Runnnnnnnnnnnnn state = ";
+    switch(_state){
+      case S_NEW: std::cerr << "S_NEW"; break;
+      case S_PENDING: std::cerr << "S_PENDING"; break;
+      case S_READY: std::cerr << "S_READY"; break;
+      case S_COMPLETE: std::cerr << "S_COMPLETE"; break;
+      case S_CONTINUED: std::cerr << "S_CONTINUED"; break;
+      default: std::cerr << "NONE"; break;
+    }
+    std::cerr << std::endl;
+    //return NULL;
+    return ((*_obj).*(method))(_begin, _end);
+  }
+private:
+  jalib::JRef<T> _obj;
+  IndexT _begin[D];
+  IndexT _end[D];
 };
 
 }
 
 #endif
+

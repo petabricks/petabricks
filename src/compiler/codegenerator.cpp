@@ -331,15 +331,24 @@ void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const
   write("}");
 }
 
-/*#ifdef HAVE_OPENCL
-void petabricks::CodeGenerator::mkGpuSpatialTask(const std::string& objname, const std::string& methodname) {
-  std::string taskclass = "petabricks::SpatialMethodCallTask<"+objname
+#ifdef HAVE_OPENCL
+void petabricks::CodeGenerator::mkGpuSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region) {
+  std::string taskclass = "petabricks::GpuSpecializedTask<"+objname
                         + ", " + jalib::XToString(region.totalDimensions())
                         + ", &" + objname + "::" + methodname
                         + ">";
-  //TODO: is "this" right?
-  write("new "+taskclass+"(this, _iter_begin, _iter_end);");
+  write("{");
+  incIndent();
+  write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
+  write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
+  //write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end);");
+  write("GpuDynamicTaskPtr task = new "+taskclass+"(this,_tmp_begin, _tmp_end);");
+  write("task->enqueue();");
+  write("GpuManager::addTask(task);");
+  write(taskname+" = &(*task);");
+  decIndent();
+  write("}");
 }
-#endif*/
+#endif
 
 

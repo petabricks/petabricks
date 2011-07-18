@@ -29,6 +29,7 @@
 #include <iostream>
 
 #if HAVE_OPENCL
+#define OPENCL_TRACE 1
 
 namespace petabricks
 {

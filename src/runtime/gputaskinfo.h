@@ -24,46 +24,33 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifndef PETABRICKSTRANSFORMINSTANCE_H
-#define PETABRICKSTRANSFORMINSTANCE_H
+#ifdef HAVE_OPENCL
 
-#include "dynamictask.h"
-#include "gpudynamictask.h"
+#ifndef PETABRICKSGPUTASKINFO_H
+#define PETABRICKSGPUTASKINFO_H
 
-#include "common/jrefcounted.h"
+#include "matrixstorage.h"
+#include "openclutil.h"
+
+#include <oclUtils.h>
 
 namespace petabricks {
 
-class TransformInstance;
-typedef jalib::JRef<TransformInstance> TransformInstancePtr;
+class GpuTaskInfo;
+typedef jalib::JRef<GpuTaskInfo> GpuTaskInfoPtr;
 
-/**
- * base clase for instances of user transforms
- */
-class TransformInstance : public jalib::JRefCounted {
+class GpuTaskInfo: public jalib::JRefCounted {
 public:
-  virtual ~TransformInstance(){}
-//  virtual DynamicTaskPtr runDynamic() = 0;
 
-//DynamicTaskPtr runAfter(const DynamicTaskPtr& before){
-//  if(before){
-//    DynamicTaskPtr t = new MethodCallTask<TransformInstance, &TransformInstance::runDynamic>(this);
-//    t->dependsOn(before);
-//    return t;
-//  }else{
-//    return runDynamic();
-//  }
-//}
-  
-//void runToCompletion(){
-//  DynamicTaskPtr p = runDynamic();
-//  if(p){
-//    p->enqueue();
-//    p->waitUntilComplete();
-//  }
-//}
+  /// constructor
+  GpuTaskInfo(MatrixStorageList matrixlist);
+
+private:
+  MatrixStorageList _matrixlist;
+  cl_command_queue _queue;
 };
 
 }
 
+#endif
 #endif

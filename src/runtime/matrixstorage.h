@@ -35,6 +35,8 @@ namespace petabricks {
 
 class MatrixStorage;
 typedef jalib::JRef<MatrixStorage> MatrixStoragePtr;
+typedef jalib::JRef<MatrixStorage> MatrixStorageInfoPtr;
+typedef std::vector<MatrixStoragePtr> MatrixStorageList;
 
 /**
  * The raw data for a Matrix

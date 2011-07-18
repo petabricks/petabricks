@@ -26,12 +26,15 @@
  *****************************************************************************/
 
 #include "dynamictask.h"
+#include "gpumanager.h"
 #include "matrixio.h"
 #include "matrixregion.h"
 #include "memoization.h"
 #include "petabricksruntime.h"
 #include "ruleinstance.h"
 #include "specializeddynamictasks.h"
+#include "gpudynamictask.h"
+#include "gpuspecializedtask.h"
 #include "transforminstance.h"
 
 #include "common/jtunable.h"

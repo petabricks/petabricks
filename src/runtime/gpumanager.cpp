@@ -24,46 +24,52 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifndef PETABRICKSTRANSFORMINSTANCE_H
-#define PETABRICKSTRANSFORMINSTANCE_H
 
-#include "dynamictask.h"
-#include "gpudynamictask.h"
-
-#include "common/jrefcounted.h"
+#include "gpumanager.h"
+#include "openclutil.h"
+#include "dynamicscheduler.h"
 
 namespace petabricks {
 
-class TransformInstance;
-typedef jalib::JRef<TransformInstance> TransformInstancePtr;
+typedef std::list<GpuDynamicTaskPtr>::iterator gpuTaskIter;
 
-/**
- * base clase for instances of user transforms
- */
-class TransformInstance : public jalib::JRefCounted {
-public:
-  virtual ~TransformInstance(){}
-//  virtual DynamicTaskPtr runDynamic() = 0;
+std::list<GpuDynamicTaskPtr> GpuManager::_pendingtasks;
+std::queue<GpuDynamicTaskPtr> GpuManager::_readytasks;
+jalib::JMutex  GpuManager::_lock;
+bool GpuManager::_shutdown = false;
 
-//DynamicTaskPtr runAfter(const DynamicTaskPtr& before){
-//  if(before){
-//    DynamicTaskPtr t = new MethodCallTask<TransformInstance, &TransformInstance::runDynamic>(this);
-//    t->dependsOn(before);
-//    return t;
-//  }else{
-//    return runDynamic();
-//  }
-//}
-  
-//void runToCompletion(){
-//  DynamicTaskPtr p = runDynamic();
-//  if(p){
-//    p->enqueue();
-//    p->waitUntilComplete();
-//  }
-//}
-};
+void GpuManager::mainLoop() {
+  for(;;){
+    // Execute tasks from ready queue
+    while(!_readytasks.empty()) {
+      _readytasks.front()->runWrapper(false);
+      _readytasks.pop();
+    }
 
+    // Move ready tasks from tasklist to ready queue
+    std::list<gpuTaskIter> del;
+
+    for(gpuTaskIter it = _pendingtasks.begin(); it != _pendingtasks.end(); ++it){
+      if((*it)->getStatus() == DynamicTask::S_READY) {
+        del.push_back(it);
+        _readytasks.push(*it);
+      }
+    }
+
+    _lock.lock();
+    for(std::list<gpuTaskIter>::iterator it = del.begin(); it != del.end(); ++it){
+      _pendingtasks.erase(*it);
+    }
+    _lock.unlock();
+
+    if(_shutdown) break; //TODO: cleanup?
+  }
 }
 
-#endif
+void GpuManager::addTask(GpuDynamicTaskPtr task) {
+  _lock.lock();
+  _pendingtasks.push_back(task);
+  _lock.unlock();
+}
+
+}
