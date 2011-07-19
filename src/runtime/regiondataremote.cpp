@@ -188,7 +188,7 @@ void RegionDataRemote::processAllocDataMsg(const BaseMessageHeader* base, size_t
   this->forwardMessage(base, baseLen, caller);
 }
 
-void RegionDataRemote::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+void RegionDataRemote::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller, RegionDataIPtr) {
   UpdateHandlerChainMessage* msg = (UpdateHandlerChainMessage*)base->content();
   msg->numHops++;
   this->forwardMessage(base, baseLen, caller);

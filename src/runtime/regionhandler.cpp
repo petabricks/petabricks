@@ -93,7 +93,7 @@ void RegionHandler::updateHandlerChain() {
 
     if (reply.dataHost == HostPid::self()) {
       // Data is in the same process. Update handler to point directly to the data.
-      RegionDataI* regionData = reinterpret_cast<RegionDataI*>(reply.encodedPtr);
+      RegionDataIPtr regionData = reinterpret_cast<RegionDataI*>(reply.encodedPtr);
       updateRegionData(regionData);
     } else if (reply.numHops > 1) {
       // Multiple network hops to data. Create a direct connection to data.
@@ -159,5 +159,5 @@ void RegionHandler::processAllocDataMsg(const BaseMessageHeader* base, size_t ba
 }
 
 void RegionHandler::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  _regionData->processUpdateHandlerChainMsg(base, baseLen, caller);
+  _regionData->processUpdateHandlerChainMsg(base, baseLen, caller, _regionData);
 }
