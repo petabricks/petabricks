@@ -57,13 +57,13 @@ void RegionDataI::processAllocDataMsg(const BaseMessageHeader* base, size_t, IRe
   caller->sendReply(&reply, len, base);
 }
 
-void RegionDataI::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+void RegionDataI::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller, RegionDataIPtr regionDataPtr) {
   UpdateHandlerChainMessage* msg = (UpdateHandlerChainMessage*)base->content();
 
   UpdateHandlerChainReplyMessage reply;
   reply.dataHost = HostPid::self();
   reply.numHops = msg->numHops;
-  reply.encodedPtr = reinterpret_cast<EncodedPtr>(this);
+  reply.encodedPtr = reinterpret_cast<EncodedPtr>(regionDataPtr.asPtr());
 
   size_t len = sizeof(UpdateHandlerChainReplyMessage);
   caller->sendReply(&reply, len, base);

@@ -380,11 +380,16 @@ namespace petabricks {
       // _slicePositions
       sz += sizeof(IndexT) * _sliceInfo->numSliceDimensions();
       sz += sizeof(bool);                         // _isTransposed
-      sz += sizeof(EncodedPtr);                   // remoteObj
+      sz += sizeof(int);                          // regionHandler dimension
+      // regionhandler size
+      sz += sizeof(IndexT) * _regionHandler->dimensions();
+      sz += sizeof(EncodedPtr);                   // regionHandler
+      sz += sizeof(EncodedPtr);                   // regionHandler.asPtr
+
       return sz;
     }
 
-    void serialize(char* buf, RemoteHost& host) {
+    void serialize(char* buf, RemoteHost& /*host*/) {
       size_t sz = sizeof(int);
       *reinterpret_cast<int*>(buf) = D;
       buf += sz;
@@ -413,13 +418,24 @@ namespace petabricks {
       *reinterpret_cast<bool*>(buf) = _isTransposed;
       buf += sz;
 
-      EncodedPtr remoteObj = _regionHandler->moveToRemoteHost(&host);
+      sz = sizeof(int);
+      *reinterpret_cast<int*>(buf) = _regionHandler->dimensions();
+      buf += sz;
+
+      sz = sizeof(IndexT) * _regionHandler->dimensions();
+      memcpy(buf, _regionHandler->size(), sz);
+      buf += sz;
+
       sz = sizeof(EncodedPtr);
-      *reinterpret_cast<EncodedPtr*>(buf) = remoteObj;
+      *reinterpret_cast<EncodedPtr*>(buf) = reinterpret_cast<EncodedPtr>(&_regionHandler);
+      buf += sz;
+
+      sz = sizeof(EncodedPtr);
+      *reinterpret_cast<EncodedPtr*>(buf) = reinterpret_cast<EncodedPtr>(_regionHandler.asPtr());
       buf += sz;
     }
 
-    void unserialize(const char* buf, RemoteHost& /*host*/) {
+    void unserialize(const char* buf, RemoteHost& host) {
       size_t sz = sizeof(int);
       JASSERT(*reinterpret_cast<const int*>(buf) == D)(*reinterpret_cast<const int*>(buf))(D).Text("RegionMatrix dimension mismatch.");
       buf += sz;
@@ -449,10 +465,23 @@ namespace petabricks {
       _isTransposed = *reinterpret_cast<const bool*>(buf);
       buf += sz;
 
-      sz = sizeof(EncodedPtr);
-      EncodedPtr remoteObjPtr = *reinterpret_cast<const EncodedPtr*>(buf);
-      _regionHandler = new RegionHandler(remoteObjPtr);
+      sz = sizeof(int);
+      const int regionHandlerDimensions = *reinterpret_cast<const int*>(buf);
       buf += sz;
+
+      sz = sizeof(IndexT) * regionHandlerDimensions;
+      const IndexT* regionHandlerSize = reinterpret_cast<const IndexT*>(buf);
+      buf += sz;
+
+      sz = sizeof(EncodedPtr);
+      EncodedPtr remoteHandlerPtr = *reinterpret_cast<const EncodedPtr*>(buf);
+      buf += sz;
+
+      sz = sizeof(EncodedPtr);
+      EncodedPtr remoteHandler = *reinterpret_cast<const EncodedPtr*>(buf);
+      buf += sz;
+
+      _regionHandler = RegionHandlerDB::instance().getLocalRegionHandler(host, remoteHandler, remoteHandlerPtr, regionHandlerDimensions, regionHandlerSize);
     }
 
     void updateHandlerChain() {

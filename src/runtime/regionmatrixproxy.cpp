@@ -103,11 +103,19 @@ void RegionMatrixProxyRemoteObject::onRecvInitial(const void* buf, size_t len) {
   JASSERT(len == sizeof(InitialMessageToRegionMatrixProxy))(len)(sizeof(InitialMessageToRegionMatrixProxy));
   InitialMessageToRegionMatrixProxy* msg = (InitialMessageToRegionMatrixProxy*) buf;
 
-  if (msg->remoteRegionData == 0) {
+  if (msg->type == MessageTypes::INITFROMDATASPLIT) {
     _regionMatrix = new RegionMatrixProxy(new RegionHandler(msg->dimensions, msg->size, msg->partOffset), this);
-  } else {
-    RegionDataIPtr regionData = reinterpret_cast<RegionDataI*>(msg->remoteRegionData);
+
+  } else if (msg->type == MessageTypes::INITWITHREGIONDATA) {
+    RegionDataIPtr regionData = *reinterpret_cast<RegionDataIPtr*>(msg->encodedPtr);
     _regionMatrix = new RegionMatrixProxy(new RegionHandler(regionData), this);
+
+  } else if (msg->type == MessageTypes::INITWITHREGIONHANDLER) {
+    RegionHandlerPtr regionHandler = *reinterpret_cast<RegionHandlerPtr*>(msg->encodedPtr);
+    _regionMatrix = new RegionMatrixProxy(regionHandler, this);
+
+  } else {
+    JASSERT(false).Text("Unknown initial message type.");
   }
 }
 

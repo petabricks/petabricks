@@ -89,12 +89,13 @@ void RegionHandler::updateHandlerChain() {
   if (type() == RegionDataTypes::REGIONDATAREMOTE) {
     RegionDataRemoteMessage::UpdateHandlerChainReplyMessage reply =
       ((RegionDataRemote*)_regionData.asPtr())->updateHandlerChain();
-    JTRACE("done updatehandler")(reply.dataHost)(reply.numHops);
+    //JTRACE("done updatehandler")(reply.dataHost)(reply.numHops);
 
     if (reply.dataHost == HostPid::self()) {
       // Data is in the same process. Update handler to point directly to the data.
-      RegionDataI* regionData = reinterpret_cast<RegionDataI*>(reply.encodedPtr);
-      updateRegionData(regionData);
+      JTRACE("local data");
+      RegionDataI* regionDataPtr = reinterpret_cast<RegionDataI*>(reply.encodedPtr);
+      updateRegionData(regionDataPtr);
     } else if (reply.numHops > 1) {
       // Multiple network hops to data. Create a direct connection to data.
 
@@ -159,5 +160,59 @@ void RegionHandler::processAllocDataMsg(const BaseMessageHeader* base, size_t ba
 }
 
 void RegionHandler::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  _regionData->processUpdateHandlerChainMsg(base, baseLen, caller);
+  _regionData->processUpdateHandlerChainMsg(base, baseLen, caller, _regionData);
 }
+
+//
+// RegionHandlerDB
+//
+
+RegionHandlerDB& RegionHandlerDB::instance() {
+  static RegionHandlerDB db;
+  return db;
+}
+
+void RegionHandlerDB::addRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const RegionHandlerPtr localHandler) {
+  _mapMux.lock();
+  if (_map.count(hostPid) == 0) {
+    _map[hostPid] = LocalRegionHandlerMap();
+    _localMapMux[hostPid] = new jalib::JMutex();
+  }
+  LocalRegionHandlerMap* localMap = &_map[hostPid];
+  jalib::JMutex* localMux = _localMapMux[hostPid];
+  _mapMux.unlock();
+
+  localMux->lock();
+  (*localMap)[remoteHandler] = localHandler;
+  localMux->unlock();
+}
+
+RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(RemoteHost& host, const EncodedPtr remoteHandler, const EncodedPtr remoteHandlerPtr, const int dimensions, const IndexT* size) {
+  HostPid hostPid = host.id();
+
+  _mapMux.lock();
+  if (_map.count(hostPid) == 0) {
+    _map[hostPid] = LocalRegionHandlerMap();
+    _localMapMux[hostPid] = new jalib::JMutex();
+  }
+  LocalRegionHandlerMap& localMap = _map[hostPid];
+  jalib::JMutex* localMux = _localMapMux[hostPid];
+  _mapMux.unlock();
+
+  localMux->lock();
+  if (localMap.count(remoteHandler) == 0) {
+    // create a new one
+    RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, host, remoteHandlerPtr);
+    localMap[remoteHandler] = new RegionHandler(regionData);
+  } else {
+    //JASSERT(false).Text(":)");
+    RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, host, remoteHandlerPtr);
+    localMap[remoteHandler] = new RegionHandler(regionData);
+
+  }
+  RegionHandlerPtr localHandler = localMap[remoteHandler];
+  localMux->unlock();
+
+  return localHandler;
+}
+

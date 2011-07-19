@@ -6,6 +6,8 @@
 #include "regiondatai.h"
 #include "remotehost.h"
 
+#include <map>
+
 namespace petabricks {
   using namespace petabricks::RegionDataRemoteMessage;
 
@@ -21,6 +23,7 @@ namespace petabricks {
     RegionHandler(const int dimensions, const IndexT* size, const IndexT* partOffset);
     RegionHandler(const RegionDataIPtr regionData);
     RegionHandler(const EncodedPtr remoteObjPtr);
+    ~RegionHandler() { JTRACE("destruct regionhandler"); };
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
@@ -51,6 +54,22 @@ namespace petabricks {
     void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+  };
+
+  typedef std::map<EncodedPtr, RegionHandlerPtr> LocalRegionHandlerMap;
+
+  class RegionHandlerDB {
+  public:
+    RegionHandlerDB() {}
+
+    static RegionHandlerDB& instance();
+    void addRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const RegionHandlerPtr localHandler);
+    RegionHandlerPtr getLocalRegionHandler(RemoteHost& host, const EncodedPtr remoteHandler, const EncodedPtr remoteHandlerPtr, const int dimensions, const IndexT* size);
+
+  private:
+    jalib::JMutex _mapMux;
+    std::map<HostPid, LocalRegionHandlerMap> _map;
+    std::map<HostPid, jalib::JMutex*> _localMapMux;
   };
 }
 

@@ -13,7 +13,7 @@ RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, RegionDataRemot
   memcpy(_size, size, sizeof(IndexT) * _D);
 }
 
-RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host, EncodedPtr remoteRegionData) {
+RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host, EncodedPtr remoteRegionDataPtr) {
   _D = dimensions;
   _type = RegionDataTypes::REGIONDATAREMOTE;
   memcpy(_size, size, sizeof(IndexT) * _D);
@@ -23,7 +23,12 @@ RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, IndexT* partOff
   // InitialMsg
   RegionDataRemoteMessage::InitialMessageToRegionMatrixProxy msg;
   msg.dimensions = _D;
-  msg.remoteRegionData = remoteRegionData;
+  if (remoteRegionDataPtr == 0) {
+    msg.type = MessageTypes::INITFROMDATASPLIT;
+  } else {
+    msg.type = MessageTypes::INITWITHREGIONDATA;
+  }
+  msg.encodedPtr = remoteRegionDataPtr;
   memcpy(msg.size, size, sizeof(msg.size));
   if (partOffset) {
     memcpy(msg.partOffset, partOffset, sizeof(msg.partOffset));
@@ -31,6 +36,22 @@ RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, IndexT* partOff
   int len = sizeof(RegionDataRemoteMessage::InitialMessageToRegionMatrixProxy);
 
   host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
+}
+
+RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const EncodedPtr remoteRegionHandlerPtr) {
+  _D = dimensions;
+  _type = RegionDataTypes::REGIONDATAREMOTE;
+  memcpy(_size, size, sizeof(IndexT) * _D);
+
+  _remoteObject = new RegionDataRemoteObject();
+
+  // InitialMsg
+  InitialMessageToRegionMatrixProxy msg;
+  msg.dimensions = _D;
+  msg.type = MessageTypes::INITWITHREGIONHANDLER;
+  msg.encodedPtr = remoteRegionHandlerPtr;
+  int len = sizeof(RegionDataRemoteMessage::InitialMessageToRegionMatrixProxy);
+  host.createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
 }
 
 int RegionDataRemote::allocData() {
@@ -188,7 +209,7 @@ void RegionDataRemote::processAllocDataMsg(const BaseMessageHeader* base, size_t
   this->forwardMessage(base, baseLen, caller);
 }
 
-void RegionDataRemote::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+void RegionDataRemote::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller, RegionDataIPtr) {
   UpdateHandlerChainMessage* msg = (UpdateHandlerChainMessage*)base->content();
   msg->numHops++;
   this->forwardMessage(base, baseLen, caller);

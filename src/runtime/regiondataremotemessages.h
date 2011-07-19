@@ -41,6 +41,9 @@ namespace petabricks {
 	GETHOSTLIST,
 	UPDATEHANDLERCHAIN,
         ALLOCDATA,
+        INITFROMDATASPLIT,
+        INITWITHREGIONDATA,
+        INITWITHREGIONHANDLER,
       };
     };
 
@@ -50,8 +53,9 @@ namespace petabricks {
     };
 
     struct InitialMessageToRegionMatrixProxy {
+      MessageType type;
       int dimensions;
-      EncodedPtr remoteRegionData;
+      EncodedPtr encodedPtr;
       IndexT size[MAX_DIMENSIONS];
       IndexT partOffset[MAX_DIMENSIONS];
     };
