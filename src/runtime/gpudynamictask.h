@@ -29,7 +29,10 @@
 #ifndef PETABRICKSGPUDYNAMICTASK_H
 #define PETABRICKSGPUDYNAMICTASK_H
 
+#include "dynamictask.h"
 #include "gputaskinfo.h"
+
+#include <list>
 
 namespace petabricks {
 
@@ -40,48 +43,11 @@ typedef std::vector<GpuDynamicTaskPtr> GpuDynamicTaskList;
 class GpuDynamicTask : public DynamicTask {
 public:
 
-  /// constructor
-  GpuDynamicTask() : DynamicTask(TYPE_OPENCL) {
-  }
+  GpuDynamicTask();
 
   virtual DynamicTaskPtr run() = 0;
 
-  void runWrapper(bool isAborting){
-    JASSERT(_state==S_READY && _numPredecessors==0)(_state)(_numPredecessors);
-
-    if (!isAborting) {
-      _continuation = run();
-    } else {
-      _continuation = NULL;
-    }
-
-    std::vector<DynamicTask*> tmp;
-
-    {
-      JLOCKSCOPE(_lock);
-      _dependents.swap(tmp);
-      if(_continuation) _state = S_CONTINUED;
-      else             _state = S_COMPLETE;
-    }
-
-    if(_continuation){
-      // Unimplemented yet
-    }else{
-      #ifdef VERBOSE
-      if(!isNullTask()) JTRACE("task complete")(tmp.size());
-      #endif
-      std::vector<DynamicTask*>::iterator it;
-      for(it = tmp.begin(); it != tmp.end(); ++it) {
-        #ifdef DEBUG
-        JASSERT(*it != 0)(tmp.size());
-        #endif
-        (*it)->decrementPredecessors(isAborting);
-      }
-    }
-    decRefCount(); //matches with enqueue();
-  }
-
-  int id(){ 
+  /*int id(){ 
     return _id; 
   }
 
@@ -89,11 +55,15 @@ public:
     PRERUN,
     RUN,
     POSTRUN,
-  };
+  };*/
+
+  static std::list<GpuDynamicTaskPtr> gputasks;
 
 protected:
-  GpuTaskInfoPtr _task;
-  int _id;
+  //GpuTaskInfoPtr _task;
+  //int _id;
+  void remoteScheduleTask();
+  static jalib::JMutex  _lock;
 };
 
 }

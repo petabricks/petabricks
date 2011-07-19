@@ -274,6 +274,7 @@ AC_DEFINE([TX_OPENCL_POSTFIX],   ["_opencl"], [postfix for opencl versions of tr
 AC_DEFINE([TX_STATIC_POSTFIX],   ["_seq"], [postfix for static versions of transforms])
 AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files in])
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
+AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
 
 AC_DEFINE_UNQUOTED([MAXIMA_PATH],    ["$MAXIMA"], [path to maxima program])
@@ -291,7 +292,6 @@ if false; then
   AC_DEFINE([MAXIMA_CACHING],      [], [cache results from maxima])
   AC_DEFINE([OUTPUT_SIZE_STR],     ["output_count"],     [define to add a system var to transform scope])
   AC_DEFINE([PBCC_SEQUENTIAL],     [], [define to run tasks inline instead of enqueuing them])
-  AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
 fi
 
 ################################################################################

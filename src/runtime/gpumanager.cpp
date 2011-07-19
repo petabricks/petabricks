@@ -28,12 +28,13 @@
 #include "gpumanager.h"
 #include "openclutil.h"
 #include "dynamicscheduler.h"
+#include "gpudynamictask.h"
 
 namespace petabricks {
 
 typedef std::list<GpuDynamicTaskPtr>::iterator gpuTaskIter;
 
-std::list<GpuDynamicTaskPtr> GpuManager::_pendingtasks;
+//std::list<GpuDynamicTaskPtr> GpuManager::_pendingtasks;
 std::queue<GpuDynamicTaskPtr> GpuManager::_readytasks;
 jalib::JMutex  GpuManager::_lock;
 bool GpuManager::_shutdown = false;
@@ -41,7 +42,7 @@ bool GpuManager::_shutdown = false;
 void GpuManager::mainLoop() {
   for(;;){
     // Execute tasks from ready queue
-    while(!_readytasks.empty()) {
+    /*while(!_readytasks.empty()) {
       _readytasks.front()->runWrapper(false);
       _readytasks.pop();
     }
@@ -60,7 +61,12 @@ void GpuManager::mainLoop() {
     for(std::list<gpuTaskIter>::iterator it = del.begin(); it != del.end(); ++it){
       _pendingtasks.erase(*it);
     }
-    _lock.unlock();
+    _lock.unlock();*/
+
+    while(!_readytasks.empty()) {
+      _readytasks.front()->runWrapper();
+      _readytasks.pop();
+    }
 
     if(_shutdown) break; //TODO: cleanup?
   }
@@ -68,7 +74,7 @@ void GpuManager::mainLoop() {
 
 void GpuManager::addTask(GpuDynamicTaskPtr task) {
   _lock.lock();
-  _pendingtasks.push_back(task);
+  _readytasks.push(task);
   _lock.unlock();
 }
 

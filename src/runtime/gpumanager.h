@@ -49,13 +49,11 @@ public:
   static bool _shutdown;
 
 private:
-  static std::list<GpuDynamicTaskPtr> _pendingtasks;
+  //static std::list<GpuDynamicTaskPtr> _pendingtasks;
   static std::queue<GpuDynamicTaskPtr> _readytasks;
   static jalib::JMutex  _lock;
 
 };
-
-//GpuDynamicTaskList GpuManager::_queue;
 
 }
 

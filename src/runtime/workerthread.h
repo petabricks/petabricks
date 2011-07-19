@@ -112,7 +112,7 @@ public:
     //ondeck is excluded purposefully (it cant be stolen)
     return (int)_deque.size()
 #ifdef WORKERTHREAD_INJECT
-         + (int)injectQueue.size()
+         + (int)_injectQueue.size()
 #endif
     ;
   }

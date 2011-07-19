@@ -65,6 +65,8 @@ public:
   int numThreads() const { return _rawThreadsLen; }
 
   DynamicScheduler() : _rawThreadsLen(0) {}
+
+  void injectWork(DynamicTask*);
 protected:
   pthread_t _rawThreads[MAX_NUM_WORKERS];
   int _rawThreadsLen;

@@ -341,11 +341,9 @@ void petabricks::CodeGenerator::mkGpuSpatialTask(const std::string& taskname, co
   incIndent();
   write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
   write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
-  //write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end);");
-  write("GpuDynamicTaskPtr task = new "+taskclass+"(this,_tmp_begin, _tmp_end);");
-  write("task->enqueue();");
-  write("GpuManager::addTask(task);");
-  write(taskname+" = &(*task);");
+  //write("GpuDynamicTaskPtr task = new "+taskclass+"(this,_tmp_begin, _tmp_end);");
+  //write(taskname+" = &(*task);");
+  write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end);");
   decIndent();
   write("}");
 }

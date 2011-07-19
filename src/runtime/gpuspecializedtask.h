@@ -58,20 +58,13 @@ public:
     memcpy(_begin, begin, sizeof _begin);
     memcpy(_end,   end,   sizeof _end);
   }
+
   DynamicTaskPtr run(){    
-    std::cerr << "Specialllllll Runnnnnnnnnnnnn state = ";
-    switch(_state){
-      case S_NEW: std::cerr << "S_NEW"; break;
-      case S_PENDING: std::cerr << "S_PENDING"; break;
-      case S_READY: std::cerr << "S_READY"; break;
-      case S_COMPLETE: std::cerr << "S_COMPLETE"; break;
-      case S_CONTINUED: std::cerr << "S_CONTINUED"; break;
-      default: std::cerr << "NONE"; break;
-    }
-    std::cerr << std::endl;
-    //return NULL;
+    std::cerr << "Specialllllll Runnnnnnnnnnnnn" << std::endl;
+    JASSERT(_state == S_REMOTE_READY)(_state);
     return ((*_obj).*(method))(_begin, _end);
   }
+
 private:
   jalib::JRef<T> _obj;
   IndexT _begin[D];
