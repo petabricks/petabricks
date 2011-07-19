@@ -232,6 +232,7 @@ private:
   int _randSize;
   int _rv;//return val
   pthread_t _gputhread;
+  bool _havegputhread;
 };
 
 }
