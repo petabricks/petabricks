@@ -50,6 +50,8 @@ int main(int argc, const char** argv){
     RemoteHostDB::instance().spawnListenThread();
     RemoteHostDB::instance().spawnListenThread();
     RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().spawnListenThread();
 
     const char* filename = "testdata/Helmholtz3DB1";
     MatrixRegion3D regionMatrix = MatrixIO(filename,"r").read_distributed<3>();
@@ -85,6 +87,8 @@ int main(int argc, const char** argv){
     RemoteHostDB::instance().spawnListenThread();
     RemoteHostDB::instance().spawnListenThread();
     RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().spawnListenThread();
     RemoteHostDB::instance().listenLoop();
     return 0;
   }
@@ -97,6 +101,7 @@ RemoteObjectPtr step2() {
       printf("== step2 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
+      regionMatrix.createRegionHandler();
       MatrixIO().write(regionMatrix);
 
       IndexT m11[] = {1,1};
@@ -113,6 +118,7 @@ RemoteObjectPtr step2() {
       local->send(buf, regionMatrix.serialSize());
 
       printf("== sent matrix to step3 ==\n");
+      RemoteHostDB::instance().listenLoop();
     }
   };
   return new TestRemoteObject();
@@ -125,6 +131,7 @@ RemoteObjectPtr step3() {
       printf("== step3 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
+      regionMatrix.createRegionHandler();
       MatrixIO().write(regionMatrix);
 
       regionMatrix.updateHandlerChain();
@@ -141,6 +148,7 @@ RemoteObjectPtr step3() {
       local->send(buf, regionMatrix.serialSize());
 
       printf("== sent matrix to step4 ==\n");
+      RemoteHostDB::instance().listenLoop();
     }
   };
   return new TestRemoteObject();
@@ -153,6 +161,7 @@ RemoteObjectPtr step4() {
       printf("== step4 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
+      regionMatrix.createRegionHandler();
 
       char* buf = new char[regionMatrix.serialSize()];
       regionMatrix.serialize(buf, *RemoteHostDB::instance().host(0));
@@ -162,6 +171,7 @@ RemoteObjectPtr step4() {
       local->send(buf, regionMatrix.serialSize());
 
       printf("== sent matrix to step5 ==\n");
+      RemoteHostDB::instance().listenLoop();
     }
   };
   return new TestRemoteObject();
@@ -174,6 +184,7 @@ RemoteObjectPtr step5() {
       printf("== step5 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
+      regionMatrix.createRegionHandler();
 
       char* buf = new char[regionMatrix.serialSize()];
       regionMatrix.serialize(buf, *RemoteHostDB::instance().host(0));
@@ -182,7 +193,8 @@ RemoteObjectPtr step5() {
       local->waitUntilCreated();
       local->send(buf, regionMatrix.serialSize());
 
-      printf("== sent matrix to step5 ==\n");
+      printf("== sent matrix to step6 ==\n");
+      RemoteHostDB::instance().listenLoop();
     }
   };
   return new TestRemoteObject();
@@ -195,6 +207,7 @@ RemoteObjectPtr step6() {
       printf("== step6 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
+      regionMatrix.createRegionHandler();
       MatrixIO().write(regionMatrix);
 
       print(regionMatrix.dataHosts());

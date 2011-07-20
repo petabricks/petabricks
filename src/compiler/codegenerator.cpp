@@ -264,7 +264,7 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   CodeGenerator& in = forkhelper();
   CodeGenerator& out = forkhelper();
   CodeGenerator& size = forkhelper();
-  CodeGenerator& updateHandler = forkhelper();
+  CodeGenerator& migrateRegion = forkhelper();
 
   std::vector<std::string> args;
   args.push_back("char* _buf");
@@ -277,7 +277,7 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   in.beginFunc("void", "unserialize", args);
   size.write("size_t _sz = 0;");
 
-  updateHandler.beginFunc("void", "updateRegionHandlers");
+  migrateRegion.beginFunc("void", "migrateRegions");
 
   for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
     if(jalib::StartsWith(i->type, "distributed::")) {
@@ -286,7 +286,8 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
       in.write(i->name + ".unserialize(_buf, _host);");
       in.write("_buf += " + i->name + ".serialSize();");
       size.write("_sz += " + i->name + ".serialSize();");
-      updateHandler.write(i->name + ".updateHandlerChain();");
+      migrateRegion.write(i->name + ".createRegionHandler();");
+      migrateRegion.write(i->name + ".updateHandlerChain();");
     }else if(i->type == "IndexT" || i->type == "int" || i->type == "double") {
       out.write("*reinterpret_cast<"+i->type+"*>(_buf) = "+i->name+";");
       in.write(i->name+" = *reinterpret_cast<const "+i->type+"*>(_buf);");
@@ -306,7 +307,7 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   in.endFunc();
   out.endFunc();
   size.endFunc();
-  updateHandler.endFunc();
+  migrateRegion.endFunc();
 
   hos() << _curClass << "(const char*, RemoteHost&);\n";
   os() << _curClass << "::" << _curClass << "(const char* _buf, RemoteHost& _host){\n";

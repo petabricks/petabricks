@@ -107,11 +107,11 @@ void RegionMatrixProxyRemoteObject::onRecvInitial(const void* buf, size_t len) {
     _regionMatrix = new RegionMatrixProxy(new RegionHandler(msg->dimensions, msg->size, msg->partOffset), this);
 
   } else if (msg->type == MessageTypes::INITWITHREGIONDATA) {
-    RegionDataIPtr regionData = *reinterpret_cast<RegionDataIPtr*>(msg->encodedPtr);
+    RegionDataI* regionData = reinterpret_cast<RegionDataI*>(msg->encodedPtr);
     _regionMatrix = new RegionMatrixProxy(new RegionHandler(regionData), this);
 
   } else if (msg->type == MessageTypes::INITWITHREGIONHANDLER) {
-    RegionHandlerPtr regionHandler = *reinterpret_cast<RegionHandlerPtr*>(msg->encodedPtr);
+    RegionHandler* regionHandler = reinterpret_cast<RegionHandler*>(msg->encodedPtr);
     _regionMatrix = new RegionMatrixProxy(regionHandler, this);
 
   } else {

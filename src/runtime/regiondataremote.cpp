@@ -38,7 +38,7 @@ RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, IndexT* partOff
   host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
 }
 
-RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const EncodedPtr remoteRegionHandlerPtr) {
+RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const EncodedPtr remoteRegionHandler) {
   _D = dimensions;
   _type = RegionDataTypes::REGIONDATAREMOTE;
   memcpy(_size, size, sizeof(IndexT) * _D);
@@ -49,7 +49,7 @@ RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, Rem
   InitialMessageToRegionMatrixProxy msg;
   msg.dimensions = _D;
   msg.type = MessageTypes::INITWITHREGIONHANDLER;
-  msg.encodedPtr = remoteRegionHandlerPtr;
+  msg.encodedPtr = remoteRegionHandler;
   int len = sizeof(RegionDataRemoteMessage::InitialMessageToRegionMatrixProxy);
   host.createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
 }

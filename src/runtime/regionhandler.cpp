@@ -94,8 +94,8 @@ void RegionHandler::updateHandlerChain() {
     if (reply.dataHost == HostPid::self()) {
       // Data is in the same process. Update handler to point directly to the data.
       JTRACE("local data");
-      RegionDataI* regionDataPtr = reinterpret_cast<RegionDataI*>(reply.encodedPtr);
-      updateRegionData(regionDataPtr);
+      RegionDataI* regionData = reinterpret_cast<RegionDataI*>(reply.encodedPtr);
+      updateRegionData(regionData);
     } else if (reply.numHops > 1) {
       // Multiple network hops to data. Create a direct connection to data.
 
@@ -172,22 +172,11 @@ RegionHandlerDB& RegionHandlerDB::instance() {
   return db;
 }
 
-void RegionHandlerDB::addRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const RegionHandlerPtr localHandler) {
-  _mapMux.lock();
-  if (_map.count(hostPid) == 0) {
-    _map[hostPid] = LocalRegionHandlerMap();
-    _localMapMux[hostPid] = new jalib::JMutex();
-  }
-  LocalRegionHandlerMap* localMap = &_map[hostPid];
-  jalib::JMutex* localMux = _localMapMux[hostPid];
-  _mapMux.unlock();
+RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(RemoteHost& host, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size) {
+  RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, host, remoteHandler);
+  return new RegionHandler(regionData);
 
-  localMux->lock();
-  (*localMap)[remoteHandler] = localHandler;
-  localMux->unlock();
-}
-
-RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(RemoteHost& host, const EncodedPtr remoteHandler, const EncodedPtr remoteHandlerPtr, const int dimensions, const IndexT* size) {
+  /*
   HostPid hostPid = host.id();
 
   _mapMux.lock();
@@ -202,11 +191,11 @@ RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(RemoteHost& host, const 
   localMux->lock();
   if (localMap.count(remoteHandler) == 0) {
     // create a new one
-    RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, host, remoteHandlerPtr);
+    RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, host, remoteHandler);
     localMap[remoteHandler] = new RegionHandler(regionData);
   } else {
     //JASSERT(false).Text(":)");
-    RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, host, remoteHandlerPtr);
+    RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, host, remoteHandler);
     localMap[remoteHandler] = new RegionHandler(regionData);
 
   }
@@ -214,5 +203,6 @@ RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(RemoteHost& host, const 
   localMux->unlock();
 
   return localHandler;
+*/
 }
 

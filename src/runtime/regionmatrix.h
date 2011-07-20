@@ -68,6 +68,12 @@ namespace petabricks {
     RegionMatrixSliceInfoPtr _sliceInfo;
     RegionHandlerPtr _regionHandler;
 
+    // Used for moving
+    int _regionHandlerDimensions;
+    IndexT _regionHandlerSize[MAX_DIMENSIONS];
+    EncodedPtr _remoteRegionHandler;
+    RemoteHostPtr _remoteRegionHandlerHost;
+
   public:
     void init(const IndexT* size, const IndexT* splitOffset, const bool isTransposed, const RegionMatrixSliceInfoPtr sliceInfo, const RegionHandlerPtr handler) {
 
@@ -88,7 +94,7 @@ namespace petabricks {
 
       _isTransposed = isTransposed;
       _sliceInfo = sliceInfo;
-      _regionHandler = handler;
+      setRegionHandler(handler);
     }
     void init(const IndexT* size, const RegionHandlerPtr handler) {
       init(size, NULL, false, new RegionMatrixSliceInfo(0), handler);
@@ -100,6 +106,13 @@ namespace petabricks {
     void copy(const RegionMatrix<D, const MATRIX_ELEMENT_T>& that) {
       JASSERT(D == that.dimensions());
       init(that.size(), that.splitOffset(), that.isTransposed(), that.sliceInfo(), that.regionHandler());
+    }
+
+    INLINE void setRegionHandler(RegionHandlerPtr handler) {
+      _regionHandler = handler;
+      if (_regionHandler) {
+        _regionHandlerDimensions = handler->dimensions();
+      }
     }
 
     //
@@ -382,9 +395,8 @@ namespace petabricks {
       sz += sizeof(bool);                         // _isTransposed
       sz += sizeof(int);                          // regionHandler dimension
       // regionhandler size
-      sz += sizeof(IndexT) * _regionHandler->dimensions();
+      sz += sizeof(IndexT) * _regionHandlerDimensions;
       sz += sizeof(EncodedPtr);                   // regionHandler
-      sz += sizeof(EncodedPtr);                   // regionHandler.asPtr
 
       return sz;
     }
@@ -427,10 +439,6 @@ namespace petabricks {
       buf += sz;
 
       sz = sizeof(EncodedPtr);
-      *reinterpret_cast<EncodedPtr*>(buf) = reinterpret_cast<EncodedPtr>(&_regionHandler);
-      buf += sz;
-
-      sz = sizeof(EncodedPtr);
       *reinterpret_cast<EncodedPtr*>(buf) = reinterpret_cast<EncodedPtr>(_regionHandler.asPtr());
       buf += sz;
     }
@@ -466,22 +474,22 @@ namespace petabricks {
       buf += sz;
 
       sz = sizeof(int);
-      const int regionHandlerDimensions = *reinterpret_cast<const int*>(buf);
+      _regionHandlerDimensions = *reinterpret_cast<const int*>(buf);
       buf += sz;
 
-      sz = sizeof(IndexT) * regionHandlerDimensions;
-      const IndexT* regionHandlerSize = reinterpret_cast<const IndexT*>(buf);
-      buf += sz;
-
-      sz = sizeof(EncodedPtr);
-      EncodedPtr remoteHandlerPtr = *reinterpret_cast<const EncodedPtr*>(buf);
+      sz = sizeof(IndexT) * _regionHandlerDimensions;
+      memcpy(_regionHandlerSize, buf, sz);
       buf += sz;
 
       sz = sizeof(EncodedPtr);
-      EncodedPtr remoteHandler = *reinterpret_cast<const EncodedPtr*>(buf);
+      _remoteRegionHandler = *reinterpret_cast<const EncodedPtr*>(buf);
       buf += sz;
 
-      _regionHandler = RegionHandlerDB::instance().getLocalRegionHandler(host, remoteHandler, remoteHandlerPtr, regionHandlerDimensions, regionHandlerSize);
+      _remoteRegionHandlerHost = &host;
+    }
+
+    void createRegionHandler() {
+      setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(*_remoteRegionHandlerHost, _remoteRegionHandler, _regionHandlerDimensions, _regionHandlerSize));
     }
 
     void updateHandlerChain() {
@@ -749,7 +757,7 @@ namespace petabricks {
     typedef RegionMatrix<D, ElementT> Base;
 
     void init(RegionMatrix0DInfoPtr sourceInfo, RegionHandlerPtr regionHandler) {
-      Base::_regionHandler = regionHandler;
+      this->setRegionHandler(regionHandler);
       if (sourceInfo) {
         _sourceInfo = sourceInfo;
       } else {
@@ -840,7 +848,7 @@ namespace petabricks {
     typedef RegionMatrix<D, ElementT> Base;
 
     INLINE void initWithValue(ElementT value) {
-      Base::_regionHandler = new RegionHandler(new ConstRegionData0D(value));
+      this->setRegionHandler(new RegionHandler(new ConstRegionData0D(value)));
     }
 
     RegionMatrixWrapper() : Base() {

@@ -644,7 +644,7 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
       o.endIf();
     }
     if (rf == RuleFlavor::DISTRIBUTED) {
-      o.write("updateRegionHandlers();");
+      o.write("migrateRegions();");
     }
 
     _scheduler->generateCode(*this, o, rf);
