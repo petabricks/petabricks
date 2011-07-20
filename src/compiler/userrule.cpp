@@ -564,6 +564,14 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
 
 void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   SRCPOSSCOPE();
+
+/*#ifdef HAVE_OPENCL
+  if(falver == RuleFlavor::OPENCL) {
+    generateMultiOpenCLTrampCodes(trans, o);
+    return;
+  }
+#endif
+*/
   IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
   std::vector<std::string> taskargs = iterdef.packedargs();
   std::vector<std::string> packedargs = iterdef.packedargs();
@@ -865,6 +873,12 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 }
 
 #ifdef HAVE_OPENCL
+
+void petabricks::UserRule::generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o){}
+void petabricks::UserRule::generateOpenCLPrepareCode(Transform& trans, CodeGenerator& o){}
+void petabricks::UserRule::generateOpenCLWriteBufferCode(Transform& trans, CodeGenerator& o){}
+void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator& o){}
+void petabricks::UserRule::generateOpenCLOutputCode(Transform& trans, CodeGenerator& o){}
 
 void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef )
 {

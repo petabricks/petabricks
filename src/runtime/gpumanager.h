@@ -44,11 +44,14 @@ namespace petabricks {
 class GpuManager {
 public:
 
+  static void start();
+  static void shutdown();
   static void mainLoop();
   static void addTask(GpuDynamicTaskPtr task);
-  static bool _shutdown;
 
 private:
+  static bool _shutdown;
+  static pthread_t _thread;
   //static std::list<GpuDynamicTaskPtr> _pendingtasks;
   static std::queue<GpuDynamicTaskPtr> _readytasks;
   static jalib::JMutex  _lock;

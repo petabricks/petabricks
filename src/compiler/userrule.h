@@ -120,6 +120,11 @@ public:
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
 #ifdef HAVE_OPENCL
+  void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o);
+  void generateOpenCLPrepareCode(Transform& trans, CodeGenerator& o);
+  void generateOpenCLWriteBufferCode(Transform& trans, CodeGenerator& o);
+  void generateOpenCLRunCode(Transform& trans, CodeGenerator& o);
+  void generateOpenCLOutputCode(Transform& trans, CodeGenerator& o);
   ///
   /// Generate an OpenCL program implementing this rule
   void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef );

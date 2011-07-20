@@ -26,6 +26,7 @@
  *****************************************************************************/
 #include "testisolation.h"
 #include "dynamicscheduler.h"
+#include "gpumanager.h"
 
 #include <limits>
 #include <string.h>
@@ -109,6 +110,7 @@ petabricks::TestIsolation* petabricks::SubprocessTestIsolation::masterProcess() 
 bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads) {
   JASSERT(theMasterProcess==NULL);
   _modifications.clear();
+  GpuManager::shutdown();
   DynamicScheduler::cpuScheduler().shutdown();
   int fds[2];
   //JASSERT(pipe(fds) == 0);
@@ -126,6 +128,7 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads) {
     //child
     _fd=fds[1];
     close(fds[0]);
+    GpuManager::start();
     DynamicScheduler::cpuScheduler().startWorkerThreads(workerThreads);
     _settestprocflags();
     jalib::JTunable::setModificationCallback(this); 
@@ -156,6 +159,7 @@ void petabricks::SubprocessTestIsolation::endTest(TestResult& result) {
   fsync(_fd);
   fsync(fileno(stdout));
   fsync(fileno(stderr));
+  //GpuManger::shutdown();
   //DynamicScheduler::cpuScheduler().shutdown();
   _exit(SUCCESS_RV);
 }

@@ -37,7 +37,34 @@ typedef std::list<GpuDynamicTaskPtr>::iterator gpuTaskIter;
 //std::list<GpuDynamicTaskPtr> GpuManager::_pendingtasks;
 std::queue<GpuDynamicTaskPtr> GpuManager::_readytasks;
 jalib::JMutex  GpuManager::_lock;
-bool GpuManager::_shutdown = false;
+bool GpuManager::_shutdown = true;
+pthread_t GpuManager::_thread;
+
+extern "C" void *startGpuManager(void* /*arg*/) {
+  //try {
+    petabricks::GpuManager::mainLoop();
+  //}catch(petabricks::DynamicScheduler::CleanExitException e){}
+  return NULL;
+}
+
+void GpuManager::start() {
+  if(!_shutdown) return;
+  _shutdown = false;
+  std::cerr << "pthead_create~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, 0);
+  JASSERT(pthread_create(&_thread, &attr, startGpuManager, NULL) == 0);
+  pthread_attr_destroy(&attr);
+}
+
+void GpuManager::shutdown() {
+  if(_shutdown) return;
+  _shutdown = true;
+  int rv = pthread_join(_thread, NULL);
+  JWARNING(rv==0)(rv).Text("pthread_join failed");
+  std::cerr << "pthead_join~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+}
 
 void GpuManager::mainLoop() {
   for(;;){
@@ -63,12 +90,19 @@ void GpuManager::mainLoop() {
     }
     _lock.unlock();*/
 
-    while(!_readytasks.empty()) {
+    //TODO: whey do I have to use empty?
+    bool empty = _readytasks.empty();
+    while(!empty) {
       _readytasks.front()->runWrapper();
+      _lock.lock();
       _readytasks.pop();
+      _lock.unlock();
+      empty = _readytasks.empty();
     }
 
-    if(_shutdown) break; //TODO: cleanup?
+    if(_shutdown) { 
+      break;
+    }
   }
 }
 
