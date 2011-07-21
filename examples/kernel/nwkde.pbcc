@@ -2,10 +2,10 @@
 #define NWKDE_PBCC
 
 #include "utils.pbcc"
-#define DEBUG
+//#define DEBUG
 #define WORKAROUND // workaround for generator having specific sizes
-#define CWD "/afs/csail.mit.edu/u/c/cychan/projects/petabricks/examples/kernel/"
-//#define CWD "/home/cychan/projects/petabricks/examples/kernel/"
+#define TESTDIR "/afs/csail.mit.edu/u/c/cychan/projects/petabricks/examples/kernel/test/"
+//#define TESTDIR "/home/cychan/projects/petabricks/examples/kernel/test/"
 
 transform NWKDEGenerator
 from IN[n]
@@ -33,65 +33,41 @@ to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
         MatrixRegion1D b;
 
         char filename[1024];
-        int cwdLen = strlen(CWD);
-        strcpy(filename, CWD);
+        int cwdLen = strlen(TESTDIR);
+        strcpy(filename, TESTDIR);
 
-        strcat(filename, "test/trainData.pba");
-        a = MatrixIO(filename, "r").read2D();
+        a = MatrixIO(TESTDIR "trainData.pba", "r").read2D();
         Copy2D(trainData, a);
 
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/wrapFlags.pba");
-        b = MatrixIO(filename, "r").read1D();
+        b = MatrixIO(TESTDIR "wrapFlags.pba", "r").read1D();
         Copy1D(wrapFlags, b.region(0,4));
 
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/kernelWidths.pba");
-        b = MatrixIO(filename, "r").read1D();
+        b = MatrixIO(TESTDIR "kernelWidths.pba", "r").read1D();
         Copy1D(kernelWidths, b.region(0,4));
 
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/trainIndices.pba");
-        b = MatrixIO(filename, "r").read1D();
+        b = MatrixIO(TESTDIR "trainIndices.pba", "r").read1D();
         Copy1D(trainIndices, b.region(0,n));
 
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/trainVarIndex.pba");
-        b = MatrixIO(filename, "r").read1D();
+        b = MatrixIO(TESTDIR "trainVarIndex.pba", "r").read1D();
         Copy1D(trainVarIndex, b.region(0,8));
 
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/trainTimeOffset.pba");
-        b = MatrixIO(filename, "r").read1D();
+        b = MatrixIO(TESTDIR "trainTimeOffset.pba", "r").read1D();
         Copy1D(trainTimeOffset, b.region(0,8));
 
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/testData.pba");
-        a = MatrixIO(filename, "r").read2D();
+        a = MatrixIO(TESTDIR "testData.pba", "r").read2D();
         Copy2D(testData, a);
 
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/testIndices.pba");
-        b = MatrixIO(filename, "r").read1D();
+        b = MatrixIO(TESTDIR "testIndices.pba", "r").read1D();
         Copy1D(testIndices, b.region(0,n));
 
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/testVarIndex.pba");
-        b = MatrixIO(filename, "r").read1D();
+        b = MatrixIO(TESTDIR "testVarIndex.pba", "r").read1D();
         Copy1D(testVarIndex, b.region(0,8));
 
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/testTimeOffset.pba");
-        b = MatrixIO(filename, "r").read1D();
+        b = MatrixIO(TESTDIR "testTimeOffset.pba", "r").read1D();
         Copy1D(testTimeOffset, b.region(0,8));
 
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/outputVarIndex.pba");
-        outputVarIndex = MatrixIO(filename, "r").read0D();
-
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/outputTimeOffset.pba");
-        outputTimeOffset = MatrixIO(filename, "r").read0D();
+        outputVarIndex = MatrixIO(TESTDIR "outputVarIndex.pba", "r").read0D();
+        outputTimeOffset = MatrixIO(TESTDIR "outputTimeOffset.pba", "r").read0D();
     }
 }
 
@@ -203,7 +179,8 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
 {
 
     /* METHOD 1: compute PARTIALS by exposing the most fine-grained
-       parallelism.  this method may be less cache-efficient. */
+       parallelism.  this method may be less cache-efficient depending on
+       execution ordering. */
 
     to   (SQDIFFS.cell(i,j,k) sqDiff)
     from (TRAINDATA trainData,
