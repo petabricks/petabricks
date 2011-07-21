@@ -414,14 +414,14 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   JASSERT(MODE==MODE_RUN_IO||MODE==MODE_DISTRIBUTED_SLAVE||txArgs.size()==0)(txArgs.size())
     .Text("too many arguments");
 }
-  
+
 void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char** argv) {
   std::ifstream fp(HOSTS_FILE.c_str());
   JASSERT(fp.is_open())(HOSTS_FILE).Text("failed to open file");
   std::string line;
   bool hadlocal = false;
   while(getline(fp, line)){
-    std::string dat,com; 
+    std::string dat,com;
     jalib::SplitFirst(dat, com, line, '#');
     dat=jalib::StringTrim(dat);
 
@@ -447,11 +447,12 @@ void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char**
 }
 void petabricks::PetabricksRuntime::distributedSlaveLoop() {
   RemoteHostDB::instance().connect(SLAVE_HOST.c_str(), SLAVE_PORT);
-  for(int i=REMOTEHOST_THREADS; i>1; --i) {
+  for(int i=REMOTEHOST_THREADS; i>0; --i) {
     RemoteHostDB::instance().spawnListenThread();
   }
   JTRACE("slave loop starting");
-  RemoteHostDB::instance().listenLoop();
+  WorkerThread* self = WorkerThread::self();
+  self->mainLoop();
 }
 
 petabricks::PetabricksRuntime::~PetabricksRuntime()
