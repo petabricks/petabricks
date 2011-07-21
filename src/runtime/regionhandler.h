@@ -17,6 +17,7 @@ namespace petabricks {
   class RegionHandler : public jalib::JRefCounted {
   private:
     RegionDataIPtr _regionData;
+    jalib::JMutex _regionDataMux;
 
   public:
     RegionHandler(const int dimensions, const IndexT* size);

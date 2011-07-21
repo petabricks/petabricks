@@ -47,7 +47,9 @@ RegionDataIPtr RegionHandler::getRegionData() {
 }
 
 void RegionHandler::updateRegionData(RegionDataIPtr regionData) {
+  _regionDataMux.lock();
   _regionData = regionData;
+  _regionDataMux.unlock();
 }
 
 DataHostList RegionHandler::hosts(IndexT* begin, IndexT* end) {
