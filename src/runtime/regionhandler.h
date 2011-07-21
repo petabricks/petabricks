@@ -41,7 +41,6 @@ namespace petabricks {
     RegionDataType type() const;
 
     // Migration
-    EncodedPtr moveToRemoteHost(RemoteHostPtr host);
     void updateHandlerChain();
     bool isHandlerChainUpdated(); // for testing
 

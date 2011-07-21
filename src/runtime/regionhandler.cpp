@@ -72,6 +72,7 @@ RegionDataType RegionHandler::type() const {
 // Migration
 //
 
+/*
 EncodedPtr RegionHandler::moveToRemoteHost(RemoteHostPtr host) {
   RegionMatrixProxyPtr proxy = new RegionMatrixProxy(this);
   RegionMatrixProxyRemoteObjectPtr local = proxy->genLocal();
@@ -86,6 +87,7 @@ EncodedPtr RegionHandler::moveToRemoteHost(RemoteHostPtr host) {
   local->waitUntilCreated();
   return local->remoteObjPtr();
 }
+*/
 
 void RegionHandler::updateHandlerChain() {
   if (type() == RegionDataTypes::REGIONDATAREMOTE) {
@@ -195,9 +197,8 @@ RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(RemoteHost& host, const 
     // create a new one
     RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, host, remoteHandler);
     localMap[remoteHandler] = new RegionHandler(regionData);
-  } else {
-    //JASSERT(false).Text(":)");
   }
+
   RegionHandlerPtr localHandler = localMap[remoteHandler];
   localMux->unlock();
 
