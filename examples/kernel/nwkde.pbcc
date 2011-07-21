@@ -40,31 +40,31 @@ to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
         Copy2D(trainData, a);
 
         b = MatrixIO(TESTDIR "wrapFlags.pba", "r").read1D();
-        Copy1D(wrapFlags, b.region(0,4));
+        Copy1D(wrapFlags, b);
 
         b = MatrixIO(TESTDIR "kernelWidths.pba", "r").read1D();
-        Copy1D(kernelWidths, b.region(0,4));
+        Copy1D(kernelWidths, b);
 
         b = MatrixIO(TESTDIR "trainIndices.pba", "r").read1D();
-        Copy1D(trainIndices, b.region(0,n));
+        Copy1D(trainIndices, b.region(0, n));
 
         b = MatrixIO(TESTDIR "trainVarIndex.pba", "r").read1D();
-        Copy1D(trainVarIndex, b.region(0,8));
+        Copy1D(trainVarIndex, b);
 
         b = MatrixIO(TESTDIR "trainTimeOffset.pba", "r").read1D();
-        Copy1D(trainTimeOffset, b.region(0,8));
+        Copy1D(trainTimeOffset, b);
 
         a = MatrixIO(TESTDIR "testData.pba", "r").read2D();
         Copy2D(testData, a);
 
         b = MatrixIO(TESTDIR "testIndices.pba", "r").read1D();
-        Copy1D(testIndices, b.region(0,n));
+        Copy1D(testIndices, b.region(0, n));
 
         b = MatrixIO(TESTDIR "testVarIndex.pba", "r").read1D();
-        Copy1D(testVarIndex, b.region(0,8));
+        Copy1D(testVarIndex, b);
 
         b = MatrixIO(TESTDIR "testTimeOffset.pba", "r").read1D();
-        Copy1D(testTimeOffset, b.region(0,8));
+        Copy1D(testTimeOffset, b);
 
         outputVarIndex = MatrixIO(TESTDIR "outputVarIndex.pba", "r").read0D();
         outputTimeOffset = MatrixIO(TESTDIR "outputTimeOffset.pba", "r").read0D();
