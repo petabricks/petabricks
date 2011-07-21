@@ -93,7 +93,6 @@ void RegionHandler::updateHandlerChain() {
 
     if (reply.dataHost == HostPid::self()) {
       // Data is in the same process. Update handler to point directly to the data.
-      JTRACE("local data");
       RegionDataI* regionData = reinterpret_cast<RegionDataI*>(reply.encodedPtr);
       updateRegionData(regionData);
     } else if (reply.numHops > 1) {
@@ -104,7 +103,7 @@ void RegionHandler::updateHandlerChain() {
         JASSERT(false).Text("unknown host");
       }
 
-      RegionDataIPtr newRegionData = new RegionDataRemote(_regionData->dimensions(), _regionData->size(), 0, dest, reply.encodedPtr);
+      RegionDataI* newRegionData = new RegionDataRemote(_regionData->dimensions(), _regionData->size(), 0, dest, reply.encodedPtr);
       updateRegionData(newRegionData);
     }
   }
@@ -173,10 +172,11 @@ RegionHandlerDB& RegionHandlerDB::instance() {
 }
 
 RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(RemoteHost& host, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size) {
+  /*
   RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, host, remoteHandler);
   return new RegionHandler(regionData);
+  */
 
-  /*
   HostPid hostPid = host.id();
 
   _mapMux.lock();
@@ -195,14 +195,10 @@ RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(RemoteHost& host, const 
     localMap[remoteHandler] = new RegionHandler(regionData);
   } else {
     //JASSERT(false).Text(":)");
-    RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, host, remoteHandler);
-    localMap[remoteHandler] = new RegionHandler(regionData);
-
   }
   RegionHandlerPtr localHandler = localMap[remoteHandler];
   localMux->unlock();
 
   return localHandler;
-*/
 }
 

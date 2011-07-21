@@ -47,6 +47,7 @@ namespace petabricks {
     virtual size_t serialSize() = 0;
     virtual void serialize(char* buf, RemoteHost& host) = 0;
     virtual void unserialize(const char* buf, RemoteHost& host) = 0;
+    virtual void migrateRegions() = 0;
     virtual RemoteObjectGenerator generator() = 0;
 
     void onCompletedRemotely();
