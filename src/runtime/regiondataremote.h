@@ -25,16 +25,18 @@ namespace petabricks {
     RegionDataRemoteObjectPtr _remoteObject;
 
   public:
-    RegionDataRemote(int dimensions, IndexT* size, RegionDataRemoteObjectPtr remoteObject);
-    RegionDataRemote(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host, EncodedPtr remoteRegionData);
-    RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const EncodedPtr remoteRegionHandlerPtr);
+    RegionDataRemote(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject);
+    RegionDataRemote(const int dimensions, const IndexT* size, const IndexT* partOffset, RemoteHostPtr host);
+    RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const MessageType initialMessageType, const EncodedPtr encodePtr);
     ~RegionDataRemote() {
       JTRACE("Destruct RegionDataRemote");
     }
 
+    void init(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject);
+
     int allocData();
 
-    ElementT readCell(const IndexT* coord);
+    ElementT readCell(const IndexT* coord) const;
     void writeCell(const IndexT* coord, ElementT value);
     DataHostList hosts(IndexT* begin, IndexT* end);
 
@@ -43,7 +45,7 @@ namespace petabricks {
     UpdateHandlerChainReplyMessage updateHandlerChain(UpdateHandlerChainMessage& msg);
 
     void onRecv(const void* data, size_t len);
-    void fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen);
+    void fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen) const;
 
     // Process remote messages
     void forwardMessage(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
@@ -70,8 +72,6 @@ namespace petabricks {
     void onRecv(const void* data, size_t len) {
       _regionData->onRecv(data, len);
     }
-
-    void onRecvInitial(const void* buf, size_t len);
 
     RegionDataIPtr regionData() {
       return _regionData;

@@ -5,53 +5,44 @@
 using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
 
-RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, RegionDataRemoteObjectPtr remoteObject) {
+
+RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject) {
+  init(dimensions, size, remoteObject);
+}
+
+RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, const IndexT* partOffset, RemoteHostPtr host) {
+  init(dimensions, size, new RegionDataRemoteObject());
+
+  // InitialMsg
+  CreateRegionDataInitialMessage msg;
+  msg.type = MessageTypes::INITFROMDATASPLIT;
+  msg.dimensions = _D;
+  memcpy(msg.size, size, sizeof(msg.size));
+  if (partOffset) {
+    memcpy(msg.partOffset, partOffset, sizeof(msg.partOffset));
+  }
+
+  int len = sizeof(CreateRegionDataInitialMessage);
+  host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
+}
+
+RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const MessageType initialMessageType, const EncodedPtr encodePtr) {
+  init(dimensions, size, new RegionDataRemoteObject());
+
+  // InitialMsg
+  EncodedPtrInitialMessage msg;
+  msg.type = initialMessageType;
+  msg.encodedPtr = encodePtr;
+  int len = sizeof(EncodedPtrInitialMessage);
+  host.createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
+}
+
+void RegionDataRemote::init(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject) {
   _D = dimensions;
   _type = RegionDataTypes::REGIONDATAREMOTE;
   _remoteObject = remoteObject;
 
   memcpy(_size, size, sizeof(IndexT) * _D);
-}
-
-RegionDataRemote::RegionDataRemote(int dimensions, IndexT* size, IndexT* partOffset, RemoteHostPtr host, EncodedPtr remoteRegionDataPtr) {
-  _D = dimensions;
-  _type = RegionDataTypes::REGIONDATAREMOTE;
-  memcpy(_size, size, sizeof(IndexT) * _D);
-
-  _remoteObject = new RegionDataRemoteObject();
-
-  // InitialMsg
-  RegionDataRemoteMessage::InitialMessageToRegionMatrixProxy msg;
-  msg.dimensions = _D;
-  if (remoteRegionDataPtr == 0) {
-    msg.type = MessageTypes::INITFROMDATASPLIT;
-  } else {
-    msg.type = MessageTypes::INITWITHREGIONDATA;
-  }
-  msg.encodedPtr = remoteRegionDataPtr;
-  memcpy(msg.size, size, sizeof(msg.size));
-  if (partOffset) {
-    memcpy(msg.partOffset, partOffset, sizeof(msg.partOffset));
-  }
-  int len = sizeof(RegionDataRemoteMessage::InitialMessageToRegionMatrixProxy);
-
-  host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
-}
-
-RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const EncodedPtr remoteRegionHandler) {
-  _D = dimensions;
-  _type = RegionDataTypes::REGIONDATAREMOTE;
-  memcpy(_size, size, sizeof(IndexT) * _D);
-
-  _remoteObject = new RegionDataRemoteObject();
-
-  // InitialMsg
-  InitialMessageToRegionMatrixProxy msg;
-  msg.dimensions = _D;
-  msg.type = MessageTypes::INITWITHREGIONHANDLER;
-  msg.encodedPtr = remoteRegionHandler;
-  int len = sizeof(RegionDataRemoteMessage::InitialMessageToRegionMatrixProxy);
-  host.createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
 }
 
 int RegionDataRemote::allocData() {
@@ -67,7 +58,7 @@ int RegionDataRemote::allocData() {
   return result;
 }
 
-ElementT RegionDataRemote::readCell(const IndexT* coord) {
+ElementT RegionDataRemote::readCell(const IndexT* coord) const {
   ReadCellMessage msg;
   memcpy(msg.coord, coord, _D * sizeof(IndexT));
 
@@ -134,7 +125,7 @@ UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain() {
   return this->updateHandlerChain(msg);
 }
 
-void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen) {
+void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen) const {
   *responseData = 0;
   *responseLen = 0;
 
@@ -221,16 +212,5 @@ void RegionDataRemote::processGetHostListMsg(const BaseMessageHeader* base, size
 
 RemoteObjectPtr RegionDataRemote::genRemote() {
   return new RegionDataRemoteObject();
-}
-
-//
-// RegionDataRemoteObject
-//
-
-void RegionDataRemoteObject::onRecvInitial(const void* buf, size_t len) {
-  JASSERT(len == sizeof(InitialMessageToRegionDataRemote))(len)(sizeof(InitialMessageToRegionDataRemote));
-  InitialMessageToRegionDataRemote* msg = (InitialMessageToRegionDataRemote*) buf;
-
-  _regionData = new RegionDataRemote(msg->dimensions, msg->size, this);
 }
 

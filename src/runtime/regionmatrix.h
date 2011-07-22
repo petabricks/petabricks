@@ -604,11 +604,7 @@ namespace petabricks {
     }
 
     void randomize() {
-      IndexT coord[D];
-      memset(coord, 0, sizeof coord);
-      do {
-        this->writeCell(coord, MatrixStorage::rand());
-      } while (this->incCoord(coord) >= 0);
+      _regionHandler->randomize();
     }
 
     void hash(jalib::HashGenerator& gen) {

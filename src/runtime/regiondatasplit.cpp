@@ -61,7 +61,7 @@ void RegionDataSplit::createPart(int partIndex, RemoteHostPtr host) {
   if (host == NULL) {
     _parts[partIndex] = new RegionDataRaw(_D, size, partOffset);
   } else {
-    _parts[partIndex] = new RegionDataRemote(_D, size, partOffset, host, 0);
+    _parts[partIndex] = new RegionDataRemote(_D, size, partOffset, host);
   }
 }
 
@@ -76,7 +76,7 @@ int RegionDataSplit::allocData() {
   return 0;
 }
 
-ElementT RegionDataSplit::readCell(const IndexT* coord) {
+ElementT RegionDataSplit::readCell(const IndexT* coord) const {
   return this->coordToPart(coord)->readCell(coord);
 }
 
@@ -144,7 +144,7 @@ DataHostList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {
   return list;
 }
 
-RegionDataIPtr RegionDataSplit::coordToPart(const IndexT* coord) {
+RegionDataIPtr RegionDataSplit::coordToPart(const IndexT* coord) const {
   IndexT index = 0;
 
   for (int i = 0; i < _D; i++){

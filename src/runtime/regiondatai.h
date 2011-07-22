@@ -28,12 +28,16 @@ namespace petabricks {
   public:
     virtual int allocData() = 0;
 
-    virtual ElementT readCell(const IndexT* coord) = 0;
+    virtual ElementT readCell(const IndexT* coord) const = 0;
     virtual void writeCell(const IndexT* coord, ElementT value) = 0;
 
     virtual MatrixStoragePtr storage() const {
       JASSERT(false)(_type).Text("This should not be called.");
       return NULL;
+    }
+
+    virtual void randomize() {
+      this->storage()->randomize();
     }
 
     // for toLocalRegion

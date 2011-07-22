@@ -28,11 +28,11 @@ namespace petabricks {
     int allocData();
     void createPart(int partIndex, RemoteHostPtr host);
 
-    ElementT readCell(const IndexT* coord);
+    ElementT readCell(const IndexT* coord) const;
     void writeCell(const IndexT* coord, ElementT value);
     DataHostList hosts(IndexT* begin, IndexT* end);
 
-    RegionDataIPtr coordToPart(const IndexT* coord);
+    RegionDataIPtr coordToPart(const IndexT* coord) const;
 
     void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);

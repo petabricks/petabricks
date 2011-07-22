@@ -100,17 +100,22 @@ RemoteObjectPtr RegionMatrixProxy::genRemote() {
 //
 
 void RegionMatrixProxyRemoteObject::onRecvInitial(const void* buf, size_t len) {
-  JASSERT(len == sizeof(InitialMessageToRegionMatrixProxy))(len)(sizeof(InitialMessageToRegionMatrixProxy));
-  InitialMessageToRegionMatrixProxy* msg = (InitialMessageToRegionMatrixProxy*) buf;
+  GeneralInitialMessage* m = (GeneralInitialMessage*) buf;
 
-  if (msg->type == MessageTypes::INITFROMDATASPLIT) {
+  if (m->type == MessageTypes::INITFROMDATASPLIT) {
+    JASSERT(len == sizeof(CreateRegionDataInitialMessage))(len);
+    CreateRegionDataInitialMessage* msg = (CreateRegionDataInitialMessage*) buf;
     _regionMatrix = new RegionMatrixProxy(new RegionHandler(msg->dimensions, msg->size, msg->partOffset), this);
 
-  } else if (msg->type == MessageTypes::INITWITHREGIONDATA) {
+  } else if (m->type == MessageTypes::INITWITHREGIONDATA) {
+    JASSERT(len == sizeof(EncodedPtrInitialMessage))(len);
+    EncodedPtrInitialMessage* msg = (EncodedPtrInitialMessage*) buf;
     RegionDataI* regionData = reinterpret_cast<RegionDataI*>(msg->encodedPtr);
     _regionMatrix = new RegionMatrixProxy(new RegionHandler(regionData), this);
 
-  } else if (msg->type == MessageTypes::INITWITHREGIONHANDLER) {
+  } else if (m->type == MessageTypes::INITWITHREGIONHANDLER) {
+    JASSERT(len == sizeof(EncodedPtrInitialMessage))(len);
+    EncodedPtrInitialMessage* msg = (EncodedPtrInitialMessage*) buf;
     RegionHandler* regionHandler = reinterpret_cast<RegionHandler*>(msg->encodedPtr);
     _regionMatrix = new RegionMatrixProxy(regionHandler, this);
 

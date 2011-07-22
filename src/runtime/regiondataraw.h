@@ -22,7 +22,7 @@ namespace petabricks {
     RegionDataRaw(const int dimensions, const IndexT* size, const ElementT* data);
     RegionDataRaw(const int dimensions, const IndexT* size, const IndexT* partOffset);
 
-    ElementT readCell(const IndexT* coord);
+    ElementT readCell(const IndexT* coord) const;
     void writeCell(const IndexT* coord, ElementT value);
     int allocData();
 

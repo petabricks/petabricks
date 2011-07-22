@@ -34,12 +34,16 @@ namespace petabricks {
       return 0;
     }
 
-    ElementT readCell(const IndexT* /*coord*/) {
+    ElementT readCell(const IndexT* /*coord*/) const {
       return *_value;
     }
 
     void writeCell(const IndexT* /*coord*/, ElementT value) {
       *_value = value;
+    }
+
+    void randomize() {
+      *_value = MatrixStorage::rand();
     }
 
     DataHostList hosts(IndexT* /*begin*/, IndexT* /*end*/) {
@@ -78,14 +82,16 @@ namespace petabricks {
       return 0;
     }
 
-    ElementT readCell(const IndexT* /*coord*/) {
+    ElementT readCell(const IndexT* /*coord*/) const {
       return _value;
     }
 
-    void writeCell(const IndexT* /*coord*/, ElementT value) {
-      // (yod) TODO: uncomment this (problem with MatrixRegion::randomize())
-      // JASSERT(false);
-      _value = value;
+    void writeCell(const IndexT* /*coord*/, ElementT /*value*/) {
+      JASSERT(false);
+    }
+
+    void randomize() {
+      _value = MatrixStorage::rand();
     }
 
     DataHostList hosts(IndexT* /*begin*/, IndexT* /*end*/) {

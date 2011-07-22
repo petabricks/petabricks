@@ -79,7 +79,7 @@ ElementT& RegionDataRaw::value0D(const IndexT* coord) const {
   return *this->coordToPtr(coord);
 }
 
-ElementT RegionDataRaw::readCell(const IndexT* coord) {
+ElementT RegionDataRaw::readCell(const IndexT* coord) const {
   return *this->coordToPtr(coord);
 }
 

@@ -38,6 +38,10 @@ void RegionHandler::writeCell(const IndexT* coord, ElementT value) {
   //  JTRACE("done write")(this);
 }
 
+void RegionHandler::randomize() {
+  _regionData->randomize();
+}
+
 int RegionHandler::allocData() {
   return _regionData->allocData();
 }
@@ -72,23 +76,6 @@ RegionDataType RegionHandler::type() const {
 // Migration
 //
 
-/*
-EncodedPtr RegionHandler::moveToRemoteHost(RemoteHostPtr host) {
-  RegionMatrixProxyPtr proxy = new RegionMatrixProxy(this);
-  RegionMatrixProxyRemoteObjectPtr local = proxy->genLocal();
-
-  // InitialMsg
-  RegionDataRemoteMessage::InitialMessageToRegionDataRemote msg;
-  msg.dimensions = dimensions();
-  memcpy(msg.size, size(), sizeof(msg.size));
-  int len = sizeof(RegionDataRemoteMessage::InitialMessageToRegionDataRemote);
-
-  host->createRemoteObject(local.asPtr(), &RegionDataRemote::genRemote, &msg, len);
-  local->waitUntilCreated();
-  return local->remoteObjPtr();
-}
-*/
-
 void RegionHandler::updateHandlerChain() {
   if (type() == RegionDataTypes::REGIONDATAREMOTE) {
     RegionDataRemoteMessage::UpdateHandlerChainReplyMessage reply =
@@ -107,7 +94,7 @@ void RegionHandler::updateHandlerChain() {
         JASSERT(false).Text("unknown host");
       }
 
-      RegionDataI* newRegionData = new RegionDataRemote(_regionData->dimensions(), _regionData->size(), 0, dest, reply.encodedPtr);
+      RegionDataI* newRegionData = new RegionDataRemote(_regionData->dimensions(), _regionData->size(), *dest, MessageTypes::INITWITHREGIONDATA, reply.encodedPtr);
       updateRegionData(newRegionData);
     }
   }
@@ -176,11 +163,6 @@ RegionHandlerDB& RegionHandlerDB::instance() {
 }
 
 RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(RemoteHost& host, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size) {
-  /*
-  RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, host, remoteHandler);
-  return new RegionHandler(regionData);
-  */
-
   HostPid hostPid = host.id();
 
   _mapMux.lock();
@@ -195,7 +177,7 @@ RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(RemoteHost& host, const 
   localMux->lock();
   if (localMap.count(remoteHandler) == 0) {
     // create a new one
-    RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, host, remoteHandler);
+    RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, host, MessageTypes::INITWITHREGIONHANDLER, remoteHandler);
     localMap[remoteHandler] = new RegionHandler(regionData);
   }
 

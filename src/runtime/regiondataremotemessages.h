@@ -47,17 +47,20 @@ namespace petabricks {
       };
     };
 
-    struct InitialMessageToRegionDataRemote {
-      int dimensions;
-      IndexT size[MAX_DIMENSIONS];
+    struct GeneralInitialMessage {
+      MessageType type;
     };
 
-    struct InitialMessageToRegionMatrixProxy {
+    struct CreateRegionDataInitialMessage {
       MessageType type;
       int dimensions;
-      EncodedPtr encodedPtr;
       IndexT size[MAX_DIMENSIONS];
       IndexT partOffset[MAX_DIMENSIONS];
+    };
+
+    struct EncodedPtrInitialMessage {
+      MessageType type;
+      EncodedPtr encodedPtr;
     };
 
     struct GeneralMessageHeader {
