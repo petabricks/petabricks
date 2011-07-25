@@ -768,7 +768,9 @@ namespace petabricks {
       init(NULL, val.regionHandler());
     }
     RegionMatrixWrapper(ElementT* data, IndexT* size) : Base() {
-      init(NULL, new RegionHandler(new RegionData0D(*data)));
+      RegionDataIPtr regionData = new RegionData0D();
+      regionData->writeCell(NULL, *data);
+      init(NULL, new RegionHandler(regionData));
     }
     RegionMatrixWrapper(const RegionMatrixWrapper& that) : Base() {
       init(that.sourceInfo(), that.regionHandler());
