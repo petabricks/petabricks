@@ -4,7 +4,6 @@
 #include "common/jassert.h"
 #include "common/jrefcounted.h"
 #include "regiondatai.h"
-#include "regionhandlercache.h"
 #include "remotehost.h"
 
 #include <map>
@@ -19,10 +18,6 @@ namespace petabricks {
   private:
     RegionDataIPtr _regionData;
     jalib::JMutex _regionDataMux;
-
-    // Cache
-    RegionHandlerCachePtr _cache;
-    jalib::JMutex _cacheMux;
 
   public:
     RegionHandler(const int dimensions, const IndexT* size);

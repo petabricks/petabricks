@@ -3,7 +3,10 @@
 
 #include <map>
 #include <pthread.h>
+
+#include "iregioncache.h"
 #include "regiondatai.h"
+#include "regiondataremotecache.h"
 #include "remoteobject.h"
 
 #ifdef HAVE_CONFIG_H
@@ -20,9 +23,10 @@ namespace petabricks {
   class RegionDataRemoteObject;
   typedef jalib::JRef<RegionDataRemoteObject> RegionDataRemoteObjectPtr;
 
-  class RegionDataRemote : public RegionDataI {
+  class RegionDataRemote : public RegionDataI, IRegionCacheable {
   private:
     RegionDataRemoteObjectPtr _remoteObject;
+    RegionDataRemoteCachePtr _cache;
 
   public:
     RegionDataRemote(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject);
@@ -37,6 +41,7 @@ namespace petabricks {
     int allocData();
 
     ElementT readCell(const IndexT* coord) const;
+    void readToCache(const IndexT* coord, void* msg) const;
     void writeCell(const IndexT* coord, ElementT value);
     DataHostList hosts(IndexT* begin, IndexT* end);
 
