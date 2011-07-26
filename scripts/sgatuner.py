@@ -360,7 +360,7 @@ def createTunableMutators(candidate, ta, weight):
   elif ta['type'] in config.lognorm_array_tunable_types:
     ms = [mutators.LognormTunableArrayMutator(name, l, h, weight=weight),
           mutators.IncrementTunableArrayMutator(name, l, h, 8, weight=weight),
-          mutators.ScaleTunableArrayMutator(name, l, h, 2, weight=weight)
+          mutators.ScaleTunableArrayMutator(name, l, h, 2, weight=weight),
           ]
     ms[-1].reset(candidate)
     return ms

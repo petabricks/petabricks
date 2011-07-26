@@ -353,7 +353,8 @@ class OptimizeTunable2DArrayMutator(Tunable2DArrayMutator):
     return -result
 
   def random(self, oldVal, minVal, maxVal, candidate):
-    return self.o.optimize(oldVal, candidate)
+    n = candidate.pop.testers[-1].n
+    return self.o.optimize(oldVal, (candidate, n))
 
 class MultiMutator(Mutator):
   def __init__(self, count=3, weight=1.0):

@@ -208,12 +208,10 @@ class BFGSOptimizer:
     self.minVal = minVal
     self.maxVal = maxVal
 
-  def optimize(self, x0, candidate):
-
-    n = candidate.pop.testers[-1].n
+  def optimize(self, x0, args):
 
     # optimize
-    result = my_fmin_bfgs(self.f, x0, args = (candidate, n), maxiter = 1)
+    result = my_fmin_bfgs(self.f, x0, args = args, maxiter = 1)
 
     # convert result to list of floats and enforce min and max
     newVal = list(result)
