@@ -166,7 +166,9 @@ public:
                           , const typename TypeSpec::IndexT* sizes
                           , const typename TypeSpec::IndexT* multipliers)
     : Base(s,b,sizes,multipliers)
-  {}
+  {
+    _hasStorageInfo = false;
+  }
 
   enum StockLayouts { LAYOUT_ASCENDING, LAYOUT_DECENDING };
   enum { D = TypeSpec::D };
@@ -246,11 +248,28 @@ public:
     return t;
   }
 
+  MatrixStorageInfoPtr _storageinfo;
+
+  MatrixStorageInfoPtr getMatrixStorageInfo() {
+    if(!_hasStorageInfo){
+      _hasStorageInfo = true;
+      _storageinfo = new MatrixStorageInfo();
+      exportTo(_storageinfo);
+    }
+    return _storageinfo;
+  }
+
+  void exportTo(MatrixStorageInfo& ms) const {
+    ms.setStorage(this->storage(), this->base());
+    ms.setSizeMultipliers(D, this->multipliers(), this->sizes());
+    ms.setExtraVal();
+  }
+
   ///
   /// Decide to make a copy or return the orginal for making GPU buffer.
-  MatrixRegion asGpuBuffer(const IndexT c1[D], const IndexT c2[D]) const
+  MatrixRegion asGpuInputBuffer() const
   {
-    if(isEntireBuffer() &&  intervalSize(c1, c2) == count()) {
+    if(isEntireBuffer()) {
       return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
     }
 
@@ -263,12 +282,43 @@ public:
     return t;
   }
 
+  ///
+  /// Decide to make a copy or return the orginal for making GPU buffer.
+  MatrixRegion asGpuOutputBuffer(const IndexT c1[D], const IndexT c2[D]) const
+  {
+    if(isEntireBuffer() &&  intervalSize(c1, c2) == count()) {
+      return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
+    }
+
+    MutableMatrixRegion t = MutableMatrixRegion::allocate((IndexT*)this->sizes());
+    return t;
+  }
+
   INLINE ssize_t intervalSize(const IndexT c1[D], const IndexT c2[D]) const 
   { ssize_t s=1;
     for(int i=0; i<D; ++i) {
       s*=c2[i] - c1[i];
     }
     return s;
+  }
+
+  ///
+  /// Copy that data of this to dst
+  void copyTo(const MutableMatrixRegion& dst)
+  {
+    JASSERT(this->count()==dst.count());
+    if(this->base() == dst.base()) {
+      bool same = true;
+      for(int i = 0; i < D; i++) {
+        if(this->multipliers()[i] != dst.multipliers()[i])
+          same = false;
+      }
+      if(same) return;
+    }
+    IndexT coord[D] = {0};
+    do {
+      dst.cell(coord) = this->cell(coord);
+    } while(this->incCoord(coord)>=0);
   }
   
   ///
@@ -467,6 +517,7 @@ public:
   }
   
 protected:
+  bool _hasStorageInfo;
   ///
   /// Compute the offset in _base for a given coordinate
   ElementT* coordToPtr(const IndexT coord[D]) const{
@@ -622,6 +673,7 @@ public:
   ///
   /// Default constructor
   MatrixRegion() : Base(NULL, NULL, NULL, NULL) {}
+
 };
 
 } /* namespace petabricks*/

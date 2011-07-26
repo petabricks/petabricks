@@ -31,19 +31,16 @@
 
 namespace petabricks {
 
-//std::list<GpuDynamicTaskPtr> GpuDynamicTask::gputasks;
-//jalib::JMutex  GpuDynamicTask::_lock;
-
-GpuDynamicTask::GpuDynamicTask() : DynamicTask(DynamicTask::TYPE_OPENCL) {
+GpuDynamicTask::GpuDynamicTask(GpuTaskInfoPtr taskinfo, GpuTaskType tasktype, MatrixStorageInfoPtr info) : DynamicTask(DynamicTask::TYPE_OPENCL) {
   _state = S_REMOTE_NEW;
+  _taskinfo = taskinfo;
+  _tasktype = tasktype;
+  _storageinfo = info;
 }
 
 void GpuDynamicTask::remoteScheduleTask() {
-  //_lock.lock();
-  //gputasks.push_back(this);
-  std::cerr << ">>>>>>>> ADD TO QUEUE <<<<<<<<<" << std::endl;
+  //std::cerr << "========== ADD TO QUEUE ============" << std::endl;
   GpuManager::addTask(this);
-  //_lock.unlock();
 }
 
 }

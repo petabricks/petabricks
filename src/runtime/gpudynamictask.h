@@ -43,27 +43,27 @@ typedef std::vector<GpuDynamicTaskPtr> GpuDynamicTaskList;
 class GpuDynamicTask : public DynamicTask {
 public:
 
-  GpuDynamicTask();
-
   virtual DynamicTaskPtr run() = 0;
 
-  /*int id(){ 
-    return _id; 
-  }
-
   enum GpuTaskType {
-    PRERUN,
+    PREPARE,
+    COPYIN,
     RUN,
-    POSTRUN,
-  };*/
+    COPYOUT,
+    GEN,
+  };
 
-  static std::list<GpuDynamicTaskPtr> gputasks;
+  GpuTaskType tasktype() { return _tasktype; }
+  GpuTaskInfoPtr taskinfo() { return _taskinfo; }
+  MatrixStorageInfoPtr storageinfo() { return _storageinfo; }
+
+  GpuDynamicTask(GpuTaskInfoPtr taskinfo, GpuTaskType tasktype = GEN, MatrixStorageInfoPtr info = NULL);
 
 protected:
-  //GpuTaskInfoPtr _task;
-  //int _id;
   void remoteScheduleTask();
-  static jalib::JMutex  _lock;
+  GpuTaskType _tasktype;
+  GpuTaskInfoPtr _taskinfo;
+  MatrixStorageInfoPtr _storageinfo;
 };
 
 }

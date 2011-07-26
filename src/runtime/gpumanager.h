@@ -33,28 +33,44 @@
 #include "openclutil.h"
 #include "gpudynamictask.h"
 #include "deviceinfo.h"
+#include "matrixregion.h"
 
 #include <oclUtils.h>
 #include <pthread.h>
 #include <list>
 #include <queue>
+#include <map>
 
 namespace petabricks {
 
-class GpuManager {
+class GpuManager : public jalib::JRefCounted  {
 public:
 
   static void start();
   static void shutdown();
   static void mainLoop();
   static void addTask(GpuDynamicTaskPtr task);
+  static void dummy() {}
+
+  static GpuTaskInfoPtr _currenttaskinfo;
+  static cl_kernel _kernel;
+  static cl_command_queue _queue;
 
 private:
+  /** Class is a singleton. */
+  GpuManager() {}
+
+  static void prepare(GpuDynamicTaskPtr task);
+  static void copyin(GpuDynamicTaskPtr task);
+  static void run(GpuDynamicTaskPtr task);
+  static bool copyout(GpuDynamicTaskPtr task);
+
   static bool _shutdown;
   static pthread_t _thread;
-  //static std::list<GpuDynamicTaskPtr> _pendingtasks;
   static std::queue<GpuDynamicTaskPtr> _readytasks;
   static jalib::JMutex  _lock;
+
+  static cl_context _context;
 
 };
 

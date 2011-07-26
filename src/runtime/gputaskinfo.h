@@ -43,11 +43,21 @@ class GpuTaskInfo: public jalib::JRefCounted {
 public:
 
   /// constructor
-  GpuTaskInfo(MatrixStorageList matrixlist);
+  GpuTaskInfo();
+
+  void addToMatrix(MatrixStorageInfoPtr info) { _to.push_back(info); }
+  void addFromMatrix(MatrixStorageInfoPtr info) { _from.push_back(info); }
+
+  // Return tree if the whole task is done.
+  bool progress();
+
+  std::vector<MatrixStorageInfoPtr> _from;
+  std::vector<MatrixStorageInfoPtr> _to;
 
 private:
-  MatrixStorageList _matrixlist;
   cl_command_queue _queue;
+  cl_kernel _kernel;
+  int _numcomplete;
 };
 
 }

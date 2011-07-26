@@ -34,11 +34,16 @@ namespace petabricks {
 
 typedef std::list<GpuDynamicTaskPtr>::iterator gpuTaskIter;
 
-//std::list<GpuDynamicTaskPtr> GpuManager::_pendingtasks;
 std::queue<GpuDynamicTaskPtr> GpuManager::_readytasks;
+//std::map<MatrixStorageInfoPtr,cl_mem> GpuManager::_clmems;
 jalib::JMutex  GpuManager::_lock;
 bool GpuManager::_shutdown = true;
 pthread_t GpuManager::_thread;
+
+GpuTaskInfoPtr GpuManager::_currenttaskinfo;
+cl_kernel GpuManager::_kernel;
+cl_command_queue GpuManager::_queue = OpenCLUtil::getQueue(0);
+cl_context GpuManager::_context = OpenCLUtil::getContext();
 
 extern "C" void *startGpuManager(void* /*arg*/) {
   //try {
@@ -68,34 +73,24 @@ void GpuManager::shutdown() {
 
 void GpuManager::mainLoop() {
   for(;;){
-    // Execute tasks from ready queue
-    /*while(!_readytasks.empty()) {
-      _readytasks.front()->runWrapper(false);
-      _readytasks.pop();
-    }
-
-    // Move ready tasks from tasklist to ready queue
-    std::list<gpuTaskIter> del;
-
-    for(gpuTaskIter it = _pendingtasks.begin(); it != _pendingtasks.end(); ++it){
-      if((*it)->getStatus() == DynamicTask::S_READY) {
-        del.push_back(it);
-        _readytasks.push(*it);
-      }
-    }
-
-    _lock.lock();
-    for(std::list<gpuTaskIter>::iterator it = del.begin(); it != del.end(); ++it){
-      _pendingtasks.erase(*it);
-    }
-    _lock.unlock();*/
 
     //TODO: whey do I have to use empty?
     bool empty = _readytasks.empty();
     while(!empty) {
-      _readytasks.front()->runWrapper();
+      std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>> START " << std::endl;
+      GpuDynamicTaskPtr task = _readytasks.front();
+      int done = true;
+      switch(task->tasktype()) {
+        case GpuDynamicTask::PREPARE: prepare(task);        break;
+        case GpuDynamicTask::COPYIN:  copyin(task);         break;
+        case GpuDynamicTask::RUN:     run(task);            break;
+        case GpuDynamicTask::COPYOUT: done = copyout(task); break;
+      }
+      std::cerr << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<< DONE" << std::endl;
       _lock.lock();
       _readytasks.pop();
+      if(!done)
+        _readytasks.push(task);
       _lock.unlock();
       empty = _readytasks.empty();
     }
@@ -110,6 +105,63 @@ void GpuManager::addTask(GpuDynamicTaskPtr task) {
   _lock.lock();
   _readytasks.push(task);
   _lock.unlock();
+}
+
+void GpuManager::prepare(GpuDynamicTaskPtr task) {
+  std::cerr << "[PREPARE]" << std::endl;
+  _currenttaskinfo = task->taskinfo();
+  task->runWrapper();
+  std::cerr << "Number of From Matrices = " << _currenttaskinfo->_from.size() << std::endl;
+  std::cerr << "Number of To Matrices   = " << _currenttaskinfo->_to.size() << std::endl;
+
+  for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
+    (*i)->initGpuMem(_context); // clCreateBuffer
+  }
+}
+
+void GpuManager::copyin(GpuDynamicTaskPtr task) {
+  std::cerr << "[COPY IN]" << std::endl;
+  _currenttaskinfo = task->taskinfo();
+  MatrixStorageInfoPtr storageinfo = task->storageinfo();
+
+  if(storageinfo->initGpuMem(_context)) { // clCreateBuffer
+    std::cerr << "copying in... " << &(*storageinfo) << std::endl;
+    task->runWrapper(); // clEnqueueWriteBuffer
+  }
+  else {
+    task->completeTaskDeps();
+  }
+}
+
+void GpuManager::run(GpuDynamicTaskPtr task) {
+  std::cerr << "[RUN]" << std::endl;
+  _currenttaskinfo = task->taskinfo();
+  task->runWrapper();
+
+  //cl_int err;
+  for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
+    (*i)->finishGpuMem(_queue,true); // clEnqueueReadBuffer
+  }
+  for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_from.begin(); i != _currenttaskinfo->_from.end(); ++i) {
+    (*i)->finishGpuMem(_queue,false); // clEnqueueReadBuffer
+  }
+}
+
+bool GpuManager::copyout(GpuDynamicTaskPtr task) {
+  cl_int err;
+  MatrixStorageInfoPtr storage = task->storageinfo();   
+  std::cerr << "[COPY OUT]" << &(*storage) << std::endl;
+  if(!storage->isModified()) {
+    std::cerr << "is not modified... " << &(*storage) << std::endl;
+    task->completeTaskDeps();
+    return true;
+  }
+  if(storage->doneReadBuffer()) {
+    std::cerr << "actual copy... " << &(*storage) << std::endl;
+    task->runWrapper();
+    return true;
+  }
+  return false;
 }
 
 }

@@ -41,6 +41,7 @@ void petabricks::MatrixStorage::randomize(){
 void petabricks::MatrixStorageInfo::setStorage(const MatrixStoragePtr& s, const ElementT* base){
   if(s){
     _storage=s;
+    std::cerr << "base = " << base << " data = " << s->data() << " count = " << s->count() << std::endl;
     JASSERT(base >= s->data());
     JASSERT(base < s->data()+s->count());
     _baseOffset=base-s->data();
@@ -55,8 +56,11 @@ void petabricks::MatrixStorageInfo::setSizeMultipliers(int dim, const IndexT* mu
   _dimensions=dim;
   for(int d=0; d<_dimensions; ++d)
     _multipliers[d]=mult[d];
-  for(int d=0; d<_dimensions; ++d)
+  _count = 1;
+  for(int d=0; d<_dimensions; ++d) {
     _sizes[d]=siz[d];
+    _count *= _sizes[d];
+  }
 }
 
 void petabricks::MatrixStorageInfo::setExtraVal(ElementT v)
@@ -75,6 +79,12 @@ void petabricks::MatrixStorageInfo::reset(){
   setExtraVal();
   setStorage(0,0);
   _dimensions=-1;
+#ifdef HAVE_OPENCL
+  _hasGpuMem = false;
+  _refCount = 0;
+  _isModified = false;
+  _coverage = 0;
+#endif
 }
 
 void petabricks::MatrixStorageInfo::releaseStorage() { _storage=0; }
@@ -100,3 +110,53 @@ bool petabricks::MatrixStorageInfo::isDataMatch(const MatrixStorageInfo& that) c
   return _hash==that._hash;
 }
 
+#ifdef HAVE_OPENCL
+bool petabricks::MatrixStorageInfo::initGpuMem(cl_context& context) {
+  _refCount++;
+  std::cerr << this << " : inc refcount to " << _refCount << std::endl;
+  if(!_hasGpuMem) {
+    cl_int err;
+    _clmem = clCreateBuffer(context, CL_MEM_READ_WRITE, bytes(), NULL, &err);
+    JASSERT(CL_SUCCESS == err).Text("Failed to create input memory object.");
+    _hasGpuMem = true;
+    return true;
+  }
+  return false;
+}
+
+void petabricks::MatrixStorageInfo::finishGpuMem(cl_command_queue& queue, bool modify) {
+  if(modify) _isModified = modify;
+
+  _refCount--;
+  std::cerr << this << " : dec refcount to " << _refCount << std::endl;
+  if(/*_refCount == 0*/ _coverage == _count && _isModified) {
+    JASSERT(_refCount == 0)(_refCount).Text("At least one kernel is working on this region of memory; cannot enqueue read buffer.");
+    std::cerr << this << " : read buffer " << std::endl;
+    _gpubuffer = new MatrixStorage(count());
+    //cl_int err = clSetEventCallBack(event, CL_COMPLETE, NULL, NULL);
+    //std::cerr << this << " : start read buffer " << _refCount << std::endl;
+    clEnqueueReadBuffer(queue, _clmem, CL_FALSE, 0, bytes(), _gpubuffer->data(), 0, NULL, &event);
+  }
+}
+
+bool petabricks::MatrixStorageInfo::doneReadBuffer() {
+  JASSERT(_isModified).Text("Copying unmodified matrix.");
+
+  // Need to check _refCount again because it's possible to have new task that just enqueues read buffer before the previous read buffer finishes.
+  //if(_refCount == 0) {
+    JASSERT(_refCount == 0)(_refCount).Text("At least one kernel is working on this region of memory while reading buffer.");
+    cl_int ret;
+    clGetEventInfo(event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &ret, NULL);
+    if(ret == CL_COMPLETE) {
+      _isModified = false;
+      return true;
+    }
+  //}
+  return false;
+}
+
+void petabricks::MatrixStorageInfo::incCoverage(int size) {
+  _coverage += size;
+  JASSERT(_coverage <= _count).Text("Overwrite output.");
+}
+#endif

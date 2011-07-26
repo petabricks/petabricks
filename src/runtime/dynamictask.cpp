@@ -90,7 +90,7 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
 {
   if(!that) return;
   JASSERT(that!=this).Text("task cant depend on itself");
-  JASSERT(_state==S_NEW)(_state).Text(".dependsOn must be called before enqueue()");
+  JASSERT(_state==S_NEW || _state==S_REMOTE_NEW)(_state).Text(".dependsOn must be called before enqueue()");
   that->_lock.lock();
   if(that->_state == S_CONTINUED){
     that->_lock.unlock();

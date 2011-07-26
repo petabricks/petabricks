@@ -50,17 +50,17 @@ namespace petabricks {
  * A task that calls a method on a given object, with a given region
  */
 template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D])>
-class GpuSpecializedTask : public GpuDynamicTask {
+class GpuSpatialMethodCallTask : public GpuDynamicTask {
 public:
-  GpuSpecializedTask(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D])
-    : _obj(obj)
+  GpuSpatialMethodCallTask(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D], GpuTaskInfoPtr taskinfo, GpuTaskType tasktype = GEN, MatrixStorageInfoPtr info = NULL)
+    : GpuDynamicTask(taskinfo,tasktype,info), _obj(obj)
   {
     memcpy(_begin, begin, sizeof _begin);
     memcpy(_end,   end,   sizeof _end);
   }
 
   DynamicTaskPtr run(){    
-    std::cerr << "Specialllllll Runnnnnnnnnnnnn" << std::endl;
+    std::cerr << "+++++++++++++ RUN" << std::endl;
     JASSERT(_state == S_REMOTE_READY)(_state);
     return ((*_obj).*(method))(_begin, _end);
   }

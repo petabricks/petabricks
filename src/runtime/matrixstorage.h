@@ -27,6 +27,11 @@
 #ifndef PETABRICKSMATRIXSTORAGE_H
 #define PETABRICKSMATRIXSTORAGE_H
 
+//#ifdef HAVE_OPENCL
+#include "openclutil.h"
+#include <oclUtils.h>
+//#endif
+
 #include "common/jassert.h"
 #include "common/jrefcounted.h"
 #include "common/hash.h"
@@ -34,8 +39,9 @@
 namespace petabricks {
 
 class MatrixStorage;
+class MatrixStorageInfo;
 typedef jalib::JRef<MatrixStorage> MatrixStoragePtr;
-typedef jalib::JRef<MatrixStorage> MatrixStorageInfoPtr;
+typedef jalib::JRef<MatrixStorageInfo> MatrixStorageInfoPtr;
 typedef std::vector<MatrixStoragePtr> MatrixStorageList;
 
 /**
@@ -80,6 +86,12 @@ public:
     g.update(_data, _count*sizeof(ElementT));
     return g.final();
   }
+  
+  void print() {
+    for(size_t i = 0; i < _count; i++)
+      std::cout << _data[i] << " ";
+    std::cout << std::endl;
+  }
 private:
   ElementT* _data;
   size_t _count;
@@ -89,7 +101,7 @@ private:
 /**
  * Capable of storing any type of MatrixRegion plus a hash of its data
  */
-class MatrixStorageInfo {
+class MatrixStorageInfo : public jalib::JRefCounted {
   typedef MatrixStorage::IndexT IndexT;
   typedef MatrixStorage::ElementT ElementT;
   typedef jalib::Hash HashT;
@@ -101,6 +113,12 @@ public:
   const IndexT* sizes() const { return _sizes; }
   const HashT& hash() const { return _hash; }
   ElementT extraVal() const { return _extraVal; }
+  ssize_t bytes() const {
+    return _count*sizeof(ElementT);
+  }
+  ssize_t count() const {
+    return _count;
+  }
 
   void setStorage(const MatrixStoragePtr& s, const ElementT* base);
   void setSizeMultipliers(int dim, const IndexT* mult, const IndexT* siz);
@@ -111,6 +129,29 @@ public:
   MatrixStorageInfo();
   bool isMetadataMatch(const MatrixStorageInfo& that) const;
   bool isDataMatch(const MatrixStorageInfo& that) const;
+
+  void print() {
+    std::cout << "MatrixStorage " << this << std::endl;
+    _storage->print();
+  }
+
+#ifdef HAVE_OPENCL
+  // Increase reference count to the gpu mem.
+  // Return true when it's first initialized.
+  bool initGpuMem(cl_context& context);
+
+  // Decrease reference count to the gpu mem.
+  // Return true when it's last reference to gpu mem is removed.
+  void finishGpuMem(cl_command_queue& queue,bool modify);
+  bool doneReadBuffer();
+  bool isModified() { return _isModified; }
+  MatrixStoragePtr getGpuBuffer() { return _gpubuffer; }
+  void incCoverage(int size);
+  //std::vector<GpuDynamicPtr>& getOwners() { return _owners; }
+
+  cl_mem _clmem;
+#endif
+
 private:
   MatrixStoragePtr _storage;
   int     _dimensions;
@@ -119,6 +160,22 @@ private:
   IndexT  _sizes[MAX_DIMENSIONS];
   ElementT _extraVal;
   HashT   _hash;
+  ssize_t _count;
+
+#ifdef HAVE_OPENCL
+  int _coverage;
+  int _refCount;
+  bool _hasGpuMem;
+  bool _isModified;
+  MatrixStoragePtr _gpubuffer;
+  cl_event event;
+
+  /*CL_CALLBACK decreaseDependency(cl_event event, cl_int cmd_exec_status, void *user_data)
+  {
+    // handle the callback here.
+    std::cerr << this << " : CALL BACK!!!!!!!!!!!!!!!" << std::endl;
+  }*/
+#endif
 };
 
 

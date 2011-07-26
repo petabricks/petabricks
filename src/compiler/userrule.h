@@ -121,10 +121,11 @@ public:
 
 #ifdef HAVE_OPENCL
   void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o);
-  void generateOpenCLPrepareCode(Transform& trans, CodeGenerator& o);
-  void generateOpenCLWriteBufferCode(Transform& trans, CodeGenerator& o);
+  void generateOpenCLCallCode(Transform& trans, CodeGenerator& o);
+  void generateOpenCLPrepareCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o);
+  void generateOpenCLCopyInCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o, RegionPtr region);
   void generateOpenCLRunCode(Transform& trans, CodeGenerator& o);
-  void generateOpenCLOutputCode(Transform& trans, CodeGenerator& o);
+  void generateOpenCLCopyOutCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o, RegionPtr region);
   ///
   /// Generate an OpenCL program implementing this rule
   void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef );
