@@ -2,7 +2,7 @@
 import numpy
 from numpy import atleast_1d, eye, mgrid, argmin, zeros, shape, empty, \
      squeeze, vectorize, asarray, absolute, sqrt, Inf, asfarray, isinf
-from scipy.optimize import linesearch, approx_fprime
+from scipy.optimize import linesearch, line_search, approx_fprime
 
 # variables and functions taken from scipy.optimize:
 
@@ -208,10 +208,10 @@ class BFGSOptimizer:
     self.minVal = minVal
     self.maxVal = maxVal
 
-  def optimize(self, x0, args):
+  def optimize(self, x0, args = (), maxiter = None):
 
     # optimize
-    result = my_fmin_bfgs(self.f, x0, args = args, maxiter = 1)
+    result = my_fmin_bfgs(self.f, x0, args = args, maxiter = maxiter)
 
     # convert result to list of floats and enforce min and max
     newVal = list(result)
