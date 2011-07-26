@@ -10,32 +10,31 @@ using namespace petabricks::RegionDataRemoteMessage;
 
 RegionHandler::RegionHandler(const int dimensions, const IndexT* size) {
   _regionData = new RegionDataRaw(dimensions, size);
+  _cache = new RegionHandlerCache(_regionData);
 }
 
 RegionHandler::RegionHandler(const int dimensions, const IndexT* size, const IndexT* partOffset) {
   _regionData = new RegionDataRaw(dimensions, size, partOffset);
+  _cache = new RegionHandlerCache(_regionData);
 }
 
 RegionHandler::RegionHandler(const RegionDataIPtr regionData) {
   _regionData = regionData;
+  _cache = new RegionHandlerCache(_regionData);
 }
 
 RegionHandler::RegionHandler(const EncodedPtr remoteObjPtr) {
   RegionDataRemoteObject* remoteObj = reinterpret_cast<RegionDataRemoteObject*>(remoteObjPtr);
   _regionData = remoteObj->regionData();
+  _cache = new RegionHandlerCache(_regionData);
 }
 
 ElementT RegionHandler::readCell(const IndexT* coord) {
-  //  JTRACE("read")(this);
-  ElementT x = _regionData->readCell(coord);
-  //  JTRACE("done read")(this);
-  return x;
+  return _cache->readCell(coord);
 }
 
 void RegionHandler::writeCell(const IndexT* coord, ElementT value) {
-  //  JTRACE("write")(this);
   _regionData->writeCell(coord, value);
-  //  JTRACE("done write")(this);
 }
 
 void RegionHandler::randomize() {
@@ -53,6 +52,7 @@ RegionDataIPtr RegionHandler::getRegionData() {
 void RegionHandler::updateRegionData(RegionDataIPtr regionData) {
   _regionDataMux.lock();
   _regionData = regionData;
+  _cache = new RegionHandlerCache(_regionData);
   _regionDataMux.unlock();
 }
 

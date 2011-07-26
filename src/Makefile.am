@@ -69,6 +69,7 @@ pkglib_HEADERS=  \
   runtime/regiondataremotemessages.h \
   runtime/regiondatasplit.h \
   runtime/regionhandler.h \
+  runtime/regionhandlercache.h \
   runtime/regionmatrix.h \
   runtime/regionmatrixi.h \
   runtime/regionmatrixproxy.h \
@@ -146,6 +147,7 @@ libpbruntime_a_SOURCES =  \
   runtime/regiondataremote.cpp \
   runtime/regiondatasplit.cpp \
   runtime/regionhandler.cpp \
+  runtime/regionhandlercache.cpp \
   runtime/regionmatrixi.cpp \
   runtime/regionmatrixproxy.cpp \
   runtime/remotehost.cpp \
