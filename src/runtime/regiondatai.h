@@ -30,6 +30,7 @@ namespace petabricks {
 
     virtual ElementT readCell(const IndexT* coord) const = 0;
     virtual void writeCell(const IndexT* coord, ElementT value) = 0;
+    virtual void invalidateCache() {}
 
     virtual MatrixStoragePtr storage() const {
       JASSERT(false)(_type).Text("This should not be called.");

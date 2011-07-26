@@ -41,8 +41,10 @@ namespace petabricks {
     int allocData();
 
     ElementT readCell(const IndexT* coord) const;
-    void readToCache(const IndexT* coord, void* msg) const;
+    void readByCache(const IndexT* coord, void* msg) const;
     void writeCell(const IndexT* coord, ElementT value);
+    void writeByCache(const IndexT* coord, ElementT value) const;
+    void invalidateCache();
     DataHostList hosts(IndexT* begin, IndexT* end);
 
     // Update long chain of RegionHandlers

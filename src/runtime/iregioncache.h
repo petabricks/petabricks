@@ -9,12 +9,15 @@ namespace petabricks {
   public:
     virtual ~IRegionCache() {}
     virtual ElementT readCell(const IndexT* coord) = 0;
+    virtual void writeCell(const IndexT* coord, ElementT value) = 0;
+    virtual void invalidate() = 0;
   };
 
   class IRegionCacheable {
   public:
     virtual ~IRegionCacheable() {}
-    virtual void readToCache(const IndexT* coord, void* msg) const = 0;
+    virtual void readByCache(const IndexT* coord, void* msg) const = 0;
+    virtual void writeByCache(const IndexT* coord, ElementT value) const = 0;
   };
 
 }

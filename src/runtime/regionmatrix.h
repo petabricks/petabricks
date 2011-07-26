@@ -207,6 +207,10 @@ namespace petabricks {
       _regionHandler->writeCell(rd_coord, value);
     }
 
+    void invalidateCache() {
+      _regionHandler->invalidateCache();
+    }
+
     const IndexT* size() const { return _size; }
     IndexT size(int i) const { return _size[i]; }
     bool isSize(const IndexT size[D]) const{

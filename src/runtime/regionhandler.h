@@ -28,6 +28,7 @@ namespace petabricks {
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
+    void invalidateCache();
     void randomize();
 
     int allocData();

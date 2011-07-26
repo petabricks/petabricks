@@ -1,11 +1,12 @@
 #ifndef PETABRICKSREGIONHANDLERCACHE_H
 #define PETABRICKSREGIONHANDLERCACHE_H
 
+#include "common/jmutex.h"
 #include "iregioncache.h"
 
 #include <map>
 
-#define REGIONDATA_CACHE_LINE_SIZE 16
+#define REGIONDATA_CACHE_LINE_SIZE 1
 #define REGIONDATA_CACHE_NUM_LINES 64
 
 namespace petabricks {
@@ -43,6 +44,8 @@ namespace petabricks {
     RegionDataRemoteCacheLines _cacheLines;
     IndexT _multipliers[MAX_DIMENSIONS];
 
+    jalib::JMutex _mux;
+
   private:
     RegionDataRemoteCache(const RegionDataRemoteCache&);
 
@@ -51,6 +54,7 @@ namespace petabricks {
     RegionDataRemoteCache(IRegionCacheable* regionData, int dimensions, IndexT* multipliers);
 
     ElementT readCell(const IndexT* coord);
+    void writeCell(const IndexT* coord, ElementT value);
     void invalidate();
 
   private:

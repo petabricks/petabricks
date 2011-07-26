@@ -67,23 +67,14 @@ int RegionDataRemote::allocData() {
 }
 
 ElementT RegionDataRemote::readCell(const IndexT* coord) const {
-  /*
-  ReadCellMessage msg;
-  memcpy(msg.coord, coord, _D * sizeof(IndexT));
-
-  void* data;
-  size_t len;
-  this->fetchData(&msg, MessageTypes::READCELL, sizeof(ReadCellMessage), &data, &len);
-  ReadCellReplyMessage* reply = (ReadCellReplyMessage*)data;
-
-  ElementT value = reply->value;
-  free(reply);
-  return value;
-  */
   return _cache->readCell(coord);
 }
 
-void RegionDataRemote::readToCache(const IndexT* coord, void* cacheMsg) const {
+void RegionDataRemote::invalidateCache() {
+  _cache->invalidate();
+}
+
+void RegionDataRemote::readByCache(const IndexT* coord, void* cacheMsg) const {
   ReadCellMessage msg;
   memcpy(msg.coord, coord, _D * sizeof(IndexT));
 
@@ -97,6 +88,10 @@ void RegionDataRemote::readToCache(const IndexT* coord, void* cacheMsg) const {
 }
 
 void RegionDataRemote::writeCell(const IndexT* coord, ElementT value) {
+  _cache->writeCell(coord, value);
+}
+
+void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
   WriteCellMessage msg;
   msg.value = value;
   memcpy(msg.coord, coord, _D * sizeof(IndexT));
