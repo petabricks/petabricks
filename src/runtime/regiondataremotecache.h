@@ -6,8 +6,8 @@
 
 #include <map>
 
-#define REGIONDATA_CACHE_LINE_SIZE 1
-#define REGIONDATA_CACHE_NUM_LINES 64
+#define REGIONDATA_CACHE_LINE_SIZE 16
+#define REGIONDATA_CACHE_NUM_LINES 16
 
 namespace petabricks {
 
@@ -18,6 +18,8 @@ namespace petabricks {
     IndexT start;
     IndexT end;
     ElementT* base;
+
+    jalib::JMutex mux;
 
   private:
     RegionDataRemoteCacheLine(const RegionDataRemoteCacheLine&);

@@ -41,7 +41,7 @@ namespace petabricks {
     int allocData();
 
     ElementT readCell(const IndexT* coord) const;
-    void readByCache(const IndexT* coord, void* msg) const;
+    void readByCache(const IndexT* coord, void* request, size_t request_len, void* reply, size_t &reply_len) const;
     void writeCell(const IndexT* coord, ElementT value);
     void writeByCache(const IndexT* coord, ElementT value) const;
     void invalidateCache();

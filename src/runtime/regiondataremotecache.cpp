@@ -1,6 +1,7 @@
 #include "regiondataremotecache.h"
 
 using namespace petabricks;
+using namespace petabricks::RegionDataRemoteMessage;
 
 RegionDataRemoteCache::RegionDataRemoteCache(IRegionCacheable* regionData, int dimensions, IndexT* multipliers, size_t cacheLineSize, size_t numCacheLines) {
   _regionData = regionData;
@@ -27,7 +28,6 @@ ElementT RegionDataRemoteCache::readCell(const IndexT* coord) {
   IndexT elementOffset = pageOffset % _cacheLineSize;
   IndexT key = pageOffset - elementOffset;
 
-
   _mux.lock();
 
   RegionDataRemoteCacheLines::iterator it = _cacheLines.find(key);
@@ -41,6 +41,8 @@ ElementT RegionDataRemoteCache::readCell(const IndexT* coord) {
     cacheLine = it->second;
   }
 
+  JLOCKSCOPE(cacheLine->mux);
+
   _mux.unlock();
 
   if (cacheLine->isValid &&
@@ -48,17 +50,18 @@ ElementT RegionDataRemoteCache::readCell(const IndexT* coord) {
       cacheLine->start <= elementOffset &&
       cacheLine->end >= elementOffset) {
     return *(cacheLine->base + elementOffset);
-
-  } else {
-    ElementT x;
-    _regionData->readByCache(coord, &x);
-    cacheLine->isValid = true;
-    cacheLine->offset = offset;
-    cacheLine->start = 0;
-    cacheLine->end = 0;
-    *(cacheLine->base) = x;
-    return *(cacheLine->base + elementOffset);
   }
+
+  ReadCellMessage msg;
+  size_t reply_len;
+  msg.cacheLineSize = _cacheLineSize;
+  memcpy(msg.coord, coord, _dimensions * sizeof(IndexT));
+  _regionData->readByCache(coord, &msg, sizeof(ReadCellMessage), cacheLine, reply_len);
+
+  cacheLine->isValid = true;
+  cacheLine->offset = offset;
+  ElementT x = *(cacheLine->base + elementOffset);
+  return x;
 }
 
 void RegionDataRemoteCache::writeCell(const IndexT* coord, ElementT value) {
@@ -77,6 +80,7 @@ void RegionDataRemoteCache::writeCell(const IndexT* coord, ElementT value) {
 
   if (it != _cacheLines.end()) {
     RegionDataRemoteCacheLine* cacheLine = it->second;
+    JLOCKSCOPE(cacheLine->mux);
 
     if (cacheLine->isValid &&
         cacheLine->offset == offset &&

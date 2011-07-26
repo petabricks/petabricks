@@ -74,17 +74,19 @@ void RegionDataRemote::invalidateCache() {
   _cache->invalidate();
 }
 
-void RegionDataRemote::readByCache(const IndexT* coord, void* cacheMsg) const {
-  ReadCellMessage msg;
-  memcpy(msg.coord, coord, _D * sizeof(IndexT));
+void RegionDataRemote::readByCache(const IndexT* coord, void* request, size_t request_len, void* reply, size_t &/*reply_len*/) const {
+  ReadCellMessage* msg = (ReadCellMessage*)request;
 
   void* data;
   size_t len;
-  this->fetchData(&msg, MessageTypes::READCELL, sizeof(ReadCellMessage), &data, &len);
-  ReadCellReplyMessage* reply = (ReadCellReplyMessage*)data;
+  this->fetchData(request, MessageTypes::READCELL, request_len, &data, &len);
+  ReadCellReplyMessage* r = (ReadCellReplyMessage*)data;
 
-  *(reinterpret_cast<ElementT*>(cacheMsg)) = reply->value;
-  free(reply);
+  RegionDataRemoteCacheLine* cacheLine = (RegionDataRemoteCacheLine*)reply;
+  cacheLine->start = r->start;
+  cacheLine->end = r->end;
+  memcpy(cacheLine->base, r->values, sizeof(ElementT) * msg->cacheLineSize);
+  free(r);
 }
 
 void RegionDataRemote::writeCell(const IndexT* coord, ElementT value) {

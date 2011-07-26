@@ -3,6 +3,7 @@
 #include "matrixio.h"
 
 using namespace petabricks;
+using namespace petabricks::RegionDataRemoteMessage;
 
 RegionDataRaw::RegionDataRaw(const int dimensions, const IndexT* size) {
   init(dimensions, size, NULL, NULL);
@@ -57,6 +58,11 @@ int RegionDataRaw::allocData() {
 }
 
 ElementT* RegionDataRaw::coordToPtr(const IndexT* coord) const {
+
+  return _storage->data() + coordOffset(coord);
+}
+
+IndexT RegionDataRaw::coordOffset(const IndexT* coord) const {
   IndexT offset = 0;
 
   if (_isPart) {
@@ -71,8 +77,7 @@ ElementT* RegionDataRaw::coordToPtr(const IndexT* coord) const {
       offset += _multipliers[i] * coord[i];
     }
   }
-
-  return _storage->data() + offset;
+  return offset;
 }
 
 ElementT& RegionDataRaw::value0D(const IndexT* coord) const {
@@ -91,5 +96,28 @@ void RegionDataRaw::writeCell(const IndexT* coord, ElementT value) {
 DataHostList RegionDataRaw::hosts(IndexT* /*begin*/, IndexT* /*end*/) {
   DataHostListItem item = {HostPid::self(), 1};
   return DataHostList(1, item);
+}
+
+void RegionDataRaw::processReadCellMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+  if (_isPart) {
+    UNIMPLEMENTED();
+  }
+
+  ReadCellMessage* msg = (ReadCellMessage*)base->content();
+
+  IndexT coordOffset = this->coordOffset(msg->coord);
+  IndexT startOffset = coordOffset - (coordOffset % msg->cacheLineSize);
+
+  size_t values_sz = sizeof(ElementT) * msg->cacheLineSize;
+  size_t sz = sizeof(ReadCellReplyMessage) + values_sz;
+
+  char buf[sz];
+  ReadCellReplyMessage* reply = (ReadCellReplyMessage*)buf;
+
+  reply->start = 0;
+  reply->end = msg->cacheLineSize - 1;
+  memcpy(reply->values, _storage->data() + startOffset, values_sz);
+
+  caller->sendReply(buf, sz, base);
 }
 

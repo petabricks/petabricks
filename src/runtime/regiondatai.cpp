@@ -18,12 +18,8 @@ IndexT* RegionDataI::size() {
 }
 
 // Process Remote Messages
-void RegionDataI::processReadCellMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
-  ReadCellMessage* msg = (ReadCellMessage*)base->content();
-  ReadCellReplyMessage reply;
-  reply.value = this->readCell(msg->coord);
-  size_t len = sizeof(ReadCellReplyMessage);
-  caller->sendReply(&reply, len, base);
+void RegionDataI::processReadCellMsg(const BaseMessageHeader*, size_t, IRegionReplyProxy*) {
+  JASSERT(false)(_type).Text("must be overrided");
 }
 
 void RegionDataI::processWriteCellMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {

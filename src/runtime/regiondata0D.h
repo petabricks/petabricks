@@ -5,6 +5,8 @@
 #include "regiondatai.h"
 
 namespace petabricks {
+  using namespace petabricks::RegionDataRemoteMessage;
+
   class RegionData0D : public RegionDataI {
 
   private:
@@ -49,6 +51,21 @@ namespace petabricks {
     DataHostList hosts(IndexT* /*begin*/, IndexT* /*end*/) {
       DataHostListItem item = {HostPid::self(), 1};
       return DataHostList(1, item);
+    }
+
+    void processReadCellMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+      ReadCellMessage* msg = (ReadCellMessage*)base->content();
+      size_t values_sz = sizeof(ElementT) * msg->cacheLineSize;
+      size_t sz = sizeof(ReadCellReplyMessage) + values_sz;
+
+      char buf[sz];
+      ReadCellReplyMessage* reply = (ReadCellReplyMessage*)buf;
+
+      reply->start = 0;
+      reply->end = 0;
+      reply->values[0] = readCell(NULL);
+
+      caller->sendReply(buf, sz, base);
     }
 
     // Used in RegionMatrix::_toLocalRegion()
@@ -97,6 +114,21 @@ namespace petabricks {
     DataHostList hosts(IndexT* /*begin*/, IndexT* /*end*/) {
       DataHostListItem item = {HostPid::self(), 1};
       return DataHostList(1, item);
+    }
+
+    void processReadCellMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+      ReadCellMessage* msg = (ReadCellMessage*)base->content();
+      size_t values_sz = sizeof(ElementT) * msg->cacheLineSize;
+      size_t sz = sizeof(ReadCellReplyMessage) + values_sz;
+
+      char buf[sz];
+      ReadCellReplyMessage* reply = (ReadCellReplyMessage*)buf;
+
+      reply->start = 0;
+      reply->end = 0;
+      reply->values[0] = readCell(NULL);
+
+      caller->sendReply(buf, sz, base);
     }
 
     void print() {

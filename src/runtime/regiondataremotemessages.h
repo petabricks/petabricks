@@ -100,6 +100,7 @@ namespace petabricks {
     };
 
     struct ReadCellMessage {
+      size_t cacheLineSize;
       IndexT coord[MAX_DIMENSIONS];
     };
 
@@ -122,7 +123,9 @@ namespace petabricks {
     };
 
     struct ReadCellReplyMessage {
-      ElementT value;
+      IndexT start;
+      IndexT end;
+      ElementT values[];
     };
 
     struct WriteCellReplyMessage {
