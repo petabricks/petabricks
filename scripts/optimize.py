@@ -105,6 +105,7 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
         grad_calls, myfprime = wrap_function(approx_fprime, (f, epsilon))
     else:
         grad_calls, myfprime = wrap_function(fprime, args)
+    print "Evaluating initial gradient ..."
     gfk = myfprime(x0)
     k = 0
     N = len(x0)
@@ -118,19 +119,29 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
     sk = [2*gtol]
     warnflag = 0
     gnorm = vecnorm(gfk,ord=norm)
+    print "gtol  = %g" % gtol
+    print "gnorm = %g" % gnorm
     while (gnorm > gtol) and (k < maxiter):
+        print "Begin iteration %d line search..." % (k + 1)
+        print "  gfk =", gfk
+        print "  Hk = \n", Hk
         pk = -numpy.dot(Hk,gfk)
+        print "  pk =", pk
         alpha_k, fc, gc, old_fval, old_old_fval, gfkp1 = \
            linesearch.line_search(f,myfprime,xk,pk,gfk,
                                   old_fval,old_old_fval)
         if alpha_k is None:  # line search failed try different one.
+            print "Begin line search (method 2) ..."
             alpha_k, fc, gc, old_fval, old_old_fval, gfkp1 = \
                      line_search(f,myfprime,xk,pk,gfk,
                                  old_fval,old_old_fval)
             if alpha_k is None:
                 # This line search also failed to find a better solution.
+                print "Line search failed!"
                 warnflag = 2
                 break
+        print "End line search, alpha = %g ..." % alpha_k
+
         xkp1 = xk + alpha_k * pk
         if retall:
             allvecs.append(xkp1)
@@ -145,7 +156,9 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
             callback(xk)
         k += 1
         gnorm = vecnorm(gfk,ord=norm)
+        print "gnorm = %g" % gnorm
         if (gnorm <= gtol):
+            print "  tolerance reached!"
             break
 
         try: # this was handled in numeric, let it remaines for more safety
@@ -220,3 +233,33 @@ class BFGSOptimizer:
 
     return newVal
 
+class CachedBFGSOptimizer(BFGSOptimizer):
+
+  def __init__(self, f, size, minVal, maxVal):
+    BFGSOptimizer.__init__(self, f, size, minVal, maxVal)
+    self.bareF = f
+    self.f = self.cachedF
+    self.clearCache()
+
+  def clearCache(self):
+    self.cache = {}
+
+  def cachedF(self, *args):
+    print args
+    key = tuple(map(float, args[0]))
+    if key in self.cache:
+      result = self.cache[key]
+      print "cache hit: f(", args, ") =", result
+    else:
+      print "cache miss: f(", args, ")"
+      result = self.bareF(*args)
+      self.cache[key] = result
+      print "cache stored: f(", args, ") =", result
+    return result
+
+  def optimize(self, x0, args = (), maxiter = None):
+
+    # clear cache before optimization run
+    self.clearCache()
+
+    return BFGSOptimizer.optimize(self, x0, args = args, maxiter = maxiter)
