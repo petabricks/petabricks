@@ -19,8 +19,6 @@ namespace petabricks {
     IndexT end;
     ElementT* base;
 
-    jalib::JMutex mux;
-
   private:
     RegionDataRemoteCacheLine(const RegionDataRemoteCacheLine&);
 

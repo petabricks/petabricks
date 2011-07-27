@@ -16,7 +16,7 @@ namespace petabricks {
   class IRegionCacheable {
   public:
     virtual ~IRegionCacheable() {}
-    virtual void readByCache(const IndexT* coord, void* request, size_t request_len, void* reply, size_t &reply_len) const = 0;
+    virtual void readByCache(void* request, size_t request_len, void* reply, size_t &reply_len) const = 0;
     virtual void writeByCache(const IndexT* coord, ElementT value) const = 0;
   };
 

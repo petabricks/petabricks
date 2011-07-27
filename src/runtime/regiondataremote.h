@@ -13,6 +13,8 @@
 # include "config.h"
 #endif
 
+#define USE_REGIONDATAREMOTE_CACHE
+
 namespace petabricks {
   using namespace petabricks::RegionDataRemoteMessage;
 
@@ -26,7 +28,10 @@ namespace petabricks {
   class RegionDataRemote : public RegionDataI, IRegionCacheable {
   private:
     RegionDataRemoteObjectPtr _remoteObject;
+
+#ifdef USE_REGIONDATAREMOTE_CACHE
     RegionDataRemoteCachePtr _cache;
+#endif
 
   public:
     RegionDataRemote(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject);
@@ -40,11 +45,16 @@ namespace petabricks {
 
     int allocData();
 
-    ElementT readCell(const IndexT* coord) const;
-    void readByCache(const IndexT* coord, void* request, size_t request_len, void* reply, size_t &reply_len) const;
-    void writeCell(const IndexT* coord, ElementT value);
-    void writeByCache(const IndexT* coord, ElementT value) const;
     void invalidateCache();
+
+    ElementT readCell(const IndexT* coord) const;
+    ElementT readNoCache(const IndexT* coord) const;
+    void readByCache(void* request, size_t request_len, void* reply, size_t &reply_len) const;
+
+    void writeCell(const IndexT* coord, ElementT value);
+    void writeNoCache(const IndexT* coord, ElementT value);
+    void writeByCache(const IndexT* coord, ElementT value) const;
+
     DataHostList hosts(IndexT* begin, IndexT* end);
 
     // Update long chain of RegionHandlers

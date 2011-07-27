@@ -140,6 +140,14 @@ void RegionHandler::processWriteCellMsg(const BaseMessageHeader* base, size_t ba
   _regionData->processWriteCellMsg(base, baseLen, caller);
 }
 
+void RegionHandler::processReadCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  _regionData->processReadCellCacheMsg(base, baseLen, caller);
+}
+
+void RegionHandler::processWriteCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  _regionData->processWriteCellCacheMsg(base, baseLen, caller);
+}
+
 void RegionHandler::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   _regionData->processGetHostListMsg(base, baseLen, caller);
 }

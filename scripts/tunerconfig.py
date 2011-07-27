@@ -155,7 +155,7 @@ class patch_check:
 
   #run for 30 sec or 2**13 input size
   max_input_size           = 1024
-  max_time                 = 40
+  max_time                 = 3600
   rounds_per_input_size    = 1
 
   #bigger pop size

@@ -33,9 +33,17 @@ void RegionMatrixProxy::onRecv(const void* data, size_t len) {
     JASSERT(msg_len == sizeof(ReadCellMessage));
     _regionHandler->processReadCellMsg(base, len, this);
     break;
+  case MessageTypes::READCELLCACHE:
+    JASSERT(msg_len == sizeof(ReadCellCacheMessage));
+    _regionHandler->processReadCellCacheMsg(base, len, this);
+    break;
   case MessageTypes::WRITECELL:
     JASSERT(msg_len == sizeof(WriteCellMessage));
     _regionHandler->processWriteCellMsg(base, len, this);
+    break;
+  case MessageTypes::WRITECELLCACHE:
+    JASSERT(msg_len == sizeof(WriteCellCacheMessage));
+    _regionHandler->processWriteCellCacheMsg(base, len, this);
     break;
   case MessageTypes::GETHOSTLIST:
     JASSERT(msg_len == sizeof(GetHostListMessage));
@@ -72,6 +80,8 @@ void RegionMatrixProxy::processReplyMsg(const BaseMessageHeader* base, size_t ba
   switch(base->type) {
   case MessageTypes::READCELL:
   case MessageTypes::WRITECELL:
+  case MessageTypes::READCELLCACHE:
+  case MessageTypes::WRITECELLCACHE:
   case MessageTypes::ALLOCDATA:
   case MessageTypes::UPDATEHANDLERCHAIN:
   case MessageTypes::GETHOSTLIST:

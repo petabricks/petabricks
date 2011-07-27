@@ -98,21 +98,21 @@ DataHostList RegionDataRaw::hosts(IndexT* /*begin*/, IndexT* /*end*/) {
   return DataHostList(1, item);
 }
 
-void RegionDataRaw::processReadCellMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+void RegionDataRaw::processReadCellCacheMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
   if (_isPart) {
     UNIMPLEMENTED();
   }
 
-  ReadCellMessage* msg = (ReadCellMessage*)base->content();
+  ReadCellCacheMessage* msg = (ReadCellCacheMessage*)base->content();
 
   IndexT coordOffset = this->coordOffset(msg->coord);
   IndexT startOffset = coordOffset - (coordOffset % msg->cacheLineSize);
 
   size_t values_sz = sizeof(ElementT) * msg->cacheLineSize;
-  size_t sz = sizeof(ReadCellReplyMessage) + values_sz;
+  size_t sz = sizeof(ReadCellCacheReplyMessage) + values_sz;
 
   char buf[sz];
-  ReadCellReplyMessage* reply = (ReadCellReplyMessage*)buf;
+  ReadCellCacheReplyMessage* reply = (ReadCellCacheReplyMessage*)buf;
 
   reply->start = 0;
   reply->end = msg->cacheLineSize - 1;

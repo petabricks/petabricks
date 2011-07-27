@@ -38,6 +38,8 @@ namespace petabricks {
       enum {
 	READCELL = 11,
 	WRITECELL,
+	READCELLCACHE,
+	WRITECELLCACHE,
 	GETHOSTLIST,
 	UPDATEHANDLERCHAIN,
         ALLOCDATA,
@@ -100,11 +102,21 @@ namespace petabricks {
     };
 
     struct ReadCellMessage {
-      size_t cacheLineSize;
       IndexT coord[MAX_DIMENSIONS];
     };
 
     struct WriteCellMessage {
+      ElementT value;
+      IndexT coord[MAX_DIMENSIONS];
+    };
+
+    struct ReadCellCacheMessage {
+      size_t cacheLineSize;
+      IndexT coord[MAX_DIMENSIONS];
+    };
+
+    struct WriteCellCacheMessage {
+      size_t cacheLineSize;
       ElementT value;
       IndexT coord[MAX_DIMENSIONS];
     };
@@ -123,13 +135,23 @@ namespace petabricks {
     };
 
     struct ReadCellReplyMessage {
+      ElementT value;
+    };
+
+    struct WriteCellReplyMessage {
+      ElementT value;
+    };
+
+    struct ReadCellCacheReplyMessage {
       IndexT start;
       IndexT end;
       ElementT values[];
     };
 
-    struct WriteCellReplyMessage {
-      ElementT value;
+    struct WriteCellCacheReplyMessage {
+      IndexT start;
+      IndexT end;
+      ElementT values[];
     };
 
     struct GetHostListReplyMessage {

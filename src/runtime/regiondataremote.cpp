@@ -5,7 +5,6 @@
 using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
 
-
 RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject) {
   init(dimensions, size, remoteObject);
 }
@@ -50,7 +49,9 @@ void RegionDataRemote::init(const int dimensions, const IndexT* size, const Regi
     multipliers[i] = multipliers[i - 1] * size[i - 1];
   }
 
+#ifdef USE_REGIONDATAREMOTE_CACHE
   _cache = new RegionDataRemoteCache(this, _D, multipliers);
+#endif
 }
 
 int RegionDataRemote::allocData() {
@@ -66,21 +67,40 @@ int RegionDataRemote::allocData() {
   return result;
 }
 
-ElementT RegionDataRemote::readCell(const IndexT* coord) const {
-  return _cache->readCell(coord);
-}
-
 void RegionDataRemote::invalidateCache() {
+#ifdef USE_REGIONDATAREMOTE_CACHE
   _cache->invalidate();
+#endif
 }
 
-void RegionDataRemote::readByCache(const IndexT* coord, void* request, size_t request_len, void* reply, size_t &/*reply_len*/) const {
-  ReadCellMessage* msg = (ReadCellMessage*)request;
+ElementT RegionDataRemote::readCell(const IndexT* coord) const {
+#ifdef USE_REGIONDATAREMOTE_CACHE
+  return _cache->readCell(coord);
+#else
+  return readNoCache(coord);
+#endif
+}
+
+ElementT RegionDataRemote::readNoCache(const IndexT* coord) const {
+  ReadCellMessage msg;
+  memcpy(msg.coord, coord, _D * sizeof(IndexT));
 
   void* data;
   size_t len;
-  this->fetchData(request, MessageTypes::READCELL, request_len, &data, &len);
-  ReadCellReplyMessage* r = (ReadCellReplyMessage*)data;
+  this->fetchData(&msg, MessageTypes::READCELL, sizeof(ReadCellMessage), &data, &len);
+  ReadCellReplyMessage* reply = (ReadCellReplyMessage*)data;
+  ElementT value = reply->value;
+  free(reply);
+  return value;
+}
+
+void RegionDataRemote::readByCache(void* request, size_t request_len, void* reply, size_t &/*reply_len*/) const {
+  ReadCellCacheMessage* msg = (ReadCellCacheMessage*)request;
+
+  void* data;
+  size_t len;
+  this->fetchData(request, MessageTypes::READCELLCACHE, request_len, &data, &len);
+  ReadCellCacheReplyMessage* r = (ReadCellCacheReplyMessage*)data;
 
   RegionDataRemoteCacheLine* cacheLine = (RegionDataRemoteCacheLine*)reply;
   cacheLine->start = r->start;
@@ -90,7 +110,25 @@ void RegionDataRemote::readByCache(const IndexT* coord, void* request, size_t re
 }
 
 void RegionDataRemote::writeCell(const IndexT* coord, ElementT value) {
+#ifdef USE_REGIONDATAREMOTE_CACHE
   _cache->writeCell(coord, value);
+#else
+  writeNoCache(coord, value);
+#endif
+}
+
+void RegionDataRemote::writeNoCache(const IndexT* coord, ElementT value) {
+  WriteCellMessage msg;
+  msg.value = value;
+  memcpy(msg.coord, coord, _D * sizeof(IndexT));
+
+  void* data;
+  size_t len;
+  this->fetchData(&msg, MessageTypes::WRITECELL, sizeof(WriteCellMessage), &data, &len);
+  WriteCellReplyMessage* reply = (WriteCellReplyMessage*)data;
+
+  //JASSERT(reply->value == value)(reply->value)(value);
+  free(reply);
 }
 
 void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {

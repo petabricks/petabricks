@@ -53,13 +53,13 @@ namespace petabricks {
       return DataHostList(1, item);
     }
 
-    void processReadCellMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
-      ReadCellMessage* msg = (ReadCellMessage*)base->content();
+    void processReadCellCacheMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+      ReadCellCacheMessage* msg = (ReadCellCacheMessage*)base->content();
       size_t values_sz = sizeof(ElementT) * msg->cacheLineSize;
-      size_t sz = sizeof(ReadCellReplyMessage) + values_sz;
+      size_t sz = sizeof(ReadCellCacheReplyMessage) + values_sz;
 
       char buf[sz];
-      ReadCellReplyMessage* reply = (ReadCellReplyMessage*)buf;
+      ReadCellCacheReplyMessage* reply = (ReadCellCacheReplyMessage*)buf;
 
       reply->start = 0;
       reply->end = 0;
@@ -116,13 +116,13 @@ namespace petabricks {
       return DataHostList(1, item);
     }
 
-    void processReadCellMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
-      ReadCellMessage* msg = (ReadCellMessage*)base->content();
+    void processReadCellCacheMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+      ReadCellCacheMessage* msg = (ReadCellCacheMessage*)base->content();
       size_t values_sz = sizeof(ElementT) * msg->cacheLineSize;
-      size_t sz = sizeof(ReadCellReplyMessage) + values_sz;
+      size_t sz = sizeof(ReadCellCacheReplyMessage) + values_sz;
 
       char buf[sz];
-      ReadCellReplyMessage* reply = (ReadCellReplyMessage*)buf;
+      ReadCellCacheReplyMessage* reply = (ReadCellCacheReplyMessage*)buf;
 
       reply->start = 0;
       reply->end = 0;
@@ -130,6 +130,7 @@ namespace petabricks {
 
       caller->sendReply(buf, sz, base);
     }
+
 
     void print() {
       printf("%e\n", this->readCell(NULL));
