@@ -105,34 +105,46 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
         grad_calls, myfprime = wrap_function(approx_fprime, (f, epsilon))
     else:
         grad_calls, myfprime = wrap_function(fprime, args)
+
     print "Evaluating initial gradient ..."
     gfk = myfprime(x0)
+
     k = 0
     N = len(x0)
     I = numpy.eye(N,dtype=int)
     Hk = I
-    old_fval = f(x0)
-    old_old_fval = old_fval + 5000
+
+    print "Evaluating initial function value ..."
+    fval = f(x0)
+
+    old_fval = fval + 5000
     xk = x0
     if retall:
         allvecs = [x0]
     sk = [2*gtol]
     warnflag = 0
     gnorm = vecnorm(gfk,ord=norm)
+
     print "gtol  = %g" % gtol
     print "gnorm = %g" % gnorm
+
     while (gnorm > gtol) and (k < maxiter):
+        pk = -numpy.dot(Hk,gfk)
+
         print "Begin iteration %d line search..." % (k + 1)
         print "  gfk =", gfk
         print "  Hk = \n", Hk
-        pk = -numpy.dot(Hk,gfk)
         print "  pk =", pk
-        alpha_k, fc, gc, old_fval, old_old_fval, gfkp1 = \
+
+        # do line search for alpha_k
+        old_old_fval = old_fval
+        old_fval = fval
+        alpha_k, fc, gc, fval, old_fval, gfkp1 = \
            linesearch.line_search(f,myfprime,xk,pk,gfk,
                                   old_fval,old_old_fval)
         if alpha_k is None:  # line search failed try different one.
             print "Begin line search (method 2) ..."
-            alpha_k, fc, gc, old_fval, old_old_fval, gfkp1 = \
+            alpha_k, fc, gc, fval, old_fval, gfkp1 = \
                      line_search(f,myfprime,xk,pk,gfk,
                                  old_fval,old_old_fval)
             if alpha_k is None:
@@ -157,8 +169,7 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
         k += 1
         gnorm = vecnorm(gfk,ord=norm)
         print "gnorm = %g" % gnorm
-        if (gnorm <= gtol):
-            print "  tolerance reached!"
+        if (k >= maxiter or gnorm <= gtol):
             break
 
         try: # this was handled in numeric, let it remaines for more safety
@@ -174,32 +185,24 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
         Hk = numpy.dot(A1,numpy.dot(Hk,A2)) + rhok * sk[:,numpy.newaxis] \
                  * sk[numpy.newaxis,:]
 
-    if disp or full_output:
-        fval = old_fval
-    if warnflag == 2:
-        if disp:
+    if gnorm > gtol:
+        warnflag = 1
+
+    if disp:
+        if warnflag == 1:
+            print "Warning: Maximum number of iterations has been exceeded"
+        elif warnflag == 2:
             print "Warning: Desired error not necessarily achieved" \
                   "due to precision loss"
-            print "         Current function value: %f" % fval
-            print "         Iterations: %d" % k
-            print "         Function evaluations: %d" % func_calls[0]
-            print "         Gradient evaluations: %d" % grad_calls[0]
-
-    elif k >= maxiter:
-        warnflag = 1
-        if disp:
-            print "Warning: Maximum number of iterations has been exceeded"
-            print "         Current function value: %f" % fval
-            print "         Iterations: %d" % k
-            print "         Function evaluations: %d" % func_calls[0]
-            print "         Gradient evaluations: %d" % grad_calls[0]
-    else:
-        if disp:
+        else:
             print "Optimization terminated successfully."
-            print "         Current function value: %f" % fval
-            print "         Iterations: %d" % k
-            print "         Function evaluations: %d" % func_calls[0]
-            print "         Gradient evaluations: %d" % grad_calls[0]
+
+        print "         Current function value: %g" % fval
+        print "         Current gradient norm : %g" % gnorm
+        print "         Gradient tolerance    : %g" % gtol
+        print "         Iterations: %d" % k
+        print "         Function evaluations: %d" % func_calls[0]
+        print "         Gradient evaluations: %d" % grad_calls[0]
 
     if full_output:
         retlist = xk, fval, gfk, Hk, func_calls[0], grad_calls[0], warnflag
@@ -212,31 +215,37 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
 
     return retlist
 
+###
+# Use these classes to interact with this module
+###
 
 class BFGSOptimizer:
 
-  def __init__(self, f, size, minVal, maxVal):
+  def __init__(self, f, minVal, maxVal):
     self.f = f
-    self.size = size
     self.minVal = minVal
     self.maxVal = maxVal
 
-  def optimize(self, x0, args = (), maxiter = None):
+  def optimize(self, x0, args = (), maxiter = None, disp = 0):
 
     # optimize
-    result = my_fmin_bfgs(self.f, x0, args = args, maxiter = maxiter)
+    result = my_fmin_bfgs(self.f, x0, args = args, maxiter = maxiter, disp = disp)
 
-    # convert result to list of floats and enforce min and max
-    newVal = list(result)
-    for j in xrange(0, self.size):
-      newVal[j] = min(self.maxVal[j], max(self.minVal[j], float(newVal[j])))
+    # if minVal or maxVal are scalar, tile value to match dimensions
+    dim = len(result)
+    if type(self.minVal) == type(0) or type(self.minVal) == type(0.):
+      self.minVal = (self.minVal,) * dim
+    if type(self.maxVal) == type(0) or type(self.maxVal) == type(0.):
+      self.maxVal = (self.maxVal,) * dim
 
-    return newVal
+    # enforce min and max values
+    return map(min, map(max, self.minVal, result), self.maxVal)
+
 
 class CachedBFGSOptimizer(BFGSOptimizer):
 
-  def __init__(self, f, size, minVal, maxVal):
-    BFGSOptimizer.__init__(self, f, size, minVal, maxVal)
+  def __init__(self, f, minVal, maxVal):
+    BFGSOptimizer.__init__(self, f, minVal, maxVal)
     self.bareF = f
     self.f = self.cachedF
     self.clearCache()
@@ -245,7 +254,6 @@ class CachedBFGSOptimizer(BFGSOptimizer):
     self.cache = {}
 
   def cachedF(self, *args):
-    print args
     key = tuple(map(float, args[0]))
     if key in self.cache:
       result = self.cache[key]
@@ -257,9 +265,33 @@ class CachedBFGSOptimizer(BFGSOptimizer):
       print "cache stored: f(", args, ") =", result
     return result
 
-  def optimize(self, x0, args = (), maxiter = None):
+  def optimize(self, x0, args = (), maxiter = None, disp = 0):
 
     # clear cache before optimization run
     self.clearCache()
 
-    return BFGSOptimizer.optimize(self, x0, args = args, maxiter = maxiter)
+    return BFGSOptimizer.optimize(self, x0, args = args, maxiter = maxiter, disp = disp)
+
+
+###
+# Module test code
+###
+
+def bowl2D(x):
+  result = x[0] * (x[0]-200) + x[1] * (x[1]-200)
+  print 'f(%g, %g) = %g' % (x[0], x[1], result)
+  return result
+
+def main():
+
+  print "Minimizing f = x(x-200)y(y-200) ..."
+  print "  starting at (x,y) = (-10, 150)"
+
+  inf = float('inf')
+  o = CachedBFGSOptimizer(bowl2D, -inf, inf)
+  result = o.optimize([-10, 150], maxiter = None, disp = 1)
+
+  print "Finished: (x,y) =", result
+
+if __name__ == "__main__":
+  main()
