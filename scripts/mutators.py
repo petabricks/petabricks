@@ -338,7 +338,7 @@ class OptimizeTunable2DArrayMutator(Tunable2DArrayMutator):
   def __init__(self, tname, vname, size, minVal, maxVal, weight=1.0):
     Tunable2DArrayMutator.__init__(self, tname, vname, size, minVal, maxVal, weight)
     f = self.measureAccuracy
-    self.o = optimize.BFGSOptimizer(f, size, minVal, maxVal)
+    self.o = optimize.CachedBFGSOptimizer(f, minVal, maxVal)
 
   def measureAccuracy(self, value, candidate, n):
     self.setVal(candidate, value, n)
@@ -354,7 +354,8 @@ class OptimizeTunable2DArrayMutator(Tunable2DArrayMutator):
 
   def random(self, oldVal, minVal, maxVal, candidate):
     n = candidate.pop.testers[-1].n
-    return self.o.optimize(oldVal, (candidate, n), maxiter = 1)
+    self.o.clearCache()
+    return self.o.optimize(oldVal, args = (candidate, n), maxiter = 1)
 
 class MultiMutator(Mutator):
   def __init__(self, count=3, weight=1.0):
