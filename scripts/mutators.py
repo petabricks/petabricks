@@ -344,12 +344,7 @@ class OptimizeTunable2DArrayMutator(Tunable2DArrayMutator):
     self.setVal(candidate, value, n)
     candidate.pop.testers[-1].testN(candidate, 1)
     result = candidate.metrics[config.accuracy_metric_idx][n].mean()
-    if self.size == 1:
-      print "eval: f(%.25g) = %.25g" % (value, result)
-    else:
-      print "eval: f",
-      print value,
-      print " = %.25g" % result
+#    print "eval: f(", value, ") = %.8g" % result
     return -result
 
   def random(self, oldVal, minVal, maxVal, candidate):
