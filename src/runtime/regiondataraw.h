@@ -32,6 +32,7 @@ namespace petabricks {
     DataHostList hosts(IndexT* begin, IndexT* end);
 
     void processReadCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processWriteCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
 
   private:
     void init(const int dimensions, const IndexT* size, const ElementT* data, const IndexT* partOffset);

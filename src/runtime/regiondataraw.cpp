@@ -121,3 +121,26 @@ void RegionDataRaw::processReadCellCacheMsg(const BaseMessageHeader* base, size_
   caller->sendReply(buf, sz, base);
 }
 
+void RegionDataRaw::processWriteCellCacheMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+  if (_isPart) {
+    UNIMPLEMENTED();
+  }
+
+  WriteCellCacheMessage* msg = (WriteCellCacheMessage*)base->content();
+
+  IndexT coordOffset = this->coordOffset(msg->coord);
+  IndexT startOffset = coordOffset - (coordOffset % msg->cacheLineSize);
+
+  size_t values_sz = sizeof(ElementT) * msg->cacheLineSize;
+  size_t sz = sizeof(WriteCellCacheReplyMessage) + values_sz;
+
+  char buf[sz];
+  WriteCellCacheReplyMessage* reply = (WriteCellCacheReplyMessage*)buf;
+
+  reply->start = 0;
+  reply->end = msg->cacheLineSize - 1;
+  memcpy(reply->values, _storage->data() + startOffset, values_sz);
+
+  caller->sendReply(buf, sz, base);
+}
+

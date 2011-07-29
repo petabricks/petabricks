@@ -19,6 +19,8 @@ namespace petabricks {
     IndexT end;
     ElementT* base;
 
+    jalib::JMutex mux;
+
   private:
     RegionDataRemoteCacheLine(const RegionDataRemoteCacheLine&);
 
@@ -33,7 +35,8 @@ namespace petabricks {
     }
   };
 
-  typedef std::map<IndexT, RegionDataRemoteCacheLine*> RegionDataRemoteCacheLines;
+  typedef jalib::JRef<RegionDataRemoteCacheLine> RegionDataRemoteCacheLinePtr;
+  typedef std::map<IndexT, RegionDataRemoteCacheLinePtr> RegionDataRemoteCacheLines;
 
   class RegionDataRemoteCache : public jalib::JRefCounted, IRegionCache {
   private:
@@ -59,6 +62,8 @@ namespace petabricks {
 
   private:
     IndexT offset(const IndexT* coord);
+    RegionDataRemoteCacheLinePtr lockCacheLine(IndexT key);
+
   };
 
   typedef jalib::JRef<RegionDataRemoteCache> RegionDataRemoteCachePtr;
