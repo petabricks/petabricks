@@ -1,9 +1,11 @@
 #include "regiondataremotecache.h"
 
+#include "regiondataremotemessages.h"
+
 using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
 
-RegionDataRemoteCache::RegionDataRemoteCache(IRegionCacheable* regionData, int dimensions, IndexT* multipliers, size_t cacheLineSize, size_t numCacheLines) {
+RegionDataRemoteCache::RegionDataRemoteCache(const IRegionCacheable* regionData, int dimensions, IndexT* multipliers, size_t cacheLineSize, size_t numCacheLines) {
   _regionData = regionData;
   _dimensions = dimensions;
   memcpy(_multipliers, multipliers, sizeof(IndexT) * dimensions);
@@ -11,7 +13,7 @@ RegionDataRemoteCache::RegionDataRemoteCache(IRegionCacheable* regionData, int d
   _numCacheLines = numCacheLines;
 }
 
-RegionDataRemoteCache::RegionDataRemoteCache(IRegionCacheable* regionData, int dimensions, IndexT* multipliers) {
+RegionDataRemoteCache::RegionDataRemoteCache(const IRegionCacheable* regionData, int dimensions, IndexT* multipliers) {
   _regionData = regionData;
   _dimensions = dimensions;
   memcpy(_multipliers, multipliers, sizeof(IndexT) * dimensions);
@@ -28,14 +30,13 @@ ElementT RegionDataRemoteCache::readCell(const IndexT* coord) {
   IndexT elementOffset = pageOffset % _cacheLineSize;
   IndexT key = pageOffset - elementOffset;
 
-  RegionDataRemoteCacheLinePtr cacheLine = lockCacheLine(key);
+  RegionDataRemoteCacheLinePtr cacheLine = getCacheLine(key);
 
   if (cacheLine->isValid &&
       cacheLine->offset == offset &&
       cacheLine->start <= elementOffset &&
       cacheLine->end >= elementOffset) {
     ElementT v = *(cacheLine->base + elementOffset);
-    cacheLine->mux.unlock();
     return v;
   }
 
@@ -48,7 +49,6 @@ ElementT RegionDataRemoteCache::readCell(const IndexT* coord) {
   cacheLine->isValid = true;
   cacheLine->offset = offset;
   ElementT x = *(cacheLine->base + elementOffset);
-  cacheLine->mux.unlock();
 
   return x;
 }
@@ -62,7 +62,7 @@ void RegionDataRemoteCache::writeCell(const IndexT* coord, ElementT value) {
   IndexT elementOffset = pageOffset % _cacheLineSize;
   IndexT key = pageOffset - elementOffset;
 
-  RegionDataRemoteCacheLinePtr cacheLine = lockCacheLine(key);
+  RegionDataRemoteCacheLinePtr cacheLine = getCacheLine(key);
   if (cacheLine->isValid &&
       cacheLine->offset == offset &&
       cacheLine->start <= elementOffset &&
@@ -71,12 +71,9 @@ void RegionDataRemoteCache::writeCell(const IndexT* coord, ElementT value) {
   }
 
   _regionData->writeByCache(coord, value);
-
-  cacheLine->mux.unlock();
 }
 
 void RegionDataRemoteCache::invalidate() {
-  JLOCKSCOPE(_mux);
   _cacheLines = RegionDataRemoteCacheLines();
 }
 
@@ -88,9 +85,7 @@ IndexT RegionDataRemoteCache::offset(const IndexT* coord) {
   return offset;
 }
 
-RegionDataRemoteCacheLinePtr RegionDataRemoteCache::lockCacheLine(IndexT key) {
-  JLOCKSCOPE(_mux);
-
+RegionDataRemoteCacheLinePtr RegionDataRemoteCache::getCacheLine(IndexT key) {
   RegionDataRemoteCacheLinePtr cacheLine;
   RegionDataRemoteCacheLines::iterator it = _cacheLines.find(key);
   if (it != _cacheLines.end()) {
@@ -99,7 +94,5 @@ RegionDataRemoteCacheLinePtr RegionDataRemoteCache::lockCacheLine(IndexT key) {
     cacheLine = new RegionDataRemoteCacheLine(_cacheLineSize);
     _cacheLines[key] = cacheLine;
   }
-
-  cacheLine->mux.lock();
   return cacheLine;
 }

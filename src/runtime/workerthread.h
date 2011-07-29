@@ -29,6 +29,7 @@
 
 #include "dynamictask.h"
 #include "common/thedeque.h"
+#include "workerthreadcache.h"
 
 #include <pthread.h>
 #include <set>
@@ -135,6 +136,9 @@ public:
 #ifdef DEBUG
   bool isWorking() const { return _isWorking; }
 #endif
+#ifdef DISTRIBUTED_CACHE
+  WorkerThreadCachePtr cache() const { return _cache; }
+#endif
 private:
   int _id;
 #ifdef WORKERTHREAD_ONDECK
@@ -148,6 +152,9 @@ private:
   WorkerThreadPool& _pool;
 #ifdef DEBUG
   bool _isWorking;
+#endif
+#ifdef DISTRIBUTED_CACHE
+  WorkerThreadCachePtr _cache;
 #endif
 } __attribute__ ((aligned (CACHE_LINE_SIZE)));
 

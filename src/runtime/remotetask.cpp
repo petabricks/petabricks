@@ -39,7 +39,6 @@ petabricks::RemoteTask::RemoteTask() {
 }
 
 void petabricks::RemoteTask::onCompletedRemotely() {
-  invalidateCache();
   completeTaskDeps(false);
 }
 

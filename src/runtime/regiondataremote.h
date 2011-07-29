@@ -27,10 +27,6 @@ namespace petabricks {
   private:
     RegionDataRemoteObjectPtr _remoteObject;
 
-#ifdef DISTRIBUTED_CACHE
-    RegionDataRemoteCachePtr _cache;
-#endif
-
   public:
     RegionDataRemote(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject);
     RegionDataRemote(const int dimensions, const IndexT* size, const IndexT* partOffset, RemoteHostPtr host);
@@ -44,14 +40,17 @@ namespace petabricks {
     int allocData();
     void randomize();
 
-    void invalidateCache();
-
     ElementT readCell(const IndexT* coord) const;
     ElementT readNoCache(const IndexT* coord) const;
-    void readByCache(void* request, size_t request_len, void* reply, size_t &reply_len) const;
 
     void writeCell(const IndexT* coord, ElementT value);
     void writeNoCache(const IndexT* coord, ElementT value);
+
+    // cache
+    IRegionCachePtr cacheGenerator() const;
+    IRegionCachePtr cache() const;
+    void invalidateCache();
+    void readByCache(void* request, size_t request_len, void* reply, size_t &reply_len) const;
     void writeByCache(const IndexT* coord, ElementT value) const;
 
     DataHostList hosts(IndexT* begin, IndexT* end);

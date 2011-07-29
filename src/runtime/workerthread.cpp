@@ -95,6 +95,9 @@ petabricks::WorkerThread::WorkerThread(DynamicScheduler& ds)
 #ifdef WORKERTHREAD_ONDECK
   _ondeck = NULL;
 #endif
+#ifdef DISTRIBUTED_CACHE
+  _cache = new WorkerThreadCache();
+#endif
   DEBUGONLY(_isWorking=false);
 }
 petabricks::WorkerThread::~WorkerThread(){

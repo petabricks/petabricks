@@ -309,7 +309,7 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
 
   size.write("return _sz;");
 
-  migrateRegion.write("invalidateCache();");
+  //migrateRegion.write("invalidateCache();");
 
   in.endFunc();
   out.endFunc();

@@ -1,6 +1,7 @@
 #include "regiondataremote.h"
 
 #include "regionmatrixproxy.h"
+#include "workerthread.h"
 
 using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
@@ -42,16 +43,6 @@ void RegionDataRemote::init(const int dimensions, const IndexT* size, const Regi
   _remoteObject = remoteObject;
 
   memcpy(_size, size, sizeof(IndexT) * _D);
-
-  IndexT multipliers[_D];
-  multipliers[0] = 1;
-  for (int i = 1; i < dimensions; i++) {
-    multipliers[i] = multipliers[i - 1] * size[i - 1];
-  }
-
-#ifdef DISTRIBUTED_CACHE
-  _cache = new RegionDataRemoteCache(this, _D, multipliers);
-#endif
 }
 
 int RegionDataRemote::allocData() {
@@ -77,15 +68,33 @@ void RegionDataRemote::randomize() {
   free(data);
 }
 
+IRegionCachePtr RegionDataRemote::cacheGenerator() const {
+  IndexT multipliers[_D];
+  multipliers[0] = 1;
+  for (int i = 1; i < _D; i++) {
+    multipliers[i] = multipliers[i - 1] * _size[i - 1];
+  }
+
+  return new RegionDataRemoteCache(this, _D, multipliers);
+}
+
+IRegionCachePtr RegionDataRemote::cache() const {
+#ifdef DISTRIBUTED_CACHE
+  return WorkerThread::self()->cache()->get(this);
+#else
+  return NULL;
+#endif
+}
+
 void RegionDataRemote::invalidateCache() {
 #ifdef DISTRIBUTED_CACHE
-  _cache->invalidate();
+  cache()->invalidate();
 #endif
 }
 
 ElementT RegionDataRemote::readCell(const IndexT* coord) const {
 #ifdef DISTRIBUTED_CACHE
-  return _cache->readCell(coord);
+  return cache()->readCell(coord);
 #else
   return readNoCache(coord);
 #endif
@@ -121,7 +130,7 @@ void RegionDataRemote::readByCache(void* request, size_t request_len, void* repl
 
 void RegionDataRemote::writeCell(const IndexT* coord, ElementT value) {
 #ifdef DISTRIBUTED_CACHE
-  _cache->writeCell(coord, value);
+  cache()->writeCell(coord, value);
 #else
   writeNoCache(coord, value);
 #endif
