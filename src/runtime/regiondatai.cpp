@@ -65,6 +65,13 @@ void RegionDataI::processAllocDataMsg(const BaseMessageHeader* base, size_t, IRe
   caller->sendReply(&reply, len, base);
 }
 
+void RegionDataI::processRandomizeDataMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+  this->randomize();
+  RandomizeDataReplyMessage reply;
+  size_t len = sizeof(RandomizeDataReplyMessage);
+  caller->sendReply(&reply, len, base);
+}
+
 void RegionDataI::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller, RegionDataIPtr regionDataPtr) {
   UpdateHandlerChainMessage* msg = (UpdateHandlerChainMessage*)base->content();
 

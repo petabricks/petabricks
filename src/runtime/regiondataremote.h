@@ -13,7 +13,7 @@
 # include "config.h"
 #endif
 
-#define USE_REGIONDATAREMOTE_CACHE
+#undef USE_REGIONDATAREMOTE_CACHE
 
 namespace petabricks {
   using namespace petabricks::RegionDataRemoteMessage;
@@ -44,6 +44,7 @@ namespace petabricks {
     void init(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject);
 
     int allocData();
+    void randomize();
 
     void invalidateCache();
 
@@ -71,6 +72,7 @@ namespace petabricks {
     void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processRandomizeDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller, RegionDataIPtr regionDataPtr);
 
     static RemoteObjectPtr genRemote();

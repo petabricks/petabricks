@@ -156,6 +156,10 @@ void RegionHandler::processAllocDataMsg(const BaseMessageHeader* base, size_t ba
   _regionData->processAllocDataMsg(base, baseLen, caller);
 }
 
+void RegionHandler::processRandomizeDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  _regionData->processRandomizeDataMsg(base, baseLen, caller);
+}
+
 void RegionHandler::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   _regionData->processUpdateHandlerChainMsg(base, baseLen, caller, _regionData);
 }

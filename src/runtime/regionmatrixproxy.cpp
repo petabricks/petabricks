@@ -57,6 +57,10 @@ void RegionMatrixProxy::onRecv(const void* data, size_t len) {
     JASSERT(msg_len == sizeof(AllocDataMessage));
     _regionHandler->processAllocDataMsg(base, len, this);
     break;
+  case MessageTypes::RANDOMIZEDATA:
+    JASSERT(msg_len == sizeof(RandomizeDataMessage));
+    _regionHandler->processRandomizeDataMsg(base, len, this);
+    break;
   default:
     JASSERT(false)(base->type).Text("Unknown RegionRemoteMsgTypes.");
   }
@@ -83,6 +87,7 @@ void RegionMatrixProxy::processReplyMsg(const BaseMessageHeader* base, size_t ba
   case MessageTypes::READCELLCACHE:
   case MessageTypes::WRITECELLCACHE:
   case MessageTypes::ALLOCDATA:
+  case MessageTypes::RANDOMIZEDATA:
   case MessageTypes::UPDATEHANDLERCHAIN:
   case MessageTypes::GETHOSTLIST:
     this->forwardReplyMsg(base, baseLen);

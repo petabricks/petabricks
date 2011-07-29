@@ -67,6 +67,16 @@ int RegionDataRemote::allocData() {
   return result;
 }
 
+void RegionDataRemote::randomize() {
+  RandomizeDataMessage msg;
+
+  void* data;
+  size_t len;
+  this->fetchData(&msg, MessageTypes::RANDOMIZEDATA, sizeof(RandomizeDataMessage), &data, &len);
+
+  free(data);
+}
+
 void RegionDataRemote::invalidateCache() {
 #ifdef USE_REGIONDATAREMOTE_CACHE
   _cache->invalidate();
@@ -256,6 +266,10 @@ void RegionDataRemote::processWriteCellMsg(const BaseMessageHeader* base, size_t
 }
 
 void RegionDataRemote::processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  this->forwardMessage(base, baseLen, caller);
+}
+
+void RegionDataRemote::processRandomizeDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   this->forwardMessage(base, baseLen, caller);
 }
 

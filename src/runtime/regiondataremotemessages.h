@@ -43,6 +43,7 @@ namespace petabricks {
 	GETHOSTLIST,
 	UPDATEHANDLERCHAIN,
         ALLOCDATA,
+        RANDOMIZEDATA,
         INITFROMDATASPLIT,
         INITWITHREGIONDATA,
         INITWITHREGIONHANDLER,
@@ -134,6 +135,9 @@ namespace petabricks {
     struct AllocDataMessage {
     };
 
+    struct RandomizeDataMessage {
+    };
+
     struct ReadCellReplyMessage {
       ElementT value;
     };
@@ -168,6 +172,10 @@ namespace petabricks {
     struct AllocDataReplyMessage {
       int result;
     };
+
+    struct RandomizeDataReplyMessage {
+    };
+
   }
 }
 
