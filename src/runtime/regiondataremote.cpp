@@ -49,7 +49,7 @@ void RegionDataRemote::init(const int dimensions, const IndexT* size, const Regi
     multipliers[i] = multipliers[i - 1] * size[i - 1];
   }
 
-#ifdef USE_REGIONDATAREMOTE_CACHE
+#ifdef DISTRIBUTED_CACHE
   _cache = new RegionDataRemoteCache(this, _D, multipliers);
 #endif
 }
@@ -78,13 +78,13 @@ void RegionDataRemote::randomize() {
 }
 
 void RegionDataRemote::invalidateCache() {
-#ifdef USE_REGIONDATAREMOTE_CACHE
+#ifdef DISTRIBUTED_CACHE
   _cache->invalidate();
 #endif
 }
 
 ElementT RegionDataRemote::readCell(const IndexT* coord) const {
-#ifdef USE_REGIONDATAREMOTE_CACHE
+#ifdef DISTRIBUTED_CACHE
   return _cache->readCell(coord);
 #else
   return readNoCache(coord);
@@ -120,7 +120,7 @@ void RegionDataRemote::readByCache(void* request, size_t request_len, void* repl
 }
 
 void RegionDataRemote::writeCell(const IndexT* coord, ElementT value) {
-#ifdef USE_REGIONDATAREMOTE_CACHE
+#ifdef DISTRIBUTED_CACHE
   _cache->writeCell(coord, value);
 #else
   writeNoCache(coord, value);

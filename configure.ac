@@ -120,47 +120,47 @@ AC_CHECK_LIB([rt],         [clock_gettime],  [],
 
 AC_MSG_CHECKING([if compiler supports __thread])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__thread int x;]])],
-                  [  
+                  [
                     AC_MSG_RESULT([yes]);
-                    has_threadlocal=yes; 
+                    has_threadlocal=yes;
                     AC_DEFINE([HAVE_THREADLOCAL],[],[define if __thread works with this compiler])
                   ],
-                  [  
-                    AC_MSG_RESULT([no]); 
+                  [
+                    AC_MSG_RESULT([no]);
                     has_threadlocal=no;
                   ])
 
 AC_MSG_CHECKING([if compiler supports forced inlining])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((flatten)) void foo(){}]])],
-                  [  
+                  [
                     AC_DEFINE([INLINE],[inline __attribute__((flatten))], [keyword to force inlining])
                     AC_MSG_RESULT([yes]);
                   ],
-                  [  
+                  [
                     AC_DEFINE([INLINE],[inline])
-                    AC_MSG_RESULT([no]); 
+                    AC_MSG_RESULT([no]);
                   ])
 
 AC_MSG_CHECKING([if compiler supports __restrict__])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[void foo(int *__restrict__ t);]])],
-                  [  
+                  [
                     AC_DEFINE([RESTRICT],[__restrict__], [keyword to indicate non-aliased pointers/refs])
                     AC_MSG_RESULT([yes]);
                   ],
-                  [  
+                  [
                     AC_DEFINE([RESTRICT],[])
-                    AC_MSG_RESULT([no]); 
+                    AC_MSG_RESULT([no]);
                   ])
 
 AC_MSG_CHECKING([if compiler supports __attribute__])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__attribute__((undefinedabdef)) void foo();]])],
-                  [  
+                  [
                     AC_DEFINE([ATTRIBUTE(x)],[__attribute__((x))], [macro for gcc function __attribute__s])
                     AC_MSG_RESULT([yes]);
                   ],
-                  [  
+                  [
                     AC_DEFINE([ATTRIBUTE(x)],[])
-                    AC_MSG_RESULT([no]); 
+                    AC_MSG_RESULT([no]);
                   ])
 
 ################################################################################
@@ -228,7 +228,7 @@ if ! test "$with_opencl" = "no"; then
 
    AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
    AC_CHECK_LIB([shrutil_x86_64], [shrLogEx], [], [AC_MSG_ERROR([Failed to find -lshrutil_x86_64.  Check LIBRARY_PATH, or reconfigure without shrutil_x86_64.])])
-   AC_CHECK_LIB([oclUtil_x86_64], [oclGetPlatformID], [], [AC_MSG_ERROR([Failed to find -loclUtil_x86_64.  Check LIBRARY_PATH, or reconfigure without oclUtil_x86_64.])])   
+   AC_CHECK_LIB([oclUtil_x86_64], [oclGetPlatformID], [], [AC_MSG_ERROR([Failed to find -loclUtil_x86_64.  Check LIBRARY_PATH, or reconfigure without oclUtil_x86_64.])])
 else
    AC_DEFINE([MATRIX_ELEMENT_T],[double])
 fi
@@ -240,6 +240,7 @@ AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for b
 AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
 AC_DEFINE([DEFAULT_ACCURACY],    [1], [accuracy stand-in for fixed-accuracy rules])
 AC_DEFINE([DEVNULL],             ["/dev/null"], [null sync device path])
+AC_DEFINE([DISTRIBUTED_CACHE],   [], [use cache in distributed code])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])
 AC_DEFINE([GENHEADER],           ["_pbhdr.h"], [generated file name])
@@ -299,7 +300,7 @@ fi
 
 compileflags="-Wall -Wextra"
 linkflags=""
-  
+
 if test "$use_jassert" = "yes"; then
   linkflags="-rdynamic"
 fi

@@ -10,10 +10,8 @@
 #include "remoteobject.h"
 
 #ifdef HAVE_CONFIG_H
-# include "config.h"
+#include "config.h"
 #endif
-
-#undef USE_REGIONDATAREMOTE_CACHE
 
 namespace petabricks {
   using namespace petabricks::RegionDataRemoteMessage;
@@ -29,7 +27,7 @@ namespace petabricks {
   private:
     RegionDataRemoteObjectPtr _remoteObject;
 
-#ifdef USE_REGIONDATAREMOTE_CACHE
+#ifdef DISTRIBUTED_CACHE
     RegionDataRemoteCachePtr _cache;
 #endif
 
