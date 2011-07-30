@@ -148,7 +148,7 @@ def testBenchmark(b):
       return True
 
     #run gpu config
-    cmd=[bin, '--fixedrandom', '--config=%s.gpucfg'%outfile]
+    cmd=[bin, '--fixedrandom', '--noisolation', '--config=%s.gpucfg'%outfile]
     cmd.extend(iofiles)
     rv = run(cmd)
     if rv != 0:

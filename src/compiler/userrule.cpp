@@ -639,9 +639,6 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   else if( RuleFlavor::OPENCL == flavor )
   {
 
-    //for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-      //o.write("GpuManager::currenttask->addMatrix(" + (*i)->matrix( )->name( ) + ".getMatrixStorageInfo());");
-
     o.os() << "cl_int err;\n";
     o.os() << "cl_kernel clkern = " << trans.name() << "_instance::get_kernel_" << id() << "();\n";
 
@@ -649,7 +646,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
     //o.os( ) << "printf( \"- TRACE 10\\n\" );\n";
 
-    o.os( ) << "std::cerr << \"Prepare GPU\" << std::endl;\n";
+    //o.os( ) << "std::cerr << \"Prepare GPU\" << std::endl;\n";
 		o.os( ) << "if( ";
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
@@ -789,7 +786,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     }
     o.os( ) << "};\n";
 
-    o.os( ) << "std::cerr << \"RUN GPU\" << std::endl;\n";
+    //o.os( ) << "std::cerr << \"RUN GPU\" << std::endl;\n";
 
     #ifdef OPENCL_LOGGING
     o.os( ) << "std::cout << \"Work dimensions: \" << workdim[0] << \" x \" << workdim[1] << \"\\n\";\n";
@@ -918,16 +915,11 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
                            + ">";
 
   o.beginFunc("petabricks::DynamicTaskPtr", codename+"_createtasks", packedargs);
-  //write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
-  //write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
   o.write("GpuTaskInfoPtr taskinfo = new GpuTaskInfo();");
-  //write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end, taskinfo);\n");
-
   o.write("DynamicTaskPtr prepare = new "+prepareclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::PREPARE);");
-  o.write("DynamicTaskPtr run = new "+runclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::RUN);");
-  o.write("DynamicTaskPtr end = new NullDynamicTask();\n");
+  o.write("prepare->enqueue();");
 
-  o.write("DynamicTaskPtr copyin["+jalib::XToString(_from.size())+"];\n");
+  o.write("DynamicTaskPtr copyin["+jalib::XToString(_from.size())+"];");
   int id = 0;
   for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i ) {
     if((*i)->isBuffer()){
@@ -936,15 +928,17 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
                               + ", &" + objectname + "::" + codename + "_copyin_" + (*i)->name()
                               + ">";
       std::string taskid = jalib::XToString(id);
-      o.write("copyin["+taskid+"] = new "+copyinclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::COPYIN, "+(*i)->matrix()->name()+".getMatrixStorageInfo());");
-      o.write("copyin["+taskid+"]->dependsOn(prepare);");
-      o.write("run->dependsOn(copyin["+taskid+"]);");
-      o.write("copyin["+taskid+"]->enqueue();\n");
+      o.write("copyin["+taskid+"] = new "+copyinclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::COPYIN, "+(*i)->matrix()->name()+".storageInfo());");
+      o.write("copyin["+taskid+"]->enqueue();");
       id++;
     }
   }
 
-  o.write("DynamicTaskPtr copyout["+jalib::XToString(_to.size())+"];\n");
+  o.write("\nDynamicTaskPtr run = new "+runclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::RUN);");
+  o.write("run->enqueue();");
+  o.write("DynamicTaskPtr end = new NullDynamicTask();\n");
+
+  o.write("DynamicTaskPtr copyout["+jalib::XToString(_to.size())+"];");
   id = 0;
   for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i ) {
     if((*i)->isBuffer()){
@@ -953,16 +947,12 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
                               + ", &" + objectname + "::" + codename + "_copyout_" + (*i)->name()
                               + ">";
       std::string taskid = jalib::XToString(id);
-      o.write("copyout["+taskid+"] = new "+copyinclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::COPYOUT, "+(*i)->matrix()->name()+".getMatrixStorageInfo());");
-      o.write("copyout["+taskid+"]->dependsOn(run);");
+      o.write("copyout["+taskid+"] = new "+copyinclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::COPYOUT, "+(*i)->matrix()->name()+".storageInfo());");
       o.write("end->dependsOn(copyout["+taskid+"]);");
-      o.write("copyout["+taskid+"]->enqueue();\n");
+      o.write("copyout["+taskid+"]->enqueue();");
       id++;
     }
   }
-  o.write("prepare->enqueue();");
-  o.write("run->enqueue();");
-  //write("end->enqueue();");
   o.write("return end;");
   o.endFunc();
 }
@@ -978,7 +968,7 @@ void petabricks::UserRule::generateOpenCLPrepareCode(std::string& codename, std:
     if(matrix_it == set.end()) {
       set.insert(matrix_name);
       (*i)->setBuffer(true);
-      o.write("GpuManager::_currenttaskinfo->addToMatrix(" + matrix_name + ".getMatrixStorageInfo());");
+      o.write("GpuManager::_currenttaskinfo->addToMatrix(" + matrix_name + ".storageInfo());");
     }
     else {
       (*i)->setBuffer(false);
@@ -990,7 +980,7 @@ void petabricks::UserRule::generateOpenCLPrepareCode(std::string& codename, std:
     if(matrix_it == set.end()) {
       set.insert(matrix_name);
       (*i)->setBuffer(true);
-      o.write("GpuManager::_currenttaskinfo->addFromMatrix(" + matrix_name + ".getMatrixStorageInfo());");
+      o.write("GpuManager::_currenttaskinfo->addFromMatrix(" + matrix_name + ".storageInfo());");
     }
     else {
       (*i)->setBuffer(false);
@@ -1005,9 +995,19 @@ void petabricks::UserRule::generateOpenCLCopyInCode(std::string& codename, std::
   SRCPOSSCOPE();
   std::string name = region->matrix()->name();
   o.beginFunc("petabricks::DynamicTaskPtr", codename+"_copyin_"+region->name(), packedargs);
-  o.write("MatrixStorageInfoPtr storage_"+name+" = "+name+".getMatrixStorageInfo();");
-  o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->_clmem, CL_FALSE, 0, storage_"+name+"->bytes(), "+name+".asGpuInputBuffer().base(), 0, NULL, NULL);");
-  o.write("JASSERT(CL_SUCCESS == err).Text( \"Failed to write to buffer.\");");
+  o.write("MatrixStorageInfoPtr storage_"+name+" = "+name+".storageInfo();");
+  o.write("std::cerr << \"bytes = \" << storage_"+name+"->bytes() << std::endl;");
+  o.write("MatrixIO().write("+name+".asGpuInputBuffer());");
+  //o.write("std::cerr << \"base = \" << *("+name+".asGpuInputBuffer().base()) << std::endl;");
+  o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->_clmem, CL_TRUE, 0, storage_"+name+"->bytes(), "+name+".asGpuInputBuffer().base(), 0, NULL, NULL);");
+  o.write("JASSERT(CL_INVALID_CONTEXT != err).Text( \"Failed to write to buffer.\");");
+  o.write("JASSERT(CL_INVALID_VALUE != err).Text( \"Failed to write to buffer.\");");
+  o.write("JASSERT(CL_INVALID_BUFFER_SIZE != err).Text( \"Failed to write to buffer.\");");
+  o.write("JASSERT(CL_DEVICE_MAX_MEM_ALLOC_SIZE != err).Text( \"Failed to write to buffer.\");");
+  o.write("JASSERT(CL_INVALID_HOST_PTR != err).Text( \"Failed to write to buffer.\");");
+  o.write("JASSERT(CL_MEM_OBJECT_ALLOCATION_FAILURE != err).Text( \"Failed to write to buffer.\");");
+  o.write("JASSERT(CL_OUT_OF_HOST_MEMORY != err).Text( \"Failed to write to buffer.\");");
+  o.write("JASSERT(CL_SUCCESS == err)(err).Text( \"Failed to write to buffer.\");");
   o.write( "return NULL;" );
   o.endFunc();
 }
@@ -1025,11 +1025,11 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
   // Pass clmem args
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i ) {
     if((*i)->isBuffer())
-      o.write("err |= clSetKernelArg(clkern, "+jalib::XToString(arg_pos++)+", sizeof(cl_mem), (void*)&"+(*i)->matrix()->name()+".getMatrixStorageInfo()->_clmem);");
+      o.write("err |= clSetKernelArg(clkern, "+jalib::XToString(arg_pos++)+", sizeof(cl_mem), (void*)&"+(*i)->matrix()->name()+".storageInfo()->_clmem);");
   }
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i ) {
     if((*i)->isBuffer())
-      o.write("err |= clSetKernelArg(clkern, "+jalib::XToString(arg_pos++)+", sizeof(cl_mem), (void*)&"+(*i)->matrix()->name()+".getMatrixStorageInfo()->_clmem);");
+      o.write("err |= clSetKernelArg(clkern, "+jalib::XToString(arg_pos++)+", sizeof(cl_mem), (void*)&"+(*i)->matrix()->name()+".storageInfo()->_clmem);");
   }
 
   o.os( ) << "JASSERT( CL_SUCCESS == err )(err).Text( \"Failed to bind kernel arguments.\" );\n\n";
@@ -1062,7 +1062,7 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
         o.os( ) << "err |= clSetKernelArg(clkern, " << arg_pos++ << ", sizeof(int), &ruledim_out" << count << "_" << i << " );\n";
       }
       count++;
-      o.write(name+".getMatrixStorageInfo()->incCoverage("+name+".intervalSize(_iter_begin, _iter_end));");
+      o.write(name+".storageInfo()->incCoverage("+name+".intervalSize(_iter_begin, _iter_end));");
     }
   }
 
@@ -1094,7 +1094,7 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
     }
     o.os( ) << "};\n";
 
-    o.os( ) << "std::cerr << \"RUN GPU\" << std::endl;\n";
+    //o.os( ) << "std::cerr << \"RUN GPU\" << std::endl;\n";
 
     o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, " << iterdef.dimensions( ) << ", 0, workdim, NULL, 0, NULL, NULL );\n";
     #ifndef OPENCL_LOGGING
@@ -1102,21 +1102,6 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
     #endif
     o.os( ) << "std::cout << \"Kernel execution error #\" << err << \": \" << OpenCLUtil::errorString(err) << std::endl;\n";
     o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to execute kernel.\" );\n";
-
-    /*// Copy results back to host memory.
-    o.comment( "Copy results back to host memory." );
-    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
-    {
-      std::string name = (*i)->matrix()->name();
-      o.write("MatrixStorageInfoPtr storage_"+name+" = "+name+".getMatrixStorageInfo();");
-      o.os( ) << "clEnqueueReadBuffer(GpuManager::_queue, storage_" 
-              << name << "->_clmem, CL_FALSE, 0, " 
-              << name << "->bytes(), " 
-              << "normalized_" << (*i)->name( ) << ".base(), "
-              << "0, NULL, NULL );\n";
-      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to read output buffer.\" );\n";
-    }
-    o.os( ) << "\n";*/
 
   o.write( "return NULL;" );
   o.endFunc();
@@ -1128,15 +1113,19 @@ void petabricks::UserRule::generateOpenCLCopyOutCode(std::string& codename, std:
   std::string storage = "storage_" + name;
   std::string dim = jalib::XToString(region->dimensions());
   o.beginFunc("petabricks::DynamicTaskPtr", codename+"_copyout_"+region->name(), packedargs);
-  o.write("MatrixStorageInfoPtr "+storage+" = "+name+".getMatrixStorageInfo();");
+  o.write("MatrixStorageInfoPtr "+storage+" = "+name+".storageInfo();");
   o.write("IndexT sizes["+dim+"];");
-  o.write("memcpy(sizes, "+storage+"->sizes(), sizeof(sizes));"); //TODO:wrong
+  o.write("memcpy(sizes, "+storage+"->sizes(), sizeof(sizes));");
   o.write("IndexT multipliers["+dim+"];");
-  o.write("memcpy(multipliers, "+storage+"->multipliers(), sizeof(multipliers));"); //TODO: wrong
+  o.write("memcpy(multipliers, "+storage+"->multipliers(), sizeof(multipliers));");
+  //o.write(name+".print();"); 
+  //o.write("std::cerr << \"matrixstorage mulitpliers = \" << "+storage+"->multipliers()[0] << std::endl;");
   //o.write(storage+"->getGpuBuffer()->print();");
   o.write("MatrixRegion<"+dim+", "+STRINGIFY(MATRIX_ELEMENT_T)+"> normalized("+storage+"->getGpuBuffer()"+","+storage+"->getGpuBuffer()->data(), sizes, multipliers);");
-  //o.write("MatrixIO().write("+name+");");    
+  //o.write("normalized.print();"); 
+  //o.write("MatrixIO().write(normalized);");    
   o.write("normalized.copyTo("+name+");");
+  //o.write("MatrixIO().write("+name+");");    
   o.write( "return NULL;" );
   o.endFunc();
 }

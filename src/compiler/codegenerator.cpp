@@ -349,12 +349,11 @@ void petabricks::CodeGenerator::mkGpuSpatialTask(const std::string& taskname, co
   incIndent();
   write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
   write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
-  /*write("GpuTaskInfoPtr taskinfo = new GpuTaskInfo();");
+  write("GpuTaskInfoPtr taskinfo = new GpuTaskInfo();");
   //write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end, taskinfo);\n");
 
   write("DynamicTaskPtr prepare = new "+prepareclass+"(this,_tmp_begin, _tmp_end, taskinfo, GpuDynamicTask::PREPARE);");
-  write("DynamicTaskPtr run = new "+runclass+"(this,_tmp_begin, _tmp_end, taskinfo, GpuDynamicTask::RUN);");
-  write("DynamicTaskPtr end = new NullDynamicTask();");
+  write("prepare->enqueue();\n");
 
   write("DynamicTaskPtr copyin["+jalib::XToString(_from.size())+"];\n");
   int id = 0;
@@ -365,13 +364,15 @@ void petabricks::CodeGenerator::mkGpuSpatialTask(const std::string& taskname, co
                               + ", &" + objname + "::" + methodname + "_copyin_" + (*i)->name()
                               + ">";
       std::string taskid = jalib::XToString(id);
-      write("copyin["+taskid+"] = new "+copyinclass+"(this,_tmp_begin, _tmp_end, taskinfo, GpuDynamicTask::COPYIN, "+(*i)->matrix()->name()+".getMatrixStorageInfo());");
-      write("copyin["+taskid+"]->dependsOn(prepare);");
-      write("run->dependsOn(copyin["+taskid+"]);");
-      write("copyin["+taskid+"]->enqueue();\n");
+      write("copyin["+taskid+"] = new "+copyinclass+"(this,_tmp_begin, _tmp_end, taskinfo, GpuDynamicTask::COPYIN, "+(*i)->matrix()->name()+".storageInfo());");
+      write("copyin["+taskid+"]->enqueue();");
       id++;
     }
   }
+
+  write("\nDynamicTaskPtr run = new "+runclass+"(this,_tmp_begin, _tmp_end, taskinfo, GpuDynamicTask::RUN);");
+  write("run->enqueue();");
+  write(taskname+" = new NullDynamicTask();\n");
 
   write("DynamicTaskPtr copyout["+jalib::XToString(_to.size())+"];\n");
   id = 0;
@@ -382,17 +383,12 @@ void petabricks::CodeGenerator::mkGpuSpatialTask(const std::string& taskname, co
                               + ", &" + objname + "::" + methodname + "_copyout_" + (*i)->name()
                               + ">";
       std::string taskid = jalib::XToString(id);
-      write("copyout["+taskid+"] = new "+copyinclass+"(this,_tmp_begin, _tmp_end, taskinfo, GpuDynamicTask::COPYOUT, "+(*i)->matrix()->name()+".getMatrixStorageInfo());");
-      write("copyout["+taskid+"]->dependsOn(run);");
-      write("end->dependsOn(copyout["+taskid+"]);");
-      write("copyout["+taskid+"]->enqueue();\n");
+      write("copyout["+taskid+"] = new "+copyinclass+"(this,_tmp_begin, _tmp_end, taskinfo, GpuDynamicTask::COPYOUT, "+(*i)->matrix()->name()+".storageInfo());");
+      write(taskname+"->dependsOn(copyout["+taskid+"]);");
+      write("copyout["+taskid+"]->enqueue();");
       id++;
     }
   }
-  write("prepare->enqueue();\n");
-  write("run->enqueue();\n");
-  //write("end->enqueue();\n");
-  write(taskname+" = end;");*/
 
   decIndent();
   write("}");

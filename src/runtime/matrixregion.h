@@ -91,7 +91,6 @@ public:
   ///
   /// Constructor
   MatrixRegionMembers(const StorageT& s, ElementT* b, const IndexT RESTRICT* sizes, const IndexT RESTRICT * multipliers)
-    : _storage(s), _base(b)
   {
     if(D>0) {
       const size_t sizeof_sizes = sizeof this->_sizes;
@@ -107,12 +106,24 @@ public:
       else
         memset(this->_sizes, -1, sizeof_sizes);
     }
+    _base = b;
+    _storage = s;
+    if(count()>0){
+      _storageInfo = new MatrixStorageInfo();
+      exportTo(_storageInfo);
+    }
   }
   
   ElementT* base() const { return _base; }
   const IndexT* sizes() const { return _sizes; }
   const IndexT* multipliers() const { return _multipliers; };
   const StorageT& storage() const { return _storage; }
+  const MatrixStorageInfoPtr storageInfo() const {
+    //JASSERT(count()>0)(count());
+    //if(D!=0)
+    //  JASSERT(_multipliers[0]==_storageInfo->multipliers()[0]);
+    return _storageInfo; 
+  }
 
   void randomize(){
     if(D==0){
@@ -127,9 +138,25 @@ public:
   ///
   /// export to a more generic container (used in memoization)
   void exportTo(MatrixStorageInfo& ms) const {
+    //std::cerr << "MATRIXREGION:: dimension = " << D << "count = " << this->count() << std::endl;
     ms.setStorage(_storage, _base);
     ms.setSizeMultipliers(D, _multipliers, _sizes);
     ms.setExtraVal();
+    if(D!=0) {
+      JASSERT(_multipliers[0]==ms.multipliers()[0]);
+    }
+    //std::cerr << "EXPORT TO" << &ms << std::endl;
+    //std::cerr << "this multiplier = " << _multipliers[0] << std::endl;
+    //std::cerr << "ms multiplier = " << ms.multipliers()[0] << std::endl;
+  }
+
+  ///
+  /// Number of elements in this region
+  ssize_t count() const {
+    ssize_t s=1;
+    for(int i=0; i<D; ++i)
+      s*=this->sizes()[i];
+    return s;
   }
   
   ///
@@ -146,6 +173,7 @@ protected:
   IndexT* multipliers() { return _multipliers; };
 private:
   StorageT _storage;
+  MatrixStorageInfoPtr _storageInfo;
   ElementT* _base;
   IndexT _multipliers[D];
   IndexT _sizes[D];
@@ -167,7 +195,7 @@ public:
                           , const typename TypeSpec::IndexT* multipliers)
     : Base(s,b,sizes,multipliers)
   {
-    _hasStorageInfo = false;
+    //_hasStorageInfo = false;
   }
 
   enum StockLayouts { LAYOUT_ASCENDING, LAYOUT_DECENDING };
@@ -248,23 +276,6 @@ public:
     return t;
   }
 
-  MatrixStorageInfoPtr _storageinfo;
-
-  MatrixStorageInfoPtr getMatrixStorageInfo() {
-    if(!_hasStorageInfo){
-      _hasStorageInfo = true;
-      _storageinfo = new MatrixStorageInfo();
-      exportTo(_storageinfo);
-    }
-    return _storageinfo;
-  }
-
-  void exportTo(MatrixStorageInfo& ms) const {
-    ms.setStorage(this->storage(), this->base());
-    ms.setSizeMultipliers(D, this->multipliers(), this->sizes());
-    ms.setExtraVal();
-  }
-
   ///
   /// Decide to make a copy or return the orginal for making GPU buffer.
   MatrixRegion asGpuInputBuffer() const
@@ -302,12 +313,26 @@ public:
     return s;
   }
 
+  void print() {
+    std::cerr << "dimension = " << D << std::endl;
+    std::cerr << "size = ";
+    for(int i=0; i<D; ++i) {
+      std::cerr << size(i) << " ";
+    }    
+    std::cerr << std::endl << "mult = ";
+    for(int i=0; i<D; ++i) {
+      std::cerr << this->multipliers()[i] << " ";
+    }
+    std::cerr << std::endl;
+  }
+
   ///
   /// Copy that data of this to dst
   void copyTo(const MutableMatrixRegion& dst)
   {
-    JASSERT(this->count()==dst.count());
+    //JASSERT(this->count()==dst.count());
     if(this->base() == dst.base()) {
+      std::cerr << "COPY TO:: Not copying ^^" << std::endl;
       bool same = true;
       for(int i = 0; i < D; i++) {
         if(this->multipliers()[i] != dst.multipliers()[i])
@@ -315,6 +340,7 @@ public:
       }
       if(same) return;
     }
+    std::cerr << "COPY TO:: copy" << std::endl;
     IndexT coord[D] = {0};
     do {
       dst.cell(coord) = this->cell(coord);
@@ -325,7 +351,7 @@ public:
   /// Copy that data of this to dst
   void copyTo(const MutableMatrixRegion& dst,const IndexT c1[D], const IndexT c2[D])
   {
-    JASSERT(this->count()==dst.count());
+    //JASSERT(this->count()==dst.count());
     //if(this->base() == dst.base()) return;
     if(this->base() == dst.base()) {
       bool same = true;
@@ -547,6 +573,8 @@ protected:
         mult *= size(i);
       }
     }
+    if(count()>0)
+      this->storageInfo()->setMultipliers(this->multipliers());
   }
 };
 

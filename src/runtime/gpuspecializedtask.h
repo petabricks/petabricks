@@ -60,7 +60,7 @@ public:
   }
 
   DynamicTaskPtr run(){    
-    std::cerr << "+++++++++++++ RUN" << std::endl;
+    //std::cerr << "+++++++++++++ RUN" << std::endl;
     JASSERT(_state == S_REMOTE_READY)(_state);
     return ((*_obj).*(method))(_begin, _end);
   }

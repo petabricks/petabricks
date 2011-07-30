@@ -122,11 +122,13 @@ public:
 
   void setStorage(const MatrixStoragePtr& s, const ElementT* base);
   void setSizeMultipliers(int dim, const IndexT* mult, const IndexT* siz);
+  void setMultipliers(const IndexT* mult);
   void setExtraVal(ElementT v=0);
   void computeDataHash();
   void reset();
   void releaseStorage();
   MatrixStorageInfo();
+  ~MatrixStorageInfo();
   bool isMetadataMatch(const MatrixStorageInfo& that) const;
   bool isDataMatch(const MatrixStorageInfo& that) const;
 
@@ -144,6 +146,7 @@ public:
   // Return true when it's last reference to gpu mem is removed.
   void finishGpuMem(cl_command_queue& queue,bool modify);
   bool doneReadBuffer();
+  void releaseCLMem();
   bool isModified() { return _isModified; }
   MatrixStoragePtr getGpuBuffer() { return _gpubuffer; }
   void incCoverage(int size);

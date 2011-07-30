@@ -28,6 +28,9 @@
 
 #include "petabricksruntime.h"
 
+
+#define GPU_TRACE 1
+
 MATRIX_ELEMENT_T petabricks::MatrixStorage::rand(){
   return petabricks::PetabricksRuntime::randDouble(-2147483648, 2147483648);
 }
@@ -38,10 +41,22 @@ void petabricks::MatrixStorage::randomize(){
   }
 }
 
+petabricks::MatrixStorageInfo::MatrixStorageInfo(){reset();}
+petabricks::MatrixStorageInfo::~MatrixStorageInfo(){
+#ifdef HAVE_OPENCL
+  if(_hasGpuMem){
+#ifdef GPU_TRACE
+    std::cerr << this << " : release clmem (deconstructor)" << std::endl;
+#endif
+    clReleaseMemObject(_clmem);
+  }
+#endif
+}
+
 void petabricks::MatrixStorageInfo::setStorage(const MatrixStoragePtr& s, const ElementT* base){
   if(s){
     _storage=s;
-    std::cerr << "base = " << base << " data = " << s->data() << " count = " << s->count() << std::endl;
+    //std::cerr << "base = " << base << " data = " << s->data() << " count = " << s->count() << " data + count = " << s->data()+s->count() << std::endl;
     JASSERT(base >= s->data());
     JASSERT(base < s->data()+s->count());
     _baseOffset=base-s->data();
@@ -61,6 +76,11 @@ void petabricks::MatrixStorageInfo::setSizeMultipliers(int dim, const IndexT* mu
     _sizes[d]=siz[d];
     _count *= _sizes[d];
   }
+}
+
+void petabricks::MatrixStorageInfo::setMultipliers(const IndexT* mult){
+  for(int d=0; d<_dimensions; ++d)
+    _multipliers[d]=mult[d];
 }
 
 void petabricks::MatrixStorageInfo::setExtraVal(ElementT v)
@@ -89,7 +109,6 @@ void petabricks::MatrixStorageInfo::reset(){
 
 void petabricks::MatrixStorageInfo::releaseStorage() { _storage=0; }
 
-petabricks::MatrixStorageInfo::MatrixStorageInfo(){reset();}
 
 bool petabricks::MatrixStorageInfo::isMetadataMatch(const MatrixStorageInfo& that) const{
   if(_dimensions != that._dimensions) return false;
@@ -113,9 +132,9 @@ bool petabricks::MatrixStorageInfo::isDataMatch(const MatrixStorageInfo& that) c
 #ifdef HAVE_OPENCL
 bool petabricks::MatrixStorageInfo::initGpuMem(cl_context& context) {
   _refCount++;
-  std::cerr << this << " : inc refcount to " << _refCount << std::endl;
   if(!_hasGpuMem) {
     cl_int err;
+    //std::cerr << this << " : create buffer size = " << bytes() << std::endl;
     _clmem = clCreateBuffer(context, CL_MEM_READ_WRITE, bytes(), NULL, &err);
     JASSERT(CL_SUCCESS == err).Text("Failed to create input memory object.");
     _hasGpuMem = true;
@@ -128,11 +147,18 @@ void petabricks::MatrixStorageInfo::finishGpuMem(cl_command_queue& queue, bool m
   if(modify) _isModified = modify;
 
   _refCount--;
-  std::cerr << this << " : dec refcount to " << _refCount << std::endl;
+#ifdef GPU_TRACE
+  std::cerr << this << " : dec refcount to " << _refCount << " : coverage " << _coverage << "/" << _count << std::endl;
+#endif
   if(/*_refCount == 0*/ _coverage == _count && _isModified) {
+#ifdef GPU_TRACE
+    std::cerr << "read buffer" << std::endl;
+#endif
     JASSERT(_refCount == 0)(_refCount).Text("At least one kernel is working on this region of memory; cannot enqueue read buffer.");
-    std::cerr << this << " : read buffer " << std::endl;
-    _gpubuffer = new MatrixStorage(count());
+    if(_dimensions == 0 || _storage->count() != count())
+      _gpubuffer = new MatrixStorage(count());
+    else
+      _gpubuffer = storage();
     //cl_int err = clSetEventCallBack(event, CL_COMPLETE, NULL, NULL);
     //std::cerr << this << " : start read buffer " << _refCount << std::endl;
     clEnqueueReadBuffer(queue, _clmem, CL_FALSE, 0, bytes(), _gpubuffer->data(), 0, NULL, &event);
@@ -143,16 +169,31 @@ bool petabricks::MatrixStorageInfo::doneReadBuffer() {
   JASSERT(_isModified).Text("Copying unmodified matrix.");
 
   // Need to check _refCount again because it's possible to have new task that just enqueues read buffer before the previous read buffer finishes.
-  //if(_refCount == 0) {
+  if(_refCount == 0 && _coverage == _count) {
     JASSERT(_refCount == 0)(_refCount).Text("At least one kernel is working on this region of memory while reading buffer.");
+    JASSERT(_coverage == _count).Text("At least one kernel is working on this region of memory while reading buffer.");
     cl_int ret;
     clGetEventInfo(event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &ret, NULL);
+#ifdef GPU_TRACE
+    std::cerr << "status = " << ret << "  queue = " << CL_QUEUED << "  submitted = " << CL_SUBMITTED << "  running = " << CL_RUNNING << "  complete = " << CL_COMPLETE << std::endl;
+#endif
     if(ret == CL_COMPLETE) {
+      //_gpubuffer->print();
       _isModified = false;
       return true;
     }
-  //}
+  }
   return false;
+}
+
+void petabricks::MatrixStorageInfo::releaseCLMem() {
+  if(_refCount == 0){
+#ifdef GPU_TRACE
+    std::cerr << this << " : release clmem" << std::endl;
+#endif
+    clReleaseMemObject(_clmem);
+    _hasGpuMem = false;
+  }
 }
 
 void petabricks::MatrixStorageInfo::incCoverage(int size) {

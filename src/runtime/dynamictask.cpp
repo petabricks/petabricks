@@ -67,7 +67,7 @@ void DynamicTask::enqueue()
       else
         _state=S_REMOTE_PENDING;
     }else{
-      JASSERT(false);
+      JASSERT(false)(_state);
     }
   }
   if(preds==0) {
@@ -76,7 +76,7 @@ void DynamicTask::enqueue()
     }else if(_state == S_REMOTE_READY){
       remoteScheduleTask();
     }else{
-      JASSERT(false);
+      JASSERT(false)(_state);
     }
   }
 }

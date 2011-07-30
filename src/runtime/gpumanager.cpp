@@ -30,12 +30,13 @@
 #include "dynamicscheduler.h"
 #include "gpudynamictask.h"
 
+#define GPU_TRACE 1
+
 namespace petabricks {
 
 typedef std::list<GpuDynamicTaskPtr>::iterator gpuTaskIter;
 
 std::queue<GpuDynamicTaskPtr> GpuManager::_readytasks;
-//std::map<MatrixStorageInfoPtr,cl_mem> GpuManager::_clmems;
 jalib::JMutex  GpuManager::_lock;
 bool GpuManager::_shutdown = true;
 pthread_t GpuManager::_thread;
@@ -55,7 +56,9 @@ extern "C" void *startGpuManager(void* /*arg*/) {
 void GpuManager::start() {
   if(!_shutdown) return;
   _shutdown = false;
+#ifdef GPU_TRACE
   std::cerr << "pthead_create~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+#endif
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, 0);
@@ -68,7 +71,9 @@ void GpuManager::shutdown() {
   _shutdown = true;
   int rv = pthread_join(_thread, NULL);
   JWARNING(rv==0)(rv).Text("pthread_join failed");
+#ifdef GPU_TRACE
   std::cerr << "pthead_join~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+#endif
 }
 
 void GpuManager::mainLoop() {
@@ -77,7 +82,9 @@ void GpuManager::mainLoop() {
     //TODO: whey do I have to use empty?
     bool empty = _readytasks.empty();
     while(!empty) {
+#ifdef GPU_TRACE
       std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>> START " << std::endl;
+#endif
       GpuDynamicTaskPtr task = _readytasks.front();
       int done = true;
       switch(task->tasktype()) {
@@ -86,13 +93,15 @@ void GpuManager::mainLoop() {
         case GpuDynamicTask::RUN:     run(task);            break;
         case GpuDynamicTask::COPYOUT: done = copyout(task); break;
       }
+#ifdef GPU_TRACE
       std::cerr << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<< DONE" << std::endl;
+#endif
       _lock.lock();
       _readytasks.pop();
       if(!done)
         _readytasks.push(task);
-      _lock.unlock();
       empty = _readytasks.empty();
+      _lock.unlock();
     }
 
     if(_shutdown) { 
@@ -108,11 +117,15 @@ void GpuManager::addTask(GpuDynamicTaskPtr task) {
 }
 
 void GpuManager::prepare(GpuDynamicTaskPtr task) {
+#ifdef GPU_TRACE
   std::cerr << "[PREPARE]" << std::endl;
+#endif
   _currenttaskinfo = task->taskinfo();
   task->runWrapper();
+#ifdef GPU_TRACE
   std::cerr << "Number of From Matrices = " << _currenttaskinfo->_from.size() << std::endl;
   std::cerr << "Number of To Matrices   = " << _currenttaskinfo->_to.size() << std::endl;
+#endif
 
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
     (*i)->initGpuMem(_context); // clCreateBuffer
@@ -120,12 +133,16 @@ void GpuManager::prepare(GpuDynamicTaskPtr task) {
 }
 
 void GpuManager::copyin(GpuDynamicTaskPtr task) {
+#ifdef GPU_TRACE
   std::cerr << "[COPY IN]" << std::endl;
+#endif
   _currenttaskinfo = task->taskinfo();
   MatrixStorageInfoPtr storageinfo = task->storageinfo();
 
   if(storageinfo->initGpuMem(_context)) { // clCreateBuffer
+#ifdef GPU_TRACE
     std::cerr << "copying in... " << &(*storageinfo) << std::endl;
+#endif
     task->runWrapper(); // clEnqueueWriteBuffer
   }
   else {
@@ -134,7 +151,9 @@ void GpuManager::copyin(GpuDynamicTaskPtr task) {
 }
 
 void GpuManager::run(GpuDynamicTaskPtr task) {
+#ifdef GPU_TRACE
   std::cerr << "[RUN]" << std::endl;
+#endif
   _currenttaskinfo = task->taskinfo();
   task->runWrapper();
 
@@ -148,17 +167,23 @@ void GpuManager::run(GpuDynamicTaskPtr task) {
 }
 
 bool GpuManager::copyout(GpuDynamicTaskPtr task) {
-  cl_int err;
-  MatrixStorageInfoPtr storage = task->storageinfo();   
+  MatrixStorageInfoPtr storage = task->storageinfo();  
+#ifdef GPU_TRACE 
   std::cerr << "[COPY OUT]" << &(*storage) << std::endl;
+#endif
   if(!storage->isModified()) {
+#ifdef GPU_TRACE
     std::cerr << "is not modified... " << &(*storage) << std::endl;
+#endif
     task->completeTaskDeps();
     return true;
   }
   if(storage->doneReadBuffer()) {
+#ifdef GPU_TRACE
     std::cerr << "actual copy... " << &(*storage) << std::endl;
+#endif
     task->runWrapper();
+    //storage->releaseCLMem();
     return true;
   }
   return false;
