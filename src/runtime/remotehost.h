@@ -74,7 +74,7 @@ struct HostPid {
   }
 
   static const HostPid& self();
-};
+} PACKED;
 
 
 class RemoteHost {

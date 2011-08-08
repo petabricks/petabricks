@@ -141,6 +141,17 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((flatten)) void foo(){
                     AC_MSG_RESULT([no]);
                   ])
 
+AC_MSG_CHECKING([if compiler supports packed])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[struct foo{int x;} __attribute__((__packed__));]])],
+                  [
+                    AC_DEFINE([PACKED],[__attribute__((__packed__))], [keyword to force packed struct])
+                    AC_MSG_RESULT([yes]);
+                  ],
+                  [
+                    AC_DEFINE([PACKED],[])
+                    AC_MSG_RESULT([no]);
+                  ])
+
 AC_MSG_CHECKING([if compiler supports __restrict__])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[void foo(int *__restrict__ t);]])],
                   [

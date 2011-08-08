@@ -113,7 +113,7 @@ namespace _RemoteHostMsgTypes {
                << MessageTypes::str(m.type) << ", "
                << m.id << ")";
     }
-  };
+  } PACKED;
 
   struct GeneralMessage {
     MessageType type;
@@ -128,7 +128,7 @@ namespace _RemoteHostMsgTypes {
                << m.len << " bytes, "
                << std::hex << m.srcptr << " => " << m.dstptr << std::dec << ")";
     }
-  };
+  } PACKED;
 
   void* start_listenLoop(void* arg) {
     ((petabricks::RemoteHostDB*)arg)->listenLoop();
