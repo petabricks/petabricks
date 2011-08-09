@@ -487,6 +487,7 @@ void petabricks::RemoteHostDB::remotefork(const char* host, int oargc, const cha
     execv(argv[0], (char**)argv);
     JASSERT(false);
   }
+  delete[] argv;
 }
 
 void petabricks::RemoteHostDB::regenPollFds() {
