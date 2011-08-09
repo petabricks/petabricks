@@ -164,7 +164,10 @@ public:
   
   void printIdentifier(std::ostream& o) const { o <<_id << " "; }
   int id() const { return _id; }
-  
+#ifdef HAVE_OPENCL
+  virtual int getAssociatedId() { return _id; }
+  virtual bool isEnabledGpuRule() { return false; }
+#endif
   
   const SimpleRegionPtr& applicableRegion() const { return _applicableRegion; }
   

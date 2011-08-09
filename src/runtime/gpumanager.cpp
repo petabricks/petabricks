@@ -30,7 +30,7 @@
 #include "dynamicscheduler.h"
 #include "gpudynamictask.h"
 
-#define GPU_TRACE 1
+//#define GPU_TRACE 1
 
 namespace petabricks {
 
@@ -57,7 +57,7 @@ void GpuManager::start() {
   if(!_shutdown) return;
   _shutdown = false;
 #ifdef GPU_TRACE
-  std::cerr << "pthead_create~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+  std::cout << "pthead_create~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 #endif
   pthread_attr_t attr;
   pthread_attr_init(&attr);
@@ -71,19 +71,23 @@ void GpuManager::shutdown() {
   _shutdown = true;
   int rv = pthread_join(_thread, NULL);
   JWARNING(rv==0)(rv).Text("pthread_join failed");
+  OpenCLUtil::deinit();
 #ifdef GPU_TRACE
-  std::cerr << "pthead_join~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+  std::cout << "pthead_join~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
 #endif
 }
 
 void GpuManager::mainLoop() {
+#ifdef GPU_TRACE
+  std::cout << "GpuManager::mainLoop" << std::endl;
+#endif
   for(;;){
 
     //TODO: whey do I have to use empty?
     bool empty = _readytasks.empty();
     while(!empty) {
 #ifdef GPU_TRACE
-      std::cerr << ">>>>>>>>>>>>>>>>>>>>>>>>>>>> START " << std::endl;
+      std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>> START " << std::endl;
 #endif
       GpuDynamicTaskPtr task = _readytasks.front();
       int done = true;
@@ -94,7 +98,7 @@ void GpuManager::mainLoop() {
         case GpuDynamicTask::COPYOUT: done = copyout(task); break;
       }
 #ifdef GPU_TRACE
-      std::cerr << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<< DONE" << std::endl;
+      std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<< DONE" << std::endl;
 #endif
       _lock.lock();
       _readytasks.pop();
@@ -118,13 +122,13 @@ void GpuManager::addTask(GpuDynamicTaskPtr task) {
 
 void GpuManager::prepare(GpuDynamicTaskPtr task) {
 #ifdef GPU_TRACE
-  std::cerr << "[PREPARE]" << std::endl;
+  std::cout << "[PREPARE]" << std::endl;
 #endif
   _currenttaskinfo = task->taskinfo();
   task->runWrapper();
 #ifdef GPU_TRACE
-  std::cerr << "Number of From Matrices = " << _currenttaskinfo->_from.size() << std::endl;
-  std::cerr << "Number of To Matrices   = " << _currenttaskinfo->_to.size() << std::endl;
+  std::cout << "Number of From Matrices = " << _currenttaskinfo->_from.size() << std::endl;
+  std::cout << "Number of To Matrices   = " << _currenttaskinfo->_to.size() << std::endl;
 #endif
 
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
@@ -134,14 +138,14 @@ void GpuManager::prepare(GpuDynamicTaskPtr task) {
 
 void GpuManager::copyin(GpuDynamicTaskPtr task) {
 #ifdef GPU_TRACE
-  std::cerr << "[COPY IN]" << std::endl;
+  std::cout << "[COPY IN]" << std::endl;
 #endif
   _currenttaskinfo = task->taskinfo();
   MatrixStorageInfoPtr storageinfo = task->storageinfo();
 
   if(storageinfo->initGpuMem(_context)) { // clCreateBuffer
 #ifdef GPU_TRACE
-    std::cerr << "copying in... " << &(*storageinfo) << std::endl;
+    std::cout << "copying in... " << &(*storageinfo) << std::endl;
 #endif
     task->runWrapper(); // clEnqueueWriteBuffer
   }
@@ -152,9 +156,13 @@ void GpuManager::copyin(GpuDynamicTaskPtr task) {
 
 void GpuManager::run(GpuDynamicTaskPtr task) {
 #ifdef GPU_TRACE
-  std::cerr << "[RUN]" << std::endl;
+  std::cout << "[RUN]" << std::endl;
 #endif
   _currenttaskinfo = task->taskinfo();
+  /*for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_from.begin(); i != _currenttaskinfo->_from.end(); ++i) {
+    (*i)->check(_queue);
+  }*/
+
   task->runWrapper();
 
   //cl_int err;
@@ -169,18 +177,19 @@ void GpuManager::run(GpuDynamicTaskPtr task) {
 bool GpuManager::copyout(GpuDynamicTaskPtr task) {
   MatrixStorageInfoPtr storage = task->storageinfo();  
 #ifdef GPU_TRACE 
-  std::cerr << "[COPY OUT]" << &(*storage) << std::endl;
+  std::cout << "[COPY OUT]" << &(*storage) << std::endl;
 #endif
+
   if(!storage->isModified()) {
 #ifdef GPU_TRACE
-    std::cerr << "is not modified... " << &(*storage) << std::endl;
+    std::cout << "is not modified... " << &(*storage) << std::endl;
 #endif
     task->completeTaskDeps();
     return true;
   }
   if(storage->doneReadBuffer()) {
 #ifdef GPU_TRACE
-    std::cerr << "actual copy... " << &(*storage) << std::endl;
+    std::cout << "actual copy... " << &(*storage) << std::endl;
 #endif
     task->runWrapper();
     //storage->releaseCLMem();

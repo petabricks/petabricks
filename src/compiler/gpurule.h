@@ -96,6 +96,9 @@ class GpuRule : public SyntheticRule {
   bool isRecursive() const;
   bool hasWhereClause() const;
   FormulaPtr getWhereClause() const;
+
+  bool isEnabledGpuRule() { return !isDisabled(); }
+  int getAssociatedId() { return _rule->id(); }
  private:
   UserRule* _rule;
   RIRBlockCopyRef _bodyirOpenCL;

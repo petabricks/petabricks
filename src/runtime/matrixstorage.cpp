@@ -29,7 +29,7 @@
 #include "petabricksruntime.h"
 
 
-#define GPU_TRACE 1
+//#define GPU_TRACE 1
 
 MATRIX_ELEMENT_T petabricks::MatrixStorage::rand(){
   return petabricks::PetabricksRuntime::randDouble(-2147483648, 2147483648);
@@ -46,7 +46,7 @@ petabricks::MatrixStorageInfo::~MatrixStorageInfo(){
 #ifdef HAVE_OPENCL
   if(_hasGpuMem){
 #ifdef GPU_TRACE
-    std::cerr << this << " : release clmem (deconstructor)" << std::endl;
+    std::cout << this << " : release clmem (deconstructor)" << std::endl;
 #endif
     clReleaseMemObject(_clmem);
   }
@@ -56,7 +56,7 @@ petabricks::MatrixStorageInfo::~MatrixStorageInfo(){
 void petabricks::MatrixStorageInfo::setStorage(const MatrixStoragePtr& s, const ElementT* base){
   if(s){
     _storage=s;
-    //std::cerr << "base = " << base << " data = " << s->data() << " count = " << s->count() << " data + count = " << s->data()+s->count() << std::endl;
+    //std::cout << "base = " << base << " data = " << s->data() << " count = " << s->count() << " data + count = " << s->data()+s->count() << std::endl;
     JASSERT(base >= s->data());
     JASSERT(base < s->data()+s->count());
     _baseOffset=base-s->data();
@@ -134,8 +134,10 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_context& context) {
   _refCount++;
   if(!_hasGpuMem) {
     cl_int err;
-    //std::cerr << this << " : create buffer size = " << bytes() << std::endl;
+    //std::cout << this << " : create buffer size = " << bytes() << std::endl;
     _clmem = clCreateBuffer(context, CL_MEM_READ_WRITE, bytes(), NULL, &err);
+    //std::cout << "&clmem = " << &_clmem << std::endl;
+    //std::cout << "clmem = " << _clmem << std::endl;
     JASSERT(CL_SUCCESS == err).Text("Failed to create input memory object.");
     _hasGpuMem = true;
     return true;
@@ -143,25 +145,49 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_context& context) {
   return false;
 }
 
+void petabricks::MatrixStorageInfo::check(cl_command_queue& queue) {
+    std::cout << "input: check" << std::endl;
+    std::cout << "baseoffset = " << _baseOffset << std::endl;
+    print();
+    std::cout << "clmem = " << _clmem << std::endl;
+    ElementT data[_count];
+    clEnqueueReadBuffer(queue, _clmem, CL_TRUE, 0, bytes(), data, 0, NULL, NULL);
+    for(int i=0;i<_count;i++)
+      std::cout << data[i] << " ";
+    std::cout << std::endl << std::endl;
+}
+
 void petabricks::MatrixStorageInfo::finishGpuMem(cl_command_queue& queue, bool modify) {
+  /*if(!modify) {
+    std::cout << "input: finishGpuMem" << std::endl;
+    std::cout << "baseoffset = " << _baseOffset << std::endl;
+    print();
+    std::cout << "clmem = " << _clmem << std::endl;
+    ElementT data[_count];
+    clEnqueueReadBuffer(queue, _clmem, CL_TRUE, 0, bytes(), data, 0, NULL, NULL);
+    for(int i=0;i<_count;i++)
+      std::cout << data[i] << " ";
+    std::cout << std::endl << std::endl;
+  }*/
   if(modify) _isModified = modify;
 
   _refCount--;
 #ifdef GPU_TRACE
-  std::cerr << this << " : dec refcount to " << _refCount << " : coverage " << _coverage << "/" << _count << std::endl;
+  std::cout << this << " : dec refcount to " << _refCount << " : coverage " << _coverage << "/" << _count << std::endl;
 #endif
   if(/*_refCount == 0*/ _coverage == _count && _isModified) {
 #ifdef GPU_TRACE
-    std::cerr << "read buffer" << std::endl;
+    std::cout << "read buffer" << std::endl;
 #endif
     JASSERT(_refCount == 0)(_refCount).Text("At least one kernel is working on this region of memory; cannot enqueue read buffer.");
     if(_dimensions == 0 || _storage->count() != count())
-      _gpubuffer = new MatrixStorage(count());
+      _gpuOutputBuffer = new MatrixStorage(count());
     else
-      _gpubuffer = storage();
+      _gpuOutputBuffer = storage();
     //cl_int err = clSetEventCallBack(event, CL_COMPLETE, NULL, NULL);
-    //std::cerr << this << " : start read buffer " << _refCount << std::endl;
-    clEnqueueReadBuffer(queue, _clmem, CL_FALSE, 0, bytes(), _gpubuffer->data(), 0, NULL, &event);
+    //std::cout << this << " : start read buffer " << _refCount << std::endl;
+    clEnqueueReadBuffer(queue, _clmem, CL_FALSE, 0, bytes(), _gpuOutputBuffer->data(), 0, NULL, &event);
+    clFlush(queue);
   }
 }
 
@@ -175,10 +201,9 @@ bool petabricks::MatrixStorageInfo::doneReadBuffer() {
     cl_int ret;
     clGetEventInfo(event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &ret, NULL);
 #ifdef GPU_TRACE
-    std::cerr << "status = " << ret << "  queue = " << CL_QUEUED << "  submitted = " << CL_SUBMITTED << "  running = " << CL_RUNNING << "  complete = " << CL_COMPLETE << std::endl;
+    std::cout << "status = " << ret << "  queue = " << CL_QUEUED << "  submitted = " << CL_SUBMITTED << "  running = " << CL_RUNNING << "  complete = " << CL_COMPLETE << std::endl;
 #endif
     if(ret == CL_COMPLETE) {
-      //_gpubuffer->print();
       _isModified = false;
       return true;
     }
@@ -189,7 +214,7 @@ bool petabricks::MatrixStorageInfo::doneReadBuffer() {
 void petabricks::MatrixStorageInfo::releaseCLMem() {
   if(_refCount == 0){
 #ifdef GPU_TRACE
-    std::cerr << this << " : release clmem" << std::endl;
+    std::cout << this << " : release clmem" << std::endl;
 #endif
     clReleaseMemObject(_clmem);
     _hasGpuMem = false;

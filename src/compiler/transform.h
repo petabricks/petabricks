@@ -105,6 +105,7 @@ public:
   void extractSizeDefines(CodeGenerator& o, FreeVars fv, const char* inputsizestr);
 #if HAVE_OPENCL
   void extractOpenClSizeDefines(CLCodeGenerator& o, unsigned int dims, std::map<std::string, std::string> &map);
+  void generateReleaseGpuObjectsCode(CodeGenerator& o);
 #endif
   
   void declTransformNFunc(CodeGenerator& o);

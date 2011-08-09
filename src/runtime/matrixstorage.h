@@ -134,7 +134,10 @@ public:
 
   void print() {
     std::cout << "MatrixStorage " << this << std::endl;
-    _storage->print();
+    if(_dimensions>0)
+      _storage->print();
+    else
+      std::cout << _extraVal << std::endl;
   }
 
 #ifdef HAVE_OPENCL
@@ -145,12 +148,15 @@ public:
   // Decrease reference count to the gpu mem.
   // Return true when it's last reference to gpu mem is removed.
   void finishGpuMem(cl_command_queue& queue,bool modify);
+  void check(cl_command_queue& queue);
   bool doneReadBuffer();
   void releaseCLMem();
   bool isModified() { return _isModified; }
-  MatrixStoragePtr getGpuBuffer() { return _gpubuffer; }
+  MatrixStoragePtr getGpuOutputStoragePtr() { return _gpuOutputBuffer; }
   void incCoverage(int size);
   //std::vector<GpuDynamicPtr>& getOwners() { return _owners; }
+
+  ssize_t getBaseOffset() { return _baseOffset; }
 
   cl_mem _clmem;
 #endif
@@ -170,7 +176,7 @@ private:
   int _refCount;
   bool _hasGpuMem;
   bool _isModified;
-  MatrixStoragePtr _gpubuffer;
+  MatrixStoragePtr _gpuOutputBuffer;
   cl_event event;
 
   /*CL_CALLBACK decreaseDependency(cl_event event, cl_int cmd_exec_status, void *user_data)

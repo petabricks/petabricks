@@ -74,8 +74,6 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
 
   o.os( ) << "clprog_" << _rule->id() << " = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );\n";
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create program.\" );\n\n";
-  //o.os( ) << "err = OpenCLUtil::buildProgram( clprog_" << _rule->id() << " );\n";
-  //ciErrNum = clBuildProgram(cpProgram, 0, NULL, "-cl-fast-relaxed-math", NULL, NULL);
   o.os( ) << "err = clBuildProgram( clprog_" << _rule->id() << ", 0, NULL, NULL, NULL, NULL);\n";
   o.os( ) << "#if OPENCL_TRACE\nstd::cerr << \"clBuildProgram err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n#endif\n";
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to build program.\" );\n\n";
@@ -100,6 +98,14 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
   o.call(codename() + "_init" , std::vector<std::string>());
   o.endIf();
   o.write("return clkern_" + jalib::XToString(_rule->id()) + ";");
+  o.endFunc();
+
+  // Get program
+  o.beginFunc("cl_program", "get_program_" + jalib::XToString(_rule->id()));
+  o.beginIf("clprog_" + jalib::XToString(_rule->id()) + " == 0");
+  o.call(codename() + "_init" , std::vector<std::string>());
+  o.endIf();
+  o.write("return clprog_" + jalib::XToString(_rule->id()) + ";");
   o.endFunc();
 }
 

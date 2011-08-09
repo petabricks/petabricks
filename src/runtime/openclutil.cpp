@@ -39,6 +39,11 @@ std::vector<OpenCLDevice> OpenCLUtil::devices;
 cl_context OpenCLUtil::context;
   unsigned int OpenCLUtil::active_device = 0;
 
+
+void OpenCLUtil::pfn_notify(const char *errinfo, const void* /*private_info*/, size_t /*cb*/, void* /*user_data*/){
+  JASSERT(false)(errinfo).Text("OpenCL Error via pfn_notify.");
+}
+
 int
 OpenCLUtil::init( )
 {
@@ -68,7 +73,7 @@ OpenCLUtil::init( )
     return -2;
 
   // Create context.
-  if( (cl_context)0 == ( context = clCreateContext(0, device_count, device_ids, NULL, NULL, &err) ) )
+  if( (cl_context)0 == ( context = clCreateContext(0, device_count, device_ids, &pfn_notify, NULL, &err) ) )
     return -3;
   if( CL_SUCCESS != err )
     return -5;
@@ -151,6 +156,9 @@ OpenCLUtil::deinit( )
 
   // Release context.
   clReleaseContext( context );
+  #if OPENCL_TRACE
+  std::cerr << "OpenCLUtil::deinit()\n";
+  #endif
 }
 
 cl_context

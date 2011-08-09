@@ -276,8 +276,27 @@ public:
     return t;
   }
 
+#ifdef HAVE_OPENCL
+  ///
+  /// Decide to make a copy or return the orginal for making GPU buffer.s
+	ElementT* getGpuInputBufferPtr() {
+    if(isEntireBuffer()) {
+      return this->base();
+    }
+
+		_gpuInputBuffer = new MatrixStorage(count());
+		MutableMatrixRegion t = MutableMatrixRegion(_gpuInputBuffer, _gpuInputBuffer->data(), this->sizes());
+    IndexT coord[D];
+    memset(coord, 0, sizeof coord);
+    do {
+      t.cell(coord) = this->cell(coord);
+    } while(this->incCoord(coord)>=0);
+    return _gpuInputBuffer->data();
+	}
+
   ///
   /// Decide to make a copy or return the orginal for making GPU buffer.
+  /// Only use this for sequential code.
   MatrixRegion asGpuInputBuffer() const
   {
     if(isEntireBuffer()) {
@@ -295,6 +314,7 @@ public:
 
   ///
   /// Decide to make a copy or return the orginal for making GPU buffer.
+  /// Only use this for sequential code.
   MatrixRegion asGpuOutputBuffer(const IndexT c1[D], const IndexT c2[D]) const
   {
     if(isEntireBuffer() &&  intervalSize(c1, c2) == count()) {
@@ -305,6 +325,7 @@ public:
     return t;
   }
 
+
   INLINE ssize_t intervalSize(const IndexT c1[D], const IndexT c2[D]) const 
   { ssize_t s=1;
     for(int i=0; i<D; ++i) {
@@ -312,6 +333,7 @@ public:
     }
     return s;
   }
+#endif
 
   void print() {
     std::cerr << "dimension = " << D << std::endl;
@@ -332,7 +354,7 @@ public:
   {
     //JASSERT(this->count()==dst.count());
     if(this->base() == dst.base()) {
-      std::cerr << "COPY TO:: Not copying ^^" << std::endl;
+      //std::cout << "COPY TO:: Not copying ^^" << std::endl;
       bool same = true;
       for(int i = 0; i < D; i++) {
         if(this->multipliers()[i] != dst.multipliers()[i])
@@ -340,7 +362,7 @@ public:
       }
       if(same) return;
     }
-    std::cerr << "COPY TO:: copy" << std::endl;
+    //std::cout << "COPY TO:: copy" << std::endl;
     IndexT coord[D] = {0};
     do {
       dst.cell(coord) = this->cell(coord);
@@ -576,6 +598,10 @@ protected:
     if(count()>0)
       this->storageInfo()->setMultipliers(this->multipliers());
   }
+
+#ifdef HAVE_OPENCL
+  MatrixStoragePtr _gpuInputBuffer;
+#endif
 };
 
 /**
