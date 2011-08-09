@@ -22,7 +22,7 @@ RegionDataRemoteCache::RegionDataRemoteCache(const IRegionCacheable* regionData,
 }
 
 ElementT RegionDataRemoteCache::readCell(const IndexT* coord) {
-  static const IndexT pageSize = _cacheLineSize * _numCacheLines;
+  const IndexT pageSize = _cacheLineSize * _numCacheLines;
 
   IndexT coordOffset = offset(coord);
   IndexT pageOffset = coordOffset % pageSize;
@@ -40,11 +40,16 @@ ElementT RegionDataRemoteCache::readCell(const IndexT* coord) {
     return v;
   }
 
-  ReadCellCacheMessage msg;
+  // Construct request message
+  size_t coord_sz = _dimensions * sizeof(IndexT);
+  size_t msg_len = sizeof(ReadCellCacheMessage) + coord_sz;
+
+  char buf[msg_len];
+  ReadCellCacheMessage* msg = (ReadCellCacheMessage*)buf;
   size_t reply_len;
-  msg.cacheLineSize = _cacheLineSize;
-  memcpy(msg.coord, coord, _dimensions * sizeof(IndexT));
-  _regionData->readByCache(&msg, sizeof(ReadCellCacheMessage), cacheLine.asPtr(), reply_len);
+  msg->cacheLineSize = _cacheLineSize;
+  memcpy(msg->coord, coord, coord_sz);
+  _regionData->readByCache(msg, msg_len, cacheLine.asPtr(), reply_len);
 
   cacheLine->isValid = true;
   cacheLine->offset = offset;
@@ -54,7 +59,7 @@ ElementT RegionDataRemoteCache::readCell(const IndexT* coord) {
 }
 
 void RegionDataRemoteCache::writeCell(const IndexT* coord, ElementT value) {
-  static const IndexT pageSize = _cacheLineSize * _numCacheLines;
+  const IndexT pageSize = _cacheLineSize * _numCacheLines;
 
   IndexT coordOffset = offset(coord);
   IndexT pageOffset = coordOffset % pageSize;

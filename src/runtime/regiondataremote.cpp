@@ -101,12 +101,16 @@ ElementT RegionDataRemote::readCell(const IndexT* coord) const {
 }
 
 ElementT RegionDataRemote::readNoCache(const IndexT* coord) const {
-  ReadCellMessage msg;
-  memcpy(msg.coord, coord, _D * sizeof(IndexT));
+  size_t coord_sz = _D * sizeof(IndexT);
+  size_t msg_len = sizeof(ReadCellMessage) + coord_sz;
+
+  char buf[msg_len];
+  ReadCellMessage* msg = (ReadCellMessage*)buf;
+  memcpy(msg->coord, coord, coord_sz);
 
   void* data;
   size_t len;
-  this->fetchData(&msg, MessageTypes::READCELL, sizeof(ReadCellMessage), &data, &len);
+  this->fetchData(buf, MessageTypes::READCELL, msg_len, &data, &len);
   ReadCellReplyMessage* reply = (ReadCellReplyMessage*)data;
   ElementT value = reply->value;
   free(reply);
@@ -137,30 +141,38 @@ void RegionDataRemote::writeCell(const IndexT* coord, ElementT value) {
 }
 
 void RegionDataRemote::writeNoCache(const IndexT* coord, ElementT value) {
-  WriteCellMessage msg;
-  msg.value = value;
-  memcpy(msg.coord, coord, _D * sizeof(IndexT));
+  size_t coord_sz = _D * sizeof(IndexT);
+  size_t msg_len = sizeof(WriteCellMessage) + coord_sz;
+
+  char buf[msg_len];
+  WriteCellMessage* msg = (WriteCellMessage*)buf;
+  msg->value = value;
+  memcpy(msg->coord, coord, coord_sz);
+
+  JTRACE("write")(_D)(sizeof(IndexT))(coord_sz)(msg_len);
 
   void* data;
   size_t len;
-  this->fetchData(&msg, MessageTypes::WRITECELL, sizeof(WriteCellMessage), &data, &len);
+  this->fetchData(buf, MessageTypes::WRITECELL, msg_len, &data, &len);
   WriteCellReplyMessage* reply = (WriteCellReplyMessage*)data;
 
-  //JASSERT(reply->value == value)(reply->value)(value);
   free(reply);
 }
 
 void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
-  WriteCellMessage msg;
-  msg.value = value;
-  memcpy(msg.coord, coord, _D * sizeof(IndexT));
+  size_t coord_sz = _D * sizeof(IndexT);
+  size_t msg_len = sizeof(WriteCellMessage) + coord_sz;
+
+  char buf[msg_len];
+  WriteCellMessage* msg = (WriteCellMessage*)buf;
+  msg->value = value;
+  memcpy(msg->coord, coord, coord_sz);
 
   void* data;
   size_t len;
-  this->fetchData(&msg, MessageTypes::WRITECELL, sizeof(WriteCellMessage), &data, &len);
+  this->fetchData(msg, MessageTypes::WRITECELL, msg_len, &data, &len);
   WriteCellReplyMessage* reply = (WriteCellReplyMessage*)data;
 
-  //JASSERT(reply->value == value)(reply->value)(value);
   free(reply);
 }
 

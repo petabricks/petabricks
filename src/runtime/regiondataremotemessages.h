@@ -32,7 +32,7 @@ namespace petabricks {
   //
 
   namespace RegionDataRemoteMessage {
-    typedef uint16_t MessageType;
+    typedef uint8_t MessageType;
 
     struct MessageTypes {
       enum {
@@ -103,23 +103,23 @@ namespace petabricks {
     } PACKED;
 
     struct ReadCellMessage {
-      IndexT coord[MAX_DIMENSIONS];
+      IndexT coord[];
     } PACKED;
 
     struct WriteCellMessage {
       ElementT value;
-      IndexT coord[MAX_DIMENSIONS];
+      IndexT coord[];
     } PACKED;
 
     struct ReadCellCacheMessage {
       size_t cacheLineSize;
-      IndexT coord[MAX_DIMENSIONS];
+      IndexT coord[];
     } PACKED;
 
     struct WriteCellCacheMessage {
       size_t cacheLineSize;
       ElementT value;
-      IndexT coord[MAX_DIMENSIONS];
+      IndexT coord[];
     } PACKED;
 
     struct GetHostListMessage {

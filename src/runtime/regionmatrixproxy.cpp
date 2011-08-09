@@ -27,38 +27,38 @@ void RegionMatrixProxy::writeCell(const IndexT*, ElementT) {
 
 void RegionMatrixProxy::onRecv(const void* data, size_t len) {
   const BaseMessageHeader* base = (const BaseMessageHeader*)data;
-  size_t msg_len = len - base->contentOffset;
+  //size_t msg_len = len - base->contentOffset;
   switch(base->type) {
   case MessageTypes::READCELL:
-    JASSERT(msg_len == sizeof(ReadCellMessage));
+    //JASSERT(msg_len == sizeof(ReadCellMessage));
     _regionHandler->processReadCellMsg(base, len, this);
     break;
   case MessageTypes::READCELLCACHE:
-    JASSERT(msg_len == sizeof(ReadCellCacheMessage));
+    //JASSERT(msg_len == sizeof(ReadCellCacheMessage));
     _regionHandler->processReadCellCacheMsg(base, len, this);
     break;
   case MessageTypes::WRITECELL:
-    JASSERT(msg_len == sizeof(WriteCellMessage));
+    //JASSERT(msg_len == sizeof(WriteCellMessage));
     _regionHandler->processWriteCellMsg(base, len, this);
     break;
   case MessageTypes::WRITECELLCACHE:
-    JASSERT(msg_len == sizeof(WriteCellCacheMessage));
+    //JASSERT(msg_len == sizeof(WriteCellCacheMessage));
     _regionHandler->processWriteCellCacheMsg(base, len, this);
     break;
   case MessageTypes::GETHOSTLIST:
-    JASSERT(msg_len == sizeof(GetHostListMessage));
+    //JASSERT(msg_len == sizeof(GetHostListMessage));
     _regionHandler->processGetHostListMsg(base, len, this);
     break;
   case MessageTypes::UPDATEHANDLERCHAIN:
-    JASSERT(msg_len == sizeof(UpdateHandlerChainMessage));
+    //JASSERT(msg_len == sizeof(UpdateHandlerChainMessage));
     _regionHandler->processUpdateHandlerChainMsg(base, len, this);
     break;
   case MessageTypes::ALLOCDATA:
-    JASSERT(msg_len == sizeof(AllocDataMessage));
+    //JASSERT(msg_len == sizeof(AllocDataMessage));
     _regionHandler->processAllocDataMsg(base, len, this);
     break;
   case MessageTypes::RANDOMIZEDATA:
-    JASSERT(msg_len == sizeof(RandomizeDataMessage));
+    //JASSERT(msg_len == sizeof(RandomizeDataMessage));
     _regionHandler->processRandomizeDataMsg(base, len, this);
     break;
   default:
