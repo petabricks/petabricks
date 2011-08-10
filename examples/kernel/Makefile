@@ -1,5 +1,7 @@
 PBC=../../src/pbc
 
+.PHONY: all test
+
 all: nwkde
 
 nwkde: nwkde.pbcc utils.pbcc

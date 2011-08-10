@@ -25,6 +25,7 @@ inline double wrapWindDirDiff(double diff)
 
 %}
 
+/* Load data from files */
 transform NWKDEGenerator
 from IN[n]
 to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
@@ -49,10 +50,6 @@ to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
     {
         MatrixRegion2D a;
         MatrixRegion1D b;
-
-        char filename[1024];
-        int cwdLen = strlen(TESTDIR);
-        strcpy(filename, TESTDIR);
 
         a = MatrixIO(TESTDIR "trainData.pba", "r").read2D();
         Copy2D(trainData, a);
@@ -94,7 +91,7 @@ to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
  */
 transform NWKDEGenerator2
 from IN[n]
-to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
+to   TRAINDATA[4,8750], WRAPFLAGS[4],
      TRAININDICES[n], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
      TESTDATA[4,8750],
      TESTINDICES[n], TESTVARINDEX[8], TESTTIMEOFFSET[8],
@@ -102,7 +99,6 @@ to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
 {
     to (TRAINDATA trainData,
         WRAPFLAGS wrapFlags,
-        KERNELWIDTHS kernelWidths,
         TRAININDICES trainIndices,
         TRAINVARINDEX trainVarIndex,
         TRAINTIMEOFFSET trainTimeOffset,
@@ -114,13 +110,12 @@ to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
         OUTPUTTIMEOFFSET outputTimeOffset)
     from (IN in)
     {
+        if (n > 8748) {
+            fprintf(stderr, "n too large for generator\n");
+            PetabricksRuntime::abort();
+        }
+
         MatrixRegion2D a;
-        MatrixRegion1D b;
-
-        char filename[1024];
-        int cwdLen = strlen(TESTDIR);
-        strcpy(filename, TESTDIR);
-
         a = MatrixIO(TESTDIR "trainData.pba", "r").read2D();
         Copy2D(trainData, a);
 
@@ -128,11 +123,6 @@ to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
         wrapFlags.cell(1) = 1;
         wrapFlags.cell(2) = 0;
         wrapFlags.cell(3) = 1;
-
-        kernelWidths.cell(0) =   2.4211;
-        kernelWidths.cell(1) = 236.1655;
-        kernelWidths.cell(2) =   1.6228;
-        kernelWidths.cell(3) =  36.4703;
 
         for (int i = 0; i < n; ++i) {
             trainIndices.cell(i) = i+1;
@@ -163,6 +153,44 @@ to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
 
         outputVarIndex = 0;
         outputTimeOffset = 0;
+    }
+}
+
+/* Similar to NWKDEGenerator2, but also generates kernelWidths */
+transform NWKDEGenerator3
+from IN[n]
+to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
+     TRAININDICES[n], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
+     TESTDATA[4,8750],
+     TESTINDICES[n], TESTVARINDEX[8], TESTTIMEOFFSET[8],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+{
+    to (TRAINDATA trainData,
+        WRAPFLAGS wrapFlags,
+        KERNELWIDTHS kernelWidths,
+        TRAININDICES trainIndices,
+        TRAINVARINDEX trainVarIndex,
+        TRAINTIMEOFFSET trainTimeOffset,
+        TESTDATA testData,
+        TESTINDICES testIndices,
+        TESTVARINDEX testVarIndex,
+        TESTTIMEOFFSET testTimeOffset,
+        OUTPUTVARINDEX outputVarIndex,
+        OUTPUTTIMEOFFSET outputTimeOffset)
+    from (IN in)
+    {
+        // call generator2 for everything except kernelWidths
+        NWKDEGenerator2(trainData, wrapFlags,
+                        trainIndices, trainVarIndex, trainTimeOffset,
+                        testData,
+                        testIndices, testVarIndex, testTimeOffset,
+                        outputVarIndex, outputTimeOffset, in);
+
+        // set kernelWidths
+        kernelWidths.cell(0) =   2.4211;
+        kernelWidths.cell(1) = 236.1655;
+        kernelWidths.cell(2) =   1.6228;
+        kernelWidths.cell(3) =  36.4703;
     }
 }
 
@@ -559,7 +587,7 @@ from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
      OUTPUTVARINDEX, OUTPUTTIMEOFFSET
 to RESULT[q]
 #endif
-generator NWKDEGenerator2
+generator NWKDEGenerator3
 //optimize KERNELWIDTHS[m]
 {
     to (RESULT result)
@@ -590,8 +618,6 @@ generator NWKDEGenerator2
                        testVarIndex, testTimeOffset,
                        outputVarIndex, outputTimeOffset);
     }
-
 }
 
 #endif // NWKDE_PBCC
-
