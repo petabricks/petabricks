@@ -80,7 +80,7 @@ namespace petabricks {
     RemoteTaskSender(const RemoteTaskPtr& t) : _task(t) {}
 
     void onComplete() {
-      JTRACE("remote complete");
+      //JTRACE("remote complete");
       _task->onCompletedRemotely();
     }
   private:
@@ -94,7 +94,7 @@ namespace petabricks {
     static RemoteObjectPtr gen() { return new RemoteTaskReciever(); }
 
     void onRecvInitial(const void* buf, size_t ) {
-      JTRACE("remote create");
+      //JTRACE("remote create");
       JASSERT(!_task);
       _task = new T(reinterpret_cast<const char*>(buf), *host());
       _task->enqueueLocal();

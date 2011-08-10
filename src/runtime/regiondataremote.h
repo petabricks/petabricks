@@ -32,7 +32,7 @@ namespace petabricks {
     RegionDataRemote(const int dimensions, const IndexT* size, const IndexT* partOffset, RemoteHostPtr host);
     RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const MessageType initialMessageType, const EncodedPtr encodePtr);
     ~RegionDataRemote() {
-      JTRACE("Destruct RegionDataRemote");
+      //JTRACE("Destruct RegionDataRemote");
     }
 
     void init(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject);
@@ -82,7 +82,7 @@ namespace petabricks {
   public:
     RegionDataRemoteObject() {}
     ~RegionDataRemoteObject() {
-      JTRACE("Destruct RegionDataRemoteObject");
+      // JTRACE("Destruct RegionDataRemoteObject");
     }
 
     void onRecv(const void* data, size_t len) {
