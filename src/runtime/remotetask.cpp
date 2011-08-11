@@ -26,6 +26,8 @@
  *****************************************************************************/
 #include "remotetask.h"
 
+#include "petabricksruntime.h"
+
 void petabricks::RemoteTask::enqueueRemote(RemoteHost& host) {
   size_t len = serialSize();
   char* buf = new char[len];
@@ -36,6 +38,7 @@ void petabricks::RemoteTask::enqueueRemote(RemoteHost& host) {
 
 petabricks::RemoteTask::RemoteTask() {
   _state = S_REMOTE_NEW;
+  _sender = NULL;
 }
 
 void petabricks::RemoteTask::onCompletedRemotely() {
@@ -53,7 +56,11 @@ void petabricks::RemoteTask::enqueueLocal() {
 void petabricks::RemoteTask::remoteScheduleTask() {
   //JTRACE("remote schedule");
 #ifdef REGIONMATRIX_TEST
-  enqueueRemote(*RemoteHostDB::instance().host(0));
+  if (0 == petabricks::PetabricksRuntime::randInt(0,2)) {
+    enqueueRemote(*RemoteHostDB::instance().host(0));
+  } else {
+    enqueueLocal();
+  }
 #else
   enqueueLocal();
 #endif

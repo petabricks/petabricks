@@ -72,7 +72,6 @@ namespace petabricks {
     int _regionHandlerDimensions;
     IndexT _regionHandlerSize[MAX_DIMENSIONS];
     EncodedPtr _remoteRegionHandler;
-    RemoteHostPtr _remoteRegionHandlerHost;
 
   public:
     void init(const IndexT* size, const IndexT* splitOffset, const bool isTransposed, const RegionMatrixSliceInfoPtr sliceInfo, const RegionHandlerPtr handler) {
@@ -447,7 +446,7 @@ namespace petabricks {
       buf += sz;
     }
 
-    void unserialize(const char* buf, RemoteHost& host) {
+    void unserialize(const char* buf, RemoteHost& /*host*/) {
       size_t sz = sizeof(int);
       JASSERT(*reinterpret_cast<const int*>(buf) == D)(*reinterpret_cast<const int*>(buf))(D).Text("RegionMatrix dimension mismatch.");
       buf += sz;
@@ -488,12 +487,10 @@ namespace petabricks {
       sz = sizeof(EncodedPtr);
       _remoteRegionHandler = *reinterpret_cast<const EncodedPtr*>(buf);
       buf += sz;
-
-      _remoteRegionHandlerHost = &host;
     }
 
-    void createRegionHandler() {
-      setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(*_remoteRegionHandlerHost, _remoteRegionHandler, _regionHandlerDimensions, _regionHandlerSize));
+    void createRegionHandler(RemoteHost& remoteRegionHandlerHost) {
+      setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandlerHost, _remoteRegionHandler, _regionHandlerDimensions, _regionHandlerSize));
     }
 
     void updateHandlerChain() {

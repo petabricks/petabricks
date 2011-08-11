@@ -278,7 +278,9 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   in.beginFunc("void", "unserialize", args);
   size.write("size_t _sz = 0;");
 
-  migrateRegion.beginFunc("void", "migrateRegions");
+  std::vector<std::string> args2;
+  args2.push_back("RemoteHost& sender");
+  migrateRegion.beginFunc("void", "migrateRegions", args2);
   invalidateCache.beginFunc("void", "invalidateCache");
 
   for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
@@ -288,7 +290,7 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
       in.write(i->name + ".unserialize(_buf, _host);");
       in.write("_buf += " + i->name + ".serialSize();");
       size.write("_sz += " + i->name + ".serialSize();");
-      migrateRegion.write(i->name + ".createRegionHandler();");
+      migrateRegion.write(i->name + ".createRegionHandler(sender);");
       migrateRegion.write(i->name + ".updateHandlerChain();");
       invalidateCache.write(i->name + ".invalidateCache();");
 
@@ -308,8 +310,7 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   }
 
   size.write("return _sz;");
-
-  //migrateRegion.write("invalidateCache();");
+  in.write("_sender = &_host;");
 
   in.endFunc();
   out.endFunc();
