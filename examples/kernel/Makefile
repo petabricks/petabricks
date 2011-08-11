@@ -7,9 +7,15 @@ all: nwkde
 nwkde: nwkde.pbcc utils.pbcc
 	${PBC} $< --output $@
 
+nwkdeVA: nwkdeVA.pbcc nwkde.pbcc utils.pbcc
+	${PBC} $< --output $@
+
 KernelEstimate: KernelEstimate.pbcc LinearSolvePosDef.pbcc
 	${PBC} $< --output $@
 
 test: nwkde
 	./nwkde test/trainData.pba test/wrapFlags.pba test/kernelWidths.pba test/trainIndices.pba test/trainVarIndex.pba test/trainTimeOffset.pba test/testData.pba test/testIndices.pba test/testVarIndex.pba test/testTimeOffset.pba test/outputVarIndex.pba test/outputTimeOffset.pba test/trainMaskWidth.pba -
+
+testVA: nwkdeVA
+	./nwkdeVA test/trainData.pba test/wrapFlags.pba test/trainIndices.pba test/trainVarIndex.pba test/trainTimeOffset.pba test/testData.pba test/testIndices.pba test/testVarIndex.pba test/testTimeOffset.pba test/outputVarIndex.pba test/outputTimeOffset.pba test/trainMaskWidth.pba -
 
