@@ -56,7 +56,8 @@ public:
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
+                        RuleFlavor flavor, 
+                        int copyFromGpu = 0); 
   void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
 

@@ -30,7 +30,7 @@
 #include "dynamicscheduler.h"
 #include "gpudynamictask.h"
 
-//#define GPU_TRACE 1
+#define GPU_TRACE 1
 
 namespace petabricks {
 
@@ -167,30 +167,31 @@ void GpuManager::run(GpuDynamicTaskPtr task) {
 
   //cl_int err;
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
-    (*i)->finishGpuMem(_queue,true); // clEnqueueReadBuffer
+    (*i)->finishGpuMem(_queue,_currenttaskinfo->copyBack()); // clEnqueueReadBuffer
   }
-  for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_from.begin(); i != _currenttaskinfo->_from.end(); ++i) {
-    (*i)->finishGpuMem(_queue,false); // clEnqueueReadBuffer
-  }
+  /*for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_from.begin(); i != _currenttaskinfo->_from.end(); ++i) {
+    (*i)->finishGpuMem(_queue,0); // clEnqueueReadBuffer
+  }*/
 }
 
 bool GpuManager::copyout(GpuDynamicTaskPtr task) {
-  MatrixStorageInfoPtr storage = task->storageinfo();  
+  MatrixStorageInfoPtr storage = task->storageinfo();
 #ifdef GPU_TRACE 
   std::cout << "[COPY OUT]" << &(*storage) << std::endl;
 #endif
 
-  if(!storage->isModified()) {
+  /*if(!storage->copyBack()) {
 #ifdef GPU_TRACE
-    std::cout << "is not modified... " << &(*storage) << std::endl;
+    std::cout << "not copy out... " << &(*storage) << std::endl;
 #endif
     task->completeTaskDeps();
     return true;
-  }
+  }*/
   if(storage->doneReadBuffer()) {
 #ifdef GPU_TRACE
-    std::cout << "actual copy... " << &(*storage) << std::endl;
+    std::cout << "copy out... " << &(*storage) << std::endl;
 #endif
+    task->setRegions(storage->getBegins(), storage->getEnds());
     task->runWrapper();
     //storage->releaseCLMem();
     return true;

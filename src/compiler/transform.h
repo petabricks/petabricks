@@ -267,6 +267,8 @@ public:
   
   const std::string& accuracyMetric() const { return _accuracyMetric; }
 
+  MatrixDefList getToMatrices() { return _to; }
+
 protected:
   static std::map<std::string, TransformPtr> theTransformMap();
 

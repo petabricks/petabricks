@@ -116,7 +116,7 @@ public:
   ssize_t bytes() const {
     return _count*sizeof(ElementT);
   }
-  ssize_t count() const {
+  size_t count() const {
     return _count;
   }
 
@@ -147,16 +147,17 @@ public:
 
   // Decrease reference count to the gpu mem.
   // Return true when it's last reference to gpu mem is removed.
-  void finishGpuMem(cl_command_queue& queue,bool modify);
+  void finishGpuMem(cl_command_queue& queue,int copyBack);
   void check(cl_command_queue& queue);
   bool doneReadBuffer();
   void releaseCLMem();
-  bool isModified() { return _isModified; }
+  bool copyBack() { return _copyBack; }
   MatrixStoragePtr getGpuOutputStoragePtr() { return _gpuOutputBuffer; }
-  void incCoverage(int size);
-  //std::vector<GpuDynamicPtr>& getOwners() { return _owners; }
+  void incCoverage(IndexT* begin, IndexT* end, int size);
 
   ssize_t getBaseOffset() { return _baseOffset; }
+  std::vector<IndexT*>& getBegins() { return _begins; }
+  std::vector<IndexT*>& getEnds() { return _ends; }
 
   cl_mem _clmem;
 #endif
@@ -174,10 +175,14 @@ private:
 #ifdef HAVE_OPENCL
   int _coverage;
   int _refCount;
+  int _copyBack;
   bool _hasGpuMem;
-  bool _isModified;
+  bool _reading;
   MatrixStoragePtr _gpuOutputBuffer;
   cl_event event;
+
+  std::vector<IndexT*> _begins;
+  std::vector<IndexT*> _ends;
 
   /*CL_CALLBACK decreaseDependency(cl_event event, cl_int cmd_exec_status, void *user_data)
   {

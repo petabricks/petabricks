@@ -97,6 +97,30 @@ private:
   IndexT _end[D];
 };
 
+#ifdef HAVE_OPENCL
+/**
+ * A task that calls a method on a given object, with a given region and copy out from gpu bit
+ */
+template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D], int copy)>
+class CreateGpuSpatialMethodCallTask : public DynamicTask {
+public:
+  CreateGpuSpatialMethodCallTask(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D], int copy)
+    : _obj(obj), _copy(copy)
+  {
+    memcpy(_begin, begin, sizeof _begin);
+    memcpy(_end,   end,   sizeof _end);
+  }
+  DynamicTaskPtr run(){
+    return ((*_obj).*(method))(_begin, _end, _copy);
+  }
+private:
+  jalib::JRef<T> _obj;
+  IndexT _begin[D];
+  IndexT _end[D];
+  int _copy;
+};
+#endif
+
 /**
  * A task that bundles many unstarted tasks together
  */

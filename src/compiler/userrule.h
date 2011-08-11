@@ -137,7 +137,8 @@ public:
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
+                        RuleFlavor flavor,
+                        int copyFromGpu = 0); 
 
   ///
   /// Return function the name of this rule in the code

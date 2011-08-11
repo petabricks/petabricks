@@ -29,8 +29,10 @@
 #ifndef PETABRICKSGPUDYNAMICTASK_H
 #define PETABRICKSGPUDYNAMICTASK_H
 
+#include "gpudynamictask.h"
 #include "dynamictask.h"
 #include "gputaskinfo.h"
+#include "matrixregion.h"
 
 #include <list>
 
@@ -44,13 +46,14 @@ class GpuDynamicTask : public DynamicTask {
 public:
 
   virtual DynamicTaskPtr run() = 0;
+  virtual void setRegions(std::vector<IndexT*>&, std::vector<IndexT*>&){}
 
   enum GpuTaskType {
     PREPARE,
     COPYIN,
     RUN,
     COPYOUT,
-    GEN,
+    GEN
   };
 
   GpuTaskType tasktype() { return _tasktype; }

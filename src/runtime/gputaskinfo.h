@@ -29,6 +29,8 @@
 #ifndef PETABRICKSGPUTASKINFO_H
 #define PETABRICKSGPUTASKINFO_H
 
+#include "common/jmutex.h"
+
 #include "matrixstorage.h"
 #include "openclutil.h"
 
@@ -43,13 +45,14 @@ class GpuTaskInfo: public jalib::JRefCounted {
 public:
 
   /// constructor
-  GpuTaskInfo();
+  GpuTaskInfo(int copy);
 
   void addToMatrix(MatrixStorageInfoPtr info) { _to.push_back(info); }
   void addFromMatrix(MatrixStorageInfoPtr info) { _from.push_back(info); }
-
-  // Return tree if the whole task is done.
-  bool progress();
+  int copyBack() { return _copyOut; }
+  void print() {
+    std::cout << "GpuTaskInfo " << this << " : _copyOut = " << _copyOut << std::endl;
+  }
 
   std::vector<MatrixStorageInfoPtr> _from;
   std::vector<MatrixStorageInfoPtr> _to;
@@ -58,6 +61,7 @@ private:
   cl_command_queue _queue;
   cl_kernel _kernel;
   int _numcomplete;
+  int _copyOut;
 };
 
 }

@@ -30,13 +30,9 @@
 
 namespace petabricks {
 
-GpuTaskInfo::GpuTaskInfo() {
+GpuTaskInfo::GpuTaskInfo(int copy) {
   _numcomplete = 0;
-}
-
-bool GpuTaskInfo::progress() {
-  _numcomplete++;
-  return _numcomplete == _to.size();
+  _copyOut = copy;
 }
 
 }

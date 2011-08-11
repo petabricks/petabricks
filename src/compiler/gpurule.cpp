@@ -113,7 +113,8 @@ void GpuRule::generateCallCode(const std::string& name,
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor)
+                        RuleFlavor flavor,
+                        int copyFromGpu)
 {
   o.comment("gpu generateCallCode");
   switch(flavor) {
@@ -121,8 +122,8 @@ void GpuRule::generateCallCode(const std::string& name,
     o.callSpatial(_rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region);
     break;
   case RuleFlavor::WORKSTEALING:
-    //o.mkSpatialTask(name, trans.instClassName(), _rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region);
-    o.mkSpatialTask(name, trans.instClassName(), _rule->trampcodename(trans)+TX_OPENCL_POSTFIX+"_createtasks", region);
+    //o.mkSpatialTask(name, trans.instClassName(), _rule->trampcodename(trans)+TX_OPENCL_POSTFIX+"_createtasks", region);
+    o.mkCreateGpuSpatialMethodCallTask(name, trans.instClassName(), _rule->trampcodename(trans)+TX_OPENCL_POSTFIX+"_createtasks", region, copyFromGpu);
     //o.mkGpuSpatialTask(name, trans.instClassName(), _rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region, _rule->getToRegions(), _rule->getFromRegions());
     break;
   default:

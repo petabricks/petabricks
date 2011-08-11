@@ -87,12 +87,85 @@ void petabricks::Schedule::depthFirstChoiceDepGraphNode(SchedulingState& state, 
 
 void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   JASSERT(_schedule.size()>0);
+/*#ifdef HAVE_OPENCL
+  for(int i = 0; i < (int) _schedule.size(); ++i){
+    ScheduleEntry entryI = _schedule[i];
+    _copyAssignment[&entryI.node()] = false;
+    RegionList from = entryI.node().getFromRegionOnCpu(_choiceAssignment);
+    for(RegionList::iterator it = from.begin(); it != from.end(); ++it)
+      for(int j= i-1; j >= 0; --j){
+        ScheduleEntry entryJ = _schedule[j];
+        if(entryJ.node().hasOutMatrixOnGpu(_choiceAssignment, (*it)->matrix())){
+          _copyAssignment[&entryJ.node()] = true;
+          break;
+        }
+      }
+  }
+
+  MatrixDefList matrices = trans.getToMatrices();
+  for(MatrixDefList::iterator it = matrices.begin(); it != matrices.end(); ++it){
+    for(int j = (int)_schedule.size()-1; j >= 0; --j){
+      ScheduleEntry entryJ = _schedule[j];
+      if(entryJ.node().hasOutMatrixOnGpu(_choiceAssignment, *it)){
+        _copyAssignment[&entryJ.node()] = true;
+        break;
+      }
+    }
+  }
+#endif*/
+  std::cout << "transform " << trans.name() << std::endl;
+  for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
+    i->node().print(_choiceAssignment);
+  }
+
+#ifdef HAVE_OPENCL
+  for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
+    //_copyAssignment[i->node()] = false;
+    _numOutOnGpu[&i->node()] = 0;
+    RegionList from = i->node().getFromRegionOnCpu(_choiceAssignment);
+    for(RegionList::iterator it = from.begin(); it != from.end(); ++it){
+      ScheduleT::iterator last = _schedule.end();
+      int count = 0;
+      for(ScheduleT::iterator j=_schedule.begin(); j!=i; ++j){
+        int n = j->node().numOutMatrixOnGpu(_choiceAssignment, (*it)->matrix()); //TODO
+        if(n > 0){
+          last = j;
+          count += n;
+        }
+      }
+      if(last != _schedule.end())
+        _numOutOnGpu[&last->node()] = count;
+    }
+  }
+
+  MatrixDefList matrices = trans.getToMatrices();
+  for(MatrixDefList::iterator it = matrices.begin(); it != matrices.end(); ++it){
+    ScheduleT::iterator last = _schedule.end();
+    int count = 0;
+    for(ScheduleT::iterator j=_schedule.begin(); j!=_schedule.end(); ++j){
+      int n = j->node().numOutMatrixOnGpu(_choiceAssignment, *it);
+      if(n > 0){
+        last = j;
+        count += n;
+      }
+    }
+    if(last != _schedule.end())
+      _numOutOnGpu[&last->node()] = count;
+  }
+#endif
+
   o.comment("MARKER 1");
   for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
     if(i!=_schedule.begin() && flavor!=RuleFlavor::SEQUENTIAL)
       o.continuationPoint();
 
+#ifdef HAVE_OPENCL
+    //i->node().generateCode(trans, o, flavor, _choiceAssignment, _copyAssignment[&i->node()]);
+    std::cout << "node " << &i->node() << " " << _numOutOnGpu[&i->node()] << std::endl;
+    i->node().generateCode(trans, o, flavor, _choiceAssignment, _numOutOnGpu[&i->node()]); //TODO
+#else
     i->node().generateCode(trans, o, flavor, _choiceAssignment);
+#endif
 
     if(flavor!=RuleFlavor::SEQUENTIAL) {
       for(ScheduleDependencies::const_iterator d=i->deps().begin();

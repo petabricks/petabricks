@@ -890,6 +890,7 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   SRCPOSSCOPE();  
   IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();
+  packedargs.push_back("int copy");
   std::string codename = trampcodename(trans) + TX_OPENCL_POSTFIX;
   std::string objectname = trans.instClassName();
   std::string dimension = jalib::XToString(iterdef.dimensions());
@@ -904,7 +905,7 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
                            + ">";
 
   o.beginFunc("petabricks::DynamicTaskPtr", codename+"_createtasks", packedargs);
-  o.write("GpuTaskInfoPtr taskinfo = new GpuTaskInfo();");
+  o.write("GpuTaskInfoPtr taskinfo = new GpuTaskInfo(copy);");
   o.write("DynamicTaskPtr prepare = new "+prepareclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::PREPARE);");
   o.write("prepare->enqueue();");
 
@@ -924,24 +925,29 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   }
 
   o.write("\nDynamicTaskPtr run = new "+runclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::RUN);");
-  o.write("run->enqueue();");
   o.write("DynamicTaskPtr end = new NullDynamicTask();\n");
 
+  o.beginIf("copy > 0");
   o.write("DynamicTaskPtr copyout["+jalib::XToString(_to.size())+"];");
+  o.write("run->enqueue();");
   id = 0;
   for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i ) {
     if((*i)->isBuffer()){
-      std::string copyinclass = "petabricks::GpuSpatialMethodCallTask<"+objectname
+      std::string copyinclass = "petabricks::GpuCopyOutMethodCallTask<"+objectname
                               + ", " + dimension
                               + ", &" + objectname + "::" + codename + "_copyout_" + (*i)->name()
                               + ">";
       std::string taskid = jalib::XToString(id);
-      o.write("copyout["+taskid+"] = new "+copyinclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::COPYOUT, "+(*i)->matrix()->name()+".storageInfo());");
+      o.write("copyout["+taskid+"] = new "+copyinclass+"(this, taskinfo, "+(*i)->matrix()->name()+".storageInfo());");
       o.write("end->dependsOn(copyout["+taskid+"]);");
       o.write("copyout["+taskid+"]->enqueue();");
       id++;
     }
   }
+  o.elseIf();
+  o.write("end->dependsOn(run);");
+  o.write("run->enqueue();");
+  o.endIf();
   o.write("return end;");
   o.endFunc();
 }
@@ -986,7 +992,8 @@ void petabricks::UserRule::generateOpenCLCopyInCode(std::string& codename, std::
   o.beginFunc("petabricks::DynamicTaskPtr", codename+"_copyin_"+region->name(), packedargs);
   o.write("MatrixStorageInfoPtr storage_"+name+" = "+name+".storageInfo();");
   //o.write("std::cout << \"bytes = \" << storage_"+name+"->bytes() << std::endl;");
-  //o.write("MatrixIO().write("+name+".asGpuInputBuffer());");
+  o.write("MatrixIO().write("+name+");");
+  o.write("MatrixIO().write("+name+".asGpuInputBuffer());");
   //o.write("std::cout << \"base = \" << *("+name+".asGpuInputBuffer().base()) << std::endl;");
   //o.write("std::cout << \"queue = \" << GpuManager::_queue << std::endl;");
   o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->_clmem, CL_FALSE, 0, storage_"+name+"->bytes(), "+name+".getGpuInputBufferPtr(), 0, NULL, NULL);");
@@ -1057,7 +1064,8 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
         o.os( ) << "err |= clSetKernelArg(clkern, " << arg_pos++ << ", sizeof(int), &ruledim_out" << count << "_" << i << " );\n";
       }
       count++;
-      o.write(name+".storageInfo()->incCoverage("+name+".intervalSize(_iter_begin, _iter_end));");
+      //o.write(name+".storageInfo()->incCoverage("+name+".intervalSize(_iter_begin, _iter_end));");
+      o.write(name+".storageInfo()->incCoverage(_iter_begin, _iter_end, "+name+".intervalSize(_iter_begin, _iter_end));");
     }
   }
 
@@ -1108,17 +1116,21 @@ void petabricks::UserRule::generateOpenCLCopyOutCode(std::string& codename, std:
   std::string name = region->matrix()->name();
   std::string storage = "storage_" + name;
   std::string dim = jalib::XToString(region->dimensions());
-  o.beginFunc("petabricks::DynamicTaskPtr", codename+"_copyout_"+region->name(), packedargs);
+  std::vector<std::string> args;
+  args.push_back("std::vector<IndexT*>& begins");
+  args.push_back("std::vector<IndexT*>& ends");
+  o.beginFunc("petabricks::DynamicTaskPtr", codename+"_copyout_"+region->name(), args/*packedargs*/);
   o.write("MatrixStorageInfoPtr "+storage+" = "+name+".storageInfo();");
   o.write("IndexT sizes["+dim+"];");
   o.write("memcpy(sizes, "+storage+"->sizes(), sizeof(sizes));");
   o.write("IndexT multipliers["+dim+"];");
   o.write("memcpy(multipliers, "+storage+"->multipliers(), sizeof(multipliers));");
-  o.write("MatrixRegion<"+dim+", "+STRINGIFY(MATRIX_ELEMENT_T)+"> normalized("+storage+"->getGpuOutputStoragePtr()"+","+storage+"->getGpuOutputStoragePtr()->data(), sizes, multipliers);");
-  //o.write("MatrixIO().write(normalized);");     
+  o.write("MatrixRegion<"+dim+", "+STRINGIFY(MATRIX_ELEMENT_T)+"> normalized("+storage+"->getGpuOutputStoragePtr()"+","+storage+"->getGpuOutputStoragePtr()->data(), sizes, multipliers);");  
   //o.write("std::cout << \"baseoffset = \" << "+storage+"->getBaseOffset() << std::endl;");
   //o.write(storage+"->print();");   
-  o.write("normalized.copyTo("+name+");");  
+  o.write("normalized.copyTo("+name+", begins, ends);");  
+  o.write("MatrixIO().write(normalized);");   
+  o.write("MatrixIO().write("+name+");");   
   //o.write(name+".storageInfo()->print();");   
   o.write( "return NULL;" );
   o.endFunc();
@@ -1327,7 +1339,8 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
                                             Transform& trans,
                                             CodeGenerator& o,
                                             const SimpleRegionPtr& region,
-                                            RuleFlavor flavor){
+                                            RuleFlavor flavor,
+                                            int copyFromGpu){
   SRCPOSSCOPE();
   o.comment("MARKER 2");
   switch(flavor) {

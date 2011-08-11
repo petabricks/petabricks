@@ -135,7 +135,8 @@ public:
                                 Transform& trans,
                                 CodeGenerator& o,
                                 const SimpleRegionPtr& region,
-                                RuleFlavor flavor) = 0; 
+                                RuleFlavor flavor,
+                                int copyFromGpu = 0) = 0; 
   virtual void generateDeclCodeSimple(Transform& trans, CodeGenerator& o) = 0;
   virtual void generateTrampCodeSimple(Transform& trans, CodeGenerator& o) = 0;
   
@@ -202,6 +203,8 @@ public:
   
   ///Get the list of regions that the rule only reads or writes
   virtual RegionList getNonSelfDependentRegions() { return RegionList(); }
+
+  virtual RegionList getFromRegions( ) const { return RegionList(); }
   
 protected:
   int _id;

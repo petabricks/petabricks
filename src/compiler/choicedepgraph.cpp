@@ -175,14 +175,14 @@ petabricks::BasicChoiceDepGraphNode::BasicChoiceDepGraphNode(const MatrixDefPtr&
 {}
 
 void petabricks::BasicChoiceDepGraphNode::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
-                            const RuleChoiceAssignment& choice){
+                            const RuleChoiceAssignment& choice, int copyFromGpu){
   JASSERT(choice.find(this)!=choice.end());
   RulePtr rule = choice.find(this)->second;
-  rule->generateCallCode(nodename(), trans, o, _region, flavor);
+  rule->generateCallCode(nodename(), trans, o, _region, flavor, copyFromGpu);
 }
 
 
-void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos, RuleFlavor , const RuleChoiceAssignment& choice){
+void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos, RuleFlavor , const RuleChoiceAssignment& choice, int copyFromGpu){
   JASSERT(choice.find(this)!=choice.end());
   RulePtr rule = choice.find(this)->second;
   
@@ -194,7 +194,7 @@ void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans,
 
   SimpleRegionPtr t = new SimpleRegion(min,max);
 
-  rule->generateCallCode(nodename(), trans, o, t, RuleFlavor::SEQUENTIAL);
+  rule->generateCallCode(nodename(), trans, o, t, RuleFlavor::SEQUENTIAL, copyFromGpu);
   //TODO deps for slice // dynamic version
 }
 
@@ -224,6 +224,25 @@ void petabricks::BasicChoiceDepGraphNode::fixVersionedRegionsType() {
     rule->fixVersionedRegionsType();
   }
 }
+
+#ifdef HAVE_OPENCL
+petabricks::RegionList petabricks::BasicChoiceDepGraphNode::getFromRegionOnCpu(const RuleChoiceAssignment& choice) const {
+  RulePtr rule = choice.find(this)->second;
+  if(!rule->isEnabledGpuRule()){
+    return rule->getFromRegions();
+  }
+  else{
+    return petabricks::RegionList();
+  } 
+}
+
+int petabricks::BasicChoiceDepGraphNode::numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix){
+  if(matrix->name().compare(_matrix->name()) == 0 && choice.find(this)->second->isEnabledGpuRule())
+    return 1;
+  else
+    return 0;
+}
+#endif
 
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
@@ -265,7 +284,7 @@ bool petabricks::MultiOutputChoiceDepGraphNode::findValidSchedule(const RuleChoi
   return true;
 }
 
-void petabricks::MultiOutputChoiceDepGraphNode::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, const RuleChoiceAssignment& choice){
+void petabricks::MultiOutputChoiceDepGraphNode::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, const RuleChoiceAssignment& choice, int copyFromGpu){
 //  const DependencyInformation& selfDep = indirectDepends()[this];
 //  if(selfDep.direction.isNone()){
 
@@ -289,14 +308,37 @@ void petabricks::MultiOutputChoiceDepGraphNode::generateCode(Transform& trans, C
     }
     JWARNING(region==(*i)->region()->toString())(region)((*i)->region()->toString())
       .Text("to(...) regions of differing size not yet supported");
+    //TODO: what are these for?
     RuleSet tmp = (*i)->choices();
     rules.insert(tmp.begin(), tmp.end());
     matrices.push_back((*i)->matrix());
   }
   JASSERT(choice.find(first)!=choice.end());
-  rule->generateCallCode(nodename(), trans, o, first->region(), flavor);
+  rule->generateCallCode(nodename(), trans, o, first->region(), flavor, copyFromGpu);
 }
 
+#ifdef HAVE_OPENCL
+petabricks::RegionList petabricks::MultiOutputChoiceDepGraphNode::getFromRegionOnCpu(const RuleChoiceAssignment& choice) const {
+  RulePtr rule = choice.find(*_originalNodes.begin())->second;
+  if(!rule->isEnabledGpuRule()){
+    return rule->getFromRegions();
+  }
+  else{
+    return petabricks::RegionList();
+  } 
+}
+
+int petabricks::MultiOutputChoiceDepGraphNode::numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix){
+  RulePtr rule = choice.find(*_originalNodes.begin())->second;
+  if(!rule->isEnabledGpuRule())
+    return 0;
+  int count = 0;
+  for(ChoiceDepGraphNodeSet::const_iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+    count += (*i)->numOutMatrixOnGpu(choice,matrix);
+  }
+  return count;
+}
+#endif
 
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
@@ -350,7 +392,7 @@ bool petabricks::SlicedChoiceDepGraphNode::findValidSchedule(const RuleChoiceAss
   return false;
 }
 
-void petabricks::SlicedChoiceDepGraphNode::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, const RuleChoiceAssignment& choice){
+void petabricks::SlicedChoiceDepGraphNode::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, const RuleChoiceAssignment& choice, int copyFromGpu){
   bool isStatic = (flavor==RuleFlavor::SEQUENTIAL);
   std::vector<std::string> args;
   args.push_back("const jalib::JRef<"+trans.instClassName()+"> transform");
@@ -379,6 +421,25 @@ void petabricks::SlicedChoiceDepGraphNode::generateCode(Transform& trans, CodeGe
         , args);
   }
 }
+
+#ifdef HAVE_OPENCL
+petabricks::RegionList petabricks::SlicedChoiceDepGraphNode::getFromRegionOnCpu(const RuleChoiceAssignment& choice) const {
+  petabricks::RegionList regions;
+  for(ChoiceDepGraphNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+    petabricks::RegionList list = (*i)->getFromRegionOnCpu(choice);
+    regions.insert(regions.end(), list.begin(), list.end());
+  }
+  return regions;
+}
+
+int petabricks::SlicedChoiceDepGraphNode::numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix){
+  int count = 0;
+  for(ChoiceDepGraphNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+    count += (*i)->numOutMatrixOnGpu(choice, matrix);
+  }
+  return count;
+}
+#endif
 
 void petabricks::ChoiceDepGraphNodeList::removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension) {
   for(ChoiceDepGraphNodeList::iterator i=begin(), e=end(); i!=e; ++i) {

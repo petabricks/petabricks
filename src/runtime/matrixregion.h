@@ -352,8 +352,7 @@ public:
   /// Copy that data of this to dst
   void copyTo(const MutableMatrixRegion& dst)
   {
-    //JASSERT(this->count()==dst.count());
-    if(this->base() == dst.base()) {
+    /*if(this->base() == dst.base()) {
       //std::cout << "COPY TO:: Not copying ^^" << std::endl;
       bool same = true;
       for(int i = 0; i < D; i++) {
@@ -361,7 +360,9 @@ public:
           same = false;
       }
       if(same) return;
-    }
+    }*/
+    if(this->storage() == dst.storage())
+      return;
     //std::cout << "COPY TO:: copy" << std::endl;
     IndexT coord[D] = {0};
     do {
@@ -373,21 +374,41 @@ public:
   /// Copy that data of this to dst
   void copyTo(const MutableMatrixRegion& dst,const IndexT c1[D], const IndexT c2[D])
   {
-    //JASSERT(this->count()==dst.count());
-    //if(this->base() == dst.base()) return;
-    if(this->base() == dst.base()) {
+    /*if(this->base() == dst.base()) {
       bool same = true;
       for(int i = 0; i < D; i++) {
         if(this->multipliers()[i] != dst.multipliers()[i])
           same = false;
       }
       if(same) return;
-    }
+    }*/
+    std::cout << "copyTo boundary" << std::endl;
+    for(int i = 0; i < D; i++)
+      std::cout << "[" << i << "] : " << c1[i] << "-" << c2[i] << std::endl;
+    if(this->storage() == dst.storage())
+      return;
     IndexT coord[D];
     memcpy(coord, c1, sizeof coord);
     do {
       dst.cell(coord) = this->cell(coord);
     } while(this->incCoordWithBound(coord, c1, c2)>=0);
+  }
+
+  ///
+  /// Copy that data of this to dst
+  void copyTo(const MutableMatrixRegion& dst,std::vector<IndexT*>& begins, std::vector<IndexT*>& ends)
+  {
+    JASSERT(begins.size() == ends.size())(begins.size())(ends.size());
+    if(this->storage() == dst.storage())
+      return;
+
+    if(begins.size() == 0){
+      copyTo(dst);
+    }
+    else{
+      for(size_t i = 0; i < begins.size(); ++i)
+        copyTo(dst, begins[i], ends[i]);
+    }
   }
 
   ///

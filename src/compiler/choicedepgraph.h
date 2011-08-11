@@ -135,13 +135,15 @@ public:
   virtual void generateCode(Transform& trans,
                             CodeGenerator& o,
                             RuleFlavor flavor,
-                            const RuleChoiceAssignment& choice) = 0;
+                            const RuleChoiceAssignment& choice,
+                            int copyFromGpu = 0) = 0;
   virtual void generateCodeForSlice(Transform& trans,
                                     CodeGenerator& o,
                                     int dimension,
                                     const FormulaPtr& pos,
                                     RuleFlavor flavor,
-                                    const RuleChoiceAssignment& choice) = 0;
+                                    const RuleChoiceAssignment& choice,
+                                    int copyFromGpu = 0) = 0;
 
   virtual const MatrixDefPtr&    matrix() const = 0;
   virtual const SimpleRegionPtr& region() const = 0;
@@ -181,6 +183,12 @@ public:
   std::string getChoicePrefix(Transform& t);
 
   virtual bool findValidSchedule(const RuleChoiceAssignment&) { return true; }
+
+#ifdef HAVE_OPENCL
+  virtual RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const = 0;
+  virtual int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix) = 0;
+  virtual void print(const RuleChoiceAssignment& choice) = 0;
+#endif
 protected:
   int _id;
   bool _isInput;
@@ -205,11 +213,22 @@ public:
   }
 
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
-                            const RuleChoiceAssignment& choice);
+                            const RuleChoiceAssignment& choice, int copyFromGpu = 0);
   void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos, RuleFlavor flavor,
-                            const RuleChoiceAssignment& choice);
+                            const RuleChoiceAssignment& choice, int copyFromGpu = 0);
   void removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension);
   void fixVersionedRegionsType();
+
+#ifdef HAVE_OPENCL
+  RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
+  int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
+  void print(const RuleChoiceAssignment& choice){
+    std::cout << "BasicChoiceDepGraphNode " << this << ":" << std::endl;
+    std::cout << "matrix = " << _matrix->name() << std::endl;
+    RulePtr rule = choice.find(this)->second;
+    std::cout << "rule = " << rule->isEnabledGpuRule() << std::endl << std::endl;
+  }
+#endif
 private:
   MatrixDefPtr      _matrix;
   SimpleRegionPtr   _region;
@@ -233,7 +252,8 @@ public:
   void generateCode(Transform&,
                     CodeGenerator&,
                     RuleFlavor,
-                    const RuleChoiceAssignment&){
+                    const RuleChoiceAssignment&,
+                    int /*copyFromGpu = false*/){
     UNIMPLEMENTED();
   }
   void generateCodeForSlice(Transform&,
@@ -241,10 +261,27 @@ public:
                             int,
                             const FormulaPtr&,
                             RuleFlavor,
-                            const RuleChoiceAssignment& ){
+                            const RuleChoiceAssignment&,
+                            int /*copyFromGpu = false*/){
     UNIMPLEMENTED();
   }
 
+#ifdef HAVE_OPENCL
+  RegionList getFromRegionOnCpu(const RuleChoiceAssignment& /*choice*/) const { 
+    UNIMPLEMENTED(); 
+    return RegionList();
+  }
+  int numOutMatrixOnGpu(const RuleChoiceAssignment& /*choice*/, MatrixDefPtr /*matrix*/){
+    UNIMPLEMENTED(); 
+    return 0;
+  }
+  void print(const RuleChoiceAssignment& choice){
+    std::cout << "MetaChoiceDepGraphNode " << this << "--------" << std::endl;
+    for(ChoiceDepGraphNodeSet::iterator i = _originalNodes.begin(); i != _originalNodes.end(); ++i)
+      (*i)->print(choice);
+    std::cout << "---------------" << this << std::endl << std::endl;;
+  }
+#endif
 protected:
   virtual const char* classname() const { return "MetaChoiceDepGraphNode"; }
 
@@ -260,7 +297,18 @@ public:
   bool findValidSchedule(const RuleChoiceAssignment& choice);
   
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
-                            const RuleChoiceAssignment& choice);
+                            const RuleChoiceAssignment& choice, int copyFromGpu = 0);
+
+#ifdef HAVE_OPENCL
+  RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
+  int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
+  void print(const RuleChoiceAssignment& choice){
+    std::cout << "MultiOutputChoiceDepGraphNode " << this << "--------" << std::endl;
+    for(ChoiceDepGraphNodeSet::iterator i = _originalNodes.begin(); i != _originalNodes.end(); ++i)
+      (*i)->print(choice);
+    std::cout << "---------------" << this << std::endl << std::endl;;
+  }
+#endif
 protected:
   virtual const char* classname() const { return "MultiOutputChoiceDepGraphNode"; }
 
@@ -275,8 +323,18 @@ public:
   bool findValidSchedule(const RuleChoiceAssignment& choice);
 
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
-                            const RuleChoiceAssignment& choice);
+                            const RuleChoiceAssignment& choice, int copyFromGpu = 0);
 
+#ifdef HAVE_OPENCL
+  RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
+  int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
+  void print(const RuleChoiceAssignment& choice){
+    std::cout << "SlicedChoiceDepGraphNode " << this << "--------" << std::endl;
+    for(ChoiceDepGraphNodeSet::iterator i = _originalNodes.begin(); i != _originalNodes.end(); ++i)
+      (*i)->print(choice);
+    std::cout << "---------------" << this << std::endl << std::endl;;
+  }
+#endif
 protected:
   const char* classname() const { return "SlicedChoiceDepGraphNode"; }
 private:
