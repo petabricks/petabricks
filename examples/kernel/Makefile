@@ -4,10 +4,10 @@ PBC=../../src/pbc
 
 all: nwkde
 
-nwkde: nwkde.pbcc utils.pbcc
+nwkde: nwkde.pbcc nwkdeGenerators.pbcc nwkdeMetric.pbcc utils.pbcc nwkde.h
 	${PBC} $< --output $@
 
-nwkdeVA: nwkdeVA.pbcc nwkde.pbcc utils.pbcc
+nwkdeVA: nwkdeVA.pbcc nwkde.pbcc nwkdeGenerators.pbcc nwkdeMetric.pbcc utils.pbcc nwkde.h
 	${PBC} $< --output $@
 
 KernelEstimate: KernelEstimate.pbcc LinearSolvePosDef.pbcc

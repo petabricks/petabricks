@@ -35,7 +35,7 @@ kernel/KernelEstimate
 kernel/LinearSolvePosDef
 kernel/nwkdeBaseTop2
 kernel/nwkdeBaseTop
-kernel/nwkdelm2
+kernel/nwkdeVA
 kernel/nwkde
 kernel/utils
 LUDense/blockedLUDense
