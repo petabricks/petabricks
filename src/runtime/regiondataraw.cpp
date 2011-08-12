@@ -93,9 +93,14 @@ void RegionDataRaw::writeCell(const IndexT* coord, ElementT value) {
   *cell = value;
 }
 
-DataHostList RegionDataRaw::hosts(IndexT* /*begin*/, IndexT* /*end*/) {
-  DataHostListItem item = {HostPid::self(), 1};
-  return DataHostList(1, item);
+DataHostPidList RegionDataRaw::hosts(IndexT* /*begin*/, IndexT* /*end*/) {
+  DataHostPidListItem item = {HostPid::self(), 1};
+  return DataHostPidList(1, item);
+}
+
+RemoteHostPtr RegionDataRaw::host() {
+  // local
+  return NULL;
 }
 
 void RegionDataRaw::processReadCellCacheMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {

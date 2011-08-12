@@ -497,7 +497,10 @@ namespace petabricks {
       _regionHandler->updateHandlerChain();
     }
 
-    DataHostList dataHosts() const {
+    //
+    // Find location of data (data can be in many hosts)
+    //
+    DataHostPidList dataHosts() const {
       IndexT begin[D];
       IndexT end[D];
 
@@ -512,6 +515,13 @@ namespace petabricks {
       this->getRegionDataCoord(end, rd_end);
 
       return _regionHandler->hosts(rd_begin, rd_end);
+    }
+
+    //
+    // Similar to dataHosts, but will not send any remote messages
+    //
+    RemoteHostPtr dataHost() const {
+      return _regionHandler->host();
     }
 
     //

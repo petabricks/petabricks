@@ -54,8 +54,8 @@ namespace petabricks {
       return _type;
     }
 
-    virtual DataHostList hosts(IndexT* begin, IndexT* end) = 0;
-
+    virtual DataHostPidList hosts(IndexT* begin, IndexT* end) = 0;
+    virtual RemoteHostPtr host() = 0;
 
     // Process Remote Messages
     virtual void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);

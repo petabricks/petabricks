@@ -83,11 +83,12 @@ public:
   void remoteNotify(int arg = 0);
 
   int flags() const { return _flags; }
-protected:
-  void remoteMarkComplete();
 
   ConstRemoteHostPtr host() const { return _host; }
   RemoteHostPtr host() { return _host; }
+
+protected:
+  void remoteMarkComplete();
 
   // these three callbacks get called to handle incoming data
   virtual void* allocRecv(size_t len);

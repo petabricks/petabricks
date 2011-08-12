@@ -48,10 +48,12 @@ namespace petabricks {
       *_value = MatrixStorage::rand();
     }
 
-    DataHostList hosts(IndexT* /*begin*/, IndexT* /*end*/) {
-      DataHostListItem item = {HostPid::self(), 1};
-      return DataHostList(1, item);
+    DataHostPidList hosts(IndexT* /*begin*/, IndexT* /*end*/) {
+      DataHostPidListItem item = {HostPid::self(), 1};
+      return DataHostPidList(1, item);
     }
+
+    RemoteHostPtr host() { return NULL; }
 
     void processReadCellCacheMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
       ReadCellCacheMessage* msg = (ReadCellCacheMessage*)base->content();
@@ -111,10 +113,12 @@ namespace petabricks {
       _value = MatrixStorage::rand();
     }
 
-    DataHostList hosts(IndexT* /*begin*/, IndexT* /*end*/) {
-      DataHostListItem item = {HostPid::self(), 1};
-      return DataHostList(1, item);
+    DataHostPidList hosts(IndexT* /*begin*/, IndexT* /*end*/) {
+      DataHostPidListItem item = {HostPid::self(), 1};
+      return DataHostPidList(1, item);
     }
+
+    RemoteHostPtr host() { return NULL; }
 
     void processReadCellCacheMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
       ReadCellCacheMessage* msg = (ReadCellCacheMessage*)base->content();

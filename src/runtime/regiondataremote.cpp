@@ -176,7 +176,7 @@ void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
   free(reply);
 }
 
-DataHostList RegionDataRemote::hosts(IndexT* begin, IndexT* end) {
+DataHostPidList RegionDataRemote::hosts(IndexT* begin, IndexT* end) {
   GetHostListMessage msg;
   memcpy(msg.begin, begin, _D * sizeof(IndexT));
   memcpy(msg.end, end, _D * sizeof(IndexT));
@@ -186,13 +186,17 @@ DataHostList RegionDataRemote::hosts(IndexT* begin, IndexT* end) {
   this->fetchData(&msg, MessageTypes::GETHOSTLIST, sizeof(GetHostListMessage), &data, &len);
   GetHostListReplyMessage* reply = (GetHostListReplyMessage*)data;
 
-  DataHostList list;
+  DataHostPidList list;
   for (int i = 0; i < reply->numHosts; i++) {
     list.push_back(reply->hosts[i]);
   }
 
   free(reply);
   return list;
+}
+
+RemoteHostPtr RegionDataRemote::host() {
+  return _remoteObject->host();
 }
 
 UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain(UpdateHandlerChainMessage& msg) {

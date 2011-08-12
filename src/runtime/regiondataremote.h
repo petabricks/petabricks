@@ -53,7 +53,8 @@ namespace petabricks {
     void readByCache(void* request, size_t request_len, void* reply, size_t &reply_len) const;
     void writeByCache(const IndexT* coord, ElementT value) const;
 
-    DataHostList hosts(IndexT* begin, IndexT* end);
+    DataHostPidList hosts(IndexT* begin, IndexT* end);
+    RemoteHostPtr host();
 
     // Update long chain of RegionHandlers
     UpdateHandlerChainReplyMessage updateHandlerChain();

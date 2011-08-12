@@ -94,7 +94,7 @@ void RegionDataSplit::processWriteCellMsg(const BaseMessageHeader* base, size_t 
   this->coordToPart(msg->coord)->processWriteCellMsg(base, baseLen, caller);
 }
 
-DataHostList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {
+DataHostPidList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {
   std::map<HostPid, int> hosts;
 
   IndexT coord[_D];
@@ -111,7 +111,7 @@ DataHostList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {
   IndexT* newEnd = _splitSize;
 
   do {
-    DataHostList tmp = this->coordToPart(coord)->hosts(newBegin, newEnd);
+    DataHostPidList tmp = this->coordToPart(coord)->hosts(newBegin, newEnd);
     hosts[tmp[0].hostPid] += 1;
     count++;
 
@@ -132,10 +132,10 @@ DataHostList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {
     }
   } while (hasNextPart);
 
-  DataHostList list;
+  DataHostPidList list;
   std::map<HostPid, int>::iterator it;
   for (it = hosts.begin(); it != hosts.end(); it++) {
-    DataHostListItem item;
+    DataHostPidListItem item;
     item.hostPid = (*it).first;
     item.weight = ((double)((*it).second))/count;
     list.push_back(item);

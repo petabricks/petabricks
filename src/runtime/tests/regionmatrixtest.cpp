@@ -25,7 +25,7 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
 
-void print(DataHostList list) {
+void print(DataHostPidList list) {
   for (unsigned int i = 0; i < list.size(); i++) {
     printf("%lx/%d ==> %.5g\n", list[i].hostPid.hostid, list[i].hostPid.pid, list[i].weight);
   }

@@ -29,7 +29,8 @@ namespace petabricks {
     MatrixStoragePtr storage() const {return _storage;}
     ElementT& value0D(const IndexT* coord) const;
 
-    DataHostList hosts(IndexT* begin, IndexT* end);
+    DataHostPidList hosts(IndexT* begin, IndexT* end);
+    RemoteHostPtr host();
 
     void processReadCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processWriteCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);

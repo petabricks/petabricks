@@ -30,7 +30,9 @@ namespace petabricks {
 
     ElementT readCell(const IndexT* coord) const;
     void writeCell(const IndexT* coord, ElementT value);
-    DataHostList hosts(IndexT* begin, IndexT* end);
+
+    DataHostPidList hosts(IndexT* begin, IndexT* end);
+    RemoteHostPtr host() { UNIMPLEMENTED(); return NULL; }
 
     RegionDataIPtr coordToPart(const IndexT* coord) const;
 

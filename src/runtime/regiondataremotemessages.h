@@ -21,11 +21,11 @@ namespace petabricks {
     };
   } PACKED;
 
-  struct DataHostListItem {
+  struct DataHostPidListItem {
     HostPid hostPid;
     double weight;
   } PACKED;
-  typedef std::vector<DataHostListItem> DataHostList;
+  typedef std::vector<DataHostPidListItem> DataHostPidList;
 
   //
   // RegionDataRemoteMessage
@@ -160,7 +160,7 @@ namespace petabricks {
 
     struct GetHostListReplyMessage {
       int numHosts;
-      DataHostListItem hosts[];
+      DataHostPidListItem hosts[];
     } PACKED;
 
     struct UpdateHandlerChainReplyMessage {

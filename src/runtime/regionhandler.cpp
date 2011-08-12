@@ -55,8 +55,12 @@ void RegionHandler::updateRegionData(RegionDataIPtr regionData) {
   _regionDataMux.unlock();
 }
 
-DataHostList RegionHandler::hosts(IndexT* begin, IndexT* end) {
+DataHostPidList RegionHandler::hosts(IndexT* begin, IndexT* end) {
   return _regionData->hosts(begin, end);
+}
+
+RemoteHostPtr RegionHandler::host() {
+  return _regionData->host();
 }
 
 int RegionHandler::dimensions() {
