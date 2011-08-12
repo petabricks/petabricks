@@ -830,7 +830,11 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   SRCPOSSCOPE();
 
   //The flavor for inputs generated from main
+#ifdef DISABLE_DISTRIBUTED
+  RuleFlavor rf = RuleFlavor::WORKSTEALING;
+#else
   RuleFlavor rf = RuleFlavor::DISTRIBUTED;
+#endif
 
   std::vector<std::string> argNames = normalArgNames();
 
