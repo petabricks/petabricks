@@ -432,6 +432,11 @@ to RESULT[q]
 }
 
 transform NWKDE
+// PPBUG: the following ifdef shouldn't be necessary since the parameter
+//   sizes are controlled in nwkde.h.  However, the variable dimensions
+//   controlled by the --n parameter appear to be determined before the
+//   preprocessor substitutions occur, causing size mismatches with the
+//   NWKDE generators.
 #ifdef WORKAROUND
 from TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
      TRAININDICES[l], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
