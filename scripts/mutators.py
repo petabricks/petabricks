@@ -233,7 +233,7 @@ class LognormRandAlgCutoffMutator(LognormRandCutoffMutator, LognormRandom):
     assert v>=down and v<=up
     return v
 
-class TunableArrayMutator(Mutator):
+class TunableSizeSpecificMutator(Mutator):
   def __init__(self, tunable, minVal, maxVal, weight=1.0):
     self.tunable = tunable
     self.minVal = minVal
@@ -267,7 +267,7 @@ class TunableArrayMutator(Mutator):
         candidate.config[config.fmt_bin % (self.tunable, i)] = self.minVal+0
       i+=1
 
-class Tunable2DArrayMutator(Mutator):
+class TunableSizeSpecificArrayMutator(Mutator):
   def __init__(self, tname, vname, size, minVal, maxVal, weight=1.0):
     self.size = size
     self.tname = tname
@@ -313,30 +313,30 @@ class Tunable2DArrayMutator(Mutator):
           candidate.config[self.tunableName(j, i)] = self.minVal[j] + 0
       i+=1
 
-class LognormTunableArrayMutator(TunableArrayMutator, LognormRandom):
+class LognormTunableSizeSpecificMutator(TunableSizeSpecificMutator, LognormRandom):
   pass
 
-class UniformTunableArrayMutator(TunableArrayMutator, UniformRandom):
+class UniformTunableSizeSpecificMutator(TunableSizeSpecificMutator, UniformRandom):
   pass
 
-class IncrementTunableArrayMutator(TunableArrayMutator):
+class IncrementTunableSizeSpecificMutator(TunableSizeSpecificMutator):
   def __init__(self, tunable, minVal, maxVal, inc, weight=1.0):
     self.inc = inc
-    TunableArrayMutator.__init__(self, tunable, minVal, maxVal, weight)
+    TunableSizeSpecificMutator.__init__(self, tunable, minVal, maxVal, weight)
   def random(self, oldVal, minVal, maxVal, candidate = None):
     return min(maxVal, max(minVal, oldVal+self.inc))
 
-class ScaleTunableArrayMutator(TunableArrayMutator):
+class ScaleTunableSizeSpecificMutator(TunableSizeSpecificMutator):
   def __init__(self, tunable, minVal, maxVal, inc, weight=1.0):
     self.inc = inc
-    TunableArrayMutator.__init__(self, tunable, minVal, maxVal, weight)
+    TunableSizeSpecificMutator.__init__(self, tunable, minVal, maxVal, weight)
   def random(self, oldVal, minVal, maxVal, candidate = None):
     return min(maxVal, max(minVal, oldVal*self.inc))
 
-class OptimizeTunable2DArrayMutator(Tunable2DArrayMutator):
+class OptimizeTunableSizeSpecificArrayMutator(TunableSizeSpecificArrayMutator):
 
   def __init__(self, tname, vname, size, minVal, maxVal, weight=1.0):
-    Tunable2DArrayMutator.__init__(self, tname, vname, size, minVal, maxVal, weight)
+    TunableSizeSpecificArrayMutator.__init__(self, tname, vname, size, minVal, maxVal, weight)
     f = self.measureAccuracy
     self.o = optimize.CachedBFGSOptimizer(f, minVal, maxVal)
 

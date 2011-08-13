@@ -357,17 +357,17 @@ def createTunableMutators(candidate, ta, weight):
       return [mutators.LognormRandCutoffMutator(name, weight=weight)]
     else:
       return [mutators.UniformRandMutator(name, l, h, weight=weight)]
-  elif ta['type'] in config.lognorm_array_tunable_types:
-    ms = [mutators.LognormTunableArrayMutator(name, l, h, weight=weight),
-          mutators.IncrementTunableArrayMutator(name, l, h, 8, weight=weight),
-          mutators.ScaleTunableArrayMutator(name, l, h, 2, weight=weight),
+  elif ta['type'] in config.lognorm_sizespecific_tunable_types:
+    ms = [mutators.LognormTunableSizeSpecificMutator(name, l, h, weight=weight),
+          mutators.IncrementTunableSizeSpecificMutator(name, l, h, 8, weight=weight),
+          mutators.ScaleTunableSizeSpecificMutator(name, l, h, 2, weight=weight),
           ]
     ms[-1].reset(candidate)
     return ms
   elif ta['type'] in config.optimize_tunable_types:
     tname = ta['tname'] # transform name
     vname = ta['vname'] # variable name
-    return [mutators.OptimizeTunable2DArrayMutator(tname, vname, size, l, h, weight=weight)]
+    return [mutators.OptimizeTunableSizeSpecificArrayMutator(tname, vname, size, l, h, weight=weight)]
   elif ta['type'] in config.ignore_tunable_types:
     pass
   else:
