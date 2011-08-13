@@ -1,17 +1,7 @@
 #ifndef BISECTIONTD_PBCC
 #define BISECTIONTD_PBCC
 
-%{
-
-
-
-extern "C" void dstebz_(char *range, char *order, int *n, double *vl, double *vu, int *il, int *iu, double *abstol, double *d, double *e, int *m, int *nsplit, double *w, int *iblock, int *isplit, double *work, int *iwork, int *info);
-
-extern "C" void dstein_(int *n, double *d, double *e, int *m, double *w, int *iblock, int *isplit, double *z, int *ldz, double *work, int *iwork, int *ifail, int *info);
-
-
-%}
-
+#include "extern.h"
 #include "../simple/transpose.pbcc"
 
 // Find eigenvalues and eigenvectors of input matrix IN (symmetric) by LAPACK Bisection routine
@@ -33,30 +23,30 @@ to Eigenvalue[n], Eigenvector[n,n]
     int m;
     int nsplit;
     int nsquared=n*n;
-    double vl;
-    double vu;
-    double abstol=0;
+    ElementT vl;
+    ElementT vu;
+    ElementT abstol=0;
 
     // allocate and initialize matrices
-    double *Z = Vec.base();
-    double *D = Din.storage()->data();
-    double *E = Ein.storage()->data();
-    double *work = new double[4*size];
+    ElementT *Z = Vec.base();
+    ElementT *D = Din.storage()->data();
+    ElementT *E = Ein.storage()->data();
+    ElementT *work = new ElementT[4*size];
     int *iwork = new int[3*size];
-    double *W = Eig.base();
+    ElementT *W = Eig.base();
     int *iblock = new int[size];
     int *isplit = new int[size];
     int *ifail = new int[size];
 
     // call LAPACK bisection routine for tridiagonal matrix
-    dstebz_(&range, &order, &size, &vl, &vu, &il, &iu, &abstol, D, E, &m, &nsplit, W, iblock, isplit, work, iwork, &info);
+    stebz_wrap(&range, &order, &size, &vl, &vu, &il, &iu, &abstol, D, E, &m, &nsplit, W, iblock, isplit, work, iwork, &info);
 
     // call LAPACK dstein routine for eigenvectors
     delete [] work;
-    work = new double[5*n];
+    work = new ElementT[5*n];
     delete [] iwork;
     iwork = new int[n];
-    dstein_(&size, D, E, &size, W, iblock, isplit, Z, &size, work, iwork, ifail, &info);
+    stein_wrap(&size, D, E, &size, W, iblock, isplit, Z, &size, work, iwork, ifail, &info);
 
     //Transpose(VecOut,Vec);
 

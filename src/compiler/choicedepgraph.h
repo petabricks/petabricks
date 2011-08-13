@@ -48,7 +48,13 @@ typedef jalib::JRef<ChoiceGrid> ChoiceGridPtr;
 
 class ChoiceDepGraphNode;
 typedef jalib::JRef<ChoiceDepGraphNode> ChoiceDepGraphNodePtr;
-typedef std::vector< ChoiceDepGraphNodePtr > ChoiceDepGraphNodeList; 
+
+class ChoiceDepGraphNodeList : public std::vector< ChoiceDepGraphNodePtr > {
+public:
+  void removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension);
+  void fixVersionedRegionsType();
+};
+
 typedef std::map<ChoiceDepGraphNode*,ChoiceDepGraphNode*> ChoiceDepGraphNodeRemapping;
 
 class ChoiceDepGraphNodeSet : public std::set<ChoiceDepGraphNode*> {
@@ -202,6 +208,8 @@ public:
                             const RuleChoiceAssignment& choice);
   void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos, RuleFlavor flavor,
                             const RuleChoiceAssignment& choice);
+  void removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension);
+  void fixVersionedRegionsType();
 private:
   MatrixDefPtr      _matrix;
   SimpleRegionPtr   _region;

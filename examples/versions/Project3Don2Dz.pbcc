@@ -1,0 +1,31 @@
+/* Given a 3D matrix x,y,z, project it along the z dimension
+ * Every point of the resulting x,y matrix contains 1 if 
+ * exists x  s.t.  x,y,z > 0
+ */
+transform Project3Don2D
+from IN[x,y,z]
+through WORK[x,y,z]
+to OUT[x,y]
+{
+  WORK.cell(cx,cy,0) from(IN.cell(cx,cy,0) inputCell) {
+    if (inputCell > 0) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+  
+  WORK.cell(cx,cy,cz) from(IN.cell(cx,cy,cz) inputCell, WORK.cell(cx,cy,cz-1) oldOut) {
+    if (inputCell > 0) {
+      return 1;
+    }
+    
+    return oldOut;
+  }
+  
+  OUT.cell(cx,cy) from(WORK.cell(cx,cy,z-1) inputCell) {
+    return inputCell;
+    
+  }
+  
+}

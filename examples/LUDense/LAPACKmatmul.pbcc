@@ -6,7 +6,15 @@
 #include "../simple/copy.pbcc"
 
 %{
-    extern "C" void dgemm_(char *transa, char *transb, const int *m, const int *n, const int *k, double *alpha, double *A, const int *lda, double *B, const int *ldb, double *beta, double *C, const int *ldc);
+extern "C" void dgemm_(char *transa, char *transb, const int *m, const int *n, const int *k, double *alpha, double *A, const int *lda, double *B, const int *ldb, double *beta, double *C, const int *ldc);
+extern "C" void sgemm_(char *transa, char *transb, const int *m, const int *n, const int *k, float *alpha, float *A, const int *lda, float *B, const int *ldb, float *beta, float *C, const int *ldc);
+
+void gemm_wrap(char *transa, char *transb, const int *m, const int *n, const int *k, double *alpha, double *A, const int *lda, double *B, const int *ldb, double *beta, double *C, const int *ldc) {
+  dgemm_(transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc);
+}
+void gemm_wrap(char *transa, char *transb, const int *m, const int *n, const int *k, float *alpha, float *A, const int *lda, float *B, const int *ldb, float *beta, float *C, const int *ldc) {
+  sgemm_(transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc);
+}
 %}
 
 //calculate OUT = C - A*B
@@ -19,18 +27,18 @@ to OUT[n,m]
     {
         // call LAPACK
 
-	char transa = 'N', transb = 'N';  
-	const int lda = m;
-	const int ldb = k;
-	const int ldc = m;
-	double alpha = -1, beta = 1;
-        double *A = NULL;
-	double *B = NULL;
-	double *C = NULL;
+	      char transa = 'N', transb = 'N';  
+	      const int lda = m;
+	      const int ldb = k;
+	      const int ldc = m;
+	      ElementT alpha = -1, beta = 1;
+        ElementT *A = NULL;
+	      ElementT *B = NULL;
+	      ElementT *C = NULL;
 
-        A = new double[m * k];
-	B = new double[k * n];
-	C = new double[m * n];
+        A = new ElementT[m * k];
+	      B = new ElementT[k * n];
+	      C = new ElementT[m * n];
         if (!A || !B || !C) {
             printf("Error allocating memory!\n");
             exit(-1);
@@ -40,7 +48,7 @@ to OUT[n,m]
         int i, j;
         for (i = 0; i < m; ++i) {
             for (j = 0; j < k; ++j) {
-		// PetaBricks - first index is column, second is row
+		            // PetaBricks - first index is column, second is row
                 A[INDEX2D(i, j, m)] = ina.cell(j, i);
             }
         }
@@ -57,7 +65,7 @@ to OUT[n,m]
             }
         }
 
-        dgemm_(&transa, &transb, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta, C, &ldc);
+        gemm_wrap(&transa, &transb, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta, C, &ldc);
 
         // unpack output
         for (i = 0; i < n; ++i) {
@@ -67,8 +75,8 @@ to OUT[n,m]
         }
 
         delete [] A;
-	delete [] B;
-	delete [] C;
+	      delete [] B;
+	      delete [] C;
     }
 }
 

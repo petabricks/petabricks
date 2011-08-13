@@ -638,9 +638,9 @@ class CandidateTester:
   def checkOutputHash(self, candidate, i, value):
     if self.inputs[i].outputHash is None:
       self.inputs[i].outputHash = value
-      self.inputs[i].firstCanidate = candidate
+      self.inputs[i].firstCandidate = candidate
     elif self.inputs[i].outputHash != value:
-      warnings.warn(InconsistentOutput(self.inputs[i].firstCanidate, candidate, self.inputs[i].pfx))
+      warnings.warn(InconsistentOutput(self.inputs[i].firstCandidate, candidate, self.inputs[i].pfx))
 
   def test(self, candidate, limit=None):
     self.testCount += 1

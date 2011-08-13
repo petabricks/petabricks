@@ -228,11 +228,12 @@ public:
   ///
   /// A region is considered normalized if it occupies the entire buffer and is organized so that
   /// a N-dimensional buffer is laid out as sequential (N-1)-dimensional buffers.
-  MatrixRegion asNormalizedRegion(const IndexT c1[D], const IndexT c2[D]) const
+  MatrixRegion asNormalizedRegion() const
   {
     bool copyData = true;
-    if(isEntireBuffer() &&  intervalSize(c1, c2) == count())
+    if(isEntireBuffer()) {
       return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
+    }
 
     MutableMatrixRegion t = MutableMatrixRegion::allocate((IndexT*)this->sizes());
     if( copyData ) {
@@ -242,6 +243,23 @@ public:
         t.cell(coord) = this->cell(coord);
       } while(this->incCoord(coord)>=0);
     }
+    return t;
+  }
+
+  ///
+  /// Decide to make a copy or return the orginal for making GPU buffer.
+  MatrixRegion asGpuBuffer(const IndexT c1[D], const IndexT c2[D]) const
+  {
+    if(isEntireBuffer() &&  intervalSize(c1, c2) == count()) {
+      return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
+    }
+
+    MutableMatrixRegion t = MutableMatrixRegion::allocate((IndexT*)this->sizes());
+    IndexT coord[D];
+    memset(coord, 0, sizeof coord);
+    do {
+      t.cell(coord) = this->cell(coord);
+    } while(this->incCoord(coord)>=0);
     return t;
   }
 
@@ -258,14 +276,19 @@ public:
   void copyTo(const MutableMatrixRegion& dst,const IndexT c1[D], const IndexT c2[D])
   {
     JASSERT(this->count()==dst.count());
+    //if(this->base() == dst.base()) return;
+    if(this->base() == dst.base()) {
+      bool same = true;
+      for(int i = 0; i < D; i++) {
+        if(this->multipliers()[i] != dst.multipliers()[i])
+          same = false;
+      }
+      if(same) return;
+    }
     IndexT coord[D];
     memcpy(coord, c1, sizeof coord);
     do {
       dst.cell(coord) = this->cell(coord);
-      //printf("coord = ");
-      //for(int i=0;i<D;i++)
-      //  printf("%d ", coord[i]);
-      //printf("\n");
     } while(this->incCoordWithBound(coord, c1, c2)>=0);
   }
 

@@ -6,7 +6,15 @@
 #include "../simple/copy.pbcc"
 
 %{
-    extern "C" void dtrsm_(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, double *alpha, double *A, const int *lda, double *B, const int *ldb);
+extern "C" void dtrsm_(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, double *alpha, double *A, const int *lda, double *B, const int *ldb);
+extern "C" void strsm_(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, float *alpha, float *A, const int *lda, float *B, const int *ldb);
+
+void trsm_wrap(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, double *alpha, double *A, const int *lda, double *B, const int *ldb) {
+  dtrsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
+}
+void trsm_wrap(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, float *alpha, float *A, const int *lda, float *B, const int *ldb) {
+  strsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
+}
 %}
 
 transform LUtrisolve
@@ -21,12 +29,12 @@ to OUT[n,m]
 	char side = 'L', uplo = 'L', transa = 'N', diag = 'U';  
 	const int lda = m;
 	const int ldb = m;
-	double alpha = 1;
-        double *A = NULL;
-	double *B = NULL;
+	ElementT alpha = 1;
+  ElementT *A = NULL;
+	ElementT *B = NULL;
 
-        A = new double[m * m];
-	B = new double[m * n];
+  A = new ElementT[m * m];
+	B = new ElementT[m * n];
         if (!A || !B) {
             printf("Error allocating memory!\n");
             exit(-1);
@@ -48,7 +56,7 @@ to OUT[n,m]
         }
 
 
-        dtrsm_(&side, &uplo, &transa, &diag, &m, &n, &alpha, A, &lda, B, &ldb);
+        trsm_wrap(&side, &uplo, &transa, &diag, &m, &n, &alpha, A, &lda, B, &ldb);
 
         // unpack output
         for (i = 0; i < n; ++i) {

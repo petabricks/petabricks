@@ -1,0 +1,44 @@
+/* Given a 3D matrix x,y,z, project it along the x dimension
+ * Every point of the resulting y,z matrix contains 1 if 
+ * exists x  s.t.  x,y,z > 0
+ */
+transform Project3Don2D
+from IN[x,y,z]
+through WORK[x,y,z]
+to OUT[y,z]
+{
+  /* TODO: this syntax is unsupported because of problems on cx
+   * Probably because cx is unqualified. It should be expanded to include every 
+   * possible cx
+  OUT.cell(cy,cz) from(IN.cell(cx,cy,cz) in, OUT.cell(cy,cz) oldOut) {
+    if (in > 0) {
+      return 1;
+    }
+    
+    return oldOut;
+  }
+  */
+  
+  
+  WORK.cell(0,cy,cz) from(IN.cell(0,cy,cz) inputCell) {
+    if (inputCell > 0) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+  
+  WORK.cell(cx,cy,cz) from(IN.cell(cx,cy,cz) inputCell, WORK.cell(cx-1,cy,cz) oldOut) {
+    if (inputCell > 0) {
+      return 1;
+    }
+    
+    return oldOut;
+  }
+  
+  OUT.cell(cy,cz) from(WORK.cell(x-1,cy,cz) inputCell) {
+    return inputCell;
+    
+  }
+  
+}

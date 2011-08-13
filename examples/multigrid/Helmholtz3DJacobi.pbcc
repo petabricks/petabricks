@@ -30,9 +30,9 @@ to OUT[n,n,n]
                         ALPHA alpha, BETA beta,
                         DX dx, WEIGHT w)
   {
-    double dxSq = dx * dx;
-    double K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
-    double newVal = (beta / dxSq * (bwe * we + bea * ea + bno * no +
+    ElementT dxSq = dx * dx;
+    ElementT K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
+    ElementT newVal = (beta / dxSq * (bwe * we + bea * ea + bno * no +
                                     bso * so + bfr * fr + bba * ba) + rhs) / K;
     return (1 - w) * me + w * newVal;
   }
@@ -58,7 +58,7 @@ to OUT[n,n,n]
                         ALPHA alpha, BETA beta,
                         DX dx, WEIGHT w)
   {
-    double we, ea, no, so, fr, ba;
+    ElementT we, ea, no, so, fr, ba;
 
     we = (IS_MISSING(r_we) ? -me : r_we);
     ea = (IS_MISSING(r_ea) ? -me : r_ea);
@@ -67,9 +67,9 @@ to OUT[n,n,n]
     fr = (IS_MISSING(r_fr) ? -me : r_fr);
     ba = (IS_MISSING(r_ba) ? -me : r_ba);
 
-    double dxSq = dx * dx;
-    double K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
-    double newVal = (beta / dxSq * (bwe * we + bea * ea + bno * no +
+    ElementT dxSq = dx * dx;
+    ElementT K = alpha * a + beta / dxSq * (bwe + bea + bno + bso + bfr + bba);
+    ElementT newVal = (beta / dxSq * (bwe * we + bea * ea + bno * no +
                                     bso * so + bfr * fr + bba * ba) + rhs) / K;
     return (1 - w) * me + w * newVal;
   }

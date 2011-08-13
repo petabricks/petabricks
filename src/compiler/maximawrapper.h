@@ -175,6 +175,12 @@ public:
     return rslt==YES;
   }
 
+  bool comparePessimistically(const FormulaPtr& a, const char* op, const FormulaPtr& b){
+    tryCompareResult rslt = tryCompare(a,op,b);
+    //True on YES, false on NO or UNKNOWN
+    return rslt==YES;
+  }
+  
   tryCompareResult tryCompare(const FormulaPtr& a, const char* op, const FormulaPtr& b){
     std::string aStr = a->toString();
     std::string bStr = b->toString();

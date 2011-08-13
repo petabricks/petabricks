@@ -36,14 +36,16 @@
 #include <map>
 
 #ifdef HAVE_CONFIG_H
-# include "config.h"
+#include "config.h"
 #endif
 
 namespace petabricks {
 
 class MatrixDependency;
 typedef jalib::JRef<MatrixDependency> MatrixDependencyPtr;
-class MatrixDependencyMap : public jalib::JRefCounted, public std::map<MatrixDefPtr, MatrixDependencyPtr> {};
+class MatrixDependencyMap : public jalib::JRefCounted, public jalib::JPrintable, public std::map<MatrixDefPtr, MatrixDependencyPtr> {
+  void print(std::ostream& o) const;
+};
 
 class DependencyDirection :  public jalib::JPrintable {
 public:
@@ -68,16 +70,21 @@ public:
   /// Add a dependency in a given direction on a given dimension
   void addDirection(size_t dim, DirectionT dir);
 
+  void addDirection(const DependencyDirection& that){
+    *this=DependencyDirection(*this,that);
+  }
+
+  ///
+  /// Remove a dependency on the given dimension
+  void removeDimension(const size_t dimension);
+  
   void print(std::ostream& o) const;
 
   size_t size() const;
 
   DirectionT operator[](size_t dim) const ;
 
-  void addDirection(const DependencyDirection& that){
-    *this=DependencyDirection(*this,that);
-  }
-
+  
   bool operator!= ( const DependencyDirection& that ) const {
      return _directionMask!=that._directionMask;
   }
@@ -87,6 +94,14 @@ public:
       if( (_directionMask[i]&D_MULTIOUTPUT) != 0 )
         return true;
     return false;
+  }
+
+  bool isNone() const {
+    for(size_t i=0; i<_directionMask.size(); ++i)
+      if( _directionMask[i] != 0 ) {
+        return false;
+			}
+    return true;
   }
 
   std::string toCodeStr() const;
@@ -109,6 +124,9 @@ public:
   const SimpleRegionPtr& region() const { return _region; }
 
   const DependencyDirection& direction() const { return _direction; }
+  
+  void removeDimension(const size_t dimension);
+  
 private:
   DependencyDirection _direction;
   SimpleRegionPtr     _region;

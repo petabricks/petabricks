@@ -132,6 +132,35 @@ private:
   RuleChoiceAssignment _choiceAssignment;
 };
 
+namespace {
+  void reachFirstValidRuleFromHere(ChoiceDepGraphNodeList::iterator& _nodesIt,
+                                   ChoiceDepGraphNodeList::iterator& _nodesEnd,
+                                   RuleSet::iterator& _rulesIt) {
+    if (_rulesIt != (*_nodesIt)->choices().end()) {
+        //The rule is already valid
+        return;
+      }
+      
+    //This set of rules is finished! Let's go to the next one
+    bool found;
+    do {
+      found=true;
+      _nodesIt++;
+      
+      if (_nodesIt == _nodesEnd) {
+        //No more rules!!
+        break;
+      }
+      
+      _rulesIt=(*_nodesIt)->choices().begin();
+      
+      if (_rulesIt == (*_nodesIt)->choices().end()) {
+        found=false;
+      }
+    } while(!found);
+  }
+}
+
 /**
  * Create a manage a set of legal schedules
  */
@@ -139,6 +168,65 @@ class StaticScheduler : public jalib::JRefCounted,
                         public jalib::JPrintable,
                         public jalib::SrcPosTaggable
 {
+public:
+  class rule_iterator;
+  friend class rule_iterator;
+  class rule_iterator {
+  public:
+    rule_iterator(StaticScheduler& scheduler) {
+      _nodesEnd = scheduler._allNodes.end();
+      _nodesIt = scheduler._allNodes.begin();
+      if (_nodesIt == _nodesEnd) {
+        //There are no node and therefore no rules
+        return;
+      } 
+      else {
+        _rulesIt = (*_nodesIt)->choices().begin();
+        reachFirstValidRuleFromHere(_nodesIt, _nodesEnd, _rulesIt);
+      }
+    }
+    
+    rule_iterator(ChoiceDepGraphNodeList::iterator nodesIt) 
+                 : _nodesIt(nodesIt) {}
+  
+    void operator++ () {
+      if (_nodesIt == _nodesEnd) {
+        //The iterator is already at the end. Nothing to do
+        return;
+      }
+      
+      _rulesIt++;
+      reachFirstValidRuleFromHere(_nodesIt, _nodesEnd, _rulesIt);
+    }
+    
+    bool operator== (rule_iterator& that) {
+      return _nodesIt==that._nodesIt && (_nodesIt==_nodesEnd
+                                         || _rulesIt==that._rulesIt);
+    }
+    
+    bool operator !=(rule_iterator& that) {
+      return ! (*this==that);
+    }
+    
+    RulePtr operator*() {
+      return *_rulesIt;
+    }
+    
+  private:
+    ChoiceDepGraphNodeList::iterator _nodesIt;
+    ChoiceDepGraphNodeList::iterator _nodesEnd;
+    RuleSet::iterator _rulesIt;
+  };
+
+public:
+  rule_iterator rule_begin() {
+    return rule_iterator(*this);
+  }
+    
+  rule_iterator rule_end() {
+    return rule_iterator(_allNodes.end());
+  }
+    
 public:
   class CantScheduleException {};
 
@@ -190,6 +278,45 @@ public:
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor type);
 
   int size() const { return _allNodes.size() - _inputsOriginal.size(); }
+
+private:
+  
+  struct DataDepSetCompare {
+    bool operator() (const CoordinateFormula* a, const CoordinateFormula* b) const;
+  };
+  
+  class DataDependencySet : public std::set<CoordinateFormula*,DataDepSetCompare> {
+  public:
+    /**
+     * Return true if the given dimension is equal to value in al the data 
+     * dependency vectors in the set
+     */
+    bool isDimensionDependencyAlwaysEqualTo(size_t dimension, int value) const;
+  };
+  
+  enum DimensionStatus {
+    ALWAYS_MINUS1,
+    ALWAYS_ZERO,
+    OTHER
+  };
+  
+  typedef std::map<MatrixDefPtr, DataDependencySet> MatrixDataDependencyMap;
+
+private:
+  void removeUselessDimensions();
+  void removeUselessDimensions(std::vector<size_t> uselessDimensions, 
+                               MatrixDefPtr matrix);
+  void importDataDepsFromRule(RulePtr& rule, 
+                              MatrixDataDependencyMap& dataDepsMap);
+  std::vector<size_t> findUselessDimensions(
+                                    const DataDependencySet matrixDependencies,
+                                    const MatrixDefPtr matrix);
+                                    
+  void filterNonSelfDependentAccesses(std::vector<size_t>& uselessDimensions,
+                                      const MatrixDefPtr matrix);
+  MatrixDataDependencyMap getDataDepsForTemporaryMatrixes ();
+  
+  void fixVersionedRegionsType();
 private:
   //storage of nodes
   std::map<MatrixDefPtr, ChoiceDepGraphNodeList> _matrixToNodes;

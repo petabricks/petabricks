@@ -10,7 +10,7 @@ to OUTR[n], OUTI[n]
       to (OUTR.cell(i) outr, OUTI.cell(i) outi) from (AR.cell(i) a, AI.cell(i) b, BR.cell(i) c, BI.cell(i) d)
       {
         //3-mul complex multiply
-        double ac, bd, abcd;
+        ElementT ac, bd, abcd;
         ac = a*c;
         bd = b*d;
         abcd = (a+b)*(c+d);
