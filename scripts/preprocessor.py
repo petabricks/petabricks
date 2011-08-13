@@ -284,11 +284,15 @@ def p_define_base(p):
 
 def p_define(p):
   'define : DEFINE ID'
+  if not define_on[-1]:
+    return
   current_dict = define_dict_list[-1]
   current_dict[p[2]] = ""
 
 def p_define_macro(p):
   'define : DEFINE ID LPAREN id_list RPAREN LINE'
+  if not define_on[-1]:
+    return
   current_dict = macro_dict_list[-1]
   template = generate_template(p[4], p[6])
   template = (template[0], template[1], 'expression')
@@ -299,6 +303,8 @@ def p_define_macro(p):
 
 def p_define_const(p):
   'define : DEFINE ID LINE'
+  if not define_on[-1]:
+    return
   current_dict = define_dict_list[-1]
   current_dict[p[2]] = p[3]
 
@@ -307,6 +313,8 @@ def p_define_un(p):
 	    | UNDEF ID LPAREN id_list RPAREN
 	    | UNDEF ID LPAREN id_list RPAREN LINE
 	    | UNDEF ID LINE'''
+  if not define_on[-1]:
+    return
   current_dict = define_dict_list[-1]
   if p[2] in current_dict:
     del current_dict[p[2]]
@@ -326,6 +334,7 @@ def p_id_list_base(p):
 #----------------------------------------------------
 # ifdef ifndef if elif				   
 #----------------------------------------------------
+neg = False
 
 def p_ifdefs(p):
   'ifdefs : ifdef'
@@ -345,13 +354,19 @@ def p_ifdef(p):
     p[0] = p[4]
 
 def p_ifndef(p):
-  '''ifdef : IFNDEF cond_id petabricks elif_block
-	   | IFNDEF cond_id body elif_block
-	   | IFNDEF cond_id transform_headers elif_block'''
+  '''ifdef : ifndef cond_id petabricks elif_block
+	   | ifndef cond_id body elif_block
+	   | ifndef cond_id transform_headers elif_block'''
   if p[2]: # true when define
     p[0] = p[4]
   else:
     p[0] = p[3]
+
+def p_ifndef_key(p):
+  'ifndef : IFNDEF'
+  p[0] = p[1]
+  global neg
+  neg = True
 
 def p_if(p):
   '''ifdef : IF cond_number petabricks elif_block
@@ -363,39 +378,72 @@ def p_if(p):
     p[0] = p[4]
 
 def p_elif_block(p):
-  '''elif_block : ELIF cond_number petabricks elif_block
-	        | ELIF cond_number body elif_block
-		| ELIF cond_number transform_headers elif_block'''
+  '''elif_block : elif cond_number petabricks elif_block
+                | elif cond_number body elif_block
+                | elif cond_number transform_headers elif_block'''
   if p[2]: # true when != 0
     p[0] = p[3]
   else:
     p[0] = p[4]
 
 def p_elif_block_else(p):
-  '''elif_block : ELSE petabricks ENDIF
-		| ELSE body ENDIF
-		| ELSE transform_headers ENDIF'''
+  '''elif_block : else petabricks endif
+                | else body endif
+                | else transform_headers endif'''
   p[0] = p[2]
 
 def p_elif_block_endif(p):
-  'elif_block : ENDIF'
+  'elif_block : endif'
   p[0] = []
 
 def p_cond_id(p):
   'cond_id : ID'
   p[0] = p[1] in define_dict_list[-1]
+  append_define_on(p[0])
 
 def p_cond_id_line(p):
   'cond_id : LINE'
   p[0] = p[1] in define_dict_list[-1]
+  append_define_on(p[0])
 
 def p_cond_number(p):
   'cond_number : OTHER'
   p[0] = int(p[1])
+  append_define_on(p[0] != 0)
 
 def p_cond_number_line(p):
   'cond_number : LINE'
   p[0] = int(p[1])
+  append_define_on(p[0] != 0)
+
+def p_elif(p):
+  'elif : ELIF'
+  p[0] = p[1]
+  define_on.pop()
+
+def p_else(p):
+  'else : ELSE'
+  p[0] = p[1]
+  last = define_on.pop()
+  append_define_on(not last)
+
+def p_endif(p):
+  'endif : ENDIF'
+  p[0] = p[1]
+  define_on.pop()
+
+# helper function
+def append_define_on(x):
+  if not define_on[-1]:
+    define_on.append(False)
+    return
+
+  global neg
+  if neg:
+    define_on.append(not x)
+  else:
+    define_on.append(x)
+  neg = False
 
 #----------------------------------------------------
 # transform				   
@@ -629,7 +677,8 @@ def p_num_list_string(p):
   p[0] = p[1] + ',' + p[3]
 
 def p_num_list_string_base(p):
-  'num_list_string : OTHER'
+  '''num_list_string : OTHER
+                     | ID'''
   p[0] = p[1]
 
 def p_matrix_list(p):
@@ -985,6 +1034,7 @@ define_dict_list = []
 macro_dict_list = []
 define_dict_map = {}
 macro_dict_map = {}
+define_on = [True]
 
 current_file = ""
 current_line = 0
