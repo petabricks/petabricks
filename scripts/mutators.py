@@ -283,12 +283,16 @@ class GenericTunableMutator(Mutator):
     self.tname            = tunable['tname']
     self.vname            = tunable['vname']
     self.size             = intorfloat(tunable['size'])
-    if type(tunable['min']) == type([]):
-      self.minVal = map(intorfloat, tunable['min'])
-      self.maxVal = map(intorfloat, tunable['max'])
-    else:
-      self.minVal = intorfloat(tunable['min'])
-      self.maxVal = intorfloat(tunable['max'])
+    self.minVal           = tunable['min']
+    self.maxVal           = tunable['max']
+
+    # make sure minVal and maxVal are lists
+    if type(tunable['min']) != type([]):
+        self.minVal = [self.minVal]
+        self.maxVal = [self.maxVal]
+
+    self.minVal = map(intorfloat, self.minVal)
+    self.maxVal = map(intorfloat, self.maxVal)
 
 #    print "Created GenericTunableMutator"
 #    print "  arrayFlag = %s" % self.arrayFlag
@@ -351,22 +355,14 @@ class GenericTunableMutator(Mutator):
       ks = set(candidate.config.keys())
       assert self.tunableName(0, i) in ks
       while self.tunableName(0, i) in ks:
-        if self.arrayFlag:
-          for j in range(0, self.size):
-            if candidate.config[self.tunableName(j, i)] < self.minVal[j]:
-              candidate.config[self.tunableName(j, i)] = self.minVal[j] + 0
-        else:
-          if candidate.config[self.tunableName(0, i)] < self.minVal:
-            candidate.config[self.tunableName(0, i)] = self.minVal + 0
+        for j in range(0, self.size):
+          if candidate.config[self.tunableName(j, i)] < self.minVal[j]:
+            candidate.config[self.tunableName(j, i)] = self.minVal[j] + 0
         i+=1
     else:
-      if self.arrayFlag:
-        for j in range(0, self.size):
-          if candidate.config[self.tunableName(j, 0)] < self.minVal[j]:
-            candidate.config[self.tunableName(j, 0)] = self.minVal[j] + 0
-      else:
-        if candidate.config[self.tunableName(0, 0)] < self.minVal:
-          candidate.config[self.tunableName(0, 0)] = self.minVal + 0
+      for j in range(0, self.size):
+        if candidate.config[self.tunableName(j, 0)] < self.minVal[j]:
+          candidate.config[self.tunableName(j, 0)] = self.minVal[j] + 0
 
 class LognormTunableSizeSpecificMutator(TunableSizeSpecificMutator, LognormRandom):
   pass
