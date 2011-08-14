@@ -365,9 +365,7 @@ def createTunableMutators(candidate, ta, weight):
     ms[-1].reset(candidate)
     return ms
   elif ta['type'] in config.optimize_tunable_types:
-    tname = ta['tname'] # transform name
-    vname = ta['vname'] # variable name
-    return [mutators.OptimizeTunableSizeSpecificArrayMutator(tname, vname, size, l, h, weight=weight)]
+    return [mutators.OptimizeTunableMutator(ta, weight=weight)]
   elif ta['type'] in config.ignore_tunable_types:
     pass
   else:
@@ -384,19 +382,25 @@ def createChoiceSiteMutators(candidate, info, ac, weight):
   #ms.append(mutators.ShuffleCutoffsChoiceSiteMutator(transform, ac['number'], weight=weight))
   return ms
 
+# Identify tunables that should be grouped into arrays for mutators that act
+# on arrays of values rather than scalars
 def groupTunables(transformName, tunables):
   names = map(lambda x: x['name'], tunables)
   tunableSets = [] # return value
   tunableIndex = {} # index to unique tunables by variable name
   for name, tunable in zip(names, tunables):
+    tunable['sizeSpecificFlag'] = tunable['type'] in config.sizespecific_tunable_types
     m = re.match('^%s_i(\d+)_(\w+)$' % transformName, name)
-    if m:
+    # for now, only group tunables that are optimizable into an array
+    if m and tunable['type'] in config.optimize_tunable_types:
       (index, varName) = m.group(1, 2)
       index = int(index)
 #      print "Matched array tunable: %s[%d]" % (varName, index)
+#      print "  Size-specific: %s" % tunable['sizeSpecificFlag']
       if not varName in tunableIndex:
         assert(index == 0)
         tunableIndex[varName] = tunable
+        tunable['arrayFlag'] = True
         tunable['tname'] = transformName
         tunable['vname'] = varName
         tunable['size'] = 1
@@ -414,6 +418,7 @@ def groupTunables(transformName, tunables):
         arrayTunable['max'].append(tunable['max'])
     else:
 #      print "Adding non-array tunable: %s" % name
+      tunable['arrayFlag'] = False
       tunable['size'] = 1
       tunableSets.append(tunable)
   return tunableSets

@@ -267,51 +267,106 @@ class TunableSizeSpecificMutator(Mutator):
         candidate.config[config.fmt_bin % (self.tunable, i)] = self.minVal+0
       i+=1
 
-class TunableSizeSpecificArrayMutator(Mutator):
-  def __init__(self, tname, vname, size, minVal, maxVal, weight=1.0):
-    self.size = size
-    self.tname = tname
-    self.vname = vname
-    self.minVal = minVal
-    self.maxVal = maxVal
+def intorfloat(v):
+  try:
+    return int(v)
+  except:
+    return float(v)
+
+class GenericTunableMutator(Mutator):
+  def __init__(self, tunable, weight=1.0):
+
+    # get info from tunable object
+    self.arrayFlag        = tunable['arrayFlag']
+    self.sizeSpecificFlag = tunable['sizeSpecificFlag']
+    self.name             = tunable['name']
+    self.tname            = tunable['tname']
+    self.vname            = tunable['vname']
+    self.size             = intorfloat(tunable['size'])
+    if type(tunable['min']) == type([]):
+      self.minVal = map(intorfloat, tunable['min'])
+      self.maxVal = map(intorfloat, tunable['max'])
+    else:
+      self.minVal = intorfloat(tunable['min'])
+      self.maxVal = intorfloat(tunable['max'])
+
+#    print "Created GenericTunableMutator"
+#    print "  arrayFlag = %s" % self.arrayFlag
+#    print "  sizeSpecificFlag = %s" % self.sizeSpecificFlag
+#    print "  name = %s" % self.name
+#    print "  tname = %s" % self.tname
+#    print "  vname = %s" % self.vname
+#    print "  size = %s" % self.size
+#    print "  minVal =", self.minVal
+#    print "  maxVal =", self.maxVal
+
     Mutator.__init__(self, weight)
 
   # returns tunable name for given variable index and transform input size
   def tunableName(self, index, n):
-    return config.fmt_bin2D % (self.tname, index, self.vname, n)
+    if self.arrayFlag and self.sizeSpecificFlag:
+      return config.fmt_bin2D % (self.tname, index, self.vname, n)
+    elif self.sizeSpecificFlag:
+      return config.fmt_bin % (self.name, n)
+    elif self.arrayFlag:
+      return config.fmt_array % (self.tname, index, self.vname)
+    else:
+      return self.name
 
   def getVal(self, candidate, oldVal, inputSize):
     return self.random(oldVal, self.minVal, self.maxVal, candidate = candidate)
 
   def setVal(self, candidate, newVal, n):
-    i = int(math.log(n, 2))
-    candidate.clearResultsAbove(min(n, 2**i-1))
-    ks = set(candidate.config.keys())
-    assert self.tunableName(0, i) in ks
-    while self.tunableName(0, i) in ks:
+    if type(newVal) == type(0) or type(newVal) == type(0.):
+      newVal = [newVal]
+    if self.sizeSpecificFlag:
+      i = int(math.log(n, 2))
+      candidate.clearResultsAbove(min(n, 2**i-1))
+      ks = set(candidate.config.keys())
+      assert self.tunableName(0, i) in ks
+      while self.tunableName(0, i) in ks:
+        for j in range(0, self.size):
+          candidate.config[self.tunableName(j, i)] = newVal[j]
+        i+=1
+    else:
       for j in range(0, self.size):
-        candidate.config[self.tunableName(j, i)] = newVal[j]
-      i+=1
+        candidate.config[self.tunableName(j, 0)] = newVal[j]
 
   def mutate(self, candidate, n):
     i = int(math.log(n, 2))
-    old = []
-    for j in range(0, self.size):
-      old.append(candidate.config[self.tunableName(j, i)])
+    if self.arrayFlag:
+      old = []
+      for j in range(0, self.size):
+        old.append(candidate.config[self.tunableName(j, i)])
+    else:
+      old = candidate.config[self.tunableName(0, i)]
     new = self.getVal(candidate, old, n)
-    #print str(candidate),self.tunable, old, new
+#    print str(candidate),self.name, old, new
     self.setVal(candidate, new, n)
 
   def reset(self, candidate):
     candidate.clearResults()
-    i = 0
-    ks = set(candidate.config.keys())
-    assert self.tunableName(0, i) in ks
-    while self.tunableName(0, i) in ks:
-      for j in range(0, self.size):
-        if candidate.config[self.tunableName(j, i)] < self.minVal[j]:
-          candidate.config[self.tunableName(j, i)] = self.minVal[j] + 0
-      i+=1
+    if self.sizeSpecificFlag:
+      i = 0
+      ks = set(candidate.config.keys())
+      assert self.tunableName(0, i) in ks
+      while self.tunableName(0, i) in ks:
+        if self.arrayFlag:
+          for j in range(0, self.size):
+            if candidate.config[self.tunableName(j, i)] < self.minVal[j]:
+              candidate.config[self.tunableName(j, i)] = self.minVal[j] + 0
+        else:
+          if candidate.config[self.tunableName(0, i)] < self.minVal:
+            candidate.config[self.tunableName(0, i)] = self.minVal + 0
+        i+=1
+    else:
+      if self.arrayFlag:
+        for j in range(0, self.size):
+          if candidate.config[self.tunableName(j, 0)] < self.minVal[j]:
+            candidate.config[self.tunableName(j, 0)] = self.minVal[j] + 0
+      else:
+        if candidate.config[self.tunableName(0, 0)] < self.minVal:
+          candidate.config[self.tunableName(0, 0)] = self.minVal + 0
 
 class LognormTunableSizeSpecificMutator(TunableSizeSpecificMutator, LognormRandom):
   pass
@@ -333,12 +388,11 @@ class ScaleTunableSizeSpecificMutator(TunableSizeSpecificMutator):
   def random(self, oldVal, minVal, maxVal, candidate = None):
     return min(maxVal, max(minVal, oldVal*self.inc))
 
-class OptimizeTunableSizeSpecificArrayMutator(TunableSizeSpecificArrayMutator):
+class OptimizeTunableMutator(GenericTunableMutator):
 
-  def __init__(self, tname, vname, size, minVal, maxVal, weight=1.0):
-    TunableSizeSpecificArrayMutator.__init__(self, tname, vname, size, minVal, maxVal, weight)
-    f = self.measureAccuracy
-    self.o = optimize.CachedBFGSOptimizer(f, minVal, maxVal)
+  def __init__(self, tunable, weight=1.0):
+    GenericTunableMutator.__init__(self, tunable, weight)
+    self.o = optimize.CachedBFGSOptimizer(self.measureAccuracy, self.minVal, self.maxVal)
 
   def measureAccuracy(self, value, candidate, n):
     self.setVal(candidate, value, n)
@@ -349,7 +403,6 @@ class OptimizeTunableSizeSpecificArrayMutator(TunableSizeSpecificArrayMutator):
 
   def random(self, oldVal, minVal, maxVal, candidate):
     n = candidate.pop.testers[-1].n
-    self.o.clearCache()
     return self.o.optimize(oldVal, args = (candidate, n), maxiter = 1)
 
 class MultiMutator(Mutator):

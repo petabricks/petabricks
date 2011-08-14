@@ -33,6 +33,7 @@ check_exclude=[
          "kernel/nwkde",                  # (Variable accuracy)
          "kernel/nwkdeVA",                # (Variable accuracy)
 
+         "regression/floattunables",
          "regression/floattunables2",
     ]
 
