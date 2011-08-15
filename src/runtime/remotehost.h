@@ -55,6 +55,13 @@ class RemoteHost;
 typedef RemoteHost* RemoteHostPtr;
 typedef std::vector<RemoteHostPtr> RemoteHostList;
 
+struct RemoteHostWeightListItem {
+  RemoteHostPtr host;
+  double weight;
+};
+typedef std::vector<RemoteHostWeightListItem> RemoteHostWeightList;
+
+
 struct HostPid {
   long hostid;
   pid_t pid;

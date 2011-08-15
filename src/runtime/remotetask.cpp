@@ -27,6 +27,7 @@
 #include "remotetask.h"
 
 #include "petabricksruntime.h"
+#include <map>
 
 void petabricks::RemoteTask::enqueueRemote(RemoteHost& host) {
   size_t len = serialSize();
@@ -56,11 +57,29 @@ void petabricks::RemoteTask::enqueueLocal() {
 void petabricks::RemoteTask::remoteScheduleTask() {
   //JTRACE("remote schedule");
 #ifdef REGIONMATRIX_TEST
-  if (0 == petabricks::PetabricksRuntime::randInt(0,2)) {
-    enqueueRemote(*RemoteHostDB::instance().host(0));
-  } else {
-    enqueueLocal();
+  RemoteHostPtr toHost;
+  int maxCount = 0;
+
+  RemoteHostList hosts = getDataHosts();
+
+  std::map<RemoteHostPtr, int> map;
+  for (RemoteHostList::iterator it = hosts.begin(); it < hosts.end(); it++) {
+    map[*it] += 1;
+    if (map[*it] > maxCount) {
+      toHost = *it;
+      maxCount = map[*it];
+    }
   }
+
+//   if (0 == petabricks::PetabricksRuntime::randInt(0,20)) {
+//     enqueueRemote(*RemoteHostDB::instance().host(0));
+//   } else {
+    if (toHost) {
+      enqueueRemote(*toHost);
+    } else {
+      enqueueLocal();
+    }
+//   }
 #else
   enqueueLocal();
 #endif
