@@ -24,7 +24,7 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-
+#ifdef HAVE_OPENCL
 #include "petabricksruntime.h"
 #include "gpudynamictask.h"
 #include "gpumanager.h"
@@ -44,3 +44,4 @@ void GpuDynamicTask::remoteScheduleTask() {
 }
 
 }
+#endif

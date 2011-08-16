@@ -354,15 +354,6 @@ public:
   /// Copy that data of this to dst
   void copyTo(const MutableMatrixRegion& dst)
   {
-    /*if(this->base() == dst.base()) {
-      //std::cout << "COPY TO:: Not copying ^^" << std::endl;
-      bool same = true;
-      for(int i = 0; i < D; i++) {
-        if(this->multipliers()[i] != dst.multipliers()[i])
-          same = false;
-      }
-      if(same) return;
-    }*/
     if(this->storage() == dst.storage())
       return;
     //std::cout << "COPY TO:: copy" << std::endl;
@@ -373,17 +364,9 @@ public:
   }
   
   ///
-  /// Copy that data of this to dst
+  /// Copy that data within the boundary c1 and c2 of this to dst
   void copyTo(const MutableMatrixRegion& dst,const IndexT c1[D], const IndexT c2[D])
   {
-    /*if(this->base() == dst.base()) {
-      bool same = true;
-      for(int i = 0; i < D; i++) {
-        if(this->multipliers()[i] != dst.multipliers()[i])
-          same = false;
-      }
-      if(same) return;
-    }*/
 #ifdef GPU_TRACE
     std::cout << "copyTo boundary" << std::endl;
     for(int i = 0; i < D; i++)
@@ -402,7 +385,7 @@ public:
   }
 
   ///
-  /// Copy that data of this to dst
+  /// Copy that data within the given boundaries of this to dst
   void copyTo(const MutableMatrixRegion& dst,std::vector<IndexT*>& begins, std::vector<IndexT*>& ends)
   {
     JASSERT(begins.size() == ends.size())(begins.size())(ends.size());

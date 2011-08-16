@@ -24,6 +24,7 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
+#ifdef HAVE_OPENCL
 #ifndef PETABRICKSGPUSPECIALIZEDTASK_H
 #define PETABRICKSGPUSPECIALIZEDTASK_H
 
@@ -47,7 +48,7 @@
 namespace petabricks {
 
 /**
- * A task that calls a method on a given object, with a given region
+ * A gpu task that calls a method on a given object, with a given region
  */
 template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D])>
 class GpuSpatialMethodCallTask : public GpuDynamicTask {
@@ -59,8 +60,7 @@ public:
     memcpy(_end,   end,   sizeof _end);
   }
 
-  DynamicTaskPtr run(){    
-    //std::cerr << "+++++++++++++ RUN" << std::endl;
+  DynamicTaskPtr run(){
     JASSERT(_state == S_REMOTE_READY)(_state);
     return ((*_obj).*(method))(_begin, _end);
   }
@@ -72,7 +72,7 @@ private:
 };
 
 /**
- * A task that calls a method on a given object, with a given list of regions
+ * A gpu task that calls a method on a given object, with a given list of regions amd node ID
  */
 template< typename T, int D, DynamicTaskPtr (T::*method)(std::vector<IndexT*>& begins, std::vector<IndexT*>& ends, int nodeID)>
 class GpuCopyOutMethodCallTask : public GpuDynamicTask {
@@ -100,5 +100,6 @@ private:
 
 }
 
+#endif
 #endif
 

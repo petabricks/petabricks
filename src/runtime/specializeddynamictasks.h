@@ -100,7 +100,7 @@ private:
 
 #ifdef HAVE_OPENCL
 /**
- * A task that calls a method on a given object, with a given region and gpu CopyOut info
+ * A task that calls a method on a given object, with a given region, task ID, a pointer to RegionNodeGroup map, and a boolean indicating the copy out status
  */
 template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D], int nodeID, RegionNodeGroupMapPtr map, bool gpuCopyOut)>
 class CreateGpuSpatialMethodCallTask : public DynamicTask {

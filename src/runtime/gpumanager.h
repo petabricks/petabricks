@@ -46,31 +46,72 @@ namespace petabricks {
 
 class GpuManager : public jalib::JRefCounted  {
 public:
-
+  ///
+  /// start gpu manager thread
   static void start();
-  static void shutdown();
-  static void mainLoop();
-  static void addTask(GpuDynamicTaskPtr task);
-  static void dummy() {}
 
+  ///
+  /// shut down gpu manager thread
+  static void shutdown();
+
+  ///
+  /// gpu manager's main loop
+  static void mainLoop();
+
+  ///
+  /// enqueue a task
+  static void addTask(GpuDynamicTaskPtr task);
+
+  ///
+  /// a pointer to the current task infomation gpu manager is running
   static GpuTaskInfoPtr _currenttaskinfo;
+
+  ///
+  /// an opencl kernel that gpu manager is currently using
   static cl_kernel _kernel;
+
+  ///
+  /// an opencl command queue that gpu manager is currently using
   static cl_command_queue _queue;
 
 private:
-  /** Class is a singleton. */
+  /** Class is a singleton. **/
   GpuManager() {}
 
+  ///
+  /// run PREPARE task
   static void prepare(GpuDynamicTaskPtr task);
+
+  ///
+  /// run COPYIN task
   static void copyin(GpuDynamicTaskPtr task);
+
+  ///
+  /// run RUN task
   static void run(GpuDynamicTaskPtr task);
+
+  ///
+  /// run COPYOUT task
   static bool copyout(GpuDynamicTaskPtr task);
 
+  ///
+  /// mark if gpu manager is shut down
   static bool _shutdown;
+
+  ///
+  /// a thread that gpu manager is running on
   static pthread_t _thread;
+
+  ///
+  /// task queue
   static std::queue<GpuDynamicTaskPtr> _readytasks;
+
+  ///
+  /// lock for push and pop queue
   static jalib::JMutex  _lock;
 
+  ///
+  /// an opencl context that gpu manager is currently using
   static cl_context _context;
 
 };

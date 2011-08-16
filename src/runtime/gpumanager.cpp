@@ -24,7 +24,7 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-
+#ifdef HAVE_OPENCL
 #include "gpumanager.h"
 #include "openclutil.h"
 #include "dynamicscheduler.h"
@@ -190,3 +190,4 @@ bool GpuManager::copyout(GpuDynamicTaskPtr task) {
 }
 
 }
+#endif

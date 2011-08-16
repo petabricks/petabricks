@@ -27,8 +27,11 @@
 #ifndef PETABRICKSMATRIXSTORAGE_H
 #define PETABRICKSMATRIXSTORAGE_H
 
+#ifdef HAVE_OPENCL
 #include <oclUtils.h>
 #include "openclutil.h"
+#endif
+
 #include <set>
 #include <map>
 
@@ -51,13 +54,14 @@ public:
 
 class MatrixStorage;
 class MatrixStorageInfo;
-class CopyoutInfo;
 typedef jalib::JRef<MatrixStorage> MatrixStoragePtr;
 typedef jalib::JRef<MatrixStorageInfo> MatrixStorageInfoPtr;
 typedef std::vector<MatrixStoragePtr> MatrixStorageList;
 typedef std::vector<std::set<int> > NodeGroups;
+#ifdef HAVE_OPENCL
+class CopyoutInfo;
 typedef jalib::JRef<CopyoutInfo> CopyoutInfoPtr;
-
+#endif
 
 /**
  * The raw data for a Matrix
@@ -157,24 +161,30 @@ public:
 
 #ifdef HAVE_OPENCL
   void modifyOnCpu() { _cpuModify = true; }  //TODO: do I need to use lock?
-  void setName(std::string name) { 
-    _name = name; 
-    //std::cout << "~~~~~~~~~~~~ setName " << _name << std::endl;
-  }
-  // Increase reference count to the gpu mem.
-  // Return true when it's first initialized.
+  void setName(std::string name) { _name = name; }
+
+  ///
+  /// call after run gpu PREPARE task
   bool initGpuMem(cl_context& context);
 
-  // Decrease reference count to the gpu mem.
-  // Return true when it's last reference to gpu mem is removed.
+  ///
+  /// call after run gpu RUN task
   void finishGpuMem(cl_command_queue& queue,int nodeID, RegionNodeGroupMapPtr map);
-  void check(cl_command_queue& queue);
-  CopyoutInfoPtr getCopyoutInfo(int nodeID);
-  void releaseCLMem();
+
+  ///
+  /// store a region that is modified on gpu
   void incCoverage(IndexT* begin, IndexT* end, int size);
+
+  ///
+  /// get a memmory buffer for read buffer from gpu
   MatrixStoragePtr getGpuOutputStoragePtr(int nodeID);
 
+  CopyoutInfoPtr getCopyoutInfo(int nodeID);
+  void releaseCLMem();
+  void check(cl_command_queue& queue);
+
   ssize_t getBaseOffset() { return _baseOffset; }
+
   std::vector<IndexT*>& getBegins() { return _begins; }
   std::vector<IndexT*>& getEnds() { return _ends; }
 
@@ -197,6 +207,8 @@ private:
   bool _hasGpuMem;
   bool _cpuModify;
 
+  ///
+  /// regions that are modified on gpu
   std::vector<IndexT*> _begins;
   std::vector<IndexT*> _ends;
   NodeGroups _completeGroups;
@@ -215,8 +227,7 @@ private:
 #endif
 };
 
-
-
+#ifdef HAVE_OPENCL
 class CopyoutInfo : public jalib::JRefCounted {
   typedef MatrixStorage::IndexT IndexT;
 public:
@@ -236,6 +247,7 @@ private:
   int _coverage;
   bool _done;
 };
+#endif
 
 }
 

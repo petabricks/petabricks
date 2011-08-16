@@ -64,8 +64,17 @@ public:
 
 protected:
   void remoteScheduleTask();
+
+  ///
+  /// indicate which type of gpu task it is
   GpuTaskType _tasktype;
+
+  ///
+  /// a pointer to task information
   GpuTaskInfoPtr _taskinfo;
+
+  ///
+  /// a pointer to matrix storage info when it is a COPYOUT task
   MatrixStorageInfoPtr _storageinfo;
 };
 

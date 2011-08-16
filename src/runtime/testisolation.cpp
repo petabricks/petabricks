@@ -110,7 +110,9 @@ petabricks::TestIsolation* petabricks::SubprocessTestIsolation::masterProcess() 
 bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads) {
   JASSERT(theMasterProcess==NULL);
   _modifications.clear();
+#ifdef HAVE_OPENCL
   GpuManager::shutdown();
+#endif
   DynamicScheduler::cpuScheduler().shutdown();
   int fds[2];
   //JASSERT(pipe(fds) == 0);
@@ -128,7 +130,9 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads) {
     //child
     _fd=fds[1];
     close(fds[0]);
+#ifdef HAVE_OPENCL
     GpuManager::start();
+#endif
     DynamicScheduler::cpuScheduler().startWorkerThreads(workerThreads);
     _settestprocflags();
     jalib::JTunable::setModificationCallback(this); 
