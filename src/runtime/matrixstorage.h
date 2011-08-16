@@ -27,17 +27,17 @@
 #ifndef PETABRICKSMATRIXSTORAGE_H
 #define PETABRICKSMATRIXSTORAGE_H
 
-#ifdef HAVE_OPENCL
-#include <oclUtils.h>
-#include "openclutil.h"
-#endif
-
 #include <set>
 #include <map>
 
 #include "common/jassert.h"
 #include "common/jrefcounted.h"
 #include "common/hash.h"
+
+#ifdef HAVE_OPENCL
+#include <oclUtils.h>
+#include "openclutil.h"
+#endif
 
 namespace petabricks {
 

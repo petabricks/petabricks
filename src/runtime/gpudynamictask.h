@@ -52,15 +52,14 @@ public:
     PREPARE,
     COPYIN,
     RUN,
-    COPYOUT,
-    GEN
+    COPYOUT
   };
 
   GpuTaskType tasktype() { return _tasktype; }
   GpuTaskInfoPtr taskinfo() { return _taskinfo; }
   MatrixStorageInfoPtr storageinfo() { return _storageinfo; }
 
-  GpuDynamicTask(GpuTaskInfoPtr taskinfo, GpuTaskType tasktype = GEN, MatrixStorageInfoPtr info = NULL);
+  GpuDynamicTask(GpuTaskInfoPtr taskinfo, GpuTaskType tasktype, MatrixStorageInfoPtr info = NULL);
 
 protected:
   void remoteScheduleTask();

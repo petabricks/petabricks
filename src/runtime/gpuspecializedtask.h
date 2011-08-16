@@ -53,7 +53,7 @@ namespace petabricks {
 template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D])>
 class GpuSpatialMethodCallTask : public GpuDynamicTask {
 public:
-  GpuSpatialMethodCallTask(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D], GpuTaskInfoPtr taskinfo, GpuTaskType tasktype = GEN, MatrixStorageInfoPtr info = NULL)
+  GpuSpatialMethodCallTask(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D], GpuTaskInfoPtr taskinfo, GpuTaskType tasktype, MatrixStorageInfoPtr info = NULL)
     : GpuDynamicTask(taskinfo,tasktype,info), _obj(obj)
   {
     memcpy(_begin, begin, sizeof _begin);

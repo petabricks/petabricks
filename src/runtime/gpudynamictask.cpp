@@ -24,8 +24,8 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifdef HAVE_OPENCL
 #include "petabricksruntime.h"
+#ifdef HAVE_OPENCL
 #include "gpudynamictask.h"
 #include "gpumanager.h"
 

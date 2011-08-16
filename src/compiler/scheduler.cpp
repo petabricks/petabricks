@@ -99,7 +99,6 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
     for(RegionList::iterator it = from.begin(); it != from.end(); ++it){
       std::vector<int> ids;
       ScheduleT::iterator last = _schedule.end();
-      int count = 0;
       for(ScheduleT::iterator j=_schedule.begin(); j!=i; ++j){
 				//std::cout << "inner: " << &j->node() << std::endl;
         if(j->node().hasOverlappingRegionOnGpu(_choiceAssignment, *it)){
@@ -117,7 +116,6 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
   for(MatrixDefList::iterator it = matrices.begin(); it != matrices.end(); ++it){
     std::vector<int> ids;
     ScheduleT::iterator last = _schedule.end();
-    int count = 0;
     for(ScheduleT::iterator j=_schedule.begin(); j!=_schedule.end(); ++j){
       if(j->node().numOutMatrixOnGpu(_choiceAssignment, *it) > 0){
         j->node().setGpyCopyOut();
