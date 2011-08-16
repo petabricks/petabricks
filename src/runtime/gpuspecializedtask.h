@@ -74,24 +74,28 @@ private:
 /**
  * A task that calls a method on a given object, with a given list of regions
  */
-template< typename T, int D, DynamicTaskPtr (T::*method)(std::vector<IndexT*>& begins, std::vector<IndexT*>& ends)>
+template< typename T, int D, DynamicTaskPtr (T::*method)(std::vector<IndexT*>& begins, std::vector<IndexT*>& ends, int nodeID)>
 class GpuCopyOutMethodCallTask : public GpuDynamicTask {
 public:
   GpuCopyOutMethodCallTask(const jalib::JRef<T>& obj, GpuTaskInfoPtr taskinfo, MatrixStorageInfoPtr info)
     : GpuDynamicTask(taskinfo,COPYOUT,info), _obj(obj)
   {
+    _nodeID = -1;
   }
   DynamicTaskPtr run(){
-    return ((*_obj).*(method))(_begins, _ends);
+    JASSERT(_nodeID != -1)(_nodeID).Text("Forget to set node ID before running.");
+    return ((*_obj).*(method))(_begins, _ends, _nodeID);
   }
-  void setRegions(std::vector<IndexT*>& begins, std::vector<IndexT*>& ends){
+  void setRegions(std::vector<IndexT*>& begins, std::vector<IndexT*>& ends, int nodeID){
     _begins = begins;
     _ends = ends;
+    _nodeID = nodeID;
   }
 private:
   jalib::JRef<T> _obj;
   std::vector<IndexT*> _begins;
   std::vector<IndexT*> _ends;
+  int _nodeID;
 };
 
 }

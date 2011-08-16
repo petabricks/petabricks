@@ -46,7 +46,7 @@ class GpuDynamicTask : public DynamicTask {
 public:
 
   virtual DynamicTaskPtr run() = 0;
-  virtual void setRegions(std::vector<IndexT*>&, std::vector<IndexT*>&){}
+  virtual void setRegions(std::vector<IndexT*>&, std::vector<IndexT*>&, int){}
 
   enum GpuTaskType {
     PREPARE,

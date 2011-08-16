@@ -138,7 +138,9 @@ public:
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor,
-                        int copyFromGpu = 0); 
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        bool gpuCopyOut); 
 
   ///
   /// Return function the name of this rule in the code

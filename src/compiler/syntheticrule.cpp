@@ -65,7 +65,8 @@ void petabricks::SyntheticRule::generateCallCode(const std::string&,
                                                  CodeGenerator& o,
                                                  const SimpleRegionPtr&,
                                                  RuleFlavor,
-                                                 int){
+                                                 std::vector<RegionNodeGroup>&,
+                                                 int, bool){
   o.comment("synthetic generateCallCode");
 }
 

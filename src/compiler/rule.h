@@ -136,7 +136,17 @@ public:
                                 CodeGenerator& o,
                                 const SimpleRegionPtr& region,
                                 RuleFlavor flavor,
-                                int copyFromGpu = 0) = 0; 
+                                std::vector<RegionNodeGroup>& regionNodesGroups,
+                                int nodeID,
+                                bool gpuCopyOut) = 0;
+  void generateCallCode(const std::string& nodename,
+                        Transform& trans,
+                        CodeGenerator& o,
+                        const SimpleRegionPtr& region,
+                        RuleFlavor flavor) {
+    std::vector<RegionNodeGroup> empty;
+    generateCallCode(nodename, trans, o, region, flavor, empty, 0, false);
+  }
   virtual void generateDeclCodeSimple(Transform& trans, CodeGenerator& o) = 0;
   virtual void generateTrampCodeSimple(Transform& trans, CodeGenerator& o) = 0;
   

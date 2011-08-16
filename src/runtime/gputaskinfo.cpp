@@ -30,9 +30,5 @@
 
 namespace petabricks {
 
-GpuTaskInfo::GpuTaskInfo(int copy) {
-  _numcomplete = 0;
-  _copyOut = copy;
-}
 
 }

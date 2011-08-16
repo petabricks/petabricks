@@ -57,7 +57,9 @@ public:
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor, 
-                        int copyFromGpu = 0); 
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        bool gpuCopyOut); 
   void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
 

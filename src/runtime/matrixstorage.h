@@ -27,10 +27,10 @@
 #ifndef PETABRICKSMATRIXSTORAGE_H
 #define PETABRICKSMATRIXSTORAGE_H
 
-//#ifdef HAVE_OPENCL
-#include "openclutil.h"
 #include <oclUtils.h>
-//#endif
+#include "openclutil.h"
+#include <set>
+#include <map>
 
 #include "common/jassert.h"
 #include "common/jrefcounted.h"
@@ -38,11 +38,26 @@
 
 namespace petabricks {
 
+class RegionNodeGroupMap;
+
+typedef std::pair<std::string, std::set<int> > RegionNodeGroup;
+typedef jalib::JRef<RegionNodeGroupMap> RegionNodeGroupMapPtr;
+
+class RegionNodeGroupMap: public jalib::JRefCounted, 
+                          public std::multimap<std::string, std::set<int> > {
+public:
+  RegionNodeGroupMap(){}
+};
+
 class MatrixStorage;
 class MatrixStorageInfo;
+class CopyoutInfo;
 typedef jalib::JRef<MatrixStorage> MatrixStoragePtr;
 typedef jalib::JRef<MatrixStorageInfo> MatrixStorageInfoPtr;
 typedef std::vector<MatrixStoragePtr> MatrixStorageList;
+typedef std::vector<std::set<int> > NodeGroups;
+typedef jalib::JRef<CopyoutInfo> CopyoutInfoPtr;
+
 
 /**
  * The raw data for a Matrix
@@ -141,19 +156,23 @@ public:
   }
 
 #ifdef HAVE_OPENCL
+  void modifyOnCpu() { _cpuModify = true; }  //TODO: do I need to use lock?
+  void setName(std::string name) { 
+    _name = name; 
+    //std::cout << "~~~~~~~~~~~~ setName " << _name << std::endl;
+  }
   // Increase reference count to the gpu mem.
   // Return true when it's first initialized.
   bool initGpuMem(cl_context& context);
 
   // Decrease reference count to the gpu mem.
   // Return true when it's last reference to gpu mem is removed.
-  void finishGpuMem(cl_command_queue& queue,int copyBack);
+  void finishGpuMem(cl_command_queue& queue,int nodeID, RegionNodeGroupMapPtr map);
   void check(cl_command_queue& queue);
-  bool doneReadBuffer();
+  CopyoutInfoPtr getCopyoutInfo(int nodeID);
   void releaseCLMem();
-  bool copyBack() { return _copyBack; }
-  MatrixStoragePtr getGpuOutputStoragePtr() { return _gpuOutputBuffer; }
   void incCoverage(IndexT* begin, IndexT* end, int size);
+  MatrixStoragePtr getGpuOutputStoragePtr(int nodeID);
 
   ssize_t getBaseOffset() { return _baseOffset; }
   std::vector<IndexT*>& getBegins() { return _begins; }
@@ -173,16 +192,20 @@ private:
   ssize_t _count;
 
 #ifdef HAVE_OPENCL
+  std::string _name;
   int _coverage;
-  int _refCount;
-  int _copyBack;
   bool _hasGpuMem;
-  bool _reading;
-  MatrixStoragePtr _gpuOutputBuffer;
-  cl_event event;
+  bool _cpuModify;
 
   std::vector<IndexT*> _begins;
   std::vector<IndexT*> _ends;
+  NodeGroups _completeGroups;
+  NodeGroups _remainingGroups;
+  std::vector<int> _doneCompleteNodes;
+  std::vector<int> _doneRemainingNodes;
+  std::map<int, CopyoutInfoPtr> _copyMap;
+
+  void startReadBuffer(cl_command_queue& queue, std::set<int>& doneNodes);
 
   /*CL_CALLBACK decreaseDependency(cl_event event, cl_int cmd_exec_status, void *user_data)
   {
@@ -194,6 +217,25 @@ private:
 
 
 
+class CopyoutInfo : public jalib::JRefCounted {
+  typedef MatrixStorage::IndexT IndexT;
+public:
+  CopyoutInfo(cl_command_queue& queue, MatrixStorageInfoPtr originalBuffer, std::vector<IndexT*>& begins, std::vector<IndexT*>& ends, int coverage);
+  bool complete();
+  bool done() { return _done; }
+  std::vector<IndexT*>& getBegins() { return _begins; }
+  std::vector<IndexT*>& getEnds() { return _ends; }
+  MatrixStoragePtr getGpuOutputStoragePtr() { return _gpuOutputBuffer; }
+
+private:
+  std::vector<IndexT*> _begins;
+  std::vector<IndexT*> _ends;
+  MatrixStorageInfoPtr _originalBuffer;
+  MatrixStoragePtr     _gpuOutputBuffer;
+  cl_event _event;
+  int _coverage;
+  bool _done;
+};
 
 }
 

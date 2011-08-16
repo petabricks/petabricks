@@ -41,6 +41,7 @@
 #include <queue>
 #include <map>
 
+
 namespace petabricks {
 
 class GpuManager : public jalib::JRefCounted  {

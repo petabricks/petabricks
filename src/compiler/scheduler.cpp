@@ -87,72 +87,53 @@ void petabricks::Schedule::depthFirstChoiceDepGraphNode(SchedulingState& state, 
 
 void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   JASSERT(_schedule.size()>0);
-/*#ifdef HAVE_OPENCL
-  for(int i = 0; i < (int) _schedule.size(); ++i){
-    ScheduleEntry entryI = _schedule[i];
-    _copyAssignment[&entryI.node()] = false;
-    RegionList from = entryI.node().getFromRegionOnCpu(_choiceAssignment);
-    for(RegionList::iterator it = from.begin(); it != from.end(); ++it)
-      for(int j= i-1; j >= 0; --j){
-        ScheduleEntry entryJ = _schedule[j];
-        if(entryJ.node().hasOutMatrixOnGpu(_choiceAssignment, (*it)->matrix())){
-          _copyAssignment[&entryJ.node()] = true;
-          break;
-        }
-      }
-  }
 
-  MatrixDefList matrices = trans.getToMatrices();
-  for(MatrixDefList::iterator it = matrices.begin(); it != matrices.end(); ++it){
-    for(int j = (int)_schedule.size()-1; j >= 0; --j){
-      ScheduleEntry entryJ = _schedule[j];
-      if(entryJ.node().hasOutMatrixOnGpu(_choiceAssignment, *it)){
-        _copyAssignment[&entryJ.node()] = true;
-        break;
-      }
-    }
-  }
-#endif*/
-  std::cout << "transform " << trans.name() << std::endl;
-  for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
-    i->node().print(_choiceAssignment);
-  }
 
 #ifdef HAVE_OPENCL
+
+  std::cout << std::endl << "=== transform : " << trans.name() << "===" << std::endl;
   for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
-    //_copyAssignment[i->node()] = false;
-    _numOutOnGpu[&i->node()] = 0;
+    i->node().resetRegionNodeGroups();
     RegionList from = i->node().getFromRegionOnCpu(_choiceAssignment);
+		std::cout << "outter: " << &i->node() << std::endl;
     for(RegionList::iterator it = from.begin(); it != from.end(); ++it){
+      std::vector<int> ids;
       ScheduleT::iterator last = _schedule.end();
       int count = 0;
       for(ScheduleT::iterator j=_schedule.begin(); j!=i; ++j){
-        int n = j->node().numOutMatrixOnGpu(_choiceAssignment, (*it)->matrix()); //TODO
-        if(n > 0){
+				std::cout << "inner: " << &j->node() << std::endl;
+        if(j->node().hasOverlappingRegionOnGpu(_choiceAssignment, *it)){
+          j->node().setGpyCopyOut();
           last = j;
-          count += n;
+          ids.push_back(j->node().id());
         }
       }
       if(last != _schedule.end())
-        _numOutOnGpu[&last->node()] = count;
+        last->node().addGroup((*it)->matrix()->name(),ids);
     }
   }
 
   MatrixDefList matrices = trans.getToMatrices();
   for(MatrixDefList::iterator it = matrices.begin(); it != matrices.end(); ++it){
+    std::vector<int> ids;
     ScheduleT::iterator last = _schedule.end();
     int count = 0;
     for(ScheduleT::iterator j=_schedule.begin(); j!=_schedule.end(); ++j){
-      int n = j->node().numOutMatrixOnGpu(_choiceAssignment, *it);
-      if(n > 0){
+      if(j->node().numOutMatrixOnGpu(_choiceAssignment, *it) > 0){
+        j->node().setGpyCopyOut();
         last = j;
-        count += n;
+        ids.push_back(j->node().id());
       }
     }
     if(last != _schedule.end())
-      _numOutOnGpu[&last->node()] = count;
+      last->node().addGroup((*it)->name(),ids);
   }
 #endif
+
+  std::cout << std::endl << "=== summary ===" << std::endl;
+  for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
+    i->node().print(_choiceAssignment);
+  }
 
   o.comment("MARKER 1");
   for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
@@ -160,9 +141,8 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
       o.continuationPoint();
 
 #ifdef HAVE_OPENCL
-    //i->node().generateCode(trans, o, flavor, _choiceAssignment, _copyAssignment[&i->node()]);
     std::cout << "node " << &i->node() << " " << _numOutOnGpu[&i->node()] << std::endl;
-    i->node().generateCode(trans, o, flavor, _choiceAssignment, _numOutOnGpu[&i->node()]); //TODO
+    i->node().generateCode(trans, o, flavor, _choiceAssignment); //TODO
 #else
     i->node().generateCode(trans, o, flavor, _choiceAssignment);
 #endif

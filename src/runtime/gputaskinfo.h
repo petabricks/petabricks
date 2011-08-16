@@ -29,12 +29,14 @@
 #ifndef PETABRICKSGPUTASKINFO_H
 #define PETABRICKSGPUTASKINFO_H
 
+#include <oclUtils.h>
+#include <map>
+
 #include "common/jmutex.h"
 
 #include "matrixstorage.h"
 #include "openclutil.h"
 
-#include <oclUtils.h>
 
 namespace petabricks {
 
@@ -45,13 +47,18 @@ class GpuTaskInfo: public jalib::JRefCounted {
 public:
 
   /// constructor
-  GpuTaskInfo(int copy);
+  GpuTaskInfo(int nodeID, RegionNodeGroupMapPtr map) {
+    _nodeID = nodeID;
+    _map = map;
+  }
 
   void addToMatrix(MatrixStorageInfoPtr info) { _to.push_back(info); }
   void addFromMatrix(MatrixStorageInfoPtr info) { _from.push_back(info); }
-  int copyBack() { return _copyOut; }
+  int nodeID() { return _nodeID; }
+  RegionNodeGroupMapPtr regionNodeGroupMap() { return _map; }
+  
   void print() {
-    std::cout << "GpuTaskInfo " << this << " : _copyOut = " << _copyOut << std::endl;
+    std::cout << "GpuTaskInfo " << this << std::endl;
   }
 
   std::vector<MatrixStorageInfoPtr> _from;
@@ -60,8 +67,8 @@ public:
 private:
   cl_command_queue _queue;
   cl_kernel _kernel;
-  int _numcomplete;
-  int _copyOut;
+  int _nodeID;
+  RegionNodeGroupMapPtr _map;
 };
 
 }

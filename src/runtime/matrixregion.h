@@ -33,6 +33,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#define GPU_TRACE 1
+
 //
 // Class structure looks like this:
 //
@@ -119,7 +121,7 @@ public:
   const IndexT* multipliers() const { return _multipliers; };
   const StorageT& storage() const { return _storage; }
   const MatrixStorageInfoPtr storageInfo() const {
-    //JASSERT(count()>0)(count());
+    JASSERT(count()>0)(count());
     //if(D!=0)
     //  JASSERT(_multipliers[0]==_storageInfo->multipliers()[0]);
     return _storageInfo; 
@@ -382,11 +384,16 @@ public:
       }
       if(same) return;
     }*/
+#ifdef GPU_TRACE
     std::cout << "copyTo boundary" << std::endl;
     for(int i = 0; i < D; i++)
       std::cout << "[" << i << "] : " << c1[i] << "-" << c2[i] << std::endl;
+#endif
     if(this->storage() == dst.storage())
       return;
+    for(int i = 0; i < D; i++)
+      if(c1[i] >= c2[i])
+        return;
     IndexT coord[D];
     memcpy(coord, c1, sizeof coord);
     do {

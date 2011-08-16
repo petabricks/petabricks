@@ -332,7 +332,7 @@ void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const
 }
 
 #ifdef HAVE_OPENCL
-void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, int copyFromGpu) {
+void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, bool gpuCopyOut) {
   std::string taskclass = "petabricks::CreateGpuSpatialMethodCallTask<"+objname
                         + ", " + jalib::XToString(region.totalDimensions())
                         + ", &" + objname + "::" + methodname
@@ -342,71 +342,23 @@ void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::stri
   comment("MARKER 6");
   write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
   write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
-  write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end, "+jalib::XToString(copyFromGpu)+");");
+  write("RegionNodeGroupMapPtr groups = new RegionNodeGroupMap();");
+  for(std::vector<RegionNodeGroup>::iterator group = regionNodesGroups.begin(); group != regionNodesGroups.end(); ++group){
+    write("{");
+    incIndent();
+    write("std::set<int> ids;");
+    for(std::vector<int>::iterator id = group->nodeIDs().begin(); id != group->nodeIDs().end(); ++id){
+      write("ids.insert("+jalib::XToString(*id)+");");
+    }
+    write("groups->insert(RegionNodeGroup(\""+group->matrixName()+"\",ids));");
+    decIndent();
+    write("}");
+  }
+  write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end, "+jalib::XToString(nodeID)+", groups, "+jalib::XToString(gpuCopyOut)+");");
   decIndent();
   write("}");
 }
-void petabricks::CodeGenerator::mkGpuSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, RegionList _to, RegionList _from) {
-  std::string taskclass = "petabricks::GpuSpatialMethodCallTask<"+objname
-                        + ", " + jalib::XToString(region.totalDimensions())
-                        + ", &" + objname + "::" + methodname
-                        + ">";
-  std::string prepareclass = "petabricks::GpuSpatialMethodCallTask<"+objname
-                           + ", " + jalib::XToString(region.totalDimensions())
-                           + ", &" + objname + "::" + methodname + "_prepare"
-                           + ">";
-  std::string runclass = "petabricks::GpuSpatialMethodCallTask<"+objname
-                           + ", " + jalib::XToString(region.totalDimensions())
-                           + ", &" + objname + "::" + methodname + "_run"
-                           + ">";
-  write("{");
-  incIndent();
-  write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
-  write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
-  write("GpuTaskInfoPtr taskinfo = new GpuTaskInfo();");
-  //write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end, taskinfo);\n");
 
-  write("DynamicTaskPtr prepare = new "+prepareclass+"(this,_tmp_begin, _tmp_end, taskinfo, GpuDynamicTask::PREPARE);");
-  write("prepare->enqueue();\n");
-
-  write("DynamicTaskPtr copyin["+jalib::XToString(_from.size())+"];\n");
-  int id = 0;
-  for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i ) {
-    if((*i)->isBuffer()){
-      std::string copyinclass = "petabricks::GpuSpatialMethodCallTask<"+objname
-                              + ", " + jalib::XToString(region.totalDimensions())
-                              + ", &" + objname + "::" + methodname + "_copyin_" + (*i)->name()
-                              + ">";
-      std::string taskid = jalib::XToString(id);
-      write("copyin["+taskid+"] = new "+copyinclass+"(this,_tmp_begin, _tmp_end, taskinfo, GpuDynamicTask::COPYIN, "+(*i)->matrix()->name()+".storageInfo());");
-      write("copyin["+taskid+"]->enqueue();");
-      id++;
-    }
-  }
-
-  write("\nDynamicTaskPtr run = new "+runclass+"(this,_tmp_begin, _tmp_end, taskinfo, GpuDynamicTask::RUN);");
-  write("run->enqueue();");
-  write(taskname+" = new NullDynamicTask();\n");
-
-  write("DynamicTaskPtr copyout["+jalib::XToString(_to.size())+"];\n");
-  id = 0;
-  for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i ) {
-    if((*i)->isBuffer()){
-      std::string copyinclass = "petabricks::GpuSpatialMethodCallTask<"+objname
-                              + ", " + jalib::XToString(region.totalDimensions())
-                              + ", &" + objname + "::" + methodname + "_copyout_" + (*i)->name()
-                              + ">";
-      std::string taskid = jalib::XToString(id);
-      write("copyout["+taskid+"] = new "+copyinclass+"(this,_tmp_begin, _tmp_end, taskinfo, GpuDynamicTask::COPYOUT, "+(*i)->matrix()->name()+".storageInfo());");
-      write(taskname+"->dependsOn(copyout["+taskid+"]);");
-      write("copyout["+taskid+"]->enqueue();");
-      id++;
-    }
-  }
-
-  decIndent();
-  write("}");
-}
 #endif
 
 

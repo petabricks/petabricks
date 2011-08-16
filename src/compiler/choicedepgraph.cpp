@@ -175,14 +175,14 @@ petabricks::BasicChoiceDepGraphNode::BasicChoiceDepGraphNode(const MatrixDefPtr&
 {}
 
 void petabricks::BasicChoiceDepGraphNode::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
-                            const RuleChoiceAssignment& choice, int copyFromGpu){
+                            const RuleChoiceAssignment& choice){
   JASSERT(choice.find(this)!=choice.end());
   RulePtr rule = choice.find(this)->second;
-  rule->generateCallCode(nodename(), trans, o, _region, flavor, copyFromGpu);
+  rule->generateCallCode(nodename(), trans, o, _region, flavor, _regionNodesGroups, id(), _gpuCopyOut);
 }
 
 
-void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos, RuleFlavor , const RuleChoiceAssignment& choice, int copyFromGpu){
+void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans, CodeGenerator& o, int d, const FormulaPtr& pos, RuleFlavor , const RuleChoiceAssignment& choice){
   JASSERT(choice.find(this)!=choice.end());
   RulePtr rule = choice.find(this)->second;
   
@@ -194,7 +194,7 @@ void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans,
 
   SimpleRegionPtr t = new SimpleRegion(min,max);
 
-  rule->generateCallCode(nodename(), trans, o, t, RuleFlavor::SEQUENTIAL, copyFromGpu);
+  rule->generateCallCode(nodename(), trans, o, t, RuleFlavor::SEQUENTIAL, _regionNodesGroups, id(), _gpuCopyOut);
   //TODO deps for slice // dynamic version
 }
 
@@ -242,6 +242,14 @@ int petabricks::BasicChoiceDepGraphNode::numOutMatrixOnGpu(const RuleChoiceAssig
   else
     return 0;
 }
+
+
+bool petabricks::BasicChoiceDepGraphNode::hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region) {
+	std::cout << "name: " << region->matrix()->name() << " , " << _matrix->name() << " : " << choice.find(this)->second->isEnabledGpuRule() << std::endl;
+	/*if(region->matrix()->name().compare(_matrix->name()) == 0)
+		std::cout << "intersect: " << region->hasIntersect(_region) << std::endl;*/
+  return (region->matrix()->name().compare(_matrix->name()) == 0) && choice.find(this)->second->isEnabledGpuRule();
+}
 #endif
 
 ///////////////////////////////////////////////////////////////////////
@@ -284,7 +292,7 @@ bool petabricks::MultiOutputChoiceDepGraphNode::findValidSchedule(const RuleChoi
   return true;
 }
 
-void petabricks::MultiOutputChoiceDepGraphNode::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, const RuleChoiceAssignment& choice, int copyFromGpu){
+void petabricks::MultiOutputChoiceDepGraphNode::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, const RuleChoiceAssignment& choice){
 //  const DependencyInformation& selfDep = indirectDepends()[this];
 //  if(selfDep.direction.isNone()){
 
@@ -314,7 +322,7 @@ void petabricks::MultiOutputChoiceDepGraphNode::generateCode(Transform& trans, C
     matrices.push_back((*i)->matrix());
   }
   JASSERT(choice.find(first)!=choice.end());
-  rule->generateCallCode(nodename(), trans, o, first->region(), flavor, copyFromGpu);
+  rule->generateCallCode(nodename(), trans, o, first->region(), flavor, _regionNodesGroups, id(), _gpuCopyOut);
 }
 
 #ifdef HAVE_OPENCL
@@ -337,6 +345,18 @@ int petabricks::MultiOutputChoiceDepGraphNode::numOutMatrixOnGpu(const RuleChoic
     count += (*i)->numOutMatrixOnGpu(choice,matrix);
   }
   return count;
+}
+
+bool petabricks::MultiOutputChoiceDepGraphNode::hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region) {
+  RulePtr rule = choice.find(*_originalNodes.begin())->second;
+  if(!rule->isEnabledGpuRule())
+    return false;
+  for(ChoiceDepGraphNodeSet::const_iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+    if((*i)->hasOverlappingRegionOnGpu(choice,region)) {
+      return true;
+    }
+  }
+  return false;
 }
 #endif
 
@@ -392,7 +412,7 @@ bool petabricks::SlicedChoiceDepGraphNode::findValidSchedule(const RuleChoiceAss
   return false;
 }
 
-void petabricks::SlicedChoiceDepGraphNode::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, const RuleChoiceAssignment& choice, int copyFromGpu){
+void petabricks::SlicedChoiceDepGraphNode::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, const RuleChoiceAssignment& choice){
   bool isStatic = (flavor==RuleFlavor::SEQUENTIAL);
   std::vector<std::string> args;
   args.push_back("const jalib::JRef<"+trans.instClassName()+"> transform");
@@ -438,6 +458,15 @@ int petabricks::SlicedChoiceDepGraphNode::numOutMatrixOnGpu(const RuleChoiceAssi
     count += (*i)->numOutMatrixOnGpu(choice, matrix);
   }
   return count;
+}
+
+bool petabricks::SlicedChoiceDepGraphNode::hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region) {
+  for(ChoiceDepGraphNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+    if((*i)->hasOverlappingRegionOnGpu(choice, region)) {
+      return true;
+    }
+  }
+  return false;
 }
 #endif
 

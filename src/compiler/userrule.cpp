@@ -30,6 +30,7 @@
 //#define TRACE(x) std::cout << "Trace " << x << "\n"
 
 #define TRACE JTRACE
+#define GPU_TRACE 1
 
 #include "userrule.h"
 
@@ -649,7 +650,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
       if(i != _to.begin( )) {
-        o.os() << "|| ";
+        o.os() << " && ";
       }
       o.os( ) << (*i)->matrix( )->name( ) << ".bytes() == 0";
     }
@@ -836,6 +837,19 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   else {
     if(RuleFlavor::SEQUENTIAL != flavor) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
 
+    std::string outputDimensionCheck;
+    for( RegionList::const_iterator i = _to.begin(); i != _to.end(); ++i) {
+      if(i != _to.begin()) {
+        outputDimensionCheck = outputDimensionCheck + " && ";
+      }
+      outputDimensionCheck = outputDimensionCheck + (*i)->matrix()->name() + ".bytes() == 0";
+    }
+
+    o.beginIf(outputDimensionCheck);
+    if(RuleFlavor::SEQUENTIAL != flavor) o.write("return _spawner;");
+    else o.write("return NULL;");
+    o.endIf();
+
     iterdef.unpackargs(o);
     
     if(isSingleElement()){
@@ -852,6 +866,13 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     else
       generateTrampCellCodeSimple( trans, o, flavor );
     iterdef.genLoopEnd(o);
+
+#ifdef HAVE_OPENCL
+    for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i) {
+      if((*i)->isBuffer())
+        o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu();");
+    }
+#endif
     
     if(RuleFlavor::SEQUENTIAL != flavor) o.write("return _spawner;");
     else o.write("return NULL;");
@@ -890,7 +911,9 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   SRCPOSSCOPE();  
   IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();
-  packedargs.push_back("int copy");
+  packedargs.push_back("int nodeID");
+  packedargs.push_back("RegionNodeGroupMapPtr map");
+  packedargs.push_back("bool gpuCopyOut");
   std::string codename = trampcodename(trans) + TX_OPENCL_POSTFIX;
   std::string objectname = trans.instClassName();
   std::string dimension = jalib::XToString(iterdef.dimensions());
@@ -905,7 +928,22 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
                            + ">";
 
   o.beginFunc("petabricks::DynamicTaskPtr", codename+"_createtasks", packedargs);
-  o.write("GpuTaskInfoPtr taskinfo = new GpuTaskInfo(copy);");
+  
+  std::string outputDimensionCheck;
+  for( RegionList::const_iterator i = _to.begin(); i != _to.end(); ++i) {
+    if(i != _to.begin()) {
+      outputDimensionCheck = outputDimensionCheck + " && ";
+    }
+    outputDimensionCheck = outputDimensionCheck + (*i)->matrix()->name() + ".bytes() == 0";
+  }
+
+  o.write("DynamicTaskPtr end = new NullDynamicTask();");
+
+  o.beginIf(outputDimensionCheck);
+  o.write("return end;");
+  o.endIf();
+
+  o.write("GpuTaskInfoPtr taskinfo = new GpuTaskInfo(nodeID, map);");
   o.write("DynamicTaskPtr prepare = new "+prepareclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::PREPARE);");
   o.write("prepare->enqueue();");
 
@@ -925,9 +963,8 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   }
 
   o.write("\nDynamicTaskPtr run = new "+runclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::RUN);");
-  o.write("DynamicTaskPtr end = new NullDynamicTask();\n");
 
-  o.beginIf("copy > 0");
+  o.beginIf("gpuCopyOut");
   o.write("DynamicTaskPtr copyout["+jalib::XToString(_to.size())+"];");
   o.write("run->enqueue();");
   id = 0;
@@ -964,6 +1001,7 @@ void petabricks::UserRule::generateOpenCLPrepareCode(std::string& codename, std:
       set.insert(matrix_name);
       (*i)->setBuffer(true);
       o.write("GpuManager::_currenttaskinfo->addToMatrix(" + matrix_name + ".storageInfo());");
+      o.write(matrix_name + ".storageInfo()->setName(std::string(\""+matrix_name+"\"));");
     }
     else {
       (*i)->setBuffer(false);
@@ -991,11 +1029,10 @@ void petabricks::UserRule::generateOpenCLCopyInCode(std::string& codename, std::
   std::string name = region->matrix()->name();
   o.beginFunc("petabricks::DynamicTaskPtr", codename+"_copyin_"+region->name(), packedargs);
   o.write("MatrixStorageInfoPtr storage_"+name+" = "+name+".storageInfo();");
-  //o.write("std::cout << \"bytes = \" << storage_"+name+"->bytes() << std::endl;");
+#ifdef GPU_TRACE
   o.write("MatrixIO().write("+name+");");
-  o.write("MatrixIO().write("+name+".asGpuInputBuffer());");
-  //o.write("std::cout << \"base = \" << *("+name+".asGpuInputBuffer().base()) << std::endl;");
-  //o.write("std::cout << \"queue = \" << GpuManager::_queue << std::endl;");
+#endif
+  //o.write("MatrixIO().write("+name+".asGpuInputBuffer());");
   o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->_clmem, CL_FALSE, 0, storage_"+name+"->bytes(), "+name+".getGpuInputBufferPtr(), 0, NULL, NULL);");
   o.write("clFlush(GpuManager::_queue);");
   /*o.write("JASSERT(CL_INVALID_CONTEXT != err).Text( \"Failed to write to buffer.\");");
@@ -1051,6 +1088,10 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
     o.os( ) << "err |= clSetKernelArg(clkern, " << arg_pos++ << ", sizeof(int), &ruledim_" << i << " );\n";
     o.os( ) << "err |= clSetKernelArg(clkern, " << arg_pos++ << ", sizeof(int), &_iter_begin[" << i << "]);\n";
     o.os( ) << "err |= clSetKernelArg(clkern, " << arg_pos++ << ", sizeof(int), &_iter_end[" << i << "]);\n";
+#ifdef GPU_TRACE
+    o.write("std::cout << \"iter_begin["+jalib::XToString(i)+"] = \" << _iter_begin["+jalib::XToString(i)+"] << std::endl;");
+    o.write("std::cout << \"iter_end["+jalib::XToString(i)+"] = \" << _iter_end["+jalib::XToString(i)+"] << std::endl;");
+#endif
   }
 
   // Bind matrix dimension arguments to kernel.
@@ -1119,19 +1160,20 @@ void petabricks::UserRule::generateOpenCLCopyOutCode(std::string& codename, std:
   std::vector<std::string> args;
   args.push_back("std::vector<IndexT*>& begins");
   args.push_back("std::vector<IndexT*>& ends");
+  args.push_back("int nodeID");
   o.beginFunc("petabricks::DynamicTaskPtr", codename+"_copyout_"+region->name(), args/*packedargs*/);
   o.write("MatrixStorageInfoPtr "+storage+" = "+name+".storageInfo();");
   o.write("IndexT sizes["+dim+"];");
   o.write("memcpy(sizes, "+storage+"->sizes(), sizeof(sizes));");
   o.write("IndexT multipliers["+dim+"];");
   o.write("memcpy(multipliers, "+storage+"->multipliers(), sizeof(multipliers));");
-  o.write("MatrixRegion<"+dim+", "+STRINGIFY(MATRIX_ELEMENT_T)+"> normalized("+storage+"->getGpuOutputStoragePtr()"+","+storage+"->getGpuOutputStoragePtr()->data(), sizes, multipliers);");  
-  //o.write("std::cout << \"baseoffset = \" << "+storage+"->getBaseOffset() << std::endl;");
-  //o.write(storage+"->print();");   
+  o.write("MatrixStoragePtr outstorage = "+storage+"->getGpuOutputStoragePtr(nodeID);");
+  o.write("MatrixRegion<"+dim+", "+STRINGIFY(MATRIX_ELEMENT_T)+"> normalized(outstorage, outstorage->data(), sizes, multipliers);");  
   o.write("normalized.copyTo("+name+", begins, ends);");  
-  o.write("MatrixIO().write(normalized);");   
+  //o.write("MatrixIO().write(normalized);");   
+#ifdef GPU_TRACE
   o.write("MatrixIO().write("+name+");");   
-  //o.write(name+".storageInfo()->print();");   
+#endif
   o.write( "return NULL;" );
   o.endFunc();
 }
@@ -1187,15 +1229,6 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
   {
     // Build & normalize formula for index.
-    /*FormulaPtr idx_formula = FormulaInteger::zero( );
-    for( int j = (*i)->minCoord( ).size( ) - 1; j >= 0; --j )
-    {
-      std::stringstream sizevar;
-      sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
-      idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ), 
-              new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
-    }
-    idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );*/
 
     int minCoordSize = (*i)->minCoord().size();
     FormulaPtr idx_formula = new FormulaAdd((*i)->minCoord().at(minCoordSize - 1), FormulaInteger::zero());
@@ -1215,17 +1248,6 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
   {
     // Build & normalize formula for index.
-    /*FormulaPtr idx_formula = FormulaInteger::zero( );
-    for( int j = (*i)->minCoord( ).size( ) - 1; j >= 0; --j )
-    {
-      std::stringstream sizevar;
-      sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
-      idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
-            new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
-
-      std::cout << (*i)->minCoord( ).at( j ) << std::endl;
-    }
-    idx_formula = MaximaWrapper::instance( ).normalize( idx_formula );*/
 
     FormulaPtr idx_formula = FormulaInteger::zero( );
     int minCoordSize = (*i)->minCoord().size();
@@ -1249,14 +1271,13 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   // Load inputs to rule.
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
   {
-    clo.os( ) << /*STRINGIFY( MATRIX_ELEMENT_T )*/ "float" << " " << (*i)->name( ) << " = _region_" << (*i)->name( ) << "[idx_" <<
+    clo.os( ) << "float" << " " << (*i)->name( ) << " = _region_" << (*i)->name( ) << "[idx_" <<
 (*i)->name( ) << "];\n";
   }
 
   //TRACE( "60" );
 
   // Quick hack -- generate a macro that will store the output from the rule.
-  /** \todo this mechanism won't work with rules with multiple outputs */
   {
     RegionList::const_iterator i = _to.begin( );
     clo.os( ) << "#define PB_RETURN(x) _region_" << (*i)->name( ) << "[idx_" << (*i)->name( ) << "] = x; return\n";
@@ -1340,7 +1361,8 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
                                             CodeGenerator& o,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor,
-                                            int copyFromGpu){
+                                            std::vector<RegionNodeGroup>&,
+                                            int, bool){
   SRCPOSSCOPE();
   o.comment("MARKER 2");
   switch(flavor) {

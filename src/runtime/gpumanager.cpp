@@ -56,9 +56,9 @@ extern "C" void *startGpuManager(void* /*arg*/) {
 void GpuManager::start() {
   if(!_shutdown) return;
   _shutdown = false;
-#ifdef GPU_TRACE
+  #ifdef GPU_TRACE
   std::cout << "pthead_create~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
-#endif
+  #endif
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, 0);
@@ -72,24 +72,22 @@ void GpuManager::shutdown() {
   int rv = pthread_join(_thread, NULL);
   JWARNING(rv==0)(rv).Text("pthread_join failed");
   OpenCLUtil::deinit();
-#ifdef GPU_TRACE
+  #ifdef GPU_TRACE
   std::cout << "pthead_join~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
-#endif
+  #endif
 }
 
 void GpuManager::mainLoop() {
-#ifdef GPU_TRACE
-  std::cout << "GpuManager::mainLoop" << std::endl;
-#endif
   for(;;){
 
     //TODO: whey do I have to use empty?
     bool empty = _readytasks.empty();
     while(!empty) {
-#ifdef GPU_TRACE
+      #ifdef GPU_TRACE
       std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>> START " << std::endl;
-#endif
+      #endif
       GpuDynamicTaskPtr task = _readytasks.front();
+      _currenttaskinfo = task->taskinfo();
       int done = true;
       switch(task->tasktype()) {
         case GpuDynamicTask::PREPARE: prepare(task);        break;
@@ -97,9 +95,9 @@ void GpuManager::mainLoop() {
         case GpuDynamicTask::RUN:     run(task);            break;
         case GpuDynamicTask::COPYOUT: done = copyout(task); break;
       }
-#ifdef GPU_TRACE
+      #ifdef GPU_TRACE
       std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<< DONE" << std::endl;
-#endif
+      #endif
       _lock.lock();
       _readytasks.pop();
       if(!done)
@@ -121,15 +119,14 @@ void GpuManager::addTask(GpuDynamicTaskPtr task) {
 }
 
 void GpuManager::prepare(GpuDynamicTaskPtr task) {
-#ifdef GPU_TRACE
+  #ifdef GPU_TRACE
   std::cout << "[PREPARE]" << std::endl;
-#endif
-  _currenttaskinfo = task->taskinfo();
+  #endif
   task->runWrapper();
-#ifdef GPU_TRACE
+  #ifdef GPU_TRACE
   std::cout << "Number of From Matrices = " << _currenttaskinfo->_from.size() << std::endl;
   std::cout << "Number of To Matrices   = " << _currenttaskinfo->_to.size() << std::endl;
-#endif
+  #endif
 
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
     (*i)->initGpuMem(_context); // clCreateBuffer
@@ -137,16 +134,15 @@ void GpuManager::prepare(GpuDynamicTaskPtr task) {
 }
 
 void GpuManager::copyin(GpuDynamicTaskPtr task) {
-#ifdef GPU_TRACE
+  #ifdef GPU_TRACE
   std::cout << "[COPY IN]" << std::endl;
-#endif
-  _currenttaskinfo = task->taskinfo();
+  #endif
   MatrixStorageInfoPtr storageinfo = task->storageinfo();
 
   if(storageinfo->initGpuMem(_context)) { // clCreateBuffer
-#ifdef GPU_TRACE
+    #ifdef GPU_TRACE
     std::cout << "copying in... " << &(*storageinfo) << std::endl;
-#endif
+    #endif
     task->runWrapper(); // clEnqueueWriteBuffer
   }
   else {
@@ -155,46 +151,40 @@ void GpuManager::copyin(GpuDynamicTaskPtr task) {
 }
 
 void GpuManager::run(GpuDynamicTaskPtr task) {
-#ifdef GPU_TRACE
+  #ifdef GPU_TRACE
   std::cout << "[RUN]" << std::endl;
-#endif
-  _currenttaskinfo = task->taskinfo();
+  #endif
   /*for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_from.begin(); i != _currenttaskinfo->_from.end(); ++i) {
     (*i)->check(_queue);
   }*/
 
   task->runWrapper();
 
-  //cl_int err;
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
-    (*i)->finishGpuMem(_queue,_currenttaskinfo->copyBack()); // clEnqueueReadBuffer
+    (*i)->finishGpuMem(_queue,_currenttaskinfo->nodeID(), _currenttaskinfo->regionNodeGroupMap()); // clEnqueueReadBuffer
   }
-  /*for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_from.begin(); i != _currenttaskinfo->_from.end(); ++i) {
-    (*i)->finishGpuMem(_queue,0); // clEnqueueReadBuffer
-  }*/
 }
 
 bool GpuManager::copyout(GpuDynamicTaskPtr task) {
   MatrixStorageInfoPtr storage = task->storageinfo();
-#ifdef GPU_TRACE 
+  #ifdef GPU_TRACE 
   std::cout << "[COPY OUT]" << &(*storage) << std::endl;
-#endif
+  #endif
 
-  /*if(!storage->copyBack()) {
-#ifdef GPU_TRACE
-    std::cout << "not copy out... " << &(*storage) << std::endl;
-#endif
-    task->completeTaskDeps();
-    return true;
-  }*/
-  if(storage->doneReadBuffer()) {
-#ifdef GPU_TRACE
-    std::cout << "copy out... " << &(*storage) << std::endl;
-#endif
-    task->setRegions(storage->getBegins(), storage->getEnds());
-    task->runWrapper();
-    //storage->releaseCLMem();
-    return true;
+  CopyoutInfoPtr copyInfo = storage->getCopyoutInfo(_currenttaskinfo->nodeID());
+  if(copyInfo){ //TODO: check
+    if(copyInfo->done()) {
+      task->completeTaskDeps();
+      return true;
+    }
+    if(copyInfo->complete()) {
+      #ifdef GPU_TRACE
+      std::cout << "copy out... " << &(*storage) << std::endl;
+      #endif
+      task->setRegions(copyInfo->getBegins(), copyInfo->getEnds(), _currenttaskinfo->nodeID());
+      task->runWrapper();
+      return true;
+    }
   }
   return false;
 }
