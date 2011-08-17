@@ -40,7 +40,7 @@ generator NWKDEGenerator
           OUTPUTVARINDEX   outputVarIndex,
           OUTPUTTIMEOFFSET outputTimeOffset)
     {
-        double ret;
+        ElementT ret;
 #ifdef DEBUG
         NWKDECheckInputs(ret, trainData, trainIndices,
                          trainVarIndex, trainTimeOffset,
@@ -66,26 +66,26 @@ generator NWKDEGenerator
           OUTPUTTIMEOFFSET outputTimeOffset,
           INPUTSCHECKED inputsChecked)
     {
-        double result = 0, totalWeight = 0;
+        ElementT result = 0, totalWeight = 0;
 
         for (int j = 0; j < trainIndices.count(); ++j) {
 
             int trainIndex = (int) trainIndices.cell(j);
 
-            double sum = 0, weight;
+            ElementT sum = 0, weight;
 
             for (int i = 0; i < trainVarIndex.count(); ++i) {
 
                 int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
-                double kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
+                ElementT kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
 
                 int trainTimeIndex = (int) trainIndex + (int) trainTimeOffset.cell(i);
                 int  testTimeIndex = (int)  testIndex + (int)  testTimeOffset.cell(i);
 
-                double trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
-                double  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
+                ElementT trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
+                ElementT  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
 
-                double diff = trainPoint - testPoint;
+                ElementT diff = trainPoint - testPoint;
 
                 if (wrapFlag) {
 
@@ -99,7 +99,7 @@ generator NWKDEGenerator
                     // add 180 to ensure modulo result is positive
                     int diffIntWrapP360 = ((diffIntP360 + 180) % 360) + 180;
 
-                    double diffFracM360 = diff - diffIntP360;
+                    ElementT diffFracM360 = diff - diffIntP360;
                     diff = diffIntWrapP360 + diffFracM360;
                 }
 
@@ -110,7 +110,7 @@ generator NWKDEGenerator
                 sum += diff * diff;
             }
 
-            weight = exp(-((double) sum));
+            weight = exp(-((ElementT) sum));
             totalWeight += weight;
 
             int outputTimeIndex = (int) trainIndex + (int) outputTimeOffset;

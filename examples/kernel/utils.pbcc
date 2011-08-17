@@ -7,14 +7,14 @@ void printMatrix(ConstMatrixRegion2D A)
 {
   for (int j = 0; j < A.size(1); j++) {
     for (int i = 0; i < A.size(0); i++) {
-      printf("%g ", (double) A.cell(i, j));
+      printf("%g ", (ElementT) A.cell(i, j));
     }
     printf("\n");
   }
   printf("\n");
 }
 
-int findMinAndMax(double *min, double *max, ConstMatrixRegion1D array)
+int findMinAndMax(ElementT *min, ElementT *max, ConstMatrixRegion1D array)
 {
     *min = *max = array.cell(0);
     for (int i = 1; i < array.count(); ++i) {
@@ -80,7 +80,7 @@ to OUT
   OUT from (A a)
   {
     int i;
-    double sum = 0;
+    ElementT sum = 0;
     for (i = 0; i < n; i++) {
       sum += a.cell(i);
     }
@@ -89,7 +89,7 @@ to OUT
 
   OUT from (A a)
   {
-    double sum1, sum2;
+    ElementT sum1, sum2;
     ReduceAdd(sum1, a.region(0, n/2));
     ReduceAdd(sum2, a.region(n/2, n));
     return sum1 + sum2;
@@ -109,7 +109,7 @@ to C
 
   C from (TEMP t)
   {
-    double result;
+    ElementT result;
     ReduceAdd(result, t);
     return result;
   }
