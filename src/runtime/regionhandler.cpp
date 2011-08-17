@@ -8,21 +8,29 @@
 using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
 
+RegionHandler::RegionHandler(const int dimensions) {
+  _D = dimensions;
+}
+
 RegionHandler::RegionHandler(const int dimensions, const IndexT* size) {
   _regionData = new RegionDataRaw(dimensions, size);
+  _D = dimensions;
 }
 
 RegionHandler::RegionHandler(const int dimensions, const IndexT* size, const IndexT* partOffset) {
   _regionData = new RegionDataRaw(dimensions, size, partOffset);
+  _D = dimensions;
 }
 
 RegionHandler::RegionHandler(const RegionDataIPtr regionData) {
   _regionData = regionData;
+  _D = _regionData->dimensions();
 }
 
 RegionHandler::RegionHandler(const EncodedPtr remoteObjPtr) {
   RegionDataRemoteObject* remoteObj = reinterpret_cast<RegionDataRemoteObject*>(remoteObjPtr);
   _regionData = remoteObj->regionData();
+  _D = _regionData->dimensions();
 }
 
 ElementT RegionHandler::readCell(const IndexT* coord) {
@@ -45,6 +53,14 @@ int RegionHandler::allocData() {
   return _regionData->allocData();
 }
 
+int RegionHandler::allocData(const IndexT* size) {
+  if (!_regionData) {
+    // Create RegionData
+    _regionData = new RegionDataRaw(_D, size);
+  }
+  return _regionData->allocData();
+}
+
 RegionDataIPtr RegionHandler::getRegionData() {
   return _regionData;
 }
@@ -64,7 +80,7 @@ RemoteHostPtr RegionHandler::host() {
 }
 
 int RegionHandler::dimensions() {
-  return _regionData->dimensions();
+  return _D;
 }
 
 IndexT* RegionHandler::size() {

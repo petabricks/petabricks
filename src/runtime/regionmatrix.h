@@ -121,7 +121,7 @@ namespace petabricks {
       init(NULL, NULL);
     }
     RegionMatrix(const IndexT* size) {
-      init(size, new RegionHandler(D, size));
+      init(size, new RegionHandler(D));
     }
     RegionMatrix(const IndexT* size, const RegionHandlerPtr handler) {
       init(size, handler);
@@ -167,7 +167,7 @@ namespace petabricks {
     }
 
     void allocData() {
-      _regionHandler->allocData();
+      _regionHandler->allocData(_size);
     }
 
     static RegionMatrix allocate(IndexT* size) {
@@ -696,7 +696,7 @@ namespace petabricks {
     RegionMatrixWrapper(ElementT* data, IndexT* size) : Base(size) {
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
-      Base::_regionHandler->allocData();
+      Base::_regionHandler->allocData(size);
 
       IndexT i = 0;
       do {

@@ -18,8 +18,10 @@ namespace petabricks {
   private:
     RegionDataIPtr _regionData;
     jalib::JMutex _regionDataMux;
+    int _D;
 
   public:
+    RegionHandler(const int dimensions);
     RegionHandler(const int dimensions, const IndexT* size);
     RegionHandler(const int dimensions, const IndexT* size, const IndexT* partOffset);
     RegionHandler(const RegionDataIPtr regionData);
@@ -32,6 +34,7 @@ namespace petabricks {
     void randomize();
 
     int allocData();
+    int allocData(const IndexT* size);
 
     RegionDataIPtr getRegionData();
     void updateRegionData(RegionDataIPtr regionData);
