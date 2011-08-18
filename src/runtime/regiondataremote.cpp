@@ -10,19 +10,32 @@ RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, con
   init(dimensions, size, remoteObject);
 }
 
-RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, const IndexT* partOffset, RemoteHostPtr host) {
+RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, RemoteHostPtr host) {
   init(dimensions, size, new RegionDataRemoteObject());
 
   // InitialMsg
   CreateRegionDataInitialMessage msg;
-  msg.type = MessageTypes::INITFROMDATASPLIT;
+  msg.type = MessageTypes::CREATEREGIONDATA;
+  msg.dimensions = _D;
+  memcpy(msg.size, size, sizeof(msg.size));
+
+  int len = sizeof(CreateRegionDataInitialMessage);
+  host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
+}
+
+RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, const IndexT* partOffset, RemoteHostPtr host) {
+  init(dimensions, size, new RegionDataRemoteObject());
+
+  // InitialMsg
+  CreateRegionDataPartInitialMessage msg;
+  msg.type = MessageTypes::CREATEREGIONDATAPART;
   msg.dimensions = _D;
   memcpy(msg.size, size, sizeof(msg.size));
   if (partOffset) {
     memcpy(msg.partOffset, partOffset, sizeof(msg.partOffset));
   }
 
-  int len = sizeof(CreateRegionDataInitialMessage);
+  int len = sizeof(CreateRegionDataPartInitialMessage);
   host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
 }
 

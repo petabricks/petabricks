@@ -75,7 +75,8 @@ void petabricks::RemoteTask::remoteScheduleTask() {
 //     enqueueRemote(*RemoteHostDB::instance().host(0));
 //   } else {
     if (toHost) {
-      enqueueRemote(*toHost);
+      //enqueueRemote(*toHost);
+      enqueueLocal();
     } else {
       enqueueLocal();
     }

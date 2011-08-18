@@ -44,7 +44,8 @@ namespace petabricks {
 	UPDATEHANDLERCHAIN,
         ALLOCDATA,
         RANDOMIZEDATA,
-        INITFROMDATASPLIT,
+        CREATEREGIONDATA,
+        CREATEREGIONDATAPART,
         INITWITHREGIONDATA,
         INITWITHREGIONHANDLER,
       };
@@ -55,6 +56,12 @@ namespace petabricks {
     } PACKED;
 
     struct CreateRegionDataInitialMessage {
+      MessageType type;
+      int dimensions;
+      IndexT size[MAX_DIMENSIONS];
+    } PACKED;
+
+    struct CreateRegionDataPartInitialMessage {
       MessageType type;
       int dimensions;
       IndexT size[MAX_DIMENSIONS];

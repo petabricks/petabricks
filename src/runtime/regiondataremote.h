@@ -29,6 +29,7 @@ namespace petabricks {
 
   public:
     RegionDataRemote(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject);
+    RegionDataRemote(const int dimensions, const IndexT* size, RemoteHostPtr host);
     RegionDataRemote(const int dimensions, const IndexT* size, const IndexT* partOffset, RemoteHostPtr host);
     RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const MessageType initialMessageType, const EncodedPtr encodePtr);
     ~RegionDataRemote() {

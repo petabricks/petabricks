@@ -12,9 +12,12 @@ RegionHandler::RegionHandler(const int dimensions) {
   _D = dimensions;
 }
 
-RegionHandler::RegionHandler(const int dimensions, const IndexT* size) {
+RegionHandler::RegionHandler(const int dimensions, const IndexT* size, const bool alloc = false) {
   _regionData = new RegionDataRaw(dimensions, size);
   _D = dimensions;
+  if (alloc) {
+    _regionData->allocData();
+  }
 }
 
 RegionHandler::RegionHandler(const int dimensions, const IndexT* size, const IndexT* partOffset) {
@@ -56,7 +59,8 @@ int RegionHandler::allocData() {
 int RegionHandler::allocData(const IndexT* size) {
   if (!_regionData) {
     // Create RegionData
-    _regionData = new RegionDataRaw(_D, size);
+    //_regionData = new RegionDataRaw(_D, size);
+    _regionData = new RegionDataRemote(_D, size, RemoteHostDB::instance().host(0));
   }
   return _regionData->allocData();
 }
