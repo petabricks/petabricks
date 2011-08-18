@@ -168,6 +168,10 @@ public:
     return NULL;
   }
 
+  int size() const {
+    return _hosts.size();
+  }
+
   void shutdown();
   static void onShutdownEvent();
 protected:

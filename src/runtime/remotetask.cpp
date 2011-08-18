@@ -71,16 +71,12 @@ void petabricks::RemoteTask::remoteScheduleTask() {
     }
   }
 
-//   if (0 == petabricks::PetabricksRuntime::randInt(0,20)) {
-//     enqueueRemote(*RemoteHostDB::instance().host(0));
-//   } else {
-    if (toHost) {
-      //enqueueRemote(*toHost);
-      enqueueLocal();
-    } else {
-      enqueueLocal();
-    }
-//   }
+  if (toHost) {
+    enqueueRemote(*toHost);
+    //enqueueLocal();
+  } else {
+    enqueueLocal();
+  }
 #else
   enqueueLocal();
 #endif
