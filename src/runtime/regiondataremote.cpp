@@ -13,14 +13,18 @@ RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, con
 RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, RemoteHostPtr host) {
   init(dimensions, size, new RegionDataRemoteObject());
 
-  // InitialMsg
-  CreateRegionDataInitialMessage msg;
-  msg.type = MessageTypes::CREATEREGIONDATA;
-  msg.dimensions = _D;
-  memcpy(msg.size, size, sizeof(msg.size));
 
-  int len = sizeof(CreateRegionDataInitialMessage);
-  host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
+  // InitialMsg
+  size_t size_sz = _D * sizeof(IndexT);
+  size_t msg_len = sizeof(CreateRegionDataInitialMessage) + size_sz;
+
+  char buf[msg_len];
+  CreateRegionDataInitialMessage* msg = (CreateRegionDataInitialMessage*)buf;
+  msg->type = MessageTypes::CREATEREGIONDATA;
+  msg->dimensions = _D;
+  memcpy(msg->size, size, size_sz);
+
+  host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, buf, msg_len);
 }
 
 RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, const IndexT* partOffset, RemoteHostPtr host) {
@@ -59,11 +63,9 @@ void RegionDataRemote::init(const int dimensions, const IndexT* size, const Regi
 }
 
 int RegionDataRemote::allocData() {
-  AllocDataMessage msg;
-
   void* data;
   size_t len;
-  this->fetchData(&msg, MessageTypes::ALLOCDATA, sizeof(AllocDataMessage), &data, &len);
+  this->fetchData(0, MessageTypes::ALLOCDATA, 0, &data, &len);
   AllocDataReplyMessage* reply = (AllocDataReplyMessage*)data;
 
   ElementT result = reply->result;
@@ -72,11 +74,9 @@ int RegionDataRemote::allocData() {
 }
 
 void RegionDataRemote::randomize() {
-  RandomizeDataMessage msg;
-
   void* data;
   size_t len;
-  this->fetchData(&msg, MessageTypes::RANDOMIZEDATA, sizeof(RandomizeDataMessage), &data, &len);
+  this->fetchData(0, MessageTypes::RANDOMIZEDATA, 0, &data, &len);
 
   free(data);
 }

@@ -58,7 +58,7 @@ namespace petabricks {
     struct CreateRegionDataInitialMessage {
       MessageType type;
       int dimensions;
-      IndexT size[MAX_DIMENSIONS];
+      IndexT size[];
     } PACKED;
 
     struct CreateRegionDataPartInitialMessage {

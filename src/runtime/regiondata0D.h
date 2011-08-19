@@ -56,8 +56,7 @@ namespace petabricks {
     RemoteHostPtr host() { return NULL; }
 
     void processReadCellCacheMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
-      ReadCellCacheMessage* msg = (ReadCellCacheMessage*)base->content();
-      size_t values_sz = sizeof(ElementT) * msg->cacheLineSize;
+      size_t values_sz = sizeof(ElementT);
       size_t sz = sizeof(ReadCellCacheReplyMessage) + values_sz;
 
       char buf[sz];
@@ -121,8 +120,7 @@ namespace petabricks {
     RemoteHostPtr host() { return NULL; }
 
     void processReadCellCacheMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
-      ReadCellCacheMessage* msg = (ReadCellCacheMessage*)base->content();
-      size_t values_sz = sizeof(ElementT) * msg->cacheLineSize;
+      size_t values_sz = sizeof(ElementT);
       size_t sz = sizeof(ReadCellCacheReplyMessage) + values_sz;
 
       char buf[sz];

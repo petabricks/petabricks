@@ -74,12 +74,13 @@ int RegionHandler::allocData(const IndexT* size) {
 
   } else if (i == numHosts) {
     _regionData = new RegionDataRaw(_D, size);
+    _regionData->allocData();
 
   } else {
     JASSERT(false)(i)(numHosts);
   }
 
-  return _regionData->allocData();
+  return 1;
 }
 
 RegionDataIPtr RegionHandler::getRegionData() {

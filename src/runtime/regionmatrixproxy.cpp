@@ -118,7 +118,6 @@ void RegionMatrixProxyRemoteObject::onRecvInitial(const void* buf, size_t len) {
   GeneralInitialMessage* m = (GeneralInitialMessage*) buf;
 
   if (m->type == MessageTypes::CREATEREGIONDATA) {
-    JASSERT(len == sizeof(CreateRegionDataInitialMessage))(len);
     CreateRegionDataInitialMessage* msg = (CreateRegionDataInitialMessage*) buf;
     _regionMatrix = new RegionMatrixProxy(new RegionHandler(msg->dimensions, msg->size, true), this);
 
