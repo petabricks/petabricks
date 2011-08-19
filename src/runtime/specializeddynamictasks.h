@@ -30,6 +30,7 @@
 #include "dynamictask.h"
 #include "matrixregion.h"
 #include "string.h"
+#include "gputaskinfo.h"
 
 #include <vector>
 
@@ -96,6 +97,32 @@ private:
   IndexT _begin[D];
   IndexT _end[D];
 };
+
+#ifdef HAVE_OPENCL
+/**
+ * A task that calls a method on a given object, with a given region, task ID, a pointer to RegionNodeGroup map, and a boolean indicating the copy out status
+ */
+template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D], int nodeID, RegionNodeGroupMapPtr map, bool gpuCopyOut)>
+class CreateGpuSpatialMethodCallTask : public DynamicTask {
+public:
+  CreateGpuSpatialMethodCallTask(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D], int nodeID, RegionNodeGroupMapPtr map, bool gpuCopyOut)
+    : _obj(obj), _nodeID(nodeID), _map(map), _gpuCopyOut(gpuCopyOut)
+  {
+    memcpy(_begin, begin, sizeof _begin);
+    memcpy(_end,   end,   sizeof _end);
+  }
+  DynamicTaskPtr run(){
+    return ((*_obj).*(method))(_begin, _end, _nodeID, _map, _gpuCopyOut);
+  }
+private:
+  jalib::JRef<T> _obj;
+  IndexT _begin[D];
+  IndexT _end[D];
+  int _nodeID;
+  RegionNodeGroupMapPtr _map;
+  bool _gpuCopyOut;
+};
+#endif
 
 /**
  * A task that bundles many unstarted tasks together

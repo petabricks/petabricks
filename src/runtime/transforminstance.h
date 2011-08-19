@@ -28,6 +28,7 @@
 #define PETABRICKSTRANSFORMINSTANCE_H
 
 #include "dynamictask.h"
+#include "gpudynamictask.h"
 
 #include "common/jrefcounted.h"
 

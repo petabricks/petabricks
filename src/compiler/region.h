@@ -48,6 +48,20 @@ class RIRScope;
 typedef jalib::JRef<Region> RegionPtr;
 typedef jalib::JRef<SimpleRegion> SimpleRegionPtr;
 
+
+class RegionNodeGroup : public jalib::JRefCounted {
+public:
+  RegionNodeGroup(const std::string& name, std::vector<int>& ids) {
+    _matrixName = name;
+    _nodeIDs = ids;
+  }
+  std::string matrixName() { return _matrixName; }
+  std::vector<int>& nodeIDs() { return _nodeIDs; }
+private:
+  std::string _matrixName;
+  std::vector<int> _nodeIDs;
+};
+
 class RegionList : public std::vector<RegionPtr> , public jalib::JRefCounted, public jalib::SrcPosTaggable, public jalib::JPrintable {
 public:
   void print(std::ostream& o) const;

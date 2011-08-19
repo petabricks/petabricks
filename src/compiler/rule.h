@@ -135,7 +135,18 @@ public:
                                 Transform& trans,
                                 CodeGenerator& o,
                                 const SimpleRegionPtr& region,
-                                RuleFlavor flavor) = 0; 
+                                RuleFlavor flavor,
+                                std::vector<RegionNodeGroup>& regionNodesGroups,
+                                int nodeID,
+                                bool gpuCopyOut) = 0;
+  void generateCallCode(const std::string& nodename,
+                        Transform& trans,
+                        CodeGenerator& o,
+                        const SimpleRegionPtr& region,
+                        RuleFlavor flavor) {
+    std::vector<RegionNodeGroup> empty;
+    generateCallCode(nodename, trans, o, region, flavor, empty, 0, false);
+  }
   virtual void generateDeclCodeSimple(Transform& trans, CodeGenerator& o) = 0;
   virtual void generateTrampCodeSimple(Transform& trans, CodeGenerator& o) = 0;
   
@@ -164,7 +175,10 @@ public:
   
   void printIdentifier(std::ostream& o) const { o <<_id << " "; }
   int id() const { return _id; }
-  
+#ifdef HAVE_OPENCL
+  virtual int getAssociatedId() { return _id; }
+  virtual bool isEnabledGpuRule() { return false; }
+#endif
   
   const SimpleRegionPtr& applicableRegion() const { return _applicableRegion; }
   
@@ -199,6 +213,8 @@ public:
   
   ///Get the list of regions that the rule only reads or writes
   virtual RegionList getNonSelfDependentRegions() { return RegionList(); }
+
+  virtual RegionList getFromRegions( ) const { return RegionList(); }
   
 protected:
   int _id;

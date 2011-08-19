@@ -27,14 +27,41 @@
 #ifndef PETABRICKSMATRIXSTORAGE_H
 #define PETABRICKSMATRIXSTORAGE_H
 
+#include <set>
+#include <map>
+
 #include "common/jassert.h"
 #include "common/jrefcounted.h"
 #include "common/hash.h"
 
+#ifdef HAVE_OPENCL
+#include <oclUtils.h>
+#include "openclutil.h"
+#endif
+
 namespace petabricks {
 
+class RegionNodeGroupMap;
+
+typedef std::pair<std::string, std::set<int> > RegionNodeGroup;
+typedef jalib::JRef<RegionNodeGroupMap> RegionNodeGroupMapPtr;
+
+class RegionNodeGroupMap: public jalib::JRefCounted, 
+                          public std::multimap<std::string, std::set<int> > {
+public:
+  RegionNodeGroupMap(){}
+};
+
 class MatrixStorage;
+class MatrixStorageInfo;
 typedef jalib::JRef<MatrixStorage> MatrixStoragePtr;
+typedef jalib::JRef<MatrixStorageInfo> MatrixStorageInfoPtr;
+typedef std::vector<MatrixStoragePtr> MatrixStorageList;
+typedef std::vector<std::set<int> > NodeGroups;
+#ifdef HAVE_OPENCL
+class CopyoutInfo;
+typedef jalib::JRef<CopyoutInfo> CopyoutInfoPtr;
+#endif
 
 /**
  * The raw data for a Matrix
@@ -78,6 +105,12 @@ public:
     g.update(_data, _count*sizeof(ElementT));
     return g.final();
   }
+  
+  void print() {
+    for(size_t i = 0; i < _count; i++)
+      std::cout << _data[i] << " ";
+    std::cout << std::endl;
+  }
 private:
   ElementT* _data;
   size_t _count;
@@ -87,7 +120,7 @@ private:
 /**
  * Capable of storing any type of MatrixRegion plus a hash of its data
  */
-class MatrixStorageInfo {
+class MatrixStorageInfo : public jalib::JRefCounted {
   typedef MatrixStorage::IndexT IndexT;
   typedef MatrixStorage::ElementT ElementT;
   typedef jalib::Hash HashT;
@@ -99,16 +132,65 @@ public:
   const IndexT* sizes() const { return _sizes; }
   const HashT& hash() const { return _hash; }
   ElementT extraVal() const { return _extraVal; }
+  ssize_t bytes() const {
+    return _count*sizeof(ElementT);
+  }
+  size_t count() const {
+    return _count;
+  }
 
   void setStorage(const MatrixStoragePtr& s, const ElementT* base);
   void setSizeMultipliers(int dim, const IndexT* mult, const IndexT* siz);
+  void setMultipliers(const IndexT* mult);
   void setExtraVal(ElementT v=0);
   void computeDataHash();
   void reset();
   void releaseStorage();
   MatrixStorageInfo();
+  ~MatrixStorageInfo();
   bool isMetadataMatch(const MatrixStorageInfo& that) const;
   bool isDataMatch(const MatrixStorageInfo& that) const;
+
+  void print() {
+    std::cout << "MatrixStorage " << this << std::endl;
+    if(_dimensions>0)
+      _storage->print();
+    else
+      std::cout << _extraVal << std::endl;
+  }
+
+#ifdef HAVE_OPENCL
+  void modifyOnCpu() { _cpuModify = true; }  //TODO: do I need to use lock?
+  void setName(std::string name) { _name = name; }
+
+  ///
+  /// call after run gpu PREPARE task
+  bool initGpuMem(cl_context& context);
+
+  ///
+  /// call after run gpu RUN task
+  void finishGpuMem(cl_command_queue& queue,int nodeID, RegionNodeGroupMapPtr map);
+
+  ///
+  /// store a region that is modified on gpu
+  void incCoverage(IndexT* begin, IndexT* end, int size);
+
+  ///
+  /// get a memmory buffer for read buffer from gpu
+  MatrixStoragePtr getGpuOutputStoragePtr(int nodeID);
+
+  CopyoutInfoPtr getCopyoutInfo(int nodeID);
+  void releaseCLMem();
+  void check(cl_command_queue& queue);
+
+  ssize_t getBaseOffset() { return _baseOffset; }
+
+  std::vector<IndexT*>& getBegins() { return _begins; }
+  std::vector<IndexT*>& getEnds() { return _ends; }
+
+  cl_mem _clmem;
+#endif
+
 private:
   MatrixStoragePtr _storage;
   int     _dimensions;
@@ -117,10 +199,55 @@ private:
   IndexT  _sizes[MAX_DIMENSIONS];
   ElementT _extraVal;
   HashT   _hash;
+  ssize_t _count;
+
+#ifdef HAVE_OPENCL
+  std::string _name;
+  int _coverage;
+  bool _hasGpuMem;
+  bool _cpuModify;
+
+  ///
+  /// regions that are modified on gpu
+  std::vector<IndexT*> _begins;
+  std::vector<IndexT*> _ends;
+  NodeGroups _completeGroups;
+  NodeGroups _remainingGroups;
+  std::vector<int> _doneCompleteNodes;
+  std::vector<int> _doneRemainingNodes;
+  std::map<int, CopyoutInfoPtr> _copyMap;
+
+  void startReadBuffer(cl_command_queue& queue, std::set<int>& doneNodes);
+
+  /*CL_CALLBACK decreaseDependency(cl_event event, cl_int cmd_exec_status, void *user_data)
+  {
+    // handle the callback here.
+    std::cerr << this << " : CALL BACK!!!!!!!!!!!!!!!" << std::endl;
+  }*/
+#endif
 };
 
+#ifdef HAVE_OPENCL
+class CopyoutInfo : public jalib::JRefCounted {
+  typedef MatrixStorage::IndexT IndexT;
+public:
+  CopyoutInfo(cl_command_queue& queue, MatrixStorageInfoPtr originalBuffer, std::vector<IndexT*>& begins, std::vector<IndexT*>& ends, int coverage);
+  bool complete();
+  bool done() { return _done; }
+  std::vector<IndexT*>& getBegins() { return _begins; }
+  std::vector<IndexT*>& getEnds() { return _ends; }
+  MatrixStoragePtr getGpuOutputStoragePtr() { return _gpuOutputBuffer; }
 
-
+private:
+  std::vector<IndexT*> _begins;
+  std::vector<IndexT*> _ends;
+  MatrixStorageInfoPtr _originalBuffer;
+  MatrixStoragePtr     _gpuOutputBuffer;
+  cl_event _event;
+  int _coverage;
+  bool _done;
+};
+#endif
 
 }
 

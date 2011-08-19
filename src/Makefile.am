@@ -53,6 +53,9 @@ pkglib_HEADERS=  \
   common/thedeque.h \
   runtime/dynamicscheduler.h \
   runtime/dynamictask.h \
+  runtime/gpudynamictask.h \
+  runtime/gpumanager.h \
+  runtime/gputaskinfo.h \
   runtime/matrixio.h \
   runtime/matrixregion.h \
   runtime/matrixspecializations.h \
@@ -132,6 +135,8 @@ libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime
 libpbruntime_a_SOURCES =  \
   runtime/dynamicscheduler.cpp \
   runtime/dynamictask.cpp \
+  runtime/gpudynamictask.cpp \
+  runtime/gputaskinfo.cpp \
   runtime/matrixio.cpp \
   runtime/matrixreader.lpp \
   runtime/matrixstorage.cpp \

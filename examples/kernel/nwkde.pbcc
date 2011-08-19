@@ -11,7 +11,7 @@
 /* wrap relative difference into [-180,180]
  * do most of the arithmetic in integers for speed
  * P360 and M360 indicate "plus 360" and "minus 360" */
-inline double wrapWindDirDiff(double diff)
+inline ElementT wrapWindDirDiff(ElementT diff)
 {
     /* add 360 *before* cast to round towards -INF instead of towards 0 */
     int diffIntP360 = (int) (diff + 360);
@@ -40,7 +40,7 @@ to INPUTSCHECKED
           OUTPUTVARINDEX outputVarIndex,
           OUTPUTTIMEOFFSET outputTimeOffset)
     {
-        double min, max, min2, max2;
+        ElementT min, max, min2, max2;
 
         findMinAndMax(&min, &max, trainVarIndex);
         fprintf(stderr, "trainVarIndex range: (%g, %g)\n", min, max);
@@ -155,15 +155,15 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
           TESTTIMEOFFSET.cell(i) testTimeOffset)
     {
         int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex);
-        double kernelWidth = kernelWidths.cell((int) trainVarIndex);
+        ElementT kernelWidth = kernelWidths.cell((int) trainVarIndex);
 
         int trainTimeIndex = (int) trainIndex + (int) trainTimeOffset;
         int  testTimeIndex = (int)  testIndex + (int)  testTimeOffset;
 
-        double trainPoint = trainData.cell((int) trainVarIndex, trainTimeIndex);
-        double  testPoint =  testData.cell((int)  testVarIndex,  testTimeIndex);
+        ElementT trainPoint = trainData.cell((int) trainVarIndex, trainTimeIndex);
+        ElementT  testPoint =  testData.cell((int)  testVarIndex,  testTimeIndex);
 
-        double diff = trainPoint - testPoint;
+        ElementT diff = trainPoint - testPoint;
 
         if (wrapFlag) {
             diff = wrapWindDirDiff(diff);
@@ -189,7 +189,7 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
         if (trainIndex <= testIndex - trainMaskWidth ||
             trainIndex >= testIndex + trainMaskWidth) {
             ReduceAdd(weight, sqDiffs.slice(2,0).slice(1,0));
-            weight = exp(-((double) weight));
+            weight = exp(-((ElementT) weight));
         } else {
             weight = 0;
         }
@@ -231,22 +231,22 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
           OUTPUTTIMEOFFSET outputTimeOffset,
           TRAINMASKWIDTH trainMaskWidth)
     {
-        double sum = 0;
+        ElementT sum = 0;
 
         if (trainIndex <= testIndex - trainMaskWidth ||
             trainIndex >= testIndex + trainMaskWidth) {
             for (int i = 0; i < trainVarIndex.count(); ++i) {
 
                 int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
-                double kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
+                ElementT kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
 
                 int trainTimeIndex = (int) trainIndex + (int) trainTimeOffset.cell(i);
                 int  testTimeIndex = (int)  testIndex + (int)  testTimeOffset.cell(i);
 
-                double trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
-                double  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
+                ElementT trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
+                ElementT  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
 
-                double diff = trainPoint - testPoint;
+                ElementT diff = trainPoint - testPoint;
 
                 if (wrapFlag) {
                     diff = wrapWindDirDiff(diff);
@@ -258,7 +258,7 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
                 // return squared difference
                 sum += diff * diff;
             }
-            weight = exp(-((double) sum));
+            weight = exp(-((ElementT) sum));
         } else {
             weight = 0;
         }
@@ -288,7 +288,7 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
           OUTPUTTIMEOFFSET outputTimeOffset,
           TRAINMASKWIDTH trainMaskWidth)
     {
-        double totalPartial = 0, totalWeight = 0, weight;
+        ElementT totalPartial = 0, totalWeight = 0, weight;
 
         // loop over training points
         for (int j = 0; j < trainIndices.count(); ++j) {
@@ -301,19 +301,19 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
             if (trainIndex <= testIndex - trainMaskWidth ||
                 trainIndex >= testIndex + trainMaskWidth) {
                 // loop over predictor variables
-                double sum = 0;
+                ElementT sum = 0;
                 for (int i = 0; i < trainVarIndex.count(); ++i) {
 
                     int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
-                    double kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
+                    ElementT kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
 
                     int trainTimeIndex = (int) trainIndex + (int) trainTimeOffset.cell(i);
                     int  testTimeIndex = (int)  testIndex + (int)  testTimeOffset.cell(i);
 
-                    double trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
-                    double  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
+                    ElementT trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
+                    ElementT  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
 
-                    double diff = trainPoint - testPoint;
+                    ElementT diff = trainPoint - testPoint;
 
                     if (wrapFlag) {
                         diff = wrapWindDirDiff(diff);
@@ -325,13 +325,13 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
                     // return squared difference
                     sum += diff * diff;
                 }
-                weight = exp(-((double) sum));
+                weight = exp(-((ElementT) sum));
             } else {
                 weight = 0;
             }
 
             int outputTimeIndex = (int) trainIndex + (int) outputTimeOffset;
-            double partial = weight * trainData.cell((int) outputVarIndex, outputTimeIndex);
+            ElementT partial = weight * trainData.cell((int) outputVarIndex, outputTimeIndex);
 
 #ifdef DEBUG
             fprintf(stderr, "method 3:  weight(%d, %d) = %g\n", j, k, weight);
@@ -353,7 +353,7 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
     from (PARTIALS.row(k) partials,
           WEIGHTS.row(k) weights)
     {
-        double totalWeight;
+        ElementT totalWeight;
         ReduceAdd(result, partials);
         ReduceAdd(totalWeight, weights);
         result /= totalWeight;
@@ -458,7 +458,7 @@ accuracy_metric NWKDEMetric2
           TRAINMASKWIDTH   trainMaskWidth)
     {
 #ifdef DEBUG
-        double ret;
+        ElementT ret;
         NWKDECheckInputs(ret, trainData, trainIndices,
                          trainVarIndex, trainTimeOffset,
                          testData, testIndices,

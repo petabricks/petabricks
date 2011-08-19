@@ -25,6 +25,7 @@
  *                                                                           *
  *****************************************************************************/
 #include "dynamicscheduler.h"
+#include "gpumanager.h"
 
 #include <pthread.h>
 #include <signal.h>
@@ -122,6 +123,17 @@ void petabricks::DynamicScheduler::shutdown(){
     int rv = pthread_join(_rawThreads[0], NULL);
     JWARNING(rv==0)(rv).Text("pthread_join failed");
     _rawThreadsLen=0;
+  }
+}
+
+void petabricks::DynamicScheduler::injectWork(DynamicTask* task){
+  static jalib::AtomicT i=0;
+  WorkerThreadPool& a = pool();
+  JASSERT(a.getFixed((int)jalib::atomicIncrementReturn(&i)) != NULL).Text("pool is null.");
+  a.getFixed((int)jalib::atomicIncrementReturn(&i))->inject(task);
+
+  if(i > (1<<28)) {
+    i=0;
   }
 }
   

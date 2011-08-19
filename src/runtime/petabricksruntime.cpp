@@ -28,6 +28,9 @@
 
 #include "dynamicscheduler.h"
 #include "dynamictask.h"
+#include "gpudynamictask.h"
+#include "gpumanager.h"
+#include "gpumanager.cpp"
 #include "petabricks.h"
 #include "testisolation.h"
 
@@ -40,6 +43,7 @@
 #include <limits>
 #include <iostream>
 #include <math.h>
+#include <pthread.h>
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -199,7 +203,6 @@ namespace{//file local
       << " stddev=\""   << sqrt(variance)      << '"';
   }
 }
-
 
 petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Main* m)
   : _main(m)
@@ -367,6 +370,9 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     case MODE_RUN_IO:
       //startup requested number of threads
       if(MODE!=MODE_GRAPH_THREADS && MODE!=MODE_ABORT){
+#ifdef HAVE_OPENCL
+        GpuManager::start();
+#endif
         JTIMER_SCOPE(startworkers);
         JASSERT(worker_threads>=1)(worker_threads);
         DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
@@ -391,6 +397,9 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
 petabricks::PetabricksRuntime::~PetabricksRuntime()
 {
   saveConfig();
+#ifdef HAVE_OPENCL
+  GpuManager::shutdown();
+#endif
   DynamicScheduler::cpuScheduler().shutdown();
 }
 

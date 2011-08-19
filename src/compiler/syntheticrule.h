@@ -56,7 +56,10 @@ public:
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
+                        RuleFlavor flavor, 
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        bool gpuCopyOut); 
   void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
 

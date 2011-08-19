@@ -331,15 +331,34 @@ void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const
   write("}");
 }
 
-/*#ifdef HAVE_OPENCL
-void petabricks::CodeGenerator::mkGpuSpatialTask(const std::string& objname, const std::string& methodname) {
-  std::string taskclass = "petabricks::SpatialMethodCallTask<"+objname
+#ifdef HAVE_OPENCL
+void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, bool gpuCopyOut) {
+  std::string taskclass = "petabricks::CreateGpuSpatialMethodCallTask<"+objname
                         + ", " + jalib::XToString(region.totalDimensions())
                         + ", &" + objname + "::" + methodname
                         + ">";
-  //TODO: is "this" right?
-  write("new "+taskclass+"(this, _iter_begin, _iter_end);");
+  write("{");
+  incIndent();
+  comment("MARKER 6");
+  write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
+  write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
+  write("RegionNodeGroupMapPtr groups = new RegionNodeGroupMap();");
+  for(std::vector<RegionNodeGroup>::iterator group = regionNodesGroups.begin(); group != regionNodesGroups.end(); ++group){
+    write("{");
+    incIndent();
+    write("std::set<int> ids;");
+    for(std::vector<int>::iterator id = group->nodeIDs().begin(); id != group->nodeIDs().end(); ++id){
+      write("ids.insert("+jalib::XToString(*id)+");");
+    }
+    write("groups->insert(RegionNodeGroup(\""+group->matrixName()+"\",ids));");
+    decIndent();
+    write("}");
+  }
+  write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end, "+jalib::XToString(nodeID)+", groups, "+jalib::XToString(gpuCopyOut)+");");
+  decIndent();
+  write("}");
 }
-#endif*/
+
+#endif
 
 

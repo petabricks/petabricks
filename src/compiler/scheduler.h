@@ -130,6 +130,11 @@ private:
   typedef std::vector<ScheduleEntry> ScheduleT;
   ScheduleT _schedule;
   RuleChoiceAssignment _choiceAssignment;
+
+#ifdef HAVE_OPENCL
+  std::map<RuleChoiceConsumer*,bool> _copyAssignment;
+  std::map<RuleChoiceConsumer*,int> _numOutOnGpu;
+#endif
 };
 
 namespace {

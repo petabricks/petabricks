@@ -120,6 +120,12 @@ public:
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
 #ifdef HAVE_OPENCL
+  void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o);
+  void generateOpenCLCallCode(Transform& trans, CodeGenerator& o);
+  void generateOpenCLPrepareCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o);
+  void generateOpenCLCopyInCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o, RegionPtr region);
+  void generateOpenCLRunCode(Transform& trans, CodeGenerator& o);
+  void generateOpenCLCopyOutCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o, RegionPtr region);
   ///
   /// Generate an OpenCL program implementing this rule
   void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef );
@@ -131,7 +137,10 @@ public:
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
+                        RuleFlavor flavor,
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        bool gpuCopyOut); 
 
   ///
   /// Return function the name of this rule in the code

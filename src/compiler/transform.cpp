@@ -488,6 +488,22 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.beginFunc("void", "init");
   extractConstants(o);
   o.endFunc();
+
+#ifdef HAVE_OPENCL
+  std::vector<std::string> empty;
+  o.beginFunc("void", "releaseGpuObjects", empty, true);
+  for(RuleList::iterator i = _rules.begin(); i != _rules.end(); ++i)
+  {
+    if((*i)->isEnabledGpuRule()){
+      std::string id = jalib::XToString((*i)->getAssociatedId());
+      o.beginIf("clkern_"+id+" != 0");
+      o.write("clReleaseKernel(clkern_"+id+");");
+      o.write("clReleaseProgram(clprog_"+id+");");
+      o.endIf();
+    }
+  }
+  o.endFunc();
+#endif
   
   o.beginFunc("DynamicTaskPtr", "runDynamic");
   if(_memoized){
@@ -678,7 +694,20 @@ void petabricks::Transform::registerMainInterface(CodeGenerator& o){
     }
   }
 }
-  
+
+#ifdef HAVE_OPENCL
+void petabricks::Transform::generateReleaseGpuObjectsCode(CodeGenerator& o){
+  SRCPOSSCOPE();
+  if(_templateargs.empty()){
+    o.write(name()+"_instance::releaseGpuObjects();");
+  }else{
+    size_t choiceCnt = tmplChoiceCount();
+    for(size_t c=0; c<choiceCnt; ++c){
+      o.write(tmplName(c)+"_instance::releaseGpuObjects();");
+    }
+  }
+}
+#endif
 
 void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::string& nextMain){ 
   SRCPOSSCOPE();
