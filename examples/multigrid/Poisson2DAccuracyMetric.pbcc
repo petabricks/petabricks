@@ -36,8 +36,8 @@ to Accuracy
     Accuracy from (Y y, X x, B b)
     {
         // these store the errors of the input and output
-        double e1;
-        double e2;
+        ElementT e1;
+        ElementT e2;
 
         MatrixRegion2D z = MatrixRegion2D::allocate(n, n);
 #ifdef RESIDUAL_METRIC

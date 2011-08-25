@@ -66,20 +66,21 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
       o.comment("SYNC();");
       o.continuationRequired("petabricks::sync_hook(_completion, ");
     }else if(s->containsLeaf("CALL")){
-      o.write(s->toString()); 
+      o.write(s->toString());
       o.comment("sync forced because of CALL");
       o.continuationRequired("petabricks::sync_hook(_completion, ");
     }else if(s->containsLeaf("SPAWN")){
-      o.write(s->toString()); 
+      o.write(s->toString());
       o.continuationPoint();
-    }else{ 
-      o.write(s->toString()); 
+    }else{
+      o.write(s->toString());
     }
     break;
   case RIRNode::STMT_LOOP:
   case RIRNode::STMT_COND:
   case RIRNode::STMT_BLOCK:
-    if(s->containsLeaf("SYNC") || s->containsLeaf("CALL") || s->containsLeaf("SPAWN") 
+  case RIRNode::STMT_SWITCH:
+    if(s->containsLeaf("SYNC") || s->containsLeaf("CALL") || s->containsLeaf("SPAWN")
         || s->containsLeaf("break")  || s->containsLeaf("continue") ){
       if(s->type() == RIRNode::STMT_COND){
         o.comment("expanded if statement");
@@ -119,20 +120,18 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
         o.continueLabel(jafter);
       }else if(s->type() == RIRNode::STMT_BLOCK){
         o.comment("expanded block statement");
-        o.write(s->extractBlock()->toString()); 
+        s->extractBlock()->accept(*this);
       }else{
-        UNIMPLEMENTED();
+        UNIMPLEMENTED()(s->toString());
       }
     }else{
-      o.write(s->toString()); 
+      o.write(s->toString());
     }
     break;
-  case RIRNode::STMT_SWITCH:
   default:
-    UNIMPLEMENTED()(s->typeStr());
+    JASSERT(false)(s->typeStr())(s->toString());
   }
 }
-
 
 void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
   if(e->type() == RIRNode::EXPR_IDENT){
@@ -140,14 +139,21 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
     if(sym && sym->hasReplacement() && sym->replacement()!=e->toString()){
       JTRACE("LIFTVAR - replace")(e->toString())(sym->replacement());
       e = new RIRIdentExpr(sym->replacement());
-      before(e); 
+      before(e);
       return;
     }else if(sym && sym->isType()){
-      if(!hasExprBackward() && hasExprForward() 
+      if(!hasExprBackward() && hasExprForward()
           && (peekExprForward()->type()==RIRNode::EXPR_IDENT || peekExprForward()->isLeaf("*")) ){
+        //it smells like a variable declaration...
         std::string type = e->toString();
-        while(peekExprForward()->isLeaf("*"))
+        for(int nstar=0; peekExprForward()->isLeaf("*"); nstar++){
           type+=popExprForward()->toString();
+          if(!hasExprForward()) {
+            //whoops, we were supposed to find an IDENT not EOF -- backtrack
+            for(; nstar>=0; nstar--) pushExprForward(RIRExpr::parse("*", SRCPOS()));
+            return;
+          }
+        }
         std::string name = peekExprForward()->toString();
         std::string nameExtra = "";
         std::string nameMangled = prefix() + name;
@@ -158,7 +164,7 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
           JASSERT(!peekExprForward()->isLeaf(","))(_transform.name())(_rule.id()-_transform.ruleIdOffset())
             .Text("list style initializers not yet supported");
           if(peekExprForward()->isLeaf("[")){
-            while(!peekExprForward()->isLeaf("]")){ 
+            while(!peekExprForward()->isLeaf("]")){
               nameExtra += popExprForward()->toString();
             }
             nameExtra += popExprForward()->toString();
@@ -175,6 +181,20 @@ void petabricks::LiftVardeclPass::before(RIRExprCopyRef& e) {
   }
 }
 
+
+
+void petabricks::RuleFlavorSpecializePass::before(RIRExprCopyRef& e) {
+  if(e->type() == RIRNode::EXPR_IDENT){
+    RIRSymbolPtr sym = _scope->lookup(e->toString());
+    if(sym && sym->type() ==  RIRSymbol::SYM_TYPE_MATRIX_GENERIC){
+      e = new RIRIdentExpr(_rf.string()+"::"+e->toString());
+      JTRACE("specialized type")(e)(e->type() == RIRNode::EXPR_IDENT);
+    }
+  }
+}
+
+
+
 void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
   if(s->type() != RIRNode::STMT_BLOCK && depth()>=2 && parentNode()->isControl()){
     // add {}'s to sloppy ifs() and loops
@@ -182,12 +202,19 @@ void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
     tmp->addStmt(s);
     s=new RIRBlockStmt(tmp);
   }
+  if(s->type() == RIRNode::STMT_LOOP && (depth()==1 || !parentNode()->hasAnnotation("outer_for_scope"))){
+    // add {}'s around for statements to give them a sub-scope
+    RIRBlockCopyRef tmp = new RIRBlock();
+    tmp->addStmt(s);
+    tmp->addAnnotation("outer_for_scope");
+    s=new RIRBlockStmt(tmp);
+  }
   if(s->type() == RIRNode::STMT_LOOP && s->hasAnnotation("for_enough")){
     //expand forenough loops
     s->removeAnnotation("for_enough");
     RIRLoopStmt& loop = (RIRLoopStmt&)*s;
     RIRStmtCopyRef t;
-    JASSERT(s->numExprs()==5)(s->numExprs()); 
+    JASSERT(s->numExprs()==5)(s->numExprs());
     RIRExprCopyRef maxExp = s->popExpr();
     RIRExprCopyRef minExp = s->popExpr();
     int minI = jalib::StringToX<int>(minExp->toString());
@@ -207,7 +234,7 @@ void petabricks::ExpansionPass::before(RIRStmtCopyRef& s){
     loop.incPart()  = RIRExpr::parse("++"+vI, SRCPOS());
   }
 }
-  
+
 void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
   if(e->type() == RIRNode::EXPR_IDENT){
     RIRSymbolPtr sym = _scope->lookup(e->toString());
@@ -259,7 +286,7 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
       e = new RIRIdentExpr("TRANSFORM_LOCAL("+e->toString()+")");
     }
     if(sym && sym->isType()){
-      if(!hasExprBackward() && hasExprForward() 
+      if(!hasExprBackward() && hasExprForward()
           && (peekExprForward()->type()==RIRNode::EXPR_IDENT || peekExprForward()->isLeaf("*")) ){
         //transform:
         // int a,b=0,c;
@@ -317,9 +344,9 @@ void petabricks::ExpansionPass::before(RIRExprCopyRef& e){
       if(hasExprForward() && !peekExprForward()->parts().empty()){
         peekExprForward()->parts().push_front(new RIROpExpr("("));
         peekExprForward()->parts().push_back(new RIROpExpr(")"));
-        e = new RIRIdentExpr("PB_RETURN");
+        e = new RIRIdentExpr("RETURN");
       }else{
-        e = new RIRIdentExpr("PB_RETURN_VOID");
+        e = new RIRIdentExpr("RETURN_VOID");
       }
     }
   }
@@ -450,7 +477,7 @@ bool petabricks::OpenClFunctionRejectPass::isFunctionAllowed( const std::string&
   /* This is a quick list of functions which are common to the C or C++ and OpenCL C.  Thus, trying to compile rules using these functions
      shouldn't cause a problem. */
   const std::string whitelist[] =
-    { "PB_RETURN",
+    { "RETURN",
       "abs", "fabs",
       "max", "min",
       "sign", "round",

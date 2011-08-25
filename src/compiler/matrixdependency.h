@@ -36,7 +36,7 @@
 #include <map>
 
 #ifdef HAVE_CONFIG_H
-# include "config.h"
+#include "config.h"
 #endif
 
 namespace petabricks {
@@ -87,6 +87,14 @@ public:
       if( (_directionMask[i]&D_MULTIOUTPUT) != 0 )
         return true;
     return false;
+  }
+
+  bool isNone() const {
+    for(size_t i=0; i<_directionMask.size(); ++i)
+      if( _directionMask[i] != 0 ) {
+        return false;
+			}
+    return true;
   }
 
   std::string toCodeStr() const;

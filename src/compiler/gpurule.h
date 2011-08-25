@@ -55,6 +55,12 @@ class GpuRule : public SyntheticRule {
 
   void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
 
+  void generateCallCode(const std::string& nodename,
+                        Transform& trans,
+                        CodeGenerator& o,
+                        const SimpleRegionPtr& region,
+                        RuleFlavor flavor);
+  //TODO: remove this
   void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
   void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
 

@@ -1,12 +1,7 @@
 #ifndef DCTDLAPACK_PBCC
 #define DCTDLAPACK_PBCC
 
-%{
-
-extern "C" void dstevd_(char *jobz, int *n, double *D, double *E, double *Z, int *ldz, double *work, int *lwork, int *iwork, int *liwork, int *info);
-
-%}
-
+#include "extern.h"
 #include "../simple/copy.pbcc"
 
 // Find eigenvalues and eigenvectors of IN (tridiagonal symmetric) by LAPACK Divide-and-Conquer routines, which has a hardcoded cutoff at n=25
@@ -20,18 +15,28 @@ to Eigenvalue[n], Eigenvector[n,n]
     char jobz = 'V';
     int size=n,nsquared=n*n,lwork=-1,liwork=-1,info = 0;
 
+
     // allocate and initialize matrices
-    double *Z = vec.base();
-    double *D = eig.base();
-    double *E = Ein.storage()->data();
-    double *work = new double[1];
+    ElementT *Z = vec.base();
+    ElementT *D = eig.base();
+    ElementT *E = Ein.storage()->data();
+    CArrayStore Zstore;
+    CArrayStore Dstore;
+    CArrayStore Estore;
+    
+    to_c_array(vec, Z, Zstore);
+    to_c_array(eig, D, Dstore);
+    to_c_array(Ein, E, Estore);
+
+
+    ElementT *work = new ElementT[1];
     int *iwork = new int[1];
 
     // call workspace query to calculate the optimal size of the WORK array
     dstevd_(&jobz, &size, D, E, Z, &size, work, &lwork, iwork, &liwork, &info);
     lwork=work[0];
     delete [] work;
-    work = new double[lwork];
+    work = new ElementT[lwork];
     liwork=iwork[0];
     delete [] iwork;
     iwork = new int[liwork];
@@ -39,6 +44,9 @@ to Eigenvalue[n], Eigenvector[n,n]
     // call LAPACK routine dsyev for QR iteration
     dstevd_(&jobz, &size, D, E, Z, &size, work, &lwork, iwork, &liwork, &info);
 
+    from_c_array(vec, Z, Zstore);
+    from_c_array(eig, D, Dstore);
+    free_c_array(E, Estore);
 
     delete [] work;
     delete [] iwork;

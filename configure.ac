@@ -120,47 +120,58 @@ AC_CHECK_LIB([rt],         [clock_gettime],  [],
 
 AC_MSG_CHECKING([if compiler supports __thread])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__thread int x;]])],
-                  [  
+                  [
                     AC_MSG_RESULT([yes]);
-                    has_threadlocal=yes; 
+                    has_threadlocal=yes;
                     AC_DEFINE([HAVE_THREADLOCAL],[],[define if __thread works with this compiler])
                   ],
-                  [  
-                    AC_MSG_RESULT([no]); 
+                  [
+                    AC_MSG_RESULT([no]);
                     has_threadlocal=no;
                   ])
 
 AC_MSG_CHECKING([if compiler supports forced inlining])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((flatten)) void foo(){}]])],
-                  [  
+                  [
                     AC_DEFINE([INLINE],[inline __attribute__((flatten))], [keyword to force inlining])
                     AC_MSG_RESULT([yes]);
                   ],
-                  [  
+                  [
                     AC_DEFINE([INLINE],[inline])
-                    AC_MSG_RESULT([no]); 
+                    AC_MSG_RESULT([no]);
+                  ])
+
+AC_MSG_CHECKING([if compiler supports packed])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[struct foo{int x;} __attribute__((__packed__));]])],
+                  [
+                    AC_DEFINE([PACKED],[__attribute__((__packed__))], [keyword to force packed struct])
+                    AC_MSG_RESULT([yes]);
+                  ],
+                  [
+                    AC_DEFINE([PACKED],[])
+                    AC_MSG_RESULT([no]);
                   ])
 
 AC_MSG_CHECKING([if compiler supports __restrict__])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[void foo(int *__restrict__ t);]])],
-                  [  
+                  [
                     AC_DEFINE([RESTRICT],[__restrict__], [keyword to indicate non-aliased pointers/refs])
                     AC_MSG_RESULT([yes]);
                   ],
-                  [  
+                  [
                     AC_DEFINE([RESTRICT],[])
-                    AC_MSG_RESULT([no]); 
+                    AC_MSG_RESULT([no]);
                   ])
 
 AC_MSG_CHECKING([if compiler supports __attribute__])
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__attribute__((undefinedabdef)) void foo();]])],
-                  [  
+                  [
                     AC_DEFINE([ATTRIBUTE(x)],[__attribute__((x))], [macro for gcc function __attribute__s])
                     AC_MSG_RESULT([yes]);
                   ],
-                  [  
+                  [
                     AC_DEFINE([ATTRIBUTE(x)],[])
-                    AC_MSG_RESULT([no]); 
+                    AC_MSG_RESULT([no]);
                   ])
 
 ################################################################################
@@ -228,12 +239,10 @@ if ! test "$with_opencl" = "no"; then
 
    AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
    AC_CHECK_LIB([shrutil_x86_64], [shrLogEx], [], [AC_MSG_ERROR([Failed to find -lshrutil_x86_64.  Check LIBRARY_PATH, or reconfigure without shrutil_x86_64.])])
-   AC_CHECK_LIB([oclUtil_x86_64], [oclGetPlatformID], [], [AC_MSG_ERROR([Failed to find -loclUtil_x86_64.  Check LIBRARY_PATH, or reconfigure without oclUtil_x86_64.])])   
+   AC_CHECK_LIB([oclUtil_x86_64], [oclGetPlatformID], [], [AC_MSG_ERROR([Failed to find -loclUtil_x86_64.  Check LIBRARY_PATH, or reconfigure without oclUtil_x86_64.])])
 else
    AC_DEFINE([MATRIX_ELEMENT_T],[double])
 fi
-
-
 
 AC_DEFINE([ACCTARGET_STR],       ["accuracyTarget"], [var name in output code for target accuracy])
 AC_DEFINE([BIN_TMPFILE],         ["bin"],     [generated file name])
@@ -242,6 +251,7 @@ AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for b
 AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
 AC_DEFINE([DEFAULT_ACCURACY],    [1], [accuracy stand-in for fixed-accuracy rules])
 AC_DEFINE([DEVNULL],             ["/dev/null"], [null sync device path])
+AC_DEFINE([DISTRIBUTED_CACHE],   [], [use cache in distributed code])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])
 AC_DEFINE([GENHEADER],           ["_pbhdr.h"], [generated file name])
@@ -258,14 +268,15 @@ AC_DEFINE([MAX_NUM_WORKERS],     [512], [max number of workers supported])
 AC_DEFINE([MAX_REC_LEVELS],      [12], [number of levels for recursive choices])
 AC_DEFINE([MIN_NUM_WORKERS],     [1], [min number of workers supported])
 AC_DEFINE([OPT_LOWLEVEL],        [1], [enable low level optimization such as specializations and prefetching])
+AC_DEFINE([REGIONMATRIX_TEST],   [1], [always use RegionMatrix code])
 AC_DEFINE([RETURN_VAL_STR],      ["_pb_rv"], [var name in output code for rule output variable])
 AC_DEFINE([SINGLE_SEQ_CUTOFF],   [1], [define to use a global sequential cutoff instead of a per-transform one])
 AC_DEFINE([SPLIT_CHUNK_SIZE],    ["TRANSFORM_LOCAL(splitsize)"], [var name in output code])
 AC_DEFINE([STEAL_ATTEMPTS_MAINLOOP], [16], [number of times to attempt to steal in mainLoop])
 AC_DEFINE([STEAL_ATTEMPTS_WAITING],  [8], [number of times to attempt to steal in waitUntilComplete])
 AC_DEFINE([TEMPLATE_BIN_STR],    ["_acc_bin"], [var name in output code for accuracy template parameter])
-AC_DEFINE([TIMEOUT_GRACESEC],    [0.03], [Grace period before slow tests are killed])
 AC_DEFINE([TIMEOUTKILLSIG],      [SIGKILL], [Signal used to kill processes that timeout])
+AC_DEFINE([TIMEOUT_GRACESEC],    [0.03], [Grace period before slow tests are killed])
 AC_DEFINE([TMPL_IMPL_PFX],       ["_tmpl"], [prefix for expanded template implementations])
 AC_DEFINE([TRANSFORM_N_STR],     ["transform_n"], [define to add a system var to transform scope])
 AC_DEFINE([TX_DISTRIB_POSTFIX],  ["_distributed"], [postfix for dynamic versions of transforms])
@@ -274,6 +285,7 @@ AC_DEFINE([TX_OPENCL_POSTFIX],   ["_opencl"], [postfix for opencl versions of tr
 AC_DEFINE([TX_STATIC_POSTFIX],   ["_sequential"], [postfix for static versions of transforms])
 AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files in])
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
+AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
 
 AC_DEFINE_UNQUOTED([MAXIMA_PATH],    ["$MAXIMA"], [path to maxima program])
@@ -283,6 +295,7 @@ AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at t
 if false; then
   #disabled by default:
   AC_DEFINE([DISABLE_CONTINUATIONS], [], [dont generate continuation code after SPAWN/enqueue])
+  AC_DEFINE([DISABLE_DISTRIBUTED], [1], [dont generate distributed code])
   AC_DEFINE([INPUT_PERIMETER_STR], ["input_perimeter"], [define to add a system var to transform scope])
   AC_DEFINE([INPUT_SIZE_STR],      ["input_count"],      [define to add a system var to transform scope])
   AC_DEFINE([JALIB_USE_MALLOC],    [1],[Cause the custom allocator to call malloc instead of mmap])
@@ -290,8 +303,6 @@ if false; then
   AC_DEFINE([MAXIMA_CACHING],      [], [cache results from maxima])
   AC_DEFINE([OUTPUT_SIZE_STR],     ["output_count"],     [define to add a system var to transform scope])
   AC_DEFINE([PBCC_SEQUENTIAL],     [], [define to run tasks inline instead of enqueuing them])
-  AC_DEFINE([REGIONMATRIX_TEST],   [1], [always use RegionMatrix code])
-  AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
 fi
 
 ################################################################################
@@ -300,7 +311,7 @@ fi
 
 compileflags="-Wall -Wextra"
 linkflags=""
-  
+
 if test "$use_jassert" = "yes"; then
   linkflags="-rdynamic"
 fi

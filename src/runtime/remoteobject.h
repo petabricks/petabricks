@@ -69,11 +69,11 @@ public:
       waitUntilCompleteMu();
     }
   }
-  
+
   //transfer data to remote host and call remote recv
   void send(const void* ptr , size_t len);
-  
-  void markComplete() { 
+
+  void markComplete() {
     remoteMarkComplete();
     JLOCKSCOPE(*this);
     markCompleteMu();
@@ -83,11 +83,12 @@ public:
   void remoteNotify(int arg = 0);
 
   int flags() const { return _flags; }
-protected:
-  void remoteMarkComplete();
 
   ConstRemoteHostPtr host() const { return _host; }
   RemoteHostPtr host() { return _host; }
+
+protected:
+  void remoteMarkComplete();
 
   // these three callbacks get called to handle incoming data
   virtual void* allocRecv(size_t len);

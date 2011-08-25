@@ -61,7 +61,7 @@ int main(int argc, const char** argv){
   char testdata[] = "this is a test string";
   if(argc==1){
     hdb.remotefork(NULL, argc, argv);
-    hdb.accept();
+    hdb.accept("");
     hdb.spawnListenThread();
     hdb.spawnListenThread();
 

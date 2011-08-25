@@ -74,14 +74,16 @@ public:
 #ifdef HAVE_OPENCL
     OPENCL,
 #endif
-    _COUNT
+    _COUNT,
+    INVALID
+
   };
 
   typedef unsigned int iterator;
   static iterator begin() { return 0; }
   static iterator end() { return _COUNT; }
 
-  RuleFlavor(RuleFlavorEnum v) : _val(v) {}
+  RuleFlavor(RuleFlavorEnum v = INVALID) : _val(v) {}
   RuleFlavor(iterator v) : _val(static_cast<RuleFlavorEnum>(v)) {}
   operator RuleFlavorEnum() const { return _val; }
 
@@ -98,6 +100,8 @@ public:
         return "";
     }
   }
+  
+  std::string string() const { return str(); }
 
   friend std::ostream& operator<<(std::ostream& o, const RuleFlavor& fv) {
     return o<<fv.str();

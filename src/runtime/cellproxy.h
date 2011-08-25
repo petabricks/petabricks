@@ -28,7 +28,8 @@ namespace petabricks {
     }
 
     CellProxy(ElementT val) {
-      _handler = new RegionHandler(new RegionData0D(val));
+      _handler = new RegionHandler(new RegionData0D());
+      _handler->writeCell(NULL, val);
       _index = new IndexT[0];
     }
 
@@ -37,14 +38,11 @@ namespace petabricks {
     }
 
     operator double () const {
-      double val = _handler->acquireRegionData(this)->readCell(_index);
-      _handler->releaseRegionData(this);
-      return val;
+      return _handler->readCell(_index);
     }
 
     CellProxy operator=(double val) {
-      _handler->acquireRegionData(this)->writeCell(_index, val);
-      _handler->releaseRegionData(this);
+      _handler->writeCell(_index, val);
       return *this;
     }
 
@@ -106,7 +104,18 @@ namespace petabricks {
       return a * (double)b;
     }
 
+    void print(std::ostream& o) const {
+      o << "{" << _index[0];
+      for (int i = 1; i < _handler->dimensions(); i++) {
+        o << " , " << _index[i];
+      }
+      o << "}";
+    }
+    void print() const { print(std::cout); }
+    std::string toString() const;
   };
 }
+
+std::ostream& operator<< (std::ostream& o, const petabricks::CellProxy& cell);
 
 #endif

@@ -33,6 +33,8 @@
 #include <poll.h>
 #include <unistd.h>
 
+static bool theListenersShutdown = false;
+
 namespace _RemoteHostMsgTypes {
 
   typedef petabricks::EncodedPtr EncodedPtr;
@@ -52,7 +54,7 @@ namespace _RemoteHostMsgTypes {
   T DecodeTextPtr(EncodedPtr p) {
     return reinterpret_cast<T>(p+reinterpret_cast<intptr_t>(&token_func));
   }
-  
+
   template<typename T>
   EncodedPtr EncodeDataPtr(T* p) {
     return reinterpret_cast<EncodedPtr>(p);
@@ -62,7 +64,7 @@ namespace _RemoteHostMsgTypes {
   T* DecodeDataPtr(EncodedPtr p) {
     return reinterpret_cast<T*>(p);
   }
-  
+
   using petabricks::HostPid;
   struct MessageTypes {
     enum {
@@ -75,6 +77,9 @@ namespace _RemoteHostMsgTypes {
       REMOTEOBJECT_BROADCAST,
       REMOTEOBJECT_NOTIFY,
       REMOTEOBJECT_MARKCOMPLETE,
+      SHUTDOWN_BEGIN,
+      SHUTDOWN_ACK,
+      SHUTDOWN_END,
     };
     static const char* str(int t) {
       switch(t) {
@@ -88,6 +93,9 @@ namespace _RemoteHostMsgTypes {
         EXPSTR(REMOTEOBJECT_BROADCAST);
         EXPSTR(REMOTEOBJECT_NOTIFY);
         EXPSTR(REMOTEOBJECT_MARKCOMPLETE);
+        EXPSTR(SHUTDOWN_BEGIN);
+        EXPSTR(SHUTDOWN_ACK);
+        EXPSTR(SHUTDOWN_END);
 #undef EXPSTR
         default: return "INVALID";
     }
@@ -98,13 +106,14 @@ namespace _RemoteHostMsgTypes {
     MessageType type;
     HostPid     id;
     ChanNumber  chan;
-    
+    int         port;
+
     friend std::ostream& operator<<(std::ostream& o, const HelloMessage& m) {
       return o << "HelloMessage("
                << MessageTypes::str(m.type) << ", "
                << m.id << ")";
     }
-  };
+  } PACKED;
 
   struct GeneralMessage {
     MessageType type;
@@ -119,7 +128,7 @@ namespace _RemoteHostMsgTypes {
                << m.len << " bytes, "
                << std::hex << m.srcptr << " => " << m.dstptr << std::dec << ")";
     }
-  };
+  } PACKED;
 
   void* start_listenLoop(void* arg) {
     ((petabricks::RemoteHostDB*)arg)->listenLoop();
@@ -128,7 +137,13 @@ namespace _RemoteHostMsgTypes {
 }
 using namespace _RemoteHostMsgTypes;
 
-void petabricks::RemoteHost::accept(jalib::JServerSocket& s) {
+const HostPid& petabricks::HostPid::self() {
+  static HostPid selfObj = { gethostid(), 0 };
+  selfObj.pid = getpid();//pid may change with fork()
+  return selfObj;
+}
+
+void petabricks::RemoteHost::accept(jalib::JServerSocket& s, int listenPort) {
   _control.close();
   _control = s.accept();
   JASSERT(_control.isValid());
@@ -138,37 +153,38 @@ void petabricks::RemoteHost::accept(jalib::JServerSocket& s) {
     JASSERT(_data[i].isValid());
   }
   _lastchan = 1;
-  handshake();
+  handshake(listenPort);
 }
 
-void petabricks::RemoteHost::connect(const jalib::JSockAddr& a, int p) {
+void petabricks::RemoteHost::connect(const jalib::JSockAddr& a, int p, int listenPort) {
   JASSERT(_control.connect(a, p));
   for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
     JASSERT(_data[i].connect(a, p));
   }
   _lastchan = 0;
-  handshake();
+  handshake(listenPort);
 }
 
-void petabricks::RemoteHost::handshake() {
-  HostPid self = { gethostid(), getpid() };
+void petabricks::RemoteHost::handshake(int port) {
+  HostPid self = HostPid::self();
 
   HelloMessage msg = { MessageTypes::HELLO_CONTROL,
                        self,
-                       REMOTEHOST_DATACHANS};
+                       REMOTEHOST_DATACHANS,
+                       port};
   _control.disableNagle();
   _control.writeAll((char*)&msg, sizeof msg);
   _control.readAll((char*)&msg, sizeof msg);
   JASSERT(msg.type == MessageTypes::HELLO_CONTROL && msg.id != self && msg.chan == REMOTEHOST_DATACHANS);
   _id = msg.id;
-  
+
   for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
-    HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i};
+    HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i, port};
     _data[i].disableNagle();
     JASSERT(_data[i].writeAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
     JASSERT(_data[i].readAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
     JASSERT(dmsg.type == MessageTypes::HELLO_DATA
-        && dmsg.id == _id 
+        && dmsg.id == _id
         && dmsg.chan == i);
   }
 }
@@ -178,7 +194,7 @@ bool petabricks::RemoteHost::recv() {
   GeneralMessage msg;
 
   if(!_controlmu.trylock()) {
-    JTRACE("skipping recv, locked");
+    //JTRACE("skipping recv, locked");
     return false;
   }
 
@@ -204,7 +220,7 @@ bool petabricks::RemoteHost::recv() {
   void* buf = 0;
 
   switch(msg.type) {
-  case MessageTypes::REMOTEOBJECT_CREATE: 
+  case MessageTypes::REMOTEOBJECT_CREATE:
     {
       gen = DecodeTextPtr<RemoteObjectGenerator>(msg.dstptr);
       obj = (*gen)();
@@ -283,6 +299,30 @@ bool petabricks::RemoteHost::recv() {
       obj->markCompleteMu();
       break;
     }
+
+  case MessageTypes::SHUTDOWN_BEGIN:
+    {
+      JLOCKSCOPE(_controlmu);
+      { GeneralMessage ackmsg = { MessageTypes::SHUTDOWN_ACK, 0, 0, 0, 0};
+        _control.writeAll((const char*)&ackmsg, sizeof(GeneralMessage));
+      }
+      _control.readAll((char*)&msg, sizeof msg);
+      JASSERT(msg.type==MessageTypes::SHUTDOWN_END);
+      JTRACE("slave exit")(HostPid::self());
+      _exit(0);
+      break;
+    }
+  case MessageTypes::SHUTDOWN_ACK:
+    {
+      _isShuttingDown=true;
+      RemoteHostDB::onShutdownEvent();
+      break;
+    }
+  case MessageTypes::SHUTDOWN_END:
+    {
+      JASSERT(false);
+      break;
+    }
   default:
     JASSERT(false);
   }
@@ -323,7 +363,7 @@ void petabricks::RemoteHost::createRemoteObject(const RemoteObjectPtr& local,
   JLOCKSCOPE(_controlmu);
   _objects.push_back(local);
 }
-  
+
 void petabricks::RemoteHost::sendData(const RemoteObject* local, const void* data, size_t len) {
   local->waitUntilCreated();
   GeneralMessage msg = { MessageTypes::REMOTEOBJECT_DATA,
@@ -370,6 +410,25 @@ void petabricks::RemoteHost::remoteNotify(const RemoteObject* local, int arg) {
   sendMsg(&msg);
 }
 
+void petabricks::RemoteHost::shutdownBegin() {
+  GeneralMessage msg = { MessageTypes::SHUTDOWN_BEGIN,
+                         0,
+                         0,
+                         0,
+                         0 };
+  sendMsg(&msg);
+}
+
+void petabricks::RemoteHost::shutdownEnd() {
+  GeneralMessage msg = { MessageTypes::SHUTDOWN_END,
+                         0,
+                         0,
+                         0,
+                         0 };
+  _controlmu.lock();
+  _control.writeAll((char*)&msg, sizeof msg);
+}
+
 petabricks::RemoteHostDB::RemoteHostDB()
   : _port(LISTEN_PORT_FIRST),
     _listener(jalib::JSockAddr::ANY, LISTEN_PORT_FIRST),
@@ -378,7 +437,7 @@ petabricks::RemoteHostDB::RemoteHostDB()
     _fds(NULL)
 {
   while(!_listener.isValid()) {
-    JTRACE("trying next port")(_port);
+    //    JTRACE("trying next port")(_port);
     JASSERT(_port < LISTEN_PORT_FIRST+512)(_port);
     _listener = jalib::JServerSocket(jalib::JSockAddr::ANY, ++_port);
   }
@@ -388,40 +447,47 @@ petabricks::RemoteHostDB::RemoteHostDB()
   _host = buf;
 }
 
-void petabricks::RemoteHostDB::accept(){
+void petabricks::RemoteHostDB::accept(const char* host){
   JLOCKSCOPE(_mu);
-  RemoteHostPtr h = new RemoteHost();
-  h->accept(_listener);
+  RemoteHostPtr h = new RemoteHost(host);
+  h->accept(_listener, _port);
   _hosts.push_back(h);
   regenPollFds();
 }
 
 void petabricks::RemoteHostDB::connect(const char* host, int port){
   JLOCKSCOPE(_mu);
-  RemoteHostPtr h = new RemoteHost();
-  h->connect(host, port);
+  RemoteHostPtr h = new RemoteHost(host);
+  h->connect(host, port, _port);
   _hosts.push_back(h);
   regenPollFds();
 }
 
-void petabricks::RemoteHostDB::remotefork(const char* host, int oargc, const char** oargv) {
+void petabricks::RemoteHostDB::remotefork(const char* host, int oargc, const char** oargv, const char* slavehost, const char* slaveport) {
   std::string hoststr = this->host();
   std::string portstr = jalib::XToString(this->port());
   const char** argv = new const char*[oargc+32];
   int i=0;
-  if(host!=NULL) { 
+  if(host!=NULL) {
     argv[i++] = "ssh";
     argv[i++] = host;
   }
   for(; i<oargc; ++i) argv[i] = oargv[i];
+  if(slavehost!=NULL)
+    argv[i++] = slavehost;
   argv[i++] = hoststr.c_str();
+  if(slaveport!=NULL)
+    argv[i++] = slaveport;
   argv[i++] = portstr.c_str();
   argv[i++] = NULL;
   if(fork()==0){
-    for(int i=3; i<1024; ++i) close(i);
+    for(int i=3; i<1024; ++i)
+      close(i);
+    JTRACE("forked child proc");
     execv(argv[0], (char**)argv);
     JASSERT(false);
   }
+  delete[] argv;
 }
 
 void petabricks::RemoteHostDB::regenPollFds() {
@@ -444,7 +510,7 @@ void petabricks::RemoteHostDB::listenLoop() {
 
     for(i=_hosts.begin(), fd=_fds; i!=_hosts.end() && _ready>0; ++i, ++fd) {
       JASSERT(0 == (fd->revents & ~POLLIN))
-        ((*i)->id()).Text("connection closed");
+      ((*i)->id()).Text("connection closed");
       if(0 != (fd->revents & POLLIN)) {
         fd->revents = 0;
         --_ready;
@@ -459,6 +525,9 @@ void petabricks::RemoteHostDB::listenLoop() {
 
     if(!workDone) {
       _mu.unlock();
+      if(theListenersShutdown) {
+        return;
+      }
       pthread_yield();
       _mu.lock();
     }
@@ -476,4 +545,34 @@ void petabricks::RemoteHostDB::spawnListenThread() {
   JASSERT(0==pthread_create(&t, 0, start_listenLoop, this));
   JASSERT(0==pthread_detach(t));
 }
+
+petabricks::RemoteHostDB& petabricks::RemoteHostDB::instance() {
+  static RemoteHostDB db;
+  return db;
+}
+
+jalib::JCondMutex theShutdownMu;
+void petabricks::RemoteHostDB::onShutdownEvent() {
+  JLOCKSCOPE(theShutdownMu);
+  theShutdownMu.signal();
+}
+void petabricks::RemoteHostDB::shutdown() {
+  JLOCKSCOPE(theShutdownMu);
+  RemoteHostList::iterator i;
+  for(i=_hosts.begin(); i!=_hosts.end(); ++i) {
+    (*i)->shutdownBegin();
+  }
+  for(i=_hosts.begin(); i!=_hosts.end(); ++i) {
+    while(!(*i)->isShuttingDown()){
+      theShutdownMu.wait();
+    }
+  }
+  for(i=_hosts.begin(); i!=_hosts.end(); ++i) {
+    (*i)->shutdownEnd();
+  }
+}
+
+
+
+
 

@@ -102,7 +102,7 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
       o.write(i->node().nodename()+"->enqueue();");
     }
   }
-  if(flavor == RuleFlavor::WORKSTEALING) {
+  if(flavor!=RuleFlavor::SEQUENTIAL) {
     o.write("DynamicTaskPtr  _fini = new NullDynamicTask();");
     for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
       if(i->node().isOutput()) {
@@ -265,7 +265,7 @@ void petabricks::StaticScheduler::mergeCoscheduledNodes(const RuleChoiceAssignme
 
 void petabricks::StaticScheduler::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor) {
 
-  if(flavor==RuleFlavor::WORKSTEALING) {
+  if(flavor!=RuleFlavor::SEQUENTIAL) {
     for(ChoiceDepGraphNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i){
       o.addMember("DynamicTaskPtr", (*i)->nodename(), "");
     }
@@ -300,7 +300,7 @@ void petabricks::StaticScheduler::generateCode(Transform& trans, CodeGenerator& 
   }
   o.endSwitch();
   o.write("JASSERT(false).Text(\"invalid schedule\");");
-  if(flavor==RuleFlavor::WORKSTEALING) {
+  if(flavor!=RuleFlavor::SEQUENTIAL) {
     o.write("return 0;");
   }
 
@@ -325,8 +325,13 @@ void petabricks::StaticScheduler::renderGraph(const char* filename, const char* 
 
 void petabricks::StaticScheduler::writeGraph(const char* filename) const{
   FILE* fd = fopen(std::string(filename).c_str(), "w");
-  writeGraph(fd);
-  fclose(fd);
+  //writeGraph(fd);
+  //fclose(fd);
+  JWARNING(fd != NULL)(JASSERT_ERRNO)(filename).Text("failed to open file");
+  if(fd != NULL) {
+    writeGraph(fd);
+    fclose(fd);
+  }
 }
 
 void petabricks::StaticScheduler::writeGraph(FILE* fd) const{

@@ -5,7 +5,7 @@ AM_LFLAGS =
 OBJDIR=obj
 
 noinst_LIBRARIES = libpbcommon.a libpbcompiler.a libpbruntime.a libpbmain.a
-noinst_PROGRAMS = pbc rttest1 rttest2 regiondatatest regionmatrixtest
+noinst_PROGRAMS = pbc rttest1 rttest2 regiondatatest regionmatrixtest migrationtest
 
 noinst_HEADERS = \
   compiler/choicedepgraph.h \
@@ -54,6 +54,7 @@ pkglib_HEADERS=  \
   runtime/cellproxy.h \
   runtime/dynamicscheduler.h \
   runtime/dynamictask.h \
+  runtime/iregionreplyproxy.h \
   runtime/matrixio.h \
   runtime/matrixregion.h \
   runtime/matrixspecializations.h \
@@ -63,17 +64,18 @@ pkglib_HEADERS=  \
   runtime/petabricksruntime.h \
   runtime/regiondata0D.h \
   runtime/regiondatai.h \
-  runtime/regiondataproxy.h \
   runtime/regiondataraw.h \
   runtime/regiondataremote.h \
+  runtime/regiondataremotecache.h \
+  runtime/regiondataremotemessages.h \
   runtime/regiondatasplit.h \
   runtime/regionhandler.h \
   runtime/regionmatrix.h \
-  runtime/regionmatrixwrapper.h \
   runtime/regionmatrixi.h \
   runtime/regionmatrixproxy.h \
   runtime/remotehost.h \
   runtime/remoteobject.h \
+  runtime/remotetask.h \
   runtime/ruleinstance.h \
   runtime/specializeddynamictasks.h \
   runtime/testisolation.h \
@@ -132,6 +134,7 @@ libpbcompiler_a_SOURCES = \
 libpbruntime_a_LFLAGS =
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime
 libpbruntime_a_SOURCES =  \
+  runtime/cellproxy.cpp \
   runtime/dynamicscheduler.cpp \
   runtime/dynamictask.cpp \
   runtime/matrixio.cpp \
@@ -140,16 +143,16 @@ libpbruntime_a_SOURCES =  \
   runtime/memoization.cpp \
   runtime/petabricksruntime.cpp \
   runtime/regiondatai.cpp \
-  runtime/regiondataproxy.cpp \
   runtime/regiondataraw.cpp \
   runtime/regiondataremote.cpp \
+  runtime/regiondataremotecache.cpp \
   runtime/regiondatasplit.cpp \
   runtime/regionhandler.cpp \
-  runtime/regionmatrix.cpp \
   runtime/regionmatrixi.cpp \
   runtime/regionmatrixproxy.cpp \
   runtime/remotehost.cpp \
   runtime/remoteobject.cpp \
+  runtime/remotetask.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \
   runtime/testisolation.cpp \
@@ -179,6 +182,11 @@ regiondatatest_LDADD    = libpbruntime.a libpbcommon.a
 regionmatrixtest_CXXFLAGS = -Iruntime
 regionmatrixtest_SOURCES  = runtime/tests/regionmatrixtest.cpp
 regionmatrixtest_LDADD    = libpbruntime.a libpbcommon.a
+
+migrationtest_CXXFLAGS = -Iruntime
+migrationtest_SOURCES  = runtime/tests/migrationtest.cpp
+migrationtest_LDADD    = libpbruntime.a libpbcommon.a
+
 
 CLEANFILES = libpbcompiler_a-maximalexer.cpp libpbcompiler_a-maximaparser.cpp libpbcompiler_a-maximaparser.h \
              libpbcompiler_a-pblexer.cpp libpbcompiler_a-pbparser.cpp libpbcompiler_a-pbparser.h \

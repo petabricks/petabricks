@@ -343,37 +343,38 @@ bool petabricks::SimpleRegion::hasIntersect(const SimpleRegion& that) const {
   return true;
 }
 
-std::string petabricks::Region::genTypeStr(bool isConst) const{
+std::string petabricks::Region::genTypeStr(RuleFlavor rf, bool isConst) const{
   switch(_originalType){
   case REGION_CELL:
-    if(isConst)
-#ifndef REGIONMATRIX_TEST
-      return "const ElementT";
-#else
-      return "const CellProxy";
-#endif
-    else
-#ifndef REGIONMATRIX_TEST
-      return "ElementT&";
-#else
-      return "CellProxy&";
-#endif
+    if(isConst){
+      if(rf != RuleFlavor::DISTRIBUTED) {
+        return "const ElementT";
+      }else{
+        return "CellProxy";
+      }
+    }else{
+      if(rf != RuleFlavor::DISTRIBUTED) {
+        return "ElementT&";
+      }else{
+        return "CellProxy";
+      }
+    }
   case REGION_COL:
   case REGION_ROW:
-    return (isConst?MatrixDef::oneD().constMatrixTypeName():MatrixDef::oneD().matrixTypeName());
+    return MatrixDef::oneD().typeName(rf, isConst);
   case REGION_BOX:
   case REGION_ALL:
-    return (isConst?_fromMatrix->constMatrixTypeName():_fromMatrix->matrixTypeName());
+    return _fromMatrix->typeName(rf, isConst);
   case REGION_SLICE:
-    return (isConst?_fromMatrix->constSliceTypeName():_fromMatrix->sliceTypeName());
+    return _fromMatrix->typeName(rf, isConst, 1);
   default:
     JASSERT(false).Text("Unreachable");
     return "";
   }
 }
 
-std::string petabricks::Region::generateSignatureCode(bool isConst) const{
-  return genTypeStr(isConst) + " " + _name;
+std::string petabricks::Region::generateSignatureCode(RuleFlavor rf, bool isConst) const{
+  return genTypeStr(rf, isConst) + " " + _name;
 }
 
 std::string petabricks::Region::generateAccessorCode(bool allowOptional) const{
@@ -382,13 +383,8 @@ std::string petabricks::Region::generateAccessorCode(bool allowOptional) const{
     {
       std::string s = _fromMatrix->name() + ".cell("+_minCoord.toString()+")";
       if(allowOptional && isOptional())
-#ifndef REGIONMATRIX_TEST
         return "(" + _fromMatrix->name() + ".contains("+_minCoord.toString()+")"
-                   + " ? " + s + " : " + optionalDefault()->toString() + ")";
-#else
-        return "(" + _fromMatrix->name() + ".contains("+_minCoord.toString()+")"
-                   + " ? " + s + " : (CellProxy)" + optionalDefault()->toString() + ")";
-#endif
+                   + " ? (ElementT)(" + s + ") : (ElementT)(" + optionalDefault()->toString() + "))";
       else
         return s;
     }

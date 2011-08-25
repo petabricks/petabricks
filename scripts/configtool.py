@@ -35,7 +35,7 @@ class ConfigFile:
 
   def save(self, filename):
     fd = open(filename, "w")
-    for k,valcom in self.values.iteritems():
+    for k,valcom in sorted(self.values.iteritems()):
       val, com = valcom
       if type(val) is type(0.1):
         fd.write("%s = %.25e %s\n" % (k, val, com))

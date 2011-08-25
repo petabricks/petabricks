@@ -29,6 +29,7 @@
 
 #include "formula.h"
 #include "matrixdependency.h"
+#include "pbc.h"
 
 #include <string>
 #include <vector>
@@ -68,7 +69,7 @@ public:
   void unpackargs(CodeGenerator& o) const;
   
 
-  void genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, bool isStatic) const;
+  void genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, RuleFlavor rf) const;
 
 protected:
   void fillSplitRegionList(SplitRegionList& regions, SplitRegion& seed) const;

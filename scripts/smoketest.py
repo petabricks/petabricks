@@ -4,7 +4,7 @@ import os
 import pbutil
 import progress
 import re
-import subprocess 
+import subprocess
 import sys
 import configtool
 import time
@@ -17,7 +17,7 @@ check_exclude=[
          "convolution/Convolution",       # Difference
          "multiply/strassen",             # Difference, why???
          "regression/whereclause",        # Difference, why???
-         
+
          "simple/matrixrotate",           # NewProgramCrash
          "multiply/multiply",             # NewProgramCrash
          "regression/params",             # AlwaysCrashes
@@ -66,7 +66,7 @@ def checkBenchmark(b):
     return True
 
   import sgatuner, warnings, tunerwarnings
-  
+
   warnings.resetwarnings()
   warnings.simplefilter('error',  tunerwarnings.TunerWarning)
   warnings.simplefilter('ignore', DeprecationWarning)
@@ -93,7 +93,7 @@ def testBenchmark(b):
 
   if not os.path.isfile(bin):
     return False
-  
+
   #build cmd
   hash=name
   iofiles=[]
@@ -124,21 +124,35 @@ def testBenchmark(b):
   def test():
     cmd=[bin, '--fixedrandom', '--config=%s.cfg'%outfile]
     cmd.extend(iofiles)
+    t1=time.time()
     rv = run(cmd)
+    t2=time.time()
     if rv != 0:
       print "run FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd))
       return False
 
-    if diffFiles(outfile, outfile+".latest"):
+    if isFloatingPoint() and os.path.exists(outfile+".float"):
+      ext = ".float"
+      print "FLOAT"
+    else:
+      ext = ""
+
+    if diffFiles(outfile+ext, outfile+".latest"):
       time.sleep(0.1) #try letting the filesystem settle down
-      if diffFiles(outfile, outfile+".latest"):
+      if diffFiles(outfile+ext, outfile+".latest"):
         print "run FAILED (wrong output)"
         return False
-    
-    print "run PASSED"
+
+    print "run PASSED (took %.2fs)" % (t2-t1)
     return True
 
   return test()
+
+def isFloatingPoint():
+  for line in open("./src/config.h"):
+    if "MATRIX_ELEMENT_T" in line and "float" in line:
+       return True
+  return False
 
 
 if 'nocheck' in sys.argv[1:]:

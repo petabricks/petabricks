@@ -86,20 +86,14 @@ void petabricks::MatrixDef::exportAssumptions(){
   }
 }
 
-void petabricks::MatrixDef::argDeclRW(std::vector<std::string>& args, bool byRef) const {
+void petabricks::MatrixDef::argDecl(std::vector<std::string>& args, RuleFlavor rf, bool isConst, bool byRef) const {
   if(byRef)
-    args.push_back("const "+matrixTypeName()+"& " + _name);
+    args.push_back("const "+typeName(rf, isConst)+"& " + _name);
   else
-    args.push_back("const "+matrixTypeName()+" " + _name);
+    args.push_back("const "+typeName(rf, isConst)+" " + _name);
 }
-void petabricks::MatrixDef::argDeclRO(std::vector<std::string>& args, bool byRef) const {
-  if(byRef)
-    args.push_back("const "+constMatrixTypeName()+"& " + _name);
-  else
-    args.push_back("const "+constMatrixTypeName()+" " + _name);
-}
-void petabricks::MatrixDef::genAllocTmpCode(CodeGenerator& o){
-  o.varDecl(matrixTypeName()+" "+_name);
+void petabricks::MatrixDef::genAllocTmpCode(CodeGenerator& o, RuleFlavor rf){
+  o.varDecl(typeName(rf)+" "+_name);
 }
 void petabricks::MatrixDef::generateCodeSimple(CodeGenerator& o){
   o.varDecl("Matrix" + jalib::XToString(_size.size()) + "D " + _name);
@@ -127,7 +121,8 @@ void petabricks::MatrixDef::extractDefines(FreeVars& defined, CodeGenerator& o){
 }
 
 #ifdef HAVE_OPENCL
-void petabricks::MatrixDef::extractCLDefines(FreeVars& defined, CLCodeGenerator& clo, unsigned int dims){
+//TODO: don't need this
+void petabricks::MatrixDef::extractCLDefines(FreeVars& defined, CLCodeGenerator& clo, unsigned int dims, std::map<std::string, std::string> &map){
   unsigned int d=0;
   for(FormulaList::const_iterator i=_size.begin(); i!=_size.end(); ++i,++d){
     FreeVarsPtr fv = (*i)->getFreeVariables();
@@ -141,7 +136,7 @@ void petabricks::MatrixDef::extractCLDefines(FreeVars& defined, CLCodeGenerator&
         l = *MaximaWrapper::instance().solve(l, var);
         JASSERT(l.size()==1)(*i)(var).Text("Failed to solve");
         clo.os() << "unsigned int " << var << " = " 
-               << (*l.begin())->rhs()->replace(tmp, new FormulaVariable("dim_d"+jalib::XToString(d)))->toString() << ";\n";
+               << (*l.begin())->rhs()->replace(tmp, new FormulaVariable("dim_"+map[_name]+"_d"+jalib::XToString(d)))->toString() << ";\n";
       }
     }
   }
@@ -154,37 +149,32 @@ void petabricks::MatrixDef::verifyDefines(CodeGenerator& o){
     o.addAssert((*i)->toString(), _name+".size("+jalib::XToString(d)+")");
   }
 }
-void petabricks::MatrixDef::allocateTemporary(CodeGenerator& o, bool setOnly, bool reallocAllowed){
+void petabricks::MatrixDef::allocateTemporary(CodeGenerator& o, RuleFlavor rf, bool setOnly, bool reallocAllowed){
   if(!setOnly)
-    o.addMember(matrixTypeName(), name(), "");
+    o.addMember(typeName(rf), name(), "");
 
   if(reallocAllowed)
     o.beginIf("!"+name()+".isSize("+_size.toString()+")");
 
-  o.write(name()+" = "+allocateStr()+";");
+  o.write(name()+" = "+allocateStr(rf)+";");
 
   if(reallocAllowed)
     o.endIf();
 }
 
-std::string petabricks::MatrixDef::allocateStr() const{
-  return matrixTypeName()+"::allocate("+_size.toString()+")";
+std::string petabricks::MatrixDef::allocateStr(RuleFlavor rf) const{
+  return typeName(rf)+"::allocate("+_size.toString()+")";
+}
+std::string petabricks::MatrixDef::genericAllocateStr() const{
+  return genericTypeName()+"::allocate("+_size.toString()+")";
 }
 
-void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn){
-  o.varDecl(name()
-#ifndef REGIONMATRIX_TEST
-      +" = petabricks::MatrixIO("+fn+",\"r\").read<"+jalib::XToString(numDimensions())+">()");
-#else
-      +" = petabricks::MatrixIO("+fn+",\"r\").readToRegionMatrix<"+jalib::XToString(numDimensions())+">()");
-#endif
+void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn, RuleFlavor rf){
+  o.varDecl(name()+" = petabricks::MatrixIO("+fn+",\"r\").read_"+rf.str()+"<"+jalib::XToString(numDimensions())+">()");
 }
 void petabricks::MatrixDef::writeToFileCode(CodeGenerator& o, const std::string& fn){
   o.write("petabricks::MatrixIO("+fn+",\"w\").write("+name()+");");
 }
-void petabricks::MatrixDef::varDeclCodeRO(CodeGenerator& o){
-  o.addMember(constMatrixTypeName(), name(), "");
-}
-void petabricks::MatrixDef::varDeclCodeRW(CodeGenerator& o){
-  o.addMember(matrixTypeName(), name(), "");
+void petabricks::MatrixDef::varDeclCode(CodeGenerator& o, RuleFlavor rf, bool isConst){
+  o.addMember(typeName(rf, isConst), name(), "");
 }

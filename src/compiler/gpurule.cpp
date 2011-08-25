@@ -41,7 +41,6 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
   IterationDefinition iterdef(*_rule, _rule->getSelfDependency(), _rule->isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();
   std::vector<std::string> packedargnames = iterdef.packedargnames();
-
   o.os() << "// GPURULE TRAMPOLINE CODE\n";
 
   // Create variables to hold handles to program, kernel
@@ -72,18 +71,18 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
 
   o.comment( "Build program." );
   o.os( ) << "size_t programlength = strlen( clsrc );\n";
-  //TODO: fail to create program
+
   o.os( ) << "clprog_" << _rule->id() << " = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );\n";
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create program.\" );\n\n";
   //o.os( ) << "err = OpenCLUtil::buildProgram( clprog_" << _rule->id() << " );\n";
   //ciErrNum = clBuildProgram(cpProgram, 0, NULL, "-cl-fast-relaxed-math", NULL, NULL);
   o.os( ) << "err = clBuildProgram( clprog_" << _rule->id() << ", 0, NULL, NULL, NULL, NULL);\n";
-  o.os( ) << "std::cout << \"clBuildProgram err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
+  o.os( ) << "#if OPENCL_TRACE\nstd::cerr << \"clBuildProgram err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n#endif\n";
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to build program.\" );\n\n";
 
   o.comment( "Create kernel." );
   o.os( ) << "clkern_" << _rule->id() << "= clCreateKernel( clprog_" << _rule->id() << ", \"kernel_main\", &err );\n";
-  o.os( ) << "#if OPENCL_TRACE\nstd::cout << \"clCreateKernel err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n#endif\n";
+  o.os( ) << "#if OPENCL_TRACE\nstd::cerr << \"clCreateKernel err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n#endif\n";
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create kernel.\" );\n\n";
 
   o.os( ) << "return 0;";
@@ -95,16 +94,32 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
   o.call(_rule->trampcodename(trans)+TX_OPENCL_POSTFIX, packedargnames);
   o.endFunc();
 
-  // Invoke init once before main.
-  o.os() << "static int ignored_" 
-         << trans.name() 
-         << '_' 
-         << codename() 
-         << " = " 
-         << trans.name() 
-         << "_instance::" 
-         << codename() 
-         << "_init();\n\n";  
+  // Get kernel
+  o.beginFunc("cl_kernel", "get_kernel_" + jalib::XToString(_rule->id()));
+  o.beginIf("clkern_" + jalib::XToString(_rule->id()) + " == 0");
+  o.call(codename() + "_init" , std::vector<std::string>());
+  o.endIf();
+  o.write("return clkern_" + jalib::XToString(_rule->id()) + ";");
+  o.endFunc();
+}
+
+void GpuRule::generateCallCode(const std::string& name,
+                        Transform& trans,
+                        CodeGenerator& o,
+                        const SimpleRegionPtr& region,
+                        RuleFlavor flavor)
+{
+  o.comment("gpu generateCallCode");
+  switch(flavor) {
+  case RuleFlavor::SEQUENTIAL:
+    o.callSpatial(_rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region);
+    break;
+  case RuleFlavor::WORKSTEALING:
+    o.mkSpatialTask(name, trans.instClassName(), _rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region);
+    break;
+  default:
+    UNIMPLEMENTED();
+  }
 }
 
 void
@@ -120,16 +135,6 @@ GpuRule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGen
   o.comment( "GENERATECALLTASKCODE" );
   o.mkSpatialTask(name, trans.instClassName(), codename(), region);
 }
-
-  /*
-void petabricks::UserRule::generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
-  o.callSpatial(trampcodename(trans)+TX_STATIC_POSTFIX, region);
-}
-
-void petabricks::UserRule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region){
-  o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+TX_DYNAMIC_POSTFIX, region);
-}
-  */
 
 bool
 GpuRule::canProvide(const MatrixDefPtr& m) const

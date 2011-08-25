@@ -102,12 +102,11 @@ public:
   /// Add RuleDescriptors to output corresponding to the extrema of the applicable region in dimension
   void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension, const RulePtr& rule);
 
-  ///
-  /// Generate seqential code to declare this rule
+  
   void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
+  void generateDeclCodeSequential(Transform& trans, CodeGenerator& o);
+  void generateDeclCodeOpenCl(Transform& trans, CodeGenerator& o);
 
-  ///
-  /// Generate seqential code to declare this rule
   void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
   
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
@@ -236,10 +235,17 @@ public:
 
   RIRBlockCopyRef getBody( ) const
   {
-    return _bodyirStatic;
+    return _bodyir[RuleFlavor::SEQUENTIAL];
   }
 
   void buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional);
+
+protected:
+
+#ifdef HAVE_OPENCL
+  bool passBuildGpuProgram(Transform& trans);
+#endif
+
 private:
   RuleFlags _flags;
   RegionList _from;
@@ -249,12 +255,7 @@ private:
   FormulaList _definitions;
   std::string _bodysrc;
   jalib::SrcPosTaggable _bodysrcPos;
-  RIRBlockCopyRef _bodyirStatic;
-  RIRBlockCopyRef _bodyirDynamic;
-#ifdef HAVE_OPENCL
-  RIRBlockCopyRef _bodyirOpenCL;
-  bool passBuildGpuProgram(Transform& trans);
-#endif
+  RIRBlockCopyRef _bodyir[RuleFlavor::_COUNT];
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr _recursiveHint;

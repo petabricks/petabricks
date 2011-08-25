@@ -1,12 +1,7 @@
 #ifndef DCTDCUTOFF25_PBCC
 #define DCTDCUTOFF25_PBCC
 
-%{
-
-extern "C" void dlaed1_(int *n, double *D, double *Q, int *ldq, int *indxq, double *rho, int *cutpnt, double *work, int *iwork, int *info);
-
-%}
-
+#include "extern.h"
 #include "../simple/copy.pbcc"
 #include "mergeQ.pbcc"
 #include "QRTD.pbcc"
@@ -27,10 +22,8 @@ to Eigenvalue[n], Eigenvector[n,n]
 	MatrixRegion2D q1 = MatrixRegion2D::allocate(cutpnt,cutpnt);
         MatrixRegion2D q2 = MatrixRegion2D::allocate(n-cutpnt,n-cutpnt);
 
-	double rho=Ein.cell(cutpnt-1);
-	double *D = eig.base();
-	double *Q = vec.base();
-	double *work = new double[4*size+nsquared];
+	ElementT rho=Ein.cell(cutpnt-1);
+	ElementT *work = new ElementT[4*size+nsquared];
 	int *indxq = new int[size];
 	int *iwork = new int[4*size];	
 
@@ -41,6 +34,8 @@ to Eigenvalue[n], Eigenvector[n,n]
 
 	DCTDcutoff25(eig.region(0,cutpnt),q1,eig.region(0,cutpnt),Ein.region(0,cutpnt-1));
 	DCTDcutoff25(eig.region(cutpnt,size),q2,eig.region(cutpnt,size),Ein.region(cutpnt,size-1));
+
+
 	mergeQ(vec,q1,q2);
 
 	for(i=0; i<cutpnt; i++) {
@@ -51,9 +46,16 @@ to Eigenvalue[n], Eigenvector[n,n]
 	}
 
 
+	ElementT *D;
+	ElementT *Q;
+	CArrayStorage Dstore;
+	CArrayStorage Qstore;
 
-	dlaed1_(&size, D, Q, &size, indxq, &rho, &cutpnt, work, iwork, &info);
-
+	to_c_array(eig, D, Dstore);
+	to_c_array(vec, Q, Qstore);
+	laed1_wrap(&size, D, Q, &size, indxq, &rho, &cutpnt, work, iwork, &info);
+	from_c_array(eig, D, Dstore);
+	from_c_array(vec, Q, Qstore);
 
 	delete [] work;
 	delete [] iwork;

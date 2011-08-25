@@ -39,11 +39,11 @@ namespace jalib {
 class JPrintable {
 public:
   /// virtual destructor
-  virtual ~JPrintable(){} 
+  virtual ~JPrintable(){}
 
   /// toString calls print()
   std::string toString() const;
-  
+
   /// must be implemented by base class
   virtual void print(std::ostream& o) const = 0;
 

@@ -56,13 +56,28 @@ void DynamicTask::enqueue()
   {
     JLOCKSCOPE(_lock);
     preds=_numPredecessors;
-    if(preds==0)
-      _state=S_READY;
-    else
-      _state=S_PENDING;
+    if(_state==S_NEW) {
+      if(preds==0)
+        _state=S_READY;
+      else
+        _state=S_PENDING;
+    }else if(_state==S_REMOTE_NEW){
+      if(preds==0)
+        _state=S_REMOTE_READY;
+      else
+        _state=S_REMOTE_PENDING;
+    }else{
+      JASSERT(false);
+    }
   }
   if(preds==0) {
-    inlineOrEnqueueTask();
+    if(_state == S_READY){
+      inlineOrEnqueueTask();
+    }else if(_state == S_REMOTE_READY){
+      remoteScheduleTask();
+    }else{
+      JASSERT(false);
+    }
   }
 }
 #endif // PBCC_SEQUENTIAL
@@ -103,37 +118,54 @@ void petabricks::DynamicTask::decrementPredecessors(bool isAborting){
   bool shouldEnqueue = false;
   {
     JLOCKSCOPE(_lock);
-    if(--_numPredecessors==0 && _state==S_PENDING){
+    --_numPredecessors;
+    if(_numPredecessors==0 && _state==S_PENDING){
       _state = S_READY;
+      shouldEnqueue = true;
+    }
+    if(_numPredecessors==0 && _state==S_REMOTE_PENDING){
+      _state = S_REMOTE_READY;
       shouldEnqueue = true;
     }
   }
   if (shouldEnqueue) {
     if (isAborting) {
       runWrapper(true);
-    } else {
+    } else if (_state==S_READY) {
       inlineOrEnqueueTask();
+    } else if (_state==S_REMOTE_READY) {
+      remoteScheduleTask();
+    } else {
+      JASSERT(false);
     }
   }
 }
-
 
 void petabricks::DynamicTask::runWrapper(bool isAborting){
   JASSERT(_state==S_READY && _numPredecessors==0)(_state)(_numPredecessors);
 
   if (!isAborting) {
+#ifdef DISTRIBUTED_CACHE
+    if(!isNullTask()) {
+      WorkerThread::self()->cache()->invalidate();
+    }
+#endif
     _continuation = run();
   } else {
     _continuation = NULL;
   }
 
+  completeTaskDeps(isAborting);
+}
+
+void petabricks::DynamicTask::completeTaskDeps(bool isAborting){
   std::vector<DynamicTask*> tmp;
 
   {
     JLOCKSCOPE(_lock);
     _dependents.swap(tmp);
     if(_continuation) _state = S_CONTINUED;
-    else             _state = S_COMPLETE;
+    else              _state = S_COMPLETE;
   }
 
   if(_continuation){
@@ -194,10 +226,11 @@ void DynamicTask::inlineOrEnqueueTask()
 #endif
   {
     WorkerThread* self = WorkerThread::self();
-#ifdef DEBUG
-    JASSERT(self!=NULL);
-#endif
-    self->pushLocal(this);
+    if(self!=NULL) {
+      self->pushLocal(this);
+    }else{
+      DynamicScheduler::cpuScheduler().injectWork(this);
+    }
   }
 }
 

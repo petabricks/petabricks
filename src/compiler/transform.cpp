@@ -43,8 +43,8 @@ namespace{
     dst.insert(dst.end(), src.begin(), src.end());
   }
 }
-  
-petabricks::Transform::Transform() 
+
+petabricks::Transform::Transform()
   : _isMain(false)
   , _memoized(false)
   , _tuneId(0)
@@ -95,28 +95,28 @@ void petabricks::Transform::setRules(const RuleList& l){
 void petabricks::Transform::print(std::ostream& o) const {
   SRCPOSSCOPE();
   o << "lineno " << srcPos() << std::endl;
-  if(!_templateargs.empty()){ 
-    o << "template < ";   printStlList(o, _templateargs.begin(), _templateargs.end(), ", "); 
+  if(!_templateargs.empty()){
+    o << "template < ";   printStlList(o, _templateargs.begin(), _templateargs.end(), ", ");
     o << " > \n";
   }
   o << "transform " << _name;
-  if(!_parameters.empty()){ 
+  if(!_parameters.empty()){
     o << "\nparam ";   printStlList(o, _parameters.begin(), _parameters.end(), ", ");
   }
-  if(!_from.empty()){ 
+  if(!_from.empty()){
     o << "\nfrom ";   printStlList(o, _from.begin(), _from.end(), ", ");
   }
-  if(!_through.empty()){ 
+  if(!_through.empty()){
     o << "\nthrough "; printStlList(o, _through.begin(), _through.end(), ", ");
   }
-  if(!_to.empty()){ 
+  if(!_to.empty()){
     o << "\nto ";     printStlList(o, _to.begin(), _to.end(), ", ");
   }
-  if(!_config.empty()){ 
+  if(!_config.empty()){
     o << "\nconfigitems ";   printStlList(o, _config.begin(), _config.end(), ", ");
   }
   if(!_accuracyMetric.empty()) o << "\naccuracy_metric " << _accuracyMetric;
-  if(!_accuracyBins.empty()){ 
+  if(!_accuracyBins.empty()){
     o << "\naccuracy_bins";   printStlList(o, _accuracyBins.begin(), _accuracyBins.end(), ", ");
   }
   if(!_generator.empty()) o << "\ngenerator" << _generator;
@@ -151,7 +151,7 @@ void petabricks::Transform::initialize() {
 
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i)
     MaximaWrapper::instance().declareInteger(i->name());
-  
+
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     if(i->shouldPass())
       _scope->set(i->name(), RIRSymbol::SYM_CONFIG_PASSED);
@@ -228,9 +228,9 @@ void petabricks::Transform::expandWhereClauses( RuleSet& rules
   //      at some point we may want to detect such subsets and create multiple
   //      WhereExpansionRules for each of those subsets
   // for now, just find first allowed rule dynamically
-  
+
   RuleSet whereRules;
-  
+
   //Separate rules with where clauses
   for(RuleSet::iterator i=rules.begin(), e=rules.end(); i != e; ++i) {
     const RulePtr thisRule= *i;
@@ -239,7 +239,7 @@ void petabricks::Transform::expandWhereClauses( RuleSet& rules
       rules.erase(i);
     }
   }
-  
+
   //Add fallback rule inside whereExpansion
   for(RuleSet::iterator i=rules.begin(), e=rules.end(); i != e; ++i) {
     const RulePtr thisRule= *i;
@@ -248,14 +248,14 @@ void petabricks::Transform::expandWhereClauses( RuleSet& rules
       break;
     }
   }
-  
+
   //Add the where expansion rule to the set of rules
   RulePtr t = new WhereExpansionRule(whereRules);
   rules.insert(t);
   _rules.push_back(t);
 }
 
-void petabricks::Transform::compile(){ 
+void petabricks::Transform::compile(){
   SRCPOSSCOPE();
   MaximaWrapper::instance().pushContext();
   jalib::Map(&MatrixDef::exportAssumptions, _from);
@@ -280,10 +280,10 @@ void petabricks::Transform::compile(){
     (*i)->collectDependencies(_scheduler);
   }
   _scheduler->generateSchedule();
-  
+
   MaximaWrapper::instance().popContext();
 }
-  
+
 int petabricks::Transform::tmplChoiceCount() const {
   int choiceCnt = 1;
   for(size_t i=0; i<_templateargs.size(); ++i){
@@ -291,7 +291,7 @@ int petabricks::Transform::tmplChoiceCount() const {
   }
   return choiceCnt;
 }
-  
+
 std::string petabricks::Transform::tmplName(int n, CodeGenerator* o) {
   std::string name = _name+TMPL_IMPL_PFX;
   _curAccTarget = DEFAULT_ACCURACY;
@@ -302,6 +302,7 @@ std::string petabricks::Transform::tmplName(int n, CodeGenerator* o) {
     choice/=_templateargs[i]->range();
     if(o!=NULL){
       o->write("#define " + _templateargs[i]->name() + " " + jalib::XToString(val));
+      o->hos() << ("#define " + _templateargs[i]->name() + " " + jalib::XToString(val) + "\n");
       if(_templateargs[i]->name() == TEMPLATE_BIN_STR){
         if(isAccuracyInverted()){
           _curAccTarget = -(*(_accuracyBins.rbegin()+val));
@@ -316,7 +317,7 @@ std::string petabricks::Transform::tmplName(int n, CodeGenerator* o) {
   return name;
 }
 
-void petabricks::Transform::generateCode(CodeGenerator& o){ 
+void petabricks::Transform::generateCode(CodeGenerator& o){
   SRCPOSSCOPE();
   if(_templateargs.empty())
     generateCodeSimple(o); //normal case
@@ -331,7 +332,7 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
       if(c+1 < choiceCnt) nextName = tmplName(c+1)+"_main::instance()";
       _name = tmplName(c, &o);
       _templateChoice = c;
-    
+
 
       JTRACE("generating template version")(c);
       generateCodeSimple(o, nextName);
@@ -339,18 +340,22 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
       //remove defines
       for(size_t i=0; i<_templateargs.size(); ++i){
         o.write("#undef " + _templateargs[i]->name());
+        o.hos() << ("#undef " + _templateargs[i]->name() + "\n");
       }
 
       _name = origName;
     }
     _templateChoice = -1;
-    genTmplJumpTable(o, RuleFlavor::SEQUENTIAL, normalArgs(), normalArgNames());
-    genTmplJumpTable(o, RuleFlavor::WORKSTEALING, normalArgs(), normalArgNames());
-    //genTmplJumpTable(o, RuleFlavor::DISTRIBUTED, normalArgs(), normalArgNames());
+    for(RuleFlavor::iterator rf=RuleFlavor::begin(); rf!=RuleFlavor::end(); ++rf) {
+#ifdef DISABLE_DISTRIBUTED
+      if(rf==RuleFlavor::DISTRIBUTED) continue;
+#endif
+      genTmplJumpTable(o, rf, normalArgs(rf), normalArgNames());
+    }
     o.hos() << "typedef "+tmplName(0)+"_main "+_name+"_main;\n";
   }
 }
-  
+
 void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
                     RuleFlavor rf,
                     const std::vector<std::string>& args,
@@ -396,13 +401,13 @@ void petabricks::Transform::genTmplJumpTable(CodeGenerator& o,
 }
 
 
-std::vector<std::string> petabricks::Transform::normalArgs() const{
+std::vector<std::string> petabricks::Transform::normalArgs(RuleFlavor rf) const{
   std::vector<std::string> args;
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->argDeclRW(args, true);
+    (*i)->argDecl(args, rf, false, true);
   }
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    (*i)->argDeclRO(args, true);
+    (*i)->argDecl(args, rf, true, true);
   }
   return args;
 }
@@ -418,8 +423,8 @@ std::vector<std::string> petabricks::Transform::normalArgNames() const{
   return argNames;
 }
 
-std::vector<std::string> petabricks::Transform::spawnArgs() const{
-  std::vector<std::string> args = normalArgs();
+std::vector<std::string> petabricks::Transform::spawnArgs(RuleFlavor rf) const{
+  std::vector<std::string> args = normalArgs(rf);
   args.push_back("const DynamicTaskPtr& _before");
   return args;
 }
@@ -430,7 +435,7 @@ std::vector<std::string> petabricks::Transform::spawnArgNames() const{
 }
 
 
-void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::string& nextMain){ 
+void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::string& nextMain){
   SRCPOSSCOPE();
   _usesSplitSize=false;
   _tuneId = 0;
@@ -438,7 +443,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.cg().beginTransform(_originalName, _name, _templateChoice, !_accuracyBins.empty(), _curAccTarget);
   o.comment("Begin output for transform " + _name);
   o.newline();
-  
+
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     if(i->hasFlag(ConfigItem::FLAG_FROMCFG)){
       i->createTunableDecls(_name+"_", o);
@@ -454,12 +459,14 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
 #endif
 
   _scheduler->generateGlobalCode(*this, o);
-  
+
   for(RuleFlavor::iterator rf=RuleFlavor::begin(); rf!=RuleFlavor::end(); ++rf) {
-    if(rf == RuleFlavor::DISTRIBUTED) continue;
+#ifdef DISABLE_DISTRIBUTED
+      if(rf==RuleFlavor::DISTRIBUTED) continue;
+#endif
     generateTransformInstanceClass(o, rf);
   }
-  
+
   generateMainInterface(o, nextMain);
   o.write("#undef TRANSFORM_LOCAL");
   o.comment("End of output for "+_name);
@@ -468,8 +475,65 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.newline();
 }
 
+void petabricks::Transform::generateCrossCall(CodeGenerator& o, RuleFlavor fromflavor, RuleFlavor toflavor, bool spawn){
 
-void petabricks::Transform::generateTransformSelector(CodeGenerator& o, RuleFlavor rf, bool spawn){ 
+
+  std::vector<std::string> argNames = normalArgNames();
+
+  if(fromflavor == RuleFlavor::DISTRIBUTED && toflavor < RuleFlavor::DISTRIBUTED) {
+    //need to convert between data types
+    std::ostringstream ss;
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      ss << "petabricks::is_data_local(" << (*i)->name() << ") && ";
+    }
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      ss << "petabricks::is_data_local(" << (*i)->name() << ") && ";
+    }
+    ss << "true";
+    for(size_t i=0; i!=argNames.size(); ++i){
+      argNames[i] = "CONVERT_TO_LOCAL("+argNames[i]+")";
+    }
+    o.beginIf(ss.str());
+  }
+
+
+  std::string argNamesStr = jalib::JPrintable::stringStlList(argNames.begin(), argNames.end(), ", ");
+
+
+  if(toflavor == RuleFlavor::SEQUENTIAL) {
+
+    o.write(instClassName()+"_"+RuleFlavor(RuleFlavor::SEQUENTIAL).str()+"("+argNamesStr+").run();");
+
+  }else if(toflavor == RuleFlavor::WORKSTEALING) {
+
+    std::string wstaskstr = "new "+instClassName()+"_"+RuleFlavor(RuleFlavor::WORKSTEALING).str()+"("+argNamesStr+")";
+    if(spawn){
+      o.write("petabricks::spawn_hook("+wstaskstr+", _completion);");
+    }else{
+      o.write("petabricks::tx_call_workstealing("+wstaskstr+");");
+    }
+
+  }else if(toflavor == RuleFlavor::DISTRIBUTED) {
+
+    std::string disttaskstr = "new "+instClassName()+"_"+RuleFlavor(RuleFlavor::DISTRIBUTED).str()+"("+argNamesStr+")";
+    if(spawn){
+      o.write("petabricks::spawn_hook("+disttaskstr+", _completion);");
+    }else{
+      o.write("petabricks::tx_call_distributed("+disttaskstr+");");
+    }
+
+  }else{
+    UNIMPLEMENTED();
+  }
+
+  o.write("return;");
+
+  if(fromflavor == RuleFlavor::DISTRIBUTED && toflavor < RuleFlavor::DISTRIBUTED) {
+    o.endIf();
+  }
+}
+
+void petabricks::Transform::generateTransformSelector(CodeGenerator& o, RuleFlavor rf, bool spawn){
 #ifndef SINGLE_SEQ_CUTOFF
   static const std::string seqco  = "TRANSFORM_LOCAL(sequentialcutoff)";
   static const std::string distco = "TRANSFORM_LOCAL(distributedcutoff)";
@@ -478,7 +542,13 @@ void petabricks::Transform::generateTransformSelector(CodeGenerator& o, RuleFlav
   static const std::string distco = "distributedcutoff";
 #endif
 
-  std::vector<std::string> args = normalArgs();
+#ifdef REGIONMATRIX_TEST
+  const bool force_distrib = (rf==RuleFlavor::DISTRIBUTED);
+#else
+  const bool force_distrib = false;
+#endif
+
+  std::vector<std::string> args = normalArgs(rf);
   if(spawn){
     args.insert(args.begin(), "const DynamicTaskPtr& _completion");
   }
@@ -488,49 +558,40 @@ void petabricks::Transform::generateTransformSelector(CodeGenerator& o, RuleFlav
 
   o.beginFunc("void", _name+"_"+rf.str(), args);
 
-  if(rf > RuleFlavor::SEQUENTIAL) {
-    declTransformNDirect(o, "_transform_n");
+  if(!force_distrib) {
+    if(rf > RuleFlavor::SEQUENTIAL) {
+      declTransformNDirect(o, "_transform_n");
 
-    o.beginIf("_transform_n < " + seqco);
-    o.comment("switch to sequential version");
-  }
-  o.write(instClassName()+"_"+RuleFlavor(RuleFlavor::SEQUENTIAL).str()+"("+argNamesStr+").run();");
-  if(rf > RuleFlavor::SEQUENTIAL) {
-    o.write("return;");
-    o.endIf();
-  }
-
-  if(rf > RuleFlavor::WORKSTEALING) {
-    o.beginIf("_transform_n < " + distco);
-    o.comment("switch to shared memory version");
-  }
-  if(rf >= RuleFlavor::WORKSTEALING) {
-    std::string wstaskstr = "new "+instClassName()+"_"+RuleFlavor(RuleFlavor::WORKSTEALING).str()+"("+argNamesStr+")";
-    if(spawn){
-      o.write("petabricks::spawn_hook("+wstaskstr+", _completion);");
-    }else{
-      o.write("petabricks::tx_call_workstealing("+wstaskstr+");");
+      o.beginIf("_transform_n < " + seqco);
+      o.comment("switch to sequential version");
     }
-  }
-  if(rf > RuleFlavor::WORKSTEALING) {
-    o.write("return;");
-    o.endIf();
+    generateCrossCall(o, rf, RuleFlavor::SEQUENTIAL, spawn);
+    if(rf > RuleFlavor::SEQUENTIAL) {
+      o.endIf();
+    }
+
+    if(rf > RuleFlavor::WORKSTEALING) {
+      o.beginIf("_transform_n < " + distco);
+      o.comment("switch to shared memory version");
+    }
+
+    if(rf >= RuleFlavor::WORKSTEALING) {
+      generateCrossCall(o, rf, RuleFlavor::WORKSTEALING, spawn);
+    }
+    if(rf > RuleFlavor::WORKSTEALING) {
+      o.endIf();
+    }
   }
 
   if(rf == RuleFlavor::DISTRIBUTED) {
-    std::string disttaskstr = "new "+instClassName()+"_"+RuleFlavor(RuleFlavor::WORKSTEALING).str()+"("+argNamesStr+")";
-    if(spawn){
-      o.write("petabricks::spawn_hook("+disttaskstr+", _completion);");
-    }else{
-      o.write("petabricks::tx_call_distributed("+disttaskstr+");");
-    }
+    generateCrossCall(o, rf, RuleFlavor::DISTRIBUTED, spawn);
   }
 
   o.endFunc();
 }
 
 
-void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, RuleFlavor rf){ 
+void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, RuleFlavor rf){
 
 
   //TODO: readd this optimization
@@ -546,13 +607,13 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
   o.beginClass(instClassName() + "_" + rf.str(), std::string() + "petabricks::TransformInstance_" + rf.str());
 
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    o.addMember((*i)->matrixTypeName(), (*i)->name());
+    o.addMember((*i)->typeName(rf), (*i)->name());
   }
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    o.addMember((*i)->constMatrixTypeName(), (*i)->name());
+    o.addMember((*i)->typeName(rf, true), (*i)->name());
   }
-  
-  if(_scheduler->size()>1 && rf == RuleFlavor::WORKSTEALING){
+
+  if(_scheduler->size()>1 && rf != RuleFlavor::SEQUENTIAL){
     o.beginFunc("bool", "useContinuation");
     o.createTunable(true, "system.flag.unrollschedule", _name + "_unrollschedule", 1, 0, 1);
     o.write("return "+_name + "_unrollschedule == 0;");
@@ -561,9 +622,9 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
 
   o.constructorBody("init();");
   o.beginFunc("void", "init");
-  extractConstants(o);
+  extractConstants(o, rf);
   o.endFunc();
-  
+
 
 
   if(rf == RuleFlavor::SEQUENTIAL) {
@@ -573,35 +634,37 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
       o.write("return;");
       o.endIf();
     }
-    _scheduler->generateCode(*this, o, RuleFlavor::SEQUENTIAL);
+    _scheduler->generateCode(*this, o, rf);
     o.endFunc();
-  }else if(rf == RuleFlavor::WORKSTEALING) {
+  }else{
     o.beginFunc("DynamicTaskPtr", "run");
     if(_memoized){
       o.beginIf("tryMemoize()");
       o.write("return NULL;");
       o.endIf();
     }
-    _scheduler->generateCode(*this, o, RuleFlavor::WORKSTEALING);
-    o.endFunc();
-  }else if(rf == RuleFlavor::DISTRIBUTED) {
-    o.beginFunc("DynamicTaskPtr", "run");
-    o.write("UNIMPLEMENTED();");
-    o.write("return NULL;");
+    if (rf == RuleFlavor::DISTRIBUTED) {
+      o.write("if (_sender) { migrateRegions(*_sender); }");
+    }
+
+    _scheduler->generateCode(*this, o, rf);
     o.endFunc();
   }
-  
 
   Map(&RuleInterface::generateTrampCode, *this, o, rf, _rules);
 
   declTransformNFunc(o);
-  
+
   if(_memoized){
     declTryMemoizeFunc(o);
   }
 
   o.mergehelpers();
 
+
+  if(rf==RuleFlavor::DISTRIBUTED){
+    o.generateMigrationFunctions();
+  }
   o.endClass();
 }
 
@@ -674,14 +737,14 @@ void petabricks::Transform::extractSizeDefines(CodeGenerator& o, FreeVars fv, co
     if(i->hasFlag(ConfigItem::FLAG_FROMCFG))
       fv.insert(i->name());
   }
-  
+
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     (*i)->extractDefines(fv, o);
   }
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->extractDefines(fv, o);
   }
-  
+
   //construct size specific config items
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     i->assignTunableDecls(_name+"_", o, inputsizestr);
@@ -689,19 +752,20 @@ void petabricks::Transform::extractSizeDefines(CodeGenerator& o, FreeVars fv, co
 }
 
 #ifdef HAVE_OPENCL
-void petabricks::Transform::extractOpenClSizeDefines(CLCodeGenerator& o, unsigned int dims){
+//TODO: don't need this
+void petabricks::Transform::extractOpenClSizeDefines(CLCodeGenerator& o, unsigned int dims, std::map<std::string, std::string> &map){
   FreeVars fv;
-  SRCPOSSCOPE(); 
+  SRCPOSSCOPE();
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    (*i)->extractCLDefines(fv, o, dims);
+    (*i)->extractCLDefines(fv, o, dims, map);
   }
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->extractCLDefines(fv, o, dims);
+    (*i)->extractCLDefines(fv, o, dims, map);
   }
 }
 #endif
 
-void petabricks::Transform::extractConstants(CodeGenerator& o){
+void petabricks::Transform::extractConstants(CodeGenerator& o, RuleFlavor rf){
   SRCPOSSCOPE();
 #ifdef INPUT_SIZE_STR
   o.addMember("IndexT", INPUT_SIZE_STR,       "0");
@@ -721,7 +785,7 @@ void petabricks::Transform::extractConstants(CodeGenerator& o){
     o.write(OUTPUT_SIZE_STR " += " + (*i)->name() + ".count();");
   }
 #endif
-  
+
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     if(i->hasFlag(ConfigItem::FLAG_FROMCFG) && i->shouldPass()){
       o.addMember(i->memberType(), i->name(), "1");
@@ -734,8 +798,8 @@ void petabricks::Transform::extractConstants(CodeGenerator& o){
   Map(&MatrixDef::verifyDefines, o, _from);
   Map(&MatrixDef::verifyDefines, o, _to);
   for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
-    (*i)->allocateTemporary(o, false, false);
-  } 
+    (*i)->allocateTemporary(o, rf, false, false);
+  }
 }
 
 void petabricks::Transform::registerMainInterface(CodeGenerator& o){
@@ -760,21 +824,26 @@ void petabricks::Transform::registerMainInterface(CodeGenerator& o){
     }
   }
 }
-  
 
-void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::string& nextMain){ 
+
+void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::string& nextMain){
   SRCPOSSCOPE();
+
+  //The flavor for inputs generated from main
+#ifdef DISABLE_DISTRIBUTED
+  RuleFlavor rf = RuleFlavor::WORKSTEALING;
+#else
+  RuleFlavor rf = RuleFlavor::DISTRIBUTED;
+#endif
+
   std::vector<std::string> argNames = normalArgNames();
-  
+
   o.beginClass(_name+"_main", "petabricks::PetabricksRuntime::Main");
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    (*i)->varDeclCodeRO(o);
+    (*i)->varDeclCode(o, rf, true);
   }
-//for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
-//  (*i)->varDeclCodeRW(o);
-//}
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->varDeclCodeRW(o);
+    (*i)->varDeclCode(o, rf, false);
   }
 
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
@@ -799,11 +868,11 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     o.write(os.str());
   }
   o.endFunc();
-  
+
   o.beginFunc("int", "numInputs");
   o.write("return "+jalib::XToString(_from.size()+_parameters.size())+";");
   o.endFunc();
-  
+
   o.beginFunc("int", "numOutputs");
   o.write("return "+jalib::XToString(_to.size())+";");
   o.endFunc();
@@ -824,22 +893,22 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
       o.write(*i + " = jalib::StringToInt(argv["+jalib::XToString(a++)+"]);");
     }
     for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-      (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
+      (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()", rf);
     }
     FreeVars t;
     t.insertAll(_parameters);
     extractSizeDefines(o, t, TRANSFORM_N_STR"()");
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      (*i)->allocateTemporary(o, true, false);
+      (*i)->allocateTemporary(o, rf, true, false);
     }
   }
   o.endFunc();
-  
+
   o.beginFunc("void", "readOutputs", std::vector<std::string>(1, "ArgListT argv"));
   {
     int a=firstOutput;
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()");
+      (*i)->readFromFileCode(o,"argv["+jalib::XToString(a++)+"].c_str()", rf);
     }
   }
   o.endFunc();
@@ -855,21 +924,21 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     }
     extractSizeDefines(o, t, "_size_inputs");
     for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-      (*i)->allocateTemporary(o, true, true);
+      (*i)->allocateTemporary(o, rf, true, true);
     }
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      (*i)->allocateTemporary(o, true, true);
+      (*i)->allocateTemporary(o, rf, true, true);
     }
   }
   o.endFunc();
-  
+
   o.beginFunc("void", "deallocate");
   {
     for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-      o.write((*i)->name()+" = "+(*i)->matrixTypeName()+"();");
+      o.write((*i)->name()+" = "+(*i)->typeName(rf)+"();");
     }
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      o.write((*i)->name()+" = "+(*i)->matrixTypeName()+"();");
+      o.write((*i)->name()+" = "+(*i)->typeName(rf)+"();");
     }
   }
   o.endFunc();
@@ -894,7 +963,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     }
   }
   o.endFunc();
-  
+
   o.beginFunc("void", "randomizeOutputs");
   {
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -902,7 +971,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     }
   }
   o.endFunc();
-  
+
 
   o.beginFunc("void", "writeInputs", std::vector<std::string>(1, "ArgListT argv"));
   {
@@ -921,11 +990,11 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     }
   }
   o.endFunc();
-  
-  
+
+
   std::vector<std::string> outputArgTypes;
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    outputArgTypes.push_back("const "+(*i)->matrixTypeName()+"& _"+(*i)->name());
+    outputArgTypes.push_back("const "+(*i)->typeName(rf)+"& _"+(*i)->name());
   }
   o.beginFunc("void", "setOutputs", outputArgTypes);
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -933,16 +1002,16 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     o.write("this->"+n+" = _"+n+";");
   }
   o.endFunc();
-  
+
 
   o.beginFunc("void", "compute");
   o.write("DynamicTaskPtr p = new NullDynamicTask();");
   argNames.insert(argNames.begin(), "p");
-  o.call(name()+TX_DYNAMIC_POSTFIX, argNames);
+  o.call(name()+"_"+rf.str(), argNames);
   argNames.erase(argNames.begin());
   o.write("petabricks::enqueue_and_wait(p);");
   o.endFunc();
-  
+
   o.beginFunc("const char*", "name");
   o.write("return \""+_name+"\";");
   o.endFunc();
@@ -952,7 +1021,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.write("static "+_name+"_main i;");
   o.write("return &i;");
   o.endFunc();
-  
+
   o.beginFunc("petabricks::TunableListT", "accuracyVariables", std::vector<std::string>(1,"int _size"));
   o.write("TunableListT _tl;");
   o.write("int _bin = petabricks::size_to_bin(_size);");
@@ -967,20 +1036,16 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   }
   o.write("return _tl;");
   o.endFunc();
-  
+
   o.beginFunc("ElementT", "accuracy");
   if(_accuracyMetric != "")
   {
-#ifndef REGIONMATRIX_TEST
-    o.write("MatrixRegion0D _acc = MatrixRegion0D::allocate();");
-#else
-    o.write("RegionMatrix0D _acc = RegionMatrix0D::allocate();");
-#endif
+    o.write(rf.string()+"::MatrixRegion0D _acc = "+rf.string()+"::MatrixRegion0D::allocate();");
     std::vector<std::string> args = argnames();
     args.insert(args.begin(), "_acc");
     args.insert(args.begin(), "p");
     o.write("DynamicTaskPtr p = new NullDynamicTask();");
-    o.call(_accuracyMetric+TX_DYNAMIC_POSTFIX, args);
+    o.call(_accuracyMetric+"_"+rf.string(), args);
     o.write("petabricks::enqueue_and_wait(p);");
     if(isAccuracyInverted())
       o.write("return -1*_acc.cell();");
@@ -990,7 +1055,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     o.write("return DEFAULT_ACCURACY;");
   }
   o.endFunc();
-  
+
   o.beginFunc("ElementT", "accuracyTarget");
   if(!_accuracyBins.empty()){
     o.write("return ACCURACY_TARGET;");
@@ -998,7 +1063,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
     o.write("return DEFAULT_ACCURACY;");
   }
   o.endFunc();
-  
+
   o.beginFunc("void", "hash", std::vector<std::string>(1,"jalib::HashGenerator& _hashgen"));
   {
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -1011,7 +1076,7 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.write("return "+nextMain+";");
   o.endFunc();
   o.endClass();
-  
+
   if(!_accuracyBins.empty()){
     o.beginFunc("ElementT", _name+ "_"ACCTARGET_STR);
     o.write("return "+jalib::XToString(_curAccTarget)+";");
@@ -1020,17 +1085,17 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
 
 }
 
-std::vector<std::string> petabricks::Transform::maximalArgList() const{
+std::vector<std::string> petabricks::Transform::maximalArgList(RuleFlavor rf) const{
   SRCPOSSCOPE();
-  std::vector<std::string> tmp; 
+  std::vector<std::string> tmp;
   for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    (*i)->argDeclRO(tmp);
-  }  
+    (*i)->argDecl(tmp, rf, true);
+  }
   for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
-    (*i)->argDeclRW(tmp);
+    (*i)->argDecl(tmp, rf, false);
   }
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->argDeclRW(tmp);
+    (*i)->argDecl(tmp, rf, false);
   }
   for(ConfigItems::const_iterator i=_config.begin(); i!=_config.end(); ++i){
     if(i->shouldPass())
@@ -1038,7 +1103,7 @@ std::vector<std::string> petabricks::Transform::maximalArgList() const{
   }
   return tmp;
 }
-  
+
 std::map<std::string, petabricks::TransformPtr> petabricks::Transform::theTransformMap(){
   static std::map<std::string, petabricks::TransformPtr> m;
   return m;

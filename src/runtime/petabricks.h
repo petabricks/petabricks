@@ -25,11 +25,13 @@
  *                                                                           *
  *****************************************************************************/
 
+
 #include "dynamictask.h"
 #include "matrixio.h"
 #include "matrixregion.h"
 #include "memoization.h"
 #include "petabricksruntime.h"
+#include "remotetask.h"
 #include "ruleinstance.h"
 #include "specializeddynamictasks.h"
 #include "transforminstance.h"
@@ -55,7 +57,7 @@ petabricks::PetabricksRuntime::Main* petabricksMainTransform();
 petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);
 
 #define PB_SPAWN(taskname, args...) \
-  taskname ## _workstealing (_completion, args)
+  PB_CAT(PB_CAT(taskname,_),PB_FLAVOR) (_completion, args)
 
 #define PB_STATIC_CALL(taskname, args...) \
   taskname ## _sequential (NULL, args)
@@ -68,6 +70,12 @@ petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& 
 #define PB_RETURN_VOID\
   return DEFAULT_RV
 
+#define PB_RETURN_DISTRIBUTED(rv)\
+  { _cleanUpTask->dependsOn(_completion); _completion->enqueue(); PB_RETURN(rv); }
+
+#define PB_RETURN_VOID_DISTRIBUTED\
+  { _cleanUpTask->dependsOn(_completion); _completion->enqueue(); PB_RETURN_VOID; }
+
 #define PB_CAT(a,b) _PB_CAT(a,b)
 #define _PB_CAT(a,b) __PB_CAT(a,b)
 #define __PB_CAT(a,b) a ## b
@@ -78,6 +86,10 @@ petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& 
 
 #define ACCURACY_TARGET (TRANSFORM_LOCAL(accuracyTarget)())
 #define ACCURACY_BIN    (_acc_bin)
+
+#define REGION_METHOD_CALL( region, method, args... )  region . method ( args )
+
+#define CONVERT_TO_LOCAL(x) x._toLocalRegion()
 
 namespace petabricks {
   template< typename T >
@@ -92,7 +104,7 @@ namespace petabricks {
     TransformInstancePtr txPtr(tx); //make sure tx gets deleted
     return tx->T::run(); //run without vtable use
   }
-  
+
   template< typename T >
   inline DynamicTaskPtr run_task(T* task){
     DynamicTaskPtr ptr(task); //make sure task gets deleted
@@ -104,6 +116,11 @@ namespace petabricks {
       completion->dependsOn(task);
       task->enqueue();
     }
+  }
+
+  template< typename T >
+  inline bool is_data_local(const T& x){
+    return x.isLocal();
   }
 
   inline DynamicTaskPtr sync_hook(DynamicTaskPtr& completion, const DynamicTaskPtr& cont){
@@ -160,9 +177,6 @@ namespace petabricks {
     }
     return rv;
   }
- 
-
- 
 
   template < int D >
   inline bool split_condition(IndexT thresh, IndexT begin[D], IndexT end[D]){
@@ -178,8 +192,7 @@ namespace petabricks {
     return false;
   }
 
-
-  //special val for optional values that dont exist 
+  //special val for optional values that dont exist
   inline ElementT the_missing_val() {
     union {
       ElementT d;
@@ -189,11 +202,45 @@ namespace petabricks {
     u ^= 0x1234;
     return d;
   }
+
   inline bool is_the_missing_val(ElementT a) {
     ElementT b=the_missing_val();
     return memcmp(&a, &b, sizeof(ElementT))==0;
   }
+
+  typedef MatrixStoragePtr CArrayStorage;
+
+  template<typename T>
+  inline void to_c_array(const T& mr, ElementT*& ar, CArrayStorage& storage) {
+    if(T::D>0 && mr.isLocal() && mr.isEntireBuffer()) {
+      //TODO: check that layout is normal
+      storage = mr.storage();
+      ar      = storage->data();
+      return;
+    }
+
+    storage = new MatrixStorage(mr.count());
+    ar      = storage->data();
+
+    _regioncopy(ar, mr);
+  }
+
+  inline void free_c_array(ElementT*& ar, CArrayStorage& storage) {
+    if(storage) {
+      ar = NULL;
+      storage = NULL;
+    }
+  }
+
+  template<typename T>
+  inline void from_c_array(const T& mr, ElementT*& ar, CArrayStorage& storage) {
+    if(T::D==0 || !mr.isLocal() || mr.storage() != storage) {
+      _regioncopy(mr, ar);
+    }
+    free_c_array(ar, storage);
+  }
+
+
 }
 
-#define REGION_METHOD_CALL( region, method, args... )  region . method ( args )
 
