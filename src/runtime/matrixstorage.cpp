@@ -128,6 +128,8 @@ bool petabricks::MatrixStorageInfo::isDataMatch(const MatrixStorageInfo& that) c
 
 #ifdef HAVE_OPENCL
 bool petabricks::MatrixStorageInfo::initGpuMem(cl_context& context) {
+	//std::cout << "my count = " << count() << std::endl;
+	//std::cout << &(*storage()) << "storage count = " << storage()->count() << std::endl;
   if(!_hasGpuMem) {
     cl_int err;
     //std::cout << this << " : create buffer size = " << bytes() << std::endl;
@@ -151,6 +153,7 @@ void petabricks::MatrixStorageInfo::check(cl_command_queue& queue) {
     std::cout << "baseoffset = " << _baseOffset << std::endl;
     print();
     std::cout << "clmem = " << _clmem << std::endl;
+		//TODO: can I do better
     ElementT data[_count];
     clEnqueueReadBuffer(queue, _clmem, CL_TRUE, 0, bytes(), data, 0, NULL, NULL);
     for(int i=0;i<_count;i++)
@@ -267,7 +270,7 @@ petabricks::CopyoutInfo::CopyoutInfo(cl_command_queue& queue, MatrixStorageInfoP
   _done = false;
   // if not cover the whole matrix, need to store which regions we need to copy
   // if cover the whole matrix, don't store. We copy all.
-  if(_coverage != _originalBuffer->count()) {
+  if(_coverage != _originalBuffer->storage()->count()) {
     _begins = begins;
     _ends = ends;
   }
