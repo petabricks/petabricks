@@ -245,7 +245,6 @@ int petabricks::BasicChoiceDepGraphNode::numOutMatrixOnGpu(const RuleChoiceAssig
 
 
 bool petabricks::BasicChoiceDepGraphNode::hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region) {
-	std::cout << "name: " << region->matrix()->name() << " , " << _matrix->name() << " : " << choice.find(this)->second->isEnabledGpuRule() << std::endl;
 	/*if(region->matrix()->name().compare(_matrix->name()) == 0)
 		std::cout << "intersect: " << region->hasIntersect(_region) << std::endl;*/
   return (region->matrix()->name().compare(_matrix->name()) == 0) && choice.find(this)->second->isEnabledGpuRule();

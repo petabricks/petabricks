@@ -241,10 +241,9 @@ public:
 private:
   std::vector<IndexT*> _begins;
   std::vector<IndexT*> _ends;
-  MatrixStorageInfoPtr _originalBuffer;
   MatrixStoragePtr     _gpuOutputBuffer;
   cl_event _event;
-  int _coverage;
+  size_t _coverage;
   bool _done;
 };
 #endif

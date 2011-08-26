@@ -33,7 +33,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#define GPU_TRACE 1
+//#define GPU_TRACE 1
 
 //
 // Class structure looks like this:
@@ -121,9 +121,9 @@ public:
   const IndexT* multipliers() const { return _multipliers; };
   const StorageT& storage() const { return _storage; }
   const MatrixStorageInfoPtr storageInfo() const {
+#ifdef DEBUG
     JASSERT(count()>0)(count());
-    //if(D!=0)
-    //  JASSERT(_multipliers[0]==_storageInfo->multipliers()[0]);
+#endif
     return _storageInfo; 
   }
 
@@ -144,12 +144,6 @@ public:
     ms.setStorage(_storage, _base);
     ms.setSizeMultipliers(D, _multipliers, _sizes);
     ms.setExtraVal();
-    if(D!=0) {
-      JASSERT(_multipliers[0]==ms.multipliers()[0]);
-    }
-    //std::cerr << "EXPORT TO" << &ms << std::endl;
-    //std::cerr << "this multiplier = " << _multipliers[0] << std::endl;
-    //std::cerr << "ms multiplier = " << ms.multipliers()[0] << std::endl;
   }
 
   ///
@@ -388,7 +382,9 @@ public:
   /// Copy that data within the given boundaries of this to dst
   void copyTo(const MutableMatrixRegion& dst,std::vector<IndexT*>& begins, std::vector<IndexT*>& ends)
   {
+    #ifdef DEBUG
     JASSERT(begins.size() == ends.size())(begins.size())(ends.size());
+    #endif
     if(this->storage() == dst.storage())
       return;
 

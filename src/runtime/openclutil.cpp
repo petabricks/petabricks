@@ -41,7 +41,8 @@ cl_context OpenCLUtil::context;
 
 
 void OpenCLUtil::pfn_notify(const char *errinfo, const void* /*private_info*/, size_t /*cb*/, void* /*user_data*/){
-  JASSERT(false)(errinfo).Text("OpenCL Error via pfn_notify.");
+  std::cerr << "OpenCL Error via pfn_notify: " << errinfo << std::endl;
+  JASSERT(false).Text("OpenCL Error via pfn_notify.");
 }
 
 int

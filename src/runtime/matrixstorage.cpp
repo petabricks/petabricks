@@ -26,7 +26,7 @@
  *****************************************************************************/
 #include "matrixstorage.h"
 #include "petabricksruntime.h"
-#define GPU_TRACE 1
+//#define GPU_TRACE 1
 
 MATRIX_ELEMENT_T petabricks::MatrixStorage::rand(){
   return petabricks::PetabricksRuntime::randDouble(-2147483648, 2147483648);
@@ -53,9 +53,11 @@ petabricks::MatrixStorageInfo::~MatrixStorageInfo(){
 void petabricks::MatrixStorageInfo::setStorage(const MatrixStoragePtr& s, const ElementT* base){
   if(s){
     _storage=s;
+    #ifdef DEBUG
     //std::cout << "base = " << base << " data = " << s->data() << " count = " << s->count() << " data + count = " << s->data()+s->count() << std::endl;
     JASSERT(base >= s->data());
     JASSERT(base < s->data()+s->count());
+    #endif
     _baseOffset=base-s->data();
   }else{
     _storage=NULL;
@@ -249,7 +251,9 @@ void petabricks::MatrixStorageInfo::releaseCLMem() {
 
 void petabricks::MatrixStorageInfo::incCoverage(IndexT* begin, IndexT* end, int size) {
   _coverage += size;
+  #ifdef DEBUG
   JASSERT(_coverage <= _count).Text("Overwrite output.");
+  #endif
   IndexT* myBegin = new IndexT[_dimensions];
   memcpy(myBegin, begin, sizeof(IndexT) * _dimensions);
   IndexT* myEnd = new IndexT[_dimensions];
@@ -262,27 +266,26 @@ petabricks::CopyoutInfo::CopyoutInfo(cl_command_queue& queue, MatrixStorageInfoP
 #ifdef GPU_TRACE
   std::cout << "CopyoutInfo" << std::endl;
 #endif
-  _originalBuffer = originalBuffer;
   _coverage = coverage;
   _done = false;
   // if not cover the whole matrix, need to store which regions we need to copy
   // if cover the whole matrix, don't store. We copy all.
-  if(_coverage != _originalBuffer->count()) {
+  if(_coverage != originalBuffer->storage()->count()) {
     _begins = begins;
     _ends = ends;
   }
   
   // Create storage for read data
-  if(_originalBuffer->dimensions() == 0 || _originalBuffer->storage()->count() != _coverage)
-    _gpuOutputBuffer = new MatrixStorage(_originalBuffer->count());
+  if(originalBuffer->dimensions() == 0 || originalBuffer->storage()->count() != _coverage)
+    _gpuOutputBuffer = new MatrixStorage(originalBuffer->count());
   else
-    _gpuOutputBuffer = _originalBuffer->storage();
+    _gpuOutputBuffer = originalBuffer->storage();
 
   //cl_int err = clSetEventCallBack(event, CL_COMPLETE, NULL, NULL);
   //std::cout << this << " : start read buffer " << _refCount << std::endl;
 
   // Read buffer
-  clEnqueueReadBuffer(queue, _originalBuffer->_clmem, CL_FALSE, 0, _originalBuffer->bytes(), _gpuOutputBuffer->data(), 0, NULL, &_event);
+  clEnqueueReadBuffer(queue, originalBuffer->_clmem, CL_FALSE, 0, originalBuffer->bytes(), _gpuOutputBuffer->data(), 0, NULL, &_event);
   clFlush(queue);
 }
 

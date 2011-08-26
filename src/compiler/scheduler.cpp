@@ -139,7 +139,7 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
       o.continuationPoint();
 
 #ifdef HAVE_OPENCL
-    std::cout << "node " << &i->node() << " " << _numOutOnGpu[&i->node()] << std::endl;
+    //std::cout << "node " << &i->node() << " " << _numOutOnGpu[&i->node()] << std::endl;
     i->node().generateCode(trans, o, flavor, _choiceAssignment); //TODO
 #else
     i->node().generateCode(trans, o, flavor, _choiceAssignment);
