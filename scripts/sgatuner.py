@@ -8,6 +8,7 @@ import candidatetester
 import shutil 
 import tunerconfig
 import configtool 
+import re
 import math
 import time
 from configtool import defaultConfigFile
@@ -336,8 +337,13 @@ def intorfloat(v):
 
 def createTunableMutators(candidate, ta, weight):
   name = ta['name']
-  l=intorfloat(ta['min'])
-  h=intorfloat(ta['max'])
+  if type(ta['min']) == type([]):
+    l=map(intorfloat, ta['min'])
+    h=map(intorfloat, ta['max'])
+  else:
+    l=intorfloat(ta['min'])
+    h=intorfloat(ta['max'])
+  size=intorfloat(ta['size'])
  # if 'accuracy' in ta['type']:
  #   #hack to support what the old autotuner did
  #   l+=1
@@ -351,13 +357,15 @@ def createTunableMutators(candidate, ta, weight):
       return [mutators.LognormRandCutoffMutator(name, weight=weight)]
     else:
       return [mutators.UniformRandMutator(name, l, h, weight=weight)]
-  elif ta['type'] in config.lognorm_array_tunable_types:
-    ms = [mutators.LognormTunableArrayMutator(name, l, h, weight=weight),
-          mutators.IncrementTunableArrayMutator(name, l, h, 8, weight=weight),
-          mutators.ScaleTunableArrayMutator(name, l, h, 2, weight=weight),
+  elif ta['type'] in config.lognorm_sizespecific_tunable_types:
+    ms = [mutators.LognormTunableSizeSpecificMutator(name, l, h, weight=weight),
+          mutators.IncrementTunableSizeSpecificMutator(name, l, h, 8, weight=weight),
+          mutators.ScaleTunableSizeSpecificMutator(name, l, h, 2, weight=weight),
           ]
     ms[-1].reset(candidate)
     return ms
+  elif ta['type'] in config.optimize_tunable_types:
+    return [mutators.OptimizeTunableMutator(ta, weight=weight)]
   elif ta['type'] in config.ignore_tunable_types:
     pass
   else:
@@ -373,6 +381,47 @@ def createChoiceSiteMutators(candidate, info, ac, weight):
   #ms.append(mutators.ShuffleAlgsChoiceSiteMutator(transform, ac['number'], weight=weight))
   #ms.append(mutators.ShuffleCutoffsChoiceSiteMutator(transform, ac['number'], weight=weight))
   return ms
+
+# Identify tunables that should be grouped into arrays for mutators that act
+# on arrays of values rather than scalars
+def groupTunables(transformName, tunables):
+  names = map(lambda x: x['name'], tunables)
+  tunableSets = [] # return value
+  tunableIndex = {} # index to unique tunables by variable name
+  for name, tunable in zip(names, tunables):
+    tunable['sizeSpecificFlag'] = tunable['type'] in config.sizespecific_tunable_types
+    m = re.match('^%s_i(\d+)_(\w+)$' % transformName, name)
+    # for now, only group tunables that are optimizable into an array
+    if m and tunable['type'] in config.optimize_tunable_types:
+      (index, varName) = m.group(1, 2)
+      index = int(index)
+#      print "Matched array tunable: %s[%d]" % (varName, index)
+#      print "  Size-specific: %s" % tunable['sizeSpecificFlag']
+      if not varName in tunableIndex:
+        assert(index == 0)
+        tunableIndex[varName] = tunable
+        tunable['arrayFlag'] = True
+        tunable['tname'] = transformName
+        tunable['vname'] = varName
+        tunable['size'] = 1
+        # convert min and max to arrays
+        tunable['min'] = [tunable['min']]
+        tunable['max'] = [tunable['max']]
+        tunableSets.append(tunable)
+      else:
+        # arrayTunable gets the tunable to be returned
+        arrayTunable = tunableIndex[varName]
+        assert(arrayTunable['size'] == index)
+#        print "Updating tunable 'size' from %d to %d" % (arrayTunable['size'], arrayTunable['size'] + 1)
+        arrayTunable['size'] += 1
+        arrayTunable['min'].append(tunable['min'])
+        arrayTunable['max'].append(tunable['max'])
+    else:
+#      print "Adding non-array tunable: %s" % name
+      tunable['arrayFlag'] = False
+      tunable['size'] = 1
+      tunableSets.append(tunable)
+  return tunableSets
 
 def addMutators(candidate, info, acf, taf, ignore=None, weight=1.0):
   '''seed the pool of mutators from the .info file'''
@@ -391,10 +440,11 @@ def addMutators(candidate, info, acf, taf, ignore=None, weight=1.0):
       logging.info("added Mutator " + transform + "/AlgChoice" + str(ac['number']) + " => " + str(m))
       candidate.addMutator(m)
 
-  for ta in info.tunables():
+  tunableSets = groupTunables(info.name(), info.tunables())
+  for ta in tunableSets:
     ms = taf(candidate, ta, weight)
     for m in ms:
-      if 'accuracy' in ta['type']:
+      if 'accuracy' in ta['type'] or 'double' in ta['type']:
         m.accuracyHint = 1
       logging.info("added Mutator " + transform + "/" + ta['name'] + " => " + str(m))
       candidate.addMutator(m)
@@ -435,6 +485,7 @@ def autotuneInner(benchmark):
   candidate, tester = init(benchmark)
   try:
     pop = Population(candidate, tester, None)
+    candidate.pop = pop
     
     if not pop.isVariableAccuracy() and config.accuracy_target:
       logging.info("clearing accuracy_target")
