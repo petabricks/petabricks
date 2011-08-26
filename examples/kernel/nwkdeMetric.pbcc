@@ -38,12 +38,7 @@ double computeNWKDEMetric(ConstMatrixRegion1D result,
     }
 
     sum /= count;
-
-    if (sum == 0) {
-        sum = std::numeric_limits<double>::epsilon();
-    }
-
-    return -log10(sum);
+    return -sum;
 }
 
 %}

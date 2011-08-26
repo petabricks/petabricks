@@ -125,13 +125,13 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
     warnflag = 0
     gnorm = vecnorm(gfk,ord=norm)
 
-#    print "gtol  = %g" % gtol
-#    print "gnorm = %g" % gnorm
+    print "gtol  = %g" % gtol
+    print "gnorm = %g" % gnorm
 
     while (gnorm > gtol) and (k < maxiter):
         pk = -numpy.dot(Hk,gfk)
 
-#        print "Begin iteration %d line search..." % (k + 1)
+        print "Begin iteration %d line search..." % (k + 1)
 #        print "  gfk =", gfk
 #        print "  Hk = \n", Hk
 #        print "  pk =", pk
@@ -152,7 +152,7 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
 #                print "Line search failed!"
                 warnflag = 2
                 break
-#        print "End line search, alpha = %g ..." % alpha_k
+        print "End line search, alpha = %g ..." % alpha_k
 
         xkp1 = xk + alpha_k * pk
         if retall:
@@ -168,7 +168,7 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
             callback(xk)
         k += 1
         gnorm = vecnorm(gfk,ord=norm)
-#        print "gnorm = %g" % gnorm
+        print "gnorm = %g" % gnorm
         if (k >= maxiter or gnorm <= gtol):
             break
 

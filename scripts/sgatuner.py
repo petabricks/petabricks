@@ -365,7 +365,9 @@ def createTunableMutators(candidate, ta, weight):
     ms[-1].reset(candidate)
     return ms
   elif ta['type'] in config.optimize_tunable_types:
-    return [mutators.OptimizeTunableMutator(ta, weight=weight)]
+    ms = [mutators.OptimizeTunableMutator(ta, weight=weight),
+          mutators.LogNormFloatTunableMutator(ta, weight=weight)]
+    return ms
   elif ta['type'] in config.ignore_tunable_types:
     pass
   else:

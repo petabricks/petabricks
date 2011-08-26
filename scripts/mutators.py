@@ -394,12 +394,38 @@ class OptimizeTunableMutator(GenericTunableMutator):
     self.setVal(candidate, value, n)
     candidate.pop.testers[-1].testN(candidate, 1)
     result = candidate.metrics[config.accuracy_metric_idx][n].mean()
-#    print "eval: f(", value, ") = %.8g" % result
+    print "eval: f(", value, ") = %.8g" % result
     return -result
 
   def random(self, oldVal, minVal, maxVal, candidate):
+    if oldVal == [1, 1, 1, 1]:
+      oldVal = [134.3503, 0.3182, 633.3333, 5.0312]
     n = candidate.pop.testers[-1].n
     return self.o.optimize(oldVal, args = (candidate, n), maxiter = 1)
+
+class LogNormFloatTunableMutator(GenericTunableMutator):
+
+  def __init__(self, tunable, weight=1.0):
+    GenericTunableMutator.__init__(self, tunable, weight)
+
+  def random(self, oldVal, minVal, maxVal, candidate = None):
+
+    if oldVal == [1, 1, 1, 1]:
+      oldVal = [134.3503, 0.3182, 633.3333, 5.0312]
+
+    newVal = [0] * len(oldVal)
+    for j in xrange(0, len(oldVal)):
+      successFlag = False
+      for z in xrange(config.rand_retries):
+        v = float(oldVal[j] * stats.lognorm.rvs(1))
+        if v>=minVal[j] and v<=maxVal[j] and oldVal[j]!=v:
+          newVal[j] = v
+          successFlag = True
+          break
+      if not successFlag:
+        raise MutateFailed("lognorm random gen failed")
+
+    return newVal
 
 class MultiMutator(Mutator):
   def __init__(self, count=3, weight=1.0):
