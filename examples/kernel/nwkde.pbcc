@@ -1,99 +1,28 @@
 #ifndef NWKDE_PBCC
 #define NWKDE_PBCC
 
+#include "nwkde.h"
+#include "nwkdeGenerators.pbcc"
+#include "nwkdeMetric.pbcc"
 #include "utils.pbcc"
-#define DEBUG
-#define WORKAROUND // workaround for generator having specific sizes
-#define CWD "/afs/csail.mit.edu/u/c/cychan/projects/petabricks/examples/kernel/"
-//#define CWD "/home/cychan/projects/petabricks/examples/kernel/"
 
-transform NWKDEGenerator
-from IN[n]
-to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
-     TRAININDICES[n], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
-     TESTDATA[4,8750],
-     TESTINDICES[n], TESTVARINDEX[8], TESTTIMEOFFSET[8],
-     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+%{
+
+/* wrap relative difference into [-180,180]
+ * do most of the arithmetic in integers for speed
+ * P360 and M360 indicate "plus 360" and "minus 360" */
+inline ElementT wrapWindDirDiff(ElementT diff)
 {
-    to (TRAINDATA trainData,
-        WRAPFLAGS wrapFlags,
-        KERNELWIDTHS kernelWidths,
-        TRAININDICES trainIndices,
-        TRAINVARINDEX trainVarIndex,
-        TRAINTIMEOFFSET trainTimeOffset,
-        TESTDATA testData,
-        TESTINDICES testIndices,
-        TESTVARINDEX testVarIndex,
-        TESTTIMEOFFSET testTimeOffset,
-        OUTPUTVARINDEX outputVarIndex,
-        OUTPUTTIMEOFFSET outputTimeOffset)
-    from (IN in)
-    {
-        MatrixRegion2D a;
-        MatrixRegion1D b;
+    /* add 360 *before* cast to round towards -INF instead of towards 0 */
+    int diffIntP360 = (int) (diff + 360);
 
-        char filename[1024];
-        int cwdLen = strlen(CWD);
-        strcpy(filename, CWD);
+    /* add 180 to ensure modulo result is positive */
+    int diffIntWrapP360 = ((diffIntP360 + 180) % 360) + 180;
 
-        strcat(filename, "test/trainData.pba");
-        a = MatrixIO(filename, "r").read2D();
-        Copy2D(trainData, a);
-
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/wrapFlags.pba");
-        b = MatrixIO(filename, "r").read1D();
-        Copy1D(wrapFlags, b.region(0,4));
-
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/kernelWidths.pba");
-        b = MatrixIO(filename, "r").read1D();
-        Copy1D(kernelWidths, b.region(0,4));
-
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/trainIndices.pba");
-        b = MatrixIO(filename, "r").read1D();
-        Copy1D(trainIndices, b.region(0,n));
-
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/trainVarIndex.pba");
-        b = MatrixIO(filename, "r").read1D();
-        Copy1D(trainVarIndex, b.region(0,8));
-
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/trainTimeOffset.pba");
-        b = MatrixIO(filename, "r").read1D();
-        Copy1D(trainTimeOffset, b.region(0,8));
-
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/testData.pba");
-        a = MatrixIO(filename, "r").read2D();
-        Copy2D(testData, a);
-
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/testIndices.pba");
-        b = MatrixIO(filename, "r").read1D();
-        Copy1D(testIndices, b.region(0,n));
-
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/testVarIndex.pba");
-        b = MatrixIO(filename, "r").read1D();
-        Copy1D(testVarIndex, b.region(0,8));
-
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/testTimeOffset.pba");
-        b = MatrixIO(filename, "r").read1D();
-        Copy1D(testTimeOffset, b.region(0,8));
-
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/outputVarIndex.pba");
-        outputVarIndex = MatrixIO(filename, "r").read0D();
-
-        filename[cwdLen] = NULL;
-        strcat(filename, "test/outputTimeOffset.pba");
-        outputTimeOffset = MatrixIO(filename, "r").read0D();
-    }
+    return diff + (diffIntWrapP360 - diffIntP360);
 }
+
+%}
 
 transform NWKDECheckInputs
 from TRAINDATA[m,n], TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
@@ -164,20 +93,35 @@ to INPUTSCHECKED
 }
 
 /*  TRAINDATA - block of data: n time slices, m variables per time slice
+    TRAININDICES - l time indices into TRAINDATA to use for training
+
+    TESTDATA - block of data: n2 time slices, m2 variables per time slice
+    TESTINDICES - q indices into TESTDATA to evaluate the regression
+
     WRAPFLAGS - indicates whether TRAINDATA column corresponds to a wind
                 direction \in [0, 360]
     KERNELWIDTHS - width of the kernel function to use for a data column
-    TRAININDICES - l time indices into TRAINDATA to use for training
-    TESTPOINTS - q data points (each of p-dim) to do the regression
+
+    For each time index in TRAININDICES or TESTINDICES, we associate
+    a p-dim vector of predictors for use during regression.  The
+    TRAINVARINDEX array contains the column index (into TRAINDATA) of
+    the variable to use for each predictor.  The TRAINTIMEOFFSET array
+    contains the time offset relative to the current time index.  In this way,
+    we can build predictor vectors that contain overlapping data for
+    different time indices.  Similarly, TESTVARINDEX and TESTTIMEOFFSET
+    specify the predictor vector to use when computing the regression output.
+
     OUTPUTVARINDEX - which variable in TRAINDATA for output
     OUTPUTTIMEOFFSET - time offset from trainIndex in TRAINDATA for output
+    TRAINMASKWIDTH - width of training mask.  This tells the transform to
+                     omit training indices less than TRAINMASKWIDTH
+                     indices of the test index when computing the regression.
+                     Note: to be used when TESTDATA is equal to TRAINDATA.
+                     May set to 0 (no mask effect) if TESTDATA is separate
+                     from TRAINDATA.
 
-    For each dimension of TESTPOINTS:
-      VARINDEX - which variable in TRAINDATA
-      TIMEOFFSET - time offset from the trainIndex in TRAINDATA
-
-    SQDIFFS - squared differences between each test point and the train data
-              for each training index and for each point dimension
+    SQDIFFS - squared differences for each predictor for each train-test
+              point pair
     WEIGHTS - weights computed with Gaussian kernel function for each
               train-test point pair
     PARTIALS - weighted output partial sums
@@ -188,13 +132,15 @@ from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
      TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
      TESTDATA[m2,n2],
      TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
-     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET,
+     TRAINMASKWIDTH
 to RESULT[q]
 through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
 {
 
     /* METHOD 1: compute PARTIALS by exposing the most fine-grained
-       parallelism.  this method may be less cache-efficient. */
+       parallelism.  this method may be less cache-efficient depending on
+       execution ordering. */
 
     to   (SQDIFFS.cell(i,j,k) sqDiff)
     from (TRAINDATA trainData,
@@ -220,19 +166,7 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
         ElementT diff = trainPoint - testPoint;
 
         if (wrapFlag) {
-            
-            // wrap relative difference into [-180,180]
-            // do most of the arithmetic in integers for speed
-            // P360 and M360 indicate "plus 360" and "minus 360"
-
-            // add 360 *before* cast to round towards -INF instead of towards 0
-            int diffIntP360 = (int) (diff + 360);
-
-            // add 180 to ensure modulo result is positive
-            int diffIntWrapP360 = ((diffIntP360 + 180) % 360) + 180;
-
-            ElementT diffFracM360 = diff - diffIntP360;
-            diff = diffIntWrapP360 + diffFracM360;
+            diff = wrapWindDirDiff(diff);
         }
 
         // normalize according to kernel width
@@ -247,10 +181,18 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
 
     to (WEIGHTS.cell(j,k) weight)
     from (SQDIFFS.region(0, j,   k,
-                         p ,j+1, k+1) sqDiffs)
+                         p ,j+1, k+1) sqDiffs,
+          TRAININDICES.cell(j) trainIndex,
+          TESTINDICES.cell(k) testIndex,
+          TRAINMASKWIDTH trainMaskWidth)
     {
-        ReduceAdd(weight, sqDiffs.slice(2,0).slice(1,0));
-        weight = exp(-((ElementT) weight));
+        if (trainIndex <= testIndex - trainMaskWidth ||
+            trainIndex >= testIndex + trainMaskWidth) {
+            ReduceAdd(weight, sqDiffs.slice(2,0).slice(1,0));
+            weight = exp(-((ElementT) weight));
+        } else {
+            weight = 0;
+        }
 #ifdef DEBUG
         fprintf(stderr, "method 1:  weight(%d, %d) = %g\n", j, k, weight);
 #endif
@@ -286,53 +228,123 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
           TESTVARINDEX testVarIndex,
           TESTTIMEOFFSET testTimeOffset,
           OUTPUTVARINDEX outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset)
+          OUTPUTTIMEOFFSET outputTimeOffset,
+          TRAINMASKWIDTH trainMaskWidth)
     {
         ElementT sum = 0;
 
-        for (int i = 0; i < trainVarIndex.count(); ++i) {
+        if (trainIndex <= testIndex - trainMaskWidth ||
+            trainIndex >= testIndex + trainMaskWidth) {
+            for (int i = 0; i < trainVarIndex.count(); ++i) {
 
-            int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
-            ElementT kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
+                int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
+                ElementT kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
 
-            int trainTimeIndex = (int) trainIndex + (int) trainTimeOffset.cell(i);
-            int  testTimeIndex = (int)  testIndex + (int)  testTimeOffset.cell(i);
+                int trainTimeIndex = (int) trainIndex + (int) trainTimeOffset.cell(i);
+                int  testTimeIndex = (int)  testIndex + (int)  testTimeOffset.cell(i);
 
-            ElementT trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
-            ElementT  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
+                ElementT trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
+                ElementT  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
 
-            ElementT diff = trainPoint - testPoint;
+                ElementT diff = trainPoint - testPoint;
 
-            if (wrapFlag) {
+                if (wrapFlag) {
+                    diff = wrapWindDirDiff(diff);
+                }
 
-                // wrap relative difference into [-180,180]
-                // do most of the arithmetic in integers for speed
-                // P360 and M360 indicate "plus 360" and "minus 360"
+                // normalize according to kernel width
+                diff /= kernelWidth;
 
-                // add 360 *before* cast to round towards -INF instead of towards 0
-                int diffIntP360 = (int) (diff + 360);
-
-                // add 180 to ensure modulo result is positive
-                int diffIntWrapP360 = ((diffIntP360 + 180) % 360) + 180;
-
-                ElementT diffFracM360 = diff - diffIntP360;
-                diff = diffIntWrapP360 + diffFracM360;
+                // return squared difference
+                sum += diff * diff;
             }
-
-            // normalize according to kernel width
-            diff /= kernelWidth;
-
-            // return squared difference
-            sum += diff * diff;
+            weight = exp(-((ElementT) sum));
+        } else {
+            weight = 0;
         }
 
         int outputTimeIndex = (int) trainIndex + (int) outputTimeOffset;
-        weight = exp(-((ElementT) sum));
         partial = weight * trainData.cell((int) outputVarIndex, outputTimeIndex);
 #ifdef DEBUG
         fprintf(stderr, "method 2:  weight(%d, %d) = %g\n", j, k, weight);
         fprintf(stderr, "method 2: partial(%d, %d) = %g\n", j, k, partial);
 #endif
+    }
+
+    /* METHOD 3: Compute results directly with one pass through the data */
+
+    to   (RESULT.cell(k) result)
+    from (TRAINDATA trainData,
+          WRAPFLAGS wrapFlags,
+          KERNELWIDTHS kernelWidths,
+          TRAININDICES trainIndices,
+          TRAINVARINDEX trainVarIndex,
+          TRAINTIMEOFFSET trainTimeOffset,
+          TESTDATA testData,
+          TESTINDICES.cell(k) testIndex,
+          TESTVARINDEX testVarIndex,
+          TESTTIMEOFFSET testTimeOffset,
+          OUTPUTVARINDEX outputVarIndex,
+          OUTPUTTIMEOFFSET outputTimeOffset,
+          TRAINMASKWIDTH trainMaskWidth)
+    {
+        ElementT totalPartial = 0, totalWeight = 0, weight;
+
+        // loop over training points
+        for (int j = 0; j < trainIndices.count(); ++j) {
+
+            int trainIndex = (int) trainIndices.cell(j);
+
+            // TODO: get rid of branch inside loop by splitting outer for
+            // loop into two loops.  Need to modularize loop interior for code
+            // clarity.
+            if (trainIndex <= testIndex - trainMaskWidth ||
+                trainIndex >= testIndex + trainMaskWidth) {
+                // loop over predictor variables
+                ElementT sum = 0;
+                for (int i = 0; i < trainVarIndex.count(); ++i) {
+
+                    int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
+                    ElementT kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
+
+                    int trainTimeIndex = (int) trainIndex + (int) trainTimeOffset.cell(i);
+                    int  testTimeIndex = (int)  testIndex + (int)  testTimeOffset.cell(i);
+
+                    ElementT trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
+                    ElementT  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
+
+                    ElementT diff = trainPoint - testPoint;
+
+                    if (wrapFlag) {
+                        diff = wrapWindDirDiff(diff);
+                    }
+
+                    // normalize according to kernel width
+                    diff /= kernelWidth;
+
+                    // return squared difference
+                    sum += diff * diff;
+                }
+                weight = exp(-((ElementT) sum));
+            } else {
+                weight = 0;
+            }
+
+            int outputTimeIndex = (int) trainIndex + (int) outputTimeOffset;
+            ElementT partial = weight * trainData.cell((int) outputVarIndex, outputTimeIndex);
+
+#ifdef DEBUG
+            fprintf(stderr, "method 3:  weight(%d, %d) = %g\n", j, k, weight);
+            fprintf(stderr, "method 3: partial(%d, %d) = %g\n", j, k, partial);
+#endif
+            totalWeight += weight;
+            totalPartial += partial;
+        }
+
+        result = totalPartial / totalWeight;
+#ifdef DEBUG
+        fprintf(stderr, "Output %d = %g\n", k, result);
+#endif // DEBUG
     }
 
     /* Once we have the PARTIALS and WEIGHTS, we can compute RESULT */
@@ -356,7 +368,7 @@ from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
      TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
      TESTDATA[m2,n2],
      TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
-     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
 to RESULT[q]
 {
     to   (RESULT           result)
@@ -371,13 +383,14 @@ to RESULT[q]
           TESTVARINDEX     testVarIndex,
           TESTTIMEOFFSET   testTimeOffset,
           OUTPUTVARINDEX   outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset)
+          OUTPUTTIMEOFFSET outputTimeOffset,
+          TRAINMASKWIDTH   trainMaskWidth)
     {
         NWKDEBase(result, trainData, wrapFlags, kernelWidths,
                   trainIndices, trainVarIndex, trainTimeOffset,
                   testData, testIndices,
                   testVarIndex, testTimeOffset,
-                  outputVarIndex, outputTimeOffset);
+                  outputVarIndex, outputTimeOffset, trainMaskWidth);
     }
 
     to   (RESULT           result)
@@ -392,7 +405,8 @@ to RESULT[q]
           TESTVARINDEX     testVarIndex,
           TESTTIMEOFFSET   testTimeOffset,
           OUTPUTVARINDEX   outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset)
+          OUTPUTTIMEOFFSET outputTimeOffset,
+          TRAINMASKWIDTH   trainMaskWidth)
     {
         int mid = q / 2;
 
@@ -402,7 +416,7 @@ to RESULT[q]
                            trainIndices, trainVarIndex, trainTimeOffset,
                            testData, testIndices.region(0, mid),
                            testVarIndex, testTimeOffset,
-                           outputVarIndex, outputTimeOffset);
+                           outputVarIndex, outputTimeOffset, trainMaskWidth);
         }
 
         if (mid < q) {
@@ -411,31 +425,22 @@ to RESULT[q]
                            trainIndices, trainVarIndex, trainTimeOffset,
                            testData, testIndices.region(mid, q),
                            testVarIndex, testTimeOffset,
-                           outputVarIndex, outputTimeOffset);
+                           outputVarIndex, outputTimeOffset, trainMaskWidth);
         }
 
     }
 }
 
 transform NWKDE
-#ifdef WORKAROUND
-from TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
-     TRAININDICES[l], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
-     TESTDATA[4,8750],
-     TESTINDICES[q], TESTVARINDEX[8], TESTTIMEOFFSET[8],
-     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
-to RESULT[q]
+from TRAINDATA[M,N], WRAPFLAGS[M], KERNELWIDTHS[M],
+     TRAININDICES[L], TRAINVARINDEX[P], TRAINTIMEOFFSET[P],
+     TESTDATA[M2,N2],
+     TESTINDICES[Q], TESTVARINDEX[P], TESTTIMEOFFSET[P],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
+to RESULT[Q]
 through INPUTSCHECKED
-#else
-from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
-     TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
-     TESTDATA[m2,n2],
-     TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
-     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
-to RESULT[q]
-#endif
-generator NWKDEGenerator
-//optimize KERNELWIDTHS[m]
+generator NWKDEGenerator3
+accuracy_metric NWKDEMetric2
 {
     to (RESULT result)
     from (TRAINDATA        trainData,
@@ -449,7 +454,8 @@ generator NWKDEGenerator
           TESTVARINDEX     testVarIndex,
           TESTTIMEOFFSET   testTimeOffset,
           OUTPUTVARINDEX   outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset)
+          OUTPUTTIMEOFFSET outputTimeOffset,
+          TRAINMASKWIDTH   trainMaskWidth)
     {
 #ifdef DEBUG
         ElementT ret;
@@ -463,10 +469,8 @@ generator NWKDEGenerator
                        trainIndices, trainVarIndex, trainTimeOffset,
                        testData, testIndices,
                        testVarIndex, testTimeOffset,
-                       outputVarIndex, outputTimeOffset);
+                       outputVarIndex, outputTimeOffset, trainMaskWidth);
     }
-
 }
 
 #endif // NWKDE_PBCC
-
