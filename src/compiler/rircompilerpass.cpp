@@ -25,12 +25,13 @@
  *                                                                           *
  *****************************************************************************/
 #include "rircompilerpass.h"
-
 #include "codegenerator.h"
 #include "rule.h"
 #include "transform.h"
 
 #include "common/jconvert.h"
+
+#include <cstring>
 
 namespace {//file local
   std::string _uniquify(const std::string& prefix) {
@@ -353,6 +354,20 @@ void petabricks::OpenClCleanupPass::generateAccessor( const RegionPtr& , const F
 {
 }
 
+std::vector<std::string> petabricks::OpenClCleanupPass::generateCellIndices(RIRExprList& tokens) {
+  std::string s;
+  for(RIRExprList::iterator i = tokens.begin(); i != tokens.end(); ++i) {
+    s += (*i)->str();
+  }
+  std::vector<std::string> indices;
+  char* tok = strtok((char*) s.c_str(), ",");
+  while(tok != NULL) {
+    indices.push_back(tok);
+    tok = strtok(NULL, ",");
+  }
+  return indices;
+}
+
 void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
   if(e->type() == RIRNode::EXPR_IDENT){
     RIRSymbolPtr sym = _scope->lookup(e->toString());
@@ -388,31 +403,31 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
 	      if( "cell" == methodname->str() )
 	      {
             
-          RIRExprList indices = call->parts().back()->parts().front()->parts();
-          RIRExprList::reverse_iterator i = indices.rbegin();
+          //RIRExprList indices = call->parts().back()->parts().front()->parts();
+          vector<std::string> indices = generateCellIndices(call->parts().back()->parts().front()->parts());
+          vector<std::string>::reverse_iterator i = indices.rbegin();
           FormulaPtr idx_formula;
           switch(region->getRegionType()) {
             case Region::REGION_CELL:
               JASSERT(false).Text("Cannot call cell in cell");
               break;
             case Region::REGION_ROW:
-              idx_formula = new FormulaVariable((*i)->str());
+              idx_formula = new FormulaVariable(*i);
               break;
             case Region::REGION_COL:
-              idx_formula = new FormulaMultiply( new FormulaVariable((*i)->str()), new FormulaVariable("dim_" + region->name() + "_d0") );
+              idx_formula = new FormulaMultiply( new FormulaVariable(*i), new FormulaVariable("dim_" + region->name() + "_d0") );
               break;
             case Region::REGION_ALL:
             case Region::REGION_BOX:
               {
-                int j = indices.size()/2 - 1;
+                int j = indices.size() - 2;
                 //std::ostream o;
-                idx_formula = new FormulaAdd(new FormulaVariable((*i)->str()), FormulaInteger::zero()); //TODO if index is more complicated expr
+                idx_formula = new FormulaVariable(*i); //TODO if index is more complicated expr
                 ++i;
                 while(i != indices.rend()) {
-                  ++i; // for skip ,
                   std::stringstream sizevar;
                   sizevar << "dim_" << region->name() << "_d" << j--; //TODO check objName
-                  idx_formula = new FormulaAdd( new FormulaVariable((*i)->str()), new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
+                  idx_formula = new FormulaAdd( new FormulaVariable(*i), new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
                   ++i;
                 }
               }

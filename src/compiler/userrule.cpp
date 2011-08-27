@@ -30,7 +30,7 @@
 //#define TRACE(x) std::cout << "Trace " << x << "\n"
 
 #define TRACE JTRACE
-#define GPU_TRACE 1
+//#define GPU_TRACE 1
 
 #include "userrule.h"
 
@@ -795,6 +795,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     #ifdef OPENCL_LOGGING
     o.os( ) << "std::cout << \"Work dimensions: \" << workdim[0] << \" x \" << workdim[1] << \"\\n\";\n";
     #endif
+
     o.os( ) << "err = clEnqueueNDRangeKernel( OpenCLUtil::getQueue( 0 ), clkern, " << iterdef.dimensions( ) << ", 0, workdim, NULL, 0, NULL, NULL );\n";
     //o.os( ) << "clFinish(OpenCLUtil::getQueue( 0 ));\n";
     #ifndef OPENCL_LOGGING
@@ -839,6 +840,8 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
       o.os( ) << "normalized_" << (*i)->name( ) 
               << ".copyTo(" << (*i)->matrix( )->name( ) << ", _iter_begin, _iter_end);\n";
 
+      //o.os( ) << "std::cerr << \"normalize\" << std::endl;\n";
+      //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(normalized_" << (*i)->name( ) << ");\n";
       //o.os( ) << "std::cerr << \"AFTER copy\" << std::endl;\n";
       //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
     }
@@ -916,7 +919,7 @@ void petabricks::UserRule::generateMultiOpenCLTrampCodes(Transform& trans, CodeG
 
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i ) {
     if((*i)->isBuffer())
-      generateOpenCLCopyOutCode(codename,packedargs,o,*i);
+      generateOpenCLCopyOutCode(codename,o,*i);
   }
 }
 
@@ -1153,7 +1156,7 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
   o.endFunc();
 }
 
-void petabricks::UserRule::generateOpenCLCopyOutCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o, RegionPtr region){
+void petabricks::UserRule::generateOpenCLCopyOutCode(std::string& codename, CodeGenerator& o, RegionPtr region){
   SRCPOSSCOPE();
   std::string name = region->matrix()->name();
   std::string storage = "storage_" + name;
@@ -1171,8 +1174,8 @@ void petabricks::UserRule::generateOpenCLCopyOutCode(std::string& codename, std:
   //o.write("outstorage->print();"); 
   //o.write("std::cout << sizes[0] << \" \" << sizes[1] << std::endl;");/
   o.write("normalized.copyTo("+name+", begins, ends);");  
-  o.write("MatrixIO().write(normalized);");   
 #ifdef GPU_TRACE
+  o.write("MatrixIO().write(normalized);");   
   o.write("MatrixIO().write("+name+");");   
 #endif
   o.write( "return NULL;" );

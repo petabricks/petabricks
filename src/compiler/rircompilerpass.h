@@ -286,6 +286,7 @@ public:
 private:
   RegionPtr findMatrix(std::string var);
   void generateAccessor( const RegionPtr& region, const FormulaPtr& x, const FormulaPtr& y );
+  std::vector<std::string> generateCellIndices(RIRExprList& tokens);
   UserRule& _rule;
 };
 

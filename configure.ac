@@ -221,7 +221,7 @@ AC_ARG_WITH([opencl],
 
 if ! test "$with_opencl" = "no"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
-   AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
+   AC_DEFINE([MATRIX_ELEMENT_T],[double], [type for elements in the matrix])
 
    CPPFLAGS="$CPPFLAGS -I$with_opencl/OpenCL/common/inc -I$with_opencl/shared/inc"
    LIBS="$LIBS -L$with_opencl/OpenCL/common/lib/ -L$with_opencl/shared/lib -L$with_opencl/shared/lib/linux"

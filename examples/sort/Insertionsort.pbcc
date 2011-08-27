@@ -29,8 +29,9 @@ to OUT[n]
 {
   to(OUT out) from (IN in)
   {
+    out.cell(0) = in.cell(0);
     for (int i = 1; i < n; i++) {
-      double value = out.cell(i);
+      double value = in.cell(i);
       int j = i - 1;
       if (value < out.cell(0)) {
         while (j >= 0) {
@@ -56,7 +57,7 @@ to OUT[n]
 {
   to(OUT out) from (IN in)
   {
-    Copy1D(out, in);
+    //Copy1D(out, in);
     InsertionsortSubArray(out, in);
   }
 }

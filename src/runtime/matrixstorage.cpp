@@ -26,7 +26,7 @@
  *****************************************************************************/
 #include "matrixstorage.h"
 #include "petabricksruntime.h"
-//#define GPU_TRACE 1
+#define GPU_TRACE 1
 
 MATRIX_ELEMENT_T petabricks::MatrixStorage::rand(){
   return petabricks::PetabricksRuntime::randDouble(-2147483648, 2147483648);
