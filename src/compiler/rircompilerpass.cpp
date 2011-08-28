@@ -357,7 +357,7 @@ void petabricks::OpenClCleanupPass::generateAccessor( const RegionPtr& , const F
 std::vector<std::string> petabricks::OpenClCleanupPass::generateCellIndices(RIRExprList& tokens) {
   std::string s;
   for(RIRExprList::iterator i = tokens.begin(); i != tokens.end(); ++i) {
-    s += (*i)->str();
+    s += (*i)->toString();
   }
   std::vector<std::string> indices;
   char* tok = strtok((char*) s.c_str(), ",");
@@ -441,10 +441,17 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
           std::string exprstr = "_region_" + region->name() + "[" + idx_formula->toString() + " + idx_" + region->name() + "]";
           e = RIRExpr::parse( exprstr, SRCPOS() );
         }
-	      /*else if( "width" == methodname->str() )
-	        {
+        /*else if("count" == methodname->str()) {
+          FormulaPtr count_formula = new FormulaInteger(1);
+          for(int i = 0; i < region->dimensions(); ++i)
+            count_formula = new FormulaMultiply(count_formula, new FormulaVariable("dim_" + region->name() + "_d" + jalib::XToString(i)) );
+          e = RIRExpr::parse(count_formula->toString(), SRCPOS() );
+        }
+	      else if( "width" == methodname->str() )
+	      {
 	          e = RIRExpr::parse( "dim_" + region->matrix()->name() + "_d0", SRCPOS() );
-	        }*/
+	      }*/
+	      //TODO: slice()
 	      else
 	      {
 	        JASSERT( false ).Text( "Failed to generate OpenCL kernel: unsupported member function of region." );
@@ -481,7 +488,7 @@ bool petabricks::OpenClFunctionRejectPass::isFunctionAllowed( const std::string&
       "sin", "cos", "tan",
       "acos", "asin", "atan",
       "sqrt",
-      "cell",
+      "cell", 
       "", };
 
   const std::string* p = whitelist;

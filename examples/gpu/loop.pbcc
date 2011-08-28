@@ -1,0 +1,11 @@
+transform Loop
+from IN[n], SIZE[m]
+to OUT[n]
+{
+      to (OUT.cell(x) out) from (IN.cell(x) in, SIZE size)
+      {
+        out = 0;
+        for(int i = 0; i < size.count(); i++)
+          out += in;
+      }
+}

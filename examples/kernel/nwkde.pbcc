@@ -6,6 +6,8 @@
 #include "nwkdeMetric.pbcc"
 #include "utils.pbcc"
 
+//#define DEBUG
+
 %{
 
 /* wrap relative difference into [-180,180]
@@ -166,7 +168,14 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
         ElementT diff = trainPoint - testPoint;
 
         if (wrapFlag) {
-            diff = wrapWindDirDiff(diff);
+            /* add 360 *before* cast to round towards -INF instead of towards 0 */
+            int diffIntP360 = (int) (diff + 360);
+
+            /* add 180 to ensure modulo result is positive */
+            int diffIntWrapP360 = ((diffIntP360 + 180) % 360) + 180;
+
+            diff = diff + (diffIntWrapP360 - diffIntP360);
+            //diff = wrapWindDirDiff(diff);
         }
 
         // normalize according to kernel width
@@ -209,7 +218,7 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
         partial = trainData.cell((int) outputVarIndex, timeIndex);
         partial *= weight;
 #ifdef DEBUG
-        fprintf(stderr, "method 1: partial(%d, %d) = %g\n", j, k, partial);
+        //fprintf(stderr, "method 1: partial(%d, %d) = %g\n", j, k, partial);
 #endif
     }
 
@@ -235,7 +244,7 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
 
         if (trainIndex <= testIndex - trainMaskWidth ||
             trainIndex >= testIndex + trainMaskWidth) {
-            for (int i = 0; i < trainVarIndex.count(); ++i) {
+            for (int i = 0; i < p; ++i) {
 
                 int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
                 ElementT kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
@@ -249,7 +258,12 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
                 ElementT diff = trainPoint - testPoint;
 
                 if (wrapFlag) {
-                    diff = wrapWindDirDiff(diff);
+                  int diffIntP360 = (int) (diff + 360);
+
+                  int diffIntWrapP360 = ((diffIntP360 + 180) % 360) + 180;
+
+                  diff = diff + (diffIntWrapP360 - diffIntP360);
+                  //diff = wrapWindDirDiff(diff);
                 }
 
                 // normalize according to kernel width
@@ -291,7 +305,7 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
         ElementT totalPartial = 0, totalWeight = 0, weight;
 
         // loop over training points
-        for (int j = 0; j < trainIndices.count(); ++j) {
+        for (int j = 0; j < l; ++j) {
 
             int trainIndex = (int) trainIndices.cell(j);
 
@@ -302,7 +316,7 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
                 trainIndex >= testIndex + trainMaskWidth) {
                 // loop over predictor variables
                 ElementT sum = 0;
-                for (int i = 0; i < trainVarIndex.count(); ++i) {
+                for (int i = 0; i < p; ++i) {
 
                     int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
                     ElementT kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
@@ -316,7 +330,11 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
                     ElementT diff = trainPoint - testPoint;
 
                     if (wrapFlag) {
-                        diff = wrapWindDirDiff(diff);
+                    int diffIntP360 = (int) (diff + 360);
+                    int diffIntWrapP360 = ((diffIntP360 + 180) % 360) + 180;
+
+                    diff = diff + (diffIntWrapP360 - diffIntP360);
+                    //diff = wrapWindDirDiff(diff);
                     }
 
                     // normalize according to kernel width
@@ -352,6 +370,7 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
     to (RESULT.cell(k) result)
     from (PARTIALS.row(k) partials,
           WEIGHTS.row(k) weights)
+          
     {
         ElementT totalWeight;
         ReduceAdd(result, partials);
