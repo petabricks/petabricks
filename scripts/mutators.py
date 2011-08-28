@@ -401,7 +401,8 @@ class OptimizeTunableMutator(GenericTunableMutator):
     if oldVal == [1, 1, 1, 1]:
       oldVal = [134.3503, 0.3182, 633.3333, 5.0312]
     n = candidate.pop.testers[-1].n
-    return self.o.optimize(oldVal, args = (candidate, n), maxiter = 1)
+#    return self.o.optimize(oldVal, args = (candidate, n), maxiter = 1)
+    return self.o.optimize(oldVal, args = (candidate, n))
 
 class LogNormFloatTunableMutator(GenericTunableMutator):
 
