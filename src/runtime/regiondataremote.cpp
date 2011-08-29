@@ -141,7 +141,7 @@ void RegionDataRemote::readByCache(void* request, size_t request_len, void* repl
   RegionDataRemoteCacheLine* cacheLine = (RegionDataRemoteCacheLine*)reply;
   cacheLine->start = r->start;
   cacheLine->end = r->end;
-  memcpy(cacheLine->base, r->values, sizeof(ElementT) * msg->cacheLineSize);
+  memcpy(cacheLine->base, r->values, sizeof(ElementT) * (r->end + 1));
   free(r);
 }
 

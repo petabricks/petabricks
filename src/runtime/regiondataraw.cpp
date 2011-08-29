@@ -113,14 +113,19 @@ void RegionDataRaw::processReadCellCacheMsg(const BaseMessageHeader* base, size_
   IndexT coordOffset = this->coordOffset(msg->coord);
   IndexT startOffset = coordOffset - (coordOffset % msg->cacheLineSize);
 
-  size_t values_sz = sizeof(ElementT) * msg->cacheLineSize;
+  size_t numValues = _storage->count() - startOffset;
+  if (numValues > msg->cacheLineSize) {
+    numValues = msg->cacheLineSize;
+  }
+
+  size_t values_sz = sizeof(ElementT) * numValues;
   size_t sz = sizeof(ReadCellCacheReplyMessage) + values_sz;
 
   char buf[sz];
   ReadCellCacheReplyMessage* reply = (ReadCellCacheReplyMessage*)buf;
 
   reply->start = 0;
-  reply->end = msg->cacheLineSize - 1;
+  reply->end = numValues - 1;
   memcpy(reply->values, _storage->data() + startOffset, values_sz);
 
   caller->sendReply(buf, sz, base);
