@@ -131,8 +131,6 @@ ElementT RegionDataRemote::readNoCache(const IndexT* coord) const {
 }
 
 void RegionDataRemote::readByCache(void* request, size_t request_len, void* reply, size_t &/*reply_len*/) const {
-  ReadCellCacheMessage* msg = (ReadCellCacheMessage*)request;
-
   void* data;
   size_t len;
   this->fetchData(request, MessageTypes::READCELLCACHE, request_len, &data, &len);
