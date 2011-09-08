@@ -37,6 +37,9 @@ double computeNWKDEMetric(ConstMatrixRegion1D result,
         }
     }
 
+#ifdef DEBUG
+    fprintf(stderr, "sum = %g, count = %d\n", sum, count);
+#endif
     sum /= count;
     return -sum;
 }
