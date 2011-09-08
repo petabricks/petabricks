@@ -2,7 +2,7 @@ PBC=../../src/pbc
 
 .PHONY: all test
 
-all: nwkde
+all: nwkde nwkdeVA
 
 nwkde: nwkde.pbcc nwkdeGenerators.pbcc nwkdeMetric.pbcc utils.pbcc nwkde.h
 	${PBC} $< --output $@
