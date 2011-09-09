@@ -26,7 +26,7 @@
  *****************************************************************************/
 #include "matrixstorage.h"
 #include "petabricksruntime.h"
-#define GPU_TRACE 1
+//#define GPU_TRACE 1
 
 MATRIX_ELEMENT_T petabricks::MatrixStorage::rand(){
   return petabricks::PetabricksRuntime::randDouble(-2147483648, 2147483648);
@@ -155,7 +155,6 @@ void petabricks::MatrixStorageInfo::check(cl_command_queue& queue) {
     std::cout << "baseoffset = " << _baseOffset << std::endl;
     print();
     std::cout << "clmem = " << _clmem << std::endl;
-		//TODO: can I do better
     ElementT data[_count];
     clEnqueueReadBuffer(queue, _clmem, CL_TRUE, 0, bytes(), data, 0, NULL, NULL);
     for(int i=0;i<_count;i++)
