@@ -54,7 +54,7 @@ class RemoteObject : public jalib::JRefCounted, public jalib::JCondMutex {
          FLAG_CREATED = 2,
          FLAG_COMPLETE = 4 };
 public:
-  RemoteObject() : _host(NULL), _flags(0) {}
+  RemoteObject() : _host(NULL), _flags(0), _lastMsgGen(0) {}
 
 
   void waitUntilCreated() const {
@@ -84,9 +84,25 @@ public:
 
   int flags() const { return _flags; }
 
+
   ConstRemoteHostPtr host() const { return _host; }
   RemoteHostPtr host() { return _host; }
 
+  bool isCreated() const {
+    return 0 != (_flags & FLAG_CREATED);
+  }
+  
+  bool isInitiator() const {
+    return 0 != (_flags & FLAG_CREATED);
+  }
+  
+  bool isComplete() const {
+    return 0 != (_flags & FLAG_COMPLETE);
+  }
+
+  int lastMsgGen() const { return _lastMsgGen; }
+
+  EncodedPtr remoteObj() const { return _remoteObj; }
 protected:
   void remoteMarkComplete();
 
@@ -116,11 +132,11 @@ protected:
   void waitUntilCompleteMu() const {
     while(0 == (_flags & FLAG_COMPLETE) ) wait();
   }
-  EncodedPtr remoteObj() const { return _remoteObj; }
 private:
   RemoteHostPtr _host;
   EncodedPtr _remoteObj;
   int _flags;
+  int _lastMsgGen;
 };
 
 } //namespace petabricks

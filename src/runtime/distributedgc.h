@@ -24,79 +24,46 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#include "petabricksruntime.h"
+#ifndef PETABRICKSDISTRIBUTEDGC_H
+#define PETABRICKSDISTRIBUTEDGC_H
 
+#include "remoteobject.h"
 #include "remotehost.h"
-#include "distributedgc.h"
 
-using namespace petabricks;
+namespace petabricks {
 
-PetabricksRuntime::Main* petabricksMainTransform(){
-  return NULL;
-}
-PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
-  return NULL;
-}
 
-RemoteObjectPtr gen() {
-  class TestRemoteObject : public petabricks::RemoteObject {
+  class DistributedGC : public petabricks::RemoteObject {
+    enum NotifyStages {
+      FLUSH_MSGS,
+      DO_SCAN,
+      ABORT_GC,
+    };
   public:
-    void onNotify(int argc) {
-      JTRACE("notify")(argc);
-      if(argc==1) {
-        markComplete();
-      }
-    }
-    void onRecv(const void* data, size_t len) {
-      JTRACE("recv")((char*)data)(len);
-    }
+    DistributedGC() { JTRACE("created"); }
+    ~DistributedGC() { JTRACE("destroyed"); }
+
+
+    static RemoteObjectPtr gen();
+  
+    void onCreated();
+    void onNotify(int stage);
+    void onRecv(const void* , size_t s);
+
+
+    bool canDeleteLocal(RemoteObject& obj) const;
+    
+    void scan(std::vector<EncodedPtr>& response);
+    void finishup();
+
+  private:
+    int _gen;
+    RemoteObjectList _objects;
+    RemoteObjectList _objectsMaybeDead;
   };
-  return new TestRemoteObject();
+
 }
 
-
-int main(int argc, const char** argv){
-  RemoteHostDB hdb;
-  RemoteObjectPtr local;
-  RemoteObjectPtr local2;
-  char testdata[] = "this is a test string";
-  if(argc==1){
-    hdb.remotefork(NULL, argc, argv);
-    hdb.accept("");
-    hdb.spawnListenThread();
-    hdb.spawnListenThread();
-
-    hdb.host(0)->createRemoteObject(local=gen(), &gen);
-    hdb.host(0)->createRemoteObject(local=gen(), &gen);
-    hdb.host(0)->createRemoteObject(local=gen(), &gen);
-    local->waitUntilCreated();
-    local->send(testdata, sizeof testdata);
-    local->send(testdata, sizeof testdata);
-    local->send(testdata, sizeof testdata);
-    local->remoteNotify(0);
-    local->remoteSignal();
-    local->remoteBroadcast();
-    local->remoteNotify(1);
-    local->waitUntilComplete();
-    JTRACE("complete");
-
-    RemoteObjectPtr gc = DistributedGC::gen();
-    hdb.host(0)->createRemoteObject(gc, &DistributedGC::gen);
-
-    JTRACE(" gc begin");
-
-    gc->waitUntilComplete();
-
-    JTRACE(" gc complete");
-
-    return 0;
-  }else{
-    JASSERT(argc==3);
-    hdb.connect(argv[1], jalib::StringToInt(argv[2]));
-    hdb.spawnListenThread();
-    hdb.listenLoop();
-    return 0;
-  }
-}
+#endif
 
 

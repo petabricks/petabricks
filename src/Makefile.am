@@ -54,6 +54,7 @@ pkglib_HEADERS=  \
   runtime/cellproxy.h \
   runtime/dynamicscheduler.h \
   runtime/dynamictask.h \
+  runtime/distributedgc.h \
   runtime/iregionreplyproxy.h \
   runtime/matrixio.h \
   runtime/matrixregion.h \
@@ -135,6 +136,7 @@ libpbruntime_a_LFLAGS =
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime
 libpbruntime_a_SOURCES =  \
   runtime/cellproxy.cpp \
+  runtime/distributedgc.cpp \
   runtime/dynamicscheduler.cpp \
   runtime/dynamictask.cpp \
   runtime/matrixio.cpp \

@@ -33,6 +33,8 @@
 #include <poll.h>
 #include <unistd.h>
 
+#include <set>
+
 static bool theListenersShutdown = false;
 
 namespace _RemoteHostMsgTypes {
@@ -116,9 +118,10 @@ namespace _RemoteHostMsgTypes {
   } PACKED;
 
   struct GeneralMessage {
-    MessageType type;
-    ChanNumber  chan;
+    uint16_t    type;
+    uint16_t    chan;
     DataLen     len;
+    EncodedPtr  arg;
     EncodedPtr  srcptr;
     EncodedPtr  dstptr;
 
@@ -126,6 +129,7 @@ namespace _RemoteHostMsgTypes {
       return o << "GeneralMessage("
                << MessageTypes::str(m.type) << ", "
                << m.len << " bytes, "
+               << m.arg << " arg, "
                << std::hex << m.srcptr << " => " << m.dstptr << std::dec << ")";
     }
   } PACKED;
@@ -211,20 +215,30 @@ bool petabricks::RemoteHost::recv() {
   JASSERT(cnt==sizeof msg)(cnt);
 
   if(msg.len>0){
-    JASSERT(msg.chan>=0 && msg.chan<REMOTEHOST_DATACHANS);
+    JASSERT(msg.chan<REMOTEHOST_DATACHANS);
     _datamu[msg.chan].lock();
   }
-  _controlmu.unlock();
   RemoteObjectGenerator gen = 0;
   RemoteObjectPtr obj = 0;
   void* buf = 0;
 
+  if(msg.dstptr != 0) {
+    obj = DecodeDataPtr<RemoteObject>(msg.dstptr);
+    obj->_lastMsgGen = _currentGen;
+  }
+  _controlmu.unlock();
+
+  if(obj) {
+    obj->lock();
+  }
+
   switch(msg.type) {
   case MessageTypes::REMOTEOBJECT_CREATE:
     {
-      gen = DecodeTextPtr<RemoteObjectGenerator>(msg.dstptr);
+      gen = DecodeTextPtr<RemoteObjectGenerator>(msg.arg);
       obj = (*gen)();
-      JLOCKSCOPE(*obj);
+      obj->lock();
+      obj->_lastMsgGen = _currentGen;
       obj->setHostMu(this);
       obj->setRemoteObjMu(msg.srcptr);
       if(msg.len>0){
@@ -234,20 +248,21 @@ bool petabricks::RemoteHost::recv() {
         obj->onRecvInitial(buf, msg.len);
         obj->freeRecvInitial(buf, msg.len);
       }
+      GeneralMessage ackmsg = { MessageTypes::REMOTEOBJECT_CREATE_ACK,
+                                0,
+                                0,
+                                0,
+                                EncodeDataPtr(obj.asPtr()), msg.srcptr };
+      sendMsg(&ackmsg);
       obj->onCreated();
       obj->markCreatedMu();
-      { GeneralMessage ackmsg = { MessageTypes::REMOTEOBJECT_CREATE_ACK, 0, 0, EncodeDataPtr(obj.asPtr()), msg.srcptr };
-        sendMsg(&ackmsg);
-      }
       JLOCKSCOPE(_controlmu);
       _objects.push_back(obj);
       break;
     }
   case MessageTypes::REMOTEOBJECT_CREATE_ACK:
     {
-      obj = DecodeDataPtr<RemoteObject>(msg.dstptr);
       JASSERT(msg.len==0);
-      JLOCKSCOPE(*obj);
       obj->setRemoteObjMu(msg.srcptr);
       obj->onCreated();
       obj->markCreatedMu();
@@ -255,55 +270,47 @@ bool petabricks::RemoteHost::recv() {
     }
   case MessageTypes::REMOTEOBJECT_DATA:
     {
-      obj = DecodeDataPtr<RemoteObject>(msg.dstptr);
-      JLOCKSCOPE(*obj);
       if(msg.len>0){
         buf = obj->allocRecv(msg.len);
         _data[msg.chan].readAll((char*)buf, msg.len);
         _datamu[msg.chan].unlock();
         obj->onRecv(buf, msg.len);
         obj->freeRecv(buf, msg.len);
+      }else{
+        char dummy;
+        obj->onRecv(&dummy, 0);
       }
       break;
     }
   case MessageTypes::REMOTEOBJECT_SIGNAL:
     {
-      obj = DecodeDataPtr<RemoteObject>(msg.dstptr);
       JASSERT(msg.len==0);
-      JLOCKSCOPE(*obj);
       obj->signal();
       break;
     }
   case MessageTypes::REMOTEOBJECT_BROADCAST:
     {
-      obj = DecodeDataPtr<RemoteObject>(msg.dstptr);
       JASSERT(msg.len==0);
-      JLOCKSCOPE(*obj);
       obj->broadcast();
       break;
     }
   case MessageTypes::REMOTEOBJECT_NOTIFY:
     {
-      obj = DecodeDataPtr<RemoteObject>(msg.dstptr);
       JASSERT(msg.len==0);
-      JLOCKSCOPE(*obj);
-      obj->onNotify(msg.srcptr);
+      obj->onNotify(msg.arg);
       break;
     }
   case MessageTypes::REMOTEOBJECT_MARKCOMPLETE:
     {
-      obj = DecodeDataPtr<RemoteObject>(msg.dstptr);
       JASSERT(msg.len==0);
-      JLOCKSCOPE(*obj);
       obj->onComplete();
       obj->markCompleteMu();
       break;
     }
-
   case MessageTypes::SHUTDOWN_BEGIN:
     {
       JLOCKSCOPE(_controlmu);
-      { GeneralMessage ackmsg = { MessageTypes::SHUTDOWN_ACK, 0, 0, 0, 0};
+      { GeneralMessage ackmsg = { MessageTypes::SHUTDOWN_ACK, 0, 0, 0, 0, 0};
         _control.writeAll((const char*)&ackmsg, sizeof(GeneralMessage));
       }
       _control.readAll((char*)&msg, sizeof msg);
@@ -326,6 +333,11 @@ bool petabricks::RemoteHost::recv() {
   default:
     JASSERT(false);
   }
+  
+  if(obj) {
+    obj->unlock();
+  }
+
   return true;
 }
 
@@ -339,6 +351,11 @@ void petabricks::RemoteHost::sendMsg(GeneralMessage* msg, const void* data, size
   }
   msg->len = len;
   _control.writeAll((const char*)msg, sizeof(GeneralMessage));
+
+  if(msg->srcptr != 0) {
+    DecodeDataPtr<RemoteObject>(msg->srcptr)->_lastMsgGen = _currentGen;
+  }
+
   if(len>0){
     _datamu[chan].lock();
     _controlmu.unlock();
@@ -357,8 +374,9 @@ void petabricks::RemoteHost::createRemoteObject(const RemoteObjectPtr& local,
   GeneralMessage msg = { MessageTypes::REMOTEOBJECT_CREATE,
                          0,
                          len,
+                         EncodeTextPtr(remote),
                          EncodeDataPtr(local.asPtr()),
-                         EncodeTextPtr(remote) };
+                         0 };
   sendMsg(&msg, data, len);
   JLOCKSCOPE(_controlmu);
   _objects.push_back(local);
@@ -369,6 +387,7 @@ void petabricks::RemoteHost::sendData(const RemoteObject* local, const void* dat
   GeneralMessage msg = { MessageTypes::REMOTEOBJECT_DATA,
                          0,
                          len,
+                         0,
                          EncodeDataPtr(local),
                          local->remoteObj() };
   sendMsg(&msg, data, len);
@@ -376,6 +395,7 @@ void petabricks::RemoteHost::sendData(const RemoteObject* local, const void* dat
 void petabricks::RemoteHost::remoteSignal(const RemoteObject* local) {
   local->waitUntilCreated();
   GeneralMessage msg = { MessageTypes::REMOTEOBJECT_SIGNAL,
+                         0,
                          0,
                          0,
                          EncodeDataPtr(local),
@@ -387,6 +407,7 @@ void petabricks::RemoteHost::remoteBroadcast(const RemoteObject* local) {
   GeneralMessage msg = { MessageTypes::REMOTEOBJECT_BROADCAST,
                          0,
                          0,
+                         0,
                          EncodeDataPtr(local),
                          local->remoteObj() };
   sendMsg(&msg);
@@ -394,6 +415,7 @@ void petabricks::RemoteHost::remoteBroadcast(const RemoteObject* local) {
 void petabricks::RemoteHost::remoteMarkComplete(const RemoteObject* local) {
   local->waitUntilCreated();
   GeneralMessage msg = { MessageTypes::REMOTEOBJECT_MARKCOMPLETE,
+                         0,
                          0,
                          0,
                          EncodeDataPtr(local),
@@ -405,13 +427,15 @@ void petabricks::RemoteHost::remoteNotify(const RemoteObject* local, int arg) {
   GeneralMessage msg = { MessageTypes::REMOTEOBJECT_NOTIFY,
                          0,
                          0,
-                         arg, //pack the arg in the srcptr field
+                         arg,
+                         0,
                          local->remoteObj() };
   sendMsg(&msg);
 }
 
 void petabricks::RemoteHost::shutdownBegin() {
   GeneralMessage msg = { MessageTypes::SHUTDOWN_BEGIN,
+                         0,
                          0,
                          0,
                          0,
@@ -424,10 +448,37 @@ void petabricks::RemoteHost::shutdownEnd() {
                          0,
                          0,
                          0,
+                         0,
                          0 };
   _controlmu.lock();
   _control.writeAll((char*)&msg, sizeof msg);
 }
+
+void petabricks::RemoteHost::swapObjects(RemoteObjectList& obj, int& gen) {
+  JLOCKSCOPE(_controlmu);
+  ++_currentGen;
+  gen = _currentGen;
+  _objects.swap(obj);
+}
+
+
+void petabricks::RemoteHost::readdObjects(RemoteObjectList& obj) {
+  if(obj.empty()) return;
+  {
+    JLOCKSCOPE(_controlmu);
+    if(_objects.empty()) {
+      _objects.swap(obj);
+    }else{
+      _objects.insert(_objects.end(), obj.begin(), obj.end());
+    }
+  }
+  obj.clear();
+}
+
+petabricks::EncodedPtr petabricks::RemoteHost::asEncoded(RemoteObject* obj) const {
+  return EncodeDataPtr(obj);
+}
+
 
 petabricks::RemoteHostDB::RemoteHostDB()
   : _port(LISTEN_PORT_FIRST),
@@ -571,8 +622,6 @@ void petabricks::RemoteHostDB::shutdown() {
     (*i)->shutdownEnd();
   }
 }
-
-
 
 
 

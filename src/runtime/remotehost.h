@@ -40,6 +40,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
+#include <set>
 
 
 #define REMOTEHOST_DATACHANS 4
@@ -54,6 +55,7 @@ namespace petabricks {
 class RemoteHost;
 typedef RemoteHost* RemoteHostPtr;
 typedef std::vector<RemoteHostPtr> RemoteHostList;
+typedef std::set<RemoteHostPtr> RemoteHostSet;
 
 struct RemoteHostWeightListItem {
   RemoteHostPtr host;
@@ -102,12 +104,20 @@ public:
 
   void shutdownBegin();
   void shutdownEnd();
+
+
+  //used by GC:
+  void swapObjects(RemoteObjectList& obj, int& gen);
+  void readdObjects(RemoteObjectList& obj);
+  EncodedPtr asEncoded(RemoteObject* obj) const;
+
 protected:
   RemoteHost(const std::string& connectName)
     : _lastchan(0),
       _isShuttingDown(false),
       _remotePort(-1),
-      _connectName(connectName)
+      _connectName(connectName),
+      _currentGen(0)
   {}
   void accept(jalib::JServerSocket& s, int listenPort);
   void connect(const jalib::JSockAddr& a, int port, int listenPort);
@@ -121,9 +131,9 @@ protected:
     return _lastchan;
   }
 
-
   bool isShuttingDown() const { return _isShuttingDown; }
   int remotePort() const { return _remotePort; }
+
 private:
   jalib::JMutex _controlmu;
   jalib::JMutex _datamu[REMOTEHOST_DATACHANS];
@@ -135,6 +145,7 @@ private:
   bool _isShuttingDown;
   int _remotePort;
   std::string _connectName;
+  int _currentGen;
 };
 
 
