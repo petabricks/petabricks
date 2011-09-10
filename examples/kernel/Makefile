@@ -10,7 +10,7 @@ nwkde: nwkde.pbcc nwkdeGenerators.pbcc nwkdeMetric.pbcc utils.pbcc nwkde.h
 nwkdeVA: nwkdeVA.pbcc nwkde.pbcc nwkdeGenerators.pbcc nwkdeMetric.pbcc utils.pbcc nwkde.h
 	${PBC} $< --output $@
 
-nwkdeMetric: nwkdeMetric.pbcc
+nwkdeMetric: nwkdeMetric.pbcc nwkde.h
 	${PBC} $< --output $@
 
 KernelEstimate: KernelEstimate.pbcc LinearSolvePosDef.pbcc
