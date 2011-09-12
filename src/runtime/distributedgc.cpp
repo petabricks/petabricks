@@ -33,16 +33,12 @@ petabricks::RemoteObjectPtr petabricks::DistributedGC::gen() {
 }
     
 void petabricks::DistributedGC::onCreated() {
-  JTRACE("Areated");
   host()->swapObjects(_objects, _gen);
-  JTRACE("Breated");
   remoteNotify(FLUSH_MSGS);
-  JTRACE("Created");
 }
 
 void petabricks::DistributedGC::onNotify(int stage) {
   if(stage == FLUSH_MSGS) {
-    JTRACE("flushed");
     remoteNotify(DO_SCAN);
   }else if(stage == DO_SCAN) {
     std::vector<EncodedPtr> response;
@@ -55,10 +51,8 @@ void petabricks::DistributedGC::onNotify(int stage) {
       remoteNotify(ABORT_GC);
       finishup();
     }
-    JTRACE("scanned");
   }else if(stage == ABORT_GC) {
     finishup();
-    JTRACE("aborted");
   }else UNIMPLEMENTED();
 }
 
@@ -81,17 +75,22 @@ void petabricks::DistributedGC::onRecv(const void* buf, size_t s) {
   const EncodedPtr* end   = begin+(s/sizeof(EncodedPtr));
   std::set<EncodedPtr> remoteDead(begin, end);
 
+#ifdef DEBUG
+  int deletecount = 0;
+#endif
+
   RemoteObjectList::iterator i;
   for(i=_objectsMaybeDead.begin(); i!=_objectsMaybeDead.end(); ++i) {
     if(remoteDead.find(host()->asEncoded(i->asPtr())) == remoteDead.end()) {
       _objects.push_back(*i);
     }else{
 #ifdef DEBUG
+      ++deletecount;
       JASSERT(canDeleteLocal(*(*i)));
 #endif
     }
   }
-  JTRACE("DistributedGC deleting objects")(_objectsMaybeDead.size());
+  JTRACE("DistributedGC deleting objects")(deletecount);
   _objectsMaybeDead.clear();
 
   finishup();

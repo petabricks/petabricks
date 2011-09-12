@@ -27,7 +27,10 @@
 
 #include "remotehost.h"
 
+#include "distributedgc.h"
+
 #include "common/jconvert.h"
+
 
 #include <algorithm>
 #include <poll.h>
@@ -220,6 +223,7 @@ bool petabricks::RemoteHost::recv() {
   }
   RemoteObjectGenerator gen = 0;
   RemoteObjectPtr obj = 0;
+  bool gc = false;
   void* buf = 0;
 
   if(msg.dstptr != 0) {
@@ -256,8 +260,7 @@ bool petabricks::RemoteHost::recv() {
                                 EncodeDataPtr(obj.asPtr()), msg.srcptr };
       sendMsg(&ackmsg);
       obj->onCreated();
-      JLOCKSCOPE(_controlmu);
-      _objects.push_back(obj);
+      addObject(obj);
       break;
     }
   case MessageTypes::REMOTEOBJECT_CREATE_ACK:
@@ -378,8 +381,7 @@ void petabricks::RemoteHost::createRemoteObject(const RemoteObjectPtr& local,
                          EncodeDataPtr(local.asPtr()),
                          0 };
   sendMsg(&msg, data, len);
-  JLOCKSCOPE(_controlmu);
-  _objects.push_back(local);
+  addObject(local);
 }
 
 void petabricks::RemoteHost::sendData(const RemoteObject* local, const void* data, size_t len) {
@@ -459,6 +461,7 @@ void petabricks::RemoteHost::swapObjects(RemoteObjectList& obj, int& gen) {
   ++_currentGen;
   gen = _currentGen;
   _objects.swap(obj);
+  _gcLastLiveObjCount = 0;
 }
 
 
@@ -471,6 +474,7 @@ void petabricks::RemoteHost::readdObjects(RemoteObjectList& obj) {
     }else{
       _objects.insert(_objects.end(), obj.begin(), obj.end());
     }
+    _gcLastLiveObjCount += obj.size();
   }
   obj.clear();
 }
@@ -479,6 +483,23 @@ petabricks::EncodedPtr petabricks::RemoteHost::asEncoded(RemoteObject* obj) cons
   return EncodeDataPtr(obj);
 }
 
+
+void petabricks::RemoteHost::spawnGcTask() {
+  createRemoteObject(DistributedGC::gen(), &DistributedGC::gen);
+}
+
+void petabricks::RemoteHost::addObject(const RemoteObjectPtr& obj) {
+  _controlmu.lock();
+  _objects.push_back(obj);
+
+  if(_objects.size()-_gcLastLiveObjCount > DISTRIBUTED_GC_FREQ){
+    _gcLastLiveObjCount = _objects.size();
+    _controlmu.unlock();
+    spawnGcTask();
+  }else{
+    _controlmu.unlock();
+  }
+}
 
 petabricks::RemoteHostDB::RemoteHostDB()
   : _port(LISTEN_PORT_FIRST),

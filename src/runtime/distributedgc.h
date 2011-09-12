@@ -40,16 +40,11 @@ namespace petabricks {
       ABORT_GC,
     };
   public:
-    DistributedGC() { JTRACE("construct"); }
-    ~DistributedGC() { JTRACE("destroyed"); }
-
-
     static RemoteObjectPtr gen();
   
     void onCreated();
     void onNotify(int stage);
     void onRecv(const void* , size_t s);
-
 
     bool canDeleteLocal(RemoteObject& obj) const;
     

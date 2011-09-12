@@ -117,7 +117,8 @@ protected:
       _isShuttingDown(false),
       _remotePort(-1),
       _connectName(connectName),
-      _currentGen(0)
+      _currentGen(0),
+      _gcLastLiveObjCount(0)
   {}
   void accept(jalib::JServerSocket& s, int listenPort);
   void connect(const jalib::JSockAddr& a, int port, int listenPort);
@@ -134,6 +135,9 @@ protected:
   bool isShuttingDown() const { return _isShuttingDown; }
   int remotePort() const { return _remotePort; }
 
+
+  void spawnGcTask();
+  void addObject(const RemoteObjectPtr& obj);
 private:
   jalib::JMutex _controlmu;
   jalib::JMutex _datamu[REMOTEHOST_DATACHANS];
@@ -146,6 +150,7 @@ private:
   int _remotePort;
   std::string _connectName;
   int _currentGen;
+  size_t _gcLastLiveObjCount;
 };
 
 
