@@ -241,6 +241,7 @@ bool petabricks::RemoteHost::recv() {
       obj->_lastMsgGen = _currentGen;
       obj->setHostMu(this);
       obj->setRemoteObjMu(msg.srcptr);
+      obj->markCreatedMu();
       if(msg.len>0){
         buf = obj->allocRecvInitial(msg.len);
         _data[msg.chan].readAll((char*)buf, msg.len);
@@ -255,7 +256,6 @@ bool petabricks::RemoteHost::recv() {
                                 EncodeDataPtr(obj.asPtr()), msg.srcptr };
       sendMsg(&ackmsg);
       obj->onCreated();
-      obj->markCreatedMu();
       JLOCKSCOPE(_controlmu);
       _objects.push_back(obj);
       break;
@@ -264,8 +264,8 @@ bool petabricks::RemoteHost::recv() {
     {
       JASSERT(msg.len==0);
       obj->setRemoteObjMu(msg.srcptr);
-      obj->onCreated();
       obj->markCreatedMu();
+      obj->onCreated();
       break;
     }
   case MessageTypes::REMOTEOBJECT_DATA:

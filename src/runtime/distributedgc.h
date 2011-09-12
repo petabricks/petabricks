@@ -40,7 +40,7 @@ namespace petabricks {
       ABORT_GC,
     };
   public:
-    DistributedGC() { JTRACE("created"); }
+    DistributedGC() { JTRACE("construct"); }
     ~DistributedGC() { JTRACE("destroyed"); }
 
 

@@ -50,6 +50,9 @@ RemoteObjectPtr gen() {
     void onRecv(const void* data, size_t len) {
       JTRACE("recv")((char*)data)(len);
     }
+    ~TestRemoteObject() { 
+      JTRACE("destructing");
+    }
   };
   return new TestRemoteObject();
 }
@@ -80,14 +83,26 @@ int main(int argc, const char** argv){
     local->waitUntilComplete();
     JTRACE("complete");
 
-    RemoteObjectPtr gc = DistributedGC::gen();
-    hdb.host(0)->createRemoteObject(gc, &DistributedGC::gen);
+    RemoteObjectPtr gca=DistributedGC::gen();
+    RemoteObjectPtr gcb=DistributedGC::gen();
+    RemoteObjectPtr gcc=DistributedGC::gen();
 
-    JTRACE(" gc begin");
+    JTRACE("gcA");
+    hdb.host(0)->createRemoteObject(gca, &DistributedGC::gen);
+    gca->waitUntilComplete();
 
-    gc->waitUntilComplete();
+    JTRACE("gcB");
+    hdb.host(0)->createRemoteObject(gcb, &DistributedGC::gen);
+    gcb->waitUntilComplete();
+    
 
-    JTRACE(" gc complete");
+    gca=0;
+    gcb=0;
+
+    JTRACE("gcC");
+    hdb.host(0)->createRemoteObject(gcc, &DistributedGC::gen);
+    gcc->waitUntilComplete();
+
 
     return 0;
   }else{

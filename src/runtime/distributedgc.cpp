@@ -33,9 +33,11 @@ petabricks::RemoteObjectPtr petabricks::DistributedGC::gen() {
 }
     
 void petabricks::DistributedGC::onCreated() {
+  JTRACE("Areated");
   host()->swapObjects(_objects, _gen);
+  JTRACE("Breated");
   remoteNotify(FLUSH_MSGS);
-  JTRACE("created");
+  JTRACE("Created");
 }
 
 void petabricks::DistributedGC::onNotify(int stage) {
