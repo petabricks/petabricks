@@ -112,6 +112,7 @@ namespace _RemoteHostMsgTypes {
     HostPid     id;
     ChanNumber  chan;
     int         port;
+    int    roll;
 
     friend std::ostream& operator<<(std::ostream& o, const HelloMessage& m) {
       return o << "HelloMessage("
@@ -175,18 +176,30 @@ void petabricks::RemoteHost::connect(const jalib::JSockAddr& a, int p, int liste
 void petabricks::RemoteHost::handshake(int port) {
   HostPid self = HostPid::self();
 
+  //mix our pid into the random roll since lrand48 is often not seeded (in debugging modes)
+  unsigned short xsubi[] = { lrand48()^self.pid , lrand48()^self.pid, lrand48()^self.pid } ;
+  for(int i=0; i<10; ++i) nrand48(xsubi);
+  int myRoll = nrand48(xsubi) % 9000;
+
   HelloMessage msg = { MessageTypes::HELLO_CONTROL,
                        self,
                        REMOTEHOST_DATACHANS,
-                       port};
+                       port,
+                       myRoll 
+                      };
   _control.disableNagle();
   _control.writeAll((char*)&msg, sizeof msg);
   _control.readAll((char*)&msg, sizeof msg);
   JASSERT(msg.type == MessageTypes::HELLO_CONTROL && msg.id != self && msg.chan == REMOTEHOST_DATACHANS);
   _id = msg.id;
 
+  if(myRoll!=msg.roll)
+    _shouldGc = myRoll < msg.roll;
+  else
+    _shouldGc = self < _id;
+
   for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
-    HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i, port};
+    HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i, port, myRoll};
     _data[i].disableNagle();
     JASSERT(_data[i].writeAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
     JASSERT(_data[i].readAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
@@ -223,7 +236,6 @@ bool petabricks::RemoteHost::recv() {
   }
   RemoteObjectGenerator gen = 0;
   RemoteObjectPtr obj = 0;
-  bool gc = false;
   void* buf = 0;
 
   if(msg.dstptr != 0) {
@@ -461,7 +473,7 @@ void petabricks::RemoteHost::swapObjects(RemoteObjectList& obj, int& gen) {
   ++_currentGen;
   gen = _currentGen;
   _objects.swap(obj);
-  _gcLastLiveObjCount = 0;
+  _gcLastLiveObjCount = _objects.size();
 }
 
 
@@ -492,7 +504,7 @@ void petabricks::RemoteHost::addObject(const RemoteObjectPtr& obj) {
   _controlmu.lock();
   _objects.push_back(obj);
 
-  if(_objects.size()-_gcLastLiveObjCount > DISTRIBUTED_GC_FREQ){
+  if(_shouldGc && _objects.size()-_gcLastLiveObjCount > DISTRIBUTED_GC_FREQ){
     _gcLastLiveObjCount = _objects.size();
     _controlmu.unlock();
     spawnGcTask();

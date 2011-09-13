@@ -118,7 +118,8 @@ protected:
       _remotePort(-1),
       _connectName(connectName),
       _currentGen(0),
-      _gcLastLiveObjCount(0)
+      _gcLastLiveObjCount(0),
+      _shouldGc(false)
   {}
   void accept(jalib::JServerSocket& s, int listenPort);
   void connect(const jalib::JSockAddr& a, int port, int listenPort);
@@ -151,6 +152,7 @@ private:
   std::string _connectName;
   int _currentGen;
   size_t _gcLastLiveObjCount;
+  bool _shouldGc;
 };
 
 
