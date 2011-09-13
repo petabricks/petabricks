@@ -1,0 +1,50 @@
+#ifndef MATRIXCHOLESKY_PBCC
+#define MATRIXCHOLESKY_PBCC
+
+transform MatrixCholesky
+from A[w,h]
+to L[w,h]
+{
+/*
+	to (L.cell(x,y) l) 
+	from (L.cell(0,0) c, 
+	A.cell(x,y) a) 
+	where x = 0 
+	{
+	     l = (x == y) ?
+	       sqrt(a) :
+               (1.0 / c * a);
+	}
+*/
+	to (L.cell(x,y) l) 
+	from (L.region(0, 0, x, y + 1) r, 
+	A.cell(x,y) a) 
+	where x > 0 
+	{
+	     double s = 0;
+	     for (int k = 0; k < x; k++)
+	     	 s += r.cell(k, y) * r.cell(k, x);
+	     l = (x == y) ?
+	       sqrt(a - s) :
+               (1.0 / r.cell(x, x) * (a - s));
+	}
+
+
+	// straightforward implementation of cholesky -- not parallelized
+	to(L l)  from(A a) { 
+ 	     for (int i = 0; i < a.height(); i++) {
+             	 for (int j = 0; j < (i+1); j++) {
+            	     double s = 0;
+            	     for (int k = 0; k < j; k++)
+                     	 s += l.cell(k,i) * l.cell(k,j);
+            	     l.cell(j, i) = (i == j) ?
+                           sqrt(a.cell(i, i) - s) :
+                           (1.0 / l.cell(j, j) * (a.cell(j, i) - s));
+			   //printf("%f", l.cell(j,i));
+        	 }
+	     }	
+	}
+
+}
+
+#endif //MATRIXCHOLESKY_PBCC
