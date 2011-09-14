@@ -5,7 +5,7 @@ transform MatrixCholesky
 from A[w,h]
 to L[w,h]
 {
-/*
+
 	to (L.cell(x,y) l) 
 	from (L.cell(0,0) c, 
 	A.cell(x,y) a) 
@@ -15,18 +15,22 @@ to L[w,h]
 	       sqrt(a) :
                (1.0 / c * a);
 	}
-*/
+
 	to (L.cell(x,y) l) 
 	from (L.region(0, 0, x, y + 1) r, 
 	A.cell(x,y) a) 
 	where x > 0 
 	{
-	     double s = 0;
-	     for (int k = 0; k < x; k++)
-	     	 s += r.cell(k, y) * r.cell(k, x);
-	     l = (x == y) ?
-	       sqrt(a - s) :
-               (1.0 / r.cell(x, x) * (a - s));
+	     if (x > y) {
+	     	l = 0;
+	     } else {
+	     	  double s = 0;
+	     	  for (int k = 0; k < x; k++)
+	     	      s += r.cell(k, y) * r.cell(k, x);
+	     	  l = (x == y) ?
+	       	  sqrt(a - s) :
+               	  	 (1.0 / r.cell(x, x) * (a - s));
+	     }			 
 	}
 
 
