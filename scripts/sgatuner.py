@@ -20,6 +20,7 @@ from tunerwarnings import InitialProgramCrash,ExistingProgramCrash,NewProgramCra
 from storagedirs import timers
 import tunerwarnings
 from pprint import pprint
+import pdb
 
 class TrainingTimeout(Exception):
   pass
@@ -365,7 +366,13 @@ def createTunableMutators(candidate, ta, weight):
     ms[-1].reset(candidate)
     return ms
   elif ta['type'] in config.optimize_tunable_types:
-    ms = [mutators.OptimizeTunableMutator(ta, weight=weight),
+    # invoke special handling for nwkde benchmark
+    if ta['tname'][0:7] == 'NWKDEVA':
+      nwkdeFlag = True
+    else:
+      nwkdeFlag = False
+    ms = [mutators.OptimizeTunableMutator(ta, weight=weight, \
+                                          nwkdeFlag=nwkdeFlag),
           mutators.LogNormFloatTunableMutator(ta, weight=weight)]
     return ms
   elif ta['type'] in config.ignore_tunable_types:

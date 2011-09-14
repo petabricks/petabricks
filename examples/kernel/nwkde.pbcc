@@ -138,7 +138,7 @@ to RESULT[q]
 through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
 {
 
-#if 0 // TODO: This method seems to confuse the scheduler
+#ifdef INCLUDE_METHOD1 // TODO: This method seems to confuse the scheduler
 
     /* METHOD 1: compute PARTIALS by exposing the most fine-grained
        parallelism.  this method may be less cache-efficient depending on
@@ -245,7 +245,9 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
 #endif
     }
 
-#endif // METHOD 1 confuses scheduler, so temporarily commented out
+#endif // INCLUDE_METHOD1
+
+#ifdef INCLUDE_METHOD2
 
     /* METHOD 2: Compute weights and partials directly with one pass through the data */
 
@@ -322,6 +324,11 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
 #endif
     }
 
+#endif // INCLUDE_METHOD2
+
+#if 0 // BUG: compound conditional not supported in preprocessor yet
+//#if defined(INCLUDE_METHOD1) || defined(INCLUDE_METHOD2)
+
     /* METHODS 1 & 2: Once we have the PARTIALS and WEIGHTS, we can compute
        RESULT */
 
@@ -337,6 +344,9 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
         fprintf(stderr, "Output %d = %g\n", k, result);
 #endif // DEBUG
     }
+
+//#endif // defined(INCLUDE_METHOD1) || defined(INCLUDE_METHOD2)
+#endif // 0
 
     /* METHOD 3: Compute results directly with one pass through the data */
 

@@ -1,8 +1,11 @@
 PBC=../../src/pbc
 
-.PHONY: all test
+.PHONY: all clean test testVA testMetric testMetricVA
 
 all: nwkde nwkdeVA nwkdeMetric
+
+clean:
+	rm -f nwkde nwkdeVA nwkdeMetric
 
 nwkde: nwkde.pbcc nwkdeGenerators.pbcc nwkdeMetric.pbcc utils.pbcc nwkde.h
 	${PBC} $< --output $@

@@ -3,6 +3,9 @@
 
 //#define DEBUG
 
+//#define INCLUDE_METHOD1
+//#define INCLUDE_METHOD2
+
 // algorithm makes use of NaN values to signal "no data"
 // since NaNs not yet supported by runtime IO, use sentinel value instead
 #define MYNAN -667
