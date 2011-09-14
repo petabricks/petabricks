@@ -373,7 +373,8 @@ def createTunableMutators(candidate, ta, weight):
       nwkdeFlag = False
     ms = [mutators.OptimizeTunableMutator(ta, weight=weight, \
                                           nwkdeFlag=nwkdeFlag),
-          mutators.LogNormFloatTunableMutator(ta, weight=weight)]
+          mutators.LogNormFloatTunableMutator(ta, weight=weight, \
+                                              nwkdeFlag=nwkdeFlag)]
     return ms
   elif ta['type'] in config.ignore_tunable_types:
     pass

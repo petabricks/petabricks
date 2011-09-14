@@ -389,7 +389,6 @@ class OptimizeTunableMutator(GenericTunableMutator):
   def __init__(self, tunable, weight=1.0, nwkdeFlag = False):
     GenericTunableMutator.__init__(self, tunable, weight)
     self.nwkdeFlag = nwkdeFlag # flag for nwkde benchmark special handling
-    print "nwkdeFlag:", nwkdeFlag
     self.o = optimize.CachedBFGSOptimizer(self.measureAccuracy, self.minVal, self.maxVal)
 
   def measureAccuracy(self, value, candidate, n):
@@ -402,20 +401,21 @@ class OptimizeTunableMutator(GenericTunableMutator):
   def random(self, oldVal, minVal, maxVal, candidate):
     if (self.nwkdeFlag):
       if oldVal == [4, 4, 4, 4]: # change initial value to something useful
-        oldVal = [134.3503, 0.3182, 633.3333, 5.0312]
+        oldVal = [0.3182, 134.3503, 5.0312, 633.3333]
     n = candidate.pop.testers[-1].n
 #    return self.o.optimize(oldVal, args = (candidate, n), maxiter = 1)
     return self.o.optimize(oldVal, args = (candidate, n))
 
 class LogNormFloatTunableMutator(GenericTunableMutator):
 
-  def __init__(self, tunable, weight=1.0):
+  def __init__(self, tunable, weight=1.0, nwkdeFlag = False):
     GenericTunableMutator.__init__(self, tunable, weight)
+    self.nwkdeFlag = nwkdeFlag # flag for nwkde benchmark special handling
 
   def random(self, oldVal, minVal, maxVal, candidate = None):
     if (self.nwkdeFlag):
       if oldVal == [4, 4, 4, 4]: # change initial value to something useful
-        oldVal = [134.3503, 0.3182, 633.3333, 5.0312]
+        oldVal = [0.3182, 134.3503, 5.0312, 633.3333]
     newVal = [0] * len(oldVal)
     for j in xrange(0, len(oldVal)):
       successFlag = False
