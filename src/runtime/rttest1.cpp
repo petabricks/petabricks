@@ -95,7 +95,6 @@ int main(int argc, const char** argv){
     hdb.host(0)->createRemoteObject(gcb, &DistributedGC::gen);
     gcb->waitUntilComplete();
     
-
     gca=0;
     gcb=0;
 

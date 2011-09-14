@@ -53,6 +53,7 @@ namespace _RemoteHostMsgTypes {
 namespace petabricks {
 
 class RemoteHost;
+class RemoteHostDB;
 typedef RemoteHost* RemoteHostPtr;
 typedef std::vector<RemoteHostPtr> RemoteHostList;
 typedef std::set<RemoteHostPtr> RemoteHostSet;
@@ -111,6 +112,9 @@ public:
   void readdObjects(RemoteObjectList& obj);
   EncodedPtr asEncoded(RemoteObject* obj) const;
 
+  void setupLoop(RemoteHostDB& db);
+  static void setupRemoteConnection(RemoteHost& a, RemoteHost& b);
+  void setupEnd();
 protected:
   RemoteHost(const std::string& connectName)
     : _lastchan(0),
@@ -139,6 +143,7 @@ protected:
 
   void spawnGcTask();
   void addObject(const RemoteObjectPtr& obj);
+
 private:
   jalib::JMutex _controlmu;
   jalib::JMutex _datamu[REMOTEHOST_DATACHANS];
@@ -192,6 +197,9 @@ public:
 
   void shutdown();
   static void onShutdownEvent();
+
+  void setupConnectAllPairs();
+
 protected:
 
   void regenPollFds();

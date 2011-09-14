@@ -416,6 +416,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
 }
 
 void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char** argv) {
+  RemoteHostDB& db = RemoteHostDB::instance();
   std::ifstream fp(HOSTS_FILE.c_str());
   JASSERT(fp.is_open())(HOSTS_FILE).Text("failed to open file");
   std::string line;
@@ -426,14 +427,14 @@ void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char**
     dat=jalib::StringTrim(dat);
 
     if(dat!="" && dat!="localhost") {
-      RemoteHostDB::instance().remotefork(dat.c_str(), argc, argv, "--slave-host", "--slave-port");
-      RemoteHostDB::instance().accept(dat.c_str());
+      db.remotefork(dat.c_str(), argc, argv, "--slave-host", "--slave-port");
+      db.accept(dat.c_str());
     }
 
     if(dat == "localhost") {
       if(hadlocal) {
-        RemoteHostDB::instance().remotefork(NULL, argc, argv, "--slave-host", "--slave-port");
-        RemoteHostDB::instance().accept(dat.c_str());
+        db.remotefork(NULL, argc, argv, "--slave-host", "--slave-port");
+        db.accept(dat.c_str());
       }
       hadlocal=true;
     }
@@ -441,14 +442,18 @@ void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char**
     JASSERT(hadlocal);
   }
 
+  db.setupConnectAllPairs();
+
   for(int i=REMOTEHOST_THREADS; i>0; --i) {
-    RemoteHostDB::instance().spawnListenThread();
+    db.spawnListenThread();
   }
 }
 void petabricks::PetabricksRuntime::distributedSlaveLoop() {
-  RemoteHostDB::instance().connect(SLAVE_HOST.c_str(), SLAVE_PORT);
+  RemoteHostDB& db = RemoteHostDB::instance();
+  db.connect(SLAVE_HOST.c_str(), SLAVE_PORT);
+  db.host(0)->setupLoop(db);
   for(int i=REMOTEHOST_THREADS; i>0; --i) {
-    RemoteHostDB::instance().spawnListenThread();
+    db.spawnListenThread();
   }
   JTRACE("slave loop starting");
   WorkerThread* self = WorkerThread::self();

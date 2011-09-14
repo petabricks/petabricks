@@ -90,7 +90,9 @@ void petabricks::DistributedGC::onRecv(const void* buf, size_t s) {
 #endif
     }
   }
+#ifdef DEBUG
   JTRACE("DistributedGC deleting objects")(deletecount);
+#endif
   _objectsMaybeDead.clear();
 
   finishup();
@@ -105,13 +107,6 @@ void petabricks::DistributedGC::finishup() {
 }
 
 bool petabricks::DistributedGC::canDeleteLocal(RemoteObject& obj) const {
-  bool deleteme = false;
-  if(obj.isCreated() && obj.refCount()==1 && obj.lastMsgGen()<_gen) {
-    if(obj.trylock()) {
-      deleteme=(obj.isCreated() && obj.refCount()==1 && obj.lastMsgGen()<_gen);
-      obj.unlock();
-    }
-  }
-  return deleteme;
+  return obj.maybeDeletable(_gen);
 }
 
