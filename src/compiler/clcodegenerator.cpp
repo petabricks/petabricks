@@ -97,10 +97,10 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   std::map<std::string, std::string> map;
   for(RegionList::const_iterator it = _to.begin(); it != _to.end(); ++it)
   {
-    if( it != _to.begin() )
-	    os() << ", ";
     std::string matrix_name = (*it)->matrix( )->name( );
     if(map[matrix_name] == "") {
+      if( it != _to.begin() )
+	      os() << ", ";
       (*it)->setBuffer(true);
       map[matrix_name] = (*it)->name();
       os() << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << (*it)->name();
@@ -111,7 +111,6 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
     }
   }
 
-  map.clear();
   for(RegionList::const_iterator it = _from.begin(); it != _from.end(); ++it)
   { 
     std::string matrix_name = (*it)->matrix( )->name( );

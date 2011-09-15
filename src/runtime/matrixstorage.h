@@ -233,7 +233,7 @@ class CopyoutInfo : public jalib::JRefCounted {
 public:
   CopyoutInfo(cl_command_queue& queue, MatrixStorageInfoPtr originalBuffer, std::vector<IndexT*>& begins, std::vector<IndexT*>& ends, int coverage);
   bool complete();
-  bool done() { return _done; }
+  bool done();
   std::vector<IndexT*>& getBegins() { return _begins; }
   std::vector<IndexT*>& getEnds() { return _ends; }
   MatrixStoragePtr getGpuOutputStoragePtr() { return _gpuOutputBuffer; }

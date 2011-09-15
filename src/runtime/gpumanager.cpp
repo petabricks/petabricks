@@ -172,19 +172,17 @@ bool GpuManager::copyout(GpuDynamicTaskPtr task) {
   #endif
 
   CopyoutInfoPtr copyInfo = storage->getCopyoutInfo(_currenttaskinfo->nodeID());
-  if(copyInfo){ //TODO: check
-    if(copyInfo->done()) {
-      task->completeTaskDeps();
-      return true;
-    }
-    if(copyInfo->complete()) {
-      #ifdef GPU_TRACE
-      std::cout << "copy out... " << &(*storage) << std::endl;
-      #endif
-      task->setRegions(copyInfo->getBegins(), copyInfo->getEnds(), _currenttaskinfo->nodeID());
-      task->runWrapper();
-      return true;
-    }
+  if(!copyInfo || copyInfo->done()) {
+    task->completeTaskDeps();
+    return true;
+  }
+  if(copyInfo->complete()) {
+    #ifdef GPU_TRACE
+    std::cout << "copy out... " << &(*storage) << std::endl;
+    #endif
+    task->setRegions(copyInfo->getBegins(), copyInfo->getEnds(), _currenttaskinfo->nodeID());
+    task->runWrapper();
+    return true;
   }
   return false;
 }

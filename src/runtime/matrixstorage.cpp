@@ -292,6 +292,13 @@ petabricks::CopyoutInfo::CopyoutInfo(cl_command_queue& queue, MatrixStorageInfoP
   clFlush(queue);
 }
 
+bool petabricks::CopyoutInfo::done() {
+#ifdef GPU_TRACE
+  std::cout << "already done" << std::endl;
+#endif
+  return _done;
+}
+
 bool petabricks::CopyoutInfo::complete() {
   cl_int ret;
   clGetEventInfo(_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &ret, NULL);

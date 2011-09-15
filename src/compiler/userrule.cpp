@@ -808,12 +808,14 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     o.comment( "Copy results back to host memory." );
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
-      o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_" 
-              << (*i)->name( ) << ", CL_TRUE, 0, " 
-              << "normalized_" << (*i)->name( ) <<  ".bytes(), " 
-              << "normalized_" << (*i)->name( ) << ".base(), "
-              << "0, NULL, NULL );\n";
-      o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to read output buffer.\" );\n";
+      if((*i)->isBuffer()) {
+        o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_" 
+                << (*i)->name( ) << ", CL_TRUE, 0, " 
+                << "normalized_" << (*i)->name( ) <<  ".bytes(), " 
+                << "normalized_" << (*i)->name( ) << ".base(), "
+                << "0, NULL, NULL );\n";
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to read output buffer.\" );\n";
+      }
     }
     o.os( ) << "\n";
 
@@ -834,16 +836,18 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     o.comment( "Copy back outputs (if they were already normalized, copyTo detects src==dst and does nothing)" );
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
-      //o.os( ) << "std::cerr << \"BEFORE copy\" << std::endl;\n";
-      //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
+      if((*i)->isBuffer()) {
+        //o.os( ) << "std::cerr << \"BEFORE copy\" << std::endl;\n";
+        //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
 
-      o.os( ) << "normalized_" << (*i)->name( ) 
-              << ".copyTo(" << (*i)->matrix( )->name( ) << ", _iter_begin, _iter_end);\n";
+        o.os( ) << "normalized_" << (*i)->name( ) 
+                << ".copyTo(" << (*i)->matrix( )->name( ) << ", _iter_begin, _iter_end);\n";
 
-      //o.os( ) << "std::cerr << \"normalize\" << std::endl;\n";
-      //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(normalized_" << (*i)->name( ) << ");\n";
-      //o.os( ) << "std::cerr << \"AFTER copy\" << std::endl;\n";
-      //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
+        //o.os( ) << "std::cerr << \"normalize\" << std::endl;\n";
+        //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(normalized_" << (*i)->name( ) << ");\n";
+        //o.os( ) << "std::cerr << \"AFTER copy\" << std::endl;\n";
+        //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
+      }
     }
 
     o.write( "return NULL;\n}\n\n" );
