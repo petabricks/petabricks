@@ -491,7 +491,7 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
   o.define("SYNC",  "PB_SYNC");
 
   if (rf == RuleFlavor::DISTRIBUTED) {
-    o.define("DEFAULT_RV", "_cleanUpTask");
+    o.define("DEFAULT_RV", "cleanUpTaskTmp");
     o.define("RETURN", "PB_RETURN_DISTRIBUTED");
     o.define("RETURN_VOID", "PB_RETURN_VOID_DISTRIBUTED");
   } else {
@@ -521,12 +521,7 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
     DynamicBodyPrintPass dbpp(o);
     bodytmp->accept(dbpp);
   }
-
-  if (rf == RuleFlavor::DISTRIBUTED) {
-    o.write("_cleanUpTask->dependsOn(_completion);");
-    o.write("_completion->enqueue();");
-  }
-  o.write("return DEFAULT_RV;");
+  o.write("RETURN_VOID;");
   o.endUserCode();
   o.endFunc();
 

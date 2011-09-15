@@ -62,6 +62,12 @@ int RegionHandler::allocData(const IndexT* size) {
   // Create RegionData
   // TODO: do clever data placement
 
+  // _regionData = new RegionDataRemote(_D, size, RemoteHostDB::instance().host(0));
+
+  _regionData = new RegionDataRaw(_D, size);
+  _regionData->allocData();
+
+  /*
   // round-robin placement
   static int numHosts = RemoteHostDB::instance().size();
   static int currentIndex = 0;
@@ -79,6 +85,7 @@ int RegionHandler::allocData(const IndexT* size) {
   } else {
     JASSERT(false)(i)(numHosts);
   }
+  */
 
   return 1;
 }
