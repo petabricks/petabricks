@@ -1,11 +1,37 @@
-#ifndef MATRIXCHOLESKY_PBCC
-#define MATRIXCHOLESKY_PBCC
 
+/*
+transform HermitianGenerate to H[w, h] {
+	  // this generates a hermatian matrix of real, positive numbers
+	  /*
+	  to(H.cell(x,y) her1) from (H.cell(y,x) her2) { 
+	   her1 = her2; 
+	  }
+	  secondary to (H.cell(x,y) her) from() {
+	  	    her = PetabricksRuntime::randInt(0,100);
+	  }
+	  */
+	  to(H her) from () { 
+	    for (int i = 0; i < her.width(); i++) {
+             	 for (int j = 0; j < her.height(); j++) {
+			if (i <= j) {
+		      	   her.cell(i,j) = PetabricksRuntime::randInt(0,100);
+			} else {
+			   her.cell(i,j) = her.cell(j,i);
+			}
+		}
+	    }
+	  }
+}
+*/
 transform MatrixCholesky
 from A[w,h]
 to L[w,h]
+//generator HermitianGenerate
 {
 
+	// recursive def of cholesky
+
+	// specific case: first column
 	to (L.cell(x,y) l) 
 	from (L.cell(0,0) c, 
 	A.cell(x,y) a) 
@@ -16,6 +42,7 @@ to L[w,h]
                (1.0 / c * a);
 	}
 
+	// implementation that uses region from (0,0) to the box adjacent to the right of the entry
 	to (L.cell(x,y) l) 
 	from (L.region(0, 0, x, y + 1) r, 
 	A.cell(x,y) a) 
@@ -34,7 +61,7 @@ to L[w,h]
 	}
 
 
-	// straightforward implementation of cholesky -- not parallelized
+	// straightforward implementation of cholesky
 	to(L l)  from(A a) { 
  	     for (int i = 0; i < a.height(); i++) {
              	 for (int j = 0; j < (i+1); j++) {
@@ -50,5 +77,3 @@ to L[w,h]
 	}
 
 }
-
-#endif //MATRIXCHOLESKY_PBCC
