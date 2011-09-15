@@ -75,6 +75,10 @@ namespace _RemoteHostMsgTypes {
     enum {
       HELLO_CONTROL= 0xf0c0,
       HELLO_DATA,
+      SETUP_CONNECT,
+      SETUP_ACCEPT,
+      SETUP_ACK,
+      SETUP_END,
       REMOTEOBJECT_CREATE,
       REMOTEOBJECT_CREATE_ACK,
       REMOTEOBJECT_DATA,
@@ -91,6 +95,10 @@ namespace _RemoteHostMsgTypes {
 #define  EXPSTR(s) case s: return #s
         EXPSTR(HELLO_CONTROL);
         EXPSTR(HELLO_DATA);
+        EXPSTR(SETUP_CONNECT);
+        EXPSTR(SETUP_ACCEPT);
+        EXPSTR(SETUP_ACK);
+        EXPSTR(SETUP_END);
         EXPSTR(REMOTEOBJECT_CREATE);
         EXPSTR(REMOTEOBJECT_CREATE_ACK);
         EXPSTR(REMOTEOBJECT_DATA);
@@ -108,11 +116,11 @@ namespace _RemoteHostMsgTypes {
   };
 
   struct HelloMessage {
-    MessageType type;
+    uint16_t    type;
     HostPid     id;
     ChanNumber  chan;
     int         port;
-    int    roll;
+    int         roll;
 
     friend std::ostream& operator<<(std::ostream& o, const HelloMessage& m) {
       return o << "HelloMessage("
@@ -120,6 +128,30 @@ namespace _RemoteHostMsgTypes {
                << m.id << ")";
     }
   } PACKED;
+
+
+  struct SetupMessage {
+    uint16_t type;
+    char     host[1024];
+    int      port;
+    
+    friend std::ostream& operator<<(std::ostream& o, const SetupMessage& m) {
+      return o << "SetupMessage("
+               << MessageTypes::str(m.type) << ", "
+               << m.host << ", "
+               << m.port << ")";
+    }
+  } PACKED;
+
+  struct SetupAckMessage {
+    uint16_t type;
+
+    friend std::ostream& operator<<(std::ostream& o, const SetupAckMessage& m) {
+      return o << "SetupAckMessage("
+               << MessageTypes::str(m.type) << ")";
+    }
+  } PACKED;
+
 
   struct GeneralMessage {
     uint16_t    type;
@@ -178,20 +210,20 @@ void petabricks::RemoteHost::handshake(int port) {
 
   //mix our pid into the random roll since lrand48 is often not seeded (in debugging modes)
   unsigned short xsubi[] = { lrand48()^self.pid , lrand48()^self.pid, lrand48()^self.pid } ;
-  for(int i=0; i<10; ++i) nrand48(xsubi);
+  for(int i=0; i<16; ++i) nrand48(xsubi);
   int myRoll = nrand48(xsubi) % 9000;
 
   HelloMessage msg = { MessageTypes::HELLO_CONTROL,
                        self,
                        REMOTEHOST_DATACHANS,
                        port,
-                       myRoll 
-                      };
+                       myRoll };
   _control.disableNagle();
   _control.writeAll((char*)&msg, sizeof msg);
   _control.readAll((char*)&msg, sizeof msg);
   JASSERT(msg.type == MessageTypes::HELLO_CONTROL && msg.id != self && msg.chan == REMOTEHOST_DATACHANS);
   _id = msg.id;
+  _remotePort = msg.port;
 
   if(myRoll!=msg.roll)
     _shouldGc = myRoll < msg.roll;
@@ -208,6 +240,78 @@ void petabricks::RemoteHost::handshake(int port) {
         && dmsg.chan == i);
   }
 }
+
+void petabricks::RemoteHost::setupLoop(RemoteHostDB& db) {
+  JLOCKSCOPE(_controlmu);
+
+  SetupMessage msg;
+  SetupAckMessage ackmsg = { MessageTypes::SETUP_ACK };
+
+  for(msg.type=0; msg.type!=MessageTypes::SETUP_END; ) {
+    memset(&msg, 0, sizeof msg);
+    _control.readAll((char*)&msg, sizeof msg);
+
+    JTRACE("setup slave")(msg);
+
+    switch(msg.type) {
+      case MessageTypes::SETUP_CONNECT:
+        db.connect(msg.host, msg.port);
+        break;
+      case MessageTypes::SETUP_ACCEPT:
+        db.accept(msg.host);
+        break;
+      case MessageTypes::SETUP_END:
+        break;
+      default:
+        UNIMPLEMENTED();
+    }
+
+    _control.writeAll((char*)&ackmsg, sizeof ackmsg);
+  }
+}
+
+void petabricks::RemoteHost::setupRemoteConnection(RemoteHost& a, RemoteHost& b) {
+  JLOCKSCOPE(a._controlmu);
+  JLOCKSCOPE(b._controlmu);
+
+  SetupMessage amsg;
+  amsg.type = MessageTypes::SETUP_CONNECT;
+  strncpy(amsg.host, a._connectName.c_str(), sizeof amsg.host);
+  JASSERT(amsg.host==a._connectName);
+  amsg.port = a._remotePort;
+
+  SetupMessage bmsg;
+  bmsg.type = MessageTypes::SETUP_ACCEPT;
+  strncpy(bmsg.host, b._connectName.c_str(), sizeof bmsg.host);
+  JASSERT(bmsg.host==b._connectName);
+  bmsg.port = b._remotePort;
+
+  //a goes to b, b goes to a
+  a._control.writeAll((char*)&bmsg, sizeof bmsg);
+  b._control.writeAll((char*)&amsg, sizeof amsg);
+
+
+  SetupAckMessage aack;
+  SetupAckMessage back;
+  a._control.readAll((char*)&aack, sizeof aack);
+  b._control.readAll((char*)&back, sizeof back);
+  JASSERT(aack.type == MessageTypes::SETUP_ACK);
+  JASSERT(back.type == MessageTypes::SETUP_ACK);
+}
+
+void petabricks::RemoteHost::setupEnd() {
+  JLOCKSCOPE(_controlmu);
+
+  SetupMessage msg;
+  memset(&msg, 0, sizeof msg);
+  msg.type = MessageTypes::SETUP_END;
+  _control.writeAll((char*)&msg, sizeof msg);
+
+  SetupAckMessage ack;
+  _control.readAll((char*)&ack, sizeof ack);
+  JASSERT(ack.type == MessageTypes::SETUP_ACK);
+}
+
 
 
 bool petabricks::RemoteHost::recv() {
@@ -234,27 +338,30 @@ bool petabricks::RemoteHost::recv() {
     JASSERT(msg.chan<REMOTEHOST_DATACHANS);
     _datamu[msg.chan].lock();
   }
-  RemoteObjectGenerator gen = 0;
   RemoteObjectPtr obj = 0;
   void* buf = 0;
 
   if(msg.dstptr != 0) {
     obj = DecodeDataPtr<RemoteObject>(msg.dstptr);
+    jalib::atomicIncrement(&obj->_pendingMessages);
     obj->_lastMsgGen = _currentGen;
   }
+
   _controlmu.unlock();
 
-  if(obj) {
+  if(obj){
     obj->lock();
   }
 
   switch(msg.type) {
   case MessageTypes::REMOTEOBJECT_CREATE:
     {
+      RemoteObjectGenerator gen;
       gen = DecodeTextPtr<RemoteObjectGenerator>(msg.arg);
       obj = (*gen)();
-      obj->lock();
+      obj->_pendingMessages += 1;
       obj->_lastMsgGen = _currentGen;
+      obj->lock();
       obj->setHostMu(this);
       obj->setRemoteObjMu(msg.srcptr);
       obj->markCreatedMu();
@@ -351,6 +458,7 @@ bool petabricks::RemoteHost::recv() {
   
   if(obj) {
     obj->unlock();
+    jalib::atomicDecrement(&obj->_pendingMessages);
   }
 
   return true;
@@ -622,6 +730,17 @@ void petabricks::RemoteHostDB::listenLoop() {
     JASSERT(_ready>0);
   }
 
+}
+  
+void petabricks::RemoteHostDB::setupConnectAllPairs() {
+  for (unsigned int a = 0; a < _hosts.size(); a++) {
+    for (unsigned int b = a+1; b < _hosts.size(); b++) {
+      RemoteHost::setupRemoteConnection(*host(a), *host(b));
+    }
+  }
+  for (unsigned int a = 0; a < _hosts.size(); a++) {
+    host(a)->setupEnd();
+  }
 }
 
 void petabricks::RemoteHostDB::spawnListenThread() {

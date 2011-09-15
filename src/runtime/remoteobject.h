@@ -27,6 +27,7 @@
 #ifndef PETABRICKSREMOTEOBJECT_H
 #define PETABRICKSREMOTEOBJECT_H
 
+#include "common/jasm.h"
 #include "common/jmutex.h"
 #include "common/jrefcounted.h"
 
@@ -54,7 +55,7 @@ class RemoteObject : public jalib::JRefCounted, public jalib::JCondMutex {
          FLAG_CREATED = 2,
          FLAG_COMPLETE = 4 };
 public:
-  RemoteObject() : _host(NULL), _flags(0), _lastMsgGen(0) {}
+  RemoteObject() : _host(NULL), _flags(0), _lastMsgGen(0), _pendingMessages(0) {}
 
 
   void waitUntilCreated() const {
@@ -102,7 +103,14 @@ public:
 
   int lastMsgGen() const { return _lastMsgGen; }
 
+  int pendingMessages() const { return _pendingMessages; }
+
   EncodedPtr remoteObj() const { return _remoteObj; }
+
+
+  bool maybeDeletable(int gen) const {
+    return isCreated() && refCount()==1 && lastMsgGen()<gen && pendingMessages()==0;
+  }
 protected:
   void remoteMarkComplete();
 
@@ -137,6 +145,7 @@ private:
   EncodedPtr _remoteObj;
   int _flags;
   int _lastMsgGen;
+  jalib::AtomicT _pendingMessages;
 };
 
 } //namespace petabricks
