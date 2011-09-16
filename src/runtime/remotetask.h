@@ -99,6 +99,7 @@ namespace petabricks {
       //JTRACE("remote create");
       JASSERT(!_task);
       _task = new T(reinterpret_cast<const char*>(buf), *host());
+      _task->incRefCount();
       _task->enqueueLocal();
       DynamicTaskPtr t = new CallMarkComplete<RemoteTaskReciever>(this);
       t->dependsOn(_task.asPtr());
