@@ -2,11 +2,12 @@
 import numpy
 from numpy import atleast_1d, eye, mgrid, argmin, zeros, shape, empty, \
      squeeze, vectorize, asarray, absolute, sqrt, Inf, asfarray, isinf
-from scipy.optimize import linesearch, line_search, approx_fprime
+from scipy.optimize import linesearch, line_search
 
 # variables and functions taken from scipy.optimize:
 
-_epsilon = sqrt(numpy.finfo(float).eps)
+_epsilonSq= numpy.finfo(float).eps
+_epsilon = sqrt(_epsilonSq)
 
 def vecnorm(x, ord=2):
     if ord == Inf:
@@ -22,6 +23,17 @@ def wrap_function(function, args):
         ncalls[0] += 1
         return function(x, *args)
     return ncalls, function_wrapper
+
+# modified from scipy.optimize to use max(eps, xk[k]*eps) as delta
+def approx_fprime(xk,f,epsilon,*args):
+    f0 = f(*((xk,)+args))
+    grad = numpy.zeros((len(xk),), float)
+    ei = numpy.zeros((len(xk),), float)
+    for k in range(len(xk)):
+        ei[k] = max(epsilon, xk[k] * epsilon)
+        grad[k] = (f(*((xk+ei,)+args)) - f0)/ei[k]
+        ei[k] = 0.0
+    return grad
 
 # custom fmin_bfgs (modified from scipy.optimize):
 
@@ -131,11 +143,11 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
     while (gnorm > gtol) and (k < maxiter):
         pk = -numpy.dot(Hk,gfk)
 
-        print "xk =", xk
         print "Begin iteration %d line search..." % (k + 1)
-#        print "  gfk =", gfk
-#        print "  Hk = \n", Hk
-#        print "  pk =", pk
+        print "  xk =", xk
+        print "  gfk =", gfk
+        print "  pk =", pk
+        print "  Hk = \n", Hk
 
         # do line search for alpha_k
         old_old_fval = old_fval
@@ -173,7 +185,16 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
         if (k >= maxiter or gnorm <= gtol):
             break
 
-        try: # this was handled in numeric, let it remaines for more safety
+        # Reset the initial quasi-Newton matrix to a scaled identity aimed
+        # at reflecting the size of the inverse true Hessian
+        deltaXDeltaGrad = numpy.dot(sk, yk);
+        updateOk = deltaXDeltaGrad >= _epsilon * max(_epsilonSq, \
+                       vecnorm(sk,ord=2) * vecnorm(yk, ord=2))
+        if k == 1 and updateOk:
+            Hk = deltaXDeltaGrad / numpy.dot(yk,yk) * numpy.eye(N);
+            print "Hscaled =\n", Hk
+
+        try: # this was handled in numeric, let it remain for more safety
             rhok = 1.0 / (numpy.dot(yk,sk))
         except ZeroDivisionError:
             rhok = 1000.0
