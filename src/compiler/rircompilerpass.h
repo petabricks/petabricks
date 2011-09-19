@@ -276,6 +276,7 @@ private:
   std::vector<std::string> _continueTargets;
 };
 
+#ifdef HAVE_OPENCL
 class OpenClCleanupPass: public RIRCompilerPass {
 public:
   class NotValidSource {};
@@ -302,6 +303,7 @@ class OpenClFunctionRejectPass: public RIRCompilerPass {
   bool isIdentBlacklisted( const std::string& ident );
   UserRule& _rule;
 };
+#endif
 
 }
 

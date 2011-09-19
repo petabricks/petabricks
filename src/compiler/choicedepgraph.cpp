@@ -312,7 +312,9 @@ void petabricks::MultiOutputChoiceDepGraphNode::generateCode(Transform& trans, C
       first=*i;
       JASSERT(rule == choice.find(*i)->second)(rule)(choice.find(*i)->second)
         .Text("expected all output regions to be generated from same rule");
-    }/* else if((*i)->matrix()->name().compare("ITER") == 0) {
+    } 
+    //TODO: hack for using ITER
+    /*else if((*i)->matrix()->name().compare("ITER") == 0) {
       first=*i;
     }*/
     JWARNING(region==(*i)->region()->toString())(region)((*i)->region()->toString())
@@ -323,7 +325,6 @@ void petabricks::MultiOutputChoiceDepGraphNode::generateCode(Transform& trans, C
     matrices.push_back((*i)->matrix());
     o.comment("region = "+(*i)->matrix()->name()+" "+(*i)->region()->toString());
   }
-  //TODO: hack for using ITER
   JASSERT(choice.find(first)!=choice.end());
   rule->generateCallCode(nodename(), trans, o, first->region(), flavor, _regionNodesGroups, id(), _gpuCopyOut);
 }

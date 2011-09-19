@@ -336,6 +336,7 @@ void petabricks::AnalysisPass::before(RIRExprCopyRef& e){
   }
 }
 
+#ifdef HAVE_OPENCL
 petabricks::RegionPtr petabricks::OpenClCleanupPass::findMatrix(std::string var)
 {
   RegionList from = _rule.getFromRegions();
@@ -532,3 +533,4 @@ void petabricks::OpenClFunctionRejectPass::before(RIRExprCopyRef& e)
 	}
     }
 }
+#endif
