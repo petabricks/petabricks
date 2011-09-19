@@ -2,6 +2,8 @@
 #define CHOLESKY_PBCC
 #include "../multiply/multiply.pbcc"
 #include "copy.pbcc"
+#include "transpose.pbcc"
+#include "../LUDense/LUtrisolve.pbcc"
 
 transform HermitianGenerate 
 to H[w,h] {
@@ -18,7 +20,7 @@ to H[w,h] {
 	    int i;
 	    for (i = 0; i < temp1.width(); i++) {
              	 for (int j = 0; j <= i; j++) {
-		      	   temp1.cell(i,j) = PetabricksRuntime::randInt(0,100);
+		      	   temp1.cell(i,j) = PetabricksRuntime::randInt(1,10);
 		}
 	    }
 
@@ -42,7 +44,7 @@ from A[w,h]
 to L[w,h]
 generator HermitianGenerate
 {
-/*
+
 	// recursive def of cholesky
 	to (L l)
 	from (A a) 
@@ -51,21 +53,26 @@ generator HermitianGenerate
 	    // upper left corner
 	    MatrixCholesky(l.region(0, 0, w/2, h/2), a.region(0,0,w/2,h/2));	    
 
+/*
 	    // lower left corner
 	    // change all w and h in this section to width and height of 1 matricies
-	    MatrixTranspose(l11_trans, l.region(0,0,w,h));
+	    MatrixRegion2D l11_trans = MatrixRegion2D::allocate(w/2,h/2);
+	    Transpose(l11_trans, l.region(0,0,w/2,h/2));
 	    //x2 = trisolve(L22,B2)
-	    MatrixTrisolve(l.region(w/4,h/2,w/2,h), l11_trans.region(w/2,h/2,w,h), a.region(w/4,h/2,w/2,h));
+	    LUtrisolve(l.region(w/4,h/2,w/2,h), l11_trans.region(l11_trans.width()/2,l11_trans.height()/2,l11_trans.width(),l11_trans.height()), a.region(w/4,h/2,w/2,h));
 	    //x1 = trisolve(L11,B1-x2L21)
-	    MatrixTrisolve(l.region(0,h/2,w/4,h), l11_trans.region(0,0,w/2,h/2), a.region(0,h/2,w/4,h) - x2 * l11_trans.region(0,h/2,w/2,h));
+	    //MatrixMultiply
+	    //MatrixSubtract
+	    LUtrisolve(l.region(0,h/2,w/4,h), l11_trans.region(0,0,l11_trans.width()/2,l11_trans.height()/2), a.region(0,h/2,w/4,h) - l.region(w/4,h/2,w/2,h) * l11_trans.region(0,l11_trans.height()/2,l11_trans.width()/2,h));
 	    
 
-	    // lower right corner
+	        // lower right corner
 	    MatrixTranspose(l21_trans, l.region(0,h/2,w/2,h));
 	    MatrixMultiply(t, l.region(0,h/2,w/2,h), l21_trans);
 	    MatrixCholesky(l.region(w/2,h/2,w,h), a.region(w/2,h/2,w,h) - t);
-	}	
 */
+	}	
+/*
 	// specific case: first column
 	to (L.cell(x,y) l) 
 	from (L.cell(0,0) c, 
@@ -94,7 +101,7 @@ generator HermitianGenerate
                	  	 (1.0 / r.cell(x,x) * (a - s));
 	     }			 
 	}
-
+*/
 
 	// straightforward implementation of cholesky
 	to(L l)  from(A a) { 
@@ -110,6 +117,7 @@ generator HermitianGenerate
         	 }
 	     }	
 	}
+
 
 }
 
