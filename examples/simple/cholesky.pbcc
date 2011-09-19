@@ -4,9 +4,10 @@
 #include "copy.pbcc"
 
 transform HermitianGenerate 
-//through TEMP1 [w,h], TEMP2[w,h]
 to H[w,h] {
-	  // this generates a hermatian matrix of real, positive numbers
+	  
+	  // this generates a real, symmetric, positive definite matrix
+	  
 	  to(H her)
 	  //using(temp1 [w,h], temp2 [w,h])
 	  from () { 
