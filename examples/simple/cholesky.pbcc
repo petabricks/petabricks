@@ -1,36 +1,70 @@
+#ifndef CHOLESKY_PBCC
+#define CHOLESKY_PBCC
+#include "../multiply/multiply.pbcc"
+#include "copy.pbcc"
 
-/*
-transform HermitianGenerate to H[w, h] {
+transform HermitianGenerate 
+//through TEMP1 [w,h], TEMP2[w,h]
+to H[w,h] {
 	  // this generates a hermatian matrix of real, positive numbers
-	  /*
-	  to(H.cell(x,y) her1) from (H.cell(y,x) her2) { 
-	   her1 = her2; 
-	  }
-	  secondary to (H.cell(x,y) her) from() {
-	  	    her = PetabricksRuntime::randInt(0,100);
-	  }
-	  */
-	  to(H her) from () { 
-	    for (int i = 0; i < her.width(); i++) {
-             	 for (int j = 0; j < her.height(); j++) {
-			if (i <= j) {
-		      	   her.cell(i,j) = PetabricksRuntime::randInt(0,100);
-			} else {
-			   her.cell(i,j) = her.cell(j,i);
-			}
+	  to(H her)
+	  //using(temp1 [w,h], temp2 [w,h])
+	  from () { 
+	    
+	    MatrixRegion2D temp1 = MatrixRegion2D::allocate(w,h);
+	    MatrixRegion2D temp2 = MatrixRegion2D::allocate(w,h);
+	    
+	    int i;
+	    for (i = 0; i < temp1.width(); i++) {
+             	 for (int j = 0; j <= i; j++) {
+		      	   temp1.cell(i,j) = PetabricksRuntime::randInt(0,100);
 		}
 	    }
+
+  	    for (i = 0; i < temp1.width(); i++) {
+	    	for (int j = 0; j < i; j ++ ) {
+   		    temp1.cell(j,i) = temp1.cell(i,j);
+   		 }
+	    }
+
+	   
+	   Copy2D(temp2, temp1);
+	   MatrixMultiply (her, temp1, temp2);
+
 	  }
+
 }
-*/
+
+
 transform MatrixCholesky
 from A[w,h]
 to L[w,h]
-//generator HermitianGenerate
+generator HermitianGenerate
 {
-
+/*
 	// recursive def of cholesky
+	to (L l)
+	from (A a) 
+	{
+	
+	    // upper left corner
+	    MatrixCholesky(l.region(0, 0, w/2, h/2), a.region(0,0,w/2,h/2));	    
 
+	    // lower left corner
+	    // change all w and h in this section to width and height of 1 matricies
+	    MatrixTranspose(l11_trans, l.region(0,0,w,h));
+	    //x2 = trisolve(L22,B2)
+	    MatrixTrisolve(l.region(w/4,h/2,w/2,h), l11_trans.region(w/2,h/2,w,h), a.region(w/4,h/2,w/2,h));
+	    //x1 = trisolve(L11,B1-x2L21)
+	    MatrixTrisolve(l.region(0,h/2,w/4,h), l11_trans.region(0,0,w/2,h/2), a.region(0,h/2,w/4,h) - x2 * l11_trans.region(0,h/2,w/2,h));
+	    
+
+	    // lower right corner
+	    MatrixTranspose(l21_trans, l.region(0,h/2,w/2,h));
+	    MatrixMultiply(t, l.region(0,h/2,w/2,h), l21_trans);
+	    MatrixCholesky(l.region(w/2,h/2,w,h), a.region(w/2,h/2,w,h) - t);
+	}	
+*/
 	// specific case: first column
 	to (L.cell(x,y) l) 
 	from (L.cell(0,0) c, 
@@ -44,7 +78,7 @@ to L[w,h]
 
 	// implementation that uses region from (0,0) to the box adjacent to the right of the entry
 	to (L.cell(x,y) l) 
-	from (L.region(0, 0, x, y + 1) r, 
+	from (L.region(0, 0, x, y + 1) r,
 	A.cell(x,y) a) 
 	where x > 0 
 	{
@@ -54,9 +88,9 @@ to L[w,h]
 	     	  double s = 0;
 	     	  for (int k = 0; k < x; k++)
 	     	      s += r.cell(k, y) * r.cell(k, x);
-	     	  l = (x == y) ?
-	       	  sqrt(a - s) :
-               	  	 (1.0 / r.cell(x, x) * (a - s));
+	     	  l = (x == y) ? sqrt(a - s) :
+		  	 // r.cell(x,x) shouldn't be accessible?
+               	  	 (1.0 / r.cell(x,x) * (a - s));
 	     }			 
 	}
 
@@ -77,3 +111,5 @@ to L[w,h]
 	}
 
 }
+
+#endif // CHOLESKY_PBCC
