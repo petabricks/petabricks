@@ -386,9 +386,10 @@ class ScaleTunableSizeSpecificMutator(TunableSizeSpecificMutator):
 
 class OptimizeTunableMutator(GenericTunableMutator):
 
-  def __init__(self, tunable, weight=1.0, nwkdeFlag = False):
+  def __init__(self, tunable, weight=1.0, nwkdeFlag = False, maxiter = None):
     GenericTunableMutator.__init__(self, tunable, weight)
     self.nwkdeFlag = nwkdeFlag # flag for nwkde benchmark special handling
+    self.maxiter = maxiter
     self.o = optimize.CachedBFGSOptimizer(self.measureAccuracy, self.minVal, self.maxVal)
 
   def measureAccuracy(self, value, candidate, n):
@@ -403,8 +404,7 @@ class OptimizeTunableMutator(GenericTunableMutator):
       if oldVal == [4, 4, 4, 4]: # change initial value to something useful
         oldVal = [0.3182, 134.3503, 5.0312, 633.3333]
     n = candidate.pop.testers[-1].n
-#    return self.o.optimize(oldVal, args = (candidate, n), maxiter = 1)
-    return self.o.optimize(oldVal, args = (candidate, n))
+    return self.o.optimize(oldVal, args = (candidate, n), maxiter = self.maxiter)
 
 class LogNormFloatTunableMutator(GenericTunableMutator):
 
