@@ -1,0 +1,19 @@
+transform threePasses
+from IN[n]
+through A[n], B[n]
+to OUT[n]
+{
+  A.cell(i) from(IN.cell(i) x) {
+    return sqrt(x*x/7);
+  }
+
+  B.cell(i) from(A.cell(i) x) {
+    return sqrt(x*x*11);
+  }
+
+  OUT.cell(i) from(B.cell(i) x) {
+    return sqrt(x*x-13);
+  }
+
+
+}

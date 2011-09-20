@@ -111,6 +111,7 @@ void petabricks::IterationDefinition::genLoopBegin(CodeGenerator& o){
       o.varDecl("const IndexT "+_var[i]->toString()+" = "+_begin[i]->toString());
     }
   }else{
+    o.comment("Iterate along all the directions");
     for(size_t i=0; i<_var.size(); ++i){
       FormulaPtr b=_begin[i];
       FormulaPtr e=_end[i];
@@ -172,6 +173,7 @@ std::vector<std::string> petabricks::IterationDefinition::packedargnames() const
   return std::vector<std::string>(t, t+2);
 }
 void petabricks::IterationDefinition::unpackargs(CodeGenerator& o) const {
+  o.comment("Define iteration bounds");
   for(size_t i=0; i<_var.size(); ++i){
     o.write("const IndexT "+_begin[i]->toString()+" = "COORD_BEGIN_STR"["+jalib::XToString(i)+"];");
     o.write("const IndexT "+_end[i]->toString()+" = "COORD_END_STR"["+jalib::XToString(i)+"];");

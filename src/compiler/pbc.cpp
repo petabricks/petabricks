@@ -393,6 +393,15 @@ int main( int argc, const char ** argv){
   }
   o.write("return NULL;");
   o.endFunc();
+
+#ifdef HAVE_OPENCL
+  o.comment("A hook called by PetabricksRuntime");
+  o.beginFunc("void", "cleanup");
+  for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
+    (*i)->generateReleaseGpuObjectsCode(o);
+  }
+  o.endFunc();
+#endif
   
   // generate common header file:
   *prefix << headertxth;

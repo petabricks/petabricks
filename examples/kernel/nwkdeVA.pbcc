@@ -1,0 +1,47 @@
+#ifndef NWKDEVA_PBCC
+#define NWKDEVA_PBCC
+
+#include "nwkde.h"
+#include "nwkde.pbcc"
+
+transform NWKDEVA
+from TRAINDATA[M,N], WRAPFLAGS[M],
+     TRAININDICES[L], TRAINVARINDEX[P], TRAINTIMEOFFSET[P],
+     TESTDATA[M2,N2],
+     TESTINDICES[Q], TESTVARINDEX[P], TESTTIMEOFFSET[P],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
+to RESULT[Q]
+tunable float sizespecific array(M) initial(1) KERNELWIDTHS
+generator NWKDEGenerator2
+accuracy_metric NWKDEMetric
+accuracy_bins -3, -2
+{
+    to (RESULT result)
+    from (TRAINDATA        trainData,
+          WRAPFLAGS        wrapFlags,
+          TRAININDICES     trainIndices,
+          TRAINVARINDEX    trainVarIndex,
+          TRAINTIMEOFFSET  trainTimeOffset,
+          TESTDATA         testData,
+          TESTINDICES      testIndices,
+          TESTVARINDEX     testVarIndex,
+          TESTTIMEOFFSET   testTimeOffset,
+          OUTPUTVARINDEX   outputVarIndex,
+          OUTPUTTIMEOFFSET outputTimeOffset,
+          TRAINMASKWIDTH   trainMaskWidth)
+    {
+        // copy kernel widths into matrix region
+        MatrixRegion1D kernelWidths = MatrixRegion1D::allocate(M);
+        for (int i = 0; i < M; ++i) {
+            kernelWidths.cell(i) = KERNELWIDTHS[i];
+        }
+
+        NWKDE(result, trainData, wrapFlags, kernelWidths,
+              trainIndices, trainVarIndex, trainTimeOffset,
+              testData, testIndices,
+              testVarIndex, testTimeOffset,
+              outputVarIndex, outputTimeOffset, trainMaskWidth);
+    }
+}
+
+#endif // NWKDEVA_PBCC

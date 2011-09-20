@@ -112,6 +112,12 @@ public:
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
 #ifdef HAVE_OPENCL
+  void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o);
+  void generateOpenCLCallCode(Transform& trans, CodeGenerator& o);
+  void generateOpenCLPrepareCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o);
+  void generateOpenCLCopyInCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o, RegionPtr region);
+  void generateOpenCLRunCode(Transform& trans, CodeGenerator& o);
+  void generateOpenCLCopyOutCode(std::string& codename, CodeGenerator& o, RegionPtr region);
   ///
   /// Generate an OpenCL program implementing this rule
   void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef );
@@ -123,7 +129,10 @@ public:
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
+                        RuleFlavor flavor,
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        bool gpuCopyOut); 
 
   ///
   /// Return function the name of this rule in the code
@@ -169,8 +178,13 @@ public:
 
   FormulaPtr getSizeOfRuleIn(int d){
     for(size_t i=0; i<_to.size(); ++i){
-      if(d < (int)_to[i]->dimensions()){
+      if(_to[i]->isExistingDimension(d)){
         return _to[i]->getSizeOfRuleIn(d);
+      }
+    }
+    for(size_t i=0; i<_to.size(); ++i){
+      if(_to[i]->isRemovedDimension(d)){
+        return _to[i]->getSizeOfRuleInRemovedDimension(d);
       }
     }
     JASSERT(false)(d)(_id);
@@ -238,15 +252,42 @@ public:
     return _bodyir[RuleFlavor::SEQUENTIAL];
   }
 
-  void buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional);
+  void buildApplicableRegion(Transform& trans,
+                             SimpleRegionPtr& ar, 
+                             bool allowOptional);
+                                     
+  virtual void removeDimensionFromMatrix(const MatrixDefPtr matrix, 
+                                          const size_t dimension);
+  
+  virtual void fixVersionedRegionsType();
+  
+  virtual RegionList getSelfDependentRegions();
+  
+  virtual RegionList getNonSelfDependentRegions();
+  
+private:
+  void computeDataDependencyVector();
+  CoordinateFormula computeDDVAsDifference(const RegionPtr inputRegion,
+                                           const RegionPtr outputRegion
+                                          ) const;
+  void computeDDVForGivenOutput(const RegionPtr outputRegion);
+  
+  void removeDimensionFromRegionList(RegionList& list,
+                                     const MatrixDefPtr matrix, 
+                                     const size_t dimension);
+  
+  void removeDimensionFromMatrixDependencyMap(MatrixDependencyMap& map,
+                                              const MatrixDefPtr matrix,
+                                              const size_t dimension);                                
+                                              
+  void removeDimensionFromDefinitions(const size_t dimension);
 
-protected:
+  void prepareBuffers();
 
 #ifdef HAVE_OPENCL
   bool passBuildGpuProgram(Transform& trans);
 #endif
 
-private:
   RuleFlags _flags;
   RegionList _from;
   RegionList _to;

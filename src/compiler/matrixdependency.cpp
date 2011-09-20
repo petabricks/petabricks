@@ -50,6 +50,12 @@ void petabricks::DependencyDirection::addDirection(size_t dim, DirectionT dir){
   _directionMask[dim] |= dir;
 }
 
+void petabricks::DependencyDirection::removeDimension(const size_t dimension) {
+  JASSERT(dimension < _directionMask.size())(dimension)(_directionMask.size());
+  
+  _directionMask.erase(_directionMask.begin() + dimension);
+}
+
 void petabricks::DependencyDirection::print(std::ostream& o) const {
   static const char* maskToStr[] = 
     {"NONE", "<", "=", "<=", ">", "<>", ">=", "*"};
@@ -105,4 +111,18 @@ void petabricks::MatrixDependency::mergeWith( MatrixDependency& that ){
     _region = that._region;
 }
 
+void petabricks::MatrixDependency::removeDimension(const size_t dimension) {
+  _direction.removeDimension(dimension);
+}
 
+void petabricks::MatrixDependencyMap::print(std::ostream& o) const {
+  o << "MatrixDependencyMap: " << "\n";
+  for(petabricks::MatrixDependencyMap::const_iterator i=this->begin(), e=this->end(); 
+      i!=e; 
+      ++i) {
+    MatrixDefPtr matrixDef = i->first;
+    MatrixDependencyPtr matrixDependency = i->second;
+    o << "  MatrixDef: " << matrixDef << "\n";
+    o << "  MatrixDependency: " << matrixDependency;
+  }
+}

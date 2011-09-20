@@ -1,0 +1,70 @@
+transform MinimizeOut
+from OUT, IN[n]
+to METRIC
+{
+    to   (METRIC metric)
+    from (IN in, OUT out)
+    {
+        double x = out;
+        if (x == 0) {
+            x = std::numeric_limits<double>::epsilon();
+        }
+        metric = -log10(x);
+    }
+}
+
+transform Rosenbrock
+from X, Y
+to OUT
+{
+    OUT from (X x, Y y)
+    {
+        double f = (1 - x) * (1 - x) + 100 * (y - x * x) * (y - x * x);
+        fprintf(stderr, "f(%.25g, %.25g) = %.25g\n", x, y, f);
+        return f;
+    }
+}
+
+transform Bowl
+from X
+to OUT
+{
+    OUT from (X x)
+    {
+        double f = x * (x - 3) + 2.25;
+        fprintf(stderr, "f(%.25g) = %.25g\n", x, f);
+        return f;
+    }
+}
+
+transform Bowl2D
+from X, Y
+to OUT
+{
+    OUT from (X x, Y y)
+    {
+        double f = (x * (x - 2) + y * (y - 2)) + 2;
+        fprintf(stderr, "f(%.25g, %.25g) = %.25g\n", x, y, f);
+        return f;
+    }
+}
+
+transform Optimize
+from IN[n]
+to OUT
+// TODO: add support for non-array tunable floats
+// tunable float sizespecific x1 (-1e-1)
+tunable float sizespecific array(2) initial(-1e-1) x2
+// tunable float sizespecific array(3) initial(-1e-1) x3
+accuracy_metric MinimizeOut
+accuracy_bins 0
+{
+    to (OUT out)
+    from (IN in)
+    {
+//        Rosenbrock(out, x, y);
+        Bowl2D(out, (double) x2[0], (double) x2[1]);
+//        Bowl(out, (double) x1);
+    }
+}
+

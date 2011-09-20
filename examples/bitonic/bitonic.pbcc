@@ -2,6 +2,7 @@
 #define BITONIC_PBCC
 
 //#include "BitonicCompare.pbcc"
+#include "../simple/copy.pbcc"
 
 transform BitonicCompare
 from IN1[n], IN2[n],UP
@@ -45,25 +46,68 @@ to OUT[n]
   }
 }
 
+transform BitonicSwap
+to DATA[n]
+from INC, LEN, DIR
+{
+  to(DATA.cell(i) dataI, DATA data) from(INC increase, LEN length, DIR flag) {
+    int inc = increase;
+    int len = length;
+    int bit = flag;
+    int j = i ^ inc;
+    bool dir = ((i & (len<<1)) != 0);
+    if(j < n && i < j) {
+      ElementT dataJ = data.cell(j);
+      bool smaller = (dataJ > dataI);
+      bool swap = smaller ^ dir ^ bit;
+      if(swap) {
+        data.cell(j) = dataI;
+        data.cell(i) = dataJ;
+        //printf("swap (%d) %.0f  (%d) %.0f\n",i,dataI,j,dataJ);
+      }
+    }
+  }
+}
+
 transform bitonic
 from IN[n], UP 
 through INTER[n]
 to OUT[n]
 {
 
-  to (OUT out, INTER inter) from (IN in, UP up) 
+  /*to (OUT out, INTER inter) from (IN in, UP up) 
   {
-	if (n <= 1)
-	{
-		out.cell(0)=in.cell(0);
-	}
-	else
-	{
-		bitonic(inter.region(0,n/2), in.region(0,n/2), up);
-		bitonic(inter.region(n/2,n), in.region(n/2,n), 1-up);
-		BitonicMerge(out, inter, up);
-	}
-  }  
+	  if (n <= 1)
+	  {
+		  out.cell(0)=in.cell(0);
+	  }
+	  else
+	  {
+		  bitonic(inter.region(0,n/2), in.region(0,n/2), up);
+		  bitonic(inter.region(n/2,n), in.region(n/2,n), 1-up);
+		  BitonicMerge(out, inter, up);
+	  }
+  } */ 
+
+  to(OUT out) from(IN in) {
+    Copy1D(out,in);
+    int direction = 0;
+    int length;
+    for (length=1;length<n;length<<=1)
+      direction ^= 1;
+    for (length=1;length<n;length<<=1)
+    {
+      // Loop on comparison distance (between keys)
+      for (int inc=length;inc>0;inc>>=1)
+      {
+        //printf("%d %d = \n", inc, length);
+        //MatrixIO().write(out);
+        BitonicSwap(out, inc, length, direction);
+        //MatrixIO().write(out);
+      }
+      direction ^= 1;
+    }
+  }
 }
 
 #endif // BITONIC_PBCC

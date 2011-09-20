@@ -11,7 +11,7 @@ from storagedirs import timers
 from scipy import stats
 from tunerconfig import config, OperatorSelectionMethod
 from tunerwarnings import ComparisonFailed, InconsistentOutput
-from mutators import MutateFailed
+import mutators
 warnings.simplefilter('ignore', DeprecationWarning)
 numpy.seterr(all="ignore")
 
@@ -245,7 +245,7 @@ class ResultsDB:
 class Candidate:
   nextCandidateId=0
   '''A candidate algorithm in the population'''
-  def __init__(self, cfg, infoxml, mutators=[]):
+  def __init__(self, cfg, infoxml, mutators=[], pop=None):
     self.config      = ConfigFile(cfg)
     self.metrics     = [ResultsDB(x) for x in config.metrics]
     self.mutators    = list(mutators)
@@ -260,6 +260,7 @@ class Candidate:
       self.mutatorScores[m] = 0
     
     Candidate.nextCandidateId += 1
+    self.pop         = pop # population this candidate is a member of
 
 
   def discardResults(self, n):
@@ -276,7 +277,7 @@ class Candidate:
     so new results will be added to both algs
     use clearResults to remove the copies
     '''
-    t=Candidate(self.config, self.infoxml, self.mutators)
+    t=Candidate(self.config, self.infoxml, self.mutators, self.pop)
     for i in xrange(len(self.metrics)):
       for n in self.metrics[i].keys():
         t.metrics[i][n] = self.metrics[i][n]
@@ -322,7 +323,7 @@ class Candidate:
           c.mutate(n, mutatorFilter)
         assert c.lastMutator != None
         break
-      except MutateFailed:
+      except mutators.MutateFailed:
         if z==config.mutate_retries-1:
           warnings.warn(tunerwarnings.MutateFailed(c, z, n))
         continue
@@ -637,9 +638,9 @@ class CandidateTester:
   def checkOutputHash(self, candidate, i, value):
     if self.inputs[i].outputHash is None:
       self.inputs[i].outputHash = value
-      self.inputs[i].firstCanidate = candidate
+      self.inputs[i].firstCandidate = candidate
     elif self.inputs[i].outputHash != value:
-      warnings.warn(InconsistentOutput(self.inputs[i].firstCanidate, candidate, self.inputs[i].pfx))
+      warnings.warn(InconsistentOutput(self.inputs[i].firstCandidate, candidate, self.inputs[i].pfx))
 
   def test(self, candidate, limit=None):
     self.testCount += 1
@@ -649,6 +650,7 @@ class CandidateTester:
       warnings.warn(tunerwarnings.TooManyTrials(testNumber+1))
     cmd = list(self.cmd)
     cmd.append("--config="+cfgfile)
+    cmd.append("--noisolation")
     cmd.extend(timers.inputgen.wrap(lambda:self.getInputArg(testNumber)))
     if limit is not None:
       cmd.append("--max-sec=%f"%limit)

@@ -1,0 +1,97 @@
+#ifndef NWKDEMETRIC_PBCC
+#define NWKDEMETRIC_PBCC
+
+%{
+
+/* This function returns the -log10 of the MSE produced by NWKDE transforms.
+ * 
+ * WARNING: This metric assumes that the true value the regression
+ * aims to produce is located in the TESTDATA at the location pointed
+ * to by OUTPUTVARINDEX and OUTPUTTIMEOFFSET, even though strictly
+ * speaking, those values are meant only as indexes into TRAINDATA,
+ * not TESTDATA.
+ *
+ * If this condition is not met, use a different metric transform to
+ * measure output accuracy.
+ */
+double computeNWKDEMetric(ConstMatrixRegion1D result,
+                          ConstMatrixRegion2D testData,
+                          ConstMatrixRegion1D testIndices,
+                          int outputVarIndex,
+                          int outputTimeOffset)
+{
+    double a, b, diff, sum = 0;
+    int outputTimeIndex, count = 0;
+
+    for (int i = 0; i < testIndices.count(); ++i) {
+        outputTimeIndex = (int) testIndices.cell(i) + (int) outputTimeOffset;
+        a = result.cell(i);
+        b = testData.cell((int) outputVarIndex, outputTimeIndex);
+        diff = a - b;
+#ifdef DEBUG
+        fprintf(stderr, "Metric: %g = (%g - %g)\n", diff, a, b);
+#endif
+        if (!isnan(diff)) {
+            sum += diff * diff;
+            count++;
+        }
+    }
+
+    sum /= count;
+
+    if (sum == 0) {
+        sum = std::numeric_limits<double>::epsilon();
+    }
+
+    return -log10(sum);
+}
+
+%}
+
+/* Wrapper around computeNWKDEMetric function.
+ * Can be used with NWKDEVA transform.
+ */
+transform NWKDEMetric
+from RESULT[q], TRAINDATA[m,n], WRAPFLAGS[m],
+     TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
+     TESTDATA[m2,n2],
+     TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
+to METRIC
+{
+    to (METRIC metric)
+    from (RESULT result,
+          TESTDATA testData,
+          TESTINDICES testIndices,
+          OUTPUTVARINDEX outputVarIndex,
+          OUTPUTTIMEOFFSET outputTimeOffset)
+    {
+        metric = computeNWKDEMetric(result, testData, testIndices,
+                                    outputVarIndex, outputTimeOffset);
+    }
+}
+
+/* Similar to NWKDEMetric, but also accepts kernelWidths argument.
+ * Can be used with NWKDE transform.
+ */
+transform NWKDEMetric2
+from RESULT[q], TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
+     TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
+     TESTDATA[m2,n2],
+     TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
+to METRIC
+{
+    to (METRIC metric)
+    from (RESULT result,
+          TESTDATA testData,
+          TESTINDICES testIndices,
+          OUTPUTVARINDEX outputVarIndex,
+          OUTPUTTIMEOFFSET outputTimeOffset)
+    {
+        metric = computeNWKDEMetric(result, testData, testIndices,
+                                    outputVarIndex, outputTimeOffset);
+    }
+}
+
+#endif // NWKDEMETRIC_PBCC

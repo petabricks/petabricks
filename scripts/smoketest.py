@@ -30,7 +30,10 @@ check_exclude=[
          "matrixapprox/matrixapprox",     # (Variable accuracy)
          "regression/accuracymetric",     # (Variable accuracy)
          "preconditioner/preconditioner", # (Variable accuracy)
+         "kernel/nwkde",                  # (Variable accuracy)
+         "kernel/nwkdeVA",                # (Variable accuracy)
 
+         "regression/floattunables",
          "regression/floattunables2",
     ]
 
@@ -122,6 +125,13 @@ def testBenchmark(b):
     return False
 
   def test():
+    if isFloatingPoint() and os.path.exists(outfile+".float"):
+      ext = ".float"
+      print "FLOAT"
+    else:
+      ext = ""
+
+    #run cpu config
     cmd=[bin, '--fixedrandom', '--config=%s.cfg'%outfile]
     cmd.extend(iofiles)
     t1=time.time()
@@ -131,19 +141,34 @@ def testBenchmark(b):
       print "run FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd))
       return False
 
-    if isFloatingPoint() and os.path.exists(outfile+".float"):
-      ext = ".float"
-      print "FLOAT"
-    else:
-      ext = ""
-
     if diffFiles(outfile+ext, outfile+".latest"):
       time.sleep(0.1) #try letting the filesystem settle down
       if diffFiles(outfile+ext, outfile+".latest"):
         print "run FAILED (wrong output)"
         return False
-
+    
     print "run PASSED (took %.2fs)" % (t2-t1)
+
+    if (not haveOpenCL()) or (not os.path.exists(outfile+".gpucfg")):
+      return True
+
+    #run gpu config
+    cmd=[bin, '--fixedrandom', '--noisolation', '--config=%s.gpucfg'%outfile]
+    cmd.extend(iofiles)
+    t1=time.time()
+    rv = run(cmd)
+    t2=time.time()
+    if rv != 0:
+      print "gpu FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd))
+      return False
+
+    if diffFiles(outfile+ext, outfile+".latest"):
+      time.sleep(0.1) #try letting the filesystem settle down
+      if diffFiles(outfile+ext, outfile+".latest"):
+        print "gpu FAILED (wrong output)"
+        return False
+    
+    print "gpu PASSED (took %.2fs)" % (t2-t1)
     return True
 
   return test()
@@ -153,7 +178,15 @@ def isFloatingPoint():
     if "MATRIX_ELEMENT_T" in line and "float" in line:
        return True
   return False
-
+	
+def haveOpenCL():
+  for line in open("./src/config.h"):
+    if "HAVE_OPENCL" in line:
+      if "/*" in line:
+        return False
+      else:
+        return True
+  return False
 
 if 'nocheck' in sys.argv[1:]:
   sys.argv[1:] = filter(lambda x: x!='nocheck', sys.argv[1:])

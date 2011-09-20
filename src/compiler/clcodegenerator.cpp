@@ -88,6 +88,7 @@ CLCodeGenerator::localMemoryBarrier( )
 
 void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned int dims, Transform& trans)
 {
+  // Kernel's arguments need to be conformed with UserRule's codegen
 
   os() << "#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n";
   os() << "__kernel void kernel_main( ";
@@ -96,10 +97,10 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   std::map<std::string, std::string> map;
   for(RegionList::const_iterator it = _to.begin(); it != _to.end(); ++it)
   {
-    if( it != _to.begin() )
-	    os() << ", ";
     std::string matrix_name = (*it)->matrix( )->name( );
     if(map[matrix_name] == "") {
+      if( it != _to.begin() )
+	      os() << ", ";
       (*it)->setBuffer(true);
       map[matrix_name] = (*it)->name();
       os() << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << (*it)->name();
@@ -110,7 +111,6 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
     }
   }
 
-  map.clear();
   for(RegionList::const_iterator it = _from.begin(); it != _from.end(); ++it)
   { 
     std::string matrix_name = (*it)->matrix( )->name( );
@@ -135,7 +135,7 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   // And we'll need to provide the size of the region that we want the kernel to operate on.  (This is where the 'center' of the rule will be.)
   for( int i = 0; i < (int)dims; ++i )
   {
-    os() << ", int dim_d" << i;
+    //os() << ", int dim_d" << i;
     os() << ", int dim_d" << i << "_begin";
     os() << ", int dim_d" << i << "_end";
   }

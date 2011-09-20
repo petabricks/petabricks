@@ -1,0 +1,182 @@
+#ifndef NWKDEGENERATORS_PBCC
+#define NWKDEGENERATORS_PBCC
+
+#include "nwkde.h"
+#include "utils.pbcc"
+
+/* Load data from files */
+transform NWKDEGenerator
+from IN[n]
+to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
+     TRAININDICES[n], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
+     TESTDATA[4,8750],
+     TESTINDICES[n], TESTVARINDEX[8], TESTTIMEOFFSET[8],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
+{
+    to (TRAINDATA trainData,
+        WRAPFLAGS wrapFlags,
+        KERNELWIDTHS kernelWidths,
+        TRAININDICES trainIndices,
+        TRAINVARINDEX trainVarIndex,
+        TRAINTIMEOFFSET trainTimeOffset,
+        TESTDATA testData,
+        TESTINDICES testIndices,
+        TESTVARINDEX testVarIndex,
+        TESTTIMEOFFSET testTimeOffset,
+        OUTPUTVARINDEX outputVarIndex,
+        OUTPUTTIMEOFFSET outputTimeOffset,
+        TRAINMASKWIDTH trainMaskWidth)
+    from (IN in)
+    {
+        MatrixRegion2D a;
+        MatrixRegion1D b;
+
+        a = MatrixIO(TESTDIR "trainData.pba", "r").read2D();
+        Copy2D(trainData, a);
+
+        b = MatrixIO(TESTDIR "wrapFlags.pba", "r").read1D();
+        Copy1D(wrapFlags, b);
+
+        b = MatrixIO(TESTDIR "kernelWidths.pba", "r").read1D();
+        Copy1D(kernelWidths, b);
+
+        b = MatrixIO(TESTDIR "trainIndices.pba", "r").read1D();
+        Copy1D(trainIndices, b.region(0, n));
+
+        b = MatrixIO(TESTDIR "trainVarIndex.pba", "r").read1D();
+        Copy1D(trainVarIndex, b);
+
+        b = MatrixIO(TESTDIR "trainTimeOffset.pba", "r").read1D();
+        Copy1D(trainTimeOffset, b);
+
+        a = MatrixIO(TESTDIR "testData.pba", "r").read2D();
+        Copy2D(testData, a);
+
+        b = MatrixIO(TESTDIR "testIndices.pba", "r").read1D();
+        Copy1D(testIndices, b.region(0, n));
+
+        b = MatrixIO(TESTDIR "testVarIndex.pba", "r").read1D();
+        Copy1D(testVarIndex, b);
+
+        b = MatrixIO(TESTDIR "testTimeOffset.pba", "r").read1D();
+        Copy1D(testTimeOffset, b);
+
+        outputVarIndex = MatrixIO(TESTDIR "outputVarIndex.pba", "r").read0D();
+        outputTimeOffset = MatrixIO(TESTDIR "outputTimeOffset.pba", "r").read0D();
+        trainMaskWidth = MatrixIO(TESTDIR "trainMaskWidth.pba", "r").read0D();
+    }
+}
+
+/* Hard code most of the generated values  Only the wind data is
+ * loaded from a file (to cut the number of file loads).
+ */
+transform NWKDEGenerator2
+from IN[n]
+to   TRAINDATA[4,8750], WRAPFLAGS[4],
+     TRAININDICES[n], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
+     TESTDATA[4,8750],
+     TESTINDICES[n], TESTVARINDEX[8], TESTTIMEOFFSET[8],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
+{
+    to (TRAINDATA trainData,
+        WRAPFLAGS wrapFlags,
+        TRAININDICES trainIndices,
+        TRAINVARINDEX trainVarIndex,
+        TRAINTIMEOFFSET trainTimeOffset,
+        TESTDATA testData,
+        TESTINDICES testIndices,
+        TESTVARINDEX testVarIndex,
+        TESTTIMEOFFSET testTimeOffset,
+        OUTPUTVARINDEX outputVarIndex,
+        OUTPUTTIMEOFFSET outputTimeOffset,
+        TRAINMASKWIDTH trainMaskWidth)
+    from (IN in)
+    {
+        if (n > 8748) {
+            fprintf(stderr, "n too large for generator\n");
+            PetabricksRuntime::abort();
+        }
+
+        MatrixRegion2D a;
+        a = MatrixIO(TESTDIR "trainData.pba", "r").read2D();
+        Copy2D(trainData, a);
+
+        wrapFlags.cell(0) = 0;
+        wrapFlags.cell(1) = 1;
+        wrapFlags.cell(2) = 0;
+        wrapFlags.cell(3) = 1;
+
+        for (int i = 0; i < n; ++i) {
+            trainIndices.cell(i) = i+1;
+        }
+
+        trainVarIndex.cell(0) = 0;
+        trainVarIndex.cell(1) = 1;
+        trainVarIndex.cell(2) = 2;
+        trainVarIndex.cell(3) = 3;
+        trainVarIndex.cell(4) = 2;
+        trainVarIndex.cell(5) = 3;
+        trainVarIndex.cell(6) = 2;
+        trainVarIndex.cell(7) = 3;
+
+        trainTimeOffset.cell(0) = -1;
+        trainTimeOffset.cell(1) = -1;
+        trainTimeOffset.cell(2) = -1;
+        trainTimeOffset.cell(3) = -1;
+        trainTimeOffset.cell(4) = 0;
+        trainTimeOffset.cell(5) = 0;
+        trainTimeOffset.cell(6) = 1;
+        trainTimeOffset.cell(7) = 1;
+
+        Copy2D(testData, trainData);
+        Copy1D(testIndices, trainIndices);
+        Copy1D(testVarIndex, trainVarIndex);
+        Copy1D(testTimeOffset, trainTimeOffset);
+
+        outputVarIndex = 0;
+        outputTimeOffset = 0;
+        trainMaskWidth = 12;
+    }
+}
+
+/* Similar to NWKDEGenerator2, but also generates kernelWidths */
+transform NWKDEGenerator3
+from IN[n]
+to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
+     TRAININDICES[n], TRAINVARINDEX[8], TRAINTIMEOFFSET[8],
+     TESTDATA[4,8750],
+     TESTINDICES[n], TESTVARINDEX[8], TESTTIMEOFFSET[8],
+     OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
+{
+    to (TRAINDATA trainData,
+        WRAPFLAGS wrapFlags,
+        KERNELWIDTHS kernelWidths,
+        TRAININDICES trainIndices,
+        TRAINVARINDEX trainVarIndex,
+        TRAINTIMEOFFSET trainTimeOffset,
+        TESTDATA testData,
+        TESTINDICES testIndices,
+        TESTVARINDEX testVarIndex,
+        TESTTIMEOFFSET testTimeOffset,
+        OUTPUTVARINDEX outputVarIndex,
+        OUTPUTTIMEOFFSET outputTimeOffset,
+        TRAINMASKWIDTH trainMaskWidth)
+    from (IN in)
+    {
+        // call generator2 for everything except kernelWidths
+        NWKDEGenerator2(trainData, wrapFlags,
+                        trainIndices, trainVarIndex, trainTimeOffset,
+                        testData,
+                        testIndices, testVarIndex, testTimeOffset,
+                        outputVarIndex, outputTimeOffset, trainMaskWidth,
+                        in);
+
+        // set kernelWidths
+        kernelWidths.cell(0) =   2.4211;
+        kernelWidths.cell(1) = 236.1655;
+        kernelWidths.cell(2) =   1.6228;
+        kernelWidths.cell(3) =  36.4703;
+    }
+}
+
+#endif // NWKDEGENERATORS_PBCC

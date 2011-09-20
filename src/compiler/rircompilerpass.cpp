@@ -25,12 +25,13 @@
  *                                                                           *
  *****************************************************************************/
 #include "rircompilerpass.h"
-
 #include "codegenerator.h"
 #include "rule.h"
 #include "transform.h"
 
 #include "common/jconvert.h"
+
+#include <cstring>
 
 namespace {//file local
   std::string _uniquify(const std::string& prefix) {
@@ -362,6 +363,7 @@ void petabricks::AnalysisPass::before(RIRExprCopyRef& e){
   }
 }
 
+#ifdef HAVE_OPENCL
 petabricks::RegionPtr petabricks::OpenClCleanupPass::findMatrix(std::string var)
 {
   RegionList from = _rule.getFromRegions();
@@ -378,6 +380,20 @@ petabricks::RegionPtr petabricks::OpenClCleanupPass::findMatrix(std::string var)
 
 void petabricks::OpenClCleanupPass::generateAccessor( const RegionPtr& , const FormulaPtr& , const FormulaPtr&  )
 {
+}
+
+std::vector<std::string> petabricks::OpenClCleanupPass::generateCellIndices(RIRExprList& tokens) {
+  std::string s;
+  for(RIRExprList::iterator i = tokens.begin(); i != tokens.end(); ++i) {
+    s += (*i)->toString();
+  }
+  std::vector<std::string> indices;
+  char* tok = strtok((char*) s.c_str(), ",");
+  while(tok != NULL) {
+    indices.push_back(tok);
+    tok = strtok(NULL, ",");
+  }
+  return indices;
 }
 
 void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
@@ -408,66 +424,80 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
         RIRExprCopyRef args = call->part(1);
         JTRACE("expanding SYM_ARG_REGION")(regionName)(methodname)(args);
 
-	// Look up matrix region.
-	RegionPtr region = findMatrix(regionName->str());
-	JASSERT( !region.null() ).Text( "No such region exists." );
+	      // Look up matrix region.
+	      RegionPtr region = findMatrix(regionName->str());
+	      JASSERT( !region.null() ).Text( "No such region exists." );
 
-	// Generate list of index expressions.
-	/*
-	std::cout << "formula bounds:\n";
-	for( int i = 0; i < region->dimensions(); ++i )
-	  {
-	    std::cout << i << ": ";
-	    region->minCoord().at( i )->print(std::cout);
-	    std::cout << " to ";
-	    region->maxCoord().at( i )->print(std::cout);
-	    std::cout << std::endl;
-	  }
-	*/
-
-	if( "cell" == methodname->str() )
-	  {
-	    std::string xcoord, ycoord;
-	    if( petabricks::Region::REGION_ROW == region->getRegionType() )
+	      if( "cell" == methodname->str() )
 	      {
-		xcoord = args->toString();
-		ycoord = region->minCoord().at(1)->toString();
-	      }
-	    else if( petabricks::Region::REGION_COL == region->getRegionType() )
+            
+          //RIRExprList indices = call->parts().back()->parts().front()->parts();
+          vector<std::string> indices = generateCellIndices(call->parts().back()->parts().front()->parts());
+          vector<std::string>::reverse_iterator i = indices.rbegin();
+          FormulaPtr idx_formula;
+          switch(region->getRegionType()) {
+            case Region::REGION_CELL:
+              JASSERT(false).Text("Cannot call cell in cell");
+              break;
+            case Region::REGION_ROW:
+              idx_formula = new FormulaVariable(*i);
+              break;
+            case Region::REGION_COL:
+              idx_formula = new FormulaMultiply( new FormulaVariable(*i), new FormulaVariable("dim_" + region->name() + "_d0") );
+              break;
+            case Region::REGION_ALL:
+            case Region::REGION_BOX:
+              {
+                int j = indices.size() - 2;
+                //std::ostream o;
+                idx_formula = new FormulaVariable(*i); //TODO if index is more complicated expr
+                ++i;
+                while(i != indices.rend()) {
+                  std::stringstream sizevar;
+                  sizevar << "dim_" << region->name() << "_d" << j--; //TODO check objName
+                  idx_formula = new FormulaAdd( new FormulaVariable(*i), new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
+                  ++i;
+                }
+              }
+              break;
+            default:
+              UNIMPLEMENTED();
+          }
+
+          // Index needs to include idx_region in case that RegionType != REGION_ALL
+          // idx_region is calculated at UserRule::generateOpenCLKernel
+          std::string exprstr = "_region_" + region->name() + "[" + idx_formula->toString() + " + idx_" + region->name() + "]";
+          e = RIRExpr::parse( exprstr, SRCPOS() );
+        }
+        /*else if("count" == methodname->str()) {
+          FormulaPtr count_formula = new FormulaInteger(1);
+          for(int i = 0; i < region->dimensions(); ++i)
+            count_formula = new FormulaMultiply(count_formula, new FormulaVariable("dim_" + region->name() + "_d" + jalib::XToString(i)) );
+          e = RIRExpr::parse(count_formula->toString(), SRCPOS() );
+        }
+	      else if( "width" == methodname->str() )
 	      {
-		xcoord = region->minCoord().at(0)->toString();
-		ycoord = args->toString();
-	      }
-	    else
+	          e = RIRExpr::parse( "dim_" + region->matrix()->name() + "_d0", SRCPOS() );
+	      }*/
+	      //TODO: slice()
+	      else
 	      {
-		std::cout << "Failed to generate OpenCL kernel: unsupported region type.";
-		throw NotValidSource();
+	        JASSERT( false ).Text( "Failed to generate OpenCL kernel: unsupported member function of region." );
 	      }
 
-	    std::string exprstr = region->matrix()->name() + "[(dim_" + region->matrix()->name() + "_d0*" + ycoord + ")+" + xcoord + "]";
-	    //std::cout << "expression string: " << exprstr << "\n";
-	    e = RIRExpr::parse( exprstr, SRCPOS() );
-	    //std::cout << "accessor index: " << e->debugStr() << "\n";
-	  }
-	else if( "width" == methodname->str() )
-	  {
-	    e = RIRExpr::parse( "dim_" + region->matrix()->name() + "_d0", SRCPOS() );
-	  }
-	else
-	  {
-	    JASSERT( false ).Text( "Failed to generate OpenCL kernel: unsupported member function of region." );
-	  }
+	      // Simplify expressions and produce final call.
 
-	// Simplify expressions and produce final call.
-
-	/*
-        args->prependSubExpr(methodname);
-        args->prependSubExpr(regionName);
-        e = new RIRCallExpr();
-        e->addSubExpr(new RIRIdentExpr("REGION_METHOD_CALL"));
-        e->addSubExpr(args);
-	*/
+	      /*
+              args->prependSubExpr(methodname);
+              args->prependSubExpr(regionName);
+              e = new RIRCallExpr();
+              e->addSubExpr(new RIRIdentExpr("REGION_METHOD_CALL"));
+              e->addSubExpr(args);
+	      */
       }
+    }
+    if(sym && sym->type() == RIRSymbol::SYM_ARG_ELEMENT) {
+      e = RIRExpr::parse( "_region_" + e->str() + "[idx_"+e->str()+"]", SRCPOS() );
     }
   }
 }
@@ -486,6 +516,7 @@ bool petabricks::OpenClFunctionRejectPass::isFunctionAllowed( const std::string&
       "sin", "cos", "tan",
       "acos", "asin", "atan",
       "sqrt",
+      "cell", 
       "", };
 
   const std::string* p = whitelist;
@@ -529,3 +560,4 @@ void petabricks::OpenClFunctionRejectPass::before(RIRExprCopyRef& e)
 	}
     }
 }
+#endif

@@ -81,7 +81,7 @@ public:
 
   ///
   /// called by runWrapper, updated deps after a task completes
-  void completeTaskDeps(bool isAborting);
+  void completeTaskDeps(bool isAborting = false);
 
 
   ///

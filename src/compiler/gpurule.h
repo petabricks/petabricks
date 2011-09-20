@@ -59,7 +59,10 @@ class GpuRule : public SyntheticRule {
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor);
+                        RuleFlavor flavor,
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        bool gpuCopyOut);
   //TODO: remove this
   void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
   void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
@@ -96,6 +99,9 @@ class GpuRule : public SyntheticRule {
   bool isRecursive() const;
   bool hasWhereClause() const;
   FormulaPtr getWhereClause() const;
+
+  bool isEnabledGpuRule() { return !isDisabled(); }
+  int getAssociatedId() { return _rule->id(); }
  private:
   UserRule* _rule;
   RIRBlockCopyRef _bodyirOpenCL;
