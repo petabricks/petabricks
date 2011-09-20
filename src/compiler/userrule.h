@@ -102,21 +102,13 @@ public:
   /// Add RuleDescriptors to output corresponding to the extrema of the applicable region in dimension
   void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension, const RulePtr& rule);
 
-  ///
-  /// Generate seqential code to declare this rule
-  void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
+  
+  void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
+  void generateDeclCodeSequential(Transform& trans, CodeGenerator& o);
+  void generateDeclCodeOpenCl(Transform& trans, CodeGenerator& o);
 
-  ///
-  /// Generate seqential code to declare this rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
-    generateTrampCodeSimple(trans, o, RuleFlavor::SEQUENTIAL);
-    generateTrampCodeSimple(trans, o, RuleFlavor::WORKSTEALING);
-#ifdef HAVE_OPENCL
-    if( isOpenClRule() )
-      generateTrampCodeSimple(trans, o, RuleFlavor::OPENCL);
-#endif
-  }
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
+  
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
 #ifdef HAVE_OPENCL
@@ -257,7 +249,7 @@ public:
 
   RIRBlockCopyRef getBody( ) const
   {
-    return _bodyirStatic;
+    return _bodyir[RuleFlavor::SEQUENTIAL];
   }
 
   void buildApplicableRegion(Transform& trans,
@@ -289,7 +281,13 @@ private:
                                               const size_t dimension);                                
                                               
   void removeDimensionFromDefinitions(const size_t dimension);
-private:
+
+  void prepareBuffers();
+
+#ifdef HAVE_OPENCL
+  bool passBuildGpuProgram(Transform& trans);
+#endif
+
   RuleFlags _flags;
   RegionList _from;
   RegionList _to;
@@ -298,12 +296,7 @@ private:
   FormulaList _definitions;
   std::string _bodysrc;
   jalib::SrcPosTaggable _bodysrcPos;
-  RIRBlockCopyRef _bodyirStatic;
-  RIRBlockCopyRef _bodyirDynamic;
-#ifdef HAVE_OPENCL
-  RIRBlockCopyRef _bodyirOpenCL;
-  bool passBuildGpuProgram(Transform& trans);
-#endif
+  RIRBlockCopyRef _bodyir[RuleFlavor::_COUNT];
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr _recursiveHint;
@@ -311,7 +304,6 @@ private:
   ConfigItems _duplicateVars;
   RulePtr _gpuRule;
 
-  void prepareBuffers();
 };
 
 }

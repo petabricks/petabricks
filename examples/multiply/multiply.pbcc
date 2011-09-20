@@ -20,39 +20,6 @@ inline void printArray(int height, int width, ElementT *array){
 }
 #endif
 
-inline ElementT *toArray(petabricks::ConstMatrixRegion2D &matrix) {
-  ElementT *array;
-  
-  IndexT rows = matrix.height();
-  IndexT columns = matrix.width();
-
-#ifdef PRINT
-  printf("Matrix size: %d rows, %d columns\n", rows, columns);
-#endif
-
-  array = new ElementT[rows * columns];
-  
-  for(IndexT i=0; i<rows; ++i) {
-    for(IndexT j=0; j<columns; ++j) {
-      array[i*columns+ j] = matrix.cell(j,i);
-    }
-  }
-  
-  return array;
-}
-
-inline void toMatrix(ElementT* array, petabricks::MatrixRegion2D &matrix) {
-  IndexT rows = matrix.height();
-  IndexT columns = matrix.width();
-
-  for(IndexT i=0; i<rows; ++i) {
-    for(IndexT j=0; j<columns; ++j) {
-      matrix.cell(j,i) = array[i*columns + j];
-    }
-  }
-  
-  return;
-}
 
 void gemm_wrap(int rowA, int colB1, int rowB, float alpha, float* arrayA, int colA, float* arrayB, int colB2, float beta, float* arrayAB, int colAB) {
   cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, rowA, colB1, rowB, alpha, arrayA, colA, arrayB, colB2, beta, arrayAB, colAB);
@@ -138,35 +105,30 @@ to AB[w,h]
     ElementT alpha=1;
     ElementT beta=0;
     
-    if(colA != rowB) {
-      fprintf(stderr, "Unable to perform a matrix multiplication. Wrong input size.\n"
-	      "#columns of matrix A = %d\n"
-	      "#rows of matrix B = %d\n"
-	      "They should be equal!\n", colA, rowB);
-      exit(4);
-    }
+    //This is true by definition of transform:
+   //if(colA != rowB) {
+   //  fprintf(stderr, "Unable to perform a matrix multiplication. Wrong input size.\n"
+	 //    "#columns of matrix A = %d\n"
+	 //    "#rows of matrix B = %d\n"
+	 //    "They should be equal!\n", colA, rowB);
+   //  exit(4);
+   //}
     
-    ElementT* arrayA = toArray(a);
-    ElementT* arrayB = toArray(b);
-    
-    #ifdef PRINT
-    printArray(rowA, colA, arrayA);
-    printArray(rowB, colB, arrayB);
-    #endif
-    
-    ElementT* arrayAB = new ElementT[rowAB*colAB];
-    
+    ElementT* arrayA = 0;
+    ElementT* arrayB = 0;
+    ElementT* arrayAB = 0;
+    CArrayStorage arrayA_store;
+    CArrayStorage arrayB_store;
+    CArrayStorage arrayAB_store;
+       
+    //this will be in-place when possible:
+    to_c_array(a,  arrayA,  arrayA_store);
+    to_c_array(b,  arrayB,  arrayB_store);
+    to_c_array(ab, arrayAB, arrayAB_store);
     gemm_wrap(rowA, colB, rowB, alpha, arrayA, colA, arrayB, colB, beta, arrayAB, colAB);
-    
-    #ifdef PRINT
-    printArray(rowAB, colAB, arrayAB);
-    #endif
-    
-    toMatrix(arrayAB, ab);
-    
-    delete arrayA;
-    delete arrayB;
-    delete arrayAB;
+    free_c_array(arrayA,  arrayA_store);
+    free_c_array(arrayB,  arrayB_store);
+    from_c_array(ab, arrayAB, arrayAB_store);
   }
 }
 

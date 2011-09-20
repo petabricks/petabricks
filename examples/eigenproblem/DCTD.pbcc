@@ -25,14 +25,14 @@ to Eigenvalue[n], Eigenvector[n,n]
 	int nsquared=n*n;
 
 	MatrixRegion2D q1 = MatrixRegion2D::allocate(cutpnt,cutpnt);
-        MatrixRegion2D q2 = MatrixRegion2D::allocate(n-cutpnt,n-cutpnt);
+  MatrixRegion2D q2 = MatrixRegion2D::allocate(n-cutpnt,n-cutpnt);
 
 	ElementT rho=Ein.cell(cutpnt-1);
-	ElementT *D = eig.base();
-	ElementT *Q = vec.base();
 	ElementT *work = new ElementT[4*size+nsquared];
 	int *indxq = new int[size];
 	int *iwork = new int[4*size];	
+
+
 
 	MatrixRegion1D temp1 = MatrixRegion1D::allocate(n);
 
@@ -57,7 +57,17 @@ to Eigenvalue[n], Eigenvector[n,n]
 
 
 
+	ElementT *D;
+	ElementT *Q;
+	CArrayStorage Dstore;
+	CArrayStorage Qstore;
+
+
+	to_c_array(eig, D, Dstore);
+	to_c_array(vec, Q, Qstore);
 	laed1_wrap(&size, D, Q, &size, indxq, &rho, &cutpnt, work, iwork, &info);
+	from_c_array(eig, D, Dstore);
+	from_c_array(vec, Q, Qstore);
 
 	delete [] work;
 	delete [] iwork;

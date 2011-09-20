@@ -60,8 +60,8 @@ public:
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         bool gpuCopyOut); 
-  void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor);
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
 
   void markRecursive();
   const FormulaPtr& recursiveHint() const;
@@ -90,7 +90,7 @@ public:
   }
   
   //these just forward to _rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
                         CodeGenerator& o,
@@ -121,13 +121,14 @@ public:
     : _rules(rules) 
   {}
 
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor); 
+  
   
   bool isSingleElement() const;
   
@@ -138,7 +139,7 @@ public:
 
   void collectDependencies(StaticScheduler& scheduler);
 
-  void genWhereSwitch(Transform& trans, CodeGenerator& o);
+  void genWhereSwitch(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 
   DependencyDirection getSelfDependency() const;
 private:
@@ -158,7 +159,7 @@ public:
 
   ///
   /// calls setDuplicateNumber() then forwards the call to _rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
 
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
@@ -178,7 +179,7 @@ public:
     : _rules(rules) 
   {}
 
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 
   void generateCallCode(const std::string& nodename,
                         Transform& trans,

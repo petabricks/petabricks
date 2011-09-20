@@ -261,6 +261,18 @@ private:
   const RuleInterface& _rule;
 };
 
+class RuleFlavorSpecializePass : public RIRCompilerPass {
+public:
+  RuleFlavorSpecializePass(RuleFlavor rf)
+    : RIRCompilerPass(), _rf(rf)
+  {}
+
+  void before(RIRExprCopyRef& s);
+private:
+  RuleFlavor _rf;
+};
+
+
 class DynamicBodyPrintPass : public RIRCompilerPass {
 public:
   DynamicBodyPrintPass(CodeGenerator& oo )

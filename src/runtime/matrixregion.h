@@ -39,7 +39,7 @@
 // Class structure looks like this:
 //
 //  MatrixRegion  (specialized for MatrixRegion0D and  ConstMatrixRegion0D)
-//    extends 
+//    extends
 //  MatrixRegionVaArgsMethods (specialized a lot, for performance only; GCC optimizes VA_ARGS poorly)
 //    extends
 //  MatrixRegionBasicMethods
@@ -52,6 +52,29 @@
 //
 
 namespace petabricks {
+
+
+template<typename T>
+inline void _regioncopy(MATRIX_ELEMENT_T* out, const T& in) {
+    MATRIX_INDEX_T n = 0;
+    MATRIX_INDEX_T coord[T::D];
+    memset(coord, 0, sizeof coord);
+    do {
+      out[n++] = in.cell(coord);
+    } while(in.incCoord(coord)>=0);
+}
+
+template<typename T>
+inline void _regioncopy(const T& out, const MATRIX_ELEMENT_T* in) {
+    MATRIX_INDEX_T n = 0;
+    MATRIX_INDEX_T coord[T::D];
+    memset(coord, 0, sizeof coord);
+    do {
+      out.cell(coord) = in[n++];
+    } while(out.incCoord(coord)>=0);
+}
+
+
 
 template< int D, typename ElementT> class MatrixRegion;
 
@@ -89,14 +112,14 @@ public:
   typedef typename TypeSpec::StorageT StorageT;
   typedef typename TypeSpec::IndexT   IndexT;
   typedef typename TypeSpec::ElementT ElementT;
-  
+
   ///
   /// Constructor
   MatrixRegionMembers(const StorageT& s, ElementT* b, const IndexT RESTRICT* sizes, const IndexT RESTRICT * multipliers)
   {
     if(D>0) {
       const size_t sizeof_sizes = sizeof this->_sizes;
-      const size_t sizeof_multipliers = sizeof this->_sizes;
+      const size_t sizeof_multipliers = sizeof this->_multipliers;
 
       if(multipliers != NULL)
         memcpy(this->_multipliers, multipliers, sizeof_multipliers );
@@ -115,7 +138,7 @@ public:
       exportTo(_storageInfo);
     }
   }
-  
+
   ElementT* base() const { return _base; }
   const IndexT* sizes() const { return _sizes; }
   const IndexT* multipliers() const { return _multipliers; };
@@ -164,7 +187,7 @@ public:
       memcpy(storage()->data(), ms.storage()->data(), storage()->count()*sizeof(ElementT));
     }
   }
-protected: 
+protected:
   IndexT* sizes() { return _sizes; }
   IndexT* multipliers() { return _multipliers; };
 private:
@@ -202,7 +225,7 @@ public:
   typedef typename TypeSpec::MatrixRegion        MatrixRegion;
   typedef typename TypeSpec::SliceMatrixRegion   SliceMatrixRegion;
   typedef typename TypeSpec::MutableMatrixRegion MutableMatrixRegion;
-  
+
   ///
   /// Allocate a storage for a new MatrixRegion
   static MatrixRegion allocate(const IndexT sizes[D]) {
@@ -217,7 +240,7 @@ public:
     #endif
     return MatrixRegion(tmp, tmp->data(), sizes);
   }
-  
+
   ///
   ///same as allocate unless this->sizes()==sizes
   bool isSize(const IndexT sizes[D]) const{
@@ -322,7 +345,7 @@ public:
   }
 
 
-  INLINE ssize_t intervalSize(const IndexT c1[D], const IndexT c2[D]) const 
+  INLINE ssize_t intervalSize(const IndexT c1[D], const IndexT c2[D]) const
   { ssize_t s=1;
     for(int i=0; i<D; ++i) {
       s*=c2[i] - c1[i];
@@ -419,7 +442,7 @@ public:
 
   ///
   /// Return a slice through this dimension
-  /// The iterator is one dimension smaller and equivilent to always 
+  /// The iterator is one dimension smaller and equivilent to always
   /// giving pos for dimension d
   SliceMatrixRegion slice(int d, IndexT pos) const{
     #ifdef DEBUG
@@ -441,21 +464,21 @@ public:
     coord[d] = pos;
     return SliceMatrixRegion(this->storage(), this->coordToPtr(coord), sizes, mult);
   }
-  
-  
+
+
   SliceMatrixRegion col(IndexT x) const{ return slice(0, x); }
   SliceMatrixRegion column(IndexT x) const{ return slice(0, x); }
   SliceMatrixRegion row(IndexT y) const{  return slice(1, y); }
-  
+
   ///
   /// true if c1 is in bounds
-  bool contains(const IndexT coord[D]) const { 
+  bool contains(const IndexT coord[D]) const {
     for(int i=0; i<D; ++i)
       if(coord[i]<0 || coord[i]>=size(i))
         return false;
     return true;
   }
-  
+
   ///
   /// Return the size of a given dimension
   IndexT size(int d) const {
@@ -494,7 +517,7 @@ public:
   ssize_t bytes() const {
     return count()*sizeof(ElementT);
   }
-  
+
   ///
   /// force this region to be a mutable type (removes constness)
   /// this is evil
@@ -517,7 +540,7 @@ public:
   /// increment a raw coord in ascending order
   /// return largest dimension incremented or -1 for end
   int incCoord(IndexT coord[D]) const{
-    if(D==0) 
+    if(D==0)
      return -1;
     int i;
     coord[0]++;
@@ -536,11 +559,13 @@ public:
     }
   }
 
+  bool isLocal() const { return true; }
+
   ///
   /// increment a raw coord in ascending order with in the given boundary
   /// return largest dimension incremented or -1 for end
   int incCoordWithBound(IndexT coord[D], const IndexT c1[D], const IndexT c2[D]) const{
-    if(D==0) 
+    if(D==0)
      return -1;
     int i;
     coord[0]++;
@@ -570,7 +595,7 @@ public:
       } while(this->incCoord(coord)>=0);
     }
   }
-  
+
 protected:
   bool _hasStorageInfo;
   ///
@@ -586,7 +611,7 @@ protected:
     }
     return this->base()+rv;
   }
-  
+
   ///
   /// Fill _multipliers with a stock layout
   void setStockLayout(StockLayouts layout){
@@ -632,12 +657,12 @@ public:
                           , const typename TypeSpec::IndexT* multipliers)
     : Base(s,b,sizes,multipliers)
   {}
-  
+
   //these passthroughs must be declared here for overloading to work
   INLINE ElementT& cell(IndexT c[D]) const{ return this->Base::cell(c); }
   INLINE MatrixRegion region(const IndexT c1[D], const IndexT c2[D]) const{ return this->Base::region(c1,c2); }
   INLINE static MatrixRegion allocate(IndexT s[D]){ return Base::allocate(s); }
-  
+
   ///
   /// Allocate a storage for a new MatrixRegion (va_args version)
   static MatrixRegion allocate(IndexT x, ...){
@@ -661,11 +686,11 @@ public:
     va_end(ap);
     return cell(c1);
   }
-  
+
 
   ///
   /// true if coord is in bounds
-  bool contains(IndexT x, ...) const { 
+  bool contains(IndexT x, ...) const {
     IndexT c1[D];
     va_list ap;
     va_start(ap, x);
@@ -687,7 +712,7 @@ public:
     va_end(ap);
     return region(c1,c2);
   }
-  
+
 };
 
 
@@ -720,11 +745,11 @@ public:
               , ElementT* b
               , const IndexT sizes[D]
               , typename Base::StockLayouts layout = Base::LAYOUT_ASCENDING)
-    : Base(s, b, sizes, NULL) 
+    : Base(s, b, sizes, NULL)
   {
     this->setStockLayout(layout);
   }
-  
+
   ///
   /// Copy constructor
   MatrixRegion( const MutableMatrixRegion& that )
@@ -742,78 +767,59 @@ public:
 // specializations are a bit verbose, so we push them to their own file:
 #include "matrixspecializations.h"
 
-//some typedefs:
+
 namespace petabricks {
+  typedef MATRIX_INDEX_T IndexT;
+  typedef MATRIX_ELEMENT_T ElementT;
 
-typedef MatrixRegion<0,  MATRIX_ELEMENT_T> MatrixRegion0D;
-typedef MatrixRegion<1,  MATRIX_ELEMENT_T> MatrixRegion1D;
-typedef MatrixRegion<2,  MATRIX_ELEMENT_T> MatrixRegion2D;
-typedef MatrixRegion<3,  MATRIX_ELEMENT_T> MatrixRegion3D;
-typedef MatrixRegion<4,  MATRIX_ELEMENT_T> MatrixRegion4D;
-typedef MatrixRegion<5,  MATRIX_ELEMENT_T> MatrixRegion5D;
-typedef MatrixRegion<6,  MATRIX_ELEMENT_T> MatrixRegion6D;
-typedef MatrixRegion<7,  MATRIX_ELEMENT_T> MatrixRegion7D;
-typedef MatrixRegion<8,  MATRIX_ELEMENT_T> MatrixRegion8D;
-typedef MatrixRegion<9,  MATRIX_ELEMENT_T> MatrixRegion9D;
-typedef MatrixRegion<10, MATRIX_ELEMENT_T> MatrixRegion10D;
-typedef MatrixRegion<11, MATRIX_ELEMENT_T> MatrixRegion11D;
-typedef MatrixRegion<12, MATRIX_ELEMENT_T> MatrixRegion12D;
-typedef MatrixRegion<13, MATRIX_ELEMENT_T> MatrixRegion13D;
-typedef MatrixRegion<14, MATRIX_ELEMENT_T> MatrixRegion14D;
-typedef MatrixRegion<15, MATRIX_ELEMENT_T> MatrixRegion15D;
-typedef MatrixRegion<16, MATRIX_ELEMENT_T> MatrixRegion16D;
-typedef MatrixRegion<17, MATRIX_ELEMENT_T> MatrixRegion17D;
-typedef MatrixRegion<18, MATRIX_ELEMENT_T> MatrixRegion18D;
-typedef MatrixRegion<19, MATRIX_ELEMENT_T> MatrixRegion19D;
-typedef MatrixRegion<20, MATRIX_ELEMENT_T> MatrixRegion20D;
-typedef MatrixRegion<21, MATRIX_ELEMENT_T> MatrixRegion21D;
-typedef MatrixRegion<22, MATRIX_ELEMENT_T> MatrixRegion22D;
-typedef MatrixRegion<23, MATRIX_ELEMENT_T> MatrixRegion23D;
-typedef MatrixRegion<24, MATRIX_ELEMENT_T> MatrixRegion24D;
-typedef MatrixRegion<25, MATRIX_ELEMENT_T> MatrixRegion25D;
-typedef MatrixRegion<26, MATRIX_ELEMENT_T> MatrixRegion26D;
-typedef MatrixRegion<27, MATRIX_ELEMENT_T> MatrixRegion27D;
-typedef MatrixRegion<28, MATRIX_ELEMENT_T> MatrixRegion28D;
-typedef MatrixRegion<29, MATRIX_ELEMENT_T> MatrixRegion29D;
-typedef MatrixRegion<30, MATRIX_ELEMENT_T> MatrixRegion30D;
-typedef MatrixRegion<31, MATRIX_ELEMENT_T> MatrixRegion31D;
+  //some typedefs:
+  namespace sequential {
+    typedef MatrixRegion<0,  MATRIX_ELEMENT_T> MatrixRegion0D;
+    typedef MatrixRegion<1,  MATRIX_ELEMENT_T> MatrixRegion1D;
+    typedef MatrixRegion<2,  MATRIX_ELEMENT_T> MatrixRegion2D;
+    typedef MatrixRegion<3,  MATRIX_ELEMENT_T> MatrixRegion3D;
+    typedef MatrixRegion<4,  MATRIX_ELEMENT_T> MatrixRegion4D;
+    typedef MatrixRegion<5,  MATRIX_ELEMENT_T> MatrixRegion5D;
+    typedef MatrixRegion<6,  MATRIX_ELEMENT_T> MatrixRegion6D;
+    typedef MatrixRegion<7,  MATRIX_ELEMENT_T> MatrixRegion7D;
+    typedef MatrixRegion<8,  MATRIX_ELEMENT_T> MatrixRegion8D;
+    typedef MatrixRegion<9,  MATRIX_ELEMENT_T> MatrixRegion9D;
 
-typedef MatrixRegion<0,  const MATRIX_ELEMENT_T> ConstMatrixRegion0D;
-typedef MatrixRegion<1,  const MATRIX_ELEMENT_T> ConstMatrixRegion1D;
-typedef MatrixRegion<2,  const MATRIX_ELEMENT_T> ConstMatrixRegion2D;
-typedef MatrixRegion<3,  const MATRIX_ELEMENT_T> ConstMatrixRegion3D;
-typedef MatrixRegion<4,  const MATRIX_ELEMENT_T> ConstMatrixRegion4D;
-typedef MatrixRegion<5,  const MATRIX_ELEMENT_T> ConstMatrixRegion5D;
-typedef MatrixRegion<6,  const MATRIX_ELEMENT_T> ConstMatrixRegion6D;
-typedef MatrixRegion<7,  const MATRIX_ELEMENT_T> ConstMatrixRegion7D;
-typedef MatrixRegion<8,  const MATRIX_ELEMENT_T> ConstMatrixRegion8D;
-typedef MatrixRegion<9,  const MATRIX_ELEMENT_T> ConstMatrixRegion9D;
-typedef MatrixRegion<10, const MATRIX_ELEMENT_T> ConstMatrixRegion10D;
-typedef MatrixRegion<11, const MATRIX_ELEMENT_T> ConstMatrixRegion11D;
-typedef MatrixRegion<12, const MATRIX_ELEMENT_T> ConstMatrixRegion12D;
-typedef MatrixRegion<13, const MATRIX_ELEMENT_T> ConstMatrixRegion13D;
-typedef MatrixRegion<14, const MATRIX_ELEMENT_T> ConstMatrixRegion14D;
-typedef MatrixRegion<15, const MATRIX_ELEMENT_T> ConstMatrixRegion15D;
-typedef MatrixRegion<16, const MATRIX_ELEMENT_T> ConstMatrixRegion16D;
-typedef MatrixRegion<17, const MATRIX_ELEMENT_T> ConstMatrixRegion17D;
-typedef MatrixRegion<18, const MATRIX_ELEMENT_T> ConstMatrixRegion18D;
-typedef MatrixRegion<19, const MATRIX_ELEMENT_T> ConstMatrixRegion19D;
-typedef MatrixRegion<20, const MATRIX_ELEMENT_T> ConstMatrixRegion20D;
-typedef MatrixRegion<21, const MATRIX_ELEMENT_T> ConstMatrixRegion21D;
-typedef MatrixRegion<22, const MATRIX_ELEMENT_T> ConstMatrixRegion22D;
-typedef MatrixRegion<23, const MATRIX_ELEMENT_T> ConstMatrixRegion23D;
-typedef MatrixRegion<24, const MATRIX_ELEMENT_T> ConstMatrixRegion24D;
-typedef MatrixRegion<25, const MATRIX_ELEMENT_T> ConstMatrixRegion25D;
-typedef MatrixRegion<26, const MATRIX_ELEMENT_T> ConstMatrixRegion26D;
-typedef MatrixRegion<27, const MATRIX_ELEMENT_T> ConstMatrixRegion27D;
-typedef MatrixRegion<28, const MATRIX_ELEMENT_T> ConstMatrixRegion28D;
-typedef MatrixRegion<29, const MATRIX_ELEMENT_T> ConstMatrixRegion29D;
-typedef MatrixRegion<30, const MATRIX_ELEMENT_T> ConstMatrixRegion30D;
-typedef MatrixRegion<31, const MATRIX_ELEMENT_T> ConstMatrixRegion31D;
+    typedef MatrixRegion<0,  const MATRIX_ELEMENT_T> ConstMatrixRegion0D;
+    typedef MatrixRegion<1,  const MATRIX_ELEMENT_T> ConstMatrixRegion1D;
+    typedef MatrixRegion<2,  const MATRIX_ELEMENT_T> ConstMatrixRegion2D;
+    typedef MatrixRegion<3,  const MATRIX_ELEMENT_T> ConstMatrixRegion3D;
+    typedef MatrixRegion<4,  const MATRIX_ELEMENT_T> ConstMatrixRegion4D;
+    typedef MatrixRegion<5,  const MATRIX_ELEMENT_T> ConstMatrixRegion5D;
+    typedef MatrixRegion<6,  const MATRIX_ELEMENT_T> ConstMatrixRegion6D;
+    typedef MatrixRegion<7,  const MATRIX_ELEMENT_T> ConstMatrixRegion7D;
+    typedef MatrixRegion<8,  const MATRIX_ELEMENT_T> ConstMatrixRegion8D;
+    typedef MatrixRegion<9,  const MATRIX_ELEMENT_T> ConstMatrixRegion9D;
+  }
 
-typedef MATRIX_INDEX_T IndexT; 
-typedef MATRIX_ELEMENT_T ElementT; 
+  namespace workstealing {
+    typedef sequential::MatrixRegion0D MatrixRegion0D;
+    typedef sequential::MatrixRegion1D MatrixRegion1D;
+    typedef sequential::MatrixRegion2D MatrixRegion2D;
+    typedef sequential::MatrixRegion3D MatrixRegion3D;
+    typedef sequential::MatrixRegion4D MatrixRegion4D;
+    typedef sequential::MatrixRegion5D MatrixRegion5D;
+    typedef sequential::MatrixRegion6D MatrixRegion6D;
+    typedef sequential::MatrixRegion7D MatrixRegion7D;
+    typedef sequential::MatrixRegion8D MatrixRegion8D;
+    typedef sequential::MatrixRegion9D MatrixRegion9D;
 
+    typedef sequential::ConstMatrixRegion0D ConstMatrixRegion0D;
+    typedef sequential::ConstMatrixRegion1D ConstMatrixRegion1D;
+    typedef sequential::ConstMatrixRegion2D ConstMatrixRegion2D;
+    typedef sequential::ConstMatrixRegion3D ConstMatrixRegion3D;
+    typedef sequential::ConstMatrixRegion4D ConstMatrixRegion4D;
+    typedef sequential::ConstMatrixRegion5D ConstMatrixRegion5D;
+    typedef sequential::ConstMatrixRegion6D ConstMatrixRegion6D;
+    typedef sequential::ConstMatrixRegion7D ConstMatrixRegion7D;
+    typedef sequential::ConstMatrixRegion8D ConstMatrixRegion8D;
+    typedef sequential::ConstMatrixRegion9D ConstMatrixRegion9D;
+  }
 } /* namespace petabricks*/
 
 #endif

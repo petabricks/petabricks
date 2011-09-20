@@ -88,6 +88,10 @@ public:
   void generateCode(CodeGenerator& o);
 
   void generateCodeSimple(CodeGenerator& o, const std::string& nextMain = "NULL");
+
+  void generateTransformInstanceClass(CodeGenerator& o, RuleFlavor rf);
+  
+  void generateTransformSelector(CodeGenerator& o, RuleFlavor rf, bool spawn);
   
   void registerMainInterface(CodeGenerator& o);
 
@@ -109,6 +113,8 @@ public:
 #endif
   
   void declTransformNFunc(CodeGenerator& o);
+  void declTransformN(CodeGenerator& o, const std::string& name);
+  void declTransformNDirect(CodeGenerator& o, const std::string& name);
   void declTryMemoizeFunc(CodeGenerator& o);
 
   void markMain() { _isMain=true; }
@@ -116,7 +122,10 @@ public:
 
   //void addTestCase(const TestCasePtr& p) {tester().addTestCase(p);}
 
-  std::vector<std::string> maximalArgList() const;
+  std::vector<std::string> maximalArgList(RuleFlavor rf) const;
+
+
+  void generateCrossCall(CodeGenerator& o, RuleFlavor fromflavor, RuleFlavor toflavor, bool spawn);
 
   int nextTunerId() {
     return _tuneId++;
@@ -132,17 +141,17 @@ public:
     _templateargs.insert(_templateargs.end(), args.begin(), args.end());
   }
 
-  std::vector<std::string> spawnArgs() const;
+  std::vector<std::string> spawnArgs(RuleFlavor rf) const;
   std::vector<std::string> spawnArgNames() const;
-  std::vector<std::string> normalArgs() const;
+  std::vector<std::string> normalArgs(RuleFlavor rf) const;
   std::vector<std::string> normalArgNames() const;
 
   void genTmplJumpTable(CodeGenerator& o,
-                        bool isStatic,
+                        RuleFlavor rf,
                         const std::vector<std::string>& args,
                         const std::vector<std::string>& argNames);
   
-  void extractConstants(CodeGenerator& o);
+  void extractConstants(CodeGenerator& o, RuleFlavor rf);
 
   int tmplChoiceCount() const;
 

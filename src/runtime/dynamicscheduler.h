@@ -38,6 +38,8 @@
 
 namespace petabricks {
 
+class DynamicTask;
+
 class DynamicScheduler{
 public:
   static DynamicScheduler& cpuScheduler();

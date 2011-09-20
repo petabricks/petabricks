@@ -147,8 +147,8 @@ public:
     std::vector<RegionNodeGroup> empty;
     generateCallCode(nodename, trans, o, region, flavor, empty, 0, false);
   }
-  virtual void generateDeclCodeSimple(Transform& trans, CodeGenerator& o) = 0;
-  virtual void generateTrampCodeSimple(Transform& trans, CodeGenerator& o) = 0;
+  virtual void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
+  virtual void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
   
   virtual void markRecursive() = 0;
   virtual const FormulaPtr& recursiveHint() const = 0;

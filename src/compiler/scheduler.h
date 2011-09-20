@@ -282,6 +282,8 @@ public:
 
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor type);
 
+  void generateGlobalCode(Transform& trans, CodeGenerator& o);
+
   int size() const { return _allNodes.size() - _inputsOriginal.size(); }
 
 private:

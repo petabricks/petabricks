@@ -16,6 +16,7 @@ LONGBAR  = '='*50
 VERSION  = "2.0"
 LOGDIR    = './testdata/perflogs'
 TIMESTAMP = time.time()
+REV = "-"
 DEBUG = False
 
 class logdialect(csv.excel_tab):
@@ -173,6 +174,7 @@ class Benchmark:
         'score_training_time' : self.scoreTrainingTime(),
         'hostname'            : socket.gethostname(),
         'timestamp'           : TIMESTAMP,
+        'revision'            : REV,
       }
 
 
@@ -186,7 +188,10 @@ def main():
   progress.status("compiling benchmarks")
 
   pbutil.chdirToPetabricksRoot()
-  pbutil.compilePetabricks();
+  pbutil.compilePetabricks()
+
+  global REV
+  REV=pbutil.getRevision()
 
   r, lines = pbutil.loadAndCompileBenchmarks("./scripts/pbbenchmark.tests")
 
@@ -279,6 +284,7 @@ def main():
       'score_training_time' : score_training_time,
       'hostname'            : socket.gethostname(),
       'timestamp'           : TIMESTAMP,
+      'revision'            : REV,
     })
   
   progress.tick()

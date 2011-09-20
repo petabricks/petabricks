@@ -66,7 +66,7 @@ template < typename T > struct JRefPolicyCopied{
 };
 
 /**
- * Policy that does no reference counting 
+ * Policy that does no reference counting
  */
 template < typename T > struct JRefPolicyLeaked {
   static void inc(T* o){}

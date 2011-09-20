@@ -75,11 +75,11 @@ namespace{
     return extra+name;
   }
 }
-  
+
 petabricks::FormulaPtr petabricks::RuleInterface::getOffsetVar(int dim, const char* extra /*= NULL*/) const{
   return new FormulaVariable(_getOffsetVarStr(_id, dim, extra).c_str()); //cache me!
 }
-  
+
 int petabricks::RuleInterface::offsetVarToDimension(const std::string& var, const char* extra /*=NULL*/) const
 {
   SRCPOSSCOPE();
@@ -132,9 +132,18 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
   bodyir->accept(expand);
   bodyir->accept(analysis);
 
-  _bodyirStatic = bodyir;
-  _bodyirDynamic = bodyir;
-  
+#ifdef DEBUG
+  std::cerr << "--------------------\nEXPANDED compileRuleBody:\n" << bodyir << std::endl;
+  bodyir->accept(print);
+  std::cerr << "--------------------\n";
+#endif
+
+  for(RuleFlavor::iterator i=RuleFlavor::begin(); i!=RuleFlavor::end(); ++i) {
+    _bodyir[i] = bodyir;
+    RuleFlavorSpecializePass pass(i);
+    _bodyir[i]->accept(pass);
+  }
+
 #ifdef HAVE_OPENCL
 #ifdef DEBUG
       /*std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
@@ -148,10 +157,13 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
   if(isOpenClRule() && getSelfDependency().isNone()){
     try
     {
-      _bodyirOpenCL = bodyir;
-      _bodyirOpenCL->accept(openclfnreject);
-      _bodyirOpenCL->accept(opencl);
-      _bodyirOpenCL->accept(gpurename);
+      _bodyir[RuleFlavor::OPENCL] = bodyir;
+      _bodyir[RuleFlavor::OPENCL]->accept(openclfnreject);
+      _bodyir[RuleFlavor::OPENCL]->accept(opencl);
+      _bodyir[RuleFlavor::OPENCL]->accept(gpurename);
+      std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
+      bodyir->accept(print);
+      std::cerr << "--------------------\n";
 
       /*if(!passBuildGpuProgram(tx)) {
 				std::cout << "(>) RULE REJECTED BY TryBuildGpuProgram: RULE " << id() << "\n";
@@ -168,7 +180,7 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       std::cout << "(>) RULE REJECTED BY OpenClFunctionRejectPass: RULE " << id() << "\n";
       failgpu = true;
     }
-		
+
   }
 	else if(isOpenClRule()) {
 		std::cout << "(>) RULE REJECTED BY Self Dependency \n";
@@ -179,12 +191,12 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
     std::cout << "(>) NO OPENCL SUPPORT FOR RULE " << id() << "\n";
     failgpu = true;
   }
-  
+
   if( failgpu )
   {
     if(_gpuRule) _gpuRule->disableRule();
     _gpuRule = NULL;
-    _bodyirOpenCL = NULL;
+    _bodyir[RuleFlavor::OPENCL] = NULL;
   }
 
 #endif
@@ -218,8 +230,8 @@ void petabricks::UserRule::print(std::ostream& os) const {
   _flags.print(os);
   os << "UserRule " << _id << " " << _label;
   if(!_from.empty()){
-    os << "\nfrom(";  printStlList(os,_from.begin(),_from.end(), ", "); os << ")"; 
-  } 
+    os << "\nfrom(";  printStlList(os,_from.begin(),_from.end(), ", "); os << ")";
+  }
   if(!_to.empty()){
     os << "\nto(";    printStlList(os,_to.begin(),_to.end(), ", "); os << ")";
   } 
@@ -227,13 +239,13 @@ void petabricks::UserRule::print(std::ostream& os) const {
     os << "\ndata dependency vector map: " << _dataDependencyVectorMap;
   }
   if(!_conditions.empty()){
-    os << "\nwhere ";  printStlList(os,_conditions.begin(),_conditions.end(), ", "); 
-  } 
+    os << "\nwhere ";  printStlList(os,_conditions.begin(),_conditions.end(), ", ");
+  }
   if(!_definitions.empty()){
-    os << "\ndefinitions ";  printStlList(os,_definitions.begin(),_definitions.end(), ", "); 
+    os << "\ndefinitions ";  printStlList(os,_definitions.begin(),_definitions.end(), ", ");
   }
   if(!_duplicateVars.empty()){
-    os << "\nduplicateVars ";  printStlList(os,_duplicateVars.begin(),_duplicateVars.end(), ", "); 
+    os << "\nduplicateVars ";  printStlList(os,_duplicateVars.begin(),_duplicateVars.end(), ", ");
   }
   os << "\nisRecursive " << isRecursive();
   os << "\nisOpenCLRule " << isOpenClRule();
@@ -247,7 +259,7 @@ void petabricks::UserRule::print(std::ostream& os) const {
     os << "  " << i->first << ": " << i->second << "\n";
   }
   //os << "SRC = {" << _bodysrc << "}\n";
-  os << "BodyIR= {" << _bodyirDynamic << "}\n";
+  os << "BodyIR= {" << _bodyir[RuleFlavor::WORKSTEALING] << "}\n";
 }
 
 namespace {// file local
@@ -297,10 +309,10 @@ void petabricks::UserRule::initialize(Transform& trans) {
   _conditions.makeRelativeTo(_definitions);
 
   buildApplicableRegion(trans, _applicableRegion, true);
-  
+
   FormulaList condtmp;
   condtmp.swap(_conditions);
-  //simplify simple where clauses 
+  //simplify simple where clauses
   for(FormulaList::iterator i=condtmp.begin(); i!=condtmp.end(); ++i){
     FreeVars fv;
     (*i)->getFreeVariables(fv);
@@ -336,7 +348,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
         else
           f=MAXIMA.min(f, criticalPoint);
       }
-      
+
       JTRACE("where clause handled")(*i)(criticalPoint)(_applicableRegion)(smaller)(eq)(larger);
     }else{
       //test if we can statically prove it
@@ -364,7 +376,7 @@ void petabricks::UserRule::initialize(Transform& trans) {
   
   //expand through() clause
   for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
-    _bodysrc=(*i)->matrixTypeName()+" "+(*i)->name()+" = "+(*i)->allocateStr()+";\n"+_bodysrc;
+    _bodysrc=(*i)->genericTypeName()+" "+(*i)->name()+" = "+(*i)->genericAllocateStr()+";\n"+_bodysrc;
   }
 
   MaximaWrapper::instance().popContext();
@@ -447,7 +459,7 @@ void petabricks::UserRule::buildApplicableRegion(Transform& trans, SimpleRegionP
   }
   JASSERT(ar);
 }
-  
+
 void petabricks::UserRule::performExpansion(Transform& trans){
   SRCPOSSCOPE();
   if(isDuplicated()){
@@ -466,10 +478,10 @@ void petabricks::UserRule::performExpansion(Transform& trans){
  #endif
 }
 
-void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& output, 
-                                                          const MatrixDefPtr& matrix, 
+void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& output,
+                                                          const MatrixDefPtr& matrix,
                                                           int dimension,
-                                                          const RulePtr& rule 
+                                                          const RulePtr& rule
                                                           ) {
   SRCPOSSCOPE();
   MatrixDependencyMap::const_iterator i = _provides.find(matrix);
@@ -482,60 +494,138 @@ void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& ou
   }
 }
 
-void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerator& o){
+void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
+  /* code generated here goes at the top level of the file before the instance class */
   SRCPOSSCOPE();
-  o.comment("MARKER 5");
-  if(isRecursive()){
-    o.beginClass(implcodename(trans)+TX_DYNAMIC_POSTFIX, "petabricks::RuleInstance");
-
-    for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      o.addMember((*i)->genTypeStr(false), (*i)->name());
-    }
-    for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-      o.addMember((*i)->genTypeStr(true), (*i)->name());
-    }
-    for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
-      if(i->shouldPass()){
-        o.addMember("const "+i->passType(), i->name());
-      }
-    }
-    for(ConfigItems::const_iterator i=_duplicateVars.begin(); i!=_duplicateVars.end(); ++i){
-        o.addMember("const IndexT", i->name());
-    }
-    for(int i=0; i<dimensions(); ++i){
-      o.addMember("const IndexT", getOffsetVar(i)->toString());
-    }
-    for(FormulaList::const_iterator i=_definitions.begin(); i!=_definitions.end(); ++i){
-      o.addMember("const IndexT",(*i)->lhs()->toString(), (*i)->rhs()->toString());
-    }
-    o.addMember("DynamicTaskPtr", "_completion", "new NullDynamicTask()");
-
-    o.define("SPAWN", "PB_SPAWN");
-    o.define("CALL",  "PB_SPAWN");
-    o.define("SYNC",  "PB_SYNC");
-    o.define("DEFAULT_RV",  "_completion");
-    o.beginFunc("petabricks::DynamicTaskPtr", "runDynamic");
-    RIRBlockCopyRef bodytmp = _bodyirDynamic;
-    {
-      LiftVardeclPass p3(trans,*this, o);
-      bodytmp->accept(p3);
-    }
-    { 
-      DynamicBodyPrintPass dbpp(o);
-      bodytmp->accept(dbpp);
-    }
-    o.write("return DEFAULT_RV;");
-    o.endFunc();
-    o.undefineAll();
-
-    o.endClass();
+  if(rf == RuleFlavor::SEQUENTIAL) {
+    generateDeclCodeSequential(trans, o);
+    return;
   }
-  std::vector<std::string> args;
+#ifdef HAVE_OPENCL
+  if(rf == RuleFlavor::OPENCL) {
+    generateDeclCodeOpenCl(trans, o);
+    return;
+  }
+#endif
+  if(rf == RuleFlavor::WORKSTEALING && !isRecursive()) {
+    //don't generate workstealing code for leaf nodes
+    return;
+  }
+
+  std::string classname = implcodename(trans)+"_"+ rf.str();
+  o.beginClass(classname, "petabricks::RuleInstance");
+
+  std::vector<std::string> to_cells;
+  std::vector<std::string> from_cells;
+
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    args.push_back((*i)->generateSignatureCode(false));
+    if ((rf == RuleFlavor::DISTRIBUTED) &&
+        ((*i)->getRegionType() == Region::REGION_CELL)) {
+      // will read CellProxy to ElementT in before running the task
+      o.addMember((*i)->genTypeStr(rf, false), "_cellproxy_" + (*i)->name());
+      o.addMember("ElementT", (*i)->name(), "0");
+      to_cells.push_back((*i)->name());
+    } else {
+      o.addMember((*i)->genTypeStr(rf, false), (*i)->name());
+    }
   }
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    args.push_back((*i)->generateSignatureCode(true));
+    if ((rf == RuleFlavor::DISTRIBUTED) &&
+        ((*i)->getRegionType() == Region::REGION_CELL)) {
+      // will read CellProxy to const ElementT in before running the task
+      o.addMember((*i)->genTypeStr(rf, true), "_cellproxy_" + (*i)->name());
+      o.addMember("const ElementT", (*i)->name(), "0");
+      from_cells.push_back((*i)->name());
+    } else {
+      o.addMember((*i)->genTypeStr(rf, true), (*i)->name());
+    }
+  }
+  for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
+    if(i->shouldPass()){
+      o.addMember("const "+i->passType(), i->name());
+    }
+  }
+  for(ConfigItems::const_iterator i=_duplicateVars.begin(); i!=_duplicateVars.end(); ++i){
+      o.addMember("const IndexT", i->name());
+  }
+  for(int i=0; i<dimensions(); ++i){
+    o.addMember("const IndexT", getOffsetVar(i)->toString());
+  }
+  for(FormulaList::const_iterator i=_definitions.begin(); i!=_definitions.end(); ++i){
+    o.addMember("const IndexT",(*i)->lhs()->toString(), (*i)->rhs()->toString());
+  }
+
+  o.addMember("DynamicTaskPtr", "_completion", "new NullDynamicTask()");
+
+  if (rf == RuleFlavor::DISTRIBUTED) {
+    o.addMember("DynamicTaskPtr", "_cleanUpTask", "new MethodCallTask<"+classname+", &"+classname+"::cleanUp>(this)");
+  }
+
+  o.define("PB_FLAVOR", rf.str());
+  o.define("SPAWN", "PB_SPAWN");
+  o.define("CALL",  "PB_SPAWN");
+  o.define("SYNC",  "PB_SYNC");
+
+  if (rf == RuleFlavor::DISTRIBUTED) {
+    o.define("DEFAULT_RV", "cleanUpTaskTmp");
+    o.define("RETURN", "PB_RETURN_DISTRIBUTED");
+    o.define("RETURN_VOID", "PB_RETURN_VOID_DISTRIBUTED");
+  } else {
+    o.define("DEFAULT_RV", "_completion");
+    o.define("RETURN", "PB_RETURN");
+    o.define("RETURN_VOID", "PB_RETURN_VOID");
+  }
+  o.beginFunc("petabricks::DynamicTaskPtr", "runDynamic");
+
+  if (rf == RuleFlavor::DISTRIBUTED) {
+    o.comment("read all cellproxy to ElementT");
+    for (unsigned int i = 0; i < to_cells.size(); i++) {
+      o.write(to_cells[i] + " = _cellproxy_" + to_cells[i] + ";");
+    }
+    for (unsigned int i = 0; i < from_cells.size(); i++) {
+      o.write("const_cast<ElementT&> (" + from_cells[i] + ") = _cellproxy_" + from_cells[i] + ";");
+    }
+  }
+
+  RIRBlockCopyRef bodytmp = _bodyir[rf];
+  o.beginUserCode(rf);
+  {
+    LiftVardeclPass p3(trans,*this, o);
+    bodytmp->accept(p3);
+  }
+  {
+    DynamicBodyPrintPass dbpp(o);
+    bodytmp->accept(dbpp);
+  }
+  o.write("RETURN_VOID;");
+  o.endUserCode();
+  o.endFunc();
+
+  if (rf == RuleFlavor::DISTRIBUTED) {
+    o.beginFunc("petabricks::DynamicTaskPtr", "cleanUp");
+    o.comment("write _to back to cellproxy");
+    for (unsigned int i = 0; i < to_cells.size(); i++) {
+      o.write("_cellproxy_" + to_cells[i] + " = " + to_cells[i] + ";");
+    }
+    o.write("return NULL;");
+    o.endFunc();
+  }
+
+  o.undefineAll();
+
+  o.endClass();
+}
+
+void petabricks::UserRule::generateDeclCodeSequential(Transform& trans, CodeGenerator& o) {
+  RuleFlavor rf = RuleFlavor::SEQUENTIAL;
+
+  /* code generated here goes at the top level of the file before the instance class */
+  std::vector<std::string> args;
+  for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    args.push_back((*i)->generateSignatureCode(rf, false));
+  }
+  for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+    args.push_back((*i)->generateSignatureCode(rf, true));
   }
   for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
     if(i->shouldPass()){
@@ -558,7 +648,11 @@ void petabricks::UserRule::generateDeclCodeSimple(Transform& trans, CodeGenerato
   o.define("CALL",  "PB_STATIC_CALL");
   o.define("SYNC",  "PB_NOP");
   o.define("DEFAULT_RV",  "");
-  o.write(_bodyirStatic->toString());
+  o.define("RETURN", "PB_RETURN");
+  o.define("RETURN_VOID", "PB_RETURN_VOID");
+  o.beginUserCode(rf);
+  o.write(_bodyir[RuleFlavor::SEQUENTIAL]->toString());
+  o.endUserCode();
   o.undefineAll();
   o.endFunc();
 }
@@ -590,7 +684,11 @@ void petabricks::UserRule::prepareBuffers() {
 	}
 }
 
-void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
+void petabricks::UserRule::generateDeclCodeOpenCl(Transform& /*trans*/, CodeGenerator& /*o*/) {
+  /* code generated here goes at the top level of the file before the instance class */
+}
+
+void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   SRCPOSSCOPE();
   prepareBuffers();
 
@@ -608,22 +706,7 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
   taskargs.insert(taskargs.begin(), "const jalib::JRef<"+trans.instClassName()+"> transform");
 
-  switch( flavor )
-    {
-    case RuleFlavor::SEQUENTIAL:
-      o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_STATIC_POSTFIX, packedargs);
-      break;
-    case RuleFlavor::WORKSTEALING:
-      o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_DYNAMIC_POSTFIX, packedargs);
-      break;
-    #ifdef HAVE_OPENCL
-    case RuleFlavor::OPENCL:
-      o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+TX_OPENCL_POSTFIX, packedargs);
-      break;
-    #endif
-    default:
-      UNIMPLEMENTED( );
-    }
+  o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+"_"+flavor.str(), packedargs);
 
   for(size_t i=0; i<_duplicateVars.size(); ++i){
     o.varDecl("const IndexT "+_duplicateVars[i].name() + " = " + jalib::XToString(_duplicateVars[i].initial()));
@@ -646,26 +729,20 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
   // LOGGING
   #ifdef OPENCL_LOGGING
   if( RuleFlavor::SEQUENTIAL == flavor )
-    {
-      o.write( "printf( \"ruleN_static applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
-    }
+  {
+    o.write( "printf( \"ruleN_static applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
+  }
   #ifdef HAVE_OPENCL
   else if( RuleFlavor::OPENCL == flavor )
-    {
-      o.write( "printf( \"ruleN_opencl applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
-    }
+  {
+    o.write( "printf( \"ruleN_opencl applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
+  }
   #endif
   #endif
   // END LOGGING
 
-  if((RuleFlavor::WORKSTEALING == flavor) && !isRecursive() && !isSingleElement()){
-    //shortcut
-    o.comment("rule is a leaf, no sense in dynamically scheduling it");
-    o.write("return");
-    o.call(trampcodename(trans)+TX_STATIC_POSTFIX, packedargnames);
-  }
   #ifdef HAVE_OPENCL
-  else if( RuleFlavor::OPENCL == flavor )
+  if( RuleFlavor::OPENCL == flavor )
   {
 
     o.os() << "cl_int err;\n";
@@ -852,39 +929,42 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
 
     o.write( "return NULL;\n}\n\n" );
     return;
-  }
-  #endif
-  else {
-    if(RuleFlavor::SEQUENTIAL != flavor) o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
-
-    std::string outputDimensionCheck;
-    for( RegionList::const_iterator i = _to.begin(); i != _to.end(); ++i) {
-      if(i != _to.begin()) {
-        outputDimensionCheck = outputDimensionCheck + " && ";
-      }
-      outputDimensionCheck = outputDimensionCheck + (*i)->matrix()->name() + ".bytes() == 0";
+  } else {
+#else
+  if(true) {
+#endif
+    if(RuleFlavor::SEQUENTIAL != flavor) {
+      o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
+      o.write("DynamicTaskPtr _last = NULL;");
     }
 
-    o.beginIf(outputDimensionCheck);
-    if(RuleFlavor::SEQUENTIAL != flavor) o.write("return _spawner;");
-    else o.write("return NULL;");
-    o.endIf();
+    if(RuleFlavor::DISTRIBUTED != flavor) {
+      std::string outputDimensionCheck;
+      for( RegionList::const_iterator i = _to.begin(); i != _to.end(); ++i) {
+        if(i != _to.begin()) {
+          outputDimensionCheck = outputDimensionCheck + " && ";
+        }
+        outputDimensionCheck = outputDimensionCheck + (*i)->matrix()->name() + ".bytes() == 0";
+      }
+
+      o.beginIf(outputDimensionCheck);
+      if(RuleFlavor::SEQUENTIAL != flavor) o.write("return _spawner;");
+      else o.write("return NULL;");
+      o.endIf();
+    }
 
     iterdef.unpackargs(o);
-    
+
     if(isSingleElement()){
       trans.markSplitSizeUse(o);
       o.beginIf("petabricks::split_condition<"+jalib::XToString(dimensions())+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")");
-      iterdef.genSplitCode(o, trans, *this, flavor==RuleFlavor::SEQUENTIAL);
+      iterdef.genSplitCode(o, trans, *this, flavor);
       // return written in get split code
       o.elseIf();
     }
 
     iterdef.genLoopBegin(o);
-    if( ( RuleFlavor::WORKSTEALING == flavor ) && !isRecursive( ) )
-      generateTrampCellCodeSimple( trans, o, RuleFlavor::SEQUENTIAL );
-    else
-      generateTrampCellCodeSimple( trans, o, flavor );
+    generateTrampCellCodeSimple( trans, o, flavor );
     iterdef.genLoopEnd(o);
 
 #ifdef HAVE_OPENCL
@@ -894,9 +974,12 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     }
 #endif
     
-    if(RuleFlavor::SEQUENTIAL != flavor) o.write("return _spawner;");
+    if(RuleFlavor::SEQUENTIAL != flavor){
+      o.write("_spawner->dependsOn(_last);");
+      o.write("return _spawner;");
+    }
     else o.write("return NULL;");
-    
+
     if(isSingleElement())
       o.endIf();
   }
@@ -1237,13 +1320,12 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
   {
     // Build & normalize formula for index.
-
     int minCoordSize = (*i)->minCoord().size();
     FormulaPtr idx_formula = new FormulaAdd((*i)->minCoord().at(minCoordSize - 1), FormulaInteger::zero());
     for( int j = minCoordSize - 2; j >= 0; --j )
     {
       std::stringstream sizevar;
-      sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
+      sizevar << "dim_" << (*i)->name( ) << "_d" << j;
       idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
             new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
     }
@@ -1256,6 +1338,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
   {
     // Build & normalize formula for index.
+//<<<<<<< HEAD
 
     FormulaPtr idx_formula;
     switch((*i)->getRegionType()) {
@@ -1287,6 +1370,19 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
         break;
       default:
         UNIMPLEMENTED();
+/*=======
+    FormulaPtr idx_formula = FormulaInteger::zero( );
+    int minCoordSize = (*i)->minCoord().size();
+    if(minCoordSize > 0) {
+      idx_formula = new FormulaAdd((*i)->minCoord().at(minCoordSize - 1), idx_formula);
+      for( int j = minCoordSize - 2; j >= 0; --j )
+      {
+        std::stringstream sizevar;
+        sizevar << "dim_" << (*i)->name( ) << "_d" << j;
+        idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
+              new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
+      }
+>>>>>>> distributed*/
     }
     clo.os( ) << "unsigned int idx_" << (*i)->name( ) << " = ";
     idx_formula->print( clo.os( ) );
@@ -1306,7 +1402,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   // Quick hack -- generate a macro that will store the output from the rule.
   {
     RegionList::const_iterator i = _to.begin( );
-    clo.os( ) << "#define PB_RETURN(x) _region_" << (*i)->name( ) << "[idx_" << (*i)->name( ) << "] = x; return\n";
+    clo.os( ) << "#define RETURN(x) _region_" << (*i)->name( ) << "[idx_" << (*i)->name( ) << "] = x; return\n";
   }
 
   // Support for multiple-output rules
@@ -1317,12 +1413,12 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
 
   // Generate OpenCL implementation of rule logic.
  #ifdef DEBUG
-  std::cerr << "--------------------\nAFTER GPU PASSES:\n" << _bodyirOpenCL << std::endl;
+  std::cerr << "--------------------\nAFTER GPU PASSES:\n" << _bodyir[RuleFlavor::OPENCL] << std::endl;
   {
-    if( _bodyirOpenCL )
+    if( _bodyir[RuleFlavor::OPENCL] )
     {
       DebugPrintPass pdebug;
-      _bodyirOpenCL->accept(pdebug);
+      _bodyir[RuleFlavor::OPENCL]->accept(pdebug);
     }
     else
     {
@@ -1331,7 +1427,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   }
   std::cerr << "--------------------\n";
  #endif
-  clo.write( _bodyirOpenCL->toString( ) );
+  clo.write( _bodyir[RuleFlavor::OPENCL]->toString( ) );
 
   //TRACE( "70" );
 
@@ -1352,6 +1448,11 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   JASSERT( RuleFlavor::OPENCL != flavor );
 #endif
 
+  if( ( RuleFlavor::WORKSTEALING == flavor ) && !isRecursive( ) ) {
+    //use sequential code if rule doesn't make calls
+    flavor = RuleFlavor::SEQUENTIAL;
+  }
+
   std::vector<std::string> args;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     args.push_back((*i)->generateAccessorCode());
@@ -1371,10 +1472,16 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
     args.push_back(getOffsetVar(i)->toString());
 
   if(RuleFlavor::SEQUENTIAL != flavor){
-    o.setcall("jalib::JRef<"+implcodename(trans)+TX_DYNAMIC_POSTFIX+"> _rule", "new "+implcodename(trans)+TX_DYNAMIC_POSTFIX, args);
-    o.write("DynamicTaskPtr _task = _rule->runDynamic();");
+    std::string classname = implcodename(trans)+"_"+flavor.str();
+    o.setcall("jalib::JRef<"+classname+"> _rule", "new "+classname, args);
+    //o.write("DynamicTaskPtr _task = _rule->runDynamic();");
+    o.write("DynamicTaskPtr _task = new MethodCallTask<"+classname+", &"+classname+"::runDynamic>(_rule);");
     o.beginIf("_task");
-    o.write("_spawner->dependsOn(_task);");
+    o.beginIf("_last");
+    o.write("_task->dependsOn(_last);");
+    o.endIf();
+    o.write("_last = _task;");
+    //o.write("_spawner->dependsOn(_task);");
     o.write("_task->enqueue();");
     o.endIf();
   }else{
@@ -1396,7 +1503,8 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
     o.callSpatial(trampcodename(trans)+TX_STATIC_POSTFIX, region);
     break;
   case RuleFlavor::WORKSTEALING:
-    o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+TX_DYNAMIC_POSTFIX, region);
+  case RuleFlavor::DISTRIBUTED:
+    o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+"_"+flavor.str(), region);
     break;
   default:
     UNIMPLEMENTED();
@@ -1490,8 +1598,8 @@ std::string petabricks::UserRule::trampcodename(Transform& trans) const {
   }
   return s;
 }
-  
-size_t petabricks::UserRule::duplicateCount() const { 
+
+size_t petabricks::UserRule::duplicateCount() const {
   int c = 1;
   for(size_t i=0; i<_duplicateVars.size(); ++i)
     c*=_duplicateVars[i].range();

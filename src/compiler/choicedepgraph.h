@@ -55,7 +55,7 @@ public:
   void fixVersionedRegionsType();
 };
 
-
+//typedef std::vector< ChoiceDepGraphNodePtr > ChoiceDepGraphNodeList;
 typedef std::map<ChoiceDepGraphNode*,ChoiceDepGraphNode*> ChoiceDepGraphNodeRemapping;
 
 class ChoiceDepGraphNodeSet : public std::set<ChoiceDepGraphNode*> {
@@ -143,7 +143,8 @@ public:
                                     int dimension,
                                     const FormulaPtr& pos,
                                     RuleFlavor flavor,
-                                    const RuleChoiceAssignment& choice) = 0;
+                                    const RuleChoiceAssignment& choice,
+                                    std::string lastTask) = 0;
 
   virtual const MatrixDefPtr&    matrix() const = 0;
   virtual const SimpleRegionPtr& region() const = 0;
@@ -166,7 +167,7 @@ public:
   int updateIndirectDepends();
 
   ChoiceDepGraphNodeSet getStronglyConnectedComponent();
-  
+
   ChoiceDepGraphNodeSet getMultioutputComponent();
 
   void applyRemapping(const ChoiceDepGraphNodeRemapping& map);
@@ -227,7 +228,7 @@ public:
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
                             const RuleChoiceAssignment& choice);
   void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos, RuleFlavor flavor,
-                            const RuleChoiceAssignment& choice);
+                            const RuleChoiceAssignment& choice, std::string lastTask);
   void removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension);
   void fixVersionedRegionsType();
 
@@ -249,6 +250,7 @@ public:
     }
   }
 #endif
+
 private:
   MatrixDefPtr      _matrix;
   SimpleRegionPtr   _region;
@@ -268,7 +270,7 @@ public:
     for(ChoiceDepGraphNodeSet::const_iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i)
       o << "\\n " << **i;
   }
-  
+
   void generateCode(Transform&,
                     CodeGenerator&,
                     RuleFlavor,
@@ -280,7 +282,8 @@ public:
                             int,
                             const FormulaPtr&,
                             RuleFlavor,
-                            const RuleChoiceAssignment&){
+                            const RuleChoiceAssignment&,
+                            std::string){
     UNIMPLEMENTED();
   }
 
@@ -317,7 +320,7 @@ public:
     : MetaChoiceDepGraphNode(set)
   {}
   bool findValidSchedule(const RuleChoiceAssignment& choice);
-  
+
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
                             const RuleChoiceAssignment& choice);
 
@@ -341,7 +344,7 @@ protected:
 class SlicedChoiceDepGraphNode : public MetaChoiceDepGraphNode {
 public:
   SlicedChoiceDepGraphNode(const ChoiceDepGraphNodeSet& set);
-  
+
 
   bool findValidSchedule(const RuleChoiceAssignment& choice);
 
