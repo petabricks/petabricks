@@ -114,6 +114,20 @@ namespace petabricks {
     void print() const { print(std::cout); }
     std::string toString() const;
   };
+
+  inline
+  void swap(petabricks::CellProxy a, petabricks::CellProxy b) {
+    double c = a;
+    a = (double) b;
+    b = c;
+  }
+
+  inline
+  void swap(double& a, double& b) {
+    double c = a;
+    a = b;
+    b = c;
+  }
 }
 
 std::ostream& operator<< (std::ostream& o, const petabricks::CellProxy& cell);

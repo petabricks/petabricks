@@ -79,16 +79,20 @@ namespace petabricks {
       const size_t sizeof_sizes = sizeof this->_size;
       const size_t sizeof_splitOffset = sizeof this->_splitOffset;
 
-      if (size != NULL) {
-        memcpy(_size, size, sizeof_sizes);
-      } else {
-        memset(_size, -1, sizeof_sizes);
+      if(sizeof_sizes > 0) {
+        if (size != NULL) {
+          memcpy(_size, size, sizeof_sizes);
+        } else {
+          memset(_size, -1, sizeof_sizes);
+        }
       }
 
-      if (splitOffset != NULL) {
-        memcpy(_splitOffset, splitOffset, sizeof_splitOffset);
-      } else {
-        memset(_splitOffset, 0, sizeof_splitOffset);
+      if(sizeof_splitOffset > 0) {
+        if (splitOffset != NULL) {
+          memcpy(_splitOffset, splitOffset, sizeof_splitOffset);
+        } else {
+          memset(_splitOffset, 0, sizeof_splitOffset);
+        }
       }
 
       _isTransposed = isTransposed;
