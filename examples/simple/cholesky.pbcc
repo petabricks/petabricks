@@ -20,7 +20,7 @@ to H[w,h] {
 	    int i;
 	    for (i = 0; i < temp1.width(); i++) {
              	 for (int j = 0; j <= i; j++) {
-		      	   temp1.cell(i,j) = PetabricksRuntime::randInt(1,10);
+		      	   temp1.cell(i,j) = PetabricksRuntime::randInt(1,20);
 		}
 	    }
 
@@ -44,7 +44,7 @@ from A[w,h]
 to L[w,h]
 generator HermitianGenerate
 {
-
+/*
 	// recursive def of cholesky
 	to (L l)
 	from (A a) 
@@ -53,26 +53,32 @@ generator HermitianGenerate
 	    // upper left corner
 	    MatrixCholesky(l.region(0, 0, w/2, h/2), a.region(0,0,w/2,h/2));	    
 
-/*
 	    // lower left corner
 	    // change all w and h in this section to width and height of 1 matricies
 	    MatrixRegion2D l11_trans = MatrixRegion2D::allocate(w/2,h/2);
 	    Transpose(l11_trans, l.region(0,0,w/2,h/2));
-	    //x2 = trisolve(L22,B2)
-	    LUtrisolve(l.region(w/4,h/2,w/2,h), l11_trans.region(l11_trans.width()/2,l11_trans.height()/2,l11_trans.width(),l11_trans.height()), a.region(w/4,h/2,w/2,h));
-	    //x1 = trisolve(L11,B1-x2L21)
-	    //MatrixMultiply
-	    //MatrixSubtract
-	    LUtrisolve(l.region(0,h/2,w/4,h), l11_trans.region(0,0,l11_trans.width()/2,l11_trans.height()/2), a.region(0,h/2,w/4,h) - l.region(w/4,h/2,w/2,h) * l11_trans.region(0,l11_trans.height()/2,l11_trans.width()/2,h));
-	    
 
-	        // lower right corner
-	    MatrixTranspose(l21_trans, l.region(0,h/2,w/2,h));
+	    //x2 = trisolve(L22,B2)
+	    //LUtrisolve(l.region(w/4,h/2,w/2,h), l11_trans.region(l11_trans.width()/2,l11_trans.height()/2,l11_trans.width(),l11_trans.height()), a.region(w/4,h/2,w/2,h));
+
+	    //x1 = trisolve(L11,B1-x2L21)
+	    MatrixRegion2D x2L21 = MatrixRegion2D::allocate(w/4,h/2);
+	    MatrixRegion2D x1 = MatrixRegion2D::allocate(w/4,h/2);
+	    MatrixMultiply(x2L21, l.region(w/4,h/2,w/2,h), l11_trans.region(0,l11_trans.height()/2,l11_trans.width()/2,h));
+	    Subtract2D(x1, a.region(0,h/2,w/4,h), x2L21);
+	    //LUtrisolve(l.region(0,h/2,w/4,h), l11_trans.region(0,0,l11_trans.width()/2,l11_trans.height()/2), x1); //a.region(0,h/2,w/4,h) - x2L21);	    
+
+	    // lower rigiht corner
+	    MatrixRegion2D t = MatrixRegion2D::allocate(w/2,h/2);
+	    MatrixRegion2D l21_trans = MatrixRegion2D::allocate(w/2,h/2);
+	    MatrixRegion2D AminusT = MatrixRegion2D::allocate(w/2,w/2);
+	    Transpose(l21_trans, l.region(0,h/2,w/2,h));
 	    MatrixMultiply(t, l.region(0,h/2,w/2,h), l21_trans);
-	    MatrixCholesky(l.region(w/2,h/2,w,h), a.region(w/2,h/2,w,h) - t);
-*/
+	    Subtract2D(AminusT, a.region(w/2,h/2,w,h), t);
+	    MatrixCholesky(l.region(w/2,h/2,w,h), AminusT); //a.region(w/2,h/2,w,h) - t);
+
 	}	
-/*
+*/
 	// specific case: first column
 	to (L.cell(x,y) l) 
 	from (L.cell(0,0) c, 
@@ -87,6 +93,7 @@ generator HermitianGenerate
 	// implementation that uses region from (0,0) to the box adjacent to the right of the entry
 	to (L.cell(x,y) l) 
 	from (L.region(0, 0, x, y + 1) r,
+	L.region(0,0, x+1, y) r2,
 	A.cell(x,y) a) 
 	where x > 0 
 	{
@@ -97,11 +104,10 @@ generator HermitianGenerate
 	     	  for (int k = 0; k < x; k++)
 	     	      s += r.cell(k, y) * r.cell(k, x);
 	     	  l = (x == y) ? sqrt(a - s) :
-		  	 // r.cell(x,x) shouldn't be accessible?
-               	  	 (1.0 / r.cell(x,x) * (a - s));
+               	  	 (1.0 / r2.cell(x,x) * (a - s));
 	     }			 
 	}
-*/
+
 
 	// straightforward implementation of cholesky
 	to(L l)  from(A a) { 
@@ -113,7 +119,6 @@ generator HermitianGenerate
             	     l.cell(j, i) = (i == j) ?
                            sqrt(a.cell(i, i) - s) :
                            (1.0 / l.cell(j, j) * (a.cell(j, i) - s));
-			   //printf("%f", l.cell(j,i));
         	 }
 	     }	
 	}
