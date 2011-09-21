@@ -35,56 +35,52 @@
 #include "maximawrapper.h"
 
 namespace petabricks {
-  typedef std::map<std::string, double> ValueMap;
-  
-  class Heuristic : public jalib::JRefCounted {
-  public:
-    Heuristic(const std::string name, const std::string formula) :
-          _name(name),
-          _formula(MaximaWrapper::instance().runCommandSingleOutput(formula)) {}
-      
-    std::string getName() const {return _name;}
+typedef std::map<std::string, double> ValueMap;
+
+class Heuristic : public jalib::JRefCounted {
+public:
+  Heuristic(const std::string name, const std::string formula) :
+        _name(name),
+        _formula(MaximaWrapper::instance().runCommandSingleOutput(formula)) {}
     
-    double eval (const ValueMap featureValues);
-    
-  private:
-    std::string _name;
-    FormulaPtr _formula;
-  };
+  std::string name() const {return _name;}
+  FormulaPtr formula() const { return _formula; }
+  double eval (const ValueMap featureValues);
   
+private:
+  std::string _name;
+  FormulaPtr _formula;
+};
+
+
+
+
+typedef jalib::JRef<Heuristic> HeuristicPtr;
+typedef std::map<std::string, HeuristicPtr> HeuristicMap;
+
+
+
+class HeuristicManager {
+public:
+  ///Singleton instance
+  static HeuristicManager& instance() { static HeuristicManager inst;
+                                        return inst;
+                                      }
+                                              
+                                              
+  void registerDefault(const std::string name, const std::string formula) {
+          _defaultHeuristics[name] = HeuristicPtr(new Heuristic(name, formula));
+        }
   
+  HeuristicPtr& getHeuristic(const std::string name);
   
+  const HeuristicMap& usedHeuristics() const { return _heuristicCache; }
   
-  typedef jalib::JRef<Heuristic> HeuristicPtr;
-  typedef std::map<std::string, HeuristicPtr> HeuristicMap;
-  
-  
-  
-  class HeuristicManager {
-  public:
-    ///Singleton instance
-    static HeuristicManager& instance() { static HeuristicManager inst;
-                                          return inst;
-                                        }
-                                                
-                                                
-    void registerDefault(const std::string name, const std::string formula) {
-            _heuristicCache[name] = HeuristicPtr(new Heuristic(name, formula));
-          }
-    
-    HeuristicPtr& getHeuristic(const std::string name) {
-                  HeuristicMap::iterator found=_heuristicCache.find(name);
-                  if (found == _heuristicCache.end()) {
-                    JWARNING("Unable to find heuristic")(name);
-                    abort();
-                  }
-                  return found->second;
-                }
-    
-  private:
-    HeuristicMap _heuristicCache;
-  };
-  
+private:
+  HeuristicMap _heuristicCache;
+  HeuristicMap _defaultHeuristics;
+};
+
 }
 
 #endif

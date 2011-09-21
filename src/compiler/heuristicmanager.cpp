@@ -42,3 +42,27 @@ double petabricks::Heuristic::eval (const ValueMap featureValues) {
   
   return evaluated->value();
 }
+
+petabricks::HeuristicPtr& petabricks::HeuristicManager::getHeuristic(const std::string name) {
+  //From cache
+  HeuristicMap::iterator found=_heuristicCache.find(name);
+  if (found != _heuristicCache.end()) {
+    //The heuristic is already in the cache, just return it
+    return found->second;
+  }
+  
+  //TODO: From input file
+  //TODO: Best from DB
+  
+  //Use default heuristic
+  found = _defaultHeuristics.find(name);
+  if (found != _defaultHeuristics.end()) {
+    //Found! Store in cache and return
+    _heuristicCache[name] = found->second;
+    return found->second;
+  }
+  
+  //Should never arrive here! Every heuristic should have a default
+  JWARNING("Unable to find heuristic. Does it have a default?")(name);
+  abort();
+}

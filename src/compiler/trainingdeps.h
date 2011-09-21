@@ -32,6 +32,7 @@
 #include "common/jtunable.h"
 
 #include "rule.h"
+#include "heuristicmanager.h"
 
 #include <map>
 #include <sstream>
@@ -111,6 +112,23 @@ public:
     _callgraph[caller].push_back(callee);
   }
 
+  void addHeuristics(const HeuristicMap& heuristics) {
+    for(HeuristicMap::const_iterator i=heuristics.begin(), e=heuristics.end();
+        i != e;
+        ++i) {
+      const std::string name = i->first;
+      const HeuristicPtr& heuristic = i->second;
+      addHeuristic(name, heuristic->formula()->toCppString());
+    }
+  }
+  
+  void addHeuristic(const std::string name, const std::string formula) {
+    _os << "  <heuristic";
+    _os << " name=\"" << name << "\"";
+    _os << " formula=\"" << formula << "\"";
+    _os << " />\n";
+  }
+  
   void dumpTo(std::ostream& o){
     o << "<traininginfo>\n";
     o << _os.str();
