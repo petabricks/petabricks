@@ -39,16 +39,13 @@ typedef std::map<std::string, double> ValueMap;
 
 class Heuristic : public jalib::JRefCounted {
 public:
-  Heuristic(const std::string name, const std::string formula) :
-        _name(name),
+  Heuristic(const std::string formula) :
         _formula(MaximaWrapper::instance().runCommandSingleOutput(formula)) {}
     
-  std::string name() const {return _name;}
   FormulaPtr formula() const { return _formula; }
   double eval (const ValueMap featureValues);
   
 private:
-  std::string _name;
   FormulaPtr _formula;
 };
 
@@ -69,8 +66,9 @@ public:
                                               
                                               
   void registerDefault(const std::string name, const std::string formula) {
-          _defaultHeuristics[name] = HeuristicPtr(new Heuristic(name, formula));
+          _defaultHeuristics[name] = HeuristicPtr(new Heuristic(formula));
         }
+  void loadFromFile(const std::string fileName);
   
   HeuristicPtr& getHeuristic(const std::string name);
   
@@ -79,6 +77,7 @@ public:
 private:
   HeuristicMap _heuristicCache;
   HeuristicMap _defaultHeuristics;
+  HeuristicMap _fromFile;
 };
 
 }

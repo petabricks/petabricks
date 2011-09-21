@@ -24,7 +24,10 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#include <heuristicmanager.h>
+#include "heuristicmanager.h"
+
+#include <fstream>
+#include <boost/regex.hpp>
 
 double petabricks::Heuristic::eval (const ValueMap featureValues) {
   FormulaPtr evaluated = _formula->clone();
@@ -51,7 +54,13 @@ petabricks::HeuristicPtr& petabricks::HeuristicManager::getHeuristic(const std::
     return found->second;
   }
   
-  //TODO: From input file
+  found = _fromFile.find(name);
+  if(found != _fromFile.end()) {
+    //Found! Store in cache and return
+    _heuristicCache[name] = found->second;
+    return found->second;
+  }
+  
   //TODO: Best from DB
   
   //Use default heuristic
@@ -65,4 +74,41 @@ petabricks::HeuristicPtr& petabricks::HeuristicManager::getHeuristic(const std::
   //Should never arrive here! Every heuristic should have a default
   JWARNING("Unable to find heuristic. Does it have a default?")(name);
   abort();
+}
+
+void petabricks::HeuristicManager::loadFromFile(const std::string fileName) {
+  //boost::regex heuristicRE("\\s*<heuristic\\s+name=\"(\\w+)\"\\s+formula=\"(\\w+)\"\\s*/>\\s*");
+  boost::regex heuristicRE("<heuristic\\s+name=\"(.+)\"\\s+formula=\"(.+)\"\\s*/>");
+  
+  std::ifstream f(fileName.c_str());
+  if (! f.is_open()) {
+    std::cerr << "Unable to open the file: " << fileName << "\n";
+    abort();
+  }
+  
+  std::string line;
+  while ( f.good() ) {
+    boost::cmatch submatch;
+    getline (f, line);
+    JTRACE("line")(line);
+    bool found = boost::regex_search(line.c_str(), submatch, heuristicRE);
+    
+    if (found) {
+      //Add to the list of heuristics
+      JTRACE("Matches")(submatch[0])(submatch[1])(submatch[2]);
+      std::string name = submatch[1];
+      std::string formula = submatch[2];
+      Heuristic* newHeuristic= new Heuristic(formula);
+      
+      _fromFile[name]=HeuristicPtr(newHeuristic);
+    }
+    
+  }
+  
+  f.close();
+  //for line in file {
+    
+    
+    
+  //}
 }
