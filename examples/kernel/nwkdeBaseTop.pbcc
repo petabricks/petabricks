@@ -3,11 +3,16 @@
 
 #define DEBUG
 
+#define FIRSTMETHOD
+//#define SECONDMETHOD
+
 transform NWKDEBase
 from INPUT[n]
 to RESULT[n]
 through SQDIFFS[n], WEIGHTS[n], PARTIALS[n]
 {
+
+#ifdef FIRSTMETHOD
 
     /* METHOD 1: compute PARTIALS by exposing the most fine-grained
        parallelism.  this method may be less cache-efficient. */
@@ -39,6 +44,10 @@ through SQDIFFS[n], WEIGHTS[n], PARTIALS[n]
 #endif
     }
 
+#endif // FIRSTMETHOD
+
+#ifdef SECONDMETHOD
+
     /* METHOD 2: Compute weights and partials directly with one pass through the data */
 
     to   (PARTIALS.cell(i) partial,
@@ -51,6 +60,8 @@ through SQDIFFS[n], WEIGHTS[n], PARTIALS[n]
         fprintf(stderr, "method 2: partial(%d) = %g\n", i, partial);
 #endif
     }
+
+#endif // SECONDMETHOD
 
     /* Once we have the PARTIALS and WEIGHTS, we can compute RESULT */
 

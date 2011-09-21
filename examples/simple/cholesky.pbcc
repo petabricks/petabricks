@@ -1,0 +1,129 @@
+#ifndef CHOLESKY_PBCC
+#define CHOLESKY_PBCC
+#include "../multiply/multiply.pbcc"
+#include "copy.pbcc"
+#include "transpose.pbcc"
+//#include "../LUDense/LUtrisolve.pbcc"
+#include "../LUDense/trilsolve.pbcc"
+
+transform HermitianGenerate 
+to H[n,n] {
+	  
+	  // this generates a real, symmetric, positive definite matrix
+	  
+	  to(H her)
+	  //using(temp1 [n,n], temp2 [w,h])
+	  from () { 
+	    
+	    MatrixRegion2D temp1 = MatrixRegion2D::allocate(n,n);
+	    MatrixRegion2D temp2 = MatrixRegion2D::allocate(n,n);
+	    
+	    int i;
+	    for (i = 0; i < temp1.width(); i++) {
+             	 for (int j = 0; j <= i; j++) {
+		      	   temp1.cell(i,j) = PetabricksRuntime::randInt(1,20);
+		}
+	    }
+
+  	    for (i = 0; i < temp1.width(); i++) {
+	    	for (int j = 0; j < i; j ++ ) {
+   		    temp1.cell(j,i) = temp1.cell(i,j);
+   		 }
+	    }
+
+	   
+	   Copy2D(temp2, temp1);
+	   MatrixMultiply (her, temp1, temp2);
+
+	  }
+
+}
+
+
+transform MatrixCholesky
+from A[n,n]
+to L[n,n]
+generator HermitianGenerate
+{
+/*
+	// recursive def of cholesky
+	to (L l)
+	from (A a) 
+	{
+	
+	    // upper left corner
+	    MatrixCholesky(l.region(0, 0, n/2, n/2), a.region(0,0,n/2,n/2));	   
+
+	    // lower left corner
+	    MatrixRegion2D l11_trans = MatrixRegion2D::allocate(n/2,n/2);
+	    Transpose(l11_trans, l.region(0,0,n/2,n/2));
+
+	    //x2 = trisolve(L22,B2)
+	    trilsolve(l.region(n/4,n/2,n/2,n), l11_trans.region(l11_trans.width()/2,l11_trans.height()/2,l11_trans.width(),l11_trans.height()), a.region(n/4,n/2,n/2,n));
+
+	    //x1 = trisolve(L11,B1-x2L21)
+	    MatrixRegion2D x2L21 = MatrixRegion2D::allocate(n/4,n/2);
+	    MatrixRegion2D x1 = MatrixRegion2D::allocate(n/4,n/2);
+	    MatrixMultiply(x2L21, l.region(n/4,n/2,n/2,n), l11_trans.region(0,l11_trans.height()/2,l11_trans.width()/2,n));
+	    Subtract2D(x1, a.region(0,n/2,n/4,n), x2L21);
+	    trilsolve(l.region(0,n/2,n/4,n), l11_trans.region(0,0,l11_trans.width()/2,l11_trans.height()/2), x1); 
+
+	    // lower right corner
+	    MatrixRegion2D t = MatrixRegion2D::allocate(n/2,n/2);
+	    MatrixRegion2D l21_trans = MatrixRegion2D::allocate(n/2,n/2);
+	    MatrixRegion2D AminusT = MatrixRegion2D::allocate(n/2,n/2);
+	    Transpose(l21_trans, l.region(0,n/2,n/2,n));
+	    MatrixMultiply(t, l.region(0,n/2,n/2,n), l21_trans);
+	    Subtract2D(AminusT, a.region(n/2,n/2,n,n), t);
+	    MatrixCholesky(l.region(n/2,n/2,n,n), AminusT); 
+
+	}	
+*/
+	// specific case: first column
+	to (L.cell(x,y) l) 
+	from (L.cell(0,0) c, 
+	A.cell(x,y) a) 
+	where x = 0 
+	{
+	     l = (x == y) ?
+	       sqrt(a) :
+               (1.0 / c * a);
+	}
+
+	// implementation that uses region from (0,0) to the box adjacent to the right of the entry
+	to (L.cell(x,y) l) 
+	from (L.region(0, 0, x, y + 1) r,
+	L.region(0,0, x+1, y) r2,
+	A.cell(x,y) a) 
+	where x > 0 
+	{
+	     if (x > y) {
+	     	l = 0;
+	     } else {
+	     	  double s = 0;
+	     	  for (int k = 0; k < x; k++)
+	     	      s += r.cell(k, y) * r.cell(k, x);
+	     	  l = (x == y) ? sqrt(a - s) :
+               	  	 (1.0 / r2.cell(x,x) * (a - s));
+	     }			 
+	}
+
+
+	// straightforward implementation of cholesky
+	to(L l)  from(A a) { 
+ 	     for (int i = 0; i < a.height(); i++) {
+             	 for (int j = 0; j < (i+1); j++) {
+            	     double s = 0;
+            	     for (int k = 0; k < j; k++)
+                     	 s += l.cell(k,i) * l.cell(k,j);
+            	     l.cell(j, i) = (i == j) ?
+                           sqrt(a.cell(i, i) - s) :
+                           (1.0 / l.cell(j, j) * (a.cell(j, i) - s));
+        	 }
+	     }	
+	}
+
+
+}
+
+#endif // CHOLESKY_PBCC
