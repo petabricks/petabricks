@@ -29,10 +29,12 @@
 
 #include <set>
 #include <vector>
+#include <cstdlib>
 
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
 #include "common/srcpos.h"
+#include "common/jassert.h"
 
 namespace petabricks {
 
@@ -168,6 +170,11 @@ public:
   FormulaPtr negative() const;
 
   virtual char opType() const;
+  
+  virtual FormulaPtr clone() const = 0;
+  virtual double value() const {  JTRACE("Formula.value()")(toCppString());
+                                  UNIMPLEMENTED(); abort(); }
+  
 protected:
   /// Set of all free variables in the tree
   FreeVarsPtr _freeVars;
@@ -185,6 +192,7 @@ public:
   FormulaVariable(const char* name);
   FormulaVariable(const std::string& name);
   void print(std::ostream& o) const;
+  FormulaPtr clone() const { return FormulaPtr(new FormulaVariable(*this)); }
 private:
   std::string _name;
 };
@@ -201,6 +209,8 @@ public:
   static FormulaPtr zero()   { return new FormulaLiteral( 0); }
   FormulaLiteral(T v);
   void print(std::ostream& o) const;
+  virtual FormulaPtr clone() const { return FormulaPtr(new FormulaLiteral(*this)); }
+  virtual double value() const { return _value; }
 private:
   T _value;
 };
@@ -234,6 +244,12 @@ public:
 
   virtual char opType() const;
 
+  virtual FormulaPtr clone() const {
+    FormulaPtr newLeft = _left->clone();
+    FormulaPtr newRight= _right->clone();
+    FormulaBinop<OP>* newFormula= new FormulaBinop<OP>(newLeft, newRight);
+    return FormulaPtr(newFormula);
+  }
 private:
   FormulaPtr _left;
   FormulaPtr _right;
