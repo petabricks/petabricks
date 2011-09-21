@@ -268,7 +268,6 @@ AC_DEFINE([MAX_NUM_WORKERS],     [512], [max number of workers supported])
 AC_DEFINE([MAX_REC_LEVELS],      [12], [number of levels for recursive choices])
 AC_DEFINE([MIN_NUM_WORKERS],     [1], [min number of workers supported])
 AC_DEFINE([OPT_LOWLEVEL],        [1], [enable low level optimization such as specializations and prefetching])
-AC_DEFINE([REGIONMATRIX_TEST],   [1], [always use RegionMatrix code])
 AC_DEFINE([RETURN_VAL_STR],      ["_pb_rv"], [var name in output code for rule output variable])
 AC_DEFINE([SINGLE_SEQ_CUTOFF],   [1], [define to use a global sequential cutoff instead of a per-transform one])
 AC_DEFINE([SPLIT_CHUNK_SIZE],    ["TRANSFORM_LOCAL(splitsize)"], [var name in output code])
@@ -304,6 +303,7 @@ if false; then
   AC_DEFINE([MAXIMA_CACHING],      [], [cache results from maxima])
   AC_DEFINE([OUTPUT_SIZE_STR],     ["output_count"],     [define to add a system var to transform scope])
   AC_DEFINE([PBCC_SEQUENTIAL],     [], [define to run tasks inline instead of enqueuing them])
+  AC_DEFINE([REGIONMATRIX_TEST],   [1], [always use RegionMatrix code])
 fi
 
 ################################################################################
