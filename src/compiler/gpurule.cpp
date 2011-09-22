@@ -31,25 +31,20 @@
 
 namespace petabricks
 {
-
-void
-GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
-{
-  if( !_rule->isOpenClRule() )
+void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) {
+  if(rf != RuleFlavor::SEQUENTIAL || !_rule->isOpenClRule())
     return;
 
   CLCodeGenerator clcodegen(o.cgPtr());
   IterationDefinition iterdef(*_rule, _rule->getSelfDependency(), _rule->isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();
   std::vector<std::string> packedargnames = iterdef.packedargnames();
-  o.os() << "// GPURULE TRAMPOLINE CODE\n";
+  o.os() << "// GPURULE DECL CODE\n";
 
   // Create variables to hold handles to program, kernel
-  o.hos() << "static cl_program clprog_" << _rule->id() << ";\n";
-  o.hos() << "static cl_kernel clkern_" << _rule->id() << ";\n\n";
-  o.os( ) << "cl_program " << trans.name() << "_instance::clprog_" << _rule->id()
+  o.os( ) << "cl_program " <<  "clprog_" << _rule->id()
 	  << " = 0;\n";
-  o.os( ) << "cl_kernel " << trans.name() << "_instance::clkern_" << _rule->id()
+  o.os( ) << "cl_kernel " << "clkern_" << _rule->id()
 	  << " = 0;\n";
 
   // Create init function call
@@ -92,10 +87,10 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
   o.endFunc();
 
   // Create actual function call
-  o.beginFunc("petabricks::DynamicTaskPtr", codename(), packedargs);
+  /*o.beginFunc("petabricks::DynamicTaskPtr", codename(), packedargs);
   o.write("return ");
   o.call(_rule->trampcodename(trans)+TX_OPENCL_POSTFIX, packedargnames);
-  o.endFunc();
+  o.endFunc();*/
 
   // Get kernel
   o.beginFunc("cl_kernel", "get_kernel_" + jalib::XToString(_rule->id()));
@@ -112,6 +107,24 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
   o.endIf();
   o.write("return clprog_" + jalib::XToString(_rule->id()) + ";");
   o.endFunc();
+  
+}
+
+void GpuRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor)
+{
+  switch(flavor) {
+  case RuleFlavor::SEQUENTIAL:
+    _rule->generateTrampCode(trans, o, RuleFlavor::SEQUENTIAL_OPENCL);
+    break;
+  case RuleFlavor::WORKSTEALING:
+    _rule->generateTrampCode(trans, o, RuleFlavor::WORKSTEALING_OPENCL);
+    break;
+  case RuleFlavor::DISTRIBUTED:
+    _rule->generateTrampCode(trans, o, RuleFlavor::DISTRIBUTED_OPENCL);
+    break;
+  default:
+    UNIMPLEMENTED();
+  }
 }
 
 void GpuRule::generateCallCode(const std::string& name,
@@ -129,8 +142,10 @@ void GpuRule::generateCallCode(const std::string& name,
     o.callSpatial(_rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region);
     break;
   case RuleFlavor::WORKSTEALING:
-    o.mkCreateGpuSpatialMethodCallTask(name, trans.instClassName(), _rule->trampcodename(trans)+TX_OPENCL_POSTFIX+"_createtasks", region, regionNodesGroups, nodeID, gpuCopyOut);
-    //o.mkGpuSpatialTask(name, trans.instClassName(), _rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region, _rule->getToRegions(), _rule->getFromRegions());
+    o.mkCreateGpuSpatialMethodCallTask(name, trans.instClassName() + "_workstealing", _rule->trampcodename(trans)+TX_OPENCL_POSTFIX+"_createtasks", region, regionNodesGroups, nodeID, gpuCopyOut);
+    break;
+  case RuleFlavor::DISTRIBUTED:
+    o.comment("gpurule::distributed");
     break;
   default:
     UNIMPLEMENTED();

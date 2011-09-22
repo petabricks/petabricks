@@ -464,6 +464,9 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
 #ifdef DISABLE_DISTRIBUTED
       if(rf==RuleFlavor::DISTRIBUTED) continue;
 #endif
+#ifdef HAVE_OPENCL
+      if(rf==RuleFlavor::OPENCL) continue;
+#endif
     generateTransformInstanceClass(o, rf);
   }
 

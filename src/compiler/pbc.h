@@ -75,6 +75,11 @@ public:
     OPENCL,
 #endif
     _COUNT,
+#ifdef HAVE_OPENCL
+    SEQUENTIAL_OPENCL,
+    WORKSTEALING_OPENCL,
+    DISTRIBUTED_OPENCL,
+#endif
     INVALID
 
   };
@@ -92,7 +97,10 @@ public:
       case RuleFlavor::SEQUENTIAL:   return "sequential";
       case RuleFlavor::WORKSTEALING: return "workstealing";
 #ifdef HAVE_OPENCL
-      case RuleFlavor::OPENCL:       return "opencl";
+      case RuleFlavor::OPENCL:
+      case RuleFlavor::SEQUENTIAL_OPENCL:
+      case RuleFlavor::WORKSTEALING_OPENCL:
+      case RuleFlavor::DISTRIBUTED_OPENCL:       return "opencl";
 #endif
       case RuleFlavor::DISTRIBUTED:  return "distributed";
       default:

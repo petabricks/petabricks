@@ -53,7 +53,9 @@ class GpuRule : public SyntheticRule {
 
     // Overridden functions
 
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
+
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
 
   void generateCallCode(const std::string& nodename,
                         Transform& trans,

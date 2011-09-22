@@ -71,7 +71,7 @@ void petabricks::SyntheticRule::generateCallCode(const std::string&,
 }
 
 void petabricks::SyntheticRule::generateDeclCode(Transform&, CodeGenerator&, RuleFlavor) {}
-void petabricks::SyntheticRule::generateTrampCode(Transform&, CodeGenerator&, RuleFlavor) {}
+//void petabricks::SyntheticRule::generateTrampCode(Transform&, CodeGenerator&, RuleFlavor) {}
 
 void petabricks::SyntheticRule::markRecursive() {
   UNIMPLEMENTED();

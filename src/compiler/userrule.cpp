@@ -501,12 +501,6 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
     generateDeclCodeSequential(trans, o);
     return;
   }
-#ifdef HAVE_OPENCL
-  if(rf == RuleFlavor::OPENCL) {
-    generateDeclCodeOpenCl(trans, o);
-    return;
-  }
-#endif
   if(rf == RuleFlavor::WORKSTEALING && !isRecursive()) {
     //don't generate workstealing code for leaf nodes
     return;
@@ -693,9 +687,14 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
   prepareBuffers();
 
 #ifdef HAVE_OPENCL
-  if(flavor == RuleFlavor::OPENCL) {
+  if(RuleFlavor::WORKSTEALING_OPENCL == flavor) {
     generateMultiOpenCLTrampCodes(trans, o);
-    //return;
+    return;
+  }
+  if(RuleFlavor::DISTRIBUTED_OPENCL == flavor) {
+    o.comment("UserRule::generateTrampCode RuleFlavor::DISTRIBUTED_OPENCL");
+    //TODO
+    return;
   }
 #endif
 
@@ -712,41 +711,12 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     o.varDecl("const IndexT "+_duplicateVars[i].name() + " = " + jalib::XToString(_duplicateVars[i].initial()));
   }
 
-  #ifdef FORCE_OPENCL
-  // TEMPORARY -- hard-wire things so that the OpenCL rule is always called
-  if( ( RuleFlavor::SEQUENTIAL == flavor ) && isOpenClRule( ) )
-    {
-      o.comment("Forcing OpenCL impl of rule...");
-      o.write("return ");
-      o.call(trampcodename(trans)+TX_OPENCL_POSTFIX, packedargnames);
-      o.write("}");
-      o.comment("END Forcing OpenCL impl of rule...");
-      return;
-    }
-  // END TEMPORARY
-  #endif
-
-  // LOGGING
-  #ifdef OPENCL_LOGGING
-  if( RuleFlavor::SEQUENTIAL == flavor )
-  {
-    o.write( "printf( \"ruleN_static applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
-  }
   #ifdef HAVE_OPENCL
-  else if( RuleFlavor::OPENCL == flavor )
-  {
-    o.write( "printf( \"ruleN_opencl applied from (%d,%d) to (%d,%d)\\n\", _iter_begin[0], _iter_begin[1], _iter_end[0], _iter_end[1] );\n" );
-  }
-  #endif
-  #endif
-  // END LOGGING
-
-  #ifdef HAVE_OPENCL
-  if( RuleFlavor::OPENCL == flavor )
+  if(RuleFlavor::SEQUENTIAL_OPENCL == flavor)
   {
 
     o.os() << "cl_int err;\n";
-    o.os() << "cl_kernel clkern = " << trans.name() << "_instance::get_kernel_" << id() << "();\n";
+    o.os() << "cl_kernel clkern = " "get_kernel_" << id() << "();\n"; //TODO global get_kernel
 
     int arg_pos = 0;
 
@@ -1018,7 +988,7 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   packedargs.push_back("RegionNodeGroupMapPtr map");
   packedargs.push_back("bool gpuCopyOut");
   std::string codename = trampcodename(trans) + TX_OPENCL_POSTFIX;
-  std::string objectname = trans.instClassName();
+  std::string objectname = trans.instClassName() + "_workstealing"; //TODO: handle _distributed
   std::string dimension = jalib::XToString(iterdef.dimensions());
 
   std::string prepareclass = "petabricks::GpuSpatialMethodCallTask<"+objectname
@@ -1142,7 +1112,7 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
 
   o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans) + TX_OPENCL_POSTFIX + "_run", packedargs);
   o.write("cl_int err = CL_SUCCESS;");
-  o.os() << "cl_kernel clkern = " << trans.name() << "_instance::get_kernel_" << id() << "();\n";
+  o.os() << "cl_kernel clkern = " << "get_kernel_" << id() << "();\n";
 	//o.write("cl_program clprog = "+trans.name()+"_instance::get_program_"+jalib::XToString(id())+"();");
 	//o.write("JASSERT( CL_SUCCESS == err ).Text( \"Failed to create kernel.\" );");
 	//o.write("cl_kernel clkern = clCreateKernel(clprog, \"kernel_main\", &err );");
