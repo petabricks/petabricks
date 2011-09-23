@@ -32,7 +32,9 @@ noinst_HEADERS = \
   compiler/trainingdeps.h \
   compiler/transform.h \
   compiler/userrule.h \
-  compiler/heuristicmanager.h
+  compiler/heuristic.h \
+  compiler/heuristicmanager.h \
+  compiler/dbmanager.h
 
 pkglib_HEADERS=  \
   common/hash.h \
@@ -130,7 +132,9 @@ libpbcompiler_a_SOURCES = \
   compiler/trainingdeps.cpp \
   compiler/transform.cpp \
   compiler/userrule.cpp \
-  compiler/heuristicmanager.cpp
+  compiler/heuristic.cpp \
+  compiler/heuristicmanager.cpp \
+  compiler/dbmanager.cpp
 
 libpbruntime_a_LFLAGS = 
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime

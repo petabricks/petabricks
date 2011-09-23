@@ -24,44 +24,21 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifndef HEURISTICMANAGER_H
-#define HEURISTICMANAGER_H
-
-#include <map>
-
-#include "common/jrefcounted.h"
-#include "common/jassert.h"
-
 #include "heuristic.h"
-#include "dbmanager.h"
-#include "maximawrapper.h"
 
-namespace petabricks {
-
-class HeuristicManager {
-public:
-  ///Singleton instance
-  static HeuristicManager& instance() { static HeuristicManager inst;
-                                        return inst;
-                                      }
-                                              
-                                              
-  void registerDefault(const std::string name, const std::string formula) {
-          _defaultHeuristics[name] = HeuristicPtr(new Heuristic(formula));
-        }
-  void loadFromFile(const std::string fileName);
+double petabricks::Heuristic::eval (const ValueMap featureValues) {
+  FormulaPtr evaluated = _formula->clone();
   
-  HeuristicPtr& getHeuristic(const std::string name);
+  for(ValueMap::const_iterator i=featureValues.begin(), e=featureValues.end();
+      i!=e;
+      ++i) {
+    const std::string& featureName=i->first;
+    const std::string featureValueStr = jalib::XToString(i->second);
+    
+    evaluated = MaximaWrapper::instance().subst(featureValueStr, featureName, evaluated);
+  }
   
-  const HeuristicMap& usedHeuristics() const { return _heuristicCache; }
+  MaximaWrapper::instance().normalize(evaluated);
   
-private:
-  HeuristicMap _heuristicCache;
-  HeuristicMap _defaultHeuristics;
-  HeuristicMap _fromFile;
-  DBManager _db;
-};
-
+  return evaluated->value();
 }
-
-#endif

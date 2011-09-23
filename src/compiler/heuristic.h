@@ -24,43 +24,35 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifndef HEURISTICMANAGER_H
-#define HEURISTICMANAGER_H
+#ifndef HEURISTIC_H
+#define HEURISTIC_H
 
 #include <map>
 
 #include "common/jrefcounted.h"
-#include "common/jassert.h"
+//#include "common/jassert.h"
 
-#include "heuristic.h"
-#include "dbmanager.h"
 #include "maximawrapper.h"
 
 namespace petabricks {
+typedef std::map<std::string, double> ValueMap;
 
-class HeuristicManager {
+class Heuristic : public jalib::JRefCounted {
 public:
-  ///Singleton instance
-  static HeuristicManager& instance() { static HeuristicManager inst;
-                                        return inst;
-                                      }
-                                              
-                                              
-  void registerDefault(const std::string name, const std::string formula) {
-          _defaultHeuristics[name] = HeuristicPtr(new Heuristic(formula));
-        }
-  void loadFromFile(const std::string fileName);
-  
-  HeuristicPtr& getHeuristic(const std::string name);
-  
-  const HeuristicMap& usedHeuristics() const { return _heuristicCache; }
+  Heuristic(const std::string formula) :
+        _formula(MaximaWrapper::instance().runCommandSingleOutput(formula)) {}
+    
+  FormulaPtr formula() const { return _formula; }
+  double eval (const ValueMap featureValues);
   
 private:
-  HeuristicMap _heuristicCache;
-  HeuristicMap _defaultHeuristics;
-  HeuristicMap _fromFile;
-  DBManager _db;
+  FormulaPtr _formula;
 };
+
+
+typedef jalib::JRef<Heuristic> HeuristicPtr;
+typedef std::map<std::string, HeuristicPtr> HeuristicMap;
+
 
 }
 

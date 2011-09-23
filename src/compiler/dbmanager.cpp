@@ -24,75 +24,77 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#include "heuristicmanager.h"
 
-#include <fstream>
-#include <boost/regex.hpp>
+#include "dbmanager.h"
 
-petabricks::HeuristicPtr& petabricks::HeuristicManager::getHeuristic(const std::string name) {
-  //From cache
-  HeuristicMap::iterator found=_heuristicCache.find(name);
-  if (found != _heuristicCache.end()) {
-    //The heuristic is already in the cache, just return it
-    return found->second;
+namespace {
+  /** Multiprocess-safe Wrapper of sqlite3_exec: if a query fails because 
+   * a table is blocked by another process, it is tried again for some times */
+  static int db_exec(sqlite3* db, const char *query, int (*callback)(void*,int,char**,char**), void * argument, char **errmsg) {
+    int retCode;
+    int retry = 500; //Number of trials before aborting
+    
+    retCode = sqlite3_exec(db, query, callback, argument, errmsg);
+    retry--;
+    
+    while ((retCode == SQLITE_LOCKED || retCode == SQLITE_BUSY) && --retry) {
+      retCode = sqlite3_exec(db, query, callback, argument, errmsg);
+      usleep(200*1000);
+    }
+    
+    return retCode;
   }
   
-  found = _fromFile.find(name);
-  if(found != _fromFile.end()) {
-    //Found! Store in cache and return
-    _heuristicCache[name] = found->second;
-    return found->second;
+  static int getHeuristic(void* result, int, char** colText, char**) {
+    char* formula=colText[0];
+    petabricks::Heuristic* newHeuristic = new petabricks::Heuristic(formula);
+    
+    *((petabricks::HeuristicPtr *)result) = newHeuristic;
+    return 0;
   }
-  
-  //Best from DB
-  HeuristicPtr heuristic = _db.getBestHeuristic(name);
-  if(heuristic) {
-    //Found! Store in cache and return
-    _heuristicCache[name] = heuristic;
-    return _heuristicCache[name];
-  }
-  
-  //Use default heuristic
-  found = _defaultHeuristics.find(name);
-    //Found! Store in cache and return
-  if (found != _defaultHeuristics.end()) {
-    _heuristicCache[name] = found->second;
-    return found->second;
-  }
-  
-  //Should never arrive here! Every heuristic should have a default
-  JWARNING("Unable to find this heuristic. Does it have a default?")(name);
-  abort();
 }
 
-void petabricks::HeuristicManager::loadFromFile(const std::string fileName) {
-  //boost::regex heuristicRE("\\s*<heuristic\\s+name=\"(\\w+)\"\\s+formula=\"(\\w+)\"\\s*/>\\s*");
-  boost::regex heuristicRE("<heuristic\\s+name=\"(.+)\"\\s+formula=\"(.+)\"\\s*/>");
+petabricks::DBManager::DBManager(std::string dbFileName) {
+  int retCode;
+
+  if(dbFileName=="") {
+    dbFileName=defaultDBFileName();
+  }
   
-  std::ifstream f(fileName.c_str());
-  if (! f.is_open()) {
-    std::cerr << "Unable to open the file containing the heuristics: " << fileName << "\n";
+  //Open DB
+  retCode = sqlite3_open(dbFileName.c_str(), &_db);
+  if(retCode) {
+    std::cerr << "Can't open DB: " << dbFileName << "\n";
+    sqlite3_close(_db);
+    abort();
+  }
+}
+
+
+std::string petabricks::DBManager::defaultDBFileName() {
+  char* homeDir = getenv("HOME");
+  return std::string(homeDir) + "/tunerout/knowledge.db";
+}
+
+
+petabricks::HeuristicPtr petabricks::DBManager::getBestHeuristic(std::string name) {
+  int retCode;
+  char *zErrMsg = 0;
+  HeuristicPtr result;
+  
+  std::string query = "SELECT formula FROM Heuristic JOIN HeuristicKind "
+                      "ON Heuristic.kindID=HeuristicKind.ID "
+                      "WHERE HeuristicKind.name='"+ name + "' "
+                      "ORDER BY Heuristic.useCount DESC "
+                      "LIMIT 1";
+                      
+  retCode = db_exec(_db, query.c_str(), getHeuristic, &result, &zErrMsg);
+  if (retCode) {
+    std::cerr << "Error getting the required heuristic: " << zErrMsg << "\n";
+    sqlite3_free(zErrMsg);
+    sqlite3_close(_db);
     abort();
   }
   
-  std::string line;
-  while ( f.good() ) {
-    boost::cmatch submatch;
-    getline (f, line);
-    JTRACE("line")(line);
-    bool found = boost::regex_search(line.c_str(), submatch, heuristicRE);
-    
-    if (found) {
-      //Add to the list of heuristics
-      JTRACE("Matches")(submatch[0])(submatch[1])(submatch[2]);
-      std::string name = submatch[1];
-      std::string formula = submatch[2];
-      Heuristic* newHeuristic= new Heuristic(formula);
-      
-      _fromFile[name]=HeuristicPtr(newHeuristic);
-    }
-    
-  }
-  
-  f.close();
+  return result;
 }

@@ -24,44 +24,32 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifndef HEURISTICMANAGER_H
-#define HEURISTICMANAGER_H
+#ifndef DBMANAGER_H
+#define DBMANAGER_H
 
-#include <map>
-
-#include "common/jrefcounted.h"
-#include "common/jassert.h"
-
+#include <sqlite3.h>
 #include "heuristic.h"
-#include "dbmanager.h"
-#include "maximawrapper.h"
 
 namespace petabricks {
 
-class HeuristicManager {
+class DBManager {
 public:
-  ///Singleton instance
-  static HeuristicManager& instance() { static HeuristicManager inst;
-                                        return inst;
-                                      }
-                                              
-                                              
-  void registerDefault(const std::string name, const std::string formula) {
-          _defaultHeuristics[name] = HeuristicPtr(new Heuristic(formula));
-        }
-  void loadFromFile(const std::string fileName);
+  DBManager(std::string dbFileName="");
   
-  HeuristicPtr& getHeuristic(const std::string name);
+  ~DBManager() {
+    sqlite3_close(_db);
+  }
   
-  const HeuristicMap& usedHeuristics() const { return _heuristicCache; }
+  ///Get the path of the default DB file
+  std::string defaultDBFileName();
+  
+  ///Get the best heuristic with the given name
+  HeuristicPtr getBestHeuristic(std::string name);
   
 private:
-  HeuristicMap _heuristicCache;
-  HeuristicMap _defaultHeuristics;
-  HeuristicMap _fromFile;
-  DBManager _db;
+  sqlite3 *_db;
 };
-
+  
 }
 
 #endif
