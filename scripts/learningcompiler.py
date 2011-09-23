@@ -2,11 +2,73 @@
 import sys
 import os
 import shutil
-from xml.dom.minidom import parse
+import sqlite3
+import xml.dom.minidom
 from pbutil import compileBenchmark
 from sgatuner import autotune
 from tunerconfig import config
 
+class HeuristicDB:
+  def __init__(self):
+    #Open DB    
+    self.__db = sqlite3.connect(self.computeDBPath())
+    self.__createTables()
+    
+  def __createTable(self, name, params):
+    cur = self.__db.cursor()
+    query = "CREATE TABLE IF NOT EXISTS '{0}' {1}".format(name, params)
+    cur.execute(query)
+    cur.close()
+    self.__db.commit()
+    
+  def __createTables(self):
+    self.__createTable("HeuristicKind", "('ID' INTEGER PRIMARY KEY AUTOINCREMENT, "
+                                        "'name' TEXT UNIQUE)")
+    self.__createTable("Heuristic", "('kindID' INTEGER, 'formula' TEXT, "
+                                    "'useCount' INTEGER, "
+                                    "PRIMARY KEY (kindID, formula), "
+                                    "FOREIGN KEY ('kindID') REFERENCES 'HeuristicKind' ('ID')"
+                                    "ON DELETE CASCADE ON UPDATE CASCADE)")
+    #TODO:self.__createTable("InSet", "('setID' INTEGER, 'heuristicID' INTEGER)"
+    
+  def computeDBPath(self):
+    #TODO: make the path more flexible
+    dbPath= os.path.expanduser(config.output_dir+"/knowledge.db")
+    return dbPath
+
+  def getHeuristicKindID(self, kindName):
+    cur = self.__db.cursor()
+    query = "SELECT ID From HeuristicKind WHERE name='{0}'".format(kindName)
+    cur.execute(query)
+    kindID = cur.fetchone()[0]
+    cur.close()
+    return kindID
+    
+  def storeHeuristicKind(self, kindName):
+    cur = self.__db.cursor()
+    query = "INSERT OR IGNORE INTO HeuristicKind ('name') VALUES ('{0}')".format(kindName)
+    cur.execute(query)
+    cur.close()
+    self.__db.commit()
+    return self.getHeuristicKindID(kindName)
+    
+  def increaseHeuristicUseCount(self, name, formula):
+    kindID=self.storeHeuristicKind(name) 
+    cur = self.__db.cursor()
+    query = "UPDATE Heuristic SET useCount=useCount+1 WHERE kindID=? AND formula=?"
+    cur.execute(query, (kindID, formula))
+    if cur.rowcount == 0:
+      #There was no such heuristic in the DB: let's add it
+      query = "INSERT INTO Heuristic (kindID, formula, useCount) VALUES (?, ?, 1)"
+      cur.execute(query, (kindID, formula))
+    cur.close()
+    self.__db.commit()
+    
+  def addHeuristicSet(self, hSet):
+    for name, formula in hSet.iteritems():
+      self.increaseHeuristicUseCount(name, formula)
+
+  
 class HeuristicSet(dict):
   def toXmlStrings(self):
     return ["""<heuristic name="{0}" formula="{1}" />""".format(name, self[name]) for name in self]
@@ -40,7 +102,7 @@ class HeuristicManager:
 """
   def __init__(self, heuristicSetFileName):
     self.__heuristicSets = []
-    self.__xml = parse(heuristicSetFileName)
+    self.__xml = xml.dom.minidom.parse(heuristicSetFileName)
     
     # Extract information
     for hSet in self.__xml.getElementsByTagName("set"):
@@ -164,6 +226,10 @@ An optional HeuristicSet can be given as a parameter
     bestCfg=os.path.join(bestSubDir, basename+".cfg")
     finalCfg=os.path.join(path, basename+".cfg")
     shutil.move(bestCfg, finalCfg)
+    #  .info file
+    bestInfo=os.path.join(bestSubDir, basename+".info")
+    finalInfo=os.path.join(path, basename+".info")
+    shutil.move(bestInfo, finalInfo)
     #  .obj directory
     bestObjDir=os.path.join(bestSubDir, basename+".obj")
     destObjDir=os.path.join(path, basename+".obj")
@@ -177,6 +243,18 @@ An optional HeuristicSet can be given as a parameter
     
     #Delete all the rest
     shutil.rmtree(basesubdir)
+    
+    #Take the data about the used heuristics and store it into the db
+    infoxml = xml.dom.minidom.parse(finalInfo)
+    hSet = HeuristicSet()
+    hSet.importFromXml(infoxml)
+    db = HeuristicDB()
+    db.addHeuristicSet(hSet)
+    
+    
+    
+    
+    
 
 #TEST
 if __name__ == "__main__":
