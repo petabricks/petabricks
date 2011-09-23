@@ -85,6 +85,7 @@ namespace pbcConfig {
   std::string theRuntimeDir;
   std::string thePbPreprocessor;
   std::string theBasename;
+  std::string theHeuristicsFile;
   int theNJobs = 2;
 }
 using namespace pbcConfig;
@@ -305,7 +306,8 @@ int main( int argc, const char ** argv){
   args.param("main",       theMainName).help("transform name to use as program entry point");
   args.param("hardcode",   theHardcodedConfig).help("a config file containing tunables to set to hardcoded values");
   args.param("jobs",       theNJobs).help("number of gcc processes to call at once");
-
+  args.param("heuristics", theHeuristicsFile).help("config file containing the (partial) set of heuristics to use");
+  
   if(args.param("version").help("print out version number and exit") ){
     std::cerr << PACKAGE " compiler (pbc) v" VERSION " " REVISION_LONG << std::endl;
     return 1;
@@ -328,7 +330,10 @@ int main( int argc, const char ** argv){
   if(theObjDir.empty())     theObjDir     = theOutputBin + ".obj";
   if(theOutputInfo.empty()) theOutputInfo = theOutputBin + ".info";
   if(theObjectFile.empty()) theObjectFile = theOutputBin + ".o";
-  
+  if(! theHeuristicsFile.empty()) {
+    //Load the heuristics from the file
+    HeuristicManager::instance().loadFromFile(theHeuristicsFile);
+  }
   
   int rv = mkdir(theObjDir.c_str(), 0755);
   if(rv!=0 && errno==EEXIST)

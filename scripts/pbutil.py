@@ -232,7 +232,10 @@ def expandBenchmarkName(name, ext):
   base=re.sub("[.]pbcc$","", name)
   if ext:
     name=base+ext
+  if os.path.isfile(name):
+    return name
   if name[0] != '/':
+    #Try to locate the file in the standard position
     return "./examples/%s" % (name)
   else:
     return name
@@ -274,6 +277,35 @@ def normalizeBenchmarkName(orig, search=True):
       raise
 
 
+def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=None):
+    if not os.path.isfile(src):
+      raise IOError()
+    
+    #Build the command
+    cmd=[pbc]
+    
+    if binary is not None:
+      cmd.append("--output="+binary)
+    if info is not None:
+      cmd.append("--outputinfo="+info)
+    if jobs is not None:
+      cmd.append("--jobs="+str(jobs))
+    if heuristics is not None:
+      cmd.append("--heuristics="+heuristics)
+      
+    cmd.append(src)
+    
+    #Remove the output file (if it exists)
+    if os.path.isfile(binary):
+      os.unlink(binary)
+      
+    #Execute the compiler
+    print "Executing " + str(cmd)
+    p = subprocess.Popen(cmd, stdout=NULL, stderr=NULL)
+    status = p.wait()
+    return status
+  
+  
 def compileBenchmarks(benchmarks):
   NULL=open("/dev/null","w")
   pbc="./src/pbc"
@@ -282,30 +314,29 @@ def compileBenchmarks(benchmarks):
   benchmarkMaxLen=0
   jobs_per_pbc=max(1, 2*cpuCount() / len(benchmarks))
 
-  def compileBenchmark(name):
+  def innerCompileBenchmark(name):
     print name.ljust(benchmarkMaxLen)
     src=benchmarkToSrc(name)
-    bin=benchmarkToBin(name)
-    if not os.path.isfile(src):
-      print "invalid benchmark"
-      return False
+    binary=benchmarkToBin(name)
+    
     srcModTime=max(os.path.getmtime(src), reduce(max, map(os.path.getmtime, libdepends)))
     if os.path.isfile(bin) and os.path.getmtime(bin) > srcModTime:
       print "compile SKIPPED"
-      return True
-    else:
-      if os.path.isfile(bin):
-        os.unlink(bin)
-      p = subprocess.Popen([pbc, '--jobs='+str(jobs_per_pbc), src], stdout=NULL, stderr=NULL)
-      status = p.wait()
+      return True  
+    try:
+      status=compileBenchmark(pbc, src, binary=binary, jobs=jobs_per_pbc)
       if status == 0:
         print "compile PASSED"
         return True
       else:
         print "compile FAILED (rc=%d)"%status
         return False
-  
-  newjob = lambda name, fn: lambda: compileBenchmark(name) and fn()
+    except IOError:
+      print "invalid benchmark"
+      return False
+      
+      
+  newjob = lambda name, fn: lambda: innerCompileBenchmark(name) and fn()
   mergejob = lambda oldfn, fn: lambda: oldfn() and fn()
 
   jobs=[]

@@ -479,7 +479,10 @@ def init(benchmark, acf=createChoiceSiteMutators, taf=createTunableMutators):
     storagedirs.cur.saveFile(pbutil.benchmarkToBin(benchmark))
   return candidate, tester
 
-def autotuneInner(benchmark):
+def autotuneInner(benchmark, returnBest=None):
+  """Function running the autotuning process.
+If returnBest is specified, it should be a list. The best candidate found will 
+be added to that list"""
   progress.push()
   config.benchmark = benchmark
   candidate, tester = init(benchmark)
@@ -536,6 +539,8 @@ def autotuneInner(benchmark):
     if pop.best and config.output_cfg:
       print pop.best.cfgfile(),"=>" , config.output_cfg
       shutil.copyfile(pop.best.cfgfile(), config.output_cfg)
+    if pop.best and returnBest is not None:
+      returnBest.append(pop.best)
     at = storagedirs.getactivetimers()
     if len(at):
       storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
@@ -543,8 +548,8 @@ def autotuneInner(benchmark):
       tester.cleanup()
     progress.pop()
 
-def autotune(benchmark):
-  return storagedirs.callWithLogDir(lambda: autotuneInner(benchmark),
+def autotune(benchmark, returnBest=None):
+  return storagedirs.callWithLogDir(lambda: autotuneInner(benchmark, returnBest),
                                     config.output_dir,
                                     config.delete_output_dir)
 

@@ -72,7 +72,7 @@ petabricks::HeuristicPtr& petabricks::HeuristicManager::getHeuristic(const std::
   }
   
   //Should never arrive here! Every heuristic should have a default
-  JWARNING("Unable to find heuristic. Does it have a default?")(name);
+  JWARNING("Unable to find this heuristic. Does it have a default?")(name);
   abort();
 }
 
@@ -82,7 +82,7 @@ void petabricks::HeuristicManager::loadFromFile(const std::string fileName) {
   
   std::ifstream f(fileName.c_str());
   if (! f.is_open()) {
-    std::cerr << "Unable to open the file: " << fileName << "\n";
+    std::cerr << "Unable to open the file containing the heuristics: " << fileName << "\n";
     abort();
   }
   
@@ -106,9 +106,4 @@ void petabricks::HeuristicManager::loadFromFile(const std::string fileName) {
   }
   
   f.close();
-  //for line in file {
-    
-    
-    
-  //}
 }
