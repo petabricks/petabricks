@@ -7,7 +7,7 @@
 
 pthread_mutex_t fftw_plan_mutex;
 
-void displayArray(double *a, int length)
+void displayArray(ElementT *a, int length)
 {
   int i;
   printf("(%g", a[0]);
@@ -18,7 +18,7 @@ void displayArray(double *a, int length)
 }
 
 template<typename T >
-void packArray(double *out, const T& in,
+void packArray(ElementT *out, const T& in,
                int numElements,
                int length)
 {
@@ -41,9 +41,9 @@ void unpackArray(const T&out, double *in, int length)
 }
 
 // multiply Y1 by Y2, divide by N, store in Y1.  uses 3-mul complex multiply.
-inline void complexMultiplyScale(double Y1[2], double Y2[2], double N)
+inline void complexMultiplyScale(ElementT Y1[2], ElementT Y2[2], ElementT N)
 {
-  double ac, bd, abcd;
+  ElementT ac, bd, abcd;
   ac = Y1[0] * Y2[0];
   bd = Y1[1] * Y2[1];
   abcd = (Y1[0] + Y1[1]) * (Y2[0] + Y2[1]);
@@ -60,10 +60,10 @@ to C[n+m-1]
   to (C c) from (A a, B b)
   {
     int N = n + m - 1;
-    double *X1, *X2, *Z;
+    ElementT *X1, *X2, *Z;
     fftw_complex *Y1, *Y2;
-    X1 = (double *) fftw_malloc(sizeof(double) * N);
-    X2 = (double *) fftw_malloc(sizeof(double) * N);
+    X1 = (ElementT *) fftw_malloc(sizeof(ElementT) * N);
+    X2 = (ElementT *) fftw_malloc(sizeof(ElementT) * N);
     Y1 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * (N/2 + 1));
     Y2 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * (N/2 + 1));
 
@@ -85,7 +85,7 @@ to C[n+m-1]
 
     int i;
     for (i = 0; i < N/2 + 1; i++) {
-      complexMultiplyScale(Y1[i], Y2[i], (double) N);
+      complexMultiplyScale(Y1[i], Y2[i], (ElementT) N);
     }
 
     fftw_execute(p3);

@@ -350,6 +350,9 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
 #ifdef DISABLE_DISTRIBUTED
       if(rf==RuleFlavor::DISTRIBUTED) continue;
 #endif
+#ifdef HAVE_OPENCL
+      if(rf==RuleFlavor::OPENCL) continue;
+#endif
       genTmplJumpTable(o, rf, normalArgs(rf), normalArgNames());
     }
     o.hos() << "typedef "+tmplName(0)+"_main "+_name+"_main;\n";
@@ -627,7 +630,7 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
   extractConstants(o, rf);
   o.endFunc();
 
-#ifdef HAVE_OPENCL
+/*#ifdef HAVE_OPENCL
   std::vector<std::string> empty;
   o.beginFunc("void", "releaseGpuObjects", empty, true);
   for(RuleList::iterator i = _rules.begin(); i != _rules.end(); ++i)
@@ -641,7 +644,7 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
     }
   }
   o.endFunc();
-#endif
+#endif*/
 
   if(rf == RuleFlavor::SEQUENTIAL) {
     o.beginFunc("void", "run");
@@ -842,8 +845,8 @@ void petabricks::Transform::registerMainInterface(CodeGenerator& o){
 }
 
 #ifdef HAVE_OPENCL
-void petabricks::Transform::generateReleaseGpuObjectsCode(CodeGenerator& o){
-  SRCPOSSCOPE();
+void petabricks::Transform::generateReleaseGpuObjectsCode(CodeGenerator& /*o*/){
+  /*SRCPOSSCOPE();
   if(_templateargs.empty()){
     o.write(name()+"_instance::releaseGpuObjects();");
   }else{
@@ -851,7 +854,7 @@ void petabricks::Transform::generateReleaseGpuObjectsCode(CodeGenerator& o){
     for(size_t c=0; c<choiceCnt; ++c){
       o.write(tmplName(c)+"_instance::releaseGpuObjects();");
     }
-  }
+  }*/
 }
 #endif
 

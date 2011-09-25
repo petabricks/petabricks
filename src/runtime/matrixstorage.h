@@ -141,6 +141,7 @@ public:
 
   void setStorage(const MatrixStoragePtr& s, const ElementT* base);
   void setSizeMultipliers(int dim, const IndexT* mult, const IndexT* siz);
+  void setSize(int dim, const IndexT* siz);
   void setMultipliers(const IndexT* mult);
   void setExtraVal(ElementT v=0);
   void computeDataHash();

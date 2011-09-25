@@ -31,15 +31,19 @@
 
 namespace petabricks
 {
+std::set<int> GpuRule::_done;
+
 void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) {
-  if(rf != RuleFlavor::SEQUENTIAL || !_rule->isOpenClRule())
+  if(rf != RuleFlavor::SEQUENTIAL || isDisabled() || _done.find(_rule->id()) != _done.end())
     return;
+    
+  _done.insert(_rule->id());
 
   CLCodeGenerator clcodegen(o.cgPtr());
   IterationDefinition iterdef(*_rule, _rule->getSelfDependency(), _rule->isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();
   std::vector<std::string> packedargnames = iterdef.packedargnames();
-  o.os() << "// GPURULE DECL CODE\n";
+  o.os() << "// GPURULE DECL CODE " << _rule->id() << " " << this << "\n";
 
   // Create variables to hold handles to program, kernel
   o.os( ) << "cl_program " <<  "clprog_" << _rule->id()
@@ -48,7 +52,7 @@ void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf
 	  << " = 0;\n";
 
   // Create init function call
-  o.beginFunc("int", codename()+"_init", std::vector<std::string>(),true);
+  o.beginFunc("int", codename()+"_init", std::vector<std::string>(),false);
 
   _rule->generateOpenCLKernel( trans, clcodegen, iterdef );
   
@@ -112,6 +116,9 @@ void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf
 
 void GpuRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor)
 {
+  if(isDisabled())
+    return;
+  o.os() << "// GPURULE TRAMP CODE " << _rule->id() << "\n";
   switch(flavor) {
   case RuleFlavor::SEQUENTIAL:
     _rule->generateTrampCode(trans, o, RuleFlavor::SEQUENTIAL_OPENCL);

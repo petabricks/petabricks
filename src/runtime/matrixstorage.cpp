@@ -77,6 +77,15 @@ void petabricks::MatrixStorageInfo::setSizeMultipliers(int dim, const IndexT* mu
   }
 }
 
+void petabricks::MatrixStorageInfo::setSize(int dim, const IndexT* siz){
+  _dimensions=dim;
+  _count = 1;
+  for(int d=0; d<_dimensions; ++d) {
+    _sizes[d]=siz[d];
+    _count *= _sizes[d];
+  }
+}
+
 void petabricks::MatrixStorageInfo::setMultipliers(const IndexT* mult){
   for(int d=0; d<_dimensions; ++d)
     _multipliers[d]=mult[d];

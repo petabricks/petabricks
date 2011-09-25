@@ -39,6 +39,8 @@
 #include "maximawrapper.h"
 #include "transform.h"
 
+#include <set>
+
 namespace petabricks
 {
 
@@ -104,6 +106,8 @@ class GpuRule : public SyntheticRule {
 
   bool isEnabledGpuRule() { return !isDisabled(); }
   int getAssociatedId() { return _rule->id(); }
+  
+  static std::set<int> _done;
  private:
   UserRule* _rule;
   RIRBlockCopyRef _bodyirOpenCL;

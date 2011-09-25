@@ -14,13 +14,13 @@
  * If this condition is not met, use a different metric transform to
  * measure output accuracy.
  */
-double computeNWKDEMetric(ConstMatrixRegion1D result,
+ElementT computeNWKDEMetric(ConstMatrixRegion1D result,
                           ConstMatrixRegion2D testData,
                           ConstMatrixRegion1D testIndices,
                           int outputVarIndex,
                           int outputTimeOffset)
 {
-    double a, b, diff, sum = 0;
+    ElementT a, b, diff, sum = 0;
     int outputTimeIndex, count = 0;
 
     for (int i = 0; i < testIndices.count(); ++i) {
@@ -40,7 +40,7 @@ double computeNWKDEMetric(ConstMatrixRegion1D result,
     sum /= count;
 
     if (sum == 0) {
-        sum = std::numeric_limits<double>::epsilon();
+        sum = std::numeric_limits<ElementT>::epsilon();
     }
 
     return -log10(sum);
