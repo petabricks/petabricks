@@ -3,8 +3,8 @@
 #include "../multiply/multiply.pbcc"
 #include "copy.pbcc"
 #include "transpose.pbcc"
-//#include "../LUDense/LUtrisolve.pbcc"
-#include "../LUDense/trilsolve.pbcc"
+#include "../LUDense/LUtrisolve.pbcc"
+//#include "../LUDense/trilsolve.pbcc"
 
 transform HermitianGenerate 
 to H[n,n] {
@@ -12,7 +12,6 @@ to H[n,n] {
 	  // this generates a real, symmetric, positive definite matrix
 	  
 	  to(H her)
-	  //using(temp1 [n,n], temp2 [w,h])
 	  from () { 
 	    
 	    MatrixRegion2D temp1 = MatrixRegion2D::allocate(n,n);
@@ -62,32 +61,48 @@ generator HermitianGenerate
         	     }
 	     	}	
 	     } else {
-	     // upper left corner
-	      MatrixCholesky(l.region(0, 0, n/2, n/2), a.region(0,0,n/2,n/2));	   
+	       // upper left corner
+	       MatrixCholesky(l.region(0, 0, n/2, n/2), a.region(0,0,n/2,n/2));	   
 
-	    // lower left corner
-	    MatrixRegion2D l11_trans = MatrixRegion2D::allocate(n/2,n/2);
-	    Transpose(l11_trans, l.region(0,0,n/2,n/2));
+	       // lower left corner
+	       MatrixRegion2D l11_trans = MatrixRegion2D::allocate(n/2,n/2);
+	       Transpose(l11_trans, l.region(0,0,n/2,n/2));
 
-	    //x2 = trisolve(L22,B2)
-	    //trilsolve(l.region(n/4,n/2,n2,n), l11_trans.region(l11_trans.width()/2,l11_trans.height()/2,l11_trans.width(),l11_trans.height()), a.region(n/4,n/2,n/2,n));
+	       //x2 = trisolve(L22,B2)
+	       MatrixRegion2D l21reg2_trans = MatrixRegion2D::allocate(n/2,n/4);
+	       MatrixRegion2D l11_trans_22_trans = MatrixRegion2D::allocate(n/4,n/4);
+	       MatrixRegion2D a21reg2_trans = MatrixRegion2D::allocate(n/2,n/4);
+	       Transpose(l11_trans_22_trans, l11_trans.region(n/4,n/4,n/2,n/2));
+	       Transpose(a21reg2_trans, a.region(n/4,n/2,n/2,n));
+	       LUtrisolve(l21reg2_trans, l11_trans_22_trans, a21reg2_trans);
+	       Transpose(l.region(n/4,n/2,n/2,n), l21reg2_trans); 	       
 
-	    //x1 = trisolve(L11,B1-x2L21)
-	    MatrixRegion2D x2L21 = MatrixRegion2D::allocate(n/4,n/2);
-	    MatrixRegion2D x1 = MatrixRegion2D::allocate(n/4,n/2);
-	    MatrixMultiply(x2L21, l.region(n/4,n/2,n/2,n), l11_trans.region(0,l11_trans.height()/2,l11_trans.width()/2,l11_trans.height()));
-	    Subtract2D(x1, a.region(0,n/2,n/4,n), x2L21);
-	    //trilsolve(l.region(0,n/2,n/4,n), l11_trans.region(0,0,l11_trans.width()/2,l11_trans.height()/2), x1); 
+	       //x1 = trisolve(L11,B1-x2L21)
+	       MatrixRegion2D x2L21 = MatrixRegion2D::allocate(n/4,n/2);
+	       MatrixRegion2D b1_x2L21 = MatrixRegion2D::allocate(n/4,n/2);
+	       MatrixMultiply(x2L21, l.region(n/4,n/2,n/2,n), l11_trans.region(0,l11_trans.height()/2,l11_trans.width()/2,l11_trans.height()));
+	       Subtract2D(b1_x2L21, a.region(0,n/2,n/4,n), x2L21);
+	       
 
-	    // lower right corner
-	    MatrixRegion2D t = MatrixRegion2D::allocate(n/2,n/2);
-	    MatrixRegion2D l21_trans = MatrixRegion2D::allocate(n/2,n/2);
-	    MatrixRegion2D AminusT = MatrixRegion2D::allocate(n/2,n/2);
-	    Transpose(l21_trans, l.region(0,n/2,n/2,n));
-	    MatrixMultiply(t, l.region(0,n/2,n/2,n), l21_trans);
-	    Subtract2D(AminusT, a.region(n/2,n/2,n,n), t);
-	    MatrixCholesky(l.region(n/2,n/2,n,n), AminusT); 
-	}
+	       MatrixRegion2D l21reg1_trans = MatrixRegion2D::allocate(n/2,n/4);
+	       MatrixRegion2D l11_trans_11_trans = MatrixRegion2D::allocate(n/4,n/4);
+	       MatrixRegion2D b1_x2L21_trans = MatrixRegion2D::allocate(n/2,n/4);	 
+	       Transpose(l11_trans_11_trans, l11_trans.region(0,0,l11_trans.width()/2,l11_trans.height()/2));
+	       Transpose(b1_x2L21_trans, b1_x2L21);
+	       LUtrisolve(l21reg1_trans, l11_trans_11_trans, b1_x2L21_trans); 
+	       Transpose(l.region(0,n/2,n/4,n), l21reg1_trans); 	       
+
+
+	       // lower right corner
+	       MatrixRegion2D t = MatrixRegion2D::allocate(n/2,n/2);
+	       MatrixRegion2D l21_trans = MatrixRegion2D::allocate(n/2,n/2);
+	       MatrixRegion2D A22_t = MatrixRegion2D::allocate(n/2,n/2);
+	       Transpose(l21_trans, l.region(0,n/2,n/2,n));
+	       MatrixMultiply(t, l.region(0,n/2,n/2,n), l21_trans);
+	       Subtract2D(A22_t, a.region(n/2,n/2,n,n), t);
+	       MatrixCholesky(l.region(n/2,n/2,n,n), A22_t); 
+
+	    }
 	}	
 
 	// specific case: first column
