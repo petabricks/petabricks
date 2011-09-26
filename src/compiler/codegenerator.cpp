@@ -305,6 +305,10 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
       size.write("_sz  += sizeof("+i->type+");");
       in  .write("_buf += sizeof("+i->type+");");
       out .write("_buf += sizeof("+i->type+");");
+    }else if(jalib::StartsWith(i->type, "std::vector<")) {
+      out.write("_serialize_vector(_buf, "+i->name+");");
+      in.write("_unserialize_vector(_buf, "+i->name+");");
+      size.write("_sz += _serialSize_vector("+i->name+");");
     }else if(i->type == "DynamicTaskPtr") {
       if(i->initializer != "") {
         in.write(i->name+" = "+i->initializer+";");
