@@ -3,7 +3,6 @@
 #include "../multiply/multiply.pbcc"
 #include "copy.pbcc"
 #include "transpose.pbcc"
-#include "../LUDense/LUtrisolve.pbcc"
 #include "../LUDense/trilsolve.pbcc"
 
 transform HermitianGenerate 
@@ -107,31 +106,31 @@ generator HermitianGenerate
 	       
 	       int i;
 	       int j;
-	       printf ("l11_trans\n");
+	       printf ("L11\n");
 	       for(j = 0; j < n/2; j ++) {
 	       	  for (i = 0; i < n/2; i++) {
-	       	       printf("%f ", l11_trans.cell(i,j));
+	       	       printf("%f ", l.region(0,0,n/2,n/2).cell(i,j));
 	      	  }
 		  printf("\n");
 	       }
-	       printf ("l11_trans_22_trans\n");
+	       printf ("(L11 transpose)22 transposed\n");
 	       for(j = 0; j < n/4; j ++) {
 	       	  for (i = 0; i < n/4; i++) {
-	       	       printf("%f ", l11_trans_22_trans.cell(i,j));
+	       	       printf("%f ",  l11_trans.region(l11_trans.width()/2,l11_trans.height()/2,l11_trans.width(),l11_trans.height()).cell(i,j));
 	      	  }
 		  printf("\n");
 	       }
-	       printf ("a21reg2_trans\n");
-	       for(j = 0; j < n/4; j ++) {
-	       	  for (i = 0; i < n/2; i++) {
-	       	       printf("%f ", a21reg2_trans.cell(i,j));
+	       printf ("A21 right region\n");
+	       for(j = 0; j < n/2; j ++) {
+	       	  for (i = 0; i < n/4; i++) {
+	       	       printf("%f ", a.region(n/4,n/2,n/2,n).cell(i,j));
 	      	  }
 		  printf("\n");
 	       }
-	       printf ("trisolve:l21reg2_trans\n");
-	       for(j = 0; j < n/4; j ++) {
-	       	  for (i = 0; i < n/2; i++) {
-	       	       printf("%f ", l21reg2_trans.cell(i,j));
+	       printf ("trisolve result: (L11 transpose)21 right region\n");
+	       for(j = 0; j < n/2; j ++) {
+	       	  for (i = 0; i < n/4; i++) {
+	       	       printf("%f ", l.region(n/4,n/2,n/2,n).cell(i,j));
 	      	  }
 		  printf("\n");
 	       }
@@ -141,7 +140,14 @@ generator HermitianGenerate
 	       MatrixRegion2D b1_x2L21 = MatrixRegion2D::allocate(n/4,n/2);
 	       MatrixMultiply(x2L21, l.region(n/4,n/2,n/2,n), l11_trans.region(0,l11_trans.height()/2,l11_trans.width()/2,l11_trans.height()));
 	       Subtract2D(b1_x2L21, a.region(0,n/2,n/4,n), x2L21);
-
+	       printf ("a21reg1\n");
+	       for(j = n/2; j < n; j ++) {
+	       	  for (i = 0; i < n/4; i++) {
+	       	       printf("%f ", a.cell(i,j));
+	      	  }
+		  printf("\n");
+	       }
+	       
 	       MatrixRegion2D l21reg1_trans = MatrixRegion2D::allocate(n/2,n/4);
 	       MatrixRegion2D l11_trans_11_trans = MatrixRegion2D::allocate(n/4,n/4);
 	       MatrixRegion2D b1_x2L21_trans = MatrixRegion2D::allocate(n/2,n/4);	 
@@ -150,6 +156,41 @@ generator HermitianGenerate
 	       trilsolve(l21reg1_trans, l11_trans_11_trans, b1_x2L21_trans); 
 	       Transpose(l.region(0,n/2,n/4,n), l21reg1_trans); 	       
 
+	       printf ("lregion21 2\n");
+	       for(j = 0; j < n/2; j ++) {
+	       	  for (i = 0; i < n/4; i++) {
+	       	       printf("%f ", l.region(n/4,n/2,n/2,n).cell(i,j));
+	      	  }
+		  printf("\n");
+	       }
+	       printf ("l11_trans_11_trans\n");
+	       for(j = 0; j < n/4; j ++) {
+	       	  for (i = 0; i < n/4; i++) {
+	       	       printf("%f ", l11_trans_11_trans.cell(i,j));
+	      	  }
+		  printf("\n");
+	       }
+	       printf ("x2L21\n");
+	       for(j = 0; j < n/2; j ++) {
+	       	  for (i = 0; i < n/4; i++) {
+	       	       printf("%f ", x2L21.cell(i,j));
+	      	  }
+		  printf("\n");
+	       }
+	       printf ("b1_x2L21\n");
+	       for(j = 0; j < n/4; j ++) {
+	       	  for (i = 0; i < n/2; i++) {
+	       	       printf("%f ", b1_x2L21.cell(i,j));
+	      	  }
+		  printf("\n");
+	       }
+	       printf ("trisolve:l21reg1_trans\n");
+	       for(j = 0; j < n/4; j ++) {
+	       	  for (i = 0; i < n/2; i++) {
+	       	       printf("%f ", l21reg1_trans.cell(i,j));
+	      	  }
+		  printf("\n");
+	       }
 
 	       // lower right corner
 	       MatrixRegion2D t = MatrixRegion2D::allocate(n/2,n/2);
