@@ -65,6 +65,9 @@ to OUT[m,n]
 {
   to (OUT out) from (IN in, LEFTDIAG leftdiag)
   {
+#ifdef DEBUG
+    fprintf(stderr, "LUuppertri called for size (%d, %d)\n", m, n);
+#endif
     if (m==1 || n==1){
       MatrixRegion2D L = MatrixRegion2D::allocate(n,n);
             ltri(L, leftdiag);
@@ -79,6 +82,9 @@ to OUT[m,n]
   to (OUT out)
   from (IN in, LEFTDIAG leftdiag)
   {
+#ifdef DEBUG
+        fprintf(stderr, "LUuppertri called for size (%d, %d)\n", m, n);
+#endif
         MatrixRegion2D L = MatrixRegion2D::allocate(n,n);
         ltri(L, leftdiag);
         trilsolve(out, L, in);

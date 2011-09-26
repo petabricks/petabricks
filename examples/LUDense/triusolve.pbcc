@@ -56,6 +56,9 @@ from A[n,n], B[n,m]
 to X[n,m]
 {
   to (X out) from (A a, B in) {
+#ifdef DEBUG
+        fprintf(stderr, "triusolve called for size (%d, %d)\n", m, n);
+#endif
 	LeftLookingTriusolve(out, a, in);
   }
 

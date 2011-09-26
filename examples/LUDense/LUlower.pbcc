@@ -62,6 +62,9 @@ to OUT[n,m]
 
   to (OUT out) from (IN in, UPDIAG updiag)
   {
+#ifdef DEBUG
+        fprintf(stderr, "LUlowertri called for size (%d, %d)\n", m, n);
+#endif
 	if (m==1 || n==1){
 		triusolve(out,updiag,in);
 	}
@@ -73,6 +76,9 @@ to OUT[n,m]
   to (OUT out)
   from (IN in, UPDIAG updiag)
   {
+#ifdef DEBUG
+        fprintf(stderr, "LUlowertri called for size (%d, %d)\n", m, n);
+#endif
         triusolve(out, updiag, in);
   }
 
