@@ -38,7 +38,7 @@ double petabricks::Heuristic::eval (const ValueMap featureValues) {
     evaluated = MaximaWrapper::instance().subst(featureValueStr, featureName, evaluated);
   }
   
-  MaximaWrapper::instance().normalize(evaluated);
+  evaluated = MaximaWrapper::instance().toFloat(evaluated);
   
   return evaluated->value();
 }

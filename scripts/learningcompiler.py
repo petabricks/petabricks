@@ -3,16 +3,28 @@ import sys
 import os
 import shutil
 import sqlite3
+import random
 import xml.dom.minidom
 from pbutil import compileBenchmark
 from sgatuner import autotune
 from tunerconfig import config
+
+#--------- Config ------------------
+deleteTempDir = False
+#--------- Autotuner config --------
+config.max_time=1 #Seconds
+#-----------------------------------
+
+
+
+
 
 class HeuristicDB:
   def __init__(self):
     #Open DB    
     self.__db = sqlite3.connect(self.computeDBPath())
     self.__createTables()
+    self.__bestNCache= dict()
     
   def __createTable(self, name, params):
     cur = self.__db.cursor()
@@ -65,9 +77,29 @@ class HeuristicDB:
     self.__db.commit()
     
   def addHeuristicSet(self, hSet):
+    #TODO: also store it as a set
     for name, formula in hSet.iteritems():
       self.increaseHeuristicUseCount(name, formula)
 
+  def getBestNHeuristics(self, name, N):
+    try:
+      cached = self.__bestNCache[name]
+      return cached
+    except:
+      #Not in the cache
+      #Fall back to accessing the db
+      pass
+    cur = self.__db.cursor()
+    query = "SELECT formula FROM Heuristic JOIN HeuristicKind ON Heuristic.kindID=HeuristicKind.ID WHERE HeuristicKind.name=? ORDER BY Heuristic.useCount DESC LIMIT ?"
+    cur.execute(query, (name, N))
+    result = [row[0] for row in cur.fetchall()]
+    cur.close()
+    self.__bestNCache[name]=result
+    return result
+    
+    
+    
+    
   
 class HeuristicSet(dict):
   def toXmlStrings(self):
@@ -85,6 +117,38 @@ class HeuristicSet(dict):
       name=heuristicXML.getAttribute("name")
       formula=heuristicXML.getAttribute("formula")
       self[name] = formula
+  
+  def complete(self, heuristicNames, db, N):
+    """Complete the sets using the given db, so that it contains all the 
+heuristics specified in the heuristicNames list.
+
+Every missing heuristic is completed with one randomly taken from the best N 
+heuristics in the database  """
+    random.seed()
+    
+    #Find the missing heuristics
+    missingHeuristics = list(heuristicNames)
+    for name in self:
+      try:
+        missingHeuristics.remove(name)
+      except ValueError:
+        #A heuristic could be in the input file, but useless, therefore not in
+        #the missingHeuristic list
+        pass
+      
+    #Complete the set
+    for heuristic in missingHeuristics:
+      bestN=db.getBestNHeuristics(heuristic, N)
+      if len(bestN) == 0:
+        #No such heuristic in the DB. Do not complete the set
+        #This is not a problem. It's probably a new heuristic:
+        #just ignore it and it will fall back on the default implemented 
+        #into the compiler
+        continue
+      formula=random.choice(bestN)
+      self[heuristic] = formula
+  
+  
   
     
 class HeuristicManager:
@@ -123,7 +187,9 @@ class HeuristicManager:
     return self.__heuristicSets
     
 
-
+  
+  
+    
 
 
 
@@ -131,35 +197,7 @@ class LearningCompiler:
   def __init__(self, pbcExe, heuristicSetFileName, minTrialNumber=0):
     self.__heuristicManager = HeuristicManager(heuristicSetFileName)
     self.__minTrialNumber = 0
-    self.__pbcExe = pbcExe  
-    
-  def compileCurrentBest(self, benchmark, subdir):
-    """Compile the benchmark without specifying any heuristic, thus forcing the
-compiler to generate the current best program"""
-    compileBenchmarkInSubdif
-    
-  def compileBenchmarkInSubdir(self, benchmark, subdir, heuristics=None):
-    """Compiles the given benchmark. The output is stored in the given 
-subdirectory.
-
-An optional HeuristicSet can be given as a parameter
-""" 
-    #Build file names
-    path, filenameWithExt = os.path.split(benchmark)
-    name, ext = os.path.splitext(filenameWithExt);
-    
-    outDir = os.path.join(path,subdir)
-    if not os.path.isdir(outDir):
-      os.makedirs(outDir)
-    bin= os.path.join(outDir, name)
-    heuristicsFile= os.path.join(outDir, "heuristics.txt")
-    
-    #Dump the heuristics to a file
-    heuristics.toXmlFile(heuristicsFile)
-    
-    #Compile
-    compileBenchmark(self.__pbcExe, benchmark, bin=bin, heuristics=heuristicsFile)
-    
+    self.__pbcExe = pbcExe    
     
   def compileLearningHeuristics(self, benchmark):
     #Define file names
@@ -167,26 +205,50 @@ An optional HeuristicSet can be given as a parameter
     basename, ext = os.path.splitext(basenameExt);
     basesubdir=os.path.join(path,basename+".tmp")
     
+    #Init variables
     candidates=[]
+    db = HeuristicDB()
     
-    count=0
-    for hSet in self.__heuristicManager.allHeuristicSets():
+    #Compile with current best heuristics
+    outDir = os.path.join(basesubdir, "0")
+    if not os.path.isdir(outDir):
+      #Create the output directory
+      os.makedirs(outDir)
+    binary= os.path.join(outDir, basename)  
+    compileBenchmark(self.__pbcExe, benchmark, binary=binary)  
+    autotune(binary, candidates)
+    
+    #Get the full set of heuristics used
+    infoFile=binary+".info"
+    currentBestHSet = HeuristicSet()
+    currentBestHSet.importFromXml(xml.dom.minidom.parse(infoFile))
+    neededHeuristics = currentBestHSet.keys()
+    
+    #Get hSets
+    allHSets = self.__heuristicManager.allHeuristicSets()
+    numSets = max(len(allHSets), self.__minTrialNumber)
+    
+    
+    count=1
+    for hSet in allHSets:
+      hSet.complete(neededHeuristics, db, numSets)
+      
       #Define more file names
       outDir = os.path.join(basesubdir, str(count))
       if not os.path.isdir(outDir):
         #Create the output directory
         os.makedirs(outDir)
       binary= os.path.join(outDir, basename)  
-      heuristicsFile= os.path.join(outDir, "heuristics.txt")
       
+      heuristicsFile= os.path.join(outDir, "heuristics.txt")
       hSet.toXmlFile(heuristicsFile)
       
-      #TODO: complete the hSet
-      
-      compileBenchmark(self.__pbcExe, benchmark, binary=binary, heuristics=heuristicsFile)
-      
+      status = compileBenchmark(self.__pbcExe, benchmark, binary=binary, heuristics=heuristicsFile)
+      if status != 0:
+        print "Compile FAILED!"
+        quit()
+        
       #Autotune
-      config.max_time=1 #Seconds #TODO: make more flexible
       autotune(binary, candidates)
       
       count = count + 1
@@ -237,18 +299,19 @@ An optional HeuristicSet can be given as a parameter
       shutil.rmtree(destObjDir)
     shutil.move(bestObjDir, path)
     #  input heuristic file
-    bestHeurFile=os.path.join(bestSubDir, "heuristics.txt")
-    finalHeurFile=os.path.join(path, basename+".heur")
-    shutil.move(bestHeurFile, finalHeurFile)
+    if bestIndex != 0: #Program 0 is run with only the best heuristics in the DB
+      bestHeurFile=os.path.join(bestSubDir, "heuristics.txt")
+      finalHeurFile=os.path.join(path, basename+".heur")
+      shutil.move(bestHeurFile, finalHeurFile)
     
     #Delete all the rest
-    shutil.rmtree(basesubdir)
+    if deleteTempDir:
+      shutil.rmtree(basesubdir)
     
     #Take the data about the used heuristics and store it into the db
     infoxml = xml.dom.minidom.parse(finalInfo)
     hSet = HeuristicSet()
     hSet.importFromXml(infoxml)
-    db = HeuristicDB()
     db.addHeuristicSet(hSet)
     
     
