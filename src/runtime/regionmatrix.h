@@ -194,7 +194,7 @@ namespace petabricks {
     //
     // Read & Write
     //
-    MATRIX_ELEMENT_T readCell(const IndexT* coord) {
+    MATRIX_ELEMENT_T readCell (const IndexT* coord) const {
       IndexT rd_coord[_regionHandler->dimensions()];
       this->getRegionDataCoord(coord, rd_coord);
       return _regionHandler->readCell(rd_coord);
@@ -778,7 +778,7 @@ namespace petabricks {
     RegionMatrixWrapper(Base val) : Base() {
       init(NULL, val.regionHandler());
     }
-    RegionMatrixWrapper(ElementT* data, IndexT* size) : Base() {
+    RegionMatrixWrapper(ElementT* data, IndexT* /*size*/) : Base() {
       RegionDataIPtr regionData = new RegionData0D();
       regionData->writeCell(NULL, *data);
       init(NULL, new RegionHandler(regionData));
@@ -810,6 +810,8 @@ namespace petabricks {
     ///
     /// Allow implicit conversion to CellProxy
     operator CellProxy () const { return this->cell(); }
+
+    operator MATRIX_ELEMENT_T () const { return this->readCell(NULL); }
 
     RegionMatrixWrapper operator=(Base val) {
       this->cell() = val.readCell(NULL);
@@ -889,6 +891,8 @@ namespace petabricks {
     /// Allow implicit conversion to CellProxy
     operator CellProxy () const { return this->cell(); }
 
+    operator MATRIX_ELEMENT_T () const { return this->readCell(NULL); }
+
     RegionMatrixWrapper operator=(Base val) {
       initWithValue(val.readCell(NULL));
       return *this;
@@ -913,11 +917,24 @@ namespace petabricks {
     typedef RegionMatrixWrapper<1, MATRIX_ELEMENT_T> MatrixRegion1D;
     typedef RegionMatrixWrapper<2, MATRIX_ELEMENT_T> MatrixRegion2D;
     typedef RegionMatrixWrapper<3, MATRIX_ELEMENT_T> MatrixRegion3D;
+    typedef RegionMatrixWrapper<4, MATRIX_ELEMENT_T> MatrixRegion4D;
+    typedef RegionMatrixWrapper<5, MATRIX_ELEMENT_T> MatrixRegion5D;
+    typedef RegionMatrixWrapper<6, MATRIX_ELEMENT_T> MatrixRegion6D;
+    typedef RegionMatrixWrapper<7, MATRIX_ELEMENT_T> MatrixRegion7D;
+    typedef RegionMatrixWrapper<8, MATRIX_ELEMENT_T> MatrixRegion8D;
+    typedef RegionMatrixWrapper<9, MATRIX_ELEMENT_T> MatrixRegion9D;
 
     typedef RegionMatrixWrapper<0, const MATRIX_ELEMENT_T> ConstMatrixRegion0D;
     typedef RegionMatrixWrapper<1, const MATRIX_ELEMENT_T> ConstMatrixRegion1D;
     typedef RegionMatrixWrapper<2, const MATRIX_ELEMENT_T> ConstMatrixRegion2D;
     typedef RegionMatrixWrapper<3, const MATRIX_ELEMENT_T> ConstMatrixRegion3D;
+    typedef RegionMatrixWrapper<4, const MATRIX_ELEMENT_T> ConstMatrixRegion4D;
+    typedef RegionMatrixWrapper<5, const MATRIX_ELEMENT_T> ConstMatrixRegion5D;
+    typedef RegionMatrixWrapper<6, const MATRIX_ELEMENT_T> ConstMatrixRegion6D;
+    typedef RegionMatrixWrapper<7, const MATRIX_ELEMENT_T> ConstMatrixRegion7D;
+    typedef RegionMatrixWrapper<8, const MATRIX_ELEMENT_T> ConstMatrixRegion8D;
+    typedef RegionMatrixWrapper<9, const MATRIX_ELEMENT_T> ConstMatrixRegion9D;
+
   }
 }
 

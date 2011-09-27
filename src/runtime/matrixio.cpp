@@ -33,21 +33,21 @@
 void matrixreaderset_in (FILE *  in_str );
 int matrixreaderlex(petabricks::MatrixReaderScratch&);
 
-petabricks::MatrixIO::MatrixIO(FILE* file) : _fd(file) {}
-petabricks::MatrixIO::MatrixIO(const char* filename, const char* mode) 
+petabricks::MatrixIOGeneral::MatrixIOGeneral(FILE* file) : _fd(file) {}
+petabricks::MatrixIOGeneral::MatrixIOGeneral(const char* filename, const char* mode)
 {
   JTRACE("MatrixIO")(filename)(mode);
-  if(std::string("-")==filename) 
+  if(std::string("-")==filename)
     _fd = stdin;
   else if(std::string(DEVNULL)==filename){
     _fd = 0;
     return;
-  }else 
+  }else
     _fd = fopen(filename,mode);
   JASSERT(_fd!=NULL)(filename)(mode).Text("failed to open file");
 }
 
-void petabricks::MatrixIO::_read(MatrixReaderScratch& o){
+void petabricks::MatrixIOGeneral::_read(MatrixReaderScratch& o){
   if(_fd == stdout) _fd = stdin;
   matrixreaderset_in(_fd);
   matrixreaderlex(o);
