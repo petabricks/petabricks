@@ -91,14 +91,14 @@ class config_defaults:
   recompile = True
 
   #types of mutatators to generate
-  lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential', 'system.cutoff.distributed']
-  uniform_tunable_types       = ['system.flag.unrollschedule']
   autodetect_tunable_types    = ['user.tunable']
-  #lognorm_sizespecific_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
-  #optimize_tunable_types      = ['user.tunable.double', 'user.tunable.double.array']
-  #sizespecific_tunable_types  = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.double.array']
-  #ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg']
+  ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg']
   lognorm_array_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
+  lognorm_sizespecific_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
+  lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential', 'system.cutoff.distributed']
+  optimize_tunable_types      = ['user.tunable.double', 'user.tunable.double.array']
+  sizespecific_tunable_types  = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.double.array']
+  uniform_tunable_types       = ['system.flag.unrollschedule']
   ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg', 'user.tunable.double',
                                  'user.tunable.double.array', "system.runtime.threads"]
 
