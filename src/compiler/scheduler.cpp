@@ -93,22 +93,28 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
 
   //std::cout << std::endl << "=== transform : " << trans.name() << "===" << std::endl;
   for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
+    std::set<std::string> matrices;
     i->node().resetRegionNodeGroups();
     RegionList from = i->node().getFromRegionOnCpu(_choiceAssignment);
 		//std::cout << "outter: " << &i->node() << std::endl;
+
     for(RegionList::iterator it = from.begin(); it != from.end(); ++it){
-      std::vector<int> ids;
-      ScheduleT::iterator last = _schedule.end();
-      for(ScheduleT::iterator j=_schedule.begin(); j!=i; ++j){
-				//std::cout << "inner: " << &j->node() << std::endl;
-        if(j->node().hasOverlappingRegionOnGpu(_choiceAssignment, *it)){
-          j->node().setGpyCopyOut();
-          last = j;
-          ids.push_back(j->node().id());
+      if(matrices.find((*it)->matrix()->name()) == matrices.end()) {
+        matrices.insert((*it)->matrix()->name());
+        std::vector<int> ids;
+        ScheduleT::iterator last = _schedule.end();
+
+        for(ScheduleT::iterator j=_schedule.begin(); j!=i; ++j){
+				  //std::cout << "inner: " << &j->node() << std::endl;
+          if(j->node().hasOverlappingRegionOnGpu(_choiceAssignment, *it)){
+            j->node().setGpyCopyOut();
+            last = j;
+            ids.push_back(j->node().id());
+          }
         }
+        if(last != _schedule.end())
+          last->node().addGroup((*it)->matrix()->name(),ids);
       }
-      if(last != _schedule.end())
-        last->node().addGroup((*it)->matrix()->name(),ids);
     }
   }
 

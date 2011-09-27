@@ -1041,6 +1041,7 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   id = 0;
   for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i ) {
     if((*i)->isBuffer()){
+      o.beginIf("map->find(\""+(*i)->matrix()->name()+"\") != map->end()");
       std::string copyinclass = "petabricks::GpuCopyOutMethodCallTask<"+objectname
                               + ", " + dimension
                               + ", &" + objectname + "::" + codename + "_copyout_" + (*i)->name()
@@ -1050,6 +1051,7 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
       o.write("end->dependsOn(copyout_"+taskid+");");
       o.write("copyout_"+taskid+"->enqueue();");
       id++;
+      o.endIf();
     }
   }
   o.elseIf();
