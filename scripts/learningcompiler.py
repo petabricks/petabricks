@@ -10,7 +10,8 @@ from sgatuner import autotune
 from tunerconfig import config
 
 #--------- Config ------------------
-deleteTempDir = False
+conf_deleteTempDir = True
+conf_minTrialNumber = 5
 #--------- Autotuner config --------
 config.max_time=1 #Seconds
 #-----------------------------------
@@ -196,7 +197,7 @@ class HeuristicManager:
 class LearningCompiler:
   def __init__(self, pbcExe, heuristicSetFileName, minTrialNumber=0):
     self.__heuristicManager = HeuristicManager(heuristicSetFileName)
-    self.__minTrialNumber = 0
+    self.__minTrialNumber = minTrialNumber
     self.__pbcExe = pbcExe    
     
   def compileLearningHeuristics(self, benchmark):
@@ -226,7 +227,10 @@ class LearningCompiler:
     
     #Get hSets
     allHSets = self.__heuristicManager.allHeuristicSets()
-    numSets = max(len(allHSets), self.__minTrialNumber)
+    while len(allHSets) < (self.__minTrialNumber-1): #Not enough hSets!
+      allHSets.append(HeuristicSet())
+    
+    numSets = len(allHSets)
     
     
     count=1
@@ -305,7 +309,7 @@ class LearningCompiler:
       shutil.move(bestHeurFile, finalHeurFile)
     
     #Delete all the rest
-    if deleteTempDir:
+    if conf_deleteTempDir:
       shutil.rmtree(basesubdir)
     
     #Take the data about the used heuristics and store it into the db
@@ -323,5 +327,5 @@ class LearningCompiler:
 if __name__ == "__main__":
   basedir="/home/mikyt/programmi/petabricks/"
   pbc=basedir+"src/pbc"
-  l=LearningCompiler(pbc, sys.argv[1])
+  l=LearningCompiler(pbc, sys.argv[1], conf_minTrialNumber)
   l.compileLearningHeuristics(sys.argv[2])
