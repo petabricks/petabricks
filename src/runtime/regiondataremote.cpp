@@ -93,7 +93,12 @@ IRegionCachePtr RegionDataRemote::cacheGenerator() const {
 
 IRegionCachePtr RegionDataRemote::cache() const {
 #ifdef DISTRIBUTED_CACHE
-  return WorkerThread::self()->cache()->get(this);
+  if (WorkerThread::self()) {
+    return WorkerThread::self()->cache()->get(this);
+  } else {
+    // in listening loop
+    return NULL;
+  }
 #else
   return NULL;
 #endif
@@ -101,13 +106,19 @@ IRegionCachePtr RegionDataRemote::cache() const {
 
 void RegionDataRemote::invalidateCache() {
 #ifdef DISTRIBUTED_CACHE
-  cache()->invalidate();
+  if (cache()) {
+    cache()->invalidate();
+  }
 #endif
 }
 
 ElementT RegionDataRemote::readCell(const IndexT* coord) const {
 #ifdef DISTRIBUTED_CACHE
-  return cache()->readCell(coord);
+  if (cache()) {
+    return cache()->readCell(coord);
+  } else {
+    return readNoCache(coord);
+  }
 #else
   return readNoCache(coord);
 #endif
@@ -145,7 +156,11 @@ void RegionDataRemote::readByCache(void* request, size_t request_len, void* repl
 
 void RegionDataRemote::writeCell(const IndexT* coord, ElementT value) {
 #ifdef DISTRIBUTED_CACHE
-  cache()->writeCell(coord, value);
+  if (cache()) {
+    cache()->writeCell(coord, value);
+  } else {
+    writeNoCache(coord, value);
+  }
 #else
   writeNoCache(coord, value);
 #endif
