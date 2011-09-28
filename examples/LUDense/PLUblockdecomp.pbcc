@@ -93,6 +93,7 @@ to OUT[n, n], Pout[n]
         //MatrixMultiply(out,left,up);
         //MatrixSub(Atemp,in,out);
 
+        // TODO: this is blocked, but not tuned or parallel
 	LAPACKmatmul(Atemp,left,up,in);
 
 	//recursion to get LU of the remaining updated block

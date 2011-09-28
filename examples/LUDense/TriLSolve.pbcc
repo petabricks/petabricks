@@ -1,0 +1,76 @@
+#ifndef TRILSOLVE_PBCC
+#define TRILSOLVE_PBCC
+
+#include "../simple/copy.pbcc"
+#include "../multiply/multiply.pbcc"
+#include "MatrixSubtract.pbcc"
+
+// Solve LX = B for X, where L is lower triangular
+
+// TODO: convert this to right looking version
+transform TriLSolveBaseRL
+from A[n,n], B[n,m]
+to X[n,m]
+{
+    primary
+    to   (X.cell(j, 0) x)
+    from (B.cell(j, 0) b, A.cell(0,0) a)
+    {
+        x = b / a;
+    }
+
+    to   (X.region(0, i, n, i+1) xout)
+    from (X.region(0, 0, n, i  ) x, A.region(0, i, i, i+1) a,
+          B.region(0, i, n, i+1) b, A.cell(i, i) aii)
+    {
+        MatrixRegion2D temp = MatrixRegion2D::allocate(n, 1);
+        MatrixMultiply(temp, a, x);
+        MatrixSubtract(xout, b, temp, 1.0 / aii);
+    }
+}
+
+// left looking version
+transform TriLSolveBaseLL
+from A[n,n], B[n,m]
+to X[n,m]
+{
+    primary
+    to   (X.cell(j, 0) x)
+    from (B.cell(j, 0) b, A.cell(0,0) a)
+    {
+        x = b / a;
+    }
+
+    to   (X.region(0, i, n, i+1) xout)
+    from (X.region(0, 0, n, i  ) x, A.region(0, i, i, i+1) a,
+          B.region(0, i, n, i+1) b, A.cell(i, i) aii)
+    {
+        // TODO: combine multiply add to get rid of temp allocation
+        //   Copy b into xout and then do a multiply-add with scaling coeffs
+        MatrixRegion2D temp = MatrixRegion2D::allocate(n, 1);
+        MatrixMultiply(temp, a, x);
+        MatrixSubtract(xout, b, temp, 1.0 / aii);
+    }
+}
+
+transform TriLSolve
+from A[n,n], B[n,m]
+to X[n,m]
+{
+    to (X x) from (A a, B b) {
+#ifdef DEBUG
+        fprintf(stderr, "TriLSolve called for size (%d, %d)\n", m, n);
+#endif
+        TriLSolveBaseLL(x, a, b);
+    }
+
+    to (X x) from (A a, B b) {
+#ifdef DEBUG
+        fprintf(stderr, "TriLSolve called for size (%d, %d)\n", m, n);
+#endif
+        TriLSolveBaseRL(x, a, b);
+    }
+}
+
+#endif // TRILSOLVE_PBCC
+

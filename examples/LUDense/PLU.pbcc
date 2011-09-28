@@ -8,6 +8,7 @@ from IN[n,m]
 to OUT[n,m]
 {
 
+  // this could be replaced with a trisolve and parallel matrix-vector multiply-add
   primary to (OUT.column(n-1) out)  from (IN in)
   {
         ElementT sum;
@@ -94,6 +95,7 @@ to OUT[n,m], Pout[m]
         for (j=0; j<minmn; j++)
         {
 
+                // lazy update of all values in current column
                 if (j>0)
                 {
                         PLUleftwork(temp.region(0,0,j+1,m),out.region(0,0,j+1,m));
@@ -202,8 +204,10 @@ to OUT[n,m], Pout[m]
 		minmn=m;
 	}
 
+        // for each column in square part of matrix
 	for (j=0; j<minmn; j++)
 	{
+                // find maximum element in column
 		MaxElement=temp.cell(j,j);
         	MaxIndex=j;
         	for (k=j+1; k<m; k++)
@@ -214,7 +218,10 @@ to OUT[n,m], Pout[m]
 	  		}
         	}
 
+                // save swapped row index in pout
         	pout.cell(j)=ptemp.cell(MaxIndex);
+
+                // copy temp into out, row by row, accounting for swap
         	Copy1D(out.row(j), temp.row(MaxIndex));
         	for (k=j+1; k<m; k++)
         	{
@@ -231,11 +238,14 @@ to OUT[n,m], Pout[m]
         	}
 	
 
+                // copy modified parts of out back into temp
                 Copy1D(ptemp.region(j,m),pout.region(j,m));
                 Copy2D(temp.region(0,j,n,m),out.region(0,j,n,m));	
 		
+                // scale current column and update trailing submatrix
 		PLUrightwork(temp.region(j,j,n,m),out.region(j,j,n,m));
 		
+                // copy last row/col updates from temp to out
 		if (j == minmn-1) {  Copy2D(out.region(j,j,n,m),temp.region(j,j,n,m)); }
     	}
    }
