@@ -1,7 +1,7 @@
 #ifndef LULOWER_PBCC
 #define LULOWER_PBCC
 
-#include "../LUDense/LUtrisolve.pbcc"
+#include "triusolve.pbcc"
 #include "../multiply/multiply.pbcc"
 #include "../simple/add.pbcc"
 
