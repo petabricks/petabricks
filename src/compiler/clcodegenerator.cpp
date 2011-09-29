@@ -88,6 +88,7 @@ CLCodeGenerator::localMemoryBarrier( )
 
 void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned int dims, Transform& trans)
 {
+  // Kernel's arguments need to be conformed with UserRule's codegen
 
   os() << "#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n";
   os() << "__kernel void kernel_main( ";
@@ -135,7 +136,7 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   // And we'll need to provide the size of the region that we want the kernel to operate on.  (This is where the 'center' of the rule will be.)
   for( int i = 0; i < (int)dims; ++i )
   {
-    os() << ", int dim_d" << i;
+    //os() << ", int dim_d" << i;
     os() << ", int dim_d" << i << "_begin";
     os() << ", int dim_d" << i << "_end";
   }

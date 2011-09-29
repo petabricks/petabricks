@@ -381,66 +381,73 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
         RIRExprCopyRef args = call->part(1);
         JTRACE("expanding SYM_ARG_REGION")(regionName)(methodname)(args);
 
-	// Look up matrix region.
-	RegionPtr region = findMatrix(regionName->str());
-	JASSERT( !region.null() ).Text( "No such region exists." );
+	      // Look up matrix region.
+	      RegionPtr region = findMatrix(regionName->str());
+	      JASSERT( !region.null() ).Text( "No such region exists." );
 
-	// Generate list of index expressions.
-	/*
-	std::cout << "formula bounds:\n";
-	for( int i = 0; i < region->dimensions(); ++i )
-	  {
-	    std::cout << i << ": ";
-	    region->minCoord().at( i )->print(std::cout);
-	    std::cout << " to ";
-	    region->maxCoord().at( i )->print(std::cout);
-	    std::cout << std::endl;
-	  }
-	*/
-
-	if( "cell" == methodname->str() )
-	  {
-	    std::string xcoord, ycoord;
-	    if( petabricks::Region::REGION_ROW == region->getRegionType() )
+	      if( "cell" == methodname->str() )
 	      {
-		xcoord = args->toString();
-		ycoord = region->minCoord().at(1)->toString();
-	      }
-	    else if( petabricks::Region::REGION_COL == region->getRegionType() )
+            
+          RIRExprList indices = call->parts().back()->parts().front()->parts();
+          RIRExprList::reverse_iterator i = indices.rbegin();
+          FormulaPtr idx_formula;
+          switch(region->getRegionType()) {
+            case Region::REGION_CELL:
+              JASSERT(false).Text("Cannot call cell in cell");
+              break;
+            case Region::REGION_ROW:
+              idx_formula = new FormulaVariable((*i)->str());
+              break;
+            case Region::REGION_COL:
+              idx_formula = new FormulaMultiply( new FormulaVariable((*i)->str()), new FormulaVariable("dim_" + region->name() + "_d0") );
+              break;
+            case Region::REGION_ALL:
+            case Region::REGION_BOX:
+              {
+                int j = indices.size()/2 - 1;
+                //std::ostream o;
+                idx_formula = new FormulaAdd(new FormulaVariable((*i)->str()), FormulaInteger::zero()); //TODO if index is more complicated expr
+                ++i;
+                while(i != indices.rend()) {
+                  ++i; // for skip ,
+                  std::stringstream sizevar;
+                  sizevar << "dim_" << region->name() << "_d" << j--; //TODO check objName
+                  idx_formula = new FormulaAdd( new FormulaVariable((*i)->str()), new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
+                  ++i;
+                }
+              }
+              break;
+            default:
+              UNIMPLEMENTED();
+          }
+
+          // Index needs to include idx_region in case that RegionType != REGION_ALL
+          // idx_region is calculated at UserRule::generateOpenCLKernel
+          std::string exprstr = "_region_" + region->name() + "[" + idx_formula->toString() + " + idx_" + region->name() + "]";
+          e = RIRExpr::parse( exprstr, SRCPOS() );
+        }
+	      /*else if( "width" == methodname->str() )
+	        {
+	          e = RIRExpr::parse( "dim_" + region->matrix()->name() + "_d0", SRCPOS() );
+	        }*/
+	      else
 	      {
-		xcoord = region->minCoord().at(0)->toString();
-		ycoord = args->toString();
-	      }
-	    else
-	      {
-		std::cout << "Failed to generate OpenCL kernel: unsupported region type.";
-		throw NotValidSource();
+	        JASSERT( false ).Text( "Failed to generate OpenCL kernel: unsupported member function of region." );
 	      }
 
-	    std::string exprstr = region->matrix()->name() + "[(dim_" + region->matrix()->name() + "_d0*" + ycoord + ")+" + xcoord + "]";
-	    //std::cout << "expression string: " << exprstr << "\n";
-	    e = RIRExpr::parse( exprstr, SRCPOS() );
-	    //std::cout << "accessor index: " << e->debugStr() << "\n";
-	  }
-	else if( "width" == methodname->str() )
-	  {
-	    e = RIRExpr::parse( "dim_" + region->matrix()->name() + "_d0", SRCPOS() );
-	  }
-	else
-	  {
-	    JASSERT( false ).Text( "Failed to generate OpenCL kernel: unsupported member function of region." );
-	  }
+	      // Simplify expressions and produce final call.
 
-	// Simplify expressions and produce final call.
-
-	/*
-        args->prependSubExpr(methodname);
-        args->prependSubExpr(regionName);
-        e = new RIRCallExpr();
-        e->addSubExpr(new RIRIdentExpr("REGION_METHOD_CALL"));
-        e->addSubExpr(args);
-	*/
+	      /*
+              args->prependSubExpr(methodname);
+              args->prependSubExpr(regionName);
+              e = new RIRCallExpr();
+              e->addSubExpr(new RIRIdentExpr("REGION_METHOD_CALL"));
+              e->addSubExpr(args);
+	      */
       }
+    }
+    if(sym && sym->type() == RIRSymbol::SYM_ARG_ELEMENT) {
+      e = RIRExpr::parse( "_region_" + e->str() + "[idx_"+e->str()+"]", SRCPOS() );
     }
   }
 }
@@ -459,6 +466,7 @@ bool petabricks::OpenClFunctionRejectPass::isFunctionAllowed( const std::string&
       "sin", "cos", "tan",
       "acos", "asin", "atan",
       "sqrt",
+      "cell",
       "", };
 
   const std::string* p = whitelist;
