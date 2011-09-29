@@ -4,6 +4,8 @@
 #include "../simple/add.pbcc"
 #include "../simple/transpose.pbcc"
 
+#define PRINT
+
 %{
 #include "cblas.h"
 
@@ -32,9 +34,9 @@ inline ElementT *toArray(const petabricks::ConstMatrixRegion2D &matrix) {
 
   array = new ElementT[rows * columns];
 
-  for(IndexT j=0; j<columns; ++j) {
-    for(IndexT i=0; i<rows; ++i) {
-      array[j*rows + i] = matrix.cell(j,i);
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      array[i*columns + j] = matrix.cell(j,i);
     }
   }
 
@@ -45,9 +47,9 @@ inline void toMatrix(ElementT* array, petabricks::MatrixRegion2D &matrix) {
   IndexT rows = matrix.height();
   IndexT columns = matrix.width();
 
-  for(IndexT j=0; j<columns; ++j) {
-    for(IndexT i=0; i<rows; ++i) {
-      matrix.cell(j,i) = array[j*rows + i];
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      matrix.cell(j,i) = array[i*columns + j];
     }
   }
 
@@ -55,11 +57,11 @@ inline void toMatrix(ElementT* array, petabricks::MatrixRegion2D &matrix) {
 }
 
 void gemm_wrap(const int M, const int N, const int K, const float alpha, const float * A, const int lda, const float * B, const int ldb, const float beta, float * C, const int ldc) {
-  cblas_sgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+  cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
 }
 
 void gemm_wrap(const int M, const int N, const int K, const double alpha, const double * A, const int lda, const double * B, const int ldb, const double beta, double * C, const int ldc) {
-  cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
 }
 %}
 
@@ -166,7 +168,7 @@ to C[w,h]
     printArray(rowC, colC, arrayC);
     #endif
 
-    gemm_wrap(rowA, colB, rowB, alpha, arrayA, rowA, arrayB, rowB, beta, arrayC, rowC);
+    gemm_wrap(rowA, colB, rowB, alpha, arrayA, colA, arrayB, colB, beta, arrayC, colC);
 
     #ifdef PRINT
     printArray(rowC, colC, arrayC);
