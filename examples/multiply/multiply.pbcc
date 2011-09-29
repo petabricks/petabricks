@@ -55,11 +55,11 @@ inline void toMatrix(ElementT* array, petabricks::MatrixRegion2D &matrix) {
 }
 
 void gemm_wrap(int rowA, int colB1, int rowB, float alpha, float* arrayA, int colA, float* arrayB, int colB2, float beta, float* arrayAB, int colAB) {
-  cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, rowA, colB1, rowB, alpha, arrayA, colA, arrayB, colB2, beta, arrayAB, colAB);
+  cblas_sgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, rowA, colB1, rowB, alpha, arrayA, colA, arrayB, colB2, beta, arrayAB, colAB);
 }
 
 void gemm_wrap(int rowA, int colB1, int rowB, double alpha, double* arrayA, int colA, double* arrayB, int colB2, double beta, double* arrayAB, int colAB) {
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, rowA, colB1, rowB, alpha, arrayA, colA, arrayB, colB2, beta, arrayAB, colAB);
+  cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, rowA, colB1, rowB, alpha, arrayA, colA, arrayB, colB2, beta, arrayAB, colAB);
 }
 %}
 
@@ -117,9 +117,9 @@ to AB[w,h]
   to(AB ab) from (A a, B b) {
     for(IndexT i=0, maxI=a.height(); i<maxI; ++i) {
       for(IndexT j=0, maxJ=b.width(); j<maxJ; ++j) {
-        ab.cell(i,j) = 0;
+        ab.cell(j,i) = 0;
         for(IndexT k=0, maxK=a.width(); k<maxK; ++k) {
-	  ab.cell(i,j) += a.cell(i,k) * b.cell(k,j);
+	  ab.cell(j,i) += a.cell(k,i) * b.cell(j,k);
 	}
       }
     }
