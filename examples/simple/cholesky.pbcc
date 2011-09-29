@@ -38,6 +38,21 @@ to H[n,n] {
 
 }
 
+transform MatrixCholeskyX2
+from X1[n,m], L21T[n,n], L22[n,n], B2[n, m]
+to L[n,m]
+{
+	to(L l)
+	from (X1 x1, L21T l21t, L22 l22, B2 b2) 
+	{
+
+		MatrixRegion2D x1L21 = MatrixRegion2D::allocate(n,m);
+		MatrixRegion2D b1_x1L21 = MatrixRegion2D::allocate(n,m);
+		MatrixMultiply(x1L21, x1, l21t);
+ 		Subtract2D(b1_x1L21, b2, x1L21);	      
+		triusolve(l, l22, b1_x1L21);
+	}       
+}
 
 transform MatrixCholesky
 from A[n,n]
@@ -45,31 +60,8 @@ to L[n,n]
 generator HermitianGenerate
 {
 
-/*
 // cholesky factorization
 // see: http://www.netlib.org/utk/papers/factor/node9.html
-   to (L l)
-   from (A a) {
-   	if (n < 5) {
-      	   for (int i = 0; i < a.height(); i++) {
-               for (int j = 0; j < (i+1); j++) {
-               	   double s = 0;
-            	   for (int k = 0; k < j; k++)
-                       s += l.cell(k,i) * l.cell(k,j);
-            	   l.cell(j, i) = (i == j) ?
-                       sqrt(a.cell(i, i) - s) :
-                       (1.0 / l.cell(j, j) * (a.cell(j, i) - s));
-       		}
-	   }	
-	   	
-	}
-      	   MatrixCholesky(l.region(0, 0, n/2, n/2), a.region(0,0,n/2,n/2));	   
-
-	}
-
-   }
-*/
-
 
 
 	// recursive def of cholesky
@@ -92,23 +84,20 @@ generator HermitianGenerate
 	       MatrixCholesky(l.region(0, 0, n/2, n/2), a.region(0,0,n/2,n/2));	   
 
 	       // lower left corner
-	       MatrixRegion2D l11 = l.region(0,0,n/2,n/2);
-	       MatrixRegion2D l11_trans = l11.transposed();
+	       MatrixRegion2D L11 = l.region(0,0,n/2,n/2);
+	       MatrixRegion2D L11_trans = L11.transposed();
 
-	       // x1 = trisolve(L11,B1)
-	       MatrixRegion2D l21reg1_trans = MatrixRegion2D::allocate(n/2,n/4);
-	       trilsolve(l21reg1_trans, l11.region(0,0,l11.width()/2, l11.height()/2), a.region(0,n/2,n/4,n).transposed());
-	       Transpose(l.region(0,n/2,n/4,n), l21reg1_trans); 	       
+	       MatrixRegion2D x1 = l.region(0,n/2,n/4,n).transposed();
+	       MatrixRegion2D L11_l11 = L11.region(0,0,L11.width()/2, L11.height()/2);
+	       //MatrixRegion2D b1 = a.region(0,n/2,n/4,n);
+	       trilsolve(x1, L11_l11, a.region(0,n/2,n/4,n).transposed());
 	       
+
 	       // x2  = trisolve(L22,B2-x1L21)
-	       MatrixRegion2D x2L21 = MatrixRegion2D::allocate(n/4,n/2);
-	       MatrixRegion2D b1_x2L21 = MatrixRegion2D::allocate(n/4,n/2);
-	       MatrixMultiply(x2L21, l.region(0,n/2,n/4,n), l11_trans.region(l11_trans.width()/2,0,l11_trans.width(),l11_trans.height()/2));
-	       Subtract2D(b1_x2L21, a.region(n/4,n/2,n/2,n), x2L21);	
-	       
-	       MatrixRegion2D l11_trans_22_trans = l11_trans.region(l11.width()/2,l11.height()/2,l11.width(),l11.height());
-	       triusolve(l.region(n/4,n/2,n/2,n), l11_trans_22_trans, b1_x2L21); 
-	       
+	       MatrixRegion2D x2 = l.region(n/4,n/2,n/2,n); 
+	       MatrixRegion2D l21t = L11_trans.region(L11_trans.width()/2,0,L11_trans.width(),L11_trans.height()/2);
+	       MatrixRegion2D l22 = L11_trans.region(L11.width()/2,L11.height()/2,L11.width(),L11.height());
+	       MatrixCholeskyX2(x2, l.region(0,n/2,n/4,n), l21t, l22, a.region(n/4,n/2,n/2,n));
 
 	       // lower right corner
 	       MatrixRegion2D t = MatrixRegion2D::allocate(n/2,n/2);
