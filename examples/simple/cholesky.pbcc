@@ -3,8 +3,8 @@
 #include "../multiply/multiply.pbcc"
 #include "copy.pbcc"
 #include "transpose.pbcc"
-#include "../LUDense/trilsolve.pbcc"
-#include "../LUDense/triusolve.pbcc"
+#include "../LUDense/TriLSolve.pbcc"
+#include "../LUDense/TriUSolve.pbcc"
 
 transform HermitianGenerate 
 to H[n,n] {
@@ -97,7 +97,7 @@ generator HermitianGenerate
 
 	       // x1 = trisolve(L11,B1)
 	       MatrixRegion2D l21reg1_trans = MatrixRegion2D::allocate(n/2,n/4);
-	       trilsolve(l21reg1_trans, l11.region(0,0,l11.width()/2, l11.height()/2), a.region(0,n/2,n/4,n).transposed());
+	       TriLSolve(l21reg1_trans, l11.region(0,0,l11.width()/2, l11.height()/2), a.region(0,n/2,n/4,n).transposed());
 	       Transpose(l.region(0,n/2,n/4,n), l21reg1_trans); 	       
 	       
 	       // x2  = trisolve(L22,B2-x1L21)
@@ -107,7 +107,7 @@ generator HermitianGenerate
 	       Subtract2D(b1_x2L21, a.region(n/4,n/2,n/2,n), x2L21);	
 	       
 	       MatrixRegion2D l11_trans_22_trans = l11_trans.region(l11.width()/2,l11.height()/2,l11.width(),l11.height());
-	       triusolve(l.region(n/4,n/2,n/2,n), l11_trans_22_trans, b1_x2L21); 
+	       TriUSolve(l.region(n/4,n/2,n/2,n), l11_trans_22_trans, b1_x2L21); 
 	       
 
 	       // lower right corner
