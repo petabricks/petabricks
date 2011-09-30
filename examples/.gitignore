@@ -49,10 +49,10 @@ LUDense/LUupper
 LUDense/PLUblockdecomp
 LUDense/PLU
 LUDense/PLUrecur
-LUDense/TriLLsolve
-LUDense/TriLUsolve
-LUDense/TriRLsolve
-LUDense/TriRUsolve
+LUDense/TriLLSolve
+LUDense/TriLUSolve
+LUDense/TriRLSolve
+LUDense/TriRUSolve
 LUDense/utri
 matrixapprox/Bisection
 matrixapprox/matrixapprox
