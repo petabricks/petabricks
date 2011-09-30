@@ -124,7 +124,6 @@ to C[w,h]
     spawn MatrixMultiplyAddInner(c2, alpha, a2, b, beta);
   }
 
-
   //Usual O(n^3) matrix multiply
   to(C c) from (A a, B b, ALPHA alpha, BETA beta)
   {
@@ -182,56 +181,38 @@ to C[w,h]
   }
 }
 
-// Computes C = ALPHA * OP(A) * OP(B) + BETA * C, where
-//
-//     OP(X) = X   , if TRANSX = 0,
-//     OP(X) = X**T, otherwise,
-//
-// for X = A,B.
-//
+// Computes C = ALPHA * A * B + BETA * C (C is an in/out argument).
 transform MatrixMultiplyAdd
-from TRANSA, TRANSB, ALPHA, A[aw,ah], B[bw,bh], BETA
+from ALPHA, A[k,m], B[n,k], BETA
 to C[n,m]
 {
   // no transpose
-  to(C c) from(TRANSA transa,
-               TRANSB transb,
-               ALPHA alpha,
+  to(C c) from(ALPHA alpha,
                A a,
                B b,
                BETA beta)
   {
-    a = transa ? a.transposed() : a;
-    b = transb ? b.transposed() : b;
     MatrixMultiplyAddInner(c, alpha, a, b, beta);
   }
 
   // transpose a
-  to(C c) from(TRANSA transa,
-               TRANSB transb,
-               ALPHA alpha,
+  to(C c) from(ALPHA alpha,
                A a,
                B b,
                BETA beta)
   {
-    a = transa ? a.transposed() : a;
-    b = transb ? b.transposed() : b;
-    MatrixRegion2D t = MatrixRegion2D::allocate(ah,aw);
+    MatrixRegion2D t = MatrixRegion2D::allocate(k,m);
     Transpose(t, a);
     MatrixMultiplyAddInner(c, alpha, t.transposed(), b, beta);
   }
 
   // transpose b
-  to(C c) from(TRANSA transa,
-               TRANSB transb,
-               ALPHA alpha,
+  to(C c) from(ALPHA alpha,
                A a,
                B b,
                BETA beta)
   {
-    a = transa ? a.transposed() : a;
-    b = transb ? b.transposed() : b;
-    MatrixRegion2D t = MatrixRegion2D::allocate(bh,bw);
+    MatrixRegion2D t = MatrixRegion2D::allocate(n,k);
     Transpose(t, b);
     MatrixMultiplyAddInner(c, alpha, a, t.transposed(), beta);
   }
