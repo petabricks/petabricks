@@ -32,9 +32,9 @@ inline ElementT *toArray(petabricks::ConstMatrixRegion2D &matrix) {
 
   array = new ElementT[rows * columns];
   
-  for(IndexT i=0; i<rows; ++i) {
-    for(IndexT j=0; j<columns; ++j) {
-      array[i*columns+ j] = matrix.cell(j,i);
+  for(IndexT j=0; j<columns; ++j) {
+    for(IndexT i=0; i<rows; ++i) {
+      array[j*rows + i] = matrix.cell(j,i);
     }
   }
   
@@ -45,9 +45,9 @@ inline void toMatrix(ElementT* array, petabricks::MatrixRegion2D &matrix) {
   IndexT rows = matrix.height();
   IndexT columns = matrix.width();
 
-  for(IndexT i=0; i<rows; ++i) {
-    for(IndexT j=0; j<columns; ++j) {
-      matrix.cell(j,i) = array[i*columns + j];
+  for(IndexT j=0; j<columns; ++j) {
+    for(IndexT i=0; i<rows; ++i) {
+      matrix.cell(j,i) = array[j*rows + i];
     }
   }
   
@@ -55,11 +55,11 @@ inline void toMatrix(ElementT* array, petabricks::MatrixRegion2D &matrix) {
 }
 
 void gemm_wrap(int rowA, int colB1, int rowB, float alpha, float* arrayA, int colA, float* arrayB, int colB2, float beta, float* arrayAB, int colAB) {
-  cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, rowA, colB1, rowB, alpha, arrayA, colA, arrayB, colB2, beta, arrayAB, colAB);
+  cblas_sgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, rowA, colB1, rowB, alpha, arrayA, colA, arrayB, colB2, beta, arrayAB, colAB);
 }
 
 void gemm_wrap(int rowA, int colB1, int rowB, double alpha, double* arrayA, int colA, double* arrayB, int colB2, double beta, double* arrayAB, int colAB) {
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, rowA, colB1, rowB, alpha, arrayA, colA, arrayB, colB2, beta, arrayAB, colAB);
+  cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, rowA, colB1, rowB, alpha, arrayA, colA, arrayB, colB2, beta, arrayAB, colAB);
 }
 %}
 
@@ -94,8 +94,8 @@ to AB[w,h]
   to(AB.region(0,   0, w/2, h  ) ab1,
      AB.region(w/2, 0, w,   h  ) ab2)
   from( A a,
-        B.region(0,   0, w/2, c  ) b1,
-        B.region(w/2, 0, w,   c  ) b2)
+        B.region(0,   0, w/2, h  ) b1,
+        B.region(w/2, 0, w,   h  ) b2)
   {
     spawn MatrixMultiply(ab1, a, b1);
     spawn MatrixMultiply(ab2, a, b2);
@@ -104,8 +104,8 @@ to AB[w,h]
   recursive(h)
   to(AB.region(0, 0,   w, h/2) ab1,
      AB.region(0, h/2, w, h  ) ab2)
-  from(A.region(0,   0, c,   h/2) a1,
-       A.region(0, h/2, c,   h  ) a2,
+  from(A.region(0,   0, w,   h/2) a1,
+       A.region(0, h/2, w,   h  ) a2,
        B b)
   {
     spawn MatrixMultiply(ab1, a1, b);
@@ -117,9 +117,9 @@ to AB[w,h]
   to(AB ab) from (A a, B b) {
     for(IndexT i=0, maxI=a.height(); i<maxI; ++i) {
       for(IndexT j=0, maxJ=b.width(); j<maxJ; ++j) {
-        ab.cell(i,j) = 0;
+        ab.cell(j,i) = 0;
         for(IndexT k=0, maxK=a.width(); k<maxK; ++k) {
-	  ab.cell(i,j) += a.cell(i,k) * b.cell(k,j);
+	  ab.cell(j,i) += a.cell(k,i) * b.cell(j,k);
 	}
       }
     }
