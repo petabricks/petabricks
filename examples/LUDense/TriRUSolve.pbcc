@@ -1,0 +1,20 @@
+#ifndef TRIRUSOLVE_PBCC
+#define TRIRUSOLVE_PBCC
+
+// Right upper (RU) triangular solve
+// Solve XA = B for X, where A is upper triangular
+
+#include "TriLLSolve.pbcc"
+
+transform TriRUSolve
+from A[n,n], B[n,m]
+to X[n,m]
+{
+    to (X x) from (A a, B b) {
+        MatrixRegion2D x2 = x.transposed();
+        TriLLSolve(x2, a.transposed(), b.transposed());
+    }
+}
+
+#endif // TRIRUSOLVE_PBCC
+

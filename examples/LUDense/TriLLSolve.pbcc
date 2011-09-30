@@ -1,0 +1,69 @@
+#ifndef TRILLSOLVE_PBCC
+#define TRILLSOLVE_PBCC
+
+// Left lower (LL) triangular solve
+// Solve AX = B for X, where A is lower triangular
+
+#include "../simple/copy.pbcc"
+#include "../simple/scale.pbcc"
+#include "../multiply/multiply.pbcc"
+
+// right looking version (update trailing matrix after each row is solved)
+transform TriLLSolveBaseRL
+from A[m,m], B[n,m]
+to X[n,m]
+{
+    to   (X x)
+    from (A a, B b)
+    {
+        Copy2D(x, b);
+        for (int i = 0; i < m; ++i) {
+            Scale(x.region(0, i, n, i+1), 1.0 / a.cell(i, i));
+            MatrixMultiplyAdd(x.region(0, i+1, n, m), -1, a.region(i, i+1, i+1, m), x.region(0, i, n, i+1), 1);
+        }
+    }
+}
+
+// left looking version (process one row at a time)
+transform TriLLSolveBaseLL
+from A[m,m], B[n,m]
+to X[n,m]
+{
+    primary
+    to   (X.cell(j, 0) x)
+    from (B.cell(j, 0) b, A.cell(0,0) a)
+    {
+        x = b / a;
+    }
+
+    to   (X.region(0, i, n, i+1) xout)
+    from (X.region(0, 0, n, i  ) x, A.region(0, i, i, i+1) a,
+          B.region(0, i, n, i+1) b, A.cell(i, i) aii)
+    {
+        // compute xout = (b - a * x) / aii
+        Copy2D(xout, b);
+        MatrixMultiplyAdd(xout, -1.0 / aii, a, x, 1.0 / aii);
+    }
+}
+
+transform TriLLSolve
+from A[m,m], B[n,m]
+to X[n,m]
+{
+    to (X x) from (A a, B b) {
+#ifdef DEBUG
+        fprintf(stderr, "TriLLSolveBaseLL called for size (%d, %d)\n", m, n);
+#endif
+        TriLLSolveBaseLL(x, a, b);
+    }
+
+    to (X x) from (A a, B b) {
+#ifdef DEBUG
+        fprintf(stderr, "TriLLSolveBaseRL called for size (%d, %d)\n", m, n);
+#endif
+        TriLLSolveBaseRL(x, a, b);
+    }
+}
+
+#endif // TRILLSOLVE_PBCC
+

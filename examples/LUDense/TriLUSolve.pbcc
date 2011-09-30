@@ -1,0 +1,84 @@
+#ifndef TRILUSOLVE_PBCC
+#define TRILUSOLVE_PBCC
+
+// Left upper (LU) triangular solve
+// Solve AX = B for X, where A is upper triangular
+
+#include "../simple/copy.pbcc"
+#include "../simple/scale.pbcc"
+#include "../multiply/multiply.pbcc"
+
+// write right looking version (update trailing matrix after each row is solved)
+transform TriLUSolveBaseRL
+from A[m,m], B[n,m]
+to X[n,m]
+{
+    to   (X x)
+    from (A a, B b)
+    {
+        Copy2D(x, b);
+        for (int i = m-1; i >= 0; --i) {
+            Scale(x.region(0, i, n, i+1), 1.0 / a.cell(i, i));
+            MatrixMultiplyAdd(x.region(0, 0, n, i), -1, a.region(i, 0, i+1, i), x.region(0, i, n, i+1), 1);
+        }
+    }
+}
+
+// left looking version (process one row at a time)
+transform TriLUSolveBaseLL
+from A[m,m], B[n,m]
+to X[n,m]
+{
+
+/*
+    // This code doesn't work because the backwards iteration order
+    // isn't detected by the compiler yet
+    primary
+    to   (X.cell(j, m-1) x)
+    from (B.cell(j, m-1) b, A.cell(m-1,m-1) a)
+    {
+        x = b / a;
+    }
+
+    to   (X.region(0, i, n, i+1) xout)
+    from (X.region(0, i+1, n, m) x, A.region(i+1, i, m, i+1) a,
+          B.region(0, i, n, i+1) b, A.cell(i, i) aii)
+    {
+        // compute xout = (b - a * x) / aii
+        Copy2D(xout, b);
+        MatrixMultiplyAdd(xout, -1.0 / aii, a, x, 1.0 / aii);
+    }
+*/
+
+    to   (X x)
+    from (A a, B b)
+    {
+        Copy2D(x, b);
+        Scale(x.region(0, m-1, n, m), 1.0 / a.cell(m-1, m-1));
+        for (int i = m-2; i >= 0; --i) {
+            MatrixMultiplyAdd(x.region(0, i, n, i+1), -1.0 / a.cell(i, i), a.region(i+1, i, m, i+1), x.region(0, i+1, n, m), 1.0 / a.cell(i, i));
+        }
+    }
+}
+
+transform TriLUSolve
+from A[m,m], B[n,m]
+to X[n,m]
+{
+    to (X x) from (A a, B b) {
+#ifdef DEBUG
+        fprintf(stderr, "TriLUSolveBaseLL called for size (%d, %d)\n", m, n);
+#endif
+        TriLUSolveBaseLL(x, a, b);
+    }
+
+    to (X x) from (A a, B b) {
+#ifdef DEBUG
+        fprintf(stderr, "TriLUSolveBaseRL called for size (%d, %d)\n", m, n);
+#endif
+        TriLUSolveBaseRL(x, a, b);
+    }
+}
+
+#endif // TRILUSOLVE_PBCC
+

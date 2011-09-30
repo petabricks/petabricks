@@ -38,7 +38,6 @@ kernel/nwkdeBaseTop
 kernel/nwkdeVA
 kernel/nwkde
 kernel/utils
-LUDense/blockedLUDense
 LUDense/LAPACKmatmul
 LUDense/ltri
 LUDense/LUDense
@@ -47,12 +46,13 @@ LUDense/LUnopivot
 LUDense/LUrecur
 LUDense/LUtrisolve
 LUDense/LUupper
-LUDense/msub
 LUDense/PLUblockdecomp
 LUDense/PLU
 LUDense/PLUrecur
-LUDense/trilsolve
-LUDense/triusolve
+LUDense/TriLLsolve
+LUDense/TriLUsolve
+LUDense/TriRLsolve
+LUDense/TriRUsolve
 LUDense/utri
 matrixapprox/Bisection
 matrixapprox/matrixapprox
