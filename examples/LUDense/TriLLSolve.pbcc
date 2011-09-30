@@ -17,10 +17,11 @@ to X[n,m]
     from (A a, B b)
     {
         Copy2D(x, b);
-        for (int i = 0; i < m; ++i) {
+        for (int i = 0; i < m-1; ++i) {
             Scale(x.region(0, i, n, i+1), 1.0 / a.cell(i, i));
             MatrixMultiplyAdd(x.region(0, i+1, n, m), -1, a.region(i, i+1, i+1, m), x.region(0, i, n, i+1), 1);
         }
+        Scale(x.region(0, m-1, n, m), 1.0 / a.cell(m-1, m-1));
     }
 }
 
@@ -51,16 +52,10 @@ from A[m,m], B[n,m]
 to X[n,m]
 {
     to (X x) from (A a, B b) {
-#ifdef DEBUG
-        fprintf(stderr, "TriLLSolveBaseLL called for size (%d, %d)\n", m, n);
-#endif
         TriLLSolveBaseLL(x, a, b);
     }
 
     to (X x) from (A a, B b) {
-#ifdef DEBUG
-        fprintf(stderr, "TriLLSolveBaseRL called for size (%d, %d)\n", m, n);
-#endif
         TriLLSolveBaseRL(x, a, b);
     }
 }

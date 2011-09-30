@@ -4,8 +4,6 @@
 #include "../simple/add.pbcc"
 #include "../simple/transpose.pbcc"
 
-#define PRINT
-
 %{
 #include "cblas.h"
 
@@ -81,6 +79,7 @@ to C[w,h]
       c+=alpha*a.cell(i)*b.cell(i);
   }
 
+#if 0
   //recursively chop the matrix in half
   recursive(k)
   to(C c)
@@ -123,6 +122,7 @@ to C[w,h]
     spawn MatrixMultiplyAddInner(c1, alpha, a1, b, beta);
     spawn MatrixMultiplyAddInner(c2, alpha, a2, b, beta);
   }
+#endif
 
   //Usual O(n^3) matrix multiply
   to(C c) from (A a, B b, ALPHA alpha, BETA beta)
@@ -131,7 +131,7 @@ to C[w,h]
       for(IndexT j=0, maxJ=b.width(); j<maxJ; ++j) {
         c.cell(j,i) *= beta;
         for(IndexT l=0, maxL=a.width(); l<maxL; ++l) {
-	  c.cell(j,i) += a.cell(l,i) * b.cell(j,l);
+	  c.cell(j,i) += alpha * a.cell(l,i) * b.cell(j,l);
 	}
       }
     }
@@ -201,7 +201,7 @@ to C[n,m]
                B b,
                BETA beta)
   {
-    MatrixRegion2D t = MatrixRegion2D::allocate(k,m);
+    MatrixRegion2D t = MatrixRegion2D::allocate(m,k);
     Transpose(t, a);
     MatrixMultiplyAddInner(c, alpha, t.transposed(), b, beta);
   }
@@ -212,7 +212,7 @@ to C[n,m]
                B b,
                BETA beta)
   {
-    MatrixRegion2D t = MatrixRegion2D::allocate(n,k);
+    MatrixRegion2D t = MatrixRegion2D::allocate(k,n);
     Transpose(t, b);
     MatrixMultiplyAddInner(c, alpha, a, t.transposed(), beta);
   }

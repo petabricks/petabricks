@@ -66,16 +66,10 @@ from A[m,m], B[n,m]
 to X[n,m]
 {
     to (X x) from (A a, B b) {
-#ifdef DEBUG
-        fprintf(stderr, "TriLUSolveBaseLL called for size (%d, %d)\n", m, n);
-#endif
         TriLUSolveBaseLL(x, a, b);
     }
 
     to (X x) from (A a, B b) {
-#ifdef DEBUG
-        fprintf(stderr, "TriLUSolveBaseRL called for size (%d, %d)\n", m, n);
-#endif
         TriLUSolveBaseRL(x, a, b);
     }
 }
