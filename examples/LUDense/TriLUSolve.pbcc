@@ -6,7 +6,8 @@
 
 #include "../simple/copy.pbcc"
 #include "../simple/scale.pbcc"
-#include "../multiply/multiply.pbcc"
+#include "../multiply/multiplyAdd.pbcc"
+#include "TriSolveLAPACK.pbcc"
 
 // write right looking version (update trailing matrix after each row is solved)
 transform TriLUSolveBaseRL
@@ -71,6 +72,10 @@ to X[n,m]
 
     to (X x) from (A a, B b) {
         TriLUSolveBaseRL(x, a, b);
+    }
+
+    to (X x) from (A a, B b) {
+        TriSolveLAPACK(x, 0, 1, 1, a, b);
     }
 }
 
