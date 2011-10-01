@@ -49,11 +49,12 @@ LUDense/LUupper
 LUDense/PLUblockdecomp
 LUDense/PLU
 LUDense/PLUrecur
-LUDense/TriLLSolve
-LUDense/TriLUSolve
-LUDense/TriRLSolve
-LUDense/TriRUSolve
 LUDense/utri
+trisolve/TriSolve
+trisolve/TriSolveLL
+trisolve/TriSolveLU
+trisolve/TriSolveRL
+trisolve/TriSolveRU
 matrixapprox/Bisection
 matrixapprox/matrixapprox
 multigrid/ComputeError2D

@@ -16,21 +16,23 @@ void trsm_wrap(char *side, char *uplo, char *transa, char *diag, const int *m, c
 %}
 
 transform TriSolveLAPACK
-from RIGHTFLAG, UPFLAG, ALPHA, INA[aw,ah], INB[n,m]
+from RIGHTFLAG, UPFLAG, UNITFLAG, ALPHA, INA[aw,ah], INB[n,m]
 to OUT[n,m]
 {
     to (OUT out)
-    from (RIGHTFLAG rFlag, UPFLAG uFlag, ALPHA _alpha, INA ina, INB inb)
+    from (RIGHTFLAG rightFlag, UPFLAG upFlag, UNITFLAG unitFlag,
+          ALPHA _alpha, INA ina, INB inb)
     {
-        char side, uplo, transa = 'N', diag = 'N';
+        char side, uplo, transa = 'N', diag;
         const int lda = ah;
         const int ldb = m;
         double alpha = _alpha;
         ElementT *A = NULL;
         ElementT *B = NULL;
 
-        side = rFlag ? 'R' : 'L';
-        uplo = uFlag ? 'U' : 'L';
+        side = rightFlag ? 'R' : 'L';
+        uplo = upFlag    ? 'U' : 'L';
+        diag = unitFlag  ? 'U' : 'N';
 
         A = new ElementT[ah * aw];
         B = new ElementT[m * n];

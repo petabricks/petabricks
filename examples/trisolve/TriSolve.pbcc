@@ -7,23 +7,24 @@
 #include "TriSolveRU.pbcc"
 
 transform TriSolve
-from RIGHTFLAG, UPFLAG, A[aw,ah], B[n,m]
+from RIGHTFLAG, UPFLAG, UNITFLAG, A[aw,ah], B[n,m]
 to X[n,m]
 {
     to (X x)
-    from (RIGHTFLAG rFlag, UPFLAG uFlag, A a, B b)
+    from (RIGHTFLAG rightFlag, UPFLAG upFlag, UNITFLAG unitFlag,
+          A a, B b)
     {
-        if (rFlag){
-            if (uFlag) {
-                TriSolveRU(x, a, b);
+        if (rightFlag){
+            if (upFlag) {
+                TriSolveRU(x, unitFlag, a, b);
             } else {
-                TriSolveRL(x, a, b);
+                TriSolveRL(x, unitFlag, a, b);
             }
         } else {
-            if (uFlag) {
-                TriSolveLU(x, a, b);
+            if (upFlag) {
+                TriSolveLU(x, unitFlag, a, b);
             } else {
-                TriSolveLL(x, a, b);
+                TriSolveLL(x, unitFlag, a, b);
             }
         }
     }

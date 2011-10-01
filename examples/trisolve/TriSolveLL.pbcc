@@ -11,57 +11,63 @@
 
 // right looking version (update trailing matrix after each row is solved)
 transform TriSolveLLBaseRL
-from A[m,m], B[n,m]
+from UNITFLAG, A[m,m], B[n,m]
 to X[n,m]
 {
     to   (X x)
-    from (A a, B b)
+    from (UNITFLAG unitFlag, A a, B b)
     {
         Copy2D(x, b);
         for (int i = 0; i < m-1; ++i) {
-            Scale(x.region(0, i, n, i+1), 1.0 / a.cell(i, i));
+            if (!unitFlag) {
+                Scale(x.region(0, i, n, i+1), 1.0 / a.cell(i, i));
+            }
             MatrixMultiplyAdd(x.region(0, i+1, n, m), -1, a.region(i, i+1, i+1, m), x.region(0, i, n, i+1), 1);
         }
-        Scale(x.region(0, m-1, n, m), 1.0 / a.cell(m-1, m-1));
+        if (!unitFlag) {
+            Scale(x.region(0, m-1, n, m), 1.0 / a.cell(m-1, m-1));
+        }
     }
 }
 
 // left looking version (process one row at a time)
 transform TriSolveLLBaseLL
-from A[m,m], B[n,m]
+from UNITFLAG, A[m,m], B[n,m]
 to X[n,m]
 {
     primary
     to   (X.cell(j, 0) x)
-    from (B.cell(j, 0) b, A.cell(0,0) a)
+    from (UNITFLAG unitFlag, B.cell(j, 0) b, A.cell(0,0) a)
     {
-        x = b / a;
+        x = unitFlag ? b : b / a;
     }
 
     to   (X.region(0, i, n, i+1) xout)
-    from (X.region(0, 0, n, i  ) x, A.region(0, i, i, i+1) a,
+    from (UNITFLAG unitFlag,
+          X.region(0, 0, n, i  ) x, A.region(0, i, i, i+1) a,
           B.region(0, i, n, i+1) b, A.cell(i, i) aii)
     {
-        // compute xout = (b - a * x) / aii
+        // compute xout = (b - a * x) * factor
         Copy2D(xout, b);
-        MatrixMultiplyAdd(xout, -1.0 / aii, a, x, 1.0 / aii);
+        ElementT factor = unitFlag ? 1 : 1.0 / aii;
+        MatrixMultiplyAdd(xout, -factor, a, x, factor);
     }
 }
 
 transform TriSolveLL
-from A[m,m], B[n,m]
+from UNITFLAG, A[m,m], B[n,m]
 to X[n,m]
 {
-    to (X x) from (A a, B b) {
-        TriSolveLLBaseLL(x, a, b);
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        TriSolveLLBaseLL(x, unitFlag, a, b);
     }
 
-    to (X x) from (A a, B b) {
-        TriSolveLLBaseRL(x, a, b);
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        TriSolveLLBaseRL(x, unitFlag, a, b);
     }
 
-    to (X x) from (A a, B b) {
-        TriSolveLAPACK(x, 0, 0, 1, a, b);
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        TriSolveLAPACK(x, 0, 0, unitFlag, 1, a, b);
     }
 }
 

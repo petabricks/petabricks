@@ -7,12 +7,12 @@
 #include "TriSolveLU.pbcc"
 
 transform TriSolveRL
-from A[n,n], B[n,m]
+from UNITFLAG, A[n,n], B[n,m]
 to X[n,m]
 {
-    to (X x) from (A a, B b) {
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
         MatrixRegion2D x2 = x.transposed();
-        TriSolveLU(x2, a.transposed(), b.transposed());
+        TriSolveLU(x2, unitFlag, a.transposed(), b.transposed());
     }
 }
 

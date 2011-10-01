@@ -11,15 +11,17 @@
 
 // write right looking version (update trailing matrix after each row is solved)
 transform TriSolveLUBaseRL
-from A[m,m], B[n,m]
+from UNITFLAG, A[m,m], B[n,m]
 to X[n,m]
 {
     to   (X x)
-    from (A a, B b)
+    from (UNITFLAG unitFlag, A a, B b)
     {
         Copy2D(x, b);
         for (int i = m-1; i >= 0; --i) {
-            Scale(x.region(0, i, n, i+1), 1.0 / a.cell(i, i));
+            if (!unitFlag) {
+                Scale(x.region(0, i, n, i+1), 1.0 / a.cell(i, i));
+            }
             MatrixMultiplyAdd(x.region(0, 0, n, i), -1, a.region(i, 0, i+1, i), x.region(0, i, n, i+1), 1);
         }
     }
@@ -27,7 +29,7 @@ to X[n,m]
 
 // left looking version (process one row at a time)
 transform TriSolveLUBaseLL
-from A[m,m], B[n,m]
+from UNITFLAG, A[m,m], B[n,m]
 to X[n,m]
 {
 
@@ -36,46 +38,51 @@ to X[n,m]
     // isn't detected by the compiler yet
     primary
     to   (X.cell(j, m-1) x)
-    from (B.cell(j, m-1) b, A.cell(m-1,m-1) a)
+    from (UNITFLAG unitFlag, B.cell(j, m-1) b, A.cell(m-1,m-1) a)
     {
-        x = b / a;
+        x = unitFlag ? b : b / a;
     }
 
     to   (X.region(0, i, n, i+1) xout)
-    from (X.region(0, i+1, n, m) x, A.region(i+1, i, m, i+1) a,
+    from (UNITFLAG unitFlag,
+          X.region(0, i+1, n, m) x, A.region(i+1, i, m, i+1) a,
           B.region(0, i, n, i+1) b, A.cell(i, i) aii)
     {
-        // compute xout = (b - a * x) / aii
+        // compute xout = (b - a * x) / factor
         Copy2D(xout, b);
-        MatrixMultiplyAdd(xout, -1.0 / aii, a, x, 1.0 / aii);
+        ElementT factor = unitFlag ? 1 : 1.0 / aii;
+        MatrixMultiplyAdd(xout, -factor, a, x, factor);
     }
 */
 
     to   (X x)
-    from (A a, B b)
+    from (UNITFLAG unitFlag, A a, B b)
     {
         Copy2D(x, b);
-        Scale(x.region(0, m-1, n, m), 1.0 / a.cell(m-1, m-1));
+        if (!unitFlag) {
+            Scale(x.region(0, m-1, n, m), 1.0 / a.cell(m-1, m-1));
+        }
         for (int i = m-2; i >= 0; --i) {
-            MatrixMultiplyAdd(x.region(0, i, n, i+1), -1.0 / a.cell(i, i), a.region(i+1, i, m, i+1), x.region(0, i+1, n, m), 1.0 / a.cell(i, i));
+            ElementT factor = unitFlag ? 1 : 1.0 / a.cell(i, i);
+            MatrixMultiplyAdd(x.region(0, i, n, i+1), -factor, a.region(i+1, i, m, i+1), x.region(0, i+1, n, m), factor);
         }
     }
 }
 
 transform TriSolveLU
-from A[m,m], B[n,m]
+from UNITFLAG, A[m,m], B[n,m]
 to X[n,m]
 {
-    to (X x) from (A a, B b) {
-        TriSolveLUBaseLL(x, a, b);
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        TriSolveLUBaseLL(x, unitFlag, a, b);
     }
 
-    to (X x) from (A a, B b) {
-        TriSolveLUBaseRL(x, a, b);
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        TriSolveLUBaseRL(x, unitFlag, a, b);
     }
 
-    to (X x) from (A a, B b) {
-        TriSolveLAPACK(x, 0, 1, 1, a, b);
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        TriSolveLAPACK(x, 0, 1, unitFlag, 1, a, b);
     }
 }
 
