@@ -2,7 +2,6 @@
 #define LUUPPER_PBCC
 
 #include "../trisolve/TriSolveLL.pbcc"
-#include "ltri.pbcc"
 #include "../multiply/multiply.pbcc"
 #include "../simple/add.pbcc"
 
@@ -69,9 +68,7 @@ to OUT[m,n]
     fprintf(stderr, "LUuppertri called for size (%d, %d)\n", m, n);
 #endif
     if (m==1 || n==1){
-      MatrixRegion2D L = MatrixRegion2D::allocate(n,n);
-            ltri(L, leftdiag);
-            TriSolveLL(out, L, in);
+            TriSolveLL(out, 1, leftdiag, in);
     }
     else {
       LUuppertri(out, in, leftdiag);
@@ -85,9 +82,7 @@ to OUT[m,n]
 #ifdef DEBUG
         fprintf(stderr, "LUuppertri called for size (%d, %d)\n", m, n);
 #endif
-        MatrixRegion2D L = MatrixRegion2D::allocate(n,n);
-        ltri(L, leftdiag);
-        TriSolveLL(out, L, in);
+        TriSolveLL(out, 1, leftdiag, in);
   }
 
 
