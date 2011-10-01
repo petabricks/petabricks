@@ -1,5 +1,5 @@
-#ifndef TRILUSOLVE_PBCC
-#define TRILUSOLVE_PBCC
+#ifndef TRISOLVELU_PBCC
+#define TRISOLVELU_PBCC
 
 // Left upper (LU) triangular solve
 // Solve AX = B for X, where A is upper triangular
@@ -10,7 +10,7 @@
 #include "TriSolveLAPACK.pbcc"
 
 // write right looking version (update trailing matrix after each row is solved)
-transform TriLUSolveBaseRL
+transform TriSolveLUBaseRL
 from A[m,m], B[n,m]
 to X[n,m]
 {
@@ -26,7 +26,7 @@ to X[n,m]
 }
 
 // left looking version (process one row at a time)
-transform TriLUSolveBaseLL
+transform TriSolveLUBaseLL
 from A[m,m], B[n,m]
 to X[n,m]
 {
@@ -62,16 +62,16 @@ to X[n,m]
     }
 }
 
-transform TriLUSolve
+transform TriSolveLU
 from A[m,m], B[n,m]
 to X[n,m]
 {
     to (X x) from (A a, B b) {
-        TriLUSolveBaseLL(x, a, b);
+        TriSolveLUBaseLL(x, a, b);
     }
 
     to (X x) from (A a, B b) {
-        TriLUSolveBaseRL(x, a, b);
+        TriSolveLUBaseRL(x, a, b);
     }
 
     to (X x) from (A a, B b) {
@@ -79,5 +79,4 @@ to X[n,m]
     }
 }
 
-#endif // TRILUSOLVE_PBCC
-
+#endif // TRISOLVELU_PBCC

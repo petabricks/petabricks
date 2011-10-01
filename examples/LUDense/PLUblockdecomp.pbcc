@@ -1,8 +1,8 @@
 #ifndef PLUBLOCKDECOMP_PBCC
 #define PLUBLOCKDECOMP_PBCC
 
-
-#include "LUtrisolve.pbcc"
+#include "ltri.pbcc"
+#include "../trisolve/TriSolveLL.pbcc"
 #include "PLU.pbcc"
 #include "LAPACKmatmul.pbcc"
 
@@ -78,7 +78,10 @@ to OUT[n, n], Pout[n]
   from (TEMP.region(n/2,0,n,n/2) swappedin,
 	TEMP.region(0,0,n/2,n/2) leftdiag)
   {
-	LUtrisolve(out,leftdiag,swappedin);
+        // TODO: add unit flag to trisolve
+        MatrixRegion2D L = MatrixRegion2D::allocate(n/2, n/2);
+        ltri(L, leftdiag);
+	TriSolveLL(out,L,swappedin);
   }
   
 
@@ -153,7 +156,10 @@ to OUT[n, n], Pout[n]
   from (TEMP.region(n/3,0,n,n/3) swappedin,
         TEMP.region(0,0,n/3,n/3) leftdiag)
   {
-        LUtrisolve(out,leftdiag, swappedin);
+        // TODO: add unit flag to trisolve
+        MatrixRegion2D L = MatrixRegion2D::allocate(n/3, n/3);
+        ltri(L, leftdiag);
+	TriSolveLL(out,L,swappedin);
   }
 
 
@@ -226,7 +232,10 @@ to OUT[n, n], Pout[n]
   from (TEMP.region(n/4,0,n,n/4) swappedin,
         TEMP.region(0,0,n/4,n/4) leftdiag)
   {
-        LUtrisolve(out,leftdiag, swappedin);
+        // TODO: add unit flag to trisolve
+        MatrixRegion2D L = MatrixRegion2D::allocate(n/4, n/4);
+        ltri(L, leftdiag);
+	TriSolveLL(out,L,swappedin);
   }
 
   //lower right block

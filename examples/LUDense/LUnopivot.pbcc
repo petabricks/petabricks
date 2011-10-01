@@ -2,17 +2,7 @@
 #define LUNOPIVOT_PBCC
 
 #include "../simple/copy.pbcc"
-
-transform Scale
-from ALPHA
-to A[n, m]
-{
-    to (A.cell(j, i) a)
-    from (ALPHA alpha)
-    {
-        a *= alpha;
-    }
-}
+#include "../simple/scale.pbcc"
 
 // Perform the rank 1 operation: A := alpha*x*y**T + A,
 // where alpha is a scalar, x is an m element vector, y is an n element

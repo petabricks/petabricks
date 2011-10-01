@@ -1,5 +1,5 @@
-#ifndef TRILLSOLVE_PBCC
-#define TRILLSOLVE_PBCC
+#ifndef TRISOLVELL_PBCC
+#define TRISOLVELL_PBCC
 
 // Left lower (LL) triangular solve
 // Solve AX = B for X, where A is lower triangular
@@ -10,7 +10,7 @@
 #include "TriSolveLAPACK.pbcc"
 
 // right looking version (update trailing matrix after each row is solved)
-transform TriLLSolveBaseRL
+transform TriSolveLLBaseRL
 from A[m,m], B[n,m]
 to X[n,m]
 {
@@ -27,7 +27,7 @@ to X[n,m]
 }
 
 // left looking version (process one row at a time)
-transform TriLLSolveBaseLL
+transform TriSolveLLBaseLL
 from A[m,m], B[n,m]
 to X[n,m]
 {
@@ -48,16 +48,16 @@ to X[n,m]
     }
 }
 
-transform TriLLSolve
+transform TriSolveLL
 from A[m,m], B[n,m]
 to X[n,m]
 {
     to (X x) from (A a, B b) {
-        TriLLSolveBaseLL(x, a, b);
+        TriSolveLLBaseLL(x, a, b);
     }
 
     to (X x) from (A a, B b) {
-        TriLLSolveBaseRL(x, a, b);
+        TriSolveLLBaseRL(x, a, b);
     }
 
     to (X x) from (A a, B b) {
@@ -65,5 +65,4 @@ to X[n,m]
     }
 }
 
-#endif // TRILLSOLVE_PBCC
-
+#endif // TRISOLVELL_PBCC

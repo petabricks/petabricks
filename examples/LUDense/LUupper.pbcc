@@ -1,7 +1,7 @@
 #ifndef LUUPPER_PBCC
 #define LUUPPER_PBCC
 
-#include "TriLSolve.pbcc"
+#include "../trisolve/TriSolveLL.pbcc"
 #include "ltri.pbcc"
 #include "../multiply/multiply.pbcc"
 #include "../simple/add.pbcc"
@@ -71,7 +71,7 @@ to OUT[m,n]
     if (m==1 || n==1){
       MatrixRegion2D L = MatrixRegion2D::allocate(n,n);
             ltri(L, leftdiag);
-            TriLSolve(out, L, in);
+            TriSolveLL(out, L, in);
     }
     else {
       LUuppertri(out, in, leftdiag);
@@ -87,7 +87,7 @@ to OUT[m,n]
 #endif
         MatrixRegion2D L = MatrixRegion2D::allocate(n,n);
         ltri(L, leftdiag);
-        TriLSolve(out, L, in);
+        TriSolveLL(out, L, in);
   }
 
 
