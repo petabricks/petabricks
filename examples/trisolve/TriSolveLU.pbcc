@@ -8,6 +8,7 @@
 #include "../simple/scale.pbcc"
 #include "../multiply/multiplyAdd.pbcc"
 #include "TriSolveLAPACK.pbcc"
+#include "TriSolveGenerators.pbcc"
 
 // write right looking version (update trailing matrix after each row is solved)
 transform TriSolveLUBaseRL
@@ -72,6 +73,7 @@ to X[n,m]
 transform TriSolveLU
 from UNITFLAG, A[m,m], B[n,m]
 to X[n,m]
+generator TriSolveLUGenerator
 {
     to (X x) from (UNITFLAG unitFlag, A a, B b) {
         TriSolveLUBaseLL(x, unitFlag, a, b);
