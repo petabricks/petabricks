@@ -5,10 +5,12 @@
 // Solve XA = B for X, where A is upper triangular
 
 #include "TriSolveLL.pbcc"
+#include "TriSolveGenerators.pbcc"
 
 transform TriSolveRU
 from UNITFLAG, A[n,n], B[n,m]
 to X[n,m]
+generator TriSolveRUGenerator
 {
     to (X x) from (UNITFLAG unitFlag, A a, B b) {
         MatrixRegion2D x2 = x.transposed();

@@ -1,0 +1,87 @@
+#ifndef TRISOLVEGENERATORS_PBCC
+#define TRISOLVEGENERATORS_PBCC
+
+#include "../LUDense/PLUrecur.pbcc"
+#include "../multiply/multiply.pbcc"
+
+// make OUT triangular
+transform Tri
+from UPFLAG
+to OUT[n,n]
+{
+    to (OUT.cell(j,i) out)
+    from (UPFLAG upFlag)
+    {
+        out = (i == j || (upFlag && i < j) || (!upFlag && i > j)) ? out : 0;
+    }
+}
+
+transform TriSolveLLGenerator
+to UNITFLAG, T[n,n], B[n,n]
+{
+    to (UNITFLAG unitFlag, T t, B b)
+    from ()
+    {
+        TriSolveGenerator(unitFlag, t, b, 0, 0);
+    }
+}
+
+transform TriSolveLUGenerator
+to UNITFLAG, T[n,n], B[n,n]
+{
+    to (UNITFLAG unitFlag, T t, B b)
+    from ()
+    {
+        TriSolveGenerator(unitFlag, t, b, 0, 1);
+    }
+}
+
+transform TriSolveRLGenerator
+to UNITFLAG, T[n,n], B[n,n]
+{
+    to (UNITFLAG unitFlag, T t, B b)
+    from ()
+    {
+        TriSolveGenerator(unitFlag, t, b, 1, 0);
+    }
+}
+
+transform TriSolveRUGenerator
+to UNITFLAG, T[n,n], B[n,n]
+{
+    to (UNITFLAG unitFlag, T t, B b)
+    from ()
+    {
+        TriSolveGenerator(unitFlag, t, b, 1, 1);
+    }
+}
+
+transform TriSolveGenerator
+from RIGHTFLAG, UPFLAG
+through A[n,n], X[n,n]
+to UNITFLAG, T[n,n], B[n,n]
+{
+    to (A.cell(j, i) a,
+        X.cell(j, i) x)
+    from ()
+    {
+        a = PetabricksRuntime::randNormal(0, 1);
+        x = PetabricksRuntime::randNormal(0, 1);
+    }
+
+    to (UNITFLAG unitFlag, T t, B b)
+    from (RIGHTFLAG rightFlag, UPFLAG upFlag, A a, X x)
+    {
+        unitFlag = PetabricksRuntime::randInt(0, 2);  // coin flip
+        MatrixRegion1D p = MatrixRegion1D::allocate(n);
+        PLUrecur(t, p, a);
+        Tri(t, upFlag);
+        if (rightFlag) {
+            MatrixMultiply(b, x, t);
+        } else {
+            MatrixMultiply(b, t, x);
+        }
+    }
+}
+
+#endif // TRISOLVEGENERATORS_PBCC
