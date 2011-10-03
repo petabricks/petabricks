@@ -3,11 +3,10 @@
 #include "../multiply/multiply.pbcc"
 #include "copy.pbcc"
 #include "transpose.pbcc"
-#include "../trisolve/TriSolveLL.pbcc"
 #include "../trisolve/TriSolveRU.pbcc"
-//#include "../LUDense/ltri.pbcc"
 
-transform ltri_clean
+
+transform utri_zero
 from IN[n, n]
 to OUT[n, n]
 {
@@ -54,22 +53,6 @@ to H[n,n] {
 
 }
 
-transform MatrixCholeskyX2
-from X1[n,m], L21T[n,n], L22[n,n], B2[n, m]
-to L[n,m]
-{
-	to(L l)
-	from (X1 x1, L21T l21t, L22 l22, B2 b2) 
-	{
-
-		MatrixRegion2D x1L21 = MatrixRegion2D::allocate(n,m);
-		MatrixRegion2D b1_x1L21 = MatrixRegion2D::allocate(n,m);
-		MatrixMultiply(x1L21, x1, l21t);
- 		Subtract2D(b1_x1L21, b2, x1L21);	      
-		TriSolveRU(l, 0, l22, b1_x1L21);
-	}       
-}
-
 transform MatrixCholesky
 from A[n,n]
 to L[n,n]
@@ -97,35 +80,31 @@ generator HermitianGenerate
         	     }
 	     	}	
 	     } else {
-
 	       int new_n = n - size;
 	       	       
-	       	       
-	       MatrixRegion2D L11 = l.region(0,0,new_n, new_n);
-	       MatrixRegion2D L11_trans = L11.transposed();
-	       MatrixRegion2D L11_l11 = L11.region(0,0,L11.width()/2, L11.height()/2);
-	       MatrixRegion2D l21t = L11_trans.region(L11.width()/2,0,L11.width(),L11.height()/2);
-	       MatrixRegion2D l22 = L11_trans.region(L11.width()/2,L11.height()/2,L11.width(),L11.height());
+	       MatrixRegion2D L11 = l.region(0, 0, new_n, new_n);
+	       MatrixRegion2D L21 = l.region(0, new_n, new_n, n);
+	       MatrixRegion2D L22 = l.region(new_n, new_n, n, n);
+	       ConstMatrixRegion2D A11 = a.region(0, 0, new_n, new_n);
+	       ConstMatrixRegion2D A21 = a.region(0, new_n, new_n, n);
+	       ConstMatrixRegion2D A22 = a.region(new_n, new_n, n, n);
 
 	       // upper left corner
-	       MatrixCholesky(L11, a.region(0,0,new_n, new_n));	   
+	       MatrixCholesky(L11, A11);
 
 	       // lower left corner
-	       MatrixRegion2D x1_1;
-	       MatrixRegion2D x2_1;	       	  	       
-	       x1_1 = l.region(0,new_n,L11.width()/2,n);
-	       TriSolveLL(x1_1.transposed(), 0, L11_l11, a.region(0,new_n,L11.width()/2,n).transposed());
-	       x2_1 = l.region(L11.width()/2,new_n,L11.width(),n); 
-	       MatrixCholeskyX2(x2_1, x1_1, l21t, l22, a.region(L11.width()/2,new_n,L11.width(),n));
-
-
+	       TriSolveRU(L21, 0, L11.transposed(), A21);
+	       
 	       //lower right corner
-	       MatrixRegion2D t = MatrixRegion2D::allocate(size,size);
-	       MatrixRegion2D l21 = l.region(0,new_n,new_n,n);
-	       MatrixRegion2D A22_t = MatrixRegion2D::allocate(size,size);
-	       MatrixMultiply(t, l21, l21.transposed());
-	       Subtract2D(A22_t, a.region(new_n,new_n,n,n), t);
-	       MatrixCholesky(l.region(new_n,new_n,n,n), A22_t); 
+	       MatrixRegion2D temp1 = MatrixRegion2D::allocate(size,size);
+	       MatrixRegion2D temp2 = MatrixRegion2D::allocate(size,size);
+	       MatrixMultiply(temp1, L21, L21.transposed());
+	       Subtract2D(temp2, A22, temp1);
+	       MatrixCholesky(L22, temp2); 
+
+	       //set all the upper triangular values to zero
+	       utri_zero(l, l);
+
 
 	    }
 	}	
