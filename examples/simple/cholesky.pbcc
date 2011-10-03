@@ -3,8 +3,8 @@
 #include "../multiply/multiply.pbcc"
 #include "copy.pbcc"
 #include "transpose.pbcc"
-#include "../LUDense/trilsolve.pbcc"
-#include "../LUDense/triusolve.pbcc"
+#include "../trisolve/TriSolveLL.pbcc"
+#include "../trisolve/TriSolveRU.pbcc"
 //#include "../LUDense/ltri.pbcc"
 
 transform ltri_clean
@@ -66,7 +66,7 @@ to L[n,m]
 		MatrixRegion2D b1_x1L21 = MatrixRegion2D::allocate(n,m);
 		MatrixMultiply(x1L21, x1, l21t);
  		Subtract2D(b1_x1L21, b2, x1L21);	      
-		triusolve(l, l22, b1_x1L21);
+		TriSolveRU(l, 0, l22, b1_x1L21);
 	}       
 }
 
@@ -114,7 +114,7 @@ generator HermitianGenerate
 	       MatrixRegion2D x1_1;
 	       MatrixRegion2D x2_1;	       	  	       
 	       x1_1 = l.region(0,new_n,L11.width()/2,n);
-	       trilsolve(x1_1.transposed(), L11_l11, a.region(0,new_n,L11.width()/2,n).transposed());
+	       TriSolveLL(x1_1.transposed(), 0, L11_l11, a.region(0,new_n,L11.width()/2,n).transposed());
 	       x2_1 = l.region(L11.width()/2,new_n,L11.width(),n); 
 	       MatrixCholeskyX2(x2_1, x1_1, l21t, l22, a.region(L11.width()/2,new_n,L11.width(),n));
 
