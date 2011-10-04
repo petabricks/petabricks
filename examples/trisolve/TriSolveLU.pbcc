@@ -66,8 +66,6 @@ tunable blockSize
             return;
         }
 
-        printf("RL blocked\n");
-
         int m2 = m - blockSize;
         MatrixRegion2D x1, x2;
         ConstMatrixRegion2D a11, a12, a22, b1, b2;
@@ -102,8 +100,6 @@ tunable blockSize
         ConstMatrixRegion2D a22, a23, b2;
 
         for (i1 = m; i1 > 0; i1 -= blockSize) {
-
-            printf("LL blocked\n");
 
             i0 = MAX(0, i1 - blockSize);
 
