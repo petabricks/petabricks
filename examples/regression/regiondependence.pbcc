@@ -1,0 +1,29 @@
+#include "../simple/copy.pbcc"
+#include "../multiply/multiplyAdd.pbcc"
+
+// region dependence test (execution order violates dependences for m=66, n=4)
+transform RegionDependence
+from A[m,m], B[n,m]
+to X[n,m]
+{
+    primary
+    to   (X.cell(j, 0) x)
+    from (B.cell(j, 0) b, A.cell(0,0) a)
+    {
+        x = b / a;
+    }
+
+    to   (X.region(0, i, n, i+1) xout)
+    from (X.region(0, 0, n, i  ) x, A.region(0, i, i, i+1) a,
+          B.region(0, i, n, i+1) b, A.cell(i, i) aii)
+    {
+        printf("Begin row %d\n", i);
+        fflush(stdout);
+        // compute xout = (b - a * x) / aii
+        Copy2D(xout, b);
+        ElementT factor = 1.0 / aii;
+        MatrixMultiplyAdd(xout, -factor, a, x, factor);
+        printf("End row %d\n", i);
+        fflush(stdout);
+    }
+}
