@@ -139,6 +139,7 @@ regression/outputsizeacc
 regression/padding
 regression/params
 regression/recursive
+regression/regiondependence
 regression/ruleconstants
 regression/scaledown
 regression/scaleoffset
@@ -163,6 +164,7 @@ rootsolve/secant
 simple/add
 simple/bufferrotate2
 simple/bufferrotate
+simple/cholesky
 simple/copy
 simple/matrixrotate
 simple/minimalmatmul
