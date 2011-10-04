@@ -10,7 +10,7 @@
 transform TriSolveRU
 from UNITFLAG, A[n,n], B[n,m]
 to X[n,m]
-generator TriSolveRUGenerator
+generator TriSolveUGenerator
 {
     to (X x) from (UNITFLAG unitFlag, A a, B b) {
         MatrixRegion2D x2 = x.transposed();

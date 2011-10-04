@@ -125,7 +125,7 @@ tunable blockSize
 transform TriSolveLU
 from UNITFLAG, A[m,m], B[n,m]
 to X[n,m]
-generator TriSolveLUGenerator
+generator TriSolveUGenerator
 {
     to (X x) from (UNITFLAG unitFlag, A a, B b) {
         TriSolveLUBase(x, unitFlag, a, b);
