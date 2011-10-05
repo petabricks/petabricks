@@ -47,6 +47,53 @@ to X[n,m]
         }
     }
 
+    // right looking serial
+    to   (X x)
+    from (UNITFLAG unitFlag, A a, B b)
+    {
+        int i, j, k;
+        for (i = 0; i < m; ++i) {
+            for (j = 0; j < n; ++j) {
+                x.cell(j, i) = b.cell(j, i);
+            }
+        }
+        for (i = m - 1; i >= 0; --i) {
+            if (!unitFlag) {
+                for (j = 0; j < n; ++j) {
+                    x.cell(j, i) /= a.cell(i, i);
+                }
+            }
+            for (k = 0; k < i; ++k) {
+                for (j = 0; j < n; ++j) {
+                    x.cell(j, k) -= a.cell(i, k) * x.cell(j, i);
+                }
+            }
+        }
+    }
+
+    // left looking serial
+    to   (X x)
+    from (UNITFLAG unitFlag, A a, B b)
+    {
+        int i, j, k;
+        for (i = m - 1; i >= 0; --i) {
+            for (j = 0; j < n; ++j) {
+                x.cell(j, i) = b.cell(j, i);
+            }
+            for (k = i + 1; k < m; ++k) {
+                for (j = 0; j < n; ++j) {
+                    x.cell(j, i) -= a.cell(k, i) * x.cell(j, k);
+                }
+            }
+            if (!unitFlag) {
+                for (j = 0; j < n; ++j) {
+                    x.cell(j, i) /= a.cell(i, i);
+                }
+            }
+        }
+    }
+
+    // call LAPACK
     to (X x) from (UNITFLAG unitFlag, A a, B b) {
         TriSolveLAPACK(x, 0, 1, unitFlag, 1, a, b);
     }
