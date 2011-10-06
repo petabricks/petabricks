@@ -1,11 +1,11 @@
 #ifndef LURECUR_PBCC
 #define LURECUR_PBCC
 
-#include "LUupper.pbcc"
-#include "LUlower.pbcc"
 #include "LUnopivot.pbcc"
-#include "../multiply/multiply.pbcc"
-#include "../simple/add.pbcc"
+#include "../../multiply/multiply.pbcc"
+#include "../../simple/add.pbcc"
+#include "../../trisolve/TriSolveLL.pbcc"
+#include "../../trisolve/TriSolveRU.pbcc"
 
 transform LUblock
 from IN[n, n]
@@ -23,17 +23,15 @@ to OUT[n, n]
   from (IN.region(n/2,0,n,n/2) in,
 	OUT.region(0,0,n/2,n/2) leftdiag)
   {
-    LUuppertrirecur(out,in,leftdiag);
+    TriSolveLL(out, 1, leftdiag, in);
   }
-  
 
   //lower left block
   to (OUT.region(0,n/2,n/2,n) out)
   from (IN.region(0,n/2,n/2,n) in,
         OUT.region(0,0,n/2,n/2) updiag)
-
   {
-    LUlowertrirecur(out,in,updiag);
+    TriSolveRU(out, 0, updiag, in);
   }
 
   //lower right block
@@ -42,44 +40,32 @@ to OUT[n, n]
         OUT.region(n/2,0,n,n/2) up,
         OUT.region(0,n/2,n/2,n) left)
   {
-	//temp = in - left*up (this updates the lower right block
-        MatrixRegion2D temp = MatrixRegion2D::allocate(n-n/2, n-n/2);
-        MatrixMultiply(out,left,up);
-        MatrixSub(temp,in,out);
+    // out = in - left*up (this updates the lower right block)
+    Copy2D(out, in);
+    MatrixMultiplyAdd(out, -1, left, up, 1);
 
-	//recursion to get LU of the remaining updated block
-        LUrecur(out,temp);
+    //recursion to get LU of the remaining updated block
+    LUrecur(out, out);
   }
-
-
 }
-
 
 transform LUrecur
 from IN[n,n]
 to OUT[n,n]
 {
+  to (OUT out) from (IN in)
+  {
+    if (n == 1) {
+      out.cell(0,0) = in.cell(0,0);
+    } else {
+      LUblock(out,in);
+    }
+  }
 
   to (OUT out) from (IN in)
   {
-#ifdef DEBUG
-        fprintf(stderr, "LUrecur called for size %d\n", n);
-#endif
-	if (n == 1) {
-		out.cell(0,0)=in.cell(0,0);
-	}
-	else {
-		LUblock(out,in);
-	}
+    LUnopivot(out,in);
   }
-
-
-  to (OUT out) from (IN in)
-  {
-	LUnopivot(out,in);
-  }
-
-
 }
 
 #endif // LURECUR_PBCC

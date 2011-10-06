@@ -1,9 +1,9 @@
 #ifndef PLUBLOCKDECOMP_PBCC
 #define PLUBLOCKDECOMP_PBCC
 
+#include "../multiply/multiplyAdd.pbcc"
 #include "../trisolve/TriSolveLL.pbcc"
 #include "PLU.pbcc"
-#include "LAPACKmatmul.pbcc"
 
 transform SwapElements
 from IN[n], P[n]
@@ -92,8 +92,8 @@ to OUT[n, n], Pout[n]
         //MatrixMultiply(out,left,up);
         //MatrixSub(Atemp,in,out);
 
-        // TODO: this is blocked, but not tuned or parallel
-	LAPACKmatmul(Atemp,left,up,in);
+        Copy2D(Atemp, in);
+        MatrixMultiplyAdd(Atemp, -1, left, up, 1);
 
 	//recursion to get LU of the remaining updated block
         PLUrecur(out,phalf,Atemp);
@@ -167,7 +167,8 @@ to OUT[n, n], Pout[n]
         //MatrixMultiply(out,left,up);
         //MatrixSub(Atemp,in,out);
 
-	LAPACKmatmul(Atemp,left,up,in);
+        Copy2D(Atemp, in);
+        MatrixMultiplyAdd(Atemp, -1, left, up, 1);
 
         //recursion to get LU of the remaining updated block
         PLUrecur(out,phalf,Atemp);
@@ -239,7 +240,8 @@ to OUT[n, n], Pout[n]
         //MatrixMultiply(out,left,up);
         //MatrixSub(Atemp,in,out);
 
-	LAPACKmatmul(Atemp,left,up,in);
+        Copy2D(Atemp, in);
+        MatrixMultiplyAdd(Atemp, -1, left, up, 1);
 
         //recursion to get LU of the remaining updated block
         PLUrecur(out,phalf,Atemp);

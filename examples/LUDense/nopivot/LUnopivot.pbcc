@@ -1,8 +1,8 @@
 #ifndef LUNOPIVOT_PBCC 
 #define LUNOPIVOT_PBCC
 
-#include "../simple/copy.pbcc"
-#include "../simple/scale.pbcc"
+#include "../../simple/copy.pbcc"
+#include "../../simple/scale.pbcc"
 
 // Perform the rank 1 operation: A := alpha*x*y**T + A,
 // where alpha is a scalar, x is an m element vector, y is an n element
@@ -26,7 +26,7 @@ from DUMMY
 to OUT[n,m]
 {
     to (OUT out)
-    from (DUMMY dummy)
+    from ()
     {
         if (m > 1 && out.cell(0, 0) != 1) {
             Scale(out.region(0, 1, 1, n), 1.0 / out.cell(0, 0));
@@ -39,6 +39,49 @@ to OUT[n,m]
         }
     }
 }
+
+/*
+// element-wise version
+transform LUnopivotByElement
+from IN[n,n]
+through A<n-1>[n,n]
+to OUT[n,n]
+{
+    to (A<0> a0) from (IN in)
+    {
+        Copy2D(a0, in);
+    }
+
+    primary
+    to   (A<k+1>.cell(j,i) aNext)
+    from (A<k  >.cell(j,i) aPrev,
+          A<k+1>.cell(k,i) left,
+          A<k  >.cell(j,k) up)
+    where k < i && k < j
+    {
+        aNext = aPrev - left * up;
+    }
+
+    to   (A<k+1>.cell(j,i) aNext)
+    from (A<k  >.cell(j,i) aPrev,
+          A<k  >.cell(j,k) up)
+    where i > j && k == j
+    {
+        aNext = aPrev / up;
+    }
+
+    to   (A<k+1>.cell(i,j) aNext)
+    from (A<k  >.cell(i,j) aPrev)
+    {
+        aNext = aPrev;
+    }
+
+    to (OUT out) from (A<n-1> an)
+    {
+        Copy2D(out, an);
+    }
+}
+*/
 
 transform LUnopivot
 from IN[n,m]
