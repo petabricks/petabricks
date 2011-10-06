@@ -10,6 +10,7 @@
 #include "TriSolveLAPACK.pbcc"
 #include "TriSolveGenerators.pbcc"
 
+#define MAX(x, y) ((y) > (x) ? (y) : (x))
 #define MIN(x, y) ((y) < (x) ? (y) : (x))
 
 transform TriSolveLLBase
@@ -172,6 +173,41 @@ tunable blockSize
     }
 }
 
+// split A into quadrants and solve recursively
+transform TriSolveLLRecursive
+from UNITFLAG, A[m,m], B[n,m]
+to X[n,m]
+tunable recursiveBlockSize
+{
+    // similar to right looking blocked version
+    to   (X x)
+    from (UNITFLAG unitFlag, A a, B b)
+    {
+        if (m <= MAX(1, recursiveBlockSize)) {
+            TriSolveLLBlocked(x, unitFlag, a, b);
+            return;
+        }
+
+        ConstMatrixRegion2D a11, a21, a22, b1, b2;
+        MatrixRegion2D x1, x2;
+
+        a11 = a.region(0  , 0  , m/2, m/2);
+        a21 = a.region(0  , m/2, m/2, m  );
+        a22 = a.region(m/2, m/2, m  , m  );
+
+        b1 = b.region(0, 0  , n, m/2);
+        b2 = b.region(0, m/2, n, m  );
+
+        x1 = x.region(0, 0  , n, m/2);
+        x2 = x.region(0, m/2, n, m  );
+
+        TriSolveLL(x1, unitFlag, a11, b1);
+        Copy2D(x2, b2);
+        MatrixMultiplyAdd(x2, -1, a21, x1, 1);
+        TriSolveLL(x2, unitFlag, a22, x2);
+    }
+}
+
 transform TriSolveLL
 from UNITFLAG, A[m,m], B[n,m]
 to X[n,m]
@@ -183,6 +219,10 @@ generator TriSolveLGenerator
 
     to (X x) from (UNITFLAG unitFlag, A a, B b) {
         TriSolveLLBlocked(x, unitFlag, a, b);
+    }
+
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        TriSolveLLRecursive(x, unitFlag, a, b);
     }
 }
 

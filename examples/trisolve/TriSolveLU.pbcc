@@ -10,7 +10,11 @@
 #include "TriSolveLAPACK.pbcc"
 #include "TriSolveGenerators.pbcc"
 
+// TODO: BUG: ifdef and ifndef behavior is swapped
+// #ifndef MAX
+#ifdef MAX
 #define MAX(x, y) ((y) > (x) ? (y) : (x))
+#endif
 
 transform TriSolveLUBase
 from UNITFLAG, A[m,m], B[n,m]
@@ -169,6 +173,41 @@ tunable blockSize
     }
 }
 
+// split A into quadrants and solve recursively
+transform TriSolveLURecursive
+from UNITFLAG, A[m,m], B[n,m]
+to X[n,m]
+tunable recursiveBlockSize
+{
+    // similar to right looking blocked version
+    to   (X x)
+    from (UNITFLAG unitFlag, A a, B b)
+    {
+        if (m <= MAX(1, recursiveBlockSize)) {
+            TriSolveLUBlocked(x, unitFlag, a, b);
+            return;
+        }
+
+        ConstMatrixRegion2D a11, a12, a22, b1, b2;
+        MatrixRegion2D x1, x2;
+
+        a11 = a.region(0  , 0  , m/2, m/2);
+        a12 = a.region(m/2, 0  , m  , m/2);
+        a22 = a.region(m/2, m/2, m  , m  );
+
+        b1 = b.region(0, 0  , n, m/2);
+        b2 = b.region(0, m/2, n, m  );
+
+        x1 = x.region(0, 0  , n, m/2);
+        x2 = x.region(0, m/2, n, m  );
+
+        TriSolveLU(x2, unitFlag, a22, b2);
+        Copy2D(x1, b1);
+        MatrixMultiplyAdd(x1, -1, a12, x2, 1);
+        TriSolveLU(x1, unitFlag, a11, x1);
+    }
+}
+
 transform TriSolveLU
 from UNITFLAG, A[m,m], B[n,m]
 to X[n,m]
@@ -180,6 +219,10 @@ generator TriSolveUGenerator
 
     to (X x) from (UNITFLAG unitFlag, A a, B b) {
         TriSolveLUBlocked(x, unitFlag, a, b);
+    }
+
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        TriSolveLURecursive(x, unitFlag, a, b);
     }
 }
 
