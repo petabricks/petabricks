@@ -38,12 +38,10 @@ kernel/nwkdeBaseTop
 kernel/nwkdeVA
 kernel/nwkde
 kernel/utils
-LUDense/nopivot/LUrecur
-LUDense/nopivot/LUnopivot
+LUDense/LUBase
 LUDense/LULAPACK
-LUDense/PLUrecur
-LUDense/PLUblockdecomp
-LUDense/PLU
+LUDense/LUNoPivot
+LUDense/LU
 trisolve/TriSolve
 trisolve/TriSolveLL
 trisolve/TriSolveLU
