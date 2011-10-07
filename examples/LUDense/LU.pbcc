@@ -41,6 +41,16 @@ to OUT[n,m]
     }
 }
 
+transform LUGenerator
+to OUT[n,n]
+{
+    to (OUT.cell(j, i) out)
+    from ()
+    {
+        out = PetabricksRuntime::randNormal(0, 1);
+    }
+}
+
 transform LUBlock2
 from IN[n, n], Pin[n]
 through TEMP[n, n], Ptemp[n], Phalf[n-n/2]
@@ -303,6 +313,7 @@ to OUT[n,n], Pout[n]
 transform LU
 from IN[n,n]
 to OUT[n,n], P[n]
+generator LUGenerator
 {
     to (OUT out, P p) from (IN in)
     {

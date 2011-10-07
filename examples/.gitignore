@@ -42,6 +42,7 @@ LUDense/LUBase
 LUDense/LULAPACK
 LUDense/LUNoPivot
 LUDense/LU
+LUDense/LUTest
 trisolve/TriSolve
 trisolve/TriSolveLL
 trisolve/TriSolveLU

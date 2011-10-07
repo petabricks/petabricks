@@ -108,7 +108,7 @@ to OUT[n,m], Pout[m]
                 MaxIndex=j;
                 for (k=j+1; k<m; k++)
                 {
-                        if (abs(temp.cell(j,k)) > abs(MaxElement)){
+                        if (fabs(temp.cell(j,k)) > fabs(MaxElement)){
                         MaxElement=temp.cell(j,k);
                         MaxIndex=k;
                         }
@@ -212,7 +212,7 @@ to OUT[n,m], Pout[m]
             MaxIndex=j;
             for (k=j+1; k<m; k++)
             {
-                if ( (temp.cell(j,k) != 0 ) && (abs(temp.cell(j,k)) > abs(MaxElement))){
+                if ( (temp.cell(j,k) != 0 ) && (fabs(temp.cell(j,k)) > fabs(MaxElement))){
                     MaxElement=temp.cell(j,k);
                     MaxIndex=k;
                 }
