@@ -73,10 +73,8 @@ OpenCLUtil::init( )
     return -5;
 
   #if OPENCL_TRACE
-  //std::cout << "Created context: " << context << "\n";
+  std::cout << "Created context: " << context << "\n";
   #endif
-
-  std::cout << "GPU!!!!! device = " << device_count << std::endl;
 
   // Get device-specific information.
   for( cl_uint i = 0; i < device_count; ++i )

@@ -66,15 +66,15 @@ struct MatrixReaderScratch {
 /**
  * A thin wrapper around matrixreader
  */
-class MatrixIO{
+class MatrixIOGeneral{
 public:
   ///
   /// Constructor
-  MatrixIO(FILE* file = stdin);
+  MatrixIOGeneral(FILE* file = stdin);
 
   ///
   /// Constructor (opens the given filename)
-  MatrixIO(const char* filename, const char* mode);
+  MatrixIOGeneral(const char* filename, const char* mode);
 
 
   template<int D>
@@ -127,6 +127,20 @@ public:
   template<int D, typename T>
   void write(RegionMatrixWrapper<D,T> m);
 
+protected:
+  void _read(MatrixReaderScratch&);
+
+private:
+  FILE* _fd;
+};
+
+
+class MatrixIOWorkstealing : public MatrixIOGeneral {
+ public:
+  MatrixIOWorkstealing(FILE* file = stdin): MatrixIOGeneral(file) {}
+  MatrixIOWorkstealing(const char* filename, const char* mode): MatrixIOGeneral(filename, mode) {}
+
+
   workstealing::MatrixRegion0D read0D(){ return read_workstealing<0>(); }
   workstealing::MatrixRegion1D read1D(){ return read_workstealing<1>(); }
   workstealing::MatrixRegion2D read2D(){ return read_workstealing<2>(); }
@@ -137,20 +151,45 @@ public:
   workstealing::MatrixRegion7D read7D(){ return read_workstealing<7>(); }
   workstealing::MatrixRegion8D read8D(){ return read_workstealing<8>(); }
   workstealing::MatrixRegion9D read9D(){ return read_workstealing<9>(); }
-protected:
-  void _read(MatrixReaderScratch&);
-
-private:
-  FILE* _fd;
 };
 
+class MatrixIODistributed : public MatrixIOGeneral {
+ public:
+  MatrixIODistributed(FILE* file = stdin): MatrixIOGeneral(file) {}
+  MatrixIODistributed(const char* filename, const char* mode): MatrixIOGeneral(filename, mode) {}
+
+
+  distributed::MatrixRegion0D read0D(){ return read_distributed<0>(); }
+  distributed::MatrixRegion1D read1D(){ return read_distributed<1>(); }
+  distributed::MatrixRegion2D read2D(){ return read_distributed<2>(); }
+  distributed::MatrixRegion3D read3D(){ return read_distributed<3>(); }
+  distributed::MatrixRegion4D read4D(){ return read_distributed<4>(); }
+  distributed::MatrixRegion5D read5D(){ return read_distributed<5>(); }
+  distributed::MatrixRegion6D read6D(){ return read_distributed<6>(); }
+  distributed::MatrixRegion7D read7D(){ return read_distributed<7>(); }
+  distributed::MatrixRegion8D read8D(){ return read_distributed<8>(); }
+  distributed::MatrixRegion9D read9D(){ return read_distributed<9>(); }
+};
+
+
+namespace sequential {
+  typedef MatrixIOWorkstealing MatrixIO;
+}
+
+namespace workstealing {
+  typedef MatrixIOWorkstealing MatrixIO;
+}
+
+namespace distributed {
+  typedef MatrixIODistributed MatrixIO;
+}
 
 }
 
 ///
 /// Write a given matrix to _fd
 template<int D, typename T>
-inline void petabricks::MatrixIO::write(MatrixRegion<D,T> m){
+inline void petabricks::MatrixIOGeneral::write(MatrixRegion<D,T> m){
   if(_fd==0)     return;
   if(_fd==stdin) _fd=stdout;
   fprintf(_fd,"SIZE");
@@ -178,7 +217,7 @@ inline void petabricks::MatrixIO::write(MatrixRegion<D,T> m){
 ///
 /// Write a given regionmatrix to _fd
 template<int D, typename T>
-inline void petabricks::MatrixIO::write(RegionMatrixWrapper<D,T> m){
+inline void petabricks::MatrixIOGeneral::write(RegionMatrixWrapper<D,T> m){
   if(_fd==0)     return;
   if(_fd==stdin) _fd=stdout;
   fprintf(_fd,"SIZE");
@@ -202,6 +241,5 @@ inline void petabricks::MatrixIO::write(RegionMatrixWrapper<D,T> m){
   fprintf(_fd,"\n");
   fflush(_fd);
 }
-
 
 #endif

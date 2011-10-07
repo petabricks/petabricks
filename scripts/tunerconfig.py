@@ -91,10 +91,14 @@ class config_defaults:
   recompile = True
 
   #types of mutatators to generate
-  lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential', 'system.cutoff.distributed']
-  uniform_tunable_types       = ['system.flag.unrollschedule']
   autodetect_tunable_types    = ['user.tunable']
+  ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg']
   lognorm_array_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
+  lognorm_sizespecific_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
+  lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential', 'system.cutoff.distributed']
+  optimize_tunable_types      = ['user.tunable.double', 'user.tunable.double.array']
+  sizespecific_tunable_types  = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.double.array']
+  uniform_tunable_types       = ['system.flag.unrollschedule']
   ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg', 'user.tunable.double',
                                  'user.tunable.double.array', "system.runtime.threads"]
 
@@ -108,6 +112,8 @@ class config_defaults:
   fmt_cutoff     = "%s_%d_lvl%d_cutoff"
   fmt_rule       = "%s_%d_lvl%d_rule"
   fmt_bin        = "%s__%d"
+  fmt_array      = "%s_i%d_%s"
+  fmt_bin2D      = "%s_i%d_%s__%d"
   first_lvl      = 1
   cutoff_max_val = 2**30
 

@@ -90,7 +90,7 @@ int main(int argc, const char** argv){
     printf("== data should be in 2 hosts ==\n");
     print(regionMatrix.dataHosts());
 
-    CellProxy& cell = regionMatrix.cell(m234);
+    CellProxy cell = regionMatrix.cell(m234);
     JASSERT(fabs(cell - 0.52076837) < 0.00000001);
     cell = 5;
     JASSERT(fabs(cell - 5) < 0.00000001);

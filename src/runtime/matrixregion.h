@@ -33,6 +33,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+//#define GPU_TRACE 1
+
 //
 // Class structure looks like this:
 //
@@ -114,7 +116,6 @@ public:
   ///
   /// Constructor
   MatrixRegionMembers(const StorageT& s, ElementT* b, const IndexT RESTRICT* sizes, const IndexT RESTRICT * multipliers)
-    : _storage(s), _base(b)
   {
     if(D>0) {
       const size_t sizeof_sizes = sizeof this->_sizes;
@@ -130,12 +131,24 @@ public:
       else
         memset(this->_sizes, -1, sizeof_sizes);
     }
+    _base = b;
+    _storage = s;
+    if(count()>0){
+      _storageInfo = new MatrixStorageInfo();
+      exportTo(_storageInfo);
+    }
   }
 
   ElementT* base() const { return _base; }
   const IndexT* sizes() const { return _sizes; }
   const IndexT* multipliers() const { return _multipliers; };
   const StorageT& storage() const { return _storage; }
+  const MatrixStorageInfoPtr storageInfo() const {
+#ifdef DEBUG
+    JASSERT(count()>0)(count());
+#endif
+    return _storageInfo; 
+  }
 
   void randomize(){
     if(D==0){
@@ -150,11 +163,21 @@ public:
   ///
   /// export to a more generic container (used in memoization)
   void exportTo(MatrixStorageInfo& ms) const {
+    //std::cerr << "MATRIXREGION:: dimension = " << D << "count = " << this->count() << std::endl;
     ms.setStorage(_storage, _base);
     ms.setSizeMultipliers(D, _multipliers, _sizes);
     ms.setExtraVal();
   }
 
+  ///
+  /// Number of elements in this region
+  ssize_t count() const {
+    ssize_t s=1;
+    for(int i=0; i<D; ++i)
+      s*=this->sizes()[i];
+    return s;
+  }
+  
   ///
   /// copy from a more generic container (used in memoization)
   void copyFrom(const MatrixStorageInfo& ms){
@@ -169,6 +192,7 @@ protected:
   IndexT* multipliers() { return _multipliers; };
 private:
   StorageT _storage;
+  MatrixStorageInfoPtr _storageInfo;
   ElementT* _base;
   IndexT _multipliers[D];
   IndexT _sizes[D];
@@ -189,7 +213,9 @@ public:
                           , const typename TypeSpec::IndexT* sizes
                           , const typename TypeSpec::IndexT* multipliers)
     : Base(s,b,sizes,multipliers)
-  {}
+  {
+    //_hasStorageInfo = false;
+  }
 
   enum StockLayouts { LAYOUT_ASCENDING, LAYOUT_DECENDING };
   enum { D = TypeSpec::D };
@@ -269,11 +295,30 @@ public:
     return t;
   }
 
+#ifdef HAVE_OPENCL
+  ///
+  /// Decide to make a copy or return the orginal for making GPU buffer.s
+	ElementT* getGpuInputBufferPtr() {
+    if(isEntireBuffer()) {
+      return this->base();
+    }
+
+		_gpuInputBuffer = new MatrixStorage(count());
+		MutableMatrixRegion t = MutableMatrixRegion(_gpuInputBuffer, _gpuInputBuffer->data(), this->sizes());
+    IndexT coord[D];
+    memset(coord, 0, sizeof coord);
+    do {
+      t.cell(coord) = this->cell(coord);
+    } while(this->incCoord(coord)>=0);
+    return _gpuInputBuffer->data();
+	}
+
   ///
   /// Decide to make a copy or return the orginal for making GPU buffer.
-  MatrixRegion asGpuBuffer(const IndexT c1[D], const IndexT c2[D]) const
+  /// Only use this for sequential code.
+  MatrixRegion asGpuInputBuffer() const
   {
-    if(isEntireBuffer() &&  intervalSize(c1, c2) == count()) {
+    if(isEntireBuffer()) {
       return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
     }
 
@@ -286,6 +331,20 @@ public:
     return t;
   }
 
+  ///
+  /// Decide to make a copy or return the orginal for making GPU buffer.
+  /// Only use this for sequential code.
+  MatrixRegion asGpuOutputBuffer(const IndexT c1[D], const IndexT c2[D]) const
+  {
+    if(isEntireBuffer() &&  intervalSize(c1, c2) == count()) {
+      return MatrixRegion(this->storage(), this->base(), this->sizes(), this->multipliers());
+    }
+
+    MutableMatrixRegion t = MutableMatrixRegion::allocate((IndexT*)this->sizes());
+    return t;
+  }
+
+
   INLINE ssize_t intervalSize(const IndexT c1[D], const IndexT c2[D]) const
   { ssize_t s=1;
     for(int i=0; i<D; ++i) {
@@ -293,17 +352,72 @@ public:
     }
     return s;
   }
+#endif
+
+  void print() {
+    std::cerr << "dimension = " << D << std::endl;
+    std::cerr << "size = ";
+    for(int i=0; i<D; ++i) {
+      std::cerr << size(i) << " ";
+    }    
+    std::cerr << std::endl << "mult = ";
+    for(int i=0; i<D; ++i) {
+      std::cerr << this->multipliers()[i] << " ";
+    }
+    std::cerr << std::endl;
+  }
+
   ///
   /// Copy that data of this to dst
+  void copyTo(const MutableMatrixRegion& dst)
+  {
+    if(this->storage() == dst.storage())
+      return;
+    //std::cout << "COPY TO:: copy" << std::endl;
+    IndexT coord[D] = {0};
+    do {
+      dst.cell(coord) = this->cell(coord);
+    } while(this->incCoord(coord)>=0);
+  }
+  
+  ///
+  /// Copy that data within the boundary c1 and c2 of this to dst
   void copyTo(const MutableMatrixRegion& dst,const IndexT c1[D], const IndexT c2[D])
   {
-    JASSERT(this->count()==dst.count());
-    if(this->base() == dst.base()) return;
+#ifdef GPU_TRACE
+    std::cout << "copyTo boundary" << std::endl;
+    for(int i = 0; i < D; i++)
+      std::cout << "[" << i << "] : " << c1[i] << "-" << c2[i] << std::endl;
+#endif
+    if(this->storage() == dst.storage())
+      return;
+    for(int i = 0; i < D; i++)
+      if(c1[i] >= c2[i])
+        return;
     IndexT coord[D];
     memcpy(coord, c1, sizeof coord);
     do {
       dst.cell(coord) = this->cell(coord);
     } while(this->incCoordWithBound(coord, c1, c2)>=0);
+  }
+
+  ///
+  /// Copy that data within the given boundaries of this to dst
+  void copyTo(const MutableMatrixRegion& dst,std::vector<IndexT*>& begins, std::vector<IndexT*>& ends)
+  {
+    #ifdef DEBUG
+    JASSERT(begins.size() == ends.size())(begins.size())(ends.size());
+    #endif
+    if(this->storage() == dst.storage())
+      return;
+
+    if(begins.size() == 0){
+      copyTo(dst);
+    }
+    else{
+      for(size_t i = 0; i < begins.size(); ++i)
+        copyTo(dst, begins[i], ends[i]);
+    }
   }
 
   ///
@@ -483,6 +597,7 @@ public:
   }
 
 protected:
+  bool _hasStorageInfo;
   ///
   /// Compute the offset in _base for a given coordinate
   ElementT* coordToPtr(const IndexT coord[D]) const{
@@ -512,7 +627,13 @@ protected:
         mult *= size(i);
       }
     }
+    if(count()>0)
+      this->storageInfo()->setMultipliers(this->multipliers());
   }
+
+#ifdef HAVE_OPENCL
+  MatrixStoragePtr _gpuInputBuffer;
+#endif
 };
 
 /**
@@ -638,6 +759,7 @@ public:
   ///
   /// Default constructor
   MatrixRegion() : Base(NULL, NULL, NULL, NULL) {}
+
 };
 
 } /* namespace petabricks*/

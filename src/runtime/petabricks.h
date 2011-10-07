@@ -27,13 +27,19 @@
 
 
 #include "dynamictask.h"
+#include "specializeddynamictasks.h"
+
+#include "gpudynamictask.h"
+#include "gpuspecializedtask.h"
+#include "gpumanager.h"
+#include "gputaskinfo.h"
+
 #include "matrixio.h"
 #include "matrixregion.h"
 #include "memoization.h"
 #include "petabricksruntime.h"
 #include "remotetask.h"
 #include "ruleinstance.h"
-#include "specializeddynamictasks.h"
 #include "transforminstance.h"
 
 #include "common/jtunable.h"
@@ -70,11 +76,14 @@ petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& 
 #define PB_RETURN_VOID\
   return DEFAULT_RV
 
+#define PB_CLEANUP_TASK\
+  _cleanUpTask->dependsOn(_completion); _completion->enqueue(); DynamicTaskPtr cleanUpTaskTmp = _cleanUpTask; _cleanUpTask = NULL
+
 #define PB_RETURN_DISTRIBUTED(rv)\
-  { _cleanUpTask->dependsOn(_completion); _completion->enqueue(); PB_RETURN(rv); }
+  { PB_CLEANUP_TASK; PB_RETURN(rv); }
 
 #define PB_RETURN_VOID_DISTRIBUTED\
-  { _cleanUpTask->dependsOn(_completion); _completion->enqueue(); PB_RETURN_VOID; }
+  { PB_CLEANUP_TASK; PB_RETURN_VOID; }
 
 #define PB_CAT(a,b) _PB_CAT(a,b)
 #define _PB_CAT(a,b) __PB_CAT(a,b)

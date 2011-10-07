@@ -176,6 +176,9 @@ void petabricks::WorkerThreadPool::remove(WorkerThread* thread){
 }
 
 petabricks::WorkerThread* petabricks::WorkerThreadPool::getRandom(const WorkerThread* caller){
+#ifdef DEBUG
+  JASSERT(caller!=NULL);
+#endif
   WorkerThread* rv;
   do {
     rv=_pool[caller->threadRandInt()%_count];

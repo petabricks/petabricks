@@ -88,11 +88,13 @@ namespace petabricks
   private:
     /** Class is a singleton. */
     OpenCLUtil( ) { }
+    static void pfn_notify(const char *errinfo, const void *private_info, size_t cb, void *user_data);
 
     static cl_context context;
     static bool has_init;
     static unsigned int active_device;
     static std::vector<OpenCLDevice> devices;
+
   };
 };
 

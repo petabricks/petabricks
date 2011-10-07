@@ -37,26 +37,26 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
 
 
 int main(int /*argc*/, const char** /*argv*/){
-  distributed::MatrixRegion2D A = MatrixIO("testdata/Rand2Da","r").read_distributed<2>();
-  MatrixIO().write(A);
+  distributed::MatrixRegion2D A = distributed::MatrixIO("testdata/Rand2Da","r").read_distributed<2>();
+  distributed::MatrixIO().write(A);
 
   workstealing::MatrixRegion2D B = A._toLocalRegion();
-  MatrixIO().write(B);
+  workstealing::MatrixIO().write(B);
 
   IndexT s1[] = {0,0};
   IndexT e1[] = {16,16};
 
   distributed::MatrixRegion2D C = A.region(s1, e1);
-  MatrixIO().write(C._toLocalRegion());
+  distributed::MatrixIO().write(C._toLocalRegion());
 
   IndexT s2[] = {1,1};
   IndexT e2[] = {5,5};
 
   distributed::MatrixRegion2D D = A.region(s2, e2);
-  MatrixIO().write(D._toLocalRegion());
+  distributed::MatrixIO().write(D._toLocalRegion());
 
   distributed::MatrixRegion1D E = D.row(2);
-  MatrixIO().write(E._toLocalRegion());
+  distributed::MatrixIO().write(E._toLocalRegion());
 
   E.dataHosts();
 

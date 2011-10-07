@@ -68,7 +68,6 @@ public:
 
   DynamicScheduler() : _rawThreadsLen(0) {}
 
-
   void injectWork(DynamicTask*);
 protected:
   pthread_t _rawThreads[MAX_NUM_WORKERS];

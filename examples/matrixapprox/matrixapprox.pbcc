@@ -22,9 +22,12 @@ accuracy_variable k(1,1) //min=1, initial=1
 generator matrixapproinputgen
 {
 	to (H.region(n,0,2*n,n) h) from (IN a) {
+		// distributed matrix doesn't have storage
+                // std::cout<< "Transpose storage = " << &(*h.storage()) << std::endl;
 		Transpose(h, a);
 	}
 	to (H.region(0,n,n,2*n) h )from (IN a){
+		std::cout<< "Copy2D" << std::endl;
 		Copy2D(h, a);
 	}
 	secondary H.cell(i,j) from() {
@@ -33,12 +36,14 @@ generator matrixapproinputgen
 
 	// use optimized hybrid algorithm to find all eigenvalues/eigenvectors
         to (Lambda lam, X x) from (H h){
+		std::cout<< "EigSym" << std::endl;
                 EigSym(lam, x, h);
         }
 
 	// find only the k eigenvalues/eigenvectors by Bisection method
 	to (Lambda lam, X x) from (H h) {
-	        if (k>n)  PetabricksRuntime::abort(); 
+		std::cout<< "Bisection" << std::endl;
+	        if (k>n)  PetabricksRuntime::abort();
 		Bisection(lam,x,h,k);
 	}
 
@@ -57,21 +62,22 @@ generator matrixapproinputgen
 
 	//V tranposed
 	VT.cell(j,i) from (X.cell(i,j) x){
-		return sqrt(2.0)*x;	
+		return sqrt(2.0)*x;
 	}
-		
+
 
 
 	to (OUT out, TEMP temp) from (U u, VT vt){
+		std::cout<< "last" << std::endl;
 		int i;
-		if (k>n)  PetabricksRuntime::abort(); 
+		if (k>n)  PetabricksRuntime::abort();
 		MatrixMultiply(out, u.region(0,0,1,n), vt.region(0,0,n,1) );
-		for (i=1; i<k; i++) { 
+		for (i=1; i<k; i++) {
 			//MatrixAdd(out, out, MatrixMultiply(u.region(i,0,i+1,n), vt.region(0,i,n,i+1)) );
 			MatrixMultiply(temp, u.region(i,0,i+1,n), vt.region(0,i,n,i+1));
 			MatrixAdd(out, out, temp);
 		}
-	} 
+	}
 }
 
 
@@ -101,7 +107,7 @@ to Accuracy
 	ZERO.cell(i,j) from() { return 0;}
 
 	//accuracy measure
-	Accuracy  from(IN in, OUT out, ZERO Z) 
+	Accuracy  from(IN in, OUT out, ZERO Z)
 	{
 		int i;
 		int j;
@@ -116,7 +122,7 @@ to Accuracy
             		return log10(e1/e2);
         	}
 	}
-			
+
 }
 
 transform matrixapproinputgen

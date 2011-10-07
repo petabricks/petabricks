@@ -1,19 +1,21 @@
 PBC=../../src/pbc
 
-all: nwkde nwkdelm2
+.PHONY: all test
 
-nwkde: nwkde.pbcc utils.pbcc
+all: nwkde
+
+nwkde: nwkde.pbcc nwkdeGenerators.pbcc nwkdeMetric.pbcc utils.pbcc nwkde.h
 	${PBC} $< --output $@
 
-nwkdelm2: nwkdelm2.pbcc utils.pbcc
+nwkdeVA: nwkdeVA.pbcc nwkde.pbcc nwkdeGenerators.pbcc nwkdeMetric.pbcc utils.pbcc nwkde.h
 	${PBC} $< --output $@
 
 KernelEstimate: KernelEstimate.pbcc LinearSolvePosDef.pbcc
 	${PBC} $< --output $@
 
 test: nwkde
-	./nwkde test/trainData.pba test/wrapFlags.pba test/kernelWidths.pba test/trainIndices.pba test/trainVarIndex.pba test/trainTimeOffset.pba test/testData.pba test/testIndices.pba test/testVarIndex.pba test/testTimeOffset.pba test/outputVarIndex.pba test/outputTimeOffset.pba -
+	./nwkde test/trainData.pba test/wrapFlags.pba test/kernelWidths.pba test/trainIndices.pba test/trainVarIndex.pba test/trainTimeOffset.pba test/testData.pba test/testIndices.pba test/testVarIndex.pba test/testTimeOffset.pba test/outputVarIndex.pba test/outputTimeOffset.pba test/trainMaskWidth.pba -
 
-testlm2: nwkdelm2
-	./nwkdelm2 test/trainData.pba test/wrapFlags.pba test/kernelWidths.pba test/trainIndices.pba test/trainVarIndex.pba test/trainTimeOffset.pba test/testData.pba test/testIndices.pba test/testVarIndex.pba test/testTimeOffset.pba test/outputVarIndex.pba test/outputTimeOffset.pba -
+testVA: nwkdeVA
+	./nwkdeVA test/trainData.pba test/wrapFlags.pba test/trainIndices.pba test/trainVarIndex.pba test/trainTimeOffset.pba test/testData.pba test/testIndices.pba test/testVarIndex.pba test/testTimeOffset.pba test/outputVarIndex.pba test/outputTimeOffset.pba test/trainMaskWidth.pba -
 

@@ -57,7 +57,7 @@ void petabricks::RemoteTask::enqueueLocal() {
 void petabricks::RemoteTask::remoteScheduleTask() {
   //JTRACE("remote schedule");
 #ifdef REGIONMATRIX_TEST
-  RemoteHostPtr toHost;
+  RemoteHostPtr toHost = 0;
   int maxCount = 0;
 
   RemoteHostList hosts = getDataHosts();
@@ -72,8 +72,8 @@ void petabricks::RemoteTask::remoteScheduleTask() {
   }
 
   if (toHost) {
-    enqueueRemote(*toHost);
-    //enqueueLocal();
+    //enqueueRemote(*toHost);
+    enqueueLocal();
   } else {
     enqueueLocal();
   }

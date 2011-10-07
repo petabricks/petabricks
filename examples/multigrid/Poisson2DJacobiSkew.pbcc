@@ -1,0 +1,174 @@
+#ifndef POISSON2DJACOBISKEW_PBCC
+#define POISSON2DJACOBISKEW_PBCC
+
+#include "../simple/copy.pbcc"
+
+#define MAX(i, j) ((i) >= (j) ? (i) : (j))
+
+// Copy the border of a rectangular matrix
+transform Copy2DBorder
+from IN[n,m]
+to OUT[n,m]
+{
+  to (OUT out) from (IN in)
+  {
+    for (int i = 0; i < n; ++i) {
+      out.cell(i, 0) = in.cell(i, 0);
+      out.cell(i, m - 1) = in.cell(i, m - 1);
+    }
+
+    for (int j = 1; j < m - 1; ++j) {
+      out.cell(0, j) = in.cell(0, j);
+      out.cell(n - 1, j) = in.cell(n - 1, j);
+    }
+  }
+}
+
+// Do a time-skewed block update over the region (i0, j0, i1, j1).
+transform Poisson2DJacobiSkewIterateBlock
+from B[n,n], _i0, _j0, _i1, _j1, skewSize, oddFlag
+to OUT[n,n], TEMP[n,n]
+{
+  to (OUT out, TEMP temp)
+  from (B b)
+  {
+    int i0 = (int) _i0, j0 = (int) _j0, i1 = (int) _i1, j1 = (int) _j1;
+
+    // source, destination, and temporary matrix references
+    MatrixRegion2D s, d, t;
+
+    if (oddFlag) {
+      s = temp; d = out;
+    } else {
+      s = out; d = temp;
+    }
+
+    int i0slope = -1, j0slope = -1, i1slope = -1, j1slope = -1;
+    if (i1 == n - 1) {
+      i1slope = 0;
+    }
+    if (j1 == n - 1) {
+      j1slope = 0;
+    }
+
+    for (int k = 0; k < skewSize; ++k) {
+
+      // do update over update region
+      for (int j = j0; j < j1; ++j) {
+        for (int i = i0; i < i1; ++i) {
+          d.cell(i, j) = (b.cell(i, j) + s.cell(i-1, j) + s.cell(i+1, j) +
+                                         s.cell(i, j-1) + s.cell(i, j+1)) / 4.0;
+        }
+      }
+
+      // swap source and destination references
+      t = s; s = d; d = t;
+
+      // skew update region
+      // slopes are non-positive, so MAX is sufficient for boundary check
+      i0 = MAX(1, i0 + i0slope);
+      j0 = MAX(1, j0 + j0slope);
+      i1 = MAX(1, i1 + i1slope);
+      j1 = MAX(1, j1 + j1slope);
+    }
+  }
+}
+
+// Do skewSize Jacobi iterations using time-skewed tiling.  Recursively
+// divide the block into pieces and call block helper function.
+transform Poisson2DJacobiSkewIterate
+from B[n,n], i0, j0, i1, j1, skewSize, oddFlag
+to OUT[n,n], TEMP[n,n]
+{
+  // base case
+  to (OUT out, TEMP temp)
+  from (B b, i0 _i0, j0 _j0, i1 _i1, j1 _j1,
+        skewSize _skewSize, oddFlag _oddFlag)
+  {
+    Poisson2DJacobiSkewIterateBlock(out, temp, b, _i0, _j0, _i1, _j1,
+                                    _skewSize, _oddFlag);
+  }
+
+#if 0
+  // recursive case
+  to (OUT out, TEMP temp)
+  from (B b, i0 _i0, j0 _j0, i1 _i1, j1 _j1,
+        skewSize _skewSize, oddFlag _oddFlag)
+  {
+    int i0 = (int) _i0, j0 = (int) _j0, i1 = (int) _i1, j1 = (int) _j1,
+        skewSize = (int) _skewSize, oddFlag = (int) _oddFlag,
+        imid = (i0 + i1) / 2,
+        jmid = (j0 + j1) / 2;
+
+    Poisson2DJacobiSkewIterate(out, temp, b, i0, j0, imid, jmid,
+                               skewSize, oddFlag);
+    Poisson2DJacobiSkewIterate(out, temp, b, i0, jmid, imid, j1,
+                               skewSize, oddFlag);
+    Poisson2DJacobiSkewIterate(out, temp, b, imid, j0, i1, jmid,
+                               skewSize, oddFlag);
+    Poisson2DJacobiSkewIterate(out, temp, b, imid, jmid, i1, j1,
+                               skewSize, oddFlag);
+  }
+#endif
+
+}
+
+// Time-skewed version of Poisson2DJacobi
+// Note: Since IN and OUT may point to the same memory location, a temporary
+// array is utilized.
+transform Poisson2DJacobiSkew
+from IN[n,n], B[n,n], _numIters, _skewSize
+to OUT[n,n]
+{
+  to (OUT out) from (IN in, B b)
+  {
+    int numIters = (int) _numIters;
+    int skewSize = (int) _skewSize;
+
+    JASSERT(numIters >= 0)(numIters).Text("number of iterations must be non-negative");
+    JASSERT(skewSize >= 1 && skewSize <= numIters)(skewSize).Text("skew size must be a positive integer no greater than number of iterations");
+
+    // 0 iters, just copy
+    if (numIters == 0) {
+      Copy2D(out, in);
+      return;
+    }
+
+    // just solve for small input
+    if (n == 3) {
+      Copy2D(out, in);
+      out.cell(1, 1) = (b.cell(1, 1) +
+                        out.cell(0, 1) + out.cell(1, 0) +
+                        out.cell(0, 2) + out.cell(2, 0)) / 4.0;
+      return;
+    }
+
+    MatrixRegion2D temp = MatrixRegion2D::allocate(n, n);
+
+    // Calculate the number of times to call skewed iterate helper function.
+    // Each call to skewed iterate runs skewSize iterations.
+    int numCalls = numIters / skewSize;
+    int finalIters = numIters % skewSize;
+
+    // Skewed iterate function switches between two working arrays, so put
+    // the initial value in correct location so that OUT will contain result.
+    if ((numIters & 1) == 0) {
+      Copy2D(out, in); // numIters is even
+      Copy2DBorder(temp, in);
+    } else {
+      Copy2D(temp, in); // numIters is odd
+      Copy2DBorder(out, in);
+    }
+
+    for (int i = 0; i < numCalls; ++i) {
+      Poisson2DJacobiSkewIterate(out, temp, b, 1, 1, n - 1, n - 1,
+                                 skewSize, numIters & 1);
+      numIters -= skewSize;
+    }
+    Poisson2DJacobiSkewIterate(out, temp, b, 1, 1, n - 1, n - 1,
+                               finalIters, numIters & 1);
+    numIters -= finalIters;
+  }
+}
+
+#endif // POISSON2DJACOBISKEW_PBCC

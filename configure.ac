@@ -252,13 +252,13 @@ AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end
 AC_DEFINE([DEFAULT_ACCURACY],    [1], [accuracy stand-in for fixed-accuracy rules])
 AC_DEFINE([DEVNULL],             ["/dev/null"], [null sync device path])
 AC_DEFINE([DISTRIBUTED_CACHE],   [], [use cache in distributed code])
+AC_DEFINE([DISTRIBUTED_GC_FREQ], [1000], [after how many allocations to invoke distributed gc])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])
 AC_DEFINE([GENHEADER],           ["_pbhdr.h"], [generated file name])
 AC_DEFINE([GENMISC],             ["_pbmisc"], [generated file name])
 AC_DEFINE([HASH_USE_SHA1],       [0], [set to 1 to use SHA1 instead of MD5])
 AC_DEFINE([INLINE_NULL_TASKS],   [], [run null tasks immediately when they are enqueued])
-AC_DEFINE([JASSERT_FAST],        [], [skip some copies in debug printing, conflicts with JASSERT_LOG])
 AC_DEFINE([JASSERT_USE_SRCPOS],  [],[include source line numbers in error messages])
 AC_DEFINE([LISTEN_PORT_FIRST],   [22550], [first port to try to use to listen])
 AC_DEFINE([MATRIX_INDEX_T],      [int], [type for indices into the matrix])
@@ -268,15 +268,14 @@ AC_DEFINE([MAX_NUM_WORKERS],     [512], [max number of workers supported])
 AC_DEFINE([MAX_REC_LEVELS],      [12], [number of levels for recursive choices])
 AC_DEFINE([MIN_NUM_WORKERS],     [1], [min number of workers supported])
 AC_DEFINE([OPT_LOWLEVEL],        [1], [enable low level optimization such as specializations and prefetching])
-AC_DEFINE([REGIONMATRIX_TEST],   [1], [always use RegionMatrix code])
 AC_DEFINE([RETURN_VAL_STR],      ["_pb_rv"], [var name in output code for rule output variable])
 AC_DEFINE([SINGLE_SEQ_CUTOFF],   [1], [define to use a global sequential cutoff instead of a per-transform one])
 AC_DEFINE([SPLIT_CHUNK_SIZE],    ["TRANSFORM_LOCAL(splitsize)"], [var name in output code])
 AC_DEFINE([STEAL_ATTEMPTS_MAINLOOP], [16], [number of times to attempt to steal in mainLoop])
 AC_DEFINE([STEAL_ATTEMPTS_WAITING],  [8], [number of times to attempt to steal in waitUntilComplete])
 AC_DEFINE([TEMPLATE_BIN_STR],    ["_acc_bin"], [var name in output code for accuracy template parameter])
-AC_DEFINE([TIMEOUTKILLSIG],      [SIGKILL], [Signal used to kill processes that timeout])
 AC_DEFINE([TIMEOUT_GRACESEC],    [0.03], [Grace period before slow tests are killed])
+AC_DEFINE([TIMEOUTKILLSIG],      [SIGKILL], [Signal used to kill processes that timeout])
 AC_DEFINE([TMPL_IMPL_PFX],       ["_tmpl"], [prefix for expanded template implementations])
 AC_DEFINE([TRANSFORM_N_STR],     ["transform_n"], [define to add a system var to transform scope])
 AC_DEFINE([TX_DISTRIB_POSTFIX],  ["_distributed"], [postfix for dynamic versions of transforms])
@@ -299,10 +298,12 @@ if false; then
   AC_DEFINE([INPUT_PERIMETER_STR], ["input_perimeter"], [define to add a system var to transform scope])
   AC_DEFINE([INPUT_SIZE_STR],      ["input_count"],      [define to add a system var to transform scope])
   AC_DEFINE([JALIB_USE_MALLOC],    [1],[Cause the custom allocator to call malloc instead of mmap])
+  AC_DEFINE([JASSERT_FAST],        [], [skip some copies in debug printing, conflicts with JASSERT_LOG])
   AC_DEFINE([JASSERT_LOG],         [], [log traces to /tmp/jassertlog.pid])
   AC_DEFINE([MAXIMA_CACHING],      [], [cache results from maxima])
   AC_DEFINE([OUTPUT_SIZE_STR],     ["output_count"],     [define to add a system var to transform scope])
   AC_DEFINE([PBCC_SEQUENTIAL],     [], [define to run tasks inline instead of enqueuing them])
+  AC_DEFINE([REGIONMATRIX_TEST],   [1], [always use RegionMatrix code])
 fi
 
 ################################################################################
@@ -326,7 +327,7 @@ if test "$default_cxxflags" = "yes"; then
   fi
   case "$target_cpu" in
     *sparc*) compileflags="$compileflags -mcpu=niagara -mtune=native";;
-    *)       compileflags="$compileflags -march=native -fno-rtti";;
+    *)       compileflags="$compileflags -march=native";;
   esac
 fi
 

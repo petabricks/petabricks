@@ -191,7 +191,10 @@ def main():
   pbutil.compilePetabricks()
 
   global REV
-  REV=pbutil.gitRevision()
+  try:
+    REV=pbutil.getRevision()
+  except:
+    pass
 
   r, lines = pbutil.loadAndCompileBenchmarks("./scripts/pbbenchmark.tests")
 

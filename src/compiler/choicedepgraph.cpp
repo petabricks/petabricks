@@ -178,7 +178,7 @@ void petabricks::BasicChoiceDepGraphNode::generateCode(Transform& trans, CodeGen
                             const RuleChoiceAssignment& choice){
   JASSERT(choice.find(this)!=choice.end());
   RulePtr rule = choice.find(this)->second;
-  rule->generateCallCode(nodename(), trans, o, _region, flavor);
+  rule->generateCallCode(nodename(), trans, o, _region, flavor, _regionNodesGroups, id(), _gpuCopyOut);
 }
 
 
@@ -194,10 +194,12 @@ void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans,
 
   SimpleRegionPtr t = new SimpleRegion(min,max);
 
+  //rule->generateCallCode(nodename(), trans, o, t, RuleFlavor::SEQUENTIAL, _regionNodesGroups, id(), _gpuCopyOut);
+  //TODO deps for slice // dynamic version
   if(rf!=RuleFlavor::SEQUENTIAL) {
     o.write("{ DynamicTaskPtr _tmptask;");
   }
-  rule->generateCallCode("_tmptask", trans, o, t, rf);
+  rule->generateCallCode("_tmptask", trans, o, t, rf, _regionNodesGroups, id(), _gpuCopyOut);
   if(rf!=RuleFlavor::SEQUENTIAL) {
     o.write(lastTask + "->enqueue();");
     o.write("_tmptask->dependsOn(" + lastTask + ");");
@@ -205,6 +207,59 @@ void petabricks::BasicChoiceDepGraphNode::generateCodeForSlice(Transform& trans,
     o.write("}");
   }
 }
+
+void petabricks::BasicChoiceDepGraphNode::removeDimensionFromRegions(
+                                                          MatrixDefPtr matrix, 
+                                                          size_t dimension) {
+  
+  if(this->matrix() == matrix) {
+    //Remove dimension from the region directly associated with the node 
+    this->region()->removeDimension(dimension);
+  }
+  
+  //Remove dimension from the regions manipulated by the rules of the node
+  for(RuleSet::iterator i=_choices.begin(), e=_choices.end(); i!=e; ++i) {
+    RulePtr rule = *i;
+    rule->removeDimensionFromMatrix(matrix, dimension);
+  }
+}
+
+void petabricks::BasicChoiceDepGraphNode::fixVersionedRegionsType() {
+  //Fix the type of the region directly associated with the node
+  //region()->fixTypeIfVersioned();
+  
+  //Fix the type for the regions manipulated by the rules of the node
+  for(RuleSet::iterator i=_choices.begin(), e=_choices.end(); i!=e; ++i) {
+    RulePtr rule = *i;
+    rule->fixVersionedRegionsType();
+  }
+}
+
+#ifdef HAVE_OPENCL
+petabricks::RegionList petabricks::BasicChoiceDepGraphNode::getFromRegionOnCpu(const RuleChoiceAssignment& choice) const {
+  RulePtr rule = choice.find(this)->second;
+  if(!rule->isEnabledGpuRule()){
+    return rule->getFromRegions();
+  }
+  else{
+    return petabricks::RegionList();
+  } 
+}
+
+int petabricks::BasicChoiceDepGraphNode::numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix){
+  if(matrix->name().compare(_matrix->name()) == 0 && choice.find(this)->second->isEnabledGpuRule())
+    return 1;
+  else
+    return 0;
+}
+
+
+bool petabricks::BasicChoiceDepGraphNode::hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region) {
+	/*if(region->matrix()->name().compare(_matrix->name()) == 0)
+		std::cout << "intersect: " << region->hasIntersect(_region) << std::endl;*/
+  return (region->matrix()->name().compare(_matrix->name()) == 0) && choice.find(this)->second->isEnabledGpuRule();
+}
+#endif
 
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
@@ -267,17 +322,57 @@ void petabricks::MultiOutputChoiceDepGraphNode::generateCode(Transform& trans, C
       first=*i;
       JASSERT(rule == choice.find(*i)->second)(rule)(choice.find(*i)->second)
         .Text("expected all output regions to be generated from same rule");
-    }
+    } 
+    //TODO: hack for using ITER
+    /*else if((*i)->matrix()->name().compare("ITER") == 0) {
+      first=*i;
+    }*/
     JWARNING(region==(*i)->region()->toString())(region)((*i)->region()->toString())
       .Text("to(...) regions of differing size not yet supported");
+    //TODO: what are these for?
     RuleSet tmp = (*i)->choices();
     rules.insert(tmp.begin(), tmp.end());
     matrices.push_back((*i)->matrix());
+    o.comment("region = "+(*i)->matrix()->name()+" "+(*i)->region()->toString());
   }
   JASSERT(choice.find(first)!=choice.end());
-  rule->generateCallCode(nodename(), trans, o, first->region(), flavor);
+  rule->generateCallCode(nodename(), trans, o, first->region(), flavor, _regionNodesGroups, id(), _gpuCopyOut);
 }
 
+#ifdef HAVE_OPENCL
+petabricks::RegionList petabricks::MultiOutputChoiceDepGraphNode::getFromRegionOnCpu(const RuleChoiceAssignment& choice) const {
+  RulePtr rule = choice.find(*_originalNodes.begin())->second;
+  if(!rule->isEnabledGpuRule()){
+    return rule->getFromRegions();
+  }
+  else{
+    return petabricks::RegionList();
+  } 
+}
+
+int petabricks::MultiOutputChoiceDepGraphNode::numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix){
+  RulePtr rule = choice.find(*_originalNodes.begin())->second;
+  if(!rule->isEnabledGpuRule())
+    return 0;
+  int count = 0;
+  for(ChoiceDepGraphNodeSet::const_iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+    count += (*i)->numOutMatrixOnGpu(choice,matrix);
+  }
+  return count;
+}
+
+bool petabricks::MultiOutputChoiceDepGraphNode::hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region) {
+  RulePtr rule = choice.find(*_originalNodes.begin())->second;
+  if(!rule->isEnabledGpuRule())
+    return false;
+  for(ChoiceDepGraphNodeSet::const_iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+    if((*i)->hasOverlappingRegionOnGpu(choice,region)) {
+      return true;
+    }
+  }
+  return false;
+}
+#endif
 
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
@@ -367,4 +462,46 @@ void petabricks::SlicedChoiceDepGraphNode::generateCode(Transform& trans, CodeGe
   }
 }
 
+#ifdef HAVE_OPENCL
+petabricks::RegionList petabricks::SlicedChoiceDepGraphNode::getFromRegionOnCpu(const RuleChoiceAssignment& choice) const {
+  petabricks::RegionList regions;
+  for(ChoiceDepGraphNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+    petabricks::RegionList list = (*i)->getFromRegionOnCpu(choice);
+    regions.insert(regions.end(), list.begin(), list.end());
+  }
+  return regions;
+}
 
+int petabricks::SlicedChoiceDepGraphNode::numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix){
+  int count = 0;
+  for(ChoiceDepGraphNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+    count += (*i)->numOutMatrixOnGpu(choice, matrix);
+  }
+  return count;
+}
+
+bool petabricks::SlicedChoiceDepGraphNode::hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region) {
+  for(ChoiceDepGraphNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
+    if((*i)->hasOverlappingRegionOnGpu(choice, region)) {
+      return true;
+    }
+  }
+  return false;
+}
+#endif
+
+void petabricks::ChoiceDepGraphNodeList::removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension) {
+  for(ChoiceDepGraphNodeList::iterator i=begin(), e=end(); i!=e; ++i) {
+    BasicChoiceDepGraphNode& basicChoiceDepGraphNode = dynamic_cast<BasicChoiceDepGraphNode&> (**i);
+    
+    basicChoiceDepGraphNode.removeDimensionFromRegions(matrix, dimension);
+  }
+}
+
+void petabricks::ChoiceDepGraphNodeList::fixVersionedRegionsType() {
+  for(ChoiceDepGraphNodeList::iterator i=begin(), e=end(); i!=e; ++i) {
+    BasicChoiceDepGraphNode& basicChoiceDepGraphNode = dynamic_cast<BasicChoiceDepGraphNode&> (**i);
+    
+    basicChoiceDepGraphNode.fixVersionedRegionsType();
+  }
+}

@@ -99,6 +99,7 @@ namespace petabricks {
       //JTRACE("remote create");
       JASSERT(!_task);
       _task = new T(reinterpret_cast<const char*>(buf), *host());
+      _task->incRefCount();
       _task->enqueueLocal();
       DynamicTaskPtr t = new CallMarkComplete<RemoteTaskReciever>(this);
       t->dependsOn(_task.asPtr());
@@ -108,6 +109,34 @@ namespace petabricks {
     RemoteTaskPtr _task;
   };
 
+  template<typename A, typename B> inline
+  void _copyeach(A& a, const B& b, size_t n) {
+    for(size_t i=0; i<n; ++i) {
+      a[i] = b[i];
+    }
+  }
+
+  template<typename T> inline
+  void _serialize_vector(char*& buf, const std::vector<T>& v) {
+    *reinterpret_cast<size_t*>(buf) = v.size();
+    buf += sizeof(size_t);
+    T* tbuf = reinterpret_cast<T*>(buf);
+    _copyeach(tbuf, v, v.size());
+    buf += (sizeof(T) * v.size());
+  }
+
+  template<typename T> inline
+  void _unserialize_vector(const char*& buf, std::vector<T>& v) {
+    v.resize(*reinterpret_cast<const size_t*>(buf));
+    buf += sizeof(size_t);
+    _copyeach(v, reinterpret_cast<const T*>(buf), v.size());
+    buf += (sizeof(T) * v.size());
+  }
+
+  template<typename T> inline
+  size_t _serialSize_vector(const std::vector<T>& v) {
+    return sizeof(size_t) + (sizeof(T) * v.size());
+  }
 
 }
 

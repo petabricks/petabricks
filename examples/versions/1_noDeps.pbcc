@@ -1,0 +1,8 @@
+transform Dep
+from A[n]
+to B[n]
+{
+	B.cell(x) from (A.cell(x) a) {
+		return a+5;
+	}
+}

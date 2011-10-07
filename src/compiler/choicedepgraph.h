@@ -48,7 +48,14 @@ typedef jalib::JRef<ChoiceGrid> ChoiceGridPtr;
 
 class ChoiceDepGraphNode;
 typedef jalib::JRef<ChoiceDepGraphNode> ChoiceDepGraphNodePtr;
-typedef std::vector< ChoiceDepGraphNodePtr > ChoiceDepGraphNodeList;
+
+class ChoiceDepGraphNodeList : public std::vector< ChoiceDepGraphNodePtr > {
+public:
+  void removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension);
+  void fixVersionedRegionsType();
+};
+
+//typedef std::vector< ChoiceDepGraphNodePtr > ChoiceDepGraphNodeList;
 typedef std::map<ChoiceDepGraphNode*,ChoiceDepGraphNode*> ChoiceDepGraphNodeRemapping;
 
 class ChoiceDepGraphNodeSet : public std::set<ChoiceDepGraphNode*> {
@@ -122,6 +129,7 @@ public:
   ///
   /// Name of this node as it appears in graphs
   std::string nodename() const { return "n"+jalib::XToString(_id); }
+  int id() { return _id; }
 
 
   ///
@@ -176,6 +184,21 @@ public:
   std::string getChoicePrefix(Transform& t);
 
   virtual bool findValidSchedule(const RuleChoiceAssignment&) { return true; }
+
+#ifdef HAVE_OPENCL
+  virtual RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const = 0;
+  virtual int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix) = 0;
+  virtual bool hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region) = 0;
+  virtual void print(const RuleChoiceAssignment& choice) = 0;
+
+  void resetRegionNodeGroups() {
+    _regionNodesGroups.clear(); 
+    _gpuCopyOut = false;
+  }
+  void addGroup(const std::string& name, std::vector<int>& ids) { _regionNodesGroups.push_back(RegionNodeGroup(name,ids)); }
+  std::vector<RegionNodeGroup>& getRegionNodesGroups() { return _regionNodesGroups; }
+  void setGpyCopyOut() { _gpuCopyOut = true; }
+#endif
 protected:
   int _id;
   bool _isInput;
@@ -185,6 +208,9 @@ protected:
   ScheduleDependencies _directDependsRemapped;
   ScheduleDependencies _indirectDepends;
   int _choiceId;
+
+  std::vector<RegionNodeGroup> _regionNodesGroups;
+  bool _gpuCopyOut;
 };
 
 class BasicChoiceDepGraphNode : public ChoiceDepGraphNode {
@@ -203,6 +229,28 @@ public:
                             const RuleChoiceAssignment& choice);
   void generateCodeForSlice(Transform& trans, CodeGenerator& o, int dimension, const FormulaPtr& pos, RuleFlavor flavor,
                             const RuleChoiceAssignment& choice, std::string lastTask);
+  void removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension);
+  void fixVersionedRegionsType();
+
+#ifdef HAVE_OPENCL
+  RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
+  int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
+  bool hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
+  void print(const RuleChoiceAssignment& choice){
+    std::cout << "BasicChoiceDepGraphNode " << this << ":" << std::endl;
+    std::cout << "out matrix = " << _matrix->name() << std::endl;
+    RulePtr rule = choice.find(this)->second;
+    std::cout << "rule = " << rule->isEnabledGpuRule() << std::endl;
+    std::cout << "gpucopyout = " << _gpuCopyOut << std::endl << std::endl;
+    for(std::vector<RegionNodeGroup>::iterator it = _regionNodesGroups.begin(); it != _regionNodesGroups.end(); ++it){
+      std::cout << "matrix = " << it->matrixName() << " : ";
+      for(std::vector<int>::iterator node = it->nodeIDs().begin(); node != it->nodeIDs().end(); ++node)
+        std::cout << *node << ", ";
+      std::cout << std::endl;
+    }
+  }
+#endif
+
 private:
   MatrixDefPtr      _matrix;
   SimpleRegionPtr   _region;
@@ -239,6 +287,26 @@ public:
     UNIMPLEMENTED();
   }
 
+#ifdef HAVE_OPENCL
+  RegionList getFromRegionOnCpu(const RuleChoiceAssignment&) const { 
+    UNIMPLEMENTED(); 
+    return RegionList();
+  }
+  int numOutMatrixOnGpu(const RuleChoiceAssignment& , MatrixDefPtr){
+    UNIMPLEMENTED(); 
+    return 0;
+  }
+  bool hasOverlappingRegionOnGpu(const RuleChoiceAssignment& , RegionPtr){
+    UNIMPLEMENTED(); 
+    return 0;
+  }
+  void print(const RuleChoiceAssignment& choice){
+    std::cout << "MetaChoiceDepGraphNode " << this << "--------" << std::endl;
+    for(ChoiceDepGraphNodeSet::iterator i = _originalNodes.begin(); i != _originalNodes.end(); ++i)
+      (*i)->print(choice);
+    std::cout << "---------------" << this << std::endl << std::endl;;
+  }
+#endif
 protected:
   virtual const char* classname() const { return "MetaChoiceDepGraphNode"; }
 
@@ -255,6 +323,18 @@ public:
 
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
                             const RuleChoiceAssignment& choice);
+
+#ifdef HAVE_OPENCL
+  RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
+  int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
+  bool hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
+  void print(const RuleChoiceAssignment& choice){
+    std::cout << "MultiOutputChoiceDepGraphNode " << this << "--------" << std::endl;
+    for(ChoiceDepGraphNodeSet::iterator i = _originalNodes.begin(); i != _originalNodes.end(); ++i)
+      (*i)->print(choice);
+    std::cout << "---------------" << this << std::endl << std::endl;;
+  }
+#endif
 protected:
   virtual const char* classname() const { return "MultiOutputChoiceDepGraphNode"; }
 
@@ -271,6 +351,17 @@ public:
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
                             const RuleChoiceAssignment& choice);
 
+#ifdef HAVE_OPENCL
+  RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
+  int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
+  bool hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
+  void print(const RuleChoiceAssignment& choice){
+    std::cout << "SlicedChoiceDepGraphNode " << this << "--------" << std::endl;
+    for(ChoiceDepGraphNodeSet::iterator i = _originalNodes.begin(); i != _originalNodes.end(); ++i)
+      (*i)->print(choice);
+    std::cout << "---------------" << this << std::endl << std::endl;;
+  }
+#endif
 protected:
   const char* classname() const { return "SlicedChoiceDepGraphNode"; }
 private:

@@ -288,6 +288,7 @@ private:
   std::vector<std::string> _continueTargets;
 };
 
+#ifdef HAVE_OPENCL
 class OpenClCleanupPass: public RIRCompilerPass {
 public:
   class NotValidSource {};
@@ -298,6 +299,7 @@ public:
 private:
   RegionPtr findMatrix(std::string var);
   void generateAccessor( const RegionPtr& region, const FormulaPtr& x, const FormulaPtr& y );
+  std::vector<std::string> generateCellIndices(RIRExprList& tokens);
   UserRule& _rule;
 };
 
@@ -313,6 +315,7 @@ class OpenClFunctionRejectPass: public RIRCompilerPass {
   bool isIdentBlacklisted( const std::string& ident );
   UserRule& _rule;
 };
+#endif
 
 }
 

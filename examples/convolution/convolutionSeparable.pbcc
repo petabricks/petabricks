@@ -1,0 +1,42 @@
+#define KERNEL_RADIUS 8
+#define KERNEL_LENGTH (2 * KERNEL_RADIUS + 1)
+
+transform convolutionRows
+from Input[w,h], Kernel[KERNEL_LENGTH]
+to Output[w,h]
+{
+  Output.cell(x,y) from(Input input, Kernel kernel) {
+    double sum = 0;
+    for(int k = -KERNEL_RADIUS; k <= KERNEL_RADIUS; k++){
+      int d = x + k;
+      if(d >= 0 && d < w)
+        sum += input.cell(d,y) * kernel.cell(KERNEL_RADIUS - k);
+      }
+    return sum;
+  }
+}
+
+transform convolutionColumns
+from Input[w,h], Kernel[KERNEL_LENGTH]
+to Output[w,h]
+{
+  Output.cell(x,y) from(Input input, Kernel kernel) {
+    double sum = 0;
+    for(int k = -KERNEL_RADIUS; k <= KERNEL_RADIUS; k++){
+      int d = y + k;
+      if(d >= 0 && d < h)
+        sum += input.cell(x,d) * kernel.cell(KERNEL_RADIUS - k);
+      }
+    return sum;
+  }
+}
+
+transform convolutionSeparable
+from Input[w,h], Kernel[KERNEL_LENGTH]
+to Output[w,h]
+{
+  to(Output out) from(Input in, Kernel kernel) using(buffer[w,h]){
+    convolutionRows(buffer, in, kernel);
+    convolutionColumns(out, buffer, kernel);
+  }
+}

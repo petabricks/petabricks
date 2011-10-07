@@ -1,0 +1,152 @@
+x*x
+
+END - QUEUE 1,000,000 elems (micros)
+Write buffer:1824.16
+Run kernel: 251.39
+Read buffer: 5068.00
+CPU Elapsed time: 6250 microseconds
+
+sqrt(x*x/7) 1,000,000 elems (micros)
+Write buffer: 1804.77
+Run kernel: 1515.52
+Read buffer: 5262.43
+TOTAL              8,582.72
+CPU Elapsed time: 22,466 microseconds
+---------------------------------------------------------
+GPU (double)
+init time: 50,662 microseconds
+create time: 159889 microseconds
+init buffer time: 744 microseconds
+run time: 311 microseconds
+gpu time: 53 microseconds
+clean up buffer time: 610 microseconds
+Elapsed time: 212,289 microseconds
+
+GPU (double/float conversion)
+init time: 64,870 microseconds
+create time: 159061 microseconds
+init buffer time: 498 microseconds
+run time: 172 microseconds
+gpu time: 41 microseconds
+clean up buffer time: 539 microseconds
+Elapsed time: 225,216 microseconds
+
+GPU (float)
+init time: 50281 microseconds
+create time: 159532 microseconds
+init buffer time: 366 microseconds
+run time: 107 microseconds
+gpu time: 40 microseconds
+clean up buffer time: 346 microseconds
+Elapsed time: 210,706 microseconds
+---------------------------------------------------------
+2 kernels (lazy copy)
+init time: 62,289 microseconds
+create time: 313,655 microseconds
+init buffer time: 531 microseconds
+run time: 247 microseconds
+clean up buffer time: 451 microseconds
+Elapsed time: 1,229 microseconds
+
+1 kernel (merge kernels)
+init time: 53,136 microseconds
+create time: 162,520 microseconds
+init buffer time: 493 microseconds
+run time: 244 microseconds
+clean up buffer time: 465 microseconds
+Elapsed time: 1,202 microseconds
+---------------------------------------------------------
+10,000,000 elements (kernal1: x*x, kernal2: constant)
+blocking:                421410 microseconds
+non-blocking write:      442521
+non-blocking read-write: 383268
+interleave:              408609
+
+in-order queue: 370490
+out-of-order:   378973
+---------------------------------------------------------
+normal mem
+write time:  29,368 microseconds
+run time:     4,253 microseconds
+read time:   67,562 microseconds
+total time: 101,183 microseconds
+
+pinned mem
+pin time:   117,855 microseconds
+write time:  29,542 microseconds
+run time:     4,230 microseconds
+read time:   28,048 microseconds
+total time: 179,034 microseconds
+---------------------------------------------------------
+create context vs create command queue
+context time: 63078 microseconds
+queue time: 10 microseconds
+gpu time: 2001 microseconds (size 10,000,000)
+---------------------------------------------------------
+run 1 (queue): 6 microseconds
+run 1 (run): 198018 microseconds
+read 1 (queue): 396112 microseconds
+read 1 (run): 81 microseconds
+
+1 in-order queue on 1 device
+total time: 558866 microseconds
+
+1 in-order queue on 2 device
+total time: 868104 microseconds
+
+2 in-order queues on 1 context on 1 devices
+total time: 717828 microseconds
+
+2 in-order queues on 1 context on 2 devices
+total time: 826846 microseconds
+
+2 in-order queues on 2 contexts on 2 devices
+total time: 519748 microseconds
+---------------------------------------------------------
+
+./examples/gpu/arithmetic -n 100000000 --time --trials=5 --noisolation --threads=8
+cpu     <timing count="3" average="1.31425423833333" min="1.28645086" max="1.333657663" median="1.322654192" variance="0.000406693319047873" stddev="0.020166638764253" />
+gpu seq <timing count="3" average="0.782003581" min="0.659888115" max="0.9861427" median="0.699979928" variance="0.0211042821979859" stddev="0.145273129648899" />
+gpu WS  <timing count="3" average="1.08728014133333" min="0.66308857" max="1.397067824" median="1.20168403" variance="0.0963317157547603" stddev="0.310373510072558" />
+    sta <timing count="5" average="0.4974309412" min="0.442250812" max="0.621294289" median="0.46694808" variance="0.00409445015736455" stddev="0.0639878907088252" />
+    new <timing count="5" average="0.3835734134" min="0.266125424" max="0.637595087" median="0.333697694" variance="0.0169856502317523" stddev="0.130329007637411" />
+
+
+faster when n >= 20,000,000
+---------------------------------------------------------
+./pbrun ./examples/gpu/twoRulesShareInOut -n 10000 --time --trials=5 --noisolation --threads=8
+cpu     <timing count="5" average="0.337684616" min="0.325862452" max="0.36933418" median="0.331664179" variance="0.000258325802887446" stddev="0.0160725170053556" />
+gpu seq <timing count="5" average="2.0603671326" min="1.777534117" max="2.535481014" median="2.001207426" variance="0.0650161382630373" stddev="0.254982623453123" />
+gpu WS? <timing count="5" average="0.1954137332" min="0.041739748" max="0.613934431" median="0.043275959" variance="0.0494288593265108" stddev="0.222326020354143" />
+real    <timing count="5" average="1.185400938" min="0.993218005" max="1.651287131" median="1.013209134" variance="0.065480460430163" stddev="0.255891501285531" />
+    sta <timing count="5" average="0.3485815438" min="0.214082206" max="0.662886406" median="0.314187108" variance="0.02700141965619" stddev="0.164321087070984" />
+
+---------------------------------------------------------
+./examples/gpu/twoRulesShareInOut2 -n 10000 --time --trials=5 --noisolation --threads=8
+cpu     <timing count="5" average="1.4868619088" min="1.442119582" max="1.566272416" median="1.477051983" variance="0.00175285912096594" stddev="0.0418671604120214" />
+gpu seq <timing count="5" average="2.2605618062" min="1.993347078" max="2.913812996" median="2.080519091" variance="0.115775560036732" stddev="0.340258078576736" />
+gpu WS  <timing count="5" average="1.2882499586" min="1.013083238" max="1.751627214" median="1.158926882" variance="0.0776158726245492" stddev="0.278596253787715" />
+    sta <timing count="5" average="0.5955582086" min="0.425131196" max="0.951089037" median="0.538702146" variance="0.0334248670321904" stddev="0.182824689339789" />
+    new <timing count="5" average="0.4970793122" min="0.272289469" max="1.321588292" median="0.282619654" variance="0.170335865975973" stddev="0.412717658909785" />
+
+---------------------------------------------------------
+./examples/gpu/threepasses -n 100000000 --noisolation --time --trials=10
+cpu     <timing count="10" average="0.6604856333" min="0.638855449" max="0.725110762" median="0.6429943765" variance="0.00106003281150075" stddev="0.0325581450869172" />
+gpu seq <timing count="10" average="1.665018477" min="1.380170968" max="2.248448133" median="1.5234759345" variance="0.0794252961153811" stddev="0.281824938774731" />
+    WS  <timing count="10" average="1.3692830791" min="1.164706218" max="2.335323977" median="1.243316292" variance="0.108395186125433" stddev="0.329234242030554" />
+    sta <timing count="5" average="0.4034090044" min="0.244465836" max="0.918841293" median="0.272614669" variance="0.0670092282525081" stddev="0.258861407422018" />
+    new <timing count="5" average="0.623231902" min="0.223146671" max="2.067605354" median="0.270971389" variance="0.523112277108369" stddev="0.723265011671634" />
+---------------------------------------------------------
+./examples/gpu/loop -n 256 --noisolation --time --trials=5
+cpu     <timing count="5" average="5.2274843148" min="5.104962372" max="5.35241749" median="5.193862099" variance="0.00742378450993077" stddev="0.0861613864206628" />
+gpu WS  <timing count="5" average="3.2935962698" min="3.238104395" max="3.487096953" median="3.247315285" variance="0.00937433172628547" stddev="0.0968211326430623" />
+    new <timing count="5" average="1.7892621208" min="1.646253404" max="2.342718271" median="1.650850127" variance="0.076603589794505" stddev="0.276773535213367" />
+
+faster when n >= 128
+----------------------------------------------------------
+./examples/gpu/twoIndependances -n 100000000 --time --noisolation --trials=5
+gpu new <timing count="5" average="0.6401586892" min="0.433998716" max="1.151579588" median="0.486629082" variance="0.0704823342183764" stddev="0.265485092271443" />
+
+
+
+

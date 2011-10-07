@@ -67,7 +67,7 @@ void DynamicTask::enqueue()
       else
         _state=S_REMOTE_PENDING;
     }else{
-      JASSERT(false);
+      JASSERT(false)(_state);
     }
   }
   if(preds==0) {
@@ -76,7 +76,7 @@ void DynamicTask::enqueue()
     }else if(_state == S_REMOTE_READY){
       remoteScheduleTask();
     }else{
-      JASSERT(false);
+      JASSERT(false)(_state);
     }
   }
 }
@@ -90,7 +90,7 @@ void DynamicTask::dependsOn(const DynamicTaskPtr &that)
 {
   if(!that) return;
   JASSERT(that!=this).Text("task cant depend on itself");
-  JASSERT(_state==S_NEW)(_state).Text(".dependsOn must be called before enqueue()");
+  JASSERT(_state==S_NEW || _state==S_REMOTE_NEW)(_state).Text(".dependsOn must be called before enqueue()");
   that->_lock.lock();
   if(that->_state == S_CONTINUED){
     that->_lock.unlock();
@@ -142,7 +142,7 @@ void petabricks::DynamicTask::decrementPredecessors(bool isAborting){
 }
 
 void petabricks::DynamicTask::runWrapper(bool isAborting){
-  JASSERT(_state==S_READY && _numPredecessors==0)(_state)(_numPredecessors);
+  JASSERT((_state==S_READY && _type==TYPE_CPU) || (_state==S_REMOTE_READY && _type==TYPE_OPENCL) && _numPredecessors==0)(_state)(_numPredecessors);
 
   if (!isAborting) {
 #ifdef DISTRIBUTED_CACHE

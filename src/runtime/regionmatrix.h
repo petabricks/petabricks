@@ -79,16 +79,20 @@ namespace petabricks {
       const size_t sizeof_sizes = sizeof this->_size;
       const size_t sizeof_splitOffset = sizeof this->_splitOffset;
 
-      if (size != NULL) {
-        memcpy(_size, size, sizeof_sizes);
-      } else {
-        memset(_size, -1, sizeof_sizes);
+      if(sizeof_sizes > 0) {
+        if (size != NULL) {
+          memcpy(_size, size, sizeof_sizes);
+        } else {
+          memset(_size, -1, sizeof_sizes);
+        }
       }
 
-      if (splitOffset != NULL) {
-        memcpy(_splitOffset, splitOffset, sizeof_splitOffset);
-      } else {
-        memset(_splitOffset, 0, sizeof_splitOffset);
+      if(sizeof_splitOffset > 0) {
+        if (splitOffset != NULL) {
+          memcpy(_splitOffset, splitOffset, sizeof_splitOffset);
+        } else {
+          memset(_splitOffset, 0, sizeof_splitOffset);
+        }
       }
 
       _isTransposed = isTransposed;
@@ -194,7 +198,7 @@ namespace petabricks {
     //
     // Read & Write
     //
-    MATRIX_ELEMENT_T readCell(const IndexT* coord) {
+    MATRIX_ELEMENT_T readCell (const IndexT* coord) const {
       IndexT rd_coord[_regionHandler->dimensions()];
       this->getRegionDataCoord(coord, rd_coord);
       return _regionHandler->readCell(rd_coord);
@@ -262,7 +266,7 @@ namespace petabricks {
       return s;
     }
 
-    CellProxy& cell(IndexT x, ...) const {
+    CellProxy cell(IndexT x, ...) const {
       IndexT c1[D];
       va_list ap;
       va_start(ap, x);
@@ -271,12 +275,12 @@ namespace petabricks {
       va_end(ap);
       return cell(c1);
     }
-    CellProxy& cell(IndexT* coord) const {
+    CellProxy cell(IndexT* coord) const {
       IndexT rd_coord[_regionHandler->dimensions()];
       getRegionDataCoord(coord, rd_coord);
-      return *(new CellProxy(_regionHandler, rd_coord));
+      return CellProxy(_regionHandler, rd_coord);
     }
-    INLINE CellProxy& cell() const {
+    INLINE CellProxy cell() const {
       IndexT c1[0];
       return this->cell(c1);
     }
@@ -778,7 +782,7 @@ namespace petabricks {
     RegionMatrixWrapper(Base val) : Base() {
       init(NULL, val.regionHandler());
     }
-    RegionMatrixWrapper(ElementT* data, IndexT* size) : Base() {
+    RegionMatrixWrapper(ElementT* data, IndexT* /*size*/) : Base() {
       RegionDataIPtr regionData = new RegionData0D();
       regionData->writeCell(NULL, *data);
       init(NULL, new RegionHandler(regionData));
@@ -809,7 +813,9 @@ namespace petabricks {
 
     ///
     /// Allow implicit conversion to CellProxy
-    operator CellProxy& () const { return this->cell(); }
+    operator CellProxy () const { return this->cell(); }
+
+    operator MATRIX_ELEMENT_T () const { return this->readCell(NULL); }
 
     RegionMatrixWrapper operator=(Base val) {
       this->cell() = val.readCell(NULL);
@@ -820,13 +826,13 @@ namespace petabricks {
       return *this;
     }
 
-    CellProxy& cell(IndexT x, ...) const {
+    CellProxy cell(IndexT x, ...) const {
       return cell();
     }
-    CellProxy& cell(IndexT* coord) const {
+    CellProxy cell(IndexT* coord) const {
       return cell();
     }
-    INLINE CellProxy& cell() const {
+    INLINE CellProxy cell() const {
       return Base::cell(_sourceInfo->sourceIndex());
     }
 
@@ -887,7 +893,9 @@ namespace petabricks {
 
     ///
     /// Allow implicit conversion to CellProxy
-    operator CellProxy& () const { return this->cell(); }
+    operator CellProxy () const { return this->cell(); }
+
+    operator MATRIX_ELEMENT_T () const { return this->readCell(NULL); }
 
     RegionMatrixWrapper operator=(Base val) {
       initWithValue(val.readCell(NULL));
@@ -913,11 +921,24 @@ namespace petabricks {
     typedef RegionMatrixWrapper<1, MATRIX_ELEMENT_T> MatrixRegion1D;
     typedef RegionMatrixWrapper<2, MATRIX_ELEMENT_T> MatrixRegion2D;
     typedef RegionMatrixWrapper<3, MATRIX_ELEMENT_T> MatrixRegion3D;
+    typedef RegionMatrixWrapper<4, MATRIX_ELEMENT_T> MatrixRegion4D;
+    typedef RegionMatrixWrapper<5, MATRIX_ELEMENT_T> MatrixRegion5D;
+    typedef RegionMatrixWrapper<6, MATRIX_ELEMENT_T> MatrixRegion6D;
+    typedef RegionMatrixWrapper<7, MATRIX_ELEMENT_T> MatrixRegion7D;
+    typedef RegionMatrixWrapper<8, MATRIX_ELEMENT_T> MatrixRegion8D;
+    typedef RegionMatrixWrapper<9, MATRIX_ELEMENT_T> MatrixRegion9D;
 
     typedef RegionMatrixWrapper<0, const MATRIX_ELEMENT_T> ConstMatrixRegion0D;
     typedef RegionMatrixWrapper<1, const MATRIX_ELEMENT_T> ConstMatrixRegion1D;
     typedef RegionMatrixWrapper<2, const MATRIX_ELEMENT_T> ConstMatrixRegion2D;
     typedef RegionMatrixWrapper<3, const MATRIX_ELEMENT_T> ConstMatrixRegion3D;
+    typedef RegionMatrixWrapper<4, const MATRIX_ELEMENT_T> ConstMatrixRegion4D;
+    typedef RegionMatrixWrapper<5, const MATRIX_ELEMENT_T> ConstMatrixRegion5D;
+    typedef RegionMatrixWrapper<6, const MATRIX_ELEMENT_T> ConstMatrixRegion6D;
+    typedef RegionMatrixWrapper<7, const MATRIX_ELEMENT_T> ConstMatrixRegion7D;
+    typedef RegionMatrixWrapper<8, const MATRIX_ELEMENT_T> ConstMatrixRegion8D;
+    typedef RegionMatrixWrapper<9, const MATRIX_ELEMENT_T> ConstMatrixRegion9D;
+
   }
 }
 
