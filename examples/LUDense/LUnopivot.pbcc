@@ -1,48 +1,58 @@
 #ifndef LUNOPIVOT_PBCC 
 #define LUNOPIVOT_PBCC
 
+#include "../simple/copy.pbcc"
+#include "../simple/scale.pbcc"
+
+// Perform the rank 1 operation: A := alpha*x*y**T + A,
+// where alpha is a scalar, x is an m element vector, y is an n element
+// vector and A is an m by n matrix.
+transform DGER
+from ALPHA, X[1, m], Y[n, 1]
+to A[n, m]
+{
+    to (A.cell(j, i) a)
+    from (ALPHA alpha,
+          X.cell(0, i) x,
+          Y.cell(j, 0) y)
+    {
+        a += alpha * x * y;
+    }
+}
+
+// assume OUT contains a copy of IN and do the computation in-place
+transform LUnopivotInPlace
+from DUMMY
+to OUT[n,m]
+{
+    to (OUT out)
+    from (DUMMY dummy)
+    {
+        if (m > 1 && out.cell(0, 0) != 1) {
+            Scale(out.region(0, 1, 1, n), 1.0 / out.cell(0, 0));
+        }
+        if (m > 1 && n > 1) {
+            DGER(out.region(1, 1, n, m), -1.0,
+                 out.region(0, 1, 1, m),
+                 out.region(1, 0, n, 1));
+            LUnopivotInPlace(out.region(1, 1, n, m), 1);
+        }
+    }
+}
 
 transform LUnopivot
-from IN[n,n]
-through A[n,n]
-to OUT[n,n]
+from IN[n,m]
+to OUT[n,m]
 {
-
-  primary A.cell(j,0) from (IN.cell(j,0) in)
-  {
-	return in;
-  }
-
-  A.cell(0,j) from (IN.cell(0,j) in, IN.cell(0,0) diag)
-  {
-	return in/diag;
-  }
-
-
-  secondary A.cell(j,i)
-  from (IN.cell(j,i) aPrev,
-        A.cell(0,i) left,
-        IN.cell(j,0) up)
-  {
-        return aPrev - left * up;
-  }
-
-  primary OUT.cell(j,0) from (IN.cell(j,0) in)
-  {
-	return in;
-  }
-
-  OUT.cell(0,j) from (A.cell(0,j) a)
-  {
-	return a;
-  }
-
-  to (OUT.region(1,1,n,n) out)
-  from (A.region(1,1,n,n) a ) 
-  {
-	LUnopivot(out,a);
-  } 
-
+    to (OUT out)
+    from (IN in)
+    {
+#ifdef DEBUG
+        fprintf(stderr, "LUnopivot called for size %d\n", n);
+#endif
+        Copy2D(out, in);
+        LUnopivotInPlace(out, 1);
+    }
 }
 
 #endif // LUNOPIVOT_PBCC

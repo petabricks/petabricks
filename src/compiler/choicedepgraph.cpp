@@ -492,7 +492,7 @@ bool petabricks::SlicedChoiceDepGraphNode::hasOverlappingRegionOnGpu(const RuleC
 
 void petabricks::ChoiceDepGraphNodeList::removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension) {
   for(ChoiceDepGraphNodeList::iterator i=begin(), e=end(); i!=e; ++i) {
-    BasicChoiceDepGraphNode& basicChoiceDepGraphNode = dynamic_cast<BasicChoiceDepGraphNode&> (**i);
+    BasicChoiceDepGraphNode& basicChoiceDepGraphNode = (*i)->asBasicNode();
     
     basicChoiceDepGraphNode.removeDimensionFromRegions(matrix, dimension);
   }
@@ -500,7 +500,7 @@ void petabricks::ChoiceDepGraphNodeList::removeDimensionFromRegions(MatrixDefPtr
 
 void petabricks::ChoiceDepGraphNodeList::fixVersionedRegionsType() {
   for(ChoiceDepGraphNodeList::iterator i=begin(), e=end(); i!=e; ++i) {
-    BasicChoiceDepGraphNode& basicChoiceDepGraphNode = dynamic_cast<BasicChoiceDepGraphNode&> (**i);
+    BasicChoiceDepGraphNode& basicChoiceDepGraphNode = (*i)->asBasicNode();
     
     basicChoiceDepGraphNode.fixVersionedRegionsType();
   }

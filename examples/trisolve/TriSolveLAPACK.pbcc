@@ -1,40 +1,41 @@
-#ifndef LUTRISOLVE_PBCC
-#define LUTRISOLVE_PBCC
+#ifndef TRISOLVELAPACK_PBCC
+#define TRISOLVELAPACK_PBCC
 
 #define INDEX2D(i0, i1, s0) ((i1) * (s0) + (i0))
-
-#include "../simple/copy.pbcc"
 
 %{
 extern "C" void dtrsm_(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, double *alpha, double *A, const int *lda, double *B, const int *ldb);
 extern "C" void strsm_(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, float *alpha, float *A, const int *lda, float *B, const int *ldb);
 
 void trsm_wrap(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, double *alpha, double *A, const int *lda, double *B, const int *ldb) {
-  dtrsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
+    dtrsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
 }
 void trsm_wrap(char *side, char *uplo, char *transa, char *diag, const int *m, const int *n, float *alpha, float *A, const int *lda, float *B, const int *ldb) {
-  strsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
+    strsm_(side, uplo, transa, diag, m, n, alpha, A, lda, B, ldb);
 }
 %}
 
-transform LUtrisolve
-from INA[m,m], INB[n,m]
+transform TriSolveLAPACK
+from RIGHTFLAG, UPFLAG, UNITFLAG, ALPHA, INA[aw,ah], INB[n,m]
 to OUT[n,m]
 {
     to (OUT out)
-    from (INA ina, INB inb)
+    from (RIGHTFLAG rightFlag, UPFLAG upFlag, UNITFLAG unitFlag,
+          ALPHA _alpha, INA ina, INB inb)
     {
-        // call LAPACK
+        char side, uplo, transa = 'N', diag;
+        const int lda = ah;
+        const int ldb = m;
+        double alpha = _alpha;
+        ElementT *A = NULL;
+        ElementT *B = NULL;
 
-	char side = 'L', uplo = 'L', transa = 'N', diag = 'U';  
-	const int lda = m;
-	const int ldb = m;
-	ElementT alpha = 1;
-  ElementT *A = NULL;
-	ElementT *B = NULL;
+        side = rightFlag ? 'R' : 'L';
+        uplo = upFlag    ? 'U' : 'L';
+        diag = unitFlag  ? 'U' : 'N';
 
-  A = new ElementT[m * m];
-	B = new ElementT[m * n];
+        A = new ElementT[ah * aw];
+        B = new ElementT[m * n];
         if (!A || !B) {
             printf("Error allocating memory!\n");
             exit(-1);
@@ -42,10 +43,10 @@ to OUT[n,m]
 
         // pack input
         int i, j;
-        for (i = 0; i < m; ++i) {
-            for (j = 0; j < m; ++j) {
-		// PetaBricks - first index is column, second is row
-                A[INDEX2D(i, j, m)] = ina.cell(j, i);
+        for (i = 0; i < ah; ++i) {
+            for (j = 0; j < aw; ++j) {
+                // PetaBricks - first index is column, second is row
+                A[INDEX2D(i, j, ah)] = ina.cell(j, i);
             }
         }
         for (i = 0; i < m; ++i) {
@@ -54,7 +55,6 @@ to OUT[n,m]
                 B[INDEX2D(i, j, m)] = inb.cell(j, i);
             }
         }
-
 
         trsm_wrap(&side, &uplo, &transa, &diag, &m, &n, &alpha, A, &lda, B, &ldb);
 
@@ -66,11 +66,9 @@ to OUT[n,m]
         }
 
         delete [] A;
-	delete [] B;
+        delete [] B;
     }
 }
 
-
-
-#endif // LUTRISOLVE_PBCC
+#endif // TRISOLVELAPACK_PBCC
 

@@ -1,7 +1,7 @@
 #ifndef LULOWER_PBCC
 #define LULOWER_PBCC
 
-#include "triusolve.pbcc"
+#include "../trisolve/TriSolveRU.pbcc"
 #include "../multiply/multiply.pbcc"
 #include "../simple/add.pbcc"
 
@@ -62,8 +62,11 @@ to OUT[n,m]
 
   to (OUT out) from (IN in, UPDIAG updiag)
   {
+#ifdef DEBUG
+        fprintf(stderr, "LUlowertri called for size (%d, %d)\n", m, n);
+#endif
 	if (m==1 || n==1){
-		triusolve(out,updiag,in);
+		TriSolveRU(out, 0, updiag, in);
 	}
 	else {
 		LUlowertri(out, in, updiag);
@@ -73,7 +76,10 @@ to OUT[n,m]
   to (OUT out)
   from (IN in, UPDIAG updiag)
   {
-        triusolve(out, updiag, in);
+#ifdef DEBUG
+        fprintf(stderr, "LUlowertri called for size (%d, %d)\n", m, n);
+#endif
+        TriSolveRU(out, 0, updiag, in);
   }
 
 }

@@ -55,13 +55,16 @@ to OUT[n, n]
 }
 
 
-main transform LUrecur
+transform LUrecur
 from IN[n,n]
 to OUT[n,n]
 {
 
   to (OUT out) from (IN in)
   {
+#ifdef DEBUG
+        fprintf(stderr, "LUrecur called for size %d\n", n);
+#endif
 	if (n == 1) {
 		out.cell(0,0)=in.cell(0,0);
 	}

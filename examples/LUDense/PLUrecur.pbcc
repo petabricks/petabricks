@@ -51,7 +51,7 @@ to OUT[n,n], Pout[n]
 }
 
 
-main transform PLUrecur
+transform PLUrecur
 from IN[n,n]
 through Pinitial[n]
 to OUT[n,n], Pout[n]

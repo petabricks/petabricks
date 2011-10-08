@@ -1,0 +1,77 @@
+#ifndef TRISOLVEGENERATORS_PBCC
+#define TRISOLVEGENERATORS_PBCC
+
+#include "../LUDense/PLUrecur.pbcc"
+
+%{
+void printMatrix(const ConstMatrixRegion2D A)
+{
+    for (int i = 0; i < A.height(); ++i) {
+        for (int j = 0; j < A.width(); ++j) {
+            printf("%10g ", A.cell(j, i));
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+%}
+
+// make OUT triangular
+transform Tri
+from UPFLAG
+to OUT[n,n]
+{
+    to (OUT.cell(j,i) out)
+    from (UPFLAG upFlag)
+    {
+        out = (i == j || (upFlag && i < j) || (!upFlag && i > j)) ? out : 0;
+    }
+}
+
+transform TriSolveLGenerator
+to UNITFLAG, T[n,n], B[n,n]
+{
+    to (UNITFLAG unitFlag, T t, B b)
+    from ()
+    {
+        TriSolveGenerator(unitFlag, t, b, 0);
+    }
+}
+
+transform TriSolveUGenerator
+to UNITFLAG, T[n,n], B[n,n]
+{
+    to (UNITFLAG unitFlag, T t, B b)
+    from ()
+    {
+        TriSolveGenerator(unitFlag, t, b, 1);
+    }
+}
+
+// Do an LU of a random matrix so that back-solve is numerically stable
+transform TriSolveGenerator
+from UPFLAG
+through A[n,n]
+to UNITFLAG, T[n,n], B[n,n]
+{
+    to (A.cell(j, i) a,
+        B.cell(j, i) b)
+    from ()
+    {
+        a = PetabricksRuntime::randNormal(0, 1);
+        b = PetabricksRuntime::randNormal(0, 1);
+    }
+
+    to (UNITFLAG unitFlag, T t)
+    from (UPFLAG upFlag, A a)
+    {
+        unitFlag = PetabricksRuntime::randInt(0, 2);  // coin flip
+        MatrixRegion1D p = MatrixRegion1D::allocate(n);
+        PLUrecur(t, p, a);
+        Tri(t, upFlag);
+
+//        printMatrix(t);
+    }
+}
+
+#endif // TRISOLVEGENERATORS_PBCC

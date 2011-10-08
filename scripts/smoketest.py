@@ -30,8 +30,9 @@ check_exclude=[
          "matrixapprox/matrixapprox",     # (Variable accuracy)
          "regression/accuracymetric",     # (Variable accuracy)
          "preconditioner/preconditioner", # (Variable accuracy)
-         "kernel/nwkde",                  # (Variable accuracy)
          "kernel/nwkdeVA",                # (Variable accuracy)
+
+         "kernel/nwkde",                  # floating-point precision errors
 
          "regression/floattunables",
          "regression/floattunables2",

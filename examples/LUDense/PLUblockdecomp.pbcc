@@ -1,8 +1,7 @@
 #ifndef PLUBLOCKDECOMP_PBCC
 #define PLUBLOCKDECOMP_PBCC
 
-
-#include "LUtrisolve.pbcc"
+#include "../trisolve/TriSolveLL.pbcc"
 #include "PLU.pbcc"
 #include "LAPACKmatmul.pbcc"
 
@@ -78,7 +77,7 @@ to OUT[n, n], Pout[n]
   from (TEMP.region(n/2,0,n,n/2) swappedin,
 	TEMP.region(0,0,n/2,n/2) leftdiag)
   {
-	LUtrisolve(out,leftdiag,swappedin);
+	TriSolveLL(out,1,leftdiag,swappedin);
   }
   
 
@@ -93,6 +92,7 @@ to OUT[n, n], Pout[n]
         //MatrixMultiply(out,left,up);
         //MatrixSub(Atemp,in,out);
 
+        // TODO: this is blocked, but not tuned or parallel
 	LAPACKmatmul(Atemp,left,up,in);
 
 	//recursion to get LU of the remaining updated block
@@ -152,7 +152,7 @@ to OUT[n, n], Pout[n]
   from (TEMP.region(n/3,0,n,n/3) swappedin,
         TEMP.region(0,0,n/3,n/3) leftdiag)
   {
-        LUtrisolve(out,leftdiag, swappedin);
+	TriSolveLL(out,1,leftdiag,swappedin);
   }
 
 
@@ -225,7 +225,7 @@ to OUT[n, n], Pout[n]
   from (TEMP.region(n/4,0,n,n/4) swappedin,
         TEMP.region(0,0,n/4,n/4) leftdiag)
   {
-        LUtrisolve(out,leftdiag, swappedin);
+	TriSolveLL(out,1,leftdiag,swappedin);
   }
 
   //lower right block
