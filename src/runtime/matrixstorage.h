@@ -27,6 +27,8 @@
 #ifndef PETABRICKSMATRIXSTORAGE_H
 #define PETABRICKSMATRIXSTORAGE_H
 
+#define GPU_TRACE 1
+
 #include <set>
 #include <map>
 
@@ -35,6 +37,7 @@
 #include "common/hash.h"
 
 #ifdef HAVE_OPENCL
+#include "common/jmutex.h"
 #include <oclUtils.h>
 #include "openclutil.h"
 #endif
@@ -61,6 +64,7 @@ typedef std::vector<std::set<int> > NodeGroups;
 #ifdef HAVE_OPENCL
 class CopyoutInfo;
 typedef jalib::JRef<CopyoutInfo> CopyoutInfoPtr;
+class CopyPendingMap;
 #endif
 
 /**
@@ -111,9 +115,18 @@ public:
       std::cout << _data[i] << " ";
     std::cout << std::endl;
   }
+
+#ifdef HAVE_OPENCL
+  void lock() { _lock.lock(); }
+  void unlock() { _lock.unlock(); }
+#endif
+
 private:
   ElementT* _data;
   size_t _count;
+#ifdef HAVE_OPENCL
+  jalib::JMutex  _lock;
+#endif
 };
 
 
@@ -132,12 +145,74 @@ public:
   const IndexT* sizes() const { return _sizes; }
   const HashT& hash() const { return _hash; }
   ElementT extraVal() const { return _extraVal; }
-  ssize_t bytes() const {
+
+  size_t bytes() const {
     return _count*sizeof(ElementT);
   }
+
   size_t count() const {
     return _count;
   }
+
+#ifdef HAVE_OPENCL
+  size_t coordToIndex(const IndexT* coord) const{
+    IndexT rv = 0;
+    for(int i=0; i<_dimensions; ++i){
+      rv +=  _multipliers[i] * coord[i];
+    }
+    return _baseOffset + rv;
+  }
+
+  size_t coordToNormalizedIndex(const IndexT* coord) const{
+    IndexT rv = 0;
+    for(int i=0; i<_dimensions; ++i){
+      rv +=  _normalizedMultipliers[i] * coord[i];
+    }
+    return rv;
+  }
+
+  int incCoord(IndexT* coord) const{
+    int D = dimensions();
+    if(D==0)
+     return -1;
+    int i;
+    coord[0]++;
+    for(i=0; i<D-1; ++i){
+      if(coord[i] >= _sizes[i]){
+        coord[i]=0;
+        coord[i+1]++;
+      }else{
+        return i;
+      }
+    }
+    if(coord[D-1] >= _sizes[D-1]){
+      return -1;
+    }else{
+      return D-1;
+    }
+  }
+
+  int incCoordWithBound(IndexT* coord, const IndexT* c1, const IndexT* c2) const{
+    int D = dimensions();
+    if(D==0)
+     return -1;
+    int i;
+    coord[0]++;
+    for(i=0; i<D-1; ++i){
+      if(coord[i] >= c2[i]){
+        coord[i]=c1[i];
+        coord[i+1]++;
+      }else{
+        return i;
+      }
+    }
+    if(coord[D-1] >= c2[D-1]){
+      return -1;
+    }else{
+      return D-1;
+    }
+  }
+#endif
 
   void setStorage(const MatrixStoragePtr& s, const ElementT* base);
   void setSizeMultipliers(int dim, const IndexT* mult, const IndexT* siz);
@@ -159,40 +234,120 @@ public:
     else
       std::cout << _extraVal << std::endl;
   }
+  
+  ssize_t getBaseOffset() { return _baseOffset; }
 
 #ifdef HAVE_OPENCL
   void modifyOnCpu() { _cpuModify = true; }  //TODO: do I need to use lock?
   void setName(std::string name) { _name = name; }
+  std::string getName() { return _name; }
+  bool equal(MatrixStorageInfoPtr that);
+  cl_command_queue& queue() { return _queue; }
 
   ///
   /// call after run gpu PREPARE task
-  bool initGpuMem(cl_context& context);
+  bool initGpuMem(cl_command_queue& queue, cl_context& context);
 
   ///
   /// call after run gpu RUN task
-  void finishGpuMem(cl_command_queue& queue,int nodeID, RegionNodeGroupMapPtr map);
+  void finishGpuMem(cl_command_queue& queue,int nodeID, RegionNodeGroupMapPtr map, int gpuCopyOut);
+  MatrixStoragePtr processPending();
+  void resetPending();
+  void addPending(std::vector<IndexT*>& begins, std::vector<IndexT*>& ends, int coverage);
 
   ///
   /// store a region that is modified on gpu
   void incCoverage(IndexT* begin, IndexT* end, int size);
+  int coverage() { return _coverage; }
+  std::vector<IndexT*>& getBegins() { return _begins; }
+  std::vector<IndexT*>& getEnds() { return _ends; }
 
   ///
   /// get a memmory buffer for read buffer from gpu
   MatrixStoragePtr getGpuOutputStoragePtr(int nodeID);
-
   CopyoutInfoPtr getCopyoutInfo(int nodeID);
+  
   void releaseCLMem();
   void check(cl_command_queue& queue);
-
-  ssize_t getBaseOffset() { return _baseOffset; }
-
-  std::vector<IndexT*>& getBegins() { return _begins; }
-  std::vector<IndexT*>& getEnds() { return _ends; }
+  void done(int nodeID);
 
   cl_mem _clmem;
+
+
+
+  ///
+  /// Copy data of src to this
+  void copy(MatrixStoragePtr& dest, MatrixStoragePtr& src) const
+  {
+#ifdef GPU_TRACE
+    std::cout << "copyFrom all" << std::endl;
+#endif
+    if(src->data() == dest->data())
+      return;
+    IndexT coord[dimensions()];
+    memset(coord, 0, sizeof coord);
+    do {
+      //*const_cast<MATRIX_ELEMENT_T*>(this->coordToPtr(coord)) = src.cell(coord);
+      //std::cout << "address = " << dest->data() << "index = " << coordToIndex(coord) << std::endl;
+      *(dest->data() + coordToIndex(coord)) = *(src->data() + coordToNormalizedIndex(coord));
+    } while(incCoord(coord)>=0);
+  }
+
+  ///
+  /// Copy data within the boundary c1 and c2 of src to this
+  void copy(MatrixStoragePtr& dest, MatrixStoragePtr& src,const IndexT* c1, const IndexT* c2) const
+  {
+#ifdef GPU_TRACE
+    std::cout << "copyFrom boundary" << std::endl;
+    for(int i = 0; i < dimensions(); i++)
+      std::cout << "[" << i << "] : " << c1[i] << "-" << c2[i] << std::endl;
+    //src->print();
+#endif
+    if(src->data() == dest->data())
+      return;
+    for(int i = 0; i < dimensions(); i++)
+      if(c1[i] >= c2[i])
+        return;
+    IndexT coord[dimensions()];
+    memcpy(coord, c1, sizeof coord);
+    do {
+      //*const_cast<MATRIX_ELEMENT_T*>(this->coordToPtr(coord)) = src.cell(coord);
+      //std::cout << "address = " << dest->data() << " index = " << coordToIndex(coord) << " normalized index = " << coordToNormalizedIndex(coord) << std::endl;
+      //std::cout << "src->data = " << *(src->data() + coordToNormalizedIndex(coord)) << std::endl;
+      *(dest->data() + coordToIndex(coord)) = *(src->data() + coordToNormalizedIndex(coord));
+    } while(incCoordWithBound(coord, c1, c2)>=0);
+    //std::cout << "base = " << base() << std::endl;
+    //dest->print();
+  }
+
+  ///
+  /// Copy data within the given boundaries of src to this
+  void copy(MatrixStoragePtr& dest, MatrixStoragePtr& src,std::vector<IndexT*>& begins, std::vector<IndexT*>& ends) const
+  {
+    #ifdef DEBUG
+    JASSERT(begins.size() == ends.size())(begins.size())(ends.size());
+    #endif
+    if(src->data() == dest->data())
+      return;
+
+    if(begins.size() == 0){
+      copy(dest,src);
+    }
+    else{
+      for(size_t i = 0; i < begins.size(); ++i)
+        copy(dest, src, begins[i], ends[i]);
+    }
+  }
+
+  void addGpuInputBuffer(MatrixStoragePtr& buffer) {
+    _gpuInputBuffers.push_back(buffer);
+  }
+
+  std::vector<MatrixStoragePtr>& getGpuInputBuffers() { return _gpuInputBuffers; }
 #endif
 
 private:
+
   MatrixStoragePtr _storage;
   int     _dimensions;
   ssize_t _baseOffset;
@@ -203,6 +358,9 @@ private:
   ssize_t _count;
 
 #ifdef HAVE_OPENCL
+  std::vector<MatrixStoragePtr> _gpuInputBuffers;
+  IndexT  _normalizedMultipliers[MAX_DIMENSIONS];
+  
   std::string _name;
   int _coverage;
   bool _hasGpuMem;
@@ -218,7 +376,9 @@ private:
   std::vector<int> _doneRemainingNodes;
   std::map<int, CopyoutInfoPtr> _copyMap;
 
-  void startReadBuffer(cl_command_queue& queue, std::set<int>& doneNodes);
+  cl_command_queue _queue;
+
+  void startReadBuffer(cl_command_queue& queue, std::set<int>& doneNodes, bool now);
 
   /*CL_CALLBACK decreaseDependency(cl_event event, cl_int cmd_exec_status, void *user_data)
   {
@@ -238,6 +398,7 @@ public:
   std::vector<IndexT*>& getBegins() { return _begins; }
   std::vector<IndexT*>& getEnds() { return _ends; }
   MatrixStoragePtr getGpuOutputStoragePtr() { return _gpuOutputBuffer; }
+  int coverage() { return _coverage; }
 
 private:
   std::vector<IndexT*> _begins;
@@ -247,6 +408,75 @@ private:
   size_t _coverage;
   bool _done;
 };
+
+class CopyPendingMap : public jalib::JRefCounted {
+public:
+  void put(MatrixStorageInfoPtr info) {
+    _lock.lock();
+    std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator it = _map.find(info->storage());
+    std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator end = _map.end();
+    _lock.unlock();
+    if(it != end) {
+      std::set<MatrixStorageInfoPtr> infoList = it->second;
+      bool add = false; 
+      std::set<MatrixStorageInfoPtr>::iterator i;
+      for(i = infoList.begin(); i != infoList.end(); ++i) {
+        if((*i)->equal(info)) {
+          (*i)->addPending(info->getBegins(), info->getEnds(), info->coverage());
+          add = true;
+          break;
+        }
+      }
+      
+      if(!add) {
+        it->second.insert(info);
+      }
+    }
+    else {
+      std::set<MatrixStorageInfoPtr> newInfoList;
+      newInfoList.insert(info);
+      _lock.lock();
+      _map[info->storage()] = newInfoList;
+      _lock.unlock();
+    }
+
+    /*std::cout << "@@@ pending map: contains..." << std::endl;
+    std::set<MatrixStorageInfoPtr> set = _map[info->storage()];
+    for(std::set<MatrixStorageInfoPtr>::iterator i = set.begin(); i != set.end(); ++i) {
+      std::cout << &(*(*i)) << std::endl;
+    }*/
+  }
+
+  std::set<MatrixStorageInfoPtr>& allPendings(MatrixStoragePtr storage) {     
+    /*std::cout << "@@@ pending map: allPendings..." << std::endl;
+    std::set<MatrixStorageInfoPtr> set = _map[storage];
+    std::cout << "size = " << set.size() << std::endl;
+    for(std::set<MatrixStorageInfoPtr>::iterator i = set.begin(); i != set.end(); ++i) {
+      std::cout << &(*(*i)) << std::endl;
+    }*/
+    _lock.lock();
+    std::set<MatrixStorageInfoPtr>& pendings = _map[storage];
+    _lock.unlock();
+    return pendings; 
+
+  }
+  
+  void clearPendings(MatrixStoragePtr storage) { 
+    _lock.lock();
+    std::set<MatrixStorageInfoPtr>& pendings = _map[storage];
+    _lock.unlock();
+    pendings.clear(); 
+    //std::cout << "@@@ pending map: clear" << std::endl;
+  }
+  
+  static CopyPendingMap _pendingMap;
+  std::vector<MatrixStoragePtr> _buffers;
+
+private:
+  std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> > _map;
+  jalib::JMutex  _lock;
+};
+
 #endif
 
 }

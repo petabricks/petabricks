@@ -32,7 +32,6 @@
 
 #include "openclutil.h"
 #include "gpudynamictask.h"
-#include "matrixregion.h"
 
 #include <oclUtils.h>
 #include <pthread.h>

@@ -30,7 +30,7 @@
 //#define TRACE(x) std::cout << "Trace " << x << "\n"
 
 #define TRACE JTRACE
-//#define GPU_TRACE 1
+#define GPU_TRACE 1
 
 #include "userrule.h"
 
@@ -903,6 +903,13 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 #else
   if(true) {
 #endif
+
+#ifdef HAVE_OPENCL
+    for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i) {
+      o.write((*i)->matrix()->name()+".useOnCpu();");
+      //o.write("MatrixIO().write("+(*i)->matrix()->name()+");");
+    }
+#endif
     if(RuleFlavor::SEQUENTIAL != flavor) {
       o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
       o.write("DynamicTaskPtr _last = NULL;");
@@ -986,7 +993,7 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   std::vector<std::string> packedargs = iterdef.packedargs();
   packedargs.push_back("int nodeID");
   packedargs.push_back("RegionNodeGroupMapPtr map");
-  packedargs.push_back("bool gpuCopyOut");
+  packedargs.push_back("int gpuCopyOut");
   std::string codename = trampcodename(trans) + TX_OPENCL_POSTFIX;
   std::string objectname = trans.instClassName() + "_workstealing"; //TODO: handle _distributed
   std::string dimension = jalib::XToString(iterdef.dimensions());
@@ -1016,7 +1023,7 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   o.write("return end;");
   o.endIf();
 
-  o.write("GpuTaskInfoPtr taskinfo = new GpuTaskInfo(nodeID, map);");
+  o.write("GpuTaskInfoPtr taskinfo = new GpuTaskInfo(nodeID, map, gpuCopyOut);");
   o.write("DynamicTaskPtr prepare = new "+prepareclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::PREPARE);");
   o.write("prepare->enqueue();");
 
@@ -1036,7 +1043,7 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
 
   o.write("\nDynamicTaskPtr run = new "+runclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::RUN);");
 
-  o.beginIf("gpuCopyOut");
+  o.beginIf("gpuCopyOut == 1");
   o.write("run->enqueue();");
   id = 0;
   for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i ) {
@@ -1088,9 +1095,10 @@ void petabricks::UserRule::generateOpenCLCopyInCode(std::string& codename, std::
   SRCPOSSCOPE();
   std::string name = region->matrix()->name();
   o.beginFunc("petabricks::DynamicTaskPtr", codename+"_copyin_"+region->name(), packedargs);
+  o.write(name+".useOnCpu();");
   o.write("MatrixStorageInfoPtr storage_"+name+" = "+name+".storageInfo();");
 #ifdef GPU_TRACE
-  o.write("MatrixIO().write("+name+");");
+  //o.write("MatrixIO().write("+name+");");
 #endif
   //o.write("MatrixIO().write("+name+".asGpuInputBuffer());");
   o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->_clmem, CL_FALSE, 0, storage_"+name+"->bytes(), "+name+".getGpuInputBufferPtr(), 0, NULL, NULL);");
@@ -1202,7 +1210,7 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
     o.os( ) << "};\n";
 
     //o.os( ) << "std::cout << \"RUN GPU\" << std::endl;\n";
-
+    //o.write("std::cout << \"queue = \" << GpuManager::_queue << std::endl;");
     o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, " << iterdef.dimensions( ) << ", 0, workdim, NULL, 0, NULL, NULL );\n";
     o.write("clFlush(GpuManager::_queue);");
     #ifndef OPENCL_LOGGING
@@ -1234,8 +1242,8 @@ void petabricks::UserRule::generateOpenCLCopyOutCode(std::string& codename, Code
   //o.write("std::cout << sizes[0] << \" \" << sizes[1] << std::endl;");/
   o.write("normalized.copyTo("+name+", begins, ends);");  
 #ifdef GPU_TRACE
-  o.write("MatrixIO().write(normalized);");   
-  o.write("MatrixIO().write("+name+");");   
+  //o.write("MatrixIO().write(normalized);");   
+  //o.write("MatrixIO().write("+name+");");   
 #endif
   o.write( "return NULL;" );
   o.endFunc();
@@ -1467,7 +1475,7 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor,
                                             std::vector<RegionNodeGroup>&,
-                                            int, bool){
+                                            int, int){
   SRCPOSSCOPE();
   o.comment("MARKER 2");
   switch(flavor) {

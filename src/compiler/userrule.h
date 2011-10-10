@@ -132,7 +132,7 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        bool gpuCopyOut); 
+                        int gpuCopyOut); 
 
   ///
   /// Return function the name of this rule in the code

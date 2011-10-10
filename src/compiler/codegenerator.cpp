@@ -418,7 +418,7 @@ void petabricks::CodeGenerator::callSpatial(const std::string& methodname, const
                         + ">";*/
 void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& /*objname*/, const std::string& methodname, const SimpleRegion& region) {
   std::string taskclass = "petabricks::SpatialMethodCallTask<CLASS"
-                          ", " + jalib::XToString(region.dimensions())
+                          ", " + jalib::XToString(region.dimensions() + region.removedDimensions())
                         + ", &CLASS::" + methodname
                         + ">";
   write("{");
@@ -432,7 +432,7 @@ void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const
 }
 
 #ifdef HAVE_OPENCL
-void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, bool gpuCopyOut) {
+void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, int gpuCopyOut) {
   std::string taskclass = "petabricks::CreateGpuSpatialMethodCallTask<"+objname
                         + ", " + jalib::XToString(region.totalDimensions())
                         + ", &" + objname + "::" + methodname

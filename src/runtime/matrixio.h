@@ -152,6 +152,10 @@ private:
 template<int D, typename T>
 inline void petabricks::MatrixIO::write(MatrixRegion<D,T> m){
   if(_fd==0)     return;
+#ifdef HAVE_OPENCL
+  std::cout << "WRITE!!!!!!!!!!!!!!!!!!!!" << std::endl;
+  m.useOnCpu();
+#endif
   if(_fd==stdin) _fd=stdout;
   fprintf(_fd,"SIZE");
   for(int i=0; i<D; ++i)
@@ -180,6 +184,10 @@ inline void petabricks::MatrixIO::write(MatrixRegion<D,T> m){
 template<int D, typename T>
 inline void petabricks::MatrixIO::write(RegionMatrixWrapper<D,T> m){
   if(_fd==0)     return;
+#ifdef HAVE_OPENCL
+  //TODO
+  //m.useOnCpu();
+#endif
   if(_fd==stdin) _fd=stdout;
   fprintf(_fd,"SIZE");
   for(int i=0; i<D; ++i)

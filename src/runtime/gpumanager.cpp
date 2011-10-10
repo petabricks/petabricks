@@ -30,7 +30,7 @@
 #include "dynamicscheduler.h"
 #include "gpudynamictask.h"
 
-//#define GPU_TRACE 1
+#define GPU_TRACE 1
 
 namespace petabricks {
 
@@ -129,7 +129,7 @@ void GpuManager::prepare(GpuDynamicTaskPtr task) {
   #endif
 
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
-    (*i)->initGpuMem(_context); // clCreateBuffer
+    (*i)->initGpuMem(_queue,_context); // clCreateBuffer
   }
 }
 
@@ -139,7 +139,7 @@ void GpuManager::copyin(GpuDynamicTaskPtr task) {
   #endif
   MatrixStorageInfoPtr storageinfo = task->storageinfo();
 
-  if(storageinfo->initGpuMem(_context)) { // clCreateBuffer
+  if(storageinfo->initGpuMem(_queue,_context)) { // clCreateBuffer
     #ifdef GPU_TRACE
     std::cout << "copying in... " << &(*storageinfo) << std::endl;
     #endif
@@ -158,11 +158,12 @@ void GpuManager::run(GpuDynamicTaskPtr task) {
     (*i)->check(_queue);
   }*/
 
-  task->runWrapper();
+  task->run();
 
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
-    (*i)->finishGpuMem(_queue,_currenttaskinfo->nodeID(), _currenttaskinfo->regionNodeGroupMap()); // clEnqueueReadBuffer
+    (*i)->finishGpuMem(_queue,_currenttaskinfo->nodeID(), _currenttaskinfo->regionNodeGroupMap(), _currenttaskinfo->gpuCopyOut()); // clEnqueueReadBuffer
   }
+  task->completeTaskDeps();
 }
 
 bool GpuManager::copyout(GpuDynamicTaskPtr task) {
@@ -172,6 +173,7 @@ bool GpuManager::copyout(GpuDynamicTaskPtr task) {
   #endif
 
   CopyoutInfoPtr copyInfo = storage->getCopyoutInfo(_currenttaskinfo->nodeID());
+  //TODO: still not totally right
   if(!copyInfo) {
     #ifdef GPU_TRACE
     std::cout << "not done " << _currenttaskinfo->nodeID() << std::endl;
@@ -183,6 +185,7 @@ bool GpuManager::copyout(GpuDynamicTaskPtr task) {
     std::cout << "done " << _currenttaskinfo->nodeID() << std::endl;
     #endif
     task->completeTaskDeps();
+    storage->done(_currenttaskinfo->nodeID());
     return true;
   }
   if(copyInfo->complete()) {
@@ -192,6 +195,7 @@ bool GpuManager::copyout(GpuDynamicTaskPtr task) {
     #endif
     task->setRegions(copyInfo->getBegins(), copyInfo->getEnds(), _currenttaskinfo->nodeID());
     task->runWrapper();
+    storage->done(_currenttaskinfo->nodeID());
     return true;
   }
   #ifdef GPU_TRACE

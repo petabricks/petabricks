@@ -59,7 +59,7 @@ public:
                         RuleFlavor flavor, 
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        bool gpuCopyOut); 
+                        int gpuCopyOut); 
   void virtual generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor);
   void virtual generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor) = 0;
 

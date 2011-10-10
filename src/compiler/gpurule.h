@@ -66,7 +66,7 @@ class GpuRule : public SyntheticRule {
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        bool gpuCopyOut);
+                        int gpuCopyOut);
   //TODO: remove this
   void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
   void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);

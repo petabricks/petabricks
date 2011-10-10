@@ -47,9 +47,10 @@ class GpuTaskInfo: public jalib::JRefCounted {
 public:
 
   /// constructor
-  GpuTaskInfo(int nodeID, RegionNodeGroupMapPtr map) {
+  GpuTaskInfo(int nodeID, RegionNodeGroupMapPtr map, int gpuCopyOut) {
     _nodeID = nodeID;
     _map = map;
+    _gpuCopyOut = gpuCopyOut;
   }
 
   ///
@@ -61,6 +62,7 @@ public:
   void addFromMatrix(MatrixStorageInfoPtr info) { _from.push_back(info); }
 
   int nodeID() { return _nodeID; }
+  int gpuCopyOut() { return _gpuCopyOut; }
   RegionNodeGroupMapPtr regionNodeGroupMap() { return _map; }
   
   void print() {
@@ -87,6 +89,8 @@ private:
   ///
   /// ID of this task
   int _nodeID;
+
+  int _gpuCopyOut;
 
   ///
   /// a map from matrix name to a set of task IDs of the tasks that write to the matrix and have to be finished running before copying out the matrix

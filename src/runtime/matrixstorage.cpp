@@ -26,7 +26,12 @@
  *****************************************************************************/
 #include "matrixstorage.h"
 #include "petabricksruntime.h"
-//#define GPU_TRACE 1
+#include "gpumanager.h"
+#define GPU_TRACE 1
+
+#ifdef HAVE_OPENCL
+petabricks::CopyPendingMap petabricks::CopyPendingMap::_pendingMap;
+#endif
 
 MATRIX_ELEMENT_T petabricks::MatrixStorage::rand(){
   return petabricks::PetabricksRuntime::randDouble(-2147483648, 2147483648);
@@ -42,10 +47,11 @@ petabricks::MatrixStorageInfo::MatrixStorageInfo(){reset();}
 petabricks::MatrixStorageInfo::~MatrixStorageInfo(){
   #ifdef HAVE_OPENCL
   if(_hasGpuMem){
+    //TODO: still need to release
     #ifdef GPU_TRACE
-    std::cout << this << " : release clmem (deconstructor)" << std::endl;
+    //std::cout << this << " : release clmem (deconstructor)" << std::endl;
     #endif
-    clReleaseMemObject(_clmem);
+    //clReleaseMemObject(_clmem);
   }
   #endif
 }
@@ -67,14 +73,8 @@ void petabricks::MatrixStorageInfo::setStorage(const MatrixStoragePtr& s, const 
 }
 
 void petabricks::MatrixStorageInfo::setSizeMultipliers(int dim, const IndexT* mult, const IndexT* siz){
-  _dimensions=dim;
-  for(int d=0; d<_dimensions; ++d)
-    _multipliers[d]=mult[d];
-  _count = 1;
-  for(int d=0; d<_dimensions; ++d) {
-    _sizes[d]=siz[d];
-    _count *= _sizes[d];
-  }
+  setSize(dim,siz);
+  setMultipliers(mult);
 }
 
 void petabricks::MatrixStorageInfo::setSize(int dim, const IndexT* siz){
@@ -82,6 +82,9 @@ void petabricks::MatrixStorageInfo::setSize(int dim, const IndexT* siz){
   _count = 1;
   for(int d=0; d<_dimensions; ++d) {
     _sizes[d]=siz[d];
+#ifdef HAVE_OPENCL
+    _normalizedMultipliers[d] = _count;
+#endif
     _count *= _sizes[d];
   }
 }
@@ -138,15 +141,42 @@ bool petabricks::MatrixStorageInfo::isDataMatch(const MatrixStorageInfo& that) c
 }
 
 #ifdef HAVE_OPENCL
-bool petabricks::MatrixStorageInfo::initGpuMem(cl_context& context) {
-	//std::cout << "my count = " << count() << std::endl;
-	//std::cout << &(*storage()) << "storage count = " << storage()->count() << std::endl;
+bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_context& context) {
+#ifdef GPU_TRACE
+  //std::cout << "initGpuMem " << &(*this) << " base: " << base() << std::endl;
+#endif
+  _queue = queue;
   if(!_hasGpuMem) {
+    if(storage()) {
+      storage()->lock();
+      std::set<MatrixStorageInfoPtr>& set = CopyPendingMap::_pendingMap.allPendings(storage());
+      std::set<MatrixStorageInfoPtr>::iterator first = set.begin();
+      if(set.size() == 1 && equal(*first)) { //TODO: don't work if there is one in pending list & copy modifies something
+        #ifdef GPU_TRACE
+        std::cout << "obtain existing cl_mem ^^" << std::endl;
+        #endif
+        _clmem = (*first)->_clmem;
+        /*if(out){
+          // for output buffer, transfer all data to the current one and remove the old one from the pendingMap
+          _begins = (*first)->getBegins();
+          _ends = (*first)->getEnds();
+          _coverage = (*first)->coverage();
+          //_gpuInputBuffers = (*first)->getGpuInputBuffers();
+          (*first)->resetPending();
+          CopyPendingMap::_pendingMap.clearPendings(storage());
+        }*/
+        storage()->unlock();
+        //CopyoutInfoPtr info = new CopyoutInfo(queue, this, _begins, _ends, _coverage);
+        _hasGpuMem = true;
+        return false;
+      }
+      storage()->unlock();
+    }
     cl_int err;
-    //std::cout << this << " : create buffer size = " << bytes() << std::endl;
+#ifdef GPU_TRACE
+    std::cout << this << " : create buffer size = " << bytes() << std::endl;
+#endif
     _clmem = clCreateBuffer(context, CL_MEM_READ_WRITE, bytes(), NULL, &err);
-    //std::cout << "&clmem = " << &_clmem << std::endl;
-    //std::cout << "clmem = " << _clmem << std::endl;
     JASSERT(CL_SUCCESS == err).Text("Failed to create input memory object.");
     _hasGpuMem = true;
     _cpuModify = false; //TODO: do I need to use lock?
@@ -171,10 +201,11 @@ void petabricks::MatrixStorageInfo::check(cl_command_queue& queue) {
     std::cout << std::endl << std::endl;
 }
 
-void petabricks::MatrixStorageInfo::finishGpuMem(cl_command_queue& queue, int nodeID, RegionNodeGroupMapPtr map) {
+void petabricks::MatrixStorageInfo::finishGpuMem(cl_command_queue& queue, int nodeID, RegionNodeGroupMapPtr map, int gpuCopyOut) {
   #ifdef GPU_TRACE
   std::cout << "matrixstorageinfo   =   " << &(*this) << std::endl;
-  std::cout << "nodeID = " << nodeID << " _name = " << _name << std::endl;
+  std::cout << "nodeID = " << nodeID << " _name = " << _name << " gpuCopyOut = " << gpuCopyOut << std::endl;
+  std::cout << "_storage = " << &(*storage()) << std::endl;
   for(RegionNodeGroupMap::iterator it = map->begin(); it != map->end(); ++it) {
     std::cout << "matrix = " << (*it).first << " : ";
     for(std::set<int>::iterator node = (*it).second.begin(); node != (*it).second.end(); ++node) {
@@ -183,63 +214,97 @@ void petabricks::MatrixStorageInfo::finishGpuMem(cl_command_queue& queue, int no
     std::cout << std::endl;
   }
   #endif
-  //std::cout << "done complete nodes = " ;
-  for(RegionNodeGroupMap::iterator it = map->equal_range(_name).first; it != map->equal_range(_name).second; ++it) {
 
-    std::set<int> newGroup = (*it).second;
-    for(std::vector<int>::iterator node = _doneRemainingNodes.begin(); node != _doneRemainingNodes.end(); ++node) {
-      newGroup.erase(*node);
-    }
-    _remainingGroups.push_back(newGroup);
+  if(gpuCopyOut != 0 ) {
+    //std::cout << "done complete nodes = " ;
+    for(RegionNodeGroupMap::iterator it = map->equal_range(_name).first; it != map->equal_range(_name).second; ++it) {
 
-    newGroup = (*it).second;
-    for(std::vector<int>::iterator node = _doneCompleteNodes.begin(); node != _doneCompleteNodes.end(); ++node) {
-      //std::cout << *node << ", ";
-      newGroup.erase(*node);
+      std::set<int> newGroup = (*it).second;
+      for(std::vector<int>::iterator node = _doneRemainingNodes.begin(); node != _doneRemainingNodes.end(); ++node) {
+        newGroup.erase(*node);
+      }
+      _remainingGroups.push_back(newGroup);
+
+      newGroup = (*it).second;
+      for(std::vector<int>::iterator node = _doneCompleteNodes.begin(); node != _doneCompleteNodes.end(); ++node) {
+        //std::cout << *node << ", ";
+        newGroup.erase(*node);
+      }
+      _completeGroups.push_back(newGroup);
     }
-    _completeGroups.push_back(newGroup);
+    //std::cout << std::endl;
+
+    _doneRemainingNodes.push_back(nodeID);
+
+    std::set<int> doneNodes;
+    for(size_t i = 0; i < _completeGroups.size(); ++i) {
+      std::set<int>& remainingGroup = _remainingGroups[i];
+      remainingGroup.erase(nodeID);
+
+      #ifdef GPU_TRACE
+      std::cout << "-----remaining group ------" << std::endl;
+      for(std::set<int>::iterator node = remainingGroup.begin(); node != remainingGroup.end(); ++node) {
+        std::cout << *node << ", ";
+      }
+      std::cout << std::endl;
+      std::cout << "-----complete group ------" << std::endl;
+      for(std::set<int>::iterator node = _completeGroups[i].begin(); node != _completeGroups[i].end(); ++node) {
+        std::cout << *node << ", ";
+      }
+      std::cout << std::endl;
+      #endif
+
+      if(remainingGroup.empty())
+        doneNodes.insert(_completeGroups[i].begin(), _completeGroups[i].end());
+    }
+    if(!doneNodes.empty())
+      startReadBuffer(queue, doneNodes, gpuCopyOut==1 );
   }
-  //std::cout << std::endl;
-
-  _doneRemainingNodes.push_back(nodeID);
-
-  std::set<int> doneNodes;
-  for(int i = 0; i < _completeGroups.size(); ++i) {
-    std::set<int>& remainingGroup = _remainingGroups[i];
-    remainingGroup.erase(nodeID);
-
-    #ifdef GPU_TRACE
-    std::cout << "-----remaining group ------" << std::endl;
-    for(std::set<int>::iterator node = remainingGroup.begin(); node != remainingGroup.end(); ++node) {
-      std::cout << *node << ", ";
-    }
-    std::cout << std::endl;
-    std::cout << "-----complete group ------" << std::endl;
-    for(std::set<int>::iterator node = _completeGroups[i].begin(); node != _completeGroups[i].end(); ++node) {
-      std::cout << *node << ", ";
-    }
-    std::cout << std::endl;
-    #endif
-
-    if(remainingGroup.empty())
-      doneNodes.insert(_completeGroups[i].begin(), _completeGroups[i].end());
-  }
-  if(!doneNodes.empty())
-    startReadBuffer(queue, doneNodes);
 }
 
-void petabricks::MatrixStorageInfo::startReadBuffer(cl_command_queue& queue, std::set<int>& doneNodes) {
-  CopyoutInfoPtr info = new CopyoutInfo(queue, this, _begins, _ends, _coverage);
-  _begins.clear();
-  _ends.clear();
+void petabricks::MatrixStorageInfo::startReadBuffer(cl_command_queue& queue, std::set<int>& doneNodes, bool now) {
+  if(now) {
+    CopyoutInfoPtr info = new CopyoutInfo(queue, this, _begins, _ends, _coverage);
+    for(std::set<int>::iterator node = doneNodes.begin(); node != doneNodes.end(); ++node) {
+      _doneCompleteNodes.push_back(*node);
+      _copyMap[*node] = info;
+      for(NodeGroups::iterator group = _completeGroups.begin(); group != _completeGroups.end(); ++group) {
+        group->erase(*node);
+      }
+    }
+    resetPending();
+  }
+  else if(_coverage != _count) {
+    MatrixStoragePtr storage = processPending();
+    copy((MatrixStoragePtr&) this->storage(), storage, getBegins(), getEnds());
+    resetPending();
+  }
+  else {
+    //_queue = queue;
+    #ifdef GPU_TRACE
+    std::cout << "@@@ pending map: put " << &(*this) << std::endl;
+    #endif
+    storage()->lock();
+    CopyPendingMap::_pendingMap.put(this);
+    storage()->unlock();
+  }
+}
 
-  for(std::set<int>::iterator node = doneNodes.begin(); node != doneNodes.end(); ++node) {
-    _doneCompleteNodes.push_back(*node);
-    _copyMap[*node] = info;
-    for(NodeGroups::iterator group = _completeGroups.begin(); group != _completeGroups.end(); ++group) {
-      group->erase(*node);
+bool petabricks::MatrixStorageInfo::equal(MatrixStorageInfoPtr that) {
+  std::cout << "@ equal that: " << &(*that) << " base = " << that->base() << std::endl;
+  std::cout << "@ equal this: " << &(*this) << " base = " << that->base() << std::endl;
+  if(base() != that->base() || dimensions() != that->dimensions() || queue() != that->queue()) {
+    //std::cout << "fail #1" << std::endl;
+    //std::cout << base() << " " << that->base() << ", " << dimensions() << " " << that->dimensions() << ", " << queue() << " " << that->queue() << std::endl;
+    return false;
+  }
+  for(int i = 0; i < dimensions(); ++i) {
+    if(multipliers()[i] != that->multipliers()[i] || sizes()[i] != that->sizes()[i]) {
+      //std::cout << "fail #2" << std::endl;
+      return false;
     }
   }
+  return true;
 }
 
 petabricks::CopyoutInfoPtr petabricks::MatrixStorageInfo::getCopyoutInfo(int nodeID) {
@@ -248,6 +313,39 @@ petabricks::CopyoutInfoPtr petabricks::MatrixStorageInfo::getCopyoutInfo(int nod
 
 petabricks::MatrixStoragePtr petabricks::MatrixStorageInfo::getGpuOutputStoragePtr(int nodeID) {
   return _copyMap[nodeID]->getGpuOutputStoragePtr();
+}
+
+void petabricks::MatrixStorageInfo::done(int nodeID) {
+  _copyMap[nodeID] = NULL;
+}
+
+void petabricks::MatrixStorageInfo::addPending(std::vector<IndexT*>& begins, std::vector<IndexT*>& ends, int coverage) {
+  if(coverage > _coverage) {
+    _coverage = coverage;
+  }
+  if(_coverage < _count) {
+    for(size_t i = 0; i != begins.size(); ++i) {
+      _begins.push_back(begins[i]);
+      _ends.push_back(ends[i]);
+    }
+  }
+}
+
+petabricks::MatrixStoragePtr petabricks::MatrixStorageInfo::processPending() {
+  if(_coverage == 0)
+    return NULL;
+  //TODO: how to deal with queue when region is on multiple gpus?
+  CopyoutInfoPtr copy = new CopyoutInfo(_queue, this, _begins, _ends, _coverage);
+  while(!copy->complete()) {}
+  //std::cout << "process Pending" << std::endl;
+  copy->getGpuOutputStoragePtr()->print();
+  return copy->getGpuOutputStoragePtr();
+}
+
+void petabricks::MatrixStorageInfo::resetPending() {
+  _coverage = 0;
+  _begins.clear();
+  _ends.clear();
 }
 
 void petabricks::MatrixStorageInfo::releaseCLMem() {
@@ -263,7 +361,7 @@ void petabricks::MatrixStorageInfo::releaseCLMem() {
 void petabricks::MatrixStorageInfo::incCoverage(IndexT* begin, IndexT* end, int size) {
   _coverage += size;
   #ifdef DEBUG
-  JASSERT(_coverage <= _count).Text("Overwrite output.");
+  //JASSERT(_coverage <= _count).Text("Overwrite output.");
   #endif
   IndexT* myBegin = new IndexT[_dimensions];
   memcpy(myBegin, begin, sizeof(IndexT) * _dimensions);
@@ -275,7 +373,7 @@ void petabricks::MatrixStorageInfo::incCoverage(IndexT* begin, IndexT* end, int 
 
 petabricks::CopyoutInfo::CopyoutInfo(cl_command_queue& queue, MatrixStorageInfoPtr originalBuffer, std::vector<IndexT*>& begins, std::vector<IndexT*>& ends, int coverage) {
 #ifdef GPU_TRACE
-  std::cout << "CopyoutInfo" << std::endl;
+  std::cout << "CopyoutInfo _storageinfo = " << &(*originalBuffer) << std::endl;
 #endif
   _coverage = coverage;
   _done = false;
@@ -294,10 +392,10 @@ petabricks::CopyoutInfo::CopyoutInfo(cl_command_queue& queue, MatrixStorageInfoP
     _gpuOutputBuffer = originalBuffer->storage();
 
   //cl_int err = clSetEventCallBack(event, CL_COMPLETE, NULL, NULL);
-  //std::cout << this << " : start read buffer " << _refCount << std::endl;
 
   // Read buffer
   clEnqueueReadBuffer(queue, originalBuffer->_clmem, CL_FALSE, 0, originalBuffer->bytes(), _gpuOutputBuffer->data(), 0, NULL, &_event);
+  //_gpuOutputBuffer->print();
   clFlush(queue);
 }
 
@@ -312,7 +410,7 @@ bool petabricks::CopyoutInfo::complete() {
   cl_int ret;
   clGetEventInfo(_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &ret, NULL);
 #ifdef GPU_TRACE
-  std::cout << "status = " << ret << "  queue = " << CL_QUEUED << "  submitted = " << CL_SUBMITTED << "  running = " << CL_RUNNING << "  complete = " << CL_COMPLETE << std::endl;
+  //std::cout << "status = " << ret << "  queue = " << CL_QUEUED << "  submitted = " << CL_SUBMITTED << "  running = " << CL_RUNNING << "  complete = " << CL_COMPLETE << std::endl;
 #endif
   if(ret == CL_COMPLETE)
     _done = true;
