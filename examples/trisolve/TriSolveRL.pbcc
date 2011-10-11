@@ -1,11 +1,20 @@
 #ifndef TRISOLVERL_PBCC
 #define TRISOLVERL_PBCC
 
-// Right upper (RL) triangular solve
-// Solve XA = B for X, where A is upper triangular
+// Right lower (RL) triangular solve
+// Solve XA = B for X, where A is lower triangular
 
 #include "TriSolveLU.pbcc"
 #include "TriSolveGenerators.pbcc"
+
+transform TriSolveRLInPlace
+from UNITFLAG, A[n,n]
+to X[n,m]
+{
+    to (X x) from (UNITFLAG unitFlag, A a) {
+        TriSolveLUInPlace(x.transposed(), unitFlag, a.transposed());
+    }
+}
 
 transform TriSolveRL
 from UNITFLAG, A[n,n], B[n,m]
@@ -13,8 +22,8 @@ to X[n,m]
 generator TriSolveLGenerator
 {
     to (X x) from (UNITFLAG unitFlag, A a, B b) {
-        MatrixRegion2D x2 = x.transposed();
-        TriSolveLU(x2, unitFlag, a.transposed(), b.transposed());
+        Copy2D(x, b);
+        TriSolveRLInPlace(x, unitFlag, a);
     }
 }
 
