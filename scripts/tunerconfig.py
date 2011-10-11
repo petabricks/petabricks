@@ -94,9 +94,9 @@ class config_defaults:
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential']
   uniform_tunable_types       = ['system.flag.unrollschedule']
   autodetect_tunable_types    = ['user.tunable']
-  lognorm_sizespecific_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
+  lognorm_sizespecific_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.array']
   optimize_tunable_types      = ['user.tunable.double', 'user.tunable.double.array']
-  sizespecific_tunable_types  = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.double.array']
+  sizespecific_tunable_types  = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.double.array', 'user.tunable.array']
   ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg']
   
   #metric information, dont change
