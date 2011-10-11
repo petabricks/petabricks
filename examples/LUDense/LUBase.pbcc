@@ -1,9 +1,9 @@
-#ifndef PLU_PBCC 
-#define PLU_PBCC
+#ifndef LUBASE_PBCC
+#define LUBASE_PBCC
 
 #include "../simple/copy.pbcc"
 
-transform PLUleftwork
+transform LUleftwork
 from IN[n,m]
 to OUT[n,m]
 {
@@ -46,7 +46,7 @@ to OUT[n,m]
 
 }
 
-transform PLUscalecolumn
+transform LUscalecolumn
 from IN[n,m]
 to OUT[n,m]
 {
@@ -68,7 +68,7 @@ to OUT[n,m]
 }
 
 
-transform PLUleft
+transform LUleft
 from IN[n,m], Pin[m]
 through TEMP[n,m], Ptemp[m]
 to OUT[n,m], Pout[m]
@@ -98,7 +98,7 @@ to OUT[n,m], Pout[m]
                 // lazy update of all values in current column
                 if (j>0)
                 {
-                        PLUleftwork(temp.region(0,0,j+1,m),out.region(0,0,j+1,m));
+                        LUleftwork(temp.region(0,0,j+1,m),out.region(0,0,j+1,m));
                 }
 
                 Copy1D(out.column(j),temp.column(j));
@@ -108,7 +108,7 @@ to OUT[n,m], Pout[m]
                 MaxIndex=j;
                 for (k=j+1; k<m; k++)
                 {
-                        if (abs(temp.cell(j,k)) > abs(MaxElement)){
+                        if (fabs(temp.cell(j,k)) > fabs(MaxElement)){
                         MaxElement=temp.cell(j,k);
                         MaxIndex=k;
                         }
@@ -134,14 +134,14 @@ to OUT[n,m], Pout[m]
                 Copy1D(ptemp.region(j,m),pout.region(j,m));
                 Copy2D(temp.region(0,j,n,m),out.region(0,j,n,m));
 
-                PLUscalecolumn(out.region(j,j,j+1,m),temp.region(j,j,j+1,m));
+                LUscalecolumn(out.region(j,j,j+1,m),temp.region(j,j,j+1,m));
 
 
         }
 
         for (j=minmn; j<n; j++)
         {
-                PLUleftwork(temp.region(0,0,j+1,m),out.region(0,0,j+1,m));
+                LUleftwork(temp.region(0,0,j+1,m),out.region(0,0,j+1,m));
                 Copy1D(out.column(j),temp.column(j));
         }
 
@@ -152,7 +152,7 @@ to OUT[n,m], Pout[m]
 
 
 
-transform PLUrightwork
+transform LUrightwork
 from IN[n,m]
 to OUT[n,m]
 {
@@ -180,113 +180,93 @@ to OUT[n,m]
 
 
 
-transform PLUright
+transform LUright
 from IN[n,m], Pin[m]
 through TEMP[n,m], Ptemp[m]
 to OUT[n,m], Pout[m]
 {
 
-   to (OUT out, Pout pout, TEMP temp, Ptemp ptemp) from (IN in, Pin pin)
-   {
-	ElementT MaxElement;
-	int MaxIndex;
-	int minmn;
+    to (OUT out, Pout pout, TEMP temp, Ptemp ptemp) from (IN in, Pin pin)
+    {
+        ElementT MaxElement;
+        int MaxIndex;
+        int minmn;
         int j;
-	int k;
-	
-	Copy2D(temp, in);
-	Copy1D(ptemp, pin);
+        int k;
 
-	if ( m >= n ) {
-		minmn=n;
-	}
-	else {
-		minmn=m;
-	}
+        Copy2D(temp, in);
+        Copy1D(ptemp, pin);
+
+        if ( m >= n ) {
+            minmn=n;
+        }
+        else {
+            minmn=m;
+        }
 
         // for each column in square part of matrix
-	for (j=0; j<minmn; j++)
-	{
-                // find maximum element in column
-		MaxElement=temp.cell(j,j);
-        	MaxIndex=j;
-        	for (k=j+1; k<m; k++)
-        	{
-	  		if ( (temp.cell(j,k) != 0 ) && (abs(temp.cell(j,k)) > abs(MaxElement))){
-			MaxElement=temp.cell(j,k);
-			MaxIndex=k;
-	  		}
-        	}
+        for (j=0; j<minmn; j++)
+        {
+            // find maximum element in column
+            MaxElement=temp.cell(j,j);
+            MaxIndex=j;
+            for (k=j+1; k<m; k++)
+            {
+                if ( (temp.cell(j,k) != 0 ) && (fabs(temp.cell(j,k)) > fabs(MaxElement))){
+                    MaxElement=temp.cell(j,k);
+                    MaxIndex=k;
+                }
+            }
 
-                // save swapped row index in pout
-        	pout.cell(j)=ptemp.cell(MaxIndex);
+            // save swapped row index in pout
+            pout.cell(j)=ptemp.cell(MaxIndex);
 
-                // copy temp into out, row by row, accounting for swap
-        	Copy1D(out.row(j), temp.row(MaxIndex));
-        	for (k=j+1; k<m; k++)
-        	{
-	    		if (k==MaxIndex) 
-	    		{
-				pout.cell(k)=ptemp.cell(j);
-				Copy1D(out.row(k),temp.row(j));
-	    		}
-	    		else
-	    		{
-				pout.cell(k)=ptemp.cell(k);
-				Copy1D(out.row(k), temp.row(k));
-	    		}
-        	}
-	
+            // copy temp into out, row by row, accounting for swap
+            Copy1D(out.row(j), temp.row(MaxIndex));
+            for (k=j+1; k<m; k++)
+            {
+                if (k==MaxIndex)
+                {
+                    pout.cell(k)=ptemp.cell(j);
+                    Copy1D(out.row(k),temp.row(j));
+                }
+                else
+                {
+                    pout.cell(k)=ptemp.cell(k);
+                    Copy1D(out.row(k), temp.row(k));
+                }
+            }
 
-                // copy modified parts of out back into temp
-                Copy1D(ptemp.region(j,m),pout.region(j,m));
-                Copy2D(temp.region(0,j,n,m),out.region(0,j,n,m));	
-		
-                // scale current column and update trailing submatrix
-		PLUrightwork(temp.region(j,j,n,m),out.region(j,j,n,m));
-		
-                // copy last row/col updates from temp to out
-		if (j == minmn-1) {  Copy2D(out.region(j,j,n,m),temp.region(j,j,n,m)); }
-    	}
-   }
+
+            // copy modified parts of out back into temp
+            Copy1D(ptemp.region(j,m),pout.region(j,m));
+            Copy2D(temp.region(0,j,n,m),out.region(0,j,n,m));
+
+            // scale current column and update trailing submatrix
+            LUrightwork(temp.region(j,j,n,m),out.region(j,j,n,m));
+
+            // copy last row/col updates from temp to out
+            if (j == minmn-1) {  Copy2D(out.region(j,j,n,m),temp.region(j,j,n,m)); }
+        }
+    }
 }
 
-transform PLUnoblock
+transform LUBaseInner
 from IN[n,m], Pin[m]
 to OUT[n,m], Pout[m]
 {
- 
-
-/*
    to (OUT out, Pout pout) from (IN in, Pin pin)
    {
-      if (m==1 || n==1 )
-      {
-	PLUwork(out, in);
-        //out.cell(0,0)=in.cell(0,0);
-        Copy1D(pout, pin);
-      }
-      else
-      {
-        PLUinner(out, pout, in, pin);
-      }
+        LUright(out, pout, in, pin);
    }
-*/
 
    to (OUT out, Pout pout) from (IN in, Pin pin)
    {
-        PLUright(out, pout, in, pin);
+        LUleft(out, pout, in, pin);
    }
-
-
-   to (OUT out, Pout pout) from (IN in, Pin pin)
-   {
-        PLUleft(out, pout, in, pin);
-   }
-
 }
 
-transform PLU
+transform LUBase
 from IN[n,m]
 through Pinitial[m]
 to OUT[n,m], P[m]
@@ -295,18 +275,9 @@ to OUT[n,m], P[m]
 
    to (OUT out, P pout) from (IN in, Pinitial pin)
    {
-       //PLUright(out, pout, in, pin);
-       PLUnoblock(out,pout,in,pin);
+       LUBaseInner(out,pout,in,pin);
    }
-
-/*
-   to (OUT out, P pout) from (IN in, Pinitial pin)
-   {
-       PLUleft(out, pout, in, pin);
-   }
-*/
-
 }
 
 
-#endif // PLU_PBCC
+#endif // LUBASE_PBCC

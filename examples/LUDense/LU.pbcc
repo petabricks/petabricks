@@ -1,0 +1,121 @@
+#ifndef LU_PBCC
+#define LU_PBCC
+
+#include "../multiply/multiplyAdd.pbcc"
+#include "../trisolve/TriSolveLL.pbcc"
+#include "LUBase.pbcc"
+
+transform SwapElements
+from IN[n], P[n]
+to OUT[n]
+{
+    to (OUT out) from (IN in, P p)
+    {
+        for (int j=0; j<n; j++)
+        {
+            if (p.cell(j) >= 0 && p.cell(j) < n) {
+                out.cell(j)=in.cell(p.cell(j));
+            }
+            else {
+                out.cell(j)=in.cell(j);
+            }
+        }
+    }
+}
+
+transform SwapRows
+from IN[n,m], P[m]
+to OUT[n,m]
+{
+    to (OUT out) from (IN in, P p)
+    {
+        for (int j=0; j<m; j++)
+        {
+            if (p.cell(j) >= 0 && p.cell(j) < m) {
+                Copy1D(out.row(j), in.row(p.cell(j)));
+            }
+            else {
+                Copy1D(out.row(j),in.row(j));
+            }
+        }
+    }
+}
+
+transform LUGenerator
+to OUT[n,n]
+{
+    to (OUT.cell(j, i) out)
+    from ()
+    {
+        out = PetabricksRuntime::randNormal(0, 1);
+    }
+}
+
+transform LUBlock
+from IN[n, n]
+through TEMP[n, n], Ptemp[n], Pinit[n]
+to OUT[n, n], Pout[n]
+tunable sizespecific b
+{
+    Pinit.cell(j) from () { return j;}
+
+    to (OUT out, Pout pout, TEMP temp, Ptemp ptemp)
+    from (Pinit pinit, IN in)
+    {
+        //base case
+        if (b < 1 || b > n) {
+            LUBaseInner(out, pout, in, pinit);
+            return;
+        }
+
+        //get LU of left block by calling the base case
+        LUBaseInner(out.region(0, 0, n/b, n), pout,
+                     in.region(0, 0, n/b, n), pinit);
+
+        //swap right block
+        SwapRows(temp.region(n/b, 0, n, n),
+                   in.region(n/b, 0, n, n), pout);
+
+        //upper right block
+        TriSolveLL(out.region(n/b, 0, n, n/b), 1,
+                   out.region(0, 0, n/b, n/b),
+                  temp.region(n/b, 0, n, n/b));
+
+        //lower right block
+
+        //temp = in - left*up (this updates the lower right block)
+        MatrixMultiplyAdd(temp.region(n/b, n/b, n, n), -1,
+                           out.region(0, n/b, n/b, n),
+                           out.region(n/b, 0, n, n/b), 1);
+
+        //recursion to get LU of the remaining updated block
+        MatrixRegion1D phalf = MatrixRegion1D::allocate(n-n/b);
+        LU(out.region(n/b, n/b, n, n), phalf, temp.region(n/b, n/b, n, n));
+
+        //lower left block
+        Copy2D(temp.region(0, n/b, n/b, n), out.region(0, n/b, n/b, n));
+        SwapRows(out.region(0, n/b, n/b, n),temp.region(0, n/b, n/b, n), phalf);
+
+        //last half of Permutation vector
+        Copy1D(ptemp.region(n/b, n), pout.region(n/b, n));
+        SwapElements(pout.region(n/b, n), ptemp.region(n/b, n), phalf);
+    }
+}
+
+transform LU
+from IN[n,n]
+to OUT[n,n], P[n]
+generator LUGenerator
+{
+    to (OUT out, P p) from (IN in)
+    {
+        LUBlock(out, p, in);
+    }
+
+    to (OUT out, P p) from (IN in)
+    {
+        LUBase(out, p, in);
+    }
+}
+
+#endif // LU_PBCC

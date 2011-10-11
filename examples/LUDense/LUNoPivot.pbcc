@@ -1,0 +1,163 @@
+#ifndef LUNOPIVOT_PBCC
+#define LUNOPIVOT_PBCC
+
+#include "../multiply/multiply.pbcc"
+#include "../simple/add.pbcc"
+#include "../simple/copy.pbcc"
+#include "../simple/scale.pbcc"
+#include "../trisolve/TriSolveLL.pbcc"
+#include "../trisolve/TriSolveRU.pbcc"
+
+/*
+// element-wise version
+transform LUNoPivotByElement
+from IN[n,n]
+through A<n-1>[n,n]
+to OUT[n,n]
+{
+    to (A<0> a0) from (IN in)
+    {
+        Copy2D(a0, in);
+    }
+
+    primary
+    to   (A<k+1>.cell(j,i) aNext)
+    from (A<k  >.cell(j,i) aPrev,
+          A<k+1>.cell(k,i) left,
+          A<k  >.cell(j,k) up)
+    where k < i && k < j
+    {
+        aNext = aPrev - left * up;
+    }
+
+    to   (A<k+1>.cell(j,i) aNext)
+    from (A<k  >.cell(j,i) aPrev,
+          A<k  >.cell(j,k) up)
+    where i > j && k == j
+    {
+        aNext = aPrev / up;
+    }
+
+    to   (A<k+1>.cell(i,j) aNext)
+    from (A<k  >.cell(i,j) aPrev)
+    {
+        aNext = aPrev;
+    }
+
+    to (OUT out) from (A<n-1> an)
+    {
+        Copy2D(out, an);
+    }
+}
+*/
+
+// Perform the rank 1 operation: A := alpha*x*y**T + A,
+// where alpha is a scalar, x is an m element vector, y is an n element
+// vector and A is an m by n matrix.
+transform DGER
+from ALPHA, X[1, m], Y[n, 1]
+to A[n, m]
+{
+    to (A.cell(j, i) a)
+    from (ALPHA alpha,
+          X.cell(0, i) x,
+          Y.cell(j, 0) y)
+    {
+        a += alpha * x * y;
+    }
+}
+
+// assume OUT contains a copy of IN and do the computation in-place
+transform LUNoPivotBaseInPlace
+from DUMMY
+to OUT[n,m]
+{
+    to (OUT out)
+    from ()
+    {
+        if (m > 1 && out.cell(0, 0) != 1) {
+            Scale(out.region(0, 1, 1, n), 1.0 / out.cell(0, 0));
+        }
+        if (m > 1 && n > 1) {
+            DGER(out.region(1, 1, n, m), -1.0,
+                 out.region(0, 1, 1, m),
+                 out.region(1, 0, n, 1));
+            LUNoPivotBaseInPlace(out.region(1, 1, n, m), 1);
+        }
+    }
+}
+
+transform LUNoPivotBase
+from IN[n,m]
+to OUT[n,m]
+{
+    to (OUT out)
+    from (IN in)
+    {
+        Copy2D(out, in);
+        LUNoPivotBaseInPlace(out, 1);
+    }
+}
+
+transform LUNoPivotRecursive
+from IN[n, n]
+to OUT[n, n]
+{
+  //get LU of upper left block by recursion
+  to (OUT.region(0,0,n/2,n/2) out)
+  from (IN.region(0,0,n/2,n/2) in)
+  {
+    LUNoPivot(out,in);
+  }
+
+  //upper right block
+  to (OUT.region(n/2,0,n,n/2) out)
+  from (IN.region(n/2,0,n,n/2) in,
+	OUT.region(0,0,n/2,n/2) leftdiag)
+  {
+    TriSolveLL(out, 1, leftdiag, in);
+  }
+
+  //lower left block
+  to (OUT.region(0,n/2,n/2,n) out)
+  from (IN.region(0,n/2,n/2,n) in,
+        OUT.region(0,0,n/2,n/2) updiag)
+  {
+    TriSolveRU(out, 0, updiag, in);
+  }
+
+  //lower right block
+  to (OUT.region(n/2,n/2,n,n) out)
+  from (IN.region(n/2,n/2,n,n) in,
+        OUT.region(n/2,0,n,n/2) up,
+        OUT.region(0,n/2,n/2,n) left)
+  {
+    // out = in - left*up (this updates the lower right block)
+    Copy2D(out, in);
+    MatrixMultiplyAdd(out, -1, left, up, 1);
+
+    //recursion to get LU of the remaining updated block
+    LUNoPivot(out, out);
+  }
+}
+
+transform LUNoPivot
+from IN[n,n]
+to OUT[n,n]
+{
+  to (OUT out) from (IN in)
+  {
+    if (n == 1) {
+      out.cell(0,0) = in.cell(0,0);
+    } else {
+      LUNoPivotRecursive(out,in);
+    }
+  }
+
+  to (OUT out) from (IN in)
+  {
+    LUNoPivotBase(out,in);
+  }
+}
+
+#endif // LUNOPIVOT_PBCC

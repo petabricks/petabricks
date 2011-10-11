@@ -119,6 +119,9 @@ public:
     _directDependsOriginal[n].direction.addDirection(dir);
   }
 
+
+  bool dependencyPossible(ChoiceDepGraphNode* n, const DependencyDirection& dir) const;
+
   ///
   /// Print this node name in graphviz/dot format
   void printNode(std::ostream& os) const;
