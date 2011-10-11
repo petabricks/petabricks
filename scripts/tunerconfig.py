@@ -94,7 +94,7 @@ class config_defaults:
   autodetect_tunable_types    = ['user.tunable']
   
   
-  ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg', 'user.tunable.double',
+  ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg', 'user.tunable.double', 'system.runtime.threads']
   lognorm_array_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
   lognorm_sizespecific_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.array']
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential', 'system.cutoff.distributed']
