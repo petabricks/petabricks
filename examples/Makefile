@@ -21,7 +21,7 @@ clean:
 	@echo removing *.heur
 	@rm -f $(addsuffix .heur, $(BINS))
 	@echo removing *.tmp
-	@rm -f $(addsuffix .tmp, $(BINS))
+	@rm -rf $(addsuffix .tmp, $(BINS))
 	@echo "removing backup (*.pbcc~) files"
 	@rm -f $(addsuffix .pbcc~, $(BINS))
 
