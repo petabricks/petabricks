@@ -103,13 +103,13 @@ OutputContent: Formula                          { ($$=REFALLOC(FormulaList()))->
 ;
 
 
-Formula: IDENT   { std::cout << "Formula: " << $1 << "\n"; $$=REFALLOC( FormulaVariable($1) ); }
-       | Integer { std::cout << "Formula: " << $1 << "\n"; $$=REFALLOC( FormulaInteger( $1) ); }
-       | Bool    { std::cout << "Formula: " << $1 << "\n"; $$=REFALLOC( FormulaBool($1) ); }
-       | Float   { std::cout << "Formula: " << $1 << "\n"; $$=REFALLOC( FormulaFloat(  $1) );  }
+Formula: IDENT   { $$=REFALLOC( FormulaVariable($1) ); }
+       | Integer { $$=REFALLOC( FormulaInteger( $1) ); }
+       | Bool    { $$=REFALLOC( FormulaBool($1) ); }
+       | Float   { $$=REFALLOC( FormulaFloat(  $1) );  }
        | '(' Formula ')' { $$=$2; } 
-       | FormulaBinop    { std::cout << "Formula: " << $1->toString() << "\n"; $$=$1; }
-       | FormulaIf       { std::cout << "Formula: " << $1->toString() << "\n"; $$=$1; };
+       | FormulaBinop    { $$=$1; }
+       | FormulaIf       { $$=$1; };
 
 FormulaIf: IF Formula THEN Formula { $$=REFALLOC( FormulaIf($2, $4)); }
          | IF Formula THEN Formula ELSE Formula { $$=REFALLOC( FormulaIf($2, $4, $6)); };

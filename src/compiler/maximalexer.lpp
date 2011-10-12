@@ -78,21 +78,21 @@ WS [ \r\n\t]
 <output>{
   {WS}+               /* whitespace */
   "<="                return LE;
-  ">="                printf("Token: >=\n"); return GE;
+  ">="                return GE;
   "true"              return BOOL_T;
   "false"             return BOOL_F;
   "equal"             return STR_EQUAL;
   "ceiling"           return STR_CEILING;
   "floor"             return STR_FLOOR;
-  "if"                printf("Token: if\n");return IF;
-  "then"              printf("Token: then\n");return THEN;
-  "else"              printf("Token: else\n");return ELSE;
-  "and"               printf("Token: and\n");return AND;
-  "or"                printf("Token: or\n");return OR;
+  "if"                return IF;
+  "then"              return THEN;
+  "else"              return ELSE;
+  "and"               return AND;
+  "or"                return OR;
   {PASS_CHARS}        return yytext[0];
-  [0-9]+              printf("Token: %s\n", yytext);return INTEGER;
+  [0-9]+              return INTEGER;
   [0-9]+[.][0-9]+     return FLOAT;
-  [a-z_][a-z0-9_]*    printf("Token: %s\n", yytext);return IDENT;
+  [a-z_][a-z0-9_]*    return IDENT;
 }
 
 <*>{
