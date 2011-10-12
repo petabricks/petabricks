@@ -312,14 +312,14 @@ def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=Non
     return status
   
   
-def compileBenchmarks(benchmarks, learning=False, noLearningList=[]):
+def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noLearningList=[]):
   NULL=open("/dev/null","w")
   pbc="./src/pbc"
   libdepends=[pbc, "./src/libpbmain.a", "./src/libpbruntime.a", "./src/libpbcommon.a"]
   assert os.path.isfile(pbc)
   benchmarkMaxLen=0
   jobs_per_pbc=max(1, 2*cpuCount() / len(benchmarks))
-  compiler = LearningCompiler(pbc, minTrialNumber=5, jobs=jobs_per_pbc)
+  compiler = LearningCompiler(pbc, heuristicSetFileName, minTrialNumber=5, jobs=jobs_per_pbc)
 
   def innerCompileBenchmark(name):
     print name.ljust(benchmarkMaxLen)
@@ -372,7 +372,7 @@ def compileBenchmarks(benchmarks, learning=False, noLearningList=[]):
   else:
     return parallelRunJobs(jobs)
 
-def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postfn=lambda b: True, learning=False, noLearningList=[]):
+def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postfn=lambda b: True, learning=False, heuristicSetFileName=None, noLearningList=[]):
   chdirToPetabricksRoot()
   compilePetabricks()
   benchmarks=open(file)
@@ -388,7 +388,7 @@ def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postf
   for b in benchmarks:
     b[0]=normalizeBenchmarkName(b[0])
 
-  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x), lambda: postfn(x[0])), benchmarks), learning, noLearningList), benchmarks
+  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x), lambda: postfn(x[0])), benchmarks), learning, heuristicSetFileName, noLearningList), benchmarks
 
 def killSubprocess(p):
   if p.poll() is None:
