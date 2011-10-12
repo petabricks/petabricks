@@ -16,12 +16,12 @@ void trsm_wrap(char *side, char *uplo, char *transa, char *diag, const int *m, c
 %}
 
 transform TriSolveLAPACK
-from RIGHTFLAG, UPFLAG, UNITFLAG, ALPHA, INA[aw,ah], INB[n,m]
-to OUT[n,m]
+from RIGHTFLAG, UPFLAG, UNITFLAG, ALPHA, A[aw,ah]
+to X[n,m]
 {
-    to (OUT out)
+    to (X x)
     from (RIGHTFLAG rightFlag, UPFLAG upFlag, UNITFLAG unitFlag,
-          ALPHA _alpha, INA ina, INB inb)
+          ALPHA _alpha, A a)
     {
         char side, uplo, transa = 'N', diag;
         const int lda = ah;
@@ -41,18 +41,16 @@ to OUT[n,m]
             exit(-1);
         }
 
-        // pack input
+        // pack inputs
         int i, j;
         for (i = 0; i < ah; ++i) {
             for (j = 0; j < aw; ++j) {
-                // PetaBricks - first index is column, second is row
-                A[INDEX2D(i, j, ah)] = ina.cell(j, i);
+                A[INDEX2D(i, j, ah)] = a.cell(j, i);
             }
         }
         for (i = 0; i < m; ++i) {
             for (j = 0; j < n; ++j) {
-                // PetaBricks - first index is column, second is row
-                B[INDEX2D(i, j, m)] = inb.cell(j, i);
+                B[INDEX2D(i, j, m)] = x.cell(j, i);
             }
         }
 
@@ -61,7 +59,7 @@ to OUT[n,m]
         // unpack output
         for (i = 0; i < n; ++i) {
             for (j = 0; j < m; ++j) {
-                out.cell(i, j) = B[INDEX2D(j, i, m)];
+                x.cell(i, j) = B[INDEX2D(j, i, m)];
             }
         }
 
@@ -71,4 +69,3 @@ to OUT[n,m]
 }
 
 #endif // TRISOLVELAPACK_PBCC
-

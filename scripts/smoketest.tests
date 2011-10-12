@@ -27,6 +27,8 @@ trisolve/TriSolveRL        Zero0D Rand2Da Rand2Db
 trisolve/TriSolveRL        One0D Rand2Da Rand2Db
 trisolve/TriSolveRU        Zero0D Rand2Da Rand2Db
 trisolve/TriSolveRU        One0D Rand2Da Rand2Db
+LUDense/LUNoPivot          Rand2Da
+LUDense/LUTest             Rand2Da
 matrixapprox/matrixapprox  MatApproxRand2D
 multiply/multiply          Rand2Da Rand2Db
 multiply/strassen          Rand2Da Rand2Db
@@ -64,6 +66,7 @@ sort/Sort                  Rand1D
 sort/Sort                  Rand1Dodd
 regression/accuracymetric  Rand1D
 regression/assign0d
+regression/backwards       Rand1D
 regression/calltx          Rand2Da
 regression/cycledep        Rand1D
 regression/coordflip       Rand1D

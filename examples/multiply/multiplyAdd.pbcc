@@ -175,9 +175,9 @@ to C[w,h]
 
     toMatrix(arrayC, c);
 
-    delete arrayA;
-    delete arrayB;
-    delete arrayC;
+    delete [] arrayA;
+    delete [] arrayB;
+    delete [] arrayC;
   }
 }
 

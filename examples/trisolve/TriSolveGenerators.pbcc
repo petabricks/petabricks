@@ -1,7 +1,7 @@
 #ifndef TRISOLVEGENERATORS_PBCC
 #define TRISOLVEGENERATORS_PBCC
 
-#include "../LUDense/PLUrecur.pbcc"
+#include "../LUDense/LU.pbcc"
 
 %{
 void printMatrix(const ConstMatrixRegion2D A)
@@ -67,7 +67,7 @@ to UNITFLAG, T[n,n], B[n,n]
     {
         unitFlag = PetabricksRuntime::randInt(0, 2);  // coin flip
         MatrixRegion1D p = MatrixRegion1D::allocate(n);
-        PLUrecur(t, p, a);
+        LU(t, p, a);
         Tri(t, upFlag);
 
 //        printMatrix(t);

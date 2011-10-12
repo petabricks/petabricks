@@ -453,6 +453,7 @@ void petabricks::Region::determineDependencyDirection(const size_t dimension, co
         direction.addDirection(dimension, DependencyDirection::D_EQ);
     }
   }
+
 }
 
 void petabricks::Region::collectDependencies(const Transform& tx, const RuleInterface& rule, MatrixDependencyMap& map) const {

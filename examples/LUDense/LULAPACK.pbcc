@@ -1,9 +1,7 @@
-#ifndef LUDENSE_PBCC
-#define LUDENSE_PBCC
+#ifndef LULAPACK_PBCC
+#define LULAPACK_PBCC
 
 #define INDEX2D(i0, i1, s0) ((i1) * (s0) + (i0))
-
-#include "../simple/copy.pbcc"
 
 %{
 extern "C" void dgetrf_(const int *m, const int *n, double *A, const int *lda, int *ipiv, int *info);
@@ -17,7 +15,7 @@ void getrf_wrap(const int *m, const int *n, float *A, const int *lda, int *ipiv,
 }
 %}
 
-transform LUDense
+transform LULAPACK
 from IN[n,n]
 to OUT[n,n], P[n]
 {
@@ -41,7 +39,7 @@ to OUT[n,n], P[n]
         int i, j;
         for (i = 0; i < n; ++i) {
             for (j = 0; j < n; ++j) {
-		        // PetaBricks - first index is column, second is row
+                // PetaBricks - first index is column, second is row
                 A[INDEX2D(i, j, n)] = in.cell(j, i);
             }
         }
@@ -67,49 +65,4 @@ to OUT[n,n], P[n]
     }
 }
 
-/* Complicated Version (By-element version, no pivoting. Verified it works) */
-
-/*
-transform LUnopivot
-from IN[n,n]
-through A<n-1>[n,n]
-to OUT[n,n]
-{
-  to (A<0> a0) from (IN in) {
-        Copy2D(a0, in);
-  }
-
-
-  primary to (A<k+1>.cell(j,i) aNext)
-  from (A<k>.cell(j,i) aPrev,
-        A<k+1>.cell(k,i) left,
-        A<k>.cell(j,k) up)
-  where k < i && k < j
-  {
-        aNext = aPrev - left * up;
-  }
-
-
-  to (A<k+1>.cell(j,i) aNext)
-  from (A<k>.cell(j,i) aPrev,
-        A<k>.cell(j,k) up)
-  where i > j && k == j
-  {
-        aNext = aPrev / up;
-  }
-
-  to (A<k+1>.cell(i,j) aNext)
-  from (A<k>.cell(i,j) aPrev)
-  {
-        aNext = aPrev;
-  }
-
-  to (OUT out) from (A<n-1> an) {
-        Copy2D(out, an);
-  }
-}
-*/
-
-
-#endif // LUDENSE_PBCC
-
+#endif // LULAPACK_PBCC
