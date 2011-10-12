@@ -125,7 +125,7 @@ public:
   void addHeuristic(const std::string name, const std::string formula) {
     _os << "  <heuristic";
     _os << " name=\"" << name << "\"";
-    _os << " formula=\"" << formula << "\"";
+    _os << " formula=\"" << jalib::escapeXML(formula) << "\"";
     _os << " />\n";
   }
   

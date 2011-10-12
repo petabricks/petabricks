@@ -84,9 +84,9 @@ void petabricks::HeuristicManager::loadFromFile(const std::string fileName) {
     
     if (found) {
       //Add to the list of heuristics
-      JTRACE("Matches")(submatch[0])(submatch[1])(submatch[2]);
       std::string name = submatch[1];
-      std::string formula = submatch[2];
+      std::string formula = jalib::unescapeXML(submatch[2]);
+      JTRACE("Matches")(submatch[0])(name)(formula);
       Heuristic* newHeuristic= new Heuristic(formula);
       
       _fromFile[name]=HeuristicPtr(newHeuristic);

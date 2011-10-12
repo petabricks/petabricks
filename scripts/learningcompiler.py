@@ -1,19 +1,23 @@
 #!/usr/bin/python
+"""This script compiles multiple instances of a program trying out different
+heuristics, and storing in the database the best one that is found"""
 import sys
 import os
 import shutil
 import sqlite3
 import random
 import xml.dom.minidom
+import re
+from xml.sax.saxutils import escape
 from pbutil import compileBenchmark
 from sgatuner import autotune
 from tunerconfig import config
 
 #--------- Config ------------------
 conf_deleteTempDir = True
-conf_minTrialNumber = 5
+conf_minTrialNumber = 6
 #--------- Autotuner config --------
-config.max_time=1 #Seconds
+config.max_time=10 #Seconds
 #-----------------------------------
 
 
@@ -104,7 +108,7 @@ class HeuristicDB:
   
 class HeuristicSet(dict):
   def toXmlStrings(self):
-    return ["""<heuristic name="{0}" formula="{1}" />""".format(name, self[name]) for name in self]
+    return ["""<heuristic name="{0}" formula="{1}" />""".format(name, escape(self[name])) for name in self]
   
   def toXmlFile(self, filename):
     outfile = open(filename, "w")
@@ -193,17 +197,60 @@ class HeuristicManager:
     
 
 
-
 class LearningCompiler:
   def __init__(self, pbcExe, heuristicSetFileName, minTrialNumber=0):
     self.__heuristicManager = HeuristicManager(heuristicSetFileName)
     self.__minTrialNumber = minTrialNumber
     self.__pbcExe = pbcExe    
     
+    
+  def bestCandidate(self, candidates):
+    """Determines which candidate is the best, given a set of candidates with 
+all their timings
+
+Returns the index of the best candidate in the array"""
+    #Get the maximum number of dimensions candidates have
+    maxDimensions = 0
+    fasterCandidates = {}
+    count=0
+    for candidate in candidates:
+      candidateDimensions=len(candidate.metrics[0])
+      if candidateDimensions > maxDimensions:
+        fasterCandidates = {}
+      if candidateDimensions >= maxDimensions:
+        maxDimensions = candidateDimensions
+        fasterCandidates[candidate] = count
+      count = count+1
+
+    if len(fasterCandidates) == 1:
+      #One candidate has analyzed more dimensions than the others:
+      #it was faster!
+      return fasterCandidates[fasterCandidates.keys()[0]]
+      
+    #Select best candidate:
+    #the one on average faster on the biggest dimension
+    bestScore = float("inf")
+    bestIndex = None
+    for candidate in fasterCandidates.keys():
+      timingResultDB = candidate.metrics[0] #Get the 'timings' metric
+      #The score for each candidate is the average timing on the highest shared 
+      #dimension
+      results = timingResultDB[2**(maxDimensions-1)]
+      average = results.mean()
+      if average < bestScore:
+        bestScore=average
+        bestIndex=fasterCandidates[candidate]
+      
+    return bestIndex
+    
+    
+
   def compileLearningHeuristics(self, benchmark):
     #Define file names
     path, basenameExt = os.path.split(benchmark)
-    basename, ext = os.path.splitext(basenameExt);
+    if path == "":
+      path="./"
+    basename, ext = os.path.splitext(basenameExt)
     basesubdir=os.path.join(path,basename+".tmp")
     
     #Init variables
@@ -257,28 +304,7 @@ class LearningCompiler:
       
       count = count + 1
       
-    #Get the number of dimensions available for all candidates
-    dimensions = len(candidates[0].metrics[0])
-    for candidate in candidates:
-      dimensions = min(len(candidate.metrics[0]), dimensions)
-      
-    #Select best candidate (only looking at the biggest shared dimensions)
-    scores = []
-    for candidate in candidates:
-      timingResultDB = candidate.metrics[0] #Get the 'timings' metric
-      #The score for each candidate is the average timing on the highest shared 
-      #dimension
-      results = timingResultDB[2**(dimensions-1)]
-      scores.append(float(results.mean()))
-      
-    minScore = scores[0]
-    p=0
-    bestIndex=0
-    for s in scores:
-      if s<minScore:
-        minScore=s
-        bestIndex=p
-      p=p+1
+    bestIndex = self.bestCandidate(candidates)
     
     print "The best candidate is: {0}".format(bestIndex)
   

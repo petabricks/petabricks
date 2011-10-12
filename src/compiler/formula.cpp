@@ -293,8 +293,18 @@ char petabricks::FormulaBinop<OP>::opType() const {
   return OP;
 }
   
+void petabricks::FormulaIf::print(std::ostream& o) const
+{
+  std::string elseClause= _else ? " else "+_else->toString() +" ": "";
+  o << "(if " << _cond << " then " << _then << elseClause << ")";
+}
 
-
+petabricks::FormulaIf::FormulaIf(const FormulaPtr& cond, const FormulaPtr& thenClause, const FormulaPtr& elseClause) : 
+    Formula(theNullFreeVarsList()),
+    _cond(cond),
+    _then(thenClause),
+    _else(elseClause) {}
+  
 //force implementations to be generated for templates
 template class petabricks::FormulaLiteral<int>;
 template class petabricks::FormulaLiteral<double>;

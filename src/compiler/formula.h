@@ -198,6 +198,24 @@ private:
 };
 
 /**
+ * Node in a formula tree representing a conditional
+ */
+class FormulaIf : public Formula {
+public:
+  FormulaIf(const FormulaPtr& cond, const FormulaPtr& thenClause, const FormulaPtr& elseClause=FormulaPtr());
+  void print(std::ostream& o) const;
+  virtual FormulaPtr clone() const { FormulaPtr newCond = _cond->clone();
+                                     FormulaPtr newThen = _then->clone();
+                                     FormulaPtr newElse = _else->clone();
+                                     return FormulaPtr(new FormulaIf(newCond, newThen, newElse));
+                                   }
+private:
+  FormulaPtr _cond;
+  FormulaPtr _then;
+  FormulaPtr _else;
+};
+
+/**
  * Node in a formula tree representing an int or double
  */
 template< typename T >

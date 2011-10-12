@@ -241,6 +241,69 @@ namespace jalib
     return std::numeric_limits<T>::max();
   }
 
+  ///Replaces every occurrence "str" with "withStr" in string "inStr"
+  inline std::string replace(const std::string str, const std::string withStr, const std::string inStr) {
+    int pos;
+    std::string result=inStr;
+    while((pos=result.find(str)) != std::string::npos) {
+      result=result.replace(pos, str.length(), withStr);
+    }
+    
+    return result;
+  }
+
+  /**
+   * Escape characters that will interfere with xml.
+   *
+   * @param sSrc The src string to escape.
+   * @return sSrc encoded for insertion into xml.
+   */
+  inline std::string escapeXML( const std::string &sSrc ) {
+      std::ostringstream sRet;
+
+      for( std::string::const_iterator iter = sSrc.begin(); iter!=sSrc.end(); iter++ )
+      {
+           unsigned char c = (unsigned char)*iter;
+
+           switch( c )
+           {
+               case '&': sRet << "&amp;"; break;
+               case '<': sRet << "&lt;"; break;
+               case '>': sRet << "&gt;"; break;
+               case '"': sRet << "&quot;"; break;
+               case '\'': sRet << "&apos;"; break;
+
+               default:
+                if ( c<32 || c>127 )
+                {
+                     sRet << "&#" << (unsigned int)c << ";";
+                }
+                else
+                {
+                     sRet << c;
+                }
+           }
+      }
+
+      return sRet.str();
+  }
+
+  /**
+   * Unescape characters that whould have interfered with xml.
+   *
+   * @param sSrc The src string to escape.
+   * @return sSrc encoded for insertion into xml.
+   */
+  inline std::string unescapeXML( const std::string &sSrc ) {
+    std::string result;
+    result = replace("&amp;", "&", sSrc);
+    result = replace("&lt;", "<", result);
+    result = replace("&gt;", ">", result);
+    result = replace("&quot;", "\"", result);
+    result = replace("&apos;", "\\", result);
+    return result;
+  }
+
 }//namespace jalib
 
 #endif

@@ -300,7 +300,6 @@ def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=Non
       os.unlink(binary)
       
     #Execute the compiler
-    print "Executing " + str(cmd)
     p = subprocess.Popen(cmd, stdout=NULL, stderr=NULL)
     status = p.wait()
     return status
@@ -320,7 +319,7 @@ def compileBenchmarks(benchmarks):
     binary=benchmarkToBin(name)
     
     srcModTime=max(os.path.getmtime(src), reduce(max, map(os.path.getmtime, libdepends)))
-    if os.path.isfile(bin) and os.path.getmtime(bin) > srcModTime:
+    if os.path.isfile(binary) and os.path.getmtime(binary) > srcModTime:
       print "compile SKIPPED"
       return True  
     try:
