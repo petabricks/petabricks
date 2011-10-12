@@ -108,7 +108,7 @@ void petabricks::FormulaBinop<OP>::print(std::ostream& o) const {
       printPower(_toStringCache, _left, _right);
     }else{
       std::ostringstream ss;
-      ss << '(' << _left << opStr() << _right << ')';
+      ss << '(' << _left << " " << opStr() << " " << _right << ')';
       _toStringCache = ss.str();
     }
   }
@@ -119,8 +119,8 @@ template < char OP >
 const char* petabricks::FormulaBinop<OP>::opStr() {
   if(OP=='G') return ">=";
   if(OP=='L') return "<=";
-  if(OP=='&') return "&&";
-  if(OP=='|') return "||";
+  if(OP=='&') return "and";
+  if(OP=='|') return "or";
   static const char v[] = {OP , 0};
   return v;
 }

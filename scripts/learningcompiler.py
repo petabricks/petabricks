@@ -17,7 +17,7 @@ from tunerconfig import config
 conf_deleteTempDir = True
 conf_minTrialNumber = 6
 #--------- Autotuner config --------
-config.max_time=10 #Seconds
+config.max_time=20 #Seconds
 #-----------------------------------
 
 
@@ -296,7 +296,9 @@ Returns the index of the best candidate in the array"""
       
       status = compileBenchmark(self.__pbcExe, benchmark, binary=binary, heuristics=heuristicsFile)
       if status != 0:
-        print "Compile FAILED!"
+        print "Compile FAILED"
+        print "while using heuristics: "
+        print hSet
         quit()
         
       #Autotune
