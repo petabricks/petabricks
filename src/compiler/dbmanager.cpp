@@ -26,6 +26,7 @@
  *****************************************************************************/
 
 #include "dbmanager.h"
+#include <fstream>
 
 namespace {
   /** Multiprocess-safe Wrapper of sqlite3_exec: if a query fails because 
@@ -52,15 +53,27 @@ namespace {
     *((petabricks::HeuristicPtr *)result) = newHeuristic;
     return 0;
   }
+  
+  /** Check whether file exists */
+  bool fexists(std::string filename)
+  {
+    std::ifstream ifile(filename.c_str());
+    return ifile;
+  }
 }
 
-petabricks::DBManager::DBManager(std::string dbFileName) {
+petabricks::DBManager::DBManager(std::string dbFileName) : emptyDB(false) {
   int retCode;
 
   if(dbFileName=="") {
     dbFileName=defaultDBFileName();
   }
   
+  //Check if DB exists
+  if(! fexists(dbFileName)) {
+    emptyDB = true;
+  }
+    
   //Open DB
   retCode = sqlite3_open(dbFileName.c_str(), &_db);
   if(retCode) {
@@ -82,15 +95,20 @@ petabricks::HeuristicPtr petabricks::DBManager::getBestHeuristic(std::string nam
   char *zErrMsg = 0;
   HeuristicPtr result;
   
+  if(emptyDB) {
+    //Return empty result
+    return result;
+  }
+  
   std::string query = "SELECT formula FROM Heuristic JOIN HeuristicKind "
                       "ON Heuristic.kindID=HeuristicKind.ID "
                       "WHERE HeuristicKind.name='"+ name + "' "
-                      "ORDER BY Heuristic.useCount DESC "
+                      "ORDER BY Heuristic.bestCount/Heuristic.useCount DESC "
                       "LIMIT 1";
                       
   retCode = db_exec(_db, query.c_str(), getHeuristic, &result, &zErrMsg);
   if (retCode) {
-    std::cerr << "Error getting the required heuristic: " << zErrMsg << "\n";
+    std::cerr << "Error getting the required heuristic: (" << retCode << ") " << zErrMsg << "\n";
     sqlite3_free(zErrMsg);
     sqlite3_close(_db);
     abort();

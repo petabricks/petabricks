@@ -44,7 +44,7 @@ class HeuristicDB:
     self.__createTable("HeuristicKind", "('ID' INTEGER PRIMARY KEY AUTOINCREMENT, "
                                         "'name' TEXT UNIQUE)")
     self.__createTable("Heuristic", "('kindID' INTEGER, 'formula' TEXT, "
-                                    "'useCount' INTEGER, "
+                                    "'useCount' INTEGER, 'bestCount' INTEGER,"
                                     "PRIMARY KEY (kindID, formula), "
                                     "FOREIGN KEY ('kindID') REFERENCES 'HeuristicKind' ('ID')"
                                     "ON DELETE CASCADE ON UPDATE CASCADE)")
@@ -71,6 +71,17 @@ class HeuristicDB:
     self.__db.commit()
     return self.getHeuristicKindID(kindName)
     
+  def increaseHeuristicBestCount(self, name, formula):
+    kindID=self.storeHeuristicKind(name) 
+    cur = self.__db.cursor()
+    query = "UPDATE Heuristic SET bestCount=bestCount+1 WHERE kindID=? AND formula=?"
+    cur.execute(query, (kindID, formula))
+    if cur.rowcount == 0:
+      #There was no such heuristic in the DB: is should be present as USED!!
+      raise Exception("The following formula was not present in the DB: \n"+formula)
+    cur.close()
+    self.__db.commit()
+  
   def increaseHeuristicUseCount(self, name, formula):
     kindID=self.storeHeuristicKind(name) 
     cur = self.__db.cursor()
@@ -78,12 +89,19 @@ class HeuristicDB:
     cur.execute(query, (kindID, formula))
     if cur.rowcount == 0:
       #There was no such heuristic in the DB: let's add it
-      query = "INSERT INTO Heuristic (kindID, formula, useCount) VALUES (?, ?, 1)"
+      query = "INSERT INTO Heuristic (kindID, formula, useCount, bestCount) VALUES (?, ?, 1, 0)"
       cur.execute(query, (kindID, formula))
     cur.close()
     self.__db.commit()
-    
-  def addHeuristicSet(self, hSet):
+  
+  def markAsBest(self, hSet):
+    """Mark a set of heuristics as selected as the best one for an executable"""
+    #TODO: also store it as a set
+    for name, formula in hSet.iteritems():
+      self.increaseHeuristicBestCount(name, formula)
+      
+  def markAsUsed(self, hSet):
+    """Mark a set of heuristics as used for generating a candidate executable"""
     #TODO: also store it as a set
     for name, formula in hSet.iteritems():
       self.increaseHeuristicUseCount(name, formula)
@@ -97,7 +115,7 @@ class HeuristicDB:
       #Fall back to accessing the db
       pass
     cur = self.__db.cursor()
-    query = "SELECT formula FROM Heuristic JOIN HeuristicKind ON Heuristic.kindID=HeuristicKind.ID WHERE HeuristicKind.name=? ORDER BY Heuristic.useCount DESC LIMIT ?"
+    query = "SELECT formula FROM Heuristic JOIN HeuristicKind ON Heuristic.kindID=HeuristicKind.ID WHERE HeuristicKind.name=? ORDER BY Heuristic.bestCount/Heuristic.useCount DESC LIMIT ?"
     cur.execute(query, (name, N))
     result = [row[0] for row in cur.fetchall()]
     cur.close()
@@ -318,6 +336,13 @@ Returns the index of the best candidate in the array"""
         print hSet
         return status
         
+      #Get the actual used hset (including default formulas from the 
+      #compiler itself, if any)
+      infoxml = xml.dom.minidom.parse(binary+".info")
+      usedHSet = HeuristicSet()
+      usedHSet.importFromXml(infoxml)
+      db.markAsUsed(usedHSet)
+      
       #Autotune
       try:
         autotune(binary, candidates)
@@ -365,11 +390,11 @@ Returns the index of the best candidate in the array"""
     if conf_deleteTempDir:
       shutil.rmtree(basesubdir)
     
-    #Take the data about the used heuristics and store it into the db
+    #Take the data about the best heuristics and store it into the db
     infoxml = xml.dom.minidom.parse(finalInfo)
     hSet = HeuristicSet()
     hSet.importFromXml(infoxml)
-    db.addHeuristicSet(hSet)
+    db.markAsBest(hSet)
     
     return 0
     

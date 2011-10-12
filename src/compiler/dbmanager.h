@@ -48,6 +48,7 @@ public:
   
 private:
   sqlite3 *_db;
+  bool emptyDB;
 };
   
 }
