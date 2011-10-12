@@ -1,0 +1,33 @@
+#ifndef TRISOLVE_PBCC
+#define TRISOLVE_PBCC
+
+#include "TriSolveLL.pbcc"
+#include "TriSolveLU.pbcc"
+#include "TriSolveRL.pbcc"
+#include "TriSolveRU.pbcc"
+
+transform TriSolve
+from RIGHTFLAG, UPFLAG, UNITFLAG, A[aw,ah], B[n,m]
+to X[n,m]
+{
+    to (X x)
+    from (RIGHTFLAG rightFlag, UPFLAG upFlag, UNITFLAG unitFlag,
+          A a, B b)
+    {
+        if (rightFlag){
+            if (upFlag) {
+                TriSolveRU(x, unitFlag, a, b);
+            } else {
+                TriSolveRL(x, unitFlag, a, b);
+            }
+        } else {
+            if (upFlag) {
+                TriSolveLU(x, unitFlag, a, b);
+            } else {
+                TriSolveLL(x, unitFlag, a, b);
+            }
+        }
+    }
+}
+
+#endif // TRISOLVE_PBCC

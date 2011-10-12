@@ -135,15 +135,29 @@ from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
      OUTPUTVARINDEX, OUTPUTTIMEOFFSET,
      TRAINMASKWIDTH
 to RESULT[q]
-through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
+through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
 {
+
+#ifdef INCLUDE_METHOD1 // TODO: This method seems to confuse the scheduler
 
     /* METHOD 1: compute PARTIALS by exposing the most fine-grained
        parallelism.  this method may be less cache-efficient depending on
        execution ordering. */
 
-    to   (SQDIFFS.cell(i,j,k) sqDiff)
-    from (TRAINDATA trainData,
+    // initialize skip index flags to 0
+    to   (INITFLAGS.cell(j) initFlag,
+          SKIPINDEXFLAGS.cell(j) skipIndexFlag)
+    from ()
+    {
+        skipIndexFlag = 0;
+        initFlag = 1;
+    }
+
+    // Note: rule depends on initFlag so that skipIndexFlag defaults to 0
+    to   (SQDIFFS.cell(i,j,k) sqDiff,
+          SKIPINDEXFLAGS.cell(j) skipIndexFlag)
+    from (INITFLAGS.cell(j) initFlag,
+          TRAINDATA trainData,
           WRAPFLAGS wrapFlags,
           KERNELWIDTHS kernelWidths,
           TRAININDICES.cell(j) trainIndex,
@@ -154,14 +168,26 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
           TESTVARINDEX.cell(i) testVarIndex,
           TESTTIMEOFFSET.cell(i) testTimeOffset)
     {
-        int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex);
-        ElementT kernelWidth = kernelWidths.cell((int) trainVarIndex);
+        int         wrapFlag = (int) wrapFlags.cell((int) trainVarIndex);
+        ElementT kernelWidth =    kernelWidths.cell((int) trainVarIndex);
 
-        int trainTimeIndex = (int) trainIndex + (int) trainTimeOffset;
-        int  testTimeIndex = (int)  testIndex + (int)  testTimeOffset;
+        int  trainTimeIndex = (int) trainIndex + (int) trainTimeOffset;
+        int   testTimeIndex = (int)  testIndex + (int)  testTimeOffset;
 
         ElementT trainPoint = trainData.cell((int) trainVarIndex, trainTimeIndex);
         ElementT  testPoint =  testData.cell((int)  testVarIndex,  testTimeIndex);
+
+        // skip this variable if nan is detected in the test point
+        if (ISNAN(testPoint)) {
+            sqDiff = 0;
+            return;
+        }
+
+        // skip this training index if nan is detected in the train point
+        if (ISNAN(trainPoint)) {
+            skipIndexFlag = 1;
+            return;
+        }
 
         ElementT diff = trainPoint - testPoint;
 
@@ -184,10 +210,12 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
                          p ,j+1, k+1) sqDiffs,
           TRAININDICES.cell(j) trainIndex,
           TESTINDICES.cell(k) testIndex,
-          TRAINMASKWIDTH trainMaskWidth)
+          TRAINMASKWIDTH trainMaskWidth,
+          SKIPINDEXFLAGS.cell(j) skipIndexFlag)
     {
-        if (trainIndex <= testIndex - trainMaskWidth ||
-            trainIndex >= testIndex + trainMaskWidth) {
+        if (!skipIndexFlag &&
+            (trainIndex <= testIndex - trainMaskWidth ||
+             trainIndex >= testIndex + trainMaskWidth)) {
             ReduceAdd(weight, sqDiffs.slice(2,0).slice(1,0));
             weight = exp(-((ElementT) weight));
         } else {
@@ -206,12 +234,20 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
           WEIGHTS.cell(j,k) weight)
     {
         int timeIndex = (int) trainIndex + (int) outputTimeOffset;
-        partial = trainData.cell((int) outputVarIndex, timeIndex);
-        partial *= weight;
+        outputVal = trainData.cell((int) outputVarIndex, timeIndex);
+        if (ISNAN(outputVal)) {
+            partial = 0;
+        } else {
+            partial = weight * outputVal;
+        }
 #ifdef DEBUG
         fprintf(stderr, "method 1: partial(%d, %d) = %g\n", j, k, partial);
 #endif
     }
+
+#endif // INCLUDE_METHOD1
+
+#ifdef INCLUDE_METHOD2
 
     /* METHOD 2: Compute weights and partials directly with one pass through the data */
 
@@ -231,45 +267,86 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
           OUTPUTTIMEOFFSET outputTimeOffset,
           TRAINMASKWIDTH trainMaskWidth)
     {
-        ElementT sum = 0;
+        int outputTimeIndex = (int) trainIndex + (int) outputTimeOffset;
+        ElementT outputVal = trainData.cell((int) outputVarIndex,
+                                                  outputTimeIndex);
 
-        if (trainIndex <= testIndex - trainMaskWidth ||
-            trainIndex >= testIndex + trainMaskWidth) {
-            for (int i = 0; i < trainVarIndex.count(); ++i) {
-
-                int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
-                ElementT kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
-
-                int trainTimeIndex = (int) trainIndex + (int) trainTimeOffset.cell(i);
-                int  testTimeIndex = (int)  testIndex + (int)  testTimeOffset.cell(i);
-
-                ElementT trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
-                ElementT  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
-
-                ElementT diff = trainPoint - testPoint;
-
-                if (wrapFlag) {
-                    diff = wrapWindDirDiff(diff);
-                }
-
-                // normalize according to kernel width
-                diff /= kernelWidth;
-
-                // return squared difference
-                sum += diff * diff;
-            }
-            weight = exp(-((ElementT) sum));
-        } else {
-            weight = 0;
+        // skip current training index if it is too close to the test index or
+        // if the training output value is a NAN
+        if ((trainIndex > testIndex - trainMaskWidth &&
+             trainIndex < testIndex + trainMaskWidth) ||
+            ISNAN(outputVal)) {
+            weight = partial = 0;
+            return;
         }
 
-        int outputTimeIndex = (int) trainIndex + (int) outputTimeOffset;
-        partial = weight * trainData.cell((int) outputVarIndex, outputTimeIndex);
+        ElementT sum = 0;
+        for (int i = 0; i < trainVarIndex.count(); ++i) {
+
+            int         wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
+            ElementT kernelWidth =    kernelWidths.cell((int) trainVarIndex.cell(i));
+
+            int  trainTimeIndex = (int) trainIndex + (int) trainTimeOffset.cell(i);
+            int   testTimeIndex = (int)  testIndex + (int)  testTimeOffset.cell(i);
+
+            ElementT trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
+            ElementT  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
+
+            // skip this variable if nan is detected in the test point
+            if (ISNAN(testPoint)) {
+                continue;
+            }
+
+            // skip this training index if nan is detected in the train point
+            if (ISNAN(trainPoint)) {
+                weight = partial = 0;
+                return;
+            }
+
+            ElementT diff = trainPoint - testPoint;
+
+            if (wrapFlag) {
+                diff = wrapWindDirDiff(diff);
+            }
+
+            // normalize according to kernel width
+            diff /= kernelWidth;
+
+            // return squared difference
+            sum += diff * diff;
+        }
+
+        weight = exp(-((ElementT) sum));
+        partial = weight * outputVal;
 #ifdef DEBUG
         fprintf(stderr, "method 2:  weight(%d, %d) = %g\n", j, k, weight);
         fprintf(stderr, "method 2: partial(%d, %d) = %g\n", j, k, partial);
 #endif
     }
+
+#endif // INCLUDE_METHOD2
+
+#if 0 // BUG: compound conditional not supported in preprocessor yet
+//#if defined(INCLUDE_METHOD1) || defined(INCLUDE_METHOD2)
+
+    /* METHODS 1 & 2: Once we have the PARTIALS and WEIGHTS, we can compute
+       RESULT */
+
+    to (RESULT.cell(k) result)
+    from (PARTIALS.row(k) partials,
+          WEIGHTS.row(k) weights)
+    {
+        ElementT totalWeight;
+        ReduceAdd(result, partials);
+        ReduceAdd(totalWeight, weights);
+        result /= totalWeight;
+#ifdef DEBUG
+        fprintf(stderr, "Output %d = %g\n", k, result);
+#endif // DEBUG
+    }
+
+//#endif // defined(INCLUDE_METHOD1) || defined(INCLUDE_METHOD2)
+#endif // 0
 
     /* METHOD 3: Compute results directly with one pass through the data */
 
@@ -288,75 +365,78 @@ through SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
           OUTPUTTIMEOFFSET outputTimeOffset,
           TRAINMASKWIDTH trainMaskWidth)
     {
-        ElementT totalPartial = 0, totalWeight = 0, weight;
+        ElementT totalPartial = 0, totalWeight = 0;
 
         // loop over training points
         for (int j = 0; j < trainIndices.count(); ++j) {
 
             int trainIndex = (int) trainIndices.cell(j);
+            int outputTimeIndex = (int) trainIndex + (int) outputTimeOffset;
+            ElementT outputVal = trainData.cell((int) outputVarIndex,
+                                                      outputTimeIndex);
 
-            // TODO: get rid of branch inside loop by splitting outer for
-            // loop into two loops.  Need to modularize loop interior for code
-            // clarity.
-            if (trainIndex <= testIndex - trainMaskWidth ||
-                trainIndex >= testIndex + trainMaskWidth) {
-                // loop over predictor variables
-                ElementT sum = 0;
-                for (int i = 0; i < trainVarIndex.count(); ++i) {
-
-                    int wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
-                    ElementT kernelWidth = kernelWidths.cell((int) trainVarIndex.cell(i));
-
-                    int trainTimeIndex = (int) trainIndex + (int) trainTimeOffset.cell(i);
-                    int  testTimeIndex = (int)  testIndex + (int)  testTimeOffset.cell(i);
-
-                    ElementT trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
-                    ElementT  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
-
-                    ElementT diff = trainPoint - testPoint;
-
-                    if (wrapFlag) {
-                        diff = wrapWindDirDiff(diff);
-                    }
-
-                    // normalize according to kernel width
-                    diff /= kernelWidth;
-
-                    // return squared difference
-                    sum += diff * diff;
-                }
-                weight = exp(-((ElementT) sum));
-            } else {
-                weight = 0;
+            // skip current training index if it is too close to the test index or
+            // if the training output value is a NAN
+            if ((trainIndex > testIndex - trainMaskWidth &&
+                 trainIndex < testIndex + trainMaskWidth) ||
+                ISNAN(outputVal)) {
+                continue;
             }
 
-            int outputTimeIndex = (int) trainIndex + (int) outputTimeOffset;
-            ElementT partial = weight * trainData.cell((int) outputVarIndex, outputTimeIndex);
+            // loop over predictor variables to calculate training weight
+            ElementT sum = 0;
+            bool skipIndexFlag = false;
+            for (int i = 0; i < trainVarIndex.count(); ++i) {
+
+                int         wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
+                ElementT kernelWidth =    kernelWidths.cell((int) trainVarIndex.cell(i));
+
+                int  trainTimeIndex = (int) trainIndex + (int) trainTimeOffset.cell(i);
+                int   testTimeIndex = (int)  testIndex + (int)  testTimeOffset.cell(i);
+
+                ElementT trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
+                ElementT  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
+
+                // skip this variable if nan is detected in the test point
+                if (ISNAN(testPoint)) {
+                    continue;
+                }
+
+                // skip this training index if nan is detected in the train point
+                if (ISNAN(trainPoint)) {
+                    skipIndexFlag = true;
+                    break;
+                }
+
+                ElementT diff = trainPoint - testPoint;
+
+                if (wrapFlag) {
+                    diff = wrapWindDirDiff(diff);
+                }
+
+                // normalize according to kernel width
+                diff /= kernelWidth;
+
+                // return squared difference
+                sum += diff * diff;
+            }
+
+            if (skipIndexFlag) {
+                continue;
+            }
+
+            ElementT weight = exp(-((ElementT) sum));
+            ElementT partial = weight * outputVal;
 
 #ifdef DEBUG
             fprintf(stderr, "method 3:  weight(%d, %d) = %g\n", j, k, weight);
             fprintf(stderr, "method 3: partial(%d, %d) = %g\n", j, k, partial);
-#endif
+#endif // DEBUG
             totalWeight += weight;
             totalPartial += partial;
         }
 
         result = totalPartial / totalWeight;
-#ifdef DEBUG
-        fprintf(stderr, "Output %d = %g\n", k, result);
-#endif // DEBUG
-    }
-
-    /* Once we have the PARTIALS and WEIGHTS, we can compute RESULT */
-
-    to (RESULT.cell(k) result)
-    from (PARTIALS.row(k) partials,
-          WEIGHTS.row(k) weights)
-    {
-        ElementT totalWeight;
-        ReduceAdd(result, partials);
-        ReduceAdd(totalWeight, weights);
-        result /= totalWeight;
 #ifdef DEBUG
         fprintf(stderr, "Output %d = %g\n", k, result);
 #endif // DEBUG
@@ -427,7 +507,6 @@ to RESULT[q]
                            testVarIndex, testTimeOffset,
                            outputVarIndex, outputTimeOffset, trainMaskWidth);
         }
-
     }
 }
 

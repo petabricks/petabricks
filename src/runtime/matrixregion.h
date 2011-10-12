@@ -570,7 +570,8 @@ public:
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
       do {
-        gen.update(this->coordToPtr(coord), sizeof(ElementT));
+        float temp = *(this->coordToPtr(coord));
+        gen.update(&temp, sizeof(temp));
       } while(this->incCoord(coord)>=0);
     }
   }

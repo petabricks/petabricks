@@ -1,6 +1,8 @@
 #ifndef NWKDEMETRIC_PBCC
 #define NWKDEMETRIC_PBCC
 
+#include "nwkde.h"
+
 %{
 
 /* This function returns the -log10 of the MSE produced by NWKDE transforms.
@@ -27,23 +29,21 @@ double computeNWKDEMetric(ConstMatrixRegion1D result,
         outputTimeIndex = (int) testIndices.cell(i) + (int) outputTimeOffset;
         a = result.cell(i);
         b = testData.cell((int) outputVarIndex, outputTimeIndex);
-        diff = a - b;
+        if (!ISNAN(a) && !ISNAN(b)) {
+            diff = a - b;
 #ifdef DEBUG
-        fprintf(stderr, "Metric: %g = (%g - %g)\n", diff, a, b);
+            fprintf(stderr, "Metric: %g = (%g - %g)\n", diff, a, b);
 #endif
-        if (!isnan(diff)) {
             sum += diff * diff;
             count++;
         }
     }
 
+//#ifdef DEBUG
+    fprintf(stderr, "sum = %g, count = %d\n", sum, count);
+//#endif
     sum /= count;
-
-    if (sum == 0) {
-        sum = std::numeric_limits<double>::epsilon();
-    }
-
-    return -log10(sum);
+    return -sum;
 }
 
 %}

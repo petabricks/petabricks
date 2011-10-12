@@ -19,6 +19,14 @@ convolution/Convolution    Rand1D Rand1D
 kclustering/kmeans         KmeansRandInput /dev/null
 kernel/nwkde               nwkde/data nwkde/wrapFlags nwkde/kernelWidths nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/data nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/outputVarIndex nwkde/outputTimeOffset nwkde/maskWidth
 kernel/nwkdeVA             nwkde/data nwkde/wrapFlags nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/data nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/outputVarIndex nwkde/outputTimeOffset nwkde/maskWidth
+trisolve/TriSolveLL        Zero0D Rand2Da Rand2Db
+trisolve/TriSolveLL        One0D Rand2Da Rand2Db
+trisolve/TriSolveLU        Zero0D Rand2Da Rand2Db
+trisolve/TriSolveLU        One0D Rand2Da Rand2Db
+trisolve/TriSolveRL        Zero0D Rand2Da Rand2Db
+trisolve/TriSolveRL        One0D Rand2Da Rand2Db
+trisolve/TriSolveRU        Zero0D Rand2Da Rand2Db
+trisolve/TriSolveRU        One0D Rand2Da Rand2Db
 matrixapprox/matrixapprox  MatApproxRand2D
 multiply/multiply          Rand2Da Rand2Db
 multiply/strassen          Rand2Da Rand2Db

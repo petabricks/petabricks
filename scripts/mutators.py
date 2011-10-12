@@ -386,20 +386,49 @@ class ScaleTunableSizeSpecificMutator(TunableSizeSpecificMutator):
 
 class OptimizeTunableMutator(GenericTunableMutator):
 
-  def __init__(self, tunable, weight=1.0):
+  def __init__(self, tunable, weight=1.0, nwkdeFlag = False, maxiter = None):
     GenericTunableMutator.__init__(self, tunable, weight)
+    self.nwkdeFlag = nwkdeFlag # flag for nwkde benchmark special handling
+    self.maxiter = maxiter
     self.o = optimize.CachedBFGSOptimizer(self.measureAccuracy, self.minVal, self.maxVal)
 
   def measureAccuracy(self, value, candidate, n):
     self.setVal(candidate, value, n)
     candidate.pop.testers[-1].testN(candidate, 1)
     result = candidate.metrics[config.accuracy_metric_idx][n].mean()
-#    print "eval: f(", value, ") = %.8g" % result
+    print "eval: f(", value, ") = %.8g" % result
     return -result
 
   def random(self, oldVal, minVal, maxVal, candidate):
+    if (self.nwkdeFlag):
+      if oldVal == [4, 4, 4, 4]: # change initial value to something useful
+        oldVal = [0.3182, 134.3503, 5.0312, 633.3333]
     n = candidate.pop.testers[-1].n
-    return self.o.optimize(oldVal, args = (candidate, n), maxiter = 1)
+    return self.o.optimize(oldVal, args = (candidate, n), maxiter = self.maxiter)
+
+class LogNormFloatTunableMutator(GenericTunableMutator):
+
+  def __init__(self, tunable, weight=1.0, nwkdeFlag = False):
+    GenericTunableMutator.__init__(self, tunable, weight)
+    self.nwkdeFlag = nwkdeFlag # flag for nwkde benchmark special handling
+
+  def random(self, oldVal, minVal, maxVal, candidate = None):
+    if (self.nwkdeFlag):
+      if oldVal == [4, 4, 4, 4]: # change initial value to something useful
+        oldVal = [0.3182, 134.3503, 5.0312, 633.3333]
+    newVal = [0] * len(oldVal)
+    for j in xrange(0, len(oldVal)):
+      successFlag = False
+      for z in xrange(config.rand_retries):
+        v = float(oldVal[j] * stats.lognorm.rvs(1))
+        if v>=minVal[j] and v<=maxVal[j] and oldVal[j]!=v:
+          newVal[j] = v
+          successFlag = True
+          break
+      if not successFlag:
+        raise MutateFailed("lognorm random gen failed")
+
+    return newVal
 
 class MultiMutator(Mutator):
   def __init__(self, count=3, weight=1.0):

@@ -1,0 +1,221 @@
+#ifndef MULTIPLYADD_PBCC
+#define MULTIPLYADD_PBCC
+
+#include "../simple/add.pbcc"
+#include "../simple/transpose.pbcc"
+
+%{
+#include "cblas.h"
+
+#ifdef PRINT
+inline void printArray(int height, int width, ElementT *array){
+  int i, j;
+
+  for(i=0; i<height; ++i) {
+    for(j=0; j<width; ++j) {
+      printf("%2.1lf ", array[i*width+ j]);
+    }
+    printf("\n");
+  }
+}
+#endif
+
+inline ElementT *toArray(const petabricks::ConstMatrixRegion2D &matrix) {
+  ElementT *array;
+
+  IndexT rows = matrix.height();
+  IndexT columns = matrix.width();
+
+#ifdef PRINT
+  printf("Matrix size: %d rows, %d columns\n", rows, columns);
+#endif
+
+  array = new ElementT[rows * columns];
+
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      array[i*columns + j] = matrix.cell(j,i);
+    }
+  }
+
+  return array;
+}
+
+inline void toMatrix(ElementT* array, petabricks::MatrixRegion2D &matrix) {
+  IndexT rows = matrix.height();
+  IndexT columns = matrix.width();
+
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      matrix.cell(j,i) = array[i*columns + j];
+    }
+  }
+
+  return;
+}
+
+void gemm_wrap(const int M, const int N, const int K, const float alpha, const float * A, const int lda, const float * B, const int ldb, const float beta, float * C, const int ldc) {
+  cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+}
+
+void gemm_wrap(const int M, const int N, const int K, const double alpha, const double * A, const int lda, const double * B, const int ldb, const double beta, double * C, const int ldc) {
+  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+}
+%}
+
+transform MatrixMultiplyAddInner
+from ALPHA, A[k,h], B[w,k], BETA
+to C[w,h]
+{
+  //compute a cell the straightforward way
+  to   (C.cell(x,y) c)
+  from (A.row(y) a,
+        B.column(x) b,
+        ALPHA alpha,
+        BETA beta)
+  {
+    c*=beta;
+    for(IndexT i=0; i<k; ++i)
+      c+=alpha*a.cell(i)*b.cell(i);
+  }
+
+#if 0
+  //recursively chop the matrix in half
+  recursive(k)
+  to(C c)
+  from( A.region(0,   0, k/2, h  ) a1,
+        A.region(k/2, 0, k,   h  ) a2,
+        B.region(0,   0, w,   k/2) b1,
+        B.region(0, k/2, w,   k  ) b2,
+        ALPHA alpha,
+        BETA beta)
+  {
+    MatrixRegion2D tmp = MatrixRegion2D::allocate(w,h);
+    spawn MatrixMultiplyAddInner(c  , alpha, a1, b1, beta);
+    spawn MatrixMultiplyAddInner(tmp, alpha, a2, b2, 0);
+    sync;
+    MatrixAdd(c, c, tmp);
+  }
+
+  recursive(w)
+  to(C.region(0,   0, w/2, h  ) c1,
+     C.region(w/2, 0, w,   h  ) c2)
+  from( A a,
+        B.region(0,   0, w/2, h  ) b1,
+        B.region(w/2, 0, w,   h  ) b2,
+        ALPHA alpha,
+        BETA beta)
+  {
+    spawn MatrixMultiplyAddInner(c1, alpha, a, b1, beta);
+    spawn MatrixMultiplyAddInner(c2, alpha, a, b2, beta);
+  }
+
+  recursive(h)
+  to(C.region(0, 0,   w, h/2) c1,
+     C.region(0, h/2, w, h  ) c2)
+  from( A.region(0,   0, w,   h/2) a1,
+        A.region(0, h/2, w,   h  ) a2,
+        B b,
+        ALPHA alpha,
+        BETA beta)
+  {
+    spawn MatrixMultiplyAddInner(c1, alpha, a1, b, beta);
+    spawn MatrixMultiplyAddInner(c2, alpha, a2, b, beta);
+  }
+#endif
+
+  //Usual O(n^3) matrix multiply
+  to(C c) from (A a, B b, ALPHA alpha, BETA beta)
+  {
+    for(IndexT i=0, maxI=a.height(); i<maxI; ++i) {
+      for(IndexT j=0, maxJ=b.width(); j<maxJ; ++j) {
+        c.cell(j,i) *= beta;
+        for(IndexT l=0, maxL=a.width(); l<maxL; ++l) {
+	  c.cell(j,i) += alpha * a.cell(l,i) * b.cell(j,l);
+	}
+      }
+    }
+  }
+
+  // call LAPACK
+  to(C c) from (A a, B b, ALPHA alpha, BETA beta)
+  {
+    int rowA=a.height();
+    int colA=a.width();
+
+    int rowB=b.height();
+    int colB=b.width();
+
+    int rowC=c.height();
+    int colC=c.width();
+
+    if(colA != rowB) {
+      fprintf(stderr, "Unable to perform a matrix multiplication. Wrong input size.\n"
+	      "#columns of matrix A = %d\n"
+	      "#rows of matrix B = %d\n"
+	      "They should be equal!\n", colA, rowB);
+      exit(4);
+    }
+
+    ElementT* arrayA = toArray(a);
+    ElementT* arrayB = toArray(b);
+    ElementT* arrayC = toArray(c);
+
+    #ifdef PRINT
+    printArray(rowA, colA, arrayA);
+    printArray(rowB, colB, arrayB);
+    printArray(rowC, colC, arrayC);
+    #endif
+
+    gemm_wrap(rowA, colB, rowB, alpha, arrayA, colA, arrayB, colB, beta, arrayC, colC);
+
+    #ifdef PRINT
+    printArray(rowC, colC, arrayC);
+    #endif
+
+    toMatrix(arrayC, c);
+
+    delete arrayA;
+    delete arrayB;
+    delete arrayC;
+  }
+}
+
+// Computes C = ALPHA * A * B + BETA * C (C is an in/out argument).
+transform MatrixMultiplyAdd
+from ALPHA, A[k,m], B[n,k], BETA
+to C[n,m]
+{
+  // no transpose
+  to(C c) from(ALPHA alpha,
+               A a,
+               B b,
+               BETA beta)
+  {
+    MatrixMultiplyAddInner(c, alpha, a, b, beta);
+  }
+
+  // transpose a
+  to(C c) from(ALPHA alpha,
+               A a,
+               B b,
+               BETA beta)
+  {
+    MatrixRegion2D t = MatrixRegion2D::allocate(m,k);
+    Transpose(t, a);
+    MatrixMultiplyAddInner(c, alpha, t.transposed(), b, beta);
+  }
+
+  // transpose b
+  to(C c) from(ALPHA alpha,
+               A a,
+               B b,
+               BETA beta)
+  {
+    MatrixRegion2D t = MatrixRegion2D::allocate(k,n);
+    Transpose(t, b);
+    MatrixMultiplyAddInner(c, alpha, a, t.transposed(), beta);
+  }
+}
+
+#endif // MULTIPLYADD_PBCC

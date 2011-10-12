@@ -3,8 +3,23 @@
 #include "../multiply/multiply.pbcc"
 #include "copy.pbcc"
 #include "transpose.pbcc"
-//#include "../LUDense/LUtrisolve.pbcc"
-#include "../LUDense/trilsolve.pbcc"
+#include "../trisolve/TriSolveRU.pbcc"
+
+
+transform utri_zero
+from IN[n, n]
+to OUT[n, n]
+{
+    to   (OUT.cell(j, i) out)
+    from ( IN.cell(j, i) in)
+    {
+        if (i < j) {
+            out = 0;
+        } else {
+            out = in;
+        }
+    }
+}
 
 transform HermitianGenerate 
 to H[n,n] {
@@ -12,7 +27,6 @@ to H[n,n] {
 	  // this generates a real, symmetric, positive definite matrix
 	  
 	  to(H her)
-	  //using(temp1 [n,n], temp2 [w,h])
 	  from () { 
 	    
 	    MatrixRegion2D temp1 = MatrixRegion2D::allocate(n,n);
@@ -39,46 +53,62 @@ to H[n,n] {
 
 }
 
-
 transform MatrixCholesky
 from A[n,n]
 to L[n,n]
 generator HermitianGenerate
 {
-/*
+
 	// recursive def of cholesky
 	to (L l)
-	from (A a) 
-	{
-	
-	    // upper left corner
-	    MatrixCholesky(l.region(0, 0, n/2, n/2), a.region(0,0,n/2,n/2));	   
+	from (A a) {
+	     int size = 4;
+	     
+	     // base case
+	     if (n < size + 1) {
+	     	// do something not recursive
+ 	      	for (int i = 0; i < a.height(); i++) {
+             	     for (int j = 0; j < (i+1); j++) {
+            	      	 double s = 0;
+            	     	 if (j != i) 
+			    l.cell(i,j) = 0;
+			 for (int k = 0; k < j; k++)
+                     	     s += l.cell(k,i) * l.cell(k,j);
+            	     	 l.cell(j, i) = (i == j) ?
+                            sqrt(a.cell(i, i) - s) :
+                            (1.0 / l.cell(j, j) * (a.cell(j, i) - s));
+        	     }
+	     	}	
+	     } else {
+	       int new_n = n - size;
+	       	       
+	       MatrixRegion2D L11 = l.region(0, 0, new_n, new_n);
+	       MatrixRegion2D L21 = l.region(0, new_n, new_n, n);
+	       MatrixRegion2D L22 = l.region(new_n, new_n, n, n);
+	       ConstMatrixRegion2D A11 = a.region(0, 0, new_n, new_n);
+	       ConstMatrixRegion2D A21 = a.region(0, new_n, new_n, n);
+	       ConstMatrixRegion2D A22 = a.region(new_n, new_n, n, n);
 
-	    // lower left corner
-	    MatrixRegion2D l11_trans = MatrixRegion2D::allocate(n/2,n/2);
-	    Transpose(l11_trans, l.region(0,0,n/2,n/2));
+	       // upper left corner
+	       MatrixCholesky(L11, A11);
 
-	    //x2 = trisolve(L22,B2)
-	    trilsolve(l.region(n/4,n/2,n/2,n), l11_trans.region(l11_trans.width()/2,l11_trans.height()/2,l11_trans.width(),l11_trans.height()), a.region(n/4,n/2,n/2,n));
+	       // lower left corner
+	       TriSolveRU(L21, 0, L11.transposed(), A21);
+	       
+	       //lower right corner
+	       MatrixRegion2D temp1 = MatrixRegion2D::allocate(size,size);
+	       MatrixRegion2D temp2 = MatrixRegion2D::allocate(size,size);
+	       MatrixMultiply(temp1, L21, L21.transposed());
+	       Subtract2D(temp2, A22, temp1);
+	       MatrixCholesky(L22, temp2); 
 
-	    //x1 = trisolve(L11,B1-x2L21)
-	    MatrixRegion2D x2L21 = MatrixRegion2D::allocate(n/4,n/2);
-	    MatrixRegion2D x1 = MatrixRegion2D::allocate(n/4,n/2);
-	    MatrixMultiply(x2L21, l.region(n/4,n/2,n/2,n), l11_trans.region(0,l11_trans.height()/2,l11_trans.width()/2,n));
-	    Subtract2D(x1, a.region(0,n/2,n/4,n), x2L21);
-	    trilsolve(l.region(0,n/2,n/4,n), l11_trans.region(0,0,l11_trans.width()/2,l11_trans.height()/2), x1); 
+	       //set all the upper triangular values to zero
+	       utri_zero(l, l);
 
-	    // lower right corner
-	    MatrixRegion2D t = MatrixRegion2D::allocate(n/2,n/2);
-	    MatrixRegion2D l21_trans = MatrixRegion2D::allocate(n/2,n/2);
-	    MatrixRegion2D AminusT = MatrixRegion2D::allocate(n/2,n/2);
-	    Transpose(l21_trans, l.region(0,n/2,n/2,n));
-	    MatrixMultiply(t, l.region(0,n/2,n/2,n), l21_trans);
-	    Subtract2D(AminusT, a.region(n/2,n/2,n,n), t);
-	    MatrixCholesky(l.region(n/2,n/2,n,n), AminusT); 
 
+	    }
 	}	
-*/
+/*
 	// specific case: first column
 	to (L.cell(x,y) l) 
 	from (L.cell(0,0) c, 
@@ -101,6 +131,7 @@ generator HermitianGenerate
 	     	l = 0;
 	     } else {
 	     	  double s = 0;
+
 	     	  for (int k = 0; k < x; k++)
 	     	      s += r.cell(k, y) * r.cell(k, x);
 	     	  l = (x == y) ? sqrt(a - s) :
@@ -108,12 +139,15 @@ generator HermitianGenerate
 	     }			 
 	}
 
-
-	// straightforward implementation of cholesky
+*//*
+	// sequential implementation of cholesky
 	to(L l)  from(A a) { 
  	     for (int i = 0; i < a.height(); i++) {
              	 for (int j = 0; j < (i+1); j++) {
             	     double s = 0;
+            	     if (j != i) 
+		        l.cell(i,j) = 0;
+
             	     for (int k = 0; k < j; k++)
                      	 s += l.cell(k,i) * l.cell(k,j);
             	     l.cell(j, i) = (i == j) ?
@@ -122,7 +156,7 @@ generator HermitianGenerate
         	 }
 	     }	
 	}
-
+*/
 
 }
 

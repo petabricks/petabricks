@@ -1,0 +1,139 @@
+#ifndef TRISOLVELU_PBCC
+#define TRISOLVELU_PBCC
+
+// Left upper (LU) triangular solve
+// Solve AX = B for X, where A is upper triangular
+
+#include "../simple/copy.pbcc"
+#include "../simple/scale.pbcc"
+#include "../multiply/multiplyAdd.pbcc"
+#include "TriSolveLAPACK.pbcc"
+#include "TriSolveGenerators.pbcc"
+
+#define MAX(x, y) ((y) > (x) ? (y) : (x))
+
+transform TriSolveLUBase
+from UNITFLAG, A[m,m], B[n,m]
+to X[n,m]
+{
+    // right looking (update trailing matrix after each row is solved)
+    to   (X x)
+    from (UNITFLAG unitFlag, A a, B b)
+    {
+        Copy2D(x, b);
+        for (int i = m-1; i >= 0; --i) {
+            if (!unitFlag) {
+                Scale(x.region(0, i, n, i+1), 1.0 / a.cell(i, i));
+            }
+            MatrixMultiplyAdd(x.region(0, 0, n, i), -1,
+                              a.region(i, 0, i+1, i),
+                              x.region(0, i, n, i+1), 1);
+        }
+    }
+
+    // left looking (process one row at a time)
+    to   (X x)
+    from (UNITFLAG unitFlag, A a, B b)
+    {
+        Copy2D(x, b);
+        if (!unitFlag) {
+            Scale(x.region(0, m-1, n, m), 1.0 / a.cell(m-1, m-1));
+        }
+        for (int i = m-2; i >= 0; --i) {
+            ElementT factor = unitFlag ? 1 : 1.0 / a.cell(i, i);
+            MatrixMultiplyAdd(x.region(0, i, n, i+1), -factor,
+                              a.region(i+1, i, m, i+1),
+                              x.region(0, i+1, n, m), factor);
+        }
+    }
+
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        TriSolveLAPACK(x, 0, 1, unitFlag, 1, a, b);
+    }
+}
+
+transform TriSolveLUBlocked
+from UNITFLAG, A[m,m], B[n,m]
+to X[n,m]
+tunable blockSize
+{
+    // right looking (update trailing matrix after each row block is solved)
+    to   (X x)
+    from (UNITFLAG unitFlag, A a, B b)
+    {
+        if (blockSize < 1 || blockSize >= m) {
+            TriSolveLUBase(x, unitFlag, a, b);
+            return;
+        }
+
+        int m2 = m - blockSize;
+        MatrixRegion2D x1, x2;
+        ConstMatrixRegion2D a11, a12, a22, b1, b2;
+
+        x1 = x.region(0, 0, n, m2);
+        x2 = x.region(0, m2, n, m);
+
+        a11 = a.region(0, 0, m2, m2);
+        a12 = a.region(m2, 0, m, m2);
+        a22 = a.region(m2, m2, m, m);
+
+        b1 = b.region(0, 0, n, m2);
+        b2 = b.region(0, m2, n, m);
+
+        TriSolveLUBase(x2, unitFlag, a22, b2);
+        Copy2D(x1, b1);
+        MatrixMultiplyAdd(x1, -1, a12, x2, 1);
+        TriSolveLUBlocked(x1, unitFlag, a11, x1);
+    }
+
+    // left looking (process one row block at a time)
+    to   (X x)
+    from (UNITFLAG unitFlag, A a, B b)
+    {
+        if (blockSize < 1 || blockSize >= m) {
+            TriSolveLUBase(x, unitFlag, a, b);
+            return;
+        }
+
+        int i0, i1;
+        MatrixRegion2D x2, x3;
+        ConstMatrixRegion2D a22, a23, b2;
+
+        for (i1 = m; i1 > 0; i1 -= blockSize) {
+
+            i0 = MAX(0, i1 - blockSize);
+
+            x2  = x.region( 0, i0,  n, i1);
+            a22 = a.region(i0, i0, i1, i1);
+            b2  = b.region( 0, i0,  n, i1);
+
+            if (i1 == m) {
+                TriSolveLUBase(x2, unitFlag, a22, b2);
+            } else {
+
+                x3  = x.region( 0, i1, n,  m);
+                a23 = a.region(i1, i0, m, i1);
+
+                Copy2D(x2, b2);
+                MatrixMultiplyAdd(x2, -1, a23, x3, 1);
+                TriSolveLUBase(x2, unitFlag, a22, x2);
+            }
+        }
+    }
+}
+
+transform TriSolveLU
+from UNITFLAG, A[m,m], B[n,m]
+to X[n,m]
+generator TriSolveUGenerator
+{
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        TriSolveLUBase(x, unitFlag, a, b);
+    }
+
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        TriSolveLUBlocked(x, unitFlag, a, b);
+    }
+}
+
+#endif // TRISOLVELU_PBCC
