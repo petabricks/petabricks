@@ -16,6 +16,7 @@ from xml.dom.minidom import parse,parseString
 from xml.dom import DOMException
 from pprint import pprint
 from configtool import getConfigVal, setConfigVal
+from learningcompiler import LearningCompiler
 
 try:
   import numpy
@@ -58,7 +59,8 @@ def setmemlimit(n = getmemorysize()):
 
 
 
-def parallelRunJobs(jobs):
+def parallelRunJobs(jobs, nParallelJobs=None):
+  outFile=open("/tmp/parallelRunJobs.txt", "w")
   class JobInfo:
     def __init__(self, id, fn):
       self.id=id
@@ -83,7 +85,10 @@ def parallelRunJobs(jobs):
             self.fd=fd
           def write(self, s):
             self.fd.sendall(s)
+            outFile.write(s)
+            outFile.flush()
         sys.stdout = Redir(w)
+        #sys.stderr = sys.stdout
         try:
           rv = self.fn()
         except Exception, e:
@@ -123,11 +128,12 @@ def parallelRunJobs(jobs):
       self.msg+=msg
     def getmsg(self):
       return self.msg.replace(exitval,"") \
-                     .replace('\n',' ')   \
                      .strip()
+                     
     
   startline = progress.currentline()
-  NCPU=cpuCount()
+  if nParallelJobs is None:
+    nParallelJobs=cpuCount()
   exitval="!EXIT!"
   maxprinted=[0]
 
@@ -163,7 +169,7 @@ def parallelRunJobs(jobs):
   try:
     while len(jobs_pending)>0 or len(jobs_running)>0:
       #spawn new jobs
-      while len(jobs_pending)>0 and len(jobs_running)<NCPU:
+      while len(jobs_pending)>0 and len(jobs_running)<nParallelJobs:
         jobs_running.append(jobs_pending.pop(0).forkrun())
       updatestatus()
         
@@ -300,18 +306,20 @@ def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=Non
       os.unlink(binary)
       
     #Execute the compiler
+    print "Executing: {0}".format(cmd)
     p = subprocess.Popen(cmd, stdout=NULL, stderr=NULL)
     status = p.wait()
     return status
   
   
-def compileBenchmarks(benchmarks):
+def compileBenchmarks(benchmarks, learning=False, noLearningList=[]):
   NULL=open("/dev/null","w")
   pbc="./src/pbc"
   libdepends=[pbc, "./src/libpbmain.a", "./src/libpbruntime.a", "./src/libpbcommon.a"]
   assert os.path.isfile(pbc)
   benchmarkMaxLen=0
   jobs_per_pbc=max(1, 2*cpuCount() / len(benchmarks))
+  compiler = LearningCompiler(pbc, minTrialNumber=5, jobs=jobs_per_pbc)
 
   def innerCompileBenchmark(name):
     print name.ljust(benchmarkMaxLen)
@@ -323,7 +331,10 @@ def compileBenchmarks(benchmarks):
       print "compile SKIPPED"
       return True  
     try:
-      status=compileBenchmark(pbc, src, binary=binary, jobs=jobs_per_pbc)
+      if learning and (name not in noLearningList):
+        status=compiler.compileLearningHeuristics(src, finalBinary=binary)
+      else:
+        status=compileBenchmark(pbc, src, binary=binary, jobs=jobs_per_pbc)
       if status == 0:
         print "compile PASSED"
         return True
@@ -354,9 +365,14 @@ def compileBenchmarks(benchmarks):
       jobsdata[name][0] = mergejob(jobsdata[name][0], fn)
   jobs = map(lambda n: mergejob(*jobsdata[n]), jobs)
 
-  return parallelRunJobs(jobs)
+  if learning:
+    #Cannot run multiple jobs in parallel: the autotuning results 
+    #would be affected
+    return parallelRunJobs(jobs, nParallelJobs=1)
+  else:
+    return parallelRunJobs(jobs)
 
-def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postfn=lambda b: True):
+def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postfn=lambda b: True, learning=False, noLearningList=[]):
   chdirToPetabricksRoot()
   compilePetabricks()
   benchmarks=open(file)
@@ -372,7 +388,7 @@ def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postf
   for b in benchmarks:
     b[0]=normalizeBenchmarkName(b[0])
 
-  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x), lambda: postfn(x[0])), benchmarks)), benchmarks
+  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x), lambda: postfn(x[0])), benchmarks), learning, noLearningList), benchmarks
 
 def killSubprocess(p):
   if p.poll() is None:

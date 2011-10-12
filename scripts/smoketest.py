@@ -12,6 +12,7 @@ import shutil
 from xml.dom.minidom import parse
 
 CHECK=True
+LEARNING=True
 
 check_exclude=[
          "convolution/Convolution",       # Difference
@@ -189,8 +190,12 @@ if 'nocheck' in sys.argv[1:]:
   sys.argv[1:] = filter(lambda x: x!='nocheck', sys.argv[1:])
   CHECK = False
 
+if 'nolearning' in sys.argv[1:]:
+  sys.argv[1:] = filter(lambda x: x!='nolearning', sys.argv[1:])
+  LEARNING = False
+  
 t1=time.time()
-results,b=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:], testBenchmark, postfn=checkBenchmark)
+results,b=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:], testBenchmark, postfn=checkBenchmark, learning=LEARNING, noLearningList=check_exclude)
 t2=time.time()
 
 

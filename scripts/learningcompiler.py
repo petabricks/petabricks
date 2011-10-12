@@ -8,8 +8,10 @@ import sqlite3
 import random
 import xml.dom.minidom
 import re
+import pbutil
+import tunerwarnings
+from candidatetester import Candidate
 from xml.sax.saxutils import escape
-from pbutil import compileBenchmark
 from sgatuner import autotune
 from tunerconfig import config
 
@@ -17,7 +19,7 @@ from tunerconfig import config
 conf_deleteTempDir = True
 conf_minTrialNumber = 6
 #--------- Autotuner config --------
-config.max_time=20 #Seconds
+config.max_time=10 #Seconds
 #-----------------------------------
 
 
@@ -169,13 +171,14 @@ class HeuristicManager:
   </set>
 </heuristics>
 """
-  def __init__(self, heuristicSetFileName):
+  def __init__(self, heuristicSetFileName=None):
     self.__heuristicSets = []
-    self.__xml = xml.dom.minidom.parse(heuristicSetFileName)
-    
-    # Extract information
-    for hSet in self.__xml.getElementsByTagName("set"):
-      self.__heuristicSets.append(self.__parseHeuristicSet(hSet))
+    if heuristicSetFileName is not None:
+      self.__xml = xml.dom.minidom.parse(heuristicSetFileName)
+      
+      # Extract information
+      for hSet in self.__xml.getElementsByTagName("set"):
+        self.__heuristicSets.append(self.__parseHeuristicSet(hSet))
     
     
   def __parseHeuristicSet(self, hSetXML):
@@ -198,11 +201,11 @@ class HeuristicManager:
 
 
 class LearningCompiler:
-  def __init__(self, pbcExe, heuristicSetFileName, minTrialNumber=0):
+  def __init__(self, pbcExe, heuristicSetFileName=None, minTrialNumber=0, jobs=None):
     self.__heuristicManager = HeuristicManager(heuristicSetFileName)
     self.__minTrialNumber = minTrialNumber
     self.__pbcExe = pbcExe    
-    
+    self.__jobs=jobs
     
   def bestCandidate(self, candidates):
     """Determines which candidate is the best, given a set of candidates with 
@@ -214,6 +217,10 @@ Returns the index of the best candidate in the array"""
     fasterCandidates = {}
     count=0
     for candidate in candidates:
+      if candidate is None:
+        #This candidate has failed the autotuning
+        continue
+      
       candidateDimensions=len(candidate.metrics[0])
       if candidateDimensions > maxDimensions:
         fasterCandidates = {}
@@ -240,19 +247,21 @@ Returns the index of the best candidate in the array"""
       if average < bestScore:
         bestScore=average
         bestIndex=fasterCandidates[candidate]
-      
+    
+    if bestIndex==None:
+      raise tunerwarnings.AlwaysCrashes()
+    
     return bestIndex
     
     
 
-  def compileLearningHeuristics(self, benchmark):
+  def compileLearningHeuristics(self, benchmark, finalBinary=None):
     #Define file names
     path, basenameExt = os.path.split(benchmark)
     if path == "":
       path="./"
     basename, ext = os.path.splitext(basenameExt)
     basesubdir=os.path.join(path,basename+".tmp")
-    
     #Init variables
     candidates=[]
     db = HeuristicDB()
@@ -263,8 +272,16 @@ Returns the index of the best candidate in the array"""
       #Create the output directory
       os.makedirs(outDir)
     binary= os.path.join(outDir, basename)  
-    compileBenchmark(self.__pbcExe, benchmark, binary=binary)  
-    autotune(binary, candidates)
+    status=pbutil.compileBenchmark(self.__pbcExe, benchmark, binary=binary, jobs=self.__jobs)  
+    if status != 0:
+      return status
+      
+    try:
+      autotune(binary, candidates)
+    except tunerwarnings.AlwaysCrashes:
+        print "Current best Candidate always crashes!"
+        #Add an empty entry for the candidate
+        candidates.append(None)
     
     #Get the full set of heuristics used
     infoFile=binary+".info"
@@ -294,15 +311,20 @@ Returns the index of the best candidate in the array"""
       heuristicsFile= os.path.join(outDir, "heuristics.txt")
       hSet.toXmlFile(heuristicsFile)
       
-      status = compileBenchmark(self.__pbcExe, benchmark, binary=binary, heuristics=heuristicsFile)
+      status = pbutil.compileBenchmark(self.__pbcExe, benchmark, binary=binary, heuristics=heuristicsFile, jobs=self.__jobs)
       if status != 0:
         print "Compile FAILED"
         print "while using heuristics: "
         print hSet
-        quit()
+        return status
         
       #Autotune
-      autotune(binary, candidates)
+      try:
+        autotune(binary, candidates)
+      except tunerwarnings.AlwaysCrashes:
+        print "Candidate {0} always crashes!".format(count)
+        #Add an empty entry for the candidate
+        candidates.append(None)
       
       count = count + 1
       
@@ -314,26 +336,29 @@ Returns the index of the best candidate in the array"""
     bestSubDir=os.path.join(basesubdir, str(bestIndex))
     #  compiled program:
     bestBin=os.path.join(bestSubDir, basename)
-    finalBin=os.path.join(path, basename)
+    if finalBinary is not None:
+      finalBin=finalBinary
+    else:
+      finalBin=os.path.join(path, basename)
     shutil.move(bestBin, finalBin)
     #  .cfg file
     bestCfg=os.path.join(bestSubDir, basename+".cfg")
-    finalCfg=os.path.join(path, basename+".cfg")
+    finalCfg=finalBin + ".cfg"
     shutil.move(bestCfg, finalCfg)
     #  .info file
     bestInfo=os.path.join(bestSubDir, basename+".info")
-    finalInfo=os.path.join(path, basename+".info")
+    finalInfo=finalBin+".info"
     shutil.move(bestInfo, finalInfo)
     #  .obj directory
     bestObjDir=os.path.join(bestSubDir, basename+".obj")
-    destObjDir=os.path.join(path, basename+".obj")
+    destObjDir=finalBin+".obj"
     if os.path.isdir(destObjDir):
       shutil.rmtree(destObjDir)
     shutil.move(bestObjDir, path)
     #  input heuristic file
     if bestIndex != 0: #Program 0 is run with only the best heuristics in the DB
       bestHeurFile=os.path.join(bestSubDir, "heuristics.txt")
-      finalHeurFile=os.path.join(path, basename+".heur")
+      finalHeurFile=finalBin+".heur"
       shutil.move(bestHeurFile, finalHeurFile)
     
     #Delete all the rest
@@ -345,6 +370,8 @@ Returns the index of the best candidate in the array"""
     hSet = HeuristicSet()
     hSet.importFromXml(infoxml)
     db.addHeuristicSet(hSet)
+    
+    return 0
     
     
     
