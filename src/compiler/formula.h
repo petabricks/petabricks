@@ -268,6 +268,15 @@ public:
     FormulaBinop<OP>* newFormula= new FormulaBinop<OP>(newLeft, newRight);
     return FormulaPtr(newFormula);
   }
+  
+  virtual double value() const { if(OP == '-' && (_left->value() == 0)) {
+                                   return -_right->value();
+                                 }
+                                 
+                                 //All other cases
+                                 UNIMPLEMENTED();
+                                 abort();
+                               }
 private:
   FormulaPtr _left;
   FormulaPtr _right;
