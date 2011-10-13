@@ -28,6 +28,7 @@
 
 #include "codegenerator.h"
 #include "transform.h"
+#include "maximawrapper.h"
 
 
 void petabricks::ChoiceDepGraphNodeSet::applyRemapping(const petabricks::ChoiceDepGraphNodeRemapping& map){
@@ -96,6 +97,32 @@ int petabricks::ChoiceDepGraphNode::updateIndirectDepends(){
   }
   return c;
 }
+
+
+bool petabricks::ChoiceDepGraphNode::dependencyPossible(ChoiceDepGraphNode* n, const DependencyDirection& dir) const {
+  SimpleRegionPtr a = this->region();
+  SimpleRegionPtr b = n->region();
+
+
+  for(size_t d=0; d<std::min(a->dimensions(), b->dimensions()); ++d) {
+    if( dir[d] ==  DependencyDirection::D_GT || dir[d] == DependencyDirection::D_GE ) {
+      if(MAXIMA.comparePessimistically(a->minCoord()[d], ">=", b->maxCoord()[d])) {
+        JTRACE("rejecting dependency")(a)(b)(dir);
+        return false;
+      }
+    }
+    
+    if( dir[d] ==  DependencyDirection::D_LT || dir[d] == DependencyDirection::D_LE ) {
+      if(MAXIMA.comparePessimistically(b->minCoord()[d], ">=", a->maxCoord()[d])) {
+        JTRACE("rejecting dependency")(a)(b)(dir);
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 
 void petabricks::ChoiceDepGraphNode::applyRemapping(const ChoiceDepGraphNodeRemapping& map){
   if(_directDependsRemapped.empty()){
