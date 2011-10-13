@@ -243,7 +243,7 @@ namespace jalib
 
   ///Replaces every occurrence "str" with "withStr" in string "inStr"
   inline std::string replace(const std::string str, const std::string withStr, const std::string inStr) {
-    int pos;
+    size_t pos;
     std::string result=inStr;
     while((pos=result.find(str)) != std::string::npos) {
       result=result.replace(pos, str.length(), withStr);
