@@ -35,7 +35,7 @@ class HeuristicDB:
     
   def __createTable(self, name, params):
     cur = self.__db.cursor()
-    query = "CREATE TABLE IF NOT EXISTS '{0}' {1}".format(name, params)
+    query = "CREATE TABLE IF NOT EXISTS '"+name+"' "+params
     cur.execute(query)
     cur.close()
     self.__db.commit()
@@ -57,7 +57,7 @@ class HeuristicDB:
 
   def getHeuristicKindID(self, kindName):
     cur = self.__db.cursor()
-    query = "SELECT ID From HeuristicKind WHERE name='{0}'".format(kindName)
+    query = "SELECT ID From HeuristicKind WHERE name='"+kindName+"'"
     cur.execute(query)
     kindID = cur.fetchone()[0]
     cur.close()
@@ -65,7 +65,7 @@ class HeuristicDB:
     
   def storeHeuristicKind(self, kindName):
     cur = self.__db.cursor()
-    query = "INSERT OR IGNORE INTO HeuristicKind ('name') VALUES ('{0}')".format(kindName)
+    query = "INSERT OR IGNORE INTO HeuristicKind ('name') VALUES ('"+kindName+"')"
     cur.execute(query)
     cur.close()
     self.__db.commit()
@@ -128,7 +128,7 @@ class HeuristicDB:
   
 class HeuristicSet(dict):
   def toXmlStrings(self):
-    return ["""<heuristic name="{0}" formula="{1}" />""".format(name, escape(self[name])) for name in self]
+    return ["<heuristic name=\""+name+"\" formula=\""+escape(self[name])+"\" />" for name in self]
   
   def toXmlFile(self, filename):
     outfile = open(filename, "w")
@@ -350,7 +350,7 @@ Returns the index of the best candidate in the array"""
       try:
         autotune(binary, candidates)
       except tunerwarnings.AlwaysCrashes:
-        print "Candidate {0} always crashes!".format(count)
+        print "Candidate "+str(count)+" always crashes!"
         #Add an empty entry for the candidate
         candidates.append(None)
       
@@ -358,7 +358,7 @@ Returns the index of the best candidate in the array"""
       
     bestIndex = self.bestCandidate(candidates)
     
-    print "The best candidate is: {0}".format(bestIndex)
+    print "The best candidate is: "+str(bestIndex)
   
     #Move every file to the right place
     bestSubDir=os.path.join(basesubdir, str(bestIndex))
@@ -382,7 +382,7 @@ Returns the index of the best candidate in the array"""
     destObjDir=finalBin+".obj"
     if os.path.isdir(destObjDir):
       shutil.rmtree(destObjDir)
-    shutil.move(bestObjDir, path)
+    shutil.move(bestObjDir, destObjDir)
     #  input heuristic file
     if bestIndex != 0: #Program 0 is run with only the best heuristics in the DB
       bestHeurFile=os.path.join(bestSubDir, "heuristics.txt")
@@ -408,7 +408,7 @@ Returns the index of the best candidate in the array"""
 
 #TEST
 if __name__ == "__main__":
-  basedir="/home/mikyt/programmi/petabricks/"
+  basedir="/afs/csail.mit.edu/u/m/mtartara/programs/petabricks/"
   pbc=basedir+"src/pbc"
   l=LearningCompiler(pbc, sys.argv[1], conf_minTrialNumber)
   l.compileLearningHeuristics(sys.argv[2])
