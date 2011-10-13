@@ -206,7 +206,7 @@ parser.add_option("--heuristics",            type="string", help="name of the fi
 if options.learning:
   print "Learning of heuristics is ACTIVE"
   if options.heuristics:
-    print "Using heuristics file: {0}".format(options.heuristics)
+    print "Using heuristics file: "+ str(options.heuristics)
   else:
     print "Using only heuristics in the database"
   

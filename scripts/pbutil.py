@@ -306,7 +306,7 @@ def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=Non
       os.unlink(binary)
       
     #Execute the compiler
-    print "Executing: {0}".format(cmd)
+    print "Executing: "+ str(cmd)
     p = subprocess.Popen(cmd, stdout=NULL, stderr=NULL)
     status = p.wait()
     return status
