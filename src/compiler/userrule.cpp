@@ -30,7 +30,7 @@
 //#define TRACE(x) std::cout << "Trace " << x << "\n"
 
 #define TRACE JTRACE
-#define GPU_TRACE 1
+//#define GPU_TRACE 1
 
 #include "userrule.h"
 
@@ -1101,7 +1101,7 @@ void petabricks::UserRule::generateOpenCLCopyInCode(std::string& codename, std::
   //o.write("MatrixIO().write("+name+");");
 #endif
   //o.write("MatrixIO().write("+name+".asGpuInputBuffer());");
-  o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->_clmem, CL_FALSE, 0, storage_"+name+"->bytes(), "+name+".getGpuInputBufferPtr(), 0, NULL, NULL);");
+  o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->getClMem(), CL_FALSE, 0, storage_"+name+"->bytes(), "+name+".getGpuInputBufferPtr(), 0, NULL, NULL);");
   o.write("clFlush(GpuManager::_queue);");
   /*o.write("JASSERT(CL_INVALID_CONTEXT != err).Text( \"Failed to write to buffer.\");");
   o.write("JASSERT(CL_INVALID_VALUE != err).Text( \"Failed to write to buffer.\");");
@@ -1135,11 +1135,12 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
   // Pass clmem args
   for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i ) {
     if((*i)->isBuffer())
-      o.write("err |= clSetKernelArg(clkern, "+jalib::XToString(arg_pos++)+", sizeof(cl_mem), (void*)&"+(*i)->matrix()->name()+".storageInfo()->_clmem);");
+      o.write("err |= clSetKernelArg(clkern, "+jalib::XToString(arg_pos++)+", sizeof(cl_mem), "+(*i)->matrix()->name()+".storageInfo()->getClMemPtr());");
   }
+
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i ) {
     if((*i)->isBuffer())
-      o.write("err |= clSetKernelArg(clkern, "+jalib::XToString(arg_pos++)+", sizeof(cl_mem), (void*)&"+(*i)->matrix()->name()+".storageInfo()->_clmem);");
+      o.write("err |= clSetKernelArg(clkern, "+jalib::XToString(arg_pos++)+", sizeof(cl_mem), "+(*i)->matrix()->name()+".storageInfo()->getClMemPtr());");
   }
 
   o.os( ) << "JASSERT( CL_SUCCESS == err )(err).Text( \"Failed to bind kernel arguments.\" );\n\n";

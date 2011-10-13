@@ -33,7 +33,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#define GPU_TRACE 1
+//#define GPU_TRACE 1
 
 //
 // Class structure looks like this:
@@ -496,6 +496,7 @@ public:
     }
     CopyPendingMap::_pendingMap.clearPendings(this->storage());
     this->storage()->unlock();
+    //CopyPendingMap::_pendingMap.print();
   }
 #endif
 

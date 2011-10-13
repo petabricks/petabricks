@@ -27,7 +27,7 @@
 #ifndef PETABRICKSMATRIXSTORAGE_H
 #define PETABRICKSMATRIXSTORAGE_H
 
-#define GPU_TRACE 1
+//#define GPU_TRACE 1
 
 #include <set>
 #include <map>
@@ -55,17 +55,37 @@ public:
   RegionNodeGroupMap(){}
 };
 
+#ifdef HAVE_OPENCL
+class CopyoutInfo;
+typedef jalib::JRef<CopyoutInfo> CopyoutInfoPtr;
+class CopyPendingMap;
+
+class ClMemWrapper: public jalib::JRefCounted {
+public:
+  ClMemWrapper(cl_mem mem) {
+    _clmem = mem;
+  }
+  ~ClMemWrapper() { 
+    if(_clmem) {
+      //std::cout << "release clmem (deconstructor): " << _clmem << std::endl;
+      clReleaseMemObject(_clmem);
+    }
+  }
+  //void setClMem(cl_mem mem) { _clmem = mem; }
+  cl_mem getClMem() { return _clmem; }
+  void* getClMemPtr(){ return (void*)&_clmem; }
+private:
+  cl_mem _clmem;
+};
+typedef jalib::JRef<ClMemWrapper> ClMemWrapperPtr;
+#endif
+
 class MatrixStorage;
 class MatrixStorageInfo;
 typedef jalib::JRef<MatrixStorage> MatrixStoragePtr;
 typedef jalib::JRef<MatrixStorageInfo> MatrixStorageInfoPtr;
 typedef std::vector<MatrixStoragePtr> MatrixStorageList;
 typedef std::vector<std::set<int> > NodeGroups;
-#ifdef HAVE_OPENCL
-class CopyoutInfo;
-typedef jalib::JRef<CopyoutInfo> CopyoutInfoPtr;
-class CopyPendingMap;
-#endif
 
 /**
  * The raw data for a Matrix
@@ -271,9 +291,27 @@ public:
   void check(cl_command_queue& queue);
   void done(int nodeID);
 
-  cl_mem _clmem;
+  ClMemWrapperPtr _clMemWrapper;
 
+  ClMemWrapperPtr getClMemWrapper() {
+    return _clMemWrapper;
+  }
 
+  void setClMemWrapper(ClMemWrapperPtr wrapper) {
+    _clMemWrapper = wrapper;
+  }
+
+  cl_mem getClMem() {
+    return _clMemWrapper->getClMem();
+  }
+
+  void setClMemWrapper(cl_mem mem) {
+    _clMemWrapper = new ClMemWrapper(mem);
+  }
+
+  void* getClMemPtr() {
+    return _clMemWrapper->getClMemPtr();
+  }
 
   ///
   /// Copy data of src to this
@@ -468,6 +506,17 @@ public:
     pendings.clear(); 
     //std::cout << "@@@ pending map: clear" << std::endl;
   }
+
+  void print() {
+    std::cout << "@@@ pending map: print" << std::endl;
+    for(std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator it = _map.begin(); it != _map.end(); ++it) {
+      std::cout << "storage: " << &(*(it->first)) << std::endl;
+      std::set<MatrixStorageInfoPtr>& set = it->second;
+      for(std::set<MatrixStorageInfoPtr>::iterator i = set.begin(); i != set.end(); ++i) {
+        std::cout << "  " << &(*(*i)) << std::endl;
+      }
+    }
+  }
   
   static CopyPendingMap _pendingMap;
   std::vector<MatrixStoragePtr> _buffers;
@@ -476,6 +525,8 @@ private:
   std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> > _map;
   jalib::JMutex  _lock;
 };
+
+
 
 #endif
 
