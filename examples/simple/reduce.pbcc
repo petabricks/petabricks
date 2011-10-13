@@ -1,0 +1,110 @@
+#ifndef REDUCE_PBCC
+#define REDUCE_PBCC
+
+// reduce a matrix by adding all elements
+transform ReduceAdd2D
+from IN[n,m]
+through ROWSUMS[m]
+to SUM
+{
+    to (ROWSUMS.cell(i) rowSum)
+    from (IN.row(i) in)
+    {
+        ReduceAdd(rowSum, in);
+    }
+
+    to (SUM sum)
+    from (ROWSUMS rowSums)
+    {
+        ReduceAdd(sum, rowSums);
+    }
+}
+
+// reduces a vector by adding all elements
+transform ReduceAdd
+from A[n]
+to SUM
+{
+  to (SUM sum) from (A a)
+  {
+    sum = 0;
+    for (int i = 0; i < n; ++i) {
+      sum += a.cell(i);
+    }
+  }
+
+  to (SUM sum) from (A a)
+  {
+    if (n <= 1) {
+      sum = a.cell(0);
+    } else {
+      ElementT sum1, sum2;
+      spawn ReduceAdd(sum1, a.region(0, n/2));
+      spawn ReduceAdd(sum2, a.region(n/2, n));
+      sync;
+      sum = sum1 + sum2;
+    }
+  }
+}
+
+// reduce a matrix by finding the max abs value
+transform ReduceAMax2D
+from A[n,m]
+through COLS[m], VALS[m]
+to J, I, VAL
+{
+    to (COLS.cell(i) col,
+        VALS.cell(i) val)
+    from (A.row(i) aRow)
+    {
+        ReduceAMax(col, val, aRow);
+    }
+
+    to (J j, I i, VAL val)
+    from (COLS cols, VALS vals)
+    {
+        ReduceAMax(i, val, vals);
+        j = cols.cell(i);
+    }
+}
+
+// reduces a vector by finding the max abs value
+transform ReduceAMax
+from A[n]
+to IDX, VAL
+{
+  to (IDX idx, VAL val) from (A a)
+  {
+    idx = 0;
+    val = fabs(a.cell(0));
+    for (int i = 1; i < n; ++i) {
+      ElementT t = fabs(a.cell(i));
+      if (t > val) {
+        idx = i;
+        val = t;
+      }
+    }
+  }
+
+  to (IDX idx, VAL val) from (A a)
+  {
+    if (n <= 1) {
+      idx = 0;
+      val = fabs(a.cell(0));
+    } else {
+      ElementT idx1, idx2, val1, val2;
+      spawn ReduceAMax(idx1, val1, a.region(0, n/2));
+      spawn ReduceAMax(idx2, val2, a.region(n/2, n));
+      sync;
+      if (val1 >= val2) {
+        idx = idx1;
+        val = val1;
+      } else {
+        idx = idx2 + n/2;
+        val = val2;
+      }
+    }
+  }
+}
+
+#endif // REDUCE_PBCC

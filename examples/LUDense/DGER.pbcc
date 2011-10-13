@@ -1,0 +1,20 @@
+#ifndef DGER_PBCC
+#define DGER_PBCC
+
+// Perform the rank 1 operation: A := alpha*x*y**T + A,
+// where alpha is a scalar, x is an m element column vector,
+// y is an n element row vector and A is an m by n matrix.
+transform DGER
+from ALPHA, X[1, m], Y[n, 1]
+to A[n, m]
+{
+    to (A.cell(j, i) a)
+    from (ALPHA alpha,
+          X.cell(0, i) x,
+          Y.cell(j, 0) y)
+    {
+        a += alpha * x * y;
+    }
+}
+
+#endif // DGER_PBCC

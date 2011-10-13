@@ -4,40 +4,33 @@
 #include "../multiply/multiplyAdd.pbcc"
 #include "../trisolve/TriSolveLL.pbcc"
 #include "LUBase.pbcc"
-
-transform SwapElements
-from IN[n], P[n]
-to OUT[n]
-{
-    to (OUT out) from (IN in, P p)
-    {
-        for (int j=0; j<n; j++)
-        {
-            if (p.cell(j) >= 0 && p.cell(j) < n) {
-                out.cell(j)=in.cell(p.cell(j));
-            }
-            else {
-                out.cell(j)=in.cell(j);
-            }
-        }
-    }
-}
+#include "LULAPACK.pbcc"
 
 transform SwapRows
 from IN[n,m], P[m]
+through INDEX[m]
 to OUT[n,m]
 {
-    to (OUT out) from (IN in, P p)
+    to (INDEX index) from (IN in, P p)
     {
-        for (int j=0; j<m; j++)
-        {
-            if (p.cell(j) >= 0 && p.cell(j) < m) {
-                Copy1D(out.row(j), in.row(p.cell(j)));
-            }
-            else {
-                Copy1D(out.row(j),in.row(j));
-            }
+        // initialize source index array
+        for (IndexT j = 0; j < m; ++j) {
+            index.cell(j) = j;
         }
+
+        // perform swaps on index array
+        for (IndexT j = 0; j < m; ++j)
+        {
+            IndexT temp = index.cell(p.cell(j));
+            index.cell(p.cell(j)) = index.cell(j);
+            index.cell(j) = temp;
+        }
+    }
+
+    to (OUT.row(j) out) from (IN in, INDEX.cell(j) index)
+    {
+        // copy with swaps
+        Copy1D(out, in.row(index));
     }
 }
 
@@ -52,69 +45,82 @@ to OUT[n,n]
 }
 
 transform LUBlock
-from IN[n, n]
-through TEMP[n, n], Ptemp[n], Pinit[n]
-to OUT[n, n], Pout[n]
-tunable sizespecific b
+through TEMP[n,m]
+to A[n,m], P[m]
+tunable sizespecific nb
 {
-    Pinit.cell(j) from () { return j;}
-
-    to (OUT out, Pout pout, TEMP temp, Ptemp ptemp)
-    from (Pinit pinit, IN in)
+    to (A a, P p, TEMP temp) from ()
     {
         //base case
-        if (b < 1 || b > n) {
-            LUBaseInner(out, pout, in, pinit);
+        if (nb < 1 || nb >= MIN(m,n)) {
+            LUBaseInPlace(a, p);
             return;
         }
 
         //get LU of left block by calling the base case
-        LUBaseInner(out.region(0, 0, n/b, n), pout,
-                     in.region(0, 0, n/b, n), pinit);
+        LUBaseInPlace(a.region(0, 0, nb, m), p);
 
         //swap right block
-        SwapRows(temp.region(n/b, 0, n, n),
-                   in.region(n/b, 0, n, n), pout);
+        Copy2D(temp.region(nb, 0, n, m),
+                  a.region(nb, 0, n, m));
+        SwapRows( a.region(nb, 0, n, m),
+               temp.region(nb, 0, n, m), p);
 
         //upper right block
-        TriSolveLL(out.region(n/b, 0, n, n/b), 1,
-                   out.region(0, 0, n/b, n/b),
-                  temp.region(n/b, 0, n, n/b));
+        TriSolveLLInPlace(a.region(nb, 0, n , nb), 1,
+                          a.region(0 , 0, nb, nb));
 
         //lower right block
 
         //temp = in - left*up (this updates the lower right block)
-        MatrixMultiplyAdd(temp.region(n/b, n/b, n, n), -1,
-                           out.region(0, n/b, n/b, n),
-                           out.region(n/b, 0, n, n/b), 1);
+        MatrixMultiplyAdd(a.region(nb, nb, n , m ), -1.0,
+                          a.region(0 , nb, nb, m ),
+                          a.region(nb, 0 , n , nb), 1.0);
 
         //recursion to get LU of the remaining updated block
-        MatrixRegion1D phalf = MatrixRegion1D::allocate(n-n/b);
-        LU(out.region(n/b, n/b, n, n), phalf, temp.region(n/b, n/b, n, n));
+        LUInPlace(a.region(nb, nb, n, m), p.region(nb, m));
 
         //lower left block
-        Copy2D(temp.region(0, n/b, n/b, n), out.region(0, n/b, n/b, n));
-        SwapRows(out.region(0, n/b, n/b, n),temp.region(0, n/b, n/b, n), phalf);
+        Copy2D(temp.region(0, nb, nb, m),
+                  a.region(0, nb, nb, m));
+        SwapRows( a.region(0, nb, nb, m),
+               temp.region(0, nb, nb, m), p.region(nb, m));
 
-        //last half of Permutation vector
-        Copy1D(ptemp.region(n/b, n), pout.region(n/b, n));
-        SwapElements(pout.region(n/b, n), ptemp.region(n/b, n), phalf);
+        // adjust permutation values to larger matrix
+        for (IndexT i = nb; i < m; ++i) {
+            p.cell(i) += nb;
+        }
+    }
+}
+
+transform LUInPlace
+to A[n,m], P[m]
+{
+    to (A a, P p) from ()
+    {
+        LUBlock(a, p);
+    }
+
+    to (A a, P p) from ()
+    {
+        LUBaseInPlace(a, p);
+    }
+
+    to (A a, P p) from ()
+    {
+        LULAPACK(a, p, a);
     }
 }
 
 transform LU
-from IN[n,n]
-to OUT[n,n], P[n]
+from IN[n,m]
+to OUT[n,m], P[m]
 generator LUGenerator
 {
     to (OUT out, P p) from (IN in)
     {
-        LUBlock(out, p, in);
-    }
-
-    to (OUT out, P p) from (IN in)
-    {
-        LUBase(out, p, in);
+        Copy2D(out, in);
+        LUInPlace(out, p);
     }
 }
 
