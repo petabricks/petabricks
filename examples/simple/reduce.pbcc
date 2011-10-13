@@ -96,7 +96,7 @@ to IDX, VAL
       spawn ReduceAMax(idx1, val1, a.region(0, n/2));
       spawn ReduceAMax(idx2, val2, a.region(n/2, n));
       sync;
-      if (val1 <= val2) {
+      if (val1 >= val2) {
         idx = idx1;
         val = val1;
       } else {

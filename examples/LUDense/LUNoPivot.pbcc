@@ -7,6 +7,7 @@
 #include "../simple/scale.pbcc"
 #include "../trisolve/TriSolveLL.pbcc"
 #include "../trisolve/TriSolveRU.pbcc"
+#include "DGER.pbcc"
 
 /*
 // element-wise version
@@ -50,22 +51,6 @@ to OUT[n,n]
     }
 }
 */
-
-// Perform the rank 1 operation: A := alpha*x*y**T + A,
-// where alpha is a scalar, x is an m element vector, y is an n element
-// vector and A is an m by n matrix.
-transform DGER
-from ALPHA, X[1, m], Y[n, 1]
-to A[n, m]
-{
-    to (A.cell(j, i) a)
-    from (ALPHA alpha,
-          X.cell(0, i) x,
-          Y.cell(j, 0) y)
-    {
-        a += alpha * x * y;
-    }
-}
 
 // assume OUT contains a copy of IN and do the computation in-place
 transform LUNoPivotBaseInPlace

@@ -1,283 +1,161 @@
 #ifndef LUBASE_PBCC
 #define LUBASE_PBCC
 
+#include "../simple/macros.h"
 #include "../simple/copy.pbcc"
+#include "../simple/reduce.pbcc"
+#include "../trisolve/TriSolveLL.pbcc"
+#include "../multiply/multiplyAdd.pbcc"
+#include "DGER.pbcc"
 
-transform LUleftwork
-from IN[n,m]
-to OUT[n,m]
+transform Swap2D
+to A[n,m], B[n,m]
 {
-
-  // this could be replaced with a trisolve and parallel matrix-vector multiply-add
-  primary to (OUT.column(n-1) out)  from (IN in)
-  {
-        ElementT sum;
-        int minjn;
-
-        out.cell(0)=in.cell(n-1,0);
-
-        for (int j=1; j<m; j++)
-        {
-                sum = 0;
-                if (j<n)
-                {
-                        minjn=j;
-                }
-                else
-                {
-                        minjn=n-1;
-                }
-
-                for (int k=0; k<minjn; k++)
-                {
-                        sum+=in.cell(k,j)*out.cell(k);
-                }
-                out.cell(j)=in.cell(n-1,j)-sum;
-        }
-  }
-
-
-  OUT.cell(j,i)
-  from (IN.cell(j,i) in)
-  {
-        return in;
-  }
-
-
-}
-
-transform LUscalecolumn
-from IN[n,m]
-to OUT[n,m]
-{
-  primary OUT.cell(0,0) from (IN.cell(0,0) in)
-  {
-        return in;
-  }
-
-  OUT.cell(0,j) from (IN.cell(0,0) diag, IN.cell(0,j) in)
-  {
-        return in/diag;
-  }
-
-
-  secondary OUT.cell(i,j) from (IN.cell(i,j) in)
-  {
-        return in;
-  }
-}
-
-
-transform LUleft
-from IN[n,m], Pin[m]
-through TEMP[n,m], Ptemp[m]
-to OUT[n,m], Pout[m]
-{
-
-   to (OUT out, Pout pout, TEMP temp, Ptemp ptemp) from (IN in, Pin pin)
-   {
-        ElementT MaxElement;
-        int MaxIndex;
-        int minmn;
-        int j;
-        int k;
-
-        Copy2D(temp, in);
-        Copy1D(ptemp, pin);
-
-        if ( m >= n ) {
-                minmn=n;
-        }
-        else {
-                minmn=m;
-        }
-
-        for (j=0; j<minmn; j++)
-        {
-
-                // lazy update of all values in current column
-                if (j>0)
-                {
-                        LUleftwork(temp.region(0,0,j+1,m),out.region(0,0,j+1,m));
-                }
-
-                Copy1D(out.column(j),temp.column(j));
-
-                //find pivot
-                MaxElement=temp.cell(j,j);
-                MaxIndex=j;
-                for (k=j+1; k<m; k++)
-                {
-                        if (fabs(temp.cell(j,k)) > fabs(MaxElement)){
-                        MaxElement=temp.cell(j,k);
-                        MaxIndex=k;
-                        }
-                }
-
-                //swap rows
-                pout.cell(j)=ptemp.cell(MaxIndex);
-                Copy1D(out.row(j), temp.row(MaxIndex));
-                for (k=j+1; k<m; k++)
-                {
-                        if (k==MaxIndex)
-                        {
-                                pout.cell(k)=ptemp.cell(j);
-                                Copy1D(out.row(k),temp.row(j));
-                        }
-                        else
-                        {
-                                pout.cell(k)=ptemp.cell(k);
-                                Copy1D(out.row(k), temp.row(k));
-                        }
-                }
-
-                Copy1D(ptemp.region(j,m),pout.region(j,m));
-                Copy2D(temp.region(0,j,n,m),out.region(0,j,n,m));
-
-                LUscalecolumn(out.region(j,j,j+1,m),temp.region(j,j,j+1,m));
-
-
-        }
-
-        for (j=minmn; j<n; j++)
-        {
-                LUleftwork(temp.region(0,0,j+1,m),out.region(0,0,j+1,m));
-                Copy1D(out.column(j),temp.column(j));
-        }
-
-   }
-}
-
-
-
-
-
-transform LUrightwork
-from IN[n,m]
-to OUT[n,m]
-{
-
-  primary OUT.cell(j,0) from (IN.cell(j,0) in)
-  {
-        return in;
-  }
-
-  OUT.cell(0,j) from (IN.cell(0,j) in, IN.cell(0,0) diag)
-  {
-        return in/diag;
-  }
-
-
-  secondary OUT.cell(j,i)
-  from (IN.cell(j,i) aPrev,
-        OUT.cell(0,i) left,
-        IN.cell(j,0) up)
-  {
-        return aPrev - left * up;
-  }
-
-}
-
-
-
-transform LUright
-from IN[n,m], Pin[m]
-through TEMP[n,m], Ptemp[m]
-to OUT[n,m], Pout[m]
-{
-
-    to (OUT out, Pout pout, TEMP temp, Ptemp ptemp) from (IN in, Pin pin)
+    to (A.cell(j, i) a, B.cell(j, i) b) from ()
     {
-        ElementT MaxElement;
-        int MaxIndex;
-        int minmn;
+        ElementT t;
+        t = a;
+        a = b;
+        b = t;
+    }
+}
+
+transform Scale2D
+from ALPHA
+to A[n,m]
+{
+    to (A.cell(j, i) a) from (ALPHA alpha)
+    {
+        a *= alpha;
+    }
+}
+
+// left looking
+transform LUBaseLL
+to A[n,m], P[m]
+{
+    to (A a, P p) from ()
+    {
         int j;
-        int k;
+        ElementT iMax, jMax, valMax;
 
-        Copy2D(temp, in);
-        Copy1D(ptemp, pin);
+        for (j = 0; j < MIN(m,n); ++j) {
 
-        if ( m >= n ) {
-            minmn=n;
-        }
-        else {
-            minmn=m;
-        }
+            // lazy update of all values in current column
+            if (j > 0) {
+                // update values above diagonal
+                TriSolveLLInPlace(a.region(j, 0, j+1, j), 1,
+                                  a.region(0, 0, j  , j));
 
-        // for each column in square part of matrix
-        for (j=0; j<minmn; j++)
-        {
-            // find maximum element in column
-            MaxElement=temp.cell(j,j);
-            MaxIndex=j;
-            for (k=j+1; k<m; k++)
-            {
-                if ( (temp.cell(j,k) != 0 ) && (fabs(temp.cell(j,k)) > fabs(MaxElement))){
-                    MaxElement=temp.cell(j,k);
-                    MaxIndex=k;
-                }
+                // update values on and below diagonal
+                MatrixMultiplyAdd(a.region(j, j, j+1, m), -1.0,
+                                  a.region(0, j, j  , m),
+                                  a.region(j, 0, j+1, j), 1.0);
             }
 
-            // save swapped row index in pout
-            pout.cell(j)=ptemp.cell(MaxIndex);
+            if (j == m - 1) {
+                p.cell(j) = j;
+            } else {
+                // find the largest value in jth column
+                ReduceAMax2D(jMax, iMax, valMax, a.region(j, j, j+1, m));
+                iMax += j;
 
-            // copy temp into out, row by row, accounting for swap
-            Copy1D(out.row(j), temp.row(MaxIndex));
-            for (k=j+1; k<m; k++)
-            {
-                if (k==MaxIndex)
-                {
-                    pout.cell(k)=ptemp.cell(j);
-                    Copy1D(out.row(k),temp.row(j));
+                // save swapped row index in pout
+                p.cell(j) = iMax;
+
+                // swap pivot row into current row
+                if (iMax != j) {
+                    Swap2D(a.region(0, j   , n, j    + 1),
+                           a.region(0, iMax, n, iMax + 1));
                 }
-                else
-                {
-                    pout.cell(k)=ptemp.cell(k);
-                    Copy1D(out.row(k), temp.row(k));
-                }
+
+                // scale values below diagonal
+                Scale2D(a.region(j, j+1, j+1, m), 1.0 / a.cell(j, j));
             }
+        }
 
+        // solve for remainder of U matrix
+        if (n > m) {
+            TriSolveLLInPlace(a.region(m, 0, n, m), 1,
+                              a.region(0, 0, m, m));
+        }
 
-            // copy modified parts of out back into temp
-            Copy1D(ptemp.region(j,m),pout.region(j,m));
-            Copy2D(temp.region(0,j,n,m),out.region(0,j,n,m));
-
-            // scale current column and update trailing submatrix
-            LUrightwork(temp.region(j,j,n,m),out.region(j,j,n,m));
-
-            // copy last row/col updates from temp to out
-            if (j == minmn-1) {  Copy2D(out.region(j,j,n,m),temp.region(j,j,n,m)); }
+        // no swaps for rest of array
+        for (j = MIN(m,n); j < m; ++j) {
+            p.cell(j) = j;
         }
     }
 }
 
-transform LUBaseInner
-from IN[n,m], Pin[m]
-to OUT[n,m], Pout[m]
+// right looking
+transform LUBaseRL
+to A[n,m], P[m]
 {
-   to (OUT out, Pout pout) from (IN in, Pin pin)
+    to (A a, P p) from ()
+    {
+        int j;
+        ElementT iMax, jMax, valMax;
+
+        // for each column in square part of matrix
+        for (j = 0; j < MIN(m, n); ++j) {
+            if (j == m - 1) {
+                p.cell(j) = j;
+            } else {
+                // find the largest value in jth column on/below diagonal
+                ReduceAMax2D(jMax, iMax, valMax, a.region(j, j, j+1, m));
+                iMax += j;
+
+                // save swapped row index in pout
+                p.cell(j) = iMax;
+
+                // swap pivot row into current row
+                if (iMax != j) {
+                    Swap2D(a.region(0, j   , n, j    + 1),
+                           a.region(0, iMax, n, iMax + 1));
+                }
+
+                // scale current column and update trailing submatrix
+                Scale2D(a.region(j, j+1, j+1, m), 1.0 / a.cell(j, j));
+
+                if (j < n - 1) {
+                    // rank 1 trailing matrix update
+                    DGER(a.region(j+1, j+1, n  , m  ), -1.0,
+                         a.region(j  , j+1, j+1, m  ),
+                         a.region(j+1, j  , n  , j+1));
+                }
+            }
+        }
+
+        // no swaps for rest of array
+        for (j = MIN(m,n); j < m; ++j) {
+            p.cell(j) = j;
+        }
+    }
+}
+
+transform LUBaseInPlace
+to A[n,m], P[m]
+{
+   to (A a, P p) from ()
    {
-        LUright(out, pout, in, pin);
+        LUBaseLL(a, p);
    }
 
-   to (OUT out, Pout pout) from (IN in, Pin pin)
+   to (A a, P p) from ()
    {
-        LUleft(out, pout, in, pin);
+        LUBaseRL(a, p);
    }
 }
 
 transform LUBase
 from IN[n,m]
-through Pinitial[m]
 to OUT[n,m], P[m]
 {
-   Pinitial.cell(j) from() { return j;}
-
-   to (OUT out, P pout) from (IN in, Pinitial pin)
+   to (OUT out, P p) from (IN in)
    {
-       LUBaseInner(out,pout,in,pin);
+       Copy2D(out, in);
+       LUBaseInPlace(out, p);
    }
 }
-
 
 #endif // LUBASE_PBCC
