@@ -10,6 +10,7 @@ import xml.dom.minidom
 import re
 import pbutil
 import tunerwarnings
+import maximaparser
 from candidatetester import Candidate
 from xml.sax.saxutils import escape
 from sgatuner import autotune
@@ -17,7 +18,8 @@ from tunerconfig import config
 
 #--------- Config ------------------
 conf_deleteTempDir = True
-conf_minTrialNumber = 6
+conf_minTrialNumber = 10
+conf_probabilityExploration = 0.3
 #--------- Autotuner config --------
 config.max_time=10 #Seconds
 #-----------------------------------
@@ -174,6 +176,14 @@ heuristics in the database  """
         #into the compiler
         continue
       formula=random.choice(bestN)
+      
+      if random.random() < conf_probabilityExploration:
+        #Generete a new formula by modifying the existing one
+        formulaObj = maximaparser.parse(formula)
+        formulaObj.mutateValue()
+        formula = str(formulaObj)
+      
+        
       self[heuristic] = formula
   
   
@@ -408,7 +418,8 @@ Returns the index of the best candidate in the array"""
 
 #TEST
 if __name__ == "__main__":
-  basedir="/afs/csail.mit.edu/u/m/mtartara/programs/petabricks/"
+  #basedir="/afs/csail.mit.edu/u/m/mtartara/programs/petabricks/"
+  basedir="/home/mikyt/programmi/petabricks/"
   pbc=basedir+"src/pbc"
   l=LearningCompiler(pbc, sys.argv[1], conf_minTrialNumber)
   l.compileLearningHeuristics(sys.argv[2])
