@@ -1,0 +1,176 @@
+#ifndef PERMUTE_PBCC
+#define PERMUTE_PBCC
+
+#include "../simple/copy.pbcc"
+
+// This utility is used to permute rows of a matrix
+
+// P is a LAPACK-style IPIV permutation array
+transform PermuteGenerator
+to IN[n,m], P[m]
+{
+    IN.cell(j,i) from () {
+        return i;
+    }
+
+    P.cell(i) from () {
+        return PetabricksRuntime::randInt(i, m);
+    }
+}
+
+// swap values element-wise
+transform Swap2D
+to A[n,m], B[n,m]
+{
+    to (A.cell(j, i) a, B.cell(j, i) b) from ()
+    {
+        ElementT t;
+        t = a;
+        a = b;
+        b = t;
+    }
+}
+
+// permute rows of a matrix in-place, base case
+transform PermuteInPlaceBase
+from P[m]
+to A[n,m]
+{
+    // do row-by-row in-place swaps
+    // this is what DLASWP does (for each column block)
+    to (A a) from (P p)
+    {
+        for (IndexT i = 0; i < m; ++i) {
+            IndexT ip = p.cell(i);
+            if (ip != i) {
+                Swap2D(a.region(0, i , n, i +1),
+                       a.region(0, ip, n, ip+1));
+            }
+        }
+    }
+
+    // try to minimize copies by traversing permutation cycles
+    to (A a) from (P p)
+    {
+        IndexT i, j;
+        IndexT *marked = new IndexT[m];
+        IndexT *src    = new IndexT[m];
+        MatrixRegion1D temp = MatrixRegion1D::allocate(n);
+
+        // initialize source index and marked arrays
+        for (i = 0; i < m; ++i) {
+            src[i] = i;
+            marked[i] = 0;
+        }
+
+        // perform swaps on index array to compute row sources
+        for (i = 0; i < m; ++i)
+        {
+            IndexT temp = src[(int) p.cell(i)];
+            src[(int) p.cell(i)] = src[i];
+            src[i] = temp;
+        }
+
+        // for each permutation cycle, shift rows
+        for (i = 0; i < m; ++i) {
+            if (marked[i] == 0 && src[i] != i) {
+                j = i;
+                Copy1D(temp, a.row(i));
+                while (src[j] != i) {
+                    Copy1D(a.row(j), a.row(src[j]));
+                    marked[j] = 1;
+                    j = src[j];
+                }
+                Copy1D(a.row(j), temp);
+                marked[j] = 1;
+            }
+        }
+
+        delete [] marked;
+        delete [] src;
+    }
+
+    // copy and do out-of-place permute
+    to (A a) from (P p)
+    {
+        MatrixRegion2D temp = MatrixRegion2D::allocate(n,m);
+        Copy2D(temp, a);
+        Permute(a, temp, p);
+    }
+}
+
+// permute rows of a matrix in-place, recursive
+transform PermuteInPlaceRecursive
+from P[m]
+to A[n,m]
+tunable blockSize
+{
+    // in the style of DLASWP, decompose into column blocks
+    // DLASWP uses a hard-coded blockSize of 32
+    to (A a) from (P p)
+    {
+        if (n < 2 || n < blockSize) {
+            PermuteInPlaceBase(a, p);
+            return;
+        }
+
+        spawn PermuteInPlace(a.region(0  , 0, n/2, m), p);
+        spawn PermuteInPlace(a.region(n/2, 0, n  , m), p);
+        sync;
+    }
+}
+
+// permute rows of a matrix in-place
+transform PermuteInPlace
+from P[m]
+to A[n,m]
+{
+    to (A a) from (P p)
+    {
+        PermuteInPlaceRecursive(a, p);
+    }
+
+    to (A a) from (P p)
+    {
+        PermuteInPlaceBase(a, p);
+    }
+}
+
+// permute rows of a matrix out-of-place
+transform Permute
+from IN[n,m], P[m]
+through INDEX[m]
+to OUT[n,m]
+generator PermuteGenerator
+{
+    to (INDEX index) from (IN in, P p)
+    {
+        // initialize source index array
+        for (IndexT i = 0; i < m; ++i) {
+            index.cell(i) = i;
+        }
+
+        // perform swaps on index array
+        for (IndexT i = 0; i < m; ++i)
+        {
+            IndexT temp = index.cell(p.cell(i));
+            index.cell(p.cell(i)) = index.cell(i);
+            index.cell(i) = temp;
+        }
+    }
+
+    to (OUT.row(j) out) from (IN in, INDEX.cell(j) index)
+    {
+        // permuted copy
+        Copy1D(out, in.row(index));
+    }
+
+    // copy and do in-place permute
+    to (OUT out) from (IN in, P p)
+    {
+        Copy2D(out, in);
+        PermuteInPlace(out, p);
+    }
+}
+
+#endif // PERMUTE_PBCC

@@ -3,22 +3,11 @@
 
 #include "../simple/macros.h"
 #include "../simple/copy.pbcc"
+#include "../simple/permute.pbcc"
 #include "../simple/reduce.pbcc"
 #include "../trisolve/TriSolveLL.pbcc"
 #include "../multiply/multiplyAdd.pbcc"
 #include "DGER.pbcc"
-
-transform Swap2D
-to A[n,m], B[n,m]
-{
-    to (A.cell(j, i) a, B.cell(j, i) b) from ()
-    {
-        ElementT t;
-        t = a;
-        a = b;
-        b = t;
-    }
-}
 
 transform Scale2D
 from ALPHA
