@@ -4,16 +4,14 @@ to X[n]
 {
     primary
     to   (X.cell(n-1) x)
-    from (A a)
+    from ()
     {
-        printf("cell %d\n", n-1);
         x = 1;
     }
 
     to   (X.cell(i) xout)
     from (X.region(i+1, n) x)
     {
-        printf("cell %d\n", i);
         xout = 0;
         for (int j = 0; j < x.width(); ++j) {
             xout += x.cell(j);
