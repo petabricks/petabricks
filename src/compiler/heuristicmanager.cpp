@@ -25,9 +25,7 @@
  *                                                                           *
  *****************************************************************************/
 #include "heuristicmanager.h"
-
-#include <fstream>
-#include <boost/regex.hpp>
+#include "tinyxml.h"
 
 petabricks::HeuristicPtr& petabricks::HeuristicManager::getHeuristic(const std::string name) {
   //From cache
@@ -66,33 +64,21 @@ petabricks::HeuristicPtr& petabricks::HeuristicManager::getHeuristic(const std::
 }
 
 void petabricks::HeuristicManager::loadFromFile(const std::string fileName) {
-  //boost::regex heuristicRE("\\s*<heuristic\\s+name=\"(\\w+)\"\\s+formula=\"(\\w+)\"\\s*/>\\s*");
-  boost::regex heuristicRE("<heuristic\\s+name=\"(.+)\"\\s+formula=\"(.+)\"\\s*/>");
+  TiXmlDocument doc(fileName.c_str());
+	doc.LoadFile();
   
-  std::ifstream f(fileName.c_str());
-  if (! f.is_open()) {
-    std::cerr << "Unable to open the file containing the heuristics: " << fileName << "\n";
-    abort();
-  }
-  
-  std::string line;
-  while ( f.good() ) {
-    boost::cmatch submatch;
-    getline (f, line);
-    JTRACE("line")(line);
-    bool found = boost::regex_search(line.c_str(), submatch, heuristicRE);
+  TiXmlHandle docHandle( &doc );
+	TiXmlElement* heuristic = docHandle.FirstChildElement("heuristics").FirstChildElement("heuristic").ToElement();
+	while (heuristic) {
+    std::string name = heuristic->Attribute("name");
+    std::string formula = heuristic->Attribute("formula");
     
-    if (found) {
-      //Add to the list of heuristics
-      std::string name = submatch[1];
-      std::string formula = jalib::unescapeXML(submatch[2]);
-      JTRACE("Matches")(submatch[0])(name)(formula);
-      Heuristic* newHeuristic= new Heuristic(formula);
+    JTRACE("heuristic")(name)(formula);
+    Heuristic* newHeuristic= new Heuristic(formula);
       
-      _fromFile[name]=HeuristicPtr(newHeuristic);
-    }
+    _fromFile[name]=HeuristicPtr(newHeuristic);
     
+    //Next  
+    heuristic = heuristic->NextSiblingElement("heuristic");
   }
-  
-  f.close();
 }

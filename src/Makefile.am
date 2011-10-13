@@ -34,7 +34,9 @@ noinst_HEADERS = \
   compiler/userrule.h \
   compiler/heuristic.h \
   compiler/heuristicmanager.h \
-  compiler/dbmanager.h
+  compiler/dbmanager.h \
+  compiler/tinyxml.h \
+  compiler/tinystr.h
 
 pkglib_HEADERS=  \
   common/hash.h \
@@ -134,7 +136,11 @@ libpbcompiler_a_SOURCES = \
   compiler/userrule.cpp \
   compiler/heuristic.cpp \
   compiler/heuristicmanager.cpp \
-  compiler/dbmanager.cpp
+  compiler/dbmanager.cpp \
+  compiler/tinyxml.cpp \
+  compiler/tinyxmlerror.cpp \
+  compiler/tinyxmlparser.cpp \
+  compiler/tinystr.cpp
 
 libpbruntime_a_LFLAGS = 
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime
