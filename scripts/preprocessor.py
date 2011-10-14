@@ -286,27 +286,24 @@ def p_define(p):
   'define : DEFINE ID'
   if not define_on[-1]:
     return
-  current_dict = define_dict_list[-1]
-  current_dict[p[2]] = ""
+  define_dict[p[2]] = ""
 
 def p_define_macro(p):
   'define : DEFINE ID LPAREN id_list RPAREN LINE'
   if not define_on[-1]:
     return
-  current_dict = macro_dict_list[-1]
   template = generate_template(p[4], p[6])
   template = (template[0], template[1], 'expression')
-  if p[2] not in current_dict or current_dict[p[2]] != template:
-    current_dict[p[2]] = template
-  else:
-    print_error("illegal to redefine " + p[2], p.lineno(1))
+  if p[2] not in macro_dict or macro_dict[p[2]] != template:
+    macro_dict[p[2]] = template
+  #else:
+    #print_error("illegal to redefine " + p[2], p.lineno(1))
 
 def p_define_const(p):
   'define : DEFINE ID LINE'
   if not define_on[-1]:
     return
-  current_dict = define_dict_list[-1]
-  current_dict[p[2]] = p[3]
+  define_dict[p[2]] = p[3]
 
 def p_define_un(p):
   '''define : UNDEF ID
@@ -315,13 +312,11 @@ def p_define_un(p):
 	    | UNDEF ID LINE'''
   if not define_on[-1]:
     return
-  current_dict = define_dict_list[-1]
-  if p[2] in current_dict:
-    del current_dict[p[2]]
+  if p[2] in define_dict:
+    del define_dict[p[2]]
 
-  current_dict = macro_dict_list[-1]
-  if p[2] in current_dict:
-    del current_dict[p[2]]
+  if p[2] in macro_dict:
+    del macro_dict[p[2]]
 
 def p_id_list(p):
   'id_list : ID COMMA id_list'
@@ -398,12 +393,12 @@ def p_elif_block_endif(p):
 
 def p_cond_id(p):
   'cond_id : ID'
-  p[0] = p[1] in define_dict_list[-1]
+  p[0] = p[1] in define_dict
   append_define_on(p[0])
 
 def p_cond_id_line(p):
   'cond_id : LINE'
-  p[0] = p[1] in define_dict_list[-1]
+  p[0] = p[1] in define_dict
   append_define_on(p[0])
 
 def p_cond_number(p):
@@ -944,21 +939,18 @@ def generate_template(args, expression):
 """ Replace all defined constants & macros in string s
     Return the resulted string """
 def replace_all_define(s, lineno):
-  current_define = define_dict_list[-1]
-  current_macro = macro_dict_list[-1]
-  
   # Replace defined macros
-  for macro in current_macro:
+  for macro in macro_dict:
     i = s.find(macro)
     while i != -1:
-      s,i = replace_macro(macro, current_macro[macro], s, i, lineno)
+      s,i = replace_macro(macro, macro_dict[macro], s, i, lineno)
       i = s.find(macro,i)
 
   # Replace defined constants
-  for define in current_define:
+  for define in define_dict:
     i = s.find(define)
     while i != -1:
-      s,i = replace_definition(define, current_define[define], s, i, lineno)
+      s,i = replace_definition(define, define_dict[define], s, i, lineno)
       i = s.find(define,i)
 
 
@@ -1030,10 +1022,8 @@ def replace_macro(macro, (no_args, expanded, t), s, head_index, lineno):
 # Global variable
 parsed_set = set()
 queue = []
-define_dict_list = []
-macro_dict_list = []
-define_dict_map = {}
-macro_dict_map = {}
+define_dict = {}
+macro_dict = {}
 define_on = [True]
 
 current_file = ""
@@ -1045,7 +1035,6 @@ def relpath(filename):
   current = os.path.abspath("") + '/'
   common = os.path.commonprefix([current, filename])
   current = current[len(common):]
-  filename = filename[len(common):]
 
   count = current.count('/')
   out = ""
@@ -1124,16 +1113,6 @@ def convert_ast_to_string(ast):
 
 def update_cleanup():
   queue.pop()
-  current_define_dict = define_dict_list.pop()
-  current_macro_dict = macro_dict_list.pop()
-  if len(define_dict_list) > 0:
-    parent_define_dict = define_dict_list[-1]
-    for key in current_define_dict.keys():
-      parent_define_dict[key] = current_define_dict[key]
-
-    parent_macro_dict = macro_dict_list[-1]
-    for key in current_macro_dict.keys():
-      parent_macro_dict[key] = current_macro_dict[key]
 
 """ Parse a content in a given file into ast. """
 def parse_file_to_ast(file_path):
@@ -1146,23 +1125,10 @@ def parse_file_to_ast(file_path):
   full_path_string = os.path.abspath(os.path.join(current_dir, file_path))
 
   if full_path_string in parsed_set:
-    current_dict = define_dict_list[-1]
-    include_dict = define_dict_map[full_path_string]
-    for key in include_dict.keys():
-      current_dict[key] = include_dict[key]
-
-    current_dict = macro_dict_list[-1]
-    include_dict = macro_dict_map[full_path_string]
-    for key in include_dict.keys():
-      current_dict[key] = include_dict[key]
     return []
 
   parsed_set.add(full_path_string)
   queue.append(full_path_string)
-  define_dict_list.append({})
-  macro_dict_list.append({})
-  define_dict_map[full_path_string] = {}
-  macro_dict_map[full_path_string] = {}
 
   import ply.lex as lex
   import ply.yacc as yacc
@@ -1175,8 +1141,6 @@ def parse_file_to_ast(file_path):
   reader.close()
   ast = yacc.parse(input_string)
 
-  define_dict_map[full_path_string] = define_dict_list[-1]
-  macro_dict_map[full_path_string] = macro_dict_list[-1]
   update_cleanup()
   return ast
 
@@ -1184,8 +1148,6 @@ def get_define(file_path):
   current_dir = os.path.dirname(queue[-1])
   full_path_string = os.path.abspath(os.path.join(current_dir, file_path))
   queue.append(full_path_string)
-  define_dict_list.append({})
-  macro_dict_list.append({})
 
   import ply.lex as lex
   import ply.yacc as yacc
@@ -1204,31 +1166,6 @@ def get_define(file_path):
 
   update_cleanup()
   return ast
-
-'''def get_signatures(file_path):
-  current_dir = os.path.dirname(queue[-1])
-  full_path_string = os.path.abspath(os.path.join(current_dir, file_path))
-  queue.append(full_path_string)
-  define_dict_list.append({})
-  macro_dict_list.append({})
-
-  import ply.lex as lex
-  import ply.yacc as yacc
-
-  lex.lex(nowarn=1)
-  yacc.yacc(debug=False)
-
-  reader = open(full_path_string, 'r')
-  input_string = reader.read()
-  reader.close()
-
-  global signature
-  signature = True
-  ast = yacc.parse(input_string)
-  signature = False
-
-  update_cleanup()
-  return ast'''
 
 
 def main(argv=sys.argv):
