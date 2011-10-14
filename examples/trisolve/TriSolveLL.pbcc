@@ -95,7 +95,7 @@ to X[n,m]
 transform TriSolveLLBlocked
 from UNITFLAG, A[m,m]
 to X[n,m]
-tunable blockSize
+tunable sizespecific blockSize
 {
     // right looking (update trailing matrix after each row block is solved)
     to   (X x)
