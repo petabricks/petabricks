@@ -70,3 +70,26 @@ NB: the selection is completely random, so the value could not change at all!"""
       self.left.mutateValue()
     else:
       self.right.mutateValue()
+      
+class FormulaIf:
+  def __init__(self, cond, thenClause, elseClause=None):
+    self.cond = cond
+    self.thenClause = thenClause
+    self.elseClause = elseClause
+    
+  def __repr__(self):
+    if self.elseClause is not None:
+      elsePart=" else " + str(self.elseClause)
+    else:
+      elsePart=""
+      
+    return "if " + str(self.cond) + " then " + str(self.thenClause) + elsePart
+    
+  def mutateValue(self):
+    choice = random.choice(range(3))
+    if choice==0:
+      self.cond.mutateValue()
+    elif choice==1:
+      self.thenClause.mutateValue()
+    elif choice==2 and elseClause is not None:
+      self.elseClause.mutateValue()

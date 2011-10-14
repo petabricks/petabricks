@@ -5,15 +5,20 @@ from ply.lex import TOKEN
 from formula import *
 
 # ----------------------- LEXER --------------------------
-PASS_CHARS = r'[=<>,*/()[\]\n^+-]'
 WS = r'[ \r\n\t]'
 
 reserved = {"true" : "BOOL_T",
             "false" : "BOOL_F",
             "equal" : "STR_EQUAL",
             "ceiling" : "STR_CEILING",
-            "floor" : "STR_FLOOR" }
+            "floor" : "STR_FLOOR",
+            "and" : "AND",
+            "or"  : "OR",
+            "if"  : "IF",
+            "then" : "THEN",
+            "else" : "ELSE"}
             
+#Tokens and literals lists, as required by ply.lex
 tokens = ["INTEGER", "FLOAT", "IDENT", "LE", "GE", ] + list(reserved.values())
 literals = ["=", "<", ">", ",", "*", "/", "(", ")", "[", "]", "\n", "^", "+", "-"] 
   
@@ -31,10 +36,6 @@ def t_error(t):
   print "Unable to recongnize the next token: " + t.value
   exit()
 
-#@TOKEN(PASS_CHARS)
-#def t_passchars(t):
-  #t.type=t.value
-  #return t
 
 t_INTEGER = r'[0-9]+'
 t_FLOAT = r'[0-9]+[.][0-9]+'
@@ -42,9 +43,10 @@ t_LE = r'<='
 t_GE = r'>='
 
 # -------------------------- PARSER ----------------------------
-# Get the token map from the lexer.  This is required.
 precedence = (
+  ('left', 'AND', 'OR'),
   ('nonassoc', '=', '<', '>', 'LE', 'GE'),
+  ('right', 'IF', 'THEN', 'ELSE'),
   ('left', '-', '+'),
   ('left', '*', '/'),
   ('left', '^'),
@@ -73,6 +75,18 @@ def p_formula_paren(p):
 def p_formula_binop(p):
   r'Formula : FormulaBinop'
   p[0]=p[1]
+  
+def p_formula_if(p):
+  r'Formula : FormulaIf'
+  p[0]=p[1]
+  
+def p_formulaif_then(p):
+  r'FormulaIf : IF Formula THEN Formula'
+  p[0]=FormulaIf(p[2], p[4])
+  
+def p_formulaif_then_else(p):
+  r'FormulaIf : IF Formula THEN Formula ELSE Formula'
+  p[0]=FormulaIf(p[2], p[4], p[6])
   
 def p_binop_plus(p):
   r"FormulaBinop : Formula '+' Formula"
@@ -108,12 +122,20 @@ def p_binop_power(p):
 
 def p_binop_le(p):
   r"FormulaBinop : Formula LE Formula"
-  p[0]=FormulaLE(p[1],p[3])
+  p[0]=FormulaBinop("<=",p[1],p[3])
 
 def p_binop_ge(p):
   r"FormulaBinop : Formula GE Formula"
-  p[0]=FormulaGE(p[1],p[3])
+  p[0]=FormulaBinop(">=",p[1],p[3])
 
+def p_binop_and(p):
+  r"FormulaBinop : Formula AND Formula"
+  p[0]=FormulaBinop("and",p[1],p[3])
+  
+def p_binop_or(p):
+  r"FormulaBinop : Formula OR Formula"
+  p[0]=FormulaBinop("or",p[1],p[3])
+  
 def p_binop_strequal(p):
   r"FormulaBinop : STR_EQUAL '(' Formula ',' Formula ')'"
   p[0]=FormulaBinop("=",p[3],p[5])
