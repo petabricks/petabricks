@@ -198,10 +198,13 @@ if 'nocheck' in sys.argv[1:]:
 
 from optparse import OptionParser
 parser = OptionParser(usage="usage: smoketest.py [options]")
-parser.add_option("--nolearning", action="store_false", dest="learning", default=True, help="disable heuristics learning")
-parser.add_option("--heuristics",            type="string", help="name of the file containing the set of heuristics to use", default=None)
+parser.add_option("--learning", action="store_true", dest="learning", default=False, help="enable heuristics learning")
+parser.add_option("--heuristics",            type="string", help="name of the file containing the set of heuristics to use. Automatically enables --learning", default=None)
 
 (options, args) = parser.parse_args()
+
+if options.heuristics:
+  options.learning = True
 
 if options.learning:
   print "Learning of heuristics is ACTIVE"
