@@ -1,6 +1,8 @@
 #ifndef UTILS_PBCC
 #define UTILS_PBCC
 
+#include "../simple/reduce.pbcc"
+
 %{
 
 void printMatrix(ConstMatrixRegion2D A)
@@ -30,71 +32,6 @@ int findMinAndMax(ElementT *min, ElementT *max, ConstMatrixRegion1D array)
 }
 
 %}
-
-transform Copy1D
-from IN[n]
-to OUT[n]
-{
-    OUT.cell(i)
-    from (IN.cell(i) in)
-    {
-        return in;
-    }
-}
-
-transform Copy2D
-from IN[m,n]
-to OUT[m,n]
-{
-    OUT.cell(i,j)
-    from (IN.cell(i,j) in)
-    {
-        return in;
-    }
-}
-
-// reduce a matrix by adding all elements
-transform ReduceAdd2D
-from IN[m,n]
-through ROWSUMS[n]
-to OUT
-{
-    to (ROWSUMS.cell(i) rowSum)
-    from (IN.row(i) in)
-    {
-        ReduceAdd(rowSum, in);
-    }
-
-    to (OUT out)
-    from (ROWSUMS rowSums)
-    {
-        ReduceAdd(out, rowSums);
-    }
-}
-
-// reduces a vector by adding all elements
-transform ReduceAdd
-from A[n]
-to OUT
-{
-  OUT from (A a)
-  {
-    int i;
-    ElementT sum = 0;
-    for (i = 0; i < n; i++) {
-      sum += a.cell(i);
-    }
-    return sum;
-  }
-
-  OUT from (A a)
-  {
-    ElementT sum1, sum2;
-    ReduceAdd(sum1, a.region(0, n/2));
-    ReduceAdd(sum2, a.region(n/2, n));
-    return sum1 + sum2;
-  }
-}
 
 // computes a dot product
 transform DotProduct

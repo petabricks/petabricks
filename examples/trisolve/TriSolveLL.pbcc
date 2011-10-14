@@ -4,14 +4,12 @@
 // Left lower (LL) triangular solve
 // Solve AX = B for X, where A is lower triangular
 
+#include "../simple/macros.h"
 #include "../simple/copy.pbcc"
 #include "../simple/scale.pbcc"
 #include "../multiply/multiplyAdd.pbcc"
 #include "TriSolveLAPACK.pbcc"
 #include "TriSolveGenerators.pbcc"
-
-#define MAX(x, y) ((y) > (x) ? (y) : (x))
-#define MIN(x, y) ((y) < (x) ? (y) : (x))
 
 transform TriSolveLLBase
 from UNITFLAG, A[m,m]
