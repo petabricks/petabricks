@@ -6,8 +6,8 @@
 %{
 void printMatrix(const ConstMatrixRegion2D A)
 {
-    for (int i = 0; i < A.height(); ++i) {
-        for (int j = 0; j < A.width(); ++j) {
+    for (IndexT i = 0; i < A.height(); ++i) {
+        for (IndexT j = 0; j < A.width(); ++j) {
             printf("%10g ", A.cell(j, i));
         }
         printf("\n");

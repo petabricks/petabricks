@@ -231,7 +231,7 @@ to A[n,m], P[m]
     }
 }
 
-transform LUBlock
+transform LUBlocked
 to A[n,m], P[m]
 tunable sizespecific blockSize
 {
@@ -341,7 +341,7 @@ to A[n,m], P[m]
 {
     to (A a, P p) from ()
     {
-        LUBlock(a, p);
+        LUBlocked(a, p);
     }
 
     to (A a, P p) from ()

@@ -24,7 +24,7 @@ to X[n,m]
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
-        for (int i = m-1; i >= 0; --i) {
+        for (IndexT i = m-1; i >= 0; --i) {
             if (!unitFlag) {
                 Scale(x.region(0, i, n, i+1), 1.0 / a.cell(i, i));
             }
@@ -41,7 +41,7 @@ to X[n,m]
         if (!unitFlag) {
             Scale(x.region(0, m-1, n, m), 1.0 / a.cell(m-1, m-1));
         }
-        for (int i = m-2; i >= 0; --i) {
+        for (IndexT i = m-2; i >= 0; --i) {
             ElementT factor = unitFlag ? 1 : 1.0 / a.cell(i, i);
             MatrixMultiplyAdd(x.region(0, i, n, i+1), -factor,
                               a.region(i+1, i, m, i+1),
@@ -53,7 +53,7 @@ to X[n,m]
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
-        int i, j, k;
+        IndexT i, j, k;
         for (i = m - 1; i >= 0; --i) {
             if (!unitFlag) {
                 for (j = 0; j < n; ++j) {
@@ -72,7 +72,7 @@ to X[n,m]
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
-        int i, j, k;
+        IndexT i, j, k;
         for (i = m - 1; i >= 0; --i) {
             for (k = i + 1; k < m; ++k) {
                 for (j = 0; j < n; ++j) {
@@ -107,7 +107,7 @@ tunable blockSize
             return;
         }
 
-        int m2 = m - blockSize;
+        IndexT m2 = m - blockSize;
         MatrixRegion2D x1, x2;
         ConstMatrixRegion2D a11, a12, a22;
 
@@ -132,7 +132,7 @@ tunable blockSize
             return;
         }
 
-        int i0, i1;
+        IndexT i0, i1;
         MatrixRegion2D x2, x3;
         ConstMatrixRegion2D a22, a23;
 
