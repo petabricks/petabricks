@@ -128,6 +128,7 @@ def parallelRunJobs(jobs, nParallelJobs=None):
       self.msg+=msg
     def getmsg(self):
       return self.msg.replace(exitval,"") \
+                     .replace('\n',' ')   \
                      .strip()
                      
     
