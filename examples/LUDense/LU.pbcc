@@ -5,7 +5,6 @@
 #include "../trisolve/TriSolveLL.pbcc"
 #include "../simple/permute.pbcc"
 #include "LUBase.pbcc"
-#include "LULAPACK.pbcc"
 
 transform LUGenerator
 to OUT[n,n]
@@ -69,11 +68,6 @@ to A[n,m], P[m]
     to (A a, P p) from ()
     {
         LUBaseInPlace(a, p);
-    }
-
-    to (A a, P p) from ()
-    {
-        LULAPACK(a, p, a);
     }
 }
 
