@@ -165,7 +165,7 @@ tunable recursiveBlockSize
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
-        if (m <= MAX(1, recursiveBlockSize)) {
+        if (recursiveBlockSize < 1 || recursiveBlockSize >= m) {
             TriSolveLLBlocked(x, unitFlag, a);
             return;
         }

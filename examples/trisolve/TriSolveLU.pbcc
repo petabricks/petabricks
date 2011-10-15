@@ -4,17 +4,12 @@
 // Left upper (LU) triangular solve
 // Solve AX = B for X, where A is upper triangular
 
+#include "../simple/macros.h"
 #include "../simple/copy.pbcc"
 #include "../simple/scale.pbcc"
 #include "../multiply/multiplyAdd.pbcc"
 #include "TriSolveLAPACK.pbcc"
 #include "TriSolveGenerators.pbcc"
-
-// TODO: BUG: ifdef and ifndef behavior is swapped
-// #ifndef MAX
-#ifdef MAX
-#define MAX(x, y) ((y) > (x) ? (y) : (x))
-#endif
 
 transform TriSolveLUBase
 from UNITFLAG, A[m,m]
@@ -167,7 +162,7 @@ tunable recursiveBlockSize
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
-        if (m <= MAX(1, recursiveBlockSize)) {
+        if (recursiveBlockSize < 1 || recursiveBlockSize >= m) {
             TriSolveLUBlocked(x, unitFlag, a);
             return;
         }
