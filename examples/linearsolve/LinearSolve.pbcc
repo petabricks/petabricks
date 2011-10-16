@@ -10,7 +10,7 @@
 //   uses LU factorization with partial pivoting
 //   note: can call with transposed inputs/outputs to solve XA = B
 
-// solve system given a pre-factorized matrix Y and permutation vector P
+// solve system given a pre-factored matrix Y and permutation vector P
 //   on entry, X contains B; on exit, X contains X
 transform LinearSolveInPlaceFactored
 to X[n,m]

@@ -45,22 +45,30 @@ to A[n, n]
     }
 }
 
-// this generates a positive definite matrix
-transform CholeskyGenerator
+// this generates a well-conditioned positive semi-definite matrix
+transform PosDefGenerator
 through TEMP[n,n]
 to OUT[n,n]
 {
     to (OUT out, TEMP temp) from ()
     {
-        for (IndexT i = 0; i < n; ++i) {
-            for (IndexT j = 0; j < n; ++j) {
+        // generate symmetric matrix with standard normal Gaussian elements
+        IndexT i, j;
+        for (i = 0; i < n; ++i) {
+            for (j = 0; j < n; ++j) {
                 temp.cell(j, i) = (j < i) ?
                                     temp.cell(i, j) :
                                     PetabricksRuntime::randNormal(0, 1);
             }
         }
 
+        // square matrix to make positive semi-definite
         MatrixMultiply(out, temp, temp);
+
+        // diagonally weight matrix to keep condition number small
+        for (i = 0; i < n; ++i) {
+            out.cell(i, i) += n;
+        }
     }
 }
 
@@ -356,7 +364,7 @@ to L[n,n]
 transform Cholesky
 from A[n,n]
 to L[n,n]
-generator CholeskyGenerator
+generator PosDefGenerator
 {
     to (L l) from (A a)
     {
