@@ -12,7 +12,8 @@ class FormulaVariable:
     
   def mutateValue(self):
     #No values to mutate in a variable
-    return self
+    return False
+  
   
 class FormulaInteger:
   def __init__(self, value):
@@ -22,8 +23,12 @@ class FormulaInteger:
     return str(self.value)
     
   def mutateValue(self):
-    self.value = random.randint(_randMIN, _randMAX)
-    
+    oldValue = self.value 
+    while oldValue==self.value:
+      self.value = random.randint(_randMIN, _randMAX)
+    return True
+
+
 class FormulaBool:
   def __init__(self, value):
     self.value=value
@@ -39,6 +44,7 @@ class FormulaBool:
       self.value = False
     else:
       self.value = True
+    return True  
       
       
 class FormulaFloat:
@@ -49,7 +55,10 @@ class FormulaFloat:
     return str(self.value)
     
   def mutateValue(self):
-    self.value = random.uniform(_randMIN, _randMAX)
+    oldValue = self.value
+    while(oldValue==self.value):
+      self.value = random.uniform(_randMIN, _randMAX)
+    return True
     
     
 class FormulaBinop:
@@ -65,11 +74,22 @@ class FormulaBinop:
     """Randomly mutates one of the values (int, float, bool) that are in the formula.
 If no value is present, nothing is changed.
 
-NB: the selection is completely random, so the value could not change at all!"""
+The formula is mutated in place.
+
+Returns true if the formula was actually mutated, false otherwise"""
+    mutated = False
     if random.random() < 0.5:
-      self.left.mutateValue()
+      mutated = self.left.mutateValue()
+      if not mutated:
+        mutated = self.right.mutateValue()
     else:
-      self.right.mutateValue()
+      mutated = self.right.mutateValue()
+      if not mutated:
+        mutated = self.left.mutateValue()
+    
+    return mutated
+    
+    
       
 class FormulaIf:
   def __init__(self, cond, thenClause, elseClause=None):
@@ -86,10 +106,18 @@ class FormulaIf:
     return "if " + str(self.cond) + " then " + str(self.thenClause) + elsePart
     
   def mutateValue(self):
-    choice = random.choice(range(3))
-    if choice==0:
-      self.cond.mutateValue()
-    elif choice==1:
-      self.thenClause.mutateValue()
-    elif choice==2 and elseClause is not None:
-      self.elseClause.mutateValue()
+    choices = range(3)
+    random.shuffle(choices)
+    for choice in choices:
+      mutated = False
+      if choice==0:
+        mutated = self.cond.mutateValue()
+      elif choice==1:
+        mutated = self.thenClause.mutateValue()
+      elif choice==2 and self.elseClause is not None:
+        mutated = self.elseClause.mutateValue()
+      
+      if mutated:
+        return True
+    
+    return False
