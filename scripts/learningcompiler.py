@@ -19,7 +19,8 @@ from tunerconfig import config
 #--------- Config ------------------
 conf_deleteTempDir = True
 conf_minTrialNumber = 10
-conf_probabilityExploration = 0.3
+conf_probabilityExploration = 1
+conf_pickBestN = 3
 #--------- Autotuner config --------
 config.max_time=10 #Seconds
 #-----------------------------------
@@ -155,7 +156,6 @@ heuristics specified in the heuristicNames list.
 Every missing heuristic is completed with one randomly taken from the best N 
 heuristics in the database  """
     random.seed()
-    
     #Find the missing heuristics
     missingHeuristics = list(heuristicNames)
     for name in self:
@@ -182,7 +182,6 @@ heuristics in the database  """
         formulaObj = maximaparser.parse(formula)
         formulaObj.mutateValue()
         formula = str(formulaObj)
-      
         
       self[heuristic] = formula
   
@@ -232,9 +231,9 @@ class HeuristicManager:
 
 
 class LearningCompiler:
-  def __init__(self, pbcExe, heuristicSetFileName=None, minTrialNumber=0, jobs=None):
+  def __init__(self, pbcExe, heuristicSetFileName=None, jobs=None):
     self.__heuristicManager = HeuristicManager(heuristicSetFileName)
-    self.__minTrialNumber = minTrialNumber
+    self.__minTrialNumber = conf_minTrialNumber
     self.__pbcExe = pbcExe    
     self.__jobs=jobs
     
@@ -322,7 +321,7 @@ Returns the index of the best candidate in the array"""
     
     #Get hSets
     allHSets = self.__heuristicManager.allHeuristicSets()
-    while len(allHSets) < (self.__minTrialNumber-1): #Not enough hSets!
+    while len(allHSets) < (self.__minTrialNumber): #Not enough hSets!
       allHSets.append(HeuristicSet())
     
     numSets = len(allHSets)
@@ -330,7 +329,7 @@ Returns the index of the best candidate in the array"""
     
     count=1
     for hSet in allHSets:
-      hSet.complete(neededHeuristics, db, numSets)
+      hSet.complete(neededHeuristics, db, conf_pickBestN)
       
       #Define more file names
       outDir = os.path.join(basesubdir, str(count))
