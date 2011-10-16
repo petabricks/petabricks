@@ -143,11 +143,11 @@ def my_fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
     while (gnorm > gtol) and (k < maxiter):
         pk = -numpy.dot(Hk,gfk)
 
+        print "xk =", xk
+        print "pk =", pk
         print "Begin iteration %d line search..." % (k + 1)
-        print "  xk =", xk
-        print "  gfk =", gfk
-        print "  pk =", pk
-        print "  Hk = \n", Hk
+#        print "  gfk =", gfk
+#        print "  Hk = \n", Hk
 
         # do line search for alpha_k
         old_old_fval = old_fval

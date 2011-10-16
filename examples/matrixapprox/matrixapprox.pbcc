@@ -22,11 +22,9 @@ accuracy_variable k(1,1) //min=1, initial=1
 generator matrixapproinputgen
 {
 	to (H.region(n,0,2*n,n) h) from (IN a) {
-		std::cout<< "Transpose storage = " << &(*h.storage()) << std::endl;
 		Transpose(h, a);
 	}
 	to (H.region(0,n,n,2*n) h )from (IN a){
-		std::cout<< "Copy2D" << std::endl;
 		Copy2D(h, a);
 	}
 	secondary H.cell(i,j) from() {
@@ -35,13 +33,11 @@ generator matrixapproinputgen
 
 	// use optimized hybrid algorithm to find all eigenvalues/eigenvectors
         to (Lambda lam, X x) from (H h){
-		std::cout<< "EigSym" << std::endl;
                 EigSym(lam, x, h);
         }
 
 	// find only the k eigenvalues/eigenvectors by Bisection method
 	to (Lambda lam, X x) from (H h) {
-		std::cout<< "Bisection" << std::endl;
 	        if (k>n)  PetabricksRuntime::abort(); 
 		Bisection(lam,x,h,k);
 	}
@@ -67,7 +63,6 @@ generator matrixapproinputgen
 
 
 	to (OUT out, TEMP temp) from (U u, VT vt){
-		std::cout<< "last" << std::endl;
 		int i;
 		if (k>n)  PetabricksRuntime::abort(); 
 		MatrixMultiply(out, u.region(0,0,1,n), vt.region(0,0,n,1) );
