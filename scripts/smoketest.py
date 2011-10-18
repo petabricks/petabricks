@@ -33,10 +33,6 @@ check_exclude=[
          "kernel/nwkdeVA",                # (Variable accuracy)
 
          "kernel/nwkde",                  # floating-point precision errors
-         "trisolve/TriSolveLL",           # floating-point precision errors
-         "trisolve/TriSolveLU",           # floating-point precision errors
-         "trisolve/TriSolveRL",           # floating-point precision errors
-         "trisolve/TriSolveRU",           # floating-point precision errors
 
          "regression/floattunables",
          "regression/floattunables2",

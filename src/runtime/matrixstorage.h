@@ -102,7 +102,12 @@ public:
 
   HashT hash() const { 
     jalib::HashGenerator g;
-    g.update(_data, _count*sizeof(ElementT));
+    float *temp = new float[_count];
+    for (unsigned int i = 0; i < _count; ++i) {
+        temp[i] = _data[i];
+    }
+    g.update(temp, _count*sizeof(float));
+    delete [] temp;
     return g.final();
   }
   

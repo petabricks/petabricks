@@ -1,8 +1,7 @@
 #ifndef TRISOLVEGENERATORS_PBCC
 #define TRISOLVEGENERATORS_PBCC
 
-#include "../LUDense/PLUrecur.pbcc"
-#include "../multiply/multiply.pbcc"
+#include "../LUDense/LU.pbcc"
 
 // make OUT triangular
 transform Tri
@@ -16,71 +15,47 @@ to OUT[n,n]
     }
 }
 
-transform TriSolveLLGenerator
+transform TriSolveLGenerator
 to UNITFLAG, T[n,n], B[n,n]
 {
     to (UNITFLAG unitFlag, T t, B b)
     from ()
     {
-        TriSolveGenerator(unitFlag, t, b, 0, 0);
+        TriSolveGenerator(unitFlag, t, b, 0);
     }
 }
 
-transform TriSolveLUGenerator
+transform TriSolveUGenerator
 to UNITFLAG, T[n,n], B[n,n]
 {
     to (UNITFLAG unitFlag, T t, B b)
     from ()
     {
-        TriSolveGenerator(unitFlag, t, b, 0, 1);
+        TriSolveGenerator(unitFlag, t, b, 1);
     }
 }
 
-transform TriSolveRLGenerator
-to UNITFLAG, T[n,n], B[n,n]
-{
-    to (UNITFLAG unitFlag, T t, B b)
-    from ()
-    {
-        TriSolveGenerator(unitFlag, t, b, 1, 0);
-    }
-}
-
-transform TriSolveRUGenerator
-to UNITFLAG, T[n,n], B[n,n]
-{
-    to (UNITFLAG unitFlag, T t, B b)
-    from ()
-    {
-        TriSolveGenerator(unitFlag, t, b, 1, 1);
-    }
-}
-
+// Do an LU of a random matrix so that back-solve is numerically stable
 transform TriSolveGenerator
-from RIGHTFLAG, UPFLAG
-through A[n,n], X[n,n]
+from UPFLAG
+through A[n,n]
 to UNITFLAG, T[n,n], B[n,n]
 {
     to (A.cell(j, i) a,
-        X.cell(j, i) x)
+        B.cell(j, i) b)
     from ()
     {
         a = PetabricksRuntime::randNormal(0, 1);
-        x = PetabricksRuntime::randNormal(0, 1);
+        b = PetabricksRuntime::randNormal(0, 1);
     }
 
-    to (UNITFLAG unitFlag, T t, B b)
-    from (RIGHTFLAG rightFlag, UPFLAG upFlag, A a, X x)
+    to (UNITFLAG unitFlag, T t)
+    from (UPFLAG upFlag, A a)
     {
         unitFlag = PetabricksRuntime::randInt(0, 2);  // coin flip
         MatrixRegion1D p = MatrixRegion1D::allocate(n);
-        PLUrecur(t, p, a);
+        LU(t, p, a);
         Tri(t, upFlag);
-        if (rightFlag) {
-            MatrixMultiply(b, x, t);
-        } else {
-            MatrixMultiply(b, t, x);
-        }
     }
 }
 

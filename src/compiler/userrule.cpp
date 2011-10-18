@@ -354,10 +354,10 @@ void petabricks::UserRule::initialize(Transform& trans) {
 
   //fill dependencies
   for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
-    (*i)->collectDependencies(trans, *this,_depends);
+    (*i)->collectDependencies(trans, *this, _depends);
   }
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
-    (*i)->collectDependencies(trans, *this,_provides);
+    (*i)->collectDependencies(trans, *this, _provides);
   }
   
   computeDataDependencyVector();
@@ -1409,7 +1409,7 @@ void petabricks::UserRule::addAssumptions() const {
   SRCPOSSCOPE();
   for(int i=0; i<dimensions(); ++i){
     MaximaWrapper::instance().assume(new FormulaGE(getOffsetVar(i), _applicableRegion->minCoord()[i]));
-    MaximaWrapper::instance().assume(new FormulaLE(getOffsetVar(i), _applicableRegion->maxCoord()[i]));
+    MaximaWrapper::instance().assume(new FormulaLT(getOffsetVar(i), _applicableRegion->maxCoord()[i]));
   }
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i)
     (*i)->addAssumptions();
@@ -1433,9 +1433,13 @@ void petabricks::UserRule::collectDependencies(StaticScheduler& scheduler){
        ; ++d)
     {
       ChoiceDepGraphNodeSet dNode = scheduler.lookupNode(d->first, d->second->region());
-      for(ChoiceDepGraphNodeSet::iterator a=pNode.begin(); a!=pNode.end(); ++a)
-        for(ChoiceDepGraphNodeSet::iterator b=dNode.begin(); b!=dNode.end(); ++b)
-          (*a)->addDependency(*b, this, d->second->direction());
+      for(ChoiceDepGraphNodeSet::iterator a=pNode.begin(); a!=pNode.end(); ++a) {
+        for(ChoiceDepGraphNodeSet::iterator b=dNode.begin(); b!=dNode.end(); ++b) {
+          if( (*a)->dependencyPossible(*b, d->second->direction()) ) {
+            (*a)->addDependency(*b, this, d->second->direction());
+          }
+        }
+      }
     }
 
     //null depedency on all other output regions

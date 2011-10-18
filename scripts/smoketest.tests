@@ -27,6 +27,10 @@ trisolve/TriSolveRL        Zero0D Rand2Da Rand2Db
 trisolve/TriSolveRL        One0D Rand2Da Rand2Db
 trisolve/TriSolveRU        Zero0D Rand2Da Rand2Db
 trisolve/TriSolveRU        One0D Rand2Da Rand2Db
+LUDense/LUTest             Rand2Da
+LUDense/LUTest             Rand2DLong
+LUDense/LUTest             Rand2DWide
+linearsolve/LinearSolve    Rand2Da Rand2Db
 matrixapprox/matrixapprox  MatApproxRand2D
 multiply/multiply          Rand2Da Rand2Db
 multiply/strassen          Rand2Da Rand2Db
@@ -51,6 +55,7 @@ preconditioner/preconditioner	   PrecondX PrecondA PrecondB
 simple/add                 Rand2Da Rand2Db
 simple/bufferrotate        Rand1D
 simple/bufferrotate2       Rand1D
+simple/cholesky            Rand2DPosDef
 simple/copy                Rand2Da
 simple/matrixrotate        Rand2Da
 simple/rollingsum          Rand1D
@@ -64,6 +69,7 @@ sort/Sort                  Rand1D
 sort/Sort                  Rand1Dodd
 regression/accuracymetric  Rand1D
 regression/assign0d
+regression/backwards       Rand1D
 regression/calltx          Rand2Da
 regression/cycledep        Rand1D
 regression/coordflip       Rand1D
