@@ -1,0 +1,54 @@
+#ifndef LINEARSOLVE_PBCC
+#define LINEARSOLVE_PBCC
+
+#include "../trisolve/TriSolveLL.pbcc"
+#include "../trisolve/TriSolveLU.pbcc"
+#include "../LUDense/LU.pbcc"
+
+// solves dense linear systems
+//   solves AX = B for X, where A is m x m, X is m x n, and B is m x n
+//   uses LU factorization with partial pivoting
+//   note: can call with transposed inputs/outputs to solve XA = B
+
+// solve system given a pre-factored matrix Y and permutation vector P
+//   on entry, X contains B; on exit, X contains X
+transform LinearSolveInPlaceFactored
+to X[n,m]
+from Y[m,m], P[m]
+{
+    to (X x) from (Y y, P p)
+    {
+        PermuteInPlace(x, p);
+        TriSolveLLInPlace(x, 1, y);
+        TriSolveLUInPlace(x, 0, y);
+    }
+}
+
+// in-place version
+//   on entry, X contains B, Y contains A, P is ignored
+//   on exit, variables' contents correspond to their names
+transform LinearSolveInPlace
+to X[n,m], Y[m,m], P[m]
+{
+    to (X x, Y y, P p) from ()
+    {
+        LUInPlace(y, p);
+        LinearSolveInPlaceFactored(x, y, p);
+    }
+}
+
+// out-of-place version
+transform LinearSolve
+from A[m,m], B[n,m]
+through Y[m,m], P[m]
+to X[n,m]
+{
+    to (X x, Y y, P p) from (A a, B b)
+    {
+        Copy2D(x, b);
+        Copy2D(y, a);
+        LinearSolveInPlace(x, y, p);
+    }
+}
+
+#endif // LINEARSOLVE_PBCC

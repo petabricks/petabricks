@@ -1,0 +1,137 @@
+#ifndef LINEARSOLVEPOSDEF_PBCC
+#define LINEARSOLVEPOSDEF_PBCC
+
+#include "../trisolve/TriSolveLL.pbcc"
+#include "../trisolve/TriSolveLU.pbcc"
+#include "../simple/cholesky.pbcc"
+
+// solves dense linear positive-definite systems
+//   solves AX = B for X, where A is m x m, X is m x n, and B is m x n
+//   uses Cholesky factorization
+//   note: can call with transposed inputs/outputs to solve XA = B
+
+transform LinearSolvePosDefGenerator
+to A[n,n], B[n,m]
+{
+    to (A a) from ()
+    {
+        PosDefGenerator(a);
+    }
+
+    to (B.cell(j,i) b) from ()
+    {
+        b = PetabricksRuntime::randNormal(0, 1);
+    }
+}
+
+%{
+extern "C" void dppsv_(char *uplo, int *n, int *nrhs, double *A, double *B, int *ldb, int *info);
+extern "C" void sppsv_(char *uplo, int *n, int *nrhs, float *A, float *B, int *ldb, int *info);
+
+void ppsv_wrap(char *uplo, int *n, int *nrhs, double *A, double *B, int *ldb, int *info) {
+  dppsv_(uplo, n, nrhs, A, B, ldb, info);
+}
+void ppsv_wrap(char *uplo, int *n, int *nrhs, float *A, float *B, int *ldb, int *info) {
+  sppsv_(uplo, n, nrhs, A, B, ldb, info);
+}
+%}
+
+transform LinearSolvePosDefLAPACK
+from A[n,n], B[n,m]
+to X[n,m]
+{
+    to (X x) from (A a, B b)
+    {
+        char uplo = 'L';
+        int index, info = 0, nInt = n, nrhsInt = m;
+        IndexT i, j;
+
+        // allocate flat matrix and RHS/solution vectors
+        ElementT *aPacked = new ElementT[n * (n + 1) / 2];
+        ElementT *bFlat = new ElementT[n * m];
+        if (!aPacked || !bFlat) {
+            printf("Error allocating memory!\n");
+            exit(-1);
+        }
+
+        // copy data to flat matrix and RHS/solution vectors
+        index = 0;
+        for (i = 0; i < n; ++i) {
+            for (j = i; j < n; ++j) {
+                aPacked[index++] = a.cell(j, i);
+            }
+        }
+        index = 0;
+        for (i = 0; i < m; ++i) {
+            for (j = 0; j < n; ++j) {
+                bFlat[index++] = b.cell(j, i);
+            }
+        }
+
+        // call LAPACK to do linear solve
+        ppsv_wrap(&uplo, &nInt, &nrhsInt, aPacked, bFlat, &nInt, &info);
+
+        if (info) {
+            printf("LAPACK error in call to ppsv: info = %d\n", info);
+            exit(-1);
+        }
+
+        // copy solution to output
+        index = 0;
+        for (i = 0; i < m; ++i) {
+            for (j = 0; j < n; ++j) {
+                x.cell(j, i) = bFlat[index++];
+            }
+        }
+
+        delete [] aPacked;
+        delete [] bFlat;
+    }
+}
+
+// solve system given a pre-factored matrix L
+//   on entry, X contains B; on exit, X contains X
+transform LinearSolvePosDefInPlaceFactored
+to X[n,m], L[n,n]
+{
+    to (X x, L l) from ()
+    {
+        TriSolveLLInPlace(x, 0, l);
+        TriSolveLUInPlace(x, 0, l.transposed());
+    }
+}
+
+// in-place version
+//   on entry, X contains A, L contains A
+//   on exit, variables' contents correspond to their names
+transform LinearSolvePosDefInPlace
+to X[n,m], L[n,n]
+{
+    to (X x, L l) from ()
+    {
+        CholeskyInPlace(l);
+        LinearSolvePosDefInPlaceFactored(x, l);
+    }
+}
+
+// out-of-place version
+transform LinearSolvePosDef
+from A[n,n], B[n,m]
+through L[n,n]
+to X[n,m]
+generator LinearSolvePosDefGenerator
+{
+    to (X x, L l) from (A a, B b)
+    {
+        Copy2D(x, b);
+        Copy2D(l, a);
+        LinearSolvePosDefInPlace(x, l);
+    }
+
+    to (X x) from (A a, B b)
+    {
+        LinearSolvePosDefLAPACK(x, a, b);
+    }
+}
+
+#endif // LINEARSOLVEPOSDEF_PBCC

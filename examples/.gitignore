@@ -32,7 +32,6 @@ kclustering/distance
 kclustering/kmeans
 kclustering/newclusterlocations
 kernel/KernelEstimate
-kernel/LinearSolvePosDef
 kernel/nwkdeBaseTop2
 kernel/nwkdeBaseTop
 kernel/nwkdeGenerators
@@ -40,11 +39,12 @@ kernel/nwkdeMetric
 kernel/nwkde
 kernel/nwkdeVA
 kernel/utils
-LUDense/LUBase
 LUDense/LULAPACK
 LUDense/LUNoPivot
 LUDense/LU
 LUDense/LUTest
+linearsolve/LinearSolve
+linearsolve/LinearSolvePosDef
 trisolve/TriSolve
 trisolve/TriSolveLL
 trisolve/TriSolveLU

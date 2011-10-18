@@ -3,19 +3,6 @@
 
 #include "../LUDense/LU.pbcc"
 
-%{
-void printMatrix(const ConstMatrixRegion2D A)
-{
-    for (int i = 0; i < A.height(); ++i) {
-        for (int j = 0; j < A.width(); ++j) {
-            printf("%10g ", A.cell(j, i));
-        }
-        printf("\n");
-    }
-    printf("\n");
-}
-%}
-
 // make OUT triangular
 transform Tri
 from UPFLAG
@@ -69,8 +56,6 @@ to UNITFLAG, T[n,n], B[n,n]
         MatrixRegion1D p = MatrixRegion1D::allocate(n);
         LU(t, p, a);
         Tri(t, upFlag);
-
-//        printMatrix(t);
     }
 }
 
