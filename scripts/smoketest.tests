@@ -31,6 +31,7 @@ LUDense/LUTest             Rand2Da
 LUDense/LUTest             Rand2DLong
 LUDense/LUTest             Rand2DWide
 linearsolve/LinearSolve    Rand2Da Rand2Db
+linearsolve/LinearSolvePosDef      Rand2DPosDef Rand2Db
 matrixapprox/matrixapprox  MatApproxRand2D
 multiply/multiply          Rand2Da Rand2Db
 multiply/strassen          Rand2Da Rand2Db

@@ -37,33 +37,21 @@ to OUT[n]
 // H is the bandwidth of the kernel
 transform KernelEstimate
 from TRAINX[d,n], TRAINY[1,n], TESTX[d,m], H, LAMBDA
-through A[n,1], K[n,n], K2[n,n], TRAINY2[n,1]
+through A[n,1], K[n,n]
 to ESTIMATEY[m]
 {
   K.cell(i,j) from (TRAINX.row(i) xi,
                     TRAINX.row(j) xj,
-                    H h)
+                    H h, LAMBDA lambda)
   {
-    return kernel(xi, xj, h);
+      ElementT temp = kernel(xi, xj, h);
+      return (i == j) ? temp + lambda : temp;
   }
 
-  K2.cell(i,j) from (K.cell(i,j) k, LAMBDA lambda)
+  to (A a) from (K k, TRAINY trainY, LAMBDA lambda)
   {
-    if (i == j) {
-      return k + lambda;
-    } else {
-      return k;
-    }
-  }
-
-  TRAINY2.cell(i,0) from (TRAINY.cell(0,i) trainY, LAMBDA lambda)
-  {
-    return lambda * trainY;
-  }
-
-  to (A a) from (K2 k2, TRAINY2 trainY2)
-  {
-    LinearSolvePosDef(a, k2, trainY2);
+    LinearSolvePosDef(a, k, trainY);
+    Scale2D(a, lambda);
   }
 
   ESTIMATEY.cell(i) from (TRAINX trainX, TESTX.row(i) testX, A a, H h)

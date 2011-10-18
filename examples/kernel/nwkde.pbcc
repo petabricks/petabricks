@@ -1,6 +1,7 @@
 #ifndef NWKDE_PBCC
 #define NWKDE_PBCC
 
+#include "../simple/macros.h"
 #include "nwkde.h"
 #include "nwkdeGenerators.pbcc"
 #include "nwkdeMetric.pbcc"
@@ -450,6 +451,7 @@ from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
      TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
      OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
 to RESULT[q]
+tunable recursiveCutoff
 {
     to   (RESULT           result)
     from (TRAINDATA        trainData,
@@ -466,47 +468,29 @@ to RESULT[q]
           OUTPUTTIMEOFFSET outputTimeOffset,
           TRAINMASKWIDTH   trainMaskWidth)
     {
-        NWKDEBase(result, trainData, wrapFlags, kernelWidths,
-                  trainIndices, trainVarIndex, trainTimeOffset,
-                  testData, testIndices,
-                  testVarIndex, testTimeOffset,
-                  outputVarIndex, outputTimeOffset, trainMaskWidth);
-    }
+        if (q <= MAX(1, recursiveCutoff)) {
+            NWKDEBase(result, trainData, wrapFlags, kernelWidths,
+                      trainIndices, trainVarIndex, trainTimeOffset,
+                      testData, testIndices,
+                      testVarIndex, testTimeOffset,
+                      outputVarIndex, outputTimeOffset, trainMaskWidth);
+            return;
+        }
 
-    to   (RESULT           result)
-    from (TRAINDATA        trainData,
-          WRAPFLAGS        wrapFlags,
-          KERNELWIDTHS     kernelWidths,
-          TRAININDICES     trainIndices,
-          TRAINVARINDEX    trainVarIndex,
-          TRAINTIMEOFFSET  trainTimeOffset,
-          TESTDATA         testData,
-          TESTINDICES      testIndices,
-          TESTVARINDEX     testVarIndex,
-          TESTTIMEOFFSET   testTimeOffset,
-          OUTPUTVARINDEX   outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset,
-          TRAINMASKWIDTH   trainMaskWidth)
-    {
         int mid = q / 2;
-
-        if (mid > 0) {
-            NWKDERecursive(result.region(0, mid),
-                           trainData, wrapFlags, kernelWidths,
-                           trainIndices, trainVarIndex, trainTimeOffset,
-                           testData, testIndices.region(0, mid),
-                           testVarIndex, testTimeOffset,
-                           outputVarIndex, outputTimeOffset, trainMaskWidth);
-        }
-
-        if (mid < q) {
-            NWKDERecursive(result.region(mid, q),
-                           trainData, wrapFlags, kernelWidths,
-                           trainIndices, trainVarIndex, trainTimeOffset,
-                           testData, testIndices.region(mid, q),
-                           testVarIndex, testTimeOffset,
-                           outputVarIndex, outputTimeOffset, trainMaskWidth);
-        }
+        spawn NWKDERecursive(result.region(0, mid),
+                       trainData, wrapFlags, kernelWidths,
+                       trainIndices, trainVarIndex, trainTimeOffset,
+                       testData, testIndices.region(0, mid),
+                       testVarIndex, testTimeOffset,
+                       outputVarIndex, outputTimeOffset, trainMaskWidth);
+        spawn NWKDERecursive(result.region(mid, q),
+                       trainData, wrapFlags, kernelWidths,
+                       trainIndices, trainVarIndex, trainTimeOffset,
+                       testData, testIndices.region(mid, q),
+                       testVarIndex, testTimeOffset,
+                       outputVarIndex, outputTimeOffset, trainMaskWidth);
+        sync;
     }
 }
 
