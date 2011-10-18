@@ -180,7 +180,7 @@ heuristics in the database  """
       if random.random() < conf_probabilityExploration:
         #Generete a new formula by modifying the existing one
         formulaObj = maximaparser.parse(formula)
-        formulaObj.mutateValue()
+        formulaObj.evolveValue()
         formula = str(formulaObj)
         
       self[heuristic] = formula
