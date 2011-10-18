@@ -57,30 +57,36 @@ transform MatrixCholesky
 from A[n,n]
 to L[n,n]
 generator HermitianGenerate
+tunable M_SIZE (100)
 {
+
+
+	// sequential implementation of cholesky
+	to(L l)  from(A a) { 
+ 	     for (int i = 0; i < a.height(); i++) {
+             	 for (int j = 0; j < (i+1); j++) {
+            	     double s = 0;
+            	     if (j != i) 
+		        l.cell(i,j) = 0;
+
+            	     for (int k = 0; k < j; k++)
+                     	 s += l.cell(k,i) * l.cell(k,j);
+            	     l.cell(j, i) = (i == j) ?
+                           sqrt(a.cell(i, i) - s) :
+                           (1.0 / l.cell(j, j) * (a.cell(j, i) - s));
+        	 }
+	     }	
+	}
 
 	// recursive def of cholesky
 	to (L l)
 	from (A a) {
-	     int size = 4;
 	     
-	     // base case
-	     if (n < size + 1) {
-	     	// do something not recursive
- 	      	for (int i = 0; i < a.height(); i++) {
-             	     for (int j = 0; j < (i+1); j++) {
-            	      	 double s = 0;
-            	     	 if (j != i) 
-			    l.cell(i,j) = 0;
-			 for (int k = 0; k < j; k++)
-                     	     s += l.cell(k,i) * l.cell(k,j);
-            	     	 l.cell(j, i) = (i == j) ?
-                            sqrt(a.cell(i, i) - s) :
-                            (1.0 / l.cell(j, j) * (a.cell(j, i) - s));
-        	     }
-	     	}	
-	     } else {
-	       int new_n = n - size;
+	       // force compiler to use base case instead
+	       if (n < 4)
+	       	  PetabricksRuntime::abort();
+
+	       int new_n = std::max (1,  n - M_SIZE);
 	       	       
 	       MatrixRegion2D L11 = l.region(0, 0, new_n, new_n);
 	       MatrixRegion2D L21 = l.region(0, new_n, new_n, n);
@@ -96,19 +102,17 @@ generator HermitianGenerate
 	       TriSolveRU(L21, 0, L11.transposed(), A21);
 	       
 	       //lower right corner
-	       MatrixRegion2D temp1 = MatrixRegion2D::allocate(size,size);
-	       MatrixRegion2D temp2 = MatrixRegion2D::allocate(size,size);
+	       MatrixRegion2D temp1 = MatrixRegion2D::allocate(M_SIZE,M_SIZE);
+	       MatrixRegion2D temp2 = MatrixRegion2D::allocate(M_SIZE,M_SIZE);
 	       MatrixMultiply(temp1, L21, L21.transposed());
 	       Subtract2D(temp2, A22, temp1);
 	       MatrixCholesky(L22, temp2); 
 
 	       //set all the upper triangular values to zero
 	       utri_zero(l, l);
-
-
-	    }
+	    
 	}	
-/*
+
 	// specific case: first column
 	to (L.cell(x,y) l) 
 	from (L.cell(0,0) c, 
@@ -139,24 +143,6 @@ generator HermitianGenerate
 	     }			 
 	}
 
-*//*
-	// sequential implementation of cholesky
-	to(L l)  from(A a) { 
- 	     for (int i = 0; i < a.height(); i++) {
-             	 for (int j = 0; j < (i+1); j++) {
-            	     double s = 0;
-            	     if (j != i) 
-		        l.cell(i,j) = 0;
-
-            	     for (int k = 0; k < j; k++)
-                     	 s += l.cell(k,i) * l.cell(k,j);
-            	     l.cell(j, i) = (i == j) ?
-                           sqrt(a.cell(i, i) - s) :
-                           (1.0 / l.cell(j, j) * (a.cell(j, i) - s));
-        	 }
-	     }	
-	}
-*/
 
 }
 
