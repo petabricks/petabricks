@@ -10,18 +10,18 @@ to SUM
     to (ROWSUMS.cell(i) rowSum)
     from (IN.row(i) in)
     {
-        ReduceAdd(rowSum, in);
+        ReduceAdd1D(rowSum, in);
     }
 
     to (SUM sum)
     from (ROWSUMS rowSums)
     {
-        ReduceAdd(sum, rowSums);
+        ReduceAdd1D(sum, rowSums);
     }
 }
 
 // reduces a vector by adding all elements
-transform ReduceAdd
+transform ReduceAdd1D
 from A[n]
 to SUM
 {
@@ -39,10 +39,190 @@ to SUM
       sum = a.cell(0);
     } else {
       ElementT sum1, sum2;
-      spawn ReduceAdd(sum1, a.region(0, n/2));
-      spawn ReduceAdd(sum2, a.region(n/2, n));
+      spawn ReduceAdd1D(sum1, a.region(0, n/2));
+      spawn ReduceAdd1D(sum2, a.region(n/2, n));
       sync;
       sum = sum1 + sum2;
+    }
+  }
+}
+
+// reduce a matrix by finding the min value
+transform ReduceMin2D
+from A[n,m]
+through COLS[m], VALS[m]
+to J, I, VAL
+{
+    to (COLS.cell(i) col,
+        VALS.cell(i) val)
+    from (A.row(i) aRow)
+    {
+        ReduceMin1D(col, val, aRow);
+    }
+
+    to (J j, I i, VAL val)
+    from (COLS cols, VALS vals)
+    {
+        ReduceMin1D(i, val, vals);
+        j = cols.cell(i);
+    }
+}
+
+// reduces a vector by finding the min value
+transform ReduceMin1D
+from A[n]
+to IDX, VAL
+{
+  to (IDX idx, VAL val) from (A a)
+  {
+    idx = 0;
+    val = a.cell(0);
+    for (int i = 1; i < n; ++i) {
+      ElementT t = a.cell(i);
+      if (t < val) {
+        idx = i;
+        val = t;
+      }
+    }
+  }
+
+  to (IDX idx, VAL val) from (A a)
+  {
+    if (n <= 1) {
+      idx = 0;
+      val = a.cell(0);
+    } else {
+      ElementT idx1, idx2, val1, val2;
+      spawn ReduceMin1D(idx1, val1, a.region(0, n/2));
+      spawn ReduceMin1D(idx2, val2, a.region(n/2, n));
+      sync;
+      if (val1 <= val2) {
+        idx = idx1;
+        val = val1;
+      } else {
+        idx = idx2 + n/2;
+        val = val2;
+      }
+    }
+  }
+}
+
+// reduce a matrix by finding the max value
+transform ReduceMax2D
+from A[n,m]
+through COLS[m], VALS[m]
+to J, I, VAL
+{
+    to (COLS.cell(i) col,
+        VALS.cell(i) val)
+    from (A.row(i) aRow)
+    {
+        ReduceMax1D(col, val, aRow);
+    }
+
+    to (J j, I i, VAL val)
+    from (COLS cols, VALS vals)
+    {
+        ReduceMax1D(i, val, vals);
+        j = cols.cell(i);
+    }
+}
+
+// reduces a vector by finding the max value
+transform ReduceMax1D
+from A[n]
+to IDX, VAL
+{
+  to (IDX idx, VAL val) from (A a)
+  {
+    idx = 0;
+    val = a.cell(0);
+    for (int i = 1; i < n; ++i) {
+      ElementT t = a.cell(i);
+      if (t > val) {
+        idx = i;
+        val = t;
+      }
+    }
+  }
+
+  to (IDX idx, VAL val) from (A a)
+  {
+    if (n <= 1) {
+      idx = 0;
+      val = a.cell(0);
+    } else {
+      ElementT idx1, idx2, val1, val2;
+      spawn ReduceMax1D(idx1, val1, a.region(0, n/2));
+      spawn ReduceMax1D(idx2, val2, a.region(n/2, n));
+      sync;
+      if (val1 >= val2) {
+        idx = idx1;
+        val = val1;
+      } else {
+        idx = idx2 + n/2;
+        val = val2;
+      }
+    }
+  }
+}
+
+// reduce a matrix by finding the min abs value
+transform ReduceAMin2D
+from A[n,m]
+through COLS[m], VALS[m]
+to J, I, VAL
+{
+    to (COLS.cell(i) col,
+        VALS.cell(i) val)
+    from (A.row(i) aRow)
+    {
+        ReduceAMin1D(col, val, aRow);
+    }
+
+    to (J j, I i, VAL val)
+    from (COLS cols, VALS vals)
+    {
+        ReduceAMin1D(i, val, vals);
+        j = cols.cell(i);
+    }
+}
+
+// reduces a vector by finding the min abs value
+transform ReduceAMin1D
+from A[n]
+to IDX, VAL
+{
+  to (IDX idx, VAL val) from (A a)
+  {
+    idx = 0;
+    val = fabs(a.cell(0));
+    for (int i = 1; i < n; ++i) {
+      ElementT t = fabs(a.cell(i));
+      if (t < val) {
+        idx = i;
+        val = t;
+      }
+    }
+  }
+
+  to (IDX idx, VAL val) from (A a)
+  {
+    if (n <= 1) {
+      idx = 0;
+      val = fabs(a.cell(0));
+    } else {
+      ElementT idx1, idx2, val1, val2;
+      spawn ReduceAMin1D(idx1, val1, a.region(0, n/2));
+      spawn ReduceAMin1D(idx2, val2, a.region(n/2, n));
+      sync;
+      if (val1 <= val2) {
+        idx = idx1;
+        val = val1;
+      } else {
+        idx = idx2 + n/2;
+        val = val2;
+      }
     }
   }
 }
@@ -57,19 +237,19 @@ to J, I, VAL
         VALS.cell(i) val)
     from (A.row(i) aRow)
     {
-        ReduceAMax(col, val, aRow);
+        ReduceAMax1D(col, val, aRow);
     }
 
     to (J j, I i, VAL val)
     from (COLS cols, VALS vals)
     {
-        ReduceAMax(i, val, vals);
+        ReduceAMax1D(i, val, vals);
         j = cols.cell(i);
     }
 }
 
 // reduces a vector by finding the max abs value
-transform ReduceAMax
+transform ReduceAMax1D
 from A[n]
 to IDX, VAL
 {
@@ -93,8 +273,8 @@ to IDX, VAL
       val = fabs(a.cell(0));
     } else {
       ElementT idx1, idx2, val1, val2;
-      spawn ReduceAMax(idx1, val1, a.region(0, n/2));
-      spawn ReduceAMax(idx2, val2, a.region(n/2, n));
+      spawn ReduceAMax1D(idx1, val1, a.region(0, n/2));
+      spawn ReduceAMax1D(idx2, val2, a.region(n/2, n));
       sync;
       if (val1 >= val2) {
         idx = idx1;
