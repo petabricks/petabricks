@@ -1,0 +1,133 @@
+#ifndef BINNEDLR_PBCC
+#define BINNEDLR_PBCC
+
+#include "../simple/copy.pbcc"
+#include "../QR/QR.pbcc"
+#include "../multiply/multiply.pbcc"
+#include "../trisolve/TriSolveLU.pbcc"
+
+transform Regress
+from X[m,n], Y[1,n]
+to ALPHA[1,m+1]
+through Q[m+1,n], R[m+1,m+1]
+{
+    to (ALPHA alpha, Q q, R r)
+    from (X x, Y y)
+    {
+        spawn Copy2D(q.region(0, 0, m  , n), x);
+        spawn Init2D(q.region(m, 0, m+1, n), 1);
+        sync;
+
+        QRInPlace(q, r);
+        MatrixMultiply(alpha, q.transposed(), y);
+        TriSolveLUInPlace(alpha, 0, r);
+    }
+}
+
+//  // compute the estimated output over the test data using a binned linear
+//  // regression model
+//  transform BinnedLRTrain
+//  from X[m,n], DIRS[1,n], Y[1,n], INDICES[l]
+//  to ALPHA[numBins, m+1]
+//  {
+//      to (ALPHA alpha)
+//      from (X x, DIRS dirs, Y y,
+//            INDICES indices)
+//      {
+//          IndexT i, j, index, bin, *binCounts;
+//          ElementT binMin, binMax, binInc, dir, speed;
+
+//          // initialize binIndex array
+//          binIndex = new IndexT[numBins];
+//          for (i = 0; i < numBins; ++i) {
+//              binIndex[i] = 0;
+//          }
+
+//          // count how many points go into each bin
+//          binInc = 360.0 / numBins;
+//          for (j = 0; j < l; ++j) {
+//              index = indices.cell(j);
+//              dir = dirs.cell(0, index);
+//              bin = dir / binInc;
+//              binIndex[bin]++;
+//          }
+
+//          // allocate temporary matrices for each bin
+//          MatrixRegion2D *tempX = new MatrixRegion2D[numBins];
+//          MatrixRegion2D *tempY = new MatrixRegion2D[numBins];
+//          for (i = 0; i < numBins; ++i) {
+//              tempX[i] = MatrixRegion2D::allocate(m, binIndex[i]);
+//              tempY[i] = MatrixRegion2D::allocate(1, binIndex[i]);
+//              binIndex[i] = 0;
+//          }
+
+//          // copy data for each bin into temporary matrices
+//          for (j = 0; j < l; ++j) {
+//              index = indices.cell(j);
+//              dir = dirs.cell(0, index);
+//              bin = dir / binInc;
+//              Copy1D(tempX[bin].row(binIndex[bin]), x.row(index));
+//              tempY[bin].cell(binIndex[bin]) = y.cell(index);
+//              binIndex[bin]++;
+//          }
+
+//          for (i = 0; i < numBins; ++i) {
+//              spawn Regress(alpha.col(i), tempX[i], tempY[i]);
+//          }
+//          sync;
+
+//          delete [] binCounts;
+//          delete [] tempX;
+//          delete [] tempY;
+//      }
+//  }
+
+//  transform BinnedLREstimate
+//  from ALPHA[numBins], TESTDATA[2,n],  TESTINDICES[q]
+//  to RESULT[q]
+//  {
+//      to (RESULT.cell(i) result)
+//      from (TRAINDATA trainData, TRAININDICES trainIndices,
+//             TESTDATA  testData, TESTINDEX testIndices.cell(i),
+//            TRAINMASKWIDTH trainMaskWidth)
+//      {
+//      }
+//  }
+
+//  transform BinnedLRMasked
+//  from TRAINDATA[2,n], TRAININDICES[l],
+//        TESTDATA[2,m],  TESTINDICES[q], TRAINMASKWIDTH
+//  to RESULT[q]
+//  {
+//      to (RESULT.cell(i) result)
+//      from (TRAINDATA trainData, TRAININDICES trainIndices,
+//             TESTDATA  testData, TESTINDEX testIndices.cell(i),
+//            TRAINMASKWIDTH trainMaskWidth)
+//      {
+//      }
+//  }
+
+//  transform BinnedLR
+//  from TRAINX[m,n ], TRAINDIRS[1,n ], TRAINY[1,n ], TRAININDICES[l],
+//        TESTX[m,n2],  TESTDIRS[1,n2],  TESTY[1,n2],  TESTINDICES[q],
+//       TRAINMASKWIDTH
+//  to RESULT[q]
+//  tunable numBins
+//  {
+//      to (RESULT result)
+//      from (TRAINDATA trainData, TRAININDICES trainIndices,
+//             TESTDATA  testData,  TESTINDICES  testIndices,
+//            TRAINMASKWIDTH trainMaskWidth)
+//      {
+//          if (trainMaskWidth != 0) {
+//              BinnedLRMasked(result, trainData, trainIndices,
+//                             testData, testIndices, trainMaskWidth);
+//          } else {
+//              MatrixRegion2D alpha = MatrixRegion2D::allocate(numBins, m+1);
+//              BinnedLRTrain(alpha, trainData, trainIndices);
+//              BinnedLREstimate(result, alpha, testData, testIndices);
+//          }
+//      }
+//  }
+
+#endif // BINNEDLR_PBCC

@@ -31,6 +31,7 @@ kclustering/clusterinputgen
 kclustering/distance
 kclustering/kmeans
 kclustering/newclusterlocations
+kernel/BinnedLR
 kernel/KernelEstimate
 kernel/nwkdeBaseTop2
 kernel/nwkdeBaseTop
@@ -50,6 +51,7 @@ trisolve/TriSolveLL
 trisolve/TriSolveLU
 trisolve/TriSolveRL
 trisolve/TriSolveRU
+QR/QR
 matrixapprox/Bisection
 matrixapprox/matrixapprox
 multigrid/ComputeError2D
@@ -160,12 +162,14 @@ rootsolve/laguerre
 rootsolve/rootsolve
 rootsolve/secant
 simple/add
+simple/addInPlace
 simple/bufferrotate2
 simple/bufferrotate
 simple/cholesky
 simple/copy
 simple/matrixrotate
 simple/minimalmatmul
+simple/norm
 simple/randomshuffle
 simple/rollingsum
 simple/scale
