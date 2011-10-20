@@ -29,6 +29,7 @@
 #include <iostream>
 
 #if HAVE_OPENCL
+//#define OPENCL_TRACE 1
 
 namespace petabricks
 {
@@ -38,11 +39,17 @@ std::vector<OpenCLDevice> OpenCLUtil::devices;
 cl_context OpenCLUtil::context;
   unsigned int OpenCLUtil::active_device = 0;
 
+
+void OpenCLUtil::pfn_notify(const char *errinfo, const void* /*private_info*/, size_t /*cb*/, void* /*user_data*/){
+  std::cerr << "OpenCL Error via pfn_notify: " << errinfo << std::endl;
+  JASSERT(false).Text("OpenCL Error via pfn_notify.");
+}
+
 int
 OpenCLUtil::init( )
 {
   #if OPENCL_TRACE
-  std::cout << "OpenCLUtil::init() begins...\n";
+  std::cerr << "OpenCLUtil::init() begins...\n";
   #endif
 
   int err;
@@ -51,29 +58,56 @@ OpenCLUtil::init( )
   if( true == has_init )
     return 0;
 
-  // Get platform.
   cl_platform_id platform = NULL;
+#ifdef NVIDIA
+  // Get platform.
   if( CL_SUCCESS != oclGetPlatformID(&platform) )
     return -1;
+#else
+  cl_uint numPlatforms;
+  if( CL_SUCCESS != clGetPlatformIDs(0, NULL, &numPlatforms))
+    return -1;
+
+  if (0 < numPlatforms) 
+  {
+    cl_platform_id* platforms = new cl_platform_id[numPlatforms];
+    if(CL_SUCCESS != clGetPlatformIDs(numPlatforms, platforms, NULL))
+      return -1;
+    for (int i = 0; i < numPlatforms; ++i) 
+    {
+      char pbuf[100];
+      if(CL_SUCCESS != clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR, sizeof(pbuf), pbuf, NULL))
+        return -1;
+
+      platform = platforms[i];
+      if (!strcmp(pbuf, "Advanced Micro Devices, Inc.")) 
+        break;
+    }
+    delete[] platforms;
+  }
+
+  if(platform == NULL)
+    return -1;
+#endif
 
   // Get device count.
   cl_uint device_count;
-  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, 0, NULL, &device_count ) )
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) )
     return -1;
 
   // Get device IDs.
   cl_device_id* device_ids = new cl_device_id[ device_count ];
-  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, device_count, device_ids, &device_count ) )
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, &device_count ) )
     return -2;
 
   // Create context.
-  if( (cl_context)0 == ( context = clCreateContext(0, device_count, device_ids, NULL, NULL, &err) ) )
+  if( (cl_context)0 == ( context = clCreateContext(0, device_count, device_ids, &pfn_notify, NULL, &err) ) )
     return -3;
   if( CL_SUCCESS != err )
     return -5;
 
   #if OPENCL_TRACE
-  std::cout << "Created context: " << context << "\n";
+  std::cerr << "Created context: " << context << "\n";
   #endif
 
   // Get device-specific information.
@@ -81,7 +115,7 @@ OpenCLUtil::init( )
     {
       devices.push_back( OpenCLDevice( device_ids[i] ) );
       #if OPENCL_TRACE
-      std::cout << "Loading device ID: " << device_ids[i] << "\n";
+      std::cerr << "Loading device ID: " << device_ids[i] << "\n";
       #endif
       OpenCLDevice* dev_info = &devices.back( );
 
@@ -97,12 +131,12 @@ OpenCLUtil::init( )
       clGetDeviceInfo( device_ids[i], CL_DEVICE_MAX_CLOCK_FREQUENCY,
 		       sizeof(dev_info->max_clock_freq), &dev_info->max_clock_freq, NULL );
 
-      // TODO(mangpo): do we need this?
+      // TODO(mangpo):
       // Work-item and work-group properties
-      /*std::cout << "work-item" << std::endl;
+      /*std::cerr << "work-item" << std::endl;
       clGetDeviceInfo( device_ids[1], CL_DEVICE_MAX_WORK_ITEM_SIZES,
 		       sizeof(dev_info->max_workitem_size), &dev_info->max_workitem_size, NULL );
-      std::cout << "work-group" << std::endl;
+      std::cerr << "work-group" << std::endl;
       clGetDeviceInfo( device_ids[i], CL_DEVICE_MAX_WORK_GROUP_SIZE,
 		       sizeof(dev_info->max_workgroup_size), &dev_info->max_workgroup_size, NULL );*/
 
@@ -127,7 +161,7 @@ OpenCLUtil::init( )
 	      return -6;
 
       #if OPENCL_TRACE
-      std::cout << "Created command queue: " << dev_info->queue << "\n";
+      std::cerr << "Created command queue: " << dev_info->queue << "\n";
       #endif
     }
 
@@ -136,7 +170,7 @@ OpenCLUtil::init( )
 
   has_init = true;
   #if OPENCL_TRACE
-  std::cout << "OpenCLUtil::init() finishes...\n";
+  std::cerr << "OpenCLUtil::init() finishes...\n";
   #endif
   return 0;
 }
@@ -150,6 +184,9 @@ OpenCLUtil::deinit( )
 
   // Release context.
   clReleaseContext( context );
+  #if OPENCL_TRACE
+  std::cerr << "OpenCLUtil::deinit()\n";
+  #endif
 }
 
 cl_context

@@ -230,9 +230,21 @@ AC_ARG_WITH([opencl],
 	[],
 	[with_opencl=no])
 
+AC_ARG_WITH([amdopencl],
+	[AS_HELP_STRING([--with-amdopencl=PATH],[build compiler and runtime with support for OpenCL-enabled CPUs and AMD GPUs.])],
+	[],
+	[with_amdopencl=no])
+
+AC_ARG_WITH([intelopencl],
+	[AS_HELP_STRING([--with-intelopencl=PATH],[build compiler and runtime with support for OpenCL-enabled CPUs and intel GPUs.])],
+	[],
+	[with_intelopencl=no])
+
 if ! test "$with_opencl" = "no"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
    AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
+   AC_DEFINE([NVIDIA],[1], [NVIDIA SDK])
+   AC_DEFINE([DISABLE_DISTRIBUTED], [1], [dont generate distributed code])
 
    CPPFLAGS="$CPPFLAGS -I$with_opencl/OpenCL/common/inc -I$with_opencl/shared/inc"
    LIBS="$LIBS -L$with_opencl/OpenCL/common/lib/ -L$with_opencl/shared/lib -L$with_opencl/shared/lib/linux"
@@ -240,6 +252,29 @@ if ! test "$with_opencl" = "no"; then
    AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
    AC_CHECK_LIB([shrutil_x86_64], [shrLogEx], [], [AC_MSG_ERROR([Failed to find -lshrutil_x86_64.  Check LIBRARY_PATH, or reconfigure without shrutil_x86_64.])])
    AC_CHECK_LIB([oclUtil_x86_64], [oclGetPlatformID], [], [AC_MSG_ERROR([Failed to find -loclUtil_x86_64.  Check LIBRARY_PATH, or reconfigure without oclUtil_x86_64.])])
+
+elif ! test "$with_amdopencl" = "no"; then
+   AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
+   AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
+   AC_DEFINE([AMD],[1], [AMD SDK])
+   AC_DEFINE([DISABLE_DISTRIBUTED], [1], [dont generate distributed code])
+
+   CPPFLAGS="$CPPFLAGS -I$with_amdopencl/samples/opencl/SDKUtil/include -I$with_amdopencl/include"
+   LIBS="$LIBS -L$with_amdopencl/lib/x86_64 -L$with_amdopencl/TempSDKUtil/lib/x86_64"
+
+   AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
+
+elif ! test "$with_intelopencl" = "no"; then
+   AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
+   AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
+   AC_DEFINE([INTEL],[1], [INTEL SDK])
+   AC_DEFINE([DISABLE_DISTRIBUTED], [1], [dont generate distributed code])
+
+   CPPFLAGS="$CPPFLAGS -I/usr/include/CL"
+   LIBS="$LIBS -L/usr/lib64/OpenCL/vendors/intel"
+
+   AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
+
 else
    AC_DEFINE([MATRIX_ELEMENT_T],[double])
 fi
@@ -251,7 +286,7 @@ AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for b
 AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
 AC_DEFINE([DEFAULT_ACCURACY],    [1], [accuracy stand-in for fixed-accuracy rules])
 AC_DEFINE([DEVNULL],             ["/dev/null"], [null sync device path])
-AC_DEFINE([DISTRIBUTED_CACHE],   [], [use cache in distributed code])
+#AC_DEFINE([DISTRIBUTED_CACHE],   [], [use cache in distributed code])
 AC_DEFINE([DISTRIBUTED_GC_FREQ], [1000], [after how many allocations to invoke distributed gc])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])

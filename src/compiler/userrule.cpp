@@ -744,13 +744,16 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
         o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
                 << " = " << matrix_name << ".asGpuOutputBuffer(_iter_begin, _iter_end);\n";
-        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
-                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_WRITE_ONLY, " 
+        /*o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
+                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, " 
                 << "normalized_" << (*i)->name( ) << ".bytes( ),"
-                << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
+                << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";*/
+        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
+                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, " 
+                << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object for" << (*i)->name( ) << ".\" );\n";
         //o.os( ) << "std::cerr << \"" << (*i)->matrix( )->name( ) << "\" << std::endl;\n";
         //o.os( ) << "std::cerr << normalized_" << (*i)->name( ) << ".bytes( ) << std::endl;\n";
-        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object\");\n";
 
         // Bind to kernel.
         o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
@@ -769,11 +772,16 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
         o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
                 << " = " << matrix_name << ".asGpuInputBuffer();\n";
-        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
-                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, "
+        /*o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
+                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, "
                 << "normalized_" << (*i)->name( ) << ".bytes( ),"
-                << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
+                << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";*/
+        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
+                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, "
+                << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
+        o.write("err = clEnqueueWriteBuffer(OpenCLUtil::getQueue(0), devicebuf_"+ (*i)->name( ) +", CL_TRUE, 0, normalized_"+(*i)->name()+".bytes( ), normalized_"+ (*i)->name( )+".base( ), 0, NULL, NULL);");
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to copy input memory object\");\n";
 
         // Bind to kernel.
         o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";

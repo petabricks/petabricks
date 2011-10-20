@@ -33,7 +33,6 @@
 #include "openclutil.h"
 #include "gpudynamictask.h"
 
-#include <oclUtils.h>
 #include <pthread.h>
 #include <list>
 #include <queue>

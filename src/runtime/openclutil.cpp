@@ -58,19 +58,46 @@ OpenCLUtil::init( )
   if( true == has_init )
     return 0;
 
-  // Get platform.
   cl_platform_id platform = NULL;
+#ifdef NVIDIA
+  // Get platform.
   if( CL_SUCCESS != oclGetPlatformID(&platform) )
     return -1;
+#else
+  cl_uint numPlatforms;
+  if( CL_SUCCESS != clGetPlatformIDs(0, NULL, &numPlatforms))
+    return -1;
+
+  if (0 < numPlatforms) 
+  {
+    cl_platform_id* platforms = new cl_platform_id[numPlatforms];
+    if(CL_SUCCESS != clGetPlatformIDs(numPlatforms, platforms, NULL))
+      return -1;
+    for (int i = 0; i < numPlatforms; ++i) 
+    {
+      char pbuf[100];
+      if(CL_SUCCESS != clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR, sizeof(pbuf), pbuf, NULL))
+        return -1;
+
+      platform = platforms[i];
+      if (!strcmp(pbuf, "Advanced Micro Devices, Inc.")) 
+        break;
+    }
+    delete[] platforms;
+  }
+
+  if(platform == NULL)
+    return -1;
+#endif
 
   // Get device count.
   cl_uint device_count;
-  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, 0, NULL, &device_count ) )
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) )
     return -1;
 
   // Get device IDs.
   cl_device_id* device_ids = new cl_device_id[ device_count ];
-  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, device_count, device_ids, &device_count ) )
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, &device_count ) )
     return -2;
 
   // Create context.

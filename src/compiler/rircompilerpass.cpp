@@ -432,8 +432,8 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
 	      {
             
           //RIRExprList indices = call->parts().back()->parts().front()->parts();
-          vector<std::string> indices = generateCellIndices(call->parts().back()->parts().front()->parts());
-          vector<std::string>::reverse_iterator i = indices.rbegin();
+          std::vector<std::string> indices = generateCellIndices(call->parts().back()->parts().front()->parts());
+          std::vector<std::string>::reverse_iterator i = indices.rbegin();
           FormulaPtr idx_formula;
           switch(region->getRegionType()) {
             case Region::REGION_CELL:

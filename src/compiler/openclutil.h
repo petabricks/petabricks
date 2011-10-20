@@ -32,9 +32,16 @@
 
 #include <vector>
 #include <string>
+
+#ifdef NVIDIA
 #include <oclUtils.h>
-//#include <CL/cl_platform.h>
-//#include <CL/cl.h>
+#elif AMD
+#include <SDKCommon.hpp>
+#include <SDKApplication.hpp>
+#include <SDKFile.hpp>
+#else
+#include <opencl.h>
+#endif
 
 namespace petabricks
 {
@@ -88,11 +95,13 @@ namespace petabricks
   private:
     /** Class is a singleton. */
     OpenCLUtil( ) { }
+    static void pfn_notify(const char *errinfo, const void *private_info, size_t cb, void *user_data);
 
     static cl_context context;
     static bool has_init;
     static unsigned int active_device;
     static std::vector<OpenCLDevice> devices;
+
   };
 };
 

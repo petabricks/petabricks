@@ -29,7 +29,6 @@
 #ifndef PETABRICKSGPUTASKINFO_H
 #define PETABRICKSGPUTASKINFO_H
 
-#include <oclUtils.h>
 #include <map>
 
 #include "common/jmutex.h"

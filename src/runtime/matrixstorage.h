@@ -38,7 +38,6 @@
 
 #ifdef HAVE_OPENCL
 #include "common/jmutex.h"
-#include <oclUtils.h>
 #include "openclutil.h"
 #endif
 
