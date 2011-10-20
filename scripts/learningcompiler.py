@@ -75,7 +75,6 @@ class HeuristicDB:
     return self.getHeuristicKindID(kindName)
     
   def increaseHeuristicScore(self, name, formula, score):
-    print "INCREASING by " + str(score) + ": " + formula
     kindID=self.storeHeuristicKind(name) 
     cur = self.__db.cursor()
     query = "UPDATE Heuristic SET score=score+? WHERE kindID=? AND formula=?"
@@ -109,7 +108,6 @@ class HeuristicDB:
     """Mark a set of heuristics as used for generating a candidate executable"""
     #TODO: also store it as a set
     for name, formula in hSet.iteritems():
-      print "USED: " + formula
       self.increaseHeuristicUseCount(name, formula)
 
   def getBestNHeuristics(self, name, N):
