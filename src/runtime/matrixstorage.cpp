@@ -179,7 +179,9 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
     }
     cl_int err;
     setClMemWrapper(clCreateBuffer(context, CL_MEM_READ_WRITE, bytes(), NULL, &err));
+#ifdef DEBUG
     JASSERT(CL_SUCCESS == err).Text("Failed to create input memory object.");
+#endif
 #ifdef GPU_TRACE
     std::cout << this << " : create buffer size = " << bytes() << std::endl;
     std::cout << "cl_mem: " << getClMem() << std::endl;

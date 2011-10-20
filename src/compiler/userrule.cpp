@@ -751,13 +751,17 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, " 
                 << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";
+#ifdef DEBUG
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object for" << (*i)->name( ) << ".\" );\n";
+#endif
         //o.os( ) << "std::cerr << \"" << (*i)->matrix( )->name( ) << "\" << std::endl;\n";
         //o.os( ) << "std::cerr << normalized_" << (*i)->name( ) << ".bytes( ) << std::endl;\n";
 
         // Bind to kernel.
         o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
+#ifdef DEBUG
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
+#endif
       }
     }
 
@@ -779,9 +783,13 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, "
                 << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";
+#ifdef DEBUG
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
+#endif
         o.write("err = clEnqueueWriteBuffer(OpenCLUtil::getQueue(0), devicebuf_"+ (*i)->name( ) +", CL_TRUE, 0, normalized_"+(*i)->name()+".bytes( ), normalized_"+ (*i)->name( )+".base( ), 0, NULL, NULL);");
+#ifdef DEBUG
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to copy input memory object\");\n";
+#endif
 
         // Bind to kernel.
         o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
@@ -829,8 +837,9 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         count++;
       }
     }
-
+#ifdef DEBUG
     o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
+#endif
 
     // Invoke kernel.
     /** \todo Need to generalize for >1 GPUs and arbitrary dimensionality. */
@@ -857,7 +866,9 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     o.os( ) << "if( CL_SUCCESS != err ) ";
     #endif
     o.os( ) << "std::cout << \"Kernel execution error #\" << err << \": \" << OpenCLUtil::errorString(err) << std::endl;\n";
+#ifdef DEBUG
     o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to execute kernel.\" );\n";
+#endif
 
     // Copy results back to host memory.
     o.comment( "Copy results back to host memory." );
@@ -869,7 +880,9 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
                 << "normalized_" << (*i)->name( ) <<  ".bytes(), " 
                 << "normalized_" << (*i)->name( ) << ".base(), "
                 << "0, NULL, NULL );\n";
+#ifdef DEBUG
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to read output buffer.\" );\n";
+#endif
       }
     }
     o.os( ) << "\n";
@@ -1118,7 +1131,9 @@ void petabricks::UserRule::generateOpenCLCopyInCode(std::string& codename, std::
   o.write("JASSERT(CL_INVALID_HOST_PTR != err).Text( \"Failed to write to buffer.\");");
   o.write("JASSERT(CL_MEM_OBJECT_ALLOCATION_FAILURE != err).Text( \"Failed to write to buffer.\");");
   o.write("JASSERT(CL_OUT_OF_HOST_MEMORY != err).Text( \"Failed to write to buffer.\");");*/
+#ifdef DEBUG
   o.write("JASSERT(CL_SUCCESS == err)(err).Text( \"Failed to write to buffer.\");");
+#endif
   o.write( "return NULL;" );
   o.endFunc();
 }
@@ -1150,8 +1165,9 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
     if((*i)->isBuffer())
       o.write("err |= clSetKernelArg(clkern, "+jalib::XToString(arg_pos++)+", sizeof(cl_mem), "+(*i)->matrix()->name()+".storageInfo()->getClMemPtr());");
   }
-
+#ifdef DEBUG
   o.os( ) << "JASSERT( CL_SUCCESS == err )(err).Text( \"Failed to bind kernel arguments.\" );\n\n";
+#endif
 
   // Pass config parameters
   for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
@@ -1201,8 +1217,9 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
       count++;
     }
   }
-
+#ifdef DEBUG
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
+#endif
 
     // Invoke kernel.
     o.comment( "Invoke kernel." );
@@ -1230,7 +1247,9 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
     o.os( ) << "if( CL_SUCCESS != err ) ";
     #endif
     o.os( ) << "std::cout << \"Kernel execution error #\" << err << \": \" << OpenCLUtil::errorString(err) << std::endl;\n";
+#ifdef DEBUG
     o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to execute kernel.\" );\n";
+#endif
 
   o.write( "return NULL;" );
   o.endFunc();

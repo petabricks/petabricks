@@ -179,9 +179,13 @@ public:
   ///
   /// copy from a more generic container (used in memoization)
   void copyFrom(const MatrixStorageInfo& ms){
+    #ifdef DEBUG
     JASSERT(_base!=0);
+    #endif
     if(ms.storage()!=storage()){
+      #ifdef DEBUG
       JASSERT(ms.storage()->count()==storage()->count());
+      #endif
       memcpy(storage()->data(), ms.storage()->data(), storage()->count()*sizeof(ElementT));
     }
   }

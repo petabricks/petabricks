@@ -73,19 +73,25 @@ void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf
   o.os( ) << "size_t programlength = strlen( clsrc );\n";
 
   o.os( ) << "clprog_" << _rule->id() << " = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );\n";
+#ifdef DEBUG
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create program.\" );\n\n";
+#endif
   o.os( ) << "err = clBuildProgram( clprog_" << _rule->id() << ", 0, NULL, NULL, NULL, NULL);\n";
 #ifdef GPU_TRACE
   o.os( ) << "std::cerr << \"clBuildProgram err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
 #endif
+#ifdef DEBUG
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to build program.\" );\n\n";
+#endif
 
   o.comment( "Create kernel." );
   o.os( ) << "clkern_" << _rule->id() << "= clCreateKernel( clprog_" << _rule->id() << ", \"kernel_main\", &err );\n";
 #ifdef GPU_TRACE
   o.os( ) << "std::cerr << \"clCreateKernel err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
 #endif
+#ifdef DEBUG
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create kernel.\" );\n\n";
+#endif
 
   o.os( ) << "return 0;";
   o.endFunc();
