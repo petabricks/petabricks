@@ -898,10 +898,10 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.os( ) << "normalized_" << (*i)->name( ) 
                 << ".copyTo(" << (*i)->matrix( )->name( ) << ", _iter_begin, _iter_end);\n";
 
-        //o.os( ) << "std::cerr << \"normalize\" << std::endl;\n";
-        //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(normalized_" << (*i)->name( ) << ");\n";
-        //o.os( ) << "std::cerr << \"AFTER copy\" << std::endl;\n";
-        //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
+        /*o.os( ) << "std::cerr << \"normalize\" << std::endl;\n";
+        o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(normalized_" << (*i)->name( ) << ");\n";
+        o.os( ) << "std::cerr << \"AFTER copy\" << std::endl;\n";
+        o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";*/
       }
     }
 
@@ -1221,7 +1221,11 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
     //o.os( ) << "std::cout << \"RUN GPU\" << std::endl;\n";
     //o.write("std::cout << \"queue = \" << GpuManager::_queue << std::endl;");
     o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, " << iterdef.dimensions( ) << ", 0, workdim, NULL, 0, NULL, NULL );\n";
-    o.write("clFlush(GpuManager::_queue);");
+#ifdef NVIDIA
+    o.write("clFinish(GpuManager::_queue);");
+#else
+    o.write("clFinish(GpuManager::_queue);");
+#endif
     #ifndef OPENCL_LOGGING
     o.os( ) << "if( CL_SUCCESS != err ) ";
     #endif
