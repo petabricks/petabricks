@@ -44,6 +44,7 @@ namespace petabricks {
 class Transform;
 class ChoiceGrid;
 class CodeGenerator;
+class BasicChoiceDepGraphNode;
 typedef jalib::JRef<ChoiceGrid> ChoiceGridPtr;
 
 class ChoiceDepGraphNode;
@@ -117,6 +118,9 @@ public:
     _directDependsOriginal[n].rules.insert(r);
     _directDependsOriginal[n].direction.addDirection(dir);
   }
+
+
+  bool dependencyPossible(ChoiceDepGraphNode* n, const DependencyDirection& dir) const;
 
   ///
   /// Print this node name in graphviz/dot format
@@ -199,6 +203,12 @@ public:
   std::vector<RegionNodeGroup>& getRegionNodesGroups() { return _regionNodesGroups; }
   void setGpyCopyOut() { _gpuCopyOut = true; }
 #endif
+
+
+  virtual BasicChoiceDepGraphNode& asBasicNode() {
+    JASSERT(false); 
+    return *reinterpret_cast<BasicChoiceDepGraphNode*>(0);
+  }
 protected:
   int _id;
   bool _isInput;
@@ -216,6 +226,10 @@ protected:
 class BasicChoiceDepGraphNode : public ChoiceDepGraphNode {
 public:
   BasicChoiceDepGraphNode(const MatrixDefPtr& m, const SimpleRegionPtr& r, const ChoiceGridPtr& choices);
+
+  virtual BasicChoiceDepGraphNode& asBasicNode() {
+    return *this;
+  }
 
   const MatrixDefPtr&    matrix() const { return _matrix; }
   const SimpleRegionPtr& region() const { return _region; }

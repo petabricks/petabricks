@@ -1,0 +1,30 @@
+#ifndef TRISOLVERU_PBCC
+#define TRISOLVERU_PBCC
+
+// Right upper (RU) triangular solve
+// Solve XA = B for X, where A is upper triangular
+
+#include "TriSolveLL.pbcc"
+#include "TriSolveGenerators.pbcc"
+
+transform TriSolveRUInPlace
+from UNITFLAG, A[n,n]
+to X[n,m]
+{
+    to (X x) from (UNITFLAG unitFlag, A a) {
+        TriSolveLLInPlace(x.transposed(), unitFlag, a.transposed());
+    }
+}
+
+transform TriSolveRU
+from UNITFLAG, A[n,n], B[n,m]
+to X[n,m]
+generator TriSolveUGenerator
+{
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        Copy2D(x, b);
+        TriSolveRUInPlace(x, unitFlag, a);
+    }
+}
+
+#endif // TRISOLVERU_PBCC

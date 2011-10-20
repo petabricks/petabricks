@@ -2,7 +2,7 @@
 #define NWKDEGENERATORS_PBCC
 
 #include "nwkde.h"
-#include "utils.pbcc"
+#include "../simple/copy.pbcc"
 
 /* Load data from files */
 transform NWKDEGenerator

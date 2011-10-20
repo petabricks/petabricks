@@ -11,10 +11,10 @@ from TRAINDATA[M,N], WRAPFLAGS[M],
      TESTINDICES[Q], TESTVARINDEX[P], TESTTIMEOFFSET[P],
      OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
 to RESULT[Q]
-tunable float sizespecific array(M) initial(1) KERNELWIDTHS
+tunable float sizespecific array(M) initial(4) KERNELWIDTHS
 generator NWKDEGenerator2
 accuracy_metric NWKDEMetric
-accuracy_bins -3, -2
+accuracy_bins -8, -7, -6, -5, -4
 {
     to (RESULT result)
     from (TRAINDATA        trainData,

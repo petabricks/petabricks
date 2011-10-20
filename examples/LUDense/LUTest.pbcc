@@ -1,0 +1,23 @@
+#include "LU.pbcc"
+
+// pack output of LU into a single output for use with smoketest.py
+transform LUTest
+from IN[n,m]
+through P[m]
+to OUT[n,m+1]
+generator LUGenerator
+{
+    to (OUT out, P p)
+    from (IN in)
+    {
+        int i;
+
+        LU(out.region(0, 0, n, m), p, in);
+        for (i = 0; i < MIN(m,n); ++i) {
+            out.cell(i, m) = p.cell(i);
+        }
+        for (i = MIN(m,n); i < n; ++i) {
+            out.cell(i, m) = -1;
+        }
+    }
+}
