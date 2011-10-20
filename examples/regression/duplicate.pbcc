@@ -11,7 +11,7 @@ from x
 
 main transform Foo //main keyword makes this get called from commandline
 to B[n]
-from A[n] 
+from A[n]
 {
   duplicate(x, 5, 5)
   duplicate(y, 1, 3)
