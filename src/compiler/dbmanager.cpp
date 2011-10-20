@@ -103,7 +103,7 @@ petabricks::HeuristicPtr petabricks::DBManager::getBestHeuristic(std::string nam
   std::string query = "SELECT formula FROM Heuristic JOIN HeuristicKind "
                       "ON Heuristic.kindID=HeuristicKind.ID "
                       "WHERE HeuristicKind.name='"+ name + "' "
-                      "ORDER BY Heuristic.bestCount/Heuristic.useCount DESC "
+                      "ORDER BY Heuristic.score/Heuristic.useCount DESC "
                       "LIMIT 1";
                       
   retCode = db_exec(_db, query.c_str(), getHeuristic, &result, &zErrMsg);

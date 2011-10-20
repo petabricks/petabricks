@@ -19,10 +19,10 @@ from tunerconfig import config
 #--------- Config ------------------
 conf_deleteTempDir = True
 conf_minTrialNumber = 10
-conf_probabilityExploration = 1
+conf_probabilityExploration = 0.7
 conf_pickBestN = 3
 #--------- Autotuner config --------
-config.max_time=10 #Seconds
+config.max_time=30 #Seconds
 #-----------------------------------
 
 
@@ -47,7 +47,7 @@ class HeuristicDB:
     self.__createTable("HeuristicKind", "('ID' INTEGER PRIMARY KEY AUTOINCREMENT, "
                                         "'name' TEXT UNIQUE)")
     self.__createTable("Heuristic", "('kindID' INTEGER, 'formula' TEXT, "
-                                    "'useCount' INTEGER, 'bestCount' INTEGER,"
+                                    "'useCount' INTEGER, 'score' FLOAT,"
                                     "PRIMARY KEY (kindID, formula), "
                                     "FOREIGN KEY ('kindID') REFERENCES 'HeuristicKind' ('ID')"
                                     "ON DELETE CASCADE ON UPDATE CASCADE)")
@@ -74,14 +74,16 @@ class HeuristicDB:
     self.__db.commit()
     return self.getHeuristicKindID(kindName)
     
-  def increaseHeuristicBestCount(self, name, formula):
+  def increaseHeuristicScore(self, name, formula, score):
+    print "INCREASING by " + str(score) + ": " + formula
     kindID=self.storeHeuristicKind(name) 
     cur = self.__db.cursor()
-    query = "UPDATE Heuristic SET bestCount=bestCount+1 WHERE kindID=? AND formula=?"
-    cur.execute(query, (kindID, formula))
+    query = "UPDATE Heuristic SET score=score+? WHERE kindID=? AND formula=?"
+    cur.execute(query, (score, kindID, formula))
     if cur.rowcount == 0:
-      #There was no such heuristic in the DB: is should be present as USED!!
-      raise Exception("The following formula was not present in the DB: \n"+formula)
+      #There was no such heuristic in the DB: probably it was taken from the defaults
+      query = "INSERT INTO Heuristic (kindID, formula, useCount, score) VALUES (?, ?, 1, ?)"
+      cur.execute(query, (kindID, formula, score))
     cur.close()
     self.__db.commit()
   
@@ -92,21 +94,22 @@ class HeuristicDB:
     cur.execute(query, (kindID, formula))
     if cur.rowcount == 0:
       #There was no such heuristic in the DB: let's add it
-      query = "INSERT INTO Heuristic (kindID, formula, useCount, bestCount) VALUES (?, ?, 1, 0)"
+      query = "INSERT INTO Heuristic (kindID, formula, useCount, score) VALUES (?, ?, 1, 0)"
       cur.execute(query, (kindID, formula))
     cur.close()
     self.__db.commit()
   
-  def markAsBest(self, hSet):
+  def increaseScore(self, hSet, score):
     """Mark a set of heuristics as selected as the best one for an executable"""
     #TODO: also store it as a set
     for name, formula in hSet.iteritems():
-      self.increaseHeuristicBestCount(name, formula)
+      self.increaseHeuristicScore(name, formula, score)
       
   def markAsUsed(self, hSet):
     """Mark a set of heuristics as used for generating a candidate executable"""
     #TODO: also store it as a set
     for name, formula in hSet.iteritems():
+      print "USED: " + formula
       self.increaseHeuristicUseCount(name, formula)
 
   def getBestNHeuristics(self, name, N):
@@ -118,7 +121,7 @@ class HeuristicDB:
       #Fall back to accessing the db
       pass
     cur = self.__db.cursor()
-    query = "SELECT formula FROM Heuristic JOIN HeuristicKind ON Heuristic.kindID=HeuristicKind.ID WHERE HeuristicKind.name=? ORDER BY Heuristic.bestCount/Heuristic.useCount DESC LIMIT ?"
+    query = "SELECT formula FROM Heuristic JOIN HeuristicKind ON Heuristic.kindID=HeuristicKind.ID WHERE HeuristicKind.name=? ORDER BY Heuristic.score/Heuristic.useCount DESC LIMIT ?"
     cur.execute(query, (name, N))
     result = [row[0] for row in cur.fetchall()]
     cur.close()
@@ -225,7 +228,33 @@ class HeuristicManager:
     return self.__heuristicSets
     
 
-  
+def candidateKey(candidate):
+  """Generates a comparison key for a candidate.
+Candidates are sorted by the number of dimensions (the highest, the better),
+then by average execution time of the biggest dimension (the lower the better)"""
+  if candidate is None:
+    return (float('inf'), float('inf'))
+  numDimensions = len(candidate.metrics[0])
+  executionTime = candidate.metrics[0][2**(numDimensions-1)].mean()
+  return (1/numDimensions, executionTime)
+
+
+
+class CandidateList(list):  
+  def addOriginalIndex(self):
+    count = 0
+    for candidate in self:
+      if candidate is None:
+        continue
+      candidate.originalIndex = count;
+      count = count + 1
+      
+  def sortBySpeed(self):
+    """Adds the "score" and "originalIndex" attributes to every candidate. 
+    Also, sorts the list by score"""
+    self.sort(key=candidateKey)
+        
+    
   
     
 
@@ -235,56 +264,34 @@ class LearningCompiler:
     self.__heuristicManager = HeuristicManager(heuristicSetFileName)
     self.__minTrialNumber = conf_minTrialNumber
     self.__pbcExe = pbcExe    
-    self.__jobs=jobs
+    self.__jobs=jobs    
+    self.__db = HeuristicDB()
     
-  def bestCandidate(self, candidates):
-    """Determines which candidate is the best, given a set of candidates with 
-all their timings
-
-Returns the index of the best candidate in the array"""
-    #Get the maximum number of dimensions candidates have
-    maxDimensions = 0
-    fasterCandidates = {}
+  
+  def storeCandidatesDataInDB(self, candidates, basesubdir, basename):
+    """Store data from all the info file, with score.
+The candidates should already be ordered (from the best to the worst) and 
+with the originalIndex field added"""
+    numCandidates = len(candidates)
     count=0
     for candidate in candidates:
-      if candidate is None:
-        #This candidate has failed the autotuning
-        continue
+      infoFile=os.path.join(basesubdir, 
+                            str(candidate.originalIndex), 
+                            basename+".info")
+    
+      score = (numCandidates - count) / float(numCandidates)
       
-      candidateDimensions=len(candidate.metrics[0])
-      if candidateDimensions > maxDimensions:
-        fasterCandidates = {}
-      if candidateDimensions >= maxDimensions:
-        maxDimensions = candidateDimensions
-        fasterCandidates[candidate] = count
-      count = count+1
-
-    if len(fasterCandidates) == 1:
-      #One candidate has analyzed more dimensions than the others:
-      #it was faster!
-      return fasterCandidates[fasterCandidates.keys()[0]]
+       #Take the data about the used heuristics scores and store it into the DB
+      infoxml = xml.dom.minidom.parse(infoFile)
+      hSet = HeuristicSet()
+      hSet.importFromXml(infoxml)
+      self.__db.increaseScore(hSet, score)
+      self.__db.markAsUsed(hSet)
       
-    #Select best candidate:
-    #the one on average faster on the biggest dimension
-    bestScore = float("inf")
-    bestIndex = None
-    for candidate in fasterCandidates.keys():
-      timingResultDB = candidate.metrics[0] #Get the 'timings' metric
-      #The score for each candidate is the average timing on the highest shared 
-      #dimension
-      results = timingResultDB[2**(maxDimensions-1)]
-      average = results.mean()
-      if average < bestScore:
-        bestScore=average
-        bestIndex=fasterCandidates[candidate]
-    
-    if bestIndex==None:
-      raise tunerwarnings.AlwaysCrashes()
-    
-    return bestIndex
+      count = count +1
+      
     
     
-
   def compileLearningHeuristics(self, benchmark, finalBinary=None):
     #Define file names
     path, basenameExt = os.path.split(benchmark)
@@ -293,8 +300,7 @@ Returns the index of the best candidate in the array"""
     basename, ext = os.path.splitext(basenameExt)
     basesubdir=os.path.join(path,basename+".tmp")
     #Init variables
-    candidates=[]
-    db = HeuristicDB()
+    candidates=CandidateList()
     
     #Compile with current best heuristics
     outDir = os.path.join(basesubdir, "0")
@@ -329,7 +335,7 @@ Returns the index of the best candidate in the array"""
     
     count=1
     for hSet in allHSets:
-      hSet.complete(neededHeuristics, db, conf_pickBestN)
+      hSet.complete(neededHeuristics, self.__db, conf_pickBestN)
       
       #Define more file names
       outDir = os.path.join(basesubdir, str(count))
@@ -347,13 +353,6 @@ Returns the index of the best candidate in the array"""
         print "while using heuristics: "
         print hSet
         return status
-        
-      #Get the actual used hset (including default formulas from the 
-      #compiler itself, if any)
-      infoxml = xml.dom.minidom.parse(binary+".info")
-      usedHSet = HeuristicSet()
-      usedHSet.importFromXml(infoxml)
-      db.markAsUsed(usedHSet)
       
       #Autotune
       try:
@@ -365,7 +364,15 @@ Returns the index of the best candidate in the array"""
       
       count = count + 1
       
-    bestIndex = self.bestCandidate(candidates)
+    candidates.addOriginalIndex()
+    candidates.sortBySpeed()
+    
+    if candidates[0] is None:
+      raise tunerwarnings.AlwaysCrashes()
+    
+    self.storeCandidatesDataInDB(candidates, basesubdir, basename)
+    
+    bestIndex = candidates[0].originalIndex
     
     print "The best candidate is: "+str(bestIndex)
   
@@ -401,12 +408,6 @@ Returns the index of the best candidate in the array"""
     #Delete all the rest
     if conf_deleteTempDir:
       shutil.rmtree(basesubdir)
-    
-    #Take the data about the best heuristics and store it into the db
-    infoxml = xml.dom.minidom.parse(finalInfo)
-    hSet = HeuristicSet()
-    hSet.importFromXml(infoxml)
-    db.markAsBest(hSet)
     
     return 0
     
