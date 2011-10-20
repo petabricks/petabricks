@@ -94,14 +94,11 @@ class config_defaults:
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential', 'system.cutoff.distributed']
   uniform_tunable_types       = ['system.flag.unrollschedule']
   autodetect_tunable_types    = ['user.tunable']
-  #lognorm_sizespecific_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
-  #optimize_tunable_types      = ['user.tunable.double', 'user.tunable.double.array']
-  #sizespecific_tunable_types  = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.double.array']
-  #ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg']
-  lognorm_array_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
-  ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg', 'user.tunable.double',
-                                 'user.tunable.double.array', "system.runtime.threads"]
-
+  lognorm_sizespecific_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.array']
+  optimize_tunable_types      = ['user.tunable.double', 'user.tunable.double.array']
+  sizespecific_tunable_types  = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.double.array', 'user.tunable.array']
+  ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg']
+  
   #metric information, dont change
   metrics               = ['timing', 'accuracy']
   metric_orders         = [1, -1] #1 = minimize, -1 = maximize

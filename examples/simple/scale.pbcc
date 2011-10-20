@@ -1,0 +1,15 @@
+#ifndef SCALE_PBCC
+#define SCALE_PBCC
+
+transform Scale
+from ALPHA
+to A[n,m]
+{
+    to (A.cell(j, i) a)
+    from (ALPHA alpha)
+    {
+        a *= alpha;
+    }
+}
+
+#endif // SCALE_PBCC

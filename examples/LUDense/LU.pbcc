@@ -1,0 +1,127 @@
+#ifndef LU_PBCC
+#define LU_PBCC
+
+#include "../multiply/multiplyAdd.pbcc"
+#include "../trisolve/TriSolveLL.pbcc"
+#include "LUBase.pbcc"
+#include "LULAPACK.pbcc"
+
+transform SwapRows
+from IN[n,m], P[m]
+through INDEX[m]
+to OUT[n,m]
+{
+    to (INDEX index) from (IN in, P p)
+    {
+        // initialize source index array
+        for (IndexT j = 0; j < m; ++j) {
+            index.cell(j) = j;
+        }
+
+        // perform swaps on index array
+        for (IndexT j = 0; j < m; ++j)
+        {
+            IndexT temp = index.cell(p.cell(j));
+            index.cell(p.cell(j)) = index.cell(j);
+            index.cell(j) = temp;
+        }
+    }
+
+    to (OUT.row(j) out) from (IN in, INDEX.cell(j) index)
+    {
+        // copy with swaps
+        Copy1D(out, in.row(index));
+    }
+}
+
+transform LUGenerator
+to OUT[n,n]
+{
+    to (OUT.cell(j, i) out)
+    from ()
+    {
+        out = PetabricksRuntime::randNormal(0, 1);
+    }
+}
+
+transform LUBlock
+through TEMP[n,m]
+to A[n,m], P[m]
+tunable sizespecific nb
+{
+    to (A a, P p, TEMP temp) from ()
+    {
+        //base case
+        if (nb < 1 || nb >= MIN(m,n)) {
+            LUBaseInPlace(a, p);
+            return;
+        }
+
+        //get LU of left block by calling the base case
+        LUBaseInPlace(a.region(0, 0, nb, m), p);
+
+        //swap right block
+        Copy2D(temp.region(nb, 0, n, m),
+                  a.region(nb, 0, n, m));
+        SwapRows( a.region(nb, 0, n, m),
+               temp.region(nb, 0, n, m), p);
+
+        //upper right block
+        TriSolveLLInPlace(a.region(nb, 0, n , nb), 1,
+                          a.region(0 , 0, nb, nb));
+
+        //lower right block
+
+        //temp = in - left*up (this updates the lower right block)
+        MatrixMultiplyAdd(a.region(nb, nb, n , m ), -1.0,
+                          a.region(0 , nb, nb, m ),
+                          a.region(nb, 0 , n , nb), 1.0);
+
+        //recursion to get LU of the remaining updated block
+        LUInPlace(a.region(nb, nb, n, m), p.region(nb, m));
+
+        //lower left block
+        Copy2D(temp.region(0, nb, nb, m),
+                  a.region(0, nb, nb, m));
+        SwapRows( a.region(0, nb, nb, m),
+               temp.region(0, nb, nb, m), p.region(nb, m));
+
+        // adjust permutation values to larger matrix
+        for (IndexT i = nb; i < m; ++i) {
+            p.cell(i) += nb;
+        }
+    }
+}
+
+transform LUInPlace
+to A[n,m], P[m]
+{
+    to (A a, P p) from ()
+    {
+        LUBlock(a, p);
+    }
+
+    to (A a, P p) from ()
+    {
+        LUBaseInPlace(a, p);
+    }
+
+    to (A a, P p) from ()
+    {
+        LULAPACK(a, p, a);
+    }
+}
+
+transform LU
+from IN[n,m]
+to OUT[n,m], P[m]
+generator LUGenerator
+{
+    to (OUT out, P p) from (IN in)
+    {
+        Copy2D(out, in);
+        LUInPlace(out, p);
+    }
+}
+
+#endif // LU_PBCC
