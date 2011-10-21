@@ -1,5 +1,5 @@
 #define KERNEL_RADIUS 8
-#define KERNEL_LENGTH (2 * KERNEL_RADIUS + 1)
+#define KERNEL_LENGTH 17
 
 transform convolutionRows
 from Input[w,h], Kernel[KERNEL_LENGTH]
@@ -7,10 +7,10 @@ to Output[w,h]
 {
   Output.cell(x,y) from(Input input, Kernel kernel) {
     double sum = 0;
-    for(int k = -KERNEL_RADIUS; k <= KERNEL_RADIUS; k++){
+    for(int k = -8; k <= 8; k++){
       int d = x + k;
       if(d >= 0 && d < w)
-        sum += input.cell(d,y) * kernel.cell(KERNEL_RADIUS - k);
+        sum += input.cell(d,y) * kernel.cell(8 - k);
       }
     return sum;
   }
@@ -22,10 +22,10 @@ to Output[w,h]
 {
   Output.cell(x,y) from(Input input, Kernel kernel) {
     double sum = 0;
-    for(int k = -KERNEL_RADIUS; k <= KERNEL_RADIUS; k++){
+    for(int k = -8; k <= 8; k++){
       int d = y + k;
       if(d >= 0 && d < h)
-        sum += input.cell(x,d) * kernel.cell(KERNEL_RADIUS - k);
+        sum += input.cell(x,d) * kernel.cell(8 - k);
       }
     return sum;
   }

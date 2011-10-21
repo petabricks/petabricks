@@ -30,7 +30,7 @@
 #include "dynamicscheduler.h"
 #include "gpudynamictask.h"
 
-//#define GPU_TRACE 1
+#define GPU_TRACE 1
 
 namespace petabricks {
 
@@ -129,7 +129,7 @@ void GpuManager::prepare(GpuDynamicTaskPtr task) {
   #endif
 
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
-    (*i)->initGpuMem(_queue,_context); // clCreateBuffer
+    (*i)->initGpuMem(_queue,_context,false); // clCreateBuffer
   }
 }
 
@@ -139,7 +139,7 @@ void GpuManager::copyin(GpuDynamicTaskPtr task) {
   #endif
   MatrixStorageInfoPtr storageinfo = task->storageinfo();
 
-  if(storageinfo->initGpuMem(_queue,_context)) { // clCreateBuffer
+  if(storageinfo->initGpuMem(_queue,_context,true)) { // clCreateBuffer
     #ifdef GPU_TRACE
     std::cout << "copying in... " << &(*storageinfo) << std::endl;
     #endif
