@@ -1,36 +1,32 @@
 #ifndef LU_PBCC
 #define LU_PBCC
 
-#include "../multiply/multiplyAdd.pbcc"
+#include "../simple/macros.h"
+#include "../simple/copy.pbcc"
+#include "../simple/permute.pbcc"
+#include "../simple/reduce.pbcc"
 #include "../trisolve/TriSolveLL.pbcc"
-#include "LUBase.pbcc"
+#include "../multiply/multiplyAdd.pbcc"
+#include "DGER.pbcc"
 #include "LULAPACK.pbcc"
 
-transform SwapRows
-from IN[n,m], P[m]
-through INDEX[m]
-to OUT[n,m]
+transform Scale2D
+from ALPHA
+to A[n,m]
 {
-    to (INDEX index) from (IN in, P p)
+    to (A.cell(j, i) a) from (ALPHA alpha)
     {
-        // initialize source index array
-        for (IndexT j = 0; j < m; ++j) {
-            index.cell(j) = j;
-        }
-
-        // perform swaps on index array
-        for (IndexT j = 0; j < m; ++j)
-        {
-            IndexT temp = index.cell(p.cell(j));
-            index.cell(p.cell(j)) = index.cell(j);
-            index.cell(j) = temp;
-        }
+        a *= alpha;
     }
+}
 
-    to (OUT.row(j) out) from (IN in, INDEX.cell(j) index)
+transform Shift1D
+from OFFSET
+to A[n]
+{
+    to (A.cell(i) a) from (OFFSET offset)
     {
-        // copy with swaps
-        Copy1D(out, in.row(index));
+        a += offset;
     }
 }
 
@@ -44,51 +40,298 @@ to OUT[n,n]
     }
 }
 
-transform LUBlock
-through TEMP[n,m]
+transform LUBase
 to A[n,m], P[m]
-tunable sizespecific nb
 {
-    to (A a, P p, TEMP temp) from ()
+    // right looking (update trailing matrix after each column is solved)
+    to (A a, P p) from ()
+    {
+        IndexT j;
+        ElementT iMax, jMax, valMax;
+
+        // for each column in square part of matrix
+        for (j = 0; j < MIN(m, n); ++j) {
+            if (j == m - 1) {
+                p.cell(j) = j;
+            } else {
+                // find the largest value in jth column on/below diagonal
+                ReduceAMax2D(jMax, iMax, valMax, a.region(j, j, j+1, m));
+                iMax += j;
+
+                // save swapped row index in p
+                p.cell(j) = iMax;
+
+                // swap pivot row into current row
+                if (iMax != j) {
+                    Swap2D(a.region(0, j   , n, j    + 1),
+                           a.region(0, iMax, n, iMax + 1));
+                }
+
+                // scale current column and update trailing submatrix
+                Scale2D(a.region(j, j+1, j+1, m), 1.0 / a.cell(j, j));
+
+                if (j < n - 1) {
+                    // rank 1 trailing matrix update
+                    DGER(a.region(j+1, j+1, n  , m  ), -1.0,
+                         a.region(j  , j+1, j+1, m  ),
+                         a.region(j+1, j  , n  , j+1));
+                }
+            }
+        }
+
+        // no swaps for rest of array
+        for (j = MIN(m,n); j < m; ++j) {
+            p.cell(j) = j;
+        }
+    }
+
+    // left looking (solve one column at a time)
+    to (A a, P p) from ()
+    {
+        IndexT j;
+        ElementT iMax, jMax, valMax;
+
+        for (j = 0; j < MIN(m,n); ++j) {
+
+            // lazy update of all values in current column
+            if (j > 0) {
+                // update values above diagonal
+                TriSolveLLInPlace(a.region(j, 0, j+1, j), 1,
+                                  a.region(0, 0, j  , j));
+
+                // update values on and below diagonal
+                MatrixMultiplyAdd(a.region(j, j, j+1, m), -1.0,
+                                  a.region(0, j, j  , m),
+                                  a.region(j, 0, j+1, j), 1.0);
+            }
+
+            if (j == m - 1) {
+                p.cell(j) = j;
+            } else {
+                // find the largest value in jth column
+                ReduceAMax2D(jMax, iMax, valMax, a.region(j, j, j+1, m));
+                iMax += j;
+
+                // save swapped row index in p
+                p.cell(j) = iMax;
+
+                // swap pivot row into current row
+                if (iMax != j) {
+                    Swap2D(a.region(0, j   , n, j    + 1),
+                           a.region(0, iMax, n, iMax + 1));
+                }
+
+                // scale values below diagonal
+                Scale2D(a.region(j, j+1, j+1, m), 1.0 / a.cell(j, j));
+            }
+        }
+
+        // solve for remainder of U matrix
+        if (n > m) {
+            TriSolveLLInPlace(a.region(m, 0, n, m), 1,
+                              a.region(0, 0, m, m));
+        }
+
+        // no swaps for rest of array
+        for (j = MIN(m,n); j < m; ++j) {
+            p.cell(j) = j;
+        }
+    }
+
+    // right looking serial
+    to (A a, P p) from ()
+    {
+        IndexT i, j, k, ip;
+        ElementT maxVal, temp;
+        for (j = 0; j < MIN(m,n); ++j) {
+            // find pivot
+            ip = j; maxVal = fabs(a.cell(j, j));
+            for (i = j+1; i < m; ++i) {
+                if (fabs(a.cell(j, i)) > maxVal) {
+                    maxVal = fabs(a.cell(j, i));
+                    ip = i;
+                }
+            }
+            p.cell(j) = ip;
+            // swap rows
+            if (ip != j) {
+                for (k = 0; k < n; ++k) {
+                    temp = a.cell(k, j);
+                    a.cell(k, j) = a.cell(k, ip);
+                    a.cell(k, ip) = temp;
+                }
+            }
+            // scale column below diagonal
+            temp = 1.0 / a.cell(j, j);
+            for (i = j+1; i < m; ++i) {
+                a.cell(j, i) *= temp;
+            }
+            // update trailing matrix
+            for (i = j+1; i < m; ++i) {
+                for (k = j+1; k < n; ++k) {
+                    a.cell(k, i) -= a.cell(j, i) * a.cell(k, j);
+                }
+            }
+        }
+
+        // no swaps for rest of array
+        for (j = MIN(m,n); j < m; ++j) {
+            p.cell(j) = j;
+        }
+    }
+
+    // left looking serial
+    to (A a, P p) from ()
+    {
+        IndexT i, j, k, ip;
+        ElementT maxVal, temp;
+        for (j = 0; j < n; ++j) {
+            // update values in current column
+            for (i = 0; i < m; ++i) {
+                for (k = 0; k < MIN(i, j); ++k) {
+                    a.cell(j, i) -= a.cell(k, i) * a.cell(j, k);
+                }
+            }
+            if (j < m) {
+                // find pivot
+                ip = j; maxVal = fabs(a.cell(j, j));
+                for (i = j+1; i < m; ++i) {
+                    if (fabs(a.cell(j, i)) > maxVal) {
+                        maxVal = fabs(a.cell(j, i));
+                        ip = i;
+                    }
+                }
+                p.cell(j) = ip;
+                // swap rows
+                if (ip != j) {
+                    for (k = 0; k < n; ++k) {
+                        temp = a.cell(k, j);
+                        a.cell(k, j) = a.cell(k, ip);
+                        a.cell(k, ip) = temp;
+                    }
+                }
+                // scale column below diagonal
+                temp = 1.0 / a.cell(j, j);
+                for (i = j+1; i < m; ++i) {
+                    a.cell(j, i) *= temp;
+                }
+            }
+        }
+
+        // no swaps for rest of array
+        for (j = MIN(m,n); j < m; ++j) {
+            p.cell(j) = j;
+        }
+    }
+
+    // call LAPACK
+    to (A a, P p) from ()
+    {
+        LULAPACK(a, p, a);
+    }
+}
+
+transform LUBlocked
+to A[n,m], P[m]
+tunable sizespecific blockSize
+{
+    // right looking (update trailing matrix each iteration)
+    to (A a, P p) from ()
     {
         //base case
-        if (nb < 1 || nb >= MIN(m,n)) {
-            LUBaseInPlace(a, p);
+        if (blockSize < 1 || blockSize >= MIN(m,n)) {
+            LUBase(a, p);
             return;
         }
 
-        //get LU of left block by calling the base case
-        LUBaseInPlace(a.region(0, 0, nb, m), p);
+        MatrixRegion2D a1, a2, a11, a12, a21, a22;
+        MatrixRegion1D p2;
 
-        //swap right block
-        Copy2D(temp.region(nb, 0, n, m),
-                  a.region(nb, 0, n, m));
-        SwapRows( a.region(nb, 0, n, m),
-               temp.region(nb, 0, n, m), p);
+        a1  = a.region(0, 0, blockSize, m);
+        a2  = a.region(blockSize, 0, n, m);
 
-        //upper right block
-        TriSolveLLInPlace(a.region(nb, 0, n , nb), 1,
-                          a.region(0 , 0, nb, nb));
+        a11 = a.region(0, 0, blockSize, blockSize);
+        a12 = a.region(blockSize, 0, n, blockSize);
+        a21 = a.region(0, blockSize, blockSize, m);
+        a22 = a.region(blockSize, blockSize, n, m);
 
-        //lower right block
+        p2  = p.region(blockSize, m);
 
-        //temp = in - left*up (this updates the lower right block)
-        MatrixMultiplyAdd(a.region(nb, nb, n , m ), -1.0,
-                          a.region(0 , nb, nb, m ),
-                          a.region(nb, 0 , n , nb), 1.0);
+        // compute LU of left block
+        LUBase(a1, p);
 
-        //recursion to get LU of the remaining updated block
-        LUInPlace(a.region(nb, nb, n, m), p.region(nb, m));
+        // swap rows in right block
+        PermuteInPlace(a2, p);
 
-        //lower left block
-        Copy2D(temp.region(0, nb, nb, m),
-                  a.region(0, nb, nb, m));
-        SwapRows( a.region(0, nb, nb, m),
-               temp.region(0, nb, nb, m), p.region(nb, m));
+        // upper right block
+        TriSolveLLInPlace(a12, 1, a11);
+
+        // update lower right block
+        MatrixMultiplyAdd(a22, -1.0, a21, a12, 1.0);
+
+        // compute LU of the updated lower right block
+        LUInPlace(a22, p2);
+
+        // swap rows in lower left block
+        PermuteInPlace(a21, p2);
 
         // adjust permutation values to larger matrix
-        for (IndexT i = nb; i < m; ++i) {
-            p.cell(i) += nb;
+        Shift1D(p2, blockSize);
+    }
+
+    // left looking (process one column block at a time)
+    to (A a, P p) from ()
+    {
+        //base case
+        if (blockSize < 1 || blockSize >= MIN(m,n)) {
+            LUBase(a, p);
+            return;
+        }
+
+        IndexT i0, i1, minmn = MIN(m,n);
+        MatrixRegion2D a11, a12, a21, a22, a23;
+        MatrixRegion1D p2;
+
+        for (i0 = 0; i0 < MIN(m,n); i0 += blockSize) {
+
+            i1 = MIN(i0 + blockSize, minmn);
+            a12 = a.region(i0, 0,  i1, i0);
+            a22 = a.region(i0, i0, i1, m );
+            p2  = p.region(i0, m);
+
+            // lazy update of all values in current column
+            if (i0 > 0) {
+
+                a11 = a.region(0 , 0,  i0, i0);
+                a21 = a.region(0 , i0, i0, m );
+
+                // update values above diagonal
+                TriSolveLLInPlace(a12, 1, a11);
+
+                // update values on and below diagonal
+                MatrixMultiplyAdd(a22, -1.0, a21, a12, 1.0);
+            }
+
+            // compute LU of lower column block
+            LUBase(a22, p2);
+
+            // permute rows to left and right of lower column block
+            if (i0 > 0) {
+                PermuteInPlace(a21, p2);
+            }
+            if (i1 < n) {
+                a23 = a.region(i1, i0, n , m );
+                PermuteInPlace(a23, p2);
+            }
+
+            // adjust permutation values to larger matrix
+            Shift1D(p2, i0);
+        }
+
+        // solve for remainder of U matrix
+        if (n > m) {
+            TriSolveLLInPlace(a.region(m, 0, n, m), 1,
+                              a.region(0, 0, m, m));
         }
     }
 }
@@ -98,17 +341,12 @@ to A[n,m], P[m]
 {
     to (A a, P p) from ()
     {
-        LUBlock(a, p);
+        LUBlocked(a, p);
     }
 
     to (A a, P p) from ()
     {
-        LUBaseInPlace(a, p);
-    }
-
-    to (A a, P p) from ()
-    {
-        LULAPACK(a, p, a);
+        LUBase(a, p);
     }
 }
 

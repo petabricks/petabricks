@@ -1,163 +1,376 @@
 #ifndef CHOLESKY_PBCC
 #define CHOLESKY_PBCC
+
+#include "../simple/copy.pbcc"
 #include "../multiply/multiply.pbcc"
-#include "copy.pbcc"
-#include "transpose.pbcc"
 #include "../trisolve/TriSolveRU.pbcc"
 
-
-transform utri_zero
-from IN[n, n]
-to OUT[n, n]
+transform Zero2D
+to A[n,m]
 {
-    to   (OUT.cell(j, i) out)
-    from ( IN.cell(j, i) in)
+    to (A.cell(j,i) a) from()
     {
-        if (i < j) {
-            out = 0;
-        } else {
-            out = in;
+        a = 0;
+    }
+}
+
+// Perform the lower triangular part of the rank 1 operation:
+//     A := alpha*x*y + A,
+// where alpha is a scalar, x is an n element column vector,
+// y is an n element row vector and A is an n by n matrix.
+//
+// Note: Upper triangular part may or may not get updated.
+transform DGERLTri
+from ALPHA, X[1, n], Y[n, 1]
+to A[n, n]
+{
+    // update whole matrix
+    to (A.cell(j, i) a)
+    from (ALPHA alpha,
+          X.cell(0, i) x,
+          Y.cell(j, 0) y)
+    {
+        a += alpha * x * y;
+    }
+
+    // do half as much arithmetic, but branch could offset savings
+    to (A.cell(j, i) a)
+    from (ALPHA alpha,
+          X.cell(0, i) x,
+          Y.cell(j, 0) y)
+    {
+        if (i >= j) {
+            a += alpha * x * y;
         }
     }
 }
 
-transform HermitianGenerate 
-to H[n,n] {
-	  
-	  // this generates a real, symmetric, positive definite matrix
-	  
-	  to(H her)
-	  from () { 
-	    
-	    MatrixRegion2D temp1 = MatrixRegion2D::allocate(n,n);
-	    MatrixRegion2D temp2 = MatrixRegion2D::allocate(n,n);
-	    
-	    int i;
-	    for (i = 0; i < temp1.width(); i++) {
-             	 for (int j = 0; j <= i; j++) {
-		      	   temp1.cell(i,j) = PetabricksRuntime::randInt(1,20);
-		}
-	    }
+// this generates a well-conditioned positive semi-definite matrix
+transform PosDefGenerator
+through TEMP[n,n]
+to OUT[n,n]
+{
+    to (OUT out, TEMP temp) from ()
+    {
+        // generate symmetric matrix with standard normal Gaussian elements
+        IndexT i, j;
+        for (i = 0; i < n; ++i) {
+            for (j = 0; j < n; ++j) {
+                temp.cell(j, i) = (j < i) ?
+                                    temp.cell(i, j) :
+                                    PetabricksRuntime::randNormal(0, 1);
+            }
+        }
 
-  	    for (i = 0; i < temp1.width(); i++) {
-	    	for (int j = 0; j < i; j ++ ) {
-   		    temp1.cell(j,i) = temp1.cell(i,j);
-   		 }
-	    }
+        // square matrix to make positive semi-definite
+        MatrixMultiply(out, temp, temp);
 
-	   
-	   Copy2D(temp2, temp1);
-	   MatrixMultiply (her, temp1, temp2);
-
-	  }
-
+        // diagonally weight matrix to keep condition number small
+        for (i = 0; i < n; ++i) {
+            out.cell(i, i) += n;
+        }
+    }
 }
 
-transform MatrixCholesky
+// LAPACK function declarations and wrappers
+%{
+extern "C" void dpptrf_(char *uplo, int *n, double *AP, int *info);
+extern "C" void spptrf_(char *uplo, int *n, float  *AP, int *info);
+
+void pptrf_wrap(char *uplo, int *n, double *AP, int *info) {
+  dpptrf_(uplo, n, AP, info);
+}
+void pptrf_wrap(char *uplo, int *n, float  *AP, int *info) {
+  spptrf_(uplo, n, AP, info);
+}
+%}
+
+// call LAPACK to do factorization
+transform CholeskyLAPACK
+from IN[n,n]
+to OUT[n,n]
+{
+    to (OUT out) from (IN in)
+    {
+        char uplo = 'L';
+        int info = 0, nInt = n;
+        IndexT index, i, j;
+
+        // allocate packed matrix storage
+        ElementT *aPacked = new ElementT[n * (n + 1) / 2];
+        if (!aPacked) {
+            printf("Error allocating memory!\n");
+            exit(-1);
+        }
+
+        // copy data to packed matrix
+        index = 0;
+        for (j = 0; j < n; ++j) {
+            for (i = j; i < n; ++i) {
+                aPacked[index++] = in.cell(j, i);
+            }
+        }
+
+        // call LAPACK to do factorization
+        pptrf_wrap(&uplo, &nInt, aPacked, &info);
+
+        if (info) {
+            printf("LAPACK error in call to pptrf: info = %d\n", info);
+            exit(-1);
+        }
+
+        // copy data to output
+        index = 0;
+        for (j = 0; j < n; ++j) {
+            for (i = 0; i < j; ++i) {
+                out.cell(j, i) = 0;
+            }
+            for (i = j; i < n; ++i) {
+                out.cell(j, i) = aPacked[index++];
+            }
+        }
+
+        delete [] aPacked;
+    }
+}
+
+// base in-place version
+transform CholeskyBase
+to L[n,n]
+{
+    // right-looking (update trailing matrix after each column is solved)
+    to (L l) from ()
+    {
+        IndexT j;
+        for (j = 0; j < n; ++j) {
+            if (j > 0) {
+                Zero2D(l.region(j, 0, j+1, j));
+            }
+            l.cell(j, j) = sqrt(l.cell(j, j));
+            if (j < n - 1) {
+                Scale2D(l.region(j, j+1, j+1, n), 1.0 / l.cell(j, j));
+                DGERLTri(l.region(j+1, j+1, n  , n), -1.0,
+                         l.region(j  , j+1, j+1, n),
+                         l.region(j  , j+1, j+1, n).transposed());
+            }
+        }
+    }
+
+    // left-looking (solve one column at a time)
+    to (L l) from ()
+    {
+        IndexT j;
+        for (j = 0; j < n; ++j) {
+            if (j > 0) {
+                Zero2D(l.region(j, 0, j+1, j));
+                MatrixMultiplyAdd(l.region(j, j, j+1, n  ), -1.0,
+                                  l.region(0, j, j  , n  ),
+                                  l.region(0, j, j  , j+1).transposed(), 1.0);
+            }
+            l.cell(j, j) = sqrt(l.cell(j, j));
+            if (j < n - 1) {
+                Scale2D(l.region(j, j+1, j+1, n), 1.0 / l.cell(j, j));
+            }
+        }
+    }
+
+    // serial right-looking (update trailing matrix after each column)
+    to (L l) from ()
+    {
+        IndexT i, j, k;
+        ElementT temp;
+        for (j = 0; j < n; ++j) {
+            for (i = 0; i < j; ++i) {
+                l.cell(j, i) = 0;
+            }
+            l.cell(j, j) = sqrt(l.cell(j, j));
+            temp = 1.0 / l.cell(j, j);
+            for (i = j+1; i < n; ++i) {
+                l.cell(j, i) *= temp;
+            }
+            for (i = j+1; i < n; ++i) {
+                for (k = j+1; k <= i; ++k) {
+                    l.cell(k, i) -= l.cell(j, i) * l.cell(j, k);
+                }
+            }
+        }
+    }
+
+    // serial left-looking (solve one row at a time)
+    to (L l) from ()
+    {
+        IndexT i, j, k;
+        ElementT temp;
+        for (j = 0; j < n; ++j) {
+            for (i = 0; i < j; ++i) {
+                l.cell(j, i) = 0;
+            }
+            for (i = j; i < n; ++i) {
+                for (k = 0; k < j; ++k) {
+                    l.cell(j, i) -= l.cell(k, i) * l.cell(k, j);
+                }
+            }
+            l.cell(j, j) = sqrt(l.cell(j, j));
+            temp = 1.0 / l.cell(j, j);
+            for (i = j+1; i < n; ++i) {
+                l.cell(j, i) *= temp;
+            }
+        }
+    }
+
+    // call LAPACK to factor
+    to (L l) from ()
+    {
+        CholeskyLAPACK(l, l);
+    }
+}
+
+// blocked in-place version
+transform CholeskyBlocked
+to L[n,n]
+tunable sizespecific blockSize
+{
+    // right-looking (update trailing matrix after each block is solved)
+    to (L l) from ()
+    {
+        // base case
+        if (blockSize < 1 || blockSize >= n) {
+            CholeskyBase(l);
+            return;
+        }
+
+        MatrixRegion2D l11, l12, l21, l22;
+
+        l11 = l.region(0, 0, blockSize, blockSize);
+        l12 = l.region(blockSize, 0, n, blockSize);
+        l21 = l.region(0, blockSize, blockSize, n);
+        l22 = l.region(blockSize, blockSize, n, n);
+
+        // upper left
+        CholeskyBase(l11);
+
+        // lower left
+        TriSolveRUInPlace(l21, 0, l11.transposed());
+
+        // lower right
+        MatrixMultiplyAdd(l22, -1.0, l21, l21.transposed(), 1.0);
+        CholeskyInPlace(l22);
+
+        // upper right
+        Zero2D(l12);
+    }
+
+    // left-looking (update one column block at a time)
+    to (L l) from ()
+    {
+        // base case
+        if (blockSize < 1 || blockSize >= n) {
+            CholeskyBase(l);
+            return;
+        }
+
+        IndexT i0, i1;
+        MatrixRegion2D l12, l21, l22, l32, lb1, lb2;
+
+        for (i0 = 0; i0 < n; i0 += blockSize) {
+
+            i1 = MIN(i0 + blockSize, n);
+
+            // lazy update of all values in current column
+            if (i0 > 0) {
+
+                l12 = l.region(i0 , 0, i1, i0);
+                l21 = l.region(0 , i0, i0, i1);
+                lb1 = l.region(0 , i0, i0, n);
+                lb2 = l.region(i0, i0, i1, n);
+
+                // zero above diagonal
+                Zero2D(l12);
+
+                // update values on and below diagonal
+                MatrixMultiplyAdd(lb2, -1.0, lb1, l21.transposed(), 1.0);
+            }
+
+            // solve diagonal block
+            l22 = l.region(i0, i0, i1, i1);
+            CholeskyBase(l22);
+
+            // update column block below diagonal
+            if (i1 < n) {
+                l32 = l.region(i0, i1, i1, n );
+                TriSolveRUInPlace(l32, 0, l22.transposed());
+            }
+        }
+    }
+}
+
+// recursive in-place version (split into quadrants and recurse)
+transform CholeskyRecursive
+to L[n,n]
+tunable recursiveBlockSize
+{
+    // similar to right-looking blocked version
+    to (L l) from ()
+    {
+        // base case
+        if (recursiveBlockSize < 1 || recursiveBlockSize >= n) {
+            CholeskyBlocked(l);
+            return;
+        }
+
+        MatrixRegion2D l11, l12, l21, l22;
+
+        l11 = l.region(0  , 0  , n/2, n/2);
+        l12 = l.region(n/2, 0  , n  , n/2);
+        l21 = l.region(0  , n/2, n/2, n  );
+        l22 = l.region(n/2, n/2, n  , n  );
+
+        // upper left
+        CholeskyBase(l11);
+
+        // lower left
+        TriSolveRUInPlace(l21, 0, l11.transposed());
+
+        // lower right
+        MatrixMultiplyAdd(l22, -1.0, l21, l21.transposed(), 1.0);
+        CholeskyInPlace(l22);
+
+        // upper right
+        Zero2D(l12);
+    }
+}
+
+// in-place version
+transform CholeskyInPlace
+to L[n,n]
+{
+    to (L l) from ()
+    {
+        CholeskyRecursive(l);
+    }
+
+    to (L l) from ()
+    {
+        CholeskyBlocked(l);
+    }
+
+    to (L l) from ()
+    {
+        CholeskyBase(l);
+    }
+}
+
+// out-of-place version
+transform Cholesky
 from A[n,n]
 to L[n,n]
-generator HermitianGenerate
+generator PosDefGenerator
 {
-
-	// recursive def of cholesky
-	to (L l)
-	from (A a) {
-	     int size = 4;
-	     
-	     // base case
-	     if (n < size + 1) {
-	     	// do something not recursive
- 	      	for (int i = 0; i < a.height(); i++) {
-             	     for (int j = 0; j < (i+1); j++) {
-            	      	 double s = 0;
-            	     	 if (j != i) 
-			    l.cell(i,j) = 0;
-			 for (int k = 0; k < j; k++)
-                     	     s += l.cell(k,i) * l.cell(k,j);
-            	     	 l.cell(j, i) = (i == j) ?
-                            sqrt(a.cell(i, i) - s) :
-                            (1.0 / l.cell(j, j) * (a.cell(j, i) - s));
-        	     }
-	     	}	
-	     } else {
-	       int new_n = n - size;
-	       	       
-	       MatrixRegion2D L11 = l.region(0, 0, new_n, new_n);
-	       MatrixRegion2D L21 = l.region(0, new_n, new_n, n);
-	       MatrixRegion2D L22 = l.region(new_n, new_n, n, n);
-	       ConstMatrixRegion2D A11 = a.region(0, 0, new_n, new_n);
-	       ConstMatrixRegion2D A21 = a.region(0, new_n, new_n, n);
-	       ConstMatrixRegion2D A22 = a.region(new_n, new_n, n, n);
-
-	       // upper left corner
-	       MatrixCholesky(L11, A11);
-
-	       // lower left corner
-	       TriSolveRU(L21, 0, L11.transposed(), A21);
-	       
-	       //lower right corner
-	       MatrixRegion2D temp1 = MatrixRegion2D::allocate(size,size);
-	       MatrixRegion2D temp2 = MatrixRegion2D::allocate(size,size);
-	       MatrixMultiply(temp1, L21, L21.transposed());
-	       Subtract2D(temp2, A22, temp1);
-	       MatrixCholesky(L22, temp2); 
-
-	       //set all the upper triangular values to zero
-	       utri_zero(l, l);
-
-
-	    }
-	}	
-/*
-	// specific case: first column
-	to (L.cell(x,y) l) 
-	from (L.cell(0,0) c, 
-	A.cell(x,y) a) 
-	where x = 0 
-	{
-	     l = (x == y) ?
-	       sqrt(a) :
-               (1.0 / c * a);
-	}
-
-	// implementation that uses region from (0,0) to the box adjacent to the right of the entry
-	to (L.cell(x,y) l) 
-	from (L.region(0, 0, x, y + 1) r,
-	L.region(0,0, x+1, y) r2,
-	A.cell(x,y) a) 
-	where x > 0 
-	{
-	     if (x > y) {
-	     	l = 0;
-	     } else {
-	     	  double s = 0;
-
-	     	  for (int k = 0; k < x; k++)
-	     	      s += r.cell(k, y) * r.cell(k, x);
-	     	  l = (x == y) ? sqrt(a - s) :
-               	  	 (1.0 / r2.cell(x,x) * (a - s));
-	     }			 
-	}
-
-*//*
-	// sequential implementation of cholesky
-	to(L l)  from(A a) { 
- 	     for (int i = 0; i < a.height(); i++) {
-             	 for (int j = 0; j < (i+1); j++) {
-            	     double s = 0;
-            	     if (j != i) 
-		        l.cell(i,j) = 0;
-
-            	     for (int k = 0; k < j; k++)
-                     	 s += l.cell(k,i) * l.cell(k,j);
-            	     l.cell(j, i) = (i == j) ?
-                           sqrt(a.cell(i, i) - s) :
-                           (1.0 / l.cell(j, j) * (a.cell(j, i) - s));
-        	 }
-	     }	
-	}
-*/
-
+    to (L l) from (A a)
+    {
+        Copy2D(l, a);
+        CholeskyInPlace(l);
+    }
 }
 
 #endif // CHOLESKY_PBCC

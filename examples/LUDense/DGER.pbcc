@@ -1,7 +1,7 @@
 #ifndef DGER_PBCC
 #define DGER_PBCC
 
-// Perform the rank 1 operation: A := alpha*x*y**T + A,
+// Perform the rank 1 operation: A := alpha*x*y + A,
 // where alpha is a scalar, x is an m element column vector,
 // y is an n element row vector and A is an m by n matrix.
 transform DGER

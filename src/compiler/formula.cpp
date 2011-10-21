@@ -108,7 +108,7 @@ void petabricks::FormulaBinop<OP>::print(std::ostream& o) const {
       printPower(_toStringCache, _left, _right);
     }else{
       std::ostringstream ss;
-      ss << '(' << _left << opStr() << _right << ')';
+      ss << '(' << _left << " " << opStr() << " " << _right << ')';
       _toStringCache = ss.str();
     }
   }
@@ -119,8 +119,8 @@ template < char OP >
 const char* petabricks::FormulaBinop<OP>::opStr() {
   if(OP=='G') return ">=";
   if(OP=='L') return "<=";
-  if(OP=='&') return "&&";
-  if(OP=='|') return "||";
+  if(OP=='&') return "and";
+  if(OP=='|') return "or";
   static const char v[] = {OP , 0};
   return v;
 }
@@ -293,8 +293,18 @@ char petabricks::FormulaBinop<OP>::opType() const {
   return OP;
 }
   
+void petabricks::FormulaIf::print(std::ostream& o) const
+{
+  std::string elseClause= _else ? " else "+_else->toString() +" ": "";
+  o << "(if " << _cond << " then " << _then << elseClause << ")";
+}
 
-
+petabricks::FormulaIf::FormulaIf(const FormulaPtr& cond, const FormulaPtr& thenClause, const FormulaPtr& elseClause) : 
+    Formula(theNullFreeVarsList()),
+    _cond(cond),
+    _then(thenClause),
+    _else(elseClause) {}
+  
 //force implementations to be generated for templates
 template class petabricks::FormulaLiteral<int>;
 template class petabricks::FormulaLiteral<double>;

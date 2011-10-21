@@ -1,0 +1,11 @@
+#ifndef MD_FORCES_PBCC
+#define MD_FORCES_PBCC
+
+function forces_setup
+from cutforce[1]
+to cutforcesq[1]
+{
+	cutforcesq.cell(0) = cutforce.cell(0) * cutforce.cell(0);
+}
+
+#endif
