@@ -178,14 +178,15 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
       storage()->unlock();
     }
     cl_int err;
+
     setClMemWrapper(clCreateBuffer(context, CL_MEM_READ_WRITE, bytes(), NULL, &err));
-#ifdef DEBUG
+    #ifdef DEBUG
     JASSERT(CL_SUCCESS == err).Text("Failed to create input memory object.");
-#endif
-#ifdef GPU_TRACE
+    #endif
+    #ifdef GPU_TRACE
     std::cout << this << " : create buffer size = " << bytes() << std::endl;
     std::cout << "cl_mem: " << getClMem() << std::endl;
-#endif
+    #endif
     _hasGpuMem = true;
     _cpuModify = false; //TODO: do I need to use lock?
     return true;

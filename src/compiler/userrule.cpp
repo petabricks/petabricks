@@ -714,7 +714,6 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
   #ifdef HAVE_OPENCL
   if(RuleFlavor::SEQUENTIAL_OPENCL == flavor)
   {
-
     o.os() << "cl_int err;\n";
     o.os() << "cl_kernel clkern = " "get_kernel_" << id() << "();\n"; //TODO global get_kernel
 
@@ -751,9 +750,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, " 
                 << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";
-#ifdef DEBUG
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object for" << (*i)->name( ) << ".\" );\n";
-#endif
         //o.os( ) << "std::cerr << \"" << (*i)->matrix( )->name( ) << "\" << std::endl;\n";
         //o.os( ) << "std::cerr << normalized_" << (*i)->name( ) << ".bytes( ) << std::endl;\n";
 
@@ -776,20 +773,16 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
         o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
                 << " = " << matrix_name << ".asGpuInputBuffer();\n";
+        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
+                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_USE_HOST_PTR, "
+                << "normalized_" << (*i)->name( ) << ".bytes( ),"
+                << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
         /*o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, "
-                << "normalized_" << (*i)->name( ) << ".bytes( ),"
-                << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";*/
-        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
-                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, "
-                << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";
-#ifdef DEBUG
-        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
-#endif
-        o.write("err = clEnqueueWriteBuffer(OpenCLUtil::getQueue(0), devicebuf_"+ (*i)->name( ) +", CL_TRUE, 0, normalized_"+(*i)->name()+".bytes( ), normalized_"+ (*i)->name( )+".base( ), 0, NULL, NULL);");
-#ifdef DEBUG
-        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to copy input memory object\");\n";
-#endif
+                << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";*/
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ":\"+OpenCLUtil::errorString(err) );\n";
+        /*o.write("err = clEnqueueWriteBuffer(OpenCLUtil::getQueue(0), devicebuf_"+ (*i)->name( ) +", CL_TRUE, 0, normalized_"+(*i)->name()+".bytes( ), normalized_"+ (*i)->name( )+".base( ), 0, NULL, NULL);");
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to copy input memory object\");\n";*/
 
         // Bind to kernel.
         o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
@@ -837,22 +830,34 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         count++;
       }
     }
-#ifdef DEBUG
     o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
-#endif
 
     // Invoke kernel.
     /** \todo Need to generalize for >1 GPUs and arbitrary dimensionality. */
     o.comment( "Invoke kernel." );
 
+    RegionPtr rep = *(_to.begin());
     o.os( ) << "size_t workdim[] = { ";
-    for( int i = 0; i < iterdef.dimensions( ); ++i )
-    {
-      if(i > 0) {
-        o.os() << ", ";
+    if(isSingleCall()) {
+      o.os() << "1";
+    }
+    else if(rep->getRegionType() == Region::REGION_ROW) {
+      o.os( ) << (*output)->matrix( )->name( ) << ".size(1)"; //TODO: check
+    }
+    else if(rep->getRegionType() == Region::REGION_COL) {
+      o.os( ) << (*output)->matrix( )->name( ) << ".size(0)"; //TODO: check
+    }
+    /*else if(rep->getRegionType() == Region::REGION_BOX) {
+    }*/
+    else {
+      for( int i = 0; i < iterdef.dimensions( ); ++i )
+      {
+        if(i > 0) {
+          o.os() << ", ";
+        }
+        //o.os( ) << "_iter_end[" << i << "]-_iter_begin[" << i << "]";
+        o.os( ) << (*output)->matrix( )->name( ) << ".size(" << i << ")";
       }
-      //o.os( ) << "_iter_end[" << i << "]-_iter_begin[" << i << "]";
-      o.os( ) << (*output)->matrix( )->name( ) << ".size(" << i << ")";
     }
     o.os( ) << "};\n";
 
@@ -866,9 +871,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     o.os( ) << "if( CL_SUCCESS != err ) ";
     #endif
     o.os( ) << "std::cout << \"Kernel execution error #\" << err << \": \" << OpenCLUtil::errorString(err) << std::endl;\n";
-#ifdef DEBUG
     o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to execute kernel.\" );\n";
-#endif
 
     // Copy results back to host memory.
     o.comment( "Copy results back to host memory." );
@@ -880,9 +883,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
                 << "normalized_" << (*i)->name( ) <<  ".bytes(), " 
                 << "normalized_" << (*i)->name( ) << ".base(), "
                 << "0, NULL, NULL );\n";
-#ifdef DEBUG
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to read output buffer.\" );\n";
-#endif
       }
     }
     o.os( ) << "\n";
@@ -1131,9 +1132,7 @@ void petabricks::UserRule::generateOpenCLCopyInCode(std::string& codename, std::
   o.write("JASSERT(CL_INVALID_HOST_PTR != err).Text( \"Failed to write to buffer.\");");
   o.write("JASSERT(CL_MEM_OBJECT_ALLOCATION_FAILURE != err).Text( \"Failed to write to buffer.\");");
   o.write("JASSERT(CL_OUT_OF_HOST_MEMORY != err).Text( \"Failed to write to buffer.\");");*/
-#ifdef DEBUG
   o.write("JASSERT(CL_SUCCESS == err)(err).Text( \"Failed to write to buffer.\");");
-#endif
   o.write( "return NULL;" );
   o.endFunc();
 }
@@ -1165,9 +1164,7 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
     if((*i)->isBuffer())
       o.write("err |= clSetKernelArg(clkern, "+jalib::XToString(arg_pos++)+", sizeof(cl_mem), "+(*i)->matrix()->name()+".storageInfo()->getClMemPtr());");
   }
-#ifdef DEBUG
   o.os( ) << "JASSERT( CL_SUCCESS == err )(err).Text( \"Failed to bind kernel arguments.\" );\n\n";
-#endif
 
   // Pass config parameters
   for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
@@ -1217,21 +1214,33 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
       count++;
     }
   }
-#ifdef DEBUG
   o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
-#endif
 
     // Invoke kernel.
     o.comment( "Invoke kernel." );
 
+    RegionPtr rep = *_to.begin();
     o.os( ) << "size_t workdim[] = { ";
-    for( int i = 0; i < iterdef.dimensions( ); ++i )
-    {
-      if(i > 0) {
-        o.os() << ", ";
+    if(isSingleCall()) {
+      o.os() << "1";
+    }
+    else if(rep->getRegionType() == Region::REGION_ROW) {
+      o.os( ) << (*output)->matrix( )->name( ) << ".size(1)"; //TODO: check
+    }
+    else if(rep->getRegionType() == Region::REGION_COL) {
+      o.os( ) << (*output)->matrix( )->name( ) << ".size(0)"; //TODO: check
+    }
+    /*else if(rep->getRegionType() == Region::REGION_BOX) {
+    }*/
+    else {
+      for( int i = 0; i < iterdef.dimensions( ); ++i )
+      {
+        if(i > 0) {
+          o.os() << ", ";
+        }
+        //o.os( ) << "_iter_end[" << i << "]-_iter_begin[" << i << "]";
+        o.os( ) << (*output)->matrix( )->name( ) << ".size(" << i << ")";
       }
-      //o.os( ) << "_iter_end[" << i << "]-_iter_begin[" << i << "]";
-      o.os( ) << (*output)->matrix( )->name( ) << ".size(" << i << ")";
     }
     o.os( ) << "};\n";
 
@@ -1247,9 +1256,7 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
     o.os( ) << "if( CL_SUCCESS != err ) ";
     #endif
     o.os( ) << "std::cout << \"Kernel execution error #\" << err << \": \" << OpenCLUtil::errorString(err) << std::endl;\n";
-#ifdef DEBUG
     o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to execute kernel.\" );\n";
-#endif
 
   o.write( "return NULL;" );
   o.endFunc();

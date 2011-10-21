@@ -62,23 +62,6 @@ to OUT[n], TEMP[n]
     RadixsortSubArray(out, temp, in, p);
   }
 
-  rule InsertionSort
-  to (OUT out, TEMP temp) from (IN in)
-  {
-    InsertionsortSubArray(out, in);
-  }
-
-  rule SelectionSort
-  to (OUT out, TEMP temp) from (IN in)
-  {
-    Selectionsort(out, in);
-  }
-
-  rule BitonicSort //only works when n is power of 2
-  to (OUT out, TEMP temp) from (IN in)
-  {
-    Bitonic(out, in);
-  }
 }
 
 transform Sort
@@ -89,6 +72,12 @@ to OUT[n]
   {
     Copy1D(out, in);
     SortSubArray(out, temp, in, 60);
+  }
+
+  rule InsertionSort
+  to (OUT out) from (IN in)
+  {
+    InsertionsortSubArray(out, in);
   }
 
   rule SelectionSort
