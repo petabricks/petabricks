@@ -48,7 +48,7 @@ if test "$has_git" = "no"; then
   AC_MSG_WARN([failed to find 'git' in \$path, will not be able to use revision control.])
 fi
 
-AC_PATH_PROGS([PYTHON], [python2.6 python2.5 python2.4 python2 python], [no])
+AC_PATH_PROGS([PYTHON], [python 2.8 python 2.7 python2.6 python2.5 python2.4 python2 python], [no])
 if test "$PYTHON" = "no"; then
   AC_MSG_ERROR([failed to find 'python' in \$path, try running:`sudo apt-get install python`.])
 fi
@@ -276,6 +276,7 @@ AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files i
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
 AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
+AC_DEFINE([JASSERT_FAST],        [], [skip some copies in debug printing, conflicts with JASSERT_LOG])
 
 AC_DEFINE_UNQUOTED([MAXIMA_PATH],    ["$MAXIMA"], [path to maxima program])
 AC_DEFINE_UNQUOTED([REVISION_LONG],  ["$rev_long"], [git revision for HEAD at the time ./configure was run])

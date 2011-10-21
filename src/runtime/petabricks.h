@@ -56,6 +56,10 @@
 #  include "openclutil.h"
 #endif
 
+#ifdef _APPLE_
+#  include <Accelerate/Accelerate.h>
+#endif
+
 //these must be declared in the user code
 petabricks::PetabricksRuntime::Main* petabricksMainTransform();
 petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);
