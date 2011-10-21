@@ -321,6 +321,6 @@ namespace{
     }
   }
 }
-int _ignored = jalib::JAssert::onBegin(&onJassert);
+//int _ignored = jalib::JAssert::onBegin(&onJassert);
 
 
