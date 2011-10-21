@@ -48,7 +48,7 @@ if test "$has_git" = "no"; then
   AC_MSG_WARN([failed to find 'git' in \$path, will not be able to use revision control.])
 fi
 
-AC_PATH_PROGS([PYTHON], [python 2.8 python 2.7 python2.6 python2.5 python2.4 python2 python], [no])
+AC_PATH_PROGS([PYTHON], [python2.8 python2.7 python2.6 python2.5 python2.4 python2 python], [no])
 if test "$PYTHON" = "no"; then
   AC_MSG_ERROR([failed to find 'python' in \$path, try running:`sudo apt-get install python`.])
 fi
