@@ -773,16 +773,30 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
         o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
                 << " = " << matrix_name << ".asGpuInputBuffer();\n";
-        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
+
+        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) << ";\n";
+#ifndef NVIDIA
+        o.beginIf(matrix_name+".isEntireBuffer()");
+        o.os( ) << "devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_USE_HOST_PTR, "
                 << "normalized_" << (*i)->name( ) << ".bytes( ),"
                 << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
-        /*o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
+        o.elseIf();
+#endif
+        o.os( ) << "devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, "
-                << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";*/
-        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ":\"+OpenCLUtil::errorString(err) );\n";
-        /*o.write("err = clEnqueueWriteBuffer(OpenCLUtil::getQueue(0), devicebuf_"+ (*i)->name( ) +", CL_TRUE, 0, normalized_"+(*i)->name()+".bytes( ), normalized_"+ (*i)->name( )+".base( ), 0, NULL, NULL);");
-        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to copy input memory object\");\n";*/
+                << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";
+        #ifdef DEBUG
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
+        #endif
+        o.write("err = clEnqueueWriteBuffer(OpenCLUtil::getQueue(0), devicebuf_"+ (*i)->name( ) +", CL_TRUE, 0, normalized_"+(*i)->name()+".bytes( ), normalized_"+ (*i)->name( )+".base( ), 0, NULL, NULL);");
+        #ifdef DEBUG
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to copy input memory object\");\n";
+        #endif
+
+#ifndef NVIDIA
+        o.endIf();
+#endif
 
         // Bind to kernel.
         o.os( ) << "clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";

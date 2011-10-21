@@ -270,7 +270,7 @@ public:
 
   ///
   /// call after run gpu PREPARE task
-  bool initGpuMem(cl_command_queue& queue, cl_context& context);
+  bool initGpuMem(cl_command_queue& queue, cl_context& context, bool input);
 
   ///
   /// call after run gpu RUN task

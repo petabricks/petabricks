@@ -27,7 +27,7 @@
 #include "matrixstorage.h"
 #include "petabricksruntime.h"
 #include "gpumanager.h"
-//#define GPU_TRACE 1
+#define GPU_TRACE 1
 
 #ifdef HAVE_OPENCL
 petabricks::CopyPendingMap petabricks::CopyPendingMap::_pendingMap;
@@ -146,7 +146,7 @@ bool petabricks::MatrixStorageInfo::isDataMatch(const MatrixStorageInfo& that) c
 }
 
 #ifdef HAVE_OPENCL
-bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_context& context) {
+bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_context& context, bool input) {
 #ifdef GPU_TRACE
   //std::cout << "initGpuMem " << &(*this) << " base: " << base() << std::endl;
 #endif
@@ -176,9 +176,23 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
         return false;
       }
       storage()->unlock();
+      #ifndef NVIDIA //TODO: after PLDI
+      if(input && _count == storage()->count()) {
+        cl_int err;
+        std::cout << &(*this) << " use_host_ptr" << std::endl;
+        setClMemWrapper(clCreateBuffer(context, CL_MEM_USE_HOST_PTR, bytes(), storage()->data(), &err));
+        #ifdef DEBUG
+        JASSERT(CL_SUCCESS == err).Text("Failed to create input memory object.");
+        #endif
+        _hasGpuMem = true;
+        _cpuModify = false; //TODO: do I need to use lock?
+        return false;
+      }
+      #endif
     }
-    cl_int err;
 
+    cl_int err;
+    std::cout << &(*this) << " not use_host_ptr" << std::endl;
     setClMemWrapper(clCreateBuffer(context, CL_MEM_READ_WRITE, bytes(), NULL, &err));
     #ifdef DEBUG
     JASSERT(CL_SUCCESS == err).Text("Failed to create input memory object.");
@@ -204,7 +218,11 @@ void petabricks::MatrixStorageInfo::check(cl_command_queue& queue) {
     print();
     std::cout << "clmem = " << getClMemWrapper()->getClMem() << std::endl;
     ElementT data[_count];
+#ifdef NVIDIA
+    clEnqueueReadBuffer(queue, getClMemWrapper()->getClMem(), CL_FALSE, 0, bytes(), data, 0, NULL, NULL);
+#else
     clEnqueueReadBuffer(queue, getClMemWrapper()->getClMem(), CL_TRUE, 0, bytes(), data, 0, NULL, NULL);
+#endif
     for(int i=0;i<_count;i++)
       std::cout << data[i] << " ";
     std::cout << std::endl << std::endl;
