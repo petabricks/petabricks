@@ -33,14 +33,32 @@
 #include <vector>
 #include <string>
 
-#ifdef NVIDIA
-#include <oclUtils.h>
-#elif AMD
-#include <SDKCommon.hpp>
-#include <SDKApplication.hpp>
-#include <SDKFile.hpp>
-#else
-#include <opencl.h>
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+#ifdef HAVE_OCLUTILS_H
+# include <oclUtils.h>
+#endif
+
+#ifdef HAVE_SDKCOMMON_HPP
+# include <SDKCommon.hpp>
+#endif
+
+#ifdef HAVE_SDKAPPLICATION_HPP
+# include <SDKApplication.hpp>
+#endif
+
+#ifdef HAVE_SDKFILE_HPP
+# include <SDKFile.hpp>
+#endif
+
+#ifdef HAVE_OPENCL_OPENCL_H
+# include <OpenCL/opencl.h>
+#endif
+
+#ifdef HAVE_OPENCL_H
+# include <opencl.h>
 #endif
 
 namespace petabricks
