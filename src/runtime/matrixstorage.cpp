@@ -293,7 +293,9 @@ void petabricks::MatrixStorageInfo::startReadBuffer(cl_command_queue& queue, std
   }
   else if(_coverage != _count) {
     MatrixStoragePtr storage = processPending();
-    copy((MatrixStoragePtr&) this->storage(), storage, getBegins(), getEnds());
+    if(storage) {
+      copy(this->storage(), storage, getBegins(), getEnds());
+    }
     resetPending();
   }
   else {
