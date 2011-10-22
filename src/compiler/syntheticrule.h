@@ -60,9 +60,9 @@ public:
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         bool gpuCopyOut);
+
   void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor);
   void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
-                        bool gpuCopyOut); 
 
   void markRecursive();
   const FormulaPtr& recursiveHint() const;
