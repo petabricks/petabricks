@@ -58,7 +58,7 @@
 #  include "openclutil.h"
 #endif
 
-#ifdef _APPLE_
+#ifdef HAVE_ACCELERATE_ACCELERATE_H
 #  include <Accelerate/Accelerate.h>
 #endif
 

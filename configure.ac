@@ -104,6 +104,8 @@ AC_CHECK_HEADERS([openssl/sha.h],  [], [])
 AC_CHECK_HEADERS([cxxabi.h execinfo.h poll.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h sys/mman.h])
 AC_CHECK_HEADERS([boost/random.hpp], [], [AC_MSG_WARN([missing boost/random, falling back to slower random number generation])])
 
+AC_CHECK_HEADERS([Accelerate/Accelerate.h], [], [])
+
 AC_SEARCH_LIBS([MD5_Init], [crypto ssl], [], [AC_MSG_ERROR([missing package libssl-dev])])
 
 AC_CHECK_LIB([blas],       [cblas_dgemm],    [], [AC_MSG_WARN([failed to find -lblas, some benchmarks may not work])])
@@ -285,7 +287,7 @@ elif ! test "$with_intelopencl" = "no"; then
 
 elif ! test "$with_macopencl" = "no"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
-   AC_DEFINE([MATRIX_ELEMENT_T], [float], [type for elements in the matrix])
+   AC_DEFINE([MATRIX_ELEMENT_T], [double], [type for elements in the matrix])
    
    LDFLAGS="$LDFLAGS -framework OpenCL"
 
