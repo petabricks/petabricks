@@ -5,7 +5,6 @@
 #include "../simple/transpose.pbcc"
 
 %{
-#include "cblas.h"
 
 #ifdef PRINT
 inline void printArray(int height, int width, ElementT *array){
@@ -20,7 +19,8 @@ inline void printArray(int height, int width, ElementT *array){
 }
 #endif
 
-inline ElementT *toArray(const petabricks::ConstMatrixRegion2D &matrix) {
+template < typename T >
+inline ElementT *toArray(const T&matrix) {
   ElementT *array;
 
   IndexT rows = matrix.height();
@@ -41,7 +41,8 @@ inline ElementT *toArray(const petabricks::ConstMatrixRegion2D &matrix) {
   return array;
 }
 
-inline void toMatrix(ElementT* array, petabricks::MatrixRegion2D &matrix) {
+template < typename T >
+inline void toMatrix(ElementT* array, T&matrix) {
   IndexT rows = matrix.height();
   IndexT columns = matrix.width();
 
