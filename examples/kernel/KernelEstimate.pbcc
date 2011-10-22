@@ -1,7 +1,7 @@
 #ifndef KERNELESTIMATE_PBCC
 #define KERNELESTIMATE_PBCC
 
-#include "LinearSolvePosDef.pbcc"
+#include "../linearsolve/LinearSolvePosDef.pbcc"
 #include "utils.pbcc"
 
 %{

@@ -10,7 +10,7 @@ generator LUGenerator
     to (OUT out, P p)
     from (IN in)
     {
-        int i;
+        IndexT i;
 
         LU(out.region(0, 0, n, m), p, in);
         for (i = 0; i < MIN(m,n); ++i) {

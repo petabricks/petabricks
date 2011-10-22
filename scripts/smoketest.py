@@ -189,12 +189,36 @@ def haveOpenCL():
         return True
   return False
 
+
+
+
+
+
+
+
 if 'nocheck' in sys.argv[1:]:
   sys.argv[1:] = filter(lambda x: x!='nocheck', sys.argv[1:])
   CHECK = False
 
+from optparse import OptionParser
+parser = OptionParser(usage="usage: smoketest.py [options]")
+parser.add_option("--learning", action="store_true", dest="learning", default=False, help="enable heuristics learning")
+parser.add_option("--heuristics",            type="string", help="name of the file containing the set of heuristics to use. Automatically enables --learning", default=None)
+
+(options, args) = parser.parse_args()
+
+if options.heuristics:
+  options.learning = True
+
+if options.learning:
+  print "Learning of heuristics is ACTIVE"
+  if options.heuristics:
+    print "Using heuristics file: "+ str(options.heuristics)
+  else:
+    print "Using only heuristics in the database"
+  
 t1=time.time()
-results,b=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", sys.argv[1:], testBenchmark, postfn=checkBenchmark)
+results,b=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", args, testBenchmark, postfn=checkBenchmark, learning=options.learning, heuristicSetFileName=options.heuristics, noLearningList=check_exclude)
 t2=time.time()
 
 

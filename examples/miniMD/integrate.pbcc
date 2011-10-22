@@ -1,0 +1,11 @@
+#ifndef MD_INTEGRATE_PBCC
+#define MD_INTEGRATE_PBCC
+
+function integrate_setup
+from dt[1]
+to dtforce[1]
+{
+	dtforce.cell(0) = 48.0 * dt.cell(0);
+}
+
+#endif

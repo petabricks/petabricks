@@ -1,0 +1,81 @@
+#ifndef NWKDE_BASE
+#define NWKDE_BASE
+
+#define DEBUG
+
+#define FIRSTMETHOD
+#define SECONDMETHOD
+
+transform NWKDEBase
+from INPUT[n]
+to RESULT[n]
+through SQDIFFS[n], WEIGHTS[n], PARTIALS[n]
+{
+
+#ifdef FIRSTMETHOD
+
+    /* METHOD 1: compute PARTIALS by exposing the most fine-grained
+       parallelism.  this method may be less cache-efficient. */
+
+    to (SQDIFFS.cell(i) sqDiff)
+    from (INPUT.cell(i) input)
+    {
+        sqDiff = input;
+#ifdef DEBUG
+        fprintf(stderr, "method 1:  sqDiff(%d) = %g\n", i, sqDiff);
+#endif
+    }
+
+    to (WEIGHTS.cell(i) weight)
+    from (SQDIFFS.cell(i) sqDiff)
+    {
+        weight = sqDiff;
+#ifdef DEBUG
+        fprintf(stderr, "method 1:  weight(%d) = %g\n", i, weight);
+#endif
+    }
+
+    to (PARTIALS.cell(i) partial)
+    from (WEIGHTS.cell(i) weight)
+    {
+        partial = weight;
+#ifdef DEBUG
+        fprintf(stderr, "method 1: partial(%d) = %g\n", i, partial);
+#endif
+    }
+
+#endif // FIRSTMETHOD
+
+#ifdef SECONDMETHOD
+
+    /* METHOD 2: Compute weights and partials directly with one pass through the data */
+
+    to   (PARTIALS.cell(i) partial,
+          WEIGHTS.cell(i) weight)
+    from (INPUT.cell(i) input)
+    {
+        partial = weight = input;
+#ifdef DEBUG
+        fprintf(stderr, "method 2:  weight(%d) = %g\n", i, weight);
+        fprintf(stderr, "method 2: partial(%d) = %g\n", i, partial);
+#endif
+    }
+
+#endif // SECONDMETHOD
+
+    /* Once we have the PARTIALS and WEIGHTS, we can compute RESULT */
+
+    to (RESULT.cell(i) result)
+    from (PARTIALS.cell(i) partial,
+          WEIGHTS.cell(i) weight)
+    {
+        result = partial * weight;
+#ifdef DEBUG
+        fprintf(stderr, " weight(%d) = %g\n", i, weight);
+        fprintf(stderr, "partial(%d) = %g\n", i, partial);
+        fprintf(stderr, " result(%d) = %g\n", i, result);
+#endif // DEBUG
+    }
+}
+
+#endif // NWKDE_BASE

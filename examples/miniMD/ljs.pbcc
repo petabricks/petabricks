@@ -1,0 +1,104 @@
+#ifndef LJS_PBCC
+#define LJS_PBCC
+
+#include "neighbor.pbcc"
+#include "forces.pbcc"
+#include "integrate.pbcc"
+#include "thermo.pbcc"
+
+function create_box
+from dimentions[3], rho[1]
+to atom_box_prd[3]
+{
+  double lattice = pow((4.0/rho.cell(0)),(1.0/3.0));
+  atom_box_prd.cell(0) = dimentions.cell(0)*lattice;
+  atom_box_prd.cell(1) = dimentions.cell(1)*lattice;
+  atom_box_prd.cell(2) = dimentions.cell(2)*lattice;
+}
+
+function miniMD_main
+from params[14]
+to OUT[3]
+{
+
+  // define params from input
+  MatrixRegion1D ndimentions = MatrixRegion1D::allocate(3);
+  ndimentions.cell(0) = params.cell(0);
+  ndimentions.cell(1) = params.cell(1);
+  ndimentions.cell(2) = params.cell(2);
+  MatrixRegion1D ntimes = MatrixRegion1D::allocate(1);
+  ntimes.cell(0) = params.cell(3);
+  MatrixRegion1D nbin = MatrixRegion1D::allocate(3);
+  nbin.cell(0) = params.cell(4);
+  nbin.cell(1) = params.cell(5);
+  nbin.cell(2) = params.cell(6);
+  MatrixRegion1D dt = MatrixRegion1D::allocate(1);
+  dt.cell(0) = params.cell(7);
+  MatrixRegion1D t_request = MatrixRegion1D::allocate(1);
+  t_request.cell(0) = params.cell(8);
+  MatrixRegion1D rho = MatrixRegion1D::allocate(1);
+  rho.cell(0) = params.cell(9);
+  MatrixRegion1D every = MatrixRegion1D::allocate(1);
+  every.cell(0) = params.cell(10);
+  MatrixRegion1D cutforce = MatrixRegion1D::allocate(1);
+  cutforce.cell(0) = params.cell(11);
+  MatrixRegion1D cutneigh = MatrixRegion1D::allocate(1);
+  cutneigh.cell(0) = params.cell(12);
+  MatrixRegion1D nstat = MatrixRegion1D::allocate(1);
+  nstat.cell(0) = params.cell(13);
+
+  // define atom params
+  // in place of atom.box.xprd,yprd,zprd
+  MatrixRegion1D atom_box_prd = MatrixRegion1D::allocate(3);
+  MatrixRegion2D atom_box_bounds = MatrixRegion2D::allocate(3,2);
+ 
+  // define neighbor params
+  MatrixRegion1D binsize = MatrixRegion1D::allocate(3);
+  MatrixRegion1D bininv = MatrixRegion1D::allocate(3);
+  // x y z, lo hi
+  MatrixRegion2D mbin = MatrixRegion2D::allocate(3,2);
+  MatrixRegion1D cutneighsq = MatrixRegion1D::allocate(1);
+
+  // define force parameters
+  MatrixRegion1D cutforcesq = MatrixRegion1D::allocate(1);
+
+  //define integrate parameters
+  MatrixRegion1D dtforce = MatrixRegion1D::allocate(1);
+
+  //define thermo parameters
+  MatrixRegion1D maxstat = MatrixRegion1D::allocate(1); 
+
+  printf("Setting up ...\n");
+  create_box(atom_box_prd, ndimentions, rho);
+  //neighbor_setup(binsize, bininv, mbin, cutneighsq, cutneigh, nbin, atom_box_prd, atom_box_bounds);
+  integrate_setup(dtforce, dt);
+  forces_setup(cutforcesq, cutforce);
+  thermo_setup(maxstat, ntimes, nstat);
+
+  //define thermo paramters
+  int thermo_nentries = maxstat.cell(0);
+  MatrixRegion1D steparr = MatrixRegion1D::allocate(thermo_nentries);
+  MatrixRegion1D temparr = MatrixRegion1D::allocate(thermo_nentries);
+  MatrixRegion1D engarr = MatrixRegion1D::allocate(thermo_nentries);
+  MatrixRegion1D prsarr = MatrixRegion1D::allocate(thermo_nentries);
+
+  //flag = create_atoms(atom,in.nx,in.ny,in.nz,in.rho);
+  //if (flag && prompt()) continue;
+  //create_velocity(in.t_request,atom,thermo);
+  //neighbor.build(atom);
+  //thermo.compute(0,atom,neighbor,force);
+  
+  printf("Starting dynamics...\n");
+  //timer.barrier_start(TIME_TOTAL);
+  //integrate.run(atom,force,neighbor,comm,thermo,timer);
+  //timer.barrier_stop(TIME_TOTAL);
+  //thermo.compute(-1,atom,neighbor,force);
+  //output(in,atom,force,neighbor,comm,thermo,integrate,timer);
+  //prompt();
+
+  int i;
+  for (i; i < 1; i ++)
+      OUT.cell(i) = maxstat.cell(i);     
+}
+
+#endif // LJS_PBCC

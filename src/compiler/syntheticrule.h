@@ -56,10 +56,11 @@ public:
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor, 
+                        RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         int gpuCopyOut); 
+
   void virtual generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor);
   void virtual generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor) = 0;
 
@@ -83,19 +84,22 @@ public:
  */
 class WrapperSyntheticRule : public SyntheticRule {
 public:
-  WrapperSyntheticRule(const RulePtr& rule) 
+  WrapperSyntheticRule(const RulePtr& rule)
     : _rule(rule)
   {
     _applicableRegion = _rule->applicableRegion();
   }
-  
+
   //these just forward to _rule
   void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
+                        RuleFlavor flavor,
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        bool gpuCopyOut);
   bool isSingleElement() const;
   int dimensions() const;
   FormulaPtr getSizeOfRuleIn(int d);
@@ -117,8 +121,8 @@ protected:
 ///combines multiple rules with where clauses
 class WhereExpansionRule : public SyntheticRule {
 public:
-  WhereExpansionRule(const RuleSet& rules) 
-    : _rules(rules) 
+  WhereExpansionRule(const RuleSet& rules)
+    : _rules(rules)
   {}
 
   void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
@@ -127,11 +131,13 @@ public:
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
-  
-  
+                        RuleFlavor flavor,
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        bool gpuCopyOut);
+
   bool isSingleElement() const;
-  
+
   int dimensions() const;
   FormulaPtr getSizeOfRuleIn(int d);
 
@@ -151,7 +157,7 @@ private:
 /// duplicate a rule that has a duplicate keyword
 class DuplicateExpansionRule : public WrapperSyntheticRule {
 public:
-  DuplicateExpansionRule(const RulePtr& rule, size_t dup) 
+  DuplicateExpansionRule(const RulePtr& rule, size_t dup)
     : WrapperSyntheticRule(rule), _dup(dup)
   {
     JASSERT(_rule && dup<_rule->duplicateCount());
@@ -165,7 +171,10 @@ public:
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
+                        RuleFlavor flavor,
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        bool gpuCopyOut);
 private:
   size_t _dup;
 };
@@ -175,8 +184,8 @@ private:
 ///combines multiple rules that must be called together
 class CallInSequenceRule : public SyntheticRule {
 public:
-  CallInSequenceRule(const RuleList& rules) 
-    : _rules(rules) 
+  CallInSequenceRule(const RuleList& rules)
+    : _rules(rules)
   {}
 
   void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
@@ -185,10 +194,13 @@ public:
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
-                        RuleFlavor flavor); 
-  
+                        RuleFlavor flavor,
+                        std::vector<RegionNodeGroup>& regionNodesGroups,
+                        int nodeID,
+                        bool gpuCopyOut);
+
   bool isSingleElement() const;
-  
+
   int dimensions() const;
   FormulaPtr getSizeOfRuleIn(int d);
 
