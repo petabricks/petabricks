@@ -264,6 +264,8 @@ public:
   virtual RegionList getSelfDependentRegions();
   
   virtual RegionList getNonSelfDependentRegions();
+
+  void buildFromBoundingBox();
   
 private:
   void computeDataDependencyVector();
@@ -303,6 +305,10 @@ private:
   std::string _label;
   ConfigItems _duplicateVars;
   RulePtr _gpuRule;
+
+ 
+  typedef std::map<MatrixDefPtr, SimpleRegionPtr> MatrixToRegionMap;
+  MatrixToRegionMap _fromBoundingBox;
 
 };
 

@@ -235,6 +235,12 @@ void petabricks::UserRule::print(std::ostream& os) const {
   if(!_to.empty()){
     os << "\nto(";    printStlList(os,_to.begin(),_to.end(), ", "); os << ")";
   } 
+
+  for(MatrixToRegionMap::const_iterator i=_fromBoundingBox.begin(); i!=_fromBoundingBox.end(); ++i) {
+    os << "\nfromBoundingBox " << i->first 
+       << " " << i->second;
+  }
+
   if(!_dataDependencyVectorMap.empty()) {
     os << "\ndata dependency vector map: " << _dataDependencyVectorMap;
   }
@@ -309,6 +315,8 @@ void petabricks::UserRule::initialize(Transform& trans) {
   _conditions.makeRelativeTo(_definitions);
 
   buildApplicableRegion(trans, _applicableRegion, true);
+
+  buildFromBoundingBox();
 
   FormulaList condtmp;
   condtmp.swap(_conditions);
@@ -442,6 +450,21 @@ void petabricks::UserRule::computeDataDependencyVector() {
     
   }
 }
+
+
+void petabricks::UserRule::buildFromBoundingBox(){
+  SRCPOSSCOPE();
+  MatrixToRegionMap::iterator bbi;
+  for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
+    JTRACE("building from bb")(_fromBoundingBox[(*i)->matrix()])(*(*i));
+    if(_fromBoundingBox[(*i)->matrix()]) {
+      _fromBoundingBox[(*i)->matrix()] = _fromBoundingBox[(*i)->matrix()]->regionUnion(*i);
+    }else{
+      _fromBoundingBox[(*i)->matrix()] = new SimpleRegion(*(*i));
+    }
+  }
+}
+
 
 void petabricks::UserRule::buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional){
   SRCPOSSCOPE();
