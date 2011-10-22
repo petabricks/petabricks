@@ -62,6 +62,10 @@
 #  include <Accelerate/Accelerate.h>
 #endif
 
+#ifdef HAVE_CBLAS_H
+# include <cblas.h>
+#endif
+
 //these must be declared in the user code
 petabricks::PetabricksRuntime::Main* petabricksMainTransform();
 petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);
