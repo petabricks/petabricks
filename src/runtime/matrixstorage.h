@@ -318,7 +318,7 @@ public:
 
   ///
   /// Copy data of src to this
-  void copy(MatrixStoragePtr& dest, MatrixStoragePtr& src) const
+  void copy(const MatrixStoragePtr& dest, const MatrixStoragePtr& src) const
   {
 #ifdef GPU_TRACE
     std::cout << "copyFrom all" << std::endl;
@@ -336,7 +336,7 @@ public:
 
   ///
   /// Copy data within the boundary c1 and c2 of src to this
-  void copy(MatrixStoragePtr& dest, MatrixStoragePtr& src,const IndexT* c1, const IndexT* c2) const
+  void copy(const MatrixStoragePtr& dest, const MatrixStoragePtr& src,const IndexT* c1, const IndexT* c2) const
   {
 #ifdef GPU_TRACE
     std::cout << "copyFrom boundary" << std::endl;
@@ -363,7 +363,7 @@ public:
 
   ///
   /// Copy data within the given boundaries of src to this
-  void copy(MatrixStoragePtr& dest, MatrixStoragePtr& src,std::vector<IndexT*>& begins, std::vector<IndexT*>& ends) const
+  void copy(const MatrixStoragePtr& dest, const MatrixStoragePtr& src,std::vector<IndexT*>& begins, std::vector<IndexT*>& ends) const
   {
     #ifdef DEBUG
     JASSERT(begins.size() == ends.size())(begins.size())(ends.size());
