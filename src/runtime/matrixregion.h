@@ -314,7 +314,7 @@ public:
     } while(this->incCoord(coord)>=0);
     //this->storageInfo()->addGpuInputBuffer(_gpuInputBuffer);
     // Store buffer in the global storage so that it won't be derefferenced before enqueueWriteBuffer is done
-    CopyPendingMap::_pendingMap._buffers.push_back(_gpuInputBuffer);
+    CopyPendingMap::_pendingMap.addBuffer(_gpuInputBuffer);
     return _gpuInputBuffer->data();
 	}
 

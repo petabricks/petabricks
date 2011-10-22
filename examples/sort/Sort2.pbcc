@@ -22,30 +22,35 @@ to OUT[n], TEMP[n]
   rule MergeSort2
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
+    //std::cout << "MergeSort2" << std::endl;
     MergesortSubArray<1>(out, temp, in, p);
   }
   
   rule MergeSort4
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
+    //std::cout << "MergeSort4" << std::endl;
     MergesortSubArray<2>(out, temp, in, p);
   }
   
   rule MergeSort8
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
+    //std::cout << "MergeSort8" << std::endl;
     MergesortSubArray<3>(out, temp, in, p);
   }
   
   rule MergeSort16
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
+    //std::cout << "MergeSort16" << std::endl;
     MergesortSubArray<4>(out, temp, in, p);
   }
   
   rule MergeSort32
   to (OUT out, TEMP temp) from (IN in, Pos p)
   {
+    //std::cout << "MergeSort32" << std::endl;
     MergesortSubArray<5>(out, temp, in, p);
   }
 

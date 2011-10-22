@@ -247,7 +247,6 @@ public:
   void reset();
   void releaseStorage();
   MatrixStorageInfo();
-  ~MatrixStorageInfo();
   bool isMetadataMatch(const MatrixStorageInfo& that) const;
   bool isDataMatch(const MatrixStorageInfo& that) const;
 
@@ -521,13 +520,21 @@ public:
       }
     }
   }
+
+  void addBuffer(MatrixStoragePtr buffer) {
+    _bufferlock.lock();
+    _buffers.push_back(buffer);
+    _bufferlock.unlock();
+  }
   
   static CopyPendingMap _pendingMap;
-  std::vector<MatrixStoragePtr> _buffers;
 
 private:
   std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> > _map;
   jalib::JMutex  _lock;
+
+  std::vector<MatrixStoragePtr> _buffers;
+  jalib::JMutex  _bufferlock;
 };
 
 

@@ -707,13 +707,25 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
   o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+"_"+flavor.str(), packedargs);
 
+#ifdef HAVE_OPENCL
+    for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i) {
+      o.write((*i)->matrix()->name()+".useOnCpu();");
+      //o.write("MatrixIO().write("+(*i)->matrix()->name()+");");
+    }
+#endif
+
   for(size_t i=0; i<_duplicateVars.size(); ++i){
     o.varDecl("const IndexT "+_duplicateVars[i].name() + " = " + jalib::XToString(_duplicateVars[i].initial()));
   }
 
-  #ifdef HAVE_OPENCL
+#ifdef HAVE_OPENCL
   if(RuleFlavor::SEQUENTIAL_OPENCL == flavor)
   {
+    o.write(trampcodename(trans)+TX_STATIC_POSTFIX + "(_iter_begin, _iter_end);");
+    o.write("return NULL;");
+    o.endFunc();
+    return;
+    o.write("std::cout << \"<<<RUN SEQUENTIAL>>>\" << std::endl;");
     o.os() << "cl_int err;\n";
     o.os() << "cl_kernel clkern = " "get_kernel_" << id() << "();\n"; //TODO global get_kernel
 
@@ -743,10 +755,6 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
         o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
                 << " = " << matrix_name << ".asGpuOutputBuffer(_iter_begin, _iter_end);\n";
-        /*o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
-                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, " 
-                << "normalized_" << (*i)->name( ) << ".bytes( ),"
-                << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";*/
         o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, " 
                 << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";
@@ -768,21 +776,28 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     {
       std::string matrix_name = (*i)->matrix( )->name( );
       if((*i)->isBuffer()) {
-        //o.os( ) << "std::cerr << \"INPUT\" << std::endl;\n";
-        //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
+#ifdef DEBUG
+        o.os( ) << "std::cout << \"INPUT\" << std::endl;\n";
+        o.os( ) << "MatrixIO().write(" << (*i)->matrix( )->name( ) << ");\n";
+#endif
 
         o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
                 << " = " << matrix_name << ".asGpuInputBuffer();\n";
 
         o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) << ";\n";
 #ifndef NVIDIA
+        o.write("std::cout << \"use host_ptr\" << std::endl;");
         o.beginIf(matrix_name+".isEntireBuffer()");
         o.os( ) << "devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_USE_HOST_PTR, "
                 << "normalized_" << (*i)->name( ) << ".bytes( ),"
                 << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
+        #ifdef DEBUG
+        o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
+        #endif
         o.elseIf();
 #endif
+        o.write("std::cout << \"not use host_ptr\" << std::endl;");
         o.os( ) << "devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, "
                 << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";
@@ -847,7 +862,6 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
 
     // Invoke kernel.
-    /** \todo Need to generalize for >1 GPUs and arbitrary dimensionality. */
     o.comment( "Invoke kernel." );
 
     RegionPtr rep = *(_to.begin());
@@ -861,8 +875,8 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     else if(rep->getRegionType() == Region::REGION_COL) {
       o.os( ) << (*output)->matrix( )->name( ) << ".size(0)"; //TODO: check
     }
-    /*else if(rep->getRegionType() == Region::REGION_BOX) {
-    }*/
+    //else if(rep->getRegionType() == Region::REGION_BOX) {
+    //}
     else {
       for( int i = 0; i < iterdef.dimensions( ); ++i )
       {
@@ -926,10 +940,12 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.os( ) << "normalized_" << (*i)->name( ) 
                 << ".copyTo(" << (*i)->matrix( )->name( ) << ", _iter_begin, _iter_end);\n";
 
-        /*o.os( ) << "std::cerr << \"normalize\" << std::endl;\n";
-        o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(normalized_" << (*i)->name( ) << ");\n";
-        o.os( ) << "std::cerr << \"AFTER copy\" << std::endl;\n";
-        o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";*/
+#ifdef DEBUG
+        o.os( ) << "std::cout << \"normalize\" << std::endl;\n";
+        o.os( ) << "MatrixIO().write(normalized_" << (*i)->name( ) << ");\n";
+        o.os( ) << "std::cout << \"AFTER copy\" << std::endl;\n";
+        o.os( ) << "MatrixIO().write(" << (*i)->matrix( )->name( ) << ");\n";
+#endif
       }
     }
 
@@ -940,13 +956,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
   if(true) {
 #endif
 
-#ifdef HAVE_OPENCL
-    for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i) {
-      o.write((*i)->matrix()->name()+".useOnCpu();");
-      //o.write("MatrixIO().write("+(*i)->matrix()->name()+");");
-    }
-#endif
-    if(RuleFlavor::SEQUENTIAL != flavor) {
+    if(RuleFlavor::SEQUENTIAL != flavor && RuleFlavor::SEQUENTIAL_OPENCL != flavor) {
       o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
       o.write("DynamicTaskPtr _last = NULL;");
     }
@@ -1261,11 +1271,8 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
     //o.os( ) << "std::cout << \"RUN GPU\" << std::endl;\n";
     //o.write("std::cout << \"queue = \" << GpuManager::_queue << std::endl;");
     o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, " << iterdef.dimensions( ) << ", 0, workdim, NULL, 0, NULL, NULL );\n";
-#ifdef NVIDIA
-    o.write("clFinish(GpuManager::_queue);");
-#else
-    o.write("clFinish(GpuManager::_queue);");
-#endif
+    o.write("clFinish(GpuManager::_queue);"); //TODO:clFlush but need to make sure we don't change kernel args before it runs
+
     #ifndef OPENCL_LOGGING
     o.os( ) << "if( CL_SUCCESS != err ) ";
     #endif

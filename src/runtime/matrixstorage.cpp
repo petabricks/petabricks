@@ -27,7 +27,7 @@
 #include "matrixstorage.h"
 #include "petabricksruntime.h"
 #include "gpumanager.h"
-#define GPU_TRACE 1
+//#define GPU_TRACE 1
 
 #ifdef HAVE_OPENCL
 petabricks::CopyPendingMap petabricks::CopyPendingMap::_pendingMap;
@@ -45,20 +45,6 @@ void petabricks::MatrixStorage::randomize(){
 
 petabricks::MatrixStorageInfo::MatrixStorageInfo(){
   reset();
-    #ifdef GPU_TRACE
-    std::cout << this << " : MatrixStorageInfo (contructor)" << std::endl;
-    #endif
-}
-petabricks::MatrixStorageInfo::~MatrixStorageInfo(){
-  #ifdef HAVE_OPENCL
-  if(_hasGpuMem){
-    //TODO: still need to release
-    #ifdef GPU_TRACE
-    std::cout << this << " : MatrixStorageInfo (deconstructor)" << std::endl;
-    #endif
-    //clReleaseMemObject(_clmem);
-  }
-  #endif
 }
 
 void petabricks::MatrixStorageInfo::setStorage(const MatrixStoragePtr& s, const ElementT* base){
@@ -179,7 +165,9 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
       #ifndef NVIDIA //TODO: after PLDI
       if(input && _count == storage()->count()) {
         cl_int err;
+        #ifdef GPU_TRACE
         std::cout << &(*this) << " use_host_ptr" << std::endl;
+        #endif
         setClMemWrapper(clCreateBuffer(context, CL_MEM_USE_HOST_PTR, bytes(), storage()->data(), &err));
         #ifdef DEBUG
         JASSERT(CL_SUCCESS == err).Text("Failed to create input memory object.");
@@ -192,7 +180,9 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
     }
 
     cl_int err;
+    #ifdef GPU_TRACE
     std::cout << &(*this) << " not use_host_ptr" << std::endl;
+    #endif
     setClMemWrapper(clCreateBuffer(context, CL_MEM_READ_WRITE, bytes(), NULL, &err));
     #ifdef DEBUG
     JASSERT(CL_SUCCESS == err).Text("Failed to create input memory object.");
