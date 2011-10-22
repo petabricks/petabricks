@@ -29,6 +29,7 @@
 #include "openclutil.h"
 #include "dynamicscheduler.h"
 #include "gpudynamictask.h"
+#include "workerthread.h"
 
 //#define GPU_TRACE 1
 
@@ -48,7 +49,8 @@ cl_context GpuManager::_context = OpenCLUtil::getContext();
 
 extern "C" void *startGpuManager(void* /*arg*/) {
   //try {
-    petabricks::GpuManager::mainLoop();
+  petabricks::WorkerThread::markUtilityThread();
+  petabricks::GpuManager::mainLoop();
   //}catch(petabricks::DynamicScheduler::CleanExitException e){}
   return NULL;
 }

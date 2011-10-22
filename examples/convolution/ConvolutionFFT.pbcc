@@ -7,7 +7,7 @@
 
 pthread_mutex_t fftw_plan_mutex;
 
-void displayArray(double *a, int length)
+void displayArray(ElementT *a, int length)
 {
   int i;
   printf("(%g", a[0]);
@@ -18,7 +18,7 @@ void displayArray(double *a, int length)
 }
 
 template<typename T >
-void packArray(double *out, const T& in,
+void packArray(ElementT* out, const T& in,
                int numElements,
                int length)
 {
@@ -32,7 +32,7 @@ void packArray(double *out, const T& in,
 }
 
 template<typename T>
-void unpackArray(const T&out, double *in, int length)
+void unpackArray(const T&out, ElementT *in, int length)
 {
   int i;
   for (i = 0; i < length; i++) {

@@ -50,6 +50,8 @@ public:
   WorkerThread(DynamicScheduler& ds);
   ~WorkerThread();
 
+  static void markUtilityThread();
+
   ///
   /// called from a remote thread, taking work
   DynamicTask* steal(){

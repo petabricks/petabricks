@@ -48,7 +48,7 @@ if test "$has_git" = "no"; then
   AC_MSG_WARN([failed to find 'git' in \$path, will not be able to use revision control.])
 fi
 
-AC_PATH_PROGS([PYTHON], [python2.6 python2.5 python2.4 python2 python], [no])
+AC_PATH_PROGS([PYTHON], [python2.8 python2.7 python2.6 python2.5 python2.4 python2 python], [no])
 if test "$PYTHON" = "no"; then
   AC_MSG_ERROR([failed to find 'python' in \$path, try running:`sudo apt-get install python`.])
 fi
@@ -235,6 +235,11 @@ AC_ARG_WITH([amdopencl],
 	[],
 	[with_amdopencl=no])
 
+AC_ARG_WITH([macopencl],
+	[AS_HELP_STRING([--with-macopencl=PATH],[build compiler and runtime with support for OpenCL on Mac OSX])],
+	[],
+	[with_intelopencl=no])
+
 AC_ARG_WITH([intelopencl],
 	[AS_HELP_STRING([--with-intelopencl=PATH],[build compiler and runtime with support for OpenCL-enabled CPUs and intel GPUs.])],
 	[],
@@ -252,6 +257,8 @@ if ! test "$with_opencl" = "no"; then
    AC_CHECK_LIB([shrutil_x86_64], [shrLogEx], [], [AC_MSG_ERROR([Failed to find -lshrutil_x86_64.  Check LIBRARY_PATH, or reconfigure without shrutil_x86_64.])])
    AC_CHECK_LIB([oclUtil_x86_64], [oclGetPlatformID], [], [AC_MSG_ERROR([Failed to find -loclUtil_x86_64.  Check LIBRARY_PATH, or reconfigure without oclUtil_x86_64.])])
 
+   AC_CHECK_HEADERS([oclUtils.h], [], [])
+
 elif ! test "$with_amdopencl" = "no"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
    AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
@@ -262,6 +269,8 @@ elif ! test "$with_amdopencl" = "no"; then
 
    AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
 
+   AC_CHECK_HEADERS([SDKCommon.hpp SDKApplication.hpp SDKFile.hpp], [], [])
+
 elif ! test "$with_intelopencl" = "no"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
    AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
@@ -271,6 +280,16 @@ elif ! test "$with_intelopencl" = "no"; then
    LIBS="$LIBS -L/usr/lib64/OpenCL/vendors/intel"
 
    AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
+   
+   AC_CHECK_HEADERS([opencl.h], [], [])
+
+elif ! test "$with_macopencl" = "no"; then
+   AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
+   AC_DEFINE([MATRIX_ELEMENT_T], [float], [type for elements in the matrix])
+   
+   LDFLAGS="$LDFLAGS -framework OpenCL"
+
+   AC_CHECK_HEADERS([OpenCL/opencl.h], [], [])
 
 else
    AC_DEFINE([MATRIX_ELEMENT_T],[double])
@@ -318,6 +337,7 @@ AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files i
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
 AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
+AC_DEFINE([JASSERT_FAST],        [], [skip some copies in debug printing, conflicts with JASSERT_LOG])
 
 AC_DEFINE_UNQUOTED([MAXIMA_PATH],    ["$MAXIMA"], [path to maxima program])
 AC_DEFINE_UNQUOTED([REVISION_LONG],  ["$rev_long"], [git revision for HEAD at the time ./configure was run])
@@ -359,7 +379,7 @@ if test "$default_cxxflags" = "yes"; then
   fi
   case "$target_cpu" in
     *sparc*) compileflags="$compileflags -mcpu=niagara -mtune=native";;
-    *)       compileflags="$compileflags -march=native -fno-rtti";;
+    *)       compileflags="$compileflags -march=native";;
   esac
 fi
 
