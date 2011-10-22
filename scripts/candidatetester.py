@@ -234,7 +234,10 @@ class ResultsDB:
     return "ResultsDB(%s, {"%repr(self.metric)+\
            ', '.join(map(lambda x: "%d: %s"%(x[0], repr(x[1])), self.nToResults.iteritems()))+\
            "})"
-
+           
+  def __len__(self):
+    return len(self.nToResults)
+    
   def totalTests(self):
     return sum(map(len, self.nToResults.values()))
 

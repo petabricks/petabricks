@@ -95,6 +95,10 @@ public:
     return runCommandSingleOutput("fullratsimp(expand(" + eq->toString() + "))");
   }
 
+  FormulaPtr toFloat(const FormulaPtr& eq) {
+    return runCommandSingleOutput("ev("+ eq->toString() + ",float)");
+  }
+  
   FormulaPtr subst(const std::string& with, const std::string& what, const FormulaPtr& eq){
     return runCommandSingleOutput("subst("+with+", "+what+"," + eq->toString() + ")");
   }

@@ -4,7 +4,6 @@
 
 binpacking/binpacking             binpacking.cfg      8192     -1.15
 kclustering/kmeans                kmeans.cfg          128      0.2
-LUDense/PLUrecur                  PLUrecur.cfg        512      1
 matrixapprox/matrixapprox         matrixapprox.cfg    128      0.8
 multigrid/Helmholtz3DFMG          Helmholtz3DFMG.cfg  32       7
 multigrid/Poisson2DFMG            Poisson2DFMG.cfg    129      7
@@ -12,6 +11,7 @@ multiply/strassen                 strassen.cfg        512      1
 sort/Sort                         Sort.cfg            524288   1
 
 # Benchmarks need to be fixed:
+#LUDense/LU                        LU.cfg              512      1
 #eigenproblem/EigSym.pbcc           EigSym.cfg             1024     1
 #preconditioner/preconditioner.pbcc preconditioner.cfg
 

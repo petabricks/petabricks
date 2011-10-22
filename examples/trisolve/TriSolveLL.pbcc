@@ -19,7 +19,7 @@ to X[n,m]
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
-        for (int i = 0; i < m-1; ++i) {
+        for (IndexT i = 0; i < m-1; ++i) {
             if (!unitFlag) {
                 Scale(x.region(0, i, n, i+1), 1.0 / a.cell(i, i));
             }
@@ -39,7 +39,7 @@ to X[n,m]
         if (!unitFlag) {
             Scale(x.region(0, 0, n, 1), 1.0 / a.cell(0, 0));
         }
-        for (int i = 1; i < m; ++i) {
+        for (IndexT i = 1; i < m; ++i) {
             ElementT factor = unitFlag ? 1 : 1.0 / a.cell(i, i);
             MatrixMultiplyAdd(x.region(0, i, n, i+1), -factor,
                               a.region(0, i, i, i+1),
@@ -51,7 +51,7 @@ to X[n,m]
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
-        int i, j, k;
+        IndexT i, j, k;
         for (i = 0; i < m; ++i) {
             if (!unitFlag) {
                 for (j = 0; j < n; ++j) {
@@ -70,7 +70,7 @@ to X[n,m]
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
-        int i, j, k;
+        IndexT i, j, k;
         for (i = 0; i < m; ++i) {
             for (k = 0; k < i; ++k) {
                 for (j = 0; j < n; ++j) {
@@ -95,7 +95,7 @@ to X[n,m]
 transform TriSolveLLBlocked
 from UNITFLAG, A[m,m]
 to X[n,m]
-tunable blockSize
+tunable sizespecific blockSize
 {
     // right looking (update trailing matrix after each row block is solved)
     to   (X x)
@@ -130,7 +130,7 @@ tunable blockSize
             return;
         }
 
-        int i0, i1;
+        IndexT i0, i1;
         MatrixRegion2D x1, x2;
         ConstMatrixRegion2D a21, a22;
 
@@ -165,7 +165,7 @@ tunable recursiveBlockSize
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
-        if (m <= MAX(1, recursiveBlockSize)) {
+        if (recursiveBlockSize < 1 || recursiveBlockSize >= m) {
             TriSolveLLBlocked(x, unitFlag, a);
             return;
         }
