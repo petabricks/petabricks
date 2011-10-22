@@ -6,15 +6,6 @@ from IN[n]
 through KEY[n]
 to OUT[n]
 {
-  /*to(OUT out) from (IN in, KEY.cell(index) val) {
-    int pos = 0;
-    for(int i = 0; i < n; i++)
-    { 
-      if((in.cell(i) < val) || (in.cell(i) == val && i < index))
-        pos++;
-    }
-    out.cell(pos) = val;
-  }*/
 
   to(KEY.cell(index) key, OUT out) from(IN in) {
     int pos = 0;

@@ -57,7 +57,6 @@ to OUT[n]
 {
   to(OUT out) from (IN in)
   {
-    //Copy1D(out, in);
     InsertionsortSubArray(out, in);
   }
 }

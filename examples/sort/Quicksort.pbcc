@@ -25,6 +25,7 @@ inline void swap1D(distributed::MatrixRegion1D &A, int x, int y)
 
 int partition(workstealing::MatrixRegion1D &A)
 {
+  A.useOnCpu();
   int left = 0;
   int right=A.count()-1;
   double pivotValue = A.cell(right);

@@ -33,6 +33,7 @@ int getBits(double in, int position)
 
 inline void Radix(workstealing::MatrixRegion1D &out, workstealing::MatrixRegion1D &in, int *buckets, int pos)
 {
+  in.useOnCpu();
   int i;
   for (i = 0; i < in.size(0); i++) {
     buckets[getBits(in.cell(i), pos) + 2]++;

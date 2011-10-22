@@ -22,6 +22,9 @@ ElementT computeNWKDEMetric(ConstMatrixRegion1D result,
                           int outputVarIndex,
                           int outputTimeOffset)
 {
+    result.useOnCpu();
+    testData.useOnCpu();
+    testIndices.useOnCpu();
     ElementT a, b, diff, sum = 0;
     int outputTimeIndex, count = 0;
 
