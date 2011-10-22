@@ -241,7 +241,7 @@ AC_ARG_WITH([amdopencl],
 AC_ARG_WITH([macopencl],
 	[AS_HELP_STRING([--with-macopencl=PATH],[build compiler and runtime with support for OpenCL on Mac OSX])],
 	[],
-	[with_intelopencl=no])
+	[with_macopencl=no])
 
 AC_ARG_WITH([intelopencl],
 	[AS_HELP_STRING([--with-intelopencl=PATH],[build compiler and runtime with support for OpenCL-enabled CPUs and intel GPUs.])],

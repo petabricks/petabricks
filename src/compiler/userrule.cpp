@@ -956,7 +956,11 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
   if(true) {
 #endif
 
-    if(RuleFlavor::SEQUENTIAL != flavor && RuleFlavor::SEQUENTIAL_OPENCL != flavor) {
+    if(RuleFlavor::SEQUENTIAL != flavor 
+#ifdef HAVE_OPENCL
+        && RuleFlavor::SEQUENTIAL_OPENCL != flavor
+#endif
+        ) {
       o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
       o.write("DynamicTaskPtr _last = NULL;");
     }

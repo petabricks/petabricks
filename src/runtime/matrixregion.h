@@ -502,6 +502,8 @@ public:
     this->storage()->unlock();
     //CopyPendingMap::_pendingMap.print();
   }
+#else
+  void useOnCpu(){}
 #endif
 
   ///
