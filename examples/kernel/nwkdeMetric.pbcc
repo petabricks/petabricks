@@ -16,9 +16,10 @@
  * If this condition is not met, use a different metric transform to
  * measure output accuracy.
  */
-double computeNWKDEMetric(distributed::ConstMatrixRegion1D result,
-                          distributed::ConstMatrixRegion2D testData,
-                          distributed::ConstMatrixRegion1D testIndices,
+template<typename ConstMatrixRegion1D, typename ConstMatrixRegion2D>
+double computeNWKDEMetric(ConstMatrixRegion1D result,
+                          ConstMatrixRegion2D testData,
+                          ConstMatrixRegion1D testIndices,
                           int outputVarIndex,
                           int outputTimeOffset)
 {
@@ -45,40 +46,6 @@ double computeNWKDEMetric(distributed::ConstMatrixRegion1D result,
     sum /= count;
     return -sum;
 }
-
-
-double computeNWKDEMetric(workstealing::ConstMatrixRegion1D result,
-                          workstealing::ConstMatrixRegion2D testData,
-                          workstealing::ConstMatrixRegion1D testIndices,
-                          int outputVarIndex,
-                          int outputTimeOffset)
-{
-    double a, b, diff, sum = 0;
-    int outputTimeIndex, count = 0;
-
-    for (int i = 0; i < testIndices.count(); ++i) {
-        outputTimeIndex = (int) testIndices.cell(i) + (int) outputTimeOffset;
-        a = result.cell(i);
-        b = testData.cell((int) outputVarIndex, outputTimeIndex);
-        diff = a - b;
-#ifdef DEBUG
-        fprintf(stderr, "Metric: %g = (%g - %g)\n", diff, a, b);
-#endif
-        if (!isnan(diff)) {
-            sum += diff * diff;
-            count++;
-        }
-    }
-
-    sum /= count;
-
-    if (sum == 0) {
-        sum = std::numeric_limits<double>::epsilon();
-    }
-
-    return -log10(sum);
-}
-
 
 %}
 
