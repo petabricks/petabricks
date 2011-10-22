@@ -5,6 +5,7 @@
 
 %{
 
+template<typename ConstMatrixRegion2D>
 void printMatrix(ConstMatrixRegion2D A)
 {
   A.useOnCpu();
@@ -17,6 +18,7 @@ void printMatrix(ConstMatrixRegion2D A)
   printf("\n");
 }
 
+template<typename ConstMatrixRegion1D>
 int findMinAndMax(ElementT *min, ElementT *max, ConstMatrixRegion1D array)
 {
     *min = *max = array.cell(0);

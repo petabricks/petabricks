@@ -6,8 +6,6 @@
 #include "nwkdeMetric.pbcc"
 #include "utils.pbcc"
 
-//#define DEBUG
-
 %{
 
 /* wrap relative difference into [-180,180]
@@ -194,14 +192,7 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
         ElementT diff = trainPoint - testPoint;
 
         if (wrapFlag) {
-            /* add 360 *before* cast to round towards -INF instead of towards 0 */
-            int diffIntP360 = (int) (diff + 360);
-
-            /* add 180 to ensure modulo result is positive */
-            int diffIntWrapP360 = ((diffIntP360 + 180) % 360) + 180;
-
-            diff = diff + (diffIntWrapP360 - diffIntP360);
-            //diff = wrapWindDirDiff(diff);
+            diff = wrapWindDirDiff(diff);
         }
 
         // normalize according to kernel width
@@ -250,7 +241,7 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
             partial = weight * outputVal;
         }
 #ifdef DEBUG
-        //fprintf(stderr, "method 1: partial(%d, %d) = %g\n", j, k, partial);
+        fprintf(stderr, "method 1: partial(%d, %d) = %g\n", j, k, partial);
 #endif
     }
 
@@ -288,6 +279,7 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
             weight = partial = 0;
             return;
         }
+
         ElementT sum = 0;
         for (int i = 0; i < trainVarIndex.count(); ++i) {
 
@@ -376,7 +368,7 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
         ElementT totalPartial = 0, totalWeight = 0;
 
         // loop over training points
-        for (int j = 0; j < l; ++j) {
+        for (int j = 0; j < trainIndices.count(); ++j) {
 
             int trainIndex = (int) trainIndices.cell(j);
             int outputTimeIndex = (int) trainIndex + (int) outputTimeOffset;

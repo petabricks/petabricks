@@ -16,16 +16,14 @@
  * If this condition is not met, use a different metric transform to
  * measure output accuracy.
  */
-ElementT computeNWKDEMetric(ConstMatrixRegion1D result,
+template<typename ConstMatrixRegion1D, typename ConstMatrixRegion2D>
+double computeNWKDEMetric(ConstMatrixRegion1D result,
                           ConstMatrixRegion2D testData,
                           ConstMatrixRegion1D testIndices,
                           int outputVarIndex,
                           int outputTimeOffset)
 {
-    result.useOnCpu();
-    testData.useOnCpu();
-    testIndices.useOnCpu();
-    ElementT a, b, diff, sum = 0;
+    double a, b, diff, sum = 0;
     int outputTimeIndex, count = 0;
 
     for (int i = 0; i < testIndices.count(); ++i) {
