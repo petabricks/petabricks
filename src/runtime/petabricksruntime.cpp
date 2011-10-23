@@ -1068,6 +1068,7 @@ int petabricks::petabricksMain(int argc, const char** argv){
 
 void petabricks::PetabricksRuntime::reexecTestIsolation(int fd) {
   if(TI_REEXEC) {
+    saveConfig();
     std::string sfd = jalib::XToString(fd);
     const char** argv = new const char*[theArgc + 3];
     for(int i=0; i<theArgc; ++i)
