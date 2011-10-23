@@ -107,7 +107,7 @@ petabricks::TestIsolation* petabricks::SubprocessTestIsolation::masterProcess() 
   return theMasterProcess;
 }
 
-bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads) {
+bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads, int reexecchild) {
   JASSERT(theMasterProcess==NULL);
   _modifications.clear();
 #ifdef HAVE_OPENCL
@@ -116,8 +116,12 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads) {
   DynamicScheduler::cpuScheduler().shutdown();
   int fds[2];
   //JASSERT(pipe(fds) == 0);
-  JASSERT(socketpair(AF_UNIX, SOCK_STREAM, 0, fds) == 0);
-  JASSERT((_pid=fork()) >=0);
+  if(reexecchild<0)  {
+    JASSERT(socketpair(AF_UNIX, SOCK_STREAM, 0, fds) == 0);
+    JASSERT((_pid=fork()) >=0);
+  }else{
+    _pid=0;
+  }
   if(_pid>0){
     //parent
     _fd=fds[0];
@@ -125,11 +129,18 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads) {
     _rv = RUNNING_RV;
     _timeoutEnabled = true;
     _start = jalib::JTime::now();
+    //JTRACE("parent");
     return false;
   }else{
     //child
-    _fd=fds[1];
-    close(fds[0]);
+    //JTRACE("child")(reexecchild);
+    if(reexecchild<0) {
+      _fd=fds[1];
+      close(fds[0]);
+      PetabricksRuntime::reexecTestIsolation(fds[1]);
+    }else{
+      _fd = reexecchild;
+    }
 #ifdef HAVE_OPENCL
     GpuManager::start();
 #endif
@@ -366,8 +377,9 @@ int  petabricks::SubprocessTestIsolation::rv(){
   return CRASH_RV;
 }
 
-bool petabricks::DummyTestIsolation::beginTest(int workerThreads) {
+bool petabricks::DummyTestIsolation::beginTest(int workerThreads, int reexecchild) {
   DynamicScheduler::cpuScheduler().startWorkerThreads(workerThreads);
+  JASSERT(reexecchild<0);
   return true;
 }
 
