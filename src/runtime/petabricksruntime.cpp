@@ -855,6 +855,7 @@ void petabricks::PetabricksRuntime::loadTestInput(int n, const std::vector<std::
     return;
   }
   if(n>0){
+    JTRACE("generating input")(n);
     JASSERT(files==NULL);
     JTIMER_SCOPE(randomize);
     JASSERT(n==_randSize);
@@ -875,6 +876,7 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
                                                           TestResult& result,
                                                           const std::vector<std::string>* files){
   try {
+    ti.disableTimeout();
     if(_isTrainingRun && _main->isVariableAccuracy()){
       variableAccuracyTrainingLoop(ti);
     }
@@ -883,9 +885,11 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
     }
     _needTraingingRun = false;//reset flag set by isTrainingRun()
     _isRunning = true;
+    ti.restartTimeout();
     jalib::JTime begin=jalib::JTime::now();
     _main->compute();
     jalib::JTime end=jalib::JTime::now();
+    ti.disableTimeout();
     _isRunning = false;
 
     if(_needTraingingRun && _isTrainingRun){
@@ -894,11 +898,9 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
       result.time=end-begin;
     }
     if(ACCURACY){
-      ti.disableTimeout();
       result.accuracy = _main->accuracy();
     }
     if(HASH){
-      ti.disableTimeout();
       jalib::HashGenerator hg;
       _main->hash(hg);
       result.hash = hg.final();

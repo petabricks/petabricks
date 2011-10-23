@@ -92,7 +92,7 @@ JASSERT_STATIC(sizeof COOKIE_DONE == sizeof COOKIE_DISABLETIMEOUT);
 JASSERT_STATIC(sizeof COOKIE_DONE == sizeof COOKIE_RESTARTTIMEOUT);
 
 petabricks::SubprocessTestIsolation::SubprocessTestIsolation(double to) 
-  : _pid(-1), _fd(-1), _rv(RUNNING_RV), _timeout(to), _timeoutEnabled(true), _start(jalib::JTime::null())
+  : _pid(-1), _fd(-1), _rv(RUNNING_RV), _timeout(to), _timeoutEnabled(false), _start(jalib::JTime::null())
 {
   if(_timeout < std::numeric_limits<double>::max()-TIMEOUT_GRACESEC)
     _timeout += TIMEOUT_GRACESEC;
@@ -127,7 +127,7 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads, int reexe
     _fd=fds[0];
     close(fds[1]);
     _rv = RUNNING_RV;
-    _timeoutEnabled = true;
+    _timeoutEnabled = false;
     _start = jalib::JTime::now();
     //JTRACE("parent");
     return false;
@@ -148,6 +148,8 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads, int reexe
     _settestprocflags();
     jalib::JTunable::setModificationCallback(this); 
     theMasterProcess=this;
+    //JTRACE("child starting");
+    restartTimeout();
     return true;
   }
 }
@@ -201,7 +203,7 @@ inline static void _settimeout(int& timeout, double sec){
 void petabricks::SubprocessTestIsolation::recvResult(TestResult& result) {
   TimeoutT timeout;
   int ready;
-  _settimeout(timeout, _timeout);
+  _settimeout(timeout, std::numeric_limits<int>::max());
 
   struct pollfd fds[1];
   fds[0].fd = _fd;
@@ -210,6 +212,7 @@ void petabricks::SubprocessTestIsolation::recvResult(TestResult& result) {
 
   for(;;){
     _settimeout(timeout, timeleft());
+    //JTRACE("timeout")(timeout);
     ready = poll(fds, sizeof(fds)/sizeof(struct pollfd), timeout);
     JASSERT(ready>=0)(ready);
 
@@ -281,7 +284,7 @@ double petabricks::SubprocessTestIsolation::timeleft() const {
   if(!running())
       return 0;
   if(_timeoutEnabled)
-    return _timeout - (jalib::JTime::now() - _start);
+    return _timeout - (jalib::JTime::now() - _start) + 0.02;
   return std::numeric_limits<double>::max();
 }
 
