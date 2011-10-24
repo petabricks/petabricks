@@ -226,6 +226,9 @@ public:
 
 
   static double updateRaceTimeout(TestResult& result, int winnerid);
+      
+  
+  static void reexecTestIsolation(int fd);
 protected:
   void reallocate() { _main->reallocate(_randSize); }
 

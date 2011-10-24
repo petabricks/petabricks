@@ -92,7 +92,7 @@ JASSERT_STATIC(sizeof COOKIE_DONE == sizeof COOKIE_DISABLETIMEOUT);
 JASSERT_STATIC(sizeof COOKIE_DONE == sizeof COOKIE_RESTARTTIMEOUT);
 
 petabricks::SubprocessTestIsolation::SubprocessTestIsolation(double to) 
-  : _pid(-1), _fd(-1), _rv(RUNNING_RV), _timeout(to), _timeoutEnabled(true), _start(jalib::JTime::null())
+  : _pid(-1), _fd(-1), _rv(RUNNING_RV), _timeout(to), _timeoutEnabled(false), _start(jalib::JTime::null())
 {
   if(_timeout < std::numeric_limits<double>::max()-TIMEOUT_GRACESEC)
     _timeout += TIMEOUT_GRACESEC;
@@ -107,7 +107,7 @@ petabricks::TestIsolation* petabricks::SubprocessTestIsolation::masterProcess() 
   return theMasterProcess;
 }
 
-bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads) {
+bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads, int reexecchild) {
   JASSERT(theMasterProcess==NULL);
   _modifications.clear();
 #ifdef HAVE_OPENCL
@@ -116,20 +116,31 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads) {
   DynamicScheduler::cpuScheduler().shutdown();
   int fds[2];
   //JASSERT(pipe(fds) == 0);
-  JASSERT(socketpair(AF_UNIX, SOCK_STREAM, 0, fds) == 0);
-  JASSERT((_pid=fork()) >=0);
+  if(reexecchild<0)  {
+    JASSERT(socketpair(AF_UNIX, SOCK_STREAM, 0, fds) == 0);
+    JASSERT((_pid=fork()) >=0);
+  }else{
+    _pid=0;
+  }
   if(_pid>0){
     //parent
     _fd=fds[0];
     close(fds[1]);
     _rv = RUNNING_RV;
-    _timeoutEnabled = true;
+    _timeoutEnabled = false;
     _start = jalib::JTime::now();
+    //JTRACE("parent");
     return false;
   }else{
     //child
-    _fd=fds[1];
-    close(fds[0]);
+    //JTRACE("child")(reexecchild);
+    if(reexecchild<0) {
+      _fd=fds[1];
+      close(fds[0]);
+      PetabricksRuntime::reexecTestIsolation(fds[1]);
+    }else{
+      _fd = reexecchild;
+    }
 #ifdef HAVE_OPENCL
     GpuManager::start();
 #endif
@@ -137,6 +148,8 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads) {
     _settestprocflags();
     jalib::JTunable::setModificationCallback(this); 
     theMasterProcess=this;
+    //JTRACE("child starting");
+    restartTimeout();
     return true;
   }
 }
@@ -190,7 +203,7 @@ inline static void _settimeout(int& timeout, double sec){
 void petabricks::SubprocessTestIsolation::recvResult(TestResult& result) {
   TimeoutT timeout;
   int ready;
-  _settimeout(timeout, _timeout);
+  _settimeout(timeout, std::numeric_limits<int>::max());
 
   struct pollfd fds[1];
   fds[0].fd = _fd;
@@ -199,6 +212,7 @@ void petabricks::SubprocessTestIsolation::recvResult(TestResult& result) {
 
   for(;;){
     _settimeout(timeout, timeleft());
+    //JTRACE("timeout")(timeout);
     ready = poll(fds, sizeof(fds)/sizeof(struct pollfd), timeout);
     JASSERT(ready>=0)(ready);
 
@@ -270,7 +284,7 @@ double petabricks::SubprocessTestIsolation::timeleft() const {
   if(!running())
       return 0;
   if(_timeoutEnabled)
-    return _timeout - (jalib::JTime::now() - _start);
+    return _timeout - (jalib::JTime::now() - _start) + 0.02;
   return std::numeric_limits<double>::max();
 }
 
@@ -366,8 +380,9 @@ int  petabricks::SubprocessTestIsolation::rv(){
   return CRASH_RV;
 }
 
-bool petabricks::DummyTestIsolation::beginTest(int workerThreads) {
+bool petabricks::DummyTestIsolation::beginTest(int workerThreads, int reexecchild) {
   DynamicScheduler::cpuScheduler().startWorkerThreads(workerThreads);
+  JASSERT(reexecchild<0);
   return true;
 }
 

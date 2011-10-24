@@ -2,7 +2,6 @@
 import pbutil, progress, tunerconfig, sgatuner, tunerwarnings
 import math 
 import os
-import scipy
 import socket 
 import sys
 import tempfile 
