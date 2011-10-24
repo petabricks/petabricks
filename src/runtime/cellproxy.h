@@ -61,6 +61,16 @@ namespace petabricks {
       return *this;
     }
 
+    CellProxy operator-=(const CellProxy& val) {
+      *this = (double)*this - (double)val;
+      return *this;
+    }
+
+    CellProxy operator-=(const double val) {
+      *this = (double)*this - val;
+      return *this;
+    }
+
     CellProxy operator*=(const CellProxy& val) {
       *this = (double)*this * (double)val;
       return *this;
@@ -68,6 +78,16 @@ namespace petabricks {
 
     CellProxy operator*=(const double val) {
       *this = (double)*this * val;
+      return *this;
+    }
+
+    CellProxy operator/=(const CellProxy& val) {
+      *this = (double)*this / (double)val;
+      return *this;
+    }
+
+    CellProxy operator/=(const double val) {
+      *this = (double)*this / val;
       return *this;
     }
 
@@ -133,6 +153,22 @@ namespace petabricks {
     }
     friend double operator*(const int a,  const CellProxy& b) {
       return a * (double)b;
+    }
+
+    friend double operator/(const CellProxy& a,  const CellProxy& b) {
+      return (double)a / (double)b;
+    }
+    friend double operator/(const CellProxy& a,  const double b) {
+      return (double)a / b;
+    }
+    friend double operator/(const double a,  const CellProxy& b) {
+      return a / (double)b;
+    }
+    friend double operator/(const CellProxy& a,  const int b) {
+      return (double)a / b;
+    }
+    friend double operator/(const int a,  const CellProxy& b) {
+      return a / (double)b;
     }
 
     void print(std::ostream& o) const {
