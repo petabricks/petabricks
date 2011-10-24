@@ -22,9 +22,7 @@ accuracy_variable k(1,1) //min=1, initial=1
 generator matrixapproinputgen
 {
 	to (H.region(n,0,2*n,n) h) from (IN a) {
-                // distributed matrix doesn't have storage
-                // std::cout<< "Transpose storage = " << &(*h.storage()) << std::endl;
-           	Transpose(h, a);
+		Transpose(h, a);
 	}
 	to (H.region(0,n,n,2*n) h )from (IN a){
 		Copy2D(h, a);

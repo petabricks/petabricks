@@ -130,6 +130,7 @@ def parallelRunJobs(jobs, nParallelJobs=None):
       return self.msg.replace(exitval,"") \
                      .replace('\n',' ')   \
                      .strip()
+
   startline = progress.currentline()
   if nParallelJobs is None:
     nParallelJobs=cpuCount()
@@ -339,11 +340,9 @@ def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noL
       else:
         print "compile FAILED (rc=%d)"%status
         return False
-
     except IOError:
       print "invalid benchmark"
       return False
-
 
   newjob = lambda name, fn: lambda: innerCompileBenchmark(name) and fn()
   mergejob = lambda oldfn, fn: lambda: oldfn() and fn()
