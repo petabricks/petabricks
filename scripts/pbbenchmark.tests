@@ -2,7 +2,7 @@
 # TESTNAME CONFIG INPUTSIZE ACCTARGET BASEPERF
 #
 
-binpacking/binpacking             binpacking.cfg      8192     -1.15
+#binpacking/binpacking             binpacking.cfg      8192     -1.15
 kclustering/kmeans                kmeans.cfg          128      0.2
 matrixapprox/matrixapprox         matrixapprox.cfg    128      0.8
 multigrid/Helmholtz3DFMG          Helmholtz3DFMG.cfg  32       7

@@ -26,7 +26,7 @@
  *****************************************************************************/
 #include "testisolation.h"
 #include "dynamicscheduler.h"
-#include "gpumanager.h"
+//#include "gpumanager.h"
 
 #include <limits>
 #include <string.h>
@@ -111,7 +111,7 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads, int reexe
   JASSERT(theMasterProcess==NULL);
   _modifications.clear();
 #ifdef HAVE_OPENCL
-  GpuManager::shutdown();
+  //GpuManager::shutdown();
 #endif
   DynamicScheduler::cpuScheduler().shutdown();
   int fds[2];
@@ -142,7 +142,7 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads, int reexe
       _fd = reexecchild;
     }
 #ifdef HAVE_OPENCL
-    GpuManager::start();
+    //GpuManager::start();
 #endif
     DynamicScheduler::cpuScheduler().startWorkerThreads(workerThreads);
     _settestprocflags();
