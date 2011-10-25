@@ -69,6 +69,8 @@
 //these must be declared in the user code
 petabricks::PetabricksRuntime::Main* petabricksMainTransform();
 petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);
+void _petabricksInit();
+void _petabricksCleanup();
 
 #define PB_SPAWN(taskname, args...) \
   PB_CAT(PB_CAT(taskname,_),PB_FLAVOR) (_completion, args)

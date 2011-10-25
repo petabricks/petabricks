@@ -196,6 +196,9 @@ public:
   void loadTestInput(int n, const std::vector<std::string>* files);
   
   
+  static void startWorkerThreads(int worker_threads);
+
+
   void variableAccuracyTrainingLoop(TestIsolation& ti);
   int variableAccuracyTrainingLoopInner(TestIsolation& ti);
 

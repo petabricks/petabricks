@@ -109,8 +109,9 @@ public:
   void extractSizeDefines(CodeGenerator& o, FreeVars fv, const char* inputsizestr);
 #if HAVE_OPENCL
   void extractOpenClSizeDefines(CLCodeGenerator& o, unsigned int dims, std::map<std::string, std::string> &map);
-  void generateReleaseGpuObjectsCode(CodeGenerator& o);
 #endif
+  
+  void generateInitCleanup(CodeGenerator& init, CodeGenerator& cleanup);
   
   void declTransformNFunc(CodeGenerator& o);
   void declTransformN(CodeGenerator& o, const std::string& name);
@@ -278,6 +279,7 @@ public:
 
   MatrixDefList getToMatrices() { return _to; }
 
+  void addInitCall(const std::string& s) { _initCalls.push_back(s); }
 protected:
   static std::map<std::string, TransformPtr> theTransformMap();
 
@@ -304,6 +306,7 @@ private:
   std::string         _generator;
   int                 _templateChoice;
   double              _curAccTarget;
+  std::vector<std::string> _initCalls;
 };
 
 }

@@ -399,14 +399,16 @@ int main( int argc, const char ** argv){
   o.write("return NULL;");
   o.endFunc();
 
-#ifdef HAVE_OPENCL
-  o.comment("A hook called by PetabricksRuntime");
-  o.beginFunc("void", "cleanup");
+  
+  CodeGenerator& init    = o.forkhelper();
+  CodeGenerator& cleanup = o.forkhelper();
+  init.beginFunc("void", "_petabricksInit");
+  cleanup.beginFunc("void", "_petabricksCleanup");
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
-    (*i)->generateReleaseGpuObjectsCode(o);
+    (*i)->generateInitCleanup(init, cleanup);
   }
-  o.endFunc();
-#endif
+  init.endFunc();
+  cleanup.endFunc();
   
   // generate common header file:
   *prefix << headertxth;

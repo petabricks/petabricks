@@ -24,6 +24,8 @@ PetabricksRuntime::Main* petabricksMainTransform(){
 PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
+void _petabricksInit() {}
+void _petabricksCleanup() {}
 
 void print(DataHostPidList list) {
   printf("(%d) DataHostPidList\n", getpid());

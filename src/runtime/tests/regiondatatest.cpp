@@ -22,6 +22,8 @@ PetabricksRuntime::Main* petabricksMainTransform(){
 PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
+void _petabricksInit() {}
+void _petabricksCleanup() {}
 
 int main(int /*argc*/, const char** /*argv*/){
   //const char* filename1 = "testdata/Helmholtz3DZeros";
