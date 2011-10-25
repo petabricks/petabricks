@@ -24,7 +24,7 @@ to Output[w,h]
   }
 }
 
-/*transform convolutionColumns
+transform convolutionColumns
 from Input[w,h], Kernel[KERNEL_LENGTH]
 to Output[w,h]
 {
@@ -45,7 +45,7 @@ to Output[w,h]
       }
     return sum;
   }
-}*/
+}
 
 transform convolutionSeparable
 from Input[w,h], Kernel[KERNEL_LENGTH]
