@@ -129,7 +129,7 @@ transform BinnedLREstimate
 from ALPHA[numBins, m+1], X[m,n], DIRS[1,n], INDICES[q]
 to RESULT[1,q]
 {
-    to (RESULT.cell(0,i) result)
+    to (RESULT.cell(0, i) result)
     from (ALPHA alpha, X x, DIRS dirs,
           INDICES.cell(i) index)
     {
@@ -146,20 +146,37 @@ to RESULT[1,q]
     }
 }
 
-//  // Training and test data sets are the same.
-//  // For each index in TESTINDICES use all available indices at least MASKWIDTH
-//  // distance from the current test index for training.
-//  transform BinnedLRMasked
-//  from X[m,n ], DIRS[1,n ], Y[1,n ],
-//       TRAININDICES[l], TESTINDICES[q], MASKWIDTH
-//  to RESULT[1,q]
-//  {
-//      to (RESULT.cell(i) result)
-//      from (X x, DIRS dirs, Y y, TRAININDICES trainIndices,
-//            TESTINDICES.cell(i) testIndex, MASKWIDTH maskWidth)
-//      {
-//      }
-//  }
+// Training and test data sets are the same.
+// For each index in TESTINDICES use all available indices at least MASKWIDTH
+// distance from the current test index for training.
+transform BinnedLRMasked
+from X[m,n], DIRS[1,n], Y[1,n],
+     TRAININDICES[l], TESTINDICES[q], MASKWIDTH, NUMBINS
+to RESULT[1,q]
+{
+    to (RESULT.region(0, i, 1, i+1) result)
+    from (X x, DIRS dirs, Y y, TRAININDICES trainIndices,
+          TESTINDICES.region(i, i+1) testIndex,
+          MASKWIDTH maskWidth, NUMBINS numBins)
+    {
+        IndexT j, tempIndex, trainIndex;
+        MatrixRegion1D tempIndices = MatrixRegion1D::allocate(l);
+
+        tempIndex = 0;
+        for (j = 0; j < l; ++j) {
+            trainIndex = trainIndices.cell(j);
+            if ((trainIndex <= testIndex.cell(0) - maskWidth ||
+                 trainIndex >= testIndex.cell(0) + maskWidth))
+            {
+                tempIndices.cell(tempIndex++) = trainIndex;
+            }
+        }
+
+        MatrixRegion2D alpha = MatrixRegion2D::allocate(numBins, m+1);
+        BinnedLRTrain(alpha, x, dirs, y, tempIndices.region(0, tempIndex));
+        BinnedLREstimate(result, alpha, x, dirs, testIndex);
+    }
+}
 
 // Apply binned linear regression model.  If MASKWIDTH is non-zero,
 // apply masked algorithm.
@@ -180,14 +197,14 @@ tunable NumBins
         if (numBins < 1  ) { numBins = 1;   }
         if (numBins > 360) { numBins = 360; }
 
-//      if (maskWidth != 0) {
-//          BinnedLRMasked(result, trainX, trainDirs, trainY,
-//                         trainIndices, testIndices, maskWidth);
-//      } else {
+        if (maskWidth != 0) {
+            BinnedLRMasked(result, trainX, trainDirs, trainY,
+                           trainIndices, testIndices, maskWidth, numBins);
+        } else {
             MatrixRegion2D alpha = MatrixRegion2D::allocate(numBins, m+1);
             BinnedLRTrain(alpha, trainX, trainDirs, trainY, trainIndices);
             BinnedLREstimate(result, alpha, testX, testDirs, testIndices);
-//      }
+        }
     }
 }
 
