@@ -24,84 +24,21 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-%option caseless
-%option nostdinit
-%option noyywrap
-%option noyy_push_state
-%option noyy_pop_state
-%option noyy_top_state
-%option nounput
-%option interactive
-%option always-interactive
-%option prefix="maxima"
-%option outfile="lex.yy.c"
+#include "heuristic.h"
 
-%{
-
-#include "formula.h"
-#include "maximaparser.h"
-
-#include "common/jassert.h"
-#include "common/jconvert.h"
-
-#include <stdio.h>
-
-#define yylval maximalval
-#define NUM_STR_BUFFERS 64
-
-static const char* circularStringCache(const char* str){
-  static std::string strbuffers[NUM_STR_BUFFERS];
-  static int n = 0;
-  return (strbuffers[n++ % NUM_STR_BUFFERS]=str).c_str();
+double petabricks::Heuristic::eval (const ValueMap featureValues) {
+  FormulaPtr evaluated = _formula->clone();
+  
+  for(ValueMap::const_iterator i=featureValues.begin(), e=featureValues.end();
+      i!=e;
+      ++i) {
+    const std::string& featureName=i->first;
+    const std::string featureValueStr = jalib::XToString(i->second);
+    
+    evaluated = MaximaWrapper::instance().subst(featureValueStr, featureName, evaluated);
+  }
+  
+  evaluated = MaximaWrapper::instance().toFloat(evaluated);
+  
+  return evaluated->value();
 }
-
-#define YY_INPUT(buf,result,max_size) \
-    result = read(fileno(maximain), buf, 1);
-
-#define YY_USER_ACTION yylval.str=circularStringCache(yytext);
-#define YY_DECL int yylex()
-
-%}
-
-%x output
-
-PASS_CHARS [=<>,*/()[\]\n^+-]
-WS [ \r\n\t]
-
-%%
-
-<INITIAL>{
-  [^()]+     /*nothing*/
-  .          /*nothing*/
-}
-
-<output>{
-  {WS}+               /* whitespace */
-  "<="                return LE;
-  ">="                return GE;
-  "true"              return BOOL_T;
-  "false"             return BOOL_F;
-  "equal"             return STR_EQUAL;
-  "ceiling"           return STR_CEILING;
-  "floor"             return STR_FLOOR;
-  "if"                return IF;
-  "then"              return THEN;
-  "else"              return ELSE;
-  "and"               return AND;
-  "or"                return OR;
-  {PASS_CHARS}        return yytext[0];
-  [0-9]+              return INTEGER;
-  [0-9]+[.][0-9]+     return FLOAT;
-  [a-z_][a-z0-9_]*    return IDENT;
-}
-
-<*>{
-  [(][%]o[0-9]+[)][ ] BEGIN(output);  return OPROMPT;
-  [(][%]i[0-9]+[)][ ] BEGIN(INITIAL); return IPROMPT;
-  .                   JASSERT(false)(yytext).Text("Unhandled input");
-}
-
-%%
-
-
-

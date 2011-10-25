@@ -24,84 +24,44 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-%option caseless
-%option nostdinit
-%option noyywrap
-%option noyy_push_state
-%option noyy_pop_state
-%option noyy_top_state
-%option nounput
-%option interactive
-%option always-interactive
-%option prefix="maxima"
-%option outfile="lex.yy.c"
+#ifndef HEURISTICMANAGER_H
+#define HEURISTICMANAGER_H
 
-%{
+#include <map>
 
-#include "formula.h"
-#include "maximaparser.h"
-
+#include "common/jrefcounted.h"
 #include "common/jassert.h"
-#include "common/jconvert.h"
 
-#include <stdio.h>
+#include "heuristic.h"
+#include "dbmanager.h"
+#include "maximawrapper.h"
 
-#define yylval maximalval
-#define NUM_STR_BUFFERS 64
+namespace petabricks {
 
-static const char* circularStringCache(const char* str){
-  static std::string strbuffers[NUM_STR_BUFFERS];
-  static int n = 0;
-  return (strbuffers[n++ % NUM_STR_BUFFERS]=str).c_str();
+class HeuristicManager {
+public:
+  ///Singleton instance
+  static HeuristicManager& instance() { static HeuristicManager inst;
+                                        return inst;
+                                      }
+                                              
+                                              
+  void registerDefault(const std::string name, const std::string formula) {
+          _defaultHeuristics[name] = HeuristicPtr(new Heuristic(formula));
+        }
+  void loadFromFile(const std::string fileName);
+  
+  HeuristicPtr& getHeuristic(const std::string name);
+  
+  const HeuristicMap& usedHeuristics() const { return _heuristicCache; }
+  
+private:
+  HeuristicMap _heuristicCache;
+  HeuristicMap _defaultHeuristics;
+  HeuristicMap _fromFile;
+  DBManager _db;
+};
+
 }
 
-#define YY_INPUT(buf,result,max_size) \
-    result = read(fileno(maximain), buf, 1);
-
-#define YY_USER_ACTION yylval.str=circularStringCache(yytext);
-#define YY_DECL int yylex()
-
-%}
-
-%x output
-
-PASS_CHARS [=<>,*/()[\]\n^+-]
-WS [ \r\n\t]
-
-%%
-
-<INITIAL>{
-  [^()]+     /*nothing*/
-  .          /*nothing*/
-}
-
-<output>{
-  {WS}+               /* whitespace */
-  "<="                return LE;
-  ">="                return GE;
-  "true"              return BOOL_T;
-  "false"             return BOOL_F;
-  "equal"             return STR_EQUAL;
-  "ceiling"           return STR_CEILING;
-  "floor"             return STR_FLOOR;
-  "if"                return IF;
-  "then"              return THEN;
-  "else"              return ELSE;
-  "and"               return AND;
-  "or"                return OR;
-  {PASS_CHARS}        return yytext[0];
-  [0-9]+              return INTEGER;
-  [0-9]+[.][0-9]+     return FLOAT;
-  [a-z_][a-z0-9_]*    return IDENT;
-}
-
-<*>{
-  [(][%]o[0-9]+[)][ ] BEGIN(output);  return OPROMPT;
-  [(][%]i[0-9]+[)][ ] BEGIN(INITIAL); return IPROMPT;
-  .                   JASSERT(false)(yytext).Text("Unhandled input");
-}
-
-%%
-
-
-
+#endif

@@ -30,6 +30,7 @@
 #include "pbc.h"
 #include "transform.h"
 #include "maximawrapper.h"
+#include "heuristicmanager.h"
 #include "common/jasm.h"
 
 #include <cstdio>
@@ -470,6 +471,20 @@ void petabricks::StaticScheduler::generateSchedule(){
       #ifdef DEBUG
       writeGraph((_dbgpath+".merged.dot").c_str());
       #endif
+
+/*
+      //---------------- TEST ----------------------
+      HeuristicManager::instance().registerDefault("testHeuristic", "21+2+a");
+      HeuristicManager::instance().registerDefault("anotherHeuristic", "5*4*(a+1)");
+      HeuristicManager::instance().registerDefault("fromFile", "42");
+      Heuristic& test = HeuristicManager::instance().getHeuristic("testHeuristic");
+      Heuristic& test2 = HeuristicManager::instance().getHeuristic("anotherHeuristic");
+      Heuristic& test3 = HeuristicManager::instance().getHeuristic("fromFile");
+      ValueMap values;
+      values["a"]=5;
+      JTRACE("TestHeuristic")(test.eval(values))(test2.eval(values))(test3.eval(values));
+      //--------------------------------------------
+*/
 
       _schedules.push_back(new Schedule(choiceassign, _inputsRemapped, _outputsRemapped));
       

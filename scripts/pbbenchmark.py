@@ -182,13 +182,31 @@ def main():
   warnings.simplefilter('ignore', tunerwarnings.TargetNotMet)
   warnings.simplefilter('ignore', tunerwarnings.NanAccuracy)
 
+  #Parse input options
+  from optparse import OptionParser
+  parser = OptionParser(usage="usage: pbbenchmark [options]")
+  parser.add_option("--learning", action="store_true", dest="learning", default=False, help="enable heuristics learning")
+  parser.add_option("--heuristics", type="string", help="name of the file containing the set of heuristics to use. Automatically enables --learning", default=None)
+
+  (options, args) = parser.parse_args()
+
+  if options.heuristics:
+    options.learning = True
+
+  if options.learning:
+    print "Learning of heuristics is ACTIVE"
+    if options.heuristics:
+      print "Using heuristics file: "+ str(options.heuristics)
+    else:
+      print "Using only heuristics in the database"
+
   progress.push()
   progress.status("compiling benchmarks")
 
   pbutil.chdirToPetabricksRoot()
   pbutil.compilePetabricks();
 
-  r, lines = pbutil.loadAndCompileBenchmarks("./scripts/pbbenchmark.tests")
+  r, lines = pbutil.loadAndCompileBenchmarks("./scripts/pbbenchmark.tests", learning=options.learning, heuristicSetFileName=options.heuristics)
 
   if filter(lambda x: x.rv!=0, r):
     print "compile failed"

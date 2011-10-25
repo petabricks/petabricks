@@ -31,7 +31,12 @@ noinst_HEADERS = \
   compiler/syntheticrule.h \
   compiler/trainingdeps.h \
   compiler/transform.h \
-  compiler/userrule.h
+  compiler/userrule.h \
+  compiler/heuristic.h \
+  compiler/heuristicmanager.h \
+  compiler/dbmanager.h \
+  compiler/tinyxml.h \
+  compiler/tinystr.h
 
 pkglib_HEADERS=  \
   common/hash.h \
@@ -128,7 +133,14 @@ libpbcompiler_a_SOURCES = \
   compiler/syntheticrule.cpp \
   compiler/trainingdeps.cpp \
   compiler/transform.cpp \
-  compiler/userrule.cpp
+  compiler/userrule.cpp \
+  compiler/heuristic.cpp \
+  compiler/heuristicmanager.cpp \
+  compiler/dbmanager.cpp \
+  compiler/tinyxml.cpp \
+  compiler/tinyxmlerror.cpp \
+  compiler/tinyxmlparser.cpp \
+  compiler/tinystr.cpp
 
 libpbruntime_a_LFLAGS = 
 libpbruntime_a_CXXFLAGS = -I$(srcdir)/runtime

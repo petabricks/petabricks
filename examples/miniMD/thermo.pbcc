@@ -1,0 +1,17 @@
+#ifndef MD_THERMO_PBCC
+#define MD_THERMO_PBCC
+
+function thermo_setup
+from ntimes[1], nstat[1]
+to maxstat[1]
+{
+
+  int val;
+  if (nstat.cell(0) == 0) maxstat.cell(0) = 2;
+  else {
+       maxstat.cell(0) = ntimes.cell(0)/nstat.cell(0) + 1;
+  }
+
+}
+
+#endif

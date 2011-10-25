@@ -1,0 +1,110 @@
+#ifndef MD_NEIGHBOR_PBCC
+#define MD_NEIGHBOR_PBCC
+
+#define PAGESIZE 10000
+#define ONEATOM 1000
+#define PAGEDELTA 1
+#define FACTOR 0.999
+#define SMALL 1.0e-6
+
+function neighbor_setup
+from cutneigh[1], nbin[3], atom_box_prd [3], atom_box_bounds[3,2]
+to binsize[3], bininv[3], mbin[3,2], cutneighsq[1]
+{
+  int i,j,k,nmax;
+  double coord;
+  int mbinxhi,mbinyhi,mbinzhi;
+  int nextx,nexty,nextz;
+ 
+  cutneighsq.cell(0) = cutneigh.cell(0)*cutneigh.cell(0);
+ 
+  double xprd = atom_box_prd.cell(0);
+  double yprd = atom_box_prd.cell(1);
+  double zprd = atom_box_prd.cell(2);
+
+  // binsize and bin inv for x, y, and z 
+  binsize.cell(0) = xprd/nbin.cell(0);
+  binsize.cell(1) = yprd/nbin.cell(1);
+  binsize.cell(2) = zprd/nbin.cell(2);
+  bininv.cell(0) = 1.0 / binsize.cell(0);
+  bininv.cell(1) = 1.0 / binsize.cell(1);
+  bininv.cell(2) = 1.0 / binsize.cell(2);
+
+//  coord = atom_box_bounds.cell(0,0) - cutneigh.cell(0) - SMALL*xprd;
+/*
+  mbin(0,0) = static_cast<int>(coord*bininvx);
+  if (coord < 0.0) mbinxlo = mbinxlo - 1;
+  coord = atom.box.xhi + cutneigh + SMALL*xprd;
+  mbinxhi = static_cast<int>(coord*bininvx);
+
+  coord = atom.box.ylo - cutneigh - SMALL*yprd;
+  mbinylo = static_cast<int>(coord*bininvy);
+  if (coord < 0.0) mbinylo = mbinylo - 1;
+  coord = atom.box.yhi + cutneigh + SMALL*yprd;
+  mbinyhi = static_cast<int>(coord*bininvy);
+
+  coord = atom.box.zlo - cutneigh - SMALL*zprd;
+  mbinzlo = static_cast<int>(coord*bininvz);
+  if (coord < 0.0) mbinzlo = mbinzlo - 1;
+  coord = atom.box.zhi + cutneigh + SMALL*zprd;
+  mbinzhi = static_cast<int>(coord*bininvz);
+*/
+/* extend bins by 1 in each direction to insure stencil coverage */
+/*
+  mbinxlo = mbinxlo - 1;
+  mbinxhi = mbinxhi + 1;
+  mbinx = mbinxhi - mbinxlo + 1;
+
+  mbinylo = mbinylo - 1;
+  mbinyhi = mbinyhi + 1;
+  mbiny = mbinyhi - mbinylo + 1;
+
+  mbinzlo = mbinzlo - 1;
+  mbinzhi = mbinzhi + 1;
+  mbinz = mbinzhi - mbinzlo + 1;
+*/
+  /*
+compute bin stencil of all bins whose closest corner to central bin
+  is within neighbor cutoff
+for partial Newton (newton = 0),
+  stencil is all surrounding bins including self
+for full Newton (newton = 1),
+  stencil is bins to the "upper right" of central bin, does NOT include self
+next(xyz) = how far the stencil could possibly extend
+factor < 1.0 for special case of LJ benchmark so code will create
+  correct-size stencil when there are 3 bins for every 5 lattice spacings
+  */
+/*
+  nextx = static_cast<int>(cutneigh*bininvx);
+  if (nextx*binsizex < FACTOR*cutneigh) nextx++;
+  nexty = static_cast<int>(cutneigh*bininvy);
+  if (nexty*binsizey < FACTOR*cutneigh) nexty++;
+  nextz = static_cast<int>(cutneigh*bininvz);
+  if (nextz*binsizez < FACTOR*cutneigh) nextz++;
+
+  nmax = (nextz+1) * (2*nexty+1) * (2*nextx+1);
+  if (stencil) free(stencil);
+  stencil = (int *) malloc(nmax*sizeof(int));
+
+  nstencil = 0;
+  for (k = 0; k <= nextz; k++) {
+    for (j = -nexty; j <= nexty; j++) {
+      for (i = -nextx; i <= nextx; i++) {
+	if (k > 0 || j > 0 || (j == 0 && i > 0)) {
+	  if (bindist(i,j,k) < cutneighsq) {
+	    stencil[nstencil] = k*mbiny*mbinx + j*mbinx + i;
+	    nstencil++;
+	  }
+	}
+      }
+    }
+  }
+
+  if (binhead) free(binhead);
+  mbins = mbinx*mbiny*mbinz;
+  binhead = (int *) malloc(mbins*sizeof(int));
+  return 0;
+*/
+}
+
+#endif //MD_NEIGHBOR_PBCC

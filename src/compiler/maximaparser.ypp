@@ -58,22 +58,25 @@ static void clearParserCaches(){
 %expect 0
 %name-prefix="maxima"
 %start Start
-
+%error-verbose
 %parse-param { petabricks::FormulaListPtr& ret };
 
-%token IPROMPT OPROMPT LE GE BOOL_T BOOL_F STR_EQUAL STR_FLOOR STR_CEILING
+%token IPROMPT OPROMPT LE GE BOOL_T BOOL_F STR_EQUAL STR_FLOOR STR_CEILING IF THEN ELSE
 %token <str> IDENT INTEGER FLOAT
 %type <b> Bool
 %type <i> Integer
 %type <d> Float
-%type <formula> Formula FormulaBinop
+%type <formula> Formula FormulaBinop FormulaIf
 %type <formulas> OutputContent OptFormulaList FormulaList
 
 
-%nonassoc '=' '<' '>' LE GE 
+%left AND OR
+%nonassoc '=' '<' '>' LE GE
+%right IF THEN ELSE
 %left '-' '+'
 %left '*' '/'
 %left '^'
+%right NOT
 
 %%
 
@@ -100,12 +103,16 @@ OutputContent: Formula                          { ($$=REFALLOC(FormulaList()))->
 ;
 
 
-Formula: IDENT   {$$=REFALLOC( FormulaVariable($1) ); }
-       | Integer {$$=REFALLOC( FormulaInteger( $1) ); }
-       | Bool    {$$=REFALLOC( FormulaBool($1) ); }
-       | Float   {$$=REFALLOC( FormulaFloat(  $1) );  }
+Formula: IDENT   { $$=REFALLOC( FormulaVariable($1) ); }
+       | Integer { $$=REFALLOC( FormulaInteger( $1) ); }
+       | Bool    { $$=REFALLOC( FormulaBool($1) ); }
+       | Float   { $$=REFALLOC( FormulaFloat(  $1) );  }
        | '(' Formula ')' { $$=$2; } 
-       | FormulaBinop    { $$=$1; };
+       | FormulaBinop    { $$=$1; }
+       | FormulaIf       { $$=$1; };
+
+FormulaIf: IF Formula THEN Formula { $$=REFALLOC( FormulaIf($2, $4)); }
+         | IF Formula THEN Formula ELSE Formula { $$=REFALLOC( FormulaIf($2, $4, $6)); };
 
 FormulaBinop: Formula '+' Formula { $$=REFALLOC(FormulaBinop<'+'>($1,$3)); }
             | Formula '-' Formula { $$=REFALLOC(FormulaBinop<'-'>($1,$3)); }
@@ -117,6 +124,8 @@ FormulaBinop: Formula '+' Formula { $$=REFALLOC(FormulaBinop<'+'>($1,$3)); }
             | Formula '^' Formula { $$=REFALLOC(FormulaBinop<'^'>($1,$3)); }
             | Formula LE  Formula { $$=REFALLOC(FormulaLE($1,$3)); }
             | Formula GE  Formula { $$=REFALLOC(FormulaGE($1,$3)); }
+            | Formula AND Formula { $$=REFALLOC(FormulaAnd($1,$3)); }
+            | Formula OR Formula { $$=REFALLOC(FormulaOr($1,$3)); }
             | STR_EQUAL '(' Formula ',' Formula ')' { $$=REFALLOC(FormulaBinop<'='>($3,$5)); }
             | STR_FLOOR   '(' Formula ')' { $$=$3; }
             | STR_CEILING '(' Formula ')' { $$=$3; }
