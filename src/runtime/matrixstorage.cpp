@@ -358,7 +358,6 @@ petabricks::MatrixStoragePtr petabricks::MatrixStorageInfo::processPending() {
   //TODO: how to deal with queue when region is on multiple gpus?
   CopyoutInfoPtr copy = new CopyoutInfo(_queue, this, _begins, _ends, _coverage);
   while(!copy->complete()) {}
-  //std::cout << "process Pending" << std::endl;
   //copy->getGpuOutputStoragePtr()->print();
   return copy->getGpuOutputStoragePtr();
 }

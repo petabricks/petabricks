@@ -121,6 +121,8 @@ public:
   ///
   /// Generate an OpenCL program implementing this rule
   void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef );
+  void collectGpuLocalMemoryData();
+  void generateLocalBuffers(Transform& trans, CLCodeGenerator& clo);
 #endif
 
   ///
@@ -288,6 +290,10 @@ private:
 
 #ifdef HAVE_OPENCL
   bool passBuildGpuProgram(Transform& trans);
+
+  std::map<std::string, std::string> _nameMap;
+  std::map<std::string, FormulaList> _minCoordOffsets;
+  std::map<std::string, FormulaList> _maxCoordOffsets;
 #endif
 
   RuleFlags _flags;

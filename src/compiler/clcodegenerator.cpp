@@ -144,14 +144,14 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   for(RegionList::const_iterator it = _to.begin(); it != _to.end(); ++it)
   {
     if((*it)->isBuffer()) {
-      for( int i = 0; i < (int) (*it)->size() - 1; ++i )
+      for( int i = 0; i < (int) (*it)->size() - 1; ++i ) //match with userrule
 	      os() << ", int dim_" << (*it)->name() << "_d" << i;
     }
   }
   for(RegionList::const_iterator it = _from.begin(); it != _from.end(); ++it)
   {
     if((*it)->isBuffer()) {
-      for( int i = 0; i < (int) (*it)->size() - 1; ++i )
+      for( int i = 0; i < (int) (*it)->size(); ++i ) //match with userrule
 	      os() << ", int dim_" << (*it)->name() << "_d" << i;
     }
   }

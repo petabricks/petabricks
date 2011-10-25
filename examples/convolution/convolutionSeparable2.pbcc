@@ -1,0 +1,58 @@
+#define KERNEL_RADIUS 8
+#define KERNEL_LENGTH 17
+
+transform convolutionRows
+from Input[w,h], Kernel[KERNEL_LENGTH]
+to Output[w,h]
+{
+  Output.cell(x,y) from(Input.region(x-8,y,x+9,y+1) input, Kernel kernel) {
+    double sum = 0;
+    for(int i = 0; i < KERNEL_LENGTH; i++){
+      sum += input.cell(i,0) * kernel.cell(i);
+    }
+    return sum;
+  }
+
+  Output.cell(x,y) from(Input input, Kernel kernel) {
+    double sum = 0;
+    for(int k = -8; k <= 8; k++){
+      int d = x + k;
+      if(d >= 0 && d < w)
+        sum += input.cell(d,y) * kernel.cell(8 + k);
+      }
+    return sum;
+  }
+}
+
+/*transform convolutionColumns
+from Input[w,h], Kernel[KERNEL_LENGTH]
+to Output[w,h]
+{
+  Output.cell(x,y) from(Input.region(x,y-8,x+1,y+9) input, Kernel kernel) {
+    double sum = 0;
+    for(int i = 0; i < KERNEL_LENGTH; i++){
+      sum += input.cell(0,i) * kernel.cell(i);
+    }
+    return sum;
+  }
+
+  Output.cell(x,y) from(Input input, Kernel kernel) {
+    double sum = 0;
+    for(int k = -8; k <= 8; k++){
+      int d = y + k;
+      if(d >= 0 && d < h)
+        sum += input.cell(x,d) * kernel.cell(8 + k);
+      }
+    return sum;
+  }
+}*/
+
+transform convolutionSeparable
+from Input[w,h], Kernel[KERNEL_LENGTH]
+to Output[w,h]
+{
+  to(Output out) from(Input in, Kernel kernel) using(buffer[w,h]){
+    convolutionRows(buffer, in, kernel);
+    convolutionColumns(out, buffer, kernel);
+  }
+}

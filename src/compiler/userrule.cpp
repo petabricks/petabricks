@@ -32,6 +32,10 @@
 #define TRACE JTRACE
 //#define GPU_TRACE 1
 
+#define BLOCK_SIZE 16
+#define BLOCK_SIZE_X 16
+#define BLOCK_SIZE_Y 16
+
 #include "userrule.h"
 
 #include "maximawrapper.h"
@@ -159,6 +163,8 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
     {
       _bodyir[RuleFlavor::OPENCL] = bodyir;
       _bodyir[RuleFlavor::OPENCL]->accept(openclfnreject);
+      collectGpuLocalMemoryData();
+      opencl.setLocalMemoryData(_nameMap, _minCoordOffsets, _maxCoordOffsets);
       _bodyir[RuleFlavor::OPENCL]->accept(opencl);
       _bodyir[RuleFlavor::OPENCL]->accept(gpurename);
       std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
@@ -203,6 +209,52 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
 }
 
 #ifdef HAVE_OPENCL
+void petabricks::UserRule::collectGpuLocalMemoryData() {
+
+  IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
+  unsigned int dim = iterdef.dimensions();
+  RegionList::const_iterator it = _to.begin( );
+
+  // Only use local memory when dimension <= 2;
+  if(dim > 2)
+    return;
+
+
+  for( RegionList::const_iterator it = _from.begin( ); it != _from.end( ); ++it )
+  {
+    if((*it)->dimensions() == dim && (*it)->getRegionType() != Region::REGION_CELL) {
+      SimpleRegionPtr region = _fromBoundingBox[(*it)->matrix()];
+      bool local = true;
+      FormulaList min, max;
+      for(int i = 0; i < (int) dim; i++) {
+        FormulaPtr difference = new FormulaSubtract(region->minCoord().at(i), getOffsetVar(i));
+        difference = MAXIMA.normalize(difference);
+        FreeVarsPtr vars = difference->getFreeVariables();
+        if(vars->size() > 0) {
+          local = false;
+          break;
+        }
+        min.push_back(difference);
+
+        difference = new FormulaSubtract(region->maxCoord().at(i), getOffsetVar(i));
+        difference = MAXIMA.normalize(difference);
+        vars = difference->getFreeVariables();
+        if(vars->size() > 0) {
+          local = false;
+          break;
+        }
+        max.push_back(difference);
+      }
+      if(local) {
+        std::string matrix = (*it)->matrix()->name();
+        _nameMap[(*it)->name()] = matrix;
+        _minCoordOffsets[matrix] = min;
+        _maxCoordOffsets[matrix] = max;
+      }
+    }
+  }
+}
+
 bool petabricks::UserRule::passBuildGpuProgram(Transform& trans) {
 	//return false;
   TrainingDeps* tmp = new TrainingDeps();
@@ -787,9 +839,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
         // Bind to kernel.
         o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(cl_mem), (void*)&devicebuf_" << (*i)->name( ) << " );\n\n";
-#ifdef DEBUG
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
-#endif
       }
     }
 
@@ -815,22 +865,16 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_USE_HOST_PTR, "
                 << "normalized_" << (*i)->name( ) << ".bytes( ),"
                 << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
-        #ifdef DEBUG
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
-        #endif
         o.elseIf();
 #endif
         o.write("std::cout << \"not use host_ptr\" << std::endl;");
         o.os( ) << "devicebuf_" << (*i)->name( ) 
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, "
                 << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";
-        #ifdef DEBUG
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
-        #endif
         o.write("err = clEnqueueWriteBuffer(OpenCLUtil::getQueue(0), devicebuf_"+ (*i)->name( ) +", CL_TRUE, 0, normalized_"+(*i)->name()+".bytes( ), normalized_"+ (*i)->name( )+".base( ), 0, NULL, NULL);");
-        #ifdef DEBUG
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to copy input memory object\");\n";
-        #endif
 
 #ifndef NVIDIA
         o.endIf();
@@ -875,7 +919,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     for( RegionList::const_iterator it = _from.begin( ); it != _from.end( ); ++it )
     {
       if((*it)->isBuffer()) {
-        for( int i = 0; i < (int) (*it)->size() - 1; ++i ) {
+        for( int i = 0; i < (int) (*it)->size(); ++i ) {
           o.os( ) << "int ruledim_in" << count << "_" << i << " = " << (*it)->matrix( )->name() << ".size(" << i << ");\n";
           o.os( ) << "err |= clSetKernelArg( clkern, " << arg_pos++ << ", sizeof(int), &ruledim_in" << count << "_" << i << " );\n";
         }
@@ -1258,7 +1302,7 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
   for( RegionList::const_iterator it = _from.begin( ); it != _from.end( ); ++it )
   {
     if((*it)->isBuffer()) {
-      for( int i = 0; i < (int) (*it)->size() - 1; ++i ) {
+      for( int i = 0; i < (int) (*it)->size(); ++i ) {
         o.os( ) << "int ruledim_in" << count << "_" << i << " = " << (*it)->matrix( )->name() << ".size(" << i << ");\n";
         o.os( ) << "err |= clSetKernelArg(clkern, " << arg_pos++ << ", sizeof(int), &ruledim_in" << count << "_" << i << " );\n";
       }
@@ -1295,9 +1339,40 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
     }
     o.os( ) << "};\n";
 
+
+    /*o.os() << "if(";
+    for( int i = 0; i < iterdef.dimensions( ); ++i )
+    {
+        if(i > 0) {
+          o.os() << " && ";
+        }
+      o.os( ) << "workdim[" << i << "] % localdim[" << i <<"] == 0";
+    }
+    o.os() << ") {\n";*/
+
     //o.os( ) << "std::cout << \"RUN GPU\" << std::endl;\n";
     //o.write("std::cout << \"queue = \" << GpuManager::_queue << std::endl;");
-    o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, " << iterdef.dimensions( ) << ", 0, workdim, NULL, 0, NULL, NULL );\n";
+    if(_minCoordOffsets.size() > 0) {
+      o.os( ) << "size_t localdim[] = { ";
+      for( int i = 0; i < iterdef.dimensions( ); ++i )
+      {
+        if(i > 0) {
+          o.os() << ", ";
+        }
+        if(i == 0)
+          o.os( ) << BLOCK_SIZE_X;
+        else
+          o.os( ) << BLOCK_SIZE_Y;
+        //o.os( ) << BLOCK_SIZE;
+      }
+      o.os( ) << "};\n";
+      o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, " << iterdef.dimensions( ) << ", 0, workdim, localdim, 0, NULL, NULL );\n";
+    }
+    //o.os() << "} else {\n";
+    else {
+      o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, " << iterdef.dimensions( ) << ", 0, workdim, NULL, 0, NULL, NULL );\n";
+    }
+    //o.os() << "}\n";
     o.write("clFinish(GpuManager::_queue);"); //TODO:clFlush but need to make sure we don't change kernel args before it runs
 
     #ifndef OPENCL_LOGGING
@@ -1366,6 +1441,10 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
 
   // Define Sizes
   //trans.extractOpenClSizeDefines(clo, iterdef.dimensions());
+
+  // Use local memory
+  if(_minCoordOffsets.size() > 0)
+    generateLocalBuffers(trans,clo);
 
   // Conditional to ensure we are about to work on a valid part of the buffer.
   if(iterdef.dimensions()>0)
@@ -1504,6 +1583,146 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   if(iterdef.dimensions()>0)
     clo.os( ) << "}\n";
   clo.endKernel( );
+}
+
+void petabricks::UserRule::generateLocalBuffers(Transform& trans, CLCodeGenerator& clo) {
+  IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
+
+  for( int i = 0; i < iterdef.dimensions( ); ++i ) {
+    std::string var;
+    if(i==0) var = "x";
+    else     var = "y";
+    clo.os( ) << "unsigned int " << var << "_local = get_local_id( " << i << " );\n";
+  }
+
+  clo.os() << "unsigned int _x_ = " << _getOffsetVarStr( _id, 0, NULL ) << ";\n";
+  if(iterdef.dimensions() == 2) 
+    clo.os() << "unsigned int _y_ = " << _getOffsetVarStr( _id, 1, NULL ) << ";\n";
+
+  for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
+  {
+    if((*i)->isBuffer()) {
+      std::string matrix = (*i)->matrix()->name();
+      if(_minCoordOffsets.find(matrix) != _minCoordOffsets.end()){
+        //FormulaList min = _minCoordOffsets[matrix];
+        //FormulaList max = _minCoordOffsets[matrix];
+        for(int d = 0; d < iterdef.dimensions( ); d++) {
+          clo.os( ) << "int " << matrix << jalib::XToString(d) << "_minoffset = -(" << _minCoordOffsets[matrix][d] << ");\n";
+          clo.os( ) << "int " << matrix << jalib::XToString(d) << "_maxoffset = " << _maxCoordOffsets[matrix][d] << " - 1;\n";
+        }
+
+        clo.os() << "__local " << STRINGIFY( MATRIX_ELEMENT_T ) << " buff_" << matrix;
+        for(int d = iterdef.dimensions( ) - 1; d >= 0; d--) {
+          int block_size;
+          if(d==0)
+            block_size = BLOCK_SIZE_X;
+          else
+            block_size = BLOCK_SIZE_Y;
+          FormulaPtr formula = new FormulaSubtract(_maxCoordOffsets[matrix][d], _minCoordOffsets[matrix][d]);
+          formula = new FormulaAdd(new FormulaLiteral<int>(block_size - 1),formula);
+          clo.os() << "[" << MAXIMA.normalize(formula) << "]";
+        }
+        clo.os() << ";\n";
+
+        if(iterdef.dimensions( )==1) {
+          clo.os() << "for(int i = -" << matrix << "0_minoffset; i < 0; i += " << BLOCK_SIZE << ") {\n";
+          clo.os() << "  if(_x_ + i >= 0)\n";
+          clo.os() << "    buff_" << matrix << "[x_local + " << matrix << "0_minoffset + i] = "
+                                  << "_region_" << (*i)->name() << "[_x_ + i];\n";
+          clo.os() << "}\n";
+          clo.os() << "for(int i = " << matrix << "0_maxoffset; i > 0; i -= " << BLOCK_SIZE << ") {\n";
+          clo.os() << "  if(_x_ + i < dim_" << (*i)->name() << "_d0)\n";
+          clo.os() << "    buff_" << matrix << "[x_local + " << matrix << "0_minoffset + i] = "
+                                  << "_region_" << (*i)->name() << "[_x_ + i];\n";
+          clo.os() << "}\n";
+          clo.os() << "    buff_" << matrix << "[x_local + " << matrix << "0_minoffset] = "
+                                  << "_region_" << (*i)->name() << "[_x_];\n";
+        }
+        else {
+          // Middle region
+          //clo.os() << "int j = 0;\n";
+          clo.os() << "for(int i = -" << matrix << "0_minoffset; i < 0; i += " << BLOCK_SIZE << ") {\n";
+          clo.os() << "  if(_x_ + i >= 0)\n";
+          clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset]"
+                                  << "[x_local + " << matrix << "0_minoffset + i] = "
+                                  << "_region_" << (*i)->name()
+                                  << "[(_y_) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "_x_ + i];\n";
+          clo.os() << "}\n";
+          clo.os() << "for(int i = " << matrix << "0_maxoffset; i > 0; i -= " << BLOCK_SIZE << ") {\n";
+          clo.os() << "  if(_x_ + i < dim_" << (*i)->name() << "_d0)\n";
+          clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset]"
+                                  << "[x_local + " << matrix << "0_minoffset + i] = "
+                                  << "_region_" << (*i)->name()
+                                  << "[(_y_) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "_x_ + i];\n";
+          clo.os() << "}\n";
+          clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset]"
+                                  << "[x_local + " << matrix << "0_minoffset] = "
+                                  << "_region_" << (*i)->name()
+                                  << "[(_y_) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "_x_];\n";
+
+          // Top region
+          clo.os() << "for(int j = -" << matrix << "1_minoffset; j < 0; j += " << BLOCK_SIZE << ") {\n";
+          clo.os() << "if(_y_ + j >= 0) {\n";
+          clo.os() << "for(int i = -" << matrix << "0_minoffset; i < 0; i += " << BLOCK_SIZE << ") {\n";
+          clo.os() << "  if(_x_ + i >= 0)\n";
+          clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
+                                  << "[x_local + " << matrix << "0_minoffset + i] = "
+                                  << "_region_" << (*i)->name()
+                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "_x_ + i];\n";
+          clo.os() << "}\n";
+          clo.os() << "for(int i = " << matrix << "0_maxoffset; i > 0; i -= " << BLOCK_SIZE << ") {\n";
+          clo.os() << "  if(_x_ + i < dim_" << (*i)->name() << "_d0)\n";
+          clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
+                                  << "[x_local + " << matrix << "0_minoffset + i] = "
+                                  << "_region_" << (*i)->name()
+                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "_x_ + i];\n";
+          clo.os() << "}\n";
+          clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
+                                  << "[x_local + " << matrix << "0_minoffset] = "
+                                  << "_region_" << (*i)->name()
+                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "_x_];\n";
+          clo.os() << "}\n";
+          clo.os() << "}\n";
+
+          // Bottom region
+          clo.os() << "for(int j = " << matrix << "1_maxoffset; j > 0; j -= " << BLOCK_SIZE << ") {\n";
+          clo.os() << "if(_y_ + j < dim_" << (*i)->name() << "_d1) {\n";
+          clo.os() << "for(int i = -" << matrix << "0_minoffset; i < 0; i += " << BLOCK_SIZE << ") {\n";
+          clo.os() << "  if(_x_ + i >= 0)\n";
+          clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
+                                  << "[x_local + " << matrix << "0_minoffset + i] = "
+                                  << "_region_" << (*i)->name()
+                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "_x_ + i];\n";
+          clo.os() << "}\n";
+          clo.os() << "for(int i = " << matrix << "0_maxoffset; i > 0; i -= " << BLOCK_SIZE << ") {\n";
+          clo.os() << "  if(_x_ + i < dim_" << (*i)->name() << "_d0)\n";
+          clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
+                                  << "[x_local + " << matrix << "0_minoffset + i] = "
+                                  << "_region_" << (*i)->name()
+                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "_x_ + i];\n";
+          clo.os() << "}\n";
+          clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
+                                  << "[x_local + " << matrix << "0_minoffset] = "
+                                  << "_region_" << (*i)->name()
+                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "_x_];\n";
+          clo.os() << "}\n";
+          clo.os() << "}\n";
+
+        } // endif 2D
+
+      } // endif gernerate buffer
+    }
+  }
+  clo.os() << "barrier(CLK_LOCAL_MEM_FENCE);\n";
 }
 
 #endif
