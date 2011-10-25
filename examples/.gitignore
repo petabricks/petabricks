@@ -8,6 +8,7 @@ convolution2/Convolution
 convolution2/FFTRecursion
 convolution/ConvolutionFFT
 convolution/Convolution
+convolution/convolutionSeparable2
 convolution/convolutionSeparable
 detTD/detmatmulprefix
 detTD/detTD
@@ -144,6 +145,7 @@ regression/optional
 regression/outputsizeacc
 regression/padding
 regression/params
+regression/permuteerr
 regression/recursive
 regression/regiondependence
 regression/ruleconstants
