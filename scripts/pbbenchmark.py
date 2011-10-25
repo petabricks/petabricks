@@ -208,8 +208,7 @@ def main():
   pbutil.compilePetabricks()
 
   global REV
-  #REV=pbutil.getRevision()
-  REV="unknown"
+  REV=pbutil.gitRevision()
 
   r, lines = pbutil.loadAndCompileBenchmarks("./scripts/pbbenchmark.tests", learning=options.learning, heuristicSetFileName=options.heuristics)
 

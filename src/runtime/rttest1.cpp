@@ -37,6 +37,8 @@ PetabricksRuntime::Main* petabricksMainTransform(){
 PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
+void _petabricksInit() {}
+void _petabricksCleanup() {}
 
 RemoteObjectPtr gen() {
   class TestRemoteObject : public petabricks::RemoteObject {

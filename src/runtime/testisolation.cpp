@@ -144,8 +144,8 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads, int reexe
 #ifdef HAVE_OPENCL
     GpuManager::start();
 #endif
-    DynamicScheduler::cpuScheduler().startWorkerThreads(workerThreads);
     _settestprocflags();
+    PetabricksRuntime::startWorkerThreads(workerThreads);
     jalib::JTunable::setModificationCallback(this); 
     theMasterProcess=this;
     //JTRACE("child starting");

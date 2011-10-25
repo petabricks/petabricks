@@ -53,6 +53,7 @@ void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf
 
   // Create init function call
   o.beginFunc("int", codename()+"_init", std::vector<std::string>(),false);
+  trans.addInitCall(codename()+"_init");
 
   _rule->generateOpenCLKernel( trans, clcodegen, iterdef );
   
@@ -90,7 +91,7 @@ void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf
   o.write("std::cout << \"---build kernel---\" << std::endl;");
 #endif
 
-  o.os( ) << "return 0;";
+  o.os( ) << "return 0;\n";
   o.endFunc();
 
   // Create actual function call
@@ -101,17 +102,23 @@ void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf
 
   // Get kernel
   o.beginFunc("cl_kernel", "get_kernel_" + jalib::XToString(_rule->id()));
-  o.beginIf("clkern_" + jalib::XToString(_rule->id()) + " == 0");
-  o.call(codename() + "_init" , std::vector<std::string>());
-  o.endIf();
+ //o.beginIf("clkern_" + jalib::XToString(_rule->id()) + " == 0");
+ //o.call(codename() + "_init" , std::vector<std::string>());
+ //o.endIf();
+#ifdef DEBUG
+  o.write("JASSERT(clkern_" + jalib::XToString(_rule->id()) + " != 0);");
+#endif
   o.write("return clkern_" + jalib::XToString(_rule->id()) + ";");
   o.endFunc();
 
   // Get program
   o.beginFunc("cl_program", "get_program_" + jalib::XToString(_rule->id()));
-  o.beginIf("clprog_" + jalib::XToString(_rule->id()) + " == 0");
-  o.call(codename() + "_init" , std::vector<std::string>());
-  o.endIf();
+ //o.beginIf("clprog_" + jalib::XToString(_rule->id()) + " == 0");
+ //o.call(codename() + "_init" , std::vector<std::string>());
+ //o.endIf();
+#ifdef DEBUG
+  o.write("JASSERT(clprog_" + jalib::XToString(_rule->id()) + " != 0);");
+#endif
   o.write("return clprog_" + jalib::XToString(_rule->id()) + ";");
   o.endFunc();
   

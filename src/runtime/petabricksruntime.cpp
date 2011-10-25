@@ -411,12 +411,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     case MODE_DISTRIBUTED_SLAVE:
       //startup requested number of threads
       if(MODE!=MODE_GRAPH_THREADS && MODE!=MODE_ABORT){
-#ifdef HAVE_OPENCL
-        GpuManager::start();
-#endif
-        JTIMER_SCOPE(startworkers);
-        JASSERT(worker_threads>=1)(worker_threads);
-        DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
+        startWorkerThreads(worker_threads);
       }
     case MODE_ABORT:
     case MODE_HELP:
@@ -433,6 +428,16 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
 
   JASSERT(MODE==MODE_RUN_IO||MODE==MODE_DISTRIBUTED_SLAVE||txArgs.size()==0)(txArgs.size())
     .Text("too many arguments");
+}
+
+void petabricks::PetabricksRuntime::startWorkerThreads(int worker_threads) {
+  JTIMER_SCOPE(startworkers);
+#ifdef HAVE_OPENCL
+  GpuManager::start();
+#endif
+  JASSERT(worker_threads>=1)(worker_threads);
+  DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
+  _petabricksInit();
 }
 
 void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char** argv) {
@@ -483,6 +488,7 @@ void petabricks::PetabricksRuntime::distributedSlaveLoop() {
 petabricks::PetabricksRuntime::~PetabricksRuntime()
 {
   saveConfig();
+  _petabricksCleanup();
 #ifdef HAVE_OPENCL
   GpuManager::shutdown();
 #endif

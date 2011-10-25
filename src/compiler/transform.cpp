@@ -844,19 +844,15 @@ void petabricks::Transform::registerMainInterface(CodeGenerator& o){
   }
 }
 
-#ifdef HAVE_OPENCL
-void petabricks::Transform::generateReleaseGpuObjectsCode(CodeGenerator& /*o*/){
-  /*SRCPOSSCOPE();
-  if(_templateargs.empty()){
-    o.write(name()+"_instance::releaseGpuObjects();");
-  }else{
-    size_t choiceCnt = tmplChoiceCount();
-    for(size_t c=0; c<choiceCnt; ++c){
-      o.write(tmplName(c)+"_instance::releaseGpuObjects();");
-    }
-  }*/
+void petabricks::Transform::generateInitCleanup(CodeGenerator& init, CodeGenerator& /*cleanup*/){
+  SRCPOSSCOPE();
+
+  std::vector<std::string>::const_iterator i;
+  for(i=_initCalls.begin(); i!=_initCalls.end(); ++i) {
+    init.call(*i, "");
+  }
+
 }
-#endif
 
 void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::string& nextMain){
   SRCPOSSCOPE();
