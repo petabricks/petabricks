@@ -3,6 +3,11 @@ import ply.lex as lex
 import ply.yacc as yacc
 from ply.lex import TOKEN
 from formula import *
+import os
+
+ODIR = "scripts"
+if not os.path.isdir(ODIR):
+  ODIR = "."
 
 # ----------------------- LEXER --------------------------
 WS = r'[ \r\n\t]'
@@ -176,7 +181,7 @@ def p_error(p):
 #Build the lexer
 lex.lex()
 #Build the parser
-parser = yacc.yacc()
+parser = yacc.yacc(debug=False, tabmodule="_maximaparser", outputdir=ODIR)
 
 
 #-------------- External interface ------------
