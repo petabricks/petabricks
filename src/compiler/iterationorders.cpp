@@ -214,13 +214,53 @@ void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& 
   if(!isStatic) o.write("return petabricks::run_task(_split_task);");
   else          o.write("return NULL;");
 }
+#if 0
+void petabricks::IterationDefinition::fillSplitRegionList(SplitRegionList& regions, SplitRegion& r) const {
+  int d = r.dimensions();
+  if(d<dimensions()) {
+    int numBlocks = 2;
+    FormulaPtr globalBegin = _begin[d];
+    FormulaPtr globalEnd = _end[d];
+    
+    // nthPart= (begin+end)/n
+    FormulaPtr nthPart = new FormulaDivide (new FormulaAdd(globalBegin, globalEnd), new FormulaInteger(numBlocks));
+    
+    //First block
+    FormulaPtr begin = globalBegin;
+    FormulaPtr end = nthPart;
+    r.push_back(begin, end, true);
+    fillSplitRegionList(regions, r);
+    r.pop_back();
+    JTRACE("limits")(begin)(end);
+    //Other blocks
+    for(int i=1; i<numBlocks; ++i) {
+      begin = new FormulaMultiply(nthPart, new FormulaInteger(i));
+      if (i+1 == numBlocks) {
+        end = globalEnd;
+      }
+      else {
+        end = new FormulaMultiply(nthPart, new FormulaInteger(i+1));
+      }
+      JTRACE("limits")(begin)(end);
+      r.push_back(begin, end, true);
+      fillSplitRegionList(regions, r);
+      r.pop_back();
+    }
+  }
+  else {
+    regions.push_back(r);
+  }
+}
+#endif
 
 void petabricks::IterationDefinition::fillSplitRegionList(SplitRegionList& regions, SplitRegion& r) const {
   int d = r.dimensions();
+  JTRACE("Input")(r)(d)(dimensions());
   if(d<dimensions()){
     FormulaPtr begin = _begin[d];
     FormulaPtr mid = new FormulaDivide( new FormulaAdd( _begin[d], _end[d] ), FormulaInteger::two());
     FormulaPtr end = _end[d];
+    JTRACE("limits")(begin)(mid)(end);
     r.push_back(begin, mid, true);
     fillSplitRegionList(regions, r);
     r.pop_back();
@@ -231,6 +271,7 @@ void petabricks::IterationDefinition::fillSplitRegionList(SplitRegionList& regio
     regions.push_back(r);
   }
 }
+
 
 bool petabricks::IterationDefinition::canDependOn(const SplitRegion& a, const SplitRegion& b) const {
   JASSERT(a.size()==b.size());
