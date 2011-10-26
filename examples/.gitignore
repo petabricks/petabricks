@@ -169,6 +169,7 @@ simple/bufferrotate2
 simple/bufferrotate
 simple/cholesky
 simple/copy
+simple/dotprod
 simple/matrixrotate
 simple/minimalmatmul
 simple/norm
