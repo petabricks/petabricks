@@ -1,0 +1,37 @@
+#ifndef ATOM_PBCC
+#define ATOM_PBCC
+
+#define DELTA 20000
+
+function addatom
+from
+to
+//void Atom::addatom(double x_in, double y_in, double z_in, 
+//		   double vx_in, double vy_in, double vz_in)
+{
+  if (nlocal == nmax) growarray();
+
+  x[nlocal][0] = x_in;
+  x[nlocal][1] = y_in;
+  x[nlocal][2] = z_in;
+  v[nlocal][0] = vx_in;
+  v[nlocal][1] = vy_in;
+  v[nlocal][2] = vz_in;
+
+  nlocal++;
+}
+
+void Atom::growarray()
+{
+  int nold = nmax;
+  nmax += DELTA;
+  x = (double **) realloc_2d_double_array(x,nmax,3,3*nold);
+  v = (double **) realloc_2d_double_array(v,nmax,3,3*nold);
+  f = (double **) realloc_2d_double_array(f,nmax,3,3*nold);
+  vold = (double **) realloc_2d_double_array(vold,nmax,3,3*nold);
+  if (x == NULL || v == NULL || f == NULL || vold == NULL) {
+    printf("ERROR: No memory for atoms\n");
+  }
+}
+
+#endif //ATOM_PBCC
