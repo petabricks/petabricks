@@ -26,6 +26,7 @@
  *****************************************************************************/
 
 #include "dbmanager.h"
+#include "common/jfilesystem.h"
 #include <fstream>
 
 namespace {
@@ -53,13 +54,6 @@ namespace {
     *((petabricks::HeuristicPtr *)result) = newHeuristic;
     return 0;
   }
-  
-  /** Check whether file exists */
-  bool fexists(std::string filename)
-  {
-    std::ifstream ifile(filename.c_str());
-    return ifile;
-  }
 }
 
 petabricks::DBManager::DBManager(std::string dbFileName) : emptyDB(false) {
@@ -70,12 +64,17 @@ petabricks::DBManager::DBManager(std::string dbFileName) : emptyDB(false) {
   }
   
   //Check if DB exists
-  if(! fexists(dbFileName)) {
+  if(! jalib::Filesystem::FileExists(dbFileName)) {
     emptyDB = true;
   }
     
   //Open DB
   retCode = sqlite3_open(dbFileName.c_str(), &_db);
+
+  if(retCode && emptyDB) {
+    retCode = sqlite3_open(":memory:", &_db);
+  }
+
   if(retCode) {
     std::cerr << "Can't open DB: " << dbFileName << "\n";
     sqlite3_close(_db);

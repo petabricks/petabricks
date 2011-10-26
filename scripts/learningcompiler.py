@@ -35,7 +35,7 @@ class HeuristicDB:
     try:
       self.__db = sqlite3.connect(self.computeDBPath())
     except:
-      self.__db = sqlite3.connects(":memory:")
+      self.__db = sqlite3.connect(":memory:")
     self.__createTables()
     self.__bestNCache= dict()
     
