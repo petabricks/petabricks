@@ -172,7 +172,7 @@ OpenCLUtil::init( )
       clGetDeviceInfo( device_ids[i], CL_DEVICE_LOCAL_MEM_SIZE,
 		       sizeof(dev_info->local_mem_size), &dev_info->local_mem_size, NULL );
 
-      std::cout << "local mem size = " << dev_info->local_mem_size << std::endl;
+      //std::cout << "local mem size = " << dev_info->local_mem_size << std::endl;
       // Queue properties
       cl_command_queue_properties queue_props;
       clGetDeviceInfo( device_ids[i], CL_DEVICE_QUEUE_PROPERTIES,
