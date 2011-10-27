@@ -442,7 +442,7 @@ namespace {
 bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* clsrc) {
   std::string cachefile = srcToCacheFile(clsrc);
   cl_int err;
-
+#ifndef MAC
   size_t num_devices = 0;
   size_t binSize[MAX_DEVICES];
   unsigned char* binary[MAX_DEVICES];
@@ -457,20 +457,11 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
     JASSERT(platform != NULL);
     
     cl_uint device_count;
-#ifdef MAC
     JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) ).Text("Failed to get device count");
    
     // Get device IDs.
     cl_device_id* device_ids = new cl_device_id[ device_count ];
     JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, &device_count ) ).Text("Failed to get device IDs");
-#else
-    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) ).Text("Failed to get device count");
-   
-    // Get device IDs.
-    cl_device_id* device_ids = new cl_device_id[ device_count ];
-    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, &device_count ) ).Text("Failed to get device IDs");
-#endif
-
 
     num_devices = device_count;
     JASSERT(num_devices < MAX_DEVICES);
@@ -505,6 +496,7 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
 
     return true;
   }
+#endif
 
   // Build program.
   clprog = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );
