@@ -107,23 +107,28 @@ OpenCLUtil::init( )
     return -1;
 
   // Get device count.
-  //cl_uint device_count;
-  //if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) )
-  //  return -1;
+  cl_uint device_count = 1;
+  /*#ifdef NVIDIA || MAC
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, 0, NULL, &device_count ) )
+    return -1;
+#else
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) )
+    return -1;
+    #endif*/
 
-  // Get device IDs.
-  cl_device_id* device_ids = new cl_device_id[1];
+  //Get device IDs.
+  cl_device_id* device_ids = new cl_device_id[device_count];
 #ifdef NVIDIA || MAC
-  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, 1, device_ids, NULL) )
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, device_count, device_ids, NULL) )
     return -2;
 #else  
-  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 1, device_ids, NULL) )
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, NULL) )
   return -2;
 #endif
 
 
   // Create context.
-  if( (cl_context)0 == ( context = clCreateContext(0, 1, device_ids, &pfn_notify, NULL, &err) ) )
+  if( (cl_context)0 == ( context = clCreateContext(0, device_count, device_ids, &pfn_notify, NULL, &err) ) )
     return -3;
   if( CL_SUCCESS != err )
     return -5;
@@ -133,7 +138,7 @@ OpenCLUtil::init( )
   #endif
 
   // Get device-specific information.
-  for( cl_uint i = 0; i < 1; ++i )
+  for( cl_uint i = 0; i < device_count; ++i )
     {
       devices.push_back( OpenCLDevice( device_ids[i] ) );
       #if OPENCL_TRACE
@@ -448,16 +453,17 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
   // Source for kernel.
   cl_context ctx = OpenCLUtil::getContext();
 
+#ifndef MAC
   if(jalib::Filesystem::FileExists(cachefile + "_0")) {
     cl_platform_id platform = getPlatform();
     JASSERT(platform != NULL);
     
     cl_uint device_count;
-    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) ).Text("Failed to get device count");
+    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, 0, NULL, &device_count ) ).Text("Failed to get device count");
    
     // Get device IDs.
     cl_device_id* device_ids = new cl_device_id[ device_count ];
-    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, &device_count ) ).Text("Failed to get device IDs");
+    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, device_count, device_ids, &device_count ) ).Text("Failed to get device IDs");
 
 
     num_devices = device_count;
@@ -492,7 +498,8 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
     //JTRACE("cache hit");
 
     return true;
-  }
+    }
+#endif
 
   // Build program.
   clprog = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );
