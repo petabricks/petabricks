@@ -446,6 +446,8 @@ void petabricks::StaticScheduler::generateSchedule(){
   for(ChoiceDepGraphNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i){
     _choices.addConsumer(i->asPtr());
   }
+  _choices.pruneChoiceSpace();
+  JASSERT(_choices.size()<1000)(_choices.size()).Text("WAY TOO MANY CHOICES");
   for(RuleChoiceCollection::iterator choice=_choices.begin(); choice!=_choices.end(); ++choice) {
     _dbgpath = dbgpathorig+".schedule"+jalib::XToString(choice);
     try {
