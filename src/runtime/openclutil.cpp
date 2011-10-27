@@ -44,7 +44,7 @@ namespace petabricks
 bool OpenCLUtil::has_init = false;
 std::vector<OpenCLDevice> OpenCLUtil::devices;
 cl_context OpenCLUtil::context;
-unsigned int OpenCLUtil::active_device = 0;
+  unsigned int OpenCLUtil::active_device = 0;
 
 
 void OpenCLUtil::pfn_notify(const char *errinfo, const void* /*private_info*/, size_t /*cb*/, void* /*user_data*/){
@@ -107,25 +107,24 @@ OpenCLUtil::init( )
     return -1;
 
   // Get device count.
-  cl_uint device_count = 1;
-  /*#ifdef NVIDIA || MAC
+  cl_uint device_count;
+#ifdef MAC
   if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, 0, NULL, &device_count ) )
     return -1;
+
+  // Get device IDs.
+  cl_device_id* device_ids = new cl_device_id[ device_count ];
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, device_count, device_ids, &device_count ) )
+    return -2;
 #else
   if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) )
     return -1;
-    #endif*/
 
-  //Get device IDs.
-  cl_device_id* device_ids = new cl_device_id[device_count];
-#ifdef NVIDIA || MAC
-  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, device_count, device_ids, NULL) )
+  // Get device IDs.
+  cl_device_id* device_ids = new cl_device_id[ device_count ];
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, &device_count ) )
     return -2;
-#else  
-  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, NULL) )
-  return -2;
 #endif
-
 
   // Create context.
   if( (cl_context)0 == ( context = clCreateContext(0, device_count, device_ids, &pfn_notify, NULL, &err) ) )
@@ -173,7 +172,7 @@ OpenCLUtil::init( )
       clGetDeviceInfo( device_ids[i], CL_DEVICE_LOCAL_MEM_SIZE,
 		       sizeof(dev_info->local_mem_size), &dev_info->local_mem_size, NULL );
 
-      //std::cout << "local mem size = " << dev_info->local_mem_size << std::endl;
+      std::cout << "local mem size = " << dev_info->local_mem_size << std::endl;
       // Queue properties
       cl_command_queue_properties queue_props;
       clGetDeviceInfo( device_ids[i], CL_DEVICE_QUEUE_PROPERTIES,
@@ -453,17 +452,24 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
   // Source for kernel.
   cl_context ctx = OpenCLUtil::getContext();
 
-#ifndef MAC
   if(jalib::Filesystem::FileExists(cachefile + "_0")) {
     cl_platform_id platform = getPlatform();
     JASSERT(platform != NULL);
     
     cl_uint device_count;
-    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, 0, NULL, &device_count ) ).Text("Failed to get device count");
+#ifdef MAC
+    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) ).Text("Failed to get device count");
    
     // Get device IDs.
     cl_device_id* device_ids = new cl_device_id[ device_count ];
-    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, device_count, device_ids, &device_count ) ).Text("Failed to get device IDs");
+    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, &device_count ) ).Text("Failed to get device IDs");
+#else
+    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) ).Text("Failed to get device count");
+   
+    // Get device IDs.
+    cl_device_id* device_ids = new cl_device_id[ device_count ];
+    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, &device_count ) ).Text("Failed to get device IDs");
+#endif
 
 
     num_devices = device_count;
@@ -498,8 +504,7 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
     //JTRACE("cache hit");
 
     return true;
-    }
-#endif
+  }
 
   // Build program.
   clprog = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );
