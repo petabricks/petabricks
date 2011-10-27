@@ -52,12 +52,12 @@ void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf
 	  << " = 0;\n";
 
   // Create init function call
-  o.beginFunc("int", codename()+"_init", std::vector<std::string>(),false);
+  o.beginFunc("void", codename()+"_init", std::vector<std::string>(),false);
   trans.addInitCall(codename()+"_init");
 
   _rule->generateOpenCLKernel( trans, clcodegen, iterdef );
   
-  o.os( ) << "cl_int err;";
+ // o.os( ) << "cl_int err;";
 
   //o.os( ) << "/* -- Testing purposes only, to make this easy to read --\n\n";
   //clcodegen.outputStringTo( o.os( ) );
@@ -67,31 +67,35 @@ void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf
   clcodegen.outputEscapedStringTo( o.os( ) );
   o.os( ) << ";\n";
 
-  o.comment( "Source for kernel." );
-  o.os( ) << "cl_context ctx = OpenCLUtil::getContext( );\n\n";
+  o.os() << "bool rv = OpenCLUtil::buildKernel(clprog_" << _rule->id() <<", clkern_" << _rule->id() << ", clsrc);\n";
+  o.os() << "JASSERT(rv);\n";
 
-  o.comment( "Build program." );
-  o.os( ) << "size_t programlength = strlen( clsrc );\n";
 
-  o.os( ) << "clprog_" << _rule->id() << " = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );\n";
-  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create program.\" );\n\n";
-  o.os( ) << "err = clBuildProgram( clprog_" << _rule->id() << ", 0, NULL, NULL, NULL, NULL);\n";
-#ifdef GPU_TRACE
-  o.os( ) << "std::cerr << \"clBuildProgram err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
-#endif
-  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to build program.\" );\n\n";
-
-  o.comment( "Create kernel." );
-  o.os( ) << "clkern_" << _rule->id() << "= clCreateKernel( clprog_" << _rule->id() << ", \"kernel_main\", &err );\n";
-#ifdef GPU_TRACE
-  o.os( ) << "std::cerr << \"clCreateKernel err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
-#endif
-  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create kernel.\" );\n\n";
-#ifdef GPU_TRACE
-  o.write("std::cout << \"---build kernel---\" << std::endl;");
-#endif
-
-  o.os( ) << "return 0;\n";
+///o.comment( "Source for kernel." );
+///o.os( ) << "cl_context ctx = OpenCLUtil::getContext( );\n\n";
+///
+///o.comment( "Build program." );
+///o.os( ) << "size_t programlength = strlen( clsrc );\n";
+///
+///o.os( ) << "clprog_" << _rule->id() << " = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );\n";
+///o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create program.\" );\n\n";
+///o.os( ) << "err = clBuildProgram( clprog_" << _rule->id() << ", 0, NULL, NULL, NULL, NULL);\n";
+///fdef GPU_TRACE
+///o.os( ) << "std::cerr << \"clBuildProgram err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
+///ndif
+///o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to build program.\" );\n\n";
+///
+///o.comment( "Create kernel." );
+///o.os( ) << "clkern_" << _rule->id() << "= clCreateKernel( clprog_" << _rule->id() << ", \"kernel_main\", &err );\n";
+///fdef GPU_TRACE
+///o.os( ) << "std::cerr << \"clCreateKernel err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
+///ndif
+///o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create kernel.\" );\n\n";
+///fdef GPU_TRACE
+///o.write("std::cout << \"---build kernel---\" << std::endl;");
+///ndif
+///
+///o.os( ) << "return 0;\n";
   o.endFunc();
 
   // Create actual function call
