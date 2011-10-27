@@ -442,7 +442,6 @@ namespace {
 bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* clsrc) {
   std::string cachefile = srcToCacheFile(clsrc);
   cl_int err;
-#ifndef MAC
   size_t num_devices = 0;
   size_t binSize[MAX_DEVICES];
   unsigned char* binary[MAX_DEVICES];
@@ -452,6 +451,7 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
   // Source for kernel.
   cl_context ctx = OpenCLUtil::getContext();
 
+#ifndef MAC
   if(jalib::Filesystem::FileExists(cachefile + "_0")) {
     cl_platform_id platform = getPlatform();
     JASSERT(platform != NULL);
