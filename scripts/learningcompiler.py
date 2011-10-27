@@ -32,7 +32,10 @@ config.max_time=30 #Seconds
 class HeuristicDB:
   def __init__(self):
     #Open DB    
-    self.__db = sqlite3.connect(self.computeDBPath())
+    try:
+      self.__db = sqlite3.connect(self.computeDBPath())
+    except:
+      self.__db = sqlite3.connect(":memory:")
     self.__createTables()
     self.__bestNCache= dict()
     

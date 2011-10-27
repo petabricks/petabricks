@@ -32,8 +32,8 @@
 #define TRACE JTRACE
 //#define GPU_TRACE 1
 
-#define BLOCK_SIZE_X 4
-#define BLOCK_SIZE_Y 4
+#define BLOCK_SIZE_X 16
+#define BLOCK_SIZE_Y 16
 
 #include "userrule.h"
 
@@ -1372,7 +1372,6 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
           o.os( ) << BLOCK_SIZE_X;
         else
           o.os( ) << BLOCK_SIZE_Y;
-        //o.os( ) << BLOCK_SIZE;
       }
       o.os( ) << "};\n";
       o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, " << iterdef.dimensions( ) << ", 0, workdim, localdim, 0, NULL, NULL );\n";
@@ -1493,7 +1492,6 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
   {
     // Build & normalize formula for index.
-//<<<<<<< HEAD
 
     FormulaPtr idx_formula;
     switch((*i)->getRegionType()) {
