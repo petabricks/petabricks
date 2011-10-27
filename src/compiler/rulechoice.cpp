@@ -27,6 +27,7 @@
 #include "rulechoice.h"
 
 #include "codegenerator.h"
+#include "maximawrapper.h"
 #include "rule.h"
 #include "scheduler.h"
 #include "syntheticrule.h"
@@ -58,11 +59,25 @@ petabricks::RuleChoiceAssignment petabricks::RuleChoiceCollection::getAssignment
       for(RuleSet::const_iterator r=rs.begin(); r!=rs.end(); ++r){
         if(c--==0) {
           a[*i] = *r;
+          break;
         }
       }
     } else {
-      JASSERT(comb->second->choices() == (*i)->choices());
-      a[*i] = a[comb->second];
+      const RuleSet& rsb = comb->second->choices();
+      JASSERT(rs.size()==rsb.size());
+
+      //if they were the same RuleSet we could do:
+      //a[*i] = a[comb->second];
+
+      RuleSet::const_iterator r;
+      RuleSet::const_iterator rb;
+      for(r=rs.begin(), rb=rsb.begin(); r!=rs.end() && rb!=rsb.end(); ++r, ++rb){
+        if(*rb == a[comb->second]){
+          //found the corresponding rule in this choice site
+          a[*i] = *r;
+          break;
+        }
+      }
     }
     JASSERT(rs.empty() || a[*i] != RulePtr::null());
   }
@@ -76,15 +91,33 @@ void petabricks::RuleChoiceCollection::pruneChoiceSpace() {
   std::map<RuleSet, const RuleChoiceConsumer*> rulesets;
   for(i=_ordering.begin(); i!=_ordering.end(); ++i) {
     const RuleSet& rs = (*i)->choices();
+    if(rs.size()<=1) continue;
+
     if(rulesets.find(rs) == rulesets.end()) {
       rulesets[rs] = *i;
     }else{
       _combinedChoices[*i] = rulesets[rs];
-      JTRACE("combining choices")(_combinedChoices[*i])(rulesets[rs]);
     }
   }
   rulesets.clear();
 
+
+  std::map<size_t, const RuleChoiceConsumer*> corners;
+  for(i=_ordering.begin(); i!=_ordering.end(); ++i) {
+    const RuleSet& rs = (*i)->choices();
+    if(rs.size()<=1) continue;
+    if(_combinedChoices.find(*i) != _combinedChoices.end()) continue;
+    if( MAXIMA.comparePessimistically((*i)->region()->symbolicSize(), "<=", FormulaInteger::one()) ) {
+      if(corners.find(rs.size()) == corners.end()) {
+        corners[rs.size()] = *i;
+      }else{
+        _combinedChoices[*i] = corners[rs.size()];
+       // JTRACE("corner block combines")(rs.size());
+      }
+    }
+  }
+
+  JTRACE("combined")(size());
 }
 
 void petabricks::RuleChoiceCollection::generateDecisionTree(std::string& pfx, size_t choiceCount, CodeGenerator& o) {
