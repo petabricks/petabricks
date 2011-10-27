@@ -509,6 +509,7 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
   clkern = clCreateKernel( clprog, "kernel_main", &err );
   JASSERT( CL_SUCCESS == err ).Text( "Failed to create kernel." );
 
+#ifndef MAC
   err = clGetProgramInfo(clprog, CL_PROGRAM_BINARY_SIZES, sizeof(binSize), binSize, &num_devices);
   JASSERT( CL_SUCCESS == err ).Text( "Failed to extract binary sizes." );
   JASSERT((num_devices % sizeof(size_t)) == 0);
@@ -535,6 +536,7 @@ bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* 
   for(int i=0; i<num_devices; ++i) { 
     delete [] (binary[i]);
   }
+#endif
 
   return true;
 }

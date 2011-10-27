@@ -6,7 +6,7 @@ from Input[w,h], Kernel[KERNEL_LENGTH]
 to Output[w,h]
 {
   Output.cell(x,y) from(Input.region(x-8,y,x+9,y+1) input, Kernel kernel) {
-    double sum = 0;
+    ElementT sum = 0;
     for(int i = 0; i < KERNEL_LENGTH; i++){
       sum += input.cell(i,0) * kernel.cell(i);
     }
@@ -14,7 +14,7 @@ to Output[w,h]
   }
 
   Output.cell(x,y) from(Input input, Kernel kernel) {
-    double sum = 0;
+    ElementT sum = 0;
     for(int k = -8; k <= 8; k++){
       int d = x + k;
       if(d >= 0 && d < w)
@@ -29,7 +29,7 @@ from Input[w,h], Kernel[KERNEL_LENGTH]
 to Output[w,h]
 {
   Output.cell(x,y) from(Input.region(x,y-8,x+1,y+9) input, Kernel kernel) {
-    double sum = 0;
+    ElementT sum = 0;
     for(int i = 0; i < KERNEL_LENGTH; i++){
       sum += input.cell(0,i) * kernel.cell(i);
     }
@@ -37,7 +37,7 @@ to Output[w,h]
   }
 
   Output.cell(x,y) from(Input input, Kernel kernel) {
-    double sum = 0;
+    ElementT sum = 0;
     for(int k = -8; k <= 8; k++){
       int d = y + k;
       if(d >= 0 && d < h)
