@@ -153,6 +153,7 @@ regression/scaledown
 regression/scaleoffset
 regression/scaletest
 regression/scaleup
+regression/splitrb
 regression/templatetest
 regression/testdiag
 regression/testruleir
