@@ -1484,7 +1484,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
             new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
     }
 
-    clo.os( ) << "unsigned int idx_" << (*i)->name( ) << " = ";
+    clo.os( ) << "int idx_" << (*i)->name( ) << " = ";
     idx_formula->print( clo.os( ) );
     clo.os( ) << ";\n";
   }
@@ -1537,7 +1537,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
       }
 >>>>>>> distributed*/
     }
-    clo.os( ) << "unsigned int idx_" << (*i)->name( ) << " = ";
+    clo.os( ) << "int idx_" << (*i)->name( ) << " = ";
     idx_formula->print( clo.os( ) );
     clo.os( ) << ";\n";
   }
