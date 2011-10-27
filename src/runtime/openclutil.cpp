@@ -26,7 +26,14 @@
  *****************************************************************************/
 #include "openclutil.h"
 #include "common/jassert.h"
+#include "common/jfilesystem.h"
+#include "common/hash.h"
+#include "common/jconvert.h"
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include <iostream>
+#include <stdio.h>
 
 #if HAVE_OPENCL
 //#define OPENCL_TRACE 1
@@ -47,6 +54,40 @@ void OpenCLUtil::pfn_notify(const char *errinfo, const void* /*private_info*/, s
   //JASSERT(false).Text("OpenCL Error via pfn_notify.");
 }
 
+cl_platform_id OpenCLUtil::getPlatform( )
+{
+  cl_platform_id platform = NULL;
+#ifdef NVIDIA
+  // Get platform.
+  if( CL_SUCCESS != oclGetPlatformID(&platform) )
+    return NULL;
+#else
+  cl_uint numPlatforms;
+  if( CL_SUCCESS != clGetPlatformIDs(0, NULL, &numPlatforms))
+    return NULL;
+
+  if (0 < numPlatforms) 
+  {
+    cl_platform_id* platforms = new cl_platform_id[numPlatforms];
+    if(CL_SUCCESS != clGetPlatformIDs(numPlatforms, platforms, NULL))
+      return NULL;
+    for (int i = 0; i < numPlatforms; ++i) 
+    {
+      char pbuf[100];
+      if(CL_SUCCESS != clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR, sizeof(pbuf), pbuf, NULL))
+        return NULL;
+
+      platform = platforms[i];
+      if (!strcmp(pbuf, "Advanced Micro Devices, Inc.")) 
+        break;
+    }
+    delete[] platforms;
+  }
+
+#endif
+  return platform;;
+}
+
 int
 OpenCLUtil::init( )
 {
@@ -60,37 +101,10 @@ OpenCLUtil::init( )
   if( true == has_init )
     return 0;
 
-  cl_platform_id platform = NULL;
-#ifdef NVIDIA
-  // Get platform.
-  if( CL_SUCCESS != oclGetPlatformID(&platform) )
-    return -1;
-#else
-  cl_uint numPlatforms;
-  if( CL_SUCCESS != clGetPlatformIDs(0, NULL, &numPlatforms))
-    return -1;
-
-  if (0 < numPlatforms) 
-  {
-    cl_platform_id* platforms = new cl_platform_id[numPlatforms];
-    if(CL_SUCCESS != clGetPlatformIDs(numPlatforms, platforms, NULL))
-      return -1;
-    for (int i = 0; i < numPlatforms; ++i) 
-    {
-      char pbuf[100];
-      if(CL_SUCCESS != clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR, sizeof(pbuf), pbuf, NULL))
-        return -1;
-
-      platform = platforms[i];
-      if (!strcmp(pbuf, "Advanced Micro Devices, Inc.")) 
-        break;
-    }
-    delete[] platforms;
-  }
+  cl_platform_id platform = getPlatform();
 
   if(platform == NULL)
     return -1;
-#endif
 
   // Get device count.
   cl_uint device_count;
@@ -384,6 +398,135 @@ cl_device_id
 OpenCLUtil::getActiveDeviceID( )
 {
   return devices.at( active_device ).id;
+}
+
+#define MAX_DEVICES 16
+#define OCL_CACHE_DIR "/tmp/petabricks_ocl_cache"
+
+namespace {
+
+  int do_mkdir() {
+    mode_t old = umask(0);
+    int mdrv = mkdir(OCL_CACHE_DIR, 0777);
+    if(mdrv != 0) {
+      JASSERT(errno == EEXIST);
+    }
+    umask(old);
+    return 0;
+  }
+
+  std::string srcToCacheFile(const char* src) {
+    static int init = do_mkdir();
+    JASSERT(init==0);
+
+    jalib::HashGenerator hg;
+    hg.update(src, strlen(src));
+    std::ostringstream t;
+    t << OCL_CACHE_DIR "/" << hg.final();
+    return t.str();
+  }
+
+}
+
+
+bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* clsrc) {
+  std::string cachefile = srcToCacheFile(clsrc);
+  cl_int err;
+
+  size_t num_devices = 0;
+  size_t binSize[MAX_DEVICES];
+  unsigned char* binary[MAX_DEVICES];
+  memset(binary, 0, sizeof binary);
+  memset(binSize, 0, sizeof binSize);
+
+  // Source for kernel.
+  cl_context ctx = OpenCLUtil::getContext();
+
+  if(jalib::Filesystem::FileExists(cachefile + "_0")) {
+    cl_platform_id platform = getPlatform();
+    JASSERT(platform != NULL);
+    
+    cl_uint device_count;
+    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) ).Text("Failed to get device count");
+   
+    // Get device IDs.
+    cl_device_id* device_ids = new cl_device_id[ device_count ];
+    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, &device_count ) ).Text("Failed to get device IDs");
+
+
+    num_devices = device_count;
+    JASSERT(num_devices < MAX_DEVICES);
+
+    for(int i=0; i<num_devices; ++i) { 
+      FILE* binfile = fopen((cachefile+"_"+jalib::XToString(i)).c_str(), "rb");
+      JASSERT(binfile!=NULL)(cachefile).Text("failed to open file");
+      JASSERT(fread(&binSize[i], sizeof(size_t), 1, binfile)>0);
+      binary[i] = new unsigned char[binSize[i]];
+      JASSERT(fread(binary[i], sizeof(char), binSize[i], binfile)>0);
+      fclose(binfile);
+    }
+  
+    //JTRACE("loading cached opencl")(num_devices)(binSize[0])(binSize[1])(cachefile);
+    const unsigned char** binary_c = (const unsigned char**)binary;
+
+    cl_int binary_status, errcode_ret;
+    clprog = clCreateProgramWithBinary( ctx, num_devices, device_ids, binSize, binary_c, &binary_status, &errcode_ret);
+    //JASSERT( CL_SUCCESS == errcode_ret).Text( "Failed to create program." );
+
+    err = clBuildProgram( clprog, 0, NULL, NULL, NULL, NULL);
+    JASSERT( CL_SUCCESS == err ).Text( "Failed to build program." );
+
+    clkern = clCreateKernel( clprog, "kernel_main", &err );
+    JASSERT( CL_SUCCESS == err ).Text( "Failed to create kernel." );
+
+    for(int i=0; i<num_devices; ++i) { 
+      delete [] (binary[i]);
+    }
+
+    //JTRACE("cache hit");
+
+    return true;
+  }
+
+  // Build program.
+  clprog = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );
+  JASSERT( CL_SUCCESS == err ).Text( "Failed to create program." );
+
+  err = clBuildProgram( clprog, 0, NULL, NULL, NULL, NULL);
+  JASSERT( CL_SUCCESS == err ).Text( "Failed to build program." );
+
+  // Create kernel.
+  clkern = clCreateKernel( clprog, "kernel_main", &err );
+  JASSERT( CL_SUCCESS == err ).Text( "Failed to create kernel." );
+
+  err = clGetProgramInfo(clprog, CL_PROGRAM_BINARY_SIZES, sizeof(binSize), binSize, &num_devices);
+  JASSERT( CL_SUCCESS == err ).Text( "Failed to extract binary sizes." );
+  JASSERT((num_devices % sizeof(size_t)) == 0);
+  num_devices /= sizeof(size_t);
+  JASSERT(num_devices < MAX_DEVICES);
+
+  for(int i=0; i<num_devices; ++i) { 
+    binary[i] = new unsigned char[binSize[i]];
+  }
+  err = clGetProgramInfo(clprog, CL_PROGRAM_BINARIES, sizeof binary, binary, NULL);
+  JASSERT( CL_SUCCESS == err ).Text( "Failed to extract binaries." );
+  
+
+  JTRACE("creating cached opencl")(num_devices)(binSize[0])(binSize[1])(cachefile);
+
+  for(int i=0; i<num_devices; ++i) { 
+    FILE* binfile = fopen((cachefile+"_"+jalib::XToString(i)).c_str(), "wb");
+    JASSERT(binfile!=NULL)(cachefile).Text("failed to open file");
+    JASSERT(fwrite(&binSize[i], sizeof(size_t), 1, binfile)>0);
+    JASSERT(fwrite(binary[i], sizeof(char), binSize[i], binfile)>0);
+    fclose(binfile);
+  }
+  
+  for(int i=0; i<num_devices; ++i) { 
+    delete [] (binary[i]);
+  }
+
+  return true;
 }
 
 }

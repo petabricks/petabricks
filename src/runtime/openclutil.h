@@ -110,6 +110,10 @@ namespace petabricks
     static unsigned int getActiveDevice( );
     static cl_device_id getActiveDeviceID( );
 
+    static cl_platform_id getPlatform();
+
+    static bool buildKernel(cl_program& cprog, cl_kernel& clkern, const char* clsrc);
+
   private:
     /** Class is a singleton. */
     OpenCLUtil( ) { }
