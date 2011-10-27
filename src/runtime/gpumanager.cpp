@@ -31,7 +31,7 @@
 #include "gpudynamictask.h"
 #include "workerthread.h"
 
-#define GPU_TRACE 1
+//#define GPU_TRACE 1
 
 namespace petabricks {
 

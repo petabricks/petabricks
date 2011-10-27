@@ -27,7 +27,7 @@
 #include "matrixstorage.h"
 #include "petabricksruntime.h"
 #include "gpumanager.h"
-#define GPU_TRACE 1
+//#define GPU_TRACE 1
 
 #ifdef HAVE_OPENCL
 petabricks::CopyPendingMap petabricks::CopyPendingMap::_pendingMap;
@@ -162,7 +162,7 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
         return false;
       }
       storage()->unlock();
-      #ifndef NVIDIA //TODO: after PLDI
+      #ifdef AMD || INTEL //TODO: after PLDI
       if(input && _count == storage()->count()) {
         cl_int err;
         #ifdef GPU_TRACE

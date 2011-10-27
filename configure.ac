@@ -288,7 +288,8 @@ elif ! test "$with_intelopencl" = "no"; then
 
 elif ! test "$with_macopencl" = "no"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
-   AC_DEFINE([MATRIX_ELEMENT_T], [double], [type for elements in the matrix])
+   AC_DEFINE([MATRIX_ELEMENT_T], [float], [type for elements in the matrix])
+   AC_DEFINE([MAC],[1],[MAC OS])
    
    LDFLAGS="$LDFLAGS -framework OpenCL"
 

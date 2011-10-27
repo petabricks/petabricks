@@ -37,7 +37,7 @@ namespace petabricks
 bool OpenCLUtil::has_init = false;
 std::vector<OpenCLDevice> OpenCLUtil::devices;
 cl_context OpenCLUtil::context;
-  unsigned int OpenCLUtil::active_device = 0;
+unsigned int OpenCLUtil::active_device = 0;
 
 
 void OpenCLUtil::pfn_notify(const char *errinfo, const void* /*private_info*/, size_t /*cb*/, void* /*user_data*/){
@@ -93,17 +93,23 @@ OpenCLUtil::init( )
 #endif
 
   // Get device count.
-  cl_uint device_count;
-  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) )
-    return -1;
+  //cl_uint device_count;
+  //if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) )
+  //  return -1;
 
   // Get device IDs.
-  cl_device_id* device_ids = new cl_device_id[ device_count ];
-  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, &device_count ) )
+  cl_device_id* device_ids = new cl_device_id[1];
+#ifdef NVIDIA || MAC
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, 1, device_ids, NULL) )
     return -2;
+#else  
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 1, device_ids, NULL) )
+  return -2;
+#endif
+
 
   // Create context.
-  if( (cl_context)0 == ( context = clCreateContext(0, device_count, device_ids, &pfn_notify, NULL, &err) ) )
+  if( (cl_context)0 == ( context = clCreateContext(0, 1, device_ids, &pfn_notify, NULL, &err) ) )
     return -3;
   if( CL_SUCCESS != err )
     return -5;
@@ -113,7 +119,7 @@ OpenCLUtil::init( )
   #endif
 
   // Get device-specific information.
-  for( cl_uint i = 0; i < device_count; ++i )
+  for( cl_uint i = 0; i < 1; ++i )
     {
       devices.push_back( OpenCLDevice( device_ids[i] ) );
       #if OPENCL_TRACE
@@ -148,7 +154,7 @@ OpenCLUtil::init( )
       clGetDeviceInfo( device_ids[i], CL_DEVICE_LOCAL_MEM_SIZE,
 		       sizeof(dev_info->local_mem_size), &dev_info->local_mem_size, NULL );
 
-      std::cout << "local mem size = " << dev_info->local_mem_size << std::endl;
+      //std::cout << "local mem size = " << dev_info->local_mem_size << std::endl;
       // Queue properties
       cl_command_queue_properties queue_props;
       clGetDeviceInfo( device_ids[i], CL_DEVICE_QUEUE_PROPERTIES,
