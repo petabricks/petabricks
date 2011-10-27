@@ -15,10 +15,10 @@
 typedef          long long int64;
 typedef unsigned long long uint64;
 
-inline int getBits(double in, int position)
+inline int getBits(ElementT in, int position)
 {
   union {
-    double d;
+    ElementT d;
     uint64 u;
   };
   d = in;
