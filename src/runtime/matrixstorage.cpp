@@ -27,7 +27,7 @@
 #include "matrixstorage.h"
 #include "petabricksruntime.h"
 #include "gpumanager.h"
-//#define GPU_TRACE 1
+#define GPU_TRACE 1
 
 #ifdef HAVE_OPENCL
 petabricks::CopyPendingMap petabricks::CopyPendingMap::_pendingMap;

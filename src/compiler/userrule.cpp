@@ -32,9 +32,8 @@
 #define TRACE JTRACE
 //#define GPU_TRACE 1
 
-#define BLOCK_SIZE 16
-#define BLOCK_SIZE_X 16
-#define BLOCK_SIZE_Y 16
+#define BLOCK_SIZE_X 4
+#define BLOCK_SIZE_Y 4
 
 #include "userrule.h"
 
@@ -171,10 +170,10 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       bodyir->accept(print);
       std::cerr << "--------------------\n";
 
-      /*if(!passBuildGpuProgram(tx)) {
+      if(!passBuildGpuProgram(tx)) {
 				std::cout << "(>) RULE REJECTED BY TryBuildGpuProgram: RULE " << id() << "\n";
         failgpu = true;
-      }*/
+      }
     }
     catch( OpenClCleanupPass::NotValidSource e )
     {
@@ -234,6 +233,8 @@ void petabricks::UserRule::collectGpuLocalMemoryData() {
           local = false;
           break;
         }
+        /*int lowerbound = jalib::StringToX<int>(difference->toCppString());*/
+
         min.push_back(difference);
 
         difference = new FormulaSubtract(region->maxCoord().at(i), getOffsetVar(i));
@@ -243,6 +244,14 @@ void petabricks::UserRule::collectGpuLocalMemoryData() {
           local = false;
           break;
         }
+        
+        /*int upperbound = jalib::StringToX<int>(difference->toCppString());
+
+        if(lowerbound > 0 || upperbound < 0 || upperbound - lowerbound <= 1) {
+          local = false;
+          break;
+        }*/
+
         max.push_back(difference);
       }
       if(local) {
@@ -1433,7 +1442,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
 
   // Get indices.
   for( int i = 0; i < iterdef.dimensions( ); ++i )
-    clo.os( ) << "unsigned int " << _getOffsetVarStr( _id, i, NULL ) << " = get_global_id( " << i << " );\n";
+    clo.os( ) << "int " << _getOffsetVarStr( _id, i, NULL ) << " = get_global_id( " << i << " );\n";
 
   // Define rule index variables (from _definitions).
   for( FormulaList::iterator it = _definitions.begin( ); it != _definitions.end( ); ++it )
@@ -1592,12 +1601,12 @@ void petabricks::UserRule::generateLocalBuffers(Transform& trans, CLCodeGenerato
     std::string var;
     if(i==0) var = "x";
     else     var = "y";
-    clo.os( ) << "unsigned int " << var << "_local = get_local_id( " << i << " );\n";
+    clo.os( ) << "int " << var << "_local = get_local_id( " << i << " );\n";
   }
 
-  clo.os() << "unsigned int _x_ = " << _getOffsetVarStr( _id, 0, NULL ) << ";\n";
+  clo.os() << "int _x_ = " << _getOffsetVarStr( _id, 0, NULL ) << ";\n";
   if(iterdef.dimensions() == 2) 
-    clo.os() << "unsigned int _y_ = " << _getOffsetVarStr( _id, 1, NULL ) << ";\n";
+    clo.os() << "int _y_ = " << _getOffsetVarStr( _id, 1, NULL ) << ";\n";
 
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
   {
@@ -1625,23 +1634,23 @@ void petabricks::UserRule::generateLocalBuffers(Transform& trans, CLCodeGenerato
         clo.os() << ";\n";
 
         if(iterdef.dimensions( )==1) {
-          clo.os() << "for(int i = -" << matrix << "0_minoffset; i < 0; i += " << BLOCK_SIZE << ") {\n";
+          clo.os() << "for(int i = -" << matrix << "0_minoffset; i < 0; i += " << BLOCK_SIZE_X << ") {\n";
           clo.os() << "  if(_x_ + i >= 0)\n";
           clo.os() << "    buff_" << matrix << "[x_local + " << matrix << "0_minoffset + i] = "
                                   << "_region_" << (*i)->name() << "[_x_ + i];\n";
           clo.os() << "}\n";
-          clo.os() << "for(int i = " << matrix << "0_maxoffset; i > 0; i -= " << BLOCK_SIZE << ") {\n";
+          clo.os() << "for(int i = " << matrix << "0_maxoffset; i > 0; i -= " << BLOCK_SIZE_X << ") {\n";
           clo.os() << "  if(_x_ + i < dim_" << (*i)->name() << "_d0)\n";
           clo.os() << "    buff_" << matrix << "[x_local + " << matrix << "0_minoffset + i] = "
                                   << "_region_" << (*i)->name() << "[_x_ + i];\n";
           clo.os() << "}\n";
-          clo.os() << "    buff_" << matrix << "[x_local + " << matrix << "0_minoffset] = "
-                                  << "_region_" << (*i)->name() << "[_x_];\n";
+          clo.os() << "buff_" << matrix << "[x_local + " << matrix << "0_minoffset] = "
+                              << "_region_" << (*i)->name() << "[_x_];\n";
         }
         else {
           // Middle region
           //clo.os() << "int j = 0;\n";
-          clo.os() << "for(int i = -" << matrix << "0_minoffset; i < 0; i += " << BLOCK_SIZE << ") {\n";
+          clo.os() << "for(int i = -" << matrix << "0_minoffset; i < 0; i += " << BLOCK_SIZE_X << ") {\n";
           clo.os() << "  if(_x_ + i >= 0)\n";
           clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset]"
                                   << "[x_local + " << matrix << "0_minoffset + i] = "
@@ -1649,7 +1658,7 @@ void petabricks::UserRule::generateLocalBuffers(Transform& trans, CLCodeGenerato
                                   << "[(_y_) * dim_" << (*i)->name() << "_d0 + " 
                                   << "_x_ + i];\n";
           clo.os() << "}\n";
-          clo.os() << "for(int i = " << matrix << "0_maxoffset; i > 0; i -= " << BLOCK_SIZE << ") {\n";
+          clo.os() << "for(int i = " << matrix << "0_maxoffset; i > 0; i -= " << BLOCK_SIZE_X << ") {\n";
           clo.os() << "  if(_x_ + i < dim_" << (*i)->name() << "_d0)\n";
           clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset]"
                                   << "[x_local + " << matrix << "0_minoffset + i] = "
@@ -1664,9 +1673,9 @@ void petabricks::UserRule::generateLocalBuffers(Transform& trans, CLCodeGenerato
                                   << "_x_];\n";
 
           // Top region
-          clo.os() << "for(int j = -" << matrix << "1_minoffset; j < 0; j += " << BLOCK_SIZE << ") {\n";
+          clo.os() << "for(int j = -" << matrix << "1_minoffset; j < 0; j += " << BLOCK_SIZE_Y << ") {\n";
           clo.os() << "if(_y_ + j >= 0) {\n";
-          clo.os() << "for(int i = -" << matrix << "0_minoffset; i < 0; i += " << BLOCK_SIZE << ") {\n";
+          clo.os() << "for(int i = -" << matrix << "0_minoffset; i < 0; i += " << BLOCK_SIZE_X << ") {\n";
           clo.os() << "  if(_x_ + i >= 0)\n";
           clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
                                   << "[x_local + " << matrix << "0_minoffset + i] = "
@@ -1674,7 +1683,7 @@ void petabricks::UserRule::generateLocalBuffers(Transform& trans, CLCodeGenerato
                                   << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + " 
                                   << "_x_ + i];\n";
           clo.os() << "}\n";
-          clo.os() << "for(int i = " << matrix << "0_maxoffset; i > 0; i -= " << BLOCK_SIZE << ") {\n";
+          clo.os() << "for(int i = " << matrix << "0_maxoffset; i > 0; i -= " << BLOCK_SIZE_X << ") {\n";
           clo.os() << "  if(_x_ + i < dim_" << (*i)->name() << "_d0)\n";
           clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
                                   << "[x_local + " << matrix << "0_minoffset + i] = "
@@ -1691,9 +1700,9 @@ void petabricks::UserRule::generateLocalBuffers(Transform& trans, CLCodeGenerato
           clo.os() << "}\n";
 
           // Bottom region
-          clo.os() << "for(int j = " << matrix << "1_maxoffset; j > 0; j -= " << BLOCK_SIZE << ") {\n";
+          clo.os() << "for(int j = " << matrix << "1_maxoffset; j > 0; j -= " << BLOCK_SIZE_Y << ") {\n";
           clo.os() << "if(_y_ + j < dim_" << (*i)->name() << "_d1) {\n";
-          clo.os() << "for(int i = -" << matrix << "0_minoffset; i < 0; i += " << BLOCK_SIZE << ") {\n";
+          clo.os() << "for(int i = -" << matrix << "0_minoffset; i < 0; i += " << BLOCK_SIZE_X << ") {\n";
           clo.os() << "  if(_x_ + i >= 0)\n";
           clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
                                   << "[x_local + " << matrix << "0_minoffset + i] = "
@@ -1701,7 +1710,7 @@ void petabricks::UserRule::generateLocalBuffers(Transform& trans, CLCodeGenerato
                                   << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + " 
                                   << "_x_ + i];\n";
           clo.os() << "}\n";
-          clo.os() << "for(int i = " << matrix << "0_maxoffset; i > 0; i -= " << BLOCK_SIZE << ") {\n";
+          clo.os() << "for(int i = " << matrix << "0_maxoffset; i > 0; i -= " << BLOCK_SIZE_X << ") {\n";
           clo.os() << "  if(_x_ + i < dim_" << (*i)->name() << "_d0)\n";
           clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
                                   << "[x_local + " << matrix << "0_minoffset + i] = "
