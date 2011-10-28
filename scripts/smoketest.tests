@@ -53,6 +53,8 @@ multigrid/Helmholtz3DRefMG         Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 H
 multigrid/Helmholtz3DRefFMG        Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 Helmholtz3DB1 Helmholtz3DB2 Helmholtz3DRHS One0D Two0D One0D One0D
 multigrid/Helmholtz3DRefFMG        Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 Helmholtz3DB1 Helmholtz3DB2 Helmholtz3DRHS One0D Two0D One0D Ten0D
 preconditioner/preconditioner	   PrecondX PrecondA PrecondB
+QR/QRTest                  Rand2Da
+QR/QRTest                  Rand2DLong
 simple/add                 Rand2Da Rand2Db
 simple/bufferrotate        Rand1D
 simple/bufferrotate2       Rand1D
