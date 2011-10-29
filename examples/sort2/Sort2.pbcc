@@ -10,21 +10,15 @@ from in[n]
 to out[n]
 {
   Mergesort2(out, in);
-}
-or
-{
+} or {
+  Mergesort4(out, in);
+} or {
   Quicksort2(out, in);
-}
-or
-{
+} or {
   Insertionsort(out, in);
-}
-or
-{
+} or {
   Selectionsort(out, in);
-}
-or
-{
+} or {
   Bitonic(out, in);
 }
 
