@@ -183,6 +183,12 @@ simple/reduce
 simple/rollingsum
 simple/scale
 simple/transpose
+sort2/Bitonicsort
+sort2/Insertionsort
+sort2/Mergesort2
+sort2/Quicksort2
+sort2/Selectionsort
+sort2/Sort2
 sort/Bitonicsort
 sort/Insertionsort
 sort/Mergesort2
@@ -192,7 +198,6 @@ sort/Quicksort
 sort/Radixsort4
 sort/Radixsort
 sort/Selectionsort
-sort/Sort2
 sort/Sort
 trisolve/TriSolveGenerators
 trisolve/TriSolveLAPACK

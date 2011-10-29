@@ -1,0 +1,30 @@
+#ifndef INSERTIONSORT_PBCC
+#define INSERTIONSORT_PBCC
+
+
+function Insertionsort
+from in[n]
+to out[n]
+{
+  out.cell(0) = in.cell(0);
+  for (int i = 1; i < n; i++) {
+    ElementT value = in.cell(i);
+    int j = i - 1;
+    if (value < out.cell(0)) {
+      while (j >= 0) {
+        out.cell(j + 1) = out.cell(j);
+        j--;
+      }
+    } else {
+      while (out.cell(j) > value) {
+        out.cell(j + 1) = out.cell(j);
+        j--;
+      }
+    }
+    out.cell(j + 1) = value;
+  }
+}
+
+
+#endif // INSERTIONSORT_PBCC
+

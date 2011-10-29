@@ -1,0 +1,51 @@
+#ifndef MERGSORT2_PBCC
+#define MERGSORT2_PBCC
+
+function Merge2
+from left[n], right[m]
+to out[n+m]
+{
+  int o = 0;
+  int l = 0;
+  int r = 0;
+  while(l<n && r<m) {
+    if(left.cell(l) <= right.cell(r)) {
+      out.cell(o) = left.cell(l);
+      l++;
+    }else{
+      out.cell(o) = right.cell(r);
+      r++;
+    }
+    o++;
+  }
+  while(l<n) {
+    out.cell(o) = left.cell(l);
+    l++;
+    o++;
+  }
+  while(r<m) {
+    out.cell(o) = right.cell(r);
+    r++;
+    o++;
+  }
+}
+
+
+transform Mergesort2
+from IN[n]
+to OUT[n]
+{
+  to(OUT out) from(IN in) using(tmp[n]) {
+    if(n > 1) {
+      spawn Sort(tmp.region(0, n/2), in.region(0, n/2));
+      spawn Sort(tmp.region(n/2, n), in.region(n/2, n));
+      sync;
+      Merge2(out, tmp.region(0, n/2), tmp.region(n/2, n));
+    }else{
+      out.cell(0) = in.cell(0);
+    }
+  }
+}
+
+#endif
+
