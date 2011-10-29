@@ -32,12 +32,29 @@
 namespace petabricks
 {
 std::set<int> GpuRule::_done;
-
 void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) {
   if(rf != RuleFlavor::SEQUENTIAL || isDisabled() || _done.find(_rule->id()) != _done.end())
     return;
     
   _done.insert(_rule->id());
+
+  generateKernel(trans, o, false);
+  if(_rule->canUseLocalMemory()) {
+    generateKernel(trans, o, true);
+    //o.createTunable(true, "system.flag.localmem", "rule_" + _rule->id() + "_localmem", 0, 0, 2);
+    //o.createTunable(true, "system.size.blocksize", "rule_" + _rule->id() + "_blocksize", 4, 0, 5);
+  }
+  //else {
+    //o.define("rule_" + _rule->id() + "_localmem", "0");
+  //}
+}
+
+void GpuRule::generateKernel(Transform& trans, CodeGenerator& o, bool local) {
+  std::string SUFFIX;
+  if(local)
+    SUFFIX = "_local";
+  else
+    SUFFIX = "_nolocal";
 
   CLCodeGenerator clcodegen(o.cgPtr());
   IterationDefinition iterdef(*_rule, _rule->getSelfDependency(), _rule->isSingleCall());
@@ -46,16 +63,16 @@ void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf
   o.os() << "// GPURULE DECL CODE " << _rule->id() << " " << this << "\n";
 
   // Create variables to hold handles to program, kernel
-  o.os( ) << "cl_program " <<  "clprog_" << _rule->id()
+  o.os( ) << "cl_program " <<  "clprog_" << _rule->id() << SUFFIX
 	  << " = 0;\n";
-  o.os( ) << "cl_kernel " << "clkern_" << _rule->id()
+  o.os( ) << "cl_kernel " << "clkern_" << _rule->id() << SUFFIX
 	  << " = 0;\n";
 
   // Create init function call
-  o.beginFunc("void", codename()+"_init", std::vector<std::string>(),false);
-  trans.addInitCall(codename()+"_init");
+  o.beginFunc("void", codename()+"_init"+SUFFIX, std::vector<std::string>(),false);
+  trans.addInitCall(codename()+"_init"+SUFFIX);
 
-  _rule->generateOpenCLKernel( trans, clcodegen, iterdef );
+  _rule->generateOpenCLKernel( trans, clcodegen, iterdef, local);
   
  // o.os( ) << "cl_int err;";
 
@@ -67,7 +84,7 @@ void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf
   clcodegen.outputEscapedStringTo( o.os( ) );
   o.os( ) << ";\n";
 
-  o.os() << "bool rv = OpenCLUtil::buildKernel(clprog_" << _rule->id() <<", clkern_" << _rule->id() << ", clsrc);\n";
+  o.os() << "bool rv = OpenCLUtil::buildKernel(clprog_" << _rule->id() << SUFFIX << ", clkern_" << _rule->id() << SUFFIX << ", clsrc);\n";
   o.os() << "JASSERT(rv);\n";
 
 
@@ -105,25 +122,25 @@ void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf
   o.endFunc();*/
 
   // Get kernel
-  o.beginFunc("cl_kernel", "get_kernel_" + jalib::XToString(_rule->id()));
+  o.beginFunc("cl_kernel", "get_kernel_" + jalib::XToString(_rule->id()) + SUFFIX);
  //o.beginIf("clkern_" + jalib::XToString(_rule->id()) + " == 0");
  //o.call(codename() + "_init" , std::vector<std::string>());
  //o.endIf();
 #ifdef DEBUG
-  o.write("JASSERT(clkern_" + jalib::XToString(_rule->id()) + " != 0);");
+  o.write("JASSERT(clkern_" + jalib::XToString(_rule->id()) + SUFFIX + " != 0);");
 #endif
-  o.write("return clkern_" + jalib::XToString(_rule->id()) + ";");
+  o.write("return clkern_" + jalib::XToString(_rule->id()) + SUFFIX + ";");
   o.endFunc();
 
   // Get program
-  o.beginFunc("cl_program", "get_program_" + jalib::XToString(_rule->id()));
+  o.beginFunc("cl_program", "get_program_" + jalib::XToString(_rule->id()) + SUFFIX);
  //o.beginIf("clprog_" + jalib::XToString(_rule->id()) + " == 0");
  //o.call(codename() + "_init" , std::vector<std::string>());
  //o.endIf();
 #ifdef DEBUG
-  o.write("JASSERT(clprog_" + jalib::XToString(_rule->id()) + " != 0);");
+  o.write("JASSERT(clprog_" + jalib::XToString(_rule->id()) + SUFFIX + " != 0);");
 #endif
-  o.write("return clprog_" + jalib::XToString(_rule->id()) + ";");
+  o.write("return clprog_" + jalib::XToString(_rule->id()) + SUFFIX + ";");
   o.endFunc();
   
 }

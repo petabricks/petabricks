@@ -297,10 +297,11 @@ public:
     : RIRCompilerPass(p->createChildLayer()), _rule(r)
   {}
   void before(RIRExprCopyRef& e);
-  void setLocalMemoryData(std::map<std::string, std::string>& name, std::map<std::string, FormulaList>& min, std::map<std::string, FormulaList>& max) {
+  void setLocalMemoryData(std::map<std::string, std::string>& name, std::map<std::string, FormulaList>& min, std::map<std::string, FormulaList>& max, int id) {
     _nameMap = name; 
     _minCoordOffsets = min;
     _maxCoordOffsets = max;
+    _id = id;
   }
 private:
   RegionPtr findMatrix(std::string var);
@@ -310,6 +311,7 @@ private:
   std::map<std::string, std::string> _nameMap;
   std::map<std::string, FormulaList> _minCoordOffsets;
   std::map<std::string, FormulaList> _maxCoordOffsets;
+  int _id;
 };
 
 class OpenClFunctionRejectPass: public RIRCompilerPass {
