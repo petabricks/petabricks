@@ -56,6 +56,7 @@ class GpuRule : public SyntheticRule {
     // Overridden functions
 
   void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
+  void generateKernel(Transform& trans, CodeGenerator& o, bool local);
 
   void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
 

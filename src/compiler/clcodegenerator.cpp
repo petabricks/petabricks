@@ -86,7 +86,7 @@ CLCodeGenerator::localMemoryBarrier( )
   os() << "barrier( CLK_LOCAL_MEM_FENCE );\n";
 }
 
-void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned int dims, Transform& trans)
+void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned int dims, Transform& trans, bool local)
 {
   // Kernel's arguments need to be conformed with UserRule's codegen
 
@@ -155,6 +155,9 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
 	      os() << ", int dim_" << (*it)->name() << "_d" << i;
     }
   }
+
+  if(local)
+    os() << ", int block_size";
 
   os() << " ) {\n";
 

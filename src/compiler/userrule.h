@@ -120,9 +120,12 @@ public:
   void generateOpenCLCopyOutCode(std::string& codename, CodeGenerator& o, RegionPtr region);
   ///
   /// Generate an OpenCL program implementing this rule
-  void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef );
+  void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef, bool local=false);
   void collectGpuLocalMemoryData();
-  void generateLocalBuffers(Transform& trans, CLCodeGenerator& clo);
+  bool canUseLocalMemory() {
+    return _minCoordOffsets.size() > 0;
+  }
+  void generateLocalBuffers(CLCodeGenerator& clo);
 #endif
 
   ///
@@ -305,6 +308,9 @@ private:
   std::string _bodysrc;
   jalib::SrcPosTaggable _bodysrcPos;
   RIRBlockCopyRef _bodyir[RuleFlavor::_COUNT];
+#ifdef HAVE_OPENCL
+  RIRBlockCopyRef _bodyirLocalMem;
+#endif
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr _recursiveHint;

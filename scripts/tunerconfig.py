@@ -91,7 +91,7 @@ class config_defaults:
   recompile = True
 
   #types of mutatators to generate
-  lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential', 'system.cutoff.distributed']
+  lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential', 'system.cutoff.distributed', 'system.flag.localmem', 'system.size.blocksize']
   uniform_tunable_types       = []
   autodetect_tunable_types    = ['user.tunable']
   lognorm_sizespecific_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.array']
