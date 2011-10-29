@@ -1,3 +1,4 @@
+// TODO(jrk): streamline constants and magic numbers
 #define KERNEL_RADIUS 8
 #define KERNEL_LENGTH 17
 
@@ -47,10 +48,44 @@ to Output[w,h]
   }
 }
 
+transform convolution2D
+from Input[w,h], Kernel[KERNEL_LENGTH]
+to Output[w,h]
+{
+  Output.cell(x,y) from(Input.region(x-8,y-8,x+9,y+9) input, Kernel kernel) {
+    ElementT sum = 0;
+    for(int x = 0; x < KERNEL_LENGTH; x++){
+      for(int y = 0; y < KERNEL_LENGTH; y++){
+        sum += input.cell(x,y) * kernel.cell(x) * kernel.cell(y);
+      }
+    }
+    return sum;
+  }
+
+  Output.cell(x,y) from(Input input, Kernel kernel) {
+    ElementT sum = 0;
+    for(int kx = -8; kx <= 8; kx++){
+      int dx = x + kx;
+      if(dx >= 0 && dx < w) {
+        for(int ky = -8; ky <= 8; ky++){
+          int dy = y + ky;
+          if(dy >= 0 && dy < h)
+            sum += input.cell(dx,dy) * kernel.cell(8 + kx) * kernel.cell(8 + ky);
+        }
+      }
+    }
+    return sum;
+  }
+}
+
 transform convolutionSeparable
 from Input[w,h], Kernel[KERNEL_LENGTH]
 to Output[w,h]
 {
+  to(Output out) from(Input in, Kernel kernel){
+    convolution2D(out, in, kernel);
+  }
+
   to(Output out) from(Input in, Kernel kernel) using(buffer[w,h]){
     convolutionRows(buffer, in, kernel);
     convolutionColumns(out, buffer, kernel);
