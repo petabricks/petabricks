@@ -83,12 +83,12 @@ from Input[w,h], Kernel[KERNEL_LENGTH]
 to Output[w,h]
 {
   to(Output out) from(Input in, Kernel kernel){
-    std::cout << "convolution2D" << std::endl;
+//    std::cout << "convolution2D" << std::endl;
     convolution2D(out, in, kernel);
   }
 
   to(Output out) from(Input in, Kernel kernel) using(buffer[w,h]){
-    std::cout << "convolutionSeparable" << std::endl;
+//    std::cout << "convolutionSeparable" << std::endl;
     convolutionRows(buffer, in, kernel);
     convolutionColumns(out, buffer, kernel);
   }
