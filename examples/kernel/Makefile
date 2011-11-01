@@ -39,5 +39,5 @@ testMetricVA: nwkdeMetric nwkdeVA
 	rm testMetricVA.out.pba
 
 testBinnedLR: BinnedLR
-	./BinnedLR btest/trainX.pba btest/trainDirs.pba btest/trainY.pba btest/indices.pba btest/testX.pba btest/testDirs.pba btest/indices.pba ../../testdata/Zero0D btest/output.pba
-	./BinnedLR btest/trainX.pba btest/trainDirs.pba btest/trainY.pba btest/indices.pba btest/trainX.pba btest/trainDirs.pba btest/indices.pba ../../testdata/Twelve0D btest/output2.pba
+	./BinnedLR btest/trainX.pba btest/trainDirs.pba btest/trainY.pba btest/indices.pba btest/testX.pba btest/testDirs.pba btest/indices.pba ../../testdata/Zero0D ../../testdata/Zero0D btest/output.pba
+	./BinnedLR btest/trainX.pba btest/trainDirs.pba btest/trainY.pba btest/indices.pba btest/trainX.pba btest/trainDirs.pba btest/indices.pba ../../testdata/Eleven0D ../../testdata/Twelve0D btest/output2.pba
