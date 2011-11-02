@@ -1,11 +1,11 @@
 PBC=../../src/pbc
 
-.PHONY: all clean test testVA testMetric testMetricVA
+.PHONY: all clean test testVA testMetric testMetricVA testBinnedLR
 
-all: nwkde nwkdeVA nwkdeMetric
+all: nwkde nwkdeVA nwkdeMetric BinnedLR
 
 clean:
-	rm -f nwkde nwkdeVA nwkdeMetric
+	rm -f nwkde nwkdeVA nwkdeMetric BinnedLR
 
 nwkde: nwkde.pbcc nwkdeGenerators.pbcc nwkdeMetric.pbcc utils.pbcc nwkde.h
 	${PBC} $< --output $@
@@ -39,5 +39,5 @@ testMetricVA: nwkdeMetric nwkdeVA
 	rm testMetricVA.out.pba
 
 testBinnedLR: BinnedLR
-	./BinnedLR btest/trainX.pba btest/trainDirs.pba btest/trainY.pba btest/indices.pba btest/testX.pba btest/testDirs.pba btest/indices.pba ../../testdata/Zero0D ../../testdata/Zero0D btest/output.pba
-	./BinnedLR btest/trainX.pba btest/trainDirs.pba btest/trainY.pba btest/indices.pba btest/trainX.pba btest/trainDirs.pba btest/indices.pba ../../testdata/Eleven0D ../../testdata/Twelve0D btest/output2.pba
+	./BinnedLR btest/trainData.pba btest/x.pba btest/dir.pba btest/y.pba btest/indices.pba btest/testData.pba btest/x.pba btest/dir.pba btest/indices.pba ../../testdata/Zero0D ../../testdata/Zero0D btest/output.pba
+	./BinnedLR btest/trainData.pba btest/x.pba btest/dir.pba btest/y.pba btest/indices.pba btest/testData.pba btest/x.pba btest/dir.pba btest/indices.pba ../../testdata/Eleven0D ../../testdata/Twelve0D btest/output2.pba

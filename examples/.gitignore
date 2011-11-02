@@ -213,3 +213,4 @@ regression/errors/rulebodylinenos
 *.info
 *.obj
 -Makefile
+parser.out
