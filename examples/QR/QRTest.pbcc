@@ -1,0 +1,14 @@
+#include "QR.pbcc"
+
+// pack output of QR into a single output for use with smoketest.py
+transform QRTest
+from A[n,m]
+to OUT[n,m+n]
+through R[n,n]
+{
+    to (OUT out, R r)
+    from (A a)
+    {
+        QR(out.region(0, 0, n, m), out.region(0, m, n, m+n), a);
+    }
+}

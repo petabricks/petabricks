@@ -1,0 +1,62 @@
+#ifndef ADDINPLACE_PBCC
+#define ADDINPLACE_PBCC
+
+transform AddInPlace1D
+from ALPHA, B[n], BETA
+to A[n]
+{
+    // no branches, more ops
+    to (A.cell(i) a)
+    from (ALPHA alpha, B.cell(i) b, BETA beta)
+    {
+        a = beta * a + alpha * b;
+    }
+
+    // more branches, fewer ops
+    to (A.cell(i) a)
+    from (ALPHA alpha, B.cell(i) b, BETA beta)
+    {
+        if (beta != 0 && beta != 1) {
+            a *= beta;
+        }
+
+        if (alpha != 0) {
+            if (beta == 0) {
+                a = alpha * b;
+            } else {
+                a += alpha * b;
+            }
+        }
+    }
+}
+
+transform AddInPlace2D
+from ALPHA, B[n,m], BETA
+to A[n,m]
+{
+    // no branches, more ops
+    to (A.cell(j, i) a)
+    from (ALPHA alpha, B.cell(j, i) b, BETA beta)
+    {
+        a = beta * a + alpha * b;
+    }
+
+    // more branches, fewer ops
+    to (A.cell(j, i) a)
+    from (ALPHA alpha, B.cell(j, i) b, BETA beta)
+    {
+        if (beta != 0 && beta != 1) {
+            a *= beta;
+        }
+
+        if (alpha != 0) {
+            if (beta == 0) {
+                a = alpha * b;
+            } else {
+                a += alpha * b;
+            }
+        }
+    }
+}
+
+#endif // ADDINPLACE_PBCC

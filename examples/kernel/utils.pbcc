@@ -1,8 +1,6 @@
 #ifndef UTILS_PBCC
 #define UTILS_PBCC
 
-#include "../simple/reduce.pbcc"
-
 %{
 
 void printMatrix(ConstMatrixRegion2D A)
@@ -32,25 +30,6 @@ int findMinAndMax(ElementT *min, ElementT *max, ConstMatrixRegion1D array)
 }
 
 %}
-
-// computes a dot product
-transform DotProduct
-from A[n], B[n]
-through TEMP[n]
-to C
-{
-  TEMP.cell(i) from (A.cell(i) a, B.cell(i) b)
-  {
-    return a * b;
-  }
-
-  C from (TEMP t)
-  {
-    ElementT result;
-    ReduceAdd(result, t);
-    return result;
-  }
-}
 
 #endif // UTILS_PBCC
 
