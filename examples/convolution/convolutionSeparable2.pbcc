@@ -1,12 +1,18 @@
 // TODO(jrk): streamline constants and magic numbers
-#define KERNEL_RADIUS 8
-#define KERNEL_LENGTH 17
+//#define KERNEL_RADIUS 3
+#define KERNEL_LENGTH ((KERNEL_RADIUS)*2+1)
 
 transform convolutionRows
 from Input[w,h], Kernel[KERNEL_LENGTH]
 to Output[w,h]
 {
-  Output.cell(x,y) from(Input.region(x-8,y,x+9,y+1) input, Kernel kernel) {
+  Output.cell(x,y)
+      from(Input.region(
+                  x-KERNEL_RADIUS,
+                  y,
+                  x+KERNEL_RADIUS+1,
+                  y+1)
+              input, Kernel kernel) {
     ElementT sum = 0;
     for(int i = 0; i < KERNEL_LENGTH; i++){
       sum += input.cell(i,0) * kernel.cell(i);
@@ -16,10 +22,12 @@ to Output[w,h]
 
   Output.cell(x,y) from(Input input, Kernel kernel) {
     ElementT sum = 0;
-    for(int k = -8; k <= 8; k++){
+    for(int k = -KERNEL_RADIUS;
+            k <= KERNEL_RADIUS;
+            k++){
       int d = x + k;
       if(d >= 0 && d < w)
-        sum += input.cell(d,y) * kernel.cell(8 + k);
+        sum += input.cell(d,y) * kernel.cell(KERNEL_RADIUS + k);
       }
     return sum;
   }
@@ -29,7 +37,13 @@ transform convolutionColumns
 from Input[w,h], Kernel[KERNEL_LENGTH]
 to Output[w,h]
 {
-  Output.cell(x,y) from(Input.region(x,y-8,x+1,y+9) input, Kernel kernel) {
+  Output.cell(x,y)
+      from(Input.region(
+                  x,
+                  y-KERNEL_RADIUS,
+                  x+1,
+                  y+KERNEL_RADIUS+1)
+              input, Kernel kernel) {
     ElementT sum = 0;
     for(int i = 0; i < KERNEL_LENGTH; i++){
       sum += input.cell(0,i) * kernel.cell(i);
@@ -39,10 +53,12 @@ to Output[w,h]
 
   Output.cell(x,y) from(Input input, Kernel kernel) {
     ElementT sum = 0;
-    for(int k = -8; k <= 8; k++){
+    for(int k = -KERNEL_RADIUS;
+            k <= KERNEL_RADIUS;
+            k++){
       int d = y + k;
       if(d >= 0 && d < h)
-        sum += input.cell(x,d) * kernel.cell(8 + k);
+        sum += input.cell(x,d) * kernel.cell(KERNEL_RADIUS + k);
       }
     return sum;
   }
@@ -52,7 +68,13 @@ transform convolution2D
 from Input[w,h], Kernel[KERNEL_LENGTH]
 to Output[w,h]
 {
-  Output.cell(x,y) from(Input.region(x-8,y-8,x+9,y+9) input, Kernel kernel) {
+  Output.cell(x,y)
+      from(Input.region(
+                  x-KERNEL_RADIUS,
+                  y-KERNEL_RADIUS,
+                  x+KERNEL_RADIUS+1,
+                  y+KERNEL_RADIUS+1)
+              input, Kernel kernel) {
     ElementT sum = 0;
     for(int x = 0; x < KERNEL_LENGTH; x++){
       for(int y = 0; y < KERNEL_LENGTH; y++){
@@ -64,13 +86,19 @@ to Output[w,h]
 
   Output.cell(x,y) from(Input input, Kernel kernel) {
     ElementT sum = 0;
-    for(int kx = -8; kx <= 8; kx++){
+    for(int kx = -KERNEL_RADIUS;
+            kx <= KERNEL_RADIUS;
+            kx++){
       int dx = x + kx;
       if(dx >= 0 && dx < w) {
-        for(int ky = -8; ky <= 8; ky++){
+        for(int ky = -KERNEL_RADIUS;
+                ky <= KERNEL_RADIUS;
+                ky++){
           int dy = y + ky;
           if(dy >= 0 && dy < h)
-            sum += input.cell(dx,dy) * kernel.cell(8 + kx) * kernel.cell(8 + ky);
+            sum += input.cell(dx,dy)
+                * kernel.cell(KERNEL_RADIUS + kx)
+                * kernel.cell(KERNEL_RADIUS + ky);
         }
       }
     }
@@ -83,10 +111,12 @@ from Input[w,h], Kernel[KERNEL_LENGTH]
 to Output[w,h]
 {
   to(Output out) from(Input in, Kernel kernel){
+//    std::cout << "convolution2D" << std::endl;
     convolution2D(out, in, kernel);
   }
 
   to(Output out) from(Input in, Kernel kernel) using(buffer[w,h]){
+//    std::cout << "convolutionSeparable" << std::endl;
     convolutionRows(buffer, in, kernel);
     convolutionColumns(out, buffer, kernel);
   }
