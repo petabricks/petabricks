@@ -35,7 +35,7 @@ generator NewClusterLocationsGen
     }
   }
 
-  to (C.column(i) c) from (Sum.column(i) s, Count.cell(i) count) 
+  /*to (C.column(i) c) from (Sum.column(i) s, Count.cell(i) count) 
   {
     if (count == 0) {
       c.cell(0)=0;
@@ -44,6 +44,16 @@ generator NewClusterLocationsGen
     else {
       c.cell(0)=s.cell(0)/count;
       c.cell(1)=s.cell(1)/count;
+    }
+  }*/
+
+  to (C.cell(i,j) c) from (Sum.cell(i,j) s, Count.cell(i) count) 
+  {
+    if (count == 0) {
+      c=0;
+    }
+    else {
+      c=s/count;
     }
   }
 }

@@ -63,10 +63,6 @@ generator kmeansinputgen
     }
   }
 
-  to (C.cell(i,j) c) from(X x) {
-    c = x.cell(i, j);
-  }
-
 }
 
 
@@ -129,6 +125,12 @@ generator kmeansinputgen
     if(k>n)
       PetabricksRuntime::abort();
     randomcenter(ctemp, x);
+  }
+
+  //Assign initial cluster centers at the beginning
+  to (Ctemp ctemp) from (X x)
+  {
+    Copy2D(ctemp,x.region(0,0,k,2));
   }
 
   //or Assign initial cluster centers using k-means++ algorithm
