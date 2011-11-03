@@ -38,7 +38,12 @@ class CodeGenerator;
 class RuleInterface;
 class Transform;
 class SplitRegion;
-typedef std::vector<SplitRegion> SplitRegionList;
+
+class SplitRegionList : public std::vector<SplitRegion> , public jalib::JRefCounted, public jalib::SrcPosTaggable, public jalib::JPrintable {
+public:
+  void print(std::ostream& o) const;
+};
+
 
 class IterationDefinition {
 public:
@@ -68,10 +73,10 @@ public:
   void unpackargs(CodeGenerator& o) const;
   
 
-  void genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, bool isStatic) const;
+  void genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, bool isStatic, unsigned int blockNumber) const;
 
 protected:
-  void fillSplitRegionList(SplitRegionList& regions, SplitRegion& seed) const;
+  void fillSplitRegionList(SplitRegionList& regions, SplitRegion& seed, unsigned int blockNumber) const;
   bool canDependOn(const SplitRegion& a, const SplitRegion& b) const;
 private:
   DependencyDirection _order;
