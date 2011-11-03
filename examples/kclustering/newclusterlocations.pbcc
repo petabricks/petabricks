@@ -26,7 +26,9 @@ generator NewClusterLocationsGen
     }
     for (i=0; i<n; i++) {
       j=a.cell(i);
+      #ifdef DEBUG
       JASSERT(j>=0 && j<=k)(j);
+      #endif
       s.cell(j,0)+=x.cell(i,0);
       s.cell(j,1)+=x.cell(i,1);
       count.cell(j)+=1;

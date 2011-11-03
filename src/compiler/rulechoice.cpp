@@ -101,7 +101,7 @@ void petabricks::RuleChoiceCollection::pruneChoiceSpace() {
   }
   rulesets.clear();
 
-
+  /*
   std::map<size_t, const RuleChoiceConsumer*> corners;
   for(i=_ordering.begin(); i!=_ordering.end(); ++i) {
     const RuleSet& rs = (*i)->choices();
@@ -115,7 +115,7 @@ void petabricks::RuleChoiceCollection::pruneChoiceSpace() {
        // JTRACE("corner block combines")(rs.size());
       }
     }
-  }
+    }*/
 
   JTRACE("combined")(size());
 }
