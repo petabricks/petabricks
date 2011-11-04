@@ -4,13 +4,14 @@
 
 transform convolutionRows
 from Input[w,h], Kernel[KERNEL_LENGTH]
-to Output[w,h]
+to Output[w-KERNEL_LENGTH,
+          h]
 {
   Output.cell(x,y)
       from(Input.region(
-                  x-KERNEL_RADIUS,
+                  x,
                   y,
-                  x+KERNEL_RADIUS+1,
+                  x+KERNEL_LENGTH,
                   y+1)
               input, Kernel kernel) {
     ElementT sum = 0;
@@ -20,6 +21,7 @@ to Output[w,h]
     return sum;
   }
 
+  /*
   Output.cell(x,y) from(Input input, Kernel kernel) {
     ElementT sum = 0;
     for(int k = -KERNEL_RADIUS;
@@ -31,18 +33,20 @@ to Output[w,h]
       }
     return sum;
   }
+  */
 }
 
 transform convolutionColumns
 from Input[w,h], Kernel[KERNEL_LENGTH]
-to Output[w,h]
+to Output[w,
+          h-KERNEL_LENGTH]
 {
   Output.cell(x,y)
       from(Input.region(
                   x,
-                  y-KERNEL_RADIUS,
+                  y,
                   x+1,
-                  y+KERNEL_RADIUS+1)
+                  y+KERNEL_LENGTH)
               input, Kernel kernel) {
     ElementT sum = 0;
     for(int i = 0; i < KERNEL_LENGTH; i++){
@@ -51,6 +55,7 @@ to Output[w,h]
     return sum;
   }
 
+  /*
   Output.cell(x,y) from(Input input, Kernel kernel) {
     ElementT sum = 0;
     for(int k = -KERNEL_RADIUS;
@@ -62,18 +67,20 @@ to Output[w,h]
       }
     return sum;
   }
+  */
 }
 
 transform convolution2D
 from Input[w,h], Kernel[KERNEL_LENGTH]
-to Output[w,h]
+to Output[w-KERNEL_LENGTH,
+          h-KERNEL_LENGTH]
 {
   Output.cell(x,y)
       from(Input.region(
-                  x-KERNEL_RADIUS,
-                  y-KERNEL_RADIUS,
-                  x+KERNEL_RADIUS+1,
-                  y+KERNEL_RADIUS+1)
+                  x,
+                  y,
+                  x+KERNEL_LENGTH+1,
+                  y+KERNEL_LENGTH+1)
               input, Kernel kernel) {
     ElementT sum = 0;
     for(int x = 0; x < KERNEL_LENGTH; x++){
@@ -84,6 +91,7 @@ to Output[w,h]
     return sum;
   }
 
+  /*
   Output.cell(x,y) from(Input input, Kernel kernel) {
     ElementT sum = 0;
     for(int kx = -KERNEL_RADIUS;
@@ -104,18 +112,20 @@ to Output[w,h]
     }
     return sum;
   }
+  */
 }
 
 transform convolutionSeparable
 from Input[w,h], Kernel[KERNEL_LENGTH]
-to Output[w,h]
+to Output[w-KERNEL_LENGTH,
+          h-KERNEL_LENGTH]
 {
   to(Output out) from(Input in, Kernel kernel){
 //    std::cout << "convolution2D" << std::endl;
     convolution2D(out, in, kernel);
   }
 
-  to(Output out) from(Input in, Kernel kernel) using(buffer[w,h]){
+  to(Output out) from(Input in, Kernel kernel) using(buffer[w-KERNEL_LENGTH,h]){
 //    std::cout << "convolutionSeparable" << std::endl;
     convolutionRows(buffer, in, kernel);
     convolutionColumns(out, buffer, kernel);
