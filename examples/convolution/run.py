@@ -4,7 +4,7 @@ import subprocess
 from xml.dom.minidom import parseString
 
 stddevThreshold = 0.1 # tolerate up to 10% variation
-nTrials = 5
+nTrials = 7
 nThreads = 2
 
 def run(cmd):
@@ -51,7 +51,7 @@ def test(size, mode):
 
     return t,stddev
 
-def test_radius(radius, sizes=[2048]): # TODO: try 4096
+def test_radius(radius, sizes=[2048,3500]):
     print 'Testing radius=%d' % radius
     compile(radius)
     res = []
