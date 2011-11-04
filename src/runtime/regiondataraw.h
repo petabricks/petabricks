@@ -27,6 +27,7 @@ namespace petabricks {
     int allocData();
 
     MatrixStoragePtr storage() const {return _storage;}
+    void setStorage(MatrixStoragePtr storage) { _storage = storage; }
     ElementT& value0D(const IndexT* coord) const;
 
     DataHostPidList hosts(IndexT* begin, IndexT* end);

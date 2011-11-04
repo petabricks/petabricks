@@ -564,6 +564,9 @@ namespace petabricks {
     bool isLocal() const {
       return (_regionHandler->type() == RegionDataTypes::REGIONDATARAW);
     }
+    bool isRegionDataRaw() const {
+      return (_regionHandler->type() == RegionDataTypes::REGIONDATARAW);
+    }
     MatrixRegion<D, const ElementT> _toLocalConstRegion() const {
       return _toLocalRegion();
     }
@@ -604,7 +607,8 @@ namespace petabricks {
 
     ///
     /// Copy the entire matrix and store it locally
-    RegionMatrix localCopy() {
+    RegionMatrix localCopy() const {
+      // TODO(yod): optimize this
       RegionMatrix copy = RegionMatrix(this->size());
       copy.allocData();
 
@@ -616,6 +620,29 @@ namespace petabricks {
       } while (this->incCoord(coord) >= 0);
 
       return copy;
+    }
+
+    MatrixRegion<D, ElementT> toScratchRegion() const {
+      if (isLocal()) {
+        return _toLocalRegion();
+      } else {
+        return localCopy()._toLocalRegion();
+      }
+    }
+
+    void fromScratchRegion(const MatrixRegion<D, ElementT>& scratch) {
+      if (isRegionDataRaw()) {
+        _regionHandler->getRegionData()->setStorage(scratch.storage());
+
+      } else {
+        // TODO(yod): optimize this
+        IndexT coord[D];
+        memset(coord, 0, sizeof coord);
+
+        do {
+          scratch.cell(coord) = this->readCell(coord);
+        } while (this->incCoord(coord) >= 0);
+      }
     }
 
     void randomize() {

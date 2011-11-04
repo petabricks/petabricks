@@ -37,6 +37,10 @@ namespace petabricks {
       return NULL;
     }
 
+    virtual void setStorage(MatrixStoragePtr /*storage*/) {
+      JASSERT(false)(_type).Text("This should not be called.");
+    }
+
     virtual void randomize() {
       this->storage()->randomize();
     }
