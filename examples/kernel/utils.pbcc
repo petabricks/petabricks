@@ -1,6 +1,8 @@
 #ifndef UTILS_PBCC
 #define UTILS_PBCC
 
+#include "nan.h"
+
 %{
 
 void printMatrix(ConstMatrixRegion2D A)
@@ -29,7 +31,46 @@ int findMinAndMax(ElementT *min, ElementT *max, ConstMatrixRegion1D array)
     return 0;
 }
 
+inline ElementT lookup(const ConstMatrixRegion2D data,
+                       const ConstMatrixRegion1D var,
+                       IndexT index)
+{
+    return data.cell(var.cell(0), index + var.cell(1));
+}
+
+inline int indexIsValid(const ConstMatrixRegion2D data,
+                        const ConstMatrixRegion2D x,
+                        const ConstMatrixRegion1D dir,
+                        IndexT index)
+{
+    for (IndexT i = 0; i < x.size(1); ++i) {
+        if (ISNAN(lookup(data, x.row(i), index))) {
+            return false;
+        }
+    }
+    if (ISNAN(lookup(data, dir, index))) {
+        return false;
+    }
+    return true;
+}
+
+inline int indexIsValid(const ConstMatrixRegion2D data,
+                        const ConstMatrixRegion2D x,
+                        const ConstMatrixRegion1D dir,
+                        const ConstMatrixRegion1D y, IndexT index)
+{
+    for (IndexT i = 0; i < x.size(1); ++i) {
+        if (ISNAN(lookup(data, x.row(i), index))) {
+            return false;
+        }
+    }
+    if (ISNAN(lookup(data, dir, index)) ||
+        ISNAN(lookup(data, y, index))) {
+        return false;
+    }
+    return true;
+}
+
 %}
 
 #endif // UTILS_PBCC
-

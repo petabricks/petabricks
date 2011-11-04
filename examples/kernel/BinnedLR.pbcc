@@ -6,53 +6,7 @@
 #include "../QR/QR.pbcc"
 #include "../multiply/multiply.pbcc"
 #include "../trisolve/TriSolveLU.pbcc"
-
-// algorithm makes use of NaN values to signal "no data"
-// since NaNs not yet supported by runtime IO, use sentinel value instead
-#define MYNAN -667
-#define ISNAN(x) ((x) == MYNAN)
-
-%{
-inline ElementT lookup(const ConstMatrixRegion2D data,
-                       const ConstMatrixRegion1D var,
-                       IndexT index)
-{
-    return data.cell(var.cell(0), index + var.cell(1));
-}
-
-inline int indexIsValid(const ConstMatrixRegion2D data,
-                        const ConstMatrixRegion2D x,
-                        const ConstMatrixRegion1D dir,
-                        IndexT index)
-{
-    for (IndexT i = 0; i < x.size(1); ++i) {
-        if (ISNAN(lookup(data, x.row(i), index))) {
-            return false;
-        }
-    }
-    if (ISNAN(lookup(data, dir, index))) {
-        return false;
-    }
-    return true;
-}
-
-inline int indexIsValid(const ConstMatrixRegion2D data,
-                        const ConstMatrixRegion2D x,
-                        const ConstMatrixRegion1D dir,
-                        const ConstMatrixRegion1D y, IndexT index)
-{
-    for (IndexT i = 0; i < x.size(1); ++i) {
-        if (ISNAN(lookup(data, x.row(i), index))) {
-            return false;
-        }
-    }
-    if (ISNAN(lookup(data, dir, index)) ||
-        ISNAN(lookup(data, y, index))) {
-        return false;
-    }
-    return true;
-}
-%}
+#include "utils.pbcc"
 
 // computes least-squares regression coefficients for X*alpha = Y
 transform Regress

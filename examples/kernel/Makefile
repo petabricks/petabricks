@@ -23,19 +23,19 @@ BinnedLR: BinnedLR.pbcc
 	${PBC} $< --output $@
 
 test: nwkde
-	./nwkde test/trainData.pba test/wrapFlags.pba test/kernelWidths.pba test/trainIndices.pba test/trainVarIndex.pba test/trainTimeOffset.pba test/testData.pba test/testIndices.pba test/testVarIndex.pba test/testTimeOffset.pba test/outputVarIndex.pba test/outputTimeOffset.pba test/trainMaskWidth.pba -
+	./nwkde test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/kernelWidths.pba test/maskWidth.pba -
 
 testVA: nwkdeVA
-	./nwkdeVA test/trainData.pba test/wrapFlags.pba test/trainIndices.pba test/trainVarIndex.pba test/trainTimeOffset.pba test/testData.pba test/testIndices.pba test/testVarIndex.pba test/testTimeOffset.pba test/outputVarIndex.pba test/outputTimeOffset.pba test/trainMaskWidth.pba -
+	./nwkdeVA test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/maskWidth.pba -
 
 testMetric: nwkdeMetric nwkde
-	./nwkde test/trainData.pba test/wrapFlags.pba test/kernelWidths.pba test/trainIndices.pba test/trainVarIndex.pba test/trainTimeOffset.pba test/testData.pba test/testIndices.pba test/testVarIndex.pba test/testTimeOffset.pba test/outputVarIndex.pba test/outputTimeOffset.pba test/trainMaskWidth.pba testMetric.out.pba
-	./nwkdeMetric testMetric.out.pba test/trainData.pba test/wrapFlags.pba test/kernelWidths.pba test/trainIndices.pba test/trainVarIndex.pba test/trainTimeOffset.pba test/testData.pba test/testIndices.pba test/testVarIndex.pba test/testTimeOffset.pba test/outputVarIndex.pba test/outputTimeOffset.pba test/trainMaskWidth.pba -
+	./nwkde test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/kernelWidths.pba test/maskWidth.pba testMetric.out.pba
+	./nwkdeMetric testMetric.out.pba test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/kernelWidths.pba test/maskWidth.pba -
 	rm testMetric.out.pba
 
 testMetricVA: nwkdeMetric nwkdeVA
-	./nwkdeVA test/trainData.pba test/wrapFlags.pba test/trainIndices.pba test/trainVarIndex.pba test/trainTimeOffset.pba test/testData.pba test/testIndices.pba test/testVarIndex.pba test/testTimeOffset.pba test/outputVarIndex.pba test/outputTimeOffset.pba test/trainMaskWidth.pba testMetricVA.out.pba
-	./nwkdeMetric testMetricVA.out.pba test/trainData.pba test/wrapFlags.pba test/kernelWidths.pba test/trainIndices.pba test/trainVarIndex.pba test/trainTimeOffset.pba test/testData.pba test/testIndices.pba test/testVarIndex.pba test/testTimeOffset.pba test/outputVarIndex.pba test/outputTimeOffset.pba test/trainMaskWidth.pba -
+	./nwkdeVA test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/maskWidth.pba testMetricVA.out.pba
+	./nwkdeMetric testMetricVA.out.pba test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/kernelWidths.pba test/maskWidth.pba -
 	rm testMetricVA.out.pba
 
 testBinnedLR: BinnedLR
