@@ -4,7 +4,7 @@ import subprocess
 from xml.dom.minidom import parseString
 
 stddevThreshold = 0.1 # tolerate up to 10% variation
-nTrials = 7
+nTrials = 5
 nThreads = 2
 
 def run(cmd):
@@ -25,14 +25,15 @@ def compile(radius):
     cmd = [
         "../../src/pbc",
         "--preproc=/usr/bin/cpp -DKERNEL_RADIUS=%d" % radius,
+        "--output=convolutionSeparable2.r%d" % radius,
         "convolutionSeparable2.pbcc"
     ]
     run(cmd)
 
-def test(size, mode):
+def test(radius, size, mode):
     # TODO: copy config to dest location?
     cmd = [
-        "./convolutionSeparable2",
+        "./convolutionSeparable2.r%d" % radius,
         "--time",
         "--trials=%d" % nTrials,
         "--isolation",
@@ -60,7 +61,7 @@ def test_radius(radius, sizes=[2048,3500]):
         for sep in ['2d', 'sep']:
             for local in ['local', 'nolocal']:
                 mode = '%s.%s' % (sep,local)
-                t,stddev = test(size, mode)
+                t,stddev = test(radius, size, mode)
                 res.append( (radius, size, mode, t, stddev) )
                 #print '%d^2, %s takes %f (stddev: %f)' % (size, mode, t, stddev)
     return res
