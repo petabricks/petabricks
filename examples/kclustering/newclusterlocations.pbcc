@@ -26,14 +26,16 @@ generator NewClusterLocationsGen
     }
     for (i=0; i<n; i++) {
       j=a.cell(i);
+      #ifdef DEBUG
       JASSERT(j>=0 && j<=k)(j);
+      #endif
       s.cell(j,0)+=x.cell(i,0);
       s.cell(j,1)+=x.cell(i,1);
       count.cell(j)+=1;
     }
   }
 
-  to (C.column(i) c) from (Sum.column(i) s, Count.cell(i) count) 
+  /*to (C.column(i) c) from (Sum.column(i) s, Count.cell(i) count) 
   {
     if (count == 0) {
       c.cell(0)=0;
@@ -42,6 +44,16 @@ generator NewClusterLocationsGen
     else {
       c.cell(0)=s.cell(0)/count;
       c.cell(1)=s.cell(1)/count;
+    }
+  }*/
+
+  to (C.cell(i,j) c) from (Sum.cell(i,j) s, Count.cell(i) count) 
+  {
+    if (count == 0) {
+      c=0;
+    }
+    else {
+      c=s/count;
     }
   }
 }
