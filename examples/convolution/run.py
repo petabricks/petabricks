@@ -68,7 +68,7 @@ def test_radius(radius, sizes=[2048,3520]):
 
 # Run all tests
 res = []
-for radius in [1,8]:
+for radius in [1,2,3,8]:
     t = test_radius(radius)
     res.extend( t )
 
