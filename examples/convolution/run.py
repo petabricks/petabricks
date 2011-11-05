@@ -52,7 +52,7 @@ def test(radius, size, mode):
 
     return t,stddev
 
-def test_radius(radius, sizes=[2048,3500]):
+def test_radius(radius, sizes=[2048,3520]):
     print 'Testing radius=%d' % radius
     compile(radius)
     res = []
@@ -68,7 +68,7 @@ def test_radius(radius, sizes=[2048,3500]):
 
 # Run all tests
 res = []
-for radius in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
+for radius in [1,8]:
     t = test_radius(radius)
     res.extend( t )
 
