@@ -14,5 +14,5 @@ def countsearchspace(f):
 
 if __name__ == '__main__':
   import sys
-  print "%d^%.2f"%(BASE, countsearchspace(open(sys.argv[1])))
+  print "$%d^{%.2f}$"%(BASE, countsearchspace(open(sys.argv[1])))
 
