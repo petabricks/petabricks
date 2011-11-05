@@ -13,23 +13,23 @@
 #ifdef WORKAROUND
 
 // make sure generator headers are compatible
-#define __M__ 4
-#define __N__ 8750
-#define __L__ l
-#define __P__ 8
-#define __Q__ q
-#define __M2__ 4
-#define __N2__ 8750
+#define _M_ 4
+#define _N_ 8750
+#define _L_ l
+#define _P_ 8
+#define _Q_ q
+#define _M2_ 4
+#define _N2_ 8750
 
 #else
 
-#define __M__ m
-#define __N__ n
-#define __L__ l
-#define __P__ p
-#define __Q__ q
-#define __M2__ m2
-#define __N2__ n2
+#define _M_ m
+#define _N_ n
+#define _L_ l
+#define _P_ p
+#define _Q_ q
+#define _M2_ m2
+#define _N2_ n2
 
 #endif
 

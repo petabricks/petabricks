@@ -5,11 +5,11 @@
 #include "nwkde.pbcc"
 
 transform NWKDEVA
-from TRAINDATA[__M__,__N__], TRAINX[2,__P__], TRAINY[2], TRAININDICES[__L__],
-     TESTDATA[__M2__,__N2__], TESTX[2,__P__], TESTINDICES[__Q__],
-     DIRFLAGS[__M__], MASKWIDTH
-to RESULT[__Q__]
-tunable float sizespecific array(__M__) initial(4) KERNELWIDTHS
+from TRAINDATA[_M_,_N_], TRAINX[2,_P_], TRAINY[2], TRAININDICES[_L_],
+     TESTDATA[_M2_,_N2_], TESTX[2,_P_], TESTINDICES[_Q_],
+     DIRFLAGS[_M_], MASKWIDTH
+to RESULT[_Q_]
+tunable float sizespecific array(_M_) initial(4) KERNELWIDTHS
 generator NWKDEGenerator
 accuracy_metric NWKDEMetric
 accuracy_bins -8, -7, -6, -5, -4
@@ -21,8 +21,8 @@ accuracy_bins -8, -7, -6, -5, -4
           DIRFLAGS dirFlags, MASKWIDTH maskWidth)
     {
         // copy kernel widths into matrix region
-        MatrixRegion1D kernelWidths = MatrixRegion1D::allocate(__M__);
-        for (int i = 0; i < __M__; ++i) {
+        MatrixRegion1D kernelWidths = MatrixRegion1D::allocate(_M_);
+        for (int i = 0; i < _M_; ++i) {
             kernelWidths.cell(i) = KERNELWIDTHS[i];
         }
 

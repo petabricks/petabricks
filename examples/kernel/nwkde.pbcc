@@ -24,6 +24,23 @@ inline ElementT wrapWindDirDiff(ElementT diff)
     return diff + (diffIntWrapP360 - diffIntP360);
 }
 
+//  inline __attribute__((always_inline)) __attribute__((flatten))
+//  ElementT lookup(const ConstMatrixRegion2D data,
+//                         const ConstMatrixRegion1D var,
+//                         const IndexT index)
+//  {
+//      return data.cell(var.cell(0), index + var.cell(1));
+//  }
+
+//  inline __attribute__((always_inline)) __attribute__((flatten))
+//  ElementT lookup(const ConstMatrixRegion2D data,
+//                         const ConstMatrixRegion2D var,
+//                         const IndexT row,
+//                         const IndexT index)
+//  {
+//      return data.cell(var.cell(0, row), index + var.cell(1, row));
+//  }
+
 %}
 
 transform NWKDECheckInputs
@@ -103,7 +120,7 @@ to INPUTSCHECKED
     PARTIALS - weighted output partial sums
 */
 
-//#define INCLUDE_METHOD2
+#define INCLUDE_METHOD2
 #define INCLUDE_METHOD3
 
 transform NWKDEBase
@@ -145,8 +162,14 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
         dirFlag     =     dirFlags.cell(trainX.cell(0));
         kernelWidth = kernelWidths.cell(trainX.cell(0));
 
-        trainPoint = lookup(trainData, trainX, trainIndex);
-        testPoint  = lookup( testData,  testX,  testIndex);
+        // TODO: lookup function is really slow (even inlined)
+//     trainPoint = lookup(trainData, trainX, trainIndex);
+//     testPoint  = lookup( testData,  testX, testIndex);
+       // do lookup without the function call overhead
+       trainPoint = trainData.cell(trainX.cell(0),
+                                   trainIndex + trainX.cell(1));
+       testPoint = testData.cell(testX.cell(0),
+                                 testIndex + testX.cell(1));
 
         // skip this variable if nan is detected in the test point
         if (ISNAN(testPoint)) {
@@ -203,8 +226,12 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
           TRAINY trainY,
           WEIGHTS.cell(j,k) weight)
     {
-        outputVal = lookup(trainData, trainY, trainIndex);
-        partial = ISNAN(outputVal) ? 0 : weight * outputVal;
+        ElementT y;
+        // TODO: lookup function is really slow (even inlined)
+//      y = lookup(trainData, trainY, trainIndex);
+        // do lookup without the function call overhead
+        y = trainData.cell(trainY.cell(0), trainIndex + trainY.cell(1));
+        partial = ISNAN(y) ? 0 : weight * y;
 #ifdef DEBUG
         fprintf(stderr, "method 1: partial(%d, %d) = %g\n", j, k, partial);
 #endif
@@ -240,15 +267,18 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
           DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, MASKWIDTH maskWidth)
     {
         IndexT i, dirFlag;
-        ElementT outputVal, kernelWidth, trainPoint, testPoint, diff, sum;
+        ElementT y, kernelWidth, trainPoint, testPoint, diff, sum;
 
-        outputVal = lookup(trainData, trainY, trainIndex);
+        // TODO: lookup function is really slow (even inlined)
+//      y = lookup(trainData, trainY, trainIndex);
+        // do lookup without the function call overhead
+        y = trainData.cell(trainY.cell(0), trainIndex + trainY.cell(1));
 
         // skip current training index if it is too close to the test
         // index or if the training output value is a NAN
         if ((trainIndex > testIndex - maskWidth &&
              trainIndex < testIndex + maskWidth) ||
-            ISNAN(outputVal)) {
+            ISNAN(y)) {
             weight = partial = 0;
             return;
         }
@@ -258,8 +288,14 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
         for (i = 0; i < trainX.size(1); ++i) {
             dirFlag     =     dirFlags.cell(trainX.cell(0, i));
             kernelWidth = kernelWidths.cell(trainX.cell(0, i));
-            trainPoint = lookup(trainData, trainX.row(i), trainIndex);
-            testPoint  = lookup( testData,  testX.row(i),  testIndex);
+            // TODO: lookup function is really slow (even inlined)
+//          trainPoint = lookup(trainData, trainX, i, trainIndex);
+//          testPoint  = lookup( testData,  testX, i,  testIndex);
+            // do lookup without the function call overhead
+            trainPoint = trainData.cell(trainX.cell(0, i),
+                                        trainIndex + trainX.cell(1, i));
+            testPoint = testData.cell(testX.cell(0, i),
+                                      testIndex + testX.cell(1, i));
 
             // skip this variable if nan is detected in the test point
             if (ISNAN(testPoint)) { continue; }
@@ -277,7 +313,7 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
         }
 
         weight = exp(-((ElementT) sum));
-        partial = weight * outputVal;
+        partial = weight * y;
 #ifdef DEBUG
         fprintf(stderr, "method 2:  weight(%d, %d) = %g\n", j, k, weight);
         fprintf(stderr, "method 2: partial(%d, %d) = %g\n", j, k, partial);
@@ -314,7 +350,7 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
     {
         bool skipIndexFlag;
         IndexT i, j, dirFlag, trainIndex;
-        ElementT outputVal, kernelWidth, trainPoint, testPoint, diff, sum,
+        ElementT y, kernelWidth, trainPoint, testPoint, diff, sum,
                  weight, partial, totalPartial, totalWeight;
 
         // loop over training points
@@ -322,13 +358,16 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
         for (j = 0; j < trainIndices.count(); ++j) {
 
             trainIndex = trainIndices.cell(j);
-            outputVal = lookup(trainData, trainY, trainIndex);
+            // TODO: lookup function is really slow (even inlined)
+//          y = lookup(trainData, trainY, trainIndex);
+            // do lookup without the function call overhead
+            y = trainData.cell(trainY.cell(0), trainIndex + trainY.cell(1));
 
             // skip current training index if it is too close to the test
             // index or if the training output value is a NAN
             if ((trainIndex > testIndex - maskWidth &&
                  trainIndex < testIndex + maskWidth) ||
-                ISNAN(outputVal)) {
+                ISNAN(y)) {
                 continue;
             }
 
@@ -338,8 +377,14 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
             for (i = 0; i < trainX.size(1); ++i) {
                 dirFlag     =     dirFlags.cell(trainX.cell(0, i));
                 kernelWidth = kernelWidths.cell(trainX.cell(0, i));
-                trainPoint = lookup(trainData, trainX.row(i), trainIndex);
-                testPoint  = lookup( testData,  testX.row(i),  testIndex);
+                // TODO: lookup function is really slow (even inlined)
+//              trainPoint = lookup(trainData, trainX, i, trainIndex);
+//              testPoint  = lookup( testData,  testX, i,  testIndex);
+                // do lookup without the function call overhead
+                trainPoint = trainData.cell(trainX.cell(0, i),
+                                            trainIndex + trainX.cell(1, i));
+                testPoint = testData.cell(testX.cell(0, i),
+                                          testIndex + testX.cell(1, i));
 
                 // skip this variable if nan is detected in the test point
                 if (ISNAN(testPoint)) { continue; }
@@ -359,7 +404,7 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
             if (skipIndexFlag) { continue; }
 
             weight = exp(-((ElementT) sum));
-            partial = weight * outputVal;
+            partial = weight * y;
 
 #ifdef DEBUG
             fprintf(stderr, "method 3:  weight(%d, %d) = %g\n", j, k, weight);
@@ -411,10 +456,10 @@ tunable recursiveCutoff
 }
 
 transform NWKDE
-from TRAINDATA[__M__,__N__], TRAINX[2,__P__], TRAINY[2], TRAININDICES[__L__],
-     TESTDATA[__M2__,__N2__], TESTX[2,__P__], TESTINDICES[__Q__],
-     DIRFLAGS[__M__], KERNELWIDTHS[__M__], MASKWIDTH
-to RESULT[__Q__]
+from TRAINDATA[_M_,_N_], TRAINX[2,_P_], TRAINY[2], TRAININDICES[_L_],
+     TESTDATA[_M2_,_N2_], TESTX[2,_P_], TESTINDICES[_Q_],
+     DIRFLAGS[_M_], KERNELWIDTHS[_M_], MASKWIDTH
+to RESULT[_Q_]
 through INPUTSCHECKED
 generator NWKDEGenerator2
 accuracy_metric NWKDEMetric2
