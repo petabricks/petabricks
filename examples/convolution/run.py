@@ -25,15 +25,15 @@ def compile(radius):
     cmd = [
         "../../src/pbc",
         "--preproc=/usr/bin/cpp -DKERNEL_RADIUS=%d" % radius,
-        "--output=convolutionSeparable2.r%d" % radius,
-        "convolutionSeparable2.pbcc"
+        "--output=convolutionSeparable.r%d" % radius,
+        "convolutionSeparable.pbcc"
     ]
     run(cmd)
 
 def test(radius, size, mode):
     # TODO: copy config to dest location?
     cmd = [
-        "./convolutionSeparable2.r%d" % radius,
+        "./convolutionSeparable.r%d" % radius,
         "--time",
         "--trials=%d" % nTrials,
         "--isolation",
@@ -52,7 +52,7 @@ def test(radius, size, mode):
 
     return t,stddev
 
-def test_radius(radius, sizes=[2048,3520]):
+def test_radius(radius, sizes=[3520]):
     print 'Testing radius=%d' % radius
     compile(radius)
     res = []
@@ -68,7 +68,7 @@ def test_radius(radius, sizes=[2048,3520]):
 
 # Run all tests
 res = []
-for radius in [1,2,3,8]:
+for radius in [1,2,3,4,5,6,7,8,9,10]:
     t = test_radius(radius)
     res.extend( t )
 
