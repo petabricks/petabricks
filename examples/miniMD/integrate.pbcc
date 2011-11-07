@@ -13,8 +13,7 @@ function integrate_run
 from
 to
 {
-  int i,n;//,nlocal;
-  //double **x,**v,**f,**vold;
+  int i,n;
 
   for (n = 0; n < ntimes; n++) {
 
@@ -24,24 +23,17 @@ to
       atom_x.cell(i,2) += dt.cell(0)*atom_v.cell(i,2);
     }
 
-    //timer.stamp();
-
-    if ((n+1) % neighbor.every) {
-      comm_communicate(atom);
-      //timer_stamp(TIME_COMM);
+    if ((n+1) % neighbor_every) {
+      //comm_communicate(atom);
     } else {
-      comm_exchange(atom);
-      comm_borders(atom);
-      //timer.stamp(TIME_COMM);
+      //comm_exchange(atom);
+      //comm_borders(atom);
       neighbor_build(atom);
-      //timer.stamp(TIME_NEIGH);
     }      
 
     force.compute(atom,neighbor,comm.me);
-    //timer.stamp(TIME_FORCE);
 
-    comm.reverse_communicate(atom);
-    //timer.stamp(TIME_COMM);
+    //comm.reverse_communicate(atom);
 
     for (i = 0; i < natoms; i++) {
       atom_vold.cell(i,0) = atom_v.cell(i, 0);
