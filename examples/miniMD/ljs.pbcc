@@ -8,6 +8,7 @@
 #include "atom.pbcc"
 
 #define MAX_NEIGHS 1000
+#define MAX_ATOMS_IN_BIN 1000
 
 function miniMD_main
 from params[14]
@@ -113,7 +114,8 @@ to OUT[3]
 
 
   printf("Starting dynamics...\n");
-  integrate_run();
+  integrate_run(temperature, pressure, energy, atom_f, atom_x, atom_v, atom_vold, dt, dtforce, neighbor_index, num_neigh);
+
   thermo_compute(temperature, pressure, energy, atom_x, atom_v, atom_vold,atom_f,  cutforcesq, neighbor_index, neighbor_numneigh);
   //output(in,atom,force,neighbor,comm,thermo,integrate,timer);
   //prompt();

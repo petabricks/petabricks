@@ -10,8 +10,8 @@ to dtforce[1]
 
 
 function integrate_run
-from atom_x[natoms, 3], dt[1], atom_v[natoms, 3]
-to
+from atom_x[natoms, 3], atom_v,[natoms, 3], atom_vold[natoms, 3], dt[1], atom_v[natoms, 3], dt[1], dtforce[1], neighbor_index[natoms, max_neighs], num_neigh[natoms],
+to temperature[1], pressure[1], energy[1], atom_f[natoms,3]
 {
   int i,n;
 
@@ -31,9 +31,7 @@ to
       neighbor_build(bin_to_atom, bin_sizes, atom_to_bin, neighbor_numneigh, nbins, atom_x, bininv, mbinlo, neighbor_index);
     }      
 
-    force_compute(from neighbor_index[natoms, max_neighs], neighbor_numneigh[natoms], atom_x[natoms]
-to atom_f[natoms,3]
-
+    force_compute(atom_f, neighbor_index, neighbor_numneigh, atom_x)
 
     //comm.reverse_communicate(atom);
 
@@ -47,10 +45,8 @@ to atom_f[natoms,3]
     }
 
     if (thermo_nstat) 
-    thermo_compute(n+1,atom,neighbor,force);
+    thermo_compute(temperature, pressure, energy, atom_x, atom_v, atom_vold, atom_f, cutforcesq, neighbor_index, neighbor_numneigh);
 
-from atom_x[natoms, 3], atom_v[natoms,3], atom_vold[natoms, 3], atom_f[natoms,3] cutforcesq[1], neighbor_index[natoms, max_neighs], neighbor_numneigh[natoms]
-to t[1], p[1], e[1]
   }
 }
 #endif
