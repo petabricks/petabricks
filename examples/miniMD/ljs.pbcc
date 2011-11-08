@@ -53,11 +53,12 @@ to OUT[3]
   // define neighbor params
   MatrixRegion1D binsize = MatrixRegion1D::allocate(3);
   MatrixRegion1D bininv = MatrixRegion1D::allocate(3);
+  MatrixRegion1D mbinslo = MatrixRegion1D::allocate(3);
   MatrixRegion1D nbins = MatrixRegion2D::allocate(1);
   MatrixRegion1D cutneighsq = MatrixRegion1D::allocate(1);
   MatrixRegion2D atom_world_bounds = MatrixRegion2D::allocate(3,2);
 
-  neighbor_setup(binsize, bininv, mbins, cutneighsq, cutneigh, nbin_in, atom_box_bounds);
+  neighbor_setup(binsize, bininv, mbinslo, nbins, cutneighsq, cutneigh, nbin_in, atom_box_bounds);
 
   // define force parameters
   MatrixRegion1D cutforcesq = MatrixRegion1D::allocate(1);
@@ -82,7 +83,6 @@ to OUT[3]
 
 
 
-  //multiply by 4?
   int natoms =  4 * ndimentions.cell(0) * ndimentions.cell(1) * ndimentions.cell(2);
   MatrixRegion2D atom_x = MatrixRegion2D::allocate(natoms, 3);
   MatrixRegion2D atom_v = MatrixRegion2D::allocate(natoms, 3);
@@ -96,9 +96,11 @@ to OUT[3]
   MatrixRegion2D atom_f = MatrixRegion2D::allocate(natoms, 3);
   MatrixRegion2D neighbor_index =  MatrixRegion2D::allocate(natoms, MAX_NEIGHS);
   MatrixRegion1D neighbor_numneigh = MatrixRegion1D::allocate(natoms);
+  int numbins = (int) nbins.cell(0);
+  MatrixRegion2D bin_to_atom =  MatrixRegion2D::allocate(num_bins, MAX_ATOMS_IN_BIN);
+  MatrixRegion1D bin_sizes = MatrixRegion1D::allocate(num_bins);
   // fix this
-  neighbor_build();
-
+  neighbor_build(bin_to_atom, bin_sizes, atom_to_bin, atom_x, bininv, mbinlo, neighbor_index, neighbor_numneigh, nbins);
 
   MatrixRegion1D temperature = MatrixRegion1D::allocate(1);
   MatrixRegion1D pressure = MatrixRegion1D::allocate(1);
