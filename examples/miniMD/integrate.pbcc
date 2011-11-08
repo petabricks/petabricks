@@ -10,7 +10,7 @@ to dtforce[1]
 
 
 function integrate_run
-from atom_x[natoms, 3], atom_v,[natoms, 3], atom_vold[natoms, 3], dt[1], atom_v[natoms, 3], dt[1], dtforce[1], neighbor_index[natoms, max_neighs], num_neigh[natoms],
+from atom_x[natoms, 3], atom_v[natoms, 3], atom_vold[natoms, 3], dt[1], dtforce[1], neighbor_index[natoms, max_neighs], num_neigh[natoms]
 to temperature[1], pressure[1], energy[1], atom_f[natoms,3]
 {
   int i,n;
