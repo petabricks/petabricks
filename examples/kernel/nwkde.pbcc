@@ -459,40 +459,6 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
 #endif // INCLUDE_METHOD3
 }
 
-transform NWKDERecursive
-from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
-     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q],
-     DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
-to RESULT[q]
-tunable recursiveCutoff
-{
-    to   (RESULT result)
-    from (TRAINDATA trainData, TRAINX trainX,
-          TRAINY trainY, TRAININDICES trainIndices,
-          TESTDATA testData, TESTX testX, TESTINDICES testIndices,
-          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
-          MASKWIDTH maskWidth)
-    {
-        if (q <= MAX(1, recursiveCutoff)) {
-            NWKDEBase(result, trainData, trainX, trainY, trainIndices,
-                      testData, testX, testIndices,
-                      dirFlags, kernelWidths, split, maskWidth);
-            return;
-        }
-
-        int mid = q / 2;
-        spawn NWKDERecursive(result.region(0, mid),
-                             trainData, trainX, trainY, trainIndices,
-                             testData, testX, testIndices.region(0, mid),
-                             dirFlags, kernelWidths, split, maskWidth);
-        spawn NWKDERecursive(result.region(mid, q),
-                             trainData, trainX, trainY, trainIndices,
-                             testData, testX, testIndices.region(mid, q),
-                             dirFlags, kernelWidths, split, maskWidth);
-        sync;
-    }
-}
-
 transform NWKDE
 from TRAINDATA[_M_,_N_], TRAINX[2,_P_], TRAINY[2], TRAININDICES[_L_],
      TESTDATA[_M2_,_N2_], TESTX[2,_P_], TESTINDICES[_Q_],
@@ -515,9 +481,9 @@ accuracy_metric NWKDEMetric2
                          testData, testX, testIndices,
                          dirFlags, kernelWidths, split, maskWidth);
 #endif
-        NWKDERecursive(result, trainData, trainX, trainY, trainIndices,
-                       testData, testX, testIndices,
-                       dirFlags, kernelWidths, split, maskWidth);
+        NWKDEBase(result, trainData, trainX, trainY, trainIndices,
+                  testData, testX, testIndices,
+                  dirFlags, kernelWidths, split, maskWidth);
     }
 }
 
