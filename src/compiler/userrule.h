@@ -111,7 +111,6 @@ public:
   
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
-#ifdef HAVE_OPENCL
   void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o);
   void generateOpenCLCallCode(Transform& trans, CodeGenerator& o);
   void generateOpenCLPrepareCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o);
@@ -126,7 +125,6 @@ public:
     return _minCoordOffsets.size() > 0;
   }
   void generateLocalBuffers(CLCodeGenerator& clo);
-#endif
 
   ///
   /// Generate seqential code to invoke this rule
@@ -291,13 +289,11 @@ private:
 
   void prepareBuffers();
 
-#ifdef HAVE_OPENCL
   bool passBuildGpuProgram(Transform& trans);
 
   std::map<std::string, std::string> _nameMap;
   std::map<std::string, FormulaList> _minCoordOffsets;
   std::map<std::string, FormulaList> _maxCoordOffsets;
-#endif
 
   RuleFlags _flags;
   RegionList _from;
@@ -308,9 +304,7 @@ private:
   std::string _bodysrc;
   jalib::SrcPosTaggable _bodysrcPos;
   RIRBlockCopyRef _bodyir[RuleFlavor::_COUNT];
-#ifdef HAVE_OPENCL
   RIRBlockCopyRef _bodyirLocalMem;
-#endif
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr _recursiveHint;

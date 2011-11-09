@@ -24,10 +24,7 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-
-#include "config.h"
-
-#if !defined(PETABRICKSOPENCLUTIL_H) && HAVE_OPENCL
+#ifndef PETABRICKSOPENCLUTIL_H
 #define PETABRICKSOPENCLUTIL_H
 
 #include <vector>
@@ -61,8 +58,26 @@
 # include <opencl.h>
 #endif
 
+#ifndef HAVE_OPENCL
+//make our function signatures compile without opencl
+typedef int cl_command_queue;
+typedef int cl_context;
+typedef int cl_device_id;
+typedef int cl_int;
+typedef int cl_kernel;
+typedef int cl_mem;
+typedef int cl_platform_id;
+typedef int cl_program;
+typedef int cl_uint;
+typedef int cl_ulong;
+typedef int cl_event;
+#endif
+
 namespace petabricks
 {
+
+
+
   struct OpenCLDevice
   {
     OpenCLDevice( cl_device_id _id );

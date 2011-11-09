@@ -297,10 +297,10 @@ public:
     return t;
   }
 
-#ifdef HAVE_OPENCL
   ///
   /// Decide to make a copy or return the orginal for making GPU buffer.s
 	ElementT* getGpuInputBufferPtr() {
+#ifdef HAVE_OPENCL
     if(isEntireBuffer()) {
       return this->base();
     }
@@ -316,6 +316,10 @@ public:
     // Store buffer in the global storage so that it won't be derefferenced before enqueueWriteBuffer is done
     CopyPendingMap::_pendingMap.addBuffer(_gpuInputBuffer);
     return _gpuInputBuffer->data();
+#else
+    UNIMPLEMENTED();
+    return 0;
+#endif
 	}
 
   ///
@@ -357,7 +361,6 @@ public:
     }
     return s;
   }
-#endif
 
   void print() {
     std::cerr << "dimension = " << D << std::endl;
@@ -481,8 +484,8 @@ public:
     }
   }
 
-#ifdef HAVE_OPENCL
   void useOnCpu() {
+#ifdef HAVE_OPENCL
     if(D == 0) return;
     this->storage()->lock();
     std::set<MatrixStorageInfoPtr>& pendings = CopyPendingMap::_pendingMap.allPendings(this->storage());
@@ -501,10 +504,8 @@ public:
     CopyPendingMap::_pendingMap.clearPendings(this->storage());
     this->storage()->unlock();
     //CopyPendingMap::_pendingMap.print();
-  }
-#else
-  void useOnCpu(){}
 #endif
+  }
 
   ///
   /// Access a single cell of target matrix

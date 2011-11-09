@@ -26,7 +26,6 @@
  *****************************************************************************/
 #include "gpurule.h"
 
-#ifdef HAVE_OPENCL
 //#define GPU_TRACE
 
 namespace petabricks
@@ -275,4 +274,3 @@ petabricks::FormulaPtr petabricks::GpuRule::getWhereClause() const {
 
 }//namespace
 
-#endif

@@ -141,9 +141,7 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads, int reexe
     }else{
       _fd = reexecchild;
     }
-#ifdef HAVE_OPENCL
     GpuManager::start();
-#endif
     _settestprocflags();
     PetabricksRuntime::startWorkerThreads(workerThreads);
     jalib::JTunable::setModificationCallback(this); 

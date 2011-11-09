@@ -30,7 +30,6 @@
 #include "dynamictask.h"
 #include "gpudynamictask.h"
 #include "gpumanager.h"
-#include "gpumanager.cpp"
 #include "petabricks.h"
 #include "remotehost.h"
 #include "testisolation.h"
@@ -39,6 +38,7 @@
 #include "common/jfilesystem.h"
 #include "common/jtimer.h"
 #include "common/jtunable.h"
+#include "common/openclutil.h"
 
 #include <algorithm>
 #include <fstream>
@@ -58,9 +58,6 @@
 # undef HAVE_BOOST_RANDOM_HPP
 #endif
 
-#ifdef HAVE_OPENCL
-# include "openclutil.h"
-#endif
 
 #ifdef HAVE_BOOST_RANDOM_HPP
 # include <boost/random.hpp>
@@ -432,9 +429,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
 
 void petabricks::PetabricksRuntime::startWorkerThreads(int worker_threads) {
   JTIMER_SCOPE(startworkers);
-#ifdef HAVE_OPENCL
   GpuManager::start();
-#endif
   JASSERT(worker_threads>=1)(worker_threads);
   DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
   _petabricksInit();
@@ -489,9 +484,7 @@ petabricks::PetabricksRuntime::~PetabricksRuntime()
 {
   saveConfig();
   _petabricksCleanup();
-#ifdef HAVE_OPENCL
   GpuManager::shutdown();
-#endif
   DynamicScheduler::cpuScheduler().shutdown();
   RemoteHostDB().instance().shutdown();
 }
@@ -507,20 +500,10 @@ void petabricks::PetabricksRuntime::saveConfig()
 
 
 int petabricks::PetabricksRuntime::runMain(){
-/*#ifdef HAVE_OPENCL
-  int err;
-#endif*/
   JTIMER_SCOPE(runMain);
 
   switch(MODE){
     case MODE_RUN_IO:
-/*#ifdef HAVE_OPENCL
-      if( 0 != ( err = OpenCLUtil::init( ) ) )
-      {
-        std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
-        exit( -1 );
-      }
-#endif*/
       runNormal();
       break;
     case MODE_IOGEN_CREATE:
@@ -534,13 +517,6 @@ int petabricks::PetabricksRuntime::runMain(){
       return _rv;
       break;
     case MODE_RUN_RANDOM:
-/*#ifdef HAVE_OPENCL
-      if( 0 != ( err = OpenCLUtil::init( ) ) )
-      {
-        std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
-        exit(-1 );
-      }
-#endif*/
       runTrial(GRAPH_MAX_SEC, ACCTRAIN);
       break;
     case MODE_GRAPH_INPUTSIZE:

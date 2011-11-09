@@ -1838,7 +1838,7 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
                                             std::vector<RegionNodeGroup>&,
                                             int, int){
   SRCPOSSCOPE();
-  o.comment("MARKER 2");
+  o.comment("from UserRule::generateCallCode():");
   switch(flavor) {
   case RuleFlavor::SEQUENTIAL:
     o.callSpatial(trampcodename(trans)+TX_STATIC_POSTFIX, region);

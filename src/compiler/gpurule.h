@@ -29,8 +29,6 @@
 
 #include "pbc.h"
 
-#ifdef HAVE_OPENCL
-
 #include "syntheticrule.h"
 #include "userrule.h"
 #include "matrixdependency.h"
@@ -116,5 +114,4 @@ class GpuRule : public SyntheticRule {
 
 }
 
-#endif
 #endif

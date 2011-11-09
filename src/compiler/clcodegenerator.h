@@ -24,7 +24,7 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#if !defined(PETABRICKSCLCODEGENERATOR_H) && defined(HAVE_OPENCL)
+#ifndef PETABRICKSCLCODEGENERATOR_H
 #define PETABRICKSCLCODEGENERATOR_H
 
 #include "codegenerator.h"

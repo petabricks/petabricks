@@ -350,9 +350,7 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
 #ifdef DISABLE_DISTRIBUTED
       if(rf==RuleFlavor::DISTRIBUTED) continue;
 #endif
-#ifdef HAVE_OPENCL
       if(rf==RuleFlavor::OPENCL) continue;
-#endif
       genTmplJumpTable(o, rf, normalArgs(rf), normalArgNames());
     }
     o.hos() << "typedef "+tmplName(0)+"_main "+_name+"_main;\n";
@@ -467,9 +465,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
 #ifdef DISABLE_DISTRIBUTED
       if(rf==RuleFlavor::DISTRIBUTED) continue;
 #endif
-#ifdef HAVE_OPENCL
-      if(rf==RuleFlavor::OPENCL) continue;
-#endif
+    if(rf==RuleFlavor::OPENCL) continue;
     generateTransformInstanceClass(o, rf);
   }
 

@@ -218,16 +218,6 @@ if test "$use_jtiming" = "yes"; then
   AC_DEFINE([TIMING],[],[record timing information to stderr and jtimings.csv])
 fi
 
-AC_ARG_ENABLE([allocator],
-            [AS_HELP_STRING([--disable-allocator],
-                            [disable use of the custom memory block allocator])],
-            [use_jalloc=$enableval],
-            [use_jalloc=$has_threadlocal],])
-
-if test "$use_jalloc" = "yes"; then
-  AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
-fi
-
 AC_ARG_WITH([opencl],
 	[AS_HELP_STRING([--with-opencl=PATH],[build compiler and runtime with support for OpenCL-enabled GPUs.])],
 	[],
@@ -298,6 +288,20 @@ elif ! test "$with_macopencl" = "no"; then
 else
    AC_DEFINE([MATRIX_ELEMENT_T],[double])
 fi
+
+
+AC_ARG_ENABLE([allocator],
+            [AS_HELP_STRING([--disable-allocator],
+                            [disable use of the custom memory block allocator])],
+            [use_jalloc=$enableval],
+            [use_jalloc=$has_threadlocal],])
+
+if test "$with_amdopencl" = "no"; then
+  if test "$use_jalloc" = "yes"; then
+    AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
+  fi
+fi
+
 
 AC_DEFINE([ACCTARGET_STR],       ["accuracyTarget"], [var name in output code for target accuracy])
 AC_DEFINE([BIN_TMPFILE],         ["bin"],     [generated file name])

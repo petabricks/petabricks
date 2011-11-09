@@ -24,27 +24,97 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#include "openclutil.h"
-#include "common/jassert.h"
-#include "common/jfilesystem.h"
 #include "common/hash.h"
+#include "common/jassert.h"
 #include "common/jconvert.h"
+#include "common/jfilesystem.h"
+#include "common/openclutil.h"
+
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #include <iostream>
 #include <stdio.h>
 
-#if HAVE_OPENCL
-//#define OPENCL_TRACE 1
-
 namespace petabricks
 {
+
+OpenCLDevice::OpenCLDevice( cl_device_id _id )
+  : id( _id ), enabled( true )
+{
+}
+
+
+#ifndef HAVE_OPENCL
+
+cl_platform_id OpenCLUtil::getPlatform( )
+{
+  UNIMPLEMENTED();
+  return 0;
+}
+
+int
+OpenCLUtil::init( )
+{
+  UNIMPLEMENTED();
+  return 0;
+}
+
+void
+OpenCLUtil::deinit( )
+{
+  UNIMPLEMENTED();
+}
+
+cl_context
+OpenCLUtil::getContext( )
+{
+  UNIMPLEMENTED();
+  return 0;
+}
+
+cl_command_queue
+OpenCLUtil::getQueue( unsigned int  )
+{
+  UNIMPLEMENTED();
+  return 0;
+}
+
+cl_int
+OpenCLUtil::buildProgram( cl_program & )
+{
+  UNIMPLEMENTED();
+  return 0;
+}
+
+std::string
+OpenCLUtil::errorString( cl_int  )
+{
+  return "";
+}
+
+void
+OpenCLUtil::setActiveDevice( unsigned int  )
+{
+  UNIMPLEMENTED();
+}
+
+bool OpenCLUtil::buildKernel(cl_program& , cl_kernel& , const char* ) {
+  UNIMPLEMENTED();
+  return false;
+}
+
+}
+
+
+#else
+//#define OPENCL_TRACE 1
+
 
 bool OpenCLUtil::has_init = false;
 std::vector<OpenCLDevice> OpenCLUtil::devices;
 cl_context OpenCLUtil::context;
-  unsigned int OpenCLUtil::active_device = 0;
+unsigned int OpenCLUtil::active_device = 0;
 
 
 void OpenCLUtil::pfn_notify(const char *errinfo, const void* /*private_info*/, size_t /*cb*/, void* /*user_data*/){
@@ -384,12 +454,6 @@ OpenCLUtil::errorString( cl_int error )
     default:
       return "[Unknown error.]";
     }
-}
-
-OpenCLDevice::OpenCLDevice( cl_device_id _id )
-  : id( _id ), enabled( true )
-{
-  // intentionally blank
 }
 
 void

@@ -25,24 +25,22 @@
  *                                                                           *
  *****************************************************************************/
 
-
 #include "dynamictask.h"
-#include "specializeddynamictasks.h"
-
 #include "gpudynamictask.h"
-#include "gpuspecializedtask.h"
 #include "gpumanager.h"
+#include "gpuspecializedtask.h"
 #include "gputaskinfo.h"
-
 #include "matrixio.h"
 #include "matrixregion.h"
 #include "memoization.h"
 #include "petabricksruntime.h"
 #include "remotetask.h"
 #include "ruleinstance.h"
+#include "specializeddynamictasks.h"
 #include "transforminstance.h"
 
 #include "common/jtunable.h"
+#include "common/openclutil.h"
 
 #include <algorithm>
 
@@ -52,10 +50,6 @@
 
 #ifdef HAVE_MATH_H
 #  include <math.h>
-#endif
-
-#ifdef HAVE_OPENCL
-#  include "openclutil.h"
 #endif
 
 #ifdef HAVE_ACCELERATE_ACCELERATE_H

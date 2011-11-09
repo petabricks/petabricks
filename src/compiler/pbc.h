@@ -27,8 +27,8 @@
 #ifndef PETABRICKSPBC_H
 #define PETABRICKSPBC_H
 
-
 #include "common/jassert.h"
+#include "common/openclutil.h"
 
 #include <string>
 #include <iostream>
@@ -37,9 +37,6 @@
 # include "config.h"
 #endif
 
-#ifdef HAVE_OPENCL
-# include "openclutil.h"
-#endif
 
 namespace pbcConfig {
 extern std::string thePbPreprocessor;
@@ -52,8 +49,6 @@ namespace petabricks
 #define STRINGIFY(x) STRINGIFY_INNER(x)
 #define STRINGIFY_INNER(x) #x
 
-#if defined(HAVE_OPENCL)
-
 enum OpenCLMode
 {
 	E_OPENCL_DISABLED,
@@ -62,8 +57,6 @@ enum OpenCLMode
 
 extern OpenCLMode theOpenCLMode;
 
-#endif
-
 class RuleFlavor {
 public:
   enum RuleFlavorEnum
@@ -71,17 +64,12 @@ public:
     SEQUENTIAL,
     WORKSTEALING,
     DISTRIBUTED,
-#ifdef HAVE_OPENCL
     OPENCL,
-#endif
     _COUNT,
-#ifdef HAVE_OPENCL
     SEQUENTIAL_OPENCL,
     WORKSTEALING_OPENCL,
     DISTRIBUTED_OPENCL,
-#endif
-    INVALID
-
+    INVALID,
   };
 
   typedef unsigned int iterator;
@@ -96,12 +84,10 @@ public:
     switch(*this) {
       case RuleFlavor::SEQUENTIAL:   return "sequential";
       case RuleFlavor::WORKSTEALING: return "workstealing";
-#ifdef HAVE_OPENCL
       case RuleFlavor::OPENCL:
       case RuleFlavor::SEQUENTIAL_OPENCL:
       case RuleFlavor::WORKSTEALING_OPENCL:
       case RuleFlavor::DISTRIBUTED_OPENCL:       return "opencl";
-#endif
       case RuleFlavor::DISTRIBUTED:  return "distributed";
       default:
         UNIMPLEMENTED();

@@ -32,14 +32,11 @@
 #include <set>
 #include <map>
 
-#include "common/jassert.h"
-#include "common/jrefcounted.h"
 #include "common/hash.h"
-
-#ifdef HAVE_OPENCL
+#include "common/jassert.h"
 #include "common/jmutex.h"
-#include "openclutil.h"
-#endif
+#include "common/jrefcounted.h"
+#include "common/openclutil.h"
 
 namespace petabricks {
 
@@ -54,7 +51,6 @@ public:
   RegionNodeGroupMap(){}
 };
 
-#ifdef HAVE_OPENCL
 class CopyoutInfo;
 typedef jalib::JRef<CopyoutInfo> CopyoutInfoPtr;
 class CopyPendingMap;
@@ -67,7 +63,11 @@ public:
   ~ClMemWrapper() { 
     if(_clmem) {
       //std::cout << "release clmem (deconstructor): " << _clmem << std::endl;
+#ifdef HAVE_OPENCL
       clReleaseMemObject(_clmem);
+#else
+      UNIMPLEMENTED();
+#endif
     }
   }
   //void setClMem(cl_mem mem) { _clmem = mem; }
@@ -77,7 +77,6 @@ private:
   cl_mem _clmem;
 };
 typedef jalib::JRef<ClMemWrapper> ClMemWrapperPtr;
-#endif
 
 class MatrixStorage;
 class MatrixStorageInfo;
@@ -143,6 +142,9 @@ public:
 #ifdef HAVE_OPENCL
   void lock() { _lock.lock(); }
   void unlock() { _lock.unlock(); }
+#else
+  void lock()   { UNIMPLEMENTED(); }
+  void unlock() { UNIMPLEMENTED(); }
 #endif
 
 private:
@@ -178,7 +180,6 @@ public:
     return _count;
   }
 
-#ifdef HAVE_OPENCL
   size_t coordToIndex(const IndexT* coord) const{
     IndexT rv = 0;
     for(int i=0; i<_dimensions; ++i){
@@ -188,11 +189,17 @@ public:
   }
 
   size_t coordToNormalizedIndex(const IndexT* coord) const{
+#ifdef HAVE_OPENCL
     IndexT rv = 0;
     for(int i=0; i<_dimensions; ++i){
       rv +=  _normalizedMultipliers[i] * coord[i];
     }
     return rv;
+#else
+    USE(coord);
+    UNIMPLEMENTED();
+    return 0;
+#endif
   }
 
   int incCoord(IndexT* coord) const{
@@ -236,7 +243,6 @@ public:
       return D-1;
     }
   }
-#endif
 
   void setStorage(const MatrixStoragePtr& s, const ElementT* base);
   void setSizeMultipliers(int dim, const IndexT* mult, const IndexT* siz);
@@ -429,7 +435,6 @@ private:
 #endif
 };
 
-#ifdef HAVE_OPENCL
 class CopyoutInfo : public jalib::JRefCounted {
   typedef MatrixStorage::IndexT IndexT;
 public:
@@ -452,7 +457,8 @@ private:
 
 class CopyPendingMap : public jalib::JRefCounted {
 public:
-  void put(MatrixStorageInfoPtr info) {
+  void put(const MatrixStorageInfoPtr& info) {
+#ifdef HAVE_OPENCL
     _lock.lock();
     std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator it = _map.find(info->storage());
     std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator end = _map.end();
@@ -486,6 +492,10 @@ public:
     for(std::set<MatrixStorageInfoPtr>::iterator i = set.begin(); i != set.end(); ++i) {
       std::cout << &(*(*i)) << std::endl;
     }*/
+#else
+    USE(info);
+    UNIMPLEMENTED();
+#endif
   }
 
   std::set<MatrixStorageInfoPtr>& allPendings(MatrixStoragePtr storage) {     
@@ -539,7 +549,6 @@ private:
 
 
 
-#endif
 
 }
 

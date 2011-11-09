@@ -33,14 +33,12 @@
 #include "common/jargs.h"
 #include "common/jfilesystem.h"
 #include "common/jtunable.h"
+#include "common/openclutil.h"
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#ifdef HAVE_OPENCL
-#include "openclutil.h"
-#endif
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>

@@ -263,7 +263,6 @@ void petabricks::BasicChoiceDepGraphNode::fixVersionedRegionsType() {
   }
 }
 
-#ifdef HAVE_OPENCL
 petabricks::RegionList petabricks::BasicChoiceDepGraphNode::getFromRegionOnCpu(const RuleChoiceAssignment& choice) const {
   RulePtr rule = choice.find(this)->second;
   if(!rule->isEnabledGpuRule()){
@@ -293,7 +292,6 @@ int petabricks::BasicChoiceDepGraphNode::hasOverlappingRegionOnGpu(const RuleCho
     return _region->dimensions();
   return -1;
 }
-#endif
 
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
@@ -373,7 +371,6 @@ void petabricks::MultiOutputChoiceDepGraphNode::generateCode(Transform& trans, C
   rule->generateCallCode(nodename(), trans, o, first->region(), flavor, _regionNodesGroups, id(), _gpuCopyOut);
 }
 
-#ifdef HAVE_OPENCL
 petabricks::RegionList petabricks::MultiOutputChoiceDepGraphNode::getFromRegionOnCpu(const RuleChoiceAssignment& choice) const {
   RulePtr rule = choice.find(*_originalNodes.begin())->second;
   if(!rule->isEnabledGpuRule()){
@@ -420,7 +417,6 @@ int petabricks::MultiOutputChoiceDepGraphNode::hasOverlappingRegionOnGpu(const R
   }
   return -1;
 }
-#endif
 
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
@@ -510,7 +506,6 @@ void petabricks::SlicedChoiceDepGraphNode::generateCode(Transform& trans, CodeGe
   }
 }
 
-#ifdef HAVE_OPENCL
 petabricks::RegionList petabricks::SlicedChoiceDepGraphNode::getFromRegionOnCpu(const RuleChoiceAssignment& choice) const {
   petabricks::RegionList regions;
   for(ChoiceDepGraphNodeSet::iterator i=_originalNodes.begin(); i!=_originalNodes.end(); ++i){
@@ -556,7 +551,6 @@ int petabricks::SlicedChoiceDepGraphNode::hasOverlappingRegionOnGpu(const RuleCh
   }
   return -1;
 }
-#endif
 
 void petabricks::ChoiceDepGraphNodeList::removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension) {
   for(ChoiceDepGraphNodeList::iterator i=begin(), e=end(); i!=e; ++i) {

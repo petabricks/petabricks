@@ -24,8 +24,6 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifdef HAVE_OPENCL
-
 #ifndef PETABRICKSGPUDYNAMICTASK_H
 #define PETABRICKSGPUDYNAMICTASK_H
 
@@ -80,4 +78,4 @@ protected:
 }
 
 #endif
-#endif
+

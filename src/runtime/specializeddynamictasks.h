@@ -98,7 +98,6 @@ private:
   IndexT _end[D];
 };
 
-#ifdef HAVE_OPENCL
 /**
  * A task that calls a method on a given object, with a given region, task ID, a pointer to RegionNodeGroup map, and a boolean indicating the copy out status
  */
@@ -122,7 +121,6 @@ private:
   RegionNodeGroupMapPtr _map;
   int _gpuCopyOut;
 };
-#endif
 
 /**
  * A task that bundles many unstarted tasks together

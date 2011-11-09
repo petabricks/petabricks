@@ -24,17 +24,15 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifdef HAVE_OPENCL
-
 #ifndef PETABRICKSGPUTASKINFO_H
 #define PETABRICKSGPUTASKINFO_H
 
 #include <map>
 
 #include "common/jmutex.h"
+#include "common/openclutil.h"
 
 #include "matrixstorage.h"
-#include "openclutil.h"
 
 
 namespace petabricks {
@@ -98,5 +96,4 @@ private:
 
 }
 
-#endif
 #endif

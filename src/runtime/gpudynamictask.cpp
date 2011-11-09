@@ -25,7 +25,6 @@
  *                                                                           *
  *****************************************************************************/
 #include "petabricksruntime.h"
-#ifdef HAVE_OPENCL
 #include "gpudynamictask.h"
 #include "gpumanager.h"
 
@@ -44,4 +43,4 @@ void GpuDynamicTask::remoteScheduleTask() {
 }
 
 }
-#endif
+
