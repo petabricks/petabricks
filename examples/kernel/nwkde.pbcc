@@ -106,6 +106,8 @@ to INPUTSCHECKED
 
     DIRFLAGS - indicates whether TRAINDATA column corresponds to a wind
                direction \in [0, 360]
+    SPLIT - set to 0 for normal operation.  If non-zero, determines how many
+            partitions to split the training set to do n-fold cross validation
     KERNELWIDTHS - width of the kernel function to use for a data column
     MASKWIDTH - width of training mask.  This tells the transform to omit
                 training indices less than MASKWIDTH indices of the test index
@@ -126,7 +128,7 @@ to INPUTSCHECKED
 transform NWKDEBase
 from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
      TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q],
-     DIRFLAGS[m], KERNELWIDTHS[m], MASKWIDTH
+     DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
 to RESULT[q]
 through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
 {
@@ -204,16 +206,29 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
                          p ,j+1, k+1) sqDiffs,
           TRAININDICES.cell(j) trainIndex,
           TESTINDICES.cell(k) testIndex,
-          MASKWIDTH maskWidth,
+          SPLIT split, MASKWIDTH maskWidth,
           SKIPINDEXFLAGS.cell(j) skipIndexFlag)
     {
-        if (!skipIndexFlag &&
-            (trainIndex <= testIndex - maskWidth ||
-             trainIndex >= testIndex + maskWidth)) {
+        IndexT partStart, partEnd, partSize;
+        // compute the partition that this testIndex lies in
+        partStart = partEnd = k;
+        if (split > 0) {
+            partSize = l / split;
+            partStart = k - (k % partSize);
+            partEnd = partStart + partSize;
+        }
+
+        // skip current training index if it is too close to the test
+        // index, if it's not in the same partition, or if the training
+        // output value is a NAN
+        if (skipIndexFlag ||
+            (trainIndex > testIndex - maskWidth &&
+             trainIndex < testIndex + maskWidth) ||
+            (j >= partStart && j < partEnd)) {
+            weight = 0;
+        } else {
             ReduceAdd(weight, sqDiffs.slice(2,0).slice(1,0));
             weight = exp(-((ElementT) weight));
-        } else {
-            weight = 0;
         }
 #ifdef DEBUG
         fprintf(stderr, "method 1:  weight(%d, %d) = %g\n", j, k, weight);
@@ -264,10 +279,19 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
     from (TRAINDATA trainData, TRAINX trainX,
           TRAINY trainY, TRAININDICES.cell(j) trainIndex,
           TESTDATA testData, TESTX testX, TESTINDICES.cell(k) testIndex,
-          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, MASKWIDTH maskWidth)
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+          MASKWIDTH maskWidth)
     {
-        IndexT i, dirFlag;
+        IndexT i, dirFlag, partStart, partEnd, partSize;
         ElementT y, kernelWidth, trainPoint, testPoint, diff, sum;
+
+        // compute the partition that this testIndex lies in
+        partStart = partEnd = k;
+        if (split > 0) {
+            partSize = l / split;
+            partStart = k - (k % partSize);
+            partEnd = partStart + partSize;
+        }
 
         // TODO: lookup function is really slow (even inlined)
 //      y = lookup(trainData, trainY, trainIndex);
@@ -275,9 +299,11 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
         y = trainData.cell(trainY.cell(0), trainIndex + trainY.cell(1));
 
         // skip current training index if it is too close to the test
-        // index or if the training output value is a NAN
+        // index, if it's not in the same partition, or if the training
+        // output value is a NAN
         if ((trainIndex > testIndex - maskWidth &&
              trainIndex < testIndex + maskWidth) ||
+            (j >= partStart && j < partEnd) ||
             ISNAN(y)) {
             weight = partial = 0;
             return;
@@ -346,12 +372,21 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
     from (TRAINDATA trainData, TRAINX trainX,
           TRAINY trainY, TRAININDICES trainIndices,
           TESTDATA testData, TESTX testX, TESTINDICES.cell(k) testIndex,
-          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, MASKWIDTH maskWidth)
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+          MASKWIDTH maskWidth)
     {
         bool skipIndexFlag;
-        IndexT i, j, dirFlag, trainIndex;
+        IndexT i, j, dirFlag, trainIndex, partSize, partStart, partEnd;
         ElementT y, kernelWidth, trainPoint, testPoint, diff, sum,
                  weight, partial, totalPartial, totalWeight;
+
+        // compute the partition that this testIndex lies in
+        partStart = partEnd = k;
+        if (split > 0) {
+            partSize = l / split;
+            partStart = k - (k % partSize);
+            partEnd = partStart + partSize;
+        }
 
         // loop over training points
         totalPartial = totalWeight = 0;
@@ -364,9 +399,11 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
             y = trainData.cell(trainY.cell(0), trainIndex + trainY.cell(1));
 
             // skip current training index if it is too close to the test
-            // index or if the training output value is a NAN
+            // index, if it's not in the same partition, or if the training
+            // output value is a NAN
             if ((trainIndex > testIndex - maskWidth &&
                  trainIndex < testIndex + maskWidth) ||
+                (j >= partStart && j < partEnd) ||
                 ISNAN(y)) {
                 continue;
             }
@@ -425,7 +462,7 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
 transform NWKDERecursive
 from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
      TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q],
-     DIRFLAGS[m], KERNELWIDTHS[m], MASKWIDTH
+     DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
 to RESULT[q]
 tunable recursiveCutoff
 {
@@ -433,12 +470,13 @@ tunable recursiveCutoff
     from (TRAINDATA trainData, TRAINX trainX,
           TRAINY trainY, TRAININDICES trainIndices,
           TESTDATA testData, TESTX testX, TESTINDICES testIndices,
-          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, MASKWIDTH maskWidth)
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+          MASKWIDTH maskWidth)
     {
         if (q <= MAX(1, recursiveCutoff)) {
             NWKDEBase(result, trainData, trainX, trainY, trainIndices,
                       testData, testX, testIndices,
-                      dirFlags, kernelWidths, maskWidth);
+                      dirFlags, kernelWidths, split, maskWidth);
             return;
         }
 
@@ -446,11 +484,11 @@ tunable recursiveCutoff
         spawn NWKDERecursive(result.region(0, mid),
                              trainData, trainX, trainY, trainIndices,
                              testData, testX, testIndices.region(0, mid),
-                             dirFlags, kernelWidths, maskWidth);
+                             dirFlags, kernelWidths, split, maskWidth);
         spawn NWKDERecursive(result.region(mid, q),
                              trainData, trainX, trainY, trainIndices,
                              testData, testX, testIndices.region(mid, q),
-                             dirFlags, kernelWidths, maskWidth);
+                             dirFlags, kernelWidths, split, maskWidth);
         sync;
     }
 }
@@ -458,7 +496,7 @@ tunable recursiveCutoff
 transform NWKDE
 from TRAINDATA[_M_,_N_], TRAINX[2,_P_], TRAINY[2], TRAININDICES[_L_],
      TESTDATA[_M2_,_N2_], TESTX[2,_P_], TESTINDICES[_Q_],
-     DIRFLAGS[_M_], KERNELWIDTHS[_M_], MASKWIDTH
+     DIRFLAGS[_M_], KERNELWIDTHS[_M_], SPLIT, MASKWIDTH
 to RESULT[_Q_]
 through INPUTSCHECKED
 generator NWKDEGenerator2
@@ -468,17 +506,18 @@ accuracy_metric NWKDEMetric2
     from (TRAINDATA trainData, TRAINX trainX,
           TRAINY trainY, TRAININDICES trainIndices,
           TESTDATA testData, TESTX testX, TESTINDICES testIndices,
-          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, MASKWIDTH maskWidth)
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+          MASKWIDTH maskWidth)
     {
 #ifdef DEBUG
         ElementT ret;
         NWKDECheckInputs(ret, trainData, trainX, trainY, trainIndices,
                          testData, testX, testIndices,
-                         dirFlags, kernelWidths, maskWidth);
+                         dirFlags, kernelWidths, split, maskWidth);
 #endif
         NWKDERecursive(result, trainData, trainX, trainY, trainIndices,
                        testData, testX, testIndices,
-                       dirFlags, kernelWidths, maskWidth);
+                       dirFlags, kernelWidths, split, maskWidth);
     }
 }
 

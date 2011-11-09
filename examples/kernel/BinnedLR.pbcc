@@ -128,15 +128,15 @@ to RESULT[1,l]
     from (DATA data, X x, DIR dir, Y y, INDICES indices,
           SPLIT split, PART part, MASKWIDTH maskWidth, NUMBINS numBins)
     {
-        IndexT numIndices, blockSize, testStart, testEnd, numTest,
+        IndexT numIndices, partSize, testStart, testEnd, numTest,
                i0, i1, numTrain;
         MatrixRegion1D trainIndices;
 
         // figure out test set
         numIndices = indices.count();
-        blockSize = ceil((ElementT) numIndices / split);
-        testStart = part * blockSize;
-        testEnd = MIN(testStart + blockSize, numIndices);
+        partSize = ceil((ElementT) numIndices / split);
+        testStart = part * partSize;
+        testEnd = MIN(testStart + partSize, numIndices);
         numTest = testEnd - testStart;
 
         // nothing to do (may happen if split doesn't evenly divide numIndices)

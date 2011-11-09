@@ -53,7 +53,7 @@ ElementT computeNWKDEMetric(ConstMatrixRegion1D result,
 transform NWKDEMetric
 from RESULT[q], TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
      TESTDATA[mPrime,nPrime], TESTX[2,p], TESTINDICES[q],
-     DIRFLAGS[m], MASKWIDTH
+     DIRFLAGS[m], SPLIT, MASKWIDTH
 to METRIC
 {
     to   (METRIC metric)
@@ -78,7 +78,7 @@ to METRIC
 transform NWKDEMetric2
 from RESULT[q], TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
      TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q],
-     DIRFLAGS[m], KERNELWIDTHS[m], MASKWIDTH
+     DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
 to METRIC
 {
     to   (METRIC metric)

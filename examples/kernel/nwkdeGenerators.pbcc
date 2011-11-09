@@ -10,12 +10,12 @@
 transform NWKDEGenerator
 to TRAINDATA[4,8750], TRAINX[2,8], TRAINY[2], TRAININDICES[n],
    TESTDATA[4,8750], TESTX[2,8], TESTINDICES[n],
-   DIRFLAGS[4], MASKWIDTH
+   DIRFLAGS[4], SPLIT, MASKWIDTH
 {
     to (TRAINDATA trainData, TRAINX trainX,
         TRAINY trainY, TRAININDICES trainIndices,
         TESTDATA testData, TESTX testX, TESTINDICES testIndices,
-        DIRFLAGS dirFlags, MASKWIDTH maskWidth)
+        DIRFLAGS dirFlags, SPLIT split, MASKWIDTH maskWidth)
     from ()
     {
         if (n > 8748) {
@@ -61,6 +61,7 @@ to TRAINDATA[4,8750], TRAINX[2,8], TRAINY[2], TRAININDICES[n],
         dirFlags.cell(2) = 0;
         dirFlags.cell(3) = 1;
 
+        split = 10;
         maskWidth = 12;
     }
 }
@@ -69,17 +70,18 @@ to TRAINDATA[4,8750], TRAINX[2,8], TRAINY[2], TRAININDICES[n],
 transform NWKDEGenerator2
 to TRAINDATA[4,8750], TRAINX[2,8], TRAINY[2], TRAININDICES[n],
    TESTDATA[4,8750], TESTX[2,8], TESTINDICES[n],
-   DIRFLAGS[4], KERNELWIDTHS[4], MASKWIDTH
+   DIRFLAGS[4], KERNELWIDTHS[4], SPLIT, MASKWIDTH
 {
     to (TRAINDATA trainData, TRAINX trainX,
         TRAINY trainY, TRAININDICES trainIndices,
         TESTDATA testData, TESTX testX, TESTINDICES testIndices,
-        DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, MASKWIDTH maskWidth)
+        DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+        MASKWIDTH maskWidth)
     from ()
     {
         // set everything except kernelWidths
         NWKDEGenerator(trainData, trainX, trainY, trainIndices, testData,
-                       testX, testIndices, dirFlags, maskWidth);
+                       testX, testIndices, dirFlags, split, maskWidth);
 
         // set kernelWidths
         kernelWidths.cell(0) =   2.4211;

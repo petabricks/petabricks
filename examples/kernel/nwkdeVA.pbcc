@@ -7,7 +7,7 @@
 transform NWKDEVA
 from TRAINDATA[_M_,_N_], TRAINX[2,_P_], TRAINY[2], TRAININDICES[_L_],
      TESTDATA[_M2_,_N2_], TESTX[2,_P_], TESTINDICES[_Q_],
-     DIRFLAGS[_M_], MASKWIDTH
+     DIRFLAGS[_M_], SPLIT, MASKWIDTH
 to RESULT[_Q_]
 tunable float sizespecific array(_M_) initial(4) KERNELWIDTHS
 generator NWKDEGenerator
@@ -18,7 +18,7 @@ accuracy_bins -8, -7, -6, -5, -4
     from (TRAINDATA trainData, TRAINX trainX,
           TRAINY trainY, TRAININDICES trainIndices,
           TESTDATA testData, TESTX testX, TESTINDICES testIndices,
-          DIRFLAGS dirFlags, MASKWIDTH maskWidth)
+          DIRFLAGS dirFlags, SPLIT split, MASKWIDTH maskWidth)
     {
         // copy kernel widths into matrix region
         MatrixRegion1D kernelWidths = MatrixRegion1D::allocate(_M_);
@@ -27,7 +27,7 @@ accuracy_bins -8, -7, -6, -5, -4
         }
 
         NWKDE(result, trainData, trainX, trainY, trainIndices, testData,
-              testX, testIndices, dirFlags, kernelWidths, maskWidth);
+              testX, testIndices, dirFlags, kernelWidths, split, maskWidth);
     }
 }
 
