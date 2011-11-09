@@ -1,6 +1,8 @@
 #ifndef NWKDE_PBCC
 #define NWKDE_PBCC
 
+#include "../simple/macros.h"
+#include "../simple/reduce.pbcc"
 #include "nwkde.h"
 #include "nwkdeGenerators.pbcc"
 #include "nwkdeMetric.pbcc"
@@ -127,6 +129,9 @@ to INPUTSCHECKED
     PARTIALS - weighted output partial sums
 */
 
+#define INCLUDE_METHOD2
+#define INCLUDE_METHOD3
+
 transform NWKDEBase
 from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
      TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
@@ -168,14 +173,17 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
           TESTVARINDEX.cell(i) testVarIndex,
           TESTTIMEOFFSET.cell(i) testTimeOffset)
     {
-        int         wrapFlag = (int) wrapFlags.cell((int) trainVarIndex);
-        ElementT kernelWidth =    kernelWidths.cell((int) trainVarIndex);
+        IndexT wrapFlag, trainTimeIndex, testTimeIndex;
+        ElementT kernelWidth, trainPoint, testPoint, diff;
 
-        int  trainTimeIndex = (int) trainIndex + (int) trainTimeOffset;
-        int   testTimeIndex = (int)  testIndex + (int)  testTimeOffset;
+        wrapFlag    =    wrapFlags.cell(trainVarIndex);
+        kernelWidth = kernelWidths.cell(trainVarIndex);
 
-        ElementT trainPoint = trainData.cell((int) trainVarIndex, trainTimeIndex);
-        ElementT  testPoint =  testData.cell((int)  testVarIndex,  testTimeIndex);
+        trainTimeIndex = trainIndex + trainTimeOffset;
+        testTimeIndex  =  testIndex +  testTimeOffset;
+
+        trainPoint = trainData.cell(trainVarIndex, trainTimeIndex);
+        testPoint  =  testData.cell( testVarIndex,  testTimeIndex);
 
         // skip this variable if nan is detected in the test point
         if (ISNAN(testPoint)) {
@@ -189,7 +197,7 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
             return;
         }
 
-        ElementT diff = trainPoint - testPoint;
+        diff = trainPoint - testPoint;
 
         if (wrapFlag) {
             diff = wrapWindDirDiff(diff);
@@ -233,16 +241,28 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
           OUTPUTTIMEOFFSET outputTimeOffset,
           WEIGHTS.cell(j,k) weight)
     {
-        int timeIndex = (int) trainIndex + (int) outputTimeOffset;
-        outputVal = trainData.cell((int) outputVarIndex, timeIndex);
-        if (ISNAN(outputVal)) {
-            partial = 0;
-        } else {
-            partial = weight * outputVal;
-        }
+        IndexT timeIndex = trainIndex + outputTimeOffset;
+        outputVal = trainData.cell(outputVarIndex, timeIndex);
+        partial = ISNAN(outputVal) ? 0 : weight * outputVal;
 #ifdef DEBUG
         fprintf(stderr, "method 1: partial(%d, %d) = %g\n", j, k, partial);
 #endif
+    }
+
+    /* METHODS 1 & 2: Once we have the PARTIALS and WEIGHTS, we can compute
+       RESULT */
+
+    to (RESULT.cell(k) result)
+    from (PARTIALS.row(k) partials,
+          WEIGHTS.row(k) weights)
+    {
+        ElementT totalWeight;
+        ReduceAdd1D(result, partials);
+        ReduceAdd1D(totalWeight, weights);
+        result /= totalWeight;
+#ifdef DEBUG
+        fprintf(stderr, "Output %d = %g\n", k, result);
+#endif // DEBUG
     }
 
 #endif // INCLUDE_METHOD1
@@ -267,9 +287,11 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
           OUTPUTTIMEOFFSET outputTimeOffset,
           TRAINMASKWIDTH trainMaskWidth)
     {
-        int outputTimeIndex = (int) trainIndex + (int) outputTimeOffset;
-        ElementT outputVal = trainData.cell((int) outputVarIndex,
-                                                  outputTimeIndex);
+        IndexT i, wrapFlag, outputTimeIndex, trainTimeIndex, testTimeIndex;
+        ElementT outputVal, kernelWidth, trainPoint, testPoint, diff, sum;
+
+        outputTimeIndex = trainIndex + outputTimeOffset;
+        outputVal = trainData.cell(outputVarIndex, outputTimeIndex);
 
         // skip current training index if it is too close to the test index or
         // if the training output value is a NAN
@@ -280,17 +302,17 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
             return;
         }
 
-        ElementT sum = 0;
-        for (int i = 0; i < trainVarIndex.count(); ++i) {
+        sum = 0;
+        for (i = 0; i < trainVarIndex.count(); ++i) {
 
-            int         wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
-            ElementT kernelWidth =    kernelWidths.cell((int) trainVarIndex.cell(i));
+            wrapFlag    =    wrapFlags.cell(trainVarIndex.cell(i));
+            kernelWidth = kernelWidths.cell(trainVarIndex.cell(i));
 
-            int  trainTimeIndex = (int) trainIndex + (int) trainTimeOffset.cell(i);
-            int   testTimeIndex = (int)  testIndex + (int)  testTimeOffset.cell(i);
+            trainTimeIndex = trainIndex + trainTimeOffset.cell(i);
+            testTimeIndex  =  testIndex +  testTimeOffset.cell(i);
 
-            ElementT trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
-            ElementT  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
+            trainPoint = trainData.cell(trainVarIndex.cell(i), trainTimeIndex);
+            testPoint  =  testData.cell( testVarIndex.cell(i),  testTimeIndex);
 
             // skip this variable if nan is detected in the test point
             if (ISNAN(testPoint)) {
@@ -303,7 +325,7 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
                 return;
             }
 
-            ElementT diff = trainPoint - testPoint;
+            diff = trainPoint - testPoint;
 
             if (wrapFlag) {
                 diff = wrapWindDirDiff(diff);
@@ -324,11 +346,6 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
 #endif
     }
 
-#endif // INCLUDE_METHOD2
-
-#if 0 // BUG: compound conditional not supported in preprocessor yet
-//#if defined(INCLUDE_METHOD1) || defined(INCLUDE_METHOD2)
-
     /* METHODS 1 & 2: Once we have the PARTIALS and WEIGHTS, we can compute
        RESULT */
 
@@ -337,16 +354,17 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
           WEIGHTS.row(k) weights)
     {
         ElementT totalWeight;
-        ReduceAdd(result, partials);
-        ReduceAdd(totalWeight, weights);
+        ReduceAdd1D(result, partials);
+        ReduceAdd1D(totalWeight, weights);
         result /= totalWeight;
 #ifdef DEBUG
         fprintf(stderr, "Output %d = %g\n", k, result);
 #endif // DEBUG
     }
 
-//#endif // defined(INCLUDE_METHOD1) || defined(INCLUDE_METHOD2)
-#endif // 0
+#endif // INCLUDE_METHOD2
+
+#ifdef INCLUDE_METHOD3
 
     /* METHOD 3: Compute results directly with one pass through the data */
 
@@ -365,18 +383,22 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
           OUTPUTTIMEOFFSET outputTimeOffset,
           TRAINMASKWIDTH trainMaskWidth)
     {
-        ElementT totalPartial = 0, totalWeight = 0;
+        bool skipIndexFlag;
+        IndexT i, j, wrapFlag, trainIndex, outputTimeIndex, trainTimeIndex,
+               testTimeIndex;
+        ElementT outputVal, kernelWidth, trainPoint, testPoint, diff, sum,
+                 weight, partial, totalPartial, totalWeight;
 
         // loop over training points
-        for (int j = 0; j < trainIndices.count(); ++j) {
+        totalPartial = totalWeight = 0;
+        for (j = 0; j < trainIndices.count(); ++j) {
 
-            int trainIndex = (int) trainIndices.cell(j);
-            int outputTimeIndex = (int) trainIndex + (int) outputTimeOffset;
-            ElementT outputVal = trainData.cell((int) outputVarIndex,
-                                                      outputTimeIndex);
+            trainIndex = trainIndices.cell(j);
+            outputTimeIndex = trainIndex + outputTimeOffset;
+            outputVal = trainData.cell(outputVarIndex, outputTimeIndex);
 
-            // skip current training index if it is too close to the test index or
-            // if the training output value is a NAN
+            // skip current training index if it is too close to the test
+            // index or if the training output value is a NAN
             if ((trainIndex > testIndex - trainMaskWidth &&
                  trainIndex < testIndex + trainMaskWidth) ||
                 ISNAN(outputVal)) {
@@ -384,31 +406,33 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
             }
 
             // loop over predictor variables to calculate training weight
-            ElementT sum = 0;
-            bool skipIndexFlag = false;
-            for (int i = 0; i < trainVarIndex.count(); ++i) {
+            sum = 0;
+            skipIndexFlag = false;
+            for (i = 0; i < trainVarIndex.count(); ++i) {
 
-                int         wrapFlag = (int) wrapFlags.cell((int) trainVarIndex.cell(i));
-                ElementT kernelWidth =    kernelWidths.cell((int) trainVarIndex.cell(i));
+                wrapFlag    =    wrapFlags.cell(trainVarIndex.cell(i));
+                kernelWidth = kernelWidths.cell(trainVarIndex.cell(i));
 
-                int  trainTimeIndex = (int) trainIndex + (int) trainTimeOffset.cell(i);
-                int   testTimeIndex = (int)  testIndex + (int)  testTimeOffset.cell(i);
+                trainTimeIndex = trainIndex + trainTimeOffset.cell(i);
+                testTimeIndex  =  testIndex +  testTimeOffset.cell(i);
 
-                ElementT trainPoint = trainData.cell((int) trainVarIndex.cell(i), trainTimeIndex);
-                ElementT  testPoint =  testData.cell((int)  testVarIndex.cell(i),  testTimeIndex);
+                trainPoint = trainData.cell(trainVarIndex.cell(i),
+                                            trainTimeIndex);
+                testPoint  =  testData.cell( testVarIndex.cell(i),
+                                             testTimeIndex);
 
                 // skip this variable if nan is detected in the test point
                 if (ISNAN(testPoint)) {
                     continue;
                 }
 
-                // skip this training index if nan is detected in the train point
+                // skip this training index if nan is detected
                 if (ISNAN(trainPoint)) {
                     skipIndexFlag = true;
                     break;
                 }
 
-                ElementT diff = trainPoint - testPoint;
+                diff = trainPoint - testPoint;
 
                 if (wrapFlag) {
                     diff = wrapWindDirDiff(diff);
@@ -425,8 +449,8 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
                 continue;
             }
 
-            ElementT weight = exp(-((ElementT) sum));
-            ElementT partial = weight * outputVal;
+            weight = exp(-((ElementT) sum));
+            partial = weight * outputVal;
 
 #ifdef DEBUG
             fprintf(stderr, "method 3:  weight(%d, %d) = %g\n", j, k, weight);
@@ -441,6 +465,7 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
         fprintf(stderr, "Output %d = %g\n", k, result);
 #endif // DEBUG
     }
+#endif // INCLUDE_METHOD3
 }
 
 transform NWKDERecursive
@@ -450,6 +475,7 @@ from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
      TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
      OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
 to RESULT[q]
+tunable recursiveCutoff
 {
     to   (RESULT           result)
     from (TRAINDATA        trainData,
@@ -466,47 +492,29 @@ to RESULT[q]
           OUTPUTTIMEOFFSET outputTimeOffset,
           TRAINMASKWIDTH   trainMaskWidth)
     {
-        NWKDEBase(result, trainData, wrapFlags, kernelWidths,
-                  trainIndices, trainVarIndex, trainTimeOffset,
-                  testData, testIndices,
-                  testVarIndex, testTimeOffset,
-                  outputVarIndex, outputTimeOffset, trainMaskWidth);
-    }
+        if (q <= MAX(1, recursiveCutoff)) {
+            NWKDEBase(result, trainData, wrapFlags, kernelWidths,
+                      trainIndices, trainVarIndex, trainTimeOffset,
+                      testData, testIndices,
+                      testVarIndex, testTimeOffset,
+                      outputVarIndex, outputTimeOffset, trainMaskWidth);
+            return;
+        }
 
-    to   (RESULT           result)
-    from (TRAINDATA        trainData,
-          WRAPFLAGS        wrapFlags,
-          KERNELWIDTHS     kernelWidths,
-          TRAININDICES     trainIndices,
-          TRAINVARINDEX    trainVarIndex,
-          TRAINTIMEOFFSET  trainTimeOffset,
-          TESTDATA         testData,
-          TESTINDICES      testIndices,
-          TESTVARINDEX     testVarIndex,
-          TESTTIMEOFFSET   testTimeOffset,
-          OUTPUTVARINDEX   outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset,
-          TRAINMASKWIDTH   trainMaskWidth)
-    {
         int mid = q / 2;
-
-        if (mid > 0) {
-            NWKDERecursive(result.region(0, mid),
-                           trainData, wrapFlags, kernelWidths,
-                           trainIndices, trainVarIndex, trainTimeOffset,
-                           testData, testIndices.region(0, mid),
-                           testVarIndex, testTimeOffset,
-                           outputVarIndex, outputTimeOffset, trainMaskWidth);
-        }
-
-        if (mid < q) {
-            NWKDERecursive(result.region(mid, q),
-                           trainData, wrapFlags, kernelWidths,
-                           trainIndices, trainVarIndex, trainTimeOffset,
-                           testData, testIndices.region(mid, q),
-                           testVarIndex, testTimeOffset,
-                           outputVarIndex, outputTimeOffset, trainMaskWidth);
-        }
+        spawn NWKDERecursive(result.region(0, mid),
+                       trainData, wrapFlags, kernelWidths,
+                       trainIndices, trainVarIndex, trainTimeOffset,
+                       testData, testIndices.region(0, mid),
+                       testVarIndex, testTimeOffset,
+                       outputVarIndex, outputTimeOffset, trainMaskWidth);
+        spawn NWKDERecursive(result.region(mid, q),
+                       trainData, wrapFlags, kernelWidths,
+                       trainIndices, trainVarIndex, trainTimeOffset,
+                       testData, testIndices.region(mid, q),
+                       testVarIndex, testTimeOffset,
+                       outputVarIndex, outputTimeOffset, trainMaskWidth);
+        sync;
     }
 }
 

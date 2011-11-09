@@ -99,8 +99,8 @@ to OUT[n,n]
         // allocate packed matrix storage
         ElementT *aPacked = new ElementT[n * (n + 1) / 2];
         if (!aPacked) {
-            printf("Error allocating memory!\n");
-            exit(-1);
+            fprintf(stderr, "Error allocating memory!\n");
+            PetabricksRuntime::abort();
         }
 
         // copy data to packed matrix
@@ -115,8 +115,8 @@ to OUT[n,n]
         pptrf_wrap(&uplo, &nInt, aPacked, &info);
 
         if (info) {
-            printf("LAPACK error in call to pptrf: info = %d\n", info);
-            exit(-1);
+            fprintf(stderr, "LAPACK error in call to pptrf: info = %d\n", info);
+            PetabricksRuntime::abort();
         }
 
         // copy data to output
@@ -326,7 +326,7 @@ tunable recursiveBlockSize
         l22 = l.region(n/2, n/2, n  , n  );
 
         // upper left
-        CholeskyBase(l11);
+        CholeskyInPlace(l11);
 
         // lower left
         TriSolveRUInPlace(l21, 0, l11.transposed());

@@ -8,4 +8,49 @@ to cutforcesq[1]
 	cutforcesq.cell(0) = cutforce.cell(0) * cutforce.cell(0);
 }
 
+function force_compute
+from neighbor_index[natoms, max_neighs], neighbor_numneigh[natoms], atom_x[natoms]
+to atom_f[natoms,3]
+{
+  int i,j,k,nlocal,nall,numneigh;
+  double xtmp,ytmp,ztmp,delx,dely,delz,rsq;
+  double sr2,sr6,force;
+
+  // clear force on own and ghost atoms
+
+  for (i = 0; i < natoms; i++) {
+    atom_f.cell(i,0) = 0.0;
+    atom_f.cell(i,1) = 0.0;
+    atom_f.cell(i,2) = 0.0;
+  }
+
+  // loop over all neighbors of my atoms
+  // store force on both atoms i and j
+  
+  for (i = 0; i < natoms; i++) {
+    MatrixRegion1D neighs = neighbor_index.col(i)
+    numneigh = neighbor_numneigh.cell(i)
+    xtmp = atom_x.cell(i,0);
+    ytmp = atom_x.cell(i,1);
+    ztmp = atom_x.cell(i,2);
+    for (k = 0; k < numneigh; k++) {
+      j = (int) neighs.cell(k);
+      delx = xtmp - atom_x.cell(j,0);
+      dely = ytmp - atom_x.cell(j,1);
+      delz = ztmp - atom_x.cell(j,2);
+      rsq = delx*delx + dely*dely + delz*delz;
+      if (rsq < cutforcesq.cell(0)) {
+	sr2 = 1.0/rsq;
+	sr6 = sr2*sr2*sr2;
+	force = sr6*(sr6-0.5)*sr2;
+	atom_f.cell(i,0) += delx*force;
+	atom_f.cell(i,1) += dely*force;
+	atom_f.cell(i,2) += delz*force;
+	atom_f.cell(j,0) -= delx*force;
+	atom_f.cell(j,1) -= dely*force;
+	atom_f.cell(j,2) -= delz*force;
+      }
+    }
+  }
+}
 #endif

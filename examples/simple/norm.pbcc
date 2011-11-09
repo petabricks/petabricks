@@ -1,0 +1,58 @@
+#ifndef NORM_PBCC
+#define NORM_PBCC
+
+#include "reduce.pbcc"
+
+// Compute the p-norm of the vector
+transform Norm1D
+from A[n], P
+to RESULT
+through TEMP[n]
+{
+    // serial version
+    to (RESULT result)
+    from (A a, P p)
+    {
+        result = 0;
+        for (IndexT i = 0; i < n; ++i) {
+            if (p == 1) {
+                result += fabs(a.cell(i));
+            } else if (p == 2) {
+                result += a.cell(i) * a.cell(i);
+            } else {
+                result += pow(fabs(a.cell(i)), p);
+            }
+        }
+        if (p == 2) {
+            result = sqrt(result);
+        } else if (p != 1) {
+            result = pow(result, 1.0 / p);
+        }
+    }
+
+    // parallel version
+    to (TEMP.cell(i) temp)
+    from (A.cell(i) a, P p)
+    {
+        if (p == 1) {
+            temp = fabs(a);
+        } else if (p == 2) {
+            temp = a * a;
+        } else {
+            temp = pow(fabs(a), p);
+        }
+    }
+
+    to (RESULT result)
+    from (TEMP temp, P p)
+    {
+        ReduceAdd1D(result, temp);
+        if (p == 2) {
+            result = sqrt(result);
+        } else if (p != 1) {
+            result = pow(result, 1.0 / p);
+        }
+    }
+}
+
+#endif // NORM_PBCC

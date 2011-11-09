@@ -38,6 +38,7 @@ kclustering/clusterinputgen
 kclustering/distance
 kclustering/kmeans
 kclustering/newclusterlocations
+kernel/BinnedLR
 kernel/KernelEstimate
 kernel/nwkdeBaseTop2
 kernel/nwkdeBaseTop
@@ -117,6 +118,9 @@ preconditioner/polypre
 preconditioner/preconditioner
 preconditioner/vectoradd
 prefixsum/prefixsum
+QR/QR
+QR/QRLAPACK
+QR/QRTest
 regression/accuracymetric
 regression/assign0d
 regression/backwards
@@ -171,12 +175,15 @@ rootsolve/laguerre
 rootsolve/rootsolve
 rootsolve/secant
 simple/add
+simple/addInPlace
 simple/bufferrotate2
 simple/bufferrotate
 simple/cholesky
 simple/copy
+simple/dotprod
 simple/matrixrotate
 simple/minimalmatmul
+simple/norm
 simple/permute
 simple/randomshuffle
 simple/reduce
