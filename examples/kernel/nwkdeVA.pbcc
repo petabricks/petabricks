@@ -12,7 +12,7 @@ to RESULT[_Q_]
 tunable float sizespecific array(_M_) initial(4) KERNELWIDTHS
 generator NWKDEGenerator
 accuracy_metric NWKDEMetric
-accuracy_bins -8, -7, -6, -5, -4
+accuracy_bins ACC_BINS
 {
     to   (RESULT result)
     from (TRAINDATA trainData, TRAINX trainX,

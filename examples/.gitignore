@@ -32,6 +32,7 @@ kclustering/distance
 kclustering/kmeans
 kclustering/newclusterlocations
 kernel/BinnedLR
+kernel/Estimate
 kernel/KernelEstimate
 kernel/nwkdeBaseTop2
 kernel/nwkdeBaseTop

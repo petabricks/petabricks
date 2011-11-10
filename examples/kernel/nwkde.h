@@ -3,6 +3,8 @@
 
 //#define DEBUG
 
+#define ACC_BINS -8, -7, -6, -5, -4
+
 // relative directory for test data used by generator
 #define TESTDIR "examples/kernel/test/"
 

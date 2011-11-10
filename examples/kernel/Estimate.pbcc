@@ -1,0 +1,116 @@
+#ifndef ESTIMATE_PBCC
+#define ESTIMATE_PBCC
+
+#include "../simple/copy.pbcc"
+#include "BinnedLR.pbcc"
+#include "nwkdeVA.pbcc"
+
+/*
+transform Train
+from DATA[m,n], X[2,p], DIR[2], Y[2], INDICES[l],
+     DIRFLAGS[m], SPLIT, MASKWIDTH, DUMMY[numBins]
+to RESULT[q], MODE, ALPHA[numBins, p+1]
+{
+    // use Binned Linear Regression
+    to (RESULT result, MODE mode, ALPHA alpha)
+    from (TESTDATA data, TESTX x, TESTDIR dir, TESTINDICES indices);
+    {
+        mode = 0;
+        BinnedLRTrain(alpha, data, x, dir, indices);
+        BinnedLR(alpha, data, x, dir, indices, split);
+    }
+
+    // use Nadaraya-Watson Kernel Regression
+    to (RESULT result)
+    from (DATA data, X x, DIR dir, Y y, INDICES indices, SPLIT split,
+          MASKWIDTH maskWidth)
+    {
+        mode = 1;
+        NWKDEVA(result, data, x, y, indices, data, x, indices,
+                dirFlags, split, maskWidth);
+    }
+}
+
+transform Estimate
+from TRAINDATA[m,n], TRAINX[2,p], TRAINDIR[2], TRAINY[2],
+     TRAININDICES[l], TESTDATA[m2,n2], TESTX[2,p], TESTDIR[2],
+     TESTINDICES[q], DIRFLAGS[m], ALPHA[numBins, p+1]
+to RESULT[q]
+{
+    // use Binned Linear Regression
+    to (RESULT result)
+    from (ALPHA alpha,
+          TESTDATA data, TESTX x, TESTDIR dir, TESTINDICES indices);
+    {
+        BinnedLREstimate(result, alpha, data, x, dir, indices);
+    }
+
+    // use Nadaraya-Watson Kernel Regression
+    to   (RESULT result)
+    from (TRAINDATA trainData, TRAINX trainX,
+          TRAINY trainY, TRAININDICES trainIndices,
+          TESTDATA testData, TESTX testX, TESTINDICES testIndices,
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths)
+    {
+        NWKDEVA(result, trainData, trainX, trainY, trainIndices,
+                testData, testX, testIndices, dirFlags, 0, 0);
+    }
+}
+*/
+
+transform TrainAndEstimateMetric
+from RESULT[1,q], DATA[m,n], X[2,p], DIR[2], Y[2], INDICES[l],
+     DIRFLAGS[m], SPLIT, MASKWIDTH
+to METRIC
+{
+    to (METRIC metric)
+    from (RESULT result, DATA data, Y y, INDICES indices)
+    {
+        metric = computeNWKDEMetric(result.col(0), data, y, indices);
+    }
+}
+
+// Assumes X includes all predictor variables, including the one specified in
+// DIR.
+transform TrainAndEstimate
+from DATA[m,n], X[2,p], DIR[2], Y[2], INDICES[l],
+     DIRFLAGS[m], SPLIT, MASKWIDTH
+to RESULT[1,q]
+accuracy_metric TrainAndEstimateMetric
+accuracy_bins ACC_BINS
+{
+    // use Binned Linear Regression
+    to (RESULT result)
+    from (DATA data, X x, DIR dir, Y y, INDICES indices, DIRFLAGS dirFlags,
+          SPLIT split, MASKWIDTH maskWidth)
+    {
+        // filter out all directional variables from X
+        IndexT i, j = 0;
+        MatrixRegion2D tempX, tempX2;
+        tempX = MatrixRegion2D::allocate(2, p);
+        for (i = 0; i < p; ++i) {
+            if (!dirFlags.cell(x.cell(0, i))) {
+                Copy1D(tempX.row(j), x.row(j));
+                j++;
+            }
+        }
+        tempX2 = tempX.region(0, 0, 2, j);
+
+        // do binned linear regression using only the specified directional
+        // variable for binning (all other variables are non-directional)
+        BinnedLR(result, data, tempX2, dir, y, indices,
+                 data, tempX2, dir, indices, split, maskWidth);
+    }
+
+    // use Nadaraya-Watson Kernel Regression
+    to (RESULT result)
+    from (DATA data, X x, Y y, INDICES indices, DIRFLAGS dirFlags,
+          SPLIT split, MASKWIDTH maskWidth)
+    {
+        // TODO: how to let auto-tuner decide what template version to call?
+        NWKDEVA<0>(result.col(0), data, x, y, indices, data, x, indices,
+                   dirFlags, split, maskWidth);
+    }
+}
+
+#endif // ESTIMATE_PBCC
