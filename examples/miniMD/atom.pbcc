@@ -39,7 +39,7 @@ to atom_x[natoms, 3], atom_v[natoms,3]
   /* use atom # (generated from lattice coords) as unique seed to generate a
        unique velocity */
 
-  double alat = pow((4.0/rho.cell(0)),(1.0/3.0));
+  //double alat = pow((4.0/rho.cell(0)),(1.0/3.0));
   double xtmp,ytmp,ztmp;
   MatrixRegion1D v = MatrixRegion1D::allocate(3);
   int i,j,k,m,n;
@@ -52,9 +52,9 @@ to atom_x[natoms, 3], atom_v[natoms,3]
 	    ztmp = 0.5*alat*k;
 	    
 	    temp.cell(0) = k*(2*ndimentions.cell(1))*(2*ndimentions.cell(0)) + j*(2*ndimentions.cell(2)) + i + 1;
-            for (m = 0; m < 6; m++) random(temp.cell(0), temp.cell(0), v.cell(0));
-            for (m = 0; m < 6; m++) random(temp.cell(0), temp.cell(0), v.cell(1));
-            for (m = 0; m < 6; m++) random(temp.cell(0), temp.cell(0), v.cell(2));
+            for (m = 0; m < 6; m++) random(v.cell(0), temp.cell(0), temp.cell(0));
+            for (m = 0; m < 6; m++) random(v.cell(1), temp.cell(0), temp.cell(0));
+            for (m = 0; m < 6; m++) random(v.cell(2), temp.cell(0), temp.cell(0));
 
 	    atom_x.cell(idx, 0) = xtemp;
 	    atom_x.cell(idx, 1) = ytemp;
