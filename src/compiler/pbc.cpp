@@ -255,6 +255,11 @@ public:
   }
 };
 
+void loadDefaultHeuristics() {
+  HeuristicManager& hm = HeuristicManager::instance();
+  
+  hm.registerDefault("UserRule_blockNumber", "2");
+}
 
 void findMainTransform(const TransformListPtr& t) {
   //find the main transform if it has not been specified
@@ -334,6 +339,8 @@ int main( int argc, const char ** argv){
     //Load the heuristics from the file
     HeuristicManager::instance().loadFromFile(theHeuristicsFile);
   }
+  
+  loadDefaultHeuristics();
   
   int rv = mkdir(theObjDir.c_str(), 0755);
   if(rv!=0 && errno==EEXIST)
