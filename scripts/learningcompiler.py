@@ -21,6 +21,7 @@ conf_deleteTempDir = True
 conf_minTrialNumber = 10
 conf_probabilityExploration = 0.7
 conf_pickBestN = 3
+conf_timeout = 5*60
 #--------- Autotuner config --------
 config.max_time=30 #Seconds
 #-----------------------------------
@@ -311,6 +312,7 @@ with the originalIndex field added"""
     binary= os.path.join(outDir, basename)  
     status=pbutil.compileBenchmark(self.__pbcExe, benchmark, binary=binary, jobs=self.__jobs)  
     if status != 0:
+      print "Compile FAILED with current best heuristics - Compilation aborted"
       return status
       
     try:
@@ -334,9 +336,11 @@ with the originalIndex field added"""
     numSets = len(allHSets)
     
     
-    count=1
+    count=0
+    successfulCompilations=1 #The first compilation has already been done
     for hSet in allHSets:
       hSet.complete(neededHeuristics, self.__db, conf_pickBestN)
+      count = count + 1
       
       #Define more file names
       outDir = os.path.join(basesubdir, str(count))
@@ -348,12 +352,14 @@ with the originalIndex field added"""
       heuristicsFile= os.path.join(outDir, "heuristics.txt")
       hSet.toXmlFile(heuristicsFile)
       
-      status = pbutil.compileBenchmark(self.__pbcExe, benchmark, binary=binary, heuristics=heuristicsFile, jobs=self.__jobs)
+      status = pbutil.compileBenchmark(self.__pbcExe, benchmark, binary=binary, heuristics=heuristicsFile, jobs=self.__jobs, timeout=conf_timeout)
       if status != 0:
-        print "Compile FAILED"
-        print "while using heuristics: "
+        print "Compile FAILED while using heuristic set #"+str(count)+": ",
         print hSet
-        return status
+        #Add an empty entry for the candidate
+        candidates.append(None)
+        #Go to next heuristic set
+        continue
       
       #Autotune
       try:
@@ -363,7 +369,7 @@ with the originalIndex field added"""
         #Add an empty entry for the candidate
         candidates.append(None)
       
-      count = count + 1
+      
       
     candidates.addOriginalIndex()
     candidates.sortBySpeed()

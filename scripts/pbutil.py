@@ -17,6 +17,7 @@ from xml.dom import DOMException
 from pprint import pprint
 from configtool import getConfigVal, setConfigVal
 from learningcompiler import LearningCompiler
+from threading import Thread
 
 try:
   import numpy
@@ -283,8 +284,29 @@ def normalizeBenchmarkName(orig, search=True):
         return orig
       raise
 
+def timeoutKiller(subproc, timeout):
+  """Kill the 'subproc' process after 'timeout' seconds"""
+  
+  endTime = time.time()+timeout
+  
+  #Ensure we sleep for the right amount of time, even if interrupted
+  #by a signal
+  while time.time() < endTime:
+    remainingTime=endTime-time.time()
+    if remainingTime > 0:
+      time.sleep(remainingTime)
+  
+  if subproc.poll() is not None:
+    #The subprocess is still running
+    #Kill it!
+    try:
+      subproc.terminate()
+    except OSError:
+      #The subprocess has terminated in the meanwhile
+      pass
+  
 
-def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=None):
+def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=None, timeout=None):
     if not os.path.isfile(src):
       raise IOError()
     
@@ -308,7 +330,15 @@ def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=Non
       
     #Execute the compiler
     p = subprocess.Popen(cmd, stdout=NULL, stderr=NULL)
+    
+    if timeout is not None:
+      #Start the timeout
+      killerThread = Thread(target=timeoutKiller, args=(p, timeout))
+      killerThread.start()
+    
+    #Wait for the compiler to finish executing
     status = p.wait()
+    
     return status
   
   
