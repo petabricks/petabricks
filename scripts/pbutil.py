@@ -296,15 +296,10 @@ def timeoutKiller(subproc, timeout):
     if remainingTime > 0:
       time.sleep(remainingTime)
   
-  if subproc.poll() is not None:
-    #The subprocess is still running
-    #Kill it!
-    try:
-      subproc.terminate()
-    except OSError:
-      #The subprocess has terminated in the meanwhile
-      pass
-  
+  if subproc.poll() is None:
+    subproc.terminate()
+    
+
 
 def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=None, timeout=None):
     if not os.path.isfile(src):
