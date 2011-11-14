@@ -20,7 +20,7 @@ convolution/ConvolutionFFT Rand1D Rand1D
 convolution/Convolution    Rand1D Rand1D
 kclustering/kmeans         KmeansRandInput /dev/null
 kernel/nwkde               nwkde/data nwkde/wrapFlags nwkde/kernelWidths nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/data nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/outputVarIndex nwkde/outputTimeOffset nwkde/maskWidth
-kernel/nwkdeVA             nwkde/data nwkde/wrapFlags nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/data nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/outputVarIndex nwkde/outputTimeOffset nwkde/maskWidth
+#kernel/nwkdeVA             nwkde/data nwkde/wrapFlags nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/data nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/outputVarIndex nwkde/outputTimeOffset nwkde/maskWidth
 trisolve/TriSolveLL        Zero0D Rand2Da Rand2Db
 trisolve/TriSolveLL        One0D Rand2Da Rand2Db
 trisolve/TriSolveLU        Zero0D Rand2Da Rand2Db
