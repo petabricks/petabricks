@@ -191,11 +191,11 @@ namespace petabricks {
     return rv;
   }
 
-  template < int D >
+  template < int D , int blockNumber>
   inline bool split_condition(IndexT thresh, IndexT begin[D], IndexT end[D]){
     //too small to split?
     for(int i=0; i<D; ++i)
-      if(end[i]-begin[i] < 2)
+      if(end[i]-begin[i] < blockNumber)
         return false;
     //big enough to split?
     for(int i=0; i<D; ++i)
