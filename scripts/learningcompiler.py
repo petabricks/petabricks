@@ -23,10 +23,7 @@ conf_probabilityExploration = 0.7
 conf_pickBestN = 3
 conf_timeout = 5*60
 conf_heuristicsFileName = "heuristics.txt"
-#--------- Autotuner config --------
-config.max_time=30 #Seconds
-#-----------------------------------
-
+conf_maxTime = 30 #Seconds
 
 class FailedCandidate:
   """Represents a candidate that failed during compilation or tuning"""
@@ -314,6 +311,9 @@ with the originalIndex field added"""
     
     
   def compileLearningHeuristics(self, benchmark, finalBinary=None):
+    #Define the time to spend autotuning each candidate
+    config.max_time= conf_maxTime
+    
     #Define file names
     path, basenameExt = os.path.split(benchmark)
     if path == "":
