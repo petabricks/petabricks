@@ -41,6 +41,7 @@
 
 namespace petabricks {
 
+class ChoiceDepGraphNode;
 class CodeGenerator;
 class DependencyDirection;
 class FormulaList;
@@ -127,6 +128,10 @@ public:
   virtual bool isRecursive() const = 0;
   virtual bool canProvide(const MatrixDefPtr& m) const = 0;
   virtual bool isSingleElement() const = 0;
+
+  virtual void trimDependency(DependencyDirection& dep,
+                              const ChoiceDepGraphNode& from,
+                              const ChoiceDepGraphNode& to) = 0;
 
   virtual void collectDependencies(StaticScheduler& scheduler) = 0;
   virtual void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension, const RulePtr&) = 0;

@@ -187,6 +187,7 @@ void petabricks::ChoiceDepGraphNode::applyChoiceRemapping(const RuleChoiceAssign
   for(i=_directDependsOriginal.begin();i!=_directDependsOriginal.end();++i){
     if(i->second.contains(choice)){
       _directDependsRemapped[i->first] = i->second;
+      choice->trimDependency(_directDependsRemapped[i->first].direction, *this, *i->first);
     }
   }
 

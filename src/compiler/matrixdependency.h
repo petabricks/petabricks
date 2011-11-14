@@ -96,6 +96,14 @@ public:
     return false;
   }
 
+
+  void removeMultioutput() {
+    for(size_t i=0; i<_directionMask.size(); ++i) {
+      _directionMask[i] = (_directionMask[i] & (~D_MULTIOUTPUT) );
+    }
+  }
+
+
   bool isNone() const {
     for(size_t i=0; i<_directionMask.size(); ++i)
       if( _directionMask[i] != 0 ) {

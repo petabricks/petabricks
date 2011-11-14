@@ -47,6 +47,13 @@ public:
 
   std::string getLabel() const;
 
+
+
+  virtual void trimDependency(DependencyDirection& ,
+                              const ChoiceDepGraphNode& ,
+                              const ChoiceDepGraphNode& ){}
+
+
   bool canProvide(const MatrixDefPtr& m) const;
 
   void getApplicableRegionDescriptors(RuleDescriptorList& output,
