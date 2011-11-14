@@ -118,7 +118,7 @@ class FormulaBinop:
 	op = "=="
 	reprStr = "("+ str(self.left) +" "+ str(op) + " " + str(self.right)+")"
       
-      return eval(reprStr)
+      return str(eval(reprStr))
     
   def evolveValue(self):
     """Randomly mutates one of the values (int, float, bool) that are in the formula.
