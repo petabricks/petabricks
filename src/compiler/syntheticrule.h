@@ -52,15 +52,15 @@ public:
   void getApplicableRegionDescriptors(RuleDescriptorList& output,
                                       const MatrixDefPtr& matrix, int dimension, const RulePtr&);
 
-  void generateCallCode(const std::string& nodename,
-                        Transform& trans,
-                        CodeGenerator& o,
-                        const SimpleRegionPtr& region,
-                        RuleFlavor flavor,
-                        std::vector<RegionNodeGroup>& regionNodesGroups,
-                        int nodeID,
-                        int gpuCopyOut); 
-
+//void generateCallCode(const std::string& nodename,
+//                      Transform& trans,
+//                      CodeGenerator& o,
+//                      const SimpleRegionPtr& region,
+//                      RuleFlavor flavor,
+//                      std::vector<RegionNodeGroup>& regionNodesGroups,
+//                      int nodeID,
+//                      int gpuCopyOut); 
+//
   void virtual generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor);
   void virtual generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor) = 0;
 
@@ -92,6 +92,7 @@ public:
 
   //these just forward to _rule
   void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
+
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
                         CodeGenerator& o,
@@ -99,7 +100,7 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        bool gpuCopyOut);
+                        int gpuCopyOut);
   bool isSingleElement() const;
   int dimensions() const;
   FormulaPtr getSizeOfRuleIn(int d);
@@ -134,7 +135,7 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        bool gpuCopyOut);
+                        int gpuCopyOut);
 
   bool isSingleElement() const;
 
@@ -174,7 +175,7 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        bool gpuCopyOut);
+                        int gpuCopyOut);
 private:
   size_t _dup;
 };
@@ -197,7 +198,7 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        bool gpuCopyOut);
+                        int gpuCopyOut);
 
   bool isSingleElement() const;
 

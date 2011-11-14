@@ -59,17 +59,17 @@ bool petabricks::SyntheticRule::canProvide(const MatrixDefPtr&) const {
 void petabricks::SyntheticRule::getApplicableRegionDescriptors(RuleDescriptorList&, const MatrixDefPtr&, int, const RulePtr&) {
   UNIMPLEMENTED();
 }
-
-void petabricks::SyntheticRule::generateCallCode(const std::string&,
-                                                 Transform&,
-                                                 CodeGenerator& o,
-                                                 const SimpleRegionPtr&,
-                                                 RuleFlavor,
-                                                 std::vector<RegionNodeGroup>&,
-                                                 int, int){
-  o.comment("synthetic generateCallCode");
-}
-
+//
+// void petabricks::SyntheticRule::generateCallCode(const std::string&,
+//                                                  Transform&,
+//                                                  CodeGenerator& o,
+//                                                  const SimpleRegionPtr&,
+//                                                  RuleFlavor,
+//                                                  std::vector<RegionNodeGroup>&,
+//                                                  int, int){
+//   o.comment("synthetic generateCallCode");
+// }
+//
 void petabricks::SyntheticRule::generateDeclCode(Transform&, CodeGenerator&, RuleFlavor) {}
 //void petabricks::SyntheticRule::generateTrampCode(Transform&, CodeGenerator&, RuleFlavor) {}
 
@@ -97,7 +97,7 @@ void petabricks::WrapperSyntheticRule::generateCallCode(const std::string& name,
                                             RuleFlavor flavor,
                                             std::vector<RegionNodeGroup>& regionNodesGroups,
                                             int nodeID,
-                                            bool gpuCopyOut){
+                                            int gpuCopyOut){
   _rule->generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut);
 }
 
@@ -162,7 +162,7 @@ void petabricks::WhereExpansionRule::generateCallCode(const std::string& name,
                                             RuleFlavor flavor,
                                             std::vector<RegionNodeGroup>&,
                                             int,
-                                            bool){
+                                            int){
   SRCPOSSCOPE();
   switch(flavor) {
   case RuleFlavor::SEQUENTIAL:
@@ -283,7 +283,7 @@ void petabricks::DuplicateExpansionRule::generateCallCode(const std::string& nam
                                             RuleFlavor flavor,
                                             std::vector<RegionNodeGroup>& regionNodesGroups,
                                             int nodeID,
-                                            bool gpuCopyOut){
+                                            int gpuCopyOut){
   SRCPOSSCOPE();
   size_t old = _rule->setDuplicateNumber(_dup);
   WrapperSyntheticRule::generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut);
@@ -312,7 +312,7 @@ void petabricks::CallInSequenceRule::generateCallCode(const std::string& name,
                                             RuleFlavor flavor,
                                             std::vector<RegionNodeGroup>& regionNodesGroups,
                                             int nodeID,
-                                            bool gpuCopyOut){
+                                            int gpuCopyOut){
   SRCPOSSCOPE();
   if(flavor != RuleFlavor::SEQUENTIAL)
     o.write("{ DynamicTaskPtr __last;");
