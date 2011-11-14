@@ -74,7 +74,7 @@ public:
   void unpackargs(CodeGenerator& o) const;
   
 
-  void genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, bool isStatic, unsigned int blockNumber) const;
+  void genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, RuleFlavor rf, unsigned int blockNumber) const;
 
 protected:
   void fillSplitRegionList(SplitRegionList& regions, SplitRegion& seed, unsigned int blockNumber) const;
