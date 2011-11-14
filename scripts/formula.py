@@ -4,6 +4,11 @@ _mutateMIN = -100
 _mutateMAX = 100
 _mutationProbability = 0.3
 
+def isImmediateNumber(formula):
+  return isinstance(formula, FormulaInteger) or \
+         isinstance(formula, FormulaFloat)
+
+
 class FormulaVariable:
   def __init__(self, ident):
     self.ident=ident
@@ -102,7 +107,18 @@ class FormulaBinop:
     self.right=right
     
   def __repr__(self):
-    return "("+ str(self.left) +" "+ str(self.op) + " " + str(self.right)+")"
+    reprStr = "("+ str(self.left) +" "+ str(self.op) + " " + str(self.right)+")"
+    if not (isImmediateNumber(self.left) and isImmediateNumber(self.right)):
+      #Return extended representation
+      return reprStr
+    else:
+      #Constant folding
+      #Handle special cases where sintax is different
+      if self.op == "=":
+	op = "=="
+	reprStr = "("+ str(self.left) +" "+ str(op) + " " + str(self.right)+")"
+      
+      return eval(reprStr)
     
   def evolveValue(self):
     """Randomly mutates one of the values (int, float, bool) that are in the formula.

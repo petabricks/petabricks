@@ -23,7 +23,7 @@ conf_probabilityExploration = 0.7
 conf_pickBestN = 3
 conf_timeout = 5*60
 conf_heuristicsFileName = "heuristics.txt"
-conf_maxTime = 30 #Seconds
+conf_maxTime = 10 #Seconds
 
 class FailedCandidate:
   """Represents a candidate that failed during compilation or tuning"""

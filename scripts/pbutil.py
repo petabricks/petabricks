@@ -12,6 +12,7 @@ import socket
 import subprocess
 import sys
 import time
+import traceback
 from xml.dom.minidom import parse,parseString
 from xml.dom import DOMException
 from pprint import pprint
@@ -61,7 +62,7 @@ def setmemlimit(n = getmemorysize()):
 
 
 def parallelRunJobs(jobs, nParallelJobs=None):
-  #outFile=open("/tmp/parallelRunJobs.txt", "w")
+  outFile=open("/tmp/parallelRunJobs.txt", "w")
   class JobInfo:
     def __init__(self, id, fn):
       self.id=id
@@ -86,15 +87,15 @@ def parallelRunJobs(jobs, nParallelJobs=None):
             self.fd=fd
           def write(self, s):
             self.fd.sendall(s)
-            #outFile.write(s)
-            #outFile.flush()
+            outFile.write(s)
+            outFile.flush()
         sys.stdout = Redir(w)
         #sys.stderr = sys.stdout
         try:
           rv = self.fn()
         except Exception, e:
-          #import traceback
-          #traceback.print_exc()
+          import traceback
+          traceback.print_exc()
           print "Exception:",e
           rv = False
         print exitval
@@ -368,6 +369,7 @@ def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noL
         return False
     except IOError:
       print "invalid benchmark"
+      traceback.print_exc()
       return False
       
       
