@@ -40,5 +40,16 @@ double petabricks::Heuristic::eval (const ValueMap featureValues) {
   
   evaluated = MaximaWrapper::instance().toFloat(evaluated);
   
-  return evaluated->value();
+  double value = evaluated->value();
+  
+  //Keep the value within  the limits
+  if (value < _min) {
+    return _min;
+  }
+  else if (value > _max) {
+    return _max;
+  }
+  else {
+    return value;
+  }
 }

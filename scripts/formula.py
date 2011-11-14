@@ -78,7 +78,7 @@ class FormulaFloat:
       return True
     #Evolve (=increment/decrement of at most 100% of the original value)
     oldValue = self.value 
-    self.value = int(self.value + (self.value * random.uniform(-1, 1)))
+    self.value = self.value + (self.value * random.uniform(-1, 1))
     if oldValue == self.value:
       #The value did not change. It was too small to be modified that way
       #Force a change

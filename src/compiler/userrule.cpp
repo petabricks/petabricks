@@ -867,8 +867,13 @@ void petabricks::UserRule::generateTrampCodeSimple(Transform& trans, CodeGenerat
     
     if(isSingleElement()){
       trans.markSplitSizeUse(o);
-      o.beginIf("petabricks::split_condition<"+jalib::XToString(dimensions())+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")");
-      iterdef.genSplitCode(o, trans, *this, flavor==RuleFlavor::SEQUENTIAL);
+      Heuristic blockNumberHeur = HeuristicManager::instance().getHeuristic("UserRule_blockNumber");
+      blockNumberHeur.setMin(2);
+      unsigned int blockNumber = blockNumberHeur.eval(ValueMap()); /**< The number of blocks the loop will be
+                                                                    * splitted into */
+      JTRACE("LOOP BLOCKING")(blockNumber);
+      o.beginIf("petabricks::split_condition<"+jalib::XToString(dimensions())+", "+jalib::XToString(blockNumber)+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")");
+      iterdef.genSplitCode(o, trans, *this, flavor==RuleFlavor::SEQUENTIAL, blockNumber);
       // return written in get split code
       o.elseIf();
     }
