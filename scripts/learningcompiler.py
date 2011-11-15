@@ -27,14 +27,15 @@ conf_maxTime = 10 #Seconds
 
 class FailedCandidate:
   """Represents a candidate that failed during compilation or tuning"""
-  def __init__(self, heuristicSet=None):
+  def __init__(self, heuristicSet=None, compilationFailed=True):
     if heuristicSet is None:
       self.heuristicSet = HeuristicSet()
     else:
       self.heuristicSet = heuristicSet
-      
+    
     self.originalIndex=None
     self.failed = True
+    self.compilationFailed=compilationFailed
   
   
     
@@ -295,7 +296,7 @@ with the originalIndex field added"""
     numCandidates = len(candidates)
     count=0
     for candidate in candidates:
-      if not candidate.failed:
+      if not candidate.compilationFailed:
 	infoFile=os.path.join(basesubdir, 
 			      str(candidate.originalIndex), 
 			      basename+".info")
@@ -407,7 +408,7 @@ with the originalIndex field added"""
       except tunerwarnings.AlwaysCrashes:
         print "Candidate "+str(count)+" always crashes!"
         #Add an empty entry for the candidate
-        candidates.append(FailedCandidate(hSet))
+        candidates.append(FailedCandidate(hSet, compilationFailed=False))
       
       
       
