@@ -353,6 +353,7 @@ with the originalIndex field added"""
       #Candidate has not failed: mark as such
       currentCandidate = candidates[-1]
       currentCandidate.failed = False
+      currentCandidate.compilationFailed = False
       
     except tunerwarnings.AlwaysCrashes:
         print "Current best Candidate always crashes!"
@@ -405,6 +406,7 @@ with the originalIndex field added"""
         #Candidate has not failed: mark as such
 	currentCandidate = candidates[-1]
 	currentCandidate.failed = False
+	currentCandidate.compilationFailed = False
       except tunerwarnings.AlwaysCrashes:
         print "Candidate "+str(count)+" always crashes!"
         #Add an empty entry for the candidate
