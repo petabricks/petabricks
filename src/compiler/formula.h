@@ -174,7 +174,8 @@ public:
   virtual FormulaPtr clone() const = 0;
   virtual double value() const {  JTRACE("Formula.value()")(toCppString());
                                   UNIMPLEMENTED(); abort(); }
-  
+  virtual bool isConstant() const { JTRACE("Formula.isConstant()")(toCppString());
+                                  UNIMPLEMENTED(); abort(); }
 protected:
   /// Set of all free variables in the tree
   FreeVarsPtr _freeVars;
@@ -193,6 +194,7 @@ public:
   FormulaVariable(const std::string& name);
   void print(std::ostream& o) const;
   FormulaPtr clone() const { return FormulaPtr(new FormulaVariable(*this)); }
+  virtual bool isConstant() const { return false; }
 private:
   std::string _name;
 };
@@ -209,6 +211,8 @@ public:
                                      FormulaPtr newElse = _else->clone();
                                      return FormulaPtr(new FormulaIf(newCond, newThen, newElse));
                                    }
+  virtual bool isConstant() const { return _cond->isConstant() && _then->isConstant() && _else->isConstant(); }
+  
 private:
   FormulaPtr _cond;
   FormulaPtr _then;
@@ -229,6 +233,7 @@ public:
   void print(std::ostream& o) const;
   virtual FormulaPtr clone() const { return FormulaPtr(new FormulaLiteral(*this)); }
   virtual double value() const { return _value; }
+  virtual bool isConstant() const { return true; }
 private:
   T _value;
 };
@@ -277,6 +282,8 @@ public:
                                  UNIMPLEMENTED();
                                  abort();
                                }
+                               
+  virtual bool isConstant() const { return _left->isConstant() && _right->isConstant(); }
 private:
   FormulaPtr _left;
   FormulaPtr _right;

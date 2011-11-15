@@ -118,7 +118,7 @@ public:
         ++i) {
       const std::string name = i->first;
       const HeuristicPtr& heuristic = i->second;
-      addHeuristic(name, heuristic->formula()->toCppString());
+      addHeuristic(name, heuristic->usedFormula()->toCppString());
     }
   }
   

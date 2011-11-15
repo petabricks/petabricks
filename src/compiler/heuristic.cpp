@@ -26,7 +26,7 @@
  *****************************************************************************/
 #include "heuristic.h"
 
-double petabricks::Heuristic::eval (const ValueMap featureValues) {
+double petabricks::Heuristic::eval (const ValueMap featureValues) const {
   FormulaPtr evaluated = _formula->clone();
   
   for(ValueMap::const_iterator i=featureValues.begin(), e=featureValues.end();
@@ -52,4 +52,24 @@ double petabricks::Heuristic::eval (const ValueMap featureValues) {
   else {
     return value;
   }
+}
+
+petabricks::FormulaPtr petabricks::Heuristic::usedFormula() const { 
+  if (! _formula->isConstant()) {
+    return _formula;
+  }
+  
+  //The formula is a constant value
+  
+  double value = eval(ValueMap());
+  if(value < _min) {
+    //Return min
+    return MaximaWrapper::instance().runCommandSingleOutput(jalib::XToString(_min));
+  }
+  if(value > _max) {
+    //Return max
+    return MaximaWrapper::instance().runCommandSingleOutput(jalib::XToString(_max));
+  }
+  
+  return _formula;
 }
