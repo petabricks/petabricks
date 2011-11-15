@@ -46,11 +46,23 @@ class HeuristicDB:
     except:
       self.__db = sqlite3.connect(":memory:")
     self.__createTables()
+    self.__createView("HeuristicsRank", 
+		      "SELECT *, "
+		      "Heuristic.score/Heuristic.useCount as finalScore "
+		      "FROM Heuristic "
+		      "ORDER BY Heuristic.score/Heuristic.useCount")
     self.__bestNCache= dict()
     
   def __createTable(self, name, params):
     cur = self.__db.cursor()
     query = "CREATE TABLE IF NOT EXISTS '"+name+"' "+params
+    cur.execute(query)
+    cur.close()
+    self.__db.commit()
+    
+  def __createView(self, name, params):
+    cur = self.__db.cursor()
+    query = "CREATE VIEW IF NOT EXISTS '"+name+"' AS "+params
     cur.execute(query)
     cur.close()
     self.__db.commit()
