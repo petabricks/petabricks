@@ -289,12 +289,8 @@ def timeoutKiller(subproc, timeout):
   
   endTime = time.time()+timeout
   
-  #Ensure we sleep for the right amount of time, even if interrupted
-  #by a signal
-  while time.time() < endTime:
-    remainingTime=endTime-time.time()
-    if remainingTime > 0:
-      time.sleep(remainingTime)
+  while (subproc.poll() is None) and (time.time() < endTime):
+      time.sleep(5)
   
   if subproc.poll() is None:
     subproc.terminate()
