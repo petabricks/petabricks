@@ -338,13 +338,16 @@ def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=Non
     return status
   
   
-def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noLearningList=[]):
+def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None):
   NULL=open("/dev/null","w")
   pbc="./src/pbc"
   libdepends=[pbc, "./src/libpbmain.a", "./src/libpbruntime.a", "./src/libpbcommon.a"]
   assert os.path.isfile(pbc)
   benchmarkMaxLen=0
-  jobs_per_pbc=max(1, 2*cpuCount() / len(benchmarks))
+  if learning:
+    jobs_per_pbc = cpuCount()
+  else:
+    jobs_per_pbc=max(1, 2*cpuCount() / len(benchmarks))
   compiler = LearningCompiler(pbc, heuristicSetFileName, jobs=jobs_per_pbc)
 
   def innerCompileBenchmark(name):
@@ -357,7 +360,7 @@ def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noL
       print "compile SKIPPED"
       return True  
     try:
-      if learning and (name not in noLearningList):
+      if learning:
         status=compiler.compileLearningHeuristics(src, finalBinary=binary)
       else:
         status=compileBenchmark(pbc, src, binary=binary, jobs=jobs_per_pbc)
@@ -399,7 +402,7 @@ def compileBenchmarks(benchmarks, learning=False, heuristicSetFileName=None, noL
   else:
     return parallelRunJobs(jobs)
 
-def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postfn=lambda b: True, learning=False, heuristicSetFileName=None, noLearningList=[]):
+def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postfn=lambda b: True, learning=False, heuristicSetFileName=None, excludeBenchmarks=[]):
   chdirToPetabricksRoot()
   compilePetabricks()
   benchmarks=open(file)
@@ -415,7 +418,9 @@ def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postf
   for b in benchmarks:
     b[0]=normalizeBenchmarkName(b[0])
 
-  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x), lambda: postfn(x[0])), benchmarks), learning, heuristicSetFileName, noLearningList), benchmarks
+  benchmarks = filter(lambda x: x[0] not in excludeBenchmarks, benchmarks)
+  
+  return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x), lambda: postfn(x[0])), benchmarks), learning, heuristicSetFileName), benchmarks
 
 def killSubprocess(p):
   if p.poll() is None:

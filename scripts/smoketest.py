@@ -214,7 +214,7 @@ if options.learning:
     print "Using only heuristics in the database"
   
 t1=time.time()
-results,b=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", args, testBenchmark, postfn=checkBenchmark, learning=options.learning, heuristicSetFileName=options.heuristics, noLearningList=check_exclude)
+results,b=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", args, testBenchmark, postfn=checkBenchmark, learning=options.learning, heuristicSetFileName=options.heuristics, excludeBenchmarks=check_exclude)
 t2=time.time()
 
 
