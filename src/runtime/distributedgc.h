@@ -24,76 +24,41 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
+#ifndef PETABRICKSDISTRIBUTEDGC_H
+#define PETABRICKSDISTRIBUTEDGC_H
 
-#include "config.h"
+#include "remoteobject.h"
+#include "remotehost.h"
 
-#if !defined(PETABRICKSOPENCLUTIL_H) && HAVE_OPENCL
-#define PETABRICKSOPENCLUTIL_H
+namespace petabricks {
 
-#include <vector>
-#include <string>
-#include <oclUtils.h>
-//#include <CL/cl_platform.h>
-//#include <CL/cl.h>
 
-namespace petabricks
-{
-  struct OpenCLDevice
-  {
-    OpenCLDevice( cl_device_id _id );
-
-    /** OpenCL-assigned unique identifier for this device. */
-    cl_device_id id;
-    /** Handle to command queue for this device. */
-    cl_command_queue queue;
-    /** True iff we're using this device. */
-    bool enabled;
-    /** Arbitrary string returned by OpenCL driver.  Typically the name of
-	the graphics card. */
-    std::string name;
-    /** Arbitrary string returned by OpenCL driver describing the company
-	which produced the GPU. */
-    std::string vendor;
-
-    cl_uint max_compute_units;
-    cl_uint max_clock_freq;
-    size_t max_workitem_size[3];
-    size_t max_workgroup_size;
-    cl_ulong global_mem_size;
-    cl_ulong local_mem_size;
-    bool has_queue_outoforder_exec;
-    bool has_queue_profiling;
-  };
-
-  class OpenCLUtil
-  {
+  class DistributedGC : public petabricks::RemoteObject {
+    enum NotifyStages {
+      FLUSH_MSGS,
+      DO_SCAN,
+      ABORT_GC,
+    };
   public:
-    /** Initializes OpenCL and enumerates devices.  Returns nonzero on error. */
-    static int init( );
-    static void deinit( );
-    static void printDeviceList( bool verbose = true );
-    static void printDeviceDetails( const OpenCLDevice& dev_info,
-				    bool verbose = true );
-    static void printDeviceDetails( unsigned int dev_idx,
-				    bool verbose = true );
-    static cl_context getContext( );
-    static cl_command_queue getQueue( unsigned int dev_idx );
-    static cl_int buildProgram( cl_program &program );
-    static std::string errorString( cl_int error );
+    static RemoteObjectPtr gen();
+  
+    void onCreated();
+    void onNotify(int stage);
+    void onRecv(const void* , size_t s);
 
-    static void setActiveDevice( unsigned int dev_idx );
-    static unsigned int getActiveDevice( );
-    static cl_device_id getActiveDeviceID( );
+    bool canDeleteLocal(RemoteObject& obj) const;
+    
+    void scan(std::vector<EncodedPtr>& response);
+    void finishup();
 
   private:
-    /** Class is a singleton. */
-    OpenCLUtil( ) { }
-
-    static cl_context context;
-    static bool has_init;
-    static unsigned int active_device;
-    static std::vector<OpenCLDevice> devices;
+    int _gen;
+    RemoteObjectList _objects;
+    RemoteObjectList _objectsMaybeDead;
   };
-};
+
+}
 
 #endif
+
+

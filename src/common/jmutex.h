@@ -78,6 +78,8 @@ protected:
 class JMutexPthread{
   JMutexPthread(const JMutexPthread&); //banned
 public:
+  enum RecursiveT { RECURSIVE };
+
   JMutexPthread(){
     #ifdef DEBUG
     pthread_mutexattr_t attr;
@@ -89,11 +91,24 @@ public:
     JASSERT(pthread_mutex_init(&_mux, 0)==0);
     #endif
   }
+
+  JMutexPthread(RecursiveT){
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    JASSERT(pthread_mutex_init(&_mux, &attr)==0);
+    pthread_mutexattr_destroy(&attr);
+  }
+
+
   ~JMutexPthread(){
     JASSERT(pthread_mutex_destroy(&_mux)==0);
   }
 
-  void lock() const {JASSERT(pthread_mutex_lock(&_mux)   == 0);}
+  void lock() const {
+    int rv = pthread_mutex_lock(&_mux);
+    JASSERT(rv == 0)(rv)(EINVAL); 
+  }
   bool trylock() const {return pthread_mutex_trylock(&_mux) == 0;}
   void unlock() const {JASSERT(pthread_mutex_unlock(&_mux) == 0);}
 protected:
@@ -103,7 +118,9 @@ protected:
 //a mutex and a condition variable
 class JCondMutex : public JMutexPthread {
 public:
-  JCondMutex(){ JASSERT( pthread_cond_init(&_cond, NULL) == 0); }
+  JCondMutex() : JMutexPthread(RECURSIVE) {
+    JASSERT(pthread_cond_init(&_cond, NULL) == 0);
+  }
   ~JCondMutex(){JASSERT( pthread_cond_destroy(&_cond) == 0); }
 
   void wait() const      {JASSERT(pthread_cond_wait(&_cond, &_mux) == 0);}

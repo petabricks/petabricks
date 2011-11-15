@@ -6,10 +6,12 @@
 
 %{
 
-inline double kernel(ConstMatrixRegion1D x0, ConstMatrixRegion1D x1, double h)
+inline ElementT kernel(ConstMatrixRegion1D x0, ConstMatrixRegion1D x1, ElementT h)
 {
+  x0.useOnCpu();
+  x1.useOnCpu();
   int i, dim = x0.count();
-  double temp, sum = 0;
+  ElementT temp, sum = 0;
   for (i = 0; i < dim; i++) {
     temp = (x0.cell(i) - x1.cell(i));
     sum += temp * temp;
@@ -56,7 +58,7 @@ to ESTIMATEY[m]
 
   ESTIMATEY.cell(i) from (TRAINX trainX, TESTX.row(i) testX, A a, H h)
   {
-    double result;
+    ElementT result;
     MatrixRegion1D ke = MatrixRegion1D::allocate(n);
     KernelEvaluate(ke, testX, trainX, h);
     DotProduct(result, ke, a.row(0));

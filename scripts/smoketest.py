@@ -4,7 +4,7 @@ import os
 import pbutil
 import progress
 import re
-import subprocess 
+import subprocess
 import sys
 import configtool
 import time
@@ -17,7 +17,7 @@ check_exclude=[
          "convolution/Convolution",       # Difference
          "multiply/strassen",             # Difference, why???
          "regression/whereclause",        # Difference, why???
-         
+
          "simple/matrixrotate",           # NewProgramCrash
          "multiply/multiply",             # NewProgramCrash
          "regression/params",             # AlwaysCrashes
@@ -70,7 +70,7 @@ def checkBenchmark(b):
     return True
 
   import sgatuner, warnings, tunerwarnings
-  
+
   warnings.resetwarnings()
   warnings.simplefilter('error',  tunerwarnings.TunerWarning)
   warnings.simplefilter('ignore', DeprecationWarning)
@@ -97,7 +97,7 @@ def testBenchmark(b):
 
   if not os.path.isfile(bin):
     return False
-  
+
   #build cmd
   hash=name
   iofiles=[]
@@ -135,7 +135,9 @@ def testBenchmark(b):
     #run cpu config
     cmd=[bin, '--fixedrandom', '--config=%s.cfg'%outfile]
     cmd.extend(iofiles)
+    t1=time.time()
     rv = run(cmd)
+    t2=time.time()
     if rv != 0:
       print "run FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd))
       return False
@@ -146,7 +148,7 @@ def testBenchmark(b):
         print "run FAILED (wrong output)"
         return False
     
-    print "run PASSED"
+    print "run PASSED (took %.2fs)" % (t2-t1)
 
     if (not haveOpenCL()) or (not os.path.exists(outfile+".gpucfg")):
       return True
@@ -154,7 +156,9 @@ def testBenchmark(b):
     #run gpu config
     cmd=[bin, '--fixedrandom', '--noisolation', '--config=%s.gpucfg'%outfile]
     cmd.extend(iofiles)
+    t1=time.time()
     rv = run(cmd)
+    t2=time.time()
     if rv != 0:
       print "gpu FAILED (status=%d, cmd=%s)"%(rv, ' '.join(cmd))
       return False
@@ -165,7 +169,7 @@ def testBenchmark(b):
         print "gpu FAILED (wrong output)"
         return False
     
-    print "gpu PASSED"
+    print "gpu PASSED (took %.2fs)" % (t2-t1)
     return True
 
   return test()

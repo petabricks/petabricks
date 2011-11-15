@@ -30,18 +30,20 @@
 #include "dynamictask.h"
 #include "gpudynamictask.h"
 #include "gpumanager.h"
-#include "gpumanager.cpp"
 #include "petabricks.h"
+#include "remotehost.h"
 #include "testisolation.h"
 
 #include "common/jargs.h"
 #include "common/jfilesystem.h"
 #include "common/jtimer.h"
 #include "common/jtunable.h"
+#include "common/openclutil.h"
 
 #include <algorithm>
-#include <limits>
+#include <fstream>
 #include <iostream>
+#include <limits>
 #include <math.h>
 #include <pthread.h>
 
@@ -56,9 +58,6 @@
 # undef HAVE_BOOST_RANDOM_HPP
 #endif
 
-#ifdef HAVE_OPENCL
-# include "openclutil.h"
-#endif
 
 #ifdef HAVE_BOOST_RANDOM_HPP
 # include <boost/random.hpp>
@@ -105,6 +104,17 @@ static double RACE_MULTIPLIER=1;
 static double RACE_MULTIPLIER_LOWACC=1;
 static double RACE_ACCURACY_TARGET=jalib::minval<double>();
 
+static bool TI_REEXEC = true;
+static int REEXECCHILD=-1;
+
+#ifdef REGIONMATRIX_TEST
+static std::string HOSTS_FILE="hosts.example";
+#else
+static std::string HOSTS_FILE="";
+#endif
+static std::string SLAVE_HOST="";
+static int SLAVE_PORT = -1;
+
 #ifdef HAVE_BOOST_RANDOM_HPP
 static boost::lagged_fibonacci607& myRandomGen(){
   //ouch... lagged_fibonacci is NOT THREAD SAFE
@@ -143,6 +153,10 @@ static int _incN(int n){
   }
 }
 
+static int theArgc = 0;
+static const char** theArgv = NULL;
+
+
 static enum {
   MODE_RUN_IO,
   MODE_RUN_RANDOM,
@@ -154,6 +168,7 @@ static enum {
   MODE_GRAPH_TEMPLATE,
   MODE_RACE_CONFIGS,
   MODE_AUTOTUNE_PARAM,
+  MODE_DISTRIBUTED_SLAVE,
   MODE_ABORT,
   MODE_HELP
 } MODE = MODE_RUN_IO;
@@ -213,6 +228,9 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   if(m) _mainName = m->name();
   jalib::JArgs args(argc, argv);
 
+  theArgc = argc;
+  theArgv = argv;
+
   if(args.needHelp())
     std::cerr << "GENERAL OPTIONS:" << std::endl;
 
@@ -222,7 +240,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.alias("tx", "transform");
   args.alias("graph", "graph-input");
   args.alias("graph-accuracy", "graph-template");
-  
+
   //load config from disk
   CONFIG_FILENAME = jalib::Filesystem::GetProgramPath() + ".cfg";
   args.param("config",  CONFIG_FILENAME).help("filename of the program configuration");
@@ -237,8 +255,8 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   }else{
     JASSERT(m!=NULL);
   }
-  
-  //seed the random number generator 
+
+  //seed the random number generator
   args.param("fixedrandom", FIXEDRANDOM).help("don't seed the random number generator");
 
   if(!FIXEDRANDOM)
@@ -248,7 +266,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("time",         DUMPTIMING).help("print timing results in xml format");
   args.param("hash",         HASH).help("print hash of output");
   args.param("force-output", FORCEOUTPUT).help("also write copies of outputs to stdout");
-  
+
   args.param("threads", worker_threads).help("number of threads to use");
 
   if(args.needHelp())
@@ -286,9 +304,9 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     JASSERT(jalib::Filesystem::FileExists(CONFIG_FILENAME_ALT) || CONFIG_FILENAME_ALT=="None");
     MODE=MODE_RACE_CONFIGS;
   }
-  
+
   args.param("iogen-n", IOGEN_N);
-  
+
   //flags that cause aborts
   if(args.param("reset").help("reset the config file to the default state and exit")){
     jalib::JTunableManager::instance().reset();
@@ -315,10 +333,10 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   if(args.needHelp()){
     MODE=MODE_HELP;
   }
-  
+
   if(args.needHelp())
     std::cerr << std::endl << "OPTIONS FOR ALTERNATE EXECUTION MODES:" << std::endl;
-  
+
   args.param("autotune-transform", autotunetx).help("transform name to tune in --autotune mode");
   args.param("autotune-site",      autotunesites).help("choice sites to tune in --autotune mode");
   args.param("autotune-tunable",   autotunecutoffs).help("additional cutoff tunables to tune in --autotune mode");
@@ -342,7 +360,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("race-multiplier-lowacc", RACE_MULTIPLIER_LOWACC).help("how much extra time (percentage) the slower racer gets to finish");
   args.param("race-accuracy",    RACE_ACCURACY_TARGET).help("accuracy the second racer must achieve");
   args.param("race-split-ratio", RACE_SPLIT_RATIO).help("how to divide the chip for racing");
-  
+
   size_t max_memory=0;
   if(args.param("max-memory", max_memory).help("kill the process when it tries to use this much memory")) {
     if(max_memory>0) {
@@ -353,7 +371,26 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     }
   }
 
+
+  args.param("hosts",      HOSTS_FILE).help("list of hostnames in distributed computation");
+  args.param("slave-host", SLAVE_HOST);
+  args.param("slave-port", SLAVE_PORT);
+
+
+  args.param("reexecchild", REEXECCHILD);
+  args.param("tireexec", TI_REEXEC).help("toggle if TestIsolation should reexecute the process");
+
   args.finishParsing(txArgs);
+
+  if(SLAVE_HOST != "" && SLAVE_PORT>0) {
+    ISOLATION=false;
+    MODE=MODE_DISTRIBUTED_SLAVE;
+    JTRACE("slave");
+  }else if(HOSTS_FILE!=""){
+    ISOLATION=false;
+    JTRACE("parent");
+    spawnDistributedNodes(argc, argv);
+  }
 
   switch(MODE){
     case MODE_RUN_RANDOM:
@@ -368,14 +405,10 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
       //fall through
     case MODE_IOGEN_CREATE:
     case MODE_RUN_IO:
+    case MODE_DISTRIBUTED_SLAVE:
       //startup requested number of threads
       if(MODE!=MODE_GRAPH_THREADS && MODE!=MODE_ABORT){
-#ifdef HAVE_OPENCL
-        GpuManager::start();
-#endif
-        JTIMER_SCOPE(startworkers);
-        JASSERT(worker_threads>=1)(worker_threads);
-        DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
+        startWorkerThreads(worker_threads);
       }
     case MODE_ABORT:
     case MODE_HELP:
@@ -390,17 +423,70 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     std::cerr << std::endl;
   }
 
-  JASSERT(MODE==MODE_RUN_IO||txArgs.size()==0)(txArgs.size())
+  JASSERT(MODE==MODE_RUN_IO||MODE==MODE_DISTRIBUTED_SLAVE||txArgs.size()==0)(txArgs.size())
     .Text("too many arguments");
+}
+
+void petabricks::PetabricksRuntime::startWorkerThreads(int worker_threads) {
+  JTIMER_SCOPE(startworkers);
+  GpuManager::start();
+  JASSERT(worker_threads>=1)(worker_threads);
+  DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
+  _petabricksInit();
+}
+
+void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char** argv) {
+  RemoteHostDB& db = RemoteHostDB::instance();
+  std::ifstream fp(HOSTS_FILE.c_str());
+  JASSERT(fp.is_open())(HOSTS_FILE).Text("failed to open file");
+  std::string line;
+  bool hadlocal = false;
+  while(getline(fp, line)){
+    std::string dat,com;
+    jalib::SplitFirst(dat, com, line, '#');
+    dat=jalib::StringTrim(dat);
+
+    if(dat!="" && dat!="localhost") {
+      db.remotefork(dat.c_str(), argc, argv, "--slave-host", "--slave-port");
+      db.accept(dat.c_str());
+    }
+
+    if(dat == "localhost") {
+      if(hadlocal) {
+        db.remotefork(NULL, argc, argv, "--slave-host", "--slave-port");
+        db.accept(dat.c_str());
+      }
+      hadlocal=true;
+    }
+
+    JASSERT(hadlocal);
+  }
+
+  db.setupConnectAllPairs();
+
+  for(int i=REMOTEHOST_THREADS; i>0; --i) {
+    db.spawnListenThread();
+  }
+}
+void petabricks::PetabricksRuntime::distributedSlaveLoop() {
+  RemoteHostDB& db = RemoteHostDB::instance();
+  db.connect(SLAVE_HOST.c_str(), SLAVE_PORT);
+  db.host(0)->setupLoop(db);
+  for(int i=REMOTEHOST_THREADS; i>0; --i) {
+    db.spawnListenThread();
+  }
+  JTRACE("slave loop starting");
+  WorkerThread* self = WorkerThread::self();
+  self->mainLoop();
 }
 
 petabricks::PetabricksRuntime::~PetabricksRuntime()
 {
   saveConfig();
-#ifdef HAVE_OPENCL
+  _petabricksCleanup();
   GpuManager::shutdown();
-#endif
   DynamicScheduler::cpuScheduler().shutdown();
+  RemoteHostDB().instance().shutdown();
 }
 
 void petabricks::PetabricksRuntime::saveConfig()
@@ -414,20 +500,10 @@ void petabricks::PetabricksRuntime::saveConfig()
 
 
 int petabricks::PetabricksRuntime::runMain(){
-/*#ifdef HAVE_OPENCL
-  int err;
-#endif*/
   JTIMER_SCOPE(runMain);
 
   switch(MODE){
     case MODE_RUN_IO:
-/*#ifdef HAVE_OPENCL
-      if( 0 != ( err = OpenCLUtil::init( ) ) )
-      {
-        std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
-        exit( -1 );
-      }
-#endif*/
       runNormal();
       break;
     case MODE_IOGEN_CREATE:
@@ -441,13 +517,6 @@ int petabricks::PetabricksRuntime::runMain(){
       return _rv;
       break;
     case MODE_RUN_RANDOM:
-/*#ifdef HAVE_OPENCL
-      if( 0 != ( err = OpenCLUtil::init( ) ) )
-      {
-        std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
-        exit(-1 );
-      }
-#endif*/
       runTrial(GRAPH_MAX_SEC, ACCTRAIN);
       break;
     case MODE_GRAPH_INPUTSIZE:
@@ -465,11 +534,14 @@ int petabricks::PetabricksRuntime::runMain(){
     case MODE_AUTOTUNE_PARAM:
       optimizeParameter(graphParam);
       break;
+    case MODE_DISTRIBUTED_SLAVE:
+      distributedSlaveLoop();
+      return 0;
     case MODE_ABORT:
     case MODE_HELP:
       break;
   }
-  
+
 
   if(FORCEOUTPUT && _rv==0){
     JTIMER_SCOPE(forceoutput);
@@ -695,12 +767,13 @@ double petabricks::PetabricksRuntime::raceConfigs(int n, const std::vector<std::
   try {
     loadTestInput(n, files);
     if(CONFIG_FILENAME_ALT != "None") {
-      if(ati.beginTest(worker_threads/2)) {
+      JASSERT(REEXECCHILD<0);
+      if(ati.beginTest(worker_threads/2, REEXECCHILD)) {
         tm.load(CONFIG_FILENAME);
         _main->reallocate(std::max(IOGEN_N, n));
         computeWrapperSubproc(ati, -1, aresult, NULL);
         ati.endTest(aresult);
-      } else if(bti.beginTest(worker_threads/2)) {
+      } else if(bti.beginTest(worker_threads/2, REEXECCHILD)) {
         tm.load(CONFIG_FILENAME_ALT);
         _main->reallocate(std::max(IOGEN_N, n));
         computeWrapperSubproc(bti, -1, bresult, NULL);
@@ -709,7 +782,7 @@ double petabricks::PetabricksRuntime::raceConfigs(int n, const std::vector<std::
         SubprocessTestIsolation::recvFirstResult(ati, aresult, bti, bresult);
       }
     } else {
-      if(ati.beginTest(worker_threads)) {
+      if(ati.beginTest(worker_threads, REEXECCHILD)) {
         tm.load(CONFIG_FILENAME);
         _main->reallocate(std::max(IOGEN_N, n));
         computeWrapperSubproc(ati, -1, aresult, NULL);
@@ -735,7 +808,7 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
                                                      const std::vector<std::string>* files){
   TestResult result;
   try{
-    if(ti.beginTest(worker_threads)){
+    if(ti.beginTest(worker_threads, REEXECCHILD)){
       computeWrapperSubproc(ti, n, result, files);
       ti.endTest(result);
     }else{
@@ -750,7 +823,7 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
       //std::cerr << "ERROR: test aborted unexpectedly" << std::endl;
       exit(e.rv);
     }
-  } 
+  }
   if(result.time<0)  throw ComputeRetryException();
   if(DUMPTIMING)     theTimings.push_back(result.time);
   if(ACCURACY)       theAccuracies.push_back(result.accuracy);
@@ -759,7 +832,12 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
 }
 
 void petabricks::PetabricksRuntime::loadTestInput(int n, const std::vector<std::string>* files) {
+  if(ISOLATION && TI_REEXEC && REEXECCHILD<0) {
+    //skip input loading when a child process will reexe
+    return;
+  }
   if(n>0){
+    JTRACE("generating input")(n);
     JASSERT(files==NULL);
     JTIMER_SCOPE(randomize);
     JASSERT(n==_randSize);
@@ -774,12 +852,13 @@ void petabricks::PetabricksRuntime::loadTestInput(int n, const std::vector<std::
     }
   }
 }
-  
+
 void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
                                                           int n,
                                                           TestResult& result,
                                                           const std::vector<std::string>* files){
   try {
+    ti.disableTimeout();
     if(_isTrainingRun && _main->isVariableAccuracy()){
       variableAccuracyTrainingLoop(ti);
     }
@@ -788,22 +867,22 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
     }
     _needTraingingRun = false;//reset flag set by isTrainingRun()
     _isRunning = true;
+    ti.restartTimeout();
     jalib::JTime begin=jalib::JTime::now();
     _main->compute();
     jalib::JTime end=jalib::JTime::now();
+    ti.disableTimeout();
     _isRunning = false;
-    
+
     if(_needTraingingRun && _isTrainingRun){
       result.time=-1;
     }else{
       result.time=end-begin;
     }
     if(ACCURACY){
-      ti.disableTimeout();
       result.accuracy = _main->accuracy();
     }
     if(HASH){
-      ti.disableTimeout();
       jalib::HashGenerator hg;
       _main->hash(hg);
       result.hash = hg.final();
@@ -816,7 +895,7 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
     throw;
   }
 }
-  
+
 void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& /*ti*/){
   UNIMPLEMENTED();
   /*
@@ -835,7 +914,7 @@ void petabricks::PetabricksRuntime::variableAccuracyTrainingLoop(TestIsolation& 
     abort();
 
   std::sort(itersNeeded.begin(), itersNeeded.end());
-  
+
   //median
   int i= itersNeeded[ (itersNeeded.size()+1)/2 ];
 
@@ -881,7 +960,7 @@ int petabricks::PetabricksRuntime::variableAccuracyTrainingLoopInner(TestIsolati
     //increment tuning var
     if(!tunables.incrementAll()){
       JTRACE("training goal failed, max iterations")(cur)(target);
-      break; 
+      break;
     }
   }
   //failure if we reach here, reset tunables and abort
@@ -935,7 +1014,7 @@ double petabricks::PetabricksRuntime::updateRaceTimeout(TestResult& result, int 
   if(result.time < jalib::maxval<double>() && result.time >= 0){
     if(result.accuracy >= RACE_ACCURACY_TARGET)
       return std::min(GRAPH_MAX_SEC, result.time*RACE_MULTIPLIER);
-    else 
+    else
       return std::min(GRAPH_MAX_SEC, result.time*RACE_MULTIPLIER_LOWACC);
   }else{
     return GRAPH_MAX_SEC;
@@ -969,4 +1048,19 @@ int petabricks::petabricksMain(int argc, const char** argv){
 }
 
 
+void petabricks::PetabricksRuntime::reexecTestIsolation(int fd) {
+  if(TI_REEXEC) {
+    saveConfig();
+    std::string sfd = jalib::XToString(fd);
+    const char** argv = new const char*[theArgc + 3];
+    for(int i=0; i<theArgc; ++i)
+      argv[i] = theArgv[i];
+    argv[theArgc+0] = "--reexecchild";
+    argv[theArgc+1] = sfd.c_str();
+    argv[theArgc+2] = NULL;
+    //JTRACE("reexec");
+    execv(argv[0], (char**)argv);
+    JASSERT(false).Text("execv failed");
+  }
+}
 

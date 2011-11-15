@@ -8,6 +8,8 @@ convolution2/Convolution
 convolution2/FFTRecursion
 convolution/ConvolutionFFT
 convolution/Convolution
+convolution/convolutionSeparable2
+convolution/convolutionSeparable
 detTD/detmatmulprefix
 detTD/detTD
 eigenproblem/Bisection
@@ -26,6 +28,11 @@ eigenproblem/QRtridiagOne
 eigenproblem/QRtridiag
 eigenproblem/trial1
 eigenproblem/trial2
+gpu/arithmetic
+gpu/blackscholes
+gpu/loop
+gpu/threepasses
+gpu/twoRulesShareInOut2
 kclustering/assignclusters
 kclustering/clusterinputgen
 kclustering/distance
@@ -142,6 +149,7 @@ regression/optional
 regression/outputsizeacc
 regression/padding
 regression/params
+regression/permuteerr
 regression/recursive
 regression/regiondependence
 regression/ruleconstants
@@ -149,6 +157,7 @@ regression/scaledown
 regression/scaleoffset
 regression/scaletest
 regression/scaleup
+regression/splitrb
 regression/templatetest
 regression/testdiag
 regression/testruleir
@@ -181,6 +190,13 @@ simple/reduce
 simple/rollingsum
 simple/scale
 simple/transpose
+sort2/Bitonicsort
+sort2/Insertionsort
+sort2/Mergesort2
+sort2/Quicksort2
+sort2/Selectionsort
+sort2/Sort2
+sort/Bitonicsort
 sort/Insertionsort
 sort/Mergesort2
 sort/Mergesort
@@ -188,6 +204,7 @@ sort/Parallel_Mergesort
 sort/Quicksort
 sort/Radixsort4
 sort/Radixsort
+sort/Selectionsort
 sort/Sort
 trisolve/TriSolveGenerators
 trisolve/TriSolveLAPACK

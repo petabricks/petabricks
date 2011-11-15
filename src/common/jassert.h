@@ -169,6 +169,8 @@ namespace jalib{
 
 }//jalib
   
+#define USE(x) (void)(x)
+
 //helpers:
 #define JASSERT_ERRNO          (strerror(errno))
 #define JASSERT_INIT()         JASSERT_PRINT("")

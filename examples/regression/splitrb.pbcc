@@ -1,0 +1,36 @@
+
+transform SplitRB
+from IN[n,n]
+to R[n+2,(n+4)/2], K[n+2,(n+4)/2]
+{
+  priority(0) R.cell(i,j) from (IN.cell(i - 1, 2 * j - 2) in1,
+                                IN.cell(i - 1, 2 * j - 1) in2)
+  {
+    return (i % 2 == 1) ? in1 : in2;
+  }
+  priority(1) R.cell(i,j) from (IN.cell(i - 1, 2 * j - 2) in1)
+  {
+    return (i % 2 == 1) ? in1 : 0;
+  }
+  priority(1) R.cell(i,j) from (IN.cell(i - 1, 2 * j - 1) in2)
+  {
+    return (i % 2 == 1) ? 0 : in2;
+  }
+  priority(2) R.cell(i,j) from () { return 0; }
+
+  priority(0) K.cell(i,j) from (IN.cell(i - 1, 2 * j - 1) in1,
+                                IN.cell(i - 1, 2 * j) in2)
+  {
+    return (i % 2 == 1) ? in1 : in2;
+  }
+  priority(1) K.cell(i,j) from (IN.cell(i - 1, 2 * j - 1) in1)
+  {
+    return (i % 2 == 1) ? in1 : 0;
+  }
+  priority(1) K.cell(i,j) from (IN.cell(i - 1, 2 * j) in2)
+  {
+    return (i % 2 == 1) ? 0 : in2;
+  }
+  priority(2) K.cell(i,j) from () { return 0; }
+}
+

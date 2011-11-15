@@ -40,19 +40,30 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
+#include <set>
 
 
 #define REMOTEHOST_DATACHANS 4
+#define REMOTEHOST_THREADS 2
 
 namespace _RemoteHostMsgTypes {
-  struct GeneralMessage;  
+  struct GeneralMessage;
 }
 
 namespace petabricks {
 
 class RemoteHost;
+class RemoteHostDB;
 typedef RemoteHost* RemoteHostPtr;
 typedef std::vector<RemoteHostPtr> RemoteHostList;
+typedef std::set<RemoteHostPtr> RemoteHostSet;
+
+struct RemoteHostWeightListItem {
+  RemoteHostPtr host;
+  double weight;
+};
+typedef std::vector<RemoteHostWeightListItem> RemoteHostWeightList;
+
 
 struct HostPid {
   long hostid;
@@ -64,10 +75,16 @@ struct HostPid {
   friend bool operator != (const HostPid& a, const HostPid& b) {
     return !operator==(a,b);
   }
+  friend bool operator < (const HostPid& a, const HostPid& b) {
+    if (a.hostid == b.hostid) return a.pid < b.pid;
+    return a.hostid < b.hostid;
+  }
   friend std::ostream& operator << (std::ostream& o, const HostPid& a) {
     return o << std::hex << a.hostid << '/' << std::dec <<  a.pid;
   }
-};
+
+  static const HostPid& self();
+} PACKED;
 
 
 class RemoteHost {
@@ -86,19 +103,47 @@ public:
 
   const HostPid& id() const { return _id; }
 
+  void shutdownBegin();
+  void shutdownEnd();
+
+
+  //used by GC:
+  void swapObjects(RemoteObjectList& obj, int& gen);
+  void readdObjects(RemoteObjectList& obj);
+  EncodedPtr asEncoded(RemoteObject* obj) const;
+
+  void setupLoop(RemoteHostDB& db);
+  static void setupRemoteConnection(RemoteHost& a, RemoteHost& b);
+  void setupEnd();
 protected:
-  RemoteHost() : _lastchan(0) {}
-  void accept(jalib::JServerSocket& s);
-  void connect(const jalib::JSockAddr& a, int port);
+  RemoteHost(const std::string& connectName)
+    : _lastchan(0),
+      _isShuttingDown(false),
+      _remotePort(-1),
+      _connectName(connectName),
+      _currentGen(0),
+      _gcLastLiveObjCount(0),
+      _shouldGc(false)
+  {}
+  void accept(jalib::JServerSocket& s, int listenPort);
+  void connect(const jalib::JSockAddr& a, int port, int listenPort);
   bool recv();
   int fd() const { return _control.sockfd(); }
-  void handshake();
+  void handshake(int port);
 
   void sendMsg(_RemoteHostMsgTypes::GeneralMessage* msg, const void* data = NULL, size_t len = 0);
-  int pickChannel() { 
+  int pickChannel() {
     _lastchan = (_lastchan+2) % REMOTEHOST_DATACHANS;
     return _lastchan;
   }
+
+  bool isShuttingDown() const { return _isShuttingDown; }
+  int remotePort() const { return _remotePort; }
+
+
+  void spawnGcTask();
+  void addObject(const RemoteObjectPtr& obj);
+
 private:
   jalib::JMutex _controlmu;
   jalib::JMutex _datamu[REMOTEHOST_DATACHANS];
@@ -107,16 +152,24 @@ private:
   HostPid _id;
   int _lastchan;
   RemoteObjectList _objects;
+  bool _isShuttingDown;
+  int _remotePort;
+  std::string _connectName;
+  int _currentGen;
+  size_t _gcLastLiveObjCount;
+  bool _shouldGc;
 };
 
 
 class RemoteHostDB {
 public:
+  static RemoteHostDB& instance();
+
   RemoteHostDB();
 
   void connect(const char* host, int port);
-  void accept();
-  void remotefork(const char* host, int argc, const char** argv);
+  void accept(const char* fromhost);
+  void remotefork(const char* host, int argc, const char** argv, const char* slavehost=NULL, const char* slaveport=NULL);
 
   void listenLoop();
   void spawnListenThread();
@@ -127,6 +180,25 @@ public:
   RemoteHostPtr host(int i) const {
     return _hosts[i];
   }
+
+  RemoteHostPtr host(HostPid& id) const {
+    for (unsigned int i = 0; i < _hosts.size(); i++) {
+      RemoteHostPtr host = _hosts[i];
+      if (host->id() == id) {
+        return host;
+      }
+    }
+    return NULL;
+  }
+
+  int size() const {
+    return _hosts.size();
+  }
+
+  void shutdown();
+  static void onShutdownEvent();
+
+  void setupConnectAllPairs();
 
 protected:
 

@@ -20,15 +20,25 @@ to Eigenvalue[n], Eigenvector[n,n]
     int size=n, lwork=2*n-2, info=0, nsquared=n*n;
 
     // allocate and initialize matrices
-    ElementT *Z = Vec.base();
-    ElementT *D = Eig.base();
-    ElementT *E = Ein.storage()->data();
-    ElementT *work = new ElementT[1];
+    ElementT *Z = 0;
+    ElementT *D = 0;
+    ElementT *E = 0;
+    CArrayStorage Zstore;
+    CArrayStorage Dstore;
+    CArrayStorage Estore;
 
-    if (lwork > 1) { work = new ElementT[lwork];}
+
+    to_c_array(Eig, D,  Dstore);
+    to_c_array(Vec, Z,  Zstore);
+    to_c_array(Ein, E,  Estore);
+
+    ElementT *work = new ElementT[std::max(1,lwork)];
     steqr_wrap(&compz, &size, D, E, Z, &size, work, &info);
-
     delete [] work;
+
+    from_c_array(Vec, Z,  Zstore);
+    from_c_array(Eig, D,  Dstore);
+    free_c_array(E,  Estore);
   }
 
 }

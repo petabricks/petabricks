@@ -8,7 +8,6 @@ flex
 g++
 git-core
 graphviz
-install
 libblas-dev
 libboost-all-dev
 libboost-dev

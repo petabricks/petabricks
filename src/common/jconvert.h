@@ -188,6 +188,35 @@ namespace jalib
 
   ///
   /// Call func on each element in list
+  template < typename Element, typename Arg1, typename Arg2, typename Arg3, typename List >
+  inline void Map(void (Element::*func)(Arg1&, Arg2&, Arg3), Arg1& arg1, Arg2& arg2, Arg3& arg3 , List& list)
+  {
+    for( typename List::iterator i=list.begin()
+          ; i!=list.end()
+          ; ++i)
+    {
+      Element& obj = *i;
+      ((obj).*(func))(arg1, arg2, arg3);
+    }
+  }
+
+
+  ///
+  /// Call func on each element in list
+  template < typename Element, typename Arg1, typename Arg2, typename Arg3, typename List >
+  inline void Map(void (Element::*func)(Arg1&, Arg2&), Arg1& arg1, Arg2& arg2, Arg3& arg3 , List& list)
+  {
+    for( typename List::iterator i=list.begin()
+          ; i!=list.end()
+          ; ++i)
+    {
+      Element& obj = *i;
+      ((obj).*(func))(arg1, arg2, arg3);
+    }
+  }
+
+  ///
+  /// Call func on each element in list
   template < typename Element, typename List >
   inline void ConstMap(void (Element::*func)() const, const List& list){
     for( typename List::const_iterator i=list.begin()

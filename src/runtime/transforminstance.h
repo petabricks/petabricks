@@ -29,40 +29,26 @@
 
 #include "dynamictask.h"
 #include "gpudynamictask.h"
+#include "matrixregion.h"
+#include "regionmatrix.h"
+#include "remotetask.h"
 
 #include "common/jrefcounted.h"
 
 namespace petabricks {
 
-class TransformInstance;
-typedef jalib::JRef<TransformInstance> TransformInstancePtr;
+//class TransformInstance;
+typedef DynamicTaskPtr TransformInstancePtr;
 
-/**
- * base clase for instances of user transforms
- */
-class TransformInstance : public jalib::JRefCounted {
-public:
-  virtual ~TransformInstance(){}
-//  virtual DynamicTaskPtr runDynamic() = 0;
-
-//DynamicTaskPtr runAfter(const DynamicTaskPtr& before){
-//  if(before){
-//    DynamicTaskPtr t = new MethodCallTask<TransformInstance, &TransformInstance::runDynamic>(this);
-//    t->dependsOn(before);
-//    return t;
-//  }else{
-//    return runDynamic();
-//  }
-//}
-  
-//void runToCompletion(){
-//  DynamicTaskPtr p = runDynamic();
-//  if(p){
-//    p->enqueue();
-//    p->waitUntilComplete();
-//  }
-//}
+class TransformInstance_sequential {
 };
+
+class TransformInstance_workstealing : public DynamicTask {
+};
+
+class TransformInstance_distributed : public RemoteTask {
+};
+
 
 }
 

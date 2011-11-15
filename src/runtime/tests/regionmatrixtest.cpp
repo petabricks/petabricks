@@ -10,67 +10,13 @@
  *  A full list of authors may be found in the file AUTHORS.               *
  ***************************************************************************/
 
-/* Expected Output
-before 0.61989714
-after    5
-RegionMatrix: SIZE 3 3 3
-0.57373451 0.78742994 0.83810736
-0.82796525 0.9570284 0.57473156
-0.89288054 0.69676226 0.85378168
-
-0.62908688 0.78765918 0.66108902
-0.55227836 0.52076837 0.8645779
-0.76824321 0.70897682 0.76634859
-
-0.63232559 0.51486057 0.72048933
-0.67815482 0.95152374 0.89198544
-0.7460758 0.5407854 0.50022465
-
-RegionMatrix: SIZE 2 2 2
-0.52076837 0.8645779
-0.70897682 0.76634859
-
-0.95152374 0.89198544
-0.5407854 0.50022465
-
-RegionMatrix: SIZE 2 2
-0.52076837 0.8645779
-0.70897682 0.76634859
-
-RegionMatrix: SIZE 2
-0.70897682 0.76634859
-
-RegionMatrix: SIZE 8 8
-0.51854216 0.88132748 0.87581202 0.66178823 0.90139657 0.87427579 0.5830398 0.80057525
-0.57769847 0.72969966 0.60477567 0.78044858 0.72820768 0.83076063 0.66295958 0.87960024
-0.66378681 0.84961301 0.75242225 0.65033857 0.84922928 0.9473998 0.58257957 0.61900267
-0.51322678 0.67779715 0.87807468 0.74676728 0.64339147 0.71112322 0.7486735 0.80284584
-0.65738401 0.69654637 0.88110737 0.77238595 0.69494902 0.81906444 0.50619642 0.51079598
-0.72267932 0.55740811 0.79522263 0.59645541 0.5740906 0.51489046 0.56381163 0.89474906
-0.75152776 0.95023563 0.8121331 0.51715425 0.78915763 0.88933146 0.91866404 0.67899394
-0.88821071 0.95012511 0.59838045 0.94296641 0.54733715 0.78508079 0.77526635 0.5405974
-
-completed
-
-cell    5
-cell 0.51854216
-cell 0.92932013
-cell 0.63057305
-cell 0.57473156
-cell  123
-
- */
-
 #include "petabricks.h"
 
-#include "regiondataraw.h"
-#include "regiondataremote.h"
-#include "regiondatasplit.h"
 #include "regionmatrix.h"
-#include "regionmatrixproxy.h"
 #include "remotehost.h"
 
 using namespace petabricks;
+using namespace petabricks::distributed;
 
 PetabricksRuntime::Main* petabricksMainTransform(){
   return NULL;
@@ -78,117 +24,168 @@ PetabricksRuntime::Main* petabricksMainTransform(){
 PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
+void _petabricksInit() {}
+void _petabricksCleanup() {}
+
+void print(DataHostPidList list) {
+  for (unsigned int i = 0; i < list.size(); i++) {
+    printf("%lx/%d ==> %.5g\n", list[i].hostPid.hostid, list[i].hostPid.pid, list[i].weight);
+  }
+}
+
+void runProcess2(MatrixRegion3D& regionMatrix);
+
+RemoteObjectPtr gen() {
+  class TestRemoteObject : public petabricks::RemoteObject {
+  public:
+    void onRecv(const void* data, size_t /*len*/) {
+      printf("== start process 2 ==\n");
+
+      MatrixRegion3D regionMatrix = MatrixRegion3D();
+      regionMatrix.unserialize((char*)data, *host());
+      regionMatrix.createRegionHandler(*host());
+      MatrixIO().write(regionMatrix);
+
+      runProcess2(regionMatrix);
+    }
+  };
+  return new TestRemoteObject();
+}
 
 int main(int argc, const char** argv){
   const char* filename = "testdata/Helmholtz3DB1";
 
-  IndexT m0[] = {0,0,0};
   IndexT m1[] = {1,1,1};
   IndexT m123[] = {1,2,3};
+  IndexT m456[] = {4,5,6};
   IndexT m2[] = {2,2,2};
   IndexT m3[] = {3,3,3};
-  IndexT m257[] = {2,5,7};
-
-  RemoteHostDB hdb;
-  RegionMatrixPtr regionMatrix;
+  IndexT m234[] = {2,3,4};
 
   IndexT size[] = {8,9,8};
-  regionMatrix = new RegionMatrix(3, size);
+  //
+  // Create a RegionMatrix
+  MatrixRegion3D regionMatrix(size);
 
   if(argc==1){
     printf("main %d\n", getpid());
 
-    hdb.remotefork(NULL, argc, argv);
-    hdb.accept();
-    hdb.spawnListenThread();
+    RemoteHostDB::instance().remotefork(NULL, argc, argv);
+    RemoteHostDB::instance().accept("");
+    RemoteHostDB::instance().spawnListenThread();
 
-    // split data
-    regionMatrix->splitData(m2);
+    // Split the matrix in to multiple parts of size m2
+    regionMatrix.splitData(m2);
 
-    // assign a chunk of data to remote host
-    RegionHandlerPtr handler = regionMatrix->getRegionHandler();
-    RegionDataSplitPtr regionData = (RegionDataSplit*) handler->acquireRegionData(NULL).asPtr();
-    regionData->createPart(0, hdb.host(0));
-    handler->releaseRegionData(NULL);
-    
+    // Assign a chunk of data to remote host
+    //   - put part 0 in hdb.host(0)
+    //   - the other parts are created locally
+    regionMatrix.createDataPart(0, RemoteHostDB::instance().host(0));
+
     // import data
-    // regionMatrix->allocData();
-    regionMatrix->importDataFromFile(filename);
+    MatrixRegion3D in = MatrixIO(filename,"r").read_distributed<3>();
+    regionMatrix.copyDataFromRegion(in);
 
-    // regionMatrix->print();
-    
-    regionMatrix->acquireRegionData();
-  
-    printf("before %4.8g\n", regionMatrix->readCell(m257));
-    regionMatrix->writeCell(m257, 5);
-    printf("after %4.8g\n", regionMatrix->readCell(m257));
-  
-    regionMatrix->releaseRegionData();
+    // or, allocate empty matrix
+    // regionMatrix->allocData();
+
+    printf("== data should be in 2 hosts ==\n");
+    print(regionMatrix.dataHosts());
+
+    CellProxy cell = regionMatrix.cell(m234);
+    JASSERT(fabs(cell - 0.52076837) < 0.00000001);
+    cell = 5;
+    JASSERT(fabs(cell - 5) < 0.00000001);
 
     // Test split
-    RegionMatrixPtr split3 = regionMatrix->splitRegion(m123, m3);
-    RegionMatrixPtr split2 = split3->splitRegion(m1, m2);
-    RegionMatrixPtr slice1 = split2->sliceRegion(2, 0);
-    RegionMatrixPtr slice2 = slice1->sliceRegion(1, 1);
+    MatrixRegion3D split3 = regionMatrix.region(m123, m456);
+    printf("== region((1,2,3), (4,5,6)) : will send this to process2 ==\n");
+    MatrixIO().write(split3);
+    print(split3.dataHosts());
 
-    split3->print();
-    split2->print();
-    slice1->print();
-    slice2->print();
+    MatrixRegion3D split2 = split3.region(m1, m3);
+    printf("== region((1,1,1), (3,3,3)) ==\n");
+    MatrixIO().write(split2);
+    print(split2.dataHosts());
+
+    MatrixRegion2D slice1 = split2.slice(2, 0);
+    printf("== slice(2,0) ==\n");
+    MatrixIO().write(slice1);
+    print(slice1.dataHosts());
+
+    MatrixRegion1D slice2 = slice1.slice(1, 1);
+    printf("== slice(1,1) ==\n");
+    MatrixIO().write(slice2);
+    print(slice2.dataHosts());
 
     // Test slice
-    RegionMatrixPtr slice3 = regionMatrix->sliceRegion(1, 0);
-    slice3->print();
-
+    MatrixRegion2D slice3 = regionMatrix.slice(1, 0);
+    printf("== slice(1,0) of original matrix ==\n");
+    MatrixIO().write(slice3);
+    print(slice3.dataHosts());
 
     ///////////////////////////////////
-    // Create remote RegionMetrix
+    // Migrate to process 2
 
-    regionMatrix->moveToRemoteHost(hdb.host(0), 1);
+    char* buf = new char[split3.serialSize()];
+    split3.serialize(buf, *RemoteHostDB::instance().host(0));
 
-    printf("completed\n");
-    hdb.listenLoop();
+    RemoteObjectPtr local;
+    RemoteHostDB::instance().host(0)->createRemoteObject(local=gen(), &gen);
+    local->waitUntilCreated();
+    local->send(buf, split3.serialSize());
+
+    printf("== sent matrix to process2 ==\n");
+
+    RemoteHostDB::instance().listenLoop();
     return 0;
   } else {
     printf("main2 %d\n", getpid());
-
     JASSERT(argc==3);
-    hdb.connect(argv[1], jalib::StringToInt(argv[2]));
-    hdb.spawnListenThread();
-
-    regionMatrix->updateHandler(1);
-
-    regionMatrix->acquireRegionData();
-
-    printf("cell %4.8g\n", regionMatrix->readCell(m257));
-    printf("cell %4.8g\n", regionMatrix->readCell(m0));
-    printf("cell %4.8g\n", regionMatrix->readCell(m1));
-    printf("cell %4.8g\n", regionMatrix->readCell(m2));
-    printf("cell %4.8g\n", regionMatrix->readCell(m3));
-
-    regionMatrix->writeCell(m257, 123);
-    printf("cell %4.8g\n", regionMatrix->readCell(m257));
-
-    regionMatrix->releaseRegionData();
-    
-    // Test split
-    RegionMatrixPtr rsplit3 = regionMatrix->splitRegion(m123, m3);
-    RegionMatrixPtr rsplit2 = rsplit3->splitRegion(m1, m2);
-    RegionMatrixPtr rslice1 = rsplit2->sliceRegion(2, 0);
-    RegionMatrixPtr rslice2 = rslice1->sliceRegion(1, 1);
-
-    rsplit3->print();
-    rsplit2->print();
-    rslice1->print();
-    rslice2->print();
-
-    // Test slice
-    RegionMatrixPtr rslice3 = regionMatrix->sliceRegion(1, 0);
-    rslice3->print();
-    
-    printf("completed2\n");
-    
-    hdb.listenLoop();
+    RemoteHostDB::instance().connect(argv[1], jalib::StringToInt(argv[2]));
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().listenLoop();
     return 0;
   }
+}
+
+void runProcess2(MatrixRegion3D& regionMatrix) {
+  print(regionMatrix.dataHosts());
+  regionMatrix.updateHandlerChain();
+
+  IndexT m0[] = {0,0,0};
+  IndexT m1[] = {1,1,1};
+  IndexT m2[] = {2,2,2};
+
+  JASSERT(fabs(regionMatrix.cell(m0) - 0.57373451) < 0.00000001);
+  JASSERT(fabs(regionMatrix.cell(m1) - 5) < 0.00000001);
+  JASSERT(fabs(regionMatrix.cell(m2) - 0.50022465) < 0.00000001);
+  regionMatrix.cell(m1) = 123;
+  JASSERT(fabs(regionMatrix.cell(m1) - 123) < 0.00000001);
+
+  // Test split
+  MatrixRegion3D rsplit = regionMatrix.region(m0, m2);
+  printf("== region((0,0,0), (2,2,2)) ==\n");
+  MatrixIO().write(rsplit);
+
+  MatrixRegion2D rslice = rsplit.slice(2, 0);
+  printf("== slice(2,0) ==\n");
+  MatrixIO().write(rslice);
+
+  // Test slice
+  MatrixRegion2D rslice3 = regionMatrix.slice(1, 1);
+  printf("== slice(1,1) of original matrix ==\n");
+  MatrixIO().write(rslice3);
+  print(rslice3.dataHosts());
+
+  // localCopy: copy the entire matrix and store it locally
+  MatrixRegion2D copy = rslice3.localCopy();
+  printf("== local copy of above ==\n");
+  MatrixIO().write(copy);
+  print(copy.dataHosts());
+
+  // Convert to MatrixRegion
+  MatrixIO().write(copy._toLocalRegion());
+
+  printf("== done ==\n");
 }

@@ -28,12 +28,24 @@ to Eigenvalue[n], Eigenvector[n,n]
     ElementT abstol=0;
 
     // allocate and initialize matrices
-    ElementT *Z = Vec.base();
-    ElementT *D = Din.storage()->data();
-    ElementT *E = Ein.storage()->data();
+    ElementT *Z;
+    ElementT *D;
+    ElementT *E;
+    ElementT *W;
+
+    CArrayStorage Zstore;
+    CArrayStorage Dstore;
+    CArrayStorage Estore;
+    CArrayStorage Wstore;
+
+    to_c_array(Vec, Z, Zstore);
+    to_c_array(Din, D, Dstore);
+    to_c_array(Ein, E, Estore);
+    to_c_array(Eig, W, Wstore);
+
+
     ElementT *work = new ElementT[4*size];
     int *iwork = new int[3*size];
-    ElementT *W = Eig.base();
     int *iblock = new int[size];
     int *isplit = new int[size];
     int *ifail = new int[size];
@@ -49,6 +61,11 @@ to Eigenvalue[n], Eigenvector[n,n]
     stein_wrap(&size, D, E, &size, W, iblock, isplit, Z, &size, work, iwork, ifail, &info);
 
     //Transpose(VecOut,Vec);
+
+    from_c_array(Vec, Z, Zstore);
+    from_c_array(Eig, W, Wstore);
+    free_c_array(D, Dstore);
+    free_c_array(E, Estore);
 
     delete [] work;
     delete [] iwork;

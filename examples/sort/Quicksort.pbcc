@@ -9,18 +9,42 @@
 
 %{
 
-inline void swap1D(MatrixRegion1D &A, int x, int y)
+inline void swap1D(workstealing::MatrixRegion1D &A, int x, int y)
 {
-  double temp = A.cell(x);
+  ElementT temp = A.cell(x);
   A.cell(x) = A.cell(y);
   A.cell(y) = temp;
 }
 
-int partition(MatrixRegion1D &A)
+inline void swap1D(distributed::MatrixRegion1D &A, int x, int y)
+{
+  ElementT temp = A.cell(x);
+  A.cell(x) = A.cell(y);
+  A.cell(y) = temp;
+}
+
+int partition(workstealing::MatrixRegion1D &A)
+{
+  A.useOnCpu();
+  int left = 0;
+  int right=A.count()-1;
+  ElementT pivotValue = A.cell(right);
+  int storeIndex = left;
+  for (int i = left; i < right; i++) {
+    if (A.cell(i) <= pivotValue) {
+      swap1D(A, i, storeIndex);
+      storeIndex++;
+    }
+  }
+  swap1D(A, storeIndex, right);
+  return storeIndex;
+}
+
+int partition(distributed::MatrixRegion1D &A)
 {
   int left = 0;
   int right=A.count()-1;
-  double pivotValue = A.cell(right);
+  ElementT pivotValue = A.cell(right);
   int storeIndex = left;
   for (int i = left; i < right; i++) {
     if (A.cell(i) <= pivotValue) {

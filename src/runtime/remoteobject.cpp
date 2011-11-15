@@ -54,7 +54,7 @@ void petabricks::RemoteObject::freeRecvInitial(void* buf, size_t len) {
 }
 
 void petabricks::RemoteObject::onCreated() {
-  JTRACE("remote object created")(_flags);
+  //JTRACE("remote object created")(_flags);
 }
 void petabricks::RemoteObject::onComplete() {
   JTRACE("complete")(_flags);

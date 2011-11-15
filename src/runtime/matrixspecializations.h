@@ -50,7 +50,10 @@ public:
               , const IndexT sizes[D]
               , const IndexT multipliers[D])
     : Base(s, b, NULL, NULL)
-  {}
+  {
+    (void)sizes;
+    (void)multipliers;
+  }
 
   ///
   /// Constructor with a stock layout

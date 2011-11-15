@@ -15,9 +15,12 @@ transform GetD
 from X[m,2], C[n,2]
 to D[m,n]
 {
-  to (D.cell(i,j) d) from (X.column(i) x, C.column(j) c)
+  to (D.cell(i,j) d) from (X.column(i) a, C.column(j) b)
   {
-    Distance(d,x,c);
+    ElementT xdiff, ydiff;
+    xdiff = a.cell(0)-b.cell(0);
+    ydiff = a.cell(1)-b.cell(1);
+    d = sqrt(xdiff*xdiff + ydiff*ydiff);
   }
 }
 
@@ -61,6 +64,7 @@ generator kmeansinputgen
   }
 
 }
+
 
 
 transform centerplus
@@ -123,6 +127,12 @@ generator kmeansinputgen
     randomcenter(ctemp, x);
   }
 
+  //Assign initial cluster centers at the beginning
+  to (Ctemp ctemp) from (X x)
+  {
+    Copy2D(ctemp,x.region(0,0,k,2));
+  }
+
   //or Assign initial cluster centers using k-means++ algorithm
   to (Ctemp ctemp) from (X x)
   {
@@ -131,13 +141,31 @@ generator kmeansinputgen
     centerplus(ctemp, x);
   }
 
-  //iteratively find local optimum
+ ////iteratively find local optimum
+ //to (C c, A a) from (X x, Ctemp ctemp)
+ //{
+ //  ElementT change=1;
+ //  Copy2D(c,ctemp);    
+ //  AssignClusters(a,change,x,c,a);
+ //  for_enough {
+ //    if (change > 0) { 
+ //      NewClusterLocations(c, x, a);
+ //    }else{
+ //      break;
+ //    }
+ //    AssignClusters(a,change,x,c,a);
+ //  }
+ //}
+
+
+
+  // classic kmeans
   to (C c, A a) from (X x, Ctemp ctemp)
   {
     ElementT change=1;
     Copy2D(c,ctemp);    
     AssignClusters(a,change,x,c,a);
-    for_enough {
+    while ( true ) {
       if (change > 0) { 
         NewClusterLocations(c, x, a);
       }else{
@@ -146,6 +174,56 @@ generator kmeansinputgen
       AssignClusters(a,change,x,c,a);
     }
   }
+
+  // classic kmeans
+  to (C c, A a) from (X x, Ctemp ctemp)
+  {
+    ElementT change=1;
+    Copy2D(c,ctemp);    
+    AssignClusters(a,change,x,c,a);
+    while ( true ) {
+      if (change > n/4) { 
+        NewClusterLocations(c, x, a);
+      }else{
+        break;
+      }
+      AssignClusters(a,change,x,c,a);
+    }
+  }
+
+  // classic kmeans
+  to (C c, A a) from (X x, Ctemp ctemp)
+  {
+    ElementT change=1;
+    Copy2D(c,ctemp);    
+    AssignClusters(a,change,x,c,a);
+    while ( true ) {
+      if (change > n/2) { 
+        NewClusterLocations(c, x, a);
+      }else{
+        break;
+      }
+      AssignClusters(a,change,x,c,a);
+    }
+  }
+
+
+  // classic kmeans
+  to (C c, A a) from (X x, Ctemp ctemp)
+  {
+    ElementT change=1;
+    Copy2D(c,ctemp);    
+    AssignClusters(a,change,x,c,a);
+    while ( true ) {
+      if (change > 3*n/4) { 
+        NewClusterLocations(c, x, a);
+      }else{
+        break;
+      }
+      AssignClusters(a,change,x,c,a);
+    }
+  }
+
 }
 
 transform WCSS

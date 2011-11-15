@@ -32,9 +32,9 @@
 # include "config.h"
 #endif
 
-std::stringstream& petabricks::CodeGenerator::theFilePrefix() { 
-  static std::stringstream t; 
-  return t; 
+std::stringstream& petabricks::CodeGenerator::theFilePrefix() {
+  static std::stringstream t;
+  return t;
 }
 
 petabricks::TunableDefs& petabricks::CodeGenerator::theTunableDefs() {
@@ -47,7 +47,7 @@ jalib::TunableValueMap& petabricks::CodeGenerator::theHardcodedTunables() {
   return t;
 }
 
-petabricks::CodeGenerator::CodeGenerator(const StreamTreePtr& root, const TrainingDepsPtr& cg) 
+petabricks::CodeGenerator::CodeGenerator(const StreamTreePtr& root, const TrainingDepsPtr& cg)
   : _contCounter(0), _indent(0), _cg(cg)
 {
   if(!_cg) _cg = new TrainingDeps();
@@ -121,14 +121,14 @@ void petabricks::CodeGenerator::beginFunc(const std::string& rt, const std::stri
   hos() << rt << " " << func << '(';
   jalib::JPrintable::printStlList(hos(), args.begin(), args.end(), ", ");
   hos() << ");\n";
-  
+
   if(!inClass()) hos() << "\n";
 }
 
 void petabricks::CodeGenerator::varDecl(const std::string& var){
   indent();
   os() << var << ";\n";
-} 
+}
 
 void petabricks::CodeGenerator::addAssert(const std::string& l, const std::string& r){
   indent();
@@ -136,7 +136,7 @@ void petabricks::CodeGenerator::addAssert(const std::string& l, const std::strin
     << "(" << l << ")"
     << "(" << r << ")"
     << ";\n";
-} 
+}
 
 void petabricks::CodeGenerator::endFunc(){
   _indent--;
@@ -144,9 +144,10 @@ void petabricks::CodeGenerator::endFunc(){
   os() << "}\n";
 }
 
-void petabricks::CodeGenerator::indent(){ 
+void petabricks::CodeGenerator::indent(){
+  if(_indent<0) _indent = 0;
   if(_indent>0)
-    os() << std::string(_indent*2,' '); 
+    os() << std::string(_indent*2,' ');
 }
 
 void petabricks::CodeGenerator::write(const std::string& str){
@@ -216,7 +217,9 @@ static std::string _typeToConstRef(std::string s){
 
 void petabricks::CodeGenerator::beginClass(const std::string& name, const std::string& base){
   hos() << "class " << name << " : public " << base << " {\n";
-  hos() << ("  typedef "+base+" BASE;\npublic:\n");
+  hos() << ("  typedef "+base+" BASE;\n")
+        << ("  typedef "+name+" CLASS;\n")
+        <<  "public:\n";
   _curClass=name;
   _contCounter=0;
   JASSERT(_curMembers.empty())(_curMembers.size());
@@ -256,8 +259,95 @@ void petabricks::CodeGenerator::endClass(){
   newline();
   newline();
 }
+
+void petabricks::CodeGenerator::generateMigrationFunctions(){
+  CodeGenerator& in = forkhelper();
+  CodeGenerator& out = forkhelper();
+  CodeGenerator& size = forkhelper();
+  CodeGenerator& migrateRegion = forkhelper();
+  CodeGenerator& invalidateCache = forkhelper();
+  CodeGenerator& getDataHosts = forkhelper();
+
+  std::vector<std::string> args;
+  args.push_back("char* _buf");
+  args.push_back("RemoteHost& _host");
+
+  size.beginFunc("size_t", "serialSize");
+  out.beginFunc("void", "serialize", args);
+
+  args[0] = "const char* _buf";
+  in.beginFunc("void", "unserialize", args);
+  size.write("size_t _sz = 0;");
+
+  std::vector<std::string> args2;
+  args2.push_back("RemoteHost& sender");
+  migrateRegion.beginFunc("void", "migrateRegions", args2);
+  invalidateCache.beginFunc("void", "invalidateCache");
+
+  getDataHosts.beginFunc("RemoteHostList", "getDataHosts");
+  getDataHosts.write("RemoteHostList list;");
+
+  for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
+    if(jalib::StartsWith(i->type, "distributed::")) {
+      out.write(i->name + ".serialize(_buf, _host);");
+      out.write("_buf += " + i->name + ".serialSize();");
+      in.write(i->name + ".unserialize(_buf, _host);");
+      in.write("_buf += " + i->name + ".serialSize();");
+      size.write("_sz += " + i->name + ".serialSize();");
+      migrateRegion.write(i->name + ".createRegionHandler(sender);");
+      migrateRegion.write(i->name + ".updateHandlerChain();");
+      invalidateCache.write(i->name + ".invalidateCache();");
+      getDataHosts.write("list.push_back(" + i->name + ".dataHost());");
+
+    }else if(i->type == "IndexT" || i->type == "int" || i->type == "double") {
+      out.write("*reinterpret_cast<"+i->type+"*>(_buf) = "+i->name+";");
+      in.write(i->name+" = *reinterpret_cast<const "+i->type+"*>(_buf);");
+      size.write("_sz  += sizeof("+i->type+");");
+      in  .write("_buf += sizeof("+i->type+");");
+      out .write("_buf += sizeof("+i->type+");");
+    }else if(i->type == "DynamicTaskPtr") {
+      if(i->initializer != "") {
+        in.write(i->name+" = "+i->initializer+";");
+      }
+    }else{
+      JASSERT(false)(i->type).Text("cant yet serialize type");
+    }
+  }
+
+  size.write("return _sz;");
+  in.write("_sender = &_host;");
+
+  getDataHosts.write("return list;");
+
+  in.endFunc();
+  out.endFunc();
+  size.endFunc();
+  migrateRegion.endFunc();
+  invalidateCache.endFunc();
+  getDataHosts.endFunc();
+
+  hos() << _curClass << "(const char*, RemoteHost&);\n";
+  os() << _curClass << "::" << _curClass << "(const char* _buf, RemoteHost& _host){\n";
+  write("unserialize(_buf, _host);");
+  write(_curConstructorBody);
+  os() << "\n}\n";
+
+  beginFunc(_curClass+"*", "_new_constructor", std::vector<std::string>(1,"const char* _buf, RemoteHost& _host"), true);
+  write("return new "+_curClass+"(_buf, _host);");
+  endFunc();
+
+  beginFunc("RemoteObjectGenerator", "generator");
+  write("return &RemoteTaskReciever<"+_curClass+">::gen;");
+  endFunc();
+}
+
+
 void petabricks::CodeGenerator::addMember(const std::string& type, const std::string& name, const std::string& initializer){
   if(_curClass.size()>0){
+    //TODO
+    for(ClassMembers::iterator i = _curMembers.begin(); i != _curMembers.end(); ++i) {
+      JASSERT(i->type != type || i->name != name || i->initializer != initializer)(type)(name)(initializer);
+    }
     ClassMember tmp;
     tmp.type=type;
     tmp.name=name;
@@ -279,21 +369,25 @@ void petabricks::CodeGenerator::continuationPoint(){
 #ifndef DISABLE_CONTINUATIONS
   std::string n = "cont_" + jalib::XToString(_contCounter++);
   beginIf("useContinuation()");
-  write("return new petabricks::MethodCallTask<"+_curClass+", &"+_curClass+"::"+n+">( this );"); 
+  write("return new petabricks::MethodCallTask<"+_curClass+", &"+_curClass+"::"+n+">( this );");
   elseIf();
-  write("return "+n+"();"); 
+  write("return "+n+"();");
   endIf();
   endFunc();
   beginFunc("DynamicTaskPtr", n);
+  if(_rf != RuleFlavor::INVALID)
+    beginUserCode(_rf);
 #endif
 }
 
 void petabricks::CodeGenerator::continuationRequired(const std::string& hookname){
   std::string n = "cont_" + jalib::XToString(_contCounter++);
   newline();
-  write("return "+hookname+" new petabricks::MethodCallTask<"+_curClass+", &"+_curClass+"::"+n+">(this));"); 
+  write("return "+hookname+" new petabricks::MethodCallTask<"+_curClass+", &"+_curClass+"::"+n+">(this));");
   endFunc();
   beginFunc("DynamicTaskPtr", n);
+  if(_rf != RuleFlavor::INVALID)
+    beginUserCode(_rf);
 }
 
 
@@ -316,10 +410,16 @@ void petabricks::CodeGenerator::callSpatial(const std::string& methodname, const
   decIndent();
   write("}");
 }
-void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region) {
+
+/*void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region) {
   std::string taskclass = "petabricks::SpatialMethodCallTask<"+objname
                         + ", " + jalib::XToString(region.totalDimensions() + region.removedDimensions())
                         + ", &" + objname + "::" + methodname
+                        + ">";*/
+void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& /*objname*/, const std::string& methodname, const SimpleRegion& region) {
+  std::string taskclass = "petabricks::SpatialMethodCallTask<CLASS"
+                          ", " + jalib::XToString(region.dimensions() + region.removedDimensions())
+                        + ", &CLASS::" + methodname
                         + ">";
   write("{");
   incIndent();
@@ -332,7 +432,7 @@ void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const
 }
 
 #ifdef HAVE_OPENCL
-void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, bool gpuCopyOut) {
+void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, int gpuCopyOut) {
   std::string taskclass = "petabricks::CreateGpuSpatialMethodCallTask<"+objname
                         + ", " + jalib::XToString(region.totalDimensions())
                         + ", &" + objname + "::" + methodname

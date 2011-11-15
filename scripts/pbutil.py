@@ -107,7 +107,7 @@ def parallelRunJobs(jobs, nParallelJobs=None):
         #parent
         w.close()
         self.fd.setblocking(0)
-        return self 
+        return self
     def handleevent(self):
       if self.pid is None:
         return None
@@ -132,11 +132,10 @@ def parallelRunJobs(jobs, nParallelJobs=None):
       return self.msg.replace(exitval,"") \
                      .replace('\n',' ')   \
                      .strip()
-                     
-    
+
   startline = progress.currentline()
   if nParallelJobs is None:
-    nParallelJobs=cpuCount()
+    nParallelJobs=max(1, cpuCount()/2)
   exitval="!EXIT!"
   maxprinted=[0]
 
@@ -175,7 +174,7 @@ def parallelRunJobs(jobs, nParallelJobs=None):
       while len(jobs_pending)>0 and len(jobs_running)<nParallelJobs:
         jobs_running.append(jobs_pending.pop(0).forkrun())
       updatestatus()
-        
+
       #wait for an event
       rj, wj, xj = select.select(jobs_running, [], jobs_running)
 
@@ -212,7 +211,7 @@ def getscriptpath():
     return os.path.dirname(m.group(1))
   except:
     return os.path.abspath(os.path.dirname(sys.argv[0]))
-    
+
 def chdirToPetabricksRoot():
   old = os.getcwd()
   new = getscriptpath()
@@ -227,7 +226,7 @@ def chdirToPetabricksRoot():
 
 def compilePetabricks():
   cmd=["make","-sqC","src","all"]
-  if subprocess.call(cmd) != 0: 
+  if subprocess.call(cmd) != 0:
     cmd=["make", "-j%d"%cpuCount()]
     p=subprocess.Popen(cmd)
     rv=p.wait()
@@ -414,7 +413,7 @@ def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postf
 
   if len(searchterms)>0:
     benchmarks=filter(lambda b: any(s in b[0] for s in searchterms), benchmarks)
-    
+
   for b in benchmarks:
     b[0]=normalizeBenchmarkName(b[0])
 
@@ -628,7 +627,7 @@ def getTunables(tx, type):
   return filter( lambda t: t.getAttribute("type")==type, tx.getElementsByTagName("tunable") )
 
 getTunablesSequential=lambda tx: getTunables(tx, "system.cutoff.sequential")
-getTunablesSplitSize=lambda tx: getTunables(tx, "system.cutoff.splitsize") 
+getTunablesSplitSize=lambda tx: getTunables(tx, "system.cutoff.splitsize")
 
 def mainname(bin):
   run_command = mkcmd("--name")
@@ -637,10 +636,19 @@ def mainname(bin):
   lines = p.stdout.readlines()
   return lines[-1].strip()
 
+def gitRevision(n=40):
+  try:
+    cmd=["git","log","-n","1","--pretty=format:%H"]
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=NULL)
+    return p.communicate()[0][0:n]
+  except:
+    return "0"*n
+
 if __name__ == "__main__":
   chdirToPetabricksRoot()
+  print gitRevision()
   compilePetabricks()
   compileBenchmarks(map(normalizeBenchmarkName, ["add", "multiply", "transpose"]))
   print "Estimating input sizes"
-  inferGoodInputSizes("./examples/simple/add", [0.1,0.5,1.0], 2)
+  print inferGoodInputSizes("./examples/simple/add", [0.1,0.5,1.0], 2)
 

@@ -29,6 +29,7 @@
 
 #include <string>
 #include <iostream>
+#include <sstream>
 
 namespace jalib {
 
@@ -38,11 +39,11 @@ namespace jalib {
 class JPrintable {
 public:
   /// virtual destructor
-  virtual ~JPrintable(){} 
+  virtual ~JPrintable(){}
 
   /// toString calls print()
   std::string toString() const;
-  
+
   /// must be implemented by base class
   virtual void print(std::ostream& o) const = 0;
 
@@ -58,6 +59,14 @@ public:
   template < typename T >
   static void printStlList(std::ostream& o, const T& begin, const T& end, const char* sep = ""){
     for(T i=begin; i!=end; ++i) o << (i!=begin?sep:"") << *i;
+  }
+
+
+  template < typename T >
+  static std::string stringStlList(const T& begin, const T& end, const char* sep = ""){
+    std::ostringstream o;
+    printStlList(o, begin, end, sep);
+    return o.str();
   }
 };
 

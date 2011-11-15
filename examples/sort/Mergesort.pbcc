@@ -10,7 +10,7 @@ to OUT[n]
   to (OUT out) from (IN in)
   {
     int i, j, ptr[WAY], minLoc;
-    double min;
+    ElementT min;
     for (i = 0; i < WAY; i++) {
       ptr[i] = n * i / WAY;
     }

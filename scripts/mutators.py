@@ -3,7 +3,7 @@ import itertools, random, math, logging, csv
 import storagedirs
 import numpy
 import optimize
-from scipy import stats
+#from scipy import stats
 from tunerconfig import config
 import candidatetester
 
@@ -94,7 +94,7 @@ class Mutator:
 class LognormRandom:
   def random(self, start, minVal, maxVal, candidate = None):
     for z in xrange(config.rand_retries):
-      v=int(start*stats.lognorm.rvs(1)+.5)
+      v=int(start*random.lognormvariate(0,1)+.5)
       #logging.debug("lognorm: start=%d, v=%d", start, v)
       if v>=minVal and v<=maxVal and start!=v:
         return v
@@ -103,7 +103,7 @@ class LognormRandom:
 class UniformRandom:
   def random(self, start, minVal, maxVal, candidate = None):
     for z in xrange(config.rand_retries):
-      v=int(stats.randint.rvs(minVal, maxVal+1))
+      v=int(random.randint(minVal, maxVal))
       #logging.debug("uniform: start=%d, v=%d", start, v)
       if v>=minVal and v<=maxVal and start!=v:
         return v
@@ -420,7 +420,7 @@ class LogNormFloatTunableMutator(GenericTunableMutator):
     for j in xrange(0, len(oldVal)):
       successFlag = False
       for z in xrange(config.rand_retries):
-        v = float(oldVal[j] * stats.lognorm.rvs(1))
+        v = float(oldVal[j] * random.lognormvariate(0,1))
         if v>=minVal[j] and v<=maxVal[j] and oldVal[j]!=v:
           newVal[j] = v
           successFlag = True

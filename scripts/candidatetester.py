@@ -653,6 +653,7 @@ class CandidateTester:
       warnings.warn(tunerwarnings.TooManyTrials(testNumber+1))
     cmd = list(self.cmd)
     cmd.append("--config="+cfgfile)
+    #cmd.append("--noisolation")
     cmd.extend(timers.inputgen.wrap(lambda:self.getInputArg(testNumber)))
     if limit is not None:
       cmd.append("--max-sec=%f"%limit)

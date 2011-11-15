@@ -142,9 +142,14 @@ void petabricks::DynamicTask::decrementPredecessors(bool isAborting){
 }
 
 void petabricks::DynamicTask::runWrapper(bool isAborting){
-  JASSERT((_state==S_READY && _type==TYPE_CPU) || (_state==S_REMOTE_READY && _type==TYPE_OPENCL) && _numPredecessors==0)(_state)(_numPredecessors);
+  JASSERT(((_state==S_READY && _type==TYPE_CPU) || (_state==S_REMOTE_READY && _type==TYPE_OPENCL)) && _numPredecessors==0)(_state)(_numPredecessors);
 
   if (!isAborting) {
+#ifdef DISTRIBUTED_CACHE
+    if(!isNullTask()) {
+      WorkerThread::self()->cache()->invalidate();
+    }
+#endif
     _continuation = run();
   } else {
     _continuation = NULL;
