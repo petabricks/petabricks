@@ -109,7 +109,7 @@ factor < 1.0 for special case of LJ benchmark so code will create
    each owned atom i checks its own bin and other bins in Newton stencil */
 
 function neighbor_build
-from atom_x[natoms,3], bininv[3], mbinlo[3], atom_to_neighbor[natoms, max_num_neighbors], neighbor_sizes[natoms], nbins[1], mbins[3]
+from atom_x[natoms,3], bininv[3], mbinlo[3], atom_to_neighbor[natoms, max_num_neighbors], neighbor_sizes[natoms], nbins[1], mbins[3], cutneighsq[1]
 to bin_to_atom[max_num_bins, max_num_atoms_per_bin], bin_sizes[max_num_bins], atom_to_bin[natoms], neighbor_sizes_out[natoms]
 {
   int i,j,k,m,n,ibin,nlocal,nall,npnt;
@@ -138,15 +138,7 @@ to bin_to_atom[max_num_bins, max_num_atoms_per_bin], bin_sizes[max_num_bins], at
 
     int bin_index =  (int)atom_to_bin.cell(i);
     int bin_size =  (int) bin_sizes.cell(i);
-    //int neighbor_index = (int) atom_to_neighbor.cell(i);
     
-    //for(int j = 0; j < bin_size; j++) {
-    /*if (is ghost
-	if ((atom_x.cell(bin_index,2) < ztmp) || (atom_x.cell(bin_index,2) == ztmp && atom_x.cell(bin_index,1) < ytmp) ||
-	    (atom_x.cell(bin_index,2) == ztmp && atom_x.cell(bin_index,1)  == ytmp && atom_x.cell(bin_index,0) < xtmp)) {
-	  continue;
-	}
-      }*/
     // for every atom i, locate the bin it belongs to
     // 	   get the size of the bin
     // 	   for every other atom in that bin
@@ -155,15 +147,15 @@ to bin_to_atom[max_num_bins, max_num_atoms_per_bin], bin_sizes[max_num_bins], at
     // 	       incr the number of neighbors of this atom
     // replace this with a double for loop
     // for every bin, for every atom in that bin
-    for(int j = 0; j < nbins.cell(0); j++) {
+    for(j = 0; j < nbins.cell(0); j++) {
     	    int num_atoms_in_bin = (int) bin_sizes.cell(j);
     	    for (int k = 0; k < num_atoms_in_bin; k ++) {
      	    	int other_atom_i = (int) bin_to_atom.cell(bin_index,k);
-		delx = xtmp - x_atom.cell(other_atom_i,0);
-		dely = ytmp - x_atom.cell(other_atom_i,1);
-      		delz = ztmp - x_atom.cell(other_atom_i,2);
+		delx = xtmp - atom_x.cell(other_atom_i,0);
+		dely = ytmp - atom_x.cell(other_atom_i,1);
+      		delz = ztmp - atom_x.cell(other_atom_i,2);
       		rsq = delx*delx + dely*dely + delz*delz;
-      		if (rsq <= cutneighsq) {
+      		if (rsq <= cutneighsq.cell(0)) {
 		   int neighbor_size = (int) neighbor_sizes.cell(i);
       	 	   atom_to_neighbor.cell(i, neighbor_size) = other_atom_i;
     	 	   neighbor_sizes.cell(i) = neighbor_sizes.cell(i) + 1;

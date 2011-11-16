@@ -103,7 +103,7 @@ to OUT[3]
   MatrixRegion1D bin_sizes = MatrixRegion1D::allocate(num_bins);
   MatrixRegion2D atom_to_bin =  MatrixRegion2D::allocate(natoms);
 
-  neighbor_build(bin_to_atom, bin_sizes, atom_to_bin, neighbor_numneigh, atom_x, bininv, mbinlo, neighbor_index, neighbor_numneigh, nbins, mbins);
+  neighbor_build(bin_to_atom, bin_sizes, atom_to_bin, neighbor_numneigh, atom_x, bininv, mbinlo, neighbor_index, neighbor_numneigh, nbins, mbins, cutneighsq);
 
   MatrixRegion1D temperature = MatrixRegion1D::allocate(1);
   MatrixRegion1D pressure = MatrixRegion1D::allocate(1);
