@@ -24,7 +24,7 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#if !defined(PETABRICKSCLCODEGENERATOR_H) && defined(HAVE_OPENCL)
+#ifndef PETABRICKSCLCODEGENERATOR_H
 #define PETABRICKSCLCODEGENERATOR_H
 
 #include "codegenerator.h"
@@ -59,7 +59,7 @@ class CLCodeGenerator : public CodeGenerator
 
   void localMemoryBarrier( );
 
-  void beginKernel(RegionList& _to, RegionList& _from, unsigned int dims, Transform& trans);
+  void beginKernel(RegionList& _to, RegionList& _from, unsigned int dims, Transform& trans, bool local);
 
   void endKernel( );
 

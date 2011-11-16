@@ -165,46 +165,45 @@ accuracy_metric PackAcc
   }
 }
 
-
-function bubbleup
-to heap[n], bins[n]
-from cur
-{
-  if(cur==0) return;
-  IndexT parent=(int)cur/2;
-  if(bins.cell(heap.cell(cur)) < bins.cell(heap.cell(parent))){
-    swap(heap.cell(cur), heap.cell(parent));
-    bubbleup(heap, bins, parent);
-  }
-}
-
-function bubbledown
-to heap[n], bins[n]
-from cur
-{
-  IndexT left=(int)cur*2;
-  IndexT right=(int)cur*2+1;
-  ElementT val=bins.cell(heap.cell(cur));
-  ElementT leftVal= 1;
-  ElementT rightVal= 1;
-  if(left<heap.count()) leftVal=bins.cell(heap.cell(left));
-  if(right<heap.count()) rightVal=bins.cell(heap.cell(left));
-
-  if(left<heap.count() && leftVal<=rightVal){
-    //left side is smaller
-    if(leftVal < val){
-      swap(heap.cell(cur), heap.cell(left));
-      bubbledown(heap, bins, left);
-    }
-  }else if(right<heap.count()){
-    //right side is smaller
-    if(rightVal < val){
-      swap(heap.cell(cur), heap.cell(right));
-      bubbledown(heap, bins, right);
+%{
+  void bubbleup(const MatrixRegion1D& heap, const MatrixRegion1D& bins, IndexT cur){
+    if(cur==0) return;
+    heap.useOnCpu();
+    bins.useOnCpu();
+    IndexT parent=cur/2;
+    if(bins.cell(heap.cell(cur)) < bins.cell(heap.cell(parent))){
+      std::swap(heap.cell(cur), heap.cell(parent));
+      bubbleup(heap, bins, parent);
     }
   }
-}
+  
+  void bubbledown(const MatrixRegion1D& heap, const MatrixRegion1D& bins, IndexT cur){
+    heap.useOnCpu();
+    bins.useOnCpu();
+    IndexT left=cur*2;
+    IndexT right=cur*2+1;
+    ElementT val=bins.cell(heap.cell(cur));
+    ElementT leftVal= 1;
+    ElementT rightVal= 1;
+    if(left<heap.count()) leftVal=bins.cell(heap.cell(left));
+    if(right<heap.count()) rightVal=bins.cell(heap.cell(left));
 
+    if(left<heap.count() && leftVal<=rightVal){
+      //left side is smaller
+      if(leftVal < val){
+        std::swap(heap.cell(cur), heap.cell(left));
+        bubbledown(heap, bins, left);
+      }
+    }else if(right<heap.count()){
+      //right side is smaller
+      if(rightVal < val){
+        std::swap(heap.cell(cur), heap.cell(right));
+        bubbledown(heap, bins, right);
+      }
+    }
+  }
+
+%}
 
 transform WorstFit
 from Objects[n]
@@ -216,6 +215,8 @@ accuracy_metric PackAcc
   to(Bins bin, Assignments asgn, Heap heap) from(Objects obj) {
     Zero(bin);
     Range(heap);
+    bin.useOnCpu();
+    heap.useOnCpu();
     IndexT heapSize = 1;
     for(int i=0; i<n; ++i){
       int j=heap.cell(0);
@@ -245,6 +246,8 @@ accuracy_metric PackAcc
   to(Bins bin, Assignments asgn, Heap heap) from(Objects obj) {
     Zero(bin);
     Range(heap);
+    bin.useOnCpu();
+    heap.useOnCpu();
     IndexT heapSize = 1;
     for(int i=0; i<n; ++i){
       int bestHeapZ = -1;
@@ -297,11 +300,13 @@ accuracy_metric PackAcc
 #define ASSIGN(x, bin) {bins.cell(bin) += os.cell(x); a.cell(x) = bin; os.cell(x) = 0.0; }
 #define FITS(x, bin) (os.cell(x) != 0.0 && (bins.cell(bin) + os.cell(x) <= 1.0))
 
-function MFFDInner
-to bins[x1]
-to a[n]
-to os[n]
-{
+%{
+
+void MFFDInner(const MatrixRegion1D& bins, const MatrixRegion1D& a, const MatrixRegion1D& os){
+  bins.useOnCpu();
+  a.useOnCpu();
+  os.useOnCpu();
+  const IndexT n = os.count();
   int A_bins = 0;
   int i;
   int j;
@@ -435,6 +440,8 @@ to os[n]
   
   delete[] bin_has_B;
 }
+
+%}
 
 transform ModifiedFirstFitDecreasing
 from Objects[n]

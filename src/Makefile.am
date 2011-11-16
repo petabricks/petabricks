@@ -19,7 +19,6 @@ noinst_HEADERS = \
   compiler/matrixdef.h \
   compiler/matrixdependency.h \
   compiler/maximawrapper.h \
-  compiler/openclutil.h \
   compiler/pbc.h \
   compiler/region.h \
   compiler/rircompilerpass.h \
@@ -54,12 +53,13 @@ pkglib_HEADERS=  \
   common/jsocket.h \
   common/jtimer.h \
   common/jtunable.h \
+  common/openclutil.h \
   common/srcpos.h \
   common/thedeque.h \
   runtime/cellproxy.h \
+  runtime/distributedgc.h \
   runtime/dynamicscheduler.h \
   runtime/dynamictask.h \
-  runtime/distributedgc.h \
   runtime/gpudynamictask.h \
   runtime/gpumanager.h \
   runtime/gputaskinfo.h \
@@ -74,8 +74,8 @@ pkglib_HEADERS=  \
   runtime/regiondata0D.h \
   runtime/regiondatai.h \
   runtime/regiondataraw.h \
-  runtime/regiondataremote.h \
   runtime/regiondataremotecache.h \
+  runtime/regiondataremote.h \
   runtime/regiondataremotemessages.h \
   runtime/regiondatasplit.h \
   runtime/regionhandler.h \
@@ -89,8 +89,7 @@ pkglib_HEADERS=  \
   runtime/specializeddynamictasks.h \
   runtime/testisolation.h \
   runtime/transforminstance.h \
-  runtime/workerthread.h \
-  runtime/openclutil.h
+  runtime/workerthread.h
 
 libpbcommon_a_CXXFLAGS = -I$(srcdir)/common
 libpbcommon_a_SOURCES =  \
@@ -104,6 +103,7 @@ libpbcommon_a_SOURCES =  \
   common/jsocket.cpp \
   common/jtimer.cpp \
   common/jtunable.cpp \
+  common/openclutil.cpp \
   common/srcpos.cpp
 
 libpbcompiler_a_LFLAGS =
@@ -123,7 +123,6 @@ libpbcompiler_a_SOURCES = \
   compiler/maximalexer.lpp \
   compiler/maximaparser.ypp \
   compiler/maximawrapper.cpp \
-  compiler/openclutil.cpp \
   compiler/pblexer.lpp \
   compiler/pbparser.ypp \
   compiler/region.cpp \
@@ -155,6 +154,7 @@ libpbruntime_a_SOURCES =  \
   runtime/dynamicscheduler.cpp \
   runtime/dynamictask.cpp \
   runtime/gpudynamictask.cpp \
+  runtime/gpumanager.cpp \
   runtime/gputaskinfo.cpp \
   runtime/matrixio.cpp \
   runtime/matrixreader.lpp \
@@ -163,8 +163,8 @@ libpbruntime_a_SOURCES =  \
   runtime/petabricksruntime.cpp \
   runtime/regiondatai.cpp \
   runtime/regiondataraw.cpp \
-  runtime/regiondataremote.cpp \
   runtime/regiondataremotecache.cpp \
+  runtime/regiondataremote.cpp \
   runtime/regiondatasplit.cpp \
   runtime/regionhandler.cpp \
   runtime/regionmatrixi.cpp \
@@ -176,8 +176,7 @@ libpbruntime_a_SOURCES =  \
   runtime/specializeddynamictasks.cpp \
   runtime/testisolation.cpp \
   runtime/transforminstance.cpp \
-  runtime/workerthread.cpp \
-  runtime/openclutil.cpp
+  runtime/workerthread.cpp
 
 libpbmain_a_CXXFLAGS = -Iruntime
 libpbmain_a_SOURCES = runtime/redirectmain.cpp

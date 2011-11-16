@@ -31,6 +31,8 @@
 
 #include "common/jconvert.h"
 
+#include "workerthread.h"
+
 
 #include <algorithm>
 #include <poll.h>
@@ -171,6 +173,7 @@ namespace _RemoteHostMsgTypes {
   } PACKED;
 
   void* start_listenLoop(void* arg) {
+    petabricks::WorkerThread::markUtilityThread();
     ((petabricks::RemoteHostDB*)arg)->listenLoop();
     return NULL;
   }

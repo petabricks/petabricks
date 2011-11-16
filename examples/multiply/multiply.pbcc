@@ -1,6 +1,5 @@
 #ifndef MULTIPLY_PBCC
 #define MULTIPLY_PBCC
-
 #include "multiplyAdd.pbcc"
 
 // Computes C = A * B.  Special case of matrix-multiply-add transform, with
@@ -9,6 +8,7 @@ transform MatrixMultiply
 from A[k,m], B[n,k]
 to C[n,m]
 {
+
   to(C c) from(A a, B b) {
     MatrixMultiplyAdd(c, 1, a, b, 0);
   }

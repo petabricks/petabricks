@@ -46,9 +46,7 @@
 
 namespace petabricks {
 class CodeGenerator;
-#if HAVE_OPENCL
 class CLCodeGenerator;
-#endif
 class Transform;
 class MatrixDef;
 class FreeVars;
@@ -144,9 +142,7 @@ public:
   void varDeclCode(CodeGenerator& o, RuleFlavor rf, bool isConst);
 
   void extractDefines(FreeVars& defined, CodeGenerator& o);
-#if HAVE_OPENCL
   void extractCLDefines(FreeVars& defined, CLCodeGenerator& clo, unsigned int dims, std::map<std::string, std::string> &map);
-#endif
   void verifyDefines(CodeGenerator& o);
   void allocateTemporary(CodeGenerator& o, RuleFlavor rf, bool setOnly, bool reallocAllowed);
 

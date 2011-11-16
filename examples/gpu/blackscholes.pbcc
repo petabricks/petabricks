@@ -3,36 +3,38 @@ from STOCK[n], STRIKE[n], TIME[n], RISK, VOLATILITY
 to CALL[n], PUT[n]
 {
   to(CALL.cell(i) call, PUT.cell(i) put) from(STOCK.cell(i) s, STRIKE.cell(i) x, TIME.cell(i) t, RISK r, VOLATILITY v) {
-    const double       A1 = 0.31938153;
-    const double       A2 = -0.356563782;
-    const double       A3 = 1.781477937;
-    const double       A4 = -1.821255978;
-    const double       A5 = 1.330274429;
-    const double RSQRT2PI = 0.39894228040143267793994605993438;
+    const ElementT       A1 = 0.31938153;
+    const ElementT       A2 = -0.356563782;
+    const ElementT       A3 = 1.781477937;
+    const ElementT       A4 = -1.821255978;
+    const ElementT       A5 = 1.330274429;
+    const ElementT RSQRT2PI = 0.39894228040143267793994605993438;
         
-    double S = s, X = x, T = t, R = r, V = v;
+    ElementT S = s, X = x, T = t, R = r, V = v;
     
-    double sqrtT = sqrt(T);
-    double    d1 = (log(S / X) + (R + 0.5 * V * V) * T) / (V * sqrtT);
-    double    d2 = d1 - V * sqrtT;
-    double K1 = 1.0 / (1.0 + 0.2316419 * fabs(d1));
-    double CNDD1 = RSQRT2PI * exp(- 0.5 * d1 * d1) * 
+    ElementT sqrtT = sqrt(T);
+    ElementT    d1 = (log(S / X) + (R + 0.5 * V * V) * T) / (V * sqrtT);
+    ElementT    d2 = d1 - V * sqrtT;
+    ElementT K1 = 1.0 / (1.0 + 0.2316419 * fabs(d1));
+    ElementT CNDD1 = RSQRT2PI * exp((float) - 0.5 * d1 * d1) * 
         (K1 * (A1 + K1 * (A2 + K1 * (A3 + K1 * (A4 + K1 * A5)))));
-    double K2 = 1.0 / (1.0 + 0.2316419 * fabs(d2));
+    ElementT K2 = 1.0 / (1.0 + 0.2316419 * fabs(d2));
     if(d1 > 0)
         CNDD1 = 1.0 - CNDD1;
-    double CNDD2 = RSQRT2PI * exp(- 0.5 * d2 * d2) * 
+    ElementT CNDD2 = RSQRT2PI * exp((float) - 0.5 * d2 * d2) * 
         (K2 * (A1 + K2 * (A2 + K2 * (A3 + K2 * (A4 + K2 * A5)))));
     if(d2 > 0)
         CNDD2 = 1.0 - CNDD2;
 
     //Calculate Call and Put simultaneously
-    double expRT = exp(- R * T);
+    ElementT expRT = exp(- R * T);
+
     //call = (float)(S * CNDD1 - X * expRT * CNDD2);
     call = CNDD1;
     //put  = (float)(X * expRT * (1.0 - CNDD2) - S * (1.0 - CNDD1));
     put = CNDD2;
   }
+
   
   /*to(CALL.cell(i) call, PUT.cell(i) put) from(STOCK.cell(i) S, STRIKE.cell(i) X, TIME.cell(i) T, RISK R, VOLATILITY V) {
     const ElementT       A1 = 0.31938153;

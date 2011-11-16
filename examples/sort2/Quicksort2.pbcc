@@ -1,0 +1,43 @@
+
+transform Quicksort2
+from IN[n]
+to OUT[n]
+{
+  to(OUT out) from(IN in) using(tmp[n-1]) {
+    if(n <= 1) {
+      if(n==1)
+        out.cell(0) = in.cell(0);
+      return;
+    }
+
+    IndexT pivotSrc = n/2;
+    ElementT pivot = in.cell(pivotSrc);
+    IndexT i;
+    IndexT l = 0;
+    IndexT r = n - 2;
+
+    for(i=0; i<pivotSrc; ++i) {
+      if(in.cell(i) < pivot) {
+        tmp.cell(l) = in.cell(i);
+        l++;
+      }else{
+        tmp.cell(r) = in.cell(i);
+        r--;
+      }
+    }
+    for(i=pivotSrc+1; i<n; ++i) {
+      if(in.cell(i) < pivot) {
+        tmp.cell(l) = in.cell(i);
+        l++;
+      }else{
+        tmp.cell(r) = in.cell(i);
+        r--;
+      }
+    }
+    //JASSERT(l==r+1)(l)(r);
+    out.cell(l) = pivot;
+    spawn Sort(out.region(0, l), tmp.region(0, l));
+    spawn Sort(out.region(l+1, n), tmp.region(l, n-1));
+  }
+}
+

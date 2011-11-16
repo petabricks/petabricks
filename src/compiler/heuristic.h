@@ -27,6 +27,7 @@
 #ifndef HEURISTIC_H
 #define HEURISTIC_H
 
+#include <limits>
 #include <map>
 
 #include "common/jrefcounted.h"
@@ -40,13 +41,20 @@ typedef std::map<std::string, double> ValueMap;
 class Heuristic : public jalib::JRefCounted {
 public:
   Heuristic(const std::string formula) :
-        _formula(MaximaWrapper::instance().runCommandSingleOutput(formula)) {}
+        _formula(MaximaWrapper::instance().runCommandSingleOutput(formula)),
+        _min( -std::numeric_limits<double>::infinity()),
+        _max( std::numeric_limits<double>::infinity()) {}
     
   FormulaPtr formula() const { return _formula; }
   double eval (const ValueMap featureValues);
   
+  void setMin(const double min) { _min = min; }
+  void setMax(const double max) { _max = max; }
+  
 private:
   FormulaPtr _formula;
+  double _min;
+  double _max;
 };
 
 

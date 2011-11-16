@@ -27,6 +27,7 @@
 #include "rulechoice.h"
 
 #include "codegenerator.h"
+#include "maximawrapper.h"
 #include "rule.h"
 #include "scheduler.h"
 #include "syntheticrule.h"
@@ -38,7 +39,9 @@ size_t petabricks::RuleChoiceCollection::size() const {
   std::vector<const RuleChoiceConsumer*>::const_iterator i;
   size_t c = 1;
   for(i=_ordering.begin(); i!=_ordering.end(); ++i) {
-    c *= std::max<size_t>(1, (*i)->choices().size());
+    if(_combinedChoices.find(*i) == _combinedChoices.end()) {
+      c *= std::max<size_t>(1, (*i)->choices().size());
+    }
   }
   return c;
 }
@@ -48,17 +51,73 @@ petabricks::RuleChoiceAssignment petabricks::RuleChoiceCollection::getAssignment
   RuleChoiceAssignment a;
   for(i=_ordering.begin(); i!=_ordering.end(); ++i) {
     const RuleSet& rs = (*i)->choices();
-    ssize_t c = choice % std::max<size_t>(1, rs.size());
-    choice /= std::max<size_t>(1, rs.size());;
     a[*i] = RulePtr::null();
-    for(RuleSet::const_iterator r=rs.begin(); r!=rs.end(); ++r){
-      if(c--==0) {
-        a[*i] = *r;
+    std::map<const RuleChoiceConsumer*, const RuleChoiceConsumer*>::const_iterator comb = _combinedChoices.find(*i);
+    if(comb == _combinedChoices.end()) {
+      ssize_t c = choice % std::max<size_t>(1, rs.size());
+      choice /= std::max<size_t>(1, rs.size());;
+      for(RuleSet::const_iterator r=rs.begin(); r!=rs.end(); ++r){
+        if(c--==0) {
+          a[*i] = *r;
+          break;
+        }
+      }
+    } else {
+      const RuleSet& rsb = comb->second->choices();
+      JASSERT(rs.size()==rsb.size());
+
+      //if they were the same RuleSet we could do:
+      //a[*i] = a[comb->second];
+
+      RuleSet::const_iterator r;
+      RuleSet::const_iterator rb;
+      for(r=rs.begin(), rb=rsb.begin(); r!=rs.end() && rb!=rsb.end(); ++r, ++rb){
+        if(*rb == a[comb->second]){
+          //found the corresponding rule in this choice site
+          a[*i] = *r;
+          break;
+        }
       }
     }
     JASSERT(rs.empty() || a[*i] != RulePtr::null());
   }
   return a;
+}
+
+void petabricks::RuleChoiceCollection::pruneChoiceSpace() {
+  std::vector<const RuleChoiceConsumer*>::const_iterator i;
+
+  //combine choice sites with the same RuleSet
+  std::map<RuleSet, const RuleChoiceConsumer*> rulesets;
+  for(i=_ordering.begin(); i!=_ordering.end(); ++i) {
+    const RuleSet& rs = (*i)->choices();
+    if(rs.size()<=1) continue;
+
+    if(rulesets.find(rs) == rulesets.end()) {
+      rulesets[rs] = *i;
+    }else{
+      _combinedChoices[*i] = rulesets[rs];
+    }
+  }
+  rulesets.clear();
+
+  /*
+  std::map<size_t, const RuleChoiceConsumer*> corners;
+  for(i=_ordering.begin(); i!=_ordering.end(); ++i) {
+    const RuleSet& rs = (*i)->choices();
+    if(rs.size()<=1) continue;
+    if(_combinedChoices.find(*i) != _combinedChoices.end()) continue;
+    if( MAXIMA.comparePessimistically((*i)->region()->symbolicSize(), "<=", FormulaInteger::one()) ) {
+      if(corners.find(rs.size()) == corners.end()) {
+        corners[rs.size()] = *i;
+      }else{
+        _combinedChoices[*i] = corners[rs.size()];
+       // JTRACE("corner block combines")(rs.size());
+      }
+    }
+    }*/
+
+  JTRACE("combined")(size());
 }
 
 void petabricks::RuleChoiceCollection::generateDecisionTree(std::string& pfx, size_t choiceCount, CodeGenerator& o) {

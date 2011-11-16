@@ -111,7 +111,6 @@ public:
   
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
-#ifdef HAVE_OPENCL
   void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o);
   void generateOpenCLCallCode(Transform& trans, CodeGenerator& o);
   void generateOpenCLPrepareCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o);
@@ -120,8 +119,12 @@ public:
   void generateOpenCLCopyOutCode(std::string& codename, CodeGenerator& o, RegionPtr region);
   ///
   /// Generate an OpenCL program implementing this rule
-  void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef );
-#endif
+  void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef, bool local=false);
+  void collectGpuLocalMemoryData();
+  bool canUseLocalMemory() {
+    return _minCoordOffsets.size() > 0;
+  }
+  void generateLocalBuffers(CLCodeGenerator& clo);
 
   ///
   /// Generate seqential code to invoke this rule
@@ -132,7 +135,7 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        bool gpuCopyOut); 
+                        int gpuCopyOut); 
 
   ///
   /// Return function the name of this rule in the code
@@ -264,6 +267,12 @@ public:
   virtual RegionList getSelfDependentRegions();
   
   virtual RegionList getNonSelfDependentRegions();
+
+  void buildFromBoundingBox();
+  
+  void trimDependency(DependencyDirection& dep,
+                      const ChoiceDepGraphNode& from,
+                      const ChoiceDepGraphNode& to);
   
 private:
   void computeDataDependencyVector();
@@ -284,9 +293,11 @@ private:
 
   void prepareBuffers();
 
-#ifdef HAVE_OPENCL
   bool passBuildGpuProgram(Transform& trans);
-#endif
+
+  std::map<std::string, std::string> _nameMap;
+  std::map<std::string, FormulaList> _minCoordOffsets;
+  std::map<std::string, FormulaList> _maxCoordOffsets;
 
   RuleFlags _flags;
   RegionList _from;
@@ -297,12 +308,17 @@ private:
   std::string _bodysrc;
   jalib::SrcPosTaggable _bodysrcPos;
   RIRBlockCopyRef _bodyir[RuleFlavor::_COUNT];
+  RIRBlockCopyRef _bodyirLocalMem;
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr _recursiveHint;
   std::string _label;
   ConfigItems _duplicateVars;
   RulePtr _gpuRule;
+
+ 
+  typedef std::map<MatrixDefPtr, SimpleRegionPtr> MatrixToRegionMap;
+  MatrixToRegionMap _fromBoundingBox;
 
 };
 

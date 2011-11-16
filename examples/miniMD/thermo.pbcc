@@ -14,4 +14,106 @@ to maxstat[1]
 
 }
 
+
+
+
+function thermo_compute
+from atom_x[natoms, 3], atom_v[natoms,3], atom_vold[natoms, 3], atom_f[natoms,3] cutforcesq[1], neighbor_index[natoms, max_neighs], neighbor_numneigh[natoms]
+to t[1], p[1], e[1]
+{
+  double t,eng,p;
+
+  //if (iflag > 0 && iflag % nstat) return;
+  //if (iflag == -1 && nstat > 0 && ntimes % nstat == 0) return;
+
+  temperature(t, atom_v, atom_vold);
+  energy(e, atom_x, cutforcesq, neighbor_index, neighbor_numneigh);
+
+  force_compute(atom_f, neighbor_index, neighbor_numneigh, atom_x); 
+  pressure(p, temperature, rho, atom_f, atom_x);
+
+  //int istep = iflag;
+  //if (iflag == -1) istep = ntimes;
+  //if (iflag == 0) mstat = 0;
+
+  //steparr[mstat] = istep;
+  //tmparr.cell(mstat) = t;
+  //engarr.cell(mstat) = eng;
+  //prsarr.cell(mstat) = p;
+
+}
+
+
+
+fuction thermo_temperature
+from atom_v[natoms, 3], atom_vold[natoms, 3]
+to temperature[1]
+{
+  int i;
+  double vx,vy,vz;
+
+  double t = 0.0;
+  for (i = 0; i < natoms; i++) {
+    vx = 0.5 * (atom_v.cell(i,0) + atom_vold.cell(i,0));
+    vy = 0.5 * (atom_v.cell(i,1) + atom_vold.cell(i,1));
+    vz = 0.5 * (atom_v.cell(i,2) + atom_vold.cell(i,2));
+    t += vx*vx + vy*vy + vz*vz;
+  }
+
+  temperature.cell(0) = t/(3.0*natoms);
+}
+
+
+/* reduced potential energy */
+
+function thermo_energy
+from atom_x[natoms, 3], cutforcesq[1], neighbor_index[natoms, max_neighs], neighbor_numneigh[natoms]
+to energy[1]
+{
+  int i,j,k,numneigh;
+  double delx,dely,delz,rsq,sr2,sr6,phi;
+  MatrixRegion1D neighs;
+
+  double eng = 0.0;
+  for (i = 0; i < natoms; i++) {
+    neighs = neighbor_index.col(i);
+    numneigh = neighbor_numneigh.cell(i);
+    for (k = 0; k < numneigh; k++) {
+      // Set j = the index of each neighbor of i
+      j = (int) neighs.cell(k);
+      delx = atom_x.cell(i,0) - atom_x.cell(j,0);
+      dely = atom_x.cell(i,1) - atom_x.cell(j,1);
+      delz = atom_x.cell(i,2) - atom_x.cell(j,2);
+      rsq = delx*delx + dely*dely + delz*delz;
+      if (rsq < force_cutforcesq.cell(0)) {
+	sr2 = 1.0/rsq;
+	sr6 = sr2*sr2*sr2;
+	phi = sr6*(sr6-1.0);
+	eng += phi;
+      }
+    }
+  }
+
+  eng = 4.0*eng;
+  energy.cell(0) = eng/natoms;
+}
+      
+      
+/* reduced pressure from virial
+   virial = Fi dot Ri summed over own and ghost atoms, since PBC info is
+   stored correctly in force array before reverse_communicate is performed */
+
+funtion thermo_pressure
+from temperature[1], rho[1], atom_f[natoms, 3], atom_x[natoms, 3]
+to pressure[1]
+{
+  int i;
+  double virial = 0.0;
+  for (i = 0; i < natoms; i++)
+    virial += atom_f.cell(i,0)*atom_x.cell(i,0) + atom_f.cell(i,1)*atom_x.cell(i,1) + atom_f.cell(i,2)*atom_x.cell(i,2);
+
+  virial = 48.0*virial;
+  pressure.cell(0) = (temperature.cell(0)*rho.cell(0) + rho.cell(0)/3.0/natoms * virial);
+}
+
 #endif

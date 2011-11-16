@@ -2,6 +2,10 @@
 
 import sys, os
 
+ODIR = "scripts"
+if not os.path.isdir(ODIR):
+  ODIR = "."
+
 
 #####################################################
 # Class
@@ -1134,7 +1138,7 @@ def parse_file_to_ast(file_path):
   import ply.yacc as yacc
 
   lex.lex(nowarn=1)
-  yacc.yacc(debug=False)
+  yacc.yacc(debug=False, tabmodule="_preprocessor", outputdir=ODIR)
 
   reader = open(full_path_string, 'r')
   input_string = reader.read()
@@ -1153,7 +1157,7 @@ def get_define(file_path):
   import ply.yacc as yacc
 
   lex.lex(nowarn=1)
-  yacc.yacc(debug=False)
+  yacc.yacc(debug=False, tabmodule="_preprocessor", outputdir=ODIR)
 
   reader = open(full_path_string, 'r')
   input_string = reader.read()

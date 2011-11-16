@@ -32,7 +32,10 @@ config.max_time=30 #Seconds
 class HeuristicDB:
   def __init__(self):
     #Open DB    
-    self.__db = sqlite3.connect(self.computeDBPath())
+    try:
+      self.__db = sqlite3.connect(self.computeDBPath())
+    except:
+      self.__db = sqlite3.connect(":memory:")
     self.__createTables()
     self.__bestNCache= dict()
     
@@ -156,7 +159,6 @@ heuristics specified in the heuristicNames list.
 
 Every missing heuristic is completed with one randomly taken from the best N 
 heuristics in the database  """
-    random.seed()
     #Find the missing heuristics
     missingHeuristics = list(heuristicNames)
     for name in self:
@@ -264,6 +266,7 @@ class LearningCompiler:
     self.__pbcExe = pbcExe    
     self.__jobs=jobs    
     self.__db = HeuristicDB()
+    random.seed()
     
   
   def storeCandidatesDataInDB(self, candidates, basesubdir, basename):

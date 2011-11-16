@@ -350,6 +350,7 @@ void petabricks::Transform::generateCode(CodeGenerator& o){
 #ifdef DISABLE_DISTRIBUTED
       if(rf==RuleFlavor::DISTRIBUTED) continue;
 #endif
+      if(rf==RuleFlavor::OPENCL) continue;
       genTmplJumpTable(o, rf, normalArgs(rf), normalArgNames());
     }
     o.hos() << "typedef "+tmplName(0)+"_main "+_name+"_main;\n";
@@ -464,6 +465,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
 #ifdef DISABLE_DISTRIBUTED
       if(rf==RuleFlavor::DISTRIBUTED) continue;
 #endif
+    if(rf==RuleFlavor::OPENCL) continue;
     generateTransformInstanceClass(o, rf);
   }
 
@@ -624,7 +626,7 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
   extractConstants(o, rf);
   o.endFunc();
 
-#ifdef HAVE_OPENCL
+/*#ifdef HAVE_OPENCL
   std::vector<std::string> empty;
   o.beginFunc("void", "releaseGpuObjects", empty, true);
   for(RuleList::iterator i = _rules.begin(); i != _rules.end(); ++i)
@@ -638,7 +640,7 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
     }
   }
   o.endFunc();
-#endif
+#endif*/
 
   if(rf == RuleFlavor::SEQUENTIAL) {
     o.beginFunc("void", "run");
@@ -838,19 +840,15 @@ void petabricks::Transform::registerMainInterface(CodeGenerator& o){
   }
 }
 
-#ifdef HAVE_OPENCL
-void petabricks::Transform::generateReleaseGpuObjectsCode(CodeGenerator& o){
+void petabricks::Transform::generateInitCleanup(CodeGenerator& init, CodeGenerator& /*cleanup*/){
   SRCPOSSCOPE();
-  if(_templateargs.empty()){
-    o.write(name()+"_instance::releaseGpuObjects();");
-  }else{
-    size_t choiceCnt = tmplChoiceCount();
-    for(size_t c=0; c<choiceCnt; ++c){
-      o.write(tmplName(c)+"_instance::releaseGpuObjects();");
-    }
+
+  std::vector<std::string>::const_iterator i;
+  for(i=_initCalls.begin(); i!=_initCalls.end(); ++i) {
+    init.call(*i, "");
   }
+
 }
-#endif
 
 void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::string& nextMain){
   SRCPOSSCOPE();
@@ -1017,6 +1015,15 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   }
   o.endFunc();
 
+  /*o.beginFunc("void", "copyOutputs");
+  {
+    int a=firstOutput;
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      o.write((*i)->name()+".useOnCpu();");
+    }
+  }
+  o.endFunc();*/
+
 
   std::vector<std::string> outputArgTypes;
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
@@ -1036,6 +1043,9 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.call(name()+"_"+rf.str(), argNames);
   argNames.erase(argNames.begin());
   o.write("petabricks::enqueue_and_wait(p);");
+  for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+    o.write((*i)->name()+".useOnCpu();");
+  }
   o.endFunc();
 
   o.beginFunc("const char*", "name");

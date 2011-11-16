@@ -8,4 +8,49 @@ to dtforce[1]
 	dtforce.cell(0) = 48.0 * dt.cell(0);
 }
 
+
+function integrate_run
+from atom_x[natoms, 3], dt[1], atom_v[natoms, 3]
+to
+{
+  int i,n;
+
+  for (n = 0; n < ntimes; n++) {
+
+    for (i = 0; i < natoms; i++) {
+      atom_x.cell(i,0) += dt.cell(0)*atom_v.cell(i,0);
+      atom_x.cell(i,1) += dt.cell(0)*atom_v.cell(i,1);
+      atom_x.cell(i,2) += dt.cell(0)*atom_v.cell(i,2);
+    }
+
+    if ((n+1) % neighbor_every) {
+      //comm_communicate(atom);
+    } else {
+      //comm_exchange(atom);
+      //comm_borders(atom);
+      neighbor_build(bin_to_atom, bin_sizes, atom_to_bin, neighbor_numneigh, nbins, atom_x, bininv, mbinlo, neighbor_index);
+    }      
+
+    force_compute(from neighbor_index[natoms, max_neighs], neighbor_numneigh[natoms], atom_x[natoms]
+to atom_f[natoms,3]
+
+
+    //comm.reverse_communicate(atom);
+
+    for (i = 0; i < natoms; i++) {
+      atom_vold.cell(i,0) = atom_v.cell(i, 0);
+      atom_vold.cell(i,1) = atom_v.cell(i, 1);
+      atom_vold.cell(i,2) = atom_v.cell(i, 2);
+      atom_v.cell(i,0) += dtforce * atom_f.cell(i,0);
+      atom_v.cell(i,1) += dtforce * atom_f.cell(i,1);
+      atom_v.cell(i,2) += dtforce * atom_f.cell(i,2);
+    }
+
+    if (thermo_nstat) 
+    thermo_compute(n+1,atom,neighbor,force);
+
+from atom_x[natoms, 3], atom_v[natoms,3], atom_vold[natoms, 3], atom_f[natoms,3] cutforcesq[1], neighbor_index[natoms, max_neighs], neighbor_numneigh[natoms]
+to t[1], p[1], e[1]
+  }
+}
 #endif

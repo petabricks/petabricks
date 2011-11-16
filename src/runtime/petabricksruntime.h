@@ -196,6 +196,9 @@ public:
   void loadTestInput(int n, const std::vector<std::string>* files);
   
   
+  static void startWorkerThreads(int worker_threads);
+
+
   void variableAccuracyTrainingLoop(TestIsolation& ti);
   int variableAccuracyTrainingLoopInner(TestIsolation& ti);
 
@@ -226,6 +229,9 @@ public:
 
 
   static double updateRaceTimeout(TestResult& result, int winnerid);
+      
+  
+  static void reexecTestIsolation(int fd);
 protected:
   void reallocate() { _main->reallocate(_randSize); }
 

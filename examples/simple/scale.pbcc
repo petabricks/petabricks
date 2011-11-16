@@ -1,7 +1,18 @@
 #ifndef SCALE_PBCC
 #define SCALE_PBCC
 
-transform Scale
+transform Scale1D
+from ALPHA
+to A[n]
+{
+    to (A.cell(i) a)
+    from (ALPHA alpha)
+    {
+        a *= alpha;
+    }
+}
+
+transform Scale2D
 from ALPHA
 to A[n,m]
 {

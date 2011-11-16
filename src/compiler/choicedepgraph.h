@@ -189,20 +189,21 @@ public:
 
   virtual bool findValidSchedule(const RuleChoiceAssignment&) { return true; }
 
-#ifdef HAVE_OPENCL
-  virtual RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const = 0;
-  virtual int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix) = 0;
-  virtual bool hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region) = 0;
-  virtual void print(const RuleChoiceAssignment& choice) = 0;
-
   void resetRegionNodeGroups() {
     _regionNodesGroups.clear(); 
-    _gpuCopyOut = false;
+    _gpuCopyOut = 0;
   }
+
+  virtual RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const = 0;
+  virtual int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix) = 0; //TODO: get rid of this
+  virtual int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region) = 0;
+  virtual int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix) = 0;
+  virtual void print(const RuleChoiceAssignment& choice) = 0;
+
   void addGroup(const std::string& name, std::vector<int>& ids) { _regionNodesGroups.push_back(RegionNodeGroup(name,ids)); }
   std::vector<RegionNodeGroup>& getRegionNodesGroups() { return _regionNodesGroups; }
-  void setGpyCopyOut() { _gpuCopyOut = true; }
-#endif
+  void setGpuCopyOut() { _gpuCopyOut = 1; }
+  void setPendingGpuCopyOut() { _gpuCopyOut = 2; }
 
 
   virtual BasicChoiceDepGraphNode& asBasicNode() {
@@ -220,7 +221,7 @@ protected:
   int _choiceId;
 
   std::vector<RegionNodeGroup> _regionNodesGroups;
-  bool _gpuCopyOut;
+  int _gpuCopyOut;
 };
 
 class BasicChoiceDepGraphNode : public ChoiceDepGraphNode {
@@ -246,10 +247,10 @@ public:
   void removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension);
   void fixVersionedRegionsType();
 
-#ifdef HAVE_OPENCL
   RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
   int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
-  bool hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
+  int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
+  int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
   void print(const RuleChoiceAssignment& choice){
     std::cout << "BasicChoiceDepGraphNode " << this << ":" << std::endl;
     std::cout << "out matrix = " << _matrix->name() << std::endl;
@@ -263,7 +264,6 @@ public:
       std::cout << std::endl;
     }
   }
-#endif
 
 private:
   MatrixDefPtr      _matrix;
@@ -301,7 +301,6 @@ public:
     UNIMPLEMENTED();
   }
 
-#ifdef HAVE_OPENCL
   RegionList getFromRegionOnCpu(const RuleChoiceAssignment&) const { 
     UNIMPLEMENTED(); 
     return RegionList();
@@ -310,7 +309,11 @@ public:
     UNIMPLEMENTED(); 
     return 0;
   }
-  bool hasOverlappingRegionOnGpu(const RuleChoiceAssignment& , RegionPtr){
+  int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& , RegionPtr){
+    UNIMPLEMENTED(); 
+    return 0;
+  }
+  int hasOverlappingRegionOnGpu(const RuleChoiceAssignment&, MatrixDefPtr){
     UNIMPLEMENTED(); 
     return 0;
   }
@@ -320,7 +323,6 @@ public:
       (*i)->print(choice);
     std::cout << "---------------" << this << std::endl << std::endl;;
   }
-#endif
 protected:
   virtual const char* classname() const { return "MetaChoiceDepGraphNode"; }
 
@@ -338,17 +340,16 @@ public:
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
                             const RuleChoiceAssignment& choice);
 
-#ifdef HAVE_OPENCL
   RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
   int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
-  bool hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
+  int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
+  int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
   void print(const RuleChoiceAssignment& choice){
     std::cout << "MultiOutputChoiceDepGraphNode " << this << "--------" << std::endl;
     for(ChoiceDepGraphNodeSet::iterator i = _originalNodes.begin(); i != _originalNodes.end(); ++i)
       (*i)->print(choice);
     std::cout << "---------------" << this << std::endl << std::endl;;
   }
-#endif
 protected:
   virtual const char* classname() const { return "MultiOutputChoiceDepGraphNode"; }
 
@@ -365,17 +366,16 @@ public:
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
                             const RuleChoiceAssignment& choice);
 
-#ifdef HAVE_OPENCL
   RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
   int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
-  bool hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
+  int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
+  int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
   void print(const RuleChoiceAssignment& choice){
     std::cout << "SlicedChoiceDepGraphNode " << this << "--------" << std::endl;
     for(ChoiceDepGraphNodeSet::iterator i = _originalNodes.begin(); i != _originalNodes.end(); ++i)
       (*i)->print(choice);
     std::cout << "---------------" << this << std::endl << std::endl;;
   }
-#endif
 protected:
   const char* classname() const { return "SlicedChoiceDepGraphNode"; }
 private:

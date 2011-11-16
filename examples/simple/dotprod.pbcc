@@ -1,0 +1,32 @@
+#ifndef DOTPROD_PBCC
+#define DOTPROD_PBCC
+
+#include "reduce.pbcc"
+
+transform DotProduct
+from A[n], B[n]
+through TEMP[n]
+to RESULT
+{
+    to (RESULT result)
+    from (A a, B b)
+    {
+        result = 0;
+        for (IndexT i = 0; i < n; ++i) {
+            result += a.cell(i) * b.cell(i);
+        }
+    }
+
+    TEMP.cell(i) from (A.cell(i) a, B.cell(i) b)
+    {
+        return a * b;
+    }
+
+    to (RESULT result)
+    from (TEMP t)
+    {
+        ReduceAdd1D(result, t);
+    }
+}
+
+#endif // DOTPROD_PBCC

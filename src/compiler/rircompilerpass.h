@@ -27,6 +27,7 @@
 #ifndef PETABRICKSRIRCOMPILERPASS_H
 #define PETABRICKSRIRCOMPILERPASS_H
 
+#include "formula.h"
 #include "rirscope.h"
 #include "ruleir.h"
 #include "trainingdeps.h"
@@ -288,7 +289,6 @@ private:
   std::vector<std::string> _continueTargets;
 };
 
-#ifdef HAVE_OPENCL
 class OpenClCleanupPass: public RIRCompilerPass {
 public:
   class NotValidSource {};
@@ -296,11 +296,21 @@ public:
     : RIRCompilerPass(p->createChildLayer()), _rule(r)
   {}
   void before(RIRExprCopyRef& e);
+  void setLocalMemoryData(std::map<std::string, std::string>& name, std::map<std::string, FormulaList>& min, std::map<std::string, FormulaList>& max, int id) {
+    _nameMap = name; 
+    _minCoordOffsets = min;
+    _maxCoordOffsets = max;
+    _id = id;
+  }
 private:
   RegionPtr findMatrix(std::string var);
   void generateAccessor( const RegionPtr& region, const FormulaPtr& x, const FormulaPtr& y );
   std::vector<std::string> generateCellIndices(RIRExprList& tokens);
   UserRule& _rule;
+  std::map<std::string, std::string> _nameMap;
+  std::map<std::string, FormulaList> _minCoordOffsets;
+  std::map<std::string, FormulaList> _maxCoordOffsets;
+  int _id;
 };
 
 class OpenClFunctionRejectPass: public RIRCompilerPass {
@@ -315,7 +325,6 @@ class OpenClFunctionRejectPass: public RIRCompilerPass {
   bool isIdentBlacklisted( const std::string& ident );
   UserRule& _rule;
 };
-#endif
 
 }
 

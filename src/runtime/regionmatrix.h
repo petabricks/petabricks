@@ -561,6 +561,17 @@ namespace petabricks {
       return NULL;
     }
 
+    const MatrixStorageInfoPtr storageInfo() const {
+      MatrixStoragePtr ms;
+      ElementT* base;
+      to_c_array(*this, base, ms);
+      MatrixStorageInfoPtr info = new MatrixStorageInfo();
+      info->setStorage(ms, base);
+      info->setSize(D, _size);
+      info->setExtraVal();
+      return info; 
+    }
+
     bool isLocal() const {
       return (_regionHandler->type() == RegionDataTypes::REGIONDATARAW);
     }
