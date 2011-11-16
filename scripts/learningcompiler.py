@@ -18,7 +18,7 @@ from tunerconfig import config
 
 #--------- Config ------------------
 conf_deleteTempDir = True
-conf_minTrialNumber = 10
+conf_minTrialNumber = 6
 conf_probabilityExploration = 0.7
 conf_pickBestN = 3
 conf_timeout = 5*60
