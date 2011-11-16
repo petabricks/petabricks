@@ -8,7 +8,7 @@ to dtforce[1]
 	dtforce.cell(0) = 48.0 * dt.cell(0);
 }
 
-
+//atom_x should be an output also
 function integrate_run
 from ntimes[1], atom_v[natoms, 3], atom_vold[natoms, 3], dt[1], dtforce[1], neighbor_index[natoms, max_neighs], neighbor_numneigh[natoms], cutforcesq[1], bin_to_atom[num_bins, max_atoms_in_bin], bin_sizes[num_bins], atom_to_bin[natoms], nbins[1], bininv[3], mbinlo[3], mbins[3]
 to atom_x[natoms, 3], atom_v_out[natoms, 3], atom_vold_out[natoms, 3], temperature[1], pressure[1], energy[1], atom_f[natoms,3]

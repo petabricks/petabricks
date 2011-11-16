@@ -139,7 +139,7 @@ to bin_to_atom[max_num_bins, max_num_atoms_per_bin], bin_sizes[max_num_bins], at
     int bin_index =  (int)atom_to_bin.cell(i);
     int bin_size =  (int) bin_sizes.cell(i);
     //int neighbor_index = (int) atom_to_neighbor.cell(i);
-}    
+    
     //for(int j = 0; j < bin_size; j++) {
     /*if (is ghost
 	if ((atom_x.cell(bin_index,2) < ztmp) || (atom_x.cell(bin_index,2) == ztmp && atom_x.cell(bin_index,1) < ytmp) ||
@@ -155,7 +155,7 @@ to bin_to_atom[max_num_bins, max_num_atoms_per_bin], bin_sizes[max_num_bins], at
     // 	       incr the number of neighbors of this atom
     // replace this with a double for loop
     // for every bin, for every atom in that bin
-    /*for(int j = 0; j < nbins.cell(0); j++) {
+    for(int j = 0; j < nbins.cell(0); j++) {
     	    int num_atoms_in_bin = (int) bin_sizes.cell(j);
     	    for (int k = 0; k < num_atoms_in_bin; k ++) {
      	    	int other_atom_i = (int) bin_to_atom.cell(bin_index,k);
@@ -169,7 +169,8 @@ to bin_to_atom[max_num_bins, max_num_atoms_per_bin], bin_sizes[max_num_bins], at
     	 	   neighbor_sizes.cell(i) = neighbor_sizes.cell(i) + 1;
     		}
 	    }
-	}*/
+	}
+}
     /* loop over all atoms in other bins in stencil, store every pair */
 /*
     ibin = coord2bin(xtmp,ytmp,ztmp);
