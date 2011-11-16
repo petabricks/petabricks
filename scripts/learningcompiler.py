@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """This script compiles multiple instances of a program trying out different
-heuristics, and storing in the database the best one that is found"""
+heuristics, and storing in the database the best ones"""
 import sys
 import os
 import shutil
@@ -173,6 +173,8 @@ class HeuristicSet(dict):
     for heuristicXML in xmlDOM.getElementsByTagName("heuristic"):
       name=heuristicXML.getAttribute("name")
       formula=heuristicXML.getAttribute("formula")
+      #Use the parser to validate (and to constant fold) the formula
+      formula=str(maximaparser.parse(formula))
       self[name] = formula
   
   def complete(self, heuristicNames, db, N):
