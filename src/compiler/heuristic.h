@@ -47,10 +47,13 @@ public:
     
   FormulaPtr usedFormula() const;
   
-  double eval (const ValueMap featureValues) const;
+  double eval (const ValueMap featureValues=ValueMap()) const;
   
   void setMin(const double min) { _min = min; }
   void setMax(const double max) { _max = max; }
+  
+private:
+  double evalWithoutLimits(const ValueMap featureValues) const;
   
 private:
   FormulaPtr _formula;
