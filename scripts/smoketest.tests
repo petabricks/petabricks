@@ -14,11 +14,13 @@ convolution2/ConvFFTW		Rand1D Rand1D
 convolution2/ConvLinAlg		Rand1D Rand1D
 convolution2/ConvLoops     Rand1D Rand1D
 convolution2/Convolution   Rand1D Rand1D
+#convolution/convolutionSeparable Rand2Da Rand1D17
+#convolution/convolutionSeparable2 Rand2D32 Rand1D17
 convolution/ConvolutionFFT Rand1D Rand1D
 convolution/Convolution    Rand1D Rand1D
 kclustering/kmeans         KmeansRandInput /dev/null
 kernel/nwkde               nwkde/data nwkde/wrapFlags nwkde/kernelWidths nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/data nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/outputVarIndex nwkde/outputTimeOffset nwkde/maskWidth
-kernel/nwkdeVA             nwkde/data nwkde/wrapFlags nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/data nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/outputVarIndex nwkde/outputTimeOffset nwkde/maskWidth
+#kernel/nwkdeVA             nwkde/data nwkde/wrapFlags nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/data nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/outputVarIndex nwkde/outputTimeOffset nwkde/maskWidth
 trisolve/TriSolveLL        Zero0D Rand2Da Rand2Db
 trisolve/TriSolveLL        One0D Rand2Da Rand2Db
 trisolve/TriSolveLU        Zero0D Rand2Da Rand2Db
@@ -63,13 +65,16 @@ simple/copy                Rand2Da
 simple/matrixrotate        Rand2Da
 simple/rollingsum          Rand1D
 simple/transpose           Rand2Da
+sort/Bitonicsort           Rand1D
 sort/Insertionsort         Rand1Dodd
 sort/Mergesort             Rand1Dodd
 sort/Mergesort2            Rand1Dodd
 sort/Quicksort             Rand1Dodd
 sort/Radixsort             Rand1Dodd
+sort/Selectionsort         Rand1Dodd
 sort/Sort                  Rand1D
 sort/Sort                  Rand1Dodd
+sort/Sort                  Rand1D
 regression/accuracymetric  Rand1D
 regression/assign0d
 regression/backwards       Rand1D
@@ -82,7 +87,7 @@ regression/coscheduled3    Rand1D
 regression/duplicate       Rand1D
 regression/fileprefix      Rand2Da
 regression/floattunables   Rand2Da
-regression/floattunables2  One0D 
+regression/floattunables2  One0D
 regression/function        One0D One0D
 regression/generators      Rand1D Rand1D
 regression/matrixversions  Rand2Da
@@ -103,9 +108,9 @@ regression/upleftdep       Rand2Da
 regression/whereclause     Rand2Da
 #regression/whereclause2    Rand2Da
 versions/1_noDeps.pbcc     Small1D
-versions/2bis_tempDep.pbcc Small1D 
+versions/2bis_tempDep.pbcc Small1D
 versions/2_tempDep.pbcc    Small1D
-versions/3_tempSpaDep.pbcc Small1D 
+versions/3_tempSpaDep.pbcc Small1D
 versions/4bis_tempMultSpa.pbcc  Small1D
 versions/4_tempMultSpa.pbcc     Small1D
 versions/5bis_multTempSpa.pbcc  Small1D

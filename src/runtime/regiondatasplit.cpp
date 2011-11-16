@@ -1,7 +1,8 @@
 #include "regiondatasplit.h"
 
+#include <map>
 #include <string.h>
-#include "regiondataproxy.h"
+#include "regiondataremote.h"
 
 using namespace petabricks;
 
@@ -10,14 +11,12 @@ using namespace petabricks;
 //
 RegionDataSplit::RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* splitSize) {
   _D = originalRegionData->dimensions();
-  _size = new IndexT[_D];
-  memcpy(_size, originalRegionData->size(), sizeof(IndexT) * _D);
+  _type = RegionDataTypes::REGIONDATASPLIT;
 
-  _splitSize = new IndexT[_D];
+  memcpy(_size, originalRegionData->size(), sizeof(IndexT) * _D);
   memcpy(_splitSize, splitSize, sizeof(IndexT) * _D);
 
   // create parts
-  _partsSize = new IndexT[_D];
   _numParts = 1;
 
   for (int i = 0; i < _D; i++) {
@@ -30,26 +29,18 @@ RegionDataSplit::RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* sp
     _numParts *= _partsSize[i];
   }
 
-  _partsMultipliers = new IndexT[_D];
   _partsMultipliers[0] = 1;
   for (int i = 1; i < _D; i++) {
     _partsMultipliers[i] = _partsMultipliers[i - 1] * _partsSize[i - 1];
   }
 
-  _parts = new RegionDataIPtr[_numParts];
-  memset(_parts, 0, (sizeof _parts) * _numParts);
-}
-
-RegionDataSplit::~RegionDataSplit() {
-  delete [] _parts;
-  delete [] _partsSize;
-  delete [] _splitSize;
+  _parts.resize(_numParts, NULL);
 }
 
 void RegionDataSplit::createPart(int partIndex, RemoteHostPtr host) {
   JASSERT(!_parts[partIndex]);
 
-  IndexT* partsCoord = new IndexT[_D];
+  IndexT partsCoord[_D];
   int tmp = partIndex;
   for (int i = 0; i < _D; i++) {
     partsCoord[i] = tmp % _partsSize[i];
@@ -70,7 +61,7 @@ void RegionDataSplit::createPart(int partIndex, RemoteHostPtr host) {
   if (host == NULL) {
     _parts[partIndex] = new RegionDataRaw(_D, size, partOffset);
   } else {
-    _parts[partIndex] = new RegionDataProxy(_D, size, partOffset, host);
+    _parts[partIndex] = new RegionDataRemote(_D, size, partOffset, host);
   }
 }
 
@@ -85,7 +76,7 @@ int RegionDataSplit::allocData() {
   return 0;
 }
 
-ElementT RegionDataSplit::readCell(const IndexT* coord) {
+ElementT RegionDataSplit::readCell(const IndexT* coord) const {
   return this->coordToPart(coord)->readCell(coord);
 }
 
@@ -93,7 +84,67 @@ void RegionDataSplit::writeCell(const IndexT* coord, ElementT value) {
   this->coordToPart(coord)->writeCell(coord, value);
 }
 
-RegionDataIPtr RegionDataSplit::coordToPart(const IndexT* coord) {
+void RegionDataSplit::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  ReadCellMessage* msg = (ReadCellMessage*)base->content();
+  this->coordToPart(msg->coord)->processReadCellMsg(base, baseLen, caller);
+}
+
+void RegionDataSplit::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  WriteCellMessage* msg = (WriteCellMessage*)base->content();
+  this->coordToPart(msg->coord)->processWriteCellMsg(base, baseLen, caller);
+}
+
+DataHostPidList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {
+  std::map<HostPid, int> hosts;
+
+  IndexT coord[_D];
+  for (int i = 0; i < _D; i++) {
+    begin[i] = begin[i] - (begin[i] % _splitSize[i]);
+    coord[i] = begin[i];
+  }
+
+  int count = 0;
+  bool hasNextPart;
+
+  // (yod) TODO: compute real begin/end
+  IndexT newBegin[] = {0,0,0};
+  IndexT* newEnd = _splitSize;
+
+  do {
+    DataHostPidList tmp = this->coordToPart(coord)->hosts(newBegin, newEnd);
+    hosts[tmp[0].hostPid] += 1;
+    count++;
+
+    // move to the next part
+    hasNextPart = false;
+    coord[0] += _splitSize[0];
+    for (int i = 0; i < _D - 1; i++) {
+      if (coord[i] > end[i]){
+	coord[i] = begin[i];
+	coord[i+1] += _splitSize[i];
+      } else {
+	hasNextPart = true;
+	break;
+      }
+    }
+    if (coord[_D-1] <= end[_D-1]){
+      hasNextPart = true;
+    }
+  } while (hasNextPart);
+
+  DataHostPidList list;
+  std::map<HostPid, int>::iterator it;
+  for (it = hosts.begin(); it != hosts.end(); it++) {
+    DataHostPidListItem item;
+    item.hostPid = (*it).first;
+    item.weight = ((double)((*it).second))/count;
+    list.push_back(item);
+  }
+
+  return list;
+}
+
+RegionDataIPtr RegionDataSplit::coordToPart(const IndexT* coord) const {
   IndexT index = 0;
 
   for (int i = 0; i < _D; i++){

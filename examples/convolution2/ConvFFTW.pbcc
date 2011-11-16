@@ -7,24 +7,10 @@
 
 pthread_mutex_t fftw_plan_mutex;
 
-void packArray(double *out, ConstMatrixRegion1D &in, int length)
-{
-  for (int i = 0; i < length; i++) {
-    out[i] = in.cell(i);
-  }
-}
-
-void unpackArray(MatrixRegion1D &out, double *in, int length)
-{
-  for (int i = 0; i < length; i++) {
-    out.cell(i) = in[i];
-  }
-}
-
 // multiply Y1 by Y2, divide by N, store in Y1.  uses 3-mul complex multiply.
-inline void complexMultiplyScale(double Y1[2], double Y2[2], double N)
+inline void complexMultiplyScale(ElementT Y1[2], ElementT Y2[2], ElementT N)
 {
-  double ac, bd, abcd;
+  ElementT ac, bd, abcd;
   ac = Y1[0] * Y2[0];
   bd = Y1[1] * Y2[1];
   abcd = (Y1[0] + Y1[1]) * (Y2[0] + Y2[1]);
@@ -40,10 +26,10 @@ to C[n]
 {
   to (C c) from (A a, B b)
   {
-    double *X1, *X2;
+    ElementT *X1, *X2;
     fftw_complex *Y1, *Y2;
-    X1 = (double *) fftw_malloc(sizeof(double) * n);
-    X2 = (double *) fftw_malloc(sizeof(double) * n);
+    X1 = (ElementT *) fftw_malloc(sizeof(ElementT) * n);
+    X2 = (ElementT *) fftw_malloc(sizeof(ElementT) * n);
     Y1 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * n);
     Y2 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * n);
 
@@ -54,19 +40,19 @@ to C[n]
     p3 = fftw_plan_dft_c2r_1d(n, Y1, X1, FFTW_ESTIMATE);
     pthread_mutex_unlock(&fftw_plan_mutex);
 
-    packArray(X1, a, n);
-    packArray(X2, b, n);
+    _regioncopy(X1, a);
+    _regioncopy(X2, b);
 
     fftw_execute(p1);
     fftw_execute(p2);
 
     for (int i = 0; i < n; i++) {
-      complexMultiplyScale(Y1[i], Y2[i], (double) n);
+      complexMultiplyScale(Y1[i], Y2[i], (ElementT) n);
     }
 
     fftw_execute(p3);
 
-    unpackArray(c, X1, n);
+    _regioncopy(c, X1);
 
     fftw_destroy_plan(p1);
     fftw_destroy_plan(p2);

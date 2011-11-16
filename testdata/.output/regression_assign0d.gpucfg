@@ -1,3 +1,4 @@
+distributedcutoff = 512     # int, valid range: 0 to 2147483647
 sequentialcutoff = 64     # int, valid range: 0 to 2147483647
 test_0_lvl10_cutoff = 2147483647     # int, valid range: 1 to 2147483647
 test_0_lvl10_rule = 0     # int, valid range: 0 to 2

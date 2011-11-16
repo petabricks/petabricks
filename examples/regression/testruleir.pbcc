@@ -37,6 +37,14 @@ transform TestRuleIR from IN[w,h] to OUT[w,h]
     }
     return i;
   }
+
+  secondary OUT.cell(x,y) from(IN.cell(x,y) i)
+  {
+    int *a, *b, c, d;
+    for(int x=0; x<10; ++x) { a = &c; b=a; }
+    for(int x=0; x<10; ++x) { b = &d; a=b; }
+    return i;
+  }
 }
 
 

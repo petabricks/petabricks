@@ -57,21 +57,21 @@ generator matrixapproinputgen
 
 	//V tranposed
 	VT.cell(j,i) from (X.cell(i,j) x){
-		return sqrt(2.0)*x;	
+		return sqrt(2.0)*x;
 	}
-		
+
 
 
 	to (OUT out, TEMP temp) from (U u, VT vt){
 		int i;
-		if (k>n)  PetabricksRuntime::abort(); 
+		if (k>n)  PetabricksRuntime::abort();
 		MatrixMultiply(out, u.region(0,0,1,n), vt.region(0,0,n,1) );
-		for (i=1; i<k; i++) { 
+		for (i=1; i<k; i++) {
 			//MatrixAdd(out, out, MatrixMultiply(u.region(i,0,i+1,n), vt.region(0,i,n,i+1)) );
 			MatrixMultiply(temp, u.region(i,0,i+1,n), vt.region(0,i,n,i+1));
 			MatrixAdd(out, out, temp);
 		}
-	} 
+	}
 }
 
 
@@ -101,7 +101,7 @@ to Accuracy
 	ZERO.cell(i,j) from() { return 0;}
 
 	//accuracy measure
-	Accuracy  from(IN in, OUT out, ZERO Z) 
+	Accuracy  from(IN in, OUT out, ZERO Z)
 	{
 		int i;
 		int j;
@@ -116,7 +116,7 @@ to Accuracy
             		return log10(e1/e2);
         	}
 	}
-			
+
 }
 
 transform matrixapproinputgen

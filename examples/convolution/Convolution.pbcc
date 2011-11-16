@@ -63,6 +63,7 @@ to C[n+m-1]
 //    }
 //    printf(")\n");
 //  }
+    t.useOnCpu();
   }
 
   to (C.cell(i) c) from (T t)

@@ -16,6 +16,7 @@
  * If this condition is not met, use a different metric transform to
  * measure output accuracy.
  */
+template<typename ConstMatrixRegion1D, typename ConstMatrixRegion2D>
 double computeNWKDEMetric(ConstMatrixRegion1D result,
                           ConstMatrixRegion2D testData,
                           ConstMatrixRegion1D testIndices,

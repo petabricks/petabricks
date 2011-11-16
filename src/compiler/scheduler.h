@@ -131,10 +131,8 @@ private:
   ScheduleT _schedule;
   RuleChoiceAssignment _choiceAssignment;
 
-#ifdef HAVE_OPENCL
   std::map<RuleChoiceConsumer*,bool> _copyAssignment;
   std::map<RuleChoiceConsumer*,int> _numOutOnGpu;
-#endif
 };
 
 namespace {
@@ -281,6 +279,8 @@ public:
   }
 
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor type);
+
+  void generateGlobalCode(Transform& trans, CodeGenerator& o);
 
   int size() const { return _allNodes.size() - _inputsOriginal.size(); }
 

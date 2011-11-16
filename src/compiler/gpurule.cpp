@@ -26,37 +26,54 @@
  *****************************************************************************/
 #include "gpurule.h"
 
-#ifdef HAVE_OPENCL
+//#define GPU_TRACE
 
 namespace petabricks
 {
-
-void
-GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
-{
-  if( !_rule->isOpenClRule() )
+std::set<int> GpuRule::_done;
+void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) {
+  if(rf != RuleFlavor::SEQUENTIAL || isDisabled() || _done.find(_rule->id()) != _done.end())
     return;
+    
+  _done.insert(_rule->id());
+
+  generateKernel(trans, o, false);
+  if(_rule->canUseLocalMemory()) {
+    generateKernel(trans, o, true);
+    //o.createTunable(true, "system.flag.localmem", "rule_" + _rule->id() + "_localmem", 0, 0, 2);
+    //o.createTunable(true, "system.size.blocksize", "rule_" + _rule->id() + "_blocksize", 4, 0, 5);
+  }
+  //else {
+    //o.define("rule_" + _rule->id() + "_localmem", "0");
+  //}
+}
+
+void GpuRule::generateKernel(Transform& trans, CodeGenerator& o, bool local) {
+  std::string SUFFIX;
+  if(local)
+    SUFFIX = "_local";
+  else
+    SUFFIX = "_nolocal";
 
   CLCodeGenerator clcodegen(o.cgPtr());
   IterationDefinition iterdef(*_rule, _rule->getSelfDependency(), _rule->isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();
   std::vector<std::string> packedargnames = iterdef.packedargnames();
-  o.os() << "// GPURULE TRAMPOLINE CODE\n";
+  o.os() << "// GPURULE DECL CODE " << _rule->id() << " " << this << "\n";
 
   // Create variables to hold handles to program, kernel
-  o.hos() << "static cl_program clprog_" << _rule->id() << ";\n";
-  o.hos() << "static cl_kernel clkern_" << _rule->id() << ";\n\n";
-  o.os( ) << "cl_program " << trans.name() << "_instance::clprog_" << _rule->id()
+  o.os( ) << "cl_program " <<  "clprog_" << _rule->id() << SUFFIX
 	  << " = 0;\n";
-  o.os( ) << "cl_kernel " << trans.name() << "_instance::clkern_" << _rule->id()
+  o.os( ) << "cl_kernel " << "clkern_" << _rule->id() << SUFFIX
 	  << " = 0;\n";
 
   // Create init function call
-  o.beginFunc("int", codename()+"_init", std::vector<std::string>(),true);
+  o.beginFunc("void", codename()+"_init"+SUFFIX, std::vector<std::string>(),false);
+  trans.addInitCall(codename()+"_init"+SUFFIX);
 
-  _rule->generateOpenCLKernel( trans, clcodegen, iterdef );
-
-  o.os( ) << "cl_int err;";
+  _rule->generateOpenCLKernel( trans, clcodegen, iterdef, local);
+  
+ // o.os( ) << "cl_int err;";
 
   //o.os( ) << "/* -- Testing purposes only, to make this easy to read --\n\n";
   //clcodegen.outputStringTo( o.os( ) );
@@ -66,47 +83,85 @@ GpuRule::generateTrampCodeSimple(Transform& trans, CodeGenerator& o)
   clcodegen.outputEscapedStringTo( o.os( ) );
   o.os( ) << ";\n";
 
-  o.comment( "Source for kernel." );
-  o.os( ) << "cl_context ctx = OpenCLUtil::getContext( );\n\n";
+  o.os() << "bool rv = OpenCLUtil::buildKernel(clprog_" << _rule->id() << SUFFIX << ", clkern_" << _rule->id() << SUFFIX << ", clsrc);\n";
+  o.os() << "JASSERT(rv);\n";
 
-  o.comment( "Build program." );
-  o.os( ) << "size_t programlength = strlen( clsrc );\n";
 
-  o.os( ) << "clprog_" << _rule->id() << " = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );\n";
-  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create program.\" );\n\n";
-  o.os( ) << "err = clBuildProgram( clprog_" << _rule->id() << ", 0, NULL, NULL, NULL, NULL);\n";
-  o.os( ) << "#if OPENCL_TRACE\nstd::cerr << \"clBuildProgram err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n#endif\n";
-  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to build program.\" );\n\n";
-
-  o.comment( "Create kernel." );
-  o.os( ) << "clkern_" << _rule->id() << "= clCreateKernel( clprog_" << _rule->id() << ", \"kernel_main\", &err );\n";
-  o.os( ) << "#if OPENCL_TRACE\nstd::cerr << \"clCreateKernel err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n#endif\n";
-  o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create kernel.\" );\n\n";
-
-  o.os( ) << "return 0;";
+///o.comment( "Source for kernel." );
+///o.os( ) << "cl_context ctx = OpenCLUtil::getContext( );\n\n";
+///
+///o.comment( "Build program." );
+///o.os( ) << "size_t programlength = strlen( clsrc );\n";
+///
+///o.os( ) << "clprog_" << _rule->id() << " = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );\n";
+///o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create program.\" );\n\n";
+///o.os( ) << "err = clBuildProgram( clprog_" << _rule->id() << ", 0, NULL, NULL, NULL, NULL);\n";
+///fdef GPU_TRACE
+///o.os( ) << "std::cerr << \"clBuildProgram err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
+///ndif
+///o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to build program.\" );\n\n";
+///
+///o.comment( "Create kernel." );
+///o.os( ) << "clkern_" << _rule->id() << "= clCreateKernel( clprog_" << _rule->id() << ", \"kernel_main\", &err );\n";
+///fdef GPU_TRACE
+///o.os( ) << "std::cerr << \"clCreateKernel err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
+///ndif
+///o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create kernel.\" );\n\n";
+///fdef GPU_TRACE
+///o.write("std::cout << \"---build kernel---\" << std::endl;");
+///ndif
+///
+///o.os( ) << "return 0;\n";
   o.endFunc();
 
   // Create actual function call
-  o.beginFunc("petabricks::DynamicTaskPtr", codename(), packedargs);
+  /*o.beginFunc("petabricks::DynamicTaskPtr", codename(), packedargs);
   o.write("return ");
   o.call(_rule->trampcodename(trans)+TX_OPENCL_POSTFIX, packedargnames);
-  o.endFunc();
+  o.endFunc();*/
 
   // Get kernel
-  o.beginFunc("cl_kernel", "get_kernel_" + jalib::XToString(_rule->id()));
-  o.beginIf("clkern_" + jalib::XToString(_rule->id()) + " == 0");
-  o.call(codename() + "_init" , std::vector<std::string>());
-  o.endIf();
-  o.write("return clkern_" + jalib::XToString(_rule->id()) + ";");
+  o.beginFunc("cl_kernel", "get_kernel_" + jalib::XToString(_rule->id()) + SUFFIX);
+ //o.beginIf("clkern_" + jalib::XToString(_rule->id()) + " == 0");
+ //o.call(codename() + "_init" , std::vector<std::string>());
+ //o.endIf();
+#ifdef DEBUG
+  o.write("JASSERT(clkern_" + jalib::XToString(_rule->id()) + SUFFIX + " != 0);");
+#endif
+  o.write("return clkern_" + jalib::XToString(_rule->id()) + SUFFIX + ";");
   o.endFunc();
 
   // Get program
-  o.beginFunc("cl_program", "get_program_" + jalib::XToString(_rule->id()));
-  o.beginIf("clprog_" + jalib::XToString(_rule->id()) + " == 0");
-  o.call(codename() + "_init" , std::vector<std::string>());
-  o.endIf();
-  o.write("return clprog_" + jalib::XToString(_rule->id()) + ";");
+  o.beginFunc("cl_program", "get_program_" + jalib::XToString(_rule->id()) + SUFFIX);
+ //o.beginIf("clprog_" + jalib::XToString(_rule->id()) + " == 0");
+ //o.call(codename() + "_init" , std::vector<std::string>());
+ //o.endIf();
+#ifdef DEBUG
+  o.write("JASSERT(clprog_" + jalib::XToString(_rule->id()) + SUFFIX + " != 0);");
+#endif
+  o.write("return clprog_" + jalib::XToString(_rule->id()) + SUFFIX + ";");
   o.endFunc();
+  
+}
+
+void GpuRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor)
+{
+  if(isDisabled())
+    return;
+  o.os() << "// GPURULE TRAMP CODE " << _rule->id() << "\n";
+  switch(flavor) {
+  case RuleFlavor::SEQUENTIAL:
+    _rule->generateTrampCode(trans, o, RuleFlavor::SEQUENTIAL_OPENCL);
+    break;
+  case RuleFlavor::WORKSTEALING:
+    _rule->generateTrampCode(trans, o, RuleFlavor::WORKSTEALING_OPENCL);
+    break;
+  case RuleFlavor::DISTRIBUTED:
+    _rule->generateTrampCode(trans, o, RuleFlavor::DISTRIBUTED_OPENCL);
+    break;
+  default:
+    UNIMPLEMENTED();
+  }
 }
 
 void GpuRule::generateCallCode(const std::string& name,
@@ -116,7 +171,7 @@ void GpuRule::generateCallCode(const std::string& name,
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        bool gpuCopyOut)
+                        int gpuCopyOut)
 {
   o.comment("gpu generateCallCode");
   switch(flavor) {
@@ -124,8 +179,10 @@ void GpuRule::generateCallCode(const std::string& name,
     o.callSpatial(_rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region);
     break;
   case RuleFlavor::WORKSTEALING:
-    o.mkCreateGpuSpatialMethodCallTask(name, trans.instClassName(), _rule->trampcodename(trans)+TX_OPENCL_POSTFIX+"_createtasks", region, regionNodesGroups, nodeID, gpuCopyOut);
-    //o.mkGpuSpatialTask(name, trans.instClassName(), _rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region, _rule->getToRegions(), _rule->getFromRegions());
+    o.mkCreateGpuSpatialMethodCallTask(name, trans.instClassName() + "_workstealing", _rule->trampcodename(trans)+TX_OPENCL_POSTFIX+"_createtasks", region, regionNodesGroups, nodeID, gpuCopyOut);
+    break;
+  case RuleFlavor::DISTRIBUTED:
+    o.comment("gpurule::distributed");
     break;
   default:
     UNIMPLEMENTED();
@@ -217,4 +274,3 @@ petabricks::FormulaPtr petabricks::GpuRule::getWhereClause() const {
 
 }//namespace
 
-#endif

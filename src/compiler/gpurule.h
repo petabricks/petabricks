@@ -29,8 +29,6 @@
 
 #include "pbc.h"
 
-#ifdef HAVE_OPENCL
-
 #include "syntheticrule.h"
 #include "userrule.h"
 #include "matrixdependency.h"
@@ -38,6 +36,8 @@
 #include "iterationorders.h"
 #include "maximawrapper.h"
 #include "transform.h"
+
+#include <set>
 
 namespace petabricks
 {
@@ -53,7 +53,10 @@ class GpuRule : public SyntheticRule {
 
     // Overridden functions
 
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o);
+  void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
+  void generateKernel(Transform& trans, CodeGenerator& o, bool local);
+
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
 
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
@@ -62,7 +65,7 @@ class GpuRule : public SyntheticRule {
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        bool gpuCopyOut);
+                        int gpuCopyOut);
   //TODO: remove this
   void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
   void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
@@ -102,6 +105,8 @@ class GpuRule : public SyntheticRule {
 
   bool isEnabledGpuRule() { return !isDisabled(); }
   int getAssociatedId() { return _rule->id(); }
+  
+  static std::set<int> _done;
  private:
   UserRule* _rule;
   RIRBlockCopyRef _bodyirOpenCL;
@@ -109,5 +114,4 @@ class GpuRule : public SyntheticRule {
 
 }
 
-#endif
 #endif

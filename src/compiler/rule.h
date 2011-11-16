@@ -41,6 +41,7 @@
 
 namespace petabricks {
 
+class ChoiceDepGraphNode;
 class CodeGenerator;
 class DependencyDirection;
 class FormulaList;
@@ -128,6 +129,10 @@ public:
   virtual bool canProvide(const MatrixDefPtr& m) const = 0;
   virtual bool isSingleElement() const = 0;
 
+  virtual void trimDependency(DependencyDirection& dep,
+                              const ChoiceDepGraphNode& from,
+                              const ChoiceDepGraphNode& to) = 0;
+
   virtual void collectDependencies(StaticScheduler& scheduler) = 0;
   virtual void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension, const RulePtr&) = 0;
   
@@ -138,17 +143,17 @@ public:
                                 RuleFlavor flavor,
                                 std::vector<RegionNodeGroup>& regionNodesGroups,
                                 int nodeID,
-                                bool gpuCopyOut) = 0;
+                                int gpuCopyOut) = 0;
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor) {
     std::vector<RegionNodeGroup> empty;
-    generateCallCode(nodename, trans, o, region, flavor, empty, 0, false);
+    generateCallCode(nodename, trans, o, region, flavor, empty, 0, 0);
   }
-  virtual void generateDeclCodeSimple(Transform& trans, CodeGenerator& o) = 0;
-  virtual void generateTrampCodeSimple(Transform& trans, CodeGenerator& o) = 0;
+  virtual void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
+  virtual void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
   
   virtual void markRecursive() = 0;
   virtual const FormulaPtr& recursiveHint() const = 0;
@@ -175,10 +180,8 @@ public:
   
   void printIdentifier(std::ostream& o) const { o <<_id << " "; }
   int id() const { return _id; }
-#ifdef HAVE_OPENCL
   virtual int getAssociatedId() { return _id; }
   virtual bool isEnabledGpuRule() { return false; }
-#endif
   
   const SimpleRegionPtr& applicableRegion() const { return _applicableRegion; }
   

@@ -1,0 +1,23 @@
+#ifndef SELECTIONSORT_PBCC
+#define SELECTIONSORT_PBCC
+
+transform Selectionsort
+from IN[n]
+through KEY[n]
+to OUT[n]
+{
+
+  to(KEY.cell(index) key, OUT out) from(IN in) {
+    int pos = 0;
+    ElementT val = in.cell(index);
+    for(int i = 0; i < n; i++)
+    { 
+      if((in.cell(i) < val) || (in.cell(i) == val && i < index))
+        pos++;
+    }
+    out.cell(pos) = val;
+  }
+}
+
+#endif // SELECTIONSORT_PBCC
+

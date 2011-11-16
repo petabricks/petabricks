@@ -24,20 +24,60 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-
-#include "config.h"
-
-#if !defined(PETABRICKSOPENCLUTIL_H) && HAVE_OPENCL
+#ifndef PETABRICKSOPENCLUTIL_H
 #define PETABRICKSOPENCLUTIL_H
 
 #include <vector>
 #include <string>
-#include <oclUtils.h>
-//#include <CL/cl_platform.h>
-//#include <CL/cl.h>
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+#ifdef HAVE_OCLUTILS_H
+# include <oclUtils.h>
+#endif
+
+#ifdef HAVE_SDKCOMMON_HPP
+# include <SDKCommon.hpp>
+#endif
+
+#ifdef HAVE_SDKAPPLICATION_HPP
+# include <SDKApplication.hpp>
+#endif
+
+#ifdef HAVE_SDKFILE_HPP
+# include <SDKFile.hpp>
+#endif
+
+#ifdef HAVE_OPENCL_OPENCL_H
+# include <OpenCL/opencl.h>
+#endif
+
+#ifdef HAVE_OPENCL_H
+# include <opencl.h>
+#endif
+
+#ifndef HAVE_OPENCL
+//make our function signatures compile without opencl
+typedef int cl_command_queue;
+typedef int cl_context;
+typedef int cl_device_id;
+typedef int cl_int;
+typedef int cl_kernel;
+typedef int cl_mem;
+typedef int cl_platform_id;
+typedef int cl_program;
+typedef int cl_uint;
+typedef int cl_ulong;
+typedef int cl_event;
+#endif
 
 namespace petabricks
 {
+
+
+
   struct OpenCLDevice
   {
     OpenCLDevice( cl_device_id _id );
@@ -84,6 +124,10 @@ namespace petabricks
     static void setActiveDevice( unsigned int dev_idx );
     static unsigned int getActiveDevice( );
     static cl_device_id getActiveDeviceID( );
+
+    static cl_platform_id getPlatform();
+
+    static bool buildKernel(cl_program& cprog, cl_kernel& clkern, const char* clsrc);
 
   private:
     /** Class is a singleton. */

@@ -24,25 +24,145 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#include "openclutil.h"
+#include "common/hash.h"
 #include "common/jassert.h"
-#include <iostream>
+#include "common/jconvert.h"
+#include "common/jfilesystem.h"
+#include "common/openclutil.h"
 
-#if HAVE_OPENCL
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include <iostream>
+#include <stdio.h>
 
 namespace petabricks
 {
 
+OpenCLDevice::OpenCLDevice( cl_device_id _id )
+  : id( _id ), enabled( true )
+{
+}
+
+
+#ifndef HAVE_OPENCL
+
+cl_platform_id OpenCLUtil::getPlatform( )
+{
+  UNIMPLEMENTED();
+  return 0;
+}
+
+int
+OpenCLUtil::init( )
+{
+  UNIMPLEMENTED();
+  return 0;
+}
+
+void
+OpenCLUtil::deinit( )
+{
+  UNIMPLEMENTED();
+}
+
+cl_context
+OpenCLUtil::getContext( )
+{
+  UNIMPLEMENTED();
+  return 0;
+}
+
+cl_command_queue
+OpenCLUtil::getQueue( unsigned int  )
+{
+  UNIMPLEMENTED();
+  return 0;
+}
+
+cl_int
+OpenCLUtil::buildProgram( cl_program & )
+{
+  UNIMPLEMENTED();
+  return 0;
+}
+
+std::string
+OpenCLUtil::errorString( cl_int  )
+{
+  return "";
+}
+
+void
+OpenCLUtil::setActiveDevice( unsigned int  )
+{
+  UNIMPLEMENTED();
+}
+
+bool OpenCLUtil::buildKernel(cl_program& , cl_kernel& , const char* ) {
+  UNIMPLEMENTED();
+  return false;
+}
+
+}
+
+
+#else
+//#define OPENCL_TRACE 1
+
+
 bool OpenCLUtil::has_init = false;
 std::vector<OpenCLDevice> OpenCLUtil::devices;
 cl_context OpenCLUtil::context;
-  unsigned int OpenCLUtil::active_device = 0;
+unsigned int OpenCLUtil::active_device = 0;
+
+
+void OpenCLUtil::pfn_notify(const char *errinfo, const void* /*private_info*/, size_t /*cb*/, void* /*user_data*/){
+#ifdef DEBUG
+  std::cerr << "OpenCL Error via pfn_notify: " << errinfo << std::endl;
+#endif
+  //JASSERT(false).Text("OpenCL Error via pfn_notify.");
+}
+
+cl_platform_id OpenCLUtil::getPlatform( )
+{
+  cl_platform_id platform = NULL;
+#ifdef NVIDIA
+  // Get platform.
+  if( CL_SUCCESS != oclGetPlatformID(&platform) )
+    return NULL;
+#else
+  cl_uint numPlatforms;
+  if( CL_SUCCESS != clGetPlatformIDs(0, NULL, &numPlatforms))
+    return NULL;
+
+  if (0 < numPlatforms) 
+  {
+    cl_platform_id* platforms = new cl_platform_id[numPlatforms];
+    if(CL_SUCCESS != clGetPlatformIDs(numPlatforms, platforms, NULL))
+      return NULL;
+    for (int i = 0; i < numPlatforms; ++i) 
+    {
+      char pbuf[100];
+      if(CL_SUCCESS != clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR, sizeof(pbuf), pbuf, NULL))
+        return NULL;
+
+      platform = platforms[i];
+      if (!strcmp(pbuf, "Advanced Micro Devices, Inc.")) 
+        break;
+    }
+    delete[] platforms;
+  }
+
+#endif
+  return platform;;
+}
 
 int
 OpenCLUtil::init( )
 {
   #if OPENCL_TRACE
-  std::cout << "OpenCLUtil::init() begins...\n";
+  std::cerr << "OpenCLUtil::init() begins...\n";
   #endif
 
   int err;
@@ -51,13 +171,14 @@ OpenCLUtil::init( )
   if( true == has_init )
     return 0;
 
-  // Get platform.
-  cl_platform_id platform = NULL;
-  if( CL_SUCCESS != oclGetPlatformID(&platform) )
+  cl_platform_id platform = getPlatform();
+
+  if(platform == NULL)
     return -1;
 
   // Get device count.
   cl_uint device_count;
+#ifdef MAC
   if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, 0, NULL, &device_count ) )
     return -1;
 
@@ -65,15 +186,24 @@ OpenCLUtil::init( )
   cl_device_id* device_ids = new cl_device_id[ device_count ];
   if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, device_count, device_ids, &device_count ) )
     return -2;
+#else
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) )
+    return -1;
+
+  // Get device IDs.
+  cl_device_id* device_ids = new cl_device_id[ device_count ];
+  if( CL_SUCCESS != clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, &device_count ) )
+    return -2;
+#endif
 
   // Create context.
-  if( (cl_context)0 == ( context = clCreateContext(0, device_count, device_ids, NULL, NULL, &err) ) )
+  if( (cl_context)0 == ( context = clCreateContext(0, device_count, device_ids, &pfn_notify, NULL, &err) ) )
     return -3;
   if( CL_SUCCESS != err )
     return -5;
 
   #if OPENCL_TRACE
-  std::cout << "Created context: " << context << "\n";
+  std::cerr << "Created context: " << context << "\n";
   #endif
 
   // Get device-specific information.
@@ -81,7 +211,7 @@ OpenCLUtil::init( )
     {
       devices.push_back( OpenCLDevice( device_ids[i] ) );
       #if OPENCL_TRACE
-      std::cout << "Loading device ID: " << device_ids[i] << "\n";
+      std::cerr << "Loading device ID: " << device_ids[i] << "\n";
       #endif
       OpenCLDevice* dev_info = &devices.back( );
 
@@ -97,12 +227,12 @@ OpenCLUtil::init( )
       clGetDeviceInfo( device_ids[i], CL_DEVICE_MAX_CLOCK_FREQUENCY,
 		       sizeof(dev_info->max_clock_freq), &dev_info->max_clock_freq, NULL );
 
-      // TODO(mangpo): do we need this?
+      // TODO(mangpo):
       // Work-item and work-group properties
-      /*std::cout << "work-item" << std::endl;
+      /*std::cerr << "work-item" << std::endl;
       clGetDeviceInfo( device_ids[1], CL_DEVICE_MAX_WORK_ITEM_SIZES,
 		       sizeof(dev_info->max_workitem_size), &dev_info->max_workitem_size, NULL );
-      std::cout << "work-group" << std::endl;
+      std::cerr << "work-group" << std::endl;
       clGetDeviceInfo( device_ids[i], CL_DEVICE_MAX_WORK_GROUP_SIZE,
 		       sizeof(dev_info->max_workgroup_size), &dev_info->max_workgroup_size, NULL );*/
 
@@ -112,6 +242,7 @@ OpenCLUtil::init( )
       clGetDeviceInfo( device_ids[i], CL_DEVICE_LOCAL_MEM_SIZE,
 		       sizeof(dev_info->local_mem_size), &dev_info->local_mem_size, NULL );
 
+      //std::cout << "local mem size = " << dev_info->local_mem_size << std::endl;
       // Queue properties
       cl_command_queue_properties queue_props;
       clGetDeviceInfo( device_ids[i], CL_DEVICE_QUEUE_PROPERTIES,
@@ -127,7 +258,7 @@ OpenCLUtil::init( )
 	      return -6;
 
       #if OPENCL_TRACE
-      std::cout << "Created command queue: " << dev_info->queue << "\n";
+      std::cerr << "Created command queue: " << dev_info->queue << "\n";
       #endif
     }
 
@@ -136,7 +267,7 @@ OpenCLUtil::init( )
 
   has_init = true;
   #if OPENCL_TRACE
-  std::cout << "OpenCLUtil::init() finishes...\n";
+  std::cerr << "OpenCLUtil::init() finishes...\n";
   #endif
   return 0;
 }
@@ -150,6 +281,9 @@ OpenCLUtil::deinit( )
 
   // Release context.
   clReleaseContext( context );
+  #if OPENCL_TRACE
+  std::cerr << "OpenCLUtil::deinit()\n";
+  #endif
 }
 
 cl_context
@@ -322,12 +456,6 @@ OpenCLUtil::errorString( cl_int error )
     }
 }
 
-OpenCLDevice::OpenCLDevice( cl_device_id _id )
-  : id( _id ), enabled( true )
-{
-  // intentionally blank
-}
-
 void
 OpenCLUtil::setActiveDevice( unsigned int dev_idx )
 {
@@ -344,6 +472,137 @@ cl_device_id
 OpenCLUtil::getActiveDeviceID( )
 {
   return devices.at( active_device ).id;
+}
+
+#define MAX_DEVICES 16
+#define OCL_CACHE_DIR "/tmp/petabricks_ocl_cache"
+
+namespace {
+
+  int do_mkdir() {
+    mode_t old = umask(0);
+    int mdrv = mkdir(OCL_CACHE_DIR, 0777);
+    if(mdrv != 0) {
+      JASSERT(errno == EEXIST);
+    }
+    umask(old);
+    return 0;
+  }
+
+  std::string srcToCacheFile(const char* src) {
+    static int init = do_mkdir();
+    JASSERT(init==0);
+
+    jalib::HashGenerator hg;
+    hg.update(src, strlen(src));
+    std::ostringstream t;
+    t << OCL_CACHE_DIR "/" << hg.final();
+    return t.str();
+  }
+
+}
+
+
+bool OpenCLUtil::buildKernel(cl_program& clprog, cl_kernel& clkern, const char* clsrc) {
+  std::string cachefile = srcToCacheFile(clsrc);
+  cl_int err;
+  size_t num_devices = 0;
+  size_t binSize[MAX_DEVICES];
+  unsigned char* binary[MAX_DEVICES];
+  memset(binary, 0, sizeof binary);
+  memset(binSize, 0, sizeof binSize);
+
+  // Source for kernel.
+  cl_context ctx = OpenCLUtil::getContext();
+
+#ifndef MAC
+  if(jalib::Filesystem::FileExists(cachefile + "_0")) {
+    cl_platform_id platform = getPlatform();
+    JASSERT(platform != NULL);
+    
+    cl_uint device_count;
+    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 0, NULL, &device_count ) ).Text("Failed to get device count");
+   
+    // Get device IDs.
+    cl_device_id* device_ids = new cl_device_id[ device_count ];
+    JASSERT( CL_SUCCESS == clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, device_count, device_ids, &device_count ) ).Text("Failed to get device IDs");
+
+    num_devices = device_count;
+    JASSERT(num_devices < MAX_DEVICES);
+
+    for(int i=0; i<num_devices; ++i) { 
+      FILE* binfile = fopen((cachefile+"_"+jalib::XToString(i)).c_str(), "rb");
+      JASSERT(binfile!=NULL)(cachefile).Text("failed to open file");
+      JASSERT(fread(&binSize[i], sizeof(size_t), 1, binfile)>0);
+      binary[i] = new unsigned char[binSize[i]];
+      JASSERT(fread(binary[i], sizeof(char), binSize[i], binfile)>0);
+      fclose(binfile);
+    }
+  
+    //JTRACE("loading cached opencl")(num_devices)(binSize[0])(binSize[1])(cachefile);
+    const unsigned char** binary_c = (const unsigned char**)binary;
+
+    cl_int binary_status, errcode_ret;
+    clprog = clCreateProgramWithBinary( ctx, num_devices, device_ids, binSize, binary_c, &binary_status, &errcode_ret);
+    //JASSERT( CL_SUCCESS == errcode_ret).Text( "Failed to create program." );
+
+    err = clBuildProgram( clprog, 0, NULL, NULL, NULL, NULL);
+    JASSERT( CL_SUCCESS == err ).Text( "Failed to build program." );
+
+    clkern = clCreateKernel( clprog, "kernel_main", &err );
+    JASSERT( CL_SUCCESS == err ).Text( "Failed to create kernel." );
+
+    for(int i=0; i<num_devices; ++i) { 
+      delete [] (binary[i]);
+    }
+
+    //JTRACE("cache hit");
+
+    return true;
+  }
+#endif
+
+  // Build program.
+  clprog = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );
+  JASSERT( CL_SUCCESS == err ).Text( "Failed to create program." );
+
+  err = clBuildProgram( clprog, 0, NULL, NULL, NULL, NULL);
+  JASSERT( CL_SUCCESS == err ).Text( "Failed to build program." );
+
+  // Create kernel.
+  clkern = clCreateKernel( clprog, "kernel_main", &err );
+  JASSERT( CL_SUCCESS == err ).Text( "Failed to create kernel." );
+
+#ifndef MAC
+  err = clGetProgramInfo(clprog, CL_PROGRAM_BINARY_SIZES, sizeof(binSize), binSize, &num_devices);
+  JASSERT( CL_SUCCESS == err ).Text( "Failed to extract binary sizes." );
+  JASSERT((num_devices % sizeof(size_t)) == 0);
+  num_devices /= sizeof(size_t);
+  JASSERT(num_devices < MAX_DEVICES);
+
+  for(int i=0; i<num_devices; ++i) { 
+    binary[i] = new unsigned char[binSize[i]];
+  }
+  err = clGetProgramInfo(clprog, CL_PROGRAM_BINARIES, sizeof binary, binary, NULL);
+  JASSERT( CL_SUCCESS == err ).Text( "Failed to extract binaries." );
+  
+
+  JTRACE("creating cached opencl")(num_devices)(binSize[0])(binSize[1])(cachefile);
+
+  for(int i=0; i<num_devices; ++i) { 
+    FILE* binfile = fopen((cachefile+"_"+jalib::XToString(i)).c_str(), "wb");
+    JASSERT(binfile!=NULL)(cachefile).Text("failed to open file");
+    JASSERT(fwrite(&binSize[i], sizeof(size_t), 1, binfile)>0);
+    JASSERT(fwrite(binary[i], sizeof(char), binSize[i], binfile)>0);
+    fclose(binfile);
+  }
+  
+  for(int i=0; i<num_devices; ++i) { 
+    delete [] (binary[i]);
+  }
+#endif
+
+  return true;
 }
 
 }

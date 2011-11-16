@@ -8,7 +8,7 @@ from in[n]
 to out[n]
 {
     int i, j, ptr[WAY], minLoc;
-    double min;
+    ElementT min;
     for (i = 0; i < WAY; i++) {
       ptr[i] = n * i / WAY;
     }

@@ -21,8 +21,6 @@ to Eigenvalue[n1+n2], Eigenvector[n1+n2,n1+n2], WORK[(n1+n2)*(n1+n2)+4*(n1+n2)]
     int cutpnt=n1;
     int nsquared=size*size;
     ElementT rho=b;
-    ElementT *D = eig.base();
-    ElementT *Q = vec.base();
     int *indxq = new int[size];
     int *iwork = new int[4*size];
 
@@ -35,9 +33,21 @@ to Eigenvalue[n1+n2], Eigenvector[n1+n2,n1+n2], WORK[(n1+n2)*(n1+n2)+4*(n1+n2)]
       indxq[i]=i-cutpnt+1;
     }
     
-    //ElementT *work = new ElementT[4*size+nsquared];
+    ElementT *D;
+    ElementT *Q;
+    ElementT *W;
 
-    laed1_wrap(&size, D, Q, &size, indxq, &rho, &cutpnt, work.base(), iwork, &info);
+    CArrayStorage Dstore;
+    CArrayStorage Qstore;
+    CArrayStorage Wstore;
+
+    to_c_array(eig, D, Dstore);
+    to_c_array(vec, Q, Qstore);
+    to_c_array(work, W, Wstore);
+    laed1_wrap(&size, D, Q, &size, indxq, &rho, &cutpnt, W, iwork, &info);
+    from_c_array(eig, D, Dstore);
+    from_c_array(vec, Q, Qstore);
+    free_c_array(Q, Qstore);
 
     //delete [] work;
     delete [] iwork;
@@ -102,8 +112,8 @@ to Eigenvalue[n], Eigenvector[n,n], TMP[n,n], WORK[n*n+4*n]
 
       Copy1D(eig, Din);
 
-      eig.cell(cutpnt-1) -= rho;
-      eig.cell(cutpnt)   -= rho;
+      eig.cell(cutpnt-1) =  eig.cell(cutpnt-1) - rho;
+      eig.cell(cutpnt)   =  eig.cell(cutpnt)   - rho;
 
       //printf("Recursion: n = %d\n", n);
 

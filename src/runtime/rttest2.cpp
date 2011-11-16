@@ -34,12 +34,34 @@ PetabricksRuntime::Main* petabricksMainTransform(){
 PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
+void _petabricksInit() {}
+void _petabricksCleanup() {}
 
 
 int main(int /*argc*/, const char** /*argv*/){
-  RegionMatrix2D A = petabricks::MatrixIO("testdata/Ones2D","r").readToRegionMatrix<2>();
-  A.print();
+  distributed::MatrixRegion2D A = MatrixIO("testdata/Rand2Da","r").read_distributed<2>();
+  MatrixIO().write(A);
+
+  workstealing::MatrixRegion2D B = A._toLocalRegion();
+  MatrixIO().write(B);
+
+  IndexT s1[] = {0,0};
+  IndexT e1[] = {16,16};
+
+  distributed::MatrixRegion2D C = A.region(s1, e1);
+  MatrixIO().write(C._toLocalRegion());
+
+  IndexT s2[] = {1,1};
+  IndexT e2[] = {5,5};
+
+  distributed::MatrixRegion2D D = A.region(s2, e2);
+  MatrixIO().write(D._toLocalRegion());
+
+  distributed::MatrixRegion1D E = D.row(2);
+  MatrixIO().write(E._toLocalRegion());
+
+  E.dataHosts();
+
   return 0;
-  
 }
 

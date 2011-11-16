@@ -51,21 +51,33 @@ public:
   void reserve(size_t n) {
     minCoord().reserve(n);
     maxCoord().reserve(n);
-    _isFirst.reserve(n);
+    _partNumber.reserve(n);
   }
-  void push_back(const FormulaPtr& b,const FormulaPtr& e, bool f){
+  void push_back(const FormulaPtr& b,const FormulaPtr& e, unsigned int f){
     minCoord().push_back(b);
     maxCoord().push_back(e);
-    _isFirst.push_back(f);
+    _partNumber.push_back(f);
   }
   void pop_back(){
     minCoord().pop_back();
     maxCoord().pop_back();
-    _isFirst.pop_back();
+    _partNumber.pop_back();
   }
-  bool isFirst(int d) const { return _isFirst[d]; }
+  unsigned int partNumber(int d) const { return _partNumber[d]; }
+
+  void print(std::ostream& o) const { 
+                      SimpleRegion::print(o);
+                      o << " PartNumber[";
+                      for (std::vector<unsigned int>::const_iterator i=_partNumber.begin(),
+                                                                     e=_partNumber.end();
+                           i != e;
+                           ++i) {
+                        o << *i << ", ";
+                      }
+                      o << "]";
+                    }
 private:
-  std::vector<bool> _isFirst;
+  std::vector<unsigned int> _partNumber;
 };
 
 struct SplitRegionCmp {
@@ -76,11 +88,11 @@ struct SplitRegionCmp {
   bool operator() (const SplitRegion& a, const SplitRegion& b) const {
     JASSERT(a.size()==b.size());
     for(size_t i=0; i<a.size(); ++i){
-      if(a.isFirst(i) != b.isFirst(i)){
+      if(a.partNumber(i) != b.partNumber(i)){
         if(_order.canIterateForward(i) || !_order.canIterateBackward(i)){
-          return a.isFirst(i);//dimension ordered forward 
+          return a.partNumber(i) < b.partNumber(i); //dimension ordered forward 
         }else{
-          return b.isFirst(i);//dimension ordered backward
+          return b.partNumber(i) < a.partNumber(i);//dimension ordered backward
         }
       }
     }
@@ -181,53 +193,72 @@ void petabricks::IterationDefinition::unpackargs(CodeGenerator& o) const {
 }
 
 
-void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, bool isStatic) const {
+void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, RuleFlavor rf, unsigned int blockNumber) const {
   //create list of subregion
   SplitRegionList regions;
   SplitRegion seed;
   seed.reserve(dimensions());
-  fillSplitRegionList(regions, seed);
+  fillSplitRegionList(regions, seed, blockNumber);
 
   //order them correctly
   std::sort(regions.begin(), regions.end(), SplitRegionCmp(_order));
  
   //generate code
-  if(!isStatic){ 
-    o.write("GroupedDynamicTask<"+jalib::XToString(1<<dimensions())+">* _split_task "
-                   "= new GroupedDynamicTask<"+jalib::XToString(1<<dimensions())+">();");
+  if(rf != RuleFlavor::SEQUENTIAL) {
+    o.write("GroupedDynamicTask<"+jalib::XToString(regions.size())+">* _split_task "
+                   "= new GroupedDynamicTask<"+jalib::XToString(regions.size())+">();");
   }
 
   for(size_t a=0; a<regions.size(); ++a){
     SimpleRegionPtr r= new SimpleRegion(regions[a]);
-    if(!isStatic){
-      rule.generateCallCode("(*_split_task)["+jalib::XToString(a)+"]", trans, o, r, RuleFlavor::WORKSTEALING);
+    rule.generateCallCode("(*_split_task)["+jalib::XToString(a)+"]", trans, o, r, rf);
+    if(rf != RuleFlavor::SEQUENTIAL){
       for(size_t b=0; b<a; ++b){
         if(canDependOn(regions[a], regions[b])){
           JTRACE("adding dep")(regions[a])(regions[b]);
           o.write("(*_split_task)["+jalib::XToString(a)+"]->dependsOn((*_split_task)["+jalib::XToString(b)+"]);");
         }
       }
-    }else{
-      rule.generateCallCode("", trans, o, r, RuleFlavor::SEQUENTIAL);
     }
   }
-  if(!isStatic) o.write("return petabricks::run_task(_split_task);");
-  else          o.write("return NULL;");
+
+  if(rf!=RuleFlavor::SEQUENTIAL){ 
+    o.write("return petabricks::run_task(_split_task);");
+  }else{
+    o.write("return NULL;");
+  }
 }
 
-void petabricks::IterationDefinition::fillSplitRegionList(SplitRegionList& regions, SplitRegion& r) const {
+void petabricks::IterationDefinition::fillSplitRegionList(SplitRegionList& regions, SplitRegion& r, unsigned int blockNumber) const {
   int d = r.dimensions();
-  if(d<dimensions()){
-    FormulaPtr begin = _begin[d];
-    FormulaPtr mid = new FormulaDivide( new FormulaAdd( _begin[d], _end[d] ), FormulaInteger::two());
-    FormulaPtr end = _end[d];
-    r.push_back(begin, mid, true);
-    fillSplitRegionList(regions, r);
+  if(d<dimensions()) {
+    FormulaPtr globalBegin = _begin[d];
+    FormulaPtr globalEnd = _end[d];
+    
+    // nthPart= (begin-end)/n
+    FormulaPtr nthPart = new FormulaDivide (new FormulaSubtract(globalEnd, globalBegin), new FormulaInteger(blockNumber));
+    
+    //First block
+    FormulaPtr begin = globalBegin;
+    FormulaPtr end = new FormulaAdd(begin, nthPart);
+    r.push_back(begin, end, 0);
+    fillSplitRegionList(regions, r, blockNumber);
     r.pop_back();
-    r.push_back(mid, end, false);
-    fillSplitRegionList(regions, r);
-    r.pop_back();
-  }else{
+    //Other blocks
+    for(unsigned int i=1; i<blockNumber; ++i) {
+      begin = new FormulaAdd(globalBegin, new FormulaMultiply(nthPart, new FormulaInteger(i)));
+      if (i+1 == blockNumber) {
+        end = globalEnd;
+      }
+      else {
+        end = new FormulaAdd(globalBegin, new FormulaMultiply(nthPart, new FormulaInteger(i+1)));
+      }
+      r.push_back(begin, end, i);
+      fillSplitRegionList(regions, r, blockNumber);
+      r.pop_back();
+    }
+  }
+  else {
     regions.push_back(r);
   }
 }
@@ -237,15 +268,13 @@ bool petabricks::IterationDefinition::canDependOn(const SplitRegion& a, const Sp
   JASSERT(a.size()==_order.size());
   for(size_t d=0; d<_order.size(); ++d){
     int mask = 0;
-    if(a.isFirst(d) && b.isFirst(d)){
-      //mask = DependencyDirection::D_LE;
+    if(a.partNumber(d) == b.partNumber(d)){
       continue;
-    }else if(!a.isFirst(d) && !b.isFirst(d)){
-      //mask = DependencyDirection::D_GE;
-      continue;
-    }else if(a.isFirst(d) && !b.isFirst(d)){
+    }
+    else if(a.partNumber(d) < b.partNumber(d)){
       mask = DependencyDirection::D_GT;
-    }else if(!a.isFirst(d) && b.isFirst(d)){
+    } 
+    else {
       mask = DependencyDirection::D_LT;
     }
 
@@ -255,3 +284,13 @@ bool petabricks::IterationDefinition::canDependOn(const SplitRegion& a, const Sp
   return true;
 }
 
+void petabricks::SplitRegionList::print(std::ostream& o) const { 
+  o << "SplitRegionList:";
+  for(SplitRegionList::const_iterator i=this->begin(), 
+                                 e=this->end(); 
+      i!=e; 
+      ++i) {
+    SplitRegion region= *i;
+    o << "\n* " << region;
+  }
+}
