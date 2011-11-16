@@ -284,6 +284,21 @@ def normalizeBenchmarkName(orig, search=True):
         return orig
       raise
 
+def killSubprocess(p):
+  if p.poll() is None:
+    try:
+      p.kill() #requires python 2.6
+    except:
+      os.kill(p.pid, signal.SIGKILL)
+      
+def terminateSubprocess(p):
+  if p.poll() is None:
+    try:
+      p.terminate() #requires python 2.6
+    except:
+      os.kill(p.pid, signal.SIGTERM)
+
+      
 def timeoutKiller(subproc, timeout):
   """Kill the 'subproc' process after 'timeout' seconds"""
   
@@ -292,8 +307,7 @@ def timeoutKiller(subproc, timeout):
   while (subproc.poll() is None) and (time.time() < endTime):
       time.sleep(5)
   
-  if subproc.poll() is None:
-    subproc.terminate()
+  terminateSubprocess(subproc)
     
 
 
@@ -418,13 +432,6 @@ def loadAndCompileBenchmarks(file, searchterms=[], extrafn=lambda b: True, postf
   benchmarks = filter(lambda x: x[0] not in excludeBenchmarks, benchmarks)
   
   return compileBenchmarks(map(lambda x: (x[0], lambda: extrafn(x), lambda: postfn(x[0])), benchmarks), learning, heuristicSetFileName), benchmarks
-
-def killSubprocess(p):
-  if p.poll() is None:
-    try:
-      p.kill() #requires python 2.6
-    except:
-      os.kill(p.pid, signal.SIGTERM)
 
 def tryAorB(A, B):
   def tryAorBinst(x):
