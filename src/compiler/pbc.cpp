@@ -84,6 +84,7 @@ namespace pbcConfig {
   std::string thePbPreprocessor;
   std::string theBasename;
   std::string theHeuristicsFile;
+  bool useDefaultHeuristics;
   int theNJobs = 2;
 }
 using namespace pbcConfig;
@@ -310,6 +311,7 @@ int main( int argc, const char ** argv){
   args.param("hardcode",   theHardcodedConfig).help("a config file containing tunables to set to hardcoded values");
   args.param("jobs",       theNJobs).help("number of gcc processes to call at once");
   args.param("heuristics", theHeuristicsFile).help("config file containing the (partial) set of heuristics to use");
+  args.param("defaultheuristics", useDefaultHeuristics).help("use the default heuristics for every choice");
   
   if(args.param("version").help("print out version number and exit") ){
     std::cerr << PACKAGE " compiler (pbc) v" VERSION " " REVISION_LONG << std::endl;
@@ -336,6 +338,9 @@ int main( int argc, const char ** argv){
   if(! theHeuristicsFile.empty()) {
     //Load the heuristics from the file
     HeuristicManager::instance().loadFromFile(theHeuristicsFile);
+  }
+  if(useDefaultHeuristics) {
+    HeuristicManager::instance().useDefaultHeuristics(true);
   }
   
   loadDefaultHeuristics();

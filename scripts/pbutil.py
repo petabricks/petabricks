@@ -297,7 +297,7 @@ def timeoutKiller(subproc, timeout):
     
 
 
-def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=None, timeout=None):
+def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=None, timeout=None, defaultHeuristics=False):
     if not os.path.isfile(src):
       raise IOError()
     
@@ -312,7 +312,9 @@ def compileBenchmark(pbc, src, binary=None, info=None, jobs=None, heuristics=Non
       cmd.append("--jobs="+str(jobs))
     if heuristics is not None:
       cmd.append("--heuristics="+heuristics)
-      
+    if defaultHeuristics:
+      cmd.append("--defaultheuristics")
+    
     cmd.append(src)
     
     #Remove the output file (if it exists)

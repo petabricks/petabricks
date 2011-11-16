@@ -39,7 +39,7 @@
 namespace petabricks {
 
 class HeuristicManager {
-public:
+  public:
   ///Singleton instance
   static HeuristicManager& instance() { static HeuristicManager inst;
                                         return inst;
@@ -51,15 +51,23 @@ public:
         }
   void loadFromFile(const std::string fileName);
   
+  HeuristicPtr& getDefaultHeuristic(const std::string name);
   HeuristicPtr& getHeuristic(const std::string name);
   
   const HeuristicMap& usedHeuristics() const { return _heuristicCache; }
+  void useDefaultHeuristics(const bool useDefaultHeuristics) {
+    _useDefaultHeuristics = useDefaultHeuristics;
+  }
+  
+private: 
+  
   
 private:
   HeuristicMap _heuristicCache;
   HeuristicMap _defaultHeuristics;
   HeuristicMap _fromFile;
   DBManager _db;
+  bool _useDefaultHeuristics;
 };
 
 }

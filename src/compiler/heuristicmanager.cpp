@@ -27,7 +27,25 @@
 #include "heuristicmanager.h"
 #include "tinyxml.h"
 
-petabricks::HeuristicPtr& petabricks::HeuristicManager::getHeuristic(const std::string name) {
+petabricks::HeuristicPtr& petabricks::HeuristicManager::getDefaultHeuristic(const std::string name) {
+  HeuristicMap::iterator found = _defaultHeuristics.find(name);
+  //Found! Store in cache and return
+  if (found != _defaultHeuristics.end()) {
+    _heuristicCache[name] = found->second;
+    return found->second;
+  }
+  
+  //Should never arrive here! Every heuristic should have a default
+  JWARNING("The heuristic does not have a default!")(name);
+  abort();
+}
+
+
+petabricks::HeuristicPtr& petabricks::HeuristicManager::getHeuristic(const std::string name) {  
+  if (_useDefaultHeuristics) {
+    return getDefaultHeuristic(name);
+  }
+  
   //From cache
   HeuristicMap::iterator found=_heuristicCache.find(name);
   if (found != _heuristicCache.end()) {
@@ -51,16 +69,7 @@ petabricks::HeuristicPtr& petabricks::HeuristicManager::getHeuristic(const std::
   }
   
   //Use default heuristic
-  found = _defaultHeuristics.find(name);
-    //Found! Store in cache and return
-  if (found != _defaultHeuristics.end()) {
-    _heuristicCache[name] = found->second;
-    return found->second;
-  }
-  
-  //Should never arrive here! Every heuristic should have a default
-  JWARNING("Unable to find this heuristic. Does it have a default?")(name);
-  abort();
+  return getDefaultHeuristic(name);
 }
 
 void petabricks::HeuristicManager::loadFromFile(const std::string fileName) {
