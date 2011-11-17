@@ -1,0 +1,14 @@
+transform test
+from IN[n,n]
+to OUT[n,n]
+{
+  OUT.cell(i,j) from(IN.cell(i-1,j) x){
+    return log(sqrt(x*x/7)*1.23);
+  }
+
+  
+  secondary
+  OUT.cell(i,j) from(IN.cell(i,j) x){
+    return log(sqrt(x*x/7));
+  }
+}

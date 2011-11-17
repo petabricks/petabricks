@@ -23,5 +23,6 @@ UpLeftDep_0_lvl9_cutoff = 2147483647     # int, valid range: 1 to 2147483647
 UpLeftDep_0_lvl9_rule = 0     # int, valid range: 0 to 256
 UpLeftDep_splitsize = 64     # int, valid range: 1 to 2147483647
 UpLeftDep_unrollschedule = 1     # int, valid range: 0 to 1
+distributedcutoff = 512     # int, valid range: 0 to 2147483647
 sequentialcutoff = 0     # int, valid range: 0 to 2147483647
 worker_threads = 8     # int, valid range: 1 to 512

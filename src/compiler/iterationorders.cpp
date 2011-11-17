@@ -193,7 +193,7 @@ void petabricks::IterationDefinition::unpackargs(CodeGenerator& o) const {
 }
 
 
-void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, bool isStatic, unsigned int blockNumber) const {
+void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, RuleFlavor rf, unsigned int blockNumber) const {
   //create list of subregion
   SplitRegionList regions;
   SplitRegion seed;
@@ -204,27 +204,29 @@ void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& 
   std::sort(regions.begin(), regions.end(), SplitRegionCmp(_order));
  
   //generate code
-  if(!isStatic){ 
+  if(rf != RuleFlavor::SEQUENTIAL) {
     o.write("GroupedDynamicTask<"+jalib::XToString(regions.size())+">* _split_task "
                    "= new GroupedDynamicTask<"+jalib::XToString(regions.size())+">();");
   }
 
   for(size_t a=0; a<regions.size(); ++a){
     SimpleRegionPtr r= new SimpleRegion(regions[a]);
-    if(!isStatic){
-      rule.generateCallCode("(*_split_task)["+jalib::XToString(a)+"]", trans, o, r, RuleFlavor::WORKSTEALING);
+    rule.generateCallCode("(*_split_task)["+jalib::XToString(a)+"]", trans, o, r, rf);
+    if(rf != RuleFlavor::SEQUENTIAL){
       for(size_t b=0; b<a; ++b){
         if(canDependOn(regions[a], regions[b])){
           JTRACE("adding dep")(regions[a])(regions[b]);
           o.write("(*_split_task)["+jalib::XToString(a)+"]->dependsOn((*_split_task)["+jalib::XToString(b)+"]);");
         }
       }
-    }else{
-      rule.generateCallCode("", trans, o, r, RuleFlavor::SEQUENTIAL);
     }
   }
-  if(!isStatic) o.write("return petabricks::run_task(_split_task);");
-  else          o.write("return NULL;");
+
+  if(rf!=RuleFlavor::SEQUENTIAL){ 
+    o.write("return petabricks::run_task(_split_task);");
+  }else{
+    o.write("return NULL;");
+  }
 }
 
 void petabricks::IterationDefinition::fillSplitRegionList(SplitRegionList& regions, SplitRegion& r, unsigned int blockNumber) const {

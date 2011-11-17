@@ -3,38 +3,76 @@
 
 #include <map>
 #include <pthread.h>
+
+#include "iregioncache.h"
 #include "regiondatai.h"
+#include "regiondataremotecache.h"
 #include "remoteobject.h"
 
 #ifdef HAVE_CONFIG_H
-# include "config.h"
+#include "config.h"
 #endif
 
 namespace petabricks {
+  using namespace petabricks::RegionDataRemoteMessage;
+
+
   class RegionDataRemote;
   typedef jalib::JRef<RegionDataRemote> RegionDataRemotePtr;
 
-  class RegionDataRemote : public RegionDataI {
+  class RegionDataRemoteObject;
+  typedef jalib::JRef<RegionDataRemoteObject> RegionDataRemoteObjectPtr;
+
+  class RegionDataRemote : public RegionDataI, IRegionCacheable {
   private:
-    RemoteObjectPtr _remoteObject;
-    pthread_mutex_t _seq_mux;
-    pthread_mutex_t _buffer_mux;
-    pthread_cond_t _buffer_cond;
-    uint16_t _seq;
-    uint16_t _recv_seq;
-    std::map<uint16_t, void*> _buffer;
+    RegionDataRemoteObjectPtr _remoteObject;
 
   public:
-    RegionDataRemote(int dimensions, IndexT* size, RemoteObjectPtr remoteObject);
-    ~RegionDataRemote();
+    RegionDataRemote(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject);
+    RegionDataRemote(const int dimensions, const IndexT* size, RemoteHostPtr host);
+    RegionDataRemote(const int dimensions, const IndexT* size, const IndexT* partOffset, RemoteHostPtr host);
+    RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const MessageType initialMessageType, const EncodedPtr encodePtr);
+    ~RegionDataRemote() {
+      //JTRACE("Destruct RegionDataRemote");
+    }
+
+    void init(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject);
 
     int allocData();
+    void randomize();
 
-    ElementT readCell(const IndexT* coord);
+    ElementT readCell(const IndexT* coord) const;
+    ElementT readNoCache(const IndexT* coord) const;
+
     void writeCell(const IndexT* coord, ElementT value);
+    void writeNoCache(const IndexT* coord, ElementT value);
+
+    // cache
+    IRegionCachePtr cacheGenerator() const;
+    IRegionCachePtr cache() const;
+    void invalidateCache();
+    void readByCache(void* request, size_t request_len, void* reply, size_t &reply_len) const;
+    void writeByCache(const IndexT* coord, ElementT value) const;
+
+    DataHostPidList hosts(IndexT* begin, IndexT* end);
+    RemoteHostPtr host();
+
+    // Update long chain of RegionHandlers
+    UpdateHandlerChainReplyMessage updateHandlerChain();
+    UpdateHandlerChainReplyMessage updateHandlerChain(UpdateHandlerChainMessage& msg);
 
     void onRecv(const void* data, size_t len);
-    void* fetchData(const void* msg, size_t len);
+    void fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen) const;
+
+    // Process remote messages
+    void forwardMessage(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+
+    void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processRandomizeDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller, RegionDataIPtr regionDataPtr);
 
     static RemoteObjectPtr genRemote();
   };
@@ -42,45 +80,21 @@ namespace petabricks {
 
   class RegionDataRemoteObject : public RemoteObject {
   protected:
-    RegionDataRemotePtr _regionData;
+    RegionDataRemote* _regionData;
   public:
     RegionDataRemoteObject() {}
+    ~RegionDataRemoteObject() {
+      // JTRACE("Destruct RegionDataRemoteObject");
+    }
 
     void onRecv(const void* data, size_t len) {
       _regionData->onRecv(data, len);
     }
 
-    void onRecvInitial(const void* buf, size_t len);
+    RegionDataIPtr regionData() {
+      return _regionData;
+    }
   };
-
-
-  namespace RegionDataRemoteMessage {
-    typedef uint16_t MessageType;
-
-    struct MessageTypes {
-      enum {
-	READCELL = 11,
-	WRITECELL,
-      };
-    };
-
-    struct InitialMessage {
-      int dimensions;
-      uint16_t movingBufferIndex;
-      IndexT size[MAX_DIMENSIONS];
-    };
-
-    struct ReadCellMessage {
-      MessageType type;
-      IndexT coord[MAX_DIMENSIONS];
-    };
-    
-    struct WriteCellMessage {
-      MessageType type;
-      ElementT value;
-      IndexT coord[MAX_DIMENSIONS]; 
-    };
-  }
 }
 
 #endif

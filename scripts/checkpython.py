@@ -3,7 +3,7 @@
 try:
   import ply
   import numpy
-  import scipy
+#  import scipy
 except Exception,e:
   import sys
   print >>sys.stderr

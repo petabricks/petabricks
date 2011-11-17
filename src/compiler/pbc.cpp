@@ -33,14 +33,12 @@
 #include "common/jargs.h"
 #include "common/jfilesystem.h"
 #include "common/jtunable.h"
+#include "common/openclutil.h"
 
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
-#ifdef HAVE_OPENCL
-#include "openclutil.h"
-#endif
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -385,7 +383,13 @@ int main( int argc, const char ** argv){
   // generate misc files:
   o.cg().beginGlobal();
 #ifdef SINGLE_SEQ_CUTOFF
-  o.createTunable(true, "system.cutoff.sequential", "sequentialcutoff", 64);
+  o.createTunable(true, "system.cutoff.sequential",  "sequentialcutoff", 64);
+  o.createTunable(true, "system.cutoff.distributed", "distributedcutoff", 512);
+#endif
+  o.cg().addTunable(true, "system.runtime.threads", "worker_threads", 8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
+#ifdef HAVE_OPENCL
+  o.createTunable(true, "system.flag.localmem",  "use_localmem", 1, 0, 2);
+  o.createTunable(true, "system.size.blocksize",  "opencl_blocksize", 16, 1, 25);
 #endif
   o.cg().endGlobal();
   ccfiles.push_back(OutputCode(GENMISC, o));
@@ -404,14 +408,16 @@ int main( int argc, const char ** argv){
   o.write("return NULL;");
   o.endFunc();
 
-#ifdef HAVE_OPENCL
-  o.comment("A hook called by PetabricksRuntime");
-  o.beginFunc("void", "cleanup");
+  
+  CodeGenerator& init    = o.forkhelper();
+  CodeGenerator& cleanup = o.forkhelper();
+  init.beginFunc("void", "_petabricksInit");
+  cleanup.beginFunc("void", "_petabricksCleanup");
   for(TransformList::iterator i=t->begin(); i!=t->end(); ++i){
-    (*i)->generateReleaseGpuObjectsCode(o);
+    (*i)->generateInitCleanup(init, cleanup);
   }
-  o.endFunc();
-#endif
+  init.endFunc();
+  cleanup.endFunc();
   
   // generate common header file:
   *prefix << headertxth;

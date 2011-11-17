@@ -27,6 +27,7 @@
 #ifndef PETABRICKSREMOTEOBJECT_H
 #define PETABRICKSREMOTEOBJECT_H
 
+#include "common/jasm.h"
 #include "common/jmutex.h"
 #include "common/jrefcounted.h"
 
@@ -54,7 +55,7 @@ class RemoteObject : public jalib::JRefCounted, public jalib::JCondMutex {
          FLAG_CREATED = 2,
          FLAG_COMPLETE = 4 };
 public:
-  RemoteObject() : _host(NULL), _flags(0) {}
+  RemoteObject() : _host(NULL), _flags(0), _lastMsgGen(0), _pendingMessages(0) {}
 
 
   void waitUntilCreated() const {
@@ -69,11 +70,11 @@ public:
       waitUntilCompleteMu();
     }
   }
-  
+
   //transfer data to remote host and call remote recv
   void send(const void* ptr , size_t len);
-  
-  void markComplete() { 
+
+  void markComplete() {
     remoteMarkComplete();
     JLOCKSCOPE(*this);
     markCompleteMu();
@@ -83,11 +84,35 @@ public:
   void remoteNotify(int arg = 0);
 
   int flags() const { return _flags; }
-protected:
-  void remoteMarkComplete();
+
 
   ConstRemoteHostPtr host() const { return _host; }
   RemoteHostPtr host() { return _host; }
+
+  bool isCreated() const {
+    return 0 != (_flags & FLAG_CREATED);
+  }
+  
+  bool isInitiator() const {
+    return 0 != (_flags & FLAG_CREATED);
+  }
+  
+  bool isComplete() const {
+    return 0 != (_flags & FLAG_COMPLETE);
+  }
+
+  int lastMsgGen() const { return _lastMsgGen; }
+
+  int pendingMessages() const { return _pendingMessages; }
+
+  EncodedPtr remoteObj() const { return _remoteObj; }
+
+
+  bool maybeDeletable(int gen) const {
+    return isCreated() && refCount()==1 && lastMsgGen()<gen && pendingMessages()==0;
+  }
+protected:
+  void remoteMarkComplete();
 
   // these three callbacks get called to handle incoming data
   virtual void* allocRecv(size_t len);
@@ -115,11 +140,12 @@ protected:
   void waitUntilCompleteMu() const {
     while(0 == (_flags & FLAG_COMPLETE) ) wait();
   }
-  EncodedPtr remoteObj() const { return _remoteObj; }
 private:
   RemoteHostPtr _host;
   EncodedPtr _remoteObj;
   int _flags;
+  int _lastMsgGen;
+  jalib::AtomicT _pendingMessages;
 };
 
 } //namespace petabricks

@@ -25,12 +25,24 @@
  *                                                                           *
  *****************************************************************************/
 #include "gpumanager.h"
-#ifdef HAVE_OPENCL
-#include "openclutil.h"
+
 #include "dynamicscheduler.h"
 #include "gpudynamictask.h"
+#include "workerthread.h"
 
-#define GPU_TRACE 1
+#include "common/openclutil.h"
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+//#define GPU_TRACE 1
+
+#ifdef HAVE_OPENCL
+static bool _useOpenCL() { return true; }
+#else
+static bool _useOpenCL() { return false; }
+#endif
 
 namespace petabricks {
 
@@ -43,17 +55,26 @@ pthread_t GpuManager::_thread;
 
 GpuTaskInfoPtr GpuManager::_currenttaskinfo;
 cl_kernel GpuManager::_kernel;
+
+#ifdef HAVE_OPENCL
 cl_command_queue GpuManager::_queue = OpenCLUtil::getQueue(0);
 cl_context GpuManager::_context = OpenCLUtil::getContext();
+#else
+cl_command_queue GpuManager::_queue = -1;
+cl_context GpuManager::_context = -1;
+#endif
 
 extern "C" void *startGpuManager(void* /*arg*/) {
+  if(!_useOpenCL()) return NULL;
   //try {
-    petabricks::GpuManager::mainLoop();
+  petabricks::WorkerThread::markUtilityThread();
+  petabricks::GpuManager::mainLoop();
   //}catch(petabricks::DynamicScheduler::CleanExitException e){}
   return NULL;
 }
 
 void GpuManager::start() {
+  if(!_useOpenCL()) return;
   if(!_shutdown) return;
   _shutdown = false;
   #ifdef GPU_TRACE
@@ -67,6 +88,7 @@ void GpuManager::start() {
 }
 
 void GpuManager::shutdown() {
+  if(!_useOpenCL()) return;
   if(_shutdown) return;
   _shutdown = true;
   int rv = pthread_join(_thread, NULL);
@@ -78,6 +100,7 @@ void GpuManager::shutdown() {
 }
 
 void GpuManager::mainLoop() {
+  if(!_useOpenCL()) return;
   for(;;){
 
     //TODO: whey do I have to use empty?
@@ -113,12 +136,35 @@ void GpuManager::mainLoop() {
 }
 
 void GpuManager::addTask(GpuDynamicTaskPtr task) {
+  JASSERT(_useOpenCL());
   _lock.lock();
   _readytasks.push(task);
   _lock.unlock();
 }
 
+#ifndef HAVE_OPENCL
+
+void GpuManager::prepare(GpuDynamicTaskPtr ) {  
+  UNIMPLEMENTED();
+}
+
+void GpuManager::copyin(GpuDynamicTaskPtr ) {
+  UNIMPLEMENTED();
+}
+
+void GpuManager::run(GpuDynamicTaskPtr ) {
+  UNIMPLEMENTED();
+}
+
+bool GpuManager::copyout(GpuDynamicTaskPtr ) {
+  UNIMPLEMENTED();
+}
+
+
+#else
+
 void GpuManager::prepare(GpuDynamicTaskPtr task) {
+  JASSERT(_useOpenCL());
   #ifdef GPU_TRACE
   std::cout << "[PREPARE]" << std::endl;
   #endif
@@ -129,17 +175,18 @@ void GpuManager::prepare(GpuDynamicTaskPtr task) {
   #endif
 
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
-    (*i)->initGpuMem(_context); // clCreateBuffer
+    (*i)->initGpuMem(_queue,_context,false); // clCreateBuffer
   }
 }
 
 void GpuManager::copyin(GpuDynamicTaskPtr task) {
+  JASSERT(_useOpenCL());
   #ifdef GPU_TRACE
   std::cout << "[COPY IN]" << std::endl;
   #endif
   MatrixStorageInfoPtr storageinfo = task->storageinfo();
 
-  if(storageinfo->initGpuMem(_context)) { // clCreateBuffer
+  if(storageinfo->initGpuMem(_queue,_context,true)) { // clCreateBuffer
     #ifdef GPU_TRACE
     std::cout << "copying in... " << &(*storageinfo) << std::endl;
     #endif
@@ -151,6 +198,7 @@ void GpuManager::copyin(GpuDynamicTaskPtr task) {
 }
 
 void GpuManager::run(GpuDynamicTaskPtr task) {
+  JASSERT(_useOpenCL());
   #ifdef GPU_TRACE
   std::cout << "[RUN]" << std::endl;
   #endif
@@ -158,36 +206,54 @@ void GpuManager::run(GpuDynamicTaskPtr task) {
     (*i)->check(_queue);
   }*/
 
-  task->runWrapper();
+  task->run();
 
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
-    (*i)->finishGpuMem(_queue,_currenttaskinfo->nodeID(), _currenttaskinfo->regionNodeGroupMap()); // clEnqueueReadBuffer
+    (*i)->finishGpuMem(_queue,_currenttaskinfo->nodeID(), _currenttaskinfo->regionNodeGroupMap(), _currenttaskinfo->gpuCopyOut()); // clEnqueueReadBuffer
   }
+  task->completeTaskDeps();
 }
 
 bool GpuManager::copyout(GpuDynamicTaskPtr task) {
+  JASSERT(_useOpenCL());
   MatrixStorageInfoPtr storage = task->storageinfo();
   #ifdef GPU_TRACE 
   std::cout << "[COPY OUT]" << &(*storage) << std::endl;
   #endif
 
   CopyoutInfoPtr copyInfo = storage->getCopyoutInfo(_currenttaskinfo->nodeID());
-  if(copyInfo){ //TODO: check
-    if(copyInfo->done()) {
-      task->completeTaskDeps();
-      return true;
-    }
-    if(copyInfo->complete()) {
-      #ifdef GPU_TRACE
-      std::cout << "copy out... " << &(*storage) << std::endl;
-      #endif
-      task->setRegions(copyInfo->getBegins(), copyInfo->getEnds(), _currenttaskinfo->nodeID());
-      task->runWrapper();
-      return true;
-    }
+  //TODO: still not totally right
+  if(!copyInfo) {
+    #ifdef GPU_TRACE
+    std::cout << "not done " << _currenttaskinfo->nodeID() << std::endl;
+    #endif
+    return false;
   }
+  if(copyInfo->done()) {
+    #ifdef GPU_TRACE
+    std::cout << "done " << _currenttaskinfo->nodeID() << std::endl;
+    #endif
+    task->completeTaskDeps();
+    storage->done(_currenttaskinfo->nodeID());
+    return true;
+  }
+  if(copyInfo->complete()) {
+    #ifdef GPU_TRACE
+    std::cout << "copy out... " << &(*storage) << std::endl;
+    std::cout << "done " << _currenttaskinfo->nodeID() << std::endl;
+    #endif
+    task->setRegions(copyInfo->getBegins(), copyInfo->getEnds(), _currenttaskinfo->nodeID());
+    task->runWrapper();
+    storage->done(_currenttaskinfo->nodeID());
+    return true;
+  }
+  #ifdef GPU_TRACE
+  std::cout << "not done " << _currenttaskinfo->nodeID() << std::endl;
+  #endif
   return false;
 }
 
-}
 #endif
+
+}
+

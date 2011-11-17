@@ -125,16 +125,16 @@ void petabricks::DynamicScheduler::shutdown(){
     _rawThreadsLen=0;
   }
 }
-
+  
 void petabricks::DynamicScheduler::injectWork(DynamicTask* task){
   static jalib::AtomicT i=0;
-  WorkerThreadPool& a = pool();
-  JASSERT(a.getFixed((int)jalib::atomicIncrementReturn(&i)) != NULL).Text("pool is null.");
-  a.getFixed((int)jalib::atomicIncrementReturn(&i))->inject(task);
+  pool().getFixed((int)jalib::atomicIncrementReturn(&i))->inject(task);
 
   if(i > (1<<28)) {
     i=0;
   }
 }
-  
+
+
+
 

@@ -1,0 +1,73 @@
+#include "../simple/copy.pbcc"
+
+
+#include "Mergesort2.pbcc"
+
+%{
+
+  // src: http://hackers-delight.org.ua/031.htm
+  // round down to power of 2
+  unsigned int flp2(unsigned int x) {
+    x = x | (x >> 1); 
+    x = x | (x >> 2); 
+    x = x | (x >> 4); 
+    x = x | (x >> 8); 
+    x = x | (x >>16); 
+    return x - (x >> 1); 
+  } 
+
+%}
+
+
+
+
+transform BitonicInner
+from INC, DIR
+to OUT[n]
+{
+  to(OUT.cell(i) ele, OUT out) from(INC inc, DIR dir) {
+    int j = i ^ (int) inc;
+    if(i < j) {
+      bool decend = i & (int) dir;
+      if(decend ^ (out.cell(i) > out.cell(j))) {
+        ElementT temp = out.cell(j); 
+        out.cell(j) = out.cell(i);
+        out.cell(i) = temp;
+      }
+    }
+  }
+}
+
+
+
+function BitonicPower2
+from in[n]
+to out[n]
+{
+  Copy1D(out, in);
+  for (int dir=2;dir<=n;dir<<=1)
+  {
+    for (int inc=dir>>1;inc>0;inc>>=1)
+    {
+      BitonicInner(out, inc, dir);
+    }
+  }
+}
+
+function Bitonic 
+from in[n]
+to out[n]
+{
+  IndexT p = flp2(n);
+  if(p==n) {
+    BitonicPower2(out, in);
+  }else{
+    MatrixRegion1D tmp1 = MatrixRegion1D::allocate(p);
+    MatrixRegion1D tmp2 = MatrixRegion1D::allocate(n-p);
+    spawn BitonicPower2(tmp1, in.region(0, p));
+    spawn Sort(tmp2, in.region(p, n));
+    sync;
+    Merge2(out, tmp1, tmp2);
+  }
+}
+

@@ -6,7 +6,8 @@
 
 %{
 
-inline int BinarySearch(double value, ConstMatrixRegion1D &A)
+template<typename T>
+inline int BinarySearch(ElementT value, const T&A)
 {
   int low = 0;
   int high = A.count() - 1;

@@ -1,0 +1,44 @@
+#include "../simple/copy.pbcc"
+
+transform PermuteGenerator
+to IN[n,m], P[m]
+{
+    IN.cell(j,i) from () {
+        return i;
+    }
+
+    P.cell(i) from () {
+        return PetabricksRuntime::randInt(i, m);
+    }
+}
+
+// permute rows of a matrix out-of-place
+transform Permute
+from IN[n,m], P[m]
+through INDEX[m]
+to OUT[n,m]
+generator PermuteGenerator
+{
+   to (INDEX index) from (IN in, P p)
+   {
+       // initialize source index array
+       for (IndexT i = 0; i < m; ++i) {
+           index.cell(i) = i;
+       }
+
+       // perform swaps on index array
+       for (IndexT i = 0; i < m; ++i)
+       {
+           IndexT temp = index.cell((int)p.cell(i));
+           index.cell(p.cell(i)) = index.cell(i);
+           index.cell(i) = temp;
+       }
+   }
+
+   to (OUT.row(j) out) from (IN in, INDEX.cell(j) index)
+   {
+       // permuted copy
+       Copy1D(out, in.row(index));
+   }
+}
+

@@ -102,34 +102,29 @@ public:
   /// Add RuleDescriptors to output corresponding to the extrema of the applicable region in dimension
   void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension, const RulePtr& rule);
 
-  ///
-  /// Generate seqential code to declare this rule
-  void generateDeclCodeSimple(Transform& trans, CodeGenerator& o);
+  
+  void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
+  void generateDeclCodeSequential(Transform& trans, CodeGenerator& o);
+  void generateDeclCodeOpenCl(Transform& trans, CodeGenerator& o);
 
-  ///
-  /// Generate seqential code to declare this rule
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
-  void generateTrampCodeSimple(Transform& trans, CodeGenerator& o){
-    generateTrampCodeSimple(trans, o, RuleFlavor::SEQUENTIAL);
-    generateTrampCodeSimple(trans, o, RuleFlavor::WORKSTEALING);
-#ifdef HAVE_OPENCL
-    if( isOpenClRule() )
-      generateTrampCodeSimple(trans, o, RuleFlavor::OPENCL);
-#endif
-  }
+  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
+  
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
-#ifdef HAVE_OPENCL
   void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o);
   void generateOpenCLCallCode(Transform& trans, CodeGenerator& o);
   void generateOpenCLPrepareCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o);
   void generateOpenCLCopyInCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o, RegionPtr region);
   void generateOpenCLRunCode(Transform& trans, CodeGenerator& o);
-  void generateOpenCLCopyOutCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o, RegionPtr region);
+  void generateOpenCLCopyOutCode(std::string& codename, CodeGenerator& o, RegionPtr region);
   ///
   /// Generate an OpenCL program implementing this rule
-  void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef );
-#endif
+  void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef, bool local=false);
+  void collectGpuLocalMemoryData();
+  bool canUseLocalMemory() {
+    return _minCoordOffsets.size() > 0;
+  }
+  void generateLocalBuffers(CLCodeGenerator& clo);
 
   ///
   /// Generate seqential code to invoke this rule
@@ -140,7 +135,7 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        bool gpuCopyOut); 
+                        int gpuCopyOut); 
 
   ///
   /// Return function the name of this rule in the code
@@ -257,7 +252,7 @@ public:
 
   RIRBlockCopyRef getBody( ) const
   {
-    return _bodyirStatic;
+    return _bodyir[RuleFlavor::SEQUENTIAL];
   }
 
   void buildApplicableRegion(Transform& trans,
@@ -272,6 +267,12 @@ public:
   virtual RegionList getSelfDependentRegions();
   
   virtual RegionList getNonSelfDependentRegions();
+
+  void buildFromBoundingBox();
+  
+  void trimDependency(DependencyDirection& dep,
+                      const ChoiceDepGraphNode& from,
+                      const ChoiceDepGraphNode& to);
   
 private:
   void computeDataDependencyVector();
@@ -289,7 +290,15 @@ private:
                                               const size_t dimension);                                
                                               
   void removeDimensionFromDefinitions(const size_t dimension);
-private:
+
+  void prepareBuffers();
+
+  bool passBuildGpuProgram(Transform& trans);
+
+  std::map<std::string, std::string> _nameMap;
+  std::map<std::string, FormulaList> _minCoordOffsets;
+  std::map<std::string, FormulaList> _maxCoordOffsets;
+
   RuleFlags _flags;
   RegionList _from;
   RegionList _to;
@@ -298,12 +307,8 @@ private:
   FormulaList _definitions;
   std::string _bodysrc;
   jalib::SrcPosTaggable _bodysrcPos;
-  RIRBlockCopyRef _bodyirStatic;
-  RIRBlockCopyRef _bodyirDynamic;
-#ifdef HAVE_OPENCL
-  RIRBlockCopyRef _bodyirOpenCL;
-  bool passBuildGpuProgram(Transform& trans);
-#endif
+  RIRBlockCopyRef _bodyir[RuleFlavor::_COUNT];
+  RIRBlockCopyRef _bodyirLocalMem;
   MatrixDependencyMap _depends;
   MatrixDependencyMap _provides;
   FormulaPtr _recursiveHint;
@@ -311,7 +316,10 @@ private:
   ConfigItems _duplicateVars;
   RulePtr _gpuRule;
 
-  void prepareBuffers();
+ 
+  typedef std::map<MatrixDefPtr, SimpleRegionPtr> MatrixToRegionMap;
+  MatrixToRegionMap _fromBoundingBox;
+
 };
 
 }

@@ -15,10 +15,10 @@
 typedef          long long int64;
 typedef unsigned long long uint64;
 
-inline int getBits(double in, int position)
+inline int getBits(ElementT in, int position)
 {
   union {
-    double d;
+    ElementT d;
     uint64 u;
   };
   d = in;
@@ -30,35 +30,36 @@ inline int getBits(double in, int position)
   return (inInt & ((uint64) (NUM_BUCKETS - 1) << position)) >> position;
 }
 
-inline void Radix(MatrixRegion1D &out, MatrixRegion1D &in, int *buckets, int pos)
+inline void Radix(workstealing::MatrixRegion1D &out, workstealing::MatrixRegion1D &in, int *buckets, int pos)
 {
+  in.useOnCpu();
   int i;
   for (i = 0; i < in.size(0); i++) {
-//    printf("Putting %g into bucket %d\n", in.cell(i), getBits(in.cell(i), pos));  
     buckets[getBits(in.cell(i), pos) + 2]++;
   }
-/*
-  printf("bucket hist:  (%d", buckets[2]);
-  for (i = 3; i < NUM_BUCKETS + 2; i++) {
-    printf(", %d", buckets[i]);
-  }
-  printf(")\n");
-*/
   for (i = 3; i < NUM_BUCKETS + 2; i++) {
     buckets[i] += buckets[i - 1];
   }
 
   for (i = 0; i < in.size(0); i++) {
-//    printf("copying %g into position %d\n", in.cell(i), buckets[getBits(in.cell(i), pos) + 1]);
     out.cell(buckets[getBits(in.cell(i), pos) + 1]++) = in.cell(i);
   }
-/*
-  printf("bucket start: (%d", buckets[0]);
-  for (i = 1; i < NUM_BUCKETS; i++) {
-    printf(", %d", buckets[i]);
+}
+
+
+inline void Radix(distributed::MatrixRegion1D &out, distributed::MatrixRegion1D &in, int *buckets, int pos)
+{
+  int i;
+  for (i = 0; i < in.size(0); i++) {
+    buckets[getBits(in.cell(i), pos) + 2]++;
   }
-  printf(")\n");
-*/
+  for (i = 3; i < NUM_BUCKETS + 2; i++) {
+    buckets[i] += buckets[i - 1];
+  }
+
+  for (i = 0; i < in.size(0); i++) {
+    out.cell(buckets[getBits(in.cell(i), pos) + 1]++) = in.cell(i);
+  }
 }
 
 %}
@@ -69,6 +70,8 @@ to OUT[n], TEMP[n]
 {
   to (OUT out, TEMP temp) from (IN in, Position pos)
   {
+    
+    out.useOnCpu();
 //    printf("RadixsortSubArray called\n");
     int buckets[NUM_BUCKETS + 2];
     memset(buckets, 0, sizeof(buckets));

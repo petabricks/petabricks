@@ -26,6 +26,8 @@
  *****************************************************************************/
 #include "rirscope.h"
 
+#include "pbc.h"
+
 #include "common/jconvert.h"
 
 #ifdef HAVE_CONFIG_H
@@ -47,13 +49,12 @@ static const petabricks::RIRScopePtr _makeTypeScope(){
   t->set("IndexT", RIRSymbol::SYM_TYPE_BASIC);
   t->set("ElementT", RIRSymbol::SYM_TYPE_BASIC);
   for(int i=0; i<=MAX_DIMENSIONS; ++i){
-#ifndef REGIONMATRIX_TEST
-    t->set("MatrixRegion"+jalib::XToString(i)+"D", RIRSymbol::SYM_TYPE_MATRIX);
-    t->set("ConstMatrixRegion"+jalib::XToString(i)+"D", RIRSymbol::SYM_TYPE_MATRIX);
-#else
-    t->set("RegionMatrix"+jalib::XToString(i)+"D", RIRSymbol::SYM_TYPE_MATRIX);
-    t->set("ConstRegionMatrix"+jalib::XToString(i)+"D", RIRSymbol::SYM_TYPE_MATRIX);
-#endif
+    t->set("MatrixRegion"+jalib::XToString(i)+"D", RIRSymbol::SYM_TYPE_MATRIX_GENERIC);
+    t->set("ConstMatrixRegion"+jalib::XToString(i)+"D", RIRSymbol::SYM_TYPE_MATRIX_GENERIC);
+    for(RuleFlavor::iterator rf=RuleFlavor::begin(); rf!=RuleFlavor::end(); ++rf){
+      t->set(RuleFlavor(rf).string()+"::MatrixRegion"+jalib::XToString(i)+"D", RIRSymbol::SYM_TYPE_MATRIX_SPECIFIC);
+      t->set(RuleFlavor(rf).string()+"::ConstMatrixRegion"+jalib::XToString(i)+"D", RIRSymbol::SYM_TYPE_MATRIX_SPECIFIC);
+    }
   }
   return t;
 }

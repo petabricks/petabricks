@@ -1,0 +1,132 @@
+#ifndef MERGSORT2_PBCC
+#define MERGSORT2_PBCC
+
+#include "../simple/copy.pbcc"
+
+%{
+
+template<typename T>
+inline int BinarySearch(ElementT value, const T&A)
+{
+  int low = 0;
+  int high = A.count() - 1;
+  int mid;
+
+  while (low <= high) {
+    mid = (low + high) / 2;
+    if (A.cell(mid) > value)
+        high = mid - 1;
+    else if (A.cell(mid) < value)
+        low = mid + 1;
+    else
+        return mid;
+  }
+  return low;
+}
+
+%}
+
+
+function Merge2
+from left[n], right[m]
+to out[n+m]
+{
+  int o = 0;
+  int l = 0;
+  int r = 0;
+  while(l<n && r<m) {
+    if(left.cell(l) <= right.cell(r)) {
+      out.cell(o) = left.cell(l);
+      l++;
+    }else{
+      out.cell(o) = right.cell(r);
+      r++;
+    }
+    o++;
+  }
+  while(l<n) {
+    out.cell(o) = left.cell(l);
+    l++;
+    o++;
+  }
+  while(r<m) {
+    out.cell(o) = right.cell(r);
+    r++;
+    o++;
+  }
+}
+or
+{
+  //parallel merge sort
+  if(n==0) {
+    Copy1D(out, right);
+    return;
+  }
+  if(m==0) {
+    Copy1D(out, left);
+    return;
+  }
+  if(m==1 && n==1) {
+    out.cell(0) = std::min(left.cell(0), right.cell(0));
+    out.cell(1) = std::max(left.cell(0), right.cell(0));
+    return;
+  }
+  IndexT midl;
+  IndexT midr;
+  if(n>m) {
+    midl = n/2;
+    midr = BinarySearch(left.cell(midl), right);
+  }else{
+    midr = m/2;
+    midl = BinarySearch(right.cell(midr), left);
+  }
+  spawn Merge2(out.region(0, midl+midr),   left.region(0, midl), right.region(0, midr));
+  spawn Merge2(out.region(midl+midr, n+m), left.region(midl, n), right.region(midr, m));
+}
+
+
+transform Mergesort2
+from IN[n]
+to OUT[n]
+{
+  to(OUT out) from(IN in) using(tmp[n]) {
+    if(n > 1) {
+      spawn Sort(tmp.region(0, n/2), in.region(0, n/2));
+      spawn Sort(tmp.region(n/2, n), in.region(n/2, n));
+      sync;
+      Merge2(out, tmp.region(0, n/2), tmp.region(n/2, n));
+    }else{
+      out.cell(0) = in.cell(0);
+    }
+  }
+}
+
+
+transform Mergesort4
+from IN[n]
+to OUT[n]
+{
+  //this version reuses out as temporary storage
+  to(OUT out) from(IN in) using(tmp[n]) {
+    if(n > 1) {
+      int a = n/4;
+      int b = n/2;
+      int c = n/2 + n/4;
+      spawn Sort(out.region(0, a), in.region(0, a));
+      spawn Sort(out.region(a, b), in.region(a, b));
+      spawn Sort(out.region(b, c), in.region(b, c));
+      spawn Sort(out.region(c, n), in.region(c, n));
+      sync;
+      spawn Merge2(tmp.region(0, n/2), out.region(0, a), out.region(a, b));
+      spawn Merge2(tmp.region(n/2, n), out.region(b, c), out.region(c, n));
+      sync;
+      Merge2(out, tmp.region(0, n/2), tmp.region(n/2, n));
+    }else{
+      out.cell(0) = in.cell(0);
+    }
+  }
+}
+
+
+#endif
+

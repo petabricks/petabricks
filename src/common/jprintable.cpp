@@ -33,7 +33,7 @@ std::string jalib::JPrintable::toString() const {
   print(os);
   return os.str();
 }
-  
+
 std::ostream& operator<< (std::ostream& o, const jalib::JPrintable& p){
   p.print(o);
   return o;

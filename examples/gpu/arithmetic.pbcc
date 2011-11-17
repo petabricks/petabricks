@@ -1,0 +1,9 @@
+transform Arithmetic
+from IN[w]
+to OUT[w]
+{
+  OUT.cell(i) from (IN.cell(i) x)
+  {
+    return log(1 + sqrt(x*x/7)*11.123);
+  }
+}

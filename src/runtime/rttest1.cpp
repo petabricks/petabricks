@@ -27,6 +27,7 @@
 #include "petabricksruntime.h"
 
 #include "remotehost.h"
+#include "distributedgc.h"
 
 using namespace petabricks;
 
@@ -36,6 +37,8 @@ PetabricksRuntime::Main* petabricksMainTransform(){
 PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
+void _petabricksInit() {}
+void _petabricksCleanup() {}
 
 RemoteObjectPtr gen() {
   class TestRemoteObject : public petabricks::RemoteObject {
@@ -49,6 +52,9 @@ RemoteObjectPtr gen() {
     void onRecv(const void* data, size_t len) {
       JTRACE("recv")((char*)data)(len);
     }
+    ~TestRemoteObject() { 
+      JTRACE("destructing");
+    }
   };
   return new TestRemoteObject();
 }
@@ -61,10 +67,12 @@ int main(int argc, const char** argv){
   char testdata[] = "this is a test string";
   if(argc==1){
     hdb.remotefork(NULL, argc, argv);
-    hdb.accept();
+    hdb.accept("");
     hdb.spawnListenThread();
     hdb.spawnListenThread();
 
+    hdb.host(0)->createRemoteObject(local=gen(), &gen);
+    hdb.host(0)->createRemoteObject(local=gen(), &gen);
     hdb.host(0)->createRemoteObject(local=gen(), &gen);
     local->waitUntilCreated();
     local->send(testdata, sizeof testdata);
@@ -76,6 +84,27 @@ int main(int argc, const char** argv){
     local->remoteNotify(1);
     local->waitUntilComplete();
     JTRACE("complete");
+
+    RemoteObjectPtr gca=DistributedGC::gen();
+    RemoteObjectPtr gcb=DistributedGC::gen();
+    RemoteObjectPtr gcc=DistributedGC::gen();
+
+    JTRACE("gcA");
+    hdb.host(0)->createRemoteObject(gca, &DistributedGC::gen);
+    gca->waitUntilComplete();
+
+    JTRACE("gcB");
+    hdb.host(0)->createRemoteObject(gcb, &DistributedGC::gen);
+    gcb->waitUntilComplete();
+    
+    gca=0;
+    gcb=0;
+
+    JTRACE("gcC");
+    hdb.host(0)->createRemoteObject(gcc, &DistributedGC::gen);
+    gcc->waitUntilComplete();
+
+
     return 0;
   }else{
     JASSERT(argc==3);

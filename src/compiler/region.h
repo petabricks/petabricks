@@ -29,6 +29,7 @@
 
 #include "formula.h"
 #include "matrixdef.h"
+#include "pbc.h"
 
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
@@ -37,14 +38,14 @@
 #include <vector>
 
 namespace petabricks {
-class RuleInterface;
-class UserRule;
 class CodeGenerator;
-class Transform;
-class SimpleRegion;
-class Region;
 class MatrixDependencyMap;
+class Region;
 class RIRScope;
+class RuleInterface;
+class SimpleRegion;
+class Transform;
+class UserRule;
 typedef jalib::JRef<Region> RegionPtr;
 typedef jalib::JRef<SimpleRegion> SimpleRegionPtr;
 
@@ -120,6 +121,8 @@ public:
     _minCoord.push_back(min);
     _maxCoord.push_back(max);
   }
+  
+  FormulaPtr symbolicSize() const;
   
   ///Remove the given dimension from the region
   void removeDimension(const size_t dimension) {
@@ -198,8 +201,8 @@ public:
     _maxCoord.makeRelativeTo(defs);
   }
 
-  std::string genTypeStr(bool isConst) const;
-  std::string generateSignatureCode(bool isConst) const;
+  std::string genTypeStr(RuleFlavor rf, bool isConst) const;
+  std::string generateSignatureCode(RuleFlavor rf, bool isConst) const;
   std::string generateAccessorCode(bool allowOptional=true) const;
 
   SimpleRegionPtr getApplicableRegion(Transform& tx, RuleInterface& rule, const FormulaList& defs, bool isOutput);

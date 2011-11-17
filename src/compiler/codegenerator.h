@@ -28,6 +28,7 @@
 #define PETABRICKSCODEGENERATOR_H
 
 #include "formula.h"
+#include "pbc.h"
 #include "trainingdeps.h"
 
 #include "common/jconvert.h"
@@ -58,7 +59,7 @@ public:
     //t->_parent = this;
     return t;
   }
- 
+
   void writeTo(std::ostream& o) {
     o << "// :::: " << _name << "\n";
     StreamTrees::iterator i;
@@ -66,7 +67,7 @@ public:
       (*i)->writeTo(o);
     o << _os.str();
   }
-  
+
   template<typename T>
   StreamTree& operator<<(const T& t) {
     _os << t;
@@ -110,7 +111,7 @@ public:
 
   void incIndent(){++_indent;}
   void decIndent(){--_indent;}
-  
+
   CodeGenerator(const StreamTreePtr& root, const TrainingDepsPtr& cg);
   CodeGenerator(CodeGenerator& that);
   virtual ~CodeGenerator(){}
@@ -205,11 +206,13 @@ public:
   void continuationPoint();
   void continuationRequired(const std::string& prereq);
   std::string nextContName(const std::string& base);
-  
+
   void continueLabel(const std::string& fn){
     continueJump(fn);
     endFunc();
     beginFunc("petabricks::DynamicTaskPtr", fn);
+    if(_rf != RuleFlavor::INVALID)
+      beginUserCode(_rf);
   }
   void continueJump(const std::string& fn){
     write("return "+fn+"();");
@@ -234,6 +237,14 @@ public:
   }
   bool inClass() const { return _curClass.size()>0; }
 
+  void beginUserCode(RuleFlavor rf) {
+    _rf = rf;
+    write("using namespace petabricks::"+rf.string()+";");
+  }
+  void endUserCode(){
+    _rf = RuleFlavor::INVALID;
+  }
+
   void constructorBody(const std::string& s){_curConstructorBody=s;}
 
   void staticMember() { hos() << "static "; }
@@ -249,14 +260,14 @@ public:
   }
 
   ///
-  /// Create a parallel code generator 
+  /// Create a parallel code generator
   /// (for writing other function bodies before current function is finished)
   CodeGenerator& forkhelper();
 
   ///
   /// Write the bodies from any calles to forkhelp
   void mergehelpers();
-  
+
   //void outputFileTo(std::ostream& o){
   //  o << theFilePrefix().str();
   //  o << "\n\n// Defines: //////////////////////////////////////////////////////\n\n";
@@ -298,7 +309,7 @@ public:
 
   void callSpatial(const std::string& methodname, const SimpleRegion& region);
   void mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region);
-  void mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, bool gpuCopyOut);
+  void mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, int gpuCopyOut);
 
 
   StreamTreePtr startSubfile(const std::string& name) {
@@ -306,6 +317,8 @@ public:
     _ocur = _bcur->add(new StreamTree(name+" subfile main"));
     return _bcur;
   }
+
+  void generateMigrationFunctions();
 protected:
   void indent();
 public:
@@ -325,6 +338,7 @@ protected:
   int            _indent;
   TrainingDepsPtr _cg;
   CodeGenerators _helpers;
+  RuleFlavor     _rf;
 };
 
 }

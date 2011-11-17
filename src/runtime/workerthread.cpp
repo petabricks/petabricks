@@ -36,7 +36,7 @@
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
-  
+
 #ifdef DEBUG
 #  define DEBUGONLY(args...) args
 #else
@@ -95,10 +95,18 @@ petabricks::WorkerThread::WorkerThread(DynamicScheduler& ds)
 #ifdef WORKERTHREAD_ONDECK
   _ondeck = NULL;
 #endif
+#ifdef DISTRIBUTED_CACHE
+  _cache = new WorkerThreadCache();
+#endif
   DEBUGONLY(_isWorking=false);
 }
 petabricks::WorkerThread::~WorkerThread(){
   _pool.remove(this);
+}
+
+
+void petabricks::WorkerThread::markUtilityThread() {
+  setSelf(NULL);
 }
 
 int petabricks::WorkerThread::threadRandInt() const {
@@ -110,19 +118,20 @@ int petabricks::WorkerThread::threadRandInt() const {
   }
   return retVal;
 }
-  
+
 void petabricks::WorkerThread::popAndRunOneTask(int stealLimit)
 {
   DynamicTask *task;
 
   //try from the local deque
   task = popLocal();
-  
+
   //try stealing a bunch of times
   while(task == NULL && stealLimit-->0){
     WorkerThread* victim = _pool.getRandom(this);
-    if(victim !=NULL)
+    if (victim != NULL) {
       task = victim->steal();
+    }
   }
 
   //if we got something, run it
@@ -205,7 +214,7 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
   JASSERT(self!=NULL);
   WorkerThreadPool& pool = self->pool();
   DynamicTask* t=NULL;
-  
+
   jalib::atomicDecrement(&_numLive);
 
   //cancel all our pending tasks
@@ -231,7 +240,7 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
       }
     }
   }
-  
+
   //drain off all our abort tasks
   while((t=self->popLocal())!=NULL){
     JASSERT(t==this);
@@ -249,7 +258,7 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
  //else
  //  _lock.wait();
  //_lock.unlock();
-  
+
   //either exit or throw
   if(_shutdown && self!=&theMainWorkerThread){
     //pthread_exit(0);
@@ -261,7 +270,7 @@ petabricks::DynamicTaskPtr petabricks::AbortTask::run(){
 
 void petabricks::WorkerThreadPool::debugPrint() const {
   std::cerr << "thread status: " << std::endl;
-  
+
   for(int i=0; i<_count; ++i){
     const WorkerThread* t = _pool[i];
     if(t == 0){
@@ -282,7 +291,7 @@ void petabricks::WorkerThreadPool::debugPrint(jalib::JAssert& o) const {
   o.Prefix();
   o << "WorkerThread status:";
   o.EndLine();
-  
+
   for(int i=0; i<_count; ++i){
     const WorkerThread* t = _pool[i];
     o.Prefix();
@@ -302,15 +311,21 @@ void petabricks::WorkerThreadPool::debugPrint(jalib::JAssert& o) const {
 
 
 extern "C" int threadstatus() {
-  petabricks::WorkerThread::self()->pool().debugPrint();
-  return petabricks::DynamicScheduler::cpuScheduler().numThreads();
+  if(petabricks::WorkerThread::self()!=0) {
+    petabricks::WorkerThread::self()->pool().debugPrint();
+    return petabricks::DynamicScheduler::cpuScheduler().numThreads();
+  }else{
+    return 0;
+  }
 }
 
 namespace{
   void onJassert(jalib::JAssert& o) {
-    petabricks::WorkerThread::self()->pool().debugPrint(o);
+    if(petabricks::WorkerThread::self()!=0) {
+      petabricks::WorkerThread::self()->pool().debugPrint(o);
+    }
   }
 }
-int _ignored = jalib::JAssert::onBegin(&onJassert);
+//int _ignored = jalib::JAssert::onBegin(&onJassert);
 
 

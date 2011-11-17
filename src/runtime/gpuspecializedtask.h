@@ -24,7 +24,6 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifdef HAVE_OPENCL
 #ifndef PETABRICKSGPUSPECIALIZEDTASK_H
 #define PETABRICKSGPUSPECIALIZEDTASK_H
 
@@ -100,6 +99,5 @@ private:
 
 }
 
-#endif
 #endif
 

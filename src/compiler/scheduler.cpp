@@ -92,40 +92,54 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
 
 #ifdef HAVE_OPENCL
 
-  //std::cout << std::endl << "=== transform : " << trans.name() << "===" << std::endl;
   for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
     i->node().resetRegionNodeGroups();
-    RegionList from = i->node().getFromRegionOnCpu(_choiceAssignment);
-		//std::cout << "outter: " << &i->node() << std::endl;
-    for(RegionList::iterator it = from.begin(); it != from.end(); ++it){
-      std::vector<int> ids;
-      ScheduleT::iterator last = _schedule.end();
-      for(ScheduleT::iterator j=_schedule.begin(); j!=i; ++j){
-				//std::cout << "inner: " << &j->node() << std::endl;
-        if(j->node().hasOverlappingRegionOnGpu(_choiceAssignment, *it)){
-          j->node().setGpyCopyOut();
-          last = j;
-          ids.push_back(j->node().id());
-        }
-      }
-      if(last != _schedule.end())
-        last->node().addGroup((*it)->matrix()->name(),ids);
-    }
   }
 
+  // Check output before inner rules because inner rules can overwrite setPendingGpuCopyOut to setGpuCopyOut
   MatrixDefList matrices = trans.getToMatrices();
   for(MatrixDefList::iterator it = matrices.begin(); it != matrices.end(); ++it){
     std::vector<int> ids;
     ScheduleT::iterator last = _schedule.end();
     for(ScheduleT::iterator j=_schedule.begin(); j!=_schedule.end(); ++j){
-      if(j->node().numOutMatrixOnGpu(_choiceAssignment, *it) > 0){
-        j->node().setGpyCopyOut();
+      int overlappingDimensions = j->node().hasOverlappingRegionOnGpu(_choiceAssignment, *it);
+      if(overlappingDimensions >= 0){
+        if(overlappingDimensions == (*it)->numDimensions())
+          j->node().setPendingGpuCopyOut();
+        else
+          j->node().setGpuCopyOut();
         last = j;
         ids.push_back(j->node().id());
       }
     }
     if(last != _schedule.end())
       last->node().addGroup((*it)->name(),ids);
+  }
+
+  //std::cout << std::endl << "=== transform : " << trans.name() << "===" << std::endl;
+  for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
+    std::set<std::string> matrices;
+    RegionList from = i->node().getFromRegionOnCpu(_choiceAssignment);
+		//std::cout << "outter: " << i->node().id() << std::endl;
+
+    for(RegionList::iterator it = from.begin(); it != from.end(); ++it){
+      if(matrices.find((*it)->matrix()->name()) == matrices.end()) {
+        matrices.insert((*it)->matrix()->name());
+        std::vector<int> ids;
+        ScheduleT::iterator last = _schedule.end();
+
+        for(ScheduleT::iterator j=_schedule.begin(); j!=i; ++j){
+          if(j->node().hasOverlappingRegionOnGpu(_choiceAssignment, *it) >= 0){
+				    //std::cout << "inner: " << j->node().id() << std::endl;
+            j->node().setGpuCopyOut();
+            last = j;
+            ids.push_back(j->node().id());
+          }
+        }
+        if(last != _schedule.end())
+          last->node().addGroup((*it)->matrix()->name(),ids);
+      }
+    }
   }
 
   /*std::cout << std::endl << "=== summary ===" << std::endl;
@@ -139,12 +153,7 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
     if(i!=_schedule.begin() && flavor!=RuleFlavor::SEQUENTIAL)
       o.continuationPoint();
 
-#ifdef HAVE_OPENCL
-    std::cout << "node " << &i->node() << " " << _numOutOnGpu[&i->node()] << std::endl;
-    i->node().generateCode(trans, o, flavor, _choiceAssignment); //TODO
-#else
     i->node().generateCode(trans, o, flavor, _choiceAssignment);
-#endif
 
     if(flavor!=RuleFlavor::SEQUENTIAL) {
       for(ScheduleDependencies::const_iterator d=i->deps().begin();
@@ -155,7 +164,7 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
       o.write(i->node().nodename()+"->enqueue();");
     }
   }
-  if(flavor == RuleFlavor::WORKSTEALING) {
+  if(flavor!=RuleFlavor::SEQUENTIAL) {
     o.write("DynamicTaskPtr  _fini = new NullDynamicTask();");
     for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
       if(i->node().isOutput()) {
@@ -437,6 +446,8 @@ void petabricks::StaticScheduler::generateSchedule(){
   for(ChoiceDepGraphNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i){
     _choices.addConsumer(i->asPtr());
   }
+  _choices.pruneChoiceSpace();
+  JASSERT(_choices.size()<1000)(_choices.size()).Text("WAY TOO MANY CHOICES");
   for(RuleChoiceCollection::iterator choice=_choices.begin(); choice!=_choices.end(); ++choice) {
     _dbgpath = dbgpathorig+".schedule"+jalib::XToString(choice);
     try {
@@ -493,7 +504,7 @@ void petabricks::StaticScheduler::generateSchedule(){
       #endif
     } catch(CantScheduleException) {
       _choices.markInvalid(choice);
-      JTRACE("SCHEDULING CHOICE FAIL");
+      JTRACE("SCHEDULING CHOICE FAIL")(choice);
     }
   }
   _dbgpath = dbgpathorig;
@@ -562,7 +573,7 @@ void petabricks::StaticScheduler::mergeCoscheduledNodes(const RuleChoiceAssignme
 
 void petabricks::StaticScheduler::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor) {
 
-  if(flavor==RuleFlavor::WORKSTEALING) {
+  if(flavor!=RuleFlavor::SEQUENTIAL) {
     for(ChoiceDepGraphNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i){
       o.addMember("DynamicTaskPtr", (*i)->nodename(), "");
     }
@@ -574,7 +585,11 @@ void petabricks::StaticScheduler::generateCode(Transform& trans, CodeGenerator& 
   SchedulesT::iterator i;
   CodeGenerator& schedOutput = o.forkhelper();
   int n=0;
-  o.beginSwitch("selectSchedule()");
+  if(_schedules.size()==1) {
+    o.beginSwitch("0");
+  }else{
+    o.beginSwitch(trans.name()+"_selectSchedule("TRANSFORM_N_STR"())");
+  }
   for(i=_schedules.begin(); i!=_schedules.end(); ++i,++n) {
     o.beginCase(n);
 
@@ -593,24 +608,21 @@ void petabricks::StaticScheduler::generateCode(Transform& trans, CodeGenerator& 
   }
   o.endSwitch();
   o.write("JASSERT(false).Text(\"invalid schedule\");");
-  if(flavor==RuleFlavor::WORKSTEALING) {
+  if(flavor!=RuleFlavor::SEQUENTIAL) {
     o.write("return 0;");
   }
 
     
-  if(flavor==RuleFlavor::SEQUENTIAL){
-    std::string prefix = trans.name() + "_" + jalib::XToString(trans.nextTunerId()) + "_";
-    CodeGenerator& decTreeOutput = o.forkhelper();
-    decTreeOutput.beginFunc("int", "selectSchedule");
-    if(_schedules.size()==1) {
-      decTreeOutput.write("return 0;");
-    }else{
-      _choices.generateDecisionTree(prefix, _schedules.size(), decTreeOutput);
-    }
-    decTreeOutput.endFunc();
+}
+
+void petabricks::StaticScheduler::generateGlobalCode(Transform& trans, CodeGenerator& o) {
+  std::string prefix = trans.name() + "_" + jalib::XToString(trans.nextTunerId()) + "_";
+  if(_schedules.size()>1) {
+    o.beginFunc("int", trans.name()+"_selectSchedule", std::vector<std::string>(1,"int _transform_n"));
+    _choices.generateDecisionTree(prefix, _schedules.size(), o);
+    o.endFunc();
   }
 }
-  
 
 
 void petabricks::StaticScheduler::renderGraph(const char* filename, const char* type) const{

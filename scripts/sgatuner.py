@@ -265,6 +265,7 @@ class Population:
   def generation(self):
     progress.push()
     try:
+      #os.system("find /tmp -name 'OCL*.so' -user mangpo -maxdepth 1 -delete")
       self.roundNumber += 1
       self.triedConfigs = set(map(lambda x: x.config, self.members))
       self.removed=[]

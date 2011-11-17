@@ -28,6 +28,7 @@
 #define PETABRICKSMATRIXDEF_H
 
 #include "formula.h"
+#include "pbc.h"
 
 #include "common/jconvert.h"
 #include "common/jprintable.h"
@@ -45,9 +46,7 @@
 
 namespace petabricks {
 class CodeGenerator;
-#if HAVE_OPENCL
 class CLCodeGenerator;
-#endif
 class Transform;
 class MatrixDef;
 class FreeVars;
@@ -105,57 +104,47 @@ public:
 
   void exportConstants(Transform&);
 
-  std::string matrixTypeName() const{
-#ifndef REGIONMATRIX_TEST
-    return "MatrixRegion"+jalib::XToString(numDimensions())+"D";
-#else
-    return "RegionMatrix"+jalib::XToString(numDimensions())+"D";
-#endif
+// std::string matrixTypeName(RuleFlavor rf) const{
+//   return rf.string()+"::MatrixRegion"+jalib::XToString(numDimensions())+"D";
+// }
+//
+// std::string constMatrixTypeName(RuleFlavor rf) const{
+//   return rf.string()+"::ConstMatrixRegion"+jalib::XToString(numDimensions())+"D";
+// }
+//
+// 
+// std::string sliceTypeName(RuleFlavor rf) const{
+//   return rf.string()+"::MatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
+// }
+//
+// std::string constSliceTypeName(RuleFlavor rf) const{
+//   return rf.string()+"::ConstMatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
+// }
+
+  std::string typeName(RuleFlavor rf, bool isConst=false, int slices = 0) const{
+    std::string constness = isConst ? "Const" : "";
+    return rf.string()+"::"+constness+genericTypeName(slices);
+  }
+  std::string genericTypeName(int slices = 0) const{
+    return "MatrixRegion"+jalib::XToString(numDimensions()-slices)+"D";
   }
 
-  std::string constMatrixTypeName() const{
-#ifndef REGIONMATRIX_TEST
-    return "ConstMatrixRegion"+jalib::XToString(numDimensions())+"D";
-#else
-    return "ConstRegionMatrix"+jalib::XToString(numDimensions())+"D";
-#endif
-  }
 
   
-  std::string sliceTypeName() const{
-#ifndef REGIONMATRIX_TEST
-    return "MatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
-#else
-    return "RegionMatrix"+jalib::XToString(numDimensions()-1)+"D";
-#endif
-  }
+  std::string allocateStr(RuleFlavor rf) const;
+  std::string genericAllocateStr() const;
 
-  std::string constSliceTypeName() const{
-#ifndef REGIONMATRIX_TEST
-    return "ConstMatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
-#else
-    return "ConstRegionMatrix"+jalib::XToString(numDimensions()-1)+"D";
-#endif
-  }
-
-  
-  std::string allocateStr() const;
-
-  void argDeclRW(std::vector<std::string>& args, bool byRef=false) const;
-  void argDeclRO(std::vector<std::string>& args, bool byRef=false) const;
-  void genAllocTmpCode(CodeGenerator& o);
+  void argDecl(std::vector<std::string>& args, RuleFlavor rf, bool isConst, bool byRef=false) const;
+  void genAllocTmpCode(CodeGenerator& o, RuleFlavor rf);
   void generateCodeSimple(CodeGenerator& o);
-  void readFromFileCode(CodeGenerator& o, const std::string& fn);
+  void readFromFileCode(CodeGenerator& o, const std::string& fn, RuleFlavor rf);
   void writeToFileCode(CodeGenerator& o, const std::string& fn);
-  void varDeclCodeRO(CodeGenerator& o);
-  void varDeclCodeRW(CodeGenerator& o);
+  void varDeclCode(CodeGenerator& o, RuleFlavor rf, bool isConst);
 
   void extractDefines(FreeVars& defined, CodeGenerator& o);
-#if HAVE_OPENCL
   void extractCLDefines(FreeVars& defined, CLCodeGenerator& clo, unsigned int dims, std::map<std::string, std::string> &map);
-#endif
   void verifyDefines(CodeGenerator& o);
-  void allocateTemporary(CodeGenerator& o, bool setOnly, bool reallocAllowed);
+  void allocateTemporary(CodeGenerator& o, RuleFlavor rf, bool setOnly, bool reallocAllowed);
 
   void addType(Type t){  _type |= t; }
   bool isAllInput() const { return _type == T_FROM; }

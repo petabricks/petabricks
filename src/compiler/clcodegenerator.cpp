@@ -86,7 +86,7 @@ CLCodeGenerator::localMemoryBarrier( )
   os() << "barrier( CLK_LOCAL_MEM_FENCE );\n";
 }
 
-void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned int dims, Transform& trans)
+void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned int dims, Transform& trans, bool local)
 {
   // Kernel's arguments need to be conformed with UserRule's codegen
 
@@ -97,10 +97,10 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   std::map<std::string, std::string> map;
   for(RegionList::const_iterator it = _to.begin(); it != _to.end(); ++it)
   {
-    if( it != _to.begin() )
-	    os() << ", ";
     std::string matrix_name = (*it)->matrix( )->name( );
     if(map[matrix_name] == "") {
+      if( it != _to.begin() )
+	      os() << ", ";
       (*it)->setBuffer(true);
       map[matrix_name] = (*it)->name();
       os() << "__global " << STRINGIFY(MATRIX_ELEMENT_T) << "* _region_" << (*it)->name();
@@ -111,7 +111,6 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
     }
   }
 
-  map.clear();
   for(RegionList::const_iterator it = _from.begin(); it != _from.end(); ++it)
   { 
     std::string matrix_name = (*it)->matrix( )->name( );
@@ -145,17 +144,20 @@ void CLCodeGenerator::beginKernel(RegionList& _to, RegionList& _from, unsigned i
   for(RegionList::const_iterator it = _to.begin(); it != _to.end(); ++it)
   {
     if((*it)->isBuffer()) {
-      for( int i = 0; i < (int) (*it)->size() - 1; ++i )
+      for( int i = 0; i < (int) (*it)->size() - 1; ++i ) //match with userrule
 	      os() << ", int dim_" << (*it)->name() << "_d" << i;
     }
   }
   for(RegionList::const_iterator it = _from.begin(); it != _from.end(); ++it)
   {
     if((*it)->isBuffer()) {
-      for( int i = 0; i < (int) (*it)->size() - 1; ++i )
+      for( int i = 0; i < (int) (*it)->size(); ++i ) //match with userrule
 	      os() << ", int dim_" << (*it)->name() << "_d" << i;
     }
   }
+
+  if(local)
+    os() << ", int block_size";
 
   os() << " ) {\n";
 

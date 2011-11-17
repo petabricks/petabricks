@@ -1,0 +1,24 @@
+
+#include "Bitonicsort.pbcc"
+#include "Insertionsort.pbcc"
+#include "Mergesort2.pbcc"
+#include "Quicksort2.pbcc"
+#include "Selectionsort.pbcc"
+
+function Sort
+from in[n]
+to out[n]
+{
+  Mergesort2(out, in);
+} or {
+  Mergesort4(out, in);
+} or {
+  Quicksort2(out, in);
+} or {
+  Insertionsort(out, in);
+} or {
+  Selectionsort(out, in);
+} or {
+  Bitonic(out, in);
+}
+

@@ -39,7 +39,11 @@ typedef jalib::JRef<RuleChoice> RuleChoicePtr;
 class RuleChoiceConsumer {
 public:
   virtual ~RuleChoiceConsumer() {}
+  
+  //virtual const MatrixDefPtr&    matrix() const = 0;
+  virtual const SimpleRegionPtr& region() const = 0;
   virtual const RuleSet& choices() const = 0;
+
 };
 
 class RuleChoiceAssignment : public std::map<const RuleChoiceConsumer*, RulePtr>{
@@ -67,9 +71,12 @@ public:
 
   void generateDecisionTree(std::string& prefix, size_t choiceCount, CodeGenerator& o);
 
+  void pruneChoiceSpace();
+
 private:
   std::vector<const RuleChoiceConsumer*> _ordering;
   std::vector<iterator> _invalidOrderings;
+  std::map<const RuleChoiceConsumer*, const RuleChoiceConsumer*> _combinedChoices;
 };
 
 }

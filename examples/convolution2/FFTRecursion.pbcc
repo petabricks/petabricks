@@ -31,6 +31,8 @@ to OUTX[n], OUTY[n]
       FFTRecursion(outx, outy, x, y, tempx2, tempy2, N2, offset+delta, d2);
       Copy1D(tempx2,outx);
       Copy1D(tempy2,outy);
+      tempx2.useOnCpu();
+      tempy2.useOnCpu();
       
       for(k=0; k<N2; k++)
       {

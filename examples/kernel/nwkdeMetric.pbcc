@@ -8,6 +8,7 @@
 
 /* This function returns the negative MSE produced by NWKDE transforms.
  */
+template<typename ConstMatrixRegion1D, typename ConstMatrixRegion2D>
 ElementT computeNWKDEMetric(ConstMatrixRegion1D result,
                             ConstMatrixRegion2D data,
                             ConstMatrixRegion1D y,
