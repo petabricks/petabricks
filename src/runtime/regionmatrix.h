@@ -160,6 +160,13 @@ namespace petabricks {
     RegionHandlerPtr getRegionHandler() const { return _regionHandler; };
 
     //
+    // gpu
+    //
+    void useOnCpu() {
+      // Nothing here
+    }
+
+    //
     // Initialization
     //
     void splitData(IndexT* splitSize) {
@@ -569,7 +576,7 @@ namespace petabricks {
       info->setStorage(ms, base);
       info->setSize(D, _size);
       info->setExtraVal();
-      return info; 
+      return info;
     }
 
     bool isLocal() const {

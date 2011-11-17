@@ -145,7 +145,7 @@ public:
 #ifdef DEBUG
     JASSERT(count()>0)(count());
 #endif
-    return _storageInfo; 
+    return _storageInfo;
   }
 
   void randomize(){
@@ -175,7 +175,7 @@ public:
       s*=this->sizes()[i];
     return s;
   }
-  
+
   ///
   /// copy from a more generic container (used in memoization)
   void copyFrom(const MatrixStorageInfo& ms){
@@ -189,7 +189,7 @@ public:
       memcpy(storage()->data(), ms.storage()->data(), storage()->count()*sizeof(ElementT));
     }
   }
-  
+
   IndexT* sizes() { return _sizes; }
   IndexT* multipliers() { return _multipliers; };
 private:
@@ -367,7 +367,7 @@ public:
     std::cerr << "size = ";
     for(int i=0; i<D; ++i) {
       std::cerr << size(i) << " ";
-    }    
+    }
     std::cerr << std::endl << "mult = ";
     for(int i=0; i<D; ++i) {
       std::cerr << this->multipliers()[i] << " ";
@@ -386,7 +386,7 @@ public:
       dst.cell(coord) = this->cell(coord);
     } while(this->incCoord(coord)>=0);
   }
-  
+
   ///
   /// Copy data within the boundary c1 and c2 of this to dst
   void copyTo(const MutableMatrixRegion& dst,const IndexT c1[D], const IndexT c2[D])
