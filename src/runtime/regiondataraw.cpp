@@ -154,3 +154,17 @@ void RegionDataRaw::processWriteCellCacheMsg(const BaseMessageHeader* base, size
   caller->sendReply(buf, sz, base);
 }
 
+void RegionDataRaw::processGetMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+  GetMatrixStorageMessage* msg = (GetMatrixStorageMessage*)base->content();
+
+  size_t storage_sz = sizeof(ElementT) * _storage->count();
+  size_t sz = sizeof(GetMatrixStorageReplyMessage) + storage_sz;
+
+  char buf[sz];
+  GetMatrixStorageReplyMessage* reply = (GetMatrixStorageReplyMessage*)buf;
+
+  reply->count = _storage->count();
+  memcpy(reply->storage, _storage->data(), storage_sz);
+
+  caller->sendReply(buf, sz, base);
+}

@@ -48,6 +48,7 @@ namespace petabricks {
         CREATEREGIONDATAPART,
         INITWITHREGIONDATA,
         INITWITHREGIONHANDLER,
+        SCRATCHSTORAGE,
       };
     } PACKED;
 
@@ -139,6 +140,10 @@ namespace petabricks {
       int numHops;
     } PACKED;
 
+    struct GetMatrixStorageMessage {
+      char metadata[];
+    } PACKED;
+
     struct AllocDataMessage {
     } PACKED;
 
@@ -174,6 +179,11 @@ namespace petabricks {
       HostPid dataHost;
       int numHops;
       EncodedPtr encodedPtr; // regiondata or remoteobject
+    } PACKED;
+
+    struct GetMatrixStorageReplyMessage {
+      size_t count;
+      char storage[];
     } PACKED;
 
     struct AllocDataReplyMessage {

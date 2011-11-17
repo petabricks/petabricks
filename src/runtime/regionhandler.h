@@ -49,6 +49,10 @@ namespace petabricks {
     void updateHandlerChain();
     bool isHandlerChainUpdated(); // for testing
 
+    // Copy MatrixStorage
+    // Return a local MatrixStorage that matches the dimension in metadata.
+    MatrixStoragePtr copyToScratchMatrixStorage(char* metadata, size_t size);
+
     // RegionDataSplit
     void splitData(IndexT* splitSize);
     void createDataPart(int partIndex, RemoteHostPtr host);
@@ -59,6 +63,7 @@ namespace petabricks {
     void processReadCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processWriteCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processGetMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processRandomizeDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);

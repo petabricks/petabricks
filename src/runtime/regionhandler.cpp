@@ -69,7 +69,6 @@ int RegionHandler::allocData(const IndexT* size) {
   _regionData->allocData();
 #endif
 
-
   /*
   // round-robin placement
   static int numHosts = RemoteHostDB::instance().size();
@@ -167,6 +166,17 @@ bool RegionHandler::isHandlerChainUpdated() {
   return true;
 }
 
+MatrixStoragePtr RegionHandler::copyToScratchMatrixStorage(char* metadata, size_t size) {
+  if (type() == RegionDataTypes::REGIONDATARAW) {
+    return _regionData->storage();
+  } else if (type() == RegionDataTypes::REGIONDATAREMOTE) {
+    return _regionData->copyToScratchMatrixStorage(metadata, size);
+  } else {
+    UNIMPLEMENTED();
+    return NULL;
+  }
+}
+
 //
 // RegionDataSplit
 //
@@ -201,6 +211,10 @@ void RegionHandler::processWriteCellCacheMsg(const BaseMessageHeader* base, size
 }
 
 void RegionHandler::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  _regionData->processGetHostListMsg(base, baseLen, caller);
+}
+
+void RegionHandler::processGetMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   _regionData->processGetHostListMsg(base, baseLen, caller);
 }
 

@@ -610,6 +610,12 @@ namespace petabricks {
     RegionMatrix localCopy() const {
       // TODO(yod): optimize this
       RegionMatrix copy = RegionMatrix(this->size());
+
+      char buf[0];
+      MatrixStoragePtr storage = _regionHandler->copyToScratchMatrixStorage(buf, 0);
+
+
+      /*
       copy.allocData();
 
       IndexT coord[D];
@@ -618,7 +624,7 @@ namespace petabricks {
       do {
         copy.writeCell(coord, this->readCell(coord));
       } while (this->incCoord(coord) >= 0);
-
+      */
       return copy;
     }
 

@@ -202,6 +202,17 @@ void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
   free(reply);
 }
 
+MatrixStoragePtr RegionDataRemote::copyToScratchMatrixStorage(char* metadata, size_t size) const {
+  void* data;
+  size_t len;
+  this->fetchData(metadata, MessageTypes::SCRATCHSTORAGE, size, &data, &len);
+  GetMatrixStorageReplyMessage* reply = (GetMatrixStorageReplyMessage*)data;
+  MatrixStoragePtr storage = new MatrixStorage(reply->count);
+  memcpy(storage->data(), reply->storage, len);
+  free(reply);
+  return storage;
+}
+
 DataHostPidList RegionDataRemote::hosts(IndexT* begin, IndexT* end) {
   GetHostListMessage msg;
   memcpy(msg.begin, begin, _D * sizeof(IndexT));
@@ -331,6 +342,10 @@ void RegionDataRemote::processUpdateHandlerChainMsg(const BaseMessageHeader* bas
 }
 
 void RegionDataRemote::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  this->forwardMessage(base, baseLen, caller);
+}
+
+void RegionDataRemote::processGetMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   this->forwardMessage(base, baseLen, caller);
 }
 

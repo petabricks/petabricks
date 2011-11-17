@@ -58,6 +58,10 @@ void RegionDataI::processGetHostListMsg(const BaseMessageHeader* base, size_t, I
   caller->sendReply(buf, sz, base);
 }
 
+void RegionDataI::processGetMatrixStorageMsg(const BaseMessageHeader*, size_t, IRegionReplyProxy*) {
+  UNIMPLEMENTED();
+}
+
 void RegionDataI::processAllocDataMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
   AllocDataReplyMessage reply;
   reply.result = this->allocData();

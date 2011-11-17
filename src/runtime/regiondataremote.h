@@ -54,6 +54,9 @@ namespace petabricks {
     void readByCache(void* request, size_t request_len, void* reply, size_t &reply_len) const;
     void writeByCache(const IndexT* coord, ElementT value) const;
 
+    // scratch
+    MatrixStoragePtr copyToScratchMatrixStorage(char* metadata, size_t size) const;
+
     DataHostPidList hosts(IndexT* begin, IndexT* end);
     RemoteHostPtr host();
 
@@ -70,6 +73,7 @@ namespace petabricks {
     void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processGetMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processRandomizeDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller, RegionDataIPtr regionDataPtr);

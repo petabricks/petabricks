@@ -37,6 +37,11 @@ namespace petabricks {
       return NULL;
     }
 
+    virtual MatrixStoragePtr copyToScratchMatrixStorage(char* /*metadata*/, size_t /*size*/) const {
+      UNIMPLEMENTED();
+      return NULL;
+    }
+
     virtual void setStorage(MatrixStoragePtr /*storage*/) {
       JASSERT(false)(_type).Text("This should not be called.");
     }
@@ -67,6 +72,7 @@ namespace petabricks {
     virtual void processReadCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     virtual void processWriteCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     virtual void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    virtual void processGetMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     virtual void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     virtual void processRandomizeDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     virtual void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller, RegionDataIPtr regionDataPtr);
