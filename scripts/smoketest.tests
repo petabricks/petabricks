@@ -35,6 +35,10 @@ linearsolve/LinearSolvePosDef      Rand2DPosDef Rand2Db
 matrixapprox/matrixapprox  MatApproxRand2D
 multiply/multiply          Rand2Da Rand2Db
 multiply/strassen          Rand2Da Rand2Db
+multiply/triMultiply       Zero0D Zero0D Rand2Da Rand2Db
+multiply/triMultiply       Zero0D  One0D Rand2Da Rand2Db
+multiply/triMultiply        One0D Zero0D Rand2Da Rand2Db
+multiply/triMultiply        One0D  One0D Rand2Da Rand2Db
 multigrid/Poisson2DDirect  Rand2Da Rand2Db
 multigrid/Poisson2DJacobi  Rand2Da Rand2Db One0D
 multigrid/Poisson2DJacobi  Rand2Da Rand2Db Ten0D

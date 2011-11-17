@@ -96,6 +96,7 @@ multigrid/Restrict3D
 multiply/multiplyAdd
 multiply/multiply
 multiply/strassen
+multiply/triMultiply
 optimize/optimize
 preconditioner/CGInterior
 preconditioner/CG
