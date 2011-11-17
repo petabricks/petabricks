@@ -47,22 +47,29 @@ public:
 
   std::string getLabel() const;
 
+
+
+  virtual void trimDependency(DependencyDirection& ,
+                              const ChoiceDepGraphNode& ,
+                              const ChoiceDepGraphNode& ){}
+
+
   bool canProvide(const MatrixDefPtr& m) const;
 
   void getApplicableRegionDescriptors(RuleDescriptorList& output,
                                       const MatrixDefPtr& matrix, int dimension, const RulePtr&);
 
-  void generateCallCode(const std::string& nodename,
-                        Transform& trans,
-                        CodeGenerator& o,
-                        const SimpleRegionPtr& region,
-                        RuleFlavor flavor,
-                        std::vector<RegionNodeGroup>& regionNodesGroups,
-                        int nodeID,
-                        bool gpuCopyOut);
-
-  void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor);
-  void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
+//void generateCallCode(const std::string& nodename,
+//                      Transform& trans,
+//                      CodeGenerator& o,
+//                      const SimpleRegionPtr& region,
+//                      RuleFlavor flavor,
+//                      std::vector<RegionNodeGroup>& regionNodesGroups,
+//                      int nodeID,
+//                      int gpuCopyOut); 
+//
+  void virtual generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor);
+  void virtual generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor) = 0;
 
   void markRecursive();
   const FormulaPtr& recursiveHint() const;
@@ -92,6 +99,7 @@ public:
 
   //these just forward to _rule
   void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
+
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
                         CodeGenerator& o,
@@ -99,7 +107,7 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        bool gpuCopyOut);
+                        int gpuCopyOut);
   bool isSingleElement() const;
   int dimensions() const;
   FormulaPtr getSizeOfRuleIn(int d);
@@ -134,7 +142,7 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        bool gpuCopyOut);
+                        int gpuCopyOut);
 
   bool isSingleElement() const;
 
@@ -174,7 +182,7 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        bool gpuCopyOut);
+                        int gpuCopyOut);
 private:
   size_t _dup;
 };
@@ -197,7 +205,7 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        bool gpuCopyOut);
+                        int gpuCopyOut);
 
   bool isSingleElement() const;
 

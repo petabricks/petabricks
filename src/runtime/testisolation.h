@@ -62,7 +62,7 @@ namespace petabricks {
   class TestIsolation {
   public:
     virtual ~TestIsolation(){}
-    virtual bool beginTest(int workerThreads)=0;
+    virtual bool beginTest(int workerThreads, int reexecchild)=0;
     virtual void endTest(TestResult& result)=0;
     virtual void recvResult(TestResult&)=0;
     virtual void disableTimeout(){}
@@ -95,7 +95,7 @@ namespace petabricks {
 
     void onTunableModification(jalib::JTunable* t, jalib::TunableValue, jalib::TunableValue newVal);
 
-    bool beginTest(int workerThreads);
+    bool beginTest(int workerThreads, int reexecchild);
     void endTest(TestResult&);
     void recvResult(TestResult&);
     void disableTimeout();
@@ -122,6 +122,7 @@ namespace petabricks {
     bool _timeoutEnabled;
     jalib::JTime _start;
   };
+
   
   /**
    * Runs the timing test in the current process
@@ -129,7 +130,7 @@ namespace petabricks {
   class DummyTestIsolation : public TestIsolation
   {
   public:
-    bool beginTest(int workerThreads);
+    bool beginTest(int workerThreads, int reexecchild);
     void endTest(TestResult& result);
     void recvResult(TestResult& result);
   };

@@ -5,20 +5,11 @@
 #include "../simple/copy.pbcc"
 #include "../simple/permute.pbcc"
 #include "../simple/reduce.pbcc"
+#include "../simple/scale.pbcc"
 #include "../trisolve/TriSolveLL.pbcc"
 #include "../multiply/multiplyAdd.pbcc"
 #include "DGER.pbcc"
 #include "LULAPACK.pbcc"
-
-transform Scale2D
-from ALPHA
-to A[n,m]
-{
-    to (A.cell(j, i) a) from (ALPHA alpha)
-    {
-        a *= alpha;
-    }
-}
 
 transform Shift1D
 from OFFSET

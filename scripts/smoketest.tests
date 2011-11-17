@@ -14,11 +14,13 @@ convolution2/ConvFFTW		Rand1D Rand1D
 convolution2/ConvLinAlg		Rand1D Rand1D
 convolution2/ConvLoops     Rand1D Rand1D
 convolution2/Convolution   Rand1D Rand1D
+#convolution/convolutionSeparable Rand2Da Rand1D17
+#convolution/convolutionSeparable2 Rand2D32 Rand1D17
 convolution/ConvolutionFFT Rand1D Rand1D
 convolution/Convolution    Rand1D Rand1D
 kclustering/kmeans         KmeansRandInput /dev/null
 kernel/nwkde               nwkde/data nwkde/wrapFlags nwkde/kernelWidths nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/data nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/outputVarIndex nwkde/outputTimeOffset nwkde/maskWidth
-kernel/nwkdeVA             nwkde/data nwkde/wrapFlags nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/data nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/outputVarIndex nwkde/outputTimeOffset nwkde/maskWidth
+#kernel/nwkdeVA             nwkde/data nwkde/wrapFlags nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/data nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/outputVarIndex nwkde/outputTimeOffset nwkde/maskWidth
 trisolve/TriSolveLL        Zero0D Rand2Da Rand2Db
 trisolve/TriSolveLL        One0D Rand2Da Rand2Db
 trisolve/TriSolveLU        Zero0D Rand2Da Rand2Db
@@ -31,6 +33,7 @@ LUDense/LUTest             Rand2Da
 LUDense/LUTest             Rand2DLong
 LUDense/LUTest             Rand2DWide
 linearsolve/LinearSolve    Rand2Da Rand2Db
+linearsolve/LinearSolvePosDef      Rand2DPosDef Rand2Db
 matrixapprox/matrixapprox  MatApproxRand2D
 multiply/multiply          Rand2Da Rand2Db
 multiply/strassen          Rand2Da Rand2Db
@@ -52,6 +55,8 @@ multigrid/Helmholtz3DRefMG         Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 H
 multigrid/Helmholtz3DRefFMG        Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 Helmholtz3DB1 Helmholtz3DB2 Helmholtz3DRHS One0D Two0D One0D One0D
 multigrid/Helmholtz3DRefFMG        Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 Helmholtz3DB1 Helmholtz3DB2 Helmholtz3DRHS One0D Two0D One0D Ten0D
 preconditioner/preconditioner	   PrecondX PrecondA PrecondB
+QR/QRTest                  Rand2Da
+QR/QRTest                  Rand2DLong
 simple/add                 Rand2Da Rand2Db
 simple/bufferrotate        Rand1D
 simple/bufferrotate2       Rand1D
@@ -60,14 +65,16 @@ simple/copy                Rand2Da
 simple/matrixrotate        Rand2Da
 simple/rollingsum          Rand1D
 simple/transpose           Rand2Da
+sort/Bitonicsort           Rand1D
 sort/Insertionsort         Rand1Dodd
 sort/Mergesort             Rand1Dodd
 sort/Mergesort2            Rand1Dodd
 sort/Quicksort             Rand1Dodd
 sort/Radixsort             Rand1Dodd
-#sort/Selectionsort         Rand1Dodd
+sort/Selectionsort         Rand1Dodd
 sort/Sort                  Rand1D
 sort/Sort                  Rand1Dodd
+sort/Sort                  Rand1D
 regression/accuracymetric  Rand1D
 regression/assign0d
 regression/backwards       Rand1D

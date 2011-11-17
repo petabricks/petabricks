@@ -21,14 +21,14 @@ to X[n,m]
     {
         for (IndexT i = 0; i < m-1; ++i) {
             if (!unitFlag) {
-                Scale(x.region(0, i, n, i+1), 1.0 / a.cell(i, i));
+                Scale1D(x.row(i), 1.0 / a.cell(i, i));
             }
             MatrixMultiplyAdd(x.region(0, i+1, n, m), -1,
                               a.region(i, i+1, i+1, m),
                               x.region(0, i, n, i+1), 1);
         }
         if (!unitFlag) {
-            Scale(x.region(0, m-1, n, m), 1.0 / a.cell(m-1, m-1));
+            Scale1D(x.row(m-1), 1.0 / a.cell(m-1, m-1));
         }
     }
 
@@ -37,7 +37,7 @@ to X[n,m]
     from (UNITFLAG unitFlag, A a)
     {
         if (!unitFlag) {
-            Scale(x.region(0, 0, n, 1), 1.0 / a.cell(0, 0));
+            Scale1D(x.row(0), 1.0 / a.cell(0, 0));
         }
         for (IndexT i = 1; i < m; ++i) {
             ElementT factor = unitFlag ? 1 : 1.0 / a.cell(i, i);

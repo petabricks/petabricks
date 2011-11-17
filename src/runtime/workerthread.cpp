@@ -104,6 +104,11 @@ petabricks::WorkerThread::~WorkerThread(){
   _pool.remove(this);
 }
 
+
+void petabricks::WorkerThread::markUtilityThread() {
+  setSelf(NULL);
+}
+
 int petabricks::WorkerThread::threadRandInt() const {
   _randomNumState.z = 36969 * (_randomNumState.z & 65535) + (_randomNumState.z >> 16);
   _randomNumState.w = 18000 * (_randomNumState.w & 65535) + (_randomNumState.w >> 16);
@@ -321,6 +326,6 @@ namespace{
     }
   }
 }
-int _ignored = jalib::JAssert::onBegin(&onJassert);
+//int _ignored = jalib::JAssert::onBegin(&onJassert);
 
 

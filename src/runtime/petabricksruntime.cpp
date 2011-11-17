@@ -30,7 +30,6 @@
 #include "dynamictask.h"
 #include "gpudynamictask.h"
 #include "gpumanager.h"
-#include "gpumanager.cpp"
 #include "petabricks.h"
 #include "remotehost.h"
 #include "testisolation.h"
@@ -39,6 +38,7 @@
 #include "common/jfilesystem.h"
 #include "common/jtimer.h"
 #include "common/jtunable.h"
+#include "common/openclutil.h"
 
 #include <algorithm>
 #include <fstream>
@@ -58,9 +58,6 @@
 # undef HAVE_BOOST_RANDOM_HPP
 #endif
 
-#ifdef HAVE_OPENCL
-# include "openclutil.h"
-#endif
 
 #ifdef HAVE_BOOST_RANDOM_HPP
 # include <boost/random.hpp>
@@ -107,6 +104,9 @@ static double RACE_MULTIPLIER=1;
 static double RACE_MULTIPLIER_LOWACC=1;
 static double RACE_ACCURACY_TARGET=jalib::minval<double>();
 
+static bool TI_REEXEC = true;
+static int REEXECCHILD=-1;
+
 #ifdef REGIONMATRIX_TEST
 static std::string HOSTS_FILE="hosts.example";
 #else
@@ -152,6 +152,10 @@ static int _incN(int n){
     return GRAPH_STEP+n;
   }
 }
+
+static int theArgc = 0;
+static const char** theArgv = NULL;
+
 
 static enum {
   MODE_RUN_IO,
@@ -223,6 +227,9 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   JTIMER_SCOPE(init);
   if(m) _mainName = m->name();
   jalib::JArgs args(argc, argv);
+
+  theArgc = argc;
+  theArgv = argv;
 
   if(args.needHelp())
     std::cerr << "GENERAL OPTIONS:" << std::endl;
@@ -369,6 +376,10 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("slave-host", SLAVE_HOST);
   args.param("slave-port", SLAVE_PORT);
 
+
+  args.param("reexecchild", REEXECCHILD);
+  args.param("tireexec", TI_REEXEC).help("toggle if TestIsolation should reexecute the process");
+
   args.finishParsing(txArgs);
 
   if(SLAVE_HOST != "" && SLAVE_PORT>0) {
@@ -397,12 +408,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     case MODE_DISTRIBUTED_SLAVE:
       //startup requested number of threads
       if(MODE!=MODE_GRAPH_THREADS && MODE!=MODE_ABORT){
-#ifdef HAVE_OPENCL
-        GpuManager::start();
-#endif
-        JTIMER_SCOPE(startworkers);
-        JASSERT(worker_threads>=1)(worker_threads);
-        DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
+        startWorkerThreads(worker_threads);
       }
     case MODE_ABORT:
     case MODE_HELP:
@@ -419,6 +425,14 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
 
   JASSERT(MODE==MODE_RUN_IO||MODE==MODE_DISTRIBUTED_SLAVE||txArgs.size()==0)(txArgs.size())
     .Text("too many arguments");
+}
+
+void petabricks::PetabricksRuntime::startWorkerThreads(int worker_threads) {
+  JTIMER_SCOPE(startworkers);
+  GpuManager::start();
+  JASSERT(worker_threads>=1)(worker_threads);
+  DynamicScheduler::cpuScheduler().startWorkerThreads(worker_threads);
+  _petabricksInit();
 }
 
 void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char** argv) {
@@ -469,9 +483,8 @@ void petabricks::PetabricksRuntime::distributedSlaveLoop() {
 petabricks::PetabricksRuntime::~PetabricksRuntime()
 {
   saveConfig();
-#ifdef HAVE_OPENCL
+  _petabricksCleanup();
   GpuManager::shutdown();
-#endif
   DynamicScheduler::cpuScheduler().shutdown();
   RemoteHostDB().instance().shutdown();
 }
@@ -487,20 +500,10 @@ void petabricks::PetabricksRuntime::saveConfig()
 
 
 int petabricks::PetabricksRuntime::runMain(){
-/*#ifdef HAVE_OPENCL
-  int err;
-#endif*/
   JTIMER_SCOPE(runMain);
 
   switch(MODE){
     case MODE_RUN_IO:
-/*#ifdef HAVE_OPENCL
-      if( 0 != ( err = OpenCLUtil::init( ) ) )
-      {
-        std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
-        exit( -1 );
-      }
-#endif*/
       runNormal();
       break;
     case MODE_IOGEN_CREATE:
@@ -514,13 +517,6 @@ int petabricks::PetabricksRuntime::runMain(){
       return _rv;
       break;
     case MODE_RUN_RANDOM:
-/*#ifdef HAVE_OPENCL
-      if( 0 != ( err = OpenCLUtil::init( ) ) )
-      {
-        std::cout << "Failed to initialize OpenCL: error " << err << "." << std::endl;
-        exit(-1 );
-      }
-#endif*/
       runTrial(GRAPH_MAX_SEC, ACCTRAIN);
       break;
     case MODE_GRAPH_INPUTSIZE:
@@ -771,12 +767,13 @@ double petabricks::PetabricksRuntime::raceConfigs(int n, const std::vector<std::
   try {
     loadTestInput(n, files);
     if(CONFIG_FILENAME_ALT != "None") {
-      if(ati.beginTest(worker_threads/2)) {
+      JASSERT(REEXECCHILD<0);
+      if(ati.beginTest(worker_threads/2, REEXECCHILD)) {
         tm.load(CONFIG_FILENAME);
         _main->reallocate(std::max(IOGEN_N, n));
         computeWrapperSubproc(ati, -1, aresult, NULL);
         ati.endTest(aresult);
-      } else if(bti.beginTest(worker_threads/2)) {
+      } else if(bti.beginTest(worker_threads/2, REEXECCHILD)) {
         tm.load(CONFIG_FILENAME_ALT);
         _main->reallocate(std::max(IOGEN_N, n));
         computeWrapperSubproc(bti, -1, bresult, NULL);
@@ -785,7 +782,7 @@ double petabricks::PetabricksRuntime::raceConfigs(int n, const std::vector<std::
         SubprocessTestIsolation::recvFirstResult(ati, aresult, bti, bresult);
       }
     } else {
-      if(ati.beginTest(worker_threads)) {
+      if(ati.beginTest(worker_threads, REEXECCHILD)) {
         tm.load(CONFIG_FILENAME);
         _main->reallocate(std::max(IOGEN_N, n));
         computeWrapperSubproc(ati, -1, aresult, NULL);
@@ -811,7 +808,7 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
                                                      const std::vector<std::string>* files){
   TestResult result;
   try{
-    if(ti.beginTest(worker_threads)){
+    if(ti.beginTest(worker_threads, REEXECCHILD)){
       computeWrapperSubproc(ti, n, result, files);
       ti.endTest(result);
     }else{
@@ -835,7 +832,12 @@ double petabricks::PetabricksRuntime::computeWrapper(TestIsolation& ti, int n, i
 }
 
 void petabricks::PetabricksRuntime::loadTestInput(int n, const std::vector<std::string>* files) {
+  if(ISOLATION && TI_REEXEC && REEXECCHILD<0) {
+    //skip input loading when a child process will reexe
+    return;
+  }
   if(n>0){
+    JTRACE("generating input")(n);
     JASSERT(files==NULL);
     JTIMER_SCOPE(randomize);
     JASSERT(n==_randSize);
@@ -856,6 +858,7 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
                                                           TestResult& result,
                                                           const std::vector<std::string>* files){
   try {
+    ti.disableTimeout();
     if(_isTrainingRun && _main->isVariableAccuracy()){
       variableAccuracyTrainingLoop(ti);
     }
@@ -864,9 +867,11 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
     }
     _needTraingingRun = false;//reset flag set by isTrainingRun()
     _isRunning = true;
+    ti.restartTimeout();
     jalib::JTime begin=jalib::JTime::now();
     _main->compute();
     jalib::JTime end=jalib::JTime::now();
+    ti.disableTimeout();
     _isRunning = false;
 
     if(_needTraingingRun && _isTrainingRun){
@@ -875,11 +880,9 @@ void petabricks::PetabricksRuntime::computeWrapperSubproc(TestIsolation& ti,
       result.time=end-begin;
     }
     if(ACCURACY){
-      ti.disableTimeout();
       result.accuracy = _main->accuracy();
     }
     if(HASH){
-      ti.disableTimeout();
       jalib::HashGenerator hg;
       _main->hash(hg);
       result.hash = hg.final();
@@ -1045,4 +1048,19 @@ int petabricks::petabricksMain(int argc, const char** argv){
 }
 
 
+void petabricks::PetabricksRuntime::reexecTestIsolation(int fd) {
+  if(TI_REEXEC) {
+    saveConfig();
+    std::string sfd = jalib::XToString(fd);
+    const char** argv = new const char*[theArgc + 3];
+    for(int i=0; i<theArgc; ++i)
+      argv[i] = theArgv[i];
+    argv[theArgc+0] = "--reexecchild";
+    argv[theArgc+1] = sfd.c_str();
+    argv[theArgc+2] = NULL;
+    //JTRACE("reexec");
+    execv(argv[0], (char**)argv);
+    JASSERT(false).Text("execv failed");
+  }
+}
 

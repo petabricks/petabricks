@@ -206,6 +206,16 @@ void petabricks::SimpleRegion::print(std::ostream& o) const {
   o << _minCoord << ", " << _maxCoord;
 }
 
+
+petabricks::FormulaPtr petabricks::SimpleRegion::symbolicSize() const {
+  FormulaPtr p = FormulaInteger::one();
+  for(size_t d=0; d<dimensions(); ++d) {
+    p = new FormulaMultiply(p,
+                            new FormulaSubtract(maxCoord()[d], minCoord()[d]));
+  }
+  return MAXIMA.normalize(p);
+}
+
 std::string petabricks::SimpleRegion::getIterationLowerBounds() const {
   std::string s = minCoord().toString();
   

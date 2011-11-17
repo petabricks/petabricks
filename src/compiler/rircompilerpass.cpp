@@ -363,7 +363,6 @@ void petabricks::AnalysisPass::before(RIRExprCopyRef& e){
   }
 }
 
-#ifdef HAVE_OPENCL
 petabricks::RegionPtr petabricks::OpenClCleanupPass::findMatrix(std::string var)
 {
   RegionList from = _rule.getFromRegions();
@@ -432,8 +431,8 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
 	      {
             
           //RIRExprList indices = call->parts().back()->parts().front()->parts();
-          vector<std::string> indices = generateCellIndices(call->parts().back()->parts().front()->parts());
-          vector<std::string>::reverse_iterator i = indices.rbegin();
+          std::vector<std::string> indices = generateCellIndices(call->parts().back()->parts().front()->parts());
+          std::vector<std::string>::reverse_iterator i = indices.rbegin();
           FormulaPtr idx_formula;
           switch(region->getRegionType()) {
             case Region::REGION_CELL:
@@ -466,16 +465,36 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
 
           // Index needs to include idx_region in case that RegionType != REGION_ALL
           // idx_region is calculated at UserRule::generateOpenCLKernel
-          std::string exprstr = "_region_" + region->name() + "[" + idx_formula->toString() + " + idx_" + region->name() + "]";
+
+          std::string exprstr;
+          if(_minCoordOffsets.find(region->matrix()->name()) != _minCoordOffsets.end()) {
+            std::vector<std::string>::reverse_iterator i = indices.rbegin();
+            if(region->dimensions() == 1) {
+              exprstr = "buff_" + region->matrix()->name() + "[" + *i + " + x_local]";
+            }
+            else if(region->dimensions() == 2) {
+              std::string y = *i;
+              i++;
+              std::string x = *i;
+              exprstr = "buff_" + region->matrix()->name() + "[" + y + " + y_local]" 
+                                                           + "[" + x + " + x_local]";
+            }
+            else {
+              JASSERT(false).Text("Dimension is not 1 or 2. No Local Memory");
+            }
+          }
+          else {
+            exprstr = "_region_" + region->name() + "[" + idx_formula->toString() + " + idx_" + region->name() + "]";
+          }
           e = RIRExpr::parse( exprstr, SRCPOS() );
         }
-        /*else if("count" == methodname->str()) {
+        else if("count" == methodname->str()) {
           FormulaPtr count_formula = new FormulaInteger(1);
-          for(int i = 0; i < region->dimensions(); ++i)
+          for(size_t i = 0; i < region->dimensions(); ++i)
             count_formula = new FormulaMultiply(count_formula, new FormulaVariable("dim_" + region->name() + "_d" + jalib::XToString(i)) );
           e = RIRExpr::parse(count_formula->toString(), SRCPOS() );
         }
-	      else if( "width" == methodname->str() )
+	      /*else if( "width" == methodname->str() )
 	      {
 	          e = RIRExpr::parse( "dim_" + region->matrix()->name() + "_d0", SRCPOS() );
 	      }*/
@@ -497,7 +516,31 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
       }
     }
     if(sym && sym->type() == RIRSymbol::SYM_ARG_ELEMENT) {
-      e = RIRExpr::parse( "_region_" + e->str() + "[idx_"+e->str()+"]", SRCPOS() );
+      RegionPtr region = findMatrix(e->str());
+      std::string matrix = region->matrix()->name();
+      std::string exprstr;
+          if(_minCoordOffsets.find(matrix) != _minCoordOffsets.end()) {
+            if(region->dimensions() == 1) {
+              FormulaPtr index_x = new FormulaSubtract(region->minCoord().at(0), new FormulaVariable("_r" + jalib::XToString(_id) + "_x"));
+              index_x = MAXIMA.normalize(index_x);
+              exprstr = "buff_" + matrix + "[" + index_x->toCppString() + " + x_local + " + matrix + "0_minoffset]";
+            }
+            else if(region->dimensions() == 2) {
+              FormulaPtr index_x = new FormulaSubtract(region->minCoord().at(0), new FormulaVariable("_r" + jalib::XToString(_id) + "_x"));
+              index_x = MAXIMA.normalize(index_x);
+              FormulaPtr index_y = new FormulaSubtract(region->minCoord().at(1), new FormulaVariable("_r" + jalib::XToString(_id) + "_y"));
+              index_y = MAXIMA.normalize(index_y);
+              exprstr = "buff_" + matrix + "[" + index_y->toCppString() + " + y_local + " + matrix + "1_minoffset]"
+                                         + "[" + index_x->toCppString() + " + x_local + " + matrix + "0_minoffset]";
+            }
+            else {
+              JASSERT(false).Text("Dimension is not 1 or 2. No Local Memory");
+            }
+          }
+          else {
+            exprstr = "_region_" + e->str() + "[idx_"+e->str()+"]";
+          }
+      e = RIRExpr::parse( exprstr, SRCPOS() );
     }
   }
 }
@@ -560,4 +603,3 @@ void petabricks::OpenClFunctionRejectPass::before(RIRExprCopyRef& e)
 	}
     }
 }
-#endif

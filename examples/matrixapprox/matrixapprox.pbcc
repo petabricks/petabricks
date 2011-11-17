@@ -38,7 +38,7 @@ generator matrixapproinputgen
 
 	// find only the k eigenvalues/eigenvectors by Bisection method
 	to (Lambda lam, X x) from (H h) {
-	        if (k>n)  PetabricksRuntime::abort();
+	        if (k>n)  PetabricksRuntime::abort(); 
 		Bisection(lam,x,h,k);
 	}
 

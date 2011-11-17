@@ -1,8 +1,6 @@
 #ifndef UTILS_PBCC
 #define UTILS_PBCC
 
-#include "../simple/reduce.pbcc"
-
 %{
 
 template<typename ConstMatrixRegion2D>
@@ -21,6 +19,7 @@ void printMatrix(ConstMatrixRegion2D A)
 template<typename ConstMatrixRegion1D>
 int findMinAndMax(ElementT *min, ElementT *max, ConstMatrixRegion1D array)
 {
+    array.useOnCpu();
     *min = *max = array.cell(0);
     for (int i = 1; i < array.count(); ++i) {
         if (array.cell(i) < *min) {
@@ -35,25 +34,6 @@ int findMinAndMax(ElementT *min, ElementT *max, ConstMatrixRegion1D array)
 }
 
 %}
-
-// computes a dot product
-transform DotProduct
-from A[n], B[n]
-through TEMP[n]
-to C
-{
-  TEMP.cell(i) from (A.cell(i) a, B.cell(i) b)
-  {
-    return a * b;
-  }
-
-  C from (TEMP t)
-  {
-    ElementT result;
-    ReduceAdd(result, t);
-    return result;
-  }
-}
 
 #endif // UTILS_PBCC
 

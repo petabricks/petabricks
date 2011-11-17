@@ -25,24 +25,22 @@
  *                                                                           *
  *****************************************************************************/
 
-
 #include "dynamictask.h"
-#include "specializeddynamictasks.h"
-
 #include "gpudynamictask.h"
-#include "gpuspecializedtask.h"
 #include "gpumanager.h"
+#include "gpuspecializedtask.h"
 #include "gputaskinfo.h"
-
 #include "matrixio.h"
 #include "matrixregion.h"
 #include "memoization.h"
 #include "petabricksruntime.h"
 #include "remotetask.h"
 #include "ruleinstance.h"
+#include "specializeddynamictasks.h"
 #include "transforminstance.h"
 
 #include "common/jtunable.h"
+#include "common/openclutil.h"
 
 #include <algorithm>
 
@@ -54,13 +52,19 @@
 #  include <math.h>
 #endif
 
-#ifdef HAVE_OPENCL
-#  include "openclutil.h"
+#ifdef HAVE_ACCELERATE_ACCELERATE_H
+#  include <Accelerate/Accelerate.h>
+#endif
+
+#ifdef HAVE_CBLAS_H
+# include <cblas.h>
 #endif
 
 //these must be declared in the user code
 petabricks::PetabricksRuntime::Main* petabricksMainTransform();
 petabricks::PetabricksRuntime::Main* petabricksFindTransform(const std::string& name);
+void _petabricksInit();
+void _petabricksCleanup();
 
 #define PB_SPAWN(taskname, args...) \
   PB_CAT(PB_CAT(taskname,_),PB_FLAVOR) (_completion, args)
@@ -187,11 +191,11 @@ namespace petabricks {
     return rv;
   }
 
-  template < int D >
+  template < int D , int blockNumber>
   inline bool split_condition(IndexT thresh, IndexT begin[D], IndexT end[D]){
     //too small to split?
     for(int i=0; i<D; ++i)
-      if(end[i]-begin[i] < 2)
+      if(end[i]-begin[i] < blockNumber)
         return false;
     //big enough to split?
     for(int i=0; i<D; ++i)

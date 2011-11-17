@@ -24,17 +24,14 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
-#ifdef HAVE_OPENCL
 #ifndef PETABRICKSGPUMANAGER_H
 #define PETABRICKSGPUMANAGER_H
 
 #include "common/jmutex.h"
+#include "common/openclutil.h"
 
-#include "openclutil.h"
 #include "gpudynamictask.h"
-#include "matrixregion.h"
 
-#include <oclUtils.h>
 #include <pthread.h>
 #include <list>
 #include <queue>
@@ -43,7 +40,7 @@
 
 namespace petabricks {
 
-class GpuManager : public jalib::JRefCounted  {
+class GpuManager /*: public jalib::JRefCounted*/  {
 public:
   ///
   /// start gpu manager thread
@@ -118,4 +115,4 @@ private:
 }
 
 #endif
-#endif
+

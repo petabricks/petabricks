@@ -122,6 +122,8 @@ public:
     _maxCoord.push_back(max);
   }
   
+  FormulaPtr symbolicSize() const;
+  
   ///Remove the given dimension from the region
   void removeDimension(const size_t dimension) {
     CoordinateFormula& minCoordVector = minCoord();

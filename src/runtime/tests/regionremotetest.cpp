@@ -22,6 +22,8 @@ PetabricksRuntime::Main* petabricksMainTransform(){
 PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
   return NULL;
 }
+void _petabricksInit() {}
+void _petabricksCleanup() {}
 
 bool compareRegion(RegionIPtr r1, RegionRemote<3>* r2) {
   int dim = r1->dimension();

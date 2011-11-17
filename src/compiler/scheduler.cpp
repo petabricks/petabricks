@@ -92,40 +92,54 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
 
 #ifdef HAVE_OPENCL
 
-  //std::cout << std::endl << "=== transform : " << trans.name() << "===" << std::endl;
   for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
     i->node().resetRegionNodeGroups();
-    RegionList from = i->node().getFromRegionOnCpu(_choiceAssignment);
-		//std::cout << "outter: " << &i->node() << std::endl;
-    for(RegionList::iterator it = from.begin(); it != from.end(); ++it){
-      std::vector<int> ids;
-      ScheduleT::iterator last = _schedule.end();
-      for(ScheduleT::iterator j=_schedule.begin(); j!=i; ++j){
-				//std::cout << "inner: " << &j->node() << std::endl;
-        if(j->node().hasOverlappingRegionOnGpu(_choiceAssignment, *it)){
-          j->node().setGpyCopyOut();
-          last = j;
-          ids.push_back(j->node().id());
-        }
-      }
-      if(last != _schedule.end())
-        last->node().addGroup((*it)->matrix()->name(),ids);
-    }
   }
 
+  // Check output before inner rules because inner rules can overwrite setPendingGpuCopyOut to setGpuCopyOut
   MatrixDefList matrices = trans.getToMatrices();
   for(MatrixDefList::iterator it = matrices.begin(); it != matrices.end(); ++it){
     std::vector<int> ids;
     ScheduleT::iterator last = _schedule.end();
     for(ScheduleT::iterator j=_schedule.begin(); j!=_schedule.end(); ++j){
-      if(j->node().numOutMatrixOnGpu(_choiceAssignment, *it) > 0){
-        j->node().setGpyCopyOut();
+      int overlappingDimensions = j->node().hasOverlappingRegionOnGpu(_choiceAssignment, *it);
+      if(overlappingDimensions >= 0){
+        if(overlappingDimensions == (*it)->numDimensions())
+          j->node().setPendingGpuCopyOut();
+        else
+          j->node().setGpuCopyOut();
         last = j;
         ids.push_back(j->node().id());
       }
     }
     if(last != _schedule.end())
       last->node().addGroup((*it)->name(),ids);
+  }
+
+  //std::cout << std::endl << "=== transform : " << trans.name() << "===" << std::endl;
+  for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
+    std::set<std::string> matrices;
+    RegionList from = i->node().getFromRegionOnCpu(_choiceAssignment);
+		//std::cout << "outter: " << i->node().id() << std::endl;
+
+    for(RegionList::iterator it = from.begin(); it != from.end(); ++it){
+      if(matrices.find((*it)->matrix()->name()) == matrices.end()) {
+        matrices.insert((*it)->matrix()->name());
+        std::vector<int> ids;
+        ScheduleT::iterator last = _schedule.end();
+
+        for(ScheduleT::iterator j=_schedule.begin(); j!=i; ++j){
+          if(j->node().hasOverlappingRegionOnGpu(_choiceAssignment, *it) >= 0){
+				    //std::cout << "inner: " << j->node().id() << std::endl;
+            j->node().setGpuCopyOut();
+            last = j;
+            ids.push_back(j->node().id());
+          }
+        }
+        if(last != _schedule.end())
+          last->node().addGroup((*it)->matrix()->name(),ids);
+      }
+    }
   }
 
   /*std::cout << std::endl << "=== summary ===" << std::endl;
@@ -432,6 +446,8 @@ void petabricks::StaticScheduler::generateSchedule(){
   for(ChoiceDepGraphNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i){
     _choices.addConsumer(i->asPtr());
   }
+  _choices.pruneChoiceSpace();
+  JASSERT(_choices.size()<1000)(_choices.size()).Text("WAY TOO MANY CHOICES");
   for(RuleChoiceCollection::iterator choice=_choices.begin(); choice!=_choices.end(); ++choice) {
     _dbgpath = dbgpathorig+".schedule"+jalib::XToString(choice);
     try {
@@ -488,7 +504,7 @@ void petabricks::StaticScheduler::generateSchedule(){
       #endif
     } catch(CantScheduleException) {
       _choices.markInvalid(choice);
-      JTRACE("SCHEDULING CHOICE FAIL");
+      JTRACE("SCHEDULING CHOICE FAIL")(choice);
     }
   }
   _dbgpath = dbgpathorig;

@@ -48,7 +48,7 @@ if test "$has_git" = "no"; then
   AC_MSG_WARN([failed to find 'git' in \$path, will not be able to use revision control.])
 fi
 
-AC_PATH_PROGS([PYTHON], [python2.6 python2.5 python2.4 python2 python], [no])
+AC_PATH_PROGS([PYTHON], [python2.8 python2.7 python2.6 python2.5 python2.4 python2 python], [no])
 if test "$PYTHON" = "no"; then
   AC_MSG_ERROR([failed to find 'python' in \$path, try running:`sudo apt-get install python`.])
 fi
@@ -103,7 +103,10 @@ AC_CHECK_HEADERS([openssl/md5.h],  [], [AC_MSG_ERROR([missing package libssl-dev
 AC_CHECK_HEADERS([openssl/sha.h],  [], [])
 AC_CHECK_HEADERS([cxxabi.h execinfo.h poll.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h sys/mman.h])
 AC_CHECK_HEADERS([boost/random.hpp], [], [AC_MSG_WARN([missing boost/random, falling back to slower random number generation])])
+AC_CHECK_HEADERS([cblas.h],  [], [])
+AC_CHECK_HEADERS([Accelerate/Accelerate.h], [], [])
 AC_CHECK_HEADERS([sqlite3.h],      [], [AC_MSG_ERROR([failed to find sqlite3.h header file])])
+
 AC_SEARCH_LIBS([MD5_Init], [crypto ssl], [], [AC_MSG_ERROR([missing package libssl-dev])])
 
 AC_CHECK_LIB([blas],       [cblas_dgemm],    [], [AC_MSG_WARN([failed to find -lblas, some benchmarks may not work])])
@@ -215,24 +218,30 @@ if test "$use_jtiming" = "yes"; then
   AC_DEFINE([TIMING],[],[record timing information to stderr and jtimings.csv])
 fi
 
-AC_ARG_ENABLE([allocator],
-            [AS_HELP_STRING([--disable-allocator],
-                            [disable use of the custom memory block allocator])],
-            [use_jalloc=$enableval],
-            [use_jalloc=$has_threadlocal],])
-
-if test "$use_jalloc" = "yes"; then
-  AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
-fi
-
 AC_ARG_WITH([opencl],
 	[AS_HELP_STRING([--with-opencl=PATH],[build compiler and runtime with support for OpenCL-enabled GPUs.])],
 	[],
 	[with_opencl=no])
 
+AC_ARG_WITH([amdopencl],
+	[AS_HELP_STRING([--with-amdopencl=PATH],[build compiler and runtime with support for OpenCL-enabled CPUs and AMD GPUs.])],
+	[],
+	[with_amdopencl=no])
+
+AC_ARG_WITH([macopencl],
+	[AS_HELP_STRING([--with-macopencl=PATH],[build compiler and runtime with support for OpenCL on Mac OSX])],
+	[],
+	[with_macopencl=no])
+
+AC_ARG_WITH([intelopencl],
+	[AS_HELP_STRING([--with-intelopencl=PATH],[build compiler and runtime with support for OpenCL-enabled CPUs and intel GPUs.])],
+	[],
+	[with_intelopencl=no])
+
 if ! test "$with_opencl" = "no"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
    AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
+   AC_DEFINE([NVIDIA],[1], [NVIDIA SDK])
 
    CPPFLAGS="$CPPFLAGS -I$with_opencl/OpenCL/common/inc -I$with_opencl/shared/inc"
    LIBS="$LIBS -L$with_opencl/OpenCL/common/lib/ -L$with_opencl/shared/lib -L$with_opencl/shared/lib/linux"
@@ -240,9 +249,59 @@ if ! test "$with_opencl" = "no"; then
    AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
    AC_CHECK_LIB([shrutil_x86_64], [shrLogEx], [], [AC_MSG_ERROR([Failed to find -lshrutil_x86_64.  Check LIBRARY_PATH, or reconfigure without shrutil_x86_64.])])
    AC_CHECK_LIB([oclUtil_x86_64], [oclGetPlatformID], [], [AC_MSG_ERROR([Failed to find -loclUtil_x86_64.  Check LIBRARY_PATH, or reconfigure without oclUtil_x86_64.])])
+
+   AC_CHECK_HEADERS([oclUtils.h], [], [])
+
+elif ! test "$with_amdopencl" = "no"; then
+   AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
+   AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
+   AC_DEFINE([AMD],[1], [AMD SDK])
+
+   CPPFLAGS="$CPPFLAGS -I$with_amdopencl/samples/opencl/SDKUtil/include -I$with_amdopencl/include"
+   LIBS="$LIBS -L$with_amdopencl/lib/x86_64 -L$with_amdopencl/TempSDKUtil/lib/x86_64"
+
+   AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
+
+   AC_CHECK_HEADERS([SDKCommon.hpp SDKApplication.hpp SDKFile.hpp], [], [])
+
+elif ! test "$with_intelopencl" = "no"; then
+   AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
+   AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
+   AC_DEFINE([INTEL],[1], [INTEL SDK])
+
+   CPPFLAGS="$CPPFLAGS -I/usr/include/CL"
+   LIBS="$LIBS -L/usr/lib64/OpenCL/vendors/intel"
+
+   AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
+   
+   AC_CHECK_HEADERS([opencl.h], [], [])
+
+elif ! test "$with_macopencl" = "no"; then
+   AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
+   AC_DEFINE([MATRIX_ELEMENT_T], [float], [type for elements in the matrix])
+   AC_DEFINE([MAC],[1],[MAC OS])
+   
+   LDFLAGS="$LDFLAGS -framework OpenCL"
+
+   AC_CHECK_HEADERS([OpenCL/opencl.h], [], [])
+
 else
    AC_DEFINE([MATRIX_ELEMENT_T],[double])
 fi
+
+
+AC_ARG_ENABLE([allocator],
+            [AS_HELP_STRING([--disable-allocator],
+                            [disable use of the custom memory block allocator])],
+            [use_jalloc=$enableval],
+            [use_jalloc=$has_threadlocal],])
+
+if test "$with_amdopencl" = "no"; then
+  if test "$use_jalloc" = "yes"; then
+    AC_DEFINE([JALIB_ALLOCATOR],   [1], [Use a custom allocator from JALIB])
+  fi
+fi
+
 
 AC_DEFINE([ACCTARGET_STR],       ["accuracyTarget"], [var name in output code for target accuracy])
 AC_DEFINE([BIN_TMPFILE],         ["bin"],     [generated file name])
@@ -251,7 +310,7 @@ AC_DEFINE([COORD_BEGIN_STR],     ["_iter_begin"], [var name in output code for b
 AC_DEFINE([COORD_END_STR],       ["_iter_end"], [var name in output code for end coord])
 AC_DEFINE([DEFAULT_ACCURACY],    [1], [accuracy stand-in for fixed-accuracy rules])
 AC_DEFINE([DEVNULL],             ["/dev/null"], [null sync device path])
-AC_DEFINE([DISTRIBUTED_CACHE],   [], [use cache in distributed code])
+AC_DEFINE([DISABLE_DISTRIBUTED], [1], [dont generate distributed code])
 AC_DEFINE([DISTRIBUTED_GC_FREQ], [1000], [after how many allocations to invoke distributed gc])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])
@@ -286,6 +345,7 @@ AC_DEFINE([UTIL_SEARCH_DIR_A],   ["src"], [extra directory to search for files i
 AC_DEFINE([UTIL_SEARCH_DIR_B],   ["scripts"], [extra directory to search for files in])
 AC_DEFINE([WORKERTHREAD_INJECT], [], [support WorkerThread::inject() with a separate queue])
 AC_DEFINE([WORKERTHREAD_ONDECK], [], [use a special 1-element queue for the first item pushed, for better locality])
+AC_DEFINE([JASSERT_FAST],        [], [skip some copies in debug printing, conflicts with JASSERT_LOG])
 
 AC_DEFINE_UNQUOTED([MAXIMA_PATH],    ["$MAXIMA"], [path to maxima program])
 AC_DEFINE_UNQUOTED([REVISION_LONG],  ["$rev_long"], [git revision for HEAD at the time ./configure was run])
@@ -294,7 +354,6 @@ AC_DEFINE_UNQUOTED([REVISION_SHORT], ["$rev_short"], [git revision for HEAD at t
 if false; then
   #disabled by default:
   AC_DEFINE([DISABLE_CONTINUATIONS], [], [dont generate continuation code after SPAWN/enqueue])
-  AC_DEFINE([DISABLE_DISTRIBUTED], [1], [dont generate distributed code])
   AC_DEFINE([INPUT_PERIMETER_STR], ["input_perimeter"], [define to add a system var to transform scope])
   AC_DEFINE([INPUT_SIZE_STR],      ["input_count"],      [define to add a system var to transform scope])
   AC_DEFINE([JALIB_USE_MALLOC],    [1],[Cause the custom allocator to call malloc instead of mmap])
@@ -304,6 +363,7 @@ if false; then
   AC_DEFINE([OUTPUT_SIZE_STR],     ["output_count"],     [define to add a system var to transform scope])
   AC_DEFINE([PBCC_SEQUENTIAL],     [], [define to run tasks inline instead of enqueuing them])
   AC_DEFINE([REGIONMATRIX_TEST],   [1], [always use RegionMatrix code])
+  AC_DEFINE([DISTRIBUTED_CACHE],   [], [use cache in distributed code])
 fi
 
 ################################################################################
@@ -327,7 +387,7 @@ if test "$default_cxxflags" = "yes"; then
   fi
   case "$target_cpu" in
     *sparc*) compileflags="$compileflags -mcpu=niagara -mtune=native";;
-    *)       compileflags="$compileflags -march=native -fno-rtti";;
+    *)       compileflags="$compileflags -march=native";;
   esac
 fi
 

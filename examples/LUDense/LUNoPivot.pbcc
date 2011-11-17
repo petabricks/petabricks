@@ -61,7 +61,7 @@ to OUT[n,m]
     from ()
     {
         if (m > 1 && out.cell(0, 0) != 1) {
-            Scale(out.region(0, 1, 1, n), 1.0 / out.cell(0, 0));
+            Scale2D(out.region(0, 1, 1, n), 1.0 / out.cell(0, 0));
         }
         if (m > 1 && n > 1) {
             DGER(out.region(1, 1, n, m), -1.0,

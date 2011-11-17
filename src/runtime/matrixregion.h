@@ -74,8 +74,6 @@ inline void _regioncopy(const T& out, const MATRIX_ELEMENT_T* in) {
     } while(out.incCoord(coord)>=0);
 }
 
-
-
 template< int D, typename ElementT> class MatrixRegion;
 
 //trick to break the cycle for SliceMatrixRegion going to MatrixRegion<-1>
@@ -181,13 +179,17 @@ public:
   ///
   /// copy from a more generic container (used in memoization)
   void copyFrom(const MatrixStorageInfo& ms){
+    #ifdef DEBUG
     JASSERT(_base!=0);
+    #endif
     if(ms.storage()!=storage()){
+      #ifdef DEBUG
       JASSERT(ms.storage()->count()==storage()->count());
+      #endif
       memcpy(storage()->data(), ms.storage()->data(), storage()->count()*sizeof(ElementT));
     }
   }
-protected:
+  
   IndexT* sizes() { return _sizes; }
   IndexT* multipliers() { return _multipliers; };
 private:
@@ -295,10 +297,10 @@ public:
     return t;
   }
 
-#ifdef HAVE_OPENCL
   ///
   /// Decide to make a copy or return the orginal for making GPU buffer.s
 	ElementT* getGpuInputBufferPtr() {
+#ifdef HAVE_OPENCL
     if(isEntireBuffer()) {
       return this->base();
     }
@@ -310,7 +312,14 @@ public:
     do {
       t.cell(coord) = this->cell(coord);
     } while(this->incCoord(coord)>=0);
+    //this->storageInfo()->addGpuInputBuffer(_gpuInputBuffer);
+    // Store buffer in the global storage so that it won't be derefferenced before enqueueWriteBuffer is done
+    CopyPendingMap::_pendingMap.addBuffer(_gpuInputBuffer);
     return _gpuInputBuffer->data();
+#else
+    UNIMPLEMENTED();
+    return 0;
+#endif
 	}
 
   ///
@@ -352,7 +361,6 @@ public:
     }
     return s;
   }
-#endif
 
   void print() {
     std::cerr << "dimension = " << D << std::endl;
@@ -368,12 +376,11 @@ public:
   }
 
   ///
-  /// Copy that data of this to dst
+  /// Copy data of this to dst
   void copyTo(const MutableMatrixRegion& dst)
   {
     if(this->storage() == dst.storage())
       return;
-    //std::cout << "COPY TO:: copy" << std::endl;
     IndexT coord[D] = {0};
     do {
       dst.cell(coord) = this->cell(coord);
@@ -381,7 +388,7 @@ public:
   }
   
   ///
-  /// Copy that data within the boundary c1 and c2 of this to dst
+  /// Copy data within the boundary c1 and c2 of this to dst
   void copyTo(const MutableMatrixRegion& dst,const IndexT c1[D], const IndexT c2[D])
   {
 #ifdef GPU_TRACE
@@ -402,7 +409,7 @@ public:
   }
 
   ///
-  /// Copy that data within the given boundaries of this to dst
+  /// Copy data within the given boundaries of this to dst
   void copyTo(const MutableMatrixRegion& dst,std::vector<IndexT*>& begins, std::vector<IndexT*>& ends)
   {
     #ifdef DEBUG
@@ -418,6 +425,86 @@ public:
       for(size_t i = 0; i < begins.size(); ++i)
         copyTo(dst, begins[i], ends[i]);
     }
+  }
+
+
+  ///
+  /// Copy data of src to this
+  void copyFrom_unsafe(MatrixRegion& src) const
+  {
+#ifdef GPU_TRACE
+    std::cout << "copyFrom all" << std::endl;
+#endif
+    if(this->storage() == src.storage())
+      return;
+    IndexT coord[D];
+    memset(coord, 0, sizeof coord);
+    do {
+      *const_cast<MATRIX_ELEMENT_T*>(this->coordToPtr(coord)) = src.cell(coord);
+    } while(this->incCoord(coord)>=0);
+  }
+
+  ///
+  /// Copy data within the boundary c1 and c2 of src to this
+  void copyFrom_unsafe(MatrixRegion& src,const IndexT c1[D], const IndexT c2[D]) const
+  {
+#ifdef GPU_TRACE
+    std::cout << "copyFrom boundary" << std::endl;
+    for(int i = 0; i < D; i++)
+      std::cout << "[" << i << "] : " << c1[i] << "-" << c2[i] << std::endl;
+#endif
+    if(this->storage() == src.storage())
+      return;
+    for(int i = 0; i < D; i++)
+      if(c1[i] >= c2[i])
+        return;
+    IndexT coord[D];
+    memcpy(coord, c1, sizeof coord);
+    do {
+      *const_cast<MATRIX_ELEMENT_T*>(this->coordToPtr(coord)) = src.cell(coord);
+    } while(this->incCoordWithBound(coord, c1, c2)>=0);
+  }
+
+  ///
+  /// Copy data within the given boundaries of src to this
+  void copyFrom_unsafe(MatrixRegion& src,std::vector<IndexT*>& begins, std::vector<IndexT*>& ends) const
+  {
+    #ifdef DEBUG
+    JASSERT(begins.size() == ends.size())(begins.size())(ends.size());
+    #endif
+    if(this->storage() == src.storage())
+      return;
+
+    if(begins.size() == 0){
+      copyFrom_unsafe(src);
+    }
+    else{
+      for(size_t i = 0; i < begins.size(); ++i)
+        copyFrom_unsafe(src, begins[i], ends[i]);
+    }
+  }
+
+  void useOnCpu() {
+#ifdef HAVE_OPENCL
+    if(D == 0) return;
+    this->storage()->lock();
+    std::set<MatrixStorageInfoPtr>& pendings = CopyPendingMap::_pendingMap.allPendings(this->storage());
+    for(std::set<MatrixStorageInfoPtr>::iterator it = pendings.begin(); it != pendings.end(); ++it) {
+      MatrixStoragePtr storage = (*it)->processPending();
+      if(storage) {
+        #ifdef GPU_TRACE
+        std::cout << "something on gpu..." << std::endl;
+        #endif
+        //MatrixRegion normalized(storage, storage->data(), this->sizes());
+        //copyFrom_unsafe(normalized, (*it)->getBegins(), (*it)->getEnds());
+        (*it)->copy((MatrixStoragePtr&) this->storage(), storage, (*it)->getBegins(), (*it)->getEnds());
+        (*it)->resetPending();
+      }
+    }
+    CopyPendingMap::_pendingMap.clearPendings(this->storage());
+    this->storage()->unlock();
+    //CopyPendingMap::_pendingMap.print();
+#endif
   }
 
   ///
@@ -605,8 +692,8 @@ protected:
     IndexT rv = 0;
     for(int i=0; i<D; ++i){
       #ifdef DEBUG
-      JASSERT(0<=coord[i] && coord[i]<size(i))(coord[i])(size(i))
-        .Text("Out of bounds access");
+      /*JASSERT(0<=coord[i] && coord[i]<size(i))(coord[i])(size(i))
+        .Text("Out of bounds access");*/
       #endif
       rv +=  this->multipliers()[i] * coord[i];
     }
@@ -821,6 +908,7 @@ namespace petabricks {
     typedef sequential::ConstMatrixRegion8D ConstMatrixRegion8D;
     typedef sequential::ConstMatrixRegion9D ConstMatrixRegion9D;
   }
+
 } /* namespace petabricks*/
 
 #endif
