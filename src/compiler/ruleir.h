@@ -150,6 +150,11 @@ public:
     JASSERT(i != _annotations.end())(name);
     return i->second;
   }
+  
+  /** Return the number of operations executed by this node, approximated
+   * by the number of EXPR_OP it contains */
+  virtual unsigned int opsNumber() const = 0;
+  
 protected:
   Type _type;
   AnnotationT _annotations;
@@ -195,6 +200,19 @@ public:
     RIRExprList::const_iterator i=_parts.begin();
     while(n-->0) ++i;
     return *i;
+  }
+  
+  virtual unsigned int opsNumber() const {
+    if(type()==EXPR_OP) {
+      return 1;
+    }
+    unsigned int sum = 0;
+    for (RIRExprList::const_iterator i=_parts.begin(), e=_parts.end();
+         i != e;
+         ++i) {
+      sum += (*i)->opsNumber();
+    }
+    return sum;
   }
 protected:
   std::string _str;
@@ -254,6 +272,16 @@ public:
   int numExprs() const { return (int)_exprs.size(); }
   
   virtual const RIRBlockCopyRef& extractBlock() const { UNIMPLEMENTED(); return *static_cast<const RIRBlockCopyRef*>(0); }
+  
+  virtual unsigned int opsNumber() const { unsigned int sum = 0;
+                                           for (RIRExprList::const_iterator i=_exprs.begin(),
+                                                                            e=_exprs.end();
+                                                i != e;
+                                                ++i) {
+                                             sum += (*i)->opsNumber();
+                                           }
+                                           return sum;
+                                         }
 protected:
   RIRExprList _exprs;
 };
@@ -301,6 +329,14 @@ public:
     addExpr(max);
     return this;
   }
+  
+  virtual unsigned int opsNumber() const {
+    return declPart()->opsNumber() +
+           testPart()->opsNumber() +
+           incPart()->opsNumber() +
+           body()->opsNumber();
+  }
+  
 private:
   RIRStmtCopyRef _body;
 };
@@ -315,6 +351,10 @@ public:
     return RIRStmt::containsLeaf(val)
         || _body->containsLeaf(val);
   }
+  
+  virtual unsigned int opsNumber() const { return RIRStmt::opsNumber() +
+                                                  _body->opsNumber();
+                                         }
 private:
   RIRStmtCopyRef _body;
 };
@@ -337,6 +377,12 @@ public:
   const RIRExprCopyRef& condPart() const { return _exprs.front(); }
   const RIRStmtCopyRef& thenPart() const { return _then; }
   const RIRStmtCopyRef& elsePart() const { return _else; }
+  
+  virtual unsigned int opsNumber() const {
+    return condPart()->opsNumber() +
+           thenPart()->opsNumber() +
+           (elsePart() ? elsePart()->opsNumber() : 0);
+  }
 private:
   RIRStmtCopyRef _then;
   RIRStmtCopyRef _else;
@@ -356,6 +402,7 @@ public:
   RIRBlockStmt* clone() const;
   bool containsLeaf(const char* val) const;
   const RIRBlockCopyRef& extractBlock() const { return _block; }
+  virtual unsigned int opsNumber() const;
 private:
   RIRBlockCopyRef _block;
 };
@@ -390,6 +437,16 @@ public:
   }
 
   const RIRStmtList& stmts() const { return _stmts; }
+  
+  unsigned int opsNumber() const { unsigned int sum = 0;
+                                   for (RIRStmtList::const_iterator i=_stmts.begin(),
+                                                                    e=_stmts.end();
+                                        i != e;
+                                        ++i) {
+                                     sum += (*i)->opsNumber();
+                                   }
+                                   return sum;
+                                 }
 private:
   RIRStmtList _stmts;
 };
