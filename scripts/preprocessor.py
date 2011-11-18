@@ -583,8 +583,8 @@ def p_transform_headers_ifdef(p):
   p[0] = p[1]
 
 def p_transform_headers_base(p):
-  'transform_headers : empty'
-  p[0] = []
+  'transform_headers : transform_header'
+  p[0] = [p[1]]
 
 def p_transform_header_noarg(p):
   'transform_header : MEMORIZED'
@@ -1145,6 +1145,7 @@ def parse_file_to_ast(file_path):
   import ply.yacc as yacc
 
   lex.lex(nowarn=1)
+  print "done lexer"
   yacc.yacc(debug=False, tabmodule="_preprocessor", outputdir=ODIR)
 
   reader = open(full_path_string, 'r')
