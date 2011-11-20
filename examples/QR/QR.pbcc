@@ -34,18 +34,32 @@ to A[n,m]
 // by QRR
 transform QRRConvert
 from TAU[n]
-to Q[n,m], R[n,n]
+to Q[n,m], R[n,m]
 {
     to (Q q, R r) from (TAU tau)
     {
-        IndexT i, j;
-        Copy2D(r, q.region(0, 0, n, MIN(m,n)));
-        for (i = 1; i < n; ++i) {
+        IndexT i, j, p = MIN(m,n);
+        MatrixRegion2D q1, q2, r1, r2;
+        ConstMatrixRegion1D tau1;
+
+        r1 = r.region(0,0,n,p);
+        r2 = r.region(0,p,n,m);
+        q1 = q.region(0,0,p,m);
+        q2 = q.region(p,0,n,m);
+        tau1 = tau.region(0,p);
+
+        // copy R
+        Copy2D(r1, q.region(0,0,n,p));
+        for (i = 1; i < p; ++i) {
             for (j = 0; j < i; ++j) {
                 r.cell(j, i) = 0;
             }
         }
-        QRRConvertLAPACK(q, q, tau);
+        Init2D(r2, 0);
+
+        // compute Q
+        QRRConvertLAPACK(q1, q1, tau1);
+        Init2D(q2, 0);
     }
 
     // TODO: implement native Petabricks version
@@ -344,7 +358,7 @@ to A[n,m], TAU[n]
 
 // On entry, Q contains the matrix to be factored; on exit, it contains Q.
 transform QRInPlace
-to Q[n,m], R[n,n]
+to Q[n,m], R[n,m]
 {
     // Householder
     to (Q q, R r) from ()
@@ -357,7 +371,7 @@ to Q[n,m], R[n,n]
 
 transform QR
 from A[n,m]
-to Q[n,m], R[n,n]
+to Q[n,m], R[n,m]
 {
     to (Q q, R r)
     from (A a)
