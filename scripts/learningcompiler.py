@@ -207,7 +207,7 @@ heuristics in the database  """
       if random.random() < conf_probabilityExploration:
         #Generete a new formula by modifying the existing one
         formulaObj = maximaparser.parse(formula)
-        formulaObj.evolveValue()
+        formulaObj.evolve()
         formula = str(formulaObj)
         
       self[heuristic] = formula
@@ -358,7 +358,7 @@ with the originalIndex field added"""
       currentCandidate.compilationFailed = False
       
     except tunerwarnings.AlwaysCrashes:
-        print "Current best Candidate always crashes!"
+        print "Compilation with default heuristics always crashes!"
         #Add an empty entry for the candidate
         candidates.append(FailedCandidate())
     

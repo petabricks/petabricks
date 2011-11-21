@@ -16,7 +16,7 @@ class FormulaVariable:
   def __repr__(self):
     return self.ident
     
-  def evolveValue(self):
+  def evolve(self):
     #No values to mutate in a variable
     return False
   
@@ -28,7 +28,7 @@ class FormulaInteger:
   def __repr__(self):
     return str(self.value)
     
-  def evolveValue(self):
+  def evolve(self):
     if random.random() < _mutationProbability:
       self.mutateValue()
       return True
@@ -62,7 +62,7 @@ class FormulaBool:
     else:
       return "false"
       
-  def evolveValue(self):
+  def evolve(self):
     if random.random() < 0.5:
       self.value = False
     else:
@@ -77,7 +77,7 @@ class FormulaFloat:
   def __repr__(self):
     return str(self.value)
     
-  def evolveValue(self):
+  def evolve(self):
     if random.random() < _mutationProbability:
       self.mutateValue()
       return True
@@ -100,6 +100,21 @@ class FormulaFloat:
     return True
     
     
+    
+def selectDifferentElement(element, theList):
+  """Select an element from the list, different from the given one"""
+  if len(theList) == 1 and element==theList[0]:
+    raise Exception()
+  
+  newElement = random.choice(theList)
+  while newElement == element:
+    newElement = random.choice(theList)
+    
+  return newElement
+  
+  
+  
+    
 class FormulaBinop:
   def __init__(self, op, left, right):
     self.op=op
@@ -121,7 +136,8 @@ class FormulaBinop:
       return str(eval(reprStr))
     
   def evolveValue(self):
-    """Randomly mutates one of the values (int, float, bool) that are in the formula.
+    """Randomly mutates one of the values (int, float, bool) that are in the 
+formula.
 If no value is present, nothing is changed.
 
 The formula is mutated in place.
@@ -129,17 +145,47 @@ The formula is mutated in place.
 Returns true if the formula was actually mutated, false otherwise"""
     mutated = False
     if random.random() < 0.5:
-      mutated = self.left.evolveValue()
+      mutated = self.left.evolve()
       if not mutated:
-        mutated = self.right.evolveValue()
+        mutated = self.right.evolve()
     else:
-      mutated = self.right.evolveValue()
+      mutated = self.right.evolve()
       if not mutated:
-        mutated = self.left.evolveValue()
+        mutated = self.left.evolve()
     
     return mutated
+  
+  
+  def evolveOperator(self):
+    comparison_operators=["=", "!=", "<", ">", ">=", "<="]
+    binary_logic_operators=["and", "or"]
     
+    if self.op in comparison_operators:
+      return selectDifferentElement(self.op, comparison_operators)
+    elif self.op in binary_logic_operators:
+      return selectDifferentElement(self.op, binary_logic_operators)
+    else:
+      raise Exception("Unknown operator: " + self.op)
+      
+     
+        
+  def evolve(self):
+    """Randomly mutate one of the values or the binary operation, or the 
+operator"""
+    choices=range(2)
+    random.shuffle(choices)
+    for choice in choices:
+      mutated=False
+      if choice==0:
+        mutated=self.evolveValue()
+      elif choice==1:
+        mutated=self.evolveOperator()
+      
+      if mutated:
+        return True
     
+    return False
+      
       
 class FormulaIf:
   def __init__(self, cond, thenClause, elseClause=None):
@@ -155,17 +201,17 @@ class FormulaIf:
       
     return "if " + str(self.cond) + " then " + str(self.thenClause) + elsePart
     
-  def evolveValue(self):
+  def evolve(self):
     choices = range(3)
     random.shuffle(choices)
     for choice in choices:
       mutated = False
       if choice==0:
-        mutated = self.cond.evolveValue()
+        mutated = self.cond.evolve()
       elif choice==1:
-        mutated = self.thenClause.evolveValue()
+        mutated = self.thenClause.evolve()
       elif choice==2 and self.elseClause is not None:
-        mutated = self.elseClause.evolveValue()
+        mutated = self.elseClause.evolve()
       
       if mutated:
         return True
