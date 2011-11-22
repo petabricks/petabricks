@@ -109,8 +109,7 @@ petabricks::HeuristicPtr petabricks::DBManager::getBestHeuristic(std::string nam
   if (retCode) {
     std::cerr << "Error getting the required heuristic: (" << retCode << ") " << zErrMsg << "\n";
     sqlite3_free(zErrMsg);
-    sqlite3_close(_db);
-    abort();
+    return HeuristicPtr();
   }
   
   return result;
