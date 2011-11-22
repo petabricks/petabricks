@@ -89,7 +89,7 @@ void petabricks::Region::initialize(Transform& trans) {
       //min = max = given
       for(size_t i=0; i<_originalBounds.size(); ++i){
         _minCoord.push_back(_originalBounds[i]);
-        /* NB: _maxCoord[i]=_originalBounds[i]+1 because the lower bound is 
+        /* NB: _maxCoord[i]=_originalBounds[i]+1 because the lower bound is
          * included while the upper bound is excluded */
         _maxCoord.push_back(MaximaWrapper::instance().normalize(
           new FormulaAdd(_originalBounds[i], FormulaInteger::one())));
@@ -218,25 +218,25 @@ petabricks::FormulaPtr petabricks::SimpleRegion::symbolicSize() const {
 
 std::string petabricks::SimpleRegion::getIterationLowerBounds() const {
   std::string s = minCoord().toString();
-  
+
   if(removedDimensions() == 0) {
     return s;
   }
-  
+
   return s + ", " + _removedDimensions.minCoord.toString();
 }
 
 std::string petabricks::SimpleRegion::getIterationUpperBounds() const {
   std::string s = maxCoord().toString();
-  
+
   if(removedDimensions() == 0) {
     return s;
   }
-  
+
   return s + ", " + _removedDimensions.maxCoord.toString();
 }
 
-  
+
 petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(Transform& tx, RuleInterface& rule, const FormulaList&, bool isOutput){
   CoordinateFormula min;
   CoordinateFormula max;
@@ -387,7 +387,7 @@ std::string petabricks::Region::genTypeStr(RuleFlavor rf, bool isConst) const{
   case REGION_CELL:
     if(isConst){
       if(rf != RuleFlavor::DISTRIBUTED) {
-        return "const ElementT";
+        return "const ElementT&";
       }else{
         return "CellProxy";
       }
@@ -446,7 +446,7 @@ std::string petabricks::Region::generateAccessorCode(bool allowOptional) const{
 void petabricks::Region::determineDependencyDirection(const size_t dimension, const RuleInterface& rule, DependencyDirection& direction) const {
   MaximaWrapper::tryCompareResult isLeft =MaximaWrapper::instance().tryCompare(rule.getOffsetVar(dimension),  "<", _maxCoord[dimension]);
   MaximaWrapper::tryCompareResult isRight=MaximaWrapper::instance().tryCompare(rule.getOffsetVar(dimension), ">=", _minCoord[dimension]);
-  
+
   if(isLeft!=MaximaWrapper::YES)
     direction.addDirection(dimension, DependencyDirection::D_LT);
 
@@ -530,12 +530,12 @@ petabricks::FormulaPtr petabricks::Region::getSizeOfRuleIn(int d) const{
 
 petabricks::FormulaPtr petabricks::Region::getSizeOfRuleInRemovedDimension(int d) const {
   JASSERT(isRemovedDimension(d))(d)(dimensions())(removedDimensions());
-  
+
   size_t removedDimensionIndex= d-dimensions();
   FormulaPtr maxCoord = _removedDimensions.maxCoord[removedDimensionIndex];
   FormulaPtr minCoord = _removedDimensions.minCoord[removedDimensionIndex];
-  
-  return MaximaWrapper::instance().normalize(new FormulaSubtract(maxCoord, 
+
+  return MaximaWrapper::instance().normalize(new FormulaSubtract(maxCoord,
                                                                  minCoord));
 }
 
@@ -561,7 +561,7 @@ void petabricks::Region::fixTypeIfVersioned() {
     //Not versioned. Nothing to do
     return;
   }
-  
+
   if (_originalType == REGION_ALL && removedDimensions() == 0) {
     //The versioning is done by adding a dimension to the matrix
     //Access to a version is done by slicing
