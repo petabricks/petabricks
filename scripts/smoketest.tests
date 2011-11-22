@@ -61,6 +61,7 @@ multigrid/Helmholtz3DRefFMG        Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 H
 preconditioner/preconditioner	   PrecondX PrecondA PrecondB
 QR/QRTest                  Rand2Da
 QR/QRTest                  Rand2DLong
+QR/QRTest                  Rand2DWide
 simple/add                 Rand2Da Rand2Db
 simple/bufferrotate        Rand1D
 simple/bufferrotate2       Rand1D

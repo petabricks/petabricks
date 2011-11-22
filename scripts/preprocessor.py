@@ -583,8 +583,8 @@ def p_transform_headers_ifdef(p):
   p[0] = p[1]
 
 def p_transform_headers_base(p):
-  'transform_headers : transform_header'
-  p[0] = [p[1]]
+  'transform_headers : empty'
+  p[0] = []
 
 def p_transform_header_noarg(p):
   'transform_header : MEMORIZED'

@@ -78,7 +78,8 @@ to C[n,m]
     }
 }
 
-// Triangular left matrix multiply: C = A * B, where A is triangular
+// Triangular left matrix multiply: C = A * B, where A is triangular.
+// Note: B and C should not point to the same matrix.
 transform TriMatrixMultiply
 from UPFLAG, UNITFLAG, A[m,m], B[n,m]
 to C[n,m]

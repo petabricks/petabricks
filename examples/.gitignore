@@ -122,6 +122,7 @@ preconditioner/vectoradd
 prefixsum/prefixsum
 QR/QR
 QR/QRLAPACK
+QR/QRRTest
 QR/QRTest
 regression/accuracymetric
 regression/assign0d
