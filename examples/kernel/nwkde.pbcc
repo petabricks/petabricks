@@ -24,73 +24,66 @@ inline ElementT wrapWindDirDiff(ElementT diff)
     return diff + (diffIntWrapP360 - diffIntP360);
 }
 
+//  inline __attribute__((always_inline)) __attribute__((flatten))
+//  ElementT lookup(const ConstMatrixRegion2D data,
+//                         const ConstMatrixRegion1D var,
+//                         const IndexT index)
+//  {
+//      return data.cell(var.cell(0), index + var.cell(1));
+//  }
+
+//  inline __attribute__((always_inline)) __attribute__((flatten))
+//  ElementT lookup(const ConstMatrixRegion2D data,
+//                         const ConstMatrixRegion2D var,
+//                         const IndexT row,
+//                         const IndexT index)
+//  {
+//      return data.cell(var.cell(0, row), index + var.cell(1, row));
+//  }
+
 %}
 
 transform NWKDECheckInputs
-from TRAINDATA[m,n], TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
-     TESTDATA[m2,n2], TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
-     OUTPUTVARINDEX, OUTPUTTIMEOFFSET
+from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
+     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q]
 to INPUTSCHECKED
 {
     INPUTSCHECKED
-    from (TRAININDICES trainIndices,
-          TRAINVARINDEX trainVarIndex,
-          TRAINTIMEOFFSET trainTimeOffset,
-          TESTINDICES testIndices,
-          TESTVARINDEX testVarIndex,
-          TESTTIMEOFFSET testTimeOffset,
-          OUTPUTVARINDEX outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset)
+    from (TRAININDICES trainIndices, TRAINX trainX, TRAINY trainY,
+          TESTINDICES testIndices, TESTX testX)
     {
         ElementT min, max, min2, max2;
 
-        findMinAndMax(&min, &max, trainVarIndex);
-        fprintf(stderr, "trainVarIndex range: (%g, %g)\n", min, max);
-        if (min < 0 || max > m) {
-            fprintf(stderr, "trainVarIndex out of bounds: (%d, %d)\n", 0, m);
-            PetabricksRuntime::abort();
-        }
+        findMinAndMax(&min, &max, trainX.col(0));
+        fprintf(stderr, "trainX.col(0) range: (%g, %g)\n", min, max);
+        JASSERT (min >= 0 && max < m)(m).Text("trainX.col(0) out of bounds");
 
-        fprintf(stderr, "outputVarIndex: %g\n", outputVarIndex);
-        if (outputVarIndex < 0 || outputVarIndex > m) {
-            fprintf(stderr, "outputVarIndex out of bounds: (%d, %d)\n", 0, m);
-            PetabricksRuntime::abort();
-        }
+        fprintf(stderr, "trainY.cell(0): %g\n", trainY.cell(0));
+        JASSERT (trainY.cell(0) >= 0 && trainY.cell(0) < m)
+                (m).Text("trainY.cell(0) out of bounds");
 
-        findMinAndMax(&min, &max, testVarIndex);
-        fprintf(stderr, "testVarIndex range: (%g, %g)\n", min, max);
-        if (min < 0 || max > m2) {
-            fprintf(stderr, "testVarIndex out of bounds: (%d, %d)\n", 0, m2);
-            PetabricksRuntime::abort();
-        }
+        findMinAndMax(&min, &max, testX.col(0));
+        fprintf(stderr, "testX.col(0) range: (%g, %g)\n", min, max);
+        JASSERT (min >= 0 && max < m2)(m2).Text("testX.col(0) out of bounds");
 
         findMinAndMax(&min, &max, trainIndices);
-        findMinAndMax(&min2, &max2, trainTimeOffset);
-        fprintf(stderr, "trainIndices + trainTimeOffset range: (%g, %g)\n",
-               min + min2, max + max2);
-        if (min + min2 < 0 || max + max2 > n) {
-            fprintf(stderr, "trainIndices + trainTimeOffset out of bounds: (%d, %d)\n",
-                   0, n);
-            PetabricksRuntime::abort();
-        }
+        findMinAndMax(&min2, &max2, trainX.col(1));
+        fprintf(stderr, "trainIndices + trainX.col(1) range: (%g, %g)\n",
+                min + min2, max + max2);
+        JASSERT (min + min2 >= 0 && max + max2 < n)
+                (n).Text("trainIndices + trainX.col(1) out of bounds");
 
-        fprintf(stderr, "trainIndices + outputTimeOffset range: (%g, %g)\n",
-               min + outputTimeOffset, max + outputTimeOffset);
-        if (min + outputTimeOffset < 0 || max + outputTimeOffset > n) {
-            fprintf(stderr, "trainIndices + outputTimeOffset out of bounds: (%d, %d)\n",
-                   0, n);
-            PetabricksRuntime::abort();
-        }
+        fprintf(stderr, "trainIndices + trainY.cell(1) range: (%g, %g)\n",
+                min + trainY.cell(1), max + trainY.cell(1));
+        JASSERT (min + trainY.cell(1) >= 0 && max + trainY.cell(1) < n)
+                (n).Text("trainIndices + trainY.cell(1) out of bounds");
 
         findMinAndMax(&min, &max, testIndices);
-        findMinAndMax(&min2, &max2, testTimeOffset);
-        fprintf(stderr, "testIndices + testTimeOffset range: (%g, %g)\n",
+        findMinAndMax(&min2, &max2, testX.col(1));
+        fprintf(stderr, "testIndices + testX.col(1) range: (%g, %g)\n",
                min + min2, max + max2);
-        if (min + min2 < 0 || max + max2 > n2) {
-            fprintf(stderr, "testIndices + testTimeOffset out of bounds: (%d, %d)\n",
-                   0, n2);
-            PetabricksRuntime::abort();
-        }
+        JASSERT (min + min2 >= 0 && max + max2 < n2)
+                (n).Text("testIndices + testX.col(1) out of bounds");
     }
 }
 
@@ -100,27 +93,27 @@ to INPUTSCHECKED
     TESTDATA - block of data: n2 time slices, m2 variables per time slice
     TESTINDICES - q indices into TESTDATA to evaluate the regression
 
-    WRAPFLAGS - indicates whether TRAINDATA column corresponds to a wind
-                direction \in [0, 360]
-    KERNELWIDTHS - width of the kernel function to use for a data column
-
     For each time index in TRAININDICES or TESTINDICES, we associate
-    a p-dim vector of predictors for use during regression.  The
-    TRAINVARINDEX array contains the column index (into TRAINDATA) of
-    the variable to use for each predictor.  The TRAINTIMEOFFSET array
-    contains the time offset relative to the current time index.  In this way,
-    we can build predictor vectors that contain overlapping data for
-    different time indices.  Similarly, TESTVARINDEX and TESTTIMEOFFSET
-    specify the predictor vector to use when computing the regression output.
+    a p-dim vector of predictors for use during regression.  Each predictor
+    variable is represented by a 2-element row in TRAINX.  The first element
+    of each row is the column index (into TRAINDATA) of the variable.  The
+    second element is the time offset relative to the current time index.
 
-    OUTPUTVARINDEX - which variable in TRAINDATA for output
-    OUTPUTTIMEOFFSET - time offset from trainIndex in TRAINDATA for output
-    TRAINMASKWIDTH - width of training mask.  This tells the transform to
-                     omit training indices less than TRAINMASKWIDTH
-                     indices of the test index when computing the regression.
-                     Note: to be used when TESTDATA is equal to TRAINDATA.
-                     May set to 0 (no mask effect) if TESTDATA is separate
-                     from TRAINDATA.
+    In this way, we can build predictor vectors that contain overlapping data
+    for different time indices.  TRAINY specifies the output variable location
+    in TRAINDATA for each time index.  Finally, TESTX specifies how to
+    construct the predictor vector in TESTDATA.
+
+    DIRFLAGS - indicates whether TRAINDATA column corresponds to a wind
+               direction \in [0, 360]
+    SPLIT - set to 0 for normal operation.  If non-zero, determines how many
+            partitions to split the training set to do n-fold cross validation
+    KERNELWIDTHS - width of the kernel function to use for a data column
+    MASKWIDTH - width of training mask.  This tells the transform to omit
+                training indices less than MASKWIDTH indices of the test index
+                when computing the regression.  Note: to be used when TESTDATA
+                is equal to TRAINDATA.  May set to 0 (no mask effect) if
+                TESTDATA is separate from TRAINDATA.
 
     SQDIFFS - squared differences for each predictor for each train-test
               point pair
@@ -133,12 +126,9 @@ to INPUTSCHECKED
 #define INCLUDE_METHOD3
 
 transform NWKDEBase
-from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
-     TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
-     TESTDATA[m2,n2],
-     TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
-     OUTPUTVARINDEX, OUTPUTTIMEOFFSET,
-     TRAINMASKWIDTH
+from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
+     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q],
+     DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
 to RESULT[q]
 through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
 {
@@ -162,28 +152,26 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
     to   (SQDIFFS.cell(i,j,k) sqDiff,
           SKIPINDEXFLAGS.cell(j) skipIndexFlag)
     from (INITFLAGS.cell(j) initFlag,
-          TRAINDATA trainData,
-          WRAPFLAGS wrapFlags,
-          KERNELWIDTHS kernelWidths,
+          TRAINDATA trainData, TRAINX.row(i) trainX,
           TRAININDICES.cell(j) trainIndex,
-          TRAINVARINDEX.cell(i) trainVarIndex,
-          TRAINTIMEOFFSET.cell(i) trainTimeOffset,
-          TESTDATA testData,
+          TESTDATA testData, TESTX.row(i) testX,
           TESTINDICES.cell(k) testIndex,
-          TESTVARINDEX.cell(i) testVarIndex,
-          TESTTIMEOFFSET.cell(i) testTimeOffset)
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths)
     {
-        IndexT wrapFlag, trainTimeIndex, testTimeIndex;
+        IndexT dirFlag;
         ElementT kernelWidth, trainPoint, testPoint, diff;
 
-        wrapFlag    =    wrapFlags.cell(trainVarIndex);
-        kernelWidth = kernelWidths.cell(trainVarIndex);
+        dirFlag     =     dirFlags.cell(trainX.cell(0));
+        kernelWidth = kernelWidths.cell(trainX.cell(0));
 
-        trainTimeIndex = trainIndex + trainTimeOffset;
-        testTimeIndex  =  testIndex +  testTimeOffset;
-
-        trainPoint = trainData.cell(trainVarIndex, trainTimeIndex);
-        testPoint  =  testData.cell( testVarIndex,  testTimeIndex);
+        // TODO: lookup function is really slow (even inlined)
+//     trainPoint = lookup(trainData, trainX, trainIndex);
+//     testPoint  = lookup( testData,  testX, testIndex);
+       // do lookup without the function call overhead
+       trainPoint = trainData.cell(trainX.cell(0),
+                                   trainIndex + trainX.cell(1));
+       testPoint = testData.cell(testX.cell(0),
+                                 testIndex + testX.cell(1));
 
         // skip this variable if nan is detected in the test point
         if (ISNAN(testPoint)) {
@@ -199,7 +187,7 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
 
         diff = trainPoint - testPoint;
 
-        if (wrapFlag) {
+        if (dirFlag) {
             diff = wrapWindDirDiff(diff);
         }
 
@@ -218,16 +206,29 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
                          p ,j+1, k+1) sqDiffs,
           TRAININDICES.cell(j) trainIndex,
           TESTINDICES.cell(k) testIndex,
-          TRAINMASKWIDTH trainMaskWidth,
+          SPLIT split, MASKWIDTH maskWidth,
           SKIPINDEXFLAGS.cell(j) skipIndexFlag)
     {
-        if (!skipIndexFlag &&
-            (trainIndex <= testIndex - trainMaskWidth ||
-             trainIndex >= testIndex + trainMaskWidth)) {
+        IndexT partStart, partEnd, partSize;
+        // compute the partition that this testIndex lies in
+        partStart = partEnd = k;
+        if (split > 0) {
+            partSize = l / split;
+            partStart = k - (k % partSize);
+            partEnd = partStart + partSize;
+        }
+
+        // skip current training index if it is too close to the test
+        // index, if it's not in the same partition, or if the training
+        // output value is a NAN
+        if (skipIndexFlag ||
+            (trainIndex > testIndex - maskWidth &&
+             trainIndex < testIndex + maskWidth) ||
+            (j >= partStart && j < partEnd)) {
+            weight = 0;
+        } else {
             ReduceAdd(weight, sqDiffs.slice(2,0).slice(1,0));
             weight = exp(-((ElementT) weight));
-        } else {
-            weight = 0;
         }
 #ifdef DEBUG
         fprintf(stderr, "method 1:  weight(%d, %d) = %g\n", j, k, weight);
@@ -237,13 +238,15 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
     to (PARTIALS.cell(j,k) partial)
     from (TRAINDATA trainData,
           TRAININDICES.cell(j) trainIndex,
-          OUTPUTVARINDEX outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset,
+          TRAINY trainY,
           WEIGHTS.cell(j,k) weight)
     {
-        IndexT timeIndex = trainIndex + outputTimeOffset;
-        outputVal = trainData.cell(outputVarIndex, timeIndex);
-        partial = ISNAN(outputVal) ? 0 : weight * outputVal;
+        ElementT y;
+        // TODO: lookup function is really slow (even inlined)
+//      y = lookup(trainData, trainY, trainIndex);
+        // do lookup without the function call overhead
+        y = trainData.cell(trainY.cell(0), trainIndex + trainY.cell(1));
+        partial = ISNAN(y) ? 0 : weight * y;
 #ifdef DEBUG
         fprintf(stderr, "method 1: partial(%d, %d) = %g\n", j, k, partial);
 #endif
@@ -273,73 +276,70 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
 
     to   (PARTIALS.cell(j,k) partial,
           WEIGHTS.cell(j,k) weight)
-    from (TRAINDATA trainData,
-          WRAPFLAGS wrapFlags,
-          KERNELWIDTHS kernelWidths,
-          TRAININDICES.cell(j) trainIndex,
-          TRAINVARINDEX trainVarIndex,
-          TRAINTIMEOFFSET trainTimeOffset,
-          TESTDATA testData,
-          TESTINDICES.cell(k) testIndex,
-          TESTVARINDEX testVarIndex,
-          TESTTIMEOFFSET testTimeOffset,
-          OUTPUTVARINDEX outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset,
-          TRAINMASKWIDTH trainMaskWidth)
+    from (TRAINDATA trainData, TRAINX trainX,
+          TRAINY trainY, TRAININDICES.cell(j) trainIndex,
+          TESTDATA testData, TESTX testX, TESTINDICES.cell(k) testIndex,
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+          MASKWIDTH maskWidth)
     {
-        IndexT i, wrapFlag, outputTimeIndex, trainTimeIndex, testTimeIndex;
-        ElementT outputVal, kernelWidth, trainPoint, testPoint, diff, sum;
+        IndexT i, dirFlag, partStart, partEnd, partSize;
+        ElementT y, kernelWidth, trainPoint, testPoint, diff, sum;
 
-        outputTimeIndex = trainIndex + outputTimeOffset;
-        outputVal = trainData.cell(outputVarIndex, outputTimeIndex);
+        // compute the partition that this testIndex lies in
+        partStart = partEnd = k;
+        if (split > 0) {
+            partSize = l / split;
+            partStart = k - (k % partSize);
+            partEnd = partStart + partSize;
+        }
 
-        // skip current training index if it is too close to the test index or
-        // if the training output value is a NAN
-        if ((trainIndex > testIndex - trainMaskWidth &&
-             trainIndex < testIndex + trainMaskWidth) ||
-            ISNAN(outputVal)) {
+        // TODO: lookup function is really slow (even inlined)
+//      y = lookup(trainData, trainY, trainIndex);
+        // do lookup without the function call overhead
+        y = trainData.cell(trainY.cell(0), trainIndex + trainY.cell(1));
+
+        // skip current training index if it is too close to the test
+        // index, if it's not in the same partition, or if the training
+        // output value is a NAN
+        if ((trainIndex > testIndex - maskWidth &&
+             trainIndex < testIndex + maskWidth) ||
+            (j >= partStart && j < partEnd) ||
+            ISNAN(y)) {
             weight = partial = 0;
             return;
         }
 
+        // loop over predictor variables to calculate training weight
         sum = 0;
-        for (i = 0; i < trainVarIndex.count(); ++i) {
-
-            wrapFlag    =    wrapFlags.cell(trainVarIndex.cell(i));
-            kernelWidth = kernelWidths.cell(trainVarIndex.cell(i));
-
-            trainTimeIndex = trainIndex + trainTimeOffset.cell(i);
-            testTimeIndex  =  testIndex +  testTimeOffset.cell(i);
-
-            trainPoint = trainData.cell(trainVarIndex.cell(i), trainTimeIndex);
-            testPoint  =  testData.cell( testVarIndex.cell(i),  testTimeIndex);
+        for (i = 0; i < trainX.size(1); ++i) {
+            dirFlag     =     dirFlags.cell(trainX.cell(0, i));
+            kernelWidth = kernelWidths.cell(trainX.cell(0, i));
+            // TODO: lookup function is really slow (even inlined)
+//          trainPoint = lookup(trainData, trainX, i, trainIndex);
+//          testPoint  = lookup( testData,  testX, i,  testIndex);
+            // do lookup without the function call overhead
+            trainPoint = trainData.cell(trainX.cell(0, i),
+                                        trainIndex + trainX.cell(1, i));
+            testPoint = testData.cell(testX.cell(0, i),
+                                      testIndex + testX.cell(1, i));
 
             // skip this variable if nan is detected in the test point
-            if (ISNAN(testPoint)) {
-                continue;
-            }
+            if (ISNAN(testPoint)) { continue; }
 
-            // skip this training index if nan is detected in the train point
-            if (ISNAN(trainPoint)) {
-                weight = partial = 0;
-                return;
-            }
+            // skip this training index if nan is detected
+            if (ISNAN(trainPoint)) { weight = partial = 0; return; }
 
+            // compute diff (and wrap if dirFlag is true)
             diff = trainPoint - testPoint;
+            if (dirFlag) { diff = wrapWindDirDiff(diff); }
 
-            if (wrapFlag) {
-                diff = wrapWindDirDiff(diff);
-            }
-
-            // normalize according to kernel width
+            // normalize and save squared difference
             diff /= kernelWidth;
-
-            // return squared difference
             sum += diff * diff;
         }
 
         weight = exp(-((ElementT) sum));
-        partial = weight * outputVal;
+        partial = weight * y;
 #ifdef DEBUG
         fprintf(stderr, "method 2:  weight(%d, %d) = %g\n", j, k, weight);
         fprintf(stderr, "method 2: partial(%d, %d) = %g\n", j, k, partial);
@@ -369,88 +369,79 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
     /* METHOD 3: Compute results directly with one pass through the data */
 
     to   (RESULT.cell(k) result)
-    from (TRAINDATA trainData,
-          WRAPFLAGS wrapFlags,
-          KERNELWIDTHS kernelWidths,
-          TRAININDICES trainIndices,
-          TRAINVARINDEX trainVarIndex,
-          TRAINTIMEOFFSET trainTimeOffset,
-          TESTDATA testData,
-          TESTINDICES.cell(k) testIndex,
-          TESTVARINDEX testVarIndex,
-          TESTTIMEOFFSET testTimeOffset,
-          OUTPUTVARINDEX outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset,
-          TRAINMASKWIDTH trainMaskWidth)
+    from (TRAINDATA trainData, TRAINX trainX,
+          TRAINY trainY, TRAININDICES trainIndices,
+          TESTDATA testData, TESTX testX, TESTINDICES.cell(k) testIndex,
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+          MASKWIDTH maskWidth)
     {
         bool skipIndexFlag;
-        IndexT i, j, wrapFlag, trainIndex, outputTimeIndex, trainTimeIndex,
-               testTimeIndex;
-        ElementT outputVal, kernelWidth, trainPoint, testPoint, diff, sum,
+        IndexT i, j, dirFlag, trainIndex, partSize, partStart, partEnd;
+        ElementT y, kernelWidth, trainPoint, testPoint, diff, sum,
                  weight, partial, totalPartial, totalWeight;
+
+        // compute the partition that this testIndex lies in
+        partStart = partEnd = k;
+        if (split > 0) {
+            partSize = l / split;
+            partStart = k - (k % partSize);
+            partEnd = partStart + partSize;
+        }
 
         // loop over training points
         totalPartial = totalWeight = 0;
         for (j = 0; j < trainIndices.count(); ++j) {
 
             trainIndex = trainIndices.cell(j);
-            outputTimeIndex = trainIndex + outputTimeOffset;
-            outputVal = trainData.cell(outputVarIndex, outputTimeIndex);
+            // TODO: lookup function is really slow (even inlined)
+//          y = lookup(trainData, trainY, trainIndex);
+            // do lookup without the function call overhead
+            y = trainData.cell(trainY.cell(0), trainIndex + trainY.cell(1));
 
             // skip current training index if it is too close to the test
-            // index or if the training output value is a NAN
-            if ((trainIndex > testIndex - trainMaskWidth &&
-                 trainIndex < testIndex + trainMaskWidth) ||
-                ISNAN(outputVal)) {
+            // index, if it's not in the same partition, or if the training
+            // output value is a NAN
+            if ((trainIndex > testIndex - maskWidth &&
+                 trainIndex < testIndex + maskWidth) ||
+                (j >= partStart && j < partEnd) ||
+                ISNAN(y)) {
                 continue;
             }
 
             // loop over predictor variables to calculate training weight
             sum = 0;
             skipIndexFlag = false;
-            for (i = 0; i < trainVarIndex.count(); ++i) {
-
-                wrapFlag    =    wrapFlags.cell(trainVarIndex.cell(i));
-                kernelWidth = kernelWidths.cell(trainVarIndex.cell(i));
-
-                trainTimeIndex = trainIndex + trainTimeOffset.cell(i);
-                testTimeIndex  =  testIndex +  testTimeOffset.cell(i);
-
-                trainPoint = trainData.cell(trainVarIndex.cell(i),
-                                            trainTimeIndex);
-                testPoint  =  testData.cell( testVarIndex.cell(i),
-                                             testTimeIndex);
+            for (i = 0; i < trainX.size(1); ++i) {
+                dirFlag     =     dirFlags.cell(trainX.cell(0, i));
+                kernelWidth = kernelWidths.cell(trainX.cell(0, i));
+                // TODO: lookup function is really slow (even inlined)
+//              trainPoint = lookup(trainData, trainX, i, trainIndex);
+//              testPoint  = lookup( testData,  testX, i,  testIndex);
+                // do lookup without the function call overhead
+                trainPoint = trainData.cell(trainX.cell(0, i),
+                                            trainIndex + trainX.cell(1, i));
+                testPoint = testData.cell(testX.cell(0, i),
+                                          testIndex + testX.cell(1, i));
 
                 // skip this variable if nan is detected in the test point
-                if (ISNAN(testPoint)) {
-                    continue;
-                }
+                if (ISNAN(testPoint)) { continue; }
 
                 // skip this training index if nan is detected
-                if (ISNAN(trainPoint)) {
-                    skipIndexFlag = true;
-                    break;
-                }
+                if (ISNAN(trainPoint)) { skipIndexFlag = true; break; }
 
+                // compute diff (and wrap if dirFlag is true)
                 diff = trainPoint - testPoint;
+                if (dirFlag) { diff = wrapWindDirDiff(diff); }
 
-                if (wrapFlag) {
-                    diff = wrapWindDirDiff(diff);
-                }
-
-                // normalize according to kernel width
+                // normalize and save squared difference
                 diff /= kernelWidth;
-
-                // return squared difference
                 sum += diff * diff;
             }
 
-            if (skipIndexFlag) {
-                continue;
-            }
+            if (skipIndexFlag) { continue; }
 
             weight = exp(-((ElementT) sum));
-            partial = weight * outputVal;
+            partial = weight * y;
 
 #ifdef DEBUG
             fprintf(stderr, "method 3:  weight(%d, %d) = %g\n", j, k, weight);
@@ -468,95 +459,31 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
 #endif // INCLUDE_METHOD3
 }
 
-transform NWKDERecursive
-from TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
-     TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
-     TESTDATA[m2,n2],
-     TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
-     OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
-to RESULT[q]
-tunable recursiveCutoff
-{
-    to   (RESULT           result)
-    from (TRAINDATA        trainData,
-          WRAPFLAGS        wrapFlags,
-          KERNELWIDTHS     kernelWidths,
-          TRAININDICES     trainIndices,
-          TRAINVARINDEX    trainVarIndex,
-          TRAINTIMEOFFSET  trainTimeOffset,
-          TESTDATA         testData,
-          TESTINDICES      testIndices,
-          TESTVARINDEX     testVarIndex,
-          TESTTIMEOFFSET   testTimeOffset,
-          OUTPUTVARINDEX   outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset,
-          TRAINMASKWIDTH   trainMaskWidth)
-    {
-        if (q <= MAX(1, recursiveCutoff)) {
-            NWKDEBase(result, trainData, wrapFlags, kernelWidths,
-                      trainIndices, trainVarIndex, trainTimeOffset,
-                      testData, testIndices,
-                      testVarIndex, testTimeOffset,
-                      outputVarIndex, outputTimeOffset, trainMaskWidth);
-            return;
-        }
-
-        int mid = q / 2;
-        spawn NWKDERecursive(result.region(0, mid),
-                       trainData, wrapFlags, kernelWidths,
-                       trainIndices, trainVarIndex, trainTimeOffset,
-                       testData, testIndices.region(0, mid),
-                       testVarIndex, testTimeOffset,
-                       outputVarIndex, outputTimeOffset, trainMaskWidth);
-        spawn NWKDERecursive(result.region(mid, q),
-                       trainData, wrapFlags, kernelWidths,
-                       trainIndices, trainVarIndex, trainTimeOffset,
-                       testData, testIndices.region(mid, q),
-                       testVarIndex, testTimeOffset,
-                       outputVarIndex, outputTimeOffset, trainMaskWidth);
-        sync;
-    }
-}
-
 transform NWKDE
-from TRAINDATA[M,N], WRAPFLAGS[M], KERNELWIDTHS[M],
-     TRAININDICES[L], TRAINVARINDEX[P], TRAINTIMEOFFSET[P],
-     TESTDATA[M2,N2],
-     TESTINDICES[Q], TESTVARINDEX[P], TESTTIMEOFFSET[P],
-     OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
-to RESULT[Q]
+from TRAINDATA[_M_,_N_], TRAINX[2,_P_], TRAINY[2], TRAININDICES[_L_],
+     TESTDATA[_M2_,_N2_], TESTX[2,_P_], TESTINDICES[_Q_],
+     DIRFLAGS[_M_], KERNELWIDTHS[_M_], SPLIT, MASKWIDTH
+to RESULT[_Q_]
 through INPUTSCHECKED
-generator NWKDEGenerator3
+generator NWKDEGenerator2
 accuracy_metric NWKDEMetric2
 {
-    to (RESULT result)
-    from (TRAINDATA        trainData,
-          WRAPFLAGS        wrapFlags,
-          KERNELWIDTHS     kernelWidths,
-          TRAININDICES     trainIndices,
-          TRAINVARINDEX    trainVarIndex,
-          TRAINTIMEOFFSET  trainTimeOffset,
-          TESTDATA         testData,
-          TESTINDICES      testIndices,
-          TESTVARINDEX     testVarIndex,
-          TESTTIMEOFFSET   testTimeOffset,
-          OUTPUTVARINDEX   outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset,
-          TRAINMASKWIDTH   trainMaskWidth)
+    to   (RESULT result)
+    from (TRAINDATA trainData, TRAINX trainX,
+          TRAINY trainY, TRAININDICES trainIndices,
+          TESTDATA testData, TESTX testX, TESTINDICES testIndices,
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+          MASKWIDTH maskWidth)
     {
 #ifdef DEBUG
         ElementT ret;
-        NWKDECheckInputs(ret, trainData, trainIndices,
-                         trainVarIndex, trainTimeOffset,
-                         testData, testIndices,
-                         testVarIndex, testTimeOffset,
-                         outputVarIndex, outputTimeOffset);
+        NWKDECheckInputs(ret, trainData, trainX, trainY, trainIndices,
+                         testData, testX, testIndices,
+                         dirFlags, kernelWidths, split, maskWidth);
 #endif
-        NWKDERecursive(result, trainData, wrapFlags, kernelWidths,
-                       trainIndices, trainVarIndex, trainTimeOffset,
-                       testData, testIndices,
-                       testVarIndex, testTimeOffset,
-                       outputVarIndex, outputTimeOffset, trainMaskWidth);
+        NWKDEBase(result, trainData, trainX, trainY, trainIndices,
+                  testData, testX, testIndices,
+                  dirFlags, kernelWidths, split, maskWidth);
     }
 }
 

@@ -129,6 +129,56 @@ to A[n,m], P[m]
         }
     }
 
+    // Crout (solve one column and row at a time)
+    to (A a, P p) from ()
+    {
+        IndexT j;
+        ElementT iMax, jMax, valMax;
+
+        for (j = 0; j < MIN(m,n); ++j) {
+
+            // lazy update of current column
+            if (j > 0) {
+                // update values on and below diagonal
+                MatrixMultiplyAdd(a.region(j, j, j+1, m), -1.0,
+                                  a.region(0, j, j  , m),
+                                  a.region(j, 0, j+1, j), 1.0);
+            }
+
+            if (j == m - 1) {
+                p.cell(j) = j;
+            } else {
+                // find the largest value in jth column
+                ReduceAMax2D(jMax, iMax, valMax, a.region(j, j, j+1, m));
+                iMax += j;
+
+                // save swapped row index in p
+                p.cell(j) = iMax;
+
+                // swap pivot row into current row
+                if (iMax != j) {
+                    Swap2D(a.region(0, j   , n, j    + 1),
+                           a.region(0, iMax, n, iMax + 1));
+                }
+
+                // scale values below diagonal
+                Scale2D(a.region(j, j+1, j+1, m), 1.0 / a.cell(j, j));
+            }
+
+            // lazy update of current row
+            if (j > 0 && j < n) {
+                MatrixMultiplyAdd(a.region(j+1, j, n, j+1), -1.0,
+                                  a.region(0  , j, j, j+1),
+                                  a.region(j+1, 0, n, j  ), 1.0);
+            }
+        }
+
+        // no swaps for rest of array
+        for (j = MIN(m,n); j < m; ++j) {
+            p.cell(j) = j;
+        }
+    }
+
     // right looking serial
     to (A a, P p) from ()
     {
@@ -210,7 +260,57 @@ to A[n,m], P[m]
         }
 
         // no swaps for rest of array
-        for (j = MIN(m,n); j < m; ++j) {
+        for (j = n; j < m; ++j) {
+            p.cell(j) = j;
+        }
+    }
+
+    // Crout serial
+    to (A a, P p) from ()
+    {
+        IndexT i, j, k, ip;
+        ElementT maxVal, temp;
+        for (j = 0; j < n; ++j) {
+            // update values in current column
+            for (i = j; i < m; ++i) {
+                for (k = 0; k < j; ++k) {
+                    a.cell(j, i) -= a.cell(k, i) * a.cell(j, k);
+                }
+            }
+            if (j < m) {
+                // find pivot
+                ip = j; maxVal = fabs(a.cell(j, j));
+                for (i = j+1; i < m; ++i) {
+                    if (fabs(a.cell(j, i)) > maxVal) {
+                        maxVal = fabs(a.cell(j, i));
+                        ip = i;
+                    }
+                }
+                p.cell(j) = ip;
+                // swap rows
+                if (ip != j) {
+                    for (k = 0; k < n; ++k) {
+                        temp = a.cell(k, j);
+                        a.cell(k, j) = a.cell(k, ip);
+                        a.cell(k, ip) = temp;
+                    }
+                }
+                // scale column below diagonal
+                temp = 1.0 / a.cell(j, j);
+                for (i = j+1; i < m; ++i) {
+                    a.cell(j, i) *= temp;
+                }
+            }
+            // update values in current row
+            for (i = 0; i < j; ++i) {
+                for (k = j+1; k < n; ++k) {
+                    a.cell(k, j) -= a.cell(i, j) * a.cell(k, i);
+                }
+            }
+        }
+
+        // no swaps for rest of array
+        for (j = n; j < m; ++j) {
             p.cell(j) = j;
         }
     }
@@ -323,6 +423,52 @@ tunable sizespecific blockSize
         if (n > m) {
             TriSolveLLInPlace(a.region(m, 0, n, m), 1,
                               a.region(0, 0, m, m));
+        }
+    }
+
+    // Crout (process one column/row block at a time)
+    to (A a, P p) from ()
+    {
+        //base case
+        if (blockSize < 1 || blockSize >= MIN(m,n)) {
+            LUBase(a, p);
+            return;
+        }
+
+        IndexT i0, i1, minmn = MIN(m,n);
+        MatrixRegion2D a11, a12, a13, a21, a22, a23, ar1, ar2, ar3;
+        MatrixRegion1D p2;
+
+        for (i0 = 0; i0 < MIN(m,n); i0 += blockSize) {
+
+            i1 = MIN(i0 + blockSize, minmn);
+            a12 = a.region(i0, 0,  i1, i0);
+            a13 = a.region(i1, 0,  n , i0);
+            ar1 = a.region(0 , i0, i0, i1);
+            ar2 = a.region(i0, i0, i1, i1);
+            ar3 = a.region(i1, i0, n , i1);
+            a21 = a.region(0 , i0, i0, m );
+            a22 = a.region(i0, i0, i1, m );
+            a23 = a.region(i1, i0, n , m );
+
+            p2  = p.region(i0, m);
+
+            // lazy update of current column block
+            MatrixMultiplyAdd(a22, -1.0, a21, a12, 1.0);
+
+            // compute LU of lower column block
+            LUBase(a22, p2);
+
+            // permute rows to left and right of lower column block
+            PermuteInPlace(a21, p2);
+            PermuteInPlace(a23, p2);
+
+            // adjust permutation values to larger matrix
+            Shift1D(p2, i0);
+
+            // lazy update of current row block
+            MatrixMultiplyAdd(ar3, -1.0, ar1, a13, 1.0);
+            TriSolveLLInPlace(ar3, 1, ar2);
         }
     }
 }

@@ -1,6 +1,8 @@
 #ifndef UTILS_PBCC
 #define UTILS_PBCC
 
+#include "nan.h"
+
 %{
 
 template<typename ConstMatrixRegion2D>
@@ -33,7 +35,58 @@ int findMinAndMax(ElementT *min, ElementT *max, ConstMatrixRegion1D array)
     return 0;
 }
 
+template<typename ConstMatrixRegion1D, typename ConstMatrixRegion2D>
+inline ElementT lookup(const ConstMatrixRegion2D data,
+                       const ConstMatrixRegion1D var,
+                       const IndexT index)
+{
+    return data.cell(var.cell(0), index + var.cell(1));
+}
+
+template<typename ConstMatrixRegion2D>
+inline ElementT lookup(const ConstMatrixRegion2D data,
+                       const ConstMatrixRegion2D var,
+                       const IndexT row,
+                       const IndexT index)
+{
+    return data.cell(var.cell(0, row), index + var.cell(1, row));
+}
+
+template<typename ConstMatrixRegion1D, typename ConstMatrixRegion2D>
+inline int indexIsValid(const ConstMatrixRegion2D data,
+                        const ConstMatrixRegion2D x,
+                        const ConstMatrixRegion1D dir,
+                        IndexT index)
+{
+    for (IndexT i = 0; i < x.size(1); ++i) {
+        if (ISNAN(data.cell(x.cell(0, i), index + x.cell(1, i)))) {
+            return false;
+        }
+    }
+    if (ISNAN(data.cell(dir.cell(0), index + dir.cell(1)))) {
+        return false;
+    }
+    return true;
+}
+
+template<typename ConstMatrixRegion1D, typename ConstMatrixRegion2D>
+inline int indexIsValid(const ConstMatrixRegion2D data,
+                        const ConstMatrixRegion2D x,
+                        const ConstMatrixRegion1D dir,
+                        const ConstMatrixRegion1D y, IndexT index)
+{
+    for (IndexT i = 0; i < x.size(1); ++i) {
+        if (ISNAN(data.cell(x.cell(0, i), index + x.cell(1, i)))) {
+            return false;
+        }
+    }
+    if (ISNAN(data.cell(dir.cell(0), index + dir.cell(1))) ||
+        ISNAN(data.cell(y.cell(0), index + y.cell(1)))) {
+        return false;
+    }
+    return true;
+}
+
 %}
 
 #endif // UTILS_PBCC
-

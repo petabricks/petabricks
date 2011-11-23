@@ -28,7 +28,7 @@ void orgqr_wrap(const int *m, const int *n, const int *k, float *A, const int *l
 }
 %}
 
-transform QRReflectorsGenerateLAPACK
+transform QRRConvertLAPACK
 from IN[n,m], TAU[n]
 to OUT[n,m]
 {
@@ -94,7 +94,7 @@ to OUT[n,m]
     }
 }
 
-transform QRLAPACK
+transform QRRLAPACK
 from IN[n,m]
 to OUT[n,m], TAU[n]
 {

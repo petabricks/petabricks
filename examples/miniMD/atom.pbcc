@@ -13,7 +13,7 @@
 //Does this exist in petabricks?
 function random
 from in[1]
-out next[1], r[1]
+to next[1], r[1]
 {
   double k;
   double ans;
@@ -36,7 +36,7 @@ function create_atoms
 from rho[1], ndimentions[3]
 to atom_x[natoms, 3], atom_v[natoms,3]
 {
-  /* use atom # (generated from lattice coords) as unique seed to generate a
+  /* use atom num (generated from lattice coords) as unique seed to generate a
        unique velocity */
 
   //double alat = pow((4.0/rho.cell(0)),(1.0/3.0));

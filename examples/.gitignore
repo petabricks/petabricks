@@ -39,6 +39,7 @@ kclustering/distance
 kclustering/kmeans
 kclustering/newclusterlocations
 kernel/BinnedLR
+kernel/Estimate
 kernel/KernelEstimate
 kernel/nwkdeBaseTop2
 kernel/nwkdeBaseTop
@@ -102,6 +103,7 @@ multigrid/Restrict3D
 multiply/multiplyAdd
 multiply/multiply
 multiply/strassen
+multiply/triMultiply
 optimize/optimize
 preconditioner/CGInterior
 preconditioner/CG
@@ -120,6 +122,7 @@ preconditioner/vectoradd
 prefixsum/prefixsum
 QR/QR
 QR/QRLAPACK
+QR/QRRTest
 QR/QRTest
 regression/accuracymetric
 regression/assign0d
@@ -230,3 +233,4 @@ regression/errors/rulebodylinenos
 *.info
 *.obj
 -Makefile
+parser.out

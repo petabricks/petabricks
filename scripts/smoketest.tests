@@ -19,8 +19,8 @@ convolution2/Convolution   Rand1D Rand1D
 convolution/ConvolutionFFT Rand1D Rand1D
 convolution/Convolution    Rand1D Rand1D
 kclustering/kmeans         KmeansRandInput /dev/null
-kernel/nwkde               nwkde/data nwkde/wrapFlags nwkde/kernelWidths nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/data nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/outputVarIndex nwkde/outputTimeOffset nwkde/maskWidth
-#kernel/nwkdeVA             nwkde/data nwkde/wrapFlags nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/data nwkde/indices nwkde/varIndex nwkde/timeOffset nwkde/outputVarIndex nwkde/outputTimeOffset nwkde/maskWidth
+kernel/nwkde               nwkde/data nwkde/x nwkde/y nwkde/indices nwkde/data nwkde/x nwkde/indices nwkde/dirFlags nwkde/kernelWidths nwkde/split nwkde/maskWidth
+#kernel/nwkdeVA             nwkde/data nwkde/x nwkde/y nwkde/indices nwkde/data nwkde/x nwkde/indices nwkde/dirFlags nwkde/split nwkde/maskWidth
 trisolve/TriSolveLL        Zero0D Rand2Da Rand2Db
 trisolve/TriSolveLL        One0D Rand2Da Rand2Db
 trisolve/TriSolveLU        Zero0D Rand2Da Rand2Db
@@ -37,6 +37,10 @@ linearsolve/LinearSolvePosDef      Rand2DPosDef Rand2Db
 matrixapprox/matrixapprox  MatApproxRand2D
 multiply/multiply          Rand2Da Rand2Db
 multiply/strassen          Rand2Da Rand2Db
+multiply/triMultiply       Zero0D Zero0D Rand2Da Rand2Db
+multiply/triMultiply       Zero0D  One0D Rand2Da Rand2Db
+multiply/triMultiply        One0D Zero0D Rand2Da Rand2Db
+multiply/triMultiply        One0D  One0D Rand2Da Rand2Db
 multigrid/Poisson2DDirect  Rand2Da Rand2Db
 multigrid/Poisson2DJacobi  Rand2Da Rand2Db One0D
 multigrid/Poisson2DJacobi  Rand2Da Rand2Db Ten0D
@@ -57,6 +61,7 @@ multigrid/Helmholtz3DRefFMG        Helmholtz3DZeros Helmholtz3DA Helmholtz3DB0 H
 preconditioner/preconditioner	   PrecondX PrecondA PrecondB
 QR/QRTest                  Rand2Da
 QR/QRTest                  Rand2DLong
+QR/QRTest                  Rand2DWide
 simple/add                 Rand2Da Rand2Db
 simple/bufferrotate        Rand1D
 simple/bufferrotate2       Rand1D

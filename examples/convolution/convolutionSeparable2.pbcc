@@ -1,12 +1,7 @@
-// TODO(jrk): streamline constants and magic numbers
-
 #ifndef KERNEL_RADIUS
 #define KERNEL_RADIUS 3
-#define KERNEL_LENGTH 7
+#define KERNEL_LENGTH 2*KERNEL_RADIUS + 1
 #endif
-
-
-//#define KERNEL_LENGTH ((KERNEL_RADIUS)*2+1)
 
 transform convolutionRows
 from Input[w,h], Kernel[KERNEL_LENGTH]
@@ -14,11 +9,7 @@ to Output[w,h]
 {
   primary
   Output.cell(x,y)
-      from(Input.region(
-                  x-KERNEL_RADIUS,
-                  y,
-                  x+KERNEL_RADIUS+1,
-                  y+1)
+      from(Input.region(x-KERNEL_RADIUS,y,x+KERNEL_RADIUS+1,y+1)
               input, Kernel kernel) {
     ElementT sum = 0;
     for(int i = 0; i < KERNEL_LENGTH; i++){
@@ -38,11 +29,7 @@ to Output[w,h]
 {
   primary
   Output.cell(x,y)
-      from(Input.region(
-                  x,
-                  y-KERNEL_RADIUS,
-                  x+1,
-                  y+KERNEL_RADIUS+1)
+      from(Input.region(x,y-KERNEL_RADIUS,x+1,y+KERNEL_RADIUS+1)
               input, Kernel kernel) {
     ElementT sum = 0;
     for(int i = 0; i < KERNEL_LENGTH; i++){
@@ -62,11 +49,7 @@ to Output[w,h]
 {
   primary
   Output.cell(x,y)
-      from(Input.region(
-                  x-KERNEL_RADIUS,
-                  y-KERNEL_RADIUS,
-                  x+KERNEL_RADIUS+1,
-                  y+KERNEL_RADIUS+1)
+      from(Input.region(x-KERNEL_RADIUS,y-KERNEL_RADIUS,x+KERNEL_RADIUS+1,y+KERNEL_RADIUS+1)
               input, Kernel kernel) {
     ElementT sum = 0;
     for(int x = 0; x < KERNEL_LENGTH; x++){
