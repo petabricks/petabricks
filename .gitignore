@@ -36,6 +36,7 @@ config.h
 stamp-h1
 pbc
 *.cache
+*.heur
 
 maxima.log
 schedule.pdf
