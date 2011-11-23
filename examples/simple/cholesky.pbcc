@@ -57,7 +57,7 @@ to OUT[n,n]
         for (i = 0; i < n; ++i) {
             for (j = 0; j < n; ++j) {
                 temp.cell(j, i) = (j < i) ?
-                                    temp.cell(i, j) :
+                                    (ElementT) temp.cell(i, j) :
                                     PetabricksRuntime::randNormal(0, 1);
             }
         }
