@@ -13,6 +13,20 @@ CONF_EXPLORATION_PROBABILITY = 0.7
 CONF_PICK_BEST_N = 3
 #------------------------------------------
 
+class Candidate:
+  """Represents a learning candidate. Objects can be considered candidate 
+if they have this set of attributes.
+They do NOT need to inherit from this class"""
+  def __init__(self, heuristicSet, failed, assignScores, originalIndex):
+    if heuristicSet is None:
+      self.heuristicSet = HeuristicSet()
+    else:
+      self.heuristicSet = heuristicSet
+    
+    self.failed = failed
+    self.assignScores = assignScores
+    self.originalIndex = originalIndex
+    
 class FailedCandidate(Candidate):
   """Represents a candidate that failed during compilation or tuning.
 If assignScores is False, when this candidate is graded it's only marked as used
@@ -29,22 +43,7 @@ class SuccessfulCandidate(Candidate):
   """Represents a candidate that was executed correctly"""
   def __init__(self, heuristicSet):
     Candidate.__init__(self, heuristicSet, failed=False, assignScores=True, originalIndex=None)
-    
-  
-class Candidate:
-  """Represents a learning candidate. Objects can be considered candidate 
-if they have this set of attributes.
-They do NOT need to inherit from this class"""
-  def __init__(self, heuristicSet, failed, assignScores, originalIndex):
-    if heuristicSet is None:
-      self.heuristicSet = HeuristicSet()
-    else:
-      self.heuristicSet = heuristicSet
-    
-    self.failed = failed
-    self.assignScores = assignScores
-    self.originalIndex = originalIndex
-    
+
   
 class HeuristicSet(dict):
   def toXmlStrings(self):
@@ -60,6 +59,9 @@ class HeuristicSet(dict):
     outfile.write("</heuristics>\n")
     outfile.close()
   
+  def importFromXmlString(self, xmlString):
+    self.importFromXmlDOM(xml.dom.minidom.parseString(xmlString))
+    
   def importFromXml(self, xmlFileName):
     self.importFromXmlDOM(xml.dom.minidom.parse(xmlFileName))
     
@@ -184,7 +186,13 @@ class Learner:
     self._testHSet = testHSet
     self._candidateSortingKey = candidateSortingKey
     self._tearDown = tearDown
-    self._getNeededHeuristcs = getNeededHeuristics
+    
+    if getNeededHeuristics is None:
+      #Return an empty list
+      self._getNeededHeuristcs = lambda : []
+    else:
+      self._getNeededHeuristcs = getNeededHeuristics
+      
     random.seed()
     
   
@@ -243,7 +251,8 @@ with the originalIndex field added"""
     
     self.storeCandidatesDataInDB(candidates)
     
-    self._tearDown(benchmark, additionalParameters)
+    if self._tearDown is not None:
+      self._tearDown(benchmark, additionalParameters)
     
     return 0
     
