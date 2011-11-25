@@ -8,25 +8,42 @@ from xml.sax.saxutils import escape
 
 
 #---------------- Config ------------------
-conf_minTrialNumber = 6
-conf_probabilityExploration = 0.7
-conf_pickBestN = 3
+CONF_MIN_TRIAL_NUMBER = 6
+CONF_EXPLORATION_PROBABILITY = 0.7
+CONF_PICK_BEST_N = 3
 #------------------------------------------
 
-class FailedCandidate:
+class FailedCandidate(Candidate):
   """Represents a candidate that failed during compilation or tuning.
 If assignScores is False, when this candidate is graded it's only marked as used
 but not given any point (thus it is penalized)"""
   def __init__(self, heuristicSet = None, assignScores = True):
+    Candidate.__init__(self, heuristicSet, failed=True, assignScores=assignScores, originalIndex=None)
+    if heuristicSet is None:
+      self.heuristicSet = HeuristicSet()
+    else:
+      self.heuristicSet = heuristicSet
+
+
+class SuccessfulCandidate(Candidate):
+  """Represents a candidate that was executed correctly"""
+  def __init__(self, heuristicSet):
+    Candidate.__init__(self, heuristicSet, failed=False, assignScores=True, originalIndex=None)
+    
+  
+class Candidate:
+  """Represents a learning candidate. Objects can be considered candidate 
+if they have this set of attributes.
+They do NOT need to inherit from this class"""
+  def __init__(self, heuristicSet, failed, assignScores, originalIndex):
     if heuristicSet is None:
       self.heuristicSet = HeuristicSet()
     else:
       self.heuristicSet = heuristicSet
     
-    self.originalIndex = None
-    self.failed = True
+    self.failed = failed
     self.assignScores = assignScores
-
+    self.originalIndex = originalIndex
     
   
 class HeuristicSet(dict):
@@ -81,7 +98,7 @@ heuristics in the database  """
         continue
       formula = random.choice(bestN)
       
-      if random.random() < conf_probabilityExploration:
+      if random.random() < CONF_EXPLORATION_PROBABILITY:
         #Generete a new formula by modifying the existing one
         formulaObj = maximaparser.parse(formula)
         formulaObj.evolve()
@@ -140,7 +157,7 @@ class CandidateList(list):
   def addOriginalIndex(self):
     count = 0
     for candidate in self:
-      candidate.originalIndex = count;
+      candidate.originalIndex = count
       count = count + 1
       
   def sort(self):
@@ -161,7 +178,7 @@ class Learner:
                tearDown = None,
                getNeededHeuristics = None):
     self._heuristicManager = HeuristicManager(heuristicSetFileName)
-    self._minTrialNumber = conf_minTrialNumber
+    self._minTrialNumber = CONF_MIN_TRIAL_NUMBER
     self._db = heuristicdb.HeuristicDB()
     self._setup = setup
     self._testHSet = testHSet
@@ -209,7 +226,7 @@ with the originalIndex field added"""
     neededHeuristics = self._getNeededHeuristcs(benchmark)
     
     for hSet in allHSets:
-      hSet.complete(neededHeuristics, self._db, conf_pickBestN)
+      hSet.complete(neededHeuristics, self._db, CONF_PICK_BEST_N)
     
     count = 0
     for hSet in allHSets:
