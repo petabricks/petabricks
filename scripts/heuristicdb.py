@@ -1,4 +1,5 @@
 import sqlite3
+import os
 
 class HeuristicDB:
   def __init__(self):
@@ -41,7 +42,7 @@ class HeuristicDB:
     
   def computeDBPath(self):
     #TODO: make the path more flexible
-    dbPath= os.path.expanduser(config.output_dir+"/knowledge.db")
+    dbPath= os.path.expanduser("~/tunerout/knowledge.db")
     return dbPath
 
   def getHeuristicKindID(self, kindName):
