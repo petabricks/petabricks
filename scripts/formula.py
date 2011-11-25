@@ -100,11 +100,13 @@ class FormulaFloat:
     return True
     
     
-    
+class NoElementException(Exception):
+  pass
+
 def selectDifferentElement(element, theList):
   """Select an element from the list, different from the given one"""
   if len(theList) == 1 and element==theList[0]:
-    raise Exception()
+    raise NoElementException()
   
   newElement = random.choice(theList)
   while newElement == element:
@@ -159,15 +161,21 @@ Returns true if the formula was actually mutated, false otherwise"""
   def evolveOperator(self):
     comparison_operators=["=", "!=", "<", ">", ">=", "<="]
     binary_logic_operators=["and", "or"]
+    arithmetic_operators=["+", "-", "*", "/"]
     
-    if self.op in comparison_operators:
-      return selectDifferentElement(self.op, comparison_operators)
-    elif self.op in binary_logic_operators:
-      return selectDifferentElement(self.op, binary_logic_operators)
-    else:
-      raise Exception("Unknown operator: " + self.op)
-      
-     
+    try:
+      if self.op in comparison_operators:
+        self.op = selectDifferentElement(self.op, comparison_operators)
+      elif self.op in binary_logic_operators:
+        self.op = selectDifferentElement(self.op, binary_logic_operators)
+      elif self.op in arithmetic_operators:
+        self.op = selectDifferentElement(self.op, arithmetic_operators)
+      else:
+        raise Exception("Unknown operator: " + self.op)
+    except NoElementException:
+      return False
+       
+    return True
         
   def evolve(self):
     """Randomly mutate one of the values or the binary operation, or the 
