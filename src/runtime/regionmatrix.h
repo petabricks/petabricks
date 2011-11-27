@@ -667,13 +667,17 @@ namespace petabricks {
         _regionHandler->getRegionData()->setStorage(scratch.storage());
 
       } else {
-        // TODO(yod): optimize this
-        IndexT coord[D];
-        memset(coord, 0, sizeof coord);
+        size_t size = sizeof(int) + ((2 * D + 1) * sizeof(IndexT)) + (scratch.storage()->count() * sizeof(ElementT));
+        char buf[size];
+        CopyFromMatrixStorageMessage* metadata = (CopyFromMatrixStorageMessage*) buf;
+        metadata->dimensions = D;
+        metadata->startOffset = 0;
 
-        do {
-          this->writeCell(coord, scratch.cell(coord));
-        } while (this->incCoord(coord) >= 0);
+        this->computeMatrixRegionMetaData(&metadata->startOffset, metadata->multipliers);
+
+        memcpy(metadata->size(), _size, sizeof(IndexT) * D);
+        memcpy(metadata->storage(), scratch.storage()->data(), sizeof(ElementT) * scratch.storage()->count());
+        _regionHandler->copyFromScratchMatrixStorage(metadata, size);
       }
     }
 

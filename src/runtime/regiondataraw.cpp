@@ -191,7 +191,26 @@ void RegionDataRaw::processCopyToMatrixStorageMsg(const BaseMessageHeader* base,
 }
 
 void RegionDataRaw::processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+  CopyFromMatrixStorageMessage* msg = (CopyFromMatrixStorageMessage*)base->content();
 
+  int d = msg->dimensions;
+  IndexT* size = msg->size();
+  ElementT* storage = msg->storage();
+
+  size_t sz = sizeof(CopyFromMatrixStorageReplyMessage);
+  char buf[sz];
+
+
+  IndexT n = 0;
+  IndexT coord[d];
+  memset(coord, 0, sizeof coord);
+  do {
+    IndexT index = coordToIndex(d, msg->startOffset, msg->multipliers, coord);
+    _storage->data()[index] = storage[n];
+    n++;
+  } while(incCoord(d, size, coord) >= 0);
+
+  caller->sendReply(buf, sz, base);
 }
 
 int RegionDataRaw::incCoord(int dimensions, IndexT* size, IndexT* coord) const{
