@@ -160,8 +160,8 @@ void RegionDataRaw::processWriteCellCacheMsg(const BaseMessageHeader* base, size
 //
 // TODO(yod): This does NOT support region data with part offset.
 //
-void RegionDataRaw::processGetMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
-  GetMatrixStorageMessage* msg = (GetMatrixStorageMessage*)base->content();
+void RegionDataRaw::processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+  CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*)base->content();
 
   int d = msg->dimensions;
   IndexT* size = msg->size();
@@ -171,10 +171,10 @@ void RegionDataRaw::processGetMatrixStorageMsg(const BaseMessageHeader* base, si
     storage_count *= size[i];
   }
 
-  size_t sz = sizeof(GetMatrixStorageReplyMessage) + (sizeof(ElementT) * storage_count);
+  size_t sz = sizeof(CopyToMatrixStorageReplyMessage) + (sizeof(ElementT) * storage_count);
 
   char buf[sz];
-  GetMatrixStorageReplyMessage* reply = (GetMatrixStorageReplyMessage*)buf;
+  CopyToMatrixStorageReplyMessage* reply = (CopyToMatrixStorageReplyMessage*)buf;
 
   reply->count = storage_count;
 
@@ -188,6 +188,10 @@ void RegionDataRaw::processGetMatrixStorageMsg(const BaseMessageHeader* base, si
   } while(incCoord(d, size, coord) >= 0);
 
   caller->sendReply(buf, sz, base);
+}
+
+void RegionDataRaw::processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+
 }
 
 int RegionDataRaw::incCoord(int dimensions, IndexT* size, IndexT* coord) const{

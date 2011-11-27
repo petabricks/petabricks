@@ -202,15 +202,22 @@ void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
   free(reply);
 }
 
-MatrixStoragePtr RegionDataRemote::copyToScratchMatrixStorage(GetMatrixStorageMessage* metadata, size_t size) const {
+MatrixStoragePtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* metadata, size_t size) const {
   void* data;
   size_t len;
-  this->fetchData(metadata, MessageTypes::SCRATCHSTORAGE, size, &data, &len);
-  GetMatrixStorageReplyMessage* reply = (GetMatrixStorageReplyMessage*)data;
+  this->fetchData(metadata, MessageTypes::TOSCRATCHSTORAGE, size, &data, &len);
+  CopyToMatrixStorageReplyMessage* reply = (CopyToMatrixStorageReplyMessage*)data;
   MatrixStoragePtr storage = new MatrixStorage(reply->count);
   memcpy(storage->data(), reply->storage, sizeof(ElementT) * reply->count);
   free(reply);
   return storage;
+}
+
+void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* metadata, size_t size) const {
+  void* data;
+  size_t len;
+  this->fetchData(metadata, MessageTypes::FROMSCRATCHSTORAGE, size, &data, &len);
+  free(data);
 }
 
 DataHostPidList RegionDataRemote::hosts(IndexT* begin, IndexT* end) {

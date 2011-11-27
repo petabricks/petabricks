@@ -166,9 +166,10 @@ bool RegionHandler::isHandlerChainUpdated() {
   return true;
 }
 
-MatrixStoragePtr RegionHandler::copyToScratchMatrixStorage(GetMatrixStorageMessage* metadata, size_t size) {
+MatrixStoragePtr RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* metadata, size_t size) {
   if (type() == RegionDataTypes::REGIONDATARAW) {
-    return _regionData->storage();
+    JASSERT(false).Text("This is inefficient. Use _regionData->storage() instead.");
+    return NULL;
   } else if (type() == RegionDataTypes::REGIONDATAREMOTE) {
     return _regionData->copyToScratchMatrixStorage(metadata, size);
   } else {
@@ -176,6 +177,17 @@ MatrixStoragePtr RegionHandler::copyToScratchMatrixStorage(GetMatrixStorageMessa
     return NULL;
   }
 }
+
+void RegionHandler::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* metadata, size_t size) {
+  if (type() == RegionDataTypes::REGIONDATARAW) {
+    UNIMPLEMENTED();
+  } else if (type() == RegionDataTypes::REGIONDATAREMOTE) {
+    _regionData->copyFromScratchMatrixStorage(metadata, size);
+  } else {
+    UNIMPLEMENTED();
+  }
+}
+
 
 //
 // RegionDataSplit
@@ -214,8 +226,12 @@ void RegionHandler::processGetHostListMsg(const BaseMessageHeader* base, size_t 
   _regionData->processGetHostListMsg(base, baseLen, caller);
 }
 
-void RegionHandler::processGetMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  _regionData->processGetMatrixStorageMsg(base, baseLen, caller);
+void RegionHandler::processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  _regionData->processCopyFromMatrixStorageMsg(base, baseLen, caller);
+}
+
+void RegionHandler::processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  _regionData->processCopyToMatrixStorageMsg(base, baseLen, caller);
 }
 
 void RegionHandler::processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {

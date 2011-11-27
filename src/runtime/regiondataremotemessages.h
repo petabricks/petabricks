@@ -48,7 +48,8 @@ namespace petabricks {
         CREATEREGIONDATAPART,
         INITWITHREGIONDATA,
         INITWITHREGIONHANDLER,
-        SCRATCHSTORAGE,
+        TOSCRATCHSTORAGE,
+        FROMSCRATCHSTORAGE,
       };
     } PACKED;
 
@@ -140,11 +141,30 @@ namespace petabricks {
       int numHops;
     } PACKED;
 
-    struct GetMatrixStorageMessage {
+    struct CopyToMatrixStorageMessage {
       int dimensions;
       IndexT startOffset;
       IndexT multipliers[];
-      IndexT* size() const { return (IndexT*)((char*)this + sizeof(int) + ((this->dimensions + 1) * sizeof(IndexT))); }
+      IndexT* size() const {
+        return (IndexT*)((char*)this + sizeof(int) +
+                         ((this->dimensions + 1) * sizeof(IndexT)));
+      }
+    } PACKED;
+
+    struct CopyFromMatrixStorageMessage {
+      int dimensions;
+      IndexT startOffset;
+      IndexT multipliers[];
+
+      IndexT* size() const {
+        return (IndexT*)((char*)this + sizeof(int) +
+                         ((this->dimensions + 1) * sizeof(IndexT)));
+      }
+
+      ElementT* storage() const {
+        return (ElementT*)((char*)this + sizeof(int) +
+                         ((2 * this->dimensions + 1) * sizeof(IndexT)));
+      }
     } PACKED;
 
     struct AllocDataMessage {
@@ -184,9 +204,12 @@ namespace petabricks {
       EncodedPtr encodedPtr; // regiondata or remoteobject
     } PACKED;
 
-    struct GetMatrixStorageReplyMessage {
+    struct CopyToMatrixStorageReplyMessage {
       size_t count;
       ElementT storage[];
+    } PACKED;
+
+    struct CopyFromMatrixStorageReplyMessage {
     } PACKED;
 
     struct AllocDataReplyMessage {

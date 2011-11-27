@@ -638,7 +638,7 @@ namespace petabricks {
       }
       size_t size = sizeof(int) + ((2 * D + 1) * sizeof(IndexT));
       char buf[size];
-      GetMatrixStorageMessage* metadata = (GetMatrixStorageMessage*) buf;
+      CopyToMatrixStorageMessage* metadata = (CopyToMatrixStorageMessage*) buf;
       metadata->dimensions = D;
       metadata->startOffset = 0;
 

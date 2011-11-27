@@ -58,7 +58,11 @@ void RegionDataI::processGetHostListMsg(const BaseMessageHeader* base, size_t, I
   caller->sendReply(buf, sz, base);
 }
 
-void RegionDataI::processGetMatrixStorageMsg(const BaseMessageHeader*, size_t, IRegionReplyProxy*) {
+void RegionDataI::processCopyFromMatrixStorageMsg(const BaseMessageHeader*, size_t, IRegionReplyProxy*) {
+  UNIMPLEMENTED();
+}
+
+void RegionDataI::processCopyToMatrixStorageMsg(const BaseMessageHeader*, size_t, IRegionReplyProxy*) {
   UNIMPLEMENTED();
 }
 
