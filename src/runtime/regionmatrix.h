@@ -672,7 +672,7 @@ namespace petabricks {
         memset(coord, 0, sizeof coord);
 
         do {
-          scratch.cell(coord) = this->readCell(coord);
+          this->writeCell(coord, scratch.cell(coord));
         } while (this->incCoord(coord) >= 0);
       }
     }

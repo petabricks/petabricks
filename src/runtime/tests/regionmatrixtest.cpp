@@ -157,6 +157,8 @@ void runProcess2(MatrixRegion3D& regionMatrix) {
   IndexT m1[] = {1,1,1};
   IndexT m2[] = {2,2,2};
 
+  IndexT m12d[] = {1,1};
+
   JASSERT(fabs(regionMatrix.cell(m0) - 0.57373451) < 0.00000001);
   JASSERT(fabs(regionMatrix.cell(m1) - 5) < 0.00000001);
   JASSERT(fabs(regionMatrix.cell(m2) - 0.50022465) < 0.00000001);
@@ -190,6 +192,14 @@ void runProcess2(MatrixRegion3D& regionMatrix) {
   printf("== Scratch ==\n");
   workstealing::MatrixRegion2D scratch = rslice3.toScratchRegion();
   MatrixIO().write(scratch);
+
+  scratch.cell(m12d) = 456;
+  MatrixIO().write(scratch);
+
+  rslice3.fromScratchRegion(scratch);
+  MatrixIO().write(rslice3);
+
+  MatrixIO().write(regionMatrix);
 
   printf("== done ==\n");
 }
