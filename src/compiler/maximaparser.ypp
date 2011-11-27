@@ -70,7 +70,7 @@ static void clearParserCaches(){
 %parse-param { petabricks::FormulaListPtr& ret };
 
 %token IPROMPT OPROMPT LE GE BOOL_T BOOL_F STR_EQUAL STR_FLOOR STR_CEILING IF THEN ELSE
-%token <str> IDENT INTEGER FLOAT
+%token <str> IDENT INTEGER FLOAT FLOATEXP
 %type <b> Bool
 %type <i> Integer
 %type <d> Float
@@ -149,7 +149,9 @@ Nil:;
 Integer: INTEGER { $$=jalib::StringToX<int>($1); };
 Bool: BOOL_T { $$=true;  }
     | BOOL_F { $$=false; };
-Float: FLOAT { $$=jalib::StringToX<double>($1); };
+Float: FLOAT { $$=jalib::StringToX<double>($1); }
+     | FLOATEXP { $$=jalib::StringToX<double>($1); }
+     ;
 
 %%
 
