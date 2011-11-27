@@ -51,12 +51,12 @@ class HeuristicSet(dict):
   
   def toXmlFile(self, filename):
     outfile = open(filename, "w")
-    outfile.write("<heuristics>\n")
+    outfile.write("<set>\n")
     for xmlstring in self.toXmlStrings():
       outfile.write("\t")
       outfile.write(xmlstring)
       outfile.write("\n")
-    outfile.write("</heuristics>\n")
+    outfile.write("</set>\n")
     outfile.close()
   
   def importFromXmlString(self, xmlString):
