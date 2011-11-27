@@ -129,6 +129,7 @@ regression/assign0d
 regression/backwards
 regression/calltx
 regression/commadecl
+regression/continue
 regression/coordflip
 regression/coscheduled1
 regression/coscheduled2
