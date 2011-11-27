@@ -154,17 +154,66 @@ void RegionDataRaw::processWriteCellCacheMsg(const BaseMessageHeader* base, size
   caller->sendReply(buf, sz, base);
 }
 
+//
+// Copy MatrixStorage and send it to the requested node. Only send what the
+// requester needs.
+//
+// TODO(yod): This does NOT support region data with part offset.
+//
 void RegionDataRaw::processGetMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
   GetMatrixStorageMessage* msg = (GetMatrixStorageMessage*)base->content();
 
-  size_t storage_sz = sizeof(ElementT) * _storage->count();
-  size_t sz = sizeof(GetMatrixStorageReplyMessage) + storage_sz;
+  int d = msg->dimensions;
+  IndexT* size = msg->size();
+
+  size_t storage_count = 1;
+  for (int i = 0; i < d; i++) {
+    storage_count *= size[i];
+  }
+
+  size_t sz = sizeof(GetMatrixStorageReplyMessage) + (sizeof(ElementT) * storage_count);
 
   char buf[sz];
   GetMatrixStorageReplyMessage* reply = (GetMatrixStorageReplyMessage*)buf;
 
-  reply->count = _storage->count();
-  memcpy(reply->storage, _storage->data(), storage_sz);
+  reply->count = storage_count;
+
+  IndexT n = 0;
+  IndexT coord[d];
+  memset(coord, 0, sizeof coord);
+  do {
+    IndexT index = coordToIndex(d, msg->startOffset, msg->multipliers, coord);
+    reply->storage[n] = _storage->data()[index];
+    n++;
+  } while(incCoord(d, size, coord) >= 0);
 
   caller->sendReply(buf, sz, base);
+}
+
+int RegionDataRaw::incCoord(int dimensions, IndexT* size, IndexT* coord) const{
+  if (dimensions == 0)
+    return -1;
+  int i;
+  coord[0]++;
+  for(i = 0; i < dimensions - 1; ++i){
+    if(coord[i] >= size[i]){
+      coord[i]=0;
+      coord[i+1]++;
+    }else{
+      return i;
+    }
+  }
+  if(coord[dimensions - 1] >= size[dimensions - 1]){
+    return -1;
+  }else{
+    return dimensions - 1;
+  }
+}
+
+IndexT RegionDataRaw::coordToIndex(int dimensions, IndexT startOffset, IndexT* multipliers, IndexT* coord) const {
+  IndexT rv = startOffset;
+  for(int i = 0; i < dimensions; ++i){
+    rv +=  multipliers[i] * coord[i];
+  }
+  return rv;
 }

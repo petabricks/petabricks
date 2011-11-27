@@ -41,6 +41,10 @@ namespace petabricks {
     void init(const int dimensions, const IndexT* size, const ElementT* data, const IndexT* partOffset);
     ElementT* coordToPtr(const IndexT* coord) const;
     IndexT coordOffset(const IndexT* coord) const;
+
+    // Scratch
+    int incCoord(int dimensions, IndexT* size, IndexT* coord) const;
+    IndexT coordToIndex(int dimensions, IndexT startOffset, IndexT* multipliers, IndexT* coord) const;
   };
 }
 

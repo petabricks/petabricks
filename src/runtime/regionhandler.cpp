@@ -166,7 +166,7 @@ bool RegionHandler::isHandlerChainUpdated() {
   return true;
 }
 
-MatrixStoragePtr RegionHandler::copyToScratchMatrixStorage(char* metadata, size_t size) {
+MatrixStoragePtr RegionHandler::copyToScratchMatrixStorage(GetMatrixStorageMessage* metadata, size_t size) {
   if (type() == RegionDataTypes::REGIONDATARAW) {
     return _regionData->storage();
   } else if (type() == RegionDataTypes::REGIONDATAREMOTE) {
@@ -215,7 +215,7 @@ void RegionHandler::processGetHostListMsg(const BaseMessageHeader* base, size_t 
 }
 
 void RegionHandler::processGetMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  _regionData->processGetHostListMsg(base, baseLen, caller);
+  _regionData->processGetMatrixStorageMsg(base, baseLen, caller);
 }
 
 void RegionHandler::processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {

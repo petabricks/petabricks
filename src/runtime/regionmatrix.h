@@ -15,6 +15,7 @@
 #include "remotehost.h"
 #include "regiondata0D.h"
 #include "regiondatai.h"
+#include "regiondataraw.h"
 #include "regionhandler.h"
 
 namespace petabricks {
@@ -579,6 +580,27 @@ namespace petabricks {
       return info;
     }
 
+    // Compute metadata for Return StartOffset.
+    void computeMatrixRegionMetaData(IndexT* startOffset, IndexT multipliers[D])const {
+      RegionDataIPtr regionData = _regionHandler->getRegionData();
+      IndexT mult = 1;
+      int last_slice_index = 0;
+      for(int i = 0; i < regionData->dimensions(); i++){
+        if ((last_slice_index < _sliceInfo->numSliceDimensions()) &&
+            (i == _sliceInfo->sliceDimensions(last_slice_index))) {
+          *startOffset += mult * _sliceInfo->slicePositions(last_slice_index);
+          last_slice_index++;
+        } else {
+          multipliers[i - last_slice_index] = mult;
+
+          if (_splitOffset) {
+            *startOffset += mult * _splitOffset[i - last_slice_index];
+          }
+        }
+        mult *= regionData->size()[i];
+      }
+    }
+
     bool isLocal() const {
       return (_regionHandler->type() == RegionDataTypes::REGIONDATARAW);
     }
@@ -594,24 +616,7 @@ namespace petabricks {
 
       IndexT startOffset = 0;
       IndexT multipliers[D];
-
-      IndexT mult = 1;
-      int last_slice_index = 0;
-      for(int i = 0; i < regionData->dimensions(); i++){
-        if ((last_slice_index < _sliceInfo->numSliceDimensions()) &&
-            (i == _sliceInfo->sliceDimensions(last_slice_index))) {
-          startOffset += mult * _sliceInfo->slicePositions(last_slice_index);
-          last_slice_index++;
-        } else {
-          multipliers[i - last_slice_index] = mult;
-
-          if (_splitOffset) {
-            startOffset += mult * _splitOffset[i - last_slice_index];
-          }
-        }
-
-        mult *= regionData->size()[i];
-      }
+      this->computeMatrixRegionMetaData(&startOffset, multipliers);
 
       MatrixRegion<D, ElementT> matrixRegion =
         MatrixRegion<D, ElementT>(regionData->storage(), regionData->storage()->data() + startOffset, _size, multipliers);
@@ -623,26 +628,28 @@ namespace petabricks {
       return matrixRegion;
     }
 
-    ///
-    /// Copy the entire matrix and store it locally
+    //
+    // Copy the entire matrix and store it locally. Writes to this copy
+    // might not be seen by the original.
     RegionMatrix localCopy() const {
-      // TODO(yod): optimize this
-      RegionMatrix copy = RegionMatrix(this->size());
+      if (isRegionDataRaw()) {
+        // already local
+        return *this;
+      }
+      size_t size = sizeof(int) + ((2 * D + 1) * sizeof(IndexT));
+      char buf[size];
+      GetMatrixStorageMessage* metadata = (GetMatrixStorageMessage*) buf;
+      metadata->dimensions = D;
+      metadata->startOffset = 0;
 
-      char buf[0];
-      MatrixStoragePtr storage = _regionHandler->copyToScratchMatrixStorage(buf, 0);
+      this->computeMatrixRegionMetaData(&metadata->startOffset, metadata->multipliers);
 
+      memcpy(metadata->size(), _size, sizeof(IndexT) * D);
 
-      /*
-      copy.allocData();
-
-      IndexT coord[D];
-      memset(coord, 0, sizeof coord);
-
-      do {
-        copy.writeCell(coord, this->readCell(coord));
-      } while (this->incCoord(coord) >= 0);
-      */
+      MatrixStoragePtr storage = _regionHandler->copyToScratchMatrixStorage(metadata, size);
+      RegionDataIPtr regionData = new RegionDataRaw(D, this->size());
+      regionData->setStorage(storage);
+      RegionMatrix copy = RegionMatrix(this->size(), new RegionHandler(regionData));
       return copy;
     }
 
@@ -656,6 +663,7 @@ namespace petabricks {
 
     void fromScratchRegion(const MatrixRegion<D, ElementT>& scratch) {
       if (isRegionDataRaw()) {
+        // TODO(yod): check for the same size
         _regionHandler->getRegionData()->setStorage(scratch.storage());
 
       } else {

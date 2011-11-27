@@ -175,7 +175,7 @@ void RegionDataRemote::writeNoCache(const IndexT* coord, ElementT value) {
   msg->value = value;
   memcpy(msg->coord, coord, coord_sz);
 
-  JTRACE("write")(_D)(sizeof(IndexT))(coord_sz)(msg_len);
+  //JTRACE("write")(_D)(sizeof(IndexT))(coord_sz)(msg_len);
 
   void* data;
   size_t len;
@@ -202,13 +202,13 @@ void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
   free(reply);
 }
 
-MatrixStoragePtr RegionDataRemote::copyToScratchMatrixStorage(char* metadata, size_t size) const {
+MatrixStoragePtr RegionDataRemote::copyToScratchMatrixStorage(GetMatrixStorageMessage* metadata, size_t size) const {
   void* data;
   size_t len;
   this->fetchData(metadata, MessageTypes::SCRATCHSTORAGE, size, &data, &len);
   GetMatrixStorageReplyMessage* reply = (GetMatrixStorageReplyMessage*)data;
   MatrixStoragePtr storage = new MatrixStorage(reply->count);
-  memcpy(storage->data(), reply->storage, len);
+  memcpy(storage->data(), reply->storage, sizeof(ElementT) * reply->count);
   free(reply);
   return storage;
 }

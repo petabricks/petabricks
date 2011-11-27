@@ -141,7 +141,10 @@ namespace petabricks {
     } PACKED;
 
     struct GetMatrixStorageMessage {
-      char metadata[];
+      int dimensions;
+      IndexT startOffset;
+      IndexT multipliers[];
+      IndexT* size() const { return (IndexT*)((char*)this + sizeof(int) + ((this->dimensions + 1) * sizeof(IndexT))); }
     } PACKED;
 
     struct AllocDataMessage {
@@ -183,7 +186,7 @@ namespace petabricks {
 
     struct GetMatrixStorageReplyMessage {
       size_t count;
-      char storage[];
+      ElementT storage[];
     } PACKED;
 
     struct AllocDataReplyMessage {
