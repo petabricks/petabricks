@@ -370,14 +370,15 @@ tunable blockSize
     }
 }
 
-// tunable blocked version of QRR
+// tunable recursive version of QRR
+// recursively divide A into two parts, and do QR on each part sequentially
 transform QRRRecursive
 to A[n,m], TAU[n]
 tunable blockSize
 {
     to (A a, TAU tau) from ()
     {
-        //base case
+        // base case
         if (blockSize < 1 || blockSize >= MIN(m,n)) {
             QRRBlocked(a, tau);
             return;
@@ -395,8 +396,8 @@ tunable blockSize
         tau1 = tau.region(0, b);
         tau2 = tau.region(b, n);
 
-        // compute QR of left block
-        QRRBlocked(a1, tau1);
+        // compute QR of left half
+        QRRRecursive(a1, tau1);
 
         // compute triangular factor for block reflector
         QRRTriFact(t, a1, tau1);
@@ -405,7 +406,7 @@ tunable blockSize
         QRRMult(a2, 0, a1, t.transposed());
 
         // factor trailing matrix
-        QRRBlocked(a22, tau2);
+        QRRRecursive(a22, tau2);
     }
 }
 
