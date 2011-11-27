@@ -77,7 +77,7 @@ void petabricks::HeuristicManager::loadFromFile(const std::string fileName) {
 	doc.LoadFile();
   
   TiXmlHandle docHandle( &doc );
-	TiXmlElement* heuristic = docHandle.FirstChildElement("heuristics").FirstChildElement("heuristic").ToElement();
+	TiXmlElement* heuristic = docHandle.FirstChildElement("set").FirstChildElement("heuristic").ToElement();
 	while (heuristic) {
     std::string name = heuristic->Attribute("name");
     std::string formula = heuristic->Attribute("formula");
