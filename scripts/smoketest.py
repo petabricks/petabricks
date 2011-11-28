@@ -204,6 +204,7 @@ from optparse import OptionParser
 parser = OptionParser(usage="usage: smoketest.py [options]")
 parser.add_option("--learning", action="store_true", dest="learning", default=False, help="enable heuristics learning")
 parser.add_option("--heuristics",            type="string", help="name of the file containing the set of heuristics to use. Automatically enables --learning", default=None)
+parser.add_option("--testlist",              type="string", help="name of the file containing the list of tests to be run", default="./scripts/smoketest.tests")
 
 (options, args) = parser.parse_args()
 
@@ -218,7 +219,7 @@ if options.learning:
     print "Using only heuristics in the database"
   
 t1=time.time()
-results,b=pbutil.loadAndCompileBenchmarks("./scripts/smoketest.tests", args, testBenchmark, postfn=checkBenchmark, learning=options.learning, heuristicSetFileName=options.heuristics, excludeBenchmarks=check_exclude)
+results,b=pbutil.loadAndCompileBenchmarks(options.testlist, args, testBenchmark, postfn=checkBenchmark, learning=options.learning, heuristicSetFileName=options.heuristics, excludeBenchmarks=check_exclude)
 t2=time.time()
 
 
