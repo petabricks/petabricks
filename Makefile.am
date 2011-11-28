@@ -7,3 +7,6 @@ check:
 examples: all
 	+(cd examples && make)
 
+clean_examples:
+	+(cd examples && make clean)
+
