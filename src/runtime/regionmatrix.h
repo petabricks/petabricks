@@ -663,8 +663,7 @@ namespace petabricks {
 
     void fromScratchRegion(const MatrixRegion<D, ElementT>& scratch) {
       if (isRegionDataRaw()) {
-        // TODO(yod): check for the same size
-        _regionHandler->getRegionData()->setStorage(scratch.storage());
+        // Do nothing
 
       } else {
         size_t size = sizeof(int) + ((2 * D + 1) * sizeof(IndexT)) + (scratch.storage()->count() * sizeof(ElementT));
