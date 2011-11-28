@@ -267,15 +267,14 @@ to C[n,m]
     }
 }
 
-// tunable blocked version of QRR
-transform QRRBlocked
+transform QRRBlockedRight
 to A[n,m], TAU[n]
-tunable blockSize
+tunable sizespecific blockSize
 {
     // right-looking
     to (A a, TAU tau) from ()
     {
-        //base case
+        // base case
         if (blockSize < 1 || blockSize >= MIN(m,n)) {
             QRRBase(a, tau);
             return;
@@ -304,19 +303,33 @@ tunable blockSize
         // factor trailing matrix
         QRRBlocked(a22, tau2);
     }
+}
 
+// Left-looking, blocked QR
+//   Computes the QR of the left-most P columns and applies the resulting
+//   Householder reflector to the trailing submatrix.
+//   If P < MIN(M,N), recurse.
+transform QRRBlockedLeft
+from P
+to A[n,m], TAU[n]
+tunable sizespecific blockSize
+{
     // left-looking
-    to (A a, TAU tau) from ()
+    to (A a, TAU tau) from (P _p)
     {
-        //base case
-        if (blockSize < 1 || blockSize >= MIN(m,n)) {
+        IndexT p, i0, i1, j0, j1;
+        MatrixRegion1D tau1;
+        MatrixRegion2D a1, a2, t, t1;
+
+        // make sure p is valid
+        p = MAX(_p, 1);
+        p = MIN(p, MIN(m,n));
+
+        // base case
+        if (blockSize < 1 || blockSize >= p) {
             QRRBase(a, tau);
             return;
         }
-
-        IndexT p = MIN(m,n), i0, i1, j0, j1;
-        MatrixRegion1D tau1;
-        MatrixRegion2D a1, a2, t, t1;
 
         // space for all of the triangular factors (stacked vertically)
         t = MatrixRegion2D::allocate(blockSize, p);
@@ -328,8 +341,8 @@ tunable blockSize
             // lazy update of current column block
             for (j0 = 0; j0 < i0; j0 += blockSize) {
                 j1 = j0 + blockSize;
-                a1  = a.region(j0, j0, j1, m);
-                a2  = a.region(i0, j0, i1, m);
+                a1 = a.region(j0, j0, j1, m);
+                a2 = a.region(i0, j0, i1, m);
                 t1 = t.region(0, j0, j1-j0, j1);
 
                 // apply transposed block reflector to current column block
@@ -342,25 +355,57 @@ tunable blockSize
             QRRBase(a1, tau1);
 
             // compute triangular factor for block reflector
-            if (i1 < p || n > m) {
+            if (i1 < p || p < n) {
                 t1 = t.region(0, i0, i1-i0, i1);
                 QRRTriFact(t1, a1, tau1);
             }
         }
 
-        if (n > m) {
-            // apply transposed block reflector to trailing matrix
-            for (j0 = 0; j0 < m; j0 += blockSize) {
-                j1 = MIN(j0 + blockSize, m);
+        // apply transposed block reflector to trailing matrix
+        if (p < n) {
+            for (j0 = 0; j0 < p; j0 += blockSize) {
+                j1 = MIN(j0 + blockSize, p);
                 a1  = a.region(j0, j0, j1, m);
-                a2  = a.region(m , j0, n , m);
+                a2  = a.region(p , j0, n , m);
                 t1 = t.region(0, j0, j1-j0, j1);
                 QRRMult(a2, 0, a1, t1.transposed());
             }
+        }
 
-            // set trailing tau array
+        // if more work to do, recurse
+        if (p < MIN(m,n)) {
+            a1 = a.region(p, p, n, m);
+            tau1 = tau.region(p, n);
+            QRRBlocked(a1, tau1);
+        }
+
+        // set trailing tau array
+        if (m < n) {
             Init1D(tau.region(m, n), 0);
         }
+    }
+}
+
+// tunable blocked version of QRR
+transform QRRBlocked
+to A[n,m], TAU[n]
+{
+    // right-looking recursive
+    to (A a, TAU tau) from ()
+    {
+        QRRBlockedRight(a, tau);
+    }
+
+    // left-looking non-recursive
+    to (A a, TAU tau) from ()
+    {
+        QRRBlockedLeft(a, tau, MIN(m,n));
+    }
+
+    // left-looking recursive
+    to (A a, TAU tau) from ()
+    {
+        QRRBlockedLeft(a, tau, MIN(m,n) / 2);
     }
 
     // call LAPACK
