@@ -1,9 +1,10 @@
-
 #include "Bitonicsort.pbcc"
 #include "Insertionsort.pbcc"
 #include "Mergesort2.pbcc"
 #include "Quicksort2.pbcc"
 #include "Selectionsort.pbcc"
+
+#define SORT Sort
 
 function Sort
 from in[n]
