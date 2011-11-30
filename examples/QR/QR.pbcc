@@ -159,7 +159,125 @@ to A[n,m], TAU[n]
         }
     }
 
-    // TODO: write serial versions
+    // right-looking serial
+    to (A a, TAU tau) from ()
+    {
+        IndexT i, j, k;
+        ElementT alpha, beta, xnorm, temp;
+        MatrixRegion1D work = MatrixRegion1D::allocate(n);
+        for (i = 0; i < n; ++i) {
+
+            // if last row, we're done
+            if (i >= m-1) {
+                tau.cell(i) = 0;
+                continue;
+            }
+
+            xnorm = 0;
+            for (j = i+1; j < m; ++j) {
+                temp = a.cell(i, j);
+                xnorm += temp * temp;
+            }
+            xnorm = sqrt(xnorm);
+
+            if (xnorm == 0) {
+                tau.cell(i) = 0;
+                continue;
+            }
+
+            // compute reflector
+            alpha = a.cell(i, i);
+            beta = sqrt(alpha * alpha + xnorm * xnorm);
+            beta = alpha > 0 ? -beta : beta;
+            tau.cell(i) = (beta - alpha) / beta;
+            temp = 1.0 / (alpha - beta);
+            for (j = i+1; j < m; ++j) {
+                a.cell(i, j) *= temp;
+            }
+            a.cell(i, i) = beta;
+
+            // if last column, we're done
+            if (i >= n-1) {
+                break;
+            }
+
+            // apply reflector to trailing matrix
+            // a2 -= tau * v * v^T * a2, where:
+            //   a2 = a.region(i+1, i, n  , m)
+            //   v  = a.region(i  , i, i+1, m)
+
+            // 1) work = v^T * a2
+            for (j = i+1; j < n; ++j) {
+                work.cell(j) = a.cell(j, i);
+            }
+            for (k = i+1; k < m; ++k) {
+                for (j = i+1; j < n; ++j) {
+                    work.cell(j) += a.cell(i, k) * a.cell(j, k);
+                }
+            }
+
+            // 2) a2 -= tau * v * work
+            for (j = i+1; j < n; ++j) {
+                a.cell(j, i) -= tau.cell(i) * work.cell(j);
+            }
+            for (k = i+1; k < m; ++k) {
+                for (j = i+1; j < n; ++j) {
+                    a.cell(j, k) -= tau.cell(i) * a.cell(i, k) * work.cell(j);
+                }
+            }
+        }
+    }
+
+    // left-looking serial
+    to (A a, TAU tau) from ()
+    {
+        IndexT i, j, k;
+        ElementT alpha, beta, xnorm, temp;
+        for (i = 0; i < n; ++i) {
+
+            // lazy update of this column
+            for (j = 0; j < MIN(i,m); ++j) {
+                temp = a.cell(i, j);
+                for (k = j+1; k < m; ++k) {
+                    temp += a.cell(j, k) * a.cell(i, k);
+                }
+                temp *= -tau.cell(j);
+                a.cell(i, j) += temp;
+                for (k = j+1; k < m; ++k) {
+                    a.cell(i, k) += temp * a.cell(j, k);
+                }
+            }
+
+            // if last row, we're done
+            if (i >= m-1) {
+                tau.cell(i) = 0;
+                continue;
+            }
+
+            xnorm = 0;
+            for (j = i+1; j < m; ++j) {
+                temp = a.cell(i, j);
+                xnorm += temp * temp;
+            }
+            xnorm = sqrt(xnorm);
+
+            if (xnorm == 0) {
+                tau.cell(i) = 0;
+                continue;
+            }
+
+            // compute reflector
+            alpha = a.cell(i, i);
+            beta = sqrt(alpha * alpha + xnorm * xnorm);
+            beta = alpha > 0 ? -beta : beta;
+            tau.cell(i) = (beta - alpha) / beta;
+            temp = 1.0 / (alpha - beta);
+            for (j = i+1; j < m; ++j) {
+                a.cell(i, j) *= temp;
+            }
+            a.cell(i, i) = beta;
+        }
+    }
 
     // call LAPACK
     to (A a, TAU tau) from ()
