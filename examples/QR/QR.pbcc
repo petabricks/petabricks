@@ -118,23 +118,18 @@ to A[n,m], TAU[n]
     // left-looking
     to (A a, TAU tau) from ()
     {
-        IndexT i, p, minmn = MIN(m,n);
+        IndexT i;
         ElementT alpha, beta, xnorm;
         MatrixRegion1D tau1;
-        MatrixRegion2D a1, a2, t1, t;
-        t = MatrixRegion2D::allocate(minmn, minmn);
+        MatrixRegion2D a1, a2;
         for (i = 0; i < n; ++i) {
 
             // lazy update of this column
             if (i > 0) {
-                p = MIN(i,m);
-                a1 = a.region(0, 0, p, m);
+                a1 = a.region(0, 0, MIN(i,m), m);
                 a2 = a.region(i, 0, i+1, m);
-                t1 = t.region(0, 0, p, p);
-                tau1 = tau.region(0, p);
-
-                QRRTriFact(t1, a1, tau1);
-                QRRMult(a2, 0, a1, t1.transposed());
+                tau1 = tau.region(0, MIN(i,m));
+                QRRMult(a2, a1, tau1, 1);
             }
 
             // if last row, we're done
@@ -203,8 +198,8 @@ to A[n,m], TAU[n]
 
             // apply reflector to trailing matrix
             // a2 -= tau * v * v^T * a2, where:
-            //   a2 = a.region(i+1, i, n  , m)
-            //   v  = a.region(i  , i, i+1, m)
+            //   a2 = a(i+1, i, n  , m)
+            //   v  = a(i  , i, i+1, m)
 
             // 1) work = v^T * a2
             for (j = i+1; j < n; ++j) {
@@ -347,10 +342,11 @@ to T[k,k], V[k,m]
     }
 }
 
-// in-place left multiply by block reflector: C = (I - V*T*V') * C.
+// in-place left multiply by block reflector: C = (I - V*T*V') * C,
+// where T is already computed
 // pass UPFLAG=1 if T is upper-triangular, 0 otherwise.
 // similar to DLARFB
-transform QRRMult
+transform QRRMultApply
 from UPFLAG, V[b,m], T[b,b]
 to C[n,m]
 {
@@ -385,6 +381,48 @@ to C[n,m]
     }
 }
 
+// in-place left multiply by block reflector: C = (I - V*T*V') * C,
+// where T is not yet computed
+// pass TRANSFLAG=1 if transposed reflector should be applied
+// similar to DORMQR, with SIDE = 'L'
+transform QRRMult
+from TAU[k], TRANSFLAG
+to C[n,m], V[k,m]
+tunable sizespecific blockSize
+{
+    to (C c, V v) from (TAU tau, TRANSFLAG transFlag)
+    {
+        IndexT j0, j1, b, b1;
+        b = blockSize;
+
+        // make sure b is within limits
+        if (b < 1)        b = 1;
+        if (b > MIN(m,n)) b = MIN(m,n);
+
+        ConstMatrixRegion1D tau1;
+        MatrixRegion2D t, c1, v1, t1;
+        t = MatrixRegion2D::allocate(b, b);
+        for (j0 = 0; j0 < k; j0 += b) {
+
+            j1 = MIN(j0 + b, k);
+            b1 = j1 - j0;
+
+            tau1 = tau.region(j0, j1);
+            v1 = v.region(j0, j0, j1, m );
+            c1 = c.region(0 , j0, n , m );
+            t1 = t.region(0 , 0 , b1, b1);
+
+            QRRTriFact(t1, v1, tau1);
+            if (transFlag) {
+                QRRMultApply(c1, 0, v1, t1.transposed());
+            } else {
+                QRRMultApply(c1, 1, v1, t1);
+            }
+        }
+    }
+}
+
+// Right-looking, blocked QR
 transform QRRBlockedRight
 to A[n,m], TAU[n]
 tunable sizespecific blockSize
@@ -412,11 +450,8 @@ tunable sizespecific blockSize
         // compute QR of left block
         QRRBase(a1, tau1);
 
-        // compute triangular factor for block reflector
-        QRRTriFact(t, a1, tau1);
-
         // apply transposed block reflector to trailing matrix
-        QRRMult(a2, 0, a1, t.transposed());
+        QRRMult(a2, a1, tau1, 1);
 
         // factor trailing matrix
         QRRBlocked(a22, tau2);
@@ -464,7 +499,7 @@ tunable sizespecific blockSize
                 t1 = t.region(0, j0, j1-j0, j1);
 
                 // apply transposed block reflector to current column block
-                QRRMult(a2, 0, a1, t1.transposed());
+                QRRMultApply(a2, 0, a1, t1.transposed());
             }
 
             // compute QR of current column block
@@ -479,14 +514,14 @@ tunable sizespecific blockSize
             }
         }
 
-        // apply transposed block reflector to trailing matrix
+        // apply transposed block reflectors to trailing matrix
         if (p < n) {
             for (j0 = 0; j0 < p; j0 += blockSize) {
                 j1 = MIN(j0 + blockSize, p);
                 a1  = a.region(j0, j0, j1, m);
                 a2  = a.region(p , j0, n , m);
                 t1 = t.region(0, j0, j1-j0, j1);
-                QRRMult(a2, 0, a1, t1.transposed());
+                QRRMultApply(a2, 0, a1, t1.transposed());
             }
         }
 
@@ -534,7 +569,7 @@ to A[n,m], TAU[n]
 }
 
 // tunable recursive version of QRR
-// recursively divide A into two parts, and do QR on each part sequentially
+// recursively divide A into halves, and do QR on each part sequentially
 transform QRRRecursive
 to A[n,m], TAU[n]
 tunable blockSize
@@ -562,11 +597,8 @@ tunable blockSize
         // compute QR of left half
         QRRRecursive(a1, tau1);
 
-        // compute triangular factor for block reflector
-        QRRTriFact(t, a1, tau1);
-
         // apply transposed block reflector to trailing matrix
-        QRRMult(a2, 0, a1, t.transposed());
+        QRRMult(a2, a1, tau1, 1);
 
         // factor trailing matrix
         QRRRecursive(a22, tau2);
