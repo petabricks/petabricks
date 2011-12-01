@@ -14,8 +14,7 @@ convolution2/ConvFFTW		Rand1D Rand1D
 convolution2/ConvLinAlg		Rand1D Rand1D
 convolution2/ConvLoops     Rand1D Rand1D
 convolution2/Convolution   Rand1D Rand1D
-#convolution/convolutionSeparable Rand2Da Rand1D17
-#convolution/convolutionSeparable2 Rand2D32 Rand1D17
+convolution/convolutionSeparable Rand2Da Kernel5
 convolution/ConvolutionFFT Rand1D Rand1D
 convolution/Convolution    Rand1D Rand1D
 kclustering/kmeans         KmeansRandInput /dev/null

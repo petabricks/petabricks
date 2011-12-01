@@ -1,12 +1,7 @@
-// TODO(jrk): streamline constants and magic numbers
-
 #ifndef KERNEL_RADIUS
-#define KERNEL_RADIUS 3
-#define KERNEL_LENGTH 7
+#define KERNEL_RADIUS 8
+#define KERNEL_LENGTH ((KERNEL_RADIUS)*2+1)
 #endif
-
-
-//#define KERNEL_LENGTH ((KERNEL_RADIUS)*2+1)
 
 transform convolutionRows
 from Input[w,h], Kernel[KERNEL_LENGTH]
