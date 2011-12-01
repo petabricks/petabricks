@@ -53,6 +53,9 @@ public:
   void genLoopBegin(CodeGenerator& o);
   void genLoopEnd(CodeGenerator& o);
 
+  void genScratchRegionLoopBegin(CodeGenerator& o);
+  void genScratchRegionLoopEnd(CodeGenerator& o);
+
   DependencyDirection& order() { return _order;}
   CoordinateFormula&  begin() { return _begin;}
   CoordinateFormula&  end  () { return _end;}
@@ -72,7 +75,7 @@ public:
   std::vector<std::string> packedargs() const;
   std::vector<std::string> packedargnames() const;
   void unpackargs(CodeGenerator& o) const;
-  
+
 
   void genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, RuleFlavor rf, unsigned int blockNumber) const;
 
@@ -85,6 +88,7 @@ private:
   CoordinateFormula   _begin;
   CoordinateFormula   _end;
   CoordinateFormula   _step;
+  CoordinateFormula   _size;
 };
 
 }

@@ -296,10 +296,10 @@ void petabricks::UserRule::print(std::ostream& os) const {
   }
   if(!_to.empty()){
     os << "\nto(";    printStlList(os,_to.begin(),_to.end(), ", "); os << ")";
-  } 
+  }
 
   for(MatrixToRegionMap::const_iterator i=_fromBoundingBox.begin(); i!=_fromBoundingBox.end(); ++i) {
-    os << "\nfromBoundingBox " << i->first 
+    os << "\nfromBoundingBox " << i->first
        << " " << i->second;
   }
 
@@ -441,9 +441,9 @@ void petabricks::UserRule::initialize(Transform& trans) {
   for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
     (*i)->collectDependencies(trans, *this, _provides);
   }
-  
+
   computeDataDependencyVector();
-  
+
   //expand through() clause
   for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
     _bodysrc=(*i)->genericTypeName()+" "+(*i)->name()+" = "+(*i)->genericAllocateStr()+";\n"+_bodysrc;
@@ -460,15 +460,15 @@ petabricks::CoordinateFormula petabricks::UserRule::computeDDVAsDifference(const
                                                                            const RegionPtr outputRegion
                                                                           ) const {
   JASSERT(inputRegion->dimensions()==outputRegion->dimensions());
-  
+
   CoordinateFormula& inputMinCoord = inputRegion->minCoord();
   CoordinateFormula& outputMinCoord = outputRegion->minCoord();
   size_t dimensions=inputRegion->dimensions();
-  
+
   CoordinateFormulaPtr newDataDependencyVector = new CoordinateFormula();
-  
+
   for(size_t i=0; i<dimensions; ++i) {
-    FormulaPtr difference = new FormulaSubtract(inputMinCoord[i], 
+    FormulaPtr difference = new FormulaSubtract(inputMinCoord[i],
                                              outputMinCoord[i]);
     difference = MaximaWrapper::instance().normalize(difference);
     newDataDependencyVector->push_back(difference);
@@ -484,32 +484,32 @@ void petabricks::UserRule::computeDDVForGivenOutput(const RegionPtr outputRegion
                                                    ) {
   for(RegionList::const_iterator i=_from.begin(), e=_from.end(); i!=e; ++i ) {
     const RegionPtr inputRegion = *i;
-    
+
     if(outputRegion->matrix()->name() != inputRegion->matrix()->name()) {
       continue;
     }
-    
+
     CoordinateFormula ddv = computeDDVAsDifference(inputRegion,
                                                     outputRegion);
-    
+
     MatrixDefPtr inputMatrixDef=inputRegion->matrix();
     DataDependencyVectorMap::value_type newElement(inputMatrixDef,ddv);
     _dataDependencyVectorMap.insert(newElement);
   }
-  
+
 }
 
 /**
- * Computes the distance between input and output for each dimension 
+ * Computes the distance between input and output for each dimension
  * of each region that is used both as input and output
  */
 void petabricks::UserRule::computeDataDependencyVector() {
   //Loop on outputs (_to) first, because they usually are less then inputs
   for(RegionList::const_iterator i=_to.begin(), e=_to.end(); i != e; ++i) {
     const RegionPtr outputRegion = *i;
-    
+
     computeDDVForGivenOutput(outputRegion);
-    
+
   }
 }
 
@@ -837,10 +837,10 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       std::string matrix_name = (*i)->matrix( )->name( );
       if((*i)->isBuffer()) {
 
-        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
+        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( )
                 << " = " << matrix_name << ".asGpuOutputBuffer(_iter_begin, _iter_end);\n";
-        o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) 
-                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, " 
+        o.os( ) << "cl_mem devicebuf_" << (*i)->name( )
+                << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, "
                 << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create output memory object for" << (*i)->name( ) << ".\" );\n";
         //o.os( ) << "std::cerr << \"" << (*i)->matrix( )->name( ) << "\" << std::endl;\n";
@@ -863,14 +863,14 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.os( ) << "MatrixIO().write(" << (*i)->matrix( )->name( ) << ");\n";
 #endif
 
-        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( ) 
+        o.os( ) << "MatrixRegion<" << (*i)->dimensions() << ", const " STRINGIFY(MATRIX_ELEMENT_T) "> normalized_" << (*i)->name( )
                 << " = " << matrix_name << ".asGpuInputBuffer();\n";
 
         o.os( ) << "cl_mem devicebuf_" << (*i)->name( ) << ";\n";
 #ifndef NVIDIA
         o.write("std::cout << \"use host_ptr\" << std::endl;");
         o.beginIf(matrix_name+".isEntireBuffer()");
-        o.os( ) << "devicebuf_" << (*i)->name( ) 
+        o.os( ) << "devicebuf_" << (*i)->name( )
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_USE_HOST_PTR, "
                 << "normalized_" << (*i)->name( ) << ".bytes( ),"
                 << "(void*) normalized_" << (*i)->name( ) << ".base( ), &err );\n";
@@ -878,7 +878,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.elseIf();
 #endif
         o.write("std::cout << \"not use host_ptr\" << std::endl;");
-        o.os( ) << "devicebuf_" << (*i)->name( ) 
+        o.os( ) << "devicebuf_" << (*i)->name( )
                 << " = clCreateBuffer( OpenCLUtil::getContext( ), CL_MEM_READ_WRITE, "
                 << "normalized_" << (*i)->name( ) << ".bytes( ), NULL, &err );\n";
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create input memory object for" << (*i)->name( ) << ".\" );\n";
@@ -981,9 +981,9 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i )
     {
       if((*i)->isBuffer()) {
-        o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_" 
-                << (*i)->name( ) << ", CL_TRUE, 0, " 
-                << "normalized_" << (*i)->name( ) <<  ".bytes(), " 
+        o.os( ) << "clEnqueueReadBuffer( OpenCLUtil::getQueue( 0 ), devicebuf_"
+                << (*i)->name( ) << ", CL_TRUE, 0, "
+                << "normalized_" << (*i)->name( ) <<  ".bytes(), "
                 << "normalized_" << (*i)->name( ) << ".base(), "
                 << "0, NULL, NULL );\n";
         o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to read output buffer.\" );\n";
@@ -1012,7 +1012,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         //o.os( ) << "std::cerr << \"BEFORE copy\" << std::endl;\n";
         //o.os( ) << "MatrixIO(\"/dev/stderr\",\"w\").write(" << (*i)->matrix( )->name( ) << ");\n";
 
-        o.os( ) << "normalized_" << (*i)->name( ) 
+        o.os( ) << "normalized_" << (*i)->name( )
                 << ".copyTo(" << (*i)->matrix( )->name( ) << ", _iter_begin, _iter_end);\n";
 
 #ifdef DEBUG
@@ -1031,7 +1031,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
   if(true) {
 #endif
 
-    if(RuleFlavor::SEQUENTIAL != flavor 
+    if(RuleFlavor::SEQUENTIAL != flavor
 #ifdef HAVE_OPENCL
         && RuleFlavor::SEQUENTIAL_OPENCL != flavor
 #endif
@@ -1070,9 +1070,35 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       o.elseIf();
     }
 
+#ifdef DISTRIBUTED_SCRATCH_REGION
+    if (flavor == RuleFlavor::DISTRIBUTED) {
+      o.comment("Copy to scratch region");
+
+      for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i) {
+        o.comment((*i)->matrix()->typeName(RuleFlavor(RuleFlavor::WORKSTEALING)) + " " + (*i)->matrix()->name() + ".region(" );
+      }
+
+      for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i) {
+
+      }
+
+      iterdef.genLoopBegin(o);
+      // iterdef.genScratchRegionLoopBegin(o);
+    } else {
+      iterdef.genLoopBegin(o);
+    }
+#else
     iterdef.genLoopBegin(o);
+#endif
+
     generateTrampCellCodeSimple( trans, o, flavor );
     iterdef.genLoopEnd(o);
+
+#ifdef DISTRIBUTED_SCRATCH_REGION
+    if (flavor == RuleFlavor::DISTRIBUTED) {
+      o.comment("Copy from scratch region");
+    }
+#endif
 
 #ifdef HAVE_OPENCL
     for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i) {
@@ -1080,7 +1106,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu();");
     }
 #endif
-    
+
     if(RuleFlavor::SEQUENTIAL != flavor){
       o.write("_spawner->dependsOn(_last);");
       o.write("return _spawner;");
@@ -1118,7 +1144,7 @@ void petabricks::UserRule::generateMultiOpenCLTrampCodes(Transform& trans, CodeG
 }
 
 void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerator& o){
-  SRCPOSSCOPE();  
+  SRCPOSSCOPE();
   IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();
   packedargs.push_back("int nodeID");
@@ -1138,7 +1164,7 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
                            + ">";
 
   o.beginFunc("petabricks::DynamicTaskPtr", codename+"_createtasks", packedargs);
-  
+
   std::string outputDimensionCheck;
   for( RegionList::const_iterator i = _to.begin(); i != _to.end(); ++i) {
     if(i != _to.begin()) {
@@ -1447,13 +1473,13 @@ void petabricks::UserRule::generateOpenCLCopyOutCode(std::string& codename, Code
   o.write("IndexT sizes["+dim+"];");
   o.write("memcpy(sizes, "+storage+"->sizes(), sizeof(sizes));");
   o.write("MatrixStoragePtr outstorage = "+storage+"->getGpuOutputStoragePtr(nodeID);");
-  o.write("MatrixRegion<"+dim+", "+STRINGIFY(MATRIX_ELEMENT_T)+"> normalized(outstorage, outstorage->data(), sizes);"); 
-  //o.write("outstorage->print();"); 
+  o.write("MatrixRegion<"+dim+", "+STRINGIFY(MATRIX_ELEMENT_T)+"> normalized(outstorage, outstorage->data(), sizes);");
+  //o.write("outstorage->print();");
   //o.write("std::cout << sizes[0] << \" \" << sizes[1] << std::endl;");/
-  o.write("normalized.copyTo("+name+", begins, ends);");  
+  o.write("normalized.copyTo("+name+", begins, ends);");
 #ifdef GPU_TRACE
-  //o.write("MatrixIO().write(normalized);");   
-  //o.write("MatrixIO().write("+name+");");   
+  //o.write("MatrixIO().write(normalized);");
+  //o.write("MatrixIO().write("+name+");");
 #endif
   o.write( "return NULL;" );
   o.endFunc();
@@ -1545,7 +1571,7 @@ void petabricks::UserRule::generateOpenCLKernel( Transform& trans, CLCodeGenerat
           for( int j = minCoordSize - 2; j >= 0; --j )
           {
             std::stringstream sizevar;
-            sizevar << "dim_" << (*i)->name( ) << "_d" << j; 
+            sizevar << "dim_" << (*i)->name( ) << "_d" << j;
             idx_formula = new FormulaAdd( (*i)->minCoord( ).at( j ),
                   new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
           }
@@ -1646,7 +1672,7 @@ void petabricks::UserRule::generateLocalBuffers(CLCodeGenerator& clo) {
   }
 
   clo.os() << "int _x_ = " << _getOffsetVarStr( _id, 0, NULL ) << ";\n";
-  if(iterdef.dimensions() == 2) 
+  if(iterdef.dimensions() == 2)
     clo.os() << "int _y_ = " << _getOffsetVarStr( _id, 1, NULL ) << ";\n";
 
   for( RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i )
@@ -1706,7 +1732,7 @@ void petabricks::UserRule::generateLocalBuffers(CLCodeGenerator& clo) {
           clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset]"
                                   << "[x_local + " << matrix << "0_minoffset + i] = "
                                   << "_region_" << (*i)->name()
-                                  << "[(_y_) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "[(_y_) * dim_" << (*i)->name() << "_d0 + "
                                   << "_x_ + i];\n";
           clo.os() << "}\n";
           clo.os() << "for(int i = " << matrix << "0_maxoffset; i > 0; i -= block_size) {\n";
@@ -1714,13 +1740,13 @@ void petabricks::UserRule::generateLocalBuffers(CLCodeGenerator& clo) {
           clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset]"
                                   << "[x_local + " << matrix << "0_minoffset + i] = "
                                   << "_region_" << (*i)->name()
-                                  << "[(_y_) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "[(_y_) * dim_" << (*i)->name() << "_d0 + "
                                   << "_x_ + i];\n";
           clo.os() << "}\n";
           clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset]"
                                   << "[x_local + " << matrix << "0_minoffset] = "
                                   << "_region_" << (*i)->name()
-                                  << "[(_y_) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "[(_y_) * dim_" << (*i)->name() << "_d0 + "
                                   << "_x_];\n";
 
           // Top region
@@ -1731,7 +1757,7 @@ void petabricks::UserRule::generateLocalBuffers(CLCodeGenerator& clo) {
           clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
                                   << "[x_local + " << matrix << "0_minoffset + i] = "
                                   << "_region_" << (*i)->name()
-                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + "
                                   << "_x_ + i];\n";
           clo.os() << "}\n";
           clo.os() << "for(int i = " << matrix << "0_maxoffset; i > 0; i -= block_size) {\n";
@@ -1739,13 +1765,13 @@ void petabricks::UserRule::generateLocalBuffers(CLCodeGenerator& clo) {
           clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
                                   << "[x_local + " << matrix << "0_minoffset + i] = "
                                   << "_region_" << (*i)->name()
-                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + "
                                   << "_x_ + i];\n";
           clo.os() << "}\n";
           clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
                                   << "[x_local + " << matrix << "0_minoffset] = "
                                   << "_region_" << (*i)->name()
-                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + "
                                   << "_x_];\n";
           clo.os() << "}\n";
           clo.os() << "}\n";
@@ -1758,7 +1784,7 @@ void petabricks::UserRule::generateLocalBuffers(CLCodeGenerator& clo) {
           clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
                                   << "[x_local + " << matrix << "0_minoffset + i] = "
                                   << "_region_" << (*i)->name()
-                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + "
                                   << "_x_ + i];\n";
           clo.os() << "}\n";
           clo.os() << "for(int i = " << matrix << "0_maxoffset; i > 0; i -= block_size) {\n";
@@ -1766,13 +1792,13 @@ void petabricks::UserRule::generateLocalBuffers(CLCodeGenerator& clo) {
           clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
                                   << "[x_local + " << matrix << "0_minoffset + i] = "
                                   << "_region_" << (*i)->name()
-                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + "
                                   << "_x_ + i];\n";
           clo.os() << "}\n";
           clo.os() << "    buff_" << matrix << "[y_local + " << matrix << "1_minoffset + j]"
                                   << "[x_local + " << matrix << "0_minoffset] = "
                                   << "_region_" << (*i)->name()
-                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + " 
+                                  << "[(_y_ + j) * dim_" << (*i)->name() << "_d0 + "
                                   << "_x_];\n";
           clo.os() << "}\n";
           clo.os() << "}\n";
@@ -1986,18 +2012,18 @@ size_t petabricks::UserRule::getDuplicateNumber() {
 }
 
 
-void petabricks::UserRule::removeDimensionFromRegionList(RegionList& list, 
-                                                     const MatrixDefPtr matrix, 
+void petabricks::UserRule::removeDimensionFromRegionList(RegionList& list,
+                                                     const MatrixDefPtr matrix,
                                                      const size_t dimension) {
   for(RegionList::iterator i=list.begin(), e=list.end(); i!=e; ++i) {
     RegionPtr region = *i;
-    
+
     const MatrixDefPtr& fromMatrix = region->matrix();
-    
+
     if(fromMatrix != matrix) {
       continue;
     }
-    
+
     region->removeDimension(dimension);
   }
 }
@@ -2011,16 +2037,16 @@ void petabricks::UserRule::removeDimensionFromMatrixDependencyMap(MatrixDependen
     //No dependencies to remove
     return;
   }
-  
+
   MatrixDependencyPtr dependency = dependencyIterator->second;
-  
+
   dependency->removeDimension(dimension);
 }
 
 
 void petabricks::UserRule::removeDimensionFromDefinitions(const size_t dimension) {
   FormulaPtr offsetVar = getOffsetVar(dimension);
-  
+
   for(FormulaList::iterator i=_definitions.begin(), e=_definitions.end();
       i != e;
       ++i) {
@@ -2030,7 +2056,7 @@ void petabricks::UserRule::removeDimensionFromDefinitions(const size_t dimension
       //It's not the variable we are looking for
       continue;
     }
-    
+
     //It's the variable we are looking for
     //Let's erase it!
     _definitions.erase(i);
@@ -2043,24 +2069,24 @@ void petabricks::UserRule::removeDimensionFromMatrix(const MatrixDefPtr matrix,
                                                       const size_t dimension) {
   removeDimensionFromRegionList(_to, matrix, dimension);
   removeDimensionFromRegionList(_from, matrix, dimension);
-  
+
   removeDimensionFromDefinitions(dimension);
 }
-  
+
 
 void petabricks::UserRule::trimDependency(DependencyDirection& dep,
                                           const ChoiceDepGraphNode& from,
                                           const ChoiceDepGraphNode& to)
 {
   if(dep.isMultioutput() && _to.size() <= 1) {
-    dep.removeMultioutput(); 
+    dep.removeMultioutput();
   }
 }
 
 void petabricks::DataDependencyVectorMap::print(std::ostream& o) const {
   o << "DataDependencyVectorMap: ";
-  for(DataDependencyVectorMap::const_iterator i=this->begin(), e=this->end(); 
-      i!=e; 
+  for(DataDependencyVectorMap::const_iterator i=this->begin(), e=this->end();
+      i!=e;
       ++i) {
     MatrixDefPtr matrixDef = i->first;
     const CoordinateFormula& dependencyVector = i->second;
@@ -2073,7 +2099,7 @@ namespace {
   void fixVersionedRegionsTypeInList(petabricks::RegionList list) {
     for(petabricks::RegionList::iterator i=list.begin(), e=list.end(); i!=e; ++i) {
       petabricks::RegionPtr region = *i;
-    
+
       region->fixTypeIfVersioned();
     }
   }
@@ -2086,11 +2112,11 @@ void petabricks::UserRule::fixVersionedRegionsType() {
 
 petabricks::RegionList petabricks::UserRule::getSelfDependentRegions() {
   RegionList list = RegionList();
-    
-  for(RegionList::iterator in=_from.begin(), in_end=_from.end(); 
+
+  for(RegionList::iterator in=_from.begin(), in_end=_from.end();
       in!=in_end;
       ++in) {
-    
+
     for (RegionList::iterator out=_to.begin(), out_end=_to.end();
          out != out_end;
          ++out)
@@ -2105,12 +2131,12 @@ petabricks::RegionList petabricks::UserRule::getSelfDependentRegions() {
 
 petabricks::RegionList petabricks::UserRule::getNonSelfDependentRegions() {
   RegionList list = RegionList();
-    
+
   //Add regions from _from, not in _to
-  for(RegionList::iterator in=_from.begin(), in_end=_from.end(); 
+  for(RegionList::iterator in=_from.begin(), in_end=_from.end();
       in!=in_end;
       ++in) {
-    
+
     for (RegionList::iterator out=_to.begin(), out_end=_to.end();
          out != out_end;
          ++out)
@@ -2120,12 +2146,12 @@ petabricks::RegionList petabricks::UserRule::getNonSelfDependentRegions() {
       }
     }
   }
-    
+
   //Add regions from _to, not in _from
-  for(RegionList::iterator out=_to.begin(), out_end=_to.end(); 
+  for(RegionList::iterator out=_to.begin(), out_end=_to.end();
       out!=out_end;
       ++out) {
-    
+
     for (RegionList::iterator in=_from.begin(), in_end=_from.end();
          in != in_end;
          ++in)
@@ -2135,6 +2161,6 @@ petabricks::RegionList petabricks::UserRule::getNonSelfDependentRegions() {
       }
     }
   }
-  
+
   return list;
 }

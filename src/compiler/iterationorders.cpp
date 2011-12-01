@@ -65,7 +65,7 @@ public:
   }
   unsigned int partNumber(int d) const { return _partNumber[d]; }
 
-  void print(std::ostream& o) const { 
+  void print(std::ostream& o) const {
                       SimpleRegion::print(o);
                       o << " PartNumber[";
                       for (std::vector<unsigned int>::const_iterator i=_partNumber.begin(),
@@ -90,7 +90,7 @@ struct SplitRegionCmp {
     for(size_t i=0; i<a.size(); ++i){
       if(a.partNumber(i) != b.partNumber(i)){
         if(_order.canIterateForward(i) || !_order.canIterateBackward(i)){
-          return a.partNumber(i) < b.partNumber(i); //dimension ordered forward 
+          return a.partNumber(i) < b.partNumber(i); //dimension ordered forward
         }else{
           return b.partNumber(i) < a.partNumber(i);//dimension ordered backward
         }
@@ -107,8 +107,9 @@ petabricks::IterationDefinition::IterationDefinition(RuleInterface& rule, const 
 {
   for(size_t i=0; i<_order.size(); ++i){
     _var.push_back(rule.getOffsetVar(i));
-    _begin.push_back(rule.getOffsetVar(i,"begin"));
-    _end.push_back(rule.getOffsetVar(i,  "end"));
+    _begin.push_back(rule.getOffsetVar(i, "begin"));
+    _end.push_back(rule.getOffsetVar(i, "end"));
+    _size.push_back(rule.getOffsetVar(i, "size"));
     _step.push_back(rule.getSizeOfRuleIn(i));
   }
   if(isSingleCall){
@@ -150,12 +151,50 @@ void petabricks::IterationDefinition::genLoopEnd(CodeGenerator& o){
   }
 }
 
+void petabricks::IterationDefinition::genScratchRegionLoopBegin(CodeGenerator& o){
+  if(isSingleCall()){
+    genLoopBegin(o);
+  }else{
+    o.comment("Iterate along all the directions");
+
+    // Compute size
+    for(size_t i=0; i<_size.size(); ++i){
+      o.write("int " + _size[i]->toString() + " = " + _end[i]->toString() +
+              " - " + _begin[i]->toString() + ";");
+    }
+
+    for(size_t i=0; i<_var.size(); ++i){
+      FormulaPtr b= new FormulaLiteral<int>(0);
+      FormulaPtr e=_size[i];
+      FormulaPtr s=_step[i];
+      FormulaPtr v=_var[i];
+      //TODO: expand to reorder dimensions
+      if(_order.canIterateForward(i) || !_order.canIterateBackward(i)){
+        JWARNING(_order.canIterateForward(i))(_order).Text("couldn't find valid iteration order, assuming forward");
+        o.beginFor(v->toString(), b, e, s);
+      } else {
+        o.beginReverseFor(v->toString(), b, e, s);
+      }
+    }
+  }
+}
+
+void petabricks::IterationDefinition::genScratchRegionLoopEnd(CodeGenerator& o){
+  if(isSingleCall()){
+    genLoopEnd(o);
+  }else{
+    for(size_t i=0; i<_var.size(); ++i){
+      o.endFor();
+    }
+  }
+}
+
 std::vector<std::string> petabricks::IterationDefinition::args() const {
   std::vector<std::string> rv;
   CoordinateFormula::const_iterator i;
-  for(i=_begin.begin(); i!=_begin.end(); ++i) 
+  for(i=_begin.begin(); i!=_begin.end(); ++i)
     rv.push_back("const IndexT "+(*i)->toString());
-  for(i=_end.begin(); i!=_end.end(); ++i) 
+  for(i=_end.begin(); i!=_end.end(); ++i)
     rv.push_back("const IndexT "+(*i)->toString());
   return rv;
 }
@@ -163,9 +202,9 @@ std::vector<std::string> petabricks::IterationDefinition::args() const {
 std::vector<std::string> petabricks::IterationDefinition::argnames() const {
   std::vector<std::string> rv;
   CoordinateFormula::const_iterator i;
-  for(i=_begin.begin(); i!=_begin.end(); ++i) 
+  for(i=_begin.begin(); i!=_begin.end(); ++i)
     rv.push_back((*i)->toString());
-  for(i=_end.begin(); i!=_end.end(); ++i) 
+  for(i=_end.begin(); i!=_end.end(); ++i)
     rv.push_back((*i)->toString());
   return rv;
 }
@@ -202,7 +241,7 @@ void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& 
 
   //order them correctly
   std::sort(regions.begin(), regions.end(), SplitRegionCmp(_order));
- 
+
   //generate code
   if(rf != RuleFlavor::SEQUENTIAL) {
     o.write("GroupedDynamicTask<"+jalib::XToString(regions.size())+">* _split_task "
@@ -222,7 +261,7 @@ void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& 
     }
   }
 
-  if(rf!=RuleFlavor::SEQUENTIAL){ 
+  if(rf!=RuleFlavor::SEQUENTIAL){
     o.write("return petabricks::run_task(_split_task);");
   }else{
     o.write("return NULL;");
@@ -234,10 +273,10 @@ void petabricks::IterationDefinition::fillSplitRegionList(SplitRegionList& regio
   if(d<dimensions()) {
     FormulaPtr globalBegin = _begin[d];
     FormulaPtr globalEnd = _end[d];
-    
+
     // nthPart= (begin-end)/n
     FormulaPtr nthPart = new FormulaDivide (new FormulaSubtract(globalEnd, globalBegin), new FormulaInteger(blockNumber));
-    
+
     //First block
     FormulaPtr begin = globalBegin;
     FormulaPtr end = new FormulaAdd(begin, nthPart);
@@ -273,7 +312,7 @@ bool petabricks::IterationDefinition::canDependOn(const SplitRegion& a, const Sp
     }
     else if(a.partNumber(d) < b.partNumber(d)){
       mask = DependencyDirection::D_GT;
-    } 
+    }
     else {
       mask = DependencyDirection::D_LT;
     }
@@ -284,11 +323,11 @@ bool petabricks::IterationDefinition::canDependOn(const SplitRegion& a, const Sp
   return true;
 }
 
-void petabricks::SplitRegionList::print(std::ostream& o) const { 
+void petabricks::SplitRegionList::print(std::ostream& o) const {
   o << "SplitRegionList:";
-  for(SplitRegionList::const_iterator i=this->begin(), 
-                                 e=this->end(); 
-      i!=e; 
+  for(SplitRegionList::const_iterator i=this->begin(),
+                                 e=this->end();
+      i!=e;
       ++i) {
     SplitRegion region= *i;
     o << "\n* " << region;

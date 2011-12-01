@@ -273,14 +273,14 @@ elif ! test "$with_intelopencl" = "no"; then
    LIBS="$LIBS -L/usr/lib64/OpenCL/vendors/intel"
 
    AC_CHECK_LIB([OpenCL], [clGetDeviceIDs], [], [AC_MSG_ERROR([Failed to find -lOpenCL.  Check LIBRARY_PATH, or reconfigure without OpenCL.])])
-   
+
    AC_CHECK_HEADERS([opencl.h], [], [])
 
 elif ! test "$with_macopencl" = "no"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
    AC_DEFINE([MATRIX_ELEMENT_T], [float], [type for elements in the matrix])
    AC_DEFINE([MAC],[1],[MAC OS])
-   
+
    LDFLAGS="$LDFLAGS -framework OpenCL"
 
    AC_CHECK_HEADERS([OpenCL/opencl.h], [], [])
@@ -312,6 +312,7 @@ AC_DEFINE([DEFAULT_ACCURACY],    [1], [accuracy stand-in for fixed-accuracy rule
 AC_DEFINE([DEVNULL],             ["/dev/null"], [null sync device path])
 AC_DEFINE([DISABLE_DISTRIBUTED], [1], [dont generate distributed code])
 AC_DEFINE([DISTRIBUTED_GC_FREQ], [1000], [after how many allocations to invoke distributed gc])
+AC_DEFINE([DISTRIBUTED_SCRATCH_REGION], [1], [use scratch region in distributed code])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])
 AC_DEFINE([GENHEADER],           ["_pbhdr.h"], [generated file name])
