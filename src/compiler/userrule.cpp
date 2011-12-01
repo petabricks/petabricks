@@ -1082,17 +1082,18 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
       }
 
-      iterdef.genLoopBegin(o);
+      //      iterdef.genLoopBegin(o);
       // iterdef.genScratchRegionLoopBegin(o);
     } else {
-      iterdef.genLoopBegin(o);
+      //      iterdef.genLoopBegin(o);
     }
 #else
-    iterdef.genLoopBegin(o);
+    //    iterdef.genLoopBegin(o);
 #endif
 
     generateTrampCellCodeSimple( trans, o, flavor );
-    iterdef.genLoopEnd(o);
+
+    //    iterdef.genLoopEnd(o);
 
 #ifdef DISTRIBUTED_SCRATCH_REGION
     if (flavor == RuleFlavor::DISTRIBUTED) {
@@ -1813,6 +1814,8 @@ void petabricks::UserRule::generateLocalBuffers(CLCodeGenerator& clo) {
 
 #endif
 
+
+
 void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   o.comment("MARKER 4");
   SRCPOSSCOPE();
@@ -1844,6 +1847,8 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
     args.push_back(getOffsetVar(i)->toString());
 
   if(RuleFlavor::SEQUENTIAL != flavor){
+
+
     std::string classname = implcodename(trans)+"_"+flavor.str();
     o.setcall("jalib::JRef<"+classname+"> _rule", "new "+classname, args);
     //o.write("DynamicTaskPtr _task = _rule->runDynamic();");
