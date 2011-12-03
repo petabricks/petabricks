@@ -80,38 +80,43 @@ to A[n,m], TAU[n]
 
             // if last row, we're done
             if (i >= m-1) {
-                tau.cell(i) = 0;
-                continue;
+                // this loop is a workaround for a loop continuation bug
+                // could use a continue instead of explicit loop
+                while (i < n) {
+                    tau.cell(i++) = 0;
+                }
+                break;
             }
 
             Norm1D(xnorm, a.column(i).region(i+1, m), 2.0);
             if (xnorm == 0.0) {
                 tau.cell(i) = 0;
-                continue;
-            }
+            // this else is a workaround for a loop continuation bug
+            // could use a continue instead
+            } else {
+                // compute reflector
+                alpha = a.cell(i, i);
+                beta = sqrt(alpha * alpha + xnorm * xnorm);
+                beta = alpha > 0 ? -beta : beta;
+                tau.cell(i) = (beta - alpha) / beta;
+                Scale2D(a.region(i, i+1, i+1, m), 1.0 / (alpha - beta));
 
-            // compute reflector
-            alpha = a.cell(i, i);
-            beta = sqrt(alpha * alpha + xnorm * xnorm);
-            beta = alpha > 0 ? -beta : beta;
-            tau.cell(i) = (beta - alpha) / beta;
-            Scale2D(a.region(i, i+1, i+1, m), 1.0 / (alpha - beta));
+                // if last column, we're done
+                if (i >= n-1) {
+                    a.cell(i, i) = beta;
+                    break;
+                }
 
-            // if last column, we're done
-            if (i >= n-1) {
+                v  = a.region(i  , i, i+1, m);
+                a2 = a.region(i+1, i, n  , m);
+                w2 = work.region(0, i+1, 1, n);
+
+                // apply reflector to trailing matrix
+                a.cell(i, i) = 1;
+                MatrixMultiply(w2, a2.transposed(), v);
+                MatrixMultiplyAdd(a2, -tau.cell(i), v, w2.transposed(), 1.0);
                 a.cell(i, i) = beta;
-                break;
             }
-
-            v  = a.region(i  , i, i+1, m);
-            a2 = a.region(i+1, i, n  , m);
-            w2 = work.region(0, i+1, 1, n);
-
-            // apply reflector to trailing matrix
-            a.cell(i, i) = 1;
-            MatrixMultiply(w2, a2.transposed(), v);
-            MatrixMultiplyAdd(a2, -tau.cell(i), v, w2.transposed(), 1.0);
-            a.cell(i, i) = beta;
         }
     }
 
@@ -134,23 +139,28 @@ to A[n,m], TAU[n]
 
             // if last row, we're done
             if (i >= m-1) {
-                tau.cell(i) = 0;
-                continue;
+                // this loop is a workaround for a loop continuation bug
+                // could use a continue instead of explicit loop
+                while (i < n) {
+                    tau.cell(i++) = 0;
+                }
+                break;
             }
 
             Norm1D(xnorm, a.column(i).region(i+1, m), 2.0);
             if (xnorm == 0.0) {
                 tau.cell(i) = 0;
-                continue;
+            // this else is a workaround for a loop continuation bug
+            // could use a continue instead
+            } else {
+                // compute reflector
+                alpha = a.cell(i, i);
+                beta = sqrt(alpha * alpha + xnorm * xnorm);
+                beta = alpha > 0 ? -beta : beta;
+                tau.cell(i) = (beta - alpha) / beta;
+                Scale2D(a.region(i, i+1, i+1, m), 1.0 / (alpha - beta));
+                a.cell(i, i) = beta;
             }
-
-            // compute reflector
-            alpha = a.cell(i, i);
-            beta = sqrt(alpha * alpha + xnorm * xnorm);
-            beta = alpha > 0 ? -beta : beta;
-            tau.cell(i) = (beta - alpha) / beta;
-            Scale2D(a.region(i, i+1, i+1, m), 1.0 / (alpha - beta));
-            a.cell(i, i) = beta;
         }
     }
 
@@ -164,8 +174,12 @@ to A[n,m], TAU[n]
 
             // if last row, we're done
             if (i >= m-1) {
-                tau.cell(i) = 0;
-                continue;
+                // this loop is a workaround for a loop continuation bug
+                // could use a continue instead of explicit loop
+                while (i < n) {
+                    tau.cell(i++) = 0;
+                }
+                break;
             }
 
             xnorm = 0;
@@ -177,47 +191,48 @@ to A[n,m], TAU[n]
 
             if (xnorm == 0) {
                 tau.cell(i) = 0;
-                continue;
-            }
-
-            // compute reflector
-            alpha = a.cell(i, i);
-            beta = sqrt(alpha * alpha + xnorm * xnorm);
-            beta = alpha > 0 ? -beta : beta;
-            tau.cell(i) = (beta - alpha) / beta;
-            temp = 1.0 / (alpha - beta);
-            for (j = i+1; j < m; ++j) {
-                a.cell(i, j) *= temp;
-            }
-            a.cell(i, i) = beta;
-
-            // if last column, we're done
-            if (i >= n-1) {
-                break;
-            }
-
-            // apply reflector to trailing matrix
-            // a2 -= tau * v * v^T * a2, where:
-            //   a2 = a(i+1, i, n  , m)
-            //   v  = a(i  , i, i+1, m)
-
-            // 1) work = v^T * a2
-            for (j = i+1; j < n; ++j) {
-                work.cell(j) = a.cell(j, i);
-            }
-            for (k = i+1; k < m; ++k) {
-                for (j = i+1; j < n; ++j) {
-                    work.cell(j) += a.cell(i, k) * a.cell(j, k);
+            // this else is a workaround for a loop continuation bug
+            // could use a continue instead
+            } else {
+                // compute reflector
+                alpha = a.cell(i, i);
+                beta = sqrt(alpha * alpha + xnorm * xnorm);
+                beta = alpha > 0 ? -beta : beta;
+                tau.cell(i) = (beta - alpha) / beta;
+                temp = 1.0 / (alpha - beta);
+                for (j = i+1; j < m; ++j) {
+                    a.cell(i, j) *= temp;
                 }
-            }
+                a.cell(i, i) = beta;
 
-            // 2) a2 -= tau * v * work
-            for (j = i+1; j < n; ++j) {
-                a.cell(j, i) -= tau.cell(i) * work.cell(j);
-            }
-            for (k = i+1; k < m; ++k) {
+                // if last column, we're done
+                if (i >= n-1) {
+                    break;
+                }
+
+                // apply reflector to trailing matrix
+                // a2 -= tau * v * v^T * a2, where:
+                //   a2 = a(i+1, i, n  , m)
+                //   v  = a(i  , i, i+1, m)
+
+                // 1) work = v^T * a2
                 for (j = i+1; j < n; ++j) {
-                    a.cell(j, k) -= tau.cell(i) * a.cell(i, k) * work.cell(j);
+                    work.cell(j) = a.cell(j, i);
+                }
+                for (k = i+1; k < m; ++k) {
+                    for (j = i+1; j < n; ++j) {
+                        work.cell(j) += a.cell(i, k) * a.cell(j, k);
+                    }
+                }
+
+                // 2) a2 -= tau * v * work
+                for (j = i+1; j < n; ++j) {
+                    a.cell(j, i) -= tau.cell(i) * work.cell(j);
+                }
+                for (k = i+1; k < m; ++k) {
+                    for (j = i+1; j < n; ++j) {
+                        a.cell(j, k) -= tau.cell(i) * a.cell(i, k) * work.cell(j);
+                    }
                 }
             }
         }
@@ -245,8 +260,12 @@ to A[n,m], TAU[n]
 
             // if last row, we're done
             if (i >= m-1) {
-                tau.cell(i) = 0;
-                continue;
+                // this loop is a workaround for a loop continuation bug
+                // could use a continue instead of explicit loop
+                while (i < n) {
+                    tau.cell(i++) = 0;
+                }
+                break;
             }
 
             xnorm = 0;
@@ -258,19 +277,20 @@ to A[n,m], TAU[n]
 
             if (xnorm == 0) {
                 tau.cell(i) = 0;
-                continue;
+            // this else is a workaround for a loop continuation bug
+            // could use a continue instead
+            } else {
+                // compute reflector
+                alpha = a.cell(i, i);
+                beta = sqrt(alpha * alpha + xnorm * xnorm);
+                beta = alpha > 0 ? -beta : beta;
+                tau.cell(i) = (beta - alpha) / beta;
+                temp = 1.0 / (alpha - beta);
+                for (j = i+1; j < m; ++j) {
+                    a.cell(i, j) *= temp;
+                }
+                a.cell(i, i) = beta;
             }
-
-            // compute reflector
-            alpha = a.cell(i, i);
-            beta = sqrt(alpha * alpha + xnorm * xnorm);
-            beta = alpha > 0 ? -beta : beta;
-            tau.cell(i) = (beta - alpha) / beta;
-            temp = 1.0 / (alpha - beta);
-            for (j = i+1; j < m; ++j) {
-                a.cell(i, j) *= temp;
-            }
-            a.cell(i, i) = beta;
         }
     }
 
@@ -360,15 +380,19 @@ to C[n,m]
 
         // aliases
         c1 = c.region(0,0,n,b);
-        c2 = c.region(0,b,n,m);
         v1 = v.region(0,0,b,b);
-        v2 = v.region(0,b,b,m);
+        if (b < m) {
+            c2 = c.region(0,b,n,m);
+            v2 = v.region(0,b,b,m);
+        }
 
         // STEP 1: Compute w = v' * c = (v1' * c1 + v2' * c2)
         //   a) w = v1' * c1
         TriMatrixMultiply(w, 1, 1, v1.transposed(), c1);
-        //   b) w += v2' * c2
-        MatrixMultiplyAdd(w, 1.0, v2.transposed(), c2, 1.0);
+        if (b < m) {
+            //   b) w += v2' * c2
+            MatrixMultiplyAdd(w, 1.0, v2.transposed(), c2, 1.0);
+        }
 
         // STEP 2: Compute w = t * w
         TriMatrixMultiplyInPlace(w, upFlag, 0, t);
@@ -376,8 +400,10 @@ to C[n,m]
         // STEP 3: Compute c = c - v * w
         //   a) c1 = c1 - v1 * w
         TriMatrixMultiplyAdd(c1, 0, 1, -1.0, v1, w, 1.0);
-        //   b) c2 = c2 - v2 * w
-        MatrixMultiplyAdd(c2, -1.0, v2, w, 1.0);
+        if (b < m) {
+            //   b) c2 = c2 - v2 * w
+            MatrixMultiplyAdd(c2, -1.0, v2, w, 1.0);
+        }
     }
 }
 
