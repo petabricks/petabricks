@@ -2,26 +2,8 @@
 #define BINNEDLR_PBCC
 
 #include "../simple/copy.pbcc"
-#include "../simple/dotprod.pbcc"
-#include "../QR/QR.pbcc"
-#include "../multiply/multiply.pbcc"
-#include "../trisolve/TriSolveLU.pbcc"
+#include "../linearsolve/LeastSquares.pbcc"
 #include "utils.pbcc"
-
-// computes least-squares regression coefficients for X*alpha = Y
-transform Regress
-from Y[p,n]
-to ALPHA[p,m], X[m,n]
-through R[m,m]
-{
-    to (ALPHA alpha, X x, R r)
-    from (Y y)
-    {
-        QRInPlace(x, r);
-        MatrixMultiply(alpha, x.transposed(), y);
-        TriSolveLUInPlace(alpha, 0, r);
-    }
-}
 
 // compute the binned linear regression model
 transform BinnedLRTrain
@@ -80,8 +62,8 @@ to ALPHA[numBins, p+1]
         // compute regression for each bin
         for (i = 0; i < numBins; ++i) {
             if (binIndex[i] > 0) {
-                spawn Regress(alpha.region(i, 0, i+1, p+1),
-                              binnedX[i], binnedY[i]);
+                spawn LeastSquares(alpha.region(i, 0, i+1, p+1),
+                                   binnedX[i], binnedY[i]);
             }
         }
         sync;
