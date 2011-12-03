@@ -1,0 +1,65 @@
+#ifndef LEASTSQUARES_PBCC
+#define LEASTSQUARES_PBCC
+
+#include "../QR/QR.pbcc"
+#include "../trisolve/TriSolveLU.pbcc"
+
+// solves dense linear least squares
+//   minimizes (columnwise L2-norm) || B - AX || over values of X,
+//   where A is m x n, X is n x p, and B is m x p
+//   uses in-place QR factorization (WY storage representation)
+
+// solve system given a pre-factored (Q, TAU)
+//   on entry, X contains B; on exit, X contains X
+transform LeastSquaresInPlaceFactored
+to X[p,m], Q[n,m]
+from TAU[n]
+{
+    to (X x, Q q) from (TAU tau)
+    {
+        QRRMult(x, q, tau, 1);
+        TriSolveLUInPlace(x.region(0,0,p,n), 0,
+                          q.region(0,0,n,n));
+    }
+}
+
+// in-place version, output is placed in top n rows of X
+//   on entry, X contains B, Q contains A
+//   on exit, variables' contents correspond to their names
+transform LeastSquaresInPlace
+to X[p,m], Q[n,m]
+through TAU[n]
+{
+    to (X x, Q q, TAU tau) from ()
+    {
+        QRR(q, tau);
+        LeastSquaresInPlaceFactored(x, q, tau);
+    }
+}
+
+// in-place, writable inputs, separate output
+transform LeastSquares
+to X[p,n], A[n,m], B[p,m]
+{
+    to (X x, A a, B b) from ()
+    {
+        LeastSquaresInPlace(b, a);
+        Copy2D(x, b.region(0, 0, p, n));
+    }
+}
+
+// out-of-place version
+transform LeastSquaresOOP
+from A[n,m], B[p,m]
+through A2[n,m], B2[p,m]
+to X[p,n]
+{
+    to (X x, A2 a2, B2 b2) from (A a, B b)
+    {
+        Copy2D(a2, a);
+        Copy2D(b2, b);
+        LeastSquares(x, a2, b2);
+    }
+}
+
+#endif // LEASTSQUARES_PBCC

@@ -32,6 +32,8 @@ trisolve/TriSolveRU        One0D Rand2Da Rand2Db
 LUDense/LUTest             Rand2Da
 LUDense/LUTest             Rand2DLong
 LUDense/LUTest             Rand2DWide
+linearsolve/LeastSquares   Rand2Da Rand2Db
+linearsolve/LeastSquares   Rand2DLong Rand2Da
 linearsolve/LinearSolve    Rand2Da Rand2Db
 linearsolve/LinearSolvePosDef      Rand2DPosDef Rand2Db
 matrixapprox/matrixapprox  MatApproxRand2D
