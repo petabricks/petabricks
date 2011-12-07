@@ -1031,15 +1031,6 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
   if(true) {
 #endif
 
-    if(RuleFlavor::SEQUENTIAL != flavor
-#ifdef HAVE_OPENCL
-        && RuleFlavor::SEQUENTIAL_OPENCL != flavor
-#endif
-        ) {
-      o.write("DynamicTaskPtr _spawner = new NullDynamicTask();");
-      o.write("DynamicTaskPtr _last = NULL;");
-    }
-
     if(RuleFlavor::DISTRIBUTED != flavor) {
       std::string outputDimensionCheck;
       for( RegionList::const_iterator i = _to.begin(); i != _to.end(); ++i) {
@@ -1050,8 +1041,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       }
 
       o.beginIf(outputDimensionCheck);
-      if(RuleFlavor::SEQUENTIAL != flavor) o.write("return _spawner;");
-      else o.write("return NULL;");
+      o.write("return NULL;");
       o.endIf();
     }
 
@@ -1084,16 +1074,23 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
       //      iterdef.genLoopBegin(o);
       // iterdef.genScratchRegionLoopBegin(o);
+    } else if () {
+      iterdef.genLoopBegin(o);
+
     } else {
-      //      iterdef.genLoopBegin(o);
+      iterdef.genLoopBegin(o);
+      generateTrampCellCodeSimple( trans, o, flavor );
     }
-#else
-    //    iterdef.genLoopBegin(o);
 #endif
 
-    generateTrampCellCodeSimple( trans, o, flavor );
+    if (shouldGenerateTrampIterCode(flavor)) {
+      o.mkIterationTrampTask("_tmp_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), iterdef.begin(), iterdef.end(), iterdef.begin());
 
-    //    iterdef.genLoopEnd(o);
+    } else {
+      iterdef.genLoopBegin(o);
+      generateTrampCellCodeSimple( trans, o, flavor );
+      iterdef.genLoopEnd(o);
+    }
 
 #ifdef DISTRIBUTED_SCRATCH_REGION
     if (flavor == RuleFlavor::DISTRIBUTED) {
@@ -1108,16 +1105,85 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     }
 #endif
 
-    if(RuleFlavor::SEQUENTIAL != flavor){
-      o.write("_spawner->dependsOn(_last);");
-      o.write("return _spawner;");
-    }
-    else o.write("return NULL;");
+    o.write("return NULL;");
 
     if(isSingleElement())
       o.endIf();
   }
   o.endFunc();
+
+  if (shouldGenerateTrampIterCode(flavor)) {
+    IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
+    std::vector<std::string> args;
+    args.push_back("IndexT begin["+jalib::XToString(iterdef.dimensions())+"]");
+    args.push_back("IndexT end["+jalib::XToString(iterdef.dimensions())+"]");
+    args.push_back("IndexT coord["+jalib::XToString(iterdef.dimensions())+"]");
+
+    o.beginFunc("petabricks::DynamicTaskPtr", itertrampcodename(trans)+"_"+flavor.str(), args);
+
+
+    for(int i=0; i<dimensions(); ++i) {
+      o.write("IndexT " + getOffsetVar(i)->toString() + " = coord[" +jalib::XToString(i)+"];");
+    }
+
+    generateTrampCellCodeSimple(trans, o, flavor);
+
+    // Compute next coordinate
+    o.comment("Compute next coordinate");
+    o.write("bool hasNext = true;");
+    for (int i = iterdef.dimensions() - 1; i >= 0; --i){
+      FormulaPtr b = iterdef.begin()[i];
+      FormulaPtr e = iterdef.end()[i];
+      FormulaPtr s = iterdef.step()[i];
+      FormulaPtr v = iterdef.var()[i];
+
+      //TODO: expand to reorder dimensions
+      DependencyDirection& order = iterdef.order();
+      bool iterateForward = (order.canIterateForward(i) || !order.canIterateBackward(i));
+
+      if (iterateForward) {
+        JWARNING(order.canIterateForward(i))(order).Text("couldn't find valid iteration order, assuming forward");
+        o.write(v->toString() + " = " + MaximaWrapper::instance().normalize(new FormulaAdd(v, s))->toString() + ";");
+
+      } else {
+        o.write(v->toString() + " = " + MaximaWrapper::instance().normalize(new FormulaSubtract(v, s))->toString() + ";");
+      }
+
+      if(iterateForward){
+        o.beginIf(v->toString() + " >= end[" + jalib::XToString(i) + "]");
+        o.write(v->toString() + " = begin[" + jalib::XToString(i) + "];");
+
+      } else {
+        o.beginIf(v->toString() + " > begin[" + jalib::XToString(i) + "]");
+        o.write(v->toString() + " = end[" + jalib::XToString(i) + "] - 1;");
+      }
+    }
+
+    o.write("hasNext = false;");
+    for (int i = 0; i < iterdef.dimensions(); ++i) {
+      o.endIf();
+    }
+
+    o.write("DynamicTaskPtr _next;");
+    o.beginIf("hasNext");
+    o.mkIterationTrampTask("_next", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), "begin", "end", iterdef.var());
+
+    o.elseIf();
+    o.write("return _task;");
+    o.endIf();
+
+    o.write("_next->dependsOn(_task);");
+    o.write("_task->enqueue();");
+    o.write("return _next;");
+
+    o.endFunc();
+  }
+}
+
+  bool petabricks::UserRule::shouldGenerateTrampIterCode(RuleFlavor::RuleFlavorEnum flavor) {
+  return ((flavor == RuleFlavor::DISTRIBUTED ||
+      (flavor == RuleFlavor::WORKSTEALING && isRecursive())) &&
+     !isSingleCall());
 }
 
 #ifdef HAVE_OPENCL
@@ -1847,20 +1913,10 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
     args.push_back(getOffsetVar(i)->toString());
 
   if(RuleFlavor::SEQUENTIAL != flavor){
-
-
     std::string classname = implcodename(trans)+"_"+flavor.str();
     o.setcall("jalib::JRef<"+classname+"> _rule", "new "+classname, args);
-    //o.write("DynamicTaskPtr _task = _rule->runDynamic();");
-    o.write("DynamicTaskPtr _task = new MethodCallTask<"+classname+", &"+classname+"::runDynamic>(_rule);");
-    o.beginIf("_task");
-    o.beginIf("_last");
-    o.write("_task->dependsOn(_last);");
-    o.endIf();
-    o.write("_last = _task;");
-    //o.write("_spawner->dependsOn(_task);");
-    o.write("_task->enqueue();");
-    o.endIf();
+    std::string tasktype = "MethodCallTask<"+classname+", &"+classname+"::runDynamic>";
+    o.write("DynamicTaskPtr _task = new "+tasktype+"(_rule);");
   }else{
     o.call(implcodename(trans)+TX_STATIC_POSTFIX, args);
   }
@@ -1978,6 +2034,9 @@ std::string petabricks::UserRule::trampcodename(Transform& trans) const {
     s += "_" + _duplicateVars[i].name() + jalib::XToString(t);
   }
   return s;
+}
+std::string petabricks::UserRule::itertrampcodename(Transform& trans) const {
+  return trampcodename(trans) + "_iter";
 }
 
 size_t petabricks::UserRule::duplicateCount() const {

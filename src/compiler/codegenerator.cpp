@@ -435,6 +435,36 @@ void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const
   write("}");
 }
 
+void petabricks::CodeGenerator::mkIterationTrampTask(const std::string& taskname, const std::string& /*objname*/, const std::string& methodname, const CoordinateFormula& begin, const CoordinateFormula& end, const CoordinateFormula& coord) {
+  std::string taskclass = "petabricks::IterationTrampMethodCallTask<CLASS"
+                          ", " + jalib::XToString(coord.size())
+                        + ", &CLASS::" + methodname
+                        + ">";
+  write("{");
+  incIndent();
+  write("IndexT _tmp_begin[] = {" + begin.toString() + "};");
+  write("IndexT _tmp_end[] = {"   + end.toString() + "};");
+  write("IndexT _tmp_coord[] = {" + coord.toString() + "};");
+  write(taskclass+"* "+taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end, _tmp_coord);");
+  write("return petabricks::run_task(" + taskname + ");");
+  decIndent();
+  write("}");
+}
+
+void petabricks::CodeGenerator::mkIterationTrampTask(const std::string& taskname, const std::string& /*objname*/, const std::string& methodname, const std::string& begin, const std::string& end, const CoordinateFormula& coord) {
+  std::string taskclass = "petabricks::IterationTrampMethodCallTask<CLASS"
+                          ", " + jalib::XToString(coord.size())
+                        + ", &CLASS::" + methodname
+                        + ">";
+  write("{");
+  incIndent();
+  write("IndexT _tmp_coord[] = {" + coord.toString() + "};");
+  write(taskname+" = new "+taskclass+"(this, " + begin +", " + end + ", _tmp_coord);");
+  decIndent();
+  write("}");
+
+}
+
 #ifdef HAVE_OPENCL
 void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, int gpuCopyOut) {
   std::string taskclass = "petabricks::CreateGpuSpatialMethodCallTask<"+objname

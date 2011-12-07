@@ -59,11 +59,11 @@ public:
   ///
   /// Constructor -- to style rule
   UserRule(const RegionList& to, const RegionList& from, const MatrixDefList& through, const FormulaList& where);
-  
+
   ///
   /// Initialize this rule after parsing
   void initialize(Transform&);
-  
+
 
   ///
   /// Expand any duplicates by generating synthetic rules
@@ -76,7 +76,7 @@ public:
   ///
   /// Set priority flag
   void setPriority(RuleFlags::PriorityT v)  { _flags.priority = v; }
-  
+
   ///
   /// Set rotation flag
   void addRotations(RuleFlags::RotationT v) { _flags.rotations |= v; }
@@ -97,18 +97,18 @@ public:
   /// Print this rule to a given stl stream
   /// implements JPrintable::print
   void print(std::ostream& o) const;
-  
+
   ///
   /// Add RuleDescriptors to output corresponding to the extrema of the applicable region in dimension
   void getApplicableRegionDescriptors(RuleDescriptorList& output, const MatrixDefPtr& matrix, int dimension, const RulePtr& rule);
 
-  
+
   void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
   void generateDeclCodeSequential(Transform& trans, CodeGenerator& o);
   void generateDeclCodeOpenCl(Transform& trans, CodeGenerator& o);
 
   void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
-  
+
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
   void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o);
@@ -135,12 +135,13 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        int gpuCopyOut); 
+                        int gpuCopyOut);
 
   ///
   /// Return function the name of this rule in the code
   std::string implcodename(Transform& trans) const;
   std::string trampcodename(Transform& trans) const;
+  std::string itertrampcodename(Transform& trans) const;
 
   bool isReturnStyle() const { return _flags.isReturnStyle; }
 
@@ -150,12 +151,12 @@ public:
 
   void collectDependencies(StaticScheduler& scheduler);
 
-  void markRecursive() { 
+  void markRecursive() {
     markRecursive(NULL);
   }
-  void markRecursive(const FormulaPtr& rh) { 
+  void markRecursive(const FormulaPtr& rh) {
     if(!_flags.isRecursive){
-      _flags.isRecursive = true; 
+      _flags.isRecursive = true;
       _recursiveHint = rh;
     }
   }
@@ -237,7 +238,7 @@ public:
     if((int)_conditions.size()-1==start) return _conditions[start];
     return new FormulaAnd(_conditions[start], getWhereClause(start+1));
   }
-  
+
   DependencyDirection getSelfDependency() const;
 
   RegionList getFromRegions( ) const
@@ -256,44 +257,46 @@ public:
   }
 
   void buildApplicableRegion(Transform& trans,
-                             SimpleRegionPtr& ar, 
+                             SimpleRegionPtr& ar,
                              bool allowOptional);
-                                     
-  virtual void removeDimensionFromMatrix(const MatrixDefPtr matrix, 
+
+  virtual void removeDimensionFromMatrix(const MatrixDefPtr matrix,
                                           const size_t dimension);
-  
+
   virtual void fixVersionedRegionsType();
-  
+
   virtual RegionList getSelfDependentRegions();
-  
+
   virtual RegionList getNonSelfDependentRegions();
 
   void buildFromBoundingBox();
-  
+
   void trimDependency(DependencyDirection& dep,
                       const ChoiceDepGraphNode& from,
                       const ChoiceDepGraphNode& to);
-  
+
 private:
   void computeDataDependencyVector();
   CoordinateFormula computeDDVAsDifference(const RegionPtr inputRegion,
                                            const RegionPtr outputRegion
                                           ) const;
   void computeDDVForGivenOutput(const RegionPtr outputRegion);
-  
+
   void removeDimensionFromRegionList(RegionList& list,
-                                     const MatrixDefPtr matrix, 
+                                     const MatrixDefPtr matrix,
                                      const size_t dimension);
-  
+
   void removeDimensionFromMatrixDependencyMap(MatrixDependencyMap& map,
                                               const MatrixDefPtr matrix,
-                                              const size_t dimension);                                
-                                              
+                                              const size_t dimension);
+
   void removeDimensionFromDefinitions(const size_t dimension);
 
   void prepareBuffers();
 
   bool passBuildGpuProgram(Transform& trans);
+
+  bool shouldGenerateTrampIterCode(RuleFlavor::RuleFlavorEnum flavor);
 
   std::map<std::string, std::string> _nameMap;
   std::map<std::string, FormulaList> _minCoordOffsets;
@@ -316,7 +319,7 @@ private:
   ConfigItems _duplicateVars;
   RulePtr _gpuRule;
 
- 
+
   typedef std::map<MatrixDefPtr, SimpleRegionPtr> MatrixToRegionMap;
   MatrixToRegionMap _fromBoundingBox;
 

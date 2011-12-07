@@ -387,7 +387,7 @@ std::string petabricks::Region::genTypeStr(RuleFlavor rf, bool isConst) const{
   case REGION_CELL:
     if(isConst){
       if(rf != RuleFlavor::DISTRIBUTED) {
-        return "const ElementT&";
+        return "const ElementT";
       }else{
         return "CellProxy";
       }

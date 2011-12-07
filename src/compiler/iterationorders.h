@@ -57,10 +57,12 @@ public:
   void genScratchRegionLoopEnd(CodeGenerator& o);
 
   DependencyDirection& order() { return _order;}
+  CoordinateFormula&  var() { return _var;}
   CoordinateFormula&  begin() { return _begin;}
   CoordinateFormula&  end  () { return _end;}
   CoordinateFormula&  step () { return _step;}
   const DependencyDirection& order() const { return _order;}
+  const CoordinateFormula&  var() const { return _var;}
   const CoordinateFormula&  begin() const { return _begin;}
   const CoordinateFormula&  end  () const { return _end;}
   const CoordinateFormula&  step () const { return _step;}

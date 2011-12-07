@@ -99,6 +99,31 @@ private:
 };
 
 /**
+ * A task that calls a method on a given object, with a given region and
+ * a given position.
+ */
+ template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D], IndexT current[D])>
+ class IterationTrampMethodCallTask : public NullDynamicTask {
+public:
+  IterationTrampMethodCallTask(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D], IndexT current[D])
+    : _obj(obj)
+  {
+    memcpy(_begin,   begin,   sizeof _begin);
+    memcpy(_end,     end,     sizeof _end);
+    memcpy(_current, current, sizeof _current);
+  }
+  DynamicTaskPtr run(){
+    return ((*_obj).*(method))(_begin, _end, _current);
+  }
+private:
+  jalib::JRef<T> _obj;
+  IndexT _begin[D];
+  IndexT _end[D];
+  IndexT _current[D];
+};
+
+
+/**
  * A task that calls a method on a given object, with a given region, task ID, a pointer to RegionNodeGroup map, and a boolean indicating the copy out status
  */
 template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D], int nodeID, RegionNodeGroupMapPtr map, int gpuCopyOut)>
