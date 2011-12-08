@@ -1061,6 +1061,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     }
 
 #ifdef DISTRIBUTED_SCRATCH_REGION
+    /*
     if (flavor == RuleFlavor::DISTRIBUTED) {
       o.comment("Copy to scratch region");
 
@@ -1081,6 +1082,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       iterdef.genLoopBegin(o);
       generateTrampCellCodeSimple( trans, o, flavor );
     }
+    `*/
 #endif
 
     if(!((RuleFlavor::WORKSTEALING == flavor ) && !isRecursive())
@@ -1089,7 +1091,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     }
 
     if (shouldGenerateTrampIterCode(flavor)) {
-      o.mkIterationTrampTask("_tmp_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), iterdef.begin(), iterdef.end(), iterdef.begin());
+      o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), iterdef.begin(), iterdef.end(), iterdef.begin());
 
     } else {
       iterdef.genLoopBegin(o);
