@@ -447,6 +447,7 @@ void petabricks::CodeGenerator::mkIterationTrampTask(const std::string& taskname
   write("IndexT _tmp_coord[] = {" + coord.toString() + "};");
   write(taskclass+"* "+taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end, _tmp_coord);");
   write("return petabricks::run_task(" + taskname + ");");
+  //write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end, _tmp_coord);");
   decIndent();
   write("}");
 }

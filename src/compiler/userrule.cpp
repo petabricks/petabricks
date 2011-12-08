@@ -1083,6 +1083,11 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     }
 #endif
 
+    if(!((RuleFlavor::WORKSTEALING == flavor ) && !isRecursive())
+       && flavor != RuleFlavor::SEQUENTIAL) {
+      o.write("DynamicTaskPtr _task;");
+    }
+
     if (shouldGenerateTrampIterCode(flavor)) {
       o.mkIterationTrampTask("_tmp_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), iterdef.begin(), iterdef.end(), iterdef.begin());
 
@@ -1105,7 +1110,12 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     }
 #endif
 
-    o.write("return NULL;");
+    if(!((RuleFlavor::WORKSTEALING == flavor ) && !isRecursive())
+       && flavor != RuleFlavor::SEQUENTIAL) {
+      o.write("return _task;");
+    } else {
+      o.write("return NULL;");
+    }
 
     if(isSingleElement())
       o.endIf();
@@ -1126,6 +1136,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       o.write("IndexT " + getOffsetVar(i)->toString() + " = coord[" +jalib::XToString(i)+"];");
     }
 
+    o.write("DynamicTaskPtr _task;");
     generateTrampCellCodeSimple(trans, o, flavor);
 
     // Compute next coordinate
@@ -1915,8 +1926,8 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   if(RuleFlavor::SEQUENTIAL != flavor){
     std::string classname = implcodename(trans)+"_"+flavor.str();
     o.setcall("jalib::JRef<"+classname+"> _rule", "new "+classname, args);
-    std::string tasktype = "MethodCallTask<"+classname+", &"+classname+"::runDynamic>";
-    o.write("DynamicTaskPtr _task = new "+tasktype+"(_rule);");
+    std::string tasktype = "petabricks::MethodCallTask<"+classname+", &"+classname+"::runDynamic>";
+    o.write("_task = new "+tasktype+"(_rule);");
   }else{
     o.call(implcodename(trans)+TX_STATIC_POSTFIX, args);
   }
