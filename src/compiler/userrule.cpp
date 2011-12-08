@@ -1134,7 +1134,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     o.beginFunc("petabricks::DynamicTaskPtr", itertrampcodename(trans)+"_"+flavor.str(), args);
 
 
-    for(int i=0; i<dimensions(); ++i) {
+    for(int i=0; i<iterdef.dimensions(); ++i) {
       o.write("IndexT " + getOffsetVar(i)->toString() + " = coord[" +jalib::XToString(i)+"];");
     }
 
