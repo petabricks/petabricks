@@ -178,6 +178,9 @@ void petabricks::WhereExpansionRule::generateCallCode(const std::string& name,
 }
 
 void petabricks::WhereExpansionRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
+  // TODO: This should create IterationTrampTask like in UserRule::generateTrampCode
+  UNIMPLEMENTED();
+
   IterationDefinition iterdef(*this, getSelfDependency() , false);
   std::vector<std::string> packedargs = iterdef.packedargs();
   o.beginFunc("petabricks::DynamicTaskPtr", codename()+"_"+flavor.str(), packedargs);
