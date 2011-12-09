@@ -133,8 +133,8 @@ def parallelRunJobs(jobs, nParallelJobs=None):
 
   startline = progress.currentline()
   if nParallelJobs is None:
-    nParallelJobs=cpuCount()
-#    nParallelJobs=max(1, cpuCount()/2)
+#    nParallelJobs=cpuCount()
+    nParallelJobs=max(1, cpuCount()/2)
   exitval="!EXIT!"
   maxprinted=[0]
 

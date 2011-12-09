@@ -1091,7 +1091,31 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     }
 
     if (shouldGenerateTrampIterCode(flavor)) {
-      o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), iterdef.begin(), iterdef.end(), iterdef.begin());
+      CoordinateFormula startCoord;
+
+      for (int i = 0; i < iterdef.dimensions(); ++i){
+        FormulaPtr b = iterdef.begin()[i];
+        FormulaPtr e = iterdef.end()[i];
+
+        DependencyDirection& order = iterdef.order();
+        bool iterateForward = (order.canIterateForward(i) || !order.canIterateBackward(i));
+
+        if (iterateForward) {
+          startCoord.push_back(b);
+
+        } else {
+          startCoord.push_back(MaximaWrapper::instance().normalize(new FormulaSubtract(e, FormulaInteger::one())));
+
+        }
+
+        o.beginIf(b->toString()+"<"+e->toString());
+      }
+
+      o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), iterdef.begin(), iterdef.end(), startCoord);
+
+      for (int i = 0; i < iterdef.dimensions(); ++i){
+        o.endIf();
+      }
 
     } else {
       iterdef.genLoopBegin(o);
@@ -1157,18 +1181,14 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       if (iterateForward) {
         JWARNING(order.canIterateForward(i))(order).Text("couldn't find valid iteration order, assuming forward");
         o.write(v->toString() + " = " + MaximaWrapper::instance().normalize(new FormulaAdd(v, s))->toString() + ";");
-
-      } else {
-        o.write(v->toString() + " = " + MaximaWrapper::instance().normalize(new FormulaSubtract(v, s))->toString() + ";");
-      }
-
-      if(iterateForward){
         o.beginIf(v->toString() + " >= end[" + jalib::XToString(i) + "]");
         o.write(v->toString() + " = begin[" + jalib::XToString(i) + "];");
 
       } else {
-        o.beginIf(v->toString() + " > begin[" + jalib::XToString(i) + "]");
+        o.write(v->toString() + " = " + MaximaWrapper::instance().normalize(new FormulaSubtract(v, s))->toString() + ";");
+        o.beginIf(v->toString() + " < begin[" + jalib::XToString(i) + "]");
         o.write(v->toString() + " = end[" + jalib::XToString(i) + "] - 1;");
+
       }
     }
 
