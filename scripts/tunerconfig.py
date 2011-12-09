@@ -92,8 +92,8 @@ class config_defaults:
 
   #types of mutatators to generate
   autodetect_tunable_types    = ['user.tunable']
-  
-  
+
+
   ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg', 'user.tunable.double', 'system.runtime.threads']
   lognorm_array_tunable_types = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array']
   lognorm_tunable_types       = ['system.cutoff.splitsize', 'system.cutoff.sequential', 'system.cutoff.distributed', 'system.flag.localmem', 'system.size.blocksize']
@@ -105,7 +105,7 @@ class config_defaults:
   sizespecific_tunable_types  = ['user.tunable.accuracy.array', 'system.tunable.accuracy.array', 'user.tunable.double.array', 'user.tunable.array']
   uniform_tunable_types       = ['system.flag.unrollschedule']
   ignore_tunable_types        = ['algchoice.cutoff', 'algchoice.alg', 'system.runtime.threads', 'system.flag.unrollschedule']
-  
+
   #metric information, dont change
   metrics               = ['timing', 'accuracy']
   metric_orders         = [1, -1] #1 = minimize, -1 = maximize
@@ -165,7 +165,7 @@ class patch_check:
 
   #run for 30 sec or 2**13 input size
   max_input_size           = 256
-  max_time                 = 60
+  max_time                 = 90
   rounds_per_input_size    = 1
 
   #bigger pop size
