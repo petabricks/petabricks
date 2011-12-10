@@ -61,9 +61,9 @@ to   TRAINDATA[4,8750], WRAPFLAGS[4], KERNELWIDTHS[4],
         b = MatrixIO(TESTDIR "testTimeOffset.pba", "r").read1D();
         Copy1D(testTimeOffset, b);
 
-        outputVarIndex = MatrixIO(TESTDIR "outputVarIndex.pba", "r").read0D();
-        outputTimeOffset = MatrixIO(TESTDIR "outputTimeOffset.pba", "r").read0D();
-        trainMaskWidth = MatrixIO(TESTDIR "trainMaskWidth.pba", "r").read0D();
+        outputVarIndex = (double) MatrixIO(TESTDIR "outputVarIndex.pba", "r").read0D();
+        outputTimeOffset = (double) MatrixIO(TESTDIR "outputTimeOffset.pba", "r").read0D();
+        trainMaskWidth = (double) MatrixIO(TESTDIR "trainMaskWidth.pba", "r").read0D();
     }
 }
 

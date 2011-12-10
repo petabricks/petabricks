@@ -599,7 +599,8 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
 
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     if ((rf == RuleFlavor::DISTRIBUTED) &&
-        ((*i)->getRegionType() == Region::REGION_CELL)) {
+        ((*i)->getRegionType() == Region::REGION_CELL) &&
+        _to.size() == 1) {
       // will read CellProxy to ElementT in before running the task
       o.addMember((*i)->genTypeStr(rf, false), "_cellproxy_" + (*i)->name());
       o.addMember("ElementT", (*i)->name(), "0");
@@ -608,6 +609,7 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
       o.addMember((*i)->genTypeStr(rf, false), (*i)->name());
     }
   }
+
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     if ((rf == RuleFlavor::DISTRIBUTED) &&
         ((*i)->getRegionType() == Region::REGION_CELL)) {
@@ -657,10 +659,12 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
   o.beginFunc("petabricks::DynamicTaskPtr", "runDynamic");
 
   if (rf == RuleFlavor::DISTRIBUTED) {
-    o.comment("read all cellproxy to ElementT");
+    o.comment("read cellproxy in TO to ElementT");
     for (unsigned int i = 0; i < to_cells.size(); i++) {
       o.write(to_cells[i] + " = _cellproxy_" + to_cells[i] + ";");
     }
+
+    o.comment("read all cellproxy in FROM to ElementT");
     for (unsigned int i = 0; i < from_cells.size(); i++) {
       o.write("const_cast<ElementT&> (" + from_cells[i] + ") = _cellproxy_" + from_cells[i] + ";");
     }
@@ -682,9 +686,14 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
 
   if (rf == RuleFlavor::DISTRIBUTED) {
     o.beginFunc("petabricks::DynamicTaskPtr", "cleanUp");
-    o.comment("write _to back to cellproxy");
-    for (unsigned int i = 0; i < to_cells.size(); i++) {
-      o.write("_cellproxy_" + to_cells[i] + " = " + to_cells[i] + ";");
+
+    // Cannot do this when the same cell can be pass to TO more than once
+    // (ex: BitonicInner)
+    if (to_cells.size() == 1) {
+      o.comment("write _to back to cellproxy");
+      for (unsigned int i = 0; i < to_cells.size(); i++) {
+        o.write("_cellproxy_" + to_cells[i] + " = " + to_cells[i] + ";");
+      }
     }
     o.write("return NULL;");
     o.endFunc();
