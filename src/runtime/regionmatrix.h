@@ -223,13 +223,18 @@ namespace petabricks {
     }
 
     const IndexT* size() const { return _size; }
-    IndexT size(int i) const { return _size[i]; }
+    IndexT size(int i) const {
+      if (_isTransposed) {
+        i = D - 1 - i;
+      }
+      return _size[i];
+    }
     bool isSize(const IndexT size[D]) const{
       if (!_size) {
         return false;
       }
       for(int i=0; i<D; ++i){
-        if(_size[i] != size[i]){
+        if(this->size(i) != size[i]){
           return false;
         }
       }
@@ -299,6 +304,15 @@ namespace petabricks {
     RegionMatrix<D, ElementT> splitRegion(const IndexT* offset, const IndexT* size) const {
       IndexT offset_new[_regionHandler->dimensions()];
       this->getRegionDataCoord(offset, offset_new);
+
+      if (_isTransposed) {
+        IndexT size_n[_regionHandler->dimensions()];
+        for (int i = 0; i < _regionHandler->dimensions(); i++) {
+          size_n[i] = size[D - 1 - i];
+        }
+        return RegionMatrix<D, ElementT>
+          (size_n, offset_new, _isTransposed, _sliceInfo, _regionHandler);
+      }
 
       return RegionMatrix<D, ElementT>
         (size, offset_new, _isTransposed, _sliceInfo, _regionHandler);
@@ -701,14 +715,14 @@ namespace petabricks {
 
       coord[0]++;
       for (int i = 0; i < D - 1; ++i){
-        if (coord[i] >= _size[i]){
+        if (coord[i] >= size(i)){
           coord[i]=0;
           coord[i+1]++;
         } else{
           return i;
         }
       }
-      if (coord[D - 1] >= _size[D - 1]){
+      if (coord[D - 1] >= size(D - 1)){
         return -1;
       }else{
         return D - 1;
