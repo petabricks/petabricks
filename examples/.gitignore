@@ -48,6 +48,7 @@ kernel/nwkdeMetric
 kernel/nwkde
 kernel/nwkdeVA
 kernel/utils
+linearsolve/LeastSquares
 linearsolve/LinearSolve
 linearsolve/LinearSolvePosDef
 LUDense/DGER

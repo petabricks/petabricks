@@ -141,7 +141,7 @@ to C[w,h]
     }
   }
 
-  // call LAPACK
+  // call BLAS
   to(C c) from (A a, B b, ALPHA alpha, BETA beta)
   {
     int rowA=a.height();
@@ -159,6 +159,11 @@ to C[w,h]
 	      "#rows of matrix B = %d\n"
 	      "They should be equal!\n", colA, rowB);
       exit(4);
+    }
+
+    // fast return if possible
+    if (h == 0 || k == 0 || w == 0) {
+        return;
     }
 
     ElementT* arrayA = toArray(a);

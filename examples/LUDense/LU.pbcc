@@ -322,37 +322,38 @@ to A[n,m], P[m]
     }
 }
 
-transform LUBlocked
+// right looking (update trailing matrix each iteration)
+transform LUBlockedRight
 to A[n,m], P[m]
 tunable sizespecific blockSize
 {
-    // right looking (update trailing matrix each iteration)
     to (A a, P p) from ()
     {
-        //base case
+        // base case
         if (blockSize < 1 || blockSize >= MIN(m,n)) {
             LUBase(a, p);
             return;
         }
 
+        IndexT b = blockSize;
         MatrixRegion2D a1, a2, a11, a12, a21, a22;
         MatrixRegion1D p2;
 
-        a1  = a.region(0, 0, blockSize, m);
-        a2  = a.region(blockSize, 0, n, m);
+        a1  = a.region(0, 0, b, m);
+        a2  = a.region(b, 0, n, m);
 
-        a11 = a.region(0, 0, blockSize, blockSize);
-        a12 = a.region(blockSize, 0, n, blockSize);
-        a21 = a.region(0, blockSize, blockSize, m);
-        a22 = a.region(blockSize, blockSize, n, m);
+        a11 = a.region(0, 0, b, b);
+        a12 = a.region(b, 0, n, b);
+        a21 = a.region(0, b, b, m);
+        a22 = a.region(b, b, n, m);
 
-        p2  = p.region(blockSize, m);
+        p2  = p.region(b, m);
 
         // compute LU of left block
         LUBase(a1, p);
 
         // swap rows in right block
-        PermuteInPlace(a2, p);
+        PermuteInPlace(a2, p, 0, b);
 
         // upper right block
         TriSolveLLInPlace(a12, 1, a11);
@@ -360,41 +361,55 @@ tunable sizespecific blockSize
         // update lower right block
         MatrixMultiplyAdd(a22, -1.0, a21, a12, 1.0);
 
-        // compute LU of the updated lower right block
-        LUInPlace(a22, p2);
+        // recursively compute LU of the updated lower right block
+        LUBlocked(a22, p2);
 
         // swap rows in lower left block
-        PermuteInPlace(a21, p2);
+        PermuteInPlace(a21, p2, 0, m - b);
 
         // adjust permutation values to larger matrix
-        Shift1D(p2, blockSize);
+        Shift1D(p2, b);
     }
+}
 
-    // left looking (process one column block at a time)
-    to (A a, P p) from ()
+// left looking (process one column block at a time)
+transform LUBlockedLeft
+from K
+to A[n,m], P[m]
+tunable sizespecific blockSize
+{
+    to (A a, P p) from (K _k)
     {
-        //base case
-        if (blockSize < 1 || blockSize >= MIN(m,n)) {
+        IndexT k, i0, i1;
+        MatrixRegion2D ac2, a11, a12, a21, a22, a23;
+        MatrixRegion1D p2;
+
+        // make sure k is valid
+        k = MAX(_k, 1);
+        k = MIN(k, MIN(m,n));
+
+        // base case
+        if (blockSize < 1 || blockSize >= k) {
             LUBase(a, p);
             return;
         }
 
-        IndexT i0, i1, minmn = MIN(m,n);
-        MatrixRegion2D a11, a12, a21, a22, a23;
-        MatrixRegion1D p2;
+        for (i0 = 0; i0 < k; i0 += blockSize) {
 
-        for (i0 = 0; i0 < MIN(m,n); i0 += blockSize) {
-
-            i1 = MIN(i0 + blockSize, minmn);
-            a12 = a.region(i0, 0,  i1, i0);
-            a22 = a.region(i0, i0, i1, m );
+            i1  = MIN(i0 + blockSize, k);
+            a22 = a.region(i0, i0, i1, m);
             p2  = p.region(i0, m);
 
             // lazy update of all values in current column
             if (i0 > 0) {
 
-                a11 = a.region(0 , 0,  i0, i0);
+                ac2 = a.region(i0, 0 , i1, m );
+                a11 = a.region(0 , 0 , i0, i0);
+                a12 = a.region(i0, 0 , i1, i0);
                 a21 = a.region(0 , i0, i0, m );
+
+                // apply permutations from previous blocks
+                PermuteInPlace(ac2, p, 0, i0);
 
                 // update values above diagonal
                 TriSolveLLInPlace(a12, 1, a11);
@@ -406,42 +421,69 @@ tunable sizespecific blockSize
             // compute LU of lower column block
             LUBase(a22, p2);
 
-            // permute rows to left and right of lower column block
+            // permute rows to left of lower column block
             if (i0 > 0) {
-                PermuteInPlace(a21, p2);
-            }
-            if (i1 < n) {
-                a23 = a.region(i1, i0, n , m );
-                PermuteInPlace(a23, p2);
+                PermuteInPlace(a21, p2, 0, i1 - i0);
             }
 
             // adjust permutation values to larger matrix
             Shift1D(p2, i0);
         }
 
-        // solve for remainder of U matrix
-        if (n > m) {
-            TriSolveLLInPlace(a.region(m, 0, n, m), 1,
-                              a.region(0, 0, m, m));
+        // permute trailing matrix and solve for upper right portion
+        if (k < n) {
+            PermuteInPlace(a.region(k, 0, n, m), p, 0, k);
+            TriSolveLLInPlace(a.region(k, 0, n, k), 1,
+                              a.region(0, 0, k, k));
+        }
+
+        // if more work to do, update lower right trailing matrix and recurse
+        if (k < MIN(m,n)) {
+            a21 = a.region(0, k, k, m);
+            a12 = a.region(k, 0, n, k);
+            a22 = a.region(k, k, n, m);
+            p2  = p.region(k, m);
+
+            // update lower right block
+            MatrixMultiplyAdd(a22, -1.0, a21, a12, 1.0);
+
+            // recursively compute LU of the updated lower right block
+            LUBlocked(a22, p2);
+
+            // swap rows in lower left block
+            PermuteInPlace(a21, p2, 0, m - k);
+
+            // adjust permutation values to larger matrix
+            Shift1D(p2, k);
         }
     }
+}
 
-    // Crout (process one column/row block at a time)
-    to (A a, P p) from ()
+// Crout (process one column/row block at a time)
+transform LUBlockedCrout
+from K
+to A[n,m], P[m]
+tunable sizespecific blockSize
+{
+    to (A a, P p) from (K _k)
     {
-        //base case
-        if (blockSize < 1 || blockSize >= MIN(m,n)) {
+        IndexT k, i0, i1;
+        MatrixRegion2D a11, a12, a13, a21, a22, a23, ar1, ar2, ar3;
+        MatrixRegion1D p2;
+
+        // make sure k is valid
+        k = MAX(_k, 1);
+        k = MIN(k, MIN(m,n));
+
+        // base case
+        if (blockSize < 1 || blockSize >= k) {
             LUBase(a, p);
             return;
         }
 
-        IndexT i0, i1, minmn = MIN(m,n);
-        MatrixRegion2D a11, a12, a13, a21, a22, a23, ar1, ar2, ar3;
-        MatrixRegion1D p2;
+        for (i0 = 0; i0 < k; i0 += blockSize) {
 
-        for (i0 = 0; i0 < MIN(m,n); i0 += blockSize) {
-
-            i1 = MIN(i0 + blockSize, minmn);
+            i1 = MIN(i0 + blockSize, k);
             a12 = a.region(i0, 0,  i1, i0);
             a13 = a.region(i1, 0,  n , i0);
             ar1 = a.region(0 , i0, i0, i1);
@@ -454,28 +496,147 @@ tunable sizespecific blockSize
             p2  = p.region(i0, m);
 
             // lazy update of current column block
-            MatrixMultiplyAdd(a22, -1.0, a21, a12, 1.0);
+            if (i0 > 0) {
+                MatrixMultiplyAdd(a22, -1.0, a21, a12, 1.0);
+            }
 
             // compute LU of lower column block
             LUBase(a22, p2);
 
             // permute rows to left and right of lower column block
-            PermuteInPlace(a21, p2);
-            PermuteInPlace(a23, p2);
+            if (i0 > 0) {
+                PermuteInPlace(a21, p2, 0, i1 - i0);
+            }
+            if (i1 < n) {
+                PermuteInPlace(a23, p2, 0, i1 - i0);
+            }
 
             // adjust permutation values to larger matrix
             Shift1D(p2, i0);
 
             // lazy update of current row block
-            MatrixMultiplyAdd(ar3, -1.0, ar1, a13, 1.0);
-            TriSolveLLInPlace(ar3, 1, ar2);
+            if (i1 < n) {
+                if (i0 > 0) {
+                    MatrixMultiplyAdd(ar3, -1.0, ar1, a13, 1.0);
+                }
+                TriSolveLLInPlace(ar3, 1, ar2);
+            }
         }
+
+        // if more work to do, update trailing matrix and recurse
+        if (k < MIN(m,n)) {
+            a21 = a.region(0, k, k, m);
+            a12 = a.region(k, 0, n, k);
+            a22 = a.region(k, k, n, m);
+            p2  = p.region(k, m);
+
+            // update lower right block
+            MatrixMultiplyAdd(a22, -1.0, a21, a12, 1.0);
+
+            // recursively compute LU of the updated lower right block
+            LUBlocked(a22, p2);
+
+            // swap rows in lower left block
+            PermuteInPlace(a21, p2, 0, m - k);
+
+            // adjust permutation values to larger matrix
+            Shift1D(p2, k);
+        }
+    }
+}
+
+transform LUBlocked
+to A[n,m], P[m]
+{
+    // right-looking recursive
+    to (A a, P p) from ()
+    {
+        LUBlockedRight(a, p);
+    }
+
+    // left-looking non-recursive
+    to (A a, P p) from ()
+    {
+        LUBlockedLeft(a, p, MIN(m,n));
+    }
+
+    // left-looking recursive
+    to (A a, P p) from ()
+    {
+        LUBlockedLeft(a, p, MIN(m,n) / 2);
+    }
+
+    // Crout non-recursive
+    to (A a, P p) from ()
+    {
+        LUBlockedCrout(a, p, MIN(m,n));
+    }
+
+    // Crout recursive
+    to (A a, P p) from ()
+    {
+        LUBlockedCrout(a, p, MIN(m,n) / 2);
+    }
+}
+
+// recursively split matrix into quadrants
+transform LURecursive
+to A[n,m], P[m]
+tunable sizespecific blockSize
+{
+    to (A a, P p) from ()
+    {
+        // base case
+        if (blockSize < 1 || blockSize >= MIN(m,n)) {
+            LUBlocked(a, p);
+            return;
+        }
+
+        IndexT b = m / 2;
+        MatrixRegion2D a1, a2, a11, a12, a21, a22;
+        MatrixRegion1D p2;
+
+        a1  = a.region(0, 0, b, m);
+        a2  = a.region(b, 0, n, m);
+
+        a11 = a.region(0, 0, b, b);
+        a12 = a.region(b, 0, n, b);
+        a21 = a.region(0, b, b, m);
+        a22 = a.region(b, b, n, m);
+
+        p2  = p.region(b, m);
+
+        // compute LU of left block
+        LURecursive(a1, p);
+
+        // swap rows in right block
+        PermuteInPlace(a2, p, 0, b);
+
+        // upper right block
+        TriSolveLLInPlace(a12, 1, a11);
+
+        // update lower right block
+        MatrixMultiplyAdd(a22, -1.0, a21, a12, 1.0);
+
+        // recursively compute LU of the updated lower right block
+        LURecursive(a22, p2);
+
+        // swap rows in lower left block
+        PermuteInPlace(a21, p2, 0, m - b);
+
+        // adjust permutation values to larger matrix
+        Shift1D(p2, b);
     }
 }
 
 transform LUInPlace
 to A[n,m], P[m]
 {
+    to (A a, P p) from ()
+    {
+        LURecursive(a, p);
+    }
+
     to (A a, P p) from ()
     {
         LUBlocked(a, p);
