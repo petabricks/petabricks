@@ -1,0 +1,137 @@
+// Compute PARTIALS by exposing the most fine-grained parallelism.  Large
+// memory footprint in exchange for higher parallelism.  Cache-efficiency
+// depends on execution ordering.
+// Note: this method seems to confuse the scheduler
+transform NWKDEBase1
+from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
+     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q],
+     DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
+to RESULT[q]
+through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[l,q]
+{
+    // initialize skip index flags to 0
+    to   (INITFLAGS.cell(j) initFlag,
+          SKIPINDEXFLAGS.cell(j) skipIndexFlag)
+    from ()
+    {
+        skipIndexFlag = 0;
+        initFlag = 1;
+    }
+
+    // Note: rule depends on initFlag so that skipIndexFlag defaults to 0
+    to   (SQDIFFS.cell(i,j,k) sqDiff,
+          SKIPINDEXFLAGS.cell(j) skipIndexFlag)
+    from (INITFLAGS.cell(j) initFlag,
+          TRAINDATA trainData, TRAINX.row(i) trainX,
+          TRAININDICES.cell(j) trainIndex,
+          TESTDATA testData, TESTX.row(i) testX,
+          TESTINDICES.cell(k) testIndex,
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths)
+    {
+        IndexT dirFlag;
+        ElementT kernelWidth, trainPoint, testPoint, diff;
+
+        dirFlag     =     dirFlags.cell(trainX.cell(0));
+        kernelWidth = kernelWidths.cell(trainX.cell(0));
+
+        // TODO: lookup function is really slow (even inlined)
+//     trainPoint = lookup(trainData, trainX, trainIndex);
+//     testPoint  = lookup( testData,  testX, testIndex);
+       // do lookup without the function call overhead
+       trainPoint = trainData.cell(trainX.cell(0),
+                                   trainIndex + trainX.cell(1));
+       testPoint = testData.cell(testX.cell(0),
+                                 testIndex + testX.cell(1));
+
+        // skip this variable if nan is detected in the test point
+        if (ISNAN(testPoint)) {
+            sqDiff = 0;
+            return;
+        }
+
+        // skip this training index if nan is detected in the train point
+        if (ISNAN(trainPoint)) {
+            skipIndexFlag = 1;
+            return;
+        }
+
+        diff = trainPoint - testPoint;
+
+        if (dirFlag) {
+            diff = wrapWindDirDiff(diff);
+        }
+
+        // normalize according to kernel width
+        diff /= kernelWidth;
+
+        // return squared difference
+        sqDiff = diff * diff;
+#ifdef DEBUG
+        fprintf(stderr, "method 1:  sqdiff(%d, %d, %d) = %g\n", i, j, k, sqDiff);
+#endif
+    }
+
+    to (WEIGHTS.cell(j,k) weight)
+    from (SQDIFFS.region(0, j,   k,
+                         p ,j+1, k+1) sqDiffs,
+          TRAININDICES.cell(j) trainIndex,
+          TESTINDICES.cell(k) testIndex,
+          SPLIT split, MASKWIDTH maskWidth,
+          SKIPINDEXFLAGS.cell(j) skipIndexFlag)
+    {
+        IndexT partStart, partEnd, partSize;
+        // compute the partition that this testIndex lies in
+        partStart = partEnd = k;
+        if (split > 0) {
+            partSize = l / split;
+            partStart = k - (k % partSize);
+            partEnd = partStart + partSize;
+        }
+
+        // skip current training index if it is too close to the test
+        // index, if it's not in the same partition, or if the training
+        // output value is a NAN
+        if (skipIndexFlag ||
+            (trainIndex > testIndex - maskWidth &&
+             trainIndex < testIndex + maskWidth) ||
+            (j >= partStart && j < partEnd)) {
+            weight = 0;
+        } else {
+            ReduceAdd(weight, sqDiffs.slice(2,0).slice(1,0));
+            weight = exp(-((ElementT) weight));
+        }
+#ifdef DEBUG
+        fprintf(stderr, "method 1:  weight(%d, %d) = %g\n", j, k, weight);
+#endif
+    }
+
+    to (PARTIALS.cell(j,k) partial)
+    from (TRAINDATA trainData,
+          TRAININDICES.cell(j) trainIndex,
+          TRAINY trainY,
+          WEIGHTS.cell(j,k) weight)
+    {
+        ElementT y;
+        // TODO: lookup function is really slow (even inlined)
+//      y = lookup(trainData, trainY, trainIndex);
+        // do lookup without the function call overhead
+        y = trainData.cell(trainY.cell(0), trainIndex + trainY.cell(1));
+        partial = ISNAN(y) ? 0 : weight * y;
+#ifdef DEBUG
+        fprintf(stderr, "method 1: partial(%d, %d) = %g\n", j, k, partial);
+#endif
+    }
+
+    to (RESULT.cell(k) result)
+    from (PARTIALS.row(k) partials,
+          WEIGHTS.row(k) weights)
+    {
+        ElementT totalWeight;
+        ReduceAdd1D(result, partials);
+        ReduceAdd1D(totalWeight, weights);
+        result /= totalWeight;
+#ifdef DEBUG
+        fprintf(stderr, "Output %d = %g\n", k, result);
+#endif // DEBUG
+    }
+}
