@@ -30,11 +30,11 @@ RegionHandler::RegionHandler(const RegionDataIPtr regionData) {
   _D = _regionData->dimensions();
 }
 
-RegionHandler::RegionHandler(const EncodedPtr remoteObjPtr) {
-  RegionDataRemoteObject* remoteObj = reinterpret_cast<RegionDataRemoteObject*>(remoteObjPtr);
-  _regionData = remoteObj->regionData();
-  _D = _regionData->dimensions();
-}
+//RegionHandler::RegionHandler(const EncodedPtr remoteObjPtr) {
+//  RegionDataRemoteObject* remoteObj = reinterpret_cast<RegionDataRemoteObject*>(remoteObjPtr);
+//  _regionData = remoteObj->regionData();
+//  _D = _regionData->dimensions();
+//}
 
 ElementT RegionHandler::readCell(const IndexT* coord) {
   return _regionData->readCell(coord);
