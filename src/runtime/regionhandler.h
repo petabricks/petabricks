@@ -25,7 +25,7 @@ namespace petabricks {
     RegionHandler(const int dimensions, const IndexT* size, const bool alloc);
     RegionHandler(const int dimensions, const IndexT* size, const IndexT* partOffset);
     RegionHandler(const RegionDataIPtr regionData);
-    RegionHandler(const EncodedPtr remoteObjPtr);
+    //RegionHandler(const EncodedPtr remoteObjPtr);
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
