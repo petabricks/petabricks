@@ -4,6 +4,8 @@
 #include "nwkde.h"
 #include "utils.pbcc"
 
+#define BIGNUM (1e100)
+
 %{
 
 /* This function returns the negative MSE produced by NWKDE transforms.
@@ -19,7 +21,6 @@ ElementT computeNWKDEMetric(ConstMatrixRegion1D result,
 
     for (IndexT i = 0; i < indices.count(); ++i) {
         a = result.cell(i);
-//      b = lookup(data, y, indices.cell(i));
         b = data.cell(y.cell(0), indices.cell(i) + y.cell(1));
         if (!ISNAN(a) && !ISNAN(b)) {
             diff = a - b;
@@ -34,7 +35,11 @@ ElementT computeNWKDEMetric(ConstMatrixRegion1D result,
 #ifdef DEBUG
     fprintf(stderr, "sum = %g, count = %d\n", sum, count);
 #endif
-    sum /= count;
+    if (count > 0) {
+        sum /= count;
+    } else {
+        sum = BIGNUM;
+    }
     return -sum;
 }
 
