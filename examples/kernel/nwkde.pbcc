@@ -351,26 +351,21 @@ to WEIGHTS[q], PARTIALS[q]
 
 // Compute results in a blocked fashion
 transform NWKDEBlocked
-from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
+from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l], TRAINSTART,
      TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q], TESTSTART, NUMTEST,
      DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
-through WEIGHTS[q], PARTIALS[q]
-to RESULT[q]
-tunable blockSize
+to WEIGHTS[q], PARTIALS[q]
+tunable sizespecific blockSize
 {
-    to   (RESULT result, WEIGHTS weights, PARTIALS partials)
+    to   (WEIGHTS weights, PARTIALS partials)
     from (TRAINDATA trainData, TRAINX trainX, TRAINY trainY,
-          TRAININDICES trainIndices,
+          TRAININDICES trainIndices, TRAINSTART trainStart,
           TESTDATA testData, TESTX testX,
           TESTINDICES testIndices, TESTSTART testStart, NUMTEST numTest,
           DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
           MASKWIDTH maskWidth)
     {
         IndexT i0, i1, j0, j1, j, b = MAX(1, blockSize);
-
-        // initialize weights and partials to 0
-        Init1D(weights, 0);
-        Init1D(partials, 0);
 
         // blocked iteration over training and test indices
         for (j0 = 0; j0 < q; j0 += b) {
@@ -379,14 +374,93 @@ tunable blockSize
                 i1 = MIN(i0 + b, l);
                 NWKDEBase(weights.region(j0, j1), partials.region(j0, j1),
                           trainData, trainX, trainY,
-                          trainIndices.region(i0, i1), i0,
+                          trainIndices.region(i0, i1), trainStart + i0,
                           testData, testX,
                           testIndices.region(j0, j1), testStart + j0, numTest,
                           dirFlags, kernelWidths, split, maskWidth);
             }
-            for (j = 0; j < q; ++j) {
-                result.cell(j) = partials.cell(j) / weights.cell(j);
+        }
+    }
+}
+
+// Cache-oblivous recursive version, split iteration space into quadrants and
+// recurse in order to minimize cache traffic
+transform NWKDERecursive
+from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l], TRAINSTART,
+     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q], TESTSTART, NUMTEST,
+     DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
+to WEIGHTS[q], PARTIALS[q]
+tunable sizespecific blockSize
+{
+    to   (WEIGHTS weights, PARTIALS partials)
+    from (TRAINDATA trainData, TRAINX trainX, TRAINY trainY,
+          TRAININDICES trainIndices, TRAINSTART trainStart,
+          TESTDATA testData, TESTX testX,
+          TESTINDICES testIndices, TESTSTART testStart, NUMTEST numTest,
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+          MASKWIDTH maskWidth)
+    {
+        IndexT i0, i1, j0, j1, ib, jb, b = MAX(1, blockSize);
+
+        // base case
+        if (l <= b && q <= b) {
+            NWKDEBlocked(weights, partials,
+                         trainData, trainX, trainY,
+                         trainIndices, trainStart,
+                         testData, testX,
+                         testIndices, testStart, numTest,
+                         dirFlags, kernelWidths, split, maskWidth);
+            return;
+        }
+
+        // determine block sizes in each dimension
+        ib = (l > b) ? l/2 : l;
+        jb = (q > b) ? q/2 : q;
+
+        // quadrant 1
+        i0 = 0; i1 = ib;
+        j0 = 0; j1 = jb;
+        NWKDERecursive(weights.region(j0, j1), partials.region(j0, j1),
+                       trainData, trainX, trainY,
+                       trainIndices.region(i0, i1), trainStart + i0,
+                       testData, testX,
+                       testIndices.region(j0, j1), testStart + j0, numTest,
+                       dirFlags, kernelWidths, split, maskWidth);
+
+        // quadrant 2
+        if (ib < l) {
+            i0 = ib; i1 = l;
+            j0 = 0; j1 = jb;
+            NWKDERecursive(weights.region(j0, j1), partials.region(j0, j1),
+                           trainData, trainX, trainY,
+                           trainIndices.region(i0, i1), trainStart + i0,
+                           testData, testX,
+                           testIndices.region(j0, j1), testStart + j0, numTest,
+                           dirFlags, kernelWidths, split, maskWidth);
+        }
+
+        if (jb < q) {
+            // quadrant 4
+            if (ib < l) {
+                i0 = ib; i1 = l;
+                j0 = jb; j1 = q;
+                NWKDERecursive(weights.region(j0, j1), partials.region(j0, j1),
+                               trainData, trainX, trainY,
+                               trainIndices.region(i0, i1), trainStart + i0,
+                               testData, testX, testIndices.region(j0, j1),
+                               testStart + j0, numTest,
+                               dirFlags, kernelWidths, split, maskWidth);
             }
+
+            // quadrant 3
+            i0 = 0; i1 = ib;
+            j0 = jb; j1 = q;
+            NWKDERecursive(weights.region(j0, j1), partials.region(j0, j1),
+                           trainData, trainX, trainY,
+                           trainIndices.region(i0, i1), trainStart + i0,
+                           testData, testX,
+                           testIndices.region(j0, j1), testStart + j0, numTest,
+                           dirFlags, kernelWidths, split, maskWidth);
         }
     }
 }
@@ -396,12 +470,13 @@ from TRAINDATA[_M_,_N_], TRAINX[2,_P_], TRAINY[2], TRAININDICES[_L_],
      TESTDATA[_M2_,_N2_], TESTX[2,_P_], TESTINDICES[_Q_],
      DIRFLAGS[_M_], KERNELWIDTHS[_M_], SPLIT, MASKWIDTH
 to RESULT[_Q_]
-tunable blockSize
+through WEIGHTS[_Q_], PARTIALS[_Q_]
+tunable sizespecific blockSize
 through INPUTSCHECKED
 generator NWKDEGenerator2
 accuracy_metric NWKDEMetric2
 {
-    to   (RESULT result)
+    to   (WEIGHTS weights, PARTIALS partials)
     from (TRAINDATA trainData, TRAINX trainX,
           TRAINY trainY, TRAININDICES trainIndices,
           TESTDATA testData, TESTX testX, TESTINDICES testIndices,
@@ -413,26 +488,37 @@ accuracy_metric NWKDEMetric2
         NWKDECheckInputs(ret, trainData, trainX, trainY, trainIndices,
                          testData, testX, testIndices);
 #endif
-        if (blockSize < 1 || blockSize > _Q_) {
-            NWKDEBlocked(result,
-                         trainData, trainX, trainY, trainIndices,
-                         testData, testX,
-                         testIndices, 0, _Q_,
-                         dirFlags, kernelWidths, split, maskWidth);
-            return;
-        }
 
-        // domain decomposition for coarse-grain parallelism
-        IndexT i0, i1;
-        for (i0 = 0; i0 < _Q_; i0 += blockSize) {
-            i1 = MIN(i0 + blockSize, _Q_);
-            spawn NWKDEBlocked(result.region(i0, i1),
-                               trainData, trainX, trainY, trainIndices,
-                               testData, testX,
-                               testIndices.region(i0, i1), i0, _Q_,
-                               dirFlags, kernelWidths, split, maskWidth);
+        // initialize weights and partials to 0
+        Init1D(weights, 0);
+        Init1D(partials, 0);
+
+        if (blockSize < 1 || blockSize > _Q_) {
+            NWKDERecursive(weights, partials,
+                           trainData, trainX, trainY, trainIndices, 0,
+                           testData, testX,
+                           testIndices, 0, _Q_,
+                           dirFlags, kernelWidths, split, maskWidth);
+        } else {
+            // domain decomposition for coarse-grain parallelism
+            IndexT i0, i1;
+            for (i0 = 0; i0 < _Q_; i0 += blockSize) {
+                i1 = MIN(i0 + blockSize, _Q_);
+                spawn NWKDERecursive(weights.region(i0, i1),
+                                     partials.region(i0, i1),
+                                     trainData, trainX, trainY, trainIndices, 0,
+                                     testData, testX,
+                                     testIndices.region(i0, i1), i0, _Q_,
+                                     dirFlags, kernelWidths, split, maskWidth);
+            }
+            sync;
         }
-        sync;
+    }
+
+    to (RESULT.cell(j) result)
+    from (WEIGHTS.cell(j) weight, PARTIALS.cell(j) partial)
+    {
+        result = partial / weight;
     }
 }
 
