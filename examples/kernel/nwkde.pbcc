@@ -1,6 +1,7 @@
 #ifndef NWKDE_PBCC
 #define NWKDE_PBCC
 
+#include "../simple/init.pbcc"
 #include "../simple/macros.h"
 #include "../simple/reduce.pbcc"
 #include "nwkde.h"
@@ -128,85 +129,88 @@ to INPUTSCHECKED
 // The three methods below are listed in decreasing order of both available
 // parallelism and memory traffic.
 transform NWKDEBase
-from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
-     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q],
+from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l], TRAINSTART,
+     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q], TESTSTART, NUMTEST,
      DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
-to RESULT[q]
+to WEIGHTS[q], PARTIALS[q]
 {
 
 #ifdef INCLUDE_METHOD1
-    to   (RESULT result)
-    from (TRAINDATA trainData, TRAINX trainX,
-          TRAINY trainY, TRAININDICES trainIndices,
-          TESTDATA testData, TESTX testX, TESTINDICES testIndices,
+    to   (WEIGHTS weights, PARTIALS partials)
+    from (TRAINDATA trainData, TRAINX trainX, TRAINY trainY,
+          TRAININDICES trainIndices, TRAINSTART trainStart,
+          TESTDATA testData, TESTX testX,
+          TESTINDICES testIndices, TESTSTART testStart, NUMTEST numTest,
           DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
           MASKWIDTH maskWidth)
     {
-        NWKDEBase1(result, trainData, trainX, trainY, trainIndices,
-                   testData, testX, testIndices,
+        NWKDEBase1(weights, partials,
+                   trainData, trainX, trainY, trainIndices, trainStart,
+                   testData, testX, testIndices, testStart, numTest,
                    dirFlags, kernelWidths, split, maskWidth);
     }
 #endif
 
 #ifdef INCLUDE_METHOD2
-    to   (RESULT result)
-    from (TRAINDATA trainData, TRAINX trainX,
-          TRAINY trainY, TRAININDICES trainIndices,
-          TESTDATA testData, TESTX testX, TESTINDICES testIndices,
+    to   (WEIGHTS weights, PARTIALS partials)
+    from (TRAINDATA trainData, TRAINX trainX, TRAINY trainY,
+          TRAININDICES trainIndices, TRAINSTART trainStart,
+          TESTDATA testData, TESTX testX,
+          TESTINDICES testIndices, TESTSTART testStart, NUMTEST numTest,
           DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
           MASKWIDTH maskWidth)
     {
-        NWKDEBase2(result, trainData, trainX, trainY, trainIndices,
-                   testData, testX, testIndices,
+        NWKDEBase2(weights, partials,
+                   trainData, trainX, trainY, trainIndices, trainStart,
+                   testData, testX, testIndices, testStart, numTest,
                    dirFlags, kernelWidths, split, maskWidth);
     }
 #endif
 
 #ifdef INCLUDE_METHOD3
-    to   (RESULT result)
-    from (TRAINDATA trainData, TRAINX trainX,
-          TRAINY trainY, TRAININDICES trainIndices,
-          TESTDATA testData, TESTX testX, TESTINDICES testIndices,
+    to   (WEIGHTS weights, PARTIALS partials)
+    from (TRAINDATA trainData, TRAINX trainX, TRAINY trainY,
+          TRAININDICES trainIndices, TRAINSTART trainStart,
+          TESTDATA testData, TESTX testX,
+          TESTINDICES testIndices, TESTSTART testStart, NUMTEST numTest,
           DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
           MASKWIDTH maskWidth)
     {
-        NWKDEBase3(result, trainData, trainX, trainY, trainIndices,
-                   testData, testX, testIndices,
+        NWKDEBase3(weights, partials,
+                   trainData, trainX, trainY, trainIndices, trainStart,
+                   testData, testX, testIndices, testStart, numTest,
                    dirFlags, kernelWidths, split, maskWidth);
     }
 #endif
 }
 
-// Compute weights and partials directly with one pass through the data
+// Compute weights and partials directly
 transform NWKDEBase2
-from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
-     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q],
+from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l], TRAINSTART,
+     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q], TESTSTART, NUMTEST,
      DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
-to RESULT[q]
-through WEIGHTS[l,q], PARTIALS[l,q]
+to WEIGHTS[q], PARTIALS[q]
+through WEIGHTS2[l,q], PARTIALS2[l,q]
 {
-    to   (PARTIALS.cell(j,k) partial,
-          WEIGHTS.cell(j,k) weight)
-    from (TRAINDATA trainData, TRAINX trainX,
-          TRAINY trainY, TRAININDICES.cell(j) trainIndex,
-          TESTDATA testData, TESTX testX, TESTINDICES.cell(k) testIndex,
+    to   (PARTIALS2.cell(j,k) partial, WEIGHTS2.cell(j,k) weight)
+    from (TRAINDATA trainData, TRAINX trainX, TRAINY trainY,
+          TRAININDICES.cell(j) trainIndex, TRAINSTART trainStart,
+          TESTDATA testData, TESTX testX,
+          TESTINDICES.cell(k) testIndex, TESTSTART testStart, NUMTEST numTest,
           DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
           MASKWIDTH maskWidth)
     {
-        IndexT i, dirFlag, partStart, partEnd, partSize;
+        IndexT i, idx, dirFlag, partStart, partEnd, partSize;
         ElementT y, kernelWidth, trainPoint, testPoint, diff, sum;
 
         // compute the partition that this testIndex lies in
-        partStart = partEnd = k;
+        partStart = partEnd = idx = testStart + k;
         if (split > 0) {
-            partSize = l / split;
-            partStart = k - (k % partSize);
+            partSize = MAX(1, floor(numTest / split));
+            partStart = idx - (idx % partSize);
             partEnd = partStart + partSize;
         }
 
-        // TODO: lookup function is really slow (even inlined)
-//      y = lookup(trainData, trainY, trainIndex);
-        // do lookup without the function call overhead
         y = trainData.cell(trainY.cell(0), trainIndex + trainY.cell(1));
 
         // skip current training index if it is too close to the test
@@ -214,7 +218,8 @@ through WEIGHTS[l,q], PARTIALS[l,q]
         // output value is a NAN
         if ((trainIndex > testIndex - maskWidth &&
              trainIndex < testIndex + maskWidth) ||
-            (j >= partStart && j < partEnd) ||
+            (trainStart + j >= partStart &&
+             trainStart + j < partEnd) ||
             ISNAN(y)) {
             weight = partial = 0;
             return;
@@ -225,10 +230,6 @@ through WEIGHTS[l,q], PARTIALS[l,q]
         for (i = 0; i < trainX.size(1); ++i) {
             dirFlag     =     dirFlags.cell(trainX.cell(0, i));
             kernelWidth = kernelWidths.cell(trainX.cell(0, i));
-            // TODO: lookup function is really slow (even inlined)
-//          trainPoint = lookup(trainData, trainX, i, trainIndex);
-//          testPoint  = lookup( testData,  testX, i,  testIndex);
-            // do lookup without the function call overhead
             trainPoint = trainData.cell(trainX.cell(0, i),
                                         trainIndex + trainX.cell(1, i));
             testPoint = testData.cell(testX.cell(0, i),
@@ -251,61 +252,53 @@ through WEIGHTS[l,q], PARTIALS[l,q]
 
         weight = exp(-((ElementT) sum));
         partial = weight * y;
-#ifdef DEBUG
-        fprintf(stderr, "method 2:  weight(%d, %d) = %g\n", j, k, weight);
-        fprintf(stderr, "method 2: partial(%d, %d) = %g\n", j, k, partial);
-#endif
     }
 
-    to (RESULT.cell(k) result)
-    from (PARTIALS.row(k) partials,
-          WEIGHTS.row(k) weights)
+    to (PARTIALS.cell(k) partial,
+        WEIGHTS.cell(k) weight)
+    from (PARTIALS2.row(k) partials,
+          WEIGHTS2.row(k) weights)
     {
-        ElementT totalWeight;
-        ReduceAdd1D(result, partials);
-        ReduceAdd1D(totalWeight, weights);
-        result /= totalWeight;
-#ifdef DEBUG
-        fprintf(stderr, "Output %d = %g\n", k, result);
-#endif // DEBUG
+        ElementT curPartial, curWeight;
+        ReduceAdd1D(curPartial, partials);
+        ReduceAdd1D(curWeight, weights);
+        partial += curPartial;
+        weight += curWeight;
     }
 }
 
 // Compute results directly with one pass through the data
 transform NWKDEBase3
-from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
-     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q],
+from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l], TRAINSTART,
+     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q], TESTSTART, NUMTEST,
      DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
-to RESULT[q]
+to WEIGHTS[q], PARTIALS[q]
 {
-    to   (RESULT.cell(k) result)
-    from (TRAINDATA trainData, TRAINX trainX,
-          TRAINY trainY, TRAININDICES trainIndices,
-          TESTDATA testData, TESTX testX, TESTINDICES.cell(k) testIndex,
+    to   (WEIGHTS.cell(k) weight, PARTIALS.cell(k) partial)
+    from (TRAINDATA trainData, TRAINX trainX, TRAINY trainY,
+          TRAININDICES trainIndices, TRAINSTART trainStart,
+          TESTDATA testData, TESTX testX,
+          TESTINDICES.cell(k) testIndex, TESTSTART testStart, NUMTEST numTest,
           DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
           MASKWIDTH maskWidth)
     {
         bool skipIndexFlag;
-        IndexT i, j, dirFlag, trainIndex, partSize, partStart, partEnd;
+        IndexT i, j, idx, dirFlag, trainIndex, partSize, partStart, partEnd;
         ElementT y, kernelWidth, trainPoint, testPoint, diff, sum,
-                 weight, partial, totalPartial, totalWeight;
+                 curWeight, curPartial;
 
         // compute the partition that this testIndex lies in
-        partStart = partEnd = k;
+        partStart = partEnd = idx = testStart + k;
         if (split > 0) {
-            partSize = l / split;
-            partStart = k - (k % partSize);
+            partSize = MAX(1, floor(numTest / split));
+            partStart = idx - (idx % partSize);
             partEnd = partStart + partSize;
         }
 
         // loop over training points
-        totalPartial = totalWeight = 0;
         for (j = 0; j < trainIndices.count(); ++j) {
 
             trainIndex = trainIndices.cell(j);
-            // TODO: lookup function is really slow (even inlined)
-//          y = lookup(trainData, trainY, trainIndex);
-            // do lookup without the function call overhead
             y = trainData.cell(trainY.cell(0), trainIndex + trainY.cell(1));
 
             // skip current training index if it is too close to the test
@@ -313,7 +306,8 @@ to RESULT[q]
             // output value is a NAN
             if ((trainIndex > testIndex - maskWidth &&
                  trainIndex < testIndex + maskWidth) ||
-                (j >= partStart && j < partEnd) ||
+                (trainStart + j >= partStart &&
+                 trainStart + j < partEnd) ||
                 ISNAN(y)) {
                 continue;
             }
@@ -324,10 +318,6 @@ to RESULT[q]
             for (i = 0; i < trainX.size(1); ++i) {
                 dirFlag     =     dirFlags.cell(trainX.cell(0, i));
                 kernelWidth = kernelWidths.cell(trainX.cell(0, i));
-                // TODO: lookup function is really slow (even inlined)
-//              trainPoint = lookup(trainData, trainX, i, trainIndex);
-//              testPoint  = lookup( testData,  testX, i,  testIndex);
-                // do lookup without the function call overhead
                 trainPoint = trainData.cell(trainX.cell(0, i),
                                             trainIndex + trainX.cell(1, i));
                 testPoint = testData.cell(testX.cell(0, i),
@@ -350,21 +340,54 @@ to RESULT[q]
 
             if (skipIndexFlag) { continue; }
 
-            weight = exp(-((ElementT) sum));
-            partial = weight * y;
+            curWeight = exp(-((ElementT) sum));
+            curPartial = curWeight * y;
 
-#ifdef DEBUG
-            fprintf(stderr, "method 3:  weight(%d, %d) = %g\n", j, k, weight);
-            fprintf(stderr, "method 3: partial(%d, %d) = %g\n", j, k, partial);
-#endif // DEBUG
-            totalWeight += weight;
-            totalPartial += partial;
+            weight += curWeight;
+            partial += curPartial;
         }
+    }
+}
 
-        result = totalPartial / totalWeight;
-#ifdef DEBUG
-        fprintf(stderr, "Output %d = %g\n", k, result);
-#endif // DEBUG
+// Compute results in a blocked fashion
+transform NWKDEBlocked
+from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
+     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q], TESTSTART, NUMTEST,
+     DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
+through WEIGHTS[q], PARTIALS[q]
+to RESULT[q]
+tunable blockSize
+{
+    to   (RESULT result, WEIGHTS weights, PARTIALS partials)
+    from (TRAINDATA trainData, TRAINX trainX, TRAINY trainY,
+          TRAININDICES trainIndices,
+          TESTDATA testData, TESTX testX,
+          TESTINDICES testIndices, TESTSTART testStart, NUMTEST numTest,
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+          MASKWIDTH maskWidth)
+    {
+        IndexT i0, i1, j0, j1, j, b = MAX(1, blockSize);
+
+        // initialize weights and partials to 0
+        Init1D(weights, 0);
+        Init1D(partials, 0);
+
+        // blocked iteration over training and test indices
+        for (j0 = 0; j0 < q; j0 += b) {
+            j1 = MIN(j0 + b, q);
+            for (i0 = 0; i0 < l; i0 += b) {
+                i1 = MIN(i0 + b, l);
+                NWKDEBase(weights.region(j0, j1), partials.region(j0, j1),
+                          trainData, trainX, trainY,
+                          trainIndices.region(i0, i1), i0,
+                          testData, testX,
+                          testIndices.region(j0, j1), testStart + j0, numTest,
+                          dirFlags, kernelWidths, split, maskWidth);
+            }
+            for (j = 0; j < q; ++j) {
+                result.cell(j) = partials.cell(j) / weights.cell(j);
+            }
+        }
     }
 }
 
@@ -373,6 +396,7 @@ from TRAINDATA[_M_,_N_], TRAINX[2,_P_], TRAINY[2], TRAININDICES[_L_],
      TESTDATA[_M2_,_N2_], TESTX[2,_P_], TESTINDICES[_Q_],
      DIRFLAGS[_M_], KERNELWIDTHS[_M_], SPLIT, MASKWIDTH
 to RESULT[_Q_]
+tunable blockSize
 through INPUTSCHECKED
 generator NWKDEGenerator2
 accuracy_metric NWKDEMetric2
@@ -387,12 +411,28 @@ accuracy_metric NWKDEMetric2
 #ifdef DEBUG
         ElementT ret;
         NWKDECheckInputs(ret, trainData, trainX, trainY, trainIndices,
-                         testData, testX, testIndices,
-                         dirFlags, kernelWidths, split, maskWidth);
+                         testData, testX, testIndices);
 #endif
-        NWKDEBase(result, trainData, trainX, trainY, trainIndices,
-                  testData, testX, testIndices,
-                  dirFlags, kernelWidths, split, maskWidth);
+        if (blockSize < 1 || blockSize > _Q_) {
+            NWKDEBlocked(result,
+                         trainData, trainX, trainY, trainIndices,
+                         testData, testX,
+                         testIndices, 0, _Q_,
+                         dirFlags, kernelWidths, split, maskWidth);
+            return;
+        }
+
+        // domain decomposition for coarse-grain parallelism
+        IndexT i0, i1;
+        for (i0 = 0; i0 < _Q_; i0 += blockSize) {
+            i1 = MIN(i0 + blockSize, _Q_);
+            spawn NWKDEBlocked(result.region(i0, i1),
+                               trainData, trainX, trainY, trainIndices,
+                               testData, testX,
+                               testIndices.region(i0, i1), i0, _Q_,
+                               dirFlags, kernelWidths, split, maskWidth);
+        }
+        sync;
     }
 }
 

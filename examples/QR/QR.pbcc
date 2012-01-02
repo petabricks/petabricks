@@ -2,6 +2,7 @@
 #define QR_PBCC
 
 #include "../simple/macros.h"
+#include "../simple/init.pbcc"
 #include "../simple/copy.pbcc"
 #include "../simple/norm.pbcc"
 #include "../simple/scale.pbcc"
@@ -9,26 +10,6 @@
 #include "../multiply/triMultiply.pbcc"
 #include "../kernel/utils.pbcc"
 #include "QRLAPACK.pbcc"
-
-transform Init1D
-from VALUE
-to A[n]
-{
-    to (A.cell(i) a) from (VALUE val)
-    {
-        a = val;
-    }
-}
-
-transform Init2D
-from VALUE
-to A[n,m]
-{
-    to (A.cell(j,i) a) from (VALUE val)
-    {
-        a = val;
-    }
-}
 
 // compute actual Q and R matrices from the LAPACK representation generated
 // by QRR

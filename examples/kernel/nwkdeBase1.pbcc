@@ -83,7 +83,7 @@ through INITFLAGS[l], SKIPINDEXFLAGS[l], SQDIFFS[p,l,q], WEIGHTS[l,q], PARTIALS[
         // compute the partition that this testIndex lies in
         partStart = partEnd = k;
         if (split > 0) {
-            partSize = l / split;
+            partSize = MAX(1, l / split);
             partStart = k - (k % partSize);
             partEnd = partStart + partSize;
         }
