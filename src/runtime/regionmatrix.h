@@ -675,12 +675,12 @@ namespace petabricks {
       }
     }
 
-    void fromScratchRegion(const MatrixRegion<D, ElementT>& scratch) {
+    void fromScratchStorage(const MatrixStorage& storage) {
       if (isRegionDataRaw()) {
         // Do nothing
 
       } else {
-        size_t size = sizeof(int) + ((2 * D + 1) * sizeof(IndexT)) + (scratch.storage()->count() * sizeof(ElementT));
+        size_t size = sizeof(int) + ((2 * D + 1) * sizeof(IndexT)) + (storage.count() * sizeof(ElementT));
         char buf[size];
         CopyFromMatrixStorageMessage* metadata = (CopyFromMatrixStorageMessage*) buf;
         metadata->dimensions = D;
@@ -689,9 +689,13 @@ namespace petabricks {
         this->computeMatrixRegionMetaData(&metadata->startOffset, metadata->multipliers);
 
         memcpy(metadata->size(), _size, sizeof(IndexT) * D);
-        memcpy(metadata->storage(), scratch.storage()->data(), sizeof(ElementT) * scratch.storage()->count());
+        memcpy(metadata->storage(), storage.data(), sizeof(ElementT) * storage.count());
         _regionHandler->copyFromScratchMatrixStorage(metadata, size);
       }
+    }
+
+    void fromScratchRegion(const MatrixRegion<D, ElementT>& scratch) {
+      this->fromScratchStorage(scratch.storage());
     }
 
     void randomize() {
