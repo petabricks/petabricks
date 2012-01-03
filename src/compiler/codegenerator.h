@@ -309,8 +309,7 @@ public:
 
   void callSpatial(const std::string& methodname, const SimpleRegion& region);
   void mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region);
-  void mkIterationTrampTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const std::string& metadataclass, const std::string& metadata, const CoordinateFormula& begin, const CoordinateFormula& end, const CoordinateFormula& coord);
-  void mkIterationTrampTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const std::string& metadataclass, const std::string& metadata, const std::string& begin, const std::string& end, const CoordinateFormula& coord);
+  void mkIterationTrampTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const std::string& metadataclass, const std::string& metadata, const CoordinateFormula& coord);
   void mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, int gpuCopyOut);
 
 

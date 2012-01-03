@@ -137,6 +137,8 @@ public:
                         int nodeID,
                         int gpuCopyOut);
 
+  void generateMetadataCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
+
   ///
   /// Return function the name of this rule in the code
   std::string implcodename(Transform& trans) const;

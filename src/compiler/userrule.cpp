@@ -579,6 +579,20 @@ void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& ou
   }
 }
 
+void petabricks::UserRule::generateMetadataCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
+  std::string metadataClass = itertrampmetadataname(trans)+"_"+rf.str();
+  o.beginClass(metadataClass, "jalib::JRefCounted");
+  o.addMember("IndexT*", "begin", "");
+  o.addMember("IndexT*", "end", "");
+
+  o.beginFunc("", "~" + metadataClass);
+  o.write("free(begin);");
+  o.write("free(end);");
+  o.endFunc();
+
+  o.endClass();
+}
+
 void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
   /* code generated here goes at the top level of the file before the instance class */
   SRCPOSSCOPE();
@@ -591,10 +605,7 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
     return;
   }
 
-  std::string metadataClass = itertrampmetadataname(trans)+"_"+rf.str();
-  o.beginClass(metadataClass, "jalib::JRefCounted");
-  o.addMember("int","xxx", "0");
-  o.endClass();
+  generateMetadataCode(trans, o, rf);
 
   std::string classname = implcodename(trans)+"_"+ rf.str();
   o.beginClass(classname, "petabricks::RuleInstance");
@@ -1121,8 +1132,6 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     }
 
     if (shouldGenerateTrampIterCode(flavor)) {
-      std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
-
       CoordinateFormula startCoord;
 
       for (int i = 0; i < iterdef.dimensions(); ++i){
@@ -1142,14 +1151,23 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
         o.beginIf(b->toString()+"<"+e->toString());
       }
-      o.write("jalib::JRef<" + metadataclass + "> metadata = new " + metadataclass + "();");
 
-      o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", iterdef.begin(), iterdef.end(), startCoord);
+      std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
+      o.write("jalib::JRef<" + metadataclass + "> metadata = new " + metadataclass + "();");
+      o.incIndent();
+      o.write("IndexT _tmp_begin[] = {" + iterdef.begin().toString() + "};");
+      o.write("metadata->begin = (IndexT*)malloc(sizeof _tmp_begin);");
+      o.write("memcpy(metadata->begin, _tmp_begin, sizeof _tmp_begin);");
+      o.write("IndexT _tmp_end[] = {" + iterdef.end().toString() + "};");
+      o.write("metadata->end = (IndexT*)malloc(sizeof _tmp_end);");
+      o.write("memcpy(metadata->end, _tmp_end, sizeof _tmp_end);");
+      o.decIndent();
+
+      o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", startCoord);
 
       for (int i = 0; i < iterdef.dimensions(); ++i){
         o.endIf();
       }
-
     } else {
       iterdef.genLoopBegin(o);
       generateTrampCellCodeSimple( trans, o, flavor );
@@ -1190,8 +1208,6 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
     std::vector<std::string> args;
     args.push_back("jalib::JRef<" + metadataclass + "> metadata");
-    args.push_back("IndexT begin["+jalib::XToString(iterdef.dimensions())+"]");
-    args.push_back("IndexT end["+jalib::XToString(iterdef.dimensions())+"]");
     args.push_back("IndexT coord["+jalib::XToString(iterdef.dimensions())+"]");
 
     o.beginFunc("petabricks::DynamicTaskPtr", itertrampcodename(trans)+"_"+flavor.str(), args);
@@ -1220,13 +1236,13 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       if (iterateForward) {
         JWARNING(order.canIterateForward(i))(order).Text("couldn't find valid iteration order, assuming forward");
         o.write(v->toString() + " = " + MaximaWrapper::instance().normalize(new FormulaAdd(v, s))->toString() + ";");
-        o.beginIf(v->toString() + " >= end[" + jalib::XToString(i) + "]");
-        o.write(v->toString() + " = begin[" + jalib::XToString(i) + "];");
+        o.beginIf(v->toString() + " >= metadata->end[" + jalib::XToString(i) + "]");
+        o.write(v->toString() + " = metadata->begin[" + jalib::XToString(i) + "];");
 
       } else {
         o.write(v->toString() + " = " + MaximaWrapper::instance().normalize(new FormulaSubtract(v, s))->toString() + ";");
-        o.beginIf(v->toString() + " < begin[" + jalib::XToString(i) + "]");
-        o.write(v->toString() + " = end[" + jalib::XToString(i) + "] - 1;");
+        o.beginIf(v->toString() + " < metadata->begin[" + jalib::XToString(i) + "]");
+        o.write(v->toString() + " = metadata->end[" + jalib::XToString(i) + "] - 1;");
 
       }
     }
@@ -1238,8 +1254,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
     o.write("DynamicTaskPtr _next;");
     o.beginIf("hasNext");
-    o.write("jalib::JRef<" + metadataclass + "> metadata = new " + metadataclass + "();");
-    o.mkIterationTrampTask("_next", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", "begin", "end", iterdef.var());
+    o.mkIterationTrampTask("_next", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", iterdef.var());
 
     o.elseIf();
     o.write("return _task;");

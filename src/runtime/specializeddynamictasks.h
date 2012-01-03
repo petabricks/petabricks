@@ -102,29 +102,23 @@ private:
  * A task that calls a method on a given object, with a given region and
  * a given position.
  */
-template< typename T, typename MetadataClass, int D, DynamicTaskPtr (T::*method)(jalib::JRef<MetadataClass> metadata, IndexT begin[D], IndexT end[D], IndexT current[D])>
+template< typename T, typename MetadataClass, int D, DynamicTaskPtr (T::*method)(jalib::JRef<MetadataClass> metadata, IndexT current[D])>
 class IterationTrampMethodCallTask : public NullDynamicTask {
 public:
   IterationTrampMethodCallTask(const jalib::JRef<T>& obj,
                                const jalib::JRef<MetadataClass>& metadata,
-                               const IndexT begin[D],
-                               const IndexT end[D],
                                const IndexT current[D])
     : _obj(obj), _metadata(metadata)
   {
-    memcpy(_begin, begin, sizeof _begin);
-    memcpy(_end, end, sizeof _end);
     memcpy(_current, current, sizeof _current);
   }
 
   DynamicTaskPtr run(){
-    return ((*_obj).*(method))(_metadata, _begin, _end, _current);
+    return ((*_obj).*(method))(_metadata, _current);
   }
 private:
   jalib::JRef<T> _obj;
   jalib::JRef<MetadataClass> _metadata;
-  IndexT _begin[D];
-  IndexT _end[D];
   IndexT _current[D];
 };
 
