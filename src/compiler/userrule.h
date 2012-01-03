@@ -142,6 +142,7 @@ public:
   std::string implcodename(Transform& trans) const;
   std::string trampcodename(Transform& trans) const;
   std::string itertrampcodename(Transform& trans) const;
+  std::string itertrampmetadataname(Transform& trans) const;
 
   bool isReturnStyle() const { return _flags.isReturnStyle; }
 
