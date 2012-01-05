@@ -580,21 +580,18 @@ void petabricks::UserRule::getApplicableRegionDescriptors(RuleDescriptorList& ou
 }
 
 void petabricks::UserRule::generateMetadataCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
-  std::string metadataClass = itertrampmetadataname(trans)+"_"+rf.str();
-  o.beginClass(metadataClass, "jalib::JRefCounted");
-  o.addMember("IndexT*", "begin", "");
-  o.addMember("IndexT*", "end", "");
+
+  // Create _scratch map.
+  // Need to clear first (this is called more than once)
+  _scratch.clear();
 
   if (rf == RuleFlavor::DISTRIBUTED) {
-    // Scratch regions
     MatrixDefList from = trans.getFromMatrices();
     for(MatrixDefList::const_iterator i=from.begin(); i!=from.end(); ++i){
       if( (*i)->numDimensions() != 0 ) {
-        o.addMember((*i)->typeName(rf), (*i)->name());
-
         MatrixDefPtr matrix = new MatrixDef(("scratch_"+(*i)->name()).c_str(), (*i)->getVersion(), (*i)->getSize());
         // Don't initialize (don't need to modify version)
-        matrix->addType(MatrixDef::T_SCRATCH);
+        matrix->addType(MatrixDef::T_FROM);
         _scratch[(*i)->name()] = matrix;
       }
     }
@@ -602,10 +599,8 @@ void petabricks::UserRule::generateMetadataCode(Transform& trans, CodeGenerator&
     MatrixDefList to = trans.getToMatrices();
     for(MatrixDefList::const_iterator i=to.begin(); i!=to.end(); ++i){
       if( (*i)->numDimensions() != 0 ) {
-        o.addMember((*i)->typeName(rf), (*i)->name());
-
         MatrixDefPtr matrix = new MatrixDef(("scratch_"+(*i)->name()).c_str(), (*i)->getVersion(), (*i)->getSize());
-        matrix->addType(MatrixDef::T_SCRATCH);
+        matrix->addType(MatrixDef::T_TO);
         _scratch[(*i)->name()] = matrix;
       }
     }
@@ -613,14 +608,23 @@ void petabricks::UserRule::generateMetadataCode(Transform& trans, CodeGenerator&
     MatrixDefList through = trans.getThroughMatrices();
     for(MatrixDefList::const_iterator i=through.begin(); i!=through.end(); ++i){
       if( (*i)->numDimensions() != 0 ) {
-        o.addMember((*i)->typeName(rf), (*i)->name());
-
         MatrixDefPtr matrix = new MatrixDef(("scratch_"+(*i)->name()).c_str(), (*i)->getVersion(), (*i)->getSize());
-        matrix->addType(MatrixDef::T_SCRATCH);
+        matrix->addType(MatrixDef::T_THROUGH);
         _scratch[(*i)->name()] = matrix;
       }
     }
+  }
 
+  std::string metadataClass = itertrampmetadataname(trans)+"_"+rf.str();
+  o.beginClass(metadataClass, "jalib::JRefCounted");
+  o.addMember("IndexT*", "begin", "");
+  o.addMember("IndexT*", "end", "");
+
+  // Scratch regions
+  for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
+    JASSERT((rf == RuleFlavor::DISTRIBUTED));
+    MatrixDefPtr matrix = (*i).second;
+    o.addMember(matrix->typeName(rf), matrix->name());
   }
 
   // destructor
@@ -1153,30 +1157,10 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
       std::vector<std::string> args;
 
-      if (flavor == RuleFlavor::DISTRIBUTED) {
-        MatrixDefList from = trans.getFromMatrices();
-        for(MatrixDefList::const_iterator i=from.begin(); i!=from.end(); ++i){
-          if( (*i)->numDimensions() != 0 ) {
-            o.write((*i)->typeName(flavor) + " scratch_" + (*i)->name() + " = " + (*i)->name() + ".localCopy();");
-            args.push_back("scratch_"+(*i)->name());
-          }
-        }
-
-        MatrixDefList to = trans.getToMatrices();
-        for(MatrixDefList::const_iterator i=to.begin(); i!=to.end(); ++i){
-          if( (*i)->numDimensions() != 0 ) {
-            o.write((*i)->typeName(flavor) + " scratch_" + (*i)->name() + " = " + (*i)->name() + ".localCopy();");
-            args.push_back("scratch_"+(*i)->name());
-          }
-        }
-
-        MatrixDefList through = trans.getThroughMatrices();
-        for(MatrixDefList::const_iterator i=through.begin(); i!=through.end(); ++i){
-          if( (*i)->numDimensions() != 0 ) {
-            o.write((*i)->typeName(flavor) + " scratch_" + (*i)->name() + " = " + (*i)->name() + ".localCopy();");
-            args.push_back("scratch_"+(*i)->name());
-          }
-        }
+      for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
+        MatrixDefPtr matrix = (*i).second;
+        o.write(matrix->typeName(flavor) + " " + matrix->name() + " = " + (*i).first + ".localCopy();");
+        args.push_back(matrix->name());
       }
 
       std::string argsStr = jalib::JPrintable::stringStlList(args.begin(), args.end(), ", ");
@@ -1238,27 +1222,11 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     }
 
     o.write("DynamicTaskPtr _task;");
+
     if (flavor == RuleFlavor::DISTRIBUTED) {
-
-      MatrixDefList from = trans.getFromMatrices();
-      for(MatrixDefList::const_iterator i=from.begin(); i!=from.end(); ++i){
-        if( (*i)->numDimensions() != 0 ) {
-          o.write((*i)->typeName(flavor)+"& scratch_"+(*i)->name()+" = metadata->"+(*i)->name()+";");
-        }
-      }
-
-      MatrixDefList to = trans.getToMatrices();
-      for(MatrixDefList::const_iterator i=to.begin(); i!=to.end(); ++i){
-        if( (*i)->numDimensions() != 0 ) {
-          o.write((*i)->typeName(flavor)+"& scratch_"+(*i)->name()+" = metadata->"+(*i)->name()+";");
-        }
-      }
-
-      MatrixDefList through = trans.getThroughMatrices();
-      for(MatrixDefList::const_iterator i=through.begin(); i!=through.end(); ++i){
-        if( (*i)->numDimensions() != 0 ) {
-          o.write((*i)->typeName(flavor)+"& scratch_"+(*i)->name()+" = metadata->"+(*i)->name()+";");
-        }
+      for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
+        MatrixDefPtr matrix = (*i).second;
+        o.write(matrix->typeName(flavor)+"& "+matrix->name()+" = metadata->"+matrix->name()+";");
       }
 
       generateTrampCellCodeSimple(trans, o, RuleFlavor::DISTRIBUTED_SCRATCH);
@@ -1319,21 +1287,14 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     if (flavor == RuleFlavor::DISTRIBUTED) {
       o.beginFunc("petabricks::DynamicTaskPtr", itertrampcodename(trans)+"_clean_up_"+flavor.str(), args);
       o.comment("Copy from scratch");
-      if (flavor == RuleFlavor::DISTRIBUTED) {
-        MatrixDefList to = trans.getToMatrices();
-        for(MatrixDefList::const_iterator i=to.begin(); i!=to.end(); ++i){
-          if( (*i)->numDimensions() != 0 ) {
-            o.write((*i)->name() + ".fromScratchStorage(metadata->" + (*i)->name() + ".storage());");
-          }
-        }
-      }
 
-      if (flavor == RuleFlavor::DISTRIBUTED) {
-        MatrixDefList through = trans.getThroughMatrices();
-        for(MatrixDefList::const_iterator i=through.begin(); i!=through.end(); ++i){
-          if( (*i)->numDimensions() != 0 ) {
-            o.write((*i)->name() + ".fromScratchStorage(metadata->" + (*i)->name() + ".storage());");
-          }
+      for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
+        MatrixDefPtr matrix = (*i).second;
+
+        // TODO: copy only modified cell back. T_THROUGH can be rule from
+
+        if (matrix->type() == MatrixDef::T_TO || matrix->type() == MatrixDef::T_THROUGH) {
+          o.write((*i).first + ".fromScratchStorage(metadata->" + matrix->name() + ".storage());");
         }
       }
 
