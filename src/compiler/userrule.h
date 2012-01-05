@@ -273,6 +273,8 @@ public:
   virtual RegionList getNonSelfDependentRegions();
 
   void buildFromBoundingBox();
+  void buildToBoundingBox();
+  void buildScratchBoundingBox();
 
   void trimDependency(DependencyDirection& dep,
                       const ChoiceDepGraphNode& from,
@@ -331,6 +333,8 @@ private:
 
   typedef std::map<MatrixDefPtr, SimpleRegionPtr> MatrixToRegionMap;
   MatrixToRegionMap _fromBoundingBox;
+  MatrixToRegionMap _toBoundingBox;
+  MatrixToRegionMap _scratchBoundingBox;
 
 };
 

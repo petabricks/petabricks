@@ -379,6 +379,8 @@ void petabricks::UserRule::initialize(Transform& trans) {
   buildApplicableRegion(trans, _applicableRegion, true);
 
   buildFromBoundingBox();
+  buildToBoundingBox();
+  buildScratchBoundingBox();
 
   FormulaList condtmp;
   condtmp.swap(_conditions);
@@ -516,7 +518,7 @@ void petabricks::UserRule::computeDataDependencyVector() {
 
 void petabricks::UserRule::buildFromBoundingBox(){
   SRCPOSSCOPE();
-  MatrixToRegionMap::iterator bbi;
+  _fromBoundingBox.clear();
   for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
     JTRACE("building from bb")(_fromBoundingBox[(*i)->matrix()])(*(*i));
     if(_fromBoundingBox[(*i)->matrix()]) {
@@ -527,6 +529,30 @@ void petabricks::UserRule::buildFromBoundingBox(){
   }
 }
 
+void petabricks::UserRule::buildToBoundingBox(){
+  SRCPOSSCOPE();
+  _toBoundingBox.clear();
+  for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
+    JTRACE("building to bb")(_toBoundingBox[(*i)->matrix()])(*(*i));
+    if(_toBoundingBox[(*i)->matrix()]) {
+      _toBoundingBox[(*i)->matrix()] = _toBoundingBox[(*i)->matrix()]->regionUnion(*i);
+    }else{
+      _toBoundingBox[(*i)->matrix()] = new SimpleRegion(*(*i));
+    }
+  }
+}
+
+void petabricks::UserRule::buildScratchBoundingBox(){
+  SRCPOSSCOPE();
+  _scratchBoundingBox = _toBoundingBox;
+  for(MatrixToRegionMap::const_iterator i=_fromBoundingBox.begin(); i!=_fromBoundingBox.end(); ++i) {
+    if(_scratchBoundingBox[i->first]) {
+      _scratchBoundingBox[i->first] = _scratchBoundingBox[i->first]->regionUnion(i->second);
+    }else{
+      _scratchBoundingBox[i->first] = i->second;
+    }
+  }
+}
 
 void petabricks::UserRule::buildApplicableRegion(Transform& trans, SimpleRegionPtr& ar, bool allowOptional){
   SRCPOSSCOPE();
@@ -586,31 +612,23 @@ void petabricks::UserRule::generateMetadataCode(Transform& trans, CodeGenerator&
   _scratch.clear();
 
   if (rf == RuleFlavor::DISTRIBUTED) {
-    MatrixDefList from = trans.getFromMatrices();
-    for(MatrixDefList::const_iterator i=from.begin(); i!=from.end(); ++i){
-      if( (*i)->numDimensions() != 0 ) {
-        MatrixDefPtr matrix = new MatrixDef(("scratch_"+(*i)->name()).c_str(), (*i)->getVersion(), (*i)->getSize());
+    for(MatrixToRegionMap::const_iterator i=_fromBoundingBox.begin(); i!=_fromBoundingBox.end(); ++i) {
+      MatrixDefPtr matrix = i->first;
+      if( matrix->numDimensions() != 0 ) {
+        MatrixDefPtr scratch = new MatrixDef(("scratch_"+matrix->name()).c_str(), matrix->getVersion(), matrix->getSize());
         // Don't initialize (don't need to modify version)
-        matrix->addType(MatrixDef::T_FROM);
-        _scratch[(*i)->name()] = matrix;
+        scratch->addType(MatrixDef::T_FROM);
+        _scratch[matrix->name()] = scratch;
       }
     }
 
-    MatrixDefList to = trans.getToMatrices();
-    for(MatrixDefList::const_iterator i=to.begin(); i!=to.end(); ++i){
-      if( (*i)->numDimensions() != 0 ) {
-        MatrixDefPtr matrix = new MatrixDef(("scratch_"+(*i)->name()).c_str(), (*i)->getVersion(), (*i)->getSize());
-        matrix->addType(MatrixDef::T_TO);
-        _scratch[(*i)->name()] = matrix;
-      }
-    }
-
-    MatrixDefList through = trans.getThroughMatrices();
-    for(MatrixDefList::const_iterator i=through.begin(); i!=through.end(); ++i){
-      if( (*i)->numDimensions() != 0 ) {
-        MatrixDefPtr matrix = new MatrixDef(("scratch_"+(*i)->name()).c_str(), (*i)->getVersion(), (*i)->getSize());
-        matrix->addType(MatrixDef::T_THROUGH);
-        _scratch[(*i)->name()] = matrix;
+    for(MatrixToRegionMap::const_iterator i=_toBoundingBox.begin(); i!=_toBoundingBox.end(); ++i) {
+      MatrixDefPtr matrix = i->first;
+      if( matrix->numDimensions() != 0 ) {
+        MatrixDefPtr scratch = new MatrixDef(("scratch_"+matrix->name()).c_str(), matrix->getVersion(), matrix->getSize());
+        // Don't initialize (don't need to modify version)
+        scratch->addType(MatrixDef::T_TO);
+        _scratch[matrix->name()] = scratch;
       }
     }
   }
@@ -623,7 +641,7 @@ void petabricks::UserRule::generateMetadataCode(Transform& trans, CodeGenerator&
   // Scratch regions
   for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
     JASSERT((rf == RuleFlavor::DISTRIBUTED));
-    MatrixDefPtr matrix = (*i).second;
+    MatrixDefPtr matrix = i->second;
     o.addMember(matrix->typeName(rf), matrix->name());
   }
 
@@ -1158,8 +1176,8 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       std::vector<std::string> args;
 
       for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
-        MatrixDefPtr matrix = (*i).second;
-        o.write(matrix->typeName(flavor) + " " + matrix->name() + " = " + (*i).first + ".localCopy();");
+        MatrixDefPtr matrix = i->second;
+        o.write(matrix->typeName(flavor) + " " + matrix->name() + " = " + i->first + ".localCopy();");
         args.push_back(matrix->name());
       }
 
@@ -1225,7 +1243,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
     if (flavor == RuleFlavor::DISTRIBUTED) {
       for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
-        MatrixDefPtr matrix = (*i).second;
+        MatrixDefPtr matrix = i->second;
         o.write(matrix->typeName(flavor)+"& "+matrix->name()+" = metadata->"+matrix->name()+";");
       }
 
@@ -1288,13 +1306,17 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       o.beginFunc("petabricks::DynamicTaskPtr", itertrampcodename(trans)+"_clean_up_"+flavor.str(), args);
       o.comment("Copy from scratch");
 
-      for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
-        MatrixDefPtr matrix = (*i).second;
+      for(MatrixToRegionMap::const_iterator i=_toBoundingBox.begin(); i!=_toBoundingBox.end(); ++i) {
+        if (i->first->numDimensions() > 0) {
+          std::string name = i->first->name();
 
-        // TODO: copy only modified cell back. T_THROUGH can be rule from
-
-        if (matrix->type() == MatrixDef::T_TO || matrix->type() == MatrixDef::T_THROUGH) {
-          o.write((*i).first + ".fromScratchStorage(metadata->" + matrix->name() + ".storage());");
+          o.write("{");
+          o.incIndent();
+          //o.write("const IndexT _scratch_begin[] = {" + i->second->getIterationLowerBounds() + "};");
+          //o.write("const IndexT _scratch_end[] = {" + i->second->getIterationUpperBounds() + "};");
+          o.write(name + ".fromScratchStorage(metadata->scratch_" + name + ".storage());");
+          o.decIndent();
+          o.write("}");
         }
       }
 
@@ -2024,10 +2046,6 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
       Region region = *i;
       region.changeMatrix(lookupScratch((*i)->matrix()->name()));
       args.push_back(region.generateAccessorCode());
-
-      //(), (*i)->version(), (*i)->getRegionType(), (*i)->getOriginalBounds());
-      //region.initialize(trans);
-      //args.push_back("scratch_" + (*i)->generateAccessorCode());
 
     } else {
       args.push_back((*i)->generateAccessorCode());
