@@ -301,6 +301,12 @@ private:
 
   bool shouldGenerateTrampIterCode(RuleFlavor::RuleFlavorEnum flavor);
 
+  MatrixDefPtr lookupScratch(const std::string& name) const{
+    MatrixDefMap::const_iterator i = _scratch.find(name);
+    JASSERT(i != _scratch.end())(name).Text("Unknown scratch");
+    return i->second;
+  }
+
   std::map<std::string, std::string> _nameMap;
   std::map<std::string, FormulaList> _minCoordOffsets;
   std::map<std::string, FormulaList> _maxCoordOffsets;
@@ -309,6 +315,7 @@ private:
   RegionList _from;
   RegionList _to;
   MatrixDefList _through;
+  MatrixDefMap _scratch;
   FormulaList _conditions;
   FormulaList _definitions;
   std::string _bodysrc;
@@ -321,7 +328,6 @@ private:
   std::string _label;
   ConfigItems _duplicateVars;
   RulePtr _gpuRule;
-
 
   typedef std::map<MatrixDefPtr, SimpleRegionPtr> MatrixToRegionMap;
   MatrixToRegionMap _fromBoundingBox;

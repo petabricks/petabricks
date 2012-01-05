@@ -62,6 +62,15 @@ petabricks::Region::Region(const char* fromMatrix, const FormulaList& version, c
   }
 }
 
+petabricks::Region::Region(const MatrixDefPtr fromMatrix, const FormulaPtr version, const RegionType type, const FormulaList& bounds)
+  : _name(RETURN_VAL_STR)
+  , _fromMatrixName(fromMatrix->name())
+  , _version(version)
+  , _originalType(type)
+  , _originalBounds(bounds)
+  , _fromMatrix(fromMatrix)
+{}
+
 void petabricks::Region::print(std::ostream& o) const {
   o << _fromMatrixName << ".region(" ;
   printStlList(o, _minCoord.begin(), _minCoord.end(), ", ");
@@ -77,7 +86,9 @@ void petabricks::Region::setName(const char* name){
 
 void petabricks::Region::initialize(Transform& trans) {
   _originalBounds.normalize();
-   _fromMatrix = trans.lookupMatrix( _fromMatrixName );
+  if (!_fromMatrix) {
+    _fromMatrix = trans.lookupMatrix( _fromMatrixName );
+  }
   JASSERT(_fromMatrix);
 
   JASSERT(!isOptional() || _originalType == REGION_CELL)(_name)(_fromMatrix)

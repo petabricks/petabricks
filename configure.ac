@@ -312,7 +312,6 @@ AC_DEFINE([DEFAULT_ACCURACY],    [1], [accuracy stand-in for fixed-accuracy rule
 AC_DEFINE([DEVNULL],             ["/dev/null"], [null sync device path])
 AC_DEFINE([DISABLE_DISTRIBUTED], [1], [dont generate distributed code])
 AC_DEFINE([DISTRIBUTED_GC_FREQ], [1000], [after how many allocations to invoke distributed gc])
-AC_DEFINE([DISTRIBUTED_SCRATCH_REGION], [1], [use scratch region in distributed code])
 AC_DEFINE([FORENOUGH_MAX_ITERS], [1000], [the default maximum number of iterations for for_enough{}])
 AC_DEFINE([FORENOUGH_MIN_ITERS], [1], [the default minimum number of iterations for for_enough{}])
 AC_DEFINE([GENHEADER],           ["_pbhdr.h"], [generated file name])

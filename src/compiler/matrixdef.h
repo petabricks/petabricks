@@ -63,7 +63,8 @@ public:
     T_UNKNOWN = 0,
     T_FROM    = 1,
     T_TO      = 2,
-    T_THROUGH = 4
+    T_THROUGH = 4,
+    T_SCRATCH = 5
   };
 
 
@@ -77,20 +78,20 @@ public:
   ///
   /// Constructor
   MatrixDef(const char* name, const FormulaList& version, const FormulaList& size);
-  
+
   void print(std::ostream& o) const;
 
   void initialize(Transform&);
-  
+
   const std::string& name() const { return _name; }
 
   size_t numDimensions() const { return _size.size(); }
-  
+
   Type type() const { return (Type)_type; }
-  
-  FormulaPtr getSizeOfDimension( size_t n ) const { 
+
+  FormulaPtr getSizeOfDimension( size_t n ) const {
     JASSERT(n < numDimensions())(n)(numDimensions());
-    return _size[n]; 
+    return _size[n];
   }
 
   FormulaPtr width() const  { return getSizeOfDimension(0); }
@@ -112,7 +113,7 @@ public:
 //   return rf.string()+"::ConstMatrixRegion"+jalib::XToString(numDimensions())+"D";
 // }
 //
-// 
+//
 // std::string sliceTypeName(RuleFlavor rf) const{
 //   return rf.string()+"::MatrixRegion"+jalib::XToString(numDimensions()-1)+"D";
 // }
@@ -130,7 +131,7 @@ public:
   }
 
 
-  
+
   std::string allocateStr(RuleFlavor rf) const;
   std::string genericAllocateStr() const;
 
@@ -148,21 +149,21 @@ public:
 
   void addType(Type t){  _type |= t; }
   bool isAllInput() const { return _type == T_FROM; }
-  
+
   void removeDimension(size_t dim) {
     _size.erase(_size.begin() + dim);
   }
-  
+
   FormulaList& getSize() { return _size; }
-  
-  
+  FormulaList& getVersion() { return _version; }
+
 private:
   std::string _name;
   FormulaList _version;
   FormulaList _size;
   int _type;
 };
- 
+
 }
 
 #endif
