@@ -519,12 +519,21 @@ void petabricks::UserRule::computeDataDependencyVector() {
 void petabricks::UserRule::buildFromBoundingBox(){
   SRCPOSSCOPE();
   _fromBoundingBox.clear();
+  _fromBoundingBoxNoOptional.clear();
   for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
     JTRACE("building from bb")(_fromBoundingBox[(*i)->matrix()])(*(*i));
     if(_fromBoundingBox[(*i)->matrix()]) {
       _fromBoundingBox[(*i)->matrix()] = _fromBoundingBox[(*i)->matrix()]->regionUnion(*i);
     }else{
       _fromBoundingBox[(*i)->matrix()] = new SimpleRegion(*(*i));
+    }
+
+    if (!(*i)->isOptional()) {
+      if(_fromBoundingBoxNoOptional[(*i)->matrix()]) {
+        _fromBoundingBoxNoOptional[(*i)->matrix()] = _fromBoundingBoxNoOptional[(*i)->matrix()]->regionUnion(*i);
+      }else{
+        _fromBoundingBoxNoOptional[(*i)->matrix()] = new SimpleRegion(*(*i));
+      }
     }
   }
 }
@@ -545,7 +554,7 @@ void petabricks::UserRule::buildToBoundingBox(){
 void petabricks::UserRule::buildScratchBoundingBox(){
   SRCPOSSCOPE();
   _scratchBoundingBox = _toBoundingBox;
-  for(MatrixToRegionMap::const_iterator i=_fromBoundingBox.begin(); i!=_fromBoundingBox.end(); ++i) {
+  for(MatrixToRegionMap::const_iterator i=_fromBoundingBoxNoOptional.begin(); i!=_fromBoundingBoxNoOptional.end(); ++i) {
     if(_scratchBoundingBox[i->first]) {
       _scratchBoundingBox[i->first] = _scratchBoundingBox[i->first]->regionUnion(i->second);
     }else{
@@ -612,7 +621,7 @@ void petabricks::UserRule::generateMetadataCode(Transform& trans, CodeGenerator&
   _scratch.clear();
 
   if (rf == RuleFlavor::DISTRIBUTED) {
-    for(MatrixToRegionMap::const_iterator i=_fromBoundingBox.begin(); i!=_fromBoundingBox.end(); ++i) {
+    for(MatrixToRegionMap::const_iterator i=_fromBoundingBoxNoOptional.begin(); i!=_fromBoundingBoxNoOptional.end(); ++i) {
       MatrixDefPtr matrix = i->first;
       if( matrix->numDimensions() != 0 ) {
         MatrixDefPtr scratch = new MatrixDef(("scratch_"+matrix->name()).c_str(), matrix->getVersion(), matrix->getSize());
@@ -2085,7 +2094,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
     }
   }
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    if (flavor == RuleFlavor::DISTRIBUTED_SCRATCH && (*i)->matrix()->numDimensions() != 0) {
+    if (flavor == RuleFlavor::DISTRIBUTED_SCRATCH && (*i)->matrix()->numDimensions() != 0 && (!(*i)->isOptional())) {
       Region region = *i;
       std::string name = (*i)->matrix()->name();
       region.changeMatrix(lookupScratch(name));

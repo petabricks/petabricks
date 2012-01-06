@@ -333,6 +333,7 @@ private:
 
   typedef std::map<MatrixDefPtr, SimpleRegionPtr> MatrixToRegionMap;
   MatrixToRegionMap _fromBoundingBox;
+  MatrixToRegionMap _fromBoundingBoxNoOptional;
   MatrixToRegionMap _toBoundingBox;
   MatrixToRegionMap _scratchBoundingBox;
 
