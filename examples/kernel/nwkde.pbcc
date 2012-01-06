@@ -25,23 +25,6 @@ inline ElementT wrapWindDirDiff(ElementT diff)
     return diff + (diffIntWrapP360 - diffIntP360);
 }
 
-//  inline __attribute__((always_inline)) __attribute__((flatten))
-//  ElementT lookup(const ConstMatrixRegion2D data,
-//                         const ConstMatrixRegion1D var,
-//                         const IndexT index)
-//  {
-//      return data.cell(var.cell(0), index + var.cell(1));
-//  }
-
-//  inline __attribute__((always_inline)) __attribute__((flatten))
-//  ElementT lookup(const ConstMatrixRegion2D data,
-//                         const ConstMatrixRegion2D var,
-//                         const IndexT row,
-//                         const IndexT index)
-//  {
-//      return data.cell(var.cell(0, row), index + var.cell(1, row));
-//  }
-
 %}
 
 transform NWKDECheckInputs
@@ -122,6 +105,90 @@ to INPUTSCHECKED
               train-test point pair
     PARTIALS - weighted output partial sums
 */
+
+// Compute results directly with one pass through the data
+transform NWKDEDirect
+from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l], TRAINSTART,
+     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q], TESTSTART, NUMTEST,
+     DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
+to RESULTS[q]
+{
+    to   (RESULTS.cell(k) result)
+    from (TRAINDATA trainData, TRAINX trainX, TRAINY trainY,
+          TRAININDICES trainIndices, TRAINSTART trainStart,
+          TESTDATA testData, TESTX testX,
+          TESTINDICES.cell(k) testIndex, TESTSTART testStart, NUMTEST numTest,
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+          MASKWIDTH maskWidth)
+    {
+        bool skipIndexFlag;
+        IndexT i, j, idx, dirFlag, trainIndex, partSize, partStart, partEnd;
+        ElementT y, kernelWidth, trainPoint, testPoint, diff, sum,
+                 curWeight, curPartial, weight = 0, partial = 0;
+
+        // compute the partition that this testIndex lies in
+        partStart = partEnd = idx = testStart + k;
+        if (split > 0) {
+            partSize = MAX(1, floor(numTest / split));
+            partStart = idx - (idx % partSize);
+            partEnd = partStart + partSize;
+        }
+
+        // loop over training points
+        for (j = 0; j < l; ++j) {
+
+            trainIndex = trainIndices.cell(j);
+            y = trainData.cell(trainY.cell(0), trainIndex + trainY.cell(1));
+
+            // skip current training index if it is too close to the test
+            // index, if it's not in the same partition, or if the training
+            // output value is a NAN
+            if ((trainIndex > testIndex - maskWidth &&
+                 trainIndex < testIndex + maskWidth) ||
+                (trainStart + j >= partStart &&
+                 trainStart + j < partEnd) ||
+                ISNAN(y)) {
+                continue;
+            }
+
+            // loop over predictor variables to calculate training weight
+            sum = 0;
+            skipIndexFlag = false;
+            for (i = 0; i < trainX.size(1); ++i) {
+                dirFlag     =     dirFlags.cell(trainX.cell(0, i));
+                kernelWidth = kernelWidths.cell(trainX.cell(0, i));
+                trainPoint = trainData.cell(trainX.cell(0, i),
+                                            trainIndex + trainX.cell(1, i));
+                testPoint = testData.cell(testX.cell(0, i),
+                                          testIndex + testX.cell(1, i));
+
+                // skip this variable if nan is detected in the test point
+                if (ISNAN(testPoint)) { continue; }
+
+                // skip this training index if nan is detected
+                if (ISNAN(trainPoint)) { skipIndexFlag = true; break; }
+
+                // compute diff (and wrap if dirFlag is true)
+                diff = trainPoint - testPoint;
+                if (dirFlag) { diff = wrapWindDirDiff(diff); }
+
+                // normalize and save squared difference
+                diff /= kernelWidth;
+                sum += diff * diff;
+            }
+
+            if (skipIndexFlag) { continue; }
+
+            curWeight = exp(-((ElementT) sum));
+            curPartial = curWeight * y;
+
+            weight += curWeight;
+            partial += curPartial;
+        }
+
+        result = partial / weight;
+    }
+}
 
 #define INCLUDE_METHOD2
 #define INCLUDE_METHOD3
@@ -296,7 +363,7 @@ to WEIGHTS[q], PARTIALS[q]
         }
 
         // loop over training points
-        for (j = 0; j < trainIndices.count(); ++j) {
+        for (j = 0; j < l; ++j) {
 
             trainIndex = trainIndices.cell(j);
             y = trainData.cell(trainY.cell(0), trainIndex + trainY.cell(1));
@@ -476,6 +543,19 @@ through INPUTSCHECKED
 generator NWKDEGenerator2
 accuracy_metric NWKDEMetric2
 {
+    to   (RESULT result)
+    from (TRAINDATA trainData, TRAINX trainX,
+          TRAINY trainY, TRAININDICES trainIndices,
+          TESTDATA testData, TESTX testX, TESTINDICES testIndices,
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+          MASKWIDTH maskWidth)
+    {
+        NWKDEDirect(result,
+                    trainData, trainX, trainY, trainIndices, 0,
+                    testData, testX, testIndices, 0, _Q_,
+                    dirFlags, kernelWidths, split, maskWidth);
+    }
+
     to   (WEIGHTS weights, PARTIALS partials)
     from (TRAINDATA trainData, TRAINX trainX,
           TRAINY trainY, TRAININDICES trainIndices,
@@ -496,8 +576,7 @@ accuracy_metric NWKDEMetric2
         if (blockSize < 1 || blockSize > _Q_) {
             NWKDERecursive(weights, partials,
                            trainData, trainX, trainY, trainIndices, 0,
-                           testData, testX,
-                           testIndices, 0, _Q_,
+                           testData, testX, testIndices, 0, _Q_,
                            dirFlags, kernelWidths, split, maskWidth);
         } else {
             // domain decomposition for coarse-grain parallelism
