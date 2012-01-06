@@ -247,6 +247,53 @@ std::string petabricks::SimpleRegion::getIterationUpperBounds() const {
   return s + ", " + _removedDimensions.maxCoord.toString();
 }
 
+petabricks::CoordinateFormulaPtr petabricks::SimpleRegion::getIterationLowerBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with) const {
+  CoordinateFormulaPtr coord = new CoordinateFormula();
+  for (CoordinateFormula::const_iterator i=minCoord().begin() ; i!=minCoord().end(); ++i) {
+    FormulaPtr formula = *i;
+    for (unsigned int j=0; j<replaceWhat.size(); ++j) {
+      formula = formula->replace(replaceWhat[j], with[j]);
+    }
+    coord->push_back(formula);
+  }
+
+  if(removedDimensions() > 0) {
+    for (CoordinateFormula::const_iterator i=_removedDimensions.minCoord.begin() ; i!=_removedDimensions.minCoord.end(); ++i) {
+      FormulaPtr formula = *i;
+      for (unsigned int j=0; j<replaceWhat.size(); ++j) {
+        formula = formula->replace(replaceWhat[j], with[j]);
+      }
+      coord->push_back(formula);
+    }
+  }
+
+  coord->normalize();
+  return coord;
+}
+
+petabricks::CoordinateFormulaPtr petabricks::SimpleRegion::getIterationUpperBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with) const {
+  CoordinateFormulaPtr coord = new CoordinateFormula();
+  for (CoordinateFormula::const_iterator i=maxCoord().begin() ; i!=maxCoord().end(); ++i) {
+    FormulaPtr formula = *i;
+    for (unsigned int j=0; j<replaceWhat.size(); ++j) {
+      formula = formula->replace(replaceWhat[j], with[j]);
+    }
+    coord->push_back(formula);
+  }
+
+  if(removedDimensions() > 0) {
+    for (CoordinateFormula::const_iterator i=_removedDimensions.maxCoord.begin() ; i!=_removedDimensions.maxCoord.end(); ++i) {
+      FormulaPtr formula = *i;
+      for (unsigned int j=0; j<replaceWhat.size(); ++j) {
+        formula = formula->replace(replaceWhat[j], with[j]);
+      }
+      coord->push_back(formula);
+    }
+  }
+
+  coord->normalize();
+  return coord;
+}
 
 petabricks::SimpleRegionPtr petabricks::Region::getApplicableRegion(Transform& tx, RuleInterface& rule, const FormulaList&, bool isOutput){
   CoordinateFormula min;
@@ -446,6 +493,39 @@ std::string petabricks::Region::generateAccessorCode(bool allowOptional) const{
     return _fromMatrix->name() + ".region("+_minCoord.toString() +", "+_maxCoord.toString()+")";
   case REGION_SLICE:
     return _fromMatrix->name() + ".slice("+jalib::XToString(_fromMatrix->numDimensions()-1)+","+jalib::XToString(_minCoord.back())+")";
+  case REGION_ALL:
+    return _fromMatrix->name();
+  default:
+    JASSERT(false).Text("Unreachable");
+    return "";
+  }
+}
+
+std::string petabricks::Region::generateAccessorCode(const CoordinateFormula& base, bool allowOptional) const{
+  CoordinateFormula minCoord = _minCoord;
+  minCoord.sub(base);
+
+  CoordinateFormula maxCoord = _maxCoord;
+  maxCoord.sub(base);
+
+  switch(_originalType){
+  case REGION_CELL:
+    {
+      std::string s = _fromMatrix->name() + ".cell("+minCoord.toString()+")";
+      if(allowOptional && isOptional())
+        return "(" + _fromMatrix->name() + ".contains("+minCoord.toString()+")"
+                   + " ? (ElementT)(" + s + ") : (ElementT)(" + optionalDefault()->toString() + "))";
+      else
+        return s;
+    }
+  case REGION_COL:
+    return _fromMatrix->name() + ".col("+minCoord[0]->toString()+")";
+  case REGION_ROW:
+    return _fromMatrix->name() + ".row("+minCoord[1]->toString()+")";
+  case REGION_BOX:
+    return _fromMatrix->name() + ".region("+minCoord.toString() +", "+maxCoord.toString()+")";
+  case REGION_SLICE:
+    return _fromMatrix->name() + ".slice("+jalib::XToString(_fromMatrix->numDimensions()-1)+","+jalib::XToString(minCoord.back())+")";
   case REGION_ALL:
     return _fromMatrix->name();
   default:

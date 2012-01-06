@@ -164,6 +164,9 @@ public:
   std::string getIterationLowerBounds() const;
   std::string getIterationUpperBounds() const;
 
+  CoordinateFormulaPtr getIterationLowerBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with) const;
+  CoordinateFormulaPtr getIterationUpperBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with) const;
+
   size_t size() const { return dimensions(); }
 protected:
   CoordinateFormula _minCoord;
@@ -205,6 +208,7 @@ public:
   std::string genTypeStr(RuleFlavor rf, bool isConst) const;
   std::string generateSignatureCode(RuleFlavor rf, bool isConst) const;
   std::string generateAccessorCode(bool allowOptional=true) const;
+  std::string generateAccessorCode(const CoordinateFormula& base, bool allowOptional=true) const;
 
   SimpleRegionPtr getApplicableRegion(Transform& tx, RuleInterface& rule, const FormulaList& defs, bool isOutput);
 

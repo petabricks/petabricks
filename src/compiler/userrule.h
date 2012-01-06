@@ -336,6 +336,7 @@ private:
   MatrixToRegionMap _toBoundingBox;
   MatrixToRegionMap _scratchBoundingBox;
 
+  std::map<std::string, CoordinateFormulaPtr> _scratchRegionLowerBounds;
 };
 
 }

@@ -1175,9 +1175,27 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
       std::vector<std::string> args;
 
+      _scratchRegionLowerBounds.clear();
+      CoordinateFormula iterdefEndInclusive = iterdef.end();
+      iterdefEndInclusive.subToEach(FormulaInteger::one());
+
       for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
         MatrixDefPtr matrix = i->second;
-        o.write(matrix->typeName(flavor) + " " + matrix->name() + " = " + i->first + ".localCopy();");
+        SimpleRegionPtr region = _scratchBoundingBox[trans.lookupMatrix(i->first)];
+
+        CoordinateFormulaPtr lowerBounds = region->getIterationLowerBounds(iterdef.var(), iterdef.begin());
+        CoordinateFormulaPtr upperBounds = region->getIterationUpperBounds(iterdef.var(), iterdefEndInclusive);
+        _scratchRegionLowerBounds[i->first] = lowerBounds;
+
+        o.write(matrix->typeName(flavor) + " " + matrix->name() + ";");
+        o.write("{");
+        o.incIndent();
+        o.write("IndexT _tmp_begin[] = {" + lowerBounds->toString() + "};");
+        o.write("IndexT _tmp_end[] = {" + upperBounds->toString() + "};");
+        o.write(matrix->name() + " = " + i->first + ".region(_tmp_begin, _tmp_end).localCopy();");
+        o.decIndent();
+        o.write("}");
+
         args.push_back(matrix->name());
       }
 
@@ -1237,6 +1255,8 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
     for(int i=0; i<iterdef.dimensions(); ++i) {
       o.write("IndexT " + getOffsetVar(i)->toString() + " = coord[" +jalib::XToString(i)+"];");
+      FormulaPtr b = iterdef.begin()[i];
+      o.write("const IndexT " + b->toString() + " = metadata->begin[" + jalib::XToString(i) + "];");
     }
 
     o.write("DynamicTaskPtr _task;");
@@ -1314,7 +1334,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
           o.incIndent();
           //o.write("const IndexT _scratch_begin[] = {" + i->second->getIterationLowerBounds() + "};");
           //o.write("const IndexT _scratch_end[] = {" + i->second->getIterationUpperBounds() + "};");
-          o.write(name + ".fromScratchStorage(metadata->scratch_" + name + ".storage());");
+          //o.write(name + ".fromScratchStorage(metadata->scratch_" + name + ".storage());");
           o.decIndent();
           o.write("}");
         }
@@ -2044,8 +2064,9 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     if (flavor == RuleFlavor::DISTRIBUTED_SCRATCH && (*i)->matrix()->numDimensions() != 0) {
       Region region = *i;
-      region.changeMatrix(lookupScratch((*i)->matrix()->name()));
-      args.push_back(region.generateAccessorCode());
+      std::string name = (*i)->matrix()->name();
+      region.changeMatrix(lookupScratch(name));
+      args.push_back(region.generateAccessorCode(*(_scratchRegionLowerBounds[name])));
 
     } else {
       args.push_back((*i)->generateAccessorCode());
@@ -2054,8 +2075,9 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     if (flavor == RuleFlavor::DISTRIBUTED_SCRATCH && (*i)->matrix()->numDimensions() != 0) {
       Region region = *i;
-      region.changeMatrix(lookupScratch((*i)->matrix()->name()));
-      args.push_back(region.generateAccessorCode());
+      std::string name = (*i)->matrix()->name();
+      region.changeMatrix(lookupScratch(name));
+      args.push_back(region.generateAccessorCode(*(_scratchRegionLowerBounds[name])));
 
     } else {
       args.push_back((*i)->generateAccessorCode());
@@ -2303,8 +2325,8 @@ void petabricks::UserRule::removeDimensionFromMatrix(const MatrixDefPtr matrix,
 
 
 void petabricks::UserRule::trimDependency(DependencyDirection& dep,
-                                          const ChoiceDepGraphNode& from,
-                                          const ChoiceDepGraphNode& to)
+                                          const ChoiceDepGraphNode&,
+                                          const ChoiceDepGraphNode&)
 {
   if(dep.isMultioutput() && _to.size() <= 1) {
     dep.removeMultioutput();
