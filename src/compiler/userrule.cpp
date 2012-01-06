@@ -643,6 +643,11 @@ void petabricks::UserRule::generateMetadataCode(Transform& trans, CodeGenerator&
     JASSERT((rf == RuleFlavor::DISTRIBUTED));
     MatrixDefPtr matrix = i->second;
     o.addMember(matrix->typeName(rf), matrix->name());
+
+    if (matrix->type() == MatrixDef::T_TO) {
+      o.addMember(matrix->typeName(rf), "remote_TO_" + matrix->name());
+      o.addMember(matrix->typeName(rf), "local_TO_" + matrix->name());
+    }
   }
 
   // destructor
@@ -1179,6 +1184,9 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       CoordinateFormula iterdefEndInclusive = iterdef.end();
       iterdefEndInclusive.subToEach(FormulaInteger::one());
 
+      if (_scratch.size() > 0) {
+        o.comment("Copy to local region");
+      }
       for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
         MatrixDefPtr matrix = i->second;
         SimpleRegionPtr region = _scratchBoundingBox[trans.lookupMatrix(i->first)];
@@ -1187,16 +1195,24 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         CoordinateFormulaPtr upperBounds = region->getIterationUpperBounds(iterdef.var(), iterdefEndInclusive);
         _scratchRegionLowerBounds[i->first] = lowerBounds;
 
-        o.write(matrix->typeName(flavor) + " " + matrix->name() + ";");
+        o.write(matrix->typeName(flavor) + " remote_" + matrix->name() + ";");
         o.write("{");
         o.incIndent();
         o.write("IndexT _tmp_begin[] = {" + lowerBounds->toString() + "};");
         o.write("IndexT _tmp_end[] = {" + upperBounds->toString() + "};");
-        o.write(matrix->name() + " = " + i->first + ".region(_tmp_begin, _tmp_end).localCopy();");
+        o.write("remote_" + matrix->name() + " = " + i->first + ".region(_tmp_begin, _tmp_end);");
         o.decIndent();
         o.write("}");
+        o.write(matrix->typeName(flavor) + " " + matrix->name() + " = remote_" + matrix->name() + ".localCopy();");
 
         args.push_back(matrix->name());
+
+        if (matrix->type() == MatrixDef::T_TO) {
+          o.write(matrix->typeName(flavor) + " remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ";");
+          o.write(matrix->typeName(flavor) + " local_TO_" + matrix->name() + " = " + matrix->name() + ";");
+          args.push_back("remote_TO_" + matrix->name());
+          args.push_back("local_TO_" + matrix->name());
+        }
       }
 
       std::string argsStr = jalib::JPrintable::stringStlList(args.begin(), args.end(), ", ");
@@ -1326,17 +1342,10 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       o.beginFunc("petabricks::DynamicTaskPtr", itertrampcodename(trans)+"_clean_up_"+flavor.str(), args);
       o.comment("Copy from scratch");
 
-      for(MatrixToRegionMap::const_iterator i=_toBoundingBox.begin(); i!=_toBoundingBox.end(); ++i) {
-        if (i->first->numDimensions() > 0) {
-          std::string name = i->first->name();
-
-          o.write("{");
-          o.incIndent();
-          //o.write("const IndexT _scratch_begin[] = {" + i->second->getIterationLowerBounds() + "};");
-          //o.write("const IndexT _scratch_end[] = {" + i->second->getIterationUpperBounds() + "};");
-          //o.write(name + ".fromScratchStorage(metadata->scratch_" + name + ".storage());");
-          o.decIndent();
-          o.write("}");
+      for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
+        MatrixDefPtr matrix = i->second;
+        if (matrix->type() == MatrixDef::T_TO) {
+          o.write("metadata->remote_TO_" + matrix->name() + ".fromScratchStorage(metadata->local_TO_" + matrix->name() + ".storage());");
         }
       }
 
