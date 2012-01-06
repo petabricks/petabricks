@@ -247,12 +247,20 @@ std::string petabricks::SimpleRegion::getIterationUpperBounds() const {
   return s + ", " + _removedDimensions.maxCoord.toString();
 }
 
-petabricks::CoordinateFormulaPtr petabricks::SimpleRegion::getIterationLowerBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with) const {
+petabricks::CoordinateFormulaPtr petabricks::SimpleRegion::getIterationLowerBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with1, const CoordinateFormula& with2) const {
+  MAXIMA.pushContext();
+
+  for (unsigned int i=0; i<with1.size(); ++i) {
+    MAXIMA.assume(new FormulaLT(with1[i], with2[i]));
+  }
+
   CoordinateFormulaPtr coord = new CoordinateFormula();
   for (CoordinateFormula::const_iterator i=minCoord().begin() ; i!=minCoord().end(); ++i) {
     FormulaPtr formula = *i;
     for (unsigned int j=0; j<replaceWhat.size(); ++j) {
-      formula = formula->replace(replaceWhat[j], with[j]);
+      FormulaPtr formula1 = formula->replace(replaceWhat[j], with1[j]);
+      FormulaPtr formula2 = formula->replace(replaceWhat[j], with2[j]);
+      formula = MAXIMA.min(formula1, formula2);
     }
     coord->push_back(formula);
   }
@@ -261,22 +269,33 @@ petabricks::CoordinateFormulaPtr petabricks::SimpleRegion::getIterationLowerBoun
     for (CoordinateFormula::const_iterator i=_removedDimensions.minCoord.begin() ; i!=_removedDimensions.minCoord.end(); ++i) {
       FormulaPtr formula = *i;
       for (unsigned int j=0; j<replaceWhat.size(); ++j) {
-        formula = formula->replace(replaceWhat[j], with[j]);
+        FormulaPtr formula1 = formula->replace(replaceWhat[j], with1[j]);
+        FormulaPtr formula2 = formula->replace(replaceWhat[j], with2[j]);
+        formula = MAXIMA.min(formula1, formula2);
       }
       coord->push_back(formula);
     }
   }
 
   coord->normalize();
+  MAXIMA.popContext();
   return coord;
 }
 
-petabricks::CoordinateFormulaPtr petabricks::SimpleRegion::getIterationUpperBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with) const {
+petabricks::CoordinateFormulaPtr petabricks::SimpleRegion::getIterationUpperBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with1, const CoordinateFormula& with2) const {
+  MAXIMA.pushContext();
+
+  for (unsigned int i=0; i<with1.size(); ++i) {
+    MAXIMA.assume(new FormulaLT(with1[i], with2[i]));
+  }
+
   CoordinateFormulaPtr coord = new CoordinateFormula();
   for (CoordinateFormula::const_iterator i=maxCoord().begin() ; i!=maxCoord().end(); ++i) {
     FormulaPtr formula = *i;
     for (unsigned int j=0; j<replaceWhat.size(); ++j) {
-      formula = formula->replace(replaceWhat[j], with[j]);
+      FormulaPtr formula1 = formula->replace(replaceWhat[j], with1[j]);
+      FormulaPtr formula2 = formula->replace(replaceWhat[j], with2[j]);
+      formula = MAXIMA.max(formula1, formula2);
     }
     coord->push_back(formula);
   }
@@ -285,13 +304,16 @@ petabricks::CoordinateFormulaPtr petabricks::SimpleRegion::getIterationUpperBoun
     for (CoordinateFormula::const_iterator i=_removedDimensions.maxCoord.begin() ; i!=_removedDimensions.maxCoord.end(); ++i) {
       FormulaPtr formula = *i;
       for (unsigned int j=0; j<replaceWhat.size(); ++j) {
-        formula = formula->replace(replaceWhat[j], with[j]);
+        FormulaPtr formula1 = formula->replace(replaceWhat[j], with1[j]);
+        FormulaPtr formula2 = formula->replace(replaceWhat[j], with2[j]);
+        formula = MAXIMA.max(formula1, formula2);
       }
       coord->push_back(formula);
     }
   }
 
   coord->normalize();
+  MAXIMA.popContext();
   return coord;
 }
 

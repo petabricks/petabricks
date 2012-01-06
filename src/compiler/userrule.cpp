@@ -1191,8 +1191,9 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         MatrixDefPtr matrix = i->second;
         SimpleRegionPtr region = _scratchBoundingBox[trans.lookupMatrix(i->first)];
 
-        CoordinateFormulaPtr lowerBounds = region->getIterationLowerBounds(iterdef.var(), iterdef.begin());
-        CoordinateFormulaPtr upperBounds = region->getIterationUpperBounds(iterdef.var(), iterdefEndInclusive);
+        CoordinateFormulaPtr lowerBounds = region->getIterationLowerBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
+        CoordinateFormulaPtr upperBounds = region->getIterationUpperBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
+
         _scratchRegionLowerBounds[i->first] = lowerBounds;
 
         o.write(matrix->typeName(flavor) + " remote_" + matrix->name() + ";");
@@ -1272,7 +1273,9 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     for(int i=0; i<iterdef.dimensions(); ++i) {
       o.write("IndexT " + getOffsetVar(i)->toString() + " = coord[" +jalib::XToString(i)+"];");
       FormulaPtr b = iterdef.begin()[i];
+      FormulaPtr e = iterdef.end()[i];
       o.write("const IndexT " + b->toString() + " = metadata->begin[" + jalib::XToString(i) + "];");
+      o.write("const IndexT " + e->toString() + " = metadata->end[" + jalib::XToString(i) + "];");
     }
 
     o.write("DynamicTaskPtr _task;");
@@ -1304,13 +1307,13 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       if (iterateForward) {
         JWARNING(order.canIterateForward(i))(order).Text("couldn't find valid iteration order, assuming forward");
         o.write(v->toString() + " = " + MaximaWrapper::instance().normalize(new FormulaAdd(v, s))->toString() + ";");
-        o.beginIf(v->toString() + " >= metadata->end[" + jalib::XToString(i) + "]");
-        o.write(v->toString() + " = metadata->begin[" + jalib::XToString(i) + "];");
+        o.beginIf(v->toString() + " >= " + e->toString() + "");
+        o.write(v->toString() + " = " + b->toString() + ";");
 
       } else {
         o.write(v->toString() + " = " + MaximaWrapper::instance().normalize(new FormulaSubtract(v, s))->toString() + ";");
-        o.beginIf(v->toString() + " < metadata->begin[" + jalib::XToString(i) + "]");
-        o.write(v->toString() + " = metadata->end[" + jalib::XToString(i) + "] - 1;");
+        o.beginIf(v->toString() + " < " + b->toString() + "");
+        o.write(v->toString() + " = " + e->toString() + " - 1;");
 
       }
     }

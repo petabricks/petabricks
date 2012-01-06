@@ -164,8 +164,8 @@ public:
   std::string getIterationLowerBounds() const;
   std::string getIterationUpperBounds() const;
 
-  CoordinateFormulaPtr getIterationLowerBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with) const;
-  CoordinateFormulaPtr getIterationUpperBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with) const;
+  CoordinateFormulaPtr getIterationLowerBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with1, const CoordinateFormula& with2) const;
+  CoordinateFormulaPtr getIterationUpperBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with1, const CoordinateFormula& with2) const;
 
   size_t size() const { return dimensions(); }
 protected:
