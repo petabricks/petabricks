@@ -675,12 +675,18 @@ namespace petabricks {
       }
     }
 
-    void fromScratchStorage(const MatrixStorage& storage) {
+    void fromScratchRegion(const MatrixRegion<D, ElementT>& scratch) {
       if (isRegionDataRaw()) {
         // Do nothing
 
       } else {
-        size_t size = sizeof(int) + ((2 * D + 1) * sizeof(IndexT)) + (storage.count() * sizeof(ElementT));
+        unsigned int storage_count = 1;
+        for (unsigned int i=0; i<D; ++i) {
+          storage_count *= scratch.size(i);
+        }
+
+        size_t size = sizeof(int) + ((2 * D + 1) * sizeof(IndexT)) + (storage_count * sizeof(ElementT));
+
         char buf[size];
         CopyFromMatrixStorageMessage* metadata = (CopyFromMatrixStorageMessage*) buf;
         metadata->dimensions = D;
@@ -688,14 +694,29 @@ namespace petabricks {
 
         this->computeMatrixRegionMetaData(&metadata->startOffset, metadata->multipliers);
 
-        memcpy(metadata->size(), _size, sizeof(IndexT) * D);
-        memcpy(metadata->storage(), storage.data(), sizeof(ElementT) * storage.count());
+        memcpy(metadata->size(), scratch.sizes(), sizeof(IndexT) * D);
+
+        // Copy storage.
+        if (scratch.storage()->count() == storage_count) {
+          // send the entire storage
+          memcpy(metadata->storage(), scratch.storage()->data(), sizeof(ElementT) * storage_count);
+
+        } else {
+          unsigned int n = 0;
+          IndexT coord[D];
+          memset(coord, 0, sizeof coord);
+          do {
+            metadata->storage()[n] = scratch.cell(coord);
+            n++;
+          } while(scratch.incCoord(coord) >= 0);
+          JASSERT(n == storage_count)(n)(storage_count);
+        }
         _regionHandler->copyFromScratchMatrixStorage(metadata, size);
       }
     }
 
-    void fromScratchRegion(const MatrixRegion<D, ElementT>& scratch) {
-      this->fromScratchStorage(scratch.storage());
+    void fromScratchRegion(const RegionMatrix& scratch) {
+      fromScratchRegion(scratch._toLocalRegion());
     }
 
     void randomize() {

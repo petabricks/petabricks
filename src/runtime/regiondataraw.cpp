@@ -200,16 +200,18 @@ void RegionDataRaw::processCopyFromMatrixStorageMsg(const BaseMessageHeader* bas
   size_t sz = sizeof(CopyFromMatrixStorageReplyMessage);
   char buf[sz];
 
-
   IndexT n = 0;
   IndexT coord[d];
   memset(coord, 0, sizeof coord);
+
   do {
-    IndexT index = coordToIndex(d, msg->startOffset, msg->multipliers, coord);
+    unsigned int index = coordToIndex(d, msg->startOffset, msg->multipliers, coord);
+    #ifdef DEBUG
+    JASSERT(index <= _storage->count())(index)(_storage->count());
+    #endif
     _storage->data()[index] = storage[n];
     n++;
   } while(incCoord(d, size, coord) >= 0);
-
   caller->sendReply(buf, sz, base);
 }
 

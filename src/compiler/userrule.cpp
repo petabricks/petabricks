@@ -1218,8 +1218,25 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         args.push_back(matrix->name());
 
         if (matrix->type() == MatrixDef::T_TO) {
-          o.write(matrix->typeName(flavor) + " remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ";");
-          o.write(matrix->typeName(flavor) + " local_TO_" + matrix->name() + " = " + matrix->name() + ";");
+          SimpleRegionPtr toRegion = _toBoundingBox[trans.lookupMatrix(i->first)];
+          CoordinateFormulaPtr toLowerBounds = toRegion->getIterationLowerBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
+          CoordinateFormulaPtr toUpperBounds = toRegion->getIterationUpperBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
+          toLowerBounds->sub(lowerBounds);
+          toUpperBounds->sub(lowerBounds);
+
+          o.write(matrix->typeName(flavor) + " remote_TO_" + matrix->name() + ";");
+          o.write(matrix->typeName(flavor) + " local_TO_" + matrix->name() + ";");
+          o.write("{");
+          o.incIndent();
+          o.write("IndexT _tmp_begin[] = {" + toLowerBounds->toString() + "};");
+          o.write("IndexT _tmp_end[] = {" + toUpperBounds->toString() + "};");
+          o.write("remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ".region(_tmp_begin, _tmp_end);");
+          o.write("local_TO_" + matrix->name() + " = " + matrix->name() + ".region(_tmp_begin, _tmp_end);");
+//           o.write("remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ";");
+//           o.write("local_TO_" + matrix->name() + " = " + matrix->name() + ";");
+          o.decIndent();
+          o.write("}");
+
           args.push_back("remote_TO_" + matrix->name());
           args.push_back("local_TO_" + matrix->name());
         }
@@ -1357,7 +1374,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
         MatrixDefPtr matrix = i->second;
         if (matrix->type() == MatrixDef::T_TO) {
-          o.write("metadata->remote_TO_" + matrix->name() + ".fromScratchStorage(metadata->local_TO_" + matrix->name() + ".storage());");
+          o.write("metadata->remote_TO_" + matrix->name() + ".fromScratchRegion(metadata->local_TO_" + matrix->name() + ");");
         }
       }
 
