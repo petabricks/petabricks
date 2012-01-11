@@ -145,6 +145,11 @@ void petabricks::FormulaList::normalize(){
     (*i) = MaximaWrapper::instance().normalize( *i );
 }
 
+void petabricks::FormulaList::declareIntegers() const {
+  for(const_iterator i = begin(); i!=end(); ++i)
+    MaximaWrapper::instance().declareInteger( *i );
+}
+
 void petabricks::FormulaList::print(std::ostream& o) const{
   printStlList(o, begin(), end(), ", ");
 }
@@ -284,7 +289,8 @@ void petabricks::FormulaList::sub(const FormulaList& fl){
     *i=new FormulaSubtract(*i,*j);
     ++j;
   }
-  normalize();
+  // TODO: This is used to compute coord, but we need to do integer arithmatic.
+  // normalize();
 }
 
 petabricks::FormulaPtr petabricks::Formula::inf(){

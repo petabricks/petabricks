@@ -207,7 +207,7 @@ void RegionDataRaw::processCopyFromMatrixStorageMsg(const BaseMessageHeader* bas
   do {
     unsigned int index = coordToIndex(d, msg->startOffset, msg->multipliers, coord);
     #ifdef DEBUG
-    JASSERT(index <= _storage->count())(index)(_storage->count());
+    JASSERT(index <= _storage->count())(index)(_storage->count())(d)(msg->startOffset)(msg->multipliers[0])(coord[0]);
     #endif
     _storage->data()[index] = storage[n];
     n++;

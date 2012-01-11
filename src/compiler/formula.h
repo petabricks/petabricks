@@ -100,6 +100,7 @@ public:
   FormulaList();
   FormulaList(const FormulaList& that);
   void normalize();
+  void declareIntegers() const;
   void print(std::ostream& o) const;
   FreeVarsPtr getFreeVariables() const;
   void makeRelativeTo(const FormulaList& defs);

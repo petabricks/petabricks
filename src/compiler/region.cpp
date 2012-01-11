@@ -279,6 +279,8 @@ petabricks::CoordinateFormulaPtr petabricks::SimpleRegion::getIterationLowerBoun
 
   coord->normalize();
   MAXIMA.popContext();
+
+  coord->declareIntegers();
   return coord;
 }
 
@@ -314,6 +316,8 @@ petabricks::CoordinateFormulaPtr petabricks::SimpleRegion::getIterationUpperBoun
 
   coord->normalize();
   MAXIMA.popContext();
+
+  coord->declareIntegers();
   return coord;
 }
 

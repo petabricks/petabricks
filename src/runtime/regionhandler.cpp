@@ -64,6 +64,7 @@ int RegionHandler::allocData(const IndexT* size) {
 
 #ifdef REGIONMATRIX_TEST
   _regionData = new RegionDataRemote(_D, size, RemoteHostDB::instance().host(0));
+
 #else
   _regionData = new RegionDataRaw(_D, size);
   _regionData->allocData();

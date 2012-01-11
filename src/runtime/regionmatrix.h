@@ -303,7 +303,9 @@ namespace petabricks {
     //
     RegionMatrix<D, ElementT> splitRegion(const IndexT* offset, const IndexT* size) const {
       IndexT offset_new[_regionHandler->dimensions()];
-      this->getRegionDataCoord(offset, offset_new);
+      for (int i = 0; i < D; ++i) {
+        offset_new[i] = _splitOffset[i] + offset[i];
+      }
 
       if (_isTransposed) {
         IndexT size_n[_regionHandler->dimensions()];
@@ -599,6 +601,7 @@ namespace petabricks {
       RegionDataIPtr regionData = _regionHandler->getRegionData();
       IndexT mult = 1;
       int last_slice_index = 0;
+
       for(int i = 0; i < regionData->dimensions(); i++){
         if ((last_slice_index < _sliceInfo->numSliceDimensions()) &&
             (i == _sliceInfo->sliceDimensions(last_slice_index))) {
@@ -716,7 +719,11 @@ namespace petabricks {
     }
 
     void fromScratchRegion(const RegionMatrix& scratch) {
-      fromScratchRegion(scratch._toLocalRegion());
+      if (isRegionDataRaw()) {
+        // Do nothing
+      } else {
+        fromScratchRegion(scratch._toLocalRegion());
+      }
     }
 
     void randomize() {
