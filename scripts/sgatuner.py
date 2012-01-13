@@ -1,13 +1,13 @@
 #!/usr/bin/python
-import progress 
+import progress
 import itertools, random, subprocess, os, sys, time, warnings
 import pbutil, mutators
 import logging
-import storagedirs 
+import storagedirs
 import candidatetester
-import shutil 
+import shutil
 import tunerconfig
-import configtool 
+import configtool
 import re
 import math
 import time
@@ -24,7 +24,7 @@ import pdb
 
 class TrainingTimeout(Exception):
   pass
-  
+
 def check_timeout():
   if time.time() > config.end_time:
     raise TrainingTimeout()
@@ -62,7 +62,7 @@ class Population:
       self.candidateloglast = None
     self.starttime = time.time()
     self.onMembersChanged(True)
-  
+
   def test(self, count):
     '''test each member of the pop count times'''
     self.failed=set()
@@ -125,6 +125,10 @@ class Population:
         c.rmfiles()
         if c.lastMutator:
           c.lastMutator.result('fail')
+
+        programName = config.benchmark.split("/")[-1]
+        subprocess.call(["killall", programName])
+
         warnings.warn(NewProgramCrash(e))
     if len(originalPop)<len(self.members):
       logging.info("added "+', '.join(map(str,set(self.members)-set(originalPop))))
@@ -134,8 +138,8 @@ class Population:
     if config.print_log:
       print "GUIDED MUTATION"
     self.randomMutation(None, lambda m: m.accuracyHint)
-    
-  
+
+
   def birthFilter(self, parent, child):
     '''called when considering adding child to population'''
     same=True
@@ -155,7 +159,7 @@ class Population:
       else:
         child.lastMutator.result('worse')
     return False
-  
+
   def inputSize(self, roundOffset=0):
     return self.testers[-1 - roundOffset].n
 
@@ -287,10 +291,10 @@ class Population:
           print "skip generation n = ",self.inputSize(),"(program run failed)"
       else:
         warnings.warn(tunerwarnings.AlwaysCrashes())
-        
+
       if config.print_log:
         self.printPopulation()
-      
+
       if not config.delete_output_dir:
         for m in self.members+self.removed:
           m.writestats(self.inputSize())
@@ -327,7 +331,7 @@ class Population:
     t1 = map(lambda m: m.numTests(self.inputSize()), self.members)
     t2 = map(lambda m: m.numTests(self.inputSize()), self.removed)
     t3 = map(lambda m: m.numTests(self.inputSize()), self.notadded)
-    
+
     return len(t1),len(t2),len(t3),mean(t1),mean(t2),mean(t3),\
            self.testers[-1].testCount, self.testers[-1].timeoutCount, self.testers[-1].crashCount
 
@@ -459,7 +463,7 @@ def addMutators(candidate, info, acf, taf, ignore=None, weight=1.0):
         m.accuracyHint = 1
       logging.info("added Mutator " + transform + "/" + ta['name'] + " => " + str(m))
       candidate.addMutator(m)
-  
+
   for sub in info.calls():
     addMutators(candidate, sub, acf, taf, ignore, weight/2.0)
 
@@ -492,7 +496,7 @@ def init(benchmark, acf=createChoiceSiteMutators, taf=createTunableMutators):
 
 def autotuneInner(benchmark, returnBest=None):
   """Function running the autotuning process.
-If returnBest is specified, it should be a list. The best candidate found will 
+If returnBest is specified, it should be a list. The best candidate found will
 be added to that list"""
   progress.push()
   config.benchmark = benchmark
@@ -500,12 +504,12 @@ be added to that list"""
   try:
     pop = Population(candidate, tester, None)
     candidate.pop = pop
-    
+
     if not pop.isVariableAccuracy() and config.accuracy_target:
       logging.info("clearing accuracy_target")
       config.accuracy_target = None
 
-    stats = storagedirs.openCsvStats("roundstats", 
+    stats = storagedirs.openCsvStats("roundstats",
         ("round",
          "input_size",
          "cumulative_sec",
@@ -543,7 +547,7 @@ be added to that list"""
     #check to make sure we did something:
     if pop.firstRound:
       warnings.warn(tunerwarnings.AlwaysCrashes())
-      
+
     logging.info("TODO: using acc target: "+str(config.accuracy_target))
     return pop.best
   finally:
@@ -573,7 +577,7 @@ def regression_check(benchmark):
 def recompile():
   pbutil.chdirToPetabricksRoot();
   config.benchmark = pbutil.normalizeBenchmarkName(config.benchmark)
-  config.output_cfg = pbutil.benchmarkToCfg(config.benchmark) 
+  config.output_cfg = pbutil.benchmarkToCfg(config.benchmark)
   if config.recompile:
     pbutil.compilePetabricks();
     pbutil.compileBenchmarks([config.benchmark])
