@@ -906,14 +906,14 @@ namespace petabricks {
     }
     RegionMatrixWrapper(CellProxy& value) : Base() {
       RegionMatrix0DInfoPtr sourceInfo = new RegionMatrix0DInfo(value._handler->dimensions());
-      if (value._index != NULL) {
+      if (value._handler->dimensions() > 0) {
         memcpy(sourceInfo->sourceIndex(), value._index, sizeof(IndexT) * sourceInfo->sourceDimensions());
       }
       init(sourceInfo, value._handler);
     }
     RegionMatrixWrapper(const CellProxy& value) : Base() {
       RegionMatrix0DInfoPtr sourceInfo = new RegionMatrix0DInfo(value._handler->dimensions());
-      if (value._index != NULL) {
+      if (value._handler->dimensions() > 0) {
         memcpy(sourceInfo->sourceIndex(), value._index, sizeof(IndexT) * sourceInfo->sourceDimensions());
       }
       init(sourceInfo, value._handler);
