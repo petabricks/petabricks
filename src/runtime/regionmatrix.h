@@ -303,21 +303,28 @@ namespace petabricks {
     //
     RegionMatrix<D, ElementT> splitRegion(const IndexT* offset, const IndexT* size) const {
       IndexT offset_new[_regionHandler->dimensions()];
-      for (int i = 0; i < D; ++i) {
-        offset_new[i] = _splitOffset[i] + offset[i];
-      }
 
       if (_isTransposed) {
+        for (int i = 0; i < D; ++i) {
+          offset_new[i] = _splitOffset[i] + offset[D - 1 - i];
+        }
+
         IndexT size_n[_regionHandler->dimensions()];
         for (int i = 0; i < _regionHandler->dimensions(); i++) {
           size_n[i] = size[D - 1 - i];
         }
+
         return RegionMatrix<D, ElementT>
           (size_n, offset_new, _isTransposed, _sliceInfo, _regionHandler);
-      }
 
-      return RegionMatrix<D, ElementT>
-        (size, offset_new, _isTransposed, _sliceInfo, _regionHandler);
+      } else {
+        for (int i = 0; i < D; ++i) {
+          offset_new[i] = _splitOffset[i] + offset[i];
+        }
+        return RegionMatrix<D, ElementT>
+          (size, offset_new, _isTransposed, _sliceInfo, _regionHandler);
+
+      }
     }
 
     RegionMatrix<D-1, ElementT> sliceRegion(int d, IndexT pos) const {
