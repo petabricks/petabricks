@@ -864,6 +864,14 @@ namespace petabricks {
 
     IndexT* sourceIndex() { return _sourceIndex; }
     const IndexT* sourceIndex() const { return _sourceIndex; }
+
+    void print() {
+      printf("sourceinfo: ");
+      for (int i = 0; i < _sourceDimensions; ++i) {
+        printf("%d, ", _sourceIndex[i]);
+      }
+      printf("\n");
+    }
   };
 
   template<typename ElementT>
@@ -941,7 +949,7 @@ namespace petabricks {
       return cell();
     }
     INLINE CellProxy cell() const {
-      return Base::cell(_sourceInfo->sourceIndex());
+      return CellProxy(Base::_regionHandler, _sourceInfo->sourceIndex());
     }
 
     RegionMatrix0DInfoPtr sourceInfo() const {
