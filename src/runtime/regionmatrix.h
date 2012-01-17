@@ -182,20 +182,10 @@ namespace petabricks {
       _regionHandler->allocData(_size);
     }
 
-    static RegionMatrix allocate(IndexT* size) {
+    static RegionMatrix allocate(IndexT size[D]) {
       RegionMatrix region = RegionMatrix(size);
       region.allocData();
       return region;
-    }
-
-    static RegionMatrix allocate(IndexT x, ...) {
-      IndexT c1[D];
-      va_list ap;
-      va_start(ap, x);
-      c1[0]=x;
-      for(int i=1; i<D; ++i) c1[i]=va_arg(ap, IndexT);
-      va_end(ap);
-      return allocate(c1);
     }
 
     inline static RegionMatrix allocate() {
@@ -240,35 +230,17 @@ namespace petabricks {
       }
       return true;
     }
-    bool isSize(IndexT x, ...) const{
-      IndexT c1[D];
-      va_list ap;
-      va_start(ap, x);
-      c1[0]=x;
-      for(int i=1; i<D; ++i) c1[i]=va_arg(ap, IndexT);
-      va_end(ap);
-      return isSize(c1);
-    }
     bool isSize() const { return true; }
 
     IndexT width() const { return size(0); }
     IndexT height() const { return size(1); }
     IndexT depth() const { return size(2); }
 
-    bool contains(const IndexT* coord) const {
+    bool contains(const IndexT coord[D]) const {
       for(int i=0; i<D; ++i)
         if(coord[i]<0 || coord[i]>=size(i))
           return false;
       return true;
-    }
-    bool contains(IndexT x, ...) const {
-      IndexT c1[D];
-      va_list ap;
-      va_start(ap, x);
-      c1[0]=x;
-      for(int i=1; i<D; ++i) c1[i]=va_arg(ap, IndexT);
-      va_end(ap);
-      return contains(c1);
     }
 
     /// Number of elements in this region
@@ -279,16 +251,7 @@ namespace petabricks {
       return s;
     }
 
-    CellProxy cell(IndexT x, ...) const {
-      IndexT c1[D];
-      va_list ap;
-      va_start(ap, x);
-      c1[0]=x;
-      for(int i=1; i<D; ++i) c1[i]=va_arg(ap, IndexT);
-      va_end(ap);
-      return cell(c1);
-    }
-    CellProxy cell(IndexT* coord) const {
+    CellProxy cell(IndexT coord[D]) const {
       IndexT rd_coord[_regionHandler->dimensions()];
       getRegionDataCoord(coord, rd_coord);
       return CellProxy(_regionHandler, rd_coord);
@@ -382,17 +345,6 @@ namespace petabricks {
         newSizes[i]=c2[i]-c1[i];
       }
       return RegionMatrixWrapper<D, ElementT>(this->splitRegion(c1, newSizes));
-    }
-
-    RegionMatrixWrapper<D, ElementT> region(IndexT x, ...) const{
-      IndexT c1[D], c2[D];
-      va_list ap;
-      va_start(ap, x);
-      c1[0]=x;
-      for(int i=1; i<D; ++i) c1[i]=va_arg(ap, IndexT);
-      for(int i=0; i<D; ++i) c2[i]=va_arg(ap, IndexT);
-      va_end(ap);
-      return region(c1,c2);
     }
 
     RegionMatrixWrapper<D-1, ElementT> slice(int d, IndexT pos) const{
@@ -768,6 +720,96 @@ namespace petabricks {
       }
     }
 
+    // Specialized va_list
+
+    INLINE static RegionMatrix allocate(IndexT x){
+      IndexT c1[] = {x};
+      return allocate(c1);
+    }
+    INLINE CellProxy cell(IndexT x) const{
+      IndexT c1[] = {x};
+      return cell(c1);
+    }
+    INLINE bool isSize(IndexT x) const{
+      IndexT c1[] = {x};
+      return isSize(c1);
+    }
+    INLINE bool contains(IndexT x) const{
+      IndexT c1[] = {x};
+      return contains(c1);
+    }
+    INLINE RegionMatrix region(IndexT x1, IndexT x2) const{
+      IndexT c1[] = {x1};
+      IndexT c2[] = {x2};
+      return region(c1,c2);
+    }
+
+    INLINE static RegionMatrix allocate(IndexT x, IndexT y){
+      IndexT c1[] = {x, y};
+      return allocate(c1);
+    }
+    INLINE CellProxy cell(IndexT x, IndexT y) const{
+      IndexT c1[] = {x, y};
+      return cell(c1);
+    }
+    INLINE bool isSize(IndexT x, IndexT y) const{
+      IndexT c1[] = {x, y};
+      return isSize(c1);
+    }
+    INLINE bool contains(IndexT x, IndexT y) const{
+      IndexT c1[] = {x, y};
+      return contains(c1);
+    }
+    INLINE RegionMatrix region(IndexT x1, IndexT y1, IndexT x2, IndexT y2) const{
+      IndexT c1[] = {x1, y1};
+      IndexT c2[] = {x2, y2};
+      return region(c1,c2);
+    }
+
+    INLINE static RegionMatrix allocate(IndexT x, IndexT y, IndexT z){
+      IndexT c1[] = {x, y, z};
+      return allocate(c1);
+    }
+    INLINE CellProxy cell(IndexT x, IndexT y, IndexT z) const{
+      IndexT c1[] = {x, y, z};
+      return cell(c1);
+    }
+    INLINE bool isSize(IndexT x, IndexT y, IndexT z) const{
+      IndexT c1[] = {x, y, z};
+      return isSize(c1);
+    }
+    INLINE bool contains(IndexT x, IndexT y, IndexT z) const{
+      IndexT c1[] = {x, y, z};
+      return contains(c1);
+    }
+    INLINE RegionMatrix region(IndexT x1, IndexT y1, IndexT z1, IndexT x2, IndexT y2, IndexT z2) const{
+      IndexT c1[] = {x1, y1, z1};
+      IndexT c2[] = {x2, y2, z2};
+      return region(c1,c2);
+    }
+
+    INLINE static RegionMatrix allocate(IndexT x, IndexT y, IndexT z, IndexT a){
+      IndexT c1[] = {x, y, z, a};
+      return allocate(c1);
+    }
+    INLINE CellProxy cell(IndexT x, IndexT y, IndexT z, IndexT a) const{
+      IndexT c1[] = {x, y, z, a};
+      return cell(c1);
+    }
+    INLINE bool isSize(IndexT x, IndexT y, IndexT z, IndexT a) const{
+      IndexT c1[] = {x, y, z, a};
+      return isSize(c1);
+    }
+    INLINE bool contains(IndexT x, IndexT y, IndexT z, IndexT a) const{
+      IndexT c1[] = {x, y, z, a};
+      return contains(c1);
+    }
+    INLINE RegionMatrix region(IndexT x1, IndexT y1, IndexT z1, IndexT a1, IndexT x2, IndexT y2, IndexT z2, IndexT a2) const{
+      IndexT c1[] = {x1, y1, z1, a1};
+      IndexT c2[] = {x2, y2, z2, a2};
+      return region(c1,c2);
+    }
+
   private:
     void getRegionDataCoord(const IndexT* coord_orig, IndexT* coord_new) const {
       IndexT slice_index = 0;
@@ -949,10 +991,7 @@ namespace petabricks {
       return *this;
     }
 
-    CellProxy cell(IndexT x, ...) const {
-      return cell();
-    }
-    CellProxy cell(IndexT* coord) const {
+    CellProxy cell(IndexT coord[D]) const {
       return cell();
     }
     INLINE CellProxy cell() const {
