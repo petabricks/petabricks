@@ -25,23 +25,6 @@ inline ElementT wrapWindDirDiff(ElementT diff)
     return diff + (diffIntWrapP360 - diffIntP360);
 }
 
-//  inline __attribute__((always_inline)) __attribute__((flatten))
-//  ElementT lookup(const ConstMatrixRegion2D data,
-//                         const ConstMatrixRegion1D var,
-//                         const IndexT index)
-//  {
-//      return data.cell(var.cell(0), index + var.cell(1));
-//  }
-
-//  inline __attribute__((always_inline)) __attribute__((flatten))
-//  ElementT lookup(const ConstMatrixRegion2D data,
-//                         const ConstMatrixRegion2D var,
-//                         const IndexT row,
-//                         const IndexT index)
-//  {
-//      return data.cell(var.cell(0, row), index + var.cell(1, row));
-//  }
-
 %}
 
 transform NWKDECheckInputs
@@ -122,6 +105,90 @@ to INPUTSCHECKED
               train-test point pair
     PARTIALS - weighted output partial sums
 */
+
+// Compute results directly with one pass through the data
+transform NWKDEDirect
+from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l], TRAINSTART,
+     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q], TESTSTART, NUMTEST,
+     DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
+to RESULTS[q]
+{
+    to   (RESULTS.cell(k) result)
+    from (TRAINDATA trainData, TRAINX trainX, TRAINY trainY,
+          TRAININDICES trainIndices, TRAINSTART trainStart,
+          TESTDATA testData, TESTX testX,
+          TESTINDICES.cell(k) testIndex, TESTSTART testStart, NUMTEST numTest,
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+          MASKWIDTH maskWidth)
+    {
+        bool skipIndexFlag;
+        IndexT i, j, idx, dirFlag, trainIndex, partSize, partStart, partEnd;
+        ElementT y, kernelWidth, trainPoint, testPoint, diff, sum,
+                 curWeight, curPartial, weight = 0, partial = 0;
+
+        // compute the partition that this testIndex lies in
+        partStart = partEnd = idx = testStart + k;
+        if (split > 0) {
+            partSize = MAX(1, floor(numTest / split));
+            partStart = idx - (idx % partSize);
+            partEnd = partStart + partSize;
+        }
+
+        // loop over training points
+        for (j = 0; j < l; ++j) {
+
+            trainIndex = trainIndices.cell(j);
+            y = trainData.cell(trainY.cell(0), trainIndex + trainY.cell(1));
+
+            // skip current training index if it is too close to the test
+            // index, if it's not in the same partition, or if the training
+            // output value is a NAN
+            if ((trainIndex > testIndex - maskWidth &&
+                 trainIndex < testIndex + maskWidth) ||
+                (trainStart + j >= partStart &&
+                 trainStart + j < partEnd) ||
+                ISNAN(y)) {
+                continue;
+            }
+
+            // loop over predictor variables to calculate training weight
+            sum = 0;
+            skipIndexFlag = false;
+            for (i = 0; i < trainX.size(1); ++i) {
+                dirFlag     =     dirFlags.cell(trainX.cell(0, i));
+                kernelWidth = kernelWidths.cell(trainX.cell(0, i));
+                trainPoint = trainData.cell(trainX.cell(0, i),
+                                            trainIndex + trainX.cell(1, i));
+                testPoint = testData.cell(testX.cell(0, i),
+                                          testIndex + testX.cell(1, i));
+
+                // skip this variable if nan is detected in the test point
+                if (ISNAN(testPoint)) { continue; }
+
+                // skip this training index if nan is detected
+                if (ISNAN(trainPoint)) { skipIndexFlag = true; break; }
+
+                // compute diff (and wrap if dirFlag is true)
+                diff = trainPoint - testPoint;
+                if (dirFlag) { diff = wrapWindDirDiff(diff); }
+
+                // normalize and save squared difference
+                diff /= kernelWidth;
+                sum += diff * diff;
+            }
+
+            if (skipIndexFlag) { continue; }
+
+            curWeight = exp(-((ElementT) sum));
+            curPartial = curWeight * y;
+
+            weight += curWeight;
+            partial += curPartial;
+        }
+
+        result = partial / weight;
+    }
+}
 
 #define INCLUDE_METHOD2
 #define INCLUDE_METHOD3
@@ -296,7 +363,7 @@ to WEIGHTS[q], PARTIALS[q]
         }
 
         // loop over training points
-        for (j = 0; j < trainIndices.count(); ++j) {
+        for (j = 0; j < l; ++j) {
 
             trainIndex = trainIndices.cell(j);
             y = trainData.cell(trainY.cell(0), trainIndex + trainY.cell(1));
@@ -351,26 +418,21 @@ to WEIGHTS[q], PARTIALS[q]
 
 // Compute results in a blocked fashion
 transform NWKDEBlocked
-from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
+from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l], TRAINSTART,
      TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q], TESTSTART, NUMTEST,
      DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
-through WEIGHTS[q], PARTIALS[q]
-to RESULT[q]
-tunable blockSize
+to WEIGHTS[q], PARTIALS[q]
+tunable sizespecific blockSize
 {
-    to   (RESULT result, WEIGHTS weights, PARTIALS partials)
+    to   (WEIGHTS weights, PARTIALS partials)
     from (TRAINDATA trainData, TRAINX trainX, TRAINY trainY,
-          TRAININDICES trainIndices,
+          TRAININDICES trainIndices, TRAINSTART trainStart,
           TESTDATA testData, TESTX testX,
           TESTINDICES testIndices, TESTSTART testStart, NUMTEST numTest,
           DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
           MASKWIDTH maskWidth)
     {
         IndexT i0, i1, j0, j1, j, b = MAX(1, blockSize);
-
-        // initialize weights and partials to 0
-        Init1D(weights, 0);
-        Init1D(partials, 0);
 
         // blocked iteration over training and test indices
         for (j0 = 0; j0 < q; j0 += b) {
@@ -379,14 +441,93 @@ tunable blockSize
                 i1 = MIN(i0 + b, l);
                 NWKDEBase(weights.region(j0, j1), partials.region(j0, j1),
                           trainData, trainX, trainY,
-                          trainIndices.region(i0, i1), i0,
+                          trainIndices.region(i0, i1), trainStart + i0,
                           testData, testX,
                           testIndices.region(j0, j1), testStart + j0, numTest,
                           dirFlags, kernelWidths, split, maskWidth);
             }
-            for (j = 0; j < q; ++j) {
-                result.cell(j) = partials.cell(j) / weights.cell(j);
+        }
+    }
+}
+
+// Cache-oblivous recursive version, split iteration space into quadrants and
+// recurse in order to minimize cache traffic
+transform NWKDERecursive
+from TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l], TRAINSTART,
+     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q], TESTSTART, NUMTEST,
+     DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
+to WEIGHTS[q], PARTIALS[q]
+tunable sizespecific blockSize
+{
+    to   (WEIGHTS weights, PARTIALS partials)
+    from (TRAINDATA trainData, TRAINX trainX, TRAINY trainY,
+          TRAININDICES trainIndices, TRAINSTART trainStart,
+          TESTDATA testData, TESTX testX,
+          TESTINDICES testIndices, TESTSTART testStart, NUMTEST numTest,
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+          MASKWIDTH maskWidth)
+    {
+        IndexT i0, i1, j0, j1, ib, jb, b = MAX(1, blockSize);
+
+        // base case
+        if (l <= b && q <= b) {
+            NWKDEBlocked(weights, partials,
+                         trainData, trainX, trainY,
+                         trainIndices, trainStart,
+                         testData, testX,
+                         testIndices, testStart, numTest,
+                         dirFlags, kernelWidths, split, maskWidth);
+            return;
+        }
+
+        // determine block sizes in each dimension
+        ib = (l > b) ? l/2 : l;
+        jb = (q > b) ? q/2 : q;
+
+        // quadrant 1
+        i0 = 0; i1 = ib;
+        j0 = 0; j1 = jb;
+        NWKDERecursive(weights.region(j0, j1), partials.region(j0, j1),
+                       trainData, trainX, trainY,
+                       trainIndices.region(i0, i1), trainStart + i0,
+                       testData, testX,
+                       testIndices.region(j0, j1), testStart + j0, numTest,
+                       dirFlags, kernelWidths, split, maskWidth);
+
+        // quadrant 2
+        if (ib < l) {
+            i0 = ib; i1 = l;
+            j0 = 0; j1 = jb;
+            NWKDERecursive(weights.region(j0, j1), partials.region(j0, j1),
+                           trainData, trainX, trainY,
+                           trainIndices.region(i0, i1), trainStart + i0,
+                           testData, testX,
+                           testIndices.region(j0, j1), testStart + j0, numTest,
+                           dirFlags, kernelWidths, split, maskWidth);
+        }
+
+        if (jb < q) {
+            // quadrant 4
+            if (ib < l) {
+                i0 = ib; i1 = l;
+                j0 = jb; j1 = q;
+                NWKDERecursive(weights.region(j0, j1), partials.region(j0, j1),
+                               trainData, trainX, trainY,
+                               trainIndices.region(i0, i1), trainStart + i0,
+                               testData, testX, testIndices.region(j0, j1),
+                               testStart + j0, numTest,
+                               dirFlags, kernelWidths, split, maskWidth);
             }
+
+            // quadrant 3
+            i0 = 0; i1 = ib;
+            j0 = jb; j1 = q;
+            NWKDERecursive(weights.region(j0, j1), partials.region(j0, j1),
+                           trainData, trainX, trainY,
+                           trainIndices.region(i0, i1), trainStart + i0,
+                           testData, testX,
+                           testIndices.region(j0, j1), testStart + j0, numTest,
+                           dirFlags, kernelWidths, split, maskWidth);
         }
     }
 }
@@ -396,7 +537,8 @@ from TRAINDATA[_M_,_N_], TRAINX[2,_P_], TRAINY[2], TRAININDICES[_L_],
      TESTDATA[_M2_,_N2_], TESTX[2,_P_], TESTINDICES[_Q_],
      DIRFLAGS[_M_], KERNELWIDTHS[_M_], SPLIT, MASKWIDTH
 to RESULT[_Q_]
-tunable blockSize
+through WEIGHTS[_Q_], PARTIALS[_Q_]
+tunable sizespecific blockSize
 through INPUTSCHECKED
 generator NWKDEGenerator2
 accuracy_metric NWKDEMetric2
@@ -408,31 +550,54 @@ accuracy_metric NWKDEMetric2
           DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
           MASKWIDTH maskWidth)
     {
+        NWKDEDirect(result,
+                    trainData, trainX, trainY, trainIndices, 0,
+                    testData, testX, testIndices, 0, _Q_,
+                    dirFlags, kernelWidths, split, maskWidth);
+    }
+
+    to   (WEIGHTS weights, PARTIALS partials)
+    from (TRAINDATA trainData, TRAINX trainX,
+          TRAINY trainY, TRAININDICES trainIndices,
+          TESTDATA testData, TESTX testX, TESTINDICES testIndices,
+          DIRFLAGS dirFlags, KERNELWIDTHS kernelWidths, SPLIT split,
+          MASKWIDTH maskWidth)
+    {
 #ifdef DEBUG
         ElementT ret;
         NWKDECheckInputs(ret, trainData, trainX, trainY, trainIndices,
                          testData, testX, testIndices);
 #endif
-        if (blockSize < 1 || blockSize > _Q_) {
-            NWKDEBlocked(result,
-                         trainData, trainX, trainY, trainIndices,
-                         testData, testX,
-                         testIndices, 0, _Q_,
-                         dirFlags, kernelWidths, split, maskWidth);
-            return;
-        }
 
-        // domain decomposition for coarse-grain parallelism
-        IndexT i0, i1;
-        for (i0 = 0; i0 < _Q_; i0 += blockSize) {
-            i1 = MIN(i0 + blockSize, _Q_);
-            spawn NWKDEBlocked(result.region(i0, i1),
-                               trainData, trainX, trainY, trainIndices,
-                               testData, testX,
-                               testIndices.region(i0, i1), i0, _Q_,
-                               dirFlags, kernelWidths, split, maskWidth);
+        // initialize weights and partials to 0
+        Init1D(weights, 0);
+        Init1D(partials, 0);
+
+        if (blockSize < 1 || blockSize > _Q_) {
+            NWKDERecursive(weights, partials,
+                           trainData, trainX, trainY, trainIndices, 0,
+                           testData, testX, testIndices, 0, _Q_,
+                           dirFlags, kernelWidths, split, maskWidth);
+        } else {
+            // domain decomposition for coarse-grain parallelism
+            IndexT i0, i1;
+            for (i0 = 0; i0 < _Q_; i0 += blockSize) {
+                i1 = MIN(i0 + blockSize, _Q_);
+                spawn NWKDERecursive(weights.region(i0, i1),
+                                     partials.region(i0, i1),
+                                     trainData, trainX, trainY, trainIndices, 0,
+                                     testData, testX,
+                                     testIndices.region(i0, i1), i0, _Q_,
+                                     dirFlags, kernelWidths, split, maskWidth);
+            }
+            sync;
         }
-        sync;
+    }
+
+    to (RESULT.cell(j) result)
+    from (WEIGHTS.cell(j) weight, PARTIALS.cell(j) partial)
+    {
+        result = partial / weight;
     }
 }
 
