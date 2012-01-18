@@ -626,6 +626,18 @@ namespace petabricks {
       RegionDataIPtr regionData = new RegionDataRaw(D, this->size());
       regionData->setStorage(storage);
       RegionMatrix copy = RegionMatrix(this->size(), new RegionHandler(regionData));
+      if (_isTransposed) {
+        copy.transpose();
+      }
+
+      #ifdef DEBUG_SCRATCH_REGION
+      IndexT coord[D];
+      memset(coord, 0, sizeof coord);
+      do {
+        JASSERT(abs(this->cell(coord) - copy.cell(coord)) < 0.000001)(this->cell(coord))(copy.cell(coord));
+      } while (this->incCoord(coord) >= 0);
+      #endif
+
       return copy;
     }
 
@@ -637,7 +649,20 @@ namespace petabricks {
       }
     }
 
-    void fromScratchRegion(const MatrixRegion<D, ElementT>& scratch) {
+    void fromScratchRegion(const MatrixRegion<D, ElementT>& scratchOrig) {
+      #ifdef DEBUG
+      for (int i = 0; i < D; ++i) {
+        JASSERT(size(i) == scratchOrig.size(i));
+      }
+      #endif
+
+      MatrixRegion<D, ElementT> scratch;
+      if (_isTransposed) {
+        scratch = scratchOrig.transposed();
+      } else {
+        scratch = scratchOrig;
+      }
+
       if (isRegionDataRaw()) {
         // Do nothing
 
@@ -675,9 +700,24 @@ namespace petabricks {
         }
         _regionHandler->copyFromScratchMatrixStorage(metadata, size);
       }
+
+      #ifdef DEBUG_SCRATCH_REGION
+      IndexT coord[D];
+      memset(coord, 0, sizeof coord);
+      do {
+        JASSERT(abs(this->cell(coord) - scratchOrig.cell(coord)) < 0.000001)(this->cell(coord))(scratchOrig.cell(coord));
+      } while (this->incCoord(coord) >= 0);
+      #endif
+
     }
 
     void fromScratchRegion(const RegionMatrix& scratch) {
+      #ifdef DEBUG
+      for (int i = 0; i < D; ++i) {
+        JASSERT(size(i) == scratch.size(i));
+      }
+      #endif
+
       if (isRegionDataRaw()) {
         // Do nothing
       } else {
