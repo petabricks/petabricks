@@ -733,8 +733,8 @@ namespace petabricks {
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
       do {
-        ElementT v = this->readCell(coord);
-        gen.update(&v, sizeof(ElementT));
+        float v = this->readCell(coord);
+        gen.update(&v, sizeof(v));
       } while (this->incCoord(coord) >= 0);
     }
 
