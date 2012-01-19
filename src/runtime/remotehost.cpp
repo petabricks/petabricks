@@ -136,7 +136,7 @@ namespace _RemoteHostMsgTypes {
     uint16_t type;
     char     host[1024];
     int      port;
-    
+
     friend std::ostream& operator<<(std::ostream& o, const SetupMessage& m) {
       return o << "SetupMessage("
                << MessageTypes::str(m.type) << ", "
@@ -458,7 +458,7 @@ bool petabricks::RemoteHost::recv() {
   default:
     JASSERT(false);
   }
-  
+
   if(obj) {
     obj->unlock();
     jalib::atomicDecrement(&obj->_pendingMessages);
@@ -675,6 +675,7 @@ void petabricks::RemoteHostDB::remotefork(const char* host, int oargc, const cha
     argv[i++] = slaveport;
   argv[i++] = portstr.c_str();
   argv[i++] = NULL;
+
   if(fork()==0){
     for(int i=3; i<1024; ++i)
       close(i);
@@ -734,7 +735,7 @@ void petabricks::RemoteHostDB::listenLoop() {
   }
 
 }
-  
+
 void petabricks::RemoteHostDB::setupConnectAllPairs() {
   for (unsigned int a = 0; a < _hosts.size(); a++) {
     for (unsigned int b = a+1; b < _hosts.size(); b++) {

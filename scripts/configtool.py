@@ -42,13 +42,13 @@ class ConfigFile:
       else:
         fd.write("%s = %d %s\n" % (k, val, com))
     fd.close()
-        
+
   def __str__(self):
     return "\n".join(map(lambda x: "%s = %d"%(x[0],x[1][0]), sorted(self.values.items())))
 
   def __getitem__(self, k):
     return self.values[k][0]
-  
+
   def __setitem__(self, k, v):
     #logging.debug("configtool: changing %s from %d to %d", k, self[k], v)
     com=self.values[k][1]
@@ -59,7 +59,7 @@ class ConfigFile:
 
   def __hash__(self):
     return hash(str(self))
-  
+
   def __cmp__(a, b):
     return cmp(a.values, b.values)
 
@@ -76,7 +76,8 @@ def defaultConfigFile(bin):
   fd, name = tempfile.mkstemp(suffix='.cfg')
   os.close(fd)
   cmd = [bin, '--config='+name, '--reset']
-  subprocess.check_call(cmd)
+  NULL = open("/dev/null", "w")
+  subprocess.check_call(cmd, stderr=NULL)
   cfg = ConfigFile(name)
   os.unlink(name)
   return cfg
@@ -90,7 +91,7 @@ def getConfigVal(filename, key):
 
 def setConfigVal(filename, key, val):
   '''legacy entry point to this file'''
-  cfg = ConfigFile() 
+  cfg = ConfigFile()
   try:
     cfg.load(filename)
   except:

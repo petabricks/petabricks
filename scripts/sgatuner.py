@@ -31,7 +31,8 @@ def check_timeout():
 
 def mainname(cmd):
   cmd.append("--name")
-  p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+  NULL = open("/dev/null","w")
+  p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=NULL)
   cmd.pop()
   os.waitpid(p.pid, 0)
   lines = p.stdout.readlines()
@@ -501,6 +502,7 @@ be added to that list"""
   progress.push()
   config.benchmark = benchmark
   candidate, tester = init(benchmark)
+
   try:
     pop = Population(candidate, tester, None)
     candidate.pop = pop
