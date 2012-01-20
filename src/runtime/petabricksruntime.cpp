@@ -387,10 +387,11 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     MODE=MODE_DISTRIBUTED_SLAVE;
     JTRACE("slave");
   }else if(HOSTS_FILE!=""){
-    // ISOLATION=false;
     JTRACE("parent");
-    if (!(ISOLATION && TI_REEXEC && REEXECCHILD<0)) {
-        spawnDistributedNodes(argc, argv);
+    if (MODE==MODE_RUN_IO ||
+        MODE==MODE_IOGEN_CREATE ||
+        !(ISOLATION && TI_REEXEC && REEXECCHILD<0)) {
+      spawnDistributedNodes(argc, argv);
     }
   }
 
@@ -846,6 +847,7 @@ void petabricks::PetabricksRuntime::loadTestInput(int n, const std::vector<std::
     _main->deallocate();
     _main->reallocate(n);
     _main->randomize();
+    JTRACE("done generating input");
   }else if(files!=NULL){
     _main->readInputs(*files);
     _main->readOutputs(*files);

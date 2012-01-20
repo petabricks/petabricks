@@ -4,7 +4,7 @@ import pbutil
 import tempfile, os, math, warnings, random, sys, subprocess, time
 import shutil
 import storagedirs
-import tunerwarnings 
+import tunerwarnings
 import platform
 import numpy
 from storagedirs import timers
@@ -124,7 +124,7 @@ class Results:
     '''recreate interpolatedResults from realResults and timeoutResults'''
     self.interpolatedResults = list(self.realResults)
     def mkdistrib():
-      m=numpy.mean(self.interpolatedResults) 
+      m=numpy.mean(self.interpolatedResults)
       s=max(config.min_std_pct*m,numpy.std(self.interpolatedResults))
       if s==0.0:
         s = 1e-10
@@ -154,7 +154,7 @@ class Results:
       print self.timeoutResults
       print self.interpolatedResults
       assert False
- 
+
   def dataDistribution(self):
     '''estimated probability distribution of a single timing run'''
     return self.distribution
@@ -170,7 +170,7 @@ class Results:
     assert len(self)>0
     m,v=self.distribution.stats()
     return m
-  
+
   def min(self):
     assert len(self)>0
     return min(self.interpolatedResults)
@@ -184,10 +184,10 @@ class Results:
     '''square of stderror'''
     assert len(self)>0
     return self.variance()/float(len(self)+offset)
-  
+
   def stderr(self, offset=0):
     return math.sqrt(self.meanVariance())
-  
+
   def invstderr(self, offset=0):
     return 1.0/math.sqrt(self.meanVariance())
 
@@ -226,7 +226,7 @@ class ResultsDB:
     except:
       self.nToResults[n]=Results()
       return self[n]
-  
+
   def __setitem__(self, n, v):
     self.nToResults[n] = v
 
@@ -234,10 +234,10 @@ class ResultsDB:
     return "ResultsDB(%s, {"%repr(self.metric)+\
            ', '.join(map(lambda x: "%d: %s"%(x[0], repr(x[1])), self.nToResults.iteritems()))+\
            "})"
-           
+
   def __len__(self):
     return len(self.nToResults)
-    
+
   def totalTests(self):
     return sum(map(len, self.nToResults.values()))
 
@@ -257,11 +257,11 @@ class Candidate:
     self.lastMutator = None
     self.outputdir   = storagedirs.candidate(self.cid)
     self.C           = config.bandit_c    # exploration/exploitation trade-off in the DMAB algorithm
-    
+
     self.mutatorScores = dict()
     for m in self.mutators:
       self.mutatorScores[m] = 0
-    
+
     Candidate.nextCandidateId += 1
     self.pop         = pop # population this candidate is a member of
 
@@ -302,7 +302,7 @@ class Candidate:
 
   ## Adaptive operator selection techniques
 
-  def cloneAndMutate(self, n, adaptive = False, mutatorLog = None, 
+  def cloneAndMutate(self, n, adaptive = False, mutatorLog = None,
                      objectives = None, mutatorFilter=lambda m: True):
     c = self.clone()
 
@@ -317,7 +317,7 @@ class Candidate:
         method = c.rouletteWheelMutate
       elif config.os_method == OperatorSelectionMethod.ABS_ROC:
         method = c.absUpperConfidenceBoundMutate
- 
+
     for z in xrange(config.mutate_retries):
       try:
         if adaptive:
@@ -344,17 +344,17 @@ class Candidate:
     totalMutations = 0
     filteredMutators = filter(mutatorFilter, self.mutators)
 
-    
+
     for m in self.mutators:
       totalMutations += m.timesSelected
-    
+
     # default to round robin if not enough data
     if totalMutations < len(self.mutators):
       self.lastMutator = self.mutators[totalMutations]
       self.lastMutator.timesSelected += 1
       self.lastMutator.mutate(self, n)
       return
-    
+
     if config.bandit_verbose:
       print "\n\nCurrent mutator log (%s): %s" % (mutatorLog.name, map(str, mutatorLog.log))
       print "\nAvailable mutators (scores):\n"
@@ -370,7 +370,7 @@ class Candidate:
     # compute average exploitation score
     minExploitationScore = min(0.0, min(map(scoringFunction, self.mutators)))
     avgExploitationScore = numpy.mean(map(lambda m: -minExploitationScore + scoringFunction(m), self.mutators))
-        
+
     for m in self.mutators:
       # Compute the bandit score
       exploitTerm = (-minExploitationScore + scoringFunction(m)) / avgExploitationScore
@@ -394,32 +394,32 @@ class Candidate:
     self.lastMutator = bestMutator
     self.lastMutator.timesSelected += 1
     self.lastMutator.mutate(self, n)
-    
+
 
   ''' Selects a mutator according to the Upper Confidence Bound algorithm '''
   def upperConfidenceBoundMutate(self, n, mutatorLog, objectives, mutatorFilter):
-        
+
     if(objectives.needAccuracy()):
       mutatorLog = mutatorLog.getSortedByDeltaAcc()
     else:
       mutatorLog = mutatorLog.getSortedByDeltaTime()
-      
+
     self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog), mutatorFilter)
 
 
   def absUpperConfidenceBoundMutate(self, n, mutatorLog, objectives, mutatorFilter):
-      
+
     if(objectives.needAccuracy()):
       mutatorLog = mutatorLog.getSortedByAcc()
     else:
       mutatorLog = mutatorLog.getSortedByTime()
-      
-    self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog), mutatorFilter)   
+
+    self.banditMutate(n, mutatorLog, objectives, lambda m: m.computeRocScore(mutatorLog), mutatorFilter)
 
 
   ''' Selects a mutator which maximizes objectives*(1/time) + (1-objectives)*accuracy, summed over times
   and accuracies of logged offspring produced by the mutator '''
-  def weightedSumMutate(self, n, mutatorLog, objectives, mutatorFilter):    
+  def weightedSumMutate(self, n, mutatorLog, objectives, mutatorFilter):
 
     def avg(lst):
       return sum(lst) / len(lst)
@@ -429,7 +429,7 @@ class Candidate:
       dacc = 0 if entry.daccuracy == None else entry.daccuracy
       w = min(objectives.score(), 1.0)
       return w*(-entry.dtime) + (1.0-w)*dacc
-        
+
 
     def computeScore(m):
       children = filter(lambda entry: entry.mutator == m, mutatorLog.log)
@@ -443,16 +443,16 @@ class Candidate:
 
   ''' like weightedSumMutate, but uses roulette whell instead of bandit selection'''
   def rouletteWheelMutate(self, n, mutatorLog, objectives):
-    
+
     def avg(lst):
       return sum(lst) / len(lst)
-    
+
     def computeOneScore(m, entry):
       assert entry.mutator == m
       dacc = 0 if entry.daccuracy == None else entry.daccuracy
       w = min(objectives.score(), 1.0)
       return w*(-entry.dtime) + (1.0-w)*dacc
-        
+
 
     def computeScore(m):
       children = filter(lambda entry: entry.mutator == m, mutatorLog.log)
@@ -461,7 +461,7 @@ class Candidate:
       else:
         return avg(map(lambda entry: computeOneScore(m, entry), children))
 
-    # compute unnormalized mutator scores    
+    # compute unnormalized mutator scores
     Z = 0 # normalization constant
     for m in self.mutators:
       score = max(0.02, computeScore(m))
@@ -470,7 +470,7 @@ class Candidate:
 
     # roulette wheel selection
     r = random.random()
-    
+
     for m in self.mutators:
       if r <= self.mutatorScores[m] / Z:
         self.lastMutator = m
@@ -478,13 +478,13 @@ class Candidate:
         break
       else:
         r -= self.mutatorScores[m] / Z
-      
-      
+
+
 
 
   def uniformRandomMutate(self, n, mutatorLog, objectives):
     self.mutate(n)
-    
+
 
 
   def mutate(self, n, mutatorFilter=lambda m: True):
@@ -512,7 +512,7 @@ class Candidate:
 
   def numTimeouts(self, n):
     return self.metrics[config.timing_metric_idx][n].numTimeouts()
-  
+
   def numTotalTests(self):
     return self.metrics[config.timing_metric_idx].totalTests()
 
@@ -530,7 +530,7 @@ class Candidate:
       if os.path.isfile(f):
         os.unlink(f)
     os.rmdir(self.outputdir)
-  
+
   def timingResults(self, n=None):
     if n is None:
       n=max(self.metrics[config.timing_metric_idx].keys())
@@ -592,7 +592,7 @@ class MutatorLogFile:
   def logScores(self, gen, scoreMap):
     scores = map(lambda (m,score): score, sorted(scoreMap.items(), key=lambda (m,score): str(m)))
     self.mutatorScores.writerow([gen] + scores)
-      
+
 
 class CandidateTester:
   def __init__(self, app, n, args=[]):
@@ -611,11 +611,11 @@ class CandidateTester:
     self.testCount = 0
     self.timeoutCount = 0
     self.crashCount = 0
-    self.wasTimeout = True 
+    self.wasTimeout = True
 
   def nextTester(self):
     return CandidateTester(self.app, (self.n-config.offset)*2, self.args)
-  
+
   def testN(self, candidate, trials, limit=None):
     for x in xrange(trials - candidate.numTests(self.n)):
       self.test(candidate, limit)
@@ -725,7 +725,7 @@ class CandidateTester:
     except pbutil.TimingRunFailed, e:
       self.crashCount += 1
       raise CrashException(0, self.n, candidatea, cmd)
-  
+
   def comparer(self, metricIdx, confidence, maxTests):
     '''return a cmp like function that dynamically runs more tests to improve confidence'''
     def compare(a, b):
