@@ -661,13 +661,20 @@ void petabricks::RemoteHostDB::connect(const char* host, int port){
 void petabricks::RemoteHostDB::remotefork(const char* host, int oargc, const char** oargv, const char* slavehost, const char* slaveport) {
   std::string hoststr = this->host();
   std::string portstr = jalib::XToString(this->port());
+  char cwd[1024];
+  memset(cwd, 0, sizeof cwd);
   const char** argv = new const char*[oargc+32];
   int i=0;
+  int j=0;
   if(host!=NULL) {
-    argv[i++] = "ssh";
+    getcwd(cwd, sizeof cwd);
+    argv[i++] = "/usr/bin/ssh";
     argv[i++] = host;
+    argv[i++] = "cd";
+    argv[i++] = cwd;
+    argv[i++] = "&&";
   }
-  for(; i<oargc; ++i) argv[i] = oargv[i];
+  for(; j<oargc; ++j,++i) argv[i] = oargv[j];
   if(slavehost!=NULL)
     argv[i++] = slavehost;
   argv[i++] = hoststr.c_str();
@@ -680,6 +687,7 @@ void petabricks::RemoteHostDB::remotefork(const char* host, int oargc, const cha
     for(int i=3; i<1024; ++i)
       close(i);
     JTRACE("forked child proc");
+    //jalib::JPrintable::printStlList(std::cerr, argv, argv + i, " ");
     execv(argv[0], (char**)argv);
     JASSERT(false);
   }
