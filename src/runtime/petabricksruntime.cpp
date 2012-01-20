@@ -107,7 +107,7 @@ static double RACE_ACCURACY_TARGET=jalib::minval<double>();
 static bool TI_REEXEC = true;
 static int REEXECCHILD=-1;
 
-#ifdef REGIONMATRIX_TEST
+#ifndef DISABLE_DISTRIBUTED
 static std::string HOSTS_FILE="hosts.example";
 #else
 static std::string HOSTS_FILE="";
