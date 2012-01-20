@@ -387,9 +387,11 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     MODE=MODE_DISTRIBUTED_SLAVE;
     JTRACE("slave");
   }else if(HOSTS_FILE!=""){
-    ISOLATION=false;
+    // ISOLATION=false;
     JTRACE("parent");
-    spawnDistributedNodes(argc, argv);
+    if (!(ISOLATION && TI_REEXEC && REEXECCHILD<0)) {
+        spawnDistributedNodes(argc, argv);
+    }
   }
 
   switch(MODE){
