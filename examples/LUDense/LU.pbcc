@@ -11,8 +11,6 @@
 #include "DGER.pbcc"
 #include "LULAPACK.pbcc"
 
-#define DEBUG
-
 transform Shift1D
 from OFFSET
 to A[n]
