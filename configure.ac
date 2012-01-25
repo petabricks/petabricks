@@ -116,7 +116,8 @@ AC_CHECK_LIB([m],          [cos],            [], [AC_MSG_WARN([failed to find -l
 AC_CHECK_LIB([pthread],    [pthread_create], [], [AC_MSG_WARN([failed to find -lpthread, some benchmarks may not work])])
 AC_CHECK_LIB([rt],         [clock_gettime],  [],
                         [AC_DEFINE([USE_GETTIMEOFDAY],[],[define if clock_gettime() doesnt work])])
-AC_CHECK_LIB([sqlite3],	   [sqlite3_open],   [], [AC_MSG_ERROR([failed to find -lsqlite, unable to compile the long term learning for heuristics])])
+AC_CHECK_LIB([dl],	   [dlopen],   [], [])
+AC_CHECK_LIB([sqlite3],	   [sqlite3_open],   [], [AC_MSG_ERROR([failed to find -lsqlite3, unable to compile the long term learning for heuristics])])
 ################################################################################
 # COMPILER PROPERTIES ##########################################################
 ################################################################################
