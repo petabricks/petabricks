@@ -606,6 +606,7 @@ if __name__ == "__main__":
   parser.add_option("--name",                  type="string", action="callback", callback=option_callback)
   parser.add_option("--abort_on",              type="string", action="callback", callback=option_callback)
   parser.add_option("--accuracy_target",       type="float",  action="callback", callback=option_callback)
+  parser.add_option("--seed",                  type="string", action="callback", callback=option_callback)
   (options, args) = parser.parse_args()
   if len(args)!=1:
     parser.print_usage()
