@@ -158,7 +158,7 @@ namespace petabricks {
     bool isTransposed() const { return _isTransposed; };
     RegionMatrixSliceInfoPtr sliceInfo() const { return _sliceInfo; };
     RegionHandlerPtr regionHandler() const { return _regionHandler; };
-    RegionHandlerPtr getRegionHandler() const { return _regionHandler; };
+    RegionHandlerPtr regionData() const { return _regionHandler->getRegionData(); };
 
     //
     // gpu
@@ -639,6 +639,25 @@ namespace petabricks {
       #endif
 
       return copy;
+    }
+
+    void localCopy(RegionMatrix& scratch) const {
+      #ifdef DEBUG
+      JASSERT(scratch.isRegionDataRaw());
+      JASSERT(scratch.isSize(this->sizes()));
+      #endif
+
+      // TODO: pass `scratch` directly to copyToScratchMatrixStorage
+      RegionMatrix copy = this->localCopy();
+      if(copy.regionData()->storage()->count() == scratch.regionData()->storage()->count()) {
+        scratch.regionData()->setStorage(copy.regionData()->storage());
+      } else {
+        IndexT coord[D];
+        memset(coord, 0, sizeof coord);
+        do {
+          scratch.cell(coord) = copy.cell(coord);
+        } while (copy.incCoord(coord) >= 0);
+      }
     }
 
     MatrixRegion<D, ElementT> toScratchRegion() const {
