@@ -6,6 +6,7 @@
 #include "../simple/permute.pbcc"
 #include "../simple/reduce.pbcc"
 #include "../simple/scale.pbcc"
+#include "../simple/transpose.pbcc"
 #include "../trisolve/TriSolveLL.pbcc"
 #include "../multiply/multiplyAdd.pbcc"
 #include "DGER.pbcc"
@@ -405,10 +406,10 @@ to A[n,m], P[m]
         LUBaseCrout(a, p);
     }
 
-    to (A a, P p) from ()
-    {
-        LUBaseLAPACK(a, p);
-    }
+//  to (A a, P p) from ()
+//  {
+//      LUBaseLAPACK(a, p);
+//  }
 }
 
 // right looking (update trailing matrix each iteration)
@@ -771,8 +772,18 @@ generator LUGenerator
 {
     to (OUT out, P p) from (IN in)
     {
-        Copy2D(out, in);
-        LUInPlace(out, p);
+        MatrixRegion2D temp = MatrixRegion2D::allocate(n, m);
+        Copy2D(temp, in);
+        LUInPlace(temp, p);
+        Copy2D(out, temp);
+    }
+
+    to (OUT out, P p) from (IN in)
+    {
+        MatrixRegion2D temp = MatrixRegion2D::allocate(n, m);
+        Transpose(temp, in);
+        LUInPlace(temp.transposed(), p);
+        Transpose(out, temp);
     }
 }
 
