@@ -24,9 +24,14 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
+
 #include "petabricks.h"
 
+#include "regionmatrix.h"
+#include "remotehost.h"
+
 using namespace petabricks;
+using namespace petabricks::distributed;
 
 PetabricksRuntime::Main* petabricksMainTransform(){
   return NULL;
@@ -37,31 +42,109 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
 void _petabricksInit() {}
 void _petabricksCleanup() {}
 
-
-int main(int /*argc*/, const char** /*argv*/){
-  distributed::MatrixRegion2D A = distributed::MatrixIO("testdata/Rand2Da","r").read_distributed<2>();
-  distributed::MatrixIO().write(A);
-
-  workstealing::MatrixRegion2D B = A._toLocalRegion();
-  workstealing::MatrixIO().write(B);
-
-  IndexT s1[] = {0,0};
-  IndexT e1[] = {16,16};
-
-  distributed::MatrixRegion2D C = A.region(s1, e1);
-  distributed::MatrixIO().write(C._toLocalRegion());
-
-  IndexT s2[] = {1,1};
-  IndexT e2[] = {5,5};
-
-  distributed::MatrixRegion2D D = A.region(s2, e2);
-  distributed::MatrixIO().write(D._toLocalRegion());
-
-  distributed::MatrixRegion1D E = D.row(2);
-  distributed::MatrixIO().write(E._toLocalRegion());
-
-  E.dataHosts();
-
-  return 0;
+void print(DataHostPidList list) {
+  printf("(%d) DataHostPidList\n", getpid());
+  for (unsigned int i = 0; i < list.size(); i++) {
+    printf("  %lx/%d ==> %.5g\n", list[i].hostPid.hostid, list[i].hostPid.pid, list[i].weight);
+  }
 }
 
+RemoteObjectPtr step2();
+
+int main(int argc, const char** argv){
+  using namespace petabricks::distributed;
+
+  if(argc==1){
+    JTRACE("process1");
+
+    RemoteHostDB::instance().remotefork(NULL, argc, argv);
+    RemoteHostDB::instance().accept("");
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().spawnListenThread();
+
+    const char* filename = "testdata/Rand2Da";
+    MatrixRegion2D regionMatrixLocal = MatrixIO(filename,"r").read_distributed<2>();
+
+    IndexT sizes[] = {16, 16};
+    IndexT partSizes[] = {8, 8};
+    MatrixRegion2D regionMatrix(sizes);
+    regionMatrix.splitData(partSizes);
+    regionMatrix.createDataPart(0, RemoteHostDB::instance().host(0));
+
+    regionMatrix.copyDataFromRegion(regionMatrixLocal);
+
+    MatrixIO().write(regionMatrixLocal);
+    MatrixIO().write(regionMatrix);
+    print(regionMatrix.dataHosts());
+
+    regionMatrix.assertEqual(regionMatrixLocal);
+
+    IndexT c1[] = {4, 4};
+    IndexT c2[] = {12, 12};
+
+    MatrixRegion2D split = regionMatrix.region(c1, c2);
+    MatrixIO().write(split);
+    print(split.dataHosts());
+
+    char* buf = new char[split.serialSize()];
+    split.serialize(buf, *RemoteHostDB::instance().host(0));
+
+    // send buf to process 2
+    RemoteObjectPtr local;
+    RemoteHostDB::instance().host(0)->createRemoteObject(local=step2(), &step2);
+    local->waitUntilCreated();
+    local->send(buf, split.serialSize());
+
+    JTRACE("== step 1 done ==");
+
+    RemoteHostDB::instance().listenLoop();
+    return 0;
+  } else {
+    JTRACE("process2");
+
+    JASSERT(argc==3);
+    RemoteHostDB::instance().connect(argv[1], jalib::StringToInt(argv[2]));
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().spawnListenThread();
+    RemoteHostDB::instance().listenLoop();
+    return 0;
+  }
+}
+
+RemoteObjectPtr step2() {
+  class TestRemoteObject : public petabricks::RemoteObject {
+  public:
+    void onRecv(const void* data, size_t /*len*/) {
+      JTRACE("== step2 ==");
+      MatrixRegion2D regionMatrix = MatrixRegion2D();
+      regionMatrix.unserialize((char*)data, *host());
+      regionMatrix.createRegionHandler(*host());
+      MatrixIO().write(regionMatrix);
+      print(regionMatrix.dataHosts());
+
+      // IndexT sizes[] = {8, 8};
+      // MatrixRegion2D scratch(sizes);
+      // scratch.allocData();
+      // regionMatrix.localCopy(scratch);
+      // MatrixIO().write(scratch);
+
+
+      IndexT m11[] = {1,1};
+      regionMatrix.cell(m11) = 1331;
+      MatrixIO().write(regionMatrix);
+
+
+      JTRACE("== step2 done ==");
+      exit(0);
+    }
+  };
+  return new TestRemoteObject();
+}

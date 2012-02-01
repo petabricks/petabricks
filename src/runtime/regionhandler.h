@@ -23,7 +23,6 @@ namespace petabricks {
   public:
     RegionHandler(const int dimensions);
     RegionHandler(const int dimensions, const IndexT* size, const bool alloc);
-    RegionHandler(const int dimensions, const IndexT* size, const IndexT* partOffset);
     RegionHandler(const RegionDataIPtr regionData);
     RegionHandler(const EncodedPtr remoteObjPtr);
 
@@ -34,6 +33,7 @@ namespace petabricks {
 
     int allocData();
     int allocData(const IndexT* size);
+    int allocDataLocal(const IndexT* size);
 
     RegionDataIPtr getRegionData();
     void updateRegionData(RegionDataIPtr regionData);
@@ -56,7 +56,7 @@ namespace petabricks {
     void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* metadata, size_t size);
 
     // RegionDataSplit
-    void splitData(IndexT* splitSize);
+    void splitData(int dimensions, IndexT* sizes, IndexT* splitSize);
     void createDataPart(int partIndex, RemoteHostPtr host);
 
     // Process Remote Messages

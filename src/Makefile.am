@@ -5,7 +5,7 @@ AM_LFLAGS =
 OBJDIR=obj
 
 noinst_LIBRARIES = libpbcommon.a libpbcompiler.a libpbruntime.a libpbmain.a
-noinst_PROGRAMS = pbc rttest1 rttest2 regiondatatest regionmatrixtest migrationtest
+noinst_PROGRAMS = pbc rttest1 rttest2 regionmatrixtest migrationtest
 
 noinst_HEADERS = \
   compiler/choicedepgraph.h \
@@ -192,10 +192,6 @@ rttest1_LDADD    = libpbruntime.a libpbcommon.a
 rttest2_CXXFLAGS = -Iruntime
 rttest2_SOURCES  = runtime/rttest2.cpp
 rttest2_LDADD    = libpbruntime.a libpbcommon.a
-
-regiondatatest_CXXFLAGS = -Iruntime
-regiondatatest_SOURCES  = runtime/tests/regiondatatest.cpp
-regiondatatest_LDADD    = libpbruntime.a libpbcommon.a
 
 regionmatrixtest_CXXFLAGS = -Iruntime
 regionmatrixtest_SOURCES  = runtime/tests/regionmatrixtest.cpp

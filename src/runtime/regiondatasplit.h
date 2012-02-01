@@ -23,7 +23,8 @@ namespace petabricks {
     IndexT _partsMultipliers[MAX_DIMENSIONS];
 
   public:
-    RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* splitSize);
+    RegionDataSplit(int dimensions, IndexT* sizes, IndexT* splitSize);
+    void init(int dimensions, IndexT* sizes, IndexT* splitSize);
 
     int allocData();
     void createPart(int partIndex, RemoteHostPtr host);
@@ -34,7 +35,7 @@ namespace petabricks {
     DataHostPidList hosts(IndexT* begin, IndexT* end);
     RemoteHostPtr host() { UNIMPLEMENTED(); return NULL; }
 
-    RegionDataIPtr coordToPart(const IndexT* coord) const;
+    RegionDataIPtr coordToPart(const IndexT* coord, IndexT* coordPart) const;
 
     void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);

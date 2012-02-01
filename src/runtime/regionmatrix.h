@@ -158,7 +158,7 @@ namespace petabricks {
     bool isTransposed() const { return _isTransposed; };
     RegionMatrixSliceInfoPtr sliceInfo() const { return _sliceInfo; };
     RegionHandlerPtr regionHandler() const { return _regionHandler; };
-    RegionHandlerPtr regionData() const { return _regionHandler->getRegionData(); };
+    RegionDataIPtr regionData() const { return _regionHandler->getRegionData(); };
 
     //
     // gpu
@@ -171,7 +171,7 @@ namespace petabricks {
     // Initialization
     //
     void splitData(IndexT* splitSize) {
-      _regionHandler->splitData(splitSize);
+      _regionHandler->splitData(D, _size, splitSize);
     }
 
     void createDataPart(int partIndex, RemoteHostPtr host) {
@@ -644,7 +644,7 @@ namespace petabricks {
     void localCopy(RegionMatrix& scratch) const {
       #ifdef DEBUG
       JASSERT(scratch.isRegionDataRaw());
-      JASSERT(scratch.isSize(this->sizes()));
+      JASSERT(scratch.isSize(this->size()));
       #endif
 
       // TODO: pass `scratch` directly to copyToScratchMatrixStorage
@@ -916,8 +916,9 @@ namespace petabricks {
     RegionMatrixWrapper(ElementT* data, IndexT* size) : Base(size) {
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
-      Base::_regionHandler->allocData(size);
+      Base::_regionHandler->allocDataLocal(size);
 
+      // TODO (yod): optimize this
       IndexT i = 0;
       do {
         this->writeCell(coord, data[i]);
@@ -933,15 +934,17 @@ namespace petabricks {
       this->allocData();
       IndexT coord[D];
       memset(coord, 0, sizeof(IndexT) * D);
-
-      while (true) {
+      do {
         this->writeCell(coord, in.readCell(coord));
+      } while (this->incCoord(coord) >= 0);
+    }
 
-        int z = this->incCoord(coord);
-        if (z == -1) {
-          break;
-        }
-      }
+    void assertEqual(const RegionMatrixWrapper& that) {
+      IndexT coord[D];
+      memset(coord, 0, sizeof coord);
+      do {
+        JASSERT(fabs(this->cell(coord) - that.cell(coord)) < 0.000001)(this->cell(coord))(that.cell(coord));
+      } while (this->incCoord(coord) >= 0);
     }
   };
 

@@ -45,7 +45,6 @@ namespace petabricks {
         ALLOCDATA,
         RANDOMIZEDATA,
         CREATEREGIONDATA,
-        CREATEREGIONDATAPART,
         INITWITHREGIONDATA,
         INITWITHREGIONHANDLER,
         TOSCRATCHSTORAGE,
@@ -61,13 +60,6 @@ namespace petabricks {
       MessageType type;
       int dimensions;
       IndexT size[];
-    } PACKED;
-
-    struct CreateRegionDataPartInitialMessage {
-      MessageType type;
-      int dimensions;
-      IndexT size[MAX_DIMENSIONS];
-      IndexT partOffset[MAX_DIMENSIONS];
     } PACKED;
 
     struct EncodedPtrInitialMessage {

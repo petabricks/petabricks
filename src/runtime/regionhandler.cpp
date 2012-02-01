@@ -20,11 +20,6 @@ RegionHandler::RegionHandler(const int dimensions, const IndexT* size, const boo
   }
 }
 
-RegionHandler::RegionHandler(const int dimensions, const IndexT* size, const IndexT* partOffset) {
-  _regionData = new RegionDataRaw(dimensions, size, partOffset);
-  _D = dimensions;
-}
-
 RegionHandler::RegionHandler(const RegionDataIPtr regionData) {
   _regionData = regionData;
   _D = _regionData->dimensions();
@@ -53,20 +48,19 @@ void RegionHandler::randomize() {
 }
 
 int RegionHandler::allocData() {
+  JASSERT(!_regionData);
   return _regionData->allocData();
 }
 
 int RegionHandler::allocData(const IndexT* size) {
-  JASSERT(!_regionData);
+  if (_regionData) {
+    JASSERT(type() == RegionDataTypes::REGIONDATASPLIT);
+    _regionData->allocData();
+    return 1;
+  }
 
   // Create RegionData
   // TODO: do clever data placement
-
-  /*
-  // Create local data
-  _regionData = new RegionDataRaw(_D, size);
-  _regionData->allocData();
-  */
 
 #ifdef REGIONMATRIX_TEST
   _regionData = new RegionDataRemote(_D, size, RemoteHostDB::instance().host(0));
@@ -88,9 +82,16 @@ int RegionHandler::allocData(const IndexT* size) {
   } else {
     JASSERT(false)(i)(numHosts);
   }
+#endif
+  return 1;
+}
+
+int RegionHandler::allocDataLocal(const IndexT* size) {
+  // Create local data
+  _regionData = new RegionDataRaw(_D, size);
+  _regionData->allocData();
 
   return 1;
-#endif
 }
 
 RegionDataIPtr RegionHandler::getRegionData() {
@@ -194,10 +195,10 @@ void RegionHandler::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* m
 // RegionDataSplit
 //
 
-void RegionHandler::splitData(IndexT* splitSize) {
-  JASSERT(type() == RegionDataTypes::REGIONDATARAW);
+void RegionHandler::splitData(int dimensions, IndexT* sizes, IndexT* splitSize) {
+  JASSERT((!_regionData) || type() == RegionDataTypes::REGIONDATARAW);
   RegionDataIPtr newRegionData =
-    new RegionDataSplit((RegionDataRaw*)_regionData.asPtr(), splitSize);
+    new RegionDataSplit(dimensions, sizes, splitSize);
   updateRegionData(newRegionData);
 }
 

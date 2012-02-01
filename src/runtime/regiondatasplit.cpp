@@ -6,14 +6,15 @@
 
 using namespace petabricks;
 
-//
-// Assume that the original regiondata is empty.
-//
-RegionDataSplit::RegionDataSplit(RegionDataRawPtr originalRegionData, IndexT* splitSize) {
-  _D = originalRegionData->dimensions();
+RegionDataSplit::RegionDataSplit(int dimensions, IndexT* sizes, IndexT* splitSize) {
+  init(dimensions, sizes, splitSize);
+}
+
+void RegionDataSplit::init(int dimensions, IndexT* sizes, IndexT* splitSize) {
+  _D = dimensions;
   _type = RegionDataTypes::REGIONDATASPLIT;
 
-  memcpy(_size, originalRegionData->size(), sizeof(IndexT) * _D);
+  memcpy(_size, sizes, sizeof(IndexT) * _D);
   memcpy(_splitSize, splitSize, sizeof(IndexT) * _D);
 
   // create parts
@@ -59,9 +60,9 @@ void RegionDataSplit::createPart(int partIndex, RemoteHostPtr host) {
   }
 
   if (host == NULL) {
-    _parts[partIndex] = new RegionDataRaw(_D, size, partOffset);
+    _parts[partIndex] = new RegionDataRaw(_D, size);
   } else {
-    _parts[partIndex] = new RegionDataRemote(_D, size, partOffset, host);
+    _parts[partIndex] = new RegionDataRemote(_D, size, host);
   }
 }
 
@@ -77,21 +78,23 @@ int RegionDataSplit::allocData() {
 }
 
 ElementT RegionDataSplit::readCell(const IndexT* coord) const {
-  return this->coordToPart(coord)->readCell(coord);
+  IndexT coordPart[_D];
+  return this->coordToPart(coord, coordPart)->readCell(coordPart);
 }
 
 void RegionDataSplit::writeCell(const IndexT* coord, ElementT value) {
-  this->coordToPart(coord)->writeCell(coord, value);
+  IndexT coordPart[_D];
+  this->coordToPart(coord, coordPart)->writeCell(coordPart, value);
 }
 
 void RegionDataSplit::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   ReadCellMessage* msg = (ReadCellMessage*)base->content();
-  this->coordToPart(msg->coord)->processReadCellMsg(base, baseLen, caller);
+  this->coordToPart(msg->coord, msg->coord)->processReadCellMsg(base, baseLen, caller);
 }
 
 void RegionDataSplit::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   WriteCellMessage* msg = (WriteCellMessage*)base->content();
-  this->coordToPart(msg->coord)->processWriteCellMsg(base, baseLen, caller);
+  this->coordToPart(msg->coord, msg->coord)->processWriteCellMsg(base, baseLen, caller);
 }
 
 DataHostPidList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {
@@ -110,8 +113,9 @@ DataHostPidList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {
   IndexT newBegin[] = {0,0,0};
   IndexT* newEnd = _splitSize;
 
+  IndexT junk[_D];
   do {
-    DataHostPidList tmp = this->coordToPart(coord)->hosts(newBegin, newEnd);
+    DataHostPidList tmp = this->coordToPart(coord, junk)->hosts(newBegin, newEnd);
     hosts[tmp[0].hostPid] += 1;
     count++;
 
@@ -144,11 +148,12 @@ DataHostPidList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {
   return list;
 }
 
-RegionDataIPtr RegionDataSplit::coordToPart(const IndexT* coord) const {
+RegionDataIPtr RegionDataSplit::coordToPart(const IndexT* coord, IndexT* coordPart) const {
   IndexT index = 0;
 
   for (int i = 0; i < _D; i++){
     index += (coord[i] / _splitSize[i]) * _partsMultipliers[i];
+    coordPart[i] = coord[i] % _splitSize[i];
   }
 
   return _parts[index];

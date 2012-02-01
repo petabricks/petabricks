@@ -27,22 +27,6 @@ RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, Rem
   host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, buf, msg_len);
 }
 
-RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, const IndexT* partOffset, RemoteHostPtr host) {
-  init(dimensions, size, new RegionDataRemoteObject());
-
-  // InitialMsg
-  CreateRegionDataPartInitialMessage msg;
-  msg.type = MessageTypes::CREATEREGIONDATAPART;
-  msg.dimensions = _D;
-  memcpy(msg.size, size, sizeof(msg.size));
-  if (partOffset) {
-    memcpy(msg.partOffset, partOffset, sizeof(msg.partOffset));
-  }
-
-  int len = sizeof(CreateRegionDataPartInitialMessage);
-  host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
-}
-
 RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const MessageType initialMessageType, const EncodedPtr encodePtr) {
   init(dimensions, size, new RegionDataRemoteObject());
 

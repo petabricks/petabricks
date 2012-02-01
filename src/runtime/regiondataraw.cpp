@@ -6,24 +6,20 @@ using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
 
 RegionDataRaw::RegionDataRaw(const int dimensions, const IndexT* size) {
-  init(dimensions, size, NULL, NULL);
+  init(dimensions, size, NULL);
 }
 
 RegionDataRaw::RegionDataRaw(const int dimensions, const IndexT* size, const ElementT* data) {
-  init(dimensions, size, data, NULL);
-}
-
-RegionDataRaw::RegionDataRaw(const int dimensions, const IndexT* size, const IndexT* partOffset) {
-  init(dimensions, size, NULL, partOffset);
+  init(dimensions, size, data);
 }
 
 RegionDataRaw::RegionDataRaw(const char* filename) {
   distributed::MatrixIO matrixio(filename, "r");
   MatrixReaderScratch o = matrixio.readToMatrixReaderScratch();
-  init(o.dimensions, o.sizes, o.storage->data(), NULL);
+  init(o.dimensions, o.sizes, o.storage->data());
 }
 
-void RegionDataRaw::init(const int dimensions, const IndexT* size, const ElementT* data, const IndexT* partOffset) {
+void RegionDataRaw::init(const int dimensions, const IndexT* size, const ElementT* data) {
   _D = dimensions;
   _type = RegionDataTypes::REGIONDATARAW;
 
@@ -37,13 +33,6 @@ void RegionDataRaw::init(const int dimensions, const IndexT* size, const Element
   _multipliers[0] = 1;
   for (int i = 1; i < _D; i++) {
     _multipliers[i] = _multipliers[i - 1] * _size[i - 1];
-  }
-
-  if (partOffset) {
-    _isPart = true;
-    memcpy(_partOffset, partOffset, sizeof(IndexT) * _D);
-  } else {
-    _isPart = false;
   }
 }
 
@@ -64,18 +53,8 @@ ElementT* RegionDataRaw::coordToPtr(const IndexT* coord) const {
 
 IndexT RegionDataRaw::coordOffset(const IndexT* coord) const {
   IndexT offset = 0;
-
-  if (_isPart) {
-    // this is a part of a region
-    // convert original coord to this part coord before calculating offset
-
-    for(int i = 0; i < _D; i++){
-      offset += _multipliers[i] * (coord[i] - _partOffset[i]);
-    }
-  } else {
-    for(int i = 0; i < _D; i++){
-      offset += _multipliers[i] * coord[i];
-    }
+  for(int i = 0; i < _D; i++){
+    offset += _multipliers[i] * coord[i];
   }
   return offset;
 }
@@ -104,10 +83,6 @@ RemoteHostPtr RegionDataRaw::host() {
 }
 
 void RegionDataRaw::processReadCellCacheMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
-  if (_isPart) {
-    UNIMPLEMENTED();
-  }
-
   ReadCellCacheMessage* msg = (ReadCellCacheMessage*)base->content();
 
   IndexT coordOffset = this->coordOffset(msg->coord);
@@ -132,10 +107,6 @@ void RegionDataRaw::processReadCellCacheMsg(const BaseMessageHeader* base, size_
 }
 
 void RegionDataRaw::processWriteCellCacheMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
-  if (_isPart) {
-    UNIMPLEMENTED();
-  }
-
   WriteCellCacheMessage* msg = (WriteCellCacheMessage*)base->content();
 
   IndexT coordOffset = this->coordOffset(msg->coord);
@@ -157,9 +128,6 @@ void RegionDataRaw::processWriteCellCacheMsg(const BaseMessageHeader* base, size
 //
 // Copy MatrixStorage and send it to the requested node. Only send what the
 // requester needs.
-//
-// TODO(yod): This does NOT support region data with part offset.
-//
 void RegionDataRaw::processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
   CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*)base->content();
 
