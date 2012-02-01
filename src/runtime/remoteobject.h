@@ -72,7 +72,7 @@ public:
   }
 
   //transfer data to remote host and call remote recv
-  void send(const void* ptr , size_t len);
+  void send(const void* ptr , size_t len, int arg=0);
 
   void markComplete() {
     remoteMarkComplete();
@@ -92,11 +92,11 @@ public:
   bool isCreated() const {
     return 0 != (_flags & FLAG_CREATED);
   }
-  
+
   bool isInitiator() const {
     return 0 != (_flags & FLAG_CREATED);
   }
-  
+
   bool isComplete() const {
     return 0 != (_flags & FLAG_COMPLETE);
   }
@@ -115,9 +115,9 @@ protected:
   void remoteMarkComplete();
 
   // these three callbacks get called to handle incoming data
-  virtual void* allocRecv(size_t len);
-  virtual void onRecv(const void* , size_t s);
-  virtual void freeRecv(void* buf, size_t );
+  virtual void* allocRecv(size_t len, int arg);
+  virtual void onRecv(const void* , size_t s, int arg);
+  virtual void freeRecv(void* buf, size_t , int arg);
 
   // these three callbacks get called to handle initial incoming data, default to above three
   virtual void* allocRecvInitial(size_t len);

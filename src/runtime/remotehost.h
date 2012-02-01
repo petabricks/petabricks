@@ -95,7 +95,7 @@ public:
                           RemoteObjectGenerator remote,
                           const void* data = 0, size_t len = 0);
 
-  void sendData(const RemoteObject* local, const void* data, size_t len);
+  void sendData(const RemoteObject* local, const void* data, size_t len, int arg);
   void remoteSignal(const RemoteObject* local);
   void remoteBroadcast(const RemoteObject* local);
   void remoteMarkComplete(const RemoteObject* local);
