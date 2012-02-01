@@ -93,7 +93,7 @@ class Benchmark:
     self.tuned_acc  = None
     self.tuned_candidate = None
     self.tuning_time = 0.0
-    assert os.path.isfile(expandCfg(cfg))
+    #assert os.path.isfile(expandCfg(cfg))
 
   def scoreFixed(self):
     return perfScore(self.fixed_perf, self.baseline)
@@ -162,13 +162,13 @@ class Benchmark:
         'n'                   : self.n,
         'acc_target'          : self.acc_target,
         'baseline'            : self.baseline,
-        'fixed_perf'          : self.fixed_perf['average'],
-        'fixed_acc'           : self.fixed_acc['average'],
+        'fixed_perf'          : -1,#self.fixed_perf['average'],
+        'fixed_acc'           : -1,#self.fixed_acc['average'],
         'tuned_perf'          : self.tuned_perf['average'],
         'tuned_acc'           : self.tuned_acc['average'],
         'tuning_time'         : self.tuning_time,
         'tuning_baseline'     : self.tuning_baseline,
-        'score_fixed'         : self.scoreFixed(),
+        'score_fixed'         : -1, #self.scoreFixed(),
         'score_tuned'         : self.scoreTuned(),
         'score_training_time' : self.scoreTrainingTime(),
         'hostname'            : socket.gethostname(),
@@ -234,23 +234,21 @@ def main():
       baseline = (1.0, 1.0)
     benchmarks.append(Benchmark(benchmark, cfg, n, accTarg, baseline[0], baseline[1]))
 
+    progress.remainingTicks(len(benchmarks))
 
-  print LONGBAR
-  print "Fixed (no autotuning) scores:"
-  print SHORTBAR
-  progress.remainingTicks(len(benchmarks)+3)
-  progress.tick()
-  for b in benchmarks:
-    progress.status("running fixed "+fmtCfg(b.cfg))
-    b.runFixed()
-    b.printFixed()
-  progress.tick()
-  score_fixed = geomean(map(Benchmark.scoreFixed, benchmarks))
+   #print LONGBAR
+   #print "Fixed (no autotuning) scores:"
+   #print SHORTBAR
+   #for b in benchmarks:
+   #  progress.status("running fixed "+fmtCfg(b.cfg))
+   #  b.runFixed()
+   #  b.printFixed()
+   #score_fixed = geomean(map(Benchmark.scoreFixed, benchmarks))
 
-  print SHORTBAR
-  print "Fixed Score (pbbenchmark v%s): %.2f" % (VERSION, geomean(map(Benchmark.scoreFixed, benchmarks)))
-  print LONGBAR
-  print
+   #print SHORTBAR
+   #print "Fixed Score (pbbenchmark v%s): %.2f" % (VERSION, geomean(map(Benchmark.scoreFixed, benchmarks)))
+   #print LONGBAR
+   #print
 
 
 
@@ -304,7 +302,6 @@ def main():
       'revision'            : REV,
     })
   
-  progress.tick()
   progress.status("done")
   progress.pop()
 

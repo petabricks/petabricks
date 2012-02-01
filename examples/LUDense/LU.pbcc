@@ -37,6 +37,10 @@ to A[n,m], P[m]
     // right looking (update trailing matrix after each column is solved)
     to (A a, P p) from ()
     {
+#ifdef DEBUG
+        fprintf(stderr, "LUBaseRight called for (%d, %d)\n", m, n);
+#endif
+
         IndexT j;
         ElementT iMax, jMax, valMax;
 
@@ -79,6 +83,10 @@ to A[n,m], P[m]
     // left looking (solve one column at a time)
     to (A a, P p) from ()
     {
+#ifdef DEBUG
+        fprintf(stderr, "LUBaseLeft called for (%d, %d)\n", m, n);
+#endif
+
         IndexT j;
         ElementT iMax, jMax, valMax;
 
@@ -132,6 +140,10 @@ to A[n,m], P[m]
     // Crout (solve one column and row at a time)
     to (A a, P p) from ()
     {
+#ifdef DEBUG
+        fprintf(stderr, "LUBaseCrout called for (%d, %d)\n", m, n);
+#endif
+
         IndexT j;
         ElementT iMax, jMax, valMax;
 
@@ -182,6 +194,10 @@ to A[n,m], P[m]
     // right looking serial
     to (A a, P p) from ()
     {
+#ifdef DEBUG
+        fprintf(stderr, "LUSerialRight called for (%d, %d)\n", m, n);
+#endif
+
         IndexT i, j, k, ip;
         ElementT maxVal, temp;
         for (j = 0; j < MIN(m,n); ++j) {
@@ -224,6 +240,10 @@ to A[n,m], P[m]
     // left looking serial
     to (A a, P p) from ()
     {
+#ifdef DEBUG
+        fprintf(stderr, "LUSerialLeft called for (%d, %d)\n", m, n);
+#endif
+
         IndexT i, j, k, ip;
         ElementT maxVal, temp;
         for (j = 0; j < n; ++j) {
@@ -268,38 +288,40 @@ to A[n,m], P[m]
     // Crout serial
     to (A a, P p) from ()
     {
+#ifdef DEBUG
+        fprintf(stderr, "LUSerialCrout called for (%d, %d)\n", m, n);
+#endif
+
         IndexT i, j, k, ip;
         ElementT maxVal, temp;
-        for (j = 0; j < n; ++j) {
+        for (j = 0; j < MIN(m, n); ++j) {
             // update values in current column
             for (i = j; i < m; ++i) {
                 for (k = 0; k < j; ++k) {
                     a.cell(j, i) -= a.cell(k, i) * a.cell(j, k);
                 }
             }
-            if (j < m) {
-                // find pivot
-                ip = j; maxVal = fabs(a.cell(j, j));
-                for (i = j+1; i < m; ++i) {
-                    if (fabs(a.cell(j, i)) > maxVal) {
-                        maxVal = fabs(a.cell(j, i));
-                        ip = i;
-                    }
+            // find pivot
+            ip = j; maxVal = fabs(a.cell(j, j));
+            for (i = j+1; i < m; ++i) {
+                if (fabs(a.cell(j, i)) > maxVal) {
+                    maxVal = fabs(a.cell(j, i));
+                    ip = i;
                 }
-                p.cell(j) = ip;
-                // swap rows
-                if (ip != j) {
-                    for (k = 0; k < n; ++k) {
-                        temp = a.cell(k, j);
-                        a.cell(k, j) = a.cell(k, ip);
-                        a.cell(k, ip) = temp;
-                    }
+            }
+            p.cell(j) = ip;
+            // swap rows
+            if (ip != j) {
+                for (k = 0; k < n; ++k) {
+                    temp = a.cell(k, j);
+                    a.cell(k, j) = a.cell(k, ip);
+                    a.cell(k, ip) = temp;
                 }
-                // scale column below diagonal
-                temp = 1.0 / a.cell(j, j);
-                for (i = j+1; i < m; ++i) {
-                    a.cell(j, i) *= temp;
-                }
+            }
+            // scale column below diagonal
+            temp = 1.0 / a.cell(j, j);
+            for (i = j+1; i < m; ++i) {
+                a.cell(j, i) *= temp;
             }
             // update values in current row
             for (i = 0; i < j; ++i) {
@@ -318,6 +340,10 @@ to A[n,m], P[m]
     // call LAPACK
     to (A a, P p) from ()
     {
+#ifdef DEBUG
+        fprintf(stderr, "LUBaseLAPACK called for (%d, %d)\n", m, n);
+#endif
+
         LULAPACK(a, p, a);
     }
 }
@@ -329,6 +355,11 @@ tunable sizespecific blockSize
 {
     to (A a, P p) from ()
     {
+#ifdef DEBUG
+        fprintf(stderr, "LUBlockedRight called for (%d, %d), b = %d\n",
+                m, n, (int) blockSize);
+#endif
+
         // base case
         if (blockSize < 1 || blockSize >= MIN(m,n)) {
             LUBase(a, p);
@@ -380,6 +411,11 @@ tunable sizespecific blockSize
 {
     to (A a, P p) from (K _k)
     {
+#ifdef DEBUG
+        fprintf(stderr, "LUBlockedLeft called for (%d, %d), b = %d\n",
+                m, n, (int) blockSize);
+#endif
+
         IndexT k, i0, i1;
         MatrixRegion2D ac2, a11, a12, a21, a22, a23;
         MatrixRegion1D p2;
@@ -467,6 +503,11 @@ tunable sizespecific blockSize
 {
     to (A a, P p) from (K _k)
     {
+#ifdef DEBUG
+        fprintf(stderr, "LUBlockedCrout called for (%d, %d), b = %d\n",
+                m, n, (int) blockSize);
+#endif
+
         IndexT k, i0, i1;
         MatrixRegion2D a11, a12, a13, a21, a22, a23, ar1, ar2, ar3;
         MatrixRegion1D p2;
@@ -586,23 +627,33 @@ tunable sizespecific blockSize
 {
     to (A a, P p) from ()
     {
+#ifdef DEBUG
+        fprintf(stderr, "LURecursive called for (%d, %d), b = %d\n",
+                m, n, (int) blockSize);
+#endif
+
         // base case
         if (blockSize < 1 || blockSize >= MIN(m,n)) {
             LUBlocked(a, p);
             return;
         }
 
-        IndexT b = m / 2;
+        IndexT b = n / 2;
         MatrixRegion2D a1, a2, a11, a12, a21, a22;
         MatrixRegion1D p2;
 
         a1  = a.region(0, 0, b, m);
         a2  = a.region(b, 0, n, m);
 
-        a11 = a.region(0, 0, b, b);
-        a12 = a.region(b, 0, n, b);
-        a21 = a.region(0, b, b, m);
-        a22 = a.region(b, b, n, m);
+        if (b < m) {
+            a11 = a.region(0, 0, b, b);
+            a12 = a.region(b, 0, n, b);
+            a21 = a.region(0, b, b, m);
+            a22 = a.region(b, b, n, m);
+        } else {
+            a11 = a.region(0, 0, m, m);
+            a12 = a.region(m, 0, n, m);
+        }
 
         p2  = p.region(b, m);
 
@@ -615,17 +666,19 @@ tunable sizespecific blockSize
         // upper right block
         TriSolveLLInPlace(a12, 1, a11);
 
-        // update lower right block
-        MatrixMultiplyAdd(a22, -1.0, a21, a12, 1.0);
+        if (b < m) {
+            // update lower right block
+            MatrixMultiplyAdd(a22, -1.0, a21, a12, 1.0);
 
-        // recursively compute LU of the updated lower right block
-        LURecursive(a22, p2);
+            // recursively compute LU of the updated lower right block
+            LURecursive(a22, p2);
 
-        // swap rows in lower left block
-        PermuteInPlace(a21, p2, 0, m - b);
+            // swap rows in lower left block
+            PermuteInPlace(a21, p2, 0, m - b);
 
-        // adjust permutation values to larger matrix
-        Shift1D(p2, b);
+            // adjust permutation values to larger matrix
+            Shift1D(p2, b);
+        }
     }
 }
 
