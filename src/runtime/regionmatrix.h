@@ -577,6 +577,13 @@ namespace petabricks {
       }
     }
 
+    void computeMatrixRegionMetaData(MatrixRegionMetadata& metadata)const {
+      metadata.dimensions = D;
+      metadata.startOffset = 0;
+      computeMatrixRegionMetaData(&(metadata.startOffset), metadata.multipliers);
+      memcpy(metadata.size(), _size, sizeof(IndexT) * D);
+    }
+
     bool isLocal() const {
       return (_regionHandler->type() == RegionDataTypes::REGIONDATARAW);
     }
@@ -614,15 +621,10 @@ namespace petabricks {
       }
       size_t size = sizeof(int) + ((2 * D + 1) * sizeof(IndexT));
       char buf[size];
-      CopyToMatrixStorageMessage* metadata = (CopyToMatrixStorageMessage*) buf;
-      metadata->dimensions = D;
-      metadata->startOffset = 0;
+      CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*) buf;
+      this->computeMatrixRegionMetaData(msg->srcMetadata);
 
-      this->computeMatrixRegionMetaData(&metadata->startOffset, metadata->multipliers);
-
-      memcpy(metadata->size(), _size, sizeof(IndexT) * D);
-
-      MatrixStoragePtr storage = _regionHandler->copyToScratchMatrixStorage(metadata, size);
+      MatrixStoragePtr storage = _regionHandler->copyToScratchMatrixStorage(msg, size);
       RegionDataIPtr regionData = new RegionDataRaw(D, this->size());
       regionData->setStorage(storage);
       RegionMatrix copy = RegionMatrix(this->size(), new RegionHandler(regionData));

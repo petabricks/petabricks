@@ -130,12 +130,11 @@ RemoteObjectPtr step2() {
       MatrixIO().write(regionMatrix);
       print(regionMatrix.dataHosts());
 
-      // IndexT sizes[] = {8, 8};
-      // MatrixRegion2D scratch(sizes);
-      // scratch.allocData();
-      // regionMatrix.localCopy(scratch);
-      // MatrixIO().write(scratch);
-
+      IndexT sizes[] = {8, 8};
+      MatrixRegion2D scratch(sizes);
+      scratch.allocData();
+      regionMatrix.localCopy(scratch);
+      MatrixIO().write(scratch);
 
       IndexT m11[] = {1,1};
       regionMatrix.cell(m11) = 1331;
