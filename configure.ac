@@ -107,16 +107,21 @@ AC_CHECK_HEADERS([cblas.h],  [], [])
 AC_CHECK_HEADERS([Accelerate/Accelerate.h], [], [])
 AC_CHECK_HEADERS([sqlite3.h],      [], [AC_MSG_ERROR([failed to find sqlite3.h header file])])
 
-AC_SEARCH_LIBS([MD5_Init], [crypto ssl], [], [AC_MSG_ERROR([missing package libssl-dev])])
 
-AC_CHECK_LIB([blas],       [cblas_dgemm],    [], [AC_MSG_WARN([failed to find -lblas, some benchmarks may not work])])
 AC_CHECK_LIB([fftw3],      [fftw_malloc],    [], [AC_MSG_WARN([failed to find -lfftw3, some benchmarks may not work])])
-AC_CHECK_LIB([lapack],     [dposv_],         [], [AC_MSG_WARN([failed to find -llapack, some benchmarks may not work])])
 AC_CHECK_LIB([m],          [cos],            [], [AC_MSG_WARN([failed to find -lm, some benchmarks may not work])])
+AC_CHECK_LIB([gfortran],   [_gfortran_compare_string], [], [])
 AC_CHECK_LIB([pthread],    [pthread_create], [], [AC_MSG_WARN([failed to find -lpthread, some benchmarks may not work])])
 AC_CHECK_LIB([rt],         [clock_gettime],  [],
                         [AC_DEFINE([USE_GETTIMEOFDAY],[],[define if clock_gettime() doesnt work])])
-AC_CHECK_LIB([sqlite3],	   [sqlite3_open],   [], [AC_MSG_ERROR([failed to find -lsqlite, unable to compile the long term learning for heuristics])])
+AC_CHECK_LIB([dl],	   [dlopen],   [], [])
+AC_CHECK_LIB([sqlite3],	   [sqlite3_open],   [], [AC_MSG_ERROR([failed to find -lsqlite3, unable to compile the long term learning for heuristics])])
+
+
+AC_SEARCH_LIBS([MD5_Init], [crypto ssl], [], [AC_MSG_ERROR([missing package libssl-dev])])
+AC_SEARCH_LIBS([cblas_dgemm], [blas])
+AC_SEARCH_LIBS([dposv_], [lapack])
+
 ################################################################################
 # COMPILER PROPERTIES ##########################################################
 ################################################################################

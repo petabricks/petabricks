@@ -254,7 +254,7 @@ tunable sizespecific blockSize
 
         // lower right
         MatrixMultiplyAdd(l22, -1.0, l21, l21.transposed(), 1.0);
-        CholeskyInPlace(l22);
+        CholeskyBlocked(l22);
 
         // upper right
         Zero2D(l12);
@@ -302,6 +302,45 @@ tunable sizespecific blockSize
             }
         }
     }
+
+    // up-looking (update one row block at a time)
+    to (L l) from ()
+    {
+        // base case
+        if (blockSize < 1 || blockSize >= n) {
+            CholeskyBase(l);
+            return;
+        }
+
+        IndexT i0, i1;
+        MatrixRegion2D l11, l21, l22, l23;
+
+        for (i0 = 0; i0 < n; i0 += blockSize) {
+
+            i1 = MIN(i0 + blockSize, n);
+            l22 = l.region(i0, i0, i1, i1);
+
+            // lazy update of current row
+            if (i0 > 0) {
+
+                l11 = l.region(0 ,  0, i0, i0);
+                l21 = l.region(0 , i0, i0, i1);
+                TriSolveRUInPlace(l21, 0, l11.transposed());
+
+                // update diagonal block
+                MatrixMultiplyAdd(l22, -1.0, l21, l21.transposed(), 1.0);
+            }
+
+            // solve diagonal block
+            CholeskyBase(l22);
+
+            // zero right of diagonal
+            if (i1 < n) {
+                l23 = l.region(i1, i0,  n, i1);
+                Zero2D(l23);
+            }
+        }
+    }
 }
 
 // recursive in-place version (split into quadrants and recurse)
@@ -326,14 +365,14 @@ tunable recursiveBlockSize
         l22 = l.region(n/2, n/2, n  , n  );
 
         // upper left
-        CholeskyInPlace(l11);
+        CholeskyRecursive(l11);
 
         // lower left
         TriSolveRUInPlace(l21, 0, l11.transposed());
 
         // lower right
         MatrixMultiplyAdd(l22, -1.0, l21, l21.transposed(), 1.0);
-        CholeskyInPlace(l22);
+        CholeskyRecursive(l22);
 
         // upper right
         Zero2D(l12);

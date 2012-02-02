@@ -5,42 +5,29 @@
 #include "nwkde.pbcc"
 
 transform NWKDEVA
-from TRAINDATA[M,N], WRAPFLAGS[M],
-     TRAININDICES[L], TRAINVARINDEX[P], TRAINTIMEOFFSET[P],
-     TESTDATA[M2,N2],
-     TESTINDICES[Q], TESTVARINDEX[P], TESTTIMEOFFSET[P],
-     OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
-to RESULT[Q]
-tunable float sizespecific array(M) initial(4) KERNELWIDTHS
-generator NWKDEGenerator2
+from TRAINDATA[_M_,_N_], TRAINX[2,_P_], TRAINY[2], TRAININDICES[_L_],
+     TESTDATA[_M2_,_N2_], TESTX[2,_P_], TESTINDICES[_Q_],
+     DIRFLAGS[_M_], SPLIT, MASKWIDTH
+to RESULT[_Q_]
+tunable float sizespecific array(_M_) initial(4) KERNELWIDTHS
+generator NWKDEGenerator
 accuracy_metric NWKDEMetric
-accuracy_bins -8, -7, -6, -5, -4
+accuracy_bins ACC_BINS
 {
-    to (RESULT result)
-    from (TRAINDATA        trainData,
-          WRAPFLAGS        wrapFlags,
-          TRAININDICES     trainIndices,
-          TRAINVARINDEX    trainVarIndex,
-          TRAINTIMEOFFSET  trainTimeOffset,
-          TESTDATA         testData,
-          TESTINDICES      testIndices,
-          TESTVARINDEX     testVarIndex,
-          TESTTIMEOFFSET   testTimeOffset,
-          OUTPUTVARINDEX   outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset,
-          TRAINMASKWIDTH   trainMaskWidth)
+    to   (RESULT result)
+    from (TRAINDATA trainData, TRAINX trainX,
+          TRAINY trainY, TRAININDICES trainIndices,
+          TESTDATA testData, TESTX testX, TESTINDICES testIndices,
+          DIRFLAGS dirFlags, SPLIT split, MASKWIDTH maskWidth)
     {
         // copy kernel widths into matrix region
-        MatrixRegion1D kernelWidths = MatrixRegion1D::allocate(M);
-        for (int i = 0; i < M; ++i) {
+        MatrixRegion1D kernelWidths = MatrixRegion1D::allocate(_M_);
+        for (int i = 0; i < _M_; ++i) {
             kernelWidths.cell(i) = KERNELWIDTHS[i];
         }
 
-        NWKDE(result, trainData, wrapFlags, kernelWidths,
-              trainIndices, trainVarIndex, trainTimeOffset,
-              testData, testIndices,
-              testVarIndex, testTimeOffset,
-              outputVarIndex, outputTimeOffset, trainMaskWidth);
+        NWKDE(result, trainData, trainX, trainY, trainIndices, testData,
+              testX, testIndices, dirFlags, kernelWidths, split, maskWidth);
     }
 }
 

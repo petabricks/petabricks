@@ -98,10 +98,13 @@ class Schedule : public jalib::JRefCounted, public jalib::JPrintable{
     ChoiceDepGraphNodeSet pending;
   };
 public:
-  Schedule(const RuleChoiceAssignment& choice, const ChoiceDepGraphNodeSet& inputs, const ChoiceDepGraphNodeSet& outputs)
+  Schedule(const RuleChoiceAssignment& choice,
+           const ChoiceDepGraphNodeSet& inputs,
+           const ChoiceDepGraphNodeSet& intermediates,
+           const ChoiceDepGraphNodeSet& outputs)
     : _choiceAssignment(choice)
   {
-    initialize(inputs, outputs);
+    initialize(inputs, intermediates, outputs);
   }
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
@@ -123,7 +126,9 @@ public:
     of << *this;
   }
 protected:
-  void initialize(const ChoiceDepGraphNodeSet& inputs, const ChoiceDepGraphNodeSet& outputs);
+  void initialize(const ChoiceDepGraphNodeSet& inputs,
+                  const ChoiceDepGraphNodeSet& intermediates,
+                  const ChoiceDepGraphNodeSet& outputs);
   void depthFirstChoiceDepGraphNode(SchedulingState& state, ChoiceDepGraphNode* n);  
 private:
   // the ordering
@@ -330,6 +335,8 @@ private:
 
   ChoiceDepGraphNodeSet _inputsOriginal;
   ChoiceDepGraphNodeSet _inputsRemapped;
+  ChoiceDepGraphNodeSet _intermediatesOriginal;
+  ChoiceDepGraphNodeSet _intermediatesRemapped;
   ChoiceDepGraphNodeSet _outputsOriginal;
   ChoiceDepGraphNodeSet _outputsRemapped;
 

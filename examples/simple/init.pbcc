@@ -1,0 +1,35 @@
+#ifndef INIT_PBCC
+#define INIT_PBCC
+
+transform Init1D
+from VAL
+to A[n]
+{
+  A.cell(i) from (VAL val)
+  {
+    return val;
+  }
+}
+
+transform Init2D
+from VAL
+to A[n,m]
+{
+  A.cell(i,j) from (VAL val)
+  {
+    return val;
+  }
+}
+
+transform Init3D
+from VAL
+to A[n,m,p]
+{
+  A.cell(i,j,k) from (VAL val)
+  {
+    return val;
+  }
+}
+
+#endif // INIT_PBCC
+
