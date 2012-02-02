@@ -50,6 +50,7 @@ static void _setEachTo(petabricks::ChoiceDepGraphNodeRemapping& mapping,
 ////////////////////////////////////////////////////////////////////////////////
 
 void petabricks::Schedule::initialize(const ChoiceDepGraphNodeSet& inputs,
+                                      const ChoiceDepGraphNodeSet& intermediates,
                                       const ChoiceDepGraphNodeSet& outputs){
   JASSERT(_schedule.empty());
 
@@ -62,6 +63,16 @@ void petabricks::Schedule::initialize(const ChoiceDepGraphNodeSet& inputs,
   {
     JASSERT((*i)->isOutput());
     depthFirstChoiceDepGraphNode(state, *i);
+  }
+
+  ChoiceDepGraphNodeSet::const_iterator i;
+  for(i=intermediates.begin(); i!=intermediates.end(); ++i) {
+    if(state.generated.find(*i) == state.generated.end()) {
+      if( _choiceAssignment[*i] != *(*i)->choices().begin() ) {
+        JTRACE("not generated node has unused schedule");
+        throw StaticScheduler::CantScheduleException();
+      }
+    }
   }
 }
 
@@ -443,6 +454,16 @@ void petabricks::StaticScheduler::fixVersionedRegionsType() {
 
 void petabricks::StaticScheduler::generateSchedule(){
   std::string dbgpathorig = _dbgpath;
+
+
+  for(ChoiceDepGraphNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i){
+    if(!(*i)->isInput() && !(*i)->isOutput()) {
+      _intermediatesOriginal.insert(i->asPtr());
+    }
+  }
+
+
+
   for(ChoiceDepGraphNodeList::iterator i=_allNodes.begin(); i!=_allNodes.end(); ++i){
     _choices.addConsumer(i->asPtr());
   }
@@ -497,7 +518,10 @@ void petabricks::StaticScheduler::generateSchedule(){
       //--------------------------------------------
 */
 
-      _schedules.push_back(new Schedule(choiceassign, _inputsRemapped, _outputsRemapped));
+      _schedules.push_back(new Schedule(choiceassign,
+                                        _inputsRemapped,
+                                        _intermediatesRemapped,
+                                        _outputsRemapped));
       
       #ifdef DEBUG
       _schedules.back()->writeGraph((_dbgpath+".final.dot").c_str());
@@ -566,6 +590,8 @@ void petabricks::StaticScheduler::mergeCoscheduledNodes(const RuleChoiceAssignme
   }
   _inputsRemapped = _inputsOriginal;
   _inputsRemapped.applyRemapping(mapping);
+  _intermediatesRemapped = _intermediatesOriginal;
+  _intermediatesRemapped.applyRemapping(mapping);
   _outputsRemapped = _outputsOriginal;
   _outputsRemapped.applyRemapping(mapping);
   _metaNodes.insert(_metaNodes.end(), newMetaNodes.begin(), newMetaNodes.end());

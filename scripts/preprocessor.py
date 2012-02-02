@@ -583,8 +583,8 @@ def p_transform_headers_ifdef(p):
   p[0] = p[1]
 
 def p_transform_headers_base(p):
-  'transform_headers : empty'
-  p[0] = []
+  'transform_headers : transform_header'
+  p[0] = [p[1]]
 
 def p_transform_header_noarg(p):
   'transform_header : MEMORIZED'
@@ -943,20 +943,24 @@ def generate_template(args, expression):
 """ Replace all defined constants & macros in string s
     Return the resulted string """
 def replace_all_define(s, lineno):
-  # Replace defined macros
-  for macro in macro_dict:
-    i = s.find(macro)
-    while i != -1:
-      s,i = replace_macro(macro, macro_dict[macro], s, i, lineno)
-      i = s.find(macro,i)
+  replace = True
+  while replace:
+    replace = False
+    # Replace defined macros
+    for macro in macro_dict:
+      i = s.find(macro)
+      while i != -1:
+        s,i = replace_macro(macro, macro_dict[macro], s, i, lineno)
+        i = s.find(macro,i)
+        replace = True
 
-  # Replace defined constants
-  for define in define_dict:
-    i = s.find(define)
-    while i != -1:
-      s,i = replace_definition(define, define_dict[define], s, i, lineno)
-      i = s.find(define,i)
-
+    # Replace defined constants
+    for define in define_dict:
+      i = s.find(define)
+      while i != -1:
+        s,i = replace_definition(define, define_dict[define], s, i, lineno)
+        i = s.find(define,i)
+        replace = True
 
   return s
 

@@ -94,7 +94,7 @@ extern int ruleirlex(YYSTYPE * yylval_param,YYLTYPE * yylloc_param);
 %type <expr> Op ExtraOps
 %type <expr> Lit
 %type <expr> Ident
-%type <expr> ExprElement Expr RootExpr 
+%type <expr> ExprElement Expr RootExpr OptExpr
 %type <expr> Call Paren
 %type <expr> Args OptArgs
 
@@ -146,7 +146,7 @@ LoopStmt: TOK_FORENOUGH Stmt {
   $$=REFALLOC(RIRLoopStmt($2))->initForEnough();
 };
 
-LoopStmt: TOK_FOR '(' Expr ';' Expr ';' Expr ')' Stmt {
+LoopStmt: TOK_FOR '(' OptExpr ';' OptExpr ';' OptExpr ')' Stmt {
   $$=REFALLOC(RIRLoopStmt($9));
   $$->addExpr($3);
   $$->addExpr($5);
@@ -213,6 +213,10 @@ CaseStmt: TOK_DEFAULT ':' {
 RawStmt: TOK_RAW {
   $$=REFALLOC(RIRRawStmt($1));
 };
+
+
+OptExpr: Expr {($$=$1);}
+       | Nil  {($$=REFALLOC(RIRChainExpr()));};
 
 Expr: Expr ExprElement     {($$=$1)->addSubExpr($2);}
     | ExprElement          {($$=REFALLOC(RIRChainExpr()))->addSubExpr($1);};

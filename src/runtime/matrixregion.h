@@ -679,6 +679,8 @@ public:
       memset(coord, 0, sizeof coord);
       do {
         float temp = *(this->coordToPtr(coord));
+        if (fpclassify(temp) == FP_ZERO) temp = 0;
+        if (fpclassify(temp) == FP_NAN) temp = fabs(temp);
         gen.update(&temp, sizeof(temp));
       } while(this->incCoord(coord)>=0);
     }

@@ -1,0 +1,21 @@
+#ifndef QRRTEST_PBCC
+#define QRRTEST_PBCC
+
+#include "../simple/copy.pbcc"
+#include "QR.pbcc"
+
+transform QRRTest
+from A[n,m]
+to OUT[n,m+1]
+through B[n,m], TAU[n]
+{
+    to (OUT out) from (A a)
+    {
+        MatrixRegion2D q = out.region(0, 0, n, m);
+        MatrixRegion1D tau = out.row(m);
+        Copy2D(q, a);
+        QRR(q, tau);
+    }
+}
+
+#endif // QRRTEST_PBCC
