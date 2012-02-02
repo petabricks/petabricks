@@ -91,7 +91,7 @@ namespace petabricks {
       // JTRACE("Destruct RegionDataRemoteObject");
     }
 
-    void onRecv(const void* data, size_t len) {
+    void onRecv(const void* data, size_t len, int) {
       _regionData->onRecv(data, len);
     }
 

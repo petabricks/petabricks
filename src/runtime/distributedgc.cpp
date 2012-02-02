@@ -31,7 +31,7 @@
 petabricks::RemoteObjectPtr petabricks::DistributedGC::gen() {
   return new DistributedGC();
 }
-    
+
 void petabricks::DistributedGC::onCreated() {
   host()->swapObjects(_objects, _gen);
   remoteNotify(FLUSH_MSGS);
@@ -70,7 +70,7 @@ void petabricks::DistributedGC::scan(std::vector<EncodedPtr>& response) {
   }
 }
 
-void petabricks::DistributedGC::onRecv(const void* buf, size_t s) {
+void petabricks::DistributedGC::onRecv(const void* buf, size_t s, int) {
   const EncodedPtr* begin = reinterpret_cast<const EncodedPtr*>(buf);
   const EncodedPtr* end   = begin+(s/sizeof(EncodedPtr));
   std::set<EncodedPtr> remoteDead(begin, end);

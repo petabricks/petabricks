@@ -38,7 +38,7 @@ void runProcess2(MatrixRegion3D& regionMatrix);
 RemoteObjectPtr gen() {
   class TestRemoteObject : public petabricks::RemoteObject {
   public:
-    void onRecv(const void* data, size_t /*len*/) {
+    void onRecv(const void* data, size_t /*len*/, int) {
       printf("== start process 2 ==\n");
 
       MatrixRegion3D regionMatrix = MatrixRegion3D();

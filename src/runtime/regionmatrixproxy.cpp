@@ -25,7 +25,7 @@ void RegionMatrixProxy::writeCell(const IndexT*, ElementT) {
   JASSERT(false).Text("Should not be called.");
 }
 
-void RegionMatrixProxy::onRecv(const void* data, size_t len) {
+void RegionMatrixProxy::onRecv(const void* data, size_t len, int) {
   const BaseMessageHeader* base = (const BaseMessageHeader*)data;
   //size_t msg_len = len - base->contentOffset;
   switch(base->type) {

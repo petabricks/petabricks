@@ -122,7 +122,7 @@ int main(int argc, const char** argv){
 RemoteObjectPtr step2() {
   class TestRemoteObject : public petabricks::RemoteObject {
   public:
-    void onRecv(const void* data, size_t /*len*/) {
+    void onRecv(const void* data, size_t /*len*/, int) {
       JTRACE("== step2 ==");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());

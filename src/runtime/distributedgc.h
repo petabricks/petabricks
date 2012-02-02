@@ -41,13 +41,13 @@ namespace petabricks {
     };
   public:
     static RemoteObjectPtr gen();
-  
+
     void onCreated();
     void onNotify(int stage);
-    void onRecv(const void* , size_t s);
+    void onRecv(const void* , size_t s, int);
 
     bool canDeleteLocal(RemoteObject& obj) const;
-    
+
     void scan(std::vector<EncodedPtr>& response);
     void finishup();
 
