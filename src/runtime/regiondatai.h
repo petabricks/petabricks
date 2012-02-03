@@ -37,12 +37,11 @@ namespace petabricks {
       return NULL;
     }
 
-    virtual MatrixStoragePtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* /*metadata*/, size_t /*size*/) const {
+    virtual void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* /*origMetadata*/, size_t /*len*/, MatrixStoragePtr /*scratchStorage*/, MatrixRegionMetadata* /*scratchMetadata*/=0) const {
       UNIMPLEMENTED();
-      return NULL;
     }
 
-    virtual void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* /*metadata*/, size_t /*size*/) const {
+    virtual void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* /*metadata*/, size_t /*len*/) const {
       UNIMPLEMENTED();
     }
 

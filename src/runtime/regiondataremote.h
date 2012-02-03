@@ -54,8 +54,8 @@ namespace petabricks {
     void writeByCache(const IndexT* coord, ElementT value) const;
 
     // scratch
-    MatrixStoragePtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* metadata, size_t size) const;
-    void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* metadata, size_t size) const;
+    void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, MatrixRegionMetadata* scratchMetadata=0) const;
+    void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len) const;
 
     DataHostPidList hosts(IndexT* begin, IndexT* end);
     RemoteHostPtr host();

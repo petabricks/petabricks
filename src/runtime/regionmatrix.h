@@ -182,6 +182,10 @@ namespace petabricks {
       _regionHandler->allocData(_size);
     }
 
+    void allocDataLocal() {
+      _regionHandler->allocDataLocal(_size);
+    }
+
     static RegionMatrix allocate(IndexT size[D]) {
       RegionMatrix region = RegionMatrix(size);
       region.allocData();
@@ -624,10 +628,10 @@ namespace petabricks {
       CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*) buf;
       this->computeMatrixRegionMetaData(msg->srcMetadata);
 
-      MatrixStoragePtr storage = _regionHandler->copyToScratchMatrixStorage(msg, size);
-      RegionDataIPtr regionData = new RegionDataRaw(D, this->size());
-      regionData->setStorage(storage);
-      RegionMatrix copy = RegionMatrix(this->size(), new RegionHandler(regionData));
+      RegionMatrix copy = RegionMatrix(this->size());
+      copy.allocDataLocal();
+      _regionHandler->copyToScratchMatrixStorage(msg, size, copy.regionData()->storage());
+
       if (_isTransposed) {
         copy.transpose();
       }
@@ -933,7 +937,7 @@ namespace petabricks {
 
     // for testing
     void copyDataFromRegion(RegionMatrixWrapper in) {
-      this->allocData();
+      this->allocDataLocal();
       IndexT coord[D];
       memset(coord, 0, sizeof(IndexT) * D);
       do {

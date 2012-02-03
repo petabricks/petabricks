@@ -90,6 +90,12 @@ int main(int argc, const char** argv){
     MatrixIO().write(split);
     print(split.dataHosts());
 
+    IndexT scratchSizes[] = {8, 8};
+    MatrixRegion2D scratch(scratchSizes);
+    scratch.allocData();
+    split.localCopy(scratch);
+    MatrixIO().write(scratch);
+
     char* buf = new char[split.serialSize()];
     split.serialize(buf, *RemoteHostDB::instance().host(0));
 
