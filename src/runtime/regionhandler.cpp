@@ -87,6 +87,12 @@ int RegionHandler::allocData(const IndexT* size) {
 }
 
 int RegionHandler::allocDataLocal(const IndexT* size) {
+  if (_regionData) {
+    JASSERT(type() == RegionDataTypes::REGIONDATASPLIT);
+    _regionData->allocData();
+    return 1;
+  }
+
   // Create local data
   _regionData = new RegionDataRaw(_D, size);
   _regionData->allocData();
