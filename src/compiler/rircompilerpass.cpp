@@ -45,9 +45,9 @@ void petabricks::GpuRenamePass::before(RIRExprCopyRef& e)
   if( RIRNode::EXPR_IDENT == e->type() )
     {
       if( e->isLeaf( "ElementT" ) )
-	e = new RIRIdentExpr( STRINGIFY( MATRIX_ELEMENT_T ) );
+        e = new RIRIdentExpr( STRINGIFY( MATRIX_ELEMENT_T ) );
       else if( e->isLeaf( "IndexT" ) )
-	e = new RIRIdentExpr( STRINGIFY( MATRIX_INDEX_T ) );
+        e = new RIRIdentExpr( STRINGIFY( MATRIX_INDEX_T ) );
     }
 }
 
@@ -104,7 +104,8 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
       }else if(s->type() == RIRNode::STMT_LOOP){
         o.comment("expanded loop statement");
         const RIRLoopStmt& stmt = (const RIRLoopStmt&)*s;
-        std::string jbody = o.nextContName("loopbody_");
+        std::string jbody  = o.nextContName("loopbody_");
+        std::string jinc   = o.nextContName("increment_");
         std::string jafter = o.nextContName("after_");
         o.write(stmt.declPart()->toString()+";");
         o.continueLabel(jbody);
@@ -112,10 +113,11 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
         o.continueJump(jafter);
         o.endIf();
         _breakTargets.push_back(jafter);
-        _continueTargets.push_back(jbody);
+        _continueTargets.push_back(jinc);
         stmt.body()->extractBlock()->accept(*this);
         _continueTargets.pop_back();
         _breakTargets.pop_back();
+        o.continueLabel(jinc);
         o.write(stmt.incPart()->toString()+";");
         o.continueJump(jbody);
         o.continueLabel(jafter);
