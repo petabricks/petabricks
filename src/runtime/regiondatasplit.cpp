@@ -87,6 +87,15 @@ void RegionDataSplit::writeCell(const IndexT* coord, ElementT value) {
   this->coordToPart(coord, coordPart)->writeCell(coordPart, value);
 }
 
+MatrixStoragePtr RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* /*metadata*/, size_t /*size*/) const {
+  UNIMPLEMENTED();
+  return NULL;
+}
+
+void RegionDataSplit::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* /*metadata*/, size_t /*size*/) const {
+  UNIMPLEMENTED();
+}
+
 void RegionDataSplit::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   ReadCellMessage* msg = (ReadCellMessage*)base->content();
   this->coordToPart(msg->coord, msg->coord)->processReadCellMsg(base, baseLen, caller);
@@ -95,6 +104,14 @@ void RegionDataSplit::processReadCellMsg(const BaseMessageHeader* base, size_t b
 void RegionDataSplit::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   WriteCellMessage* msg = (WriteCellMessage*)base->content();
   this->coordToPart(msg->coord, msg->coord)->processWriteCellMsg(base, baseLen, caller);
+}
+
+void RegionDataSplit::processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  UNIMPLEMENTED();
+}
+
+void RegionDataSplit::processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  UNIMPLEMENTED();
 }
 
 DataHostPidList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {

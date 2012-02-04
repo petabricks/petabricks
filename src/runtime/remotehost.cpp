@@ -396,14 +396,14 @@ bool petabricks::RemoteHost::recv() {
   case MessageTypes::REMOTEOBJECT_DATA:
     {
       if(msg.len>0){
-        buf = obj->allocRecv(msg.len);
+        buf = obj->allocRecv(msg.len, msg.arg);
         _data[msg.chan].readAll((char*)buf, msg.len);
         _datamu[msg.chan].unlock();
-        obj->onRecv(buf, msg.len);
-        obj->freeRecv(buf, msg.len);
+        obj->onRecv(buf, msg.len, msg.arg);
+        obj->freeRecv(buf, msg.len, msg.arg);
       }else{
         char dummy;
-        obj->onRecv(&dummy, 0);
+        obj->onRecv(&dummy, 0, msg.arg);
       }
       break;
     }
@@ -507,12 +507,12 @@ void petabricks::RemoteHost::createRemoteObject(const RemoteObjectPtr& local,
   addObject(local);
 }
 
-void petabricks::RemoteHost::sendData(const RemoteObject* local, const void* data, size_t len) {
+void petabricks::RemoteHost::sendData(const RemoteObject* local, const void* data, size_t len, int arg) {
   local->waitUntilCreated();
   GeneralMessage msg = { MessageTypes::REMOTEOBJECT_DATA,
                          0,
                          len,
-                         0,
+                         arg,
                          EncodeDataPtr(local),
                          local->remoteObj() };
   sendMsg(&msg, data, len);

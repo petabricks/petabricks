@@ -130,9 +130,10 @@ void RegionDataRaw::processWriteCellCacheMsg(const BaseMessageHeader* base, size
 // requester needs.
 void RegionDataRaw::processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
   CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*)base->content();
+  MatrixRegionMetadata* metadata = &(msg->srcMetadata);
 
-  int d = msg->dimensions;
-  IndexT* size = msg->size();
+  int d = metadata->dimensions;
+  IndexT* size = metadata->size();
 
   size_t storage_count = 1;
   for (int i = 0; i < d; i++) {
@@ -150,7 +151,7 @@ void RegionDataRaw::processCopyToMatrixStorageMsg(const BaseMessageHeader* base,
   IndexT coord[d];
   memset(coord, 0, sizeof coord);
   do {
-    IndexT index = coordToIndex(d, msg->startOffset, msg->multipliers, coord);
+    IndexT index = coordToIndex(d, metadata->startOffset, metadata->multipliers, coord);
     reply->storage[n] = _storage->data()[index];
     n++;
   } while(incCoord(d, size, coord) >= 0);

@@ -25,7 +25,7 @@ namespace petabricks {
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
 
-    void onRecv(const void* data, size_t len);
+    void onRecv(const void* data, size_t len, int arg);
 
     RegionMatrixProxyRemoteObjectPtr genLocal();
     static RemoteObjectPtr genRemote();
@@ -47,8 +47,8 @@ namespace petabricks {
       _regionMatrix = regionMatrix;
     }
 
-    void onRecv(const void* data, size_t len) {
-      _regionMatrix->onRecv(data, len);
+    void onRecv(const void* data, size_t len, int arg) {
+      _regionMatrix->onRecv(data, len, arg);
     }
 
     void onRecvInitial(const void* buf, size_t len);

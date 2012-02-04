@@ -99,7 +99,7 @@ int main(int argc, const char** argv){
 RemoteObjectPtr step2() {
   class TestRemoteObject : public petabricks::RemoteObject {
   public:
-    void onRecv(const void* data, size_t /*len*/) {
+    void onRecv(const void* data, size_t /*len*/, int) {
       printf("== step2 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
@@ -129,7 +129,7 @@ RemoteObjectPtr step2() {
 RemoteObjectPtr step3() {
   class TestRemoteObject : public petabricks::RemoteObject {
   public:
-    void onRecv(const void* data, size_t /*len*/) {
+    void onRecv(const void* data, size_t /*len*/, int) {
       printf("== step3 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
@@ -159,7 +159,7 @@ RemoteObjectPtr step3() {
 RemoteObjectPtr step4() {
   class TestRemoteObject : public petabricks::RemoteObject {
   public:
-    void onRecv(const void* data, size_t /*len*/) {
+    void onRecv(const void* data, size_t /*len*/, int) {
       printf("== step4 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
@@ -182,7 +182,7 @@ RemoteObjectPtr step4() {
 RemoteObjectPtr step5() {
   class TestRemoteObject : public petabricks::RemoteObject {
   public:
-    void onRecv(const void* data, size_t /*len*/) {
+    void onRecv(const void* data, size_t /*len*/, int) {
       printf("== step5 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
@@ -205,7 +205,7 @@ RemoteObjectPtr step5() {
 RemoteObjectPtr step6() {
   class TestRemoteObject : public petabricks::RemoteObject {
   public:
-    void onRecv(const void* data, size_t /*len*/) {
+    void onRecv(const void* data, size_t /*len*/, int) {
       printf("== step6 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());

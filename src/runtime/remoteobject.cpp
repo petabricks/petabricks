@@ -28,29 +28,29 @@
 #include "remotehost.h"
 
 
-void* petabricks::RemoteObject::allocRecv(size_t len) {
+void* petabricks::RemoteObject::allocRecv(size_t len, int) {
   return malloc(len);
 }
 
-void petabricks::RemoteObject::freeRecv(void* buf, size_t ) {
+void petabricks::RemoteObject::freeRecv(void* buf, size_t, int ) {
   free(buf);
 }
 
-void petabricks::RemoteObject::onRecv(const void* , size_t s) {
+void petabricks::RemoteObject::onRecv(const void* , size_t s, int) {
   JTRACE("recv")(s);
 }
 
 void* petabricks::RemoteObject::allocRecvInitial(size_t len) {
-  return allocRecv(len);
+  return allocRecv(len,0);
 }
 
 void petabricks::RemoteObject::onRecvInitial(const void* buf, size_t len) {
   JTRACE("recvInitial")(len);
-  onRecv(buf,len);
+  onRecv(buf,len,0);
 }
 
 void petabricks::RemoteObject::freeRecvInitial(void* buf, size_t len) {
-  return freeRecv(buf, len);
+  return freeRecv(buf, len,0);
 }
 
 void petabricks::RemoteObject::onCreated() {
@@ -62,8 +62,8 @@ void petabricks::RemoteObject::onComplete() {
 void petabricks::RemoteObject::onNotify(int arg) {
   JTRACE("notify")(_flags)(arg);
 }
-void petabricks::RemoteObject::send(const void* p, size_t s) {
-  host()->sendData(this, p, s);
+void petabricks::RemoteObject::send(const void* p, size_t s, int arg) {
+  host()->sendData(this, p, s, arg);
 }
 void petabricks::RemoteObject::remoteSignal() {
   host()->remoteSignal(this);

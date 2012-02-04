@@ -87,6 +87,12 @@ int RegionHandler::allocData(const IndexT* size) {
 }
 
 int RegionHandler::allocDataLocal(const IndexT* size) {
+  if (_regionData) {
+    JASSERT(type() == RegionDataTypes::REGIONDATASPLIT);
+    _regionData->allocData();
+    return 1;
+  }
+
   // Create local data
   _regionData = new RegionDataRaw(_D, size);
   _regionData->allocData();
@@ -168,23 +174,26 @@ bool RegionHandler::isHandlerChainUpdated() {
   return true;
 }
 
-MatrixStoragePtr RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* metadata, size_t size) {
+void RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage) {
   if (type() == RegionDataTypes::REGIONDATARAW) {
     JASSERT(false).Text("This is inefficient. Use _regionData->storage() instead.");
-    return NULL;
+
   } else if (type() == RegionDataTypes::REGIONDATAREMOTE) {
-    return _regionData->copyToScratchMatrixStorage(metadata, size);
-  } else {
+    _regionData->copyToScratchMatrixStorage(origMetadata, len, scratchStorage);
+    return;
+
+  } else if (type() == RegionDataTypes::REGIONDATASPLIT) {
     UNIMPLEMENTED();
-    return NULL;
   }
 }
 
-void RegionHandler::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* metadata, size_t size) {
+void RegionHandler::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len) {
   if (type() == RegionDataTypes::REGIONDATARAW) {
     UNIMPLEMENTED();
+
   } else if (type() == RegionDataTypes::REGIONDATAREMOTE) {
-    _regionData->copyFromScratchMatrixStorage(metadata, size);
+    _regionData->copyFromScratchMatrixStorage(origMetadata, len);
+
   } else {
     UNIMPLEMENTED();
   }

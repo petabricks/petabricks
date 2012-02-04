@@ -182,6 +182,10 @@ namespace petabricks {
       _regionHandler->allocData(_size);
     }
 
+    void allocDataLocal() {
+      _regionHandler->allocDataLocal(_size);
+    }
+
     static RegionMatrix allocate(IndexT size[D]) {
       RegionMatrix region = RegionMatrix(size);
       region.allocData();
@@ -577,6 +581,13 @@ namespace petabricks {
       }
     }
 
+    void computeMatrixRegionMetaData(MatrixRegionMetadata& metadata)const {
+      metadata.dimensions = D;
+      metadata.startOffset = 0;
+      computeMatrixRegionMetaData(&(metadata.startOffset), metadata.multipliers);
+      memcpy(metadata.size(), _size, sizeof(IndexT) * D);
+    }
+
     bool isLocal() const {
       return (_regionHandler->type() == RegionDataTypes::REGIONDATARAW);
     }
@@ -614,18 +625,13 @@ namespace petabricks {
       }
       size_t size = sizeof(int) + ((2 * D + 1) * sizeof(IndexT));
       char buf[size];
-      CopyToMatrixStorageMessage* metadata = (CopyToMatrixStorageMessage*) buf;
-      metadata->dimensions = D;
-      metadata->startOffset = 0;
+      CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*) buf;
+      this->computeMatrixRegionMetaData(msg->srcMetadata);
 
-      this->computeMatrixRegionMetaData(&metadata->startOffset, metadata->multipliers);
+      RegionMatrix copy = RegionMatrix(this->size());
+      copy.allocDataLocal();
+      _regionHandler->copyToScratchMatrixStorage(msg, size, copy.regionData()->storage());
 
-      memcpy(metadata->size(), _size, sizeof(IndexT) * D);
-
-      MatrixStoragePtr storage = _regionHandler->copyToScratchMatrixStorage(metadata, size);
-      RegionDataIPtr regionData = new RegionDataRaw(D, this->size());
-      regionData->setStorage(storage);
-      RegionMatrix copy = RegionMatrix(this->size(), new RegionHandler(regionData));
       if (_isTransposed) {
         copy.transpose();
       }
@@ -931,7 +937,7 @@ namespace petabricks {
 
     // for testing
     void copyDataFromRegion(RegionMatrixWrapper in) {
-      this->allocData();
+      this->allocDataLocal();
       IndexT coord[D];
       memset(coord, 0, sizeof(IndexT) * D);
       do {

@@ -133,7 +133,7 @@ namespace petabricks {
       int numHops;
     } PACKED;
 
-    struct CopyToMatrixStorageMessage {
+    struct MatrixRegionMetadata {
       int dimensions;
       IndexT startOffset;
       IndexT multipliers[];
@@ -141,6 +141,10 @@ namespace petabricks {
         return (IndexT*)((char*)this + sizeof(int) +
                          ((this->dimensions + 1) * sizeof(IndexT)));
       }
+    } PACKED;
+
+    struct CopyToMatrixStorageMessage {
+      struct MatrixRegionMetadata srcMetadata;
     } PACKED;
 
     struct CopyFromMatrixStorageMessage {

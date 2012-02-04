@@ -90,6 +90,12 @@ int main(int argc, const char** argv){
     MatrixIO().write(split);
     print(split.dataHosts());
 
+    IndexT scratchSizes[] = {8, 8};
+    MatrixRegion2D scratch(scratchSizes);
+    scratch.allocData();
+    split.localCopy(scratch);
+    MatrixIO().write(scratch);
+
     char* buf = new char[split.serialSize()];
     split.serialize(buf, *RemoteHostDB::instance().host(0));
 
@@ -122,7 +128,7 @@ int main(int argc, const char** argv){
 RemoteObjectPtr step2() {
   class TestRemoteObject : public petabricks::RemoteObject {
   public:
-    void onRecv(const void* data, size_t /*len*/) {
+    void onRecv(const void* data, size_t /*len*/, int) {
       JTRACE("== step2 ==");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
@@ -130,12 +136,11 @@ RemoteObjectPtr step2() {
       MatrixIO().write(regionMatrix);
       print(regionMatrix.dataHosts());
 
-      // IndexT sizes[] = {8, 8};
-      // MatrixRegion2D scratch(sizes);
-      // scratch.allocData();
-      // regionMatrix.localCopy(scratch);
-      // MatrixIO().write(scratch);
-
+      IndexT sizes[] = {8, 8};
+      MatrixRegion2D scratch(sizes);
+      scratch.allocData();
+      regionMatrix.localCopy(scratch);
+      MatrixIO().write(scratch);
 
       IndexT m11[] = {1,1};
       regionMatrix.cell(m11) = 1331;
