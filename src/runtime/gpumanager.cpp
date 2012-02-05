@@ -158,6 +158,7 @@ void GpuManager::run(GpuDynamicTaskPtr ) {
 
 bool GpuManager::copyout(GpuDynamicTaskPtr ) {
   UNIMPLEMENTED();
+  return false;
 }
 
 
