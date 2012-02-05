@@ -106,11 +106,11 @@ void RegionDataSplit::processWriteCellMsg(const BaseMessageHeader* base, size_t 
   this->coordToPart(msg->coord, msg->coord)->processWriteCellMsg(base, baseLen, caller);
 }
 
-void RegionDataSplit::processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+void RegionDataSplit::processCopyFromMatrixStorageMsg(const BaseMessageHeader* /*base*/, size_t /*baseLen*/, IRegionReplyProxy* /*caller*/) {
   UNIMPLEMENTED();
 }
 
-void RegionDataSplit::processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+void RegionDataSplit::processCopyToMatrixStorageMsg(const BaseMessageHeader* /*base*/, size_t /*baseLen*/, IRegionReplyProxy* /*caller*/) {
   UNIMPLEMENTED();
 }
 

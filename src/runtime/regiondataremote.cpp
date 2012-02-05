@@ -254,6 +254,8 @@ UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain() {
 }
 
 void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen) const {
+  
+
   *responseData = 0;
   *responseLen = 0;
 
@@ -268,13 +270,14 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
 
   memcpy(header->content(), msg, len);
 
+  JLOCKSCOPE(*_remoteObject);
   _remoteObject->send(header, dataLen);
   free(header);
 
+  
   // wait for the data
   while (*responseData == 0 || *responseLen == 0) {
-    jalib::memFence();
-    sched_yield();
+    _remoteObject->waitMsgMu();
   }
 }
 

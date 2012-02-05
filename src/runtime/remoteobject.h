@@ -53,7 +53,8 @@ class RemoteObject : public jalib::JRefCounted, public jalib::JCondMutex {
   friend class RemoteHost;
   enum { FLAG_INITIATOR = 1,
          FLAG_CREATED = 2,
-         FLAG_COMPLETE = 4 };
+         FLAG_COMPLETE = 4,
+         FLAG_SKIP_CREATE_ACK = 8 };
 public:
   RemoteObject() : _host(NULL), _flags(0), _lastMsgGen(0), _pendingMessages(0) {}
 
@@ -86,8 +87,7 @@ public:
   int flags() const { return _flags; }
 
 
-  ConstRemoteHostPtr host() const { return _host; }
-  RemoteHostPtr host() { return _host; }
+  RemoteHostPtr host() const { return _host; }
 
   bool isCreated() const {
     return 0 != (_flags & FLAG_CREATED);
@@ -100,6 +100,10 @@ public:
   bool isComplete() const {
     return 0 != (_flags & FLAG_COMPLETE);
   }
+  
+  bool isSkipCreateAck() const {
+    return 0 != (_flags & FLAG_SKIP_CREATE_ACK);
+  }
 
   int lastMsgGen() const { return _lastMsgGen; }
 
@@ -111,6 +115,9 @@ public:
   bool maybeDeletable(int gen) const {
     return isCreated() && refCount()==1 && lastMsgGen()<gen && pendingMessages()==0;
   }
+
+  // wait until at least one incoming message is processed
+  void waitMsgMu() const;
 protected:
   void remoteMarkComplete();
 
@@ -133,13 +140,15 @@ protected:
   void markInitiatorMu() { _flags |= FLAG_INITIATOR; }
   void markCreatedMu() { _flags |= FLAG_CREATED;  broadcast(); }
   void markCompleteMu() { _flags |= FLAG_COMPLETE;  broadcast(); }
+  void markSkipCreateAckMu() { _flags |= FLAG_SKIP_CREATE_ACK; }
   void setRemoteObjMu(EncodedPtr v) { _remoteObj = v; }
   void waitUntilCreatedMu() const {
-    while(0 == (_flags & FLAG_CREATED) ) wait();
+    while(0 == (_flags & FLAG_CREATED) ) waitMsgMu();
   }
   void waitUntilCompleteMu() const {
-    while(0 == (_flags & FLAG_COMPLETE) ) wait();
+    while(0 == (_flags & FLAG_COMPLETE) ) waitMsgMu();
   }
+
 private:
   RemoteHostPtr _host;
   EncodedPtr _remoteObj;

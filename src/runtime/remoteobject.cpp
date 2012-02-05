@@ -27,13 +27,15 @@
 #include "remoteobject.h"
 #include "remotehost.h"
 
+#include "common/jasm.h"
+
 
 void* petabricks::RemoteObject::allocRecv(size_t len, int) {
-  return malloc(len);
+  return new char[len];
 }
 
 void petabricks::RemoteObject::freeRecv(void* buf, size_t, int ) {
-  free(buf);
+  delete [] ((char*)buf);
 }
 
 void petabricks::RemoteObject::onRecv(const void* , size_t s, int) {
@@ -78,5 +80,17 @@ void petabricks::RemoteObject::remoteMarkComplete() {
   host()->remoteMarkComplete(this);
 }
 
-
+void petabricks::RemoteObject::waitMsgMu() const{
+  for(;;) {
+    if(pendingMessages() > 0) {
+      unlock();
+      while(pendingMessages() > 0) jalib::memFence();
+      lock();
+      return;
+    }
+    if(host()->recv(this)) {
+      return;
+    }
+  }
+}
 

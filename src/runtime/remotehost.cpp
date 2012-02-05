@@ -317,7 +317,7 @@ void petabricks::RemoteHost::setupEnd() {
 
 
 
-bool petabricks::RemoteHost::recv() {
+bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
   GeneralMessage msg;
 
   if(!_controlmu.trylock()) {
@@ -325,7 +325,24 @@ bool petabricks::RemoteHost::recv() {
     return false;
   }
 
-  ssize_t cnt = _control.tryReadAll((char*)&msg, sizeof msg);
+  /*
+   * caller!=0 when a worker thread is waiting for a message and is trying to help
+   * recv it.  need to make sure that message isn't being processed in parallel.
+   */
+  if(caller!=0 && caller->pendingMessages()>0) {
+    _controlmu.unlock();
+    return false;
+  }
+
+  ssize_t cnt;
+  if(caller == 0) {
+    // recv thread: has other useful work to do
+    cnt = _control.tryReadAll((char*)&msg, sizeof msg);
+  } else {
+    // worker thread: is waiting for a msg
+    cnt = _control.readAll((char*)&msg, sizeof msg);
+  }
+
   if(cnt==0) {
     _controlmu.unlock();
     return false;
@@ -354,6 +371,11 @@ bool petabricks::RemoteHost::recv() {
 
   if(obj){
     obj->lock();
+    if(!obj->isCreated()){
+      obj->setRemoteObjMu(msg.srcptr);
+      obj->markCreatedMu();
+      obj->onCreated();
+    }
   }
 
   switch(msg.type) {
@@ -375,12 +397,15 @@ bool petabricks::RemoteHost::recv() {
         obj->onRecvInitial(buf, msg.len);
         obj->freeRecvInitial(buf, msg.len);
       }
-      GeneralMessage ackmsg = { MessageTypes::REMOTEOBJECT_CREATE_ACK,
-                                0,
-                                0,
-                                0,
-                                EncodeDataPtr(obj.asPtr()), msg.srcptr };
-      sendMsg(&ackmsg);
+      if(!obj->isSkipCreateAck()) {
+        GeneralMessage ackmsg = { MessageTypes::REMOTEOBJECT_CREATE_ACK,
+                                  0,
+                                  0,
+                                  0,
+                                  EncodeDataPtr(obj.asPtr()),
+                                  msg.srcptr };
+        sendMsg(&ackmsg);
+      }
       obj->onCreated();
       addObject(obj);
       break;
@@ -388,9 +413,6 @@ bool petabricks::RemoteHost::recv() {
   case MessageTypes::REMOTEOBJECT_CREATE_ACK:
     {
       JASSERT(msg.len==0);
-      obj->setRemoteObjMu(msg.srcptr);
-      obj->markCreatedMu();
-      obj->onCreated();
       break;
     }
   case MessageTypes::REMOTEOBJECT_DATA:
@@ -667,7 +689,7 @@ void petabricks::RemoteHostDB::remotefork(const char* host, int oargc, const cha
   int i=0;
   int j=0;
   if(host!=NULL) {
-    getcwd(cwd, sizeof cwd);
+    JASSERT(getcwd(cwd, sizeof cwd) != 0);
     argv[i++] = "/usr/bin/ssh";
     argv[i++] = host;
     argv[i++] = "cd";

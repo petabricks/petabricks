@@ -115,6 +115,8 @@ public:
   void setupLoop(RemoteHostDB& db);
   static void setupRemoteConnection(RemoteHost& a, RemoteHost& b);
   void setupEnd();
+  
+  bool recv(const RemoteObject* caller = 0);
 protected:
   RemoteHost(const std::string& connectName)
     : _lastchan(0),
@@ -127,7 +129,6 @@ protected:
   {}
   void accept(jalib::JServerSocket& s, int listenPort);
   void connect(const jalib::JSockAddr& a, int port, int listenPort);
-  bool recv();
   int fd() const { return _control.sockfd(); }
   void handshake(int port);
 
