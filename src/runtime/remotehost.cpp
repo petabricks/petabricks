@@ -332,21 +332,23 @@ bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
   if(caller!=0 && caller->pendingMessages()>0) {
     _controlmu.unlock();
     return false;
+  }else{
+    caller->unlock();
   }
 
   ssize_t cnt;
   if(caller == 0) {
     // recv thread: has other useful work to do
     cnt = _control.tryReadAll((char*)&msg, sizeof msg);
+    if(cnt==0) {
+      _controlmu.unlock();
+      return false;
+    }
   } else {
     // worker thread: is waiting for a msg
     cnt = _control.readAll((char*)&msg, sizeof msg);
   }
 
-  if(cnt==0) {
-    _controlmu.unlock();
-    return false;
-  }
   if(cnt<0) {
     _controlmu.unlock();
     JASSERT(false)(_id).Text("disconnected");
@@ -484,6 +486,10 @@ bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
   if(obj) {
     obj->unlock();
     jalib::atomicDecrement(&obj->_pendingMessages);
+  }
+
+  if(caller!=0) {
+    caller->lock();
   }
 
   return true;
