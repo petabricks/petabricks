@@ -28,17 +28,14 @@
 #include "remotehost.h"
 
 #include "distributedgc.h"
+#include "workerthread.h"
 
 #include "common/jconvert.h"
 
-#include "workerthread.h"
-
-
 #include <algorithm>
 #include <poll.h>
-#include <unistd.h>
-
 #include <set>
+#include <unistd.h>
 
 static bool theListenersShutdown = false;
 
@@ -332,8 +329,6 @@ bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
   if(caller!=0 && caller->pendingMessages()>0) {
     _controlmu.unlock();
     return false;
-  }else{
-    caller->unlock();
   }
 
   ssize_t cnt;
@@ -345,6 +340,7 @@ bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
       return false;
     }
   } else {
+    caller->unlock();
     // worker thread: is waiting for a msg
     cnt = _control.readAll((char*)&msg, sizeof msg);
   }
