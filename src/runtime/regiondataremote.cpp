@@ -270,11 +270,10 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
 
   memcpy(header->content(), msg, len);
 
-  JLOCKSCOPE(*_remoteObject);
   _remoteObject->send(header, dataLen);
   free(header);
-
   
+  JLOCKSCOPE(*_remoteObject);
   // wait for the data
   while (*responseData == 0 || *responseLen == 0) {
     _remoteObject->waitMsgMu();
