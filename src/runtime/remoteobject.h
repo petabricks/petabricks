@@ -143,7 +143,7 @@ protected:
   void markSkipCreateAckMu() { _flags |= FLAG_SKIP_CREATE_ACK; }
   void setRemoteObjMu(EncodedPtr v) { _remoteObj = v; }
   void waitUntilCreatedMu() const {
-    while(0 == (_flags & FLAG_CREATED) ) waitMsgMu();
+    while(0 == (_flags & FLAG_CREATED) ) wait();
   }
   void waitUntilCompleteMu() const {
     while(0 == (_flags & FLAG_COMPLETE) ) waitMsgMu();
