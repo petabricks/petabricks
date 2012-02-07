@@ -143,8 +143,30 @@ namespace petabricks {
       }
     } PACKED;
 
+    struct RegionMatrixMetadata {
+      int dimensions;
+      int numSliceDimensions;
+      IndexT splitOffset[];
+      IndexT* size() const {
+        return (IndexT*)((char*)this + sizeof(int) * 2 +
+                         (sizeof(IndexT) * this->dimensions));
+      }
+      int* sliceDimensions() const {
+        return (int*)((char*)size() +
+                      (sizeof(IndexT) * this->dimensions));
+      }
+      IndexT* slicePositions() const {
+        return (IndexT*)((char*)size() +
+                         (sizeof(int) * this->numSliceDimensions));
+      }
+      static int len(int d, int numSlices) {
+        return sizeof(int) * 2 + sizeof(IndexT) * 2 * d +
+          (sizeof(int) + sizeof(IndexT)) * numSlices;
+      }
+    } PACKED;
+
     struct CopyToMatrixStorageMessage {
-      struct MatrixRegionMetadata srcMetadata;
+      struct RegionMatrixMetadata srcMetadata;
     } PACKED;
 
     struct CopyFromMatrixStorageMessage {

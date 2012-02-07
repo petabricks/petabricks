@@ -560,7 +560,7 @@ namespace petabricks {
     }
 
     // Compute metadata for Return StartOffset.
-    void computeMatrixRegionMetaData(IndexT* startOffset, IndexT multipliers[D])const {
+    void computeMatrixRegionMetaData(IndexT* startOffset, IndexT multipliers[D]) const {
       RegionDataIPtr regionData = _regionHandler->getRegionData();
       IndexT mult = 1;
       int last_slice_index = 0;
@@ -572,20 +572,28 @@ namespace petabricks {
           last_slice_index++;
         } else {
           multipliers[i - last_slice_index] = mult;
-
-          if (_splitOffset) {
-            *startOffset += mult * _splitOffset[i - last_slice_index];
-          }
+          *startOffset += mult * _splitOffset[i - last_slice_index];
         }
         mult *= regionData->size()[i];
       }
     }
-
-    void computeMatrixRegionMetaData(MatrixRegionMetadata& metadata)const {
+    void computeMatrixRegionMetaData(MatrixRegionMetadata& metadata) const {
       metadata.dimensions = D;
       metadata.startOffset = 0;
       computeMatrixRegionMetaData(&(metadata.startOffset), metadata.multipliers);
       memcpy(metadata.size(), _size, sizeof(IndexT) * D);
+    }
+
+    int regionMatrixMetadataLen() const {
+      return RegionMatrixMetadata::len(D, _sliceInfo->numSliceDimensions());
+    }
+    void computeRegionMatrixMetadata(RegionMatrixMetadata& metadata) const {
+      metadata.dimensions = D;
+      metadata.numSliceDimensions = _sliceInfo->numSliceDimensions();
+      memcpy(metadata.splitOffset, _splitOffset, sizeof(IndexT) * D);
+      memcpy(metadata.size(), _size, sizeof(IndexT) * D);
+      memcpy(metadata.sliceDimensions(), _sliceInfo->sliceDimensions(), sizeof(int) * D);
+      memcpy(metadata.slicePositions(), _sliceInfo->slicePositions(), sizeof(IndexT) * D);
     }
 
     bool isLocal() const {
@@ -623,14 +631,20 @@ namespace petabricks {
         // already local
         return *this;
       }
-      size_t size = sizeof(int) + ((2 * D + 1) * sizeof(IndexT));
-      char buf[size];
+
+      /* size_t len = sizeof(int) + ((2 * D + 1) * sizeof(IndexT)); */
+      /* char buf[len]; */
+      /* CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*) buf; */
+      /* this->computeMatrixRegionMetaData(msg->srcMetadata); */
+
+      size_t len = regionMatrixMetadataLen();
+      char buf[len];
       CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*) buf;
-      this->computeMatrixRegionMetaData(msg->srcMetadata);
+      this->computeRegionMatrixMetadata(msg->srcMetadata);
 
       RegionMatrix copy = RegionMatrix(this->size());
       copy.allocDataLocal();
-      _regionHandler->copyToScratchMatrixStorage(msg, size, copy.regionData()->storage());
+      _regionHandler->copyToScratchMatrixStorage(msg, len, copy.regionData()->storage());
 
       if (_isTransposed) {
         copy.transpose();
@@ -888,10 +902,7 @@ namespace petabricks {
           slice_index++;
         } else {
           // split
-          int offset = 0;
-          if (_splitOffset) {
-            offset = _splitOffset[split_index];
-          }
+          int offset = _splitOffset[split_index];
 
           if (_isTransposed) {
             coord_new[d] = coord_orig[D - 1 - split_index] + offset;

@@ -130,7 +130,7 @@ void RegionDataRaw::processWriteCellCacheMsg(const BaseMessageHeader* base, size
 // requester needs.
 void RegionDataRaw::processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
   CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*)base->content();
-  MatrixRegionMetadata* metadata = &(msg->srcMetadata);
+  RegionMatrixMetadata* metadata = &(msg->srcMetadata);
 
   int d = metadata->dimensions;
   IndexT* size = metadata->size();
@@ -151,7 +151,7 @@ void RegionDataRaw::processCopyToMatrixStorageMsg(const BaseMessageHeader* base,
   IndexT coord[d];
   memset(coord, 0, sizeof coord);
   do {
-    IndexT index = coordToIndex(d, metadata->startOffset, metadata->multipliers, coord);
+    IndexT index = toRegionDataIndex(coord, metadata->numSliceDimensions, metadata->splitOffset, metadata->sliceDimensions(), metadata->slicePositions());
     reply->storage[n] = _storage->data()[index];
     n++;
   } while(incCoord(d, size, coord) >= 0);
@@ -210,4 +210,20 @@ IndexT RegionDataRaw::coordToIndex(int dimensions, IndexT startOffset, IndexT* m
     rv +=  multipliers[i] * coord[i];
   }
   return rv;
+}
+
+IndexT RegionDataRaw::toRegionDataIndex(IndexT* coord, int numSliceDimensions, IndexT* splitOffset, int* sliceDimensions, IndexT* slicePositions) const {
+  IndexT newCoord[_D];
+  IndexT sliceIndex = 0;
+  IndexT splitIndex = 0;
+  for (int d = 0; d < _D; ++d) {
+    if (sliceIndex < numSliceDimensions && d == sliceDimensions[sliceIndex]) {
+      newCoord[d] = slicePositions[sliceIndex];
+      ++sliceIndex;
+    } else {
+      newCoord[d] = coord[splitIndex] + splitOffset[splitIndex];
+      ++splitIndex;
+    }
+  }
+  return coordOffset(newCoord);
 }
