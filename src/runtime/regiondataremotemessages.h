@@ -156,7 +156,7 @@ namespace petabricks {
                       (sizeof(IndexT) * this->dimensions));
       }
       IndexT* slicePositions() const {
-        return (IndexT*)((char*)size() +
+        return (IndexT*)((char*)sliceDimensions() +
                          (sizeof(int) * this->numSliceDimensions));
       }
       static int len(int d, int numSlices) {
