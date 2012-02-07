@@ -51,14 +51,15 @@ public:
   JMutexSpin() : _v(0) {}
   
   bool trylock() const {
-    memFence();
     return _v==0 && fetchAndStore(&_v, 1)==0;
   }
 
   void unlock() const {
-    memFence();
+    staticMemFence();
+#ifdef DEBUG
+    JASSERT(_v!=0);
+#endif
     _v = 0;
-    memFence();//not needed?
   }
   
   void lock() const {
@@ -130,6 +131,7 @@ protected:
   mutable pthread_cond_t _cond;
 };
 
+#if 0
 class JLockScope{
   JLockScope(const JLockScope&); //banned
 public:
@@ -144,10 +146,23 @@ private:
   const JMutexSpin*    _s;
   const JMutexPthread* _p;
 };
+#else
+template<typename T>
+class JLockScope{
+  JLockScope(const JLockScope&); //banned
+public:
+  //support both spin and pthread versions
+  JLockScope(const T& mux) : _m(mux) { mux.lock(); }
+  ~JLockScope() { _m.unlock(); }
+private:
+  const T& _m;
+};
+
+#endif
 
 #define _JLOCKSCOPE_CAT(a, b) a ## b
 #define JLOCKSCOPE_CAT(a, b) _JLOCKSCOPE_CAT(a, b)
-#define JLOCKSCOPE(m) jalib::JLockScope JLOCKSCOPE_CAT(__scopeLock , __LINE__ ) ( m )
+#define JLOCKSCOPE(m) jalib::JLockScope<typeof(m)> JLOCKSCOPE_CAT(__scopelock , __LINE__ ) ( m )
 
 }
 
