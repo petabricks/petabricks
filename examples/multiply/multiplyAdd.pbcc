@@ -56,13 +56,53 @@ inline void toMatrix(ElementT* array, T&matrix) {
 }
 
 void gemm_wrap(const int M, const int N, const int K, const float alpha, const float * A, const int lda, const float * B, const int ldb, const float beta, float * C, const int ldc) {
-  cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+  cblas_sgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
 }
 
 void gemm_wrap(const int M, const int N, const int K, const double alpha, const double * A, const int lda, const double * B, const int ldb, const double beta, double * C, const int ldc) {
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+  cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
 }
+
 %}
+
+// copy to flat arrays and call BLAS
+transform MatrixMultiplyAddBLAS
+from ALPHA, A[k,h], B[w,k], BETA
+to C[w,h]
+{
+  to(C c) from (A a, B b, ALPHA alpha, BETA beta)
+  {
+    // fast return if possible
+    if (h == 0 || k == 0 || w == 0) {
+      return;
+    }
+
+    ElementT* arrayA = toArray(a);
+    ElementT* arrayB = toArray(b);
+    ElementT* arrayC = toArray(c);
+
+#ifdef PRINT
+    printArray(h, k, arrayA);
+    printArray(k, w, arrayB);
+    printArray(h, w, arrayC);
+#endif
+
+    // since arrayA/B/C are in row-major order, while gemm_wrap assumes
+    // column-major order, we compute:
+    //   C^T = alpha * B^T * A^T + beta * C^T
+    gemm_wrap(w, h, k, alpha, arrayB, w, arrayA, k, beta, arrayC, w);
+
+#ifdef PRINT
+    printArray(h, w, arrayC);
+#endif
+
+    toMatrix(arrayC, c);
+
+    delete [] arrayA;
+    delete [] arrayB;
+    delete [] arrayC;
+  }
+}
 
 transform MatrixMultiplyAddInner
 from ALPHA, A[k,h], B[w,k], BETA
@@ -141,52 +181,60 @@ to C[w,h]
     }
   }
 
-  // call BLAS
+  // copy matrices to arrays and call BLAS
   to(C c) from (A a, B b, ALPHA alpha, BETA beta)
   {
-    int rowA=a.height();
-    int colA=a.width();
+    MatrixMultiplyAddBLAS(c, alpha, a, b, beta);
+  }
 
-    int rowB=b.height();
-    int colB=b.width();
-
-    int rowC=c.height();
-    int colC=c.width();
-
-    if(colA != rowB) {
-      fprintf(stderr, "Unable to perform a matrix multiplication. Wrong input size.\n"
-	      "#columns of matrix A = %d\n"
-	      "#rows of matrix B = %d\n"
-	      "They should be equal!\n", colA, rowB);
-      exit(4);
-    }
-
+  // try to call BLAS directly on matrix data (no copies)
+  to(C c) from (A a, B b, ALPHA alpha, BETA beta)
+  {
     // fast return if possible
     if (h == 0 || k == 0 || w == 0) {
-        return;
+      return;
     }
 
-    ElementT* arrayA = toArray(a);
-    ElementT* arrayB = toArray(b);
-    ElementT* arrayC = toArray(c);
+    int allColMajor = 0, allRowMajor = 0;
+    if (a.multipliers()[0] == 1 &&
+        b.multipliers()[0] == 1 &&
+        c.multipliers()[0] == 1) {
+      allRowMajor = 1;
+    } else if (a.multipliers()[1] == 1 &&
+               b.multipliers()[1] == 1 &&
+               c.multipliers()[1] == 1) {
+      allColMajor = 1;
+    }
 
-    #ifdef PRINT
-    printArray(rowA, colA, arrayA);
-    printArray(rowB, colB, arrayB);
-    printArray(rowC, colC, arrayC);
-    #endif
+    // if all data stored in column or row major format, can pass MatrixRegion
+    // data directly into BLAS using base pointers
+    if (allColMajor || allRowMajor) {
 
-    gemm_wrap(rowA, colB, rowB, alpha, arrayA, colA, arrayB, colB, beta, arrayC, colC);
+      int lda, ldb, ldc;
+      const ElementT *arrayA, *arrayB;
+      ElementT *arrayC;
 
-    #ifdef PRINT
-    printArray(rowC, colC, arrayC);
-    #endif
+      arrayA = a.base();
+      arrayB = b.base();
+      arrayC = c.base();
 
-    toMatrix(arrayC, c);
+      if (allColMajor) {
+        lda = a.multipliers()[0];
+        ldb = b.multipliers()[0];
+        ldc = c.multipliers()[0];
+        // C = alpha * A * B + beta * C
+        gemm_wrap(h, w, k, alpha, arrayA, lda, arrayB, ldb, beta, arrayC, ldc);
+      } else {
+        lda = a.multipliers()[1];
+        ldb = b.multipliers()[1];
+        ldc = c.multipliers()[1];
+        // C^T = alpha * B^T * A^T + beta * C^T
+        gemm_wrap(w, h, k, alpha, arrayB, ldb, arrayA, lda, beta, arrayC, ldc);
+      }
 
-    delete [] arrayA;
-    delete [] arrayB;
-    delete [] arrayC;
+    } else {
+      MatrixMultiplyAddBLAS(c, alpha, a, b, beta);
+    }
   }
 }
 
