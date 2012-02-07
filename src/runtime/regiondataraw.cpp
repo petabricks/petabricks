@@ -161,9 +161,10 @@ void RegionDataRaw::processCopyToMatrixStorageMsg(const BaseMessageHeader* base,
 
 void RegionDataRaw::processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
   CopyFromMatrixStorageMessage* msg = (CopyFromMatrixStorageMessage*)base->content();
+  RegionMatrixMetadata* metadata = &(msg->srcMetadata);
 
-  int d = msg->dimensions;
-  IndexT* size = msg->size();
+  int d = metadata->dimensions;
+  IndexT* size = metadata->size();
   ElementT* storage = msg->storage();
 
   size_t sz = sizeof(CopyFromMatrixStorageReplyMessage);
@@ -174,9 +175,9 @@ void RegionDataRaw::processCopyFromMatrixStorageMsg(const BaseMessageHeader* bas
   memset(coord, 0, sizeof coord);
 
   do {
-    unsigned int index = coordToIndex(d, msg->startOffset, msg->multipliers, coord);
+    unsigned int index = toRegionDataIndex(coord, metadata->numSliceDimensions, metadata->splitOffset, metadata->sliceDimensions(), metadata->slicePositions());
     #ifdef DEBUG
-    JASSERT(index <= _storage->count())(index)(_storage->count())(d)(msg->startOffset)(msg->multipliers[0])(coord[0]);
+    JASSERT(index <= _storage->count())(index)(_storage->count());
     #endif
     _storage->data()[index] = storage[n];
     n++;
@@ -202,14 +203,6 @@ int RegionDataRaw::incCoord(int dimensions, IndexT* size, IndexT* coord) const{
   }else{
     return dimensions - 1;
   }
-}
-
-IndexT RegionDataRaw::coordToIndex(int dimensions, IndexT startOffset, IndexT* multipliers, IndexT* coord) const {
-  IndexT rv = startOffset;
-  for(int i = 0; i < dimensions; ++i){
-    rv +=  multipliers[i] * coord[i];
-  }
-  return rv;
 }
 
 IndexT RegionDataRaw::toRegionDataIndex(IndexT* coord, int numSliceDimensions, IndexT* splitOffset, int* sliceDimensions, IndexT* slicePositions) const {

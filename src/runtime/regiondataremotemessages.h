@@ -170,18 +170,9 @@ namespace petabricks {
     } PACKED;
 
     struct CopyFromMatrixStorageMessage {
-      int dimensions;
-      IndexT startOffset;
-      IndexT multipliers[];
-
-      IndexT* size() const {
-        return (IndexT*)((char*)this + sizeof(int) +
-                         ((this->dimensions + 1) * sizeof(IndexT)));
-      }
-
+      struct RegionMatrixMetadata srcMetadata;
       ElementT* storage() const {
-        return (ElementT*)((char*)this + sizeof(int) +
-                         ((2 * this->dimensions + 1) * sizeof(IndexT)));
+        return (ElementT*)((char*)this + RegionMatrixMetadata::len(srcMetadata.dimensions, srcMetadata.numSliceDimensions));
       }
     } PACKED;
 

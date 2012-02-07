@@ -43,7 +43,6 @@ namespace petabricks {
   private:
     // Scratch
     int incCoord(int dimensions, IndexT* size, IndexT* coord) const;
-    IndexT coordToIndex(int dimensions, IndexT startOffset, IndexT* multipliers, IndexT* coord) const;
     IndexT toRegionDataIndex(IndexT* coord, int numSliceDimensions, IndexT* splitOffset, int* sliceDimensions, IndexT* slicePositions) const;
   };
 }

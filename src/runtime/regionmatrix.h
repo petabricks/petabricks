@@ -631,12 +631,6 @@ namespace petabricks {
         // already local
         return *this;
       }
-
-      /* size_t len = sizeof(int) + ((2 * D + 1) * sizeof(IndexT)); */
-      /* char buf[len]; */
-      /* CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*) buf; */
-      /* this->computeMatrixRegionMetaData(msg->srcMetadata); */
-
       size_t len = regionMatrixMetadataLen();
       char buf[len];
       CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*) buf;
@@ -711,33 +705,28 @@ namespace petabricks {
           storage_count *= scratch.size(i);
         }
 
-        size_t size = sizeof(int) + ((2 * D + 1) * sizeof(IndexT)) + (storage_count * sizeof(ElementT));
-
-        char buf[size];
-        CopyFromMatrixStorageMessage* metadata = (CopyFromMatrixStorageMessage*) buf;
-        metadata->dimensions = D;
-        metadata->startOffset = 0;
-
-        this->computeMatrixRegionMetaData(&metadata->startOffset, metadata->multipliers);
-
-        memcpy(metadata->size(), scratch.sizes(), sizeof(IndexT) * D);
+        size_t len = regionMatrixMetadataLen() + (storage_count * sizeof(ElementT));
+        char buf[len];
+        CopyFromMatrixStorageMessage* msg = (CopyFromMatrixStorageMessage*) buf;
+        this->computeRegionMatrixMetadata(msg->srcMetadata);
 
         // Copy storage.
         if (scratch.storage()->count() == storage_count) {
           // send the entire storage
-          memcpy(metadata->storage(), scratch.storage()->data(), sizeof(ElementT) * storage_count);
+          memcpy(msg->storage(), scratch.storage()->data(), sizeof(ElementT) * storage_count);
 
         } else {
           unsigned int n = 0;
           IndexT coord[D];
           memset(coord, 0, sizeof coord);
           do {
-            metadata->storage()[n] = scratch.cell(coord);
+            msg->storage()[n] = scratch.cell(coord);
             n++;
           } while(scratch.incCoord(coord) >= 0);
           JASSERT(n == storage_count)(n)(storage_count);
         }
-        _regionHandler->copyFromScratchMatrixStorage(metadata, size);
+
+        _regionHandler->copyFromScratchMatrixStorage(msg, len);
       }
 
       #ifdef DEBUG_SCRATCH_REGION
