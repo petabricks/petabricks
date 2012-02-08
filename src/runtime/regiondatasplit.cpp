@@ -87,12 +87,11 @@ void RegionDataSplit::writeCell(const IndexT* coord, ElementT value) {
   this->coordToPart(coord, coordPart)->writeCell(coordPart, value);
 }
 
-MatrixStoragePtr RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* /*metadata*/, size_t /*size*/) const {
+void RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata) const {
   UNIMPLEMENTED();
-  return NULL;
 }
 
-void RegionDataSplit::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* /*metadata*/, size_t /*size*/) const {
+void RegionDataSplit::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* /*origMetadata*/, size_t /*len*/) const {
   UNIMPLEMENTED();
 }
 
@@ -107,11 +106,11 @@ void RegionDataSplit::processWriteCellMsg(const BaseMessageHeader* base, size_t 
 }
 
 void RegionDataSplit::processCopyFromMatrixStorageMsg(const BaseMessageHeader* /*base*/, size_t /*baseLen*/, IRegionReplyProxy* /*caller*/) {
-  UNIMPLEMENTED();
+  JASSERT(false).Text("copy RegionDataSplit to local before copying");
 }
 
 void RegionDataSplit::processCopyToMatrixStorageMsg(const BaseMessageHeader* /*base*/, size_t /*baseLen*/, IRegionReplyProxy* /*caller*/) {
-  UNIMPLEMENTED();
+  JASSERT(false).Text("copy RegionDataSplit to local before copying");
 }
 
 DataHostPidList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {

@@ -186,7 +186,7 @@ void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
   free(reply);
 }
 
-void RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, MatrixRegionMetadata* scratchMetadata) const {
+void RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata) const {
   void* data;
   size_t replyLen;
   this->fetchData(origMetadata, MessageTypes::TOSCRATCHSTORAGE, len, &data, &replyLen);
@@ -254,7 +254,7 @@ UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain() {
 }
 
 void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen) const {
-  
+
 
   *responseData = 0;
   *responseLen = 0;
@@ -272,7 +272,7 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
 
   _remoteObject->send(header, dataLen);
   free(header);
-  
+
   JLOCKSCOPE(*_remoteObject);
   // wait for the data
   while (*responseData == 0 || *responseLen == 0) {

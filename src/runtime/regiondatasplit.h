@@ -32,8 +32,8 @@ namespace petabricks {
     ElementT readCell(const IndexT* coord) const;
     void writeCell(const IndexT* coord, ElementT value);
 
-    MatrixStoragePtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* metadata, size_t size) const;
-    void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* metadata, size_t size) const;
+    void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata=0) const;
+    void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len) const;
 
     DataHostPidList hosts(IndexT* begin, IndexT* end);
     RemoteHostPtr host() { UNIMPLEMENTED(); return NULL; }

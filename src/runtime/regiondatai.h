@@ -37,7 +37,7 @@ namespace petabricks {
       return NULL;
     }
 
-    virtual void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* /*origMetadata*/, size_t /*len*/, MatrixStoragePtr /*scratchStorage*/, MatrixRegionMetadata* /*scratchMetadata*/=0) const {
+    virtual void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* /*origMetadata*/, size_t /*len*/, MatrixStoragePtr /*scratchStorage*/, RegionMatrixMetadata* /*scratchMetadata*/=0) const {
       UNIMPLEMENTED();
     }
 
