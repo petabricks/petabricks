@@ -82,11 +82,11 @@ namespace petabricks {
     virtual void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller, RegionDataIPtr regionDataPtr);
 
     //  Coordinate helpers
-    int incCoord(int dimensions, IndexT* size, IndexT* coord) const;
-    void toRegionDataCoord(const IndexT* coord, int numSliceDimensions, const IndexT* splitOffset, const int* sliceDimensions, const IndexT* slicePositions, IndexT* newCoord) const;
-    IndexT coordToOffset(const IndexT* coord, const IndexT* multipliers) const;
-    void sizeToMultipliers(const IndexT* size, IndexT* multipliers) const;
-    IndexT toRegionDataIndex(const IndexT* coord, int numSliceDimensions, const IndexT* splitOffset, const int* sliceDimensions, const IndexT* slicePositions, const IndexT* multipliers) const;
+    static int incCoord(int dimensions, IndexT* size, IndexT* coord);
+    static void toRegionDataCoord(int dimensions, const IndexT* coord, int numSliceDimensions, const IndexT* splitOffset, const int* sliceDimensions, const IndexT* slicePositions, IndexT* newCoord);
+    static IndexT coordToOffset(int dimensions, const IndexT* coord, const IndexT* multipliers);
+    static void sizeToMultipliers(int dimensions, const IndexT* size, IndexT* multipliers);
+    static IndexT toRegionDataIndex(int dimensions, const IndexT* coord, int numSliceDimensions, const IndexT* splitOffset, const int* sliceDimensions, const IndexT* slicePositions, const IndexT* multipliers);
 
     // for tests
     virtual void print();

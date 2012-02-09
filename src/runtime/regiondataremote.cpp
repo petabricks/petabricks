@@ -205,9 +205,9 @@ void RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* or
     IndexT coord[d];
     memset(coord, 0, sizeof coord);
     IndexT multipliers[d];
-    sizeToMultipliers(scratchStorageSize, multipliers);
+    sizeToMultipliers(d, scratchStorageSize, multipliers);
     do {
-      IndexT scratchIndex = toRegionDataIndex(coord, scratchMetadata->numSliceDimensions, scratchMetadata->splitOffset, scratchMetadata->sliceDimensions(), scratchMetadata->slicePositions(), multipliers);
+      IndexT scratchIndex = toRegionDataIndex(d, coord, scratchMetadata->numSliceDimensions, scratchMetadata->splitOffset, scratchMetadata->sliceDimensions(), scratchMetadata->slicePositions(), multipliers);
       scratchStorage->data()[scratchIndex] = reply->storage[n];
       ++n;
     } while(incCoord(d, size, coord) >= 0);

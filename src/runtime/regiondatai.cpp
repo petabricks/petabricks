@@ -17,41 +17,6 @@ IndexT* RegionDataI::size() {
   return _size;
 }
 
-void RegionDataI::toRegionDataCoord(const IndexT* coord, int numSliceDimensions, const IndexT* splitOffset, const int* sliceDimensions, const IndexT* slicePositions, IndexT* newCoord) const {
-  IndexT sliceIndex = 0;
-  IndexT splitIndex = 0;
-  for (int d = 0; d < _D; ++d) {
-    if (sliceIndex < numSliceDimensions && d == sliceDimensions[sliceIndex]) {
-      newCoord[d] = slicePositions[sliceIndex];
-      ++sliceIndex;
-    } else {
-      newCoord[d] = coord[splitIndex] + splitOffset[splitIndex];
-      ++splitIndex;
-    }
-  }
-}
-
-IndexT RegionDataI::coordToOffset(const IndexT* coord, const IndexT* multipliers) const {
-  IndexT offset = 0;
-  for(int i = 0; i < _D; i++){
-    offset += multipliers[i] * coord[i];
-  }
-  return offset;
-}
-
-void RegionDataI::sizeToMultipliers(const IndexT* size, IndexT* multipliers) const {
-  multipliers[0] = 1;
-  for (int i = 1; i < _D; i++) {
-    multipliers[i] = multipliers[i - 1] * size[i - 1];
-  }
-}
-
-IndexT RegionDataI::toRegionDataIndex(const IndexT* coord, int numSliceDimensions, const IndexT* splitOffset, const int* sliceDimensions, const IndexT* slicePositions, const IndexT* multipliers) const {
-  IndexT newCoord[_D];
-  toRegionDataCoord(coord, numSliceDimensions, splitOffset, sliceDimensions, slicePositions, newCoord);
-  return coordToOffset(newCoord, multipliers);
-}
-
 // Process Remote Messages
 void RegionDataI::processReadCellMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
   ReadCellMessage* msg = (ReadCellMessage*)base->content();
@@ -127,7 +92,7 @@ void RegionDataI::processUpdateHandlerChainMsg(const BaseMessageHeader* base, si
   caller->sendReply(&reply, len, base);
 }
 
-int RegionDataI::incCoord(int dimensions, IndexT* size, IndexT* coord) const {
+int RegionDataI::incCoord(int dimensions, IndexT* size, IndexT* coord) {
   if (dimensions == 0)
     return -1;
   int i;
@@ -146,6 +111,42 @@ int RegionDataI::incCoord(int dimensions, IndexT* size, IndexT* coord) const {
     return dimensions - 1;
   }
 }
+
+void RegionDataI::toRegionDataCoord(int dimensions, const IndexT* coord, int numSliceDimensions, const IndexT* splitOffset, const int* sliceDimensions, const IndexT* slicePositions, IndexT* newCoord) {
+  IndexT sliceIndex = 0;
+  IndexT splitIndex = 0;
+  for (int d = 0; d < dimensions; ++d) {
+    if (sliceIndex < numSliceDimensions && d == sliceDimensions[sliceIndex]) {
+      newCoord[d] = slicePositions[sliceIndex];
+      ++sliceIndex;
+    } else {
+      newCoord[d] = coord[splitIndex] + splitOffset[splitIndex];
+      ++splitIndex;
+    }
+  }
+}
+
+IndexT RegionDataI::coordToOffset(int dimensions, const IndexT* coord, const IndexT* multipliers) {
+  IndexT offset = 0;
+  for(int i = 0; i < dimensions; i++){
+    offset += multipliers[i] * coord[i];
+  }
+  return offset;
+}
+
+void RegionDataI::sizeToMultipliers(int dimensions, const IndexT* size, IndexT* multipliers) {
+  multipliers[0] = 1;
+  for (int i = 1; i < dimensions; i++) {
+    multipliers[i] = multipliers[i - 1] * size[i - 1];
+  }
+}
+
+IndexT RegionDataI::toRegionDataIndex(int dimensions, const IndexT* coord, int numSliceDimensions, const IndexT* splitOffset, const int* sliceDimensions, const IndexT* slicePositions, const IndexT* multipliers) {
+  IndexT newCoord[dimensions];
+  toRegionDataCoord(dimensions, coord, numSliceDimensions, splitOffset, sliceDimensions, slicePositions, newCoord);
+  return coordToOffset(dimensions, newCoord, multipliers);
+}
+
 
 void RegionDataI::print() {
   printf("RegionData: SIZE");

@@ -81,11 +81,11 @@ void RegionDataRaw::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origM
   IndexT coord[d];
   memset(coord, 0, sizeof coord);
   IndexT scratchMultipliers[d];
-  sizeToMultipliers(scratchStorageSize, scratchMultipliers);
+  sizeToMultipliers(d, scratchStorageSize, scratchMultipliers);
 
   do {
-    IndexT origIndex = toRegionDataIndex(coord, origMetadata->numSliceDimensions, origMetadata->splitOffset, origMetadata->sliceDimensions(), origMetadata->slicePositions(), _multipliers);
-    IndexT scratchIndex = toRegionDataIndex(coord, scratchMetadata->numSliceDimensions, scratchMetadata->splitOffset, scratchMetadata->sliceDimensions(), scratchMetadata->slicePositions(), scratchMultipliers);
+    IndexT origIndex = toRegionDataIndex(d, coord, origMetadata->numSliceDimensions, origMetadata->splitOffset, origMetadata->sliceDimensions(), origMetadata->slicePositions(), _multipliers);
+    IndexT scratchIndex = toRegionDataIndex(d, coord, scratchMetadata->numSliceDimensions, scratchMetadata->splitOffset, scratchMetadata->sliceDimensions(), scratchMetadata->slicePositions(), scratchMultipliers);
     scratchStorage->data()[scratchIndex] = _storage->data()[origIndex];
   } while(incCoord(d, size, coord) >= 0);
 
@@ -174,7 +174,7 @@ void RegionDataRaw::processCopyToMatrixStorageMsg(const BaseMessageHeader* base,
   IndexT coord[d];
   memset(coord, 0, sizeof coord);
   do {
-    IndexT index = toRegionDataIndex(coord, metadata->numSliceDimensions, metadata->splitOffset, metadata->sliceDimensions(), metadata->slicePositions(), _multipliers);
+    IndexT index = toRegionDataIndex(d, coord, metadata->numSliceDimensions, metadata->splitOffset, metadata->sliceDimensions(), metadata->slicePositions(), _multipliers);
     reply->storage[n] = _storage->data()[index];
     n++;
   } while(incCoord(d, size, coord) >= 0);
@@ -198,7 +198,7 @@ void RegionDataRaw::processCopyFromMatrixStorageMsg(const BaseMessageHeader* bas
   memset(coord, 0, sizeof coord);
 
   do {
-    unsigned int index = toRegionDataIndex(coord, metadata->numSliceDimensions, metadata->splitOffset, metadata->sliceDimensions(), metadata->slicePositions(), _multipliers);
+    unsigned int index = toRegionDataIndex(d, coord, metadata->numSliceDimensions, metadata->splitOffset, metadata->sliceDimensions(), metadata->slicePositions(), _multipliers);
     #ifdef DEBUG
     JASSERT(index <= _storage->count())(index)(_storage->count());
     #endif
