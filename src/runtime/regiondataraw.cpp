@@ -74,7 +74,6 @@ void RegionDataRaw::writeCell(const IndexT* coord, ElementT value) {
 
 void RegionDataRaw::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const {
   RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
-  JTRACE("aaa")(origMetadata->splitOffset[0]);
 #ifdef DEBUG
   JASSERT(origMetadata->dimensions == scratchMetadata->dimensions);
 #endif

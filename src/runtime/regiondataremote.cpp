@@ -217,30 +217,39 @@ void RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* or
 }
 
 void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
-  /*
   RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
   int d = origMetadata->dimensions;
   IndexT* size = origMetadata->size();
 
+  size_t storageCount = 1;
+  for (int i = 0; i < d; ++i) {
+    storageCount *= size[i];
+  }
+
   // Copy storage.
-  if (scratchStorage->count() == storage_count) {
-    // send the entire storage
-    memcpy(msg->storage(), scratch.storage()->data(), sizeof(ElementT) * storage_count);
+  if (scratchMetadata == 0) {
+    JASSERT(storageCount == scratchStorage->count());
+    memcpy(origMsg->storage(), scratchStorage->data(), sizeof(ElementT) * storageCount);
 
   } else {
-    unsigned int n = 0;
-    IndexT coord[D];
+    int n = 0;
+    IndexT coord[d];
     memset(coord, 0, sizeof coord);
+    IndexT multipliers[d];
+    sizeToMultipliers(d, scratchStorageSize, multipliers);
     do {
-      msg->storage()[n] = scratch.cell(coord);
-      n++;
-    } while(scratch.incCoord(coord) >= 0);
-    JASSERT(n == storage_count)(n)(storage_count);
+      IndexT scratchIndex = toRegionDataIndex(d, coord, scratchMetadata->numSliceDimensions, scratchMetadata->splitOffset, scratchMetadata->sliceDimensions(), scratchMetadata->slicePositions(), multipliers);
+      origMsg->storage()[n] = scratchStorage->data()[scratchIndex];
+      ++n;
+    } while(incCoord(d, size, coord) >= 0);
   }
-  */
+
+  size_t msgLen =  RegionMatrixMetadata::len(origMetadata->dimensions, origMetadata->numSliceDimensions) + (sizeof(ElementT) * storageCount);
+  JASSERT(msgLen <= len);
+
   void* data;
   size_t replyLen;
-  this->fetchData(origMsg, MessageTypes::FROMSCRATCHSTORAGE, len, &data, &replyLen);
+  this->fetchData(origMsg, MessageTypes::FROMSCRATCHSTORAGE, msgLen, &data, &replyLen);
   free(data);
 }
 

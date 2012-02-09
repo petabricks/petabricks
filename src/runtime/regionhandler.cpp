@@ -191,13 +191,14 @@ void RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origM
 
 void RegionHandler::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage) {
   if (type() == RegionDataTypes::REGIONDATARAW) {
-    UNIMPLEMENTED();
+    JASSERT(false).Text("This is inefficient. Use _regionData->storage() instead.");
 
   } else if (type() == RegionDataTypes::REGIONDATAREMOTE) {
     _regionData->copyFromScratchMatrixStorage(origMetadata, len, scratchStorage);
 
   } else {
-    UNIMPLEMENTED();
+    _regionData->copyFromScratchMatrixStorage(origMetadata, len, scratchStorage);
+
   }
 }
 

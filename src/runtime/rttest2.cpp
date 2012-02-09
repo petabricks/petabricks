@@ -110,6 +110,13 @@ int main(int argc, const char** argv){
     MatrixIO().write(scratchSlice);
     slice.assertEqual(scratchSlice);
 
+    JTRACE("modify");
+    scratchSlice.cell(5) = 777;
+    MatrixIO().write(scratchSlice);
+
+    slice.fromScratchRegion(scratchSlice);
+    MatrixIO().write(regionMatrix);
+
     char* buf = new char[split.serialSize()];
     split.serialize(buf, *RemoteHostDB::instance().host(0));
 

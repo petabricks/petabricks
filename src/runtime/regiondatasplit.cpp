@@ -87,11 +87,7 @@ void RegionDataSplit::writeCell(const IndexT* coord, ElementT value) {
   this->coordToPart(coord, coordPart)->writeCell(coordPart, value);
 }
 
-void RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* /*scratchStorageSize*/) const {
-  JASSERT(scratchMetadata == 0).Text("split data must be top-level");
-
-  RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
-
+void RegionDataSplit::copyHelper(bool isCopyTo, RegionMatrixMetadata* origMetadata, MatrixStoragePtr scratchStorage) const {
   // find begin & end
   IndexT begin[_D];
   IndexT end[_D];
@@ -109,6 +105,27 @@ void RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* ori
     }
   }
 
+  size_t len = RegionMatrixMetadata::len(origMetadata->dimensions, origMetadata->numSliceDimensions);
+  if (!isCopyTo) {
+    int count = 1;
+    for (int i = 0; i < origMetadata->dimensions; ++i) {
+      count *= origMetadata->size()[i];
+    }
+    int partCount = 1;
+    for (int i = 0; i < _D; ++i) {
+      sliceIndex = 0;
+      if (sliceIndex < origMetadata->numSliceDimensions && i == origMetadata->sliceDimensions()[sliceIndex]) {
+        ++sliceIndex;
+      } else {
+        partCount *= _splitSize[i];
+      }
+
+    }
+    if (partCount < count) {
+      count = partCount;
+    }
+    len += (count * sizeof(ElementT));
+  }
   char newOrigMetadataBuf[len];
   memcpy(newOrigMetadataBuf, origMetadata, len);
   RegionMatrixMetadata* newOrigMetadata = (RegionMatrixMetadata*)newOrigMetadataBuf;
@@ -162,13 +179,27 @@ void RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* ori
 
     memcpy(newScratchMetadata->size(), newOrigMetadata->size(), sizeof(IndexT) * newOrigMetadata->dimensions);
 
-    part->copyToScratchMatrixStorage((CopyToMatrixStorageMessage*) newOrigMetadata, len, scratchStorage, newScratchMetadata, origMetadata->size());
+    if (isCopyTo) {
+      part->copyToScratchMatrixStorage((CopyToMatrixStorageMessage*) newOrigMetadata, len, scratchStorage, newScratchMetadata, origMetadata->size());
+    } else {
+      part->copyFromScratchMatrixStorage((CopyFromMatrixStorageMessage*) newOrigMetadata, len, scratchStorage, newScratchMetadata, origMetadata->size());
+    }
 
   } while (incPartCoord(coord, newBegin, end) >= 0);
 }
 
-void RegionDataSplit::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
-  UNIMPLEMENTED();
+void RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t /*len*/, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* /*scratchStorageSize*/) const {
+  JASSERT(scratchMetadata == 0).Text("split data must be top-level");
+
+  RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
+  copyHelper(true, origMetadata, scratchStorage);
+}
+
+void RegionDataSplit::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t /*len*/, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* /*scratchStorageSize*/) {
+  JASSERT(scratchMetadata == 0).Text("split data must be top-level");
+
+  RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
+  copyHelper(false, origMetadata, scratchStorage);
 }
 
 void RegionDataSplit::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
