@@ -113,10 +113,10 @@ void RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* ori
   memcpy(newOrigMetadataBuf, origMetadata, len);
   RegionMatrixMetadata* newOrigMetadata = (RegionMatrixMetadata*)newOrigMetadataBuf;
 
-  size_t scratchLen = RegionMatrixMetadata::len(_D, 0);
+  size_t scratchLen = RegionMatrixMetadata::len(origMetadata->dimensions, 0);
   char newScratchMetadataBuf[scratchLen];
   RegionMatrixMetadata* newScratchMetadata = (RegionMatrixMetadata*)newScratchMetadataBuf;
-  newScratchMetadata->dimensions = _D;
+  newScratchMetadata->dimensions = origMetadata->dimensions;
   newScratchMetadata->numSliceDimensions = 0;
 
   IndexT newBegin[_D];
@@ -128,31 +128,46 @@ void RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* ori
 
   IndexT partBegin[_D];
   do {
+    sliceIndex = 0;
+    splitIndex = 0;
+
     for (int i = 0; i < _D; ++i) {
       if (coord[i] < begin[i]) {
         partBegin[i] = begin[i];
       } else {
         partBegin[i] = coord[i];
       }
-
-      if (coord[i] + _splitSize[i] <= end[i]) {
-        newOrigMetadata->size()[i] = coord[i] + _splitSize[i] - partBegin[i];
-      } else {
-        newOrigMetadata->size()[i] = end[i] - partBegin[i];
-      }
-
-      newScratchMetadata->splitOffset[i] = partBegin[i] - begin[i];
     }
 
-    memcpy(newScratchMetadata->size(), newOrigMetadata->size(), sizeof(IndexT) * _D);
+    IndexT newOrigSplitOffset[_D];
+    RegionDataIPtr part = this->coordToPart(partBegin, newOrigSplitOffset);
 
-    RegionDataIPtr part = this->coordToPart(partBegin, newOrigMetadata->splitOffset);
+    for (int i = 0; i < _D; ++i) {
+      if (sliceIndex < origMetadata->numSliceDimensions && i == origMetadata->sliceDimensions()[sliceIndex]) {
+        newOrigMetadata->slicePositions()[sliceIndex] = origMetadata->slicePositions()[sliceIndex] - newBegin[i];
+        ++sliceIndex;
+
+      } else {
+        if (coord[i] + _splitSize[i] <= end[i]) {
+          newOrigMetadata->size()[splitIndex] = coord[i] + _splitSize[i] - partBegin[i];
+        } else {
+          newOrigMetadata->size()[splitIndex] = end[i] - partBegin[i];
+        }
+
+        newScratchMetadata->splitOffset[splitIndex] = partBegin[i] - begin[i];
+        newOrigMetadata->splitOffset[splitIndex] = newOrigSplitOffset[i];
+        ++splitIndex;
+      }
+    }
+
+    memcpy(newScratchMetadata->size(), newOrigMetadata->size(), sizeof(IndexT) * newOrigMetadata->dimensions);
+
     part->copyToScratchMatrixStorage((CopyToMatrixStorageMessage*) newOrigMetadata, len, scratchStorage, newScratchMetadata, origMetadata->size());
 
   } while (incPartCoord(coord, newBegin, end) >= 0);
 }
 
-void RegionDataSplit::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* /*origMetadata*/, size_t /*len*/) {
+void RegionDataSplit::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
   UNIMPLEMENTED();
 }
 

@@ -725,7 +725,7 @@ namespace petabricks {
           JASSERT(n == storage_count)(n)(storage_count);
         }
 
-        _regionHandler->copyFromScratchMatrixStorage(msg, len);
+        _regionHandler->copyFromScratchMatrixStorage(msg, len, scratch.storage());
       }
 
       #ifdef DEBUG_SCRATCH_REGION

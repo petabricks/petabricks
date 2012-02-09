@@ -189,12 +189,12 @@ void RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origM
   }
 }
 
-void RegionHandler::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len) const {
+void RegionHandler::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage) {
   if (type() == RegionDataTypes::REGIONDATARAW) {
     UNIMPLEMENTED();
 
   } else if (type() == RegionDataTypes::REGIONDATAREMOTE) {
-    _regionData->copyFromScratchMatrixStorage(origMetadata, len);
+    _regionData->copyFromScratchMatrixStorage(origMetadata, len, scratchStorage);
 
   } else {
     UNIMPLEMENTED();

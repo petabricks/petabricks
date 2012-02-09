@@ -216,10 +216,31 @@ void RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* or
   free(reply);
 }
 
-void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* metadata, size_t size) {
+void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
+  /*
+  RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
+  int d = origMetadata->dimensions;
+  IndexT* size = origMetadata->size();
+
+  // Copy storage.
+  if (scratchStorage->count() == storage_count) {
+    // send the entire storage
+    memcpy(msg->storage(), scratch.storage()->data(), sizeof(ElementT) * storage_count);
+
+  } else {
+    unsigned int n = 0;
+    IndexT coord[D];
+    memset(coord, 0, sizeof coord);
+    do {
+      msg->storage()[n] = scratch.cell(coord);
+      n++;
+    } while(scratch.incCoord(coord) >= 0);
+    JASSERT(n == storage_count)(n)(storage_count);
+  }
+  */
   void* data;
-  size_t len;
-  this->fetchData(metadata, MessageTypes::FROMSCRATCHSTORAGE, size, &data, &len);
+  size_t replyLen;
+  this->fetchData(origMsg, MessageTypes::FROMSCRATCHSTORAGE, len, &data, &replyLen);
   free(data);
 }
 

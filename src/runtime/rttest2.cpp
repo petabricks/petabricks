@@ -94,10 +94,21 @@ int main(int argc, const char** argv){
     JTRACE("scratch");
     IndexT scratchSizes[] = {8, 8};
     MatrixRegion2D scratch(scratchSizes);
-    scratch.allocData();
+    scratch.allocDataLocal();
     split.localCopy(scratch);
     MatrixIO().write(scratch);
     split.assertEqual(scratch);
+
+    JTRACE("slice");
+    MatrixRegion1D slice = split.slice(0, 5);
+    MatrixIO().write(slice);
+    print(slice.dataHosts());
+    IndexT scratchSizesSlice[] = {8};
+    MatrixRegion1D scratchSlice(scratchSizesSlice);
+    scratchSlice.allocDataLocal();
+    slice.localCopy(scratchSlice);
+    MatrixIO().write(scratchSlice);
+    slice.assertEqual(scratchSlice);
 
     char* buf = new char[split.serialSize()];
     split.serialize(buf, *RemoteHostDB::instance().host(0));

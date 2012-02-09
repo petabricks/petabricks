@@ -53,7 +53,7 @@ namespace petabricks {
     // Return a local MatrixStorage that matches the dimension in metadata.
     void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage) const;
 
-    void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len) const;
+    void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage);
 
     // RegionDataSplit
     void splitData(int dimensions, IndexT* sizes, IndexT* splitSize);

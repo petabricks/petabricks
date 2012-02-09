@@ -115,7 +115,7 @@ int RegionDataI::incCoord(int dimensions, IndexT* size, IndexT* coord) {
 void RegionDataI::toRegionDataCoord(int dimensions, const IndexT* coord, int numSliceDimensions, const IndexT* splitOffset, const int* sliceDimensions, const IndexT* slicePositions, IndexT* newCoord) {
   IndexT sliceIndex = 0;
   IndexT splitIndex = 0;
-  for (int d = 0; d < dimensions; ++d) {
+  for (int d = 0; d < (dimensions + numSliceDimensions); ++d) {
     if (sliceIndex < numSliceDimensions && d == sliceDimensions[sliceIndex]) {
       newCoord[d] = slicePositions[sliceIndex];
       ++sliceIndex;
@@ -142,9 +142,9 @@ void RegionDataI::sizeToMultipliers(int dimensions, const IndexT* size, IndexT* 
 }
 
 IndexT RegionDataI::toRegionDataIndex(int dimensions, const IndexT* coord, int numSliceDimensions, const IndexT* splitOffset, const int* sliceDimensions, const IndexT* slicePositions, const IndexT* multipliers) {
-  IndexT newCoord[dimensions];
+  IndexT newCoord[dimensions + numSliceDimensions];
   toRegionDataCoord(dimensions, coord, numSliceDimensions, splitOffset, sliceDimensions, slicePositions, newCoord);
-  return coordToOffset(dimensions, newCoord, multipliers);
+  return coordToOffset(dimensions + numSliceDimensions, newCoord, multipliers);
 }
 
 
