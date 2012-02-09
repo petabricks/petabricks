@@ -27,7 +27,10 @@ namespace petabricks {
     void setStorage(MatrixStoragePtr storage) { _storage = storage; }
     ElementT& value0D(const IndexT* coord) const;
 
-    DataHostPidList hosts(IndexT* begin, IndexT* end);
+    void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata=0, const IndexT* scratchStorageSize=0) const;
+    void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* metadata, size_t len);
+
+    DataHostPidList hosts(const IndexT* begin, const IndexT* end) const;
     RemoteHostPtr host();
 
     void processReadCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
@@ -40,10 +43,6 @@ namespace petabricks {
     ElementT* coordToPtr(const IndexT* coord) const;
     IndexT coordOffset(const IndexT* coord) const;
 
-  private:
-    // Scratch
-    int incCoord(int dimensions, IndexT* size, IndexT* coord) const;
-    IndexT toRegionDataIndex(IndexT* coord, int numSliceDimensions, IndexT* splitOffset, int* sliceDimensions, IndexT* slicePositions) const;
   };
 }
 

@@ -110,7 +110,7 @@ void RegionHandler::updateRegionData(RegionDataIPtr regionData) {
   _regionDataMux.unlock();
 }
 
-DataHostPidList RegionHandler::hosts(IndexT* begin, IndexT* end) {
+DataHostPidList RegionHandler::hosts(const IndexT* begin, const IndexT* end) const {
   return _regionData->hosts(begin, end);
 }
 

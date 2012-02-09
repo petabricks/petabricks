@@ -37,11 +37,11 @@ namespace petabricks {
       return NULL;
     }
 
-    virtual void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* /*origMetadata*/, size_t /*len*/, MatrixStoragePtr /*scratchStorage*/, RegionMatrixMetadata* /*scratchMetadata*/=0) const {
+    virtual void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* /*origMetadata*/, size_t /*len*/, MatrixStoragePtr /*scratchStorage*/, RegionMatrixMetadata* /*scratchMetadata*/=0, const IndexT* /*scratchStorageSize*/=0) const {
       UNIMPLEMENTED();
     }
 
-    virtual void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* /*metadata*/, size_t /*len*/) const {
+    virtual void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* /*metadata*/, size_t /*len*/) {
       UNIMPLEMENTED();
     }
 
@@ -66,7 +66,7 @@ namespace petabricks {
       return _type;
     }
 
-    virtual DataHostPidList hosts(IndexT* begin, IndexT* end) = 0;
+    virtual DataHostPidList hosts(const IndexT* begin, const IndexT* end) const = 0;
     virtual RemoteHostPtr host() = 0;
 
     // Process Remote Messages
@@ -81,10 +81,14 @@ namespace petabricks {
     virtual void processRandomizeDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     virtual void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller, RegionDataIPtr regionDataPtr);
 
+    //  Coordinate helpers
+    int incCoord(int dimensions, IndexT* size, IndexT* coord) const;
+    void toRegionDataCoord(const IndexT* coord, int numSliceDimensions, const IndexT* splitOffset, const int* sliceDimensions, const IndexT* slicePositions, IndexT* newCoord) const;
+    IndexT coordToOffset(const IndexT* coord, const IndexT* multipliers) const;
+    void sizeToMultipliers(const IndexT* size, IndexT* multipliers) const;
+    IndexT toRegionDataIndex(const IndexT* coord, int numSliceDimensions, const IndexT* splitOffset, const int* sliceDimensions, const IndexT* slicePositions, const IndexT* multipliers) const;
+
     // for tests
-  private:
-    int incCoord(IndexT* coord);
-  public:
     virtual void print();
   };
 }

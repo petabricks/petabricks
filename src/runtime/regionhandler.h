@@ -38,7 +38,7 @@ namespace petabricks {
     RegionDataIPtr getRegionData();
     void updateRegionData(RegionDataIPtr regionData);
 
-    DataHostPidList hosts(IndexT* begin, IndexT* end);
+    DataHostPidList hosts(const IndexT* begin, const IndexT* end) const;
     RemoteHostPtr host();
 
     int dimensions();

@@ -186,10 +186,10 @@ void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
   free(reply);
 }
 
-void RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata) const {
+void RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const {
   void* data;
   size_t replyLen;
-  this->fetchData(origMetadata, MessageTypes::TOSCRATCHSTORAGE, len, &data, &replyLen);
+  this->fetchData(origMsg, MessageTypes::TOSCRATCHSTORAGE, len, &data, &replyLen);
 
   CopyToMatrixStorageReplyMessage* reply = (CopyToMatrixStorageReplyMessage*)data;
   if (scratchMetadata == 0) {
@@ -197,20 +197,33 @@ void RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* or
     memcpy(scratchStorage->data(), reply->storage, sizeof(ElementT) * reply->count);
 
   } else {
-    UNIMPLEMENTED();
+    RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
+    int d = origMetadata->dimensions;
+    IndexT* size = origMetadata->size();
 
+    int n = 0;
+    IndexT coord[d];
+    memset(coord, 0, sizeof coord);
+    IndexT multipliers[d];
+    sizeToMultipliers(scratchStorageSize, multipliers);
+    do {
+      IndexT scratchIndex = toRegionDataIndex(coord, scratchMetadata->numSliceDimensions, scratchMetadata->splitOffset, scratchMetadata->sliceDimensions(), scratchMetadata->slicePositions(), multipliers);
+      scratchStorage->data()[scratchIndex] = reply->storage[n];
+      ++n;
+    } while(incCoord(d, size, coord) >= 0);
   }
+
   free(reply);
 }
 
-void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* metadata, size_t size) const {
+void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* metadata, size_t size) {
   void* data;
   size_t len;
   this->fetchData(metadata, MessageTypes::FROMSCRATCHSTORAGE, size, &data, &len);
   free(data);
 }
 
-DataHostPidList RegionDataRemote::hosts(IndexT* begin, IndexT* end) {
+DataHostPidList RegionDataRemote::hosts(const IndexT* begin, const IndexT* end) const {
   GetHostListMessage msg;
   memcpy(msg.begin, begin, _D * sizeof(IndexT));
   memcpy(msg.end, end, _D * sizeof(IndexT));

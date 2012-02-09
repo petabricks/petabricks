@@ -497,14 +497,13 @@ namespace petabricks {
 
       memset(begin, 0, sizeof(IndexT) * D);
       for (int i = 0; i < D; i++) {
-        end[i] = size(i) - 1;
+        end[i] = size(i);
       }
 
       IndexT rd_begin[_regionHandler->dimensions()];
       IndexT rd_end[_regionHandler->dimensions()];
       this->getRegionDataCoord(begin, rd_begin);
       this->getRegionDataCoord(end, rd_end);
-
       return _regionHandler->hosts(rd_begin, rd_end);
     }
 
