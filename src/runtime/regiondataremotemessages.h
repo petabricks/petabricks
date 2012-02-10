@@ -27,6 +27,11 @@ namespace petabricks {
   } PACKED;
   typedef std::vector<DataHostPidListItem> DataHostPidList;
 
+  struct RemoteRegionHandler {
+    HostPid hostPid;
+    EncodedPtr remoteHandler;
+  } PACKED;
+
   //
   // RegionDataRemoteMessage
   //
@@ -49,6 +54,7 @@ namespace petabricks {
         INITWITHREGIONHANDLER,
         TOSCRATCHSTORAGE,
         FROMSCRATCHSTORAGE,
+        COPYREGIONDATASPLIT,
       };
     } PACKED;
 
@@ -182,6 +188,9 @@ namespace petabricks {
     struct RandomizeDataMessage {
     } PACKED;
 
+    struct CopyRegionDataSplitMessage {
+    } PACKED;
+
     struct ReadCellReplyMessage {
       ElementT value;
     } PACKED;
@@ -228,6 +237,14 @@ namespace petabricks {
     struct RandomizeDataReplyMessage {
     } PACKED;
 
+    struct CopyRegionDataSplitReplyMessage {
+      int dimensions;
+      IndexT numParts;
+      IndexT splitSize[];
+      RemoteRegionHandler* handlers() const {
+        return (RemoteRegionHandler*)((char*)this + sizeof(int) + sizeof(IndexT) + (numParts * sizeof(IndexT)));
+      }
+    } PACKED;
   }
 }
 

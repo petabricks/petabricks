@@ -3,12 +3,13 @@
 
 #include "regiondatai.h"
 #include "regiondataraw.h"
+#include "regionhandler.h"
 #include "remotehost.h"
 
 #include <vector>
 
 namespace petabricks {
-  typedef std::vector<RegionDataIPtr> PartsList;
+  typedef std::vector<RegionHandlerPtr> PartsList;
 
   class RegionDataSplit;
   typedef jalib::JRef<RegionDataSplit> RegionDataSplitPtr;
@@ -33,13 +34,13 @@ namespace petabricks {
     void writeCell(const IndexT* coord, ElementT value);
 
     void copyHelper(bool isCopyTo, RegionMatrixMetadata* origMetadata, MatrixStoragePtr scratchStorage) const;
-    void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata=0, const IndexT* scratchStorageSize=0) const;
-    void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata=0, const IndexT* scratchStorageSize=0);
+    void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const;
+    void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
 
     DataHostPidList hosts(const IndexT* begin, const IndexT* end) const;
     RemoteHostPtr host() { UNIMPLEMENTED(); return NULL; }
 
-    RegionDataIPtr coordToPart(const IndexT* coord, IndexT* coordPart) const;
+    RegionHandlerPtr coordToPart(const IndexT* coord, IndexT* coordPart) const;
     int incPartCoord(IndexT* coord, const IndexT* begin, const IndexT* end) const;
 
     void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);

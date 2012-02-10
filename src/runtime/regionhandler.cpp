@@ -48,7 +48,6 @@ void RegionHandler::randomize() {
 }
 
 int RegionHandler::allocData() {
-  JASSERT(!_regionData);
   return _regionData->allocData();
 }
 
@@ -174,32 +173,24 @@ bool RegionHandler::isHandlerChainUpdated() {
   return true;
 }
 
-void RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage) const {
-  if (type() == RegionDataTypes::REGIONDATARAW) {
+void RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const {
+#ifdef DEBUG
+  if (type() == RegionDataTypes::REGIONDATARAW && scratchMetadata == 0) {
     JASSERT(false).Text("This is inefficient. Use _regionData->storage() instead.");
-
-  } else if (type() == RegionDataTypes::REGIONDATAREMOTE) {
-    _regionData->copyToScratchMatrixStorage(origMetadata, len, scratchStorage);
-    return;
-
-  } else if (type() == RegionDataTypes::REGIONDATASPLIT) {
-    _regionData->copyToScratchMatrixStorage(origMetadata, len, scratchStorage);
-    return;
-
   }
+#endif
+
+  _regionData->copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
 }
 
-void RegionHandler::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage) {
-  if (type() == RegionDataTypes::REGIONDATARAW) {
+void RegionHandler::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
+#ifdef DEBUG
+  if (type() == RegionDataTypes::REGIONDATARAW && scratchMetadata == 0) {
     JASSERT(false).Text("This is inefficient. Use _regionData->storage() instead.");
-
-  } else if (type() == RegionDataTypes::REGIONDATAREMOTE) {
-    _regionData->copyFromScratchMatrixStorage(origMetadata, len, scratchStorage);
-
-  } else {
-    _regionData->copyFromScratchMatrixStorage(origMetadata, len, scratchStorage);
-
   }
+#endif
+
+  _regionData->copyFromScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
 }
 
 

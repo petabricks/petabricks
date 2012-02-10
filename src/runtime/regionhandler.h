@@ -50,10 +50,8 @@ namespace petabricks {
     bool isHandlerChainUpdated(); // for testing
 
     // Copy MatrixStorage
-    // Return a local MatrixStorage that matches the dimension in metadata.
-    void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage) const;
-
-    void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage);
+    void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata=0, const IndexT* scratchStorageSize=0) const;
+    void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata=0, const IndexT* scratchStorageSize=0);
 
     // RegionDataSplit
     void splitData(int dimensions, IndexT* sizes, IndexT* splitSize);

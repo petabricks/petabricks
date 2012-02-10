@@ -68,7 +68,6 @@ int main(int argc, const char** argv){
 
     const char* filename = "testdata/Rand2Da";
     MatrixRegion2D regionMatrixLocal = MatrixIO(filename,"r").read_distributed<2>();
-
     IndexT sizes[] = {16, 16};
     IndexT partSizes[] = {8, 8};
     MatrixRegion2D regionMatrix(sizes);

@@ -60,9 +60,9 @@ void RegionDataSplit::createPart(int partIndex, RemoteHostPtr host) {
   }
 
   if (host == NULL) {
-    _parts[partIndex] = new RegionDataRaw(_D, size);
+    _parts[partIndex] = new RegionHandler(new RegionDataRaw(_D, size));
   } else {
-    _parts[partIndex] = new RegionDataRemote(_D, size, host);
+    _parts[partIndex] = new RegionHandler(new RegionDataRemote(_D, size, host));
   }
 }
 
@@ -157,7 +157,7 @@ void RegionDataSplit::copyHelper(bool isCopyTo, RegionMatrixMetadata* origMetada
     }
 
     IndexT newOrigSplitOffset[_D];
-    RegionDataIPtr part = this->coordToPart(partBegin, newOrigSplitOffset);
+    RegionHandlerPtr part = this->coordToPart(partBegin, newOrigSplitOffset);
 
     for (int i = 0; i < _D; ++i) {
       if (sliceIndex < origMetadata->numSliceDimensions && i == origMetadata->sliceDimensions()[sliceIndex]) {
@@ -255,7 +255,7 @@ DataHostPidList RegionDataSplit::hosts(const IndexT* begin, const IndexT* end) c
   return list;
 }
 
-RegionDataIPtr RegionDataSplit::coordToPart(const IndexT* coord, IndexT* coordPart) const {
+RegionHandlerPtr RegionDataSplit::coordToPart(const IndexT* coord, IndexT* coordPart) const {
   IndexT index = 0;
   for (int i = 0; i < _D; i++){
     index += (coord[i] / _splitSize[i]) * _partsMultipliers[i];

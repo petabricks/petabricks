@@ -37,6 +37,9 @@ void RegionDataRaw::init(const int dimensions, const IndexT* size, const Element
 }
 
 int RegionDataRaw::allocData() {
+  if (_storage) {
+    return 0;
+  }
   int numData = 1;
   for (int i = 0; i < _D; i++) {
     numData *= _size[i];
