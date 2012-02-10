@@ -110,7 +110,7 @@ int main(int argc, const char** argv){
     slice.assertEqual(scratchSlice);
 
     JTRACE("modify");
-    scratchSlice.cell(5) = 777;
+    scratchSlice.cell(5) = 9779;
     MatrixIO().write(scratchSlice);
 
     slice.fromScratchRegion(scratchSlice);
@@ -158,14 +158,19 @@ RemoteObjectPtr step2() {
 
       IndexT sizes[] = {8, 8};
       MatrixRegion2D scratch(sizes);
-      scratch.allocData();
+      scratch.allocDataLocal();
       regionMatrix.localCopy(scratch);
       MatrixIO().write(scratch);
+      regionMatrix.assertEqual(scratch);
 
       IndexT m11[] = {1,1};
-      regionMatrix.cell(m11) = 1331;
-      MatrixIO().write(regionMatrix);
+      JTRACE("modify");
+      scratch.cell(m11) = 1331;
+      MatrixIO().write(scratch);
 
+      regionMatrix.fromScratchRegion(scratch);
+      MatrixIO().write(regionMatrix);
+      regionMatrix.assertEqual(scratch);
 
       JTRACE("== step2 done ==");
       exit(0);

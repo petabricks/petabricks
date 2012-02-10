@@ -75,7 +75,7 @@ void RegionDataRaw::writeCell(const IndexT* coord, ElementT value) {
   *cell = value;
 }
 
-void RegionDataRaw::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const {
+RegionDataIPtr RegionDataRaw::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const {
   RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
 #ifdef DEBUG
   JASSERT(origMetadata->dimensions == scratchMetadata->dimensions);
@@ -95,6 +95,7 @@ void RegionDataRaw::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origM
     scratchStorage->data()[scratchIndex] = _storage->data()[origIndex];
   } while(incCoord(d, size, coord) >= 0);
 
+  return NULL;
 }
 
 void RegionDataRaw::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {

@@ -1,5 +1,6 @@
 #include "regiondataremote.h"
 
+#include "regiondatasplit.h"
 #include "regionmatrixproxy.h"
 #include "workerthread.h"
 
@@ -192,44 +193,52 @@ void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
   free(reply);
 }
 
-void RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const {
+RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const {
   void* data;
   size_t replyLen;
   int type;
   this->fetchData(origMsg, MessageTypes::TOSCRATCHSTORAGE, len, &data, &replyLen, &type);
 
   if (type == MessageTypes::COPYREGIONDATASPLIT) {
-    UNIMPLEMENTED();
-
+    // Copy regiondatasplit to local
+    CopyRegionDataSplitReplyMessage* reply = (CopyRegionDataSplitReplyMessage*)data;
+    RegionDataSplitPtr regionDataSplit = new RegionDataSplit(_D, _size, reply->splitSize);
+    for (int i = 0; i < reply->numParts; ++i) {
+      regionDataSplit->setPart(i, reply->handlers()[i]);
+    }
+    regionDataSplit->copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
     free(data);
-    return;
-  }
+    return regionDataSplit.asPtr();
 
-  JASSERT(type == MessageTypes::TOSCRATCHSTORAGE);
+  } else if (type == MessageTypes::TOSCRATCHSTORAGE) {
+    CopyToMatrixStorageReplyMessage* reply = (CopyToMatrixStorageReplyMessage*)data;
+    if (scratchMetadata == 0) {
+      JASSERT(reply->count == scratchStorage->count());
+      memcpy(scratchStorage->data(), reply->storage, sizeof(ElementT) * reply->count);
 
-  CopyToMatrixStorageReplyMessage* reply = (CopyToMatrixStorageReplyMessage*)data;
-  if (scratchMetadata == 0) {
-    JASSERT(reply->count == scratchStorage->count());
-    memcpy(scratchStorage->data(), reply->storage, sizeof(ElementT) * reply->count);
+    } else {
+      RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
+      int d = origMetadata->dimensions;
+      IndexT* size = origMetadata->size();
+
+      int n = 0;
+      IndexT coord[d];
+      memset(coord, 0, sizeof coord);
+      IndexT multipliers[d];
+      sizeToMultipliers(d, scratchStorageSize, multipliers);
+      do {
+        IndexT scratchIndex = toRegionDataIndex(d, coord, scratchMetadata->numSliceDimensions, scratchMetadata->splitOffset, scratchMetadata->sliceDimensions(), scratchMetadata->slicePositions(), multipliers);
+        scratchStorage->data()[scratchIndex] = reply->storage[n];
+        ++n;
+      } while(incCoord(d, size, coord) >= 0);
+    }
 
   } else {
-    RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
-    int d = origMetadata->dimensions;
-    IndexT* size = origMetadata->size();
-
-    int n = 0;
-    IndexT coord[d];
-    memset(coord, 0, sizeof coord);
-    IndexT multipliers[d];
-    sizeToMultipliers(d, scratchStorageSize, multipliers);
-    do {
-      IndexT scratchIndex = toRegionDataIndex(d, coord, scratchMetadata->numSliceDimensions, scratchMetadata->splitOffset, scratchMetadata->sliceDimensions(), scratchMetadata->slicePositions(), multipliers);
-      scratchStorage->data()[scratchIndex] = reply->storage[n];
-      ++n;
-    } while(incCoord(d, size, coord) >= 0);
+    JASSERT(false).Text("Unknown reply type");
   }
 
-  free(reply);
+  free(data);
+  return NULL;
 }
 
 void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
@@ -409,6 +418,14 @@ void RegionDataRemote::processGetHostListMsg(const BaseMessageHeader* base, size
 }
 
 void RegionDataRemote::processGetMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  this->forwardMessage(base, baseLen, caller);
+}
+
+void RegionDataRemote::processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  this->forwardMessage(base, baseLen, caller);
+}
+
+void RegionDataRemote::processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   this->forwardMessage(base, baseLen, caller);
 }
 

@@ -115,7 +115,7 @@ public:
   void setupLoop(RemoteHostDB& db);
   static void setupRemoteConnection(RemoteHost& a, RemoteHost& b);
   void setupEnd();
-  
+
   bool recv(const RemoteObject* caller = 0);
 protected:
   RemoteHost(const std::string& connectName)
@@ -182,7 +182,7 @@ public:
     return _hosts[i];
   }
 
-  RemoteHostPtr host(HostPid& id) const {
+  RemoteHostPtr host(const HostPid& id) const {
     for (unsigned int i = 0; i < _hosts.size(); i++) {
       RemoteHostPtr host = _hosts[i];
       if (host->id() == id) {

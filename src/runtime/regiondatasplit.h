@@ -3,6 +3,7 @@
 
 #include "regiondatai.h"
 #include "regiondataraw.h"
+#include "regiondataremotemessages.h"
 #include "regionhandler.h"
 #include "remotehost.h"
 
@@ -24,17 +25,18 @@ namespace petabricks {
     IndexT _partsMultipliers[MAX_DIMENSIONS];
 
   public:
-    RegionDataSplit(int dimensions, IndexT* sizes, IndexT* splitSize);
-    void init(int dimensions, IndexT* sizes, IndexT* splitSize);
+    RegionDataSplit(int dimensions, const IndexT* sizes, const IndexT* splitSize);
+    void init(int dimensions, const IndexT* sizes, const IndexT* splitSize);
 
     int allocData();
     void createPart(int partIndex, RemoteHostPtr host);
+    void setPart(int partIndex, const RemoteRegionHandler& remoteRegionHandler);
 
     ElementT readCell(const IndexT* coord) const;
     void writeCell(const IndexT* coord, ElementT value);
 
     void copyHelper(bool isCopyTo, RegionMatrixMetadata* origMetadata, MatrixStoragePtr scratchStorage) const;
-    void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const;
+    RegionDataIPtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const;
     void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
 
     DataHostPidList hosts(const IndexT* begin, const IndexT* end) const;

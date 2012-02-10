@@ -6,11 +6,11 @@
 
 using namespace petabricks;
 
-RegionDataSplit::RegionDataSplit(int dimensions, IndexT* sizes, IndexT* splitSize) {
+RegionDataSplit::RegionDataSplit(int dimensions, const IndexT* sizes, const IndexT* splitSize) {
   init(dimensions, sizes, splitSize);
 }
 
-void RegionDataSplit::init(int dimensions, IndexT* sizes, IndexT* splitSize) {
+void RegionDataSplit::init(int dimensions, const IndexT* sizes, const IndexT* splitSize) {
   _D = dimensions;
   _type = RegionDataTypes::REGIONDATASPLIT;
 
@@ -64,6 +64,33 @@ void RegionDataSplit::createPart(int partIndex, RemoteHostPtr host) {
   } else {
     _parts[partIndex] = new RegionHandler(new RegionDataRemote(_D, size, host));
   }
+}
+
+void RegionDataSplit::setPart(int partIndex, const RemoteRegionHandler& remoteRegionHandler) {
+  JASSERT(!_parts[partIndex]);
+
+  IndexT partsCoord[_D];
+  int tmp = partIndex;
+  for (int i = 0; i < _D; i++) {
+    partsCoord[i] = tmp % _partsSize[i];
+    tmp = tmp / _partsSize[i];
+  }
+
+  IndexT size[_D];
+  IndexT partOffset[_D];
+  for (int i = 0; i < _D; i++){
+    partOffset[i] = _splitSize[i] * partsCoord[i];
+    if (partOffset[i] + _splitSize[i] > _size[i]) {
+      size[i] = _size[i] - partOffset[i];
+    } else {
+      size[i] = _splitSize[i];
+    }
+  }
+
+  RemoteHostPtr host = RemoteHostDB::instance().host(remoteRegionHandler.hostPid);
+
+  _parts[partIndex] = RegionHandlerDB::instance().getLocalRegionHandler(*host, remoteRegionHandler.remoteHandler, _D, size);
+  _parts[partIndex]->updateHandlerChain();
 }
 
 int RegionDataSplit::allocData() {
@@ -188,11 +215,12 @@ void RegionDataSplit::copyHelper(bool isCopyTo, RegionMatrixMetadata* origMetada
   } while (incPartCoord(coord, newBegin, end) >= 0);
 }
 
-void RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t /*len*/, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* /*scratchStorageSize*/) const {
+RegionDataIPtr RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t /*len*/, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* /*scratchStorageSize*/) const {
   JASSERT(scratchMetadata == 0).Text("split data must be top-level");
 
   RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
   copyHelper(true, origMetadata, scratchStorage);
+  return NULL;
 }
 
 void RegionDataSplit::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t /*len*/, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* /*scratchStorageSize*/) {
@@ -214,8 +242,20 @@ void RegionDataSplit::processWriteCellMsg(const BaseMessageHeader* base, size_t 
 
 void RegionDataSplit::processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
   // Return a copy of this regiondatasplit
-  size_t sz = sizeof(CopyRegionDataSplitReplyMessage);
+  size_t sz = CopyRegionDataSplitReplyMessage::len(_D, _numParts);
   char buf[sz];
+  CopyRegionDataSplitReplyMessage* reply = (CopyRegionDataSplitReplyMessage*) buf;
+  reply->dimensions = _D;
+  reply->numParts = _numParts;
+  memcpy(reply->splitSize, _splitSize, _D * sizeof(IndexT));
+  RemoteRegionHandler* handler = reply->handlers();
+  for (int i = 0; i < _numParts; i++) {
+    // TODO (yod): optimize this by sending info of real host
+    handler->hostPid = HostPid::self();
+    handler->remoteHandler = reinterpret_cast<EncodedPtr>(_parts[i].asPtr());
+    ++handler;
+  }
+
   caller->sendReply(buf, sz, base, MessageTypes::COPYREGIONDATASPLIT);
 }
 

@@ -243,7 +243,11 @@ namespace petabricks {
       IndexT numParts;
       IndexT splitSize[];
       RemoteRegionHandler* handlers() const {
-        return (RemoteRegionHandler*)((char*)this + sizeof(int) + sizeof(IndexT) + (numParts * sizeof(IndexT)));
+        return (RemoteRegionHandler*)((char*)this + sizeof(int) + sizeof(IndexT) + (dimensions * sizeof(IndexT)));
+      }
+      static int len(int d, int numParts) {
+        return sizeof(int) + sizeof(IndexT) + sizeof(IndexT) * d +
+          sizeof(RemoteRegionHandler) * numParts;
       }
     } PACKED;
   }
