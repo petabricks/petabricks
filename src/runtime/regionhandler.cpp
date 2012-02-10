@@ -110,7 +110,7 @@ void RegionHandler::updateRegionData(RegionDataIPtr regionData) {
   _regionDataMux.unlock();
 }
 
-DataHostPidList RegionHandler::hosts(IndexT* begin, IndexT* end) {
+DataHostPidList RegionHandler::hosts(const IndexT* begin, const IndexT* end) const {
   return _regionData->hosts(begin, end);
 }
 
@@ -174,7 +174,7 @@ bool RegionHandler::isHandlerChainUpdated() {
   return true;
 }
 
-void RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage) {
+void RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage) const {
   if (type() == RegionDataTypes::REGIONDATARAW) {
     JASSERT(false).Text("This is inefficient. Use _regionData->storage() instead.");
 
@@ -183,19 +183,22 @@ void RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origM
     return;
 
   } else if (type() == RegionDataTypes::REGIONDATASPLIT) {
-    UNIMPLEMENTED();
+    _regionData->copyToScratchMatrixStorage(origMetadata, len, scratchStorage);
+    return;
+
   }
 }
 
-void RegionHandler::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len) {
+void RegionHandler::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage) {
   if (type() == RegionDataTypes::REGIONDATARAW) {
-    UNIMPLEMENTED();
+    JASSERT(false).Text("This is inefficient. Use _regionData->storage() instead.");
 
   } else if (type() == RegionDataTypes::REGIONDATAREMOTE) {
-    _regionData->copyFromScratchMatrixStorage(origMetadata, len);
+    _regionData->copyFromScratchMatrixStorage(origMetadata, len, scratchStorage);
 
   } else {
-    UNIMPLEMENTED();
+    _regionData->copyFromScratchMatrixStorage(origMetadata, len, scratchStorage);
+
   }
 }
 

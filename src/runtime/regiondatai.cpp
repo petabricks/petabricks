@@ -92,28 +92,61 @@ void RegionDataI::processUpdateHandlerChainMsg(const BaseMessageHeader* base, si
   caller->sendReply(&reply, len, base);
 }
 
-// Printing
-
-int RegionDataI::incCoord(IndexT* coord) {
-  if (_D == 0) {
+int RegionDataI::incCoord(int dimensions, IndexT* size, IndexT* coord) {
+  if (dimensions == 0)
     return -1;
-  }
-
+  int i;
   coord[0]++;
-  for (int i = 0; i < _D - 1; ++i){
-    if (coord[i] >= _size[i]){
+  for(i = 0; i < dimensions - 1; ++i){
+    if(coord[i] >= size[i]){
       coord[i]=0;
       coord[i+1]++;
-    } else{
+    }else{
       return i;
     }
   }
-  if (coord[_D - 1] >= _size[_D - 1]){
+  if(coord[dimensions - 1] >= size[dimensions - 1]){
     return -1;
   }else{
-    return _D - 1;
+    return dimensions - 1;
   }
 }
+
+void RegionDataI::toRegionDataCoord(int dimensions, const IndexT* coord, int numSliceDimensions, const IndexT* splitOffset, const int* sliceDimensions, const IndexT* slicePositions, IndexT* newCoord) {
+  IndexT sliceIndex = 0;
+  IndexT splitIndex = 0;
+  for (int d = 0; d < (dimensions + numSliceDimensions); ++d) {
+    if (sliceIndex < numSliceDimensions && d == sliceDimensions[sliceIndex]) {
+      newCoord[d] = slicePositions[sliceIndex];
+      ++sliceIndex;
+    } else {
+      newCoord[d] = coord[splitIndex] + splitOffset[splitIndex];
+      ++splitIndex;
+    }
+  }
+}
+
+IndexT RegionDataI::coordToOffset(int dimensions, const IndexT* coord, const IndexT* multipliers) {
+  IndexT offset = 0;
+  for(int i = 0; i < dimensions; i++){
+    offset += multipliers[i] * coord[i];
+  }
+  return offset;
+}
+
+void RegionDataI::sizeToMultipliers(int dimensions, const IndexT* size, IndexT* multipliers) {
+  multipliers[0] = 1;
+  for (int i = 1; i < dimensions; i++) {
+    multipliers[i] = multipliers[i - 1] * size[i - 1];
+  }
+}
+
+IndexT RegionDataI::toRegionDataIndex(int dimensions, const IndexT* coord, int numSliceDimensions, const IndexT* splitOffset, const int* sliceDimensions, const IndexT* slicePositions, const IndexT* multipliers) {
+  IndexT newCoord[dimensions + numSliceDimensions];
+  toRegionDataCoord(dimensions, coord, numSliceDimensions, splitOffset, sliceDimensions, slicePositions, newCoord);
+  return coordToOffset(dimensions + numSliceDimensions, newCoord, multipliers);
+}
+
 
 void RegionDataI::print() {
   printf("RegionData: SIZE");
@@ -128,7 +161,7 @@ void RegionDataI::print() {
   while (true) {
     printf("%4.8g ", this->readCell(coord));
 
-    int z = this->incCoord(coord);
+    int z = this->incCoord(_D, _size, coord);
 
     if (z == -1) {
       break;

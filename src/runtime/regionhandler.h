@@ -38,7 +38,7 @@ namespace petabricks {
     RegionDataIPtr getRegionData();
     void updateRegionData(RegionDataIPtr regionData);
 
-    DataHostPidList hosts(IndexT* begin, IndexT* end);
+    DataHostPidList hosts(const IndexT* begin, const IndexT* end) const;
     RemoteHostPtr host();
 
     int dimensions();
@@ -51,9 +51,9 @@ namespace petabricks {
 
     // Copy MatrixStorage
     // Return a local MatrixStorage that matches the dimension in metadata.
-    void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage);
+    void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage) const;
 
-    void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len);
+    void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage);
 
     // RegionDataSplit
     void splitData(int dimensions, IndexT* sizes, IndexT* splitSize);

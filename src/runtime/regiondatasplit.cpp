@@ -87,13 +87,119 @@ void RegionDataSplit::writeCell(const IndexT* coord, ElementT value) {
   this->coordToPart(coord, coordPart)->writeCell(coordPart, value);
 }
 
-MatrixStoragePtr RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* /*metadata*/, size_t /*size*/) const {
-  UNIMPLEMENTED();
-  return NULL;
+void RegionDataSplit::copyHelper(bool isCopyTo, RegionMatrixMetadata* origMetadata, MatrixStoragePtr scratchStorage) const {
+  // find begin & end
+  IndexT begin[_D];
+  IndexT end[_D];
+  IndexT sliceIndex = 0;
+  IndexT splitIndex = 0;
+  for (int d = 0; d < _D; ++d) {
+    if (sliceIndex < origMetadata->numSliceDimensions && d == origMetadata->sliceDimensions()[sliceIndex]) {
+      begin[d] = origMetadata->slicePositions()[sliceIndex];
+      end[d] = origMetadata->slicePositions()[sliceIndex];
+      ++sliceIndex;
+    } else {
+      begin[d] = origMetadata->splitOffset[splitIndex];
+      end[d] = origMetadata->splitOffset[splitIndex] + origMetadata->size()[splitIndex];
+      ++splitIndex;
+    }
+  }
+
+  size_t len = RegionMatrixMetadata::len(origMetadata->dimensions, origMetadata->numSliceDimensions);
+  if (!isCopyTo) {
+    int count = 1;
+    for (int i = 0; i < origMetadata->dimensions; ++i) {
+      count *= origMetadata->size()[i];
+    }
+    int partCount = 1;
+    for (int i = 0; i < _D; ++i) {
+      sliceIndex = 0;
+      if (sliceIndex < origMetadata->numSliceDimensions && i == origMetadata->sliceDimensions()[sliceIndex]) {
+        ++sliceIndex;
+      } else {
+        partCount *= _splitSize[i];
+      }
+
+    }
+    if (partCount < count) {
+      count = partCount;
+    }
+    len += (count * sizeof(ElementT));
+  }
+  char newOrigMetadataBuf[len];
+  memcpy(newOrigMetadataBuf, origMetadata, len);
+  RegionMatrixMetadata* newOrigMetadata = (RegionMatrixMetadata*)newOrigMetadataBuf;
+
+  size_t scratchLen = RegionMatrixMetadata::len(origMetadata->dimensions, 0);
+  char newScratchMetadataBuf[scratchLen];
+  RegionMatrixMetadata* newScratchMetadata = (RegionMatrixMetadata*)newScratchMetadataBuf;
+  newScratchMetadata->dimensions = origMetadata->dimensions;
+  newScratchMetadata->numSliceDimensions = 0;
+
+  IndexT newBegin[_D];
+  IndexT coord[_D];
+  for (int d = 0; d < _D; ++d) {
+    coord[d] = begin[d] - (begin[d] % _splitSize[d]);
+    newBegin[d] = coord[d];
+  }
+
+  IndexT partBegin[_D];
+  do {
+    sliceIndex = 0;
+    splitIndex = 0;
+
+    for (int i = 0; i < _D; ++i) {
+      if (coord[i] < begin[i]) {
+        partBegin[i] = begin[i];
+      } else {
+        partBegin[i] = coord[i];
+      }
+    }
+
+    IndexT newOrigSplitOffset[_D];
+    RegionDataIPtr part = this->coordToPart(partBegin, newOrigSplitOffset);
+
+    for (int i = 0; i < _D; ++i) {
+      if (sliceIndex < origMetadata->numSliceDimensions && i == origMetadata->sliceDimensions()[sliceIndex]) {
+        newOrigMetadata->slicePositions()[sliceIndex] = origMetadata->slicePositions()[sliceIndex] - newBegin[i];
+        ++sliceIndex;
+
+      } else {
+        if (coord[i] + _splitSize[i] <= end[i]) {
+          newOrigMetadata->size()[splitIndex] = coord[i] + _splitSize[i] - partBegin[i];
+        } else {
+          newOrigMetadata->size()[splitIndex] = end[i] - partBegin[i];
+        }
+
+        newScratchMetadata->splitOffset[splitIndex] = partBegin[i] - begin[i];
+        newOrigMetadata->splitOffset[splitIndex] = newOrigSplitOffset[i];
+        ++splitIndex;
+      }
+    }
+
+    memcpy(newScratchMetadata->size(), newOrigMetadata->size(), sizeof(IndexT) * newOrigMetadata->dimensions);
+
+    if (isCopyTo) {
+      part->copyToScratchMatrixStorage((CopyToMatrixStorageMessage*) newOrigMetadata, len, scratchStorage, newScratchMetadata, origMetadata->size());
+    } else {
+      part->copyFromScratchMatrixStorage((CopyFromMatrixStorageMessage*) newOrigMetadata, len, scratchStorage, newScratchMetadata, origMetadata->size());
+    }
+
+  } while (incPartCoord(coord, newBegin, end) >= 0);
 }
 
-void RegionDataSplit::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* /*metadata*/, size_t /*size*/) const {
-  UNIMPLEMENTED();
+void RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t /*len*/, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* /*scratchStorageSize*/) const {
+  JASSERT(scratchMetadata == 0).Text("split data must be top-level");
+
+  RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
+  copyHelper(true, origMetadata, scratchStorage);
+}
+
+void RegionDataSplit::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t /*len*/, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* /*scratchStorageSize*/) {
+  JASSERT(scratchMetadata == 0).Text("split data must be top-level");
+
+  RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
+  copyHelper(false, origMetadata, scratchStorage);
 }
 
 void RegionDataSplit::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
@@ -107,51 +213,35 @@ void RegionDataSplit::processWriteCellMsg(const BaseMessageHeader* base, size_t 
 }
 
 void RegionDataSplit::processCopyFromMatrixStorageMsg(const BaseMessageHeader* /*base*/, size_t /*baseLen*/, IRegionReplyProxy* /*caller*/) {
-  UNIMPLEMENTED();
+  JASSERT(false).Text("copy RegionDataSplit to local before copying");
 }
 
 void RegionDataSplit::processCopyToMatrixStorageMsg(const BaseMessageHeader* /*base*/, size_t /*baseLen*/, IRegionReplyProxy* /*caller*/) {
-  UNIMPLEMENTED();
+  JASSERT(false).Text("copy RegionDataSplit to local before copying");
 }
 
-DataHostPidList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {
+DataHostPidList RegionDataSplit::hosts(const IndexT* begin, const IndexT* end) const {
   std::map<HostPid, int> hosts;
 
+  IndexT newBegin[_D];
   IndexT coord[_D];
   for (int i = 0; i < _D; i++) {
-    begin[i] = begin[i] - (begin[i] % _splitSize[i]);
-    coord[i] = begin[i];
+    newBegin[i] = begin[i] - (begin[i] % _splitSize[i]);
+    coord[i] = newBegin[i];
   }
 
   int count = 0;
-  bool hasNextPart;
 
-  // (yod) TODO: compute real begin/end
-  IndexT newBegin[] = {0,0,0};
-  IndexT* newEnd = _splitSize;
+  const IndexT partBegin[] = {0,0,0};
+  const IndexT* partEnd = _splitSize;
 
   IndexT junk[_D];
   do {
-    DataHostPidList tmp = this->coordToPart(coord, junk)->hosts(newBegin, newEnd);
+    DataHostPidList tmp = this->coordToPart(coord, junk)->hosts(partBegin, partEnd);
     hosts[tmp[0].hostPid] += 1;
     count++;
 
-    // move to the next part
-    hasNextPart = false;
-    coord[0] += _splitSize[0];
-    for (int i = 0; i < _D - 1; i++) {
-      if (coord[i] > end[i]){
-	coord[i] = begin[i];
-	coord[i+1] += _splitSize[i];
-      } else {
-	hasNextPart = true;
-	break;
-      }
-    }
-    if (coord[_D-1] <= end[_D-1]){
-      hasNextPart = true;
-    }
-  } while (hasNextPart);
+  } while (incPartCoord(coord, newBegin, end) >= 0);
 
   DataHostPidList list;
   std::map<HostPid, int>::iterator it;
@@ -167,13 +257,35 @@ DataHostPidList RegionDataSplit::hosts(IndexT* begin, IndexT* end) {
 
 RegionDataIPtr RegionDataSplit::coordToPart(const IndexT* coord, IndexT* coordPart) const {
   IndexT index = 0;
-
   for (int i = 0; i < _D; i++){
     index += (coord[i] / _splitSize[i]) * _partsMultipliers[i];
     coordPart[i] = coord[i] % _splitSize[i];
   }
-
   return _parts[index];
+}
+
+// begin (inclusive), end (exclusive)
+// begin must be at the boundary
+int RegionDataSplit::incPartCoord(IndexT* coord, const IndexT* begin, const IndexT* end) const {
+  #ifdef DEBUG
+  for (int i = 0; i < _D; ++i) {
+    JASSERT((begin[i] % _splitSize[i]) == 0);
+  }
+  #endif
+
+  coord[0] += _splitSize[0];
+  for (int i = 0; i < _D - 1; ++i) {
+    if (coord[i] >= end[i]){
+      coord[i] = begin[i];
+      coord[i+1] += _splitSize[i+1];
+    } else {
+      return i;
+    }
+  }
+  if (coord[_D-1] < end[_D-1]){
+    return _D-1;
+  }
+  return -1;
 }
 
 void RegionDataSplit::print() {

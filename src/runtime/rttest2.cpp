@@ -74,6 +74,7 @@ int main(int argc, const char** argv){
     MatrixRegion2D regionMatrix(sizes);
     regionMatrix.splitData(partSizes);
     regionMatrix.createDataPart(0, RemoteHostDB::instance().host(0));
+    regionMatrix.createDataPart(3, RemoteHostDB::instance().host(0));
 
     regionMatrix.copyDataFromRegion(regionMatrixLocal);
 
@@ -90,11 +91,31 @@ int main(int argc, const char** argv){
     MatrixIO().write(split);
     print(split.dataHosts());
 
+    JTRACE("scratch");
     IndexT scratchSizes[] = {8, 8};
     MatrixRegion2D scratch(scratchSizes);
-    scratch.allocData();
+    scratch.allocDataLocal();
     split.localCopy(scratch);
     MatrixIO().write(scratch);
+    split.assertEqual(scratch);
+
+    JTRACE("slice");
+    MatrixRegion1D slice = split.slice(0, 5);
+    MatrixIO().write(slice);
+    print(slice.dataHosts());
+    IndexT scratchSizesSlice[] = {8};
+    MatrixRegion1D scratchSlice(scratchSizesSlice);
+    scratchSlice.allocDataLocal();
+    slice.localCopy(scratchSlice);
+    MatrixIO().write(scratchSlice);
+    slice.assertEqual(scratchSlice);
+
+    JTRACE("modify");
+    scratchSlice.cell(5) = 777;
+    MatrixIO().write(scratchSlice);
+
+    slice.fromScratchRegion(scratchSlice);
+    MatrixIO().write(regionMatrix);
 
     char* buf = new char[split.serialSize()];
     split.serialize(buf, *RemoteHostDB::instance().host(0));

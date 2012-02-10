@@ -186,10 +186,10 @@ void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
   free(reply);
 }
 
-void RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, MatrixRegionMetadata* scratchMetadata) const {
+void RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const {
   void* data;
   size_t replyLen;
-  this->fetchData(origMetadata, MessageTypes::TOSCRATCHSTORAGE, len, &data, &replyLen);
+  this->fetchData(origMsg, MessageTypes::TOSCRATCHSTORAGE, len, &data, &replyLen);
 
   CopyToMatrixStorageReplyMessage* reply = (CopyToMatrixStorageReplyMessage*)data;
   if (scratchMetadata == 0) {
@@ -197,20 +197,63 @@ void RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* or
     memcpy(scratchStorage->data(), reply->storage, sizeof(ElementT) * reply->count);
 
   } else {
-    UNIMPLEMENTED();
+    RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
+    int d = origMetadata->dimensions;
+    IndexT* size = origMetadata->size();
 
+    int n = 0;
+    IndexT coord[d];
+    memset(coord, 0, sizeof coord);
+    IndexT multipliers[d];
+    sizeToMultipliers(d, scratchStorageSize, multipliers);
+    do {
+      IndexT scratchIndex = toRegionDataIndex(d, coord, scratchMetadata->numSliceDimensions, scratchMetadata->splitOffset, scratchMetadata->sliceDimensions(), scratchMetadata->slicePositions(), multipliers);
+      scratchStorage->data()[scratchIndex] = reply->storage[n];
+      ++n;
+    } while(incCoord(d, size, coord) >= 0);
   }
+
   free(reply);
 }
 
-void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* metadata, size_t size) const {
+void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
+  RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
+  int d = origMetadata->dimensions;
+  IndexT* size = origMetadata->size();
+
+  size_t storageCount = 1;
+  for (int i = 0; i < d; ++i) {
+    storageCount *= size[i];
+  }
+
+  // Copy storage.
+  if (scratchMetadata == 0) {
+    JASSERT(storageCount == scratchStorage->count());
+    memcpy(origMsg->storage(), scratchStorage->data(), sizeof(ElementT) * storageCount);
+
+  } else {
+    int n = 0;
+    IndexT coord[d];
+    memset(coord, 0, sizeof coord);
+    IndexT multipliers[d];
+    sizeToMultipliers(d, scratchStorageSize, multipliers);
+    do {
+      IndexT scratchIndex = toRegionDataIndex(d, coord, scratchMetadata->numSliceDimensions, scratchMetadata->splitOffset, scratchMetadata->sliceDimensions(), scratchMetadata->slicePositions(), multipliers);
+      origMsg->storage()[n] = scratchStorage->data()[scratchIndex];
+      ++n;
+    } while(incCoord(d, size, coord) >= 0);
+  }
+
+  size_t msgLen =  RegionMatrixMetadata::len(origMetadata->dimensions, origMetadata->numSliceDimensions) + (sizeof(ElementT) * storageCount);
+  JASSERT(msgLen <= len);
+
   void* data;
-  size_t len;
-  this->fetchData(metadata, MessageTypes::FROMSCRATCHSTORAGE, size, &data, &len);
+  size_t replyLen;
+  this->fetchData(origMsg, MessageTypes::FROMSCRATCHSTORAGE, msgLen, &data, &replyLen);
   free(data);
 }
 
-DataHostPidList RegionDataRemote::hosts(IndexT* begin, IndexT* end) {
+DataHostPidList RegionDataRemote::hosts(const IndexT* begin, const IndexT* end) const {
   GetHostListMessage msg;
   memcpy(msg.begin, begin, _D * sizeof(IndexT));
   memcpy(msg.end, end, _D * sizeof(IndexT));
@@ -254,7 +297,7 @@ UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain() {
 }
 
 void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen) const {
-  
+
 
   *responseData = 0;
   *responseLen = 0;
@@ -272,7 +315,7 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
 
   _remoteObject->send(header, dataLen);
   free(header);
-  
+
   JLOCKSCOPE(*_remoteObject);
   // wait for the data
   while (*responseData == 0 || *responseLen == 0) {
