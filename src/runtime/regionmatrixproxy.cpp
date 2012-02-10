@@ -72,21 +72,21 @@ void RegionMatrixProxy::onRecv(const void* data, size_t len, int) {
   }
 }
 
-void RegionMatrixProxy::sendReply(const void* msg, size_t len, const BaseMessageHeader* base) {
+void RegionMatrixProxy::sendReply(const void* msg, size_t len, const BaseMessageHeader* base, int replyType) {
   size_t dataLen = base->contentOffset + len;
   void* data = malloc(dataLen);
 
   memcpy(data, base, base->contentOffset);
   memcpy(((BaseMessageHeader*)data)->content(), msg, len);
 
-  _remoteObject->send(data, dataLen);
+  _remoteObject->send(data, dataLen, replyType);
   free(data);
 }
 
 //
 // Process reply messages
 
-void RegionMatrixProxy::processReplyMsg(const BaseMessageHeader* base, size_t baseLen) {
+void RegionMatrixProxy::processReplyMsg(const BaseMessageHeader* base, size_t baseLen, int type) {
   switch(base->type) {
   case MessageTypes::READCELL:
   case MessageTypes::WRITECELL:
@@ -98,15 +98,16 @@ void RegionMatrixProxy::processReplyMsg(const BaseMessageHeader* base, size_t ba
   case MessageTypes::GETHOSTLIST:
   case MessageTypes::TOSCRATCHSTORAGE:
   case MessageTypes::FROMSCRATCHSTORAGE:
-    this->forwardReplyMsg(base, baseLen);
+  case MessageTypes::COPYREGIONDATASPLIT:
+    this->forwardReplyMsg(base, baseLen, type);
     break;
   default:
     JASSERT(false)(base->type).Text("Unknown RegionRemoteMsgTypes.");
   }
 }
 
-void RegionMatrixProxy::forwardReplyMsg(const BaseMessageHeader* base, size_t baseLen) {
-  _remoteObject->send(base->next(), baseLen - sizeof(ForwardMessageHeader));
+void RegionMatrixProxy::forwardReplyMsg(const BaseMessageHeader* base, size_t baseLen, int type) {
+  _remoteObject->send(base->next(), baseLen - sizeof(ForwardMessageHeader), type);
 }
 
 RegionMatrixProxyRemoteObjectPtr RegionMatrixProxy::genLocal() {

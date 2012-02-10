@@ -212,11 +212,14 @@ void RegionDataSplit::processWriteCellMsg(const BaseMessageHeader* base, size_t 
   this->coordToPart(msg->coord, msg->coord)->processWriteCellMsg(base, baseLen, caller);
 }
 
-void RegionDataSplit::processCopyFromMatrixStorageMsg(const BaseMessageHeader* /*base*/, size_t /*baseLen*/, IRegionReplyProxy* /*caller*/) {
-  JASSERT(false).Text("copy RegionDataSplit to local before copying");
+void RegionDataSplit::processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+  // Return a copy of this regiondatasplit
+  size_t sz = sizeof(CopyRegionDataSplitReplyMessage);
+  char buf[sz];
+  caller->sendReply(buf, sz, base, MessageTypes::COPYREGIONDATASPLIT);
 }
 
-void RegionDataSplit::processCopyToMatrixStorageMsg(const BaseMessageHeader* /*base*/, size_t /*baseLen*/, IRegionReplyProxy* /*caller*/) {
+void RegionDataSplit::processCopyFromMatrixStorageMsg(const BaseMessageHeader* /*base*/, size_t /*baseLen*/, IRegionReplyProxy* /*caller*/) {
   JASSERT(false).Text("copy RegionDataSplit to local before copying");
 }
 

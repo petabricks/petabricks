@@ -31,11 +31,11 @@ namespace petabricks {
     static RemoteObjectPtr genRemote();
 
     // IRegionReplyProxy
-    void processReplyMsg(const BaseMessageHeader* base, size_t baseLen);
-    void sendReply(const void* data, size_t len, const BaseMessageHeader* base);
+    void processReplyMsg(const BaseMessageHeader* base, size_t baseLen, int replyType);
+    void sendReply(const void* data, size_t len, const BaseMessageHeader* base, int replyType=0);
 
   private:
-    void forwardReplyMsg(const BaseMessageHeader* base, size_t baseLen);
+    void forwardReplyMsg(const BaseMessageHeader* base, size_t baseLen, int replyType);
   };
 
   class RegionMatrixProxyRemoteObject : public RemoteObject {

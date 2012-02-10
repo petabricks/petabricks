@@ -199,7 +199,7 @@ void RegionDataRaw::processCopyToMatrixStorageMsg(const BaseMessageHeader* base,
     n++;
   } while(incCoord(d, size, coord) >= 0);
 
-  caller->sendReply(buf, sz, base);
+  caller->sendReply(buf, sz, base, MessageTypes::TOSCRATCHSTORAGE);
 }
 
 void RegionDataRaw::processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
@@ -225,5 +225,5 @@ void RegionDataRaw::processCopyFromMatrixStorageMsg(const BaseMessageHeader* bas
     _storage->data()[index] = storage[n];
     n++;
   } while(incCoord(d, size, coord) >= 0);
-  caller->sendReply(buf, sz, base);
+  caller->sendReply(buf, sz, base, MessageTypes::FROMSCRATCHSTORAGE);
 }

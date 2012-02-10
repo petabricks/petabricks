@@ -64,8 +64,8 @@ namespace petabricks {
     UpdateHandlerChainReplyMessage updateHandlerChain();
     UpdateHandlerChainReplyMessage updateHandlerChain(UpdateHandlerChainMessage& msg);
 
-    void onRecv(const void* data, size_t len);
-    void fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen) const;
+    void onRecv(const void* data, size_t len, int type);
+    void fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen, int* responseType) const;
 
     // Process remote messages
     void forwardMessage(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
@@ -91,8 +91,8 @@ namespace petabricks {
       // JTRACE("Destruct RegionDataRemoteObject");
     }
 
-    void onRecv(const void* data, size_t len, int) {
-      _regionData->onRecv(data, len);
+    void onRecv(const void* data, size_t len, int type) {
+      _regionData->onRecv(data, len, type);
     }
 
     RegionDataIPtr regionData() {

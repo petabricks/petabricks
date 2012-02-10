@@ -37,7 +37,7 @@ namespace petabricks {
   //
 
   namespace RegionDataRemoteMessage {
-    typedef uint8_t MessageType;
+    typedef int MessageType;
 
     struct MessageTypes {
       enum {
@@ -79,6 +79,7 @@ namespace petabricks {
       size_t contentOffset;
       EncodedPtr responseData;
       EncodedPtr responseLen;
+      EncodedPtr responseType;
 
       char* content() const { return (char*)this + contentOffset; }
     } PACKED;

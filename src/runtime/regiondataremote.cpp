@@ -49,7 +49,8 @@ void RegionDataRemote::init(const int dimensions, const IndexT* size, const Regi
 int RegionDataRemote::allocData() {
   void* data;
   size_t len;
-  this->fetchData(0, MessageTypes::ALLOCDATA, 0, &data, &len);
+  int type;
+  this->fetchData(0, MessageTypes::ALLOCDATA, 0, &data, &len, &type);
   AllocDataReplyMessage* reply = (AllocDataReplyMessage*)data;
 
   ElementT result = reply->result;
@@ -60,7 +61,8 @@ int RegionDataRemote::allocData() {
 void RegionDataRemote::randomize() {
   void* data;
   size_t len;
-  this->fetchData(0, MessageTypes::RANDOMIZEDATA, 0, &data, &len);
+  int type;
+  this->fetchData(0, MessageTypes::RANDOMIZEDATA, 0, &data, &len, &type);
 
   free(data);
 }
@@ -118,7 +120,8 @@ ElementT RegionDataRemote::readNoCache(const IndexT* coord) const {
 
   void* data;
   size_t len;
-  this->fetchData(buf, MessageTypes::READCELL, msg_len, &data, &len);
+  int type;
+  this->fetchData(buf, MessageTypes::READCELL, msg_len, &data, &len, &type);
   ReadCellReplyMessage* reply = (ReadCellReplyMessage*)data;
   ElementT value = reply->value;
   free(reply);
@@ -128,7 +131,8 @@ ElementT RegionDataRemote::readNoCache(const IndexT* coord) const {
 void RegionDataRemote::readByCache(void* request, size_t request_len, void* reply, size_t &/*reply_len*/) const {
   void* data;
   size_t len;
-  this->fetchData(request, MessageTypes::READCELLCACHE, request_len, &data, &len);
+  int type;
+  this->fetchData(request, MessageTypes::READCELLCACHE, request_len, &data, &len, &type);
   ReadCellCacheReplyMessage* r = (ReadCellCacheReplyMessage*)data;
 
   RegionDataRemoteCacheLine* cacheLine = (RegionDataRemoteCacheLine*)reply;
@@ -163,7 +167,8 @@ void RegionDataRemote::writeNoCache(const IndexT* coord, ElementT value) {
 
   void* data;
   size_t len;
-  this->fetchData(buf, MessageTypes::WRITECELL, msg_len, &data, &len);
+  int type;
+  this->fetchData(buf, MessageTypes::WRITECELL, msg_len, &data, &len, &type);
   WriteCellReplyMessage* reply = (WriteCellReplyMessage*)data;
 
   free(reply);
@@ -180,7 +185,8 @@ void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
 
   void* data;
   size_t len;
-  this->fetchData(msg, MessageTypes::WRITECELL, msg_len, &data, &len);
+  int type;
+  this->fetchData(msg, MessageTypes::WRITECELL, msg_len, &data, &len, &type);
   WriteCellReplyMessage* reply = (WriteCellReplyMessage*)data;
 
   free(reply);
@@ -189,7 +195,17 @@ void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
 void RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const {
   void* data;
   size_t replyLen;
-  this->fetchData(origMsg, MessageTypes::TOSCRATCHSTORAGE, len, &data, &replyLen);
+  int type;
+  this->fetchData(origMsg, MessageTypes::TOSCRATCHSTORAGE, len, &data, &replyLen, &type);
+
+  if (type == MessageTypes::COPYREGIONDATASPLIT) {
+    UNIMPLEMENTED();
+
+    free(data);
+    return;
+  }
+
+  JASSERT(type == MessageTypes::TOSCRATCHSTORAGE);
 
   CopyToMatrixStorageReplyMessage* reply = (CopyToMatrixStorageReplyMessage*)data;
   if (scratchMetadata == 0) {
@@ -249,7 +265,8 @@ void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage
 
   void* data;
   size_t replyLen;
-  this->fetchData(origMsg, MessageTypes::FROMSCRATCHSTORAGE, msgLen, &data, &replyLen);
+  int type;
+  this->fetchData(origMsg, MessageTypes::FROMSCRATCHSTORAGE, msgLen, &data, &replyLen, &type);
   free(data);
 }
 
@@ -260,7 +277,8 @@ DataHostPidList RegionDataRemote::hosts(const IndexT* begin, const IndexT* end) 
 
   void* data;
   size_t len;
-  this->fetchData(&msg, MessageTypes::GETHOSTLIST, sizeof(GetHostListMessage), &data, &len);
+  int type;
+  this->fetchData(&msg, MessageTypes::GETHOSTLIST, sizeof(GetHostListMessage), &data, &len, &type);
   GetHostListReplyMessage* reply = (GetHostListReplyMessage*)data;
 
   DataHostPidList list;
@@ -281,7 +299,8 @@ UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain(UpdateHandle
 
   void* data;
   size_t len;
-  this->fetchData(&msg, MessageTypes::UPDATEHANDLERCHAIN, sizeof(UpdateHandlerChainMessage), &data, &len);
+  int type;
+  this->fetchData(&msg, MessageTypes::UPDATEHANDLERCHAIN, sizeof(UpdateHandlerChainMessage), &data, &len, &type);
   UpdateHandlerChainReplyMessage* _reply = (UpdateHandlerChainReplyMessage*)data;
 
   UpdateHandlerChainReplyMessage reply = *_reply;
@@ -296,11 +315,10 @@ UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain() {
   return this->updateHandlerChain(msg);
 }
 
-void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen) const {
-
-
+void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen, int* responseType) const {
   *responseData = 0;
   *responseLen = 0;
+  *responseType = 0;
 
   size_t dataLen = sizeof(GeneralMessageHeader) + len;
 
@@ -310,6 +328,7 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
   header->contentOffset = sizeof(GeneralMessageHeader);
   header->responseData = reinterpret_cast<EncodedPtr>(responseData);
   header->responseLen = reinterpret_cast<EncodedPtr>(responseLen);
+  header->responseType = reinterpret_cast<EncodedPtr>(responseType);
 
   memcpy(header->content(), msg, len);
 
@@ -323,18 +342,19 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
   }
 }
 
-void RegionDataRemote::onRecv(const void* data, size_t len) {
+void RegionDataRemote::onRecv(const void* data, size_t len, int type) {
   const BaseMessageHeader* base = (const BaseMessageHeader*)data;
   if (base->isForwardMessage) {
     const ForwardMessageHeader* header = (const ForwardMessageHeader*)data;
     IRegionReplyProxy* proxy = reinterpret_cast<IRegionReplyProxy*>(header->callback);
-    proxy->processReplyMsg(base, len);
+    proxy->processReplyMsg(base, len, type);
 
   } else {
     const GeneralMessageHeader* header = (const GeneralMessageHeader*)data;
 
     const void** responseData = reinterpret_cast<const void**>(header->responseData);
     size_t* responseLen = reinterpret_cast<size_t*>(header->responseLen);
+    int* responseType = reinterpret_cast<int*>(header->responseType);
 
     size_t sz = len - base->contentOffset;
     void* msg = malloc(sz);
@@ -342,6 +362,7 @@ void RegionDataRemote::onRecv(const void* data, size_t len) {
 
     *responseData = msg;
     *responseLen = sz;
+    *responseType = type;
   }
 }
 
