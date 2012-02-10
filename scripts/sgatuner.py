@@ -128,7 +128,7 @@ class Population:
           c.lastMutator.result('fail')
 
         programName = config.benchmark.split("/")[-1]
-        subprocess.call(["killall", programName])
+        subprocess.call(["killall", programName], stderr=open('/dev/null','w'))
 
         warnings.warn(NewProgramCrash(e))
     if len(originalPop)<len(self.members):
