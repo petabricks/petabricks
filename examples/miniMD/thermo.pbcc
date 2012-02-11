@@ -18,7 +18,7 @@ to maxstat[1]
 
 
 function thermo_compute
-from atom_x[natoms, 3], atom_v[natoms,3], atom_vold[natoms, 3], atom_f[natoms,3] cutforcesq[1], neighbor_index[natoms, max_neighs], neighbor_numneigh[natoms]
+from atom_x[natoms, 3], atom_v[natoms,3], atom_vold[natoms, 3], atom_f[natoms,3], cutforcesq[1], neighbor_index[natoms, max_neighs], neighbor_numneigh[natoms]
 to t[1], p[1], e[1]
 {
   double t,eng,p;
@@ -45,7 +45,7 @@ to t[1], p[1], e[1]
 
 
 
-fuction thermo_temperature
+function thermo_temperature
 from atom_v[natoms, 3], atom_vold[natoms, 3]
 to temperature[1]
 {
@@ -103,7 +103,7 @@ to energy[1]
    virial = Fi dot Ri summed over own and ghost atoms, since PBC info is
    stored correctly in force array before reverse_communicate is performed */
 
-funtion thermo_pressure
+function thermo_pressure
 from temperature[1], rho[1], atom_f[natoms, 3], atom_x[natoms, 3]
 to pressure[1]
 {

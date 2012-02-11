@@ -5,6 +5,17 @@
 #define INDEX2D(i0, i1, s0) ((i1) * (s0) + (i0))
 
 %{
+// xGEQR2
+extern "C" void dgeqr2_(const int *m, const int *n, double *A, const int *lda, double *tau, double *work, int *info);
+extern "C" void sgeqr2_(const int *m, const int *n, float *A, const int *lda, float *tau, float *work, int *info);
+
+void geqr2_wrap(const int *m, const int *n, double *A, const int *lda, double *tau, double *work, int *info) {
+  dgeqr2_(m, n, A, lda, tau, work, info);
+}
+void geqr2_wrap(const int *m, const int *n, float *A, const int *lda, float *tau, float *work, int *info) {
+  sgeqr2_(m, n, A, lda, tau, work, info);
+}
+
 // xGEQRF
 extern "C" void dgeqrf_(const int *m, const int *n, double *A, const int *lda, double *tau, double *work, const int *lwork, int *info);
 extern "C" void sgeqrf_(const int *m, const int *n, float *A, const int *lda, float *tau, float *work, const int *lwork, int *info);
@@ -28,7 +39,7 @@ void orgqr_wrap(const int *m, const int *n, const int *k, float *A, const int *l
 }
 %}
 
-transform QRReflectorsGenerateLAPACK
+transform QRRConvertLAPACK
 from IN[n,m], TAU[n]
 to OUT[n,m]
 {
@@ -94,7 +105,61 @@ to OUT[n,m]
     }
 }
 
-transform QRLAPACK
+transform QRRLAPACK
+from IN[n,m]
+to OUT[n,m], TAU[n]
+{
+    to (OUT out, TAU tau)
+    from (IN in)
+    {
+        const int lda = m;
+        int lwork, info = 0, k = MIN(m,n);
+        ElementT *A = NULL, *tauArray = NULL, *work = NULL, temp;
+
+        A = new ElementT[m * n];
+        tauArray = new ElementT[k];
+        work = new ElementT[n];
+        if (!A || !tauArray || !work) {
+            printf("Error allocating memory!\n");
+            exit(-1);
+        }
+
+        // pack input
+        int i, j;
+        for (j = 0; j < n; ++j) {
+            for (i = 0; i < m; ++i) {
+                // PetaBricks - first index is column, second is row
+                A[INDEX2D(i, j, m)] = in.cell(j, i);
+            }
+        }
+
+        // do factorization
+        geqr2_wrap(&m, &n, A, &lda, tauArray, work, &info);
+        if (info) {
+            printf("LAPACK error in call to dgeqrf: info = %d\n", info);
+            exit(-1);
+        }
+
+        // unpack output
+        for (j = 0; j < n; ++j) {
+            for (i = 0; i < m; ++i) {
+                out.cell(j, i) = A[INDEX2D(i, j, m)];
+            }
+        }
+        for (i = 0; i < k; ++i) {
+            tau.cell(i) = tauArray[i];
+        }
+        for (i = k; i < n; ++i) {
+            tau.cell(i) = 0;
+        }
+
+        delete [] A;
+        delete [] tauArray;
+        delete [] work;
+    }
+}
+
+transform QRRBlockedLAPACK
 from IN[n,m]
 to OUT[n,m], TAU[n]
 {

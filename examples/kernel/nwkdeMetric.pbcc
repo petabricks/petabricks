@@ -2,34 +2,25 @@
 #define NWKDEMETRIC_PBCC
 
 #include "nwkde.h"
+#include "utils.pbcc"
 
 %{
 
-/* This function returns the -log10 of the MSE produced by NWKDE transforms.
- * 
- * WARNING: This metric assumes that the true value the regression
- * aims to produce is located in the TESTDATA at the location pointed
- * to by OUTPUTVARINDEX and OUTPUTTIMEOFFSET, even though strictly
- * speaking, those values are meant only as indexes into TRAINDATA,
- * not TESTDATA.
- *
- * If this condition is not met, use a different metric transform to
- * measure output accuracy.
+/* This function returns the negative MSE produced by NWKDE transforms.
  */
 template<typename ConstMatrixRegion1D, typename ConstMatrixRegion2D>
-double computeNWKDEMetric(ConstMatrixRegion1D result,
-                          ConstMatrixRegion2D testData,
-                          ConstMatrixRegion1D testIndices,
-                          int outputVarIndex,
-                          int outputTimeOffset)
+ElementT computeNWKDEMetric(ConstMatrixRegion1D result,
+                            ConstMatrixRegion2D data,
+                            ConstMatrixRegion1D y,
+                            ConstMatrixRegion1D indices)
 {
-    double a, b, diff, sum = 0;
-    int outputTimeIndex, count = 0;
+    ElementT a, b, diff, sum = 0;
+    IndexT outputTimeIndex, count = 0;
 
-    for (int i = 0; i < testIndices.count(); ++i) {
-        outputTimeIndex = (int) testIndices.cell(i) + (int) outputTimeOffset;
+    for (IndexT i = 0; i < indices.count(); ++i) {
         a = result.cell(i);
-        b = testData.cell((int) outputVarIndex, outputTimeIndex);
+//      b = lookup(data, y, indices.cell(i));
+        b = data.cell(y.cell(0), indices.cell(i) + y.cell(1));
         if (!ISNAN(a) && !ISNAN(b)) {
             diff = a - b;
 #ifdef DEBUG
@@ -51,47 +42,51 @@ double computeNWKDEMetric(ConstMatrixRegion1D result,
 
 /* Wrapper around computeNWKDEMetric function.
  * Can be used with NWKDEVA transform.
+ *
+ * WARNING: This metric assumes that the true value the regression aims to
+ * produce is located in TESTDATA at the location pointed to by TRAINY, even
+ * though strictly speaking those values are meant only as indexes into
+ * TRAINDATA, not TESTDATA.
+ *
+ * If this condition is not met, use a different metric transform to
+ * measure output accuracy.
  */
 transform NWKDEMetric
-from RESULT[q], TRAINDATA[m,n], WRAPFLAGS[m],
-     TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
-     TESTDATA[mPrime,nPrime],
-     TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
-     OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
+from RESULT[q], TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
+     TESTDATA[mPrime,nPrime], TESTX[2,p], TESTINDICES[q],
+     DIRFLAGS[m], SPLIT, MASKWIDTH
 to METRIC
 {
-    to (METRIC metric)
-    from (RESULT result,
-          TESTDATA testData,
-          TESTINDICES testIndices,
-          OUTPUTVARINDEX outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset)
+    to   (METRIC metric)
+    from (RESULT result, TESTDATA testData, TRAINY trainY,
+          TESTINDICES testIndices)
     {
-        metric = computeNWKDEMetric(result, testData, testIndices,
-                                    outputVarIndex, outputTimeOffset);
+        metric = computeNWKDEMetric(result, testData, trainY, testIndices);
     }
 }
 
 /* Similar to NWKDEMetric, but also accepts kernelWidths argument.
  * Can be used with NWKDE transform.
+ *
+ * WARNING: This metric assumes that the true value the regression aims to
+ * produce is located in TESTDATA at the location pointed to by TRAINY, even
+ * though strictly speaking those values are meant only as indexes into
+ * TRAINDATA, not TESTDATA.
+ *
+ * If this condition is not met, use a different metric transform to
+ * measure output accuracy.
  */
 transform NWKDEMetric2
-from RESULT[q], TRAINDATA[m,n], WRAPFLAGS[m], KERNELWIDTHS[m],
-     TRAININDICES[l], TRAINVARINDEX[p], TRAINTIMEOFFSET[p],
-     TESTDATA[m2,n2],
-     TESTINDICES[q], TESTVARINDEX[p], TESTTIMEOFFSET[p],
-     OUTPUTVARINDEX, OUTPUTTIMEOFFSET, TRAINMASKWIDTH
+from RESULT[q], TRAINDATA[m,n], TRAINX[2,p], TRAINY[2], TRAININDICES[l],
+     TESTDATA[m2,n2], TESTX[2,p], TESTINDICES[q],
+     DIRFLAGS[m], KERNELWIDTHS[m], SPLIT, MASKWIDTH
 to METRIC
 {
-    to (METRIC metric)
-    from (RESULT result,
-          TESTDATA testData,
-          TESTINDICES testIndices,
-          OUTPUTVARINDEX outputVarIndex,
-          OUTPUTTIMEOFFSET outputTimeOffset)
+    to   (METRIC metric)
+    from (RESULT result, TESTDATA testData, TRAINY trainY,
+          TESTINDICES testIndices)
     {
-        metric = computeNWKDEMetric(result, testData, testIndices,
-                                    outputVarIndex, outputTimeOffset);
+        metric = computeNWKDEMetric(result, testData, trainY, testIndices);
     }
 }
 

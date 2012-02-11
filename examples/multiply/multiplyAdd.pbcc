@@ -75,9 +75,10 @@ to C[w,h]
         ALPHA alpha,
         BETA beta)
   {
-    c*=beta;
+    ElementT temp = 0;
     for(IndexT i=0; i<k; ++i)
-      c+=alpha*a.cell(i)*b.cell(i);
+      temp += a.cell(i)*b.cell(i);
+    c = alpha*temp + beta*c;
   }
 
 #if 0
@@ -128,12 +129,14 @@ to C[w,h]
   //Usual O(n^3) matrix multiply
   to(C c) from (A a, B b, ALPHA alpha, BETA beta)
   {
+    ElementT temp;
     for(IndexT i=0, maxI=a.height(); i<maxI; ++i) {
       for(IndexT j=0, maxJ=b.width(); j<maxJ; ++j) {
-        c.cell(j,i) *= beta;
+        temp = 0;
         for(IndexT l=0, maxL=a.width(); l<maxL; ++l) {
-	  c.cell(j,i) += alpha * a.cell(l,i) * b.cell(j,l);
+	  temp += a.cell(l,i) * b.cell(j,l);
 	}
+        c.cell(j,i) = alpha * temp + beta * c.cell(j,i);
       }
     }
   }

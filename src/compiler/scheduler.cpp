@@ -509,7 +509,7 @@ void petabricks::StaticScheduler::generateSchedule(){
       #endif
     } catch(CantScheduleException) {
       _choices.markInvalid(choice);
-      JTRACE("SCHEDULING CHOICE FAIL");
+      JTRACE("SCHEDULING CHOICE FAIL")(choice);
     }
   }
   _dbgpath = dbgpathorig;

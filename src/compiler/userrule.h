@@ -270,6 +270,10 @@ public:
 
   void buildFromBoundingBox();
   
+  void trimDependency(DependencyDirection& dep,
+                      const ChoiceDepGraphNode& from,
+                      const ChoiceDepGraphNode& to);
+  
 private:
   void computeDataDependencyVector();
   CoordinateFormula computeDDVAsDifference(const RegionPtr inputRegion,

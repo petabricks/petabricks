@@ -3,41 +3,35 @@
 
 //#define DEBUG
 
-//#define INCLUDE_METHOD1
-//#define INCLUDE_METHOD2
-
-// algorithm makes use of NaN values to signal "no data"
-// since NaNs not yet supported by runtime IO, use sentinel value instead
-#define MYNAN -667
-#define ISNAN(x) ((x) == MYNAN)
-
-// workaround for generator having specific sizes
-#define WORKAROUND
+#define ACC_BINS -8, -7, -6, -5, -4
 
 // relative directory for test data used by generator
 #define TESTDIR "examples/kernel/test/"
+
+// workaround for generator having specific sizes
+#define WORKAROUND
 
 // Problem dimensions
 #ifdef WORKAROUND
 
 // make sure generator headers are compatible
-#define M 4
-#define N 8750
-#define L l
-#define P 8
-#define Q q
-#define M2 4
-#define N2 8750
+#define _M_ 4
+#define _N_ 8750
+#define _L_ l
+#define _P_ 8
+#define _Q_ q
+#define _M2_ 4
+#define _N2_ 8750
 
 #else
 
-#define M m
-#define N n
-#define L l
-#define P p
-#define Q q
-#define M2 m2
-#define N2 n2
+#define _M_ m
+#define _N_ n
+#define _L_ l
+#define _P_ p
+#define _Q_ q
+#define _M2_ m2
+#define _N2_ n2
 
 #endif
 

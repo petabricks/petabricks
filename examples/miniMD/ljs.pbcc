@@ -8,6 +8,7 @@
 #include "atom.pbcc"
 
 #define MAX_NEIGHS 1000
+#define MAX_ATOMS_IN_BIN 1000
 
 function miniMD_main
 from params[14]
@@ -54,11 +55,12 @@ to OUT[3]
   MatrixRegion1D binsize = MatrixRegion1D::allocate(3);
   MatrixRegion1D bininv = MatrixRegion1D::allocate(3);
   MatrixRegion1D mbinslo = MatrixRegion1D::allocate(3);
+  MatrixRegion1D mbin = MatrixRegion1D::allocate(3);
   MatrixRegion1D nbins = MatrixRegion2D::allocate(1);
   MatrixRegion1D cutneighsq = MatrixRegion1D::allocate(1);
   MatrixRegion2D atom_world_bounds = MatrixRegion2D::allocate(3,2);
-
-  neighbor_setup(binsize, bininv, mbinslo, nbins, cutneighsq, cutneigh, nbin_in, atom_box_bounds);
+  
+  neighbor_setup(binsize, bininv, mbinslo, nbins, cutneighsq, mbin, cutneigh, nbin_in, atom_box_bounds, ndimentions);
 
   // define force parameters
   MatrixRegion1D cutforcesq = MatrixRegion1D::allocate(1);
@@ -99,8 +101,9 @@ to OUT[3]
   int numbins = (int) nbins.cell(0);
   MatrixRegion2D bin_to_atom =  MatrixRegion2D::allocate(num_bins, MAX_ATOMS_IN_BIN);
   MatrixRegion1D bin_sizes = MatrixRegion1D::allocate(num_bins);
-  // fix this
-  neighbor_build(bin_to_atom, bin_sizes, atom_to_bin, atom_x, bininv, mbinlo, neighbor_index, neighbor_numneigh, nbins);
+  MatrixRegion2D atom_to_bin =  MatrixRegion2D::allocate(natoms);
+
+  neighbor_build(bin_to_atom, bin_sizes, atom_to_bin, neighbor_numneigh, atom_x, bininv, mbinlo, neighbor_index, neighbor_numneigh, nbins, mbins, cutneighsq);
 
   MatrixRegion1D temperature = MatrixRegion1D::allocate(1);
   MatrixRegion1D pressure = MatrixRegion1D::allocate(1);
@@ -113,7 +116,8 @@ to OUT[3]
 
 
   printf("Starting dynamics...\n");
-  integrate_run();
+  integrate_run(atom_x, atom_v, atom_vold, temperature, pressure, energy, atom_f, ntimes, atom_v, atom_vold, dt, dtforce, neighbor_index, neighbor_numneigh, cutforcesq, bin_to_atom, bin_sizes, atom_to_bin, bin_sizes, atom_to_bin, nbins, bininv, mbinlo, mbins);
+
   thermo_compute(temperature, pressure, energy, atom_x, atom_v, atom_vold,atom_f,  cutforcesq, neighbor_index, neighbor_numneigh);
   //output(in,atom,force,neighbor,comm,thermo,integrate,timer);
   //prompt();
