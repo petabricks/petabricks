@@ -3,6 +3,10 @@
 
 #include "../simple/copy.pbcc"
 
+#ifndef SORT
+#define SORT Mergesort2
+#endif
+
 %{
 
 template<typename T>
@@ -91,8 +95,8 @@ to OUT[n]
 {
   to(OUT out) from(IN in) using(tmp[n]) {
     if(n > 1) {
-      spawn Sort(tmp.region(0, n/2), in.region(0, n/2));
-      spawn Sort(tmp.region(n/2, n), in.region(n/2, n));
+      spawn SORT(tmp.region(0, n/2), in.region(0, n/2));
+      spawn SORT(tmp.region(n/2, n), in.region(n/2, n));
       sync;
       Merge2(out, tmp.region(0, n/2), tmp.region(n/2, n));
     }else{
@@ -112,10 +116,10 @@ to OUT[n]
       int a = n/4;
       int b = n/2;
       int c = n/2 + n/4;
-      spawn Sort(out.region(0, a), in.region(0, a));
-      spawn Sort(out.region(a, b), in.region(a, b));
-      spawn Sort(out.region(b, c), in.region(b, c));
-      spawn Sort(out.region(c, n), in.region(c, n));
+      spawn SORT(out.region(0, a), in.region(0, a));
+      spawn SORT(out.region(a, b), in.region(a, b));
+      spawn SORT(out.region(b, c), in.region(b, c));
+      spawn SORT(out.region(c, n), in.region(c, n));
       sync;
       spawn Merge2(tmp.region(0, n/2), out.region(0, a), out.region(a, b));
       spawn Merge2(tmp.region(n/2, n), out.region(b, c), out.region(c, n));

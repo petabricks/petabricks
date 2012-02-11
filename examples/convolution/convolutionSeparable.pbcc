@@ -1,18 +1,10 @@
-// TODO(jrk): streamline constants and magic numbers
-//#define KERNEL_RADIUS 4
-//#define KERNEL_LENGTH 9
+#define KERNEL_RADIUS 2
 #define KERNEL_LENGTH ((KERNEL_RADIUS)*2+1)
 transform convolutionRows
 from Input[w,h], Kernel[KERNEL_LENGTH]
-to Output[w-16,h]
+to Output[w-2*KERNEL_RADIUS,h]
 {
-  Output.cell(x,y)
-      from(Input.region(
-                  x,
-                  y,
-                  x+KERNEL_LENGTH,
-                  y+1)
-              input, Kernel kernel) {
+  Output.cell(x,y) from(Input.region(x, y, x+KERNEL_LENGTH, y+1) input, Kernel kernel) {
     ElementT sum = 0;
     for(int i = 0; i < KERNEL_LENGTH; i++){
       sum += input.cell(i,0) * kernel.cell(i);
@@ -23,15 +15,10 @@ to Output[w-16,h]
 
 transform convolutionColumns
 from Input[w,h], Kernel[KERNEL_LENGTH]
-to Output[w,h-16]
+to Output[w,h-2*KERNEL_RADIUS]
 {
   Output.cell(x,y)
-      from(Input.region(
-                  x,
-                  y,
-                  x+1,
-                  y+KERNEL_LENGTH)
-              input, Kernel kernel) {
+      from(Input.region(x, y, x+1, y+KERNEL_LENGTH) input, Kernel kernel) {
     ElementT sum = 0;
     for(int i = 0; i < KERNEL_LENGTH; i++){
       sum += input.cell(0,i) * kernel.cell(i);
@@ -42,16 +29,10 @@ to Output[w,h-16]
 
 transform convolution2D
 from Input[w,h], Kernel[KERNEL_LENGTH]
-to Output[w-16,
-          h-16]
+to Output[w-2*KERNEL_RADIUS,h-2*KERNEL_RADIUS]
 {
   Output.cell(x,y)
-      from(Input.region(
-                  x,
-                  y,
-                  x+KERNEL_LENGTH,
-                  y+KERNEL_LENGTH)
-              input, Kernel kernel) {
+      from(Input.region(x, y, x+KERNEL_LENGTH, y+KERNEL_LENGTH) input, Kernel kernel) {
     ElementT sum = 0;
     for(int x = 0; x < KERNEL_LENGTH; x++){
       for(int y = 0; y < KERNEL_LENGTH; y++){
@@ -64,15 +45,14 @@ to Output[w-16,
 
 transform convolutionSeparable
 from Input[w,h], Kernel[KERNEL_LENGTH]
-to Output[w-16,
-          h-16]
+to Output[w-2*KERNEL_RADIUS,h-2*KERNEL_RADIUS]
 {
   to(Output out) from(Input in, Kernel kernel){
 //    std::cout << "convolution2D" << std::endl;
     convolution2D(out, in, kernel);
   }
 
-  to(Output out) from(Input in, Kernel kernel) using(buffer[w-16,h]){
+  to(Output out) from(Input in, Kernel kernel) using(buffer[w-2*KERNEL_RADIUS,h]){
 //    std::cout << "convolutionSeparable" << std::endl;
     convolutionRows(buffer, in, kernel);
     convolutionColumns(out, buffer, kernel);

@@ -299,7 +299,6 @@ public:
   MatrixStoragePtr getGpuOutputStoragePtr(int nodeID);
   CopyoutInfoPtr getCopyoutInfo(int nodeID);
   
-  void releaseCLMem();
   void check(cl_command_queue& queue);
   void done(int nodeID);
 
@@ -443,7 +442,7 @@ class CopyoutInfo : public jalib::JRefCounted {
 public:
   CopyoutInfo(cl_command_queue& queue, MatrixStorageInfoPtr originalBuffer, std::vector<IndexT*>& begins, std::vector<IndexT*>& ends, int coverage);
   bool complete();
-  bool done();
+  bool closed();
   std::vector<IndexT*>& getBegins() { return _begins; }
   std::vector<IndexT*>& getEnds() { return _ends; }
   MatrixStoragePtr getGpuOutputStoragePtr() { return _gpuOutputBuffer; }
@@ -460,6 +459,9 @@ private:
 
 class CopyPendingMap : public jalib::JRefCounted {
 public:
+
+  ///
+  /// WARNING: need to grab info->storage()->lock() before calling this function.
   void put(const MatrixStorageInfoPtr& info) {
 #ifdef HAVE_OPENCL
     _lock.lock();
@@ -514,7 +516,9 @@ public:
     return pendings; 
 
   }
-  
+
+  ///
+  /// WARNING: need to grab info->storage()->lock() before calling this function.
   void clearPendings(MatrixStoragePtr storage) { 
     _lock.lock();
     std::set<MatrixStorageInfoPtr>& pendings = _map[storage];

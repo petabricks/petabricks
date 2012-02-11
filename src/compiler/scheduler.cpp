@@ -107,7 +107,13 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
     i->node().resetRegionNodeGroups();
   }
 
+  // Assign node to perform
+  // 1) copy out immediately <setGpuCopyOut> 
+  // 2) pend copy out <setPendingGpuCopyOut> 
+  //  3) don't copy out at all <do nothing>
+
   // Check output before inner rules because inner rules can overwrite setPendingGpuCopyOut to setGpuCopyOut
+  // becuase we don't know if output will be used on gpu or cpu next (we don't have cross transform analysis)
   MatrixDefList matrices = trans.getToMatrices();
   for(MatrixDefList::iterator it = matrices.begin(); it != matrices.end(); ++it){
     std::vector<int> ids;
@@ -115,10 +121,15 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
     for(ScheduleT::iterator j=_schedule.begin(); j!=_schedule.end(); ++j){
       int overlappingDimensions = j->node().hasOverlappingRegionOnGpu(_choiceAssignment, *it);
       if(overlappingDimensions >= 0){
-        if(overlappingDimensions == (*it)->numDimensions())
+        // If there is overlapping, might need to copy out
+        if(overlappingDimensions == (*it)->numDimensions()) {
+          // If same, can be pended the copy out later
           j->node().setPendingGpuCopyOut();
-        else
+        }
+        else {
+          // If dimension is not the same, have to copy out immediately
           j->node().setGpuCopyOut();
+        }
         last = j;
         ids.push_back(j->node().id());
       }
@@ -127,11 +138,10 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
       last->node().addGroup((*it)->name(),ids);
   }
 
-  //std::cout << std::endl << "=== transform : " << trans.name() << "===" << std::endl;
+  // Check inner rules. If there is overlapping, we eagerly copy out because we know we need the data on cpu for sure.
   for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
     std::set<std::string> matrices;
     RegionList from = i->node().getFromRegionOnCpu(_choiceAssignment);
-		//std::cout << "outter: " << i->node().id() << std::endl;
 
     for(RegionList::iterator it = from.begin(); it != from.end(); ++it){
       if(matrices.find((*it)->matrix()->name()) == matrices.end()) {
@@ -141,7 +151,6 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
 
         for(ScheduleT::iterator j=_schedule.begin(); j!=i; ++j){
           if(j->node().hasOverlappingRegionOnGpu(_choiceAssignment, *it) >= 0){
-				    //std::cout << "inner: " << j->node().id() << std::endl;
             j->node().setGpuCopyOut();
             last = j;
             ids.push_back(j->node().id());
@@ -153,10 +162,6 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
     }
   }
 
-  /*std::cout << std::endl << "=== summary ===" << std::endl;
-  for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
-    i->node().print(_choiceAssignment);
-  }*/
 #endif
 
   o.comment("MARKER 1");
