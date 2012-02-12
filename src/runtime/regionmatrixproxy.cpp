@@ -145,5 +145,10 @@ void RegionMatrixProxyRemoteObject::onRecvInitial(const void* buf, size_t len) {
   } else {
     JASSERT(false).Text("Unknown initial message type.");
   }
+
+  RemoteRegionHandler remoteRegionHandler;
+  remoteRegionHandler.hostPid = HostPid::self();
+  remoteRegionHandler.remoteHandler = reinterpret_cast<EncodedPtr>(_regionMatrix->getRegionHandler().asPtr());
+  send(&remoteRegionHandler, sizeof(RemoteRegionHandler), MessageTypes::CREATEDREMOTEMATRIXPROXY);
 }
 

@@ -87,10 +87,15 @@ void RegionDataSplit::setPart(int partIndex, const RemoteRegionHandler& remoteRe
     }
   }
 
-  RemoteHostPtr host = RemoteHostDB::instance().host(remoteRegionHandler.hostPid);
+  if (remoteRegionHandler.hostPid == HostPid::self()) {
+    _parts[partIndex] = reinterpret_cast<RegionHandler*>(remoteRegionHandler.remoteHandler);
 
-  _parts[partIndex] = RegionHandlerDB::instance().getLocalRegionHandler(*host, remoteRegionHandler.remoteHandler, _D, size);
-  _parts[partIndex]->updateHandlerChain();
+  } else {
+    RemoteHostPtr host = RemoteHostDB::instance().host(remoteRegionHandler.hostPid);
+    _parts[partIndex] = RegionHandlerDB::instance().getLocalRegionHandler(*host, remoteRegionHandler.remoteHandler, _D, size);
+    _parts[partIndex]->updateHandlerChain();
+
+  }
 }
 
 int RegionDataSplit::allocData() {
@@ -250,9 +255,20 @@ void RegionDataSplit::processCopyToMatrixStorageMsg(const BaseMessageHeader* bas
   memcpy(reply->splitSize, _splitSize, _D * sizeof(IndexT));
   RemoteRegionHandler* handler = reply->handlers();
   for (int i = 0; i < _numParts; i++) {
-    // TODO (yod): optimize this by sending info of real host
-    handler->hostPid = HostPid::self();
-    handler->remoteHandler = reinterpret_cast<EncodedPtr>(_parts[i].asPtr());
+    RegionHandlerPtr part = _parts[i];
+    if (part->type() == RegionDataTypes::REGIONDATARAW) {
+      handler->hostPid = HostPid::self();
+      handler->remoteHandler = reinterpret_cast<EncodedPtr>(part.asPtr());
+
+    } else if (part->type() == RegionDataTypes::REGIONDATAREMOTE) {
+      RegionDataRemote* regionDataRemote = (RegionDataRemote*)(part->getRegionData()).asPtr();
+      const RemoteRegionHandler* srcHandler = regionDataRemote->remoteRegionHandler();
+      handler->hostPid = srcHandler->hostPid;
+      handler->remoteHandler = srcHandler->remoteHandler;
+
+    } else {
+      JASSERT(false).Text("Wrong regiondata type");
+    }
     ++handler;
   }
 

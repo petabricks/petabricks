@@ -12,7 +12,7 @@ RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, con
 }
 
 RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, RemoteHostPtr host) {
-  init(dimensions, size, new RegionDataRemoteObject());
+  init(dimensions, size, new RegionDataRemoteObject(this));
 
 
   // InitialMsg
@@ -29,7 +29,7 @@ RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, Rem
 }
 
 RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const MessageType initialMessageType, const EncodedPtr encodePtr) {
-  init(dimensions, size, new RegionDataRemoteObject());
+  init(dimensions, size, new RegionDataRemoteObject(this));
 
   // InitialMsg
   EncodedPtrInitialMessage msg;
@@ -352,6 +352,12 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
 }
 
 void RegionDataRemote::onRecv(const void* data, size_t len, int type) {
+  if (type == MessageTypes::CREATEDREMOTEMATRIXPROXY) {
+    JASSERT(len == sizeof(RemoteRegionHandler));
+    memcpy(&_remoteRegionHandler, data, len);
+    return;
+  }
+
   const BaseMessageHeader* base = (const BaseMessageHeader*)data;
   if (base->isForwardMessage) {
     const ForwardMessageHeader* header = (const ForwardMessageHeader*)data;
@@ -427,9 +433,5 @@ void RegionDataRemote::processCopyToMatrixStorageMsg(const BaseMessageHeader* ba
 
 void RegionDataRemote::processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   this->forwardMessage(base, baseLen, caller);
-}
-
-RemoteObjectPtr RegionDataRemote::genRemote() {
-  return new RegionDataRemoteObject();
 }
 

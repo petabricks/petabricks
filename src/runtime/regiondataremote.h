@@ -26,6 +26,7 @@ namespace petabricks {
   class RegionDataRemote : public RegionDataI, IRegionCacheable {
   private:
     RegionDataRemoteObjectPtr _remoteObject;
+    RemoteRegionHandler _remoteRegionHandler;
 
   public:
     RegionDataRemote(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject);
@@ -39,6 +40,10 @@ namespace petabricks {
 
     int allocData();
     void randomize();
+
+    const RemoteRegionHandler* remoteRegionHandler() const {
+      return &_remoteRegionHandler;
+    }
 
     ElementT readCell(const IndexT* coord) const;
     ElementT readNoCache(const IndexT* coord) const;
@@ -80,7 +85,6 @@ namespace petabricks {
     void processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
 
-    static RemoteObjectPtr genRemote();
   };
 
 
@@ -88,10 +92,11 @@ namespace petabricks {
   protected:
     RegionDataRemote* _regionData;
   public:
-    RegionDataRemoteObject() {}
-    ~RegionDataRemoteObject() {
-      // JTRACE("Destruct RegionDataRemoteObject");
+    RegionDataRemoteObject(RegionDataRemote* regionData) {
+      _regionData = regionData;
     }
+
+    ~RegionDataRemoteObject() {}
 
     void onRecv(const void* data, size_t len, int type) {
       _regionData->onRecv(data, len, type);
