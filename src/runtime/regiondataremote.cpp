@@ -21,31 +21,17 @@ RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, Rem
 
   char buf[msg_len];
   CreateRegionDataInitialMessage* msg = (CreateRegionDataInitialMessage*)buf;
-  msg->type = MessageTypes::CREATEREGIONDATA;
+  msg->type = MessageTypes::CREATEREMOTEREGIONDATA;
   msg->dimensions = _D;
   memcpy(msg->size, size, size_sz);
 
   host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, buf, msg_len);
 }
 
-RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const MessageType initialMessageType, const EncodedPtr encodePtr) {
-  // TODO: don't do this
-  JASSERT(initialMessageType == MessageTypes::INITWITHREGIONDATA);
-
-  init(dimensions, size, new RegionDataRemoteObject(this));
-
-  // InitialMsg
-  EncodedPtrInitialMessage msg;
-  msg.type = initialMessageType;
-  msg.encodedPtr = encodePtr;
-  int len = sizeof(EncodedPtrInitialMessage);
-  host.createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
-}
-
 RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, const HostPid& hostPid, const EncodedPtr remoteHandler) {
   init(dimensions, size, new RegionDataRemoteObject(this));
 
-  // Defer the creation of _remoteObject
+  // Defer the initialization of _remoteObject
   _remoteRegionHandler.hostPid = hostPid;
   _remoteRegionHandler.remoteHandler = remoteHandler;
 }
@@ -387,7 +373,7 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
 }
 
 void RegionDataRemote::onRecv(const void* data, size_t len, int type) {
-  if (type == MessageTypes::CREATEDREMOTEMATRIXPROXY) {
+  if (type == MessageTypes::CREATEREMOTEREGIONDATAREPLY) {
     JASSERT(len == sizeof(RemoteRegionHandler));
     memcpy(&_remoteRegionHandler, data, len);
     return;
@@ -448,7 +434,7 @@ void RegionDataRemote::processRandomizeDataMsg(const BaseMessageHeader* base, si
   this->forwardMessage(base, baseLen, caller);
 }
 
-void RegionDataRemote::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller, RegionDataIPtr) {
+void RegionDataRemote::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller, EncodedPtr) {
   UpdateHandlerChainMessage* msg = (UpdateHandlerChainMessage*)base->content();
   msg->numHops++;
   this->forwardMessage(base, baseLen, caller);

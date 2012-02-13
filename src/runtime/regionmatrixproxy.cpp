@@ -126,15 +126,15 @@ RemoteObjectPtr RegionMatrixProxy::genRemote() {
 void RegionMatrixProxyRemoteObject::onRecvInitial(const void* buf, size_t len) {
   GeneralInitialMessage* m = (GeneralInitialMessage*) buf;
 
-  if (m->type == MessageTypes::CREATEREGIONDATA) {
+  if (m->type == MessageTypes::CREATEREMOTEREGIONDATA) {
     CreateRegionDataInitialMessage* msg = (CreateRegionDataInitialMessage*) buf;
-    _regionMatrix = new RegionMatrixProxy(new RegionHandler(msg->dimensions, msg->size, true), this);
+    RegionHandlerPtr handler = new RegionHandler(msg->dimensions, msg->size, true);
+    _regionMatrix = new RegionMatrixProxy(handler, this);
 
-  } else if (m->type == MessageTypes::INITWITHREGIONDATA) {
-    JASSERT(len == sizeof(EncodedPtrInitialMessage))(len);
-    EncodedPtrInitialMessage* msg = (EncodedPtrInitialMessage*) buf;
-    RegionDataI* regionData = reinterpret_cast<RegionDataI*>(msg->encodedPtr);
-    _regionMatrix = new RegionMatrixProxy(new RegionHandler(regionData), this);
+    RemoteRegionHandler remoteRegionHandler;
+    remoteRegionHandler.hostPid = HostPid::self();
+    remoteRegionHandler.remoteHandler = reinterpret_cast<EncodedPtr>(handler.asPtr());
+    send(&remoteRegionHandler, sizeof(RemoteRegionHandler), MessageTypes::CREATEREMOTEREGIONDATAREPLY);
 
   } else if (m->type == MessageTypes::INITWITHREGIONHANDLER) {
     JASSERT(len == sizeof(EncodedPtrInitialMessage))(len);
@@ -146,9 +146,5 @@ void RegionMatrixProxyRemoteObject::onRecvInitial(const void* buf, size_t len) {
     JASSERT(false).Text("Unknown initial message type.");
   }
 
-  RemoteRegionHandler remoteRegionHandler;
-  remoteRegionHandler.hostPid = HostPid::self();
-  remoteRegionHandler.remoteHandler = reinterpret_cast<EncodedPtr>(_regionMatrix->getRegionHandler().asPtr());
-  send(&remoteRegionHandler, sizeof(RemoteRegionHandler), MessageTypes::CREATEDREMOTEMATRIXPROXY);
 }
 

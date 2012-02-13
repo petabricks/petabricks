@@ -25,12 +25,6 @@ RegionHandler::RegionHandler(const RegionDataIPtr regionData) {
   _D = _regionData->dimensions();
 }
 
-//RegionHandler::RegionHandler(const EncodedPtr remoteObjPtr) {
-//  RegionDataRemoteObject* remoteObj = reinterpret_cast<RegionDataRemoteObject*>(remoteObjPtr);
-//  _regionData = remoteObj->regionData();
-//  _D = _regionData->dimensions();
-//}
-
 ElementT RegionHandler::readCell(const IndexT* coord) {
   return _regionData->readCell(coord);
 }
@@ -143,15 +137,10 @@ void RegionHandler::updateHandlerChain() {
       // Data is in the same process. Update handler to point directly to the data.
       RegionDataI* regionData = reinterpret_cast<RegionDataI*>(reply.encodedPtr);
       updateRegionData(regionData);
+
     } else if (reply.numHops > 1) {
       // Multiple network hops to data. Create a direct connection to data.
-
-      RemoteHostPtr dest = RemoteHostDB::instance().host(reply.dataHost);
-      if (!dest) {
-        JASSERT(false).Text("unknown host");
-      }
-
-      RegionDataI* newRegionData = new RegionDataRemote(_regionData->dimensions(), _regionData->size(), *dest, MessageTypes::INITWITHREGIONDATA, reply.encodedPtr);
+      RegionDataI* newRegionData = new RegionDataRemote(_regionData->dimensions(), _regionData->size(), reply.dataHost, reply.encodedPtr);
       updateRegionData(newRegionData);
     }
   }
@@ -252,7 +241,7 @@ void RegionHandler::processRandomizeDataMsg(const BaseMessageHeader* base, size_
 }
 
 void RegionHandler::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  _regionData->processUpdateHandlerChainMsg(base, baseLen, caller, _regionData);
+  _regionData->processUpdateHandlerChainMsg(base, baseLen, caller, reinterpret_cast<EncodedPtr>(this));
 }
 
 //

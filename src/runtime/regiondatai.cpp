@@ -80,13 +80,19 @@ void RegionDataI::processRandomizeDataMsg(const BaseMessageHeader* base, size_t,
   caller->sendReply(&reply, len, base);
 }
 
-void RegionDataI::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller, RegionDataIPtr regionDataPtr) {
+void RegionDataI::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller, EncodedPtr regionHandlerPtr) {
   UpdateHandlerChainMessage* msg = (UpdateHandlerChainMessage*)base->content();
 
   UpdateHandlerChainReplyMessage reply;
   reply.dataHost = HostPid::self();
   reply.numHops = msg->numHops;
-  reply.encodedPtr = reinterpret_cast<EncodedPtr>(regionDataPtr.asPtr());
+
+  if (msg->requester == HostPid::self()) {
+    reply.encodedPtr = reinterpret_cast<EncodedPtr>(this);
+
+  } else {
+    reply.encodedPtr = regionHandlerPtr;
+  }
 
   size_t len = sizeof(UpdateHandlerChainReplyMessage);
   caller->sendReply(&reply, len, base);
