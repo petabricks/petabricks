@@ -264,9 +264,7 @@ RegionHandlerDB& RegionHandlerDB::instance() {
   return db;
 }
 
-RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(RemoteHost& host, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size) {
-  HostPid hostPid = host.id();
-
+RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size) {
   _mapMux.lock();
   if (_map.count(hostPid) == 0) {
     _map[hostPid] = LocalRegionHandlerMap();
@@ -279,7 +277,7 @@ RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(RemoteHost& host, const 
   localMux->lock();
   if (localMap.count(remoteHandler) == 0) {
     // create a new one
-    RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, host, MessageTypes::INITWITHREGIONHANDLER, remoteHandler);
+    RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, hostPid, remoteHandler);
     localMap[remoteHandler] = new RegionHandler(regionData);
   }
 

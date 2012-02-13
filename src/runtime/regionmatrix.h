@@ -481,7 +481,7 @@ namespace petabricks {
     }
 
     void createRegionHandler(RemoteHost& remoteRegionHandlerHost) {
-      setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandlerHost, _remoteRegionHandler, _regionHandlerDimensions, _regionHandlerSize));
+      setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandlerHost.id(), _remoteRegionHandler, _regionHandlerDimensions, _regionHandlerSize));
     }
 
     void updateHandlerChain() {

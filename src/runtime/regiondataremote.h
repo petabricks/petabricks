@@ -32,6 +32,7 @@ namespace petabricks {
     RegionDataRemote(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject);
     RegionDataRemote(const int dimensions, const IndexT* size, RemoteHostPtr host);
     RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const MessageType initialMessageType, const EncodedPtr encodePtr);
+    RegionDataRemote(const int dimensions, const IndexT* size, const HostPid& hostPid, const EncodedPtr remoteHandler);
     ~RegionDataRemote() {
       //JTRACE("Destruct RegionDataRemote");
     }
@@ -41,9 +42,7 @@ namespace petabricks {
     int allocData();
     void randomize();
 
-    const RemoteRegionHandler* remoteRegionHandler() const {
-      return &_remoteRegionHandler;
-    }
+    const RemoteRegionHandler* remoteRegionHandler() const;
 
     ElementT readCell(const IndexT* coord) const;
     ElementT readNoCache(const IndexT* coord) const;

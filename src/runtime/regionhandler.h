@@ -78,7 +78,7 @@ namespace petabricks {
 
     static RegionHandlerDB& instance();
 
-    RegionHandlerPtr getLocalRegionHandler(RemoteHost& host, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size);
+    RegionHandlerPtr getLocalRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size);
 
   private:
     jalib::JMutex _mapMux;

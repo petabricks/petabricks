@@ -29,24 +29,25 @@ RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, Rem
 }
 
 RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const MessageType initialMessageType, const EncodedPtr encodePtr) {
+  // TODO: don't do this
+  JASSERT(initialMessageType == MessageTypes::INITWITHREGIONDATA);
+
   init(dimensions, size, new RegionDataRemoteObject(this));
 
-  if (initialMessageType == MessageTypes::INITWITHREGIONHANDLER) {
-    // Defer the creation of _remoteObject
-    _remoteRegionHandler.hostPid = host.id();
-    _remoteRegionHandler.remoteHandler = encodePtr;
+  // InitialMsg
+  EncodedPtrInitialMessage msg;
+  msg.type = initialMessageType;
+  msg.encodedPtr = encodePtr;
+  int len = sizeof(EncodedPtrInitialMessage);
+  host.createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
+}
 
-  } else {
-    // TODO: don't do this
-    JASSERT(initialMessageType == MessageTypes::INITWITHREGIONDATA);
+RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, const HostPid& hostPid, const EncodedPtr remoteHandler) {
+  init(dimensions, size, new RegionDataRemoteObject(this));
 
-    // InitialMsg
-    EncodedPtrInitialMessage msg;
-    msg.type = initialMessageType;
-    msg.encodedPtr = encodePtr;
-    int len = sizeof(EncodedPtrInitialMessage);
-    host.createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
-  }
+  // Defer the creation of _remoteObject
+  _remoteRegionHandler.hostPid = hostPid;
+  _remoteRegionHandler.remoteHandler = remoteHandler;
 }
 
 void RegionDataRemote::init(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject) {
@@ -73,7 +74,6 @@ RegionDataRemoteObjectPtr RegionDataRemote::remoteObject() const {
   return _remoteObject;
 }
 
-
 int RegionDataRemote::allocData() {
   void* data;
   size_t len;
@@ -94,6 +94,14 @@ void RegionDataRemote::randomize() {
 
   free(data);
 }
+
+const RemoteRegionHandler* RegionDataRemote::remoteRegionHandler() const {
+  if (_remoteRegionHandler.remoteHandler == 0) {
+    _remoteObject->waitUntilCreated();
+  }
+  return &_remoteRegionHandler;
+}
+
 
 IRegionCachePtr RegionDataRemote::cacheGenerator() const {
   IndexT multipliers[_D];
