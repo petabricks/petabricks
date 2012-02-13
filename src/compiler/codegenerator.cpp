@@ -294,8 +294,7 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
       in.write(i->name + ".unserialize(_buf, _host);");
       in.write("_buf += " + i->name + ".serialSize();");
       size.write("_sz += " + i->name + ".serialSize();");
-      migrateRegion.write(i->name + ".createRegionHandler(sender);");
-      migrateRegion.write(i->name + ".updateHandlerChain();");
+      migrateRegion.comment(i->name + ".updateHandlerChain();");
       invalidateCache.write(i->name + ".invalidateCache();");
       getDataHosts.write("list.push_back(" + i->name + ".dataHost());");
 

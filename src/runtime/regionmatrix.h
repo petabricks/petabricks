@@ -69,11 +69,6 @@ namespace petabricks {
     RegionMatrixSliceInfoPtr _sliceInfo;
     RegionHandlerPtr _regionHandler;
 
-    // Used for moving
-    int _regionHandlerDimensions;
-    IndexT _regionHandlerSize[MAX_DIMENSIONS];
-    EncodedPtr _remoteRegionHandler;
-
   public:
     void init(const IndexT* size, const IndexT* splitOffset, const bool isTransposed, const RegionMatrixSliceInfoPtr sliceInfo, const RegionHandlerPtr handler) {
 
@@ -114,9 +109,6 @@ namespace petabricks {
 
     INLINE void setRegionHandler(RegionHandlerPtr handler) {
       _regionHandler = handler;
-      if (_regionHandler) {
-        _regionHandlerDimensions = handler->dimensions();
-      }
     }
 
     //
@@ -389,9 +381,8 @@ namespace petabricks {
       sz += sizeof(bool);                         // _isTransposed
       sz += sizeof(int);                          // regionHandler dimension
       // regionhandler size
-      sz += sizeof(IndexT) * _regionHandlerDimensions;
-      sz += sizeof(EncodedPtr);                   // regionHandler
-
+      sz += sizeof(IndexT) * _regionHandler->dimensions();
+      sz += sizeof(RemoteRegionHandler);          // RemoteRegionHandler
       return sz;
     }
 
@@ -432,8 +423,9 @@ namespace petabricks {
       memcpy(buf, _regionHandler->size(), sz);
       buf += sz;
 
-      sz = sizeof(EncodedPtr);
-      *reinterpret_cast<EncodedPtr*>(buf) = reinterpret_cast<EncodedPtr>(_regionHandler.asPtr());
+      sz = sizeof(RemoteRegionHandler);
+      RemoteRegionHandler remoteRegionHandler = _regionHandler->remoteRegionHandler();
+      memcpy(buf, &remoteRegionHandler, sz);
       buf += sz;
     }
 
@@ -468,23 +460,21 @@ namespace petabricks {
       buf += sz;
 
       sz = sizeof(int);
-      _regionHandlerDimensions = *reinterpret_cast<const int*>(buf);
+      int regionHandlerDimensions = *reinterpret_cast<const int*>(buf);
       buf += sz;
 
-      sz = sizeof(IndexT) * _regionHandlerDimensions;
-      memcpy(_regionHandlerSize, buf, sz);
+      sz = sizeof(IndexT) * regionHandlerDimensions;
+      const IndexT* regionHandlerSize = (const IndexT*)buf;
       buf += sz;
 
-      sz = sizeof(EncodedPtr);
-      _remoteRegionHandler = *reinterpret_cast<const EncodedPtr*>(buf);
+      sz = sizeof(RemoteRegionHandler);
+      RemoteRegionHandler remoteRegionHandler = *reinterpret_cast<const RemoteRegionHandler*>(buf);
       buf += sz;
+
+      setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandler.hostPid, remoteRegionHandler.remoteHandler, regionHandlerDimensions, regionHandlerSize));
     }
 
-    void createRegionHandler(RemoteHost& remoteRegionHandlerHost) {
-      setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandlerHost.id(), _remoteRegionHandler, _regionHandlerDimensions, _regionHandlerSize));
-    }
-
-    void updateHandlerChain() {
+    void updateHandlerChain() const {
       _regionHandler->updateHandlerChain();
     }
 

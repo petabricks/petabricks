@@ -111,11 +111,11 @@ RemoteHostPtr RegionHandler::host() {
   return _regionData->host();
 }
 
-int RegionHandler::dimensions() {
+int RegionHandler::dimensions() const {
   return _D;
 }
 
-IndexT* RegionHandler::size() {
+const IndexT* RegionHandler::size() const {
   return _regionData->size();
 }
 
@@ -160,6 +160,19 @@ bool RegionHandler::isHandlerChainUpdated() {
     }
   }
   return true;
+}
+
+RemoteRegionHandler RegionHandler::remoteRegionHandler() const {
+  if (type() == RegionDataTypes::REGIONDATAREMOTE) {
+
+    return *(((RegionDataRemote*)_regionData.asPtr())->remoteRegionHandler());
+
+  } else {
+    RemoteRegionHandler remoteRegionHandler;
+    remoteRegionHandler.hostPid = HostPid::self();
+    remoteRegionHandler.remoteHandler = reinterpret_cast<EncodedPtr>(this);
+    return remoteRegionHandler;
+  }
 }
 
 void RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
@@ -254,6 +267,10 @@ RegionHandlerDB& RegionHandlerDB::instance() {
 }
 
 RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size) {
+  if (hostPid == HostPid::self()) {
+    return reinterpret_cast<RegionHandler*>(remoteHandler);
+  }
+
   _mapMux.lock();
   if (_map.count(hostPid) == 0) {
     _map[hostPid] = LocalRegionHandlerMap();

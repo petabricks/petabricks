@@ -152,7 +152,6 @@ RemoteObjectPtr step2() {
       JTRACE("== step2 ==");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
-      regionMatrix.createRegionHandler(*host());
       MatrixIO().write(regionMatrix);
       print(regionMatrix.dataHosts());
 

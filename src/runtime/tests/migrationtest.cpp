@@ -103,7 +103,6 @@ RemoteObjectPtr step2() {
       printf("== step2 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
-      regionMatrix.createRegionHandler(*host());
       MatrixIO().write(regionMatrix);
 
       IndexT m11[] = {1,1};
@@ -133,7 +132,6 @@ RemoteObjectPtr step3() {
       printf("== step3 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
-      regionMatrix.createRegionHandler(*host());
       MatrixIO().write(regionMatrix);
 
       regionMatrix.updateHandlerChain();
@@ -163,7 +161,6 @@ RemoteObjectPtr step4() {
       printf("== step4 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
-      regionMatrix.createRegionHandler(*host());
 
       char* buf = new char[regionMatrix.serialSize()];
       regionMatrix.serialize(buf, *RemoteHostDB::instance().host(0));
@@ -186,7 +183,6 @@ RemoteObjectPtr step5() {
       printf("== step5 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
-      regionMatrix.createRegionHandler(*host());
 
       char* buf = new char[regionMatrix.serialSize()];
       regionMatrix.serialize(buf, *RemoteHostDB::instance().host(0));
@@ -209,11 +205,10 @@ RemoteObjectPtr step6() {
       printf("== step6 ==\n");
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
-      regionMatrix.createRegionHandler(*host());
       MatrixIO().write(regionMatrix);
 
       print(regionMatrix.dataHosts());
-      JASSERT(!regionMatrix.regionHandler()->isHandlerChainUpdated());
+      //JASSERT(!regionMatrix.regionHandler()->isHandlerChainUpdated());
 
       regionMatrix.updateHandlerChain();
       JASSERT(regionMatrix.regionHandler()->isHandlerChainUpdated());

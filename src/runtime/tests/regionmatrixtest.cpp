@@ -43,7 +43,6 @@ RemoteObjectPtr gen() {
 
       MatrixRegion3D regionMatrix = MatrixRegion3D();
       regionMatrix.unserialize((char*)data, *host());
-      regionMatrix.createRegionHandler(*host());
       MatrixIO().write(regionMatrix);
 
       runProcess2(regionMatrix);

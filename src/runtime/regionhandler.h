@@ -41,12 +41,13 @@ namespace petabricks {
     DataHostPidList hosts(const IndexT* begin, const IndexT* end) const;
     RemoteHostPtr host();
 
-    int dimensions();
-    IndexT* size();
+    int dimensions() const;
+    const IndexT* size() const;
     RegionDataType type() const;
 
     // Migration
     void updateHandlerChain();
+    RemoteRegionHandler remoteRegionHandler() const;
     bool isHandlerChainUpdated(); // for testing
 
     // Copy MatrixStorage
