@@ -31,12 +31,22 @@ RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, Rem
 RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, RemoteHost& host, const MessageType initialMessageType, const EncodedPtr encodePtr) {
   init(dimensions, size, new RegionDataRemoteObject(this));
 
-  // InitialMsg
-  EncodedPtrInitialMessage msg;
-  msg.type = initialMessageType;
-  msg.encodedPtr = encodePtr;
-  int len = sizeof(EncodedPtrInitialMessage);
-  host.createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
+  if (initialMessageType == MessageTypes::INITWITHREGIONHANDLER) {
+    // Defer the creation of _remoteObject
+    _remoteRegionHandler.hostPid = host.id();
+    _remoteRegionHandler.remoteHandler = encodePtr;
+
+  } else {
+    // TODO: don't do this
+    JASSERT(initialMessageType == MessageTypes::INITWITHREGIONDATA);
+
+    // InitialMsg
+    EncodedPtrInitialMessage msg;
+    msg.type = initialMessageType;
+    msg.encodedPtr = encodePtr;
+    int len = sizeof(EncodedPtrInitialMessage);
+    host.createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
+  }
 }
 
 void RegionDataRemote::init(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject) {
@@ -46,6 +56,23 @@ void RegionDataRemote::init(const int dimensions, const IndexT* size, const Regi
 
   memcpy(_size, size, sizeof(IndexT) * _D);
 }
+
+void RegionDataRemote::createRemoteObject() const {
+  int len = sizeof(EncodedPtrInitialMessage);
+  EncodedPtrInitialMessage msg;
+  msg.type = MessageTypes::INITWITHREGIONHANDLER;
+  msg.encodedPtr = _remoteRegionHandler.remoteHandler;
+  RemoteHostPtr host = RemoteHostDB::instance().host(_remoteRegionHandler.hostPid);
+  host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
+}
+
+RegionDataRemoteObjectPtr RegionDataRemote::remoteObject() const {
+  if (!_remoteObject->isInitiator()) {
+    createRemoteObject();
+  }
+  return _remoteObject;
+}
+
 
 int RegionDataRemote::allocData() {
   void* data;
@@ -300,7 +327,7 @@ DataHostPidList RegionDataRemote::hosts(const IndexT* begin, const IndexT* end) 
 }
 
 RemoteHostPtr RegionDataRemote::host() {
-  return _remoteObject->host();
+  return remoteObject()->host();
 }
 
 UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain(UpdateHandlerChainMessage& msg) {
@@ -341,7 +368,7 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
 
   memcpy(header->content(), msg, len);
 
-  _remoteObject->send(header, dataLen);
+  remoteObject()->send(header, dataLen);
   free(header);
 
   JLOCKSCOPE(*_remoteObject);
@@ -393,7 +420,7 @@ void RegionDataRemote::forwardMessage(const BaseMessageHeader* base, size_t base
 
   memcpy(data->next(), base, baseLen);
 
-  _remoteObject->send(data, len);
+  remoteObject()->send(data, len);
   free(data);
 }
 

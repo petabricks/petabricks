@@ -94,13 +94,13 @@ public:
   }
 
   bool isInitiator() const {
-    return 0 != (_flags & FLAG_CREATED);
+    return 0 != (_flags & FLAG_INITIATOR);
   }
 
   bool isComplete() const {
     return 0 != (_flags & FLAG_COMPLETE);
   }
-  
+
   bool isSkipCreateAck() const {
     return 0 != (_flags & FLAG_SKIP_CREATE_ACK);
   }

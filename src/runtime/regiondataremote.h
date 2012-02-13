@@ -85,6 +85,10 @@ namespace petabricks {
     void processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
 
+  private:
+    void createRemoteObject() const;
+    RegionDataRemoteObjectPtr remoteObject() const;
+
   };
 
 
