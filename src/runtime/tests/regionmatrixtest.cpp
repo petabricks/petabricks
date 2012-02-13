@@ -58,7 +58,7 @@ int main(int argc, const char** argv){
   IndexT m1[] = {1,1,1};
   IndexT m123[] = {1,2,3};
   IndexT m456[] = {4,5,6};
-  //IndexT m2[] = {2,2,2};
+  IndexT m2[] = {2,2,2};
   IndexT m3[] = {3,3,3};
   IndexT m234[] = {2,3,4};
 
@@ -75,12 +75,12 @@ int main(int argc, const char** argv){
     RemoteHostDB::instance().spawnListenThread();
 
     // Split the matrix in to multiple parts of size m2
-    // regionMatrix.splitData(m2);
+    regionMatrix.splitData(m2);
 
     // Assign a chunk of data to remote host
     //   - put part 0 in hdb.host(0)
     //   - the other parts are created locally
-    // regionMatrix.createDataPart(0, RemoteHostDB::instance().host(0));
+    regionMatrix.createDataPart(0, RemoteHostDB::instance().host(0));
 
     // import data
     MatrixRegion3D in = MatrixIO(filename,"r").read_distributed<3>();
@@ -202,4 +202,5 @@ void runProcess2(MatrixRegion3D& regionMatrix) {
   MatrixIO().write(regionMatrix);
 
   printf("== done ==\n");
+  exit(0);
 }
