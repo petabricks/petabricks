@@ -61,13 +61,17 @@ void petabricks::RemoteTask::remoteScheduleTask() {
   int maxCount = 0;
 
   RemoteHostList hosts = getDataHosts();
+  if (hosts.size() == 1) {
+    toHost = *(hosts.begin());
 
-  std::map<RemoteHostPtr, int> map;
-  for (RemoteHostList::iterator it = hosts.begin(); it < hosts.end(); it++) {
-    map[*it] += 1;
-    if (map[*it] > maxCount) {
-      toHost = *it;
-      maxCount = map[*it];
+  } else if (hosts.size() > 1) {
+    std::map<RemoteHostPtr, int> map;
+    for (RemoteHostList::iterator it = hosts.begin(); it < hosts.end(); it++) {
+      map[*it] += 1;
+      if (map[*it] > maxCount) {
+        toHost = *it;
+        maxCount = map[*it];
+      }
     }
   }
 
