@@ -671,7 +671,11 @@ namespace petabricks {
       }
     }
 
-    void fromScratchRegion(const MatrixRegion<D, ElementT>& scratchOrig, RegionMatrixMetadata& scratchMetadata, const IndexT* scratchStorageSize) {
+    void fromScratchRegion(const MatrixRegion<D, ElementT>& /*scratchOrig*/) {
+      // We need to pass metadata for scratchStorage to _regionHandler
+      UNIMPLEMENTED();
+
+      /*
       #ifdef DEBUG
       for (int i = 0; i < D; ++i) {
         JASSERT(size(i) == scratchOrig.size(i));
@@ -715,7 +719,7 @@ namespace petabricks {
           JASSERT(n == storage_count)(n)(storage_count);
         }
 
-        _regionHandler->copyFromScratchMatrixStorage(msg, len, scratch.storage(), &scratchMetadata, scratchStorageSize);
+        _regionHandler->copyFromScratchMatrixStorage(msg, len, scratch.storage());
       }
 
       #ifdef DEBUG_SCRATCH_REGION
@@ -725,7 +729,7 @@ namespace petabricks {
         JASSERT(fabs(this->cell(coord) - scratchOrig.cell(coord)) < 0.000001)(this->cell(coord))(scratchOrig.cell(coord));
       } while (this->incCoord(coord) >= 0);
       #endif
-
+*/
     }
 
     void fromScratchRegion(const RegionMatrix& scratch) {
@@ -735,14 +739,35 @@ namespace petabricks {
       }
       #endif
 
+      JASSERT(scratch.isRegionDataRaw());
+
       if (isRegionDataRaw()) {
         // Do nothing
 
       } else {
+        unsigned int storage_count = 1;
+        for (unsigned int i=0; i<D; ++i) {
+          storage_count *= scratch.size(i);
+        }
+
+        size_t len = regionMatrixMetadataLen() + (storage_count * sizeof(ElementT));
+        char buf[len];
+        CopyFromMatrixStorageMessage* msg = (CopyFromMatrixStorageMessage*) buf;
+        this->computeRegionMatrixMetadata(msg->srcMetadata);
+
         RegionMatrixMetadata scratchMetadata;
         scratch.computeRegionMatrixMetadata(scratchMetadata);
-        fromScratchRegion(scratch._toLocalRegion(), scratchMetadata, scratch.regionHandler()->size());
+
+        _regionHandler->copyFromScratchMatrixStorage(msg, len, scratch.storage(), &scratchMetadata, scratch.regionHandler()->size());
       }
+
+      #ifdef DEBUG_SCRATCH_REGION
+      IndexT coord[D];
+      memset(coord, 0, sizeof coord);
+      do {
+        JASSERT(fabs(this->cell(coord) - scratch.cell(coord)) < 0.000001)(this->cell(coord))(scratch.cell(coord));
+      } while (this->incCoord(coord) >= 0);
+      #endif
     }
 
     void randomize() {

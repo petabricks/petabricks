@@ -91,10 +91,7 @@ int main(int argc, const char** argv){
     print(split.dataHosts());
 
     JTRACE("scratch");
-    IndexT scratchSizes[] = {8, 8};
-    MatrixRegion2D scratch(scratchSizes);
-    scratch.allocDataLocal();
-    split.localCopy(scratch);
+    MatrixRegion2D scratch = split.localCopy();
     MatrixIO().write(scratch);
     split.assertEqual(scratch);
 
@@ -102,10 +99,7 @@ int main(int argc, const char** argv){
     MatrixRegion1D slice = split.slice(0, 5);
     MatrixIO().write(slice);
     print(slice.dataHosts());
-    IndexT scratchSizesSlice[] = {8};
-    MatrixRegion1D scratchSlice(scratchSizesSlice);
-    scratchSlice.allocDataLocal();
-    slice.localCopy(scratchSlice);
+    MatrixRegion1D scratchSlice = slice.localCopy();
     MatrixIO().write(scratchSlice);
     slice.assertEqual(scratchSlice);
 
@@ -155,10 +149,7 @@ RemoteObjectPtr step2() {
       MatrixIO().write(regionMatrix);
       print(regionMatrix.dataHosts());
 
-      IndexT sizes[] = {8, 8};
-      MatrixRegion2D scratch(sizes);
-      scratch.allocDataLocal();
-      regionMatrix.localCopy(scratch);
+      MatrixRegion2D scratch = regionMatrix.localCopy();
       MatrixIO().write(scratch);
       regionMatrix.assertEqual(scratch);
 
