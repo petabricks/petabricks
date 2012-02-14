@@ -165,6 +165,7 @@ public:
   double runTrial(TestIsolation&, bool train);
   double runTrialNoSmoothing(TestIsolation&, bool train);
   double runTrial(double thresh, bool train);
+  void runTrialFromFile(TestIsolation& ti, const std::vector<std::string>* files);
 
   static bool isTrainingRun();
   //static void setIsTrainingRun(bool b);
@@ -232,9 +233,13 @@ public:
       
   
   static void reexecTestIsolation(int fd);
+  
 protected:
   void reallocate() { _main->reallocate(_randSize); }
 
+private:
+  double runMultipleTrials(TestIsolation& ti, int n, bool train, const std::vector<std::string>* files);
+  
 private:
   Main* _main;
   std::string _mainName;

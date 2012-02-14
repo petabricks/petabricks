@@ -620,7 +620,8 @@ void petabricks::PetabricksRuntime::iogenRun(const std::vector<std::string>& fil
   TestIsolation* ti;
   if(ISOLATION) ti = &sti;
   else          ti = &dti;
-  computeWrapper(*ti, -1, -1, &files);
+  //computeWrapper(*ti, -1, -1, &files);
+  runTrialFromFile(*ti, &files);
 }
 
 void petabricks::PetabricksRuntime::runGraphMode(){
@@ -721,7 +722,16 @@ double petabricks::PetabricksRuntime::runTrial(TestIsolation& ti, bool train){
 }
 
 double petabricks::PetabricksRuntime::runTrialNoSmoothing(TestIsolation& ti, bool train){
-  JASSERT(_randSize>0 && GRAPH_TRIALS>=1 && GRAPH_TRIALS_SEC>=0)(_randSize).Text("'--n=NUMBER' is required");
+  JASSERT(_randSize>0)(_randSize).Text("'--n=NUMBER' is required");
+  return runMultipleTrials(ti, _randSize, train, NULL);
+}
+
+void petabricks::PetabricksRuntime::runTrialFromFile(TestIsolation& ti, const std::vector<std::string>* files){
+  runMultipleTrials(ti, -1, false, files);
+}
+
+double petabricks::PetabricksRuntime::runMultipleTrials(TestIsolation& ti, int n, bool train, const std::vector<std::string>* files){
+  JASSERT((n != -1) ^ (files != NULL)).Text("Either specify a size for random generation or a file to load");
   JASSERT(GRAPH_TRIALS>=1).Text("invalid --trials");
   JASSERT(GRAPH_TRIALS_SEC>=0).Text("invalid --trials-sec");
   JASSERT(GRAPH_TRIALS_MAX>=GRAPH_TRIALS).Text("invalid --trials and --trials-max");
@@ -729,9 +739,9 @@ double petabricks::PetabricksRuntime::runTrialNoSmoothing(TestIsolation& ti, boo
   int count = 0;
   do {
     if(count==0 && train)
-      total += trainAndComputeWrapper(ti, _randSize); // first trial can train
+      total += trainAndComputeWrapper(ti, n); // first trial can train
     else
-      total += computeWrapper(ti, _randSize); // rest of trials cant train
+      total += computeWrapper(ti, n, -1, files); // rest of trials cant train
     ++count;
 
     if(total>=jalib::maxval<double>())

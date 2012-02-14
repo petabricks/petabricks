@@ -93,7 +93,12 @@ public:
       .Text("Unexpected number of dimensions in input matrix");
     MatrixStorage::IndexT sizes[D];
     for(int i=0; i<D; ++i) sizes[i]=o.sizes[i];
-    return MatrixRegion<D, MATRIX_ELEMENT_T>(o.storage, o.storage->data(), sizes);
+    MatrixRegion<D, MATRIX_ELEMENT_T> m1 = MatrixRegion<D, MATRIX_ELEMENT_T>(o.storage, o.storage->data(), sizes);
+    #ifdef COLUMN_MAJOR
+    return copyData(m1, sizes);
+    #else
+    return m1;
+    #endif
   }
 
   ///
@@ -107,7 +112,25 @@ public:
       .Text("Unexpected number of dimensions in input matrix");
     MatrixStorage::IndexT sizes[D];
     for(int i=0; i<D; ++i) sizes[i]=o.sizes[i];
-    return RegionMatrixWrapper<D, MATRIX_ELEMENT_T>(o.storage->data(), sizes);
+    RegionMatrixWrapper<D, MATRIX_ELEMENT_T> m1 = RegionMatrixWrapper<D, MATRIX_ELEMENT_T>(o.storage->data(), sizes);
+    #ifdef COLUMN_MAJOR
+    return copyData(m1, sizes);
+    #else
+    return m1;
+    #endif
+  }
+
+  template<typename T>
+  T copyData(T m1, IndexT* sizes) {
+    T m2 = T::allocate(sizes);
+    IndexT coord[T::D];
+    memset(coord, 0, sizeof coord);
+    for(;;){
+      m2.cell(coord) = m1.cell(coord);
+      int z=m1.incCoord(coord);
+      if(z<0) break;
+    }
+    return m2;
   }
 
   ///
