@@ -233,8 +233,7 @@ RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageM
 
   } else if (type == MessageTypes::TOSCRATCHSTORAGE) {
     CopyToMatrixStorageReplyMessage* reply = (CopyToMatrixStorageReplyMessage*)data;
-    if (scratchMetadata == 0) {
-      JASSERT(reply->count == scratchStorage->count());
+    if (reply->count == scratchStorage->count()) {
       memcpy(scratchStorage->data(), reply->storage, sizeof(ElementT) * reply->count);
 
     } else {
@@ -273,8 +272,8 @@ void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage
   }
 
   // Copy storage.
-  if (scratchMetadata == 0) {
-    JASSERT(storageCount == scratchStorage->count());
+  if (storageCount == scratchStorage->count()) {
+    // Special case: copy the entire storage
     memcpy(origMsg->storage(), scratchStorage->data(), sizeof(ElementT) * storageCount);
 
   } else {

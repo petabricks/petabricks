@@ -671,7 +671,7 @@ namespace petabricks {
       }
     }
 
-    void fromScratchRegion(const MatrixRegion<D, ElementT>& scratchOrig) {
+    void fromScratchRegion(const MatrixRegion<D, ElementT>& scratchOrig, RegionMatrixMetadata& scratchMetadata, const IndexT* scratchStorageSize) {
       #ifdef DEBUG
       for (int i = 0; i < D; ++i) {
         JASSERT(size(i) == scratchOrig.size(i));
@@ -715,7 +715,7 @@ namespace petabricks {
           JASSERT(n == storage_count)(n)(storage_count);
         }
 
-        _regionHandler->copyFromScratchMatrixStorage(msg, len, scratch.storage());
+        _regionHandler->copyFromScratchMatrixStorage(msg, len, scratch.storage(), &scratchMetadata, scratchStorageSize);
       }
 
       #ifdef DEBUG_SCRATCH_REGION
@@ -737,8 +737,11 @@ namespace petabricks {
 
       if (isRegionDataRaw()) {
         // Do nothing
+
       } else {
-        fromScratchRegion(scratch._toLocalRegion());
+        RegionMatrixMetadata scratchMetadata;
+        scratch.computeRegionMatrixMetadata(scratchMetadata);
+        fromScratchRegion(scratch._toLocalRegion(), scratchMetadata, scratch.regionHandler()->size());
       }
     }
 

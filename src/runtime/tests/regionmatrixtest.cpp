@@ -195,7 +195,8 @@ void runProcess2(MatrixRegion3D& regionMatrix) {
   scratch.cell(m12d) = 456;
   MatrixIO().write(scratch);
 
-  rslice3.fromScratchRegion(scratch);
+  // We need some metadata about scratch to copy back
+  //rslice3.fromScratchRegion(scratch);
   MatrixIO().write(rslice3);
 
   MatrixIO().write(regionMatrix);
