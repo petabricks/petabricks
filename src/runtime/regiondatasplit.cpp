@@ -87,15 +87,10 @@ void RegionDataSplit::setPart(int partIndex, const RemoteRegionHandler& remoteRe
     }
   }
 
-  if (remoteRegionHandler.hostPid == HostPid::self()) {
-    _parts[partIndex] = reinterpret_cast<RegionHandler*>(remoteRegionHandler.remoteHandler);
+  _parts[partIndex] = RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandler.hostPid, remoteRegionHandler.remoteHandler, _D, size);
 
-  } else {
-    _parts[partIndex] = RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandler.hostPid, remoteRegionHandler.remoteHandler, _D, size);
-
-    // We don't need this since we already make a connection to data node.
-    //_parts[partIndex]->updateHandlerChain();
-  }
+  // We don't need this since we already make a connection to data node.
+  //_parts[partIndex]->updateHandlerChain();
 }
 
 int RegionDataSplit::allocData() {
