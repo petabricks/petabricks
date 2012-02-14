@@ -223,8 +223,8 @@ RegionDataIPtr RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMe
   return NULL;
 }
 
-void RegionDataSplit::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t /*len*/, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* /*scratchStorageSize*/) {
-  JASSERT(scratchMetadata == 0).Text("split data must be top-level");
+void RegionDataSplit::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t /*len*/, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* /*scratchMetadata*/, const IndexT* /*scratchStorageSize*/) {
+  // Note: split data must be top-level
 
   RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
   copyHelper(false, origMetadata, scratchStorage);
