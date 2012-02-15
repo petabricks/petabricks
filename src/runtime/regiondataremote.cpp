@@ -21,6 +21,9 @@ RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, Rem
   memcpy(msg->size, size, size_sz);
 
   host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, buf, msg_len);
+
+  // This is called during allocate, so we need to make sure that data is ready before continuing
+  _remoteObject->waitUntilCreated();
 }
 
 RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, const HostPid& hostPid, const EncodedPtr remoteHandler) {
