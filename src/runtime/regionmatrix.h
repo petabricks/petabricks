@@ -427,6 +427,8 @@ namespace petabricks {
       RemoteRegionHandler remoteRegionHandler = _regionHandler->remoteRegionHandler();
       memcpy(buf, &remoteRegionHandler, sz);
       buf += sz;
+
+      _regionHandler->incRefCount();
     }
 
     void unserialize(const char* buf, RemoteHost& /*host*/) {
