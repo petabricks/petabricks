@@ -950,17 +950,15 @@ def replace_all_define(s, lineno):
     for macro in macro_dict:
       i = s.find(macro)
       while i != -1:
-        s,i = replace_macro(macro, macro_dict[macro], s, i, lineno)
+        s,i,replace = replace_macro(macro, macro_dict[macro], s, i, lineno)
         i = s.find(macro,i)
-        replace = True
 
     # Replace defined constants
     for define in define_dict:
       i = s.find(define)
       while i != -1:
-        s,i = replace_definition(define, define_dict[define], s, i, lineno)
+        s,i,replace = replace_definition(define, define_dict[define], s, i, lineno)
         i = s.find(define,i)
-        replace = True
 
   return s
 
@@ -970,9 +968,9 @@ def replace_definition(define, extended_def, s, head_index, lineno):
   next = skip_isolated_word(s, head_index, define)
   if next != -1:
     s = s[:head_index] + extended_def + s[next:]
-    return (s,next)
+    return (s,next,True)
   else:
-    return (s,head_index+len(define))
+    return (s,head_index+len(define),False)
 
 """ Replace the macro at the given index in string s with expanded code
     Return (the resulted string, index after macro) """
@@ -981,11 +979,11 @@ def replace_macro(macro, (no_args, expanded, t), s, head_index, lineno):
 
   # If macro is not isolated word, return.
   if next == -1:
-    return (s,head_index+len(macro))
+    return (s,head_index+len(macro),False)
 
   # If there is no '(' after macor, return.
   if next >= len(s) or s[next] != '(':
-    return (s,next)
+    return (s,next,False)
 
   index = next + 1 #skip '('
 
@@ -1020,7 +1018,7 @@ def replace_macro(macro, (no_args, expanded, t), s, head_index, lineno):
   if t == 'block':
     expanded = expanded.strip(' ;')
 
-  return (s[0:head_index] + expanded + s[index:], index)
+  return (s[0:head_index] + expanded + s[index:], index, True)
 
 
 #####################################################
@@ -1210,4 +1208,4 @@ def test_lex():
 if __name__ == "__main__":
   main()
   #test_lex()
-
+  

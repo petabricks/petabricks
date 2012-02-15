@@ -111,8 +111,8 @@ public:
   
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
-  void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o);
-  void generateOpenCLCallCode(Transform& trans, CodeGenerator& o);
+  void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
+  void generateOpenCLCallCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
   void generateOpenCLPrepareCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o);
   void generateOpenCLCopyInCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o, RegionPtr region);
   void generateOpenCLRunCode(Transform& trans, CodeGenerator& o);
@@ -291,6 +291,8 @@ private:
                                               
   void removeDimensionFromDefinitions(const size_t dimension);
 
+  ///
+  /// Set gpu buffer flag to matrices
   void prepareBuffers();
 
   bool passBuildGpuProgram(Transform& trans);

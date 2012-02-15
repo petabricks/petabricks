@@ -162,8 +162,9 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
         return false;
       }
       storage()->unlock();
-      #ifdef AMD || INTEL //TODO: after PLDI
+      #ifdef AMD || INTEL
       if(input && _count == storage()->count()) {
+        // Use host ptr without creating new buffer to avoid extra copy when running on CPU.
         cl_int err;
         #ifdef GPU_TRACE
         std::cout << &(*this) << " use_host_ptr" << std::endl;
@@ -173,12 +174,13 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
         JASSERT(CL_SUCCESS == err).Text("Failed to create input memory object.");
         #endif
         _hasGpuMem = true;
-        _cpuModify = false; //TODO: do I need to use lock?
+        _cpuModify = false;
         return false;
       }
       #endif
     }
 
+    // Can't use host ptr because run on GPU.
     cl_int err;
     #ifdef GPU_TRACE
     std::cout << &(*this) << " not use_host_ptr" << std::endl;
@@ -192,11 +194,11 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
     std::cout << "cl_mem: " << getClMem() << std::endl;
     #endif
     _hasGpuMem = true;
-    _cpuModify = false; //TODO: do I need to use lock?
+    _cpuModify = false;
     return true;
   }
   if(_cpuModify) {
-    _cpuModify = false; //TODO: do I need to use lock?
+    _cpuModify = false;
     return true;
   }
   return false;
@@ -232,25 +234,27 @@ void petabricks::MatrixStorageInfo::finishGpuMem(cl_command_queue& queue, int no
   }
   #endif
 
-  if(gpuCopyOut != 0 ) {
-    //std::cout << "done complete nodes = " ;
+  if(gpuCopyOut != 0) {
     for(RegionNodeGroupMap::iterator it = map->equal_range(_name).first; it != map->equal_range(_name).second; ++it) {
 
+      // Remove node that is already executed
       std::set<int> newGroup = (*it).second;
       for(std::vector<int>::iterator node = _doneRemainingNodes.begin(); node != _doneRemainingNodes.end(); ++node) {
         newGroup.erase(*node);
       }
+      // Add new node group to its list
       _remainingGroups.push_back(newGroup);
 
+      // Remove node whose data is already copied out
       newGroup = (*it).second;
       for(std::vector<int>::iterator node = _doneCompleteNodes.begin(); node != _doneCompleteNodes.end(); ++node) {
-        //std::cout << *node << ", ";
         newGroup.erase(*node);
       }
+      // Add new node group to its list
       _completeGroups.push_back(newGroup);
     }
-    //std::cout << std::endl;
 
+    // Put this node into done list
     _doneRemainingNodes.push_back(nodeID);
 
     std::set<int> doneNodes;
@@ -280,6 +284,7 @@ void petabricks::MatrixStorageInfo::finishGpuMem(cl_command_queue& queue, int no
 }
 
 void petabricks::MatrixStorageInfo::startReadBuffer(cl_command_queue& queue, std::set<int>& doneNodes, bool now) {
+  // TODO: wrong
   if(now) {
     CopyoutInfoPtr info = new CopyoutInfo(queue, this, _begins, _ends, _coverage);
     for(std::set<int>::iterator node = doneNodes.begin(); node != doneNodes.end(); ++node) {
@@ -292,6 +297,7 @@ void petabricks::MatrixStorageInfo::startReadBuffer(cl_command_queue& queue, std
     resetPending();
   }
   else if(_coverage != _count) {
+    // If don't cover the whole matrix, need to process pending copy-out
     MatrixStoragePtr storage = processPending();
     if(storage) {
       copy(this->storage(), storage, getBegins(), getEnds());
@@ -299,7 +305,6 @@ void petabricks::MatrixStorageInfo::startReadBuffer(cl_command_queue& queue, std
     resetPending();
   }
   else {
-    //_queue = queue;
     #ifdef GPU_TRACE
     std::cout << "@@@ pending map: put " << &(*this) << std::endl;
     #endif
@@ -315,13 +320,10 @@ bool petabricks::MatrixStorageInfo::equal(MatrixStorageInfoPtr that) {
   std::cout << "@ equal this: " << &(*this) << " base = " << that->base() << std::endl;
 #endif
   if(base() != that->base() || dimensions() != that->dimensions() || queue() != that->queue()) {
-    //std::cout << "fail #1" << std::endl;
-    //std::cout << base() << " " << that->base() << ", " << dimensions() << " " << that->dimensions() << ", " << queue() << " " << that->queue() << std::endl;
     return false;
   }
   for(int i = 0; i < dimensions(); ++i) {
     if(multipliers()[i] != that->multipliers()[i] || sizes()[i] != that->sizes()[i]) {
-      //std::cout << "fail #2" << std::endl;
       return false;
     }
   }
@@ -368,21 +370,9 @@ void petabricks::MatrixStorageInfo::resetPending() {
   _ends.clear();
 }
 
-void petabricks::MatrixStorageInfo::releaseCLMem() {
-  if(_hasGpuMem){
-#ifdef GPU_TRACE
-    std::cout << this << " : release clmem" << std::endl;
-#endif
-    clReleaseMemObject(getClMem());
-    _hasGpuMem = false;
-  }
-}
-
 void petabricks::MatrixStorageInfo::incCoverage(IndexT* begin, IndexT* end, int size) {
   _coverage += size;
-  #ifdef DEBUG
-  //JASSERT(_coverage <= _count).Text("Overwrite output.");
-  #endif
+
   IndexT* myBegin = new IndexT[_dimensions];
   memcpy(myBegin, begin, sizeof(IndexT) * _dimensions);
   IndexT* myEnd = new IndexT[_dimensions];
@@ -397,9 +387,9 @@ petabricks::CopyoutInfo::CopyoutInfo(cl_command_queue& queue, MatrixStorageInfoP
 #endif
   _coverage = coverage;
   _done = false;
+
   // if not cover the whole matrix, need to store which regions we need to copy
   // if cover the whole matrix, don't store. We copy all.
-
   if(_coverage != originalBuffer->storage()->count()) {
     _begins = begins;
     _ends = ends;
@@ -419,7 +409,7 @@ petabricks::CopyoutInfo::CopyoutInfo(cl_command_queue& queue, MatrixStorageInfoP
   clFlush(queue);
 }
 
-bool petabricks::CopyoutInfo::done() {
+bool petabricks::CopyoutInfo::closed() {
 #ifdef GPU_TRACE
   std::cout << "already done" << std::endl;
 #endif
