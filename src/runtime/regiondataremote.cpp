@@ -7,13 +7,8 @@
 using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
 
-RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject) {
-  init(dimensions, size, remoteObject);
-}
-
 RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, RemoteHostPtr host) {
   init(dimensions, size, new RegionDataRemoteObject(this));
-
 
   // InitialMsg
   size_t size_sz = _D * sizeof(IndexT);
@@ -45,6 +40,9 @@ void RegionDataRemote::init(const int dimensions, const IndexT* size, const Regi
 }
 
 void RegionDataRemote::createRemoteObject() const {
+  if (_remoteObject->isInitiator()) {
+    return;
+  }
   int len = sizeof(EncodedPtrInitialMessage);
   EncodedPtrInitialMessage msg;
   msg.type = MessageTypes::INITWITHREGIONHANDLER;
@@ -83,7 +81,7 @@ void RegionDataRemote::randomize() {
 
 const RemoteRegionHandler* RegionDataRemote::remoteRegionHandler() const {
   if (_remoteRegionHandler.remoteHandler == 0) {
-    _remoteObject->waitUntilCreated();
+    remoteObject()->waitUntilCreated();
   }
   return &_remoteRegionHandler;
 }

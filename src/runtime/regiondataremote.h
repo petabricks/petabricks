@@ -29,11 +29,10 @@ namespace petabricks {
     RemoteRegionHandler _remoteRegionHandler;
 
   public:
-    RegionDataRemote(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject);
     RegionDataRemote(const int dimensions, const IndexT* size, RemoteHostPtr host);
     RegionDataRemote(const int dimensions, const IndexT* size, const HostPid& hostPid, const EncodedPtr remoteHandler);
     ~RegionDataRemote() {
-      //JTRACE("Destruct RegionDataRemote");
+      //JTRACE("Destruct RegionDataRemote")(this);
     }
 
     void init(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject);
