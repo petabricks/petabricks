@@ -24,6 +24,7 @@ namespace petabricks {
     RegionHandler(const int dimensions);
     RegionHandler(const int dimensions, const IndexT* size, const bool alloc);
     RegionHandler(const RegionDataIPtr regionData);
+    ~RegionHandler() { JTRACE("destruct handler")(this); };
     //RegionHandler(const EncodedPtr remoteObjPtr);
 
     ElementT readCell(const IndexT* coord);
