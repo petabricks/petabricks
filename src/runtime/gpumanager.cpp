@@ -66,10 +66,8 @@ cl_context GpuManager::_context = -1;
 
 extern "C" void *startGpuManager(void* /*arg*/) {
   if(!_useOpenCL()) return NULL;
-  //try {
   petabricks::WorkerThread::markUtilityThread();
   petabricks::GpuManager::mainLoop();
-  //}catch(petabricks::DynamicScheduler::CleanExitException e){}
   return NULL;
 }
 
@@ -224,12 +222,14 @@ bool GpuManager::copyout(GpuDynamicTaskPtr task) {
   CopyoutInfoPtr copyInfo = storage->getCopyoutInfo(_currenttaskinfo->nodeID());
   //TODO: still not totally right
   if(!copyInfo) {
+    // The CopyoutInfo hasn't been created yet. Not done.
     #ifdef GPU_TRACE
     std::cout << "not done " << _currenttaskinfo->nodeID() << std::endl;
     #endif
     return false;
   }
-  if(copyInfo->done()) {
+  if(copyInfo->closed()) {
+    // Read buffer has been completed, and data has been copied by other copy-out task.
     #ifdef GPU_TRACE
     std::cout << "done " << _currenttaskinfo->nodeID() << std::endl;
     #endif
@@ -238,6 +238,7 @@ bool GpuManager::copyout(GpuDynamicTaskPtr task) {
     return true;
   }
   if(copyInfo->complete()) {
+    // Read buffer is just completed, and data needs to be copied out.
     #ifdef GPU_TRACE
     std::cout << "copy out... " << &(*storage) << std::endl;
     std::cout << "done " << _currenttaskinfo->nodeID() << std::endl;
