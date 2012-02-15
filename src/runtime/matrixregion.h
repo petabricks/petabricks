@@ -240,11 +240,13 @@ public:
     for(int i=0; i<s; ++i)
       tmp->data()[i] = -666;
     #endif
-    MatrixRegion m = MatrixRegion(tmp, tmp->data(), sizes);
     #ifdef COLUMN_MAJOR
+    IndexT sizesT[D];
+    for (int i=0; i<D; ++i) sizesT[i] = sizes[D-i-1];
+    MatrixRegion m = MatrixRegion(tmp, tmp->data(), sizesT);
     return m.transposed();
     #else
-    return m;
+    return MatrixRegion(tmp, tmp->data(), sizes);
     #endif
   }
 
