@@ -15,8 +15,9 @@
 typedef          long long int64;
 typedef unsigned long long uint64;
 
-inline int getBits(ElementT in, int position)
+static int getBits(ElementT in, int position)
 {
+  JASSERT(sizeof(ElementT) == 8);
   union {
     ElementT d;
     uint64 u;
@@ -30,7 +31,7 @@ inline int getBits(ElementT in, int position)
   return (inInt & ((uint64) (NUM_BUCKETS - 1) << position)) >> position;
 }
 
-inline void Radix(workstealing::MatrixRegion1D &out, workstealing::MatrixRegion1D &in, int *buckets, int pos)
+static void Radix(workstealing::MatrixRegion1D &out, workstealing::MatrixRegion1D &in, int *buckets, int pos)
 {
   in.useOnCpu();
   int i;
@@ -47,7 +48,7 @@ inline void Radix(workstealing::MatrixRegion1D &out, workstealing::MatrixRegion1
 }
 
 
-inline void Radix(distributed::MatrixRegion1D &out, distributed::MatrixRegion1D &in, int *buckets, int pos)
+static void Radix(distributed::MatrixRegion1D &out, distributed::MatrixRegion1D &in, int *buckets, int pos)
 {
   int i;
   for (i = 0; i < in.size(0); i++) {
