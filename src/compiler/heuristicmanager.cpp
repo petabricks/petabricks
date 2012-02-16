@@ -59,8 +59,8 @@ petabricks::HeuristicPtr& petabricks::HeuristicManager::getHeuristic(const std::
   }
   
   //Should never arrive here! Every heuristic should have a default
-  JWARNING("Unable to find this heuristic. Does it have a default?")(name);
-  abort();
+  JNOTE("Unable to find this heuristic. Does it have a default?")(name);
+  UNIMPLEMENTED();
 }
 
 void petabricks::HeuristicManager::loadFromFile(const std::string fileName) {
