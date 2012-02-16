@@ -518,7 +518,7 @@ void petabricks::RemoteHost::sendMsg(GeneralMessage* msg, const void* data, size
 
 void petabricks::RemoteHost::createRemoteObject(const RemoteObjectPtr& local,
                                                 RemoteObjectGenerator remote,
-                                                const void* data, size_t len){
+                                                const void* data, size_t len) {
   local->markInitiatorMu();
   local->setHostMu(this);
   GeneralMessage msg = { MessageTypes::REMOTEOBJECT_CREATE,

@@ -64,7 +64,7 @@ void petabricks::RemoteObject::onComplete() {
 void petabricks::RemoteObject::onNotify(int arg) {
   JTRACE("notify")(_flags)(arg);
 }
-void petabricks::RemoteObject::send(const void* p, size_t s, int arg) {
+void petabricks::RemoteObject::send(const void* p, size_t s, int arg) const {
   host()->sendData(this, p, s, arg);
 }
 void petabricks::RemoteObject::remoteSignal() {

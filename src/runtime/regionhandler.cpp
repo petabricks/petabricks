@@ -107,8 +107,8 @@ DataHostPidList RegionHandler::hosts(const IndexT* begin, const IndexT* end) con
   return _regionData->hosts(begin, end);
 }
 
-RemoteHostPtr RegionHandler::host() {
-  return _regionData->host();
+RemoteHostPtr RegionHandler::dataHost() {
+  return _regionData->dataHost();
 }
 
 int RegionHandler::dimensions() const {

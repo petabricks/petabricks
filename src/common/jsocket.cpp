@@ -193,7 +193,7 @@ ssize_t jalib::JSocket::tryReadAll ( char* buf, size_t len )
   return rv;
 }
 
-ssize_t jalib::JSocket::write ( const char* buf, size_t len )
+ssize_t jalib::JSocket::write ( const char* buf, size_t len ) const
 {
   return ::write ( _sockfd, buf,len );
 }
@@ -261,7 +261,7 @@ ssize_t jalib::JSocket::readAllFallback ( char* buf, size_t len )
   return origLen;
 }
 
-ssize_t jalib::JSocket::writeAll( const char* buf, size_t len )
+ssize_t jalib::JSocket::writeAll( const char* buf, size_t len ) const
 {
   ssize_t rv = ::write( _sockfd, buf,len);
   if(rv<0 && (errno == EWOULDBLOCK || errno == EINTR)) {
@@ -274,8 +274,7 @@ ssize_t jalib::JSocket::writeAll( const char* buf, size_t len )
   return rv;
 }
 
-ssize_t jalib::JSocket::writeAllFallback ( const char* buf, size_t len )
-{
+ssize_t jalib::JSocket::writeAllFallback ( const char* buf, size_t len ) const {
   int origLen = len;
   while ( len > 0 )
   {

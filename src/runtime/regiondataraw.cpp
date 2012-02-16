@@ -121,7 +121,7 @@ DataHostPidList RegionDataRaw::hosts(const IndexT* /*begin*/, const IndexT* /*en
   return DataHostPidList(1, item);
 }
 
-RemoteHostPtr RegionDataRaw::host() {
+RemoteHostPtr RegionDataRaw::dataHost() {
   // local
   return NULL;
 }

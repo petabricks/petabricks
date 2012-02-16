@@ -8,7 +8,7 @@ using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
 
 RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, RemoteHostPtr host) {
-  init(dimensions, size, new RegionDataRemoteObject(this));
+  init(dimensions, size);
 
   // InitialMsg
   size_t size_sz = _D * sizeof(IndexT);
@@ -20,30 +20,26 @@ RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, Rem
   msg->dimensions = _D;
   memcpy(msg->size, size, size_sz);
 
-  host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, buf, msg_len);
-
-  // This is called during allocate, so we need to make sure that data is ready before continuing
-  _remoteObject->waitUntilCreated();
+  host->createRemoteObject(this, &RegionMatrixProxy::genRemote, buf, msg_len);
 }
 
 RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, const HostPid& hostPid, const EncodedPtr remoteHandler) {
-  init(dimensions, size, new RegionDataRemoteObject(this));
+  init(dimensions, size);
 
   // Defer the initialization of _remoteObject
   _remoteRegionHandler.hostPid = hostPid;
   _remoteRegionHandler.remoteHandler = remoteHandler;
 }
 
-void RegionDataRemote::init(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject) {
+void RegionDataRemote::init(const int dimensions, const IndexT* size) {
   _D = dimensions;
   _type = RegionDataTypes::REGIONDATAREMOTE;
-  _remoteObject = remoteObject;
 
   memcpy(_size, size, sizeof(IndexT) * _D);
 }
 
 void RegionDataRemote::createRemoteObject() const {
-  if (_remoteObject->isInitiator()) {
+  if (this->isInitiator()) {
     return;
   }
   int len = sizeof(EncodedPtrInitialMessage);
@@ -51,14 +47,8 @@ void RegionDataRemote::createRemoteObject() const {
   msg.type = MessageTypes::INITWITHREGIONHANDLER;
   msg.encodedPtr = _remoteRegionHandler.remoteHandler;
   RemoteHostPtr host = RemoteHostDB::instance().host(_remoteRegionHandler.hostPid);
-  host->createRemoteObject(_remoteObject.asPtr(), &RegionMatrixProxy::genRemote, &msg, len);
-}
-
-RegionDataRemoteObjectPtr RegionDataRemote::remoteObject() const {
-  if (!_remoteObject->isInitiator()) {
-    createRemoteObject();
-  }
-  return _remoteObject;
+  // Create RemoteObject takes `const RemoteObjectPtr`
+  host->createRemoteObject(const_cast<RegionDataRemote*>(this), &RegionMatrixProxy::genRemote, &msg, len);
 }
 
 int RegionDataRemote::allocData() {
@@ -320,7 +310,7 @@ DataHostPidList RegionDataRemote::hosts(const IndexT* begin, const IndexT* end) 
   return list;
 }
 
-RemoteHostPtr RegionDataRemote::host() {
+RemoteHostPtr RegionDataRemote::dataHost() {
   return remoteObject()->host();
 }
 
@@ -365,10 +355,10 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
   remoteObject()->send(header, dataLen);
   free(header);
 
-  JLOCKSCOPE(*_remoteObject);
+  JLOCKSCOPE(*this);
   // wait for the data
   while (*responseData == 0 || *responseLen == 0) {
-    _remoteObject->waitMsgMu();
+    this->waitMsgMu();
   }
 }
 
