@@ -16,16 +16,11 @@
 namespace petabricks {
   using namespace petabricks::RegionDataRemoteMessage;
 
-
   class RegionDataRemote;
   typedef jalib::JRef<RegionDataRemote> RegionDataRemotePtr;
 
-  class RegionDataRemoteObject;
-  typedef jalib::JRef<RegionDataRemoteObject> RegionDataRemoteObjectPtr;
-
-  class RegionDataRemote : public RegionDataI, IRegionCacheable {
+  class RegionDataRemote : public RegionDataI, public RemoteObject, IRegionCacheable {
   private:
-    RegionDataRemoteObjectPtr _remoteObject;
     RemoteRegionHandler _remoteRegionHandler;
 
   public:
@@ -35,7 +30,11 @@ namespace petabricks {
       //JTRACE("Destruct RegionDataRemote")(this);
     }
 
-    void init(const int dimensions, const IndexT* size, const RegionDataRemoteObjectPtr remoteObject);
+    long refCount() const { return RemoteObject::refCount(); }
+    void incRefCount() const { RemoteObject::incRefCount(); }
+    void decRefCount() const { RemoteObject::decRefCount(); }
+
+    void init(const int dimensions, const IndexT* size);
 
     int allocData();
     void randomize();
@@ -60,7 +59,7 @@ namespace petabricks {
     void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
 
     DataHostPidList hosts(const IndexT* begin, const IndexT* end) const;
-    RemoteHostPtr host();
+    RemoteHostPtr dataHost();
 
     // Update long chain of RegionHandlers
     UpdateHandlerChainReplyMessage updateHandlerChain();
@@ -84,29 +83,16 @@ namespace petabricks {
 
   private:
     void createRemoteObject() const;
-    RegionDataRemoteObjectPtr remoteObject() const;
 
-  };
-
-
-  class RegionDataRemoteObject : public RemoteObject {
-  protected:
-    RegionDataRemote* _regionData;
-  public:
-    RegionDataRemoteObject(RegionDataRemote* regionData) {
-      _regionData = regionData;
-    }
-
-    ~RegionDataRemoteObject() {}
-
-    void onRecv(const void* data, size_t len, int type) {
-      _regionData->onRecv(data, len, type);
-    }
-
-    RegionDataIPtr regionData() {
-      return _regionData;
+    const RegionDataRemote* remoteObject() const {
+      if (!this->isInitiator()) {
+        createRemoteObject();
+      }
+      waitUntilCreated();
+      return this;
     }
   };
+
 }
 
 #endif

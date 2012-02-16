@@ -25,7 +25,6 @@ namespace petabricks {
     RegionHandler(const int dimensions, const IndexT* size, const bool alloc);
     RegionHandler(const RegionDataIPtr regionData);
     // ~RegionHandler() { JTRACE("destruct handler")(this); };
-    //RegionHandler(const EncodedPtr remoteObjPtr);
 
     ElementT readCell(const IndexT* coord);
     void writeCell(const IndexT* coord, ElementT value);
@@ -40,7 +39,7 @@ namespace petabricks {
     void updateRegionData(RegionDataIPtr regionData);
 
     DataHostPidList hosts(const IndexT* begin, const IndexT* end) const;
-    RemoteHostPtr host();
+    RemoteHostPtr dataHost();
 
     int dimensions() const;
     const IndexT* size() const;

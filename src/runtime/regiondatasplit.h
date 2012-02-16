@@ -15,7 +15,7 @@ namespace petabricks {
   class RegionDataSplit;
   typedef jalib::JRef<RegionDataSplit> RegionDataSplitPtr;
 
-  class RegionDataSplit : public RegionDataI {
+  class RegionDataSplit : public RegionDataI, public jalib::JRefCounted {
 
   private:
     IndexT _splitSize[MAX_DIMENSIONS];
@@ -27,6 +27,10 @@ namespace petabricks {
   public:
     RegionDataSplit(int dimensions, const IndexT* sizes, const IndexT* splitSize);
     void init(int dimensions, const IndexT* sizes, const IndexT* splitSize);
+
+    long refCount() const { return jalib::JRefCounted::refCount(); }
+    void incRefCount() const { jalib::JRefCounted::incRefCount(); }
+    void decRefCount() const { jalib::JRefCounted::decRefCount(); }
 
     int allocData();
     void createPart(int partIndex, RemoteHostPtr host);
@@ -40,7 +44,7 @@ namespace petabricks {
     void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
 
     DataHostPidList hosts(const IndexT* begin, const IndexT* end) const;
-    RemoteHostPtr host() { UNIMPLEMENTED(); return NULL; }
+    RemoteHostPtr dataHost() { UNIMPLEMENTED(); return NULL; }
 
     RegionHandlerPtr coordToPart(const IndexT* coord, IndexT* coordPart) const;
     int incPartCoord(IndexT* coord, const IndexT* begin, const IndexT* end) const;

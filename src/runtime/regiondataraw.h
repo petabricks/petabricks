@@ -8,7 +8,7 @@ namespace petabricks {
   class RegionDataRaw;
   typedef jalib::JRef<RegionDataRaw> RegionDataRawPtr;
 
-  class RegionDataRaw : public RegionDataI {
+  class RegionDataRaw : public RegionDataI, public jalib::JRefCounted {
 
   private:
     MatrixStoragePtr _storage;
@@ -18,6 +18,10 @@ namespace petabricks {
     RegionDataRaw(const char* filename);
     RegionDataRaw(const int dimensions, const IndexT* size);
     RegionDataRaw(const int dimensions, const IndexT* size, const ElementT* data);
+
+    long refCount() const { return jalib::JRefCounted::refCount(); }
+    void incRefCount() const { jalib::JRefCounted::incRefCount(); }
+    void decRefCount() const { jalib::JRefCounted::decRefCount(); }
 
     ElementT readCell(const IndexT* coord) const;
     void writeCell(const IndexT* coord, ElementT value);
@@ -31,7 +35,7 @@ namespace petabricks {
     void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
 
     DataHostPidList hosts(const IndexT* begin, const IndexT* end) const;
-    RemoteHostPtr host();
+    RemoteHostPtr dataHost();
 
     void processReadCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processWriteCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);

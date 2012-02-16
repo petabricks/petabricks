@@ -503,7 +503,7 @@ namespace petabricks {
     // Similar to dataHosts, but will not send any remote messages
     //
     RemoteHostPtr dataHost() const {
-      return _regionHandler->host();
+      return _regionHandler->dataHost();
     }
 
     //

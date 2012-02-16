@@ -17,7 +17,7 @@ namespace petabricks {
   class RegionDataI;
   typedef jalib::JRef<RegionDataI> RegionDataIPtr;
 
-  class RegionDataI : public jalib::JRefCounted {
+  class RegionDataI {
   protected:
     int _D;
     RegionDataType _type;
@@ -26,6 +26,10 @@ namespace petabricks {
     IndexT _size[MAX_DIMENSIONS];
 
   public:
+    virtual long refCount() const = 0;
+    virtual void incRefCount() const = 0;
+    virtual void decRefCount() const = 0;
+
     virtual int allocData() = 0;
 
     virtual ElementT readCell(const IndexT* coord) const = 0;
@@ -68,7 +72,7 @@ namespace petabricks {
     }
 
     virtual DataHostPidList hosts(const IndexT* begin, const IndexT* end) const = 0;
-    virtual RemoteHostPtr host() = 0;
+    virtual RemoteHostPtr dataHost() = 0;
 
     // Process Remote Messages
     virtual void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);

@@ -59,7 +59,7 @@ namespace jalib
     public:
       ///
       /// Create new socket
-      JSocket(); 
+      JSocket();
 
       //so we dont leak FDs
       inline static JSocket Create() { return JSocket(); }
@@ -76,12 +76,12 @@ namespace jalib
       JSocket accept ( struct sockaddr_storage* remoteAddr = NULL,socklen_t* remoteLen = NULL );
       bool close();
       ssize_t read ( char* buf, size_t len );
-      ssize_t write ( const char* buf, size_t len );
+      ssize_t write ( const char* buf, size_t len ) const;
       ssize_t tryReadAll ( char* buf, size_t len );
       ssize_t readAll( char* buf, size_t len );
-      ssize_t writeAll( const char* buf, size_t len );
+      ssize_t writeAll( const char* buf, size_t len ) const;
       ssize_t readAllFallback ( char* buf, size_t len );
-      ssize_t writeAllFallback ( const char* buf, size_t len );
+      ssize_t writeAllFallback ( const char* buf, size_t len ) const;
       bool isValid() const;
 
       void enablePortReuse();

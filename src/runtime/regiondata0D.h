@@ -7,7 +7,7 @@
 namespace petabricks {
   using namespace petabricks::RegionDataRemoteMessage;
 
-  class RegionData0D : public RegionDataI {
+  class RegionData0D : public RegionDataI, public jalib::JRefCounted {
 
   private:
     ElementT* _value;
@@ -32,6 +32,10 @@ namespace petabricks {
       if (_shouldDeleteValue) delete _value;
     }
 
+    long refCount() const { return jalib::JRefCounted::refCount(); }
+    void incRefCount() const { jalib::JRefCounted::incRefCount(); }
+    void decRefCount() const { jalib::JRefCounted::decRefCount(); }
+
     int allocData() {
       return 0;
     }
@@ -53,7 +57,7 @@ namespace petabricks {
       return DataHostPidList(1, item);
     }
 
-    RemoteHostPtr host() { return NULL; }
+    RemoteHostPtr dataHost() { return NULL; }
 
     void processReadCellCacheMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
       size_t values_sz = sizeof(ElementT);
@@ -79,7 +83,7 @@ namespace petabricks {
     }
   };
 
-  class ConstRegionData0D : public RegionDataI {
+  class ConstRegionData0D : public RegionDataI, public jalib::JRefCounted {
 
   private:
     ElementT _value;
@@ -95,6 +99,10 @@ namespace petabricks {
       _type = RegionDataTypes::CONSTREGIONDATA0D;
       _value = value;
     }
+
+    long refCount() const { return jalib::JRefCounted::refCount(); }
+    void incRefCount() const { jalib::JRefCounted::incRefCount(); }
+    void decRefCount() const { jalib::JRefCounted::decRefCount(); }
 
     int allocData() {
       return 0;
@@ -117,7 +125,7 @@ namespace petabricks {
       return DataHostPidList(1, item);
     }
 
-    RemoteHostPtr host() { return NULL; }
+    RemoteHostPtr dataHost() { return NULL; }
 
     void processReadCellCacheMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
       size_t values_sz = sizeof(ElementT);
