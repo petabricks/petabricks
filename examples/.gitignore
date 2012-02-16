@@ -41,6 +41,7 @@ kclustering/newclusterlocations
 kernel/BinnedLR
 kernel/Estimate
 kernel/KernelEstimate
+kernel/nwkdeBase1
 kernel/nwkdeBaseTop2
 kernel/nwkdeBaseTop
 kernel/nwkdeGenerators
@@ -58,6 +59,7 @@ LUDense/LU
 LUDense/LUTest
 matrixapprox/Bisection
 matrixapprox/matrixapprox
+miniMD/atom
 miniMD/forces
 miniMD/integrate
 miniMD/ljs
@@ -121,8 +123,8 @@ preconditioner/polypre
 preconditioner/preconditioner
 preconditioner/vectoradd
 prefixsum/prefixsum
-QR/QR
 QR/QRLAPACK
+QR/QR
 QR/QRRTest
 QR/QRTest
 regression/accuracymetric
@@ -179,13 +181,14 @@ rootsolve/evalf
 rootsolve/laguerre
 rootsolve/rootsolve
 rootsolve/secant
-simple/add
 simple/addInPlace
+simple/add
 simple/bufferrotate2
 simple/bufferrotate
 simple/cholesky
 simple/copy
 simple/dotprod
+simple/init
 simple/matrixrotate
 simple/minimalmatmul
 simple/norm
@@ -235,4 +238,3 @@ regression/errors/rulebodylinenos
 *.info
 *.obj
 -Makefile
-parser.out

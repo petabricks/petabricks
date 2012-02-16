@@ -223,6 +223,19 @@ if test "$use_jtiming" = "yes"; then
   AC_DEFINE([TIMING],[],[record timing information to stderr and jtimings.csv])
 fi
 
+
+AC_ARG_ENABLE([columnmajor],
+              [AS_HELP_STRING([--enable-columnmajor],
+                              [default to column major allocations])],
+              [use_columnmajor=$enableval],
+              [use_columnmajor=no])
+
+if test "$use_columnmajor" = "yes"; then
+  AC_DEFINE([COLUMN_MAJOR],        [1], [default to column major allocations])
+fi
+
+
+
 AC_ARG_WITH([opencl],
 	[AS_HELP_STRING([--with-opencl=PATH],[build compiler and runtime with support for OpenCL-enabled GPUs.])],
 	[],

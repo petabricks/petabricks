@@ -72,8 +72,6 @@ void GpuRule::generateKernel(Transform& trans, CodeGenerator& o, bool local) {
   trans.addInitCall(codename()+"_init"+SUFFIX);
 
   _rule->generateOpenCLKernel( trans, clcodegen, iterdef, local);
-  
- // o.os( ) << "cl_int err;";
 
   //o.os( ) << "/* -- Testing purposes only, to make this easy to read --\n\n";
   //clcodegen.outputStringTo( o.os( ) );
@@ -86,45 +84,10 @@ void GpuRule::generateKernel(Transform& trans, CodeGenerator& o, bool local) {
   o.os() << "bool rv = OpenCLUtil::buildKernel(clprog_" << _rule->id() << SUFFIX << ", clkern_" << _rule->id() << SUFFIX << ", clsrc);\n";
   o.os() << "JASSERT(rv);\n";
 
-
-///o.comment( "Source for kernel." );
-///o.os( ) << "cl_context ctx = OpenCLUtil::getContext( );\n\n";
-///
-///o.comment( "Build program." );
-///o.os( ) << "size_t programlength = strlen( clsrc );\n";
-///
-///o.os( ) << "clprog_" << _rule->id() << " = clCreateProgramWithSource( ctx, 1, (const char **)&clsrc, NULL, &err );\n";
-///o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create program.\" );\n\n";
-///o.os( ) << "err = clBuildProgram( clprog_" << _rule->id() << ", 0, NULL, NULL, NULL, NULL);\n";
-///fdef GPU_TRACE
-///o.os( ) << "std::cerr << \"clBuildProgram err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
-///ndif
-///o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to build program.\" );\n\n";
-///
-///o.comment( "Create kernel." );
-///o.os( ) << "clkern_" << _rule->id() << "= clCreateKernel( clprog_" << _rule->id() << ", \"kernel_main\", &err );\n";
-///fdef GPU_TRACE
-///o.os( ) << "std::cerr << \"clCreateKernel err #\" << err << \": \" << OpenCLUtil::errorString( err ) << std::endl;\n";
-///ndif
-///o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to create kernel.\" );\n\n";
-///fdef GPU_TRACE
-///o.write("std::cout << \"---build kernel---\" << std::endl;");
-///ndif
-///
-///o.os( ) << "return 0;\n";
   o.endFunc();
-
-  // Create actual function call
-  /*o.beginFunc("petabricks::DynamicTaskPtr", codename(), packedargs);
-  o.write("return ");
-  o.call(_rule->trampcodename(trans)+TX_OPENCL_POSTFIX, packedargnames);
-  o.endFunc();*/
 
   // Get kernel
   o.beginFunc("cl_kernel", "get_kernel_" + jalib::XToString(_rule->id()) + SUFFIX);
- //o.beginIf("clkern_" + jalib::XToString(_rule->id()) + " == 0");
- //o.call(codename() + "_init" , std::vector<std::string>());
- //o.endIf();
 #ifdef DEBUG
   o.write("JASSERT(clkern_" + jalib::XToString(_rule->id()) + SUFFIX + " != 0);");
 #endif
@@ -133,9 +96,6 @@ void GpuRule::generateKernel(Transform& trans, CodeGenerator& o, bool local) {
 
   // Get program
   o.beginFunc("cl_program", "get_program_" + jalib::XToString(_rule->id()) + SUFFIX);
- //o.beginIf("clprog_" + jalib::XToString(_rule->id()) + " == 0");
- //o.call(codename() + "_init" , std::vector<std::string>());
- //o.endIf();
 #ifdef DEBUG
   o.write("JASSERT(clprog_" + jalib::XToString(_rule->id()) + SUFFIX + " != 0);");
 #endif
@@ -244,14 +204,6 @@ GpuRule::collectDependencies(StaticScheduler& scheduler)
 {
   return _rule->collectDependencies(scheduler);
 }
-
-  /*
-void
-GpuRule::genWhereSwitch(Transform& trans, CodeGenerator& o)
-{
-  return _rule->genWhereSwitch(trans,o);
-}
-  */
 
 DependencyDirection
 GpuRule::getSelfDependency() const
