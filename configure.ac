@@ -138,10 +138,21 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[__thread int x;]])],
                     has_threadlocal=no;
                   ])
 
-AC_MSG_CHECKING([if compiler supports forced inlining])
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((flatten)) void foo(){}]])],
+
+AC_MSG_CHECKING([if compiler supports __builtin_expect])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[int foo() { int x = __builtin_expect(0,0); }]])],
                   [
-                    AC_DEFINE([INLINE],[inline __attribute__((flatten))], [keyword to force inlining])
+                    AC_DEFINE([HAVE_BUILTIN_EXPECT],1,[define __builtin_expect_works])
+                    AC_MSG_RESULT([yes]);
+                  ],
+                  [
+                    AC_MSG_RESULT([no]);
+                  ])
+
+AC_MSG_CHECKING([if compiler supports forced inlining])
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[inline __attribute__((flatten)) __attribute__((always_inline)) void foo(){}]])],
+                  [
+                    AC_DEFINE([INLINE],[inline __attribute__((flatten)) __attribute__((always_inline))], [keyword to force inlining])
                     AC_MSG_RESULT([yes]);
                   ],
                   [
