@@ -124,33 +124,6 @@ jalib::JAssert& jalib::JAssert::SetContext(
     const jalib::SrcPosTaggable* srcpos)
 {
   
-#if defined(DEBUG) && defined(HAVE_BACKTRACE_SYMBOLS)
-#define MAX_BT_LEN 10
-  if ( _exitWhenDone )
-  {
-    void *addresses[MAX_BT_LEN+1];
-    int size = backtrace(addresses, MAX_BT_LEN+1);
-    char **strings = backtrace_symbols(addresses, size);
-    if(strings!=NULL){
-      Prefix() << "Stack trace:";
-      EndLine();
-
-      for(int i = 1; i < size; i++){
-        if(i<MAX_BT_LEN){
-          Prefix() << " " << i << ": " << _cxxdemangle(strings[i]);
-          EndLine();
-        }else{
-          Prefix() << "  ...";
-          EndLine();
-          break;
-        }
-      }
-      free(strings);
-      Prefix();
-      EndLine();
-    }
-  }
-#endif
 
   if(theBeginCallback!=0){
     (*theBeginCallback)(*this);
@@ -185,13 +158,39 @@ jalib::JAssert& jalib::JAssert::VarName(const char* n){
   return Prefix() << " " << n << " = ";
 }
 
-jalib::JAssertFatal::~JAssertFatal()
+void jalib::JAssertFatal::exit()
 {
   Prefix() << "Terminating...";
   EndLine();
 #ifdef DEBUG
   jalib::Breakpoint();
 #endif
+
+#if defined(DEBUG) && defined(HAVE_BACKTRACE_SYMBOLS)
+#define MAX_BT_LEN 10
+  void *addresses[MAX_BT_LEN+1];
+  int size = backtrace(addresses, MAX_BT_LEN+1);
+  char **strings = backtrace_symbols(addresses, size);
+  if(strings!=NULL){
+    Prefix() << "Stack trace:";
+    EndLine();
+
+    for(int i = 1; i < size; i++){
+      if(i<MAX_BT_LEN){
+        Prefix() << " " << i << ": " << _cxxdemangle(strings[i]);
+        EndLine();
+      }else{
+        Prefix() << "  ...";
+        EndLine();
+        break;
+      }
+    }
+    free(strings);
+    Prefix();
+    EndLine();
+  }
+#endif
+
   _exit ( 1 );
 }
 

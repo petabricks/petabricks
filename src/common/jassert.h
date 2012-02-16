@@ -133,7 +133,12 @@ namespace jalib{
 
   class JAssertFatal : public JAssert {
   public:
-    ~JAssertFatal() ATTRIBUTE(noreturn) ATTRIBUTE(nothrow);
+    INLINE ~JAssertFatal() {
+      exit();
+    }
+  private:
+      
+    void exit() ATTRIBUTE(noreturn) ATTRIBUTE(nothrow);
   };
 
 
