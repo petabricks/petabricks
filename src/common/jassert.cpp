@@ -106,10 +106,9 @@ jalib::JAssert& jalib::JAssert::Text ( const char* msg )
   return *this;
 }
 
-jalib::JAssert::JAssert ( bool exitWhenDone )
+jalib::JAssert::JAssert ()
     : JASSERT_CONT_A ( *this )
     , JASSERT_CONT_B ( *this )
-    , _exitWhenDone ( exitWhenDone )
 {
   pthread_mutex_lock(&theMutex);
   static jalib::AtomicT next=-1;
@@ -186,7 +185,7 @@ jalib::JAssert& jalib::JAssert::VarName(const char* n){
   return Prefix() << " " << n << " = ";
 }
 
-void jalib::JAssert::dtorExit()
+jalib::JAssertFatal::~JAssertFatal()
 {
   Prefix() << "Terminating...";
   EndLine();
@@ -196,7 +195,7 @@ void jalib::JAssert::dtorExit()
   _exit ( 1 );
 }
 
-void jalib::JAssert::dtorUnlock()
+jalib::JAssert::~JAssert()
 {
   pthread_mutex_unlock(&theMutex);
 }

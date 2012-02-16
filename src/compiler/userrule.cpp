@@ -1999,8 +1999,8 @@ void petabricks::UserRule::removeDimensionFromMatrix(const MatrixDefPtr matrix,
   
 
 void petabricks::UserRule::trimDependency(DependencyDirection& dep,
-                                          const ChoiceDepGraphNode& from,
-                                          const ChoiceDepGraphNode& to)
+                                          const ChoiceDepGraphNode& /*from*/,
+                                          const ChoiceDepGraphNode& /*to*/)
 {
   if(dep.isMultioutput() && _to.size() <= 1) {
     dep.removeMultioutput(); 

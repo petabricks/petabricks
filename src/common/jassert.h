@@ -75,6 +75,7 @@
 #include <sstream>
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -99,15 +100,10 @@ namespace jalib{
       JAssert& Text ( const std::string& msg ){ return Text(msg.c_str()); }
       ///
       /// constructor: sets members
-      JAssert ( bool exitWhenDone );
+      JAssert ( );
       ///
       /// destructor: exits program if exitWhenDone is set
-      INLINE ~JAssert(){
-        if(_exitWhenDone)
-          dtorExit();
-        else
-          dtorUnlock();
-      }
+      ~JAssert();
       ///
       /// termination point for crazy macros
       JAssert& JASSERT_CONT_A;
@@ -129,17 +125,17 @@ namespace jalib{
       JAssert& Prefix();
       JAssert& EndLine(){ return Print('\n'); }
 
-      bool IsFatal() const { return _exitWhenDone; }
     private:
-      void dtorExit() ATTRIBUTE(noreturn) ATTRIBUTE(nothrow);
-      static void dtorUnlock();
-    private:
-      ///
-      /// if set true (on construction) call exit() on destruction
-      bool _exitWhenDone;
-
       long _id;
   };
+
+  class JAssertNonFatal : public JAssert {};
+
+  class JAssertFatal : public JAssert {
+  public:
+    ~JAssertFatal() ATTRIBUTE(noreturn) ATTRIBUTE(nothrow);
+  };
+
 
   const char* jassert_basename ( const char* str );
   std::ostream& jassert_output_stream();
@@ -182,10 +178,10 @@ namespace jalib{
 //helpers:
 #define JASSERT_ERRNO          (strerror(errno))
 #define JASSERT_INIT()         JASSERT_PRINT("")
-#define JASSERT_PRINT(str)     jalib::JAssert(false).Print(str)
+#define JASSERT_PRINT(str)     jalib::JAssertNonFatal.Print(str)
 #define JASSERT_SET_LOGFILE(p) jalib::set_log_file(p)
 #define JASSERT_STDERR_FD      jalib::jassert_console_fd()
-#define JASSERT_STDERR         jalib::JAssert(false)
+#define JASSERT_STDERR         jalib::JAssertNonFatal()
 #define JASSERT_CAT(a,b)       a ## b
 #define JASSERT_STRINGIFY(x)   JASSERT_STRINGIFY_(x)
 #define JASSERT_STRINGIFY_(x)  #x
@@ -207,10 +203,10 @@ namespace jalib{
 #define JASSERT_CONT_B(term) JASSERT_CONT(A,term)
 
 //actual macros follow
-#define JASSERT_NOP if(true){}else jalib::JAssert(false).JASSERT_CONT_A
+#define JASSERT_NOP if(true){}else jalib::JAssertNonFatal().JASSERT_CONT_A
 
 #ifdef DEBUG
-#define JTRACE(msg) jalib::JAssert(false).JASSERT_CONTEXT("TRACE",msg).JASSERT_CONT_A
+#define JTRACE(msg) jalib::JAssertNonFatal().JASSERT_CONTEXT("TRACE",msg).JASSERT_CONT_A
 #define JDEBUGWARNING JWARNING
 #define JDEBUGASSER JASSERT
 #else
@@ -220,11 +216,11 @@ namespace jalib{
 #endif
 
 #define JNOTE(msg) \
-    jalib::JAssert(false).JASSERT_CONTEXT("NOTE",msg).JASSERT_CONT_A
+    jalib::JAssertNonFatal().JASSERT_CONTEXT("NOTE",msg).JASSERT_CONT_A
 #define JWARNING(term) if((term)){}else \
-    jalib::JAssert(false).JASSERT_CONTEXT("WARNING","JWARNING(" #term ") failed").JASSERT_CONT_A
+    jalib::JAssertNonFatal().JASSERT_CONTEXT("WARNING","JWARNING(" #term ") failed").JASSERT_CONT_A
 #define JASSERT(term)  if((term)){}else \
-    jalib::JAssert(true).JASSERT_CONTEXT("ERROR","JASSERT(" #term ") failed").JASSERT_CONT_A
+    jalib::JAssertFatal().JASSERT_CONTEXT("ERROR","JASSERT(" #term ") failed").JASSERT_CONT_A
 
 #ifdef UNSAFE
 #undef  JWARNING
@@ -235,7 +231,7 @@ namespace jalib{
 #define JNOTE(m)  JASSERT_NOP
 #endif
 
-#define UNIMPLEMENTED() JASSERT(false).Text("Unimplemented");
+#define UNIMPLEMENTED() do{ JASSERT(false).Text("Unimplemented"); exit(1); }while(false);
 
 #define JASSERT_STATIC(term) extern char JASSERT_CAT(_jassert_static_,__LINE__) [ 1 - 2*( (term)==0 ) ]
 
