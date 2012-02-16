@@ -102,7 +102,12 @@ namespace jalib{
       JAssert ( bool exitWhenDone );
       ///
       /// destructor: exits program if exitWhenDone is set
-      ~JAssert();
+      INLINE ~JAssert(){
+        if(_exitWhenDone)
+          dtorExit();
+        else
+          dtorUnlock();
+      }
       ///
       /// termination point for crazy macros
       JAssert& JASSERT_CONT_A;
@@ -125,6 +130,9 @@ namespace jalib{
       JAssert& EndLine(){ return Print('\n'); }
 
       bool IsFatal() const { return _exitWhenDone; }
+    private:
+      void dtorExit() ATTRIBUTE(noreturn) ATTRIBUTE(nothrow);
+      static void dtorUnlock();
     private:
       ///
       /// if set true (on construction) call exit() on destruction

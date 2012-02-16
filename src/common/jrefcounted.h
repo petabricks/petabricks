@@ -38,16 +38,33 @@
 
 namespace jalib {
 
-void _JRefAbort(const char* msg);
+void _JRefAbort(const char* msg) ATTRIBUTE(noreturn);
 
 /**
  * Basic policy for JRef, normal ref counted objects
  */
-template < typename T > struct JRefPolicyShared{
+template < typename T > struct JRefPolicyFast{
   static void inc(T* o){ if(o!=NULL) o->incRefCount(); }
   static void dec(T* o){ if(o!=NULL) o->decRefCount(); }
   static void use(T*){}
 };
+
+
+/**
+ * Basic policy for JRef, normal ref counted objects
+ */
+template < typename T > struct JRefPolicyDebug{
+  static void inc(T* o){ if(o!=NULL) o->incRefCount(); }
+  static void dec(T* o){ if(o!=NULL) o->decRefCount(); }
+  static void use(T* o){
+    if(o==NULL) {
+      _JRefAbort("dereferencing a null pointer.");
+    }else if(o->refCount() <= 0){
+      _JRefAbort("accessing a deleted object!");
+    }
+  }
+};
+
 
 /**
  * Basic policy for JRef, copy on write objects
@@ -63,6 +80,7 @@ template < typename T > struct JRefPolicyCopied{
       o=t;
     }
   }
+  static void check(T*){}
 };
 
 /**
@@ -77,7 +95,13 @@ template < typename T > struct JRefPolicyLeaked {
 /**
  * Reference to a JRefCounted
  */
-template < typename T, typename Policy = JRefPolicyShared<T> >
+template < typename T, typename Policy =
+#ifdef DEBUG
+  JRefPolicyDebug<T> 
+#else
+  JRefPolicyFast<T> 
+#endif
+>
 class JRef{
 public:
   static const JRef& null() { static JRef t; return t; }
@@ -99,14 +123,12 @@ public:
 
   //accessor
   T* operator->() const {
-    check();
     use();
     return _obj;
   }
 
   //accessor
   T& operator*()  const {
-    check();
     use();
     return *_obj;
   }
@@ -118,8 +140,8 @@ public:
     return _obj!=NULL;
   }
 
-  operator const T& () const { check(); use(); return *_obj; }
-  operator T& ()             { check(); use(); return *_obj; }
+  operator const T& () const { use(); return *_obj; }
+  operator T& ()             { use(); return *_obj; }
 
   //compare
   friend bool operator == (const JRef& a, const JRef& b) { return a._obj == b._obj; }
@@ -133,11 +155,6 @@ private: //helpers:
   void inc() const { Policy::inc(_obj); }
   void dec() const { Policy::dec(_obj); }
   void use() const { Policy::use(_obj); }
-#ifdef DEBUG
-  void check() const { if(_obj==NULL) _JRefAbort("Would have dereferenced null pointer."); }
-#else
-  void check() const {}
-#endif
 private:
   mutable T* _obj;
 };
@@ -151,21 +168,38 @@ protected:
   JRefCounted(const JRefCounted&) : _refCount(0) {}
   virtual ~JRefCounted(){}
 public:
-  inline void incRefCount() const{
+  INLINE void incRefCount() const{
+    _refcheck(0);
     atomicIncrement(&_refCount);
   }
-  inline void decRefCount() const{
+  INLINE void decRefCount() const{
+    _refcheck(1);
+    if(atomicDecrementReturn(&_refCount)==0){
 #ifdef DEBUG
-    if(_refCount<=0) _JRefAbort("negative ref count");
+      //poison ref count in debug mode
+      _refCount  = -666;
 #endif
-    if(atomicDecrementReturn(&_refCount)==0)
       delete this;
+    }
   }
-  inline long refCount() const{
+  INLINE long refCount() const{
+    _refcheck(0);
     return _refCount;
   }
-  inline void incRefCountUnsafe() const {
+  INLINE void incRefCountUnsafe() const {
+    _refcheck(0);
     ++_refCount;
+  }
+    
+private: 
+  INLINE void _refcheck(int minlegal) const {
+#ifdef DEBUG
+    if(_refCount < minlegal) {
+      _JRefAbort("negative ref count");
+    }
+#else
+    (void)minlegal;//use
+#endif
   }
 private:
   //PADDING(56);
