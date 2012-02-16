@@ -129,7 +129,10 @@ void petabricks::RuleChoiceCollection::generateDecisionTree(std::string& pfx, si
     if(lvl<MAX_REC_LEVELS) {
       std::string cutoff = pfx + "lvl" + jalib::XToString(lvl+1) + "_cutoff";
       o.createTunable(true, "algchoice.cutoff", cutoff, jalib::maxval<int>(), 1);
-      o.beginIf("_transform_n < "+cutoff);
+      if(lvl==1)
+        o.beginIf("LIKELY(_transform_n < "+cutoff+")");
+      else
+        o.beginIf("_transform_n < "+cutoff);
     }
 
     o.write("return "+rule+";");

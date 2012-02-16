@@ -1061,7 +1061,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       unsigned int blockNumber = blockNumberHeur.eval(ValueMap()); /**< The number of blocks the loop will be
                                                                     * splitted into */
       JTRACE("LOOP BLOCKING")(blockNumber);
-      o.beginIf("petabricks::split_condition<"+jalib::XToString(dimensions())+", "+jalib::XToString(blockNumber)+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")");
+      o.beginIf("UNLIKELY((petabricks::split_condition<"+jalib::XToString(dimensions())+", "+jalib::XToString(blockNumber)+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")))");
       iterdef.genSplitCode(o, trans, *this, flavor, blockNumber);
       // return written in get split code
       o.elseIf();
