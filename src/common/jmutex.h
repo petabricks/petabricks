@@ -50,19 +50,38 @@ class JMutexSpin{
 public:
   JMutexSpin() : _v(0) {}
   
-  bool trylock() const {
+  INLINE bool _trylock() const {
     return _v==0 && fetchAndStore(&_v, 1)==0;
   }
 
-  void unlock() const {
+  INLINE bool trylock() const {
+#ifdef DEBUG
+    if(_trylock()) {
+      _owner = pthread_self();
+      return true;
+    }
+    return false;
+#else
+    return _trylock();
+#endif
+  }
+
+  
+
+  INLINE void unlock() const {
     staticMemFence();
 #ifdef DEBUG
-    JASSERT(_v!=0);
+    JASSERT(_v==1);
+    JASSERT(pthread_equal(_owner, pthread_self()));
+    memset(&_owner, -1, sizeof _owner);
 #endif
     _v = 0;
   }
   
-  void lock() const {
+  INLINE void lock() const {
+#ifdef DEBUG
+    JASSERT(_v==0 || !pthread_equal(_owner, pthread_self()));
+#endif
     while(!trylock()) {
       staticMemFence();
     }
@@ -73,6 +92,9 @@ protected:
   /// 0 for unlocked, 1 for locked
   mutable long _v;
   PADDING(CACHE_LINE_SIZE - sizeof(long));
+#ifdef DEBUG
+  mutable pthread_t _owner;
+#endif
 } __attribute__((aligned(CACHE_LINE_SIZE)));
 
 
