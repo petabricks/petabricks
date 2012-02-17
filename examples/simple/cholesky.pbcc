@@ -346,13 +346,13 @@ tunable sizespecific blockSize
 // recursive in-place version (split into quadrants and recurse)
 transform CholeskyRecursive
 to L[n,n]
-tunable recursiveBlockSize
+tunable blockSize
 {
     // similar to right-looking blocked version
     to (L l) from ()
     {
         // base case
-        if (recursiveBlockSize < 1 || recursiveBlockSize >= n) {
+        if (blockSize < 1 || n <= blockSize) {
             CholeskyBlocked(l);
             return;
         }
@@ -388,6 +388,7 @@ to L[n,n]
         CholeskyRecursive(l);
     }
 
+#if 0
     to (L l) from ()
     {
         CholeskyBlocked(l);
@@ -397,6 +398,7 @@ to L[n,n]
     {
         CholeskyBase(l);
     }
+#endif
 }
 
 // out-of-place version
