@@ -35,6 +35,7 @@ namespace petabricks {
     int allocData();
     void createPart(int partIndex, RemoteHostPtr host);
     void setPart(int partIndex, const RemoteRegionHandler& remoteRegionHandler);
+    IndexT numParts() const { return _numParts; };
 
     ElementT readCell(const IndexT* coord) const;
     void writeCell(const IndexT* coord, ElementT value);

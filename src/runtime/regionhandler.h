@@ -39,6 +39,7 @@ namespace petabricks {
     int allocDataOneRemoteNode(const IndexT* size);
     int allocDataRoundRobin(const IndexT* size);
     int allocDataNBySlice(const IndexT* size, int distributionSize, int sliceDimension);
+    int allocDataNByBlock(const IndexT* size, int distributionSize);
 
     RegionDataIPtr getRegionData();
     void updateRegionData(RegionDataIPtr regionData);
@@ -60,7 +61,7 @@ namespace petabricks {
     void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata=0, const IndexT* scratchStorageSize=0);
 
     // RegionDataSplit
-    void splitData(int dimensions, IndexT* sizes, IndexT* splitSize);
+    void splitData(int dimensions, const IndexT* sizes, const IndexT* splitSize);
     void createDataPart(int partIndex, RemoteHostPtr host);
 
     // Process Remote Messages

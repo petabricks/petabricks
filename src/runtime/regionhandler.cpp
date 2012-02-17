@@ -91,7 +91,11 @@ int RegionHandler::allocData(const IndexT* size, int distributedCutoff, int dist
     }
 
   } else if (distributionType == RegionDataDistributions::N_BY_BLOCK) {
-    UNIMPLEMENTED();
+    if (isSizeLargerThanDistributedCutoff(size, distributedCutoff)) {
+      allocDataNByBlock(size, distributionSize);
+    } else {
+      allocDataLocal(size);
+    }
 
   } else {
     JASSERT(false).Text("Unknown distribution type.");
@@ -129,13 +133,80 @@ int RegionHandler::allocDataOneRemoteNode(const IndexT* size) {
 }
 
 //
-// pick random node and put data there
+// pick random N nodes and put data there
 //
 int RegionHandler::allocDataNBySlice(const IndexT* size, int distributionSize, int sliceDimension) {
-  UNIMPLEMENTED();
-  // static int numHosts = RemoteHostDB::instance().size();
-  // _regionData = new RegionDataRemote(_D, size, RemoteHostDB::instance().host(PetabricksRuntime::randInt(0, numHosts)));
-  // return 1;
+  static int numRemoteHosts = RemoteHostDB::instance().size();
+  static int numHosts = numRemoteHosts + 1;
+
+  if (distributionSize > numHosts) {
+    distributionSize = numHosts;
+  }
+
+  // split data
+  IndexT splitSize[_D];
+  memcpy(splitSize, size, sizeof(IndexT) * _D);
+  splitSize[sliceDimension] = splitSize[sliceDimension] / distributionSize;
+  if (splitSize[sliceDimension] == 0) {
+    splitSize[sliceDimension] = 1;
+  }
+  splitData(_D, size, splitSize);
+
+  // create parts
+  RegionDataSplit* regionDataSplit = (RegionDataSplit*)_regionData.asPtr();
+  int numParts = regionDataSplit->numParts();
+  for (int i = 0; i < numParts; ++i) {
+    int r = PetabricksRuntime::randInt(0, numHosts);
+    if (r == numRemoteHosts) {
+      // local
+      regionDataSplit->createPart(i, NULL);
+    } else {
+      regionDataSplit->createPart(i, RemoteHostDB::instance().host(r));
+    }
+  }
+
+  regionDataSplit->allocData();
+  return 1;
+}
+
+//
+// split data to N^D pieces
+//
+int RegionHandler::allocDataNByBlock(const IndexT* size, int distributionSize) {
+  // same as allocDataNBySlice, except splitSize
+
+  static int numRemoteHosts = RemoteHostDB::instance().size();
+  static int numHosts = numRemoteHosts + 1;
+
+  if (distributionSize > numHosts) {
+    distributionSize = numHosts;
+  }
+
+  // split data
+  IndexT splitSize[_D];
+  for (int i = 0; i < _D; ++i) {
+    splitSize[i] = size[i] / distributionSize;
+    if (splitSize[i] == 0) {
+      splitSize[i] = 1;
+    }
+  }
+  splitData(_D, size, splitSize);
+
+  // create parts
+  RegionDataSplit* regionDataSplit = (RegionDataSplit*)_regionData.asPtr();
+  int numParts = regionDataSplit->numParts();
+  for (int i = 0; i < numParts; ++i) {
+    int r = PetabricksRuntime::randInt(0, numHosts);
+    if (r == numRemoteHosts) {
+      // local
+      regionDataSplit->createPart(i, NULL);
+    } else {
+      regionDataSplit->createPart(i, RemoteHostDB::instance().host(r));
+    }
+  }
+
+  regionDataSplit->allocData();
+  return 1;
 }
 
 //
@@ -272,7 +343,7 @@ void RegionHandler::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* o
 // RegionDataSplit
 //
 
-void RegionHandler::splitData(int dimensions, IndexT* sizes, IndexT* splitSize) {
+void RegionHandler::splitData(int dimensions, const IndexT* sizes, const IndexT* splitSize) {
   JASSERT((!_regionData) || type() == RegionDataTypes::REGIONDATARAW);
   RegionDataIPtr newRegionData =
     new RegionDataSplit(dimensions, sizes, splitSize);

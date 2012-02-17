@@ -160,7 +160,7 @@ void petabricks::MatrixDef::allocateTemporary(CodeGenerator& o, RuleFlavor rf, b
     std::string distributionType = o.className() + "_" + name() + "_distribution_type";
     std::string distributionSize = o.className() + "_" + name() + "_distribution_size";
 
-    o.createTunable(true, "system.data.distribution.type", distributionType, 0, 0, 1);
+    o.createTunable(true, "system.data.distribution.type", distributionType, 0, 0, 4);
     o.createTunable(true, "system.data.distribution.size", distributionSize, jalib::maxval<int>(), 2, jalib::maxval<int>());
 
     o.write("{");
