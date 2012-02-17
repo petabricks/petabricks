@@ -127,6 +127,8 @@ int RegionHandler::allocDataLocal(const IndexT* size) {
 // pick random node and put data there
 //
 int RegionHandler::allocDataOneRemoteNode(const IndexT* size) {
+  JTRACE("one remote");
+
   static int numHosts = RemoteHostDB::instance().size();
   _regionData = new RegionDataRemote(_D, size, RemoteHostDB::instance().host(PetabricksRuntime::randInt(0, numHosts)));
   return 1;
@@ -136,6 +138,8 @@ int RegionHandler::allocDataOneRemoteNode(const IndexT* size) {
 // pick random N nodes and put data there
 //
 int RegionHandler::allocDataNBySlice(const IndexT* size, int distributionSize, int sliceDimension) {
+  JTRACE("slice");
+
   static int numRemoteHosts = RemoteHostDB::instance().size();
   static int numHosts = numRemoteHosts + 1;
 
@@ -174,6 +178,7 @@ int RegionHandler::allocDataNBySlice(const IndexT* size, int distributionSize, i
 //
 int RegionHandler::allocDataNByBlock(const IndexT* size, int distributionSize) {
   // same as allocDataNBySlice, except splitSize
+  JTRACE("block");
 
   static int numRemoteHosts = RemoteHostDB::instance().size();
   static int numHosts = numRemoteHosts + 1;

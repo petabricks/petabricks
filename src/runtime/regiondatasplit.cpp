@@ -104,6 +104,12 @@ int RegionDataSplit::allocData() {
   return 0;
 }
 
+void RegionDataSplit::randomize() {
+  for (int i = 0; i < _numParts; i++) {
+    _parts[i]->randomize();
+  }
+}
+
 ElementT RegionDataSplit::readCell(const IndexT* coord) const {
   IndexT coordPart[_D];
   return this->coordToPart(coord, coordPart)->readCell(coordPart);
