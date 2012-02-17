@@ -21,6 +21,17 @@ namespace petabricks {
     };
   } PACKED;
 
+  typedef int RegionDataDistribution;
+  struct RegionDataDistributions {
+    enum {
+      LOCAL = 0,
+      ONE_REMOTE,
+      N_BY_ROW,
+      N_BY_COL,
+      N_BY_BLOCK,
+    };
+  } PACKED;
+
   struct DataHostPidListItem {
     HostPid hostPid;
     double weight;

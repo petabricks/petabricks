@@ -32,8 +32,13 @@ namespace petabricks {
     void randomize();
 
     int allocData();
-    int allocData(const IndexT* size);
+    int allocData(const IndexT* size, int distributedCutoff, int distributionType, int distributionSize);
+
+    bool isSizeLargerThanDistributedCutoff(const IndexT* size, int distributedCutoff) const;
     int allocDataLocal(const IndexT* size);
+    int allocDataOneRemoteNode(const IndexT* size);
+    int allocDataRoundRobin(const IndexT* size);
+    int allocDataNBySlice(const IndexT* size, int distributionSize, int sliceDimension);
 
     RegionDataIPtr getRegionData();
     void updateRegionData(RegionDataIPtr regionData);

@@ -236,6 +236,7 @@ public:
     _defines.clear();
   }
   bool inClass() const { return _curClass.size()>0; }
+  std::string className() const { return _curClass; }
 
   void beginUserCode(RuleFlavor rf) {
     _rf = rf;

@@ -156,7 +156,23 @@ void petabricks::MatrixDef::allocateTemporary(CodeGenerator& o, RuleFlavor rf, b
   if(reallocAllowed)
     o.beginIf("!"+name()+".isSize("+_size.toString()+")");
 
-  o.write(name()+" = "+allocateStr(rf)+";");
+  if (rf == RuleFlavor::DISTRIBUTED) {
+    std::string distributionType = o.className() + "_" + name() + "_distribution_type";
+    std::string distributionSize = o.className() + "_" + name() + "_distribution_size";
+
+    o.createTunable(true, "system.data.distribution.type", distributionType, 0, 0, 1);
+    o.createTunable(true, "system.data.distribution.size", distributionSize, jalib::maxval<int>(), 2, jalib::maxval<int>());
+
+    o.write("{");
+    o.incIndent();
+    o.write("IndexT size[] = {"+_size.toString()+"};");
+    o.write(name()+" = "+typeName(rf)+"::allocate(size, distributedcutoff, "+distributionType+", "+distributionSize+");");
+    o.decIndent();
+    o.write("}");
+  } else {
+    o.write(name()+" = "+allocateStr(rf)+";");
+
+  }
 
   if(reallocAllowed)
     o.endIf();

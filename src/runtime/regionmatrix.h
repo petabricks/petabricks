@@ -170,8 +170,8 @@ namespace petabricks {
       _regionHandler->createDataPart(partIndex, host);
     }
 
-    void allocData() {
-      _regionHandler->allocData(_size);
+    void allocData(int distributedCutoff, int distributionType, int distributionSize) {
+      _regionHandler->allocData(_size, distributedCutoff, distributionType, distributionSize);
     }
 
     void allocDataLocal() {
@@ -180,7 +180,13 @@ namespace petabricks {
 
     static RegionMatrix allocate(IndexT size[D]) {
       RegionMatrix region = RegionMatrix(size);
-      region.allocData();
+      region.allocDataLocal();
+      return region;
+    }
+
+    static RegionMatrix allocate(IndexT size[D], int distributedCutoff, int distributionType, int distributionSize) {
+      RegionMatrix region = RegionMatrix(size);
+      region.allocData(distributedCutoff, distributionType, distributionSize);
       return region;
     }
 

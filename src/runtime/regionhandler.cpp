@@ -1,5 +1,6 @@
 #include "regionhandler.h"
 
+#include "petabricksruntime.h"
 #include "regiondataraw.h"
 #include "regiondataremote.h"
 #include "regiondatasplit.h"
@@ -45,20 +46,102 @@ int RegionHandler::allocData() {
   return _regionData->allocData();
 }
 
-int RegionHandler::allocData(const IndexT* size) {
+bool RegionHandler::isSizeLargerThanDistributedCutoff(const IndexT* size, int distributedCutoff) const {
+  for (int i = 0; i < _D; ++i) {
+    if (size[i] >= distributedCutoff) {
+      return true;
+    }
+  }
+  return false;
+}
+
+int RegionHandler::allocData(const IndexT* size, int distributedCutoff, int distributionType, int distributionSize) {
   if (_regionData) {
     JASSERT(type() == RegionDataTypes::REGIONDATASPLIT);
     _regionData->allocData();
     return 1;
   }
 
-  // Create RegionData
-  // TODO: do clever data placement
-
 #ifdef REGIONMATRIX_TEST
   _regionData = new RegionDataRemote(_D, size, RemoteHostDB::instance().host(0));
+
 #else
-  // round-robin placement
+  if (distributionType == RegionDataDistributions::LOCAL) {
+    allocDataLocal(size);
+
+  } else if (distributionType == RegionDataDistributions::ONE_REMOTE) {
+    if (isSizeLargerThanDistributedCutoff(size, distributedCutoff)) {
+      allocDataOneRemoteNode(size);
+    } else {
+      allocDataLocal(size);
+    }
+
+  } else if (distributionType == RegionDataDistributions::N_BY_ROW) {
+    if (size[1] >= distributedCutoff) {
+      allocDataNBySlice(size, distributionSize, 1);
+    } else {
+      allocDataLocal(size);
+    }
+
+  } else if (distributionType == RegionDataDistributions::N_BY_COL) {
+    if (size[0] >= distributedCutoff) {
+      allocDataNBySlice(size, distributionSize, 0);
+    } else {
+      allocDataLocal(size);
+    }
+
+  } else if (distributionType == RegionDataDistributions::N_BY_BLOCK) {
+    UNIMPLEMENTED();
+
+  } else {
+    JASSERT(false).Text("Unknown distribution type.");
+
+  }
+
+#endif
+  return 1;
+}
+
+//
+// put data on current node
+//
+int RegionHandler::allocDataLocal(const IndexT* size) {
+  if (_regionData) {
+    JASSERT(type() == RegionDataTypes::REGIONDATASPLIT);
+    _regionData->allocData();
+    return 1;
+  }
+
+  // Create local data
+  _regionData = new RegionDataRaw(_D, size);
+  _regionData->allocData();
+
+  return 1;
+}
+
+//
+// pick random node and put data there
+//
+int RegionHandler::allocDataOneRemoteNode(const IndexT* size) {
+  static int numHosts = RemoteHostDB::instance().size();
+  _regionData = new RegionDataRemote(_D, size, RemoteHostDB::instance().host(PetabricksRuntime::randInt(0, numHosts)));
+  return 1;
+}
+
+//
+// pick random node and put data there
+//
+int RegionHandler::allocDataNBySlice(const IndexT* size, int distributionSize, int sliceDimension) {
+  UNIMPLEMENTED();
+  // static int numHosts = RemoteHostDB::instance().size();
+  // _regionData = new RegionDataRemote(_D, size, RemoteHostDB::instance().host(PetabricksRuntime::randInt(0, numHosts)));
+  // return 1;
+}
+
+//
+// round-robin placement
+//
+int RegionHandler::allocDataRoundRobin(const IndexT* size) {
   static int numHosts = RemoteHostDB::instance().size();
   static int currentIndex = 0;
 
@@ -75,21 +158,6 @@ int RegionHandler::allocData(const IndexT* size) {
   } else {
     JASSERT(false)(i)(numHosts);
   }
-#endif
-  return 1;
-}
-
-int RegionHandler::allocDataLocal(const IndexT* size) {
-  if (_regionData) {
-    JASSERT(type() == RegionDataTypes::REGIONDATASPLIT);
-    _regionData->allocData();
-    return 1;
-  }
-
-  // Create local data
-  _regionData = new RegionDataRaw(_D, size);
-  _regionData->allocData();
-
   return 1;
 }
 
