@@ -198,7 +198,7 @@ to C[w,h]
 transform MatrixMultiplyAddBlocked
 from ALPHA, A[k,m], B[n,k], BETA
 to C[n,m]
-tunable blockSize
+tunable sizespecific blockSize
 {
   // no copy
   to (C c)
@@ -243,7 +243,7 @@ tunable blockSize
 transform MatrixMultiplyAddRecursive
 from ALPHA, A[k,m], B[n,k], BETA
 to C[n,m]
-tunable blockSize
+tunable sizespecific blockSize
 {
   // split in any dimension larger than blockSize
   to (C c)

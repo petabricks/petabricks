@@ -15,7 +15,46 @@ transform TriSolveLUBase
 from UNITFLAG, A[m,m]
 to X[n,m]
 {
-    // right looking serial
+    // right looking serial (IJK)
+    to   (X x)
+    from (UNITFLAG unitFlag, A a)
+    {
+        IndexT i, j, k;
+        for (i = m - 1; i >= 0; --i) {
+            if (!unitFlag) {
+                for (j = 0; j < n; ++j) {
+                    x.cell(j, i) /= a.cell(i, i);
+                }
+            }
+            for (j = 0; j < n; ++j) {
+                for (k = 0; k < i; ++k) {
+                    x.cell(j, k) -= a.cell(i, k) * x.cell(j, i);
+                }
+            }
+        }
+    }
+
+    // left looking serial (IJK)
+    to   (X x)
+    from (UNITFLAG unitFlag, A a)
+    {
+        IndexT i, j, k;
+        for (i = m - 1; i >= 0; --i) {
+            for (j = 0; j < n; ++j) {
+                for (k = i + 1; k < m; ++k) {
+                    x.cell(j, i) -= a.cell(k, i) * x.cell(j, k);
+                }
+            }
+            if (!unitFlag) {
+                for (j = 0; j < n; ++j) {
+                    x.cell(j, i) /= a.cell(i, i);
+                }
+            }
+        }
+    }
+
+#if 0
+    // right looking serial (IKJ)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
@@ -34,7 +73,7 @@ to X[n,m]
         }
     }
 
-    // left looking serial
+    // left looking serial (IKJ)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
@@ -81,6 +120,7 @@ to X[n,m]
                               x.region(0, i+1, n, m), factor);
         }
     }
+#endif
 
     // call LAPACK
     to (X x) from (UNITFLAG unitFlag, A a) {
@@ -164,7 +204,7 @@ tunable sizespecific blockSize
 transform TriSolveLURecursive
 from UNITFLAG, A[m,m]
 to X[n,m]
-tunable blockSize
+tunable sizespecific blockSize
 {
     // similar to right looking blocked version
     to   (X x)
