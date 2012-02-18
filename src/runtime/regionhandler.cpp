@@ -130,7 +130,13 @@ int RegionHandler::allocDataOneRemoteNode(const IndexT* size) {
   JTRACE("one remote");
 
   static int numHosts = RemoteHostDB::instance().size();
-  _regionData = new RegionDataRemote(_D, size, RemoteHostDB::instance().host(PetabricksRuntime::randInt(0, numHosts)));
+  if (numHosts > 0) {
+    _regionData = new RegionDataRemote(_D, size, RemoteHostDB::instance().host(PetabricksRuntime::randInt(0, numHosts)));
+
+  } else {
+    allocDataLocal(size);
+  }
+
   return 1;
 }
 
