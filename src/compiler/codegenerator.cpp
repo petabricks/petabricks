@@ -284,8 +284,8 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   migrateRegion.beginFunc("void", "migrateRegions", args2);
   invalidateCache.beginFunc("void", "invalidateCache");
 
-  getDataHosts.beginFunc("RemoteHostList", "getDataHosts");
-  getDataHosts.write("RemoteHostList list;");
+  getDataHosts.beginFunc("DataHostPidList", "getDataHosts");
+  getDataHosts.write("DataHostPidList list;");
 
   for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
     if(jalib::StartsWith(i->type, "distributed::")) {
@@ -296,7 +296,13 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
       size.write("_sz += " + i->name + ".serialSize();");
       migrateRegion.comment(i->name + ".updateHandlerChain();");
       invalidateCache.write(i->name + ".invalidateCache();");
-      getDataHosts.write("list.push_back(" + i->name + ".dataHost());");
+
+      getDataHosts.write("{");
+      getDataHosts.incIndent();
+      getDataHosts.write("DataHostPidList tmp = " + i->name + ".dataHosts();");
+      getDataHosts.write("list.insert(list.end(), tmp.begin(), tmp.end());");
+      getDataHosts.decIndent();
+      getDataHosts.write("}");
 
     }else if(i->type == "IndexT" || i->type == "int" || i->type == "double") {
       out.write("*reinterpret_cast<"+i->type+"*>(_buf) = "+i->name+";");

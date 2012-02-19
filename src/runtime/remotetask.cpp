@@ -57,32 +57,35 @@ void petabricks::RemoteTask::enqueueLocal() {
 void petabricks::RemoteTask::remoteScheduleTask() {
   //JTRACE("remote schedule");
 
-  RemoteHostPtr toHost = 0;
-  int maxCount = 0;
+  HostPid toHostPid = HostPid::self();
+  double maxWeight = 0;
 
-  RemoteHostList hosts = getDataHosts();
+  DataHostPidList hosts = getDataHosts();
   if (hosts.size() == 1) {
-    toHost = *(hosts.begin());
+    toHostPid = hosts[0].hostPid;
 
   } else if (hosts.size() > 1) {
-    std::map<RemoteHostPtr, int> map;
-    for (RemoteHostList::iterator it = hosts.begin(); it < hosts.end(); it++) {
-      map[*it] += 1;
-      if (map[*it] > maxCount) {
-        toHost = *it;
-        maxCount = map[*it];
+    std::map<HostPid, double> map;
+    for (DataHostPidList::iterator it = hosts.begin(); it < hosts.end(); it++) {
+      map[it->hostPid] += it->weight;
+      if (map[it->hostPid] > maxWeight) {
+        toHostPid = it->hostPid;
+        maxWeight = map[it->hostPid];
       }
     }
   }
 
-  if (toHost) {
+  if (toHostPid == HostPid::self()) {
+    enqueueLocal();
+
+  } else {
 #ifdef REGIONMATRIX_TEST
     enqueueLocal();
 #else
+    RemoteHostPtr toHost = RemoteHostDB::instance().host(toHostPid);
     enqueueRemote(*toHost);
+    //JTRACE("enqueueRemote")(toHostPid);
 #endif
-  } else {
-    enqueueLocal();
   }
 }
 

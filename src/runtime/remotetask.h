@@ -30,6 +30,7 @@
 #include "dynamictask.h"
 #include "remotehost.h"
 #include "remoteobject.h"
+#include "regiondataremotemessages.h"
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -48,7 +49,7 @@ namespace petabricks {
     virtual void serialize(char* buf, RemoteHost& host) = 0;
     virtual void unserialize(const char* buf, RemoteHost& host) = 0;
     virtual void migrateRegions(RemoteHost& sender) = 0;
-    virtual RemoteHostList getDataHosts() = 0;
+    virtual DataHostPidList getDataHosts() = 0;
     virtual RemoteObjectGenerator generator() = 0;
 
     void onCompletedRemotely();

@@ -35,6 +35,9 @@ namespace petabricks {
     int allocData();
     void createPart(int partIndex, RemoteHostPtr host);
     void setPart(int partIndex, const RemoteRegionHandler& remoteRegionHandler);
+    IndexT numParts() const { return _numParts; };
+
+    void randomize();
 
     ElementT readCell(const IndexT* coord) const;
     void writeCell(const IndexT* coord, ElementT value);
@@ -44,7 +47,7 @@ namespace petabricks {
     void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
 
     DataHostPidList hosts(const IndexT* begin, const IndexT* end) const;
-    RemoteHostPtr dataHost() { UNIMPLEMENTED(); return NULL; }
+    RemoteHostPtr dataHost() { return NULL; }
 
     RegionHandlerPtr coordToPart(const IndexT* coord, IndexT* coordPart) const;
     int incPartCoord(IndexT* coord, const IndexT* begin, const IndexT* end) const;
