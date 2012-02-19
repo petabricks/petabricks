@@ -123,7 +123,7 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
         o.comment("expanded block statement");
         s->extractBlock()->accept(*this);
       }else{
-        UNIMPLEMENTED()(s->toString());
+        UNIMPLEMENTED();
       }
     }else{
       o.write(s->toString());
@@ -429,8 +429,7 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
 
 	      if( "cell" == methodname->str() )
 	      {
-            
-          //RIRExprList indices = call->parts().back()->parts().front()->parts();
+          // Convert cell to linear index for OpenCL buffer.
           std::vector<std::string> indices = generateCellIndices(call->parts().back()->parts().front()->parts());
           std::vector<std::string>::reverse_iterator i = indices.rbegin();
           FormulaPtr idx_formula;
@@ -442,18 +441,17 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
               idx_formula = new FormulaVariable(*i);
               break;
             case Region::REGION_COL:
-              idx_formula = new FormulaMultiply( new FormulaVariable(*i), new FormulaVariable("dim_" + region->name() + "_d0") );
+              idx_formula = new FormulaMultiply( new FormulaVariable("(" + *i + ")"), new FormulaVariable("dim_" + region->name() + "_d0") );
               break;
             case Region::REGION_ALL:
             case Region::REGION_BOX:
               {
                 int j = indices.size() - 2;
-                //std::ostream o;
-                idx_formula = new FormulaVariable(*i); //TODO if index is more complicated expr
+                idx_formula = new FormulaVariable("(" + *i + ")");
                 ++i;
                 while(i != indices.rend()) {
                   std::stringstream sizevar;
-                  sizevar << "dim_" << region->name() << "_d" << j--; //TODO check objName
+                  sizevar << "dim_" << region->name() << "_d" << j--;
                   idx_formula = new FormulaAdd( new FormulaVariable(*i), new FormulaMultiply( new FormulaVariable( sizevar.str( ) ), idx_formula ) );
                   ++i;
                 }
@@ -463,11 +461,10 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
               UNIMPLEMENTED();
           }
 
-          // Index needs to include idx_region in case that RegionType != REGION_ALL
-          // idx_region is calculated at UserRule::generateOpenCLKernel
-
+          // Use local memory when possible.
           std::string exprstr;
           if(_minCoordOffsets.find(region->matrix()->name()) != _minCoordOffsets.end()) {
+            // Use local memory
             std::vector<std::string>::reverse_iterator i = indices.rbegin();
             if(region->dimensions() == 1) {
               exprstr = "buff_" + region->matrix()->name() + "[" + *i + " + x_local]";
@@ -484,6 +481,7 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
             }
           }
           else {
+            // Use global memory
             exprstr = "_region_" + region->name() + "[" + idx_formula->toString() + " + idx_" + region->name() + "]";
           }
           e = RIRExpr::parse( exprstr, SRCPOS() );
@@ -494,25 +492,14 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
             count_formula = new FormulaMultiply(count_formula, new FormulaVariable("dim_" + region->name() + "_d" + jalib::XToString(i)) );
           e = RIRExpr::parse(count_formula->toString(), SRCPOS() );
         }
-	      /*else if( "width" == methodname->str() )
+	      else if( "width" == methodname->str() )
 	      {
 	          e = RIRExpr::parse( "dim_" + region->matrix()->name() + "_d0", SRCPOS() );
-	      }*/
-	      //TODO: slice()
+	      }
 	      else
 	      {
 	        JASSERT( false ).Text( "Failed to generate OpenCL kernel: unsupported member function of region." );
 	      }
-
-	      // Simplify expressions and produce final call.
-
-	      /*
-              args->prependSubExpr(methodname);
-              args->prependSubExpr(regionName);
-              e = new RIRCallExpr();
-              e->addSubExpr(new RIRIdentExpr("REGION_METHOD_CALL"));
-              e->addSubExpr(args);
-	      */
       }
     }
     if(sym && sym->type() == RIRSymbol::SYM_ARG_ELEMENT) {

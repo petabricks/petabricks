@@ -36,7 +36,7 @@ petabricks::HeuristicPtr& petabricks::HeuristicManager::getDefaultHeuristic(cons
   }
   
   //Should never arrive here! Every heuristic should have a default
-  JWARNING("The heuristic does not have a default!")(name);
+  JNOTE("The heuristic does not have a default!")(name);
   abort();
 }
 

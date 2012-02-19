@@ -394,7 +394,7 @@ int main( int argc, const char ** argv){
   o.cg().addTunable(true, "system.runtime.threads", "worker_threads", 8, MIN_NUM_WORKERS, MAX_NUM_WORKERS);
 #ifdef HAVE_OPENCL
   o.createTunable(true, "system.flag.localmem",  "use_localmem", 1, 0, 2);
-  o.createTunable(true, "system.size.blocksize",  "opencl_blocksize", 16, 1, 25);
+  o.createTunable(true, "system.size.blocksize",  "opencl_blocksize", 16, 0, 25); // 0 means not using local memory
 #endif
   o.cg().endGlobal();
   ccfiles.push_back(OutputCode(GENMISC, o));

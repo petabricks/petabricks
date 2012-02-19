@@ -294,7 +294,7 @@ def main():
     
   writelog(expandLog('scores.log'), {
       'version'             : VERSION,
-      'score_fixed'         : score_fixed,
+      'score_fixed'         : -1,#score_fixed,
       'score_tuned'         : score_tuned,
       'score_training_time' : score_training_time,
       'hostname'            : socket.gethostname(),

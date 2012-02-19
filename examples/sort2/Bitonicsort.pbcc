@@ -1,6 +1,7 @@
 #include "../simple/copy.pbcc"
-
-
+#ifndef SORT
+#define SORT Bitonic
+#endif
 #include "Mergesort2.pbcc"
 
 %{
@@ -65,7 +66,7 @@ to out[n]
     MatrixRegion1D tmp1 = MatrixRegion1D::allocate(p);
     MatrixRegion1D tmp2 = MatrixRegion1D::allocate(n-p);
     spawn BitonicPower2(tmp1, in.region(0, p));
-    spawn Sort(tmp2, in.region(p, n));
+    spawn SORT(tmp2, in.region(p, n));
     sync;
     Merge2(out, tmp1, tmp2);
   }

@@ -285,7 +285,8 @@ void petabricks::WorkerThreadPool::debugPrint() const {
   }
 }
 
-void petabricks::WorkerThreadPool::debugPrint(jalib::JAssert& o) const {
+void petabricks::WorkerThreadPool::debugPrint(jalib::JAssert& ) const {
+#if 0
   if(!o.IsFatal())
     return;
   o.Prefix();
@@ -307,6 +308,7 @@ void petabricks::WorkerThreadPool::debugPrint(jalib::JAssert& o) const {
   }
   o.Prefix();
   o.EndLine();
+#endif
 }
 
 

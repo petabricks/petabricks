@@ -29,5 +29,6 @@
   
 void jalib::_JRefAbort(const char* msg){
   JASSERT(false)(msg);
+  UNREACHABLE();
 }
 
