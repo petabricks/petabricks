@@ -138,6 +138,95 @@ to OUT[n,n]
 transform CholeskyBase
 to L[n,n]
 {
+    // serial right-looking (update trailing matrix after each column) (JKI)
+    to (L l) from ()
+    {
+        IndexT i, j, k;
+        ElementT temp;
+        for (j = 0; j < n; ++j) {
+            for (i = 0; i < j; ++i) {
+                l.cell(j, i) = 0;
+            }
+            l.cell(j, j) = sqrt(l.cell(j, j));
+            temp = 1.0 / l.cell(j, j);
+            for (i = j+1; i < n; ++i) {
+                l.cell(j, i) *= temp;
+            }
+            for (k = j+1; k < n; ++k) {
+                for (i = k; i < n; ++i) {
+                    l.cell(k, i) -= l.cell(j, i) * l.cell(j, k);
+                }
+            }
+        }
+    }
+
+    // serial left-looking (solve one row at a time) (JKI)
+    to (L l) from ()
+    {
+        IndexT i, j, k;
+        ElementT temp;
+        for (j = 0; j < n; ++j) {
+            for (i = 0; i < j; ++i) {
+                l.cell(j, i) = 0;
+            }
+            for (k = 0; k < j; ++k) {
+                for (i = j; i < n; ++i) {
+                    l.cell(j, i) -= l.cell(k, i) * l.cell(k, j);
+                }
+            }
+            l.cell(j, j) = sqrt(l.cell(j, j));
+            temp = 1.0 / l.cell(j, j);
+            for (i = j+1; i < n; ++i) {
+                l.cell(j, i) *= temp;
+            }
+        }
+    }
+
+#if 0
+    // serial right-looking (update trailing matrix after each column) (JIK)
+    to (L l) from ()
+    {
+        IndexT i, j, k;
+        ElementT temp;
+        for (j = 0; j < n; ++j) {
+            for (i = 0; i < j; ++i) {
+                l.cell(j, i) = 0;
+            }
+            l.cell(j, j) = sqrt(l.cell(j, j));
+            temp = 1.0 / l.cell(j, j);
+            for (i = j+1; i < n; ++i) {
+                l.cell(j, i) *= temp;
+            }
+            for (i = j+1; i < n; ++i) {
+                for (k = j+1; k <= i; ++k) {
+                    l.cell(k, i) -= l.cell(j, i) * l.cell(j, k);
+                }
+            }
+        }
+    }
+
+    // serial left-looking (solve one row at a time) (JIK)
+    to (L l) from ()
+    {
+        IndexT i, j, k;
+        ElementT temp;
+        for (j = 0; j < n; ++j) {
+            for (i = 0; i < j; ++i) {
+                l.cell(j, i) = 0;
+            }
+            for (i = j; i < n; ++i) {
+                for (k = 0; k < j; ++k) {
+                    l.cell(j, i) -= l.cell(k, i) * l.cell(k, j);
+                }
+            }
+            l.cell(j, j) = sqrt(l.cell(j, j));
+            temp = 1.0 / l.cell(j, j);
+            for (i = j+1; i < n; ++i) {
+                l.cell(j, i) *= temp;
+            }
+        }
+    }
+
     // right-looking (update trailing matrix after each column is solved)
     to (L l) from ()
     {
@@ -173,50 +262,7 @@ to L[n,n]
             }
         }
     }
-
-    // serial right-looking (update trailing matrix after each column)
-    to (L l) from ()
-    {
-        IndexT i, j, k;
-        ElementT temp;
-        for (j = 0; j < n; ++j) {
-            for (i = 0; i < j; ++i) {
-                l.cell(j, i) = 0;
-            }
-            l.cell(j, j) = sqrt(l.cell(j, j));
-            temp = 1.0 / l.cell(j, j);
-            for (i = j+1; i < n; ++i) {
-                l.cell(j, i) *= temp;
-            }
-            for (i = j+1; i < n; ++i) {
-                for (k = j+1; k <= i; ++k) {
-                    l.cell(k, i) -= l.cell(j, i) * l.cell(j, k);
-                }
-            }
-        }
-    }
-
-    // serial left-looking (solve one row at a time)
-    to (L l) from ()
-    {
-        IndexT i, j, k;
-        ElementT temp;
-        for (j = 0; j < n; ++j) {
-            for (i = 0; i < j; ++i) {
-                l.cell(j, i) = 0;
-            }
-            for (i = j; i < n; ++i) {
-                for (k = 0; k < j; ++k) {
-                    l.cell(j, i) -= l.cell(k, i) * l.cell(k, j);
-                }
-            }
-            l.cell(j, j) = sqrt(l.cell(j, j));
-            temp = 1.0 / l.cell(j, j);
-            for (i = j+1; i < n; ++i) {
-                l.cell(j, i) *= temp;
-            }
-        }
-    }
+#endif
 
     // call LAPACK to factor
     to (L l) from ()
@@ -346,7 +392,7 @@ tunable sizespecific blockSize
 // recursive in-place version (split into quadrants and recurse)
 transform CholeskyRecursive
 to L[n,n]
-tunable blockSize
+tunable sizespecific blockSize
 {
     // similar to right-looking blocked version
     to (L l) from ()

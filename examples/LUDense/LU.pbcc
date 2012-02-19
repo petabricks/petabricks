@@ -32,10 +32,156 @@ to OUT[n,n]
     }
 }
 
-transform LUSerialRight
+transform LUBase
 to A[n,m], P[m]
 {
-    // right looking serial
+    // right looking serial (jki)
+    to (A a, P p) from ()
+    {
+#ifdef DEBUG
+        fprintf(stderr, "LUSerialRight called for (%d, %d)\n", m, n);
+#endif
+
+        IndexT i, j, k, ip;
+        ElementT maxVal, temp;
+        for (j = 0; j < MIN(m,n); ++j) {
+            // find pivot
+            ip = j; maxVal = fabs(a.cell(j, j));
+            for (i = j+1; i < m; ++i) {
+                if (fabs(a.cell(j, i)) > maxVal) {
+                    maxVal = fabs(a.cell(j, i));
+                    ip = i;
+                }
+            }
+            p.cell(j) = ip;
+            // swap rows
+            if (ip != j) {
+                for (k = 0; k < n; ++k) {
+                    temp = a.cell(k, j);
+                    a.cell(k, j) = a.cell(k, ip);
+                    a.cell(k, ip) = temp;
+                }
+            }
+            // scale column below diagonal
+            temp = 1.0 / a.cell(j, j);
+            for (i = j+1; i < m; ++i) {
+                a.cell(j, i) *= temp;
+            }
+            // update trailing matrix
+            for (k = j+1; k < n; ++k) {
+                for (i = j+1; i < m; ++i) {
+                    a.cell(k, i) -= a.cell(j, i) * a.cell(k, j);
+                }
+            }
+        }
+
+        // no swaps for rest of array
+        for (j = MIN(m,n); j < m; ++j) {
+            p.cell(j) = j;
+        }
+    }
+
+    // left looking serial (jki)
+    to (A a, P p) from ()
+    {
+#ifdef DEBUG
+        fprintf(stderr, "LUSerialLeft called for (%d, %d)\n", m, n);
+#endif
+
+        IndexT i, j, k, ip;
+        ElementT maxVal, temp;
+        for (j = 0; j < n; ++j) {
+            // update values in current column
+            for (k = 0; k < j; ++k) {
+                for (i = k+1; i < m; ++i) {
+                    a.cell(j, i) -= a.cell(k, i) * a.cell(j, k);
+                }
+            }
+            if (j < m) {
+                // find pivot
+                ip = j; maxVal = fabs(a.cell(j, j));
+                for (i = j+1; i < m; ++i) {
+                    if (fabs(a.cell(j, i)) > maxVal) {
+                        maxVal = fabs(a.cell(j, i));
+                        ip = i;
+                    }
+                }
+                p.cell(j) = ip;
+                // swap rows
+                if (ip != j) {
+                    for (k = 0; k < n; ++k) {
+                        temp = a.cell(k, j);
+                        a.cell(k, j) = a.cell(k, ip);
+                        a.cell(k, ip) = temp;
+                    }
+                }
+                // scale column below diagonal
+                temp = 1.0 / a.cell(j, j);
+                for (i = j+1; i < m; ++i) {
+                    a.cell(j, i) *= temp;
+                }
+            }
+        }
+
+        // no swaps for rest of array
+        for (j = n; j < m; ++j) {
+            p.cell(j) = j;
+        }
+    }
+
+    // Crout serial (jki)
+    to (A a, P p) from ()
+    {
+#ifdef DEBUG
+        fprintf(stderr, "LUSerialCrout called for (%d, %d)\n", m, n);
+#endif
+
+        IndexT i, j, k, ip;
+        ElementT maxVal, temp;
+        for (j = 0; j < MIN(m, n); ++j) {
+            // update values in current column
+            for (k = 0; k < j; ++k) {
+                for (i = j; i < m; ++i) {
+                    a.cell(j, i) -= a.cell(k, i) * a.cell(j, k);
+                }
+            }
+            // find pivot
+            ip = j; maxVal = fabs(a.cell(j, j));
+            for (i = j+1; i < m; ++i) {
+                if (fabs(a.cell(j, i)) > maxVal) {
+                    maxVal = fabs(a.cell(j, i));
+                    ip = i;
+                }
+            }
+            p.cell(j) = ip;
+            // swap rows
+            if (ip != j) {
+                for (k = 0; k < n; ++k) {
+                    temp = a.cell(k, j);
+                    a.cell(k, j) = a.cell(k, ip);
+                    a.cell(k, ip) = temp;
+                }
+            }
+            // scale column below diagonal
+            temp = 1.0 / a.cell(j, j);
+            for (i = j+1; i < m; ++i) {
+                a.cell(j, i) *= temp;
+            }
+            // update values in current row
+            for (k = j+1; k < n; ++k) {
+                for (i = 0; i < j; ++i) {
+                    a.cell(k, j) -= a.cell(i, j) * a.cell(k, i);
+                }
+            }
+        }
+
+        // no swaps for rest of array
+        for (j = n; j < m; ++j) {
+            p.cell(j) = j;
+        }
+    }
+
+    // right looking serial (jik)
     to (A a, P p) from ()
     {
 #ifdef DEBUG
@@ -80,12 +226,8 @@ to A[n,m], P[m]
             p.cell(j) = j;
         }
     }
-}
 
-transform LUSerialLeft
-to A[n,m], P[m]
-{
-    // left looking serial
+    // left looking serial (jik)
     to (A a, P p) from ()
     {
 #ifdef DEBUG
@@ -132,12 +274,8 @@ to A[n,m], P[m]
             p.cell(j) = j;
         }
     }
-}
 
-transform LUSerialCrout
-to A[n,m], P[m]
-{
-    // Crout serial
+    // Crout serial (jik)
     to (A a, P p) from ()
     {
 #ifdef DEBUG
@@ -188,11 +326,8 @@ to A[n,m], P[m]
             p.cell(j) = j;
         }
     }
-}
 
-transform LUBaseRight
-to A[n,m], P[m]
-{
+#if 0
     // right looking (update trailing matrix after each column is solved)
     to (A a, P p) from ()
     {
@@ -238,11 +373,7 @@ to A[n,m], P[m]
             p.cell(j) = j;
         }
     }
-}
 
-transform LUBaseLeft
-to A[n,m], P[m]
-{
     // left looking (solve one column at a time)
     to (A a, P p) from ()
     {
@@ -299,11 +430,7 @@ to A[n,m], P[m]
             p.cell(j) = j;
         }
     }
-}
 
-transform LUBaseCrout
-to A[n,m], P[m]
-{
     // Crout (solve one column and row at a time)
     to (A a, P p) from ()
     {
@@ -357,11 +484,8 @@ to A[n,m], P[m]
             p.cell(j) = j;
         }
     }
-}
+#endif
 
-transform LUBaseLAPACK
-to A[n,m], P[m]
-{
     // call LAPACK
     to (A a, P p) from ()
     {
@@ -371,45 +495,6 @@ to A[n,m], P[m]
 
         LULAPACK(a, p, a);
     }
-}
-
-transform LUBase
-to A[n,m], P[m]
-{
-    to (A a, P p) from ()
-    {
-        LUSerialRight(a, p);
-    }
-
-    to (A a, P p) from ()
-    {
-        LUSerialLeft(a, p);
-    }
-
-    to (A a, P p) from ()
-    {
-        LUSerialCrout(a, p);
-    }
-
-    to (A a, P p) from ()
-    {
-        LUBaseRight(a, p);
-    }
-
-    to (A a, P p) from ()
-    {
-        LUBaseLeft(a, p);
-    }
-
-    to (A a, P p) from ()
-    {
-        LUBaseCrout(a, p);
-    }
-
-//  to (A a, P p) from ()
-//  {
-//      LUBaseLAPACK(a, p);
-//  }
 }
 
 // right looking (update trailing matrix each iteration)
