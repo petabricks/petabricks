@@ -7,6 +7,23 @@
 
 %{
 
+#ifdef PRINT
+template < typename T >
+void printMatrix(const T& matrix)
+{
+  IndexT rows = matrix.height();
+  IndexT columns = matrix.width();
+
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      printf("%g ", matrix.cell(j,i));
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+#endif
+
 template < typename T >
 inline ElementT *toArray(const T&matrix) {
   ElementT *array;
@@ -90,12 +107,69 @@ to C[w,h]
     ElementT temp = 0;
     for(IndexT i=0; i<k; ++i)
       temp += a.cell(i)*b.cell(i);
-    c = alpha*temp + beta*c;
+    // conditional needed in case c = nan, beta = 0
+    c = (beta == 0 ? alpha*temp : alpha*temp + beta*c);
   }
 
-  //Usual O(n^3) matrix multiply
+  //Usual O(n^3) matrix multiply (JKI)
   to(C c) from (A a, B b, ALPHA alpha, BETA beta)
   {
+    #ifdef PRINT
+    printf("MatrixMultiplyAddBase (serial JKI) (%d, %d, %d)\n", h, w, k);
+    #endif
+
+    ElementT temp;
+    for(IndexT j=0; j<w; ++j) {
+      if (beta == 0) {
+        for(IndexT i=0; i<h; ++i) {
+          c.cell(j,i) = 0;
+        }
+      } else {
+        for(IndexT i=0; i<h; ++i) {
+          c.cell(j,i) *= beta;
+        }
+      }
+      for(IndexT l=0; l<k; ++l) {
+        if (b.cell(j,l) != 0) {
+          temp = alpha * b.cell(j,l);
+          for(IndexT i=0; i<h; ++i) {
+            c.cell(j,i) += temp * a.cell(l,i);
+          }
+        }
+      }
+    }
+  }
+
+  //Usual O(n^3) matrix multiply (JIK)
+  to(C c) from (A a, B b, ALPHA alpha, BETA beta)
+  {
+    #ifdef PRINT
+    printf("MatrixMultiplyAddBase (serial JIK) (%d, %d, %d)\n", h, w, k);
+    #endif
+
+    ElementT temp;
+    for(IndexT j=0; j<w; ++j) {
+      for(IndexT i=0; i<h; ++i) {
+        temp = 0;
+        for(IndexT l=0; l<k; ++l) {
+          temp += a.cell(l,i) * b.cell(j,l);
+        }
+        if (beta == 0) {
+          c.cell(j,i) = alpha * temp;
+        } else {
+          c.cell(j,i) = alpha * temp + beta * c.cell(j,i);
+        }
+      }
+    }
+  }
+
+  //Usual O(n^3) matrix multiply (IJK)
+  to(C c) from (A a, B b, ALPHA alpha, BETA beta)
+  {
+    #ifdef PRINT
+    printf("MatrixMultiplyAddBase (serial IJK) (%d, %d, %d)\n", h, w, k);
+    #endif
+
     ElementT temp;
     for(IndexT i=0; i<h; ++i) {
       for(IndexT j=0; j<w; ++j) {
@@ -103,7 +177,11 @@ to C[w,h]
         for(IndexT l=0; l<k; ++l) {
           temp += a.cell(l,i) * b.cell(j,l);
         }
-        c.cell(j,i) = alpha * temp + beta * c.cell(j,i);
+        if (beta == 0) {
+          c.cell(j,i) = alpha * temp;
+        } else {
+          c.cell(j,i) = alpha * temp + beta * c.cell(j,i);
+        }
       }
     }
   }
@@ -111,6 +189,10 @@ to C[w,h]
   // copy matrices to arrays and call BLAS
   to(C c) from (A a, B b, ALPHA alpha, BETA beta)
   {
+    #ifdef PRINT
+    printf("MatrixMultiplyAddBase (BLAS-Copy) (%d, %d, %d)\n", h, w, k);
+    #endif
+
     MatrixMultiplyAddBLAS(c, alpha, a, b, beta);
   }
 
@@ -123,7 +205,7 @@ to C[w,h]
     }
 
     #ifdef PRINT
-    printf("MatrixMultiplyAdd (BLAS-NC) (%d, %d, %d)\n", h, w, k);
+    printf("MatrixMultiplyAdd (BLAS-NoCopy) (%d, %d, %d)\n", h, w, k);
     #endif
 
     int as0 = a.sizes()[0], as1 = a.sizes()[1],
@@ -209,6 +291,10 @@ tunable sizespecific blockSize
       return;
     }
 
+    #ifdef PRINT
+    printf("MatrixMultiplyAddBlocked (%d, %d, %d), %d\n", m, n, k, (int) blockSize);
+    #endif
+
     IndexT ib, jb, kb, ib1, jb1, kb1, nb = blockSize;
     ConstMatrixRegion2D ab, bb;
     MatrixRegion2D cb;
@@ -253,6 +339,10 @@ tunable sizespecific blockSize
       MatrixMultiplyAddBlocked(c, alpha, a, b, beta);
       return;
     }
+
+    #ifdef PRINT
+    printf("MatrixMultiplyAddRecursive (%d, %d, %d), %d\n", m, n, k, (int) blockSize);
+    #endif
 
     if (n > blockSize) {
 
