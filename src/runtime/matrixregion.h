@@ -494,23 +494,7 @@ public:
   void useOnCpu() {
 #ifdef HAVE_OPENCL
     if(D == 0) return;
-    this->storage()->lock();
-    std::set<MatrixStorageInfoPtr>& pendings = CopyPendingMap::_pendingMap.allPendings(this->storage());
-    for(std::set<MatrixStorageInfoPtr>::iterator it = pendings.begin(); it != pendings.end(); ++it) {
-      MatrixStoragePtr storage = (*it)->processPending();
-      if(storage) {
-        #ifdef GPU_TRACE
-        std::cout << "something on gpu..." << std::endl;
-        #endif
-        //MatrixRegion normalized(storage, storage->data(), this->sizes());
-        //copyFrom_unsafe(normalized, (*it)->getBegins(), (*it)->getEnds());
-        (*it)->copy((MatrixStoragePtr&) this->storage(), storage, (*it)->getBegins(), (*it)->getEnds());
-        (*it)->resetPending();
-      }
-    }
-    CopyPendingMap::_pendingMap.clearPendings(this->storage());
-    this->storage()->unlock();
-    //CopyPendingMap::_pendingMap.print();
+    this->storage()->updateDataFromGpu();
 #endif
   }
 

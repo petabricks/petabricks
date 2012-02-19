@@ -452,7 +452,14 @@ void petabricks::CodeGenerator::mkIterationTrampTask(const std::string& taskname
 }
 
 #ifdef HAVE_OPENCL
-void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, int gpuCopyOut) {
+void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(
+    const std::string& taskname, 
+    const std::string& objname, 
+    const std::string& methodname, 
+    const SimpleRegion& region, 
+    std::vector<RegionNodeGroup>& regionNodesGroups, 
+    int nodeID, 
+    int gpuCopyOut) {
   std::string taskclass = "petabricks::CreateGpuSpatialMethodCallTask<"+objname
                         + ", " + jalib::XToString(region.totalDimensions())
                         + ", &" + objname + "::" + methodname
@@ -477,6 +484,10 @@ void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::stri
   write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end, "+jalib::XToString(nodeID)+", groups, "+jalib::XToString(gpuCopyOut)+");");
   decIndent();
   write("}");
+}
+
+void petabricks::CodeGenerator::cout(const std::string& s) {
+  write("std::cout << \"" + s + "\" << std::endl;");
 }
 
 #endif

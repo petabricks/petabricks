@@ -60,8 +60,10 @@ namespace petabricks {
   //
   // RegionMatrix
   //
-  template< int D, typename ElementT>
+  template< int _D, typename ElementT>
   class RegionMatrix {
+  public:
+    enum { D = _D };
   protected:
     IndexT _size[D];
     IndexT _splitOffset[D];
@@ -156,7 +158,16 @@ namespace petabricks {
     // gpu
     //
     void useOnCpu() {
-      // Nothing here
+      #ifdef HAVE_OPENCL
+      if(D == 0) return;
+      if(isLocal()) {
+      	// Check if data is still resided in GPU
+	this->storage()->updateDataFromGpu();
+      }
+      else {
+      	// Already handled by clean_up_distributed task (in RegionMatrix::fromScratchRegion())
+      }
+      #endif
     }
 
     //
@@ -433,7 +444,7 @@ namespace petabricks {
 
     void unserialize(const char* buf, RemoteHost& /*host*/) {
       size_t sz = sizeof(int);
-      JASSERT(*reinterpret_cast<const int*>(buf) == D)(*reinterpret_cast<const int*>(buf))(D).Text("RegionMatrix dimension mismatch.");
+      JASSERT(*reinterpret_cast<const int*>(buf) == D)(*reinterpret_cast<const int*>(buf))(_D).Text("RegionMatrix dimension mismatch.");
       buf += sz;
 
       sz = sizeof(IndexT) * D;
@@ -760,6 +771,10 @@ namespace petabricks {
         RegionMatrixMetadata scratchMetadata;
         scratch.computeRegionMatrixMetadata(scratchMetadata);
 
+	#ifdef HAVE_OPENCL
+	// TODO: check if this works
+	scratch.storage()->updateDataFromGpu();
+	#endif
         _regionHandler->copyFromScratchMatrixStorage(msg, len, scratch.storage(), &scratchMetadata, scratch.regionHandler()->size());
       }
 

@@ -269,7 +269,7 @@ AC_ARG_WITH([intelopencl],
 
 if ! test "$with_opencl" = "no"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
-   AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
+   AC_DEFINE([MATRIX_ELEMENT_T],[double], [type for elements in the matrix])
    AC_DEFINE([NVIDIA],[1], [NVIDIA SDK])
 
    CPPFLAGS="$CPPFLAGS -I$with_opencl/OpenCL/common/inc -I$with_opencl/shared/inc"
@@ -283,7 +283,7 @@ if ! test "$with_opencl" = "no"; then
 
 elif ! test "$with_amdopencl" = "no"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
-   AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
+   AC_DEFINE([MATRIX_ELEMENT_T],[double], [type for elements in the matrix])
    AC_DEFINE([AMD],[1], [AMD SDK])
 
    CPPFLAGS="$CPPFLAGS -I$with_amdopencl/samples/opencl/SDKUtil/include -I$with_amdopencl/include"
@@ -295,7 +295,7 @@ elif ! test "$with_amdopencl" = "no"; then
 
 elif ! test "$with_intelopencl" = "no"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
-   AC_DEFINE([MATRIX_ELEMENT_T],[float], [type for elements in the matrix])
+   AC_DEFINE([MATRIX_ELEMENT_T],[double], [type for elements in the matrix])
    AC_DEFINE([INTEL],[1], [INTEL SDK])
 
    CPPFLAGS="$CPPFLAGS -I/usr/include/CL"
@@ -307,7 +307,7 @@ elif ! test "$with_intelopencl" = "no"; then
 
 elif ! test "$with_macopencl" = "no"; then
    AC_DEFINE([HAVE_OPENCL], [1], [Enable OpenCL code generation])
-   AC_DEFINE([MATRIX_ELEMENT_T], [float], [type for elements in the matrix])
+   AC_DEFINE([MATRIX_ELEMENT_T], [double], [type for elements in the matrix])
    AC_DEFINE([MAC],[1],[MAC OS])
 
    LDFLAGS="$LDFLAGS -framework OpenCL"

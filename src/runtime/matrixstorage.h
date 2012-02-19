@@ -145,6 +145,7 @@ public:
 #ifdef HAVE_OPENCL
   void lock() { _lock.lock(); }
   void unlock() { _lock.unlock(); }
+  void updateDataFromGpu();
 #else
   void lock()   { UNIMPLEMENTED(); }
   void unlock() { UNIMPLEMENTED(); }

@@ -1532,7 +1532,7 @@ void petabricks::UserRule::generateOpenCLCopyInCode(std::string& codename, std::
   o.write(name+".useOnCpu();");
   o.write("MatrixStorageInfoPtr storage_"+name+" = "+name+".storageInfo();");
 #ifdef GPU_TRACE
-  o.write("MatrixIO().write("+name+");");
+  o.write("MatrixIOGeneral().write("+name+");");
   //o.write("MatrixIO().write("+name+".asGpuInputBuffer());");
 #endif
   o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->getClMem(), CL_FALSE, 0, storage_"+name+"->bytes(), "+name+".getGpuInputBufferPtr(), 0, NULL, NULL);");

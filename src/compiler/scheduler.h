@@ -106,7 +106,7 @@ public:
   {
     initialize(inputs, intermediates, outputs);
   }
-  void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
+  void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, int n);
 
   size_t size() const { return _schedule.size(); }
 

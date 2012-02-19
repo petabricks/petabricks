@@ -31,6 +31,24 @@
 
 #ifdef HAVE_OPENCL
 petabricks::CopyPendingMap petabricks::CopyPendingMap::_pendingMap;
+
+void petabricks::MatrixStorage::updateDataFromGpu(){
+  lock();
+  std::set<MatrixStorageInfoPtr>& pendings = CopyPendingMap::_pendingMap.allPendings(this);
+  for(std::set<MatrixStorageInfoPtr>::iterator it = pendings.begin(); it != pendings.end(); ++it) {
+    MatrixStoragePtr storage = (*it)->processPending();
+    if(storage) {
+#ifdef GPU_TRACE
+      std::cout << "something on gpu..." << std::endl;
+#endif
+      (*it)->copy(this, storage, (*it)->getBegins(), (*it)->getEnds());
+      (*it)->resetPending();
+    }
+  }
+  CopyPendingMap::_pendingMap.clearPendings(this);
+  unlock();
+}
+
 #endif
 
 MATRIX_ELEMENT_T petabricks::MatrixStorage::rand(){

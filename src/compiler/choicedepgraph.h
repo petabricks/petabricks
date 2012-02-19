@@ -199,6 +199,7 @@ public:
   virtual int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region) = 0;
   virtual int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix) = 0;
   virtual void print(const RuleChoiceAssignment& choice) = 0;
+  virtual bool isGpuRule(const RuleChoiceAssignment& choice) = 0;
 
   void addGroup(const std::string& name, std::vector<int>& ids) { _regionNodesGroups.push_back(RegionNodeGroup(name,ids)); }
   std::vector<RegionNodeGroup>& getRegionNodesGroups() { return _regionNodesGroups; }
@@ -251,6 +252,9 @@ public:
   int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
+  bool isGpuRule(const RuleChoiceAssignment& choice) {
+    return choice.find(this)->second->isEnabledGpuRule();
+  }
   void print(const RuleChoiceAssignment& choice){
     std::cout << "BasicChoiceDepGraphNode " << this << ":" << std::endl;
     std::cout << "out matrix = " << _matrix->name() << std::endl;
@@ -317,6 +321,12 @@ public:
     UNIMPLEMENTED(); 
     return 0;
   }
+
+  bool isGpuRule(const RuleChoiceAssignment&) {
+    UNIMPLEMENTED(); 
+    return 0;
+  }
+
   void print(const RuleChoiceAssignment& choice){
     std::cout << "MetaChoiceDepGraphNode " << this << "--------" << std::endl;
     for(ChoiceDepGraphNodeSet::iterator i = _originalNodes.begin(); i != _originalNodes.end(); ++i)
@@ -344,6 +354,11 @@ public:
   int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
+
+  bool isGpuRule(const RuleChoiceAssignment& choice) {
+    return choice.find(*_originalNodes.begin())->second->isEnabledGpuRule();
+  }
+
   void print(const RuleChoiceAssignment& choice){
     std::cout << "MultiOutputChoiceDepGraphNode " << this << "--------" << std::endl;
     for(ChoiceDepGraphNodeSet::iterator i = _originalNodes.begin(); i != _originalNodes.end(); ++i)
@@ -370,6 +385,11 @@ public:
   int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
+
+  bool isGpuRule(const RuleChoiceAssignment& choice) {
+    return choice.find(*_originalNodes.begin())->second->isEnabledGpuRule();
+  }
+
   void print(const RuleChoiceAssignment& choice){
     std::cout << "SlicedChoiceDepGraphNode " << this << "--------" << std::endl;
     for(ChoiceDepGraphNodeSet::iterator i = _originalNodes.begin(); i != _originalNodes.end(); ++i)

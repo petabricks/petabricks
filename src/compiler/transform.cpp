@@ -1015,15 +1015,6 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   }
   o.endFunc();
 
-  /*o.beginFunc("void", "copyOutputs");
-  {
-    int a=firstOutput;
-    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      o.write((*i)->name()+".useOnCpu();");
-    }
-  }
-  o.endFunc();*/
-
 
   std::vector<std::string> outputArgTypes;
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
