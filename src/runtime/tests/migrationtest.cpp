@@ -27,13 +27,6 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
 void _petabricksInit() {}
 void _petabricksCleanup() {}
 
-void print(DataHostPidList list) {
-  printf("(%d) DataHostPidList\n", getpid());
-  for (unsigned int i = 0; i < list.size(); i++) {
-    printf("  %lx/%d ==> %.5g\n", list[i].hostPid.hostid, list[i].hostPid.pid, list[i].weight);
-  }
-}
-
 RemoteObjectPtr step2();
 RemoteObjectPtr step3();
 RemoteObjectPtr step4();
@@ -207,7 +200,7 @@ RemoteObjectPtr step6() {
       regionMatrix.unserialize((char*)data, *host());
       MatrixIO().write(regionMatrix);
 
-      print(regionMatrix.dataHosts());
+      regionMatrix.printDataHosts();
       //JASSERT(!regionMatrix.regionHandler()->isHandlerChainUpdated());
 
       regionMatrix.updateHandlerChain();

@@ -42,13 +42,6 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
 void _petabricksInit() {}
 void _petabricksCleanup() {}
 
-void print(DataHostPidList list) {
-  printf("(%d) DataHostPidList\n", getpid());
-  for (unsigned int i = 0; i < list.size(); i++) {
-    printf("  %lx/%d ==> %.5g\n", list[i].hostPid.hostid, list[i].hostPid.pid, list[i].weight);
-  }
-}
-
 RemoteObjectPtr step2();
 
 int main(int argc, const char** argv){
@@ -79,7 +72,7 @@ int main(int argc, const char** argv){
 
     MatrixIO().write(regionMatrixLocal);
     MatrixIO().write(regionMatrix);
-    print(regionMatrix.dataHosts());
+    regionMatrix.printDataHosts();
 
     regionMatrix.assertEqual(regionMatrixLocal);
 
@@ -88,7 +81,7 @@ int main(int argc, const char** argv){
 
     MatrixRegion2D split = regionMatrix.region(c1, c2);
     MatrixIO().write(split);
-    print(split.dataHosts());
+    split.printDataHosts();
 
     JTRACE("scratch");
     MatrixRegion2D scratch = split.localCopy();
@@ -98,7 +91,7 @@ int main(int argc, const char** argv){
     JTRACE("slice");
     MatrixRegion1D slice = split.slice(0, 5);
     MatrixIO().write(slice);
-    print(slice.dataHosts());
+    slice.printDataHosts();
     MatrixRegion1D scratchSlice = slice.localCopy();
     MatrixIO().write(scratchSlice);
     slice.assertEqual(scratchSlice);
@@ -147,7 +140,7 @@ RemoteObjectPtr step2() {
       MatrixRegion2D regionMatrix = MatrixRegion2D();
       regionMatrix.unserialize((char*)data, *host());
       MatrixIO().write(regionMatrix);
-      print(regionMatrix.dataHosts());
+      regionMatrix.printDataHosts();
 
       MatrixRegion2D scratch = regionMatrix.localCopy();
       MatrixIO().write(scratch);

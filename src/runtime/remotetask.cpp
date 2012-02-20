@@ -60,7 +60,8 @@ void petabricks::RemoteTask::remoteScheduleTask() {
   HostPid toHostPid = HostPid::self();
   double maxWeight = 0;
 
-  DataHostPidList hosts = getDataHosts();
+  DataHostPidList hosts;
+  getDataHosts(hosts);
   if (hosts.size() == 1) {
     toHostPid = hosts[0].hostPid;
 

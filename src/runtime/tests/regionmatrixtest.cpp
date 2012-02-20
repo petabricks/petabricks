@@ -27,12 +27,6 @@ PetabricksRuntime::Main* petabricksFindTransform(const std::string& ){
 void _petabricksInit() {}
 void _petabricksCleanup() {}
 
-void print(DataHostPidList list) {
-  for (unsigned int i = 0; i < list.size(); i++) {
-    printf("%lx/%d ==> %.5g\n", list[i].hostPid.hostid, list[i].hostPid.pid, list[i].weight);
-  }
-}
-
 void runProcess2(MatrixRegion3D& regionMatrix);
 
 RemoteObjectPtr gen() {
@@ -89,7 +83,7 @@ int main(int argc, const char** argv){
     // regionMatrix->allocData();
 
     printf("== data should be in 2 hosts ==\n");
-    print(regionMatrix.dataHosts());
+    regionMatrix.printDataHosts();
 
     CellProxy cell = regionMatrix.cell(m234);
     JASSERT(fabs(cell - 0.52076837) < 0.00000001);
@@ -100,28 +94,28 @@ int main(int argc, const char** argv){
     MatrixRegion3D split3 = regionMatrix.region(m123, m456);
     printf("== region((1,2,3), (4,5,6)) : will send this to process2 ==\n");
     MatrixIO().write(split3);
-    print(split3.dataHosts());
+    split3.printDataHosts();
 
     MatrixRegion3D split2 = split3.region(m1, m3);
     printf("== region((1,1,1), (3,3,3)) ==\n");
     MatrixIO().write(split2);
-    print(split2.dataHosts());
+    split2.printDataHosts();
 
     MatrixRegion2D slice1 = split2.slice(2, 0);
     printf("== slice(2,0) ==\n");
     MatrixIO().write(slice1);
-    print(slice1.dataHosts());
+    slice1.printDataHosts();
 
     MatrixRegion1D slice2 = slice1.slice(1, 1);
     printf("== slice(1,1) ==\n");
     MatrixIO().write(slice2);
-    print(slice2.dataHosts());
+    slice2.printDataHosts();
 
     // Test slice
     MatrixRegion2D slice3 = regionMatrix.slice(1, 0);
     printf("== slice(1,0) of original matrix ==\n");
     MatrixIO().write(slice3);
-    print(slice3.dataHosts());
+    slice3.printDataHosts();
 
     ///////////////////////////////////
     // Migrate to process 2
@@ -149,7 +143,7 @@ int main(int argc, const char** argv){
 }
 
 void runProcess2(MatrixRegion3D& regionMatrix) {
-  print(regionMatrix.dataHosts());
+  regionMatrix.printDataHosts();
   regionMatrix.updateHandlerChain();
 
   IndexT m0[] = {0,0,0};
@@ -177,13 +171,13 @@ void runProcess2(MatrixRegion3D& regionMatrix) {
   MatrixRegion2D rslice3 = regionMatrix.slice(1, 1);
   printf("== slice(1,1) of original matrix ==\n");
   MatrixIO().write(rslice3);
-  print(rslice3.dataHosts());
+  rslice3.printDataHosts();
 
   // localCopy: copy the entire matrix and store it locally
   MatrixRegion2D copy = rslice3.localCopy();
   printf("== local copy of above ==\n");
   MatrixIO().write(copy);
-  print(copy.dataHosts());
+  copy.printDataHosts();
 
   // Convert to MatrixRegion
   MatrixIO().write(copy._toLocalRegion());

@@ -284,8 +284,9 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   migrateRegion.beginFunc("void", "migrateRegions", args2);
   invalidateCache.beginFunc("void", "invalidateCache");
 
-  getDataHosts.beginFunc("DataHostPidList", "getDataHosts");
-  getDataHosts.write("DataHostPidList list;");
+  std::vector<std::string> args3;
+  args3.push_back("DataHostPidList& list");
+  getDataHosts.beginFunc("void", "getDataHosts", args3);
 
   for(ClassMembers::const_iterator i=_curMembers.begin(); i!=_curMembers.end(); ++i){
     if(jalib::StartsWith(i->type, "distributed::")) {
@@ -296,13 +297,7 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
       size.write("_sz += " + i->name + ".serialSize();");
       migrateRegion.comment(i->name + ".updateHandlerChain();");
       invalidateCache.write(i->name + ".invalidateCache();");
-
-      getDataHosts.write("{");
-      getDataHosts.incIndent();
-      getDataHosts.write("DataHostPidList tmp = " + i->name + ".dataHosts();");
-      getDataHosts.write("list.insert(list.end(), tmp.begin(), tmp.end());");
-      getDataHosts.decIndent();
-      getDataHosts.write("}");
+      getDataHosts.write(i->name + ".dataHosts(list);");
 
     }else if(i->type == "IndexT" || i->type == "int" || i->type == "double") {
       out.write("*reinterpret_cast<"+i->type+"*>(_buf) = "+i->name+";");
@@ -459,12 +454,12 @@ void petabricks::CodeGenerator::mkIterationTrampTask(const std::string& taskname
 
 #ifdef HAVE_OPENCL
 void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(
-    const std::string& taskname, 
-    const std::string& objname, 
-    const std::string& methodname, 
-    const SimpleRegion& region, 
-    std::vector<RegionNodeGroup>& regionNodesGroups, 
-    int nodeID, 
+    const std::string& taskname,
+    const std::string& objname,
+    const std::string& methodname,
+    const SimpleRegion& region,
+    std::vector<RegionNodeGroup>& regionNodesGroups,
+    int nodeID,
     int gpuCopyOut) {
   std::string taskclass = "petabricks::CreateGpuSpatialMethodCallTask<"+objname
                         + ", " + jalib::XToString(region.totalDimensions())

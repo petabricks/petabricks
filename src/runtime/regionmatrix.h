@@ -500,7 +500,7 @@ namespace petabricks {
     //
     // Find location of data (data can be in many hosts)
     //
-    DataHostPidList dataHosts() const {
+    void dataHosts(DataHostPidList& list) const {
       IndexT begin[D];
       IndexT end[D];
 
@@ -513,9 +513,16 @@ namespace petabricks {
       IndexT rd_end[_regionHandler->dimensions()];
       this->getRegionDataCoord(begin, rd_begin);
       this->getRegionDataCoord(end, rd_end);
-      DataHostPidList list;
       _regionHandler->hosts(rd_begin, rd_end, list);
-      return list;
+    }
+
+    void printDataHosts() const {
+      DataHostPidList list;
+      dataHosts(list);
+      printf("(%d) DataHostPidList\n", getpid());
+      for (unsigned int i = 0; i < list.size(); i++) {
+        printf("  %lx/%d ==> %.5g\n", list[i].hostPid.hostid, list[i].hostPid.pid, list[i].weight);
+      }
     }
 
     //
