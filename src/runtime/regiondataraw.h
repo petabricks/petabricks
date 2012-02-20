@@ -34,7 +34,7 @@ namespace petabricks {
     RegionDataIPtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const;
     void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
 
-    DataHostPidList hosts(const IndexT* begin, const IndexT* end) const;
+    RegionDataIPtr hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list);
     RemoteHostPtr dataHost();
 
     void processReadCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);

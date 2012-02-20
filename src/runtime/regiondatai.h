@@ -71,7 +71,7 @@ namespace petabricks {
       return _type;
     }
 
-    virtual DataHostPidList hosts(const IndexT* begin, const IndexT* end) const = 0;
+    virtual RegionDataIPtr hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list) = 0;
     virtual RemoteHostPtr dataHost() = 0;
 
     // Process Remote Messages

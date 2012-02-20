@@ -116,9 +116,10 @@ void RegionDataRaw::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* o
   } while(incCoord(d, size, coord) >= 0);
 }
 
-DataHostPidList RegionDataRaw::hosts(const IndexT* /*begin*/, const IndexT* /*end*/) const {
+RegionDataIPtr RegionDataRaw::hosts(const IndexT* /*begin*/, const IndexT* /*end*/, DataHostPidList& list) {
   DataHostPidListItem item = {HostPid::self(), 1};
-  return DataHostPidList(1, item);
+  list.push_back(item);
+  return NULL;
 }
 
 RemoteHostPtr RegionDataRaw::dataHost() {

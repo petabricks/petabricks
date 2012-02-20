@@ -253,8 +253,11 @@ void RegionHandler::updateRegionData(RegionDataIPtr regionData) {
   _regionDataMux.unlock();
 }
 
-DataHostPidList RegionHandler::hosts(const IndexT* begin, const IndexT* end) const {
-  return _regionData->hosts(begin, end);
+void RegionHandler::hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list) {
+  RegionDataIPtr newRegionData = _regionData->hosts(begin, end, list);
+  if (newRegionData) {
+    updateRegionData(newRegionData);
+  }
 }
 
 RemoteHostPtr RegionHandler::dataHost() {

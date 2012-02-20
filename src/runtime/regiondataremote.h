@@ -7,6 +7,7 @@
 #include "iregioncache.h"
 #include "regiondatai.h"
 #include "regiondataremotecache.h"
+#include "regiondatasplit.h"
 #include "remoteobject.h"
 
 #ifdef HAVE_CONFIG_H
@@ -58,7 +59,7 @@ namespace petabricks {
     RegionDataIPtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const;
     void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
 
-    DataHostPidList hosts(const IndexT* begin, const IndexT* end) const;
+    RegionDataIPtr hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list);
     RemoteHostPtr dataHost();
 
     // Update long chain of RegionHandlers
@@ -91,8 +92,9 @@ namespace petabricks {
       waitUntilCreated();
       return this;
     }
-  };
 
+    RegionDataSplitPtr createRegionDataSplit(CopyRegionDataSplitReplyMessage* msg) const;
+  };
 }
 
 #endif

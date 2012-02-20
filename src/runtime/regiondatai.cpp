@@ -46,7 +46,8 @@ void RegionDataI::processWriteCellCacheMsg(const BaseMessageHeader*, size_t, IRe
 void RegionDataI::processGetHostListMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
   GetHostListMessage* msg = (GetHostListMessage*)base->content();
 
-  DataHostPidList list = this->hosts(msg->begin, msg->end);
+  DataHostPidList list;
+  this->hosts(msg->begin, msg->end, list);
   size_t hosts_array_size = list.size() * sizeof(DataHostPidListItem);
   size_t sz = sizeof(GetHostListReplyMessage) + hosts_array_size;
 

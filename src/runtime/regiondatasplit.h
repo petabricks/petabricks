@@ -46,16 +46,19 @@ namespace petabricks {
     RegionDataIPtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const;
     void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
 
-    DataHostPidList hosts(const IndexT* begin, const IndexT* end) const;
+    RegionDataIPtr hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list);
     RemoteHostPtr dataHost() { return NULL; }
 
     RegionHandlerPtr coordToPart(const IndexT* coord, IndexT* coordPart) const;
     int incPartCoord(IndexT* coord, const IndexT* begin, const IndexT* end) const;
 
+    void copyRegionDataSplit(char* buf) const;
+
     void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
 
     // test
     void print();

@@ -502,7 +502,9 @@ namespace petabricks {
       IndexT rd_end[_regionHandler->dimensions()];
       this->getRegionDataCoord(begin, rd_begin);
       this->getRegionDataCoord(end, rd_end);
-      return _regionHandler->hosts(rd_begin, rd_end);
+      DataHostPidList list;
+      _regionHandler->hosts(rd_begin, rd_end, list);
+      return list;
     }
 
     //

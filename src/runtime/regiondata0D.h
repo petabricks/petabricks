@@ -52,9 +52,10 @@ namespace petabricks {
       *_value = MatrixStorage::rand();
     }
 
-    DataHostPidList hosts(const IndexT* /*begin*/, const IndexT* /*end*/) const {
+    RegionDataIPtr hosts(const IndexT* /*begin*/, const IndexT* /*end*/, DataHostPidList& list) {
       DataHostPidListItem item = {HostPid::self(), 1};
-      return DataHostPidList(1, item);
+      list.push_back(item);
+      return NULL;
     }
 
     RemoteHostPtr dataHost() { return NULL; }
@@ -120,9 +121,10 @@ namespace petabricks {
       _value = MatrixStorage::rand();
     }
 
-    DataHostPidList hosts(const IndexT* /*begin*/, const IndexT* /*end*/) const {
+    RegionDataIPtr hosts(const IndexT* /*begin*/, const IndexT* /*end*/, DataHostPidList& list) {
       DataHostPidListItem item = {HostPid::self(), 1};
-      return DataHostPidList(1, item);
+      list.push_back(item);
+      return NULL;
     }
 
     RemoteHostPtr dataHost() { return NULL; }

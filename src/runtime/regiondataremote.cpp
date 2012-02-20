@@ -214,10 +214,7 @@ RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageM
   if (type == MessageTypes::COPYREGIONDATASPLIT) {
     // Copy regiondatasplit to local
     CopyRegionDataSplitReplyMessage* reply = (CopyRegionDataSplitReplyMessage*)data;
-    RegionDataSplitPtr regionDataSplit = new RegionDataSplit(_D, _size, reply->splitSize);
-    for (int i = 0; i < reply->numParts; ++i) {
-      regionDataSplit->setPart(i, reply->handlers()[i]);
-    }
+    RegionDataSplitPtr regionDataSplit = createRegionDataSplit(reply);
     regionDataSplit->copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
     free(data);
     return regionDataSplit.asPtr();
@@ -290,7 +287,7 @@ void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage
   free(data);
 }
 
-DataHostPidList RegionDataRemote::hosts(const IndexT* begin, const IndexT* end) const {
+RegionDataIPtr RegionDataRemote::hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list) {
   GetHostListMessage msg;
   memcpy(msg.begin, begin, _D * sizeof(IndexT));
   memcpy(msg.end, end, _D * sizeof(IndexT));
@@ -301,13 +298,20 @@ DataHostPidList RegionDataRemote::hosts(const IndexT* begin, const IndexT* end) 
   this->fetchData(&msg, MessageTypes::GETHOSTLIST, sizeof(GetHostListMessage), &data, &len, &type);
   GetHostListReplyMessage* reply = (GetHostListReplyMessage*)data;
 
-  DataHostPidList list;
   for (int i = 0; i < reply->numHosts; i++) {
     list.push_back(reply->hosts[i]);
   }
 
+  size_t getHostListSize =  sizeof(GetHostListReplyMessage) + (reply->numHosts * sizeof(DataHostPidListItem));
+  RegionDataSplitPtr regionDataSplit;
+  if (getHostListSize < len) {
+    // RemoteData is RegionDataSplit. We will create a local copy.
+    CopyRegionDataSplitReplyMessage* copyMsg = (CopyRegionDataSplitReplyMessage*)((char*)data + getHostListSize);
+    regionDataSplit = createRegionDataSplit(copyMsg);
+  }
+
   free(reply);
-  return list;
+  return regionDataSplit.asPtr();
 }
 
 RemoteHostPtr RegionDataRemote::dataHost() {
@@ -446,3 +450,10 @@ void RegionDataRemote::processCopyFromMatrixStorageMsg(const BaseMessageHeader* 
   this->forwardMessage(base, baseLen, caller);
 }
 
+RegionDataSplitPtr RegionDataRemote::createRegionDataSplit(CopyRegionDataSplitReplyMessage* msg) const {
+    RegionDataSplitPtr regionDataSplit = new RegionDataSplit(_D, _size, msg->splitSize);
+    for (int i = 0; i < msg->numParts; ++i) {
+      regionDataSplit->setPart(i, msg->handlers()[i]);
+    }
+    return regionDataSplit;
+}

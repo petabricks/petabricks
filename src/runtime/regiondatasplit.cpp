@@ -236,20 +236,7 @@ void RegionDataSplit::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage*
   copyHelper(false, origMetadata, scratchStorage);
 }
 
-void RegionDataSplit::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  ReadCellMessage* msg = (ReadCellMessage*)base->content();
-  this->coordToPart(msg->coord, msg->coord)->processReadCellMsg(base, baseLen, caller);
-}
-
-void RegionDataSplit::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  WriteCellMessage* msg = (WriteCellMessage*)base->content();
-  this->coordToPart(msg->coord, msg->coord)->processWriteCellMsg(base, baseLen, caller);
-}
-
-void RegionDataSplit::processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
-  // Return a copy of this regiondatasplit
-  size_t sz = CopyRegionDataSplitReplyMessage::len(_D, _numParts);
-  char buf[sz];
+void RegionDataSplit::copyRegionDataSplit(char* buf) const {
   CopyRegionDataSplitReplyMessage* reply = (CopyRegionDataSplitReplyMessage*) buf;
   reply->dimensions = _D;
   reply->numParts = _numParts;
@@ -272,7 +259,23 @@ void RegionDataSplit::processCopyToMatrixStorageMsg(const BaseMessageHeader* bas
     }
     ++handler;
   }
+}
 
+void RegionDataSplit::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  ReadCellMessage* msg = (ReadCellMessage*)base->content();
+  this->coordToPart(msg->coord, msg->coord)->processReadCellMsg(base, baseLen, caller);
+}
+
+void RegionDataSplit::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  WriteCellMessage* msg = (WriteCellMessage*)base->content();
+  this->coordToPart(msg->coord, msg->coord)->processWriteCellMsg(base, baseLen, caller);
+}
+
+void RegionDataSplit::processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+  // Return a copy of this regiondatasplit
+  size_t sz = CopyRegionDataSplitReplyMessage::len(_D, _numParts);
+  char buf[sz];
+  copyRegionDataSplit(buf);
   caller->sendReply(buf, sz, base, MessageTypes::COPYREGIONDATASPLIT);
 }
 
@@ -280,7 +283,7 @@ void RegionDataSplit::processCopyFromMatrixStorageMsg(const BaseMessageHeader* /
   JASSERT(false).Text("copy RegionDataSplit to local before copying");
 }
 
-DataHostPidList RegionDataSplit::hosts(const IndexT* begin, const IndexT* end) const {
+RegionDataIPtr RegionDataSplit::hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list) {
   std::map<HostPid, int> hosts;
 
   IndexT newBegin[_D];
@@ -292,18 +295,19 @@ DataHostPidList RegionDataSplit::hosts(const IndexT* begin, const IndexT* end) c
 
   int count = 0;
 
-  const IndexT partBegin[] = {0,0,0};
-  const IndexT* partEnd = _splitSize;
-
   IndexT junk[_D];
   do {
-    DataHostPidList tmp = this->coordToPart(coord, junk)->hosts(partBegin, partEnd);
-    hosts[tmp[0].hostPid] += 1;
+    RemoteHostPtr host = this->coordToPart(coord, junk)->dataHost();
+    if (host) {
+      hosts[host->id()] += 1;
+    } else {
+      // local
+      hosts[HostPid::self()] += 1;
+    }
     count++;
 
   } while (incPartCoord(coord, newBegin, end) >= 0);
 
-  DataHostPidList list;
   std::map<HostPid, int>::iterator it;
   for (it = hosts.begin(); it != hosts.end(); it++) {
     DataHostPidListItem item;
@@ -312,7 +316,29 @@ DataHostPidList RegionDataSplit::hosts(const IndexT* begin, const IndexT* end) c
     list.push_back(item);
   }
 
-  return list;
+  return NULL;
+}
+
+void RegionDataSplit::processGetHostListMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+  JTRACE("process gethostlist in split");
+
+  GetHostListMessage* msg = (GetHostListMessage*)base->content();
+
+  DataHostPidList list;
+  this->hosts(msg->begin, msg->end, list);
+  size_t hosts_array_size = list.size() * sizeof(DataHostPidListItem);
+  size_t sz = sizeof(GetHostListReplyMessage) + hosts_array_size +
+    CopyRegionDataSplitReplyMessage::len(_D, _numParts);
+
+  char buf[sz];
+  GetHostListReplyMessage* reply = (GetHostListReplyMessage*)buf;
+  reply->numHosts = list.size();
+  memcpy(reply->hosts, &list[0], hosts_array_size);
+
+  // Also return a copy of this regiondatasplit
+  copyRegionDataSplit(buf + sizeof(GetHostListReplyMessage) + hosts_array_size);
+
+  caller->sendReply(buf, sz, base);
 }
 
 RegionHandlerPtr RegionDataSplit::coordToPart(const IndexT* coord, IndexT* coordPart) const {
