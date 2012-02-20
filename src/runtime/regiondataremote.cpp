@@ -303,15 +303,15 @@ RegionDataIPtr RegionDataRemote::hosts(const IndexT* begin, const IndexT* end, D
   }
 
   size_t getHostListSize =  sizeof(GetHostListReplyMessage) + (reply->numHosts * sizeof(DataHostPidListItem));
-  RegionDataSplitPtr regionDataSplit;
+  RegionDataSplit* regionDataSplit;
   if (getHostListSize < len) {
     // RemoteData is RegionDataSplit. We will create a local copy.
     CopyRegionDataSplitReplyMessage* copyMsg = (CopyRegionDataSplitReplyMessage*)((char*)data + getHostListSize);
-    regionDataSplit = createRegionDataSplit(copyMsg);
+    regionDataSplit = createRegionDataSplit(copyMsg).asPtr();
   }
 
   free(reply);
-  return regionDataSplit.asPtr();
+  return regionDataSplit;
 }
 
 RemoteHostPtr RegionDataRemote::dataHost() {

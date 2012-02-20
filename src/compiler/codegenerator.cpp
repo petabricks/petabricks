@@ -321,8 +321,6 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   size.write("return _sz;");
   in.write("_sender = &_host;");
 
-  getDataHosts.write("return list;");
-
   in.endFunc();
   out.endFunc();
   size.endFunc();
