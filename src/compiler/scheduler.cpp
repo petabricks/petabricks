@@ -97,11 +97,21 @@ void petabricks::Schedule::depthFirstChoiceDepGraphNode(SchedulingState& state, 
   state.generated.insert(n);
 }
 
-void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
+void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, int n){
   JASSERT(_schedule.size()>0);
-
+  o.comment("MARKER 1");
 
 #ifdef HAVE_OPENCL
+
+  // If run distributed with any gpu rule -> not valid -> call previous schedule
+  if(flavor == RuleFlavor::DISTRIBUTED) {
+    for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
+      if(i->node().isGpuRule(_choiceAssignment)) {
+	o.write("return schedule" + jalib::XToString(n-1) + "workstealing();");
+	return;
+      }
+    }
+  }
 
   for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
     i->node().resetRegionNodeGroups();
@@ -110,7 +120,7 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
   // Assign node to perform
   // 1) copy out immediately <setGpuCopyOut> 
   // 2) pend copy out <setPendingGpuCopyOut> 
-  //  3) don't copy out at all <do nothing>
+  // 3) don't copy out at all <do nothing>
 
   // Check output before inner rules because inner rules can overwrite setPendingGpuCopyOut to setGpuCopyOut
   // becuase we don't know if output will be used on gpu or cpu next (we don't have cross transform analysis)
@@ -164,7 +174,6 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
 
 #endif
 
-  o.comment("MARKER 1");
   for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
     if(i!=_schedule.begin() && flavor!=RuleFlavor::SEQUENTIAL)
       o.continuationPoint();
@@ -632,7 +641,7 @@ void petabricks::StaticScheduler::generateCode(Transform& trans, CodeGenerator& 
       schedOutput.beginFunc("DynamicTaskPtr", "schedule"+jalib::XToString(n)+"workstealing");
       o.write("return schedule"+jalib::XToString(n)+"workstealing();");
     }
-    (*i)->generateCode(trans, schedOutput, flavor);
+    (*i)->generateCode(trans, schedOutput, flavor, n);
     schedOutput.endFunc();
 
     o.endCase();
