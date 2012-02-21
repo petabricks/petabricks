@@ -320,8 +320,6 @@ RegionDataIPtr RegionDataSplit::hosts(const IndexT* begin, const IndexT* end, Da
 }
 
 void RegionDataSplit::processGetHostListMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
-  JTRACE("process gethostlist in split");
-
   GetHostListMessage* msg = (GetHostListMessage*)base->content();
 
   DataHostPidList list;
