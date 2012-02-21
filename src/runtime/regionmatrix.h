@@ -400,6 +400,7 @@ namespace petabricks {
       // regionhandler size
       sz += sizeof(IndexT) * _regionHandler->dimensions();
       sz += sizeof(RemoteRegionHandler);          // RemoteRegionHandler
+      sz += sizeof(bool);                         // isDataSplit
       return sz;
     }
 
@@ -443,6 +444,10 @@ namespace petabricks {
       sz = sizeof(RemoteRegionHandler);
       RemoteRegionHandler remoteRegionHandler = _regionHandler->remoteRegionHandler();
       memcpy(buf, &remoteRegionHandler, sz);
+      buf += sz;
+
+      sz = sizeof(bool);
+      *reinterpret_cast<bool*>(buf) = _regionHandler->isDataSplit();
       buf += sz;
 
       _regionHandler->incRefCount();
@@ -490,7 +495,11 @@ namespace petabricks {
       RemoteRegionHandler remoteRegionHandler = *reinterpret_cast<const RemoteRegionHandler*>(buf);
       buf += sz;
 
-      setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandler.hostPid, remoteRegionHandler.remoteHandler, regionHandlerDimensions, regionHandlerSize));
+      sz = sizeof(bool);
+      bool isDataSplit = *reinterpret_cast<const bool*>(buf);
+      buf += sz;
+
+      setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandler.hostPid, remoteRegionHandler.remoteHandler, regionHandlerDimensions, regionHandlerSize, isDataSplit));
     }
 
     void updateHandlerChain() const {

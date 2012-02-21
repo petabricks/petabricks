@@ -231,7 +231,8 @@ namespace petabricks {
     struct UpdateHandlerChainReplyMessage {
       HostPid dataHost;
       int numHops;
-      EncodedPtr encodedPtr; // regiondata or remoteobject
+      EncodedPtr encodedPtr; // regiondata or regionhandler
+      bool isDataSplit;
     } PACKED;
 
     struct CopyToMatrixStorageReplyMessage {

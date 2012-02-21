@@ -87,7 +87,7 @@ void RegionDataSplit::setPart(int partIndex, const RemoteRegionHandler& remoteRe
     }
   }
 
-  _parts[partIndex] = RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandler.hostPid, remoteRegionHandler.remoteHandler, _D, size);
+  _parts[partIndex] = RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandler.hostPid, remoteRegionHandler.remoteHandler, _D, size, false);
 
   // We don't need this since we already make a connection to data node.
   //_parts[partIndex]->updateHandlerChain();

@@ -23,10 +23,11 @@ namespace petabricks {
   class RegionDataRemote : public RegionDataI, public RemoteObject, IRegionCacheable {
   private:
     RemoteRegionHandler _remoteRegionHandler;
+    bool _isDataSplit;
 
   public:
     RegionDataRemote(const int dimensions, const IndexT* size, RemoteHostPtr host);
-    RegionDataRemote(const int dimensions, const IndexT* size, const HostPid& hostPid, const EncodedPtr remoteHandler);
+    RegionDataRemote(const int dimensions, const IndexT* size, const HostPid& hostPid, const EncodedPtr remoteHandler, bool isDataSplit);
     ~RegionDataRemote() {
       //JTRACE("Destruct RegionDataRemote")(this);
     }
@@ -61,6 +62,7 @@ namespace petabricks {
 
     RegionDataIPtr hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list);
     RemoteHostPtr dataHost();
+    bool isDataSplit() const;
 
     // Update long chain of RegionHandlers
     UpdateHandlerChainReplyMessage updateHandlerChain();

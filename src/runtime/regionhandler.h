@@ -46,6 +46,7 @@ namespace petabricks {
 
     void hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list);
     RemoteHostPtr dataHost();
+    bool isDataSplit() const;
 
     int dimensions() const;
     const IndexT* size() const;
@@ -85,7 +86,7 @@ namespace petabricks {
 
     static RegionHandlerDB& instance();
 
-    RegionHandlerPtr getLocalRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size);
+    RegionHandlerPtr getLocalRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size, bool isDataSplit);
 
   private:
     jalib::JMutex _mapMux;

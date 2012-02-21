@@ -23,12 +23,13 @@ RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, Rem
   host->createRemoteObject(this, &RegionMatrixProxy::genRemote, buf, msg_len);
 }
 
-RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, const HostPid& hostPid, const EncodedPtr remoteHandler) {
+RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, const HostPid& hostPid, const EncodedPtr remoteHandler, bool isDataSplit) {
   init(dimensions, size);
 
   // Defer the initialization of _remoteObject
   _remoteRegionHandler.hostPid = hostPid;
   _remoteRegionHandler.remoteHandler = remoteHandler;
+  _isDataSplit = isDataSplit;
 }
 
 void RegionDataRemote::init(const int dimensions, const IndexT* size) {
@@ -36,6 +37,8 @@ void RegionDataRemote::init(const int dimensions, const IndexT* size) {
   _type = RegionDataTypes::REGIONDATAREMOTE;
 
   memcpy(_size, size, sizeof(IndexT) * _D);
+
+  _isDataSplit = false;
 }
 
 void RegionDataRemote::createRemoteObject() const {
@@ -288,6 +291,12 @@ void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage
 }
 
 RegionDataIPtr RegionDataRemote::hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list) {
+  if (!_isDataSplit) {
+    DataHostPidListItem item = {_remoteRegionHandler.hostPid, 1};
+    list.push_back(item);
+    return NULL;
+  }
+
   GetHostListMessage msg;
   memcpy(msg.begin, begin, _D * sizeof(IndexT));
   memcpy(msg.end, end, _D * sizeof(IndexT));
@@ -318,6 +327,10 @@ RegionDataIPtr RegionDataRemote::hosts(const IndexT* begin, const IndexT* end, D
 
 RemoteHostPtr RegionDataRemote::dataHost() {
   return remoteObject()->host();
+}
+
+bool RegionDataRemote::isDataSplit() const {
+  return _isDataSplit;
 }
 
 UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain(UpdateHandlerChainMessage& msg) {

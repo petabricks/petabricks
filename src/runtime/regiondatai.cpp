@@ -95,6 +95,13 @@ void RegionDataI::processUpdateHandlerChainMsg(const BaseMessageHeader* base, si
     reply.encodedPtr = regionHandlerPtr;
   }
 
+  if (_type == RegionDataTypes::REGIONDATASPLIT) {
+    reply.isDataSplit = true;
+
+  } else {
+    reply.isDataSplit = false;
+  }
+
   size_t len = sizeof(UpdateHandlerChainReplyMessage);
   caller->sendReply(&reply, len, base);
 }

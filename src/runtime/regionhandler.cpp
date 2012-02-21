@@ -264,6 +264,19 @@ RemoteHostPtr RegionHandler::dataHost() {
   return _regionData->dataHost();
 }
 
+bool RegionHandler::isDataSplit() const {
+  RegionDataType type = this->type();
+  if (type == RegionDataTypes::REGIONDATASPLIT) {
+    return true;
+
+  } else if (type == RegionDataTypes::REGIONDATAREMOTE) {
+    return ((RegionDataRemote*)_regionData.asPtr())->isDataSplit();
+
+  } else {
+    return false;
+  }
+}
+
 int RegionHandler::dimensions() const {
   return _D;
 }
@@ -293,7 +306,7 @@ void RegionHandler::updateHandlerChain() {
 
     } else if (reply.numHops > 1) {
       // Multiple network hops to data. Create a direct connection to data.
-      RegionDataI* newRegionData = new RegionDataRemote(_regionData->dimensions(), _regionData->size(), reply.dataHost, reply.encodedPtr);
+      RegionDataI* newRegionData = new RegionDataRemote(_regionData->dimensions(), _regionData->size(), reply.dataHost, reply.encodedPtr, reply.isDataSplit);
       updateRegionData(newRegionData);
     }
   }
@@ -419,7 +432,7 @@ RegionHandlerDB& RegionHandlerDB::instance() {
   return db;
 }
 
-RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size) {
+RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size, bool isDataSplit) {
   if (hostPid == HostPid::self()) {
     return reinterpret_cast<RegionHandler*>(remoteHandler);
   }
@@ -436,7 +449,7 @@ RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(const HostPid& hostPid, 
   localMux->lock();
   if (localMap.count(remoteHandler) == 0) {
     // create a new one
-    RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, hostPid, remoteHandler);
+    RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, hostPid, remoteHandler, isDataSplit);
     localMap[remoteHandler] = new RegionHandler(regionData);
   }
 
