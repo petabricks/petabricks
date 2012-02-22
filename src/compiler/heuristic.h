@@ -45,15 +45,11 @@ public:
         _min( -std::numeric_limits<double>::infinity()),
         _max( std::numeric_limits<double>::infinity()) {}
     
-  FormulaPtr usedFormula() const;
-  
-  double eval (const ValueMap featureValues=ValueMap()) const;
+  FormulaPtr formula() const { return _formula; }
+  double eval (const ValueMap featureValues);
   
   void setMin(const double min) { _min = min; }
   void setMax(const double max) { _max = max; }
-  
-private:
-  double evalWithoutLimits(const ValueMap featureValues) const;
   
 private:
   FormulaPtr _formula;

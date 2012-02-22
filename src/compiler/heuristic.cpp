@@ -26,44 +26,7 @@
  *****************************************************************************/
 #include "heuristic.h"
 
-double petabricks::Heuristic::eval (const ValueMap featureValues) const {
-  double value = evalWithoutLimits(featureValues);
-  
-  //Keep the value within the limits
-  if (value < _min) {
-    return _min;
-  }
-  else if (value > _max) {
-    return _max;
-  }
-  else {
-    return value;
-  }
-}
-
-
-petabricks::FormulaPtr petabricks::Heuristic::usedFormula() const { 
-  if (! _formula->isConstant()) {
-    return _formula;
-  }
-  
-  //The formula is a constant value
-  
-  double value = evalWithoutLimits(ValueMap());
-  if(value < _min) {
-    //Return min
-    return MaximaWrapper::instance().runCommandSingleOutput(jalib::XToString(_min));
-  }
-  if(value > _max) {
-    //Return max
-    return MaximaWrapper::instance().runCommandSingleOutput(jalib::XToString(_max));
-  }
-  
-  return _formula;
-}
-
-
-double petabricks::Heuristic::evalWithoutLimits (const ValueMap featureValues) const {
+double petabricks::Heuristic::eval (const ValueMap featureValues) {
   FormulaPtr evaluated = _formula->clone();
   
   for(ValueMap::const_iterator i=featureValues.begin(), e=featureValues.end();
@@ -79,7 +42,14 @@ double petabricks::Heuristic::evalWithoutLimits (const ValueMap featureValues) c
   
   double value = evaluated->value();
   
-  return value;
+  //Keep the value within  the limits
+  if (value < _min) {
+    return _min;
+  }
+  else if (value > _max) {
+    return _max;
+  }
+  else {
+    return value;
+  }
 }
-
-

@@ -246,6 +246,10 @@ petabricks::RIRExprCopyRef& petabricks::RIRStmt::part(int n) {
   return *i;
 }
 
-unsigned int petabricks::RIRBlockStmt::opsNumber() const { 
-    return _block->opsNumber();
-}
+
+
+
+
+
+
+

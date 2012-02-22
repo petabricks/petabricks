@@ -1056,9 +1056,9 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
     if(isSingleElement()){
       trans.markSplitSizeUse(o);
-      HeuristicPtr blockNumberHeur = HeuristicManager::instance().getHeuristic("UserRule_blockNumber");
-      blockNumberHeur->setMin(2);
-      unsigned int blockNumber = blockNumberHeur->eval(); /**< The number of blocks the loop will be
+      Heuristic blockNumberHeur = HeuristicManager::instance().getHeuristic("UserRule_blockNumber");
+      blockNumberHeur.setMin(2);
+      unsigned int blockNumber = blockNumberHeur.eval(ValueMap()); /**< The number of blocks the loop will be
                                                                     * splitted into */
       JTRACE("LOOP BLOCKING")(blockNumber);
       o.beginIf("UNLIKELY((petabricks::split_condition<"+jalib::XToString(dimensions())+", "+jalib::XToString(blockNumber)+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")))");
