@@ -3,6 +3,7 @@
 
 #include "../simple/macros.h"
 #include "../simple/add.pbcc"
+#include "../simple/copy.pbcc"
 #include "../simple/transpose.pbcc"
 
 %{
@@ -205,7 +206,7 @@ to C[w,h]
     }
 
     #ifdef PRINT
-    printf("MatrixMultiplyAdd (BLAS-NoCopy) (%d, %d, %d)\n", h, w, k);
+    printf("MatrixMultiplyAddBase (BLAS-NoCopy) (%d, %d, %d)\n", h, w, k);
     #endif
 
     int as0 = a.sizes()[0], as1 = a.sizes()[1],
@@ -219,6 +220,11 @@ to C[w,h]
     if ((am0 != 1 && am1 != 1) ||
         (bm0 != 1 && bm1 != 1) ||
         (cm0 != 1 && cm1 != 1)) {
+
+      #ifdef PRINT
+      printf("  non-unit stride matrix detected, switch to BLAS-Copy\n");
+      #endif
+
       MatrixMultiplyAddBLAS(c, alpha, a, b, beta);
       return;
     }
@@ -324,6 +330,56 @@ tunable sizespecific blockSize
       }
     }
   }
+
+#if 0
+  // temp output block copy
+  to (C c)
+  from (ALPHA alpha, A a, B b, BETA beta)
+  {
+    if (blockSize < 1 || blockSize >= MAX(MAX(m, n), k)) {
+      MatrixMultiplyAddBase(c, alpha, a, b, beta);
+      return;
+    }
+
+    #ifdef PRINT
+    printf("MatrixMultiplyAddBlocked (%d, %d, %d), %d\n", m, n, k, (int) blockSize);
+    #endif
+
+    IndexT ib, jb, kb, ib1, jb1, kb1, nb = blockSize;
+    ConstMatrixRegion2D ab, bb;
+    MatrixRegion2D cb, t = MatrixRegion2D::allocate(nb, nb), tb;
+
+    for (jb = 0; jb < n; jb += nb) {
+      jb1 = MIN(jb + nb, n);
+      for (ib = 0; ib < m; ib += nb) {
+        ib1 = MIN(ib + nb, m);
+
+        // output tile
+        tb = t.region(0, 0, jb1 - jb, ib1 - ib);
+        cb = c.region(jb, ib, jb1, ib1);
+
+        Copy2D(tb, cb);
+
+        // first block in panel
+        kb = 0;
+        kb1 = MIN(kb + nb, k);
+        ab = a.region(kb, ib, kb1, ib1);
+        bb = b.region(jb, kb, jb1, kb1);
+        MatrixMultiplyAddBase(tb, alpha, ab, bb, beta);
+
+        // main panel loop
+        for (kb = nb; kb < k; kb += nb) {
+          kb1 = MIN(kb + nb, k);
+          ab = a.region(kb, ib, kb1, ib1);
+          bb = b.region(jb, kb, jb1, kb1);
+          MatrixMultiplyAddBase(tb, alpha, ab, bb, 1);
+        }
+
+        Copy2D(cb, tb);
+      }
+    }
+  }
+#endif
 }
 
 transform MatrixMultiplyAddRecursive
