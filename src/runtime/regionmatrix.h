@@ -658,9 +658,12 @@ namespace petabricks {
     void localCopy(RegionMatrix& scratch) const {
       #ifdef DEBUG
       JASSERT(scratch.isRegionDataRaw());
-      JASSERT(scratch.isSize(this->size()));
       // Copy to the entire region
-      JASSERT(this->isSize(scratch.regionData()->size()));
+      RegionMatrix tmp = *this;
+      if (_isTransposed) { tmp.transpose(); }
+      JASSERT(tmp.isSize(scratch.size()));
+      JASSERT(tmp.isSize(scratch.regionData()->size()));
+      if (_isTransposed) { tmp.transpose(); }
       #endif
 
       if (isRegionDataRaw()) {
