@@ -1210,7 +1210,10 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.write("remote_" + matrix->name() + " = " + i->first + ".region(_tmp_begin, _tmp_end);");
         o.decIndent();
         o.write("}");
-        o.write(matrix->typeName(flavor) + " " + matrix->name() + " = remote_" + matrix->name() + ".localCopy();");
+        // o.write(matrix->typeName(flavor) + " " + matrix->name() + " = remote_" + matrix->name() + ".localCopy();");
+        o.write(matrix->typeName(flavor) + " " + matrix->name() + "(remote_" + matrix->name() + ".size());");
+        o.write(matrix->name() + ".allocDataLocal();");
+        o.write("remote_" + matrix->name() + ".localCopy(" + matrix->name() + ");");
 
         args.push_back(matrix->name());
 
