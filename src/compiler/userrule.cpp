@@ -1372,6 +1372,9 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         MatrixDefPtr matrix = i->second;
         if (matrix->type() == MatrixDef::T_TO) {
           o.write("metadata->remote_TO_" + matrix->name() + ".fromScratchRegion(metadata->local_TO_" + matrix->name() + ");");
+          // Debug
+          // o.write("MatrixIOGeneral().write(metadata->remote_TO_" + matrix->name()+ ");");
+          // o.write("MatrixIOGeneral().write(metadata->local_TO_" + matrix->name()+ ");");
         }
       }
 
@@ -1417,7 +1420,7 @@ void petabricks::UserRule::generateMultiOpenCLTrampCodes(Transform& trans, CodeG
 }
 
 void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerator& o, RuleFlavor flavor){
-  SRCPOSSCOPE();  
+  SRCPOSSCOPE();
   IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();
   packedargs.push_back("int nodeID");
@@ -1731,10 +1734,10 @@ void petabricks::UserRule::generateOpenCLCopyOutCode(std::string& codename, Code
   //o.write("std::cout << sizes[0] << \" \" << sizes[1] << std::endl;");/
   o.write("normalized.copyTo("+name+", begins, ends);");
 #ifdef GPU_TRACE
-  //o.write("outstorage->print();"); 
+  //o.write("outstorage->print();");
   //o.write("std::cout << sizes[0] << \" \" << sizes[1] << std::endl;");
-  //o.write("MatrixIO().write(normalized);");   
-  //o.write("MatrixIO().write("+name+");");   
+  //o.write("MatrixIO().write(normalized);");
+  //o.write("MatrixIO().write("+name+");");
 #endif
   o.write( "return NULL;" );
   o.endFunc();

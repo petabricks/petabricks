@@ -99,6 +99,11 @@ RegionDataIPtr RegionDataRaw::copyToScratchMatrixStorage(CopyToMatrixStorageMess
 }
 
 void RegionDataRaw::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
+  // Debug
+  // RegionDataRawPtr sc = new RegionDataRaw(_D, scratchStorageSize);
+  // sc->setStorage(scratchStorage);
+  // sc->print();
+
   RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
 
   int d = origMetadata->dimensions;

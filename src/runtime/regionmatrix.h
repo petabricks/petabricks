@@ -18,6 +18,8 @@
 #include "regiondataraw.h"
 #include "regionhandler.h"
 
+// #define DEBUG_SCRATCH_REGION 1
+
 namespace petabricks {
   template< int D, typename ElementT> class RegionMatrixWrapper;
 
@@ -620,6 +622,7 @@ namespace petabricks {
       memcpy(metadata.size(), _size, sizeof(IndexT) * D);
       memcpy(metadata.sliceDimensions(), _sliceInfo->sliceDimensions(), sizeof(int) * D);
       memcpy(metadata.slicePositions(), _sliceInfo->slicePositions(), sizeof(IndexT) * D);
+      //JTRACE("metadata")(metadata.size()[0])(metadata.size()[1]);
     }
 
     bool isLocal() const {
@@ -664,6 +667,7 @@ namespace petabricks {
 
       RegionMatrix copy = RegionMatrix(this->size());
       copy.allocDataLocal();
+      //JTRACE("copy")(copy.regionData()->storage())(this->size()[0])(this->size()[1]);
       _regionHandler->copyToScratchMatrixStorage(msg, len, copy.regionData()->storage());
 
       if (_isTransposed) {
