@@ -56,7 +56,7 @@ to A[n, m]
 transform DGERRecursive
 from ALPHA, X[1, m], Y[n, 1], BETA
 to A[n, m]
-tunable blockSize
+tunable sizespecific blockSize
 {
     to (A a)
     from (ALPHA alpha, X x, Y y, BETA beta)

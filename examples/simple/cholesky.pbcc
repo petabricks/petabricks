@@ -141,6 +141,10 @@ to L[n,n]
     // serial right-looking (update trailing matrix after each column) (JKI)
     to (L l) from ()
     {
+        #ifdef PRINT
+        printf("CholeskyBase (serial RL JKI) (%d)\n", n);
+        #endif
+
         IndexT i, j, k;
         ElementT temp;
         for (j = 0; j < n; ++j) {
@@ -163,6 +167,10 @@ to L[n,n]
     // serial left-looking (solve one row at a time) (JKI)
     to (L l) from ()
     {
+        #ifdef PRINT
+        printf("CholeskyBase (serial LL JKI) (%d)\n", n);
+        #endif
+
         IndexT i, j, k;
         ElementT temp;
         for (j = 0; j < n; ++j) {
@@ -186,6 +194,10 @@ to L[n,n]
     // serial right-looking (update trailing matrix after each column) (JIK)
     to (L l) from ()
     {
+        #ifdef PRINT
+        printf("CholeskyBase (serial RL JIK) (%d)\n", n);
+        #endif
+
         IndexT i, j, k;
         ElementT temp;
         for (j = 0; j < n; ++j) {
@@ -208,6 +220,10 @@ to L[n,n]
     // serial left-looking (solve one row at a time) (JIK)
     to (L l) from ()
     {
+        #ifdef PRINT
+        printf("CholeskyBase (serial LL JIK) (%d)\n", n);
+        #endif
+
         IndexT i, j, k;
         ElementT temp;
         for (j = 0; j < n; ++j) {
@@ -230,6 +246,10 @@ to L[n,n]
     // right-looking (update trailing matrix after each column is solved)
     to (L l) from ()
     {
+        #ifdef PRINT
+        printf("CholeskyBase (RL) (%d)\n", n);
+        #endif
+
         IndexT j;
         for (j = 0; j < n; ++j) {
             if (j > 0) {
@@ -248,6 +268,10 @@ to L[n,n]
     // left-looking (solve one column at a time)
     to (L l) from ()
     {
+        #ifdef PRINT
+        printf("CholeskyBase (LL) (%d)\n", n);
+        #endif
+
         IndexT j;
         for (j = 0; j < n; ++j) {
             if (j > 0) {
@@ -267,6 +291,10 @@ to L[n,n]
     // call LAPACK to factor
     to (L l) from ()
     {
+        #ifdef PRINT
+        printf("CholeskyBase (LAPACK) (%d)\n", n);
+        #endif
+
         CholeskyLAPACK(l, l);
     }
 }
@@ -284,6 +312,10 @@ tunable sizespecific blockSize
             CholeskyBase(l);
             return;
         }
+
+        #ifdef PRINT
+        printf("CholeskyBlocked (RL) (%d), %d\n", n, (int) blockSize);
+        #endif
 
         MatrixRegion2D l11, l12, l21, l22;
 
@@ -314,6 +346,10 @@ tunable sizespecific blockSize
             CholeskyBase(l);
             return;
         }
+
+        #ifdef PRINT
+        printf("CholeskyBlocked (LL) (%d), %d\n", n, (int) blockSize);
+        #endif
 
         IndexT i0, i1;
         MatrixRegion2D l12, l21, l22, l32, lb1, lb2;
@@ -357,6 +393,10 @@ tunable sizespecific blockSize
             CholeskyBase(l);
             return;
         }
+
+        #ifdef PRINT
+        printf("CholeskyBlocked (UL) (%d), %d\n", n, (int) blockSize);
+        #endif
 
         IndexT i0, i1;
         MatrixRegion2D l11, l21, l22, l23;
@@ -402,6 +442,10 @@ tunable sizespecific blockSize
             CholeskyBlocked(l);
             return;
         }
+
+        #ifdef PRINT
+        printf("CholeskyRecursive (RL) (%d), %d\n", n, (int) blockSize);
+        #endif
 
         MatrixRegion2D l11, l12, l21, l22;
 

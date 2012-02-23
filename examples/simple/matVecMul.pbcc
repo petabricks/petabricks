@@ -179,7 +179,7 @@ to Y[n,m]
 transform MatVecMulRecursive
 from ALPHA, A[n,m], X[1,n], BETA
 to Y[1,m]
-tunable blockSize
+tunable sizespecific blockSize
 {
     to (Y y)
     from (ALPHA alpha, A a, X x, BETA beta)

@@ -50,104 +50,13 @@ to Q[n,m], R[n,m]
 transform QRRBase
 to A[n,m], TAU[n]
 {
-    // right-looking
+    // right-looking serial (IKJ)
     to (A a, TAU tau) from ()
     {
-        IndexT i;
-        ElementT alpha, beta, xnorm;
-        MatrixRegion2D v, a2, work, w2;
-        work = MatrixRegion2D::allocate(1, n);
-        for (i = 0; i < n; ++i) {
+        #ifdef PRINT
+        fprintf(stderr, "QRRBase (serial RL IKJ) (%d, %d)\n", m, n);
+        #endif
 
-            // if last row, we're done
-            if (i >= m-1) {
-                // this loop is a workaround for a loop continuation bug
-                // could use a continue instead of explicit loop
-                while (i < n) {
-                    tau.cell(i++) = 0;
-                }
-                break;
-            }
-
-            Norm1D(xnorm, a.column(i).region(i+1, m), 2.0);
-            if (xnorm == 0.0) {
-                tau.cell(i) = 0;
-            // this else is a workaround for a loop continuation bug
-            // could use a continue instead
-            } else {
-                // compute reflector
-                alpha = a.cell(i, i);
-                beta = sqrt(alpha * alpha + xnorm * xnorm);
-                beta = alpha > 0 ? -beta : beta;
-                tau.cell(i) = (beta - alpha) / beta;
-                Scale2D(a.region(i, i+1, i+1, m), 1.0 / (alpha - beta));
-
-                // if last column, we're done
-                if (i >= n-1) {
-                    a.cell(i, i) = beta;
-                    break;
-                }
-
-                v  = a.region(i  , i, i+1, m);
-                a2 = a.region(i+1, i, n  , m);
-                w2 = work.region(0, i+1, 1, n);
-
-                // apply reflector to trailing matrix
-                a.cell(i, i) = 1;
-                MatrixMultiply(w2, a2.transposed(), v);
-                MatrixMultiplyAdd(a2, -tau.cell(i), v, w2.transposed(), 1.0);
-                a.cell(i, i) = beta;
-            }
-        }
-    }
-
-    // left-looking
-    to (A a, TAU tau) from ()
-    {
-        IndexT i;
-        ElementT alpha, beta, xnorm;
-        MatrixRegion1D tau1;
-        MatrixRegion2D a1, a2;
-        for (i = 0; i < n; ++i) {
-
-            // lazy update of this column
-            if (i > 0) {
-                a1 = a.region(0, 0, MIN(i,m), m);
-                a2 = a.region(i, 0, i+1, m);
-                tau1 = tau.region(0, MIN(i,m));
-                QRRMult(a2, a1, tau1, 1);
-            }
-
-            // if last row, we're done
-            if (i >= m-1) {
-                // this loop is a workaround for a loop continuation bug
-                // could use a continue instead of explicit loop
-                while (i < n) {
-                    tau.cell(i++) = 0;
-                }
-                break;
-            }
-
-            Norm1D(xnorm, a.column(i).region(i+1, m), 2.0);
-            if (xnorm == 0.0) {
-                tau.cell(i) = 0;
-            // this else is a workaround for a loop continuation bug
-            // could use a continue instead
-            } else {
-                // compute reflector
-                alpha = a.cell(i, i);
-                beta = sqrt(alpha * alpha + xnorm * xnorm);
-                beta = alpha > 0 ? -beta : beta;
-                tau.cell(i) = (beta - alpha) / beta;
-                Scale2D(a.region(i, i+1, i+1, m), 1.0 / (alpha - beta));
-                a.cell(i, i) = beta;
-            }
-        }
-    }
-
-    // right-looking serial
-    to (A a, TAU tau) from ()
-    {
         IndexT i, j, k;
         ElementT alpha, beta, xnorm, temp;
         MatrixRegion1D work = MatrixRegion1D::allocate(n);
@@ -219,9 +128,91 @@ to A[n,m], TAU[n]
         }
     }
 
-    // left-looking serial
+    // right-looking serial (IJK)
     to (A a, TAU tau) from ()
     {
+        #ifdef PRINT
+        fprintf(stderr, "QRRBase (serial RL IJK) (%d, %d)\n", m, n);
+        #endif
+
+        IndexT i, j, k;
+        ElementT alpha, beta, xnorm, temp;
+        MatrixRegion1D work = MatrixRegion1D::allocate(n);
+        for (i = 0; i < n; ++i) {
+
+            // if last row, we're done
+            if (i >= m-1) {
+                // this loop is a workaround for a loop continuation bug
+                // could use a continue instead of explicit loop
+                while (i < n) {
+                    tau.cell(i++) = 0;
+                }
+                break;
+            }
+
+            xnorm = 0;
+            for (j = i+1; j < m; ++j) {
+                temp = a.cell(i, j);
+                xnorm += temp * temp;
+            }
+            xnorm = sqrt(xnorm);
+
+            if (xnorm == 0) {
+                tau.cell(i) = 0;
+            // this else is a workaround for a loop continuation bug
+            // could use a continue instead
+            } else {
+                // compute reflector
+                alpha = a.cell(i, i);
+                beta = sqrt(alpha * alpha + xnorm * xnorm);
+                beta = alpha > 0 ? -beta : beta;
+                tau.cell(i) = (beta - alpha) / beta;
+                temp = 1.0 / (alpha - beta);
+                for (j = i+1; j < m; ++j) {
+                    a.cell(i, j) *= temp;
+                }
+                a.cell(i, i) = beta;
+
+                // if last column, we're done
+                if (i >= n-1) {
+                    break;
+                }
+
+                // apply reflector to trailing matrix
+                // a2 -= tau * v * v^T * a2, where:
+                //   a2 = a(i+1, i, n  , m)
+                //   v  = a(i  , i, i+1, m)
+
+                // 1) work = v^T * a2
+                for (j = i+1; j < n; ++j) {
+                    work.cell(j) = a.cell(j, i);
+                }
+                for (j = i+1; j < n; ++j) {
+                    for (k = i+1; k < m; ++k) {
+                        work.cell(j) += a.cell(i, k) * a.cell(j, k);
+                    }
+                }
+
+                // 2) a2 -= tau * v * work
+                for (j = i+1; j < n; ++j) {
+                    a.cell(j, i) -= tau.cell(i) * work.cell(j);
+                }
+                for (j = i+1; j < n; ++j) {
+                    for (k = i+1; k < m; ++k) {
+                        a.cell(j, k) -= tau.cell(i) * a.cell(i, k) * work.cell(j);
+                    }
+                }
+            }
+        }
+    }
+
+    // left-looking serial (IJK)
+    to (A a, TAU tau) from ()
+    {
+        #ifdef PRINT
+        fprintf(stderr, "QRRBase (serial LL IJK) (%d, %d)\n", m, n);
+        #endif
+
         IndexT i, j, k;
         ElementT alpha, beta, xnorm, temp;
         for (i = 0; i < n; ++i) {
@@ -275,9 +266,118 @@ to A[n,m], TAU[n]
         }
     }
 
+#if 0
+    // right-looking
+    to (A a, TAU tau) from ()
+    {
+        #ifdef PRINT
+        fprintf(stderr, "QRRBase (RL) (%d, %d)\n", m, n);
+        #endif
+
+        IndexT i;
+        ElementT alpha, beta, xnorm;
+        MatrixRegion2D v, a2, work, w2;
+        work = MatrixRegion2D::allocate(1, n);
+        for (i = 0; i < n; ++i) {
+
+            // if last row, we're done
+            if (i >= m-1) {
+                // this loop is a workaround for a loop continuation bug
+                // could use a continue instead of explicit loop
+                while (i < n) {
+                    tau.cell(i++) = 0;
+                }
+                break;
+            }
+
+            Norm1D(xnorm, a.column(i).region(i+1, m), 2.0);
+            if (xnorm == 0.0) {
+                tau.cell(i) = 0;
+            // this else is a workaround for a loop continuation bug
+            // could use a continue instead
+            } else {
+                // compute reflector
+                alpha = a.cell(i, i);
+                beta = sqrt(alpha * alpha + xnorm * xnorm);
+                beta = alpha > 0 ? -beta : beta;
+                tau.cell(i) = (beta - alpha) / beta;
+                Scale2D(a.region(i, i+1, i+1, m), 1.0 / (alpha - beta));
+
+                // if last column, we're done
+                if (i >= n-1) {
+                    a.cell(i, i) = beta;
+                    break;
+                }
+
+                v  = a.region(i  , i, i+1, m);
+                a2 = a.region(i+1, i, n  , m);
+                w2 = work.region(0, i+1, 1, n);
+
+                // apply reflector to trailing matrix
+                a.cell(i, i) = 1;
+                MatrixMultiply(w2, a2.transposed(), v);
+                MatrixMultiplyAdd(a2, -tau.cell(i), v, w2.transposed(), 1.0);
+                a.cell(i, i) = beta;
+            }
+        }
+    }
+
+    // left-looking
+    to (A a, TAU tau) from ()
+    {
+        #ifdef PRINT
+        fprintf(stderr, "QRRBase (LL) (%d, %d)\n", m, n);
+        #endif
+
+        IndexT i;
+        ElementT alpha, beta, xnorm;
+        MatrixRegion1D tau1;
+        MatrixRegion2D a1, a2;
+        for (i = 0; i < n; ++i) {
+
+            // lazy update of this column
+            if (i > 0) {
+                a1 = a.region(0, 0, MIN(i,m), m);
+                a2 = a.region(i, 0, i+1, m);
+                tau1 = tau.region(0, MIN(i,m));
+                QRRMult(a2, a1, tau1, 1);
+            }
+
+            // if last row, we're done
+            if (i >= m-1) {
+                // this loop is a workaround for a loop continuation bug
+                // could use a continue instead of explicit loop
+                while (i < n) {
+                    tau.cell(i++) = 0;
+                }
+                break;
+            }
+
+            Norm1D(xnorm, a.column(i).region(i+1, m), 2.0);
+            if (xnorm == 0.0) {
+                tau.cell(i) = 0;
+            // this else is a workaround for a loop continuation bug
+            // could use a continue instead
+            } else {
+                // compute reflector
+                alpha = a.cell(i, i);
+                beta = sqrt(alpha * alpha + xnorm * xnorm);
+                beta = alpha > 0 ? -beta : beta;
+                tau.cell(i) = (beta - alpha) / beta;
+                Scale2D(a.region(i, i+1, i+1, m), 1.0 / (alpha - beta));
+                a.cell(i, i) = beta;
+            }
+        }
+    }
+#endif
+
     // call LAPACK
     to (A a, TAU tau) from ()
     {
+        #ifdef PRINT
+        fprintf(stderr, "QRRBase (LAPACK) (%d, %d)\n", m, n);
+        #endif
+
         QRRLAPACK(a, tau, a);
     }
 }
@@ -288,28 +388,6 @@ transform QRRTriFact
 from TAU[k]
 to T[k,k], V[k,m]
 {
-    to (T t, V v) from (TAU tau)
-    {
-        IndexT i;
-        for (i = 0; i < k; ++i) {
-            if (tau.cell(i) == 0) {
-                Init2D(t.region(i, 0, i+1, i+1), 0);
-                continue;
-            }
-            if (i > 0) {
-                ElementT vii = v.cell(i, i);
-                v.cell(i, i) = 1;
-                MatrixMultiplyAdd(t.region(i, 0, i+1, i), -tau.cell(i),
-                                  v.region(0, i, i  , m).transposed(),
-                                  v.region(i, i, i+1, m), 0.0);
-                v.cell(i, i) = vii;
-                TriMatrixMultiplyInPlace(t.region(i, 0, i+1, i), 1, 0,
-                                         t.region(0, 0, i  , i));
-            }
-            t.cell(i, i) = tau.cell(i);
-        }
-    }
-
     // serial version
     to (T t, V v) from (TAU tau)
     {
@@ -341,6 +419,30 @@ to T[k,k], V[k,m]
             t.cell(i, i) = tau.cell(i);
         }
     }
+
+#if 0
+    to (T t, V v) from (TAU tau)
+    {
+        IndexT i;
+        for (i = 0; i < k; ++i) {
+            if (tau.cell(i) == 0) {
+                Init2D(t.region(i, 0, i+1, i+1), 0);
+                continue;
+            }
+            if (i > 0) {
+                ElementT vii = v.cell(i, i);
+                v.cell(i, i) = 1;
+                MatrixMultiplyAdd(t.region(i, 0, i+1, i), -tau.cell(i),
+                                  v.region(0, i, i  , m).transposed(),
+                                  v.region(i, i, i+1, m), 0.0);
+                v.cell(i, i) = vii;
+                TriMatrixMultiplyInPlace(t.region(i, 0, i+1, i), 1, 0,
+                                         t.region(0, 0, i  , i));
+            }
+            t.cell(i, i) = tau.cell(i);
+        }
+    }
+#endif
 }
 
 // in-place left multiply by block reflector: C = (I - V*T*V') * C,
@@ -443,6 +545,11 @@ tunable sizespecific blockSize
             return;
         }
 
+        #ifdef PRINT
+        fprintf(stderr, "QRRBlocked (RL) (%d, %d), %d\n",
+                m, n, (int) blockSize);
+        #endif
+
         MatrixRegion1D tau1, tau2;
         MatrixRegion2D a1, a2, a22, t;
         t = MatrixRegion2D::allocate(blockSize, blockSize);
@@ -490,6 +597,11 @@ tunable sizespecific blockSize
             QRRBase(a, tau);
             return;
         }
+
+        #ifdef PRINT
+        fprintf(stderr, "QRRBlocked (LL) (%d, %d, %d), %d\n",
+                m, n, p, (int) blockSize);
+        #endif
 
         // space for all of the triangular factors (stacked vertically)
         t = MatrixRegion2D::allocate(blockSize, p);
@@ -571,6 +683,10 @@ to A[n,m], TAU[n]
     // call LAPACK
     to (A a, TAU tau) from ()
     {
+        #ifdef PRINT
+        fprintf(stderr, "QRRBlocked (LAPACK) (%d, %d)\n", m, n);
+        #endif
+
         QRRBlockedLAPACK(a, tau, a);
     }
 }
@@ -579,7 +695,7 @@ to A[n,m], TAU[n]
 // recursively divide A into halves, and do QR on each part sequentially
 transform QRRRecursive
 to A[n,m], TAU[n]
-tunable blockSize
+tunable sizespecific blockSize
 {
     to (A a, TAU tau) from ()
     {
@@ -588,6 +704,10 @@ tunable blockSize
             QRRBlocked(a, tau);
             return;
         }
+
+        #ifdef PRINT
+        fprintf(stderr, "QRRRecursive (%d, %d), %d\n", m, n, (int) blockSize);
+        #endif
 
         IndexT b = MIN(m,n) / 2;
         MatrixRegion1D tau1, tau2;
@@ -628,6 +748,7 @@ to A[n,m], TAU[n]
         QRRRecursive(a, tau);
     }
 
+#if 0
     // call blocked version
     to (A a, TAU tau) from ()
     {
@@ -639,6 +760,7 @@ to A[n,m], TAU[n]
     {
         QRRBase(a, tau);
     }
+#endif
 }
 
 // On entry, Q contains the matrix to be factored; on exit, it contains Q.

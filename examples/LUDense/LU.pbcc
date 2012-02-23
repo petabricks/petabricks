@@ -38,9 +38,9 @@ to A[n,m], P[m]
     // right looking serial (jki)
     to (A a, P p) from ()
     {
-#ifdef DEBUG
-        fprintf(stderr, "LUSerialRight called for (%d, %d)\n", m, n);
-#endif
+        #ifdef PRINT
+        fprintf(stderr, "LUBase (serial RL JKI) (%d, %d)\n", m, n);
+        #endif
 
         IndexT i, j, k, ip;
         ElementT maxVal, temp;
@@ -84,9 +84,9 @@ to A[n,m], P[m]
     // left looking serial (jki)
     to (A a, P p) from ()
     {
-#ifdef DEBUG
-        fprintf(stderr, "LUSerialLeft called for (%d, %d)\n", m, n);
-#endif
+        #ifdef PRINT
+        fprintf(stderr, "LUBase (serial LL JKI) (%d, %d)\n", m, n);
+        #endif
 
         IndexT i, j, k, ip;
         ElementT maxVal, temp;
@@ -132,9 +132,9 @@ to A[n,m], P[m]
     // Crout serial (jki)
     to (A a, P p) from ()
     {
-#ifdef DEBUG
-        fprintf(stderr, "LUSerialCrout called for (%d, %d)\n", m, n);
-#endif
+        #ifdef PRINT
+        fprintf(stderr, "LUBase (serial Crout JKI) (%d, %d)\n", m, n);
+        #endif
 
         IndexT i, j, k, ip;
         ElementT maxVal, temp;
@@ -184,9 +184,9 @@ to A[n,m], P[m]
     // right looking serial (jik)
     to (A a, P p) from ()
     {
-#ifdef DEBUG
-        fprintf(stderr, "LUSerialRight called for (%d, %d)\n", m, n);
-#endif
+        #ifdef PRINT
+        fprintf(stderr, "LUBase (serial RL JIK) (%d, %d)\n", m, n);
+        #endif
 
         IndexT i, j, k, ip;
         ElementT maxVal, temp;
@@ -230,9 +230,9 @@ to A[n,m], P[m]
     // left looking serial (jik)
     to (A a, P p) from ()
     {
-#ifdef DEBUG
-        fprintf(stderr, "LUSerialLeft called for (%d, %d)\n", m, n);
-#endif
+        #ifdef PRINT
+        fprintf(stderr, "LUBase (serial LL JIK) (%d, %d)\n", m, n);
+        #endif
 
         IndexT i, j, k, ip;
         ElementT maxVal, temp;
@@ -278,9 +278,9 @@ to A[n,m], P[m]
     // Crout serial (jik)
     to (A a, P p) from ()
     {
-#ifdef DEBUG
-        fprintf(stderr, "LUSerialCrout called for (%d, %d)\n", m, n);
-#endif
+        #ifdef PRINT
+        fprintf(stderr, "LUBase (serial Crout JIK) (%d, %d)\n", m, n);
+        #endif
 
         IndexT i, j, k, ip;
         ElementT maxVal, temp;
@@ -331,9 +331,9 @@ to A[n,m], P[m]
     // right looking (update trailing matrix after each column is solved)
     to (A a, P p) from ()
     {
-#ifdef DEBUG
-        fprintf(stderr, "LUBaseRight called for (%d, %d)\n", m, n);
-#endif
+        #ifdef PRINT
+        fprintf(stderr, "LUBase (RL) (%d, %d)\n", m, n);
+        #endif
 
         IndexT j;
         ElementT iMax, jMax, valMax;
@@ -377,9 +377,9 @@ to A[n,m], P[m]
     // left looking (solve one column at a time)
     to (A a, P p) from ()
     {
-#ifdef DEBUG
-        fprintf(stderr, "LUBaseLeft called for (%d, %d)\n", m, n);
-#endif
+        #ifdef PRINT
+        fprintf(stderr, "LUBase (LL) (%d, %d)\n", m, n);
+        #endif
 
         IndexT j;
         ElementT iMax, jMax, valMax;
@@ -434,9 +434,9 @@ to A[n,m], P[m]
     // Crout (solve one column and row at a time)
     to (A a, P p) from ()
     {
-#ifdef DEBUG
-        fprintf(stderr, "LUBaseCrout called for (%d, %d)\n", m, n);
-#endif
+        #ifdef PRINT
+        fprintf(stderr, "LUBase (Crout) (%d, %d)\n", m, n);
+        #endif
 
         IndexT j;
         ElementT iMax, jMax, valMax;
@@ -489,9 +489,9 @@ to A[n,m], P[m]
     // call LAPACK
     to (A a, P p) from ()
     {
-#ifdef DEBUG
-        fprintf(stderr, "LUBaseLAPACK called for (%d, %d)\n", m, n);
-#endif
+        #ifdef PRINT
+        fprintf(stderr, "LUBase (LAPACK) (%d, %d)\n", m, n);
+        #endif
 
         LULAPACK(a, p, a);
     }
@@ -504,10 +504,9 @@ tunable sizespecific blockSize
 {
     to (A a, P p) from ()
     {
-#ifdef DEBUG
-        fprintf(stderr, "LUBlockedRight called for (%d, %d), b = %d\n",
-                m, n, (int) blockSize);
-#endif
+        #ifdef PRINT
+        fprintf(stderr, "LUBlocked (RL) (%d, %d), %d\n", m, n, (int) blockSize);
+        #endif
 
         // base case
         if (blockSize < 1 || blockSize >= MIN(m,n)) {
@@ -560,10 +559,9 @@ tunable sizespecific blockSize
 {
     to (A a, P p) from (K _k)
     {
-#ifdef DEBUG
-        fprintf(stderr, "LUBlockedLeft called for (%d, %d), b = %d\n",
-                m, n, (int) blockSize);
-#endif
+        #ifdef PRINT
+        fprintf(stderr, "LUBlocked (LL) (%d, %d), %d\n", m, n, (int) blockSize);
+        #endif
 
         IndexT k, i0, i1;
         MatrixRegion2D ac2, a11, a12, a21, a22, a23;
@@ -652,10 +650,9 @@ tunable sizespecific blockSize
 {
     to (A a, P p) from (K _k)
     {
-#ifdef DEBUG
-        fprintf(stderr, "LUBlockedCrout called for (%d, %d), b = %d\n",
-                m, n, (int) blockSize);
-#endif
+        #ifdef PRINT
+        fprintf(stderr, "LUBlocked (Crout) (%d, %d), %d\n", m, n, (int) blockSize);
+        #endif
 
         IndexT k, i0, i1;
         MatrixRegion2D a11, a12, a13, a21, a22, a23, ar1, ar2, ar3;
@@ -776,10 +773,9 @@ tunable sizespecific blockSize
 {
     to (A a, P p) from ()
     {
-#ifdef DEBUG
-        fprintf(stderr, "LURecursive called for (%d, %d), b = %d\n",
-                m, n, (int) blockSize);
-#endif
+        #ifdef PRINT
+        fprintf(stderr, "LURecursive (%d, %d), %d\n", m, n, (int) blockSize);
+        #endif
 
         // base case
         if (blockSize < 1 || blockSize >= MIN(m,n)) {
@@ -839,6 +835,7 @@ to A[n,m], P[m]
         LURecursive(a, p);
     }
 
+#if 0
     to (A a, P p) from ()
     {
         LUBlocked(a, p);
@@ -848,6 +845,7 @@ to A[n,m], P[m]
     {
         LUBase(a, p);
     }
+#endif
 }
 
 transform LU
@@ -857,10 +855,8 @@ generator LUGenerator
 {
     to (OUT out, P p) from (IN in)
     {
-        MatrixRegion2D temp = MatrixRegion2D::allocate(n, m);
-        Copy2D(temp, in);
-        LUInPlace(temp, p);
-        Copy2D(out, temp);
+        Copy2D(out, in);
+        LUInPlace(out, p);
     }
 
     to (OUT out, P p) from (IN in)

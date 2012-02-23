@@ -61,7 +61,6 @@ to X[n,m]
         }
     }
 
-#if 0
     // right looking serial (IKJ)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
@@ -108,6 +107,7 @@ to X[n,m]
         }
     }
 
+#if 0
     // right looking (update trailing matrix after each row is solved)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
