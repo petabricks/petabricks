@@ -667,8 +667,12 @@ namespace petabricks {
 
       RegionMatrix copy = RegionMatrix(this->size());
       copy.allocDataLocal();
+      RegionMatrixMetadata copyMetadata;
+      copy.computeRegionMatrixMetadata(copyMetadata);
+
       //JTRACE("copy")(copy.regionData()->storage())(this->size()[0])(this->size()[1]);
-      _regionHandler->copyToScratchMatrixStorage(msg, len, copy.regionData()->storage());
+
+      _regionHandler->copyToScratchMatrixStorage(msg, len, copy.regionData()->storage(), &copyMetadata, this->size());
 
       if (_isTransposed) {
         copy.transpose();
