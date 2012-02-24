@@ -71,6 +71,8 @@ ElementT RegionDataRaw::readCell(const IndexT* coord) const {
 }
 
 void RegionDataRaw::writeCell(const IndexT* coord, ElementT value) {
+  // Do not write nan
+  // JASSERT(fabs(value) >= 0)(value);
   ElementT* cell = this->coordToPtr(coord);
   *cell = value;
 }
