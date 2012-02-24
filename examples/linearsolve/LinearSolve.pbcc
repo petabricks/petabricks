@@ -18,7 +18,7 @@ from Y[m,m], P[m]
 {
     to (X x) from (Y y, P p)
     {
-        PermuteInPlace(x, p);
+        PermuteInPlace(x, p, 0, m);
         TriSolveLLInPlace(x, 1, y);
         TriSolveLUInPlace(x, 0, y);
     }
