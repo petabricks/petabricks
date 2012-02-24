@@ -140,7 +140,11 @@ to C[w,h]
         for(IndexT l=0, maxL=a.width(); l<maxL; ++l) {
 	  temp += a.cell(l,i) * b.cell(j,l);
 	}
-        c.cell(j,i) = alpha * temp + beta * c.cell(j,i);
+        if (beta == 0) {
+          c.cell(j,i) = alpha * temp;
+        } else {
+          c.cell(j,i) = alpha * temp + beta * c.cell(j,i);
+        }
       }
     }
   }

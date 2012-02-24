@@ -53,7 +53,11 @@ to C[n,m]
     to (C.cell(j,i) c)
     from (UPFLAG upFlag, UNITFLAG unitFlag, ALPHA alpha, A a, B b, BETA beta)
     {
-        c *= beta;
+        if (beta == 0) {
+          c = 0;
+        } else {
+          c *= beta;
+        }
         c += alpha * (unitFlag ? 1.0 : (double)(a.cell(i,i))) * b.cell(j,i);
         for (IndexT k = (upFlag ? i+1 : 0); k < (upFlag ? m : i); ++k) {
             c += alpha * a.cell(k,i) * b.cell(j,k);
@@ -67,7 +71,11 @@ to C[n,m]
         IndexT i, j, k;
         for (i = 0; i < m; ++i) {
             for (j = 0; j < n; ++j) {
-                c.cell(j,i) *= beta;
+                if (beta == 0) {
+                  c.cell(j,i) = 0;
+                } else {
+                  c.cell(j,i) *= beta;
+                }
                 c.cell(j,i) += alpha * (unitFlag ? 1.0 : (double)(a.cell(i,i))) *
                                b.cell(j,i);
                 for (k = (upFlag ? i+1 : 0); k < (upFlag ? m : i); ++k) {
