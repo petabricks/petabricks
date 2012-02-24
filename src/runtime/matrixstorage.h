@@ -46,7 +46,7 @@ class RegionNodeGroupMap;
 typedef std::pair<std::string, std::set<int> > RegionNodeGroup;
 typedef jalib::JRef<RegionNodeGroupMap> RegionNodeGroupMapPtr;
 
-class RegionNodeGroupMap: public jalib::JRefCounted, 
+class RegionNodeGroupMap: public jalib::JRefCounted,
                           public std::multimap<std::string, std::set<int> > {
 public:
   RegionNodeGroupMap(){}
@@ -61,7 +61,7 @@ public:
   ClMemWrapper(cl_mem mem) {
     _clmem = mem;
   }
-  ~ClMemWrapper() { 
+  ~ClMemWrapper() {
     if(_clmem) {
       //std::cout << "release clmem (deconstructor): " << _clmem << std::endl;
 #ifdef HAVE_OPENCL
@@ -102,6 +102,12 @@ public:
   /// Constructor
   MatrixStorage(size_t n) : _count(n) {
     _data = new ElementT[n];
+#ifdef DEBUG
+    // initialize elements to NaN
+    for (size_t i = 0; i < n; i++) {
+      _data[i] = 0.0/0.0;
+    }
+#endif
   }
 
   ///
@@ -135,7 +141,7 @@ public:
     delete [] temp;
     return g.final();
   }
-  
+
   void print() {
     for(size_t i = 0; i < _count; i++)
       std::cout << _data[i] << " ";
@@ -267,7 +273,7 @@ public:
     else
       std::cout << _extraVal << std::endl;
   }
-  
+
   ssize_t getBaseOffset() { return _baseOffset; }
 
 #ifdef HAVE_OPENCL
@@ -299,7 +305,7 @@ public:
   /// get a memmory buffer for read buffer from gpu
   MatrixStoragePtr getGpuOutputStoragePtr(int nodeID);
   CopyoutInfoPtr getCopyoutInfo(int nodeID);
-  
+
   void check(cl_command_queue& queue);
   void done(int nodeID);
 
@@ -410,7 +416,7 @@ private:
 #ifdef HAVE_OPENCL
   std::vector<MatrixStoragePtr> _gpuInputBuffers;
   IndexT  _normalizedMultipliers[MAX_DIMENSIONS];
-  
+
   std::string _name;
   int _coverage;
   bool _hasGpuMem;
@@ -471,7 +477,7 @@ public:
     _lock.unlock();
     if(it != end) {
       std::set<MatrixStorageInfoPtr> infoList = it->second;
-      bool add = false; 
+      bool add = false;
       std::set<MatrixStorageInfoPtr>::iterator i;
       for(i = infoList.begin(); i != infoList.end(); ++i) {
         if((*i)->equal(info)) {
@@ -480,7 +486,7 @@ public:
           break;
         }
       }
-      
+
       if(!add) {
         it->second.insert(info);
       }
@@ -504,7 +510,7 @@ public:
 #endif
   }
 
-  std::set<MatrixStorageInfoPtr>& allPendings(MatrixStoragePtr storage) {     
+  std::set<MatrixStorageInfoPtr>& allPendings(MatrixStoragePtr storage) {
     /*std::cout << "@@@ pending map: allPendings..." << std::endl;
     std::set<MatrixStorageInfoPtr> set = _map[storage];
     std::cout << "size = " << set.size() << std::endl;
@@ -514,17 +520,17 @@ public:
     _lock.lock();
     std::set<MatrixStorageInfoPtr>& pendings = _map[storage];
     _lock.unlock();
-    return pendings; 
+    return pendings;
 
   }
 
   ///
   /// WARNING: need to grab info->storage()->lock() before calling this function.
-  void clearPendings(MatrixStoragePtr storage) { 
+  void clearPendings(MatrixStoragePtr storage) {
     _lock.lock();
     std::set<MatrixStorageInfoPtr>& pendings = _map[storage];
     _lock.unlock();
-    pendings.clear(); 
+    pendings.clear();
     //std::cout << "@@@ pending map: clear" << std::endl;
   }
 
@@ -544,7 +550,7 @@ public:
     _buffers.push_back(buffer);
     _bufferlock.unlock();
   }
-  
+
   static CopyPendingMap _pendingMap;
 
 private:
