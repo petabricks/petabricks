@@ -34,7 +34,6 @@
 #include "common/jprintable.h"
 #include "common/jrefcounted.h"
 #include "common/srcpos.h"
-
 #include <vector>
 
 namespace petabricks {
@@ -116,6 +115,7 @@ public:
   const CoordinateFormula& maxCoord() const { return _maxCoord; }
   CoordinateFormula& minCoord() { return _minCoord; }
   CoordinateFormula& maxCoord() { return _maxCoord; }
+  
 
   void addDimension(const FormulaPtr& min, const FormulaPtr& max){
     _minCoord.push_back(min);
@@ -163,6 +163,7 @@ public:
 
   std::string getIterationLowerBounds() const;
   std::string getIterationUpperBounds() const;
+  std::string getIterationMiddleBounds(std::string& middle) const;
   
   size_t size() const { return dimensions(); }
 protected:

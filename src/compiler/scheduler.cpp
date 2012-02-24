@@ -99,7 +99,7 @@ void petabricks::Schedule::depthFirstChoiceDepGraphNode(SchedulingState& state, 
 
 void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
   JASSERT(_schedule.size()>0);
-
+  o.comment("MARKER 1");
 
 #ifdef HAVE_OPENCL
 
@@ -164,7 +164,6 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
 
 #endif
 
-  o.comment("MARKER 1");
   for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
     if(i!=_schedule.begin() && flavor!=RuleFlavor::SEQUENTIAL)
       o.continuationPoint();

@@ -139,7 +139,7 @@ void GpuRule::generateCallCode(const std::string& name,
     o.callSpatial(_rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region);
     break;
   case RuleFlavor::WORKSTEALING:
-    o.mkCreateGpuSpatialMethodCallTask(name, trans.instClassName() + "_workstealing", _rule->trampcodename(trans)+TX_OPENCL_POSTFIX+"_createtasks", region, regionNodesGroups, nodeID, gpuCopyOut);
+    o.mkCreateGpuSpatialMethodCallTask(name, trans.instClassName() + "_workstealing", _rule->trampcodename(trans), region, regionNodesGroups, nodeID, gpuCopyOut);
     break;
   case RuleFlavor::DISTRIBUTED:
     o.comment("gpurule::distributed");

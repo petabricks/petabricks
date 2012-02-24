@@ -319,6 +319,8 @@ public:
   }
 
   void generateMigrationFunctions();
+  void cout(const std::string &s);
+
 protected:
   void indent();
 public:

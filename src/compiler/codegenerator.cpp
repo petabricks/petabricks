@@ -428,16 +428,31 @@ void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const
 
 #ifdef HAVE_OPENCL
 void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, int gpuCopyOut) {
-  std::string taskclass = "petabricks::CreateGpuSpatialMethodCallTask<"+objname
-                        + ", " + jalib::XToString(region.totalDimensions())
-                        + ", &" + objname + "::" + methodname
-                        + ">";
+  std::string taskclass;
+  // Assign the gpu-cpu division point.
+  write("ElementT gpu_percentage = 1;");
+
+  std::string max = region.maxCoord()[0]->toString();
+  write("IndexT _div = gpu_percentage * " + max + ";");
+  beginIf("_div > " + max);
+  write("_div = " + max + ";");
+  endIf();
+
+  std::string _div = "_div";
+  write(taskname + " = new NullDynamicTask();");
+
+  // GPU
+  taskclass = "petabricks::CreateGpuSpatialMethodCallTask<"+objname
+              + ", " + jalib::XToString(region.totalDimensions())
+              + ", &" + objname + "::" + methodname + TX_OPENCL_POSTFIX + "_createtasks"
+              + ">";
   write("{");
   incIndent();
   comment("MARKER 6");
   write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
-  write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
+  write("IndexT _tmp_end[] = {" + region.getIterationMiddleBounds(_div) + "};");
   write("RegionNodeGroupMapPtr groups = new RegionNodeGroupMap();");
+
   for(std::vector<RegionNodeGroup>::iterator group = regionNodesGroups.begin(); group != regionNodesGroups.end(); ++group){
     write("{");
     incIndent();
@@ -449,9 +464,29 @@ void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::stri
     decIndent();
     write("}");
   }
-  write(taskname+" = new "+taskclass+"(this,_tmp_begin, _tmp_end, "+jalib::XToString(nodeID)+", groups, "+jalib::XToString(gpuCopyOut)+");");
+  write("DynamicTaskPtr gpu_task = new "+taskclass+"(this,_tmp_begin, _tmp_end, "+jalib::XToString(nodeID)+", groups, "+jalib::XToString(gpuCopyOut)+");");
+  write("gpu_task->enqueue();");
+  write(taskname + "->dependsOn(gpu_task);");
   decIndent();
   write("}");
+
+  // CPU
+  taskclass = "petabricks::SpatialMethodCallTask<CLASS"
+              ", " + jalib::XToString(region.dimensions() + region.removedDimensions())
+              + ", &CLASS::" + methodname + "_workstealing"
+              + ">";
+  beginIf("_div < " + max);
+  comment("MARKER 6");
+  write("IndexT _tmp_begin[] = {" + region.getIterationMiddleBounds(_div) + "};");
+  write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
+  write("DynamicTaskPtr cpu_task = new "+taskclass+"(this,_tmp_begin, _tmp_end);");
+  write("cpu_task->enqueue();");
+  write(taskname + "->dependsOn(cpu_task);");
+  endIf();
+}
+
+void petabricks::CodeGenerator::cout(const std::string& s) {
+  write("std::cout << \"" + s + "\" << std::endl;");
 }
 
 #endif
