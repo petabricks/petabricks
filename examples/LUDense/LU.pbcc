@@ -39,7 +39,7 @@ to A[n,m], P[m]
     to (A a, P p) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "LUBase (serial RL JKI) (%d, %d)\n", m, n);
+        printf("LUBase (serial RL JKI) (%d, %d)\n", m, n);
         #endif
 
         IndexT i, j, k, ip;
@@ -85,7 +85,7 @@ to A[n,m], P[m]
     to (A a, P p) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "LUBase (serial LL JKI) (%d, %d)\n", m, n);
+        printf("LUBase (serial LL JKI) (%d, %d)\n", m, n);
         #endif
 
         IndexT i, j, k, ip;
@@ -133,7 +133,7 @@ to A[n,m], P[m]
     to (A a, P p) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "LUBase (serial Crout JKI) (%d, %d)\n", m, n);
+        printf("LUBase (serial Crout JKI) (%d, %d)\n", m, n);
         #endif
 
         IndexT i, j, k, ip;
@@ -185,7 +185,7 @@ to A[n,m], P[m]
     to (A a, P p) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "LUBase (serial RL JIK) (%d, %d)\n", m, n);
+        printf("LUBase (serial RL JIK) (%d, %d)\n", m, n);
         #endif
 
         IndexT i, j, k, ip;
@@ -231,7 +231,7 @@ to A[n,m], P[m]
     to (A a, P p) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "LUBase (serial LL JIK) (%d, %d)\n", m, n);
+        printf("LUBase (serial LL JIK) (%d, %d)\n", m, n);
         #endif
 
         IndexT i, j, k, ip;
@@ -279,7 +279,7 @@ to A[n,m], P[m]
     to (A a, P p) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "LUBase (serial Crout JIK) (%d, %d)\n", m, n);
+        printf("LUBase (serial Crout JIK) (%d, %d)\n", m, n);
         #endif
 
         IndexT i, j, k, ip;
@@ -332,7 +332,7 @@ to A[n,m], P[m]
     to (A a, P p) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "LUBase (RL) (%d, %d)\n", m, n);
+        printf("LUBase (RL) (%d, %d)\n", m, n);
         #endif
 
         IndexT j;
@@ -378,7 +378,7 @@ to A[n,m], P[m]
     to (A a, P p) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "LUBase (LL) (%d, %d)\n", m, n);
+        printf("LUBase (LL) (%d, %d)\n", m, n);
         #endif
 
         IndexT j;
@@ -435,7 +435,7 @@ to A[n,m], P[m]
     to (A a, P p) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "LUBase (Crout) (%d, %d)\n", m, n);
+        printf("LUBase (Crout) (%d, %d)\n", m, n);
         #endif
 
         IndexT j;
@@ -490,7 +490,7 @@ to A[n,m], P[m]
     to (A a, P p) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "LUBase (LAPACK) (%d, %d)\n", m, n);
+        printf("LUBase (LAPACK) (%d, %d)\n", m, n);
         #endif
 
         LULAPACK(a, p, a);
@@ -504,15 +504,15 @@ tunable sizespecific blockSize
 {
     to (A a, P p) from ()
     {
-        #ifdef PRINT
-        fprintf(stderr, "LUBlocked (RL) (%d, %d), %d\n", m, n, (int) blockSize);
-        #endif
-
         // base case
         if (blockSize < 1 || blockSize >= MIN(m,n)) {
             LUBase(a, p);
             return;
         }
+
+        #ifdef PRINT
+        printf("LUBlocked (RL) (%d, %d), %d\n", m, n, (int) blockSize);
+        #endif
 
         IndexT b = blockSize;
         MatrixRegion2D a1, a2, a11, a12, a21, a22;
@@ -559,10 +559,6 @@ tunable sizespecific blockSize
 {
     to (A a, P p) from (K _k)
     {
-        #ifdef PRINT
-        fprintf(stderr, "LUBlocked (LL) (%d, %d), %d\n", m, n, (int) blockSize);
-        #endif
-
         IndexT k, i0, i1;
         MatrixRegion2D ac2, a11, a12, a21, a22, a23;
         MatrixRegion1D p2;
@@ -576,6 +572,10 @@ tunable sizespecific blockSize
             LUBase(a, p);
             return;
         }
+
+        #ifdef PRINT
+        printf("LUBlocked (LL) (%d, %d), %d\n", m, n, (int) blockSize);
+        #endif
 
         for (i0 = 0; i0 < k; i0 += blockSize) {
 
@@ -650,10 +650,6 @@ tunable sizespecific blockSize
 {
     to (A a, P p) from (K _k)
     {
-        #ifdef PRINT
-        fprintf(stderr, "LUBlocked (Crout) (%d, %d), %d\n", m, n, (int) blockSize);
-        #endif
-
         IndexT k, i0, i1;
         MatrixRegion2D a11, a12, a13, a21, a22, a23, ar1, ar2, ar3;
         MatrixRegion1D p2;
@@ -667,6 +663,10 @@ tunable sizespecific blockSize
             LUBase(a, p);
             return;
         }
+
+        #ifdef PRINT
+        printf("LUBlocked (Crout) (%d, %d), %d\n", m, n, (int) blockSize);
+        #endif
 
         for (i0 = 0; i0 < k; i0 += blockSize) {
 
@@ -773,15 +773,15 @@ tunable sizespecific blockSize
 {
     to (A a, P p) from ()
     {
-        #ifdef PRINT
-        fprintf(stderr, "LURecursive (%d, %d), %d\n", m, n, (int) blockSize);
-        #endif
-
         // base case
         if (blockSize < 1 || blockSize >= MIN(m,n)) {
             LUBlocked(a, p);
             return;
         }
+
+        #ifdef PRINT
+        printf("LURecursive (%d, %d), %d\n", m, n, (int) blockSize);
+        #endif
 
         IndexT b = n / 2;
         MatrixRegion2D a1, a2, a11, a12, a21, a22;

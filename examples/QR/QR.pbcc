@@ -54,7 +54,7 @@ to A[n,m], TAU[n]
     to (A a, TAU tau) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "QRRBase (serial RL IKJ) (%d, %d)\n", m, n);
+        printf("QRRBase (serial RL IKJ) (%d, %d)\n", m, n);
         #endif
 
         IndexT i, j, k;
@@ -132,7 +132,7 @@ to A[n,m], TAU[n]
     to (A a, TAU tau) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "QRRBase (serial RL IJK) (%d, %d)\n", m, n);
+        printf("QRRBase (serial RL IJK) (%d, %d)\n", m, n);
         #endif
 
         IndexT i, j, k;
@@ -210,7 +210,7 @@ to A[n,m], TAU[n]
     to (A a, TAU tau) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "QRRBase (serial LL IJK) (%d, %d)\n", m, n);
+        printf("QRRBase (serial LL IJK) (%d, %d)\n", m, n);
         #endif
 
         IndexT i, j, k;
@@ -271,7 +271,7 @@ to A[n,m], TAU[n]
     to (A a, TAU tau) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "QRRBase (RL) (%d, %d)\n", m, n);
+        printf("QRRBase (RL) (%d, %d)\n", m, n);
         #endif
 
         IndexT i;
@@ -326,7 +326,7 @@ to A[n,m], TAU[n]
     to (A a, TAU tau) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "QRRBase (LL) (%d, %d)\n", m, n);
+        printf("QRRBase (LL) (%d, %d)\n", m, n);
         #endif
 
         IndexT i;
@@ -375,7 +375,7 @@ to A[n,m], TAU[n]
     to (A a, TAU tau) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "QRRBase (LAPACK) (%d, %d)\n", m, n);
+        printf("QRRBase (LAPACK) (%d, %d)\n", m, n);
         #endif
 
         QRRLAPACK(a, tau, a);
@@ -546,7 +546,7 @@ tunable sizespecific blockSize
         }
 
         #ifdef PRINT
-        fprintf(stderr, "QRRBlocked (RL) (%d, %d), %d\n",
+        printf("QRRBlocked (RL) (%d, %d), %d\n",
                 m, n, (int) blockSize);
         #endif
 
@@ -599,7 +599,7 @@ tunable sizespecific blockSize
         }
 
         #ifdef PRINT
-        fprintf(stderr, "QRRBlocked (LL) (%d, %d, %d), %d\n",
+        printf("QRRBlocked (LL) (%d, %d, %d), %d\n",
                 m, n, p, (int) blockSize);
         #endif
 
@@ -684,7 +684,7 @@ to A[n,m], TAU[n]
     to (A a, TAU tau) from ()
     {
         #ifdef PRINT
-        fprintf(stderr, "QRRBlocked (LAPACK) (%d, %d)\n", m, n);
+        printf("QRRBlocked (LAPACK) (%d, %d)\n", m, n);
         #endif
 
         QRRBlockedLAPACK(a, tau, a);
@@ -706,7 +706,7 @@ tunable sizespecific blockSize
         }
 
         #ifdef PRINT
-        fprintf(stderr, "QRRRecursive (%d, %d), %d\n", m, n, (int) blockSize);
+        printf("QRRRecursive (%d, %d), %d\n", m, n, (int) blockSize);
         #endif
 
         IndexT b = MIN(m,n) / 2;
