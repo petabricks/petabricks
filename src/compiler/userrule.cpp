@@ -444,9 +444,11 @@ void petabricks::UserRule::initialize(Transform& trans) {
   computeDataDependencyVector();
 
   //expand through() clause
+  /*
   for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
     _bodysrc=(*i)->genericTypeName()+" "+(*i)->name()+" = "+(*i)->genericAllocateStr()+";\n"+_bodysrc;
   }
+  */
 
   MaximaWrapper::instance().popContext();
 }
@@ -760,6 +762,12 @@ void petabricks::UserRule::generateDeclCode(Transform& trans, CodeGenerator& o, 
 
   RIRBlockCopyRef bodytmp = _bodyir[rf];
   o.beginUserCode(rf);
+
+  // Expand through() (using())
+  for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
+    (*i)->allocateTemporary(o, rf, false, false);
+  }
+
   {
     LiftVardeclPass p3(trans,*this, o);
     bodytmp->accept(p3);
@@ -827,6 +835,12 @@ void petabricks::UserRule::generateDeclCodeSequential(Transform& trans, CodeGene
   o.define("RETURN", "PB_RETURN");
   o.define("RETURN_VOID", "PB_RETURN_VOID");
   o.beginUserCode(rf);
+
+  // Expand through() (using())
+  for(MatrixDefList::const_iterator i=_through.begin(); i!=_through.end(); ++i){
+    (*i)->allocateTemporary(o, rf, false, false);
+  }
+
   o.write(_bodyir[RuleFlavor::SEQUENTIAL]->toString());
   o.endUserCode();
   o.undefineAll();

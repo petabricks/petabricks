@@ -186,7 +186,7 @@ std::string petabricks::MatrixDef::genericAllocateStr() const{
 }
 
 void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn, RuleFlavor rf){
-  if (rf == RuleFlavor::DISTRIBUTED) {
+  if (rf == RuleFlavor::DISTRIBUTED && numDimensions() > 0) {
     // read to tmp then copy to real matrix
     o.write(typeName(rf, false) + " tmp_" + name()+" = petabricks::MatrixIOGeneral("+fn+",\"r\").read_"+rf.str()+"<"+jalib::XToString(numDimensions())+">();");
 
