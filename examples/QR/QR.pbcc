@@ -369,7 +369,6 @@ to A[n,m], TAU[n]
             }
         }
     }
-#endif
 
     // call LAPACK
     to (A a, TAU tau) from ()
@@ -380,6 +379,7 @@ to A[n,m], TAU[n]
 
         QRRLAPACK(a, tau, a);
     }
+#endif
 }
 
 // compute triangular factor T from block reflector matrix V
@@ -680,6 +680,7 @@ to A[n,m], TAU[n]
         QRRBlockedLeft(a, tau, MIN(m,n) / 2);
     }
 
+#if 0
     // call LAPACK
     to (A a, TAU tau) from ()
     {
@@ -689,6 +690,7 @@ to A[n,m], TAU[n]
 
         QRRBlockedLAPACK(a, tau, a);
     }
+#endif
 }
 
 // tunable recursive version of QRR

@@ -484,7 +484,6 @@ to A[n,m], P[m]
             p.cell(j) = j;
         }
     }
-#endif
 
     // call LAPACK
     to (A a, P p) from ()
@@ -495,6 +494,7 @@ to A[n,m], P[m]
 
         LULAPACK(a, p, a);
     }
+#endif
 }
 
 // right looking (update trailing matrix each iteration)
