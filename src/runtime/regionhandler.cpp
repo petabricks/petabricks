@@ -77,7 +77,7 @@ int RegionHandler::allocData(const IndexT* size, int distributedCutoff, int dist
     }
 
   } else if (distributionType == RegionDataDistributions::N_BY_ROW) {
-    if (size[1] >= distributedCutoff) {
+    if (_D >= 2 && size[1] >= distributedCutoff) {
       allocDataNBySlice(size, distributionSize, 1);
     } else {
       allocDataLocal(size);

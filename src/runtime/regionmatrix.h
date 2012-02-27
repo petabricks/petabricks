@@ -191,13 +191,13 @@ namespace petabricks {
       _regionHandler->allocDataLocal(_size);
     }
 
-    static RegionMatrix allocate(IndexT size[D]) {
+    static RegionMatrix allocate(const IndexT size[D]) {
       RegionMatrix region = RegionMatrix(size);
       region.allocDataLocal();
       return region;
     }
 
-    static RegionMatrix allocate(IndexT size[D], int distributedCutoff, int distributionType, int distributionSize) {
+    static RegionMatrix allocate(const IndexT size[D], int distributedCutoff, int distributionType, int distributionSize) {
       RegionMatrix region = RegionMatrix(size);
       region.allocData(distributedCutoff, distributionType, distributionSize);
       return region;
@@ -790,6 +790,7 @@ namespace petabricks {
 
       if (isRegionDataRaw()) {
         // Do nothing
+        _regionHandler = scratch.regionHandler();
 
       } else {
         unsigned int storage_count = 1;

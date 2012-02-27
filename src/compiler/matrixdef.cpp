@@ -186,7 +186,24 @@ std::string petabricks::MatrixDef::genericAllocateStr() const{
 }
 
 void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string& fn, RuleFlavor rf){
-  o.varDecl(name()+" = petabricks::MatrixIOGeneral("+fn+",\"r\").read_"+rf.str()+"<"+jalib::XToString(numDimensions())+">()");
+  if (rf == RuleFlavor::DISTRIBUTED) {
+    // read to tmp then copy to real matrix
+    o.write(typeName(rf, false) + " tmp_" + name()+" = petabricks::MatrixIOGeneral("+fn+",\"r\").read_"+rf.str()+"<"+jalib::XToString(numDimensions())+">();");
+
+    // allocate
+    std::string distributionType = o.className() + "_" + name() + "_distribution_type";
+    std::string distributionSize = o.className() + "_" + name() + "_distribution_size";
+    o.createTunable(true, "system.data.distribution.type", distributionType, 0, 0, 4);
+    o.createTunable(true, "system.data.distribution.size", distributionSize, jalib::maxval<int>(), 2, jalib::maxval<int>());
+    o.write(name()+" = "+typeName(rf)+"::allocate(tmp_"+name()+".size(), distributedcutoff, "+distributionType+", "+distributionSize+");");
+
+    // copy
+    o.write(name()+".fromScratchRegion(tmp_"+name()+");");
+    // o.write("petabricks::MatrixIOGeneral().write("+name()+");");
+
+  } else {
+    o.varDecl(name()+" = petabricks::MatrixIOGeneral("+fn+",\"r\").read_"+rf.str()+"<"+jalib::XToString(numDimensions())+">()");
+  }
 }
 void petabricks::MatrixDef::writeToFileCode(CodeGenerator& o, const std::string& fn){
   o.write("petabricks::MatrixIOGeneral("+fn+",\"w\").write("+name()+");");
