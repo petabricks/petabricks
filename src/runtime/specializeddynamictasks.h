@@ -157,15 +157,17 @@ public:
 
   DynamicTaskPtr run(){
     if(_i < N){
-      _parts[_i++]->enqueue();
+      _parts[_i]->enqueue();
+      _all->dependsOn(_parts[_i]);
+      _parts[_i] = 0;
+      ++_i;
       return new MethodCallTask<GroupedDynamicTask, &GroupedDynamicTask::run>(this);
     }
     if(_i == N){
       //make sure all tasks have completed
-      for(int i=0; i<N; ++i)
-        _all->dependsOn(_parts[i]);
       return _all;
     }
+    JASSERT(false);
     return NULL;
   }
 
