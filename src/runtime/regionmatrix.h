@@ -718,7 +718,7 @@ namespace petabricks {
       }
     }
 
-    void fromScratchRegion(const MatrixRegion<D, ElementT>& /*scratchOrig*/) {
+    void fromScratchRegion(const MatrixRegion<D, ElementT>& /*scratch*/) {
       // We need to pass metadata for scratchStorage to _regionHandler
       UNIMPLEMENTED();
 

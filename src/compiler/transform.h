@@ -125,6 +125,7 @@ public:
 
 
   void generateCrossCall(CodeGenerator& o, RuleFlavor fromflavor, RuleFlavor toflavor, bool spawn);
+  void generateCrossCallInner(CodeGenerator& o, RuleFlavor fromflavor, RuleFlavor toflavor, bool spawn, std::vector<std::string>& argNames);
 
   int nextTunerId() {
     return _tuneId++;

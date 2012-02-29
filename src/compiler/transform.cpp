@@ -477,28 +477,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.newline();
 }
 
-void petabricks::Transform::generateCrossCall(CodeGenerator& o, RuleFlavor fromflavor, RuleFlavor toflavor, bool spawn){
-
-
-  std::vector<std::string> argNames = normalArgNames();
-
-  if(fromflavor == RuleFlavor::DISTRIBUTED && toflavor < RuleFlavor::DISTRIBUTED) {
-    //need to convert between data types
-    std::ostringstream ss;
-    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      ss << "petabricks::is_data_local(" << (*i)->name() << ") && ";
-    }
-    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-      ss << "petabricks::is_data_local(" << (*i)->name() << ") && ";
-    }
-    ss << "true";
-    for(size_t i=0; i!=argNames.size(); ++i){
-      argNames[i] = "CONVERT_TO_LOCAL("+argNames[i]+")";
-    }
-    o.beginIf(ss.str());
-  }
-
-
+void petabricks::Transform::generateCrossCallInner(CodeGenerator& o, RuleFlavor /*fromflavor*/, RuleFlavor toflavor, bool spawn, std::vector<std::string>& argNames){
   std::string argNamesStr = jalib::JPrintable::stringStlList(argNames.begin(), argNames.end(), ", ");
 
 
@@ -529,8 +508,47 @@ void petabricks::Transform::generateCrossCall(CodeGenerator& o, RuleFlavor fromf
   }
 
   o.write("return;");
+}
+
+void petabricks::Transform::generateCrossCall(CodeGenerator& o, RuleFlavor fromflavor, RuleFlavor toflavor, bool spawn){
+
+  std::vector<std::string> argNames = normalArgNames();
 
   if(fromflavor == RuleFlavor::DISTRIBUTED && toflavor < RuleFlavor::DISTRIBUTED) {
+    //need to convert between data types
+    std::ostringstream ss;
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      ss << "petabricks::is_data_local(" << (*i)->name() << ") && ";
+    }
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      ss << "petabricks::is_data_local(" << (*i)->name() << ") && ";
+    }
+    ss << "true";
+    for(size_t i=0; i!=argNames.size(); ++i){
+      argNames[i] = "CONVERT_TO_LOCAL("+argNames[i]+")";
+    }
+    o.beginIf(ss.str());
+  }
+
+  generateCrossCallInner(o, fromflavor, toflavor, spawn, argNames);
+
+  if(fromflavor == RuleFlavor::DISTRIBUTED && toflavor < RuleFlavor::DISTRIBUTED) {
+    /*
+    o.elseIf();
+    argNames = normalArgNames();
+    for(size_t i=0; i!=argNames.size(); ++i){
+      o.write("");
+      for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+        argNames.push_back((*i)->name());
+      }
+      for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+        argNames.push_back((*i)->name());
+      }
+
+      argNames[i] = "CONVERT_TO_LOCAL(scratch_"+argNames[i]+")";
+    }
+    generateCrossCallInner(o, fromflavor, toflavor, spawn, argNames);
+    */
     o.endIf();
   }
 }
