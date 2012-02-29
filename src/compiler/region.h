@@ -163,7 +163,8 @@ public:
 
   std::string getIterationLowerBounds() const;
   std::string getIterationUpperBounds() const;
-  std::string getIterationMiddleBounds(std::string& middle) const;
+  std::string getIterationMiddleEnd(std::string& middle) const;
+  std::string getIterationMiddleBegin(std::string& middle) const;
   
   size_t size() const { return dimensions(); }
 protected:

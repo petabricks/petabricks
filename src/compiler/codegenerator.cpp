@@ -430,7 +430,7 @@ void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const
 void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, int gpuCopyOut) {
   std::string taskclass;
   // Assign the gpu-cpu division point.
-  write("ElementT gpu_percentage = 1;");
+  write("ElementT gpu_percentage = 0.5;");
 
   std::string max = region.maxCoord()[0]->toString();
   write("IndexT _div = gpu_percentage * " + max + ";");
@@ -450,7 +450,7 @@ void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::stri
   incIndent();
   comment("MARKER 6");
   write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
-  write("IndexT _tmp_end[] = {" + region.getIterationMiddleBounds(_div) + "};");
+  write("IndexT _tmp_end[] = {" + region.getIterationMiddleEnd(_div) + "};");
   write("RegionNodeGroupMapPtr groups = new RegionNodeGroupMap();");
 
   for(std::vector<RegionNodeGroup>::iterator group = regionNodesGroups.begin(); group != regionNodesGroups.end(); ++group){
@@ -477,7 +477,7 @@ void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::stri
               + ">";
   beginIf("_div < " + max);
   comment("MARKER 6");
-  write("IndexT _tmp_begin[] = {" + region.getIterationMiddleBounds(_div) + "};");
+  write("IndexT _tmp_begin[] = {" + region.getIterationMiddleBegin(_div) + "};");
   write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
   write("DynamicTaskPtr cpu_task = new "+taskclass+"(this,_tmp_begin, _tmp_end);");
   write("cpu_task->enqueue();");
