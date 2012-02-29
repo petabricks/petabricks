@@ -27,19 +27,19 @@ RegionHandler::RegionHandler(const RegionDataIPtr regionData) {
 }
 
 ElementT RegionHandler::readCell(const IndexT* coord) {
-  return _regionData->readCell(coord);
+  return regionData()->readCell(coord);
 }
 
 void RegionHandler::writeCell(const IndexT* coord, ElementT value) {
-  _regionData->writeCell(coord, value);
+  regionData()->writeCell(coord, value);
 }
 
 void RegionHandler::invalidateCache() {
-  return _regionData->invalidateCache();
+  return regionData()->invalidateCache();
 }
 
 void RegionHandler::randomize() {
-  _regionData->randomize();
+  regionData()->randomize();
 }
 
 int RegionHandler::allocData() {
@@ -246,25 +246,25 @@ int RegionHandler::allocDataRoundRobin(const IndexT* size) {
   return 1;
 }
 
-RegionDataIPtr RegionHandler::getRegionData() {
+RegionDataIPtr RegionHandler::regionData() const {
+  JLOCKSCOPE(_regionDataMux);
   return _regionData;
 }
 
 void RegionHandler::updateRegionData(RegionDataIPtr regionData) {
-  _regionDataMux.lock();
+  JLOCKSCOPE(_regionDataMux);
   _regionData = regionData;
-  _regionDataMux.unlock();
 }
 
 void RegionHandler::hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list) {
-  RegionDataIPtr newRegionData = _regionData->hosts(begin, end, list);
+  RegionDataIPtr newRegionData = regionData()->hosts(begin, end, list);
   if (newRegionData) {
     updateRegionData(newRegionData);
   }
 }
 
 RemoteHostPtr RegionHandler::dataHost() {
-  return _regionData->dataHost();
+  return regionData()->dataHost();
 }
 
 bool RegionHandler::isDataSplit() const {
@@ -273,7 +273,8 @@ bool RegionHandler::isDataSplit() const {
     return true;
 
   } else if (type == RegionDataTypes::REGIONDATAREMOTE) {
-    return ((RegionDataRemote*)_regionData.asPtr())->isDataSplit();
+    RegionDataIPtr regionData = this->regionData();
+    return ((RegionDataRemote*)regionData.asPtr())->isDataSplit();
 
   } else {
     return false;
@@ -285,11 +286,11 @@ int RegionHandler::dimensions() const {
 }
 
 const IndexT* RegionHandler::size() const {
-  return _regionData->size();
+  return this->regionData()->size();
 }
 
 RegionDataType RegionHandler::type() const {
-  return _regionData->type();
+  return this->regionData()->type();
 }
 
 //
@@ -297,19 +298,21 @@ RegionDataType RegionHandler::type() const {
 //
 
 void RegionHandler::updateHandlerChain() {
+  RegionDataIPtr regionData = this->regionData();
+
   if (type() == RegionDataTypes::REGIONDATAREMOTE) {
     RegionDataRemoteMessage::UpdateHandlerChainReplyMessage reply =
-      ((RegionDataRemote*)_regionData.asPtr())->updateHandlerChain();
+      ((RegionDataRemote*)regionData.asPtr())->updateHandlerChain();
     //JTRACE("done updatehandler")(reply.dataHost)(reply.numHops);
 
     if (reply.dataHost == HostPid::self()) {
       // Data is in the same process. Update handler to point directly to the data.
-      RegionDataI* regionData = reinterpret_cast<RegionDataI*>(reply.encodedPtr);
-      updateRegionData(regionData);
+      RegionDataI* newRegionData = reinterpret_cast<RegionDataI*>(reply.encodedPtr);
+      updateRegionData(newRegionData);
 
     } else if (reply.numHops > 1) {
       // Multiple network hops to data. Create a direct connection to data.
-      RegionDataI* newRegionData = new RegionDataRemote(_regionData->dimensions(), _regionData->size(), reply.dataHost, reply.encodedPtr, reply.isDataSplit);
+      RegionDataI* newRegionData = new RegionDataRemote(regionData->dimensions(), regionData->size(), reply.dataHost, reply.encodedPtr, reply.isDataSplit);
       updateRegionData(newRegionData);
     }
   }
@@ -317,9 +320,11 @@ void RegionHandler::updateHandlerChain() {
 
 // For testing.
 bool RegionHandler::isHandlerChainUpdated() {
-  if (type() == RegionDataTypes::REGIONDATAREMOTE) {
+  RegionDataIPtr regionData = this->regionData();
+
+  if (regionData->type() == RegionDataTypes::REGIONDATAREMOTE) {
     RegionDataRemoteMessage::UpdateHandlerChainReplyMessage reply =
-      ((RegionDataRemote*)_regionData.asPtr())->updateHandlerChain();
+      ((RegionDataRemote*)regionData.asPtr())->updateHandlerChain();
 
     JTRACE("isHandlerChainUpdated")(reply.dataHost)(reply.numHops);
     if (reply.dataHost == HostPid::self()) {
@@ -332,9 +337,11 @@ bool RegionHandler::isHandlerChainUpdated() {
 }
 
 RemoteRegionHandler RegionHandler::remoteRegionHandler() const {
+  RegionDataIPtr regionData = this->regionData();
+
   if (type() == RegionDataTypes::REGIONDATAREMOTE) {
 
-    return *(((RegionDataRemote*)_regionData.asPtr())->remoteRegionHandler());
+    return *(((RegionDataRemote*)regionData.asPtr())->remoteRegionHandler());
 
   } else {
     RemoteRegionHandler remoteRegionHandler;
@@ -345,27 +352,31 @@ RemoteRegionHandler RegionHandler::remoteRegionHandler() const {
 }
 
 void RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
+  RegionDataIPtr regionData = this->regionData();
+
 #ifdef DEBUG
-  if (type() == RegionDataTypes::REGIONDATARAW && scratchMetadata == 0) {
+  if (regionData->type() == RegionDataTypes::REGIONDATARAW && scratchMetadata == 0) {
     JASSERT(false).Text("This is inefficient. Use _regionData->storage() instead.");
   }
 #endif
 
   RegionDataIPtr newRegionData =
-    _regionData->copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
+    regionData->copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
   if (newRegionData) {
     updateRegionData(newRegionData);
   }
 }
 
 void RegionHandler::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
+  RegionDataIPtr regionData = this->regionData();
+
 #ifdef DEBUG
-  if (type() == RegionDataTypes::REGIONDATARAW && scratchMetadata == 0) {
+  if (regionData->type() == RegionDataTypes::REGIONDATARAW && scratchMetadata == 0) {
     JASSERT(false).Text("This is inefficient. Use _regionData->storage() instead.");
   }
 #endif
 
-  _regionData->copyFromScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
+  regionData->copyFromScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
 }
 
 
@@ -381,49 +392,50 @@ void RegionHandler::splitData(int dimensions, const IndexT* sizes, const IndexT*
 }
 
 void RegionHandler::createDataPart(int partIndex, RemoteHostPtr host) {
-  JASSERT(type() == RegionDataTypes::REGIONDATASPLIT);
-  ((RegionDataSplit*)_regionData.asPtr())->createPart(partIndex, host);
+  RegionDataIPtr regionData = this->regionData();
+  JASSERT(regionData->type() == RegionDataTypes::REGIONDATASPLIT);
+  ((RegionDataSplit*)regionData.asPtr())->createPart(partIndex, host);
 }
 
 // Process Remote Messages
 void RegionHandler::processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  _regionData->processReadCellMsg(base, baseLen, caller);
+  this->regionData()->processReadCellMsg(base, baseLen, caller);
 }
 
 void RegionHandler::processWriteCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  _regionData->processWriteCellMsg(base, baseLen, caller);
+  this->regionData()->processWriteCellMsg(base, baseLen, caller);
 }
 
 void RegionHandler::processReadCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  _regionData->processReadCellCacheMsg(base, baseLen, caller);
+  this->regionData()->processReadCellCacheMsg(base, baseLen, caller);
 }
 
 void RegionHandler::processWriteCellCacheMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  _regionData->processWriteCellCacheMsg(base, baseLen, caller);
+  this->regionData()->processWriteCellCacheMsg(base, baseLen, caller);
 }
 
 void RegionHandler::processGetHostListMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  _regionData->processGetHostListMsg(base, baseLen, caller);
+  this->regionData()->processGetHostListMsg(base, baseLen, caller);
 }
 
 void RegionHandler::processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  _regionData->processCopyFromMatrixStorageMsg(base, baseLen, caller);
+  this->regionData()->processCopyFromMatrixStorageMsg(base, baseLen, caller);
 }
 
 void RegionHandler::processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  _regionData->processCopyToMatrixStorageMsg(base, baseLen, caller);
+  this->regionData()->processCopyToMatrixStorageMsg(base, baseLen, caller);
 }
 
 void RegionHandler::processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  _regionData->processAllocDataMsg(base, baseLen, caller);
+  this->regionData()->processAllocDataMsg(base, baseLen, caller);
 }
 
 void RegionHandler::processRandomizeDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  _regionData->processRandomizeDataMsg(base, baseLen, caller);
+  this->regionData()->processRandomizeDataMsg(base, baseLen, caller);
 }
 
 void RegionHandler::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
-  _regionData->processUpdateHandlerChainMsg(base, baseLen, caller, reinterpret_cast<EncodedPtr>(this));
+  this->regionData()->processUpdateHandlerChainMsg(base, baseLen, caller, reinterpret_cast<EncodedPtr>(this));
 }
 
 //

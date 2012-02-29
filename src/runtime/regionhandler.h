@@ -41,7 +41,7 @@ namespace petabricks {
     int allocDataNBySlice(const IndexT* size, int distributionSize, int sliceDimension);
     int allocDataNByBlock(const IndexT* size, int distributionSize);
 
-    RegionDataIPtr getRegionData();
+    RegionDataIPtr regionData() const;
     void updateRegionData(RegionDataIPtr regionData);
 
     void hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list);

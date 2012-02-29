@@ -249,7 +249,9 @@ void RegionDataSplit::copyRegionDataSplit(char* buf) const {
       handler->remoteHandler = reinterpret_cast<EncodedPtr>(part.asPtr());
 
     } else if (part->type() == RegionDataTypes::REGIONDATAREMOTE) {
-      RegionDataRemote* regionDataRemote = (RegionDataRemote*)(part->getRegionData()).asPtr();
+      // bump refcount
+      RegionDataIPtr regionData = part->regionData();
+      RegionDataRemote* regionDataRemote = (RegionDataRemote*)regionData.asPtr();
       const RemoteRegionHandler* srcHandler = regionDataRemote->remoteRegionHandler();
       handler->hostPid = srcHandler->hostPid;
       handler->remoteHandler = srcHandler->remoteHandler;

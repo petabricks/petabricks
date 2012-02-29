@@ -154,7 +154,7 @@ namespace petabricks {
     bool isTransposed() const { return _isTransposed; };
     RegionMatrixSliceInfoPtr sliceInfo() const { return _sliceInfo; };
     RegionHandlerPtr regionHandler() const { return _regionHandler; };
-    RegionDataIPtr regionData() const { return _regionHandler->getRegionData(); };
+    RegionDataIPtr regionData() const { return _regionHandler->regionData(); };
 
     //
     // gpu
@@ -213,13 +213,13 @@ namespace petabricks {
     //
     MATRIX_ELEMENT_T readCell (const IndexT* coord) const {
       IndexT rd_coord[_regionHandler->dimensions()];
-      this->getRegionDataCoord(coord, rd_coord);
+      this->regionDataCoord(coord, rd_coord);
       return _regionHandler->readCell(rd_coord);
     }
 
     void writeCell(const IndexT* coord, ElementT value) {
       IndexT rd_coord[_regionHandler->dimensions()];
-      this->getRegionDataCoord(coord, rd_coord);
+      this->regionDataCoord(coord, rd_coord);
       _regionHandler->writeCell(rd_coord, value);
     }
 
@@ -268,7 +268,7 @@ namespace petabricks {
 
     CellProxy cell(IndexT coord[D]) const {
       IndexT rd_coord[_regionHandler->dimensions()];
-      getRegionDataCoord(coord, rd_coord);
+      regionDataCoord(coord, rd_coord);
       return CellProxy(_regionHandler, rd_coord);
     }
     INLINE CellProxy cell() const {
@@ -522,8 +522,8 @@ namespace petabricks {
 
       IndexT rd_begin[_regionHandler->dimensions()];
       IndexT rd_end[_regionHandler->dimensions()];
-      this->getRegionDataCoord(begin, rd_begin);
-      this->getRegionDataCoord(end, rd_end);
+      this->regionDataCoord(begin, rd_begin);
+      this->regionDataCoord(end, rd_end);
       _regionHandler->hosts(rd_begin, rd_end, list);
     }
 
@@ -589,7 +589,7 @@ namespace petabricks {
 
     // Compute metadata for Return StartOffset.
     void computeMatrixRegionMetaData(IndexT* startOffset, IndexT multipliers[D]) const {
-      RegionDataIPtr regionData = _regionHandler->getRegionData();
+      RegionDataIPtr regionData = _regionHandler->regionData();
       IndexT mult = 1;
       int last_slice_index = 0;
 
@@ -635,7 +635,7 @@ namespace petabricks {
       return _toLocalRegion();
     }
     MatrixRegion<D, ElementT> _toLocalRegion() const {
-      RegionDataIPtr regionData = _regionHandler->getRegionData();
+      RegionDataIPtr regionData = _regionHandler->regionData();
       JASSERT(regionData->type() == RegionDataTypes::REGIONDATARAW).Text("Cannot cast to MatrixRegion.");
 
       IndexT startOffset = 0;
@@ -948,7 +948,7 @@ namespace petabricks {
     }
 
   private:
-    void getRegionDataCoord(const IndexT* coord_orig, IndexT* coord_new) const {
+    void regionDataCoord(const IndexT* coord_orig, IndexT* coord_new) const {
       IndexT slice_index = 0;
       IndexT split_index = 0;
 
@@ -1145,7 +1145,7 @@ namespace petabricks {
         || (Base::_regionHandler->type() == RegionDataTypes::REGIONDATA0D);
     }
     MatrixRegion<D, ElementT> _toLocalRegion() const {
-      RegionDataIPtr regionData = Base::_regionHandler->getRegionData();
+      RegionDataIPtr regionData = Base::_regionHandler->regionData();
       JASSERT(regionData->type() == RegionDataTypes::REGIONDATARAW
               || regionData->type() == RegionDataTypes::REGIONDATA0D).Text("Cannot cast to MatrixRegion.");
       return MatrixRegion<D, ElementT>(regionData->value0D(_sourceInfo->sourceIndex()));
