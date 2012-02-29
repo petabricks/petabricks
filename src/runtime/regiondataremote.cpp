@@ -292,7 +292,7 @@ void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage
 
 RegionDataIPtr RegionDataRemote::hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list) {
   if (!_isDataSplit) {
-    DataHostPidListItem item = {_remoteRegionHandler.hostPid, 1};
+    DataHostPidListItem item = {remoteRegionHandler()->hostPid, 1};
     list.push_back(item);
     return NULL;
   }

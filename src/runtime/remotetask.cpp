@@ -84,6 +84,9 @@ void petabricks::RemoteTask::remoteScheduleTask() {
     enqueueLocal();
 #else
     RemoteHostPtr toHost = RemoteHostDB::instance().host(toHostPid);
+#ifdef DEBUG
+    JASSERT(toHost != 0)(toHostPid);
+#endif
     enqueueRemote(*toHost);
     //JTRACE("enqueueRemote")(toHostPid);
 #endif
