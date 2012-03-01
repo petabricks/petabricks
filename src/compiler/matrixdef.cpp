@@ -198,7 +198,12 @@ void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string
     o.write(name()+" = "+typeName(rf)+"::allocate(tmp_"+name()+".size(), distributedcutoff, "+distributionType+", "+distributionSize+");");
 
     // copy
+    o.beginIf(name()+".isRegionDataRaw()");
+    o.write(name()+" = tmp_"+name()+";");
+    o.elseIf();
     o.write(name()+".fromScratchRegion(tmp_"+name()+");");
+    o.endIf();
+
     // o.write("petabricks::MatrixIOGeneral().write("+name()+");");
 
   } else {

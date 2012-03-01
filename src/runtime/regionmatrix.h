@@ -779,7 +779,7 @@ namespace petabricks {
 */
     }
 
-    void fromScratchRegion(const RegionMatrix& scratch) {
+    void fromScratchRegion(const RegionMatrix& scratch) const {
       #ifdef DEBUG
       for (int i = 0; i < D; ++i) {
         JASSERT(size(i) == scratch.size(i));
@@ -790,7 +790,6 @@ namespace petabricks {
 
       if (isRegionDataRaw()) {
         // Do nothing
-        _regionHandler = scratch.regionHandler();
 
       } else {
         unsigned int storage_count = 1;

@@ -122,6 +122,21 @@ private:
   IndexT _current[D];
 };
 
+/**
+ * A task that calls a method with a given metadata.
+ */
+template< typename MetadataClass, DynamicTaskPtr (*method)(jalib::JRef<MetadataClass> metadata)>
+class MetadataMethodCallTask : public NullDynamicTask {
+public:
+  MetadataMethodCallTask(const jalib::JRef<MetadataClass>& metadata)
+    : _metadata(metadata) {}
+
+  DynamicTaskPtr run(){
+    return (*(method))(_metadata);
+  }
+private:
+  jalib::JRef<MetadataClass> _metadata;
+};
 
 /**
  * A task that calls a method on a given object, with a given region, task ID, a pointer to RegionNodeGroup map, and a boolean indicating the copy out status

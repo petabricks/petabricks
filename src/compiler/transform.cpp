@@ -477,7 +477,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.newline();
 }
 
-void petabricks::Transform::generateCrossCallInner(CodeGenerator& o, RuleFlavor /*fromflavor*/, RuleFlavor toflavor, bool spawn, std::vector<std::string>& argNames){
+void petabricks::Transform::generateCrossCallInner(CodeGenerator& o, RuleFlavor /*fromflavor*/, RuleFlavor toflavor, bool spawn, std::vector<std::string>& argNames, std::string completion){
   std::string argNamesStr = jalib::JPrintable::stringStlList(argNames.begin(), argNames.end(), ", ");
 
 
@@ -489,7 +489,7 @@ void petabricks::Transform::generateCrossCallInner(CodeGenerator& o, RuleFlavor 
 
     std::string wstaskstr = "new "+instClassName()+"_"+RuleFlavor(RuleFlavor::WORKSTEALING).str()+"("+argNamesStr+")";
     if(spawn){
-      o.write("petabricks::spawn_hook("+wstaskstr+", _completion);");
+      o.write("petabricks::spawn_hook("+wstaskstr+", "+completion+");");
     }else{
       o.write("petabricks::tx_call_workstealing("+wstaskstr+");");
     }
@@ -498,7 +498,7 @@ void petabricks::Transform::generateCrossCallInner(CodeGenerator& o, RuleFlavor 
 
     std::string disttaskstr = "new "+instClassName()+"_"+RuleFlavor(RuleFlavor::DISTRIBUTED).str()+"("+argNamesStr+")";
     if(spawn){
-      o.write("petabricks::spawn_hook("+disttaskstr+", _completion);");
+      o.write("petabricks::spawn_hook("+disttaskstr+", "+completion+");");
     }else{
       o.write("petabricks::tx_call_distributed("+disttaskstr+");");
     }
@@ -506,8 +506,6 @@ void petabricks::Transform::generateCrossCallInner(CodeGenerator& o, RuleFlavor 
   }else{
     UNIMPLEMENTED();
   }
-
-  o.write("return;");
 }
 
 void petabricks::Transform::generateCrossCall(CodeGenerator& o, RuleFlavor fromflavor, RuleFlavor toflavor, bool spawn){
@@ -533,24 +531,49 @@ void petabricks::Transform::generateCrossCall(CodeGenerator& o, RuleFlavor fromf
   generateCrossCallInner(o, fromflavor, toflavor, spawn, argNames);
 
   if(fromflavor == RuleFlavor::DISTRIBUTED && toflavor < RuleFlavor::DISTRIBUTED) {
-    /*
+    // Force data to be local, then generate cross call
+
     o.elseIf();
+
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      o.write((*i)->typeName(RuleFlavor::DISTRIBUTED) + " scratch_" + (*i)->name() + " = " + (*i)->name() + ".localCopy();");
+    }
+    for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
+      o.write((*i)->typeName(RuleFlavor::DISTRIBUTED, true) + " scratch_" + (*i)->name() + " = " + (*i)->name() + ".localCopy();");
+    }
+
     argNames = normalArgNames();
     for(size_t i=0; i!=argNames.size(); ++i){
-      o.write("");
-      for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-        argNames.push_back((*i)->name());
-      }
-      for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-        argNames.push_back((*i)->name());
-      }
-
       argNames[i] = "CONVERT_TO_LOCAL(scratch_"+argNames[i]+")";
     }
-    generateCrossCallInner(o, fromflavor, toflavor, spawn, argNames);
-    */
+
+    if (toflavor == RuleFlavor::SEQUENTIAL || (!spawn)) {
+      generateCrossCallInner(o, fromflavor, toflavor, spawn, argNames);
+      for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+        o.write((*i)->name() + ".fromScratchRegion(scratch_" + (*i)->name() + ");");
+      }
+    } else {
+      std::vector<std::string> metadataArgs;
+      for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+        metadataArgs.push_back((*i)->name());
+        metadataArgs.push_back("scratch_"+(*i)->name());
+      }
+      std::string metadataArgsStr = jalib::JPrintable::stringStlList(metadataArgs.begin(), metadataArgs.end(), ", ");
+
+      o.write("jalib::JRef<"+_name+"_distributed_metadata> metadata = new "+_name+"_distributed_metadata("+metadataArgsStr+");");
+
+      o.write("DynamicTaskPtr cleanUpTask = new MetadataMethodCallTask<"+_name+"_distributed_metadata, &::"+_name+"_distributed_cleanUp>(metadata);");
+
+      generateCrossCallInner(o, fromflavor, toflavor, spawn, argNames, "cleanUpTask");
+
+      o.write("_completion->dependsOn(cleanUpTask);");
+      o.write("cleanUpTask->enqueue();");
+    }
+
     o.endIf();
   }
+
+  o.write("return;");
 }
 
 void petabricks::Transform::generateTransformSelector(CodeGenerator& o, RuleFlavor rf, bool spawn){
@@ -576,8 +599,17 @@ void petabricks::Transform::generateTransformSelector(CodeGenerator& o, RuleFlav
   std::vector<std::string> argNames = normalArgNames();
   std::string argNamesStr = jalib::JPrintable::stringStlList(argNames.begin(), argNames.end(), ", ");
 
-  o.beginFunc("void", _name+"_"+rf.str(), args);
+  if(rf == RuleFlavor::DISTRIBUTED) {
+    // Metadata class
+    o.beginClass(_name+"_"+rf.str()+"_metadata", "jalib::JRefCounted");
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      o.addMember((*i)->typeName(rf), (*i)->name());
+      o.addMember((*i)->typeName(rf), "scratch_"+(*i)->name());
+    }
+    o.endClass();
+  }
 
+  o.beginFunc("void", _name+"_"+rf.str(), args);
   if(!force_distrib) {
     if(rf > RuleFlavor::SEQUENTIAL) {
       declTransformNDirect(o, "_transform_n");
@@ -608,6 +640,20 @@ void petabricks::Transform::generateTransformSelector(CodeGenerator& o, RuleFlav
   }
 
   o.endFunc();
+
+  if(rf == RuleFlavor::DISTRIBUTED) {
+    // CleanUp Task
+    args.clear();
+    args.push_back("jalib::JRef<"+_name+"_"+rf.str()+"_metadata> metadata");
+    o.beginFunc("petabricks::DynamicTaskPtr", _name+"_"+rf.str()+"_cleanUp", args);
+    for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
+      o.comment("Copy scratch back to remote region");
+      o.write("JTRACE(\"cleanUpTask\");");
+      o.write("metadata->"+(*i)->name() + ".fromScratchRegion(metadata->scratch_" + (*i)->name() + ");");
+    }
+    o.write("return NULL;");
+    o.endFunc();
+  }
 }
 
 void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, RuleFlavor rf){
