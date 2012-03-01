@@ -60,6 +60,15 @@ namespace petabricks {
 
     RemoteHostPtr dataHost() { return NULL; }
 
+    RegionDataIPtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* /*origMetadata*/, size_t /*len*/, MatrixStoragePtr /*scratchStorage*/, RegionMatrixMetadata* /*scratchMetadata*/, const IndexT* /*scratchStorageSize*/) const {
+      JASSERT(false);
+      return NULL;
+    }
+
+    void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* /*origMetadata*/, size_t /*len*/, MatrixStoragePtr /*scratchStorage*/, RegionMatrixMetadata* /*scratchMetadata*/, const IndexT* /*scratchStorageSize*/) {
+      JASSERT(false);
+    }
+
     void processReadCellCacheMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
       size_t values_sz = sizeof(ElementT);
       size_t sz = sizeof(ReadCellCacheReplyMessage) + values_sz;
@@ -128,6 +137,15 @@ namespace petabricks {
     }
 
     RemoteHostPtr dataHost() { return NULL; }
+
+    RegionDataIPtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* /*origMetadata*/, size_t /*len*/, MatrixStoragePtr /*scratchStorage*/, RegionMatrixMetadata* /*scratchMetadata*/, const IndexT* /*scratchStorageSize*/) const {
+      JASSERT(false);
+      return NULL;
+    }
+
+    void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* /*origMetadata*/, size_t /*len*/, MatrixStoragePtr /*scratchStorage*/, RegionMatrixMetadata* /*scratchMetadata*/, const IndexT* /*scratchStorageSize*/) {
+      JASSERT(false);
+    }
 
     void processReadCellCacheMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
       size_t values_sz = sizeof(ElementT);

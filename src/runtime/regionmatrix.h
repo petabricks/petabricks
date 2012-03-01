@@ -718,7 +718,7 @@ namespace petabricks {
       }
     }
 
-    void fromScratchRegion(const MatrixRegion<D, ElementT>& /*scratch*/) {
+    void fromScratchRegion(const MatrixRegion<D, ElementT>& /*scratch*/) const {
       // We need to pass metadata for scratchStorage to _regionHandler
       UNIMPLEMENTED();
 
@@ -1097,6 +1097,9 @@ namespace petabricks {
     RegionMatrixWrapper(ElementT& value) : Base() {
       init(NULL, new RegionHandler(new RegionData0D(value)));
     }
+    RegionMatrixWrapper(const ElementT& value) : Base() {
+      init(NULL, new RegionHandler(new RegionData0D(value)));
+    }
     RegionMatrixWrapper(CellProxy& value) : Base() {
       RegionMatrix0DInfoPtr sourceInfo = new RegionMatrix0DInfo(value._handler->dimensions());
       if (value._handler->dimensions() > 0) {
@@ -1150,6 +1153,21 @@ namespace petabricks {
       return MatrixRegion<D, ElementT>(regionData->value0D(_sourceInfo->sourceIndex()));
     }
 
+    void localCopy(RegionMatrix<D, ElementT>& scratch) const {
+      scratch.cell() = this->cell();
+    }
+    RegionMatrixWrapper<D, ElementT> localCopy() const {
+      if (isLocal()) {
+        return *this;
+      }
+      return *(new RegionMatrixWrapper(cell()));
+    }
+    void fromScratchRegion(const MatrixRegion<D, ElementT>& scratch) const {
+      this->cell() = scratch.cell();
+    }
+    void fromScratchRegion(const RegionMatrix<D, ElementT>& scratch) const {
+      this->cell() = scratch.cell();
+    }
   };
 
   // Specialized for ConstMatrixRegion0D.
@@ -1212,6 +1230,18 @@ namespace petabricks {
       return MatrixRegion<D, ElementT>((ElementT)cell());
     }
 
+    void localCopy(RegionMatrix<D, ElementT>& scratch) const {
+      scratch.cell() = this->cell();
+    }
+    RegionMatrixWrapper<D, ElementT> localCopy() const {
+      return *this;
+    }
+    void fromScratchRegion(const MatrixRegion<D, ElementT>& /*scratch*/) const {
+      JASSERT(false);
+    }
+    void fromScratchRegion(const RegionMatrix<D, ElementT>& /*scratch*/) const {
+      JASSERT(false);
+    }
   };
 
   namespace distributed {
