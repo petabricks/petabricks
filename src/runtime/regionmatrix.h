@@ -798,7 +798,9 @@ namespace petabricks {
         }
 
         size_t len = regionMatrixMetadataLen() + (storage_count * sizeof(ElementT));
-        char buf[len];
+        // allocate in heap since the message can be huge.
+        char* buf = new char[len];
+
         CopyFromMatrixStorageMessage* msg = (CopyFromMatrixStorageMessage*) buf;
         this->computeRegionMatrixMetadata(msg->srcMetadata);
 
@@ -810,6 +812,8 @@ namespace petabricks {
 	scratch.storage()->updateDataFromGpu();
 	#endif
         _regionHandler->copyFromScratchMatrixStorage(msg, len, scratch.storage(), &scratchMetadata, scratch.regionHandler()->size());
+
+        delete buf;
       }
 
       #ifdef DEBUG_SCRATCH_REGION
