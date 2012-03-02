@@ -813,7 +813,7 @@ namespace petabricks {
 	#endif
         _regionHandler->copyFromScratchMatrixStorage(msg, len, scratch.storage(), &scratchMetadata, scratch.regionHandler()->size());
 
-        delete buf;
+        delete [] buf;
       }
 
       #ifdef DEBUG_SCRATCH_REGION

@@ -194,7 +194,7 @@ void RegionDataRaw::processCopyToMatrixStorageMsg(const BaseMessageHeader* base,
 
   size_t sz = sizeof(CopyToMatrixStorageReplyMessage) + (sizeof(ElementT) * storage_count);
 
-  char buf[sz];
+  char* buf = new char[sz];
   CopyToMatrixStorageReplyMessage* reply = (CopyToMatrixStorageReplyMessage*)buf;
 
   reply->count = storage_count;
@@ -209,6 +209,7 @@ void RegionDataRaw::processCopyToMatrixStorageMsg(const BaseMessageHeader* base,
   } while(incCoord(d, size, coord) >= 0);
 
   caller->sendReply(buf, sz, base, MessageTypes::TOSCRATCHSTORAGE);
+  delete [] buf;
 }
 
 void RegionDataRaw::processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
