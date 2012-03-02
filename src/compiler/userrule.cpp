@@ -169,7 +169,7 @@ void petabricks::UserRule::compileRuleBody(Transform& tx, RIRScope& parentScope)
       _bodyirLocalMem->accept(openclfnreject);
       prepareBuffers();
       collectGpuLocalMemoryData();
-      opencl.setLocalMemoryData(_nameMap, _minCoordOffsets, _maxCoordOffsets, _id);
+      opencl.setLocalMemoryData(_local, _id);
       _bodyirLocalMem->accept(opencl);
       _bodyirLocalMem->accept(gpurename);
       std::cerr << "--------------------\nAFTER compileRuleBody:\n" << bodyir << std::endl;
@@ -220,14 +220,11 @@ void petabricks::UserRule::collectGpuLocalMemoryData() {
   unsigned int dim = iterdef.dimensions();
   RegionList::const_iterator it = _to.begin( );
 
-  // Only use local memory when dimension <= 2;
-  if(dim > 2)
-    return;
-
 
   for( RegionList::const_iterator it = _from.begin( ); it != _from.end( ); ++it )
   {
     if((*it)->isBuffer() && (*it)->dimensions() == dim) {
+      std::cout << (*it)->matrix()->name() << std::endl;
       SimpleRegionPtr region = _fromBoundingBox[(*it)->matrix()];
       bool local = true;
       FormulaList min, max;
@@ -236,6 +233,7 @@ void petabricks::UserRule::collectGpuLocalMemoryData() {
         min_diff = MAXIMA.normalize(min_diff);
         FreeVarsPtr vars = min_diff->getFreeVariables();
         if(vars->size() > 0) {
+	  std::cout << "min break" << std::endl;
           local = false;
           break;
         }
@@ -245,6 +243,7 @@ void petabricks::UserRule::collectGpuLocalMemoryData() {
         max_diff = MAXIMA.normalize(max_diff);
         vars = max_diff->getFreeVariables();
         if(vars->size() > 0) {
+	  std::cout << "max break" << std::endl;
           local = false;
           break;
         }
@@ -254,10 +253,15 @@ void petabricks::UserRule::collectGpuLocalMemoryData() {
 
       }
 
-      if(local && MAXIMA.comparePessimistically(region->symbolicSize(), ">", FormulaInteger::one()) ) {
-        std::cout << "ADD " << (*it)->matrix()->name() << std::endl;
-        std::string matrix = (*it)->matrix()->name();
-        _nameMap[(*it)->name()] = matrix;
+      if(local) {
+	std::string matrix = (*it)->matrix()->name();
+	if(dim <= 2 && MAXIMA.comparePessimistically(region->symbolicSize(), ">", FormulaInteger::one()) ) {
+	  // Only local mem when dimension <= 2
+	  // TODO: handle >2D dimension
+	  std::cout << "ADD " << matrix << std::endl;
+	  _local.insert(matrix);
+	}
+	std::cout << "add " << matrix << std::endl;
         _minCoordOffsets[matrix] = min;
         _maxCoordOffsets[matrix] = max;
       }
@@ -1167,13 +1171,29 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   int id = 0;
   for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i ) {
     if((*i)->isBuffer()){
-      std::string copyinclass = "petabricks::GpuSpatialMethodCallTask<"+objectname
+      std::string copyinclass = "petabricks::GpuCopyInMethodCallTask<"+objectname
                               + ", " + dimension
                               + ", &" + objectname + "::" + codename + "_copyin_" + (*i)->name()
                               + ">";
       std::string taskid = jalib::XToString(id);
-      o.write("DynamicTaskPtr copyin_"+taskid+" = new "+copyinclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::COPYIN, "+(*i)->matrix()->name()+".storageInfo());");
+      o.write("{");
+      o.incIndent();
+      if(_maxCoordOffsets.find((*i)->matrix()->name()) != _maxCoordOffsets.end() 
+	 && MAXIMA.compare(_maxCoordOffsets[(*i)->matrix()->name()][0], ">", FormulaInteger::one())) {
+	// TODO: modify here for more general case
+	o.write("IndexT end[" + jalib::XToString(iterdef.dimensions()) + "];");
+	o.write("memcpy(end, _iter_end, sizeof end);");
+	o.os() << "end[0] = _iter_end[0] + "
+	       << _maxCoordOffsets[(*i)->matrix()->name()][0]
+	       << " - 1;\n";
+	o.write("DynamicTaskPtr copyin_"+taskid+" = new "+copyinclass+"(this,_iter_begin, end, taskinfo, "+(*i)->matrix()->name()+".storageInfo());");
+      }
+      else {
+	o.write("DynamicTaskPtr copyin_"+taskid+" = new "+copyinclass+"(this,_iter_begin, _iter_end, taskinfo, "+(*i)->matrix()->name()+".storageInfo());");
+      }
       o.write("copyin_"+taskid+"->enqueue();");
+      o.decIndent();
+      o.write("}");
       id++;
     }
   }
@@ -1288,8 +1308,7 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
     o.os( ) << "};\n";
 
   // Choose between local mem or global mem.
-  if(canUseLocalMemory() && iterdef.dimensions() >= 1 && iterdef.dimensions() <= 2) {
-    o.os() << "cl_kernel clkern;\n";
+  if(canUseLocalMemory() && iterdef.dimensions() >= 1 && iterdef.dimensions() <= 2) {    o.os() << "cl_kernel clkern;\n";
 #ifdef GPU_TRACE
     o.write("std::cout << \"opencl_blocksize \" << opencl_blocksize << std::endl;");
 #endif
@@ -1613,7 +1632,7 @@ void petabricks::UserRule::generateLocalBuffers(CLCodeGenerator& clo) {
   {
     if((*i)->isBuffer()) {
       std::string matrix = (*i)->matrix()->name();
-      if(_minCoordOffsets.find(matrix) != _minCoordOffsets.end()){
+      if(_local.find(matrix) != _local.end()){
         for(int d = 0; d < iterdef.dimensions( ); d++) {
           clo.os( ) << "int " << matrix << jalib::XToString(d) << "_minoffset = -(" << _minCoordOffsets[matrix][d] << ");\n";
           clo.os( ) << "int " << matrix << jalib::XToString(d) << "_maxoffset = " << _maxCoordOffsets[matrix][d] << " - 1;\n";
@@ -1999,8 +2018,8 @@ void petabricks::UserRule::removeDimensionFromMatrix(const MatrixDefPtr matrix,
   
 
 void petabricks::UserRule::trimDependency(DependencyDirection& dep,
-                                          const ChoiceDepGraphNode& from,
-                                          const ChoiceDepGraphNode& to)
+                                          const ChoiceDepGraphNode&,
+                                          const ChoiceDepGraphNode&)
 {
   if(dep.isMultioutput() && _to.size() <= 1) {
     dep.removeMultioutput(); 

@@ -52,8 +52,32 @@ namespace petabricks {
 template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D])>
 class GpuSpatialMethodCallTask : public GpuDynamicTask {
 public:
-  GpuSpatialMethodCallTask(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D], GpuTaskInfoPtr taskinfo, GpuTaskType tasktype, MatrixStorageInfoPtr info = NULL)
-    : GpuDynamicTask(taskinfo,tasktype,info), _obj(obj)
+  GpuSpatialMethodCallTask(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D], GpuTaskInfoPtr taskinfo, GpuTaskType tasktype)
+    : GpuDynamicTask(taskinfo,tasktype), _obj(obj)
+  {
+    memcpy(_begin, begin, sizeof _begin);
+    memcpy(_end,   end,   sizeof _end);
+  }
+
+  DynamicTaskPtr run(){
+    JASSERT(_state == S_REMOTE_READY)(_state);
+    return ((*_obj).*(method))(_begin, _end);
+  }
+
+private:
+  jalib::JRef<T> _obj;
+  IndexT _begin[D];
+  IndexT _end[D];
+};
+
+/**
+ * A gpu task that calls a method on a given object, with a given region and iteration's offset
+ */
+template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D])>
+class GpuCopyInMethodCallTask : public GpuDynamicTask {
+public:
+ GpuCopyInMethodCallTask(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D], GpuTaskInfoPtr taskinfo,MatrixStorageInfoPtr info)
+    : GpuDynamicTask(taskinfo,COPYIN,info), _obj(obj)
   {
     memcpy(_begin, begin, sizeof _begin);
     memcpy(_end,   end,   sizeof _end);

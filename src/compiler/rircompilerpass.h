@@ -296,10 +296,8 @@ public:
     : RIRCompilerPass(p->createChildLayer()), _rule(r)
   {}
   void before(RIRExprCopyRef& e);
-  void setLocalMemoryData(std::map<std::string, std::string>& name, std::map<std::string, FormulaList>& min, std::map<std::string, FormulaList>& max, int id) {
-    _nameMap = name; 
-    _minCoordOffsets = min;
-    _maxCoordOffsets = max;
+  void setLocalMemoryData(std::set<std::string>& locals, int id) {
+    _locals = locals;
     _id = id;
   }
 private:
@@ -307,7 +305,7 @@ private:
   void generateAccessor( const RegionPtr& region, const FormulaPtr& x, const FormulaPtr& y );
   std::vector<std::string> generateCellIndices(RIRExprList& tokens);
   UserRule& _rule;
-  std::map<std::string, std::string> _nameMap;
+  std::set<std::string> _locals;
   std::map<std::string, FormulaList> _minCoordOffsets;
   std::map<std::string, FormulaList> _maxCoordOffsets;
   int _id;

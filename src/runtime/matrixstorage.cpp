@@ -24,6 +24,8 @@
  *    http://projects.csail.mit.edu/petabricks/                              *
  *                                                                           *
  *****************************************************************************/
+#include <ext/hash_set>
+
 #include "matrixstorage.h"
 #include "petabricksruntime.h"
 #include "gpumanager.h"
@@ -31,6 +33,23 @@
 
 #ifdef HAVE_OPENCL
 petabricks::CopyPendingMap petabricks::CopyPendingMap::_pendingMap;
+
+void petabricks::MatrixStorage::updateDataFromGpu(){
+  lock();
+  std::set<MatrixStorageInfoPtr>& pendings = CopyPendingMap::_pendingMap.allPendings(this);
+  for(std::set<MatrixStorageInfoPtr>::iterator it = pendings.begin(); it != pendings.end(); ++it) {
+    MatrixStoragePtr storage = (*it)->processPending();
+    if(storage) {
+#ifdef GPU_TRACE
+      std::cout << "something on gpu..." << std::endl;
+#endif
+      (*it)->copy(this, storage, (*it)->getBegins(), (*it)->getEnds());
+      (*it)->resetPending();
+    }
+  }
+  CopyPendingMap::_pendingMap.clearPendings(this);
+  unlock();
+}
 #endif
 
 MATRIX_ELEMENT_T petabricks::MatrixStorage::rand(){
@@ -142,7 +161,9 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
       storage()->lock();
       std::set<MatrixStorageInfoPtr>& set = CopyPendingMap::_pendingMap.allPendings(storage());
       std::set<MatrixStorageInfoPtr>::iterator first = set.begin();
-      if(set.size() == 1 && equal(*first)) { //TODO: don't work if there is one in pending list & copy modifies something
+      if(set.size() == 1 && equal(*first)) { 
+	// If there is already buffer on GPU and there is one copy of it.
+	//TODO: don't work if there is one in pending list & cpu modifies something
         #ifdef GPU_TRACE
         std::cout << "obtain existing cl_mem ^^" << std::endl;
         #endif
@@ -163,7 +184,13 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
       }
       storage()->unlock();
       #ifdef AMD || INTEL
+      // OpenCL on CPU
       if(input && _count == storage()->count()) {
+	if(set.size() > 0) {
+	  // If there is remining data on GPU, need to update data on CPU first
+	  updateDataFromGpu();
+	}
+	   
         // Use host ptr without creating new buffer to avoid extra copy when running on CPU.
         cl_int err;
         #ifdef GPU_TRACE

@@ -430,7 +430,7 @@ void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const
 void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, int gpuCopyOut) {
   std::string taskclass;
   // Assign the gpu-cpu division point.
-  write("ElementT gpu_percentage = 0.5;");
+  write("ElementT gpu_percentage = 1;");
 
   std::string max = region.maxCoord()[0]->toString();
   write("IndexT _div = gpu_percentage * " + max + ";");

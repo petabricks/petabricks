@@ -122,7 +122,7 @@ public:
   void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef, bool local=false);
   void collectGpuLocalMemoryData();
   bool canUseLocalMemory() {
-    return _minCoordOffsets.size() > 0;
+    return _local.size() > 0;
   }
   void generateLocalBuffers(CLCodeGenerator& clo);
 
@@ -297,7 +297,7 @@ private:
 
   bool passBuildGpuProgram(Transform& trans);
 
-  std::map<std::string, std::string> _nameMap;
+  std::set<std::string> _local;
   std::map<std::string, FormulaList> _minCoordOffsets;
   std::map<std::string, FormulaList> _maxCoordOffsets;
 

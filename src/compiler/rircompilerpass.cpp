@@ -463,7 +463,7 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
 
           // Use local memory when possible.
           std::string exprstr;
-          if(_minCoordOffsets.find(region->matrix()->name()) != _minCoordOffsets.end()) {
+          if(_locals.find(region->matrix()->name()) != _locals.end()) {
             // Use local memory
             std::vector<std::string>::reverse_iterator i = indices.rbegin();
             if(region->dimensions() == 1) {
@@ -506,27 +506,27 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
       RegionPtr region = findMatrix(e->str());
       std::string matrix = region->matrix()->name();
       std::string exprstr;
-          if(_minCoordOffsets.find(matrix) != _minCoordOffsets.end()) {
-            if(region->dimensions() == 1) {
-              FormulaPtr index_x = new FormulaSubtract(region->minCoord().at(0), new FormulaVariable("_r" + jalib::XToString(_id) + "_x"));
-              index_x = MAXIMA.normalize(index_x);
-              exprstr = "buff_" + matrix + "[" + index_x->toCppString() + " + x_local + " + matrix + "0_minoffset]";
-            }
-            else if(region->dimensions() == 2) {
-              FormulaPtr index_x = new FormulaSubtract(region->minCoord().at(0), new FormulaVariable("_r" + jalib::XToString(_id) + "_x"));
-              index_x = MAXIMA.normalize(index_x);
-              FormulaPtr index_y = new FormulaSubtract(region->minCoord().at(1), new FormulaVariable("_r" + jalib::XToString(_id) + "_y"));
-              index_y = MAXIMA.normalize(index_y);
-              exprstr = "buff_" + matrix + "[" + index_y->toCppString() + " + y_local + " + matrix + "1_minoffset]"
-                                         + "[" + index_x->toCppString() + " + x_local + " + matrix + "0_minoffset]";
-            }
-            else {
-              JASSERT(false).Text("Dimension is not 1 or 2. No Local Memory");
-            }
-          }
-          else {
-            exprstr = "_region_" + e->str() + "[idx_"+e->str()+"]";
-          }
+      if(_locals.find(matrix) != _locals.end()) {
+	if(region->dimensions() == 1) {
+	  FormulaPtr index_x = new FormulaSubtract(region->minCoord().at(0), new FormulaVariable("_r" + jalib::XToString(_id) + "_x"));
+	  index_x = MAXIMA.normalize(index_x);
+	  exprstr = "buff_" + matrix + "[" + index_x->toCppString() + " + x_local + " + matrix + "0_minoffset]";
+	}
+	else if(region->dimensions() == 2) {
+	  FormulaPtr index_x = new FormulaSubtract(region->minCoord().at(0), new FormulaVariable("_r" + jalib::XToString(_id) + "_x"));
+	  index_x = MAXIMA.normalize(index_x);
+	  FormulaPtr index_y = new FormulaSubtract(region->minCoord().at(1), new FormulaVariable("_r" + jalib::XToString(_id) + "_y"));
+	  index_y = MAXIMA.normalize(index_y);
+	  exprstr = "buff_" + matrix + "[" + index_y->toCppString() + " + y_local + " + matrix + "1_minoffset]"
+	    + "[" + index_x->toCppString() + " + x_local + " + matrix + "0_minoffset]";
+	}
+	else {
+	  JASSERT(false).Text("Dimension is not 1 or 2. No Local Memory");
+	}
+      }
+      else {
+	exprstr = "_region_" + e->str() + "[idx_"+e->str()+"]";
+      }
       e = RIRExpr::parse( exprstr, SRCPOS() );
     }
   }
