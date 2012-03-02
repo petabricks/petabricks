@@ -677,10 +677,11 @@ namespace petabricks {
       CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*) buf;
       this->computeRegionMatrixMetadata(msg->srcMetadata);
 
-      RegionMatrixMetadata scratchMetadata;
-      scratch.computeRegionMatrixMetadata(scratchMetadata);
+      char scratchMetadataBuf[scratch.regionMatrixMetadataLen()];
+      RegionMatrixMetadata* scratchMetadata = (RegionMatrixMetadata*)scratchMetadataBuf;
+      scratch.computeRegionMatrixMetadata(*scratchMetadata);
 
-      _regionHandler->copyToScratchMatrixStorage(msg, len, scratch.regionData()->storage(), &scratchMetadata, scratch.regionData()->size());
+      _regionHandler->copyToScratchMatrixStorage(msg, len, scratch.regionData()->storage(), scratchMetadata, scratch.regionData()->size());
 
       if (_isTransposed) {
         scratch.transpose();
@@ -804,15 +805,15 @@ namespace petabricks {
         CopyFromMatrixStorageMessage* msg = (CopyFromMatrixStorageMessage*) buf;
         this->computeRegionMatrixMetadata(msg->srcMetadata);
 
-        RegionMatrixMetadata scratchMetadata;
-        scratch.computeRegionMatrixMetadata(scratchMetadata);
+        char scratchMetadataBuf[scratch.regionMatrixMetadataLen()];
+        RegionMatrixMetadata* scratchMetadata = (RegionMatrixMetadata*)scratchMetadataBuf;
+        scratch.computeRegionMatrixMetadata(*scratchMetadata);
 
 	#ifdef HAVE_OPENCL
 	// TODO: check if this works
 	scratch.storage()->updateDataFromGpu();
 	#endif
-        _regionHandler->copyFromScratchMatrixStorage(msg, len, scratch.storage(), &scratchMetadata, scratch.regionHandler()->size());
-
+        _regionHandler->copyFromScratchMatrixStorage(msg, len, scratch.storage(), scratchMetadata, scratch.regionHandler()->size());
         delete [] buf;
       }
 

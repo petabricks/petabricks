@@ -77,6 +77,8 @@ namespace petabricks {
       MessageType type;
       int dimensions;
       IndexT size[];
+    private:
+      CreateRegionDataInitialMessage() {}
     } PACKED;
 
     struct EncodedPtrInitialMessage {
@@ -93,6 +95,8 @@ namespace petabricks {
       EncodedPtr responseType;
 
       char* content() const { return (char*)this + contentOffset; }
+    private:
+      GeneralMessageHeader() {}
     } PACKED;
 
     struct ForwardMessageHeader {
@@ -103,6 +107,8 @@ namespace petabricks {
 
       char* content() const { return (char*)this + contentOffset; }
       char* next() const { return (char*)this + sizeof(ForwardMessageHeader); }
+    private:
+      ForwardMessageHeader() {}
     } PACKED;
 
     struct BaseMessageHeader {
@@ -119,26 +125,36 @@ namespace petabricks {
           return (char*)this + sizeof(GeneralMessageHeader);
         }
       }
+    private:
+      BaseMessageHeader() {}
     } PACKED;
 
     struct ReadCellMessage {
       IndexT coord[];
+    private:
+      ReadCellMessage() {}
     } PACKED;
 
     struct WriteCellMessage {
       ElementT value;
       IndexT coord[];
+    private:
+      WriteCellMessage() {}
     } PACKED;
 
     struct ReadCellCacheMessage {
       size_t cacheLineSize;
       IndexT coord[];
+    private:
+      ReadCellCacheMessage() {}
     } PACKED;
 
     struct WriteCellCacheMessage {
       size_t cacheLineSize;
       ElementT value;
       IndexT coord[];
+    private:
+      WriteCellCacheMessage() {}
     } PACKED;
 
     struct GetHostListMessage {
@@ -159,6 +175,8 @@ namespace petabricks {
         return (IndexT*)((char*)this + sizeof(int) +
                          ((this->dimensions + 1) * sizeof(IndexT)));
       }
+    private:
+      MatrixRegionMetadata() {}
     } PACKED;
 
     struct RegionMatrixMetadata {
@@ -181,6 +199,8 @@ namespace petabricks {
         return sizeof(int) * 2 + sizeof(IndexT) * 2 * d +
           (sizeof(int) + sizeof(IndexT)) * numSlices;
       }
+    private:
+      RegionMatrixMetadata() {}
     } PACKED;
 
     struct CopyToMatrixStorageMessage {
@@ -215,17 +235,23 @@ namespace petabricks {
       IndexT start;
       IndexT end;
       ElementT values[];
+    private:
+      ReadCellCacheReplyMessage() {}
     } PACKED;
 
     struct WriteCellCacheReplyMessage {
       IndexT start;
       IndexT end;
       ElementT values[];
+    private:
+      WriteCellCacheReplyMessage() {}
     } PACKED;
 
     struct GetHostListReplyMessage {
       int numHosts;
       DataHostPidListItem hosts[];
+    private:
+      GetHostListReplyMessage() {}
     } PACKED;
 
     struct UpdateHandlerChainReplyMessage {
@@ -238,6 +264,8 @@ namespace petabricks {
     struct CopyToMatrixStorageReplyMessage {
       size_t count;
       ElementT storage[];
+    private:
+      CopyToMatrixStorageReplyMessage() {}
     } PACKED;
 
     struct CopyFromMatrixStorageReplyMessage {
@@ -261,6 +289,8 @@ namespace petabricks {
         return sizeof(int) + sizeof(IndexT) + sizeof(IndexT) * d +
           sizeof(RemoteRegionHandler) * numParts;
       }
+    private:
+      CopyRegionDataSplitReplyMessage() {}
     } PACKED;
   }
 }
