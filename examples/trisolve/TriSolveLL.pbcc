@@ -6,6 +6,7 @@
 
 #include "../simple/macros.h"
 #include "../simple/copy.pbcc"
+#include "../simple/transpose.pbcc"
 #include "../simple/scale.pbcc"
 #include "../multiply/multiplyAdd.pbcc"
 #include "TriSolveLAPACK.pbcc"
@@ -15,7 +16,7 @@ transform TriSolveLLBase
 from UNITFLAG, A[m,m]
 to X[n,m]
 {
-    // right looking serial (IJK)
+    // greedy serial (IJK)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
@@ -38,7 +39,7 @@ to X[n,m]
         }
     }
 
-    // left looking serial (IJK)
+    // lazy serial (IJK)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
@@ -61,7 +62,7 @@ to X[n,m]
         }
     }
 
-    // right looking serial (IKJ)
+    // greedy serial (IKJ)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
@@ -84,7 +85,7 @@ to X[n,m]
         }
     }
 
-    // left looking serial (IKJ)
+    // lazy serial (IKJ)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
@@ -108,7 +109,7 @@ to X[n,m]
     }
 
 #if 0
-    // right looking (update trailing matrix after each row is solved)
+    // greedy (update trailing matrix after each row is solved)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
@@ -129,7 +130,7 @@ to X[n,m]
         }
     }
 
-    // left looking (process one row at a time)
+    // lazy (process one row at a time)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
@@ -147,7 +148,6 @@ to X[n,m]
                               x.region(0, 0, n, i), factor);
         }
     }
-#endif
 
     // call LAPACK
     to (X x)
@@ -158,6 +158,7 @@ to X[n,m]
 
         TriSolveLAPACK(x, 0, 0, unitFlag, 1, a);
     }
+#endif
 }
 
 transform TriSolveLLBlocked
@@ -165,7 +166,7 @@ from UNITFLAG, A[m,m]
 to X[n,m]
 tunable sizespecific blockSize
 {
-    // right looking (update trailing matrix after each row block is solved)
+    // greedy (update trailing matrix after each row block is solved)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
@@ -193,7 +194,7 @@ tunable sizespecific blockSize
         TriSolveLLBlocked(x2, unitFlag, a22);
     }
 
-    // left looking (process one row block at a time)
+    // lazy (process one row block at a time)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
@@ -237,7 +238,7 @@ from UNITFLAG, A[m,m]
 to X[n,m]
 tunable sizespecific blockSize
 {
-    // similar to right looking blocked version
+    // similar to greedy blocked version
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
@@ -266,15 +267,47 @@ tunable sizespecific blockSize
     }
 }
 
+// split X into two and solve in parallel
+transform TriSolveLLSplit
+from UNITFLAG, A[m,m]
+to X[n,m]
+tunable sizespecific blockSize
+{
+    to   (X x)
+    from (UNITFLAG unitFlag, A a)
+    {
+        if (blockSize < 1 || blockSize >= n) {
+            TriSolveLLRecursive(x, unitFlag, a);
+            return;
+        }
+
+        #ifdef PRINT
+        printf("TriSolveLLSplit (%d, %d), %d\n", m, n, (int) blockSize);
+        #endif
+        MatrixRegion2D x1, x2;
+
+        x1 = x.region(0  , 0, n/2, m);
+        x2 = x.region(n/2, 0, n  , m);
+
+        spawn TriSolveLLSplit(x1, unitFlag, a);
+        spawn TriSolveLLSplit(x2, unitFlag, a);
+        sync;
+    }
+}
+
 transform TriSolveLLInPlace
 from UNITFLAG, A[m,m]
 to X[n,m]
 {
     to (X x) from (UNITFLAG unitFlag, A a) {
-        TriSolveLLRecursive(x, unitFlag, a);
+        TriSolveLLSplit(x, unitFlag, a);
     }
 
 #if 0
+    to (X x) from (UNITFLAG unitFlag, A a) {
+        TriSolveLLRecursive(x, unitFlag, a);
+    }
+
     to (X x) from (UNITFLAG unitFlag, A a) {
         TriSolveLLBlocked(x, unitFlag, a);
     }
@@ -293,6 +326,13 @@ generator TriSolveLGenerator
     to (X x) from (UNITFLAG unitFlag, A a, B b) {
         Copy2D(x, b);
         TriSolveLLInPlace(x, unitFlag, a);
+    }
+
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        MatrixRegion2D t = MatrixRegion2D::allocate(m,n);
+        Transpose(t, b);
+        TriSolveLLInPlace(t.transposed(), unitFlag, a);
+        Transpose(x, t);
     }
 }
 

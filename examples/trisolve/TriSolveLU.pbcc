@@ -6,6 +6,7 @@
 
 #include "../simple/macros.h"
 #include "../simple/copy.pbcc"
+#include "../simple/transpose.pbcc"
 #include "../simple/scale.pbcc"
 #include "../multiply/multiplyAdd.pbcc"
 #include "TriSolveLAPACK.pbcc"
@@ -144,7 +145,6 @@ to X[n,m]
                               x.region(0, i+1, n, m), factor);
         }
     }
-#endif
 
     // call LAPACK
     to (X x) from (UNITFLAG unitFlag, A a) {
@@ -154,6 +154,7 @@ to X[n,m]
 
         TriSolveLAPACK(x, 0, 1, unitFlag, 1, a);
     }
+#endif
 }
 
 transform TriSolveLUBlocked
@@ -263,15 +264,47 @@ tunable sizespecific blockSize
     }
 }
 
+// split X into two and solve in parallel
+transform TriSolveLUSplit
+from UNITFLAG, A[m,m]
+to X[n,m]
+tunable sizespecific blockSize
+{
+    to   (X x)
+    from (UNITFLAG unitFlag, A a)
+    {
+        if (blockSize < 1 || blockSize >= n) {
+            TriSolveLURecursive(x, unitFlag, a);
+            return;
+        }
+
+        #ifdef PRINT
+        printf("TriSolveLUSplit (%d, %d), %d\n", m, n, (int) blockSize);
+        #endif
+        MatrixRegion2D x1, x2;
+
+        x1 = x.region(0  , 0, n/2, m);
+        x2 = x.region(n/2, 0, n  , m);
+
+        spawn TriSolveLUSplit(x1, unitFlag, a);
+        spawn TriSolveLUSplit(x2, unitFlag, a);
+        sync;
+    }
+}
+
 transform TriSolveLUInPlace
 from UNITFLAG, A[m,m]
 to X[n,m]
 {
     to (X x) from (UNITFLAG unitFlag, A a) {
-        TriSolveLURecursive(x, unitFlag, a);
+        TriSolveLUSplit(x, unitFlag, a);
     }
 
 #if 0
+    to (X x) from (UNITFLAG unitFlag, A a) {
+        TriSolveLURecursive(x, unitFlag, a);
+    }
+
     to (X x) from (UNITFLAG unitFlag, A a) {
         TriSolveLUBlocked(x, unitFlag, a);
     }
@@ -290,6 +323,13 @@ generator TriSolveUGenerator
     to (X x) from (UNITFLAG unitFlag, A a, B b) {
         Copy2D(x, b);
         TriSolveLUInPlace(x, unitFlag, a);
+    }
+
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        MatrixRegion2D t = MatrixRegion2D::allocate(m,n);
+        Transpose(t, b);
+        TriSolveLUInPlace(t.transposed(), unitFlag, a);
+        Transpose(x, t);
     }
 }
 
