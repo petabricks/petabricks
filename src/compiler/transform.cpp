@@ -648,7 +648,6 @@ void petabricks::Transform::generateTransformSelector(CodeGenerator& o, RuleFlav
     o.beginFunc("petabricks::DynamicTaskPtr", _name+"_"+rf.str()+"_cleanUp", args);
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
       o.comment("Copy scratch back to remote region");
-      o.write("JTRACE(\"cleanUpTask\");");
       o.write("metadata->"+(*i)->name() + ".fromScratchRegion(metadata->scratch_" + (*i)->name() + ");");
     }
     o.write("return NULL;");
