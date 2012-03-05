@@ -167,7 +167,7 @@ inline long fetchAndStore(long *p, long val)
 #elif defined(__sparc__)
 
 inline bool
-cas(volatile long *m, long old_val, long new_val)
+compareAndSwap(volatile long *m, long old_val, long new_val)
 {
 	asm volatile("cas [%2], %3, %0\n\t"
 			     : "=&r" (new_val)
