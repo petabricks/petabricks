@@ -123,7 +123,7 @@ void petabricks::DynamicBodyPrintPass::before(RIRStmtCopyRef& s) {
         o.comment("expanded block statement");
         s->extractBlock()->accept(*this);
       }else{
-        UNIMPLEMENTED()(s->toString());
+        UNIMPLEMENTED();
       }
     }else{
       o.write(s->toString());
