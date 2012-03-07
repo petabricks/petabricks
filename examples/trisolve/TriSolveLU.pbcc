@@ -9,7 +9,7 @@
 #include "../simple/transpose.pbcc"
 #include "../simple/scale.pbcc"
 #include "../multiply/multiplyAdd.pbcc"
-#include "TriSolveLAPACK.pbcc"
+//#include "TriSolveLAPACK.pbcc"
 #include "TriSolveGenerators.pbcc"
 
 transform TriSolveLUBase
@@ -21,7 +21,7 @@ to X[n,m]
     from (UNITFLAG unitFlag, A a)
     {
         #ifdef PRINT
-        printf("TriSolveLUBase (serial RL IJK) (%d, %d)\n", m, n);
+        printf("TriSolveLUBase (serial G IJK) (%d, %d)\n", m, n);
         #endif
 
         IndexT i, j, k;
@@ -44,7 +44,7 @@ to X[n,m]
     from (UNITFLAG unitFlag, A a)
     {
         #ifdef PRINT
-        printf("TriSolveLUBase (serial LL IJK) (%d, %d)\n", m, n);
+        printf("TriSolveLUBase (serial L IJK) (%d, %d)\n", m, n);
         #endif
 
         IndexT i, j, k;
@@ -67,7 +67,7 @@ to X[n,m]
     from (UNITFLAG unitFlag, A a)
     {
         #ifdef PRINT
-        printf("TriSolveLUBase (serial RL IKJ) (%d, %d)\n", m, n);
+        printf("TriSolveLUBase (serial G IKJ) (%d, %d)\n", m, n);
         #endif
 
         IndexT i, j, k;
@@ -90,7 +90,7 @@ to X[n,m]
     from (UNITFLAG unitFlag, A a)
     {
         #ifdef PRINT
-        printf("TriSolveLUBase (serial LL IKJ) (%d, %d)\n", m, n);
+        printf("TriSolveLUBase (serial L IKJ) (%d, %d)\n", m, n);
         #endif
 
         IndexT i, j, k;
@@ -114,7 +114,7 @@ to X[n,m]
     from (UNITFLAG unitFlag, A a)
     {
         #ifdef PRINT
-        printf("TriSolveLUBase (RL) (%d, %d)\n", m, n);
+        printf("TriSolveLUBase (G) (%d, %d)\n", m, n);
         #endif
 
         for (IndexT i = m-1; i >= 0; --i) {
@@ -132,7 +132,7 @@ to X[n,m]
     from (UNITFLAG unitFlag, A a)
     {
         #ifdef PRINT
-        printf("TriSolveLUBase (LL) (%d, %d)\n", m, n);
+        printf("TriSolveLUBase (L) (%d, %d)\n", m, n);
         #endif
 
         if (!unitFlag) {
@@ -172,7 +172,7 @@ tunable sizespecific blockSize
         }
 
         #ifdef PRINT
-        printf("TriSolveLUBlocked (RL) (%d, %d), %d\n", m, n, (int) blockSize);
+        printf("TriSolveLUBlocked (G) (%d, %d), %d\n", m, n, (int) blockSize);
         #endif
 
         IndexT m2 = m - blockSize;
@@ -201,7 +201,7 @@ tunable sizespecific blockSize
         }
 
         #ifdef PRINT
-        printf("TriSolveLUBlocked (LL) (%d, %d), %d\n", m, n, (int) blockSize);
+        printf("TriSolveLUBlocked (L) (%d, %d), %d\n", m, n, (int) blockSize);
         #endif
 
         IndexT i0, i1;
@@ -321,11 +321,17 @@ to X[n,m]
 generator TriSolveUGenerator
 {
     to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        #ifdef PRINT
+        printf("TriSolveLU No Transpose\n");
+        #endif
         Copy2D(x, b);
         TriSolveLUInPlace(x, unitFlag, a);
     }
 
     to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        #ifdef PRINT
+        printf("TriSolveLU Transpose\n");
+        #endif
         MatrixRegion2D t = MatrixRegion2D::allocate(m,n);
         Transpose(t, b);
         TriSolveLUInPlace(t.transposed(), unitFlag, a);
