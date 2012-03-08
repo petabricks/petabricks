@@ -1197,79 +1197,9 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.beginIf(b->toString()+"<"+e->toString());
       }
 
+      generateRuleIterMetadata(trans, o, flavor, iterdef);
+
       std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
-      std::vector<std::string> args;
-
-      _scratchRegionLowerBounds.clear();
-      CoordinateFormula iterdefEndInclusive = iterdef.end();
-      iterdefEndInclusive.subToEach(FormulaInteger::one());
-
-      if (_scratch.size() > 0) {
-        o.comment("Copy to local region");
-      }
-      for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
-        MatrixDefPtr matrix = i->second;
-        SimpleRegionPtr region = _scratchBoundingBox[trans.lookupMatrix(i->first)];
-
-        CoordinateFormulaPtr lowerBounds = region->getIterationLowerBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
-        CoordinateFormulaPtr upperBounds = region->getIterationUpperBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
-
-        _scratchRegionLowerBounds[i->first] = lowerBounds;
-
-        o.write(matrix->typeName(flavor) + " remote_" + matrix->name() + ";");
-        o.write("{");
-        o.incIndent();
-        o.write("IndexT _tmp_begin[] = {" + lowerBounds->toString() + "};");
-        o.write("IndexT _tmp_end[] = {" + upperBounds->toString() + "};");
-        o.write("remote_" + matrix->name() + " = " + i->first + ".region(_tmp_begin, _tmp_end);");
-        o.decIndent();
-        o.write("}");
-        // o.write(matrix->typeName(flavor) + " " + matrix->name() + " = remote_" + matrix->name() + ".localCopy();");
-        o.write(matrix->typeName(flavor) + " " + matrix->name() + "(remote_" + matrix->name() + ".size());");
-        o.write(matrix->name() + ".allocDataLocal();");
-        o.write("remote_" + matrix->name() + ".localCopy(" + matrix->name() + ");");
-
-        args.push_back(matrix->name());
-
-        if (matrix->type() == MatrixDef::T_TO) {
-          SimpleRegionPtr toRegion = _toBoundingBox[trans.lookupMatrix(i->first)];
-          CoordinateFormulaPtr toLowerBounds = toRegion->getIterationLowerBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
-          CoordinateFormulaPtr toUpperBounds = toRegion->getIterationUpperBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
-          toLowerBounds->sub(lowerBounds);
-          toUpperBounds->sub(lowerBounds);
-
-          o.write(matrix->typeName(flavor) + " remote_TO_" + matrix->name() + ";");
-          o.write(matrix->typeName(flavor) + " local_TO_" + matrix->name() + ";");
-          o.write("{");
-          o.incIndent();
-          o.write("IndexT _tmp_begin[] = {" + toLowerBounds->toString() + "};");
-          o.write("IndexT _tmp_end[] = {" + toUpperBounds->toString() + "};");
-          o.write("remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ".region(_tmp_begin, _tmp_end);");
-          o.write("local_TO_" + matrix->name() + " = " + matrix->name() + ".region(_tmp_begin, _tmp_end);");
-//           o.write("remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ";");
-//           o.write("local_TO_" + matrix->name() + " = " + matrix->name() + ";");
-          o.decIndent();
-          o.write("}");
-
-          args.push_back("remote_TO_" + matrix->name());
-          args.push_back("local_TO_" + matrix->name());
-        }
-      }
-
-      std::string argsStr = jalib::JPrintable::stringStlList(args.begin(), args.end(), ", ");
-      o.write("jalib::JRef<" + metadataclass + "> metadata = new " + metadataclass + "(" + argsStr + ");");
-
-      o.write("{");
-      o.incIndent();
-      o.write("IndexT _tmp_begin[] = {" + iterdef.begin().toString() + "};");
-      o.write("metadata->begin = (IndexT*)malloc(sizeof _tmp_begin);");
-      o.write("memcpy(metadata->begin, _tmp_begin, sizeof _tmp_begin);");
-      o.write("IndexT _tmp_end[] = {" + iterdef.end().toString() + "};");
-      o.write("metadata->end = (IndexT*)malloc(sizeof _tmp_end);");
-      o.write("memcpy(metadata->end, _tmp_end, sizeof _tmp_end);");
-      o.decIndent();
-      o.write("}");
-
       o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", startCoord);
 
       for (int i = 0; i < iterdef.dimensions(); ++i){
@@ -2112,6 +2042,81 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   }else{
     o.call(implcodename(trans)+TX_STATIC_POSTFIX, args);
   }
+}
+
+ void petabricks::UserRule::generateRuleIterMetadata(Transform& trans, CodeGenerator& o, RuleFlavor flavor, IterationDefinition& iterdef) {
+  std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
+  std::vector<std::string> args;
+
+  _scratchRegionLowerBounds.clear();
+  CoordinateFormula iterdefEndInclusive = iterdef.end();
+  iterdefEndInclusive.subToEach(FormulaInteger::one());
+
+  if (_scratch.size() > 0) {
+    o.comment("Copy to local region");
+  }
+  for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
+    MatrixDefPtr matrix = i->second;
+    SimpleRegionPtr region = _scratchBoundingBox[trans.lookupMatrix(i->first)];
+
+    CoordinateFormulaPtr lowerBounds = region->getIterationLowerBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
+    CoordinateFormulaPtr upperBounds = region->getIterationUpperBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
+
+    _scratchRegionLowerBounds[i->first] = lowerBounds;
+
+    o.write(matrix->typeName(flavor) + " remote_" + matrix->name() + ";");
+    o.write("{");
+    o.incIndent();
+    o.write("IndexT _tmp_begin[] = {" + lowerBounds->toString() + "};");
+    o.write("IndexT _tmp_end[] = {" + upperBounds->toString() + "};");
+    o.write("remote_" + matrix->name() + " = " + i->first + ".region(_tmp_begin, _tmp_end);");
+    o.decIndent();
+    o.write("}");
+    // o.write(matrix->typeName(flavor) + " " + matrix->name() + " = remote_" + matrix->name() + ".localCopy();");
+    o.write(matrix->typeName(flavor) + " " + matrix->name() + "(remote_" + matrix->name() + ".size());");
+    o.write(matrix->name() + ".allocDataLocal();");
+    o.write("remote_" + matrix->name() + ".localCopy(" + matrix->name() + ");");
+
+    args.push_back(matrix->name());
+
+    if (matrix->type() == MatrixDef::T_TO) {
+      SimpleRegionPtr toRegion = _toBoundingBox[trans.lookupMatrix(i->first)];
+      CoordinateFormulaPtr toLowerBounds = toRegion->getIterationLowerBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
+      CoordinateFormulaPtr toUpperBounds = toRegion->getIterationUpperBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
+      toLowerBounds->sub(lowerBounds);
+      toUpperBounds->sub(lowerBounds);
+
+      o.write(matrix->typeName(flavor) + " remote_TO_" + matrix->name() + ";");
+      o.write(matrix->typeName(flavor) + " local_TO_" + matrix->name() + ";");
+      o.write("{");
+      o.incIndent();
+      o.write("IndexT _tmp_begin[] = {" + toLowerBounds->toString() + "};");
+      o.write("IndexT _tmp_end[] = {" + toUpperBounds->toString() + "};");
+      o.write("remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ".region(_tmp_begin, _tmp_end);");
+      o.write("local_TO_" + matrix->name() + " = " + matrix->name() + ".region(_tmp_begin, _tmp_end);");
+      // o.write("remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ";");
+      // o.write("local_TO_" + matrix->name() + " = " + matrix->name() + ";");
+      o.decIndent();
+      o.write("}");
+
+      args.push_back("remote_TO_" + matrix->name());
+      args.push_back("local_TO_" + matrix->name());
+    }
+  }
+
+  std::string argsStr = jalib::JPrintable::stringStlList(args.begin(), args.end(), ", ");
+  o.write("jalib::JRef<" + metadataclass + "> metadata = new " + metadataclass + "(" + argsStr + ");");
+
+  o.write("{");
+  o.incIndent();
+  o.write("IndexT _tmp_begin[] = {" + iterdef.begin().toString() + "};");
+  o.write("metadata->begin = (IndexT*)malloc(sizeof _tmp_begin);");
+  o.write("memcpy(metadata->begin, _tmp_begin, sizeof _tmp_begin);");
+  o.write("IndexT _tmp_end[] = {" + iterdef.end().toString() + "};");
+  o.write("metadata->end = (IndexT*)malloc(sizeof _tmp_end);");
+  o.write("memcpy(metadata->end, _tmp_end, sizeof _tmp_end);");
+  o.decIndent();
+  o.write("}");
 }
 
 void petabricks::UserRule::generateCallCode(const std::string& name,
