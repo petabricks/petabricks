@@ -1332,7 +1332,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 }
 
 bool petabricks::UserRule::shouldGenerateTrampIterCode(RuleFlavor::RuleFlavorEnum flavor) {
-  return (((flavor == RuleFlavor::DISTRIBUTED && isRecursive()) ||
+  return ((flavor == RuleFlavor::DISTRIBUTED ||
       (flavor == RuleFlavor::WORKSTEALING && isRecursive())) &&
      !isSingleCall());
 }
@@ -1994,11 +1994,6 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
 #ifdef DEBUG
   JASSERT( RuleFlavor::OPENCL != flavor );
 #endif
-
-  if( ( RuleFlavor::WORKSTEALING == flavor ) && !isRecursive( ) ) {
-    //use sequential code if rule doesn't make calls
-    flavor = RuleFlavor::SEQUENTIAL;
-  }
 
   if( ( RuleFlavor::WORKSTEALING == flavor ) && !isRecursive( ) ) {
     //use sequential code if rule doesn't make calls
