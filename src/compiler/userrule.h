@@ -110,7 +110,7 @@ public:
   void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
-  void generateToLocalRegionCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, IterationDefinition& iterdef, bool shouldGenerateMetadata);
+  void generateToLocalRegionCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, IterationDefinition& iterdef, bool shouldGenerateMetadata, bool shouldGenerateWorkStealingRegion);
 
   void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
   void generateOpenCLCallCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);

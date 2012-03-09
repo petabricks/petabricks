@@ -1197,7 +1197,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.beginIf(b->toString()+"<"+e->toString());
       }
 
-      generateToLocalRegionCode(trans, o, flavor, iterdef, true);
+      generateToLocalRegionCode(trans, o, flavor, iterdef, true, false);
 
       std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
       o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", startCoord);
@@ -1208,7 +1208,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     } else {
 
       if (flavor == RuleFlavor::DISTRIBUTED) {
-        generateToLocalRegionCode(trans, o, flavor, iterdef, false);
+        generateToLocalRegionCode(trans, o, flavor, iterdef, false, true);
       }
 
       iterdef.genLoopBegin(o);
@@ -2054,7 +2054,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   for(int i=0; i<dimensions(); ++i)
     args.push_back(getOffsetVar(i)->toString());
 
-  if (RuleFlavor::SEQUENTIAL == flavor) {
+  if (RuleFlavor::SEQUENTIAL == flavor || !isRecursive()) {
     o.call(implcodename(trans)+TX_STATIC_POSTFIX, args);
   } else {
     std::string classname = implcodename(trans)+"_"+flavor.str();
@@ -2068,7 +2068,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   }
 }
 
- void petabricks::UserRule::generateToLocalRegionCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, IterationDefinition& iterdef, bool shouldGenerateMetadata) {
+ void petabricks::UserRule::generateToLocalRegionCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, IterationDefinition& iterdef, bool shouldGenerateMetadata, bool shouldGenerateWorkStealingRegion) {
   std::vector<std::string> args;
 
   _scratchRegionLowerBounds.clear();
@@ -2078,6 +2078,13 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   if (_scratch.size() > 0) {
     o.comment("Copy to local region");
   }
+
+  std::string scratchSuffix = "";
+  if (shouldGenerateWorkStealingRegion) {
+    // generate workstealing region
+    scratchSuffix = "_distributed";
+  }
+
   for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
     MatrixDefPtr matrix = i->second;
     SimpleRegionPtr region = _scratchBoundingBox[trans.lookupMatrix(i->first)];
@@ -2096,9 +2103,14 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
     o.decIndent();
     o.write("}");
     // o.write(matrix->typeName(flavor) + " " + matrix->name() + " = remote_" + matrix->name() + ".localCopy();");
-    o.write(matrix->typeName(flavor) + " " + matrix->name() + "(remote_" + matrix->name() + ".size());");
-    o.write(matrix->name() + ".allocDataLocal();");
-    o.write("remote_" + matrix->name() + ".localCopy(" + matrix->name() + ");");
+    o.write(matrix->typeName(flavor) + " " + matrix->name() + scratchSuffix + "(remote_" + matrix->name() + ".size());");
+    o.write(matrix->name() + scratchSuffix + ".allocDataLocal();");
+    o.write("remote_" + matrix->name() + ".localCopy(" + matrix->name() + scratchSuffix + ");");
+
+    if (shouldGenerateWorkStealingRegion) {
+      // generate workstealing region
+      o.write(matrix->typeName(RuleFlavor::WORKSTEALING) + " " + matrix->name() + " = CONVERT_TO_LOCAL(" + matrix->name() + scratchSuffix + ");");
+    }
 
     args.push_back(matrix->name());
 
@@ -2116,7 +2128,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
       o.write("IndexT _tmp_begin[] = {" + toLowerBounds->toString() + "};");
       o.write("IndexT _tmp_end[] = {" + toUpperBounds->toString() + "};");
       o.write("remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ".region(_tmp_begin, _tmp_end);");
-      o.write("local_TO_" + matrix->name() + " = " + matrix->name() + ".region(_tmp_begin, _tmp_end);");
+      o.write("local_TO_" + matrix->name() + " = " + matrix->name() + scratchSuffix + ".region(_tmp_begin, _tmp_end);");
       // o.write("remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ";");
       // o.write("local_TO_" + matrix->name() + " = " + matrix->name() + ";");
       o.decIndent();
