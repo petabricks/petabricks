@@ -1165,7 +1165,7 @@ namespace petabricks {
       if (isLocal()) {
         return *this;
       }
-      return *(new RegionMatrixWrapper(cell()));
+      return RegionMatrixWrapper(cell());
     }
     void fromScratchRegion(const MatrixRegion<D, ElementT>& scratch) const {
       this->cell() = scratch.cell();
