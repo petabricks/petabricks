@@ -1197,7 +1197,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.beginIf(b->toString()+"<"+e->toString());
       }
 
-      generateRuleIterMetadata(trans, o, flavor, iterdef);
+      generateToLocalRegionCode(trans, o, flavor, iterdef, true);
 
       std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
       o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", startCoord);
@@ -1206,9 +1206,24 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.endIf();
       }
     } else {
+
+      if (flavor == RuleFlavor::DISTRIBUTED) {
+        generateToLocalRegionCode(trans, o, flavor, iterdef, false);
+      }
+
       iterdef.genLoopBegin(o);
       generateTrampCellCodeSimple( trans, o, flavor );
       iterdef.genLoopEnd(o);
+
+      if (flavor == RuleFlavor::DISTRIBUTED) {
+        // copy back to remote region
+        for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
+          MatrixDefPtr matrix = i->second;
+          if (matrix->type() == MatrixDef::T_TO) {
+            o.write("remote_TO_" + matrix->name() + ".fromScratchRegion(local_TO_" + matrix->name() + ");");
+          }
+        }
+      }
     }
 
 #ifdef HAVE_OPENCL
@@ -1332,7 +1347,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 }
 
 bool petabricks::UserRule::shouldGenerateTrampIterCode(RuleFlavor::RuleFlavorEnum flavor) {
-  return ((flavor == RuleFlavor::DISTRIBUTED ||
+  return (((flavor == RuleFlavor::DISTRIBUTED && isRecursive()) ||
       (flavor == RuleFlavor::WORKSTEALING && isRecursive())) &&
      !isSingleCall());
 }
@@ -2000,6 +2015,11 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
     flavor = RuleFlavor::SEQUENTIAL;
   }
 
+  if( ( RuleFlavor::DISTRIBUTED == flavor ) && !isRecursive( ) ) {
+    //use sequential code if rule doesn't make calls
+    flavor = RuleFlavor::DISTRIBUTED_SCRATCH;
+  }
+
   std::vector<std::string> args;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     if (flavor == RuleFlavor::DISTRIBUTED_SCRATCH && (*i)->matrix()->numDimensions() != 0) {
@@ -2034,18 +2054,21 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   for(int i=0; i<dimensions(); ++i)
     args.push_back(getOffsetVar(i)->toString());
 
-  if(RuleFlavor::SEQUENTIAL != flavor){
+  if (RuleFlavor::SEQUENTIAL == flavor) {
+    o.call(implcodename(trans)+TX_STATIC_POSTFIX, args);
+  } else {
     std::string classname = implcodename(trans)+"_"+flavor.str();
     o.setcall("jalib::JRef<"+classname+"> _rule", "new "+classname, args);
-    std::string tasktype = "petabricks::MethodCallTask<"+classname+", &"+classname+"::runDynamic>";
-    o.write("_task = new "+tasktype+"(_rule);");
-  }else{
-    o.call(implcodename(trans)+TX_STATIC_POSTFIX, args);
+    if (isRecursive()) {
+      std::string tasktype = "petabricks::MethodCallTask<"+classname+", &"+classname+"::runDynamic>";
+      o.write("_task = new "+tasktype+"(_rule);");
+    } else {
+      o.write("_rule->runDynamic();");
+    }
   }
 }
 
- void petabricks::UserRule::generateRuleIterMetadata(Transform& trans, CodeGenerator& o, RuleFlavor flavor, IterationDefinition& iterdef) {
-  std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
+ void petabricks::UserRule::generateToLocalRegionCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, IterationDefinition& iterdef, bool shouldGenerateMetadata) {
   std::vector<std::string> args;
 
   _scratchRegionLowerBounds.clear();
@@ -2104,19 +2127,22 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
     }
   }
 
-  std::string argsStr = jalib::JPrintable::stringStlList(args.begin(), args.end(), ", ");
-  o.write("jalib::JRef<" + metadataclass + "> metadata = new " + metadataclass + "(" + argsStr + ");");
+  if (shouldGenerateMetadata) {
+    std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
+    std::string argsStr = jalib::JPrintable::stringStlList(args.begin(), args.end(), ", ");
+    o.write("jalib::JRef<" + metadataclass + "> metadata = new " + metadataclass + "(" + argsStr + ");");
 
-  o.write("{");
-  o.incIndent();
-  o.write("IndexT _tmp_begin[] = {" + iterdef.begin().toString() + "};");
-  o.write("metadata->begin = (IndexT*)malloc(sizeof _tmp_begin);");
-  o.write("memcpy(metadata->begin, _tmp_begin, sizeof _tmp_begin);");
-  o.write("IndexT _tmp_end[] = {" + iterdef.end().toString() + "};");
-  o.write("metadata->end = (IndexT*)malloc(sizeof _tmp_end);");
-  o.write("memcpy(metadata->end, _tmp_end, sizeof _tmp_end);");
-  o.decIndent();
-  o.write("}");
+    o.write("{");
+    o.incIndent();
+    o.write("IndexT _tmp_begin[] = {" + iterdef.begin().toString() + "};");
+    o.write("metadata->begin = (IndexT*)malloc(sizeof _tmp_begin);");
+    o.write("memcpy(metadata->begin, _tmp_begin, sizeof _tmp_begin);");
+    o.write("IndexT _tmp_end[] = {" + iterdef.end().toString() + "};");
+    o.write("metadata->end = (IndexT*)malloc(sizeof _tmp_end);");
+    o.write("memcpy(metadata->end, _tmp_end, sizeof _tmp_end);");
+    o.decIndent();
+    o.write("}");
+  }
 }
 
 void petabricks::UserRule::generateCallCode(const std::string& name,
