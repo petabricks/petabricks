@@ -1207,15 +1207,12 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       }
     } else {
 
-      if (flavor == RuleFlavor::DISTRIBUTED) {
+      if (flavor == RuleFlavor::DISTRIBUTED && !isSingleCall()) {
         generateToLocalRegionCode(trans, o, flavor, iterdef, false, true);
-      }
+        iterdef.genLoopBegin(o);
+        generateTrampCellCodeSimple( trans, o, RuleFlavor::WORKSTEALING_SCRATCH );
+        iterdef.genLoopEnd(o);
 
-      iterdef.genLoopBegin(o);
-      generateTrampCellCodeSimple( trans, o, flavor );
-      iterdef.genLoopEnd(o);
-
-      if (flavor == RuleFlavor::DISTRIBUTED) {
         // copy back to remote region
         for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
           MatrixDefPtr matrix = i->second;
@@ -1223,6 +1220,10 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
             o.write("remote_TO_" + matrix->name() + ".fromScratchRegion(local_TO_" + matrix->name() + ");");
           }
         }
+      } else {
+        iterdef.genLoopBegin(o);
+        generateTrampCellCodeSimple( trans, o, flavor );
+        iterdef.genLoopEnd(o);
       }
     }
 
@@ -2015,32 +2016,43 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
     flavor = RuleFlavor::SEQUENTIAL;
   }
 
-  if( ( RuleFlavor::DISTRIBUTED == flavor ) && !isRecursive( ) ) {
-    //use sequential code if rule doesn't make calls
-    flavor = RuleFlavor::DISTRIBUTED_SCRATCH;
-  }
-
   std::vector<std::string> args;
+  std::vector<std::string> to_0d;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    if (flavor == RuleFlavor::DISTRIBUTED_SCRATCH && (*i)->matrix()->numDimensions() != 0) {
+    if ((flavor == RuleFlavor::DISTRIBUTED_SCRATCH
+         || flavor == RuleFlavor::WORKSTEALING_SCRATCH)
+        && (*i)->matrix()->numDimensions() != 0
+        && (!(*i)->isOptional())) {
       Region region = *i;
       std::string name = (*i)->matrix()->name();
       region.changeMatrix(lookupScratch(name));
       args.push_back(region.generateAccessorCode(*(_scratchRegionLowerBounds[name])));
+
+    } else if (flavor == RuleFlavor::WORKSTEALING_SCRATCH) {
+      std::string name = (*i)->matrix()->name();
+      o.write("ElementT scratch_" + name + " = " + name + ";");
+      args.push_back("scratch_" + name);
+      to_0d.push_back(name);
 
     } else {
       args.push_back((*i)->generateAccessorCode());
     }
   }
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    if (flavor == RuleFlavor::DISTRIBUTED_SCRATCH && (*i)->matrix()->numDimensions() != 0 && (!(*i)->isOptional())) {
+    if ((flavor == RuleFlavor::DISTRIBUTED_SCRATCH
+         || flavor == RuleFlavor::WORKSTEALING_SCRATCH)
+        && (*i)->matrix()->numDimensions() != 0
+        && (!(*i)->isOptional())) {
       Region region = *i;
       std::string name = (*i)->matrix()->name();
       region.changeMatrix(lookupScratch(name));
       args.push_back(region.generateAccessorCode(*(_scratchRegionLowerBounds[name])));
 
+    } else if (flavor == RuleFlavor::WORKSTEALING_SCRATCH) {
+      args.push_back("(ElementT)" + (*i)->generateAccessorCode());
+
     } else {
-      args.push_back((*i)->generateAccessorCode());
+        args.push_back((*i)->generateAccessorCode());
     }
   }
   for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
@@ -2054,17 +2066,18 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   for(int i=0; i<dimensions(); ++i)
     args.push_back(getOffsetVar(i)->toString());
 
-  if (RuleFlavor::SEQUENTIAL == flavor || !isRecursive()) {
+  if (RuleFlavor::SEQUENTIAL == flavor || RuleFlavor::WORKSTEALING_SCRATCH == flavor) {
     o.call(implcodename(trans)+TX_STATIC_POSTFIX, args);
+
+    for(std::vector<std::string>::const_iterator i=to_0d.begin(); i!=to_0d.end(); ++i){
+      o.write((*i) + " = scratch_" + (*i) + ";");
+    }
+
   } else {
     std::string classname = implcodename(trans)+"_"+flavor.str();
     o.setcall("jalib::JRef<"+classname+"> _rule", "new "+classname, args);
-    if (isRecursive()) {
-      std::string tasktype = "petabricks::MethodCallTask<"+classname+", &"+classname+"::runDynamic>";
-      o.write("_task = new "+tasktype+"(_rule);");
-    } else {
-      o.write("_rule->runDynamic();");
-    }
+    std::string tasktype = "petabricks::MethodCallTask<"+classname+", &"+classname+"::runDynamic>";
+    o.write("_task = new "+tasktype+"(_rule);");
   }
 }
 

@@ -69,6 +69,7 @@ public:
     SEQUENTIAL_OPENCL,
     WORKSTEALING_OPENCL,
     DISTRIBUTED_OPENCL,
+    WORKSTEALING_SCRATCH,
     DISTRIBUTED_SCRATCH,
     INVALID,
   };
@@ -84,7 +85,8 @@ public:
   const char* str() const {
     switch(*this) {
       case RuleFlavor::SEQUENTIAL:   return "sequential";
-      case RuleFlavor::WORKSTEALING: return "workstealing";
+      case RuleFlavor::WORKSTEALING:
+      case RuleFlavor::WORKSTEALING_SCRATCH: return "workstealing";
       case RuleFlavor::OPENCL:
       case RuleFlavor::SEQUENTIAL_OPENCL:
       case RuleFlavor::WORKSTEALING_OPENCL:
