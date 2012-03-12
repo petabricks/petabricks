@@ -31,6 +31,7 @@
 #include "matrixregion.h"
 #include "string.h"
 #include "gputaskinfo.h"
+#include "remotetask.h"
 
 #include <vector>
 
@@ -97,6 +98,62 @@ private:
   IndexT _begin[D];
   IndexT _end[D];
 };
+
+template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D])>
+class SpatialMethodCallTask_distributed : public RemoteTask {
+public:
+  SpatialMethodCallTask_distributed(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D])
+    : _obj(obj)
+  {
+    memcpy(_begin, begin, sizeof _begin);
+    memcpy(_end,   end,   sizeof _end);
+    JTRACE("c")(_begin[0])(_begin[1])(_end[0])(_end[1]);
+  }
+  SpatialMethodCallTask_distributed(const char* _buf, RemoteHost& _host){
+    unserialize(_buf, _host);
+  }
+  DynamicTaskPtr run(){
+    JTRACE("r")(_begin[0])(_begin[1])(_end[0])(_end[1]);
+    return ((*_obj).*(method))(_begin, _end);
+  }
+
+  // RemoteTask methods
+  size_t serialSize() {
+    return _obj->serialSize() + (sizeof _begin) + (sizeof _end);
+  }
+  void serialize(char* buf, RemoteHost& host) {
+    _obj->serialize(buf, host);
+    buf += _obj->serialSize();
+    memcpy(buf, _begin, sizeof _begin);
+    buf += (sizeof _begin);
+    memcpy(buf, _end, sizeof _end);
+    buf += (sizeof _end);
+  }
+  void unserialize(const char* buf, RemoteHost& host) {
+    JASSERT(!_obj);
+    _obj = new T(buf, host);
+    buf += _obj->serialSize();
+    memcpy(_begin, buf, sizeof _begin);
+    buf += (sizeof _begin);
+    memcpy(_end, buf, sizeof _end);
+    buf += (sizeof _end);
+  }
+  void migrateRegions(RemoteHost& sender) {
+    _obj->migrateRegions(sender);
+  }
+  void getDataHosts(DataHostPidList& list) {
+    _obj->getDataHosts(list);
+  }
+  RemoteObjectGenerator generator() {
+    return &RemoteTaskReciever< SpatialMethodCallTask_distributed<T, D, method> >::gen;
+  }
+
+private:
+  jalib::JRef<T> _obj;
+  IndexT _begin[D];
+  IndexT _end[D];
+};
+
 
 /**
  * A task that calls a method on a given object, with a given region and

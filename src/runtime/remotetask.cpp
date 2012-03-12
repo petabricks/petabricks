@@ -55,7 +55,7 @@ void petabricks::RemoteTask::enqueueLocal() {
 }
 
 void petabricks::RemoteTask::remoteScheduleTask() {
-  //JTRACE("remote schedule");
+  // JTRACE("remote schedule");
 
   HostPid toHostPid = HostPid::self();
   double maxWeight = 0;
@@ -76,6 +76,11 @@ void petabricks::RemoteTask::remoteScheduleTask() {
     }
   }
 
+  // RemoteHostPtr toHost = RemoteHostDB::instance().host(0);
+  // enqueueRemote(*toHost);
+  // JTRACE("force enqueueRemote");
+  // return;
+
   if (toHostPid == HostPid::self()) {
     enqueueLocal();
 
@@ -84,11 +89,9 @@ void petabricks::RemoteTask::remoteScheduleTask() {
     enqueueLocal();
 #else
     RemoteHostPtr toHost = RemoteHostDB::instance().host(toHostPid);
-#ifdef DEBUG
-    JASSERT(toHost != 0)(toHostPid);
-#endif
+    JDEBUGASSERT(toHost != 0)(toHostPid);
     enqueueRemote(*toHost);
-    //JTRACE("enqueueRemote")(toHostPid);
+    JTRACE("enqueueRemote")(toHostPid);
 #endif
   }
 }

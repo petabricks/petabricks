@@ -2185,7 +2185,7 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
     break;
   case RuleFlavor::WORKSTEALING:
   case RuleFlavor::DISTRIBUTED:
-    o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+"_"+flavor.str(), region);
+    o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+"_"+flavor.str(), region, flavor);
     break;
   default:
     UNIMPLEMENTED();

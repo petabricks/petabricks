@@ -511,6 +511,14 @@ namespace petabricks {
     //
     // Find location of data (data can be in many hosts)
     //
+    void dataHosts(DataHostPidList& list, const IndexT* begin, const IndexT* end) const {
+      IndexT rd_begin[_regionHandler->dimensions()];
+      IndexT rd_end[_regionHandler->dimensions()];
+      this->regionDataCoord(begin, rd_begin);
+      this->regionDataCoord(end, rd_end);
+      _regionHandler->hosts(rd_begin, rd_end, list);
+    }
+
     void dataHosts(DataHostPidList& list) const {
       IndexT begin[D];
       IndexT end[D];
@@ -520,11 +528,7 @@ namespace petabricks {
         end[i] = size(i);
       }
 
-      IndexT rd_begin[_regionHandler->dimensions()];
-      IndexT rd_end[_regionHandler->dimensions()];
-      this->regionDataCoord(begin, rd_begin);
-      this->regionDataCoord(end, rd_end);
-      _regionHandler->hosts(rd_begin, rd_end, list);
+      dataHosts(list, begin, end);
     }
 
     void printDataHosts() const {

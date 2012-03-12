@@ -34,7 +34,7 @@ std::set<int> GpuRule::_done;
 void GpuRule::generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) {
   if(rf != RuleFlavor::SEQUENTIAL || isDisabled() || _done.find(_rule->id()) != _done.end())
     return;
-    
+
   _done.insert(_rule->id());
 
   generateKernel(trans, o, false);
@@ -101,7 +101,7 @@ void GpuRule::generateKernel(Transform& trans, CodeGenerator& o, bool local) {
 #endif
   o.write("return clprog_" + jalib::XToString(_rule->id()) + SUFFIX + ";");
   o.endFunc();
-  
+
 }
 
 void GpuRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor)
@@ -139,11 +139,11 @@ void GpuRule::generateCallCode(const std::string& name,
     o.callSpatial(_rule->trampcodename(trans)+TX_OPENCL_POSTFIX, region);
     break;
   case RuleFlavor::WORKSTEALING:
-    o.mkCreateGpuSpatialMethodCallTask(name, 
-				       trans.instClassName() + "_workstealing", 
-				       _rule->trampcodename(trans)+TX_OPENCL_POSTFIX+"_createtasks", 
-				       region, regionNodesGroups, 
-				       nodeID, 
+    o.mkCreateGpuSpatialMethodCallTask(name,
+				       trans.instClassName() + "_workstealing",
+				       _rule->trampcodename(trans)+TX_OPENCL_POSTFIX+"_createtasks",
+				       region, regionNodesGroups,
+				       nodeID,
 				       gpuCopyOut);
     break;
   case RuleFlavor::DISTRIBUTED:
@@ -166,7 +166,7 @@ void
 GpuRule::generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region)
 {
   o.comment( "GENERATECALLTASKCODE" );
-  o.mkSpatialTask(name, trans.instClassName(), codename(), region);
+  o.mkSpatialTask(name, trans.instClassName(), codename(), region, RuleFlavor::WORKSTEALING);
 }
 
 bool
@@ -217,16 +217,16 @@ GpuRule::getSelfDependency() const
   return _rule->getSelfDependency();
 }
 
-petabricks::RuleFlags::PriorityT petabricks::GpuRule::priority() const { 
+petabricks::RuleFlags::PriorityT petabricks::GpuRule::priority() const {
   return _rule->priority();
 }
-bool petabricks::GpuRule::isRecursive() const { 
+bool petabricks::GpuRule::isRecursive() const {
   return _rule->isRecursive();
 }
-bool petabricks::GpuRule::hasWhereClause() const { 
+bool petabricks::GpuRule::hasWhereClause() const {
   return _rule->hasWhereClause();
 }
-petabricks::FormulaPtr petabricks::GpuRule::getWhereClause() const { 
+petabricks::FormulaPtr petabricks::GpuRule::getWhereClause() const {
   return _rule->getWhereClause();
 }
 

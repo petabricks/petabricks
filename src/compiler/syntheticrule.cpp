@@ -170,7 +170,7 @@ void petabricks::WhereExpansionRule::generateCallCode(const std::string& name,
     break;
   case RuleFlavor::WORKSTEALING:
   case RuleFlavor::DISTRIBUTED:
-    o.mkSpatialTask(name, trans.instClassName(), codename()+"_"+flavor.str(), region);
+    o.mkSpatialTask(name, trans.instClassName(), codename()+"_"+flavor.str(), region, flavor);
     break;
   default:
     UNIMPLEMENTED();
