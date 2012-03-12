@@ -107,13 +107,11 @@ public:
   {
     memcpy(_begin, begin, sizeof _begin);
     memcpy(_end,   end,   sizeof _end);
-    JTRACE("c")(_begin[0])(_begin[1])(_end[0])(_end[1]);
   }
   SpatialMethodCallTask_distributed(const char* _buf, RemoteHost& _host){
     unserialize(_buf, _host);
   }
   DynamicTaskPtr run(){
-    JTRACE("r")(_begin[0])(_begin[1])(_end[0])(_end[1]);
     return ((*_obj).*(method))(_begin, _end);
   }
 

@@ -159,7 +159,7 @@ void RegionDataSplit::copyHelper(bool isCopyTo, RegionMatrixMetadata* origMetada
     }
     len += (count * sizeof(ElementT));
   }
-  char newOrigMetadataBuf[len];
+  char* newOrigMetadataBuf = (char*)malloc(len);
   memcpy(newOrigMetadataBuf, origMetadata, len);
   RegionMatrixMetadata* newOrigMetadata = (RegionMatrixMetadata*)newOrigMetadataBuf;
 
@@ -219,6 +219,8 @@ void RegionDataSplit::copyHelper(bool isCopyTo, RegionMatrixMetadata* origMetada
     }
 
   } while (incPartCoord(coord, newBegin, end) >= 0);
+
+  free(newOrigMetadataBuf);
 }
 
 RegionDataIPtr RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t /*len*/, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const {
