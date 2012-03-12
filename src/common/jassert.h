@@ -179,7 +179,7 @@ namespace jalib{
 
 
 }//jalib
-  
+
 
 //helpers:
 #define JASSERT_ERRNO          (strerror(errno))
@@ -192,7 +192,7 @@ namespace jalib{
 #define JASSERT_STRINGIFY(x)   JASSERT_STRINGIFY_(x)
 #define JASSERT_STRINGIFY_(x)  #x
 
-//detecting context 
+//detecting context
 #define JASSERT_FUNC __FUNCTION__
 #define JASSERT_LINE JASSERT_STRINGIFY(__LINE__)
 #define JASSERT_FILE __FILE__
@@ -214,7 +214,7 @@ namespace jalib{
 #ifdef DEBUG
 #define JTRACE(msg) jalib::JAssert(false).JASSERT_CONTEXT("TRACE",msg).JASSERT_CONT_A
 #define JDEBUGWARNING JWARNING
-#define JDEBUGASSER JASSERT
+#define JDEBUGASSERT JASSERT
 #else
 #define JTRACE(msg) JASSERT_NOP
 #define JDEBUGWARNING(term) JASSERT_NOP
