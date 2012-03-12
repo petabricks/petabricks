@@ -2176,7 +2176,9 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
                                             const SimpleRegionPtr& region,
                                             RuleFlavor flavor,
                                             std::vector<RegionNodeGroup>&,
-                                            int, int){
+                                            int,
+                                            int,
+                                            bool isDistributedCall){
   SRCPOSSCOPE();
   o.comment("from UserRule::generateCallCode():");
   switch(flavor) {
@@ -2185,7 +2187,7 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
     break;
   case RuleFlavor::WORKSTEALING:
   case RuleFlavor::DISTRIBUTED:
-    o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+"_"+flavor.str(), region, flavor);
+    o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+"_"+flavor.str(), region, isDistributedCall);
     break;
   default:
     UNIMPLEMENTED();

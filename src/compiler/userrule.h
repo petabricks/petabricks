@@ -136,7 +136,8 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        int gpuCopyOut);
+                        int gpuCopyOut,
+                        bool isDistributedCall=false);
 
   void generateMetadataCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 

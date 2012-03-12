@@ -131,7 +131,8 @@ void GpuRule::generateCallCode(const std::string& name,
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        int gpuCopyOut)
+                        int gpuCopyOut,
+                        bool)
 {
   o.comment("from GpuRule::generateCallCode():");
   switch(flavor) {

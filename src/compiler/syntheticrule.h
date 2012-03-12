@@ -66,7 +66,8 @@ public:
 //                      RuleFlavor flavor,
 //                      std::vector<RegionNodeGroup>& regionNodesGroups,
 //                      int nodeID,
-//                      int gpuCopyOut); 
+//                      int gpuCopyOut,
+//                      bool isDistributedCall);
 //
   void virtual generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor);
   void virtual generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor) = 0;
@@ -107,7 +108,8 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        int gpuCopyOut);
+                        int gpuCopyOut,
+                        bool isDistributedCall=false);
   bool isSingleElement() const;
   int dimensions() const;
   FormulaPtr getSizeOfRuleIn(int d);
@@ -142,7 +144,8 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        int gpuCopyOut);
+                        int gpuCopyOut,
+                        bool isDistributedCall=false);
 
   bool isSingleElement() const;
 
@@ -182,7 +185,8 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        int gpuCopyOut);
+                        int gpuCopyOut,
+                        bool isDistributedCall=false);
 private:
   size_t _dup;
 };
@@ -205,7 +209,8 @@ public:
                         RuleFlavor flavor,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
-                        int gpuCopyOut);
+                        int gpuCopyOut,
+                        bool isDistributedCall=false);
 
   bool isSingleElement() const;
 

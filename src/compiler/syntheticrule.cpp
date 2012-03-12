@@ -66,7 +66,7 @@ void petabricks::SyntheticRule::getApplicableRegionDescriptors(RuleDescriptorLis
 //                                                  const SimpleRegionPtr&,
 //                                                  RuleFlavor,
 //                                                  std::vector<RegionNodeGroup>&,
-//                                                  int, int){
+//                                                  int, int, bool){
 //   o.comment("synthetic generateCallCode");
 // }
 //
@@ -97,8 +97,9 @@ void petabricks::WrapperSyntheticRule::generateCallCode(const std::string& name,
                                             RuleFlavor flavor,
                                             std::vector<RegionNodeGroup>& regionNodesGroups,
                                             int nodeID,
-                                            int gpuCopyOut){
-  _rule->generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut);
+                                            int gpuCopyOut,
+                                            bool isDistributedCall){
+  _rule->generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut, isDistributedCall);
 }
 
 void petabricks::WrapperSyntheticRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
@@ -162,7 +163,8 @@ void petabricks::WhereExpansionRule::generateCallCode(const std::string& name,
                                             RuleFlavor flavor,
                                             std::vector<RegionNodeGroup>&,
                                             int,
-                                            int){
+                                            int,
+                                            bool){
   SRCPOSSCOPE();
   switch(flavor) {
   case RuleFlavor::SEQUENTIAL:
@@ -170,7 +172,7 @@ void petabricks::WhereExpansionRule::generateCallCode(const std::string& name,
     break;
   case RuleFlavor::WORKSTEALING:
   case RuleFlavor::DISTRIBUTED:
-    o.mkSpatialTask(name, trans.instClassName(), codename()+"_"+flavor.str(), region, flavor);
+    o.mkSpatialTask(name, trans.instClassName(), codename()+"_"+flavor.str(), region, false);
     break;
   default:
     UNIMPLEMENTED();
@@ -286,10 +288,11 @@ void petabricks::DuplicateExpansionRule::generateCallCode(const std::string& nam
                                             RuleFlavor flavor,
                                             std::vector<RegionNodeGroup>& regionNodesGroups,
                                             int nodeID,
-                                            int gpuCopyOut){
+                                            int gpuCopyOut,
+                                            bool isDistributedCall){
   SRCPOSSCOPE();
   size_t old = _rule->setDuplicateNumber(_dup);
-  WrapperSyntheticRule::generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut);
+  WrapperSyntheticRule::generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut, isDistributedCall);
   _rule->setDuplicateNumber(old);
 }
 
@@ -315,13 +318,14 @@ void petabricks::CallInSequenceRule::generateCallCode(const std::string& name,
                                             RuleFlavor flavor,
                                             std::vector<RegionNodeGroup>& regionNodesGroups,
                                             int nodeID,
-                                            int gpuCopyOut){
+                                            int gpuCopyOut,
+                                            bool isDistributedCall){
   SRCPOSSCOPE();
   if(flavor != RuleFlavor::SEQUENTIAL)
     o.write("{ DynamicTaskPtr __last;");
   RuleList::iterator i;
   for(i=_rules.begin(); i!=_rules.end(); ++i){
-    (*i)->generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut);
+    (*i)->generateCallCode(name, trans, o, region, flavor, regionNodesGroups, nodeID, gpuCopyOut, isDistributedCall);
     if(flavor != RuleFlavor::SEQUENTIAL) {
       if(i!=_rules.begin()) {
         o.write(name+"->dependsOn(__last);");

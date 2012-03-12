@@ -414,14 +414,8 @@ void petabricks::CodeGenerator::callSpatial(const std::string& methodname, const
 }
 
 
-
-/*void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region) {
-  std::string taskclass = "petabricks::SpatialMethodCallTask<"+objname
-                        + ", " + jalib::XToString(region.totalDimensions() + region.removedDimensions())
-                        + ", &" + objname + "::" + methodname
-                        + ">";*/
-void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& /*objname*/, const std::string& methodname, const SimpleRegion& region, RuleFlavor flavor) {
-  std::string suffix = (flavor == RuleFlavor::DISTRIBUTED) ? "_distributed" : "";
+void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& /*objname*/, const std::string& methodname, const SimpleRegion& region, bool isDistributedCall) {
+  std::string suffix = (isDistributedCall) ? "_distributed" : "";
   std::string taskclass = "petabricks::SpatialMethodCallTask" + suffix
                         + "<CLASS, " + jalib::XToString(region.dimensions() + region.removedDimensions())
                         + ", &CLASS::" + methodname
