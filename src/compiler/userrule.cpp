@@ -1216,7 +1216,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
         o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", startCoord);
 
-      } else if (!isSingleCall()) {
+      } else if (!isRecursive()) {
         // call sequential version
         generateToLocalRegionCode(trans, o, flavor, iterdef, false, true);
         iterdef.genLoopBegin(o);
@@ -1232,7 +1232,10 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         }
 
       } else {
-        JASSERT(false).Text("Check shouldGenerateTrampIterCode method");
+        JASSERT(isSingleCall()).Text("Check shouldGenerateTrampIterCode method");
+        iterdef.genLoopBegin(o);
+        generateTrampCellCodeSimple( trans, o, flavor );
+        iterdef.genLoopEnd(o);
 
       }
 
@@ -1240,9 +1243,42 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.endIf();
       }
     } else {
-      iterdef.genLoopBegin(o);
-      generateTrampCellCodeSimple( trans, o, flavor );
-      iterdef.genLoopEnd(o);
+      if (shouldGenerateTrampIterCode(flavor)) {
+        // TODO: we don't need new regions for metadata in this case
+        CoordinateFormula startCoord;
+
+        for (int i = 0; i < iterdef.dimensions(); ++i){
+          FormulaPtr b = iterdef.begin()[i];
+          FormulaPtr e = iterdef.end()[i];
+
+          DependencyDirection& order = iterdef.order();
+          bool iterateForward = (order.canIterateForward(i) || !order.canIterateBackward(i));
+
+          if (iterateForward) {
+            startCoord.push_back(b);
+
+          } else {
+            startCoord.push_back(MaximaWrapper::instance().normalize(new FormulaSubtract(e, FormulaInteger::one())));
+
+          }
+
+          o.beginIf(b->toString()+"<"+e->toString());
+        }
+
+        generateToLocalRegionCode(trans, o, flavor, iterdef, true, false);
+
+        std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
+        o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", startCoord);
+
+        for (int i = 0; i < iterdef.dimensions(); ++i){
+          o.endIf();
+        }
+
+      } else {
+        iterdef.genLoopBegin(o);
+        generateTrampCellCodeSimple( trans, o, flavor );
+        iterdef.genLoopEnd(o);
+      }
     }
 
 #ifdef HAVE_OPENCL
