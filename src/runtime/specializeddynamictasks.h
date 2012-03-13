@@ -99,7 +99,7 @@ private:
   IndexT _end[D];
 };
 
-template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D])>
+ template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D]), void (T::*getDataHostsMethod)(DataHostPidList& list, IndexT begin[D], IndexT end[D])>
 class SpatialMethodCallTask_distributed : public RemoteTask {
 public:
   SpatialMethodCallTask_distributed(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D])
@@ -140,10 +140,10 @@ public:
     _obj->migrateRegions(sender);
   }
   void getDataHosts(DataHostPidList& list) {
-    _obj->getDataHosts(list);
+    ((*_obj).*(getDataHostsMethod))(list, _begin, _end);
   }
   RemoteObjectGenerator generator() {
-    return &RemoteTaskReciever< SpatialMethodCallTask_distributed<T, D, method> >::gen;
+    return &RemoteTaskReciever< SpatialMethodCallTask_distributed<T, D, method, getDataHostsMethod> >::gen;
   }
 
 private:

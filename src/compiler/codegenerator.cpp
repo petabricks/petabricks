@@ -418,8 +418,12 @@ void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const
   std::string suffix = (isDistributedCall) ? "_distributed" : "";
   std::string taskclass = "petabricks::SpatialMethodCallTask" + suffix
                         + "<CLASS, " + jalib::XToString(region.dimensions() + region.removedDimensions())
-                        + ", &CLASS::" + methodname
-                        + ">";
+                        + ", &CLASS::" + methodname;
+  if (isDistributedCall) {
+    taskclass += ", &CLASS::" + methodname + "_getDataHosts";
+  }
+  taskclass += ">";
+
   write("{");
   incIndent();
   comment("MARKER 6");

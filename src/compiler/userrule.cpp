@@ -1382,6 +1382,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     o.endFunc();
 
     if (flavor == RuleFlavor::DISTRIBUTED) {
+      // Clean up iteration tramp
       o.beginFunc("petabricks::DynamicTaskPtr", itertrampcodename(trans)+"_clean_up_"+flavor.str(), args);
       o.comment("Copy from scratch");
 
@@ -1398,6 +1399,38 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       o.write("return NULL;");
       o.endFunc();
     }
+  }
+
+  // Generate getDataHosts for rule
+  if (flavor == RuleFlavor::DISTRIBUTED) {
+    std::vector<std::string> args;
+    args.push_back("DataHostPidList& list");
+    args.push_back("IndexT _iter_begin["+jalib::XToString(iterdef.dimensions())+"]");
+    args.push_back("IndexT _iter_end["+jalib::XToString(iterdef.dimensions())+"]");
+
+    o.beginFunc("void", trampcodename(trans)+"_"+flavor.str()+"_getDataHosts", args);
+    o.comment("getDataHosts for SpatialMethodCallTask");
+    iterdef.unpackargs(o);
+
+    CoordinateFormula iterdefEndInclusive = iterdef.end();
+    iterdefEndInclusive.subToEach(FormulaInteger::one());
+    for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
+      MatrixDefPtr matrix = i->second;
+      SimpleRegionPtr region = _scratchBoundingBox[trans.lookupMatrix(i->first)];
+
+      CoordinateFormulaPtr lowerBounds = region->getIterationLowerBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
+      CoordinateFormulaPtr upperBounds = region->getIterationUpperBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
+
+      o.write("{");
+      o.incIndent();
+      o.write("IndexT _tmp_begin[] = {" + lowerBounds->toString() + "};");
+      o.write("IndexT _tmp_end[] = {" + upperBounds->toString() + "};");
+      o.write(i->first + ".dataHosts(list, _tmp_begin, _tmp_end);");
+      o.decIndent();
+      o.write("}");
+    }
+
+    o.endFunc();
   }
 }
 
