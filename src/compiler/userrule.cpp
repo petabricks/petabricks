@@ -1187,7 +1187,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       o.write("DynamicTaskPtr _task;");
     }
 
-    if (shouldGenerateTrampIterCode(flavor)) {
+    if (flavor == RuleFlavor::DISTRIBUTED) {
       CoordinateFormula startCoord;
 
       for (int i = 0; i < iterdef.dimensions(); ++i){
@@ -1208,17 +1208,16 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.beginIf(b->toString()+"<"+e->toString());
       }
 
-      generateToLocalRegionCode(trans, o, flavor, iterdef, true, false);
 
-      std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
-      o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", startCoord);
+      if (shouldGenerateTrampIterCode(flavor)) {
+        // Create iteration tramp task
+        generateToLocalRegionCode(trans, o, flavor, iterdef, true, false);
 
-      for (int i = 0; i < iterdef.dimensions(); ++i){
-        o.endIf();
-      }
-    } else {
+        std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
+        o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", startCoord);
 
-      if (flavor == RuleFlavor::DISTRIBUTED && !isSingleCall()) {
+      } else if (!isSingleCall()) {
+        // call sequential version
         generateToLocalRegionCode(trans, o, flavor, iterdef, false, true);
         iterdef.genLoopBegin(o);
         generateTrampCellCodeSimple( trans, o, RuleFlavor::WORKSTEALING_SCRATCH );
@@ -1231,11 +1230,19 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
             o.write("remote_TO_" + matrix->name() + ".fromScratchRegion(local_TO_" + matrix->name() + ");");
           }
         }
+
       } else {
-        iterdef.genLoopBegin(o);
-        generateTrampCellCodeSimple( trans, o, flavor );
-        iterdef.genLoopEnd(o);
+        JASSERT(false).Text("Check shouldGenerateTrampIterCode method");
+
       }
+
+      for (int i = 0; i < iterdef.dimensions(); ++i){
+        o.endIf();
+      }
+    } else {
+      iterdef.genLoopBegin(o);
+      generateTrampCellCodeSimple( trans, o, flavor );
+      iterdef.genLoopEnd(o);
     }
 
 #ifdef HAVE_OPENCL

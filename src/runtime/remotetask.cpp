@@ -76,9 +76,13 @@ void petabricks::RemoteTask::remoteScheduleTask() {
     }
   }
 
+  // JTRACE("force enqueueRemote");
   // RemoteHostPtr toHost = RemoteHostDB::instance().host(0);
   // enqueueRemote(*toHost);
-  // JTRACE("force enqueueRemote");
+  // return;
+
+  // JTRACE("force enqueueLocal");
+  // enqueueLocal();
   // return;
 
   if (toHostPid == HostPid::self()) {
