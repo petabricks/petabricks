@@ -146,8 +146,11 @@ protected:
   void addObject(const RemoteObjectPtr& obj);
 
 private:
-  jalib::JMutex _controlmu;
-  jalib::JMutex _datamu[REMOTEHOST_DATACHANS];
+  jalib::JMutex _controlReadmu;
+  jalib::JMutex _controlWritemu;
+  jalib::JMutex _objectsmu;
+  jalib::JMutex _dataReadmu[REMOTEHOST_DATACHANS];
+  jalib::JMutex _dataWritemu[REMOTEHOST_DATACHANS];
   jalib::JSocket _control;
   jalib::JSocket _data[REMOTEHOST_DATACHANS];
   HostPid _id;

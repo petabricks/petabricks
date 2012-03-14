@@ -242,7 +242,8 @@ void petabricks::RemoteHost::handshake(int port) {
 }
 
 void petabricks::RemoteHost::setupLoop(RemoteHostDB& db) {
-  JLOCKSCOPE(_controlmu);
+  JLOCKSCOPE(_controlReadmu);
+  JLOCKSCOPE(_controlWritemu);
 
   SetupMessage msg;
   SetupAckMessage ackmsg = { MessageTypes::SETUP_ACK };
@@ -271,8 +272,10 @@ void petabricks::RemoteHost::setupLoop(RemoteHostDB& db) {
 }
 
 void petabricks::RemoteHost::setupRemoteConnection(RemoteHost& a, RemoteHost& b) {
-  JLOCKSCOPE(a._controlmu);
-  JLOCKSCOPE(b._controlmu);
+  JLOCKSCOPE(a._controlReadmu);
+  JLOCKSCOPE(a._controlWritemu);
+  JLOCKSCOPE(b._controlReadmu);
+  JLOCKSCOPE(b._controlWritemu);
 
   SetupMessage amsg;
   amsg.type = MessageTypes::SETUP_CONNECT;
@@ -300,7 +303,8 @@ void petabricks::RemoteHost::setupRemoteConnection(RemoteHost& a, RemoteHost& b)
 }
 
 void petabricks::RemoteHost::setupEnd() {
-  JLOCKSCOPE(_controlmu);
+  JLOCKSCOPE(_controlReadmu);
+  JLOCKSCOPE(_controlWritemu);
 
   SetupMessage msg;
   memset(&msg, 0, sizeof msg);
@@ -317,7 +321,7 @@ void petabricks::RemoteHost::setupEnd() {
 bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
   GeneralMessage msg;
 
-  if(!_controlmu.trylock()) {
+  if(!_controlReadmu.trylock()) {
     //JTRACE("skipping recv, locked");
     return false;
   }
@@ -327,7 +331,7 @@ bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
    * recv it.  need to make sure that message isn't being processed in parallel.
    */
   if(caller!=0 && caller->pendingMessages()>0) {
-    _controlmu.unlock();
+    _controlReadmu.unlock();
     return false;
   }
 
@@ -336,7 +340,7 @@ bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
     // recv thread: has other useful work to do
     cnt = _control.tryReadAll((char*)&msg, sizeof msg);
     if(cnt==0) {
-      _controlmu.unlock();
+      _controlReadmu.unlock();
       return false;
     }
   } else {
@@ -346,7 +350,7 @@ bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
   }
 
   if(cnt<0) {
-    _controlmu.unlock();
+    _controlReadmu.unlock();
     JASSERT(false)(_id).Text("disconnected");
     return false;
   }
@@ -354,7 +358,7 @@ bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
 
   if(msg.len>0){
     JASSERT(msg.chan<REMOTEHOST_DATACHANS);
-    _datamu[msg.chan].lock();
+    _dataReadmu[msg.chan].lock();
   }
   RemoteObjectPtr obj = 0;
   void* buf = 0;
@@ -365,7 +369,7 @@ bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
     obj->_lastMsgGen = _currentGen;
   }
 
-  _controlmu.unlock();
+  _controlReadmu.unlock();
 
   if(obj){
     obj->lock();
@@ -391,7 +395,7 @@ bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
       if(msg.len>0){
         buf = obj->allocRecvInitial(msg.len);
         _data[msg.chan].readAll((char*)buf, msg.len);
-        _datamu[msg.chan].unlock();
+        _dataReadmu[msg.chan].unlock();
         obj->onRecvInitial(buf, msg.len);
         obj->freeRecvInitial(buf, msg.len);
       }
@@ -418,7 +422,7 @@ bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
       if(msg.len>0){
         buf = obj->allocRecv(msg.len, msg.arg);
         _data[msg.chan].readAll((char*)buf, msg.len);
-        _datamu[msg.chan].unlock();
+        _dataReadmu[msg.chan].unlock();
         obj->onRecv(buf, msg.len, msg.arg);
         obj->freeRecv(buf, msg.len, msg.arg);
       }else{
@@ -454,7 +458,8 @@ bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
     }
   case MessageTypes::SHUTDOWN_BEGIN:
     {
-      JLOCKSCOPE(_controlmu);
+      JLOCKSCOPE(_controlReadmu);
+      JLOCKSCOPE(_controlWritemu);
       { GeneralMessage ackmsg = { MessageTypes::SHUTDOWN_ACK, 0, 0, 0, 0, 0};
         _control.writeAll((const char*)&ackmsg, sizeof(GeneralMessage));
       }
@@ -493,7 +498,7 @@ bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
 
 void petabricks::RemoteHost::sendMsg(GeneralMessage* msg, const void* data, size_t len) {
   int chan;
-  _controlmu.lock();
+  _controlWritemu.lock();
   if(len>0){
     chan = msg->chan = pickChannel();
   }else{
@@ -507,12 +512,12 @@ void petabricks::RemoteHost::sendMsg(GeneralMessage* msg, const void* data, size
   }
 
   if(len>0){
-    _datamu[chan].lock();
-    _controlmu.unlock();
+    _dataWritemu[chan].lock();
+    _controlWritemu.unlock();
     _data[chan].writeAll((const char*)data, len);
-    _datamu[chan].unlock();
+    _dataWritemu[chan].unlock();
   }else{
-    _controlmu.unlock();
+    _controlWritemu.unlock();
   }
 }
 
@@ -599,12 +604,13 @@ void petabricks::RemoteHost::shutdownEnd() {
                          0,
                          0,
                          0 };
-  _controlmu.lock();
+  _controlReadmu.lock();
+  _controlWritemu.lock();
   _control.writeAll((char*)&msg, sizeof msg);
 }
 
 void petabricks::RemoteHost::swapObjects(RemoteObjectList& obj, int& gen) {
-  JLOCKSCOPE(_controlmu);
+  JLOCKSCOPE(_objectsmu);
   ++_currentGen;
   gen = _currentGen;
   _objects.swap(obj);
@@ -615,7 +621,7 @@ void petabricks::RemoteHost::swapObjects(RemoteObjectList& obj, int& gen) {
 void petabricks::RemoteHost::readdObjects(RemoteObjectList& obj) {
   if(obj.empty()) return;
   {
-    JLOCKSCOPE(_controlmu);
+    JLOCKSCOPE(_objectsmu);
     if(_objects.empty()) {
       _objects.swap(obj);
     }else{
@@ -636,15 +642,15 @@ void petabricks::RemoteHost::spawnGcTask() {
 }
 
 void petabricks::RemoteHost::addObject(const RemoteObjectPtr& obj) {
-  _controlmu.lock();
+  _objectsmu.lock();
   _objects.push_back(obj);
 
   if(_shouldGc && _objects.size()-_gcLastLiveObjCount > DISTRIBUTED_GC_FREQ){
     _gcLastLiveObjCount = _objects.size();
-    _controlmu.unlock();
+    _objectsmu.unlock();
     spawnGcTask();
   }else{
-    _controlmu.unlock();
+    _objectsmu.unlock();
   }
 }
 
