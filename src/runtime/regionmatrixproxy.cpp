@@ -79,7 +79,7 @@ void RegionMatrixProxy::sendReply(const void* msg, size_t len, const BaseMessage
   memcpy(data, base, base->contentOffset);
   memcpy(((BaseMessageHeader*)data)->content(), msg, len);
 
-  _remoteObject->send(data, dataLen, replyType);
+  _remoteObject->sendMu(data, dataLen, replyType);
   free(data);
 }
 
