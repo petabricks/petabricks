@@ -252,6 +252,11 @@ tunable NumBins
                           trainIndices);
             BinnedLREstimate(result, alpha, testData, testX, testDir,
                              testIndices);
+
+            #ifdef PRINT
+            printf("Regression coefficients:\n");
+            printMatrix(alpha);
+            #endif
         }
     }
 }
