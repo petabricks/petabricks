@@ -1,4 +1,4 @@
-PBC=../../src/pbc
+PBC=../../src/pbc -jobs 4
 
 .PHONY: all clean test testVA testMetric testMetricVA testBinnedLR
 
@@ -23,7 +23,8 @@ BinnedLR: BinnedLR.pbcc
 	${PBC} $< --output $@
 
 test: nwkde
-	./nwkde test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/kernelWidths.pba test/split.pba test/maskWidth.pba -
+	./nwkde test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/kernelWidths.pba test/split.pba test/maskWidth.pba nwkde.test.last
+	diff nwkde.test.out nwkde.test.out.last
 
 testVA: nwkdeVA
 	./nwkdeVA test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/split.pba test/maskWidth.pba -
