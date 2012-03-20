@@ -1228,6 +1228,8 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
           MatrixDefPtr matrix = i->second;
           if (matrix->type() == MatrixDef::T_TO) {
             o.write("remote_TO_" + matrix->name() + ".fromScratchRegion(local_TO_" + matrix->name() + ");");
+            //o.write("JTRACE(\"" + i->first + "\");");
+            //o.write("MatrixIOGeneral().write(" + i->first + ");");
           }
         }
 

@@ -328,10 +328,14 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   invalidateCache.endFunc();
   getDataHosts.endFunc();
 
-  hos() << _curClass << "(const char*, RemoteHost&);\n";
-  os() << _curClass << "::" << _curClass << "(const char* _buf, RemoteHost& _host){\n";
+  hos() << _curClass << "(const char*, RemoteHost&, bool=true);\n";
+  os() << _curClass << "::" << _curClass << "(const char* _buf, RemoteHost& _host, bool shouldInit){\n";
+  incIndent();
   write("unserialize(_buf, _host);");
+  beginIf("shouldInit");
   write(_curConstructorBody);
+  endIf();
+  decIndent();
   os() << "\n}\n";
 
   beginFunc(_curClass+"*", "_new_constructor", std::vector<std::string>(1,"const char* _buf, RemoteHost& _host"), true);

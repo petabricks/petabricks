@@ -129,7 +129,7 @@ public:
   }
   void unserialize(const char* buf, RemoteHost& host) {
     JASSERT(!_obj);
-    _obj = new T(buf, host);
+    _obj = new T(buf, host, false);
     buf += _obj->serialSize();
     memcpy(_begin, buf, sizeof _begin);
     buf += (sizeof _begin);
