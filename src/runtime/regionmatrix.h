@@ -1171,10 +1171,10 @@ namespace petabricks {
       return MatrixRegion<D, ElementT>(regionData->value0D(_sourceInfo->sourceIndex()));
     }
 
-    void localCopy(RegionMatrix<D, ElementT>& scratch) const {
+    void localCopy(RegionMatrix<D, ElementT>& scratch, bool=false) const {
       scratch.cell() = this->cell();
     }
-    RegionMatrixWrapper<D, ElementT> localCopy() const {
+    RegionMatrixWrapper<D, ElementT> localCopy(bool=false) const {
       if (isLocal()) {
         return *this;
       }
@@ -1248,10 +1248,10 @@ namespace petabricks {
       return MatrixRegion<D, ElementT>((ElementT)cell());
     }
 
-    void localCopy(RegionMatrix<D, ElementT>& scratch) const {
+    void localCopy(RegionMatrix<D, ElementT>& scratch, bool=false) const {
       scratch.cell() = this->cell();
     }
-    RegionMatrixWrapper<D, ElementT> localCopy() const {
+    RegionMatrixWrapper<D, ElementT> localCopy(bool=false) const {
       return *this;
     }
     void fromScratchRegion(const MatrixRegion<D, ElementT>& /*scratch*/) const {
