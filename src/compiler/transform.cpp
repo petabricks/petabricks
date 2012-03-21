@@ -536,10 +536,10 @@ void petabricks::Transform::generateCrossCall(CodeGenerator& o, RuleFlavor fromf
     o.elseIf();
 
     for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-      o.write((*i)->typeName(RuleFlavor::DISTRIBUTED) + " scratch_" + (*i)->name() + " = " + (*i)->name() + ".localCopy();");
+      o.write((*i)->typeName(RuleFlavor::DISTRIBUTED) + " scratch_" + (*i)->name() + " = " + (*i)->name() + ".localCopy(false);");
     }
     for(MatrixDefList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-      o.write((*i)->typeName(RuleFlavor::DISTRIBUTED, true) + " scratch_" + (*i)->name() + " = " + (*i)->name() + ".localCopy();");
+      o.write((*i)->typeName(RuleFlavor::DISTRIBUTED, true) + " scratch_" + (*i)->name() + " = " + (*i)->name() + ".localCopy(true);");
     }
 
     argNames = normalArgNames();

@@ -2204,10 +2204,15 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
     o.write("remote_" + matrix->name() + " = " + i->first + ".region(_tmp_begin, _tmp_end);");
     o.decIndent();
     o.write("}");
-    // o.write(matrix->typeName(flavor) + " " + matrix->name() + " = remote_" + matrix->name() + ".localCopy();");
+
     o.write(matrix->typeName(flavor) + " " + matrix->name() + scratchSuffix + "(remote_" + matrix->name() + ".size());");
     o.write(matrix->name() + scratchSuffix + ".allocDataLocal();");
-    o.write("remote_" + matrix->name() + ".localCopy(" + matrix->name() + scratchSuffix + ");");
+    if (matrix->type() == MatrixDef::T_FROM) {
+      o.write("remote_" + matrix->name() + ".localCopy(" + matrix->name() + scratchSuffix + ", true);");
+
+    } else {
+      o.write("remote_" + matrix->name() + ".localCopy(" + matrix->name() + scratchSuffix + ", false);");
+    }
 
     if (shouldGenerateWorkStealingRegion) {
       // generate workstealing region

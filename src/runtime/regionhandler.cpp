@@ -11,6 +11,7 @@ using namespace petabricks::RegionDataRemoteMessage;
 
 RegionHandler::RegionHandler(const int dimensions) {
   _D = dimensions;
+  init();
 }
 
 RegionHandler::RegionHandler(const int dimensions, const IndexT* size, const bool alloc = false) {
@@ -19,11 +20,16 @@ RegionHandler::RegionHandler(const int dimensions, const IndexT* size, const boo
   if (alloc) {
     _regionData->allocData();
   }
+  init();
 }
 
 RegionHandler::RegionHandler(const RegionDataIPtr regionData) {
   _regionData = regionData;
   _D = _regionData->dimensions();
+  init();
+}
+
+void RegionHandler::init() {
 }
 
 ElementT RegionHandler::readCell(const IndexT* coord) {
@@ -365,6 +371,24 @@ void RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origM
   if (newRegionData) {
     updateRegionData(newRegionData);
   }
+}
+
+RegionHandlerPtr RegionHandler::copyToScratchMatrixStorageCache(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize, RegionHandlerPtr scratchHandler) {
+  jalib::Hash hash = RegionHandlerCacheItem::hash((char*)origMsg, len);
+
+  RegionHandlerCacheMap::iterator it = _cache.find(hash);
+  if (it != _cache.end()) {
+    // found in cache
+    if (it->second->isEqual((char*)origMsg, len)) {
+      return it->second->handler();
+    }
+  }
+
+  copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
+
+  // store in cache
+  _cache[hash] = new RegionHandlerCacheItem((char*)origMsg, len, scratchHandler);
+  return NULL;
 }
 
 void RegionHandler::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
