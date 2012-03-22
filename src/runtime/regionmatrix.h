@@ -685,6 +685,7 @@ namespace petabricks {
       RegionMatrixMetadata* scratchMetadata = (RegionMatrixMetadata*)scratchMetadataBuf;
       scratch.computeRegionMatrixMetadata(*scratchMetadata);
 
+      // cacheable = false;
       if (cacheable) {
         RegionHandlerPtr newHandler = _regionHandler->copyToScratchMatrixStorageCache(msg, len, scratch.regionData()->storage(), scratchMetadata, scratch.regionData()->size(), scratch.regionHandler());
         if (newHandler) {

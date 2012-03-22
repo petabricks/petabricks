@@ -215,13 +215,15 @@ int RegionHandler::allocDataNByBlock(const IndexT* size, int distributionSize) {
   // create parts
   RegionDataSplit* regionDataSplit = (RegionDataSplit*)_regionData.asPtr();
   int numParts = regionDataSplit->numParts();
+  int r = 0;
   for (int i = 0; i < numParts; ++i) {
-    int r = PetabricksRuntime::randInt(0, numHosts);
     if (r == numRemoteHosts) {
       // local
       regionDataSplit->createPart(i, NULL);
+      r = 0;
     } else {
       regionDataSplit->createPart(i, RemoteHostDB::instance().host(r));
+      ++r;
     }
   }
 
