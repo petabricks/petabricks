@@ -660,6 +660,7 @@ namespace petabricks {
     // Copy the entire matrix and store it locally. Writes to this copy
     // **might or might not** be seen by the original.
     void localCopy(RegionMatrix& scratch, bool cacheable=false) const {
+      JTRACE("localcopy");
       #ifdef DEBUG
       JASSERT(scratch.isRegionDataRaw());
       // Copy to the entire region
@@ -845,10 +846,12 @@ namespace petabricks {
     }
 
     void hash(jalib::HashGenerator& gen) {
+      RegionMatrix tmp = this->localCopy();
+
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
       do {
-        float v = this->readCell(coord);
+        float v = tmp.readCell(coord);
         gen.update(&v, sizeof(v));
       } while (this->incCoord(coord) >= 0);
     }

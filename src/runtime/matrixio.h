@@ -241,6 +241,8 @@ inline void petabricks::MatrixIOGeneral::write(MatrixRegion<D,T> m){
 /// Write a given regionmatrix to _fd
 template<int D, typename T>
 inline void petabricks::MatrixIOGeneral::write(RegionMatrixWrapper<D,T> m){
+  m = m.localCopy();
+
   if(_fd==0)     return;
   if(_fd==stdin) _fd=stdout;
   fprintf(_fd,"SIZE");

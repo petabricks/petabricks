@@ -622,22 +622,18 @@ void petabricks::UserRule::generateMetadataCode(Transform& trans, CodeGenerator&
   if (rf == RuleFlavor::DISTRIBUTED) {
     for(MatrixToRegionMap::const_iterator i=_fromBoundingBoxNoOptional.begin(); i!=_fromBoundingBoxNoOptional.end(); ++i) {
       MatrixDefPtr matrix = i->first;
-      if( matrix->numDimensions() != 0 ) {
-        MatrixDefPtr scratch = new MatrixDef(("scratch_"+matrix->name()).c_str(), matrix->getVersion(), matrix->getSize());
-        // Don't initialize (don't need to modify version)
-        scratch->addType(MatrixDef::T_FROM);
-        _scratch[matrix->name()] = scratch;
-      }
+      MatrixDefPtr scratch = new MatrixDef(("scratch_"+matrix->name()).c_str(), matrix->getVersion(), matrix->getSize());
+      // Don't initialize (don't need to modify version)
+      scratch->addType(MatrixDef::T_FROM);
+      _scratch[matrix->name()] = scratch;
     }
 
     for(MatrixToRegionMap::const_iterator i=_toBoundingBox.begin(); i!=_toBoundingBox.end(); ++i) {
       MatrixDefPtr matrix = i->first;
-      if( matrix->numDimensions() != 0 ) {
-        MatrixDefPtr scratch = new MatrixDef(("scratch_"+matrix->name()).c_str(), matrix->getVersion(), matrix->getSize());
-        // Don't initialize (don't need to modify version)
-        scratch->addType(MatrixDef::T_TO);
-        _scratch[matrix->name()] = scratch;
-      }
+      MatrixDefPtr scratch = new MatrixDef(("scratch_"+matrix->name()).c_str(), matrix->getVersion(), matrix->getSize());
+      // Don't initialize (don't need to modify version)
+      scratch->addType(MatrixDef::T_TO);
+      _scratch[matrix->name()] = scratch;
     }
   }
 
@@ -2110,7 +2106,6 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     if ((flavor == RuleFlavor::DISTRIBUTED_SCRATCH
          || flavor == RuleFlavor::WORKSTEALING_SCRATCH)
-        && (*i)->matrix()->numDimensions() != 0
         && (!(*i)->isOptional())) {
       Region region = *i;
       std::string name = (*i)->matrix()->name();
@@ -2130,7 +2125,6 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
     if ((flavor == RuleFlavor::DISTRIBUTED_SCRATCH
          || flavor == RuleFlavor::WORKSTEALING_SCRATCH)
-        && (*i)->matrix()->numDimensions() != 0
         && (!(*i)->isOptional())) {
       Region region = *i;
       std::string name = (*i)->matrix()->name();
@@ -2189,6 +2183,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
 
   for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
     MatrixDefPtr matrix = i->second;
+
     SimpleRegionPtr region = _scratchBoundingBox[trans.lookupMatrix(i->first)];
 
     CoordinateFormulaPtr lowerBounds = region->getIterationLowerBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
@@ -2207,6 +2202,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
 
     o.write(matrix->typeName(flavor) + " " + matrix->name() + scratchSuffix + "(remote_" + matrix->name() + ".size());");
     o.write(matrix->name() + scratchSuffix + ".allocDataLocal();");
+
     if (matrix->type() == MatrixDef::T_FROM) {
       o.write("remote_" + matrix->name() + ".localCopy(" + matrix->name() + scratchSuffix + ", true);");
 
