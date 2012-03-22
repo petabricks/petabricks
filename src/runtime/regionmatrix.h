@@ -846,7 +846,12 @@ namespace petabricks {
     }
 
     void hash(jalib::HashGenerator& gen) {
-      RegionMatrix tmp = this->localCopy();
+      RegionMatrix tmp;
+      if (D > 0) {
+        tmp = this->localCopy();
+      } else {
+        tmp = *this;
+      }
 
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
