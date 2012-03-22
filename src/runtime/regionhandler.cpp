@@ -378,18 +378,26 @@ void RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origM
 RegionHandlerPtr RegionHandler::copyToScratchMatrixStorageCache(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize, RegionHandlerPtr scratchHandler) {
   jalib::Hash hash = RegionHandlerCacheItem::hash((char*)origMsg, len);
 
+  _cacheMux.lock();
   RegionHandlerCacheMap::iterator it = _cache.find(hash);
   if (it != _cache.end()) {
     // found in cache
-    if (it->second->isEqual((char*)origMsg, len)) {
-      return it->second->handler();
+    RegionHandlerCacheItemPtr t = it->second;
+    _cacheMux.unlock();
+
+    if (t->isEqual((char*)origMsg, len)) {
+      return t->handler();
     }
+  } else {
+    _cacheMux.unlock();
   }
 
   copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
 
   // store in cache
+  _cacheMux.lock();
   _cache[hash] = new RegionHandlerCacheItem((char*)origMsg, len, scratchHandler);
+  _cacheMux.unlock();
   return NULL;
 }
 

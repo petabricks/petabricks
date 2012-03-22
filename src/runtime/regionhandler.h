@@ -66,6 +66,7 @@ namespace petabricks {
     /* std::vector<RegionHandlerPtr> _cacheHandlers; */
     typedef std::map<jalib::Hash, RegionHandlerCacheItemPtr> RegionHandlerCacheMap;
     RegionHandlerCacheMap _cache;
+    jalib::JMutex _cacheMux;
 
   public:
     RegionHandler(const int dimensions);
