@@ -1166,13 +1166,25 @@ namespace petabricks {
     // toLocalRegion
     bool isLocal() const {
       return (Base::_regionHandler->type() == RegionDataTypes::REGIONDATARAW)
-        || (Base::_regionHandler->type() == RegionDataTypes::REGIONDATA0D);
+        || (Base::_regionHandler->type() == RegionDataTypes::REGIONDATA0D)
+        || (Base::_regionHandler->type() == RegionDataTypes::CONSTREGIONDATA0D);
     }
     MatrixRegion<D, ElementT> _toLocalRegion() const {
       RegionDataIPtr regionData = Base::_regionHandler->regionData();
-      JASSERT(regionData->type() == RegionDataTypes::REGIONDATARAW
-              || regionData->type() == RegionDataTypes::REGIONDATA0D).Text("Cannot cast to MatrixRegion.");
-      return MatrixRegion<D, ElementT>(regionData->value0D(_sourceInfo->sourceIndex()));
+
+      if (regionData->type() == RegionDataTypes::REGIONDATARAW
+          || regionData->type() == RegionDataTypes::REGIONDATA0D) {
+        return MatrixRegion<D, ElementT>(regionData->value0D(_sourceInfo->sourceIndex()));
+
+      } else if (regionData->type() == RegionDataTypes::CONSTREGIONDATA0D) {
+        MatrixRegion<D, ElementT> copy = MatrixRegion<D, ElementT>::allocate();
+        copy.cell() = this->cell();
+        return copy;
+
+      } else {
+        JASSERT(false)(regionData->type()).Text("Cannot cast to MatrixRegion.");
+        return MatrixRegion<D, ElementT>();
+      }
     }
 
     void localCopy(RegionMatrix<D, ElementT>& scratch, bool=false) const {

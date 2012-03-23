@@ -156,7 +156,6 @@ namespace petabricks {
       caller->sendReply(buf, sz, base);
     }
 
-
     void print() {
       printf("%e\n", this->readCell(NULL));
     }
