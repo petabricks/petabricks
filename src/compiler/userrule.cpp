@@ -646,7 +646,8 @@ void petabricks::UserRule::generateMetadataCode(Transform& trans, CodeGenerator&
   for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
     JASSERT((rf == RuleFlavor::DISTRIBUTED));
     MatrixDefPtr matrix = i->second;
-    o.addMember(matrix->typeName(rf), matrix->name());
+    bool isConst = (matrix->type() == MatrixDef::T_FROM);
+    o.addMember(matrix->typeName(rf, isConst), matrix->name());
 
     if (matrix->type() == MatrixDef::T_TO) {
       o.addMember(matrix->typeName(rf), "remote_TO_" + matrix->name());
@@ -1321,7 +1322,8 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     if (flavor == RuleFlavor::DISTRIBUTED) {
       for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
         MatrixDefPtr matrix = i->second;
-        o.write(matrix->typeName(flavor)+"& "+matrix->name()+" = metadata->"+matrix->name()+";");
+        bool isConst = (matrix->type() == MatrixDef::T_FROM);
+        o.write(matrix->typeName(flavor, isConst)+"& "+matrix->name()+" = metadata->"+matrix->name()+";");
       }
 
       generateTrampCellCodeSimple(trans, o, RuleFlavor::DISTRIBUTED_SCRATCH);
@@ -2183,6 +2185,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
 
   for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
     MatrixDefPtr matrix = i->second;
+    bool isConst = (matrix->type() == MatrixDef::T_FROM);
 
     SimpleRegionPtr region = _scratchBoundingBox[trans.lookupMatrix(i->first)];
 
@@ -2191,7 +2194,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
 
     _scratchRegionLowerBounds[i->first] = lowerBounds;
 
-    o.write(matrix->typeName(flavor) + " remote_" + matrix->name() + ";");
+    o.write(matrix->typeName(flavor, isConst) + " remote_" + matrix->name() + ";");
     o.write("{");
     o.incIndent();
     o.write("IndexT _tmp_begin[] = {" + lowerBounds->toString() + "};");
@@ -2200,7 +2203,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
     o.decIndent();
     o.write("}");
 
-    o.write(matrix->typeName(flavor) + " " + matrix->name() + scratchSuffix + "(remote_" + matrix->name() + ".size());");
+    o.write(matrix->typeName(flavor, isConst) + " " + matrix->name() + scratchSuffix + "(remote_" + matrix->name() + ".size());");
     o.write(matrix->name() + scratchSuffix + ".allocDataLocal();");
 
     if (matrix->type() == MatrixDef::T_FROM) {
@@ -2212,7 +2215,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
 
     if (shouldGenerateWorkStealingRegion) {
       // generate workstealing region
-      o.write(matrix->typeName(RuleFlavor::WORKSTEALING) + " " + matrix->name() + " = CONVERT_TO_LOCAL(" + matrix->name() + scratchSuffix + ");");
+      o.write(matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + " " + matrix->name() + " = CONVERT_TO_LOCAL(" + matrix->name() + scratchSuffix + ");");
     }
 
     args.push_back(matrix->name());
