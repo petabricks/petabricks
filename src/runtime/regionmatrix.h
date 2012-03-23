@@ -660,7 +660,6 @@ namespace petabricks {
     // Copy the entire matrix and store it locally. Writes to this copy
     // **might or might not** be seen by the original.
     void localCopy(RegionMatrix& scratch, bool cacheable=false) const {
-      JTRACE("localcopy");
       #ifdef DEBUG
       JASSERT(scratch.isRegionDataRaw());
       // Copy to the entire region
@@ -1152,10 +1151,6 @@ namespace petabricks {
       this->cell() = val.readCell(NULL);
       return *this;
     }
-    RegionMatrixWrapper operator=(const RegionMatrixWrapper& val) {
-      this->cell() = val.cell();
-      return *this;
-    }
 
     CellProxy cell(IndexT coord[D]) const {
       return cell();
@@ -1194,6 +1189,10 @@ namespace petabricks {
     }
     void fromScratchRegion(const RegionMatrix<D, ElementT>& scratch) const {
       this->cell() = scratch.cell();
+    }
+
+    RegionMatrixWrapper<D, ElementT> region(const IndexT[D], const IndexT[D]) const{
+      return *this;
     }
   };
 
@@ -1268,6 +1267,10 @@ namespace petabricks {
     }
     void fromScratchRegion(const RegionMatrix<D, ElementT>& /*scratch*/) const {
       JASSERT(false);
+    }
+
+    RegionMatrixWrapper<D, ElementT> region(const IndexT[D], const IndexT[D]) const{
+      return *this;
     }
   };
 
