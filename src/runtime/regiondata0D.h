@@ -11,25 +11,20 @@ namespace petabricks {
 
   private:
     ElementT* _value;
-    bool _shouldDeleteValue;
+    MatrixStoragePtr _storage;
 
   public:
     RegionData0D() {
       _D = 0;
       _type = RegionDataTypes::REGIONDATA0D;
-      _value = (ElementT*)malloc(sizeof(ElementT));
-      _shouldDeleteValue = false;
+      _storage = new MatrixStorage(1);
+      _value = _storage->data();
     }
 
     RegionData0D(ElementT& value) {
       _D = 0;
       _type = RegionDataTypes::REGIONDATA0D;
       _value = &value;
-      _shouldDeleteValue = false;
-    }
-
-    ~RegionData0D() {
-      if (_shouldDeleteValue) delete _value;
     }
 
     long refCount() const { return jalib::JRefCounted::refCount(); }
