@@ -46,5 +46,5 @@ testBinnedLR: BinnedLR
 	diff btest/output2.pba btest/output2.pba.last
 
 testEstimate: Estimate
-	./Estimate btest2/data.pba btest2/x.pba btest2/dir.pba btest2/y.pba btest2/indices.pba btest2/dirFlags.pba btest2/split.pba btest2/maskWidth.pba btest2/output.pba.last
-	diff btest2/output.pba btest2/output.pba.last
+	./Estimate etest/data.pba etest/x.pba etest/dir.pba etest/y.pba etest/indices.pba etest/dirFlags.pba etest/split.pba etest/maskWidth.pba etest/output.pba.last
+	diff etest/output.pba etest/output.pba.last
