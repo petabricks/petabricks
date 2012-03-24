@@ -8,7 +8,6 @@
 
 %{
 
-#ifdef PRINT
 template < typename T >
 void printMatrix(const T& matrix)
 {
@@ -23,7 +22,6 @@ void printMatrix(const T& matrix)
   }
   printf("\n");
 }
-#endif
 
 template < typename T >
 inline ElementT *toArray(const T&matrix) {

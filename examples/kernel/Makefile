@@ -1,6 +1,6 @@
 PBC=../../src/pbc -jobs 4
 
-.PHONY: all clean test testVA testMetric testMetricVA testBinnedLR
+.PHONY: all clean test testVA testMetric testMetricVA testBinnedLR testEstimate
 
 all: nwkde nwkdeVA nwkdeMetric BinnedLR
 
@@ -23,8 +23,8 @@ BinnedLR: BinnedLR.pbcc
 	${PBC} $< --output $@
 
 test: nwkde
-	./nwkde test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/kernelWidths.pba test/split.pba test/maskWidth.pba nwkde.test.last
-	diff nwkde.test.out nwkde.test.out.last
+	./nwkde test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/kernelWidths.pba test/split.pba test/maskWidth.pba test/output.pba.last
+	diff test/output.pba test/output.pba.last
 
 testVA: nwkdeVA
 	./nwkdeVA test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/split.pba test/maskWidth.pba -
@@ -40,5 +40,11 @@ testMetricVA: nwkdeMetric nwkdeVA
 	rm testMetricVA.out.pba
 
 testBinnedLR: BinnedLR
-	./BinnedLR btest/trainData.pba btest/x.pba btest/dir.pba btest/y.pba btest/indices.pba btest/testData.pba btest/x.pba btest/dir.pba btest/indices.pba ../../testdata/Zero0D ../../testdata/Zero0D btest/output.pba
-	./BinnedLR btest/trainData.pba btest/x.pba btest/dir.pba btest/y.pba btest/indices.pba btest/testData.pba btest/x.pba btest/dir.pba btest/indices.pba ../../testdata/Ten0D ../../testdata/Twelve0D btest/output2.pba
+	./BinnedLR btest/trainData.pba btest/x.pba btest/dir.pba btest/y.pba btest/indices.pba btest/testData.pba btest/x.pba btest/dir.pba btest/indices.pba ../../testdata/Zero0D ../../testdata/Zero0D btest/output.pba.last
+	./BinnedLR btest/trainData.pba btest/x.pba btest/dir.pba btest/y.pba btest/indices.pba btest/testData.pba btest/x.pba btest/dir.pba btest/indices.pba ../../testdata/Ten0D ../../testdata/Twelve0D btest/output2.pba.last
+	diff btest/output.pba btest/output.pba.last
+	diff btest/output2.pba btest/output2.pba.last
+
+testEstimate: Estimate
+	./Estimate btest2/data.pba btest2/x.pba btest2/dir.pba btest2/y.pba btest2/indices.pba btest2/dirFlags.pba btest2/split.pba btest2/maskWidth.pba btest2/output.pba.last
+	diff btest2/output.pba btest2/output.pba.last

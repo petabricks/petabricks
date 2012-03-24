@@ -1,6 +1,7 @@
 #ifndef BINNEDLR_PBCC
 #define BINNEDLR_PBCC
 
+#include "../simple/init.pbcc"
 #include "../simple/copy.pbcc"
 #include "../linearsolve/LeastSquares.pbcc"
 #include "utils.pbcc"
@@ -16,6 +17,8 @@ to ALPHA[numBins, p+1]
         IndexT i, j, k, index, bin, *binIndex;
         ElementT binWidth;
         MatrixRegion2D *binnedX, *binnedY;
+
+        Init2D(alpha, nan(""));
 
         // initialize binIndex array
         binIndex = new IndexT[numBins];
@@ -240,7 +243,7 @@ tunable NumBins
     {
         // make sure numBins is an integer between 1 and 360
         IndexT numBins = floor(NumBins);
-        if (numBins < 1  ) { numBins = 1;   }
+        if (numBins < 1  ) { numBins = 12;  }
         if (numBins > 360) { numBins = 360; }
 
         if (split != 0) {

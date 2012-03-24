@@ -73,11 +73,11 @@ to METRIC
 // Assumes X includes all predictor variables, including the one specified in
 // DIR.
 transform TrainAndEstimate
-from DATA[m,n], X[2,p], DIR[2], Y[2], INDICES[l],
+from DATA[m,n], X[2,p], DIR[2], Y[2], INDICES[q],
      DIRFLAGS[m], SPLIT, MASKWIDTH
 to RESULT[1,q]
-accuracy_metric TrainAndEstimateMetric
-accuracy_bins ACC_BINS
+//accuracy_metric TrainAndEstimateMetric
+//accuracy_bins ACC_BINS
 {
     // use Binned Linear Regression
     to (RESULT result)
@@ -102,15 +102,17 @@ accuracy_bins ACC_BINS
                  data, tempX2, dir, indices, split, maskWidth);
     }
 
+#if 0
     // use Nadaraya-Watson Kernel Regression
     to (RESULT result)
     from (DATA data, X x, Y y, INDICES indices, DIRFLAGS dirFlags,
           SPLIT split, MASKWIDTH maskWidth)
     {
-        // TODO: how to let auto-tuner decide what template version to call?
-        NWKDEVA<0>(result.col(0), data, x, y, indices, data, x, indices,
-                   dirFlags, split, maskWidth);
+        // TODO: call VA tunable version
+        NWKDE(result.col(0), data, x, y, indices, data, x, indices, dirFlags,
+              split, maskWidth);
     }
+#endif
 }
 
 #endif // ESTIMATE_PBCC
