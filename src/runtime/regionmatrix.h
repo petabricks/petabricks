@@ -1152,6 +1152,11 @@ namespace petabricks {
       return *this;
     }
 
+    RegionMatrixWrapper operator=(const RegionMatrixWrapper& that) {
+      init(that.sourceInfo(), that.regionHandler());
+      return *this;
+    }
+
     CellProxy cell(IndexT coord[D]) const {
       return cell();
     }
@@ -1206,6 +1211,16 @@ namespace petabricks {
     RegionMatrixWrapper<D, ElementT> region(const IndexT[D], const IndexT[D]) const{
       return *this;
     }
+
+    static RegionMatrixWrapper allocate(const IndexT[D]) {
+      return RegionMatrixWrapper();
+    }
+    static RegionMatrixWrapper allocate(const IndexT[D], int, int, int) {
+      return RegionMatrixWrapper();
+    }
+    static RegionMatrixWrapper allocate() {
+      return RegionMatrixWrapper();
+    }
   };
 
   // Specialized for ConstMatrixRegion0D.
@@ -1217,7 +1232,12 @@ namespace petabricks {
     typedef RegionMatrix<D, ElementT> Base;
 
     INLINE void initWithValue(ElementT value) {
-      this->setRegionHandler(new RegionHandler(new ConstRegionData0D(value)));
+      RegionDataIPtr regionData = new RegionData0D();
+      regionData->writeCell(NULL, value);
+      this->setRegionHandler(new RegionHandler(regionData));
+
+      // TODO: ConstRegionData0D has a problem with forceMutable
+      // this->setRegionHandler(new RegionHandler(new ConstRegionData0D(value)));
     }
 
     RegionMatrixWrapper() : Base() {
@@ -1284,6 +1304,17 @@ namespace petabricks {
     RegionMatrixWrapper<D, ElementT> region(const IndexT[D], const IndexT[D]) const{
       return *this;
     }
+
+    static RegionMatrixWrapper allocate(const IndexT[D]) {
+      return RegionMatrixWrapper();
+    }
+    static RegionMatrixWrapper allocate(const IndexT[D], int, int, int) {
+      return RegionMatrixWrapper();
+    }
+    static RegionMatrixWrapper allocate() {
+      return RegionMatrixWrapper();
+    }
+
   };
 
   namespace distributed {
