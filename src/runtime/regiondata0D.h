@@ -99,7 +99,7 @@ namespace petabricks {
       _type = RegionDataTypes::CONSTREGIONDATA0D;
     }
 
-    ConstRegionData0D(ElementT value) {
+    ConstRegionData0D(const ElementT value) {
       _D = 0;
       _type = RegionDataTypes::CONSTREGIONDATA0D;
       _value = value;

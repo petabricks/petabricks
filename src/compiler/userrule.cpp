@@ -649,7 +649,7 @@ void petabricks::UserRule::generateMetadataCode(Transform& trans, CodeGenerator&
     bool isConst = (matrix->type() == MatrixDef::T_FROM);
     o.addMember(matrix->typeName(rf, isConst), matrix->name());
 
-    if (matrix->type() == MatrixDef::T_TO) {
+    if (matrix->type() == MatrixDef::T_TO && matrix->numDimensions() > 0) {
       o.addMember(matrix->typeName(rf), "remote_TO_" + matrix->name());
       o.addMember(matrix->typeName(rf), "local_TO_" + matrix->name());
     }
@@ -1224,9 +1224,13 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
           MatrixDefPtr matrix = i->second;
           if (matrix->type() == MatrixDef::T_TO) {
-            o.write("remote_TO_" + matrix->name() + ".fromScratchRegion(local_TO_" + matrix->name() + ");");
-            //o.write("JTRACE(\"" + i->first + "\");");
-            //o.write("MatrixIOGeneral().write(" + i->first + ");");
+            if (matrix->numDimensions() > 0) {
+              o.write("remote_TO_" + matrix->name() + ".fromScratchRegion(local_TO_" + matrix->name() + ");");
+              //o.write("JTRACE(\"" + i->first + "\");");
+              //o.write("MatrixIOGeneral().write(" + i->first + ");");
+            } else {
+              o.write(i->first + ".writeCell(NULL, " + matrix->name() + ".cell());");
+            }
           }
         }
 
@@ -1389,10 +1393,14 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
         MatrixDefPtr matrix = i->second;
         if (matrix->type() == MatrixDef::T_TO) {
-          o.write("metadata->remote_TO_" + matrix->name() + ".fromScratchRegion(metadata->local_TO_" + matrix->name() + ");");
-          // Debug
-          // o.write("MatrixIOGeneral().write(metadata->remote_TO_" + matrix->name()+ ");");
-          // o.write("MatrixIOGeneral().write(metadata->local_TO_" + matrix->name()+ ");");
+          if (matrix->numDimensions() > 0) {
+            o.write("metadata->remote_TO_" + matrix->name() + ".fromScratchRegion(metadata->local_TO_" + matrix->name() + ");");
+            // Debug
+            // o.write("MatrixIOGeneral().write(metadata->remote_TO_" + matrix->name()+ ");");
+            // o.write("MatrixIOGeneral().write(metadata->local_TO_" + matrix->name()+ ");");
+          } else {
+            o.write(i->first + ".writeCell(NULL, metadata->" + matrix->name() + ".cell());");
+          }
         }
       }
 
@@ -2194,28 +2202,47 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
 
     _scratchRegionLowerBounds[i->first] = lowerBounds;
 
-    o.write(matrix->typeName(flavor, isConst) + " remote_" + matrix->name() + ";");
-    o.write("{");
-    o.incIndent();
-    o.write("IndexT _tmp_begin[] = {" + lowerBounds->toString() + "};");
-    o.write("IndexT _tmp_end[] = {" + upperBounds->toString() + "};");
-    o.write("remote_" + matrix->name() + " = " + i->first + ".region(_tmp_begin, _tmp_end);");
-    o.decIndent();
-    o.write("}");
+    if (matrix->numDimensions() > 0) {
+      o.write(matrix->typeName(flavor, isConst) + " remote_" + matrix->name() + ";");
+      o.write("{");
+      o.incIndent();
+      o.write("IndexT _tmp_begin[] = {" + lowerBounds->toString() + "};");
+      o.write("IndexT _tmp_end[] = {" + upperBounds->toString() + "};");
+      o.write("remote_" + matrix->name() + " = " + i->first + ".region(_tmp_begin, _tmp_end);");
+      o.decIndent();
+      o.write("}");
 
-    o.write(matrix->typeName(flavor, isConst) + " " + matrix->name() + scratchSuffix + "(remote_" + matrix->name() + ".size());");
-    o.write(matrix->name() + scratchSuffix + ".allocDataLocal();");
+      o.write(matrix->typeName(flavor, isConst) + " " + matrix->name() + scratchSuffix + "(remote_" + matrix->name() + ".size());");
+      o.write(matrix->name() + scratchSuffix + ".allocDataLocal();");
 
-    if (matrix->type() == MatrixDef::T_FROM) {
-      o.write("remote_" + matrix->name() + ".localCopy(" + matrix->name() + scratchSuffix + ", true);");
+      if (matrix->type() == MatrixDef::T_FROM) {
+        o.write("remote_" + matrix->name() + ".localCopy(" + matrix->name() + scratchSuffix + ", true);");
 
+      } else {
+        o.write("remote_" + matrix->name() + ".localCopy(" + matrix->name() + scratchSuffix + ", false);");
+      }
     } else {
-      o.write("remote_" + matrix->name() + ".localCopy(" + matrix->name() + scratchSuffix + ", false);");
+      o.write(matrix->typeName(flavor, isConst) + " remote_" + matrix->name() + " = " + i->first + ";");
+      if (isConst) {
+        o.write(matrix->typeName(flavor, isConst) + " " + matrix->name() + scratchSuffix + "(" + i->first + ");");
+      } else {
+        o.write(matrix->typeName(flavor, isConst) + " " + matrix->name() + scratchSuffix + ";");
+        o.write(matrix->name() + scratchSuffix + ".writeCell(NULL, " + i->first + ".readCell(NULL));");
+      }
     }
 
     if (shouldGenerateWorkStealingRegion) {
       // generate workstealing region
-      o.write(matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + " " + matrix->name() + " = CONVERT_TO_LOCAL(" + matrix->name() + scratchSuffix + ");");
+      if (matrix->numDimensions() == 0) {
+        if (isConst) {
+          o.write(matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + " " + matrix->name() + "(" + i->first + ");");
+        } else {
+          o.write(matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + " " + matrix->name() + ";");
+          o.write(matrix->name() + ".cell() = " + matrix->name() + scratchSuffix + ".readCell(NULL);");
+        }
+      } else {
+        o.write(matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + " " + matrix->name() + " = CONVERT_TO_LOCAL(" + matrix->name() + scratchSuffix + ");");
+      }
     }
 
     args.push_back(matrix->name());
@@ -2227,21 +2254,24 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
       toLowerBounds->sub(lowerBounds);
       toUpperBounds->sub(lowerBounds);
 
-      o.write(matrix->typeName(flavor) + " remote_TO_" + matrix->name() + ";");
-      o.write(matrix->typeName(flavor) + " local_TO_" + matrix->name() + ";");
-      o.write("{");
-      o.incIndent();
-      o.write("IndexT _tmp_begin[] = {" + toLowerBounds->toString() + "};");
-      o.write("IndexT _tmp_end[] = {" + toUpperBounds->toString() + "};");
-      o.write("remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ".region(_tmp_begin, _tmp_end);");
-      o.write("local_TO_" + matrix->name() + " = " + matrix->name() + scratchSuffix + ".region(_tmp_begin, _tmp_end);");
-      // o.write("remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ";");
-      // o.write("local_TO_" + matrix->name() + " = " + matrix->name() + ";");
-      o.decIndent();
-      o.write("}");
+      if (matrix->numDimensions() > 0) {
+        o.write(matrix->typeName(flavor) + " remote_TO_" + matrix->name() + ";");
+        o.write(matrix->typeName(flavor) + " local_TO_" + matrix->name() + ";");
+        o.write("{");
+        o.incIndent();
+        o.write("IndexT _tmp_begin[] = {" + toLowerBounds->toString() + "};");
+        o.write("IndexT _tmp_end[] = {" + toUpperBounds->toString() + "};");
+        o.write("remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ".region(_tmp_begin, _tmp_end);");
+        o.write("local_TO_" + matrix->name() + " = " + matrix->name() + scratchSuffix + ".region(_tmp_begin, _tmp_end);");
+        // o.write("remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ";");
+        // o.write("local_TO_" + matrix->name() + " = " + matrix->name() + ";");
+        o.decIndent();
+        o.write("}");
 
-      args.push_back("remote_TO_" + matrix->name());
-      args.push_back("local_TO_" + matrix->name());
+        args.push_back("remote_TO_" + matrix->name());
+        args.push_back("local_TO_" + matrix->name());
+
+      }
     }
   }
 

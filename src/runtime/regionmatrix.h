@@ -1148,13 +1148,21 @@ namespace petabricks {
     operator MATRIX_ELEMENT_T () const { return this->readCell(NULL); }
 
     RegionMatrixWrapper operator=(Base val) {
-      this->cell() = val.readCell(NULL);
+      JTRACE("MMMMMMMMMMMMMMMMMMMMMMMM --> convert to sourceinfo");
+      JASSERT(false);
+      this->writeCell(NULL, val.readCell(NULL));
       return *this;
     }
-
     RegionMatrixWrapper operator=(const RegionMatrixWrapper& that) {
       init(that.sourceInfo(), that.regionHandler());
       return *this;
+    }
+
+    MATRIX_ELEMENT_T readCell (const IndexT*) const {
+      return Base::_regionHandler->readCell(_sourceInfo->sourceIndex());
+    }
+    void writeCell(const IndexT*, ElementT value) const {
+      Base::_regionHandler->writeCell(_sourceInfo->sourceIndex(), value);
     }
 
     CellProxy cell(IndexT coord[D]) const {
@@ -1183,7 +1191,7 @@ namespace petabricks {
 
       } else if (regionData->type() == RegionDataTypes::CONSTREGIONDATA0D) {
         MatrixRegion<D, ElementT> copy = MatrixRegion<D, ElementT>::allocate();
-        copy.cell() = this->cell();
+        copy.cell() = this->readCell(NULL);
         return copy;
 
       } else {
@@ -1192,23 +1200,24 @@ namespace petabricks {
       }
     }
 
-    void localCopy(RegionMatrix<D, ElementT>& scratch, bool=false) const {
-      scratch.cell() = this->cell();
+    void localCopy(RegionMatrixWrapper& scratch, bool=false) const {
+      scratch.writeCell(NULL, this->readCell(NULL));
     }
-    RegionMatrixWrapper<D, ElementT> localCopy(bool=false) const {
+    RegionMatrixWrapper localCopy(bool cacheable=false) const {
       if (isLocal()) {
         return *this;
       }
-      return RegionMatrixWrapper(cell());
+      RegionMatrixWrapper copy = RegionMatrixWrapper();
+      localCopy(copy, cacheable);
     }
     void fromScratchRegion(const MatrixRegion<D, ElementT>& scratch) const {
-      this->cell() = scratch.cell();
+      this->writeCell(NULL, scratch.cell(NULL));
     }
-    void fromScratchRegion(const RegionMatrix<D, ElementT>& scratch) const {
-      this->cell() = scratch.cell();
+    void fromScratchRegion(const RegionMatrixWrapper& scratch) const {
+      this->writeCell(NULL, scratch.readCell(NULL));
     }
 
-    RegionMatrixWrapper<D, ElementT> region(const IndexT[D], const IndexT[D]) const{
+    RegionMatrixWrapper region(const IndexT[D], const IndexT[D]) const{
       return *this;
     }
 
@@ -1221,6 +1230,82 @@ namespace petabricks {
     static RegionMatrixWrapper allocate() {
       return RegionMatrixWrapper();
     }
+
+    size_t serialSize() {
+      size_t sz = sizeof(int);                    // D
+      sz += sizeof(int);                          // regionHandler dimension
+      // regionhandler size
+      sz += sizeof(IndexT) * Base::_regionHandler->dimensions();
+      // source index
+      sz += sizeof(IndexT) * Base::_regionHandler->dimensions();
+      sz += sizeof(RemoteRegionHandler);          // RemoteRegionHandler
+      sz += sizeof(bool);                         // isDataSplit
+
+      return sz;
+    }
+
+    void serialize(char* buf, RemoteHost&) {
+      size_t sz = sizeof(int);
+      *reinterpret_cast<int*>(buf) = D;
+      buf += sz;
+
+      sz = sizeof(int);
+      *reinterpret_cast<int*>(buf) = Base::_regionHandler->dimensions();
+      buf += sz;
+
+      sz = sizeof(IndexT) * Base::_regionHandler->dimensions();
+      memcpy(buf, Base::_regionHandler->size(), sz);
+      buf += sz;
+
+      sz = sizeof(IndexT) * Base::_regionHandler->dimensions();
+      memcpy(buf, _sourceInfo->sourceIndex(), sz);
+      buf += sz;
+
+      sz = sizeof(RemoteRegionHandler);
+      RemoteRegionHandler remoteRegionHandler = Base::_regionHandler->remoteRegionHandler();
+      memcpy(buf, &remoteRegionHandler, sz);
+      buf += sz;
+
+      sz = sizeof(bool);
+      *reinterpret_cast<bool*>(buf) = Base::_regionHandler->isDataSplit();
+      buf += sz;
+
+      Base::_regionHandler->incRefCount();
+    }
+
+    void unserialize(const char* buf, RemoteHost&) {
+      size_t sz = sizeof(int);
+      JASSERT(*reinterpret_cast<const int*>(buf) == 0)(*reinterpret_cast<const int*>(buf)).Text("RegionMatrix dimension mismatch. (must be 0)");
+      buf += sz;
+
+      sz = sizeof(int);
+      int regionHandlerDimensions = *reinterpret_cast<const int*>(buf);
+      buf += sz;
+
+      sz = sizeof(IndexT) * regionHandlerDimensions;
+      const IndexT* regionHandlerSize = (const IndexT*)buf;
+      buf += sz;
+
+      sz = sizeof(IndexT) * regionHandlerDimensions;
+      const IndexT* sourceIndex = (const IndexT*)buf;
+      buf += sz;
+
+      _sourceInfo = new RegionMatrix0DInfo(regionHandlerDimensions);
+      if (regionHandlerDimensions > 0) {
+        memcpy(_sourceInfo->sourceIndex(), buf, sz);
+      }
+
+      sz = sizeof(RemoteRegionHandler);
+      RemoteRegionHandler remoteRegionHandler = *reinterpret_cast<const RemoteRegionHandler*>(buf);
+      buf += sz;
+
+      sz = sizeof(bool);
+      bool isDataSplit = *reinterpret_cast<const bool*>(buf);
+      buf += sz;
+
+      Base::setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandler.hostPid, remoteRegionHandler.remoteHandler, regionHandlerDimensions, regionHandlerSize, isDataSplit));
+    }
+
   };
 
   // Specialized for ConstMatrixRegion0D.
@@ -1250,7 +1335,7 @@ namespace petabricks {
       initWithValue(*data);
     }
     RegionMatrixWrapper(const RegionMatrixWrapper& that) : Base() {
-      initWithValue(that.cell());
+      initWithValue(that.readCell(NULL));
     }
 
     ///
@@ -1276,8 +1361,15 @@ namespace petabricks {
       return *this;
     }
     RegionMatrixWrapper operator=(const RegionMatrixWrapper& val) {
-      initWithValue(val.cell());
+      initWithValue(val.readCell(NULL));
       return *this;
+    }
+
+    MATRIX_ELEMENT_T readCell(const IndexT*) const {
+      return _regionHandler->readCell(NULL);
+    }
+    void writeCell(const IndexT*, ElementT) {
+      JASSERT(false);
     }
 
     // toLocalRegion
@@ -1285,23 +1377,23 @@ namespace petabricks {
       return true;
     }
     MatrixRegion<D, ElementT> _toLocalRegion() const {
-      return MatrixRegion<D, ElementT>((ElementT)cell());
+      return MatrixRegion<D, ElementT>((ElementT)readCell(NULL));
     }
 
-    void localCopy(RegionMatrix<D, ElementT>& scratch, bool=false) const {
-      scratch.cell() = this->cell();
+    void localCopy(RegionMatrixWrapper& scratch, bool=false) const {
+      scratch.writeCell(NULL, this->readCell(NULL));
     }
-    RegionMatrixWrapper<D, ElementT> localCopy(bool=false) const {
+    RegionMatrixWrapper localCopy(bool=false) const {
       return *this;
     }
     void fromScratchRegion(const MatrixRegion<D, ElementT>& /*scratch*/) const {
       JASSERT(false);
     }
-    void fromScratchRegion(const RegionMatrix<D, ElementT>& /*scratch*/) const {
+    void fromScratchRegion(const RegionMatrixWrapper& /*scratch*/) const {
       JASSERT(false);
     }
 
-    RegionMatrixWrapper<D, ElementT> region(const IndexT[D], const IndexT[D]) const{
+    RegionMatrixWrapper region(const IndexT[D], const IndexT[D]) const{
       return *this;
     }
 
@@ -1315,6 +1407,22 @@ namespace petabricks {
       return RegionMatrixWrapper();
     }
 
+    size_t serialSize() {
+      size_t sz = sizeof(ElementT); // value
+      return sz;
+    }
+
+    void serialize(char* buf, RemoteHost& /*host*/) {
+      size_t sz = sizeof(ElementT);
+      *reinterpret_cast<MATRIX_ELEMENT_T*>(buf) = this->readCell(NULL);
+      buf += sz;
+    }
+
+    void unserialize(const char* buf, RemoteHost& /*host*/) {
+      size_t sz = sizeof(ElementT);
+      initWithValue(*reinterpret_cast<const ElementT*>(buf));
+      buf += sz;
+    }
   };
 
   namespace distributed {
