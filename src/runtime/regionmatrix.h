@@ -1148,9 +1148,14 @@ namespace petabricks {
     operator MATRIX_ELEMENT_T () const { return this->readCell(NULL); }
 
     RegionMatrixWrapper operator=(Base val) {
-      JTRACE("MMMMMMMMMMMMMMMMMMMMMMMM --> convert to sourceinfo");
-      JASSERT(false);
-      this->writeCell(NULL, val.readCell(NULL));
+      RegionHandlerPtr regionHandler = val.regionHandler();
+      RegionMatrix0DInfoPtr sourceInfo = new RegionMatrix0DInfo(regionHandler->dimensions());
+      JASSERT(regionHandler->dimensions() == val->sliceInfo()->numSliceDimensions());
+      memcpy(sourceInfo->sourceIndex(), val->sliceInfo->slicePositions(), sizeof(IndexT) * regionHandler->dimensions());
+      init(sourceInfo, regionHandler);
+
+      // We might need this instead.
+      // this->writeCell(NULL, val.readCell(NULL));
       return *this;
     }
     RegionMatrixWrapper operator=(const RegionMatrixWrapper& that) {
@@ -1209,6 +1214,7 @@ namespace petabricks {
       }
       RegionMatrixWrapper copy = RegionMatrixWrapper();
       localCopy(copy, cacheable);
+      return copy;
     }
     void fromScratchRegion(const MatrixRegion<D, ElementT>& scratch) const {
       this->writeCell(NULL, scratch.cell(NULL));
@@ -1337,6 +1343,9 @@ namespace petabricks {
     RegionMatrixWrapper(const RegionMatrixWrapper& that) : Base() {
       initWithValue(that.readCell(NULL));
     }
+    RegionMatrixWrapper(const RegionMatrixWrapper<0, MATRIX_ELEMENT_T>& that) : Base() {
+      initWithValue(that.readCell(NULL));
+    }
 
     ///
     /// Implicit conversion from ElementT/CellProxy
@@ -1361,6 +1370,10 @@ namespace petabricks {
       return *this;
     }
     RegionMatrixWrapper operator=(const RegionMatrixWrapper& val) {
+      initWithValue(val.readCell(NULL));
+      return *this;
+    }
+    RegionMatrixWrapper operator=(const RegionMatrixWrapper<0, MATRIX_ELEMENT_T>& val) {
       initWithValue(val.readCell(NULL));
       return *this;
     }
