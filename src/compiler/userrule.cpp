@@ -2237,7 +2237,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
         if (isConst) {
           o.write(matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + " " + matrix->name() + "(" + i->first + ");");
         } else {
-          o.write(matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + " " + matrix->name() + ";");
+          o.write(matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + " " + matrix->name() + " = " + matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + "::allocate();");
           o.write(matrix->name() + ".cell() = " + matrix->name() + scratchSuffix + ".readCell(NULL);");
         }
       } else {
