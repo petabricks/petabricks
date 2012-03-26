@@ -156,7 +156,7 @@ void petabricks::MatrixDef::allocateTemporary(CodeGenerator& o, RuleFlavor rf, b
   if(reallocAllowed)
     o.beginIf("!"+name()+".isSize("+_size.toString()+")");
 
-  if (rf == RuleFlavor::DISTRIBUTED) {
+  if (rf == RuleFlavor::DISTRIBUTED && numDimensions() > 0) {
     std::string distributionType = o.className() + "_" + name() + "_distribution_type";
     std::string distributionSize = o.className() + "_" + name() + "_distribution_size";
 
