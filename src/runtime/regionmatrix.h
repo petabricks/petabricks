@@ -653,6 +653,14 @@ namespace petabricks {
         matrixRegion = matrixRegion.transposed();
       }
 
+#ifdef DEBUG_SCRATCH_REGION
+      IndexT coord[D];
+      memset(coord, 0, sizeof coord);
+      do {
+        JASSERT(fabs(this->cell(coord) - matrixRegion.cell(coord)) < 0.000001)(this->cell(coord))(matrixRegion.cell(coord));
+      } while (this->incCoord(coord) >= 0);
+#endif
+
       return matrixRegion;
     }
 

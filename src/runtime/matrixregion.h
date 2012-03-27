@@ -683,12 +683,17 @@ protected:
   /// Compute the offset in _base for a given coordinate
   ElementT* coordToPtr(const IndexT coord[D]) const{
     IndexT rv = 0;
-    for(int i=0; i<D; ++i){
-      #ifdef DEBUG
-      /*JASSERT(0<=coord[i] && coord[i]<size(i))(coord[i])(size(i))
-        .Text("Out of bounds access");*/
-      #endif
-      rv +=  this->multipliers()[i] * coord[i];
+    if (D == 2) {
+      rv = (this->multipliers()[0] * coord[0]) + (this->multipliers()[1] * coord[1]);
+
+    } else  {
+      for(int i=0; i<D; ++i){
+#ifdef DEBUG
+        JASSERT(0<=coord[i] && coord[i]<size(i))(coord[i])(size(i))
+          .Text("Out of bounds access");
+#endif
+        rv +=  this->multipliers()[i] * coord[i];
+      }
     }
     return this->base()+rv;
   }
