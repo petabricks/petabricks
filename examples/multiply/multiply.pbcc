@@ -2,11 +2,22 @@
 #define MULTIPLY_PBCC
 #include "multiplyAdd.pbcc"
 
+transform MatrixMultiplyGenerator
+to A[n,n], B[n,n]
+{
+  to (A.cell(i,j) a, B.cell(i,j) b) from ()
+  {
+    a = PetabricksRuntime::randNormal(0, 1);
+    b = PetabricksRuntime::randNormal(0, 1);
+  }
+}
+
 // Computes C = A * B.  Special case of matrix-multiply-add transform, with
 // ALPHA = 1, BETA = 0.
 transform MatrixMultiply
 from A[k,m], B[n,k]
 to C[n,m]
+generator MatrixMultiplyGenerator
 {
 
   to(C c) from(A a, B b) {

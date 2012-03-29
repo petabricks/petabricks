@@ -1,21 +1,27 @@
 #ifndef MULTIPLYADD_PBCC
 #define MULTIPLYADD_PBCC
 
+#include "../simple/macros.h"
 #include "../simple/add.pbcc"
+#include "../simple/copy.pbcc"
 #include "../simple/transpose.pbcc"
 
 %{
 
 #ifdef PRINT
-inline void printArray(int height, int width, ElementT *array){
-  int i, j;
+template < typename T >
+void printMatrix(const T& matrix)
+{
+  IndexT rows = matrix.height();
+  IndexT columns = matrix.width();
 
-  for(i=0; i<height; ++i) {
-    for(j=0; j<width; ++j) {
-      printf("%2.1lf ", array[i*width+ j]);
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      printf("%g ", matrix.cell(j,i));
     }
     printf("\n");
   }
+  printf("\n");
 }
 #endif
 
@@ -25,10 +31,6 @@ inline ElementT *toArray(const T&matrix) {
 
   IndexT rows = matrix.height();
   IndexT columns = matrix.width();
-
-#ifdef PRINT
-  printf("Matrix size: %d rows, %d columns\n", rows, columns);
-#endif
 
   array = new ElementT[rows * columns];
 
@@ -55,16 +57,44 @@ inline void toMatrix(ElementT* array, T&matrix) {
   return;
 }
 
-void gemm_wrap(const int M, const int N, const int K, const float alpha, const float * A, const int lda, const float * B, const int ldb, const float beta, float * C, const int ldc) {
-  cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+void gemm_wrap(const enum CBLAS_ORDER Order, const enum CBLAS_TRANSPOSE TransA, const enum CBLAS_TRANSPOSE TransB, const int M, const int N, const int K, const float alpha, const float * A, const int lda, const float * B, const int ldb, const float beta, float * C, const int ldc) {
+  cblas_sgemm(Order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
 }
 
-void gemm_wrap(const int M, const int N, const int K, const double alpha, const double * A, const int lda, const double * B, const int ldb, const double beta, double * C, const int ldc) {
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
+void gemm_wrap(const enum CBLAS_ORDER Order, const enum CBLAS_TRANSPOSE TransA, const enum CBLAS_TRANSPOSE TransB, const int M, const int N, const int K, const double alpha, const double * A, const int lda, const double * B, const int ldb, const double beta, double * C, const int ldc) {
+  cblas_dgemm(Order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
 }
+
 %}
 
-transform MatrixMultiplyAddInner
+// copy to flat arrays and call BLAS
+transform MatrixMultiplyAddBLAS
+from ALPHA, A[k,h], B[w,k], BETA
+to C[w,h]
+{
+  to(C c) from (A a, B b, ALPHA alpha, BETA beta)
+  {
+    // fast return if possible
+    if (h == 0 || k == 0 || w == 0) {
+      return;
+    }
+
+    ElementT* arrayA = toArray(a);
+    ElementT* arrayB = toArray(b);
+    ElementT* arrayC = toArray(c);
+
+    gemm_wrap(CblasRowMajor, CblasNoTrans, CblasNoTrans, h, w, k,
+              alpha, arrayA, k, arrayB, w, beta, arrayC, w);
+
+    toMatrix(arrayC, c);
+
+    delete [] arrayA;
+    delete [] arrayB;
+    delete [] arrayC;
+  }
+}
+
+transform MatrixMultiplyAddBase
 from ALPHA, A[k,h], B[w,k], BETA
 to C[w,h]
 {
@@ -78,68 +108,53 @@ to C[w,h]
     ElementT temp = 0;
     for(IndexT i=0; i<k; ++i)
       temp += a.cell(i)*b.cell(i);
-    if (beta == 0) {
-      c = alpha*temp;
-    } else {
-      c = alpha*temp + beta*c;
+    // conditional needed in case c = nan, beta = 0
+    c = (beta == 0 ? alpha*temp : alpha*temp + beta*c);
+  }
+
+  //Usual O(n^3) matrix multiply (JKI)
+  to(C c) from (A a, B b, ALPHA alpha, BETA beta)
+  {
+    #ifdef PRINT
+    printf("MatrixMultiplyAddBase (serial JKI) (%d, %d, %d)\n", h, w, k);
+    #endif
+
+    ElementT temp;
+    for(IndexT j=0; j<w; ++j) {
+      if (beta == 0) {
+        for(IndexT i=0; i<h; ++i) {
+          c.cell(j,i) = 0;
+        }
+      } else {
+        for(IndexT i=0; i<h; ++i) {
+          c.cell(j,i) *= beta;
+        }
+      }
+      for(IndexT l=0; l<k; ++l) {
+        if (b.cell(j,l) != 0) {
+          temp = alpha * b.cell(j,l);
+          for(IndexT i=0; i<h; ++i) {
+            c.cell(j,i) += temp * a.cell(l,i);
+          }
+        }
+      }
     }
   }
 
-#if 0
-  //recursively chop the matrix in half
-  recursive(k)
-  to(C c)
-  from( A.region(0,   0, k/2, h  ) a1,
-        A.region(k/2, 0, k,   h  ) a2,
-        B.region(0,   0, w,   k/2) b1,
-        B.region(0, k/2, w,   k  ) b2,
-        ALPHA alpha,
-        BETA beta)
-  {
-    MatrixRegion2D tmp = MatrixRegion2D::allocate(w,h);
-    spawn MatrixMultiplyAddInner(c  , alpha, a1, b1, beta);
-    spawn MatrixMultiplyAddInner(tmp, alpha, a2, b2, 0);
-    sync;
-    MatrixAdd(c, c, tmp);
-  }
-
-  recursive(w)
-  to(C.region(0,   0, w/2, h  ) c1,
-     C.region(w/2, 0, w,   h  ) c2)
-  from( A a,
-        B.region(0,   0, w/2, h  ) b1,
-        B.region(w/2, 0, w,   h  ) b2,
-        ALPHA alpha,
-        BETA beta)
-  {
-    spawn MatrixMultiplyAddInner(c1, alpha, a, b1, beta);
-    spawn MatrixMultiplyAddInner(c2, alpha, a, b2, beta);
-  }
-
-  recursive(h)
-  to(C.region(0, 0,   w, h/2) c1,
-     C.region(0, h/2, w, h  ) c2)
-  from( A.region(0,   0, w,   h/2) a1,
-        A.region(0, h/2, w,   h  ) a2,
-        B b,
-        ALPHA alpha,
-        BETA beta)
-  {
-    spawn MatrixMultiplyAddInner(c1, alpha, a1, b, beta);
-    spawn MatrixMultiplyAddInner(c2, alpha, a2, b, beta);
-  }
-#endif
-
-  //Usual O(n^3) matrix multiply
+  //Usual O(n^3) matrix multiply (JIK)
   to(C c) from (A a, B b, ALPHA alpha, BETA beta)
   {
+    #ifdef PRINT
+    printf("MatrixMultiplyAddBase (serial JIK) (%d, %d, %d)\n", h, w, k);
+    #endif
+
     ElementT temp;
-    for(IndexT i=0, maxI=a.height(); i<maxI; ++i) {
-      for(IndexT j=0, maxJ=b.width(); j<maxJ; ++j) {
+    for(IndexT j=0; j<w; ++j) {
+      for(IndexT i=0; i<h; ++i) {
         temp = 0;
-        for(IndexT l=0, maxL=a.width(); l<maxL; ++l) {
-	  temp += a.cell(l,i) * b.cell(j,l);
-	}
+        for(IndexT l=0; l<k; ++l) {
+          temp += a.cell(l,i) * b.cell(j,l);
+        }
         if (beta == 0) {
           c.cell(j,i) = alpha * temp;
         } else {
@@ -149,53 +164,359 @@ to C[w,h]
     }
   }
 
-  // call BLAS
+  //Usual O(n^3) matrix multiply (IJK)
   to(C c) from (A a, B b, ALPHA alpha, BETA beta)
   {
-    int rowA=a.height();
-    int colA=a.width();
+    #ifdef PRINT
+    printf("MatrixMultiplyAddBase (serial IJK) (%d, %d, %d)\n", h, w, k);
+    #endif
 
-    int rowB=b.height();
-    int colB=b.width();
-
-    int rowC=c.height();
-    int colC=c.width();
-
-    if(colA != rowB) {
-      fprintf(stderr, "Unable to perform a matrix multiplication. Wrong input size.\n"
-	      "#columns of matrix A = %d\n"
-	      "#rows of matrix B = %d\n"
-	      "They should be equal!\n", colA, rowB);
-      exit(4);
+    ElementT temp;
+    for(IndexT i=0; i<h; ++i) {
+      for(IndexT j=0; j<w; ++j) {
+        temp = 0;
+        for(IndexT l=0; l<k; ++l) {
+          temp += a.cell(l,i) * b.cell(j,l);
+        }
+        if (beta == 0) {
+          c.cell(j,i) = alpha * temp;
+        } else {
+          c.cell(j,i) = alpha * temp + beta * c.cell(j,i);
+        }
+      }
     }
+  }
 
+  // copy matrices to arrays and call BLAS
+  to(C c) from (A a, B b, ALPHA alpha, BETA beta)
+  {
+    #ifdef PRINT
+    printf("MatrixMultiplyAddBase (BLAS-Copy) (%d, %d, %d)\n", h, w, k);
+    #endif
+
+    MatrixMultiplyAddBLAS(c, alpha, a, b, beta);
+  }
+
+#if 0
+  // try to call BLAS directly on matrix data (no copies)
+  to(C c) from (A a, B b, ALPHA alpha, BETA beta)
+  {
     // fast return if possible
     if (h == 0 || k == 0 || w == 0) {
-        return;
+      return;
     }
 
-    ElementT* arrayA = toArray(a);
-    ElementT* arrayB = toArray(b);
-    ElementT* arrayC = toArray(c);
-
     #ifdef PRINT
-    printArray(rowA, colA, arrayA);
-    printArray(rowB, colB, arrayB);
-    printArray(rowC, colC, arrayC);
+    printf("MatrixMultiplyAddBase (BLAS-NoCopy) (%d, %d, %d)\n", h, w, k);
     #endif
 
-    gemm_wrap(rowA, colB, rowB, alpha, arrayA, colA, arrayB, colB, beta, arrayC, colC);
+    int as0 = a.sizes()[0], as1 = a.sizes()[1],
+        bs0 = b.sizes()[0], bs1 = b.sizes()[1],
+        cs0 = c.sizes()[0], cs1 = c.sizes()[1],
+        am0 = a.multipliers()[0], am1 = a.multipliers()[1],
+        bm0 = b.multipliers()[0], bm1 = b.multipliers()[1],
+        cm0 = c.multipliers()[0], cm1 = c.multipliers()[1];
 
-    #ifdef PRINT
-    printArray(rowC, colC, arrayC);
-    #endif
+    // if any input has no unit stride dimension, call copy version
+    if ((am0 != 1 && am1 != 1) ||
+        (bm0 != 1 && bm1 != 1) ||
+        (cm0 != 1 && cm1 != 1)) {
 
-    toMatrix(arrayC, c);
+      #ifdef PRINT
+      printf("  non-unit stride matrix detected, switch to BLAS-Copy\n");
+      #endif
 
-    delete [] arrayA;
-    delete [] arrayB;
-    delete [] arrayC;
+      MatrixMultiplyAddBLAS(c, alpha, a, b, beta);
+      return;
+    }
+
+    // if all data stored in column or row major format, can pass MatrixRegion
+    // data directly into BLAS using base pointers
+    enum CBLAS_TRANSPOSE transA, transB;
+    enum CBLAS_ORDER order;
+    const ElementT *arrayA, *arrayB;
+    ElementT *arrayC;
+    int lda, ldb, ldc;
+
+    arrayA = a.base();
+    arrayB = b.base();
+    arrayC = c.base();
+
+    // set storage order, transpose flags, and leading dimensions
+    if (cm1 == 1 && cm0 >= cs1) {
+      order = CblasColMajor;
+      ldc = cm0;
+      if (am1 == 1 && am0 >= as1) {
+        transA = CblasNoTrans;
+        lda = am0;
+      } else {
+        transA = CblasTrans;
+        lda = am1;
+      }
+      if (bm1 == 1 && bm0 >= bs1) {
+        transB = CblasNoTrans;
+        ldb = bm0;
+      } else {
+        transB = CblasTrans;
+        ldb = bm1;
+      }
+    } else {
+      order = CblasRowMajor;
+      ldc = cm1;
+      if (am0 == 1 && am1 >= as0) {
+        transA = CblasNoTrans;
+        lda = am1;
+      } else {
+        transA = CblasTrans;
+        lda = am0;
+      }
+      if (bm0 == 1 && bm1 >= bs0) {
+        transB = CblasNoTrans;
+        ldb = bm1;
+      } else {
+        transB = CblasTrans;
+        ldb = bm0;
+      }
+    }
+
+    gemm_wrap(order, transA, transB, h, w, k,
+              alpha, arrayA, lda, arrayB, ldb, beta, arrayC, ldc);
   }
+}
+#endif
+
+transform MatrixMultiplyAddBlocked
+from ALPHA, A[k,m], B[n,k], BETA
+to C[n,m]
+tunable sizespecific blockSize
+{
+  // no copy
+  to (C c)
+  from (ALPHA alpha, A a, B b, BETA beta)
+  {
+    if (blockSize < 1 || blockSize >= MAX(MAX(m, n), k)) {
+      MatrixMultiplyAddBase(c, alpha, a, b, beta);
+      return;
+    }
+
+    #ifdef PRINT
+    printf("MatrixMultiplyAddBlocked (%d, %d, %d), %d\n", m, n, k, (int) blockSize);
+    #endif
+
+    IndexT ib, jb, kb, ib1, jb1, kb1, nb = blockSize;
+    ConstMatrixRegion2D ab, bb;
+    MatrixRegion2D cb;
+
+    for (jb = 0; jb < n; jb += nb) {
+      jb1 = MIN(jb + nb, n);
+      for (ib = 0; ib < m; ib += nb) {
+        ib1 = MIN(ib + nb, m);
+
+        // output tile
+        cb = c.region(jb, ib, jb1, ib1);
+
+        // first block in panel
+        kb = 0;
+        kb1 = MIN(kb + nb, k);
+        ab = a.region(kb, ib, kb1, ib1);
+        bb = b.region(jb, kb, jb1, kb1);
+        MatrixMultiplyAddBase(cb, alpha, ab, bb, beta);
+
+        // main panel loop
+        for (kb = nb; kb < k; kb += nb) {
+          kb1 = MIN(kb + nb, k);
+          ab = a.region(kb, ib, kb1, ib1);
+          bb = b.region(jb, kb, jb1, kb1);
+          MatrixMultiplyAddBase(cb, alpha, ab, bb, 1);
+        }
+      }
+    }
+  }
+
+#if 0
+  // temp output block copy
+  to (C c)
+  from (ALPHA alpha, A a, B b, BETA beta)
+  {
+    if (blockSize < 1 || blockSize >= MAX(MAX(m, n), k)) {
+      MatrixMultiplyAddBase(c, alpha, a, b, beta);
+      return;
+    }
+
+    #ifdef PRINT
+    printf("MatrixMultiplyAddBlocked (%d, %d, %d), %d\n", m, n, k, (int) blockSize);
+    #endif
+
+    IndexT ib, jb, kb, ib1, jb1, kb1, nb = blockSize;
+    ConstMatrixRegion2D ab, bb;
+    MatrixRegion2D cb, t = MatrixRegion2D::allocate(nb, nb), tb;
+
+    for (jb = 0; jb < n; jb += nb) {
+      jb1 = MIN(jb + nb, n);
+      for (ib = 0; ib < m; ib += nb) {
+        ib1 = MIN(ib + nb, m);
+
+        // output tile
+        tb = t.region(0, 0, jb1 - jb, ib1 - ib);
+        cb = c.region(jb, ib, jb1, ib1);
+
+        Copy2D(tb, cb);
+
+        // first block in panel
+        kb = 0;
+        kb1 = MIN(kb + nb, k);
+        ab = a.region(kb, ib, kb1, ib1);
+        bb = b.region(jb, kb, jb1, kb1);
+        MatrixMultiplyAddBase(tb, alpha, ab, bb, beta);
+
+        // main panel loop
+        for (kb = nb; kb < k; kb += nb) {
+          kb1 = MIN(kb + nb, k);
+          ab = a.region(kb, ib, kb1, ib1);
+          bb = b.region(jb, kb, jb1, kb1);
+          MatrixMultiplyAddBase(tb, alpha, ab, bb, 1);
+        }
+
+        Copy2D(cb, tb);
+      }
+    }
+  }
+#endif
+}
+
+transform MatrixMultiplyAddRecursive
+from ALPHA, A[k,m], B[n,k], BETA
+to C[n,m]
+tunable sizespecific blockSize
+{
+  // split in any dimension larger than blockSize
+  to (C c)
+  from (ALPHA alpha, A a, B b, BETA beta)
+  {
+    if (blockSize < 1 || blockSize >= MAX(MAX(m, n), k)) {
+      MatrixMultiplyAddBlocked(c, alpha, a, b, beta);
+      return;
+    }
+
+    #ifdef PRINT
+    printf("MatrixMultiplyAddRecursive (%d, %d, %d), %d\n", m, n, k, (int) blockSize);
+    #endif
+
+    if (n > blockSize) {
+
+      ConstMatrixRegion2D b1, b2;
+      MatrixRegion2D c1, c2;
+
+      c1 = c.region(0,   0, n/2, m  );
+      c2 = c.region(n/2, 0, n,   m  );
+      b1 = b.region(0,   0, n/2, k  );
+      b2 = b.region(n/2, 0, n,   k  );
+
+      spawn MatrixMultiplyAddRecursive(c1, alpha, a, b1, beta);
+      spawn MatrixMultiplyAddRecursive(c2, alpha, a, b2, beta);
+      sync;
+
+    } else if (m > blockSize) {
+
+      ConstMatrixRegion2D a1, a2;
+      MatrixRegion2D c1, c2;
+
+      c1 = c.region(0, 0  , n, m/2);
+      c2 = c.region(0, m/2, n, m  );
+      a1 = a.region(0,   0, k, m/2);
+      a2 = a.region(0, m/2, k, m  );
+
+      spawn MatrixMultiplyAddRecursive(c1, alpha, a1, b, beta);
+      spawn MatrixMultiplyAddRecursive(c2, alpha, a2, b, beta);
+      sync;
+
+    } else if (k > blockSize) {
+
+      ConstMatrixRegion2D a1, a2, b1, b2;
+      MatrixRegion2D tmp = MatrixRegion2D::allocate(n,m);
+
+      a1 = a.region(0,   0, k/2, m  );
+      a2 = a.region(k/2, 0, k,   m  );
+      b1 = b.region(0,   0, n,   k/2);
+      b2 = b.region(0, k/2, n,   k  );
+
+      spawn MatrixMultiplyAddRecursive(c  , alpha, a1, b1, beta);
+      spawn MatrixMultiplyAddRecursive(tmp, alpha, a2, b2, 0);
+      sync;
+
+      MatrixAdd(c, c, tmp);
+    }
+  }
+
+#if 0
+  // split along K dimension
+  to (C c)
+  from (ALPHA alpha, A a, B b, BETA beta)
+  {
+    if (blockSize < 1 || k <= blockSize) {
+      MatrixMultiplyAddBlocked(c, alpha, a, b, beta);
+      return;
+    }
+
+    ConstMatrixRegion2D a1, a2, b1, b2;
+    MatrixRegion2D tmp = MatrixRegion2D::allocate(n,m);
+
+    a1 = a.region(0,   0, k/2, m  );
+    a2 = a.region(k/2, 0, k,   m  );
+    b1 = b.region(0,   0, n,   k/2);
+    b2 = b.region(0, k/2, n,   k  );
+
+    spawn MatrixMultiplyAddRecursive(c  , alpha, a1, b1, beta);
+    spawn MatrixMultiplyAddRecursive(tmp, alpha, a2, b2, 0);
+    sync;
+
+    MatrixAdd(c, c, tmp);
+  }
+
+  // split along N dimension
+  to (C c)
+  from (ALPHA alpha, A a, B b, BETA beta)
+  {
+    if (blockSize < 1 || n <= blockSize) {
+      MatrixMultiplyAddBlocked(c, alpha, a, b, beta);
+      return;
+    }
+
+    ConstMatrixRegion2D b1, b2;
+    MatrixRegion2D c1, c2;
+
+    c1 = c.region(0,   0, n/2, m  );
+    c2 = c.region(n/2, 0, n,   m  );
+    b1 = b.region(0,   0, n/2, k  );
+    b2 = b.region(n/2, 0, n,   k  );
+
+    spawn MatrixMultiplyAddRecursive(c1, alpha, a, b1, beta);
+    spawn MatrixMultiplyAddRecursive(c2, alpha, a, b2, beta);
+    sync;
+  }
+
+  // split along M dimension
+  to (C c)
+  from (ALPHA alpha, A a, B b, BETA beta)
+  {
+    if (blockSize < 1 || m <= blockSize) {
+      MatrixMultiplyAddBlocked(c, alpha, a, b, beta);
+      return;
+    }
+
+    ConstMatrixRegion2D a1, a2;
+    MatrixRegion2D c1, c2;
+
+    c1 = c.region(0, 0  , n, m/2);
+    c2 = c.region(0, m/2, n, m  );
+    a1 = a.region(0,   0, k, m/2);
+    a2 = a.region(0, m/2, k, m  );
+
+    spawn MatrixMultiplyAddRecursive(c1, alpha, a1, b, beta);
+    spawn MatrixMultiplyAddRecursive(c2, alpha, a2, b, beta);
+    sync;
+  }
+#endif
 }
 
 // Computes C = ALPHA * A * B + BETA * C (C is an in/out argument).
@@ -209,7 +530,7 @@ to C[n,m]
                B b,
                BETA beta)
   {
-    MatrixMultiplyAddInner(c, alpha, a, b, beta);
+    MatrixMultiplyAddRecursive(c, alpha, a, b, beta);
   }
 
   // transpose a
@@ -220,7 +541,7 @@ to C[n,m]
   {
     MatrixRegion2D t = MatrixRegion2D::allocate(m,k);
     Transpose(t, a);
-    MatrixMultiplyAddInner(c, alpha, t.transposed(), b, beta);
+    MatrixMultiplyAddRecursive(c, alpha, t.transposed(), b, beta);
   }
 
   // transpose b
@@ -231,7 +552,7 @@ to C[n,m]
   {
     MatrixRegion2D t = MatrixRegion2D::allocate(k,n);
     Transpose(t, b);
-    MatrixMultiplyAddInner(c, alpha, a, t.transposed(), beta);
+    MatrixMultiplyAddRecursive(c, alpha, a, t.transposed(), beta);
   }
 }
 
