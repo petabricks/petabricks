@@ -389,8 +389,8 @@ def createChoiceSiteMutators(candidate, info, ac, weight):
   ms.append(mutators.RandAlgMutator(transform, ac['number'], mutators.config.first_lvl, weight=weight))
   for a in info.rulesInAlgchoice(ac['number']):
     ms.append(mutators.AddAlgLevelMutator(transform, ac['number'], a, weight=weight))
-  #ms.append(mutators.ShuffleAlgsChoiceSiteMutator(transform, ac['number'], weight=weight))
-  #ms.append(mutators.ShuffleCutoffsChoiceSiteMutator(transform, ac['number'], weight=weight))
+  ms.append(mutators.ShuffleAlgsChoiceSiteMutator(transform, ac['number'], weight=weight))
+  ms.append(mutators.ShuffleCutoffsChoiceSiteMutator(transform, ac['number'], weight=weight))
   return ms
 
 # Identify tunables that should be grouped into arrays for mutators that act
