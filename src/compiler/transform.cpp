@@ -806,6 +806,9 @@ void petabricks::Transform::markSplitSizeUse(CodeGenerator& o){
   if(!_usesSplitSize){
     _usesSplitSize=true;
     o.createTunable(true, "system.cutoff.splitsize", _name + "_splitsize", 64, 1);
+#ifndef DISABLE_DISTRIBUTED
+    o.createTunable(true, "system.cutoff.splitsize", _name + "_splitsize_distributed", 128, 1);
+#endif
   }
 }
 
