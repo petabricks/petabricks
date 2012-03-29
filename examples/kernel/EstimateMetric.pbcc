@@ -1,0 +1,18 @@
+#ifndef ESTIMATEMETRIC_PBCC
+#define ESTIMATEMETRIC_PBCC
+
+#include "nwkdeMetric.pbcc"
+
+transform EstimateMetric
+from RESULT[1,q], DATA[m,n], X[2,p], DIR[2], Y[2], INDICES[l],
+     DIRFLAGS[m], SPLIT, MASKWIDTH
+to METRIC
+{
+    to (METRIC metric)
+    from (RESULT result, DATA data, Y y, INDICES indices)
+    {
+        metric = computeNWKDEMetric(result.col(0), data, y, indices);
+    }
+}
+
+#endif // ESTIMATEMETRIC_PBCC

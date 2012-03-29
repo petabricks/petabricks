@@ -40,6 +40,7 @@ kclustering/kmeans
 kclustering/newclusterlocations
 kernel/BinnedLR
 kernel/Estimate
+kernel/EstimateMetric
 kernel/KernelEstimate
 kernel/nwkdeBase1
 kernel/nwkdeBaseTop2

@@ -30,9 +30,8 @@ testVA: nwkdeVA
 	./nwkdeVA test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/split.pba test/maskWidth.pba -
 
 testMetric: nwkdeMetric nwkde
-	./nwkde test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/kernelWidths.pba test/split.pba test/maskWidth.pba testMetric.out.pba
-	./nwkdeMetric testMetric.out.pba test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/kernelWidths.pba test/split.pba test/maskWidth.pba -
-	rm testMetric.out.pba
+	./nwkde test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/kernelWidths.pba test/split.pba test/maskWidth.pba test/output.pba.last
+	./nwkdeMetric test/output.pba.last test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/kernelWidths.pba test/split.pba test/maskWidth.pba -
 
 testMetricVA: nwkdeMetric nwkdeVA
 	./nwkdeVA test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/split.pba test/maskWidth.pba testMetricVA.out.pba
@@ -48,3 +47,9 @@ testBinnedLR: BinnedLR
 testEstimate: Estimate
 	./Estimate etest/data.pba etest/x.pba etest/dir.pba etest/y.pba etest/indices.pba etest/dirFlags.pba etest/split.pba etest/maskWidth.pba etest/output.pba.last
 	diff etest/output.pba etest/output.pba.last
+
+testEstimateMetric: EstimateMetric
+	./Estimate etest/data.pba etest/x.pba etest/dir.pba etest/y.pba etest/indices.pba etest/dirFlags.pba etest/split.pba etest/maskWidth.pba etest/output.pba.last
+	cat etest/output.pba.last | sed s/nan/-667/g > etest/output.pba.last.2
+	mv etest/output.pba.last.2 etest/output.pba.last
+	./EstimateMetric etest/output.pba.last etest/data.pba etest/x.pba etest/dir.pba etest/y.pba etest/indices.pba etest/dirFlags.pba etest/split.pba etest/maskWidth.pba -
