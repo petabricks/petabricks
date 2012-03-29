@@ -1168,10 +1168,11 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         iterdef.genSplitCode(o, trans, *this, flavor, blockNumber, true);
       }
 
-      std::string splitCondition = "petabricks::split_condition<"+jalib::XToString(dimensions())+", "+jalib::XToString(blockNumber)+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")";
       if (flavor == RuleFlavor::DISTRIBUTED) {
+        std::string splitCondition = "petabricks::split_condition<"+jalib::XToString(dimensions())+", "+jalib::XToString(blockNumber)+">("SPLIT_CHUNK_SIZE_DISTRIBUTED","COORD_BEGIN_STR","COORD_END_STR")";
         o.elseIf(splitCondition);
       } else {
+        std::string splitCondition = "petabricks::split_condition<"+jalib::XToString(dimensions())+", "+jalib::XToString(blockNumber)+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")";
         o.beginIf(splitCondition);
       }
       iterdef.genSplitCode(o, trans, *this, flavor, blockNumber, false);

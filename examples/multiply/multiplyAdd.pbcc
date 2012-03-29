@@ -282,8 +282,8 @@ to C[w,h]
     gemm_wrap(order, transA, transB, h, w, k,
               alpha, arrayA, lda, arrayB, ldb, beta, arrayC, ldc);
   }
-}
 #endif
+}
 
 transform MatrixMultiplyAddBlocked
 from ALPHA, A[k,m], B[n,k], BETA
