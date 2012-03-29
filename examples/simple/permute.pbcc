@@ -105,7 +105,7 @@ to A[n,m]
 transform PermuteInPlaceRecursive
 from P[m], START, END
 to A[n,m]
-tunable blockSize
+tunable sizespecific blockSize
 {
     // in the style of DLASWP, decompose into column blocks
     // DLASWP uses a hard-coded blockSize of 32

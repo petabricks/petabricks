@@ -6,48 +6,70 @@
 
 #include "../simple/macros.h"
 #include "../simple/copy.pbcc"
+#include "../simple/transpose.pbcc"
 #include "../simple/scale.pbcc"
 #include "../multiply/multiplyAdd.pbcc"
-#include "TriSolveLAPACK.pbcc"
+//#include "TriSolveLAPACK.pbcc"
 #include "TriSolveGenerators.pbcc"
 
 transform TriSolveLUBase
 from UNITFLAG, A[m,m]
 to X[n,m]
 {
-    // right looking (update trailing matrix after each row is solved)
+    // right looking serial (IJK)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
-        for (IndexT i = m-1; i >= 0; --i) {
+        #ifdef PRINT
+        printf("TriSolveLUBase (serial G IJK) (%d, %d)\n", m, n);
+        #endif
+
+        IndexT i, j, k;
+        for (i = m - 1; i >= 0; --i) {
             if (!unitFlag) {
-                Scale1D(x.row(i), 1.0 / a.cell(i, i));
+                for (j = 0; j < n; ++j) {
+                    x.cell(j, i) /= a.cell(i, i);
+                }
             }
-            MatrixMultiplyAdd(x.region(0, 0, n, i), -1,
-                              a.region(i, 0, i+1, i),
-                              x.region(0, i, n, i+1), 1);
+            for (j = 0; j < n; ++j) {
+                for (k = 0; k < i; ++k) {
+                    x.cell(j, k) -= a.cell(i, k) * x.cell(j, i);
+                }
+            }
         }
     }
 
-    // left looking (process one row at a time)
+    // left looking serial (IJK)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
-        if (!unitFlag) {
-            Scale1D(x.row(m-1), 1.0 / a.cell(m-1, m-1));
-        }
-        for (IndexT i = m-2; i >= 0; --i) {
-            ElementT factor = unitFlag ? 1 : 1.0 / a.cell(i, i);
-            MatrixMultiplyAdd(x.region(0, i, n, i+1), -factor,
-                              a.region(i+1, i, m, i+1),
-                              x.region(0, i+1, n, m), factor);
+        #ifdef PRINT
+        printf("TriSolveLUBase (serial L IJK) (%d, %d)\n", m, n);
+        #endif
+
+        IndexT i, j, k;
+        for (i = m - 1; i >= 0; --i) {
+            for (j = 0; j < n; ++j) {
+                for (k = i + 1; k < m; ++k) {
+                    x.cell(j, i) -= a.cell(k, i) * x.cell(j, k);
+                }
+            }
+            if (!unitFlag) {
+                for (j = 0; j < n; ++j) {
+                    x.cell(j, i) /= a.cell(i, i);
+                }
+            }
         }
     }
 
-    // right looking serial
+    // right looking serial (IKJ)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
+        #ifdef PRINT
+        printf("TriSolveLUBase (serial G IKJ) (%d, %d)\n", m, n);
+        #endif
+
         IndexT i, j, k;
         for (i = m - 1; i >= 0; --i) {
             if (!unitFlag) {
@@ -63,10 +85,14 @@ to X[n,m]
         }
     }
 
-    // left looking serial
+    // left looking serial (IKJ)
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
+        #ifdef PRINT
+        printf("TriSolveLUBase (serial L IKJ) (%d, %d)\n", m, n);
+        #endif
+
         IndexT i, j, k;
         for (i = m - 1; i >= 0; --i) {
             for (k = i + 1; k < m; ++k) {
@@ -82,10 +108,53 @@ to X[n,m]
         }
     }
 
+#if 0
+    // right looking (update trailing matrix after each row is solved)
+    to   (X x)
+    from (UNITFLAG unitFlag, A a)
+    {
+        #ifdef PRINT
+        printf("TriSolveLUBase (G) (%d, %d)\n", m, n);
+        #endif
+
+        for (IndexT i = m-1; i >= 0; --i) {
+            if (!unitFlag) {
+                Scale1D(x.row(i), 1.0 / a.cell(i, i));
+            }
+            MatrixMultiplyAdd(x.region(0, 0, n, i), -1,
+                              a.region(i, 0, i+1, i),
+                              x.region(0, i, n, i+1), 1);
+        }
+    }
+
+    // left looking (process one row at a time)
+    to   (X x)
+    from (UNITFLAG unitFlag, A a)
+    {
+        #ifdef PRINT
+        printf("TriSolveLUBase (L) (%d, %d)\n", m, n);
+        #endif
+
+        if (!unitFlag) {
+            Scale1D(x.row(m-1), 1.0 / a.cell(m-1, m-1));
+        }
+        for (IndexT i = m-2; i >= 0; --i) {
+            ElementT factor = unitFlag ? 1 : 1.0 / a.cell(i, i);
+            MatrixMultiplyAdd(x.region(0, i, n, i+1), -factor,
+                              a.region(i+1, i, m, i+1),
+                              x.region(0, i+1, n, m), factor);
+        }
+    }
+
     // call LAPACK
     to (X x) from (UNITFLAG unitFlag, A a) {
+        #ifdef PRINT
+        printf("TriSolveLUBase (LAPACK) (%d, %d)\n", m, n);
+        #endif
+
         TriSolveLAPACK(x, 0, 1, unitFlag, 1, a);
     }
+#endif
 }
 
 transform TriSolveLUBlocked
@@ -101,6 +170,10 @@ tunable sizespecific blockSize
             TriSolveLUBase(x, unitFlag, a);
             return;
         }
+
+        #ifdef PRINT
+        printf("TriSolveLUBlocked (G) (%d, %d), %d\n", m, n, (int) blockSize);
+        #endif
 
         IndexT m2 = m - blockSize;
         MatrixRegion2D x1, x2;
@@ -126,6 +199,10 @@ tunable sizespecific blockSize
             TriSolveLUBase(x, unitFlag, a);
             return;
         }
+
+        #ifdef PRINT
+        printf("TriSolveLUBlocked (L) (%d, %d), %d\n", m, n, (int) blockSize);
+        #endif
 
         IndexT i0, i1;
         MatrixRegion2D x2, x3;
@@ -156,16 +233,20 @@ tunable sizespecific blockSize
 transform TriSolveLURecursive
 from UNITFLAG, A[m,m]
 to X[n,m]
-tunable recursiveBlockSize
+tunable sizespecific blockSize
 {
     // similar to right looking blocked version
     to   (X x)
     from (UNITFLAG unitFlag, A a)
     {
-        if (recursiveBlockSize < 1 || recursiveBlockSize >= m) {
+        if (blockSize < 1 || blockSize >= m) {
             TriSolveLUBlocked(x, unitFlag, a);
             return;
         }
+
+        #ifdef PRINT
+        printf("TriSolveLURecursive (%d, %d), %d\n", m, n, (int) blockSize);
+        #endif
 
         ConstMatrixRegion2D a11, a12, a22;
         MatrixRegion2D x1, x2;
@@ -177,9 +258,37 @@ tunable recursiveBlockSize
         x1 = x.region(0, 0  , n, m/2);
         x2 = x.region(0, m/2, n, m  );
 
-        TriSolveLUInPlace(x2, unitFlag, a22);
+        TriSolveLURecursive(x2, unitFlag, a22);
         MatrixMultiplyAdd(x1, -1, a12, x2, 1);
-        TriSolveLUInPlace(x1, unitFlag, a11);
+        TriSolveLURecursive(x1, unitFlag, a11);
+    }
+}
+
+// split X into two and solve in parallel
+transform TriSolveLUSplit
+from UNITFLAG, A[m,m]
+to X[n,m]
+tunable sizespecific blockSize
+{
+    to   (X x)
+    from (UNITFLAG unitFlag, A a)
+    {
+        if (blockSize < 1 || blockSize >= n) {
+            TriSolveLURecursive(x, unitFlag, a);
+            return;
+        }
+
+        #ifdef PRINT
+        printf("TriSolveLUSplit (%d, %d), %d\n", m, n, (int) blockSize);
+        #endif
+        MatrixRegion2D x1, x2;
+
+        x1 = x.region(0  , 0, n/2, m);
+        x2 = x.region(n/2, 0, n  , m);
+
+        spawn TriSolveLUSplit(x1, unitFlag, a);
+        spawn TriSolveLUSplit(x2, unitFlag, a);
+        sync;
     }
 }
 
@@ -188,7 +297,12 @@ from UNITFLAG, A[m,m]
 to X[n,m]
 {
     to (X x) from (UNITFLAG unitFlag, A a) {
-        TriSolveLUBase(x, unitFlag, a);
+        TriSolveLUSplit(x, unitFlag, a);
+    }
+
+#if 0
+    to (X x) from (UNITFLAG unitFlag, A a) {
+        TriSolveLURecursive(x, unitFlag, a);
     }
 
     to (X x) from (UNITFLAG unitFlag, A a) {
@@ -196,8 +310,9 @@ to X[n,m]
     }
 
     to (X x) from (UNITFLAG unitFlag, A a) {
-        TriSolveLURecursive(x, unitFlag, a);
+        TriSolveLUBase(x, unitFlag, a);
     }
+#endif
 }
 
 transform TriSolveLU
@@ -206,8 +321,21 @@ to X[n,m]
 generator TriSolveUGenerator
 {
     to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        #ifdef PRINT
+        printf("TriSolveLU No Transpose\n");
+        #endif
         Copy2D(x, b);
         TriSolveLUInPlace(x, unitFlag, a);
+    }
+
+    to (X x) from (UNITFLAG unitFlag, A a, B b) {
+        #ifdef PRINT
+        printf("TriSolveLU Transpose\n");
+        #endif
+        MatrixRegion2D t = MatrixRegion2D::allocate(m,n);
+        Transpose(t, b);
+        TriSolveLUInPlace(t.transposed(), unitFlag, a);
+        Transpose(x, t);
     }
 }
 

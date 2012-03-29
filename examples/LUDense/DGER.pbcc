@@ -1,20 +1,117 @@
 #ifndef DGER_PBCC
 #define DGER_PBCC
 
-// Perform the rank 1 operation: A := alpha*x*y + A,
-// where alpha is a scalar, x is an m element column vector,
+#include "../simple/macros.h"
+#include "../simple/copy.pbcc"
+#include "../simple/transpose.pbcc"
+
+// Perform the rank 1 operation: A := alpha*x*y + beta*A
+// where alpha and beta are scalars, x is an m element column vector,
 // y is an n element row vector and A is an m by n matrix.
-transform DGER
-from ALPHA, X[1, m], Y[n, 1]
+transform DGERBase
+from ALPHA, X[1, m], Y[n, 1], BETA
 to A[n, m]
 {
+    // element-wise update
     to (A.cell(j, i) a)
     from (ALPHA alpha,
           X.cell(0, i) x,
-          Y.cell(j, 0) y)
+          Y.cell(j, 0) y,
+          BETA beta)
     {
-        a += alpha * x * y;
+        a = alpha * x * y + beta * a;
     }
+
+    // traverse A row-wise
+    to (A a)
+    from (ALPHA alpha, X x, Y y, BETA beta)
+    {
+//        printf("DGERBase(%d, %d), rule 1 called ...\n", m, n);
+        IndexT i, j;
+        ElementT temp;
+        for (i = 0; i < m; ++i) {
+            temp = alpha * x.cell(0, i);
+            for (j = 0; j < n; ++j) {
+                a.cell(j, i) = temp * y.cell(j, 0) + beta * a.cell(j, i);
+            }
+        }
+    }
+
+    // traverse A column-wise
+    to (A a)
+    from (ALPHA alpha, X x, Y y, BETA beta)
+    {
+//        printf("DGERBase(%d, %d), rule 2 called ...\n", m, n);
+        IndexT i, j;
+        ElementT temp;
+        for (j = 0; j < n; ++j) {
+            temp = alpha * y.cell(j, 0);
+            for (i = 0; i < m; ++i) {
+                a.cell(j, i) = temp * x.cell(0, i) + beta * a.cell(j, i);
+            }
+        }
+    }
+}
+
+transform DGERRecursive
+from ALPHA, X[1, m], Y[n, 1], BETA
+to A[n, m]
+tunable sizespecific blockSize
+{
+    to (A a)
+    from (ALPHA alpha, X x, Y y, BETA beta)
+    {
+        if (blockSize <= 0 || blockSize >= MAX(m, n)) {
+            DGERBase(a, alpha, x, y, beta);
+            return;
+        }
+
+        if (m >= n) {
+            IndexT k = m / 2;
+            spawn DGERRecursive(a.region(0, 0, n, k), alpha,
+                                x.region(0, 0, 1, k), y, beta);
+            spawn DGERRecursive(a.region(0, k, n, m), alpha,
+                                x.region(0, k, 1, m), y, beta);
+            sync;
+        } else {
+            IndexT k = n / 2;
+            spawn DGERRecursive(a.region(0, 0, k, m), alpha,
+                                x, y.region(0, 0, k, 1), beta);
+            spawn DGERRecursive(a.region(k, 0, n, m), alpha,
+                                x, y.region(k, 0, n, 1), beta);
+            sync;
+        }
+    }
+}
+
+transform DGER
+from ALPHA, X[1, m], Y[n, 1], BETA
+to A[n, m]
+{
+    to (A a)
+    from (ALPHA alpha, X x, Y y, BETA beta)
+    {
+        DGERRecursive(a, alpha, x, y, beta);
+    }
+
+//  to (A a)
+//  from (ALPHA alpha, X x, Y y, BETA beta)
+//  {
+//      // TODO: Copies are for testing purposes.  Remove for actual usage.
+//      MatrixRegion2D temp = MatrixRegion2D::allocate(n, m);
+//      Copy2D(temp, a);
+//      DGERRecursive(temp, alpha, x, y, beta);
+//      Copy2D(a, temp);
+//  }
+
+//  to (A a)
+//  from (ALPHA alpha, X x, Y y, BETA beta)
+//  {
+//      MatrixRegion2D temp = MatrixRegion2D::allocate(m, n);
+//      Transpose(temp, a);
+//      DGERRecursive(temp.transposed(), alpha, x, y, beta);
+//      Transpose(a, temp);
+//  }
 }
 
 #endif // DGER_PBCC
