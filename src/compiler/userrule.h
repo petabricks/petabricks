@@ -170,6 +170,29 @@ public:
 #endif
   }
 
+  /* bool hasStencil(MatrixDefPtr matrix, size_t dim) { */
+  /*   if(matrix->numDimensions() != dim) */
+  /*     return false; */
+  /*   return _maxCoordOffsets.find(matrix->name()) != _maxCoordOffsets.end() && MAXIMA.compare(_maxCoordOffsets[matrix->name()][dim - 1], ">", FormulaInteger::one()); */
+  /* } */
+
+  /// 0 - need to entire matrix
+  /// 1 - one to one
+  /// 2 - multiple to one
+  int stencilType(MatrixDefPtr matrix, size_t dim) {
+    if(matrix->numDimensions() != dim)
+      return 0;
+    if(_maxCoordOffsets.find(matrix->name()) != _maxCoordOffsets.end()) {
+      if(MAXIMA.comparePessimistically(_maxCoordOffsets[matrix->name()][dim - 1], ">", FormulaInteger::one())) {
+	return 2;
+      }
+      else if(MAXIMA.comparePessimistically(_maxCoordOffsets[matrix->name()][dim - 1], "=", FormulaInteger::one())) {
+      	return 1;
+      }
+    }
+    return 0;
+  }
+
   RuleFlags::PriorityT priority() const { return _flags.priority; }
   const FormulaList& conditions() const { return _conditions; }
 

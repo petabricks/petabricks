@@ -26,8 +26,6 @@
  *****************************************************************************/
 #include "gpurule.h"
 
-//#define GPU_TRACE
-
 namespace petabricks
 {
 std::set<int> GpuRule::_done;

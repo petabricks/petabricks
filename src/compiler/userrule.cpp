@@ -30,7 +30,6 @@
 //#define TRACE(x) std::cout << "Trace " << x << "\n"
 
 #define TRACE JTRACE
-//#define GPU_TRACE 1
 
 #define MAX_BLOCK_SIZE 16
 //#define BLOCK_SIZE_X 16
@@ -795,9 +794,22 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
   o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+"_"+flavor.str(), packedargs);
 
 #ifdef HAVE_OPENCL
-    for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i) {
-      o.write((*i)->matrix()->name()+".useOnCpu();");
+  int dim_int = iterdef.dimensions();
+  std::string dim_string = jalib::XToString(dim_int);
+  
+  for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i) {
+    switch(stencilType((*i)->matrix(),dim_int)) {
+    case 0:
+      o.write((*i)->matrix()->name()+".useOnCpu(0);");
+      break;
+    case 1:
+      o.write((*i)->matrix()->name()+".useOnCpu(_iter_begin["+dim_string+"-1]);");
+      break;
+    case 2:
+      o.write((*i)->matrix()->name()+".useOnCpu(_iter_begin["+dim_string+"-1] + "+jalib::XToString(_minCoordOffsets[(*i)->matrix()->name()][dim_int-1])+");");
+      break;
     }
+  }
 #endif
 
   for(size_t i=0; i<_duplicateVars.size(); ++i){
@@ -1101,6 +1113,8 @@ void petabricks::UserRule::generateMultiOpenCLTrampCodes(Transform& trans, CodeG
   IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
   std::vector<std::string> packedargs = iterdef.packedargs();
   std::string codename = trampcodename(trans) + TX_OPENCL_POSTFIX;
+  
+  o.comment("UserRule:generateMultiOpenCLTrampCodes");
 
   // Call prepare, copy-in, run ,copy-out tasks
   generateOpenCLCallCode(trans, o, flavor);
@@ -1137,7 +1151,8 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   else
     objectname = trans.instClassName() + "_workstealing";
 
-  std::string dimension = jalib::XToString(iterdef.dimensions());
+  int dim_int = iterdef.dimensions();
+  std::string dimension = jalib::XToString(dim_int);
 
   std::string prepareclass = "petabricks::GpuSpatialMethodCallTask<"+objectname
                            + ", " + dimension
@@ -1164,7 +1179,8 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   o.write("return end;");
   o.endIf();
 
-  o.write("GpuTaskInfoPtr taskinfo = new GpuTaskInfo(nodeID, map, gpuCopyOut);");
+  o.write("GpuTaskInfoPtr taskinfo = new GpuTaskInfo(nodeID, map, gpuCopyOut,"+dimension+");");
+  
   o.write("DynamicTaskPtr prepare = new "+prepareclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::PREPARE);");
   o.write("prepare->enqueue();");
 
@@ -1178,19 +1194,27 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
       std::string taskid = jalib::XToString(id);
       o.write("{");
       o.incIndent();
-      if(_maxCoordOffsets.find((*i)->matrix()->name()) != _maxCoordOffsets.end() 
-	 && MAXIMA.compare(_maxCoordOffsets[(*i)->matrix()->name()][0], ">", FormulaInteger::one())) {
-	// TODO: modify here for more general case
-	o.write("IndexT end[" + jalib::XToString(iterdef.dimensions()) + "];");
+      int type = stencilType((*i)->matrix(),dim_int);
+      if(type == 2) {
+	// TODO: doens't work with removed dimensoin
+	o.write("IndexT end[" + dimension + "];");
 	o.write("memcpy(end, _iter_end, sizeof end);");
-	o.os() << "end[0] = _iter_end[0] + "
-	       << _maxCoordOffsets[(*i)->matrix()->name()][0]
+	o.os() << "end[" << dimension << "-1] = _iter_end[" << dimension <<  "-1] + "
+	       << _maxCoordOffsets[(*i)->matrix()->name()][dim_int-1]
 	       << " - 1;\n";
-	o.write("DynamicTaskPtr copyin_"+taskid+" = new "+copyinclass+"(this,_iter_begin, end, taskinfo, "+(*i)->matrix()->name()+".storageInfo());");
+      }
+      else if (type == 1){
+	o.write("IndexT* end = _iter_end;");
       }
       else {
-	o.write("DynamicTaskPtr copyin_"+taskid+" = new "+copyinclass+"(this,_iter_begin, _iter_end, taskinfo, "+(*i)->matrix()->name()+".storageInfo());");
+	// Set bound = {-1, ..., -1} to indicat copying the entire region. MatrixStroage::initGpuMem should handles this correctly.
+	std::stringstream ss;
+	ss << "-1";
+	for(int i = 1; i < dim_int; ++i)
+	  ss << ",-1";
+	o.write("IndexT end[" + dimension + "] = {"+ss.str()+"};");
       }
+	o.write("DynamicTaskPtr copyin_"+taskid+" = new "+copyinclass+"(this, _iter_begin, end, taskinfo, "+(*i)->matrix()->name()+".storageInfo());");
       o.write("copyin_"+taskid+"->enqueue();");
       o.decIndent();
       o.write("}");
@@ -1258,7 +1282,7 @@ void petabricks::UserRule::generateOpenCLCopyInCode(std::string& codename, std::
   o.write("MatrixIO().write("+name+");");
   //o.write("MatrixIO().write("+name+".asGpuInputBuffer());");
 #endif
-  o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->getClMem(), CL_FALSE, 0, storage_"+name+"->bytes(), "+name+".getGpuInputBufferPtr(), 0, NULL, NULL);");
+  o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->getClMem(), CL_FALSE, 0, storage_"+name+"->bytesOnGpu(), "+name+".getGpuInputBufferPtr(), 0, NULL, NULL);");
   o.write("clFlush(GpuManager::_queue);");
 #ifdef DEBUG
   o.write("JASSERT(CL_INVALID_CONTEXT != err).Text( \"Failed to write to buffer.\");");

@@ -64,6 +64,9 @@ public:
     return ((*_obj).*(method))(_begin, _end);
   }
 
+  IndexT* begin() { return _begin; }
+  IndexT* end() { return _end; }
+
 private:
   jalib::JRef<T> _obj;
   IndexT _begin[D];
@@ -87,6 +90,9 @@ public:
     JASSERT(_state == S_REMOTE_READY)(_state);
     return ((*_obj).*(method))(_begin, _end);
   }
+
+  IndexT* begin() { return _begin; }
+  IndexT* end() { return _end; }
 
 private:
   jalib::JRef<T> _obj;
@@ -114,6 +120,7 @@ public:
     _ends = ends;
     _nodeID = nodeID;
   }
+
 private:
   jalib::JRef<T> _obj;
   std::vector<IndexT*> _begins;

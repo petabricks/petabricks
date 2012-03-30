@@ -44,10 +44,11 @@ class GpuTaskInfo: public jalib::JRefCounted {
 public:
 
   /// constructor
-  GpuTaskInfo(int nodeID, RegionNodeGroupMapPtr map, int gpuCopyOut) {
+  GpuTaskInfo(int nodeID, RegionNodeGroupMapPtr map, int gpuCopyOut, int dimensions) {
     _nodeID = nodeID;
     _map = map;
     _gpuCopyOut = gpuCopyOut;
+    _dimensions = dimensions;
   }
 
   ///
@@ -60,6 +61,7 @@ public:
 
   int nodeID() { return _nodeID; }
   int gpuCopyOut() { return _gpuCopyOut; }
+  int dimensions() { return _dimensions; }
   RegionNodeGroupMapPtr regionNodeGroupMap() { return _map; }
   
   void print() {
@@ -86,6 +88,8 @@ private:
   ///
   /// ID of this task
   int _nodeID;
+
+  int _dimensions;
 
   int _gpuCopyOut;
 

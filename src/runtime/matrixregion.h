@@ -33,8 +33,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-//#define GPU_TRACE 1
-
 //
 // Class structure looks like this:
 //
@@ -489,10 +487,10 @@ public:
     }
   }
 
-  void useOnCpu() {
+  void useOnCpu(IndexT firstRow = 0) {
 #ifdef HAVE_OPENCL
     if(D == 0) return;
-    this->storage()->updateDataFromGpu();
+    this->storage()->updateDataFromGpu(firstRow);
 #endif
   }
 

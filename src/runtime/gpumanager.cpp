@@ -36,8 +36,6 @@
 #  include "config.h"
 #endif
 
-//#define GPU_TRACE 1
-
 #ifdef HAVE_OPENCL
 static bool _useOpenCL() { return true; }
 #else
@@ -172,8 +170,10 @@ void GpuManager::prepare(GpuDynamicTaskPtr task) {
   std::cout << "Number of To Matrices   = " << _currenttaskinfo->_to.size() << std::endl;
   #endif
 
+  int dimensions = _currenttaskinfo->dimensions();
+
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
-    (*i)->initGpuMem(_queue,_context,false); // clCreateBuffer
+    (*i)->initGpuMem(_queue,_context,task->end(),dimensions,false); // clCreateBuffer
   }
 }
 
@@ -183,8 +183,9 @@ void GpuManager::copyin(GpuDynamicTaskPtr task) {
   std::cout << "[COPY IN]" << std::endl;
   #endif
   MatrixStorageInfoPtr storageinfo = task->storageinfo();
+  int dimensions = _currenttaskinfo->dimensions();
 
-  if(storageinfo->initGpuMem(_queue,_context,true)) { // clCreateBuffer
+  if(storageinfo->initGpuMem(_queue,_context,task->end(),dimensions,true)) { // clCreateBuffer
     #ifdef GPU_TRACE
     std::cout << "copying in... " << &(*storageinfo) << std::endl;
     #endif

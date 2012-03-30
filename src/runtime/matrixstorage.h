@@ -27,8 +27,6 @@
 #ifndef PETABRICKSMATRIXSTORAGE_H
 #define PETABRICKSMATRIXSTORAGE_H
 
-//#define GPU_TRACE 1
-
 #include <set>
 #include <map>
 #include <math.h>
@@ -38,6 +36,8 @@
 #include "common/jmutex.h"
 #include "common/jrefcounted.h"
 #include "common/openclutil.h"
+
+#define GPU_TRACE 1
 
 namespace petabricks {
 
@@ -145,7 +145,7 @@ public:
 #ifdef HAVE_OPENCL
   void lock() { _lock.lock(); }
   void unlock() { _lock.unlock(); }
-  void updateDataFromGpu();
+  void updateDataFromGpu(IndexT firstRow);
 #else
   void lock()   { UNIMPLEMENTED(); }
   void unlock() { UNIMPLEMENTED(); }
@@ -183,6 +183,30 @@ public:
   size_t count() const {
     return _count;
   }
+
+
+#ifdef HAVE_OPENCL
+  /// Number of bytes of this storage info from the beginning
+  /// until the row #lastRow
+  size_t bytesOnGpu() const {
+    if(_dimensions == 0)
+      return sizeof(ElementT);
+    #ifdef DEBUG
+    JASSERT(_lastRowOnGpu <= _sizes[_dimensions - 1])(_lastRowOnGpu)(_sizes[_dimensions - 1])(_dimensions);
+    #endif
+    return _normalizedMultipliers[_dimensions - 1]*_lastRowOnGpu*sizeof(ElementT);
+  }
+
+
+  /// Number of bytes of this storage info from the beginning
+  /// until the row #lastRow
+  size_t countOnGpu() const {
+    #ifdef DEBUG
+    JASSERT(_lastRowOnGpu <= _sizes[_dimensions - 1])(_lastRowOnGpu)(_sizes[_dimensions - 1])(_dimensions);
+    #endif
+    return _normalizedMultipliers[_dimensions - 1]*_lastRowOnGpu;
+  }
+#endif
 
   size_t coordToIndex(const IndexT* coord) const{
     IndexT rv = 0;
@@ -274,12 +298,17 @@ public:
   void modifyOnCpu() { _cpuModify = true; }  //TODO: do I need to use lock?
   void setName(std::string name) { _name = name; }
   std::string getName() { return _name; }
+  bool isContiguous() { return _contiguous; }
+  int lastRowOnGpu() { return _lastRowOnGpu; }
+
   bool equal(MatrixStorageInfoPtr that);
   cl_command_queue& queue() { return _queue; }
 
   ///
   /// call after run gpu PREPARE task
-  bool initGpuMem(cl_command_queue& queue, cl_context& context, bool input);
+  /// return true when copyin task needs to be run
+  /// return false when data is already in the gpu memmory
+  bool initGpuMem(cl_command_queue& queue, cl_context& context, IndexT* end, int dimensions, bool input);
 
   ///
   /// call after run gpu RUN task
@@ -405,19 +434,18 @@ private:
   IndexT  _sizes[MAX_DIMENSIONS];
   ElementT _extraVal;
   HashT   _hash;
-  ssize_t _count;
+  size_t _count;
 
 #ifdef HAVE_OPENCL
   std::vector<MatrixStoragePtr> _gpuInputBuffers;
   IndexT  _normalizedMultipliers[MAX_DIMENSIONS];
   
   std::string _name;
-  int _coverage;
+  size_t _coverage;
+  int _lastRowOnGpu;
   bool _hasGpuMem;
   bool _cpuModify;
-
-  ///
-  /// regions that are modified on gpu
+  bool _contiguous;;
   std::vector<IndexT*> _begins;
   std::vector<IndexT*> _ends;
   NodeGroups _completeGroups;

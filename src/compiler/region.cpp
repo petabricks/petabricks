@@ -238,10 +238,10 @@ std::string petabricks::SimpleRegion::getIterationUpperBounds() const {
 
 std::string petabricks::SimpleRegion::getIterationMiddleEnd(std::string& middle) const {
   std::stringstream os;
-  os << middle;
-  for(int i = 1; i < maxCoord().size(); ++i) {
-    os << "," << maxCoord()[i];
+  for(int i = 0; i < maxCoord().size() - 1; ++i) {
+    os << maxCoord()[i] << ",";
   }
+  os << middle;
 
   std::string s = os.str();
   
@@ -254,10 +254,10 @@ std::string petabricks::SimpleRegion::getIterationMiddleEnd(std::string& middle)
 
 std::string petabricks::SimpleRegion::getIterationMiddleBegin(std::string& middle) const {
   std::stringstream os;
-  os << middle;
-  for(int i = 1; i < maxCoord().size(); ++i) {
-    os << "," << minCoord()[i];
+  for(int i = 0; i < maxCoord().size() - 1; ++i) {
+    os << minCoord()[i] << ",";
   }
+  os << middle;
 
   std::string s = os.str();
   
