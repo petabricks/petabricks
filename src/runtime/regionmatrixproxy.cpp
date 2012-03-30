@@ -22,6 +22,7 @@ void RegionMatrixProxy::writeCell(const IndexT*, ElementT) {
 
 void RegionMatrixProxy::onRecv(const void* data, size_t len, int messageType) {
   const BaseMessageHeader* base = (const BaseMessageHeader*)data;
+  // JTRACE("msg")(messageType);
   switch(messageType) {
   case MessageTypes::READCELL:
     _regionHandler->processReadCellMsg(base, len, this);

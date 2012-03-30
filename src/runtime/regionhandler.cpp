@@ -11,6 +11,7 @@ using namespace petabricks::RegionDataRemoteMessage;
 
 RegionHandler::RegionHandler(const int dimensions) {
   _D = dimensions;
+  _shouldReplicateToAllNodes = false;
   init();
 }
 
@@ -411,7 +412,7 @@ void RegionHandler::copyRegionDataToLocal() {
   if (type() == RegionDataTypes::REGIONDATARAW) {
     return;
   }
-  JDEBUGASSERT(type() == RegionDataTypes::REGIONDATAREMOTE && !isDataSplit());
+  JDEBUGASSERT(!isDataSplit());
 
   JLOCKSCOPE(_copyRegionDataToLocalMux);
 
@@ -419,6 +420,8 @@ void RegionHandler::copyRegionDataToLocal() {
   if (regionData->type() == RegionDataTypes::REGIONDATARAW) {
     return;
   }
+  JDEBUGASSERT(regionData->type() == RegionDataTypes::REGIONDATAREMOTE)((int)regionData->type());
+
   RegionDataIPtr newRegionData = new RegionDataRaw(_D, regionData->size());
   newRegionData->allocData();
 
