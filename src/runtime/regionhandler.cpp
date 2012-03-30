@@ -20,12 +20,14 @@ RegionHandler::RegionHandler(const int dimensions, const IndexT* size, const boo
   if (alloc) {
     _regionData->allocData();
   }
+  _shouldReplicateToAllNodes = false;
   init();
 }
 
-RegionHandler::RegionHandler(const RegionDataIPtr regionData) {
+RegionHandler::RegionHandler(const RegionDataIPtr regionData, bool shouldReplicateToAllNodes = false) {
   _regionData = regionData;
   _D = _regionData->dimensions();
+  _shouldReplicateToAllNodes = shouldReplicateToAllNodes;
   init();
 }
 
@@ -102,6 +104,10 @@ int RegionHandler::allocData(const IndexT* size, int distributedCutoff, int dist
     } else {
       allocDataLocal(size);
     }
+
+  } else if (distributionType == RegionDataDistributions::ALL_NODES) {
+    _shouldReplicateToAllNodes = true;
+    allocDataLocal(size);
 
   } else {
     JASSERT(false).Text("Unknown distribution type.");
@@ -401,6 +407,36 @@ RegionHandlerPtr RegionHandler::copyToScratchMatrixStorageCache(CopyToMatrixStor
   return NULL;
 }
 
+void RegionHandler::copyRegionDataToLocal() {
+  if (type() == RegionDataTypes::REGIONDATARAW) {
+    return;
+  }
+  JDEBUGASSERT(type() == RegionDataTypes::REGIONDATAREMOTE && !isDataSplit());
+
+  JLOCKSCOPE(_copyRegionDataToLocalMux);
+
+  RegionDataIPtr regionData = this->regionData();
+  if (regionData->type() == RegionDataTypes::REGIONDATARAW) {
+    return;
+  }
+  RegionDataIPtr newRegionData = new RegionDataRaw(_D, regionData->size());
+  newRegionData->allocData();
+
+  size_t len = RegionMatrixMetadata::len(_D, 0);
+  char buf[len];
+  CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*) buf;
+  RegionMatrixMetadata& metadata = msg->srcMetadata;
+  metadata.dimensions = _D;
+  metadata.numSliceDimensions = 0;
+  memset(metadata.splitOffset, 0, sizeof(IndexT) * _D);
+  memcpy(metadata.size(), newRegionData->size(), sizeof(IndexT) * _D);
+
+  regionData->copyToScratchMatrixStorage(msg, len, newRegionData->storage(), &metadata, newRegionData->size());
+
+  updateRegionData(newRegionData);
+  JTRACE("copy all regiondata");
+}
+
 void RegionHandler::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
   RegionDataIPtr regionData = this->regionData();
 
@@ -481,7 +517,7 @@ RegionHandlerDB& RegionHandlerDB::instance() {
   return db;
 }
 
-RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size, bool isDataSplit) {
+RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size, bool isDataSplit, bool shouldReplicateToAllNodes) {
   if (hostPid == HostPid::self()) {
     return reinterpret_cast<RegionHandler*>(remoteHandler);
   }
@@ -499,7 +535,7 @@ RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(const HostPid& hostPid, 
   if (localMap.count(remoteHandler) == 0) {
     // create a new one
     RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, hostPid, remoteHandler, isDataSplit);
-    localMap[remoteHandler] = new RegionHandler(regionData);
+    localMap[remoteHandler] = new RegionHandler(regionData, shouldReplicateToAllNodes);
   }
 
   RegionHandlerPtr localHandler = localMap[remoteHandler];

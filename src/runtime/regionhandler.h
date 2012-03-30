@@ -55,23 +55,14 @@ namespace petabricks {
   };
 
   class RegionHandler : public jalib::JRefCounted {
-  private:
-    RegionDataIPtr _regionData;
-    jalib::JMutex _regionDataMux;
-    int _D;
 
-    /* int cacheLastestIndex; */
-    /* std::vector<double> _cacheHashes; */
-    /* std::vector<RegionHandlerCacheMetadataPtr> _cacheMetadata; */
-    /* std::vector<RegionHandlerPtr> _cacheHandlers; */
-    typedef std::map<jalib::Hash, RegionHandlerCacheItemPtr> RegionHandlerCacheMap;
-    RegionHandlerCacheMap _cache;
-    jalib::JMutex _cacheMux;
+  private:
+    RegionHandler(const petabricks::RegionHandler&);
 
   public:
     RegionHandler(const int dimensions);
     RegionHandler(const int dimensions, const IndexT* size, const bool alloc);
-    RegionHandler(const RegionDataIPtr regionData);
+    RegionHandler(const RegionDataIPtr regionData, bool shouldReplicateToAllNodes);
     // ~RegionHandler() { JTRACE("destruct handler")(this); };
 
     void init();
@@ -102,6 +93,8 @@ namespace petabricks {
     const IndexT* size() const;
     RegionDataType type() const;
 
+    bool shouldReplicateToAllNodes() const { return _shouldReplicateToAllNodes; }
+
     // Migration
     void updateHandlerChain();
     RemoteRegionHandler remoteRegionHandler() const;
@@ -110,6 +103,7 @@ namespace petabricks {
     // Copy MatrixStorage
     void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
     RegionHandlerPtr copyToScratchMatrixStorageCache(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize, RegionHandlerPtr scratchHandler);
+    void copyRegionDataToLocal();
     void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
 
     // RegionDataSplit
@@ -127,6 +121,23 @@ namespace petabricks {
     void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processRandomizeDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+
+  private:
+    RegionDataIPtr _regionData;
+    jalib::JMutex _regionDataMux;
+    jalib::JMutex _copyRegionDataToLocalMux;
+    int _D;
+
+    /* int cacheLastestIndex; */
+    /* std::vector<double> _cacheHashes; */
+    /* std::vector<RegionHandlerCacheMetadataPtr> _cacheMetadata; */
+    /* std::vector<RegionHandlerPtr> _cacheHandlers; */
+    typedef std::map<jalib::Hash, RegionHandlerCacheItemPtr> RegionHandlerCacheMap;
+    RegionHandlerCacheMap _cache;
+    jalib::JMutex _cacheMux;
+
+    bool _shouldReplicateToAllNodes;
+
   };
 
   typedef std::map<EncodedPtr, RegionHandlerPtr> LocalRegionHandlerMap;
@@ -137,7 +148,7 @@ namespace petabricks {
 
     static RegionHandlerDB& instance();
 
-    RegionHandlerPtr getLocalRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size, bool isDataSplit);
+    RegionHandlerPtr getLocalRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size, bool isDataSplit, bool shouldReplicateToAllNodes);
 
   private:
     jalib::JMutex _mapMux;

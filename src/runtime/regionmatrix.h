@@ -403,6 +403,8 @@ namespace petabricks {
       sz += sizeof(IndexT) * _regionHandler->dimensions();
       sz += sizeof(RemoteRegionHandler);          // RemoteRegionHandler
       sz += sizeof(bool);                         // isDataSplit
+      sz += sizeof(bool);                         // shouldReplicateToAllNodes
+
       return sz;
     }
 
@@ -450,6 +452,10 @@ namespace petabricks {
 
       sz = sizeof(bool);
       *reinterpret_cast<bool*>(buf) = _regionHandler->isDataSplit();
+      buf += sz;
+
+      sz = sizeof(bool);
+      *reinterpret_cast<bool*>(buf) = _regionHandler->shouldReplicateToAllNodes();
       buf += sz;
 
       _regionHandler->incRefCount();
@@ -501,7 +507,11 @@ namespace petabricks {
       bool isDataSplit = *reinterpret_cast<const bool*>(buf);
       buf += sz;
 
-      setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandler.hostPid, remoteRegionHandler.remoteHandler, regionHandlerDimensions, regionHandlerSize, isDataSplit));
+      sz = sizeof(bool);
+      bool shouldReplicateToAllNodes = *reinterpret_cast<const bool*>(buf);
+      buf += sz;
+
+      setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandler.hostPid, remoteRegionHandler.remoteHandler, regionHandlerDimensions, regionHandlerSize, isDataSplit, shouldReplicateToAllNodes));
     }
 
     void updateHandlerChain() const {
@@ -512,6 +522,16 @@ namespace petabricks {
     // Find location of data (data can be in many hosts)
     //
     void dataHosts(DataHostPidList& list, const IndexT* begin, const IndexT* end) const {
+      if (_regionHandler->shouldReplicateToAllNodes()) {
+        // ignore this region
+        return;
+      }
+
+      if (D == 0) {
+        // ignore 0D
+        return;
+      }
+
       IndexT rd_begin[_regionHandler->dimensions()];
       IndexT rd_end[_regionHandler->dimensions()];
       this->regionDataCoord(begin, rd_begin);
@@ -689,6 +709,20 @@ namespace petabricks {
       CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*) buf;
       this->computeRegionMatrixMetadata(msg->srcMetadata);
 
+      if (_regionHandler->shouldReplicateToAllNodes() && cacheable) {
+        // Special case
+        _regionHandler->copyRegionDataToLocal();
+
+        RegionMatrixMetadata& metadata = msg->srcMetadata;
+
+        RegionMatrixSliceInfoPtr sliceInfo = new RegionMatrixSliceInfo(metadata.numSliceDimensions);
+        memcpy(sliceInfo->sliceDimensions(), metadata.sliceDimensions(), sizeof(int) * metadata.numSliceDimensions);
+        memcpy(sliceInfo->slicePositions(), metadata.slicePositions(), sizeof(IndexT) * metadata.numSliceDimensions);
+
+        scratch.init(metadata.size(), metadata.splitOffset, _isTransposed, sliceInfo, _regionHandler);
+        return;
+      }
+
       char scratchMetadataBuf[scratch.regionMatrixMetadataLen()];
       RegionMatrixMetadata* scratchMetadata = (RegionMatrixMetadata*)scratchMetadataBuf;
       scratch.computeRegionMatrixMetadata(*scratchMetadata);
@@ -697,7 +731,7 @@ namespace petabricks {
       if (cacheable) {
         RegionHandlerPtr newHandler = _regionHandler->copyToScratchMatrixStorageCache(msg, len, scratch.regionData()->storage(), scratchMetadata, scratch.regionData()->size(), scratch.regionHandler());
         if (newHandler) {
-          JTRACE("found");
+          // JTRACE("found");
           scratch.setRegionHandler(newHandler);
         }
 
@@ -739,67 +773,6 @@ namespace petabricks {
       } else {
         return localCopy()._toLocalRegion();
       }
-    }
-
-    void fromScratchRegion(const MatrixRegion<D, ElementT>& /*scratch*/) const {
-      // We need to pass metadata for scratchStorage to _regionHandler
-      UNIMPLEMENTED();
-
-      /*
-      #ifdef DEBUG
-      for (int i = 0; i < D; ++i) {
-        JASSERT(size(i) == scratchOrig.size(i));
-      }
-      #endif
-
-      MatrixRegion<D, ElementT> scratch;
-      if (_isTransposed) {
-        scratch = scratchOrig.transposed();
-      } else {
-        scratch = scratchOrig;
-      }
-
-      if (isRegionDataRaw()) {
-        // Do nothing
-
-      } else {
-        unsigned int storage_count = 1;
-        for (unsigned int i=0; i<D; ++i) {
-          storage_count *= scratch.size(i);
-        }
-
-        size_t len = regionMatrixMetadataLen() + (storage_count * sizeof(ElementT));
-        char buf[len];
-        CopyFromMatrixStorageMessage* msg = (CopyFromMatrixStorageMessage*) buf;
-        this->computeRegionMatrixMetadata(msg->srcMetadata);
-
-        // Copy storage.
-        if (scratch.storage()->count() == storage_count) {
-          // send the entire storage
-          memcpy(msg->storage(), scratch.storage()->data(), sizeof(ElementT) * storage_count);
-
-        } else {
-          unsigned int n = 0;
-          IndexT coord[D];
-          memset(coord, 0, sizeof coord);
-          do {
-            msg->storage()[n] = scratch.cell(coord);
-            n++;
-          } while(scratch.incCoord(coord) >= 0);
-          JASSERT(n == storage_count)(n)(storage_count);
-        }
-
-        _regionHandler->copyFromScratchMatrixStorage(msg, len, scratch.storage());
-      }
-
-      #ifdef DEBUG_SCRATCH_REGION
-      IndexT coord[D];
-      memset(coord, 0, sizeof coord);
-      do {
-        JASSERT(fabs(this->cell(coord) - scratchOrig.cell(coord)) < 0.000001)(this->cell(coord))(scratchOrig.cell(coord));
-      } while (this->incCoord(coord) >= 0);
-      #endif
-*/
     }
 
     void fromScratchRegion(const RegionMatrix& scratch) const {
@@ -1112,7 +1085,7 @@ namespace petabricks {
     }
 
     RegionMatrixWrapper() : Base() {
-      init(NULL, new RegionHandler(new RegionData0D()));
+      init(NULL, new RegionHandler(new RegionData0D(), false));
     }
     RegionMatrixWrapper(Base val) : Base() {
       init(NULL, val.regionHandler());
@@ -1120,7 +1093,7 @@ namespace petabricks {
     RegionMatrixWrapper(ElementT* data, IndexT* /*size*/) : Base() {
       RegionDataIPtr regionData = new RegionData0D();
       regionData->writeCell(NULL, *data);
-      init(NULL, new RegionHandler(regionData));
+      init(NULL, new RegionHandler(regionData, false));
     }
     RegionMatrixWrapper(const RegionMatrixWrapper& that) : Base() {
       init(that.sourceInfo(), that.regionHandler());
@@ -1129,10 +1102,10 @@ namespace petabricks {
     ///
     /// Implicit conversion from ElementT/CellProxy
     RegionMatrixWrapper(ElementT& value) : Base() {
-      init(NULL, new RegionHandler(new RegionData0D(value)));
+      init(NULL, new RegionHandler(new RegionData0D(value), false));
     }
     RegionMatrixWrapper(const ElementT& value) : Base() {
-      init(NULL, new RegionHandler(new RegionData0D(value)));
+      init(NULL, new RegionHandler(new RegionData0D(value), false));
     }
     RegionMatrixWrapper(CellProxy& value) : Base() {
       RegionMatrix0DInfoPtr sourceInfo = new RegionMatrix0DInfo(value._handler->dimensions());
@@ -1317,7 +1290,7 @@ namespace petabricks {
       bool isDataSplit = *reinterpret_cast<const bool*>(buf);
       buf += sz;
 
-      Base::setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandler.hostPid, remoteRegionHandler.remoteHandler, regionHandlerDimensions, regionHandlerSize, isDataSplit));
+      Base::setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandler.hostPid, remoteRegionHandler.remoteHandler, regionHandlerDimensions, regionHandlerSize, isDataSplit, false));
     }
 
   };
@@ -1333,7 +1306,7 @@ namespace petabricks {
     INLINE void initWithValue(ElementT value) {
       RegionDataIPtr regionData = new RegionData0D();
       regionData->writeCell(NULL, value);
-      this->setRegionHandler(new RegionHandler(regionData));
+      this->setRegionHandler(new RegionHandler(regionData, false));
 
       // TODO: ConstRegionData0D has a problem with forceMutable
       // this->setRegionHandler(new RegionHandler(new ConstRegionData0D(value)));

@@ -28,7 +28,7 @@ namespace petabricks {
     }
 
     CellProxy(ElementT val) {
-      _handler = new RegionHandler(new RegionData0D());
+      _handler = new RegionHandler(new RegionData0D(), false);
       _handler->writeCell(NULL, val);
       _index = new IndexT[0];
     }

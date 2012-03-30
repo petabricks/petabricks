@@ -29,6 +29,7 @@ namespace petabricks {
       N_BY_ROW,
       N_BY_COL,
       N_BY_BLOCK,
+      ALL_NODES,
     };
   } PACKED;
 

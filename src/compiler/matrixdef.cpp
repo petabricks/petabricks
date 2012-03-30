@@ -160,7 +160,7 @@ void petabricks::MatrixDef::allocateTemporary(CodeGenerator& o, RuleFlavor rf, b
     std::string distributionType = o.className() + "_" + name() + "_distribution_type";
     std::string distributionSize = o.className() + "_" + name() + "_distribution_size";
 
-    o.createTunable(true, "system.data.distribution.type", distributionType, 0, 0, 4);
+    o.createTunable(true, "system.data.distribution.type", distributionType, 0, 0, 5);
     o.createTunable(true, "system.data.distribution.size", distributionSize, jalib::maxval<int>(), 2, jalib::maxval<int>());
 
     o.write("{");
@@ -193,7 +193,7 @@ void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string
     // allocate
     std::string distributionType = o.className() + "_" + name() + "_distribution_type";
     std::string distributionSize = o.className() + "_" + name() + "_distribution_size";
-    o.createTunable(true, "system.data.distribution.type", distributionType, 0, 0, 4);
+    o.createTunable(true, "system.data.distribution.type", distributionType, 0, 0, 5);
     o.createTunable(true, "system.data.distribution.size", distributionSize, jalib::maxval<int>(), 2, jalib::maxval<int>());
     o.write(name()+" = "+typeName(rf)+"::allocate(tmp_"+name()+".size(), distributedcutoff, "+distributionType+", "+distributionSize+");");
 
