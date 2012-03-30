@@ -373,7 +373,7 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
 
   memcpy(header->content(), msg, len);
 
-  remoteObject()->send(header, dataLen);
+  remoteObject()->send(header, dataLen, type);
   free(header);
 
   JLOCKSCOPE(*this);
