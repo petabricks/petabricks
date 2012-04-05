@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 from configtool import ConfigFile, defaultConfigFile
 import pbutil
 import tempfile, os, math, warnings, random, sys, subprocess, time

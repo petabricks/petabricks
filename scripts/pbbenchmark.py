@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import pbutil, progress, tunerconfig, sgatuner, tunerwarnings
 import math 
 import os

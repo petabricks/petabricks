@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import re, sys, os, tempfile, subprocess, logging
 
 CONFIGLINERE=re.compile("[ \t]*([a-z0-9_-]+)[ \t]*[=][ \t]*([.0-9-]+)(.*)", re.IGNORECASE)
