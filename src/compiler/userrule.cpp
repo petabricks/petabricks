@@ -1588,7 +1588,7 @@ void petabricks::UserRule::generatePartialTrampCode(Transform& trans, CodeGenera
 
   for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
     if(i->shouldPass()) {
-      o.addMember("IndexT", i->name(), "");
+      o.addMember(i->memberType(), i->name(), "");
     }
   }
   for(ConfigItems::const_iterator i=_duplicateVars.begin(); i!=_duplicateVars.end(); ++i){
@@ -1692,11 +1692,11 @@ void petabricks::UserRule::generatePartialTrampCode(Transform& trans, CodeGenera
     for(MatrixDefMap::const_iterator i=_partial.begin(); i!=_partial.end(); ++i){
       MatrixDefPtr matrix = i->second;
       bool isConst = (matrix->type() == MatrixDef::T_FROM);
-      o.write(matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + " " + i->first + " = metadata->" + i->first + ";");
+      o.write(matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + "& " + i->first + " = metadata->" + i->first + ";");
     }
     for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
       if(i->shouldPass()) {
-        o.write("IndexT " + i->name() + " = metadata->" + i->name() + ";");
+        o.write("const " + i->passType() + " " + i->name() + " = metadata->" + i->name() + ";");
       }
     }
     for(ConfigItems::const_iterator i=_duplicateVars.begin(); i!=_duplicateVars.end(); ++i){
