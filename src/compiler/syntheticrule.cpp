@@ -107,6 +107,9 @@ void petabricks::WrapperSyntheticRule::generateTrampCode(Transform& trans, CodeG
   _rule->generateTrampCode(trans, o, rf);
 }
 
+void petabricks::WrapperSyntheticRule::generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
+  _rule->generatePartialTrampCode(trans, o, rf);
+}
 
 bool petabricks::WrapperSyntheticRule::isSingleElement() const {
   return _rule->isSingleElement();
@@ -300,6 +303,12 @@ void petabricks::DuplicateExpansionRule::generateCallCode(const std::string& nam
 void petabricks::DuplicateExpansionRule::generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
   size_t old = _rule->setDuplicateNumber(_dup);
   WrapperSyntheticRule::generateTrampCode(trans, o, rf);
+  _rule->setDuplicateNumber(old);
+}
+
+void petabricks::DuplicateExpansionRule::generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf){
+  size_t old = _rule->setDuplicateNumber(_dup);
+  WrapperSyntheticRule::generatePartialTrampCode(trans, o, rf);
   _rule->setDuplicateNumber(old);
 }
 

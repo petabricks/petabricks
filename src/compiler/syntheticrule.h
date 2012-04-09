@@ -111,6 +111,9 @@ public:
                         int nodeID,
                         int gpuCopyOut,
                         SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
+
+  void generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
+
   bool isSingleElement() const;
   int dimensions() const;
   FormulaPtr getSizeOfRuleIn(int d);
@@ -188,6 +191,8 @@ public:
                         int nodeID,
                         int gpuCopyOut,
                         SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
+
+  void generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 private:
   size_t _dup;
 };

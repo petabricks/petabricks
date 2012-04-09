@@ -1485,6 +1485,12 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
     std::string metadataname = partialtrampmetadataname(trans)+"_workstealing";
     o.beginFunc("jalib::JRef<"+metadataname+">", metadataname+"_generator", args);
+
+    // duplicate vars
+    for(size_t i=0; i<_duplicateVars.size(); ++i){
+      o.varDecl("const IndexT "+_duplicateVars[i].name() + " = " + jalib::XToString(_duplicateVars[i].initial()));
+    }
+
     iterdef.unpackargs(o);
 
     o.write("jalib::JRef<"+metadataname+"> metadata = new " + metadataname + "();");
