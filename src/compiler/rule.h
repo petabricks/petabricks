@@ -144,26 +144,27 @@ public:
                                 std::vector<RegionNodeGroup>& regionNodesGroups,
                                 int nodeID,
                                 int gpuCopyOut,
-                                bool isDistributedCall=false) = 0;
+                                SpatialCallType spatialCallType = SpatialCallTypes::INVALID) = 0;
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor) {
     std::vector<RegionNodeGroup> empty;
-    generateCallCode(nodename, trans, o, region, flavor, empty, 0, 0, false);
+    generateCallCode(nodename, trans, o, region, flavor, empty, 0, 0, SpatialCallTypes::INVALID);
   }
   void generateCallCode(const std::string& nodename,
                         Transform& trans,
                         CodeGenerator& o,
                         const SimpleRegionPtr& region,
                         RuleFlavor flavor,
-                        bool isDistributedCall) {
+                        SpatialCallType spatialCallType = SpatialCallTypes::INVALID) {
     std::vector<RegionNodeGroup> empty;
-    generateCallCode(nodename, trans, o, region, flavor, empty, 0, 0, isDistributedCall);
+    generateCallCode(nodename, trans, o, region, flavor, empty, 0, 0, spatialCallType);
   }
   virtual void generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
   virtual void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
+  virtual void generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
 
   virtual void markRecursive() = 0;
   virtual const FormulaPtr& recursiveHint() const = 0;

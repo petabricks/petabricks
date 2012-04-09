@@ -744,6 +744,8 @@ void petabricks::Transform::generateTransformInstanceClass(CodeGenerator& o, Rul
     o.generateMigrationFunctions();
   }
   o.endClass();
+
+  Map(&RuleInterface::generatePartialTrampCode, *this, o, rf, _rules);
 }
 
 void petabricks::Transform::declTransformNFunc(CodeGenerator& o){

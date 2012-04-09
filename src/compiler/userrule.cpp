@@ -1165,17 +1165,26 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
       if (flavor == RuleFlavor::DISTRIBUTED) {
         o.beginIf("petabricks::split_condition<"+jalib::XToString(dimensions())+", "+jalib::XToString(blockNumber)+">(distributedcutoff,"COORD_BEGIN_STR","COORD_END_STR")");
-        iterdef.genSplitCode(o, trans, *this, flavor, blockNumber, true);
+
+        // Can distribute apply task across nodes
+        iterdef.genSplitCode(o, trans, *this, flavor, blockNumber, SpatialCallTypes::DISTRIBUTED);
       }
 
       if (flavor == RuleFlavor::DISTRIBUTED) {
-        std::string splitCondition = "petabricks::split_condition<"+jalib::XToString(dimensions())+", "+jalib::XToString(blockNumber)+">("SPLIT_CHUNK_SIZE_DISTRIBUTED","COORD_BEGIN_STR","COORD_END_STR")";
-        o.elseIf(splitCondition);
+        if (isRecursive()) {
+          std::string splitCondition = "petabricks::split_condition<"+jalib::XToString(dimensions())+", "+jalib::XToString(blockNumber)+">("SPLIT_CHUNK_SIZE_DISTRIBUTED","COORD_BEGIN_STR","COORD_END_STR")";
+          o.elseIf(splitCondition);
+
+          // Can spawn distributed tasks
+          iterdef.genSplitCode(o, trans, *this, flavor, blockNumber, SpatialCallTypes::NORMAL);
+        }
+
       } else {
         std::string splitCondition = "petabricks::split_condition<"+jalib::XToString(dimensions())+", "+jalib::XToString(blockNumber)+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")";
         o.beginIf(splitCondition);
+        iterdef.genSplitCode(o, trans, *this, flavor, blockNumber, SpatialCallTypes::NORMAL);
       }
-      iterdef.genSplitCode(o, trans, *this, flavor, blockNumber, false);
+
       // return written in get split code
       o.elseIf();
     }
@@ -1209,14 +1218,39 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
       if (shouldGenerateTrampIterCode(flavor)) {
         // Create iteration tramp task
-        generateToLocalRegionCode(trans, o, flavor, iterdef, true, false);
+        generateToLocalRegionCode(trans, o, flavor, iterdef, false, true, false);
 
         std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
         o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", startCoord);
 
       } else if (!isRecursive()) {
+        o.comment("Call apply_ruleX_partial");
+
+        std::string methodname = partialtrampcodename(trans)+"_workstealing";
+        std::string metadataname = partialtrampmetadataname(trans)+"_workstealing";
+        std::string taskclass =
+          "petabricks::SpatialMethodCallTask_partial<"
+          + metadataname + ", "
+          + jalib::XToString(iterdef.dimensions())
+          + ", &::" + methodname + ">";
+
+        o.write("jalib::JRef<"+metadataname+"> metadata = "+metadataname+"_generator(_iter_begin, _iter_end);");
+        o.write("DynamicTaskPtr applyPartialTask = new "+taskclass+"(_iter_begin, _iter_end, metadata);");
+
+        // clean up: copy back to remote region
+        methodname = partialtrampcodename(trans)+"_cleanup_workstealing";
+        taskclass =
+          "petabricks::SpatialMethodCallTask_partial<"
+          + metadataname + ", "
+          + jalib::XToString(iterdef.dimensions())
+          + ", &::" + methodname + ">";
+        o.write("_task = new "+taskclass+"(_iter_begin, _iter_end, metadata);");
+        o.write("_task->dependsOn(applyPartialTask);");
+        o.write("applyPartialTask->enqueue();");
+
+        /*
         // call sequential version
-        generateToLocalRegionCode(trans, o, flavor, iterdef, false, true);
+        generateToLocalRegionCode(trans, o, flavor, iterdef, true, false, false);
         iterdef.genLoopBegin(o);
         generateTrampCellCodeSimple( trans, o, RuleFlavor::WORKSTEALING_SCRATCH );
         iterdef.genLoopEnd(o);
@@ -1234,6 +1268,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
             }
           }
         }
+        */
 
       } else {
         JASSERT(isSingleCall()).Text("Check shouldGenerateTrampIterCode method");
@@ -1246,7 +1281,9 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       for (int i = 0; i < iterdef.dimensions(); ++i){
         o.endIf();
       }
+
     } else {
+      // non-distributed
       if (shouldGenerateTrampIterCode(flavor)) {
         // TODO: we don't need new regions for metadata in this case
         CoordinateFormula startCoord;
@@ -1269,7 +1306,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
           o.beginIf(b->toString()+"<"+e->toString());
         }
 
-        generateToLocalRegionCode(trans, o, flavor, iterdef, true, false);
+        generateToLocalRegionCode(trans, o, flavor, iterdef, false, true, false);
 
         std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
         o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", startCoord);
@@ -1410,8 +1447,8 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     }
   }
 
-  // Generate getDataHosts for rule
   if (flavor == RuleFlavor::DISTRIBUTED) {
+    // Generate getDataHosts for rule
     std::vector<std::string> args;
     args.push_back("DataHostPidList& list");
     args.push_back("IndexT _iter_begin["+jalib::XToString(iterdef.dimensions())+"]");
@@ -1440,13 +1477,260 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     }
 
     o.endFunc();
+
+    // Generate apply_ruleX_partial_metadata_workstealing_generator
+    args.clear();
+    args.push_back("IndexT _iter_begin["+jalib::XToString(iterdef.dimensions())+"]");
+    args.push_back("IndexT _iter_end["+jalib::XToString(iterdef.dimensions())+"]");
+
+    std::string metadataname = partialtrampmetadataname(trans)+"_workstealing";
+    o.beginFunc("jalib::JRef<"+metadataname+">", metadataname+"_generator", args);
+    iterdef.unpackargs(o);
+
+    o.write("jalib::JRef<"+metadataname+"> metadata = new " + metadataname + "();");
+    o.write("size_t offset_size = sizeof(IndexT) * " + jalib::XToString(iterdef.dimensions()) + ";");
+
+    generateToLocalRegionCode(trans, o, flavor, iterdef, true, false, true);
+
+    for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
+      if(i->shouldPass()) {
+        o.write("metadata->" + i->name() + " = " + i->name() + ";");
+      }
+    }
+    for(ConfigItems::const_iterator i=_duplicateVars.begin(); i!=_duplicateVars.end(); ++i){
+      o.write("metadata->" + i->name() + " = " + i->name() + ";");
+    }
+
+
+    /*
+
+    for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
+      MatrixDefPtr matrix = i->second;
+      SimpleRegionPtr region = _scratchBoundingBox[trans.lookupMatrix(i->first)];
+
+      CoordinateFormulaPtr lowerBounds = region->getIterationLowerBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
+      CoordinateFormulaPtr upperBounds = region->getIterationUpperBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
+
+      o.write("{");
+      o.incIndent();
+      o.write("IndexT _tmp_begin[] = {" + lowerBounds->toString() + "};");
+      o.write("IndexT _tmp_end[] = {" + upperBounds->toString() + "};");
+
+      o.write("memcpy(metadata->" + i->first + "_offset, _tmp_begin, offset_size);");
+
+
+
+      o.decIndent();
+      o.write("}");
+    }
+    */
+
+    o.write("return metadata;");
+    o.endFunc();
   }
+}
+
+void petabricks::UserRule::generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor){
+  if (!shouldGeneratePartialTrampCode(flavor)) {
+    return;
+  }
+
+  JASSERT(flavor == RuleFlavor::WORKSTEALING);
+
+  IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
+
+  std::string metadataClass = partialtrampmetadataname(trans)+"_"+flavor.str();
+  o.beginClass(metadataClass, "jalib::JRefCounted");
+
+  _partial.clear();
+  for(MatrixToRegionMap::const_iterator i=_fromBoundingBoxNoOptional.begin(); i!=_fromBoundingBoxNoOptional.end(); ++i) {
+    MatrixDefPtr matrix = i->first;
+    MatrixDefPtr partial = new MatrixDef(("partial_"+matrix->name()).c_str(), matrix->getVersion(), matrix->getSize());
+    partial->addType(MatrixDef::T_FROM);
+    _partial[matrix->name()] = partial;
+  }
+
+  for(MatrixToRegionMap::const_iterator i=_toBoundingBox.begin(); i!=_toBoundingBox.end(); ++i) {
+    MatrixDefPtr matrix = i->first;
+    MatrixDefPtr partial = new MatrixDef(("partial_"+matrix->name()).c_str(), matrix->getVersion(), matrix->getSize());
+    // Don't initialize (don't need to modify version)
+    partial->addType(MatrixDef::T_TO);
+    _partial[matrix->name()] = partial;
+  }
+
+  _partialCoordOffsets.clear();
+
+  // Add members to metadata obj
+  for(MatrixDefMap::const_iterator i=_partial.begin(); i!=_partial.end(); ++i){
+    MatrixDefPtr matrix = i->second;
+    bool isConst = (matrix->type() == MatrixDef::T_FROM);
+    o.addMember(matrix->typeName(RuleFlavor::WORKSTEALING, isConst), i->first, "");
+    if (matrix->type() == MatrixDef::T_TO) {
+      o.addMember(matrix->typeName(RuleFlavor::DISTRIBUTED, isConst), "remote_TO_"+i->first, "");
+      if (matrix->numDimensions() > 0) {
+        o.addMember(matrix->typeName(RuleFlavor::DISTRIBUTED, isConst), "local_TO_"+i->first+"", "");
+      }
+    }
+    o.addMember("IndexT", i->first+"_offset["+jalib::XToString(iterdef.dimensions())+"]", "");
+
+    CoordinateFormulaPtr offset = new CoordinateFormula();
+    for (int j = 0; j < iterdef.dimensions(); ++j) {
+      offset->push_back(new FormulaVariable("metadata->" + i->first + "_offset[" + jalib::XToString(j) + "]"));
+    }
+    _partialCoordOffsets[i->first] = offset;
+  }
+
+  for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
+    if(i->shouldPass()) {
+      o.addMember("IndexT", i->name(), "");
+    }
+  }
+  for(ConfigItems::const_iterator i=_duplicateVars.begin(); i!=_duplicateVars.end(); ++i){
+    o.addMember("IndexT", i->name(), "");
+  }
+
+  o.endClass();
+
+  // apply_ruleX_partial_cleanup
+  std::vector<std::string> cleanupArgs;
+  cleanupArgs.push_back("IndexT*");
+  cleanupArgs.push_back("IndexT*");
+  cleanupArgs.push_back("const jalib::JRef<" + metadataClass + ">& metadata");
+
+  o.beginFunc("DynamicTaskPtr", partialtrampcodename(trans)+"_cleanup_"+ flavor.str(), cleanupArgs);
+
+  for(MatrixDefMap::const_iterator i=_partial.begin(); i!=_partial.end(); ++i){
+    MatrixDefPtr matrix = i->second;
+    if (matrix->type() == MatrixDef::T_TO) {
+      if (matrix->numDimensions() > 0) {
+        o.write("metadata->remote_TO_" + i->first + ".fromScratchRegion(metadata->local_TO_" + i->first + ");");
+      } else {
+        o.write("metadata->remote_TO_" + i->first + ".writeCell(NULL, metadata->" + i->first + ".cell());");
+      }
+    }
+  }
+
+  o.write("return NULL;");
+  o.endFunc();
+
+  // apply_ruleX_partial
+
+  std::vector<std::string> args = iterdef.packedargs();
+  args.push_back("const jalib::JRef<" + metadataClass + ">& metadata");
+
+  o.beginFunc("DynamicTaskPtr", partialtrampcodename(trans)+"_"+ flavor.str(), args);
+
+  iterdef.unpackargs(o);
+
+  if(isSingleElement()){
+    trans.markSplitSizeUse(o);
+    Heuristic blockNumberHeur = HeuristicManager::instance().getHeuristic("UserRule_blockNumber");
+    blockNumberHeur.setMin(2);
+    unsigned int blockNumber = blockNumberHeur.eval(ValueMap()); /**< The number of blocks the loop will be
+                                                                  * splitted into */
+    JTRACE("LOOP BLOCKING")(blockNumber);
+
+    std::string splitCondition = "petabricks::split_condition<"+jalib::XToString(dimensions())+", "+jalib::XToString(blockNumber)+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")";
+    o.beginIf(splitCondition);
+
+    iterdef.genSplitCode(o, trans, *this, flavor, blockNumber, SpatialCallTypes::WORKSTEALING_PARTIAL);
+    // return written in get split code
+    o.elseIf();
+  }
+
+  o.comment("leaf code");
+
+  if(!((RuleFlavor::WORKSTEALING == flavor ) && !isRecursive())
+     && flavor != RuleFlavor::SEQUENTIAL) {
+    o.write("DynamicTaskPtr _task;");
+  }
+
+  if (shouldGenerateTrampIterCode(flavor)) {
+    o.comment("call iter tramp");
+    o.write("UNIMPLEMENTED();");
+
+    /*
+    // TODO: we don't need new regions for metadata in this case
+    CoordinateFormula startCoord;
+
+    for (int i = 0; i < iterdef.dimensions(); ++i){
+      FormulaPtr b = iterdef.begin()[i];
+      FormulaPtr e = iterdef.end()[i];
+
+      DependencyDirection& order = iterdef.order();
+      bool iterateForward = (order.canIterateForward(i) || !order.canIterateBackward(i));
+
+      if (iterateForward) {
+        startCoord.push_back(b);
+
+      } else {
+        startCoord.push_back(MaximaWrapper::instance().normalize(new FormulaSubtract(e, FormulaInteger::one())));
+
+      }
+
+      o.beginIf(b->toString()+"<"+e->toString());
+    }
+
+    generateToLocalRegionCode(trans, o, flavor, iterdef, true, false);
+
+    std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
+    o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", startCoord);
+
+    for (int i = 0; i < iterdef.dimensions(); ++i){
+      o.endIf();
+    }
+    */
+
+  } else {
+    // Copy variables from metadata obj
+    for(MatrixDefMap::const_iterator i=_partial.begin(); i!=_partial.end(); ++i){
+      MatrixDefPtr matrix = i->second;
+      bool isConst = (matrix->type() == MatrixDef::T_FROM);
+      o.write(matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + " " + i->first + " = metadata->" + i->first + ";");
+    }
+    for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
+      if(i->shouldPass()) {
+        o.write("IndexT " + i->name() + " = metadata->" + i->name() + ";");
+      }
+    }
+    for(ConfigItems::const_iterator i=_duplicateVars.begin(); i!=_duplicateVars.end(); ++i){
+      o.write("IndexT " + i->name() + " = metadata->" + i->name() + ";");
+    }
+
+    iterdef.genLoopBegin(o);
+    generateTrampCellCodeSimple( trans, o, RuleFlavor::WORKSTEALING_PARTIAL );
+    iterdef.genLoopEnd(o);
+  }
+
+#ifdef HAVE_OPENCL
+  for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i) {
+    if((*i)->isBuffer())
+      o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu();");
+  }
+#endif
+
+  if(!((RuleFlavor::WORKSTEALING == flavor ) && !isRecursive())
+     && flavor != RuleFlavor::SEQUENTIAL) {
+    o.write("return _task;");
+  } else {
+    o.write("return NULL;");
+  }
+
+  if(isSingleElement()) {
+    o.endIf();
+  }
+  o.endFunc();
+
 }
 
 bool petabricks::UserRule::shouldGenerateTrampIterCode(RuleFlavor::RuleFlavorEnum flavor) {
   return (((flavor == RuleFlavor::DISTRIBUTED && isRecursive()) ||
       (flavor == RuleFlavor::WORKSTEALING && isRecursive())) &&
      !isSingleCall());
+}
+
+bool petabricks::UserRule::shouldGeneratePartialTrampCode(RuleFlavor::RuleFlavorEnum flavor) {
+  return flavor == RuleFlavor::WORKSTEALING;
 }
 
 #ifdef HAVE_OPENCL
@@ -2129,6 +2413,9 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
       args.push_back("scratch_" + name);
       to_0d.push_back(name);
 
+    } else if (flavor == RuleFlavor::WORKSTEALING_PARTIAL) {
+      args.push_back((*i)->generateAccessorCode(*(_partialCoordOffsets[(*i)->matrix()->name()])));
+
     } else {
       args.push_back((*i)->generateAccessorCode());
     }
@@ -2145,8 +2432,11 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
     } else if (flavor == RuleFlavor::WORKSTEALING_SCRATCH) {
       args.push_back("(ElementT)" + (*i)->generateAccessorCode());
 
+    } else if (flavor == RuleFlavor::WORKSTEALING_PARTIAL) {
+      args.push_back((*i)->generateAccessorCode(*(_partialCoordOffsets[(*i)->matrix()->name()])));
+
     } else {
-        args.push_back((*i)->generateAccessorCode());
+      args.push_back((*i)->generateAccessorCode());
     }
   }
   for(ConfigItems::const_iterator i=trans.config().begin(); i!=trans.config().end(); ++i){
@@ -2160,7 +2450,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   for(int i=0; i<dimensions(); ++i)
     args.push_back(getOffsetVar(i)->toString());
 
-  if (RuleFlavor::SEQUENTIAL == flavor || RuleFlavor::WORKSTEALING_SCRATCH == flavor) {
+  if (RuleFlavor::SEQUENTIAL == flavor || RuleFlavor::WORKSTEALING_SCRATCH == flavor || RuleFlavor::WORKSTEALING_PARTIAL == flavor) {
     o.call(implcodename(trans)+TX_STATIC_POSTFIX, args);
 
     for(std::vector<std::string>::const_iterator i=to_0d.begin(); i!=to_0d.end(); ++i){
@@ -2175,7 +2465,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   }
 }
 
- void petabricks::UserRule::generateToLocalRegionCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, IterationDefinition& iterdef, bool shouldGenerateMetadata, bool shouldGenerateWorkStealingRegion) {
+ void petabricks::UserRule::generateToLocalRegionCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, IterationDefinition& iterdef, bool generateWorkStealingRegion, bool generateIterTrampMetadata, bool generatePartialTrampMetadata) {
   std::vector<std::string> args;
 
   _scratchRegionLowerBounds.clear();
@@ -2187,7 +2477,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   }
 
   std::string scratchSuffix = "";
-  if (shouldGenerateWorkStealingRegion) {
+  if (generateWorkStealingRegion) {
     // generate workstealing region
     scratchSuffix = "_distributed";
   }
@@ -2210,6 +2500,11 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
       o.write("IndexT _tmp_begin[] = {" + lowerBounds->toString() + "};");
       o.write("IndexT _tmp_end[] = {" + upperBounds->toString() + "};");
       o.write("remote_" + matrix->name() + " = " + i->first + ".region(_tmp_begin, _tmp_end);");
+
+      if (generatePartialTrampMetadata) {
+        o.write("memcpy(metadata->" + i->first + "_offset, _tmp_begin, offset_size);");
+      }
+
       o.decIndent();
       o.write("}");
 
@@ -2232,17 +2527,28 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
       }
     }
 
-    if (shouldGenerateWorkStealingRegion) {
+    if (generateWorkStealingRegion) {
       // generate workstealing region
+      std::string target;
+      if (generatePartialTrampMetadata) {
+        target = "metadata->" + i->first;
+      } else {
+        target = matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + " " + matrix->name();
+      }
+
       if (matrix->numDimensions() == 0) {
         if (isConst) {
-          o.write(matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + " " + matrix->name() + "(" + i->first + ");");
+          o.write(target + "(" + i->first + ");");
         } else {
-          o.write(matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + " " + matrix->name() + " = " + matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + "::allocate();");
-          o.write(matrix->name() + ".cell() = " + matrix->name() + scratchSuffix + ".readCell(NULL);");
+          o.write(target + " = " + matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + "::allocate();");
+          if (generatePartialTrampMetadata) {
+            o.write("metadata->" + i->first + ".cell() = " + matrix->name() + scratchSuffix + ".readCell(NULL);");
+          } else {
+            o.write(matrix->name() + ".cell() = " + matrix->name() + scratchSuffix + ".readCell(NULL);");
+          }
         }
       } else {
-        o.write(matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + " " + matrix->name() + " = CONVERT_TO_LOCAL(" + matrix->name() + scratchSuffix + ");");
+        o.write(target + " = CONVERT_TO_LOCAL(" + matrix->name() + scratchSuffix + ");");
       }
     }
 
@@ -2256,27 +2562,39 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
       toUpperBounds->sub(lowerBounds);
 
       if (matrix->numDimensions() > 0) {
-        o.write(matrix->typeName(flavor) + " remote_TO_" + matrix->name() + ";");
-        o.write(matrix->typeName(flavor) + " local_TO_" + matrix->name() + ";");
+        if (!generatePartialTrampMetadata) {
+          o.write(matrix->typeName(flavor) + " remote_TO_" + matrix->name() + ";");
+          o.write(matrix->typeName(flavor) + " local_TO_" + matrix->name() + ";");
+        }
         o.write("{");
         o.incIndent();
         o.write("IndexT _tmp_begin[] = {" + toLowerBounds->toString() + "};");
         o.write("IndexT _tmp_end[] = {" + toUpperBounds->toString() + "};");
-        o.write("remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ".region(_tmp_begin, _tmp_end);");
-        o.write("local_TO_" + matrix->name() + " = " + matrix->name() + scratchSuffix + ".region(_tmp_begin, _tmp_end);");
-        // o.write("remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ";");
-        // o.write("local_TO_" + matrix->name() + " = " + matrix->name() + ";");
+
+        if (generatePartialTrampMetadata) {
+          o.write("metadata->remote_TO_" + i->first + " = remote_" + matrix->name() + ".region(_tmp_begin, _tmp_end);");
+          o.write("metadata->local_TO_" + i->first + " = " + matrix->name() + scratchSuffix + ".region(_tmp_begin, _tmp_end);");
+
+        } else {
+          o.write("remote_TO_" + matrix->name() + " = remote_" + matrix->name() + ".region(_tmp_begin, _tmp_end);");
+          o.write("local_TO_" + matrix->name() + " = " + matrix->name() + scratchSuffix + ".region(_tmp_begin, _tmp_end);");
+        }
         o.decIndent();
         o.write("}");
 
         args.push_back("remote_TO_" + matrix->name());
         args.push_back("local_TO_" + matrix->name());
 
+      } else {
+        // 0D
+        if (generatePartialTrampMetadata) {
+          o.write("metadata->remote_TO_" + i->first + " = " + matrix->name() + scratchSuffix + ";");
+        }
       }
     }
   }
 
-  if (shouldGenerateMetadata) {
+  if (generateIterTrampMetadata) {
     std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
     std::string argsStr = jalib::JPrintable::stringStlList(args.begin(), args.end(), ", ");
     o.write("jalib::JRef<" + metadataclass + "> metadata = new " + metadataclass + "(" + argsStr + ");");
@@ -2302,7 +2620,7 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
                                             std::vector<RegionNodeGroup>&,
                                             int,
                                             int,
-                                            bool isDistributedCall){
+                                            SpatialCallType spatialCallType){
   SRCPOSSCOPE();
   o.comment("from UserRule::generateCallCode():");
   switch(flavor) {
@@ -2311,7 +2629,15 @@ void petabricks::UserRule::generateCallCode(const std::string& name,
     break;
   case RuleFlavor::WORKSTEALING:
   case RuleFlavor::DISTRIBUTED:
-    o.mkSpatialTask(name, trans.instClassName(), trampcodename(trans)+"_"+flavor.str(), region, isDistributedCall);
+    if (spatialCallType == SpatialCallTypes::WORKSTEALING_PARTIAL) {
+      std::string methodname = partialtrampcodename(trans)+"_workstealing";
+      std::string metadataname = partialtrampmetadataname(trans)+"_workstealing";
+      bool shouldGenerateMetadata = (flavor == RuleFlavor::DISTRIBUTED);
+      o.mkPartialSpatialTask(name, metadataname, methodname, region, spatialCallType, shouldGenerateMetadata);
+    } else {
+      std::string methodname = trampcodename(trans)+"_"+flavor.str();
+      o.mkSpatialTask(name, trans.instClassName(), methodname, region, spatialCallType);
+    }
     break;
   default:
     UNIMPLEMENTED();
@@ -2409,12 +2735,20 @@ std::string petabricks::UserRule::trampcodename(Transform& trans) const {
   }
   return s;
 }
+
 std::string petabricks::UserRule::itertrampcodename(Transform& trans) const {
   return trampcodename(trans) + "_iter";
 }
 
 std::string petabricks::UserRule::itertrampmetadataname(Transform& trans) const {
   return trampcodename(trans) + "_iter_metadata";
+}
+
+std::string petabricks::UserRule::partialtrampcodename(Transform& trans) const {
+  return trampcodename(trans) + "_partial";
+}
+std::string petabricks::UserRule::partialtrampmetadataname(Transform& trans) const {
+  return trampcodename(trans) + "_partial_metadata";
 }
 
 size_t petabricks::UserRule::duplicateCount() const {

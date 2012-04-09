@@ -67,10 +67,11 @@ public:
 //                      std::vector<RegionNodeGroup>& regionNodesGroups,
 //                      int nodeID,
 //                      int gpuCopyOut,
-//                      bool isDistributedCall);
+//                      SpatialCallType spatialCallType);
 //
   void virtual generateDeclCode(Transform& trans, CodeGenerator& o, RuleFlavor);
   void virtual generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor) = 0;
+  void virtual generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
 
   void markRecursive();
   const FormulaPtr& recursiveHint() const;
@@ -109,7 +110,7 @@ public:
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         int gpuCopyOut,
-                        bool isDistributedCall=false);
+                        SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
   bool isSingleElement() const;
   int dimensions() const;
   FormulaPtr getSizeOfRuleIn(int d);
@@ -145,7 +146,7 @@ public:
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         int gpuCopyOut,
-                        bool isDistributedCall=false);
+                        SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
 
   bool isSingleElement() const;
 
@@ -186,7 +187,7 @@ public:
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         int gpuCopyOut,
-                        bool isDistributedCall=false);
+                        SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
 private:
   size_t _dup;
 };
@@ -210,7 +211,7 @@ public:
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         int gpuCopyOut,
-                        bool isDistributedCall=false);
+                        SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
 
   bool isSingleElement() const;
 

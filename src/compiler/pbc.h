@@ -71,6 +71,7 @@ public:
     DISTRIBUTED_OPENCL,
     WORKSTEALING_SCRATCH,
     DISTRIBUTED_SCRATCH,
+    WORKSTEALING_PARTIAL,
     INVALID,
   };
 
@@ -107,6 +108,17 @@ public:
 
 private:
   RuleFlavorEnum _val;
+};
+
+
+typedef uint8_t SpatialCallType;
+struct SpatialCallTypes {
+  enum {
+    NORMAL,
+    DISTRIBUTED,
+    WORKSTEALING_PARTIAL,
+    INVALID,
+  };
 };
 
 }

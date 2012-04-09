@@ -132,7 +132,7 @@ void GpuRule::generateCallCode(const std::string& name,
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         int gpuCopyOut,
-                        bool)
+                        SpatialCallType)
 {
   o.comment("from GpuRule::generateCallCode():");
   switch(flavor) {

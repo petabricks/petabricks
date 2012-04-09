@@ -108,9 +108,10 @@ public:
   void generateDeclCodeOpenCl(Transform& trans, CodeGenerator& o);
 
   void generateTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
+  void generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
 
   void generateTrampCellCodeSimple(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
-  void generateToLocalRegionCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, IterationDefinition& iterdef, bool shouldGenerateMetadata, bool shouldGenerateWorkStealingRegion);
+  void generateToLocalRegionCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor, IterationDefinition& iterdef, bool generateWorkStealingRegion, bool generateIterTrampMetadata, bool generatePartialTrampMetadata);
 
   void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
   void generateOpenCLCallCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
@@ -137,7 +138,7 @@ public:
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         int gpuCopyOut,
-                        bool isDistributedCall=false);
+                        SpatialCallType spatialCallType=SpatialCallTypes::INVALID);
 
   void generateMetadataCode(Transform& trans, CodeGenerator& o, RuleFlavor rf);
 
@@ -147,6 +148,8 @@ public:
   std::string trampcodename(Transform& trans) const;
   std::string itertrampcodename(Transform& trans) const;
   std::string itertrampmetadataname(Transform& trans) const;
+  std::string partialtrampcodename(Transform& trans) const;
+  std::string partialtrampmetadataname(Transform& trans) const;
 
   bool isReturnStyle() const { return _flags.isReturnStyle; }
 
@@ -306,6 +309,7 @@ private:
   bool passBuildGpuProgram(Transform& trans);
 
   bool shouldGenerateTrampIterCode(RuleFlavor::RuleFlavorEnum flavor);
+  bool shouldGeneratePartialTrampCode(RuleFlavor::RuleFlavorEnum flavor);
 
   MatrixDefPtr lookupScratch(const std::string& name) const{
     MatrixDefMap::const_iterator i = _scratch.find(name);
@@ -322,6 +326,7 @@ private:
   RegionList _to;
   MatrixDefList _through;
   MatrixDefMap _scratch;
+  MatrixDefMap _partial;
   FormulaList _conditions;
   FormulaList _definitions;
   std::string _bodysrc;
@@ -342,6 +347,7 @@ private:
   MatrixToRegionMap _scratchBoundingBox;
 
   std::map<std::string, CoordinateFormulaPtr> _scratchRegionLowerBounds;
+  std::map<std::string, CoordinateFormulaPtr> _partialCoordOffsets;
 };
 
 }

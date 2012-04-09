@@ -418,12 +418,14 @@ void petabricks::CodeGenerator::callSpatial(const std::string& methodname, const
 }
 
 
-void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& /*objname*/, const std::string& methodname, const SimpleRegion& region, bool isDistributedCall) {
-  std::string suffix = (isDistributedCall) ? "_distributed" : "";
+void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const std::string& /*objname*/, const std::string& methodname, const SimpleRegion& region, SpatialCallType spatialCallType) {
+  JASSERT(spatialCallType != SpatialCallTypes::WORKSTEALING_PARTIAL);
+  // apply_ruleX
+  std::string suffix = (spatialCallType == SpatialCallTypes::DISTRIBUTED) ? "_distributed" : "";
   std::string taskclass = "petabricks::SpatialMethodCallTask" + suffix
-                        + "<CLASS, " + jalib::XToString(region.dimensions() + region.removedDimensions())
-                        + ", &CLASS::" + methodname;
-  if (isDistributedCall) {
+    + "<CLASS, " + jalib::XToString(region.dimensions() + region.removedDimensions())
+    + ", &CLASS::" + methodname;
+  if (spatialCallType == SpatialCallTypes::DISTRIBUTED) {
     taskclass += ", &CLASS::" + methodname + "_getDataHosts";
   }
   taskclass += ">";
@@ -437,6 +439,25 @@ void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const
   decIndent();
   write("}");
 }
+
+void petabricks::CodeGenerator::mkPartialSpatialTask(const std::string& taskname, const std::string& metadataname, const std::string& methodname, const SimpleRegion& region, SpatialCallType spatialCallType, bool shouldGenerateMetadata) {
+  JASSERT(spatialCallType == SpatialCallTypes::WORKSTEALING_PARTIAL);
+  JASSERT(!shouldGenerateMetadata);
+  // apply_ruleX_partial
+  std::string taskclass = "petabricks::SpatialMethodCallTask_partial<"
+    + metadataname + ", " + jalib::XToString(region.dimensions() + region.removedDimensions())
+    + ", &::" + methodname + ">";
+
+  write("{");
+  incIndent();
+  comment("MARKER 11");
+  write("IndexT _tmp_begin[] = {" + region.getIterationLowerBounds() + "};");
+  write("IndexT _tmp_end[] = {"   + region.getIterationUpperBounds() + "};");
+  write(taskname+" = new "+taskclass+"(_tmp_begin, _tmp_end, metadata);");
+  decIndent();
+  write("}");
+}
+
 
 void petabricks::CodeGenerator::mkIterationTrampTask(const std::string& taskname, const std::string& /*objname*/, const std::string& methodname, const std::string& metadataclass, const std::string& metadata, const CoordinateFormula& coord) {
   std::string taskclass = "petabricks::IterationTrampMethodCallTask<CLASS"

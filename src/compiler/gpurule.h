@@ -66,7 +66,7 @@ class GpuRule : public SyntheticRule {
                         std::vector<RegionNodeGroup>& regionNodesGroups,
                         int nodeID,
                         int gpuCopyOut,
-                        bool isDistributedCall=false);
+                        SpatialCallType spatialCallType = SpatialCallTypes::INVALID);
   //TODO: remove this
   void generateCallCodeSimple(Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);
   void generateCallTaskCode(const std::string& name, Transform& trans, CodeGenerator& o, const SimpleRegionPtr& region);

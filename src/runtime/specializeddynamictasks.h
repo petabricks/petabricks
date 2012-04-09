@@ -152,6 +152,23 @@ private:
   IndexT _end[D];
 };
 
+template<typename T, int D, DynamicTaskPtr (*method)(IndexT begin[D], IndexT end[D], const jalib::JRef<T>& metadata)>
+class SpatialMethodCallTask_partial : public DynamicTask {
+public:
+  SpatialMethodCallTask_partial(IndexT begin[D], IndexT end[D], const jalib::JRef<T>& metadata)
+    : _metadata(metadata)
+  {
+    memcpy(_begin, begin, sizeof _begin);
+    memcpy(_end,   end,   sizeof _end);
+  }
+  DynamicTaskPtr run(){
+    return (*(method))(_begin, _end, _metadata);
+  }
+private:
+  IndexT _begin[D];
+  IndexT _end[D];
+  jalib::JRef<T> _metadata;
+};
 
 /**
  * A task that calls a method on a given object, with a given region and

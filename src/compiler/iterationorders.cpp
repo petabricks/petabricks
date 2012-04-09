@@ -232,7 +232,7 @@ void petabricks::IterationDefinition::unpackargs(CodeGenerator& o) const {
 }
 
 
-void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, RuleFlavor rf, unsigned int blockNumber, bool shouldGenerateDistributedCall) const {
+void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& trans, RuleInterface& rule, RuleFlavor rf, unsigned int blockNumber, SpatialCallType spatialCallType) const {
   //create list of subregion
   SplitRegionList regions;
   SplitRegion seed;
@@ -250,7 +250,8 @@ void petabricks::IterationDefinition::genSplitCode(CodeGenerator& o, Transform& 
 
   for(size_t a=0; a<regions.size(); ++a){
     SimpleRegionPtr r= new SimpleRegion(regions[a]);
-    rule.generateCallCode("(*_split_task)["+jalib::XToString(a)+"]", trans, o, r, rf, shouldGenerateDistributedCall);
+
+    rule.generateCallCode("(*_split_task)["+jalib::XToString(a)+"]", trans, o, r, rf, spatialCallType);
 
     if(rf != RuleFlavor::SEQUENTIAL){
       for(size_t b=0; b<a; ++b){
