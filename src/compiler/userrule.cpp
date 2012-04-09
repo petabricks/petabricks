@@ -1638,7 +1638,7 @@ void petabricks::UserRule::generatePartialTrampCode(Transform& trans, CodeGenera
     o.elseIf();
   }
 
-  o.comment("leaf code");
+  o.comment("Call sequential code");
 
   if(!((RuleFlavor::WORKSTEALING == flavor ) && !isRecursive())
      && flavor != RuleFlavor::SEQUENTIAL) {

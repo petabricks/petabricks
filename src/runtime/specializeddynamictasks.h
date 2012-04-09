@@ -112,6 +112,7 @@ public:
     unserialize(_buf, _host);
   }
   DynamicTaskPtr run(){
+    // JTRACE("spatial_distributed");
     return ((*_obj).*(method))(_begin, _end);
   }
 

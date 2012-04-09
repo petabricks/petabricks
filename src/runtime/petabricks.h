@@ -199,7 +199,7 @@ namespace petabricks {
         return false;
     //big enough to split?
     for(int i=0; i<D; ++i)
-      if(end[i]-begin[i] > thresh)
+      if(end[i]-begin[i] >= thresh)
         return true;
     //i guess not...
     return false;
