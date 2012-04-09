@@ -2414,7 +2414,12 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
       to_0d.push_back(name);
 
     } else if (flavor == RuleFlavor::WORKSTEALING_PARTIAL) {
-      args.push_back((*i)->generateAccessorCode(*(_partialCoordOffsets[(*i)->matrix()->name()])));
+      CoordinateFormulaPtr offset = _partialCoordOffsets[(*i)->matrix()->name()];
+      while (offset->size() < (*i)->size()) {
+        // add removedDimensions
+        offset->push_back(FormulaInteger::zero());
+      }
+      args.push_back((*i)->generateAccessorCode(*offset));
 
     } else {
       args.push_back((*i)->generateAccessorCode());
@@ -2433,7 +2438,12 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
       args.push_back("(ElementT)" + (*i)->generateAccessorCode());
 
     } else if (flavor == RuleFlavor::WORKSTEALING_PARTIAL) {
-      args.push_back((*i)->generateAccessorCode(*(_partialCoordOffsets[(*i)->matrix()->name()])));
+      CoordinateFormulaPtr offset = _partialCoordOffsets[(*i)->matrix()->name()];
+      while (offset->size() < (*i)->size()) {
+        // add removedDimensions
+        offset->push_back(FormulaInteger::zero());
+      }
+      args.push_back((*i)->generateAccessorCode(*offset));
 
     } else {
       args.push_back((*i)->generateAccessorCode());
