@@ -1248,28 +1248,6 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.write("_task->dependsOn(applyPartialTask);");
         o.write("applyPartialTask->enqueue();");
 
-        /*
-        // call sequential version
-        generateToLocalRegionCode(trans, o, flavor, iterdef, true, false, false);
-        iterdef.genLoopBegin(o);
-        generateTrampCellCodeSimple( trans, o, RuleFlavor::WORKSTEALING_SCRATCH );
-        iterdef.genLoopEnd(o);
-
-        // copy back to remote region
-        for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
-          MatrixDefPtr matrix = i->second;
-          if (matrix->type() == MatrixDef::T_TO) {
-            if (matrix->numDimensions() > 0) {
-              o.write("remote_TO_" + matrix->name() + ".fromScratchRegion(local_TO_" + matrix->name() + ");");
-              //o.write("JTRACE(\"" + i->first + "\");");
-              //o.write("MatrixIOGeneral().write(" + i->first + ");");
-            } else {
-              o.write(i->first + ".writeCell(NULL, " + matrix->name() + ".cell());");
-            }
-          }
-        }
-        */
-
       } else {
         JASSERT(isSingleCall()).Text("Check shouldGenerateTrampIterCode method");
         iterdef.genLoopBegin(o);
@@ -1506,30 +1484,6 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     for(ConfigItems::const_iterator i=_duplicateVars.begin(); i!=_duplicateVars.end(); ++i){
       o.write("metadata->" + i->name() + " = " + i->name() + ";");
     }
-
-
-    /*
-
-    for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
-      MatrixDefPtr matrix = i->second;
-      SimpleRegionPtr region = _scratchBoundingBox[trans.lookupMatrix(i->first)];
-
-      CoordinateFormulaPtr lowerBounds = region->getIterationLowerBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
-      CoordinateFormulaPtr upperBounds = region->getIterationUpperBounds(iterdef.var(), iterdef.begin(), iterdefEndInclusive);
-
-      o.write("{");
-      o.incIndent();
-      o.write("IndexT _tmp_begin[] = {" + lowerBounds->toString() + "};");
-      o.write("IndexT _tmp_end[] = {" + upperBounds->toString() + "};");
-
-      o.write("memcpy(metadata->" + i->first + "_offset, _tmp_begin, offset_size);");
-
-
-
-      o.decIndent();
-      o.write("}");
-    }
-    */
 
     o.write("return metadata;");
     o.endFunc();
