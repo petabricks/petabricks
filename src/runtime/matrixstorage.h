@@ -145,7 +145,7 @@ public:
 #ifdef HAVE_OPENCL
   void lock() { _lock.lock(); }
   void unlock() { _lock.unlock(); }
-  void updateDataFromGpu(IndexT firstRow);
+  void updateDataFromGpu(IndexT firstRow = 0);
 #else
   void lock()   { UNIMPLEMENTED(); }
   void unlock() { UNIMPLEMENTED(); }
@@ -193,6 +193,9 @@ public:
       return sizeof(ElementT);
     #ifdef DEBUG
     JASSERT(_lastRowOnGpu <= _sizes[_dimensions - 1])(_lastRowOnGpu)(_sizes[_dimensions - 1])(_dimensions);
+    #endif
+    #ifdef GPU_TRACE
+    std::cout << "bytesOnGpu: _normalize = " <<  _normalizedMultipliers[_dimensions - 1] << ", _mult = " << _multipliers[_dimensions - 1] << ", _last = " << _lastRowOnGpu << std::endl;
     #endif
     return _normalizedMultipliers[_dimensions - 1]*_lastRowOnGpu*sizeof(ElementT);
   }
@@ -295,7 +298,7 @@ public:
   ssize_t getBaseOffset() { return _baseOffset; }
 
 #ifdef HAVE_OPENCL
-  void modifyOnCpu() { _cpuModify = true; }  //TODO: do I need to use lock?
+  void modifyOnCpu(IndexT firstRow);
   void setName(std::string name) { _name = name; }
   std::string getName() { return _name; }
   bool isContiguous() { return _contiguous; }
@@ -308,7 +311,7 @@ public:
   /// call after run gpu PREPARE task
   /// return true when copyin task needs to be run
   /// return false when data is already in the gpu memmory
-  bool initGpuMem(cl_command_queue& queue, cl_context& context, IndexT* end, int dimensions, bool input);
+  bool initGpuMem(cl_command_queue& queue, cl_context& context, IndexT* end, int dimensions, double gpuRatio, bool input);
 
   ///
   /// call after run gpu RUN task
@@ -380,7 +383,6 @@ public:
     std::cout << "copyFrom boundary" << std::endl;
     for(int i = 0; i < dimensions(); i++)
       std::cout << "[" << i << "] : " << c1[i] << "-" << c2[i] << std::endl;
-    //src->print();
 #endif
     if(src->data() == dest->data())
       return;
@@ -443,9 +445,10 @@ private:
   std::string _name;
   size_t _coverage;
   int _lastRowOnGpu;
+  int _firstRowOnCpu;
   bool _hasGpuMem;
-  bool _cpuModify;
   bool _contiguous;;
+
   std::vector<IndexT*> _begins;
   std::vector<IndexT*> _ends;
   NodeGroups _completeGroups;

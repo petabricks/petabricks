@@ -809,7 +809,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       o.write((*i)->matrix()->name()+".useOnCpu(_iter_begin["+dim_string+"-1] + "+jalib::XToString(_minCoordOffsets[(*i)->matrix()->name()][dim_int-1])+");");
       break;
     }
-  }
+  }  
 #endif
 
   for(size_t i=0; i<_duplicateVars.size(); ++i){
@@ -1088,10 +1088,19 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     iterdef.genLoopEnd(o);
 
 #ifdef HAVE_OPENCL
-    for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i) {
-      if((*i)->isBuffer())
-        o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu();");
+  for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i) {
+    switch(stencilType((*i)->matrix(),dim_int)) {
+    case 0:
+      o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(0);");
+      break;
+    case 1:
+      o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(_iter_begin["+dim_string+"-1]);");
+      break;
+    case 2:
+      o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(_iter_begin["+dim_string+"-1] + "+jalib::XToString(_minCoordOffsets[(*i)->matrix()->name()][dim_int-1])+");");
+      break;
     }
+  }
 #endif
     
     if(RuleFlavor::SEQUENTIAL != flavor){
@@ -1178,8 +1187,9 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   o.beginIf(outputDimensionCheck);
   o.write("return end;");
   o.endIf();
-
-  o.write("GpuTaskInfoPtr taskinfo = new GpuTaskInfo(nodeID, map, gpuCopyOut,"+dimension+");");
+  
+  o.write("ElementT gpu_ratio = "+jalib::XToString(GPU_RATIO)+";");
+  o.write("GpuTaskInfoPtr taskinfo = new GpuTaskInfo(nodeID, map, gpuCopyOut,"+dimension+", gpu_ratio);");
   
   o.write("DynamicTaskPtr prepare = new "+prepareclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::PREPARE);");
   o.write("prepare->enqueue();");
@@ -1276,12 +1286,12 @@ void petabricks::UserRule::generateOpenCLCopyInCode(std::string& codename, std::
   SRCPOSSCOPE();
   std::string name = region->matrix()->name();
   o.beginFunc("petabricks::DynamicTaskPtr", codename+"_copyin_"+region->name(), packedargs);
-  o.write(name+".useOnCpu();");
   o.write("MatrixStorageInfoPtr storage_"+name+" = "+name+".storageInfo();");
 #ifdef GPU_TRACE
   o.write("MatrixIO().write("+name+");");
   //o.write("MatrixIO().write("+name+".asGpuInputBuffer());");
 #endif
+  o.write("std::cout << \"copyin: bytesOnGpu = \" << storage_" + name + "->bytesOnGpu() << std::endl;");
   o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->getClMem(), CL_FALSE, 0, storage_"+name+"->bytesOnGpu(), "+name+".getGpuInputBufferPtr(), 0, NULL, NULL);");
   o.write("clFlush(GpuManager::_queue);");
 #ifdef DEBUG

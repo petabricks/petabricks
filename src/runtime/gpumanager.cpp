@@ -171,9 +171,10 @@ void GpuManager::prepare(GpuDynamicTaskPtr task) {
   #endif
 
   int dimensions = _currenttaskinfo->dimensions();
+  double gpuRatio = _currenttaskinfo->gpuRatio();
 
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
-    (*i)->initGpuMem(_queue,_context,task->end(),dimensions,false); // clCreateBuffer
+    (*i)->initGpuMem(_queue,_context,task->end(),dimensions,gpuRatio,false); // clCreateBuffer
   }
 }
 
@@ -184,8 +185,9 @@ void GpuManager::copyin(GpuDynamicTaskPtr task) {
   #endif
   MatrixStorageInfoPtr storageinfo = task->storageinfo();
   int dimensions = _currenttaskinfo->dimensions();
+  double gpuRatio = _currenttaskinfo->gpuRatio();
 
-  if(storageinfo->initGpuMem(_queue,_context,task->end(),dimensions,true)) { // clCreateBuffer
+  if(storageinfo->initGpuMem(_queue,_context,task->end(),dimensions,gpuRatio,true)) { // clCreateBuffer
     #ifdef GPU_TRACE
     std::cout << "copying in... " << &(*storageinfo) << std::endl;
     #endif
