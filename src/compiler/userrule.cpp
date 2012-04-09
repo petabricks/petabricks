@@ -2548,7 +2548,11 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
 
       if (matrix->numDimensions() == 0) {
         if (isConst) {
-          o.write(target + "(" + i->first + ");");
+          if (generatePartialTrampMetadata) {
+            o.write(target + " = " + matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + "(" + i->first + ");");
+          } else {
+            o.write(target + "(" + i->first + ");");
+          }
         } else {
           o.write(target + " = " + matrix->typeName(RuleFlavor::WORKSTEALING, isConst) + "::allocate();");
           if (generatePartialTrampMetadata) {
