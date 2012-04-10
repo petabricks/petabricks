@@ -20,6 +20,8 @@ RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, Rem
   msg->dimensions = _D;
   memcpy(msg->size, size, size_sz);
 
+  _remoteRegionHandler.remoteHandler = 0;
+
   host->createRemoteObject(this, &RegionMatrixProxy::genRemote, buf, msg_len);
 }
 
