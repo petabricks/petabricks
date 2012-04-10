@@ -198,28 +198,6 @@ to C[w,h]
   }
 }
 
-transform MatrixMultiplyAddInnerTransposed
-from ALPHA, A[k,h], B[w,k], BETA
-to C[w,h]
-{
-  //compute a cell the straightforward way
-  to   (C.cell(x,y) c)
-  from (A.row(y) a,
-        B.row(x) b,
-        ALPHA alpha,
-        BETA beta)
-  {
-    ElementT temp = 0;
-    for(IndexT i=0; i<k; ++i)
-      temp += a.cell(i)*b.cell(i);
-    if (beta == 0) {
-      c = alpha*temp;
-    } else {
-      c = alpha*temp + beta*c;
-    }
-  }
-}
-
 // Computes C = ALPHA * A * B + BETA * C (C is an in/out argument).
 transform MatrixMultiplyAdd
 from ALPHA, A[k,m], B[n,k], BETA
@@ -232,15 +210,6 @@ to C[n,m]
                BETA beta)
   {
     MatrixMultiplyAddInner(c, alpha, a, b, beta);
-  }
-
-  // special version
-  to(C c) from(ALPHA alpha,
-               A a,
-               B b,
-               BETA beta)
-  {
-    MatrixMultiplyAddInnerTransposed(c, alpha, a, b.transposed(), beta);
   }
 
   // transpose a
