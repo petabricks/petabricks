@@ -1472,7 +1472,6 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     iterdef.unpackargs(o);
 
     o.write("jalib::JRef<"+metadataname+"> metadata = new " + metadataname + "();");
-    o.write("size_t offset_size = sizeof(IndexT) * " + jalib::XToString(iterdef.dimensions()) + ";");
 
     generateToLocalRegionCode(trans, o, flavor, iterdef, true, false, true);
 
@@ -1503,6 +1502,8 @@ void petabricks::UserRule::generatePartialTrampCode(Transform& trans, CodeGenera
   o.beginClass(metadataClass, "jalib::JRefCounted");
 
   _partial.clear();
+  _partialCoordOffsets.clear();
+
   for(MatrixToRegionMap::const_iterator i=_fromBoundingBoxNoOptional.begin(); i!=_fromBoundingBoxNoOptional.end(); ++i) {
     MatrixDefPtr matrix = i->first;
     MatrixDefPtr partial = new MatrixDef(("partial_"+matrix->name()).c_str(), matrix->getVersion(), matrix->getSize());
@@ -1518,8 +1519,6 @@ void petabricks::UserRule::generatePartialTrampCode(Transform& trans, CodeGenera
     _partial[matrix->name()] = partial;
   }
 
-  _partialCoordOffsets.clear();
-
   // Add members to metadata obj
   for(MatrixDefMap::const_iterator i=_partial.begin(); i!=_partial.end(); ++i){
     MatrixDefPtr matrix = i->second;
@@ -1531,10 +1530,10 @@ void petabricks::UserRule::generatePartialTrampCode(Transform& trans, CodeGenera
         o.addMember(matrix->typeName(RuleFlavor::DISTRIBUTED, isConst), "local_TO_"+i->first+"", "");
       }
     }
-    o.addMember("IndexT", i->first+"_offset["+jalib::XToString(iterdef.dimensions())+"]", "");
+    o.addMember("IndexT", i->first+"_offset["+jalib::XToString(matrix->numDimensions())+"]", "");
 
     CoordinateFormulaPtr offset = new CoordinateFormula();
-    for (int j = 0; j < iterdef.dimensions(); ++j) {
+    for (unsigned int j = 0; j < matrix->numDimensions(); ++j) {
       offset->push_back(new FormulaVariable("metadata->" + i->first + "_offset[" + jalib::XToString(j) + "]"));
     }
     _partialCoordOffsets[i->first] = offset;
@@ -1564,6 +1563,7 @@ void petabricks::UserRule::generatePartialTrampCode(Transform& trans, CodeGenera
     if (matrix->type() == MatrixDef::T_TO) {
       if (matrix->numDimensions() > 0) {
         o.write("metadata->remote_TO_" + i->first + ".fromScratchRegion(metadata->local_TO_" + i->first + ");");
+        // o.write("MatrixIOGeneral().write(metadata->local_TO_" + i->first + ");");
       } else {
         o.write("metadata->remote_TO_" + i->first + ".writeCell(NULL, metadata->" + i->first + ".cell());");
       }
@@ -2375,10 +2375,6 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
 
     } else if (flavor == RuleFlavor::WORKSTEALING_PARTIAL) {
       CoordinateFormulaPtr offset = _partialCoordOffsets[(*i)->matrix()->name()];
-      while (offset->size() < (*i)->size()) {
-        // add removedDimensions
-        offset->push_back(FormulaInteger::zero());
-      }
       args.push_back((*i)->generateAccessorCode(*offset));
 
     } else {
@@ -2399,10 +2395,6 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
 
     } else if (flavor == RuleFlavor::WORKSTEALING_PARTIAL) {
       CoordinateFormulaPtr offset = _partialCoordOffsets[(*i)->matrix()->name()];
-      while (offset->size() < (*i)->size()) {
-        // add removedDimensions
-        offset->push_back(FormulaInteger::zero());
-      }
       args.push_back((*i)->generateAccessorCode(*offset));
 
     } else {
@@ -2472,7 +2464,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
       o.write("remote_" + matrix->name() + " = " + i->first + ".region(_tmp_begin, _tmp_end);");
 
       if (generatePartialTrampMetadata) {
-        o.write("memcpy(metadata->" + i->first + "_offset, _tmp_begin, offset_size);");
+        o.write("memcpy(metadata->" + i->first + "_offset, _tmp_begin, sizeof(IndexT) * " + jalib::XToString(lowerBounds->size()) + ");");
       }
 
       o.decIndent();

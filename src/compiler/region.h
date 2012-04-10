@@ -103,6 +103,7 @@ public:
   }
 
   size_t removedDimensions() const { return _removedDimensions.minCoord.size(); }
+  const CoordinateFormula& removedDimensionsMin() const { return _removedDimensions.minCoord; }
 
   size_t totalDimensions() const {return dimensions() + removedDimensions(); }
 
@@ -168,7 +169,7 @@ public:
   CoordinateFormulaPtr getIterationUpperBounds(const CoordinateFormula& replaceWhat, const CoordinateFormula& with1, const CoordinateFormula& with2) const;
 
   size_t size() const { return dimensions(); }
-protected:
+ protected:
   CoordinateFormula _minCoord;
   CoordinateFormula _maxCoord;
   RemovedDimensionsInfo _removedDimensions;
