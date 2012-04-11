@@ -197,7 +197,15 @@ void petabricks::RemoteHost::accept(jalib::JServerSocket& s, int listenPort) {
 }
 
 void petabricks::RemoteHost::connect(const jalib::JSockAddr& a, int p, int listenPort) {
-  JASSERT(_control.connect(a, p));
+  // wait until parent is created (when run using PBS)
+  // max wait time = 5 secs
+  int count = 0;
+  while (!_control.connect(a, p)) {
+    JASSERT(count < 100).Text("Timeout: _control.connect(a, p)");
+    count++;
+    usleep(50000); // 50 ms
+  }
+
   for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
     JASSERT(_data[i].connect(a, p));
   }
