@@ -114,6 +114,7 @@ static std::string HOSTS_FILE="";
 #endif
 static std::string SLAVE_HOST="";
 static int SLAVE_PORT = -1;
+static bool PBS=false;
 
 #ifdef HAVE_BOOST_RANDOM_HPP
 static boost::lagged_fibonacci607& myRandomGen(){
@@ -265,6 +266,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("accuracy",     ACCURACY).help("print out accuracy of answer");
   args.param("time",         DUMPTIMING).help("print timing results in xml format");
   args.param("hash",         HASH).help("print hash of output");
+  args.param("pbs",          PBS).help("run by PBS");
   args.param("force-output", FORCEOUTPUT).help("also write copies of outputs to stdout");
 
   args.param("threads", worker_threads).help("number of threads to use");
@@ -450,13 +452,17 @@ void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char**
     dat=jalib::StringTrim(dat);
 
     if(dat!="" && dat!="localhost") {
-      db.remotefork(dat.c_str(), argc, argv, "--slave-host", "--slave-port");
+      if (!PBS) {
+        db.remotefork(dat.c_str(), argc, argv, "--slave-host", "--slave-port");
+      }
       db.accept(dat.c_str());
     }
 
     if(dat == "localhost") {
       if(hadlocal) {
-        db.remotefork(NULL, argc, argv, "--slave-host", "--slave-port");
+        if (!PBS) {
+          db.remotefork(NULL, argc, argv, "--slave-host", "--slave-port");
+        }
         db.accept(dat.c_str());
       }
       hadlocal=true;
