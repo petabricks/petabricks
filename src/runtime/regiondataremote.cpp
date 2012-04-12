@@ -212,44 +212,43 @@ void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
   free(reply);
 }
 
-RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const {
+RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
+  if (isDataSplit()) {
+    RegionDataI* rv = NULL;
+    if (!_localRegionDataSplit) {
+      if (this->copyRegionDataSplit()) {
+        rv = _localRegionDataSplit.asPtr();
+      }
+    }
+    _localRegionDataSplit->copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
+    return rv;
+  }
+
   void* data;
   size_t replyLen;
   int type;
   this->fetchData(origMsg, MessageTypes::TOSCRATCHSTORAGE, len, &data, &replyLen, &type);
 
-  if (type == MessageTypes::COPYREGIONDATASPLIT) {
-    // Copy regiondatasplit to local
-    CopyRegionDataSplitReplyMessage* reply = (CopyRegionDataSplitReplyMessage*)data;
-    RegionDataSplitPtr regionDataSplit = createRegionDataSplit(reply);
-    regionDataSplit->copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
-    free(data);
-    return regionDataSplit.asPtr();
-
-  } else if (type == MessageTypes::TOSCRATCHSTORAGE) {
-    CopyToMatrixStorageReplyMessage* reply = (CopyToMatrixStorageReplyMessage*)data;
-    if (reply->count == scratchStorage->count()) {
-      memcpy(scratchStorage->data(), reply->storage, sizeof(ElementT) * reply->count);
-
-    } else {
-      RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
-      int d = origMetadata->dimensions;
-      IndexT* size = origMetadata->size();
-
-      int n = 0;
-      IndexT coord[d];
-      memset(coord, 0, sizeof coord);
-      IndexT multipliers[d];
-      sizeToMultipliers(d, scratchStorageSize, multipliers);
-      do {
-        IndexT scratchIndex = toRegionDataIndex(d, coord, scratchMetadata->numSliceDimensions, scratchMetadata->splitOffset, scratchMetadata->sliceDimensions(), scratchMetadata->slicePositions(), multipliers);
-        scratchStorage->data()[scratchIndex] = reply->storage[n];
-        ++n;
-      } while(incCoord(d, size, coord) >= 0);
-    }
+  JASSERT(type == MessageTypes::TOSCRATCHSTORAGE);
+  CopyToMatrixStorageReplyMessage* reply = (CopyToMatrixStorageReplyMessage*)data;
+  if (reply->count == scratchStorage->count()) {
+    memcpy(scratchStorage->data(), reply->storage, sizeof(ElementT) * reply->count);
 
   } else {
-    JASSERT(false).Text("Unknown reply type");
+    RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
+    int d = origMetadata->dimensions;
+    IndexT* size = origMetadata->size();
+
+    int n = 0;
+    IndexT coord[d];
+    memset(coord, 0, sizeof coord);
+    IndexT multipliers[d];
+    sizeToMultipliers(d, scratchStorageSize, multipliers);
+    do {
+      IndexT scratchIndex = toRegionDataIndex(d, coord, scratchMetadata->numSliceDimensions, scratchMetadata->splitOffset, scratchMetadata->sliceDimensions(), scratchMetadata->slicePositions(), multipliers);
+      scratchStorage->data()[scratchIndex] = reply->storage[n];
+      ++n;
+    } while(incCoord(d, size, coord) >= 0);
   }
 
   free(data);

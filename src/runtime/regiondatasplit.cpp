@@ -223,7 +223,7 @@ void RegionDataSplit::copyHelper(bool isCopyTo, RegionMatrixMetadata* origMetada
   free(newOrigMetadataBuf);
 }
 
-RegionDataIPtr RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t /*len*/, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) const {
+RegionDataIPtr RegionDataSplit::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t /*len*/, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
   // Note: split data must be top-level
 
   RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
