@@ -23,7 +23,7 @@ void RegionDataI::processReadCellMsg(const BaseMessageHeader* base, size_t, IReg
   ReadCellReplyMessage reply;
   reply.value = this->readCell(msg->coord);
   size_t len = sizeof(ReadCellReplyMessage);
-  caller->sendReply(&reply, len, base);
+  caller->sendReply(&reply, len, base, MessageTypes::READCELL);
 }
 
 void RegionDataI::processReadCellCacheMsg(const BaseMessageHeader*, size_t, IRegionReplyProxy*) {
@@ -36,7 +36,7 @@ void RegionDataI::processWriteCellMsg(const BaseMessageHeader* base, size_t, IRe
   this->writeCell(msg->coord, msg->value);
   reply.value = msg->value;
   size_t len = sizeof(WriteCellReplyMessage);
-  caller->sendReply(&reply, len, base);
+  caller->sendReply(&reply, len, base, MessageTypes::WRITECELL);
 }
 
 void RegionDataI::processWriteCellCacheMsg(const BaseMessageHeader*, size_t, IRegionReplyProxy*) {
@@ -56,7 +56,7 @@ void RegionDataI::processGetHostListMsg(const BaseMessageHeader* base, size_t, I
   reply->numHosts = list.size();
   memcpy(reply->hosts, &list[0], hosts_array_size);
 
-  caller->sendReply(buf, sz, base);
+  caller->sendReply(buf, sz, base, MessageTypes::GETHOSTLIST);
 }
 
 void RegionDataI::processCopyFromMatrixStorageMsg(const BaseMessageHeader*, size_t, IRegionReplyProxy*) {
@@ -71,14 +71,14 @@ void RegionDataI::processAllocDataMsg(const BaseMessageHeader* base, size_t, IRe
   AllocDataReplyMessage reply;
   reply.result = this->allocData();
   size_t len = sizeof(AllocDataReplyMessage);
-  caller->sendReply(&reply, len, base);
+  caller->sendReply(&reply, len, base, MessageTypes::ALLOCDATA);
 }
 
 void RegionDataI::processRandomizeDataMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
   this->randomize();
   RandomizeDataReplyMessage reply;
   size_t len = sizeof(RandomizeDataReplyMessage);
-  caller->sendReply(&reply, len, base);
+  caller->sendReply(&reply, len, base, MessageTypes::RANDOMIZEDATA);
 }
 
 void RegionDataI::processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller, EncodedPtr regionHandlerPtr) {
@@ -103,7 +103,7 @@ void RegionDataI::processUpdateHandlerChainMsg(const BaseMessageHeader* base, si
   }
 
   size_t len = sizeof(UpdateHandlerChainReplyMessage);
-  caller->sendReply(&reply, len, base);
+  caller->sendReply(&reply, len, base, MessageTypes::UPDATEHANDLERCHAIN);
 }
 
 int RegionDataI::incCoord(int dimensions, IndexT* size, IndexT* coord) {

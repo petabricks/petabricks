@@ -340,7 +340,7 @@ void RegionDataSplit::processGetHostListMsg(const BaseMessageHeader* base, size_
   // Also return a copy of this regiondatasplit
   copyRegionDataSplit(buf + sizeof(GetHostListReplyMessage) + hosts_array_size);
 
-  caller->sendReply(buf, sz, base);
+  caller->sendReply(buf, sz, base, MessageTypes::GETHOSTLIST);
 }
 
 RegionHandlerPtr RegionDataSplit::coordToPart(const IndexT* coord, IndexT* coordPart) const {
