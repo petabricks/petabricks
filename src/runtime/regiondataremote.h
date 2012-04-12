@@ -25,6 +25,9 @@ namespace petabricks {
     RemoteRegionHandler _remoteRegionHandler;
     bool _isDataSplit;
 
+    jalib::JMutex _localRegionDataSplitMux;
+    RegionDataSplitPtr _localRegionDataSplit;
+
   public:
     RegionDataRemote(const int dimensions, const IndexT* size, RemoteHostPtr host);
     RegionDataRemote(const int dimensions, const IndexT* size, const HostPid& hostPid, const EncodedPtr remoteHandler, bool isDataSplit);
@@ -83,6 +86,7 @@ namespace petabricks {
     void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller, EncodedPtr regionHandlerPtr);
     void processCopyToMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     void processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
+    void processCopyRegionDataSplitMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
 
   private:
     void createRemoteObject() const;
@@ -95,6 +99,7 @@ namespace petabricks {
       return this;
     }
 
+    bool copyRegionDataSplit();
     RegionDataSplitPtr createRegionDataSplit(CopyRegionDataSplitReplyMessage* msg) const;
   };
 }

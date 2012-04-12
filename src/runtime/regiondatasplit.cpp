@@ -324,23 +324,18 @@ RegionDataIPtr RegionDataSplit::hosts(const IndexT* begin, const IndexT* end, Da
 }
 
 void RegionDataSplit::processGetHostListMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
-  GetHostListMessage* msg = (GetHostListMessage*)base->content();
-
-  DataHostPidList list;
-  this->hosts(msg->begin, msg->end, list);
-  size_t hosts_array_size = list.size() * sizeof(DataHostPidListItem);
-  size_t sz = sizeof(GetHostListReplyMessage) + hosts_array_size +
-    CopyRegionDataSplitReplyMessage::len(_D, _numParts);
-
+  // Return a copy of this regiondatasplit
+  size_t sz = CopyRegionDataSplitReplyMessage::len(_D, _numParts);
   char buf[sz];
-  GetHostListReplyMessage* reply = (GetHostListReplyMessage*)buf;
-  reply->numHosts = list.size();
-  memcpy(reply->hosts, &list[0], hosts_array_size);
+  copyRegionDataSplit(buf);
+  caller->sendReply(buf, sz, base, MessageTypes::COPYREGIONDATASPLIT);
+}
 
-  // Also return a copy of this regiondatasplit
-  copyRegionDataSplit(buf + sizeof(GetHostListReplyMessage) + hosts_array_size);
-
-  caller->sendReply(buf, sz, base, MessageTypes::GETHOSTLIST);
+void RegionDataSplit::processCopyRegionDataSplitMsg(const BaseMessageHeader* base, size_t, IRegionReplyProxy* caller) {
+  size_t sz = CopyRegionDataSplitReplyMessage::len(_D, _numParts);
+  char buf[sz];
+  copyRegionDataSplit(buf);
+  caller->sendReply(buf, sz, base, MessageTypes::COPYREGIONDATASPLIT);
 }
 
 RegionHandlerPtr RegionDataSplit::coordToPart(const IndexT* coord, IndexT* coordPart) const {

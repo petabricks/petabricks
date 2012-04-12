@@ -301,32 +301,15 @@ RegionDataIPtr RegionDataRemote::hosts(const IndexT* begin, const IndexT* end, D
     return NULL;
   }
 
-  GetHostListMessage msg;
-  memcpy(msg.begin, begin, _D * sizeof(IndexT));
-  memcpy(msg.end, end, _D * sizeof(IndexT));
-
-  void* data;
-  size_t len;
-  int type;
-  this->fetchData(&msg, MessageTypes::GETHOSTLIST, sizeof(GetHostListMessage), &data, &len, &type);
-  GetHostListReplyMessage* reply = (GetHostListReplyMessage*)data;
-
-  for (int i = 0; i < reply->numHosts; i++) {
-    list.push_back(reply->hosts[i]);
+  RegionDataI* rv = NULL;
+  if (!_localRegionDataSplit) {
+    if (this->copyRegionDataSplit()) {
+      rv = _localRegionDataSplit.asPtr();
+    }
   }
 
-  size_t getHostListSize =  sizeof(GetHostListReplyMessage) + (reply->numHosts * sizeof(DataHostPidListItem));
-  if (getHostListSize < len) {
-    // RemoteData is RegionDataSplit. We will create a local copy.
-    CopyRegionDataSplitReplyMessage* copyMsg = (CopyRegionDataSplitReplyMessage*)((char*)data + getHostListSize);
-    RegionDataSplitPtr regionDataSplit = createRegionDataSplit(copyMsg);
-    free(reply);
-    return regionDataSplit.asPtr();
-
-  } else {
-    free(reply);
-    return NULL;
-  }
+  _localRegionDataSplit->hosts(begin, end, list);
+  return rv;
 }
 
 RemoteHostPtr RegionDataRemote::dataHost() {
@@ -467,6 +450,27 @@ void RegionDataRemote::processCopyToMatrixStorageMsg(const BaseMessageHeader* ba
 
 void RegionDataRemote::processCopyFromMatrixStorageMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
   this->forwardMessage(base, baseLen, caller);
+}
+
+void RegionDataRemote::processCopyRegionDataSplitMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  this->forwardMessage(base, baseLen, caller);
+}
+
+
+bool RegionDataRemote::copyRegionDataSplit() {
+  JLOCKSCOPE(_localRegionDataSplitMux);
+  if (!_localRegionDataSplit) {
+    CopyRegionDataSplitMessage msg;
+    void* data;
+    size_t len;
+    int type;
+    this->fetchData(&msg, MessageTypes::COPYREGIONDATASPLIT, sizeof(CopyRegionDataSplitMessage), &data, &len, &type);
+    CopyRegionDataSplitReplyMessage* reply = (CopyRegionDataSplitReplyMessage*)data;
+    _localRegionDataSplit = createRegionDataSplit(reply);
+    free(reply);
+    return true;
+  }
+  return false;
 }
 
 RegionDataSplitPtr RegionDataRemote::createRegionDataSplit(CopyRegionDataSplitReplyMessage* msg) const {

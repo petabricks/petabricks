@@ -106,6 +106,10 @@ void RegionDataI::processUpdateHandlerChainMsg(const BaseMessageHeader* base, si
   caller->sendReply(&reply, len, base, MessageTypes::UPDATEHANDLERCHAIN);
 }
 
+void RegionDataI::processCopyRegionDataSplitMsg(const BaseMessageHeader*, size_t, IRegionReplyProxy*) {
+  UNIMPLEMENTED();
+}
+
 int RegionDataI::incCoord(int dimensions, IndexT* size, IndexT* coord) {
   if (dimensions == 0)
     return -1;

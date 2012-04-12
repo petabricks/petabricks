@@ -79,6 +79,7 @@ namespace petabricks {
     virtual void processAllocDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     virtual void processRandomizeDataMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
     virtual void processUpdateHandlerChainMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller, EncodedPtr regionHandlerPtr);
+    virtual void processCopyRegionDataSplitMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);
 
     //  Coordinate helpers
     static int incCoord(int dimensions, IndexT* size, IndexT* coord);

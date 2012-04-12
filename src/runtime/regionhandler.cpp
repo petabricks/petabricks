@@ -511,6 +511,10 @@ void RegionHandler::processUpdateHandlerChainMsg(const BaseMessageHeader* base, 
   this->regionData()->processUpdateHandlerChainMsg(base, baseLen, caller, reinterpret_cast<EncodedPtr>(this));
 }
 
+void RegionHandler::processCopyRegionDataSplitMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller) {
+  this->regionData()->processCopyRegionDataSplitMsg(base, baseLen, caller);
+}
+
 //
 // RegionHandlerDB
 //

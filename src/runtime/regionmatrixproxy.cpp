@@ -54,6 +54,9 @@ void RegionMatrixProxy::onRecv(const void* data, size_t len, int messageType) {
   case MessageTypes::FROMSCRATCHSTORAGE:
     _regionHandler->processCopyFromMatrixStorageMsg(base, len, this);
     break;
+  case MessageTypes::COPYREGIONDATASPLIT:
+    _regionHandler->processCopyRegionDataSplitMsg(base, len, this);
+    break;
   default:
     JASSERT(false)(messageType)(base->type).Text("Unknown RegionRemoteMsgTypes.");
   }

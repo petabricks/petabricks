@@ -65,9 +65,11 @@ void petabricks::RemoteObject::onNotify(int arg) {
   JTRACE("notify")(_flags)(arg);
 }
 void petabricks::RemoteObject::send(const void* p, size_t s, int arg) const {
+  JTRACE("send")(s)(arg);
   host()->sendData(this, p, s, arg);
 }
 void petabricks::RemoteObject::sendMu(const void* p, size_t s, int arg) const {
+  JTRACE("sendmu")(s)(arg);
   unlock();
   host()->sendData(this, p, s, arg);
   lock();
