@@ -1566,6 +1566,7 @@ void petabricks::UserRule::generatePartialTrampCode(Transform& trans, CodeGenera
         // o.write("MatrixIOGeneral().write(metadata->local_TO_" + i->first + ");");
       } else {
         o.write("metadata->remote_TO_" + i->first + ".writeCell(NULL, metadata->" + i->first + ".cell());");
+        // o.write("MatrixIOGeneral().write(metadata->remote_TO_" + i->first + ");");
       }
     }
   }
@@ -2554,7 +2555,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
       } else {
         // 0D
         if (generatePartialTrampMetadata) {
-          o.write("metadata->remote_TO_" + i->first + " = " + matrix->name() + scratchSuffix + ";");
+          o.write("metadata->remote_TO_" + i->first + " = " + i->first + ";");
         }
       }
     }
