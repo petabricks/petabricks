@@ -142,6 +142,8 @@ public:
   void elseIf(const std::string& v = "true");
   void endIf();
 
+  void trace(const std::string& str);
+
   void createTunable( bool isTunable
                     , const std::string& category
                     , const std::string& name

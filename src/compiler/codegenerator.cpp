@@ -186,6 +186,11 @@ void petabricks::CodeGenerator::endIf(){
   os() << "}\n";
 }
 
+void petabricks::CodeGenerator::trace(const std::string& str){
+  indent();
+  os() << "JTRACE(\"" << str << "\");\n";
+}
+
 namespace{//file local
   void _splitTypeArgs(std::string& type, std::string& name, const std::string& str){
     const char* begin=str.c_str();
