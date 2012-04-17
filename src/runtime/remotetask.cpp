@@ -43,6 +43,7 @@ petabricks::RemoteTask::RemoteTask() {
 }
 
 void petabricks::RemoteTask::onCompletedRemotely() {
+  SubRegionCacheManager::incVersion();
   completeTaskDeps(false);
 }
 

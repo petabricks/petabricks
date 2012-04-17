@@ -5,6 +5,7 @@
 #include "common/jrefcounted.h"
 #include "regiondatai.h"
 #include "remotehost.h"
+#include "subregioncachemanager.h"
 
 #include <map>
 
@@ -26,20 +27,27 @@ namespace petabricks {
     RegionHandlerCacheItem(const RegionHandlerCacheItem& that);
 
   public:
-    RegionHandlerCacheItem(const char* buf, size_t len, RegionHandlerPtr handler) {
+    RegionHandlerCacheItem(const char* buf, size_t len, long version, RegionHandlerPtr handler) {
       _buf = (char*)malloc(len);
       memcpy(_buf, buf, len);
       _len = len;
+      _version = version;
       _handler = handler;
     }
     ~RegionHandlerCacheItem() {
       free(_buf);
     }
-    bool isEqual(const char* buf, size_t len) {
+    bool isEqual(const char* buf, size_t len) const {
       if (_len != len) return false;
       return (memcmp(_buf, buf, len) == 0);
     }
-    RegionHandlerPtr handler(){
+    bool isValid(const char* buf, size_t len) const {
+      if (isEqual(buf, len)) {
+        return SubRegionCacheManager::isValid(_version);
+      }
+      return false;
+    }
+    RegionHandlerPtr handler() const {
       return _handler;
     }
     static jalib::Hash hash(const char* buf, size_t len) {
@@ -51,6 +59,7 @@ namespace petabricks {
   private:
     char* _buf;
     size_t _len;
+    long _version;
     RegionHandlerPtr _handler;
   };
 

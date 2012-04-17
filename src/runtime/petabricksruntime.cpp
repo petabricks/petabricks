@@ -32,6 +32,7 @@
 #include "gpumanager.h"
 #include "petabricks.h"
 #include "remotehost.h"
+#include "subregioncachemanager.h"
 #include "testisolation.h"
 
 #include "common/jargs.h"
@@ -383,6 +384,10 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
   args.param("tireexec", TI_REEXEC).help("toggle if TestIsolation should reexecute the process");
 
   args.finishParsing(txArgs);
+
+#ifndef DISABLE_DISTRIBUTED
+  SubRegionCacheManager::initialize();
+#endif
 
   if(SLAVE_HOST != "" && SLAVE_PORT>0) {
     ISOLATION=false;

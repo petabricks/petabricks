@@ -31,6 +31,7 @@
 #include "remotehost.h"
 #include "remoteobject.h"
 #include "regiondataremotemessages.h"
+#include "subregioncachemanager.h"
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -99,6 +100,7 @@ namespace petabricks {
     void onRecvInitial(const void* buf, size_t ) {
       //JTRACE("remote create");
       JASSERT(!_task);
+      SubRegionCacheManager::incVersion();
       _task = new T(reinterpret_cast<const char*>(buf), *host());
       _task->incRefCount();
       _task->enqueueLocal();

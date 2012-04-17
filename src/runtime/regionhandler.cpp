@@ -392,18 +392,20 @@ RegionHandlerPtr RegionHandler::copyToScratchMatrixStorageCache(CopyToMatrixStor
     RegionHandlerCacheItemPtr t = it->second;
     _cacheMux.unlock();
 
-    if (t->isEqual((char*)origMsg, len)) {
+    if (t->isValid((char*)origMsg, len)) {
       return t->handler();
     }
   } else {
     _cacheMux.unlock();
   }
 
+  long version = SubRegionCacheManager::version();
+
   copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
 
   // store in cache
   _cacheMux.lock();
-  _cache[hash] = new RegionHandlerCacheItem((char*)origMsg, len, scratchHandler);
+  _cache[hash] = new RegionHandlerCacheItem((char*)origMsg, len, version, scratchHandler);
   _cacheMux.unlock();
   return NULL;
 }

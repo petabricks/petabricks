@@ -99,12 +99,13 @@ private:
   IndexT _end[D];
 };
 
- template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D]), void (T::*getDataHostsMethod)(DataHostPidList& list, IndexT begin[D], IndexT end[D])>
+template< typename T, int D, DynamicTaskPtr (T::*method)(IndexT begin[D], IndexT end[D]), void (T::*getDataHostsMethod)(DataHostPidList& list, IndexT begin[D], IndexT end[D])>
 class SpatialMethodCallTask_distributed : public RemoteTask {
 public:
   SpatialMethodCallTask_distributed(const jalib::JRef<T>& obj, IndexT begin[D], IndexT end[D])
     : _obj(obj)
   {
+    // JTRACE("spatial distributed");
     memcpy(_begin, begin, sizeof _begin);
     memcpy(_end,   end,   sizeof _end);
   }
@@ -112,7 +113,6 @@ public:
     unserialize(_buf, _host);
   }
   DynamicTaskPtr run(){
-    // JTRACE("spatial_distributed");
     return ((*_obj).*(method))(_begin, _end);
   }
 
@@ -159,6 +159,7 @@ public:
   SpatialMethodCallTask_partial(IndexT begin[D], IndexT end[D], const jalib::JRef<T>& metadata)
     : _metadata(metadata)
   {
+    //JTRACE("partial task");
     memcpy(_begin, begin, sizeof _begin);
     memcpy(_end,   end,   sizeof _end);
   }

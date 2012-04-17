@@ -89,6 +89,7 @@ pkglib_HEADERS=  \
   runtime/specializeddynamictasks.h \
   runtime/testisolation.h \
   runtime/transforminstance.h \
+  runtime/subregioncachemanager.h \
   runtime/workerthread.h
 
 libpbcommon_a_CXXFLAGS = -I$(srcdir)/common
@@ -174,6 +175,7 @@ libpbruntime_a_SOURCES =  \
   runtime/remotetask.cpp \
   runtime/ruleinstance.cpp \
   runtime/specializeddynamictasks.cpp \
+  runtime/subregioncachemanager.cpp \
   runtime/testisolation.cpp \
   runtime/transforminstance.cpp \
   runtime/workerthread.cpp
