@@ -256,6 +256,11 @@ RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageM
 }
 
 void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
+  if (isDataSplit()) {
+    _localRegionDataSplit->copyFromScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
+    return;
+  }
+
   RegionMatrixMetadata* origMetadata = &(origMsg->srcMetadata);
   int d = origMetadata->dimensions;
   IndexT* size = origMetadata->size();
