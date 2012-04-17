@@ -533,6 +533,12 @@ void petabricks::UserRule::buildFromBoundingBox(){
       }else{
         _fromBoundingBoxNoOptional[(*i)->matrix()] = new SimpleRegion(*(*i));
       }
+    } else {
+#ifndef DISABLE_DISTRIBUTED
+      // TODO: compute real bounding box before create subregion
+      // Currently, we check for optional at access time.
+      UNIMPLEMENTED();
+#endif
     }
   }
 }
