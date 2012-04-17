@@ -22,6 +22,9 @@ KernelEstimate: KernelEstimate.pbcc LinearSolvePosDef.pbcc
 BinnedLR: BinnedLR.pbcc
 	${PBC} $< --output $@
 
+Estimate: Estimate.pbcc
+	${PBC} $< --output $@
+
 test: nwkde
 	./nwkde test/trainData.pba test/trainX.pba test/trainY.pba test/trainIndices.pba test/testData.pba test/testX.pba test/testIndices.pba test/dirFlags.pba test/kernelWidths.pba test/split.pba test/maskWidth.pba test/output.pba.last
 	diff test/output.pba test/output.pba.last

@@ -3,8 +3,10 @@
 
 #include "../simple/copy.pbcc"
 #include "BinnedLR.pbcc"
-#include "nwkdeVA.pbcc"
+#include "nwkde.pbcc"
+#include "nwkde.h"
 #include "EstimateMetric.pbcc"
+#include "nwkdeGenerators.pbcc"
 
 /*
 transform Train
@@ -59,15 +61,34 @@ to RESULT[q]
 }
 */
 
+transform EstimateGenerator
+to DATA[4, 8750], X[2, 8], DIR[2], Y[2], INDICES[n],
+   DIRFLAGS[4], SPLIT, MASKWIDTH
+{
+    to (DATA data, X x, DIR dir, Y y, INDICES indices, DIRFLAGS dirFlags,
+        SPLIT split, MASKWIDTH maskWidth)
+    from ()
+    {
+        NWKDEGenerator(data, x, y, indices, data, x, indices, dirFlags, split, maskWidth);
+
+        dir.cell(0) = 3;
+        dir.cell(1) = 0;
+    }
+}
+
 // Assumes X includes all predictor variables, including the one specified in
 // DIR.
 transform Estimate
-from DATA[m,n], X[2,p], DIR[2], Y[2], INDICES[q],
-     DIRFLAGS[m], SPLIT, MASKWIDTH
-to RESULT[1,q]
+from DATA[_M_,_N_], X[2,_P_], DIR[2], Y[2], INDICES[_Q_],
+     DIRFLAGS[_M_], SPLIT, MASKWIDTH
+to RESULT[1,_Q_]
 accuracy_metric EstimateMetric
-accuracy_bins ACC_BINS
+//accuracy_bins ACC_BINS
+//tunable float sizespecific array(_M_) initial(4) KERNELWIDTHS
+tunable float array(_M_) initial(4) KERNELWIDTHS
+generator EstimateGenerator
 {
+#if 0
     // use Binned Linear Regression
     to (RESULT result)
     from (DATA data, X x, DIR dir, Y y, INDICES indices, DIRFLAGS dirFlags,
@@ -76,8 +97,8 @@ accuracy_bins ACC_BINS
         // filter out all directional variables from X
         IndexT i, j = 0;
         MatrixRegion2D tempX, tempX2;
-        tempX = MatrixRegion2D::allocate(2, p);
-        for (i = 0; i < p; ++i) {
+        tempX = MatrixRegion2D::allocate(2, _P_);
+        for (i = 0; i < _P_; ++i) {
             if (!dirFlags.cell(x.cell(0, i))) {
                 Copy1D(tempX.row(j), x.row(j));
                 j++;
@@ -90,18 +111,32 @@ accuracy_bins ACC_BINS
         BinnedLR(result, data, tempX2, dir, y, indices,
                  data, tempX2, dir, indices, split, maskWidth);
     }
+#endif
 
-#if 0
     // use Nadaraya-Watson Kernel Regression
     to (RESULT result)
     from (DATA data, X x, Y y, INDICES indices, DIRFLAGS dirFlags,
           SPLIT split, MASKWIDTH maskWidth)
     {
-        // TODO: call VA tunable version
-        NWKDE(result.col(0), data, x, y, indices, data, x, indices, dirFlags,
-              split, maskWidth);
-    }
+        // copy kernel widths into matrix region
+        MatrixRegion1D kernelWidths = MatrixRegion1D::allocate(_M_);
+        for (int i = 0; i < _M_; ++i) {
+            kernelWidths.cell(i) = (double) KERNELWIDTHS[i];
+            printf("KERNELWIDTHS[%d] = %g\n", i, (double) KERNELWIDTHS[i]);
+            printf("Setting kernelWidths.cell(%d) = %g\n", i, kernelWidths.cell(i));
+        }
+
+#if 1
+        // set kernelWidths
+        kernelWidths.cell(0) =   2.4211;
+        kernelWidths.cell(1) = 236.1655;
+        kernelWidths.cell(2) =   1.6228;
+        kernelWidths.cell(3) =  36.4703;
 #endif
+
+        NWKDE(result.col(0), data, x, y, indices, data, x, indices, dirFlags,
+              kernelWidths, split, maskWidth);
+    }
 }
 
 #endif // ESTIMATE_PBCC
