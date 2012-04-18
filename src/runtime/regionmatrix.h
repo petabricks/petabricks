@@ -677,7 +677,9 @@ namespace petabricks {
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
       do {
-        JASSERT(fabs(this->cell(coord) - matrixRegion.cell(coord)) < 0.000001)(this->cell(coord))(matrixRegion.cell(coord));
+        if ((matrixRegion.cell(coord) >= 0) || (matrixRegion.cell(coord) <= 0)) {
+          JASSERT(fabs(this->cell(coord) - matrixRegion.cell(coord)) < 0.000001)(this->cell(coord))(matrixRegion.cell(coord));
+        }
       } while (this->incCoord(coord) >= 0);
 #endif
 
@@ -758,7 +760,9 @@ namespace petabricks {
       IndexT coord[D];
       memset(coord, 0, sizeof coord);
       do {
-        JASSERT(fabs(this->cell(coord) - scratch.cell(coord)) < 0.000001)(this->cell(coord))(scratch.cell(coord));
+        if ((scratch.cell(coord) >= 0) || (scratch.cell(coord) <= 0)) {
+          JASSERT(fabs(this->cell(coord) - scratch.cell(coord)) < 0.000001)(this->cell(coord))(scratch.cell(coord));
+        }
       } while (this->incCoord(coord) >= 0);
       #endif
     }

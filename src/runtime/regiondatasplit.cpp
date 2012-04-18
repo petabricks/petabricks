@@ -185,8 +185,10 @@ void RegionDataSplit::copyHelper(bool isCopyTo, RegionMatrixMetadata* origMetada
         }
         return;
       } else {
-        // don't need to do anything
-        return;
+        if (part->regionData()->storage().asPtr() == scratchStorage.asPtr()) {
+          // same storage don't need to do anything
+          return;
+        }
       }
     }
   }
