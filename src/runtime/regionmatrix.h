@@ -644,8 +644,8 @@ namespace petabricks {
       metadata.numSliceDimensions = _sliceInfo->numSliceDimensions();
       memcpy(metadata.splitOffset, _splitOffset, sizeof(IndexT) * D);
       memcpy(metadata.size(), _size, sizeof(IndexT) * D);
-      memcpy(metadata.sliceDimensions(), _sliceInfo->sliceDimensions(), sizeof(int) * D);
-      memcpy(metadata.slicePositions(), _sliceInfo->slicePositions(), sizeof(IndexT) * D);
+      memcpy(metadata.sliceDimensions(), _sliceInfo->sliceDimensions(), sizeof(int) * _sliceInfo->numSliceDimensions());
+      memcpy(metadata.slicePositions(), _sliceInfo->slicePositions(), sizeof(IndexT) * _sliceInfo->numSliceDimensions());
       //JTRACE("metadata")(metadata.size()[0])(metadata.size()[1]);
     }
 
