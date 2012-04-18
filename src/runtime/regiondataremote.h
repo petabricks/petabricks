@@ -60,7 +60,7 @@ namespace petabricks {
     void writeByCache(const IndexT* coord, ElementT value) const;
 
     // scratch
-    RegionDataIPtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
+    RegionDataIPtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize, RegionDataI** newScratchRegionData);
     void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMetadata, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
 
     RegionDataIPtr hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list);
@@ -99,8 +99,7 @@ namespace petabricks {
       return this;
     }
 
-    bool copyRegionDataSplit();
-    RegionDataSplitPtr createRegionDataSplit(CopyRegionDataSplitReplyMessage* msg) const;
+    RegionDataSplitPtr copyRegionDataSplit();
   };
 }
 

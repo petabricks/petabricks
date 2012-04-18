@@ -727,16 +727,27 @@ namespace petabricks {
       RegionMatrixMetadata* scratchMetadata = (RegionMatrixMetadata*)scratchMetadataBuf;
       scratch.computeRegionMatrixMetadata(*scratchMetadata);
 
+      RegionDataI* newScratchRegionData = NULL;
+
       // cacheable = false;
       if (cacheable) {
-        RegionHandlerPtr newHandler = _regionHandler->copyToScratchMatrixStorageCache(msg, len, scratch.regionData()->storage(), scratchMetadata, scratch.regionData()->size(), scratch.regionHandler());
+        RegionHandlerPtr newHandler = _regionHandler->copyToScratchMatrixStorageCache(msg, len, scratch.regionData()->storage(), scratchMetadata, scratch.regionData()->size(), scratch.regionHandler(), &newScratchRegionData);
         if (newHandler) {
           // JTRACE("found");
           scratch.setRegionHandler(newHandler);
         }
-
       } else {
-        _regionHandler->copyToScratchMatrixStorage(msg, len, scratch.regionData()->storage(), scratchMetadata, scratch.regionData()->size());
+        _regionHandler->copyToScratchMatrixStorage(msg, len, scratch.regionData()->storage(), scratchMetadata, scratch.regionData()->size(), &newScratchRegionData);
+      }
+
+      if (newScratchRegionData) {
+        // reuse the existing regiondata
+
+        RegionMatrixSliceInfoPtr sliceInfo = new RegionMatrixSliceInfo(scratchMetadata->numSliceDimensions);
+        memcpy(sliceInfo->sliceDimensions(), scratchMetadata->sliceDimensions(), sizeof(int) * sliceInfo->numSliceDimensions());
+        memcpy(sliceInfo->slicePositions(), scratchMetadata->slicePositions(), sizeof(IndexT) * sliceInfo->numSliceDimensions());
+
+        scratch.init(scratchMetadata->size(), scratchMetadata->splitOffset, false, sliceInfo, new RegionHandler(newScratchRegionData, false));
       }
 
       if (_isTransposed) {

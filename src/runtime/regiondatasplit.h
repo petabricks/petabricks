@@ -42,8 +42,8 @@ namespace petabricks {
     ElementT readCell(const IndexT* coord) const;
     void writeCell(const IndexT* coord, ElementT value);
 
-    void copyHelper(bool isCopyTo, RegionMatrixMetadata* origMetadata, RegionMatrixMetadata* origScratchMetadata, MatrixStoragePtr scratchStorage, const IndexT* scratchStorageSize) const;
-    RegionDataIPtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
+    void copyHelper(bool isCopyTo, RegionMatrixMetadata* origMetadata, RegionMatrixMetadata* origScratchMetadata, MatrixStoragePtr scratchStorage, const IndexT* scratchStorageSize, RegionDataI** newScratchRegionData) const;
+    RegionDataIPtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize, RegionDataI** newScratchRegionData);
     void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
 
     RegionDataIPtr hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list);
@@ -63,6 +63,9 @@ namespace petabricks {
 
     // test
     void print();
+
+  private:
+    bool isRegionInOnePart(const IndexT* newBegin, const IndexT* end) const;
   };
 }
 

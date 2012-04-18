@@ -212,15 +212,13 @@ void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
   free(reply);
 }
 
-RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
+RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize, RegionDataI** newScratchRegionData) {
   if (isDataSplit()) {
     RegionDataI* rv = NULL;
-    if (!_localRegionDataSplit) {
-      if (this->copyRegionDataSplit()) {
-        rv = _localRegionDataSplit.asPtr();
-      }
+    if (this->copyRegionDataSplit()) {
+      rv = _localRegionDataSplit.asPtr();
     }
-    _localRegionDataSplit->copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
+    _localRegionDataSplit->copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize, newScratchRegionData);
     return rv;
   }
 
@@ -306,10 +304,8 @@ RegionDataIPtr RegionDataRemote::hosts(const IndexT* begin, const IndexT* end, D
   }
 
   RegionDataI* rv = NULL;
-  if (!_localRegionDataSplit) {
-    if (this->copyRegionDataSplit()) {
-      rv = _localRegionDataSplit.asPtr();
-    }
+  if (this->copyRegionDataSplit()) {
+    rv = _localRegionDataSplit.asPtr();
   }
 
   _localRegionDataSplit->hosts(begin, end, list);
@@ -414,7 +410,7 @@ void RegionDataRemote::forwardMessage(const BaseMessageHeader* base, size_t base
 
   memcpy(data->next(), base, baseLen);
 
-  remoteObject()->send(data, len);
+  remoteObject()->send(data, len, base->type);
   free(data);
 }
 
@@ -460,27 +456,25 @@ void RegionDataRemote::processCopyRegionDataSplitMsg(const BaseMessageHeader* ba
   this->forwardMessage(base, baseLen, caller);
 }
 
+RegionDataSplitPtr RegionDataRemote::copyRegionDataSplit() {
+  JDEBUGASSERT(isDataSplit());
 
-bool RegionDataRemote::copyRegionDataSplit() {
-  JLOCKSCOPE(_localRegionDataSplitMux);
   if (!_localRegionDataSplit) {
-    CopyRegionDataSplitMessage msg;
-    void* data;
-    size_t len;
-    int type;
-    this->fetchData(&msg, MessageTypes::COPYREGIONDATASPLIT, sizeof(CopyRegionDataSplitMessage), &data, &len, &type);
-    CopyRegionDataSplitReplyMessage* reply = (CopyRegionDataSplitReplyMessage*)data;
-    _localRegionDataSplit = createRegionDataSplit(reply);
-    free(reply);
-    return true;
-  }
-  return false;
-}
+    JLOCKSCOPE(_localRegionDataSplitMux);
+    if (!_localRegionDataSplit) {
+      CopyRegionDataSplitMessage msg;
+      void* data;
+      size_t len;
+      int type;
+      this->fetchData(&msg, MessageTypes::COPYREGIONDATASPLIT, sizeof(CopyRegionDataSplitMessage), &data, &len, &type);
 
-RegionDataSplitPtr RegionDataRemote::createRegionDataSplit(CopyRegionDataSplitReplyMessage* msg) const {
-    RegionDataSplitPtr regionDataSplit = new RegionDataSplit(_D, _size, msg->splitSize);
-    for (int i = 0; i < msg->numParts; ++i) {
-      regionDataSplit->setPart(i, msg->handlers()[i]);
+      CopyRegionDataSplitReplyMessage* reply = (CopyRegionDataSplitReplyMessage*)data;
+      _localRegionDataSplit = new RegionDataSplit(_D, _size, reply->splitSize);
+      for (int i = 0; i < reply->numParts; ++i) {
+        _localRegionDataSplit->setPart(i, reply->handlers()[i]);
+      }
+      return _localRegionDataSplit;
     }
-    return regionDataSplit;
+  }
+  return NULL;
 }

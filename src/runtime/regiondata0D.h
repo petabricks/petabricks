@@ -55,7 +55,7 @@ namespace petabricks {
 
     RemoteHostPtr dataHost() { return NULL; }
 
-    RegionDataIPtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* /*origMetadata*/, size_t /*len*/, MatrixStoragePtr /*scratchStorage*/, RegionMatrixMetadata* /*scratchMetadata*/, const IndexT* /*scratchStorageSize*/) {
+    RegionDataIPtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* /*origMetadata*/, size_t /*len*/, MatrixStoragePtr /*scratchStorage*/, RegionMatrixMetadata* /*scratchMetadata*/, const IndexT* /*scratchStorageSize*/, RegionDataI** /*newScratchRegionData*/) {
       JASSERT(false);
       return NULL;
     }
@@ -133,7 +133,7 @@ namespace petabricks {
 
     RemoteHostPtr dataHost() { return NULL; }
 
-    RegionDataIPtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* /*origMetadata*/, size_t /*len*/, MatrixStoragePtr /*scratchStorage*/, RegionMatrixMetadata* /*scratchMetadata*/, const IndexT* /*scratchStorageSize*/) {
+    RegionDataIPtr copyToScratchMatrixStorage(CopyToMatrixStorageMessage* /*origMetadata*/, size_t /*len*/, MatrixStoragePtr /*scratchStorage*/, RegionMatrixMetadata* /*scratchMetadata*/, const IndexT* /*scratchStorageSize*/, RegionDataI** /*newScratchRegionData*/) {
       JASSERT(false);
       return NULL;
     }

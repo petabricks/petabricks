@@ -110,14 +110,15 @@ namespace petabricks {
     bool isHandlerChainUpdated(); // for testing
 
     // Copy MatrixStorage
-    void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
-    RegionHandlerPtr copyToScratchMatrixStorageCache(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize, RegionHandlerPtr scratchHandler);
+    void copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize, RegionDataI** newScratchRegionData);
+    RegionHandlerPtr copyToScratchMatrixStorageCache(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize, RegionHandlerPtr scratchHandler, RegionDataI** newScratchRegionData);
     void copyRegionDataToLocal();
     void copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize);
 
     // RegionDataSplit
     void splitData(int dimensions, const IndexT* sizes, const IndexT* splitSize);
     void createDataPart(int partIndex, RemoteHostPtr host);
+    void copyRegionDataSplit();
 
     // Process Remote Messages
     void processReadCellMsg(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);

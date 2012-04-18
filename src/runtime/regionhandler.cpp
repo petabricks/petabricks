@@ -366,7 +366,7 @@ RemoteRegionHandler RegionHandler::remoteRegionHandler() const {
   }
 }
 
-void RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
+void RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize, RegionDataI** newScratchRegionData) {
   RegionDataIPtr regionData = this->regionData();
 
 #ifdef DEBUG
@@ -376,13 +376,13 @@ void RegionHandler::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origM
 #endif
 
   RegionDataIPtr newRegionData =
-    regionData->copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
+    regionData->copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize, newScratchRegionData);
   if (newRegionData) {
     updateRegionData(newRegionData);
   }
 }
 
-RegionHandlerPtr RegionHandler::copyToScratchMatrixStorageCache(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize, RegionHandlerPtr scratchHandler) {
+RegionHandlerPtr RegionHandler::copyToScratchMatrixStorageCache(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize, RegionHandlerPtr scratchHandler, RegionDataI** newScratchRegionData) {
   jalib::Hash hash = RegionHandlerCacheItem::hash((char*)origMsg, len);
 
   _cacheMux.lock();
@@ -401,12 +401,15 @@ RegionHandlerPtr RegionHandler::copyToScratchMatrixStorageCache(CopyToMatrixStor
 
   long version = SubRegionCacheManager::version();
 
-  copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
+  copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize, newScratchRegionData);
 
-  // store in cache
-  _cacheMux.lock();
-  _cache[hash] = new RegionHandlerCacheItem((char*)origMsg, len, version, scratchHandler);
-  _cacheMux.unlock();
+  // Do not cache if we switch scratch RegionData
+  if (!newScratchRegionData) {
+    // store in cache
+    _cacheMux.lock();
+    _cache[hash] = new RegionHandlerCacheItem((char*)origMsg, len, version, scratchHandler);
+    _cacheMux.unlock();
+  }
   return NULL;
 }
 
@@ -436,7 +439,7 @@ void RegionHandler::copyRegionDataToLocal() {
   memset(metadata.splitOffset, 0, sizeof(IndexT) * _D);
   memcpy(metadata.size(), newRegionData->size(), sizeof(IndexT) * _D);
 
-  regionData->copyToScratchMatrixStorage(msg, len, newRegionData->storage(), &metadata, newRegionData->size());
+  regionData->copyToScratchMatrixStorage(msg, len, newRegionData->storage(), &metadata, newRegionData->size(), NULL);
 
   updateRegionData(newRegionData);
   JTRACE("copy all regiondata");
