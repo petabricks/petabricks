@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """This script compiles multiple instances of a program trying out different
 heuristics, and storing in the database the best one that is found"""
 import sys

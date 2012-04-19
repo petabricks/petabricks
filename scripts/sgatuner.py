@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import progress 
 import itertools, random, subprocess, os, sys, time, warnings
 import pbutil, mutators
