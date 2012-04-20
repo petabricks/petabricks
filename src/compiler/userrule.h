@@ -113,13 +113,14 @@ public:
 
   void generateMultiOpenCLTrampCodes(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
   void generateOpenCLCallCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor);
-  void generateOpenCLPrepareCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o);
+  void generateOpenCLPrepareCode(std::string& codename, CodeGenerator& o);
   void generateOpenCLCopyInCode(std::string& codename, std::vector<std::string>& packedargs, CodeGenerator& o, RegionPtr region);
   void generateOpenCLRunCode(Transform& trans, CodeGenerator& o);
   void generateOpenCLCopyOutCode(std::string& codename, CodeGenerator& o, RegionPtr region);
   ///
   /// Generate an OpenCL program implementing this rule
   void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef, bool local=false);
+  std::string getLastRowOnGpuGuild(MatrixDefPtr matrix, int dim_int);
   void collectGpuLocalMemoryData();
   bool canUseLocalMemory() {
     return _local.size() > 0;
@@ -191,6 +192,15 @@ public:
       }
     }
     return 0;
+  }
+
+  bool isDivisible() {  
+    IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
+    for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
+      if(stencilType((*i)->matrix(),iterdef.dimensions()) == 0)
+	return false;
+    }
+    return true;
   }
 
   RuleFlags::PriorityT priority() const { return _flags.priority; }

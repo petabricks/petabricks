@@ -171,10 +171,13 @@ void GpuManager::prepare(GpuDynamicTaskPtr task) {
   #endif
 
   int dimensions = _currenttaskinfo->dimensions();
+  if(task->end()[dimensions-1] <= task->begin()[dimensions-1])
+    return;
+
   double gpuRatio = _currenttaskinfo->gpuRatio();
 
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
-    (*i)->initGpuMem(_queue,_context,task->end(),dimensions,gpuRatio,false); // clCreateBuffer
+    (*i)->initGpuMem(_queue,_context,gpuRatio,false); // clCreateBuffer
   }
 }
 
@@ -183,11 +186,12 @@ void GpuManager::copyin(GpuDynamicTaskPtr task) {
   #ifdef GPU_TRACE
   std::cout << "[COPY IN]" << std::endl;
   #endif
-  MatrixStorageInfoPtr storageinfo = task->storageinfo();
+
   int dimensions = _currenttaskinfo->dimensions();
+  MatrixStorageInfoPtr storageinfo = task->storageinfo();
   double gpuRatio = _currenttaskinfo->gpuRatio();
 
-  if(storageinfo->initGpuMem(_queue,_context,task->end(),dimensions,gpuRatio,true)) { // clCreateBuffer
+  if(storageinfo->initGpuMem(_queue,_context,gpuRatio,true)) { // clCreateBuffer
     #ifdef GPU_TRACE
     std::cout << "copying in... " << &(*storageinfo) << std::endl;
     #endif
@@ -206,8 +210,15 @@ void GpuManager::run(GpuDynamicTaskPtr task) {
   /*for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_from.begin(); i != _currenttaskinfo->_from.end(); ++i) {
     (*i)->check(_queue);
   }*/
-
-  task->run();
+  int dimensions = _currenttaskinfo->dimensions();
+  if(task->end()[dimensions-1] > task->begin()[dimensions-1]) {
+    task->run();
+  }
+  #ifdef GPU_TRACE
+  else {
+    std::cout << "---skip---" << std::endl;
+  }
+  #endif
 
   for(std::vector<MatrixStorageInfoPtr>::iterator i = _currenttaskinfo->_to.begin(); i != _currenttaskinfo->_to.end(); ++i) {
     (*i)->finishGpuMem(_queue,_currenttaskinfo->nodeID(), _currenttaskinfo->regionNodeGroupMap(), _currenttaskinfo->gpuCopyOut()); // clEnqueueReadBuffer
@@ -223,7 +234,7 @@ bool GpuManager::copyout(GpuDynamicTaskPtr task) {
   #endif
 
   CopyoutInfoPtr copyInfo = storage->getCopyoutInfo(_currenttaskinfo->nodeID());
-  //TODO: still not totally right
+
   if(!copyInfo) {
     // The CopyoutInfo hasn't been created yet. Not done.
     #ifdef GPU_TRACE

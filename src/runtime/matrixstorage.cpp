@@ -48,7 +48,9 @@ void petabricks::MatrixStorage::updateDataFromGpu(IndexT firstRow){
   pendings = CopyPendingMap::_pendingMap.allPendings(this);
   bool needUpdate = false;
   for(std::set<MatrixStorageInfoPtr>::iterator it = pendings.begin(); it != pendings.end(); ++it) {
+#ifdef GPU_TRACE
     std::cout << "pending data: lastRowOnGpu = " << (*it)->lastRowOnGpu() << std::endl;
+#endif
     if((*it)->lastRowOnGpu() - 1 >= firstRow) {
       needUpdate = true;
       break;
@@ -63,8 +65,6 @@ void petabricks::MatrixStorage::updateDataFromGpu(IndexT firstRow){
 #endif
 	(*it)->copy(this, storage, (*it)->getBegins(), (*it)->getEnds());
 	(*it)->resetPending();
-	storage->print();
-	print();
       }
     }
     CopyPendingMap::_pendingMap.clearPendings(this);
@@ -121,6 +121,7 @@ void petabricks::MatrixStorageInfo::setSize(int dim, const IndexT* siz){
 #ifdef HAVE_OPENCL
   if(storage())
     _contiguous = (_count == storage()->count());
+  _lastRowOnGpu = 0;
   _firstRowOnCpu = _sizes[_dimensions - 1];
 #endif
 }
@@ -149,6 +150,7 @@ void petabricks::MatrixStorageInfo::reset(){
 
   #ifdef HAVE_OPENCL
   _hasGpuMem = false;
+  _lastRowOnGpu = 0;
   _firstRowOnCpu = -1;
   _coverage = 0;
   _contiguous = true;
@@ -178,18 +180,21 @@ bool petabricks::MatrixStorageInfo::isDataMatch(const MatrixStorageInfo& that) c
 }
 
 #ifdef HAVE_OPENCL
-bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_context& context, IndexT* end, int iter_dim, double gpuRatio, bool input) {
+bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_context& context, double gpuRatio, bool input) {
 #ifdef GPU_TRACE
   if(storage())
     std::cout << "initGpuMem " << &(*this) << " _storage = " << &(*storage()) << std::endl;
 #endif
 
   // Set upperound of the region to be copied into GPU
-  int upperbound = end[_dimensions - 1];
-
-  // If the given bound is -1, that means we need to copy entire region, so set upperbound to the size
-  if(upperbound == -1 || iter_dim != _dimensions)
+  int upperbound;
+  if(_dimensions == 0)
+    upperbound = 0;
+  else if(_iterDim != _dimensions || _lastRowOnGpuGuide == -1)  
+    // If the given bound is -1, that means we need to copy entire region, so set upperbound to the size
     upperbound = _sizes[_dimensions - 1];
+  else
+    upperbound = _lastRowOnGpuGuide;
 
   if(upperbound < gpuRatio*_sizes[_dimensions - 1])
     upperbound = gpuRatio*_sizes[_dimensions - 1];
@@ -197,9 +202,20 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
   _queue = queue;
 
   if(_hasGpuMem) {
-    std::cout << "hasGpuMem" << std::endl;
-    if(_lastRowOnGpu >= upperbound) {
+    if(!input && _lastRowOnGpu >= upperbound) {
       // if everything is already on gpu
+#ifdef GPU_TRACE
+      std::cout << "initGpu: has updated gpu mem" << std::endl;
+      JASSERT(_dimensions == 0 || _lastRowOnGpu <= _sizes[_dimensions - 1])(_lastRowOnGpu)( _sizes[_dimensions - 1])(_dimensions);
+#endif
+      return false;
+    }
+    if(_lastRowOnGpu >= upperbound && _firstRowOnCpu >= upperbound) {
+      // gpu mem that we have is big enought for this output
+#ifdef GPU_TRACE
+      std::cout << "initGpu: has updated gpu mem" << std::endl;
+      JASSERT(_dimensions == 0 || _lastRowOnGpu <= _sizes[_dimensions - 1])(_lastRowOnGpu)( _sizes[_dimensions - 1])(_dimensions);
+#endif
       return false;
     }
   }
@@ -209,17 +225,16 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
     std::set<MatrixStorageInfoPtr>& set = CopyPendingMap::_pendingMap.allPendings(storage());
     std::set<MatrixStorageInfoPtr>::iterator first = set.begin();
     
-    std::cout << "pending size = " << set.size() << std::endl;
-    //JASSERT(set.size() <= 1);
     if(set.size() == 1 && equal(*first)
-       && (iter_dim != _dimensions || (*first)->_lastRowOnGpu >= upperbound)) { 
-      // If 1) there is already buffer on GPU and there is one copy of it 2) the buffer is big enough to whole all data 3) data we need never gets modified on CPU
+       && (*first)->_lastRowOnGpu >= upperbound) { 
+      // If 1) there is already buffer on GPU and there is one copy of it 2) the buffer is big enough to hold all data
       // then we will resuer this buffer.
       
 #ifdef GPU_TRACE
-      std::cout << "obtain existing cl_mem ^^" << std::endl;
-      std::cout << "lastRowOnGpu = " << (*first)->_lastRowOnGpu << " , firstRowOnCpu = " << (*first)->_firstRowOnCpu << std::endl;
+      std::cout << "initGpu: obtain existing cl_mem ^^" << std::endl;
+      std::cout << "initGpu: lastRowOnGpu = " << (*first)->_lastRowOnGpu << " , firstRowOnCpu = " << (*first)->_firstRowOnCpu << std::endl;
 #endif
+
       setClMemWrapper((*first)->getClMemWrapper());
       _lastRowOnGpu = (*first)->_lastRowOnGpu;
       /*if(out){
@@ -236,9 +251,13 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
       //CopyoutInfoPtr info = new CopyoutInfo(queue, this, _begins, _ends, _coverage);
       _hasGpuMem = true;
 
-      // _firstRowOnCpu = -1 means the buffer never gets modified on CPU
+#ifdef DEBUG
+      JASSERT(_dimensions == 0 || _lastRowOnGpu <= _sizes[_dimensions - 1])(_lastRowOnGpu)( _sizes[_dimensions - 1])(_dimensions);
+#endif
+
       if((*first)->_lastRowOnGpu <= this->_firstRowOnCpu && (*first)->_lastRowOnGpu <= (*first)->_firstRowOnCpu) {
-	return false; // don't have to copy in
+	// don't have to copy in
+	return false;
       }
       
       if(input){
@@ -260,19 +279,16 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
       
       // Use host ptr without creating new buffer to avoid extra copy when running on CPU.
       cl_int err;
-#ifdef GPU_TRACE
       std::cout << &(*this) << " use_host_ptr" << std::endl;
-#endif
       
+      // Buffer on gpu and cpu will be the same, so first row on cpu is always the one after last row on gpu
       _lastRowOnGpu = upperbound;
+      _firstRowOnCpu = upperbound;
       setClMemWrapper(clCreateBuffer(context, CL_MEM_USE_HOST_PTR, bytesOnGpu(), storage()->data(), &err));
-#ifdef DEBUG
+      JASSERT(_dimensions == 0 || _lastRowOnGpu <= _sizes[_dimensions - 1])(_lastRowOnGpu)( _sizes[_dimensions - 1])(_dimensions);
       JASSERT(CL_SUCCESS == err)(_dimensions)(_sizes[dimensions - 1])(_lastRowOnGpu).Text("Failed to create input memory object.");
-#endif
       _hasGpuMem = true;
 
-      // Buffer on gpu and cpu will be the same, so first row on cpu is always the one after last row on gpu
-      _firstRowOnCpu = upperbound;
       return false;
     }
 #endif
@@ -280,24 +296,18 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
   
   // Can't use host ptr because run on GPU.
   cl_int err;
-#ifdef GPU_TRACE
-  std::cout << &(*this) << " not use_host_ptr" << std::endl;
-#endif
-  
-  if(input)
-    _lastRowOnGpu = upperbound;
-  else
-    _lastRowOnGpu = GPU_RATIO * _sizes[_dimensions - 1];
-  std::cout << "_lastRowOnGpu = " << _lastRowOnGpu << ", _dimensions = " << _dimensions << ", size = " << _sizes[_dimensions - 1] << ", end = " << end[_dimensions - 1] << ", orig_bytes = " << bytes() << std::endl;
+
+  _lastRowOnGpu = upperbound;
   
   setClMemWrapper(clCreateBuffer(context, CL_MEM_READ_WRITE, bytesOnGpu(), NULL, &err));
-#ifdef DEBUG
-  JASSERT(CL_SUCCESS == err).Text("Failed to create input memory object.");
-#endif
+
 #ifdef GPU_TRACE
-  std::cout << this << " : create buffer size = " << bytesOnGpu() << ", orig_size = " << bytes() << std::endl;
-  std::cout << "cl_mem: " << getClMem() << std::endl;
+  JASSERT(CL_SUCCESS == err).Text("Failed to create input memory object.");
+  JASSERT(_dimensions == 0 || _lastRowOnGpu <= _sizes[_dimensions - 1])(_lastRowOnGpu)( _sizes[_dimensions - 1])(_dimensions)(upperbound);
+  std::cout << "initGpu: " << &(*this) << " (not use_host_ptr) -> create buffer size = " << bytesOnGpu() << ", orig_size = " << bytes() << std::endl;
+  std::cout << "initGpu: " << "cl_mem = " << getClMem() << std::endl;
 #endif
+
   _hasGpuMem = true;
   if(input) {      
     // If it is an input, we have cpu data on gpu, buffer on gpu and cpu will be the same, so first row on cpu is always the one after last row on gpu
@@ -381,9 +391,7 @@ void petabricks::MatrixStorageInfo::finishGpuMem(cl_command_queue& queue, int no
         doneNodes.insert(_completeGroups[i].begin(), _completeGroups[i].end());
     }
     if(!doneNodes.empty()) {
-      std::cout << "gpuCopyOut = " << gpuCopyOut << std::endl;
       startReadBuffer(queue, doneNodes, gpuCopyOut==1 );
-      //startReadBuffer(queue, doneNodes, true);
     }
   }
 }
@@ -428,12 +436,10 @@ bool petabricks::MatrixStorageInfo::equal(MatrixStorageInfoPtr that) {
   std::cout << "@ equal this: " << &(*this) << " base = " << that->base() << std::endl;
 #endif
   if(base() != that->base() || dimensions() != that->dimensions() || queue() != that->queue()) {
-      printf("not equal\n");
     return false;
   }
   for(int i = 0; i < dimensions(); ++i) {
     if(multipliers()[i] != that->multipliers()[i] || sizes()[i] != that->sizes()[i]) {
-      printf("mult[%d] = %d, that->mult[%d]\n", i, multipliers()[i], i, that->multipliers()[i]);
       return false;
     }
   }
@@ -497,26 +503,35 @@ petabricks::CopyoutInfo::CopyoutInfo(cl_command_queue& queue, MatrixStorageInfoP
   std::cout << "CopyoutInfo _storageinfo = " << &(*originalBuffer) << std::endl;
 #endif
   _coverage = coverage;
-  _done = false;
-
-  // if not cover the whole matrix, need to store which regions we need to copy
-  // if cover the whole matrix, don't store. We copy all.
-  if(originalBuffer->isContiguous() && _coverage != originalBuffer->countOnGpu()) {
-    _begins = begins;
-    _ends = ends;
+  if(_coverage == 0) {
+    _empty = true;
+    _done = true;
   }
-  
-  // Create storage for read data
-  if(originalBuffer->dimensions() == 0 || !originalBuffer->isContiguous() || originalBuffer->countOnGpu() != _coverage)
-    _gpuOutputBuffer = new MatrixStorage(originalBuffer->count());
-  else
-    _gpuOutputBuffer = originalBuffer->storage();
+  else {
+    _empty = false;
+    _done = false;
+  }
 
-  //cl_int err = clSetEventCallBack(event, CL_COMPLETE, NULL, NULL);
-
-  // Read buffer
-  clEnqueueReadBuffer(queue, originalBuffer->getClMem(), CL_FALSE, 0, originalBuffer->bytesOnGpu(), _gpuOutputBuffer->data(), 0, NULL, &_event);
-  clFlush(queue);
+  if(!_empty) {
+    // if not cover the whole matrix, need to store which regions we need to copy
+    // if cover the whole matrix, don't store. We copy all.
+    if(originalBuffer->isContiguous() && _coverage != originalBuffer->countOnGpu()) {
+      _begins = begins;
+      _ends = ends;
+    }
+    
+    // Create storage for read data
+    if(originalBuffer->dimensions() == 0 || !originalBuffer->isContiguous() || originalBuffer->countOnGpu() != _coverage)
+      _gpuOutputBuffer = new MatrixStorage(originalBuffer->count());
+    else
+      _gpuOutputBuffer = originalBuffer->storage();
+    
+    //cl_int err = clSetEventCallBack(event, CL_COMPLETE, NULL, NULL);
+    
+    // Read buffer
+    clEnqueueReadBuffer(queue, originalBuffer->getClMem(), CL_FALSE, 0, originalBuffer->bytesOnGpu(), _gpuOutputBuffer->data(), 0, NULL, &_event);
+    clFlush(queue);
+  }
 }
 
 bool petabricks::CopyoutInfo::closed() {
@@ -527,6 +542,9 @@ bool petabricks::CopyoutInfo::closed() {
 }
 
 bool petabricks::CopyoutInfo::complete() {
+#ifdef DEBUG
+  JASSERT(!_empty);
+#endif
   cl_int ret;
   clGetEventInfo(_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof(cl_int), &ret, NULL);
 #ifdef GPU_TRACE

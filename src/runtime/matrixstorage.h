@@ -37,8 +37,6 @@
 #include "common/jrefcounted.h"
 #include "common/openclutil.h"
 
-#define GPU_TRACE 1
-
 namespace petabricks {
 
 class RegionNodeGroupMap;
@@ -302,6 +300,10 @@ public:
   void setName(std::string name) { _name = name; }
   std::string getName() { return _name; }
   bool isContiguous() { return _contiguous; }
+  void setLastRowGuide(IndexT last,IndexT iter_dim) { 
+    _lastRowOnGpuGuide = last; 
+    _iterDim = iter_dim;
+  }
   int lastRowOnGpu() { return _lastRowOnGpu; }
 
   bool equal(MatrixStorageInfoPtr that);
@@ -311,7 +313,7 @@ public:
   /// call after run gpu PREPARE task
   /// return true when copyin task needs to be run
   /// return false when data is already in the gpu memmory
-  bool initGpuMem(cl_command_queue& queue, cl_context& context, IndexT* end, int dimensions, double gpuRatio, bool input);
+  bool initGpuMem(cl_command_queue& queue, cl_context& context, double gpuRatio, bool input);
 
   ///
   /// call after run gpu RUN task
@@ -445,6 +447,7 @@ private:
   std::string _name;
   size_t _coverage;
   int _lastRowOnGpu;
+  int _lastRowOnGpuGuide, _iterDim;
   int _firstRowOnCpu;
   bool _hasGpuMem;
   bool _contiguous;;
@@ -487,6 +490,7 @@ private:
   cl_event _event;
   size_t _coverage;
   bool _done;
+  bool _empty;
 };
 
 class CopyPendingMap : public jalib::JRefCounted {
