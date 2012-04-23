@@ -184,16 +184,13 @@ const HostPid& petabricks::HostPid::self() {
 }
 
 void petabricks::RemoteHost::accept(jalib::JServerSocket& s, int listenPort) {
-  _control.close();
-  _control = s.accept();
-  JASSERT(_control.isValid());
-  for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
-    _data[i].close();
-    _data[i] = s.accept();
-    JASSERT(_data[i].isValid());
+  for(int i=0; i<REMOTEHOST_DATACHANS+1; ++i) {
+    _scratchSockets[i].close();
+    _scratchSockets[i] = s.accept();
+    JASSERT(_scratchSockets[i].isValid());
   }
   _lastchan = 1;
-  handshake(listenPort);
+  handshake(listenPort, false);
 }
 
 void petabricks::RemoteHost::connect(const jalib::JSockAddr& a, int p, int listenPort) {
@@ -210,10 +207,10 @@ void petabricks::RemoteHost::connect(const jalib::JSockAddr& a, int p, int liste
     JASSERT(_data[i].connect(a, p));
   }
   _lastchan = 0;
-  handshake(listenPort);
+  handshake(listenPort, true);
 }
 
-void petabricks::RemoteHost::handshake(int port) {
+void petabricks::RemoteHost::handshake(int port, bool isConnect) {
   HostPid self = HostPid::self();
 
   //mix our pid into the random roll since lrand48 is often not seeded (in debugging modes)
@@ -221,32 +218,122 @@ void petabricks::RemoteHost::handshake(int port) {
   for(int i=0; i<16; ++i) nrand48(xsubi);
   int myRoll = nrand48(xsubi) % 9000;
 
-  HelloMessage msg = { MessageTypes::HELLO_CONTROL,
-                       self,
-                       REMOTEHOST_DATACHANS,
-                       port,
-                       myRoll };
-  _control.disableNagle();
-  _control.writeAll((char*)&msg, sizeof msg);
-  _control.readAll((char*)&msg, sizeof msg);
-  JASSERT(msg.type == MessageTypes::HELLO_CONTROL && msg.id != self && msg.chan == REMOTEHOST_DATACHANS);
-  _id = msg.id;
-  _remotePort = msg.port;
+  if (isConnect) {
+    // Send Hello Messages
+    HelloMessage msg = { MessageTypes::HELLO_CONTROL,
+                         self,
+                         REMOTEHOST_DATACHANS,
+                         port,
+                         myRoll };
+    _control.disableNagle();
+    JASSERT(_control.writeAll((char*)&msg, sizeof msg) == sizeof msg);
 
-  if(myRoll!=msg.roll)
-    _shouldGc = myRoll < msg.roll;
-  else
-    _shouldGc = self < _id;
+    for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
+      HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i, port, myRoll};
+      _data[i].disableNagle();
+      JASSERT(_data[i].writeAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
+    }
 
-  for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
-    HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i, port, myRoll};
-    _data[i].disableNagle();
-    JASSERT(_data[i].writeAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
-    JASSERT(_data[i].readAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
-    JASSERT(dmsg.type == MessageTypes::HELLO_DATA
-        && dmsg.id == _id
-        && dmsg.chan == i);
+    // Receive Hello Messages
+    JASSERT(_control.readAll((char*)&msg, sizeof msg) == sizeof msg);
+    JASSERT(msg.type == MessageTypes::HELLO_CONTROL
+            && msg.id != self
+            && msg.chan == REMOTEHOST_DATACHANS);
+
+    _id = msg.id;
+    _remotePort = msg.port;
+
+    if(myRoll!=msg.roll)
+      _shouldGc = myRoll < msg.roll;
+    else
+      _shouldGc = self < _id;
+
+    for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
+      HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i, port, myRoll};
+      JASSERT(_data[i].readAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg)(i);
+      JASSERT(dmsg.type == MessageTypes::HELLO_DATA
+              && dmsg.id == _id
+              && dmsg.chan == i);
+    }
+
+  } else {
+    // Receive Hello Messages
+    for(int i=0; i<REMOTEHOST_DATACHANS+1; ++i) {
+      HelloMessage msg;
+      JASSERT(_scratchSockets[i].readAll((char*)&msg, sizeof msg) == sizeof msg);
+
+      // set _id
+      if (i == 0) {
+        JASSERT(msg.id != self);
+        _id = msg.id;
+      } else {
+        JASSERT(msg.id == _id);
+      }
+
+      if (msg.type == MessageTypes::HELLO_CONTROL) {
+        _control = _scratchSockets[i];
+
+        JASSERT(msg.chan == REMOTEHOST_DATACHANS);
+        _remotePort = msg.port;
+
+        if(myRoll!=msg.roll)
+          _shouldGc = myRoll < msg.roll;
+        else
+          _shouldGc = self < _id;
+
+      } else if (msg.type == MessageTypes::HELLO_DATA) {
+        JASSERT(msg.chan < REMOTEHOST_DATACHANS);
+        _data[msg.chan] = _scratchSockets[i];
+
+      } else {
+        UNIMPLEMENTED();
+      }
+    }
+
+    // Send Hello Messages
+    HelloMessage msg = { MessageTypes::HELLO_CONTROL,
+                         self,
+                         REMOTEHOST_DATACHANS,
+                         port,
+                         myRoll };
+    _control.disableNagle();
+    JASSERT(_control.writeAll((char*)&msg, sizeof msg) == sizeof msg);
+
+    for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
+      HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i, port, myRoll};
+      _data[i].disableNagle();
+      JASSERT(_data[i].writeAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
+    }
   }
+
+#if 0
+  {
+    // Check
+    JTRACE("Check socket connection");
+
+    HelloMessage msg = { MessageTypes::HELLO_CONTROL,
+                         self,
+                         REMOTEHOST_DATACHANS,
+                         port,
+                         myRoll };
+
+    JASSERT(_control.writeAll((char*)&msg, sizeof msg) == sizeof msg);
+    JASSERT(_control.readAll((char*)&msg, sizeof msg) == sizeof msg);
+    JASSERT(msg.type == MessageTypes::HELLO_CONTROL
+            && msg.id == _id
+            && msg.chan == REMOTEHOST_DATACHANS);
+
+    for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
+      HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i, port, myRoll};
+      JASSERT(_data[i].writeAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
+      JASSERT(_data[i].readAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
+      JASSERT(dmsg.type == MessageTypes::HELLO_DATA
+              && dmsg.id == _id
+              && dmsg.chan == i);
+    }
+  }
+#endif
+
 }
 
 void petabricks::RemoteHost::setupLoop(RemoteHostDB& db) {

@@ -130,7 +130,7 @@ protected:
   void accept(jalib::JServerSocket& s, int listenPort);
   void connect(const jalib::JSockAddr& a, int port, int listenPort);
   int fd() const { return _control.sockfd(); }
-  void handshake(int port);
+  void handshake(int port, bool isConnect);
 
   void sendMsg(_RemoteHostMsgTypes::GeneralMessage* msg, const void* data = NULL, size_t len = 0);
   int pickChannel() {
@@ -153,6 +153,7 @@ private:
   jalib::JMutex _dataWritemu[REMOTEHOST_DATACHANS];
   jalib::JSocket _control;
   jalib::JSocket _data[REMOTEHOST_DATACHANS];
+  jalib::JSocket _scratchSockets[REMOTEHOST_DATACHANS + 1];
   HostPid _id;
   int _lastchan;
   RemoteObjectList _objects;
