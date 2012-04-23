@@ -27,6 +27,7 @@
 #include "testisolation.h"
 #include "dynamicscheduler.h"
 #include "gpumanager.h"
+#include "remotehost.h"
 
 #include <limits>
 #include <string.h>
@@ -39,10 +40,10 @@
 
 #ifdef HAVE_POLL_H
 #include <poll.h>
-#endif 
+#endif
 #ifdef HAVE_SIGNAL_H
 #include <signal.h>
-#endif 
+#endif
 #ifdef HAVE_SYS_PRCTL_H
 #include <sys/prctl.h>
 #endif
@@ -91,15 +92,15 @@ static const char COOKIE_RESTARTTIMEOUT[] = "R";
 JASSERT_STATIC(sizeof COOKIE_DONE == sizeof COOKIE_DISABLETIMEOUT);
 JASSERT_STATIC(sizeof COOKIE_DONE == sizeof COOKIE_RESTARTTIMEOUT);
 
-petabricks::SubprocessTestIsolation::SubprocessTestIsolation(double to) 
+petabricks::SubprocessTestIsolation::SubprocessTestIsolation(double to)
   : _pid(-1), _fd(-1), _rv(RUNNING_RV), _timeout(to), _timeoutEnabled(false), _start(jalib::JTime::null())
 {
   if(_timeout < std::numeric_limits<double>::max()-TIMEOUT_GRACESEC)
     _timeout += TIMEOUT_GRACESEC;
 }
 
-void petabricks::SubprocessTestIsolation::onTunableModification(jalib::JTunable* t, jalib::TunableValue, jalib::TunableValue newVal){ 
-  _modifications.push_back(TunableMod(t,newVal)); 
+void petabricks::SubprocessTestIsolation::onTunableModification(jalib::JTunable* t, jalib::TunableValue, jalib::TunableValue newVal){
+  _modifications.push_back(TunableMod(t,newVal));
 }
 
 petabricks::TestIsolation* theMasterProcess = NULL;
@@ -144,7 +145,7 @@ bool petabricks::SubprocessTestIsolation::beginTest(int workerThreads, int reexe
     GpuManager::start();
     _settestprocflags();
     PetabricksRuntime::startWorkerThreads(workerThreads);
-    jalib::JTunable::setModificationCallback(this); 
+    jalib::JTunable::setModificationCallback(this);
     theMasterProcess=this;
     //JTRACE("child starting");
     restartTimeout();
@@ -176,6 +177,7 @@ void petabricks::SubprocessTestIsolation::endTest(TestResult& result) {
   fsync(fileno(stderr));
   //GpuManager::shutdown();
   //DynamicScheduler::cpuScheduler().shutdown();
+  RemoteHostDB().instance().shutdown();
   _exit(SUCCESS_RV);
 }
 
@@ -224,7 +226,7 @@ void petabricks::SubprocessTestIsolation::recvResult(TestResult& result) {
     }
   }
 }
-    
+
 void petabricks::SubprocessTestIsolation::recvFirstResult(SubprocessTestIsolation& a, TestResult& aresult,
                                                           SubprocessTestIsolation& b, TestResult& bresult) {
   struct pollfd fds[2];
@@ -300,7 +302,7 @@ bool petabricks::SubprocessTestIsolation::handleEvent(TestResult& result) {
     _start = jalib::JTime::now();
     return false;
   }
-  if(cnt!=COOKIE_DONE || (!running() && rv()!=SUCCESS_RV )){ 
+  if(cnt!=COOKIE_DONE || (!running() && rv()!=SUCCESS_RV )){
     //unknown control code, most likely assertion failure in child
     killChild();
     throw UnknownTestFailure(rv());
@@ -340,7 +342,7 @@ std::string petabricks::SubprocessTestIsolation::recvControlCookie() {
   }
   return buf;
 }
-    
+
 void  petabricks::SubprocessTestIsolation::killChild() {
   if(running()){
     kill(_pid, TIMEOUTKILLSIG);
@@ -368,8 +370,8 @@ void  petabricks::SubprocessTestIsolation::testExited() {
       _rv=RUNNING_RV;//ensure running()
   }
 }
-bool petabricks::SubprocessTestIsolation::running() const{ 
-  return _rv<-256; 
+bool petabricks::SubprocessTestIsolation::running() const{
+  return _rv<-256;
 }
 int  petabricks::SubprocessTestIsolation::rv(){
   JASSERT(!running());
