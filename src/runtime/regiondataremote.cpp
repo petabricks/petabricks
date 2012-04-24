@@ -20,6 +20,7 @@ RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, Rem
   msg->dimensions = _D;
   memcpy(msg->size, size, size_sz);
 
+  _isRemoteRegionHandlerReady = false;
   _remoteRegionHandler.remoteHandler = 0;
 
   host->createRemoteObject(this, &RegionMatrixProxy::genRemote, buf, msg_len);
@@ -32,6 +33,7 @@ RegionDataRemote::RegionDataRemote(const int dimensions, const IndexT* size, con
   _remoteRegionHandler.hostPid = hostPid;
   _remoteRegionHandler.remoteHandler = remoteHandler;
   _isDataSplit = isDataSplit;
+  _isRemoteRegionHandlerReady = true;
 }
 
 void RegionDataRemote::init(const int dimensions, const IndexT* size) {
@@ -78,7 +80,7 @@ void RegionDataRemote::randomize() {
 }
 
 const RemoteRegionHandler* RegionDataRemote::remoteRegionHandler() const {
-  if (_remoteRegionHandler.remoteHandler == 0) {
+  if (!_isRemoteRegionHandlerReady) {
     remoteObject()->waitUntilCreated();
   }
   return &_remoteRegionHandler;
@@ -367,6 +369,7 @@ void RegionDataRemote::onRecv(const void* data, size_t len, int type) {
   if (type == MessageTypes::CREATEREMOTEREGIONDATAREPLY) {
     JASSERT(len == sizeof(RemoteRegionHandler));
     memcpy(&_remoteRegionHandler, data, len);
+    _isRemoteRegionHandlerReady = true;
     return;
   }
 

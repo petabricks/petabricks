@@ -23,6 +23,7 @@ namespace petabricks {
   class RegionDataRemote : public RegionDataI, public RemoteObject, IRegionCacheable {
   private:
     RemoteRegionHandler _remoteRegionHandler;
+    bool _isRemoteRegionHandlerReady;
     bool _isDataSplit;
 
     jalib::JMutex _localRegionDataSplitMux;
