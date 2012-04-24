@@ -460,7 +460,7 @@ void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char**
       if (!PBS) {
         db.remotefork(dat.c_str(), argc, argv, "--slave-host", "--slave-port");
       }
-      db.accept(dat.c_str());
+      db.accept(dat.c_str(), true);
     }
 
     if(dat == "localhost") {
@@ -468,7 +468,7 @@ void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char**
         if (!PBS) {
           db.remotefork(NULL, argc, argv, "--slave-host", "--slave-port");
         }
-        db.accept(dat.c_str());
+        db.accept(dat.c_str(), true);
       }
       hadlocal=true;
     }
@@ -484,7 +484,7 @@ void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char**
 }
 void petabricks::PetabricksRuntime::distributedSlaveLoop() {
   RemoteHostDB& db = RemoteHostDB::instance();
-  db.connect(SLAVE_HOST.c_str(), SLAVE_PORT);
+  db.connect(SLAVE_HOST.c_str(), SLAVE_PORT, true);
   db.host(0)->setupLoop(db);
   for(int i=REMOTEHOST_THREADS; i>0; --i) {
     db.spawnListenThread();

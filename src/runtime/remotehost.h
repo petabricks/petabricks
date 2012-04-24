@@ -114,6 +114,7 @@ public:
 
   void setupLoop(RemoteHostDB& db);
   static void setupRemoteConnection(RemoteHost& a, RemoteHost& b);
+  void setupRemoteConnectionWithMaster();
   void setupEnd();
 
   bool recv(const RemoteObject* caller = 0);
@@ -129,6 +130,10 @@ protected:
   {}
   void accept(jalib::JServerSocket& s, int listenPort);
   void connect(const jalib::JSockAddr& a, int port, int listenPort);
+  void acceptMasterControl(jalib::JServerSocket& s, int listenPort);
+  void connectMasterControl(const jalib::JSockAddr& a, int port, int listenPort);
+  void acceptMasterData(jalib::JServerSocket& s, int listenPort);
+  void connectMasterData(const jalib::JSockAddr& a, int port, int listenPort);
   int fd() const { return _control.sockfd(); }
   void handshake(int port, bool isConnect);
 
@@ -172,8 +177,8 @@ public:
 
   RemoteHostDB();
 
-  void connect(const char* host, int port);
-  void accept(const char* fromhost);
+  void connect(const char* host, int port, bool isMaster=false);
+  void accept(const char* fromhost, bool isMaster=false);
   void remotefork(const char* host, int argc, const char** argv, const char* slavehost=NULL, const char* slaveport=NULL);
 
   void listenLoop();
@@ -181,6 +186,7 @@ public:
 
   const char* host() const { return _host.c_str(); }
   int port() const { return _port; }
+  jalib::JServerSocket& listener() { return _listener; }
 
   RemoteHostPtr host(int i) const {
     return _hosts[i];

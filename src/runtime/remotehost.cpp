@@ -74,6 +74,7 @@ namespace _RemoteHostMsgTypes {
     enum {
       HELLO_CONTROL= 0xf0c0,
       HELLO_DATA,
+      SETUP_MASTER,
       SETUP_CONNECT,
       SETUP_ACCEPT,
       SETUP_ACK,
@@ -94,6 +95,7 @@ namespace _RemoteHostMsgTypes {
 #define  EXPSTR(s) case s: return #s
         EXPSTR(HELLO_CONTROL);
         EXPSTR(HELLO_DATA);
+        EXPSTR(SETUP_MASTER);
         EXPSTR(SETUP_CONNECT);
         EXPSTR(SETUP_ACCEPT);
         EXPSTR(SETUP_ACK);
@@ -194,6 +196,21 @@ void petabricks::RemoteHost::accept(jalib::JServerSocket& s, int listenPort) {
 }
 
 void petabricks::RemoteHost::connect(const jalib::JSockAddr& a, int p, int listenPort) {
+  JASSERT(_control.connect(a, p));
+  for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
+    JASSERT(_data[i].connect(a, p));
+  }
+  _lastchan = 0;
+  handshake(listenPort, true);
+}
+
+void petabricks::RemoteHost::acceptMasterControl(jalib::JServerSocket& s, int /*listenPort*/) {
+  _scratchSockets[0].close();
+  _scratchSockets[0] = s.accept();
+  JASSERT(_scratchSockets[0].isValid());
+}
+
+void petabricks::RemoteHost::connectMasterControl(const jalib::JSockAddr& a, int p, int /*listenPort*/) {
   // wait until parent is created (when run using PBS)
   // max wait time = 5 secs
   int count = 0;
@@ -202,7 +219,19 @@ void petabricks::RemoteHost::connect(const jalib::JSockAddr& a, int p, int liste
     count++;
     usleep(50000); // 50 ms
   }
+}
 
+void petabricks::RemoteHost::acceptMasterData(jalib::JServerSocket& s, int listenPort) {
+  for(int i=1; i<REMOTEHOST_DATACHANS+1; ++i) {
+    _scratchSockets[i].close();
+    _scratchSockets[i] = s.accept();
+    JASSERT(_scratchSockets[i].isValid());
+  }
+  _lastchan = 1;
+  handshake(listenPort, false);
+}
+
+void petabricks::RemoteHost::connectMasterData(const jalib::JSockAddr& a, int p, int listenPort) {
   for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
     JASSERT(_data[i].connect(a, p));
   }
@@ -350,6 +379,9 @@ void petabricks::RemoteHost::setupLoop(RemoteHostDB& db) {
     JTRACE("setup slave")(msg);
 
     switch(msg.type) {
+      case MessageTypes::SETUP_MASTER:
+        connectMasterData(msg.host, msg.port, RemoteHostDB::instance().port());
+        break;
       case MessageTypes::SETUP_CONNECT:
         db.connect(msg.host, msg.port);
         break;
@@ -395,6 +427,24 @@ void petabricks::RemoteHost::setupRemoteConnection(RemoteHost& a, RemoteHost& b)
   b._control.readAll((char*)&back, sizeof back);
   JASSERT(aack.type == MessageTypes::SETUP_ACK);
   JASSERT(back.type == MessageTypes::SETUP_ACK);
+}
+
+void petabricks::RemoteHost::setupRemoteConnectionWithMaster() {
+  JLOCKSCOPE(_controlReadmu);
+  JLOCKSCOPE(_controlWritemu);
+
+  SetupMessage msg;
+  msg.type = MessageTypes::SETUP_MASTER;
+  strncpy(msg.host, RemoteHostDB::instance().host(), sizeof msg.host);
+  msg.port = RemoteHostDB::instance().port();
+
+  JASSERT(_scratchSockets[0].writeAll((char*)&msg, sizeof msg) == sizeof msg);
+
+  acceptMasterData(RemoteHostDB::instance().listener(), msg.port);
+
+  SetupAckMessage ack;
+  _control.readAll((char*)&ack, sizeof ack);
+  JASSERT(ack.type == MessageTypes::SETUP_ACK);
 }
 
 void petabricks::RemoteHost::setupEnd() {
@@ -767,20 +817,26 @@ petabricks::RemoteHostDB::RemoteHostDB()
   _host = buf;
 }
 
-void petabricks::RemoteHostDB::accept(const char* host){
+void petabricks::RemoteHostDB::accept(const char* host, bool isMaster){
   JLOCKSCOPE(_mu);
   RemoteHostPtr h = new RemoteHost(host);
-  h->accept(_listener, _port);
+  if (isMaster) {
+    h->acceptMasterControl(_listener, _port);
+  } else {
+    h->accept(_listener, _port);
+  }
   _hosts.push_back(h);
-  regenPollFds();
 }
 
-void petabricks::RemoteHostDB::connect(const char* host, int port){
+void petabricks::RemoteHostDB::connect(const char* host, int port, bool isMaster){
   JLOCKSCOPE(_mu);
   RemoteHostPtr h = new RemoteHost(host);
-  h->connect(host, port, _port);
+  if (isMaster) {
+    h->connectMasterControl(host, port, _port);
+  } else {
+    h->connect(host, port, _port);
+  }
   _hosts.push_back(h);
-  regenPollFds();
 }
 
 void petabricks::RemoteHostDB::remotefork(const char* host, int oargc, const char** oargv, const char* slavehost, const char* slaveport) {
@@ -871,6 +927,9 @@ void petabricks::RemoteHostDB::listenLoop() {
 
 void petabricks::RemoteHostDB::setupConnectAllPairs() {
   for (unsigned int a = 0; a < _hosts.size(); a++) {
+    host(a)->setupRemoteConnectionWithMaster();
+  }
+  for (unsigned int a = 0; a < _hosts.size(); a++) {
     for (unsigned int b = a+1; b < _hosts.size(); b++) {
       RemoteHost::setupRemoteConnection(*host(a), *host(b));
     }
@@ -881,6 +940,11 @@ void petabricks::RemoteHostDB::setupConnectAllPairs() {
 }
 
 void petabricks::RemoteHostDB::spawnListenThread() {
+  static bool firstTime = true;
+  if (firstTime) {
+    regenPollFds();
+    firstTime = false;
+  }
   pthread_t t;
   JASSERT(0==pthread_create(&t, 0, start_listenLoop, this));
   JASSERT(0==pthread_detach(t));
