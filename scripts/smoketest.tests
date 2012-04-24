@@ -78,8 +78,8 @@ sort/Mergesort2            Rand1Dodd
 sort/Quicksort             Rand1Dodd
 sort/Radixsort             Rand1Dodd
 sort/Selectionsort         Rand1Dodd
-sort/Sort                  Rand1D
-sort/Sort                  Rand1Dodd
+sort2/Sort2                Rand1D
+sort2/Sort2                Rand1Dodd
 sort2/Bitonicsort          Rand1D
 sort2/Bitonicsort          Rand1Dodd
 regression/accuracymetric  Rand1D

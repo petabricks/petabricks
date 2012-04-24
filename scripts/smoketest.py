@@ -26,6 +26,11 @@ check_exclude=[
          "convolution2/Convolution",
          "convolution2/ConvLinAlg",
 
+         "trisolve/TriSolveLL",           # '0' vs '-0'
+         "trisolve/TriSolveLU",
+         "trisolve/TriSolveRL",
+         "trisolve/TriSolveRU",
+
          "kclustering/kmeans",            # (Variable accuracy)
          "matrixapprox/matrixapprox",     # (Variable accuracy)
          "regression/accuracymetric",     # (Variable accuracy)
