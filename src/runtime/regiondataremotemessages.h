@@ -96,8 +96,6 @@ namespace petabricks {
       EncodedPtr responseType;
 
       char* content() const { return (char*)this + contentOffset; }
-    private:
-      GeneralMessageHeader() {}
     } PACKED;
 
     struct ForwardMessageHeader {

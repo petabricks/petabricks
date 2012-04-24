@@ -666,6 +666,32 @@ void petabricks::RemoteHost::sendMsg(GeneralMessage* msg, const void* data, size
   }
 }
 
+void petabricks::RemoteHost::sendMsg(GeneralMessage* msg, const void* data, size_t len, const void* data2, size_t len2) {
+  int chan;
+  _controlWritemu.lock();
+  if(len>0){
+    chan = msg->chan = pickChannel();
+  }else{
+    chan = msg->chan = 0;
+  }
+  msg->len = len + len2;
+  _control.writeAll((const char*)msg, sizeof(GeneralMessage));
+
+  if(msg->srcptr != 0) {
+    DecodeDataPtr<RemoteObject>(msg->srcptr)->_lastMsgGen = _currentGen;
+  }
+
+  if(len>0){
+    _dataWritemu[chan].lock();
+    _controlWritemu.unlock();
+    _data[chan].writeAll((const char*)data, len);
+    _data[chan].writeAll((const char*)data2, len2);
+    _dataWritemu[chan].unlock();
+  }else{
+    _controlWritemu.unlock();
+  }
+}
+
 void petabricks::RemoteHost::createRemoteObject(const RemoteObjectPtr& local,
                                                 RemoteObjectGenerator remote,
                                                 const void* data, size_t len) {
@@ -691,6 +717,18 @@ void petabricks::RemoteHost::sendData(const RemoteObject* local, const void* dat
                          local->remoteObj() };
   sendMsg(&msg, data, len);
 }
+
+void petabricks::RemoteHost::sendData(const RemoteObject* local, const void* data, size_t len, const void* data2, size_t len2, int arg) {
+  local->waitUntilCreated();
+  GeneralMessage msg = { MessageTypes::REMOTEOBJECT_DATA,
+                         0,
+                         len + len2,
+                         arg,
+                         EncodeDataPtr(local),
+                         local->remoteObj() };
+  sendMsg(&msg, data, len, data2, len2);
+}
+
 void petabricks::RemoteHost::remoteSignal(const RemoteObject* local) {
   local->waitUntilCreated();
   GeneralMessage msg = { MessageTypes::REMOTEOBJECT_SIGNAL,

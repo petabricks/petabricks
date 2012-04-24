@@ -63,14 +63,7 @@ void RegionMatrixProxy::onRecv(const void* data, size_t len, int messageType) {
 }
 
 void RegionMatrixProxy::sendReply(const void* msg, size_t len, const BaseMessageHeader* base, int replyType) {
-  size_t dataLen = base->contentOffset + len;
-  void* data = malloc(dataLen);
-
-  memcpy(data, base, base->contentOffset);
-  memcpy(((BaseMessageHeader*)data)->content(), msg, len);
-
-  this->sendMu(data, dataLen, replyType);
-  free(data);
+  this->sendMu(base, base->contentOffset, msg, len, replyType);
 }
 
 //

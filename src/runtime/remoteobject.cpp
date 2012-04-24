@@ -68,10 +68,20 @@ void petabricks::RemoteObject::send(const void* p, size_t s, int arg) const {
   //JTRACE("send")(s)(arg);
   host()->sendData(this, p, s, arg);
 }
+void petabricks::RemoteObject::send(const void* p, size_t s, const void* p2, size_t s2, int arg) const {
+  //JTRACE("send")(s2)(arg);
+  host()->sendData(this, p, s, p2, s2, arg);
+}
 void petabricks::RemoteObject::sendMu(const void* p, size_t s, int arg) const {
   //JTRACE("sendmu")(s)(arg);
   unlock();
   host()->sendData(this, p, s, arg);
+  lock();
+}
+void petabricks::RemoteObject::sendMu(const void* p, size_t s, const void* p2, size_t s2, int arg) const {
+  //JTRACE("sendmu")(s2)(arg);
+  unlock();
+  host()->sendData(this, p, s, p2, s2, arg);
   lock();
 }
 void petabricks::RemoteObject::remoteSignal() {

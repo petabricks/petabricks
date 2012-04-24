@@ -96,6 +96,7 @@ public:
                           const void* data = 0, size_t len = 0);
 
   void sendData(const RemoteObject* local, const void* data, size_t len, int arg);
+  void sendData(const RemoteObject* local, const void* data, size_t len, const void* data2, size_t len2, int arg);
   void remoteSignal(const RemoteObject* local);
   void remoteBroadcast(const RemoteObject* local);
   void remoteMarkComplete(const RemoteObject* local);
@@ -138,6 +139,8 @@ protected:
   void handshake(int port, bool isConnect);
 
   void sendMsg(_RemoteHostMsgTypes::GeneralMessage* msg, const void* data = NULL, size_t len = 0);
+  void sendMsg(_RemoteHostMsgTypes::GeneralMessage* msg, const void* data, size_t len, const void* data2, size_t len2);
+
   int pickChannel() {
     _lastchan = (_lastchan+2) % REMOTEHOST_DATACHANS;
     return _lastchan;

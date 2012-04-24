@@ -74,7 +74,9 @@ public:
 
   //transfer data to remote host and call remote recv
   void send(const void* ptr , size_t len, int arg=0) const;
+  void send(const void* ptr , size_t len, const void* ptr2 , size_t len2, int arg=0) const;
   void sendMu(const void* ptr , size_t len, int arg=0) const;
+  void sendMu(const void* ptr , size_t len, const void* ptr2 , size_t len2, int arg=0) const;
 
   void markComplete() {
     remoteMarkComplete();

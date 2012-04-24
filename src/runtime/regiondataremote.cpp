@@ -346,20 +346,15 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
   *responseLen = 0;
   *responseType = 0;
 
-  size_t dataLen = sizeof(GeneralMessageHeader) + len;
+  GeneralMessageHeader header;
+  header.isForwardMessage = false;
+  header.type = type;
+  header.contentOffset = sizeof(GeneralMessageHeader);
+  header.responseData = reinterpret_cast<EncodedPtr>(responseData);
+  header.responseLen = reinterpret_cast<EncodedPtr>(responseLen);
+  header.responseType = reinterpret_cast<EncodedPtr>(responseType);
 
-  GeneralMessageHeader* header = (GeneralMessageHeader*)malloc(dataLen);
-  header->isForwardMessage = false;
-  header->type = type;
-  header->contentOffset = sizeof(GeneralMessageHeader);
-  header->responseData = reinterpret_cast<EncodedPtr>(responseData);
-  header->responseLen = reinterpret_cast<EncodedPtr>(responseLen);
-  header->responseType = reinterpret_cast<EncodedPtr>(responseType);
-
-  memcpy(header->content(), msg, len);
-
-  remoteObject()->send(header, dataLen, type);
-  free(header);
+  remoteObject()->send(&header, sizeof(GeneralMessageHeader), msg, len, type);
 
   JLOCKSCOPE(*this);
   // wait for the data
