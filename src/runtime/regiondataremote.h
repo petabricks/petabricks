@@ -73,6 +73,8 @@ namespace petabricks {
     UpdateHandlerChainReplyMessage updateHandlerChain(UpdateHandlerChainMessage& msg);
 
     void onRecv(const void* data, size_t len, int type);
+    void* allocRecv(size_t len, int);
+    void freeRecv(void* buf, size_t , int arg);
     void fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen, int* responseType) const;
 
     // Process remote messages

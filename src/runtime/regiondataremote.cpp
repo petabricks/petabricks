@@ -63,10 +63,12 @@ int RegionDataRemote::allocData() {
   size_t len;
   int type;
   this->fetchData(0, MessageTypes::ALLOCDATA, 0, &data, &len, &type);
-  AllocDataReplyMessage* reply = (AllocDataReplyMessage*)data;
+  BaseMessageHeader* base = (BaseMessageHeader*)data;
+  len = len - base->contentOffset;
+  AllocDataReplyMessage* reply = (AllocDataReplyMessage*) base->content();
 
   ElementT result = reply->result;
-  free(reply);
+  free(data);
   return result;
 }
 
@@ -75,7 +77,6 @@ void RegionDataRemote::randomize() {
   size_t len;
   int type;
   this->fetchData(0, MessageTypes::RANDOMIZEDATA, 0, &data, &len, &type);
-
   free(data);
 }
 
@@ -143,9 +144,12 @@ ElementT RegionDataRemote::readNoCache(const IndexT* coord) const {
   size_t len;
   int type;
   this->fetchData(buf, MessageTypes::READCELL, msg_len, &data, &len, &type);
-  ReadCellReplyMessage* reply = (ReadCellReplyMessage*)data;
+  BaseMessageHeader* base = (BaseMessageHeader*)data;
+  len = len - base->contentOffset;
+
+  ReadCellReplyMessage* reply = (ReadCellReplyMessage*) base->content();
   ElementT value = reply->value;
-  free(reply);
+  free(data);
   return value;
 }
 
@@ -154,13 +158,16 @@ void RegionDataRemote::readByCache(void* request, size_t request_len, void* repl
   size_t len;
   int type;
   this->fetchData(request, MessageTypes::READCELLCACHE, request_len, &data, &len, &type);
-  ReadCellCacheReplyMessage* r = (ReadCellCacheReplyMessage*)data;
+  BaseMessageHeader* base = (BaseMessageHeader*)data;
+  len = len - base->contentOffset;
+
+  ReadCellCacheReplyMessage* r = (ReadCellCacheReplyMessage*) base->content();
 
   RegionDataRemoteCacheLine* cacheLine = (RegionDataRemoteCacheLine*)reply;
   cacheLine->start = r->start;
   cacheLine->end = r->end;
   memcpy(cacheLine->base, r->values, sizeof(ElementT) * (r->end + 1));
-  free(r);
+  free(data);
 }
 
 void RegionDataRemote::writeCell(const IndexT* coord, ElementT value) {
@@ -191,9 +198,7 @@ void RegionDataRemote::writeNoCache(const IndexT* coord, ElementT value) {
   size_t len;
   int type;
   this->fetchData(buf, MessageTypes::WRITECELL, msg_len, &data, &len, &type);
-  WriteCellReplyMessage* reply = (WriteCellReplyMessage*)data;
-
-  free(reply);
+  free(data);
 }
 
 void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
@@ -209,9 +214,7 @@ void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
   size_t len;
   int type;
   this->fetchData(msg, MessageTypes::WRITECELL, msg_len, &data, &len, &type);
-  WriteCellReplyMessage* reply = (WriteCellReplyMessage*)data;
-
-  free(reply);
+  free(data);
 }
 
 RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize, RegionDataI** newScratchRegionData) {
@@ -228,9 +231,11 @@ RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageM
   size_t replyLen;
   int type;
   this->fetchData(origMsg, MessageTypes::TOSCRATCHSTORAGE, len, &data, &replyLen, &type);
+  BaseMessageHeader* base = (BaseMessageHeader*)data;
+  len = len - base->contentOffset;
 
   JASSERT(type == MessageTypes::TOSCRATCHSTORAGE);
-  CopyToMatrixStorageReplyMessage* reply = (CopyToMatrixStorageReplyMessage*)data;
+  CopyToMatrixStorageReplyMessage* reply = (CopyToMatrixStorageReplyMessage*) base->content();
   if (reply->count == scratchStorage->count()) {
     memcpy(scratchStorage->data(), reply->storage, sizeof(ElementT) * reply->count);
 
@@ -329,10 +334,13 @@ UpdateHandlerChainReplyMessage RegionDataRemote::updateHandlerChain(UpdateHandle
   size_t len;
   int type;
   this->fetchData(&msg, MessageTypes::UPDATEHANDLERCHAIN, sizeof(UpdateHandlerChainMessage), &data, &len, &type);
-  UpdateHandlerChainReplyMessage* _reply = (UpdateHandlerChainReplyMessage*)data;
+  BaseMessageHeader* base = (BaseMessageHeader*)data;
+  len = len - base->contentOffset;
+
+  UpdateHandlerChainReplyMessage* _reply = (UpdateHandlerChainReplyMessage*) base->content();
 
   UpdateHandlerChainReplyMessage reply = *_reply;
-  free(_reply);
+  free(data);
   return reply;
 }
 
@@ -365,6 +373,24 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
   }
 }
 
+void* RegionDataRemote::allocRecv(size_t len, int) {
+  return malloc(len);
+}
+
+void RegionDataRemote::freeRecv(void* data, size_t , int type) {
+  if (type == MessageTypes::CREATEREMOTEREGIONDATAREPLY) {
+    free(data);
+    return;
+  }
+
+  BaseMessageHeader* base = (BaseMessageHeader*)data;
+  if (base->isForwardMessage) {
+    free(data);
+  }
+
+  // Otherwise, the caller of fetchData has to free it.
+}
+
 void RegionDataRemote::onRecv(const void* data, size_t len, int type) {
   if (type == MessageTypes::CREATEREMOTEREGIONDATAREPLY) {
     JASSERT(len == sizeof(RemoteRegionHandler));
@@ -386,12 +412,8 @@ void RegionDataRemote::onRecv(const void* data, size_t len, int type) {
     size_t* responseLen = reinterpret_cast<size_t*>(header->responseLen);
     int* responseType = reinterpret_cast<int*>(header->responseType);
 
-    size_t sz = len - base->contentOffset;
-    void* msg = malloc(sz);
-    memcpy(msg, base->content(), sz);
-
-    *responseData = msg;
-    *responseLen = sz;
+    *responseData = data;
+    *responseLen = len;
     *responseType = type;
   }
 }
@@ -465,12 +487,15 @@ RegionDataSplitPtr RegionDataRemote::copyRegionDataSplit() {
       size_t len;
       int type;
       this->fetchData(&msg, MessageTypes::COPYREGIONDATASPLIT, sizeof(CopyRegionDataSplitMessage), &data, &len, &type);
+      BaseMessageHeader* base = (BaseMessageHeader*)data;
+      len = len - base->contentOffset;
 
-      CopyRegionDataSplitReplyMessage* reply = (CopyRegionDataSplitReplyMessage*)data;
+      CopyRegionDataSplitReplyMessage* reply = (CopyRegionDataSplitReplyMessage*) base->content();
       _localRegionDataSplit = new RegionDataSplit(_D, _size, reply->splitSize);
       for (int i = 0; i < reply->numParts; ++i) {
         _localRegionDataSplit->setPart(i, reply->handlers()[i]);
       }
+      free(data);
       return _localRegionDataSplit;
     }
   }
