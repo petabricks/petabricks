@@ -42,6 +42,7 @@ public:
 
   RuleFlags::PriorityT priority() const;
   bool isRecursive() const;
+  bool hasCellAccess() const;
   bool hasWhereClause() const;
   FormulaPtr getWhereClause() const;
 
@@ -74,6 +75,7 @@ public:
   void virtual generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor);
 
   void markRecursive();
+  void markHasCellAccess();
   const FormulaPtr& recursiveHint() const;
 
   void print(std::ostream& os) const;

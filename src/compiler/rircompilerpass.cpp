@@ -362,6 +362,9 @@ void petabricks::AnalysisPass::before(RIRExprCopyRef& e){
       TrainingDeps::addCallgraphEdge(_name, e->toString());
       _rule.markRecursive();
     }
+    if(sym && sym->isElement()){
+      _rule.markHasCellAccess();
+    }
   }
 }
 
@@ -475,7 +478,7 @@ void petabricks::OpenClCleanupPass::before(RIRExprCopyRef& e){
               std::string y = *i;
               i++;
               std::string x = *i;
-              exprstr = "buff_" + region->matrix()->name() + "[" + y + " + y_local]" 
+              exprstr = "buff_" + region->matrix()->name() + "[" + y + " + y_local]"
                                                            + "[" + x + " + x_local]";
             }
             else {
@@ -548,7 +551,7 @@ bool petabricks::OpenClFunctionRejectPass::isFunctionAllowed( const std::string&
       "sin", "cos", "tan",
       "acos", "asin", "atan",
       "sqrt",
-      "cell", 
+      "cell",
       "", };
 
   const std::string* p = whitelist;

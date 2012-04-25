@@ -169,7 +169,13 @@ public:
     }
   }
 
+  void markHasCellAccess() {
+    _flags.hasCellAccess = true;
+  }
+
   bool isRecursive() const { return _flags.isRecursive; }
+  bool hasCellAccess() const { return _flags.hasCellAccess; }
+  //bool hasCellAccess() const { return true; }
 
   bool isOpenClRule() const {
 #ifdef HAVE_OPENCL

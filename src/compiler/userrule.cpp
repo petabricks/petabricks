@@ -648,16 +648,18 @@ void petabricks::UserRule::generateMetadataCode(Transform& trans, CodeGenerator&
   o.addMember("IndexT*", "begin", "");
   o.addMember("IndexT*", "end", "");
 
-  // Scratch regions
-  for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
-    JASSERT((rf == RuleFlavor::DISTRIBUTED));
-    MatrixDefPtr matrix = i->second;
-    bool isConst = (matrix->type() == MatrixDef::T_FROM);
-    o.addMember(matrix->typeName(rf, isConst), matrix->name());
+  if (hasCellAccess()) {
+    // Scratch regions
+    for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
+      JASSERT((rf == RuleFlavor::DISTRIBUTED));
+      MatrixDefPtr matrix = i->second;
+      bool isConst = (matrix->type() == MatrixDef::T_FROM);
+      o.addMember(matrix->typeName(rf, isConst), matrix->name());
 
-    if (matrix->type() == MatrixDef::T_TO && matrix->numDimensions() > 0) {
-      o.addMember(matrix->typeName(rf), "remote_TO_" + matrix->name());
-      o.addMember(matrix->typeName(rf), "local_TO_" + matrix->name());
+      if (matrix->type() == MatrixDef::T_TO && matrix->numDimensions() > 0) {
+        o.addMember(matrix->typeName(rf), "remote_TO_" + matrix->name());
+        o.addMember(matrix->typeName(rf), "local_TO_" + matrix->name());
+      }
     }
   }
 
@@ -906,6 +908,8 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
   taskargs.insert(taskargs.begin(), "const jalib::JRef<"+trans.instClassName()+"> transform");
 
   o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans)+"_"+flavor.str(), packedargs);
+
+  // o.trace(trampcodename(trans));
 
 #ifdef HAVE_OPENCL
     for(RegionList::const_iterator i = _from.begin( ); i != _from.end( ); ++i) {
@@ -1224,10 +1228,24 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
       if (shouldGenerateTrampIterCode(flavor)) {
         // Create iteration tramp task
-        generateToLocalRegionCode(trans, o, flavor, iterdef, false, true, false);
-
         std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
+
+        if (hasCellAccess()) {
+          generateToLocalRegionCode(trans, o, flavor, iterdef, false, true, false);
+        } else {
+          o.write("jalib::JRef<" + metadataclass + "> metadata = new " + metadataclass + "();");
+          o.write("metadata->begin = (IndexT*)malloc(sizeof _iter_begin);");
+          o.write("memcpy(metadata->begin, _iter_begin, sizeof _iter_begin);");
+          o.write("metadata->end = (IndexT*)malloc(sizeof _iter_end);");
+          o.write("memcpy(metadata->end, _iter_end, sizeof _iter_end);");
+        }
+
         o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", startCoord);
+
+      } else if (isSingleCall()) {
+        iterdef.genLoopBegin(o);
+        generateTrampCellCodeSimple( trans, o, flavor );
+        iterdef.genLoopEnd(o);
 
       } else if (!isRecursive()) {
         o.comment("Call apply_ruleX_partial");
@@ -1255,10 +1273,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         o.write("applyPartialTask->enqueue();");
 
       } else {
-        JASSERT(isSingleCall()).Text("Check shouldGenerateTrampIterCode method");
-        iterdef.genLoopBegin(o);
-        generateTrampCellCodeSimple( trans, o, flavor );
-        iterdef.genLoopEnd(o);
+        JASSERT(false).Text("Check shouldGenerateTrampIterCode method");
 
       }
 
@@ -1345,7 +1360,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
     o.write("DynamicTaskPtr _task;");
 
-    if (flavor == RuleFlavor::DISTRIBUTED) {
+    if (flavor == RuleFlavor::DISTRIBUTED && hasCellAccess()) {
       for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
         MatrixDefPtr matrix = i->second;
         bool isConst = (matrix->type() == MatrixDef::T_FROM);
@@ -1394,7 +1409,8 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     o.mkIterationTrampTask("_next", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", iterdef.var());
 
     o.elseIf();
-    if (flavor == RuleFlavor::DISTRIBUTED) {
+    if (flavor == RuleFlavor::DISTRIBUTED && hasCellAccess()) {
+      // Need clean up
       o.mkIterationTrampTask("_next", trans.instClassName(), itertrampcodename(trans)+"_clean_up_"+flavor.str(), metadataclass, "metadata", iterdef.var());
 
     } else {
@@ -1407,7 +1423,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     o.write("return _next;");
     o.endFunc();
 
-    if (flavor == RuleFlavor::DISTRIBUTED) {
+    if (flavor == RuleFlavor::DISTRIBUTED && hasCellAccess()) {
       // Clean up iteration tramp
       o.beginFunc("petabricks::DynamicTaskPtr", itertrampcodename(trans)+"_clean_up_"+flavor.str(), args);
       o.comment("Copy from scratch");
@@ -1691,7 +1707,7 @@ void petabricks::UserRule::generatePartialTrampCode(Transform& trans, CodeGenera
 }
 
 bool petabricks::UserRule::shouldGenerateTrampIterCode(RuleFlavor::RuleFlavorEnum flavor) {
-  return (((flavor == RuleFlavor::DISTRIBUTED && isRecursive()) ||
+  return (((flavor == RuleFlavor::DISTRIBUTED && (isRecursive() || !hasCellAccess())) ||
       (flavor == RuleFlavor::WORKSTEALING && isRecursive())) &&
      !isSingleCall());
 }

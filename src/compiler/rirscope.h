@@ -45,23 +45,23 @@ public:
   enum SymbolType {
     INVALID,
     SYM_TYPE               = 0x0100,
-    SYM_TYPE_BASIC,             
+    SYM_TYPE_BASIC,
     SYM_TYPE_MATRIX        = 0x0110,
-    SYM_TYPE_MATRIX_GENERIC,            
-    SYM_TYPE_MATRIX_SPECIFIC,            
+    SYM_TYPE_MATRIX_GENERIC,
+    SYM_TYPE_MATRIX_SPECIFIC,
     SYM_TRANSFORM          = 0x0200,
-    SYM_TRANSFORM_TEMPLATE,     
-    SYM_TRANSFORM_VARACCURACY,  
+    SYM_TRANSFORM_TEMPLATE,
+    SYM_TRANSFORM_VARACCURACY,
     SYM_CONFIG             = 0x0400,
-    SYM_CONFIG_TRANSFORM_LOCAL,  
-    SYM_CONFIG_PASSED,          
+    SYM_CONFIG_TRANSFORM_LOCAL,
+    SYM_CONFIG_PASSED,
     SYM_LOCAL_VAR          = 0x0800,
     SYM_ARG                = 0x1000,
     SYM_ARG_ELEMENT,
     SYM_ARG_REGION,
     _LAST
   };
-  RIRSymbol(SymbolType t, const std::string& rp = "") 
+  RIRSymbol(SymbolType t, const std::string& rp = "")
     : _type(t), _replacement(rp)
   {}
   SymbolType type() const { return _type; }
@@ -74,8 +74,9 @@ public:
   bool isConfig() const { return (_type & SYM_CONFIG) != 0; }
   bool isTransform() const { return (_type & SYM_TRANSFORM) != 0; }
   bool isTemplateTransform() const { return _type == SYM_TRANSFORM_TEMPLATE || _type==SYM_TRANSFORM_VARACCURACY; }
+  bool isElement() const { return (_type & SYM_ARG_ELEMENT) != 0; }
 
-  bool hasReplacement() const { return _replacement.length()>0; } 
+  bool hasReplacement() const { return _replacement.length()>0; }
   const std::string& replacement() const { return _replacement; }
 private:
   SymbolType  _type;
@@ -86,10 +87,10 @@ class RIRScope: public jalib::JRefCounted {
 public:
   static const RIRScopePtr& global();
 
-  RIRScope(const RIRScopePtr& parent) 
-    : _parent(parent) 
+  RIRScope(const RIRScopePtr& parent)
+    : _parent(parent)
   {}
-  
+
   void set(const std::string& name, RIRSymbol::SymbolType val){
     set(name, new RIRSymbol(val));
   }
@@ -97,7 +98,7 @@ public:
   void set(const std::string& name, const RIRSymbolPtr& val){
     _symbols[name] = val;
   }
-  
+
   RIRSymbolPtr localLookup(const std::string& name) const;
 
   RIRSymbolPtr lookup(const std::string& name) const;

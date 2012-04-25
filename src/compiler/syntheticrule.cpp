@@ -40,6 +40,10 @@ petabricks::RuleFlags::PriorityT petabricks::SyntheticRule::priority() const {
 bool petabricks::SyntheticRule::isRecursive() const {
   return true;
 }
+bool petabricks::SyntheticRule::hasCellAccess() const {
+  UNIMPLEMENTED();
+  return true;
+}
 bool petabricks::SyntheticRule::hasWhereClause() const {
   return false;
 }
@@ -75,6 +79,9 @@ void petabricks::SyntheticRule::generateDeclCode(Transform&, CodeGenerator&, Rul
 void petabricks::SyntheticRule::generatePartialTrampCode(Transform&, CodeGenerator&, RuleFlavor) {}
 
 void petabricks::SyntheticRule::markRecursive() {
+  UNIMPLEMENTED();
+}
+void petabricks::SyntheticRule::markHasCellAccess() {
   UNIMPLEMENTED();
 }
 const petabricks::FormulaPtr& petabricks::SyntheticRule::recursiveHint() const {
