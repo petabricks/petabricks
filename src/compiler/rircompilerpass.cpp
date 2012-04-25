@@ -365,6 +365,9 @@ void petabricks::AnalysisPass::before(RIRExprCopyRef& e){
     if(sym && sym->isElement()){
       _rule.markHasCellAccess();
     }
+    if(e->toString() == "RETURN"){
+      _rule.markHasCellAccess();
+    }
   }
 }
 
