@@ -222,7 +222,7 @@ int RegionHandler::allocDataNByBlock(const IndexT* size, int distributionSize) {
   // create parts
   RegionDataSplit* regionDataSplit = (RegionDataSplit*)_regionData.asPtr();
   int numParts = regionDataSplit->numParts();
-  int r = 0;
+  int r = numRemoteHosts;
   for (int i = 0; i < numParts; ++i) {
     if (r == numRemoteHosts) {
       // local

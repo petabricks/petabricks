@@ -336,8 +336,6 @@ void RegionDataSplit::processCopyFromMatrixStorageMsg(const BaseMessageHeader* /
 }
 
 RegionDataIPtr RegionDataSplit::hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list) {
-  std::map<HostPid, int> hosts;
-
   IndexT newBegin[_D];
   IndexT coord[_D];
   for (int i = 0; i < _D; i++) {
@@ -345,28 +343,33 @@ RegionDataIPtr RegionDataSplit::hosts(const IndexT* begin, const IndexT* end, Da
     coord[i] = newBegin[i];
   }
 
-  int count = 0;
-
   IndexT junk[_D];
   do {
+    size_t count = 1;
+    for (int i = 0; i < _D; i++) {
+      IndexT dataBegin = coord[i];
+      if (dataBegin < begin[i]) {
+        dataBegin = begin[i];
+      }
+      IndexT dataEnd = coord[i] + _splitSize[i];
+      if (dataEnd > end[i]) {
+        dataEnd = end[i];
+      }
+      count *= (dataEnd - dataBegin);
+    }
+
+    DataHostPidListItem item;
     RemoteHostPtr host = this->coordToPart(coord, junk)->dataHost();
     if (host) {
-      hosts[host->id()] += 1;
+      item.hostPid = host->id();
     } else {
       // local
-      hosts[HostPid::self()] += 1;
+      item.hostPid = HostPid::self();
     }
-    count++;
 
-  } while (incPartCoord(coord, newBegin, end) >= 0);
-
-  std::map<HostPid, int>::iterator it;
-  for (it = hosts.begin(); it != hosts.end(); it++) {
-    DataHostPidListItem item;
-    item.hostPid = (*it).first;
-    item.weight = ((double)((*it).second))/count;
+    item.weight = count;
     list.push_back(item);
-  }
+  } while (incPartCoord(coord, newBegin, end) >= 0);
 
   return NULL;
 }

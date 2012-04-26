@@ -123,8 +123,12 @@ void RegionDataRaw::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* o
   } while(incCoord(d, size, coord) >= 0);
 }
 
-RegionDataIPtr RegionDataRaw::hosts(const IndexT* /*begin*/, const IndexT* /*end*/, DataHostPidList& list) {
-  DataHostPidListItem item = {HostPid::self(), 1};
+RegionDataIPtr RegionDataRaw::hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list) {
+  size_t count = 1;
+  for(int i = 0; i < _D; i++){
+    count *= (end[i] - begin[i]);
+  }
+  DataHostPidListItem item = {HostPid::self(), count};
   list.push_back(item);
   return NULL;
 }

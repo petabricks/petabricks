@@ -528,7 +528,7 @@ namespace petabricks {
       }
 
       if (D == 0) {
-        // ignore 0D
+        _regionHandler->hosts(begin, end, list);
         return;
       }
 
@@ -556,7 +556,7 @@ namespace petabricks {
       dataHosts(list);
       printf("(%d) DataHostPidList\n", getpid());
       for (unsigned int i = 0; i < list.size(); i++) {
-        printf("  %lx/%d ==> %.5g\n", list[i].hostPid.hostid, list[i].hostPid.pid, list[i].weight);
+        printf("  %lx/%d ==> %ld\n", list[i].hostPid.hostid, list[i].hostPid.pid, list[i].weight);
       }
     }
 

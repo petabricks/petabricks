@@ -35,7 +35,7 @@ namespace petabricks {
 
   struct DataHostPidListItem {
     HostPid hostPid;
-    double weight;
+    size_t weight;
   } PACKED;
   typedef std::vector<DataHostPidListItem> DataHostPidList;
 

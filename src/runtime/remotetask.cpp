@@ -59,10 +59,16 @@ void petabricks::RemoteTask::remoteScheduleTask() {
   // JTRACE("remote schedule");
 
   HostPid toHostPid = HostPid::self();
-  double maxWeight = 0;
+  size_t maxWeight = 0;
 
   DataHostPidList hosts;
   getDataHosts(hosts);
+
+  // printf("(%d) DataHostPidList\n", getpid());
+  // for (unsigned int i = 0; i < hosts.size(); i++) {
+  //   printf("  %lx/%d ==> %ld\n", hosts[i].hostPid.hostid, hosts[i].hostPid.pid, hosts[i].weight);
+  // }
+
   if (hosts.size() == 1) {
     toHostPid = hosts[0].hostPid;
 

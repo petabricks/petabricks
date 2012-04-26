@@ -120,7 +120,7 @@ void RegionDataRemote::invalidateCache() {
 }
 
 ElementT RegionDataRemote::readCell(const IndexT* coord) const {
-  // JTRACE("remote read");
+  JTRACE("remote read");
 #ifdef DISTRIBUTED_CACHE
   if (cache()) {
     return cache()->readCell(coord);
@@ -236,6 +236,7 @@ RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageM
 
   JASSERT(type == MessageTypes::TOSCRATCHSTORAGE);
   CopyToMatrixStorageReplyMessage* reply = (CopyToMatrixStorageReplyMessage*) base->content();
+  JTRACE("copy to scratch")(reply->count);
   if (reply->count == scratchStorage->count()) {
     memcpy(scratchStorage->data(), reply->storage, sizeof(ElementT) * reply->count);
 
@@ -293,6 +294,8 @@ void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage
     } while(incCoord(d, size, coord) >= 0);
   }
 
+  JTRACE("copy from scratch")(storageCount);
+
   size_t msgLen =  RegionMatrixMetadata::len(origMetadata->dimensions, origMetadata->numSliceDimensions) + (sizeof(ElementT) * storageCount);
   JASSERT(msgLen <= len);
 
@@ -305,7 +308,11 @@ void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage
 
 RegionDataIPtr RegionDataRemote::hosts(const IndexT* begin, const IndexT* end, DataHostPidList& list) {
   if (!_isDataSplit) {
-    DataHostPidListItem item = {remoteRegionHandler()->hostPid, 1};
+    double count = 1;
+    for(int i = 0; i < _D; i++){
+      count *= (end[i] - begin[i]);
+    }
+    DataHostPidListItem item = {remoteRegionHandler()->hostPid, count};
     list.push_back(item);
     return NULL;
   }
