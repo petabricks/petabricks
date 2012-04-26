@@ -2380,8 +2380,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   std::vector<std::string> args;
   std::vector<std::string> to_0d;
   for(RegionList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
-    if ((flavor == RuleFlavor::DISTRIBUTED_SCRATCH
-         || flavor == RuleFlavor::WORKSTEALING_SCRATCH)
+    if (flavor == RuleFlavor::DISTRIBUTED_SCRATCH
         && (!(*i)->isOptional())) {
       Region region = *i;
       std::string name = (*i)->matrix()->name();
@@ -2391,12 +2390,6 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
       } else {
         args.push_back((*i)->generateAccessorCode());
       }
-
-    } else if (flavor == RuleFlavor::WORKSTEALING_SCRATCH) {
-      std::string name = (*i)->matrix()->name();
-      o.write("ElementT scratch_" + name + " = " + name + ";");
-      args.push_back("scratch_" + name);
-      to_0d.push_back(name);
 
     } else if (flavor == RuleFlavor::WORKSTEALING_PARTIAL) {
       CoordinateFormulaPtr offset = _partialCoordOffsets[(*i)->matrix()->name()];
@@ -2407,8 +2400,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
     }
   }
   for(RegionList::const_iterator i=_from.begin(); i!=_from.end(); ++i){
-    if ((flavor == RuleFlavor::DISTRIBUTED_SCRATCH
-         || flavor == RuleFlavor::WORKSTEALING_SCRATCH)
+    if (flavor == RuleFlavor::DISTRIBUTED_SCRATCH
         && (!(*i)->isOptional())) {
       Region region = *i;
       std::string name = (*i)->matrix()->name();
@@ -2418,8 +2410,6 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
       } else {
         args.push_back((*i)->generateAccessorCode());
       }
-    } else if (flavor == RuleFlavor::WORKSTEALING_SCRATCH) {
-      args.push_back("(ElementT)" + (*i)->generateAccessorCode());
 
     } else if (flavor == RuleFlavor::WORKSTEALING_PARTIAL) {
       CoordinateFormulaPtr offset = _partialCoordOffsets[(*i)->matrix()->name()];
@@ -2440,7 +2430,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   for(int i=0; i<dimensions(); ++i)
     args.push_back(getOffsetVar(i)->toString());
 
-  if (RuleFlavor::SEQUENTIAL == flavor || RuleFlavor::WORKSTEALING_SCRATCH == flavor || RuleFlavor::WORKSTEALING_PARTIAL == flavor) {
+  if (RuleFlavor::SEQUENTIAL == flavor || RuleFlavor::WORKSTEALING_PARTIAL == flavor) {
     o.call(implcodename(trans)+TX_STATIC_POSTFIX, args);
 
     for(std::vector<std::string>::const_iterator i=to_0d.begin(); i!=to_0d.end(); ++i){
