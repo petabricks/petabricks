@@ -44,6 +44,10 @@ bool petabricks::SyntheticRule::hasCellAccess() const {
   UNIMPLEMENTED();
   return true;
 }
+bool petabricks::SyntheticRule::hasCellAccess(const std::string&) const {
+  UNIMPLEMENTED();
+  return true;
+}
 bool petabricks::SyntheticRule::hasWhereClause() const {
   return false;
 }
@@ -81,7 +85,7 @@ void petabricks::SyntheticRule::generatePartialTrampCode(Transform&, CodeGenerat
 void petabricks::SyntheticRule::markRecursive() {
   UNIMPLEMENTED();
 }
-void petabricks::SyntheticRule::markHasCellAccess() {
+void petabricks::SyntheticRule::markHasCellAccess(const std::string&) {
   UNIMPLEMENTED();
 }
 const petabricks::FormulaPtr& petabricks::SyntheticRule::recursiveHint() const {

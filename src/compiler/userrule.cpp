@@ -648,18 +648,20 @@ void petabricks::UserRule::generateMetadataCode(Transform& trans, CodeGenerator&
   o.addMember("IndexT*", "begin", "");
   o.addMember("IndexT*", "end", "");
 
-  if (hasCellAccess()) {
-    // Scratch regions
-    for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
-      JASSERT((rf == RuleFlavor::DISTRIBUTED));
-      MatrixDefPtr matrix = i->second;
-      bool isConst = (matrix->type() == MatrixDef::T_FROM);
-      o.addMember(matrix->typeName(rf, isConst), matrix->name());
+  // Scratch regions
+  for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
+    JASSERT((rf == RuleFlavor::DISTRIBUTED));
+    if (!hasCellAccess(i->first)) {
+      // don't make a scratch
+      continue;
+    }
+    MatrixDefPtr matrix = i->second;
+    bool isConst = (matrix->type() == MatrixDef::T_FROM);
+    o.addMember(matrix->typeName(rf, isConst), matrix->name());
 
-      if (matrix->type() == MatrixDef::T_TO && matrix->numDimensions() > 0) {
-        o.addMember(matrix->typeName(rf), "remote_TO_" + matrix->name());
-        o.addMember(matrix->typeName(rf), "local_TO_" + matrix->name());
-      }
+    if (matrix->type() == MatrixDef::T_TO && matrix->numDimensions() > 0) {
+      o.addMember(matrix->typeName(rf), "remote_TO_" + matrix->name());
+      o.addMember(matrix->typeName(rf), "local_TO_" + matrix->name());
     }
   }
 
@@ -1171,7 +1173,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       blockNumberHeur.setMin(2);
       unsigned int blockNumber = blockNumberHeur.eval(ValueMap()); /**< The number of blocks the loop will be
                                                                     * splitted into */
-      JTRACE("LOOP BLOCKING")(blockNumber);
+      // JTRACE("LOOP BLOCKING")(blockNumber);
 
       if (flavor == RuleFlavor::DISTRIBUTED) {
         o.beginIf("petabricks::split_condition<"+jalib::XToString(dimensions())+", "+jalib::XToString(blockNumber)+">(distributedcutoff,"COORD_BEGIN_STR","COORD_END_STR")");
@@ -1230,15 +1232,7 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
         // Create iteration tramp task
         std::string metadataclass = itertrampmetadataname(trans)+"_"+flavor.str();
 
-        if (hasCellAccess()) {
-          generateToLocalRegionCode(trans, o, flavor, iterdef, false, true, false);
-        } else {
-          o.write("jalib::JRef<" + metadataclass + "> metadata = new " + metadataclass + "();");
-          o.write("metadata->begin = (IndexT*)malloc(sizeof _iter_begin);");
-          o.write("memcpy(metadata->begin, _iter_begin, sizeof _iter_begin);");
-          o.write("metadata->end = (IndexT*)malloc(sizeof _iter_end);");
-          o.write("memcpy(metadata->end, _iter_end, sizeof _iter_end);");
-        }
+        generateToLocalRegionCode(trans, o, flavor, iterdef, false, true, false);
 
         o.mkIterationTrampTask("_task", trans.instClassName(), itertrampcodename(trans)+"_"+flavor.str(), metadataclass, "metadata", startCoord);
 
@@ -1363,8 +1357,10 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
     if (flavor == RuleFlavor::DISTRIBUTED && hasCellAccess()) {
       for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
         MatrixDefPtr matrix = i->second;
-        bool isConst = (matrix->type() == MatrixDef::T_FROM);
-        o.write(matrix->typeName(flavor, isConst)+"& "+matrix->name()+" = metadata->"+matrix->name()+";");
+        if (hasCellAccess(i->first)) {
+          bool isConst = (matrix->type() == MatrixDef::T_FROM);
+          o.write(matrix->typeName(flavor, isConst)+"& "+matrix->name()+" = metadata->"+matrix->name()+";");
+        }
       }
 
       generateTrampCellCodeSimple(trans, o, RuleFlavor::DISTRIBUTED_SCRATCH);
@@ -1429,15 +1425,17 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
       o.comment("Copy from scratch");
 
       for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
-        MatrixDefPtr matrix = i->second;
-        if (matrix->type() == MatrixDef::T_TO) {
-          if (matrix->numDimensions() > 0) {
-            o.write("metadata->remote_TO_" + matrix->name() + ".fromScratchRegion(metadata->local_TO_" + matrix->name() + ");");
-            // Debug
-            // o.write("MatrixIOGeneral().write(metadata->remote_TO_" + matrix->name()+ ");");
-            // o.write("MatrixIOGeneral().write(metadata->local_TO_" + matrix->name()+ ");");
-          } else {
-            o.write(i->first + ".writeCell(NULL, metadata->" + matrix->name() + ".cell());");
+        if (hasCellAccess(i->first)) {
+          MatrixDefPtr matrix = i->second;
+          if (matrix->type() == MatrixDef::T_TO) {
+            if (matrix->numDimensions() > 0) {
+              o.write("metadata->remote_TO_" + matrix->name() + ".fromScratchRegion(metadata->local_TO_" + matrix->name() + ");");
+              // Debug
+              // o.write("MatrixIOGeneral().write(metadata->remote_TO_" + matrix->name()+ ");");
+              // o.write("MatrixIOGeneral().write(metadata->local_TO_" + matrix->name()+ ");");
+            } else {
+              o.write(i->first + ".writeCell(NULL, metadata->" + matrix->name() + ".cell());");
+            }
           }
         }
       }
@@ -1611,7 +1609,7 @@ void petabricks::UserRule::generatePartialTrampCode(Transform& trans, CodeGenera
     blockNumberHeur.setMin(2);
     unsigned int blockNumber = blockNumberHeur.eval(ValueMap()); /**< The number of blocks the loop will be
                                                                   * splitted into */
-    JTRACE("LOOP BLOCKING")(blockNumber);
+    // JTRACE("LOOP BLOCKING")(blockNumber);
 
     std::string splitCondition = "petabricks::split_condition<"+jalib::XToString(dimensions())+", "+jalib::XToString(blockNumber)+">("SPLIT_CHUNK_SIZE","COORD_BEGIN_STR","COORD_END_STR")";
     o.beginIf(splitCondition);
@@ -2387,8 +2385,12 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
         && (!(*i)->isOptional())) {
       Region region = *i;
       std::string name = (*i)->matrix()->name();
-      region.changeMatrix(lookupScratch(name));
-      args.push_back(region.generateAccessorCode(*(_scratchRegionLowerBounds[name])));
+      if (hasCellAccess(name)) {
+        region.changeMatrix(lookupScratch(name));
+        args.push_back(region.generateAccessorCode(*(_scratchRegionLowerBounds[name])));
+      } else {
+        args.push_back((*i)->generateAccessorCode());
+      }
 
     } else if (flavor == RuleFlavor::WORKSTEALING_SCRATCH) {
       std::string name = (*i)->matrix()->name();
@@ -2410,9 +2412,12 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
         && (!(*i)->isOptional())) {
       Region region = *i;
       std::string name = (*i)->matrix()->name();
-      region.changeMatrix(lookupScratch(name));
-      args.push_back(region.generateAccessorCode(*(_scratchRegionLowerBounds[name])));
-
+      if (hasCellAccess(name)) {
+        region.changeMatrix(lookupScratch(name));
+        args.push_back(region.generateAccessorCode(*(_scratchRegionLowerBounds[name])));
+      } else {
+        args.push_back((*i)->generateAccessorCode());
+      }
     } else if (flavor == RuleFlavor::WORKSTEALING_SCRATCH) {
       args.push_back("(ElementT)" + (*i)->generateAccessorCode());
 
@@ -2468,6 +2473,9 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   }
 
   for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
+    if (!hasCellAccess(i->first)) {
+      continue;
+    }
     MatrixDefPtr matrix = i->second;
     bool isConst = (matrix->type() == MatrixDef::T_FROM);
 

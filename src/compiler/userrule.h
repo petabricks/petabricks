@@ -43,6 +43,7 @@
 
 #include "common/jconvert.h"
 
+#include <set>
 #include <vector>
 
 namespace petabricks {
@@ -54,7 +55,7 @@ class UserRule : public RuleInterface{
 public:
   ///
   /// Constructor -- return style rule
-  UserRule(const RegionPtr& to, const RegionList& from, const MatrixDefList& through, const FormulaList& where);
+    UserRule(const RegionPtr& to, const RegionList& from, const MatrixDefList& through, const FormulaList& where);
 
   ///
   /// Constructor -- to style rule
@@ -169,13 +170,32 @@ public:
     }
   }
 
-  void markHasCellAccess() {
-    _flags.hasCellAccess = true;
+  void markHasCellAccess(const std::string& name) {
+    std::string matrix = "";
+    for(RegionList::iterator i=_from.begin(); i!=_from.end(); ++i){
+      if ((*i)->name() == name) {
+        matrix = (*i)->matrix()->name();
+        break;
+      }
+    }
+    if (matrix.length() == 0) {
+      for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
+        if ((*i)->name() == name) {
+          matrix = (*i)->matrix()->name();
+          break;
+        }
+      }
+    }
+    _matricesWithCellAccess.insert(matrix);
   }
 
   bool isRecursive() const { return _flags.isRecursive; }
-  bool hasCellAccess() const { return _flags.hasCellAccess; }
-  //bool hasCellAccess() const { return true; }
+  bool hasCellAccess() const {
+    return _matricesWithCellAccess.size() > 0;
+  }
+  bool hasCellAccess(const std::string& matrix) const {
+    return (_matricesWithCellAccess.count(matrix) == 1);
+  }
 
   bool isOpenClRule() const {
 #ifdef HAVE_OPENCL
@@ -354,6 +374,8 @@ private:
 
   std::map<std::string, CoordinateFormulaPtr> _scratchRegionLowerBounds;
   std::map<std::string, CoordinateFormulaPtr> _partialCoordOffsets;
+
+  std::set<std::string> _matricesWithCellAccess;
 };
 
 }

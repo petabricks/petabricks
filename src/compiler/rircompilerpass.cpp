@@ -362,11 +362,13 @@ void petabricks::AnalysisPass::before(RIRExprCopyRef& e){
       TrainingDeps::addCallgraphEdge(_name, e->toString());
       _rule.markRecursive();
     }
-    if(sym && sym->isElement()){
-      _rule.markHasCellAccess();
+    if(sym && sym->type() == RIRSymbol::SYM_ARG_ELEMENT){
+      // JTRACE("CELL ACCESS")(e->toString());
+      _rule.markHasCellAccess(e->toString());
     }
     if(e->toString() == "RETURN"){
-      _rule.markHasCellAccess();
+      // JTRACE("RETURN");
+      _rule.markHasCellAccess(RETURN_VAL_STR);
     }
   }
 }

@@ -73,7 +73,7 @@ class RuleSet : public std::set<RulePtr, RulePriCmp> {
  */
 class RuleFlags {
 public:
-  RuleFlags() : priority(PRIORITY_DEFAULT), rotations(NOROTATE), isRecursive(false), isReturnStyle(true), hasCellAccess(false) {}
+  RuleFlags() : priority(PRIORITY_DEFAULT), rotations(NOROTATE), isRecursive(false), isReturnStyle(true) {}
 
   typedef int PriorityT;
   enum { PRIORITY_PRIMARY   = 0
@@ -99,7 +99,6 @@ public:
   RotationT  rotations;
   bool       isRecursive;
   bool       isReturnStyle;
-  bool       hasCellAccess;
 };
 
 /**
@@ -128,6 +127,7 @@ public:
   virtual RuleFlags::PriorityT priority() const = 0;
   virtual bool isRecursive() const = 0;
   virtual bool hasCellAccess() const = 0;
+  virtual bool hasCellAccess(const std::string& matrix) const = 0;
   virtual bool canProvide(const MatrixDefPtr& m) const = 0;
   virtual bool isSingleElement() const = 0;
 
@@ -169,7 +169,7 @@ public:
   virtual void generatePartialTrampCode(Transform& trans, CodeGenerator& o, RuleFlavor rf) = 0;
 
   virtual void markRecursive() = 0;
-  virtual void markHasCellAccess() = 0;
+  virtual void markHasCellAccess(const std::string& matrix) = 0;
   virtual const FormulaPtr& recursiveHint() const = 0;
 
   virtual bool hasWhereClause() const = 0;
