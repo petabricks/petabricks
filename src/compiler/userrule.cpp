@@ -2463,7 +2463,7 @@ void petabricks::UserRule::generateTrampCellCodeSimple(Transform& trans, CodeGen
   }
 
   for(MatrixDefMap::const_iterator i=_scratch.begin(); i!=_scratch.end(); ++i){
-    if (!hasCellAccess(i->first)) {
+    if (!hasCellAccess(i->first) && !generatePartialTrampMetadata) {
       continue;
     }
     MatrixDefPtr matrix = i->second;
