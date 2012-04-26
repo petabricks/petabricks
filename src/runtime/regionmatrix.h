@@ -689,7 +689,7 @@ namespace petabricks {
     //
     // Copy the entire matrix and store it locally. Writes to this copy
     // **might or might not** be seen by the original.
-    void localCopy(RegionMatrix& scratch, bool cacheable=false) const {
+    void localCopy(RegionMatrix& scratch, bool isFromMatrix=false) const {
       #ifdef DEBUG
       JASSERT(scratch.isRegionDataRaw());
       // Copy to the entire region
@@ -711,7 +711,7 @@ namespace petabricks {
       CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*) buf;
       this->computeRegionMatrixMetadata(msg->srcMetadata);
 
-      if (_regionHandler->shouldReplicateToAllNodes() && cacheable) {
+      if (_regionHandler->shouldReplicateToAllNodes() && isFromMatrix) {
         // Special case
         _regionHandler->copyRegionDataToLocal();
 
@@ -731,16 +731,13 @@ namespace petabricks {
 
       RegionDataI* newScratchRegionData = NULL;
 
-      // cacheable = false;
-      if (cacheable) {
-        RegionHandlerPtr newHandler = _regionHandler->copyToScratchMatrixStorageCache(msg, len, scratch.regionData()->storage(), scratchMetadata, scratch.regionData()->size(), scratch.regionHandler(), &newScratchRegionData);
-        if (newHandler) {
-          // JTRACE("found");
-          scratch.setRegionHandler(newHandler);
-        }
-      } else {
-        _regionHandler->copyToScratchMatrixStorage(msg, len, scratch.regionData()->storage(), scratchMetadata, scratch.regionData()->size(), &newScratchRegionData);
+      RegionHandlerPtr newHandler = _regionHandler->copyToScratchMatrixStorageCache(msg, len, scratch.regionData()->storage(), scratchMetadata, scratch.regionData()->size(), scratch.regionHandler(), &newScratchRegionData);
+      if (newHandler) {
+        // JTRACE("found");
+        scratch.setRegionHandler(newHandler);
       }
+
+      //_regionHandler->copyToScratchMatrixStorage(msg, len, scratch.regionData()->storage(), scratchMetadata, scratch.regionData()->size(), &newScratchRegionData);
 
       if (newScratchRegionData) {
         // reuse the existing regiondata
@@ -767,7 +764,7 @@ namespace petabricks {
       #endif
     }
 
-    RegionMatrix localCopy(bool cacheable=false) const {
+    RegionMatrix localCopy(bool isFromMatrix=false) const {
       if (isRegionDataRaw()) {
         // already local
         return *this;
@@ -775,7 +772,7 @@ namespace petabricks {
 
       RegionMatrix copy = RegionMatrix(this->size());
       copy.allocDataLocal();
-      localCopy(copy, cacheable);
+      localCopy(copy, isFromMatrix);
       return copy;
     }
 
@@ -1204,12 +1201,12 @@ namespace petabricks {
     void localCopy(RegionMatrixWrapper& scratch, bool=false) const {
       scratch.writeCell(NULL, this->readCell(NULL));
     }
-    RegionMatrixWrapper localCopy(bool cacheable=false) const {
+    RegionMatrixWrapper localCopy(bool isFromMatrix=false) const {
       if (isLocal()) {
         return *this;
       }
       RegionMatrixWrapper copy = RegionMatrixWrapper();
-      localCopy(copy, cacheable);
+      localCopy(copy, isFromMatrix);
       return copy;
     }
     void fromScratchRegion(const MatrixRegion<D, ElementT>& scratch) const {
