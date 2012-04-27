@@ -28,8 +28,16 @@ namespace petabricks {
       ONE_REMOTE,
       N_BY_ROW,
       N_BY_COL,
-      N_BY_BLOCK,
-      ALL_NODES,
+      N_BY_BLOCK
+    };
+  } PACKED;
+
+  typedef int RegionDataMigrationType;
+  struct RegionDataMigrationTypes {
+    enum {
+      NONE = 0,
+      IGNORE,
+      COPY_ENTIRE_DATA
     };
   } PACKED;
 

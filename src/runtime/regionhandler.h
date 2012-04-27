@@ -71,7 +71,7 @@ namespace petabricks {
   public:
     RegionHandler(const int dimensions);
     RegionHandler(const int dimensions, const IndexT* size, const bool alloc);
-    RegionHandler(const RegionDataIPtr regionData, bool shouldReplicateToAllNodes);
+    RegionHandler(const RegionDataIPtr regionData, int dataMigrationType);
     // ~RegionHandler() { JTRACE("destruct handler")(this); };
 
     void init();
@@ -82,7 +82,7 @@ namespace petabricks {
     void randomize();
 
     int allocData();
-    int allocData(const IndexT* size, int distributedCutoff, int distributionType, int distributionSize);
+    int allocData(const IndexT* size, int distributedCutoff, int distributionType, int distributionSize, int migrationType);
 
     bool isSizeLargerThanDistributedCutoff(const IndexT* size, int distributedCutoff) const;
     int allocDataLocal(const IndexT* size);
@@ -102,7 +102,14 @@ namespace petabricks {
     const IndexT* size() const;
     RegionDataType type() const;
 
-    bool shouldReplicateToAllNodes() const { return _shouldReplicateToAllNodes; }
+    int migrationType() const { return _migrationType; }
+    bool shouldCopyEntireData() const {
+      return _migrationType == RegionDataMigrationTypes::COPY_ENTIRE_DATA;
+    }
+    bool shouldIgnoreDuringScheduling() const {
+      return (_migrationType == RegionDataMigrationTypes::IGNORE)
+        || (_migrationType == RegionDataMigrationTypes::COPY_ENTIRE_DATA);
+    }
 
     // Migration
     void updateHandlerChain();
@@ -147,7 +154,7 @@ namespace petabricks {
     RegionHandlerCacheMap _cache;
     jalib::JMutex _cacheMux;
 
-    bool _shouldReplicateToAllNodes;
+    int _migrationType;
 
   };
 
@@ -159,7 +166,7 @@ namespace petabricks {
 
     static RegionHandlerDB& instance();
 
-    RegionHandlerPtr getLocalRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size, bool isDataSplit, bool shouldReplicateToAllNodes);
+    RegionHandlerPtr getLocalRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size, bool isDataSplit, int dataMigrationType);
 
   private:
     jalib::JMutex _mapMux;

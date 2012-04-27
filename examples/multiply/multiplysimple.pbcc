@@ -102,7 +102,7 @@ to C[n,m]
     MatrixMultiplyBase(c, t.transposed(), b);
   }
 
-  // transpose a
+  // transpose b
   to (C c)
   from (A a, B b)
   using (t[k,n])

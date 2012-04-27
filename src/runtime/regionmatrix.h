@@ -183,8 +183,8 @@ namespace petabricks {
       _regionHandler->createDataPart(partIndex, host);
     }
 
-    void allocData(int distributedCutoff, int distributionType, int distributionSize) {
-      _regionHandler->allocData(_size, distributedCutoff, distributionType, distributionSize);
+    void allocData(int distributedCutoff, int distributionType, int distributionSize, int migrationType) {
+      _regionHandler->allocData(_size, distributedCutoff, distributionType, distributionSize, migrationType);
     }
 
     void allocDataLocal() {
@@ -197,9 +197,9 @@ namespace petabricks {
       return region;
     }
 
-    static RegionMatrix allocate(const IndexT size[D], int distributedCutoff, int distributionType, int distributionSize) {
+    static RegionMatrix allocate(const IndexT size[D], int distributedCutoff, int distributionType, int distributionSize, int migrationType) {
       RegionMatrix region = RegionMatrix(size);
-      region.allocData(distributedCutoff, distributionType, distributionSize);
+      region.allocData(distributedCutoff, distributionType, distributionSize, migrationType);
       return region;
     }
 
@@ -403,7 +403,7 @@ namespace petabricks {
       sz += sizeof(IndexT) * _regionHandler->dimensions();
       sz += sizeof(RemoteRegionHandler);          // RemoteRegionHandler
       sz += sizeof(bool);                         // isDataSplit
-      sz += sizeof(bool);                         // shouldReplicateToAllNodes
+      sz += sizeof(int);                          // migrationType
 
       return sz;
     }
@@ -454,8 +454,8 @@ namespace petabricks {
       *reinterpret_cast<bool*>(buf) = _regionHandler->isDataSplit();
       buf += sz;
 
-      sz = sizeof(bool);
-      *reinterpret_cast<bool*>(buf) = _regionHandler->shouldReplicateToAllNodes();
+      sz = sizeof(int);
+      *reinterpret_cast<int*>(buf) = _regionHandler->migrationType();
       buf += sz;
 
       _regionHandler->incRefCount();
@@ -507,11 +507,11 @@ namespace petabricks {
       bool isDataSplit = *reinterpret_cast<const bool*>(buf);
       buf += sz;
 
-      sz = sizeof(bool);
-      bool shouldReplicateToAllNodes = *reinterpret_cast<const bool*>(buf);
+      sz = sizeof(int);
+      int migrationType = *reinterpret_cast<const int*>(buf);
       buf += sz;
 
-      setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandler.hostPid, remoteRegionHandler.remoteHandler, regionHandlerDimensions, regionHandlerSize, isDataSplit, shouldReplicateToAllNodes));
+      setRegionHandler(RegionHandlerDB::instance().getLocalRegionHandler(remoteRegionHandler.hostPid, remoteRegionHandler.remoteHandler, regionHandlerDimensions, regionHandlerSize, isDataSplit, migrationType));
     }
 
     void updateHandlerChain() const {
@@ -522,7 +522,7 @@ namespace petabricks {
     // Find location of data (data can be in many hosts)
     //
     void dataHosts(DataHostPidList& list, const IndexT* begin, const IndexT* end) const {
-      if (_regionHandler->shouldReplicateToAllNodes()) {
+      if (_regionHandler->shouldIgnoreDuringScheduling()) {
         // ignore this region
         return;
       }
@@ -711,7 +711,7 @@ namespace petabricks {
       CopyToMatrixStorageMessage* msg = (CopyToMatrixStorageMessage*) buf;
       this->computeRegionMatrixMetadata(msg->srcMetadata);
 
-      if (_regionHandler->shouldReplicateToAllNodes() && isFromMatrix) {
+      if (_regionHandler->shouldCopyEntireData() && isFromMatrix) {
         // Special case
         _regionHandler->copyRegionDataToLocal();
 

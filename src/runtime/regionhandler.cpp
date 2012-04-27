@@ -11,7 +11,7 @@ using namespace petabricks::RegionDataRemoteMessage;
 
 RegionHandler::RegionHandler(const int dimensions) {
   _D = dimensions;
-  _shouldReplicateToAllNodes = false;
+  _migrationType = RegionDataMigrationTypes::NONE;
   init();
 }
 
@@ -21,14 +21,14 @@ RegionHandler::RegionHandler(const int dimensions, const IndexT* size, const boo
   if (alloc) {
     _regionData->allocData();
   }
-  _shouldReplicateToAllNodes = false;
+  _migrationType = RegionDataMigrationTypes::NONE;
   init();
 }
 
-RegionHandler::RegionHandler(const RegionDataIPtr regionData, bool shouldReplicateToAllNodes = false) {
+RegionHandler::RegionHandler(const RegionDataIPtr regionData, int migrationType = RegionDataMigrationTypes::NONE) {
   _regionData = regionData;
   _D = _regionData->dimensions();
-  _shouldReplicateToAllNodes = shouldReplicateToAllNodes;
+  _migrationType = migrationType;
   init();
 }
 
@@ -64,7 +64,7 @@ bool RegionHandler::isSizeLargerThanDistributedCutoff(const IndexT* size, int di
   return false;
 }
 
-int RegionHandler::allocData(const IndexT* size, int distributedCutoff, int distributionType, int distributionSize) {
+int RegionHandler::allocData(const IndexT* size, int distributedCutoff, int distributionType, int distributionSize, int migrationType) {
   if (_regionData) {
     JASSERT(type() == RegionDataTypes::REGIONDATASPLIT);
     _regionData->allocData();
@@ -106,14 +106,12 @@ int RegionHandler::allocData(const IndexT* size, int distributedCutoff, int dist
       allocDataLocal(size);
     }
 
-  } else if (distributionType == RegionDataDistributions::ALL_NODES) {
-    _shouldReplicateToAllNodes = true;
-    allocDataLocal(size);
-
   } else {
     JASSERT(false).Text("Unknown distribution type.");
 
   }
+
+  _migrationType = migrationType;
 
 #endif
   return 1;
@@ -529,7 +527,7 @@ RegionHandlerDB& RegionHandlerDB::instance() {
   return db;
 }
 
-RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size, bool isDataSplit, bool shouldReplicateToAllNodes) {
+RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(const HostPid& hostPid, const EncodedPtr remoteHandler, const int dimensions, const IndexT* size, bool isDataSplit, int dataMigrationType) {
   if (hostPid == HostPid::self()) {
     return reinterpret_cast<RegionHandler*>(remoteHandler);
   }
@@ -547,7 +545,7 @@ RegionHandlerPtr RegionHandlerDB::getLocalRegionHandler(const HostPid& hostPid, 
   if (localMap.count(remoteHandler) == 0) {
     // create a new one
     RegionDataIPtr regionData = new RegionDataRemote(dimensions, size, hostPid, remoteHandler, isDataSplit);
-    localMap[remoteHandler] = new RegionHandler(regionData, shouldReplicateToAllNodes);
+    localMap[remoteHandler] = new RegionHandler(regionData, dataMigrationType);
   }
 
   RegionHandlerPtr localHandler = localMap[remoteHandler];

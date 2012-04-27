@@ -79,6 +79,9 @@ void petabricks::RemoteTask::remoteScheduleTask() {
       if (map[it->hostPid] > maxWeight) {
         toHostPid = it->hostPid;
         maxWeight = map[it->hostPid];
+
+      } else if ((map[it->hostPid] == maxWeight) && (it->hostPid == HostPid::self())) {
+        toHostPid = it->hostPid;
       }
     }
   }
