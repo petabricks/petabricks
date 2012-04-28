@@ -1711,7 +1711,11 @@ bool petabricks::UserRule::shouldGenerateTrampIterCode(RuleFlavor::RuleFlavorEnu
 }
 
 bool petabricks::UserRule::shouldGeneratePartialTrampCode(RuleFlavor::RuleFlavorEnum flavor) {
+#ifndef DISABLE_DISTRIBUTED
   return flavor == RuleFlavor::WORKSTEALING;
+#else
+  return false;
+#endif
 }
 
 #ifdef HAVE_OPENCL
