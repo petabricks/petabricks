@@ -1163,7 +1163,7 @@ namespace petabricks {
       Base::_regionHandler->writeCell(_sourceInfo->sourceIndex(), value);
     }
 
-    CellProxy cell(IndexT coord[D]) const {
+    CellProxy cell(IndexT /*coord*/[D]) const {
       return cell();
     }
     INLINE CellProxy cell() const {
@@ -1291,7 +1291,7 @@ namespace petabricks {
 
       _sourceInfo = new RegionMatrix0DInfo(regionHandlerDimensions);
       if (regionHandlerDimensions > 0) {
-        memcpy(_sourceInfo->sourceIndex(), buf, sz);
+        memcpy(_sourceInfo->sourceIndex(), sourceIndex, sz);
       }
 
       sz = sizeof(RemoteRegionHandler);
