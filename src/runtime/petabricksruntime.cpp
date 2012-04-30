@@ -451,10 +451,16 @@ void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char**
   JASSERT(fp.is_open())(HOSTS_FILE).Text("failed to open file");
   std::string line;
   bool hadlocal = false;
+  bool firsthost = true;
   while(getline(fp, line)){
     std::string dat,com;
     jalib::SplitFirst(dat, com, line, '#');
     dat=jalib::StringTrim(dat);
+
+    if (PBS && firsthost) {
+      dat = "localhost";
+      firsthost = false;
+    }
 
     if(dat!="" && dat!="localhost") {
       if (!PBS) {

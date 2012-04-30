@@ -929,6 +929,9 @@ void petabricks::RemoteHostDB::listenLoop() {
   JLOCKSCOPE(_mu);
   struct pollfd *fd;
   RemoteHostList::iterator i;
+  if (_hosts.size() == 0) {
+    return;
+  }
   for(bool workDone = true; true; workDone = false) {
 
     for(i=_hosts.begin(), fd=_fds; i!=_hosts.end() && _ready>0; ++i, ++fd) {
