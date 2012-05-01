@@ -1272,7 +1272,7 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
      return "0";
 
   std::string dimension = jalib::XToString(dim_int);
-  string last;
+  std::string last;
 
   switch(stencilType(matrix,dim_int)) {
   case 0: last = "-1"; break;

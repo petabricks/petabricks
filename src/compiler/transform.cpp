@@ -1033,9 +1033,11 @@ void petabricks::Transform::generateMainInterface(CodeGenerator& o, const std::s
   o.call(name()+"_"+rf.str(), argNames);
   argNames.erase(argNames.begin());
   o.write("petabricks::enqueue_and_wait(p);");
+#ifdef HAVE_OPENCL
   for(MatrixDefList::const_iterator i=_to.begin(); i!=_to.end(); ++i){
     o.write((*i)->name()+".useOnCpu();");
   }
+#endif
   o.endFunc();
 
   o.beginFunc("const char*", "name");

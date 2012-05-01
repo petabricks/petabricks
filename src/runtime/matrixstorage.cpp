@@ -286,7 +286,7 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
       _firstRowOnCpu = upperbound;
       setClMemWrapper(clCreateBuffer(context, CL_MEM_USE_HOST_PTR, bytesOnGpu(), storage()->data(), &err));
       JASSERT(_dimensions == 0 || _lastRowOnGpu <= _sizes[_dimensions - 1])(_lastRowOnGpu)( _sizes[_dimensions - 1])(_dimensions);
-      JASSERT(CL_SUCCESS == err)(_dimensions)(_sizes[dimensions - 1])(_lastRowOnGpu).Text("Failed to create input memory object.");
+      JASSERT(CL_SUCCESS == err)(_dimensions)(_sizes[_dimensions - 1])(_lastRowOnGpu).Text("Failed to create input memory object.");
       _hasGpuMem = true;
 
       return false;

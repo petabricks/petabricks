@@ -29,6 +29,7 @@
 
 #include <set>
 #include <map>
+#include <cmath>
 #include <math.h>
 
 #include "common/hash.h"
@@ -126,8 +127,10 @@ public:
     float *temp = new float[_count];
     for (unsigned int i = 0; i < _count; ++i) {
         temp[i] = _data[i];
-        if (fpclassify(temp[i]) == FP_ZERO) temp[i] = 0;
-        if (fpclassify(temp[i]) == FP_NAN) temp[i] = fabs(temp[i]);
+        //if (fpclassify(temp[i]) == FP_ZERO) temp[i] = 0;
+        //if (fpclassify(temp[i]) == FP_NAN) temp[i] = fabs(temp[i]);
+	if (temp[i] == -0) temp[i] = 0;
+	if (isnan(temp[i])) temp[i] = fabs(temp[i]);
     }
     g.update(temp, _count*sizeof(float));
     delete [] temp;
