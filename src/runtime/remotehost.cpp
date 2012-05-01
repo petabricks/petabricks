@@ -122,6 +122,7 @@ namespace _RemoteHostMsgTypes {
     ChanNumber  chan;
     int         port;
     int         roll;
+    char        host[1024];
 
     friend std::ostream& operator<<(std::ostream& o, const HelloMessage& m) {
       return o << "HelloMessage("
@@ -253,12 +254,14 @@ void petabricks::RemoteHost::handshake(int port, bool isConnect) {
                          self,
                          REMOTEHOST_DATACHANS,
                          port,
-                         myRoll };
+                         myRoll,
+                         ""};
+    strncpy(msg.host, RemoteHostDB::instance().host(), sizeof msg.host);
     _control.disableNagle();
     JASSERT(_control.writeAll((char*)&msg, sizeof msg) == sizeof msg);
 
     for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
-      HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i, port, myRoll};
+      HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i, port, myRoll, ""};
       _data[i].disableNagle();
       JASSERT(_data[i].writeAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
     }
@@ -271,6 +274,8 @@ void petabricks::RemoteHost::handshake(int port, bool isConnect) {
 
     _id = msg.id;
     _remotePort = msg.port;
+    std::string hostname(msg.host);
+    _connectName = hostname;
 
     if(myRoll!=msg.roll)
       _shouldGc = myRoll < msg.roll;
@@ -278,7 +283,7 @@ void petabricks::RemoteHost::handshake(int port, bool isConnect) {
       _shouldGc = self < _id;
 
     for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
-      HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i, port, myRoll};
+      HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i, port, myRoll, ""};
       JASSERT(_data[i].readAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg)(i);
       JASSERT(dmsg.type == MessageTypes::HELLO_DATA
               && dmsg.id == _id
@@ -301,6 +306,8 @@ void petabricks::RemoteHost::handshake(int port, bool isConnect) {
 
       if (msg.type == MessageTypes::HELLO_CONTROL) {
         _control = _scratchSockets[i];
+        std::string hostname(msg.host);
+        _connectName = hostname;
 
         JASSERT(msg.chan == REMOTEHOST_DATACHANS);
         _remotePort = msg.port;
@@ -324,12 +331,14 @@ void petabricks::RemoteHost::handshake(int port, bool isConnect) {
                          self,
                          REMOTEHOST_DATACHANS,
                          port,
-                         myRoll };
+                         myRoll,
+                         "" };
+    strncpy(msg.host, RemoteHostDB::instance().host(), sizeof msg.host);
     _control.disableNagle();
     JASSERT(_control.writeAll((char*)&msg, sizeof msg) == sizeof msg);
 
     for(int i=0; i<REMOTEHOST_DATACHANS; ++i) {
-      HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i, port, myRoll};
+      HelloMessage dmsg = { MessageTypes::HELLO_DATA, self, i, port, myRoll, ""};
       _data[i].disableNagle();
       JASSERT(_data[i].writeAll((char*)&dmsg, sizeof dmsg) == sizeof dmsg);
     }
