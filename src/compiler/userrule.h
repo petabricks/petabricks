@@ -181,9 +181,12 @@ public:
   /// 1 - one to one
   /// 2 - multiple to one
   int stencilType(MatrixDefPtr matrix, size_t dim) {
-    if(matrix->numDimensions() != dim)
+    if(matrix->numDimensions() != dim) {
+      std::cout << "matirx_dim = " << matrix->numDimensions() << ", dim = " << dim << std::endl;
       return 0;
+    }
     if(_maxCoordOffsets.find(matrix->name()) != _maxCoordOffsets.end()) {
+      std::cout << "find" << std::endl;
       if(MAXIMA.comparePessimistically(_maxCoordOffsets[matrix->name()][dim - 1], ">", FormulaInteger::one())) {
 	return 2;
       }
@@ -191,14 +194,20 @@ public:
       	return 1;
       }
     }
+    std::cout << "default case" << std::endl;
     return 0;
   }
 
   bool isDivisible() {  
+    //std::cout << "isDivisible: start" << std::endl;
     IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
     for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
-      if(stencilType((*i)->matrix(),iterdef.dimensions()) == 0)
+      //if(stencilType((*i)->matrix(),iterdef.dimensions()) == 0) {
+      //if((*i)->matrix()->numDimensions() != iterdef.dimensions()) {
+      if((*i)->getRegionType() == Region::REGION_ALL) {
+	//std::cout << (*i)->matrix()->name() << " not divisible!" << std::endl;
 	return false;
+      }
     }
     return true;
   }

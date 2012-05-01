@@ -477,7 +477,7 @@ void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::stri
   std::string div = "div";
   RegionPtr proxy = to.front();
   helper.write("IndexT totalRow = "+proxy->matrix()->name()+".size("+jalib::XToString(dim_int - 1)+");");
-  helper.write("IndexT div = gpu_ratio * totalRow;");
+  helper.write("IndexT div = ceil(gpu_ratio * totalRow);");
   helper.beginIf("div > " + max);
   helper.write("div = "+max+";");
   helper.endIf();

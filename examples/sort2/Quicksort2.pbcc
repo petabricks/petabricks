@@ -1,3 +1,6 @@
+#ifndef SORT
+#define SORT Quicksort2
+#endif
 
 transform Quicksort2
 from IN[n]
@@ -36,8 +39,8 @@ to OUT[n]
     }
     //JASSERT(l==r+1)(l)(r);
     out.cell(l) = pivot;
-    spawn Sort(out.region(0, l), tmp.region(0, l));
-    spawn Sort(out.region(l+1, n), tmp.region(l, n-1));
+    spawn SORT(out.region(0, l), tmp.region(0, l));
+    spawn SORT(out.region(l+1, n), tmp.region(l, n-1));
   }
 }
 

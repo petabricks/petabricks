@@ -217,10 +217,8 @@ void petabricks::UserRule::collectGpuLocalMemoryData() {
 
   IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
   unsigned int dim = iterdef.dimensions();
-  RegionList::const_iterator it = _to.begin( );
 
-
-  for( RegionList::const_iterator it = _from.begin( ); it != _from.end( ); ++it )
+  for( RegionList::const_iterator it =_from.begin( ); it != _from.end( ); ++it )
   {
     if((*it)->isBuffer() && (*it)->dimensions() == dim) {
       std::cout << (*it)->matrix()->name() << std::endl;
@@ -1089,16 +1087,25 @@ void petabricks::UserRule::generateTrampCode(Transform& trans, CodeGenerator& o,
 
 #ifdef HAVE_OPENCL
   for(RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i) {
-    switch(stencilType((*i)->matrix(),dim_int)) {
-    case 0:
+    // switch(stencilType((*i)->matrix(),dim_int)) {
+    // case 0:
+    //   o.comment("case 0");
+    //   o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(0);");
+    //   break;
+    // case 1:
+    //   o.comment("case 1");
+    //   o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(_iter_begin["+dim_string+"-1]);");
+    //   break;
+    // case 2:
+    //   o.comment("case 2");
+    //   o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(_iter_begin["+dim_string+"-1] + "+jalib::XToString(_minCoordOffsets[(*i)->matrix()->name()][dim_int-1])+");");
+    //   break;
+    // }
+    if((*i)->getRegionType() == Region::REGION_ALL) {
       o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(0);");
-      break;
-    case 1:
+    }
+    else {
       o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(_iter_begin["+dim_string+"-1]);");
-      break;
-    case 2:
-      o.write((*i)->matrix()->name()+".storageInfo()->modifyOnCpu(_iter_begin["+dim_string+"-1] + "+jalib::XToString(_minCoordOffsets[(*i)->matrix()->name()][dim_int-1])+");");
-      break;
     }
   }
 #endif

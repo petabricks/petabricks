@@ -71,16 +71,16 @@ simple/copy                Rand2Da
 simple/matrixrotate        Rand2Da
 simple/rollingsum          Rand1D
 simple/transpose           Rand2Da
-sort/Insertionsort         Rand1Dodd
-sort/Mergesort             Rand1Dodd
-sort/Mergesort2            Rand1Dodd
-sort/Quicksort             Rand1Dodd
-sort/Radixsort             Rand1Dodd
-sort/Selectionsort         Rand1Dodd
-sort/Sort                  Rand1D
-sort/Sort                  Rand1Dodd
-sort2/Bitonicsort          Rand1D
-sort2/Bitonicsort          Rand1Dodd
+sort2/Insertionsort         Rand1Dodd
+sort2/Mergesort2            Rand1Dodd
+sort2/Quicksort2             Rand1Dodd
+sort2/Selectionsort         Rand1Dodd
+sort2/Sort2                  Rand1D
+sort2/Sort2                  Rand1Dodd
+#sort/Mergesort             Rand1Dodd
+#sort/Radixsort             Rand1Dodd
+#sort2/Bitonicsort          Rand1D
+#sort2/Bitonicsort          Rand1Dodd
 regression/accuracymetric  Rand1D
 regression/assign0d
 regression/backwards       Rand1D

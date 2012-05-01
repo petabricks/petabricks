@@ -36,7 +36,7 @@ petabricks::CopyPendingMap petabricks::CopyPendingMap::_pendingMap;
 void petabricks::MatrixStorageInfo::modifyOnCpu(IndexT firstRow){
   //std::cout << "modifyOnCpu: _storage = " << &(*storage()) << ", row = " << firstRow << std::endl;
   if(firstRow < _firstRowOnCpu)
-    _firstRowOnCpu = firstRow; 
+    _firstRowOnCpu = firstRow;
 }
 
 void petabricks::MatrixStorage::updateDataFromGpu(IndexT firstRow){
@@ -183,7 +183,7 @@ bool petabricks::MatrixStorageInfo::isDataMatch(const MatrixStorageInfo& that) c
 bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_context& context, double gpuRatio, bool input) {
 #ifdef GPU_TRACE
   if(storage())
-    std::cout << "initGpuMem " << &(*this) << " _storage = " << &(*storage()) << std::endl;
+    std::cout << "initGpuMem " << &(*this) << " _storage = " << &(*storage()) << ", _firstRowOnCpu = " << _firstRowOnCpu << ", _lastRowOnGpu = " << _lastRowOnGpu << ", _lastRowGuide = " << _lastRowOnGpuGuide << std::endl;
 #endif
 
   // Set upperound of the region to be copied into GPU
