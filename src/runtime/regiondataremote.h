@@ -43,7 +43,9 @@ namespace petabricks {
     void init(const int dimensions, const IndexT* size);
 
     int allocData();
+    void allocDataNonBlock(jalib::AtomicT* responseCounter);
     void randomize();
+    void randomizeNonBlock(jalib::AtomicT* responseCounter);
 
     const RemoteRegionHandler* remoteRegionHandler() const;
 
@@ -76,6 +78,7 @@ namespace petabricks {
     void* allocRecv(size_t len, int);
     void freeRecv(void* buf, size_t , int arg);
     void fetchData(const void* msg, MessageType type, size_t len, void** responseData, size_t* responseLen, int* responseType) const;
+    void fetchDataNonBlock(const void* msg, MessageType type, size_t len, jalib::AtomicT* responseCounter) const;
 
     // Process remote messages
     void forwardMessage(const BaseMessageHeader* base, size_t baseLen, IRegionReplyProxy* caller);

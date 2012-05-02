@@ -80,9 +80,11 @@ namespace petabricks {
     void writeCell(const IndexT* coord, ElementT value);
     void invalidateCache();
     void randomize();
+    void randomizeNonBlock(jalib::AtomicT* responseCounter);
 
     int allocData();
     int allocData(const IndexT* size, int distributedCutoff, int distributionType, int distributionSize, int migrationType);
+    void allocDataNonBlock(jalib::AtomicT* responseCounter);
 
     bool isSizeLargerThanDistributedCutoff(const IndexT* size, int distributedCutoff) const;
     int allocDataLocal(const IndexT* size);

@@ -72,12 +72,20 @@ int RegionDataRemote::allocData() {
   return result;
 }
 
+void RegionDataRemote::allocDataNonBlock(jalib::AtomicT* responseCounter) {
+  this->fetchDataNonBlock(0, MessageTypes::ALLOCDATA, 0, responseCounter);
+}
+
 void RegionDataRemote::randomize() {
   void* data;
   size_t len;
   int type;
   this->fetchData(0, MessageTypes::RANDOMIZEDATA, 0, &data, &len, &type);
   free(data);
+}
+
+void RegionDataRemote::randomizeNonBlock(jalib::AtomicT* responseCounter) {
+  this->fetchDataNonBlock(0, MessageTypes::RANDOMIZEDATA, 0, responseCounter);
 }
 
 const RemoteRegionHandler* RegionDataRemote::remoteRegionHandler() const {
@@ -370,6 +378,7 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
   header.responseData = reinterpret_cast<EncodedPtr>(responseData);
   header.responseLen = reinterpret_cast<EncodedPtr>(responseLen);
   header.responseType = reinterpret_cast<EncodedPtr>(responseType);
+  header.responseCounter = 0;
 
   remoteObject()->send(&header, sizeof(GeneralMessageHeader), msg, len, type);
 
@@ -378,6 +387,22 @@ void RegionDataRemote::fetchData(const void* msg, MessageType type, size_t len, 
   while (*responseData == 0 || *responseLen == 0) {
     this->waitMsgMu();
   }
+}
+
+void RegionDataRemote::fetchDataNonBlock(const void* msg, MessageType type, size_t len, jalib::AtomicT* responseCounter) const {
+  jalib::atomicIncrement(responseCounter);
+
+  GeneralMessageHeader header;
+  header.isForwardMessage = false;
+  header.type = type;
+  header.contentOffset = sizeof(GeneralMessageHeader);
+  header.responseData = 0;
+  header.responseLen = 0;
+  header.responseType = 0;
+  header.responseCounter = reinterpret_cast<EncodedPtr>(responseCounter);
+
+  remoteObject()->send(&header, sizeof(GeneralMessageHeader), msg, len, type);
+
 }
 
 void* RegionDataRemote::allocRecv(size_t len, int) {
@@ -418,10 +443,16 @@ void RegionDataRemote::onRecv(const void* data, size_t len, int type) {
     const void** responseData = reinterpret_cast<const void**>(header->responseData);
     size_t* responseLen = reinterpret_cast<size_t*>(header->responseLen);
     int* responseType = reinterpret_cast<int*>(header->responseType);
+    jalib::AtomicT* responseCounter = reinterpret_cast<jalib::AtomicT*>(header->responseCounter);
 
-    *responseData = data;
-    *responseLen = len;
-    *responseType = type;
+    if (responseCounter) {
+      jalib::atomicDecrement(responseCounter);
+
+    } else {
+      *responseData = data;
+      *responseLen = len;
+      *responseType = type;
+    }
   }
 }
 

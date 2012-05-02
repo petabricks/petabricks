@@ -31,6 +31,7 @@ namespace petabricks {
     virtual void decRefCount() const = 0;
 
     virtual int allocData() = 0;
+    virtual void allocDataNonBlock(jalib::AtomicT* /*responseCounter*/) { allocData(); }
 
     virtual ElementT readCell(const IndexT* coord) const = 0;
     virtual void writeCell(const IndexT* coord, ElementT value) = 0;
@@ -51,6 +52,8 @@ namespace petabricks {
     virtual void randomize() {
       this->storage()->randomize();
     }
+
+    virtual void randomizeNonBlock(jalib::AtomicT* /*responseCounter*/) { randomize(); }
 
     // for toLocalRegion
     virtual ElementT& value0D(const IndexT* /*coord*/) const {

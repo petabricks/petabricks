@@ -102,6 +102,7 @@ namespace petabricks {
       EncodedPtr responseData;
       EncodedPtr responseLen;
       EncodedPtr responseType;
+      EncodedPtr responseCounter;
 
       char* content() const { return (char*)this + contentOffset; }
     } PACKED;

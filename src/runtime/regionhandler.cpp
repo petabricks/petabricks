@@ -51,8 +51,16 @@ void RegionHandler::randomize() {
   regionData()->randomize();
 }
 
+void RegionHandler::randomizeNonBlock(jalib::AtomicT* responseCounter) {
+  regionData()->randomizeNonBlock(responseCounter);
+}
+
 int RegionHandler::allocData() {
   return _regionData->allocData();
+}
+
+void RegionHandler::allocDataNonBlock(jalib::AtomicT* responseCounter) {
+  return _regionData->allocDataNonBlock(responseCounter);
 }
 
 bool RegionHandler::isSizeLargerThanDistributedCutoff(const IndexT* size, int distributedCutoff) const {

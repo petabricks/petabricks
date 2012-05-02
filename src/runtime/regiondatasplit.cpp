@@ -94,19 +94,28 @@ void RegionDataSplit::setPart(int partIndex, const RemoteRegionHandler& remoteRe
 }
 
 int RegionDataSplit::allocData() {
-  for (int i = 0; i < _numParts; i++) {
+  jalib::AtomicT responseCounter = 0;
+  for (int i = 0; i < _numParts-1; i++) {
     if (!_parts[i]) {
       this->createPart(i, NULL);
     }
-
-    _parts[i]->allocData();
+    _parts[i]->allocDataNonBlock(&responseCounter);
+  }
+  _parts[_numParts-1]->allocData();
+  while (responseCounter != 0) {
+    jalib::memFence();
   }
   return 0;
 }
 
 void RegionDataSplit::randomize() {
-  for (int i = 0; i < _numParts; i++) {
-    _parts[i]->randomize();
+  jalib::AtomicT responseCounter = 0;
+  for (int i = 0; i < _numParts-1; i++) {
+    _parts[i]->randomizeNonBlock(&responseCounter);
+  }
+  _parts[_numParts-1]->randomize();
+  while (responseCounter != 0) {
+    jalib::memFence();
   }
 }
 
