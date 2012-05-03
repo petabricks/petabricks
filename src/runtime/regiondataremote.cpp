@@ -229,7 +229,10 @@ void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
 
 RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize, RegionDataI** newScratchRegionData) {
   if (isDataSplit()) {
-    RegionDataI* rv = this->copyRegionDataSplit().asPtr();
+    RegionDataI* rv = NULL;
+    if (this->copyRegionDataSplit()) {
+      rv = _localRegionDataSplit.asPtr();
+    }
     _localRegionDataSplit->copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize, newScratchRegionData);
     return rv;
   }
@@ -325,7 +328,10 @@ RegionDataIPtr RegionDataRemote::hosts(const IndexT* begin, const IndexT* end, D
     return NULL;
   }
 
-  RegionDataI* rv = this->copyRegionDataSplit().asPtr();
+  RegionDataI* rv = NULL;
+  if (this->copyRegionDataSplit()) {
+    rv = _localRegionDataSplit.asPtr();
+  }
   _localRegionDataSplit->hosts(begin, end, list);
   return rv;
 }
