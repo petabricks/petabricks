@@ -28,6 +28,7 @@ namespace petabricks {
 
     jalib::JMutex _localRegionDataSplitMux;
     RegionDataSplitPtr _localRegionDataSplit;
+    bool _isLocalRegionDataSplitReady;
 
   public:
     RegionDataRemote(const int dimensions, const IndexT* size, RemoteHostPtr host);

@@ -35,7 +35,8 @@ namespace petabricks {
     int allocData();
     void createPart(int partIndex, RemoteHostPtr host);
     void setPart(int partIndex, const RemoteRegionHandler& remoteRegionHandler);
-    IndexT numParts() const { return _numParts; };
+    IndexT numParts() const { return _numParts; }
+    // RegionHandlerPtr part(IndexT i) const { return _parts[i]; }
 
     void randomize();
 

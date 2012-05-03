@@ -43,6 +43,8 @@ void RegionDataRemote::init(const int dimensions, const IndexT* size) {
   memcpy(_size, size, sizeof(IndexT) * _D);
 
   _isDataSplit = false;
+  _localRegionDataSplit = 0;
+  _isLocalRegionDataSplitReady = false;
 }
 
 void RegionDataRemote::createRemoteObject() const {
@@ -227,10 +229,7 @@ void RegionDataRemote::writeByCache(const IndexT* coord, ElementT value) const {
 
 RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize, RegionDataI** newScratchRegionData) {
   if (isDataSplit()) {
-    RegionDataI* rv = NULL;
-    if (this->copyRegionDataSplit()) {
-      rv = _localRegionDataSplit.asPtr();
-    }
+    RegionDataI* rv = this->copyRegionDataSplit().asPtr();
     _localRegionDataSplit->copyToScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize, newScratchRegionData);
     return rv;
   }
@@ -271,7 +270,8 @@ RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageM
 
 void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
   if (isDataSplit()) {
-    _localRegionDataSplit->copyFromScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
+    JASSERT(false).Text("This regiondata should be replaced with regiondatasplit during copyTo");
+    // _localRegionDataSplit->copyFromScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
     return;
   }
 
@@ -325,11 +325,7 @@ RegionDataIPtr RegionDataRemote::hosts(const IndexT* begin, const IndexT* end, D
     return NULL;
   }
 
-  RegionDataI* rv = NULL;
-  if (this->copyRegionDataSplit()) {
-    rv = _localRegionDataSplit.asPtr();
-  }
-
+  RegionDataI* rv = this->copyRegionDataSplit().asPtr();
   _localRegionDataSplit->hosts(begin, end, list);
   return rv;
 }
@@ -427,6 +423,7 @@ void RegionDataRemote::onRecv(const void* data, size_t len, int type) {
   if (type == MessageTypes::CREATEREMOTEREGIONDATAREPLY) {
     JASSERT(len == sizeof(RemoteRegionHandler));
     memcpy(&_remoteRegionHandler, data, len);
+    jalib::memFence();
     _isRemoteRegionHandlerReady = true;
     return;
   }
@@ -517,9 +514,9 @@ void RegionDataRemote::processCopyRegionDataSplitMsg(const BaseMessageHeader* ba
 RegionDataSplitPtr RegionDataRemote::copyRegionDataSplit() {
   JDEBUGASSERT(isDataSplit());
 
-  if (!_localRegionDataSplit) {
+  if (!_isLocalRegionDataSplitReady) {
     JLOCKSCOPE(_localRegionDataSplitMux);
-    if (!_localRegionDataSplit) {
+    if (!_isLocalRegionDataSplitReady) {
       CopyRegionDataSplitMessage msg;
       void* data;
       size_t len;
@@ -533,7 +530,12 @@ RegionDataSplitPtr RegionDataRemote::copyRegionDataSplit() {
       for (int i = 0; i < reply->numParts; ++i) {
         _localRegionDataSplit->setPart(i, reply->handlers()[i]);
       }
+      // for (int i = 0; i < _localRegionDataSplit->numParts(); ++i) {
+      //   JASSERT(_localRegionDataSplit->part(i).asPtr() != 0);
+      // }
       free(data);
+      jalib::memFence();
+      _isLocalRegionDataSplitReady = true;
       return _localRegionDataSplit;
     }
   }
