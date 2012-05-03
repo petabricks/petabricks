@@ -163,7 +163,7 @@ void petabricks::MatrixDef::allocateTemporary(CodeGenerator& o, RuleFlavor rf, b
 
     o.createTunable(true, "system.data.distribution.type", distributionType, 0, 0, 4);
     o.createTunable(true, "system.data.distribution.size", distributionSize, jalib::maxval<int>(), 2, jalib::maxval<int>());
-    o.createTunable(true, "system.data.migration.type", migrationType, 0, 0, 2);
+    o.createTunable(true, "system.data.migration.type", migrationType, 0, 0, 1);
 
     o.write("{");
     o.incIndent();
@@ -198,7 +198,7 @@ void petabricks::MatrixDef::readFromFileCode(CodeGenerator& o, const std::string
     std::string migrationType = o.className() + "_" + name() + "_migration_type";
     o.createTunable(true, "system.data.distribution.type", distributionType, 0, 0, 5);
     o.createTunable(true, "system.data.distribution.size", distributionSize, jalib::maxval<int>(), 2, jalib::maxval<int>());
-    o.createTunable(true, "system.data.migration.type", migrationType, 0, 0, 2);
+    o.createTunable(true, "system.data.migration.type", migrationType, 0, 0, 1);
 
     o.write(name()+" = "+typeName(rf)+"::allocate(tmp_"+name()+".size(), distributedcutoff, "+distributionType+", "+distributionSize+", "+migrationType+");");
 
