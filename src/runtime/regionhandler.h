@@ -91,7 +91,7 @@ namespace petabricks {
     int allocDataOneRemoteNode(const IndexT* size);
     int allocDataRoundRobin(const IndexT* size);
     int allocDataNBySlice(const IndexT* size, int distributionSize, int sliceDimension);
-    int allocDataNByBlock(const IndexT* size, int distributionSize);
+    int allocDataNByBlock(const IndexT* size, int distributionSize, bool transposed);
 
     RegionDataIPtr regionData() const;
     void updateRegionData(RegionDataIPtr regionData);

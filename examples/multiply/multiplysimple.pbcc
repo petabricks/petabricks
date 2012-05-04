@@ -108,6 +108,7 @@ to C[n,m]
   using (t[k,n])
   {
     Transpose(t, b);
+    JTRACE("transposed");
     MatrixMultiplyBase(c, a, t.transposed());
   }
 }

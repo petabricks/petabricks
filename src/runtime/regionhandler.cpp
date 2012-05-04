@@ -109,7 +109,14 @@ int RegionHandler::allocData(const IndexT* size, int distributedCutoff, int dist
 
   } else if (distributionType == RegionDataDistributions::N_BY_BLOCK) {
     if (isSizeLargerThanDistributedCutoff(size, distributedCutoff)) {
-      allocDataNByBlock(size, distributionSize);
+      allocDataNByBlock(size, distributionSize, false);
+    } else {
+      allocDataLocal(size);
+    }
+
+  } else if (distributionType == RegionDataDistributions::N_BY_BLOCK_TRANSPOSED) {
+    if (isSizeLargerThanDistributedCutoff(size, distributedCutoff)) {
+      allocDataNByBlock(size, distributionSize, true);
     } else {
       allocDataLocal(size);
     }
@@ -204,7 +211,7 @@ int RegionHandler::allocDataNBySlice(const IndexT* size, int distributionSize, i
 //
 // split data to N^D pieces
 //
-int RegionHandler::allocDataNByBlock(const IndexT* size, int distributionSize) {
+int RegionHandler::allocDataNByBlock(const IndexT* size, int distributionSize, bool transposed) {
   // same as allocDataNBySlice, except splitSize
   JTRACE("block");
 
@@ -229,14 +236,43 @@ int RegionHandler::allocDataNByBlock(const IndexT* size, int distributionSize) {
   RegionDataSplit* regionDataSplit = (RegionDataSplit*)_regionData.asPtr();
   int numParts = regionDataSplit->numParts();
   int r = numRemoteHosts;
-  for (int i = 0; i < numParts; ++i) {
-    if (r == numRemoteHosts) {
-      // local
-      regionDataSplit->createPart(i, NULL);
-      r = 0;
-    } else {
-      regionDataSplit->createPart(i, RemoteHostDB::instance().host(r));
-      ++r;
+
+
+  if ((_D == 2) && transposed) {
+    int numCols = size[0] / splitSize[0];
+    if ((size[0] % splitSize[0]) != 0) {
+      ++numCols;
+    }
+
+    int numRows = size[1] / splitSize[1];
+    if ((size[1] % splitSize[1]) != 0) {
+      ++numRows;
+    }
+
+    for (int i = 0; i < numCols; ++i) {
+      for (int j = 0; j < numRows; ++j) {
+        int index = j*numCols + i;
+        if (r == numRemoteHosts) {
+          // local
+          regionDataSplit->createPart(index, NULL);
+          r = 0;
+        } else {
+          regionDataSplit->createPart(index, RemoteHostDB::instance().host(r));
+          ++r;
+        }
+      }
+    }
+
+  } else {
+    for (int i = 0; i < numParts; ++i) {
+      if (r == numRemoteHosts) {
+        // local
+        regionDataSplit->createPart(i, NULL);
+        r = 0;
+      } else {
+        regionDataSplit->createPart(i, RemoteHostDB::instance().host(r));
+        ++r;
+      }
     }
   }
 

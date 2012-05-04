@@ -28,7 +28,8 @@ namespace petabricks {
       ONE_REMOTE,
       N_BY_ROW,
       N_BY_COL,
-      N_BY_BLOCK
+      N_BY_BLOCK,
+      N_BY_BLOCK_TRANSPOSED
     };
   } PACKED;
 
