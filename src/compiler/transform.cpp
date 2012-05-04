@@ -743,6 +743,7 @@ void petabricks::Transform::markSplitSizeUse(CodeGenerator& o){
   if(!_usesSplitSize){
     _usesSplitSize=true;
     o.createTunable(true, "system.cutoff.splitsize", _name + "_splitsize", 64, 1);
+    o.createTunable(true, "system.gpuratio", _name + "_gpuratio", 8, 1, 9);
   }
 }
 

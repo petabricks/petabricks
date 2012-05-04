@@ -1195,7 +1195,7 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   o.write("return end;");
   o.endIf();
   
-  o.write("ElementT gpu_ratio = "+jalib::XToString(GPU_RATIO)+";");
+  o.write("ElementT gpu_ratio = "+trans.name()+"_gpuratio/8.0;");
   o.write("GpuTaskInfoPtr taskinfo = new GpuTaskInfo(nodeID, map, gpuCopyOut,"+dimension+", gpu_ratio);");
   
   o.write("DynamicTaskPtr prepare = new "+prepareclass+"(this,_iter_begin, _iter_end, taskinfo, GpuDynamicTask::PREPARE);");

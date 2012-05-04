@@ -186,7 +186,6 @@ public:
       return 0;
     }
     if(_maxCoordOffsets.find(matrix->name()) != _maxCoordOffsets.end()) {
-      std::cout << "find" << std::endl;
       if(MAXIMA.comparePessimistically(_maxCoordOffsets[matrix->name()][dim - 1], ">", FormulaInteger::one())) {
 	return 2;
       }
@@ -194,7 +193,6 @@ public:
       	return 1;
       }
     }
-    std::cout << "default case" << std::endl;
     return 0;
   }
 

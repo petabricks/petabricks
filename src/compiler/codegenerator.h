@@ -309,7 +309,17 @@ public:
 
   void callSpatial(const std::string& methodname, const SimpleRegion& region);
   void mkSpatialTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region);
-  void mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, int gpuCopyOut, RegionList to, bool divisible);
+  void mkCreateGpuSpatialMethodCallTask(
+    const std::string& transname,
+    const std::string& taskname, 
+    const std::string& objname, 
+    const std::string& methodname, 
+    const SimpleRegion& region, 
+    std::vector<RegionNodeGroup>& regionNodesGroups, 
+    int nodeID, 
+    int gpuCopyOut, 
+    RegionList to, 
+    bool divisible);
 
 
   StreamTreePtr startSubfile(const std::string& name) {

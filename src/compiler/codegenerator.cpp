@@ -427,7 +427,17 @@ void petabricks::CodeGenerator::mkSpatialTask(const std::string& taskname, const
 }
 
 #ifdef HAVE_OPENCL
-void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::string& taskname, const std::string& objname, const std::string& methodname, const SimpleRegion& region, std::vector<RegionNodeGroup>& regionNodesGroups, int nodeID, int gpuCopyOut, RegionList to, bool divisible) {
+void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(
+    const std::string& transname,
+    const std::string& taskname, 
+    const std::string& objname, 
+    const std::string& methodname, 
+    const SimpleRegion& region, 
+    std::vector<RegionNodeGroup>& regionNodesGroups, 
+    int nodeID, 
+    int gpuCopyOut, 
+    RegionList to, 
+    bool divisible) {
   std::string taskclass;
 
   if(!divisible) {
@@ -468,7 +478,7 @@ void petabricks::CodeGenerator::mkCreateGpuSpatialMethodCallTask(const std::stri
   helper.write("DynamicTaskPtr _fini = new NullDynamicTask();");
 
   // Assign the gpu-cpu division point.
-  helper.write("ElementT gpu_ratio = "+jalib::XToString(GPU_RATIO)+";");
+  helper.write("ElementT gpu_ratio = "+transname+"_gpuratio/8.0;");
 
   int dim_int = region.totalDimensions();
 
