@@ -78,7 +78,10 @@ to C[w,h]
     ElementT temp = 0;
     for(IndexT i=0; i<k; ++i)
       temp += a.cell(i)*b.cell(i);
-    c = alpha*temp + beta*c;
+    if(beta != 0)
+      c = alpha*temp + beta*c;
+    else
+      c = alpha*temp;
   }
 
 #if 0
