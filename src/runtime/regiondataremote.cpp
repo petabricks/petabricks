@@ -273,8 +273,8 @@ RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageM
 
 void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage* origMsg, size_t len, MatrixStoragePtr scratchStorage, RegionMatrixMetadata* scratchMetadata, const IndexT* scratchStorageSize) {
   if (isDataSplit()) {
-    JASSERT(false).Text("This regiondata should be replaced with regiondatasplit during copyTo");
-    // _localRegionDataSplit->copyFromScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
+    this->copyRegionDataSplit();
+    _localRegionDataSplit->copyFromScratchMatrixStorage(origMsg, len, scratchStorage, scratchMetadata, scratchStorageSize);
     return;
   }
 
