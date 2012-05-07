@@ -851,7 +851,8 @@ petabricks::RemoteHostDB::RemoteHostDB()
     _listener(jalib::JSockAddr::ANY, LISTEN_PORT_FIRST),
     _nfds(0),
     _ready(0),
-    _fds(NULL)
+    _fds(NULL),
+    _isMaster(false)
 {
   while(!_listener.isValid()) {
     //    JTRACE("trying next port")(_port);

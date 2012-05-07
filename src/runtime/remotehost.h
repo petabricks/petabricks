@@ -214,6 +214,9 @@ public:
 
   void setupConnectAllPairs();
 
+  bool isMaster() const { return _isMaster; }
+  void setMasterNode() { _isMaster = true; }
+
 protected:
 
   void regenPollFds();
@@ -226,6 +229,8 @@ private:
   nfds_t _nfds;
   int _ready;
   struct pollfd *_fds;
+
+  bool _isMaster;
 };
 
 
