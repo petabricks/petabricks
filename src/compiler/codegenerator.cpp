@@ -333,7 +333,7 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   invalidateCache.endFunc();
   getDataHosts.endFunc();
 
-  hos() << _curClass << "(const char*, RemoteHost&, bool=true);\n";
+  hos() << _curClass << "(const char*, RemoteHost&, bool=false);\n";
   os() << _curClass << "::" << _curClass << "(const char* _buf, RemoteHost& _host, bool shouldInit){\n";
   incIndent();
   write("unserialize(_buf, _host);");
