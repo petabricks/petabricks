@@ -447,7 +447,6 @@ void petabricks::PetabricksRuntime::startWorkerThreads(int worker_threads) {
 
 void petabricks::PetabricksRuntime::spawnDistributedNodes(int argc, const char** argv) {
   RemoteHostDB& db = RemoteHostDB::instance();
-  db.setMasterNode();
   std::ifstream fp(HOSTS_FILE.c_str());
   JASSERT(fp.is_open())(HOSTS_FILE).Text("failed to open file");
   std::string line;
