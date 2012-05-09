@@ -593,6 +593,10 @@ if __name__ == "__main__":
   parser.add_option("--debug",
                     action="store_true", dest="debug", default=False,
                     help="enable debugging options")
+  parser.add_option("--norecompile",
+                    action="store_true", dest="norecompile", default=False,
+                    help="don't recompile benchmark")
+
   parser.add_option("-n", type="int", help="input size to train for")
   parser.add_option("--max_time",              type="float",  action="callback", callback=option_callback)
   parser.add_option("--rounds_per_input_size", type="int",    action="callback", callback=option_callback)
@@ -617,6 +621,8 @@ if __name__ == "__main__":
     tunerconfig.applypatch(tunerconfig.patch_debug)
   if options.n:
     tunerconfig.applypatch(tunerconfig.patch_n(options.n))
+  if options.norecompile:
+    config.recompile=False;
   config.benchmark=args[0]
   recompile()
   autotune(config.benchmark)
