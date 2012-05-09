@@ -261,7 +261,7 @@ int RegionHandler::allocDataNByBlock(const IndexT* size, int distributionSize, b
     }
 
     if (transposed) {
-      int lastColBegin;
+      int lastColBegin = r;
 
       for (int i = 0; i < numCols; ++i) {
         if (hasExtra[0] && i == numCols-1) {
@@ -283,7 +283,7 @@ int RegionHandler::allocDataNByBlock(const IndexT* size, int distributionSize, b
 
     } else {
 
-      int lastRowBegin;
+      int lastRowBegin = r;
       for (int j = 0; j < numRows; ++j) {
         if (hasExtra[1] && j == numRows-1) {
           r = lastRowBegin;
