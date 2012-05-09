@@ -197,7 +197,7 @@ int RegionHandler::allocDataNBySlice(const IndexT* size, int distributionSize, i
   for (int i = 0; i < numParts; ++i) {
     //int r = PetabricksRuntime::randInt(0, numHosts);
     regionDataSplit->createPart(i, RemoteHostDB::instance().allocHost(r));
-    if (r > numHosts) {
+    if (r >= numHosts) {
       r = 0;
     }
   }
@@ -275,7 +275,7 @@ int RegionHandler::allocDataNByBlock(const IndexT* size, int distributionSize, b
           if (!hasExtra[1] || j != numRows-2) {
             ++r;
           }
-          if (r > numHosts) {
+          if (r >= numHosts) {
             r = 0;
           }
         }

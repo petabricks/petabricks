@@ -375,7 +375,7 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
     }
 #endif
   }
-  
+
 
   args.param("hosts",      HOSTS_FILE).help("list of hostnames in distributed computation");
   args.param("slave-host", SLAVE_HOST);
