@@ -136,12 +136,14 @@ namespace _RemoteHostMsgTypes {
     uint16_t type;
     char     host[1024];
     int      port;
+    int      allocHostNumber;
 
     friend std::ostream& operator<<(std::ostream& o, const SetupMessage& m) {
       return o << "SetupMessage("
                << MessageTypes::str(m.type) << ", "
                << m.host << ", "
-               << m.port << ")";
+               << m.port << ", "
+               << m.allocHostNumber << ")";
     }
   } PACKED;
 
@@ -153,7 +155,6 @@ namespace _RemoteHostMsgTypes {
                << MessageTypes::str(m.type) << ")";
     }
   } PACKED;
-
 
   struct GeneralMessage {
     uint16_t    type;
@@ -390,6 +391,7 @@ void petabricks::RemoteHost::setupLoop(RemoteHostDB& db) {
     switch(msg.type) {
       case MessageTypes::SETUP_MASTER:
         connectMasterData(msg.host, msg.port, RemoteHostDB::instance().port());
+        RemoteHostDB::instance().setAllocHostNumber(msg.allocHostNumber);
         break;
       case MessageTypes::SETUP_CONNECT:
         db.connect(msg.host, msg.port);
@@ -418,12 +420,14 @@ void petabricks::RemoteHost::setupRemoteConnection(RemoteHost& a, RemoteHost& b)
   strncpy(amsg.host, a._connectName.c_str(), sizeof amsg.host);
   JASSERT(amsg.host==a._connectName);
   amsg.port = a._remotePort;
+  amsg.allocHostNumber = -1;
 
   SetupMessage bmsg;
   bmsg.type = MessageTypes::SETUP_ACCEPT;
   strncpy(bmsg.host, b._connectName.c_str(), sizeof bmsg.host);
   JASSERT(bmsg.host==b._connectName);
   bmsg.port = b._remotePort;
+  bmsg.allocHostNumber = -1;
 
   //a goes to b, b goes to a
   a._control.writeAll((char*)&bmsg, sizeof bmsg);
@@ -438,7 +442,7 @@ void petabricks::RemoteHost::setupRemoteConnection(RemoteHost& a, RemoteHost& b)
   JASSERT(back.type == MessageTypes::SETUP_ACK);
 }
 
-void petabricks::RemoteHost::setupRemoteConnectionWithMaster() {
+void petabricks::RemoteHost::setupRemoteConnectionWithMaster(int allocHostNumber) {
   JLOCKSCOPE(_controlReadmu);
   JLOCKSCOPE(_controlWritemu);
 
@@ -446,6 +450,7 @@ void petabricks::RemoteHost::setupRemoteConnectionWithMaster() {
   msg.type = MessageTypes::SETUP_MASTER;
   strncpy(msg.host, RemoteHostDB::instance().host(), sizeof msg.host);
   msg.port = RemoteHostDB::instance().port();
+  msg.allocHostNumber = allocHostNumber;
 
   JASSERT(_scratchSockets[0].writeAll((char*)&msg, sizeof msg) == sizeof msg);
 
@@ -851,8 +856,7 @@ petabricks::RemoteHostDB::RemoteHostDB()
     _listener(jalib::JSockAddr::ANY, LISTEN_PORT_FIRST),
     _nfds(0),
     _ready(0),
-    _fds(NULL),
-    _isMaster(false)
+    _fds(NULL)
 {
   while(!_listener.isValid()) {
     //    JTRACE("trying next port")(_port);
@@ -977,8 +981,9 @@ void petabricks::RemoteHostDB::listenLoop() {
 }
 
 void petabricks::RemoteHostDB::setupConnectAllPairs() {
+  RemoteHostDB::instance().setAllocHostNumber(0);
   for (unsigned int a = 0; a < _hosts.size(); a++) {
-    host(a)->setupRemoteConnectionWithMaster();
+    host(a)->setupRemoteConnectionWithMaster(a+1);
   }
   for (unsigned int a = 0; a < _hosts.size(); a++) {
     for (unsigned int b = a+1; b < _hosts.size(); b++) {

@@ -115,7 +115,7 @@ public:
 
   void setupLoop(RemoteHostDB& db);
   static void setupRemoteConnection(RemoteHost& a, RemoteHost& b);
-  void setupRemoteConnectionWithMaster();
+  void setupRemoteConnectionWithMaster(int allocHostNumber);
   void setupEnd();
 
   bool recv(const RemoteObject* caller = 0);
@@ -214,8 +214,19 @@ public:
 
   void setupConnectAllPairs();
 
-  bool isMaster() const { return _isMaster; }
-  void setMasterNode() { _isMaster = true; }
+  void setAllocHostNumber(int allocHostNumber) {
+    _allocHostNumber = allocHostNumber;
+  }
+  RemoteHostPtr allocHost(int i) const {
+    if (i < _allocHostNumber) {
+      return _hosts[i];
+    } else if (i == _allocHostNumber) {
+      return NULL;
+    } else {
+      return _hosts[i-1];
+    }
+  }
+  bool isMaster() const { return _allocHostNumber == 0; }
 
 protected:
 
@@ -230,7 +241,7 @@ private:
   int _ready;
   struct pollfd *_fds;
 
-  bool _isMaster;
+  int _allocHostNumber;
 };
 
 

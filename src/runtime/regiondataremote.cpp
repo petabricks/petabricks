@@ -4,6 +4,8 @@
 #include "regionmatrixproxy.h"
 #include "workerthread.h"
 
+//#define PRINT_COPY_COUNT 1
+
 using namespace petabricks;
 using namespace petabricks::RegionDataRemoteMessage;
 
@@ -246,7 +248,11 @@ RegionDataIPtr RegionDataRemote::copyToScratchMatrixStorage(CopyToMatrixStorageM
 
   JASSERT(type == MessageTypes::TOSCRATCHSTORAGE);
   CopyToMatrixStorageReplyMessage* reply = (CopyToMatrixStorageReplyMessage*) base->content();
+
+#ifdef PRINT_COPY_COUNT
   JTRACE("copy to scratch")(reply->count);
+#endif
+
   if (reply->count == scratchStorage->count()) {
     memcpy(scratchStorage->data(), reply->storage, sizeof(ElementT) * reply->count);
 
@@ -305,7 +311,9 @@ void RegionDataRemote::copyFromScratchMatrixStorage(CopyFromMatrixStorageMessage
     } while(incCoord(d, size, coord) >= 0);
   }
 
+#ifdef PRINT_COPY_COUNT
   JTRACE("copy from scratch")(storageCount);
+#endif
 
   size_t msgLen =  RegionMatrixMetadata::len(origMetadata->dimensions, origMetadata->numSliceDimensions) + (sizeof(ElementT) * storageCount);
   JASSERT(msgLen <= len);
