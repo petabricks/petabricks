@@ -137,7 +137,7 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([
                 ]])],
               [
                 AC_MSG_RESULT([yes]);
-                AC_DEFINE([HAVE_SETRLIMIT],[],[define if setrlimit works with this system])
+                AC_DEFINE([HAVE_SETRLIMIT],1,[define if setrlimit works with this system])
               ],
               [
                 AC_MSG_RESULT([no]);
