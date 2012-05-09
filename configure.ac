@@ -93,7 +93,7 @@ AC_MSG_RESULT([$rev_long])
 
 
 AC_FUNC_MMAP
-AC_CHECK_FUNCS([backtrace_symbols])
+AC_CHECK_FUNCS([backtrace_symbols setrlimit])
 
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
@@ -116,6 +116,8 @@ AC_CHECK_LIB([rt],         [clock_gettime],  [],
                         [AC_DEFINE([USE_GETTIMEOFDAY],[],[define if clock_gettime() doesnt work])])
 AC_CHECK_LIB([dl],	   [dlopen],   [], [])
 AC_CHECK_LIB([sqlite3],	   [sqlite3_open],   [], [AC_MSG_ERROR([failed to find -lsqlite3, unable to compile the long term learning for heuristics])])
+AC_CHECK_LIB([rt],         [c],  [],
+                        [AC_DEFINE([USE_GETTIMEOFDAY],[],[define if clock_gettime() doesnt work])])
 
 
 AC_SEARCH_LIBS([MD5_Init], [crypto ssl], [], [AC_MSG_ERROR([missing package libssl-dev])])
