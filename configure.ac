@@ -122,6 +122,27 @@ AC_SEARCH_LIBS([MD5_Init], [crypto ssl], [], [AC_MSG_ERROR([missing package libs
 AC_SEARCH_LIBS([cblas_dgemm], [blas])
 AC_SEARCH_LIBS([dposv_], [lapack])
 
+AC_MSG_CHECKING([if system supports setrlimit])
+AC_RUN_IFELSE([AC_LANG_PROGRAM([
+                #include <sys/time.h>
+                #include <sys/resource.h>
+                ], [[
+                struct rlimit tmp;
+                tmp.rlim_cur = 108318507008;
+                tmp.rlim_max = 108318507008;
+                if (setrlimit(RLIMIT_AS, &tmp) != 0) {
+                  return 1;
+                }
+                return 0;
+                ]])],
+              [
+                AC_MSG_RESULT([yes]);
+                AC_DEFINE([HAVE_SETRLIMIT],[],[define if setrlimit works with this system])
+              ],
+              [
+                AC_MSG_RESULT([no]);
+              ])
+
 ################################################################################
 # COMPILER PROPERTIES ##########################################################
 ################################################################################

@@ -366,14 +366,16 @@ petabricks::PetabricksRuntime::PetabricksRuntime(int argc, const char** argv, Ma
 
   size_t max_memory=0;
   if(args.param("max-memory", max_memory).help("kill the process when it tries to use this much memory")) {
+#ifdef HAVE_SETRLIMIT
     if(max_memory>0) {
       struct rlimit tmp;
       tmp.rlim_cur = max_memory;
       tmp.rlim_max = max_memory;
       JASSERT(setrlimit(RLIMIT_AS, &tmp)==0);
     }
+#endif
   }
-
+  
 
   args.param("hosts",      HOSTS_FILE).help("list of hostnames in distributed computation");
   args.param("slave-host", SLAVE_HOST);
