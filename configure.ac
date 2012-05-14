@@ -119,7 +119,7 @@ AC_CHECK_LIB([dl],	   [dlopen],   [], [])
 AC_CHECK_LIB([sqlite3],	   [sqlite3_open],   [], [AC_MSG_ERROR([failed to find -lsqlite3, unable to compile the long term learning for heuristics])])
 
 AC_SEARCH_LIBS([MD5_Init], [crypto ssl], [], [AC_MSG_ERROR([missing package libssl-dev])])
-AC_SEARCH_LIBS([cblas_dgemm], [mkl_intel_lp64], [LIBS="$LIBS -lmkl_sequential -lmkl_core -liomp5 -lpthread"], [], [-lmkl_sequential -lmkl_core -liomp5 -lpthread])
+AC_CHECK_LIB([mkl_intel_lp64], [cblas_dgemm], [LIBS="$LIBS -lmkl_sequential -lmkl_core -liomp5 -lpthread"], [], [-lmkl_sequential -lmkl_core -liomp5 -lpthread])
 AC_SEARCH_LIBS([cblas_dgemm], [blas])
 AC_SEARCH_LIBS([dposv_], [lapack])
 
