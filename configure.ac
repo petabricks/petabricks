@@ -104,6 +104,7 @@ AC_CHECK_HEADERS([openssl/sha.h],  [], [])
 AC_CHECK_HEADERS([cxxabi.h execinfo.h poll.h signal.h sys/prctl.h sys/select.h sys/socket.h sys/time.h sys/types.h sys/wait.h sys/mman.h])
 AC_CHECK_HEADERS([boost/random.hpp], [], [AC_MSG_WARN([missing boost/random, falling back to slower random number generation])])
 AC_CHECK_HEADERS([cblas.h],  [], [])
+AC_CHECK_HEADERS([mkl.h],  [], [])
 AC_CHECK_HEADERS([Accelerate/Accelerate.h], [], [])
 AC_CHECK_HEADERS([sqlite3.h],      [], [AC_MSG_ERROR([failed to find sqlite3.h header file])])
 
@@ -117,8 +118,8 @@ AC_CHECK_LIB([rt],         [clock_gettime],  [],
 AC_CHECK_LIB([dl],	   [dlopen],   [], [])
 AC_CHECK_LIB([sqlite3],	   [sqlite3_open],   [], [AC_MSG_ERROR([failed to find -lsqlite3, unable to compile the long term learning for heuristics])])
 
-
 AC_SEARCH_LIBS([MD5_Init], [crypto ssl], [], [AC_MSG_ERROR([missing package libssl-dev])])
+AC_SEARCH_LIBS([cblas_dgemm], [mkl_intel_lp64], [LIBS="$LIBS -lmkl_sequential -lmkl_core -liomp5 -lpthread"], [], [-lmkl_sequential -lmkl_core -liomp5 -lpthread])
 AC_SEARCH_LIBS([cblas_dgemm], [blas])
 AC_SEARCH_LIBS([dposv_], [lapack])
 

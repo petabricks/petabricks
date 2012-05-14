@@ -57,7 +57,11 @@
 #endif
 
 #ifdef HAVE_CBLAS_H
-# include <cblas.h>
+#  include <cblas.h>
+#endif
+
+#ifdef HAVE_MKL_H
+#  include <mkl.h>
 #endif
 
 //these must be declared in the user code
