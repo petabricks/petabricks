@@ -69,6 +69,12 @@ template<long v> long atomicAdd(AtomicT *p){
   return r+v;
 }
 
+inline long atomicAdd(AtomicT *p, long v){
+  long r;
+  asm volatile ("lock; xadd %0, %1" : "=r"(r), "=m"(*p) : "0"(v), "m"(*p) : "memory");
+  return r+v;
+}
+
 inline void atomicIncrement(AtomicT *p){
   asm volatile ("lock; incl %0" : "=m"(*p) : : "memory");
 }

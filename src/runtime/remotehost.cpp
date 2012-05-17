@@ -622,6 +622,10 @@ bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
       { GeneralMessage ackmsg = { MessageTypes::SHUTDOWN_ACK, 0, 0, 0, 0, 0};
         _control.writeAll((const char*)&ackmsg, sizeof(GeneralMessage));
       }
+#ifdef COUNT_CONNECTIONS
+      RemoteHostDB& hostdb = RemoteHostDB::instance();
+      JTRACE("counts")(hostdb._numSends)(hostdb._numBytes);
+#endif
       _control.readAll((char*)&msg, sizeof msg);
       JASSERT(msg.type==MessageTypes::SHUTDOWN_END);
       JTRACE("slave exit")(HostPid::self());
@@ -656,6 +660,13 @@ bool petabricks::RemoteHost::recv(const RemoteObject* caller) {
 }
 
 void petabricks::RemoteHost::sendMsg(GeneralMessage* msg, const void* data, size_t len) {
+#ifdef COUNT_CONNECTIONS
+  RemoteHostDB& hostdb = RemoteHostDB::instance();
+  jalib::atomicIncrement(&hostdb._numSends);
+  jalib::atomicAdd(&hostdb._numBytes, sizeof(GeneralMessage) + len);
+  //JTRACE("1")(*msg);
+#endif
+
   int chan;
   _controlWritemu.lock();
   if(len>0){
@@ -681,6 +692,13 @@ void petabricks::RemoteHost::sendMsg(GeneralMessage* msg, const void* data, size
 }
 
 void petabricks::RemoteHost::sendMsg(GeneralMessage* msg, const void* data, size_t len, const void* data2, size_t len2) {
+#ifdef COUNT_CONNECTIONS
+  RemoteHostDB& hostdb = RemoteHostDB::instance();
+  jalib::atomicIncrement(&hostdb._numSends);
+  jalib::atomicAdd(&hostdb._numBytes, sizeof(GeneralMessage) + len + len2);
+  //JTRACE("2")(*msg);
+#endif
+
   int chan;
   _controlWritemu.lock();
   if(len>0){
@@ -867,6 +885,10 @@ petabricks::RemoteHostDB::RemoteHostDB()
   char buf[1024];
   JASSERT(gethostname(buf, sizeof buf) >= 0);
   _host = buf;
+#ifdef COUNT_CONNECTIONS
+  _numSends = 0;
+  _numBytes = 0;
+#endif
 }
 
 void petabricks::RemoteHostDB::accept(const char* host, bool isMaster){
@@ -1018,6 +1040,12 @@ void petabricks::RemoteHostDB::onShutdownEvent() {
 }
 void petabricks::RemoteHostDB::shutdown() {
   JLOCKSCOPE(theShutdownMu);
+
+#ifdef COUNT_CONNECTIONS
+  RemoteHostDB& hostdb = RemoteHostDB::instance();
+  JTRACE("counts")(hostdb._numSends)(hostdb._numBytes);
+#endif
+
   RemoteHostList::iterator i;
   for(i=_hosts.begin(); i!=_hosts.end(); ++i) {
     (*i)->shutdownBegin();

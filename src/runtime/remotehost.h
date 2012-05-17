@@ -42,6 +42,7 @@
 #include <vector>
 #include <set>
 
+//#define COUNT_CONNECTIONS 1
 
 #define REMOTEHOST_DATACHANS 4
 #define REMOTEHOST_THREADS 2
@@ -242,6 +243,12 @@ private:
   struct pollfd *_fds;
 
   int _allocHostNumber;
+
+#ifdef COUNT_CONNECTIONS
+ public:
+  jalib::AtomicT _numSends;
+  jalib::AtomicT _numBytes;
+#endif
 };
 
 
