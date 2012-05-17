@@ -1,10 +1,10 @@
-#include "Bitonicsort.pbcc"
+#define SORT Sort
+
+//#include "Bitonicsort.pbcc"
 #include "Insertionsort.pbcc"
 #include "Mergesort2.pbcc"
 #include "Quicksort2.pbcc"
 #include "Selectionsort.pbcc"
-
-#define SORT Sort
 
 function Sort
 from in[n]
@@ -19,7 +19,8 @@ to out[n]
   Insertionsort(out, in);
 } or {
   Selectionsort(out, in);
-} or {
-  Bitonic(out, in);
 }
+//or {
+//  Bitonic(out, in);
+//}
 

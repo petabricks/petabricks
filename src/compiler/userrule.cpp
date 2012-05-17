@@ -255,10 +255,8 @@ void petabricks::UserRule::collectGpuLocalMemoryData() {
 	if(dim <= 2 && MAXIMA.comparePessimistically(region->symbolicSize(), ">", FormulaInteger::one()) ) {
 	  // Only local mem when dimension <= 2
 	  // TODO: handle >2D dimension
-	  std::cout << "ADD " << matrix << std::endl;
 	  _local.insert(matrix);
 	}
-	std::cout << "add " << matrix << std::endl;
         _minCoordOffsets[matrix] = min;
         _maxCoordOffsets[matrix] = max;
       }

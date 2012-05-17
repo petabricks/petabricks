@@ -182,7 +182,7 @@ public:
   /// 2 - multiple to one
   int stencilType(MatrixDefPtr matrix, size_t dim) {
     if(matrix->numDimensions() != dim) {
-      std::cout << "matirx_dim = " << matrix->numDimensions() << ", dim = " << dim << std::endl;
+      //std::cout << "matirx_dim = " << matrix->numDimensions() << ", dim = " << dim << std::endl;
       return 0;
     }
     if(_maxCoordOffsets.find(matrix->name()) != _maxCoordOffsets.end()) {

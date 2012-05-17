@@ -458,6 +458,7 @@ void petabricks::Transform::generateCodeSimple(CodeGenerator& o, const std::stri
   o.createTunable(true, "system.cutoff.sequential", _name + "_sequentialcutoff", 64);
   o.createTunable(true, "system.cutoff.distributed", _name + "_distributedcutoff", 512);
 #endif
+  o.createTunable(true, "system.gpuratio", _name + "_gpuratio", 8, 1, 8);
 
   _scheduler->generateGlobalCode(*this, o);
 
@@ -743,7 +744,6 @@ void petabricks::Transform::markSplitSizeUse(CodeGenerator& o){
   if(!_usesSplitSize){
     _usesSplitSize=true;
     o.createTunable(true, "system.cutoff.splitsize", _name + "_splitsize", 64, 1);
-    o.createTunable(true, "system.gpuratio", _name + "_gpuratio", 8, 1, 9);
   }
 }
 
