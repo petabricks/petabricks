@@ -270,7 +270,6 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   CodeGenerator& out = forkhelper();
   CodeGenerator& size = forkhelper();
   CodeGenerator& migrateRegion = forkhelper();
-  CodeGenerator& invalidateCache = forkhelper();
   CodeGenerator& getDataHosts = forkhelper();
 
   std::vector<std::string> args;
@@ -287,7 +286,6 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   std::vector<std::string> args2;
   args2.push_back("RemoteHost& sender");
   migrateRegion.beginFunc("void", "migrateRegions", args2);
-  invalidateCache.beginFunc("void", "invalidateCache");
 
   std::vector<std::string> args3;
   args3.push_back("DataHostPidList& list");
@@ -301,7 +299,6 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
       in.write("_buf += " + i->name + ".serialSize();");
       size.write("_sz += " + i->name + ".serialSize();");
       migrateRegion.comment(i->name + ".updateHandlerChain();");
-      invalidateCache.write(i->name + ".invalidateCache();");
       getDataHosts.write(i->name + ".dataHosts(list);");
 
     }else if(i->type == "IndexT" || i->type == "int" || i->type == "double") {
@@ -330,7 +327,6 @@ void petabricks::CodeGenerator::generateMigrationFunctions(){
   out.endFunc();
   size.endFunc();
   migrateRegion.endFunc();
-  invalidateCache.endFunc();
   getDataHosts.endFunc();
 
   hos() << _curClass << "(const char*, RemoteHost&, bool=false);\n";

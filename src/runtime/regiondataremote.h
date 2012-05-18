@@ -59,7 +59,6 @@ namespace petabricks {
     // cache
     IRegionCachePtr cacheGenerator() const;
     IRegionCachePtr cache() const;
-    void invalidateCache();
     void readByCache(void* request, size_t request_len, void* reply, size_t &reply_len) const;
     void writeByCache(const IndexT* coord, ElementT value) const;
 

@@ -43,10 +43,6 @@ void RegionHandler::writeCell(const IndexT* coord, ElementT value) {
   regionData()->writeCell(coord, value);
 }
 
-void RegionHandler::invalidateCache() {
-  return regionData()->invalidateCache();
-}
-
 void RegionHandler::randomize() {
   regionData()->randomize();
 }

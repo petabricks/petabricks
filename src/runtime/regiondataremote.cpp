@@ -123,14 +123,6 @@ IRegionCachePtr RegionDataRemote::cache() const {
 #endif
 }
 
-void RegionDataRemote::invalidateCache() {
-#ifdef DISTRIBUTED_CACHE
-  if (cache()) {
-    cache()->invalidate();
-  }
-#endif
-}
-
 ElementT RegionDataRemote::readCell(const IndexT* coord) const {
   JTRACE("remote read");
 #ifdef DISTRIBUTED_CACHE
