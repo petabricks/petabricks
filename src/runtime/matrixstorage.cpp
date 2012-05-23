@@ -34,7 +34,8 @@
 petabricks::CopyPendingMap petabricks::CopyPendingMap::_pendingMap;
 
 void petabricks::MatrixStorageInfo::modifyOnCpu(IndexT firstRow){
-  //std::cout << "modifyOnCpu: _storage = " << &(*storage()) << ", row = " << firstRow << std::endl;
+  if(storage())
+    //std::cout << "+++ modifyOnCpu: " << &(*this) << " _storage = " << &(*storage()) << ", row = " << firstRow << std::endl;
   if(firstRow < _firstRowOnCpu)
     _firstRowOnCpu = firstRow;
 }
@@ -123,6 +124,7 @@ void petabricks::MatrixStorageInfo::setSize(int dim, const IndexT* siz){
     _contiguous = (_count == storage()->count());
   _lastRowOnGpu = 0;
   _firstRowOnCpu = _sizes[_dimensions - 1];
+  //std::cout << "+++ setSize: " << &(*this) << " _storage = " << &(*storage()) << ", row = " << _firstRowOnCpu << std::endl;
 #endif
 }
 
@@ -152,6 +154,7 @@ void petabricks::MatrixStorageInfo::reset(){
   _hasGpuMem = false;
   _lastRowOnGpu = 0;
   _firstRowOnCpu = -1;
+  //std::cout << "+++ reset: " << &(*this) << " _storage = " << &(*storage()) << ", row = " << _firstRowOnCpu << std::endl;
   _coverage = 0;
   _contiguous = true;
   #endif
@@ -224,6 +227,9 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
     storage()->lock();
     std::set<MatrixStorageInfoPtr>& set = CopyPendingMap::_pendingMap.allPendings(storage());
     std::set<MatrixStorageInfoPtr>::iterator first = set.begin();
+
+    // if(set.size() > 0)
+    // std::cout << "get exist GPU meme: " << &(*this) << " _storage = " << &(*storage()) << ", first->_lastRowOnGpu = " << (*first)->_lastRowOnGpu << ", upperbound = " << upperbound << ", set.size() = " << set.size()  << std::endl;
     
     if(set.size() == 1 && equal(*first)
        && (*first)->_lastRowOnGpu >= upperbound) { 
@@ -260,9 +266,12 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
 	return false;
       }
       
+      // Before copy in, we need to make sure that all gpu data is in cpu.
+      storage()->updateDataFromGpu(0);
       if(input){
 	// If it is an input, we have cpu data on gpu, buffer on gpu and cpu will be the same, so first row on cpu is always the one after last row on gpu
 	_firstRowOnCpu = _lastRowOnGpu;
+	//std::cout << "+++ input1: " << &(*this) << " _storage = " << &(*storage()) << ", row = " << _firstRowOnCpu << std::endl;
       }
       return true; // need to copy in
     } //end if size == 1
@@ -284,6 +293,7 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
       // Buffer on gpu and cpu will be the same, so first row on cpu is always the one after last row on gpu
       _lastRowOnGpu = upperbound;
       _firstRowOnCpu = upperbound;
+      //std::cout << "+++ upperbound: " << &(*this) << " _storage = " << &(*storage()) << ", row = " << _firstRowOnCpu << std::endl;
       setClMemWrapper(clCreateBuffer(context, CL_MEM_USE_HOST_PTR, bytesOnGpu(), storage()->data(), &err));
       JASSERT(_dimensions == 0 || _lastRowOnGpu <= _sizes[_dimensions - 1])(_lastRowOnGpu)( _sizes[_dimensions - 1])(_dimensions);
       JASSERT(CL_SUCCESS == err)(_dimensions)(_sizes[_dimensions - 1])(_lastRowOnGpu).Text("Failed to create input memory object.");
@@ -312,6 +322,7 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
   if(input) {      
     // If it is an input, we have cpu data on gpu, buffer on gpu and cpu will be the same, so first row on cpu is always the one after last row on gpu
     _firstRowOnCpu = upperbound;
+    //std::cout << "+++ input2: " << &(*this) << " _storage = " << &(*storage()) << ", row = " << _firstRowOnCpu << std::endl;
   }
   return true;
 }
@@ -500,7 +511,7 @@ void petabricks::MatrixStorageInfo::incCoverage(IndexT* begin, IndexT* end, int 
 
 petabricks::CopyoutInfo::CopyoutInfo(cl_command_queue& queue, MatrixStorageInfoPtr originalBuffer, std::vector<IndexT*>& begins, std::vector<IndexT*>& ends, int coverage) {
 #ifdef GPU_TRACE
-  std::cout << "CopyoutInfo _storageinfo = " << &(*originalBuffer) << std::endl;
+  std::cout << "CopyoutInfo _storageinfo = " << &(*originalBuffer) << " _storage = " << &(*originalBuffer->storage()) << std::endl;
 #endif
   _coverage = coverage;
   if(_coverage == 0) {

@@ -120,8 +120,17 @@ public:
   ///
   /// Generate an OpenCL program implementing this rule
   void generateOpenCLKernel( Transform& trans, CLCodeGenerator& clo, IterationDefinition& iterdef, bool local=false);
-  std::string getLastRowOnGpuGuild(MatrixDefPtr matrix, int dim_int);
+  std::string getLastRowOnGpuGuide(RegionPtr region, int dim_int);
   void collectGpuLocalMemoryData();
+  RegionPtr findMatrix(std::string var) {
+    for( RegionList::const_iterator i = _to.begin(); i != _to.end(); ++i )
+      if( var == (*i)->name() )
+	return (*i);
+    for( RegionList::const_iterator i = _from.begin(); i != _from.end(); ++i )
+      if( var == (*i)->name() )
+	return (*i);
+    return NULL;
+  }
   bool canUseLocalMemory() {
     return _local.size() > 0;
   }
@@ -180,12 +189,18 @@ public:
   /// 0 - need to entire matrix
   /// 1 - one to one
   /// 2 - multiple to one
-  int stencilType(MatrixDefPtr matrix, size_t dim) {
-    if(matrix->numDimensions() != dim) {
-      //std::cout << "matirx_dim = " << matrix->numDimensions() << ", dim = " << dim << std::endl;
+  int stencilType(RegionPtr region) {
+    //std::cout << "#### stencil = " << region->name() << " " << region->matrix()->name() << std::endl;
+    MatrixDefPtr matrix = region->matrix();
+    IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
+    size_t dim = iterdef.dimensions();
+    if(dim == 0 || region->getRegionType() == Region::REGION_ALL || matrix->numDimensions() != dim) {
       return 0;
     }
     if(_maxCoordOffsets.find(matrix->name()) != _maxCoordOffsets.end()) {
+      //std::cout << "maxcoordoffset = " << _maxCoordOffsets[matrix->name()][dim - 1] << std::endl;
+      //std::cout << "name = " << matrix->name() << std::endl;
+      //std::cout << "offset = " << _maxCoordOffsets[matrix->name()][dim - 1] << std::endl;
       if(MAXIMA.comparePessimistically(_maxCoordOffsets[matrix->name()][dim - 1], ">", FormulaInteger::one())) {
 	return 2;
       }
@@ -193,6 +208,7 @@ public:
       	return 1;
       }
     }
+    //std::cout << "matrix not found" << std::endl;
     return 0;
   }
 
@@ -285,6 +301,10 @@ public:
     return _from;
   }
 
+  RegionSet getFromRegionsOnCpu( ) const
+  {
+    return _loads;
+  }
   RegionList getToRegions( ) const
   {
     return _to;
@@ -313,6 +333,10 @@ public:
   void trimDependency(DependencyDirection& dep,
                       const ChoiceDepGraphNode& from,
                       const ChoiceDepGraphNode& to);
+
+  std::map<std::string, FormulaList>& minCoordOffsets() {
+    return _minCoordOffsets;
+  }
   
 private:
   void computeDataDependencyVector();
@@ -340,6 +364,8 @@ private:
   std::set<std::string> _local;
   std::map<std::string, FormulaList> _minCoordOffsets;
   std::map<std::string, FormulaList> _maxCoordOffsets;
+  RegionSet _loads;
+  RegionSet _stores;
 
   RuleFlags _flags;
   RegionList _from;

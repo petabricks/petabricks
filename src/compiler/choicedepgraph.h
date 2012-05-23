@@ -194,7 +194,8 @@ public:
     _gpuCopyOut = 0;
   }
 
-  virtual RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const = 0;
+  virtual RegionList getFromRegion(const RuleChoiceAssignment& choice) const = 0;
+  virtual RegionSet getFromRegionOnCpu(const RuleChoiceAssignment& choice) const = 0;
   virtual int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix) = 0; //TODO: get rid of this
   virtual int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region) = 0;
   virtual int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix) = 0;
@@ -248,7 +249,8 @@ public:
   void removeDimensionFromRegions(MatrixDefPtr matrix, size_t dimension);
   void fixVersionedRegionsType();
 
-  RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
+  RegionList getFromRegion(const RuleChoiceAssignment& choice) const;
+  RegionSet getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
   int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
@@ -305,10 +307,16 @@ public:
     UNIMPLEMENTED();
   }
 
-  RegionList getFromRegionOnCpu(const RuleChoiceAssignment&) const { 
+  RegionList getFromRegion(const RuleChoiceAssignment&) const { 
     UNIMPLEMENTED(); 
     return RegionList();
   }
+
+  RegionSet getFromRegionOnCpu(const RuleChoiceAssignment&) const { 
+    UNIMPLEMENTED(); 
+    return RegionSet();
+  }
+
   int numOutMatrixOnGpu(const RuleChoiceAssignment& , MatrixDefPtr){
     UNIMPLEMENTED(); 
     return 0;
@@ -350,7 +358,8 @@ public:
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
                             const RuleChoiceAssignment& choice);
 
-  RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
+  RegionList getFromRegion(const RuleChoiceAssignment& choice) const;
+  RegionSet getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
   int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
@@ -381,7 +390,8 @@ public:
   void generateCode(Transform& trans, CodeGenerator& o, RuleFlavor flavor,
                             const RuleChoiceAssignment& choice);
 
-  RegionList getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
+  RegionList getFromRegion(const RuleChoiceAssignment& choice) const;
+  RegionSet getFromRegionOnCpu(const RuleChoiceAssignment& choice) const;
   int numOutMatrixOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, RegionPtr region);
   int hasOverlappingRegionOnGpu(const RuleChoiceAssignment& choice, MatrixDefPtr matrix);

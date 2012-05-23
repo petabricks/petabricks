@@ -305,6 +305,8 @@ public:
   bool isContiguous() { return _contiguous; }
   void setLastRowGuide(IndexT last,IndexT iter_dim) { 
     _lastRowOnGpuGuide = last; 
+    if(_lastRowOnGpuGuide > _sizes[_dimensions - 1])
+      _lastRowOnGpuGuide = _sizes[_dimensions - 1];
     _iterDim = iter_dim;
   }
   int lastRowOnGpu() { return _lastRowOnGpu; }

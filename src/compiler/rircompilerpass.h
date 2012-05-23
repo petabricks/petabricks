@@ -100,6 +100,9 @@ protected:
   void pushStmtBackward(const RIRStmtCopyRef& s){ 
     _stmtCtx.back().backward()->push_back(s);
   }
+  bool hasStmtForward(){ 
+    return !_stmtCtx.back().forward()->empty();
+  }
 
 public:
   //void before(RIRExprCopyRef&) {}
@@ -301,7 +304,6 @@ public:
     _id = id;
   }
 private:
-  RegionPtr findMatrix(std::string var);
   void generateAccessor( const RegionPtr& region, const FormulaPtr& x, const FormulaPtr& y );
   std::vector<std::string> generateCellIndices(RIRExprList& tokens);
   UserRule& _rule;
@@ -322,6 +324,74 @@ class OpenClFunctionRejectPass: public RIRCompilerPass {
   bool isFunctionAllowed( const std::string& fn );
   bool isIdentBlacklisted( const std::string& ident );
   UserRule& _rule;
+};
+
+class CollectLoadStorePass: public RIRCompilerPass {
+ public:
+  class NotValidSource {};
+ 
+  CollectLoadStorePass(UserRule& r, const RIRScopePtr& p): RIRCompilerPass(p->createChildLayer()), _rule(r)
+  {
+    _computeloads = false;
+    _istrans = false;
+  }
+  void before(RIRExprCopyRef& e);
+  void before(RIRStmtCopyRef& e);
+
+  RegionSet& stores() {
+    return _stores;
+  }
+
+  RegionSet& loads() {
+    if(!_computeloads) {
+      _computeloads = true;
+      for(RegionSet::iterator i = _loadstores.begin(); i != _loadstores.end(); ++i) {
+	if(_stores.find(*i) == _stores.end())
+	  _loads.insert(*i);
+      }
+    }
+    return _loads;
+  }
+
+ private:
+  UserRule& _rule;
+  RegionSet _stores;
+  RegionSet _loads;
+  RegionSet _loadstores;
+  bool _computeloads;
+  bool _istrans;
+
+  RIRExprCopyRef _firstInStmt;
+  int _numExprs;
+};
+
+class ManageCpuGpuMemPass: public RIRCompilerPass {
+ public:
+  class NotValidSource {};
+ ManageCpuGpuMemPass(UserRule& r, const RIRScopePtr& p, RegionSet& loads, RegionSet& stores)
+   : RIRCompilerPass(p->createChildLayer()), _rule(r), _loads(loads), _stores(stores)
+  {
+    _state = 0;
+    _beforetrans = true;
+    _addfront = false;
+  }
+  int state() {
+    return _state;
+  }
+  bool addfront() {
+    return _addfront;
+  }
+  void before(RIRExprCopyRef& e);
+  void before(RIRStmtCopyRef& e);
+ private:
+  UserRule& _rule;
+  RIRExprCopyRef _insertbefore;
+  RegionSet& _loads;
+  RegionSet& _stores;
+
+  int _state; 
+  bool _beforetrans;
+  bool _addfront;
 };
 
 }

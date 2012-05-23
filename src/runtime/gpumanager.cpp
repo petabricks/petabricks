@@ -165,14 +165,15 @@ void GpuManager::prepare(GpuDynamicTaskPtr task) {
   std::cout << "[PREPARE]" << std::endl;
   #endif
   task->runWrapper();
-  #ifdef GPU_TRACE
-  std::cout << "Number of From Matrices = " << _currenttaskinfo->_from.size() << std::endl;
-  std::cout << "Number of To Matrices   = " << _currenttaskinfo->_to.size() << std::endl;
-  #endif
 
   int dimensions = _currenttaskinfo->dimensions();
   if(task->end()[dimensions-1] <= task->begin()[dimensions-1])
     return;
+
+  #ifdef GPU_TRACE
+  std::cout << "Number of From Matrices = " << _currenttaskinfo->_from.size() << std::endl;
+  std::cout << "Number of To Matrices   = " << _currenttaskinfo->_to.size() << std::endl;
+  #endif
 
   double gpuRatio = _currenttaskinfo->gpuRatio();
 

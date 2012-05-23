@@ -218,6 +218,7 @@ public:
   virtual RegionList getNonSelfDependentRegions() { return RegionList(); }
 
   virtual RegionList getFromRegions( ) const { return RegionList(); }
+  virtual RegionSet getFromRegionsOnCpu( ) const { return RegionSet(); }
   
 protected:
   int _id;

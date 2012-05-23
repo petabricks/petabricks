@@ -196,6 +196,7 @@ public:
     while(n-->0) ++i;
     return *i;
   }
+
 protected:
   std::string _str;
   RIRExprList _parts;
@@ -379,6 +380,7 @@ public:
 
   RIRBlock() : RIRNode(BLOCK) {}
   void addStmt(const RIRStmtCopyRef& p) { _stmts.push_back(p); }
+  void addFrontStmt(const RIRStmtCopyRef& p) { _stmts.push_front(p); }
   void print(std::ostream& o, RIRVisitor* printVisitor);
   void accept(RIRVisitor&);
   RIRBlock* clone() const;

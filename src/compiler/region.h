@@ -47,7 +47,7 @@ class Transform;
 class UserRule;
 typedef jalib::JRef<Region> RegionPtr;
 typedef jalib::JRef<SimpleRegion> SimpleRegionPtr;
-
+typedef std::set<RegionPtr> RegionSet;
 
 class RegionNodeGroup : public jalib::JRefCounted {
 public:
