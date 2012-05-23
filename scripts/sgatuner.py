@@ -18,6 +18,7 @@ from traininginfo import TrainingInfo
 from tunerconfig import config, option_callback
 from tunerwarnings import InitialProgramCrash,ExistingProgramCrash,NewProgramCrash,TargetNotMet
 from storagedirs import timers
+from highlevelconfig import HighLevelConfig
 import tunerwarnings
 from pprint import pprint
 import pdb
@@ -38,8 +39,9 @@ def mainname(cmd):
   return lines[-1].strip()
 
 class Population:
-  def __init__(self, initial, tester, baseline=None):
-    self.members  = [initial]
+  def __init__(self, initial, tester, baseline, hlconfig):
+    self.initial  = initial
+    self.members  = [initial.clone()]
     self.best     = None
     self.notadded = []
     self.removed  = []
@@ -48,17 +50,18 @@ class Population:
     self.baseline = baseline
     self.roundNumber = -1
     self.firstRound = True
+    self.hlconfig = hlconfig
     if config.candidatelog:
-      self.candidatelog     = storagedirs.openCsvStats("candidatelog",
-                                                       ['time',
-                                                        'candidates',
-                                                        'tests_complete',
-                                                        'tests_timeout',
-                                                        'tests_crashed',
-                                                        'config_path',
-                                                        'input_size',
-                                                        'end_of_round',
-                                                        'round_number'])
+      self.candidatelog = storagedirs.openCsvStats("candidatelog",
+                                                   ['time',
+                                                    'candidates',
+                                                    'tests_complete',
+                                                    'tests_timeout',
+                                                    'tests_crashed',
+                                                    'config_path',
+                                                    'input_size',
+                                                    'end_of_round',
+                                                     'round_number'])
       self.candidateloglast = None
     self.starttime = time.time()
     self.onMembersChanged(True)
@@ -69,12 +72,12 @@ class Population:
     tests = []
     for z in xrange(count):
       tests.extend(self.members)
-    random.shuffle(tests)
+    #random.shuffle(tests)
     for m in tests:
       check_timeout()
       if m not in self.failed and m.numTests(self.inputSize())<config.max_trials:
         try:
-          self.testers[-1].test(m)
+          self.testers[-1].test(candidate=m, limit=self.reasonableLimit())
         except candidatetester.CrashException, e:
           if m.numTotalTests()==0:
             warnings.warn(InitialProgramCrash(e))
@@ -83,9 +86,39 @@ class Population:
           self.failed.add(m)
           self.members.remove(m)
 
+  def reasonableLimit(self):
+    if config.accuracy_target is not None:
+      members = filter(lambda x: x.hasAccuracy(self.inputSize(), config.accuracy_target), self.members)
+    else:
+      members = list(self.members)
+    limits = filter(lambda x: x is not None,
+                map(lambda x: x.reasonableLimit(self.inputSize()), members))
+    if len(limits):
+      return min(limits)
+    else:
+      return None
+   
   def countMutators(self, mutatorFilter=lambda m: True):
     return sum(map(lambda x: len(filter(mutatorFilter, x.mutators)), self.members))
 
+  def genConfigRandom(self):
+    c=self.members[0].clone()
+    self.hlconfig.randomize(c.config, self.inputSize())
+    return c
+
+  def genConfigCrossover(self):
+    a=self.tournament_select()
+    b=self.tournament_select()
+    c=a.clone()
+    self.hlconfig.crossover(a.config, b.config, c.config)
+    self.hlconfig.mutateChance(config.mutation_rate, c.config, self.inputSize())
+    return c
+
+  def genConfigMutate(self):
+    c=self.tournament_select().clone()
+    self.hlconfig.mutateChance(config.mutation_rate, c.config, self.inputSize())
+    return c
+  
   def randomMutation(self, maxpopsize=None, mutatorFilter=lambda m: True):
     '''grow the population using cloning and random mutation'''
     originalPop = list(self.members)
@@ -158,7 +191,17 @@ class Population:
   
   def inputSize(self, roundOffset=0):
     return self.testers[-1 - roundOffset].n
+      
+  def sortkey(self, x):
+    n = self.inputSize()
+    if x.hasAccuracy(n, config.accuracy_target):
+      return False, x.performance(n)
+    else:
+      return True, -x.accuracy(n)
 
+  def sortMembers(self):
+    self.members.sort(key=self.sortkey)
+      
   def onMembersChanged(self, endOfRound):
     if config.candidatelog and len(self.members):
       fastCmp = self.testers[-1].comparer(config.timing_metric_idx, 0.00, 0)
@@ -239,7 +282,6 @@ class Population:
       else:
         warnings.warn(TargetNotMet(self.inputSize(), accTarg))
 
-
     if len(filter(lambda m: m.keep, self.members)) == 0:
       self.markBestN(self.members, popsize, config.timing_metric_idx)
       self.markBestN(self.members, popsize, config.accuracy_metric_idx)
@@ -262,24 +304,42 @@ class Population:
         self.testers[-1].testN(self.baseline, config.min_trials)
       print "  * ", m, m.resultsStr(self.inputSize(), self.baseline)
 
+  def next_population(self):
+    n = config.population_size
+    zz = lambda pct: int(round(pct*n))
+    pop = []
+    pop.extend(self.members[0:zz(config.pop_elitism_pct)])
+    for z in xrange(zz(config.pop_mutated_pct)):
+      pop.append(self.genConfigMutate())
+    for z in xrange(zz(config.pop_crossover_pct)):
+      pop.append(self.genConfigCrossover())
+    while len(pop)<n:
+      pop.append(self.genConfigRandom())
+    return pop
+
+  def tournament_select(self):
+    if len(self.members)<=config.tournament_size:
+      return self.members[0]
+    return self.members[min(random.sample(range(len(self.members)), config.tournament_size))]
+
   def generation(self):
     progress.push()
     try:
       #os.system("find /tmp -name 'OCL*.so' -user mangpo -maxdepth 1 -delete")
       self.roundNumber += 1
       self.triedConfigs = set(map(lambda x: x.config, self.members))
-      self.removed=[]
-      self.notadded=[]
-      self.test(config.max_trials)
-      if len(self.members):
-        for z in xrange(config.rounds_per_input_size):
-          progress.subtask(config.rounds_per_input_size-z,
-                           lambda: self.randomMutation(config.population_high_size))
-          if not self.accuracyTargetsMet():
-            self.guidedMutation()
-          self.prune(config.population_low_size, False)
-        self.prune(config.population_low_size, True)
+      self.removed  = []
+      self.notadded = []
+      self.failed   = set()
+  
+      self.members = self.next_population()
 
+      self.test(config.min_trials)
+      self.failed = self.failed.union(set(filter(lambda x: x.numTests(self.inputSize())<=x.numTimeouts(self.inputSize()),
+                                self.members)))
+      self.members = filter(lambda x: x.numTests(self.inputSize())> x.numTimeouts(self.inputSize()), self.members)
+
+      if len(self.members):
         self.firstRound=False
       elif self.firstRound and len(self.failed) and config.min_input_size_nocrash>=self.inputSize():
         self.members = list(self.failed)
@@ -287,7 +347,9 @@ class Population:
           print "skip generation n = ",self.inputSize(),"(program run failed)"
       else:
         warnings.warn(tunerwarnings.AlwaysCrashes())
-        
+      
+      self.sortMembers()
+
       if config.print_log:
         self.printPopulation()
       
@@ -472,6 +534,7 @@ def init(benchmark, acf=createChoiceSiteMutators, taf=createTunableMutators):
   for k in filter(len, config.abort_on.split(',')):
     warnings.simplefilter('error', getattr(tunerwarnings,k))
   infoxml = TrainingInfo(pbutil.benchmarkToInfo(benchmark))
+  hlconfig = HighLevelConfig(infoxml)
   if not config.main:
     config.main = mainname([pbutil.benchmarkToBin(benchmark)])
   tester = CandidateTester(benchmark, config.min_input_size)
@@ -488,7 +551,7 @@ def init(benchmark, acf=createChoiceSiteMutators, taf=createTunableMutators):
     storagedirs.cur.dumpGitStatus()
     storagedirs.cur.saveFile(pbutil.benchmarkToInfo(benchmark))
     storagedirs.cur.saveFile(pbutil.benchmarkToBin(benchmark))
-  return candidate, tester
+  return candidate, tester, hlconfig
 
 def autotuneInner(benchmark, returnBest=None):
   """Function running the autotuning process.
@@ -496,9 +559,9 @@ If returnBest is specified, it should be a list. The best candidate found will
 be added to that list"""
   progress.push()
   config.benchmark = benchmark
-  candidate, tester = init(benchmark)
+  candidate, tester, hlconfig = init(benchmark)
   try:
-    pop = Population(candidate, tester, None)
+    pop = Population(candidate, tester, None, hlconfig)
     candidate.pop = pop
     
     if not pop.isVariableAccuracy() and config.accuracy_target:
@@ -592,8 +655,7 @@ if __name__ == "__main__":
   parser.add_option("--rounds_per_input_size", type="int",    action="callback", callback=option_callback)
   parser.add_option("--mutations_per_mutator", type="int",    action="callback", callback=option_callback)
   parser.add_option("--output_dir",            type="string", action="callback", callback=option_callback)
-  parser.add_option("--population_high_size",  type="int",    action="callback", callback=option_callback)
-  parser.add_option("--population_low_size",   type="int",    action="callback", callback=option_callback)
+  parser.add_option("--population_size",       type="int",    action="callback", callback=option_callback)
   parser.add_option("--min_input_size",        type="int",    action="callback", callback=option_callback)
   parser.add_option("--offset",                type="int",    action="callback", callback=option_callback)
   parser.add_option("--threads",               type="int",    action="callback", callback=option_callback)

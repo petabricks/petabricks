@@ -11,13 +11,13 @@ class config_defaults:
   max_input_size           = 2**30
   min_input_size           = 1
   max_time                 = 60*150
-  rounds_per_input_size    = 3
-  final_rounds             = 3
+  rounds_per_input_size    = 1
+  final_rounds             = 1
 
   #number of trials to run
   confidence_pct   = 0.75
-  min_trials       = 3
-  max_trials       = 7
+  min_trials       = 1
+  max_trials       = 1
   '''guessed stddev when only 1 test is taken'''
   prior_stddev_pct      = 0.15
   '''percentage change to be viewed as insignificant when testing if two algs are equal'''
@@ -34,11 +34,15 @@ class config_defaults:
   bandit_verbose        = False
   os_method             = OperatorSelectionMethod.WEIGHTED_SUM
 
+  pop_elitism_pct   = 0.3
+  pop_crossover_pct = 0.3
+  pop_mutated_pct   = 0.2
+  tournament_size = 3
+  mutation_rate = 0.15
 
   #how mutation to do
   mutations_per_mutator    = 3
-  population_high_size     = 10
-  population_low_size      = 1
+  population_size          = 64
   multimutation            = True
   mutate_retries           = 10
   rand_retries             = 10
@@ -160,9 +164,6 @@ class patch_check:
   max_input_size           = 256
   max_time                 = 60
   rounds_per_input_size    = 1
-
-  #bigger pop size
-  population_low_size      = 3
 
   # wait longer for results, higher time limits
   limit_multiplier         = 15

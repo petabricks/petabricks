@@ -141,21 +141,21 @@ generator kmeansinputgen
     centerplus(ctemp, x);
   }
 
- ////iteratively find local optimum
- //to (C c, A a) from (X x, Ctemp ctemp)
- //{
- //  ElementT change=1;
- //  Copy2D(c,ctemp);    
- //  AssignClusters(a,change,x,c,a);
- //  for_enough {
- //    if (change > 0) { 
- //      NewClusterLocations(c, x, a);
- //    }else{
- //      break;
- //    }
- //    AssignClusters(a,change,x,c,a);
- //  }
- //}
+  //iteratively find local optimum
+  to (C c, A a) from (X x, Ctemp ctemp)
+  {
+    ElementT change=1;
+    Copy2D(c,ctemp);    
+    AssignClusters(a,change,x,c,a);
+    for_enough {
+      if (change > 0) { 
+        NewClusterLocations(c, x, a);
+      }else{
+        break;
+      }
+      AssignClusters(a,change,x,c,a);
+    }
+  }
 
 
 

@@ -496,7 +496,10 @@ class Candidate:
     self.lastMutator.mutate(self, n)
 
   def reasonableLimit(self, n):
-    return self.metrics[config.timing_metric_idx][n].reasonableLimit()
+    if self.numTests(n)>0:
+      return self.metrics[config.timing_metric_idx][n].reasonableLimit()
+    else:
+      return None
 
   def resultsStr(self, n, baseline=None):
     s=['trials: %2d'%self.numTests(n)]
@@ -516,7 +519,22 @@ class Candidate:
   def numTotalTests(self):
     return self.metrics[config.timing_metric_idx].totalTests()
 
+  def performance(self, n):
+    if len(self.metrics[config.timing_metric_idx][n]) == 0:
+      return (2**31)
+    return self.metrics[config.timing_metric_idx][n].mean()
+
+  def accuracy(self, n):
+    if len(self.metrics[config.accuracy_metric_idx][n]) == 0:
+      return -(2**31)
+    return self.metrics[config.accuracy_metric_idx][n].mean()
+
+
   def hasAccuracy(self, n, target):
+    if len(self.metrics[config.accuracy_metric_idx][n]) == 0:
+      return False
+    if target is None:
+      return True
     return self.metrics[config.accuracy_metric_idx][n].mean() >= target
 
   def cfgfile(self):
