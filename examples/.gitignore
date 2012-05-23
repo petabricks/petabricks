@@ -105,6 +105,8 @@ multigrid/Restrict2Dnew
 multigrid/Restrict3D
 multiply/multiplyAdd
 multiply/multiply
+multiply/multiplyblas
+multiply/multiplysimple
 multiply/strassen
 multiply/triMultiply
 optimize/optimize
