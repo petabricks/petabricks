@@ -382,8 +382,15 @@ public:
   /// Copy data of this to dst
   void copyTo(const MutableMatrixRegion& dst)
   {
-    if(this->storage() == dst.storage())
+    if(this->storage() == dst.storage()) {
+#ifdef GPU_TRACE
+      std::cout << "copyTo no need to copy ^^" << std::endl;
+#endif
       return;
+    }
+#ifdef GPU_TRACE
+      std::cout << "copyTo entire region" << std::endl;
+#endif
     IndexT coord[D] = {0};
     do {
       dst.cell(coord) = this->cell(coord);

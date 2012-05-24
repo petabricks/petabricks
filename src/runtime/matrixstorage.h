@@ -146,10 +146,9 @@ public:
 #ifdef HAVE_OPENCL
   void lock() { _lock.lock(); }
   void unlock() { _lock.unlock(); }
+  void lockStorage() { _storageLock.lock(); }
+  void unlockStorage() { _storageLock.unlock(); }
   void updateDataFromGpu(IndexT firstRow = 0);
-#else
-  void lock()   { UNIMPLEMENTED(); }
-  void unlock() { UNIMPLEMENTED(); }
 #endif
 
 private:
@@ -157,6 +156,7 @@ private:
   size_t _count;
 #ifdef HAVE_OPENCL
   jalib::JMutex  _lock;
+  jalib::JMutex  _storageLock;
 #endif
 };
 
@@ -415,8 +415,12 @@ public:
     #ifdef DEBUG
     JASSERT(begins.size() == ends.size())(begins.size())(ends.size());
     #endif
-    if(src->data() == dest->data())
+    if(src->data() == dest->data()) {
+#ifdef GPU_TRACE
+      std::cout << "copy no need to copy ^^" << std::endl;
+#endif
       return;
+    }
 
     if(begins.size() == 0){
       copy(dest,src);
@@ -510,7 +514,7 @@ public:
     std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator end = _map.end();
     _lock.unlock();
     if(it != end) {
-      std::set<MatrixStorageInfoPtr> infoList = it->second;
+      std::set<MatrixStorageInfoPtr>& infoList = it->second;
       bool add = false; 
       std::set<MatrixStorageInfoPtr>::iterator i;
       for(i = infoList.begin(); i != infoList.end(); ++i) {
@@ -544,17 +548,37 @@ public:
 #endif
   }
 
+  void putInStorage(const MatrixStorageInfoPtr& info) {
+    _storageLock.lock();
+    std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator it = _storageMap.find(info->storage());
+    std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator end = _storageMap.end();
+
+    if(it != end) {
+      it->second.insert(info);
+    }
+    else {
+      std::set<MatrixStorageInfoPtr> newInfoList;
+      newInfoList.insert(info);
+      _lock.lock();
+      _storageMap[info->storage()] = newInfoList;
+      _lock.unlock();
+    }
+    _storageLock.unlock();
+  }
+
   std::set<MatrixStorageInfoPtr>& allPendings(MatrixStoragePtr storage) {     
-    /*std::cout << "@@@ pending map: allPendings..." << std::endl;
-    std::set<MatrixStorageInfoPtr> set = _map[storage];
-    std::cout << "size = " << set.size() << std::endl;
-    for(std::set<MatrixStorageInfoPtr>::iterator i = set.begin(); i != set.end(); ++i) {
-      std::cout << &(*(*i)) << std::endl;
-    }*/
     _lock.lock();
     std::set<MatrixStorageInfoPtr>& pendings = _map[storage];
     _lock.unlock();
     return pendings; 
+
+  }
+
+  std::set<MatrixStorageInfoPtr>& allStoring(MatrixStoragePtr storage) {     
+    _storageLock.lock();
+    std::set<MatrixStorageInfoPtr>& ret = _storageMap[storage];
+    _storageLock.unlock();
+    return ret; 
 
   }
 
@@ -564,8 +588,22 @@ public:
     _lock.lock();
     std::set<MatrixStorageInfoPtr>& pendings = _map[storage];
     _lock.unlock();
+
+    _storageLock.lock();
+    std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator it = _storageMap.find(storage);
+    std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> >::iterator end = _storageMap.end();
+
+    if(it == end) {
+      std::set<MatrixStorageInfoPtr> newStorage;
+      newStorage.insert(pendings.begin(), pendings.end());
+      _storageMap[storage] = newStorage;
+    }
+    else {
+      it->second.insert(pendings.begin(), pendings.end());
+    }
+    _storageLock.unlock();
+
     pendings.clear(); 
-    //std::cout << "@@@ pending map: clear" << std::endl;
   }
 
   void print() {
@@ -591,11 +629,12 @@ private:
   std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> > _map;
   jalib::JMutex  _lock;
 
+  std::map<MatrixStoragePtr, std::set<MatrixStorageInfoPtr> > _storageMap;
+  jalib::JMutex  _storageLock;
+
   std::vector<MatrixStoragePtr> _buffers;
   jalib::JMutex  _bufferlock;
 };
-
-
 
 
 }

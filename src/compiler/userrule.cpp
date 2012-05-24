@@ -1313,6 +1313,7 @@ void petabricks::UserRule::generateOpenCLCallCode(Transform& trans,  CodeGenerat
   o.endFunc();
 }
 
+ /// for _from only
  std::string petabricks::UserRule::getLastRowOnGpuGuide(RegionPtr region, int dim_int) {
    if(dim_int == 0)
      return "0";
@@ -1348,7 +1349,7 @@ void petabricks::UserRule::generateOpenCLPrepareCode(std::string& codename, Code
     if((*i)->isBuffer()) {
       o.write("GpuManager::_currenttaskinfo->addToMatrix(" + matrix_name + ".storageInfo());");
       o.write(matrix_name + ".storageInfo()->setName(std::string(\""+matrix_name+"\"));");
-      o.write(matrix_name + ".storageInfo()->setLastRowGuide("+getLastRowOnGpuGuide(*i, dim_int)+","+dimension+");");
+      o.write(matrix_name + ".storageInfo()->setLastRowGuide(_iter_end["+dimension+"-1], "+dimension+");");
     }
     else {
       //TODO
@@ -1379,13 +1380,13 @@ void petabricks::UserRule::generateOpenCLCopyInCode(std::string& codename, std::
   o.write("cl_int err = clEnqueueWriteBuffer(GpuManager::_queue, storage_"+name+"->getClMem(), CL_FALSE, 0, storage_"+name+"->bytesOnGpu(), "+name+".getGpuInputBufferPtr(), 0, NULL, NULL);");
   o.write("clFlush(GpuManager::_queue);");
 #ifdef DEBUG
-  o.write("JASSERT(CL_INVALID_CONTEXT != err).Text( \"Failed to write to buffer.\");");
-  o.write("JASSERT(CL_INVALID_VALUE != err).Text( \"Failed to write to buffer.\");");
-  o.write("JASSERT(CL_INVALID_BUFFER_SIZE != err).Text( \"Failed to write to buffer.\");");
-  o.write("JASSERT(CL_DEVICE_MAX_MEM_ALLOC_SIZE != err).Text( \"Failed to write to buffer.\");");
-  o.write("JASSERT(CL_INVALID_HOST_PTR != err).Text( \"Failed to write to buffer.\");");
-  o.write("JASSERT(CL_MEM_OBJECT_ALLOCATION_FAILURE != err).Text( \"Failed to write to buffer.\");");
-  o.write("JASSERT(CL_OUT_OF_HOST_MEMORY != err).Text( \"Failed to write to buffer.\");");
+  o.write("JASSERT(CL_INVALID_CONTEXT != err).Text( \"Failed to write to buffer: invalid context.\");");
+  o.write("JASSERT(CL_INVALID_VALUE != err).Text( \"Failed to write to buffer: invalid value.\");");
+  o.write("JASSERT(CL_INVALID_BUFFER_SIZE != err).Text( \"Failed to write to buffer: invalid buffer size.\");");
+  o.write("JASSERT(CL_DEVICE_MAX_MEM_ALLOC_SIZE != err).Text( \"Failed to write to buffer: max mem alloc.\");");
+  o.write("JASSERT(CL_INVALID_HOST_PTR != err).Text( \"Failed to write to buffer: invalid host ptr.\");");
+  o.write("JASSERT(CL_MEM_OBJECT_ALLOCATION_FAILURE != err).Text( \"Failed to write to buffer: mem alloc failure.\");");
+  o.write("JASSERT(CL_OUT_OF_HOST_MEMORY != err).Text( \"Failed to write to buffer: out of host mem.\");");
 #endif
   o.write("JASSERT(CL_SUCCESS == err)(err).Text( \"Failed to write to buffer.\");");
   o.write( "return NULL;" );

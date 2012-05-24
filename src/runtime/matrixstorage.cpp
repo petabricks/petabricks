@@ -34,10 +34,28 @@
 petabricks::CopyPendingMap petabricks::CopyPendingMap::_pendingMap;
 
 void petabricks::MatrixStorageInfo::modifyOnCpu(IndexT firstRow){
-  if(storage())
+  //if(storage())
     //std::cout << "+++ modifyOnCpu: " << &(*this) << " _storage = " << &(*storage()) << ", row = " << firstRow << std::endl;
   if(firstRow < _firstRowOnCpu)
     _firstRowOnCpu = firstRow;
+
+  if(storage()) {
+    //storage()->lockStorage();
+    storage()->lock();
+    std::set<MatrixStorageInfoPtr>& storings = CopyPendingMap::_pendingMap.allStoring(storage());
+      std::set<MatrixStorageInfoPtr> stale;
+      for(std::set<MatrixStorageInfoPtr>::iterator it = storings.begin(); it != storings.end(); ++it) {
+	if(equal(*it) && firstRow < (*it)->_lastRowOnGpu) {
+	  stale.insert(*it);
+	}
+      }
+      
+      for(std::set<MatrixStorageInfoPtr>::iterator it = stale.begin(); it != stale.end(); ++it) {
+	storings.erase(*it);
+      }
+    //storage()->unlockStorage();
+    storage()->unlock();
+  }
 }
 
 void petabricks::MatrixStorage::updateDataFromGpu(IndexT firstRow){
@@ -225,43 +243,52 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
 
   if(storage()) {
     storage()->lock();
-    std::set<MatrixStorageInfoPtr>& set = CopyPendingMap::_pendingMap.allPendings(storage());
-    std::set<MatrixStorageInfoPtr>::iterator first = set.begin();
+    bool findMem = false;
+    MatrixStorageInfoPtr fromInfo;
+    int pendingsize = 0;
 
-    // if(set.size() > 0)
-    // std::cout << "get exist GPU meme: " << &(*this) << " _storage = " << &(*storage()) << ", first->_lastRowOnGpu = " << (*first)->_lastRowOnGpu << ", upperbound = " << upperbound << ", set.size() = " << set.size()  << std::endl;
+    {
+      std::set<MatrixStorageInfoPtr>& set = CopyPendingMap::_pendingMap.allPendings(storage());
+      pendingsize = set.size();
+
+      for(std::set<MatrixStorageInfoPtr>::iterator it = set.begin(); it != set.end(); ++it) {
+	if(equal(*it) && (*it)->_lastRowOnGpu >= upperbound) {
+	  findMem = true;
+	  fromInfo = *it;
+	}
+      }
+    }
+    if(!findMem) {
+      std::set<MatrixStorageInfoPtr>& set = CopyPendingMap::_pendingMap.allStoring(storage());
+
+      for(std::set<MatrixStorageInfoPtr>::iterator it = set.begin(); it != set.end(); ++it) {
+	if(equal(*it) && (*it)->_lastRowOnGpu >= upperbound) {
+	  findMem = true;
+	  fromInfo = *it;
+	}
+      }
+    }
     
-    if(set.size() == 1 && equal(*first)
-       && (*first)->_lastRowOnGpu >= upperbound) { 
+    if(findMem) { 
       // If 1) there is already buffer on GPU and there is one copy of it 2) the buffer is big enough to hold all data
       // then we will resuer this buffer.
       
 #ifdef GPU_TRACE
       std::cout << "initGpu: obtain existing cl_mem ^^" << std::endl;
-      std::cout << "initGpu: lastRowOnGpu = " << (*first)->_lastRowOnGpu << " , firstRowOnCpu = " << (*first)->_firstRowOnCpu << std::endl;
+      std::cout << "initGpu: lastRowOnGpu = " << fromInfo->_lastRowOnGpu << " , firstRowOnCpu = " << fromInfo->_firstRowOnCpu << std::endl;
 #endif
 
-      setClMemWrapper((*first)->getClMemWrapper());
-      _lastRowOnGpu = (*first)->_lastRowOnGpu;
-      /*if(out){
-      // for output buffer, transfer all data to the current one 
-      // and remove the old one from the pendingMap
-      _begins = (*first)->getBegins();
-      _ends = (*first)->getEnds();
-      _coverage = (*first)->coverage();
-      //_gpuInputBuffers = (*first)->getGpuInputBuffers();
-      (*first)->resetPending();
-      CopyPendingMap::_pendingMap.clearPendings(storage());
-      }*/
+      setClMemWrapper(fromInfo->getClMemWrapper());
+      _lastRowOnGpu = fromInfo->_lastRowOnGpu;
       storage()->unlock();
-      //CopyoutInfoPtr info = new CopyoutInfo(queue, this, _begins, _ends, _coverage);
+
       _hasGpuMem = true;
 
 #ifdef DEBUG
       JASSERT(_dimensions == 0 || _lastRowOnGpu <= _sizes[_dimensions - 1])(_lastRowOnGpu)( _sizes[_dimensions - 1])(_dimensions);
 #endif
 
-      if((*first)->_lastRowOnGpu <= this->_firstRowOnCpu && (*first)->_lastRowOnGpu <= (*first)->_firstRowOnCpu) {
+      if(fromInfo->_lastRowOnGpu <= this->_firstRowOnCpu && fromInfo->_lastRowOnGpu <= fromInfo->_firstRowOnCpu) {
 	// don't have to copy in
 	return false;
       }
@@ -277,7 +304,7 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
     } //end if size == 1
     storage()->unlock();
 
-    if(set.size() > 0) {
+    if(pendingsize > 0) {
       // If there is remining data on GPU, need to update data on CPU first
       storage()->updateDataFromGpu();
     }
@@ -411,17 +438,22 @@ void petabricks::MatrixStorageInfo::startReadBuffer(cl_command_queue& queue, std
   // TODO: wrong
   if(now) {
     CopyoutInfoPtr info = new CopyoutInfo(queue, this, _begins, _ends, _coverage);
-    for(std::set<int>::iterator node = doneNodes.begin(); node != doneNodes.end(); ++node) {
-      _doneCompleteNodes.push_back(*node);
+    for(std::set<int>::iterator node = doneNodes.begin(); node != doneNodes.end(); ++node) {      _doneCompleteNodes.push_back(*node);
       _copyMap[*node] = info;
       for(NodeGroups::iterator group = _completeGroups.begin(); group != _completeGroups.end(); ++group) {
         group->erase(*node);
       }
     }
+    if(_coverage == countOnGpu()) {
+      storage()->lock();
+      CopyPendingMap::_pendingMap.putInStorage(this);
+      storage()->unlock();
+    }
     resetPending();
   }
   else if(_coverage != countOnGpu()) {
     // If don't cover the whole matrix, need to process pending copy-out
+    std::cout << "coverage = " << _coverage << ", countOnGpu = " << countOnGpu() << std::endl;
     storage()->lock();
     CopyPendingMap::_pendingMap.put(this);
     storage()->unlock();
