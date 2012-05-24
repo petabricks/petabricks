@@ -266,12 +266,13 @@ void petabricks::BasicChoiceDepGraphNode::fixVersionedRegionsType() {
 
 petabricks::RegionList petabricks::BasicChoiceDepGraphNode::getFromRegion(const RuleChoiceAssignment& choice) const {
   RulePtr rule = choice.find(this)->second;
-  if(!rule->isEnabledGpuRule()){
-    return rule->getFromRegions();
-  }
-  else{
-    return petabricks::RegionList();
-  } 
+  return rule->getFromRegions();
+  // if(!rule->isEnabledGpuRule()){
+  //   return rule->getFromRegions();
+  // }
+  // else{
+  //   return petabricks::RegionList();
+  // } 
 }
 
 petabricks::RegionSet petabricks::BasicChoiceDepGraphNode::getFromRegionOnCpu(const RuleChoiceAssignment& choice) const {
@@ -384,12 +385,13 @@ void petabricks::MultiOutputChoiceDepGraphNode::generateCode(Transform& trans, C
 
 petabricks::RegionList petabricks::MultiOutputChoiceDepGraphNode::getFromRegion(const RuleChoiceAssignment& choice) const {
   RulePtr rule = choice.find(*_originalNodes.begin())->second;
-  if(!rule->isEnabledGpuRule()){
-    return rule->getFromRegions();
-  }
-  else{
-    return petabricks::RegionList();
-  } 
+  return rule->getFromRegions();
+  // if(!rule->isEnabledGpuRule()){
+  //   return rule->getFromRegions();
+  // }
+  // else{
+  //   return petabricks::RegionList();
+  // } 
 }
 
 petabricks::RegionSet petabricks::MultiOutputChoiceDepGraphNode::getFromRegionOnCpu(const RuleChoiceAssignment& choice) const {

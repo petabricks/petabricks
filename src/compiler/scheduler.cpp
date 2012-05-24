@@ -122,16 +122,15 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
       int overlappingDimensions = j->node().hasOverlappingRegionOnGpu(_choiceAssignment, *it);
       if(overlappingDimensions >= 0){
         // If there is overlapping, might need to copy out
-        if(overlappingDimensions == (*it)->numDimensions()) {
-          // If same, can be pended the copy out later
-          j->node().setPendingGpuCopyOut();
-	  //std::cout << "pending: node = " << j->node().id() << ", matrix = " << (*it)->name() << std::endl;
-        }
-        else {
-          // If dimension is not the same, have to copy out immediately
-	  // TODO: Really???
-          j->node().setGpuCopyOut();
-        }
+	j->node().setPendingGpuCopyOut();
+        // if(overlappingDimensions == (*it)->numDimensions()) {
+        //   // If same, can be pended the copy out later
+        //   j->node().setPendingGpuCopyOut();
+        // }
+        // else {
+        //   // If dimension is not the same, have to copy out immediately
+        //   j->node().setGpuCopyOut();
+        // }
         last = j;
         ids.push_back(j->node().id());
       }
@@ -144,6 +143,7 @@ void petabricks::Schedule::generateCode(Transform& trans, CodeGenerator& o, Rule
   for(ScheduleT::iterator i=_schedule.begin(); i!=_schedule.end(); ++i){
     std::set<std::string> matrices;
     RegionList from = i->node().getFromRegion(_choiceAssignment);
+    // getFromRegionOnCpu only returns the ones that will used on CPU for sure
     RegionSet fromOnCpu = i->node().getFromRegionOnCpu(_choiceAssignment);
 
     for(RegionList::iterator it = from.begin(); it != from.end(); ++it){

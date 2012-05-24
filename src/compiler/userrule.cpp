@@ -1401,20 +1401,23 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
   o.write("cl_int err = CL_SUCCESS;");
 
     RegionPtr rep = *(_to.begin());
-    o.os( ) << "size_t workdim[] = { ";
     if(isSingleCall()) {
-      o.os() << "1";
+      o.os( ) << "size_t worksize[] = {1};";
+      o.os( ) << "size_t workdim = 1;\n";
     }
     else if(rep->getRegionType() == Region::REGION_ROW) {
-      o.os( ) << rep->matrix( )->name( ) << ".size(1)";
+      o.os( ) << "size_t worksize[] = {" << rep->matrix( )->name( ) << ".size(1)};";
+      o.os( ) << "size_t workdim = 1;\n";
     }
     else if(rep->getRegionType() == Region::REGION_COL) {
-      o.os( ) << rep->matrix( )->name( ) << ".size(0)";
+      o.os( ) << "size_t worksize[] = {" << rep->matrix( )->name( ) << ".size(0)};";
+      o.os( ) << "size_t workdim = 1;\n";
     }
     else if(rep->getRegionType() == Region::REGION_BOX) {
       UNIMPLEMENTED();
     }
     else {
+      o.os( ) << "size_t worksize[] = { ";
       for( int i = 0; i < iterdef.dimensions( ); ++i )
       {
         if(i > 0) {
@@ -1422,8 +1425,9 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
         }
         o.os( ) << rep->matrix( )->name( ) << ".size(" << i << ")";
       }
+      o.os( ) << "};\n";
+      o.os( ) << "size_t workdim = " << iterdef.dimensions( ) << ";\n";
     }
-    o.os( ) << "};\n";
 
   // Choose between local mem or global mem.
   if(canUseLocalMemory() && iterdef.dimensions() >= 1 && iterdef.dimensions() <= 2) {    o.os() << "cl_kernel clkern;\n";
@@ -1431,10 +1435,10 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
     o.write("std::cout << \"opencl_blocksize \" << opencl_blocksize << std::endl;");
 #endif
     if(iterdef.dimensions( ) == 1) {
-      o.os() << "if(opencl_blocksize > 0 && workdim[0] % opencl_blocksize*opencl_blocksize == 0) {";
+      o.os() << "if(opencl_blocksize > 0 && worksize[0] % opencl_blocksize*opencl_blocksize == 0) {";
     }
     else {
-      o.os() << "if(opencl_blocksize > 0 && workdim[0] % opencl_blocksize == 0 && workdim[1] % opencl_blocksize == 0) {";
+      o.os() << "if(opencl_blocksize > 0 && worksize[0] % opencl_blocksize == 0 && worksize[1] % opencl_blocksize == 0) {";
     }
     o.os() << "clkern = " << "get_kernel_" << id() << "_local();\n";
 #ifdef GPU_TRACE
@@ -1521,25 +1525,25 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
 
   if(canUseLocalMemory() && iterdef.dimensions() >= 1 && iterdef.dimensions() <= 2) {
     if(iterdef.dimensions( ) == 1) {
-      o.os() << "if(opencl_blocksize > 0 && workdim[0] % opencl_blocksize*opencl_blocksize == 0) {\n";
+      o.os() << "if(opencl_blocksize > 0 && worksize[0] % opencl_blocksize*opencl_blocksize == 0) {\n";
       o.os( ) << "size_t localdim[] = {opencl_blocksize*opencl_blocksize};\n";
       o.os( ) << "int blocksize = opencl_blocksize*opencl_blocksize;\n";
     }
     else {
-      o.os() << "if(opencl_blocksize > 0 && workdim[0] % opencl_blocksize == 0 && workdim[1] % opencl_blocksize == 0) {\n";
+      o.os() << "if(opencl_blocksize > 0 && worksize[0] % opencl_blocksize == 0 && worksize[1] % opencl_blocksize == 0) {\n";
       o.os( ) << "size_t localdim[] = {opencl_blocksize, opencl_blocksize};\n";
       o.os( ) << "int blocksize = opencl_blocksize;\n";
     }
 
     o.os( ) << "err = clSetKernelArg(clkern, " << arg_pos++ << ", sizeof(int), &blocksize);\n";
     o.os( ) << "JASSERT( CL_SUCCESS == err ).Text( \"Failed to bind kernel arguments.\" );\n\n";
-    o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, " << iterdef.dimensions( ) << ", 0, workdim, localdim, 0, NULL, NULL );\n";
+    o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, workdim, 0, worksize, localdim, 0, NULL, NULL );\n";
     o.os() << "} else {\n";
-    o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, " << iterdef.dimensions( ) << ", 0, workdim, NULL, 0, NULL, NULL );\n";
+    o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, workdim, 0, worksize, NULL, 0, NULL, NULL );\n";
     o.os() << "}\n";
   }
   else {
-    o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, " << iterdef.dimensions( ) << ", 0, workdim, NULL, 0, NULL, NULL );\n";
+    o.os( ) << "err = clEnqueueNDRangeKernel(GpuManager::_queue, clkern, workdim, 0, worksize, NULL, 0, NULL, NULL );\n";
   }
   o.write("clFinish(GpuManager::_queue);"); //TODO:clFlush but need to make sure we don't change kernel args before it runs
 
