@@ -213,13 +213,10 @@ public:
   }
 
   bool isDivisible() {  
-    //std::cout << "isDivisible: start" << std::endl;
+    //TODO: what about COL and ROW?
     IterationDefinition iterdef(*this, getSelfDependency(), isSingleCall());
     for(RegionList::iterator i=_to.begin(); i!=_to.end(); ++i){
-      //if(stencilType((*i)->matrix(),iterdef.dimensions()) == 0) {
-      //if((*i)->matrix()->numDimensions() != iterdef.dimensions()) {
-      if((*i)->getRegionType() == Region::REGION_ALL) {
-	//std::cout << (*i)->matrix()->name() << " not divisible!" << std::endl;
+      if((*i)->getRegionType() == Region::REGION_ALL || (*i)->getRegionType() == Region::REGION_COL) {
 	return false;
       }
     }
@@ -272,6 +269,15 @@ public:
       if(!_to[i]->isAll())
         return false;
     return true;
+  }
+
+  RegionPtr regionRep() {
+    RegionPtr rep = _to.front();
+    for( RegionList::const_iterator i = _to.begin( ); i != _to.end( ); ++i ) {
+      if((*i)->getRegionType() < rep->getRegionType())
+	rep = *i;
+    }
+    return rep;
   }
 
   ///

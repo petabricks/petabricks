@@ -1400,34 +1400,35 @@ void petabricks::UserRule::generateOpenCLRunCode(Transform& trans, CodeGenerator
   o.beginFunc("petabricks::DynamicTaskPtr", trampcodename(trans) + TX_OPENCL_POSTFIX + "_run", packedargs);
   o.write("cl_int err = CL_SUCCESS;");
 
-    RegionPtr rep = *(_to.begin());
-    if(isSingleCall()) {
-      o.os( ) << "size_t worksize[] = {1};";
-      o.os( ) << "size_t workdim = 1;\n";
-    }
-    else if(rep->getRegionType() == Region::REGION_ROW) {
-      o.os( ) << "size_t worksize[] = {" << rep->matrix( )->name( ) << ".size(1)};";
-      o.os( ) << "size_t workdim = 1;\n";
-    }
-    else if(rep->getRegionType() == Region::REGION_COL) {
-      o.os( ) << "size_t worksize[] = {" << rep->matrix( )->name( ) << ".size(0)};";
-      o.os( ) << "size_t workdim = 1;\n";
-    }
-    else if(rep->getRegionType() == Region::REGION_BOX) {
-      UNIMPLEMENTED();
-    }
-    else {
-      o.os( ) << "size_t worksize[] = { ";
-      for( int i = 0; i < iterdef.dimensions( ); ++i )
+  RegionPtr rep = regionRep();//*(_to.begin());
+  //if(isSingleCall()) {
+  if(rep->getRegionType() == Region::REGION_ALL) {
+    o.os( ) << "size_t worksize[] = {1};\n";
+    o.os( ) << "size_t workdim = 1;\n";
+  }
+  else if(rep->getRegionType() == Region::REGION_ROW) {
+    o.os( ) << "size_t worksize[] = {" << rep->matrix( )->name( ) << ".size(1)};\n";
+    o.os( ) << "size_t workdim = 1;\n";
+  }
+  else if(rep->getRegionType() == Region::REGION_COL) {
+    o.os( ) << "size_t worksize[] = {" << rep->matrix( )->name( ) << ".size(0)};\n";
+    o.os( ) << "size_t workdim = 1;\n";
+  }
+  else if(rep->getRegionType() == Region::REGION_CELL) {
+    o.os( ) << "size_t worksize[] = { ";
+    for( int i = 0; i < iterdef.dimensions( ); ++i )
       {
         if(i > 0) {
           o.os() << ", ";
         }
         o.os( ) << rep->matrix( )->name( ) << ".size(" << i << ")";
       }
-      o.os( ) << "};\n";
-      o.os( ) << "size_t workdim = " << iterdef.dimensions( ) << ";\n";
-    }
+    o.os( ) << "};\n";
+    o.os( ) << "size_t workdim = " << iterdef.dimensions( ) << ";\n";
+  }
+  else {
+    UNIMPLEMENTED();
+  }
 
   // Choose between local mem or global mem.
   if(canUseLocalMemory() && iterdef.dimensions() >= 1 && iterdef.dimensions() <= 2) {    o.os() << "cl_kernel clkern;\n";
