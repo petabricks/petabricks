@@ -141,11 +141,6 @@ class Population:
           continue
         else:
           return tries
-
-      if c.config in self.triedConfigs and c.lastMutator:
-        c.lastMutator.result('fail')
-        continue
-      self.triedConfigs.add(c.config)
       try:
         self.testers[-1].testN(c, config.min_trials, limit=p.reasonableLimit(self.inputSize()))
         if self.birthFilter(p,c):
@@ -327,7 +322,6 @@ class Population:
     try:
       #os.system("find /tmp -name 'OCL*.so' -user mangpo -maxdepth 1 -delete")
       self.roundNumber += 1
-      self.triedConfigs = set(map(lambda x: x.config, self.members))
       self.removed  = []
       self.notadded = []
       self.failed   = set()
@@ -356,12 +350,6 @@ class Population:
       if not config.delete_output_dir:
         for m in self.members+self.removed:
           m.writestats(self.inputSize())
-        if config.mutatorlog:
-          mutators = set()
-          for c in self.members:
-            mutators |= set(c.mutators)
-          for m in mutators:
-            m.writelog(self.roundNumber, self.inputSize())
 
     except candidatetester.InputGenerationException, e:
       if e.testNumber==0 and self.inputSize()<=config.min_input_size_nocrash:

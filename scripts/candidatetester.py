@@ -7,6 +7,7 @@ import storagedirs
 import tunerwarnings 
 import platform
 import numpy
+from copy import deepcopy
 from storagedirs import timers
 from scipy import stats
 from tunerconfig import config, OperatorSelectionMethod
@@ -275,16 +276,7 @@ class Candidate:
     return "Candidate%d"%self.cid
 
   def clone(self):
-    '''
-    this creates ResultDB *references*, not copies
-    so new results will be added to both algs
-    use clearResults to remove the copies
-    '''
-    t=Candidate(self.config, self.infoxml, self.mutators, self.pop)
-    for i in xrange(len(self.metrics)):
-      for n in self.metrics[i].keys():
-        t.metrics[i][n] = self.metrics[i][n]
-    return t
+    return Candidate(deepcopy(self.config), self.infoxml, self.mutators, self.pop)
 
   def clearResultsAbove(self, val):
     for i in xrange(len(self.metrics)):
@@ -633,7 +625,7 @@ class CandidateTester:
 
   def nextTester(self):
     return CandidateTester(self.app, (self.n-config.offset)*2, self.args)
-  
+
   def testN(self, candidate, trials, limit=None):
     for x in xrange(trials - candidate.numTests(self.n)):
       self.test(candidate, limit)
