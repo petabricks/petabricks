@@ -315,7 +315,6 @@ bool petabricks::MatrixStorageInfo::initGpuMem(cl_command_queue& queue, cl_conte
       
       // Use host ptr without creating new buffer to avoid extra copy when running on CPU.
       cl_int err;
-      std::cout << &(*this) << " use_host_ptr" << std::endl;
       
       // Buffer on gpu and cpu will be the same, so first row on cpu is always the one after last row on gpu
       _lastRowOnGpu = upperbound;
@@ -453,7 +452,7 @@ void petabricks::MatrixStorageInfo::startReadBuffer(cl_command_queue& queue, std
   }
   else if(_coverage != countOnGpu()) {
     // If don't cover the whole matrix, need to process pending copy-out
-    std::cout << "coverage = " << _coverage << ", countOnGpu = " << countOnGpu() << std::endl;
+    //std::cout << "coverage = " << _coverage << ", countOnGpu = " << countOnGpu() << std::endl;
     storage()->lock();
     CopyPendingMap::_pendingMap.put(this);
     storage()->unlock();
@@ -486,7 +485,9 @@ bool petabricks::MatrixStorageInfo::equal(MatrixStorageInfoPtr that) {
       return false;
     }
   }
-  printf("equal\n");
+#ifdef GPU_TRACE
+  std::cout << "equal" << std::endl;
+#endif
   return true;
 }
 
