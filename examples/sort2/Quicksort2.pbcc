@@ -36,8 +36,12 @@ to OUT[n]
     }
     //JASSERT(l==r+1)(l)(r);
     out.cell(l) = pivot;
-    spawn Sort(out.region(0, l), tmp.region(0, l));
-    spawn Sort(out.region(l+1, n), tmp.region(l, n-1));
+    if (l > 0) {
+      spawn Sort(out.region(0, l), tmp.region(0, l));
+    }
+    if (l < n-1) {
+      spawn Sort(out.region(l+1, n), tmp.region(l, n-1));
+    }
   }
 }
 
