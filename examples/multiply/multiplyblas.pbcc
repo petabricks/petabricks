@@ -98,7 +98,7 @@ void gemm_wrap(const int M, const int N, const int K, const float alpha, const f
 }
 
 void gemm_wrap(const int M, const int N, const int K, const double alpha, const double * A, const int lda, const double * B, const int ldb, const double beta, double * C, const int ldc) {
-  printf("%d %d %d \n", M, N, K);
+  // printf("%d %d %d \n", M, N, K);
   cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, M, N, K, alpha, A, lda, B, ldb, beta, C, ldc);
 }
 %}
@@ -236,7 +236,7 @@ to C[w,h]
 transform MatrixMultiplyInner
 from A[k,h], B[w,k]
 to C[w,h]
-tunable blasBlockCutoff
+tunable blasBlockCutoff (1, 1, 99999)
 {
   to(C c)
   from( A a, B b )
