@@ -10,6 +10,7 @@ import numpy
 from copy import deepcopy
 from storagedirs import timers
 from scipy import stats
+from collections import defaultdict
 from tunerconfig import config, OperatorSelectionMethod
 from tunerwarnings import ComparisonFailed, InconsistentOutput
 import mutators
@@ -224,7 +225,7 @@ class ResultsDB:
   def __getitem__(self, n):
     try:
       return self.nToResults[n]
-    except:
+    except KeyError:
       self.nToResults[n]=Results()
       return self[n]
   

@@ -16,7 +16,7 @@ from candidatetester import Candidate, CandidateTester
 from mutators import MutateFailed
 from traininginfo import TrainingInfo
 from tunerconfig import config, option_callback
-from tunerwarnings import InitialProgramCrash,ExistingProgramCrash,NewProgramCrash,TargetNotMet
+from tunerwarnings import ExistingProgramCrash,NewProgramCrash,TargetNotMet
 from storagedirs import timers
 from highlevelconfig import HighLevelConfig
 import tunerwarnings
@@ -39,7 +39,7 @@ def mainname(cmd):
   return lines[-1].strip()
 
 class Population:
-  def __init__(self, initial, tester, baseline, hlconfig):
+  def __init__(self, initial, tester, hlconfig):
     self.initial  = initial
     self.members  = [initial.clone()]
     self.best     = None
@@ -47,7 +47,6 @@ class Population:
     self.removed  = []
     self.failed   = set()
     self.testers  = [tester]
-    self.baseline = baseline
     self.roundNumber = -1
     self.firstRound = True
     self.hlconfig = hlconfig
@@ -73,18 +72,20 @@ class Population:
     for z in xrange(count):
       tests.extend(self.members)
     #random.shuffle(tests)
-    for m in tests:
-      check_timeout()
-      if m not in self.failed and m.numTests(self.inputSize())<config.max_trials:
-        try:
-          self.testers[-1].test(candidate=m, limit=self.reasonableLimit())
-        except candidatetester.CrashException, e:
-          if m.numTotalTests()==0:
-            warnings.warn(InitialProgramCrash(e))
-          else:
-            warnings.warn(ExistingProgramCrash(e))
-          self.failed.add(m)
-          self.members.remove(m)
+    with progress.Scope(cnt=len(tests)) as pr:
+      for m in tests:
+        check_timeout()
+        if m not in self.failed and m.numTests(self.inputSize())<config.max_trials:
+          try:
+            self.testers[-1].test(candidate=m, limit=self.reasonableLimit())
+          except candidatetester.CrashException, e:
+            if m.numTotalTests()==0:
+              warnings.warn(NewProgramCrash(e))
+            else:
+              warnings.warn(ExistingProgramCrash(e))
+            self.failed.add(m)
+            self.members.remove(m)
+          pr()
 
   def reasonableLimit(self):
     if config.accuracy_target is not None:
@@ -125,7 +126,6 @@ class Population:
     totalMutators = self.countMutators(mutatorFilter)
     tries = float(totalMutators)*config.mutations_per_mutator
     while tries>0:
-      progress.remaining(tries)
       check_timeout()
       tries-=1
       if maxpopsize and len(self.members) >= maxpopsize:
@@ -196,6 +196,8 @@ class Population:
 
   def sortMembers(self):
     self.members.sort(key=self.sortkey)
+    if self.members:
+      self.best = self.members[0]
       
   def onMembersChanged(self, endOfRound):
     if config.candidatelog and len(self.members):
@@ -295,9 +297,7 @@ class Population:
   def printPopulation(self):
     print "round n = %d"%self.inputSize()
     for m in self.members:
-      if self.baseline is not None:
-        self.testers[-1].testN(self.baseline, config.min_trials)
-      print "  * ", m, m.resultsStr(self.inputSize(), self.baseline)
+      print "  * ", m, m.resultsStr(self.inputSize(), None)
 
   def next_population(self):
     n = config.population_size
@@ -318,47 +318,46 @@ class Population:
     return self.members[min(random.sample(range(len(self.members)), config.tournament_size))]
 
   def generation(self):
-    progress.push()
-    try:
-      #os.system("find /tmp -name 'OCL*.so' -user mangpo -maxdepth 1 -delete")
-      self.roundNumber += 1
-      self.removed  = []
-      self.notadded = []
-      self.failed   = set()
-  
-      self.members = self.next_population()
+    with progress.Scope('autotuning %s generation %d, input size %d' % (config.benchmark, self.roundNumber+1, self.inputSize())):
+      try:
+        #os.system("find /tmp -name 'OCL*.so' -user mangpo -maxdepth 1 -delete")
+        self.roundNumber += 1
+        self.removed  = []
+        self.notadded = []
+        self.failed   = set()
+    
+        self.members = self.next_population()
 
-      self.test(config.min_trials)
-      self.failed = self.failed.union(set(filter(lambda x: x.numTests(self.inputSize())<=x.numTimeouts(self.inputSize()),
-                                self.members)))
-      self.members = filter(lambda x: x.numTests(self.inputSize())> x.numTimeouts(self.inputSize()), self.members)
 
-      if len(self.members):
-        self.firstRound=False
-      elif self.firstRound and len(self.failed) and config.min_input_size_nocrash>=self.inputSize():
-        self.members = list(self.failed)
+        self.test(config.min_trials)
+        self.failed = self.failed.union(set(filter(lambda x: x.numTests(self.inputSize())<=x.numTimeouts(self.inputSize()),
+                                  self.members)))
+        self.members = filter(lambda x: x.numTests(self.inputSize())> x.numTimeouts(self.inputSize()), self.members)
+
+        if len(self.members):
+          self.firstRound=False
+        elif self.firstRound and len(self.failed) and config.min_input_size_nocrash>=self.inputSize():
+          self.members = list(self.failed)
+          if config.print_log:
+            print "skip generation n = ",self.inputSize(),"(program run failed)"
+        else:
+          warnings.warn(tunerwarnings.AlwaysCrashes())
+        
+        self.sortMembers()
+
         if config.print_log:
-          print "skip generation n = ",self.inputSize(),"(program run failed)"
-      else:
-        warnings.warn(tunerwarnings.AlwaysCrashes())
-      
-      self.sortMembers()
+          self.printPopulation()
+        
+        if not config.delete_output_dir:
+          for m in self.members+self.removed:
+            m.writestats(self.inputSize())
 
-      if config.print_log:
-        self.printPopulation()
-      
-      if not config.delete_output_dir:
-        for m in self.members+self.removed:
-          m.writestats(self.inputSize())
-
-    except candidatetester.InputGenerationException, e:
-      if e.testNumber==0 and self.inputSize()<=config.min_input_size_nocrash:
-        if config.print_log:
-          print "skip generation n = ",self.inputSize(),"(input generation failure)"
-      else:
-        warnings.warn(tunerwarnings.AlwaysCrashes())
-    finally:
-      progress.pop()
+      except candidatetester.InputGenerationException, e:
+        if e.testNumber==0 and self.inputSize()<=config.min_input_size_nocrash:
+          if config.print_log:
+            print "skip generation n = ",self.inputSize(),"(input generation failure)"
+        else:
+          warnings.warn(tunerwarnings.AlwaysCrashes())
 
   def nextInputSize(self):
     self.testers[-1].cleanup()
@@ -545,70 +544,66 @@ def autotuneInner(benchmark, returnBest=None):
   """Function running the autotuning process.
 If returnBest is specified, it should be a list. The best candidate found will 
 be added to that list"""
-  progress.push()
-  config.benchmark = benchmark
-  candidate, tester, hlconfig = init(benchmark)
-  try:
-    pop = Population(candidate, tester, None, hlconfig)
-    candidate.pop = pop
-    
-    if not pop.isVariableAccuracy() and config.accuracy_target:
-      logging.info("clearing accuracy_target")
-      config.accuracy_target = None
-
-    stats = storagedirs.openCsvStats("roundstats", 
-        ("round",
-         "input_size",
-         "cumulative_sec",
-         "incremental_sec",
-         "testing_sec",
-         "inputgen_sec")+pop.statsHeader())
-    timers.total.start()
-    config.end_time = time.time() + config.max_time
+  with progress.Scope("autotuning "+benchmark, math.log(config.max_input_size,2)+config.final_rounds) as pr:
+    config.benchmark = benchmark
+    candidate, tester, hlconfig = init(benchmark)
     try:
-      progress.remaining(config.max_input_size*(1+config.final_rounds))
-      while pop.inputSize() < config.max_input_size:
-        progress.status("autotuning %s: input %d of %d" % (config.benchmark, pop.inputSize(), config.max_input_size))
-        pop.generation()
-        stats.writerow((pop.roundNumber,
-                        pop.inputSize(),
-                        timers.total.total(),
-                        timers.total.lap(),
-                        timers.testing.lap(),
-                        timers.inputgen.lap())+pop.stats())
-        pop.nextInputSize()
-        progress.remaining(config.max_input_size - pop.inputSize() + config.max_input_size*config.final_rounds)
-      for z in xrange(config.final_rounds):
-        pop.generation()
-        stats.writerow((pop.roundNumber,
-                        pop.inputSize(),
-                        timers.total.total(),
-                        timers.total.lap(),
-                        timers.testing.lap(),
-                        timers.inputgen.lap())+pop.stats())
-        progress.remaining((config.final_rounds - z)*config.max_input_size)
-    except TrainingTimeout:
-      pass
-    timers.total.stop()
-
-    #check to make sure we did something:
-    if pop.firstRound:
-      warnings.warn(tunerwarnings.AlwaysCrashes())
+      pop = Population(candidate, tester, hlconfig)
       
-    logging.info("TODO: using acc target: "+str(config.accuracy_target))
-    return pop.best
-  finally:
-    if pop.best and config.output_cfg:
-      print pop.best.cfgfile(),"=>" , config.output_cfg
-      shutil.copyfile(pop.best.cfgfile(), config.output_cfg)
-    if pop.best and returnBest is not None:
-      returnBest.append(pop.best)
-    at = storagedirs.getactivetimers()
-    if len(at):
-      storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
-    if tester:
-      tester.cleanup()
-    progress.pop()
+      if not pop.isVariableAccuracy() and config.accuracy_target:
+        logging.info("clearing accuracy_target")
+        config.accuracy_target = None
+
+      stats = storagedirs.openCsvStats("roundstats", 
+          ("round",
+           "input_size",
+           "cumulative_sec",
+           "incremental_sec",
+           "testing_sec",
+           "inputgen_sec")+pop.statsHeader())
+      timers.total.start()
+      config.end_time = time.time() + config.max_time
+      try:
+        while pop.inputSize() < config.max_input_size:
+          pop.generation()
+          pr()
+          stats.writerow((pop.roundNumber,
+                          pop.inputSize(),
+                          timers.total.total(),
+                          timers.total.lap(),
+                          timers.testing.lap(),
+                          timers.inputgen.lap())+pop.stats())
+          pop.nextInputSize()
+        for z in xrange(config.final_rounds):
+          pop.generation()
+          pr()
+          stats.writerow((pop.roundNumber,
+                          pop.inputSize(),
+                          timers.total.total(),
+                          timers.total.lap(),
+                          timers.testing.lap(),
+                          timers.inputgen.lap())+pop.stats())
+      except TrainingTimeout:
+        pass
+      timers.total.stop()
+
+      #check to make sure we did something:
+      if pop.firstRound:
+        warnings.warn(tunerwarnings.AlwaysCrashes())
+        
+      logging.info("TODO: using acc target: "+str(config.accuracy_target))
+      return pop.best
+    finally:
+      if pop.best and config.output_cfg:
+        print pop.best.cfgfile(),"=>" , config.output_cfg
+        shutil.copyfile(pop.best.cfgfile(), config.output_cfg)
+      if pop.best and returnBest is not None:
+        returnBest.append(pop.best)
+      at = storagedirs.getactivetimers()
+      if len(at):
+        storagedirs.openCsvStats("timers", at.keys()).writerow(at.values())
+      if tester:
+        tester.cleanup()
 
 def autotune(benchmark, returnBest=None):
   return storagedirs.callWithLogDir(lambda: autotuneInner(benchmark, returnBest),

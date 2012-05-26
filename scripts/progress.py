@@ -23,11 +23,17 @@ class StatusWrapper:
       if m == "":
         sys.__stderr__.write("\r")
       self.displayed=m
+
+  def has_displayed(self):
+    return self.displayed!=""
+
   def flush(self):
     self.fd.flush()
 
 sys.stderr = StatusWrapper(sys.stderr)
 setstatusline = lambda s: sys.stderr.status(s)
+#setstatusline = lambda s: None
+hasdisplayed = sys.stderr.has_displayed
 currentline = lambda: 0
 replaceline = None
 
@@ -111,21 +117,32 @@ class Progress:
     else:
       return self.endPercent()
 
+  def progressStr(self):
+    if self.parent:
+      m = self.parent.progressStr()
+    else:
+      m = ""
+    if self.maxRemaining>0:
+      m += "[%d/%d]" % (self.maxRemaining-self.curRemaining, self.maxRemaining)
+    return m
+
   def getStatus(self):
     if type(self.curMsg) is type(lambda:""):
-      return " - "+self.curMsg()
+      return self.curMsg()
     if len(self.curMsg)>0:
-      return " - "+self.curMsg
+      return self.curMsg
     if self.parent is not None:
       return self.parent.getStatus()
     return ""
 
   def update(self):
-    p = self.percent()
-    if p>0:
-      m = prettybar(p)
-    else:
-      m = ""
+    #p = self.percent()
+    #if p>0:
+    #  m = prettybar(p)
+    #else:
+    #  m = ""
+    m = self.progressStr()
+    m += " "
     m += self.getStatus()
     if self.hasParent() and self.maxRemaining>=0:
       m+=" (%.0f%%)"%self.localPercent()
@@ -161,7 +178,8 @@ def pop():
   global current
   clear()
   current=current.parent
-  current.update()
+  if hasdisplayed():
+    current.update()
 
 def subtask(n, fn):
   if n>0:
@@ -273,9 +291,27 @@ def disable():
   global setstatusline
   setstatusline = lambda s: None
 
+class Scope:
+  def __init__(self, msg=None, cnt=None):
+    self.msg=msg
+    self.cnt=cnt
+
+  def __enter__(self):
+    push()
+    if self.msg:
+      status(self.msg)
+    if self.cnt:
+      remainingTicks(self.cnt)
+    return self
+
+  def __exit__(self, type, value, traceback):
+    pop()
+
+  def __call__(self):
+    tick()
+
 if __name__ == "__main__":
   test()
   curseswrapper(test)
-
 
 

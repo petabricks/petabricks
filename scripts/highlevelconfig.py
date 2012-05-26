@@ -178,14 +178,15 @@ class Ignore(Item):
   def randomize(self, cfg, n):
     pass
 
-configctor = {'algchoice.alg'                 : None,
-              'algchoice.cutoff'              : None,
+configctor = {'algchoice.alg'                 : None,#handled in selector creation cod
+              'algchoice.cutoff'              : None,#handled in selector creation cod
               'system.runtime.threads'        : Ignore,
               'system.cutoff.distributed'     : Cutoff,
               'system.cutoff.sequential'      : Cutoff,
               'system.cutoff.splitsize'       : Cutoff,
               'system.tunable.accuracy.array' : SynthesizedFunction,
               'user.tunable.accuracy.array'   : SynthesizedFunction,
+              'user.tunable.array'            : SynthesizedFunction,
               'system.flag.unrollschedule'    : Switch,
   }
 
@@ -199,6 +200,9 @@ class HighLevelConfig(object):
       self.items.append(Selector(info, ac['name'], ac['rules']))
 
     for t in tunables.values():
+      if t['type'] not in configctor.keys():
+        logging.error("tunable type %s unknown" % t['type'])
+        continue
       if configctor[t['type']] is not None:
         self.items.append(configctor[t['type']](info=info,
                                                 name=t['name'],

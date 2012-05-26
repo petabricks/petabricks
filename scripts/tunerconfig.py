@@ -17,7 +17,7 @@ class config_defaults:
   #number of trials to run
   confidence_pct   = 0.75
   min_trials       = 1
-  max_trials       = 10
+  max_trials       = 5
   '''guessed stddev when only 1 test is taken'''
   prior_stddev_pct      = 0.15
   '''percentage change to be viewed as insignificant when testing if two algs are equal'''
