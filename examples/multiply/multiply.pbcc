@@ -1,28 +1,122 @@
 #ifndef MULTIPLY_PBCC
 #define MULTIPLY_PBCC
-#include "multiplyAdd.pbcc"
 
-transform MatrixMultiplyGenerator
-to A[n,n], B[n,n]
-{
-  to (A.cell(i,j) a, B.cell(i,j) b) from ()
-  {
-    a = PetabricksRuntime::randNormal(0, 1);
-    b = PetabricksRuntime::randNormal(0, 1);
+#include "../simple/add.pbcc"
+#include "../simple/transpose.pbcc"
+//#include "multiplyAdd.pbcc"
+
+%{
+
+template < typename T >
+inline ElementT *toArray(const T&matrix) {
+  ElementT *array;
+
+  IndexT rows = matrix.height();
+  IndexT columns = matrix.width();
+
+  array = new ElementT[rows * columns];
+
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      array[i*columns + j] = matrix.cell(j,i);
+    }
   }
+
+  return array;
 }
 
-// Computes C = A * B.  Special case of matrix-multiply-add transform, with
-// ALPHA = 1, BETA = 0.
+template < typename T >
+inline void toMatrix(ElementT* array, T&matrix) {
+  IndexT rows = matrix.height();
+  IndexT columns = matrix.width();
+
+  for(IndexT i=0; i<rows; ++i) {
+    for(IndexT j=0; j<columns; ++j) {
+      matrix.cell(j,i) = array[i*columns + j];
+    }
+  }
+
+  return;
+}
+
+%}
+
+
+
 transform MatrixMultiply
-from A[k,m], B[n,k]
-to C[n,m]
-generator MatrixMultiplyGenerator
+from A[c,h], B[w,c] 
+to AB[w,h]
 {
+  //compute a cell the straightforward way
+  AB.cell(x,y) from(A.row(y) a, B.column(x) b){
+    ElementT sum=0;
+    for(IndexT i=0, w=a.width(); i<w; ++i)
+      sum+=a.cell(i)*b.cell(i);
+    return sum;
+  }
+  
 
-  to(C c) from(A a, B b) {
-    MatrixMultiplyAdd(c, 1, a, b, 0);
+ //to(AB c) from(A a, B b) {
+ //    MatrixMultiplyAdd(c, 1, a, b, 0);
+ //}
+  
+  to(AB ab) from (A a, B b) {
+    int rowA=a.height();
+    int colA=a.width();
+
+    int rowB=b.height();
+    int colB=b.width();
+
+    int rowAB=ab.height();
+    int colAB=ab.width();
+
+    double alpha=1;
+    double beta=0;
+    
+    if(colA != rowB) {
+      fprintf(stderr, "Unable to perform a matrix multiplication. Wrong input size.\n"
+	      "#columns of matrix A = %d\n"
+	      "#rows of matrix B = %d\n"
+	      "They should be equal!\n", colA, rowB);
+      exit(4);
+    }
+    
+    ElementT* arrayA = toArray(a);
+    ElementT* arrayB = toArray(b);
+    
+    
+    ElementT* arrayAB = new ElementT[rowAB*colAB];
+    
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, rowA, colB, rowB, alpha, arrayA, colA, arrayB, colB, beta, arrayAB, colAB);
+    
+    toMatrix(arrayAB, ab);
+    
+    delete arrayA;
+    delete arrayB;
+    delete arrayAB;
   }
 }
 
-#endif // MULTIPLY_PBCC
+transform MatrixMultiplyTransposed
+from A[n,n], B[n,n] 
+through T[n,n]
+to C[n,n]
+{
+  // no transpose
+  to(C c, T t) from(A a, B b) {
+    MatrixMultiply(c, a, b);
+  }
+  // transpose b
+  to(C c, T t) from(A a, B b) {
+    Transpose(t,b);
+    MatrixMultiply(c, a, t.transposed());
+  }
+  // transpose a
+  to(C c, T t) from(A a, B b) {
+    Transpose(t,a);
+    MatrixMultiply(c, t.transposed(), b);
+  }
+}
+
+#endif
+

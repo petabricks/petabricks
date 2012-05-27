@@ -187,6 +187,7 @@ configctor = {'algchoice.alg'                 : None,#handled in selector creati
               'system.tunable.accuracy.array' : SynthesizedFunction,
               'user.tunable.accuracy.array'   : SynthesizedFunction,
               'user.tunable.array'            : SynthesizedFunction,
+              'user.tunable'                  : Cutoff,
               'system.flag.unrollschedule'    : Switch,
   }
 
