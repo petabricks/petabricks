@@ -357,6 +357,7 @@ class Population:
         if e.testNumber==0 and self.inputSize()<=config.min_input_size_nocrash:
           if config.print_log:
             print "skip generation n = ",self.inputSize(),"(input generation failure)"
+            print e
         else:
           warnings.warn(tunerwarnings.AlwaysCrashes())
 
